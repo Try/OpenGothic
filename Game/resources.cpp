@@ -20,8 +20,6 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
   mainFnt = Font("data/font/main.ttf");
   mainFnt.setPixelSize(28);
 
-  gothicAssets.Init(nullptr);
-
   //__PHYSFS_platformEnumerate();
   addVdf("Data/Textures.vdf");
   addVdf("Data/Textures_Addon_Menu_English.vdf");
