@@ -1,0 +1,6 @@
+[submodule "lib/ZenLib"]
+	path = lib/ZenLib
+	url = https://github.com/degenerated1123/ZenLib.git
+[submodule "lib/MoltenTempest"]
+  path = lib/MoltenTempest
+  url = https://github.com/Try/MoltenTempest.git
