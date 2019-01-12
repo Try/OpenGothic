@@ -7,13 +7,13 @@
 #include <Tempest/Pen>
 #include <Tempest/Layout>
 
-#include "ui/mainmenu.h"
+#include "ui/gamemenu.h"
 #include "gothic.h"
 
 using namespace Tempest;
 
 MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
-  :Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),gothic(gothic) {
+  :Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),draw(device),gothic(gothic) {
   for(uint8_t i=0;i<device.maxFramesInFlight();++i){
     fLocal.emplace_back(device);
     commandBuffersSemaphores.emplace_back(device);
@@ -27,14 +27,45 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
 
 MainWindow::~MainWindow() {
   removeAllWidgets();
+  // unload
+  gothic.setWorld(World());
   }
 
 void MainWindow::setupUi() {
   setLayout(Horizontal);
-  addWidget(new MainMenu(gothic));
+  setMenu(new GameMenu(*this,gothic,"MENU_MAIN"));
   }
 
-void MainWindow::paintEvent(PaintEvent& event) {
+void MainWindow::setMenu(Widget *w) {
+  removeAllWidgets();
+  if(w)
+    addWidget(w);
+  }
+
+void MainWindow::pushMenu(Widget *w) {
+  if(widgetsCount()>0) {
+    auto sw = takeWidget(&widget(0));
+    menuStack.emplace_back(sw);
+    }
+  if(w)
+    addWidget(w);
+  }
+
+void MainWindow::popMenu() {
+  if(menuStack.size()==0)
+    return;
+  Widget* w = menuStack.back().release();
+
+  removeAllWidgets();
+  addWidget(w);
+
+  menuStack.pop_back();
+  }
+
+void MainWindow::paintEvent(PaintEvent& event) { 
+  if(!gothic.world().isEmpty())
+    return;
+
   Painter p(event);
 
   p.setBrush(Color(0.0));
@@ -44,9 +75,6 @@ void MainWindow::paintEvent(PaintEvent& event) {
   p.drawRect((w()-background.w())/2,(h()-background.h())/2,
              background.w(),background.h(),
              0,0,background.w(),background.h());
-
-  p.setBrush(Brush(spr));
-  p.drawRect(w()-spr.w(),h()-spr.h(),spr.w(),spr.h());
   }
 
 void MainWindow::resizeEvent(SizeEvent&) {
@@ -55,7 +83,7 @@ void MainWindow::resizeEvent(SizeEvent&) {
   }
 
 void MainWindow::mouseMoveEvent(MouseEvent &event) {
-  mpos=event.pos();
+  event.accept();
   }
 
 void MainWindow::initSwapchain(){
@@ -63,7 +91,7 @@ void MainWindow::initSwapchain(){
   commandDynamic.clear();
   fbo.clear();
 
-  mainPass=device.pass(FboMode::PreserveOut,FboMode::Discard);
+  mainPass=device.pass(Color(0.f),FboMode::Discard);
 
   for(size_t i=0;i<imgC;++i) {
     Tempest::Frame frame=device.frame(i);
@@ -87,7 +115,10 @@ void MainWindow::render(){
 
     cmd.begin();
     cmd.beginRenderPass(fbo[imgId],mainPass,w(),h());
+
+    draw.draw(cmd,*this,gothic);
     surface.draw(device,cmd,mainPass);
+
     cmd.endRenderPass();
     cmd.end();
 

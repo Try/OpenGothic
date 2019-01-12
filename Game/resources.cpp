@@ -3,6 +3,7 @@
 #include <Tempest/MemReader>
 #include <Tempest/Pixmap>
 #include <Tempest/Device>
+#include <Tempest/Dir>
 
 #include "gothic.h"
 
@@ -15,15 +16,15 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
   inst=this;
 
   menuFnt = Font("data/font/menu.ttf");
-  menuFnt.setPixelSize(48);
+  menuFnt.setPixelSize(44);
 
   mainFnt = Font("data/font/main.ttf");
-  mainFnt.setPixelSize(28);
+  mainFnt.setPixelSize(24);
 
-  //__PHYSFS_platformEnumerate();
-  addVdf("Data/Textures.vdf");
-  addVdf("Data/Textures_Addon_Menu_English.vdf");
-
+  Dir::scan(gothic.path()+"Data/",[this](const std::string& vdf,Dir::FileType t){
+    if(t==Dir::FT_File)
+      gothicAssets.loadVDF(this->gothic.path() + "Data/" + vdf);
+    });
   gothicAssets.finalizeLoad();
   }
 
@@ -36,8 +37,8 @@ void Resources::addVdf(const char *vdf) {
   }
 
 Tempest::Texture2d Resources::implLoadTexture(const std::string& name) {
-  std::vector<uint8_t> data;
-  if(!gothicAssets.getFileData(name,data))
+  std::vector<uint8_t> data=getFileData(name);
+  if(data.empty())
     return Texture2d();
 
   try {
@@ -58,4 +59,20 @@ Tempest::Texture2d Resources::loadTexture(const char *name) {
 
 Tempest::Texture2d Resources::loadTexture(const std::string &name) {
   return inst->implLoadTexture(name);
+  }
+
+std::vector<uint8_t> Resources::getFileData(const char *name) {
+  std::vector<uint8_t> data;
+  inst->gothicAssets.getFileData(name,data);
+  return data;
+  }
+
+std::vector<uint8_t> Resources::getFileData(const std::string &name) {
+  std::vector<uint8_t> data;
+  inst->gothicAssets.getFileData(name,data);
+  return data;
+  }
+
+VDFS::FileIndex& Resources::vdfsIndex() {
+  return inst->gothicAssets;
   }

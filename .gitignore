@@ -10,3 +10,6 @@
 
 # IDE
 CMakeLists.txt.user
+
+# Build-dir
+build/

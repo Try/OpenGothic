@@ -22,6 +22,7 @@
 
 #include <vector>
 
+#include "graphics/renderer.h"
 #include "resources.h"
 
 class Gothic;
@@ -30,6 +31,10 @@ class MainWindow : public Tempest::Window {
   public:
     explicit MainWindow(Gothic& gothic,Tempest::VulkanApi& api);
     ~MainWindow() override;
+
+    void setMenu(Widget* w);
+    void pushMenu(Widget* w);
+    void popMenu();
 
   private:
     void paintEvent    (Tempest::PaintEvent& event) override;
@@ -46,12 +51,13 @@ class MainWindow : public Tempest::Window {
     Resources             resources;
 
     Tempest::Font         font;
-    Tempest::Sprite       spr;
 
     Tempest::RenderPass  mainPass;
     Tempest::VectorImage surface;
 
-    Tempest::Point       mpos;
+    Renderer             draw;
+
+    std::vector<std::unique_ptr<Widget>> menuStack;
 
     struct FrameLocal {
       explicit FrameLocal(Tempest::Device& dev):imageAvailable(dev),gpuLock(dev){}
