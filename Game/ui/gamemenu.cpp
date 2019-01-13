@@ -2,19 +2,18 @@
 
 #include <Tempest/Painter>
 
-#include "mainwindow.h"
+#include "world/world.h"
+#include "ui/menuroot.h"
 #include "gothic.h"
 #include "resources.h"
-
-#include <world/world.h>
 
 using namespace Tempest;
 
 static const float scriptDiv=8192.0f;
 
-GameMenu::GameMenu(MainWindow &owner, Gothic &gothic, const char* menuSection)
+GameMenu::GameMenu(MenuRoot &owner, Gothic &gothic, const char* menuSection)
   :gothic(gothic), owner(owner) {
-  timer.timeout.bind(this,&GameMenu::onTimer);
+  timer.timeout.bind(this,&GameMenu::onTick);
   timer.start(100);
 
   textBuf.reserve(64);
@@ -84,7 +83,8 @@ void GameMenu::paintEvent(PaintEvent &e) {
   for(auto& hItem:hItems){
     if(!hItem.handle.isValid())
       continue;
-    Daedalus::GEngineClasses::C_Menu_Item& item = hItem.get(*vm);
+    Daedalus::GEngineClasses::C_Menu_Item&        item = hItem.get(*vm);
+    Daedalus::GEngineClasses::C_Menu_Item::EFlags flags=Daedalus::GEngineClasses::C_Menu_Item::EFlags(item.flags);
     getText(item,textBuf);
 
     Color clText = clNormal;
@@ -104,6 +104,7 @@ void GameMenu::paintEvent(PaintEvent &e) {
 
     int x = int(w()*item.posx/scriptDiv);
     int y = int(h()*item.posy/scriptDiv);
+    int imgX = 0, imgW=0;
 
     if(!hItem.img.isEmpty()) {
       int32_t dimx = 8192;
@@ -115,17 +116,25 @@ void GameMenu::paintEvent(PaintEvent &e) {
       const int szX = int(w()*dimx/scriptDiv);
       const int szY = int(h()*dimy/scriptDiv);
       p.setBrush(hItem.img);
-      p.drawRect((w()-szX)/2,y,szX,szY,
+      p.drawRect(/*(w()-szX)/2*/x,y,szX,szY,
                  0,0,hItem.img.w(),hItem.img.h());
+
+      imgX = x;
+      imgW = szX;
       }
+
+    if(!isEnabled(item))
+      clText = clDisabled;
 
     if(&hItem==selectedItem())
       p.setBrush(clSelected); else
       p.setBrush(clText);
 
-    if(item.flags & Daedalus::GEngineClasses::C_Menu_Item::IT_TXT_CENTER){
+    if(flags & Daedalus::GEngineClasses::C_Menu_Item::IT_TXT_CENTER){
       Size sz = p.font().textSize(textBuf.data());
-      x = (w()-sz.w)/2;
+      if(!hItem.img.isEmpty())
+        x = imgX+(imgW-sz.w)/2; else
+        x = (w()-sz.w)/2;
       //y += sz.h/2;
       }
 
@@ -146,46 +155,22 @@ void GameMenu::paintEvent(PaintEvent &e) {
   }
 
 void GameMenu::resizeEvent(SizeEvent &) {
-  onTimer();
+  onTick();
   }
 
-void GameMenu::mouseDownEvent(MouseEvent &event){
-  event.accept();
-  }
-
-void GameMenu::mouseUpEvent(MouseEvent&) {
-  using namespace Daedalus::GEngineClasses::MenuConstants;
-
-  if(auto sel=selectedItem()){
-    Daedalus::GEngineClasses::C_Menu_Item& item = sel->get(*vm);
-
-    for(auto action:item.onSelAction)
-      switch(action) {
-        case SEL_ACTION_BACK:
-          owner.popMenu();
-          return;
-          break;
-        case SEL_ACTION_CLOSE:
-          //TODO
-          break;
-        }
-
-    for(auto& str:item.onSelAction_S)
-      if(!str.empty())
-        exec(str);
-    }
-  }
-
-void GameMenu::mouseWheelEvent(MouseEvent &event) {
-  int dx = (std::abs(event.delta))/120;
-  if(event.delta<0)
-    setSelection(int(curItem)+dx,1);
-  else if(event.delta>0)
-    setSelection(int(curItem)-dx,-1);
+void GameMenu::onMove(int dy) {
+  setSelection(int(curItem)+dy, dy>0 ? 1 : -1);
   update();
   }
 
-void GameMenu::onTimer() {
+void GameMenu::onSelect() {
+  if(auto sel=selectedItem()){
+    Daedalus::GEngineClasses::C_Menu_Item& item = sel->get(*vm);
+    exec(item);
+    }
+  }
+
+void GameMenu::onTick() {
   update();
 
   const float fx = 640.0f;
@@ -217,7 +202,7 @@ void GameMenu::setSelection(int desired,int seek) {
 
     if(hItems[cur].handle.isValid()) {
       auto& it=hItems[cur].get(*vm);
-      if(it.flags& Daedalus::GEngineClasses::C_Menu_Item::EFlags::IT_SELECTABLE){
+      if((it.flags&Daedalus::GEngineClasses::C_Menu_Item::EFlags::IT_SELECTABLE) && isEnabled(it)){
         curItem=cur;
         return;
         }
@@ -229,7 +214,7 @@ Daedalus::GEngineClasses::C_Menu_Item &GameMenu::Item::get(Daedalus::DaedalusVM 
   return vm.getGameState().getMenuItem(handle);
   }
 
-void GameMenu::getText(Daedalus::GEngineClasses::C_Menu_Item& it, std::vector<char> &out) {
+void GameMenu::getText(const Daedalus::GEngineClasses::C_Menu_Item& it, std::vector<char> &out) {
   if(out.size()==0)
     out.resize(1);
   out[0]='\0';
@@ -253,6 +238,33 @@ void GameMenu::getText(Daedalus::GEngineClasses::C_Menu_Item& it, std::vector<ch
     out[pos] = '\0';
     return;
     }
+  }
+
+bool GameMenu::isEnabled(const Daedalus::GEngineClasses::C_Menu_Item &item) {
+  if((item.flags & Daedalus::GEngineClasses::C_Menu_Item::IT_ONLY_IN_GAME) && !gothic.isInGame())
+    return false;
+  if((item.flags & Daedalus::GEngineClasses::C_Menu_Item::IT_ONLY_OUT_GAME) && gothic.isInGame())
+    return false;
+  return true;
+  }
+
+void GameMenu::exec(const Daedalus::GEngineClasses::C_Menu_Item &item) {
+  using namespace Daedalus::GEngineClasses::MenuConstants;
+
+  for(auto& str:item.onSelAction_S)
+    if(!str.empty())
+      exec(str);
+
+  for(auto action:item.onSelAction)
+    switch(action) {
+      case SEL_ACTION_BACK:
+        owner.popMenu();
+        return;
+        break;
+      case SEL_ACTION_CLOSE:
+        //TODO
+        break;
+      }
   }
 
 void GameMenu::exec(const std::string &action) {

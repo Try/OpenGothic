@@ -8,6 +8,8 @@
 #include <Tempest/Layout>
 
 #include "ui/gamemenu.h"
+#include "ui/menuroot.h"
+
 #include "gothic.h"
 
 using namespace Tempest;
@@ -33,33 +35,8 @@ MainWindow::~MainWindow() {
 
 void MainWindow::setupUi() {
   setLayout(Horizontal);
-  setMenu(new GameMenu(*this,gothic,"MENU_MAIN"));
-  }
-
-void MainWindow::setMenu(Widget *w) {
-  removeAllWidgets();
-  if(w)
-    addWidget(w);
-  }
-
-void MainWindow::pushMenu(Widget *w) {
-  if(widgetsCount()>0) {
-    auto sw = takeWidget(&widget(0));
-    menuStack.emplace_back(sw);
-    }
-  if(w)
-    addWidget(w);
-  }
-
-void MainWindow::popMenu() {
-  if(menuStack.size()==0)
-    return;
-  Widget* w = menuStack.back().release();
-
-  removeAllWidgets();
-  addWidget(w);
-
-  menuStack.pop_back();
+  rootMenu = &addWidget(new MenuRoot(gothic));
+  rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_MAIN"));
   }
 
 void MainWindow::paintEvent(PaintEvent& event) { 

@@ -25,16 +25,13 @@
 #include "graphics/renderer.h"
 #include "resources.h"
 
+class MenuRoot;
 class Gothic;
 
 class MainWindow : public Tempest::Window {
   public:
     explicit MainWindow(Gothic& gothic,Tempest::VulkanApi& api);
     ~MainWindow() override;
-
-    void setMenu(Widget* w);
-    void pushMenu(Widget* w);
-    void popMenu();
 
   private:
     void paintEvent    (Tempest::PaintEvent& event) override;
@@ -57,7 +54,7 @@ class MainWindow : public Tempest::Window {
 
     Renderer             draw;
 
-    std::vector<std::unique_ptr<Widget>> menuStack;
+    MenuRoot*            rootMenu=nullptr;
 
     struct FrameLocal {
       explicit FrameLocal(Tempest::Device& dev):imageAvailable(dev),gpuLock(dev){}

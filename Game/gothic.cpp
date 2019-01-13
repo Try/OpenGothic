@@ -25,6 +25,10 @@ Gothic::Gothic(const int argc, const char **argv) {
   wdef = "oldworld.zen";
   }
 
+bool Gothic::isInGame() const {
+  return !wrld.isEmpty();
+  }
+
 void Gothic::setWorld(World &&w) {
   wrld = std::move(w);
   }

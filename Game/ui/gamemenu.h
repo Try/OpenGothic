@@ -9,33 +9,31 @@
 #include <memory>
 
 class Gothic;
-class MainWindow;
+class MenuRoot;
 
 class GameMenu : public Tempest::Widget {
   public:
-    GameMenu(MainWindow& owner, Gothic& gothic, const char *menuSection);
+    GameMenu(MenuRoot& owner, Gothic& gothic, const char *menuSection);
     ~GameMenu() override;
+
+    void onMove(int dy);
+    void onSelect();
+    void onTick();
 
   protected:
     void paintEvent(Tempest::PaintEvent& event) override;
     void resizeEvent(Tempest::SizeEvent& event) override;
 
-    void mouseDownEvent (Tempest::MouseEvent& event) override;
-    void mouseUpEvent   (Tempest::MouseEvent& event) override;
-    void mouseWheelEvent(Tempest::MouseEvent& event) override;
-    //void keyDownEvent();
-
-    virtual void onTimer();
-
   private:
     Gothic&                               gothic;
-    MainWindow&                           owner;
+    MenuRoot&                             owner;
     std::unique_ptr<Daedalus::DaedalusVM> vm;
 
     Daedalus::GameState::MenuHandle       hMenu;
     Tempest::Texture2d                    back;
 
     Tempest::Color                        clNormal  ={1.f,0.87f,0.67f,1.f};
+    Tempest::Color                        clDisabled={1.f,0.87f,0.67f,0.6f};
     Tempest::Color                        clSelected={1.f,1.f,1.f,1.f};
     Tempest::Color                        clWhite   ={1.f,1.f,1.f,1.f};
     std::vector<char>                     textBuf;
@@ -54,7 +52,9 @@ class GameMenu : public Tempest::Widget {
     Item*                                 selectedItem();
     void                                  setSelection(int cur, int seek=1);
     void                                  initItems();
-    void                                  getText(Daedalus::GEngineClasses::C_Menu_Item&,std::vector<char>& out);
+    void                                  getText(const Daedalus::GEngineClasses::C_Menu_Item&,std::vector<char>& out);
+    bool                                  isEnabled(const Daedalus::GEngineClasses::C_Menu_Item& item);
 
+    void                                  exec(const Daedalus::GEngineClasses::C_Menu_Item& item);
     void                                  exec(const std::string& action);
   };

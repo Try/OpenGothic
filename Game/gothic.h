@@ -11,6 +11,8 @@ class Gothic final {
   public:
     Gothic(int argc,const char** argv);
 
+    bool isInGame() const;
+
     void setWorld(World&& w);
     const World& world() const { return wrld; }
 
