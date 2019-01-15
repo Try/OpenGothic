@@ -24,11 +24,14 @@ class Resources {
     static Tempest::Font menuFont(){ return inst->menuFnt; }
     static Tempest::Font font(){ return inst->mainFnt; }
 
-    static Tempest::Texture2d loadTexture(const char* name);
-    static Tempest::Texture2d loadTexture(const std::string& name);
+    static Tempest::Texture2d *loadTexture(const char* name);
+    static Tempest::Texture2d *loadTexture(const std::string& name);
 
     template<class V>
     static Tempest::VertexBuffer<V> loadVbo(const V* data,size_t sz){ return inst->device.loadVbo(data,sz,Tempest::BufferFlags::Static); }
+
+    template<class V>
+    static Tempest::IndexBuffer<V>  loadIbo(const V* data,size_t sz){ return inst->device.loadIbo(data,sz,Tempest::BufferFlags::Static); }
 
     static std::vector<uint8_t> getFileData(const char*        name);
     static std::vector<uint8_t> getFileData(const std::string& name);
@@ -39,7 +42,10 @@ class Resources {
     static Resources* inst;
 
     void addVdf(const char* vdf);
-    Tempest::Texture2d implLoadTexture(const std::string &name);
+    Tempest::Texture2d *implLoadTexture(const std::string &name);
+
+    Tempest::Texture2d fallback;
+    std::unordered_map<std::string,std::unique_ptr<Tempest::Texture2d>> texCache;
 
     Tempest::Device& device;
     Tempest::Font    menuFnt, mainFnt;

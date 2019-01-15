@@ -62,8 +62,6 @@ void GameMenu::initItems() {
     if(menu.items[i].empty())
       continue;
 
-    //LogInfo() << "Initializing item: " << menu.items[i];
-
     hItems[i].handle = vm->getGameState().createMenuItem();
     vm->initializeInstance(ZMemory::toBigHandle(hItems[i].handle),
                            vm->getDATFile().getSymbolIndexByName(menu.items[i]),
@@ -75,10 +73,11 @@ void GameMenu::initItems() {
 
 void GameMenu::paintEvent(PaintEvent &e) {
   Painter p(e);
-  p.setBrush(back);
-
-  p.drawRect(0,0,w(),h(),
-             0,0,back.w(),back.h());
+  if(back) {
+    p.setBrush(*back);
+    p.drawRect(0,0,w(),h(),
+               0,0,back->w(),back->h());
+    }
 
   for(auto& hItem:hItems){
     if(!hItem.handle.isValid())
@@ -106,7 +105,7 @@ void GameMenu::paintEvent(PaintEvent &e) {
     int y = int(h()*item.posy/scriptDiv);
     int imgX = 0, imgW=0;
 
-    if(!hItem.img.isEmpty()) {
+    if(hItem.img && !hItem.img->isEmpty()) {
       int32_t dimx = 8192;
       int32_t dimy = 750;
 
@@ -115,9 +114,9 @@ void GameMenu::paintEvent(PaintEvent &e) {
 
       const int szX = int(w()*dimx/scriptDiv);
       const int szY = int(h()*dimy/scriptDiv);
-      p.setBrush(hItem.img);
+      p.setBrush(*hItem.img);
       p.drawRect(/*(w()-szX)/2*/x,y,szX,szY,
-                 0,0,hItem.img.w(),hItem.img.h());
+                 0,0,hItem.img->w(),hItem.img->h());
 
       imgX = x;
       imgW = szX;
@@ -132,7 +131,7 @@ void GameMenu::paintEvent(PaintEvent &e) {
 
     if(flags & Daedalus::GEngineClasses::C_Menu_Item::IT_TXT_CENTER){
       Size sz = p.font().textSize(textBuf.data());
-      if(!hItem.img.isEmpty())
+      if(hItem.img && !hItem.img->isEmpty())
         x = imgX+(imgW-sz.w)/2; else
         x = (w()-sz.w)/2;
       //y += sz.h/2;
@@ -253,7 +252,8 @@ void GameMenu::exec(const Daedalus::GEngineClasses::C_Menu_Item &item) {
 
   for(auto& str:item.onSelAction_S)
     if(!str.empty())
-      exec(str);
+      if(exec(str))
+        return;
 
   for(auto action:item.onSelAction)
     switch(action) {
@@ -267,10 +267,12 @@ void GameMenu::exec(const Daedalus::GEngineClasses::C_Menu_Item &item) {
       }
   }
 
-void GameMenu::exec(const std::string &action) {
+bool GameMenu::exec(const std::string &action) {
   if(action=="NEW_GAME"){
     World w(gothic,gothic.defaultWorld());
     gothic.setWorld(std::move(w));
+    owner.popMenu();
+    return true;
     }
 
   static const char* menuList[]={
@@ -291,6 +293,7 @@ void GameMenu::exec(const std::string &action) {
   for(auto subMenu:menuList)
     if(action==subMenu) {
       owner.pushMenu(new GameMenu(owner,gothic,subMenu));
-      return;
+      return false;
       }
+  return false;
   }

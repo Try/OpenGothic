@@ -30,7 +30,7 @@ class GameMenu : public Tempest::Widget {
     std::unique_ptr<Daedalus::DaedalusVM> vm;
 
     Daedalus::GameState::MenuHandle       hMenu;
-    Tempest::Texture2d                    back;
+    Tempest::Texture2d*                   back=nullptr;
 
     Tempest::Color                        clNormal  ={1.f,0.87f,0.67f,1.f};
     Tempest::Color                        clDisabled={1.f,0.87f,0.67f,0.6f};
@@ -42,7 +42,7 @@ class GameMenu : public Tempest::Widget {
 
     struct Item {
       Daedalus::GameState::MenuItemHandle handle={};
-      Tempest::Texture2d                  img;
+      Tempest::Texture2d*                 img=nullptr;
 
       Daedalus::GEngineClasses::C_Menu_Item& get(Daedalus::DaedalusVM& vm);
       };
@@ -56,5 +56,5 @@ class GameMenu : public Tempest::Widget {
     bool                                  isEnabled(const Daedalus::GEngineClasses::C_Menu_Item& item);
 
     void                                  exec(const Daedalus::GEngineClasses::C_Menu_Item& item);
-    void                                  exec(const std::string& action);
+    bool exec(const std::string& action);
   };

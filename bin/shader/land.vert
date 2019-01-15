@@ -5,6 +5,10 @@ out gl_PerVertex {
   vec4 gl_Position;
   };
 
+layout(binding = 0) uniform UniformBufferObject {
+  mat4 mvp;
+  } ubo;
+
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inUV;
@@ -19,5 +23,5 @@ void main() {
   outUV       = inUV;
   outColor    = inColor;
 
-  gl_Position = vec4(inPos.xzy, 1.0);
+  gl_Position = ubo.mvp*vec4(inPos.xyz, 1.0);
   }

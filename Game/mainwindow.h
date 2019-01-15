@@ -36,12 +36,19 @@ class MainWindow : public Tempest::Window {
   private:
     void paintEvent    (Tempest::PaintEvent& event) override;
     void resizeEvent   (Tempest::SizeEvent & event) override;
-    void mouseMoveEvent(Tempest::MouseEvent& event) override;
+
+    void mouseDownEvent (Tempest::MouseEvent& event) override;
+    void mouseDragEvent (Tempest::MouseEvent& event) override;
+    void mouseWheelEvent(Tempest::MouseEvent& event) override;
 
     void setupUi();
 
     void render() override;
     void initSwapchain();
+
+    Tempest::Point          mpos;
+    Tempest::PointF         spin;
+    float                   zoom=0.02f;
 
     Tempest::Device       device;
     Tempest::TextureAtlas atlas;
@@ -49,7 +56,7 @@ class MainWindow : public Tempest::Window {
 
     Tempest::Font         font;
 
-    Tempest::RenderPass  mainPass;
+    Tempest::RenderPass  uiPass;
     Tempest::VectorImage surface;
 
     Renderer             draw;
@@ -67,8 +74,8 @@ class MainWindow : public Tempest::Window {
     std::vector<Tempest::CommandBuffer> commandDynamic;
     std::vector<Tempest::Semaphore>     commandBuffersSemaphores;
 
-    std::vector<Tempest::FrameBuffer>   fbo;
+    std::vector<Tempest::FrameBuffer>   fboUi;
 
     Gothic&                             gothic;
-    Tempest::Texture2d                  background;
+    Tempest::Texture2d*                 background=nullptr;
   };

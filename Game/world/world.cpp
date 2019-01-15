@@ -28,4 +28,12 @@ World::World(Gothic& gothic,std::string file)
   static_assert(sizeof(Resources::LandVertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
   const Resources::LandVertex* vert=reinterpret_cast<const Resources::LandVertex*>(mesh.vertices.data());
   vbo = Resources::loadVbo<Resources::LandVertex>(vert,mesh.vertices.size());
+
+  for(auto& i:mesh.subMeshes){
+    blocks.emplace_back();
+    Block& b = blocks.back();
+
+    b.ibo     = Resources::loadIbo(i.indices.data(),i.indices.size());
+    b.texture = Resources::loadTexture(i.material.texture);
+    }
   }

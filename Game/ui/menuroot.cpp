@@ -47,7 +47,8 @@ void MenuRoot::popMenu() {
   }
 
 void MenuRoot::mouseDownEvent(Tempest::MouseEvent &event) {
-  event.accept();
+  if(current==nullptr)
+    event.ignore();
   }
 
 void MenuRoot::mouseUpEvent(Tempest::MouseEvent&) {
@@ -57,5 +58,6 @@ void MenuRoot::mouseUpEvent(Tempest::MouseEvent&) {
 
 void MenuRoot::mouseWheelEvent(Tempest::MouseEvent &event) {
   if(current!=nullptr)
-    current->onMove(-event.delta/120);
+    current->onMove(-event.delta/120); else
+    event.ignore();
   }
