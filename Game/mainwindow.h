@@ -78,4 +78,11 @@ class MainWindow : public Tempest::Window {
 
     Gothic&                             gothic;
     Tempest::Texture2d*                 background=nullptr;
+
+    struct Fps {
+      uint64_t dt[10]={};
+      double   get() const;
+      void     push(uint64_t t);
+      };
+    Fps fps;
   };

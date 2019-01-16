@@ -6,6 +6,7 @@
 #include <Tempest/Brush>
 #include <Tempest/Pen>
 #include <Tempest/Layout>
+#include <Tempest/Application>
 
 #include "ui/gamemenu.h"
 #include "ui/menuroot.h"
@@ -40,19 +41,24 @@ void MainWindow::setupUi() {
   rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_MAIN"));
   }
 
-void MainWindow::paintEvent(PaintEvent& event) { 
-  if(!gothic.world().isEmpty() || background==nullptr)
-    return;
-
+void MainWindow::paintEvent(PaintEvent& event) {
   Painter p(event);
 
-  p.setBrush(Color(0.0));
-  p.drawRect(0,0,w(),h());
+  if(gothic.world().isEmpty() && background!=nullptr) {
+    p.setBrush(Color(0.0));
+    p.drawRect(0,0,w(),h());
 
-  p.setBrush(*background);
-  p.drawRect((w()-background->w())/2,(h()-background->h())/2,
-             background->w(),background->h(),
-             0,0,background->w(),background->h());
+    p.setBrush(*background);
+    p.drawRect((w()-background->w())/2,(h()-background->h())/2,
+               background->w(),background->h(),
+               0,0,background->w(),background->h());
+    }
+
+  char fpsT[64]={};
+  std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f",fps.get());
+
+  p.setFont(Resources::menuFont());
+  p.drawText(5,30,fpsT);
   }
 
 void MainWindow::resizeEvent(SizeEvent&) {
@@ -99,6 +105,8 @@ void MainWindow::initSwapchain(){
 
 void MainWindow::render(){
   try {
+    uint64_t time=Application::tickCount();
+
     auto& context=fLocal[device.frameId()];
     Semaphore&     renderDone=commandBuffersSemaphores[device.frameId()];
     CommandBuffer& cmd       =commandDynamic[device.frameId()];
@@ -127,9 +135,30 @@ void MainWindow::render(){
     device.draw(cmd,context.imageAvailable,renderDone,context.gpuLock);
 
     device.present(imgId,renderDone);
+
+    fps.push(Application::tickCount()-time);
     }
   catch(const Tempest::DeviceLostException&) {
     device.reset();
     initSwapchain();
     }
+  }
+
+double MainWindow::Fps::get() const {
+  uint64_t sum=0,num=0;
+  for(auto& i:dt)
+    if(i>0) {
+      sum+=i;
+      num++;
+      }
+  if(num==0 || sum==0)
+    return 60;
+  uint64_t fps = (1000*100*num)/sum;
+  return double(fps)/100.0;
+  }
+
+void MainWindow::Fps::push(uint64_t t) {
+  for(size_t i=9;i>0;--i)
+    dt[i]=dt[i-1];
+  dt[0]=t;
   }

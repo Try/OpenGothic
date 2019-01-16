@@ -5,8 +5,10 @@
 #include <Tempest/Device>
 #include <Tempest/Dir>
 
+#include <zenload/zCProgMeshProto.h>
 #include <zenload/ztex2dds.h>
 
+#include "graphics/staticmesh.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -68,12 +70,68 @@ Tempest::Texture2d* Resources::implLoadTexture(const std::string& name) {
     }
   }
 
+StaticMesh *Resources::implLoadStMesh(const std::string &name) {
+  if(name.size()==0)
+    return nullptr;
+
+  auto it=stMeshCache.find(name);
+  if(it!=stMeshCache.end())
+    return it->second.get();
+
+  try {
+    ZenLoad::PackedMesh packed;
+    loadMesh(packed,name);
+    std::unique_ptr<StaticMesh> t{new StaticMesh(packed)};
+    StaticMesh* ret=t.get();
+    stMeshCache[name] = std::move(t);
+    return ret;
+    }
+  catch(...){
+    //TODO: log
+    return nullptr;
+  }
+  }
+
+void Resources::loadMesh(ZenLoad::PackedMesh& packed,std::string name) {
+  std::vector<uint8_t> data;
+  std::vector<uint8_t> dds;
+
+  // Check if this isn't the compiled version
+  if(name.rfind("-C")==std::string::npos) {
+    if(name.rfind(".3DS")==name.size()-4) {
+      // Strip the ".3DS"
+      std::memcpy(&name[name.size()-3],"MRM",3);
+      // Add "compiled"-extension
+//      vname += ".MRM";
+      } else
+    if(name.rfind(".MMS")==name.size()-4) {
+      // Strip the ".MMS"
+      // Add "compiled"-extension
+      std::memcpy(&name[name.size()-3],"MMB",3);
+      }
+    }
+
+  if(name.rfind(".MRM")==name.size()-4) {
+    // Try to load the mesh
+    ZenLoad::zCProgMeshProto zmsh(name,gothicAssets);
+    // Failed?
+    if(zmsh.getNumSubmeshes() == 0)
+      return;
+    // Pack the mesh
+    zmsh.packMesh(packed,0.01f);
+    }
+  }
+
 Tempest::Texture2d* Resources::loadTexture(const char *name) {
   return inst->implLoadTexture(name);
   }
 
 Tempest::Texture2d *Resources::loadTexture(const std::string &name) {
   return inst->implLoadTexture(name);
+  }
+
+StaticMesh *Resources::loadStMesh(const std::string &name) {
+  return inst->implLoadStMesh(name);
   }
 
 std::vector<uint8_t> Resources::getFileData(const char *name) {

@@ -7,14 +7,17 @@
 
 #include <vdfs/fileIndex.h>
 
+#include <zenload/zTypes.h>
+
 class Gothic;
+class StaticMesh;
 
 class Resources {
   public:
     explicit Resources(Gothic& gothic,Tempest::Device& device);
     ~Resources();
 
-    struct LandVertex {
+    struct Vertex {
       float    pos[3];
       float    norm[3];
       float    uv[2];
@@ -26,6 +29,8 @@ class Resources {
 
     static Tempest::Texture2d *loadTexture(const char* name);
     static Tempest::Texture2d *loadTexture(const std::string& name);
+
+    static StaticMesh         *loadStMesh (const std::string& name);
 
     template<class V>
     static Tempest::VertexBuffer<V> loadVbo(const V* data,size_t sz){ return inst->device.loadVbo(data,sz,Tempest::BufferFlags::Static); }
@@ -43,9 +48,13 @@ class Resources {
 
     void addVdf(const char* vdf);
     Tempest::Texture2d *implLoadTexture(const std::string &name);
+    StaticMesh         *implLoadStMesh (const std::string &name);
+    void                loadMesh(ZenLoad::PackedMesh &packed, std::string name);
 
     Tempest::Texture2d fallback;
+
     std::unordered_map<std::string,std::unique_ptr<Tempest::Texture2d>> texCache;
+    std::unordered_map<std::string,std::unique_ptr<StaticMesh>>         stMeshCache;
 
     Tempest::Device& device;
     Tempest::Font    menuFnt, mainFnt;
@@ -58,7 +67,7 @@ class Resources {
 namespace Tempest {
 
 template<>
-inline std::initializer_list<Decl::ComponentType> vertexBufferDecl<Resources::LandVertex>() {
+inline std::initializer_list<Decl::ComponentType> vertexBufferDecl<Resources::Vertex>() {
   return {Decl::float3,Decl::float3,Decl::float2,Decl::color};
   }
 

@@ -2,6 +2,7 @@
 
 #include <Tempest/VertexBuffer>
 #include <Tempest/IndexBuffer>
+#include <Tempest/Matrix4x4>
 #include <string>
 
 #include <zenload/zTypes.h>
@@ -20,16 +21,25 @@ class World final {
       Tempest::IndexBuffer<uint32_t> ibo;
       };
 
+    struct Dodad {
+      StaticMesh*                    mesh   =nullptr;
+      Tempest::Matrix4x4             objMat;
+      };
+
     bool isEmpty() const { return name.empty(); }
 
-    const Tempest::VertexBuffer<Resources::LandVertex>& landVbo() const { return vbo; }
+    const Tempest::VertexBuffer<Resources::Vertex>& landVbo() const { return vbo; }
     const std::vector<Block>& landBlocks() const { return blocks; }
+
+    std::vector<Dodad> staticObj;
 
   private:
     std::string name;
     Gothic*     gothic=nullptr;
 
-    Tempest::VertexBuffer<Resources::LandVertex> vbo;
+    Tempest::VertexBuffer<Resources::Vertex> vbo;
 
-    std::vector<Block>                           blocks;
+    std::vector<Block>                       blocks;
+
+    void loadVob(const ZenLoad::zCVobData &vob);
   };

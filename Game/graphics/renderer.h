@@ -20,14 +20,21 @@ class Renderer final {
     void draw(Tempest::CommandBuffer& cmd, uint32_t imgId, const Gothic& gothic);
 
   private:
-    void setupShaderConstants(const Tempest::FrameBuffer &window);
+    void updateUbo  (const Tempest::FrameBuffer &fbo, const Gothic &gothic, uint32_t frameId);
+    void drawLand   (Tempest::CommandBuffer &cmd, const Gothic &gothic, uint32_t frameId);
+    void drawObjects(Tempest::CommandBuffer &cmd, const Gothic &gothic, uint32_t frameId);
+
     Tempest::RenderPipeline& landPipeline(Tempest::RenderPass& pass, uint32_t w, uint32_t h);
 
-    struct Ubo {
+    struct UboLand {
       Tempest::Matrix4x4 mvp;
+      uint8_t sz[0x100-sizeof(mvp)];
       };
+
     Tempest::Device&        device;
     Tempest::Texture2d      zbuffer;
+    Tempest::Matrix4x4      view,projective;
+    size_t                  isUboReady=0;
 
     Tempest::RenderPass     mainPass;
     Tempest::RenderPipeline pLand;
@@ -35,11 +42,14 @@ class Renderer final {
 
     Tempest::Shader         vsLand,fsLand;
 
-    Tempest::UniformsLayout layout;
-    Ubo                     uboCpu;
-    Tempest::UniformBuffer  uboGpu[3];
+    Tempest::UniformsLayout        layout;
+    UboLand                        uboCpu;
+    Tempest::UniformBuffer         uboGpu[3];
+    std::vector<Tempest::Uniforms> uboLand;
 
-    std::vector<Tempest::Uniforms> uboArr;
+    std::vector<Tempest::Uniforms> uboDodads;
+    std::vector<UboLand>           uboObj;
+    Tempest::UniformBuffer         uboObjGpu[3];
 
     Tempest::PointF         spin;
     float                   zoom=1.f;
