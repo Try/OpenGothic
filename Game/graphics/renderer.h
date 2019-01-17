@@ -8,11 +8,15 @@
 #include <Tempest/Device>
 #include <Tempest/UniformBuffer>
 
+#include "landscape.h"
+#include "staticobjects.h"
+
 class Gothic;
+class StaticMesh;
 
 class Renderer final {
   public:
-    Renderer(Tempest::Device& device);
+    Renderer(Tempest::Device& device, Gothic &gothic);
 
     void initSwapchain(uint32_t w,uint32_t h);
 
@@ -20,37 +24,38 @@ class Renderer final {
     void draw(Tempest::CommandBuffer& cmd, uint32_t imgId, const Gothic& gothic);
 
   private:
-    void updateUbo  (const Tempest::FrameBuffer &fbo, const Gothic &gothic, uint32_t frameId);
-    void drawLand   (Tempest::CommandBuffer &cmd, const Gothic &gothic, uint32_t frameId);
-    void drawObjects(Tempest::CommandBuffer &cmd, const Gothic &gothic, uint32_t frameId);
+    struct Object {
+      Tempest::Matrix4x4 objMat;
+      StaticObjects::Obj obj;
+      };
+    std::vector<Object> objStatic;
 
     Tempest::RenderPipeline& landPipeline(Tempest::RenderPass& pass, uint32_t w, uint32_t h);
-
-    struct UboLand {
-      Tempest::Matrix4x4 mvp;
-      uint8_t sz[0x100-sizeof(mvp)];
-      };
+    Tempest::RenderPipeline& objPipeline (Tempest::RenderPass& pass, uint32_t w, uint32_t h);
 
     Tempest::Device&        device;
+    Gothic&                 gothic;
     Tempest::Texture2d      zbuffer;
     Tempest::Matrix4x4      view,projective;
     size_t                  isUboReady=0;
+    bool                    needToUpdateUbo[3]={};
 
     Tempest::RenderPass     mainPass;
-    Tempest::RenderPipeline pLand;
+    Tempest::RenderPipeline pLand, pObject;
     std::vector<Tempest::FrameBuffer> fbo3d;
 
-    Tempest::Shader         vsLand,fsLand;
+    Tempest::Shader         vsLand,fsLand,vsObject,fsObject;
 
-    Tempest::UniformsLayout        layout;
-    UboLand                        uboCpu;
-    Tempest::UniformBuffer         uboGpu[3];
-    std::vector<Tempest::Uniforms> uboLand;
+    Landscape                      land;
+    StaticObjects                  vobGroup;
 
-    std::vector<Tempest::Uniforms> uboDodads;
-    std::vector<UboLand>           uboObj;
-    Tempest::UniformBuffer         uboObjGpu[3];
+    std::vector<Tempest::CommandBuffer> cmdLand;
 
     Tempest::PointF         spin;
     float                   zoom=1.f;
+
+    void initWorld();
+    void prebuiltCmdBuf();
+
+    void updateUbo  (const Tempest::FrameBuffer &fbo, const Gothic &gothic, uint32_t imgId);
   };

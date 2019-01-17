@@ -16,7 +16,7 @@
 using namespace Tempest;
 
 MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
-  :Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),draw(device),gothic(gothic) {
+  :Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),draw(device,gothic),gothic(gothic) {
   for(uint8_t i=0;i<device.maxFramesInFlight();++i){
     fLocal.emplace_back(device);
     commandBuffersSemaphores.emplace_back(device);
@@ -30,6 +30,7 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   }
 
 MainWindow::~MainWindow() {
+  device.waitIdle();
   removeAllWidgets();
   // unload
   gothic.setWorld(World());

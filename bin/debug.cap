@@ -1,0 +1,25 @@
+{
+    "rdocCaptureSettings": 1,
+    "settings": {
+        "autoStart": false,
+        "commandLine": "-g \"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Gothic II\"  -w oldworld.zen",
+        "environment": [
+        ],
+        "executable": "D:\\Programming\\OpenGothic\\bin\\Gothic2Notr.exe",
+        "inject": false,
+        "options": {
+            "allowFullscreen": true,
+            "allowVSync": true,
+            "apiValidation": false,
+            "captureAllCmdLists": false,
+            "captureCallstacks": false,
+            "captureCallstacksOnlyDraws": false,
+            "debugOutputMute": true,
+            "delayForDebugger": 0,
+            "hookIntoChildren": false,
+            "refAllResources": false,
+            "verifyBufferAccess": false
+        },
+        "workingDir": ""
+    }
+}

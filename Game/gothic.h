@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 
+#include <Tempest/Signal>
 #include <daedalus/DaedalusVM.h>
 
 #include "world/world.h"
@@ -15,6 +16,8 @@ class Gothic final {
 
     void setWorld(World&& w);
     const World& world() const { return wrld; }
+
+    Tempest::Signal<void()> onWorldChanged;
 
     const std::string&                    path() const { return gpath; }
     const std::string&                    defaultWorld() const;
