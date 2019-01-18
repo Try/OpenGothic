@@ -15,9 +15,13 @@ Landscape::Landscape(Tempest::Device &device)
     }
   }
 
-void Landscape::commitUbo(const Tempest::Matrix4x4 &mat, uint32_t imgId) {
+void Landscape::setMatrix(uint32_t imgId, const Matrix4x4 &mat) {
   uboCpu.mvp = mat;
   landPF[imgId].uboGpu.update(&uboCpu,0,sizeof(uboCpu));
+  }
+
+void Landscape::commitUbo(uint32_t /*imgId*/) {
+  //landPF[imgId].uboGpu.update(&uboCpu,0,sizeof(uboCpu));
   }
 
 void Landscape::draw(Tempest::CommandBuffer &cmd, const RenderPipeline& pLand, uint32_t imgId,const Gothic& gothic) {

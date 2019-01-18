@@ -20,6 +20,16 @@ StaticObjects::Obj StaticObjects::get(const Tempest::Texture2d *mat, const Stati
   return get(last,mesh,ibo);
   }
 
+void StaticObjects::setMatrix(uint32_t imgId) {
+  for(auto& i:chunks){
+    auto& frame=i.pf[imgId];
+    size_t sz = i.obj.byteSize();
+    if(frame.uboData.size()!=sz)
+      frame.uboData = device.loadUbo(i.obj.data(),sz); else
+      frame.uboData.update(i.obj.data(),0,sz);
+    }
+  }
+
 void StaticObjects::commitUbo(uint32_t imgId) {
   for(auto& i:chunks){
     auto& frame=i.pf[imgId];

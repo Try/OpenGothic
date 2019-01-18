@@ -19,7 +19,7 @@ World::World(Gothic& gothic,std::string file)
 
   ZenLoad::PackedMesh mesh;
   ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
-  worldMesh->packMesh(mesh, 0.01f, false);
+  worldMesh->packMesh(mesh, 1.f, false);
   if(0){
     std::ofstream out("debug_pmesh.obj");
     Gothic::debug(mesh,out);
@@ -41,29 +41,38 @@ World::World(Gothic& gothic,std::string file)
 
   for(auto& vob:world.rootVobs)
     loadVob(vob);
+
+  vm = gothic.createVm("/_work/data/Scripts/_compiled/GOTHIC.DAT");
+
+  Daedalus::GameState::DaedalusGameState::GameExternals ext;
+  vm->getGameState().setGameExternals(ext);
+  }
+
+int32_t World::runFunction(const std::string& fname, bool clearDataStack) {
+  if(!vm->getDATFile().hasSymbolName(fname))
+    throw std::runtime_error("script bad call");
+  auto id = vm->getDATFile().getSymbolIndexByName(fname);
+  int32_t ret = vm->runFunctionBySymIndex(id,clearDataStack);
+  return ret;
   }
 
 void World::loadVob(const ZenLoad::zCVobData &vob) {
   for(auto& i:vob.childVobs)
     loadVob(i);
 
-  static const float mult=0.01f;
-//  static const float mult=0.1f;
-//  static const float mult=0.1f;
-
   if(!vob.visual.empty()){
     Dodad d;
     d.mesh = Resources::loadStMesh(vob.visual);
     d.objMat.identity();
-    d.objMat.translate(vob.position.x*mult,vob.position.y*mult,vob.position.z*mult);
+    d.objMat.translate(vob.position.x,vob.position.y,vob.position.z);
 
     float v[16]={};
     std::memcpy(v,vob.worldMatrix.m,sizeof(v));
 
     d.objMat = Tempest::Matrix4x4(v);
-    d.objMat.set(3,0,vob.position.x*mult);
-    d.objMat.set(3,1,vob.position.y*mult);
-    d.objMat.set(3,2,vob.position.z*mult);
+    d.objMat.set(3,0,vob.position.x);
+    d.objMat.set(3,1,vob.position.y);
+    d.objMat.set(3,2,vob.position.z);
 
     staticObj.emplace_back(d);
     }

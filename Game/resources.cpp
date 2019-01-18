@@ -118,7 +118,7 @@ void Resources::loadMesh(ZenLoad::PackedMesh& packed,std::string name) {
     if(zmsh.getNumSubmeshes() == 0)
       return;
     // Pack the mesh
-    zmsh.packMesh(packed,0.01f);
+    zmsh.packMesh(packed,1.f);
     }
   }
 

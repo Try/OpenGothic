@@ -5,6 +5,7 @@
 #include <Tempest/Matrix4x4>
 #include <string>
 
+#include <daedalus/DaedalusVM.h>
 #include <zenload/zTypes.h>
 
 #include "resources.h"
@@ -34,12 +35,14 @@ class World final {
     std::vector<Dodad> staticObj;
 
   private:
-    std::string name;
-    Gothic*     gothic=nullptr;
+    std::string                           name;
+    Gothic*                               gothic=nullptr;
+    std::unique_ptr<Daedalus::DaedalusVM> vm;
 
     Tempest::VertexBuffer<Resources::Vertex> vbo;
 
     std::vector<Block>                       blocks;
 
-    void loadVob(const ZenLoad::zCVobData &vob);
+    void    loadVob(const ZenLoad::zCVobData &vob);
+    int32_t runFunction(const std::string &fname,bool clearDataStack);
   };

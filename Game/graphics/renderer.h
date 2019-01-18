@@ -22,6 +22,9 @@ class Renderer final {
 
     void setDebugView(const Tempest::PointF& spin,const float zoom);
     void draw(Tempest::CommandBuffer& cmd, uint32_t imgId, const Gothic& gothic);
+    void draw(Tempest::CommandBuffer& cmd, Tempest::FrameBuffer& imgId, const Gothic& gothic);
+
+    Tempest::CommandBuffer &probuilt();
 
   private:
     struct Object {

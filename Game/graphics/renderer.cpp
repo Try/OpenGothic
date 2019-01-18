@@ -45,7 +45,8 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
 
 RenderPipeline& Renderer::landPipeline(RenderPass &pass,uint32_t w,uint32_t h) {
   RenderState state;
-  state.setZTestMode(RenderState::ZTestMode::Less);
+  state.setZTestMode   (RenderState::ZTestMode::Less);
+  state.setCullFaceMode(RenderState::CullMode::Front);
 
   if(pLand.w()!=w || pLand.h()!=h)
     pLand = device.pipeline<Resources::Vertex>(pass,w,h,Triangles,state,land.uboLayout(),vsLand,fsLand);
@@ -54,7 +55,8 @@ RenderPipeline& Renderer::landPipeline(RenderPass &pass,uint32_t w,uint32_t h) {
 
 RenderPipeline &Renderer::objPipeline(RenderPass &pass, uint32_t w, uint32_t h) {
   RenderState state;
-  state.setZTestMode(RenderState::ZTestMode::Less);
+  state.setZTestMode   (RenderState::ZTestMode::Less);
+  state.setCullFaceMode(RenderState::CullMode::Front);
 
   if(pObject.w()!=w || pObject.h()!=h)
     pObject = device.pipeline<Resources::Vertex>(pass,w,h,Triangles,state,vobGroup.uboLayout(),vsObject,fsObject);
@@ -76,11 +78,13 @@ void Renderer::updateUbo(const FrameBuffer& fbo,const Gothic &,uint32_t imgId) {
   needToUpdateUbo[imgId]=false;
 
   projective.perspective( 45.0f, float(fbo.w())/float(fbo.h()), 0.1f, 100.0f );
+
   view.identity();
   view.translate(0,0,4);
   view.rotate(spin.y, 1, 0, 0);
   view.rotate(spin.x, 0, 1, 0);
   view.scale(zoom);
+  view.scale(-1,-1,-1);
 
   auto viewProj=projective;
   viewProj.mul(view);
@@ -91,26 +95,61 @@ void Renderer::updateUbo(const FrameBuffer& fbo,const Gothic &,uint32_t imgId) {
     objStatic[i].obj.setMatrix(mt);
     }
 
-  land    .commitUbo(viewProj,imgId);
-  vobGroup.commitUbo(imgId);
+  land    .setMatrix(imgId,viewProj);
+  vobGroup.setMatrix(imgId);
   }
 
 void Renderer::draw(CommandBuffer &cmd, uint32_t imgId, const Gothic &gothic) {
-  FrameBuffer&  fbo = fbo3d[imgId];
+  FrameBuffer& fbo = fbo3d[imgId];
+  draw(cmd,fbo,gothic);
+  }
+
+void Renderer::draw(CommandBuffer &cmd, FrameBuffer &fbo, const Gothic &gothic) {
+  const uint32_t fId=device.frameId();
 
   landPipeline(mainPass,fbo.w(),fbo.h());
   objPipeline (mainPass,fbo.w(),fbo.h());
-  updateUbo(fbo,gothic,device.frameId());
 
-  //cmd.exec(cmdLand[device.frameId()]);
+  updateUbo(fbo,gothic,fId);
 
+  cmd.beginSecondaryPasses(fbo,mainPass);
+  if(!cmdLand.empty())
+    cmd.exec(cmdLand[fId]);
+  cmd.endRenderPass();
+
+  /*
   cmd.beginRenderPass(fbo,mainPass);
-  land.draw(cmd,pLand,imgId,gothic);
+  //land.draw(cmd,pLand,fId,gothic);
   for(auto& i:objStatic){
-    vobGroup.setUniforms(cmd,pObject,imgId,i.obj);
+    vobGroup.setUniforms(cmd,pObject,fId,i.obj);
     cmd.draw(i.obj.vbo(),i.obj.ibo());
     }
-  cmd.endRenderPass();
+  cmd.endRenderPass();*/
+  }
+
+CommandBuffer& Renderer::probuilt() {
+  return cmdLand[device.frameId()];
+  }
+
+void Renderer::prebuiltCmdBuf() {
+  cmdLand.clear();
+
+  for(size_t i=0;i<device.maxFramesInFlight();++i){
+    auto cmd=device.commandSecondaryBuffer();
+
+    land    .commitUbo(i);
+    vobGroup.commitUbo(i);
+
+    cmd.begin(mainPass);
+    land.draw(cmd,pLand,i,gothic);
+    for(auto& r:objStatic){
+      vobGroup.setUniforms(cmd,pObject,i,r.obj);
+      cmd.draw(r.obj.vbo(),r.obj.ibo());
+      }
+    cmd.end();
+
+    cmdLand.emplace_back(std::move(cmd));
+    }
   }
 
 void Renderer::initWorld() {
@@ -141,23 +180,4 @@ void Renderer::initWorld() {
     });
 
   prebuiltCmdBuf();
-  }
-
-void Renderer::prebuiltCmdBuf() {
-  cmdLand.clear();
-
-  /*
-  for(size_t i=0;i<device.maxFramesInFlight();++i)
-    if(landPF[i].uboGpu.size()==0)
-      landPF[i].uboGpu = device.loadUbo(&uboCpu,sizeof(uboCpu));
-
-  for(size_t i=0;i<fbo3d.size();++i){
-    auto cmd=device.commandSecondaryBuffer();
-
-    cmd.begin(fbo3d[i],mainPass);
-    prebuiltCmdBuf(cmd,landPF[i]);
-    cmd.end();
-
-    cmdLand.emplace_back(std::move(cmd));
-    }*/
   }

@@ -41,6 +41,7 @@ class StaticObjects final {
 
     Obj  get(const Tempest::Texture2d* mat, const StaticMesh& mesh, const Tempest::IndexBuffer<uint32_t> &ibo);
 
+    void setMatrix(uint32_t imgId);
     void commitUbo(uint32_t imgId);
     void setUniforms(Tempest::CommandBuffer &cmd,Tempest::RenderPipeline& pipe,uint32_t imgId,const StaticObjects::Obj &obj);
 

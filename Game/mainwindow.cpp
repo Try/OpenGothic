@@ -22,7 +22,7 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
     commandBuffersSemaphores.emplace_back(device);
     }
 
-  spin.y = 240;
+  spin.y = 60;
   initSwapchain();
   setupUi();
 

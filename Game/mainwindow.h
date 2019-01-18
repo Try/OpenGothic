@@ -48,7 +48,7 @@ class MainWindow : public Tempest::Window {
 
     Tempest::Point          mpos;
     Tempest::PointF         spin;
-    float                   zoom=0.02f;
+    float                   zoom=0.0002f;
 
     Tempest::Device       device;
     Tempest::TextureAtlas atlas;

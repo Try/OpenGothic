@@ -12,7 +12,8 @@ class Landscape final {
 
     const Tempest::UniformsLayout& uboLayout(){ return layout; }
 
-    void commitUbo(const Tempest::Matrix4x4& mat,uint32_t imgId);
+    void setMatrix(uint32_t imgId,const Tempest::Matrix4x4& mat);
+    void commitUbo(uint32_t imgId);
     void draw(Tempest::CommandBuffer &cmd, const Tempest::RenderPipeline &pLand, uint32_t imgId, const Gothic &gothic);
 
   private:
