@@ -69,7 +69,7 @@ std::function<Ret(Args...)> WorldScript::notImplementedFn(){
     static Ret fn(Args...){
       static bool first=true;
       if(first){
-        LogInfo() << "not implemented call";
+        LogInfo() << "not implemented routine call";
         first=false;
         }
       return Ret();
@@ -88,7 +88,7 @@ void WorldScript::notImplementedRoutine(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::onInserNpc(Daedalus::GameState::NpcHandle handle,const std::string& point) {
-  LogInfo() << "onInserNpc[" << point << "]";
+  // LogInfo() << "onInserNpc[" << point << "]";
   auto  hnpc      = ZMemory::handleCast<NpcHandle>(handle);
   auto& npcData   = vm.getGameState().getNpc(hnpc);
 
@@ -101,7 +101,6 @@ void WorldScript::onInserNpc(Daedalus::GameState::NpcHandle handle,const std::st
   }
 
 void WorldScript::onRemoveNpc(NpcHandle handle) {
-  LogInfo() << "onRemoveNpc";
   delete &getNpc(handle);
   }
 

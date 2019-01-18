@@ -78,7 +78,7 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
 void MainWindow::mouseDragEvent(MouseEvent &event) {
   auto dp = (event.pos()-mpos);
   mpos = event.pos();
-  spin += PointF(dp.x,dp.y);
+  spin += PointF(-dp.x,dp.y);
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
