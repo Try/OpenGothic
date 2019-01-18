@@ -7,8 +7,11 @@
 
 #include <daedalus/DaedalusVM.h>
 #include <zenload/zTypes.h>
+#include <zenload/zTypes.h>
 
 #include "resources.h"
+#include "npc.h"
+#include "worldscript.h"
 
 class Gothic;
 
@@ -34,15 +37,21 @@ class World final {
 
     std::vector<Dodad> staticObj;
 
+    const ZenLoad::zCWaypointData* findPoint(const std::string& s) const { return findPoint(s.c_str()); }
+    const ZenLoad::zCWaypointData* findPoint(const char* name) const;
+
   private:
     std::string                           name;
     Gothic*                               gothic=nullptr;
-    std::unique_ptr<Daedalus::DaedalusVM> vm;
+    std::unique_ptr<WorldScript>          vm;
+    ZenLoad::zCWayNetData                 wayNet;
 
     Tempest::VertexBuffer<Resources::Vertex> vbo;
 
     std::vector<Block>                       blocks;
 
     void    loadVob(const ZenLoad::zCVobData &vob);
+
+    void    initScripts(bool firstTime);
     int32_t runFunction(const std::string &fname,bool clearDataStack);
   };

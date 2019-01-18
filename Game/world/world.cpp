@@ -5,9 +5,13 @@
 
 #include <zenload/zCMesh.h>
 #include <fstream>
+#include <functional>
+#include <daedalus/DaedalusDialogManager.h>
 
 World::World(Gothic& gothic,std::string file)
   :name(std::move(file)),gothic(&gothic) {
+  using namespace Daedalus::GameState;
+
   ZenLoad::ZenParser parser(name,Resources::vdfsIndex());
 
   // TODO: update loader
@@ -20,10 +24,6 @@ World::World(Gothic& gothic,std::string file)
   ZenLoad::PackedMesh mesh;
   ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
   worldMesh->packMesh(mesh, 1.f, false);
-  if(0){
-    std::ofstream out("debug_pmesh.obj");
-    Gothic::debug(mesh,out);
-    }
 
   static_assert(sizeof(Resources::Vertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
   const Resources::Vertex* vert=reinterpret_cast<const Resources::Vertex*>(mesh.vertices.data());
@@ -42,18 +42,30 @@ World::World(Gothic& gothic,std::string file)
   for(auto& vob:world.rootVobs)
     loadVob(vob);
 
-  vm = gothic.createVm("/_work/data/Scripts/_compiled/GOTHIC.DAT");
+  wayNet = std::move(world.waynet);
 
-  Daedalus::GameState::DaedalusGameState::GameExternals ext;
-  vm->getGameState().setGameExternals(ext);
+  vm.reset(new WorldScript(*this,gothic,"/_work/data/Scripts/_compiled/GOTHIC.DAT"));
+  vm->initDialogs(gothic);
+  initScripts(true);
+  }
+
+const ZenLoad::zCWaypointData *World::findPoint(const char *name) const {
+  for(auto& i:wayNet.waypoints)
+    if(i.wpName==name)
+      return &i;
+  return nullptr;
   }
 
 int32_t World::runFunction(const std::string& fname, bool clearDataStack) {
-  if(!vm->getDATFile().hasSymbolName(fname))
-    throw std::runtime_error("script bad call");
-  auto id = vm->getDATFile().getSymbolIndexByName(fname);
-  int32_t ret = vm->runFunctionBySymIndex(id,clearDataStack);
-  return ret;
+  return vm->runFunction(fname,clearDataStack);
+  }
+
+void World::initScripts(bool firstTime) {
+  auto dot=name.rfind('.');
+  std::string startup = (firstTime ? "startup_" : "init_")+(dot==std::string::npos ? name : name.substr(0,dot));
+
+  if(vm->hasSymbolName(startup))
+    vm->runFunction(startup,true);
   }
 
 void World::loadVob(const ZenLoad::zCVobData &vob) {
@@ -63,16 +75,10 @@ void World::loadVob(const ZenLoad::zCVobData &vob) {
   if(!vob.visual.empty()){
     Dodad d;
     d.mesh = Resources::loadStMesh(vob.visual);
-    d.objMat.identity();
-    d.objMat.translate(vob.position.x,vob.position.y,vob.position.z);
 
     float v[16]={};
     std::memcpy(v,vob.worldMatrix.m,sizeof(v));
-
     d.objMat = Tempest::Matrix4x4(v);
-    d.objMat.set(3,0,vob.position.x);
-    d.objMat.set(3,1,vob.position.y);
-    d.objMat.set(3,2,vob.position.z);
 
     staticObj.emplace_back(d);
     }
