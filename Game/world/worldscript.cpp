@@ -3,6 +3,9 @@
 #include "gothic.h"
 #include "npc.h"
 
+#include <Tempest/Log>
+
+using namespace Tempest;
 using namespace Daedalus::GameState;
 
 WorldScript::WorldScript(World &owner, Gothic& gothic, const char *world)
@@ -69,7 +72,7 @@ std::function<Ret(Args...)> WorldScript::notImplementedFn(){
     static Ret fn(Args...){
       static bool first=true;
       if(first){
-        LogInfo() << "not implemented routine call";
+        Log::e("not implemented routine call");
         first=false;
         }
       return Ret();
@@ -82,7 +85,7 @@ void WorldScript::notImplementedRoutine(Daedalus::DaedalusVM &vm) {
   static bool first=true;
   if(first){
     auto fn = vm.getCallStack();
-    LogInfo() << "not implemented call[" << fn[0] << "]";
+    Log::e("not implemented call [",fn[0],"]");
     first=false;
     }
   }
@@ -163,7 +166,7 @@ void WorldScript::hlp_random(Daedalus::DaedalusVM &vm) {
 void WorldScript::wld_settime(Daedalus::DaedalusVM &vm) {
   auto minute = vm.popDataValue();
   auto hour   = vm.popDataValue();
-  LogInfo() << "wld_settime(" << hour << ":" << minute << ")";
+  Log::i("wld_settime(",hour,":",minute,")");
   }
 
 void WorldScript::wld_insertnpc(Daedalus::DaedalusVM &vm) {
@@ -175,7 +178,7 @@ void WorldScript::wld_insertnpc(Daedalus::DaedalusVM &vm) {
 
   auto at=owner.findPoint(spawnpoint);
   if(at==nullptr){
-    LogWarn() << "invalid waypoint: " << spawnpoint;
+    Log::e("invalid waypoint \"",spawnpoint,"\"");
     return;
     }
 

@@ -5,6 +5,10 @@
 #include <Tempest/Device>
 #include <Tempest/Dir>
 
+#include <Tempest/Log>
+
+#include <zenload/zCModelMeshLib.h>
+#include <zenload/zCMorphMesh.h>
 #include <zenload/zCProgMeshProto.h>
 #include <zenload/ztex2dds.h>
 
@@ -27,6 +31,7 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
 
   fallback = device.loadTexture("data/fallback.png");
 
+  // TODO: priority for mod files
   Dir::scan(gothic.path()+"Data/",[this](const std::string& vdf,Dir::FileType t){
     if(t==Dir::FT_File)
       gothicAssets.loadVDF(this->gothic.path() + "Data/" + vdf);
@@ -65,7 +70,7 @@ Tempest::Texture2d* Resources::implLoadTexture(const std::string& name) {
     return ret;
     }
   catch(...){
-    //TODO: log
+    Log::e("unable to load texture \"",name,"\"");
     return &fallback;
     }
   }
@@ -87,9 +92,9 @@ StaticMesh *Resources::implLoadStMesh(const std::string &name) {
     return ret;
     }
   catch(...){
-    //TODO: log
+    Log::e("unable to load mesh \"",name,"\"");
     return nullptr;
-  }
+    }
   }
 
 void Resources::loadMesh(ZenLoad::PackedMesh& packed,std::string name) {
@@ -98,17 +103,16 @@ void Resources::loadMesh(ZenLoad::PackedMesh& packed,std::string name) {
 
   // Check if this isn't the compiled version
   if(name.rfind("-C")==std::string::npos) {
-    if(name.rfind(".3DS")==name.size()-4) {
-      // Strip the ".3DS"
-      std::memcpy(&name[name.size()-3],"MRM",3);
-      // Add "compiled"-extension
-//      vname += ".MRM";
-      } else
-    if(name.rfind(".MMS")==name.size()-4) {
-      // Strip the ".MMS"
-      // Add "compiled"-extension
-      std::memcpy(&name[name.size()-3],"MMB",3);
-      }
+    // Strip the extension ".***"
+    // Add "compiled"-extension
+    if(name.rfind(".3DS")==name.size()-4)
+      std::memcpy(&name[name.size()-3],"MRM",3); else
+    if(name.rfind(".MMS")==name.size()-4)
+      std::memcpy(&name[name.size()-3],"MMB",3); else
+    if(name.rfind(".MDS")==name.size()-4)
+      std::memcpy(&name[name.size()-3],"MDL",3); else
+    if(name.rfind(".ASK")==name.size()-4)
+      std::memcpy(&name[name.size()-3],"MDL",3);
     }
 
   if(name.rfind(".MRM")==name.size()-4) {
@@ -119,6 +123,36 @@ void Resources::loadMesh(ZenLoad::PackedMesh& packed,std::string name) {
       return;
     // Pack the mesh
     zmsh.packMesh(packed,1.f);
+    }
+  else if(name.rfind(".MMB")==name.size()-4) {
+    ZenLoad::zCMorphMesh zmm(name,gothicAssets);
+    // Failed?
+    if(zmm.getMesh().getNumSubmeshes()==0)
+      return;
+    // Pack the mesh
+    zmm.getMesh().packMesh(packed,1.f);
+    }
+  else if(name.rfind(".MDMS")==name.size()-5) {
+    name=name.substr(0,name.size()-1);
+    ZenLoad::zCModelMeshLib zlib(name,gothicAssets, 1.f);
+
+    // Failed?
+    if(!zlib.isValid())
+      return;
+
+    ZenLoad::PackedSkeletalMesh sp;
+    zlib.packMesh(sp, 1.f);
+    for(auto& m:zlib.getMeshes())
+      m.getMesh().packMesh(packed, 1.f);
+    }
+  else if(name.rfind(".MDL")==name.size()-4){
+    ZenLoad::zCModelMeshLib     library(name,gothicAssets,1.f);
+    ZenLoad::PackedSkeletalMesh packed;
+    ZenLoad::PackedSkeletalMesh sp;
+
+    library.packMesh(sp,1.f);
+    for(auto& m:library.getMeshes())
+      m.packMesh(packed, 1.f);
     }
   }
 

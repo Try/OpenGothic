@@ -8,6 +8,8 @@
 #include <functional>
 #include <daedalus/DaedalusDialogManager.h>
 
+#include <Tempest/Log>
+
 World::World(Gothic& gothic,std::string file)
   :name(std::move(file)),gothic(&gothic) {
   using namespace Daedalus::GameState;
