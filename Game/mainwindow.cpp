@@ -90,17 +90,17 @@ void MainWindow::mouseWheelEvent(MouseEvent &event) {
   }
 
 void MainWindow::keyDownEvent(KeyEvent &event) {
-  static float dpos = 20.f;
+  static float dpos = 40.f;
 
   float k = -float(M_PI/180.0);
   float s = std::sin(spin.x*k), c=std::cos(spin.x*k);
 
   if(event.key==KeyEvent::K_A) {
-    camPos[0]-=dpos*c;
+    camPos[0]+=dpos*c;
     camPos[1]-=dpos*s;
     }
   if(event.key==KeyEvent::K_D) {
-    camPos[0]+=dpos*c;
+    camPos[0]-=dpos*c;
     camPos[1]+=dpos*s;
     }
   if(event.key==KeyEvent::K_W) {
@@ -114,7 +114,10 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
   }
 
 void MainWindow::keyUpEvent(KeyEvent &event) {
-  event.accept();
+  if(event.key==KeyEvent::K_ESCAPE) {
+    rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_MAIN"));
+    rootMenu->setFocus(true);
+    }
   }
 
 void MainWindow::initSwapchain(){
@@ -134,7 +137,6 @@ void MainWindow::initSwapchain(){
   }
 
 void MainWindow::tick() {
-
   }
 
 void MainWindow::render(){

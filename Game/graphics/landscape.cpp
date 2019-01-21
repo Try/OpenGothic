@@ -29,11 +29,12 @@ void Landscape::draw(Tempest::CommandBuffer &cmd, const RenderPipeline& pLand, u
 
   PerFrame& pf      = landPF[imgId];
   auto&     uboLand = pf.uboLand;
+  auto&     blocks  = world.landBlocks();
 
-  uboLand.resize(world.landBlocks().size());
+  uboLand.resize(blocks.size());
   const Texture2d* prev=nullptr;
-  for(size_t i=0;i<world.landBlocks().size();++i){
-    auto& lnd=world.landBlocks()[i];
+  for(size_t i=0;i<blocks.size();++i){
+    auto& lnd=blocks [i];
     auto& ubo=uboLand[i];
 
     if(ubo.isEmpty())

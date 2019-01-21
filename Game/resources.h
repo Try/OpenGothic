@@ -24,6 +24,15 @@ class Resources {
       uint32_t color;
       };
 
+    struct VertexA {
+      float    norm[3];
+      float    uv[2];
+      uint32_t color;
+      float    LocalPositions[4][3];
+      uint8_t  BoneIndices[4];
+      float    weights[4];
+      };
+
     static Tempest::Font menuFont(){ return inst->menuFnt; }
     static Tempest::Font font(){ return inst->mainFnt; }
 
@@ -46,10 +55,16 @@ class Resources {
   private:
     static Resources* inst;
 
-    void addVdf(const char* vdf);
+    enum class MeshLoadCode : uint8_t {
+      Error,
+      Static,
+      Dynamic
+      };
+
+    void                addVdf(const char* vdf);
     Tempest::Texture2d *implLoadTexture(const std::string &name);
     StaticMesh         *implLoadStMesh (const std::string &name);
-    void                loadMesh(ZenLoad::PackedMesh &packed, std::string name);
+    MeshLoadCode        loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::PackedSkeletalMesh &aPacked, std::string name);
 
     Tempest::Texture2d fallback;
 

@@ -6,11 +6,10 @@
 
 #include "resources.h"
 
-class StaticMesh {
+class AnimMesh {
   public:
-    using Vertex=Resources::Vertex;
-    StaticMesh(const ZenLoad::PackedMesh& data);
-    StaticMesh(const ZenLoad::PackedSkeletalMesh& data);
+    using Vertex=Resources::VertexA;
+    AnimMesh(const ZenLoad::PackedSkeletalMesh& data);
 
     struct SubMesh {
       Tempest::Texture2d*            texture=nullptr;

@@ -32,10 +32,6 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
 
   projective.perspective( 45.0f, float(w)/float(h), 0.1f, 100.0f );
   view.identity();
-  view.translate(cam[0],cam[1],4);
-  view.rotate(spin.y, 1, 0, 0);
-  view.rotate(spin.x, 0, 1, 0);
-  view.scale(zoom);
 
   auto viewProj=projective;
   viewProj.mul(view);
@@ -71,7 +67,7 @@ void Renderer::updateUbo(const FrameBuffer& fbo,const Gothic &,uint32_t imgId) {
   projective.perspective(45.0f, float(fbo.w())/float(fbo.h()), 0.1f, 100.0f);
 
   view.identity();
-  view.translate(0,0,2);
+  view.translate(0,0,0.4f);
   view.rotate(spin.y, 1, 0, 0);
   view.rotate(spin.x, 0, 1, 0);
   view.scale(zoom);
@@ -80,9 +76,6 @@ void Renderer::updateUbo(const FrameBuffer& fbo,const Gothic &,uint32_t imgId) {
 
   auto viewProj=projective;
   viewProj.mul(view);
-
-  //for(size_t i=0;i<objStatic.size();++i)
-  //  objStatic[i].setMvpMatrix(objStatic[i].objMatrix());
 
   land    .setMatrix(imgId,viewProj);
 
@@ -126,10 +119,7 @@ void Renderer::prebuiltCmdBuf() {
 
     cmd.begin(mainPass);
     land.draw(cmd,pLand,i,gothic);
-    for(auto& r:objStatic){
-      vobGroup.setUniforms(cmd,pObject,i,r);
-      cmd.draw(r.vbo(),r.ibo());
-      }
+    vobGroup.draw(cmd,pObject,i);
     cmd.end();
 
     cmdLand.emplace_back(std::move(cmd));
@@ -143,13 +133,10 @@ void Renderer::initWorld() {
   objStatic.clear();
   for(auto& v:world.staticObj){
     for(auto& s:v.mesh->sub) {
-      if(objStatic.size()>=20000)
-        break;
-
       if(!s.texture || s.texture->isEmpty() || !v.mesh)
         continue;
 
-      obj = vobGroup.get(s.texture,*v.mesh,s.ibo);
+      obj = vobGroup.get(*v.mesh,s.texture,s.ibo);
       obj.setObjMatrix(v.objMat);
 
       objStatic.push_back(std::move(obj));

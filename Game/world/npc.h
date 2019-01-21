@@ -3,6 +3,10 @@
 #include <cstdint>
 #include <string>
 
+#include <daedalus/DaedalusVM.h>
+
+class WorldScript;
+
 class Npc final {
   public:
     enum Talent : uint8_t {
@@ -31,16 +35,34 @@ class Npc final {
       NPC_TALENT_MAX                = 22
       };
 
-    Npc();
+    Npc(WorldScript& owner,Daedalus::GameState::NpcHandle hnpc);
     Npc(const Npc&)=delete;
     ~Npc();
 
-    void setName(const std::string& name);
+    void setName      (const std::string& name);
+    void setVisual    (const std::string& view);
+    void setVisualBody(const std::string& head, const std::string& body);
+    void setFatness   (float f);
+    void setOverlay   (const std::string &name, float time);
+    void setScale     (float x,float y,float z);
+
     void setTalentSkill(Talent t,int32_t lvl);
 
-    void equipItem();
+    void setToFistMode ();
+    void setToFightMode(const uint32_t item);
+    Daedalus::GameState::ItemHandle
+         addItem       (const uint32_t item, size_t count=1);
+    void equipItem     (const uint32_t item);
+
+    void drawWeaponMelee();
 
   private:
+    WorldScript&                   owner;
+    Daedalus::GameState::NpcHandle hnpc;
+
     std::string name;
     int32_t     talents[NPC_TALENT_MAX]={};
+
+    const std::list<Daedalus::GameState::ItemHandle> &getItems();
+    size_t getItemCount(const uint32_t id);
   };

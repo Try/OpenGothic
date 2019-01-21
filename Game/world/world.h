@@ -9,6 +9,7 @@
 #include <zenload/zTypes.h>
 #include <zenload/zTypes.h>
 
+#include "graphics/staticobjects.h"
 #include "resources.h"
 #include "npc.h"
 #include "worldscript.h"
@@ -45,6 +46,7 @@ class World final {
     Gothic*                               gothic=nullptr;
     std::unique_ptr<WorldScript>          vm;
     ZenLoad::zCWayNetData                 wayNet;
+    // StaticObjects                         visualObj;
 
     Tempest::VertexBuffer<Resources::Vertex> vbo;
 
