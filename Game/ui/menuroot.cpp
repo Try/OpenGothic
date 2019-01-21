@@ -3,8 +3,11 @@
 #include "ui/gamemenu.h"
 #include "gothic.h"
 
+using namespace Tempest;
+
 MenuRoot::MenuRoot(Gothic &gothic)
   :gothic(gothic){
+  setFocus(true);
   }
 
 MenuRoot::~MenuRoot() {
@@ -34,6 +37,7 @@ void MenuRoot::popMenu() {
     if(gothic.isInGame()) {
       current=nullptr;
       removeAllWidgets();
+      owner()->setFocus(true);
       }
     return;
     }
@@ -46,18 +50,35 @@ void MenuRoot::popMenu() {
   menuStack.pop_back();
   }
 
-void MenuRoot::mouseDownEvent(Tempest::MouseEvent &event) {
+void MenuRoot::mouseDownEvent(MouseEvent &event) {
   if(current==nullptr)
     event.ignore();
   }
 
-void MenuRoot::mouseUpEvent(Tempest::MouseEvent&) {
+void MenuRoot::mouseUpEvent(MouseEvent&) {
   if(current!=nullptr)
     current->onSelect();
   }
 
-void MenuRoot::mouseWheelEvent(Tempest::MouseEvent &event) {
+void MenuRoot::mouseWheelEvent(MouseEvent &event) {
   if(current!=nullptr)
     current->onMove(-event.delta/120); else
     event.ignore();
+  }
+
+void MenuRoot::keyDownEvent(KeyEvent &e) {
+  e.accept();
+  }
+
+void MenuRoot::keyUpEvent(KeyEvent &e) {
+  if(current!=nullptr){
+    if(e.key==Event::K_W || e.key==Event::K_Up)
+      current->onMove(-1);
+    if(e.key==Event::K_S || e.key==Event::K_Down)
+      current->onMove(1);
+    if(e.key==Event::K_Return)
+      current->onSelect();
+    if(e.key==Event::K_ESCAPE)
+      popMenu();
+    }
   }

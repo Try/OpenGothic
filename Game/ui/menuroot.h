@@ -19,6 +19,9 @@ class MenuRoot : public Tempest::Widget {
     void mouseUpEvent   (Tempest::MouseEvent& event) override;
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
 
+    void keyDownEvent   (Tempest::KeyEvent&   event) override;
+    void keyUpEvent     (Tempest::KeyEvent&   event) override;
+
   private:
     Gothic&                                gothic;
     GameMenu*                              current=nullptr;

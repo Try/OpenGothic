@@ -5,8 +5,13 @@ out gl_PerVertex {
   vec4 gl_Position;
   };
 
-layout(binding = 0) uniform UniformBufferObject {
-  mat4 mvp;
+layout(std140,binding = 0) uniform UboScene {
+  vec3 ldir;
+  mat4 mv;
+  } scene;
+
+layout(std140,binding = 1) uniform UboObject {
+  mat4 obj;
   } ubo;
 
 layout(location = 0) in vec3 inPos;
@@ -15,13 +20,16 @@ layout(location = 2) in vec2 inUV;
 layout(location = 3) in vec4 inColor;
 
 layout(location = 0) out vec2 outUV;
-layout(location = 1) out vec3 outNormmal;
+layout(location = 1) out vec3 outNormal;
 layout(location = 2) out vec4 outColor;
 
-void main() {
-  outNormmal  = inNormal;
-  outUV       = inUV;
-  outColor    = inColor;
+layout(location = 3) out vec3 outLight;
 
-  gl_Position = ubo.mvp*vec4(inPos.xyz, 1.0);
+void main() {
+  outUV     = inUV;
+  outColor  = inColor;
+  outLight  = scene.ldir;
+
+  outNormal   = (ubo.obj*vec4(inNormal,0.0)).xyz;
+  gl_Position = scene.mv*ubo.obj*vec4(inPos.xyz, 1.0);
   }

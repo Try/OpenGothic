@@ -20,18 +20,12 @@ class Renderer final {
 
     void initSwapchain(uint32_t w,uint32_t h);
 
-    void setDebugView(const Tempest::PointF& spin,const float zoom);
+    void setDebugView(const std::array<float,3>& cam,const Tempest::PointF& spin,const float zoom);
     void draw(Tempest::CommandBuffer& cmd, uint32_t imgId, const Gothic& gothic);
     void draw(Tempest::CommandBuffer& cmd, Tempest::FrameBuffer& imgId, const Gothic& gothic);
 
-    Tempest::CommandBuffer &probuilt();
-
   private:
-    struct Object {
-      Tempest::Matrix4x4 objMat;
-      StaticObjects::Obj obj;
-      };
-    std::vector<Object> objStatic;
+    std::vector<StaticObjects::Obj> objStatic;
 
     Tempest::RenderPipeline& landPipeline(Tempest::RenderPass& pass, uint32_t w, uint32_t h);
     Tempest::RenderPipeline& objPipeline (Tempest::RenderPass& pass, uint32_t w, uint32_t h);
@@ -41,7 +35,6 @@ class Renderer final {
     Tempest::Texture2d      zbuffer;
     Tempest::Matrix4x4      view,projective;
     size_t                  isUboReady=0;
-    bool                    needToUpdateUbo[3]={};
 
     Tempest::RenderPass     mainPass;
     Tempest::RenderPipeline pLand, pObject;
@@ -55,6 +48,7 @@ class Renderer final {
     std::vector<Tempest::CommandBuffer> cmdLand;
 
     Tempest::PointF         spin;
+    std::array<float,3>     cam;
     float                   zoom=1.f;
 
     void initWorld();

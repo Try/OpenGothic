@@ -56,5 +56,5 @@ class GameMenu : public Tempest::Widget {
     bool                                  isEnabled(const Daedalus::GEngineClasses::C_Menu_Item& item);
 
     void                                  exec(const Daedalus::GEngineClasses::C_Menu_Item& item);
-    bool exec(const std::string& action);
+    bool                                  exec(const std::string& action);
   };

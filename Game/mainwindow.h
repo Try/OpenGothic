@@ -17,6 +17,7 @@
 #include <Tempest/Sprite>
 #include <Tempest/Font>
 #include <Tempest/TextureAtlas>
+#include <Tempest/Timer>
 
 #include <daedalus/DaedalusVM.h>
 
@@ -41,14 +42,20 @@ class MainWindow : public Tempest::Window {
     void mouseDragEvent (Tempest::MouseEvent& event) override;
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
 
+    void keyDownEvent   (Tempest::KeyEvent&   event) override;
+    void keyUpEvent     (Tempest::KeyEvent&   event) override;
+
     void setupUi();
 
     void render() override;
     void initSwapchain();
 
-    Tempest::Point          mpos;
-    Tempest::PointF         spin;
-    float                   zoom=0.0002f;
+    void tick();
+
+    Tempest::Point        mpos;
+    std::array<float,3>   camPos={};
+    Tempest::PointF       spin;
+    float                 zoom=0.0002f;
 
     Tempest::Device       device;
     Tempest::TextureAtlas atlas;
@@ -62,6 +69,7 @@ class MainWindow : public Tempest::Window {
     Renderer             draw;
 
     MenuRoot*            rootMenu=nullptr;
+    Tempest::Timer       timer;
 
     struct FrameLocal {
       explicit FrameLocal(Tempest::Device& dev):imageAvailable(dev),gpuLock(dev){}

@@ -32,15 +32,13 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
 
   projective.perspective( 45.0f, float(w)/float(h), 0.1f, 100.0f );
   view.identity();
-  view.translate(0,0,4);
+  view.translate(cam[0],cam[1],4);
   view.rotate(spin.y, 1, 0, 0);
   view.rotate(spin.x, 0, 1, 0);
   view.scale(zoom);
 
   auto viewProj=projective;
   viewProj.mul(view);
-
-  prebuiltCmdBuf();
   }
 
 RenderPipeline& Renderer::landPipeline(RenderPass &pass,uint32_t w,uint32_t h) {
@@ -63,43 +61,42 @@ RenderPipeline &Renderer::objPipeline(RenderPass &pass, uint32_t w, uint32_t h) 
   return pObject;
   }
 
-void Renderer::setDebugView(const PointF &spin, const float zoom) {
-  if(this->spin==spin && this->zoom==zoom)
-    ;//return;
-
+void Renderer::setDebugView(const std::array<float,3>& cam, const PointF &spin, const float zoom) {
+  this->cam =cam;
   this->spin=spin;
   this->zoom=zoom;
-  std::fill(needToUpdateUbo,needToUpdateUbo+3,true);
   }
 
 void Renderer::updateUbo(const FrameBuffer& fbo,const Gothic &,uint32_t imgId) {
-  if(!needToUpdateUbo[imgId])
-    return;
-  needToUpdateUbo[imgId]=false;
-
-  projective.perspective( 45.0f, float(fbo.w())/float(fbo.h()), 0.1f, 100.0f );
+  projective.perspective(45.0f, float(fbo.w())/float(fbo.h()), 0.1f, 100.0f);
 
   view.identity();
-  view.translate(0,0,4);
+  view.translate(0,0,2);
   view.rotate(spin.y, 1, 0, 0);
   view.rotate(spin.x, 0, 1, 0);
   view.scale(zoom);
+  view.translate(cam[0],1400,cam[1]);
   view.scale(-1,-1,-1);
 
   auto viewProj=projective;
   viewProj.mul(view);
 
-  for(size_t i=0;i<objStatic.size();++i){
-    auto mt = viewProj;
-    mt.mul(objStatic[i].objMat);
-    objStatic[i].obj.setMatrix(mt);
-    }
+  //for(size_t i=0;i<objStatic.size();++i)
+  //  objStatic[i].setMvpMatrix(objStatic[i].objMatrix());
 
   land    .setMatrix(imgId,viewProj);
+
+  vobGroup.setModelView(viewProj);
   vobGroup.setMatrix(imgId);
   }
 
 void Renderer::draw(CommandBuffer &cmd, uint32_t imgId, const Gothic &gothic) {
+  if(vobGroup.needToUpdateCommands()){
+    device.waitIdle();
+    prebuiltCmdBuf();
+    vobGroup.setAsUpdated();
+    }
+
   FrameBuffer& fbo = fbo3d[imgId];
   draw(cmd,fbo,gothic);
   }
@@ -112,23 +109,10 @@ void Renderer::draw(CommandBuffer &cmd, FrameBuffer &fbo, const Gothic &gothic) 
 
   updateUbo(fbo,gothic,fId);
 
-  cmd.beginSecondaryPasses(fbo,mainPass);
-  if(!cmdLand.empty())
+  if(!cmdLand.empty()) {
+    cmd.setSecondaryPass(fbo,mainPass);
     cmd.exec(cmdLand[fId]);
-  cmd.endRenderPass();
-
-  /*
-  cmd.beginRenderPass(fbo,mainPass);
-  //land.draw(cmd,pLand,fId,gothic);
-  for(auto& i:objStatic){
-    vobGroup.setUniforms(cmd,pObject,fId,i.obj);
-    cmd.draw(i.obj.vbo(),i.obj.ibo());
     }
-  cmd.endRenderPass();*/
-  }
-
-CommandBuffer& Renderer::probuilt() {
-  return cmdLand[device.frameId()];
   }
 
 void Renderer::prebuiltCmdBuf() {
@@ -143,8 +127,8 @@ void Renderer::prebuiltCmdBuf() {
     cmd.begin(mainPass);
     land.draw(cmd,pLand,i,gothic);
     for(auto& r:objStatic){
-      vobGroup.setUniforms(cmd,pObject,i,r.obj);
-      cmd.draw(r.obj.vbo(),r.obj.ibo());
+      vobGroup.setUniforms(cmd,pObject,i,r);
+      cmd.draw(r.vbo(),r.ibo());
       }
     cmd.end();
 
@@ -153,10 +137,8 @@ void Renderer::prebuiltCmdBuf() {
   }
 
 void Renderer::initWorld() {
-  auto&  world = gothic.world();
-  Object obj;
-
-  std::fill(needToUpdateUbo,needToUpdateUbo+3,true);
+  auto&              world = gothic.world();
+  StaticObjects::Obj obj;
 
   objStatic.clear();
   for(auto& v:world.staticObj){
@@ -167,17 +149,14 @@ void Renderer::initWorld() {
       if(!s.texture || s.texture->isEmpty() || !v.mesh)
         continue;
 
-      obj.obj     = vobGroup.get(s.texture,*v.mesh,s.ibo);
-      obj.objMat  = v.objMat;
-      obj.obj.setMatrix(v.objMat);
+      obj = vobGroup.get(s.texture,*v.mesh,s.ibo);
+      obj.setObjMatrix(v.objMat);
 
       objStatic.push_back(std::move(obj));
       }
     }
 
-  std::sort(objStatic.begin(),objStatic.end(),[](const Object& l,const Object& r){
-    return l.obj.orderId()<r.obj.orderId();
+  std::sort(objStatic.begin(),objStatic.end(),[](const StaticObjects::Obj& l,const StaticObjects::Obj& r){
+    return l.orderId()<r.orderId();
     });
-
-  prebuiltCmdBuf();
   }

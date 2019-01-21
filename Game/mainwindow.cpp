@@ -27,6 +27,7 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   setupUi();
 
   background = Resources::loadTexture("STARTSCREEN.TGA");
+  timer.timeout.bind(this,&MainWindow::tick);
   }
 
 MainWindow::~MainWindow() {
@@ -88,6 +89,34 @@ void MainWindow::mouseWheelEvent(MouseEvent &event) {
     zoom /= 1.1f;
   }
 
+void MainWindow::keyDownEvent(KeyEvent &event) {
+  static float dpos = 20.f;
+
+  float k = -float(M_PI/180.0);
+  float s = std::sin(spin.x*k), c=std::cos(spin.x*k);
+
+  if(event.key==KeyEvent::K_A) {
+    camPos[0]-=dpos*c;
+    camPos[1]-=dpos*s;
+    }
+  if(event.key==KeyEvent::K_D) {
+    camPos[0]+=dpos*c;
+    camPos[1]+=dpos*s;
+    }
+  if(event.key==KeyEvent::K_W) {
+    camPos[0]-=dpos*s;
+    camPos[1]-=dpos*c;
+    }
+  if(event.key==KeyEvent::K_S){
+    camPos[0]+=dpos*s;
+    camPos[1]+=dpos*c;
+    }
+  }
+
+void MainWindow::keyUpEvent(KeyEvent &event) {
+  event.accept();
+  }
+
 void MainWindow::initSwapchain(){
   const size_t imgC=device.swapchainImageCount();
   commandDynamic.clear();
@@ -104,6 +133,10 @@ void MainWindow::initSwapchain(){
   draw.initSwapchain(uint32_t(w()),uint32_t(h()));
   }
 
+void MainWindow::tick() {
+
+  }
+
 void MainWindow::render(){
   try {
     uint64_t time=Application::tickCount();
@@ -118,7 +151,7 @@ void MainWindow::render(){
 
     if(needToUpdate())
       dispatchPaintEvent(surface,atlas);
-    draw.setDebugView(spin,zoom);
+    draw.setDebugView(camPos,spin,zoom);
 
     cmd.begin();
 
@@ -126,9 +159,8 @@ void MainWindow::render(){
       draw.draw(cmd,imgId,gothic);
 
     if(1) {
-      cmd.beginRenderPass(fboUi[imgId],uiPass);
+      cmd.setPass(fboUi[imgId],uiPass);
       surface.draw(device,cmd,uiPass);
-      cmd.endRenderPass();
       }
 
     cmd.end();
