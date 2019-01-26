@@ -10,13 +10,14 @@
 #include <list>
 
 #include "staticmesh.h"
+#include "animmesh.h"
+
+class RendererStorage;
 
 class StaticObjects final {
   struct Chunk;
   public:
-    StaticObjects(Tempest::Device &device);
-
-    const Tempest::UniformsLayout& uboLayout(){ return layout; }
+    StaticObjects(const RendererStorage& storage);
 
     class Obj final {
       public:
@@ -51,18 +52,26 @@ class StaticObjects final {
     class Mesh final {
       public:
         Mesh()=default;
-        Mesh(std::unique_ptr<Obj[]>&& sub):sub(std::move(sub)){}
+        Mesh(const AnimMesh* mesh,std::unique_ptr<Obj[]>&& sub,size_t subCount):sub(std::move(sub)),subCount(subCount),ani(mesh){}
+
+        void setObjMatrix(const Tempest::Matrix4x4& mt);
 
       private:
         std::unique_ptr<Obj[]> sub;
+        size_t                 subCount=0;
+        const AnimMesh*        ani=nullptr;
+
+        void setObjMatrix(const AnimMesh& ani, const Tempest::Matrix4x4& mt, size_t parent);
       };
+
     Obj  get(const StaticMesh& mesh, const Tempest::Texture2d* mat, const Tempest::IndexBuffer<uint32_t> &ibo);
     Mesh get(const StaticMesh& mesh);
+    Mesh get(const AnimMesh&   mesh);
 
     void setMatrix(uint32_t imgId);
     void commitUbo(uint32_t imgId);
-    void draw     (Tempest::CommandBuffer &cmd,Tempest::RenderPipeline& pipe,uint32_t imgId,const StaticObjects::Obj &obj);
-    void draw     (Tempest::CommandBuffer &cmd,Tempest::RenderPipeline& pipe,uint32_t imgId);
+    void draw     (Tempest::CommandBuffer &cmd, uint32_t imgId, const StaticObjects::Obj &obj);
+    void draw     (Tempest::CommandBuffer &cmd, uint32_t imgId);
 
     bool needToUpdateCommands() const;
     void setAsUpdated();
@@ -103,11 +112,11 @@ class StaticObjects final {
 
       std::vector<size_t>         freeList;
       void                        free(const Obj& obj);
+      void                        markAsChanged();
       };
 
-    Tempest::Device&            device;
+    const RendererStorage&      storage;
     std::list<Chunk>            chunks;
-    Tempest::UniformsLayout     layout;
 
     std::unique_ptr<PerFrame[]> pf;
     UboGlobal                   uboGlobal;

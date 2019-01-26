@@ -4,21 +4,18 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/UniformBuffer>
 
-class Gothic;
+class World;
+class RendererStorage;
 
 class Landscape final {
   public:
-    Landscape(Tempest::Device &device);
-
-    const Tempest::UniformsLayout& uboLayout(){ return layout; }
+    Landscape(const RendererStorage& storage);
 
     void setMatrix(uint32_t imgId,const Tempest::Matrix4x4& mat);
     void commitUbo(uint32_t imgId);
-    void draw(Tempest::CommandBuffer &cmd, const Tempest::RenderPipeline &pLand, uint32_t imgId, const Gothic &gothic);
+    void draw(Tempest::CommandBuffer &cmd, uint32_t imgId, const World &world);
 
   private:
-    Tempest::Device &device;
-
     struct UboLand {
       Tempest::Matrix4x4 mvp;
       };
@@ -28,7 +25,7 @@ class Landscape final {
       Tempest::UniformBuffer         uboGpu;
       };
 
-    Tempest::UniformsLayout        layout;
+    const RendererStorage&         storage;
     UboLand                        uboCpu;
     std::unique_ptr<PerFrame[]>    landPF;
   };

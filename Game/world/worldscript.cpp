@@ -114,7 +114,10 @@ void WorldScript::notImplementedRoutine(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::onInserNpc(Daedalus::GameState::NpcHandle handle,const std::string& point) {
-  // LogInfo() << "onInserNpc[" << point << "]";
+  auto  pos = owner.findPoint(point);
+  if(pos==nullptr){
+    Log::e("onInserNpc: invalid waypoint");
+    }
   auto  hnpc      = ZMemory::handleCast<NpcHandle>(handle);
   auto& npcData   = vm.getGameState().getNpc(hnpc);
 
@@ -122,6 +125,9 @@ void WorldScript::onInserNpc(Daedalus::GameState::NpcHandle handle,const std::st
   npcData.userPtr = ptr.get();
   if(!npcData.name[0].empty())
     ptr->setName(npcData.name[0]);
+
+  if(pos!=nullptr)
+    ptr->setPosition(pos->position.x,pos->position.y,pos->position.z);
 
   npcArr.emplace_back(std::move(ptr));
   }
@@ -214,12 +220,12 @@ void WorldScript::wld_settime(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::mdl_setvisual(Daedalus::DaedalusVM &vm) {
-  const std::string& visual = popString(vm);
-  uint32_t arr_self=0;
-  uint32_t self = vm.popVar(arr_self);
+  const std::string& visual   = popString(vm);
+  uint32_t           arr_self = 0;
+  uint32_t           self     = vm.popVar(arr_self);
 
   auto& npc = getNpcById(self);
-  npc.setVisual(visual);
+  npc.setVisual(owner.getView(visual));
   }
 
 void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
@@ -233,8 +239,10 @@ void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
   uint32_t    arr_self=0;
   uint32_t    self = vm.popVar(arr_self);
 
-  auto& npc = getNpcById(self);
-  npc.setVisualBody(head,body);
+  auto& npc   = getNpcById(self);
+  auto  vhead = head.empty() ? StaticObjects::Mesh() : owner.getView(head+".MMB");
+  auto  vbody = body.empty() ? StaticObjects::Mesh() : owner.getView(body+".MDM");
+  npc.setVisualBody(std::move(vhead),std::move(vbody));
 
   if(armor>=0)
     ;//vm.getGameState().createInventoryItem(size_t(armor), hnpc);

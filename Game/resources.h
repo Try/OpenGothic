@@ -7,10 +7,13 @@
 
 #include <vdfs/fileIndex.h>
 
+#include <zenload/zCModelMeshLib.h>
 #include <zenload/zTypes.h>
 
 class Gothic;
+
 class StaticMesh;
+class AnimMesh;
 
 class Resources {
   public:
@@ -39,7 +42,7 @@ class Resources {
     static Tempest::Texture2d *loadTexture(const char* name);
     static Tempest::Texture2d *loadTexture(const std::string& name);
 
-    static StaticMesh         *loadStMesh (const std::string& name);
+    static AnimMesh           *loadMesh   (const std::string& name);
 
     template<class V>
     static Tempest::VertexBuffer<V> loadVbo(const V* data,size_t sz){ return inst->device.loadVbo(data,sz,Tempest::BufferFlags::Static); }
@@ -63,13 +66,16 @@ class Resources {
 
     void                addVdf(const char* vdf);
     Tempest::Texture2d *implLoadTexture(const std::string &name);
-    StaticMesh         *implLoadStMesh (const std::string &name);
-    MeshLoadCode        loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::PackedSkeletalMesh &aPacked, std::string name);
+    AnimMesh           *implLoadMesh   (const std::string &name);
+    MeshLoadCode        loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
+
+    ZenLoad::zCModelMeshLib loadMDS (std::string& name);
+    bool                hasFile(const std::string& fname);
 
     Tempest::Texture2d fallback;
 
     std::unordered_map<std::string,std::unique_ptr<Tempest::Texture2d>> texCache;
-    std::unordered_map<std::string,std::unique_ptr<StaticMesh>>         stMeshCache;
+    std::unordered_map<std::string,std::unique_ptr<AnimMesh>>           aniMeshCache;
 
     Tempest::Device& device;
     Tempest::Font    menuFnt, mainFnt;

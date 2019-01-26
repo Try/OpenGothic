@@ -1,13 +1,13 @@
 #include "landscape.h"
 
+#include "rendererstorage.h"
 #include "gothic.h"
 
 using namespace Tempest;
 
-Landscape::Landscape(Tempest::Device &device)
-  :device(device) {
-  layout.add(0,Tempest::UniformsLayout::UboDyn, Tempest::UniformsLayout::Vertex);
-  layout.add(1,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
+Landscape::Landscape(const RendererStorage &storage)
+  :storage(storage) {
+  auto& device=storage.device;
 
   landPF.reset(new PerFrame[device.maxFramesInFlight()]);
   for(size_t i=0;i<device.maxFramesInFlight();++i){
@@ -24,9 +24,7 @@ void Landscape::commitUbo(uint32_t /*imgId*/) {
   //landPF[imgId].uboGpu.update(&uboCpu,0,sizeof(uboCpu));
   }
 
-void Landscape::draw(Tempest::CommandBuffer &cmd, const RenderPipeline& pLand, uint32_t imgId,const Gothic& gothic) {
-  auto& world = gothic.world();
-
+void Landscape::draw(Tempest::CommandBuffer &cmd, uint32_t imgId,const World& world) {
   PerFrame& pf      = landPF[imgId];
   auto&     uboLand = pf.uboLand;
   auto&     blocks  = world.landBlocks();
@@ -38,7 +36,7 @@ void Landscape::draw(Tempest::CommandBuffer &cmd, const RenderPipeline& pLand, u
     auto& ubo=uboLand[i];
 
     if(ubo.isEmpty())
-      ubo = device.uniforms(layout);
+      ubo = storage.device.uniforms(storage.uboLndLayout());
     if(!lnd.texture || lnd.texture->isEmpty())
       continue;
 
@@ -48,7 +46,7 @@ void Landscape::draw(Tempest::CommandBuffer &cmd, const RenderPipeline& pLand, u
       ubo.set(1,*lnd.texture);
 
       uint32_t offset=0;
-      cmd.setUniforms(pLand,ubo,1,&offset);
+      cmd.setUniforms(storage.pLand,ubo,1,&offset);
       }
     cmd.draw(world.landVbo(),lnd.ibo);
     }

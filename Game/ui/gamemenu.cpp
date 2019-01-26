@@ -260,7 +260,6 @@ void GameMenu::exec(const Daedalus::GEngineClasses::C_Menu_Item &item) {
       case SEL_ACTION_BACK:
         owner.popMenu();
         return;
-        break;
       case SEL_ACTION_CLOSE:
         //TODO
         break;
@@ -269,8 +268,7 @@ void GameMenu::exec(const Daedalus::GEngineClasses::C_Menu_Item &item) {
 
 bool GameMenu::exec(const std::string &action) {
   if(action=="NEW_GAME"){
-    World w(gothic,gothic.defaultWorld());
-    gothic.setWorld(std::move(w));
+    gothic.onSetWorld(gothic.defaultWorld());
     owner.popMenu();
     return true;
     }

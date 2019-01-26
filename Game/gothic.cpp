@@ -31,7 +31,6 @@ bool Gothic::isInGame() const {
 
 void Gothic::setWorld(World &&w) {
   wrld = std::move(w);
-  onWorldChanged();
   }
 
 const std::string &Gothic::defaultWorld() const {

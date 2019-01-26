@@ -15,6 +15,7 @@
 #include <fstream>
 
 #include "graphics/staticmesh.h"
+#include "graphics/animmesh.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -45,6 +46,10 @@ Resources::~Resources() {
   inst=nullptr;
   }
 
+VDFS::FileIndex& Resources::vdfsIndex() {
+  return inst->gothicAssets;
+  }
+
 void Resources::addVdf(const char *vdf) {
   gothicAssets.loadVDF(gothic.path() + vdf);
   }
@@ -64,7 +69,6 @@ Tempest::Texture2d* Resources::implLoadTexture(const std::string& name) {
   try {
     Tempest::MemReader rd(data.data(),data.size());
     Tempest::Pixmap    pm(rd);
-    //pm.save("debug.png");
 
     std::unique_ptr<Texture2d> t{new Texture2d(device.loadTexture(pm))};
     Texture2d* ret=t.get();
@@ -77,22 +81,26 @@ Tempest::Texture2d* Resources::implLoadTexture(const std::string& name) {
     }
   }
 
-StaticMesh *Resources::implLoadStMesh(const std::string &name) {
+AnimMesh *Resources::implLoadMesh(const std::string &name) {
   if(name.size()==0)
     return nullptr;
 
-  auto it=stMeshCache.find(name);
-  if(it!=stMeshCache.end())
+  auto it=aniMeshCache.find(name);
+  if(it!=aniMeshCache.end())
     return it->second.get();
 
-  try {
-    ZenLoad::PackedMesh         sPacked;
-    ZenLoad::PackedSkeletalMesh aPacked;
-    auto                        code=loadMesh(sPacked,aPacked,name);
+  if(name=="DOOR_WOODEN.MDS")
+    Tempest::Log::d("");
 
-    std::unique_ptr<StaticMesh> t{code==MeshLoadCode::Static ? (new StaticMesh(sPacked)) : (new StaticMesh(aPacked))};
-    StaticMesh* ret=t.get();
-    stMeshCache[name] = std::move(t);
+  try {
+    ZenLoad::PackedMesh       sPacked;
+    ZenLoad::zCModelMeshLib   library;
+    auto                      code=loadMesh(sPacked,library,name);
+    std::unique_ptr<AnimMesh> t{code==MeshLoadCode::Static ? new AnimMesh(sPacked) : new AnimMesh(library)};
+    AnimMesh* ret=t.get();
+    aniMeshCache[name] = std::move(t);
+    if(code==MeshLoadCode::Error)
+      throw std::runtime_error("load failed");
     return ret;
     }
   catch(...){
@@ -101,65 +109,8 @@ StaticMesh *Resources::implLoadStMesh(const std::string &name) {
     }
   }
 
-Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoad::PackedSkeletalMesh& aPacked, std::string name) {
-  std::vector<uint8_t> data;
-  std::vector<uint8_t> dds;
-
-  // Check if this isn't the compiled version
-  if(name.rfind("-C")==std::string::npos) {
-    // Strip the extension ".***"
-    // Add "compiled"-extension
-    if(name.rfind(".3DS")==name.size()-4)
-      std::memcpy(&name[name.size()-3],"MRM",3); else
-    if(name.rfind(".MMS")==name.size()-4)
-      std::memcpy(&name[name.size()-3],"MMB",3); else
-    if(name.rfind(".MDS")==name.size()-4)
-      std::memcpy(&name[name.size()-3],"MDL",3); else
-    if(name.rfind(".ASC")==name.size()-4)
-      std::memcpy(&name[name.size()-3],"MDL",3);
-    }
-
-  if(name.rfind(".MRM")==name.size()-4) {
-    ZenLoad::zCProgMeshProto zmsh(name,gothicAssets);
-    if(zmsh.getNumSubmeshes() == 0)
-      return MeshLoadCode::Error;
-    zmsh.packMesh(sPacked,1.f);
-    return MeshLoadCode::Static;
-    }
-
-  if(name.rfind(".MMB")==name.size()-4) {
-    ZenLoad::zCMorphMesh zmm(name,gothicAssets);
-    if(zmm.getMesh().getNumSubmeshes()==0)
-      return MeshLoadCode::Error;
-    zmm.getMesh().packMesh(sPacked,1.f);
-    return MeshLoadCode::Static;
-    }
-
-  if(name.rfind(".MDMS")==name.size()-5) {
-    name=name.substr(0,name.size()-1);
-    ZenLoad::zCModelMeshLib zlib(name,gothicAssets, 1.f);
-    if(!zlib.isValid())
-      return MeshLoadCode::Error;
-    zlib.packMesh(aPacked, 1.f);
-    for(auto& m:zlib.getMeshes())
-      m.getMesh().packMesh(sPacked, 1.f);
-    return MeshLoadCode::Static;
-    }
-  else if(name.rfind(".MDL")==name.size()-4){
-    ZenLoad::zCModelMeshLib     library(name,gothicAssets,1.f);
-    ZenLoad::PackedSkeletalMesh sp;
-
-    library.packMesh(sp,1.f);
-    for(auto& m:library.getMeshes())
-      m.packMesh(aPacked, 1.f);
-
-    // TODO: attachments
-    if(aPacked.vertices.size()>0){
-      std::ofstream f("debug.obj");
-      gothic.debug(aPacked,f);
-      }
-    return MeshLoadCode::Dynamic;
-    }
+bool Resources::hasFile(const std::string &fname) {
+  return gothicAssets.hasFile(fname);
   }
 
 Tempest::Texture2d* Resources::loadTexture(const char *name) {
@@ -170,8 +121,8 @@ Tempest::Texture2d *Resources::loadTexture(const std::string &name) {
   return inst->implLoadTexture(name);
   }
 
-StaticMesh *Resources::loadStMesh(const std::string &name) {
-  return inst->implLoadStMesh(name);
+AnimMesh *Resources::loadMesh(const std::string &name) {
+  return inst->implLoadMesh(name);
   }
 
 std::vector<uint8_t> Resources::getFileData(const char *name) {
@@ -199,6 +150,76 @@ std::vector<uint8_t> Resources::getFileData(const std::string &name) {
   return data;
   }
 
-VDFS::FileIndex& Resources::vdfsIndex() {
-  return inst->gothicAssets;
+Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoad::zCModelMeshLib& library, std::string name) {
+  std::vector<uint8_t> data;
+  std::vector<uint8_t> dds;
+
+  // Check if this isn't the compiled version
+  if(name.rfind("-C")==std::string::npos) {
+    // Strip the extension ".***"
+    // Add "compiled"-extension
+    if(name.rfind(".3DS")==name.size()-4)
+      std::memcpy(&name[name.size()-3],"MRM",3); else
+    if(name.rfind(".MMS")==name.size()-4)
+      std::memcpy(&name[name.size()-3],"MMB",3); else
+    if(name.rfind(".ASC")==name.size()-4)
+      std::memcpy(&name[name.size()-3],"MDL",3);
+    }
+
+  if(name.rfind(".MRM")==name.size()-4) {
+    ZenLoad::zCProgMeshProto zmsh(name,gothicAssets);
+    if(zmsh.getNumSubmeshes()==0)
+      return MeshLoadCode::Error;
+    zmsh.packMesh(sPacked,1.f);
+    return MeshLoadCode::Static;
+    }
+
+  if(name.rfind(".MMB")==name.size()-4) {
+    ZenLoad::zCMorphMesh zmm(name,gothicAssets);
+    if(zmm.getMesh().getNumSubmeshes()==0)
+      return MeshLoadCode::Error;
+    zmm.getMesh().packMesh(sPacked,1.f);
+    return MeshLoadCode::Static;
+    }
+
+  if(name.rfind(".MDMS")==name.size()-5 ||
+     name.rfind(".MDS") ==name.size()-4 ||
+     name.rfind(".MDL") ==name.size()-4 ||
+     name.rfind(".MDM") ==name.size()-4 ||
+     name.rfind(".mds") ==name.size()-4){
+    library = loadMDS(name);
+    return MeshLoadCode::Dynamic;
+    }
+
+  return MeshLoadCode::Error;
+  }
+
+ZenLoad::zCModelMeshLib Resources::loadMDS(std::string &name) {
+  if(name.rfind(".MDMS")==name.size()-5){
+    name.resize(name.size()-1);
+    return ZenLoad::zCModelMeshLib(name,gothicAssets,1.f);
+    }
+  if(hasFile(name))
+    return ZenLoad::zCModelMeshLib(name,gothicAssets,1.f);
+  std::memcpy(&name[name.size()-3],"MDL",3);
+  if(hasFile(name))
+    return ZenLoad::zCModelMeshLib(name,gothicAssets,1.f);
+  std::memcpy(&name[name.size()-3],"MDM",3);
+  if(hasFile(name)) {
+    ZenLoad::zCModelMeshLib lib(name,gothicAssets,1.f);
+    std::memcpy(&name[name.size()-3],"MDH",3);
+    if(hasFile(name)) {
+      auto data=getFileData(name);
+      if(!data.empty()){
+        ZenLoad::ZenParser parser(data.data(), data.size());
+        lib.loadMDH(parser,1.f);
+        }
+      return lib;//ZenLoad::zCModelMeshLib(name,gothicAssets,1.f);
+      }
+    return lib;
+    }
+  std::memcpy(&name[name.size()-3],"MDH",3);
+  if(hasFile(name))
+    return ZenLoad::zCModelMeshLib(name,gothicAssets,1.f);
+  return ZenLoad::zCModelMeshLib();
   }

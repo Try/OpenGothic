@@ -17,7 +17,7 @@ class Gothic final {
     void setWorld(World&& w);
     const World& world() const { return wrld; }
 
-    Tempest::Signal<void()> onWorldChanged;
+    Tempest::Signal<void(const std::string&)> onSetWorld;
 
     const std::string&                    path() const { return gpath; }
     const std::string&                    defaultWorld() const;

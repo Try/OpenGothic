@@ -28,6 +28,8 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
 
   background = Resources::loadTexture("STARTSCREEN.TGA");
   timer.timeout.bind(this,&MainWindow::tick);
+
+  gothic.onSetWorld.bind(this,&MainWindow::setWorld);
   }
 
 MainWindow::~MainWindow() {
@@ -90,7 +92,7 @@ void MainWindow::mouseWheelEvent(MouseEvent &event) {
   }
 
 void MainWindow::keyDownEvent(KeyEvent &event) {
-  static float dpos = 40.f;
+  float dpos = 40.f/(zoom*10000);
 
   float k = -float(M_PI/180.0);
   float s = std::sin(spin.x*k), c=std::cos(spin.x*k);
@@ -118,6 +120,12 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_MAIN"));
     rootMenu->setFocus(true);
     }
+  }
+
+void MainWindow::setWorld(const std::string &name) {
+  World w(gothic,draw.storage(),name);
+  gothic.setWorld(std::move(w));
+  draw.onWorldChanged();
   }
 
 void MainWindow::initSwapchain(){

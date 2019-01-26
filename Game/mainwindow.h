@@ -45,6 +45,8 @@ class MainWindow : public Tempest::Window {
     void keyDownEvent   (Tempest::KeyEvent&   event) override;
     void keyUpEvent     (Tempest::KeyEvent&   event) override;
 
+    void setWorld(const std::string& name);
+
     void setupUi();
 
     void render() override;

@@ -1,7 +1,11 @@
 #include "npc.h"
 
+#include <Tempest/Matrix4x4>
+
 #include "worldscript.h"
 #include "resources.h"
+
+using namespace Tempest;
 
 Npc::Npc(WorldScript &owner, Daedalus::GameState::NpcHandle hnpc)
   :owner(owner),hnpc(hnpc){
@@ -10,23 +14,38 @@ Npc::Npc(WorldScript &owner, Daedalus::GameState::NpcHandle hnpc)
 Npc::~Npc(){
   }
 
+void Npc::setView(StaticObjects::Mesh &&m) {
+  view = std::move(m);
+  }
+
+void Npc::setPosition(float x, float y, float z) {
+  Matrix4x4 mt;
+  mt.identity();
+  mt.translate(x,y,z);
+  mt.scale(5);
+
+  setPos(mt);
+  }
+
 void Npc::setName(const std::string &n) {
   name = n;
   }
 
-void Npc::setVisual(const std::string&) {
+void Npc::setVisual(StaticObjects::Mesh&& visual) {
+  view = std::move(visual);
+  setPos(pos);// update
   }
 
-void Npc::setVisualBody(const std::string &head, const std::string &body) {
-  Resources::loadStMesh(head+".MMB");
-  Resources::loadStMesh(body+".MDM");
+void Npc::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh &&body) {
+  head = std::move(h);
+  view = std::move(body);
+  setPos(pos);// update
   }
 
 void Npc::setFatness(float) {
   }
 
 void Npc::setOverlay(const std::string& name,float time) {
-
   }
 
 void Npc::setScale(float x, float y, float z) {
@@ -72,4 +91,10 @@ size_t Npc::getItemCount(const uint32_t item) {
       return data.amount;
     }
   return 0;
+  }
+
+void Npc::setPos(const Matrix4x4 &m) {
+  pos = m;
+  view.setObjMatrix(pos);
+  head.setObjMatrix(pos);
   }

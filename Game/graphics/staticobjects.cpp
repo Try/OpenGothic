@@ -1,10 +1,11 @@
 #include "staticobjects.h"
 
-StaticObjects::StaticObjects(Tempest::Device& device)
-  :device(device) {
-  layout.add(0,Tempest::UniformsLayout::Ubo,    Tempest::UniformsLayout::Vertex);
-  layout.add(1,Tempest::UniformsLayout::UboDyn, Tempest::UniformsLayout::Vertex);
-  layout.add(2,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
+#include <Tempest/Log>
+#include "rendererstorage.h"
+
+StaticObjects::StaticObjects(const RendererStorage &storage)
+  :storage(storage) {
+  auto& device=storage.device;
 
   pf.reset(new PerFrame[device.maxFramesInFlight()]);
   for(size_t i=0;i<device.maxFramesInFlight();++i) {
@@ -33,7 +34,9 @@ void StaticObjects::setModelView(const Tempest::Matrix4x4 &m) {
   uboGlobal.modelView = m;
   }
 
-StaticObjects::Obj StaticObjects::get(const StaticMesh &mesh, const Tempest::Texture2d *mat, const Tempest::IndexBuffer<uint32_t>& ibo) {
+StaticObjects::Obj StaticObjects::get(const StaticMesh &mesh, const Tempest::Texture2d *mat, const Tempest::IndexBuffer<uint32_t>& ibo) {  
+  auto& device=storage.device;
+
   for(auto& i:chunks)
     if(i.tex==mat)
       return implGet(i,mesh,ibo);
@@ -43,7 +46,7 @@ StaticObjects::Obj StaticObjects::get(const StaticMesh &mesh, const Tempest::Tex
   last.pf.reset(new PerFrame[device.maxFramesInFlight()]);
 
   for(size_t i=0;i<device.maxFramesInFlight();++i)
-    last.pf[i].ubo = device.uniforms(layout);
+    last.pf[i].ubo = device.uniforms(storage.uboObjLayout());
   return implGet(last,mesh,ibo);
   }
 
@@ -52,10 +55,27 @@ StaticObjects::Mesh StaticObjects::get(const StaticMesh &mesh) {
   for(size_t i=0;i<mesh.sub.size();++i){
     dat[i] = get(mesh,mesh.sub[i].texture,mesh.sub[i].ibo);
     }
-  return Mesh(std::move(dat));
+  return Mesh(nullptr,std::move(dat),mesh.sub.size());
+  }
+
+StaticObjects::Mesh StaticObjects::get(const AnimMesh &mesh) {
+  std::unique_ptr<Obj[]> dat(new Obj[mesh.submeshId.size()]);
+  size_t count=0;
+  for(auto& m:mesh.submeshId){
+    auto& att = mesh.attach[m.id].mesh;
+    auto& s   = att.sub[m.subId];
+
+    if(s.texture!=nullptr)
+      dat[count] = get(att,s.texture,s.ibo); else
+      Tempest::Log::e("no texture?!");
+    ++count;
+    }
+  return Mesh(&mesh,std::move(dat),count);
   }
 
 void StaticObjects::setMatrix(uint32_t imgId) {
+  auto& device=storage.device;
+
   for(auto& i:chunks){
     auto& frame=i.pf[imgId];
     size_t sz = i.obj.byteSize();
@@ -68,6 +88,8 @@ void StaticObjects::setMatrix(uint32_t imgId) {
   }
 
 void StaticObjects::commitUbo(uint32_t imgId) {
+  auto& device=storage.device;
+
   for(auto& i:chunks){
     auto& frame=i.pf[imgId];
     if(!frame.uboChanged)
@@ -88,23 +110,22 @@ void StaticObjects::commitUbo(uint32_t imgId) {
   frame.uboData.update(&uboGlobal,0,sizeof(uboGlobal));
   }
 
-void StaticObjects::draw(Tempest::CommandBuffer &cmd, Tempest::RenderPipeline &pipe,
-                         uint32_t imgId, const StaticObjects::Obj &obj) {
+void StaticObjects::draw(Tempest::CommandBuffer &cmd,uint32_t imgId, const StaticObjects::Obj &obj) {
   auto&    frame =obj.owner->pf[imgId];
   uint32_t offset=obj.id*obj.owner->obj.elementSize();
 
-  cmd.setUniforms(pipe,frame.ubo,1,&offset);
+  cmd.setUniforms(storage.pObject,frame.ubo,1,&offset);
   cmd.draw(obj.mesh->vbo,*obj.owner->data[obj.id].ibo);
   }
 
-void StaticObjects::draw(Tempest::CommandBuffer &cmd, Tempest::RenderPipeline &pipe, uint32_t imgId) {
+void StaticObjects::draw(Tempest::CommandBuffer &cmd, uint32_t imgId) {
   for(auto& c:chunks) {
     auto& frame = c.pf[imgId];
     for(size_t i=0;i<c.data.size();++i){
       auto&    obj    = c.data[i];
       uint32_t offset = i*c.obj.elementSize();
 
-      cmd.setUniforms(pipe,frame.ubo,1,&offset);
+      cmd.setUniforms(storage.pObject,frame.ubo,1,&offset);
       cmd.draw(*obj.vbo,*obj.ibo);
       }
     }
@@ -114,6 +135,7 @@ StaticObjects::Obj StaticObjects::implGet(StaticObjects::Chunk &owner,const Stat
   nToUpdate=true;
 
   if(owner.freeList.size()>0){
+    owner.markAsChanged();
     size_t id=owner.freeList.back();
     owner.data[id].vbo = &mesh.vbo;
     owner.data[id].ibo = &ibo;
@@ -123,6 +145,7 @@ StaticObjects::Obj StaticObjects::implGet(StaticObjects::Chunk &owner,const Stat
 
   owner.obj .resize(owner.obj.size()+1);
   owner.data.resize(owner.obj.size());
+  owner.markAsChanged();
 
   owner.data.back().vbo = &mesh.vbo;
   owner.data.back().ibo = &ibo;
@@ -135,7 +158,6 @@ StaticObjects::Obj::~Obj() {
   }
 
 void StaticObjects::Obj::setObjMatrix(const Tempest::Matrix4x4 &mt) {
-  //owner->data[id].obj=mt;
   for(uint32_t i=0;i<owner->pfSize;++i)
     owner->pf[i].uboChanged=true;
   owner->obj[id].obj=mt;
@@ -146,6 +168,38 @@ const Tempest::Matrix4x4 &StaticObjects::Obj::objMatrix() {
   }
 
 void StaticObjects::Chunk::free(const StaticObjects::Obj &obj) {
+  markAsChanged();
   this->obj[obj.id].obj = Tempest::Matrix4x4();
   freeList.emplace_back(obj.id);
+  }
+
+void StaticObjects::Chunk::markAsChanged() {
+  for(uint32_t i=0;i<pfSize;++i)
+    pf[i].uboChanged=true;
+  }
+
+void StaticObjects::Mesh::setObjMatrix(const Tempest::Matrix4x4 &mt) {
+  if(ani!=nullptr){
+    auto mat=mt;
+    mat.translate(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
+    setObjMatrix(*ani,mt,size_t(-1));
+    } else {
+    for(size_t i=0;i<subCount;++i)
+      sub[i].setObjMatrix(mt);
+    }
+  }
+
+void StaticObjects::Mesh::setObjMatrix(const AnimMesh &ani, const Tempest::Matrix4x4 &mt,size_t parent) {
+  for(size_t i=0;i<ani.nodes.size();++i)
+    if(ani.nodes[i].parentId==parent) {
+      auto mat=mt;
+      mat.mul(ani.nodes[i].transform);
+
+      auto& node=ani.nodes[i];
+      for(size_t r=node.submeshIdB;r<node.submeshIdE;++r)
+        sub[r].setObjMatrix(mat);
+
+      if(ani.nodes[i].hasChild)
+        setObjMatrix(ani,mat,i);
+      }
   }

@@ -10,7 +10,7 @@
 
 #include <Tempest/Log>
 
-World::World(Gothic& gothic,std::string file)
+World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
   :name(std::move(file)),gothic(&gothic) {
   using namespace Daedalus::GameState;
 
@@ -46,6 +46,8 @@ World::World(Gothic& gothic,std::string file)
 
   wayNet = std::move(world.waynet);
 
+  wview.reset(new WorldView(*this,storage));
+
   vm.reset(new WorldScript(*this,gothic,"/_work/data/Scripts/_compiled/GOTHIC.DAT"));
   vm->initDialogs(gothic);
   initScripts(true);
@@ -56,6 +58,10 @@ const ZenLoad::zCWaypointData *World::findPoint(const char *name) const {
     if(i.wpName==name)
       return &i;
   return nullptr;
+  }
+
+StaticObjects::Mesh World::getView(const std::string &visual) {
+  return view()->getView(visual);
   }
 
 int32_t World::runFunction(const std::string& fname, bool clearDataStack) {
@@ -76,12 +82,13 @@ void World::loadVob(const ZenLoad::zCVobData &vob) {
 
   if(!vob.visual.empty()){
     Dodad d;
-    d.mesh = Resources::loadStMesh(vob.visual);
+    d.mesh = Resources::loadMesh(vob.visual);
+    if(d.mesh) {
+      float v[16]={};
+      std::memcpy(v,vob.worldMatrix.m,sizeof(v));
+      d.objMat = Tempest::Matrix4x4(v);
 
-    float v[16]={};
-    std::memcpy(v,vob.worldMatrix.m,sizeof(v));
-    d.objMat = Tempest::Matrix4x4(v);
-
-    staticObj.emplace_back(d);
+      staticObj.emplace_back(d);
+      }
     }
   }

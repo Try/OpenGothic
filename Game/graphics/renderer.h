@@ -8,51 +8,35 @@
 #include <Tempest/Device>
 #include <Tempest/UniformBuffer>
 
-#include "landscape.h"
-#include "staticobjects.h"
+#include "worldview.h"
+#include "rendererstorage.h"
 
 class Gothic;
-class StaticMesh;
 
 class Renderer final {
   public:
     Renderer(Tempest::Device& device, Gothic &gothic);
 
     void initSwapchain(uint32_t w,uint32_t h);
+    void onWorldChanged();
 
     void setDebugView(const std::array<float,3>& cam,const Tempest::PointF& spin,const float zoom);
     void draw(Tempest::CommandBuffer& cmd, uint32_t imgId, const Gothic& gothic);
-    void draw(Tempest::CommandBuffer& cmd, Tempest::FrameBuffer& imgId, const Gothic& gothic);
+
+    const RendererStorage&            storage() const { return stor; }
 
   private:
-    std::vector<StaticObjects::Obj> objStatic;
+    Tempest::Device&                  device;
+    Gothic&                           gothic;
+    Tempest::Matrix4x4                view;
 
-    Tempest::RenderPipeline& landPipeline(Tempest::RenderPass& pass, uint32_t w, uint32_t h);
-    Tempest::RenderPipeline& objPipeline (Tempest::RenderPass& pass, uint32_t w, uint32_t h);
-
-    Tempest::Device&        device;
-    Gothic&                 gothic;
-    Tempest::Texture2d      zbuffer;
-    Tempest::Matrix4x4      view,projective;
-    size_t                  isUboReady=0;
-
-    Tempest::RenderPass     mainPass;
-    Tempest::RenderPipeline pLand, pObject;
+    Tempest::Texture2d                zbuffer;
     std::vector<Tempest::FrameBuffer> fbo3d;
 
-    Tempest::Shader         vsLand,fsLand,vsObject,fsObject;
+    Tempest::RenderPass               mainPass;
+    RendererStorage                   stor;
 
-    Landscape                      land;
-    StaticObjects                  vobGroup;
-
-    std::vector<Tempest::CommandBuffer> cmdLand;
-
-    Tempest::PointF         spin;
-    std::array<float,3>     cam;
-    float                   zoom=1.f;
-
-    void initWorld();
-    void prebuiltCmdBuf();
-
-    void updateUbo  (const Tempest::FrameBuffer &fbo, const Gothic &gothic, uint32_t imgId);
+    Tempest::PointF                   spin;
+    std::array<float,3>               cam;
+    float                             zoom=1.f;
   };

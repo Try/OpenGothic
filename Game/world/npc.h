@@ -1,5 +1,7 @@
 #pragma once
 
+#include "graphics/staticobjects.h"
+
 #include <cstdint>
 #include <string>
 
@@ -39,9 +41,12 @@ class Npc final {
     Npc(const Npc&)=delete;
     ~Npc();
 
+    void setView      (StaticObjects::Mesh&& m);
+    void setPosition  (float x,float y,float z);
+
     void setName      (const std::string& name);
-    void setVisual    (const std::string& view);
-    void setVisualBody(const std::string& head, const std::string& body);
+    void setVisual    (StaticObjects::Mesh &&visual);
+    void setVisualBody(StaticObjects::Mesh &&head,StaticObjects::Mesh&& body);
     void setFatness   (float f);
     void setOverlay   (const std::string &name, float time);
     void setScale     (float x,float y,float z);
@@ -60,9 +65,15 @@ class Npc final {
     WorldScript&                   owner;
     Daedalus::GameState::NpcHandle hnpc;
 
+    Tempest::Matrix4x4             pos;
+    StaticObjects::Mesh            head;
+    StaticObjects::Mesh            view;
+
     std::string name;
     int32_t     talents[NPC_TALENT_MAX]={};
 
     const std::list<Daedalus::GameState::ItemHandle> &getItems();
     size_t getItemCount(const uint32_t id);
+
+    void setPos(const Tempest::Matrix4x4& m);
   };
