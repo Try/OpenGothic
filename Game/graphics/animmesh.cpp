@@ -53,38 +53,16 @@ AnimMesh::AnimMesh(const ZenLoad::zCModelMeshLib &library) {
     }
   submeshId.resize(subCount);
 
+  for(size_t i=0;i<library.getMeshes().size();++i){
+    ZenLoad::PackedSkeletalMesh pack;
+    auto& mesh = library.getMeshes()[i];
+    mesh.packMesh(pack,1.f);
+    skined.emplace_back(pack);
+    }
+
   auto tr = library.getRootNodeTranslation();
   rootTr = {{tr.x,tr.y,tr.z}};
   }
-
-/*
-AnimMesh::AnimMesh(const ZenLoad::zCModelMeshLib &library) {
-  ZenLoad::PackedMesh pm;
-  for(auto& m:library.getAttachments()) {
-    m.second.packMesh(pm, 1.f);
-    }
-
-  attach.emplace_back(pm);
-  submeshId.resize(attach[0].mesh.sub.size());
-  auto&  att   = attach[0];
-  size_t count = 0;
-  for(size_t r=0;r<att.mesh.sub.size();++r){
-    if(att.mesh.sub[r].texture==nullptr) {
-      Tempest::Log::e("no texture?!");
-      continue;
-      }
-    submeshId[count].id    = 0;
-    submeshId[count].subId = r;
-    count++;
-    }
-  submeshId.resize(count);
-
-  nodes.emplace_back();
-  nodes.back().attachId   = 0;
-  nodes.back().submeshIdB = 0;
-  nodes.back().submeshIdE = submeshId.size();
-  nodes.back().transform.identity();
-  }*/
 
 AnimMesh::AnimMesh(const ZenLoad::PackedMesh &pm) {
   attach.emplace_back(pm);
@@ -107,4 +85,11 @@ AnimMesh::AnimMesh(const ZenLoad::PackedMesh &pm) {
   nodes.back().submeshIdB = 0;
   nodes.back().submeshIdE = submeshId.size();
   nodes.back().transform.identity();
+  }
+
+size_t AnimMesh::skinedNodesCount() const {
+  size_t ret=0;
+  for(auto& i:skined)
+    ret+=i.mesh.sub.size();
+  return ret;
   }

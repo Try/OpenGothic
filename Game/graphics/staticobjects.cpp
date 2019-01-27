@@ -59,16 +59,31 @@ StaticObjects::Mesh StaticObjects::get(const StaticMesh &mesh) {
   }
 
 StaticObjects::Mesh StaticObjects::get(const AnimMesh &mesh) {
-  std::unique_ptr<Obj[]> dat(new Obj[mesh.submeshId.size()]);
+  const size_t skinnedCount=mesh.skinedNodesCount();
+  std::unique_ptr<Obj[]> dat(new Obj[mesh.submeshId.size()+skinnedCount]);
+
   size_t count=0;
   for(auto& m:mesh.submeshId){
     auto& att = mesh.attach[m.id].mesh;
     auto& s   = att.sub[m.subId];
 
-    if(s.texture!=nullptr)
-      dat[count] = get(att,s.texture,s.ibo); else
+    if(s.texture!=nullptr) {
+      dat[count] = get(att,s.texture,s.ibo);
+      ++count;
+      } else {
       Tempest::Log::e("no texture?!");
-    ++count;
+      }
+    }
+
+  for(auto& skin:mesh.skined){
+    for(auto& m:skin.mesh.sub){
+      if(m.texture!=nullptr) {
+        dat[count] = get(skin.mesh,m.texture,m.ibo);
+        ++count;
+        } else {
+        Tempest::Log::e("no texture?!");
+        }
+      }
     }
   return Mesh(&mesh,std::move(dat),count);
   }
@@ -182,6 +197,8 @@ void StaticObjects::Mesh::setObjMatrix(const Tempest::Matrix4x4 &mt) {
   if(ani!=nullptr){
     auto mat=mt;
     mat.translate(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
+    for(size_t i=0;i<subCount;++i)
+      sub[i].setObjMatrix(mat);
     setObjMatrix(*ani,mt,size_t(-1));
     } else {
     for(size_t i=0;i<subCount;++i)

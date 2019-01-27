@@ -68,6 +68,7 @@ class Npc final {
     Tempest::Matrix4x4             pos;
     StaticObjects::Mesh            head;
     StaticObjects::Mesh            view;
+    StaticObjects::Mesh            skeleton;
 
     std::string name;
     int32_t     talents[NPC_TALENT_MAX]={};

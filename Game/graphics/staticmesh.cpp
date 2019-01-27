@@ -14,7 +14,7 @@ StaticMesh::StaticMesh(const ZenLoad::PackedMesh &mesh) {
 
 StaticMesh::StaticMesh(const ZenLoad::PackedSkeletalMesh &mesh) {
   std::vector<Vertex> cvbo(mesh.vertices.size());
-  for(size_t i=0;i<vbo.size();++i){
+  for(size_t i=0;i<cvbo.size();++i){
     cvbo[i].color   = mesh.vertices[i].Color;
 
     cvbo[i].norm[0] = mesh.vertices[i].Normal.x;

@@ -189,7 +189,7 @@ void WorldScript::concatstrings(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::inttostring(Daedalus::DaedalusVM &vm){
-  auto x = vm.popDataValue();
+  int32_t x = vm.popDataValue();
   vm.setReturn(std::to_string(x)); //TODO: std::move?
   }
 
@@ -230,8 +230,8 @@ void WorldScript::mdl_setvisual(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
   int32_t     armor        = vm.popDataValue();
-  int32_t     teethTexNr   = int32_t(vm.popDataValue());
-  int32_t     headTexNr    = int32_t(vm.popDataValue());
+  int32_t     teethTexNr   = vm.popDataValue();
+  int32_t     headTexNr    = vm.popDataValue();
   auto&       head         = popString(vm);
   int32_t     bodyTexColor = vm.popDataValue();
   int32_t     bodyTexNr    = vm.popDataValue();

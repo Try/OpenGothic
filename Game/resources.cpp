@@ -89,7 +89,7 @@ AnimMesh *Resources::implLoadMesh(const std::string &name) {
   if(it!=aniMeshCache.end())
     return it->second.get();
 
-  if(name=="DOOR_WOODEN.MDS")
+  if(name=="Orc.mds")
     Tempest::Log::d("");
 
   try {
@@ -214,7 +214,6 @@ ZenLoad::zCModelMeshLib Resources::loadMDS(std::string &name) {
         ZenLoad::ZenParser parser(data.data(), data.size());
         lib.loadMDH(parser,1.f);
         }
-      return lib;//ZenLoad::zCModelMeshLib(name,gothicAssets,1.f);
       }
     return lib;
     }

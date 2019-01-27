@@ -31,8 +31,8 @@ void Npc::setName(const std::string &n) {
   name = n;
   }
 
-void Npc::setVisual(StaticObjects::Mesh&& visual) {
-  view = std::move(visual);
+void Npc::setVisual(StaticObjects::Mesh&& v) {
+  skeleton = std::move(v);
   setPos(pos);// update
   }
 
@@ -95,6 +95,7 @@ size_t Npc::getItemCount(const uint32_t item) {
 
 void Npc::setPos(const Matrix4x4 &m) {
   pos = m;
-  view.setObjMatrix(pos);
-  head.setObjMatrix(pos);
+  view    .setObjMatrix(pos);
+  head    .setObjMatrix(pos);
+  skeleton.setObjMatrix(pos);
   }

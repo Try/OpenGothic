@@ -29,7 +29,8 @@ class AnimMesh {
       Attach()=default;
       Attach(Attach&&)=default;
       Attach(const ZenLoad::PackedMesh& m):mesh(m){}
-      StaticMesh         mesh;
+      Attach(const ZenLoad::PackedSkeletalMesh& m):mesh(m){}
+      StaticMesh mesh;
       };
 
     struct Node {
@@ -43,7 +44,7 @@ class AnimMesh {
       };
 
     // skinned
-    Tempest::VertexBuffer<Vertex>  vbo;
+    std::vector<Attach>            skined;
     std::vector<SubMesh>           sub;
 
     // offset matrix or static
@@ -52,4 +53,6 @@ class AnimMesh {
     std::vector<SubMeshId>         submeshId;
 
     std::array<float,3>            rootTr;
+
+    size_t                         skinedNodesCount() const;
   };
