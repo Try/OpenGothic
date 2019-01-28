@@ -20,10 +20,9 @@ class ObjectsBucket : public AbstractObjectsBucket {
 
     const Tempest::Texture2d&   texture() const { return *tex; }
 
-    void                        set      (size_t i,const Ubo& u);
     void                        updateUbo(uint32_t imgId);
     void                        draw     (Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId);
-    size_t                      alloc     (const Tempest::VertexBuffer<Vertex> &vbo, const Tempest::IndexBuffer<uint32_t> &ibo);
+    size_t                      alloc    (const Tempest::VertexBuffer<Vertex> &vbo, const Tempest::IndexBuffer<uint32_t> &ibo);
 
   private:
     struct NonUbo final {
@@ -61,12 +60,6 @@ size_t ObjectsBucket<Ubo,Vertex>::alloc(const Tempest::VertexBuffer<Vertex>  &vb
   data[id].vbo = &vbo;
   data[id].ibo = &ibo;
   return data.size()-1;
-  }
-
-template<class Ubo,class Vertex>
-void ObjectsBucket<Ubo,Vertex>::set(size_t i,const Ubo& u){
-  this->obj[i] = u;
-  markAsChanged();
   }
 
 template<class Ubo,class Vertex>

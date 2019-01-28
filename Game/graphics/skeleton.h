@@ -16,6 +16,7 @@ class Skeleton final {
       };
     std::vector<Node>               nodes;
     std::vector<Tempest::Matrix4x4> tr;
+    std::array<float,3>             rootTr;
 
     void mkSkeleton();
 

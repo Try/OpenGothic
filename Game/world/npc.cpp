@@ -22,7 +22,7 @@ void Npc::setPosition(float x, float y, float z) {
   Matrix4x4 mt;
   mt.identity();
   mt.translate(x,y,z);
-  mt.scale(5);
+  mt.scale(1);
 
   setPos(mt);
   }

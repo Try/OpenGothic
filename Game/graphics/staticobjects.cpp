@@ -192,7 +192,7 @@ void StaticObjects::Mesh::setObjMatrix(const ProtoMesh &ani, const Tempest::Matr
   }
 
 void StaticObjects::UboDn::setSkeleton(const Skeleton *sk) {
-  if(sk!=nullptr)
+  if(sk==nullptr)
     return;
   for(size_t i=0;i<sk->tr.size();++i)
     skel[i] = sk->tr[i];

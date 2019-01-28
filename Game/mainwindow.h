@@ -57,7 +57,7 @@ class MainWindow : public Tempest::Window {
     Tempest::Point        mpos;
     std::array<float,3>   camPos={};
     Tempest::PointF       spin;
-    float                 zoom=0.0002f;
+    float                 zoom=1.f;//0.0002f;
 
     Tempest::Device       device;
     Tempest::TextureAtlas atlas;

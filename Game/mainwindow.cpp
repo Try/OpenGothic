@@ -92,7 +92,7 @@ void MainWindow::mouseWheelEvent(MouseEvent &event) {
   }
 
 void MainWindow::keyDownEvent(KeyEvent &event) {
-  float dpos = 40.f/(zoom*10000);
+  float dpos = 60.f/(zoom);
 
   float k = -float(M_PI/180.0);
   float s = std::sin(spin.x*k), c=std::cos(spin.x*k);

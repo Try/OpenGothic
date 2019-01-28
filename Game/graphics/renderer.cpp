@@ -48,10 +48,10 @@ void Renderer::draw(CommandBuffer &cmd, uint32_t imgId, const Gothic &gothic) {
   FrameBuffer& fbo = fbo3d[imgId];
 
   view.identity();
-  view.translate(0,0,0.4f);
+  view.translate(0,0,0.1f/zoom);
   view.rotate(spin.y, 1, 0, 0);
   view.rotate(spin.x, 0, 1, 0);
-  view.scale(zoom);
+  view.scale(0.0002f);
   view.translate(cam[0],1000,cam[1]);
   view.scale(-1,-1,-1);
 

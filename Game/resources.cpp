@@ -209,7 +209,8 @@ Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoa
     if(zmm.getMesh().getNumSubmeshes()==0)
       return MeshLoadCode::Error;
     zmm.getMesh().packMesh(sPacked,1.f);
-    return MeshLoadCode::Dynamic;
+    return MeshLoadCode::Static;
+    // return MeshLoadCode::Dynamic;
     }
 
   if(name.rfind(".MDMS")==name.size()-5 ||

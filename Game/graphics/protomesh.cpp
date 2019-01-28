@@ -3,7 +3,7 @@
 #include <Tempest/Log>
 
 ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library) {
-  static_assert(sizeof(Vertex)==sizeof(ZenLoad::SkeletalVertex),"invalid vertex format");
+  //static_assert(sizeof(Vertex)==sizeof(ZenLoad::SkeletalVertex),"invalid vertex format");
 
   for(auto& m:library.getAttachments()) {
     ZenLoad::PackedMesh stat;
