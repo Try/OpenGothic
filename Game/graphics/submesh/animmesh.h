@@ -10,8 +10,7 @@
 
 class AnimMesh {
   public:
-    using Vertex=Resources::Vertex;
-    AnimMesh(const ZenLoad::PackedMesh& data);
+    using VertexA=Resources::VertexA;
     AnimMesh(const ZenLoad::PackedSkeletalMesh& data);
 
     struct SubMesh {
@@ -19,6 +18,6 @@ class AnimMesh {
       Tempest::IndexBuffer<uint32_t> ibo;
       };
 
-    Tempest::VertexBuffer<Vertex>  vbo;
+    Tempest::VertexBuffer<VertexA> vbo;
     std::vector<SubMesh>           sub;
   };

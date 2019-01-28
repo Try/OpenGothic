@@ -45,7 +45,7 @@ class Npc final {
     void setPosition  (float x,float y,float z);
 
     void setName      (const std::string& name);
-    void setVisual    (StaticObjects::Mesh &&visual);
+    void setVisual    (const Skeleton *visual);
     void setVisualBody(StaticObjects::Mesh &&head,StaticObjects::Mesh&& body);
     void setFatness   (float f);
     void setOverlay   (const std::string &name, float time);
@@ -68,7 +68,7 @@ class Npc final {
     Tempest::Matrix4x4             pos;
     StaticObjects::Mesh            head;
     StaticObjects::Mesh            view;
-    StaticObjects::Mesh            skeleton;
+    const Skeleton*                skeleton=nullptr;
 
     std::string name;
     int32_t     talents[NPC_TALENT_MAX]={};

@@ -16,6 +16,7 @@
 
 #include "graphics/submesh/staticmesh.h"
 #include "graphics/submesh/animmesh.h"
+#include "graphics/skeleton.h"
 #include "graphics/protomesh.h"
 #include "gothic.h"
 
@@ -90,9 +91,6 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
   if(it!=aniMeshCache.end())
     return it->second.get();
 
-  if(name=="Orc.mds")
-    Tempest::Log::d("");
-
   try {
     ZenLoad::PackedMesh        sPacked;
     ZenLoad::zCModelMeshLib    library;
@@ -110,6 +108,33 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
     }
   }
 
+Skeleton* Resources::implLoadSkeleton(std::string name) {
+  if(name.size()==0)
+    return nullptr;
+
+  if(name.rfind(".MDS")==name.size()-4 ||
+     name.rfind(".mds")==name.size()-4)
+    std::memcpy(&name[name.size()-3],"MDH",3);
+
+  auto it=skeletonCache.find(name);
+  if(it!=skeletonCache.end())
+    return it->second.get();
+
+  try {
+    ZenLoad::zCModelMeshLib library(name,gothicAssets,1.f);
+    std::unique_ptr<Skeleton> t{new Skeleton(library)};
+    Skeleton* ret=t.get();
+    skeletonCache[name] = std::move(t);
+    if(!hasFile(name))
+      throw std::runtime_error("load failed");
+    return ret;
+    }
+  catch(...){
+    Log::e("unable to load skeleton \"",name,"\"");
+    return nullptr;
+    }
+  }
+
 bool Resources::hasFile(const std::string &fname) {
   return gothicAssets.hasFile(fname);
   }
@@ -122,8 +147,12 @@ Tempest::Texture2d* Resources::loadTexture(const std::string &name) {
   return inst->implLoadTexture(name);
   }
 
-ProtoMesh* Resources::loadMesh(const std::string &name) {
+const ProtoMesh *Resources::loadMesh(const std::string &name) {
   return inst->implLoadMesh(name);
+  }
+
+const Skeleton *Resources::loadSkeleton(const std::string &name) {
+  return inst->implLoadSkeleton(name);
   }
 
 std::vector<uint8_t> Resources::getFileData(const char *name) {

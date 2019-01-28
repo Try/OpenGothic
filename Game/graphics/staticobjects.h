@@ -30,6 +30,7 @@ class StaticObjects final {
         Mesh(const ProtoMesh* mesh,std::unique_ptr<Item[]>&& sub,size_t subCount):sub(std::move(sub)),subCount(subCount),ani(mesh){}
 
         void setObjMatrix(const Tempest::Matrix4x4& mt);
+        void setSkeleton(const Skeleton* sk);
 
       private:
         std::unique_ptr<Item[]> sub;
@@ -53,6 +54,9 @@ class StaticObjects final {
     void setModelView(const Tempest::Matrix4x4& m);
 
   private:
+    using Vertex  = Resources::Vertex;
+    using VertexA = Resources::VertexA;
+
     struct UboGlobal final {
       std::array<float,3>           lightDir={{0,0,1}};
       float                         padding=0;
@@ -61,24 +65,30 @@ class StaticObjects final {
 
     struct UboSt final {
       Tempest::Matrix4x4 obj;
+      void setObj     (const Tempest::Matrix4x4& ob) { obj=ob; }
+      void setSkeleton(const Skeleton*){}
       };
 
     struct UboDn final {
       Tempest::Matrix4x4 obj;
+      Tempest::Matrix4x4 skel[Resources::MAX_NUM_SKELETAL_NODES];
+
+      void setObj     (const Tempest::Matrix4x4& ob) { obj=ob; }
+      void setSkeleton(const Skeleton* sk);
       };
 
     const RendererStorage&          storage;
 
-    std::list<ObjectsBucket<UboSt>> chunksSt;
-    std::list<ObjectsBucket<UboDn>> chunksDn;
+    std::list<ObjectsBucket<UboSt,Vertex >> chunksSt;
+    std::list<ObjectsBucket<UboDn,VertexA>> chunksDn;
 
     UboChain<UboGlobal>             uboGlobalPf;
     UboGlobal                       uboGlobal;
 
     bool                            nToUpdate=true; //invalidate cmd buffers
 
-    ObjectsBucket<UboSt>&           getBucketSt(const Tempest::Texture2d* mat);
-    ObjectsBucket<UboDn>&           getBucketDn(const Tempest::Texture2d* mat);
+    ObjectsBucket<UboSt,Vertex>&    getBucketSt(const Tempest::Texture2d* mat);
+    ObjectsBucket<UboDn,VertexA>&   getBucketDn(const Tempest::Texture2d* mat);
 
     Item                            implGet(const StaticMesh& mesh,
                                             const Tempest::Texture2d* mat,

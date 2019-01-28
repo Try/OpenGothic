@@ -14,6 +14,7 @@ class Gothic;
 
 class StaticMesh;
 class ProtoMesh;
+class Skeleton;
 
 class Resources {
   public:
@@ -44,7 +45,8 @@ class Resources {
     static Tempest::Texture2d* loadTexture(const char* name);
     static Tempest::Texture2d* loadTexture(const std::string& name);
 
-    static ProtoMesh*          loadMesh   (const std::string& name);
+    static const ProtoMesh*    loadMesh    (const std::string& name);
+    static const Skeleton*     loadSkeleton(const std::string& name);
 
     template<class V>
     static Tempest::VertexBuffer<V> loadVbo(const V* data,size_t sz){ return inst->device.loadVbo(data,sz,Tempest::BufferFlags::Static); }
@@ -70,6 +72,7 @@ class Resources {
     Tempest::Texture2d* implLoadTexture(const std::string &name);
     ProtoMesh*          implLoadMesh(const std::string &name);
     MeshLoadCode        loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
+    Skeleton*           implLoadSkeleton(std::string name);
 
     ZenLoad::zCModelMeshLib loadMDS (std::string& name);
     bool                hasFile(const std::string& fname);
@@ -78,6 +81,7 @@ class Resources {
 
     std::unordered_map<std::string,std::unique_ptr<Tempest::Texture2d>> texCache;
     std::unordered_map<std::string,std::unique_ptr<ProtoMesh>>          aniMeshCache;
+    std::unordered_map<std::string,std::unique_ptr<Skeleton>>           skeletonCache;
 
     Tempest::Device& device;
     Tempest::Font    menuFnt, mainFnt;

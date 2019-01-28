@@ -225,7 +225,9 @@ void WorldScript::mdl_setvisual(Daedalus::DaedalusVM &vm) {
   uint32_t           self     = vm.popVar(arr_self);
 
   auto& npc = getNpcById(self);
-  npc.setVisual(owner.getView(visual));
+
+  auto skelet = Resources::loadSkeleton(visual);
+  npc.setVisual(skelet);
   }
 
 void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
@@ -236,7 +238,7 @@ void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
   int32_t     bodyTexColor = vm.popDataValue();
   int32_t     bodyTexNr    = vm.popDataValue();
   auto&       body         = popString(vm);
-  uint32_t    arr_self=0;
+  uint32_t    arr_self     = 0;
   uint32_t    self = vm.popVar(arr_self);
 
   auto& npc   = getNpcById(self);

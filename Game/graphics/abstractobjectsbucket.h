@@ -36,6 +36,7 @@ class AbstractObjectsBucket {
           }
 
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
+        void   setSkeleton (const Skeleton*           sk);
 
       private:
         AbstractObjectsBucket*                owner=nullptr;
@@ -50,22 +51,17 @@ class AbstractObjectsBucket {
 
     std::unique_ptr<PerFrame[]> pf;
 
-    size_t                      alloc(const Tempest::VertexBuffer<Resources::Vertex>& vbo,const Tempest::IndexBuffer<uint32_t>& ibo);
     void                        free(const size_t objId);
 
   protected:
-    struct NonUbo final {
-      const Tempest::VertexBuffer<Resources::Vertex>* vbo=nullptr;
-      const Tempest::IndexBuffer<uint32_t>*           ibo=nullptr;
-      };
-
-    std::vector<NonUbo>         data;
 
     size_t                      getNextId();
     void                        markAsChanged();
 
+    virtual size_t              storageSize() const=0;
     virtual void                onResizeStorage(size_t sz)=0;
     virtual void                setObjectMatrix(size_t id,const Tempest::Matrix4x4& m)=0;
+    virtual void                setSkeleton    (size_t id,const Skeleton* s)=0;
 
   private:
     std::vector<size_t>         freeList;

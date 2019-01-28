@@ -24,12 +24,12 @@ class World final {
     World(Gothic &gothic,const RendererStorage& storage, std::string file);
 
     struct Block {
-      Tempest::Texture2d*            texture=nullptr;
+      Tempest::Texture2d*            texture = nullptr;
       Tempest::IndexBuffer<uint32_t> ibo;
       };
 
     struct Dodad {
-      ProtoMesh*                     mesh   =nullptr;
+      const ProtoMesh*               mesh = nullptr;
       Tempest::Matrix4x4             objMat;
       };
 

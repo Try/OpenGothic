@@ -2,20 +2,9 @@
 
 #include <Tempest/Log>
 
-AnimMesh::AnimMesh(const ZenLoad::PackedMesh &mesh) {
-  static_assert(sizeof(Vertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
-  const Vertex* vert=reinterpret_cast<const Vertex*>(mesh.vertices.data());
-  vbo = Resources::loadVbo<Vertex>(vert,mesh.vertices.size());
-
-  sub.resize(mesh.subMeshes.size());
-  for(size_t i=0;i<mesh.subMeshes.size();++i){
-    sub[i].texture = Resources::loadTexture(mesh.subMeshes[i].material.texture);
-    sub[i].ibo     = Resources::loadIbo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
-    }
-  }
-
 AnimMesh::AnimMesh(const ZenLoad::PackedSkeletalMesh &mesh) {
-  std::vector<Vertex> cvbo(mesh.vertices.size());
+  /*
+  std::vector<VertexA> cvbo(mesh.vertices.size());
   for(size_t i=0;i<cvbo.size();++i){
     cvbo[i].color   = mesh.vertices[i].Color;
 
@@ -29,8 +18,10 @@ AnimMesh::AnimMesh(const ZenLoad::PackedSkeletalMesh &mesh) {
     cvbo[i].pos[0]  = mesh.vertices[i].LocalPositions[0].x;
     cvbo[i].pos[1]  = mesh.vertices[i].LocalPositions[0].y;
     cvbo[i].pos[2]  = mesh.vertices[i].LocalPositions[0].z;
-    }
-  vbo = Resources::loadVbo<Vertex>(cvbo.data(),cvbo.size());
+    }*/
+  static_assert(sizeof(VertexA)==sizeof(ZenLoad::SkeletalVertex),"invalid vertex format");
+  const VertexA* vert=reinterpret_cast<const VertexA*>(mesh.vertices.data());
+  vbo = Resources::loadVbo<VertexA>(vert,mesh.vertices.size());
 
   sub.resize(mesh.subMeshes.size());
   for(size_t i=0;i<mesh.subMeshes.size();++i){

@@ -31,15 +31,21 @@ void Npc::setName(const std::string &n) {
   name = n;
   }
 
-void Npc::setVisual(StaticObjects::Mesh&& v) {
-  skeleton = std::move(v);
-  setPos(pos);// update
+void Npc::setVisual(const Skeleton* v) {
+  skeleton = v;
+
+  head.setSkeleton(skeleton);
+  view.setSkeleton(skeleton);
+  setPos(pos); // update obj matrix
   }
 
 void Npc::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh &&body) {
   head = std::move(h);
   view = std::move(body);
-  setPos(pos);// update
+
+  head.setSkeleton(skeleton);
+  view.setSkeleton(skeleton);
+  setPos(pos); // update obj matrix
   }
 
 void Npc::setFatness(float) {
@@ -97,5 +103,5 @@ void Npc::setPos(const Matrix4x4 &m) {
   pos = m;
   view    .setObjMatrix(pos);
   head    .setObjMatrix(pos);
-  skeleton.setObjMatrix(pos);
+  //skeleton.setObjMatrix(pos);
   }

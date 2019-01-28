@@ -12,6 +12,7 @@ layout(std140,binding = 0) uniform UboScene {
 
 layout(std140,binding = 1) uniform UboObject {
   mat4 obj;
+  mat4 skel[96];
   } ubo;
 
 layout(location = 0) in vec3 inNormal;

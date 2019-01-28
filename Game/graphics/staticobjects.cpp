@@ -1,3 +1,4 @@
+#include "skeleton.h"
 #include "staticobjects.h"
 
 #include <Tempest/Log>
@@ -27,25 +28,25 @@ void StaticObjects::setModelView(const Tempest::Matrix4x4 &m) {
   uboGlobal.modelView = m;
   }
 
-ObjectsBucket<StaticObjects::UboSt> &StaticObjects::getBucketSt(const Tempest::Texture2d *mat) {
+ObjectsBucket<StaticObjects::UboSt,Resources::Vertex> &StaticObjects::getBucketSt(const Tempest::Texture2d *mat) {
   auto& device=storage.device;
 
   for(auto& i:chunksSt)
     if(&i.texture()==mat)
       return i;
 
-  chunksSt.emplace_back(ObjectsBucket<UboSt>(mat,storage.uboObjLayout(),device));
+  chunksSt.emplace_back(ObjectsBucket<UboSt,Resources::Vertex>(mat,storage.uboObjLayout(),device));
   return chunksSt.back();
   }
 
-ObjectsBucket<StaticObjects::UboDn> &StaticObjects::getBucketDn(const Tempest::Texture2d *mat) {
+ObjectsBucket<StaticObjects::UboDn,Resources::VertexA> &StaticObjects::getBucketDn(const Tempest::Texture2d *mat) {
   auto& device=storage.device;
 
   for(auto& i:chunksDn)
     if(&i.texture()==mat)
       return i;
 
-  chunksDn.emplace_back(ObjectsBucket<UboDn>(mat,storage.uboObjLayout(),device));
+  chunksDn.emplace_back(ObjectsBucket<UboDn,Resources::VertexA>(mat,storage.uboObjLayout(),device));
   return chunksDn.back();
   }
 
@@ -160,14 +161,19 @@ void StaticObjects::draw(Tempest::CommandBuffer &cmd, uint32_t imgId) {
 void StaticObjects::Mesh::setObjMatrix(const Tempest::Matrix4x4 &mt) {
   if(ani!=nullptr){
     auto mat=mt;
-    mat.translate(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
     for(size_t i=0;i<subCount;++i)
       sub[i].setObjMatrix(mat);
+    mat.translate(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
     setObjMatrix(*ani,mt,size_t(-1));
     } else {
     for(size_t i=0;i<subCount;++i)
       sub[i].setObjMatrix(mt);
     }
+  }
+
+void StaticObjects::Mesh::setSkeleton(const Skeleton *sk) {
+  for(size_t i=0;i<subCount;++i)
+    sub[i].setSkeleton(sk);
   }
 
 void StaticObjects::Mesh::setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix4x4 &mt,size_t parent) {
@@ -183,4 +189,11 @@ void StaticObjects::Mesh::setObjMatrix(const ProtoMesh &ani, const Tempest::Matr
       if(ani.nodes[i].hasChild)
         setObjMatrix(ani,mat,i);
       }
+  }
+
+void StaticObjects::UboDn::setSkeleton(const Skeleton *sk) {
+  if(sk!=nullptr)
+    return;
+  for(size_t i=0;i<sk->tr.size();++i)
+    skel[i] = sk->tr[i];
   }
