@@ -5,15 +5,17 @@
 #include <Tempest/Device>
 #include <Tempest/Matrix4x4>
 
-#include "resources.h"
-#include "staticmesh.h"
+#include "graphics/submesh/staticmesh.h"
+#include "graphics/submesh/animmesh.h"
 
-class AnimMesh {
+#include "resources.h"
+
+class ProtoMesh {
   public:
     using Vertex =Resources::VertexA;
 
-    AnimMesh(const ZenLoad::zCModelMeshLib& lib);
-    AnimMesh(const ZenLoad::PackedMesh&     pm);
+    ProtoMesh(const ZenLoad::zCModelMeshLib& lib);
+    ProtoMesh(const ZenLoad::PackedMesh&     pm);
 
     struct SubMesh final {
       Tempest::Texture2d*            texture=nullptr;
@@ -21,16 +23,8 @@ class AnimMesh {
       };
 
     struct SubMeshId final {
-      size_t id      =0;
-      size_t subId   =0;
-      };
-
-    struct Attach final {
-      Attach()=default;
-      Attach(Attach&&)=default;
-      Attach(const ZenLoad::PackedMesh& m):mesh(m){}
-      Attach(const ZenLoad::PackedSkeletalMesh& m):mesh(m){}
-      StaticMesh mesh;
+      size_t                id    = 0;
+      size_t                subId = 0;
       };
 
     struct Node {
@@ -44,11 +38,10 @@ class AnimMesh {
       };
 
     // skinned
-    std::vector<Attach>            skined;
-    std::vector<SubMesh>           sub;
+    std::vector<AnimMesh>          skined;
 
     // offset matrix or static
-    std::vector<Attach>            attach;
+    std::vector<StaticMesh>        attach;
     std::vector<Node>              nodes;
     std::vector<SubMeshId>         submeshId;
 

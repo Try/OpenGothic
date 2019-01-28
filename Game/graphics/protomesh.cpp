@@ -1,8 +1,8 @@
-#include "animmesh.h"
+#include "protomesh.h"
 
 #include <Tempest/Log>
 
-AnimMesh::AnimMesh(const ZenLoad::zCModelMeshLib &library) {
+ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library) {
   static_assert(sizeof(Vertex)==sizeof(ZenLoad::SkeletalVertex),"invalid vertex format");
 
   for(auto& m:library.getAttachments()) {
@@ -31,7 +31,7 @@ AnimMesh::AnimMesh(const ZenLoad::zCModelMeshLib &library) {
   size_t subCount=0;
   for(auto& i:nodes)
     if(i.attachId<attach.size())
-      subCount+=attach[i.attachId].mesh.sub.size();
+      subCount+=attach[i.attachId].sub.size();
   submeshId.resize(subCount);
 
   subCount=0;
@@ -39,8 +39,8 @@ AnimMesh::AnimMesh(const ZenLoad::zCModelMeshLib &library) {
     i.submeshIdB = subCount;
     if(i.attachId<attach.size()) {
       auto& att = attach[i.attachId];
-      for(size_t r=0;r<att.mesh.sub.size();++r){
-        if(att.mesh.sub[r].texture==nullptr) {
+      for(size_t r=0;r<att.sub.size();++r){
+        if(att.sub[r].texture==nullptr) {
           Tempest::Log::e("no texture?!");
           continue;
           }
@@ -64,13 +64,13 @@ AnimMesh::AnimMesh(const ZenLoad::zCModelMeshLib &library) {
   rootTr = {{tr.x,tr.y,tr.z}};
   }
 
-AnimMesh::AnimMesh(const ZenLoad::PackedMesh &pm) {
+ProtoMesh::ProtoMesh(const ZenLoad::PackedMesh &pm) {
   attach.emplace_back(pm);
-  submeshId.resize(attach[0].mesh.sub.size());
+  submeshId.resize(attach[0].sub.size());
   auto&  att   = attach[0];
   size_t count = 0;
-  for(size_t r=0;r<att.mesh.sub.size();++r){
-    if(att.mesh.sub[r].texture==nullptr) {
+  for(size_t r=0;r<att.sub.size();++r){
+    if(att.sub[r].texture==nullptr) {
       Tempest::Log::e("no texture?!");
       continue;
       }
@@ -87,9 +87,9 @@ AnimMesh::AnimMesh(const ZenLoad::PackedMesh &pm) {
   nodes.back().transform.identity();
   }
 
-size_t AnimMesh::skinedNodesCount() const {
+size_t ProtoMesh::skinedNodesCount() const {
   size_t ret=0;
   for(auto& i:skined)
-    ret+=i.mesh.sub.size();
+    ret+=i.sub.size();
   return ret;
   }

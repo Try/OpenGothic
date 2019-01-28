@@ -40,9 +40,9 @@ void WorldView::updateUbo(const Matrix4x4& view,uint32_t imgId) {
 
   land    .setMatrix   (imgId,viewProj);
   vobGroup.setModelView(viewProj);
-  vobGroup.setMatrix   (imgId);
+  vobGroup.updateUbo   (imgId);
   objGroup.setModelView(viewProj);
-  objGroup.setMatrix   (imgId);
+  objGroup.updateUbo   (imgId);
   }
 
 void WorldView::draw(CommandBuffer &cmd, FrameBuffer &fbo) {

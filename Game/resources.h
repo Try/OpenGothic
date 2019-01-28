@@ -13,12 +13,14 @@
 class Gothic;
 
 class StaticMesh;
-class AnimMesh;
+class ProtoMesh;
 
 class Resources {
   public:
     explicit Resources(Gothic& gothic,Tempest::Device& device);
     ~Resources();
+
+    static const size_t MAX_NUM_SKELETAL_NODES = 96;
 
     struct Vertex {
       float    pos[3];
@@ -36,13 +38,13 @@ class Resources {
       float    weights[4];
       };
 
-    static Tempest::Font menuFont(){ return inst->menuFnt; }
-    static Tempest::Font font(){ return inst->mainFnt; }
+    static Tempest::Font menuFont() { return inst->menuFnt; }
+    static Tempest::Font font()     { return inst->mainFnt; }
 
-    static Tempest::Texture2d *loadTexture(const char* name);
-    static Tempest::Texture2d *loadTexture(const std::string& name);
+    static Tempest::Texture2d* loadTexture(const char* name);
+    static Tempest::Texture2d* loadTexture(const std::string& name);
 
-    static AnimMesh           *loadMesh   (const std::string& name);
+    static ProtoMesh*          loadMesh   (const std::string& name);
 
     template<class V>
     static Tempest::VertexBuffer<V> loadVbo(const V* data,size_t sz){ return inst->device.loadVbo(data,sz,Tempest::BufferFlags::Static); }
@@ -65,8 +67,8 @@ class Resources {
       };
 
     void                addVdf(const char* vdf);
-    Tempest::Texture2d *implLoadTexture(const std::string &name);
-    AnimMesh           *implLoadMesh   (const std::string &name);
+    Tempest::Texture2d* implLoadTexture(const std::string &name);
+    ProtoMesh*          implLoadMesh(const std::string &name);
     MeshLoadCode        loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
 
     ZenLoad::zCModelMeshLib loadMDS (std::string& name);
@@ -75,7 +77,7 @@ class Resources {
     Tempest::Texture2d fallback;
 
     std::unordered_map<std::string,std::unique_ptr<Tempest::Texture2d>> texCache;
-    std::unordered_map<std::string,std::unique_ptr<AnimMesh>>           aniMeshCache;
+    std::unordered_map<std::string,std::unique_ptr<ProtoMesh>>          aniMeshCache;
 
     Tempest::Device& device;
     Tempest::Font    menuFnt, mainFnt;
@@ -90,6 +92,13 @@ namespace Tempest {
 template<>
 inline std::initializer_list<Decl::ComponentType> vertexBufferDecl<Resources::Vertex>() {
   return {Decl::float3,Decl::float3,Decl::float2,Decl::color};
+  }
+
+template<>
+inline std::initializer_list<Decl::ComponentType> vertexBufferDecl<Resources::VertexA>() {
+  return {Decl::float3,Decl::float2,Decl::color,
+          Decl::float3,Decl::float3,Decl::float3,Decl::float3,
+          Decl::color,Decl::float4};
   }
 
 }

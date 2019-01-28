@@ -2,7 +2,7 @@
 
 #include <Tempest/Color>
 
-#include "graphics/staticmesh.h"
+#include "graphics/submesh/staticmesh.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -52,7 +52,7 @@ void Renderer::draw(CommandBuffer &cmd, uint32_t imgId, const Gothic &gothic) {
   view.rotate(spin.y, 1, 0, 0);
   view.rotate(spin.x, 0, 1, 0);
   view.scale(zoom);
-  view.translate(cam[0],1100,cam[1]);
+  view.translate(cam[0],1000,cam[1]);
   view.scale(-1,-1,-1);
 
   if(auto wview=gothic.world().view()) {

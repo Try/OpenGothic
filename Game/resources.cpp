@@ -14,8 +14,9 @@
 
 #include <fstream>
 
-#include "graphics/staticmesh.h"
-#include "graphics/animmesh.h"
+#include "graphics/submesh/staticmesh.h"
+#include "graphics/submesh/animmesh.h"
+#include "graphics/protomesh.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -81,7 +82,7 @@ Tempest::Texture2d* Resources::implLoadTexture(const std::string& name) {
     }
   }
 
-AnimMesh *Resources::implLoadMesh(const std::string &name) {
+ProtoMesh* Resources::implLoadMesh(const std::string &name) {
   if(name.size()==0)
     return nullptr;
 
@@ -93,11 +94,11 @@ AnimMesh *Resources::implLoadMesh(const std::string &name) {
     Tempest::Log::d("");
 
   try {
-    ZenLoad::PackedMesh       sPacked;
-    ZenLoad::zCModelMeshLib   library;
-    auto                      code=loadMesh(sPacked,library,name);
-    std::unique_ptr<AnimMesh> t{code==MeshLoadCode::Static ? new AnimMesh(sPacked) : new AnimMesh(library)};
-    AnimMesh* ret=t.get();
+    ZenLoad::PackedMesh        sPacked;
+    ZenLoad::zCModelMeshLib    library;
+    auto                       code=loadMesh(sPacked,library,name);
+    std::unique_ptr<ProtoMesh> t{code==MeshLoadCode::Static ? new ProtoMesh(sPacked) : new ProtoMesh(library)};
+    ProtoMesh* ret=t.get();
     aniMeshCache[name] = std::move(t);
     if(code==MeshLoadCode::Error)
       throw std::runtime_error("load failed");
@@ -117,11 +118,11 @@ Tempest::Texture2d* Resources::loadTexture(const char *name) {
   return inst->implLoadTexture(name);
   }
 
-Tempest::Texture2d *Resources::loadTexture(const std::string &name) {
+Tempest::Texture2d* Resources::loadTexture(const std::string &name) {
   return inst->implLoadTexture(name);
   }
 
-AnimMesh *Resources::loadMesh(const std::string &name) {
+ProtoMesh* Resources::loadMesh(const std::string &name) {
   return inst->implLoadMesh(name);
   }
 
@@ -179,7 +180,7 @@ Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoa
     if(zmm.getMesh().getNumSubmeshes()==0)
       return MeshLoadCode::Error;
     zmm.getMesh().packMesh(sPacked,1.f);
-    return MeshLoadCode::Static;
+    return MeshLoadCode::Dynamic;
     }
 
   if(name.rfind(".MDMS")==name.size()-5 ||

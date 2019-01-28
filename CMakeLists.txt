@@ -10,12 +10,14 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 file(GLOB SOURCES
-    "*.h"
-    "*.cpp"
-    "**/*.h"
-    "**/*.cpp"
-    "**/**/*.h"
-    "**/**/*.cpp"
+    "Game/*.h"
+    "Game/*.cpp"
+    "Game/**/*.h"
+    "Game/**/*.cpp"
+    "Game/**/**/*.h"
+    "Game/**/**/*.cpp"
+    "Game/**/**/**/*.h"
+    "Game/**/**/**/*.cpp"
   )
 
 link_directories(${PROJECT_NAME} "$ENV{VK_SDK_PATH}/Lib32")

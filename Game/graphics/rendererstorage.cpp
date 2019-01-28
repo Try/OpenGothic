@@ -14,12 +14,19 @@ RendererStorage::RendererStorage(Tempest::Device &device)
   vsObject = device.loadShader("shader/object.vert.sprv");
   fsObject = device.loadShader("shader/object.frag.sprv");
 
+  vsAni    = device.loadShader("shader/anim.vert.sprv");
+  fsAni    = device.loadShader("shader/anim.frag.sprv");
+
+  layoutLnd.add(0,Tempest::UniformsLayout::UboDyn, Tempest::UniformsLayout::Vertex);
+  layoutLnd.add(1,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
+
   layoutObj.add(0,Tempest::UniformsLayout::Ubo,    Tempest::UniformsLayout::Vertex);
   layoutObj.add(1,Tempest::UniformsLayout::UboDyn, Tempest::UniformsLayout::Vertex);
   layoutObj.add(2,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
 
-  layoutLnd.add(0,Tempest::UniformsLayout::UboDyn, Tempest::UniformsLayout::Vertex);
-  layoutLnd.add(1,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
+  layoutAni.add(0,Tempest::UniformsLayout::Ubo,    Tempest::UniformsLayout::Vertex);
+  layoutAni.add(1,Tempest::UniformsLayout::UboDyn, Tempest::UniformsLayout::Vertex);
+  layoutAni.add(2,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
   }
 
 void RendererStorage::initPipeline(Tempest::RenderPass &pass, uint32_t w, uint32_t h) {
@@ -35,6 +42,7 @@ void RendererStorage::initPipeline(Tempest::RenderPass &pass, uint32_t w, uint32
   stateLnd.setZTestMode   (RenderState::ZTestMode::Less);
   stateLnd.setCullFaceMode(RenderState::CullMode::Front);
 
-  pObject = device.pipeline<Resources::Vertex>(pass,w,h,Triangles,stateObj,layoutObj,vsObject,fsObject);
-  pLand   = device.pipeline<Resources::Vertex>(pass,w,h,Triangles,stateLnd,layoutLnd,vsLand,  fsLand  );
+  pLand   = device.pipeline<Resources::Vertex> (pass,w,h,Triangles,stateLnd,layoutLnd,vsLand,  fsLand  );
+  pObject = device.pipeline<Resources::Vertex> (pass,w,h,Triangles,stateObj,layoutObj,vsObject,fsObject);
+  pAnim   = device.pipeline<Resources::VertexA>(pass,w,h,Triangles,stateObj,layoutAni,vsAni,   fsAni   );
   }

@@ -29,7 +29,7 @@ class World final {
       };
 
     struct Dodad {
-      AnimMesh*                      mesh   =nullptr;
+      ProtoMesh*                     mesh   =nullptr;
       Tempest::Matrix4x4             objMat;
       };
 
