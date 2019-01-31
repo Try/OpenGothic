@@ -6,6 +6,8 @@
 #include <memory>
 #include <unordered_set>
 
+#include "game/questlog.h"
+
 class Gothic;
 class World;
 class Npc;
@@ -21,6 +23,7 @@ class WorldScript final {
 
     size_t     npcCount()    const { return npcArr.size(); }
     const Npc& npc(size_t i) const { return *npcArr[i];    }
+    Npc&       npc(size_t i)       { return *npcArr[i];    }
 
     const std::list<Daedalus::GameState::ItemHandle>& getInventoryOf(Daedalus::GameState::NpcHandle h);
     Daedalus::GameState::DaedalusGameState&           getGameState();
@@ -31,6 +34,7 @@ private:
 
     std::map<size_t,std::set<size_t>>                           dlgKnownInfos;
     std::unique_ptr<Daedalus::GameState::DaedalusDialogManager> dialogs;
+    QuestLog                                                    quests;
     std::vector<std::unique_ptr<Npc>>                           npcArr;
 
     void               initCommon();
@@ -69,6 +73,12 @@ private:
     void npc_settofightmode(Daedalus::DaedalusVM &vm);
     void npc_settofistmode (Daedalus::DaedalusVM &vm);
 
+    void log_createtopic   (Daedalus::DaedalusVM &vm);
+    void log_settopicstatus(Daedalus::DaedalusVM &vm);
+    void log_addentry      (Daedalus::DaedalusVM &vm);
+
     void equipitem         (Daedalus::DaedalusVM &vm);
     void createinvitems    (Daedalus::DaedalusVM &vm);
+
+    void playvideo         (Daedalus::DaedalusVM &vm);
   };

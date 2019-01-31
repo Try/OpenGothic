@@ -5,9 +5,11 @@
 
 #include <vector>
 
+class Animation;
+
 class Skeleton final {
   public:
-    Skeleton(const ZenLoad::zCModelMeshLib & src);
+    Skeleton(const ZenLoad::zCModelMeshLib & src,std::string meshLib);
 
     struct Node final {
       size_t             parent=size_t(-1);
@@ -18,8 +20,13 @@ class Skeleton final {
     std::vector<Tempest::Matrix4x4> tr;
     std::array<float,3>             rootTr;
 
-    void mkSkeleton();
+    size_t                          findNode(const char*        name,size_t def=size_t(-1)) const;
+    size_t                          findNode(const std::string& name,size_t def=size_t(-1)) const;
 
   private:
+    std::string      meshLib;
+    const Animation* anim=nullptr;
+
+    void mkSkeleton();
     void mkSkeleton(const Tempest::Matrix4x4& mt,size_t parent);
   };

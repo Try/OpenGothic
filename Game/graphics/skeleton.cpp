@@ -5,7 +5,8 @@
 
 using namespace Tempest;
 
-Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src) {
+Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src, std::string meshLib)
+  :meshLib(std::move(meshLib)){
   nodes.resize(src.getNodes().size());
   tr.resize(src.getNodes().size());
 
@@ -22,8 +23,24 @@ Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src) {
     i.identity();
   mkSkeleton();
 
+  // TODO: overlays
+  anim = Resources::loadAnimation(this->meshLib);
+
   auto tr = src.getRootNodeTranslation();
   rootTr = {{tr.x,tr.y,tr.z}};
+  }
+
+size_t Skeleton::findNode(const char *name, size_t def) const {
+  if(name==nullptr)
+    return def;
+  for(size_t i=0;i<nodes.size();++i)
+    if(nodes[i].name==name)
+      return i;
+  return def;
+  }
+
+size_t Skeleton::findNode(const std::string &name, size_t def) const {
+  return findNode(name.c_str(),def);
   }
 
 void Skeleton::mkSkeleton() {

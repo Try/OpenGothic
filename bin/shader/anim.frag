@@ -18,5 +18,5 @@ void main() {
   float l     = dot(inLight,normalize(inNormal));
   vec3  color = mix(vec3(0.5),vec3(1.0),max(l,0.0));
 
-  outColor    = vec4(1.0,0.0,0.0,1.0)*t*vec4(color,1.0)*vec4(inColor);
+  outColor    = t*vec4(color,1.0)*vec4(inColor);
   }

@@ -15,6 +15,8 @@ class Gothic;
 class StaticMesh;
 class ProtoMesh;
 class Skeleton;
+class Animation;
+class AttachBinder;
 
 class Resources {
   public:
@@ -46,11 +48,13 @@ class Resources {
     static Tempest::Font menuFont() { return inst->menuFnt; }
     static Tempest::Font font()     { return inst->mainFnt; }
 
-    static Tempest::Texture2d* loadTexture(const char* name);
-    static Tempest::Texture2d* loadTexture(const std::string& name);
+    static const Tempest::Texture2d* loadTexture(const char* name);
+    static const Tempest::Texture2d* loadTexture(const std::string& name);
 
-    static const ProtoMesh*    loadMesh    (const std::string& name);
-    static const Skeleton*     loadSkeleton(const std::string& name);
+    static const AttachBinder*       bindMesh     (const ProtoMesh& anim,const Skeleton& s,const char* defBone);
+    static const ProtoMesh*          loadMesh     (const std::string& name);
+    static const Skeleton*           loadSkeleton (const std::string& name);
+    static const Animation*          loadAnimation(const std::string& name);
 
     template<class V>
     static Tempest::VertexBuffer<V> loadVbo(const V* data,size_t sz){ return inst->device.loadVbo(data,sz,Tempest::BufferFlags::Static); }
@@ -75,17 +79,27 @@ class Resources {
     void                addVdf(const char* vdf);
     Tempest::Texture2d* implLoadTexture(const std::string &name);
     ProtoMesh*          implLoadMesh(const std::string &name);
-    MeshLoadCode        loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
     Skeleton*           implLoadSkeleton(std::string name);
+    Animation*          implLoadAnimation(std::string name);
 
+    MeshLoadCode        loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
     ZenLoad::zCModelMeshLib loadMDS (std::string& name);
     bool                hasFile(const std::string& fname);
 
     Tempest::Texture2d fallback;
 
+    using BindK = std::pair<const Skeleton*,const ProtoMesh*>;
+    struct Hash {
+      size_t operator()(const BindK& b) const {
+        return std::uintptr_t(b.first);
+        }
+      };
+
     std::unordered_map<std::string,std::unique_ptr<Tempest::Texture2d>> texCache;
     std::unordered_map<std::string,std::unique_ptr<ProtoMesh>>          aniMeshCache;
     std::unordered_map<std::string,std::unique_ptr<Skeleton>>           skeletonCache;
+    std::unordered_map<std::string,std::unique_ptr<Animation>>          animCache;
+    std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>        bindCache;
 
     Tempest::Device& device;
     Tempest::Font    menuFnt, mainFnt;

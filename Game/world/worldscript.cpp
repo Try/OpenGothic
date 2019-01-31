@@ -39,12 +39,18 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("mdl_applyoverlaymds", [this](Daedalus::DaedalusVM& vm){ mdl_applyoverlaymds(vm); });
   vm.registerExternalFunction("mdl_setmodelscale",   [this](Daedalus::DaedalusVM& vm){ mdl_setmodelscale(vm);   });
 
-  vm.registerExternalFunction("npc_settalentskill", [this](Daedalus::DaedalusVM& vm){ npc_settalentskill(vm); });
-  vm.registerExternalFunction("npc_settofightmode", [this](Daedalus::DaedalusVM& vm){ npc_settofightmode(vm); });
-  vm.registerExternalFunction("npc_settofistmode",  [this](Daedalus::DaedalusVM& vm){ npc_settofistmode(vm);  });
+  vm.registerExternalFunction("npc_settalentskill",  [this](Daedalus::DaedalusVM& vm){ npc_settalentskill(vm); });
+  vm.registerExternalFunction("npc_settofightmode",  [this](Daedalus::DaedalusVM& vm){ npc_settofightmode(vm); });
+  vm.registerExternalFunction("npc_settofistmode",   [this](Daedalus::DaedalusVM& vm){ npc_settofistmode(vm);  });
 
-  vm.registerExternalFunction("equipitem",          [this](Daedalus::DaedalusVM& vm){ equipitem(vm);          });
-  vm.registerExternalFunction("createinvitems",     [this](Daedalus::DaedalusVM& vm){ createinvitems(vm);     });
+  vm.registerExternalFunction("log_createtopic",     [this](Daedalus::DaedalusVM& vm){ log_createtopic(vm);    });
+  vm.registerExternalFunction("log_settopicstatus",  [this](Daedalus::DaedalusVM& vm){ log_settopicstatus(vm); });
+  vm.registerExternalFunction("log_addentry",        [this](Daedalus::DaedalusVM& vm){ log_addentry(vm);       });
+
+  vm.registerExternalFunction("equipitem",           [this](Daedalus::DaedalusVM& vm){ equipitem(vm);          });
+  vm.registerExternalFunction("createinvitems",      [this](Daedalus::DaedalusVM& vm){ createinvitems(vm);     });
+
+  vm.registerExternalFunction("playvideo",           [this](Daedalus::DaedalusVM& vm){ playvideo(vm);          });
 
   DaedalusGameState::GameExternals ext;
   ext.wld_insertnpc      = [this](NpcHandle h,const std::string& s){ onInserNpc(h,s); };
@@ -226,7 +232,7 @@ void WorldScript::mdl_setvisual(Daedalus::DaedalusVM &vm) {
 
   auto& npc = getNpcById(self);
 
-  auto skelet = Resources::loadSkeleton(visual);
+  auto skelet = Resources::loadSkeleton (visual);
   npc.setVisual(skelet);
   }
 
@@ -327,6 +333,27 @@ void WorldScript::npc_settofistmode(Daedalus::DaedalusVM &vm) {
   getNpcById(self).setToFistMode();
   }
 
+void WorldScript::log_createtopic(Daedalus::DaedalusVM &vm) {
+  int32_t section   = vm.popDataValue();
+  auto&   topicName = popString(vm);
+
+  quests.add(topicName,QuestLog::Section(section));
+  }
+
+void WorldScript::log_settopicstatus(Daedalus::DaedalusVM &vm) {
+  int32_t status    = vm.popDataValue();
+  auto&   topicName = popString(vm);
+
+  quests.setStatus(topicName,QuestLog::Status(status));
+  }
+
+void WorldScript::log_addentry(Daedalus::DaedalusVM &vm) {
+  auto&   entry     = popString(vm);
+  auto&   topicName = popString(vm);
+
+  quests.addEntry(topicName,entry);
+  }
+
 void WorldScript::equipitem(Daedalus::DaedalusVM &vm) {
   uint32_t weaponSymbol = uint32_t(vm.popDataValue());
   uint32_t self         = vm.popVar();
@@ -349,4 +376,10 @@ void WorldScript::createinvitems(Daedalus::DaedalusVM &vm) {
   NpcHandle hnpc   = ZMemory::handleCast<NpcHandle>(vm.getDATFile().getSymbolByIndex(npc).instanceDataHandle);
 
   vm.getGameState().createInventoryItem(itemInstance, hnpc, amount);
+  }
+
+void WorldScript::playvideo(Daedalus::DaedalusVM &vm) {
+  const std::string& filename = popString(vm);
+  Log::i("video not implemented [",filename,"]");
+  vm.setReturn(0);
   }

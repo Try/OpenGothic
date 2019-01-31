@@ -30,12 +30,14 @@ class StaticObjects final {
         Mesh(const ProtoMesh* mesh,std::unique_ptr<Item[]>&& sub,size_t subCount):sub(std::move(sub)),subCount(subCount),ani(mesh){}
 
         void setObjMatrix(const Tempest::Matrix4x4& mt);
-        void setSkeleton(const Skeleton* sk);
+        void setSkeleton(const Skeleton* sk,const char* defBone=nullptr);
 
       private:
         std::unique_ptr<Item[]> sub;
         size_t                  subCount=0;
         const ProtoMesh*        ani=nullptr;
+        const Skeleton*         skeleton=nullptr;
+        const AttachBinder*     binder=nullptr;
 
         void setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix4x4& mt, size_t parent);
       };

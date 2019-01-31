@@ -30,6 +30,11 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   timer.timeout.bind(this,&MainWindow::tick);
 
   gothic.onSetWorld.bind(this,&MainWindow::setWorld);
+
+  if(!gothic.doStartMenu()) {
+    setWorld(gothic.defaultWorld());
+    rootMenu->popMenu();
+    }
   }
 
 MainWindow::~MainWindow() {

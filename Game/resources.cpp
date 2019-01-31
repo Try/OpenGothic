@@ -7,9 +7,11 @@
 
 #include <Tempest/Log>
 
+#include <zenload/modelScriptParser.h>
 #include <zenload/zCModelMeshLib.h>
 #include <zenload/zCMorphMesh.h>
 #include <zenload/zCProgMeshProto.h>
+#include <zenload/zenParser.h>
 #include <zenload/ztex2dds.h>
 
 #include <fstream>
@@ -18,6 +20,8 @@
 #include "graphics/submesh/animmesh.h"
 #include "graphics/skeleton.h"
 #include "graphics/protomesh.h"
+#include "graphics/animation.h"
+#include "graphics/attachbinder.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -91,6 +95,9 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
   if(it!=aniMeshCache.end())
     return it->second.get();
 
+  if(name=="Gol_Ice_Body.MDM")
+    Log::d("");
+
   try {
     ZenLoad::PackedMesh        sPacked;
     ZenLoad::zCModelMeshLib    library;
@@ -122,7 +129,7 @@ Skeleton* Resources::implLoadSkeleton(std::string name) {
 
   try {
     ZenLoad::zCModelMeshLib library(name,gothicAssets,1.f);
-    std::unique_ptr<Skeleton> t{new Skeleton(library)};
+    std::unique_ptr<Skeleton> t{new Skeleton(library,name)};
     Skeleton* ret=t.get();
     skeletonCache[name] = std::move(t);
     if(!hasFile(name))
@@ -135,15 +142,45 @@ Skeleton* Resources::implLoadSkeleton(std::string name) {
     }
   }
 
+Animation *Resources::implLoadAnimation(std::string name) {
+  if(name.size()==0)
+    return nullptr;
+
+  if(name.rfind(".MDS")==name.size()-4 ||
+     name.rfind(".mds")==name.size()-4 ||
+     name.rfind(".MDH")==name.size()-4)
+    std::memcpy(&name[name.size()-3],"MSB",3);
+
+  auto it=animCache.find(name);
+  if(it!=animCache.end())
+    return it->second.get();
+
+  try {
+    ZenLoad::ZenParser            zen(name,gothicAssets);
+    ZenLoad::ModelScriptBinParser p(zen);
+
+    std::unique_ptr<Animation> t{new Animation(p,name.substr(0,name.size()-4))};
+    Animation* ret=t.get();
+    animCache[name] = std::move(t);
+    if(!hasFile(name))
+      throw std::runtime_error("load failed");
+    return ret;
+    }
+  catch(...){
+    Log::e("unable to load animation \"",name,"\"");
+    return nullptr;
+    }
+  }
+
 bool Resources::hasFile(const std::string &fname) {
   return gothicAssets.hasFile(fname);
   }
 
-Tempest::Texture2d* Resources::loadTexture(const char *name) {
+const Texture2d *Resources::loadTexture(const char *name) {
   return inst->implLoadTexture(name);
   }
 
-Tempest::Texture2d* Resources::loadTexture(const std::string &name) {
+const Tempest::Texture2d* Resources::loadTexture(const std::string &name) {
   return inst->implLoadTexture(name);
   }
 
@@ -153,6 +190,10 @@ const ProtoMesh *Resources::loadMesh(const std::string &name) {
 
 const Skeleton *Resources::loadSkeleton(const std::string &name) {
   return inst->implLoadSkeleton(name);
+  }
+
+const Animation *Resources::loadAnimation(const std::string &name) {
+  return inst->implLoadAnimation(name);
   }
 
 std::vector<uint8_t> Resources::getFileData(const char *name) {
@@ -252,4 +293,13 @@ ZenLoad::zCModelMeshLib Resources::loadMDS(std::string &name) {
   if(hasFile(name))
     return ZenLoad::zCModelMeshLib(name,gothicAssets,1.f);
   return ZenLoad::zCModelMeshLib();
+  }
+
+const AttachBinder *Resources::bindMesh(const ProtoMesh &anim, const Skeleton &s, const char *defBone) {
+  BindK k = std::make_pair(&s,&anim);
+
+  std::unique_ptr<AttachBinder> ret(new AttachBinder(s,anim,defBone));
+  auto p = ret.get();
+  inst->bindCache[k] = std::move(ret);
+  return p;
   }

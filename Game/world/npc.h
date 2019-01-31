@@ -44,6 +44,8 @@ class Npc final {
     void setView      (StaticObjects::Mesh&& m);
     void setPosition  (float x,float y,float z);
 
+    void updateAnimation();
+
     void setName      (const std::string& name);
     void setVisual    (const Skeleton *visual);
     void setVisualBody(StaticObjects::Mesh &&head,StaticObjects::Mesh&& body);
@@ -64,6 +66,10 @@ class Npc final {
   private:
     WorldScript&                   owner;
     Daedalus::GameState::NpcHandle hnpc;
+    float                          x=0.f;
+    float                          y=0.f;
+    float                          z=0.f;
+    float                          sz[3]={1.f,1.f,1.f};
 
     Tempest::Matrix4x4             pos;
     StaticObjects::Mesh            head;
@@ -76,5 +82,6 @@ class Npc final {
     const std::list<Daedalus::GameState::ItemHandle> &getItems();
     size_t getItemCount(const uint32_t id);
 
+    void updatePos();
     void setPos(const Tempest::Matrix4x4& m);
   };

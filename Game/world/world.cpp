@@ -64,6 +64,12 @@ StaticObjects::Mesh World::getView(const std::string &visual) {
   return view()->getView(visual);
   }
 
+void World::updateAnimation() {
+  auto& w=*vm;
+  for(size_t i=0;i<w.npcCount();++i)
+    w.npc(i).updateAnimation();
+  }
+
 int32_t World::runFunction(const std::string& fname, bool clearDataStack) {
   return vm->runFunction(fname,clearDataStack);
   }

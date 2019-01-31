@@ -18,13 +18,17 @@ void Npc::setView(StaticObjects::Mesh &&m) {
   view = std::move(m);
   }
 
-void Npc::setPosition(float x, float y, float z) {
-  Matrix4x4 mt;
-  mt.identity();
-  mt.translate(x,y,z);
-  mt.scale(1);
+void Npc::setPosition(float ix, float iy, float iz) {
+  x = ix;
+  y = iy;
+  z = iz;
+  updatePos();
+  }
 
-  setPos(mt);
+void Npc::updateAnimation() {
+  if(skeleton){
+
+    }
   }
 
 void Npc::setName(const std::string &n) {
@@ -43,7 +47,7 @@ void Npc::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh &&body) {
   head = std::move(h);
   view = std::move(body);
 
-  head.setSkeleton(skeleton);
+  head.setSkeleton(skeleton,"BIP01 HEAD");
   view.setSkeleton(skeleton);
   setPos(pos); // update obj matrix
   }
@@ -55,6 +59,10 @@ void Npc::setOverlay(const std::string& name,float time) {
   }
 
 void Npc::setScale(float x, float y, float z) {
+  sz[0]=x;
+  sz[1]=y;
+  sz[2]=z;
+  updatePos();
   }
 
 void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {
@@ -97,6 +105,15 @@ size_t Npc::getItemCount(const uint32_t item) {
       return data.amount;
     }
   return 0;
+  }
+
+void Npc::updatePos() {
+  Matrix4x4 mt;
+  mt.identity();
+  mt.translate(x,y,z);
+  mt.scale(sz[0],sz[1],sz[2]);
+
+  setPos(mt);
   }
 
 void Npc::setPos(const Matrix4x4 &m) {

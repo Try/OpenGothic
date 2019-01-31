@@ -87,7 +87,7 @@ class MainWindow : public Tempest::Window {
     std::vector<Tempest::FrameBuffer>   fboUi;
 
     Gothic&                             gothic;
-    Tempest::Texture2d*                 background=nullptr;
+    const Tempest::Texture2d*           background=nullptr;
 
     struct Fps {
       uint64_t dt[10]={};

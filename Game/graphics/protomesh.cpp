@@ -3,12 +3,11 @@
 #include <Tempest/Log>
 
 ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library) {
-  //static_assert(sizeof(Vertex)==sizeof(ZenLoad::SkeletalVertex),"invalid vertex format");
-
   for(auto& m:library.getAttachments()) {
     ZenLoad::PackedMesh stat;
     m.second.packMesh(stat, 1.f);
     attach.emplace_back(stat);
+    attach.back().name = m.first;
     }
 
   nodes.resize(library.getNodes().size());
@@ -30,8 +29,13 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library) {
 
   size_t subCount=0;
   for(auto& i:nodes)
-    if(i.attachId<attach.size())
+    if(i.attachId<attach.size()) {
+      attach[i.attachId].hasNode = true;
       subCount+=attach[i.attachId].sub.size();
+      }
+  for(auto& a:attach)
+    if(!a.hasNode)
+      subCount+=a.sub.size();
   submeshId.resize(subCount);
 
   subCount=0;
@@ -50,6 +54,24 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library) {
         }
       }
     i.submeshIdE = subCount;
+    }
+  firstFreeAttach=subCount;
+  for(size_t i=0;i<attach.size();++i){
+    auto& att = attach[i];
+    if(att.hasNode)
+      continue;
+
+    //i.submeshIdB = subCount;
+    for(size_t r=0;r<att.sub.size();++r){
+      if(att.sub[r].texture==nullptr) {
+        Tempest::Log::e("no texture?!");
+        continue;
+        }
+      submeshId[subCount].id    = i;
+      submeshId[subCount].subId = r;
+      subCount++;
+      }
+    //i.submeshIdE = subCount;
     }
   submeshId.resize(subCount);
 

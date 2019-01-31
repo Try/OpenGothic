@@ -17,12 +17,21 @@ Gothic::Gothic(const int argc, const char **argv) {
             i='/';
         }
       }
+    else if(std::strcmp(argv[i],"-w")==0){
+      ++i;
+      if(i<argc)
+        wdef=argv[i];
+      }
+    else if(std::strcmp(argv[i],"-nomenu")==0){
+      noMenu=true;
+      }
     }
 
   if(gpath.size()>0 && gpath.back()!='/')
     gpath.push_back('/');
 
-  wdef = "oldworld.zen";
+  if(wdef.empty())
+    wdef = "oldworld.zen";
   }
 
 bool Gothic::isInGame() const {

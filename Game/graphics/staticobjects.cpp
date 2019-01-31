@@ -2,6 +2,8 @@
 #include "staticobjects.h"
 
 #include <Tempest/Log>
+
+#include "attachbinder.h"
 #include "rendererstorage.h"
 
 StaticObjects::StaticObjects(const RendererStorage &storage)
@@ -158,6 +160,16 @@ void StaticObjects::draw(Tempest::CommandBuffer &cmd, uint32_t imgId) {
     c.draw(cmd,storage.pAnim,imgId);
   }
 
+void StaticObjects::Mesh::setSkeleton(const Skeleton *sk, const char *defBone) {
+  skeleton = sk;
+
+  if(ani!=nullptr && sk!=nullptr)
+    binder=Resources::bindMesh(*ani,*sk,defBone);
+
+  for(size_t i=0;i<subCount;++i)
+    sub[i].setSkeleton(sk);
+  }
+
 void StaticObjects::Mesh::setObjMatrix(const Tempest::Matrix4x4 &mt) {
   if(ani!=nullptr){
     auto mat=mt;
@@ -169,11 +181,16 @@ void StaticObjects::Mesh::setObjMatrix(const Tempest::Matrix4x4 &mt) {
     for(size_t i=0;i<subCount;++i)
       sub[i].setObjMatrix(mt);
     }
-  }
-
-void StaticObjects::Mesh::setSkeleton(const Skeleton *sk) {
-  for(size_t i=0;i<subCount;++i)
-    sub[i].setSkeleton(sk);
+  if(binder!=nullptr){
+    for(size_t i=0;i<binder->bind.size();++i){
+      auto id=binder->bind[i].boneId;
+      if(id>=skeleton->tr.size())
+        continue;
+      auto mat=mt;
+      mat.mul(skeleton->tr[id]);
+      sub[i].setObjMatrix(mat);
+      }
+    }
   }
 
 void StaticObjects::Mesh::setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix4x4 &mt,size_t parent) {

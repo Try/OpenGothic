@@ -11,9 +11,9 @@
 
 #include "graphics/worldview.h"
 #include "graphics/staticobjects.h"
+#include "worldscript.h"
 #include "resources.h"
 #include "npc.h"
-#include "worldscript.h"
 
 class Gothic;
 class RendererStorage;
@@ -24,7 +24,7 @@ class World final {
     World(Gothic &gothic,const RendererStorage& storage, std::string file);
 
     struct Block {
-      Tempest::Texture2d*            texture = nullptr;
+      const Tempest::Texture2d*      texture = nullptr;
       Tempest::IndexBuffer<uint32_t> ibo;
       };
 
@@ -46,6 +46,8 @@ class World final {
     WorldView* view() const { return wview.get(); }
 
     StaticObjects::Mesh getView(const std::string& visual);
+
+    void updateAnimation();
 
   private:
     std::string                           name;

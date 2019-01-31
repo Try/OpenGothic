@@ -13,6 +13,7 @@ class Gothic final {
     Gothic(int argc,const char** argv);
 
     bool isInGame() const;
+    bool doStartMenu() const { return !noMenu; }
 
     void setWorld(World&& w);
     const World& world() const { return wrld; }
@@ -29,6 +30,7 @@ class Gothic final {
 
   private:
     std::string wdef, gpath;
+    bool        noMenu=false;
 
     World       wrld;
   };

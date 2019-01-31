@@ -53,6 +53,7 @@ void WorldView::draw(CommandBuffer &cmd, FrameBuffer &fbo) {
     }
   }
 
+
 StaticObjects::Mesh WorldView::getView(const std::string &visual) {
   if(auto mesh=Resources::loadMesh(visual))
     return objGroup.get(*mesh);

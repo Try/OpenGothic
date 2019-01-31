@@ -37,13 +37,21 @@ class ProtoMesh {
       size_t                submeshIdE = 0;
       };
 
+    struct Attach : StaticMesh {
+      using StaticMesh::StaticMesh;
+
+      std::string name;
+      bool        hasNode=false;
+      };
+
     // skinned
     std::vector<AnimMesh>          skined;
 
     // offset matrix or static
-    std::vector<StaticMesh>        attach;
+    std::vector<Attach>            attach;
     std::vector<Node>              nodes;
     std::vector<SubMeshId>         submeshId;
+    size_t                         firstFreeAttach=0;
 
     std::array<float,3>            rootTr;
 

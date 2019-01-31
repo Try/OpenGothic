@@ -14,7 +14,7 @@ class AnimMesh {
     AnimMesh(const ZenLoad::PackedSkeletalMesh& data);
 
     struct SubMesh {
-      Tempest::Texture2d*            texture=nullptr;
+      const Tempest::Texture2d*      texture=nullptr;
       Tempest::IndexBuffer<uint32_t> ibo;
       };
 
