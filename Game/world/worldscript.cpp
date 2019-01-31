@@ -132,8 +132,10 @@ void WorldScript::onInserNpc(Daedalus::GameState::NpcHandle handle,const std::st
   if(!npcData.name[0].empty())
     ptr->setName(npcData.name[0]);
 
-  if(pos!=nullptr)
+  if(pos!=nullptr) {
     ptr->setPosition(pos->position.x,pos->position.y,pos->position.z);
+    ptr->setDirection(pos->direction.x,pos->direction.y,pos->direction.z);
+    }
 
   npcArr.emplace_back(std::move(ptr));
   }
@@ -160,6 +162,16 @@ Npc& WorldScript::getNpcById(size_t id) {
 
   NpcHandle hnpc = ZMemory::handleCast<NpcHandle>(vm.getDATFile().getSymbolByIndex(id).instanceDataHandle);
   return getNpc(hnpc);
+  }
+
+Npc* WorldScript::inserNpc(size_t npcInstance, const char* at) {
+  auto pos = owner.findPoint(at);
+  if(pos==nullptr){
+    Log::e("inserNpc: invalid waypoint");
+    return nullptr;
+    }
+  auto h = vm.getGameState().insertNPC(size_t(npcInstance),at);
+  return &getNpc(h);
   }
 
 void WorldScript::onCreateInventoryItem(ItemHandle item, NpcHandle npcHandle) {
@@ -297,8 +309,7 @@ void WorldScript::wld_insertnpc(Daedalus::DaedalusVM &vm) {
     Log::e("invalid waypoint \"",spawnpoint,"\"");
     return;
     }
-
-  vm.getGameState().insertNPC(size_t(npcInstance),spawnpoint);
+  inserNpc(size_t(npcInstance),spawnpoint.c_str());
   }
 
 void WorldScript::wld_insertitem(Daedalus::DaedalusVM &vm) {

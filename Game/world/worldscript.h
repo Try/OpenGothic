@@ -52,6 +52,8 @@ private:
     Npc& getNpc(Daedalus::GameState::NpcHandle handle);
     Npc& getNpcById(size_t id);
 
+    Npc* inserNpc(size_t npcInstance,const char *at);
+
     static void concatstrings(Daedalus::DaedalusVM& vm);
     static void inttostring  (Daedalus::DaedalusVM& vm);
     static void floattostring(Daedalus::DaedalusVM& vm);

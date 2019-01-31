@@ -57,6 +57,9 @@ const ZenLoad::zCWaypointData *World::findPoint(const char *name) const {
   for(auto& i:wayNet.waypoints)
     if(i.wpName==name)
       return &i;
+  for(auto& i:freePoints)
+    if(i.wpName==name)
+      return &i;
   return nullptr;
   }
 
@@ -86,15 +89,76 @@ void World::loadVob(const ZenLoad::zCVobData &vob) {
   for(auto& i:vob.childVobs)
     loadVob(i);
 
-  if(!vob.visual.empty()){
-    Dodad d;
-    d.mesh = Resources::loadMesh(vob.visual);
-    if(d.mesh) {
-      float v[16]={};
-      std::memcpy(v,vob.worldMatrix.m,sizeof(v));
-      d.objMat = Tempest::Matrix4x4(v);
-
-      staticObj.emplace_back(d);
+  if(vob.objectClass=="zCVob" ||
+     vob.objectClass=="oCMobContainer:oCMobInter:oCMOB:zCVob"||
+     vob.objectClass=="oCMobInter:oCMOB:zCVob" ||
+     vob.objectClass=="oCMOB:zCVob" ||
+     vob.objectClass=="oCMobDoor:oCMobInter:oCMOB:zCVob" ||
+     vob.objectClass=="zCPFXControler:zCVob" ||
+     vob.objectClass=="oCMobFire:oCMobInter:oCMOB:zCVob" ||
+     vob.objectClass=="oCMobSwitch:oCMobInter:oCMOB:zCVob") {
+    addStatic(vob);
+    }
+  else if(vob.objectClass=="zCVobAnimate:zCVob"){ // ork flags
+    addStatic(vob); //TODO: morph animation
+    }
+  else if(vob.objectClass=="zCVobLevelCompo:zCVob"){
+    return;
+    }
+  else if(vob.objectClass=="zCMover:zCTrigger:zCVob"){
+    addStatic(vob); // castle gate
+    }
+  else if(vob.objectClass=="oCTriggerScript:zCTrigger:zCVob" ||
+          vob.objectClass=="oCTriggerChangeLevel:zCTrigger:zCVob" ||
+          vob.objectClass=="zCTrigger:zCVob"){
+    }
+  else if(vob.objectClass=="zCZoneZFog:zCVob" ||
+          vob.objectClass=="zCZoneZFogDefault:zCZoneZFog:zCVob"){
+    }
+  else if(vob.objectClass=="zCZoneVobFarPlaneDefault:zCZoneVobFarPlane:zCVob" ||
+          vob.objectClass=="zCVobLensFlare:zCVob"){
+    return;
+    }
+  else if(vob.objectClass=="zCVobStartpoint:zCVob") {
+    ZenLoad::zCWaypointData point={};
+    point.wpName   = vob.vobName;
+    point.position = vob.position;
+    startPoints.push_back(point);
+    }
+  else if(vob.objectClass=="zCVobSpot:zCVob") {
+    ZenLoad::zCWaypointData point={};
+    point.wpName   = vob.vobName;
+    point.position = vob.position;
+    freePoints.push_back(point);
+    }
+  else if(vob.objectClass=="oCItem:zCVob") {
+    }
+  else if(vob.objectClass=="zCVobSound" ||
+          vob.objectClass=="zCVobSound:zCVob" ||
+          vob.objectClass=="zCVobSoundDaytime:zCVobSound:zCVob") {
+    }
+  else if(vob.objectClass=="oCZoneMusic:zCVob" ||
+          vob.objectClass=="oCZoneMusicDefault:oCZoneMusic:zCVob") {
+    }
+  else if(vob.objectClass=="zCVobLight:zCVob") {
+    }
+  else {
+    static std::unordered_set<std::string> cls;
+    if(cls.find(vob.objectClass)==cls.end()){
+      cls.insert(vob.objectClass);
+      Tempest::Log::d("unknown vob class ",vob.objectClass);
       }
+    }
+  }
+
+void World::addStatic(const ZenLoad::zCVobData &vob) {
+  Dodad d;
+  d.mesh = Resources::loadMesh(vob.visual);
+  if(d.mesh) {
+    float v[16]={};
+    std::memcpy(v,vob.worldMatrix.m,sizeof(v));
+    d.objMat = Tempest::Matrix4x4(v);
+
+    staticObj.emplace_back(d);
     }
   }

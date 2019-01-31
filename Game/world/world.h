@@ -54,6 +54,7 @@ class World final {
     Gothic*                               gothic=nullptr;
     std::unique_ptr<WorldScript>          vm;
     ZenLoad::zCWayNetData                 wayNet;
+    std::vector<ZenLoad::zCWaypointData>  freePoints, startPoints;
 
     Tempest::VertexBuffer<Resources::Vertex> vbo;
     std::vector<Block>                       blocks;
@@ -61,6 +62,7 @@ class World final {
     std::unique_ptr<WorldView>            wview;
 
     void    loadVob(const ZenLoad::zCVobData &vob);
+    void    addStatic(const ZenLoad::zCVobData &vob);
 
     void    initScripts(bool firstTime);
     int32_t runFunction(const std::string &fname,bool clearDataStack);

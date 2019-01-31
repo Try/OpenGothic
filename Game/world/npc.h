@@ -43,6 +43,7 @@ class Npc final {
 
     void setView      (StaticObjects::Mesh&& m);
     void setPosition  (float x,float y,float z);
+    void setDirection (float x,float y,float z);
 
     void updateAnimation();
 
@@ -69,6 +70,7 @@ class Npc final {
     float                          x=0.f;
     float                          y=0.f;
     float                          z=0.f;
+    float                          angle=0.f;
     float                          sz[3]={1.f,1.f,1.f};
 
     Tempest::Matrix4x4             pos;

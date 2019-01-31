@@ -25,6 +25,11 @@ void Npc::setPosition(float ix, float iy, float iz) {
   updatePos();
   }
 
+void Npc::setDirection(float x, float y, float /*z*/) {
+  angle = 180.f*std::atan2(y,x)/float(M_PI);
+  updatePos();
+  }
+
 void Npc::updateAnimation() {
   if(skeleton){
 
@@ -111,6 +116,7 @@ void Npc::updatePos() {
   Matrix4x4 mt;
   mt.identity();
   mt.translate(x,y,z);
+  mt.rotateOY(angle);
   mt.scale(sz[0],sz[1],sz[2]);
 
   setPos(mt);
@@ -118,7 +124,6 @@ void Npc::updatePos() {
 
 void Npc::setPos(const Matrix4x4 &m) {
   pos = m;
-  view    .setObjMatrix(pos);
-  head    .setObjMatrix(pos);
-  //skeleton.setObjMatrix(pos);
+  view.setObjMatrix(pos);
+  head.setObjMatrix(pos);
   }
