@@ -11,12 +11,14 @@
 
 #include "graphics/worldview.h"
 #include "graphics/staticobjects.h"
+#include "physics/dynamicworld.h"
 #include "worldscript.h"
 #include "resources.h"
 #include "npc.h"
 
 class Gothic;
 class RendererStorage;
+class DynamicWorld;
 
 class World final {
   public:
@@ -43,7 +45,8 @@ class World final {
     const ZenLoad::zCWaypointData* findPoint(const std::string& s) const { return findPoint(s.c_str()); }
     const ZenLoad::zCWaypointData* findPoint(const char* name) const;
 
-    WorldView* view() const { return wview.get(); }
+    WorldView*    view()   const { return wview.get(); }
+    DynamicWorld* physic() const { return wdynamic.get(); }
 
     StaticObjects::Mesh getView(const std::string& visual);
 
@@ -60,6 +63,7 @@ class World final {
     std::vector<Block>                       blocks;
 
     std::unique_ptr<WorldView>            wview;
+    std::unique_ptr<DynamicWorld>         wdynamic;
 
     void    loadVob(const ZenLoad::zCVobData &vob);
     void    addStatic(const ZenLoad::zCVobData &vob);

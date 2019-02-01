@@ -22,7 +22,8 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
     commandBuffersSemaphores.emplace_back(device);
     }
 
-  spin.y = 60;
+  spin.y    = 60;
+  camPos[1] = 1000;
   initSwapchain();
   setupUi();
 
@@ -104,20 +105,21 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
 
   if(event.key==KeyEvent::K_A) {
     camPos[0]+=dpos*c;
-    camPos[1]-=dpos*s;
+    camPos[2]-=dpos*s;
     }
   if(event.key==KeyEvent::K_D) {
     camPos[0]-=dpos*c;
-    camPos[1]+=dpos*s;
+    camPos[2]+=dpos*s;
     }
   if(event.key==KeyEvent::K_W) {
     camPos[0]-=dpos*s;
-    camPos[1]-=dpos*c;
+    camPos[2]-=dpos*c;
     }
   if(event.key==KeyEvent::K_S){
     camPos[0]+=dpos*s;
-    camPos[1]+=dpos*c;
+    camPos[2]+=dpos*c;
     }
+  camPos[1] = gothic.world().physic()->dropRay(camPos[0],camPos[1],camPos[2]);
   }
 
 void MainWindow::keyUpEvent(KeyEvent &event) {

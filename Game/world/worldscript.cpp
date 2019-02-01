@@ -29,9 +29,9 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("floattoint",    &WorldScript::floattoint   );
   vm.registerExternalFunction("hlp_random",    &WorldScript::hlp_random   );
 
-  vm.registerExternalFunction("wld_insertnpc", [this](Daedalus::DaedalusVM& vm){ wld_insertnpc(vm);  });
-  vm.registerExternalFunction("wld_insertitem",[this](Daedalus::DaedalusVM& vm){ wld_insertitem(vm); });
-  vm.registerExternalFunction("wld_settime",   [this](Daedalus::DaedalusVM& vm){ wld_settime(vm);    });
+  vm.registerExternalFunction("wld_insertnpc",       [this](Daedalus::DaedalusVM& vm){ wld_insertnpc(vm);  });
+  vm.registerExternalFunction("wld_insertitem",      [this](Daedalus::DaedalusVM& vm){ wld_insertitem(vm); });
+  vm.registerExternalFunction("wld_settime",         [this](Daedalus::DaedalusVM& vm){ wld_settime(vm);    });
 
   vm.registerExternalFunction("mdl_setvisual",       [this](Daedalus::DaedalusVM& vm){ mdl_setvisual(vm);       });
   vm.registerExternalFunction("mdl_setvisualbody",   [this](Daedalus::DaedalusVM& vm){ mdl_setvisualbody(vm);   });

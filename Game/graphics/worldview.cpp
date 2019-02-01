@@ -20,6 +20,7 @@ WorldView::WorldView(const World &world, const RendererStorage &storage)
 
 void WorldView::initPipeline(uint32_t w, uint32_t h) {
   projective.perspective(45.0f, float(w)/float(h), 0.1f, 100.0f);
+  //projective.translate(0,0,0.5f);
   nToUpdateCmd=true;
   }
 

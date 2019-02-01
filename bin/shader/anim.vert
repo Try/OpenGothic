@@ -46,7 +46,6 @@ void main() {
   vec4 n3 = ubo.skel[int(inId.w)]*norm;
 
   pos   = t0*inWeight.x + t1*inWeight.y + t2*inWeight.z + t3*inWeight.w;
-  //pos   = vec4(inPos,1.0);
   norm  = n0*inWeight.x + n1*inWeight.y + n2*inWeight.z + n3*inWeight.w;
 
   outNormal   = (ubo.obj*norm).xyz;

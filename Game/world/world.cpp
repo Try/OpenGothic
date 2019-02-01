@@ -39,12 +39,17 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
     b.texture = Resources::loadTexture(i.material.texture);
     }
 
+  wdynamic.reset(new DynamicWorld(*this,*worldMesh));
+
   std::sort(blocks.begin(),blocks.end(),[](const Block& a,const Block& b){ return a.texture<b.texture; });
 
   for(auto& vob:world.rootVobs)
     loadVob(vob);
 
   wayNet = std::move(world.waynet);
+  for(auto& w:wayNet.waypoints){
+    w.position.y = wdynamic->dropRay(w.position.x,w.position.y,w.position.z);
+    }
 
   wview.reset(new WorldView(*this,storage));
 
@@ -129,6 +134,7 @@ void World::loadVob(const ZenLoad::zCVobData &vob) {
     ZenLoad::zCWaypointData point={};
     point.wpName   = vob.vobName;
     point.position = vob.position;
+    point.position.y = wdynamic->dropRay(vob.position.x,vob.position.y,vob.position.z);
     freePoints.push_back(point);
     }
   else if(vob.objectClass=="oCItem:zCVob") {
