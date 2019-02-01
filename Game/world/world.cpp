@@ -11,10 +11,10 @@
 #include <Tempest/Log>
 
 World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
-  :name(std::move(file)),gothic(&gothic) {
+  :wname(std::move(file)),gothic(&gothic) {
   using namespace Daedalus::GameState;
 
-  ZenLoad::ZenParser parser(name,Resources::vdfsIndex());
+  ZenLoad::ZenParser parser(wname,Resources::vdfsIndex());
 
   // TODO: update loader
   parser.readHeader();
@@ -83,8 +83,8 @@ int32_t World::runFunction(const std::string& fname, bool clearDataStack) {
   }
 
 void World::initScripts(bool firstTime) {
-  auto dot=name.rfind('.');
-  std::string startup = (firstTime ? "startup_" : "init_")+(dot==std::string::npos ? name : name.substr(0,dot));
+  auto dot=wname.rfind('.');
+  std::string startup = (firstTime ? "startup_" : "init_")+(dot==std::string::npos ? wname : wname.substr(0,dot));
 
   if(vm->hasSymbolName(startup))
     vm->runFunction(startup,true);

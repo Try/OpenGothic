@@ -84,7 +84,7 @@ class StaticObjects final {
     std::list<ObjectsBucket<UboSt,Vertex >> chunksSt;
     std::list<ObjectsBucket<UboDn,VertexA>> chunksDn;
 
-    UboChain<UboGlobal>             uboGlobalPf;
+    UboChain<UboGlobal,void>        uboGlobalPf;
     UboGlobal                       uboGlobal;
 
     bool                            nToUpdate=true; //invalidate cmd buffers

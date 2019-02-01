@@ -4,9 +4,19 @@
 #include <Tempest/Uniforms>
 #include <Tempest/UniformBuffer>
 
-template<class T>
+namespace Detail {
+  template<class F>
+  struct H { using type = F; };
+  template<>
+  struct H<void>{ using type = char; };
+  }
+
+template<class T,class Desc=Tempest::Uniforms>
 class UboChain final {
+
   public:
+    using DescType = typename Detail::H<Desc>::type;
+
     UboChain(Tempest::Device& device) {
       const uint32_t maxFrames=device.maxFramesInFlight();
       pf.reset(new PerFrame[maxFrames]);
@@ -24,9 +34,14 @@ class UboChain final {
       return pf[i].uboData;
       }
 
+    DescType& desc(size_t i) {
+      return pf[i].desc;
+      }
+
   private:
     struct PerFrame final {
       Tempest::UniformBuffer uboData;
+      DescType               desc;
       bool                   uboChanged=false; // invalidate ubo array
       };
     std::unique_ptr<PerFrame[]> pf;

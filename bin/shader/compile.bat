@@ -6,3 +6,6 @@ glslangValidator -V object.frag -o object.frag.sprv
 
 glslangValidator -V anim.vert -o anim.vert.sprv
 glslangValidator -V anim.frag -o anim.frag.sprv
+
+glslangValidator -V sky.vert -o sky.vert.sprv
+glslangValidator -V sky.frag -o sky.frag.sprv

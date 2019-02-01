@@ -3,6 +3,7 @@
 #include <Tempest/Device>
 #include <Tempest/Shader>
 
+#include "graphics/sky/sky.h"
 #include "graphics/staticobjects.h"
 #include "graphics/landscape.h"
 
@@ -24,6 +25,7 @@ class WorldView {
   private:
     const RendererStorage&  storage;
 
+    Sky                     sky;
     Landscape               land;
     StaticObjects           vobGroup;
     StaticObjects           objGroup;

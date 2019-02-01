@@ -17,6 +17,9 @@ RendererStorage::RendererStorage(Tempest::Device &device)
   vsAni    = device.loadShader("shader/anim.vert.sprv");
   fsAni    = device.loadShader("shader/anim.frag.sprv");
 
+  vsSky    = device.loadShader("shader/sky.vert.sprv");
+  fsSky    = device.loadShader("shader/sky.frag.sprv");
+
   layoutLnd.add(0,Tempest::UniformsLayout::UboDyn, Tempest::UniformsLayout::Vertex);
   layoutLnd.add(1,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
 
@@ -27,6 +30,9 @@ RendererStorage::RendererStorage(Tempest::Device &device)
   layoutAni.add(0,Tempest::UniformsLayout::Ubo,    Tempest::UniformsLayout::Vertex);
   layoutAni.add(1,Tempest::UniformsLayout::UboDyn, Tempest::UniformsLayout::Vertex);
   layoutAni.add(2,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
+
+  layoutSky.add(0,Tempest::UniformsLayout::UboDyn, Tempest::UniformsLayout::Fragment);
+  layoutSky.add(1,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
   }
 
 void RendererStorage::initPipeline(Tempest::RenderPass &pass, uint32_t w, uint32_t h) {
@@ -42,7 +48,12 @@ void RendererStorage::initPipeline(Tempest::RenderPass &pass, uint32_t w, uint32
   stateLnd.setZTestMode   (RenderState::ZTestMode::Less);
   stateLnd.setCullFaceMode(RenderState::CullMode::Front);
 
-  pLand   = device.pipeline<Resources::Vertex> (pass,w,h,Triangles,stateLnd,layoutLnd,vsLand,  fsLand  );
-  pObject = device.pipeline<Resources::Vertex> (pass,w,h,Triangles,stateObj,layoutObj,vsObject,fsObject);
-  pAnim   = device.pipeline<Resources::VertexA>(pass,w,h,Triangles,stateObj,layoutAni,vsAni,   fsAni   );
+  RenderState stateSky;
+  stateSky.setZTestMode   (RenderState::ZTestMode::Always);
+  stateSky.setCullFaceMode(RenderState::CullMode::Front);
+
+  pLand   = device.pipeline<Resources::Vertex>   (pass,w,h,Triangles,stateLnd,layoutLnd,vsLand,  fsLand  );
+  pObject = device.pipeline<Resources::Vertex>   (pass,w,h,Triangles,stateObj,layoutObj,vsObject,fsObject);
+  pAnim   = device.pipeline<Resources::VertexA>  (pass,w,h,Triangles,stateObj,layoutAni,vsAni,   fsAni   );
+  pSky    = device.pipeline<Resources::VertexFsq>(pass,w,h,Triangles,stateSky,layoutSky,vsSky,   fsSky   );
   }

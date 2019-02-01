@@ -6,7 +6,9 @@
 using namespace Tempest;
 
 WorldView::WorldView(const World &world, const RendererStorage &storage)
-  :storage(storage),land(storage),vobGroup(storage),objGroup(storage) {
+  :storage(storage),sky(storage),land(storage),vobGroup(storage),objGroup(storage) {
+  sky.setWorld(world.name());
+
   StaticObjects::Mesh obj;
 
   objStatic.clear();
@@ -39,7 +41,9 @@ void WorldView::updateUbo(const Matrix4x4& view,uint32_t imgId) {
   auto viewProj=projective;
   viewProj.mul(view);
 
+  sky     .setMatrix   (imgId,viewProj);
   land    .setMatrix   (imgId,viewProj);
+
   vobGroup.setModelView(viewProj);
   vobGroup.updateUbo   (imgId);
   objGroup.setModelView(viewProj);
@@ -69,11 +73,13 @@ void WorldView::prebuiltCmdBuf(const World &world) {
   for(size_t i=0;i<device.maxFramesInFlight();++i){
     auto cmd=device.commandSecondaryBuffer();
 
+    sky     .commitUbo(i);
     land    .commitUbo(i);
     vobGroup.commitUbo(i);
     objGroup.commitUbo(i);
 
     cmd.begin(storage.pass());
+    sky     .draw(cmd,i,world);
     land    .draw(cmd,i,world);
     vobGroup.draw(cmd,i);
     objGroup.draw(cmd,i);

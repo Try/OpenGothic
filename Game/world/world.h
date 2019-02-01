@@ -35,7 +35,8 @@ class World final {
       Tempest::Matrix4x4             objMat;
       };
 
-    bool isEmpty() const { return name.empty(); }
+    bool isEmpty() const { return wname.empty(); }
+    const std::string& name() const { return wname; }
 
     const Tempest::VertexBuffer<Resources::Vertex>& landVbo()    const { return vbo; }
     const std::vector<Block>&                       landBlocks() const { return blocks; }
@@ -53,7 +54,7 @@ class World final {
     void updateAnimation();
 
   private:
-    std::string                           name;
+    std::string                           wname;
     Gothic*                               gothic=nullptr;
     std::unique_ptr<WorldScript>          vm;
     ZenLoad::zCWayNetData                 wayNet;

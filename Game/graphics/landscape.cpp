@@ -9,23 +9,22 @@ Landscape::Landscape(const RendererStorage &storage)
   :storage(storage) {
   auto& device=storage.device;
 
-  landPF.reset(new PerFrame[device.maxFramesInFlight()]);
+  pf.reset(new PerFrame[device.maxFramesInFlight()]);
   for(size_t i=0;i<device.maxFramesInFlight();++i){
-    landPF[i].uboGpu = device.loadUbo(&uboCpu,sizeof(uboCpu));
+    pf[i].uboGpu = device.loadUbo(&uboCpu,sizeof(uboCpu));
     }
   }
 
-void Landscape::setMatrix(uint32_t imgId, const Matrix4x4 &mat) {
+void Landscape::setMatrix(uint32_t frameId, const Matrix4x4 &mat) {
   uboCpu.mvp = mat;
-  landPF[imgId].uboGpu.update(&uboCpu,0,sizeof(uboCpu));
+  pf[frameId].uboGpu.update(&uboCpu,0,sizeof(uboCpu));
   }
 
-void Landscape::commitUbo(uint32_t /*imgId*/) {
-  //landPF[imgId].uboGpu.update(&uboCpu,0,sizeof(uboCpu));
+void Landscape::commitUbo(uint32_t /*frameId*/) {
   }
 
-void Landscape::draw(Tempest::CommandBuffer &cmd, uint32_t imgId,const World& world) {
-  PerFrame& pf      = landPF[imgId];
+void Landscape::draw(Tempest::CommandBuffer &cmd, uint32_t frameId,const World& world) {
+  PerFrame& pf      = this->pf[frameId];
   auto&     uboLand = pf.uboLand;
   auto&     blocks  = world.landBlocks();
 

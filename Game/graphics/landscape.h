@@ -11,9 +11,9 @@ class Landscape final {
   public:
     Landscape(const RendererStorage& storage);
 
-    void setMatrix(uint32_t imgId,const Tempest::Matrix4x4& mat);
-    void commitUbo(uint32_t imgId);
-    void draw(Tempest::CommandBuffer &cmd, uint32_t imgId, const World &world);
+    void setMatrix(uint32_t frameId,const Tempest::Matrix4x4& mat);
+    void commitUbo(uint32_t frameId);
+    void draw(Tempest::CommandBuffer &cmd, uint32_t frameId, const World &world);
 
   private:
     struct UboLand {
@@ -27,5 +27,5 @@ class Landscape final {
 
     const RendererStorage&         storage;
     UboLand                        uboCpu;
-    std::unique_ptr<PerFrame[]>    landPF;
+    std::unique_ptr<PerFrame[]>    pf;
   };

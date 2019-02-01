@@ -45,6 +45,10 @@ class Resources {
       float    weights[4];*/
       };
 
+    struct VertexFsq {
+      float    pos[2];
+      };
+
     static Tempest::Font menuFont() { return inst->menuFnt; }
     static Tempest::Font font()     { return inst->mainFnt; }
 
@@ -120,6 +124,11 @@ template<>
 inline std::initializer_list<Decl::ComponentType> vertexBufferDecl<Resources::VertexA>() {
   return {Decl::float3,Decl::float3,Decl::float2,
           Decl::float4,Decl::float4};
+  }
+
+template<>
+inline std::initializer_list<Decl::ComponentType> vertexBufferDecl<Resources::VertexFsq>() {
+  return {Decl::float2};
   }
 
 }
