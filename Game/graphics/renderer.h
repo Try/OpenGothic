@@ -12,6 +12,7 @@
 #include "rendererstorage.h"
 
 class Gothic;
+class Camera;
 
 class Renderer final {
   public:
@@ -20,7 +21,7 @@ class Renderer final {
     void initSwapchain(uint32_t w,uint32_t h);
     void onWorldChanged();
 
-    void setDebugView(const std::array<float,3>& cam,const Tempest::PointF& spin,const float zoom);
+    void setDebugView(const Camera &camera);
     void draw(Tempest::CommandBuffer& cmd, uint32_t imgId, const Gothic& gothic);
 
     const RendererStorage&            storage() const { return stor; }
@@ -35,8 +36,7 @@ class Renderer final {
 
     Tempest::RenderPass               mainPass;
     RendererStorage                   stor;
-
-    Tempest::PointF                   spin;
-    std::array<float,3>               cam;
-    float                             zoom=1.f;
+    // Tempest::PointF                   spin;
+    // std::array<float,3>               cam;
+    // float                             zoom=1.f;
   };

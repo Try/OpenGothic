@@ -21,13 +21,13 @@ Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src, std::string meshLib)
   assert(nodes.size()<=Resources::MAX_NUM_SKELETAL_NODES);
   for(auto& i:tr)
     i.identity();
-  mkSkeleton();
 
   // TODO: overlays
   anim = Resources::loadAnimation(this->meshLib);
 
   auto tr = src.getRootNodeTranslation();
   rootTr = {{tr.x,tr.y,tr.z}};
+  mkSkeleton();
   }
 
 size_t Skeleton::findNode(const char *name, size_t def) const {

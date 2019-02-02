@@ -56,6 +56,8 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
   vm.reset(new WorldScript(*this,gothic,"/_work/data/Scripts/_compiled/GOTHIC.DAT"));
   vm->initDialogs(gothic);
   initScripts(true);
+
+  npcPlayer = vm->inserNpc("PC_HERO","SPAWN_OW_STARTSCAVNGERBO_01_02");
   }
 
 const ZenLoad::zCWaypointData *World::findPoint(const char *name) const {
@@ -69,7 +71,11 @@ const ZenLoad::zCWaypointData *World::findPoint(const char *name) const {
   }
 
 StaticObjects::Mesh World::getView(const std::string &visual) {
-  return view()->getView(visual);
+  return getView(visual,0,0,0);
+  }
+
+StaticObjects::Mesh World::getView(const std::string &visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) {
+  return view()->getView(visual,headTex,teetTex,bodyColor);
   }
 
 void World::updateAnimation() {

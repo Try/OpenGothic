@@ -20,7 +20,7 @@ class WorldView {
     void updateUbo(const Tempest::Matrix4x4 &view, uint32_t imgId);
     void draw     (Tempest::CommandBuffer &cmd, Tempest::FrameBuffer &fbo);
 
-    StaticObjects::Mesh getView(const std::string& visual);
+    StaticObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
 
   private:
     const RendererStorage&  storage;

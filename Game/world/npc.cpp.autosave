@@ -26,7 +26,7 @@ void Npc::setPosition(float ix, float iy, float iz) {
   }
 
 void Npc::setDirection(float x, float /*y*/, float z) {
-  angle = -180.f*std::atan2(z,x)/float(M_PI);
+  angle = 180.f*std::atan2(z,x)/float(M_PI);
   updatePos();
   }
 

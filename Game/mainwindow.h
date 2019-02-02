@@ -1,5 +1,6 @@
 #pragma once
 
+#include "camera.h"
 #include "resources.h"
 
 #include <Tempest/Window>
@@ -55,9 +56,8 @@ class MainWindow : public Tempest::Window {
     void tick();
 
     Tempest::Point        mpos;
-    std::array<float,3>   camPos={};
     Tempest::PointF       spin;
-    float                 zoom=1.f;//0.0002f;
+    Camera                camera;
 
     Tempest::Device       device;
     Tempest::TextureAtlas atlas;

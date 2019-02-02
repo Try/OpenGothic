@@ -16,6 +16,7 @@ class AnimMesh {
     struct SubMesh {
       const Tempest::Texture2d*      texture=nullptr;
       Tempest::IndexBuffer<uint32_t> ibo;
+      std::string                    texName;
       };
 
     Tempest::VertexBuffer<VertexA> vbo;

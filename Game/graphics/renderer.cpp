@@ -3,6 +3,7 @@
 #include <Tempest/Color>
 
 #include "graphics/submesh/staticmesh.h"
+#include "camera.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -38,22 +39,12 @@ void Renderer::onWorldChanged() {
     wview->initPipeline(uint32_t(zbuffer.w()),uint32_t(zbuffer.h()));
   }
 
-void Renderer::setDebugView(const std::array<float,3>& cam, const PointF &spin, const float zoom) {
-  this->cam =cam;
-  this->spin=spin;
-  this->zoom=zoom;
+void Renderer::setDebugView(const Camera& camera) {
+  view = camera.view();
   }
 
 void Renderer::draw(CommandBuffer &cmd, uint32_t imgId, const Gothic &gothic) {
   FrameBuffer& fbo = fbo3d[imgId];
-
-  view.identity();
-  view.translate(0,0,0.1f/zoom);
-  view.rotate(spin.y, 1, 0, 0);
-  view.rotate(spin.x, 0, 1, 0);
-  view.scale(0.0006f);
-  view.translate(cam[0],cam[1]+180,cam[2]);
-  view.scale(-1,-1,-1);
 
   if(auto wview=gothic.world().view()) {
     wview->updateCmd(gothic.world());

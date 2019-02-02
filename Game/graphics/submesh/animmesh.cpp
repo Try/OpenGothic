@@ -31,7 +31,8 @@ AnimMesh::AnimMesh(const ZenLoad::PackedSkeletalMesh &mesh) {
 
   sub.resize(mesh.subMeshes.size());
   for(size_t i=0;i<mesh.subMeshes.size();++i){
-    sub[i].texture = Resources::loadTexture(mesh.subMeshes[i].material.texture);
+    sub[i].texName = mesh.subMeshes[i].material.texture;
+    sub[i].texture = Resources::loadTexture(sub[i].texName);
     sub[i].ibo     = Resources::loadIbo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
     }
   }

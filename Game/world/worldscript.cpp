@@ -160,8 +160,15 @@ Npc& WorldScript::getNpcById(size_t id) {
   auto handle = vm.getDATFile().getSymbolByIndex(id);
   assert(handle.instanceDataClass == Daedalus::EInstanceClass::IC_Npc);
 
-  NpcHandle hnpc = ZMemory::handleCast<NpcHandle>(vm.getDATFile().getSymbolByIndex(id).instanceDataHandle);
+  NpcHandle hnpc = ZMemory::handleCast<NpcHandle>(handle.instanceDataHandle);
   return getNpc(hnpc);
+  }
+
+Npc* WorldScript::inserNpc(const char *npcInstance, const char *at) {
+  size_t id = vm.getDATFile().getSymbolIndexByName(npcInstance);
+  if(id==0)
+    return nullptr;
+  return inserNpc(id,at);
   }
 
 Npc* WorldScript::inserNpc(size_t npcInstance, const char* at) {
@@ -180,9 +187,9 @@ void WorldScript::onCreateInventoryItem(ItemHandle item, NpcHandle npcHandle) {
 
   if((itemData.mainflag & Daedalus::GEngineClasses::C_Item::ITM_CAT_ARMOR)!=0) {
     // TODO: equiping armor
-
     std::string visual = itemData.visual_change.substr(0, itemData.visual_change.size() - 4) + ".MDM";
-    //VobTypes::NPC_SetBodyMesh(vob, visual);
+    auto        vbody  = visual.empty() ? StaticObjects::Mesh() : owner.getView(visual);
+    npc.setArmour(std::move(vbody));
     }
 
   if((itemData.mainflag & (Daedalus::GEngineClasses::C_Item::ITM_CAT_NF | Daedalus::GEngineClasses::C_Item::ITM_CAT_FF))) {
@@ -207,7 +214,7 @@ void WorldScript::concatstrings(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::inttostring(Daedalus::DaedalusVM &vm){
-  int32_t x = vm.popDataValue();
+  int32_t x = vm.popDataValue<int32_t>();
   vm.setReturn(std::to_string(x)); //TODO: std::move?
   }
 
@@ -257,15 +264,19 @@ void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
   int32_t     bodyTexNr    = vm.popDataValue();
   auto&       body         = popString(vm);
   uint32_t    arr_self     = 0;
-  uint32_t    self = vm.popVar(arr_self);
+  uint32_t    self         = vm.popVar(arr_self);
 
   auto& npc   = getNpcById(self);
-  auto  vhead = head.empty() ? StaticObjects::Mesh() : owner.getView(head+".MMB");
-  auto  vbody = body.empty() ? StaticObjects::Mesh() : owner.getView(body+".MDM");
+  auto  vhead = head.empty() ? StaticObjects::Mesh() : owner.getView(head+".MMB",headTexNr,teethTexNr,bodyTexColor);
+  auto  vbody = body.empty() ? StaticObjects::Mesh() : owner.getView(body+".MDM",bodyTexNr,0,bodyTexColor);
+
   npc.setVisualBody(std::move(vhead),std::move(vbody));
 
-  if(armor>=0)
-    ;//vm.getGameState().createInventoryItem(size_t(armor), hnpc);
+  if(armor>=0) {
+    auto handle = vm.getDATFile().getSymbolByIndex(self);
+    auto hnpc   = ZMemory::handleCast<NpcHandle>(handle.instanceDataHandle);
+    vm.getGameState().createInventoryItem(size_t(armor),hnpc);
+    }
   }
 
 void WorldScript::mdl_setmodelfatness(Daedalus::DaedalusVM &vm) {

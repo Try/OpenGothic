@@ -50,8 +50,10 @@ class World final {
     DynamicWorld* physic() const { return wdynamic.get(); }
 
     StaticObjects::Mesh getView(const std::string& visual);
+    StaticObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor);
 
     void updateAnimation();
+    Npc* player() const { return npcPlayer; }
 
   private:
     std::string                           wname;
@@ -62,6 +64,8 @@ class World final {
 
     Tempest::VertexBuffer<Resources::Vertex> vbo;
     std::vector<Block>                       blocks;
+
+    Npc*                                  npcPlayer=nullptr;
 
     std::unique_ptr<WorldView>            wview;
     std::unique_ptr<DynamicWorld>         wdynamic;

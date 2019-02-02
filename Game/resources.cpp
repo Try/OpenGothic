@@ -95,7 +95,7 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
   if(it!=aniMeshCache.end())
     return it->second.get();
 
-  if(name=="Gol_Ice_Body.MDM")
+  if(name=="Orc_BodyElite.MDM")
     Log::d("");
 
   try {
@@ -182,6 +182,38 @@ const Texture2d *Resources::loadTexture(const char *name) {
 
 const Tempest::Texture2d* Resources::loadTexture(const std::string &name) {
   return inst->implLoadTexture(name);
+  }
+
+static void emplaceTag(char* buf, char tag){
+  for(size_t i=0;buf[i];++i){
+    if(buf[i]==tag && buf[i+1]=='0'){
+      buf[i  ]='%';
+      buf[i+1]='s';
+      ++i;
+      }
+    }
+  }
+
+const Texture2d *Resources::loadTexture(const std::string &name, int32_t iv, int32_t ic) {
+  if(name.size()>=128)
+    return loadTexture(name);
+
+  char v[16]={};
+  char c[16]={};
+  char buf1[128]={};
+  char buf2[128]={};
+
+  std::snprintf(v,sizeof(v),"V%d",iv);
+  std::snprintf(c,sizeof(c),"C%d",ic);
+  std::strcpy(buf1,name.c_str());
+
+  emplaceTag(buf1,'V');
+  std::snprintf(buf2,sizeof(buf2),buf1,v);
+
+  emplaceTag(buf2,'C');
+  std::snprintf(buf1,sizeof(buf1),buf2,c);
+
+  return loadTexture(buf1);
   }
 
 const ProtoMesh *Resources::loadMesh(const std::string &name) {

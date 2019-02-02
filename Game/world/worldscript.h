@@ -19,11 +19,13 @@ class WorldScript final {
     bool    hasSymbolName(const std::string& fn);
     int32_t runFunction(const std::string &fname, bool clearDataStack);
 
-    void    initDialogs(Gothic &gothic);
+    void       initDialogs(Gothic &gothic);
 
     size_t     npcCount()    const { return npcArr.size(); }
     const Npc& npc(size_t i) const { return *npcArr[i];    }
     Npc&       npc(size_t i)       { return *npcArr[i];    }
+
+    Npc*       inserNpc(const char* npcInstance,const char *at);
 
     const std::list<Daedalus::GameState::ItemHandle>& getInventoryOf(Daedalus::GameState::NpcHandle h);
     Daedalus::GameState::DaedalusGameState&           getGameState();

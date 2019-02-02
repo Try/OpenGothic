@@ -67,7 +67,8 @@ void ObjectsBucket<Ubo,Vertex>::updateUbo(uint32_t imgId) {
   auto& frame=pf[imgId];
   size_t sz = obj.byteSize();
   assert(sz==frame.uboData.size());
-  frame.uboData.update(obj.data(),0,sz);
+  if(frame.uboChanged)
+    frame.uboData.update(obj.data(),0,sz);
   }
 
 template<class Ubo,class Vertex>

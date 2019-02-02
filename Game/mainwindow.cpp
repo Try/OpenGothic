@@ -22,8 +22,6 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
     commandBuffersSemaphores.emplace_back(device);
     }
 
-  spin.y    = 60;
-  camPos[1] = 1000;
   initSwapchain();
   setupUi();
 
@@ -88,38 +86,22 @@ void MainWindow::mouseDragEvent(MouseEvent &event) {
   auto dp = (event.pos()-mpos);
   mpos = event.pos();
   spin += PointF(-dp.x,dp.y);
+  camera.setSpin(spin);
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
-  if(event.delta>0)
-    zoom *= 1.1f;
-  if(event.delta<0)
-    zoom /= 1.1f;
+  camera.changeZoom(event.delta);
   }
 
 void MainWindow::keyDownEvent(KeyEvent &event) {
-  float dpos = 60.f/(zoom);
-
-  float k = -float(M_PI/180.0);
-  float s = std::sin(spin.x*k), c=std::cos(spin.x*k);
-
-  if(event.key==KeyEvent::K_A) {
-    camPos[0]+=dpos*c;
-    camPos[2]-=dpos*s;
-    }
-  if(event.key==KeyEvent::K_D) {
-    camPos[0]-=dpos*c;
-    camPos[2]+=dpos*s;
-    }
-  if(event.key==KeyEvent::K_W) {
-    camPos[0]-=dpos*s;
-    camPos[2]-=dpos*c;
-    }
-  if(event.key==KeyEvent::K_S){
-    camPos[0]+=dpos*s;
-    camPos[2]+=dpos*c;
-    }
-  camPos[1] = gothic.world().physic()->dropRay(camPos[0],camPos[1],camPos[2]);
+  if(event.key==KeyEvent::K_A)
+    camera.moveLeft();
+  if(event.key==KeyEvent::K_D)
+    camera.moveRight();
+  if(event.key==KeyEvent::K_W)
+    camera.moveForward();
+  if(event.key==KeyEvent::K_S)
+    camera.moveBack();
   }
 
 void MainWindow::keyUpEvent(KeyEvent &event) {
@@ -132,6 +114,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
 void MainWindow::setWorld(const std::string &name) {
   World w(gothic,draw.storage(),name);
   gothic.setWorld(std::move(w));
+  camera.setWorld(&gothic.world());
   draw.onWorldChanged();
   }
 
@@ -168,7 +151,7 @@ void MainWindow::render(){
 
     if(needToUpdate())
       dispatchPaintEvent(surface,atlas);
-    draw.setDebugView(camPos,spin,zoom);
+    draw.setDebugView(camera);
 
     cmd.begin();
 

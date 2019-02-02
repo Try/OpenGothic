@@ -43,7 +43,7 @@ class StaticObjects final {
       };
 
     Mesh get(const StaticMesh& mesh);
-    Mesh get(const ProtoMesh&  mesh);
+    Mesh get(const ProtoMesh&  mesh,int32_t headTexVar,int32_t teethTex,int32_t bodyColor);
 
     void updateUbo(uint32_t imgId);
     void commitUbo(uint32_t imgId);
@@ -98,4 +98,5 @@ class StaticObjects final {
     Item                            implGet(const AnimMesh& mesh,
                                             const Tempest::Texture2d* mat,
                                             const Tempest::IndexBuffer<uint32_t> &ibo);
+    const Tempest::Texture2d*       solveTex(const Tempest::Texture2d* def,const std::string& format,int32_t v,int32_t c);
   };

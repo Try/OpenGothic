@@ -45,11 +45,14 @@ class Npc final {
     void setPosition  (float x,float y,float z);
     void setDirection (float x,float y,float z);
 
+    std::array<float,3> position() const;
+
     void updateAnimation();
 
     void setName      (const std::string& name);
     void setVisual    (const Skeleton *visual);
     void setVisualBody(StaticObjects::Mesh &&head,StaticObjects::Mesh&& body);
+    void setArmour    (StaticObjects::Mesh&& body);
     void setFatness   (float f);
     void setOverlay   (const std::string &name, float time);
     void setScale     (float x,float y,float z);
@@ -76,6 +79,7 @@ class Npc final {
     Tempest::Matrix4x4             pos;
     StaticObjects::Mesh            head;
     StaticObjects::Mesh            view;
+    StaticObjects::Mesh            armour;
     const Skeleton*                skeleton=nullptr;
 
     std::string name;

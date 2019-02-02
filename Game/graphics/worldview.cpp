@@ -13,7 +13,7 @@ WorldView::WorldView(const World &world, const RendererStorage &storage)
 
   objStatic.clear();
   for(auto& v:world.staticObj) {
-    obj = vobGroup.get(*v.mesh);
+    obj = vobGroup.get(*v.mesh,0,0,0);
     obj.setObjMatrix(v.objMat);
 
     objStatic.push_back(std::move(obj));
@@ -59,9 +59,9 @@ void WorldView::draw(CommandBuffer &cmd, FrameBuffer &fbo) {
   }
 
 
-StaticObjects::Mesh WorldView::getView(const std::string &visual) {
+StaticObjects::Mesh WorldView::getView(const std::string &visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
   if(auto mesh=Resources::loadMesh(visual))
-    return objGroup.get(*mesh);
+    return objGroup.get(*mesh,headTex,teethTex,bodyColor);
   return StaticObjects::Mesh();
   }
 
