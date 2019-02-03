@@ -55,6 +55,8 @@ class World final {
     void updateAnimation();
     Npc* player() const { return npcPlayer; }
 
+    void tick(uint64_t dt);
+
   private:
     std::string                           wname;
     Gothic*                               gothic=nullptr;

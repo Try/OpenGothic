@@ -1,3 +1,4 @@
+#include "pose.h"
 #include "skeleton.h"
 #include "staticobjects.h"
 
@@ -188,6 +189,23 @@ void StaticObjects::Mesh::setSkeleton(const Skeleton *sk, const char *defBone) {
     sub[i].setSkeleton(sk);
   }
 
+void StaticObjects::Mesh::setSkeleton(const Pose &p,const Tempest::Matrix4x4& obj) {
+  for(size_t i=0;i<subCount;++i)
+    sub[i].setSkeleton(p);
+
+  if(binder!=nullptr){
+    for(size_t i=0;i<binder->bind.size();++i){
+      auto id=binder->bind[i].boneId;
+      if(id>=skeleton->tr.size())
+        continue;
+      auto mat=obj;
+      mat.translate(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
+      mat.mul(p.tr[id]);
+      sub[i].setObjMatrix(mat);
+      }
+    }
+  }
+
 void StaticObjects::Mesh::setObjMatrix(const Tempest::Matrix4x4 &mt) {
   if(ani!=nullptr){
     auto mat=mt;
@@ -232,4 +250,9 @@ void StaticObjects::UboDn::setSkeleton(const Skeleton *sk) {
     return;
   for(size_t i=0;i<sk->tr.size();++i)
     skel[i] = sk->tr[i];
+  }
+
+void StaticObjects::UboDn::setSkeleton(const Pose& p) {
+  for(size_t i=0;i<p.tr.size();++i)
+    skel[i] = p.tr[i];
   }

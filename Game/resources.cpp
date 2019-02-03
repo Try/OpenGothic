@@ -28,6 +28,16 @@ using namespace Tempest;
 
 Resources* Resources::inst=nullptr;
 
+static void emplaceTag(char* buf, char tag){
+  for(size_t i=0;buf[i];++i){
+    if(buf[i]==tag && buf[i+1]=='0'){
+      buf[i  ]='%';
+      buf[i+1]='s';
+      ++i;
+      }
+    }
+  }
+
 Resources::Resources(Gothic &gothic, Tempest::Device &device)
   : device(device), asset("data",device),gothic(gothic) {
   inst=this;
@@ -184,16 +194,6 @@ const Tempest::Texture2d* Resources::loadTexture(const std::string &name) {
   return inst->implLoadTexture(name);
   }
 
-static void emplaceTag(char* buf, char tag){
-  for(size_t i=0;buf[i];++i){
-    if(buf[i]==tag && buf[i+1]=='0'){
-      buf[i  ]='%';
-      buf[i+1]='s';
-      ++i;
-      }
-    }
-  }
-
 const Texture2d *Resources::loadTexture(const std::string &name, int32_t iv, int32_t ic) {
   if(name.size()>=128)
     return loadTexture(name);
@@ -328,7 +328,15 @@ ZenLoad::zCModelMeshLib Resources::loadMDS(std::string &name) {
   }
 
 const AttachBinder *Resources::bindMesh(const ProtoMesh &anim, const Skeleton &s, const char *defBone) {
+  if(anim.submeshId.size()==0){
+    static AttachBinder empty;
+    return &empty;
+    }
   BindK k = std::make_pair(&s,&anim);
+
+  auto it = inst->bindCache.find(k);
+  if(it!=inst->bindCache.end())
+    return it->second.get();
 
   std::unique_ptr<AttachBinder> ret(new AttachBinder(s,anim,defBone));
   auto p = ret.get();

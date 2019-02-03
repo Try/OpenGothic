@@ -2,6 +2,7 @@
 
 #include <Tempest/Matrix4x4>
 
+#include "graphics/skeleton.h"
 #include "worldscript.h"
 #include "resources.h"
 
@@ -25,8 +26,20 @@ void Npc::setPosition(float ix, float iy, float iz) {
   updatePos();
   }
 
+void Npc::setPosition(const std::array<float,3> &pos) {
+  x = pos[0];
+  y = pos[1];
+  z = pos[2];
+  updatePos();
+  }
+
 void Npc::setDirection(float x, float /*y*/, float z) {
-  angle = -180.f*std::atan2(z,x)/float(M_PI);
+  angle = 90+180.f*std::atan2(z,x)/float(M_PI);
+  updatePos();
+  }
+
+void Npc::setDirection(float rotation) {
+  angle = rotation;
   updatePos();
   }
 
@@ -34,9 +47,18 @@ std::array<float,3> Npc::position() const {
   return {{x,y,z}};
   }
 
-void Npc::updateAnimation() {
-  if(skeleton){
+float Npc::rotation() const {
+  return angle;
+  }
 
+void Npc::updateAnimation() {
+  if(anim!=nullptr){
+    uint64_t dt = owner.tickCount() - sAnim;
+    skInst.update(*anim,dt);
+
+    head  .setSkeleton(skInst,pos);
+    view  .setSkeleton(skInst,pos);
+    armour.setSkeleton(skInst,pos);
     }
   }
 
@@ -46,6 +68,12 @@ void Npc::setName(const std::string &n) {
 
 void Npc::setVisual(const Skeleton* v) {
   skeleton = v;
+  skInst.bind(skeleton);
+
+  if(skeleton) {
+    anim = &skeleton->sequence("S_RUNL");
+    sAnim = owner.tickCount();
+    }
 
   head.setSkeleton(skeleton);
   view.setSkeleton(skeleton);
@@ -70,7 +98,7 @@ void Npc::setArmour(StaticObjects::Mesh &&a) {
 void Npc::setFatness(float) {
   }
 
-void Npc::setOverlay(const std::string& name,float time) {
+void Npc::setOverlay(const std::string& /*name*/,float /*time*/) {
   }
 
 void Npc::setScale(float x, float y, float z) {
@@ -106,6 +134,14 @@ void Npc::equipItem(const uint32_t /*item*/) {
 void Npc::drawWeaponMelee() {
   }
 
+void Npc::addRoutine(gtime s, gtime e, int32_t callback) {
+  Routine r;
+  r.start    = s;
+  r.end      = e;
+  r.callback = callback;
+  routines.push_back(r);
+  }
+
 const std::list<Daedalus::GameState::ItemHandle>& Npc::getItems() {
   return owner.getInventoryOf(hnpc);
   }
@@ -126,7 +162,7 @@ void Npc::updatePos() {
   Matrix4x4 mt;
   mt.identity();
   mt.translate(x,y,z);
-  mt.rotateOY(angle);
+  mt.rotateOY(180-angle);
   mt.scale(sz[0],sz[1],sz[2]);
 
   setPos(mt);

@@ -58,6 +58,7 @@ class MainWindow : public Tempest::Window {
     Tempest::Point        mpos;
     Tempest::PointF       spin;
     Camera                camera;
+    uint64_t              lastTick=0;
 
     Tempest::Device       device;
     Tempest::TextureAtlas atlas;
@@ -88,6 +89,7 @@ class MainWindow : public Tempest::Window {
 
     Gothic&                             gothic;
     const Tempest::Texture2d*           background=nullptr;
+    bool                                pressed[Tempest::KeyEvent::K_Last]={};
 
     struct Fps {
       uint64_t dt[10]={};

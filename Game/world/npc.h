@@ -1,6 +1,9 @@
 #pragma once
 
 #include "graphics/staticobjects.h"
+#include "graphics/pose.h"
+#include "graphics/animation.h"
+#include "game/gametime.h"
 
 #include <cstdint>
 #include <string>
@@ -43,9 +46,12 @@ class Npc final {
 
     void setView      (StaticObjects::Mesh&& m);
     void setPosition  (float x,float y,float z);
+    void setPosition  (const std::array<float,3>& pos);
     void setDirection (float x,float y,float z);
+    void setDirection (float rotation);
 
     std::array<float,3> position() const;
+    float               rotation() const;
 
     void updateAnimation();
 
@@ -66,8 +72,15 @@ class Npc final {
     void equipItem     (const uint32_t item);
 
     void drawWeaponMelee();
+    void addRoutine(gtime s, gtime e, int32_t callback);
 
   private:
+    struct Routine final {
+      gtime   start;
+      gtime   end;
+      int32_t callback=0;
+      };
+
     WorldScript&                   owner;
     Daedalus::GameState::NpcHandle hnpc;
     float                          x=0.f;
@@ -80,10 +93,16 @@ class Npc final {
     StaticObjects::Mesh            head;
     StaticObjects::Mesh            view;
     StaticObjects::Mesh            armour;
-    const Skeleton*                skeleton=nullptr;
 
-    std::string name;
-    int32_t     talents[NPC_TALENT_MAX]={};
+    const Skeleton*                skeleton=nullptr;
+    const Animation::Sequence*     anim    =nullptr;
+    uint64_t                       sAnim   =0;
+    Pose                           skInst;
+
+    std::string                    name;
+    int32_t                        talents[NPC_TALENT_MAX]={};
+
+    std::vector<Routine>           routines;
 
     const std::list<Daedalus::GameState::ItemHandle> &getItems();
     size_t getItemCount(const uint32_t id);

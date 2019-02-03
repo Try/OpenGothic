@@ -42,6 +42,14 @@ void Gothic::setWorld(World &&w) {
   wrld = std::move(w);
   }
 
+void Gothic::tick(uint64_t dt) {
+  wrld.tick(dt);
+  }
+
+void Gothic::updateAnimation() {
+  wrld.updateAnimation();
+  }
+
 const std::string &Gothic::defaultWorld() const {
   return wdef;
   }

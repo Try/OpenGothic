@@ -81,6 +81,14 @@ Animation::Animation(ZenLoad::ModelScriptBinParser &p,const std::string& name) {
     }
   }
 
+const Animation::Sequence &Animation::sequence(const char *name) const {
+  for(auto& i:sequences)
+    if(i.name==name)
+      return i;
+  static Sequence s("<null>");
+  return s;
+  }
+
 Animation::Sequence& Animation::loadMAN(const std::string& name) {
   sequences.emplace_back(name);
   return sequences.back();

@@ -16,6 +16,7 @@
 #include "ubochain.h"
 
 class RendererStorage;
+class Pose;
 
 class StaticObjects final {
   private:
@@ -31,6 +32,7 @@ class StaticObjects final {
 
         void setObjMatrix(const Tempest::Matrix4x4& mt);
         void setSkeleton(const Skeleton* sk,const char* defBone=nullptr);
+        void setSkeleton(const Pose&      p,const Tempest::Matrix4x4& obj);
 
       private:
         std::unique_ptr<Item[]> sub;
@@ -69,6 +71,7 @@ class StaticObjects final {
       Tempest::Matrix4x4 obj;
       void setObj     (const Tempest::Matrix4x4& ob) { obj=ob; }
       void setSkeleton(const Skeleton*){}
+      void setSkeleton(const Pose&    ){}
       };
 
     struct UboDn final {
@@ -77,6 +80,7 @@ class StaticObjects final {
 
       void setObj     (const Tempest::Matrix4x4& ob) { obj=ob; }
       void setSkeleton(const Skeleton* sk);
+      void setSkeleton(const Pose&      p);
       };
 
     const RendererStorage&          storage;

@@ -11,6 +11,8 @@
 
 #include "resources.h"
 
+class Pose;
+
 class AbstractObjectsBucket {
   public:
     AbstractObjectsBucket(Tempest::Device &device,const Tempest::UniformsLayout &layout);
@@ -37,6 +39,7 @@ class AbstractObjectsBucket {
 
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setSkeleton (const Skeleton*           sk);
+        void   setSkeleton (const Pose&                p);
 
       private:
         AbstractObjectsBucket*                owner=nullptr;
@@ -62,6 +65,7 @@ class AbstractObjectsBucket {
     virtual void                onResizeStorage(size_t sz)=0;
     virtual void                setObjectMatrix(size_t id,const Tempest::Matrix4x4& m)=0;
     virtual void                setSkeleton    (size_t id,const Skeleton* s)=0;
+    virtual void                setSkeleton    (size_t id,const Pose&     p)=0;
 
   private:
     std::vector<size_t>         freeList;

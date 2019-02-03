@@ -13,9 +13,6 @@ class Animation final {
       Idle         = 0x00000010
       };
 
-    Animation(ZenLoad::ModelScriptBinParser& p, const std::string &name);
-
-  private:
     struct Sequence final {
       Sequence(const std::string& name);
       std::string                            name;
@@ -29,6 +26,11 @@ class Animation final {
       std::string                            next;
       };
 
+    Animation(ZenLoad::ModelScriptBinParser& p, const std::string &name);
+
+    const Sequence& sequence(const char* name) const;
+
+  private:
     std::vector<Sequence> sequences;
     Sequence& loadMAN(const std::string &name);
   };

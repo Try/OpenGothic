@@ -50,14 +50,13 @@ void MenuRoot::popMenu() {
   menuStack.pop_back();
   }
 
-void MenuRoot::mouseDownEvent(MouseEvent &event) {
-  if(current==nullptr)
+void MenuRoot::mouseDownEvent(MouseEvent& event) {
+  if(current!=nullptr)
+    current->onSelect(); else
     event.ignore();
   }
 
 void MenuRoot::mouseUpEvent(MouseEvent&) {
-  if(current!=nullptr)
-    current->onSelect();
   }
 
 void MenuRoot::mouseWheelEvent(MouseEvent &event) {

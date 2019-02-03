@@ -5,7 +5,7 @@
 
 #include <vector>
 
-class Animation;
+#include "animation.h"
 
 class Skeleton final {
   public:
@@ -16,12 +16,18 @@ class Skeleton final {
       Tempest::Matrix4x4 tr;
       std::string        name;
       };
+
+    struct Instance final {
+      };
+
     std::vector<Node>               nodes;
     std::vector<Tempest::Matrix4x4> tr;
     std::array<float,3>             rootTr;
 
     size_t                          findNode(const char*        name,size_t def=size_t(-1)) const;
     size_t                          findNode(const std::string& name,size_t def=size_t(-1)) const;
+
+    const Animation::Sequence& sequence(const char* name) const;
 
   private:
     std::string      meshLib;

@@ -10,6 +10,11 @@ void AbstractObjectsBucket::Item::setSkeleton(const Skeleton *sk) {
   owner->setSkeleton(id,sk);
   }
 
+void AbstractObjectsBucket::Item::setSkeleton(const Pose &p) {
+  owner->markAsChanged();
+  owner->setSkeleton(id,p);
+  }
+
 AbstractObjectsBucket::AbstractObjectsBucket(Tempest::Device &device, const Tempest::UniformsLayout &layout)
   :pfSize(device.maxFramesInFlight()) {
   pf.reset(new PerFrame[pfSize]);

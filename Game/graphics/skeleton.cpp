@@ -43,6 +43,13 @@ size_t Skeleton::findNode(const std::string &name, size_t def) const {
   return findNode(name.c_str(),def);
   }
 
+const Animation::Sequence &Skeleton::sequence(const char *name) const {
+  if(anim)
+    return anim->sequence(name);
+  static Animation::Sequence a("<null>");
+  return a;
+  }
+
 void Skeleton::mkSkeleton() {
   Matrix4x4 m;
   m.identity();

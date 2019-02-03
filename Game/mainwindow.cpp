@@ -7,6 +7,7 @@
 #include <Tempest/Pen>
 #include <Tempest/Layout>
 #include <Tempest/Application>
+#include <Tempest/Log>
 
 #include "ui/gamemenu.h"
 #include "ui/menuroot.h"
@@ -34,6 +35,8 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
     setWorld(gothic.defaultWorld());
     rootMenu->popMenu();
     }
+
+  timer.start(10);
   }
 
 MainWindow::~MainWindow() {
@@ -80,6 +83,7 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
     return;
     }
   mpos = event.pos();
+  spin = camera.getSpin();
   }
 
 void MainWindow::mouseDragEvent(MouseEvent &event) {
@@ -94,28 +98,45 @@ void MainWindow::mouseWheelEvent(MouseEvent &event) {
   }
 
 void MainWindow::keyDownEvent(KeyEvent &event) {
-  if(event.key==KeyEvent::K_A)
-    camera.moveLeft();
-  if(event.key==KeyEvent::K_D)
-    camera.moveRight();
-  if(event.key==KeyEvent::K_W)
-    camera.moveForward();
-  if(event.key==KeyEvent::K_S)
-    camera.moveBack();
+  pressed[event.key]=true;
   }
 
 void MainWindow::keyUpEvent(KeyEvent &event) {
+  pressed[event.key]=false;
+
   if(event.key==KeyEvent::K_ESCAPE) {
     rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_MAIN"));
     rootMenu->setFocus(true);
     }
   }
 
+void MainWindow::tick() {
+  auto time = Application::tickCount();
+  gothic.tick(time-lastTick);
+  lastTick = time;
+
+  if(pressed[KeyEvent::K_Q])
+    camera.rotateLeft();
+  if(pressed[KeyEvent::K_E])
+    camera.rotateRight();
+  if(pressed[KeyEvent::K_A])
+    camera.moveLeft();
+  if(pressed[KeyEvent::K_D])
+    camera.moveRight();
+  if(pressed[KeyEvent::K_W])
+    camera.moveForward();
+  if(pressed[KeyEvent::K_S])
+    camera.moveBack();
+  }
+
 void MainWindow::setWorld(const std::string &name) {
   World w(gothic,draw.storage(),name);
   gothic.setWorld(std::move(w));
   camera.setWorld(&gothic.world());
+  spin = camera.getSpin();
   draw.onWorldChanged();
+
+  lastTick = Application::tickCount();
   }
 
 void MainWindow::initSwapchain(){
@@ -134,9 +155,6 @@ void MainWindow::initSwapchain(){
   draw.initSwapchain(uint32_t(w()),uint32_t(h()));
   }
 
-void MainWindow::tick() {
-  }
-
 void MainWindow::render(){
   try {
     uint64_t time=Application::tickCount();
@@ -152,6 +170,7 @@ void MainWindow::render(){
     if(needToUpdate())
       dispatchPaintEvent(surface,atlas);
     draw.setDebugView(camera);
+    gothic.updateAnimation();
 
     cmd.begin();
 
@@ -172,6 +191,7 @@ void MainWindow::render(){
     fps.push(Application::tickCount()-time);
     }
   catch(const Tempest::DeviceLostException&) {
+    Log::e("lost device!");
     device.reset();
     initSwapchain();
     }

@@ -18,6 +18,9 @@ class Gothic final {
     void setWorld(World&& w);
     const World& world() const { return wrld; }
 
+    void  tick(uint64_t dt);
+    void  updateAnimation();
+
     Tempest::Signal<void(const std::string&)> onSetWorld;
 
     const std::string&                    path() const { return gpath; }

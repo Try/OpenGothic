@@ -51,13 +51,19 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
     w.position.y = wdynamic->dropRay(w.position.x,w.position.y,w.position.z);
     }
 
+  for(auto& i:wayNet.waypoints)
+    if(i.wpName.find("START")==0)
+      startPoints.push_back(i);
+
   wview.reset(new WorldView(*this,storage));
 
   vm.reset(new WorldScript(*this,gothic,"/_work/data/Scripts/_compiled/GOTHIC.DAT"));
   vm->initDialogs(gothic);
   initScripts(true);
 
-  npcPlayer = vm->inserNpc("PC_HERO","SPAWN_OW_STARTSCAVNGERBO_01_02");
+  if(startPoints.size()>0)
+    npcPlayer = vm->inserNpc("PC_HERO",startPoints[0].wpName.c_str()); else
+    npcPlayer = vm->inserNpc("PC_HERO","SPAWN_OW_STARTSCAVNGERBO_01_02");
   }
 
 const ZenLoad::zCWaypointData *World::findPoint(const char *name) const {
@@ -65,6 +71,9 @@ const ZenLoad::zCWaypointData *World::findPoint(const char *name) const {
     if(i.wpName==name)
       return &i;
   for(auto& i:freePoints)
+    if(i.wpName==name)
+      return &i;
+  for(auto& i:startPoints)
     if(i.wpName==name)
       return &i;
   return nullptr;
@@ -79,9 +88,17 @@ StaticObjects::Mesh World::getView(const std::string &visual, int32_t headTex, i
   }
 
 void World::updateAnimation() {
+  if(!vm)
+    return;
   auto& w=*vm;
   for(size_t i=0;i<w.npcCount();++i)
     w.npc(i).updateAnimation();
+  }
+
+void World::tick(uint64_t dt) {
+  if(!vm)
+    return;
+  vm->tick(dt);
   }
 
 int32_t World::runFunction(const std::string& fname, bool clearDataStack) {

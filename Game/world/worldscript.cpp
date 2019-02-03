@@ -43,6 +43,8 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("npc_settofightmode",  [this](Daedalus::DaedalusVM& vm){ npc_settofightmode(vm); });
   vm.registerExternalFunction("npc_settofistmode",   [this](Daedalus::DaedalusVM& vm){ npc_settofistmode(vm);  });
 
+  vm.registerExternalFunction("ta_min",              [this](Daedalus::DaedalusVM& vm){ ta_min(vm);             });
+
   vm.registerExternalFunction("log_createtopic",     [this](Daedalus::DaedalusVM& vm){ log_createtopic(vm);    });
   vm.registerExternalFunction("log_settopicstatus",  [this](Daedalus::DaedalusVM& vm){ log_settopicstatus(vm); });
   vm.registerExternalFunction("log_addentry",        [this](Daedalus::DaedalusVM& vm){ log_addentry(vm);       });
@@ -54,7 +56,7 @@ void WorldScript::initCommon() {
 
   DaedalusGameState::GameExternals ext;
   ext.wld_insertnpc      = [this](NpcHandle h,const std::string& s){ onInserNpc(h,s); };
-  ext.post_wld_insertnpc = [](NpcHandle){};
+  ext.post_wld_insertnpc = [this](NpcHandle h){ onNpcReady(h); };
   ext.createinvitem      = [this](NpcHandle i,NpcHandle n){ onCreateInventoryItem(i,n); };
 
   ext.wld_removenpc      = notImplementedFn<void,NpcHandle>();
@@ -92,6 +94,14 @@ void WorldScript::initDialogs(Gothic& gothic) {
   const char* international="_work/data/Scripts/content/CUTSCENE/OU.DAT";
 
   dialogs.reset(new Daedalus::GameState::DaedalusDialogManager(vm,gothic.path() + international,dlgKnownInfos));
+  }
+
+void WorldScript::tick(uint64_t dt) {
+  ticks += dt;
+  }
+
+uint64_t WorldScript::tickCount() const {
+  return ticks;
   }
 
 template<class Ret,class ... Args>
@@ -138,6 +148,24 @@ void WorldScript::onInserNpc(Daedalus::GameState::NpcHandle handle,const std::st
     }
 
   npcArr.emplace_back(std::move(ptr));
+  }
+
+void WorldScript::onNpcReady(NpcHandle handle) {
+  auto  hnpc    = ZMemory::handleCast<NpcHandle>(handle);
+  auto& npcData = vm.getGameState().getNpc(hnpc);
+
+  Npc& npc=getNpc(hnpc);
+  if(!npcData.name[0].empty())
+    npc.setName(npcData.name[0]);
+
+  if(npcData.daily_routine!=0) {
+    vm.prepareRunFunction();
+
+    vm.setInstance("self", ZMemory::toBigHandle(handle), Daedalus::IC_Npc);
+    vm.setCurrentInstance(vm.getDATFile().getSymbolIndexByName("self"));
+
+    vm.runFunctionBySymIndex(npcData.daily_routine);
+    }
   }
 
 void WorldScript::onRemoveNpc(NpcHandle handle) {
@@ -353,6 +381,27 @@ void WorldScript::npc_settofistmode(Daedalus::DaedalusVM &vm) {
   uint32_t arr_self = 0;
   uint32_t self     = vm.popVar(arr_self);
   getNpcById(self).setToFistMode();
+  }
+
+void WorldScript::ta_min(Daedalus::DaedalusVM &vm) {
+  auto&    waypoint = popString(vm);
+  int32_t  action   = vm.popDataValue();
+  int32_t  stop_m   = vm.popDataValue();
+  int32_t  stop_h   = vm.popDataValue();
+  int32_t  start_m  = vm.popDataValue();
+  int32_t  start_h  = vm.popDataValue();
+  uint32_t arr_self = 0;
+  uint32_t self     = vm.popVar(arr_self);
+
+  // TODO
+  Npc& npc = getNpcById(self);
+  auto at=owner.findPoint(waypoint);
+  if(at!=nullptr){
+    npc.setPosition (at->position.x, at->position.y, at->position.z);
+    npc.setDirection(at->direction.x,at->direction.y,at->direction.z);
+    }
+
+  npc.addRoutine(gtime(start_h,start_m),gtime(stop_h,stop_m),action);
   }
 
 void WorldScript::log_createtopic(Daedalus::DaedalusVM &vm) {

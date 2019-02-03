@@ -49,6 +49,10 @@ class ObjectsBucket : public AbstractObjectsBucket {
     void setSkeleton    (size_t id,const Skeleton* s) override {
       obj[id].setSkeleton(s);
       }
+
+    void setSkeleton    (size_t id,const Pose&     s) override {
+      obj[id].setSkeleton(s);
+      }
   };
 
 template<class Ubo,class Vertex>

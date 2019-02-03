@@ -33,16 +33,12 @@ class Resources {
       };
 
     struct VertexA {
-      float    pos[3];
       float    norm[3];
       float    uv[2];
-      float    boneId[4];
+      uint32_t color/*unused*/;
+      float    pos[4][3];
+      uint8_t  boneId[4];
       float    weights[4];
-      /*
-      uint32_t color;
-      float    LocalPositions[4][3];
-      uint8_t  BoneIndices[4];
-      float    weights[4];*/
       };
 
     struct VertexFsq {
@@ -123,8 +119,9 @@ inline std::initializer_list<Decl::ComponentType> vertexBufferDecl<Resources::Ve
 
 template<>
 inline std::initializer_list<Decl::ComponentType> vertexBufferDecl<Resources::VertexA>() {
-  return {Decl::float3,Decl::float3,Decl::float2,
-          Decl::float4,Decl::float4};
+  return {Decl::float3,Decl::float2,Decl::color,
+          Decl::float3,Decl::float3,Decl::float3,Decl::float3,
+          Decl::color,Decl::float4};
   }
 
 template<>
