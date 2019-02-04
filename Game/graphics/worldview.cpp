@@ -7,7 +7,7 @@ using namespace Tempest;
 
 WorldView::WorldView(const World &world, const RendererStorage &storage)
   :storage(storage),sky(storage),land(storage),vobGroup(storage),objGroup(storage) {
-  sky.setWorld(world.name());
+  sky.setWorld(world);
 
   StaticObjects::Mesh obj;
 

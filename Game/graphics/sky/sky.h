@@ -16,7 +16,7 @@ class Sky final {
 
     Sky(const RendererStorage &storage);
 
-    void setWorld(const std::string& world);
+    void setWorld(const World &world);
 
     void setMatrix(uint32_t frameId,const Tempest::Matrix4x4& mat);
     void commitUbo(uint32_t frameId);
@@ -49,6 +49,7 @@ class Sky final {
     Tempest::VertexBuffer<Vertex> vbo;
 
     State                         day;
+    const World*                  world=nullptr;
 
     static std::array<float,3>    color;
     static std::array<Vertex,6>   fsq;

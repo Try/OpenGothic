@@ -17,10 +17,9 @@ class Skeleton final {
       std::string        name;
       };
 
-    struct Instance final {
-      };
-
+    bool                            ordered=true;
     std::vector<Node>               nodes;
+    std::vector<size_t>             rootNodes;
     std::vector<Tempest::Matrix4x4> tr;
     std::array<float,3>             rootTr;
 

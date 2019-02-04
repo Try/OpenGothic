@@ -43,7 +43,7 @@ MainWindow::~MainWindow() {
   device.waitIdle();
   removeAllWidgets();
   // unload
-  gothic.setWorld(World());
+  gothic.setWorld(std::make_unique<World>());
   }
 
 void MainWindow::setupUi() {
@@ -112,27 +112,50 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
 
 void MainWindow::tick() {
   auto time = Application::tickCount();
-  gothic.tick(time-lastTick);
-  lastTick = time;
+  auto dt   = time-lastTick;
+  lastTick  = time;
+
+  if(gothic.isPause())
+    return;
+
+  gothic.tick(dt);
 
   if(pressed[KeyEvent::K_Q])
-    camera.rotateLeft();
+    player.rotateLeft();
   if(pressed[KeyEvent::K_E])
-    camera.rotateRight();
+    player.rotateRight();
   if(pressed[KeyEvent::K_A])
-    camera.moveLeft();
+    player.moveLeft();
   if(pressed[KeyEvent::K_D])
-    camera.moveRight();
+    player.moveRight();
   if(pressed[KeyEvent::K_W])
-    camera.moveForward();
+    player.moveForward();
   if(pressed[KeyEvent::K_S])
-    camera.moveBack();
+    player.moveBack();
+
+  if(player.tickMove(dt)) {
+    camera.follow(*gothic.world().player());
+    } else {
+    if(pressed[KeyEvent::K_Q])
+      camera.rotateLeft();
+    if(pressed[KeyEvent::K_E])
+      camera.rotateRight();
+    if(pressed[KeyEvent::K_A])
+      camera.moveLeft();
+    if(pressed[KeyEvent::K_D])
+      camera.moveRight();
+    if(pressed[KeyEvent::K_W])
+      camera.moveForward();
+    if(pressed[KeyEvent::K_S])
+      camera.moveBack();
+    }
   }
 
 void MainWindow::setWorld(const std::string &name) {
-  World w(gothic,draw.storage(),name);
+  std::unique_ptr<World> w(new World(gothic,draw.storage(),name));
   gothic.setWorld(std::move(w));
   camera.setWorld(&gothic.world());
+  player.setWorld(&gothic.world());
   spin = camera.getSpin();
   draw.onWorldChanged();
 
@@ -163,14 +186,16 @@ void MainWindow::render(){
     Semaphore&     renderDone=commandBuffersSemaphores[device.frameId()];
     CommandBuffer& cmd       =commandDynamic[device.frameId()];
 
+    draw.setDebugView(camera);
+    if(!gothic.isPause())
+      gothic.updateAnimation();
+
     context.gpuLock.wait();
 
     const uint32_t imgId=device.nextImage(context.imageAvailable);
 
     if(needToUpdate())
       dispatchPaintEvent(surface,atlas);
-    draw.setDebugView(camera);
-    gothic.updateAnimation();
 
     cmd.begin();
 

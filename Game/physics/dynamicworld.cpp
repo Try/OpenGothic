@@ -77,12 +77,19 @@ DynamicWorld::~DynamicWorld(){
   world->removeRigidBody(landBody.get());
   }
 
-float DynamicWorld::dropRay(float x,float y,float z) const {
+float DynamicWorld::dropRay(float x, float y, float z, bool &hasCol) const {
   btVector3 s(x,y+150,z), e(x,y-20000,z);
   btCollisionWorld::ClosestRayResultCallback callback{s,e};
 
   world->rayTest(s,e,callback);
+  hasCol = callback.hasHit();
+
   if(callback.hasHit())
     return callback.m_hitPointWorld.y();
   return y;
+  }
+
+float DynamicWorld::dropRay(float x,float y,float z) const {
+  bool unused;
+  return dropRay(x,y,z,unused);
   }

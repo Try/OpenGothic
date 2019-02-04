@@ -18,5 +18,6 @@ class Pose {
     const Skeleton* skeleton=nullptr;
 
     void mkSkeleton();
+    void mkSkeleton(const Tempest::Matrix4x4 &mt);
     void mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent);
   };

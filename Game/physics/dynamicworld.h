@@ -21,6 +21,7 @@ class DynamicWorld final {
     DynamicWorld(World &world, const ZenLoad::zCMesh &mesh);
     ~DynamicWorld();
 
+    float dropRay(float x, float y, float z,bool& hasCol) const;
     float dropRay(float x, float y, float z) const;
 
   private:

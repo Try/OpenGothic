@@ -15,7 +15,6 @@ void Pose::bind(const Skeleton *sk) {
   base = tr;
   }
 
-
 static Matrix4x4 getMatrix(float x,float y,float z,float w,
                            float px,float py,float pz) {
   float m[4][4]={};
@@ -135,19 +134,42 @@ void Pose::update(const Animation::Sequence &s, uint64_t dt) {
 void Pose::mkSkeleton() {
   Matrix4x4 m;
   m.identity();
-  if(base.size()){
-    auto& b0=base[0];
+  if(base.size()) {
+    size_t id=0;
+    if(skeleton->rootTr.size())
+      id = skeleton->rootNodes[0];
+    auto& b0=base[id];
     float dx=b0.at(3,0);
     float dy=b0.at(3,1);
     float dz=b0.at(3,2);
     m.translate(skeleton->rootTr[0]-dx,skeleton->rootTr[1]-dy,skeleton->rootTr[2]-dz);
     }
-  //m.translate(skeleton->rootTr[0],skeleton->rootTr[1],skeleton->rootTr[2]);
-  mkSkeleton(m,size_t(-1));
+
+  if(skeleton->ordered)
+    mkSkeleton(m); else
+    mkSkeleton(m,size_t(-1));
+  }
+
+void Pose::mkSkeleton(const Matrix4x4 &mt) {
+  auto& nodes=skeleton->nodes;
+
+  for(size_t i=0;i<nodes.size();++i){
+    if(nodes[i].parent!=size_t(-1))
+      continue;
+    tr[i] = mt;
+    tr[i].mul(base[i]);
+    }
+  for(size_t i=0;i<nodes.size();++i){
+    if(nodes[i].parent==size_t(-1))
+      continue;
+    tr[i] = tr[nodes[i].parent];
+    tr[i].mul(base[i]);
+    }
   }
 
 void Pose::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
   auto& nodes=skeleton->nodes;
+
   for(size_t i=0;i<nodes.size();++i){
     if(nodes[i].parent!=parent)
       continue;

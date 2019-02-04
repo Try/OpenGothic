@@ -253,6 +253,5 @@ void StaticObjects::UboDn::setSkeleton(const Skeleton *sk) {
   }
 
 void StaticObjects::UboDn::setSkeleton(const Pose& p) {
-  for(size_t i=0;i<p.tr.size();++i)
-    skel[i] = p.tr[i];
+  std::memcpy(&skel[0],p.tr.data(),p.tr.size()*sizeof(skel[0]));
   }

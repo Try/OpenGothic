@@ -4,7 +4,7 @@
 
 class Animation final {
   public:
-    enum class Flags : uint32_t {
+    enum Flags : uint32_t {
       None         = 0,
       Move         = 0x00000001,
       Rotate       = 0x00000002,
@@ -15,6 +15,9 @@ class Animation final {
 
     struct Sequence final {
       Sequence(const std::string& name);
+
+      bool isMove() const { return bool(flags&Flags::Move); }
+
       std::string                            name;
       float                                  fpsRate=60.f;
       uint32_t                               numFrames=0;
@@ -24,6 +27,12 @@ class Animation final {
       std::vector<uint32_t>                  nodeIndex;
 
       std::string                            next;
+      std::vector<ZenLoad::zCModelAniSample> moveTr;
+
+      ZMath::float3                          speed(uint64_t dt) const;
+
+      private:
+        void setupMoveTr();
       };
 
     Animation(ZenLoad::ModelScriptBinParser& p, const std::string &name);

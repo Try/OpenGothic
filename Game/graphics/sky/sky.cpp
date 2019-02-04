@@ -4,6 +4,7 @@
 #include <Tempest/CommandBuffer>
 
 #include "graphics/rendererstorage.h"
+#include "world/world.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -23,9 +24,12 @@ Sky::Sky(const RendererStorage &storage)
     uboGpu.desc(i) = storage.device.uniforms(storage.uboSkyLayout());
   }
 
-void Sky::setWorld(const std::string &wname) {
-  auto dot  = wname.rfind('.');
-  auto name = dot==std::string::npos ? wname : wname.substr(0,dot);
+void Sky::setWorld(const World &world) {
+  this->world = &world;
+
+  auto& wname = world.name();
+  auto dot    = wname.rfind('.');
+  auto name   = dot==std::string::npos ? wname : wname.substr(0,dot);
 
   day.colorA = mkColor(255,250,235);
   day.colorB = mkColor(255,255,255);
@@ -45,7 +49,8 @@ void Sky::setMatrix(uint32_t frameId, const Tempest::Matrix4x4 &mat) {
   uboCpu.mvp = mat;
   uboCpu.mvp.inverse();
 
-  auto t = (Application::tickCount()%80000)/80000.f;
+  auto ticks = world==nullptr ? Application::tickCount() : world->tickCount();
+  auto t = (ticks%80000)/80000.f;
   uboCpu.dxy[0] = t;
 
   uboGpu.update(uboCpu,frameId);

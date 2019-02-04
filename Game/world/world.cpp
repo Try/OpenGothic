@@ -43,8 +43,10 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
 
   std::sort(blocks.begin(),blocks.end(),[](const Block& a,const Block& b){ return a.texture<b.texture; });
 
-  for(auto& vob:world.rootVobs)
-    loadVob(vob);
+  if(1){
+    for(auto& vob:world.rootVobs)
+      loadVob(vob);
+    }
 
   wayNet = std::move(world.waynet);
   for(auto& w:wayNet.waypoints){
@@ -99,6 +101,10 @@ void World::tick(uint64_t dt) {
   if(!vm)
     return;
   vm->tick(dt);
+  }
+
+uint64_t World::tickCount() const {
+  return vm ? vm->tickCount() : 0;
   }
 
 int32_t World::runFunction(const std::string& fname, bool clearDataStack) {

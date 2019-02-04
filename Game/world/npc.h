@@ -14,6 +14,16 @@ class WorldScript;
 
 class Npc final {
   public:
+    enum Anim : uint16_t {
+      NoAnim,
+      Idle,
+      Move,
+      MoveBack,
+      MoveL,
+      MoveR,
+      RotL,
+      RotR
+      };
     enum Talent : uint8_t {
       NPC_TALENT_UNKNOWN            = 0,
       NPC_TALENT_1H                 = 1,
@@ -62,6 +72,9 @@ class Npc final {
     void setFatness   (float f);
     void setOverlay   (const std::string &name, float time);
     void setScale     (float x,float y,float z);
+    void setAnim      (Anim a);
+    Anim anim() const { return current; }
+    ZMath::float3 animMoveSpeed(Anim a, uint64_t dt) const;
 
     void setTalentSkill(Talent t,int32_t lvl);
 
@@ -95,8 +108,9 @@ class Npc final {
     StaticObjects::Mesh            armour;
 
     const Skeleton*                skeleton=nullptr;
-    const Animation::Sequence*     anim    =nullptr;
+    const Animation::Sequence*     animSq  =nullptr;
     uint64_t                       sAnim   =0;
+    Anim                           current =NoAnim;
     Pose                           skInst;
 
     std::string                    name;
@@ -109,4 +123,5 @@ class Npc final {
 
     void updatePos();
     void setPos(const Tempest::Matrix4x4& m);
+    const Animation::Sequence*     solveAnim(Anim a) const;
   };

@@ -48,10 +48,12 @@ GameMenu::GameMenu(MenuRoot &owner, Gothic &gothic, const char* menuSection)
     setPosition(int(infoX*w()),int(infoY*h()));
     }
 
-  setSelection(0);
+  setSelection(gothic.isInGame() ? menu.defaultInGame : menu.defaultOutGame);
+  gothic.pushPause();
   }
 
 GameMenu::~GameMenu() {
+  gothic.popPause();
   vm->getGameState().removeMenu(hMenu);
   }
 

@@ -4,6 +4,7 @@
 #include <cstring>
 
 Gothic::Gothic(const int argc, const char **argv) {
+  setWorld(std::make_unique<World>());
   if(argc<1)
     return;
 
@@ -35,19 +36,31 @@ Gothic::Gothic(const int argc, const char **argv) {
   }
 
 bool Gothic::isInGame() const {
-  return !wrld.isEmpty();
+  return !wrld->isEmpty();
   }
 
-void Gothic::setWorld(World &&w) {
+void Gothic::setWorld(std::unique_ptr<World> &&w) {
   wrld = std::move(w);
   }
 
+void Gothic::pushPause() {
+  pauseSum++;
+  }
+
+void Gothic::popPause() {
+  pauseSum--;
+  }
+
+bool Gothic::isPause() const {
+  return pauseSum;
+  }
+
 void Gothic::tick(uint64_t dt) {
-  wrld.tick(dt);
+  wrld->tick(dt);
   }
 
 void Gothic::updateAnimation() {
-  wrld.updateAnimation();
+  wrld->updateAnimation();
   }
 
 const std::string &Gothic::defaultWorld() const {

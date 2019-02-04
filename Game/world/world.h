@@ -23,6 +23,7 @@ class DynamicWorld;
 class World final {
   public:
     World()=default;
+    World(const World&)=delete;
     World(Gothic &gothic,const RendererStorage& storage, std::string file);
 
     struct Block {
@@ -56,11 +57,11 @@ class World final {
     Npc* player() const { return npcPlayer; }
 
     void tick(uint64_t dt);
+    uint64_t tickCount() const;
 
   private:
     std::string                           wname;
     Gothic*                               gothic=nullptr;
-    std::unique_ptr<WorldScript>          vm;
     ZenLoad::zCWayNetData                 wayNet;
     std::vector<ZenLoad::zCWaypointData>  freePoints, startPoints;
 
@@ -71,6 +72,7 @@ class World final {
 
     std::unique_ptr<WorldView>            wview;
     std::unique_ptr<DynamicWorld>         wdynamic;
+    std::unique_ptr<WorldScript>          vm;
 
     void    loadVob(const ZenLoad::zCVobData &vob);
     void    addStatic(const ZenLoad::zCVobData &vob);

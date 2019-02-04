@@ -22,6 +22,16 @@ Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src, std::string meshLib)
   for(auto& i:tr)
     i.identity();
 
+  for(size_t i=0;i<nodes.size();++i) {
+    if(nodes[i].parent>=i && nodes[i].parent!=size_t(-1)) {
+      ordered=false;
+      break;
+      }
+    }
+  for(size_t i=0;i<nodes.size();++i)
+    if(nodes[i].parent==size_t(-1))
+      rootNodes.push_back(i);
+
   // TODO: overlays
   anim = Resources::loadAnimation(this->meshLib);
 

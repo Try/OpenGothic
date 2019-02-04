@@ -6,6 +6,7 @@
 #include <array>
 
 class World;
+class Npc;
 
 class Camera final {
   public:
@@ -24,6 +25,8 @@ class Camera final {
     void moveLeft();
     void moveRight();
 
+    void follow(const Npc& npc);
+
     void setSpin(const Tempest::PointF& p);
 
     Tempest::Matrix4x4 view() const;
@@ -34,7 +37,7 @@ class Camera final {
     float                 zoom=1.f;
 
     const World*          world=nullptr;
+    bool                  hasPos=false;
 
     void implMove(Tempest::KeyEvent::KeyType t);
-    void implMovePl(Tempest::KeyEvent::KeyType t);
   };

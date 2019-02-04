@@ -15,8 +15,12 @@ class Gothic final {
     bool isInGame() const;
     bool doStartMenu() const { return !noMenu; }
 
-    void setWorld(World&& w);
-    const World& world() const { return wrld; }
+    void setWorld(std::unique_ptr<World> &&w);
+    const World& world() const { return *wrld; }
+
+    void  pushPause();
+    void  popPause();
+    bool  isPause() const;
 
     void  tick(uint64_t dt);
     void  updateAnimation();
@@ -34,6 +38,7 @@ class Gothic final {
   private:
     std::string wdef, gpath;
     bool        noMenu=false;
+    uint16_t    pauseSum=0;
 
-    World       wrld;
+    std::unique_ptr<World> wrld;
   };

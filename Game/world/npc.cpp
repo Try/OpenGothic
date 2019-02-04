@@ -52,9 +52,9 @@ float Npc::rotation() const {
   }
 
 void Npc::updateAnimation() {
-  if(anim!=nullptr){
+  if(animSq!=nullptr){
     uint64_t dt = owner.tickCount() - sAnim;
-    skInst.update(*anim,dt);
+    skInst.update(*animSq,dt);
 
     head  .setSkeleton(skInst,pos);
     view  .setSkeleton(skInst,pos);
@@ -70,10 +70,8 @@ void Npc::setVisual(const Skeleton* v) {
   skeleton = v;
   skInst.bind(skeleton);
 
-  if(skeleton) {
-    anim = &skeleton->sequence("S_RUNL");
-    sAnim = owner.tickCount();
-    }
+  current=NoAnim;
+  setAnim(Anim::Idle);
 
   head.setSkeleton(skeleton);
   view.setSkeleton(skeleton);
@@ -106,6 +104,24 @@ void Npc::setScale(float x, float y, float z) {
   sz[1]=y;
   sz[2]=z;
   updatePos();
+  }
+
+void Npc::setAnim(Npc::Anim a) {
+  if(current==a)
+    return;
+  current=a;
+  auto ani = solveAnim(a);
+  if(ani==animSq)
+    return;
+  animSq = ani;
+  sAnim  = owner.tickCount();
+  }
+
+ZMath::float3 Npc::animMoveSpeed(Anim a,uint64_t dt) const {
+  auto ani = solveAnim(a);
+  if(ani!=nullptr && ani->isMove())
+    return ani->speed(dt);
+  return ZMath::float3();
   }
 
 void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {
@@ -173,4 +189,22 @@ void Npc::setPos(const Matrix4x4 &m) {
   view  .setObjMatrix(pos);
   head  .setObjMatrix(pos);
   armour.setObjMatrix(pos);
+  }
+
+const Animation::Sequence *Npc::solveAnim(Npc::Anim a) const {
+  static const char* ani[] = {
+    "",
+    "S_RUN",
+    "S_RUNL",
+    "T_JUMPB",
+    "T_RUNSTRAFEL",
+    "T_RUNSTRAFER",
+    "T_RUNTURNL",
+    "T_RUNTURNR"
+    };
+
+  if(skeleton) {
+    return &skeleton->sequence(ani[a]);
+    }
+  return nullptr;
   }

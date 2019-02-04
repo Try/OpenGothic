@@ -1,5 +1,6 @@
 #include "camera.h"
 
+#include "game/playercontrol.h"
 #include "world/world.h"
 
 using namespace Tempest;
@@ -68,9 +69,6 @@ Matrix4x4 Camera::view() const {
   }
 
 void Camera::implMove(Tempest::Event::KeyType key) {
-  if(world!=nullptr && world->player()!=nullptr)
-    return implMovePl(key);
-
   float dpos = 60.f/(zoom);
 
   float k = -float(M_PI/180.0);
@@ -96,42 +94,23 @@ void Camera::implMove(Tempest::Event::KeyType key) {
     camPos[1] = world->physic()->dropRay(camPos[0],camPos[1],camPos[2]);
   }
 
-void Camera::implMovePl(Event::KeyType key) {
-  Npc&  pl = *world->player();
-  float speed = 60.f, rspeed=5.f;
+void Camera::follow(const Npc &npc) {
+  if(hasPos){
+    auto pos   = npc.position();
+    auto dx    = (pos[0]-camPos[0]);
+    auto dy    = (pos[1]-camPos[1]);
+    auto dz    = (pos[2]-camPos[2]);
+    auto len   = std::sqrt(dx*dx+dy*dy+dz*dz);
 
-  float k = -float(M_PI/180.0), rot = pl.rotation();
-  float s = std::sin(rot*k), c=std::cos(rot*k);
-
-  auto dpos=pl.position();
-  if(key==KeyEvent::K_Q){
-    rot += rspeed;
+    if(len>0.1f){
+      float k = 0.25f;//std::min(speed/len,1.0f);
+      camPos[0] += dx*k;
+      camPos[1] += dy*k;
+      camPos[2] += dz*k;
+      }
+    } else {
+    camPos = npc.position();
+    hasPos = true;
     }
-  if(key==KeyEvent::K_E){
-    rot -= rspeed;
-    }
-  if(key==KeyEvent::K_A) {
-    dpos[0]+=speed*c;
-    dpos[2]-=speed*s;
-    }
-  if(key==KeyEvent::K_D) {
-    dpos[0]-=speed*c;
-    dpos[2]+=speed*s;
-    }
-  if(key==KeyEvent::K_W) {
-    dpos[0]-=speed*s;
-    dpos[2]-=speed*c;
-    }
-  if(key==KeyEvent::K_S){
-    dpos[0]+=speed*s;
-    dpos[2]+=speed*c;
-    }
-  dpos[1] = world->physic()->dropRay(dpos[0],dpos[1],dpos[2]);
-  pl.setPosition(dpos);
-  pl.setDirection(rot);
-
-  spin.x = rot;
-  camPos[0]=dpos[0];
-  camPos[1]=dpos[1];
-  camPos[2]=dpos[2];
+  spin.x += (npc.rotation()-spin.x)/2;
   }

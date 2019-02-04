@@ -24,6 +24,7 @@
 
 #include <vector>
 
+#include "game/playercontrol.h"
 #include "graphics/renderer.h"
 #include "resources.h"
 
@@ -58,6 +59,7 @@ class MainWindow : public Tempest::Window {
     Tempest::Point        mpos;
     Tempest::PointF       spin;
     Camera                camera;
+    PlayerControl         player;
     uint64_t              lastTick=0;
 
     Tempest::Device       device;
