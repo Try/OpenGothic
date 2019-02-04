@@ -119,8 +119,12 @@ void Npc::setAnim(Npc::Anim a) {
 
 ZMath::float3 Npc::animMoveSpeed(Anim a,uint64_t dt) const {
   auto ani = solveAnim(a);
-  if(ani!=nullptr && ani->isMove())
-    return ani->speed(dt);
+  if(ani!=nullptr && ani->isMove()){
+    if(ani==animSq){
+      return ani->speed(owner.tickCount()-sAnim,dt);
+      }
+    return ani->speed(0,dt);
+    }
   return ZMath::float3();
   }
 

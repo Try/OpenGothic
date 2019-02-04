@@ -136,13 +136,13 @@ void Pose::mkSkeleton() {
   m.identity();
   if(base.size()) {
     size_t id=0;
-    if(skeleton->rootTr.size())
+    if(skeleton->rootNodes.size())
       id = skeleton->rootNodes[0];
     auto& b0=base[id];
     float dx=b0.at(3,0);
-    float dy=b0.at(3,1);
+    float dy=0;//b0.at(3,1);
     float dz=b0.at(3,2);
-    m.translate(skeleton->rootTr[0]-dx,skeleton->rootTr[1]-dy,skeleton->rootTr[2]-dz);
+    m.translate(-dx,-dy,-dz);
     }
 
   if(skeleton->ordered)

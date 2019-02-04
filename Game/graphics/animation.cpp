@@ -124,55 +124,26 @@ Animation::Sequence::Sequence(const std::string &name) {
     }
   }
 
-ZMath::float3 Animation::Sequence::speed(uint64_t dt) const {
-  if(numFrames==0) {
-    ZMath::float3 f={};
-    return f;
-    }
+ZMath::float3 Animation::Sequence::speed(uint64_t /*at*/,uint64_t dt) const {
+  float allTime=numFrames*1000/fpsRate;
+  float k = -(dt/allTime);
 
-  uint64_t fr     = uint64_t(fpsRate*dt);
-  float    a      = (fr%1000)/1000.f;
-  uint64_t frameA = (fr/1000  )%numFrames;
-  uint64_t frameB = (fr/1000+1)%numFrames;
+  ZMath::float3 f;
+  f.x = moveTr.position.x*k;
+  f.y = moveTr.position.y*k;
+  f.z = moveTr.position.z*k;
 
-  ZMath::float3 x,y,f;
-  x = moveTr[size_t(frameA)].position*a;
-  y = moveTr[size_t(frameB)].position*(1.f-a);
-
-  f.x = x.x*a+y.x*(1.f-a);
-  f.y = x.y*a+y.y*(1.f-a);
-  f.z = x.z*a+y.z*(1.f-a);
   return f;
   }
 
 void Animation::Sequence::setupMoveTr() {
-  float  rate = 1.0;//fpsRate*1.5;
-  size_t sz   = nodeIndex.size();
+  size_t sz = nodeIndex.size();
 
-  for(size_t i=0;i+sz<samples.size();i+=sz){
-    auto& m0 = samples[i];
-    auto& m1 = samples[i+sz];
-
-    ZenLoad::zCModelAniSample tr={};
-    tr.position.x = m1.position.x-m0.position.x;
-    tr.position.y = m1.position.y-m0.position.y;
-    tr.position.z = m1.position.z-m0.position.z;
-
-    tr.position.x*=rate;
-    tr.position.y*=rate;
-    tr.position.z*=rate;
-    moveTr.emplace_back(tr);
-    }
-
-  if(samples.size()==0)
-    return;
-
-  while(moveTr.size()<numFrames) {
-    if(moveTr.size()==0){
-      ZenLoad::zCModelAniSample s={};
-      moveTr.push_back(s);
-      } else {
-      moveTr.push_back(moveTr.back());
-      }
+  if(samples.size()>0 && samples.size()>=sz) {
+    auto& a = samples[0].position;
+    auto& b = samples[samples.size()-sz].position;
+    moveTr.position.x = b.x-a.x;
+    moveTr.position.y = b.y-a.y;
+    moveTr.position.z = b.z-a.z;
     }
   }

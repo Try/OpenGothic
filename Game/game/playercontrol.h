@@ -41,4 +41,5 @@ class PlayerControl final {
     bool         ctrl[Control::Last]={};
     const World* world=nullptr;
     float        pSpeed=0;
+    float        mulSpeed=1.f;
   };

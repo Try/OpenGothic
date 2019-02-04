@@ -27,9 +27,9 @@ class Animation final {
       std::vector<uint32_t>                  nodeIndex;
 
       std::string                            next;
-      std::vector<ZenLoad::zCModelAniSample> moveTr;
+      ZenLoad::zCModelAniSample              moveTr={};
 
-      ZMath::float3                          speed(uint64_t dt) const;
+      ZMath::float3                          speed(uint64_t at, uint64_t dt) const;
 
       private:
         void setupMoveTr();

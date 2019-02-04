@@ -88,8 +88,8 @@ void PlayerControl::implMove(uint64_t dt) {
     dpos[1]=dp.z;
     ani = Npc::Anim::MoveR;
     }
-  pos[0]-=(dpos[0]*c-dpos[1]*s);
-  pos[2]-=(dpos[0]*s+dpos[1]*c);
+  pos[0]+=mulSpeed*(dpos[0]*c-dpos[1]*s);
+  pos[2]+=mulSpeed*(dpos[0]*s+dpos[1]*c);
 
   pSpeed = std::sqrt(dpos[0]*dpos[0]+dpos[1]*dpos[1]);
 

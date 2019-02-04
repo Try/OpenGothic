@@ -65,7 +65,7 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
 
   if(startPoints.size()>0)
     npcPlayer = vm->inserNpc("PC_HERO",startPoints[0].wpName.c_str()); else
-    npcPlayer = vm->inserNpc("PC_HERO","SPAWN_OW_STARTSCAVNGERBO_01_02");
+    npcPlayer = vm->inserNpc("PC_HERO","START");
   }
 
 const ZenLoad::zCWaypointData *World::findPoint(const char *name) const {

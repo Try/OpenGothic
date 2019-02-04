@@ -196,7 +196,7 @@ void StaticObjects::Mesh::setSkeleton(const Pose &p,const Tempest::Matrix4x4& ob
   if(binder!=nullptr){
     for(size_t i=0;i<binder->bind.size();++i){
       auto id=binder->bind[i].boneId;
-      if(id>=skeleton->tr.size())
+      if(id>=p.tr.size())
         continue;
       auto mat=obj;
       mat.translate(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
