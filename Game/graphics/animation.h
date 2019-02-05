@@ -26,7 +26,8 @@ class Animation final {
       std::vector<ZenLoad::zCModelAniSample> samples;
       std::vector<uint32_t>                  nodeIndex;
 
-      std::string                            next;
+      std::string                            nextStr;
+      const Sequence*                        next=nullptr;
       ZenLoad::zCModelAniSample              moveTr={};
 
       ZMath::float3                          speed(uint64_t at, uint64_t dt) const;
@@ -42,4 +43,5 @@ class Animation final {
   private:
     std::vector<Sequence> sequences;
     Sequence& loadMAN(const std::string &name);
+    void setupIndex();
   };

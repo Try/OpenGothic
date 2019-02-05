@@ -24,6 +24,11 @@ class DynamicWorld final {
     float dropRay(float x, float y, float z,bool& hasCol) const;
     float dropRay(float x, float y, float z) const;
 
+    std::array<float,3> ray(float x0, float y0, float z0,
+                            float x1, float y1,float z1) const;
+    std::array<float,3> ray(float x0, float y0, float z0,
+                            float x1, float y1,float z1,bool& hasCol) const;
+
   private:
     std::vector<int>      landIndex;
     std::vector<btScalar> landVert;

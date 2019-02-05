@@ -40,4 +40,5 @@ class Camera final {
     bool                  hasPos=false;
 
     void implMove(Tempest::KeyEvent::KeyType t);
+    Tempest::Matrix4x4 mkView(float dist) const;
   };

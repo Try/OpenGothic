@@ -13,8 +13,10 @@ Animation::Animation(ZenLoad::ModelScriptBinParser &p,const std::string& name) {
   while(true) {
     ZenLoad::ModelScriptParser::EChunkType type=p.parse();
     switch (type) {
-      case ZenLoad::ModelScriptParser::CHUNK_EOF:
+      case ZenLoad::ModelScriptParser::CHUNK_EOF: {
+        setupIndex();
         return;
+        }
       case ZenLoad::ModelScriptParser::CHUNK_ANI: {
         // p.ani().m_Name;
         // p.ani().m_Layer;
@@ -25,9 +27,9 @@ Animation::Animation(ZenLoad::ModelScriptBinParser &p,const std::string& name) {
         // p.ani().m_LastFrame;
         // p.ani().m_Dir;
 
-        auto& ani = loadMAN(name+'-'+p.ani().m_Name+".MAN");
-        ani.flags = Flags(p.ani().m_Flags);
-        ani.next  = p.ani().m_Next;
+        auto& ani   = loadMAN(name+'-'+p.ani().m_Name+".MAN");
+        ani.flags   = Flags(p.ani().m_Flags);
+        ani.nextStr = p.ani().m_Next;
         /*
         for(auto& sfx : p.sfx())
           animationAddEventSFX(anim, sfx);
@@ -92,6 +94,16 @@ const Animation::Sequence &Animation::sequence(const char *name) const {
 Animation::Sequence& Animation::loadMAN(const std::string& name) {
   sequences.emplace_back(name);
   return sequences.back();
+  }
+
+void Animation::setupIndex() {
+  for(auto& i:sequences) {
+    for(auto& r:sequences)
+      if(r.name==i.nextStr){
+        i.next = &r;
+        break;
+        }
+    }
   }
 
 Animation::Sequence::Sequence(const std::string &name) {

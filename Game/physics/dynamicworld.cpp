@@ -77,19 +77,29 @@ DynamicWorld::~DynamicWorld(){
   world->removeRigidBody(landBody.get());
   }
 
+float DynamicWorld::dropRay(float x,float y,float z) const {
+  bool unused;
+  return dropRay(x,y,z,unused);
+  }
+
+std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, float y1, float z1) const {
+  bool unused;
+  return ray(x0,y0,z0,x1,y1,z1,unused);
+  }
+
 float DynamicWorld::dropRay(float x, float y, float z, bool &hasCol) const {
-  btVector3 s(x,y+150,z), e(x,y-20000,z);
+  return ray(x,y+150,z, x,y-20000,z,hasCol)[1];
+  }
+
+std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, float y1, float z1, bool &hasCol) const {
+  btVector3 s(x0,y0,z0), e(x1,y1,z1);
   btCollisionWorld::ClosestRayResultCallback callback{s,e};
 
   world->rayTest(s,e,callback);
   hasCol = callback.hasHit();
 
-  if(callback.hasHit())
-    return callback.m_hitPointWorld.y();
-  return y;
-  }
-
-float DynamicWorld::dropRay(float x,float y,float z) const {
-  bool unused;
-  return dropRay(x,y,z,unused);
+  if(callback.hasHit()){
+    return {{callback.m_hitPointWorld.x(),callback.m_hitPointWorld.y(),callback.m_hitPointWorld.z()}};
+    }
+  return {x1,y1,z1};
   }
