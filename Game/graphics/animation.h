@@ -13,15 +13,26 @@ class Animation final {
       Idle         = 0x00000010
       };
 
+    enum AnimClass : uint8_t {
+      UnknownAnim=0,
+      Transition,
+      Loop
+      };
+
     struct Sequence final {
       Sequence(const std::string& name);
 
-      bool isMove() const { return bool(flags&Flags::Move); }
+      bool                                   isMove() const { return bool(flags&Flags::Move); }
+      bool                                   isFly()  const { return bool(flags&Flags::Fly);  }
+      bool                                   isFinished(uint64_t t) const;
 
       std::string                            name;
       float                                  fpsRate=60.f;
       uint32_t                               numFrames=0;
+      uint32_t                               firstFrame=0;
+      uint32_t                               lastFrame =0;
       Flags                                  flags=Flags::None;
+      AnimClass                              animCls=UnknownAnim;
 
       std::vector<ZenLoad::zCModelAniSample> samples;
       std::vector<uint32_t>                  nodeIndex;
@@ -38,7 +49,8 @@ class Animation final {
 
     Animation(ZenLoad::ModelScriptBinParser& p, const std::string &name);
 
-    const Sequence& sequence(const char* name) const;
+    const Sequence *sequence(const char* name) const;
+    void            debug() const;
 
   private:
     std::vector<Sequence> sequences;

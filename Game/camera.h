@@ -25,7 +25,7 @@ class Camera final {
     void moveLeft();
     void moveRight();
 
-    void follow(const Npc& npc);
+    void follow(const Npc& npc, bool includeRot);
 
     void setSpin(const Tempest::PointF& p);
 

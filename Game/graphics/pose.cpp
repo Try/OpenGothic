@@ -110,8 +110,16 @@ void Pose::update(const Animation::Sequence &s, uint64_t dt) {
 
   uint64_t fr     = uint64_t(s.fpsRate*dt);
   float    a      = (fr%1000)/1000.f;
-  uint64_t frameA = (fr/1000  )%s.numFrames;
-  uint64_t frameB = (fr/1000+1)%s.numFrames;
+  uint64_t frameA = (fr/1000  );
+  uint64_t frameB = (fr/1000+1);
+
+  if(s.animCls==Animation::Loop){
+    frameA%=s.numFrames;
+    frameB%=s.numFrames;
+    } else {
+    frameA = std::min<uint64_t>(frameA,s.numFrames-1);
+    frameB = std::min<uint64_t>(frameB,s.numFrames-1);
+    }
 
   const size_t idSize=s.nodeIndex.size();
   if(idSize==0 || s.samples.size()%idSize!=0)
@@ -128,10 +136,10 @@ void Pose::update(const Animation::Sequence &s, uint64_t dt) {
     base[s.nodeIndex[i]] = getMatrix(rot.x,rot.y,rot.z,rot.w,pos.x,pos.y,pos.z);
     }
 
-  mkSkeleton();
+  mkSkeleton(s);
   }
 
-void Pose::mkSkeleton() {
+void Pose::mkSkeleton(const Animation::Sequence &s) {
   Matrix4x4 m;
   m.identity();
   if(base.size()) {
@@ -140,8 +148,10 @@ void Pose::mkSkeleton() {
       id = skeleton->rootNodes[0];
     auto& b0=base[id];
     float dx=b0.at(3,0);
-    float dy=0;//b0.at(3,1);
+    float dy=b0.at(3,1);
     float dz=b0.at(3,2);
+    //if((s.flags & Animation::Fly)==0)
+    dy=0;
     m.translate(-dx,-dy,-dz);
     }
 

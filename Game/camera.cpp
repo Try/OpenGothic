@@ -64,6 +64,9 @@ Matrix4x4 Camera::view() const {
   const float dist    = 375;
   const float minDist = 55;
 
+  if(world==nullptr)
+    return mkView(dist);
+
   Matrix4x4 view=mkView(dist);
   Matrix4x4 vinv=view;
   vinv.inverse();
@@ -129,7 +132,7 @@ void Camera::implMove(Tempest::Event::KeyType key) {
     camPos[1] = world->physic()->dropRay(camPos[0],camPos[1],camPos[2]);
   }
 
-void Camera::follow(const Npc &npc) {
+void Camera::follow(const Npc &npc,bool includeRot) {
   if(hasPos){
     auto pos = npc.position();
     auto dx  = (pos[0]-camPos[0]);
@@ -147,5 +150,7 @@ void Camera::follow(const Npc &npc) {
     camPos = npc.position();
     hasPos = true;
     }
-  spin.x += (npc.rotation()-spin.x)/2;
+
+  if(includeRot)
+    spin.x += (npc.rotation()-spin.x)/2;
   }

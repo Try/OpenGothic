@@ -41,6 +41,7 @@ class MainWindow : public Tempest::Window {
     void resizeEvent   (Tempest::SizeEvent & event) override;
 
     void mouseDownEvent (Tempest::MouseEvent& event) override;
+    void mouseUpEvent   (Tempest::MouseEvent& event) override;
     void mouseDragEvent (Tempest::MouseEvent& event) override;
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
 
@@ -91,6 +92,8 @@ class MainWindow : public Tempest::Window {
 
     Gothic&                             gothic;
     const Tempest::Texture2d*           background=nullptr;
+
+    bool                                mouseP[Tempest::MouseEvent::ButtonBack]={};
     bool                                pressed[Tempest::KeyEvent::K_Last]={};
 
     struct Fps {

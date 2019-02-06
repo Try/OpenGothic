@@ -1,6 +1,7 @@
 #include "gamemenu.h"
 
 #include <Tempest/Painter>
+#include <Tempest/Log>
 
 #include "world/world.h"
 #include "ui/menuroot.h"

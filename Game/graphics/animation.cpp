@@ -23,13 +23,16 @@ Animation::Animation(ZenLoad::ModelScriptBinParser &p,const std::string& name) {
         // p.ani().m_BlendIn;
         // p.ani().m_BlendOut;
         // p.ani().m_Flags;
-        // p.ani().m_FirstFrame;
         // p.ani().m_LastFrame;
         // p.ani().m_Dir;
 
-        auto& ani   = loadMAN(name+'-'+p.ani().m_Name+".MAN");
-        ani.flags   = Flags(p.ani().m_Flags);
-        ani.nextStr = p.ani().m_Next;
+        auto& ani      = loadMAN(name+'-'+p.ani().m_Name+".MAN");
+        ani.flags      = Flags(p.ani().m_Flags);
+        ani.nextStr    = p.ani().m_Next;
+        ani.firstFrame = uint32_t(p.ani().m_FirstFrame);
+        ani.lastFrame  = uint32_t(p.ani().m_LastFrame);
+        if(ani.nextStr==ani.name)
+          ani.animCls=Loop;
         /*
         for(auto& sfx : p.sfx())
           animationAddEventSFX(anim, sfx);
@@ -83,12 +86,16 @@ Animation::Animation(ZenLoad::ModelScriptBinParser &p,const std::string& name) {
     }
   }
 
-const Animation::Sequence &Animation::sequence(const char *name) const {
+const Animation::Sequence* Animation::sequence(const char *name) const {
   for(auto& i:sequences)
     if(i.name==name)
-      return i;
-  static Sequence s("<null>");
-  return s;
+      return &i;
+  return nullptr;
+  }
+
+void Animation::debug() const {
+  for(auto& i:sequences)
+    Log::d(i.name);
   }
 
 Animation::Sequence& Animation::loadMAN(const std::string& name) {
@@ -121,11 +128,21 @@ Animation::Sequence::Sequence(const std::string &name) {
         setupMoveTr();
         return;
         }
-      case ZenLoad::ModelAnimationParser::CHUNK_HEADER:
+      case ZenLoad::ModelAnimationParser::CHUNK_HEADER: {
         this->name      = p.getHeader().aniName;
         this->fpsRate   = p.getHeader().fpsRate;
         this->numFrames = p.getHeader().numFrames;
+
+        if(this->name.size()>1){
+          if(this->name.find("_2_")!=std::string::npos)
+            animCls=Transition;
+          else if(this->name[0]=='T' && this->name[1]=='_')
+            animCls=Transition;
+          else if(this->name[0]=='S' && this->name[1]=='_')
+            animCls=Loop;
+          }
         break;
+        }
       case ZenLoad::ModelAnimationParser::CHUNK_RAWDATA:
         nodeIndex = std::move(p.getNodeIndex());
         samples   = p.getSamples();
@@ -134,6 +151,11 @@ Animation::Sequence::Sequence(const std::string &name) {
         throw std::runtime_error("animation load error");
       }
     }
+  }
+
+bool Animation::Sequence::isFinished(uint64_t t) const {
+  float allTime=numFrames*1000/fpsRate;
+  return t>=allTime;
   }
 
 ZMath::float3 Animation::Sequence::speed(uint64_t /*at*/,uint64_t dt) const {

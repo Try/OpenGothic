@@ -22,8 +22,19 @@ class Npc final {
       MoveL,
       MoveR,
       RotL,
-      RotR
+      RotR,
+      Jump,
+      DrawFist,
+      DrawWeapon1h
       };
+
+    enum WeaponState : uint8_t {
+      NoWeapon,
+      Fist,
+      W1H,
+      W2H
+      };
+
     enum Talent : uint8_t {
       NPC_TALENT_UNKNOWN            = 0,
       NPC_TALENT_1H                 = 1,
@@ -73,8 +84,11 @@ class Npc final {
     void setOverlay   (const std::string &name, float time);
     void setScale     (float x,float y,float z);
     void setAnim      (Anim a);
+    void setAnim      (Anim a, WeaponState nextSt);
     Anim anim() const { return current; }
+
     ZMath::float3 animMoveSpeed(Anim a, uint64_t dt) const;
+    bool          isFlyAnim() const;
 
     void setTalentSkill(Talent t,int32_t lvl);
 
@@ -84,7 +98,13 @@ class Npc final {
          addItem       (const uint32_t item, size_t count=1);
     void equipItem     (const uint32_t item);
 
+    void closeWeapon();
     void drawWeaponMelee();
+    void drawWeapon2H();
+    void drawWeaponFist();
+
+    WeaponState weaponState() const { return weaponSt; }
+
     void addRoutine(gtime s, gtime e, int32_t callback);
 
   private:
@@ -111,6 +131,7 @@ class Npc final {
     const Animation::Sequence*     animSq  =nullptr;
     uint64_t                       sAnim   =0;
     Anim                           current =NoAnim;
+    WeaponState                    weaponSt=WeaponState::NoWeapon;
     Pose                           skInst;
 
     std::string                    name;
@@ -124,4 +145,6 @@ class Npc final {
     void updatePos();
     void setPos(const Tempest::Matrix4x4& m);
     const Animation::Sequence*     solveAnim(Anim a) const;
+    const Animation::Sequence*     solveAnim(Anim a, WeaponState st0, Anim cur, WeaponState st) const;
+    const char*                    animName(Anim a, WeaponState st) const;
   };

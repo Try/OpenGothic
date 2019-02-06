@@ -26,7 +26,8 @@ class Skeleton final {
     size_t                          findNode(const char*        name,size_t def=size_t(-1)) const;
     size_t                          findNode(const std::string& name,size_t def=size_t(-1)) const;
 
-    const Animation::Sequence& sequence(const char* name) const;
+    const Animation::Sequence*      sequence(const char* name) const;
+    void                            debug() const;
 
   private:
     std::string      meshLib;

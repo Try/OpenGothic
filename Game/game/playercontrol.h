@@ -10,6 +10,13 @@ class PlayerControl final {
 
     void changeZoom(int delta);
 
+    void drawFist();
+    void drawWeapon();
+    void drawWeapon2h();
+    void drawWeaponMage();
+    void action();
+    void jump();
+
     void rotateLeft ();
     void rotateRight();
 
@@ -32,6 +39,14 @@ class PlayerControl final {
       Right,
       RotateL,
       RotateR,
+      Jump,
+
+      DrawFist,
+      DrawWeapon1h,
+      DrawWeapon2h,
+      DrawWeaponMage,
+
+      Action,
 
       Last
       };
@@ -41,5 +56,6 @@ class PlayerControl final {
     bool         ctrl[Control::Last]={};
     const World* world=nullptr;
     float        pSpeed=0;
+    float        fallSpeed=0;
     float        mulSpeed=1.f;
   };

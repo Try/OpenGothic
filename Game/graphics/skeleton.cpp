@@ -53,11 +53,15 @@ size_t Skeleton::findNode(const std::string &name, size_t def) const {
   return findNode(name.c_str(),def);
   }
 
-const Animation::Sequence &Skeleton::sequence(const char *name) const {
+const Animation::Sequence* Skeleton::sequence(const char *name) const {
   if(anim)
     return anim->sequence(name);
-  static Animation::Sequence a("<null>");
-  return a;
+  return nullptr;
+  }
+
+void Skeleton::debug() const {
+  if(anim)
+    anim->debug();
   }
 
 void Skeleton::mkSkeleton() {

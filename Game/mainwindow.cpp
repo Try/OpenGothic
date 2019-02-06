@@ -82,8 +82,15 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
     event.accept();
     return;
     }
+  if(event.button<sizeof(mouseP))
+    mouseP[event.button]=true;
   mpos = event.pos();
   spin = camera.getSpin();
+  }
+
+void MainWindow::mouseUpEvent(MouseEvent &event) {
+  if(event.button<sizeof(mouseP))
+    mouseP[event.button]=false;
   }
 
 void MainWindow::mouseDragEvent(MouseEvent &event) {
@@ -108,6 +115,14 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_MAIN"));
     rootMenu->setFocus(true);
     }
+  else if(event.key==KeyEvent::K_Back) {
+    rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_LOG"));
+    rootMenu->setFocus(true);
+    }
+  else if(event.key==KeyEvent::K_B) {
+    rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_STATUS"));
+    rootMenu->setFocus(true);
+    }
   }
 
 void MainWindow::tick() {
@@ -120,6 +135,23 @@ void MainWindow::tick() {
 
   gothic.tick(dt);
 
+  if(pressed[KeyEvent::K_0]){
+    player.drawFist();
+    pressed[KeyEvent::K_0]=false;
+    }
+  if(pressed[KeyEvent::K_1]){
+    player.drawWeapon();
+    pressed[KeyEvent::K_1]=false;
+    }
+  if(pressed[KeyEvent::K_2]){
+    player.drawWeapon2h();
+    pressed[KeyEvent::K_2]=false;
+    }
+
+  if(pressed[KeyEvent::K_Space]){
+    player.jump();
+    pressed[KeyEvent::K_Space]=false;
+    }
   if(pressed[KeyEvent::K_Q])
     player.rotateLeft();
   if(pressed[KeyEvent::K_E])
@@ -134,7 +166,7 @@ void MainWindow::tick() {
     player.moveBack();
 
   if(player.tickMove(dt)) {
-    camera.follow(*gothic.world().player());
+    camera.follow(*gothic.world().player(),!mouseP[Event::ButtonLeft]);
     } else {
     if(pressed[KeyEvent::K_Q])
       camera.rotateLeft();
@@ -167,7 +199,7 @@ void MainWindow::initSwapchain(){
   commandDynamic.clear();
   fboUi.clear();
 
-  uiPass=device.pass(FboMode::Preserve,FboMode::Discard,TextureFormat::Undefined);
+  uiPass=device.pass(FboMode::Preserve|FboMode::PresentOut,FboMode::Discard,TextureFormat::Undefined);
 
   for(size_t i=0;i<imgC;++i) {
     Tempest::Frame frame=device.frame(i);
