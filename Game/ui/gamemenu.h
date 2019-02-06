@@ -63,8 +63,11 @@ class GameMenu : public Tempest::Widget {
     void                                  exec(const Daedalus::GEngineClasses::C_Menu_Item& item);
     bool                                  exec(const std::string& action);
 
+    const char*                           strEnum(const char* en,int id);
+
     void                                  set(const char* item,const uint32_t value);
     void                                  set(const char* item,const int32_t  value);
+    void                                  set(const char* item,const int32_t  value,const char* post);
     void                                  set(const char* item,const int32_t  value,const int32_t max);
     void                                  set(const char* item,const char*    value);
   };

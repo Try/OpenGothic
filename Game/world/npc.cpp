@@ -145,12 +145,12 @@ bool Npc::isFlyAnim() const {
   }
 
 void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {
-  if(t<NPC_TALENT_MAX)
+  if(t<TALENT_MAX)
     talents[t] = lvl;
   }
 
 int32_t Npc::talentSkill(Npc::Talent t) const {
-  if(t<NPC_TALENT_MAX)
+  if(t<TALENT_MAX)
     return talents[t];
   return 0;
   }
@@ -172,7 +172,7 @@ uint32_t Npc::guild() const {
   }
 
 int32_t Npc::magicCyrcle() const {
-  return talentSkill(NPC_TALENT_RUNES);
+  return talentSkill(TALENT_RUNES);
   }
 
 int32_t Npc::level() const {

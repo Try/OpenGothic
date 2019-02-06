@@ -310,6 +310,35 @@ bool GameMenu::exec(const std::string &action) {
   return false;
   }
 
+const char *GameMenu::strEnum(const char *en, int id) {
+  int num=0;
+  for(size_t i=0;en[i];++i){
+    size_t b=i;
+    for(size_t r=i;en[r];++r)
+      if(en[r]=='|'){
+        i=r;
+        break;
+        }
+    if(id==num) {
+      size_t sz=i-b;
+      textBuf.resize(sz+1);
+      std::memcpy(&textBuf[0],&en[b],sz);
+      textBuf[sz]='\0';
+      return textBuf.data();
+      }
+    ++num;
+    }
+  for(size_t i=0;en[i];++i){
+    if(en[i]=='#' || en[i]=='|'){
+      textBuf.resize(i+1);
+      std::memcpy(&textBuf[0],en,i);
+      textBuf[i]='\0';
+      return textBuf.data();
+      }
+    }
+  return "";
+  }
+
 void GameMenu::set(const char *item, const uint32_t value) {
   char buf[16]={};
   std::snprintf(buf,sizeof(buf),"%u",value);
@@ -319,6 +348,12 @@ void GameMenu::set(const char *item, const uint32_t value) {
 void GameMenu::set(const char *item, const int32_t value) {
   char buf[16]={};
   std::snprintf(buf,sizeof(buf),"%d",value);
+  set(item,buf);
+  }
+
+void GameMenu::set(const char *item, const int32_t value, const char *post) {
+  char buf[32]={};
+  std::snprintf(buf,sizeof(buf),"%d%s",value,post);
   set(item,buf);
   }
 
@@ -343,10 +378,11 @@ void GameMenu::initValues() {
   }
 
 void GameMenu::setPlayer(const Npc &pl) {
-  auto& sym = gothic.world().getSymbol("TXT_GUILDS");
-  set("MENU_ITEM_PLAYERGUILD",sym.getString(pl.guild()).c_str());
+  auto& gilds = gothic.world().getSymbol("TXT_GUILDS");
+  auto& tal   = gothic.world().getSymbol("TXT_TALENTS");
+  auto& talV  = gothic.world().getSymbol("TXT_TALENTS_SKILLS");
 
-  set("MENU_ITEM_TALENT_7_CIRCLE", pl.magicCyrcle());
+  set("MENU_ITEM_PLAYERGUILD",gilds.getString(pl.guild()).c_str());
 
   set("MENU_ITEM_LEVEL",      pl.level());
   set("MENU_ITEM_EXP",        pl.experience());
@@ -362,4 +398,22 @@ void GameMenu::setPlayer(const Npc &pl) {
   set("MENU_ITEM_ARMOR_2", pl.protection(Npc::PROT_POINT)); // not sure about it
   set("MENU_ITEM_ARMOR_3", pl.protection(Npc::PROT_FIRE));
   set("MENU_ITEM_ARMOR_4", pl.protection(Npc::PROT_MAGIC));
+
+  for(size_t i=0;i<Npc::TALENT_MAX;++i){
+    auto& str = tal.getString(i);
+    if(str.empty())
+      continue;
+
+    const int v=pl.talentSkill(Npc::Talent(i));
+
+    char buf[64]={};
+    std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d_TITLE",i);
+    set(buf,str.c_str());
+
+    std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d_SKILL",i);
+    set(buf,strEnum(talV.getString(i).c_str(),v));
+
+    std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d",i);
+    set(buf,v,"%");
+    }
   }

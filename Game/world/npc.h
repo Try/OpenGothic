@@ -36,29 +36,29 @@ class Npc final {
       };
 
     enum Talent : uint8_t {
-      NPC_TALENT_UNKNOWN            = 0,
-      NPC_TALENT_1H                 = 1,
-      NPC_TALENT_2H                 = 2,
-      NPC_TALENT_BOW                = 3,
-      NPC_TALENT_CROSSBOW           = 4,
-      NPC_TALENT_PICKLOCK           = 5,
-      NPC_TALENT_MAGE               = 7,
-      NPC_TALENT_SNEAK              = 8,
-      NPC_TALENT_REGENERATE         = 9,
-      NPC_TALENT_FIREMASTER         = 10,
-      NPC_TALENT_ACROBAT            = 11,
-      NPC_TALENT_PICKPOCKET         = 12,
-      NPC_TALENT_SMITH              = 13,
-      NPC_TALENT_RUNES              = 14,
-      NPC_TALENT_ALCHEMY            = 15,
-      NPC_TALENT_TAKEANIMALTROPHY   = 16,
-      NPC_TALENT_FOREIGNLANGUAGE    = 17,
-      NPC_TALENT_WISPDETECTOR       = 18,
-      NPC_TALENT_C                  = 19,
-      NPC_TALENT_D                  = 20,
-      NPC_TALENT_E                  = 21,
+      TALENT_UNKNOWN            = 0,
+      TALENT_1H                 = 1,
+      TALENT_2H                 = 2,
+      TALENT_BOW                = 3,
+      TALENT_CROSSBOW           = 4,
+      TALENT_PICKLOCK           = 5,
+      TALENT_MAGE               = 7,
+      TALENT_SNEAK              = 8,
+      TALENT_REGENERATE         = 9,
+      TALENT_FIREMASTER         = 10,
+      TALENT_ACROBAT            = 11,
+      TALENT_PICKPOCKET         = 12,
+      TALENT_SMITH              = 13,
+      TALENT_RUNES              = 14,
+      TALENT_ALCHEMY            = 15,
+      TALENT_TAKEANIMALTROPHY   = 16,
+      TALENT_FOREIGNLANGUAGE    = 17,
+      TALENT_WISPDETECTOR       = 18,
+      TALENT_C                  = 19,
+      TALENT_D                  = 20,
+      TALENT_E                  = 21,
 
-      NPC_TALENT_MAX                = 22
+      TALENT_MAX                = 22
       };
 
     enum Attribute : uint8_t {
@@ -170,7 +170,7 @@ class Npc final {
     Pose                           skInst;
 
     std::string                    name;
-    int32_t                        talents[NPC_TALENT_MAX]={};
+    int32_t                        talents[TALENT_MAX]={};
 
     std::vector<Routine>           routines;
 
