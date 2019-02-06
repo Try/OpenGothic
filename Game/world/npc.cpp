@@ -149,6 +149,48 @@ void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {
     talents[t] = lvl;
   }
 
+int32_t Npc::talentSkill(Npc::Talent t) const {
+  if(t<NPC_TALENT_MAX)
+    return talents[t];
+  return 0;
+  }
+
+int32_t Npc::attribute(Npc::Attribute a) const {
+  if(a<ATR_MAX)
+    return owner.vmNpc(hnpc).attribute[a];
+  return 0;
+  }
+
+int32_t Npc::protection(Npc::Protection p) const {
+  if(p<PROT_MAX)
+    return owner.vmNpc(hnpc).protection[p];
+  return 0;
+  }
+
+uint32_t Npc::guild() const {
+  return uint32_t(owner.vmNpc(hnpc).guild);
+  }
+
+int32_t Npc::magicCyrcle() const {
+  return talentSkill(NPC_TALENT_RUNES);
+  }
+
+int32_t Npc::level() const {
+  return owner.vmNpc(hnpc).level;
+  }
+
+int32_t Npc::experience() const {
+  return owner.vmNpc(hnpc).exp;
+  }
+
+int32_t Npc::experienceNext() const {
+  return owner.vmNpc(hnpc).exp_next;
+  }
+
+int32_t Npc::learningPoints() const {
+  return owner.vmNpc(hnpc).lp;
+  }
+
 void Npc::setToFistMode() {
   }
 

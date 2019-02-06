@@ -76,6 +76,16 @@ DaedalusGameState &WorldScript::getGameState() {
   return vm.getGameState();
   }
 
+Daedalus::PARSymbol &WorldScript::getSymbol(const char *s) {
+  return vm.getDATFile().getSymbolByName(s);
+  }
+
+Daedalus::GEngineClasses::C_Npc& WorldScript::vmNpc(Daedalus::GameState::NpcHandle handle) {
+  auto  hnpc      = ZMemory::handleCast<NpcHandle>(handle);
+  auto& npcData   = vm.getGameState().getNpc(hnpc);
+  return npcData;
+  }
+
 bool WorldScript::hasSymbolName(const std::string &fn) {
   return vm.getDATFile().hasSymbolName(fn);
   }

@@ -107,6 +107,10 @@ uint64_t World::tickCount() const {
   return vm ? vm->tickCount() : 0;
   }
 
+Daedalus::PARSymbol &World::getSymbol(const char *s) const {
+  return vm->getSymbol(s);
+  }
+
 int32_t World::runFunction(const std::string& fname, bool clearDataStack) {
   return vm->runFunction(fname,clearDataStack);
   }

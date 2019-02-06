@@ -50,6 +50,11 @@ void MenuRoot::popMenu() {
   menuStack.pop_back();
   }
 
+void MenuRoot::setPlayer(const Npc &pl) {
+  if(current!=nullptr)
+    current->setPlayer(pl);
+  }
+
 void MenuRoot::mouseDownEvent(MouseEvent& event) {
   if(current!=nullptr)
     current->onSelect(); else

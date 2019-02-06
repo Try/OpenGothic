@@ -111,17 +111,19 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
 void MainWindow::keyUpEvent(KeyEvent &event) {
   pressed[event.key]=false;
 
-  if(event.key==KeyEvent::K_ESCAPE) {
-    rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_MAIN"));
+  const char* menuEv=nullptr;
+
+  if(event.key==KeyEvent::K_ESCAPE)
+    menuEv="MENU_MAIN";
+  else if(event.key==KeyEvent::K_Back)
+    menuEv="MENU_LOG";
+  else if(event.key==KeyEvent::K_B)
+    menuEv="MENU_STATUS";
+  if(menuEv!=nullptr) {
+    rootMenu->setMenu(new GameMenu(*rootMenu,gothic,menuEv));
     rootMenu->setFocus(true);
-    }
-  else if(event.key==KeyEvent::K_Back) {
-    rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_LOG"));
-    rootMenu->setFocus(true);
-    }
-  else if(event.key==KeyEvent::K_B) {
-    rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_STATUS"));
-    rootMenu->setFocus(true);
+    if(auto pl = gothic.world().player())
+      rootMenu->setPlayer(*pl);
     }
   }
 

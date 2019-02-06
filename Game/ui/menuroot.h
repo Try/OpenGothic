@@ -4,6 +4,7 @@
 
 class Gothic;
 class GameMenu;
+class Npc;
 
 class MenuRoot : public Tempest::Widget {
   public:
@@ -13,6 +14,7 @@ class MenuRoot : public Tempest::Widget {
     void setMenu(GameMenu* w);
     void pushMenu(GameMenu* w);
     void popMenu();
+    void setPlayer(const Npc& pl);
 
   protected:
     void mouseDownEvent (Tempest::MouseEvent& event) override;

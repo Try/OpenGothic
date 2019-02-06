@@ -132,7 +132,7 @@ void PlayerControl::implMove(uint64_t dt) {
     float dY = (pos[1]-ground);
     if(dY<1)
       fallSpeed=0; else
-      fallSpeed+=(100*dt)/1000.f;
+      fallSpeed+=9.8f*(float(dt)/1000.f);
 
     if(dY>fallSpeed)
       dY=fallSpeed;

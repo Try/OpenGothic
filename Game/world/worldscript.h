@@ -1,6 +1,7 @@
 #pragma once
 
 #include <daedalus/DaedalusDialogManager.h>
+#include <daedalus/DaedalusStdlib.h>
 #include <daedalus/DaedalusVM.h>
 
 #include <memory>
@@ -32,6 +33,8 @@ class WorldScript final {
 
     const std::list<Daedalus::GameState::ItemHandle>& getInventoryOf(Daedalus::GameState::NpcHandle h);
     Daedalus::GameState::DaedalusGameState&           getGameState();
+    Daedalus::PARSymbol&                              getSymbol(const char* s);
+    Daedalus::GEngineClasses::C_Npc&                  vmNpc(Daedalus::GameState::NpcHandle handle);
 
   private:
     void               initCommon();

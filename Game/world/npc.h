@@ -61,6 +61,30 @@ class Npc final {
       NPC_TALENT_MAX                = 22
       };
 
+    enum Attribute : uint8_t {
+      ATR_HITPOINTS      = 0,
+      ATR_HITPOINTSMAX   = 1,
+      ATR_MANA           = 2,
+      ATR_MANAMAX        = 3,
+      ATR_STRENGTH       = 4,
+      ATR_DEXTERITY      = 5,
+      ATR_REGENERATEHP   = 6,
+      ATR_REGENERATEMANA = 7,
+      ATR_MAX
+      };
+
+    enum Protection : uint8_t {
+      PROT_BARRIER = 0,
+      PROT_BLUNT   = 1,
+      PROT_EDGE    = 2,
+      PROT_FIRE    = 3,
+      PROT_FLY     = 4,
+      PROT_MAGIC   = 5,
+      PROT_POINT   = 6,
+      PROT_FALL    = 7,
+      PROT_MAX     = 8
+      };
+
     Npc(WorldScript& owner,Daedalus::GameState::NpcHandle hnpc);
     Npc(const Npc&)=delete;
     ~Npc();
@@ -90,7 +114,18 @@ class Npc final {
     ZMath::float3 animMoveSpeed(Anim a, uint64_t dt) const;
     bool          isFlyAnim() const;
 
-    void setTalentSkill(Talent t,int32_t lvl);
+    void    setTalentSkill(Talent t,int32_t lvl);
+    int32_t talentSkill(Talent t) const;
+
+    int32_t attribute (Attribute a) const;
+    int32_t protection(Protection p) const;
+
+    uint32_t guild() const;
+    int32_t  magicCyrcle() const;
+    int32_t  level() const;
+    int32_t  experience() const;
+    int32_t  experienceNext() const;
+    int32_t  learningPoints() const;
 
     void setToFistMode ();
     void setToFightMode(const uint32_t item);

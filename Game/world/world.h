@@ -59,6 +59,8 @@ class World final {
     void tick(uint64_t dt);
     uint64_t tickCount() const;
 
+    Daedalus::PARSymbol& getSymbol(const char* s) const;
+
   private:
     std::string                           wname;
     Gothic*                               gothic=nullptr;

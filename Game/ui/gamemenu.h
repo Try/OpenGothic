@@ -10,19 +10,22 @@
 
 class Gothic;
 class MenuRoot;
+class Npc;
 
 class GameMenu : public Tempest::Widget {
   public:
     GameMenu(MenuRoot& owner, Gothic& gothic, const char *menuSection);
     ~GameMenu() override;
 
+    void setPlayer(const Npc& pl);
+
     void onMove(int dy);
     void onSelect();
     void onTick();
 
   protected:
-    void paintEvent(Tempest::PaintEvent& event) override;
-    void resizeEvent(Tempest::SizeEvent& event) override;
+    void paintEvent (Tempest::PaintEvent& event) override;
+    void resizeEvent(Tempest::SizeEvent&  event) override;
 
   private:
     Gothic&                               gothic;
@@ -41,6 +44,7 @@ class GameMenu : public Tempest::Widget {
     Tempest::Timer                        timer;
 
     struct Item {
+      std::string                         name;
       Daedalus::GameState::MenuItemHandle handle={};
       const Tempest::Texture2d*           img=nullptr;
 
@@ -52,9 +56,15 @@ class GameMenu : public Tempest::Widget {
     Item*                                 selectedItem();
     void                                  setSelection(int cur, int seek=1);
     void                                  initItems();
+    void                                  initValues();
     void                                  getText(const Daedalus::GEngineClasses::C_Menu_Item&,std::vector<char>& out);
     bool                                  isEnabled(const Daedalus::GEngineClasses::C_Menu_Item& item);
 
     void                                  exec(const Daedalus::GEngineClasses::C_Menu_Item& item);
     bool                                  exec(const std::string& action);
+
+    void                                  set(const char* item,const uint32_t value);
+    void                                  set(const char* item,const int32_t  value);
+    void                                  set(const char* item,const int32_t  value,const int32_t max);
+    void                                  set(const char* item,const char*    value);
   };

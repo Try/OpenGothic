@@ -50,6 +50,8 @@ GameMenu::GameMenu(MenuRoot &owner, Gothic &gothic, const char* menuSection)
     }
 
   setSelection(gothic.isInGame() ? menu.defaultInGame : menu.defaultOutGame);
+  initValues();
+
   gothic.pushPause();
   }
 
@@ -65,9 +67,10 @@ void GameMenu::initItems() {
     if(menu.items[i].empty())
       continue;
 
+    hItems[i].name   = menu.items[i];
     hItems[i].handle = vm->getGameState().createMenuItem();
     vm->initializeInstance(ZMemory::toBigHandle(hItems[i].handle),
-                           vm->getDATFile().getSymbolIndexByName(menu.items[i]),
+                           vm->getDATFile().getSymbolIndexByName(hItems[i].name),
                            Daedalus::IC_MenuItem);
     auto& item=hItems[i].get(*vm);
     hItems[i].img = Resources::loadTexture(item.backPic);
@@ -134,9 +137,16 @@ void GameMenu::paintEvent(PaintEvent &e) {
 
     if(flags & Daedalus::GEngineClasses::C_Menu_Item::IT_TXT_CENTER){
       Size sz = p.font().textSize(textBuf.data());
-      if(hItem.img && !hItem.img->isEmpty())
-        x = imgX+(imgW-sz.w)/2; else
+      if(hItem.img && !hItem.img->isEmpty()) {
+        x = imgX+(imgW-sz.w)/2;
+        }
+      else if(item.dimx!=-1 || item.dimy!=-1) {
+        const int szX = int(w()*item.dimx/scriptDiv);
+        // const int szY = int(h()*item.dimy/scriptDiv);
+        x = x+(szX-sz.w)/2;
+        } else {
         x = (w()-sz.w)/2;
+        }
       //y += sz.h/2;
       }
 
@@ -210,6 +220,7 @@ void GameMenu::setSelection(int desired,int seek) {
         }
       }
     }
+  curItem=uint32_t(-1);
   }
 
 Daedalus::GEngineClasses::C_Menu_Item &GameMenu::Item::get(Daedalus::DaedalusVM &vm) {
@@ -297,4 +308,58 @@ bool GameMenu::exec(const std::string &action) {
       return false;
       }
   return false;
+  }
+
+void GameMenu::set(const char *item, const uint32_t value) {
+  char buf[16]={};
+  std::snprintf(buf,sizeof(buf),"%u",value);
+  set(item,buf);
+  }
+
+void GameMenu::set(const char *item, const int32_t value) {
+  char buf[16]={};
+  std::snprintf(buf,sizeof(buf),"%d",value);
+  set(item,buf);
+  }
+
+void GameMenu::set(const char *item, const int32_t value, const int32_t max) {
+  char buf[32]={};
+  std::snprintf(buf,sizeof(buf),"%d/%d",value,max);
+  set(item,buf);
+  }
+
+void GameMenu::set(const char *item, const char *value) {
+  for(auto& i:hItems)
+    if(i.name==item) {
+      Daedalus::GEngineClasses::C_Menu_Item& item = i.get(*vm);
+      item.text[0]=value;
+      return;
+      }
+  }
+
+void GameMenu::initValues() {
+  set("MENU_ITEM_PLAYERGUILD","Debugger");
+  set("MENU_ITEM_LEVEL","0");
+  }
+
+void GameMenu::setPlayer(const Npc &pl) {
+  auto& sym = gothic.world().getSymbol("TXT_GUILDS");
+  set("MENU_ITEM_PLAYERGUILD",sym.getString(pl.guild()).c_str());
+
+  set("MENU_ITEM_TALENT_7_CIRCLE", pl.magicCyrcle());
+
+  set("MENU_ITEM_LEVEL",      pl.level());
+  set("MENU_ITEM_EXP",        pl.experience());
+  set("MENU_ITEM_LEVEL_NEXT", pl.experienceNext());
+  set("MENU_ITEM_LEARN",      pl.learningPoints());
+
+  set("MENU_ITEM_ATTRIBUTE_1", pl.attribute(Npc::ATR_STRENGTH));
+  set("MENU_ITEM_ATTRIBUTE_2", pl.attribute(Npc::ATR_DEXTERITY));
+  set("MENU_ITEM_ATTRIBUTE_3", pl.attribute(Npc::ATR_MANA),      pl.attribute(Npc::ATR_MANAMAX));
+  set("MENU_ITEM_ATTRIBUTE_4", pl.attribute(Npc::ATR_HITPOINTS), pl.attribute(Npc::ATR_HITPOINTSMAX));
+
+  set("MENU_ITEM_ARMOR_1", pl.protection(Npc::PROT_EDGE));
+  set("MENU_ITEM_ARMOR_2", pl.protection(Npc::PROT_POINT)); // not sure about it
+  set("MENU_ITEM_ARMOR_3", pl.protection(Npc::PROT_FIRE));
+  set("MENU_ITEM_ARMOR_4", pl.protection(Npc::PROT_MAGIC));
   }
