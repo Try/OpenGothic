@@ -1,3 +1,4 @@
+#include "interactive.h"
 #include "npc.h"
 
 #include <Tempest/Matrix4x4>
@@ -13,6 +14,8 @@ Npc::Npc(WorldScript &owner, Daedalus::GameState::NpcHandle hnpc)
   }
 
 Npc::~Npc(){
+  if(currentInteract)
+    currentInteract->dettach(*this);
   }
 
 void Npc::setView(StaticObjects::Mesh &&m) {
@@ -34,7 +37,10 @@ void Npc::setPosition(const std::array<float,3> &pos) {
   }
 
 void Npc::setDirection(float x, float /*y*/, float z) {
-  angle = 90+180.f*std::atan2(z,x)/float(M_PI);
+  if(x==0.f && z==0.f)
+    angle = -90; else
+    angle = 90+180.f*std::atan2(z,x)/float(M_PI);
+  //angle = -180+180.f*std::atan2(z,x)/float(M_PI);
   updatePos();
   }
 
@@ -49,6 +55,10 @@ std::array<float,3> Npc::position() const {
 
 float Npc::rotation() const {
   return angle;
+  }
+
+float Npc::translateY() const {
+  return skInst.translateY();
   }
 
 void Npc::updateAnimation() {
@@ -199,7 +209,7 @@ void Npc::setToFightMode(const uint32_t item) {
     addItem(item);
 
   equipItem(item);
-  drawWeaponMelee();
+  drawWeapon1H();
   }
 
 Daedalus::GameState::ItemHandle Npc::addItem(const uint32_t item, size_t count) {
@@ -220,7 +230,7 @@ void Npc::drawWeaponFist() {
     setAnim(current,WeaponState::Fist);
   }
 
-void Npc::drawWeaponMelee() {
+void Npc::drawWeapon1H() {
   if(weaponSt==W1H)
     closeWeapon(); else
     setAnim(current,WeaponState::W1H);
@@ -230,6 +240,29 @@ void Npc::drawWeapon2H() {
   if(weaponSt==W2H)
     closeWeapon(); else
     setAnim(current,WeaponState::W2H);
+  }
+
+void Npc::drawWeaponBow() {
+  if(weaponSt==Bow)
+    closeWeapon(); else
+    setAnim(current,WeaponState::Bow);
+  }
+
+void Npc::drawWeaponCBow() {
+  if(weaponSt==CBow)
+    closeWeapon(); else
+    setAnim(current,WeaponState::CBow);
+  }
+
+bool Npc::setInteraction(Interactive *id) {
+  if(currentInteract==id)
+    return false;
+  if(currentInteract)
+    currentInteract->dettach(*this);
+  currentInteract=id;
+  if(currentInteract)
+    return currentInteract->attach(*this);
+  return false;
   }
 
 void Npc::addRoutine(gtime s, gtime e, int32_t callback) {
@@ -281,106 +314,100 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
   if(skeleton==nullptr)
     return nullptr;
 
-  if(a==Anim::Idle && cur==a && st0==WeaponState::NoWeapon && st==WeaponState::W1H)
-    return skeleton->sequence("T_1H_2_1HRUN");
-  if(a==Anim::Idle && cur==a && st0==WeaponState::W1H && st==WeaponState::NoWeapon)
-    return skeleton->sequence("T_1HMOVE_2_MOVE");
-  if(a==Anim::Move && cur==a && st0==WeaponState::NoWeapon && st==WeaponState::W1H)
-    return skeleton->sequence("T_MOVE_2_1HMOVE");
-  if(a==Anim::Move && cur==a && st0==WeaponState::W1H && st==WeaponState::NoWeapon)
-    return skeleton->sequence("T_1HMOVE_2_MOVE");
+  if(st0==WeaponState::NoWeapon && st==WeaponState::W1H){
+    if(a==Anim::Idle && cur==a)
+      return skeleton->sequence("T_1H_2_1HRUN");
+    if(a==Anim::Move && cur==a)
+      return skeleton->sequence("T_MOVE_2_1HMOVE");
+    }
+  if(st0==WeaponState::W1H && st==WeaponState::NoWeapon){
+    if(a==Anim::Idle && cur==a)
+      return skeleton->sequence("T_1HMOVE_2_MOVE");
+    if(a==Anim::Move && cur==a)
+      return skeleton->sequence("T_1HMOVE_2_MOVE");
+    }
 
-  if(a==Anim::Idle && cur==a && st0==WeaponState::Fist && st==WeaponState::NoWeapon)
-    return skeleton->sequence("T_FISTMOVE_2_MOVE");
-  if(a==Anim::Idle && cur==a && st0==WeaponState::NoWeapon && st==WeaponState::Fist)
-    return nullptr;//skeleton->sequence("T_MOVE_2_FISTMOVE");
+  if(true) {
+    if(st0==WeaponState::Fist && st==WeaponState::NoWeapon)
+      return skeleton->sequence("T_FISTMOVE_2_MOVE");
+    if(st0==WeaponState::NoWeapon && st==WeaponState::Fist)
+      return solveAnim("S_%sRUN",st);
+    }
+
+  if(currentInteract!=nullptr) {
+    if(cur!=Interact && a==Interact)
+      return skeleton->sequence(currentInteract->anim(Interactive::In));
+    if(cur==Interact && a==Interact)
+      return skeleton->sequence(currentInteract->anim(Interactive::Active));
+    if(cur==Interact && a!=Interact)
+      return skeleton->sequence(currentInteract->anim(Interactive::Out));
+    }
+
+  if(cur==Anim::NoAnim && a==Idle)
+    return solveAnim("S_%sRUN",st);
+  if(cur==Anim::Idle && a==cur)
+    return solveAnim("S_%sRUN",st);
+  if(cur==Anim::Idle && a==Move)
+    return skeleton->sequence("T_RUN_2_RUNL");
+
+  if(a==Anim::RotL)
+    return solveAnim("T_%sRUNTURNL",st);
+  if(a==Anim::RotR)
+    return solveAnim("T_%sRUNTURNR",st);
+  if(a==Anim::MoveL)
+    return solveAnim("T_%sRUNSTRAFEL",st);
+  if(a==Anim::MoveR)
+    return solveAnim("T_%sRUNSTRAFER",st);
+  if(a==Anim::MoveBack)
+    return solveAnim("T_%sJUMPB",st);
+
+  if(cur==Anim::Move && a==cur)
+    return solveAnim("S_%sRUNL",st);
+  if(cur==Anim::Move && a==Idle)
+    return skeleton->sequence("T_RUNL_2_RUN");
+  if(cur==Anim::Move && a==Jump)
+    return skeleton->sequence("T_RUNL_2_JUMP");
+
+  /*
+  if(a==Anim::Chest)
+    return skeleton->sequence("T_CHESTSMALL_STAND_2_S0");
+  if(a==Anim::Sit)
+    return skeleton->sequence("S_BENCH_S1");
+  if(a==Anim::Lab)
+    return skeleton->sequence("S_LAB_S0");
+  */
 
   if(cur==Anim::Idle && a==Anim::Jump)
     return skeleton->sequence("T_STAND_2_JUMP");
-  if(cur==Anim::Move && a==Anim::Jump)
-    return skeleton->sequence("T_RUNL_2_JUMP");
   if(cur==Anim::Jump && a==Anim::Idle)
     return skeleton->sequence("T_JUMP_2_STAND");
-  if(cur==Anim::Jump && a==Anim::Move)
-    return skeleton->sequence("S_RUNL");
-  if(a==Anim::RotL)
-    return skeleton->sequence("T_RUNTURNL");
-  if(a==Anim::RotR)
-    return skeleton->sequence("T_RUNTURNR");
-  if(a==Anim::MoveBack)
-    return skeleton->sequence("T_JUMPB");
+  if(a==Anim::Jump)
+    return skeleton->sequence("S_JUMP");
 
-  char name[128]={};
-  auto old  = animName(cur,st0);
-  auto next = animName(a,st);
-
-  if(old==nullptr || old==next){
-    std::snprintf(name,sizeof(name),"S_%s",next);
-    if(auto ret=skeleton->sequence(name))
-      return ret;
-    } else {
-    std::snprintf(name,sizeof(name),"T_%s_2_%s",old,next);
-    if(auto ret=skeleton->sequence(name))
-      return ret;
-    //if(std::strcmp(name,"T_RUN_2_FISTRUN")==0)
-    //  return skeleton->sequence("T_MOVE_2_FISTMOVE"); //not exist in original game
-    }
-
-  // universal transition
-  std::snprintf(name,sizeof(name),"T_%s",next);
-  if(auto ret=skeleton->sequence(name))
-    return ret;
-
-  std::snprintf(name,sizeof(name),"S_%s",next);
-  return skeleton->sequence(name);
+  // FALLBACK
+  if(a==Anim::Move)
+    return solveAnim("S_%sRUNL",st);
+  if(a==Anim::Idle)
+    return solveAnim("S_%sRUN",st);
+  return nullptr;
   }
 
-const char *Npc::animName(Npc::Anim a,WeaponState st) const {
-  static const char* aniStd[] = {
-    nullptr,
-    "RUN",
-    "RUNL",
-    "JUMPB",
-    "RUNSTRAFEL",
-    "RUNSTRAFER",
-    "RUNTURNL",
-    "RUNTURNR",
-    "JUMP",
+const Animation::Sequence *Npc::solveAnim(const char *format, Npc::WeaponState st) const {
+  static const char* weapon[] = {
+    "",
     "FIST",
-    "1H", //_2_1HRUN",
-    "2H"  //_2_2HRUN"
+    "1H",
+    "2H",
+    "BOW",
+    "CBOW"
     };
-  static const char* aniFist[] = {
-    nullptr,
-    "FISTRUN",
-    "FISTRUNL",
-    "FISTJUMPB",
-    "FISTRUNSTRAFEL",
-    "FISTRUNSTRAFER",
-    "FISTRUNTURNL",
-    "FISTRUNTURNR",
-    "JUMP",
-    "FIST",
-    "1H", //_2_1HRUN",
-    "2H"  //_2_2HRUN"
-    };
-  static const char* ani1H[] = {
-    nullptr,
-    "1HRUN",
-    "1HRUNL",
-    "1HJUMPB",
-    "1HRUNSTRAFEL",
-    "1HRUNSTRAFER",
-    "1HRUNTURNL",
-    "1HRUNTURNR",
-    "JUMP",
-    "FIST",
-    "1H", //_2_1HRUN",
-    "2H"  //_2_2HRUN"
-    };
-  if(st==Fist)
-    return aniFist[a];
-  if(st==W1H)
-    return ani1H[a];
-  return aniStd[a];
+  char name[128]={};
+  std::snprintf(name,sizeof(name),format,weapon[st]);
+  if(auto ret=skeleton->sequence(name))
+    return ret;
+  std::snprintf(name,sizeof(name),format,"");
+  if(auto ret=skeleton->sequence(name))
+    return ret;
+  std::snprintf(name,sizeof(name),format,"FIST");
+  return skeleton->sequence(name);
   }

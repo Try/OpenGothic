@@ -52,6 +52,12 @@ void MainWindow::setupUi() {
   rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_MAIN"));
   }
 
+Interactive* MainWindow::findFocus() {
+  if(gothic.world().view())
+    return gothic.world().findFocus(camera.view(),w(),h());
+  return nullptr;
+  }
+
 void MainWindow::paintEvent(PaintEvent& event) {
   Painter p(event);
 
@@ -63,6 +69,31 @@ void MainWindow::paintEvent(PaintEvent& event) {
     p.drawRect((w()-background->w())/2,(h()-background->h())/2,
                background->w(),background->h(),
                0,0,background->w(),background->h());
+    }
+
+  if(gothic.world().view()){
+    auto vp = gothic.world().view()->viewProj(camera.view());
+    gothic.world().marchInteractives(p,vp,w(),h());
+    p.setBrush(Color(1.0));
+
+    auto item = findFocus();
+
+    if(item) {
+      auto pos = item->displayPosition();
+      vp.project(pos[0],pos[1],pos[2]);
+
+      int ix = int((0.5f*pos[0]+0.5f)*w());
+      int iy = int((0.5f*pos[1]+0.5f)*h());
+      p.setFont(Resources::font());
+      const char* txt = item->displayName();
+      auto tsize = p.font().textSize(txt);
+      ix-=tsize.w/2;
+      if(iy<tsize.h)
+        iy = tsize.h;
+      if(iy>h())
+        iy = h();
+      p.drawText(ix,iy,txt);
+      }
     }
 
   char fpsT[64]={};
@@ -119,6 +150,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     menuEv="MENU_LOG";
   else if(event.key==KeyEvent::K_B)
     menuEv="MENU_STATUS";
+
   if(menuEv!=nullptr) {
     rootMenu->setMenu(new GameMenu(*rootMenu,gothic,menuEv));
     rootMenu->setFocus(true);
@@ -137,17 +169,34 @@ void MainWindow::tick() {
 
   gothic.tick(dt);
 
+  if(mouseP[Event::ButtonLeft]){
+    auto item = findFocus();
+    if(item!=nullptr && player.interact(*item)) {
+      mouseP[Event::ButtonLeft]=false;
+      }
+    }
+  if(pressed[KeyEvent::K_F8])
+    player.marvinF8();
+
   if(pressed[KeyEvent::K_0]){
     player.drawFist();
     pressed[KeyEvent::K_0]=false;
     }
   if(pressed[KeyEvent::K_1]){
-    player.drawWeapon();
+    player.drawWeapon1H();
     pressed[KeyEvent::K_1]=false;
     }
   if(pressed[KeyEvent::K_2]){
-    player.drawWeapon2h();
+    player.drawWeapon2H();
     pressed[KeyEvent::K_2]=false;
+    }
+  if(pressed[KeyEvent::K_3]){
+    player.drawWeaponBow();
+    pressed[KeyEvent::K_3]=false;
+    }
+  if(pressed[KeyEvent::K_4]){
+    player.drawWeaponCBow();
+    pressed[KeyEvent::K_4]=false;
     }
 
   if(pressed[KeyEvent::K_Space]){

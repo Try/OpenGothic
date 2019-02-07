@@ -11,6 +11,7 @@
 #include <daedalus/DaedalusVM.h>
 
 class WorldScript;
+class Interactive;
 
 class Npc final {
   public:
@@ -24,6 +25,7 @@ class Npc final {
       RotL,
       RotR,
       Jump,
+      Interact,
       DrawFist,
       DrawWeapon1h
       };
@@ -32,7 +34,9 @@ class Npc final {
       NoWeapon,
       Fist,
       W1H,
-      W2H
+      W2H,
+      Bow,
+      CBow
       };
 
     enum Talent : uint8_t {
@@ -97,6 +101,7 @@ class Npc final {
 
     std::array<float,3> position() const;
     float               rotation() const;
+    float               translateY() const;
 
     void updateAnimation();
 
@@ -134,11 +139,16 @@ class Npc final {
     void equipItem     (const uint32_t item);
 
     void closeWeapon();
-    void drawWeaponMelee();
-    void drawWeapon2H();
     void drawWeaponFist();
+    void drawWeapon1H();
+    void drawWeapon2H();
+    void drawWeaponBow();
+    void drawWeaponCBow();
 
     WeaponState weaponState() const { return weaponSt; }
+
+    const Interactive* interactive() const { return currentInteract; }
+    bool  setInteraction(Interactive* id);
 
     void addRoutine(gtime s, gtime e, int32_t callback);
 
@@ -172,6 +182,7 @@ class Npc final {
     std::string                    name;
     int32_t                        talents[TALENT_MAX]={};
 
+    Interactive*                   currentInteract=nullptr;
     std::vector<Routine>           routines;
 
     const std::list<Daedalus::GameState::ItemHandle> &getItems();
@@ -181,5 +192,6 @@ class Npc final {
     void setPos(const Tempest::Matrix4x4& m);
     const Animation::Sequence*     solveAnim(Anim a) const;
     const Animation::Sequence*     solveAnim(Anim a, WeaponState st0, Anim cur, WeaponState st) const;
+    const Animation::Sequence*     solveAnim(const char* format, WeaponState st) const;
     const char*                    animName(Anim a, WeaponState st) const;
   };

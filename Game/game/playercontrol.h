@@ -3,6 +3,7 @@
 #include <array>
 
 class World;
+class Interactive;
 
 class PlayerControl final {
   public:
@@ -10,9 +11,12 @@ class PlayerControl final {
 
     void changeZoom(int delta);
 
+    bool interact(Interactive &it);
     void drawFist();
-    void drawWeapon();
-    void drawWeapon2h();
+    void drawWeapon1H();
+    void drawWeapon2H();
+    void drawWeaponBow();
+    void drawWeaponCBow();
     void drawWeaponMage();
     void action();
     void jump();
@@ -24,6 +28,8 @@ class PlayerControl final {
     void moveBack();
     void moveLeft();
     void moveRight();
+
+    void marvinF8();
 
     void setWorld(const World* w);
     bool tickMove(uint64_t dt);
@@ -44,6 +50,8 @@ class PlayerControl final {
       DrawFist,
       DrawWeapon1h,
       DrawWeapon2h,
+      DrawWeaponBow,
+      DrawWeaponCBow,
       DrawWeaponMage,
 
       Action,
@@ -51,11 +59,12 @@ class PlayerControl final {
       Last
       };
 
-    void         implMove(uint64_t dt);
-
     bool         ctrl[Control::Last]={};
     const World* world=nullptr;
     float        pSpeed=0;
     float        fallSpeed=0;
     float        mulSpeed=1.f;
+
+    void         implMove(uint64_t dt);
+    void         setPos(std::array<float,3> a,uint64_t dt);
   };

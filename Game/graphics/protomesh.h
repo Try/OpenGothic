@@ -44,6 +44,12 @@ class ProtoMesh {
       bool        hasNode=false;
       };
 
+    struct Pos {
+      std::string        name;
+      Tempest::Matrix4x4 transform;
+      size_t             node=0;
+      };
+
     // skinned
     std::vector<AnimMesh>          skined;
 
@@ -53,7 +59,9 @@ class ProtoMesh {
     std::vector<SubMeshId>         submeshId;
     size_t                         firstFreeAttach=0;
 
+    std::vector<Pos>               pos;
     std::array<float,3>            rootTr;
 
     size_t                         skinedNodesCount() const;
+    Tempest::Matrix4x4             mapToRoot(size_t node) const;
   };

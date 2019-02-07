@@ -9,6 +9,7 @@
 #include <daedalus/DaedalusDialogManager.h>
 
 #include <Tempest/Log>
+#include <Tempest/Painter>
 
 World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
   :wname(std::move(file)),gothic(&gothic) {
@@ -111,6 +112,74 @@ Daedalus::PARSymbol &World::getSymbol(const char *s) const {
   return vm->getSymbol(s);
   }
 
+Interactive *World::findFocus(const Npc &pl, const Tempest::Matrix4x4 &v, int w, int h) {
+  Interactive* ret=nullptr;
+  float rlen = w*h;
+  if(view()==nullptr)
+    return nullptr;
+
+  auto mvp = view()->viewProj(v);
+
+  for(auto& i:interactiveObj){
+    auto m = mvp;
+    m.mul(i.objMat);
+
+    auto pos = i.position();
+    float dx=pl.position()[0]-pos[0];
+    float dy=pl.position()[1]-pos[1];
+    float dz=pl.position()[2]-pos[2];
+
+    float l = std::sqrt(dx*dx+dy*dy+dz*dz);
+    if(l>250)
+      continue;
+
+    float x=0,y=0,z=0;
+    m.project(x,y,z);
+
+    if(z<0.f || z>1.f)
+      continue;
+
+    x = 0.5f*x*w;
+    y = 0.5f*y*h;
+
+    l = std::sqrt(x*x+y*y);
+    if(l<rlen){
+      rlen=l;
+      ret=&i;
+      }
+    }
+
+  return ret;
+  }
+
+Interactive *World::findFocus(const Tempest::Matrix4x4 &mvp, int w, int h) {
+  if(npcPlayer==nullptr)
+    return nullptr;
+  return findFocus(*npcPlayer,mvp,w,h);
+  }
+
+void World::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,
+                              int w,int h) const {
+  for(auto& i:interactiveObj){
+    auto m = mvp;
+    m.mul(i.objMat);
+
+    float x=0,y=0,z=0;
+    m.project(x,y,z);
+
+    if(z<0.f || z>1.f)
+      continue;
+
+    x = (0.5f*x+0.5f)*w;
+    y = (0.5f*y+0.5f)*h;
+
+    p.setBrush(Tempest::Color(1,1,1,1));
+    p.drawRect(int(x),int(y),1,1);
+
+    i.marchInteractives(p,mvp,w,h);
+    }
+  }
+
 int32_t World::runFunction(const std::string& fname, bool clearDataStack) {
   return vm->runFunction(fname,clearDataStack);
   }
@@ -128,14 +197,16 @@ void World::loadVob(const ZenLoad::zCVobData &vob) {
     loadVob(i);
 
   if(vob.objectClass=="zCVob" ||
-     vob.objectClass=="oCMobContainer:oCMobInter:oCMOB:zCVob"||
-     vob.objectClass=="oCMobInter:oCMOB:zCVob" ||
      vob.objectClass=="oCMOB:zCVob" ||
-     vob.objectClass=="oCMobDoor:oCMobInter:oCMOB:zCVob" ||
      vob.objectClass=="zCPFXControler:zCVob" ||
-     vob.objectClass=="oCMobFire:oCMobInter:oCMOB:zCVob" ||
-     vob.objectClass=="oCMobSwitch:oCMobInter:oCMOB:zCVob") {
+     vob.objectClass=="oCMobFire:oCMobInter:oCMOB:zCVob") {
     addStatic(vob);
+    }
+  else if(vob.objectClass=="oCMobInter:oCMOB:zCVob" ||
+          vob.objectClass=="oCMobContainer:oCMobInter:oCMOB:zCVob" ||
+          vob.objectClass=="oCMobDoor:oCMobInter:oCMOB:zCVob" ||
+          vob.objectClass=="oCMobSwitch:oCMobInter:oCMOB:zCVob"){
+    addInteractive(vob);
     }
   else if(vob.objectClass=="zCVobAnimate:zCVob"){ // ork flags
     addStatic(vob); //TODO: morph animation
@@ -200,4 +271,11 @@ void World::addStatic(const ZenLoad::zCVobData &vob) {
 
     staticObj.emplace_back(d);
     }
+  }
+
+void World::addInteractive(const ZenLoad::zCVobData &vob) {
+  Interactive d(*this,vob);
+
+  if(d.mesh)
+    interactiveObj.emplace_back(std::move(d));
   }

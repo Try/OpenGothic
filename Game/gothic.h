@@ -17,6 +17,7 @@ class Gothic final {
 
     void setWorld(std::unique_ptr<World> &&w);
     const World& world() const { return *wrld; }
+    World& world() { return *wrld; }
 
     void  pushPause();
     void  popPause();

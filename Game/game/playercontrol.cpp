@@ -7,16 +7,30 @@
 PlayerControl::PlayerControl() {
   }
 
+bool PlayerControl::interact(Interactive &it) {
+  if(world==nullptr || world->player()==nullptr)
+    return false;
+  return world->player()->setInteraction(&it);
+  }
+
 void PlayerControl::drawFist() {
   ctrl[DrawFist]=true;
   }
 
-void PlayerControl::drawWeapon() {
+void PlayerControl::drawWeapon1H() {
   ctrl[DrawWeapon1h]=true;
   }
 
-void PlayerControl::drawWeapon2h() {
+void PlayerControl::drawWeapon2H() {
   ctrl[DrawWeapon2h]=true;
+  }
+
+void PlayerControl::drawWeaponBow() {
+  ctrl[DrawWeaponBow]=true;
+  }
+
+void PlayerControl::drawWeaponCBow() {
+  ctrl[DrawWeaponCBow]=true;
   }
 
 void PlayerControl::drawWeaponMage() {
@@ -59,6 +73,16 @@ void PlayerControl::moveRight() {
   ctrl[Right]=true;
   }
 
+void PlayerControl::marvinF8() {
+  if(world==nullptr || world->player()==nullptr)
+    return;
+
+  auto& pl  = *world->player();
+  auto  pos = pl.position();
+  pos[1]+=100;
+  pl.setPosition(pos);
+  }
+
 bool PlayerControl::tickMove(uint64_t dt) {
   if(world==nullptr || world->player()==nullptr)
     return false;
@@ -69,7 +93,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
 
 void PlayerControl::implMove(uint64_t dt) {
   Npc&  pl = *world->player();
-  float rspeed=3.f;
+  float rspeed=90.f/1000.f;
 
   float k = float(M_PI/180.0), rot = pl.rotation();
   float s=std::sin(rot*k), c=std::cos(rot*k);
@@ -78,42 +102,59 @@ void PlayerControl::implMove(uint64_t dt) {
   Npc::Anim ani=Npc::Anim::Idle;
   float     dpos[2]={};
 
-  if(ctrl[DrawFist]){
-    pl.drawWeaponFist();
-    return;
-    }
-  if(ctrl[DrawWeapon1h]){
-    pl.drawWeaponMelee();
-    return;
-    }
-  if(ctrl[DrawWeapon2h]){
-    pl.drawWeapon2H();
-    return;
-    }
-
-  if(ctrl[RotateL] || ctrl[RotateR]){
-    if(ctrl[RotateL]) {
-      rot += rspeed;
-      ani = Npc::Anim::RotL;
+  if(pl.interactive()==nullptr) {
+    if(ctrl[DrawFist]){
+      pl.drawWeaponFist();
+      return;
       }
-    if(ctrl[RotateR]) {
-      rot -= rspeed;
-      ani = Npc::Anim::RotR;
+    if(ctrl[DrawWeapon1h]){
+      pl.drawWeapon1H();
+      return;
       }
-    }
+    if(ctrl[DrawWeapon2h]){
+      pl.drawWeapon2H();
+      return;
+      }
+    if(ctrl[DrawWeaponBow]){
+      pl.drawWeaponBow();
+      return;
+      }
+    if(ctrl[DrawWeaponCBow]){
+      pl.drawWeaponCBow();
+      return;
+      }
 
-  if(ctrl[Jump])
-    ani = Npc::Anim::Jump;
-  else if(ctrl[Forward])
-    ani = Npc::Anim::Move;
-  else if(ctrl[Back])
-    ani = Npc::Anim::MoveBack;
-  else if(ctrl[Left])
-    ani = Npc::Anim::MoveL;
-  else if(ctrl[Right])
-    ani = Npc::Anim::MoveR;
+    if(ctrl[RotateL] || ctrl[RotateR]){
+      if(ctrl[RotateL]) {
+        rot += rspeed*dt;
+        ani = Npc::Anim::RotL;
+        }
+      if(ctrl[RotateR]) {
+        rot -= rspeed*dt;
+        ani = Npc::Anim::RotR;
+        }
+      }
+
+    if(ctrl[Jump])
+      ani = Npc::Anim::Jump;
+    else if(ctrl[Forward])
+      ani = Npc::Anim::Move;
+    else if(ctrl[Back])
+      ani = Npc::Anim::MoveBack;
+    else if(ctrl[Left])
+      ani = Npc::Anim::MoveL;
+    else if(ctrl[Right])
+      ani = Npc::Anim::MoveR;
+    } else {
+    if(ctrl[Back]) {
+      ani = Npc::Anim::MoveBack;
+      pl.setInteraction(nullptr);
+      }
+    ani = Npc::Anim::Interact;
+    }
 
   pl.setAnim(ani);
+
   auto dp = pl.animMoveSpeed(pl.anim(),dt);
   dpos[0]=dp.x;
   dpos[1]=dp.z;
@@ -122,6 +163,15 @@ void PlayerControl::implMove(uint64_t dt) {
   pos[2]+=mulSpeed*(dpos[0]*s+dpos[1]*c);
 
   pSpeed = std::sqrt(dpos[0]*dpos[0]+dpos[1]*dpos[1]);
+  setPos(pos,dt);
+  pl.setDirection(rot);
+  }
+
+void PlayerControl::setPos(std::array<float,3> pos,uint64_t dt) {
+  if(world==nullptr || world->player()==nullptr)
+    return;
+
+  Npc& pl = *world->player();
 
   bool valid  = false;
   auto oldY   = pos[1];
@@ -141,5 +191,4 @@ void PlayerControl::implMove(uint64_t dt) {
 
   if(valid)
     pl.setPosition(pos);
-  pl.setDirection(rot);
   }

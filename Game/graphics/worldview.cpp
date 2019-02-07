@@ -18,12 +18,24 @@ WorldView::WorldView(const World &world, const RendererStorage &storage)
 
     objStatic.push_back(std::move(obj));
     }
+  for(auto& v:world.interactiveObj) {
+    obj = vobGroup.get(*v.mesh,0,0,0);
+    obj.setObjMatrix(v.objMat);
+
+    objStatic.push_back(std::move(obj));
+    }
   }
 
 void WorldView::initPipeline(uint32_t w, uint32_t h) {
   projective.perspective(45.0f, float(w)/float(h), 0.1f, 100.0f);
   //projective.translate(0,0,0.5f);
   nToUpdateCmd=true;
+  }
+
+Matrix4x4 WorldView::viewProj(const Matrix4x4 &view) const {
+  auto viewProj=projective;
+  viewProj.mul(view);
+  return viewProj;
   }
 
 void WorldView::updateCmd(const World &world) {
@@ -38,8 +50,7 @@ void WorldView::updateCmd(const World &world) {
   }
 
 void WorldView::updateUbo(const Matrix4x4& view,uint32_t imgId) {
-  auto viewProj=projective;
-  viewProj.mul(view);
+  auto viewProj=this->viewProj(view);
 
   sky     .setMatrix   (imgId,viewProj);
   land    .setMatrix   (imgId,viewProj);

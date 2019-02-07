@@ -153,8 +153,10 @@ void WorldScript::onInserNpc(Daedalus::GameState::NpcHandle handle,const std::st
     ptr->setName(npcData.name[0]);
 
   if(pos!=nullptr) {
-    ptr->setPosition(pos->position.x,pos->position.y,pos->position.z);
-    ptr->setDirection(pos->direction.x,pos->direction.y,pos->direction.z);
+    ptr->setPosition (pos->position.x,pos->position.y,pos->position.z);
+    ptr->setDirection(pos->direction.x,
+                      pos->direction.y,
+                      pos->direction.z);
     }
 
   npcArr.emplace_back(std::move(ptr));

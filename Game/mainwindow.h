@@ -24,12 +24,14 @@
 
 #include <vector>
 
+#include "world/world.h"
 #include "game/playercontrol.h"
 #include "graphics/renderer.h"
 #include "resources.h"
 
 class MenuRoot;
 class Gothic;
+class Interactive;
 
 class MainWindow : public Tempest::Window {
   public:
@@ -51,6 +53,7 @@ class MainWindow : public Tempest::Window {
     void setWorld(const std::string& name);
 
     void setupUi();
+    Interactive *findFocus();
 
     void render() override;
     void initSwapchain();

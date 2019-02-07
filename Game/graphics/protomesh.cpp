@@ -19,7 +19,7 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library) {
         n.attachId = r;
         break;
         }
-    n.parentId = (src.parentIndex==uint16_t(-1) ? size_t(-1) : 0);
+    n.parentId = (src.parentIndex==uint16_t(-1) ? size_t(-1) : src.parentIndex);
     std::memcpy(&n.transform,&src.transformLocal,sizeof(n.transform));
     }
 
@@ -82,6 +82,17 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library) {
     skined.emplace_back(pack);
     }
 
+  for(size_t i=0;i<library.getNodes().size();++i) {
+    auto& n=library.getNodes()[i];
+    if(n.name.find("ZS_POS")==0){
+      Pos p;
+      p.name = n.name;
+      p.node = i;
+      std::memcpy(&p.transform,&n.transformLocal,sizeof(p.transform));
+      pos.push_back(p);
+      }
+    }
+
   auto tr = library.getRootNodeTranslation();
   rootTr = {{tr.x,tr.y,tr.z}};
   }
@@ -114,4 +125,19 @@ size_t ProtoMesh::skinedNodesCount() const {
   for(auto& i:skined)
     ret+=i.sub.size();
   return ret;
+  }
+
+Tempest::Matrix4x4 ProtoMesh::mapToRoot(size_t n) const {
+  Tempest::Matrix4x4 m;
+  m.identity();
+
+  while(true){
+    auto& nx = nodes[n];
+    auto mx = nx.transform;
+    mx.mul(m);
+    m = mx;
+    if(nx.parentId>=nodes.size())
+      return m;
+    n = nx.parentId;
+    }
   }

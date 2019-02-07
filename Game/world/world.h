@@ -13,8 +13,9 @@
 #include "graphics/staticobjects.h"
 #include "physics/dynamicworld.h"
 #include "worldscript.h"
-#include "resources.h"
 #include "npc.h"
+#include "interactive.h"
+#include "resources.h"
 
 class Gothic;
 class RendererStorage;
@@ -42,7 +43,8 @@ class World final {
     const Tempest::VertexBuffer<Resources::Vertex>& landVbo()    const { return vbo; }
     const std::vector<Block>&                       landBlocks() const { return blocks; }
 
-    std::vector<Dodad> staticObj;
+    std::vector<Dodad>       staticObj;
+    std::vector<Interactive> interactiveObj;
 
     const ZenLoad::zCWaypointData* findPoint(const std::string& s) const { return findPoint(s.c_str()); }
     const ZenLoad::zCWaypointData* findPoint(const char* name) const;
@@ -61,6 +63,11 @@ class World final {
 
     Daedalus::PARSymbol& getSymbol(const char* s) const;
 
+    Interactive* findFocus(const Npc& pl,const Tempest::Matrix4x4 &mvp, int w, int h);
+    Interactive* findFocus(const Tempest::Matrix4x4 &mvp, int w, int h);
+
+    void marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
+
   private:
     std::string                           wname;
     Gothic*                               gothic=nullptr;
@@ -78,6 +85,7 @@ class World final {
 
     void    loadVob(const ZenLoad::zCVobData &vob);
     void    addStatic(const ZenLoad::zCVobData &vob);
+    void    addInteractive(const ZenLoad::zCVobData &vob);
 
     void    initScripts(bool firstTime);
     int32_t runFunction(const std::string &fname,bool clearDataStack);
