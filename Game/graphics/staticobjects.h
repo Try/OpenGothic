@@ -14,6 +14,7 @@
 #include "protomesh.h"
 #include "objectsbucket.h"
 #include "ubochain.h"
+#include "ubostorage.h"
 
 class RendererStorage;
 class Pose;
@@ -69,21 +70,24 @@ class StaticObjects final {
 
     struct UboSt final {
       Tempest::Matrix4x4 obj;
-      void setObj     (const Tempest::Matrix4x4& ob) { obj=ob; }
-      void setSkeleton(const Skeleton*){}
-      void setSkeleton(const Pose&    ){}
+      void setObjMatrix(const Tempest::Matrix4x4& ob) { obj=ob; }
+      void setSkeleton (const Skeleton*){}
+      void setSkeleton (const Pose&    ){}
       };
 
     struct UboDn final {
       Tempest::Matrix4x4 obj;
       Tempest::Matrix4x4 skel[Resources::MAX_NUM_SKELETAL_NODES];
 
-      void setObj     (const Tempest::Matrix4x4& ob) { obj=ob; }
-      void setSkeleton(const Skeleton* sk);
-      void setSkeleton(const Pose&      p);
+      void setObjMatrix(const Tempest::Matrix4x4& ob) { obj=ob; }
+      void setSkeleton (const Skeleton* sk);
+      void setSkeleton (const Pose&      p);
       };
 
-    const RendererStorage&          storage;
+    const RendererStorage&                  storage;
+
+    UboStorage<UboSt>                       storageSt;
+    UboStorage<UboDn>                       storageDn;
 
     std::list<ObjectsBucket<UboSt,Vertex >> chunksSt;
     std::list<ObjectsBucket<UboDn,VertexA>> chunksDn;

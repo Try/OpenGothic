@@ -93,7 +93,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
 
 void PlayerControl::implMove(uint64_t dt) {
   Npc&  pl = *world->player();
-  float rspeed=90.f/1000.f;
+  float rspeed =90.f/1000.f;
 
   float k = float(M_PI/180.0), rot = pl.rotation();
   float s=std::sin(rot*k), c=std::cos(rot*k);
@@ -171,7 +171,8 @@ void PlayerControl::setPos(std::array<float,3> pos,uint64_t dt) {
   if(world==nullptr || world->player()==nullptr)
     return;
 
-  Npc& pl = *world->player();
+  Npc&  pl = *world->player();
+  float gravity=2*9.8f;
 
   bool valid  = false;
   auto oldY   = pos[1];
@@ -182,7 +183,7 @@ void PlayerControl::setPos(std::array<float,3> pos,uint64_t dt) {
     float dY = (pos[1]-ground);
     if(dY<1)
       fallSpeed=0; else
-      fallSpeed+=9.8f*(float(dt)/1000.f);
+      fallSpeed+=gravity*(float(dt)/1000.f);
 
     if(dY>fallSpeed)
       dY=fallSpeed;

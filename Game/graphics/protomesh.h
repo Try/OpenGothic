@@ -60,7 +60,7 @@ class ProtoMesh {
     size_t                         firstFreeAttach=0;
 
     std::vector<Pos>               pos;
-    std::array<float,3>            rootTr;
+    std::array<float,3>            rootTr={};
 
     size_t                         skinedNodesCount() const;
     Tempest::Matrix4x4             mapToRoot(size_t node) const;

@@ -8,7 +8,7 @@
 #include "rendererstorage.h"
 
 StaticObjects::StaticObjects(const RendererStorage &storage)
-  :storage(storage),uboGlobalPf(storage.device) {
+  :storage(storage),storageSt(storage.device),storageDn(storage.device),uboGlobalPf(storage.device) {
   uboGlobal.modelView.identity();
   uboGlobal.lightDir={{1,1,-1}};
   float l=0;
@@ -38,7 +38,7 @@ ObjectsBucket<StaticObjects::UboSt,Resources::Vertex> &StaticObjects::getBucketS
     if(&i.texture()==mat)
       return i;
 
-  chunksSt.emplace_back(ObjectsBucket<UboSt,Resources::Vertex>(mat,storage.uboObjLayout(),device));
+  chunksSt.emplace_back(ObjectsBucket<UboSt,Resources::Vertex>(mat,storage.uboObjLayout(),device,storageSt));
   return chunksSt.back();
   }
 
@@ -49,7 +49,7 @@ ObjectsBucket<StaticObjects::UboDn,Resources::VertexA> &StaticObjects::getBucket
     if(&i.texture()==mat)
       return i;
 
-  chunksDn.emplace_back(ObjectsBucket<UboDn,Resources::VertexA>(mat,storage.uboObjLayout(),device));
+  chunksDn.emplace_back(ObjectsBucket<UboDn,Resources::VertexA>(mat,storage.uboObjLayout(),device,storageDn));
   return chunksDn.back();
   }
 
@@ -128,10 +128,8 @@ StaticObjects::Mesh StaticObjects::get(const ProtoMesh& mesh, int32_t texVar, in
   }
 
 void StaticObjects::updateUbo(uint32_t imgId) {
-  for(auto& i:chunksSt)
-    i.updateUbo(imgId);
-  for(auto& i:chunksDn)
-    i.updateUbo(imgId);
+  storageSt.updateUbo(imgId);
+  storageDn.updateUbo(imgId);
 
   uboGlobalPf.update(uboGlobal,imgId);
   }
@@ -139,36 +137,20 @@ void StaticObjects::updateUbo(uint32_t imgId) {
 void StaticObjects::commitUbo(uint32_t imgId) {
   auto& device=storage.device;
 
+  storageSt.commitUbo(device,imgId);
+  storageDn.commitUbo(device,imgId);
+
   for(auto& i:chunksSt){
-    auto& frame=i.pf[imgId];
-    if(!frame.uboChanged)
-      continue;
-    frame.uboChanged=false;
-
-    size_t sz = i.obj.byteSize();
-    if(frame.uboData.size()!=sz)
-      frame.uboData = device.loadUbo(i.obj.data(),sz); else
-      frame.uboData.update(i.obj.data(),0,sz);
-
-    frame.ubo.set(0,uboGlobalPf[imgId],0,sizeof(UboGlobal));
-    frame.ubo.set(1,frame.uboData,0,i.obj.elementSize());
-    frame.ubo.set(2,i.texture());
+    auto& ubo = i.getUbo(imgId);
+    ubo.set(0,uboGlobalPf[imgId],0,sizeof(UboGlobal));
+    ubo.set(1,storageSt[imgId],0,storageSt.elementSize());
+    ubo.set(2,i.texture());
     }
-
   for(auto& i:chunksDn){
-    auto& frame=i.pf[imgId];
-    if(!frame.uboChanged)
-      continue;
-    frame.uboChanged=false;
-
-    size_t sz = i.obj.byteSize();
-    if(frame.uboData.size()!=sz)
-      frame.uboData = device.loadUbo(i.obj.data(),sz); else
-      frame.uboData.update(i.obj.data(),0,sz);
-
-    frame.ubo.set(0,uboGlobalPf[imgId],0,sizeof(UboGlobal));
-    frame.ubo.set(1,frame.uboData,0,i.obj.elementSize());
-    frame.ubo.set(2,i.texture());
+    auto& ubo = i.getUbo(imgId);
+    ubo.set(0,uboGlobalPf[imgId],0,sizeof(UboGlobal));
+    ubo.set(1,storageDn[imgId],0,storageDn.elementSize());
+    ubo.set(2,i.texture());
     }
   }
 

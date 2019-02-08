@@ -6,15 +6,6 @@
 
 using namespace Tempest;
 
-void Pose::bind(const Skeleton *sk) {
-  skeleton = sk;
-
-  if(sk!=nullptr)
-    tr = sk->tr; else
-    tr.clear();
-  base = tr;
-  }
-
 static Matrix4x4 getMatrix(float x,float y,float z,float w,
                            float px,float py,float pz) {
   float m[4][4]={};
@@ -104,6 +95,15 @@ static ZenLoad::zCModelAniSample mix(const ZenLoad::zCModelAniSample& x,const Ze
   return r;
   }
 
+void Pose::bind(const Skeleton *sk) {
+  skeleton = sk;
+
+  if(sk!=nullptr)
+    tr = sk->tr; else
+    tr.clear();
+  base = tr;
+  }
+
 void Pose::update(const Animation::Sequence &s, uint64_t dt) {
   if(s.numFrames==0)
     return;
@@ -127,6 +127,10 @@ void Pose::update(const Animation::Sequence &s, uint64_t dt) {
 
   auto* sampleA = &s.samples[size_t(frameA*idSize)];
   auto* sampleB = &s.samples[size_t(frameB*idSize)];
+
+  for(size_t i=s.nodeIndex.size();i<base.size();++i){
+    base[i]=skeleton->nodes[i].tr;
+    }
 
   for(size_t i=0;i<idSize;++i) {
     auto  smp = mix(sampleA[i],sampleB[i],a);

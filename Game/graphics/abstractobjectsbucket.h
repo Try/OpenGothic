@@ -15,7 +15,7 @@ class Pose;
 
 class AbstractObjectsBucket {
   public:
-    AbstractObjectsBucket(Tempest::Device &device,const Tempest::UniformsLayout &layout);
+    AbstractObjectsBucket();
     AbstractObjectsBucket(AbstractObjectsBucket&&)=default;
     virtual ~AbstractObjectsBucket()=default;
 
@@ -46,28 +46,13 @@ class AbstractObjectsBucket {
         size_t                                id=0;
       };
 
-    struct PerFrame final {
-      Tempest::UniformBuffer uboData;
-      Tempest::Uniforms      ubo;
-      bool                   uboChanged=false; // invalidate ubo array
-      };
+    virtual size_t getNextId()=0;
+    virtual void   free(const size_t objId)=0;
 
-    std::unique_ptr<PerFrame[]> pf;
-
-    void                        free(const size_t objId);
+    virtual void   setObjMatrix(size_t i,const Tempest::Matrix4x4& m)=0;
+    virtual void   setSkeleton(size_t i,const Skeleton* sk)=0;
+    virtual void   setSkeleton(size_t i,const Pose& sk)=0;
 
   protected:
-
-    size_t                      getNextId();
-    void                        markAsChanged();
-
-    virtual size_t              storageSize() const=0;
-    virtual void                onResizeStorage(size_t sz)=0;
-    virtual void                setObjectMatrix(size_t id,const Tempest::Matrix4x4& m)=0;
-    virtual void                setSkeleton    (size_t id,const Skeleton* s)=0;
-    virtual void                setSkeleton    (size_t id,const Pose&     p)=0;
-
-  private:
-    std::vector<size_t>         freeList;
-    uint32_t                    pfSize=0;
+    virtual void markAsChanged()=0;
   };

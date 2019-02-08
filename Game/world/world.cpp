@@ -64,9 +64,10 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
   vm->initDialogs(gothic);
   initScripts(true);
 
+  const char* hero="PC_HERO";
   if(startPoints.size()>0)
-    npcPlayer = vm->inserNpc("PC_HERO",startPoints[0].wpName.c_str()); else
-    npcPlayer = vm->inserNpc("PC_HERO","START");
+    npcPlayer = vm->inserNpc(hero,startPoints[0].wpName.c_str()); else
+    npcPlayer = vm->inserNpc(hero,"START");
   }
 
 const ZenLoad::zCWaypointData *World::findPoint(const char *name) const {

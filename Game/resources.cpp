@@ -105,7 +105,7 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
   if(it!=aniMeshCache.end())
     return it->second.get();
 
-  if(name=="RMAKER_1.MDS")
+  if(name=="RMAKER_1.MDS")//"Sna_Body.MDM"
     Log::d("");
 
   try {

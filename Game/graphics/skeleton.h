@@ -21,7 +21,7 @@ class Skeleton final {
     std::vector<Node>               nodes;
     std::vector<size_t>             rootNodes;
     std::vector<Tempest::Matrix4x4> tr;
-    std::array<float,3>             rootTr;
+    std::array<float,3>             rootTr={};
 
     size_t                          findNode(const char*        name,size_t def=size_t(-1)) const;
     size_t                          findNode(const std::string& name,size_t def=size_t(-1)) const;

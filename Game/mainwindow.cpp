@@ -73,7 +73,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
 
   if(gothic.world().view()){
     auto vp = gothic.world().view()->viewProj(camera.view());
-    gothic.world().marchInteractives(p,vp,w(),h());
+    //gothic.world().marchInteractives(p,vp,w(),h());
     p.setBrush(Color(1.0));
 
     auto item = findFocus();
