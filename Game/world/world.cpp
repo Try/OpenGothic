@@ -91,6 +91,10 @@ StaticObjects::Mesh World::getView(const std::string &visual, int32_t headTex, i
   return view()->getView(visual,headTex,teetTex,bodyColor);
   }
 
+DynamicWorld::Item World::getPhysic() {
+  return physic()->ghostObj();
+  }
+
 void World::updateAnimation() {
   if(!vm)
     return;

@@ -27,13 +27,13 @@ WorldView::WorldView(const World &world, const RendererStorage &storage)
   }
 
 void WorldView::initPipeline(uint32_t w, uint32_t h) {
-  projective.perspective(45.0f, float(w)/float(h), 0.1f, 100.0f);
+  proj.perspective(45.0f, float(w)/float(h), 0.1f, 100.0f);
   //projective.translate(0,0,0.5f);
   nToUpdateCmd=true;
   }
 
 Matrix4x4 WorldView::viewProj(const Matrix4x4 &view) const {
-  auto viewProj=projective;
+  auto viewProj=proj;
   viewProj.mul(view);
   return viewProj;
   }

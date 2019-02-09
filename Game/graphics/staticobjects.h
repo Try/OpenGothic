@@ -35,6 +35,8 @@ class StaticObjects final {
         void setSkeleton(const Skeleton* sk,const char* defBone=nullptr);
         void setSkeleton(const Pose&      p,const Tempest::Matrix4x4& obj);
 
+        bool isEmpty() const { return subCount==0; }
+
       private:
         std::unique_ptr<Item[]> sub;
         size_t                  subCount=0;

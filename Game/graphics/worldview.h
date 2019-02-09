@@ -15,7 +15,8 @@ class WorldView {
     WorldView(const World &world,const RendererStorage& storage);
 
     void initPipeline(uint32_t w, uint32_t h);
-    Tempest::Matrix4x4 viewProj(const Tempest::Matrix4x4 &view) const;
+    Tempest::Matrix4x4  viewProj(const Tempest::Matrix4x4 &view) const;
+    const Tempest::Matrix4x4& projective() const { return proj; }
 
     void updateCmd(const World &world);
     void updateUbo(const Tempest::Matrix4x4 &view, uint32_t imgId);
@@ -32,7 +33,7 @@ class WorldView {
     StaticObjects           objGroup;
     bool                    nToUpdateCmd=true;
 
-    Tempest::Matrix4x4      projective;
+    Tempest::Matrix4x4      proj;
 
     std::vector<Tempest::CommandBuffer> cmdLand;
     std::vector<StaticObjects::Mesh>    objStatic;

@@ -1,8 +1,8 @@
-#include "interactive.h"
 #include "npc.h"
 
 #include <Tempest/Matrix4x4>
 
+#include "interactive.h"
 #include "graphics/skeleton.h"
 #include "worldscript.h"
 #include "resources.h"
@@ -67,8 +67,9 @@ void Npc::updateAnimation() {
     skInst.update(*animSq,dt);
 
     head  .setSkeleton(skInst,pos);
-    view  .setSkeleton(skInst,pos);
-    armour.setSkeleton(skInst,pos);
+    if(armour.isEmpty())
+      view  .setSkeleton(skInst,pos); else
+      armour.setSkeleton(skInst,pos);
     }
   }
 
@@ -83,8 +84,9 @@ void Npc::setVisual(const Skeleton* v) {
   current=NoAnim;
   setAnim(Anim::Idle);
 
-  head.setSkeleton(skeleton);
-  view.setSkeleton(skeleton);
+  head  .setSkeleton(skeleton);
+  view  .setSkeleton(skeleton);
+  armour.setSkeleton(skeleton);
   setPos(pos); // update obj matrix
   }
 
@@ -101,6 +103,10 @@ void Npc::setArmour(StaticObjects::Mesh &&a) {
   armour = std::move(a);
   armour.setSkeleton(skeleton);
   setPos(pos);
+  }
+
+void Npc::setPhysic(DynamicWorld::Item &&item) {
+  physic = std::move(item);
   }
 
 void Npc::setFatness(float) {
@@ -273,6 +279,17 @@ void Npc::addRoutine(gtime s, gtime e, int32_t callback) {
   routines.push_back(r);
   }
 
+Npc::MoveCode Npc::tryMove(const std::array<float,3> &pos,
+                           std::array<float,3> &fallback,
+                           float speed) {
+  if(physic.tryMove(pos,fallback,speed))
+    return MV_OK;
+  std::array<float,3> tmp;
+  if(physic.tryMove(fallback,tmp,speed))
+    return MV_CORRECT;
+  return MV_FAILED;
+  }
+
 const std::list<Daedalus::GameState::ItemHandle>& Npc::getItems() {
   return owner.getInventoryOf(hnpc);
   }
@@ -301,9 +318,14 @@ void Npc::updatePos() {
 
 void Npc::setPos(const Matrix4x4 &m) {
   pos = m;
-  view  .setObjMatrix(pos);
   head  .setObjMatrix(pos);
-  armour.setObjMatrix(pos);
+  if(armour.isEmpty()) {
+    view  .setObjMatrix(pos);
+    } else {
+    armour.setObjMatrix(pos);
+    view  .setObjMatrix(Matrix4x4());
+    }
+  physic.setPosition(x,y,z);
   }
 
 const Animation::Sequence *Npc::solveAnim(Npc::Anim a) const {

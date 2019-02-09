@@ -4,6 +4,7 @@
 #include "graphics/pose.h"
 #include "graphics/animation.h"
 #include "game/gametime.h"
+#include "physics/dynamicworld.h"
 
 #include <cstdint>
 #include <string>
@@ -15,6 +16,12 @@ class Interactive;
 
 class Npc final {
   public:
+    enum MoveCode : uint8_t {
+      MV_FAILED,
+      MV_OK,
+      MV_CORRECT
+      };
+
     enum Anim : uint16_t {
       NoAnim,
       Idle,
@@ -89,7 +96,7 @@ class Npc final {
       PROT_MAX     = 8
       };
 
-    Npc(WorldScript& owner,Daedalus::GameState::NpcHandle hnpc);
+    Npc(WorldScript &owner, Daedalus::GameState::NpcHandle hnpc);
     Npc(const Npc&)=delete;
     ~Npc();
 
@@ -109,6 +116,7 @@ class Npc final {
     void setVisual    (const Skeleton *visual);
     void setVisualBody(StaticObjects::Mesh &&head,StaticObjects::Mesh&& body);
     void setArmour    (StaticObjects::Mesh&& body);
+    void setPhysic    (DynamicWorld::Item&& item);
     void setFatness   (float f);
     void setOverlay   (const std::string &name, float time);
     void setScale     (float x,float y,float z);
@@ -152,6 +160,9 @@ class Npc final {
 
     void addRoutine(gtime s, gtime e, int32_t callback);
 
+    MoveCode tryMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
+    bool     hasCollision() const { return physic.hasCollision(); }
+
   private:
     struct Routine final {
       gtime   start;
@@ -171,6 +182,7 @@ class Npc final {
     StaticObjects::Mesh            head;
     StaticObjects::Mesh            view;
     StaticObjects::Mesh            armour;
+    DynamicWorld::Item             physic;
 
     const Skeleton*                skeleton=nullptr;
     const Animation::Sequence*     animSq  =nullptr;

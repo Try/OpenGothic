@@ -54,6 +54,7 @@ class World final {
 
     StaticObjects::Mesh getView(const std::string& visual);
     StaticObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor);
+    DynamicWorld::Item  getPhysic();
 
     void updateAnimation();
     Npc* player() const { return npcPlayer; }

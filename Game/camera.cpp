@@ -67,11 +67,15 @@ Matrix4x4 Camera::view() const {
   if(world==nullptr)
     return mkView(dist);
 
-  Matrix4x4 view=mkView(dist);
+  const auto proj = world->view()->projective();
+
+  Matrix4x4 view=proj;//mkView(dist);
+  view.mul(mkView(dist));
+
   Matrix4x4 vinv=view;
   vinv.inverse();
 
-  std::array<float,3> r0={0,0,0.35f};
+  std::array<float,3> r0={0,0,0.65f};
   std::array<float,3> r1={0,0,0};
 
   vinv.project(r0[0],r0[1],r0[2]);

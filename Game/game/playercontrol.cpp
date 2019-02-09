@@ -163,20 +163,28 @@ void PlayerControl::implMove(uint64_t dt) {
   pos[2]+=mulSpeed*(dpos[0]*s+dpos[1]*c);
 
   pSpeed = std::sqrt(dpos[0]*dpos[0]+dpos[1]*dpos[1]);
-  setPos(pos,dt);
+  setPos(pos,dt,pSpeed);
   pl.setDirection(rot);
   }
 
-void PlayerControl::setPos(std::array<float,3> pos,uint64_t dt) {
+void PlayerControl::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
   if(world==nullptr || world->player()==nullptr)
     return;
 
   Npc&  pl = *world->player();
   float gravity=2*9.8f;
 
+  std::array<float,3> fb;
+  switch(pl.tryMove(pos,fb,speed)){
+    case Npc::MV_FAILED: return;
+    case Npc::MV_CORRECT: pos=fb; break;
+    case Npc::MV_OK: break;
+    }
+
   bool valid  = false;
   auto oldY   = pos[1];
   auto ground = world->physic()->dropRay(pos[0],pos[1],pos[2],valid);
+
   if(oldY>pos[1] && pl.isFlyAnim()) {
     pos[1]=oldY;
     } else {

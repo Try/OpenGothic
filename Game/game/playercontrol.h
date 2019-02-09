@@ -66,5 +66,5 @@ class PlayerControl final {
     float        mulSpeed=1.f;
 
     void         implMove(uint64_t dt);
-    void         setPos(std::array<float,3> a,uint64_t dt);
+    void         setPos(std::array<float,3> a, uint64_t dt, float speed);
   };

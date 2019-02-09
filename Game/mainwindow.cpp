@@ -97,10 +97,14 @@ void MainWindow::paintEvent(PaintEvent& event) {
     }
 
   char fpsT[64]={};
-  std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f",fps.get());
+  const char* info="";
+  if(gothic.world().player()->hasCollision())
+    info="[c]";
+  std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %s",fps.get(),info);
 
   p.setFont(Resources::menuFont());
   p.drawText(5,30,fpsT);
+
   }
 
 void MainWindow::resizeEvent(SizeEvent&) {
@@ -167,6 +171,8 @@ void MainWindow::tick() {
   if(gothic.isPause())
     return;
 
+  if(dt>100)
+    dt=100;
   gothic.tick(dt);
 
   if(mouseP[Event::ButtonLeft]){
