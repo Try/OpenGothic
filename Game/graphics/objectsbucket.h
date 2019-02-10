@@ -46,6 +46,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
     std::unique_ptr<PerFrame[]> pf;
 
     std::vector<NonUbo>         data;
+    std::vector<NonUbo*>        index;
     std::vector<size_t>         freeList;
 
     Ubo&                        element(size_t i);
@@ -116,8 +117,16 @@ void ObjectsBucket<Ubo,Vertex>::markAsChanged() {
 template<class Ubo,class Vertex>
 void ObjectsBucket<Ubo,Vertex>::draw(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) {
   auto& frame = pf[imgId];
-  for(size_t i=0;i<data.size();++i){
-    auto&    di     = data[i];
+  index.resize(data.size());
+  for(size_t i=0;i<index.size();++i)
+    index[i]=&data[i];
+
+  std::sort(index.begin(),index.end(),[](const NonUbo* a,const NonUbo* b){
+    return a->ibo<b->ibo;
+    });
+
+  for(size_t i=0;i<index.size();++i){
+    auto&    di     = *index[i];
     uint32_t offset = di.ubo*uStorage.elementSize();
 
     cmd.setUniforms(pipeline,frame.ubo,1,&offset);
