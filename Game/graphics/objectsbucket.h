@@ -96,6 +96,8 @@ size_t ObjectsBucket<Ubo,Vertex>::alloc(const Tempest::VertexBuffer<Vertex>  &vb
 template<class Ubo, class Vertex>
 void ObjectsBucket<Ubo,Vertex>::free(size_t i) {
   auto id = data[i].ubo;
+  if(id==size_t(-1))
+    assert(0 && "double free!");
   data[i] = NonUbo();
   uStorage.free(id);
   freeList.push_back(i);

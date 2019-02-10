@@ -42,6 +42,7 @@ class Animation final {
       ZenLoad::zCModelAniSample              moveTr={};
 
       ZMath::float3                          speed(uint64_t at, uint64_t dt) const;
+      float                                  translateY(uint64_t at) const;
 
       private:
         void setupMoveTr();

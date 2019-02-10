@@ -8,6 +8,12 @@
 using namespace Tempest;
 using namespace Daedalus::GameState;
 
+static std::string addExt(const std::string& s,const char* ext){
+  if(s.size()>0 && s.back()=='.')
+    return s+&ext[1];
+  return s+ext;
+  }
+
 WorldScript::WorldScript(World &owner, Gothic& gothic, const char *world)
   :vm(gothic.path()+world),owner(owner){
   Daedalus::registerGothicEngineClasses(vm);
@@ -307,8 +313,8 @@ void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
   uint32_t    self         = vm.popVar(arr_self);
 
   auto& npc   = getNpcById(self);
-  auto  vhead = head.empty() ? StaticObjects::Mesh() : owner.getView(head+".MMB",headTexNr,teethTexNr,bodyTexColor);
-  auto  vbody = body.empty() ? StaticObjects::Mesh() : owner.getView(body+".MDM",bodyTexNr,0,bodyTexColor);
+  auto  vhead = head.empty() ? StaticObjects::Mesh() : owner.getView(addExt(head,".MMB"),headTexNr,teethTexNr,bodyTexColor);
+  auto  vbody = body.empty() ? StaticObjects::Mesh() : owner.getView(addExt(body,".MDM"),bodyTexNr,0,bodyTexColor);
 
   npc.setVisualBody(std::move(vhead),std::move(vbody));
   npc.setPhysic(owner.getPhysic());

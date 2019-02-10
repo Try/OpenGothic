@@ -38,10 +38,13 @@ class Sky final {
   private:
     struct UboGlobal {
       Tempest::Matrix4x4 mvp;
-      float              dxy[2]={};
+      float              color[4]={};
+      float              dxy0[2]={};
+      float              dxy1[2]={};
       };
 
     static std::array<float,3>    mkColor(uint8_t r,uint8_t g,uint8_t b);
+    const Tempest::Texture2d*     skyTexture(const char* name, bool day, size_t id);
 
     const RendererStorage&        storage;
     UboGlobal                     uboCpu;

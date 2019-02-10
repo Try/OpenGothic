@@ -62,6 +62,10 @@ Resources::~Resources() {
   inst=nullptr;
   }
 
+const Texture2d *Resources::fallbackTexture() {
+  return &inst->fallback;
+  }
+
 VDFS::FileIndex& Resources::vdfsIndex() {
   return inst->gothicAssets;
   }
@@ -80,7 +84,7 @@ Tempest::Texture2d* Resources::implLoadTexture(const std::string& name) {
 
   std::vector<uint8_t> data=getFileData(name);
   if(data.empty())
-    return &fallback;
+    return nullptr;
 
   try {
     Tempest::MemReader rd(data.data(),data.size());
@@ -195,7 +199,7 @@ const Tempest::Texture2d* Resources::loadTexture(const std::string &name) {
   }
 
 const Texture2d *Resources::loadTexture(const std::string &name, int32_t iv, int32_t ic) {
-  if(name.size()>=128)
+  if(name.size()>=128 || (iv==0 && ic==0))
     return loadTexture(name);
 
   char v[16]={};

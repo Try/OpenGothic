@@ -94,7 +94,7 @@ std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, fl
   }
 
 float DynamicWorld::dropRay(float x, float y, float z, bool &hasCol) const {
-  return ray(x,y+150,z, x,y-20000,z,hasCol)[1];
+  return ray(x,y+50,z, x,y-20000,z,hasCol)[1];
   }
 
 std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, float y1, float z1, bool &hasCol) const {

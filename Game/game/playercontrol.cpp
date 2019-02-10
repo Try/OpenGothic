@@ -100,7 +100,7 @@ void PlayerControl::implMove(uint64_t dt) {
 
   auto      pos=pl.position();
   Npc::Anim ani=Npc::Anim::Idle;
-  float     dpos[2]={};
+  float     dpos[3]={};
 
   if(pl.interactive()==nullptr) {
     if(ctrl[DrawFist]){
@@ -157,12 +157,15 @@ void PlayerControl::implMove(uint64_t dt) {
 
   auto dp = pl.animMoveSpeed(pl.anim(),dt);
   dpos[0]=dp.x;
-  dpos[1]=dp.z;
+  dpos[1]=dp.y;
+  dpos[2]=dp.z;
 
-  pos[0]+=mulSpeed*(dpos[0]*c-dpos[1]*s);
-  pos[2]+=mulSpeed*(dpos[0]*s+dpos[1]*c);
+  pos[0]+=mulSpeed*(dpos[0]*c-dpos[2]*s);
+  pos[2]+=mulSpeed*(dpos[0]*s+dpos[2]*c);
+  if(pl.isFlyAnim())
+    ;//pos[1]+=dpos[1];
 
-  pSpeed = std::sqrt(dpos[0]*dpos[0]+dpos[1]*dpos[1]);
+  pSpeed = std::sqrt(dpos[0]*dpos[0]+dpos[2]*dpos[2]);
   setPos(pos,dt,pSpeed);
   pl.setDirection(rot);
   }
@@ -172,32 +175,47 @@ void PlayerControl::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
     return;
 
   Npc&  pl = *world->player();
-  float gravity=2*9.8f;
+  float gravity=3*9.8f;
 
   std::array<float,3> fb;
   switch(pl.tryMove(pos,fb,speed)){
-    case Npc::MV_FAILED: return;
+    case Npc::MV_FAILED:  pos=pl.position(); break;
     case Npc::MV_CORRECT: pos=fb; break;
     case Npc::MV_OK: break;
     }
+  pl.setPosition(pos);
 
-  bool valid  = false;
-  auto oldY   = pos[1];
-  auto ground = world->physic()->dropRay(pos[0],pos[1],pos[2],valid);
+  bool valid   = false;
+  bool fallAni = false;
+  auto oldY    = pos[1];
+  auto ground  = world->physic()->dropRay(pos[0],pos[1],pos[2],valid);
 
-  if(oldY>pos[1] && pl.isFlyAnim()) {
-    pos[1]=oldY;
+  if(pl.isFlyAnim()) {
+    if(oldY>ground)
+      pos[1]=oldY; else
+      pos[1]=ground;
     } else {
     float dY = (pos[1]-ground);
-    if(dY<1)
-      fallSpeed=0; else
+    if(dY<1) {
+      fallSpeed=0;
+      } else {
       fallSpeed+=gravity*(float(dt)/1000.f);
-
+      }
+    if(dY>45)
+      fallAni=true;
     if(dY>fallSpeed)
       dY=fallSpeed;
     pos[1]-=dY;
     }
 
-  if(valid)
-    pl.setPosition(pos);
+  switch(pl.tryMove(pos,fb,speed)) {
+    case Npc::MV_CORRECT:
+    case Npc::MV_OK:
+      pl.setPosition(fb);
+      if(fallAni)
+        pl.setAnim(Npc::Fall);
+      break;
+    case Npc::MV_FAILED:
+      break;
+    }
   }

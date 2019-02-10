@@ -158,7 +158,7 @@ bool Animation::Sequence::isFinished(uint64_t t) const {
   return t>=allTime;
   }
 
-ZMath::float3 Animation::Sequence::speed(uint64_t /*at*/,uint64_t dt) const {
+ZMath::float3 Animation::Sequence::speed(uint64_t at,uint64_t dt) const {
   float allTime=numFrames*1000/fpsRate;
   float k = -(dt/allTime);
 
@@ -167,7 +167,40 @@ ZMath::float3 Animation::Sequence::speed(uint64_t /*at*/,uint64_t dt) const {
   f.y = moveTr.position.y*k;
   f.z = moveTr.position.z*k;
 
+  f.y = translateY(at)-translateY(at-dt);
+
   return f;
+  }
+
+float Animation::Sequence::translateY(uint64_t at) const {
+  if(numFrames==0)
+    return 0.f;
+
+  uint64_t fr     = uint64_t(fpsRate*at);
+  float    a      = (fr%1000)/1000.f;
+  uint64_t frameA = (fr/1000  );
+  uint64_t frameB = (fr/1000+1);
+
+  if(animCls==Animation::Loop){
+    frameA%=numFrames;
+    frameB%=numFrames;
+    } else {
+    frameA = std::min<uint64_t>(frameA,numFrames-1);
+    frameB = std::min<uint64_t>(frameB,numFrames-1);
+    }
+
+  const size_t idSize=nodeIndex.size();
+  if(idSize==0 || samples.size()%idSize!=0)
+    return 0.0;
+
+  auto* sampleA = &samples[size_t(frameA*idSize)];
+  auto* sampleB = &samples[size_t(frameB*idSize)];
+
+  float pos = sampleA->position.y+(sampleB->position.y-sampleA->position.y)*a;
+
+  auto& sample0 = samples[0].position;
+
+  return pos-sample0.y;
   }
 
 void Animation::Sequence::setupMoveTr() {

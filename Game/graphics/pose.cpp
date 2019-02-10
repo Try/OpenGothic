@@ -143,7 +143,7 @@ void Pose::update(const Animation::Sequence &s, uint64_t dt) {
   mkSkeleton(s);
   }
 
-void Pose::mkSkeleton(const Animation::Sequence &) {
+void Pose::mkSkeleton(const Animation::Sequence &s) {
   Matrix4x4 m;
   m.identity();
   if(base.size()) {
@@ -155,7 +155,9 @@ void Pose::mkSkeleton(const Animation::Sequence &) {
     float dy=b0.at(3,1);
     float dz=b0.at(3,2);
     trY=dy;
-    m.translate(-dx,0,-dz);
+    if(!s.isFly())
+      dy=0;
+    m.translate(-dx,-0,-dz);
     } else {
     trY=0;
     }

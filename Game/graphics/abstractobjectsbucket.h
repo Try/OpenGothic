@@ -26,6 +26,7 @@ class AbstractObjectsBucket {
           :owner(&owner),id(id){}
         Item(Item&& obj):owner(obj.owner),id(obj.id){
           obj.owner=nullptr;
+          obj.id   =0;
           }
         Item& operator=(Item&& obj) {
           std::swap(obj.owner,owner);

@@ -45,7 +45,9 @@ void Landscape::draw(Tempest::CommandBuffer &cmd, uint32_t frameId,const World& 
       ubo.set(1,*lnd.texture);
 
       uint32_t offset=0;
-      cmd.setUniforms(storage.pLand,ubo,1,&offset);
+      if(lnd.alpha)
+        cmd.setUniforms(storage.pLandAlpha,ubo,1,&offset); else
+        cmd.setUniforms(storage.pLand,ubo,1,&offset);
       }
     cmd.draw(world.landVbo(),lnd.ibo);
     }

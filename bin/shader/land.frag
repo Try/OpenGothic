@@ -11,7 +11,7 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
   vec4 color = texture(textureD,inUV)*vec4(inColor);
-  if(color.a<0.5)
+  if(color.a<0.25)
     discard;
-  return color;
+  outColor = color;
   }

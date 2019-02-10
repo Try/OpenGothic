@@ -33,12 +33,19 @@ RendererStorage::RendererStorage(Tempest::Device &device)
 
   layoutSky.add(0,Tempest::UniformsLayout::UboDyn, Tempest::UniformsLayout::Fragment);
   layoutSky.add(1,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
+  layoutSky.add(2,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
   }
 
 void RendererStorage::initPipeline(Tempest::RenderPass &pass, uint32_t w, uint32_t h) {
   if((pLand.w()==w && pLand.h()==h) || w==0 || h==0)
     return;
   renderPass=&pass;
+
+  RenderState stateAlpha;
+  stateAlpha.setBlendSource (RenderState::BlendMode::src_alpha);
+  stateAlpha.setBlendDest   (RenderState::BlendMode::one_minus_src_alpha);
+  stateAlpha.setZTestMode   (RenderState::ZTestMode::Less);
+  stateAlpha.setCullFaceMode(RenderState::CullMode::Front);
 
   RenderState stateObj;
   stateObj.setZTestMode   (RenderState::ZTestMode::Less);
@@ -52,7 +59,9 @@ void RendererStorage::initPipeline(Tempest::RenderPass &pass, uint32_t w, uint32
   stateSky.setZTestMode   (RenderState::ZTestMode::Always);
   stateSky.setCullFaceMode(RenderState::CullMode::Front);
 
-  pLand   = device.pipeline<Resources::Vertex>   (pass,w,h,Triangles,stateLnd,layoutLnd,vsLand,  fsLand  );
+  pLandAlpha = device.pipeline<Resources::Vertex>   (pass,w,h,Triangles,stateAlpha,layoutLnd,vsLand,  fsLand  );
+  pLand      = device.pipeline<Resources::Vertex>   (pass,w,h,Triangles,stateLnd,  layoutLnd,vsLand,  fsLand  );
+
   pObject = device.pipeline<Resources::Vertex>   (pass,w,h,Triangles,stateObj,layoutObj,vsObject,fsObject);
   pAnim   = device.pipeline<Resources::VertexA>  (pass,w,h,Triangles,stateObj,layoutAni,vsAni,   fsAni   );
   pSky    = device.pipeline<Resources::VertexFsq>(pass,w,h,Triangles,stateSky,layoutSky,vsSky,   fsSky   );

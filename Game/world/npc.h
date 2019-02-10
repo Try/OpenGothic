@@ -32,6 +32,7 @@ class Npc final {
       RotL,
       RotR,
       Jump,
+      Fall,
       Interact,
       DrawFist,
       DrawWeapon1h

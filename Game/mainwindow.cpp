@@ -98,7 +98,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
 
   char fpsT[64]={};
   const char* info="";
-  if(gothic.world().player()->hasCollision())
+  if(gothic.world().player() && gothic.world().player()->hasCollision())
     info="[c]";
   std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %s",fps.get(),info);
 

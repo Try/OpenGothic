@@ -12,7 +12,7 @@ class RendererStorage {
     void initPipeline(Tempest::RenderPass &pass, uint32_t w, uint32_t h);
 
     Tempest::Device&        device;
-    Tempest::RenderPipeline pLand, pObject, pAnim, pSky;
+    Tempest::RenderPipeline pLand, pLandAlpha, pObject, pAnim, pSky;
 
     const Tempest::RenderPass&     pass()         const { return *renderPass; }
     const Tempest::UniformsLayout& uboObjLayout() const { return layoutObj; }

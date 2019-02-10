@@ -30,6 +30,7 @@ class World final {
     struct Block {
       const Tempest::Texture2d*      texture = nullptr;
       Tempest::IndexBuffer<uint32_t> ibo;
+      bool                           alpha=false;
       };
 
     struct Dodad {

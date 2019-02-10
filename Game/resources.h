@@ -23,6 +23,14 @@ class Resources {
     explicit Resources(Gothic& gothic,Tempest::Device& device);
     ~Resources();
 
+    enum ApphaFunc:uint8_t {
+      InvalidAlpha =0,
+      NoAlpha      =1,
+      Transparent  =2,
+      AdditiveLight=3,
+      Last
+      };
+
     static const size_t MAX_NUM_SKELETAL_NODES = 96;
 
     struct Vertex {
@@ -48,6 +56,7 @@ class Resources {
     static Tempest::Font menuFont() { return inst->menuFnt; }
     static Tempest::Font font()     { return inst->mainFnt; }
 
+    static const Tempest::Texture2d* fallbackTexture();
     static const Tempest::Texture2d* loadTexture(const char* name);
     static const Tempest::Texture2d* loadTexture(const std::string& name);
     static const Tempest::Texture2d* loadTexture(const std::string& name,int32_t v,int32_t c);

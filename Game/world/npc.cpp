@@ -30,6 +30,8 @@ void Npc::setPosition(float ix, float iy, float iz) {
   }
 
 void Npc::setPosition(const std::array<float,3> &pos) {
+  if(x==pos[0] && y==pos[1] && z==pos[2])
+    return;
   x = pos[0];
   y = pos[1];
   z = pos[2];
@@ -37,14 +39,16 @@ void Npc::setPosition(const std::array<float,3> &pos) {
   }
 
 void Npc::setDirection(float x, float /*y*/, float z) {
-  if(x==0.f && z==0.f)
-    angle = -90; else
-    angle = 90+180.f*std::atan2(z,x)/float(M_PI);
+  float a=-90;
+  if(x!=0.f || z!=0.f)
+    a = 90+180.f*std::atan2(z,x)/float(M_PI);
   //angle = -180+180.f*std::atan2(z,x)/float(M_PI);
-  updatePos();
+  setDirection(a);
   }
 
 void Npc::setDirection(float rotation) {
+  if(angle==rotation)
+    return;
   angle = rotation;
   updatePos();
   }
@@ -130,15 +134,19 @@ void Npc::setAnim(Npc::Anim a,WeaponState nextSt) {
   if(animSq!=nullptr){
     if(current==a && nextSt==weaponSt && animSq->animCls==Animation::Loop)
       return;
-    if((animSq->animCls==Animation::Transition && current!=RotL && current!=RotR && current!=MoveL && current!=MoveR) &&
+    if((animSq->animCls==Animation::Transition &&
+        current!=RotL && current!=RotR && current!=MoveL && current!=MoveR && current!=Move) &&
        !animSq->isFinished(owner.tickCount()-sAnim))
       return;
     }
   auto ani = solveAnim(a,weaponSt,current,nextSt);
   current =a;
   weaponSt=nextSt;
-  if(ani==animSq)
+  if(ani==animSq) {
+    if(animSq!=nullptr && animSq->animCls==Animation::Transition)
+      sAnim = owner.tickCount(); // restart anim
     return;
+    }
   animSq = ani;
   sAnim  = owner.tickCount();
   }
@@ -230,7 +238,6 @@ void Npc::closeWeapon() {
   }
 
 void Npc::drawWeaponFist() {
-  //skeleton->debug();
   if(weaponSt==Fist)
     closeWeapon(); else
     setAnim(current,WeaponState::Fist);
@@ -282,10 +289,11 @@ void Npc::addRoutine(gtime s, gtime e, int32_t callback) {
 Npc::MoveCode Npc::tryMove(const std::array<float,3> &pos,
                            std::array<float,3> &fallback,
                            float speed) {
-  if(physic.tryMove(pos,fallback,speed))
+  float k=0.5f;
+  if(physic.tryMove(pos,fallback,speed*k))
     return MV_OK;
   std::array<float,3> tmp;
-  if(physic.tryMove(fallback,tmp,speed))
+  if(physic.tryMove(fallback,tmp,0))
     return MV_CORRECT;
   return MV_FAILED;
   }
@@ -405,6 +413,8 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
     return skeleton->sequence("T_JUMP_2_STAND");
   if(a==Anim::Jump)
     return skeleton->sequence("S_JUMP");
+  if(a==Anim::Fall)
+    return skeleton->sequence("S_FALLDN");
 
   // FALLBACK
   if(a==Anim::Move)

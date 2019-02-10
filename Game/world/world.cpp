@@ -11,6 +11,8 @@
 #include <Tempest/Log>
 #include <Tempest/Painter>
 
+using namespace Tempest;
+
 World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
   :wname(std::move(file)),gothic(&gothic) {
   using namespace Daedalus::GameState;
@@ -33,8 +35,16 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
   vbo = Resources::loadVbo<Resources::Vertex>(vert,mesh.vertices.size());
 
   for(auto& i:mesh.subMeshes){
+    if(i.material.alphaFunc==Resources::AdditiveLight)
+      continue;
+
     blocks.emplace_back();
     Block& b = blocks.back();
+    if(i.material.alphaFunc==Resources::Transparent)
+      b.alpha=true;
+    if(i.material.alphaFunc!=Resources::NoAlpha &&
+       i.material.alphaFunc!=Resources::Transparent)
+      Log::i("unrecognized alpha func: ",i.material.alphaFunc);
 
     b.ibo     = Resources::loadIbo(i.indices.data(),i.indices.size());
     b.texture = Resources::loadTexture(i.material.texture);
@@ -42,7 +52,9 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
 
   wdynamic.reset(new DynamicWorld(*this,*worldMesh));
 
-  std::sort(blocks.begin(),blocks.end(),[](const Block& a,const Block& b){ return a.texture<b.texture; });
+  std::sort(blocks.begin(),blocks.end(),[](const Block& a,const Block& b){
+    return std::tie(a.alpha,a.texture)<std::tie(b.alpha,b.texture);
+    });
 
   if(1){
     for(auto& vob:world.rootVobs)
@@ -56,6 +68,10 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
 
   for(auto& i:wayNet.waypoints)
     if(i.wpName.find("START")==0)
+      startPoints.push_back(i);
+
+  for(auto& i:wayNet.waypoints)
+    if(i.wpName.find("START")!=std::string::npos)
       startPoints.push_back(i);
 
   wview.reset(new WorldView(*this,storage));
@@ -96,7 +112,8 @@ DynamicWorld::Item World::getPhysic() {
   }
 
 void World::updateAnimation() {
-  if(!vm)
+  static bool doAnim=true;
+  if(!vm || !doAnim)
     return;
   auto& w=*vm;
   for(size_t i=0;i<w.npcCount();++i)
