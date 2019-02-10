@@ -213,4 +213,8 @@ void Animation::Sequence::setupMoveTr() {
     moveTr.position.y = b.y-a.y;
     moveTr.position.z = b.z-a.z;
     }
+
+  if(samples.size()>0){
+    translate=samples[0].position;
+    }
   }

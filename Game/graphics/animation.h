@@ -33,6 +33,7 @@ class Animation final {
       uint32_t                               lastFrame =0;
       Flags                                  flags=Flags::None;
       AnimClass                              animCls=UnknownAnim;
+      ZMath::float3                          translate={};
 
       std::vector<ZenLoad::zCModelAniSample> samples;
       std::vector<uint32_t>                  nodeIndex;

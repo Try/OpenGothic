@@ -151,13 +151,13 @@ void Pose::mkSkeleton(const Animation::Sequence &s) {
     if(skeleton->rootNodes.size())
       id = skeleton->rootNodes[0];
     auto& b0=base[id];
-    float dx=b0.at(3,0);
-    float dy=b0.at(3,1);
-    float dz=b0.at(3,2);
+    float dx=b0.at(3,0);//-s.translate.x;
+    float dy=b0.at(3,1)-s.translate.y;
+    float dz=b0.at(3,2);//-s.translate.z;
     trY=dy;
     if(!s.isFly())
       dy=0;
-    m.translate(-dx,-0,-dz);
+    m.translate(-dx,-dy,-dz);
     } else {
     trY=0;
     }

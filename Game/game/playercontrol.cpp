@@ -163,7 +163,7 @@ void PlayerControl::implMove(uint64_t dt) {
   pos[0]+=mulSpeed*(dpos[0]*c-dpos[2]*s);
   pos[2]+=mulSpeed*(dpos[0]*s+dpos[2]*c);
   if(pl.isFlyAnim())
-    ;//pos[1]+=dpos[1];
+    pos[1]+=dpos[1];
 
   pSpeed = std::sqrt(dpos[0]*dpos[0]+dpos[2]*dpos[2]);
   setPos(pos,dt,pSpeed);

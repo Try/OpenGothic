@@ -135,7 +135,8 @@ void Npc::setAnim(Npc::Anim a,WeaponState nextSt) {
     if(current==a && nextSt==weaponSt && animSq->animCls==Animation::Loop)
       return;
     if((animSq->animCls==Animation::Transition &&
-        current!=RotL && current!=RotR && current!=MoveL && current!=MoveR && current!=Move) &&
+        current!=RotL && current!=RotR && current!=MoveL && current!=MoveR && // no idea why this animations maked as Transition
+        !(current==Move && a==Jump)) && // allow to jump at any point of run animation
        !animSq->isFinished(owner.tickCount()-sAnim))
       return;
     }
