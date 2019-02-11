@@ -4,6 +4,7 @@
 #include "graphics/pose.h"
 #include "graphics/animation.h"
 #include "game/gametime.h"
+#include "game/movealgo.h"
 #include "physics/dynamicworld.h"
 
 #include <cstdint>
@@ -107,8 +108,11 @@ class Npc final {
     void setDirection (float x,float y,float z);
     void setDirection (float rotation);
 
+    void tick(uint64_t dt);
+
     std::array<float,3> position() const;
     float               rotation() const;
+    float               rotationRad() const;
     float               translateY() const;
 
     void updateAnimation();
@@ -160,6 +164,7 @@ class Npc final {
     bool  setInteraction(Interactive* id);
 
     void addRoutine(gtime s, gtime e, int32_t callback);
+    void multSpeed(float s);
 
     MoveCode tryMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
     bool     hasCollision() const { return physic.hasCollision(); }
@@ -197,6 +202,8 @@ class Npc final {
 
     Interactive*                   currentInteract=nullptr;
     std::vector<Routine>           routines;
+
+    MoveAlgo                       mvAlgo;
 
     const std::list<Daedalus::GameState::ItemHandle> &getItems();
     size_t getItemCount(const uint32_t id);

@@ -154,7 +154,7 @@ void Pose::mkSkeleton(const Animation::Sequence &s) {
     float dx=b0.at(3,0);//-s.translate.x;
     float dy=b0.at(3,1)-s.translate.y;
     float dz=b0.at(3,2);//-s.translate.z;
-    trY=dy;
+    trY=b0.at(3,1);
     if(!s.isFly())
       dy=0;
     m.translate(-dx,-dy,-dz);

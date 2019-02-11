@@ -4,6 +4,7 @@
 #include <zenload/zTypes.h>
 #include <LinearMath/btScalar.h>
 #include <memory>
+#include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
 
 class btConstraintSolver;
 class btCollisionConfiguration;
@@ -16,6 +17,7 @@ class btCollisionShape;
 class World;
 class btRigidBody;
 class btGhostObject;
+class btCollisionObject;
 
 class DynamicWorld final {
   public:
@@ -30,7 +32,7 @@ class DynamicWorld final {
     struct Item {
       public:
         Item()=default;
-        Item(DynamicWorld* owner,btGhostObject* obj):owner(owner),obj(obj){}
+        Item(DynamicWorld* owner,btCollisionObject* obj):owner(owner),obj(obj){}
         Item(Item&& it):owner(it.owner),obj(it.obj){it.obj=nullptr;}
         ~Item() { if(owner) owner->deleteObj(obj); }
 
@@ -46,8 +48,8 @@ class DynamicWorld final {
         bool hasCollision() const;
 
       private:
-        DynamicWorld*  owner=nullptr;
-        btGhostObject* obj  =nullptr;
+        DynamicWorld* owner=nullptr;
+        btCollisionObject*  obj  =nullptr;
       friend class DynamicWorld;
       };
 
@@ -61,6 +63,8 @@ class DynamicWorld final {
 
     Item ghostObj();
 
+    void tick(uint64_t dt);
+
   private:
     std::vector<int>      landIndex;
     std::vector<btScalar> landVert;
@@ -68,13 +72,12 @@ class DynamicWorld final {
     std::unique_ptr<btCollisionConfiguration>   conf;
     std::unique_ptr<btDispatcher>               dispatcher;
     std::unique_ptr<btBroadphaseInterface>      broadphase;
-    std::unique_ptr<btConstraintSolver>         solver;
-    std::unique_ptr<btDynamicsWorld>            world;
+    std::unique_ptr<btCollisionWorld>           world;
 
     std::unique_ptr<btTriangleIndexVertexArray> landMesh;
     std::unique_ptr<btCollisionShape>           landShape;
     std::unique_ptr<btRigidBody>                landBody;
 
-    void deleteObj(btGhostObject* obj);
+    void deleteObj(btCollisionObject* obj);
     bool hasCollision(const Item &it,std::array<float,3>& normal);
   };

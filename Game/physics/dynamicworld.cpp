@@ -6,6 +6,7 @@
 #include <BulletCollision/BroadphaseCollision/btDbvtBroadphase.h>
 #include <BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolver.h>
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
+#include <BulletDynamics/Dynamics/btSimpleDynamicsWorld.h>
 #include <BulletCollision/CollisionShapes/btBoxShape.h>
 #include <BulletCollision/CollisionShapes/btCapsuleShape.h>
 #include <BulletCollision/CollisionShapes/btBvhTriangleMeshShape.h>
@@ -17,18 +18,11 @@
 DynamicWorld::DynamicWorld(World&, const ZenLoad::zCMesh &mesh) {
   // collision configuration contains default setup for memory, collision setup
   conf.reset(new btDefaultCollisionConfiguration());
-  //conf->setConvexConvexMultipointIterations();
-
   // use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
   dispatcher.reset(new btCollisionDispatcher(conf.get()));
-
   broadphase.reset(new btDbvtBroadphase());
-
   // the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
-  solver.reset(new btSequentialImpulseConstraintSolver());
-
-  world.reset(new btDiscreteDynamicsWorld(dispatcher.get(),broadphase.get(),solver.get(),conf.get()));
-  world->setGravity(btVector3(0,-10,0));
+  world.reset(new btCollisionWorld(dispatcher.get(),broadphase.get(),conf.get()));
 
   auto& id = mesh.getIndices();
   auto& v  = mesh.getVertices();
@@ -76,11 +70,11 @@ DynamicWorld::DynamicWorld(World&, const ZenLoad::zCMesh &mesh) {
         );
   landBody.reset(new btRigidBody(rigidBodyCI));
   landBody->setUserIndex(C_Landscape);
-  world->addRigidBody(landBody.get());
+  world->addCollisionObject(landBody.get());
   }
 
 DynamicWorld::~DynamicWorld(){
-  world->removeRigidBody(landBody.get());
+  world->removeCollisionObject(landBody.get());
   }
 
 float DynamicWorld::dropRay(float x,float y,float z) const {
@@ -119,21 +113,27 @@ std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, fl
   }
 
 DynamicWorld::Item DynamicWorld::ghostObj() {
-  btGhostObject*    obj   = new btGhostObject();
-  btCollisionShape* shape = new btCapsuleShape(20,70);
+  btCollisionShape*  shape = new btCapsuleShape(20,70);
+  btGhostObject*     obj   = new btGhostObject();
   obj->setCollisionShape(shape);
+  //btCollisionObject* obj   = new btRigidBody(0,nullptr,shape);
 
   btTransform trans;
   trans.setIdentity();
   obj->setWorldTransform(trans);
   obj->setUserIndex(C_Ghost);
 
+  //obj->setCollisionFlags(obj->getCollisionFlags()|btCollisionObject::CF_KINEMATIC_OBJECT);
   world->addCollisionObject(obj);
 
   return Item(this,obj);
   }
 
-void DynamicWorld::deleteObj(btGhostObject *obj) {
+void DynamicWorld::tick(uint64_t /*dt*/) {
+  world->performDiscreteCollisionDetection();
+  }
+
+void DynamicWorld::deleteObj(btCollisionObject *obj) {
   if(!obj)
     return;
   world->removeCollisionObject(obj);

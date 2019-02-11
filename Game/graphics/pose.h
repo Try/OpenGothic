@@ -6,7 +6,7 @@
 
 class Skeleton;
 
-class Pose {
+class Pose final {
   public:
     void bind(const Skeleton* sk);
     void update(const Animation::Sequence& s,uint64_t dt);

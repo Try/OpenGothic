@@ -248,6 +248,9 @@ void MainWindow::setWorld(const std::string &name) {
   spin = camera.getSpin();
   draw.onWorldChanged();
 
+  if(auto pl = gothic.world().player())
+    pl->multSpeed(1.f);
+
   lastTick = Application::tickCount();
   }
 

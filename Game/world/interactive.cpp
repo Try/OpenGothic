@@ -91,12 +91,9 @@ void Interactive::attach(Npc &npc, Interactive::Pos &to) {
   auto mat = objMat;
   auto pos = mesh->mapToRoot(to.node);
   mat.mul(pos);
-  //mat.translate(mesh->rootTr[0],mesh->rootTr[1],mesh->rootTr[2]);
 
   to.user = &npc;
-  float x = 0;//-mesh->rootTr[0];
-  float y = 0;//-mesh->rootTr[2];
-  float z = 0;//-mesh->rootTr[2];
+  float x=0, y=0, z=0;
 
   mat.project(x,y,z);
   setPos(npc,{x,y-npc.translateY(),z});

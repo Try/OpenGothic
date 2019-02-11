@@ -22,8 +22,9 @@ class WorldScript final {
 
     void       initDialogs(Gothic &gothic);
 
-    void       tick(uint64_t dt);
-    uint64_t   tickCount() const;
+    const World& world() const { return owner; }
+    void         tick(uint64_t dt);
+    uint64_t     tickCount() const;
 
     size_t     npcCount()    const { return npcArr.size(); }
     const Npc& npc(size_t i) const { return *npcArr[i];    }

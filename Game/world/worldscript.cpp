@@ -316,8 +316,8 @@ void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
   auto  vhead = head.empty() ? StaticObjects::Mesh() : owner.getView(addExt(head,".MMB"),headTexNr,teethTexNr,bodyTexColor);
   auto  vbody = body.empty() ? StaticObjects::Mesh() : owner.getView(addExt(body,".MDM"),bodyTexNr,0,bodyTexColor);
 
-  npc.setVisualBody(std::move(vhead),std::move(vbody));
   npc.setPhysic(owner.getPhysic());
+  npc.setVisualBody(std::move(vhead),std::move(vbody));
 
   if(armor>=0) {
     auto handle = vm.getDATFile().getSymbolByIndex(self);

@@ -124,6 +124,7 @@ void World::tick(uint64_t dt) {
   if(!vm)
     return;
   vm->tick(dt);
+  wdynamic->tick(dt);
   }
 
 uint64_t World::tickCount() const {
@@ -141,6 +142,8 @@ Interactive *World::findFocus(const Npc &pl, const Tempest::Matrix4x4 &v, int w,
     return nullptr;
 
   auto mvp = view()->viewProj(v);
+  float plC = std::cos(float(M_PI/2)+pl.rotationRad());
+  float plS = std::sin(float(M_PI/2)+pl.rotationRad());
 
   for(auto& i:interactiveObj){
     auto m = mvp;
@@ -151,8 +154,10 @@ Interactive *World::findFocus(const Npc &pl, const Tempest::Matrix4x4 &v, int w,
     float dy=pl.position()[1]-pos[1];
     float dz=pl.position()[2]-pos[2];
 
-    float l = std::sqrt(dx*dx+dy*dy+dz*dz);
-    if(l>250)
+    if(dx*plC+dy*plS<0)
+      continue;
+    float l = (dx*dx+dy*dy+dz*dz);
+    if(l>220*220)
       continue;
 
     float x=0,y=0,z=0;

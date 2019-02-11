@@ -10,7 +10,7 @@
 using namespace Tempest;
 
 Npc::Npc(WorldScript &owner, Daedalus::GameState::NpcHandle hnpc)
-  :owner(owner),hnpc(hnpc){
+  :owner(owner),hnpc(hnpc),mvAlgo(*this,owner.world()){
   }
 
 Npc::~Npc(){
@@ -53,12 +53,20 @@ void Npc::setDirection(float rotation) {
   updatePos();
   }
 
+void Npc::tick(uint64_t dt) {
+  mvAlgo.tick(dt);
+  }
+
 std::array<float,3> Npc::position() const {
   return {{x,y,z}};
   }
 
 float Npc::rotation() const {
   return angle;
+  }
+
+float Npc::rotationRad() const {
+  return angle*float(M_PI)/180.f;
   }
 
 float Npc::translateY() const {
@@ -111,6 +119,7 @@ void Npc::setArmour(StaticObjects::Mesh &&a) {
 
 void Npc::setPhysic(DynamicWorld::Item &&item) {
   physic = std::move(item);
+  physic.setPosition(x,y,z);
   }
 
 void Npc::setFatness(float) {
@@ -285,6 +294,10 @@ void Npc::addRoutine(gtime s, gtime e, int32_t callback) {
   r.end      = e;
   r.callback = callback;
   routines.push_back(r);
+  }
+
+void Npc::multSpeed(float s) {
+  mvAlgo.multSpeed(s);
   }
 
 Npc::MoveCode Npc::tryMove(const std::array<float,3> &pos,
