@@ -27,8 +27,9 @@ class Interactive final {
     const char* anim(Anim t) const;
     void marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
-    const ProtoMesh*   mesh = nullptr;
-    Tempest::Matrix4x4 objMat;
+    const ProtoMesh*       mesh = nullptr;
+    const PhysicMeshShape* physic = nullptr;
+    Tempest::Matrix4x4     objMat;
 
   private:
     struct Pos final {

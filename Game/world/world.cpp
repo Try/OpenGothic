@@ -50,7 +50,7 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
     b.texture = Resources::loadTexture(i.material.texture);
     }
 
-  wdynamic.reset(new DynamicWorld(*this,*worldMesh));
+  wdynamic.reset(new DynamicWorld(*this,mesh));
 
   std::sort(blocks.begin(),blocks.end(),[](const Block& a,const Block& b){
     return std::tie(a.alpha,a.texture)<std::tie(b.alpha,b.texture);
@@ -62,9 +62,8 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
     }
 
   wayNet = std::move(world.waynet);
-  for(auto& w:wayNet.waypoints){
-    w.position.y = wdynamic->dropRay(w.position.x,w.position.y,w.position.z);
-    }
+  adjustWaypoints(wayNet.waypoints);
+  adjustWaypoints(freePoints);
 
   for(auto& i:wayNet.waypoints)
     if(i.wpName.find("START")==0)
@@ -73,6 +72,10 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
   for(auto& i:wayNet.waypoints)
     if(i.wpName.find("START")!=std::string::npos)
       startPoints.push_back(i);
+
+  std::sort(indexPoints.begin(),indexPoints.end(),[](const ZenLoad::zCWaypointData* a,const ZenLoad::zCWaypointData* b){
+    return a->wpName<b->wpName;
+    });
 
   wview.reset(new WorldView(*this,storage));
 
@@ -86,19 +89,6 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
     npcPlayer = vm->inserNpc(hero,"START");
   if(npcPlayer!=nullptr)
     npcPlayer->setAiType(Npc::AiType::Player);
-  }
-
-const ZenLoad::zCWaypointData *World::findPoint(const char *name) const {
-  for(auto& i:wayNet.waypoints)
-    if(i.wpName==name)
-      return &i;
-  for(auto& i:freePoints)
-    if(i.wpName==name)
-      return &i;
-  for(auto& i:startPoints)
-    if(i.wpName==name)
-      return &i;
-  return nullptr;
   }
 
 StaticObjects::Mesh World::getView(const std::string &visual) {
@@ -211,6 +201,27 @@ void World::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,
     }
   }
 
+void World::adjustWaypoints(std::vector<ZenLoad::zCWaypointData> &wp) {
+  for(auto& w:wp) {
+    w.position.y = wdynamic->dropRay(w.position.x,w.position.y,w.position.z);
+    for(auto& i:w.wpName)
+      i = char(std::toupper(i));
+    indexPoints.push_back(&w);
+    }
+  }
+
+const ZenLoad::zCWaypointData *World::findPoint(const char *name) const {
+  for(auto& i:startPoints)
+    if(i.wpName==name)
+      return &i;
+  auto it = std::lower_bound(indexPoints.begin(),indexPoints.end(),name,[](const ZenLoad::zCWaypointData* a,const char* b){
+      return a->wpName<b;
+    });
+  if(it!=indexPoints.end() && (*it)->wpName==name)
+    return *it;
+  return nullptr;
+  }
+
 int32_t World::runFunction(const std::string& fname, bool clearDataStack) {
   return vm->runFunction(fname,clearDataStack);
   }
@@ -299,7 +310,8 @@ void World::addStatic(const ZenLoad::zCVobData &vob) {
     float v[16]={};
     std::memcpy(v,vob.worldMatrix.m,sizeof(v));
     d.objMat = Tempest::Matrix4x4(v);
-
+    // workaround: some meshes dont have colision in original game
+    d.physic = (vob.cdDyn || vob.cdStatic) ? Resources::physicMesh(d.mesh) : nullptr;
     staticObj.emplace_back(std::move(d));
     }
   }

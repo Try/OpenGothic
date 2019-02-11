@@ -1,4 +1,5 @@
 #include "dynamicworld.h"
+#include "physicmeshshape.h"
 
 #include <BulletCollision/CollisionDispatch/btCollisionDispatcher.h>
 #include <BulletCollision/CollisionDispatch/btDefaultCollisionConfiguration.h>
@@ -17,64 +18,7 @@
 
 const float DynamicWorld::ghostPadding=10;
 
-struct DynamicWorld::PhyMesh:btTriangleIndexVertexArray {
-  PhyMesh(const std::vector<ZMath::float3>& v,
-          const std::vector<uint32_t>& index)
-    :PhyMesh(v){
-    addIndex(index);
-    }
-
-  PhyMesh(const std::vector<ZMath::float3>& v)
-    :vert(v.size()) {
-    for(size_t i=0;i<v.size();++i){
-      vert[i].setValue(v[i].x,v[i].y,v[i].z);
-      }
-    }
-
-  PhyMesh(const PhyMesh&)=delete;
-  PhyMesh(PhyMesh&&)=delete;
-
-  void addIndex(const std::vector<uint32_t>& index){
-    size_t off=id.size();
-    id.insert(id.end(),index.begin(),index.end());
-
-    btIndexedMesh meshIndex={};
-    meshIndex.m_numTriangles = id.size()/3;
-    meshIndex.m_numVertices  = int32_t(vert.size());
-
-    meshIndex.m_indexType           = PHY_INTEGER;
-    meshIndex.m_triangleIndexBase   = reinterpret_cast<const uint8_t*>(&id[0]);
-    meshIndex.m_triangleIndexStride = 3 * sizeof(uint32_t);
-
-    meshIndex.m_vertexBase          = reinterpret_cast<const uint8_t*>(&vert[0]);
-    meshIndex.m_vertexStride        = sizeof(btVector3);
-
-    m_indexedMeshes.push_back(meshIndex);
-    segments.push_back(Segment{off,int(index.size()/3)});
-    adjustMesh();
-    }
-
-  void adjustMesh(){
-    for(int i=0;i<m_indexedMeshes.size();++i){
-      btIndexedMesh& meshIndex=m_indexedMeshes[i];
-      Segment&       sg       =segments[size_t(i)];
-
-      meshIndex.m_triangleIndexBase = reinterpret_cast<const uint8_t*>(&id[sg.off]);
-      meshIndex.m_numTriangles      = sg.size;
-      }
-    }
-
-  struct Segment {
-    size_t off;
-    int    size;
-    };
-
-  std::vector<btVector3> vert;
-  std::vector<uint32_t>  id;
-  std::vector<Segment>   segments;
-  };
-
-DynamicWorld::DynamicWorld(World&, const ZenLoad::zCMesh &mesh) {
+DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
   // collision configuration contains default setup for memory, collision setup
   conf.reset(new btDefaultCollisionConfiguration());
   // use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
@@ -83,13 +27,12 @@ DynamicWorld::DynamicWorld(World&, const ZenLoad::zCMesh &mesh) {
   // the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
   world.reset(new btCollisionWorld(dispatcher.get(),broadphase.get(),conf.get()));
 
-  auto& id = mesh.getIndices();
-  auto& v  = mesh.getVertices();
+  landMesh.reset(new PhysicMesh(pkg.vertices));
+  for(auto& i:pkg.subMeshes)
+    if(!i.material.noCollDet && i.indices.size()>0)
+      landMesh->addIndex(i.indices);
 
-  PhyMesh* tmesh = new PhyMesh(v,id);
-  landMesh.reset(tmesh);
-
-  landShape.reset(new btBvhTriangleMeshShape(landMesh.get(),true,true));
+  landShape.reset(new btBvhTriangleMeshShape(landMesh.get(),false,true));
   btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(
         0,                  // mass, in kg. 0 -> Static object, will never move.
         nullptr,
@@ -155,6 +98,27 @@ DynamicWorld::Item DynamicWorld::ghostObj(float r,float height) {
   world->addCollisionObject(obj);
 
   return Item(this,obj);
+  }
+
+DynamicWorld::Item DynamicWorld::staticObj(const PhysicMeshShape *shape, const Tempest::Matrix4x4 &m) {
+  if(shape==nullptr)
+    return Item();
+
+  btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(
+        0,                  // mass, in kg. 0 -> Static object, will never move.
+        nullptr,
+        &shape->shape,
+        btVector3(0,0,0)
+        );
+  std::unique_ptr<btRigidBody> body(new btRigidBody(rigidBodyCI));
+  body->setUserIndex(C_Landscape);
+
+  btTransform trans;
+  trans.setFromOpenGLMatrix(m.data());
+  body->setWorldTransform(trans);
+
+  world->addCollisionObject(body.get());
+  return Item(this,body.release());
   }
 
 void DynamicWorld::tick(uint64_t /*dt*/) {

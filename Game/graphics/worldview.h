@@ -3,6 +3,8 @@
 #include <Tempest/Device>
 #include <Tempest/Shader>
 
+#include "physics/dynamicworld.h"
+
 #include "graphics/sky/sky.h"
 #include "graphics/staticobjects.h"
 #include "graphics/landscape.h"
@@ -35,8 +37,13 @@ class WorldView {
 
     Tempest::Matrix4x4      proj;
 
+    struct StaticObj {
+      StaticObjects::Mesh mesh;
+      DynamicWorld::Item  physic;
+      };
+
     std::vector<Tempest::CommandBuffer> cmdLand;
-    std::vector<StaticObjects::Mesh>    objStatic;
+    std::vector<StaticObj>              objStatic;
 
     void prebuiltCmdBuf(const World &world);
   };

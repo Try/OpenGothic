@@ -13,6 +13,7 @@ Interactive::Interactive(World &owner, const ZenLoad::zCVobData &vob)
     float v[16]={};
     std::memcpy(v,vob.worldMatrix.m,sizeof(v));
     objMat = Tempest::Matrix4x4(v);
+    physic = Resources::physicMesh(mesh);
 
     pos.resize(mesh->pos.size());
     for(size_t i=0;i<pos.size();++i){

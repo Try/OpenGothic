@@ -9,18 +9,20 @@ WorldView::WorldView(const World &world, const RendererStorage &storage)
   :storage(storage),sky(storage),land(storage),vobGroup(storage),objGroup(storage) {
   sky.setWorld(world);
 
-  StaticObjects::Mesh obj;
+  StaticObj obj;
 
   objStatic.clear();
   for(auto& v:world.staticObj) {
-    obj = vobGroup.get(*v.mesh,0,0,0);
-    obj.setObjMatrix(v.objMat);
+    obj.mesh   = vobGroup.get(*v.mesh,0,0,0);
+    obj.physic = world.physic()->staticObj(v.physic,v.objMat);
+    obj.mesh.setObjMatrix(v.objMat);
 
     objStatic.push_back(std::move(obj));
     }
   for(auto& v:world.interactiveObj) {
-    obj = vobGroup.get(*v.mesh,0,0,0);
-    obj.setObjMatrix(v.objMat);
+    obj.mesh = vobGroup.get(*v.mesh,0,0,0);
+    obj.physic = world.physic()->staticObj(v.physic,v.objMat);
+    obj.mesh.setObjMatrix(v.objMat);
 
     objStatic.push_back(std::move(obj));
     }

@@ -1,10 +1,13 @@
 #pragma once
 
+#include "physicmesh.h"
+
 #include <zenload/zCMesh.h>
 #include <zenload/zTypes.h>
 #include <LinearMath/btScalar.h>
 #include <memory>
 #include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
+#include <Tempest/Matrix4x4>
 
 class btConstraintSolver;
 class btCollisionConfiguration;
@@ -13,16 +16,17 @@ class btDispatcher;
 class btDynamicsWorld;
 class btTriangleIndexVertexArray;
 class btCollisionShape;
-
-class World;
 class btRigidBody;
 class btGhostObject;
 class btCollisionObject;
 class btTriangleMesh;
 
+class PhysicMeshShape;
+class World;
+
 class DynamicWorld final {
   public:
-    DynamicWorld(World &world, const ZenLoad::zCMesh &mesh);
+    DynamicWorld(World &world, const ZenLoad::PackedMesh &pkg);
     ~DynamicWorld();
 
     enum Category {
@@ -63,11 +67,11 @@ class DynamicWorld final {
                             float x1, float y1,float z1,bool& hasCol) const;
 
     Item ghostObj(float r, float height);
+    Item staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
 
     void tick(uint64_t dt);
 
   private:
-    struct PhyMesh;
     void deleteObj(btCollisionObject* obj);
     bool hasCollision(const Item &it,std::array<float,3>& normal);
 
@@ -76,7 +80,7 @@ class DynamicWorld final {
     std::unique_ptr<btBroadphaseInterface>      broadphase;
     std::unique_ptr<btCollisionWorld>           world;
 
-    std::unique_ptr<btTriangleIndexVertexArray> landMesh;
+    std::unique_ptr<PhysicMesh>                 landMesh;
     std::unique_ptr<btCollisionShape>           landShape;
     std::unique_ptr<btRigidBody>                landBody;
 

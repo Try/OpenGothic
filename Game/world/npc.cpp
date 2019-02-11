@@ -60,7 +60,8 @@ void Npc::setAiType(Npc::AiType t) {
 void Npc::tick(uint64_t dt) {
   if(aiType==AiType::AiNormal)
     ;//setAnim(Move);
-  mvAlgo.tick(dt);
+  if(aiType==AiType::Player)
+    mvAlgo.tick(dt);
   }
 
 std::array<float,3> Npc::position() const {
@@ -167,6 +168,13 @@ void Npc::setAnim(Npc::Anim a,WeaponState nextSt) {
   sAnim  = owner.tickCount();
   }
 
+ZMath::float3 Npc::animMoveSpeed(uint64_t dt) const {
+  if(animSq!=nullptr){
+    return animSq->speed(owner.tickCount()-sAnim,dt);
+    }
+  return ZMath::float3();
+  }
+
 ZMath::float3 Npc::animMoveSpeed(Anim a,uint64_t dt) const {
   auto ani = solveAnim(a);
   if(ani!=nullptr && ani->isMove()){
@@ -181,7 +189,11 @@ ZMath::float3 Npc::animMoveSpeed(Anim a,uint64_t dt) const {
 bool Npc::isFlyAnim() const {
   if(animSq==nullptr)
     return false;
-  return animSq->isFly();
+  return animSq->isFly() && current!=Fall;
+  }
+
+bool Npc::isFaling() const {
+  return mvAlgo.isFaling();
   }
 
 void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {

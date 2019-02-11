@@ -17,6 +17,7 @@ class ProtoMesh;
 class Skeleton;
 class Animation;
 class AttachBinder;
+class PhysicMeshShape;
 
 class Resources {
   public:
@@ -65,6 +66,7 @@ class Resources {
     static const ProtoMesh*          loadMesh     (const std::string& name);
     static const Skeleton*           loadSkeleton (const std::string& name);
     static const Animation*          loadAnimation(const std::string& name);
+    static const PhysicMeshShape*    physicMesh   (const ProtoMesh*   view);
 
     template<class V>
     static Tempest::VertexBuffer<V> loadVbo(const V* data,size_t sz){ return inst->device.loadVbo(data,sz,Tempest::BufferFlags::Static); }
@@ -105,11 +107,12 @@ class Resources {
         }
       };
 
-    std::unordered_map<std::string,std::unique_ptr<Tempest::Texture2d>> texCache;
-    std::unordered_map<std::string,std::unique_ptr<ProtoMesh>>          aniMeshCache;
-    std::unordered_map<std::string,std::unique_ptr<Skeleton>>           skeletonCache;
-    std::unordered_map<std::string,std::unique_ptr<Animation>>          animCache;
-    std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>        bindCache;
+    std::unordered_map<std::string,std::unique_ptr<Tempest::Texture2d>>   texCache;
+    std::unordered_map<std::string,std::unique_ptr<ProtoMesh>>            aniMeshCache;
+    std::unordered_map<std::string,std::unique_ptr<Skeleton>>             skeletonCache;
+    std::unordered_map<std::string,std::unique_ptr<Animation>>            animCache;
+    std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>          bindCache;
+    std::unordered_map<const ProtoMesh*,std::unique_ptr<PhysicMeshShape>> phyMeshCache;
 
     Tempest::Device& device;
     Tempest::Font    menuFnt, mainFnt;

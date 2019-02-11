@@ -3,6 +3,7 @@
 #include <Tempest/AlignedArray>
 #include <Tempest/Matrix4x4>
 #include <Tempest/UniformBuffer>
+#include <Tempest/Log>
 
 #include <cassert>
 
@@ -91,6 +92,8 @@ size_t ObjectsBucket<Ubo,Vertex>::alloc(const Tempest::VertexBuffer<Vertex>  &vb
   data[id].vbo = &vbo;
   data[id].ibo = &ibo;
   data[id].ubo = uStorage.alloc();
+  if(data[id].ubo==167)
+    Tempest::Log::i("");
   return data.size()-1;
   }
 

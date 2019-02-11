@@ -135,8 +135,10 @@ class Npc final {
     void setAnim      (Anim a, WeaponState nextSt);
     Anim anim() const { return current; }
 
+    ZMath::float3 animMoveSpeed(uint64_t dt) const;
     ZMath::float3 animMoveSpeed(Anim a, uint64_t dt) const;
     bool          isFlyAnim() const;
+    bool          isFaling() const;
 
     void    setTalentSkill(Talent t,int32_t lvl);
     int32_t talentSkill(Talent t) const;

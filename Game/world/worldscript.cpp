@@ -227,7 +227,7 @@ Npc* WorldScript::inserNpc(size_t npcInstance, const char* at) {
     Log::e("inserNpc: invalid waypoint");
     return nullptr;
     }
-  auto h = vm.getGameState().insertNPC(size_t(npcInstance),at);
+  auto h = vm.getGameState().insertNPC(npcInstance,at);
   return &getNpc(h);
   }
 

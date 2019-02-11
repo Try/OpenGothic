@@ -22,6 +22,8 @@
 #include "graphics/protomesh.h"
 #include "graphics/animation.h"
 #include "graphics/attachbinder.h"
+#include "physics/physicmeshshape.h"
+
 #include "gothic.h"
 
 using namespace Tempest;
@@ -50,11 +52,20 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
 
   fallback = device.loadTexture("data/fallback.png");
 
-  // TODO: priority for mod files
-  Dir::scan(gothic.path()+"Data/",[this](const std::string& vdf,Dir::FileType t){
+  // TODO: priority for *.mod files
+  std::vector<std::string> archives;
+  Dir::scan(gothic.path()+"Data/",[this,&archives](const std::string& vdf,Dir::FileType t){
     if(t==Dir::FT_File)
-      gothicAssets.loadVDF(this->gothic.path() + "Data/" + vdf);
+      archives.push_back(this->gothic.path() + "Data/" + vdf);
     });
+
+  // addon archives first!
+  std::sort(archives.begin(),archives.end(),[](const std::string& a,const std::string& b){
+    return VDFS::FileIndex::getLastModTime(a) > VDFS::FileIndex::getLastModTime(b);
+    });
+
+  for(auto& i:archives)
+    gothicAssets.loadVDF(i);
   gothicAssets.finalizeLoad();
   }
 
@@ -119,6 +130,8 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
     std::unique_ptr<ProtoMesh> t{code==MeshLoadCode::Static ? new ProtoMesh(sPacked) : new ProtoMesh(library)};
     ProtoMesh* ret=t.get();
     aniMeshCache[name] = std::move(t);
+    if(code==MeshLoadCode::Static && sPacked.subMeshes.size()>0)
+      phyMeshCache[ret].reset(PhysicMeshShape::load(sPacked));
     if(code==MeshLoadCode::Error)
       throw std::runtime_error("load failed");
     return ret;
@@ -230,6 +243,15 @@ const Skeleton *Resources::loadSkeleton(const std::string &name) {
 
 const Animation *Resources::loadAnimation(const std::string &name) {
   return inst->implLoadAnimation(name);
+  }
+
+const PhysicMeshShape *Resources::physicMesh(const ProtoMesh *view) {
+  if(view==nullptr)
+    return nullptr;
+  auto it = inst->phyMeshCache.find(view);
+  if(it!=inst->phyMeshCache.end())
+    return it->second.get();
+  return nullptr;
   }
 
 std::vector<uint8_t> Resources::getFileData(const char *name) {

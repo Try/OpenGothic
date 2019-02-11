@@ -33,9 +33,9 @@ class World final {
       };
 
     struct Dodad {
-      const ProtoMesh*               mesh = nullptr;
-      DynamicWorld::Item             physic;
-      Tempest::Matrix4x4             objMat;
+      const ProtoMesh*       mesh   = nullptr;
+      const PhysicMeshShape* physic = nullptr;
+      Tempest::Matrix4x4     objMat;
       };
 
     bool isEmpty() const { return wname.empty(); }
@@ -75,6 +75,7 @@ class World final {
     Gothic*                               gothic=nullptr;
     ZenLoad::zCWayNetData                 wayNet;
     std::vector<ZenLoad::zCWaypointData>  freePoints, startPoints;
+    std::vector<ZenLoad::zCWaypointData*>  indexPoints;
 
     Tempest::VertexBuffer<Resources::Vertex> vbo;
     std::vector<Block>                       blocks;
@@ -85,6 +86,7 @@ class World final {
     std::unique_ptr<DynamicWorld>         wdynamic;
     std::unique_ptr<WorldScript>          vm;
 
+    void    adjustWaypoints(std::vector<ZenLoad::zCWaypointData>& wp);
     void    loadVob(const ZenLoad::zCVobData &vob);
     void    addStatic(const ZenLoad::zCVobData &vob);
     void    addInteractive(const ZenLoad::zCVobData &vob);
