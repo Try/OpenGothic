@@ -84,6 +84,8 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
   if(startPoints.size()>0)
     npcPlayer = vm->inserNpc(hero,startPoints[0].wpName.c_str()); else
     npcPlayer = vm->inserNpc(hero,"START");
+  if(npcPlayer!=nullptr)
+    npcPlayer->setAiType(Npc::AiType::Player);
   }
 
 const ZenLoad::zCWaypointData *World::findPoint(const char *name) const {
@@ -107,8 +109,10 @@ StaticObjects::Mesh World::getView(const std::string &visual, int32_t headTex, i
   return view()->getView(visual,headTex,teetTex,bodyColor);
   }
 
-DynamicWorld::Item World::getPhysic() {
-  return physic()->ghostObj();
+DynamicWorld::Item World::getPhysic(const std::string& visual) {
+  if(auto mesh=Resources::loadMesh(visual))
+    return physic()->ghostObj(40,mesh->colisionHeight());
+  return physic()->ghostObj(40,140);
   }
 
 void World::updateAnimation() {
@@ -296,7 +300,7 @@ void World::addStatic(const ZenLoad::zCVobData &vob) {
     std::memcpy(v,vob.worldMatrix.m,sizeof(v));
     d.objMat = Tempest::Matrix4x4(v);
 
-    staticObj.emplace_back(d);
+    staticObj.emplace_back(std::move(d));
     }
   }
 

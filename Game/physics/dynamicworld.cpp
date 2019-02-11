@@ -15,6 +15,65 @@
 
 #include <cmath>
 
+const float DynamicWorld::ghostPadding=10;
+
+struct DynamicWorld::PhyMesh:btTriangleIndexVertexArray {
+  PhyMesh(const std::vector<ZMath::float3>& v,
+          const std::vector<uint32_t>& index)
+    :PhyMesh(v){
+    addIndex(index);
+    }
+
+  PhyMesh(const std::vector<ZMath::float3>& v)
+    :vert(v.size()) {
+    for(size_t i=0;i<v.size();++i){
+      vert[i].setValue(v[i].x,v[i].y,v[i].z);
+      }
+    }
+
+  PhyMesh(const PhyMesh&)=delete;
+  PhyMesh(PhyMesh&&)=delete;
+
+  void addIndex(const std::vector<uint32_t>& index){
+    size_t off=id.size();
+    id.insert(id.end(),index.begin(),index.end());
+
+    btIndexedMesh meshIndex={};
+    meshIndex.m_numTriangles = id.size()/3;
+    meshIndex.m_numVertices  = int32_t(vert.size());
+
+    meshIndex.m_indexType           = PHY_INTEGER;
+    meshIndex.m_triangleIndexBase   = reinterpret_cast<const uint8_t*>(&id[0]);
+    meshIndex.m_triangleIndexStride = 3 * sizeof(uint32_t);
+
+    meshIndex.m_vertexBase          = reinterpret_cast<const uint8_t*>(&vert[0]);
+    meshIndex.m_vertexStride        = sizeof(btVector3);
+
+    m_indexedMeshes.push_back(meshIndex);
+    segments.push_back(Segment{off,int(index.size()/3)});
+    adjustMesh();
+    }
+
+  void adjustMesh(){
+    for(int i=0;i<m_indexedMeshes.size();++i){
+      btIndexedMesh& meshIndex=m_indexedMeshes[i];
+      Segment&       sg       =segments[size_t(i)];
+
+      meshIndex.m_triangleIndexBase = reinterpret_cast<const uint8_t*>(&id[sg.off]);
+      meshIndex.m_numTriangles      = sg.size;
+      }
+    }
+
+  struct Segment {
+    size_t off;
+    int    size;
+    };
+
+  std::vector<btVector3> vert;
+  std::vector<uint32_t>  id;
+  std::vector<Segment>   segments;
+  };
+
 DynamicWorld::DynamicWorld(World&, const ZenLoad::zCMesh &mesh) {
   // collision configuration contains default setup for memory, collision setup
   conf.reset(new btDefaultCollisionConfiguration());
@@ -26,40 +85,9 @@ DynamicWorld::DynamicWorld(World&, const ZenLoad::zCMesh &mesh) {
 
   auto& id = mesh.getIndices();
   auto& v  = mesh.getVertices();
-  landIndex.resize(id.size());
-  for(size_t i=0;i<id.size();i+=3){
-    int*  d = &landIndex[i];
-    auto* s = &id[i];
-    d[0] = int(s[0]);
-    d[1] = int(s[1]);
-    d[2] = int(s[2]);
-    }
-  landVert.resize(v.size()*4);
-  for(size_t i=0;i<v.size();++i){
-    auto* d=&landVert[i*4];
-    auto& s=v[i];
-    d[0]=s.x;
-    d[1]=s.y;
-    d[2]=s.z;
-    }
 
-  btTriangleMesh* tmesh=new btTriangleMesh();
+  PhyMesh* tmesh = new PhyMesh(v,id);
   landMesh.reset(tmesh);
-  for(size_t i=0;i<id.size();i+=3){
-    int*  d  = &landIndex[i];
-    auto& v0 = v[d[0]];
-    auto& v1 = v[d[1]];
-    auto& v2 = v[d[2]];
-
-    btVector3 v[] = {{v0.x, v0.y, v0.z},
-                     {v1.x, v1.y, v1.z},
-                     {v2.x, v2.y, v2.z}};
-    tmesh->addTriangle(v[0],v[1],v[2]);
-    }
-
-  //btTriangleIndexVertexArray vx;
-  //landMesh.reset(new btTriangleIndexVertexArray(int(landIndex.size())/3,landIndex.data(),sizeof(landIndex[0]),
-  //                                              int(landVert.size()),   landVert.data(), sizeof(landVert[0])*3));
 
   landShape.reset(new btBvhTriangleMeshShape(landMesh.get(),true,true));
   btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(
@@ -112,8 +140,8 @@ std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, fl
   return {x1,y1,z1};
   }
 
-DynamicWorld::Item DynamicWorld::ghostObj() {
-  btCollisionShape*  shape = new btCapsuleShape(20,70);
+DynamicWorld::Item DynamicWorld::ghostObj(float r,float height) {
+  btCollisionShape*  shape = new btCapsuleShape(r*0.5f,140*0.5f);
   btGhostObject*     obj   = new btGhostObject();
   obj->setCollisionShape(shape);
   //btCollisionObject* obj   = new btRigidBody(0,nullptr,shape);
@@ -130,7 +158,7 @@ DynamicWorld::Item DynamicWorld::ghostObj() {
   }
 
 void DynamicWorld::tick(uint64_t /*dt*/) {
-  world->performDiscreteCollisionDetection();
+  world->updateAabbs();
   }
 
 void DynamicWorld::deleteObj(btCollisionObject *obj) {

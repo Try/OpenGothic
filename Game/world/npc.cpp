@@ -53,7 +53,13 @@ void Npc::setDirection(float rotation) {
   updatePos();
   }
 
+void Npc::setAiType(Npc::AiType t) {
+  aiType=t;
+  }
+
 void Npc::tick(uint64_t dt) {
+  if(aiType==AiType::AiNormal)
+    ;//setAnim(Move);
   mvAlgo.tick(dt);
   }
 

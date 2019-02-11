@@ -18,6 +18,7 @@ class World;
 class btRigidBody;
 class btGhostObject;
 class btCollisionObject;
+class btTriangleMesh;
 
 class DynamicWorld final {
   public:
@@ -61,13 +62,14 @@ class DynamicWorld final {
     std::array<float,3> ray(float x0, float y0, float z0,
                             float x1, float y1,float z1,bool& hasCol) const;
 
-    Item ghostObj();
+    Item ghostObj(float r, float height);
 
     void tick(uint64_t dt);
 
   private:
-    std::vector<int>      landIndex;
-    std::vector<btScalar> landVert;
+    struct PhyMesh;
+    void deleteObj(btCollisionObject* obj);
+    bool hasCollision(const Item &it,std::array<float,3>& normal);
 
     std::unique_ptr<btCollisionConfiguration>   conf;
     std::unique_ptr<btDispatcher>               dispatcher;
@@ -78,6 +80,5 @@ class DynamicWorld final {
     std::unique_ptr<btCollisionShape>           landShape;
     std::unique_ptr<btRigidBody>                landBody;
 
-    void deleteObj(btCollisionObject* obj);
-    bool hasCollision(const Item &it,std::array<float,3>& normal);
+    static const float                          ghostPadding;
   };

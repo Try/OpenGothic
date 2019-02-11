@@ -95,6 +95,9 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library) {
 
   auto tr = library.getRootNodeTranslation();
   rootTr = {{tr.x,tr.y,tr.z}};
+
+  bboxCol[0] = library.getBBoxCollisionMax();
+  bboxCol[1] = library.getBBoxCollisionMin();
   }
 
 ProtoMesh::ProtoMesh(const ZenLoad::PackedMesh &pm) {
@@ -102,7 +105,7 @@ ProtoMesh::ProtoMesh(const ZenLoad::PackedMesh &pm) {
   submeshId.resize(attach[0].sub.size());
   auto&  att   = attach[0];
   size_t count = 0;
-  for(size_t r=0;r<att.sub.size();++r){
+  for(size_t r=0;r<att.sub.size();++r) {
     if(att.sub[r].texture==nullptr) {
       Tempest::Log::e("no texture?!");
       continue;
@@ -118,6 +121,10 @@ ProtoMesh::ProtoMesh(const ZenLoad::PackedMesh &pm) {
   nodes.back().submeshIdB = 0;
   nodes.back().submeshIdE = submeshId.size();
   nodes.back().transform.identity();
+  }
+
+float ProtoMesh::colisionHeight() const {
+  return bboxCol[1].y-bboxCol[0].y;
   }
 
 size_t ProtoMesh::skinedNodesCount() const {

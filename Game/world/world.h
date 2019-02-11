@@ -19,7 +19,6 @@
 
 class Gothic;
 class RendererStorage;
-class DynamicWorld;
 
 class World final {
   public:
@@ -35,6 +34,7 @@ class World final {
 
     struct Dodad {
       const ProtoMesh*               mesh = nullptr;
+      DynamicWorld::Item             physic;
       Tempest::Matrix4x4             objMat;
       };
 
@@ -55,7 +55,7 @@ class World final {
 
     StaticObjects::Mesh getView(const std::string& visual);
     StaticObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor);
-    DynamicWorld::Item  getPhysic();
+    DynamicWorld::Item  getPhysic(const std::string& visual);
 
     void updateAnimation();
     Npc* player() const { return npcPlayer; }

@@ -114,6 +114,10 @@ void WorldScript::initDialogs(Gothic& gothic) {
 
 void WorldScript::tick(uint64_t dt) {
   ticks += dt;
+
+  for(auto& i:npcArr){
+    i->tick(dt);
+    }
   }
 
 uint64_t WorldScript::tickCount() const {
@@ -313,10 +317,11 @@ void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
   uint32_t    self         = vm.popVar(arr_self);
 
   auto& npc   = getNpcById(self);
+  auto  vname = addExt(body,".MDM");
   auto  vhead = head.empty() ? StaticObjects::Mesh() : owner.getView(addExt(head,".MMB"),headTexNr,teethTexNr,bodyTexColor);
-  auto  vbody = body.empty() ? StaticObjects::Mesh() : owner.getView(addExt(body,".MDM"),bodyTexNr,0,bodyTexColor);
+  auto  vbody = body.empty() ? StaticObjects::Mesh() : owner.getView(vname,bodyTexNr,0,bodyTexColor);
 
-  npc.setPhysic(owner.getPhysic());
+  npc.setPhysic(owner.getPhysic(vname));
   npc.setVisualBody(std::move(vhead),std::move(vbody));
 
   if(armor>=0) {

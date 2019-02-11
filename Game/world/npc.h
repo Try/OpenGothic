@@ -17,6 +17,11 @@ class Interactive;
 
 class Npc final {
   public:
+    enum class AiType : uint8_t {
+      AiNormal,
+      Player,
+      };
+
     enum MoveCode : uint8_t {
       MV_FAILED,
       MV_OK,
@@ -108,6 +113,7 @@ class Npc final {
     void setDirection (float x,float y,float z);
     void setDirection (float rotation);
 
+    void setAiType(AiType t);
     void tick(uint64_t dt);
 
     std::array<float,3> position() const;
@@ -183,6 +189,7 @@ class Npc final {
     float                          z=0.f;
     float                          angle=0.f;
     float                          sz[3]={1.f,1.f,1.f};
+    AiType                         aiType=AiType::AiNormal;
 
     Tempest::Matrix4x4             pos;
     StaticObjects::Mesh            head;

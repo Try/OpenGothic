@@ -149,5 +149,4 @@ void PlayerControl::implMove(uint64_t dt) {
 
   pl.setAnim(ani);
   pl.setDirection(rot);
-  pl.tick(dt);
   }

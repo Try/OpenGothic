@@ -62,6 +62,10 @@ class ProtoMesh {
     std::vector<Pos>               pos;
     std::array<float,3>            rootTr={};
 
+    ZMath::float3                  bboxCol[2]={};
+
+    float                          colisionHeight() const;
+
     size_t                         skinedNodesCount() const;
     Tempest::Matrix4x4             mapToRoot(size_t node) const;
   };
