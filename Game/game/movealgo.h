@@ -15,18 +15,20 @@ class MoveAlgo final {
     bool isFaling() const;
     bool isSlide()  const;
     bool isFrozen() const;
+    bool isInAir()  const;
 
   private:
     enum Flags : uint32_t {
       NoFlags=0,
-      Faling =1,
       Frozen =1<<1,
-      Slide  =1<<2,
+      InAir  =1<<2,
+      Faling =1<<3,
+      Slide  =1<<4,
       };
 
-    void   setAsFaling(bool f);
     void   setAsFrozen(bool f);
-    void   setAsSlide (bool f);
+    void   setInAir(bool f);
+    void   setSllideFaling(bool slide,bool faling);
 
     void   setPos(std::array<float,3> pos, uint64_t dt, float speed);
     bool   trySlide(std::array<float,3> &pos, std::array<float,3> &norm);
@@ -35,8 +37,9 @@ class MoveAlgo final {
     const World&        world;
 
     float               mulSpeed  =1.f;
-    float               pSpeed    =0.f;
-    std::array<float,3> fallSpeed;
+    //float               pSpeed    =0.f;
+    std::array<float,3> aniSpeed={};
+    std::array<float,3> fallSpeed={};
     Flags               flags=NoFlags;
 
     static const float slideBegin;

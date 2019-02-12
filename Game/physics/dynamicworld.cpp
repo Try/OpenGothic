@@ -188,7 +188,7 @@ void DynamicWorld::Item::setPosition(float x, float y, float z) {
   if(obj){
     btTransform trans;
     trans.setIdentity();
-    trans.setOrigin(btVector3(x,y+120,z));
+    trans.setOrigin(btVector3(x,y+110,z));
     obj->setWorldTransform(trans);
     }
   }

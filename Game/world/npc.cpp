@@ -204,6 +204,10 @@ bool Npc::isSlide() const {
   return mvAlgo.isSlide();
   }
 
+bool Npc::isInAir() const {
+  return mvAlgo.isInAir();
+  }
+
 void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {
   if(t<TALENT_MAX)
     talents[t] = lvl;

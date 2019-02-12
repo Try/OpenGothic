@@ -142,6 +142,7 @@ class Npc final {
     bool          isFlyAnim() const;
     bool          isFaling() const;
     bool          isSlide() const;
+    bool          isInAir() const;
 
     void     setTalentSkill(Talent t,int32_t lvl);
     int32_t  talentSkill(Talent t) const;
