@@ -46,6 +46,10 @@ void Npc::setDirection(float x, float /*y*/, float z) {
   setDirection(a);
   }
 
+void Npc::setDirection(const std::array<float,3> &pos) {
+  setDirection(pos[0],pos[1],pos[2]);
+  }
+
 void Npc::setDirection(float rotation) {
   if(angle==rotation)
     return;
@@ -194,6 +198,10 @@ bool Npc::isFlyAnim() const {
 
 bool Npc::isFaling() const {
   return mvAlgo.isFaling();
+  }
+
+bool Npc::isSlide() const {
+  return mvAlgo.isSlide();
   }
 
 void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {
@@ -447,6 +455,8 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
     return skeleton->sequence("S_JUMP");
   if(a==Anim::Fall)
     return skeleton->sequence("S_FALLDN");
+  if(a==Anim::Slide)
+    return skeleton->sequence("S_SLIDE");
 
   // FALLBACK
   if(a==Anim::Move)

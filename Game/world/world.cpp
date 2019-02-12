@@ -80,8 +80,8 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
   wview.reset(new WorldView(*this,storage));
 
   vm.reset(new WorldScript(*this,gothic,"/_work/data/Scripts/_compiled/GOTHIC.DAT"));
-  vm->initDialogs(gothic);
-  initScripts(true);
+  // vm->initDialogs(gothic);
+  // initScripts(true);
 
   const char* hero="PC_HERO";
   if(startPoints.size()>0)

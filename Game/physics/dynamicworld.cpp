@@ -17,6 +17,7 @@
 #include <cmath>
 
 const float DynamicWorld::ghostPadding=10;
+const float DynamicWorld::worldHeight =20000;
 
 DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
   // collision configuration contains default setup for memory, collision setup
@@ -53,13 +54,32 @@ float DynamicWorld::dropRay(float x,float y,float z) const {
   return dropRay(x,y,z,unused);
   }
 
+std::array<float,3> DynamicWorld::landNormal(float x, float y, float z) const {
+  struct CallBack:btCollisionWorld::ClosestRayResultCallback {
+    using ClosestRayResultCallback::ClosestRayResultCallback;
+
+    btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
+      return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
+      }
+    };
+
+  btVector3 s(x,y+50,z), e(x,y-worldHeight,z);
+  CallBack callback{s,e};
+
+  world->rayTest(s,e,callback);
+
+  if(callback.hasHit())
+    return {{callback.m_hitNormalWorld.x(),callback.m_hitNormalWorld.y(),callback.m_hitNormalWorld.z()}};
+  return {0,1,0};
+  }
+
 std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, float y1, float z1) const {
   bool unused;
   return ray(x0,y0,z0,x1,y1,z1,unused);
   }
 
 float DynamicWorld::dropRay(float x, float y, float z, bool &hasCol) const {
-  return ray(x,y+50,z, x,y-20000,z,hasCol)[1];
+  return ray(x,y+50,z, x,y-worldHeight,z,hasCol)[1];
   }
 
 std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, float y1, float z1, bool &hasCol) const {
@@ -77,9 +97,8 @@ std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, fl
   world->rayTest(s,e,callback);
   hasCol = callback.hasHit();
 
-  if(callback.hasHit()){
+  if(callback.hasHit())
     return {{callback.m_hitPointWorld.x(),callback.m_hitPointWorld.y(),callback.m_hitPointWorld.z()}};
-    }
   return {x1,y1,z1};
   }
 

@@ -147,7 +147,7 @@ void PlayerControl::implMove(uint64_t dt) {
     ani = Npc::Anim::Interact;
     }
 
-  if(!pl.isFaling())
+  if(!pl.isFaling() && !pl.isSlide())
     pl.setAnim(ani);
   pl.setDirection(rot);
   }

@@ -82,8 +82,8 @@ class World final {
 
     Npc*                                  npcPlayer=nullptr;
 
-    std::unique_ptr<WorldView>            wview;
     std::unique_ptr<DynamicWorld>         wdynamic;
+    std::unique_ptr<WorldView>            wview;
     std::unique_ptr<WorldScript>          vm;
 
     void    adjustWaypoints(std::vector<ZenLoad::zCWaypointData>& wp);

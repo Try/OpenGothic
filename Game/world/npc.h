@@ -39,6 +39,7 @@ class Npc final {
       RotR,
       Jump,
       Fall,
+      Slide,
       Interact,
       DrawFist,
       DrawWeapon1h
@@ -111,6 +112,7 @@ class Npc final {
     void setPosition  (float x,float y,float z);
     void setPosition  (const std::array<float,3>& pos);
     void setDirection (float x,float y,float z);
+    void setDirection (const std::array<float,3>& pos);
     void setDirection (float rotation);
 
     void setAiType(AiType t);
@@ -139,12 +141,13 @@ class Npc final {
     ZMath::float3 animMoveSpeed(Anim a, uint64_t dt) const;
     bool          isFlyAnim() const;
     bool          isFaling() const;
+    bool          isSlide() const;
 
-    void    setTalentSkill(Talent t,int32_t lvl);
-    int32_t talentSkill(Talent t) const;
+    void     setTalentSkill(Talent t,int32_t lvl);
+    int32_t  talentSkill(Talent t) const;
 
-    int32_t attribute (Attribute a) const;
-    int32_t protection(Protection p) const;
+    int32_t  attribute (Attribute a) const;
+    int32_t  protection(Protection p) const;
 
     uint32_t guild() const;
     int32_t  magicCyrcle() const;
