@@ -12,6 +12,8 @@ class MoveAlgo final {
 
     void tick(uint64_t dt);
     void multSpeed(float s){ mulSpeed=s; }
+    void clearSpeed();
+
     bool isFaling() const;
     bool isSlide()  const;
     bool isFrozen() const;
@@ -37,11 +39,12 @@ class MoveAlgo final {
     const World&        world;
 
     float               mulSpeed  =1.f;
-    //float               pSpeed    =0.f;
     std::array<float,3> aniSpeed={};
     std::array<float,3> fallSpeed={};
     Flags               flags=NoFlags;
 
     static const float slideBegin;
+    static const float slideEnd;
+    static const float slideSpeed;
     static const float fallThreshold;
   };

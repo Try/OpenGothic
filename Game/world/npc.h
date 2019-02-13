@@ -114,6 +114,7 @@ class Npc final {
     void setDirection (float x,float y,float z);
     void setDirection (const std::array<float,3>& pos);
     void setDirection (float rotation);
+    void clearSpeed();
 
     void setAiType(AiType t);
     void tick(uint64_t dt);

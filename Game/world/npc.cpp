@@ -57,6 +57,10 @@ void Npc::setDirection(float rotation) {
   updatePos();
   }
 
+void Npc::clearSpeed() {
+  mvAlgo.clearSpeed();
+  }
+
 void Npc::setAiType(Npc::AiType t) {
   aiType=t;
   }

@@ -79,8 +79,17 @@ void PlayerControl::marvinF8() {
 
   auto& pl  = *world->player();
   auto  pos = pl.position();
-  pos[1]+=100;
+  float rot = pl.rotationRad();
+  float s   = std::sin(rot), c = std::cos(rot);
+
+  pos[1]+=50;
+
+  pos[0]+=24*s;
+  pos[2]+=-24*c;
+
   pl.setPosition(pos);
+  pl.clearSpeed();
+  pl.setAnim(Npc::Idle);
   }
 
 bool PlayerControl::tickMove(uint64_t dt) {

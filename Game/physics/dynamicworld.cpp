@@ -204,9 +204,10 @@ bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos,
   auto                tr = obj->getWorldTransform();
   if(owner->hasCollision(*this,norm))
     return true;
+  //auto ground = dropRay(pos[0],pos[1],pos[2]);
   setPosition(pos[0],pos[1],pos[2]);
   const bool ret=owner->hasCollision(*this,norm);
-  if(ret){
+  if(ret && speed!=0.f){
     fallback[0] = pos[0] + norm[0]*speed;
     fallback[1] = pos[1];// - norm[1]*speed;
     fallback[2] = pos[2] + norm[2]*speed;

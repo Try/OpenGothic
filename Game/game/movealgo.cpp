@@ -4,6 +4,8 @@
 #include "world/npc.h"
 
 const float MoveAlgo::slideBegin   =float(std::sin(40*M_PI/180));
+const float MoveAlgo::slideEnd     =float(std::sin(0*M_PI/180));
+const float MoveAlgo::slideSpeed   =11.f;
 const float MoveAlgo::fallThreshold=45.f;
 
 MoveAlgo::MoveAlgo(Npc& unit, const World &w)
@@ -21,16 +23,24 @@ void MoveAlgo::tick(uint64_t dt) {
   dpos[1]=npc.isFlyAnim() ? dp.y : 0;
   dpos[2]=dp.z;
 
-  pos[0]+=mulSpeed*(dpos[0]*c-dpos[2]*s);
-  pos[2]+=mulSpeed*(dpos[0]*s+dpos[2]*c);
+  aniSpeed[0]=mulSpeed*(dpos[0]*c-dpos[2]*s);
+  aniSpeed[2]=mulSpeed*(dpos[0]*s+dpos[2]*c);
+
+  pos[0]+=aniSpeed[0];
+  pos[2]+=aniSpeed[2];
   pos[1]+=dpos[1];
 
-  aniSpeed[0]=dpos[0];
-  aniSpeed[2]=dpos[2];
   float speed = std::sqrt(dpos[0]*dpos[0]+dpos[2]*dpos[2]);
   if(dpos[0]==0.f && dpos[1]==0.f && dpos[2]==0.f && isFrozen())
     return;
   setPos(pos,dt,speed);
+  }
+
+void MoveAlgo::clearSpeed() {
+  fallSpeed[0]=0;
+  fallSpeed[1]=0;
+  fallSpeed[2]=0;
+  flags = NoFlags;
   }
 
 bool MoveAlgo::isFaling() const {
@@ -71,12 +81,6 @@ void MoveAlgo::setSllideFaling(bool slide, bool faling) {
   if(slide)
     flags=Flags(flags|Slide);  else
     flags=Flags(flags&(~Slide));
-
-  if(!isFaling() && !isSlide()){
-    fallSpeed[0]=0;
-    fallSpeed[1]=0;
-    fallSpeed[2]=0;
-    }
   }
 
 void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
@@ -87,16 +91,12 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
   bool                slideAni = false;
   float               timeK    = float(dt)/1000.f;
 
+  auto oldY = npc.position()[1];
   if(trySlide(fb,norm)){
     slideAni=true;
-    pos = fb;
-    fallSpeed[0]+=3.f*timeK*norm[0];
-    fallSpeed[2]+=3.f*timeK*norm[2];
-    switch(npc.tryMove(pos,fb,speed)){
-      case Npc::MV_FAILED:  pos=npc.position(); break;
-      case Npc::MV_CORRECT: pos=fb; break;
-      case Npc::MV_OK:      break;
-      }
+    float scale=1.f/std::max(0.01f,norm[1]*norm[1]);
+    fallSpeed[0]+=slideSpeed*timeK*norm[0]*scale;
+    fallSpeed[2]+=slideSpeed*timeK*norm[2]*scale;
     } else {
     slideAni=false;
     switch(npc.tryMove(pos,fb,speed)){
@@ -104,22 +104,23 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
       case Npc::MV_CORRECT: pos=fb; break;
       case Npc::MV_OK:      break;
       }
+    npc.setPosition(pos);
     }
 
   bool frozen=(npc.position()==pos && !isInAir());
-  npc.setPosition(pos);
+  oldY = std::max(oldY,pos[1]);
 
   bool valid  = false;
-  auto oldY   = pos[1];
-  auto ground = world.physic()->dropRay(pos[0],pos[1],pos[2],valid);
+  auto ground = world.physic()->dropRay(pos[0],oldY,pos[2],valid);
   setAsFrozen(frozen && isInAir());
 
   bool nFall=isFaling();
   setInAir(false);
   if(npc.isFlyAnim()) {
     if(oldY>ground){
-      pos[1]=oldY;
       setInAir(true);
+      fallSpeed[0]=aniSpeed[0];
+      fallSpeed[2]=aniSpeed[2];
       } else {
       pos[1]=ground;
       nFall=false;
@@ -148,18 +149,20 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
     pos[2]+=fallSpeed[2];
     }
 
-  if(!npc.isFlyAnim()) {
-    switch(npc.tryMove(pos,fb,speed)) {
-      case Npc::MV_CORRECT:
-      case Npc::MV_OK: // fall anim
-        npc.setPosition(fb);
-        break;
-      case Npc::MV_FAILED:
-        fallAni=false;
-        nFall=false;
-        setInAir(false);
-        break;
-      }
+  switch(npc.tryMove(pos,fb,speed)) {
+    case Npc::MV_CORRECT:
+    case Npc::MV_OK: // fall anim
+      npc.setPosition(fb);
+      break;
+    case Npc::MV_FAILED:
+      fallAni=false;
+      slideAni=false;
+      nFall=false;
+      fallSpeed[0]=0;
+      fallSpeed[1]=0;
+      fallSpeed[2]=0;
+      setInAir(false);
+      break;
     }
 
   setSllideFaling(slideAni,nFall);
@@ -169,6 +172,11 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
   else if(nFall) {
     if(npc.anim()!=Npc::Jump)
       npc.setAnim(Npc::Fall);
+    }
+  else if(!nFall && !slideAni) {
+    fallSpeed[0]=0;
+    fallSpeed[1]=0;
+    fallSpeed[2]=0;
     }
 
   if(slideAni || nFall)
@@ -195,9 +203,9 @@ bool MoveAlgo::trySlide(std::array<float,3>& pos,std::array<float,3>& norm) {
 
   norm = world.physic()->landNormal(pos[0],pos[1],pos[2]);
 
-  if(badFall || norm[1]<slideBegin) { // sliding
-    pos[0]+=fallSpeed[0];
-    pos[2]+=fallSpeed[2];
+  if(badFall || (norm[1]<slideBegin && slideEnd<norm[1])) { // sliding
+    //pos[0]+=fallSpeed[0];
+    //pos[2]+=fallSpeed[2];
     return true;
     }
   return false;
