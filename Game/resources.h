@@ -54,6 +54,7 @@ class Resources {
       float    pos[2];
       };
 
+    static Tempest::Font fontByName(const std::string& name);
     static Tempest::Font menuFont() { return inst->menuFnt; }
     static Tempest::Font font()     { return inst->mainFnt; }
 

@@ -71,6 +71,11 @@ class World final {
 
     void marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
+    void aiOutput(const char* msg);
+    void aiCloseDialog();
+
+    void printScreen(const char* msg, int x, int y, int time,const Tempest::Font &font);
+
   private:
     std::string                           wname;
     Gothic*                               gothic=nullptr;

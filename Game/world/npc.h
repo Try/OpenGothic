@@ -104,6 +104,16 @@ class Npc final {
       PROT_MAX     = 8
       };
 
+    enum class State : uint32_t {
+      INVALID     = 0,
+      ANSWER      = 1,
+      DEAD        = 2,
+      UNCONSCIOUS = 3,
+      FADEAWAY    = 4,
+      FOLLOW      = 5,
+      Count       = 6
+      };
+
     Npc(WorldScript &owner, Daedalus::GameState::NpcHandle hnpc);
     Npc(const Npc&)=delete;
     ~Npc();
@@ -129,11 +139,12 @@ class Npc final {
     const char* displayName() const;
     void setName      (const std::string& name);
     void setVisual    (const Skeleton *visual);
+    void setOverlay   (const Skeleton *sk, float time);
     void setVisualBody(StaticObjects::Mesh &&head,StaticObjects::Mesh&& body);
+
     void setArmour    (StaticObjects::Mesh&& body);
     void setPhysic    (DynamicWorld::Item&& item);
     void setFatness   (float f);
-    void setOverlay   (const std::string &name, float time);
     void setScale     (float x,float y,float z);
     void setAnim      (Anim a);
     void setAnim      (Anim a, WeaponState nextSt);
@@ -152,12 +163,15 @@ class Npc final {
     int32_t  attribute (Attribute a) const;
     int32_t  protection(Protection p) const;
 
+    uint32_t instanceSymbol() const;
     uint32_t guild() const;
     int32_t  magicCyrcle() const;
     int32_t  level() const;
     int32_t  experience() const;
     int32_t  experienceNext() const;
     int32_t  learningPoints() const;
+
+    bool     isDead() const;
 
     void setToFistMode ();
     void setToFightMode(const uint32_t item);
@@ -176,8 +190,9 @@ class Npc final {
 
     const Interactive* interactive() const { return currentInteract; }
     bool  setInteraction(Interactive* id);
+    bool  isState(uint32_t stateFn) const;
 
-    void addRoutine(gtime s, gtime e, int32_t callback);
+    void addRoutine(gtime s, gtime e, uint32_t callback);
     void multSpeed(float s);
 
     MoveCode tryMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
@@ -186,12 +201,27 @@ class Npc final {
 
     std::vector<WorldScript::DlgChoise> dialogChoises(Npc &player);
 
+    Daedalus::GameState::NpcHandle handle(){ return  hnpc; }
+
   private:
     struct Routine final {
-      gtime   start;
-      gtime   end;
-      int32_t callback=0;
+      gtime    start;
+      gtime    end;
+      uint32_t callback=0;
       };
+
+    const std::list<Daedalus::GameState::ItemHandle> &getItems();
+    size_t getItemCount(const uint32_t id);
+
+    void updatePos();
+    void setPos(const Tempest::Matrix4x4& m);
+    const Animation::Sequence*     solveAnim(Anim a) const;
+    const Animation::Sequence*     solveAnim(Anim a, WeaponState st0, Anim cur, WeaponState st) const;
+    const Animation::Sequence*     solveAnim(const char* format, WeaponState st) const;
+    const Animation::Sequence*     animSequence(const char* name) const;
+    const char*                    animName(Anim a, WeaponState st) const;
+
+    const Routine&                 currentRoutine() const;
 
     WorldScript&                   owner;
     Daedalus::GameState::NpcHandle hnpc;
@@ -201,6 +231,7 @@ class Npc final {
     float                          angle=0.f;
     float                          sz[3]={1.f,1.f,1.f};
     AiType                         aiType=AiType::AiNormal;
+    State                          aiSt=State::INVALID;
 
     Tempest::Matrix4x4             pos;
     StaticObjects::Mesh            head;
@@ -209,6 +240,7 @@ class Npc final {
     DynamicWorld::Item             physic;
 
     const Skeleton*                skeleton=nullptr;
+    const Skeleton*                overlay =nullptr;
     const Animation::Sequence*     animSq  =nullptr;
     uint64_t                       sAnim   =0;
     Anim                           current =NoAnim;
@@ -222,14 +254,4 @@ class Npc final {
     std::vector<Routine>           routines;
 
     MoveAlgo                       mvAlgo;
-
-    const std::list<Daedalus::GameState::ItemHandle> &getItems();
-    size_t getItemCount(const uint32_t id);
-
-    void updatePos();
-    void setPos(const Tempest::Matrix4x4& m);
-    const Animation::Sequence*     solveAnim(Anim a) const;
-    const Animation::Sequence*     solveAnim(Anim a, WeaponState st0, Anim cur, WeaponState st) const;
-    const Animation::Sequence*     solveAnim(const char* format, WeaponState st) const;
-    const char*                    animName(Anim a, WeaponState st) const;
   };

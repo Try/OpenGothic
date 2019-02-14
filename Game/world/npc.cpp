@@ -101,11 +101,17 @@ void Npc::updateAnimation() {
   }
 
 const char *Npc::displayName() const {
-  return name.c_str();
+  return owner.vmNpc(hnpc).name[0].c_str();
   }
 
 void Npc::setName(const std::string &n) {
   name = n;
+  }
+
+void Npc::setOverlay(const Skeleton* sk,float /*time*/) {
+  overlay=sk;
+  if(animSq)
+    animSq=animSequence(animSq->name.c_str());
   }
 
 void Npc::setVisual(const Skeleton* v) {
@@ -142,9 +148,6 @@ void Npc::setPhysic(DynamicWorld::Item &&item) {
   }
 
 void Npc::setFatness(float) {
-  }
-
-void Npc::setOverlay(const std::string& /*name*/,float /*time*/) {
   }
 
 void Npc::setScale(float x, float y, float z) {
@@ -239,6 +242,10 @@ int32_t Npc::protection(Npc::Protection p) const {
   return 0;
   }
 
+uint32_t Npc::instanceSymbol() const {
+  return uint32_t(owner.vmNpc(hnpc).instanceSymbol);
+  }
+
 uint32_t Npc::guild() const {
   return uint32_t(owner.vmNpc(hnpc).guild);
   }
@@ -261,6 +268,10 @@ int32_t Npc::experienceNext() const {
 
 int32_t Npc::learningPoints() const {
   return owner.vmNpc(hnpc).lp;
+  }
+
+bool Npc::isDead() const {
+  return aiSt==State::DEAD;
   }
 
 void Npc::setToFistMode() {
@@ -326,7 +337,11 @@ bool Npc::setInteraction(Interactive *id) {
   return false;
   }
 
-void Npc::addRoutine(gtime s, gtime e, int32_t callback) {
+bool Npc::isState(uint32_t stateFn) const {
+  return currentRoutine().callback==stateFn;
+  }
+
+void Npc::addRoutine(gtime s, gtime e, uint32_t callback) {
   Routine r;
   r.start    = s;
   r.end      = e;
@@ -363,7 +378,10 @@ Npc::MoveCode Npc::tryMoveVr(const std::array<float,3> &pos, std::array<float,3>
   }
 
 std::vector<WorldScript::DlgChoise> Npc::dialogChoises(Npc& player) {
-  return owner.dialogChoises(player.hnpc,this->hnpc);
+  auto ret = owner.dialogChoises(player.hnpc,this->hnpc);
+  if(ret.size()>0)
+    owner.exec(ret[0],player.hnpc,this->hnpc);
+  return ret;
   }
 
 const std::list<Daedalus::GameState::ItemHandle>& Npc::getItems() {
@@ -414,31 +432,31 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
 
   if(st0==WeaponState::NoWeapon && st==WeaponState::W1H){
     if(a==Anim::Idle && cur==a)
-      return skeleton->sequence("T_1H_2_1HRUN");
+      return animSequence("T_1H_2_1HRUN");
     if(a==Anim::Move && cur==a)
-      return skeleton->sequence("T_MOVE_2_1HMOVE");
+      return animSequence("T_MOVE_2_1HMOVE");
     }
   if(st0==WeaponState::W1H && st==WeaponState::NoWeapon){
     if(a==Anim::Idle && cur==a)
-      return skeleton->sequence("T_1HMOVE_2_MOVE");
+      return animSequence("T_1HMOVE_2_MOVE");
     if(a==Anim::Move && cur==a)
-      return skeleton->sequence("T_1HMOVE_2_MOVE");
+      return animSequence("T_1HMOVE_2_MOVE");
     }
 
   if(true) {
     if(st0==WeaponState::Fist && st==WeaponState::NoWeapon)
-      return skeleton->sequence("T_FISTMOVE_2_MOVE");
+      return animSequence("T_FISTMOVE_2_MOVE");
     if(st0==WeaponState::NoWeapon && st==WeaponState::Fist)
       return solveAnim("S_%sRUN",st);
     }
 
   if(currentInteract!=nullptr) {
     if(cur!=Interact && a==Interact)
-      return skeleton->sequence(currentInteract->anim(Interactive::In));
+      return animSequence(currentInteract->anim(Interactive::In));
     if(cur==Interact && a==Interact)
-      return skeleton->sequence(currentInteract->anim(Interactive::Active));
+      return animSequence(currentInteract->anim(Interactive::Active));
     if(cur==Interact && a!=Interact)
-      return skeleton->sequence(currentInteract->anim(Interactive::Out));
+      return animSequence(currentInteract->anim(Interactive::Out));
     }
 
   if(cur==Anim::NoAnim && a==Idle)
@@ -446,7 +464,7 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
   if(cur==Anim::Idle && a==cur)
     return solveAnim("S_%sRUN",st);
   if(cur==Anim::Idle && a==Move)
-    return skeleton->sequence("T_RUN_2_RUNL");
+    return animSequence("T_RUN_2_RUNL");
 
   if(a==Anim::RotL)
     return solveAnim("T_%sRUNTURNL",st);
@@ -462,29 +480,29 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
   if(cur==Anim::Move && a==cur)
     return solveAnim("S_%sRUNL",st);
   if(cur==Anim::Move && a==Idle)
-    return skeleton->sequence("T_RUNL_2_RUN");
+    return animSequence("T_RUNL_2_RUN");
   if(cur==Anim::Move && a==Jump)
-    return skeleton->sequence("T_RUNL_2_JUMP");
+    return animSequence("T_RUNL_2_JUMP");
 
   /*
   if(a==Anim::Chest)
-    return skeleton->sequence("T_CHESTSMALL_STAND_2_S0");
+    return animSequence("T_CHESTSMALL_STAND_2_S0");
   if(a==Anim::Sit)
-    return skeleton->sequence("S_BENCH_S1");
+    return animSequence("S_BENCH_S1");
   if(a==Anim::Lab)
-    return skeleton->sequence("S_LAB_S0");
+    return animSequence("S_LAB_S0");
   */
 
   if(cur==Anim::Idle && a==Anim::Jump)
-    return skeleton->sequence("T_STAND_2_JUMP");
+    return animSequence("T_STAND_2_JUMP");
   if(cur==Anim::Jump && a==Anim::Idle)
-    return skeleton->sequence("T_JUMP_2_STAND");
+    return animSequence("T_JUMP_2_STAND");
   if(a==Anim::Jump)
-    return skeleton->sequence("S_JUMP");
+    return animSequence("S_JUMP");
   if(a==Anim::Fall)
-    return skeleton->sequence("S_FALLDN");
+    return animSequence("S_FALLDN");
   if(a==Anim::Slide)
-    return skeleton->sequence("S_SLIDE");
+    return animSequence("S_SLIDE");
 
   // FALLBACK
   if(a==Anim::Move)
@@ -494,7 +512,7 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
   return nullptr;
   }
 
-const Animation::Sequence *Npc::solveAnim(const char *format, Npc::WeaponState st) const {
+const Animation::Sequence* Npc::solveAnim(const char *format, Npc::WeaponState st) const {
   static const char* weapon[] = {
     "",
     "FIST",
@@ -505,11 +523,29 @@ const Animation::Sequence *Npc::solveAnim(const char *format, Npc::WeaponState s
     };
   char name[128]={};
   std::snprintf(name,sizeof(name),format,weapon[st]);
-  if(auto ret=skeleton->sequence(name))
+  if(auto ret=animSequence(name))
     return ret;
   std::snprintf(name,sizeof(name),format,"");
-  if(auto ret=skeleton->sequence(name))
+  if(auto ret=animSequence(name))
     return ret;
   std::snprintf(name,sizeof(name),format,"FIST");
-  return skeleton->sequence(name);
+  return animSequence(name);
+  }
+
+const Animation::Sequence *Npc::animSequence(const char *name) const {
+  if(overlay!=nullptr){
+    if(auto s = overlay->sequence(name))
+      return s;
+    }
+  return skeleton ? skeleton->sequence(name) : nullptr;
+  }
+
+const Npc::Routine &Npc::currentRoutine() const {
+  if(routines.size()){
+    //auto time = owner.gameTime();
+    return routines[0];
+    }
+
+  static Routine r;
+  return r;
   }

@@ -88,8 +88,10 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
   if(startPoints.size()>0)
     npcPlayer = vm->inserNpc(hero,startPoints[0].wpName.c_str()); else
     npcPlayer = vm->inserNpc(hero,"START");
-  if(npcPlayer!=nullptr)
+  if(npcPlayer!=nullptr) {
     npcPlayer->setAiType(Npc::AiType::Player);
+    vm->setInstanceNPC("HERO",*npcPlayer);
+    }
   }
 
 StaticObjects::Mesh World::getView(const std::string &visual) {
@@ -164,6 +166,18 @@ void World::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,
 
     i.marchInteractives(p,mvp,w,h);
     }
+  }
+
+void World::aiOutput(const char *msg) {
+  gothic->aiOuput(msg);
+  }
+
+void World::aiCloseDialog() {
+  gothic->aiCloseDialog();
+  }
+
+void World::printScreen(const char *msg, int x, int y, int time, const Font &font) {
+  gothic->printScreen(msg,x,y,time,font);
   }
 
 void World::adjustWaypoints(std::vector<ZenLoad::zCWaypointData> &wp) {

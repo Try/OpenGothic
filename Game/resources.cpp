@@ -73,6 +73,20 @@ Resources::~Resources() {
   inst=nullptr;
   }
 
+Font Resources::fontByName(const std::string &fontName) {
+  if(fontName=="FONT_OLD_10_WHITE.TGA"){
+    return Resources::font();
+    }
+  else if(fontName=="FONT_OLD_10_WHITE_HI.TGA"){
+    return Resources::font();
+    }
+  else if(fontName=="FONT_OLD_20_WHITE.TGA"){
+    return Resources::menuFont();
+    } else {
+    return Resources::menuFont();
+    }
+  }
+
 const Texture2d *Resources::fallbackTexture() {
   return &inst->fallback;
   }

@@ -55,6 +55,10 @@ void MainWindow::setupUi() {
   addWidget(&dialogs);
   rootMenu = &addWidget(new MenuRoot(gothic));
   rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_MAIN"));
+
+  gothic.onDialogOutput.bind(&dialogs,&DialogMenu::aiOutput);
+  gothic.onDialogClose .bind(&dialogs,&DialogMenu::aiClose);
+  gothic.onPrintScreen .bind(&dialogs,&DialogMenu::printScreen);
   }
 
 Focus MainWindow::findFocus() {
@@ -179,6 +183,7 @@ void MainWindow::tick() {
   if(dt>100)
     dt=100;
   gothic.tick(dt);
+  dialogs.tick(dt);
 
   if(mouseP[Event::ButtonLeft]){
     auto item = findFocus();

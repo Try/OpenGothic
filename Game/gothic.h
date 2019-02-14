@@ -26,7 +26,15 @@ class Gothic final {
     void  tick(uint64_t dt);
     void  updateAnimation();
 
+    void  aiOuput(const char* msg);
+    void  aiCloseDialog();
+    void  printScreen(const char* msg, int x, int y, int time, const Tempest::Font &font);
+
     Tempest::Signal<void(const std::string&)> onSetWorld;
+    Tempest::Signal<void(const char*)>        onDialogOutput;
+    Tempest::Signal<void()>                   onDialogClose;
+
+    Tempest::Signal<void(const char*,int,int,int,const Tempest::Font&)> onPrintScreen;
 
     const std::string&                    path() const { return gpath; }
     const std::string&                    defaultWorld() const;

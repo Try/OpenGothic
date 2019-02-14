@@ -91,8 +91,8 @@ void PlayerControl::marvinF8() {
 
   pos[1]+=50;
 
-  pos[0]+=30*s;
-  pos[2]+=-30*c;
+  pos[0]+=60*s;
+  pos[2]+=-60*c;
 
   pl.setPosition(pos);
   pl.clearSpeed();

@@ -20,6 +20,7 @@ class WorldScript final {
     struct DlgChoise final {
       std::string title;
       int32_t     sort=0;
+      uint32_t    scriptFn=0;
       };
 
     bool    hasSymbolName(const std::string& fn);
@@ -37,6 +38,7 @@ class WorldScript final {
     Npc&       npc(size_t i)       { return *npcArr[i];    }
 
     Npc*       inserNpc(const char* npcInstance,const char *at);
+    void       setInstanceNPC(const char* name,Npc& npc);
 
     const std::list<Daedalus::GameState::ItemHandle>& getInventoryOf(Daedalus::GameState::NpcHandle h);
     Daedalus::GameState::DaedalusGameState&           getGameState();
@@ -45,6 +47,7 @@ class WorldScript final {
 
     std::vector<DlgChoise> dialogChoises(Daedalus::GameState::NpcHandle self,
                                          Daedalus::GameState::NpcHandle npc);
+    void exec(WorldScript::DlgChoise& dlg, Daedalus::GameState::NpcHandle player, Daedalus::GameState::NpcHandle hnpc);
 
   private:
     void               initCommon();
@@ -86,6 +89,15 @@ class WorldScript final {
     void npc_settalentskill  (Daedalus::DaedalusVM &vm);
     void npc_settofightmode  (Daedalus::DaedalusVM &vm);
     void npc_settofistmode   (Daedalus::DaedalusVM &vm);
+    void npc_isinstate       (Daedalus::DaedalusVM &vm);
+    void npc_getdisttowp     (Daedalus::DaedalusVM &vm);
+    void npc_exchangeroutine (Daedalus::DaedalusVM &vm);
+    void npc_isdead          (Daedalus::DaedalusVM &vm);
+
+    void ai_output           (Daedalus::DaedalusVM &vm);
+    void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
+    void ai_standup          (Daedalus::DaedalusVM &vm);
+    void ai_continueroutine  (Daedalus::DaedalusVM &vm);
 
     void ta_min              (Daedalus::DaedalusVM &vm);
 
@@ -96,7 +108,14 @@ class WorldScript final {
     void equipitem           (Daedalus::DaedalusVM &vm);
     void createinvitems      (Daedalus::DaedalusVM &vm);
 
+    void hlp_getinstanceid   (Daedalus::DaedalusVM &vm);
+    void hlp_isvalidnpc      (Daedalus::DaedalusVM &vm);
+    void hlp_getnpc          (Daedalus::DaedalusVM &vm);
+
     void playvideo           (Daedalus::DaedalusVM &vm);
+    void printscreen         (Daedalus::DaedalusVM &vm);
+
+    void sort(std::vector<DlgChoise>& dlg);
 
     Daedalus::DaedalusVM vm;
     World&               owner;

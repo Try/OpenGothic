@@ -63,6 +63,18 @@ void Gothic::updateAnimation() {
   wrld->updateAnimation();
   }
 
+void Gothic::aiOuput(const char *msg) {
+  onDialogOutput(msg);
+  }
+
+void Gothic::aiCloseDialog() {
+  onDialogClose();
+  }
+
+void Gothic::printScreen(const char *msg, int x, int y, int time, const Tempest::Font &font) {
+  onPrintScreen(msg,x,y,time,font);
+  }
+
 const std::string &Gothic::defaultWorld() const {
   return wdef;
   }
