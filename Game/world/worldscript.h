@@ -17,8 +17,14 @@ class WorldScript final {
   public:
     WorldScript(World& owner,Gothic &gothic, const char* world);
 
+    struct DlgChoise final {
+      std::string title;
+      int32_t     sort=0;
+      };
+
     bool    hasSymbolName(const std::string& fn);
     int32_t runFunction(const std::string &fname, bool clearDataStack);
+    int32_t runFunction(const size_t       fid,   bool clearDataStack);
 
     void       initDialogs(Gothic &gothic);
 
@@ -37,8 +43,12 @@ class WorldScript final {
     Daedalus::PARSymbol&                              getSymbol(const char* s);
     Daedalus::GEngineClasses::C_Npc&                  vmNpc(Daedalus::GameState::NpcHandle handle);
 
+    std::vector<DlgChoise> dialogChoises(Daedalus::GameState::NpcHandle self,
+                                         Daedalus::GameState::NpcHandle npc);
+
   private:
     void               initCommon();
+
     static const std::string& popString(Daedalus::DaedalusVM &vm);
 
     template<class Ret,class ... Args>
@@ -93,8 +103,9 @@ class WorldScript final {
     uint64_t             ticks=0;
 
     std::map<size_t,std::set<size_t>>                           dlgKnownInfos;
+    std::vector<Daedalus::GameState::InfoHandle>                dialogsInfo;
     std::unique_ptr<Daedalus::GameState::DaedalusDialogManager> dialogs;
+
     QuestLog                                                    quests;
     std::vector<std::unique_ptr<Npc>>                           npcArr;
-
   };

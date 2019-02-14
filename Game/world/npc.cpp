@@ -100,6 +100,10 @@ void Npc::updateAnimation() {
     }
   }
 
+const char *Npc::displayName() const {
+  return name.c_str();
+  }
+
 void Npc::setName(const std::string &n) {
   name = n;
   }
@@ -337,13 +341,29 @@ void Npc::multSpeed(float s) {
 Npc::MoveCode Npc::tryMove(const std::array<float,3> &pos,
                            std::array<float,3> &fallback,
                            float speed) {
-  float k=0.5f;
-  if(physic.tryMove(pos,fallback,speed*k))
+  if(physic.tryMove(pos,fallback,speed))
     return MV_OK;
   std::array<float,3> tmp;
   if(physic.tryMove(fallback,tmp,0))
     return MV_CORRECT;
   return MV_FAILED;
+  }
+
+Npc::MoveCode Npc::tryMoveVr(const std::array<float,3> &pos, std::array<float,3> &fallback, float speed) {
+  if(physic.tryMove(pos,fallback,speed))
+    return MV_OK;
+
+  std::array<float,3> p=fallback;
+  for(int i=1;i<5;++i){
+    if(physic.tryMove(p,fallback,speed))
+      return MV_CORRECT;
+    p=fallback;
+    }
+  return MV_FAILED;
+  }
+
+std::vector<WorldScript::DlgChoise> Npc::dialogChoises(Npc& player) {
+  return owner.dialogChoises(player.hnpc,this->hnpc);
   }
 
 const std::list<Daedalus::GameState::ItemHandle>& Npc::getItems() {

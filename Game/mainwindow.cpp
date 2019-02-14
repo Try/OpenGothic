@@ -9,15 +9,18 @@
 #include <Tempest/Application>
 #include <Tempest/Log>
 
+#include "world/focus.h"
+#include "ui/dialogmenu.h"
 #include "ui/gamemenu.h"
 #include "ui/menuroot.h"
+#include "ui/stacklayout.h"
 
 #include "gothic.h"
 
 using namespace Tempest;
 
 MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
-  :Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),draw(device,gothic),gothic(gothic) {
+  :Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),draw(device,gothic),gothic(gothic),player(dialogs) {
   for(uint8_t i=0;i<device.maxFramesInFlight();++i){
     fLocal.emplace_back(device);
     commandBuffersSemaphores.emplace_back(device);
@@ -41,21 +44,23 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
 
 MainWindow::~MainWindow() {
   device.waitIdle();
+  takeWidget(&dialogs);
   removeAllWidgets();
   // unload
   gothic.setWorld(std::make_unique<World>());
   }
 
 void MainWindow::setupUi() {
-  setLayout(Horizontal);
+  setLayout(new StackLayout());
+  addWidget(&dialogs);
   rootMenu = &addWidget(new MenuRoot(gothic));
   rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_MAIN"));
   }
 
-Interactive* MainWindow::findFocus() {
+Focus MainWindow::findFocus() {
   if(gothic.world().view())
     return gothic.world().findFocus(camera.view(),w(),h());
-  return nullptr;
+  return Focus();
   }
 
 void MainWindow::paintEvent(PaintEvent& event) {
@@ -79,13 +84,13 @@ void MainWindow::paintEvent(PaintEvent& event) {
     auto item = findFocus();
 
     if(item) {
-      auto pos = item->displayPosition();
+      auto pos = item.displayPosition();
       vp.project(pos[0],pos[1],pos[2]);
 
       int ix = int((0.5f*pos[0]+0.5f)*w());
       int iy = int((0.5f*pos[1]+0.5f)*h());
       p.setFont(Resources::font());
-      const char* txt = item->displayName();
+      const char* txt = item.displayName();
       auto tsize = p.font().textSize(txt);
       ix-=tsize.w/2;
       if(iy<tsize.h)
@@ -177,7 +182,10 @@ void MainWindow::tick() {
 
   if(mouseP[Event::ButtonLeft]){
     auto item = findFocus();
-    if(item!=nullptr && player.interact(*item)) {
+    if(item.interactive!=nullptr && player.interact(*item.interactive)) {
+      mouseP[Event::ButtonLeft]=false;
+      }
+    else if(item.npc!=nullptr && player.interact(*item.npc)) {
       mouseP[Event::ButtonLeft]=false;
       }
     }

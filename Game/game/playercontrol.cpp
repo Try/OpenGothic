@@ -4,13 +4,20 @@
 #include "world/world.h"
 #include <cmath>
 
-PlayerControl::PlayerControl() {
+PlayerControl::PlayerControl(DialogMenu& dlg):dlg(dlg) {
   }
 
 bool PlayerControl::interact(Interactive &it) {
   if(world==nullptr || world->player()==nullptr)
     return false;
   return world->player()->setInteraction(&it);
+  }
+
+bool PlayerControl::interact(Npc &other) {
+  if(world==nullptr || world->player()==nullptr)
+    return false;
+  other.dialogChoises(*world->player());
+  return true;
   }
 
 void PlayerControl::drawFist() {
@@ -84,8 +91,8 @@ void PlayerControl::marvinF8() {
 
   pos[1]+=50;
 
-  pos[0]+=24*s;
-  pos[2]+=-24*c;
+  pos[0]+=30*s;
+  pos[2]+=-30*c;
 
   pl.setPosition(pos);
   pl.clearSpeed();

@@ -28,6 +28,7 @@
 #include "game/playercontrol.h"
 #include "graphics/renderer.h"
 #include "resources.h"
+#include "ui/dialogmenu.h"
 
 class MenuRoot;
 class Gothic;
@@ -52,19 +53,13 @@ class MainWindow : public Tempest::Window {
 
     void setWorld(const std::string& name);
 
-    void setupUi();
-    Interactive *findFocus();
+    void  setupUi();
+    Focus findFocus();
 
     void render() override;
     void initSwapchain();
 
     void tick();
-
-    Tempest::Point        mpos;
-    Tempest::PointF       spin;
-    Camera                camera;
-    PlayerControl         player;
-    uint64_t              lastTick=0;
 
     Tempest::Device       device;
     Tempest::TextureAtlas atlas;
@@ -98,6 +93,13 @@ class MainWindow : public Tempest::Window {
 
     bool                                mouseP[Tempest::MouseEvent::ButtonBack]={};
     bool                                pressed[Tempest::KeyEvent::K_Last]={};
+
+    DialogMenu      dialogs;
+    Tempest::Point  mpos;
+    Tempest::PointF spin;
+    Camera          camera;
+    PlayerControl   player;
+    uint64_t        lastTick=0;
 
     struct Fps {
       uint64_t dt[10]={};

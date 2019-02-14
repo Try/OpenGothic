@@ -1,6 +1,7 @@
 #include "world.h"
 
 #include "gothic.h"
+#include "focus.h"
 #include "resources.h"
 
 #include <zenload/zCMesh.h>
@@ -80,8 +81,8 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
   wview.reset(new WorldView(*this,storage));
 
   vm.reset(new WorldScript(*this,gothic,"/_work/data/Scripts/_compiled/GOTHIC.DAT"));
-  // vm->initDialogs(gothic);
-  // initScripts(true);
+  vm->initDialogs(gothic);
+  initScripts(true);
 
   const char* hero="PC_HERO";
   if(startPoints.size()>0)
@@ -129,53 +130,17 @@ Daedalus::PARSymbol &World::getSymbol(const char *s) const {
   return vm->getSymbol(s);
   }
 
-Interactive *World::findFocus(const Npc &pl, const Tempest::Matrix4x4 &v, int w, int h) {
-  Interactive* ret=nullptr;
-  float rlen = w*h;
-  if(view()==nullptr)
-    return nullptr;
-
-  auto mvp = view()->viewProj(v);
-  float plC = std::cos(float(M_PI/2)+pl.rotationRad());
-  float plS = std::sin(float(M_PI/2)+pl.rotationRad());
-
-  for(auto& i:interactiveObj){
-    auto m = mvp;
-    m.mul(i.objMat);
-
-    auto pos = i.position();
-    float dx=pl.position()[0]-pos[0];
-    float dy=pl.position()[1]-pos[1];
-    float dz=pl.position()[2]-pos[2];
-
-    if(dx*plC+dy*plS<0)
-      continue;
-    float l = (dx*dx+dy*dy+dz*dz);
-    if(l>220*220)
-      continue;
-
-    float x=0,y=0,z=0;
-    m.project(x,y,z);
-
-    if(z<0.f || z>1.f)
-      continue;
-
-    x = 0.5f*x*w;
-    y = 0.5f*y*h;
-
-    l = std::sqrt(x*x+y*y);
-    if(l<rlen){
-      rlen=l;
-      ret=&i;
-      }
-    }
-
-  return ret;
+Focus World::findFocus(const Npc &pl, const Tempest::Matrix4x4 &v, int w, int h) {
+  auto n = findNpc(pl,v,w,h);
+  if(n)
+    return Focus(*n);
+  auto inter = findInteractive(pl,v,w,h);
+  return inter ? Focus(*inter) : Focus();
   }
 
-Interactive *World::findFocus(const Tempest::Matrix4x4 &mvp, int w, int h) {
+Focus World::findFocus(const Tempest::Matrix4x4 &mvp, int w, int h) {
   if(npcPlayer==nullptr)
-    return nullptr;
+    return Focus();
   return findFocus(*npcPlayer,mvp,w,h);
   }
 
@@ -224,6 +189,95 @@ const ZenLoad::zCWaypointData *World::findPoint(const char *name) const {
 
 int32_t World::runFunction(const std::string& fname, bool clearDataStack) {
   return vm->runFunction(fname,clearDataStack);
+  }
+
+Interactive *World::findInteractive(const Npc &pl, const Matrix4x4 &v, int w, int h) {
+  Interactive* ret=nullptr;
+  float rlen = w*h;
+  if(view()==nullptr)
+    return nullptr;
+
+  auto mvp = view()->viewProj(v);
+  float plC = std::cos(float(M_PI/2)+pl.rotationRad());
+  float plS = std::sin(float(M_PI/2)+pl.rotationRad());
+
+  for(auto& i:interactiveObj){
+    auto m = mvp;
+    m.mul(i.objMat);
+
+    auto pos = i.position();
+    float dx=pl.position()[0]-pos[0];
+    float dy=pl.position()[1]-pos[1];
+    float dz=pl.position()[2]-pos[2];
+
+    if(dx*plC+dy*plS<0)
+      continue;
+    float l = (dx*dx+dy*dy+dz*dz);
+    if(l>220*220)
+      continue;
+
+    float x=0,y=0,z=0;
+    m.project(x,y,z);
+
+    if(z<0.f || z>1.f)
+      continue;
+
+    x = 0.5f*x*w;
+    y = 0.5f*y*h;
+
+    l = std::sqrt(x*x+y*y);
+    if(l<rlen){
+      rlen=l;
+      ret=&i;
+      }
+    }
+  return ret;
+  }
+
+Npc *World::findNpc(const Npc &pl, const Matrix4x4 &v, int w, int h) {
+  Npc* ret=nullptr;
+  float rlen = w*h;
+  if(view()==nullptr)
+    return nullptr;
+
+  auto mvp = view()->viewProj(v);
+  float plC = std::cos(float(M_PI/2)+pl.rotationRad());
+  float plS = std::sin(float(M_PI/2)+pl.rotationRad());
+
+  for(size_t i=0;i<vm->npcCount();++i){
+    auto& npc=vm->npc(i);
+    if(&npc==&pl)
+      continue;
+    auto m = mvp;
+    //m.mul(npc.objMat);
+
+    auto pos = npc.position();
+    float dx=pl.position()[0]-pos[0];
+    float dy=pl.position()[1]-pos[1];
+    float dz=pl.position()[2]-pos[2];
+
+    if(dx*plC+dy*plS<0)
+      continue;
+    float l = (dx*dx+dy*dy+dz*dz);
+    if(l>440*440)
+      continue;
+
+    float x=npc.position()[0],y=npc.position()[1],z=npc.position()[2];
+    m.project(x,y,z);
+
+    if(z<0.f || z>1.f)
+      continue;
+
+    x = 0.5f*x*w;
+    y = 0.5f*y*h;
+
+    l = std::sqrt(x*x+y*y);
+    if(l<rlen){
+      rlen=l;
+      ret=&npc;
+      }
+    }
+  return ret;
   }
 
 void World::initScripts(bool firstTime) {

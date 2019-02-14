@@ -75,8 +75,10 @@ Matrix4x4 Camera::view() const {
   Matrix4x4 vinv=view;
   vinv.inverse();
 
-  std::array<float,3> r0={0,0,0.65f};
-  std::array<float,3> r1={0,0,0};
+  float distMd = dist;
+  float u = 0,v=0;
+  std::array<float,3> r0={u,v,0.65f};
+  std::array<float,3> r1={u,v,0};
 
   vinv.project(r0[0],r0[1],r0[2]);
   vinv.project(r1[0],r1[1],r1[2]);
@@ -93,7 +95,11 @@ Matrix4x4 Camera::view() const {
   float dist0 = length(r1);
   float dist1 = length(d);
 
-  view=mkView(std::max(dist-std::max(0.f,dist0-dist1),minDist));
+  float md = std::max(dist-std::max(0.f,dist0-dist1),minDist);
+  if(md<distMd)
+    distMd=md;
+
+  view=mkView(distMd);
   return view;
   }
 

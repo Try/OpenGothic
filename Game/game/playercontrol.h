@@ -2,16 +2,20 @@
 
 #include <array>
 
+class DialogMenu;
 class World;
 class Interactive;
+class Npc;
 
 class PlayerControl final {
   public:
-    PlayerControl();
+    PlayerControl(DialogMenu& dlg);
 
     void changeZoom(int delta);
 
-    bool interact(Interactive &it);
+    bool interact(Interactive& it);
+    bool interact(Npc&         other);
+
     void drawFist();
     void drawWeapon1H();
     void drawWeapon2H();
@@ -59,6 +63,7 @@ class PlayerControl final {
 
     bool         ctrl[Control::Last]={};
     const World* world=nullptr;
+    DialogMenu&  dlg;
 
     void         implMove(uint64_t dt);
     void         setPos(std::array<float,3> a, uint64_t dt, float speed);

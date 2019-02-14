@@ -19,6 +19,7 @@
 
 class Gothic;
 class RendererStorage;
+class Focus;
 
 class World final {
   public:
@@ -65,8 +66,8 @@ class World final {
 
     Daedalus::PARSymbol& getSymbol(const char* s) const;
 
-    Interactive* findFocus(const Npc& pl,const Tempest::Matrix4x4 &mvp, int w, int h);
-    Interactive* findFocus(const Tempest::Matrix4x4 &mvp, int w, int h);
+    Focus findFocus(const Npc& pl,const Tempest::Matrix4x4 &mvp, int w, int h);
+    Focus findFocus(const Tempest::Matrix4x4 &mvp, int w, int h);
 
     void marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
@@ -93,4 +94,7 @@ class World final {
 
     void    initScripts(bool firstTime);
     int32_t runFunction(const std::string &fname,bool clearDataStack);
+
+    Interactive* findInteractive(const Npc& pl,const Tempest::Matrix4x4 &mvp, int w, int h);
+    Npc*         findNpc(const Npc& pl,const Tempest::Matrix4x4 &mvp, int w, int h);
   };

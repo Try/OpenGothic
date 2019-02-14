@@ -74,6 +74,20 @@ void WorldScript::initCommon() {
   vm.getGameState().setGameExternals(ext);
   }
 
+void WorldScript::initDialogs(Gothic& gothic) {
+  const char* german       ="_work/data/Scripts/content/CUTSCENE/OU.BIN";
+  const char* international="_work/data/Scripts/content/CUTSCENE/OU.DAT";
+
+  dialogs.reset(new Daedalus::GameState::DaedalusDialogManager(vm, gothic.path()+international, dlgKnownInfos));
+
+  vm.getDATFile().iterateSymbolsOfClass("C_Info", [this](size_t i,Daedalus::PARSymbol&){
+    InfoHandle h = vm.getGameState().createInfo();
+    // Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(h);
+    vm.initializeInstance(ZMemory::toBigHandle(h), i, Daedalus::IC_Info);
+    dialogsInfo.push_back(h);
+    });
+  }
+
 const std::list<Daedalus::GameState::ItemHandle> &WorldScript::getInventoryOf(Daedalus::GameState::NpcHandle h) {
   return vm.getGameState().getInventoryOf(h);
   }
@@ -92,6 +106,48 @@ Daedalus::GEngineClasses::C_Npc& WorldScript::vmNpc(Daedalus::GameState::NpcHand
   return npcData;
   }
 
+std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GameState::NpcHandle player,
+                                                               Daedalus::GameState::NpcHandle hnpc) {
+  auto& npc = vmNpc(hnpc);
+  auto& pl  = vmNpc(player);
+
+  vm.setInstance("self",  ZMemory::toBigHandle(hnpc),   Daedalus::IC_Npc);
+  vm.setInstance("other", ZMemory::toBigHandle(player), Daedalus::IC_Npc);
+
+  std::vector<InfoHandle> hDialog;
+  for(auto& infoHandle : dialogsInfo) {
+    Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(infoHandle);
+    if(info.npc==int32_t(npc.instanceSymbol)) {
+      hDialog.push_back(infoHandle);
+      }
+    }
+
+  std::vector<DlgChoise> choise;
+
+  for(int important=1;important>0;--important){
+    for(auto& i:hDialog) {
+      const Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(i);
+      if(info.important!=important)
+        continue;
+      bool npcKnowsInfo = dialogs->doesNpcKnowInfo(pl.instanceSymbol,info.instanceSymbol);
+      if(npcKnowsInfo)
+        continue;
+      bool valid=false;
+      if(info.condition)
+        valid=runFunction(info.condition,true)!=0;
+      if(valid) {
+        DlgChoise ch;
+        ch.title = info.description;
+        ch.sort  = info.nr;
+        choise.emplace_back(std::move(ch));
+        }
+      }
+    if(!choise.empty())
+      return choise;
+    }
+  return choise;
+  }
+
 bool WorldScript::hasSymbolName(const std::string &fn) {
   return vm.getDATFile().hasSymbolName(fn);
   }
@@ -99,17 +155,13 @@ bool WorldScript::hasSymbolName(const std::string &fn) {
 int32_t WorldScript::runFunction(const std::string& fname, bool clearDataStack) {
   if(!hasSymbolName(fname))
     throw std::runtime_error("script bad call");
-  vm.prepareRunFunction();
-  auto    id  = vm.getDATFile().getSymbolIndexByName(fname);
-  int32_t ret = vm.runFunctionBySymIndex(id,clearDataStack);
-  return ret;
+  auto id = vm.getDATFile().getSymbolIndexByName(fname);
+  return runFunction(id,clearDataStack);
   }
 
-void WorldScript::initDialogs(Gothic& gothic) {
-  const char* german       ="_work/data/Scripts/content/CUTSCENE/OU.BIN";
-  const char* international="_work/data/Scripts/content/CUTSCENE/OU.DAT";
-
-  dialogs.reset(new Daedalus::GameState::DaedalusDialogManager(vm,gothic.path() + international,dlgKnownInfos));
+int32_t WorldScript::runFunction(const size_t fid, bool clearDataStack) {
+  vm.prepareRunFunction();
+  return vm.runFunctionBySymIndex(fid,clearDataStack);
   }
 
 void WorldScript::tick(uint64_t dt) {

@@ -6,13 +6,13 @@
 #include "game/gametime.h"
 #include "game/movealgo.h"
 #include "physics/dynamicworld.h"
+#include "worldscript.h"
 
 #include <cstdint>
 #include <string>
 
 #include <daedalus/DaedalusVM.h>
 
-class WorldScript;
 class Interactive;
 
 class Npc final {
@@ -126,6 +126,7 @@ class Npc final {
 
     void updateAnimation();
 
+    const char* displayName() const;
     void setName      (const std::string& name);
     void setVisual    (const Skeleton *visual);
     void setVisualBody(StaticObjects::Mesh &&head,StaticObjects::Mesh&& body);
@@ -180,7 +181,10 @@ class Npc final {
     void multSpeed(float s);
 
     MoveCode tryMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
+    MoveCode tryMoveVr(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
     bool     hasCollision() const { return physic.hasCollision(); }
+
+    std::vector<WorldScript::DlgChoise> dialogChoises(Npc &player);
 
   private:
     struct Routine final {
