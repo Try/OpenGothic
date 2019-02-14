@@ -94,12 +94,12 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
   auto oldY = npc.position()[1];
   if(trySlide(fb,norm)){
     slideAni=true;
-    float scale=1.f/std::max(0.01f,norm[1]*norm[1]);
+    float scale=1.f;///std::max(0.01f,norm[1]*norm[1]);
     fallSpeed[0]+=slideSpeed*timeK*norm[0]*scale;
     fallSpeed[2]+=slideSpeed*timeK*norm[2]*scale;
     } else {
     slideAni=false;
-    switch(npc.tryMove(pos,fb,speed)){
+    switch(npc.tryMove(pos,fb,speed*0.5f)){
       case Npc::MV_FAILED:  pos=npc.position(); break;
       case Npc::MV_CORRECT: pos=fb; break;
       case Npc::MV_OK:      break;
@@ -120,6 +120,7 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
     if(oldY>ground){
       setInAir(true);
       fallSpeed[0]=aniSpeed[0];
+      fallSpeed[1]=aniSpeed[1];
       fallSpeed[2]=aniSpeed[2];
       } else {
       pos[1]=ground;
@@ -149,7 +150,7 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
     pos[2]+=fallSpeed[2];
     }
 
-  switch(npc.tryMove(pos,fb,speed)) {
+  switch(npc.tryMoveVr(pos,fb,5.f)) {
     case Npc::MV_CORRECT:
     case Npc::MV_OK: // fall anim
       npc.setPosition(fb);
@@ -170,10 +171,11 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
     npc.setAnim(Npc::Slide);
     }
   else if(nFall) {
-    if(npc.anim()!=Npc::Jump)
+    if(npc.anim()!=Npc::Jump &&
+       fallSpeed[0]!=0.f && fallSpeed[1]!=0.f && fallSpeed[2]!=0.f)
       npc.setAnim(Npc::Fall);
     }
-  else if(!nFall && !slideAni) {
+  else if(!nFall && !slideAni && !npc.isFlyAnim()) {
     fallSpeed[0]=0;
     fallSpeed[1]=0;
     fallSpeed[2]=0;
