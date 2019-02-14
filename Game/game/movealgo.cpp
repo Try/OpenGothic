@@ -120,7 +120,7 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
     if(oldY>ground){
       setInAir(true);
       fallSpeed[0]=aniSpeed[0];
-      fallSpeed[1]=aniSpeed[1];
+      fallSpeed[1]=-aniSpeed[1];
       fallSpeed[2]=aniSpeed[2];
       } else {
       pos[1]=ground;
@@ -128,7 +128,7 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
       }
     } else {
     float dY = (pos[1]-ground);
-    if(dY<1) {
+    if(dY<fallSpeed[1]) {
       fallSpeed[1]=0;
       nFall=false;
       } else {
@@ -172,7 +172,7 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
     }
   else if(nFall) {
     if(npc.anim()!=Npc::Jump &&
-       fallSpeed[0]!=0.f && fallSpeed[1]!=0.f && fallSpeed[2]!=0.f)
+       (fallSpeed[0]!=0.f || fallSpeed[1]!=0.f || fallSpeed[2]!=0.f))
       npc.setAnim(Npc::Fall);
     }
   else if(!nFall && !slideAni && !npc.isFlyAnim()) {
