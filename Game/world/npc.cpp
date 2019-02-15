@@ -379,8 +379,8 @@ Npc::MoveCode Npc::tryMoveVr(const std::array<float,3> &pos, std::array<float,3>
 
 std::vector<WorldScript::DlgChoise> Npc::dialogChoises(Npc& player) {
   auto ret = owner.dialogChoises(player.hnpc,this->hnpc);
-  if(ret.size()>0)
-    owner.exec(ret[0],player.hnpc,this->hnpc);
+  //if(ret.size()>0)
+  //  owner.exec(ret[0],player.hnpc,this->hnpc);
   return ret;
   }
 

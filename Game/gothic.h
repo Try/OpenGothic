@@ -26,6 +26,7 @@ class Gothic final {
     void  tick(uint64_t dt);
     void  updateAnimation();
 
+    void  dialogExec(const WorldScript::DlgChoise& dlg, Npc &player, Npc &hnpc);
     void  aiOuput(const char* msg);
     void  aiCloseDialog();
     void  printScreen(const char* msg, int x, int y, int time, const Tempest::Font &font);

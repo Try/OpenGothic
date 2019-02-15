@@ -63,6 +63,10 @@ void Gothic::updateAnimation() {
   wrld->updateAnimation();
   }
 
+void Gothic::dialogExec(const WorldScript::DlgChoise &dlg, Npc& player, Npc& npc) {
+  wrld->exec(dlg,player,npc);
+  }
+
 void Gothic::aiOuput(const char *msg) {
   onDialogOutput(msg);
   }

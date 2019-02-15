@@ -2,11 +2,12 @@
 
 #include <Tempest/Painter>
 
+#include "gothic.h"
 #include "resources.h"
 
 using namespace Tempest;
 
-DialogMenu::DialogMenu() {
+DialogMenu::DialogMenu(Gothic &gothic):gothic(gothic) {
   tex = Resources::loadTexture("DLG_CHOICE.TGA");
   }
 
@@ -41,7 +42,7 @@ void DialogMenu::tick(uint64_t dt) {
 void DialogMenu::aiOutput(const char *msg) {
   Entry e;
   e.txt=msg;
-  e.time = uint32_t(2000);
+  e.time = uint32_t(e.txt.size()*50);
   if(txt.size()==0)
     remDlg=e.time;
   txt.emplace(txt.begin(),std::move(e));
@@ -52,6 +53,19 @@ void DialogMenu::aiClose() {
   Entry e;
   e.flag = DlgClose;
   txt.emplace(txt.begin(),std::move(e));
+  choise.clear();
+  update();
+  }
+
+void DialogMenu::start(std::vector<WorldScript::DlgChoise> &&c, Npc &p, Npc &ot) {
+  choise=std::move(c);
+  pl    = &p;
+  other = &ot;
+  if(choise.size()>0 && choise[0].title.size()==0){
+    // important dialog
+    onEntry(choise[0]);
+    }
+  dlgSel=0;
   update();
   }
 
@@ -66,6 +80,18 @@ void DialogMenu::printScreen(const char *msg, int x, int y, int time, const Temp
   update();
   }
 
+void DialogMenu::onEntry(const DialogMenu::Entry &e) {
+  if(e.flag&DlgClose){
+    txt.clear();
+    return;
+    }
+  }
+
+void DialogMenu::onEntry(const WorldScript::DlgChoise &e) {
+  if(pl && other)
+    gothic.dialogExec(e,*pl,*other);
+  }
+
 void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
   Painter p(e);
 
@@ -78,9 +104,11 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
       }
 
     auto& t = txt.back();
-    p.setFont(Resources::font());
+    p.setFont(Resources::dialogFont());
     p.drawText((w()-dw)/2,100,t.txt.c_str());
     }
+
+  paintChoise(e);
 
   for(size_t i=0;i<pscreen.size();++i){
     auto& sc = pscreen[i];
@@ -102,8 +130,29 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
     }
   }
 
-void DialogMenu::onEntry(const DialogMenu::Entry &e) {
-  if(e.flag&DlgClose)
-    txt.clear();
+void DialogMenu::paintChoise(PaintEvent &e) {
+  if(choise.size()==0)
+    return;
+
+  Painter p(e);
+  p.setFont(Resources::dialogFont());
+  const int padd = 20;
+  const int dw   = std::min(w(),600);
+  const int dh   = int(choise.size()*p.font().pixelSize())+2*padd;
+  const int y    = h()-dh-20;
+
+  if(tex) {
+    p.setBrush(*tex);
+    p.drawRect((w()-dw)/2,y,dw,dh,
+               0,0,tex->w(),tex->h());
+    }
+
+  for(size_t i=0;i<choise.size();++i){
+    int x = (w()-dw)/2;
+    if(i==dlgSel)
+      p.setBrush(Color(1.f)); else
+      p.setBrush(Color(0.6f,0.6f,0.6f,1.f));
+    p.drawText(x+padd,y+padd+int((i+1)*p.font().pixelSize()),choise[i].title.c_str());
+    }
   }
 

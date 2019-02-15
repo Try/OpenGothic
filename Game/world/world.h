@@ -71,6 +71,7 @@ class World final {
 
     void marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
+    void exec(const WorldScript::DlgChoise& dlg, Npc& player,Npc& hnpc);
     void aiOutput(const char* msg);
     void aiCloseDialog();
 

@@ -168,6 +168,10 @@ void World::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,
     }
   }
 
+void World::exec(const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) {
+  return vm->exec(dlg,player.handle(),npc.handle());
+  }
+
 void World::aiOutput(const char *msg) {
   gothic->aiOuput(msg);
   }

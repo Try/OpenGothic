@@ -2,6 +2,8 @@
 
 #include "world/npc.h"
 #include "world/world.h"
+#include "ui/dialogmenu.h"
+
 #include <cmath>
 
 PlayerControl::PlayerControl(DialogMenu& dlg):dlg(dlg) {
@@ -16,8 +18,12 @@ bool PlayerControl::interact(Interactive &it) {
 bool PlayerControl::interact(Npc &other) {
   if(world==nullptr || world->player()==nullptr)
     return false;
-  other.dialogChoises(*world->player());
-  return true;
+  auto choise = other.dialogChoises(*world->player());
+  if(choise.size()>0){
+    dlg.start(std::move(choise),*world->player(),other);
+    return true;
+    }
+  return false;
   }
 
 void PlayerControl::drawFist() {

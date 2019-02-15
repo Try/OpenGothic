@@ -47,7 +47,7 @@ class WorldScript final {
 
     std::vector<DlgChoise> dialogChoises(Daedalus::GameState::NpcHandle self,
                                          Daedalus::GameState::NpcHandle npc);
-    void exec(WorldScript::DlgChoise& dlg, Daedalus::GameState::NpcHandle player, Daedalus::GameState::NpcHandle hnpc);
+    void exec(const DlgChoise &dlg, Daedalus::GameState::NpcHandle player, Daedalus::GameState::NpcHandle hnpc);
 
   private:
     void               initCommon();

@@ -50,6 +50,9 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
   mainFnt = Font("data/font/main.ttf");
   mainFnt.setPixelSize(24);
 
+  dlgFnt  = Font("data/font/main.ttf");
+  dlgFnt.setPixelSize(32);
+
   fallback = device.loadTexture("data/fallback.png");
 
   // TODO: priority for *.mod files

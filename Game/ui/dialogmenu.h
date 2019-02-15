@@ -5,18 +5,24 @@
 #include <Tempest/Timer>
 #include <Tempest/Widget>
 
+#include "world/worldscript.h"
+
+class Npc;
+
 class DialogMenu : public Tempest::Widget {
   public:
-    DialogMenu();
+    DialogMenu(Gothic& gothic);
 
     void tick(uint64_t dt);
     void aiOutput(const char* msg);
     void aiClose();
+    void start(std::vector<WorldScript::DlgChoise>&& choise,Npc& pl,Npc& other);
 
     void printScreen(const char* msg,int x,int y,int time,const Tempest::Font& font);
 
   protected:
-    void paintEvent(Tempest::PaintEvent& e);
+    void paintEvent (Tempest::PaintEvent& e);
+    void paintChoise(Tempest::PaintEvent& e);
 
   private:
     const Tempest::Texture2d* tex=nullptr;
@@ -39,9 +45,16 @@ class DialogMenu : public Tempest::Widget {
       int           y=-1;
       };
 
+    void onEntry(const WorldScript::DlgChoise& e);
     void onEntry(const Entry& e);
 
-    std::vector<Entry>   txt;
-    std::vector<PScreen> pscreen;
-    uint64_t             remDlg=0;
+    Gothic&                             gothic;
+    std::vector<WorldScript::DlgChoise> choise;
+    Npc*                                pl   =nullptr;
+    Npc*                                other=nullptr;
+    size_t                              dlgSel=0;
+
+    std::vector<Entry>                  txt;
+    std::vector<PScreen>                pscreen;
+    uint64_t                            remDlg=0;
   };

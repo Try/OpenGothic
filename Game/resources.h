@@ -55,8 +55,9 @@ class Resources {
       };
 
     static Tempest::Font fontByName(const std::string& name);
-    static Tempest::Font menuFont() { return inst->menuFnt; }
-    static Tempest::Font font()     { return inst->mainFnt; }
+    static Tempest::Font menuFont()   { return inst->menuFnt; }
+    static Tempest::Font dialogFont() { return inst->dlgFnt;  }
+    static Tempest::Font font()       { return inst->mainFnt; }
 
     static const Tempest::Texture2d* fallbackTexture();
     static const Tempest::Texture2d* loadTexture(const char* name);
@@ -116,7 +117,7 @@ class Resources {
     std::unordered_map<const ProtoMesh*,std::unique_ptr<PhysicMeshShape>> phyMeshCache;
 
     Tempest::Device& device;
-    Tempest::Font    menuFnt, mainFnt;
+    Tempest::Font    menuFnt, mainFnt, dlgFnt;
     Tempest::Assets  asset;
     Gothic&          gothic;
     VDFS::FileIndex  gothicAssets;

@@ -137,7 +137,7 @@ std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GameSta
 
   std::vector<DlgChoise> choise;
 
-  for(int important=1;important>0;--important){
+  for(int important=1;important>=0;--important){
     for(auto& i:hDialog) {
       const Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(i);
       if(info.important!=important)
@@ -165,7 +165,7 @@ std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GameSta
   return choise;
   }
 
-void WorldScript::exec(WorldScript::DlgChoise &dlg,
+void WorldScript::exec(const WorldScript::DlgChoise &dlg,
                        Daedalus::GameState::NpcHandle player,
                        Daedalus::GameState::NpcHandle hnpc) {
   vm.setInstance("self",  ZMemory::toBigHandle(hnpc),   Daedalus::IC_Npc);
@@ -282,6 +282,7 @@ void WorldScript::onRemoveNpc(NpcHandle handle) {
 Npc& WorldScript::getNpc(NpcHandle handle) {
   auto  hnpc      = ZMemory::handleCast<NpcHandle>(handle);
   auto& npcData   = vm.getGameState().getNpc(hnpc);
+  assert(npcData.userPtr);
   return *reinterpret_cast<Npc*>(npcData.userPtr);
   }
 
