@@ -43,6 +43,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("wld_insertnpc",       [this](Daedalus::DaedalusVM& vm){ wld_insertnpc(vm);  });
   vm.registerExternalFunction("wld_insertitem",      [this](Daedalus::DaedalusVM& vm){ wld_insertitem(vm); });
   vm.registerExternalFunction("wld_settime",         [this](Daedalus::DaedalusVM& vm){ wld_settime(vm);    });
+  vm.registerExternalFunction("wld_getday",          [this](Daedalus::DaedalusVM& vm){ wld_getday(vm);     });
 
   vm.registerExternalFunction("mdl_setvisual",       [this](Daedalus::DaedalusVM& vm){ mdl_setvisual(vm);       });
   vm.registerExternalFunction("mdl_setvisualbody",   [this](Daedalus::DaedalusVM& vm){ mdl_setvisualbody(vm);   });
@@ -50,13 +51,20 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("mdl_applyoverlaymds", [this](Daedalus::DaedalusVM& vm){ mdl_applyoverlaymds(vm); });
   vm.registerExternalFunction("mdl_setmodelscale",   [this](Daedalus::DaedalusVM& vm){ mdl_setmodelscale(vm);   });
 
-  vm.registerExternalFunction("npc_settalentskill",  [this](Daedalus::DaedalusVM& vm){ npc_settalentskill(vm);  });
   vm.registerExternalFunction("npc_settofightmode",  [this](Daedalus::DaedalusVM& vm){ npc_settofightmode(vm);  });
   vm.registerExternalFunction("npc_settofistmode",   [this](Daedalus::DaedalusVM& vm){ npc_settofistmode(vm);   });
   vm.registerExternalFunction("npc_isinstate",       [this](Daedalus::DaedalusVM& vm){ npc_isinstate(vm);       });
   vm.registerExternalFunction("npc_getdisttowp",     [this](Daedalus::DaedalusVM& vm){ npc_getdisttowp(vm);     });
   vm.registerExternalFunction("npc_exchangeroutine", [this](Daedalus::DaedalusVM& vm){ npc_exchangeroutine(vm); });
   vm.registerExternalFunction("npc_isdead",          [this](Daedalus::DaedalusVM& vm){ npc_isdead(vm);          });
+  vm.registerExternalFunction("npc_knowsinfo",       [this](Daedalus::DaedalusVM& vm){ npc_knowsinfo(vm);       });
+  vm.registerExternalFunction("npc_settalentskill",  [this](Daedalus::DaedalusVM& vm){ npc_settalentskill(vm);  });
+  vm.registerExternalFunction("npc_gettalentskill",  [this](Daedalus::DaedalusVM& vm){ npc_gettalentskill(vm);  });
+  vm.registerExternalFunction("npc_settalentvalue",  [this](Daedalus::DaedalusVM& vm){ npc_settalentvalue(vm);  });
+  vm.registerExternalFunction("npc_gettalentvalue",  [this](Daedalus::DaedalusVM& vm){ npc_gettalentvalue(vm);  });
+  vm.registerExternalFunction("npc_setrefusetalk",   [this](Daedalus::DaedalusVM& vm){ npc_setrefusetalk(vm);   });
+  vm.registerExternalFunction("npc_refusetalk",      [this](Daedalus::DaedalusVM& vm){ npc_refusetalk(vm);      });
+  vm.registerExternalFunction("npc_hasitems",        [this](Daedalus::DaedalusVM& vm){ npc_hasitems(vm);        });
 
   vm.registerExternalFunction("ai_output",           [this](Daedalus::DaedalusVM& vm){ ai_output(vm);            });
   vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
@@ -261,9 +269,12 @@ void WorldScript::onNpcReady(NpcHandle handle) {
   auto  hnpc    = ZMemory::handleCast<NpcHandle>(handle);
   auto& npcData = vm.getGameState().getNpc(hnpc);
 
-  Npc& npc=getNpc(hnpc);
+  Npc* npc=getNpc(hnpc);
+  if(npc==nullptr)
+    return;
+
   if(!npcData.name[0].empty())
-    npc.setName(npcData.name[0]);
+    npc->setName(npcData.name[0]);
 
   if(npcData.daily_routine!=0) {
     vm.prepareRunFunction();
@@ -276,7 +287,7 @@ void WorldScript::onNpcReady(NpcHandle handle) {
   }
 
 void WorldScript::onRemoveNpc(NpcHandle handle) {
-  const Npc* p = &getNpc(handle);
+  const Npc* p = getNpc(handle);
   for(size_t i=0;i<npcArr.size();++i)
     if(p==npcArr[i].get()){
       npcArr[i]=std::move(npcArr.back());
@@ -285,16 +296,19 @@ void WorldScript::onRemoveNpc(NpcHandle handle) {
       }
   }
 
-Npc& WorldScript::getNpc(NpcHandle handle) {
+Npc* WorldScript::getNpc(NpcHandle handle) {
   auto  hnpc      = ZMemory::handleCast<NpcHandle>(handle);
-  auto& npcData   = vm.getGameState().getNpc(hnpc);
-  assert(npcData.userPtr);
-  return *reinterpret_cast<Npc*>(npcData.userPtr);
+  if(!hnpc.isValid())
+    return nullptr;
+  auto& npcData = vm.getGameState().getNpc(hnpc);
+  assert(npcData.userPtr); // engine bug, if null
+  return reinterpret_cast<Npc*>(npcData.userPtr);
   }
 
-Npc& WorldScript::getNpcById(size_t id) {
+Npc* WorldScript::getNpcById(size_t id) {
   auto handle = vm.getDATFile().getSymbolByIndex(id);
-  assert(handle.instanceDataClass == Daedalus::EInstanceClass::IC_Npc);
+  if(handle.instanceDataClass!= Daedalus::EInstanceClass::IC_Npc)
+    return nullptr;
 
   NpcHandle hnpc = ZMemory::handleCast<NpcHandle>(handle.instanceDataHandle);
   return getNpc(hnpc);
@@ -319,18 +333,21 @@ Npc* WorldScript::inserNpc(size_t npcInstance, const char* at) {
     return nullptr;
     }
   auto h = vm.getGameState().insertNPC(npcInstance,at);
-  return &getNpc(h);
+  return getNpc(h);
   }
 
 void WorldScript::onCreateInventoryItem(ItemHandle item, NpcHandle npcHandle) {
   Daedalus::GEngineClasses::C_Item& itemData = vm.getGameState().getItem(item);
-  Npc&                              npc      = getNpc(npcHandle);
+  Npc*                              npc      = getNpc(npcHandle);
+
+  if(npc==nullptr)
+    return;
 
   if((itemData.mainflag & Daedalus::GEngineClasses::C_Item::ITM_CAT_ARMOR)!=0) {
     // TODO: equiping armor
     std::string visual = itemData.visual_change.substr(0, itemData.visual_change.size() - 4) + ".MDM";
     auto        vbody  = visual.empty() ? StaticObjects::Mesh() : owner.getView(visual);
-    npc.setArmour(std::move(vbody));
+    npc->setArmour(std::move(vbody));
     }
 
   if((itemData.mainflag & (Daedalus::GEngineClasses::C_Item::ITM_CAT_NF | Daedalus::GEngineClasses::C_Item::ITM_CAT_FF))) {
@@ -391,15 +408,22 @@ void WorldScript::wld_settime(Daedalus::DaedalusVM &vm) {
   owner.setDayTime(hour,minute);
   }
 
+void WorldScript::wld_getday(Daedalus::DaedalusVM &vm) {
+  auto d = owner.time().day();
+  vm.setReturn(int32_t(d));
+  }
+
 void WorldScript::mdl_setvisual(Daedalus::DaedalusVM &vm) {
   const std::string& visual   = popString(vm);
   uint32_t           arr_self = 0;
   uint32_t           self     = vm.popVar(arr_self);
 
-  auto& npc = getNpcById(self);
+  auto npc = getNpcById(self);
+  if(npc==nullptr)
+    return;
 
   auto skelet = Resources::loadSkeleton (visual);
-  npc.setVisual(skelet);
+  npc->setVisual(skelet);
   }
 
 void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
@@ -413,13 +437,16 @@ void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
   uint32_t    arr_self     = 0;
   uint32_t    self         = vm.popVar(arr_self);
 
-  auto& npc   = getNpcById(self);
+  auto  npc   = getNpcById(self);
   auto  vname = addExt(body,".MDM");
   auto  vhead = head.empty() ? StaticObjects::Mesh() : owner.getView(addExt(head,".MMB"),headTexNr,teethTexNr,bodyTexColor);
   auto  vbody = body.empty() ? StaticObjects::Mesh() : owner.getView(vname,bodyTexNr,0,bodyTexColor);
 
-  npc.setPhysic(owner.getPhysic(vname));
-  npc.setVisualBody(std::move(vhead),std::move(vbody));
+  if(npc==nullptr)
+    return;
+
+  npc->setPhysic(owner.getPhysic(vname));
+  npc->setVisualBody(std::move(vhead),std::move(vbody));
 
   if(armor>=0) {
     auto handle = vm.getDATFile().getSymbolByIndex(self);
@@ -433,8 +460,9 @@ void WorldScript::mdl_setmodelfatness(Daedalus::DaedalusVM &vm) {
   uint32_t arr_self=0;
   uint32_t self = vm.popVar(arr_self);
 
-  auto& npc = getNpcById(self);
-  npc.setFatness(fat);
+  auto npc = getNpcById(self);
+  if(npc!=nullptr)
+    npc->setFatness(fat);
   }
 
 void WorldScript::mdl_applyoverlaymds(Daedalus::DaedalusVM &vm) {
@@ -442,9 +470,11 @@ void WorldScript::mdl_applyoverlaymds(Daedalus::DaedalusVM &vm) {
   uint32_t    arr_self    = 0;
   uint32_t    self        = vm.popVar(arr_self);
 
-  auto& npc    = getNpcById(self);
+  auto* npc    = getNpcById(self);
   auto  skelet = Resources::loadSkeleton(overlayname);
-  npc.setOverlay(skelet,1.0);
+
+  if(npc!=nullptr)
+    npc->setOverlay(skelet,1.0);
   }
 
 void WorldScript::mdl_setmodelscale(Daedalus::DaedalusVM &vm) {
@@ -454,8 +484,9 @@ void WorldScript::mdl_setmodelscale(Daedalus::DaedalusVM &vm) {
   uint32_t arr_self=0;
   uint32_t self = vm.popVar(arr_self);
 
-  auto& npc = getNpcById(self);
-  npc.setScale(x,y,z);
+  auto npc = getNpcById(self);
+  if(npc!=nullptr)
+    npc->setScale(x,y,z);
   }
 
 void WorldScript::wld_insertnpc(Daedalus::DaedalusVM &vm) {
@@ -483,34 +514,31 @@ void WorldScript::wld_insertitem(Daedalus::DaedalusVM &vm) {
   //TODO
   }
 
-void WorldScript::npc_settalentskill(Daedalus::DaedalusVM &vm){
-  uint32_t arr_n0;
-  int lvl     = vm.popDataValue();
-  int t       = vm.popDataValue();
-  uint32_t id = vm.popVar(arr_n0);
-  getNpcById(id).setTalentSkill(Npc::Talent(t),lvl);
-  }
-
 void WorldScript::npc_settofightmode(Daedalus::DaedalusVM &vm) {
   int32_t weaponSymbol = vm.popDataValue();
   size_t  id           = vm.popVar();
   if(weaponSymbol<0)
     return;
-  getNpcById(id).setToFightMode(uint32_t(weaponSymbol));
+  if(auto npc=getNpcById(id))
+    npc->setToFightMode(uint32_t(weaponSymbol));
   }
 
 void WorldScript::npc_settofistmode(Daedalus::DaedalusVM &vm) {
   uint32_t arr_self = 0;
   uint32_t self     = vm.popVar(arr_self);
-  getNpcById(self).setToFistMode();
+  if(auto npc=getNpcById(self))
+    npc->setToFistMode();
   }
 
 void WorldScript::npc_isinstate(Daedalus::DaedalusVM &vm) {
   uint32_t stateFn = uint32_t(vm.popVar());
   uint32_t self    = vm.popVar();
 
-  const bool ret=getNpcById(self).isState(stateFn);
-  vm.setReturn(ret ? 1: 0);
+  if(auto npc=getNpcById(self)){
+    const bool ret=getNpcById(self)->isState(stateFn);
+    vm.setReturn(ret ? 1: 0);
+    }
+  vm.setReturn(0);
   }
 
 void WorldScript::npc_getdisttowp(Daedalus::DaedalusVM &vm) {
@@ -518,12 +546,13 @@ void WorldScript::npc_getdisttowp(Daedalus::DaedalusVM &vm) {
   uint32_t arr_self = 0;
   uint32_t self     = vm.popVar(arr_self);
 
-  auto* wp = owner.findPoint(wpname);
-  if(wp!=nullptr){
-    auto& npc=getNpcById(self);
-    auto  dx = npc.position()[0]-wp->position.x;
-    auto  dy = npc.position()[1]-wp->position.y;
-    auto  dz = npc.position()[2]-wp->position.z;
+  auto* wp  = owner.findPoint(wpname);
+  auto  npc = getNpcById(self);
+
+  if(npc!=nullptr && wp!=nullptr){
+    auto dx = npc->position()[0]-wp->position.x;
+    auto dy = npc->position()[1]-wp->position.y;
+    auto dz = npc->position()[2]-wp->position.z;
 
     float ret = std::sqrt(dx*dx+dy*dy+dz*dz);
     if(ret<float(std::numeric_limits<int32_t>::max()))
@@ -543,10 +572,83 @@ void WorldScript::npc_exchangeroutine(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::npc_isdead(Daedalus::DaedalusVM &vm) {
   uint32_t n   = vm.popVar();
-  Npc&     npc = getNpcById(n);
-  if(npc.isDead())
+  Npc*     npc = getNpcById(n);
+  if(npc==nullptr || npc->isDead())
     vm.setReturn(1); else
     vm.setReturn(0);
+  }
+
+void WorldScript::npc_knowsinfo(Daedalus::DaedalusVM &vm) {
+  uint32_t infoinstance = uint32_t(vm.popDataValue());
+  uint32_t self         = vm.popVar();
+  auto     handle       = vm.getDATFile().getSymbolByIndex(self).instanceDataHandle;
+
+  NpcHandle hself = ZMemory::handleCast<NpcHandle>(handle);
+  Daedalus::GEngineClasses::C_Npc& npc = vm.getGameState().getNpc(hself);
+
+  bool knows = dialogs->doesNpcKnowInfo(npc.instanceSymbol, infoinstance);
+  vm.setReturn(knows ? 1 : 0);
+  }
+
+void WorldScript::npc_settalentskill(Daedalus::DaedalusVM &vm){
+  uint32_t arr_n0;
+  int lvl     = vm.popDataValue();
+  int t       = vm.popDataValue();
+  uint32_t id = vm.popVar(arr_n0);
+  if(auto npc=getNpcById(id))
+    npc->setTalentSkill(Npc::Talent(t),lvl);
+  }
+
+void WorldScript::npc_gettalentskill(Daedalus::DaedalusVM &vm) {
+  uint32_t skillId = uint32_t(vm.popDataValue());
+  uint32_t self    = vm.popVar();
+  auto     npc     = getNpcById(self);
+
+  int32_t  skill   = npc==nullptr ? 0 : npc->talentSkill(Npc::Talent(skillId));
+  vm.setReturn(skill);
+  }
+
+void WorldScript::npc_settalentvalue(Daedalus::DaedalusVM &vm) {
+  uint32_t arr_n0;
+  int lvl     = vm.popDataValue();
+  int t       = vm.popDataValue();
+  uint32_t id = vm.popVar(arr_n0);
+  if(auto npc=getNpcById(id))
+    npc->setTalentValue(Npc::Talent(t),lvl);
+  }
+
+void WorldScript::npc_gettalentvalue(Daedalus::DaedalusVM &vm) {
+  uint32_t skillId = uint32_t(vm.popDataValue());
+  uint32_t self    = vm.popVar();
+  auto     npc     = getNpcById(self);
+
+  int32_t  skill   = npc==nullptr ? 0 : npc->talentValue(Npc::Talent(skillId));
+  vm.setReturn(skill);
+  }
+
+void WorldScript::npc_setrefusetalk(Daedalus::DaedalusVM &vm) {
+  int32_t  timeSec = vm.popDataValue();
+  uint32_t self    = vm.popVar();
+  auto     npc     = getNpcById(self);
+  if(npc)
+    npc->setRefuseTalk(uint64_t(std::max(timeSec,0)*1000));
+  }
+
+void WorldScript::npc_refusetalk(Daedalus::DaedalusVM &vm) {
+  uint32_t self = vm.popVar();
+  auto     npc  = getNpcById(self);
+  if(npc && npc->isRefuseTalk())
+    vm.setReturn(1); else
+    vm.setReturn(0);
+  }
+
+void WorldScript::npc_hasitems(Daedalus::DaedalusVM &vm) {
+  uint32_t itemId = uint32_t(vm.popDataValue());
+  uint32_t self   = vm.popVar();
+  auto     npc    = getNpcById(self);
+  if(npc!=nullptr && npc->hasItems(itemId))
+     vm.setReturn(1); else
+     vm.setReturn(0);
   }
 
 void WorldScript::ai_output(Daedalus::DaedalusVM &vm) {
@@ -591,14 +693,14 @@ void WorldScript::ta_min(Daedalus::DaedalusVM &vm) {
   uint32_t self     = vm.popVar(arr_self);
 
   // TODO
-  Npc& npc = getNpcById(self);
+  Npc* npc = getNpcById(self);
   auto at=owner.findPoint(waypoint);
-  if(at!=nullptr){
-    npc.setPosition (at->position.x, at->position.y, at->position.z);
-    npc.setDirection(at->direction.x,at->direction.y,at->direction.z);
+  if(npc!=nullptr && at!=nullptr){
+    npc->setPosition (at->position.x, at->position.y, at->position.z);
+    npc->setDirection(at->direction.x,at->direction.y,at->direction.z);
     }
 
-  npc.addRoutine(gtime(start_h,start_m),gtime(stop_h,stop_m),uint32_t(action));
+  npc->addRoutine(gtime(start_h,start_m),gtime(stop_h,stop_m),uint32_t(action));
   }
 
 void WorldScript::log_createtopic(Daedalus::DaedalusVM &vm) {
@@ -630,9 +732,10 @@ void WorldScript::equipitem(Daedalus::DaedalusVM &vm) {
   assert(handle.instanceDataClass==Daedalus::EInstanceClass::IC_Npc);
 
   NpcHandle hnpc = ZMemory::handleCast<NpcHandle>(vm.getDATFile().getSymbolByIndex(self).instanceDataHandle);
-  auto&     npc  = getNpc(hnpc);
+  auto      npc  = getNpc(hnpc);
 
-  npc.equipItem(weaponSymbol);
+  if(npc!=nullptr)
+    npc->equipItem(weaponSymbol);
   }
 
 void WorldScript::createinvitems(Daedalus::DaedalusVM &vm) {

@@ -66,8 +66,8 @@ class WorldScript final {
     void onRemoveNpc(Daedalus::GameState::NpcHandle handle);
     void onCreateInventoryItem(Daedalus::GameState::ItemHandle item,Daedalus::GameState::NpcHandle npc);
 
-    Npc& getNpc(Daedalus::GameState::NpcHandle handle);
-    Npc& getNpcById(size_t id);
+    Npc* getNpc(Daedalus::GameState::NpcHandle handle);
+    Npc* getNpcById(size_t id);
 
     Npc* inserNpc(size_t npcInstance,const char *at);
 
@@ -86,6 +86,7 @@ class WorldScript final {
     void wld_insertitem      (Daedalus::DaedalusVM& vm);
     void wld_insertnpc       (Daedalus::DaedalusVM& vm);
     void wld_settime         (Daedalus::DaedalusVM& vm);
+    void wld_getday          (Daedalus::DaedalusVM& vm);
 
     void mdl_setvisual       (Daedalus::DaedalusVM& vm);
     void mdl_setvisualbody   (Daedalus::DaedalusVM& vm);
@@ -93,13 +94,20 @@ class WorldScript final {
     void mdl_applyoverlaymds (Daedalus::DaedalusVM& vm);
     void mdl_setmodelscale   (Daedalus::DaedalusVM& vm);
 
-    void npc_settalentskill  (Daedalus::DaedalusVM &vm);
     void npc_settofightmode  (Daedalus::DaedalusVM &vm);
     void npc_settofistmode   (Daedalus::DaedalusVM &vm);
     void npc_isinstate       (Daedalus::DaedalusVM &vm);
     void npc_getdisttowp     (Daedalus::DaedalusVM &vm);
     void npc_exchangeroutine (Daedalus::DaedalusVM &vm);
     void npc_isdead          (Daedalus::DaedalusVM &vm);
+    void npc_knowsinfo       (Daedalus::DaedalusVM &vm);
+    void npc_settalentskill  (Daedalus::DaedalusVM &vm);
+    void npc_gettalentskill  (Daedalus::DaedalusVM &vm);
+    void npc_settalentvalue  (Daedalus::DaedalusVM &vm);
+    void npc_gettalentvalue  (Daedalus::DaedalusVM &vm);
+    void npc_setrefusetalk   (Daedalus::DaedalusVM &vm);
+    void npc_refusetalk      (Daedalus::DaedalusVM &vm);
+    void npc_hasitems        (Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);

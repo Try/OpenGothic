@@ -238,13 +238,32 @@ bool Npc::isInAir() const {
 
 void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {
   if(t<TALENT_MAX)
-    talents[t] = lvl;
+    talentsSk[t] = lvl;
   }
 
 int32_t Npc::talentSkill(Npc::Talent t) const {
   if(t<TALENT_MAX)
-    return talents[t];
+    return talentsSk[t];
   return 0;
+  }
+
+void Npc::setTalentValue(Npc::Talent t, int32_t lvl) {
+  if(t<TALENT_MAX)
+    talentsVl[t] = lvl;
+  }
+
+int32_t Npc::talentValue(Npc::Talent t) const {
+  if(t<TALENT_MAX)
+    return talentsVl[t];
+  return 0;
+  }
+
+bool Npc::isRefuseTalk() const {
+  return refuseTalkMilis<owner.tickCount();
+  }
+
+void Npc::setRefuseTalk(uint64_t milis) {
+  refuseTalkMilis = owner.tickCount()+milis;
   }
 
 int32_t Npc::attribute(Npc::Attribute a) const {
@@ -445,11 +464,15 @@ std::vector<WorldScript::DlgChoise> Npc::dialogChoises(Npc& player) {
   return owner.dialogChoises(player.hnpc,this->hnpc);
   }
 
-const std::list<Daedalus::GameState::ItemHandle>& Npc::getItems() {
+bool Npc::hasItems(uint32_t id) const {
+  return getItemCount(id)>0;
+  }
+
+const std::list<Daedalus::GameState::ItemHandle>& Npc::getItems() const {
   return owner.getInventoryOf(hnpc);
   }
 
-size_t Npc::getItemCount(const uint32_t item) {
+size_t Npc::getItemCount(const uint32_t item) const {
   auto& items = getItems();
 
   for(Daedalus::GameState::ItemHandle h : items) {

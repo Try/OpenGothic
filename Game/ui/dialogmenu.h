@@ -53,6 +53,7 @@ class DialogMenu : public Tempest::Widget {
     void onEntry(const WorldScript::DlgChoise& e);
     void onEntry(const Entry& e);
     void onDoneText();
+    void close();
 
     Gothic&                             gothic;
     std::vector<WorldScript::DlgChoise> choise;
@@ -61,6 +62,7 @@ class DialogMenu : public Tempest::Widget {
     Npc*                                other=nullptr;
     size_t                              dlgSel=0;
 
+    bool                                active=false;
     std::vector<Entry>                  txt;
     std::vector<PScreen>                pscreen;
     uint64_t                            remDlg=0;

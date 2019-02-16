@@ -173,6 +173,12 @@ class Npc final {
     void     setTalentSkill(Talent t,int32_t lvl);
     int32_t  talentSkill(Talent t) const;
 
+    void     setTalentValue(Talent t,int32_t lvl);
+    int32_t  talentValue(Talent t) const;
+
+    void     setRefuseTalk(uint64_t milis);
+    bool     isRefuseTalk() const;
+
     int32_t  attribute (Attribute a) const;
     int32_t  protection(Protection p) const;
 
@@ -205,8 +211,8 @@ class Npc final {
     bool  setInteraction(Interactive* id);
     bool  isState(uint32_t stateFn) const;
 
-    void addRoutine(gtime s, gtime e, uint32_t callback);
-    void multSpeed(float s);
+    void  addRoutine(gtime s, gtime e, uint32_t callback);
+    void  multSpeed(float s);
 
     MoveCode tryMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
     MoveCode tryMoveVr(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
@@ -218,6 +224,7 @@ class Npc final {
     std::vector<WorldScript::DlgChoise> dialogChoises(Npc &player);
 
     Daedalus::GameState::NpcHandle handle(){ return  hnpc; }
+    bool     hasItems(uint32_t id) const;
 
   private:
     struct Routine final {
@@ -226,8 +233,8 @@ class Npc final {
       uint32_t callback=0;
       };
 
-    const std::list<Daedalus::GameState::ItemHandle> &getItems();
-    size_t getItemCount(const uint32_t id);
+    const std::list<Daedalus::GameState::ItemHandle> &getItems() const;
+    size_t getItemCount(const uint32_t id) const;
 
     void updatePos();
     void setPos(const Tempest::Matrix4x4& m);
@@ -264,7 +271,9 @@ class Npc final {
     Pose                           skInst;
 
     std::string                    name;
-    int32_t                        talents[TALENT_MAX]={};
+    int32_t                        talentsSk[TALENT_MAX]={};
+    int32_t                        talentsVl[TALENT_MAX]={};
+    uint64_t                       refuseTalkMilis      =0;
 
     Interactive*                   currentInteract=nullptr;
     std::vector<Routine>           routines;

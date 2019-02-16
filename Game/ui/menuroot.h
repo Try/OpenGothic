@@ -16,10 +16,11 @@ class MenuRoot : public Tempest::Widget {
     void popMenu();
     void setPlayer(const Npc& pl);
 
+    void mouseWheelEvent(Tempest::MouseEvent& event) override;
+
   protected:
     void mouseDownEvent (Tempest::MouseEvent& event) override;
     void mouseUpEvent   (Tempest::MouseEvent& event) override;
-    void mouseWheelEvent(Tempest::MouseEvent& event) override;
 
     void keyDownEvent   (Tempest::KeyEvent&   event) override;
     void keyUpEvent     (Tempest::KeyEvent&   event) override;

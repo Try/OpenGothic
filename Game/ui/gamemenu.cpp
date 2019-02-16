@@ -386,7 +386,7 @@ void GameMenu::initValues() {
     if(i.name=="MENU_ITEM_TIME") {
       Daedalus::GEngineClasses::C_Menu_Item& item = i.get(*vm);
       char form[64]={};
-      std::snprintf(form,sizeof(form),"%d:%d",int(gothic.time().hour()),int(gothic.time().minute()));
+      std::snprintf(form,sizeof(form),"%d:%02d",int(gothic.time().hour()),int(gothic.time().minute()));
       item.text[0] = form;
       }
     }
@@ -419,16 +419,16 @@ void GameMenu::setPlayer(const Npc &pl) {
     if(str.empty())
       continue;
 
-    const int v=pl.talentSkill(Npc::Talent(i));
-
     char buf[64]={};
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d_TITLE",i);
     set(buf,str.c_str());
 
+    const int sk=pl.talentSkill(Npc::Talent(i));
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d_SKILL",i);
-    set(buf,strEnum(talV.getString(i).c_str(),v));
+    set(buf,strEnum(talV.getString(i).c_str(),sk));
 
+    const int val=pl.talentValue(Npc::Talent(i));
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d",i);
-    set(buf,v,"%");
+    set(buf,val,"%");
     }
   }

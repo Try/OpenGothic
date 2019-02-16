@@ -142,6 +142,10 @@ void World::setDayTime(int32_t h, int32_t min) {
     }
   }
 
+gtime World::time() const {
+  return gothic->time();
+  }
+
 Daedalus::PARSymbol &World::getSymbol(const char *s) const {
   return vm->getSymbol(s);
   }

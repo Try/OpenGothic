@@ -65,6 +65,7 @@ class World final {
     void     tick(uint64_t dt);
     uint64_t tickCount() const;
     void     setDayTime(int32_t h,int32_t min);
+    gtime    time() const;
 
     Daedalus::PARSymbol& getSymbol(const char* s) const;
 

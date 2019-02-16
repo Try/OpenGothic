@@ -10,13 +10,11 @@ using namespace Tempest;
 
 DialogMenu::DialogMenu(Gothic &gothic):gothic(gothic) {
   tex = Resources::loadTexture("DLG_CHOICE.TGA");
+  setFocusPolicy(NoFocus);
   }
 
 void DialogMenu::tick(uint64_t dt) {
-  if(txt.size()==0)
-    return;
-
-  if(remDlg<dt) {
+  if(remDlg<dt && txt.size()>0) {
     txt.pop_back();
     if(txt.size()>0) {
       remDlg=txt.back().time;
@@ -60,9 +58,11 @@ void DialogMenu::aiClose() {
   }
 
 void DialogMenu::start(std::vector<WorldScript::DlgChoise> &&c, Npc &p, Npc &ot) {
-  choise=std::move(c);
-  pl    = &p;
-  other = &ot;
+  choise = std::move(c);
+  pl     = &p;
+  other  = &ot;
+  active = true;
+
   if(choise.size()>0 && choise[0].title.size()==0){
     // important dialog
     onEntry(choise[0]);
@@ -86,14 +86,21 @@ void DialogMenu::printScreen(const char *msg, int x, int y, int time, const Temp
 void DialogMenu::onDoneText() {
   choise = gothic.updateDialog(selected);
   dlgSel = 0;
+  if(choise.size()==0)
+    close();
+  }
+
+void DialogMenu::close() {
+  txt.clear();
+  choise.clear();
+  owner()->setFocus(true);
+  active=false;
   update();
   }
 
 void DialogMenu::onEntry(const DialogMenu::Entry &e) {
   if(e.flag&DlgClose){
-    txt.clear();
-    choise.clear();
-    owner()->setFocus(true);
+    close();
     return;
     }
   }
@@ -118,7 +125,7 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
 
     auto& t = txt.back();
     p.setFont(Resources::dialogFont());
-    p.drawText((w()-dw)/2,100,t.txt.c_str());
+    p.drawText((w()-dw)/2,100,t.txt);
     }
 
   paintChoise(e);
@@ -126,7 +133,7 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
   for(size_t i=0;i<pscreen.size();++i){
     auto& sc = pscreen[i];
     p.setFont(sc.font);
-    auto  sz = p.font().textSize(sc.txt.c_str());
+    auto  sz = p.font().textSize(sc.txt);
     int x = sc.x;
     int y = sc.y;
     if(x<0){
@@ -139,7 +146,7 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
       } else {
       y = int(h()*y/100.f);
       }
-    p.drawText(x,y,sc.txt.c_str());
+    p.drawText(x,y,sc.txt);
     }
   }
 
@@ -165,12 +172,12 @@ void DialogMenu::paintChoise(PaintEvent &e) {
     if(i==dlgSel)
       p.setBrush(Color(1.f)); else
       p.setBrush(Color(0.6f,0.6f,0.6f,1.f));
-    p.drawText(x+padd,y+padd+int((i+1)*p.font().pixelSize()),choise[i].title.c_str());
+    p.drawText(x+padd,y+padd+int((i+1)*p.font().pixelSize()),choise[i].title);
     }
   }
 
 void DialogMenu::mouseDownEvent(MouseEvent &event) {
-  if(choise.size()==0){
+  if(!active){
     event.ignore();
     return;
     }
@@ -186,6 +193,11 @@ void DialogMenu::mouseDownEvent(MouseEvent &event) {
   }
 
 void DialogMenu::mouseWheelEvent(MouseEvent &e) {
+  if(!active){
+    e.ignore();
+    return;
+    }
+
   if(e.delta>0)
     dlgSel--;
   if(e.delta<0)
@@ -195,6 +207,11 @@ void DialogMenu::mouseWheelEvent(MouseEvent &e) {
   }
 
 void DialogMenu::keyDownEvent(KeyEvent &event) {
+  if(!active){
+    event.ignore();
+    return;
+    }
+
   if(event.key==Event::K_ESCAPE){
     if(txt.size()>0){
       remDlg=0;
