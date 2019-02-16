@@ -21,8 +21,13 @@ class DialogMenu : public Tempest::Widget {
     void printScreen(const char* msg,int x,int y,int time,const Tempest::Font& font);
 
   protected:
-    void paintEvent (Tempest::PaintEvent& e);
+    void paintEvent (Tempest::PaintEvent& e) override;
     void paintChoise(Tempest::PaintEvent& e);
+
+    void mouseDownEvent (Tempest::MouseEvent& event) override;
+    void mouseWheelEvent(Tempest::MouseEvent& event) override;
+
+    void keyDownEvent   (Tempest::KeyEvent&   event) override;
 
   private:
     const Tempest::Texture2d* tex=nullptr;
@@ -47,9 +52,11 @@ class DialogMenu : public Tempest::Widget {
 
     void onEntry(const WorldScript::DlgChoise& e);
     void onEntry(const Entry& e);
+    void onDoneText();
 
     Gothic&                             gothic;
     std::vector<WorldScript::DlgChoise> choise;
+    WorldScript::DlgChoise              selected;
     Npc*                                pl   =nullptr;
     Npc*                                other=nullptr;
     size_t                              dlgSel=0;

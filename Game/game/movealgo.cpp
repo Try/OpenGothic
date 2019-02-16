@@ -3,7 +3,7 @@
 #include "world/world.h"
 #include "world/npc.h"
 
-const float MoveAlgo::slideBegin   =float(std::sin(40*M_PI/180));
+const float MoveAlgo::slideBegin   =float(std::sin(44*M_PI/180));
 const float MoveAlgo::slideEnd     =float(std::sin(0*M_PI/180));
 const float MoveAlgo::slideSpeed   =11.f;
 const float MoveAlgo::fallThreshold=45.f;
@@ -19,9 +19,11 @@ void MoveAlgo::tick(uint64_t dt) {
   float rot = npc.rotationRad();
   float s   = std::sin(rot), c = std::cos(rot);
 
-  dpos[0]=dp.x;
-  dpos[1]=npc.isFlyAnim() ? dp.y : 0;
-  dpos[2]=dp.z;
+  if(!isClimb()) {
+    dpos[0]=dp.x;
+    dpos[1]=npc.isFlyAnim() ? dp.y : 0;
+    dpos[2]=dp.z;
+    }
 
   aniSpeed[0]=mulSpeed*(dpos[0]*c-dpos[2]*s);
   aniSpeed[2]=mulSpeed*(dpos[0]*s+dpos[2]*c);
@@ -43,6 +45,13 @@ void MoveAlgo::clearSpeed() {
   flags = NoFlags;
   }
 
+bool MoveAlgo::startClimb() {
+  climbStart=world.tickCount();
+  climbPos0 =npc.position();
+  setAsClimb(true);
+  return true;
+  }
+
 bool MoveAlgo::isFaling() const {
   return flags&Faling;
   }
@@ -59,6 +68,10 @@ bool MoveAlgo::isInAir() const {
   return flags&InAir;
   }
 
+bool MoveAlgo::isClimb() const {
+  return flags&Climb;
+  }
+
 void MoveAlgo::setAsFrozen(bool f) {
   if(f)
     flags=Flags(flags|Frozen); else
@@ -69,6 +82,12 @@ void MoveAlgo::setInAir(bool f) {
   if(f)
     flags=Flags(flags|InAir); else
     flags=Flags(flags&(~InAir));
+  }
+
+void MoveAlgo::setAsClimb(bool f) {
+  if(f)
+    flags=Flags(flags|Climb); else
+    flags=Flags(flags&(~Climb));
   }
 
 void MoveAlgo::setSllideFaling(bool slide, bool faling) {
@@ -83,6 +102,39 @@ void MoveAlgo::setSllideFaling(bool slide, bool faling) {
     flags=Flags(flags&(~Slide));
   }
 
+bool MoveAlgo::processClimb() {
+  if(!isClimb())
+    return false;
+  float dspeed = 60.f;
+  bool  valid  = false;
+
+  if(climbHeight<=0.f)
+    climbHeight=npc.clampHeight(npc.anim());
+
+  if(npc.anim()==Npc::Idle && !npc.isFlyAnim()) {
+    auto  pos = climbPos0;
+    float rot = npc.rotationRad();
+    float s   = std::sin(rot), c = std::cos(rot);
+    pos[0]+= dspeed*s;
+    pos[2]+=-dspeed*c;
+
+    auto ground = world.physic()->dropRay(pos[0],pos[1]+climbHeight+10,pos[2],valid);
+    if(valid) {
+      pos[1]=ground;
+      std::array<float,3> fb={};
+      if(npc.tryMove(pos,fb,0))
+        npc.setPosition(fb);
+      }
+    setAsClimb(false);
+    climbHeight=0;
+    return true;
+    }
+
+  auto pos = npc.position();
+  npc.setPosition(pos);
+  return true;
+  }
+
 void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
   float               gravity=2*9.8f;
   std::array<float,3> fb=npc.position();
@@ -90,6 +142,9 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
   bool                fallAni  = false;
   bool                slideAni = false;
   float               timeK    = float(dt)/1000.f;
+
+  if(processClimb())
+    return;
 
   auto oldY = npc.position()[1];
   if(trySlide(fb,norm)){
@@ -100,7 +155,16 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
     } else {
     slideAni=false;
     switch(npc.tryMove(pos,fb,speed*0.5f)){
-      case Npc::MV_FAILED:  pos=npc.position(); break;
+      case Npc::MV_FAILED:  {
+        pos[0]=npc.position()[0];
+        pos[2]=npc.position()[2];
+        switch(npc.tryMove(pos,fb,speed*0.5f)){
+          case Npc::MV_FAILED:  pos=npc.position(); break;
+          case Npc::MV_CORRECT: pos=fb; break;
+          case Npc::MV_OK:      break;
+          }
+        break;
+        }
       case Npc::MV_CORRECT: pos=fb; break;
       case Npc::MV_OK:      break;
       }
@@ -117,7 +181,7 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
   bool nFall=isFaling();
   setInAir(false);
   if(npc.isFlyAnim()) {
-    if(oldY>ground){
+    if(oldY>ground) {
       setInAir(true);
       fallSpeed[0]=aniSpeed[0];
       fallSpeed[1]=-aniSpeed[1];
@@ -168,7 +232,9 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
 
   setSllideFaling(slideAni,nFall);
   if(slideAni && !nFall) {
-    npc.setAnim(Npc::Slide);
+    if(slideDir())
+      npc.setAnim(Npc::SlideA); else
+      npc.setAnim(Npc::SlideB);
     }
   else if(nFall) {
     if(npc.anim()!=Npc::Jump &&
@@ -206,10 +272,15 @@ bool MoveAlgo::trySlide(std::array<float,3>& pos,std::array<float,3>& norm) {
   norm = world.physic()->landNormal(pos[0],pos[1],pos[2]);
 
   if(badFall || (norm[1]<slideBegin && slideEnd<norm[1])) { // sliding
-    //pos[0]+=fallSpeed[0];
-    //pos[2]+=fallSpeed[2];
     return true;
     }
   return false;
   }
 
+bool MoveAlgo::slideDir() const {
+  float a = std::atan2(fallSpeed[0],fallSpeed[2])+float(M_PI/2);
+  float b = npc.rotationRad();
+
+  auto s = std::sin(a-b);
+  return s>0;
+  }

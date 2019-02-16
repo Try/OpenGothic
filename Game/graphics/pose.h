@@ -12,6 +12,7 @@ class Pose final {
     void update(const Animation::Sequence& s,uint64_t dt);
 
     float translateY() const { return trY; }
+    Tempest::Matrix4x4 cameraBone() const;
 
     std::vector<Tempest::Matrix4x4> tr;
     std::vector<Tempest::Matrix4x4> base;

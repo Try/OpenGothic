@@ -45,6 +45,18 @@ const char *Interactive::displayName() const {
   return txt;
   }
 
+std::string Interactive::stateFunc() const {
+  if(data.oCMobInter.onStateFunc.empty())
+    return std::string();
+  char buf[256]={};
+  std::snprintf(buf,sizeof(buf),"%s_S%d",data.oCMobInter.onStateFunc.c_str(),state);
+  return buf;
+  }
+
+const Trigger* Interactive::triggerTarget() const {
+  return world->findTrigger(data.oCMobInter.triggerTarget);
+  }
+
 bool Interactive::attach(Npc &npc) {
   for(auto& i:pos) {
     if(i.name=="ZS_POS0" && i.user==nullptr) {
@@ -71,7 +83,7 @@ void Interactive::setPos(Npc &npc,std::array<float,3> pos) {
   bool valid=false;
   auto ground = world->physic()->dropRay(pos[0],pos[1],pos[2],valid);
   if(valid) {
-    //pos[1]=ground;
+    pos[1]=ground;
     npc.setPosition(pos);
     }
   }
@@ -101,6 +113,8 @@ void Interactive::attach(Npc &npc, Interactive::Pos &to) {
 
   setDir(npc,mat);
   npc.setInteraction(this);
+
+  state = (state+1)%std::max(data.oCMobInter.stateNum+1,1);
   }
 
 const char* Interactive::anim(Interactive::Anim t) const {

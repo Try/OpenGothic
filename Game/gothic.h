@@ -19,17 +19,23 @@ class Gothic final {
     const World& world() const { return *wrld; }
     World& world() { return *wrld; }
 
-    void  pushPause();
-    void  popPause();
-    bool  isPause() const;
+    void     pushPause();
+    void     popPause();
+    bool     isPause() const;
 
-    void  tick(uint64_t dt);
-    void  updateAnimation();
+    uint64_t tickCount() const;
+    void     tick(uint64_t dt);
 
-    void  dialogExec(const WorldScript::DlgChoise& dlg, Npc &player, Npc &hnpc);
-    void  aiOuput(const char* msg);
-    void  aiCloseDialog();
-    void  printScreen(const char* msg, int x, int y, int time, const Tempest::Font &font);
+    gtime    time() const { return  wrldTime; }
+    void     setTime(gtime t);
+
+    void     updateAnimation();
+
+    auto     updateDialog(const WorldScript::DlgChoise &dlg) -> std::vector<WorldScript::DlgChoise>;
+    void     dialogExec(const WorldScript::DlgChoise& dlg, Npc &player, Npc &hnpc);
+    void     aiOuput(const char* msg);
+    void     aiCloseDialog();
+    void     printScreen(const char* msg, int x, int y, int time, const Tempest::Font &font);
 
     Tempest::Signal<void(const std::string&)> onSetWorld;
     Tempest::Signal<void(const char*)>        onDialogOutput;
@@ -50,5 +56,10 @@ class Gothic final {
     bool        noMenu=false;
     uint16_t    pauseSum=0;
 
+    uint64_t               ticks=0, wrldTimePart=0;
+    gtime                  wrldTime;
     std::unique_ptr<World> wrld;
+
+    static const uint64_t  multTime;
+    static const uint64_t  divTime;
   };

@@ -1,6 +1,7 @@
 #include "dialogmenu.h"
 
 #include <Tempest/Painter>
+#include <algorithm>
 
 #include "gothic.h"
 #include "resources.h"
@@ -22,6 +23,7 @@ void DialogMenu::tick(uint64_t dt) {
       onEntry(txt.back());
       } else {
       remDlg=0;
+      onDoneText();
       }
     } else {
     remDlg-=dt;
@@ -66,6 +68,7 @@ void DialogMenu::start(std::vector<WorldScript::DlgChoise> &&c, Npc &p, Npc &ot)
     onEntry(choise[0]);
     }
   dlgSel=0;
+  setFocus(true);
   update();
   }
 
@@ -73,23 +76,33 @@ void DialogMenu::printScreen(const char *msg, int x, int y, int time, const Temp
   PScreen e;
   e.txt  = msg;
   e.font = font;
-  e.time = uint32_t(time*1000);
+  e.time = uint32_t(time*1000)+1000;
   e.x    = x;
   e.y    = y;
   pscreen.emplace(pscreen.begin(),std::move(e));
   update();
   }
 
+void DialogMenu::onDoneText() {
+  choise = gothic.updateDialog(selected);
+  dlgSel = 0;
+  update();
+  }
+
 void DialogMenu::onEntry(const DialogMenu::Entry &e) {
   if(e.flag&DlgClose){
     txt.clear();
+    choise.clear();
+    owner()->setFocus(true);
     return;
     }
   }
 
 void DialogMenu::onEntry(const WorldScript::DlgChoise &e) {
-  if(pl && other)
+  if(pl && other) {
+    selected=e;
     gothic.dialogExec(e,*pl,*other);
+    }
   }
 
 void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
@@ -131,7 +144,7 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
   }
 
 void DialogMenu::paintChoise(PaintEvent &e) {
-  if(choise.size()==0)
+  if(choise.size()==0 || txt.size()>0)
     return;
 
   Painter p(e);
@@ -153,6 +166,40 @@ void DialogMenu::paintChoise(PaintEvent &e) {
       p.setBrush(Color(1.f)); else
       p.setBrush(Color(0.6f,0.6f,0.6f,1.f));
     p.drawText(x+padd,y+padd+int((i+1)*p.font().pixelSize()),choise[i].title.c_str());
+    }
+  }
+
+void DialogMenu::mouseDownEvent(MouseEvent &event) {
+  if(choise.size()==0){
+    event.ignore();
+    return;
+    }
+
+  if(txt.size()){
+    event.accept();
+    return;
+    }
+
+  if(dlgSel<choise.size())
+    onEntry(choise[dlgSel]);
+  event.accept();
+  }
+
+void DialogMenu::mouseWheelEvent(MouseEvent &e) {
+  if(e.delta>0)
+    dlgSel--;
+  if(e.delta<0)
+    dlgSel++;
+  dlgSel = (dlgSel+choise.size())%std::max<size_t>(choise.size(),1);
+  update();
+  }
+
+void DialogMenu::keyDownEvent(KeyEvent &event) {
+  if(event.key==Event::K_ESCAPE){
+    if(txt.size()>0){
+      remDlg=0;
+      update();
+      }
     }
   }
 

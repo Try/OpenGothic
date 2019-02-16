@@ -28,6 +28,13 @@ class Npc final {
       MV_CORRECT
       };
 
+    enum JumpCode : uint8_t {
+      JM_OK,
+      JM_UpLow,
+      JM_UpMid,
+      JM_Up,
+      };
+
     enum Anim : uint16_t {
       NoAnim,
       Idle,
@@ -38,8 +45,12 @@ class Npc final {
       RotL,
       RotR,
       Jump,
+      JumpUpLow,
+      JumpUpMid,
+      JumpUp,
       Fall,
-      Slide,
+      SlideA,
+      SlideB,
       Interact,
       DrawFist,
       DrawWeapon1h
@@ -128,8 +139,10 @@ class Npc final {
 
     void setAiType(AiType t);
     void tick(uint64_t dt);
+    bool startClimb(Npc::Anim ani);
 
     std::array<float,3> position() const;
+    std::array<float,3> cameraBone() const;
     float               rotation() const;
     float               rotationRad() const;
     float               translateY() const;
@@ -197,6 +210,9 @@ class Npc final {
 
     MoveCode tryMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
     MoveCode tryMoveVr(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
+    JumpCode tryJump(const std::array<float,3>& pos);
+    float    clampHeight(Anim a) const;
+
     bool     hasCollision() const { return physic.hasCollision(); }
 
     std::vector<WorldScript::DlgChoise> dialogChoises(Npc &player);

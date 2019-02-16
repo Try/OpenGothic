@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <unordered_set>
+#include <random>
 
 #include "game/questlog.h"
 
@@ -18,9 +19,10 @@ class WorldScript final {
     WorldScript(World& owner,Gothic &gothic, const char* world);
 
     struct DlgChoise final {
-      std::string title;
-      int32_t     sort=0;
-      uint32_t    scriptFn=0;
+      std::string                     title;
+      int32_t                         sort=0;
+      uint32_t                        scriptFn=0;
+      Daedalus::GameState::InfoHandle handle={};
       };
 
     bool    hasSymbolName(const std::string& fn);
@@ -74,7 +76,12 @@ class WorldScript final {
     static void floattostring(Daedalus::DaedalusVM& vm);
     static void floattoint   (Daedalus::DaedalusVM& vm);
     static void inttofloat   (Daedalus::DaedalusVM& vm);
-    static void hlp_random   (Daedalus::DaedalusVM& vm);
+
+    static void hlp_strcmp   (Daedalus::DaedalusVM& vm);
+    void hlp_random          (Daedalus::DaedalusVM& vm);
+    void hlp_isvalidnpc      (Daedalus::DaedalusVM &vm);
+    void hlp_getinstanceid   (Daedalus::DaedalusVM &vm);
+    void hlp_getnpc          (Daedalus::DaedalusVM &vm);
 
     void wld_insertitem      (Daedalus::DaedalusVM& vm);
     void wld_insertnpc       (Daedalus::DaedalusVM& vm);
@@ -108,9 +115,8 @@ class WorldScript final {
     void equipitem           (Daedalus::DaedalusVM &vm);
     void createinvitems      (Daedalus::DaedalusVM &vm);
 
-    void hlp_getinstanceid   (Daedalus::DaedalusVM &vm);
-    void hlp_isvalidnpc      (Daedalus::DaedalusVM &vm);
-    void hlp_getnpc          (Daedalus::DaedalusVM &vm);
+    void info_addchoice      (Daedalus::DaedalusVM &vm);
+    void info_clearchoices   (Daedalus::DaedalusVM &vm);
 
     void playvideo           (Daedalus::DaedalusVM &vm);
     void printscreen         (Daedalus::DaedalusVM &vm);
@@ -119,7 +125,7 @@ class WorldScript final {
 
     Daedalus::DaedalusVM vm;
     World&               owner;
-    uint64_t             ticks=0;
+    std::mt19937         randGen;
 
     std::map<size_t,std::set<size_t>>                           dlgKnownInfos;
     std::vector<Daedalus::GameState::InfoHandle>                dialogsInfo;

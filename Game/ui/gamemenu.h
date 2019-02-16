@@ -47,6 +47,7 @@ class GameMenu : public Tempest::Widget {
       std::string                         name;
       Daedalus::GameState::MenuItemHandle handle={};
       const Tempest::Texture2d*           img=nullptr;
+      bool                                visible=true;
 
       Daedalus::GEngineClasses::C_Menu_Item& get(Daedalus::DaedalusVM& vm);
       };

@@ -82,7 +82,6 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
 
   vm.reset(new WorldScript(*this,gothic,"/_work/data/Scripts/_compiled/GOTHIC.DAT"));
   vm->initDialogs(gothic);
-  initScripts(true);
 
   const char* hero="PC_HERO";
   if(startPoints.size()>0)
@@ -92,6 +91,8 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
     npcPlayer->setAiType(Npc::AiType::Player);
     vm->setInstanceNPC("HERO",*npcPlayer);
     }
+
+  initScripts(true);
   }
 
 StaticObjects::Mesh World::getView(const std::string &visual) {
@@ -104,8 +105,8 @@ StaticObjects::Mesh World::getView(const std::string &visual, int32_t headTex, i
 
 DynamicWorld::Item World::getPhysic(const std::string& visual) {
   if(auto mesh=Resources::loadMesh(visual))
-    return physic()->ghostObj(40,mesh->colisionHeight());
-  return physic()->ghostObj(40,140);
+    return physic()->ghostObj(30,mesh->colisionHeight());
+  return physic()->ghostObj(30,140);
   }
 
 void World::updateAnimation() {
@@ -125,7 +126,20 @@ void World::tick(uint64_t dt) {
   }
 
 uint64_t World::tickCount() const {
-  return vm ? vm->tickCount() : 0;
+  return gothic->tickCount();
+  }
+
+void World::setDayTime(int32_t h, int32_t min) {
+  gtime now     = gothic->time();
+  auto  day     = now.day();
+  gtime dayTime = now.timeInDay();
+  gtime next    = gtime(h,min);
+
+  if(dayTime<=next){
+    gothic->setTime(gtime(day,h,min));
+    } else {
+    gothic->setTime(gtime(day+1,h,min));
+    }
   }
 
 Daedalus::PARSymbol &World::getSymbol(const char *s) const {
@@ -144,6 +158,15 @@ Focus World::findFocus(const Tempest::Matrix4x4 &mvp, int w, int h) {
   if(npcPlayer==nullptr)
     return Focus();
   return findFocus(*npcPlayer,mvp,w,h);
+  }
+
+const Trigger *World::findTrigger(const char *name) const {
+  if(name==nullptr || name[0]=='\0')
+    return nullptr;
+  for(auto& i:triggers)
+    if(i.name()==name)
+      return &i;
+  return nullptr;
   }
 
 void World::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,
@@ -166,6 +189,20 @@ void World::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,
 
     i.marchInteractives(p,mvp,w,h);
     }
+  }
+
+std::vector<WorldScript::DlgChoise> World::updateDialog(const WorldScript::DlgChoise &dlg) {
+  const Daedalus::GEngineClasses::C_Info& info = vm->getGameState().getInfo(dlg.handle);
+  std::vector<WorldScript::DlgChoise> ret;
+  for(size_t i=0;i<info.subChoices.size();++i){
+    WorldScript::DlgChoise ch;
+    ch.title    = info.subChoices[i].text;
+    ch.scriptFn = info.subChoices[i].functionSym;
+    ch.handle   = dlg.handle;
+    ch.sort     = int(i);
+    ret.push_back(ch);
+    }
+  return ret;
   }
 
 void World::exec(const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) {
@@ -331,9 +368,16 @@ void World::loadVob(const ZenLoad::zCVobData &vob) {
   else if(vob.objectClass=="zCMover:zCTrigger:zCVob"){
     addStatic(vob); // castle gate
     }
+  else if(vob.objectClass=="oCTriggerChangeLevel:zCTrigger:zCVob"){
+    addTrigger(vob); // change world trigger
+    }
+  else if(vob.objectClass=="zCTriggerWorldStart:zCVob"){
+    addTrigger(vob); // world start trigger
+    }
   else if(vob.objectClass=="oCTriggerScript:zCTrigger:zCVob" ||
-          vob.objectClass=="oCTriggerChangeLevel:zCTrigger:zCVob" ||
+          vob.objectClass=="zCTriggerList:zCTrigger:zCVob" ||
           vob.objectClass=="zCTrigger:zCVob"){
+    addTrigger(vob);
     }
   else if(vob.objectClass=="zCZoneZFog:zCVob" ||
           vob.objectClass=="zCZoneZFogDefault:zCZoneZFog:zCVob"){
@@ -383,6 +427,7 @@ void World::addStatic(const ZenLoad::zCVobData &vob) {
     std::memcpy(v,vob.worldMatrix.m,sizeof(v));
     d.objMat = Tempest::Matrix4x4(v);
     // workaround: some meshes dont have colision in original game
+    //d.physic = vob.physicsEnabled ? Resources::physicMesh(d.mesh) : nullptr;
     d.physic = (vob.cdDyn || vob.cdStatic) ? Resources::physicMesh(d.mesh) : nullptr;
     staticObj.emplace_back(std::move(d));
     }
@@ -393,4 +438,8 @@ void World::addInteractive(const ZenLoad::zCVobData &vob) {
 
   if(d.mesh)
     interactiveObj.emplace_back(std::move(d));
+  }
+
+void World::addTrigger(const ZenLoad::zCVobData &vob) {
+  triggers.emplace_back(vob);
   }

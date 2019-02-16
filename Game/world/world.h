@@ -16,6 +16,7 @@
 #include "npc.h"
 #include "interactive.h"
 #include "resources.h"
+#include "trigger.h"
 
 class Gothic;
 class RendererStorage;
@@ -61,16 +62,21 @@ class World final {
     void updateAnimation();
     Npc* player() const { return npcPlayer; }
 
-    void tick(uint64_t dt);
+    void     tick(uint64_t dt);
     uint64_t tickCount() const;
+    void     setDayTime(int32_t h,int32_t min);
 
     Daedalus::PARSymbol& getSymbol(const char* s) const;
 
     Focus findFocus(const Npc& pl,const Tempest::Matrix4x4 &mvp, int w, int h);
     Focus findFocus(const Tempest::Matrix4x4 &mvp, int w, int h);
 
+    const Trigger* findTrigger(const std::string& s) const { return findTrigger(s.c_str()); }
+    const Trigger* findTrigger(const char* name) const;
+
     void marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
+    std::vector<WorldScript::DlgChoise> updateDialog(const WorldScript::DlgChoise &dlg);
     void exec(const WorldScript::DlgChoise& dlg, Npc& player,Npc& hnpc);
     void aiOutput(const char* msg);
     void aiCloseDialog();
@@ -88,6 +94,7 @@ class World final {
     std::vector<Block>                       blocks;
 
     Npc*                                  npcPlayer=nullptr;
+    std::vector<Trigger>                  triggers;
 
     std::unique_ptr<DynamicWorld>         wdynamic;
     std::unique_ptr<WorldView>            wview;
@@ -97,6 +104,7 @@ class World final {
     void    loadVob(const ZenLoad::zCVobData &vob);
     void    addStatic(const ZenLoad::zCVobData &vob);
     void    addInteractive(const ZenLoad::zCVobData &vob);
+    void    addTrigger(const ZenLoad::zCVobData &vob);
 
     void    initScripts(bool firstTime);
     int32_t runFunction(const std::string &fname,bool clearDataStack);

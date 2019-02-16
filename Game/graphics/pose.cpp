@@ -143,6 +143,13 @@ void Pose::update(const Animation::Sequence &s, uint64_t dt) {
   mkSkeleton(s);
   }
 
+Matrix4x4 Pose::cameraBone() const {
+  size_t id=4;
+  if(skeleton->rootNodes.size())
+    id = skeleton->rootNodes[0];
+  return id<tr.size() ? tr[id] : Matrix4x4();
+  }
+
 void Pose::mkSkeleton(const Animation::Sequence &s) {
   Matrix4x4 m;
   m.identity();

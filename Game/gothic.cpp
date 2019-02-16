@@ -3,6 +3,10 @@
 #include <zenload/zCMesh.h>
 #include <cstring>
 
+// rate 14.5 to 1
+const uint64_t Gothic::multTime=29;
+const uint64_t Gothic::divTime =2;
+
 Gothic::Gothic(const int argc, const char **argv) {
   setWorld(std::make_unique<World>());
   if(argc<1)
@@ -33,6 +37,7 @@ Gothic::Gothic(const int argc, const char **argv) {
 
   if(wdef.empty())
     wdef = "oldworld.zen";
+  setTime(gtime(8,0));
   }
 
 bool Gothic::isInGame() const {
@@ -55,12 +60,30 @@ bool Gothic::isPause() const {
   return pauseSum;
   }
 
+uint64_t Gothic::tickCount() const {
+  return ticks;
+  }
+
 void Gothic::tick(uint64_t dt) {
+  ticks+=dt;
+
+  uint64_t add = (dt+wrldTimePart)*multTime;
+  wrldTimePart=add%divTime;
+
+  wrldTime.addMilis(add/divTime);
   wrld->tick(dt);
+  }
+
+void Gothic::setTime(gtime t) {
+  wrldTime=t;
   }
 
 void Gothic::updateAnimation() {
   wrld->updateAnimation();
+  }
+
+std::vector<WorldScript::DlgChoise> Gothic::updateDialog(const WorldScript::DlgChoise &dlg) {
+  return wrld->updateDialog(dlg);
   }
 
 void Gothic::dialogExec(const WorldScript::DlgChoise &dlg, Npc& player, Npc& npc) {

@@ -5,6 +5,7 @@
 #include "interactive.h"
 #include "graphics/skeleton.h"
 #include "worldscript.h"
+#include "trigger.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -72,8 +73,24 @@ void Npc::tick(uint64_t dt) {
     mvAlgo.tick(dt);
   }
 
+bool Npc::startClimb(Anim ani) {
+  if(mvAlgo.startClimb()){
+    setAnim(ani);
+    return true;
+    }
+  return false;
+  }
+
 std::array<float,3> Npc::position() const {
   return {{x,y,z}};
+  }
+
+std::array<float,3> Npc::cameraBone() const {
+  auto bone=skInst.cameraBone();
+  std::array<float,3> r={{}};
+  bone.project(r[0],r[1],r[2]);
+  pos.project (r[0],r[1],r[2]);
+  return r;
   }
 
 float Npc::rotation() const {
@@ -332,8 +349,20 @@ bool Npc::setInteraction(Interactive *id) {
   if(currentInteract)
     currentInteract->dettach(*this);
   currentInteract=id;
-  if(currentInteract)
-    return currentInteract->attach(*this);
+  if(currentInteract && currentInteract->attach(*this)){
+    auto st = currentInteract->stateFunc();
+    if(!st.empty()) {
+      try {
+        owner.runFunction(st,true);
+        }
+      catch (...) {
+        }
+      }
+    if(auto tr = currentInteract->triggerTarget()){
+      Log::d("TODO: trigger[",tr->name(),"]");
+      }
+    return true;
+    }
   return false;
   }
 
@@ -377,11 +406,43 @@ Npc::MoveCode Npc::tryMoveVr(const std::array<float,3> &pos, std::array<float,3>
   return MV_FAILED;
   }
 
+Npc::JumpCode Npc::tryJump(const std::array<float,3> &p0) {
+  float len = 20.f;
+  float rot = rotationRad();
+  float s   = std::sin(rot), c = std::cos(rot);
+  float dx  = len*s, dz = -len*c;
+
+  auto pos = p0;
+  pos[0]+=dx;
+  pos[2]+=dz;
+
+  if(physic.tryMove(pos))
+    return JM_OK;
+
+  pos[1] = p0[1]+clampHeight(Anim::JumpUpLow);
+  if(physic.tryMove(pos))
+    return JM_UpLow;
+
+  pos[1] = p0[1]+clampHeight(Anim::JumpUpMid);
+  if(physic.tryMove(pos))
+    return JM_UpMid;
+
+  return JM_Up;
+  }
+
+float Npc::clampHeight(Npc::Anim a) const {
+  switch(a) {
+    case Npc::JumpUpLow:
+      return 60;
+    case Npc::JumpUpMid:
+      return 155;
+    default:
+      return 0;
+    }
+  }
+
 std::vector<WorldScript::DlgChoise> Npc::dialogChoises(Npc& player) {
-  auto ret = owner.dialogChoises(player.hnpc,this->hnpc);
-  //if(ret.size()>0)
-  //  owner.exec(ret[0],player.hnpc,this->hnpc);
-  return ret;
+  return owner.dialogChoises(player.hnpc,this->hnpc);
   }
 
 const std::list<Daedalus::GameState::ItemHandle>& Npc::getItems() {
@@ -430,17 +491,27 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
   if(skeleton==nullptr)
     return nullptr;
 
-  if(st0==WeaponState::NoWeapon && st==WeaponState::W1H){
-    if(a==Anim::Idle && cur==a)
+  if(st0==WeaponState::NoWeapon){
+    if(a==Anim::Idle && cur==a && st==WeaponState::W1H)
       return animSequence("T_1H_2_1HRUN");
-    if(a==Anim::Move && cur==a)
+    if(a==Anim::Move && cur==a && st==WeaponState::W1H)
       return animSequence("T_MOVE_2_1HMOVE");
+    if(a==Anim::Idle && cur==a && st==WeaponState::W2H)
+      return animSequence("T_RUN_2_2H");
+    if(a==Anim::Move && cur==a && st==WeaponState::W2H)
+      return animSequence("T_MOVE_2_2HMOVE");
     }
   if(st0==WeaponState::W1H && st==WeaponState::NoWeapon){
     if(a==Anim::Idle && cur==a)
       return animSequence("T_1HMOVE_2_MOVE");
     if(a==Anim::Move && cur==a)
       return animSequence("T_1HMOVE_2_MOVE");
+    }
+  if(st0==WeaponState::W2H && st==WeaponState::NoWeapon){
+    if(a==Anim::Idle && cur==a)
+      return animSequence("T_RUN_2_2H");
+    if(a==Anim::Move && cur==a)
+      return animSequence("T_2HMOVE_2_MOVE");
     }
 
   if(true) {
@@ -499,10 +570,32 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
     return animSequence("T_JUMP_2_STAND");
   if(a==Anim::Jump)
     return animSequence("S_JUMP");
+
+  if(cur==Anim::Idle && a==Anim::JumpUpLow)
+    return animSequence("T_STAND_2_JUMPUPLOW");
+  if(cur==Anim::JumpUpLow && a==Anim::Idle)
+    return animSequence("T_JUMPUPLOW_2_STAND");
+  if(a==Anim::JumpUpLow)
+    return animSequence("S_JUMPUPLOW");
+
+  if(cur==Anim::Idle && a==Anim::JumpUpMid)
+    return animSequence("T_STAND_2_JUMPUPMID");
+  if(cur==Anim::JumpUpMid && a==Anim::Idle)
+    return animSequence("T_JUMPUPMID_2_STAND");
+  if(a==Anim::JumpUpMid)
+    return animSequence("S_JUMPUPMID");
+
+  if(cur==Anim::Idle && a==Anim::JumpUp)
+    return animSequence("T_STAND_2_JUMPUP");
+  if(a==Anim::JumpUp)
+    return animSequence("S_JUMPUP");
+
   if(a==Anim::Fall)
     return animSequence("S_FALLDN");
-  if(a==Anim::Slide)
+  if(a==Anim::SlideA)
     return animSequence("S_SLIDE");
+  if(a==Anim::SlideB)
+    return animSequence("S_SLIDEB");
 
   // FALLBACK
   if(a==Anim::Move)

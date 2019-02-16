@@ -5,6 +5,7 @@
 
 class Npc;
 class World;
+class Trigger;
 
 class Interactive final {
   public:
@@ -20,6 +21,9 @@ class Interactive final {
     std::array<float,3> position() const;
     std::array<float,3> displayPosition() const;
     const char*         displayName() const;
+
+    std::string stateFunc() const;
+    const Trigger *triggerTarget() const;
 
     bool attach (Npc& npc);
     void dettach(Npc& npc);
@@ -45,6 +49,7 @@ class Interactive final {
 
     World*             world = nullptr;
     ZenLoad::zCVobData data;
+    int                state=0;
 
     std::vector<Pos>   pos;
   };

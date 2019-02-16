@@ -86,7 +86,7 @@ void GameMenu::paintEvent(PaintEvent &e) {
     }
 
   for(auto& hItem:hItems){
-    if(!hItem.handle.isValid())
+    if(!hItem.handle.isValid() || !hItem.visible)
       continue;
     Daedalus::GEngineClasses::C_Menu_Item&        item = hItem.get(*vm);
     Daedalus::GEngineClasses::C_Menu_Item::EFlags flags=Daedalus::GEngineClasses::C_Menu_Item::EFlags(item.flags);
@@ -375,6 +375,21 @@ void GameMenu::set(const char *item, const char *value) {
 void GameMenu::initValues() {
   set("MENU_ITEM_PLAYERGUILD","Debugger");
   set("MENU_ITEM_LEVEL","0");
+  for(auto& i:hItems) {
+    if(i.name=="MENU_ITEM_CONTENT_VIEWER") {
+      i.visible=false;
+      }
+    if(i.name=="MENU_ITEM_DAY") {
+      Daedalus::GEngineClasses::C_Menu_Item& item = i.get(*vm);
+      item.text[0] = std::to_string(gothic.time().day());
+      }
+    if(i.name=="MENU_ITEM_TIME") {
+      Daedalus::GEngineClasses::C_Menu_Item& item = i.get(*vm);
+      char form[64]={};
+      std::snprintf(form,sizeof(form),"%d:%d",int(gothic.time().hour()),int(gothic.time().minute()));
+      item.text[0] = form;
+      }
+    }
   }
 
 void GameMenu::setPlayer(const Npc &pl) {

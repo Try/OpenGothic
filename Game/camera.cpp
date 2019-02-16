@@ -15,8 +15,9 @@ void Camera::setWorld(const World *w) {
   if(world){
     auto pl = world->player();
     if(pl) {
-      camPos = pl->position();
-      spin.x = pl->rotation();
+      camPos  = pl->position();
+      camBone = pl->cameraBone();
+      spin.x  = pl->rotation();
       }
     }
   }
@@ -112,6 +113,7 @@ Matrix4x4 Camera::mkView(float dist) const {
   view.rotate(spin.x, 0, 1, 0);
   view.scale(scale);
   view.translate(camPos[0],camPos[1]+180,camPos[2]);
+  //view.translate(camPos[0],-camBone[1],camPos[2]);
   view.scale(-1,-1,-1);
   return view;
   }

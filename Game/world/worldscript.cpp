@@ -33,7 +33,12 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("inttostring",   &WorldScript::inttostring  );
   vm.registerExternalFunction("floattostring", &WorldScript::floattostring);
   vm.registerExternalFunction("floattoint",    &WorldScript::floattoint   );
-  vm.registerExternalFunction("hlp_random",    &WorldScript::hlp_random   );
+
+  vm.registerExternalFunction("hlp_random",          [this](Daedalus::DaedalusVM& vm){ hlp_random(vm);         });
+  vm.registerExternalFunction("hlp_strcmp",          &WorldScript::hlp_strcmp                                   );
+  vm.registerExternalFunction("hlp_isvalidnpc",      [this](Daedalus::DaedalusVM& vm){ hlp_isvalidnpc(vm);     });
+  vm.registerExternalFunction("hlp_getinstanceid",   [this](Daedalus::DaedalusVM& vm){ hlp_getinstanceid(vm);  });
+  vm.registerExternalFunction("hlp_getnpc",          [this](Daedalus::DaedalusVM& vm){ hlp_getnpc(vm);         });
 
   vm.registerExternalFunction("wld_insertnpc",       [this](Daedalus::DaedalusVM& vm){ wld_insertnpc(vm);  });
   vm.registerExternalFunction("wld_insertitem",      [this](Daedalus::DaedalusVM& vm){ wld_insertitem(vm); });
@@ -66,9 +71,9 @@ void WorldScript::initCommon() {
 
   vm.registerExternalFunction("equipitem",           [this](Daedalus::DaedalusVM& vm){ equipitem(vm);          });
   vm.registerExternalFunction("createinvitems",      [this](Daedalus::DaedalusVM& vm){ createinvitems(vm);     });
-  vm.registerExternalFunction("hlp_getinstanceid",   [this](Daedalus::DaedalusVM& vm){ hlp_getinstanceid(vm);  });
-  vm.registerExternalFunction("hlp_isvalidnpc",      [this](Daedalus::DaedalusVM& vm){ hlp_isvalidnpc(vm);     });
-  vm.registerExternalFunction("hlp_getnpc",          [this](Daedalus::DaedalusVM& vm){ hlp_getnpc(vm);         });
+
+  vm.registerExternalFunction("info_addchoice",      [this](Daedalus::DaedalusVM& vm){ info_addchoice(vm);     });
+  vm.registerExternalFunction("info_clearchoices",   [this](Daedalus::DaedalusVM& vm){ info_clearchoices(vm);  });
 
   vm.registerExternalFunction("playvideo",           [this](Daedalus::DaedalusVM& vm){ playvideo(vm);          });
   vm.registerExternalFunction("printscreen",         [this](Daedalus::DaedalusVM& vm){ printscreen(vm);        });
@@ -153,6 +158,7 @@ std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GameSta
         ch.title    = info.description;
         ch.sort     = info.nr;
         ch.scriptFn = info.information;
+        ch.handle   = i;
         choise.emplace_back(std::move(ch));
         }
       }
@@ -170,7 +176,9 @@ void WorldScript::exec(const WorldScript::DlgChoise &dlg,
                        Daedalus::GameState::NpcHandle hnpc) {
   vm.setInstance("self",  ZMemory::toBigHandle(hnpc),   Daedalus::IC_Npc);
   vm.setInstance("other", ZMemory::toBigHandle(player), Daedalus::IC_Npc);
-  vm.setCurrentInstance(vm.getDATFile().getSymbolIndexByName("self"));
+
+  Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(dlg.handle);
+  info.subChoices.clear();
 
   runFunction(dlg.scriptFn,true);
   }
@@ -192,15 +200,13 @@ int32_t WorldScript::runFunction(const size_t fid, bool clearDataStack) {
   }
 
 void WorldScript::tick(uint64_t dt) {
-  ticks += dt;
-
   for(auto& i:npcArr){
     i->tick(dt);
     }
   }
 
 uint64_t WorldScript::tickCount() const {
-  return ticks;
+  return owner.tickCount();
   }
 
 template<class Ret,class ... Args>
@@ -369,14 +375,20 @@ void WorldScript::inttofloat(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::hlp_random(Daedalus::DaedalusVM &vm) {
-  int32_t mod = vm.popDataValue();
-  vm.setReturn(std::rand() % mod);
+  uint32_t mod = uint32_t(std::max(1,vm.popDataValue()));
+  vm.setReturn(int32_t(randGen() % mod));
+  }
+
+void WorldScript::hlp_strcmp(Daedalus::DaedalusVM &vm) {
+  auto& s1 = popString(vm);
+  auto& s2 = popString(vm);
+  vm.setReturn(s1 == s2 ? 1 : 0);
   }
 
 void WorldScript::wld_settime(Daedalus::DaedalusVM &vm) {
   auto minute = vm.popDataValue();
   auto hour   = vm.popDataValue();
-  Log::i("wld_settime(",hour,":",minute,")");
+  owner.setDayTime(hour,minute);
   }
 
 void WorldScript::mdl_setvisual(Daedalus::DaedalusVM &vm) {
@@ -657,6 +669,28 @@ void WorldScript::hlp_getnpc(Daedalus::DaedalusVM &vm) {
   uint32_t instance = vm.popVar();
   // auto& npc=getNpcById(instance); //Debug
   vm.setReturn(int32_t(instance));
+  }
+
+void WorldScript::info_addchoice(Daedalus::DaedalusVM &vm) {
+  uint32_t func         = vm.popVar();
+  auto&    text         = popString(vm);
+  uint32_t infoInstance = uint32_t(vm.popDataValue());
+
+  ZMemory::BigHandle                h     = vm.getDATFile().getSymbolByIndex(infoInstance).instanceDataHandle;
+  Daedalus::GameState::InfoHandle   hInfo = ZMemory::handleCast<Daedalus::GameState::InfoHandle>(h);
+  Daedalus::GEngineClasses::C_Info& cInfo = vm.getGameState().getInfo(hInfo);
+
+  cInfo.addChoice(Daedalus::GEngineClasses::SubChoice{text, func});
+  }
+
+void WorldScript::info_clearchoices(Daedalus::DaedalusVM &vm) {
+  uint32_t infoInstance = uint32_t(vm.popDataValue());
+
+  ZMemory::BigHandle                h     = vm.getDATFile().getSymbolByIndex(infoInstance).instanceDataHandle;
+  Daedalus::GameState::InfoHandle   hInfo = ZMemory::handleCast<Daedalus::GameState::InfoHandle>(h);
+  Daedalus::GEngineClasses::C_Info& cInfo = vm.getGameState().getInfo(hInfo);
+
+  cInfo.subChoices.clear();
   }
 
 void WorldScript::playvideo(Daedalus::DaedalusVM &vm) {

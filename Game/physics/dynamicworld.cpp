@@ -188,9 +188,22 @@ void DynamicWorld::Item::setPosition(float x, float y, float z) {
   if(obj){
     btTransform trans;
     trans.setIdentity();
-    trans.setOrigin(btVector3(x,y+110,z));
+    trans.setOrigin(btVector3(x,y+90,z));
     obj->setWorldTransform(trans);
     }
+  }
+
+bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos) {
+  if(!obj)
+    return false;
+  std::array<float,3> tmp={};
+  auto                tr = obj->getWorldTransform();
+  if(owner->hasCollision(*this,tmp))
+    return true;
+  setPosition(pos[0],pos[1],pos[2]);
+  const bool ret=owner->hasCollision(*this,tmp);
+  obj->setWorldTransform(tr);
+  return !ret;
   }
 
 bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos,

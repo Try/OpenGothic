@@ -33,6 +33,7 @@ class Camera final {
 
   private:
     std::array<float,3>   camPos={};
+    std::array<float,3>   camBone={};
     Tempest::PointF       spin;
     float                 zoom=1.f;
 
