@@ -93,8 +93,8 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library) {
       }
     }
 
-  auto tr = library.getRootNodeTranslation();
-  rootTr = {{tr.x,tr.y,tr.z}};
+  //auto tr = library.getRootNodeTranslation();
+  //rootTr = {{tr.x,tr.y,tr.z}};
 
   bboxCol[0] = library.getBBoxCollisionMax();
   bboxCol[1] = library.getBBoxCollisionMin();

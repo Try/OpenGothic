@@ -14,17 +14,19 @@ DialogMenu::DialogMenu(Gothic &gothic):gothic(gothic) {
   }
 
 void DialogMenu::tick(uint64_t dt) {
-  if(remDlg<dt && txt.size()>0) {
-    txt.pop_back();
-    if(txt.size()>0) {
-      remDlg=txt.back().time;
-      onEntry(txt.back());
+  if(txt.size()>0){
+    if(remDlg<dt) {
+      txt.pop_back();
+      if(txt.size()>0) {
+        remDlg=txt.back().time;
+        onEntry(txt.back());
+        } else {
+        remDlg=0;
+        onDoneText();
+        }
       } else {
-      remDlg=0;
-      onDoneText();
+      remDlg-=dt;
       }
-    } else {
-    remDlg-=dt;
     }
 
   for(size_t i=0;i<pscreen.size();){
@@ -65,8 +67,13 @@ void DialogMenu::start(std::vector<WorldScript::DlgChoise> &&c, Npc &p, Npc &ot)
 
   if(choise.size()>0 && choise[0].title.size()==0){
     // important dialog
-    onEntry(choise[0]);
+    for(auto& c:choise){
+      onEntry(c);
+      if(txt.size()>0)
+        break;
+      }
     }
+
   dlgSel=0;
   setFocus(true);
   update();

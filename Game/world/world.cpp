@@ -300,8 +300,6 @@ Npc *World::findNpc(const Npc &pl, const Matrix4x4 &v, int w, int h) {
     return nullptr;
 
   auto mvp = view()->viewProj(v);
-  float plC = std::cos(float(M_PI/2)+pl.rotationRad());
-  float plS = std::sin(float(M_PI/2)+pl.rotationRad());
 
   for(size_t i=0;i<vm->npcCount();++i){
     auto& npc=vm->npc(i);
@@ -315,7 +313,8 @@ Npc *World::findNpc(const Npc &pl, const Matrix4x4 &v, int w, int h) {
     float dy=pl.position()[1]-pos[1];
     float dz=pl.position()[2]-pos[2];
 
-    if(dx*plC+dy*plS<0)
+    auto angle=std::atan2(dz,dx);
+    if(std::sin(pl.rotationRad()-angle)>-float(std::sin(30*M_PI/180)))
       continue;
     float l = (dx*dx+dy*dy+dz*dz);
     if(l>440*440)

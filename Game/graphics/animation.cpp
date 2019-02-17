@@ -170,6 +170,8 @@ ZMath::float3 Animation::Sequence::speed(uint64_t at,uint64_t dt) const {
   f.y = moveTr.position.y*k;
   f.z = moveTr.position.z*k;
 
+  if(at>allTime-1)
+    at=uint64_t(allTime-1);
   f.y = translateY(at)-translateY(at-dt);
 
   return f;

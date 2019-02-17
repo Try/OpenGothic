@@ -139,6 +139,8 @@ void MainWindow::mouseUpEvent(MouseEvent &event) {
   }
 
 void MainWindow::mouseDragEvent(MouseEvent &event) {
+  if(!mouseP[Event::ButtonLeft])
+    return;
   auto dp = (event.pos()-mpos);
   mpos = event.pos();
   spin += PointF(-dp.x,dp.y);

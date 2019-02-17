@@ -49,6 +49,7 @@ class Npc final {
       JumpUpMid,
       JumpUp,
       Fall,
+      FallDeep,
       SlideA,
       SlideB,
       Interact,

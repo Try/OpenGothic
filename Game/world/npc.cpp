@@ -221,7 +221,8 @@ ZMath::float3 Npc::animMoveSpeed(Anim a,uint64_t dt) const {
 bool Npc::isFlyAnim() const {
   if(animSq==nullptr)
     return false;
-  return animSq->isFly() && current!=Fall;
+  return animSq->isFly() && !animSq->isFinished(owner.tickCount()-sAnim) &&
+         current!=Fall && current!=FallDeep;
   }
 
 bool Npc::isFaling() const {
@@ -559,6 +560,8 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
     return solveAnim("S_%sRUN",st);
   if(cur==Anim::Idle && a==Move)
     return animSequence("T_RUN_2_RUNL");
+  if(cur==Anim::Fall && a==Move)
+    return animSequence("T_RUN_2_RUNL");
 
   if(a==Anim::RotL)
     return solveAnim("T_%sRUNTURNL",st);
@@ -615,6 +618,10 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
 
   if(a==Anim::Fall)
     return animSequence("S_FALLDN");
+  //if(cur==Fall && a==Anim::FallDeep)
+  //  return animSequence("T_FALL_2_FALLEN");
+  if(a==Anim::FallDeep)
+    return animSequence("S_FALL");
   if(a==Anim::SlideA)
     return animSequence("S_SLIDE");
   if(a==Anim::SlideB)
