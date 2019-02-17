@@ -33,15 +33,21 @@ class Gothic final {
 
     auto     updateDialog(const WorldScript::DlgChoise &dlg) -> std::vector<WorldScript::DlgChoise>;
     void     dialogExec(const WorldScript::DlgChoise& dlg, Npc &player, Npc &hnpc);
+
+    void     aiProcessInfos(Npc& player,Npc& npc);
     void     aiOuput(const char* msg);
     void     aiCloseDialog();
+
     void     printScreen(const char* msg, int x, int y, int time, const Tempest::Font &font);
+    void     print      (const char* msg);
 
     Tempest::Signal<void(const std::string&)> onSetWorld;
+    Tempest::Signal<void(Npc&,Npc&)>          onDialogProcess;
     Tempest::Signal<void(const char*)>        onDialogOutput;
     Tempest::Signal<void()>                   onDialogClose;
 
     Tempest::Signal<void(const char*,int,int,int,const Tempest::Font&)> onPrintScreen;
+    Tempest::Signal<void(const char*)>                                  onPrint;
 
     const std::string&                    path() const { return gpath; }
     const std::string&                    defaultWorld() const;

@@ -75,8 +75,10 @@ bool Interactive::attach(Npc &npc) {
 
 void Interactive::dettach(Npc &npc) {
   for(auto& i:pos)
-    if(i.user==&npc)
+    if(i.user==&npc) {
       i.user=nullptr;
+      state=0;
+      }
   }
 
 void Interactive::setPos(Npc &npc,std::array<float,3> pos) {
@@ -114,7 +116,7 @@ void Interactive::attach(Npc &npc, Interactive::Pos &to) {
   setDir(npc,mat);
   npc.setInteraction(this);
 
-  state = (state+1)%std::max(data.oCMobInter.stateNum+1,1);
+  state = (1)%std::max(data.oCMobInter.stateNum+1,1);
   }
 
 const char* Interactive::anim(Interactive::Anim t) const {

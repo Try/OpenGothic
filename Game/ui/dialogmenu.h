@@ -14,10 +14,13 @@ class DialogMenu : public Tempest::Widget {
     DialogMenu(Gothic& gothic);
 
     void tick(uint64_t dt);
+
+    void aiProcessInfos(Npc &player, Npc& npc);
     void aiOutput(const char* msg);
     void aiClose();
-    void start(std::vector<WorldScript::DlgChoise>&& choise,Npc& pl,Npc& other);
+    bool start(Npc& pl,Npc& other);
 
+    void print      (const char* msg);
     void printScreen(const char* msg,int x,int y,int time,const Tempest::Font& font);
 
   protected:
@@ -36,6 +39,10 @@ class DialogMenu : public Tempest::Widget {
       DlgClose
       };
 
+    enum {
+      MAX_PRINT=5
+      };
+
     struct Entry {
       std::string txt;
       uint32_t    time=0;
@@ -50,6 +57,7 @@ class DialogMenu : public Tempest::Widget {
       int           y=-1;
       };
 
+    bool onStart(Npc& pl,Npc& other);
     void onEntry(const WorldScript::DlgChoise& e);
     void onEntry(const Entry& e);
     void onDoneText();
@@ -61,9 +69,12 @@ class DialogMenu : public Tempest::Widget {
     Npc*                                pl   =nullptr;
     Npc*                                other=nullptr;
     size_t                              dlgSel=0;
+    uint32_t                            depth=0;
 
     bool                                active=false;
     std::vector<Entry>                  txt;
     std::vector<PScreen>                pscreen;
     uint64_t                            remDlg=0;
+    PScreen                             printMsg[MAX_PRINT];
+    uint32_t                            remPrint=0;
   };

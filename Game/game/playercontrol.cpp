@@ -18,12 +18,7 @@ bool PlayerControl::interact(Interactive &it) {
 bool PlayerControl::interact(Npc &other) {
   if(world==nullptr || world->player()==nullptr)
     return false;
-  auto choise = other.dialogChoises(*world->player());
-  if(choise.size()>0){
-    dlg.start(std::move(choise),*world->player(),other);
-    return true;
-    }
-  return false;
+  return dlg.start(*world->player(),other);
   }
 
 void PlayerControl::drawFist() {

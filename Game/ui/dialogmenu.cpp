@@ -14,6 +14,15 @@ DialogMenu::DialogMenu(Gothic &gothic):gothic(gothic) {
   }
 
 void DialogMenu::tick(uint64_t dt) {
+  if(remPrint<dt){
+    for(size_t i=1;i<MAX_PRINT;++i)
+      printMsg[i-1u]=printMsg[i];
+    printMsg[MAX_PRINT-1]=PScreen();
+    remPrint=1500;
+    } else {
+    remPrint-=dt;
+    }
+
   if(txt.size()>0){
     if(remDlg<dt) {
       txt.pop_back();
@@ -41,6 +50,15 @@ void DialogMenu::tick(uint64_t dt) {
   update();
   }
 
+bool DialogMenu::start(Npc &pl,Npc &other) {
+  other.startState("ZS_TALK",&pl);
+  return true;//onStart(p,ot);
+  }
+
+void DialogMenu::aiProcessInfos(Npc &pl,Npc &npc) {
+  onStart(pl,npc);
+  }
+
 void DialogMenu::aiOutput(const char *msg) {
   Entry e;
   e.txt=msg;
@@ -59,11 +77,17 @@ void DialogMenu::aiClose() {
   update();
   }
 
-void DialogMenu::start(std::vector<WorldScript::DlgChoise> &&c, Npc &p, Npc &ot) {
-  choise = std::move(c);
+bool DialogMenu::onStart(Npc &p, Npc &ot) {
+  choise = ot.dialogChoises(p);
   pl     = &p;
   other  = &ot;
   active = true;
+  depth  = 0;
+
+  if(choise.size()==0){
+    close();
+    return false;
+    }
 
   if(choise.size()>0 && choise[0].title.size()==0){
     // important dialog
@@ -77,6 +101,7 @@ void DialogMenu::start(std::vector<WorldScript::DlgChoise> &&c, Npc &p, Npc &ot)
   dlgSel=0;
   setFocus(true);
   update();
+  return true;
   }
 
 void DialogMenu::printScreen(const char *msg, int x, int y, int time, const Tempest::Font &font) {
@@ -90,14 +115,43 @@ void DialogMenu::printScreen(const char *msg, int x, int y, int time, const Temp
   update();
   }
 
+void DialogMenu::print(const char *msg) {
+  if(msg==nullptr || msg[0]=='\0')
+    return;
+
+  for(size_t i=1;i<MAX_PRINT;++i)
+    printMsg[i-1u]=printMsg[i];
+
+  remPrint=1500;
+  PScreen& e=printMsg[MAX_PRINT-1];
+  e.txt  = msg;
+  e.font = Resources::font();
+  e.time = remPrint;
+  e.x    = -1;
+  e.y    = -1;
+  update();
+  }
+
 void DialogMenu::onDoneText() {
   choise = gothic.updateDialog(selected);
   dlgSel = 0;
-  if(choise.size()==0)
-    close();
+  if(choise.size()==0){
+    if(depth>0) {
+      onStart(*pl,*other);
+      } else {
+      close();
+      }
+    }
   }
 
 void DialogMenu::close() {
+  if(pl){
+    pl->setInteraction(nullptr);
+    }
+
+  pl=nullptr;
+  other=nullptr;
+  depth=0;
   txt.clear();
   choise.clear();
   owner()->setFocus(true);
@@ -115,7 +169,13 @@ void DialogMenu::onEntry(const DialogMenu::Entry &e) {
 void DialogMenu::onEntry(const WorldScript::DlgChoise &e) {
   if(pl && other) {
     selected=e;
+    depth = 1;
     gothic.dialogExec(e,*pl,*other);
+    if(txt.empty()) {
+      onDoneText(); // 'BACK' menu
+      } else {
+      onEntry(txt.back());
+      }
     }
   }
 
@@ -136,6 +196,14 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
     }
 
   paintChoise(e);
+
+  for(size_t i=0;i<MAX_PRINT;++i){
+    auto& sc = printMsg[i];
+    p.setFont(sc.font);
+    auto  sz = p.font().textSize(sc.txt);
+    int x = (w()-sz.w)/2;
+    p.drawText(x, int(i*2+2)*sz.h, sc.txt);
+    }
 
   for(size_t i=0;i<pscreen.size();++i){
     auto& sc = pscreen[i];

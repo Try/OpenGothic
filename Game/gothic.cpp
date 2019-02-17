@@ -90,6 +90,10 @@ void Gothic::dialogExec(const WorldScript::DlgChoise &dlg, Npc& player, Npc& npc
   wrld->exec(dlg,player,npc);
   }
 
+void Gothic::aiProcessInfos(Npc& player,Npc &npc) {
+  onDialogProcess(player,npc);
+  }
+
 void Gothic::aiOuput(const char *msg) {
   onDialogOutput(msg);
   }
@@ -100,6 +104,10 @@ void Gothic::aiCloseDialog() {
 
 void Gothic::printScreen(const char *msg, int x, int y, int time, const Tempest::Font &font) {
   onPrintScreen(msg,x,y,time,font);
+  }
+
+void Gothic::print(const char *msg) {
+  onPrint(msg);
   }
 
 const std::string &Gothic::defaultWorld() const {

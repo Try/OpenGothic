@@ -79,10 +79,13 @@ class World final {
 
     std::vector<WorldScript::DlgChoise> updateDialog(const WorldScript::DlgChoise &dlg);
     void exec(const WorldScript::DlgChoise& dlg, Npc& player,Npc& hnpc);
+
+    void aiProcessInfos(Npc &player, Npc& npc);
     void aiOutput(const char* msg);
     void aiCloseDialog();
 
     void printScreen(const char* msg, int x, int y, int time,const Tempest::Font &font);
+    void print      (const char* msg);
 
   private:
     std::string                           wname;

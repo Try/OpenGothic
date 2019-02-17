@@ -57,9 +57,11 @@ void MainWindow::setupUi() {
   rootMenu = &addWidget(new MenuRoot(gothic));
   rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_MAIN"));
 
-  gothic.onDialogOutput.bind(&dialogs,&DialogMenu::aiOutput);
-  gothic.onDialogClose .bind(&dialogs,&DialogMenu::aiClose);
-  gothic.onPrintScreen .bind(&dialogs,&DialogMenu::printScreen);
+  gothic.onDialogProcess.bind(&dialogs,&DialogMenu::aiProcessInfos);
+  gothic.onDialogOutput .bind(&dialogs,&DialogMenu::aiOutput);
+  gothic.onDialogClose  .bind(&dialogs,&DialogMenu::aiClose);
+  gothic.onPrintScreen  .bind(&dialogs,&DialogMenu::printScreen);
+  gothic.onPrint        .bind(&dialogs,&DialogMenu::print);
   }
 
 Focus MainWindow::findFocus() {

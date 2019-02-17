@@ -227,6 +227,8 @@ class Npc final {
     Daedalus::GameState::NpcHandle handle(){ return  hnpc; }
     bool     hasItems(uint32_t id) const;
 
+    void startState(const char* name, Npc *other);
+
   private:
     struct Routine final {
       gtime    start;

@@ -84,6 +84,8 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
   vm->initDialogs(gothic);
 
   const char* hero="PC_HERO";
+  //const char* hero="PC_ROCKEFELLER";
+
   if(startPoints.size()>0)
     npcPlayer = vm->inserNpc(hero,startPoints[0].wpName.c_str()); else
     npcPlayer = vm->inserNpc(hero,"START");
@@ -213,6 +215,10 @@ void World::exec(const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) {
   return vm->exec(dlg,player.handle(),npc.handle());
   }
 
+void World::aiProcessInfos(Npc &player, Npc &npc) {
+  gothic->aiProcessInfos(player,npc);
+  }
+
 void World::aiOutput(const char *msg) {
   gothic->aiOuput(msg);
   }
@@ -223,6 +229,10 @@ void World::aiCloseDialog() {
 
 void World::printScreen(const char *msg, int x, int y, int time, const Font &font) {
   gothic->printScreen(msg,x,y,time,font);
+  }
+
+void World::print(const char *msg) {
+  gothic->print(msg);
   }
 
 void World::adjustWaypoints(std::vector<ZenLoad::zCWaypointData> &wp) {

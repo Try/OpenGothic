@@ -51,6 +51,10 @@ class WorldScript final {
                                          Daedalus::GameState::NpcHandle npc);
     void exec(const DlgChoise &dlg, Daedalus::GameState::NpcHandle player, Daedalus::GameState::NpcHandle hnpc);
 
+    void startState(Daedalus::GameState::NpcHandle hnpc, Daedalus::GameState::NpcHandle hother, const char* name);
+
+    void useInteractive(Daedalus::GameState::NpcHandle hnpc, const std::string &func);
+
   private:
     void               initCommon();
 
@@ -87,6 +91,7 @@ class WorldScript final {
     void wld_insertnpc       (Daedalus::DaedalusVM& vm);
     void wld_settime         (Daedalus::DaedalusVM& vm);
     void wld_getday          (Daedalus::DaedalusVM& vm);
+    void wld_stopeffect      (Daedalus::DaedalusVM& vm);
 
     void mdl_setvisual       (Daedalus::DaedalusVM& vm);
     void mdl_setvisualbody   (Daedalus::DaedalusVM& vm);
@@ -109,6 +114,7 @@ class WorldScript final {
     void npc_refusetalk      (Daedalus::DaedalusVM &vm);
     void npc_hasitems        (Daedalus::DaedalusVM &vm);
 
+    void ai_processinfos     (Daedalus::DaedalusVM &vm);
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
     void ai_standup          (Daedalus::DaedalusVM &vm);
@@ -128,6 +134,7 @@ class WorldScript final {
 
     void playvideo           (Daedalus::DaedalusVM &vm);
     void printscreen         (Daedalus::DaedalusVM &vm);
+    void print               (Daedalus::DaedalusVM &vm);
 
     void sort(std::vector<DlgChoise>& dlg);
 

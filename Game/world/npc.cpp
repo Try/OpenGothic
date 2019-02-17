@@ -368,21 +368,20 @@ bool Npc::setInteraction(Interactive *id) {
     return false;
   if(currentInteract)
     currentInteract->dettach(*this);
-  currentInteract=id;
-  if(currentInteract && currentInteract->attach(*this)){
+  currentInteract=nullptr;
+
+  if(id && id->attach(*this)){
+    currentInteract=id;
     auto st = currentInteract->stateFunc();
     if(!st.empty()) {
-      try {
-        owner.runFunction(st,true);
-        }
-      catch (...) {
-        }
+      owner.useInteractive(hnpc,st);
       }
     if(auto tr = currentInteract->triggerTarget()){
       Log::d("TODO: trigger[",tr->name(),"]");
       }
     return true;
     }
+
   return false;
   }
 
@@ -467,6 +466,12 @@ std::vector<WorldScript::DlgChoise> Npc::dialogChoises(Npc& player) {
 
 bool Npc::hasItems(uint32_t id) const {
   return getItemCount(id)>0;
+  }
+
+void Npc::startState(const char *name,Npc* other) {
+  if(other==nullptr)
+    return owner.startState(hnpc,Daedalus::GameState::NpcHandle(),name);
+  return owner.startState(hnpc,other->hnpc,name);
   }
 
 const std::list<Daedalus::GameState::ItemHandle>& Npc::getItems() const {
