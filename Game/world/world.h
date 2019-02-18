@@ -83,6 +83,7 @@ class World final {
     void aiProcessInfos(Npc &player, Npc& npc);
     void aiOutput(const char* msg);
     void aiCloseDialog();
+    bool aiIsDlgFinished();
 
     void printScreen(const char* msg, int x, int y, int time,const Tempest::Font &font);
     void print      (const char* msg);
@@ -111,7 +112,7 @@ class World final {
     void    addTrigger(const ZenLoad::zCVobData &vob);
 
     void    initScripts(bool firstTime);
-    int32_t runFunction(const std::string &fname,bool clearDataStack);
+    int32_t runFunction(const std::string &fname);
 
     Interactive* findInteractive(const Npc& pl,const Tempest::Matrix4x4 &mvp, int w, int h);
     Npc*         findNpc(const Npc& pl,const Tempest::Matrix4x4 &mvp, int w, int h);
