@@ -67,10 +67,30 @@ void Npc::setAiType(Npc::AiType t) {
   }
 
 void Npc::tick(uint64_t dt) {
-  if(aiType==AiType::AiNormal)
-    ;//setAnim(Move);
-  if(aiType==AiType::Player)
+  if(aiType==AiType::Player) {
     mvAlgo.tick(dt);
+    return;
+    }
+
+  implLookAt();
+  if(aiActions.size()==0)
+    return;
+  auto act = aiActions.front();
+  aiActions.pop();
+  switch(act.act) {
+    case AI_None: break;
+    case AI_LookAt:
+      currentLookAt=act.target;
+      break;
+    case AI_TurnToNpc:
+      currentTurnTo=act.target;
+      break;
+    case AI_StopLookAt:
+      currentLookAt=nullptr;
+      break;
+    case AI_RemoveWeapon:
+      break;
+    }
   }
 
 bool Npc::startClimb(Anim ani) {
@@ -103,6 +123,10 @@ float Npc::rotationRad() const {
 
 float Npc::translateY() const {
   return skInst.translateY();
+  }
+
+Npc *Npc::lookAtTarget() const {
+  return currentLookAt;
   }
 
 void Npc::updateAnimation() {
@@ -311,11 +335,95 @@ bool Npc::isDead() const {
   return aiSt==State::DEAD;
   }
 
+void Npc::startState(const State st, Npc* other) {
+  static const char* fn[]={
+    "",
+    "ZS_Talk",
+    "ZS_Dead",
+    "ZS_Unconscious",
+    "ZS_Flee",
+    "ZS_FOLLOW",
+    "ZS_WatchFight"
+    };
+
+  if(aiSt==st)
+    return;
+
+  tickState(); // ZS_Talk.d - final breath :)
+  endState();
+
+  aiSt         = st;
+  currentOther = other;
+  const char* call=fn[int(st)];
+  if(currentOther==nullptr)
+    owner.invokeState(hnpc,Daedalus::GameState::NpcHandle(),call); else
+    owner.invokeState(hnpc,currentOther->hnpc,call);
+  }
+
+void Npc::endState() {
+  static const char* fn[]={
+    nullptr,
+    "ZS_Talk_End",
+    "ZS_Dead_End",
+    "ZS_Unconscious_End",
+    "ZS_Flee_End",
+    "ZS_FOLLOW_End", //FIXME
+    nullptr
+    };
+
+  const char* call=fn[int(aiSt)];
+  if(call==nullptr)
+    return;
+  if(currentOther==nullptr)
+    owner.invokeState(hnpc,Daedalus::GameState::NpcHandle(),call); else
+    owner.invokeState(hnpc,currentOther->hnpc,call);
+  }
+
+void Npc::implLookAt() {
+  if(currentTurnTo!=nullptr){
+    auto dx = currentTurnTo->x-x;
+    auto dy = currentTurnTo->y-y;
+    auto dz = currentTurnTo->z-z;
+    setDirection(dx,dy,dz);
+    currentTurnTo=nullptr;
+    return;
+    }
+  if(currentLookAt!=nullptr) {
+    auto dx = currentLookAt->x-x;
+    auto dy = currentLookAt->y-y;
+    auto dz = currentLookAt->z-z;
+    setDirection(dx,dy,dz);
+    }
+  }
+
+void Npc::tickState() {
+  static const char* fn[]={
+    nullptr,
+    "ZS_Talk_Loop",
+    "ZS_Dead_Loop",
+    "ZS_Unconscious_Loop",
+    "ZS_Flee_Loop",
+    "ZS_FOLLOW_Loop", //FIXME
+    nullptr
+    };
+
+  const char* call=fn[int(aiSt)];
+  if(call==nullptr)
+    return;
+  if(currentOther==nullptr)
+    owner.invokeState(hnpc,Daedalus::GameState::NpcHandle(),call); else
+    owner.invokeState(hnpc,currentOther->hnpc,call); // =0 is LOOP
+  }
+
+Npc::State Npc::bodyState() const {
+  return aiSt;
+  }
+
 void Npc::setToFistMode() {
   }
 
 void Npc::setToFightMode(const uint32_t item) {
-  if(getItemCount(item)==0)
+  if(itemCount(item)==0)
     addItem(item);
 
   equipItem(item);
@@ -386,6 +494,9 @@ bool Npc::setInteraction(Interactive *id) {
   }
 
 bool Npc::isState(uint32_t stateFn) const {
+  if(aiSt!=State::INVALID){
+
+    }
   return currentRoutine().callback==stateFn;
   }
 
@@ -465,20 +576,49 @@ std::vector<WorldScript::DlgChoise> Npc::dialogChoises(Npc& player) {
   }
 
 bool Npc::hasItems(uint32_t id) const {
-  return getItemCount(id)>0;
+  return itemCount(id)>0;
   }
 
-void Npc::startState(const char *name,Npc* other) {
-  if(other==nullptr)
-    return owner.startState(hnpc,Daedalus::GameState::NpcHandle(),name);
-  return owner.startState(hnpc,other->hnpc,name);
+void Npc::createItems(uint32_t item, uint32_t amount) {
+  owner.getGameState().createInventoryItem(item,hnpc,amount);
+  }
+
+void Npc::removeItems(uint32_t item, uint32_t amount) {
+  owner.getGameState().removeInventoryItem(item,hnpc,amount);
+  //TODO: handle unequip
+  }
+
+void Npc::aiLookAt(Npc *other) {
+  AiAction a;
+  a.act    = AI_LookAt;
+  a.target = other;
+  aiActions.push(a);
+  }
+
+void Npc::aiStopLookAt() {
+  AiAction a;
+  a.act = AI_StopLookAt;
+  aiActions.push(a);
+  }
+
+void Npc::aiRemoveWeapon() {
+  AiAction a;
+  a.act = AI_RemoveWeapon;
+  aiActions.push(a);
+  }
+
+void Npc::aiTurnToNpc(Npc *other) {
+  AiAction a;
+  a.act    = AI_TurnToNpc;
+  a.target = other;
+  aiActions.push(a);
   }
 
 const std::list<Daedalus::GameState::ItemHandle>& Npc::getItems() const {
   return owner.getInventoryOf(hnpc);
   }
 
-size_t Npc::getItemCount(const uint32_t item) const {
+size_t Npc::itemCount(const uint32_t item) const {
   auto& items = getItems();
 
   for(Daedalus::GameState::ItemHandle h : items) {

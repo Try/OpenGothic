@@ -12,7 +12,7 @@ PlayerControl::PlayerControl(DialogMenu& dlg):dlg(dlg) {
 bool PlayerControl::interact(Interactive &it) {
   if(world==nullptr || world->player()==nullptr)
     return false;
-  return world->player()->setInteraction(&it);
+  return dlg.start(*world->player(),it);
   }
 
 bool PlayerControl::interact(Npc &other) {

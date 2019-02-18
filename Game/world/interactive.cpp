@@ -150,7 +150,14 @@ const char* Interactive::anim(Interactive::Anim t) const {
     "S_BSFIRE_S1",
     "T_BSFIRE_S0_2_STAND"
     };
+  static const char* pray[]={
+    "T_INNOS_STAND_2_S0",
+    "S_INNOS_S1",
+    "T_INNOS_S1_2_S0"
+    };
 
+  if(data.oCMOB.focusName=="MOBNAME_INNOS" || data.oCMOB.focusName=="MOBNAME_ADDON_IDOL")
+    return pray[t];
   if(data.oCMOB.focusName=="MOBNAME_LAB")
     return lab[t];
   if(data.oCMOB.focusName=="MOBNAME_ANVIL")

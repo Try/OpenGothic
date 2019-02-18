@@ -314,11 +314,10 @@ const char *GameMenu::strEnum(const char *en, int id) {
   int num=0;
   for(size_t i=0;en[i];++i){
     size_t b=i;
-    for(size_t r=i;en[r];++r)
-      if(en[r]=='|'){
-        i=r;
+    for(size_t r=i;en[r];++r,++i)
+      if(en[r]=='|')
         break;
-        }
+
     if(id==num) {
       size_t sz=i-b;
       textBuf.resize(sz+1);

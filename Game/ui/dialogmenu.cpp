@@ -51,12 +51,27 @@ void DialogMenu::tick(uint64_t dt) {
   }
 
 bool DialogMenu::start(Npc &pl,Npc &other) {
-  other.startState("ZS_TALK",&pl);
-  return true;//onStart(p,ot);
+  other.startState(Npc::State::ANSWER,&pl);
+  if(state==State::PreStart){
+    onStart(*this->pl,*this->other);
+    return true;
+    }
+  return false;
   }
 
-void DialogMenu::aiProcessInfos(Npc &pl,Npc &npc) {
-  onStart(pl,npc);
+bool DialogMenu::start(Npc &pl, Interactive &other) {
+  pl.setInteraction(&other);
+  if(state==State::PreStart){
+    onStart(*this->pl,*this->other);
+    return true;
+    }
+  return false;
+  }
+
+void DialogMenu::aiProcessInfos(Npc &p,Npc &npc) {
+  pl     = &p;
+  other  = &npc;
+  state  = State::PreStart;
   }
 
 void DialogMenu::aiOutput(const char *msg) {
@@ -74,14 +89,19 @@ void DialogMenu::aiClose() {
   e.flag = DlgClose;
   txt.emplace(txt.begin(),std::move(e));
   choise.clear();
+  state=State::Idle;
   update();
   }
 
+void DialogMenu::aiIsClose(bool &ret) {
+  ret = (state==State::Idle);
+  }
+
 bool DialogMenu::onStart(Npc &p, Npc &ot) {
-  choise = ot.dialogChoises(p);
   pl     = &p;
   other  = &ot;
-  active = true;
+  choise = ot.dialogChoises(p);
+  state  = State::Active;
   depth  = 0;
 
   if(choise.size()==0){
@@ -91,11 +111,12 @@ bool DialogMenu::onStart(Npc &p, Npc &ot) {
 
   if(choise.size()>0 && choise[0].title.size()==0){
     // important dialog
+    onEntry(choise[0]);
+    /*
     for(auto& c:choise){
       onEntry(c);
-      if(txt.size()>0)
-        break;
-      }
+      break;
+      }*/
     }
 
   dlgSel=0;
@@ -145,9 +166,8 @@ void DialogMenu::onDoneText() {
   }
 
 void DialogMenu::close() {
-  if(pl){
-    pl->setInteraction(nullptr);
-    }
+  auto prevPl   = pl;
+  auto proveNpc = other;
 
   pl=nullptr;
   other=nullptr;
@@ -155,8 +175,17 @@ void DialogMenu::close() {
   txt.clear();
   choise.clear();
   owner()->setFocus(true);
-  active=false;
+  state=State::Idle;
   update();
+
+  if(prevPl){
+    prevPl->setInteraction(nullptr);
+    }
+  if(proveNpc && proveNpc!=prevPl){
+    proveNpc->tickState();
+    proveNpc->startState(Npc::State::INVALID,nullptr);
+    proveNpc->setInteraction(nullptr);
+    }
   }
 
 void DialogMenu::onEntry(const DialogMenu::Entry &e) {
@@ -168,8 +197,8 @@ void DialogMenu::onEntry(const DialogMenu::Entry &e) {
 
 void DialogMenu::onEntry(const WorldScript::DlgChoise &e) {
   if(pl && other) {
-    selected=e;
-    depth = 1;
+    selected = e;
+    depth    = 1;
     gothic.dialogExec(e,*pl,*other);
     if(txt.empty()) {
       onDoneText(); // 'BACK' menu
@@ -252,7 +281,7 @@ void DialogMenu::paintChoise(PaintEvent &e) {
   }
 
 void DialogMenu::mouseDownEvent(MouseEvent &event) {
-  if(!active){
+  if(state==State::Idle){
     event.ignore();
     return;
     }
@@ -268,7 +297,7 @@ void DialogMenu::mouseDownEvent(MouseEvent &event) {
   }
 
 void DialogMenu::mouseWheelEvent(MouseEvent &e) {
-  if(!active){
+  if(state==State::Idle){
     e.ignore();
     return;
     }
@@ -282,7 +311,7 @@ void DialogMenu::mouseWheelEvent(MouseEvent &e) {
   }
 
 void DialogMenu::keyDownEvent(KeyEvent &event) {
-  if(!active){
+  if(state==State::Idle && txt.size()==0){
     event.ignore();
     return;
     }

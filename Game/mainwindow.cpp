@@ -60,6 +60,8 @@ void MainWindow::setupUi() {
   gothic.onDialogProcess.bind(&dialogs,&DialogMenu::aiProcessInfos);
   gothic.onDialogOutput .bind(&dialogs,&DialogMenu::aiOutput);
   gothic.onDialogClose  .bind(&dialogs,&DialogMenu::aiClose);
+  gothic.isDialogClose  .bind(&dialogs,&DialogMenu::aiIsClose);
+
   gothic.onPrintScreen  .bind(&dialogs,&DialogMenu::printScreen);
   gothic.onPrint        .bind(&dialogs,&DialogMenu::print);
   }

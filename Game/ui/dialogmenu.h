@@ -8,6 +8,7 @@
 #include "world/worldscript.h"
 
 class Npc;
+class Interactive;
 
 class DialogMenu : public Tempest::Widget {
   public:
@@ -18,7 +19,9 @@ class DialogMenu : public Tempest::Widget {
     void aiProcessInfos(Npc &player, Npc& npc);
     void aiOutput(const char* msg);
     void aiClose();
+    void aiIsClose(bool& ret);
     bool start(Npc& pl,Npc& other);
+    bool start(Npc& pl,Interactive& other);
 
     void print      (const char* msg);
     void printScreen(const char* msg,int x,int y,int time,const Tempest::Font& font);
@@ -41,6 +44,12 @@ class DialogMenu : public Tempest::Widget {
 
     enum {
       MAX_PRINT=5
+      };
+
+    enum class State : uint8_t {
+      Idle    =0,
+      PreStart=1,
+      Active  =2
       };
 
     struct Entry {
@@ -71,7 +80,7 @@ class DialogMenu : public Tempest::Widget {
     size_t                              dlgSel=0;
     uint32_t                            depth=0;
 
-    bool                                active=false;
+    State                               state=State::Idle;
     std::vector<Entry>                  txt;
     std::vector<PScreen>                pscreen;
     uint64_t                            remDlg=0;

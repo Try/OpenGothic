@@ -102,6 +102,12 @@ void Gothic::aiCloseDialog() {
   onDialogClose();
   }
 
+bool Gothic::aiIsDlgFinished() {
+  bool v=true;
+  isDialogClose(v);
+  return v;
+  }
+
 void Gothic::printScreen(const char *msg, int x, int y, int time, const Tempest::Font &font) {
   onPrintScreen(msg,x,y,time,font);
   }

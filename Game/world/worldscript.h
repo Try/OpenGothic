@@ -26,8 +26,8 @@ class WorldScript final {
       };
 
     bool    hasSymbolName(const std::string& fn);
-    int32_t runFunction(const std::string &fname, bool clearDataStack);
-    int32_t runFunction(const size_t       fid,   bool clearDataStack);
+    int32_t runFunction(const std::string &fname);
+    int32_t runFunction(const size_t       fid);
 
     void       initDialogs(Gothic &gothic);
 
@@ -51,14 +51,24 @@ class WorldScript final {
                                          Daedalus::GameState::NpcHandle npc);
     void exec(const DlgChoise &dlg, Daedalus::GameState::NpcHandle player, Daedalus::GameState::NpcHandle hnpc);
 
-    void startState(Daedalus::GameState::NpcHandle hnpc, Daedalus::GameState::NpcHandle hother, const char* name);
+    int  invokeState(Daedalus::GameState::NpcHandle hnpc, Daedalus::GameState::NpcHandle hother, const char* name);
 
     void useInteractive(Daedalus::GameState::NpcHandle hnpc, const std::string &func);
 
   private:
     void               initCommon();
 
-    static const std::string& popString(Daedalus::DaedalusVM &vm);
+    enum Attitude : int32_t {
+      ATT_HOSTILE  = 0,
+      ATT_ANGRY    = 1,
+      ATT_NEUTRAL  = 2,
+      ATT_FRIENDLY = 3
+      };
+
+    struct ScopeVar;
+
+    static const std::string& popString  (Daedalus::DaedalusVM &vm);
+    Npc*                      popInstance(Daedalus::DaedalusVM &vm);
 
     template<class Ret,class ... Args>
     std::function<Ret(Args...)> notImplementedFn();
@@ -91,13 +101,17 @@ class WorldScript final {
     void wld_insertnpc       (Daedalus::DaedalusVM& vm);
     void wld_settime         (Daedalus::DaedalusVM& vm);
     void wld_getday          (Daedalus::DaedalusVM& vm);
+    void wld_playeffect      (Daedalus::DaedalusVM& vm);
     void wld_stopeffect      (Daedalus::DaedalusVM& vm);
+    void wld_getplayerportalguild(Daedalus::DaedalusVM& vm);
+    void wld_getguildattitude(Daedalus::DaedalusVM& vm);
 
     void mdl_setvisual       (Daedalus::DaedalusVM& vm);
     void mdl_setvisualbody   (Daedalus::DaedalusVM& vm);
     void mdl_setmodelfatness (Daedalus::DaedalusVM& vm);
     void mdl_applyoverlaymds (Daedalus::DaedalusVM& vm);
     void mdl_setmodelscale   (Daedalus::DaedalusVM& vm);
+    void mdl_startfaceani    (Daedalus::DaedalusVM& vm);
 
     void npc_settofightmode  (Daedalus::DaedalusVM &vm);
     void npc_settofistmode   (Daedalus::DaedalusVM &vm);
@@ -113,12 +127,23 @@ class WorldScript final {
     void npc_setrefusetalk   (Daedalus::DaedalusVM &vm);
     void npc_refusetalk      (Daedalus::DaedalusVM &vm);
     void npc_hasitems        (Daedalus::DaedalusVM &vm);
+    void npc_removeinvitems  (Daedalus::DaedalusVM &vm);
+    void npc_getbodystate    (Daedalus::DaedalusVM &vm);
+    void npc_getlookattarget (Daedalus::DaedalusVM &vm);
+    void npc_getdisttonpc    (Daedalus::DaedalusVM &vm);
+    void npc_hasequippedarmor(Daedalus::DaedalusVM &vm);
+    void npc_getattitude     (Daedalus::DaedalusVM &vm);
 
-    void ai_processinfos     (Daedalus::DaedalusVM &vm);
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
+    void ai_processinfos     (Daedalus::DaedalusVM &vm);
     void ai_standup          (Daedalus::DaedalusVM &vm);
     void ai_continueroutine  (Daedalus::DaedalusVM &vm);
+    void ai_stoplookat       (Daedalus::DaedalusVM &vm);
+    void ai_lookatnpc        (Daedalus::DaedalusVM &vm);
+    void ai_removeweapon     (Daedalus::DaedalusVM &vm);
+    void ai_turntonpc        (Daedalus::DaedalusVM &vm);
+    void ai_outputsvm        (Daedalus::DaedalusVM &vm);
 
     void ta_min              (Daedalus::DaedalusVM &vm);
 
@@ -131,6 +156,7 @@ class WorldScript final {
 
     void info_addchoice      (Daedalus::DaedalusVM &vm);
     void info_clearchoices   (Daedalus::DaedalusVM &vm);
+    void infomanager_hasfinished(Daedalus::DaedalusVM &vm);
 
     void playvideo           (Daedalus::DaedalusVM &vm);
     void printscreen         (Daedalus::DaedalusVM &vm);
@@ -139,6 +165,7 @@ class WorldScript final {
     void sort(std::vector<DlgChoise>& dlg);
 
     Daedalus::DaedalusVM vm;
+    bool                 invokeRecursive=false;
     World&               owner;
     std::mt19937         randGen;
 

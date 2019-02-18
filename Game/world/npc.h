@@ -147,6 +147,7 @@ class Npc final {
     float               rotation() const;
     float               rotationRad() const;
     float               translateY() const;
+    Npc*                lookAtTarget() const;
 
     void updateAnimation();
 
@@ -191,6 +192,10 @@ class Npc final {
     int32_t  experienceNext() const;
     int32_t  learningPoints() const;
 
+
+    void     startState(const State st, Npc *other);
+    State    bodyState() const;
+    void     tickState();
     bool     isDead() const;
 
     void setToFistMode ();
@@ -226,8 +231,13 @@ class Npc final {
 
     Daedalus::GameState::NpcHandle handle(){ return  hnpc; }
     bool     hasItems(uint32_t id) const;
+    void     createItems(uint32_t id, uint32_t amount);
+    void     removeItems(uint32_t id, uint32_t amount);
 
-    void startState(const char* name, Npc *other);
+    void     aiLookAt(Npc* other);
+    void     aiStopLookAt();
+    void     aiRemoveWeapon();
+    void     aiTurnToNpc(Npc *other);
 
   private:
     struct Routine final {
@@ -236,8 +246,21 @@ class Npc final {
       uint32_t callback=0;
       };
 
+    enum Action:uint32_t {
+      AI_None  =0,
+      AI_LookAt,
+      AI_StopLookAt,
+      AI_RemoveWeapon,
+      AI_TurnToNpc
+      };
+
+    struct AiAction final {
+      Action act=AI_None;
+      Npc*   target=nullptr;
+      };
+
     const std::list<Daedalus::GameState::ItemHandle> &getItems() const;
-    size_t getItemCount(const uint32_t id) const;
+    size_t itemCount(const uint32_t id) const;
 
     void updatePos();
     void setPos(const Tempest::Matrix4x4& m);
@@ -248,6 +271,9 @@ class Npc final {
     const char*                    animName(Anim a, WeaponState st) const;
 
     const Routine&                 currentRoutine() const;
+    void                           endState();
+
+    void                           implLookAt();
 
     WorldScript&                   owner;
     Daedalus::GameState::NpcHandle hnpc;
@@ -279,7 +305,11 @@ class Npc final {
     uint64_t                       refuseTalkMilis      =0;
 
     Interactive*                   currentInteract=nullptr;
+    Npc*                           currentOther=nullptr;
+    Npc*                           currentLookAt=nullptr;
+    Npc*                           currentTurnTo=nullptr;
     std::vector<Routine>           routines;
+    std::queue<AiAction>           aiActions;
 
     MoveAlgo                       mvAlgo;
   };

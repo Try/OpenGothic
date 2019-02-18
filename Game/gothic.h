@@ -37,6 +37,7 @@ class Gothic final {
     void     aiProcessInfos(Npc& player,Npc& npc);
     void     aiOuput(const char* msg);
     void     aiCloseDialog();
+    bool     aiIsDlgFinished();
 
     void     printScreen(const char* msg, int x, int y, int time, const Tempest::Font &font);
     void     print      (const char* msg);
@@ -45,6 +46,7 @@ class Gothic final {
     Tempest::Signal<void(Npc&,Npc&)>          onDialogProcess;
     Tempest::Signal<void(const char*)>        onDialogOutput;
     Tempest::Signal<void()>                   onDialogClose;
+    Tempest::Signal<void(bool&)>              isDialogClose;
 
     Tempest::Signal<void(const char*,int,int,int,const Tempest::Font&)> onPrintScreen;
     Tempest::Signal<void(const char*)>                                  onPrint;

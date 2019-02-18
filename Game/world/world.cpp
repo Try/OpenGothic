@@ -227,6 +227,10 @@ void World::aiCloseDialog() {
   gothic->aiCloseDialog();
   }
 
+bool World::aiIsDlgFinished() {
+  return gothic->aiIsDlgFinished();
+  }
+
 void World::printScreen(const char *msg, int x, int y, int time, const Font &font) {
   gothic->printScreen(msg,x,y,time,font);
   }
@@ -256,8 +260,8 @@ const ZenLoad::zCWaypointData *World::findPoint(const char *name) const {
   return nullptr;
   }
 
-int32_t World::runFunction(const std::string& fname, bool clearDataStack) {
-  return vm->runFunction(fname,clearDataStack);
+int32_t World::runFunction(const std::string& fname) {
+  return vm->runFunction(fname);
   }
 
 Interactive *World::findInteractive(const Npc &pl, const Matrix4x4 &v, int w, int h) {
@@ -353,7 +357,7 @@ void World::initScripts(bool firstTime) {
   std::string startup = (firstTime ? "startup_" : "init_")+(dot==std::string::npos ? wname : wname.substr(0,dot));
 
   if(vm->hasSymbolName(startup))
-    vm->runFunction(startup,true);
+    vm->runFunction(startup);
   }
 
 void World::loadVob(const ZenLoad::zCVobData &vob) {

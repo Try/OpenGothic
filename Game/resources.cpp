@@ -4,6 +4,7 @@
 #include <Tempest/Pixmap>
 #include <Tempest/Device>
 #include <Tempest/Dir>
+#include <Tempest/Application>
 
 #include <Tempest/Log>
 
