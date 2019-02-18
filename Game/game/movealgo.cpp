@@ -137,7 +137,7 @@ bool MoveAlgo::processClimb() {
   }
 
 void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
-  float               gravity=2*9.8f;
+  float               gravity=100*9.8f;
   std::array<float,3> fb=npc.position();
   std::array<float,3> norm={};
   bool                fallAni  = false;
@@ -150,8 +150,8 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
   auto oldY = npc.position()[1];
   if(trySlide(fb,norm)){
     slideAni=true;
-    fallSpeed[0]+=slideSpeed*timeK*norm[0];
-    fallSpeed[2]+=slideSpeed*timeK*norm[2];
+    fallSpeed[0]+=slideSpeed*norm[0];
+    fallSpeed[2]+=slideSpeed*norm[2];
     } else {
     slideAni=false;
     switch(npc.tryMove(pos,fb,speed*0.5f)){
@@ -189,8 +189,9 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
       nFall=false;
       }
     } else {
-    float dY = (pos[1]-ground);
-    if(dY<fallSpeed[1]) {
+    float fallY = fallSpeed[1]*timeK;
+    float dY    = (pos[1]-ground);
+    if(dY<fallY) {
       fallSpeed[1]=0;
       nFall=false;
       } else {
@@ -205,11 +206,11 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
 
     if(dY>fallThreshold || npc.anim()==Npc::Fall)
       fallAni=true;
-    if(dY>fallSpeed[1] && nFall)
-      dY=fallSpeed[1];
-    pos[0]+=fallSpeed[0];
+    if(dY>fallY && nFall)
+      dY=fallY;
+    pos[0]+=fallSpeed[0]*timeK;
     pos[1]-=dY;
-    pos[2]+=fallSpeed[2];
+    pos[2]+=fallSpeed[2]*timeK;
     }
 
   switch(npc.tryMoveVr(pos,fb,5.f)) {
@@ -236,14 +237,14 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
     }
   else if(nFall) {
     if(fallSpeed[0]!=0.f || fallSpeed[1]!=0.f || fallSpeed[2]!=0.f){
-      if(fallSpeed[1]>30.f) {
+      if(fallSpeed[1]>1500.f) {
         npc.setAnim(Npc::FallDeep);
         }
-      else if((npc.anim()!=Npc::Jump || fallSpeed[1]>10.f) && npc.anim()!=Npc::Fall) {
+      else if((npc.anim()!=Npc::Jump || fallSpeed[1]>300.f) && npc.anim()!=Npc::Fall) {
         npc.setAnim(Npc::Fall);
-        fallSpeed[0] += aniSpeed[0]*0.5f;
+        fallSpeed[0] += aniSpeed[0];
         fallSpeed[1] += aniSpeed[1];
-        fallSpeed[2] += aniSpeed[2]*0.5f;
+        fallSpeed[2] += aniSpeed[2];
         }
       }
     }
