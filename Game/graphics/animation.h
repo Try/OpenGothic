@@ -25,6 +25,7 @@ class Animation final {
       bool                                   isMove() const { return bool(flags&Flags::Move); }
       bool                                   isFly()  const { return bool(flags&Flags::Fly);  }
       bool                                   isFinished(uint64_t t) const;
+      float                                  totalTime() const;
 
       std::string                            name;
       float                                  fpsRate=60.f;

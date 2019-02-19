@@ -274,6 +274,7 @@ class Npc final {
     void                           endState();
 
     void                           implLookAt();
+    void                           invalidateAnim(const Animation::Sequence* s, const Skeleton *sk);
 
     WorldScript&                   owner;
     Daedalus::GameState::NpcHandle hnpc;
@@ -297,7 +298,7 @@ class Npc final {
     uint64_t                       sAnim   =0;
     Anim                           current =NoAnim;
     WeaponState                    weaponSt=WeaponState::NoWeapon;
-    Pose                           skInst;
+    std::shared_ptr<Pose>          skInst;
 
     std::string                    name;
     int32_t                        talentsSk[TALENT_MAX]={};

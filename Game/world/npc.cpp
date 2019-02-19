@@ -4,6 +4,7 @@
 
 #include "interactive.h"
 #include "graphics/skeleton.h"
+#include "graphics/posepool.h"
 #include "worldscript.h"
 #include "trigger.h"
 #include "resources.h"
@@ -106,7 +107,9 @@ std::array<float,3> Npc::position() const {
   }
 
 std::array<float,3> Npc::cameraBone() const {
-  auto bone=skInst.cameraBone();
+  if(skInst==nullptr)
+    return {{}};
+  auto bone=skInst->cameraBone();
   std::array<float,3> r={{}};
   bone.project(r[0],r[1],r[2]);
   pos.project (r[0],r[1],r[2]);
@@ -122,7 +125,7 @@ float Npc::rotationRad() const {
   }
 
 float Npc::translateY() const {
-  return skInst.translateY();
+  return skInst ? skInst->translateY() : 0;
   }
 
 Npc *Npc::lookAtTarget() const {
@@ -130,14 +133,14 @@ Npc *Npc::lookAtTarget() const {
   }
 
 void Npc::updateAnimation() {
-  if(animSq!=nullptr){
+  if(skInst!=nullptr){
     uint64_t dt = owner.tickCount() - sAnim;
-    skInst.update(*animSq,dt);
+    skInst->update(dt);
 
-    head  .setSkeleton(skInst,pos);
+    head  .setSkeleton(*skInst,pos);
     if(armour.isEmpty())
-      view  .setSkeleton(skInst,pos); else
-      armour.setSkeleton(skInst,pos);
+      view  .setSkeleton(*skInst,pos); else
+      armour.setSkeleton(*skInst,pos);
     }
   }
 
@@ -151,13 +154,15 @@ void Npc::setName(const std::string &n) {
 
 void Npc::setOverlay(const Skeleton* sk,float /*time*/) {
   overlay=sk;
-  if(animSq)
-    animSq=animSequence(animSq->name.c_str());
+  if(animSq) {
+    auto ani=animSequence(animSq->name.c_str());
+    invalidateAnim(ani,skeleton);
+    }
   }
 
 void Npc::setVisual(const Skeleton* v) {
   skeleton = v;
-  skInst.bind(skeleton);
+  //skInst.bind(skeleton);
 
   current=NoAnim;
   setAnim(Anim::Idle);
@@ -165,6 +170,7 @@ void Npc::setVisual(const Skeleton* v) {
   head  .setSkeleton(skeleton);
   view  .setSkeleton(skeleton);
   armour.setSkeleton(skeleton);
+  invalidateAnim(animSq,skeleton);
   setPos(pos); // update obj matrix
   }
 
@@ -216,12 +222,12 @@ void Npc::setAnim(Npc::Anim a,WeaponState nextSt) {
   current =a;
   weaponSt=nextSt;
   if(ani==animSq) {
-    if(animSq!=nullptr && animSq->animCls==Animation::Transition)
-      sAnim = owner.tickCount(); // restart anim
+    if(animSq!=nullptr && animSq->animCls==Animation::Transition){
+      invalidateAnim(ani,skeleton); // restart anim
+      }
     return;
     }
-  animSq = ani;
-  sAnim  = owner.tickCount();
+  invalidateAnim(ani,skeleton);
   }
 
 ZMath::float3 Npc::animMoveSpeed(uint64_t dt) const {
@@ -394,6 +400,12 @@ void Npc::implLookAt() {
     auto dz = currentLookAt->z-z;
     setDirection(dx,dy,dz);
     }
+  }
+
+void Npc::invalidateAnim(const Animation::Sequence *ani,const Skeleton* sk) {
+  animSq = ani;
+  sAnim  = owner.tickCount();
+  skInst = PosePool::get(sk,ani,sAnim);
   }
 
 void Npc::tickState() {

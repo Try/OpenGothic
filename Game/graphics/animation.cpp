@@ -157,8 +157,11 @@ Animation::Sequence::Sequence(const std::string &name) {
   }
 
 bool Animation::Sequence::isFinished(uint64_t t) const {
-  float allTime=numFrames*1000/fpsRate;
-  return t>=allTime;
+  return t>=totalTime();
+  }
+
+float Animation::Sequence::totalTime() const {
+  return numFrames*1000/fpsRate;
   }
 
 ZMath::float3 Animation::Sequence::speed(uint64_t at,uint64_t dt) const {

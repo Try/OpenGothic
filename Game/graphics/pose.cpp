@@ -95,18 +95,19 @@ static ZenLoad::zCModelAniSample mix(const ZenLoad::zCModelAniSample& x,const Ze
   return r;
   }
 
-void Pose::bind(const Skeleton *sk) {
-  skeleton = sk;
-
-  if(sk!=nullptr)
-    tr = sk->tr; else
+Pose::Pose(const Skeleton &sk, const Animation::Sequence &sq)
+  :skeleton(&sk),sequence(&sq) {
+  if(skeleton!=nullptr)
+    tr = skeleton->tr; else
     tr.clear();
   base = tr;
   }
 
-void Pose::update(const Animation::Sequence &s, uint64_t dt) {
-  if(s.numFrames==0)
+void Pose::update(uint64_t dt) {
+  if(sequence->numFrames==0 || lastT==dt)
     return;
+  const Animation::Sequence& s=*sequence;
+  lastT=dt;
 
   uint64_t fr     = uint64_t(s.fpsRate*dt);
   float    a      = (fr%1000)/1000.f;
