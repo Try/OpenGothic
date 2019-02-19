@@ -13,6 +13,7 @@
 class Gothic;
 class World;
 class Npc;
+class Item;
 
 class WorldScript final {
   public:
@@ -32,23 +33,19 @@ class WorldScript final {
     void       initDialogs(Gothic &gothic);
 
     const World& world() const { return owner; }
-    void         tick(uint64_t dt);
     uint64_t     tickCount() const;
 
-    size_t     npcCount()    const { return npcArr.size(); }
-    const Npc& npc(size_t i) const { return *npcArr[i];    }
-    Npc&       npc(size_t i)       { return *npcArr[i];    }
-
     Npc*       inserNpc(const char* npcInstance,const char *at);
+    Npc*       getNpc(Daedalus::GameState::NpcHandle handle);
     void       setInstanceNPC(const char* name,Npc& npc);
 
     const std::list<Daedalus::GameState::ItemHandle>& getInventoryOf(Daedalus::GameState::NpcHandle h);
     Daedalus::GameState::DaedalusGameState&           getGameState();
     Daedalus::PARSymbol&                              getSymbol(const char* s);
+    size_t                                            getSymbolIndex(const char* s);
     Daedalus::GEngineClasses::C_Npc&                  vmNpc(Daedalus::GameState::NpcHandle handle);
 
-    std::vector<DlgChoise> dialogChoises(Daedalus::GameState::NpcHandle self,
-                                         Daedalus::GameState::NpcHandle npc);
+    auto dialogChoises(Daedalus::GameState::NpcHandle self, Daedalus::GameState::NpcHandle npc) -> std::vector<DlgChoise>;
     void exec(const DlgChoise &dlg, Daedalus::GameState::NpcHandle player, Daedalus::GameState::NpcHandle hnpc);
 
     int  invokeState(Daedalus::GameState::NpcHandle hnpc, Daedalus::GameState::NpcHandle hother, const char* name);
@@ -75,15 +72,15 @@ class WorldScript final {
 
     void notImplementedRoutine(Daedalus::DaedalusVM&);
 
-    void onInserNpc (Daedalus::GameState::NpcHandle handle, const std::string &s);
     void onNpcReady (Daedalus::GameState::NpcHandle handle);
-    void onRemoveNpc(Daedalus::GameState::NpcHandle handle);
+
     void onCreateInventoryItem(Daedalus::GameState::ItemHandle item,Daedalus::GameState::NpcHandle npc);
 
-    Npc* getNpc(Daedalus::GameState::NpcHandle handle);
-    Npc* getNpcById(size_t id);
+    Item* getItem(Daedalus::GameState::ItemHandle handle);
 
-    Npc* inserNpc(size_t npcInstance,const char *at);
+    Npc*  getNpcById(size_t id);
+
+    Npc*  inserNpc  (size_t npcInstance, const char *at);
 
     static void concatstrings(Daedalus::DaedalusVM& vm);
     static void inttostring  (Daedalus::DaedalusVM& vm);
@@ -174,5 +171,6 @@ class WorldScript final {
     std::unique_ptr<Daedalus::GameState::DaedalusDialogManager> dialogs;
 
     QuestLog                                                    quests;
-    std::vector<std::unique_ptr<Npc>>                           npcArr;
+    //std::vector<std::unique_ptr<Npc>>                           npcArr;
+    //std::vector<std::unique_ptr<Item>>                          itemArr;
   };

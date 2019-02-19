@@ -48,7 +48,7 @@ MainWindow::~MainWindow() {
   takeWidget(&dialogs);
   removeAllWidgets();
   // unload
-  gothic.setWorld(std::make_unique<World>());
+  gothic.setWorld(std::unique_ptr<World>());
   }
 
 void MainWindow::setupUi() {
@@ -67,15 +67,16 @@ void MainWindow::setupUi() {
   }
 
 Focus MainWindow::findFocus() {
-  if(gothic.world().view())
-    return gothic.world().findFocus(camera.view(),w(),h());
+  if(auto gw = gothic.world())
+    return gw->findFocus(camera.view(),w(),h());
   return Focus();
   }
 
 void MainWindow::paintEvent(PaintEvent& event) {
   Painter p(event);
+  auto world = gothic.world();
 
-  if(gothic.world().isEmpty() && background!=nullptr) {
+  if(world==nullptr && background!=nullptr) {
     p.setBrush(Color(0.0));
     p.drawRect(0,0,w(),h());
 
@@ -85,8 +86,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
                0,0,background->w(),background->h());
     }
 
-  if(gothic.world().view()){
-    auto vp = gothic.world().view()->viewProj(camera.view());
+  if(world->view()){
+    auto vp = world->view()->viewProj(camera.view());
     //gothic.world().marchInteractives(p,vp,w(),h());
     p.setBrush(Color(1.0));
 
@@ -112,7 +113,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
 
   char fpsT[64]={};
   const char* info="";
-  if(gothic.world().player() && gothic.world().player()->hasCollision())
+  if(world && world->player() && world->player()->hasCollision())
     info="[c]";
   std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %s",fps.get(),info);
 
@@ -174,7 +175,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
   if(menuEv!=nullptr) {
     rootMenu->setMenu(new GameMenu(*rootMenu,gothic,menuEv));
     rootMenu->setFocus(true);
-    if(auto pl = gothic.world().player())
+    if(auto pl = gothic.player())
       rootMenu->setPlayer(*pl);
     }
   }
@@ -243,7 +244,8 @@ void MainWindow::tick() {
     player.moveBack();
 
   if(player.tickMove(dt)) {
-    camera.follow(*gothic.world().player(),!mouseP[Event::ButtonLeft]);
+    if(auto pl=gothic.player())
+      camera.follow(*pl,!mouseP[Event::ButtonLeft]);
     } else {
     if(pressed[KeyEvent::K_Q])
       camera.rotateLeft();
@@ -263,12 +265,12 @@ void MainWindow::tick() {
 void MainWindow::setWorld(const std::string &name) {
   std::unique_ptr<World> w(new World(gothic,draw.storage(),name));
   gothic.setWorld(std::move(w));
-  camera.setWorld(&gothic.world());
-  player.setWorld(&gothic.world());
+  camera.setWorld(gothic.world());
+  player.setWorld(gothic.world());
   spin = camera.getSpin();
   draw.onWorldChanged();
 
-  if(auto pl = gothic.world().player())
+  if(auto pl = gothic.player())
     pl->multSpeed(1.f);
 
   lastTick = Application::tickCount();

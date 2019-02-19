@@ -8,7 +8,7 @@ const uint64_t Gothic::multTime=29;
 const uint64_t Gothic::divTime =2;
 
 Gothic::Gothic(const int argc, const char **argv) {
-  setWorld(std::make_unique<World>());
+  //setWorld(std::make_unique<World>());
   if(argc<1)
     return;
 
@@ -41,11 +41,23 @@ Gothic::Gothic(const int argc, const char **argv) {
   }
 
 bool Gothic::isInGame() const {
-  return !wrld->isEmpty();
+  return wrld!=nullptr && !wrld->isEmpty();
   }
 
 void Gothic::setWorld(std::unique_ptr<World> &&w) {
   wrld = std::move(w);
+  }
+
+WorldView *Gothic::worldView() const {
+  if(wrld)
+    return wrld->view();
+  return nullptr;
+  }
+
+Npc *Gothic::player() {
+  if(wrld)
+    return wrld->player();
+  return nullptr;
   }
 
 void Gothic::pushPause() {

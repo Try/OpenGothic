@@ -138,7 +138,7 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
   if(it!=aniMeshCache.end())
     return it->second.get();
 
-  if(name=="RMAKER_1.MDS")//"Sna_Body.MDM"
+  if(name=="ItPl_Health_Herb_02.3DS")//"Sna_Body.MDM"
     Log::d("");
 
   try {
@@ -306,6 +306,8 @@ Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoa
     // Strip the extension ".***"
     // Add "compiled"-extension
     if(name.rfind(".3DS")==name.size()-4)
+      std::memcpy(&name[name.size()-3],"MRM",3); else
+    if(name.rfind(".3ds")==name.size()-4)
       std::memcpy(&name[name.size()-3],"MRM",3); else
     if(name.rfind(".MMS")==name.size()-4)
       std::memcpy(&name[name.size()-3],"MMB",3); else

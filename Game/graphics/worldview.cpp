@@ -6,26 +6,8 @@
 using namespace Tempest;
 
 WorldView::WorldView(const World &world, const RendererStorage &storage)
-  :storage(storage),sky(storage),land(storage),vobGroup(storage),objGroup(storage) {
-  sky.setWorld(world);
-
-  StaticObj obj;
-
-  objStatic.clear();
-  for(auto& v:world.staticObj) {
-    obj.mesh   = vobGroup.get(*v.mesh,0,0,0);
-    obj.physic = world.physic()->staticObj(v.physic,v.objMat);
-    obj.mesh.setObjMatrix(v.objMat);
-
-    objStatic.push_back(std::move(obj));
-    }
-  for(auto& v:world.interactiveObj) {
-    obj.mesh = vobGroup.get(*v.mesh,0,0,0);
-    obj.physic = world.physic()->staticObj(v.physic,v.objMat);
-    obj.mesh.setObjMatrix(v.objMat);
-
-    objStatic.push_back(std::move(obj));
-    }
+  :owner(world),storage(storage),sky(storage),land(storage),vobGroup(storage),objGroup(storage) {
+  sky.setWorld(owner);
   }
 
 void WorldView::initPipeline(uint32_t w, uint32_t h) {
@@ -76,6 +58,24 @@ StaticObjects::Mesh WorldView::getView(const std::string &visual, int32_t headTe
   if(auto mesh=Resources::loadMesh(visual))
     return objGroup.get(*mesh,headTex,teethTex,bodyColor);
   return StaticObjects::Mesh();
+  }
+
+void WorldView::addStatic(const ZenLoad::zCVobData &vob) {
+  auto mesh = Resources::loadMesh(vob.visual);
+  if(!mesh)
+    return;
+
+  auto physic = (vob.cdDyn || vob.cdStatic) ? Resources::physicMesh(mesh) : nullptr;
+  float v[16]={};
+  std::memcpy(v,vob.worldMatrix.m,sizeof(v));
+  auto objMat = Tempest::Matrix4x4(v);
+
+  StaticObj obj;
+  obj.mesh   = vobGroup.get(*mesh,0,0,0);
+  obj.physic = owner.physic()->staticObj(physic,objMat);
+  obj.mesh.setObjMatrix(objMat);
+
+  objStatic.push_back(std::move(obj));
   }
 
 void WorldView::prebuiltCmdBuf(const World &world) {

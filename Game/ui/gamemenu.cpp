@@ -392,9 +392,13 @@ void GameMenu::initValues() {
   }
 
 void GameMenu::setPlayer(const Npc &pl) {
-  auto& gilds = gothic.world().getSymbol("TXT_GUILDS");
-  auto& tal   = gothic.world().getSymbol("TXT_TALENTS");
-  auto& talV  = gothic.world().getSymbol("TXT_TALENTS_SKILLS");
+  auto world = gothic.world();
+  if(world==nullptr)
+    return;
+
+  auto& gilds = world->getSymbol("TXT_GUILDS");
+  auto& tal   = world->getSymbol("TXT_TALENTS");
+  auto& talV  = world->getSymbol("TXT_TALENTS_SKILLS");
 
   set("MENU_ITEM_PLAYERGUILD",gilds.getString(pl.guild()).c_str());
 

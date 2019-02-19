@@ -2,6 +2,7 @@
 
 #include "gothic.h"
 #include "npc.h"
+#include "item.h"
 
 #include <Tempest/Log>
 
@@ -131,12 +132,12 @@ void WorldScript::initCommon() {
                                                      [this](Daedalus::DaedalusVM& vm){ infomanager_hasfinished(vm); });
 
   DaedalusGameState::GameExternals ext;
-  ext.wld_insertnpc      = [this](NpcHandle h,const std::string& s){ onInserNpc(h,s); };
+  ext.wld_insertnpc      = [this](NpcHandle h,const std::string& s){ owner.onInserNpc(h,s); };
   ext.post_wld_insertnpc = [this](NpcHandle h){ onNpcReady(h); };
   ext.createinvitem      = [this](NpcHandle i,NpcHandle n){ onCreateInventoryItem(i,n); };
 
+  ext.wld_insertitem     = notImplementedFn<void,ItemHandle>();
   ext.wld_removenpc      = notImplementedFn<void,NpcHandle>();
-  ext.wld_insertitem     = notImplementedFn<void,NpcHandle>();
   ext.wld_GetDay         = notImplementedFn<int>();
   ext.log_createtopic    = notImplementedFn<void,std::string>();
   ext.log_settopicstatus = notImplementedFn<void,std::string>();
@@ -168,6 +169,10 @@ DaedalusGameState &WorldScript::getGameState() {
 
 Daedalus::PARSymbol &WorldScript::getSymbol(const char *s) {
   return vm.getDATFile().getSymbolByName(s);
+  }
+
+size_t WorldScript::getSymbolIndex(const char *s) {
+  return vm.getDATFile().getSymbolIndexByName(s);
   }
 
 Daedalus::GEngineClasses::C_Npc& WorldScript::vmNpc(Daedalus::GameState::NpcHandle handle) {
@@ -289,12 +294,6 @@ int32_t WorldScript::runFunction(const size_t fid) {
   return ret;
   }
 
-void WorldScript::tick(uint64_t dt) {
-  for(auto& i:npcArr){
-    i->tick(dt);
-    }
-  }
-
 uint64_t WorldScript::tickCount() const {
   return owner.tickCount();
   }
@@ -324,29 +323,6 @@ void WorldScript::notImplementedRoutine(Daedalus::DaedalusVM &vm) {
     }
   }
 
-void WorldScript::onInserNpc(Daedalus::GameState::NpcHandle handle,const std::string& point) {
-  auto  pos = owner.findPoint(point);
-  if(pos==nullptr){
-    Log::e("onInserNpc: invalid waypoint");
-    }
-  auto  hnpc      = ZMemory::handleCast<NpcHandle>(handle);
-  auto& npcData   = vm.getGameState().getNpc(hnpc);
-
-  std::unique_ptr<Npc> ptr{new Npc(*this,hnpc)};
-  npcData.userPtr = ptr.get();
-  if(!npcData.name[0].empty())
-    ptr->setName(npcData.name[0]);
-
-  if(pos!=nullptr) {
-    ptr->setPosition (pos->position.x,pos->position.y,pos->position.z);
-    ptr->setDirection(pos->direction.x,
-                      pos->direction.y,
-                      pos->direction.z);
-    }
-
-  npcArr.emplace_back(std::move(ptr));
-  }
-
 void WorldScript::onNpcReady(NpcHandle handle) {
   auto  hnpc    = ZMemory::handleCast<NpcHandle>(handle);
   auto& npcData = vm.getGameState().getNpc(hnpc);
@@ -368,16 +344,6 @@ void WorldScript::onNpcReady(NpcHandle handle) {
     }
   }
 
-void WorldScript::onRemoveNpc(NpcHandle handle) {
-  const Npc* p = getNpc(handle);
-  for(size_t i=0;i<npcArr.size();++i)
-    if(p==npcArr[i].get()){
-      npcArr[i]=std::move(npcArr.back());
-      npcArr.pop_back();
-      return;
-      }
-  }
-
 Npc* WorldScript::getNpc(NpcHandle handle) {
   auto  hnpc      = ZMemory::handleCast<NpcHandle>(handle);
   if(!hnpc.isValid())
@@ -385,6 +351,15 @@ Npc* WorldScript::getNpc(NpcHandle handle) {
   auto& npcData = vm.getGameState().getNpc(hnpc);
   assert(npcData.userPtr); // engine bug, if null
   return reinterpret_cast<Npc*>(npcData.userPtr);
+  }
+
+Item *WorldScript::getItem(ItemHandle handle) {
+  auto h = ZMemory::handleCast<ItemHandle>(handle);
+  if(!h.isValid())
+    return nullptr;
+  auto& itData = vm.getGameState().getItem(h);
+  assert(itData.userPtr); // engine bug, if null
+  return reinterpret_cast<Item*>(itData.userPtr);
   }
 
 Npc* WorldScript::getNpcById(size_t id) {
@@ -617,10 +592,10 @@ void WorldScript::wld_insertitem(Daedalus::DaedalusVM &vm) {
   const std::string& spawnpoint   = popString(vm);
   int32_t            itemInstance = vm.popDataValue();
 
-  Daedalus::GameState::ItemHandle   h    = vm.getGameState().insertItem(size_t(itemInstance));
-  Daedalus::GEngineClasses::C_Item& data = vm.getGameState().getItem(h);
+  if(spawnpoint.empty() || itemInstance<=0)
+    return;
 
-  //TODO
+  owner.addItem(size_t(itemInstance),spawnpoint.c_str());
   }
 
 void WorldScript::npc_settofightmode(Daedalus::DaedalusVM &vm) {

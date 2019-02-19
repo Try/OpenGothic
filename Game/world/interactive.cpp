@@ -5,15 +5,15 @@
 #include <Tempest/Painter>
 
 Interactive::Interactive(World &owner, const ZenLoad::zCVobData &vob)
-  :world(&owner){
+  :world(&owner),data(vob) {
   mesh = Resources::loadMesh(vob.visual);
-  data = vob;
-
   if(mesh) {
     float v[16]={};
     std::memcpy(v,vob.worldMatrix.m,sizeof(v));
     objMat = Tempest::Matrix4x4(v);
-    physic = Resources::physicMesh(mesh);
+
+    view   = owner.getView(vob.visual);
+    physic = owner.getPhysic(vob.visual);
 
     pos.resize(mesh->pos.size());
     for(size_t i=0;i<pos.size();++i){

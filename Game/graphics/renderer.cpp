@@ -29,14 +29,15 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
     }
 
   stor.initPipeline(mainPass,w,h);
-  if(auto wview=gothic.world().view())
+  if(auto wview=gothic.worldView())
     wview->initPipeline(w,h);
   }
 
 void Renderer::onWorldChanged() {
-  auto wview=gothic.world().view();
-  if(wview!=nullptr && zbuffer.w()>0 && zbuffer.h()>0)
-    wview->initPipeline(uint32_t(zbuffer.w()),uint32_t(zbuffer.h()));
+  if(auto wview=gothic.worldView()){
+    if(zbuffer.w()>0 && zbuffer.h()>0)
+      wview->initPipeline(uint32_t(zbuffer.w()),uint32_t(zbuffer.h()));
+    }
   }
 
 void Renderer::setDebugView(const Camera& camera) {
@@ -46,8 +47,8 @@ void Renderer::setDebugView(const Camera& camera) {
 void Renderer::draw(CommandBuffer &cmd, uint32_t imgId, const Gothic &gothic) {
   FrameBuffer& fbo = fbo3d[imgId];
 
-  if(auto wview=gothic.world().view()) {
-    wview->updateCmd(gothic.world());
+  if(auto wview=gothic.worldView()) {
+    wview->updateCmd(*gothic.world());
 
     wview->updateUbo(view,device.frameId());
     wview->draw(cmd,fbo);

@@ -15,9 +15,11 @@ class Gothic final {
     bool isInGame() const;
     bool doStartMenu() const { return !noMenu; }
 
-    void setWorld(std::unique_ptr<World> &&w);
-    const World& world() const { return *wrld; }
-    World& world() { return *wrld; }
+    void         setWorld(std::unique_ptr<World> &&w);
+    const World* world() const { return wrld.get(); }
+    World*       world() { return wrld.get(); }
+    WorldView*   worldView() const;
+    Npc*         player();
 
     void     pushPause();
     void     popPause();

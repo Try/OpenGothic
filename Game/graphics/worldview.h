@@ -25,8 +25,10 @@ class WorldView {
     void draw     (Tempest::CommandBuffer &cmd, Tempest::FrameBuffer &fbo);
 
     StaticObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
+    void addStatic(const ZenLoad::zCVobData &vob);
 
   private:
+    const World&            owner;
     const RendererStorage&  storage;
 
     Sky                     sky;

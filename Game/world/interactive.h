@@ -1,6 +1,8 @@
 #pragma once
 
 #include <Tempest/Matrix4x4>
+#include "physics/dynamicworld.h"
+#include "graphics/staticobjects.h"
 #include "graphics/protomesh.h"
 
 class Npc;
@@ -31,8 +33,6 @@ class Interactive final {
     const char* anim(Anim t) const;
     void marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
-    const ProtoMesh*       mesh = nullptr;
-    const PhysicMeshShape* physic = nullptr;
     Tempest::Matrix4x4     objMat;
 
   private:
@@ -51,5 +51,8 @@ class Interactive final {
     ZenLoad::zCVobData data;
     int                state=0;
 
-    std::vector<Pos>   pos;
+    std::vector<Pos>    pos;
+    const ProtoMesh*    mesh = nullptr;
+    StaticObjects::Mesh view;
+    DynamicWorld::Item  physic;
   };

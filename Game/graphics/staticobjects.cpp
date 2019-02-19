@@ -98,11 +98,13 @@ StaticObjects::Mesh StaticObjects::get(const ProtoMesh& mesh, int32_t texVar, in
     auto& s   = att.sub[m.subId];
 
     const Tempest::Texture2d* tex=s.texture;
-    if(s.texName=="HUM_TEETH_V0.TGA"){
-      tex=solveTex(s.texture,s.texName,teethTex,bodyColor);
-      }
-    else if(s.texName.find_first_of("VC")!=std::string::npos){
-      tex=solveTex(s.texture,s.texName,texVar,bodyColor);
+    if(teethTex!=0 || bodyColor!=0 || texVar!=0){
+      if(s.texName=="HUM_TEETH_V0.TGA"){
+        tex=solveTex(s.texture,s.texName,teethTex,bodyColor);
+        }
+      else if(s.texName.find_first_of("VC")!=std::string::npos){
+        tex=solveTex(s.texture,s.texName,texVar,bodyColor);
+        }
       }
 
     if(tex!=nullptr) {
