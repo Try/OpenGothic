@@ -37,6 +37,11 @@ Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src, std::string meshLib)
 
   auto tr = src.getRootNodeTranslation();
   rootTr = {{tr.x,tr.y,tr.z}};
+
+  for(auto& i:nodes)
+    if(i.parent==size_t(-1)){
+      i.tr.translate(rootTr[0],rootTr[1],rootTr[2]);
+      }
   mkSkeleton();
   }
 
@@ -67,7 +72,6 @@ void Skeleton::debug() const {
 void Skeleton::mkSkeleton() {
   Matrix4x4 m;
   m.identity();
-  m.translate(rootTr[0],rootTr[1],rootTr[2]);
   mkSkeleton(m,size_t(-1));
   }
 

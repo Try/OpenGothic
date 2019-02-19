@@ -101,6 +101,9 @@ Pose::Pose(const Skeleton &sk, const Animation::Sequence &sq)
     tr = skeleton->tr; else
     tr.clear();
   base = tr;
+  for(size_t i=0;i<base.size() && i<sk.nodes.size();++i)
+    base[i] = sk.nodes[i].tr;
+  trY = sk.rootTr[1];
   }
 
 void Pose::update(uint64_t dt) {
@@ -129,10 +132,6 @@ void Pose::update(uint64_t dt) {
   auto* sampleA = &s.samples[size_t(frameA*idSize)];
   auto* sampleB = &s.samples[size_t(frameB*idSize)];
 
-  for(size_t i=s.nodeIndex.size();i<base.size();++i){
-    base[i]=skeleton->nodes[i].tr;
-    }
-
   for(size_t i=0;i<idSize;++i) {
     auto  smp = mix(sampleA[i],sampleB[i],a);
     auto& pos = smp.position;
@@ -152,6 +151,7 @@ Matrix4x4 Pose::cameraBone() const {
   }
 
 void Pose::mkSkeleton(const Animation::Sequence &s) {
+  auto& sk = *skeleton;
   Matrix4x4 m;
   m.identity();
   if(base.size()) {
@@ -162,12 +162,9 @@ void Pose::mkSkeleton(const Animation::Sequence &s) {
     float dx=b0.at(3,0);//-s.translate.x;
     float dy=b0.at(3,1)-s.translate.y;
     float dz=b0.at(3,2);//-s.translate.z;
-    trY=b0.at(3,1);
     if(!s.isFly())
       dy=0;
     m.translate(-dx,-dy,-dz);
-    } else {
-    trY=0;
     }
 
   if(skeleton->ordered)

@@ -106,7 +106,7 @@ void MoveAlgo::setSllideFaling(bool slide, bool faling) {
 bool MoveAlgo::processClimb() {
   if(!isClimb())
     return false;
-  float dspeed = 60.f;
+  float dspeed = 35.f;
   bool  valid  = false;
 
   if(climbHeight<=0.f)

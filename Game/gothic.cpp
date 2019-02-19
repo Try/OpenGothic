@@ -94,8 +94,8 @@ void Gothic::updateAnimation() {
   wrld->updateAnimation();
   }
 
-std::vector<WorldScript::DlgChoise> Gothic::updateDialog(const WorldScript::DlgChoise &dlg) {
-  return wrld->updateDialog(dlg);
+std::vector<WorldScript::DlgChoise> Gothic::updateDialog(const WorldScript::DlgChoise &dlg, Npc& player, Npc& npc) {
+  return wrld->updateDialog(dlg,player,npc);
   }
 
 void Gothic::dialogExec(const WorldScript::DlgChoise &dlg, Npc& player, Npc& npc) {
