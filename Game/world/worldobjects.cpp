@@ -104,91 +104,18 @@ void WorldObjects::addInteractive(const ZenLoad::zCVobData &vob) {
   }
 
 Interactive* WorldObjects::findInteractive(const Npc &pl, const Matrix4x4 &v, int w, int h) {
-  Interactive* ret=nullptr;
-  float rlen = w*h;
-  if(owner.view()==nullptr)
-    return nullptr;
-
-  auto  mvp = owner.view()->viewProj(v);
-  float plC = std::cos(float(M_PI/2)+pl.rotationRad());
-  float plS = std::sin(float(M_PI/2)+pl.rotationRad());
-
-  for(auto& i:interactiveObj){
-    auto m = mvp;
-    m.mul(i.objMat);
-
-    auto pos = i.position();
-    float dx=pl.position()[0]-pos[0];
-    float dy=pl.position()[1]-pos[1];
-    float dz=pl.position()[2]-pos[2];
-
-    if(dx*plC+dy*plS<0)
-      continue;
-    float l = (dx*dx+dy*dy+dz*dz);
-    if(l>220*220)
-      continue;
-
-    float x=0,y=0,z=0;
-    m.project(x,y,z);
-
-    if(z<0.f || z>1.f)
-      continue;
-
-    x = 0.5f*x*w;
-    y = 0.5f*y*h;
-
-    l = std::sqrt(x*x+y*y);
-    if(l<rlen){
-      rlen=l;
-      ret=&i;
-      }
-    }
-  return ret;
+  auto r = findObj(interactiveObj,pl,220,150,v,w,h);
+  return r;
   }
 
 Npc* WorldObjects::findNpc(const Npc &pl, const Matrix4x4 &v, int w, int h) {
-  Npc* ret=nullptr;
-  float rlen = w*h;
-  if(owner.view()==nullptr)
-    return nullptr;
+  auto r = findObj(npcArr,pl,440,150,v,w,h);
+  return r ? r->get() : nullptr;
+  }
 
-  auto mvp = owner.view()->viewProj(v);
-
-  for(auto& n:npcArr){
-    auto& npc=*n;
-    if(&npc==&pl)
-      continue;
-    auto m = mvp;
-    //m.mul(npc.objMat);
-
-    auto pos = npc.position();
-    float dx=pl.position()[0]-pos[0];
-    float dy=pl.position()[1]-pos[1];
-    float dz=pl.position()[2]-pos[2];
-
-    auto angle=std::atan2(dz,dx);
-    if(std::sin(pl.rotationRad()-angle)>-float(std::sin(30*M_PI/180)))
-      continue;
-    float l = (dx*dx+dy*dy+dz*dz);
-    if(l>440*440)
-      continue;
-
-    float x=npc.position()[0],y=npc.position()[1],z=npc.position()[2];
-    m.project(x,y,z);
-
-    if(z<0.f || z>1.f)
-      continue;
-
-    x = 0.5f*x*w;
-    y = 0.5f*y*h;
-
-    l = std::sqrt(x*x+y*y);
-    if(l<rlen){
-      rlen=l;
-      ret=&npc;
-      }
-    }
-  return ret;
+Item *WorldObjects::findItem(const Npc &pl, const Matrix4x4 &v, int w, int h) {
+  auto r = findObj(itemArr,pl,180,120,v,w,h);
+  return r ? r->get() : nullptr;
   }
 
 void WorldObjects::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,
@@ -211,4 +138,57 @@ void WorldObjects::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x
 
     i.marchInteractives(p,mvp,w,h);
     }
+  }
+
+template<class T>
+T& deref(std::unique_ptr<T>& x){ return *x; }
+
+template<class T>
+T& deref(T& x){ return x; }
+
+template<class T>
+T* WorldObjects::findObj(std::vector<T> &src,const Npc &pl, float maxDist, float maxAngle, const Matrix4x4 &v, int w, int h) {
+  T*    ret=nullptr;
+  float rlen = w*h;
+  if(owner.view()==nullptr)
+    return nullptr;
+
+  auto        mvp  = owner.view()->viewProj(v);
+  const float qmax = maxDist*maxDist;
+  const float ang  = float(std::sin((180.0-double(maxAngle))*M_PI/180.0));
+
+  for(auto& n:src){
+    auto& npc=deref(n);
+    if(reinterpret_cast<void*>(&npc)==reinterpret_cast<const void*>(&pl))
+      continue;
+    auto m = mvp;
+
+    auto pos = npc.position();
+    float dx=pl.position()[0]-pos[0];
+    float dy=pl.position()[1]-pos[1];
+    float dz=pl.position()[2]-pos[2];
+
+    auto angle=std::atan2(dz,dx);
+    if(std::sin(pl.rotationRad()-angle)>-ang)
+      continue;
+    float l = (dx*dx+dy*dy+dz*dz);
+    if(l>qmax)
+      continue;
+
+    float x=npc.position()[0],y=npc.position()[1],z=npc.position()[2];
+    m.project(x,y,z);
+
+    if(z<0.f || z>1.f)
+      continue;
+
+    x = 0.5f*x*w;
+    y = 0.5f*y*h;
+
+    l = std::sqrt(x*x+y*y);
+    if(l<rlen){
+      rlen=l;
+      ret=&n;
+      }
+    }
+  return ret;
   }

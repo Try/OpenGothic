@@ -18,9 +18,13 @@ class Item final {
 
     void setMatrix(const Tempest::Matrix4x4& m);
 
+    const char* displayName() const;
+    std::array<float,3> position() const;
+
   private:
     void updateMatrix();
 
+    WorldScript&                    owner;
     Daedalus::GameState::ItemHandle hitem={};
     StaticObjects::Mesh             view;
     std::array<float,3>             pos={};

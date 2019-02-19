@@ -176,9 +176,11 @@ size_t WorldScript::getSymbolIndex(const char *s) {
   }
 
 Daedalus::GEngineClasses::C_Npc& WorldScript::vmNpc(Daedalus::GameState::NpcHandle handle) {
-  auto  hnpc      = ZMemory::handleCast<NpcHandle>(handle);
-  auto& npcData   = vm.getGameState().getNpc(hnpc);
-  return npcData;
+  return vm.getGameState().getNpc(handle);
+  }
+
+Daedalus::GEngineClasses::C_Item& WorldScript::vmItem(ItemHandle handle) {
+  return vm.getGameState().getItem(handle);
   }
 
 std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GameState::NpcHandle player,
@@ -228,6 +230,31 @@ std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GameSta
     }
   sort(choise);
   return choise;
+  }
+
+std::vector<WorldScript::DlgChoise> WorldScript::updateDialog(const WorldScript::DlgChoise &dlg, Npc& pl,Npc&) {
+  const Daedalus::GEngineClasses::C_Info& info = getGameState().getInfo(dlg.handle);
+  std::vector<WorldScript::DlgChoise>     ret;
+
+  for(size_t i=0;i<info.subChoices.size();++i){
+    bool npcKnowsInfo = dialogs->doesNpcKnowInfo(pl.instanceSymbol(),info.instanceSymbol);
+    if(npcKnowsInfo)
+      continue;
+
+    bool valid=false;
+    if(info.condition)
+      valid = runFunction(info.condition)!=0;
+
+    WorldScript::DlgChoise ch;
+    ch.title    = info.subChoices[i].text;
+    ch.scriptFn = info.subChoices[i].functionSym;
+    ch.handle   = dlg.handle;
+    ch.sort     = int(i);
+    ret.push_back(ch);
+    }
+
+  sort(ret);
+  return ret;
   }
 
 void WorldScript::exec(const WorldScript::DlgChoise &dlg,
@@ -894,6 +921,13 @@ void WorldScript::equipitem(Daedalus::DaedalusVM &vm) {
 
   if(self!=nullptr)
     self->equipItem(weaponSymbol);
+  }
+
+void WorldScript::createinvitem(Daedalus::DaedalusVM &vm) {
+  uint32_t itemInstance = uint32_t(vm.popDataValue());
+  auto     self         = popInstance(vm);
+  if(self!=nullptr)
+    self->createItems(itemInstance,1);
   }
 
 void WorldScript::createinvitems(Daedalus::DaedalusVM &vm) {

@@ -1,7 +1,9 @@
 #include "item.h"
 
-Item::Item(WorldScript&,Daedalus::GameState::ItemHandle hitem)
-  :hitem(hitem){
+#include "worldscript.h"
+
+Item::Item(WorldScript& owner,Daedalus::GameState::ItemHandle hitem)
+  :owner(owner),hitem(hitem){
   }
 
 void Item::setView(StaticObjects::Mesh &&m) {
@@ -14,7 +16,7 @@ void Item::setPosition(float x, float y, float z) {
   updateMatrix();
   }
 
-void Item::setDirection(float x, float y, float z) {
+void Item::setDirection(float, float, float) {
   }
 
 void Item::setMatrix(const Tempest::Matrix4x4 &m) {
@@ -22,6 +24,14 @@ void Item::setMatrix(const Tempest::Matrix4x4 &m) {
   pos[1] = m.at(3,1);
   pos[2] = m.at(3,2);
   view.setObjMatrix(m);
+  }
+
+const char *Item::displayName() const {
+  return owner.vmItem(hitem).name.c_str();
+  }
+
+std::array<float,3> Item::position() const {
+  return pos;
   }
 
 void Item::updateMatrix() {

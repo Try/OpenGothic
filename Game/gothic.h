@@ -33,8 +33,8 @@ class Gothic final {
 
     void     updateAnimation();
 
-    auto     updateDialog(const WorldScript::DlgChoise &dlg) -> std::vector<WorldScript::DlgChoise>;
-    void     dialogExec(const WorldScript::DlgChoise& dlg, Npc &player, Npc &hnpc);
+    auto     updateDialog(const WorldScript::DlgChoise& dlg, Npc& player, Npc& npc) -> std::vector<WorldScript::DlgChoise>;
+    void     dialogExec  (const WorldScript::DlgChoise& dlg, Npc& player, Npc& npc);
 
     void     aiProcessInfos(Npc& player,Npc& npc);
     void     aiOuput(const char* msg);

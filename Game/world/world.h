@@ -61,9 +61,9 @@ class World final {
     const Trigger* findTrigger(const std::string& s) const { return findTrigger(s.c_str()); }
     const Trigger* findTrigger(const char* name) const;
 
-    void marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
+    void  marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
-    auto  updateDialog(const WorldScript::DlgChoise &dlg) -> std::vector<WorldScript::DlgChoise>;
+    auto  updateDialog(const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<WorldScript::DlgChoise>;
     void  exec(const WorldScript::DlgChoise& dlg, Npc& player,Npc& hnpc);
 
     void  aiProcessInfos(Npc &player, Npc& npc);

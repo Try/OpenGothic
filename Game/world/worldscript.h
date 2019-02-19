@@ -43,9 +43,13 @@ class WorldScript final {
     Daedalus::GameState::DaedalusGameState&           getGameState();
     Daedalus::PARSymbol&                              getSymbol(const char* s);
     size_t                                            getSymbolIndex(const char* s);
-    Daedalus::GEngineClasses::C_Npc&                  vmNpc(Daedalus::GameState::NpcHandle handle);
+
+    Daedalus::GEngineClasses::C_Npc&                  vmNpc (Daedalus::GameState::NpcHandle  handle);
+    Daedalus::GEngineClasses::C_Item&                 vmItem(Daedalus::GameState::ItemHandle handle);
 
     auto dialogChoises(Daedalus::GameState::NpcHandle self, Daedalus::GameState::NpcHandle npc) -> std::vector<DlgChoise>;
+    auto updateDialog (const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<WorldScript::DlgChoise>;
+
     void exec(const DlgChoise &dlg, Daedalus::GameState::NpcHandle player, Daedalus::GameState::NpcHandle hnpc);
 
     int  invokeState(Daedalus::GameState::NpcHandle hnpc, Daedalus::GameState::NpcHandle hother, const char* name);
@@ -149,6 +153,7 @@ class WorldScript final {
     void log_addentry        (Daedalus::DaedalusVM &vm);
 
     void equipitem           (Daedalus::DaedalusVM &vm);
+    void createinvitem       (Daedalus::DaedalusVM &vm);
     void createinvitems      (Daedalus::DaedalusVM &vm);
 
     void info_addchoice      (Daedalus::DaedalusVM &vm);

@@ -154,7 +154,7 @@ void DialogMenu::print(const char *msg) {
   }
 
 void DialogMenu::onDoneText() {
-  choise = gothic.updateDialog(selected);
+  choise = gothic.updateDialog(selected,*pl,*other);
   dlgSel = 0;
   if(choise.size()==0){
     if(depth>0) {

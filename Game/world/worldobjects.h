@@ -33,8 +33,9 @@ class WorldObjects final {
     Item*          addItem(const ZenLoad::zCVobData &vob);
     void           addInteractive(const ZenLoad::zCVobData &vob);
 
-    Interactive*   findInteractive(const Npc& pl,const Tempest::Matrix4x4 &mvp, int w, int h);
-    Npc*           findNpc(const Npc& pl,const Tempest::Matrix4x4 &mvp, int w, int h);
+    Interactive*   findInteractive(const Npc& pl, const Tempest::Matrix4x4 &v, int w, int h);
+    Npc*           findNpc        (const Npc& pl, const Tempest::Matrix4x4 &v, int w, int h);
+    Item*          findItem       (const Npc& pl, const Tempest::Matrix4x4 &v, int w, int h);
 
     void           marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
@@ -44,4 +45,7 @@ class WorldObjects final {
     std::vector<std::unique_ptr<Item>> itemArr;
     std::vector<Interactive>           interactiveObj;
     std::vector<Trigger>               triggers;
+
+    template<class T>
+    T* findObj(std::vector<T>& src,const Npc &pl, float maxDist, float maxAngle,const Tempest::Matrix4x4 &v, int w, int h);
   };

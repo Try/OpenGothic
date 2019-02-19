@@ -135,7 +135,12 @@ Focus World::findFocus(const Npc &pl, const Tempest::Matrix4x4 &v, int w, int h)
   if(n)
     return Focus(*n);
   auto inter = wobj.findInteractive(pl,v,w,h);
-  return inter ? Focus(*inter) : Focus();
+  if(inter)
+    return inter ? Focus(*inter) : Focus();
+  auto it = wobj.findItem(pl,v,w,h);
+  if(it)
+    return Focus(*it);
+  return Focus();
   }
 
 Focus World::findFocus(const Tempest::Matrix4x4 &mvp, int w, int h) {
@@ -153,18 +158,8 @@ void World::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,
   wobj.marchInteractives(p,mvp,w,h);
   }
 
-std::vector<WorldScript::DlgChoise> World::updateDialog(const WorldScript::DlgChoise &dlg) {
-  const Daedalus::GEngineClasses::C_Info& info = vm->getGameState().getInfo(dlg.handle);
-  std::vector<WorldScript::DlgChoise> ret;
-  for(size_t i=0;i<info.subChoices.size();++i){
-    WorldScript::DlgChoise ch;
-    ch.title    = info.subChoices[i].text;
-    ch.scriptFn = info.subChoices[i].functionSym;
-    ch.handle   = dlg.handle;
-    ch.sort     = int(i);
-    ret.push_back(ch);
-    }
-  return ret;
+std::vector<WorldScript::DlgChoise> World::updateDialog(const WorldScript::DlgChoise &dlg, Npc& player, Npc& npc) {
+  return vm->updateDialog(dlg,player,npc);
   }
 
 void World::exec(const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) {
