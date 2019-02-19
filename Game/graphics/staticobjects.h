@@ -53,6 +53,8 @@ class StaticObjects final {
     void updateUbo(uint32_t imgId);
     void commitUbo(uint32_t imgId);
 
+    void reserve(size_t stat,size_t dyn);
+
     void draw     (Tempest::CommandBuffer &cmd, uint32_t imgId);
 
     bool needToUpdateCommands() const;

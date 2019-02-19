@@ -48,6 +48,8 @@ class DynamicWorld final {
           }
 
         void setPosition(float x,float y,float z);
+        void setObjMatrix(const Tempest::Matrix4x4& m);
+
         bool tryMove(const std::array<float,3>& pos);
         bool tryMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
 

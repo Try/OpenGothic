@@ -15,7 +15,7 @@
 using namespace Tempest;
 
 World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
-  :wname(std::move(file)),gothic(&gothic),wobj(*this) {
+  :wname(std::move(file)),gothic(gothic),wobj(*this) {
   using namespace Daedalus::GameState;
 
   ZenLoad::ZenParser parser(wname,Resources::vdfsIndex());
@@ -31,33 +31,9 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
   ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
   worldMesh->packMesh(mesh, 1.f, false);
 
-  static_assert(sizeof(Resources::Vertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
-  const Resources::Vertex* vert=reinterpret_cast<const Resources::Vertex*>(mesh.vertices.data());
-  vbo = Resources::loadVbo<Resources::Vertex>(vert,mesh.vertices.size());
-
-  for(auto& i:mesh.subMeshes){
-    if(i.material.alphaFunc==Resources::AdditiveLight)
-      continue;
-
-    blocks.emplace_back();
-    Block& b = blocks.back();
-    if(i.material.alphaFunc==Resources::Transparent)
-      b.alpha=true;
-    if(i.material.alphaFunc!=Resources::NoAlpha &&
-       i.material.alphaFunc!=Resources::Transparent)
-      Log::i("unrecognized alpha func: ",i.material.alphaFunc);
-
-    b.ibo     = Resources::loadIbo(i.indices.data(),i.indices.size());
-    b.texture = Resources::loadTexture(i.material.texture);
-    }
-
   vm.reset(new WorldScript(*this,gothic,"/_work/data/Scripts/_compiled/GOTHIC.DAT"));
   wdynamic.reset(new DynamicWorld(*this,mesh));
-  wview.reset(new WorldView(*this,storage));
-
-  std::sort(blocks.begin(),blocks.end(),[](const Block& a,const Block& b){
-    return std::tie(a.alpha,a.texture)<std::tie(b.alpha,b.texture);
-    });
+  wview.reset(new WorldView(*this,mesh,storage));
 
   if(1){
     for(auto& vob:world.rootVobs)
@@ -126,24 +102,24 @@ void World::tick(uint64_t dt) {
   }
 
 uint64_t World::tickCount() const {
-  return gothic->tickCount();
+  return gothic.tickCount();
   }
 
 void World::setDayTime(int32_t h, int32_t min) {
-  gtime now     = gothic->time();
+  gtime now     = gothic.time();
   auto  day     = now.day();
   gtime dayTime = now.timeInDay();
   gtime next    = gtime(h,min);
 
   if(dayTime<=next){
-    gothic->setTime(gtime(day,h,min));
+    gothic.setTime(gtime(day,h,min));
     } else {
-    gothic->setTime(gtime(day+1,h,min));
+    gothic.setTime(gtime(day+1,h,min));
     }
   }
 
 gtime World::time() const {
-  return gothic->time();
+  return gothic.time();
   }
 
 Daedalus::PARSymbol &World::getSymbol(const char *s) const {
@@ -196,27 +172,27 @@ void World::exec(const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) {
   }
 
 void World::aiProcessInfos(Npc &player, Npc &npc) {
-  gothic->aiProcessInfos(player,npc);
+  gothic.aiProcessInfos(player,npc);
   }
 
 void World::aiOutput(const char *msg) {
-  gothic->aiOuput(msg);
+  gothic.aiOuput(msg);
   }
 
 void World::aiCloseDialog() {
-  gothic->aiCloseDialog();
+  gothic.aiCloseDialog();
   }
 
 bool World::aiIsDlgFinished() {
-  return gothic->aiIsDlgFinished();
+  return gothic.aiIsDlgFinished();
   }
 
 void World::printScreen(const char *msg, int x, int y, int time, const Font &font) {
-  gothic->printScreen(msg,x,y,time,font);
+  gothic.printScreen(msg,x,y,time,font);
   }
 
 void World::print(const char *msg) {
-  gothic->print(msg);
+  gothic.print(msg);
   }
 
 void World::onInserNpc(Daedalus::GameState::NpcHandle handle, const std::string &s) {

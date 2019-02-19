@@ -23,6 +23,8 @@ class UboStorage {
     void                     markAsChanged();
     Ubo&                     element(size_t i){ return obj[i]; }
 
+    void                     reserve(size_t sz);
+
   private:
     struct PerFrame final {
       Tempest::UniformBuffer uboData;
@@ -84,4 +86,9 @@ void UboStorage<Ubo>::updateUbo(uint32_t imgId) {
     frame.uboData.update(obj.data(),0,sz);
     frame.uboChanged = false;
     }
+  }
+
+template<class Ubo>
+void UboStorage<Ubo>::reserve(size_t sz){
+  obj.reserve(sz);
   }

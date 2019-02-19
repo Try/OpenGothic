@@ -14,7 +14,7 @@ class RendererStorage;
 
 class WorldView {
   public:
-    WorldView(const World &world,const RendererStorage& storage);
+    WorldView(const World &world, const ZenLoad::PackedMesh& wmesh, const RendererStorage& storage);
 
     void initPipeline(uint32_t w, uint32_t h);
     Tempest::Matrix4x4  viewProj(const Tempest::Matrix4x4 &view) const;

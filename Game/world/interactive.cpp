@@ -12,8 +12,13 @@ Interactive::Interactive(World &owner, const ZenLoad::zCVobData &vob)
     std::memcpy(v,vob.worldMatrix.m,sizeof(v));
     objMat = Tempest::Matrix4x4(v);
 
+    auto physicMesh = Resources::physicMesh(mesh); //FIXME: build physic model in Resources.cpp
+
     view   = owner.getView(vob.visual);
-    physic = owner.getPhysic(vob.visual);
+    physic = owner.physic()->staticObj(physicMesh,objMat);
+
+    view  .setObjMatrix(objMat);
+    physic.setObjMatrix(objMat);
 
     pos.resize(mesh->pos.size());
     for(size_t i=0;i<pos.size();++i){

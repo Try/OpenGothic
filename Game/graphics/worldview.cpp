@@ -5,13 +5,15 @@
 
 using namespace Tempest;
 
-WorldView::WorldView(const World &world, const RendererStorage &storage)
-  :owner(world),storage(storage),sky(storage),land(storage),vobGroup(storage),objGroup(storage) {
+WorldView::WorldView(const World &world, const ZenLoad::PackedMesh &wmesh, const RendererStorage &storage)
+  :owner(world),storage(storage),sky(storage),land(storage,wmesh),vobGroup(storage),objGroup(storage) {
   sky.setWorld(owner);
+  vobGroup.reserve(8192,0);
+  objGroup.reserve(8192,2048);
   }
 
 void WorldView::initPipeline(uint32_t w, uint32_t h) {
-  proj.perspective(45.0f, float(w)/float(h), 0.1f, 100.0f);
+  proj.perspective(45.0f, float(w)/float(h), 0.05f, 100.0f);
   //projective.translate(0,0,0.5f);
   nToUpdateCmd=true;
   }
@@ -93,7 +95,7 @@ void WorldView::prebuiltCmdBuf(const World &world) {
 
     cmd.begin(storage.pass());
     sky     .draw(cmd,i,world);
-    land    .draw(cmd,i,world);
+    land    .draw(cmd,i);
     vobGroup.draw(cmd,i);
     objGroup.draw(cmd,i);
     cmd.end();

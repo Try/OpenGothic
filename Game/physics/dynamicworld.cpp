@@ -193,6 +193,14 @@ void DynamicWorld::Item::setPosition(float x, float y, float z) {
     }
   }
 
+void DynamicWorld::Item::setObjMatrix(const Tempest::Matrix4x4 &m) {
+  if(obj){
+    btTransform trans;
+    trans.setFromOpenGLMatrix(reinterpret_cast<const btScalar*>(&m));
+    obj->setWorldTransform(trans);
+    }
+  }
+
 bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos) {
   if(!obj)
     return false;

@@ -5,7 +5,7 @@
 
 using namespace Tempest;
 
-Landscape::Landscape(const RendererStorage &storage)
+Landscape::Landscape(const RendererStorage &storage, const ZenLoad::PackedMesh &mesh)
   :storage(storage) {
   auto& device=storage.device;
 
@@ -13,6 +13,30 @@ Landscape::Landscape(const RendererStorage &storage)
   for(size_t i=0;i<device.maxFramesInFlight();++i){
     pf[i].uboGpu = device.loadUbo(&uboCpu,sizeof(uboCpu));
     }
+
+  static_assert(sizeof(Resources::Vertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
+  const Resources::Vertex* vert=reinterpret_cast<const Resources::Vertex*>(mesh.vertices.data());
+  vbo = Resources::loadVbo<Resources::Vertex>(vert,mesh.vertices.size());
+
+  for(auto& i:mesh.subMeshes){
+    if(i.material.alphaFunc==Resources::AdditiveLight)
+      continue;
+
+    blocks.emplace_back();
+    Block& b = blocks.back();
+    if(i.material.alphaFunc==Resources::Transparent)
+      b.alpha=true;
+    if(i.material.alphaFunc!=Resources::NoAlpha &&
+       i.material.alphaFunc!=Resources::Transparent)
+      Log::i("unrecognized alpha func: ",i.material.alphaFunc);
+
+    b.ibo     = Resources::loadIbo(i.indices.data(),i.indices.size());
+    b.texture = Resources::loadTexture(i.material.texture);
+    }
+
+  std::sort(blocks.begin(),blocks.end(),[](const Block& a,const Block& b){
+    return std::tie(a.alpha,a.texture)<std::tie(b.alpha,b.texture);
+    });
   }
 
 void Landscape::setMatrix(uint32_t frameId, const Matrix4x4 &mat) {
@@ -23,10 +47,9 @@ void Landscape::setMatrix(uint32_t frameId, const Matrix4x4 &mat) {
 void Landscape::commitUbo(uint32_t /*frameId*/) {
   }
 
-void Landscape::draw(Tempest::CommandBuffer &cmd, uint32_t frameId,const World& world) {
+void Landscape::draw(Tempest::CommandBuffer &cmd, uint32_t frameId) {
   PerFrame& pf      = this->pf[frameId];
   auto&     uboLand = pf.uboLand;
-  auto&     blocks  = world.landBlocks();
 
   uboLand.resize(blocks.size());
   const Texture2d* prev=nullptr;
@@ -49,6 +72,6 @@ void Landscape::draw(Tempest::CommandBuffer &cmd, uint32_t frameId,const World& 
         cmd.setUniforms(storage.pLandAlpha,ubo,1,&offset); else
         cmd.setUniforms(storage.pLand,ubo,1,&offset);
       }
-    cmd.draw(world.landVbo(),lnd.ibo);
+    cmd.draw(vbo,lnd.ibo);
     }
   }

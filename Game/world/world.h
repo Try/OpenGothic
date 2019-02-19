@@ -30,17 +30,8 @@ class World final {
     World(const World&)=delete;
     World(Gothic &gothic,const RendererStorage& storage, std::string file);
 
-    struct Block {
-      const Tempest::Texture2d*      texture = nullptr;
-      Tempest::IndexBuffer<uint32_t> ibo;
-      bool                           alpha=false;
-      };
-
     bool isEmpty() const { return wname.empty(); }
     const std::string& name() const { return wname; }
-
-    const Tempest::VertexBuffer<Resources::Vertex>& landVbo()    const { return vbo; }
-    const std::vector<Block>&                       landBlocks() const { return blocks; }
 
     const ZenLoad::zCWaypointData* findPoint(const std::string& s) const { return findPoint(s.c_str()); }
     const ZenLoad::zCWaypointData* findPoint(const char* name) const;
@@ -88,13 +79,10 @@ class World final {
 
   private:
     std::string                           wname;
-    Gothic*                               gothic=nullptr;
+    Gothic&                               gothic;
     ZenLoad::zCWayNetData                 wayNet;
     std::vector<ZenLoad::zCWaypointData>  freePoints, startPoints;
-    std::vector<ZenLoad::zCWaypointData*>  indexPoints;
-
-    Tempest::VertexBuffer<Resources::Vertex> vbo;
-    std::vector<Block>                       blocks;
+    std::vector<ZenLoad::zCWaypointData*> indexPoints;
 
     Npc*                                  npcPlayer=nullptr;
 

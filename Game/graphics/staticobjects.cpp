@@ -156,6 +156,11 @@ void StaticObjects::commitUbo(uint32_t imgId) {
     }
   }
 
+void StaticObjects::reserve(size_t stat, size_t dyn) {
+  storageSt.reserve(stat);
+  storageDn.reserve(dyn);
+  }
+
 void StaticObjects::draw(Tempest::CommandBuffer &cmd, uint32_t imgId) {
   for(auto& c:chunksSt)
     c.draw(cmd,storage.pObject,imgId);
