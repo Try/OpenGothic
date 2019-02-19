@@ -241,10 +241,12 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
         npc.setAnim(Npc::FallDeep);
         }
       else if((npc.anim()!=Npc::Jump || fallSpeed[1]>300.f) && npc.anim()!=Npc::Fall) {
+        if(npc.anim()==Npc::Jump) {
+          fallSpeed[0] += aniSpeed[0]/timeK;
+          fallSpeed[1] += aniSpeed[1]/timeK;
+          fallSpeed[2] += aniSpeed[2]/timeK;
+          }
         npc.setAnim(Npc::Fall);
-        fallSpeed[0] += aniSpeed[0];
-        fallSpeed[1] += aniSpeed[1];
-        fallSpeed[2] += aniSpeed[2];
         }
       }
     }
