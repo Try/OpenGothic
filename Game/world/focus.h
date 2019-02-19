@@ -4,12 +4,14 @@
 
 class Interactive;
 class Npc;
+class Item;
 
 class Focus final {
   public:
     Focus()=default;
     Focus(Interactive& i);
     Focus(Npc& i);
+    Focus(Item& i);
 
     operator bool() const;
     std::array<float,3> displayPosition() const;
@@ -17,4 +19,5 @@ class Focus final {
 
     Interactive* interactive=nullptr;
     Npc*         npc        =nullptr;
+    Item*        item       =nullptr;
   };
