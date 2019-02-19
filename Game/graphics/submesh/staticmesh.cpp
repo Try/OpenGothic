@@ -9,6 +9,8 @@ StaticMesh::StaticMesh(const ZenLoad::PackedMesh &mesh) {
   for(size_t i=0;i<mesh.subMeshes.size();++i){
     sub[i].texName = mesh.subMeshes[i].material.texture;
     sub[i].texture = Resources::loadTexture(sub[i].texName);
+    if(sub[i].texture==nullptr)
+      sub[i].texture = Resources::fallbackTexture();
     sub[i].ibo     = Resources::loadIbo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
     }
   }

@@ -309,6 +309,8 @@ Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoa
       std::memcpy(&name[name.size()-3],"MRM",3); else
     if(name.rfind(".3ds")==name.size()-4)
       std::memcpy(&name[name.size()-3],"MRM",3); else
+    if(name.rfind(".mms")==name.size()-4)
+      std::memcpy(&name[name.size()-3],"MMB",3); else
     if(name.rfind(".MMS")==name.size()-4)
       std::memcpy(&name[name.size()-3],"MMB",3); else
     if(name.rfind(".ASC")==name.size()-4)

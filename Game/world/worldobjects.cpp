@@ -95,7 +95,7 @@ Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
                      pos->direction.z);
     }
 
-  it->setView(owner.getView(itData.visual));
+  it->setView(owner.getView(itData.visual,itData.material,0,itData.material));
   return it;
   }
 
