@@ -7,6 +7,7 @@ class gtime final {
     gtime()=default;
     gtime(int32_t hour,int32_t min):time(hour*hourMilis+min*minMilis){}
     gtime(int64_t day,int32_t hour,int32_t min):time(day*dayMilis+hour*hourMilis+min*minMilis){}
+    gtime(int64_t day,int64_t hour,int64_t min):time(day*dayMilis+hour*hourMilis+min*minMilis){}
 
     int64_t toInt() const { return time; }
     void    addMilis(uint64_t t){ time+=t; }

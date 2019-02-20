@@ -144,7 +144,7 @@ void MainWindow::mouseUpEvent(MouseEvent &event) {
   }
 
 void MainWindow::mouseDragEvent(MouseEvent &event) {
-  if(!mouseP[Event::ButtonLeft])
+  if(!mouseP[Event::ButtonLeft] || dialogs.isActive())
     return;
   auto dp = (event.pos()-mpos);
   mpos = event.pos();
@@ -294,7 +294,7 @@ void MainWindow::initSwapchain(){
 
 void MainWindow::render(){
   try {
-    uint64_t time=Application::tickCount();
+    static uint64_t time=Application::tickCount();
 
     auto& context=fLocal[device.frameId()];
     Semaphore&     renderDone=commandBuffersSemaphores[device.frameId()];
@@ -327,7 +327,9 @@ void MainWindow::render(){
 
     device.present(imgId,renderDone);
 
-    fps.push(Application::tickCount()-time);
+    auto t=Application::tickCount();
+    fps.push(t-time);
+    time=t;
     }
   catch(const Tempest::DeviceLostException&) {
     Log::e("lost device!");

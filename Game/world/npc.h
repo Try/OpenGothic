@@ -35,9 +35,53 @@ class Npc final {
       JM_Up,
       };
 
+    enum PercType : uint8_t {
+      PERC_ASSESSPLAYER  = 1,
+      PERC_ASSESSENEMY   = 2,
+      PERC_ASSESSFIGHTER = 3,
+      PERC_ASSESSBODY    = 4,
+      PERC_ASSESSITEM    = 5,
+      PERC_Count
+      };
+
+    enum BodyState:uint32_t {
+      BS_STAND                 = 0,
+      BS_WALK                  = 1,
+      BS_SNEAK                 = 2,
+      BS_RUN                   = 3,
+      BS_SPRINT                = 4,
+      BS_SWIM                  = 5,
+      BS_CRAWL                 = 6,
+      BS_DIVE                  = 7,
+      BS_JUMP                  = 8,
+      BS_CLIMB                 = 9,
+      BS_FALL                  = 10,
+      BS_SIT                   = 11,
+      BS_LIE                   = 12,
+      BS_INVENTORY             = 13,
+      BS_ITEMINTERACT          = 14,
+      BS_MOBINTERACT           = 15,
+      BS_MOBINTERACT_INTERRUPT = 16,
+      BS_TAKEITEM              = 17,
+      BS_DROPITEM              = 18,
+      BS_THROWITEM             = 19,
+      BS_PICKPOCKET            = 20,
+      BS_STUMBLE               = 21,
+      BS_UNCONSCIOUS           = 22,
+      BS_DEAD                  = 23,
+      BS_AIMNEAR               = 24,
+      BS_AIMFAR                = 25,
+      BS_HIT                   = 26,
+      BS_PARADE                = 27,
+      BS_CASTING               = 28,
+      BS_PETRIFIED             = 29,
+      BS_CONTROLLING           = 30,
+      };
+
     enum Anim : uint16_t {
       NoAnim,
       Idle,
+      Guard,
       Move,
       MoveBack,
       MoveL,
@@ -53,6 +97,7 @@ class Npc final {
       SlideA,
       SlideB,
       Interact,
+      Talk,
       DrawFist,
       DrawWeapon1h
       };
@@ -137,8 +182,10 @@ class Npc final {
     void setDirection (const std::array<float,3>& pos);
     void setDirection (float rotation);
     void clearSpeed();
+    static float angleDir(float x,float z);
 
     void setAiType(AiType t);
+    bool isPlayer() const;
     void tick(uint64_t dt);
     bool startClimb(Npc::Anim ani);
 
@@ -154,7 +201,8 @@ class Npc final {
     const char* displayName() const;
     void setName      (const std::string& name);
     void setVisual    (const Skeleton *visual);
-    void setOverlay   (const Skeleton *sk, float time);
+    void addOverlay   (const Skeleton *sk, uint64_t time);
+    void delOverlay   (const Skeleton *sk);
     void setVisualBody(StaticObjects::Mesh &&head,StaticObjects::Mesh&& body);
 
     void setArmour    (StaticObjects::Mesh&& body);
@@ -193,10 +241,10 @@ class Npc final {
     int32_t  learningPoints() const;
 
 
-    void     startState(const State st, Npc *other);
-    State    bodyState() const;
-    void     tickState();
-    bool     isDead() const;
+    void      startDialog(Npc *other);
+    void      startState(size_t id, bool loop, const std::string &wp);
+    BodyState bodyState() const;
+    bool      isDead() const;
 
     void setToFistMode ();
     void setToFightMode(const uint32_t item);
@@ -211,11 +259,15 @@ class Npc final {
     void drawWeaponBow();
     void drawWeaponCBow();
 
+    void setPerceptionTime  (uint64_t time);
+    void setPerceptionEnable(PercType t, size_t fn);
+
     WeaponState weaponState() const { return weaponSt; }
 
     const Interactive* interactive() const { return currentInteract; }
-    bool  setInteraction(Interactive* id);
-    bool  isState(uint32_t stateFn) const;
+    bool     setInteraction(Interactive* id);
+    bool     isState(uint32_t stateFn) const;
+    uint64_t stateTime() const;
 
     void  addRoutine(gtime s, gtime e, uint32_t callback);
     void  multSpeed(float s);
@@ -238,6 +290,11 @@ class Npc final {
     void     aiStopLookAt();
     void     aiRemoveWeapon();
     void     aiTurnToNpc(Npc *other);
+    void     aiStartState(uint32_t stateFn,int behavior,std::string wp);
+    void     aiPlayAnim(std::string ani);
+    void     aiWait(uint64_t dt);
+    void     aiStandup();
+    void     aiClearQueue();
 
   private:
     struct Routine final {
@@ -251,30 +308,59 @@ class Npc final {
       AI_LookAt,
       AI_StopLookAt,
       AI_RemoveWeapon,
-      AI_TurnToNpc
+      AI_TurnToNpc,
+      AI_StartState,
+      AI_PlayAnim,
+      AI_Wait,
+      AI_StandUp
       };
 
     struct AiAction final {
-      Action act=AI_None;
-      Npc*   target=nullptr;
+      Action      act   =AI_None;
+      Npc*        target=nullptr;
+      size_t      func  =0;
+      int         i0    =0;
+      std::string s0;
+      };
+
+    struct AiState final {
+      size_t   funcIni =0;
+      size_t   funcLoop=0;
+      size_t   funcEnd =0;
+      uint64_t sTime   =0;
+      bool     started =false;
+      };
+
+    struct Perc final {
+      bool   enable=false;
+      size_t func  =0;
+      };
+
+    struct Overlay final {
+      const Skeleton* sk  =nullptr;
+      uint64_t        time=0;
       };
 
     const std::list<Daedalus::GameState::ItemHandle> &getItems() const;
     size_t itemCount(const uint32_t id) const;
 
-    void updatePos();
-    void setPos(const Tempest::Matrix4x4& m);
+    void                           updatePos();
+    void                           setPos(const Tempest::Matrix4x4& m);
+
     const Animation::Sequence*     solveAnim(Anim a) const;
     const Animation::Sequence*     solveAnim(Anim a, WeaponState st0, Anim cur, WeaponState st) const;
     const Animation::Sequence*     solveAnim(const char* format, WeaponState st) const;
     const Animation::Sequence*     animSequence(const char* name) const;
     const char*                    animName(Anim a, WeaponState st) const;
+    Anim                           animByName(const std::string& name) const;
 
     const Routine&                 currentRoutine() const;
     void                           endState();
 
-    void                           implLookAt();
+    bool                           implLookAt(uint64_t dt);
+    bool                           implLookAt(float dx, float dz, uint64_t dt);
     void                           invalidateAnim(const Animation::Sequence* s, const Skeleton *sk);
+    void                           tickRoutine();
 
     WorldScript&                   owner;
     Daedalus::GameState::NpcHandle hnpc;
@@ -283,8 +369,6 @@ class Npc final {
     float                          z=0.f;
     float                          angle=0.f;
     float                          sz[3]={1.f,1.f,1.f};
-    AiType                         aiType=AiType::AiNormal;
-    State                          aiSt=State::INVALID;
 
     Tempest::Matrix4x4             pos;
     StaticObjects::Mesh            head;
@@ -293,7 +377,7 @@ class Npc final {
     DynamicWorld::Item             physic;
 
     const Skeleton*                skeleton=nullptr;
-    const Skeleton*                overlay =nullptr;
+    std::vector<Overlay>           overlay;
     const Animation::Sequence*     animSq  =nullptr;
     uint64_t                       sAnim   =0;
     Anim                           current =NoAnim;
@@ -305,10 +389,18 @@ class Npc final {
     int32_t                        talentsVl[TALENT_MAX]={};
     uint64_t                       refuseTalkMilis      =0;
 
+    uint64_t                       perceptionTime=0;
+    Perc                           perception[PERC_Count];
+
     Interactive*                   currentInteract=nullptr;
     Npc*                           currentOther=nullptr;
     Npc*                           currentLookAt=nullptr;
     Npc*                           currentTurnTo=nullptr;
+
+    uint64_t                       waitTime=0;
+    AiType                         aiType=AiType::AiNormal;
+    BodyState                      bodySt=BodyState(0);
+    AiState                        aiState;
     std::vector<Routine>           routines;
     std::queue<AiAction>           aiActions;
 

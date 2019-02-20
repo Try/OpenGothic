@@ -15,9 +15,6 @@ MoveAlgo::MoveAlgo(Npc& unit, const World &w)
 void MoveAlgo::tick(uint64_t dt) {
   float dpos[3]={};
   auto  dp  = npc.animMoveSpeed(dt);
-  auto  pos = npc.position();
-  float rot = npc.rotationRad();
-  float s   = std::sin(rot), c = std::cos(rot);
 
   if(!isClimb()) {
     dpos[0]=dp.x;
@@ -25,17 +22,21 @@ void MoveAlgo::tick(uint64_t dt) {
     dpos[2]=dp.z;
     }
 
+  if(dpos[0]==0.f && dpos[1]==0.f && dpos[2]==0.f && isFrozen())
+    return;
+  float speed = std::sqrt(dpos[0]*dpos[0]+dpos[2]*dpos[2]);
+
+  float rot = npc.rotationRad();
+  float s   = std::sin(rot), c = std::cos(rot);
   aniSpeed[0]=mulSpeed*(dpos[0]*c-dpos[2]*s);
   aniSpeed[2]=mulSpeed*(dpos[0]*s+dpos[2]*c);
   aniSpeed[1]=-dpos[1];
 
+  auto pos = npc.position();
   pos[0]+=aniSpeed[0];
   pos[2]+=aniSpeed[2];
   pos[1]+=dpos[1];
 
-  float speed = std::sqrt(dpos[0]*dpos[0]+dpos[2]*dpos[2]);
-  if(dpos[0]==0.f && dpos[1]==0.f && dpos[2]==0.f && isFrozen())
-    return;
   setPos(pos,dt,speed);
   }
 
@@ -176,7 +177,7 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
 
   bool valid  = false;
   auto ground = world.physic()->dropRay(pos[0],oldY,pos[2],valid);
-  setAsFrozen(frozen && isInAir());
+  setAsFrozen(frozen && !isInAir());
 
   bool nFall=isFaling();
   setInAir(false);
@@ -188,6 +189,7 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
       pos[1]=ground;
       nFall=false;
       }
+    setAsFrozen(false);
     } else {
     float fallY = fallSpeed[1]*timeK;
     float dY    = (pos[1]-ground);

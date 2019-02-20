@@ -20,6 +20,7 @@ class DialogMenu : public Tempest::Widget {
     void aiOutput(const char* msg);
     void aiClose();
     void aiIsClose(bool& ret);
+    bool isActive() const;
     bool start(Npc& pl,Npc& other);
     bool start(Npc& pl,Interactive& other);
 

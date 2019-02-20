@@ -14,6 +14,11 @@ DialogMenu::DialogMenu(Gothic &gothic):gothic(gothic) {
   }
 
 void DialogMenu::tick(uint64_t dt) {
+  if(state==State::PreStart){
+    onStart(*this->pl,*this->other);
+    return;
+    }
+
   if(remPrint<dt){
     for(size_t i=1;i<MAX_PRINT;++i)
       printMsg[i-1u]=printMsg[i];
@@ -51,21 +56,13 @@ void DialogMenu::tick(uint64_t dt) {
   }
 
 bool DialogMenu::start(Npc &pl,Npc &other) {
-  other.startState(Npc::State::ANSWER,&pl);
-  if(state==State::PreStart){
-    onStart(*this->pl,*this->other);
-    return true;
-    }
+  other.startDialog(&pl);
   return false;
   }
 
 bool DialogMenu::start(Npc &pl, Interactive &other) {
   pl.setInteraction(&other);
-  if(state==State::PreStart){
-    onStart(*this->pl,*this->other);
-    return true;
-    }
-  return false;
+  return true;
   }
 
 void DialogMenu::aiProcessInfos(Npc &p,Npc &npc) {
@@ -95,6 +92,10 @@ void DialogMenu::aiClose() {
 
 void DialogMenu::aiIsClose(bool &ret) {
   ret = (state==State::Idle);
+  }
+
+bool DialogMenu::isActive() const {
+  return (state!=State::Idle);
   }
 
 bool DialogMenu::onStart(Npc &p, Npc &ot) {
@@ -182,8 +183,8 @@ void DialogMenu::close() {
     prevPl->setInteraction(nullptr);
     }
   if(proveNpc && proveNpc!=prevPl){
-    proveNpc->tickState();
-    proveNpc->startState(Npc::State::INVALID,nullptr);
+    //proveNpc->tickState();
+    //proveNpc->startState(Npc::State::INVALID,nullptr);
     proveNpc->setInteraction(nullptr);
     }
   }

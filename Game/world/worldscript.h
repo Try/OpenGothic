@@ -41,8 +41,10 @@ class WorldScript final {
 
     const std::list<Daedalus::GameState::ItemHandle>& getInventoryOf(Daedalus::GameState::NpcHandle h);
     Daedalus::GameState::DaedalusGameState&           getGameState();
-    Daedalus::PARSymbol&                              getSymbol(const char* s);
+    Daedalus::PARSymbol&                              getSymbol(const char*  s);
+    Daedalus::PARSymbol&                              getSymbol(const size_t s);
     size_t                                            getSymbolIndex(const char* s);
+    size_t                                            getSymbolIndex(const std::string& s);
 
     Daedalus::GEngineClasses::C_Npc&                  vmNpc (Daedalus::GameState::NpcHandle  handle);
     Daedalus::GEngineClasses::C_Item&                 vmItem(Daedalus::GameState::ItemHandle handle);
@@ -53,6 +55,7 @@ class WorldScript final {
     void exec(const DlgChoise &dlg, Daedalus::GameState::NpcHandle player, Daedalus::GameState::NpcHandle hnpc);
 
     int  invokeState(Daedalus::GameState::NpcHandle hnpc, Daedalus::GameState::NpcHandle hother, const char* name);
+    int  invokeState(Npc* npc, Npc* other, size_t fn);
 
     void useInteractive(Daedalus::GameState::NpcHandle hnpc, const std::string &func);
 
@@ -106,11 +109,15 @@ class WorldScript final {
     void wld_stopeffect      (Daedalus::DaedalusVM& vm);
     void wld_getplayerportalguild(Daedalus::DaedalusVM& vm);
     void wld_getguildattitude(Daedalus::DaedalusVM& vm);
+    void wld_istime          (Daedalus::DaedalusVM& vm);
+    void wld_isfpavailable   (Daedalus::DaedalusVM& vm);
 
     void mdl_setvisual       (Daedalus::DaedalusVM& vm);
     void mdl_setvisualbody   (Daedalus::DaedalusVM& vm);
     void mdl_setmodelfatness (Daedalus::DaedalusVM& vm);
     void mdl_applyoverlaymds (Daedalus::DaedalusVM& vm);
+    void mdl_applyoverlaymdstimed(Daedalus::DaedalusVM& vm);
+    void mdl_removeoverlaymds(Daedalus::DaedalusVM& vm);
     void mdl_setmodelscale   (Daedalus::DaedalusVM& vm);
     void mdl_startfaceani    (Daedalus::DaedalusVM& vm);
 
@@ -134,6 +141,12 @@ class WorldScript final {
     void npc_getdisttonpc    (Daedalus::DaedalusVM &vm);
     void npc_hasequippedarmor(Daedalus::DaedalusVM &vm);
     void npc_getattitude     (Daedalus::DaedalusVM &vm);
+    void npc_setperctime     (Daedalus::DaedalusVM &vm);
+    void npc_percenable      (Daedalus::DaedalusVM &vm);
+    void npc_getnearestwp    (Daedalus::DaedalusVM &vm);
+    void npc_clearaiqueue    (Daedalus::DaedalusVM &vm);
+    void npc_isplayer        (Daedalus::DaedalusVM &vm);
+    void npc_getstatetime    (Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
@@ -145,6 +158,11 @@ class WorldScript final {
     void ai_removeweapon     (Daedalus::DaedalusVM &vm);
     void ai_turntonpc        (Daedalus::DaedalusVM &vm);
     void ai_outputsvm        (Daedalus::DaedalusVM &vm);
+    void ai_startstate       (Daedalus::DaedalusVM &vm);
+    void ai_playani          (Daedalus::DaedalusVM &vm);
+    void ai_setwalkmode      (Daedalus::DaedalusVM &vm);
+    void ai_waitms           (Daedalus::DaedalusVM &vm);
+    void ai_aligntowp        (Daedalus::DaedalusVM &vm);
 
     void ta_min              (Daedalus::DaedalusVM &vm);
 

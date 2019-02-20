@@ -221,6 +221,48 @@ const ZenLoad::zCWaypointData *World::findPoint(const char *name) const {
   return nullptr;
   }
 
+const ZenLoad::zCWaypointData *World::findWayPoint(const std::array<float,3> &pos) const {
+  return findWayPoint(pos[0],pos[1],pos[2]);
+  }
+
+const ZenLoad::zCWaypointData *World::findWayPoint(float x, float y, float z) const {
+  const ZenLoad::zCWaypointData* ret =nullptr;
+  float                          dist=std::numeric_limits<float>::max();
+  for(auto& w:wayNet.waypoints){
+    float dx = w.position.x-x;
+    float dy = w.position.y-y;
+    float dz = w.position.z-z;
+    float l=dx*dx+dy*dy+dz*dz;
+    if(l<dist){
+      ret  = &w;
+      dist = l;
+      }
+    }
+  return ret;
+  }
+
+const ZenLoad::zCWaypointData *World::findFreePoint(const std::array<float,3> &pos,const char* name) const {
+  return findFreePoint(pos[0],pos[1],pos[2],name);
+  }
+
+const ZenLoad::zCWaypointData *World::findFreePoint(float x, float y, float z, const char *name) const {
+  const ZenLoad::zCWaypointData* ret =nullptr;
+  float                          dist=20.f; // see scripting doc
+  for(auto& w:freePoints){
+    if(w.wpName!=name)
+      continue;
+    float dx = w.position.x-x;
+    float dy = w.position.y-y;
+    float dz = w.position.z-z;
+    float l=dx*dx+dy*dy+dz*dz;
+    if(l<dist){
+      ret  = &w;
+      dist = l;
+      }
+    }
+  return ret;
+  }
+
 int32_t World::runFunction(const std::string& fname) {
   return vm->runFunction(fname);
   }

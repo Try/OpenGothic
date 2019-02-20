@@ -35,6 +35,11 @@ class World final {
 
     const ZenLoad::zCWaypointData* findPoint(const std::string& s) const { return findPoint(s.c_str()); }
     const ZenLoad::zCWaypointData* findPoint(const char* name) const;
+    const ZenLoad::zCWaypointData* findWayPoint(const std::array<float,3>& pos) const;
+    const ZenLoad::zCWaypointData* findWayPoint(float x,float y,float z) const;
+
+    const ZenLoad::zCWaypointData* findFreePoint(const std::array<float,3>& pos,const char* name) const;
+    const ZenLoad::zCWaypointData* findFreePoint(float x,float y,float z,const char* name) const;
 
     WorldView*    view()   const { return wview.get();    }
     DynamicWorld* physic() const { return wdynamic.get(); }

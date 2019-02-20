@@ -7,6 +7,7 @@
 #include "graphics/posepool.h"
 #include "worldscript.h"
 #include "trigger.h"
+#include "world.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -41,10 +42,7 @@ void Npc::setPosition(const std::array<float,3> &pos) {
   }
 
 void Npc::setDirection(float x, float /*y*/, float z) {
-  float a=-90;
-  if(x!=0.f || z!=0.f)
-    a = 90+180.f*std::atan2(z,x)/float(M_PI);
-  //angle = -180+180.f*std::atan2(z,x)/float(M_PI);
+  float a=angleDir(x,z);
   setDirection(a);
   }
 
@@ -59,6 +57,13 @@ void Npc::setDirection(float rotation) {
   updatePos();
   }
 
+float Npc::angleDir(float x, float z) {
+  float a=-90;
+  if(x!=0.f || z!=0.f)
+    a = 90+180.f*std::atan2(z,x)/float(M_PI);
+  return a;
+  }
+
 void Npc::clearSpeed() {
   mvAlgo.clearSpeed();
   }
@@ -67,31 +72,8 @@ void Npc::setAiType(Npc::AiType t) {
   aiType=t;
   }
 
-void Npc::tick(uint64_t dt) {
-  if(aiType==AiType::Player) {
-    mvAlgo.tick(dt);
-    return;
-    }
-
-  implLookAt();
-  if(aiActions.size()==0)
-    return;
-  auto act = aiActions.front();
-  aiActions.pop();
-  switch(act.act) {
-    case AI_None: break;
-    case AI_LookAt:
-      currentLookAt=act.target;
-      break;
-    case AI_TurnToNpc:
-      currentTurnTo=act.target;
-      break;
-    case AI_StopLookAt:
-      currentLookAt=nullptr;
-      break;
-    case AI_RemoveWeapon:
-      break;
-    }
+bool Npc::isPlayer() const {
+  return aiType==Npc::AiType::Player;
   }
 
 bool Npc::startClimb(Anim ani) {
@@ -133,6 +115,13 @@ Npc *Npc::lookAtTarget() const {
   }
 
 void Npc::updateAnimation() {
+  for(size_t i=0;i<overlay.size();){
+    auto& ov = overlay[i];
+    if(ov.time!=0 && ov.time<owner.tickCount())
+      overlay.erase(overlay.begin()+int(i)); else
+      ++i;
+    }
+
   if(skInst!=nullptr){
     uint64_t dt = owner.tickCount() - sAnim;
     skInst->update(dt);
@@ -152,12 +141,28 @@ void Npc::setName(const std::string &n) {
   name = n;
   }
 
-void Npc::setOverlay(const Skeleton* sk,float /*time*/) {
-  overlay=sk;
+void Npc::addOverlay(const Skeleton* sk,uint64_t time) {
+  if(sk==nullptr)
+    return;
+  if(time!=0)
+    time+=owner.tickCount();
+
+  Overlay ov = {sk,time};
+  overlay.push_back(ov);
   if(animSq) {
     auto ani=animSequence(animSq->name.c_str());
     invalidateAnim(ani,skeleton);
+    } else {
+    setAnim(Anim::Idle);
     }
+  }
+
+void Npc::delOverlay(const Skeleton *sk) {
+  for(size_t i=0;i<overlay.size();++i)
+    if(overlay[i].sk==sk){
+      overlay.erase(overlay.begin()+int(i));
+      return;
+      }
   }
 
 void Npc::setVisual(const Skeleton* v) {
@@ -338,35 +343,129 @@ int32_t Npc::learningPoints() const {
   }
 
 bool Npc::isDead() const {
-  return aiSt==State::DEAD;
+  return (bodySt & BS_DEAD)!=0;
   }
 
-void Npc::startState(const State st, Npc* other) {
-  static const char* fn[]={
-    "",
-    "ZS_Talk",
-    "ZS_Dead",
-    "ZS_Unconscious",
-    "ZS_Flee",
-    "ZS_FOLLOW",
-    "ZS_WatchFight"
-    };
+bool Npc::implLookAt(uint64_t dt) {
+  if(currentTurnTo!=nullptr){
+    auto dx = currentTurnTo->x-x;
+    auto dz = currentTurnTo->z-z;
+    if(implLookAt(dx,dz,dt))
+      return true;
+    currentTurnTo=nullptr;
+    return false;
+    }
+  if(currentLookAt!=nullptr) {
+    auto dx = currentLookAt->x-x;
+    auto dz = currentLookAt->z-z;
+    if(implLookAt(dx,dz,dt))
+      return true;
+    currentTurnTo=nullptr;
+    return false;
+    }
+  return false;
+  }
 
-  if(aiSt==st)
+bool Npc::implLookAt(float dx, float dz, uint64_t dt) {
+  float       a    = angleDir(dx,dz);
+  float       da   = int(a-angle)%360;
+  float       step = 120*dt/1000.f;
+
+  if(std::abs(da)<step){
+    setDirection(a);
+    if(animSq!=nullptr && !animSq->isFinished(owner.tickCount()-sAnim))
+      return true;
+    setAnim(Anim::Idle);
+    return false;
+    }
+
+  const auto sgn = std::sin(double(da)*M_PI/180.0);
+  if(sgn<0) {
+    setDirection(angle-step);
+    setAnim(Anim::RotR);
+    } else {
+    setDirection(angle+step);
+    setAnim(Anim::RotL);
+    }
+  return true;
+  }
+
+void Npc::invalidateAnim(const Animation::Sequence *ani,const Skeleton* sk) {
+  animSq = ani;
+  sAnim  = owner.tickCount();
+  skInst = PosePool::get(sk,ani,sAnim);
+  }
+
+void Npc::tick(uint64_t dt) {
+  if(aiType==AiType::Player) {
+    mvAlgo.tick(dt);
+    return;
+    }
+
+  setAnim(current);
+  mvAlgo.tick(dt);
+
+  if(waitTime>=owner.tickCount())
     return;
 
-  tickState(); // ZS_Talk.d - final breath :)
-  endState();
+  if(implLookAt(dt))
+    return;
 
-  aiSt         = st;
+  if(aiActions.size()==0) {
+    tickRoutine();
+    return;
+    }
+
+  auto act = std::move(aiActions.front());
+  aiActions.pop();
+
+  switch(act.act) {
+    case AI_None: break;
+    case AI_LookAt:
+      currentLookAt=act.target;
+      break;
+    case AI_TurnToNpc:
+      currentTurnTo=act.target;
+      break;
+    case AI_StopLookAt:
+      currentLookAt=nullptr;
+      break;
+    case AI_RemoveWeapon:
+      break;
+    case AI_StartState:
+      startState(act.func,act.i0==0,act.s0);
+      break;
+    case AI_PlayAnim:{
+      auto a = animSequence(act.s0.c_str());
+      if(a!=nullptr){
+        auto tag=animByName(a->name);
+        if(tag!=Anim::NoAnim){
+          setAnim(tag);
+          } else {
+          Log::d("AI_PlayAnim: unrecognized anim: \"",a->name,"\"");
+          if(animSq!=a)
+            invalidateAnim(a,skeleton);
+          }
+        }
+      break;
+      }
+    case AI_Wait:
+      waitTime = owner.tickCount()+uint64_t(act.i0);
+      break;
+    case AI_StandUp:
+      // TODO: not implemented
+      break;
+    }
+  }
+
+void Npc::startDialog(Npc* other) {
+  auto sym     = owner.getSymbolIndex("ZS_Talk");
   currentOther = other;
-  const char* call=fn[int(st)];
-  if(currentOther==nullptr)
-    owner.invokeState(hnpc,Daedalus::GameState::NpcHandle(),call); else
-    owner.invokeState(hnpc,currentOther->hnpc,call);
+  startState(sym,true,"");
   }
 
 void Npc::endState() {
+  /*
   static const char* fn[]={
     nullptr,
     "ZS_Talk_End",
@@ -382,53 +481,51 @@ void Npc::endState() {
     return;
   if(currentOther==nullptr)
     owner.invokeState(hnpc,Daedalus::GameState::NpcHandle(),call); else
-    owner.invokeState(hnpc,currentOther->hnpc,call);
+    owner.invokeState(hnpc,currentOther->hnpc,call);*/
   }
 
-void Npc::implLookAt() {
-  if(currentTurnTo!=nullptr){
-    auto dx = currentTurnTo->x-x;
-    auto dy = currentTurnTo->y-y;
-    auto dz = currentTurnTo->z-z;
-    setDirection(dx,dy,dz);
-    currentTurnTo=nullptr;
+void Npc::startState(size_t id,bool loop,const std::string &wp) {
+  if(id==0)
     return;
+  if(aiState.funcIni!=0 && aiState.started)
+    owner.invokeState(this,currentOther,aiState.funcEnd); // cleanup
+
+  if(!wp.empty()){
+    auto& v=owner.vmNpc(hnpc);
+    v.wp = wp;
     }
-  if(currentLookAt!=nullptr) {
-    auto dx = currentLookAt->x-x;
-    auto dy = currentLookAt->y-y;
-    auto dz = currentLookAt->z-z;
-    setDirection(dx,dy,dz);
+
+  auto& fn = owner.getSymbol(id);
+  aiState.started  = false;
+  aiState.funcIni  = id;
+  aiState.funcLoop = loop ? owner.getSymbolIndex(fn.name+"_Loop") : 0;
+  aiState.funcEnd  = owner.getSymbolIndex(fn.name+"_End");
+  aiState.sTime    = owner.tickCount();
+  }
+
+void Npc::tickRoutine() {
+  if(aiState.funcIni==0){
+    auto& v=owner.vmNpc(hnpc);
+    // startState(v.start_aistate,true,"");
     }
+
+  if(aiState.started) {
+    int loop = owner.invokeState(this,currentOther,aiState.funcLoop);
+    if(loop!=0){
+      owner.invokeState(this,currentOther,aiState.funcEnd);
+      aiState = AiState();
+      }
+    } else {
+    owner.invokeState(this,currentOther,aiState.funcIni);
+    aiState.started=true;
+    }
+
+  // auto r = currentRoutine();
+  // owner.invokeState(hnpc,r.callback);
   }
 
-void Npc::invalidateAnim(const Animation::Sequence *ani,const Skeleton* sk) {
-  animSq = ani;
-  sAnim  = owner.tickCount();
-  skInst = PosePool::get(sk,ani,sAnim);
-  }
-
-void Npc::tickState() {
-  static const char* fn[]={
-    nullptr,
-    "ZS_Talk_Loop",
-    "ZS_Dead_Loop",
-    "ZS_Unconscious_Loop",
-    "ZS_Flee_Loop",
-    "ZS_FOLLOW_Loop", //FIXME
-    nullptr
-    };
-
-  const char* call=fn[int(aiSt)];
-  if(call==nullptr)
-    return;
-  if(currentOther==nullptr)
-    owner.invokeState(hnpc,Daedalus::GameState::NpcHandle(),call); else
-    owner.invokeState(hnpc,currentOther->hnpc,call); // =0 is LOOP
-  }
-
-Npc::State Npc::bodyState() const {
-  return aiSt;
+Npc::BodyState Npc::bodyState() const {
+  return bodySt;
   }
 
 void Npc::setToFistMode() {
@@ -483,6 +580,15 @@ void Npc::drawWeaponCBow() {
     setAnim(current,WeaponState::CBow);
   }
 
+void Npc::setPerceptionTime(uint64_t time) {
+  perceptionTime = time;
+  }
+
+void Npc::setPerceptionEnable(Npc::PercType t, size_t fn) {
+  if(t>0 && t<PERC_Count)
+    perception[t].func = fn;
+  }
+
 bool Npc::setInteraction(Interactive *id) {
   if(currentInteract==id)
     return false;
@@ -506,10 +612,11 @@ bool Npc::setInteraction(Interactive *id) {
   }
 
 bool Npc::isState(uint32_t stateFn) const {
-  if(aiSt!=State::INVALID){
+  return aiState.funcIni==stateFn;
+  }
 
-    }
-  return currentRoutine().callback==stateFn;
+uint64_t Npc::stateTime() const {
+  return owner.tickCount()-aiState.sTime;
   }
 
 void Npc::addRoutine(gtime s, gtime e, uint32_t callback) {
@@ -624,6 +731,39 @@ void Npc::aiTurnToNpc(Npc *other) {
   a.act    = AI_TurnToNpc;
   a.target = other;
   aiActions.push(a);
+  }
+
+void Npc::aiStartState(uint32_t stateFn, int behavior, std::string wp) {
+  AiAction a;
+  a.act  = AI_StartState;
+  a.func = stateFn;
+  a.i0   = behavior;
+  a.s0   = std::move(wp);
+  aiActions.push(a);
+  }
+
+void Npc::aiPlayAnim(std::string ani) {
+  AiAction a;
+  a.act  = AI_PlayAnim;
+  a.s0   = std::move(ani);
+  aiActions.push(a);
+  }
+
+void Npc::aiWait(uint64_t dt) {
+  AiAction a;
+  a.act  = AI_Wait;
+  a.i0   = int(dt);
+  aiActions.push(a);
+  }
+
+void Npc::aiStandup() {
+  AiAction a;
+  a.act = AI_StandUp;
+  aiActions.push(a);
+  }
+
+void Npc::aiClearQueue() {
+  aiActions=std::queue<AiAction>();
   }
 
 const std::list<Daedalus::GameState::ItemHandle>& Npc::getItems() const {
@@ -773,6 +913,16 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
   if(a==Anim::JumpUp)
     return animSequence("S_JUMPUP");
 
+  if(cur==Anim::Idle && a==Anim::Guard)
+    return animSequence("T_STAND_2_LGUARD");
+  if(a==Anim::Guard)
+    return animSequence("S_LGUARD");
+
+  if(cur==Anim::Idle && a==Anim::Talk)
+    return animSequence("T_STAND_2_TALK");
+  if(a==Anim::Talk)
+    return animSequence("S_TALK");
+
   if(a==Anim::Fall)
     return animSequence("S_FALLDN");
   //if(cur==Fall && a==Anim::FallDeep)
@@ -813,17 +963,29 @@ const Animation::Sequence* Npc::solveAnim(const char *format, Npc::WeaponState s
   }
 
 const Animation::Sequence *Npc::animSequence(const char *name) const {
-  if(overlay!=nullptr){
-    if(auto s = overlay->sequence(name))
+  for(size_t i=overlay.size();i>0;){
+    --i;
+    if(auto s = overlay[i].sk->sequence(name))
       return s;
     }
   return skeleton ? skeleton->sequence(name) : nullptr;
   }
 
-const Npc::Routine &Npc::currentRoutine() const {
-  if(routines.size()){
-    //auto time = owner.gameTime();
-    return routines[0];
+Npc::Anim Npc::animByName(const std::string &name) const {
+  if(name=="T_STAND_2_LGUARD" || name=="S_LGUARD")
+    return Anim::Guard;
+  if(name=="T_LGUARD_2_STAND")
+    return Anim::Idle;
+  if(name=="T_STAND_2_TALK" || name=="S_TALK")
+    return Anim::Talk;
+  return Anim::NoAnim;
+  }
+
+const Npc::Routine& Npc::currentRoutine() const {
+  auto time = owner.world().time();
+  for(auto& i:routines){
+    if(i.start<=time && time<i.end)
+      return i;
     }
 
   static Routine r;
