@@ -355,7 +355,6 @@ class Npc final {
     Anim                           animByName(const std::string& name) const;
 
     const Routine&                 currentRoutine() const;
-    void                           endState();
 
     bool                           implLookAt(uint64_t dt);
     bool                           implLookAt(float dx, float dz, uint64_t dt);

@@ -22,7 +22,7 @@ void MoveAlgo::tick(uint64_t dt) {
     dpos[2]=dp.z;
     }
 
-  if(dpos[0]==0.f && dpos[1]==0.f && dpos[2]==0.f && isFrozen())
+  if((npc.anim()==Npc::Idle || (dpos[0]==0.f && dpos[1]==0.f && dpos[2]==0.f)) && isFrozen())
     return;
   float speed = std::sqrt(dpos[0]*dpos[0]+dpos[2]*dpos[2]);
 

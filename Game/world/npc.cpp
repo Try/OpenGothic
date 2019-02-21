@@ -464,26 +464,6 @@ void Npc::startDialog(Npc* other) {
   startState(sym,true,"");
   }
 
-void Npc::endState() {
-  /*
-  static const char* fn[]={
-    nullptr,
-    "ZS_Talk_End",
-    "ZS_Dead_End",
-    "ZS_Unconscious_End",
-    "ZS_Flee_End",
-    "ZS_FOLLOW_End", //FIXME
-    nullptr
-    };
-
-  const char* call=fn[int(aiSt)];
-  if(call==nullptr)
-    return;
-  if(currentOther==nullptr)
-    owner.invokeState(hnpc,Daedalus::GameState::NpcHandle(),call); else
-    owner.invokeState(hnpc,currentOther->hnpc,call);*/
-  }
-
 void Npc::startState(size_t id,bool loop,const std::string &wp) {
   if(id==0)
     return;
@@ -506,7 +486,7 @@ void Npc::startState(size_t id,bool loop,const std::string &wp) {
 void Npc::tickRoutine() {
   if(aiState.funcIni==0){
     auto& v=owner.vmNpc(hnpc);
-    // startState(v.start_aistate,true,"");
+    startState(v.start_aistate,true,"");
     }
 
   if(aiState.started) {

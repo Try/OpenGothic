@@ -87,6 +87,9 @@ std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, fl
     using ClosestRayResultCallback::ClosestRayResultCallback;
 
     btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
+      const int idx = rayResult.m_collisionObject->getUserIndex();
+      if(idx==C_Ghost)
+        return false;
       return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
       }
     };
