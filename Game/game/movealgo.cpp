@@ -51,6 +51,7 @@ bool MoveAlgo::startClimb() {
   climbStart=world.tickCount();
   climbPos0 =npc.position();
   setAsClimb(true);
+  setAsFrozen(false);
   return true;
   }
 

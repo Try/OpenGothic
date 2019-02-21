@@ -36,10 +36,14 @@ class WorldScript final {
     uint64_t     tickCount() const;
 
     Npc*       inserNpc(const char* npcInstance,const char *at);
+    void       removeItem(Item& it);
+
     Npc*       getNpc(Daedalus::GameState::NpcHandle handle);
     void       setInstanceNPC(const char* name,Npc& npc);
 
-    const std::list<Daedalus::GameState::ItemHandle>& getInventoryOf(Daedalus::GameState::NpcHandle h);
+    size_t      goldId() const { return itMi_Gold; }
+    const char* currencyName() const { return goldTxt.c_str(); }
+
     Daedalus::GameState::DaedalusGameState&           getGameState();
     Daedalus::PARSymbol&                              getSymbol(const char*  s);
     Daedalus::PARSymbol&                              getSymbol(const size_t s);
@@ -81,12 +85,8 @@ class WorldScript final {
 
     void onNpcReady (Daedalus::GameState::NpcHandle handle);
 
-    void onCreateInventoryItem(Daedalus::GameState::ItemHandle item,Daedalus::GameState::NpcHandle npc);
-
     Item* getItem(Daedalus::GameState::ItemHandle handle);
-
     Npc*  getNpcById(size_t id);
-
     Npc*  inserNpc  (size_t npcInstance, const char *at);
 
     static void concatstrings(Daedalus::DaedalusVM& vm);
@@ -194,6 +194,6 @@ class WorldScript final {
     std::unique_ptr<Daedalus::GameState::DaedalusDialogManager> dialogs;
 
     QuestLog                                                    quests;
-    //std::vector<std::unique_ptr<Npc>>                           npcArr;
-    //std::vector<std::unique_ptr<Item>>                          itemArr;
+    size_t                                                      itMi_Gold;
+    std::string                                                 goldTxt;
   };

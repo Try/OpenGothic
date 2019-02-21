@@ -78,6 +78,23 @@ Item* WorldObjects::addItem(const ZenLoad::zCVobData &vob) {
   return it;
   }
 
+Item *WorldObjects::takeItem(Item &it) {
+  for(auto& i:itemArr)
+    if(i.get()==&it){
+      auto ret=i.release();
+      i = std::move(itemArr.back());
+      itemArr.pop_back();
+      return ret;
+      }
+  return nullptr;
+  }
+
+void WorldObjects::removeItem(Item &it) {
+  if(auto ptr=takeItem(it)){
+    owner.script()->getGameState().removeItem(ptr->handle());
+    }
+  }
+
 Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
   auto  pos    = owner.findPoint(at);
   auto  h      = owner.script()->getGameState().insertItem(itemInstance);
@@ -86,6 +103,7 @@ Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
   std::unique_ptr<Item> ptr{new Item(*owner.script(),h)};
   auto* it=ptr.get();
   itData.userPtr = ptr.get();
+  itData.amount  = 1;
   itemArr.emplace_back(std::move(ptr));
 
   if(pos!=nullptr) {

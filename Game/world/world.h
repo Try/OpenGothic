@@ -45,8 +45,8 @@ class World final {
     DynamicWorld* physic() const { return wdynamic.get(); }
     WorldScript*  script() const { return vm.get();       }
 
-    StaticObjects::Mesh getView(const std::string& visual);
-    StaticObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor);
+    StaticObjects::Mesh getView(const std::string& visual) const;
+    StaticObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
     DynamicWorld::Item  getPhysic(const std::string& visual);
 
     void     updateAnimation();
@@ -81,6 +81,8 @@ class World final {
 
     void  onInserNpc (Daedalus::GameState::NpcHandle handle, const std::string &s);
     Item* addItem    (size_t itemInstance, const char *at);
+    Item* takeItem(Item& it);
+    void  removeItem (Item &it);
 
   private:
     std::string                           wname;

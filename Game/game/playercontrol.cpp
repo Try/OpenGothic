@@ -9,6 +9,11 @@
 PlayerControl::PlayerControl(DialogMenu& dlg):dlg(dlg) {
   }
 
+void PlayerControl::setWorld(World *w) {
+  world = w;
+  clearInput();
+  }
+
 bool PlayerControl::interact(Interactive &it) {
   if(world==nullptr || world->player()==nullptr)
     return false;
@@ -19,6 +24,18 @@ bool PlayerControl::interact(Npc &other) {
   if(world==nullptr || world->player()==nullptr)
     return false;
   return dlg.start(*world->player(),other);
+  }
+
+bool PlayerControl::interact(Item &item) {
+  if(world==nullptr || world->player()==nullptr)
+    return false;
+  std::unique_ptr<Item> ptr {world->takeItem(item)};
+  world->player()->addItem(std::move(ptr));
+  return true;
+  }
+
+void PlayerControl::clearInput() {
+  std::memset(ctrl,0,sizeof(ctrl));
   }
 
 void PlayerControl::drawFist() {
@@ -51,10 +68,6 @@ void PlayerControl::action() {
 
 void PlayerControl::jump() {
   ctrl[Jump]=true;
-  }
-
-void PlayerControl::setWorld(const World *w) {
-  world = w;
   }
 
 void PlayerControl::rotateLeft() {

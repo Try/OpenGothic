@@ -31,6 +31,8 @@ class WorldObjects final {
 
     Item*          addItem(size_t itemInstance, const char *at);
     Item*          addItem(const ZenLoad::zCVobData &vob);
+    Item*          takeItem(Item& it);
+    void           removeItem(Item& it);
     void           addInteractive(const ZenLoad::zCVobData &vob);
 
     Interactive*   findInteractive(const Npc& pl, const Tempest::Matrix4x4 &v, int w, int h);

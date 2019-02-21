@@ -179,9 +179,12 @@ void Npc::setVisual(const Skeleton* v) {
   setPos(pos); // update obj matrix
   }
 
-void Npc::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh &&body) {
-  head = std::move(h);
-  view = std::move(body);
+void Npc::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh &&body, int32_t bodyVer, int32_t bodyColor) {
+  head    = std::move(h);
+  view    = std::move(body);
+
+  vColor  = bodyVer;
+  bdColor = bodyColor;
 
   head.setSkeleton(skeleton,"BIP01 HEAD");
   view.setSkeleton(skeleton);
@@ -512,18 +515,31 @@ void Npc::setToFistMode() {
   }
 
 void Npc::setToFightMode(const uint32_t item) {
-  if(itemCount(item)==0)
-    addItem(item);
+  if(invent.itemCount(item)==0)
+    addItem(item,1);
 
   equipItem(item);
   drawWeapon1H();
   }
 
-Daedalus::GameState::ItemHandle Npc::addItem(const uint32_t item, size_t count) {
-  return owner.getGameState().createInventoryItem(item, hnpc, count);
+void Npc::addItem(const uint32_t item, size_t count) {
+  invent.addItem(item,count,owner,*this);
   }
 
-void Npc::equipItem(const uint32_t /*item*/) {
+void Npc::addItem(std::unique_ptr<Item>&& i) {
+  invent.addItem(std::move(i),owner,*this);
+  }
+
+bool Npc::hasItem(uint32_t id) const {
+  return invent.itemCount(id)>0;
+  }
+
+void Npc::delItem(uint32_t item, uint32_t amount) {
+  invent.delItem(item,amount,owner);
+  }
+
+void Npc::equipItem(uint32_t item) {
+  invent.equip(item,owner,*this);
   }
 
 void Npc::closeWeapon() {
@@ -674,19 +690,6 @@ std::vector<WorldScript::DlgChoise> Npc::dialogChoises(Npc& player) {
   return owner.dialogChoises(player.hnpc,this->hnpc);
   }
 
-bool Npc::hasItems(uint32_t id) const {
-  return itemCount(id)>0;
-  }
-
-void Npc::createItems(uint32_t item, uint32_t amount) {
-  owner.getGameState().createInventoryItem(item,hnpc,amount);
-  }
-
-void Npc::removeItems(uint32_t item, uint32_t amount) {
-  owner.getGameState().removeInventoryItem(item,hnpc,amount);
-  //TODO: handle unequip
-  }
-
 void Npc::aiLookAt(Npc *other) {
   AiAction a;
   a.act    = AI_LookAt;
@@ -744,22 +747,6 @@ void Npc::aiStandup() {
 
 void Npc::aiClearQueue() {
   aiActions=std::queue<AiAction>();
-  }
-
-const std::list<Daedalus::GameState::ItemHandle>& Npc::getItems() const {
-  return owner.getInventoryOf(hnpc);
-  }
-
-size_t Npc::itemCount(const uint32_t item) const {
-  auto& items = getItems();
-
-  for(Daedalus::GameState::ItemHandle h : items) {
-    Daedalus::GEngineClasses::C_Item& data = owner.getGameState().getItem(h);
-
-    if(data.instanceSymbol==item)
-      return data.amount;
-    }
-  return 0;
   }
 
 void Npc::updatePos() {
@@ -893,15 +880,24 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
   if(a==Anim::JumpUp)
     return animSequence("S_JUMPUP");
 
-  if(cur==Anim::Idle && a==Anim::Guard)
+  if(cur==Anim::Idle && a==Anim::GuardL)
     return animSequence("T_STAND_2_LGUARD");
-  if(a==Anim::Guard)
+  if(a==Anim::GuardL)
     return animSequence("S_LGUARD");
+
+  if(cur==Anim::Idle && a==Anim::GuardH)
+    return animSequence("T_STAND_2_HGUARD");
+  if(a==Anim::GuardH)
+    return animSequence("S_HGUARD");
 
   if(cur==Anim::Idle && a==Anim::Talk)
     return animSequence("T_STAND_2_TALK");
   if(a==Anim::Talk)
     return animSequence("S_TALK");
+  if(a==Anim::Perception)
+    return animSequence("T_PERCEPTION");
+  if(a==Anim::Lookaround)
+    return animSequence("T_HGUARD_LOOKAROUND");
 
   if(a==Anim::Fall)
     return animSequence("S_FALLDN");
@@ -953,11 +949,17 @@ const Animation::Sequence *Npc::animSequence(const char *name) const {
 
 Npc::Anim Npc::animByName(const std::string &name) const {
   if(name=="T_STAND_2_LGUARD" || name=="S_LGUARD")
-    return Anim::Guard;
-  if(name=="T_LGUARD_2_STAND")
+    return Anim::GuardL;
+  if(name=="T_STAND_2_HGUARD")
+    return Anim::GuardH;
+  if(name=="T_LGUARD_2_STAND" || name=="T_HGUARD_2_STAND")
     return Anim::Idle;
   if(name=="T_STAND_2_TALK" || name=="S_TALK")
     return Anim::Talk;
+  if(name=="T_PERCEPTION")
+    return Anim::Perception;
+  if(name=="T_HGUARD_LOOKAROUND")
+    return Anim::Lookaround;
   return Anim::NoAnim;
   }
 

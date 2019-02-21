@@ -6,16 +6,20 @@ class DialogMenu;
 class World;
 class Interactive;
 class Npc;
+class Item;
 
 class PlayerControl final {
   public:
     PlayerControl(DialogMenu& dlg);
 
     void changeZoom(int delta);
+    void setWorld(World* w);
 
     bool interact(Interactive& it);
     bool interact(Npc&         other);
+    bool interact(Item&        item);
 
+    void clearInput();
     void drawFist();
     void drawWeapon1H();
     void drawWeapon2H();
@@ -35,7 +39,6 @@ class PlayerControl final {
 
     void marvinF8();
 
-    void setWorld(const World* w);
     bool tickMove(uint64_t dt);
 
   private:
@@ -62,7 +65,7 @@ class PlayerControl final {
       };
 
     bool         ctrl[Control::Last]={};
-    const World* world=nullptr;
+    World*       world=nullptr;
     DialogMenu&  dlg;
 
     void         implMove(uint64_t dt);

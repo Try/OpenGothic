@@ -150,15 +150,24 @@ void WorldScript::initCommon() {
   DaedalusGameState::GameExternals ext;
   ext.wld_insertnpc      = [this](NpcHandle h,const std::string& s){ owner.onInserNpc(h,s); };
   ext.post_wld_insertnpc = [this](NpcHandle h){ onNpcReady(h); };
-  ext.createinvitem      = [this](NpcHandle i,NpcHandle n){ onCreateInventoryItem(i,n); };
 
   ext.wld_insertitem     = notImplementedFn<void,ItemHandle>();
   ext.wld_removenpc      = notImplementedFn<void,NpcHandle>();
-  ext.wld_GetDay         = notImplementedFn<int>();
   ext.log_createtopic    = notImplementedFn<void,std::string>();
   ext.log_settopicstatus = notImplementedFn<void,std::string>();
   ext.log_addentry       = notImplementedFn<void,std::string,std::string>();
   vm.getGameState().setGameExternals(ext);
+
+  auto& currency = vm.getDATFile().getSymbolByName("TRADE_CURRENCY_INSTANCE");
+  itMi_Gold      = vm.getDATFile().getSymbolIndexByName(currency.getString(0));
+
+  if(itMi_Gold>0){ // FIXME
+    InfoHandle h = vm.getGameState().createItem();
+    vm.initializeInstance(ZMemory::toBigHandle(h), itMi_Gold, Daedalus::IC_Item);
+    auto& it = vmItem(h);
+    goldTxt = it.name;
+    vm.getGameState().removeItem(h);
+    }
   }
 
 void WorldScript::initDialogs(Gothic& gothic) {
@@ -173,10 +182,6 @@ void WorldScript::initDialogs(Gothic& gothic) {
     vm.initializeInstance(ZMemory::toBigHandle(h), i, Daedalus::IC_Info);
     dialogsInfo.push_back(h);
     });
-  }
-
-const std::list<Daedalus::GameState::ItemHandle> &WorldScript::getInventoryOf(Daedalus::GameState::NpcHandle h) {
-  return vm.getGameState().getInventoryOf(h);
   }
 
 DaedalusGameState &WorldScript::getGameState() {
@@ -452,6 +457,10 @@ Npc* WorldScript::inserNpc(const char *npcInstance, const char *at) {
   return inserNpc(id,at);
   }
 
+void WorldScript::removeItem(Item &it) {
+  owner.removeItem(it);
+  }
+
 void WorldScript::setInstanceNPC(const char *name, Npc &npc) {
   assert(vm.getDATFile().hasSymbolName(name));
   vm.setInstance(name, ZMemory::toBigHandle(npc.handle()), Daedalus::EInstanceClass::IC_Npc);
@@ -465,25 +474,6 @@ Npc* WorldScript::inserNpc(size_t npcInstance, const char* at) {
     }
   auto h = vm.getGameState().insertNPC(npcInstance,at);
   return getNpc(h);
-  }
-
-void WorldScript::onCreateInventoryItem(ItemHandle item, NpcHandle npcHandle) {
-  Daedalus::GEngineClasses::C_Item& itemData = vm.getGameState().getItem(item);
-  Npc*                              npc      = getNpc(npcHandle);
-
-  if(npc==nullptr)
-    return;
-
-  if((itemData.mainflag & Daedalus::GEngineClasses::C_Item::ITM_CAT_ARMOR)!=0) {
-    // TODO: equiping armor
-    std::string visual = itemData.visual_change.substr(0, itemData.visual_change.size() - 4) + ".MDM";
-    auto        vbody  = visual.empty() ? StaticObjects::Mesh() : owner.getView(visual);
-    npc->setArmour(std::move(vbody));
-    }
-
-  if((itemData.mainflag & (Daedalus::GEngineClasses::C_Item::ITM_CAT_NF | Daedalus::GEngineClasses::C_Item::ITM_CAT_FF))) {
-    // TODO
-    }
   }
 
 const std::string& WorldScript::popString(Daedalus::DaedalusVM &vm) {
@@ -649,10 +639,10 @@ void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
     return;
 
   npc->setPhysic(owner.getPhysic(vname));
-  npc->setVisualBody(std::move(vhead),std::move(vbody));
+  npc->setVisualBody(std::move(vhead),std::move(vbody),bodyTexNr,bodyTexColor);
 
   if(armor>=0)
-    npc->createItems(uint32_t(armor),1);
+    npc->addItem(uint32_t(armor),1);
   }
 
 void WorldScript::mdl_setmodelfatness(Daedalus::DaedalusVM &vm) {
@@ -852,7 +842,7 @@ void WorldScript::npc_refusetalk(Daedalus::DaedalusVM &vm) {
 void WorldScript::npc_hasitems(Daedalus::DaedalusVM &vm) {
   uint32_t itemId = uint32_t(vm.popDataValue());
   auto     npc    = popInstance(vm);
-  if(npc!=nullptr && npc->hasItems(itemId))
+  if(npc!=nullptr && npc->hasItem(itemId))
     vm.setReturn(1); else
     vm.setReturn(0);
   }
@@ -863,7 +853,7 @@ void WorldScript::npc_removeinvitems(Daedalus::DaedalusVM &vm) {
   auto     npc    = popInstance(vm);
 
   if(npc!=nullptr)
-    npc->removeItems(itemId,amount);
+    npc->delItem(itemId,amount);
   }
 
 void WorldScript::npc_getbodystate(Daedalus::DaedalusVM &vm) {
@@ -1115,7 +1105,7 @@ void WorldScript::createinvitem(Daedalus::DaedalusVM &vm) {
   uint32_t itemInstance = uint32_t(vm.popDataValue());
   auto     self         = popInstance(vm);
   if(self!=nullptr)
-    self->createItems(itemInstance,1);
+    self->addItem(itemInstance,1);
   }
 
 void WorldScript::createinvitems(Daedalus::DaedalusVM &vm) {
@@ -1123,7 +1113,7 @@ void WorldScript::createinvitems(Daedalus::DaedalusVM &vm) {
   uint32_t itemInstance = uint32_t(vm.popDataValue());
   auto     self         = popInstance(vm);
   if(self!=nullptr)
-    self->createItems(itemInstance,amount);
+    self->addItem(itemInstance,amount);
   }
 
 void WorldScript::hlp_getinstanceid(Daedalus::DaedalusVM &vm) {

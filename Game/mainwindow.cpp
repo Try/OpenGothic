@@ -46,6 +46,7 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
 MainWindow::~MainWindow() {
   device.waitIdle();
   takeWidget(&dialogs);
+  takeWidget(&inventory);
   removeAllWidgets();
   // unload
   gothic.setWorld(std::unique_ptr<World>());
@@ -54,6 +55,7 @@ MainWindow::~MainWindow() {
 void MainWindow::setupUi() {
   setLayout(new StackLayout());
   addWidget(&dialogs);
+  addWidget(&inventory);
   rootMenu = &addWidget(new MenuRoot(gothic));
   rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_MAIN"));
 
@@ -88,7 +90,6 @@ void MainWindow::paintEvent(PaintEvent& event) {
 
   if(world->view()){
     auto vp = world->view()->viewProj(camera.view());
-    //gothic.world().marchInteractives(p,vp,w(),h());
     p.setBrush(Color(1.0));
 
     auto item = findFocus();
@@ -177,6 +178,13 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     rootMenu->setFocus(true);
     if(auto pl = gothic.player())
       rootMenu->setPlayer(*pl);
+    clearInput();
+    }  
+  else if(event.key==KeyEvent::K_Tab){
+    if(inventory.isOpen()!=InventoryMenu::State::Closed)
+      inventory.close(); else
+      inventory.open();
+    clearInput();
     }
   }
 
@@ -199,6 +207,9 @@ void MainWindow::tick() {
       mouseP[Event::ButtonLeft]=false;
       }
     else if(item.npc!=nullptr && player.interact(*item.npc)) {
+      mouseP[Event::ButtonLeft]=false;
+      }
+    else if(item.item!=nullptr && player.interact(*item.item)) {
       mouseP[Event::ButtonLeft]=false;
       }
     }
@@ -264,9 +275,10 @@ void MainWindow::tick() {
 
 void MainWindow::setWorld(const std::string &name) {
   std::unique_ptr<World> w(new World(gothic,draw.storage(),name));
-  gothic.setWorld(std::move(w));
-  camera.setWorld(gothic.world());
-  player.setWorld(gothic.world());
+  gothic   .setWorld(std::move(w));
+  camera   .setWorld(gothic.world());
+  player   .setWorld(gothic.world());
+  inventory.setWorld(gothic.world());
   spin = camera.getSpin();
   draw.onWorldChanged();
 
@@ -274,6 +286,12 @@ void MainWindow::setWorld(const std::string &name) {
     pl->multSpeed(1.f);
 
   lastTick = Application::tickCount();
+  }
+
+void MainWindow::clearInput() {
+  player.clearInput();
+  std::memset(pressed,0,sizeof(pressed));
+  std::memset(mouseP,0,sizeof(mouseP));
   }
 
 void MainWindow::initSwapchain(){

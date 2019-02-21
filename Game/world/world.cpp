@@ -72,11 +72,11 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
   initScripts(true);
   }
 
-StaticObjects::Mesh World::getView(const std::string &visual) {
+StaticObjects::Mesh World::getView(const std::string &visual) const {
   return getView(visual,0,0,0);
   }
 
-StaticObjects::Mesh World::getView(const std::string &visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) {
+StaticObjects::Mesh World::getView(const std::string &visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const {
   return view()->getView(visual,headTex,teetTex,bodyColor);
   }
 
@@ -196,6 +196,14 @@ void World::onInserNpc(Daedalus::GameState::NpcHandle handle, const std::string 
 
 Item *World::addItem(size_t itemInstance, const char *at) {
   return wobj.addItem(itemInstance,at);
+  }
+
+Item *World::takeItem(Item &it) {
+  return wobj.takeItem(it);
+  }
+
+void World::removeItem(Item& it) {
+  wobj.removeItem(it);
   }
 
 void World::adjustWaypoints(std::vector<ZenLoad::zCWaypointData> &wp) {

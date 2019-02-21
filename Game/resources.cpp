@@ -32,11 +32,12 @@ using namespace Tempest;
 Resources* Resources::inst=nullptr;
 
 static void emplaceTag(char* buf, char tag){
-  for(size_t i=0;buf[i];++i){
-    if(buf[i]==tag && buf[i+1]=='0'){
+  for(size_t i=1;buf[i];++i){
+    if(buf[i]==tag && buf[i-1]=='_' && std::isdigit(buf[i+1])){
       buf[i  ]='%';
       buf[i+1]='s';
       ++i;
+      return;
       }
     }
   }
@@ -230,7 +231,7 @@ const Tempest::Texture2d* Resources::loadTexture(const std::string &name) {
   }
 
 const Texture2d *Resources::loadTexture(const std::string &name, int32_t iv, int32_t ic) {
-  if(name.size()>=128 || (iv==0 && ic==0))
+  if(name.size()>=128)// || (iv==0 && ic==0))
     return loadTexture(name);
 
   char v[16]={};
@@ -314,6 +315,8 @@ Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoa
     if(name.rfind(".MMS")==name.size()-4)
       std::memcpy(&name[name.size()-3],"MMB",3); else
     if(name.rfind(".ASC")==name.size()-4)
+      std::memcpy(&name[name.size()-3],"MDL",3); else
+    if(name.rfind(".asc")==name.size()-4)
       std::memcpy(&name[name.size()-3],"MDL",3);
     }
 

@@ -37,7 +37,9 @@ class DialogMenu : public Tempest::Widget {
     void keyDownEvent   (Tempest::KeyEvent&   event) override;
 
   private:
-    const Tempest::Texture2d* tex=nullptr;
+    const Tempest::Texture2d* tex    =nullptr;
+    const Tempest::Texture2d* ambient=nullptr;
+
     enum Flags:uint8_t {
       NoFlags =0,
       DlgClose

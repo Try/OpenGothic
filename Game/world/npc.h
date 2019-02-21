@@ -7,6 +7,7 @@
 #include "game/movealgo.h"
 #include "physics/dynamicworld.h"
 #include "worldscript.h"
+#include "game/inventory.h"
 
 #include <cstdint>
 #include <string>
@@ -81,7 +82,10 @@ class Npc final {
     enum Anim : uint16_t {
       NoAnim,
       Idle,
-      Guard,
+      GuardL,
+      GuardH,
+      Lookaround,
+      Perception,
       Move,
       MoveBack,
       MoveL,
@@ -203,8 +207,8 @@ class Npc final {
     void setVisual    (const Skeleton *visual);
     void addOverlay   (const Skeleton *sk, uint64_t time);
     void delOverlay   (const Skeleton *sk);
-    void setVisualBody(StaticObjects::Mesh &&head,StaticObjects::Mesh&& body);
 
+    void setVisualBody(StaticObjects::Mesh &&head,StaticObjects::Mesh&& body,int32_t bodyVer,int32_t bodyColor);
     void setArmour    (StaticObjects::Mesh&& body);
     void setPhysic    (DynamicWorld::Item&& item);
     void setFatness   (float f);
@@ -212,6 +216,9 @@ class Npc final {
     void setAnim      (Anim a);
     void setAnim      (Anim a, WeaponState nextSt);
     Anim anim() const { return current; }
+
+    int32_t bodyVer  () const { return vColor;  }
+    int32_t bodyColor() const { return bdColor; }
 
     ZMath::float3 animMoveSpeed(uint64_t dt) const;
     ZMath::float3 animMoveSpeed(Anim a, uint64_t dt) const;
@@ -248,9 +255,6 @@ class Npc final {
 
     void setToFistMode ();
     void setToFightMode(const uint32_t item);
-    Daedalus::GameState::ItemHandle
-         addItem       (const uint32_t item, size_t count=1);
-    void equipItem     (const uint32_t item);
 
     void closeWeapon();
     void drawWeaponFist();
@@ -282,9 +286,13 @@ class Npc final {
     std::vector<WorldScript::DlgChoise> dialogChoises(Npc &player);
 
     Daedalus::GameState::NpcHandle handle(){ return  hnpc; }
-    bool     hasItems(uint32_t id) const;
-    void     createItems(uint32_t id, uint32_t amount);
-    void     removeItems(uint32_t id, uint32_t amount);
+
+    auto     inventory() const -> const Inventory& { return invent; }
+    bool     hasItem  (uint32_t id) const;
+    void     addItem  (uint32_t id, uint32_t amount);
+    void     delItem  (uint32_t id, uint32_t amount);
+    void     equipItem(uint32_t item);
+    void     addItem  (std::unique_ptr<Item>&& i);
 
     void     aiLookAt(Npc* other);
     void     aiStopLookAt();
@@ -341,9 +349,6 @@ class Npc final {
       uint64_t        time=0;
       };
 
-    const std::list<Daedalus::GameState::ItemHandle> &getItems() const;
-    size_t itemCount(const uint32_t id) const;
-
     void                           updatePos();
     void                           setPos(const Tempest::Matrix4x4& m);
 
@@ -374,6 +379,8 @@ class Npc final {
     StaticObjects::Mesh            view;
     StaticObjects::Mesh            armour;
     DynamicWorld::Item             physic;
+    int32_t                        vColor =0;
+    int32_t                        bdColor=0;
 
     const Skeleton*                skeleton=nullptr;
     std::vector<Overlay>           overlay;
@@ -387,6 +394,7 @@ class Npc final {
     int32_t                        talentsSk[TALENT_MAX]={};
     int32_t                        talentsVl[TALENT_MAX]={};
     uint64_t                       refuseTalkMilis      =0;
+    Inventory                      invent;
 
     uint64_t                       perceptionTime=0;
     Perc                           perception[PERC_Count];

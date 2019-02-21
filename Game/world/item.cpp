@@ -1,5 +1,6 @@
 #include "item.h"
 
+#include "world.h"
 #include "worldscript.h"
 
 Item::Item(WorldScript& owner,Daedalus::GameState::ItemHandle hitem)
@@ -30,8 +31,35 @@ const char *Item::displayName() const {
   return owner.vmItem(hitem).name.c_str();
   }
 
+const char *Item::description() const {
+  return owner.vmItem(hitem).description.c_str();
+  }
+
 std::array<float,3> Item::position() const {
   return pos;
+  }
+
+bool Item::isGold() const {
+  return owner.vmItem(hitem).instanceSymbol==owner.goldId();
+  }
+
+const char *Item::uiText(size_t id) const {
+  auto& v = owner.vmItem(hitem);
+  return v.text[id].c_str();
+  }
+
+int32_t Item::uiValue(size_t id) const {
+  auto& v = owner.vmItem(hitem);
+  return v.count[id];
+  }
+
+size_t Item::count() const {
+  auto& v = owner.vmItem(hitem);
+  return v.amount;
+  }
+
+size_t Item::clsId() const {
+  return owner.vmItem(hitem).instanceSymbol;
   }
 
 void Item::updateMatrix() {

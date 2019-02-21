@@ -9,7 +9,8 @@
 using namespace Tempest;
 
 DialogMenu::DialogMenu(Gothic &gothic):gothic(gothic) {
-  tex = Resources::loadTexture("DLG_CHOICE.TGA");
+  tex     = Resources::loadTexture("DLG_CHOICE.TGA");
+  ambient = Resources::loadTexture("DLG_AMBIENT.TGA");
   setFocusPolicy(NoFocus);
   }
 
@@ -214,10 +215,10 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
 
   const int dw = std::min(w(),600);
   if(txt.size()>0){
-    if(tex) {
-      p.setBrush(*tex);
+    if(ambient) {
+      p.setBrush(*ambient);
       p.drawRect((w()-dw)/2,20,dw,100,
-                 0,0,tex->w(),tex->h());
+                 0,0,ambient->w(),ambient->h());
       }
 
     auto& t = txt.back();

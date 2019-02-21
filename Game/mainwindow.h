@@ -29,6 +29,7 @@
 #include "graphics/renderer.h"
 #include "resources.h"
 #include "ui/dialogmenu.h"
+#include "ui/inventorymenu.h"
 
 class MenuRoot;
 class Gothic;
@@ -52,6 +53,7 @@ class MainWindow : public Tempest::Window {
     void keyUpEvent     (Tempest::KeyEvent&   event) override;
 
     void setWorld(const std::string& name);
+    void clearInput();
 
     void  setupUi();
     Focus findFocus();
@@ -95,6 +97,7 @@ class MainWindow : public Tempest::Window {
     bool                                pressed[Tempest::KeyEvent::K_Last]={};
 
     DialogMenu      dialogs;
+    InventoryMenu   inventory;
     Tempest::Point  mpos;
     Tempest::PointF spin;
     Camera          camera;
