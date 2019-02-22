@@ -151,7 +151,6 @@ Matrix4x4 Pose::cameraBone() const {
   }
 
 void Pose::mkSkeleton(const Animation::Sequence &s) {
-  auto& sk = *skeleton;
   Matrix4x4 m;
   m.identity();
   if(base.size()) {

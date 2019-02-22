@@ -135,7 +135,7 @@ void ObjectsBucket<Ubo,Vertex>::draw(Tempest::CommandBuffer &cmd,const Tempest::
   for(size_t i=0;i<index.size();++i){
     auto& di = *index[i];
     if(di.vbo==nullptr)
-      return;
+      continue;
     uint32_t offset = di.ubo*uStorage.elementSize();
 
     cmd.setUniforms(pipeline,frame.ubo,1,&offset);

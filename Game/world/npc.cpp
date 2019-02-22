@@ -184,6 +184,8 @@ void Npc::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh &&body, int
 
   head.setSkeleton(skeleton,"BIP01 HEAD");
   view.setSkeleton(skeleton);
+
+  invent.updateArmourView(owner,*this);
   updatePos(); // update obj matrix
   }
 

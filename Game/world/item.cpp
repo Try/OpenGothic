@@ -63,6 +63,17 @@ int32_t Item::cost() const {
   return v.value;
   }
 
+bool Item::checkCond(const Npc &other) const {
+  auto& itData = owner.vmItem(hitem);
+
+  for(size_t i=0;i<Daedalus::GEngineClasses::C_Item::COND_ATR_MAX;++i){
+    auto atr = Npc::Attribute(itData.cond_atr[i]);
+    if(other.attribute(atr)<itData.cond_value[i] && itData.cond_value[i]!=0)
+      return false;
+    }
+  return true;
+  }
+
 size_t Item::clsId() const {
   return owner.vmItem(hitem).instanceSymbol;
   }

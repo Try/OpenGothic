@@ -142,23 +142,32 @@ bool Inventory::setSlot(Item *&slot, Item* next, WorldScript &vm, Npc& owner) {
       }
     slot=nullptr;
     }
-  // TODO: validate cond
-  if(next!=nullptr){
-    auto& itData = vm.getGameState().getItem(next->handle());
-    auto  flag   = Flags(itData.mainflag);
-    vm.invokeItem(&owner,itData.on_equip);
-    slot=next;
-    slot->setAsEquiped(true);
-    applyArmour(*slot,vm,owner,1);
-    if(flag & ITM_CAT_ARMOR){
-      auto visual = itData.visual_change;
-      if(visual.rfind(".asc")==visual.size()-4)
-        std::memcpy(&visual[visual.size()-3],"MDM",3);
-      auto vbody  = visual.empty() ? StaticObjects::Mesh() : vm.world().getView(visual,owner.bodyVer(),0,owner.bodyColor());
-      owner.setArmour(std::move(vbody));
-      }
-    }
+
+  if(next==nullptr || !next->checkCond(owner))
+    return false;
+
+  auto& itData = vm.getGameState().getItem(next->handle());
+  vm.invokeItem(&owner,itData.on_equip);
+  slot=next;
+  slot->setAsEquiped(true);
+  applyArmour(*slot,vm,owner,1);
+  updateArmourView(vm,owner);
   return true;
+  }
+
+void Inventory::updateArmourView(WorldScript &vm, Npc& owner) {
+  if(armour==nullptr)
+    return;
+
+  auto& itData = vm.getGameState().getItem(armour->handle());
+  auto  flag   = Flags(itData.mainflag);
+  if(flag & ITM_CAT_ARMOR){
+    auto visual = itData.visual_change;
+    if(visual.rfind(".asc")==visual.size()-4)
+      std::memcpy(&visual[visual.size()-3],"MDM",3);
+    auto vbody  = visual.empty() ? StaticObjects::Mesh() : vm.world().getView(visual,owner.bodyVer(),0,owner.bodyColor());
+    owner.setArmour(std::move(vbody));
+    }
   }
 
 bool Inventory::equipNumSlot(Item *next, WorldScript &vm, Npc &owner) {
@@ -230,7 +239,7 @@ void Inventory::invalidateCond() {
 
 void Inventory::autoEquip(WorldScript &vm, Npc &owner) {
   ch=false;
-  auto a = bestArmour(vm);
+  auto a = bestArmour(vm,owner);
   setSlot(armour,a,vm,owner);
   }
 
@@ -241,7 +250,7 @@ Item *Inventory::findByClass(size_t cls) {
   return nullptr;
   }
 
-Item *Inventory::bestArmour(WorldScript &vm) {
+Item *Inventory::bestArmour(WorldScript &vm, Npc &owner) {
   Item* ret=nullptr;
   int   g  =-1;
   for(auto& i:items) {
@@ -249,6 +258,9 @@ Item *Inventory::bestArmour(WorldScript &vm) {
     auto  flag   = Flags(itData.mainflag);
     if((flag & ITM_CAT_ARMOR)==0)
       continue;
+    if(!i->checkCond(owner))
+      continue;
+
     if(itData.value>g){
       ret=i.get();
       g = itData.value;

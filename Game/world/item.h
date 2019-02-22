@@ -5,6 +5,7 @@
 #include "graphics/staticobjects.h"
 
 class WorldScript;
+class Npc;
 
 class Item final {
   public:
@@ -31,7 +32,9 @@ class Item final {
     const char*         uiText (size_t id) const;
     int32_t             uiValue(size_t id) const;
     size_t              count() const;
-    int32_t cost() const;
+    int32_t             cost() const;
+
+    bool                checkCond(const Npc& other) const;
 
     Daedalus::GameState::ItemHandle handle() const { return hitem; }
     size_t                          clsId() const;
