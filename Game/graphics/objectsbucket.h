@@ -31,6 +31,9 @@ class ObjectsBucket : public AbstractObjectsBucket {
 
     void                        draw(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId);
 
+    bool                        needToUpdateCommands() const;
+    void                        setAsUpdated();
+
   private:
     struct NonUbo final {
       const Tempest::VertexBuffer<Vertex>*  vbo=nullptr;
@@ -49,6 +52,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
     std::vector<NonUbo>         data;
     std::vector<NonUbo*>        index;
     std::vector<size_t>         freeList;
+    bool                        nToUpdate=true; //invalidate cmd buffers
 
     Ubo&                        element(size_t i);
     void                        markAsChanged() override;
@@ -88,17 +92,17 @@ void ObjectsBucket<Ubo,Vertex>::setSkeleton(size_t i, const Pose& p) {
 template<class Ubo,class Vertex>
 size_t ObjectsBucket<Ubo,Vertex>::alloc(const Tempest::VertexBuffer<Vertex>  &vbo,
                                         const Tempest::IndexBuffer<uint32_t> &ibo) {
+  nToUpdate=true;
   const size_t id=getNextId();
   data[id].vbo = &vbo;
   data[id].ibo = &ibo;
   data[id].ubo = uStorage.alloc();
-  if(data[id].ubo==167)
-    Tempest::Log::i("");
-  return data.size()-1;
+  return id;
   }
 
 template<class Ubo, class Vertex>
 void ObjectsBucket<Ubo,Vertex>::free(size_t i) {
+  nToUpdate=true;
   auto id = data[i].ubo;
   if(id==size_t(-1))
     assert(0 && "double free!");
@@ -129,10 +133,22 @@ void ObjectsBucket<Ubo,Vertex>::draw(Tempest::CommandBuffer &cmd,const Tempest::
     });
 
   for(size_t i=0;i<index.size();++i){
-    auto&    di     = *index[i];
+    auto& di = *index[i];
+    if(di.vbo==nullptr)
+      return;
     uint32_t offset = di.ubo*uStorage.elementSize();
 
     cmd.setUniforms(pipeline,frame.ubo,1,&offset);
     cmd.draw(*di.vbo,*di.ibo);
     }
+  }
+
+template<class Ubo, class Vertex>
+bool ObjectsBucket<Ubo,Vertex>::needToUpdateCommands() const {
+  return nToUpdate;
+  }
+
+template<class Ubo, class Vertex>
+void ObjectsBucket<Ubo,Vertex>::setAsUpdated() {
+  nToUpdate=false;
   }

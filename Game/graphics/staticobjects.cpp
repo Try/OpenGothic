@@ -20,11 +20,20 @@ StaticObjects::StaticObjects(const RendererStorage &storage)
   }
 
 bool StaticObjects::needToUpdateCommands() const {
-  return nToUpdate;
+  for(auto& i:chunksSt)
+    if(i.needToUpdateCommands())
+      return true;
+  for(auto& i:chunksDn)
+    if(i.needToUpdateCommands())
+      return true;
+  return false;
   }
 
 void StaticObjects::setAsUpdated() {
-  nToUpdate=false;
+  for(auto& i:chunksSt)
+    i.setAsUpdated();
+  for(auto& i:chunksDn)
+    i.setAsUpdated();
   }
 
 void StaticObjects::setModelView(const Tempest::Matrix4x4 &m) {
@@ -55,7 +64,7 @@ ObjectsBucket<StaticObjects::UboDn,Resources::VertexA> &StaticObjects::getBucket
 
 StaticObjects::Item StaticObjects::implGet(const StaticMesh &mesh, const Tempest::Texture2d *mat,
                                            const Tempest::IndexBuffer<uint32_t>& ibo) {
-  nToUpdate=true;
+  //nToUpdate=true;
 
   auto&        bucket = getBucketSt(mat);
   const size_t id     = bucket.alloc(mesh.vbo,ibo);
@@ -64,7 +73,7 @@ StaticObjects::Item StaticObjects::implGet(const StaticMesh &mesh, const Tempest
 
 StaticObjects::Item StaticObjects::implGet(const AnimMesh &mesh, const Tempest::Texture2d *mat,
                                            const Tempest::IndexBuffer<uint32_t> &ibo) {
-  nToUpdate=true;
+  //nToUpdate=true;
 
   auto&        bucket = getBucketDn(mat);
   const size_t id     = bucket.alloc(mesh.vbo,ibo);

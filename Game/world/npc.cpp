@@ -21,10 +21,6 @@ Npc::~Npc(){
     currentInteract->dettach(*this);
   }
 
-void Npc::setView(StaticObjects::Mesh &&m) {
-  view = std::move(m);
-  }
-
 void Npc::setPosition(float ix, float iy, float iz) {
   x = ix;
   y = iy;
@@ -297,6 +293,12 @@ int32_t Npc::talentValue(Npc::Talent t) const {
   return 0;
   }
 
+int32_t Npc::hitChanse(Npc::Talent t) const {
+  if(t<Daedalus::GEngineClasses::MAX_HITCHANCE)
+    return owner.vmNpc(hnpc).hitChance[t];
+  return 0;
+  }
+
 bool Npc::isRefuseTalk() const {
   return refuseTalkMilis<owner.tickCount();
   }
@@ -311,10 +313,33 @@ int32_t Npc::attribute(Npc::Attribute a) const {
   return 0;
   }
 
+void Npc::changeAttribute(Npc::Attribute a, int32_t val) {
+  if(a>=ATR_MAX)
+    return;
+  auto& v = owner.vmNpc(hnpc);
+  v.attribute[a]+=val;
+  if(v.attribute[a]<0)
+    v.attribute[a]=0;
+  if(a==ATR_HITPOINTS && v.attribute[a]>v.attribute[ATR_HITPOINTSMAX])
+    v.attribute[a] = v.attribute[ATR_HITPOINTSMAX];
+  if(a==ATR_MANA && v.attribute[a]>v.attribute[ATR_MANAMAX])
+    v.attribute[a] = v.attribute[ATR_MANAMAX];
+  invent.invalidateCond();
+
+  if(a==ATR_HITPOINTS && v.attribute[a]<=0){
+    //TODO: death;
+    }
+  }
+
 int32_t Npc::protection(Npc::Protection p) const {
   if(p<PROT_MAX)
     return owner.vmNpc(hnpc).protection[p];
   return 0;
+  }
+
+void Npc::changeProtection(Npc::Protection p, int32_t val) {
+  if(p<PROT_MAX)
+    owner.vmNpc(hnpc).protection[p]=val;
   }
 
 uint32_t Npc::instanceSymbol() const {
@@ -416,6 +441,8 @@ void Npc::tick(uint64_t dt) {
 
   if(aiActions.size()==0) {
     tickRoutine();
+    if(invent.isChanged())
+      invent.autoEquip(owner,*this);
     return;
     }
 
@@ -459,6 +486,9 @@ void Npc::tick(uint64_t dt) {
       // TODO: not implemented
       break;
     }
+
+  if(invent.isChanged())
+    invent.autoEquip(owner,*this);
   }
 
 void Npc::startDialog(Npc* other) {
@@ -518,7 +548,7 @@ void Npc::setToFightMode(const uint32_t item) {
   if(invent.itemCount(item)==0)
     addItem(item,1);
 
-  equipItem(item);
+  useItem(item);
   drawWeapon1H();
   }
 
@@ -535,11 +565,15 @@ bool Npc::hasItem(uint32_t id) const {
   }
 
 void Npc::delItem(uint32_t item, uint32_t amount) {
-  invent.delItem(item,amount,owner);
+  invent.delItem(item,amount,owner,*this);
   }
 
-void Npc::equipItem(uint32_t item) {
-  invent.equip(item,owner,*this);
+void Npc::useItem(uint32_t item) {
+  invent.use(item,owner,*this);
+  }
+
+void Npc::unequipItem(uint32_t item) {
+  invent.unequip(item,owner,*this);
   }
 
 void Npc::closeWeapon() {
@@ -894,6 +928,14 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
     return animSequence("T_STAND_2_TALK");
   if(a==Anim::Talk)
     return animSequence("S_TALK");
+
+  if(cur==Anim::Idle && a==Anim::Eat)
+    return animSequence("T_STAND_2_EAT");
+  if(cur==Anim::Eat && a==Anim::Idle)
+    return animSequence("T_EAT_2_STAND");
+  if(a==Anim::Eat)
+    return animSequence("S_EAT");
+
   if(a==Anim::Perception)
     return animSequence("T_PERCEPTION");
   if(a==Anim::Lookaround)
@@ -960,6 +1002,8 @@ Npc::Anim Npc::animByName(const std::string &name) const {
     return Anim::Perception;
   if(name=="T_HGUARD_LOOKAROUND")
     return Anim::Lookaround;
+  if(name=="T_STAND_2_EAT" || name=="T_EAT_2_STAND" || name=="S_EAT")
+    return Anim::Eat;
   return Anim::NoAnim;
   }
 

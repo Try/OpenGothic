@@ -58,6 +58,11 @@ size_t Item::count() const {
   return v.amount;
   }
 
+int32_t Item::cost() const {
+  auto& v = owner.vmItem(hitem);
+  return v.value;
+  }
+
 size_t Item::clsId() const {
   return owner.vmItem(hitem).instanceSymbol;
   }

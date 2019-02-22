@@ -60,6 +60,7 @@ class WorldScript final {
 
     int  invokeState(Daedalus::GameState::NpcHandle hnpc, Daedalus::GameState::NpcHandle hother, const char* name);
     int  invokeState(Npc* npc, Npc* other, size_t fn);
+    int  invokeItem (Npc* npc, size_t fn);
 
     void useInteractive(Daedalus::GameState::NpcHandle hnpc, const std::string &func);
 
@@ -147,6 +148,7 @@ class WorldScript final {
     void npc_clearaiqueue    (Daedalus::DaedalusVM &vm);
     void npc_isplayer        (Daedalus::DaedalusVM &vm);
     void npc_getstatetime    (Daedalus::DaedalusVM &vm);
+    void npc_changeattribute (Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);

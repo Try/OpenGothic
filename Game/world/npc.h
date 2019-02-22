@@ -86,6 +86,7 @@ class Npc final {
       GuardH,
       Lookaround,
       Perception,
+      Eat,
       Move,
       MoveBack,
       MoveL,
@@ -179,7 +180,6 @@ class Npc final {
     Npc(const Npc&)=delete;
     ~Npc();
 
-    void setView      (StaticObjects::Mesh&& m);
     void setPosition  (float x,float y,float z);
     void setPosition  (const std::array<float,3>& pos);
     void setDirection (float x,float y,float z);
@@ -232,12 +232,15 @@ class Npc final {
 
     void     setTalentValue(Talent t,int32_t lvl);
     int32_t  talentValue(Talent t) const;
+    int32_t  hitChanse(Talent t) const;
 
     void     setRefuseTalk(uint64_t milis);
     bool     isRefuseTalk() const;
 
     int32_t  attribute (Attribute a) const;
+    void     changeAttribute(Attribute a,int32_t val);
     int32_t  protection(Protection p) const;
+    void     changeProtection(Protection p,int32_t val);
 
     uint32_t instanceSymbol() const;
     uint32_t guild() const;
@@ -288,11 +291,12 @@ class Npc final {
     Daedalus::GameState::NpcHandle handle(){ return  hnpc; }
 
     auto     inventory() const -> const Inventory& { return invent; }
-    bool     hasItem  (uint32_t id) const;
-    void     addItem  (uint32_t id, uint32_t amount);
-    void     delItem  (uint32_t id, uint32_t amount);
-    void     equipItem(uint32_t item);
-    void     addItem  (std::unique_ptr<Item>&& i);
+    bool     hasItem    (uint32_t id) const;
+    void     addItem    (uint32_t id, uint32_t amount);
+    void     delItem    (uint32_t id, uint32_t amount);
+    void     useItem    (uint32_t item);
+    void     unequipItem(uint32_t item);
+    void     addItem    (std::unique_ptr<Item>&& i);
 
     void     aiLookAt(Npc* other);
     void     aiStopLookAt();

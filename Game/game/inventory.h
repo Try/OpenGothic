@@ -14,7 +14,7 @@ class Inventory final {
     Inventory();
     ~Inventory();
 
-    enum Flags : int32_t {
+    enum Flags : uint32_t {
       ITM_CAT_NONE   = 1 << 0,
       ITM_CAT_NF     = 1 << 1,
       ITM_CAT_FF     = 1 << 2,
@@ -48,12 +48,32 @@ class Inventory final {
 
     void   addItem(std::unique_ptr<Item>&& p,  WorldScript& vm, Npc &owner);
     void   addItem(size_t cls, uint32_t count, WorldScript& vm, Npc &owner);
-    void   delItem(size_t cls, uint32_t count, WorldScript& vm);
-    bool   equip  (size_t cls, WorldScript &vm, Npc &owner);
+    void   delItem(size_t cls, uint32_t count, WorldScript& vm, Npc &owner);
+    bool   use    (size_t cls, WorldScript &vm, Npc &owner);
+    bool   unequip(size_t cls, WorldScript &vm, Npc &owner);
+    void   unequip(Item*  cls, WorldScript &vm, Npc &owner);
+    void   invalidateCond();
+    bool   isChanged() const { return ch; }
+    void   autoEquip(WorldScript &vm, Npc &owner);
 
   private:
-    std::vector<std::unique_ptr<Item>> items;
+    bool   setSlot     (Item*& slot, Item *next, WorldScript &vm, Npc &owner);
+    bool   equipNumSlot(Item *next, WorldScript &vm, Npc &owner);
+    void   applyArmour (Item& a, WorldScript &vm, Npc &owner, int32_t sgn);
 
-    Item* findByClass(size_t cls);
-    bool  autoEquip  (size_t cls, WorldScript &vm, Npc &owner);
+    Item*  findByClass(size_t cls);
+    void   delItem    (Item* it, uint32_t count, WorldScript& vm, Npc& owner);
+    Item*  bestArmour (WorldScript &vm);
+
+    std::vector<std::unique_ptr<Item>> items;
+    Item*                              armour=nullptr;
+    Item*                              belt  =nullptr;
+    Item*                              amulet=nullptr;
+    Item*                              ringL =nullptr;
+    Item*                              ringR =nullptr;
+
+    Item*                              mele  =nullptr;
+    Item*                              range =nullptr;
+    Item*                              numslot[8]={};
+    bool                               ch=false;
   };

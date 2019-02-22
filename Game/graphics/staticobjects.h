@@ -99,8 +99,6 @@ class StaticObjects final {
     UboChain<UboGlobal,void>        uboGlobalPf;
     UboGlobal                       uboGlobal;
 
-    bool                            nToUpdate=true; //invalidate cmd buffers
-
     ObjectsBucket<UboSt,Vertex>&    getBucketSt(const Tempest::Texture2d* mat);
     ObjectsBucket<UboDn,VertexA>&   getBucketDn(const Tempest::Texture2d* mat);
 

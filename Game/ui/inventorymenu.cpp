@@ -10,6 +10,7 @@ using namespace Tempest;
 InventoryMenu::InventoryMenu() {
   slot = Resources::loadTexture("INV_SLOT.TGA");
   selT = Resources::loadTexture("INV_SLOT_HIGHLIGHTED.TGA");
+  selU = Resources::loadTexture("INV_SLOT_EQUIPPED.TGA");
   tex  = Resources::loadTexture("INV_BACK.TGA");
   // TRADE_VALUE_MULTIPLIER
   setFocusPolicy(NoFocus);
@@ -28,10 +29,7 @@ void InventoryMenu::close() {
 
 void InventoryMenu::open() {
   state=State::Equip;
-  auto pl = world ? world->player() : nullptr;
-  if(pl!=nullptr){
-    sel = std::min(sel, std::max<size_t>(pl->inventory().recordsCount(),1)-1);
-    }
+  adjustScroll();
   setFocus(true);
   update();
   }
@@ -65,6 +63,7 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     if(sel+1<pl->inventory().recordsCount())
       sel++;
     }
+  adjustScroll();
   update();
   }
 
@@ -72,6 +71,49 @@ void InventoryMenu::keyUpEvent(KeyEvent &e) {
   if(e.key==KeyEvent::K_ESCAPE || e.key==KeyEvent::K_Tab){
     close();
     }
+  }
+
+void InventoryMenu::mouseDownEvent(MouseEvent &e) {
+  if(world==nullptr || state==State::Closed || e.button!=Event::ButtonLeft) {
+    e.ignore();
+    return;
+    }
+  auto pl = world->player();
+  if(pl==nullptr)
+    return;
+
+  if(sel>=pl->inventory().recordsCount())
+    return;
+  auto& r = pl->inventory().at(sel);
+  if(r.isEquiped())
+    pl->unequipItem(r.clsId()); else
+    pl->useItem    (r.clsId());
+  adjustScroll();
+  }
+
+void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
+  if(world==nullptr || state==State::Closed) {
+    e.ignore();
+    return;
+    }
+  auto pl = world->player();
+  if(pl==nullptr)
+    return;
+
+  if(e.delta>0){
+    if(sel>=columsCount)
+      sel -= columsCount;
+    }
+  else if(e.delta<0){
+    if(sel+columsCount<pl->inventory().recordsCount())
+      sel += columsCount;
+    }
+  adjustScroll();
+  }
+
+size_t InventoryMenu::rowsCount() const {
+  int iy=30+34+70;
+  return size_t((h()-iy-infoHeight()-20)/slotSize().h);
   }
 
 void InventoryMenu::paintEvent(PaintEvent &e) {
@@ -93,6 +135,25 @@ int InventoryMenu::infoHeight() const {
   return (Item::MAX_UI_ROWS+2)*int(Resources::font().pixelSize())+10/*padding bottom*/;
   }
 
+void InventoryMenu::adjustScroll() {
+  auto pl = world ? world->player() : nullptr;
+  if(pl==nullptr)
+    return;
+  sel = std::min(sel, std::max<size_t>(pl->inventory().recordsCount(),1)-1);
+  while(sel<scroll*columsCount) {
+    if(scroll<=1){
+      scroll=0;
+      return;
+      }
+    scroll-=1;
+    }
+
+  const size_t hcount=rowsCount();
+  while(sel>=(scroll+hcount)*columsCount) {
+    scroll+=1;
+    }
+  }
+
 void InventoryMenu::drawAll(Painter &p,Npc &player) {
   p.setFont(Resources::font());
   const int padd = 43;
@@ -102,7 +163,7 @@ void InventoryMenu::drawAll(Painter &p,Npc &player) {
   drawGold(p,player,w()-padd-2*slotSize().w,70);
 
   const int wcount = int(columsCount);
-  const int hcount = (h()-iy-infoHeight()-20)/slotSize().h;
+  const int hcount = int(rowsCount());
 
   if(tex) {
     p.setBrush(*tex);
@@ -113,7 +174,7 @@ void InventoryMenu::drawAll(Painter &p,Npc &player) {
   for(int i=0;i<hcount;++i){
     for(int r=0;r<wcount;++r){
       int x = w()-padd-wcount*slotSize().w + r*slotSize().w;
-      drawSlot(p,player, x,iy, size_t(i*wcount+r));
+      drawSlot(p,player, x,iy, size_t((int(scroll)+i)*wcount+r));
       }
     iy+=slotSize().h;
     }
@@ -130,6 +191,7 @@ void InventoryMenu::drawSlot(Painter &p,Npc &player,int x,int y,size_t id) {
 
   if(id>=player.inventory().recordsCount())
     return;
+  auto& r = player.inventory().at(id);
 
   if(id==sel && selT!=nullptr){
     p.setBrush(*selT);
@@ -137,7 +199,12 @@ void InventoryMenu::drawSlot(Painter &p,Npc &player,int x,int y,size_t id) {
                0,0,selT->w(),selT->h());
     }
 
-  auto& r = player.inventory().at(id);
+  if(r.isEquiped() && selU!=nullptr){
+    p.setBrush(*selU);
+    p.drawRect(x,y,slotSize().w,slotSize().h,
+               0,0,selU->w(),selU->h());
+    }
+
   char  vint[32]={};
   std::snprintf(vint,sizeof(vint),"%d",r.count());
   auto sz = p.font().textSize(vint);

@@ -31,6 +31,7 @@ class Item final {
     const char*         uiText (size_t id) const;
     int32_t             uiValue(size_t id) const;
     size_t              count() const;
+    int32_t cost() const;
 
     Daedalus::GameState::ItemHandle handle() const { return hitem; }
     size_t                          clsId() const;

@@ -430,7 +430,7 @@ void GameMenu::setPlayer(const Npc &pl) {
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d_SKILL",i);
     set(buf,strEnum(talV.getString(i).c_str(),sk));
 
-    const int val=pl.talentValue(Npc::Talent(i));
+    const int val=pl.hitChanse(Npc::Talent(i));
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d",i);
     set(buf,val,"%");
     }
