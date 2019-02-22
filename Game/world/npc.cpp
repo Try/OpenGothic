@@ -153,6 +153,13 @@ void Npc::addOverlay(const Skeleton* sk,uint64_t time) {
     }
   }
 
+void Npc::delOverlay(const char *sk) {
+  if(overlay.size()==0)
+    return;
+  auto skelet = Resources::loadSkeleton(sk);
+  delOverlay(skelet);
+  }
+
 void Npc::delOverlay(const Skeleton *sk) {
   for(size_t i=0;i<overlay.size();++i)
     if(overlay[i].sk==sk){
@@ -173,6 +180,11 @@ void Npc::setVisual(const Skeleton* v) {
   armour.setSkeleton(skeleton);
   invalidateAnim(animSq,skeleton);
   setPos(pos); // update obj matrix
+  }
+
+void Npc::addOverlay(const char *sk, uint64_t time) {
+  auto skelet = Resources::loadSkeleton(sk);
+  addOverlay(skelet,time);
   }
 
 void Npc::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh &&body, int32_t bodyVer, int32_t bodyColor) {
@@ -274,8 +286,70 @@ bool Npc::isInAir() const {
   }
 
 void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {
-  if(t<TALENT_MAX)
+  if(t<TALENT_MAX) {
     talentsSk[t] = lvl;
+    if(t==TALENT_1H){
+      if(lvl==0){
+        delOverlay("HUMANS_1HST1.MDH");
+        delOverlay("HUMANS_1HST2.MDH");
+        }
+      else if(lvl==1){
+        addOverlay("HUMANS_1HST1.MDH",0);
+        delOverlay("HUMANS_1HST2.MDH");
+        }
+      else if(lvl==2){
+        delOverlay("HUMANS_1HST1.MDH");
+        addOverlay("HUMANS_1HST2.MDH",0);
+        }
+      }
+    else if(t==TALENT_2H){
+      if(lvl==0){
+        delOverlay("HUMANS_2HST1.MDH");
+        delOverlay("HUMANS_2HST2.MDH");
+        }
+      else if(lvl==1){
+        addOverlay("HUMANS_2HST1.MDH",0);
+        delOverlay("HUMANS_2HST2.MDH");
+        }
+      else if(lvl==2){
+        delOverlay("HUMANS_2HST1.MDH");
+        addOverlay("HUMANS_2HST2.MDH",0);
+        }
+      }
+    else if(t==TALENT_BOW){
+      if(lvl==0){
+        delOverlay("HUMANS_BOWT1.MDH");
+        delOverlay("HUMANS_BOWT2.MDH");
+        }
+      else if(lvl==1){
+        addOverlay("HUMANS_BOWT1.MDH",0);
+        delOverlay("HUMANS_BOWT2.MDH");
+        }
+      else if(lvl==2){
+        delOverlay("HUMANS_BOWT1.MDH");
+        addOverlay("HUMANS_BOWT2.MDH",0);
+        }
+      }
+    else if(t==TALENT_CROSSBOW){
+      if(lvl==0){
+        delOverlay("HUMANS_CBOWT1.MDH");
+        delOverlay("HUMANS_CBOWT2.MDH");
+        }
+      else if(lvl==1){
+        addOverlay("HUMANS_CBOWT1.MDH",0);
+        delOverlay("HUMANS_CBOWT2.MDH");
+        }
+      else if(lvl==2){
+        delOverlay("HUMANS_CBOWT1.MDH");
+        addOverlay("HUMANS_CBOWT2.MDH",0);
+        }
+      }
+    else if(t==TALENT_ACROBAT){
+      if(lvl==0)
+        delOverlay("HUMANS_ACROBATIC.MDH"); else
+        addOverlay("HUMANS_ACROBATIC.MDH",0);
+      }
+    }
   }
 
 int32_t Npc::talentSkill(Npc::Talent t) const {
@@ -326,7 +400,9 @@ void Npc::changeAttribute(Npc::Attribute a, int32_t val) {
     v.attribute[a] = v.attribute[ATR_HITPOINTSMAX];
   if(a==ATR_MANA && v.attribute[a]>v.attribute[ATR_MANAMAX])
     v.attribute[a] = v.attribute[ATR_MANAMAX];
-  invent.invalidateCond();
+
+  if(val<0)
+    invent.invalidateCond(*this);
 
   if(a==ATR_HITPOINTS && v.attribute[a]<=0){
     //TODO: death;

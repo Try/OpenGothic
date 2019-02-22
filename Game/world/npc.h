@@ -205,7 +205,9 @@ class Npc final {
     const char* displayName() const;
     void setName      (const std::string& name);
     void setVisual    (const Skeleton *visual);
+    void addOverlay   (const char*     sk, uint64_t time);
     void addOverlay   (const Skeleton *sk, uint64_t time);
+    void delOverlay   (const char*     sk);
     void delOverlay   (const Skeleton *sk);
 
     void setVisualBody(StaticObjects::Mesh &&head,StaticObjects::Mesh&& body,int32_t bodyVer,int32_t bodyColor);
