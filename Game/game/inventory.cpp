@@ -224,7 +224,7 @@ bool Inventory::use(size_t cls, WorldScript &vm, Npc &owner) {
     return false;
     }
 
-  if(flag & ITM_MULTI){
+  if((flag & ITM_MULTI) && itData.on_state[0]!=0){
     // eat item
     vm.invokeItem(&owner,itData.on_state[0]);
     delItem(cls,1,vm,owner);
@@ -233,8 +233,20 @@ bool Inventory::use(size_t cls, WorldScript &vm, Npc &owner) {
   return true;
   }
 
-void Inventory::invalidateCond() {
-  // TODO: check usage
+void Inventory::invalidateCond(Npc &owner) {
+  invalidateCond(armour,owner);
+  invalidateCond(belt  ,owner);
+  invalidateCond(amulet,owner);
+  invalidateCond(ringL ,owner);
+  invalidateCond(mele  ,owner);
+  invalidateCond(range ,owner);
+  for(auto& i:numslot)
+    invalidateCond(i,owner);
+  }
+
+void Inventory::invalidateCond(Item *&slot, Npc &owner) {
+  if(slot && !slot->checkCond(owner))
+    slot=nullptr;
   }
 
 void Inventory::autoEquip(WorldScript &vm, Npc &owner) {
@@ -268,3 +280,4 @@ Item *Inventory::bestArmour(WorldScript &vm, Npc &owner) {
     }
   return ret;
   }
+
