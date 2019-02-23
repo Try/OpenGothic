@@ -24,7 +24,7 @@ file(GLOB SOURCES
 
 link_directories(${PROJECT_NAME} "$ENV{VK_SDK_PATH}/Lib32")
 
-add_executable(${PROJECT_NAME} ${SOURCES} )
+add_executable(${PROJECT_NAME} ${SOURCES} icon.rc )
 
 add_subdirectory(lib/ZenLib)
 include_directories(lib/ZenLib)
