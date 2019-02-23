@@ -16,6 +16,7 @@ DialogMenu::DialogMenu(Gothic &gothic):gothic(gothic) {
 
 void DialogMenu::tick(uint64_t dt) {
   if(state==State::PreStart){
+    except.clear();
     onStart(*this->pl,*this->other);
     return;
     }
@@ -102,7 +103,7 @@ bool DialogMenu::isActive() const {
 bool DialogMenu::onStart(Npc &p, Npc &ot) {
   pl     = &p;
   other  = &ot;
-  choise = ot.dialogChoises(p);
+  choise = ot.dialogChoises(p,except);
   state  = State::Active;
   depth  = 0;
 
@@ -201,6 +202,7 @@ void DialogMenu::onEntry(const WorldScript::DlgChoise &e) {
   if(pl && other) {
     selected = e;
     depth    = 1;
+    except.push_back(e.scriptFn);
     gothic.dialogExec(e,*pl,*other);
     if(txt.empty()) {
       onDoneText(); // 'BACK' menu

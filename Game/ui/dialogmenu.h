@@ -82,6 +82,7 @@ class DialogMenu : public Tempest::Widget {
     Npc*                                other=nullptr;
     size_t                              dlgSel=0;
     uint32_t                            depth=0;
+    std::vector<uint32_t>               except;
 
     State                               state=State::Idle;
     std::vector<Entry>                  txt;

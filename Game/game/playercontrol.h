@@ -3,6 +3,7 @@
 #include <array>
 
 class DialogMenu;
+class InventoryMenu;
 class World;
 class Interactive;
 class Npc;
@@ -10,7 +11,7 @@ class Item;
 
 class PlayerControl final {
   public:
-    PlayerControl(DialogMenu& dlg);
+    PlayerControl(DialogMenu& dlg,InventoryMenu& inv);
 
     void changeZoom(int delta);
     void setWorld(World* w);
@@ -64,10 +65,11 @@ class PlayerControl final {
       Last
       };
 
-    bool         ctrl[Control::Last]={};
-    World*       world=nullptr;
-    DialogMenu&  dlg;
+    bool           ctrl[Control::Last]={};
+    World*         world=nullptr;
+    DialogMenu&    dlg;
+    InventoryMenu& inv;
 
-    void         implMove(uint64_t dt);
-    void         setPos(std::array<float,3> a, uint64_t dt, float speed);
+    void           implMove(uint64_t dt);
+    void           setPos(std::array<float,3> a, uint64_t dt, float speed);
   };

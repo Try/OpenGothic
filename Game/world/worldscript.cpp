@@ -130,24 +130,25 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("ai_waitms",           [this](Daedalus::DaedalusVM& vm){ ai_waitms(vm);            });
   vm.registerExternalFunction("ai_aligntowp",        [this](Daedalus::DaedalusVM& vm){ ai_aligntowp(vm);         });
 
-  vm.registerExternalFunction("ta_min",              [this](Daedalus::DaedalusVM& vm){ ta_min(vm);             });
+  vm.registerExternalFunction("ta_min",              [this](Daedalus::DaedalusVM& vm){ ta_min(vm);               });
 
-  vm.registerExternalFunction("log_createtopic",     [this](Daedalus::DaedalusVM& vm){ log_createtopic(vm);    });
-  vm.registerExternalFunction("log_settopicstatus",  [this](Daedalus::DaedalusVM& vm){ log_settopicstatus(vm); });
-  vm.registerExternalFunction("log_addentry",        [this](Daedalus::DaedalusVM& vm){ log_addentry(vm);       });
+  vm.registerExternalFunction("log_createtopic",     [this](Daedalus::DaedalusVM& vm){ log_createtopic(vm);      });
+  vm.registerExternalFunction("log_settopicstatus",  [this](Daedalus::DaedalusVM& vm){ log_settopicstatus(vm);   });
+  vm.registerExternalFunction("log_addentry",        [this](Daedalus::DaedalusVM& vm){ log_addentry(vm);         });
 
-  vm.registerExternalFunction("equipitem",           [this](Daedalus::DaedalusVM& vm){ equipitem(vm);          });
-  vm.registerExternalFunction("createinvitem",       [this](Daedalus::DaedalusVM& vm){ createinvitem(vm);      });
-  vm.registerExternalFunction("createinvitems",      [this](Daedalus::DaedalusVM& vm){ createinvitems(vm);     });
+  vm.registerExternalFunction("equipitem",           [this](Daedalus::DaedalusVM& vm){ equipitem(vm);            });
+  vm.registerExternalFunction("createinvitem",       [this](Daedalus::DaedalusVM& vm){ createinvitem(vm);        });
+  vm.registerExternalFunction("createinvitems",      [this](Daedalus::DaedalusVM& vm){ createinvitems(vm);       });
 
-  vm.registerExternalFunction("info_addchoice",      [this](Daedalus::DaedalusVM& vm){ info_addchoice(vm);     });
-  vm.registerExternalFunction("info_clearchoices",   [this](Daedalus::DaedalusVM& vm){ info_clearchoices(vm);  });
-
-  vm.registerExternalFunction("playvideo",           [this](Daedalus::DaedalusVM& vm){ playvideo(vm);          });
-  vm.registerExternalFunction("printscreen",         [this](Daedalus::DaedalusVM& vm){ printscreen(vm);        });
-  vm.registerExternalFunction("print",               [this](Daedalus::DaedalusVM& vm){ print(vm);              });
+  vm.registerExternalFunction("info_addchoice",      [this](Daedalus::DaedalusVM& vm){ info_addchoice(vm);       });
+  vm.registerExternalFunction("info_clearchoices",   [this](Daedalus::DaedalusVM& vm){ info_clearchoices(vm);    });
   vm.registerExternalFunction("infomanager_hasfinished",
                                                      [this](Daedalus::DaedalusVM& vm){ infomanager_hasfinished(vm); });
+
+  vm.registerExternalFunction("introducechapter",    [this](Daedalus::DaedalusVM& vm){ introducechapter(vm);     });
+  vm.registerExternalFunction("playvideo",           [this](Daedalus::DaedalusVM& vm){ playvideo(vm);            });
+  vm.registerExternalFunction("printscreen",         [this](Daedalus::DaedalusVM& vm){ printscreen(vm);          });
+  vm.registerExternalFunction("print",               [this](Daedalus::DaedalusVM& vm){ print(vm);                });
 
   DaedalusGameState::GameExternals ext;
   ext.wld_insertnpc      = [this](NpcHandle h,const std::string& s){ owner.onInserNpc(h,s); };
@@ -215,7 +216,8 @@ Daedalus::GEngineClasses::C_Item& WorldScript::vmItem(ItemHandle handle) {
   }
 
 std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GameState::NpcHandle player,
-                                                               Daedalus::GameState::NpcHandle hnpc) {
+                                                               Daedalus::GameState::NpcHandle hnpc,
+                                                               const std::vector<uint32_t>& except) {
   auto& npc = vmNpc(hnpc);
   auto& pl  = vmNpc(player);
 
@@ -240,6 +242,17 @@ std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GameSta
       bool npcKnowsInfo = dialogs->doesNpcKnowInfo(pl.instanceSymbol,info.instanceSymbol);
       if(npcKnowsInfo)
         continue;
+
+      if(info.important && info.permanent){
+        bool skip=false;
+        for(auto i:except)
+          if(i==info.information){
+            skip=true;
+            break;
+            }
+        if(skip)
+          continue;
+        }
 
       bool valid=false;
       if(info.condition)
@@ -439,7 +452,7 @@ void WorldScript::onNpcReady(NpcHandle handle) {
   }
 
 Npc* WorldScript::getNpc(NpcHandle handle) {
-  auto  hnpc      = ZMemory::handleCast<NpcHandle>(handle);
+  auto  hnpc = ZMemory::handleCast<NpcHandle>(handle);
   if(!hnpc.isValid())
     return nullptr;
   auto& npcData = vm.getGameState().getNpc(hnpc);
@@ -499,8 +512,8 @@ const std::string& WorldScript::popString(Daedalus::DaedalusVM &vm) {
   }
 
 Npc *WorldScript::popInstance(Daedalus::DaedalusVM &vm) {
-  uint32_t           arr_self = 0;
-  uint32_t           idx      = vm.popVar(arr_self);
+  uint32_t arr_self = 0;
+  uint32_t idx      = vm.popVar(arr_self);
   return getNpcById(idx);
   }
 
@@ -800,6 +813,10 @@ void WorldScript::npc_isdead(Daedalus::DaedalusVM &vm) {
 void WorldScript::npc_knowsinfo(Daedalus::DaedalusVM &vm) {
   uint32_t infoinstance = uint32_t(vm.popDataValue());
   auto     npc          = popInstance(vm);
+  if(!npc){
+    vm.setReturn(0);
+    return;
+    }
 
   Daedalus::GEngineClasses::C_Npc& vnpc = vmNpc(npc->handle());
 
@@ -857,8 +874,8 @@ void WorldScript::npc_refusetalk(Daedalus::DaedalusVM &vm) {
 void WorldScript::npc_hasitems(Daedalus::DaedalusVM &vm) {
   uint32_t itemId = uint32_t(vm.popDataValue());
   auto     npc    = popInstance(vm);
-  if(npc!=nullptr && npc->hasItem(itemId))
-    vm.setReturn(1); else
+  if(npc!=nullptr)
+    vm.setReturn(int32_t(npc->hasItem(itemId))); else
     vm.setReturn(0);
   }
 
@@ -1158,11 +1175,11 @@ void WorldScript::hlp_isvalidnpc(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::hlp_getnpc(Daedalus::DaedalusVM &vm) {
-  uint32_t instanceCls = vm.popVar();
-  auto     handle     = vm.getDATFile().getSymbolByIndex(instanceCls);
+  uint32_t instanceSymbol = vm.popVar();
+  auto     handle         = vm.getDATFile().getSymbolByIndex(instanceSymbol);
 
-  if(auto npc = getNpcById(instanceCls))
-    vm.setReturn(int32_t(instanceCls)); else
+  if(auto npc = getNpcById(instanceSymbol))
+    vm.setReturn(int32_t(instanceSymbol)); else
     vm.setReturn(-1);
   }
 
@@ -1190,6 +1207,15 @@ void WorldScript::info_clearchoices(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::infomanager_hasfinished(Daedalus::DaedalusVM &vm) {
   vm.setReturn(owner.aiIsDlgFinished() ? 1 : 0);
+  }
+
+void WorldScript::introducechapter(Daedalus::DaedalusVM &vm) {
+  int32_t waittime = vm.popDataValue();
+  auto&   sound    = popString(vm);
+  auto&   texture  = popString(vm);
+  auto&   subtitle = popString(vm);
+  auto&   title    = popString(vm);
+  Log::i("chapter screen not implemented [",subtitle,", ",texture,"]");
   }
 
 void WorldScript::playvideo(Daedalus::DaedalusVM &vm) {

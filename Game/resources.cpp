@@ -33,7 +33,7 @@ Resources* Resources::inst=nullptr;
 
 static void emplaceTag(char* buf, char tag){
   for(size_t i=1;buf[i];++i){
-    if(buf[i]==tag && buf[i-1]=='_' && std::isdigit(buf[i+1])){
+    if(buf[i]==tag && buf[i-1]=='_' && buf[i+1]=='0'){
       buf[i  ]='%';
       buf[i+1]='s';
       ++i;

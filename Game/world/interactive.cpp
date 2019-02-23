@@ -62,6 +62,45 @@ const Trigger* Interactive::triggerTarget() const {
   return world->findTrigger(data.oCMobInter.triggerTarget);
   }
 
+bool Interactive::isContainer() const {
+  return data.objectClass.find("oCMobContainer")!=std::string::npos;
+  //return data.vobType==ZenLoad::zCVobData::VT_oCMobContainer;
+  }
+
+Inventory &Interactive::inventory()  {
+  if(!isContainer())
+    return invent;
+  auto  items = std::move(data.oCMobContainer.contains);
+  if(items.size()==0)
+    return invent;
+  char* it = &items[0];
+  for(auto i=it;;++i) {
+    if(*i==','){
+      *i='\0';
+      implAddItem(it);
+      it=i+1;
+      }
+    else if(*i=='\0'){
+      implAddItem(it);
+      it=i+1;
+      break;
+      }
+    }
+  return invent;
+  }
+
+void Interactive::implAddItem(char *name) {
+  char* sep = std::strchr(name,':');
+  if(sep!=nullptr) {
+    *sep='\0';++sep;
+    long count = std::strtol(sep,nullptr,10);
+    if(count>0)
+      invent.addItem(name,uint32_t(count),*world->script());
+    } else {
+    invent.addItem(name,1,*world->script());
+    }
+  }
+
 bool Interactive::attach(Npc &npc) {
   for(auto& i:pos) {
     if(i.name=="ZS_POS0" && i.user==nullptr) {

@@ -597,7 +597,8 @@ void Npc::startState(size_t id,bool loop,const std::string &wp) {
 void Npc::tickRoutine() {
   if(aiState.funcIni==0){
     auto& v=owner.vmNpc(hnpc);
-    startState(v.start_aistate,true,"");
+    if(v.start_aistate!=0)
+      startState(v.start_aistate,true,"");
     }
 
   if(aiState.started) {
@@ -631,15 +632,23 @@ void Npc::setToFightMode(const uint32_t item) {
   }
 
 void Npc::addItem(const uint32_t item, size_t count) {
-  invent.addItem(item,count,owner,*this);
+  invent.addItem(item,count,owner);
   }
 
 void Npc::addItem(std::unique_ptr<Item>&& i) {
-  invent.addItem(std::move(i),owner,*this);
+  invent.addItem(std::move(i),owner);
   }
 
-bool Npc::hasItem(uint32_t id) const {
-  return invent.itemCount(id)>0;
+void Npc::addItem(uint32_t id, Interactive &chest) {
+  Inventory::trasfer(invent,chest.inventory(),nullptr,id,1,owner);
+  }
+
+void Npc::moveItem(uint32_t id, Interactive &to) {
+  Inventory::trasfer(to.inventory(),invent,this,id,1,owner);
+  }
+
+size_t Npc::hasItem(uint32_t id) const {
+  return invent.itemCount(id);
   }
 
 void Npc::delItem(uint32_t item, uint32_t amount) {
@@ -798,8 +807,8 @@ float Npc::clampHeight(Npc::Anim a) const {
     }
   }
 
-std::vector<WorldScript::DlgChoise> Npc::dialogChoises(Npc& player) {
-  return owner.dialogChoises(player.hnpc,this->hnpc);
+std::vector<WorldScript::DlgChoise> Npc::dialogChoises(Npc& player,const std::vector<uint32_t> &except) {
+  return owner.dialogChoises(player.hnpc,this->hnpc,except);
   }
 
 void Npc::aiLookAt(Npc *other) {

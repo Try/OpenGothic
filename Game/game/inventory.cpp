@@ -1,11 +1,14 @@
 #include "inventory.h"
 
+#include <Tempest/Log>
+
 #include "world/worldscript.h"
 #include "world/item.h"
 #include "world/npc.h"
 #include "world/world.h"
 
 using namespace Daedalus::GameState;
+using namespace Tempest;
 
 Inventory::Inventory() {  
   }
@@ -15,17 +18,15 @@ Inventory::~Inventory() {
 
 size_t Inventory::goldCount() const {
   for(auto& i:items)
-    if(i->isGold()){
+    if(i->isGold())
       return i->count();
-      }
   return 0;
   }
 
 size_t Inventory::itemCount(const size_t cls) const {
   for(auto& i:items)
-    if(i->clsId()==cls){
+    if(i->clsId()==cls)
       return i->count();
-      }
   return 0;
   }
 
@@ -33,7 +34,7 @@ const Item &Inventory::at(size_t i) const {
   return *items[i];
   }
 
-void Inventory::addItem(std::unique_ptr<Item> &&p, WorldScript &vm, Npc &) {
+void Inventory::addItem(std::unique_ptr<Item> &&p, WorldScript &vm) {
   using namespace Daedalus::GEngineClasses;
   if(p==nullptr)
     return;
@@ -51,7 +52,13 @@ void Inventory::addItem(std::unique_ptr<Item> &&p, WorldScript &vm, Npc &) {
     }
   }
 
-void Inventory::addItem(size_t itemSymbol, uint32_t count, WorldScript &vm, Npc &) {
+void Inventory::addItem(const char *name, uint32_t count, WorldScript &vm) {
+  size_t id = vm.getSymbolIndex(name);
+  if(id>0)
+    addItem(id,count,vm);
+  }
+
+void Inventory::addItem(size_t itemSymbol, uint32_t count, WorldScript &vm) {
   using namespace Daedalus::GEngineClasses;
   if(count<=0)
     return;
@@ -100,6 +107,34 @@ void Inventory::delItem(Item *it, uint32_t count, WorldScript &vm, Npc& owner) {
       break;
       }
   vm.getGameState().removeItem(handle);
+  }
+
+void Inventory::trasfer(Inventory &to, Inventory &from, Npc* fromNpc, size_t itemSymbol, uint32_t count, WorldScript &vm) {
+  for(size_t i=0;i<from.items.size();++i){
+    auto& it = *from.items[i];
+    if(it.clsId()!=itemSymbol)
+      continue;
+
+    auto  handle = it.handle();
+    auto& itData = vm.getGameState().getItem(handle);
+    if(count>itData.amount)
+      count=itData.amount;
+
+    if(itData.amount==count) {
+      if(it.isEquiped()){
+        if(fromNpc==nullptr){
+          Log::d("Inventory: invalid transfer call");
+          return; // error
+          }
+        from.unequip(&it,vm,*fromNpc);
+        }
+      to.addItem(std::move(from.items[i]),vm);
+      from.items.erase(from.items.begin()+int(i));
+      } else {
+      itData.amount-=count;
+      to.addItem(itemSymbol,count,vm);
+      }
+    }
   }
 
 bool Inventory::unequip(size_t cls, WorldScript &vm, Npc &owner) {

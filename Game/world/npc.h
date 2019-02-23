@@ -288,17 +288,19 @@ class Npc final {
 
     bool     hasCollision() const { return physic.hasCollision(); }
 
-    std::vector<WorldScript::DlgChoise> dialogChoises(Npc &player);
+    std::vector<WorldScript::DlgChoise> dialogChoises(Npc &player, const std::vector<uint32_t> &except);
 
     Daedalus::GameState::NpcHandle handle(){ return  hnpc; }
 
     auto     inventory() const -> const Inventory& { return invent; }
-    bool     hasItem    (uint32_t id) const;
+    size_t   hasItem    (uint32_t id) const;
     void     addItem    (uint32_t id, uint32_t amount);
     void     delItem    (uint32_t id, uint32_t amount);
     void     useItem    (uint32_t item);
     void     unequipItem(uint32_t item);
     void     addItem    (std::unique_ptr<Item>&& i);
+    void     addItem    (uint32_t id,Interactive& chest);
+    void     moveItem   (uint32_t id,Interactive& to);
 
     void     aiLookAt(Npc* other);
     void     aiStopLookAt();

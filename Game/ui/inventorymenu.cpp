@@ -14,6 +14,7 @@ InventoryMenu::InventoryMenu() {
   tex  = Resources::loadTexture("INV_BACK.TGA");
   // TRADE_VALUE_MULTIPLIER
   setFocusPolicy(NoFocus);
+  takeTimer.timeout.bind(this,&InventoryMenu::onTakeStuff);
   }
 
 void InventoryMenu::setWorld(const World *w) {
@@ -22,13 +23,34 @@ void InventoryMenu::setWorld(const World *w) {
   }
 
 void InventoryMenu::close() {
-  state=State::Closed;
+  if(player!=nullptr){
+    player->setInteraction(nullptr);
+    player = nullptr;
+    chest  = nullptr;
+    }
+
+  page  = 0;
+  state = State::Closed;
   owner()->setFocus(true);
   update();
   }
 
-void InventoryMenu::open() {
-  state=State::Equip;
+void InventoryMenu::open(Npc &pl) {
+  state  = State::Equip;
+  player = &pl;
+  chest  = nullptr;
+  page   = 0;
+  adjustScroll();
+  setFocus(true);
+  update();
+  }
+
+void InventoryMenu::open(Npc &pl, Interactive &ch) {
+  state  = State::Chest;
+  player = &pl;
+  chest  = &ch;
+  page   = 0;
+  pl.setInteraction(chest);
   adjustScroll();
   setFocus(true);
   update();
@@ -44,23 +66,31 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     return;
     }
 
-  auto pl = world ? world->player() : nullptr;
-  if(pl==nullptr)
+  auto pg=activePage();
+  if(pg==nullptr)
     return;
+
+  const size_t pCount=pagesCount();
+
   if(e.key==KeyEvent::K_W){
     if(sel>=columsCount)
       sel -= columsCount;
     }
   else if(e.key==KeyEvent::K_S){
-    if(sel+columsCount<pl->inventory().recordsCount())
+    if(sel+columsCount<pg->recordsCount())
       sel += columsCount;
     }
   else if(e.key==KeyEvent::K_A){
-    if(sel>0)
+    if(sel%columsCount==0 && page>0)
+      page--;
+    else if(sel>0)
       sel--;
     }
-  else if(e.key==KeyEvent::K_D){
-    if(sel+1<pl->inventory().recordsCount())
+  else if(e.key==KeyEvent::K_D) {
+    if(((sel+1)%columsCount==0 || sel+1==pg->recordsCount() || pg->recordsCount()==0) && page<pCount) {
+      page++;
+      }
+    else if(sel+1<pg->recordsCount())
       sel++;
     }
   adjustScroll();
@@ -74,30 +104,40 @@ void InventoryMenu::keyUpEvent(KeyEvent &e) {
   }
 
 void InventoryMenu::mouseDownEvent(MouseEvent &e) {
-  if(world==nullptr || state==State::Closed || e.button!=Event::ButtonLeft) {
+  if(player==nullptr || state==State::Closed || e.button!=Event::ButtonLeft) {
     e.ignore();
     return;
     }
-  auto pl = world->player();
-  if(pl==nullptr)
+
+  auto page=activePage();
+  if(page==nullptr)
     return;
 
-  if(sel>=pl->inventory().recordsCount())
+  if(sel>=page->recordsCount())
     return;
-  auto& r = pl->inventory().at(sel);
-  if(r.isEquiped())
-    pl->unequipItem(r.clsId()); else
-    pl->useItem    (r.clsId());
+  auto& r = page->at(sel);
+  if(state==State::Equip) {
+    if(r.isEquiped())
+      player->unequipItem(r.clsId()); else
+      player->useItem    (r.clsId());
+    }
+  else if(state==State::Chest) {
+    takeTimer.start(100);
+    onTakeStuff();
+    }
   adjustScroll();
   }
 
+void InventoryMenu::mouseUpEvent(MouseEvent&) {
+  takeTimer.stop();
+  }
+
 void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
-  if(world==nullptr || state==State::Closed) {
+  if(state==State::Closed) {
     e.ignore();
     return;
     }
-  auto pl = world->player();
-  if(pl==nullptr)
+  if(player==nullptr)
     return;
 
   if(e.delta>0){
@@ -105,7 +145,7 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
       sel -= columsCount;
     }
   else if(e.delta<0){
-    if(sel+columsCount<pl->inventory().recordsCount())
+    if(sel+columsCount<player->inventory().recordsCount())
       sel += columsCount;
     }
   adjustScroll();
@@ -117,14 +157,11 @@ size_t InventoryMenu::rowsCount() const {
   }
 
 void InventoryMenu::paintEvent(PaintEvent &e) {
-  if(world==nullptr || state==State::Closed)
-    return;
-  auto pl = world->player();
-  if(pl==nullptr)
+  if(player==nullptr || state==State::Closed)
     return;
 
   Painter p(e);
-  drawAll(p,*pl);
+  drawAll(p,*player);
   }
 
 Size InventoryMenu::slotSize() const {
@@ -135,11 +172,44 @@ int InventoryMenu::infoHeight() const {
   return (Item::MAX_UI_ROWS+2)*int(Resources::font().pixelSize())+10/*padding bottom*/;
   }
 
-void InventoryMenu::adjustScroll() {
-  auto pl = world ? world->player() : nullptr;
-  if(pl==nullptr)
+size_t InventoryMenu::pagesCount() const {
+  if(state==State::Chest)
+    return 2;
+  return 1;
+  }
+
+const Inventory *InventoryMenu::activePage() {
+  const Inventory* pl = player==nullptr ? nullptr : &player->inventory();
+
+  if(chest!=nullptr){
+    return page==0 ? &chest->inventory() : pl;
+    }
+  return pl;
+  }
+
+void InventoryMenu::onTakeStuff() {
+  auto page=activePage();
+  if(page==nullptr)
     return;
-  sel = std::min(sel, std::max<size_t>(pl->inventory().recordsCount(),1)-1);
+  if(sel>=page->recordsCount())
+    return;
+  auto& r = page->at(sel);
+
+  if(state==State::Chest) {
+    if(page==&player->inventory()){
+      player->moveItem(r.clsId(),*chest);
+      } else {
+      player->addItem(r.clsId(),*chest);
+      }
+    }
+  adjustScroll();
+  }
+
+void InventoryMenu::adjustScroll() {
+  auto page=activePage();
+  if(page==nullptr)
+    return;
+  sel = std::min(sel, std::max<size_t>(page->recordsCount(),1)-1);
   while(sel<scroll*columsCount) {
     if(scroll<=1){
       scroll=0;
@@ -165,35 +235,43 @@ void InventoryMenu::drawAll(Painter &p,Npc &player) {
   const int wcount = int(columsCount);
   const int hcount = int(rowsCount());
 
+  if(chest!=nullptr){
+    drawItems(p,chest->inventory(),padd,iy,wcount,hcount);
+    }
+
+  drawItems(p,player.inventory(),w()-padd-wcount*slotSize().w,iy,wcount,hcount);
+  drawInfo(p);
+  }
+
+void InventoryMenu::drawItems(Painter &p,const Inventory &inv, int x,int y, int wcount, int hcount) {
   if(tex) {
     p.setBrush(*tex);
-    p.drawRect(w()-padd-wcount*slotSize().w,iy,slotSize().w*wcount,slotSize().h*hcount,
+    p.drawRect(x,y,slotSize().w*wcount,slotSize().h*hcount,
                0,0,tex->w(),tex->h());
     }
 
   for(int i=0;i<hcount;++i){
     for(int r=0;r<wcount;++r){
-      int x = w()-padd-wcount*slotSize().w + r*slotSize().w;
-      drawSlot(p,player, x,iy, size_t((int(scroll)+i)*wcount+r));
+      int sx = x + r*slotSize().w;
+      drawSlot(p,inv, sx,y, size_t((int(scroll)+i)*wcount+r));
       }
-    iy+=slotSize().h;
+    y+=slotSize().h;
     }
-
-  drawInfo(p,player);
   }
 
-void InventoryMenu::drawSlot(Painter &p,Npc &player,int x,int y,size_t id) {
+void InventoryMenu::drawSlot(Painter &p,const Inventory &inv, int x, int y, size_t id) {
   if(!slot)
     return;
   p.setBrush(*slot);
   p.drawRect(x,y,slotSize().w,slotSize().h,
              0,0,slot->w(),slot->h());
 
-  if(id>=player.inventory().recordsCount())
+  if(id>=inv.recordsCount())
     return;
-  auto& r = player.inventory().at(id);
+  auto& r    = inv.at(id);
+  auto  page = activePage();
 
-  if(id==sel && selT!=nullptr){
+  if(id==sel && &inv==page && selT!=nullptr){
     p.setBrush(*selT);
     p.drawRect(x,y,slotSize().w,slotSize().h,
                0,0,selT->w(),selT->h());
@@ -216,7 +294,7 @@ void InventoryMenu::drawSlot(Painter &p,Npc &player,int x,int y,size_t id) {
 void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {
   if(!slot)
     return;
-  auto*          txt  = world->script()->currencyName();
+  auto*          txt  = world ? world->script()->currencyName() : "";
   const uint32_t gold = player.inventory().goldCount();
   char           vint[64]={};
   if(txt==nullptr)
@@ -239,17 +317,18 @@ void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {
   p.drawText(x+(dw-tw)/2,y+dh/2+th/2,vint);
   }
 
-void InventoryMenu::drawInfo(Painter &p,Npc &player) {
+void InventoryMenu::drawInfo(Painter &p) {
   p.setFont(Resources::font());
   const int dw   = std::min(w(),720);
   const int dh   = infoHeight();//int(choise.size()*p.font().pixelSize())+2*padd;
   const int x    = (w()-dw)/2;
   const int y    = h()-dh-20;
 
-  if(sel>=player.inventory().recordsCount())
+  const Inventory* pg=activePage();
+  if(pg==nullptr || sel>=pg->recordsCount())
     return;
 
-  auto& r = player.inventory().at(sel);
+  auto& r = pg->at(sel);
   if(tex) {
     p.setBrush(*tex);
     p.drawRect(x,y,dw,dh,
@@ -275,3 +354,4 @@ void InventoryMenu::drawInfo(Painter &p,Npc &player) {
       p.drawText(x+dw-tw-20,y+int((i+2)*p.font().pixelSize()),vint);
     }
   }
+

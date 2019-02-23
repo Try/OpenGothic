@@ -12,6 +12,7 @@ class Npc;
 class Inventory final {
   public:
     Inventory();
+    Inventory(Inventory&&)=default;
     ~Inventory();
 
     enum Flags : uint32_t {
@@ -45,9 +46,11 @@ class Inventory final {
     size_t itemCount(const size_t id) const;
     size_t recordsCount() const { return items.size(); }
     const Item& at(size_t i) const;
+    static void  trasfer(Inventory& to, Inventory& from, Npc *fromNpc, size_t cls, uint32_t count, WorldScript &vm);
 
-    void   addItem(std::unique_ptr<Item>&& p,  WorldScript& vm, Npc &owner);
-    void   addItem(size_t cls, uint32_t count, WorldScript& vm, Npc &owner);
+    void   addItem(std::unique_ptr<Item>&& p,  WorldScript& vm);
+    void   addItem(const char* name, uint32_t count, WorldScript& vm);
+    void   addItem(size_t cls, uint32_t count, WorldScript& vm);
     void   delItem(size_t cls, uint32_t count, WorldScript& vm, Npc &owner);
     bool   use    (size_t cls, WorldScript &vm, Npc &owner);
     bool   unequip(size_t cls, WorldScript &vm, Npc &owner);

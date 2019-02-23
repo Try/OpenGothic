@@ -4,6 +4,7 @@
 #include "physics/dynamicworld.h"
 #include "graphics/staticobjects.h"
 #include "graphics/protomesh.h"
+#include "game/inventory.h"
 
 class Npc;
 class World;
@@ -24,8 +25,11 @@ class Interactive final {
     std::array<float,3> displayPosition() const;
     const char*         displayName() const;
 
-    std::string stateFunc() const;
-    const Trigger *triggerTarget() const;
+    std::string         stateFunc() const;
+    const Trigger*      triggerTarget() const;
+
+    bool                isContainer() const;
+    Inventory&          inventory();
 
     bool attach (Npc& npc);
     void dettach(Npc& npc);
@@ -43,12 +47,14 @@ class Interactive final {
       Tempest::Matrix4x4 pos;
       };
 
-    void setPos(Npc &npc,std::array<float,3> pos);
-    void setDir(Npc &npc,const Tempest::Matrix4x4& mt);
-    void attach (Npc& npc,Pos& to);
+    void setPos(Npc& npc,std::array<float,3> pos);
+    void setDir(Npc& npc,const Tempest::Matrix4x4& mt);
+    void attach(Npc& npc,Pos& to);
+    void implAddItem(char *name);
 
     World*             world = nullptr;
     ZenLoad::zCVobData data;
+    Inventory          invent;
     int                state=0;
 
     std::vector<Pos>    pos;

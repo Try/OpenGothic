@@ -53,7 +53,7 @@ class WorldScript final {
     Daedalus::GEngineClasses::C_Npc&                  vmNpc (Daedalus::GameState::NpcHandle  handle);
     Daedalus::GEngineClasses::C_Item&                 vmItem(Daedalus::GameState::ItemHandle handle);
 
-    auto dialogChoises(Daedalus::GameState::NpcHandle self, Daedalus::GameState::NpcHandle npc) -> std::vector<DlgChoise>;
+    auto dialogChoises(Daedalus::GameState::NpcHandle self, Daedalus::GameState::NpcHandle npc, const std::vector<uint32_t> &except) -> std::vector<DlgChoise>;
     auto updateDialog (const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<WorldScript::DlgChoise>;
 
     void exec(const DlgChoise &dlg, Daedalus::GameState::NpcHandle player, Daedalus::GameState::NpcHandle hnpc);
@@ -180,6 +180,7 @@ class WorldScript final {
     void info_clearchoices   (Daedalus::DaedalusVM &vm);
     void infomanager_hasfinished(Daedalus::DaedalusVM &vm);
 
+    void introducechapter    (Daedalus::DaedalusVM &vm);
     void playvideo           (Daedalus::DaedalusVM &vm);
     void printscreen         (Daedalus::DaedalusVM &vm);
     void print               (Daedalus::DaedalusVM &vm);

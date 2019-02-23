@@ -21,7 +21,7 @@ using namespace Tempest;
 
 MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),
-    draw(device,gothic),gothic(gothic),dialogs(gothic),player(dialogs) {
+    draw(device,gothic),gothic(gothic),dialogs(gothic),player(dialogs,inventory) {
   for(uint8_t i=0;i<device.maxFramesInFlight();++i){
     fLocal.emplace_back(device);
     commandBuffersSemaphores.emplace_back(device);
@@ -181,9 +181,13 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     clearInput();
     }  
   else if(event.key==KeyEvent::K_Tab){
-    if(inventory.isOpen()!=InventoryMenu::State::Closed)
-      inventory.close(); else
-      inventory.open();
+    if(inventory.isOpen()!=InventoryMenu::State::Closed) {
+      inventory.close();
+      } else {
+      auto pl = gothic.player();
+      if(pl!=nullptr)
+        inventory.open(*pl);
+      }
     clearInput();
     }
   }
@@ -200,6 +204,11 @@ void MainWindow::tick() {
     dt=100;
   gothic.tick(dt);
   dialogs.tick(dt);
+
+  if(dialogs.isActive()){
+    player.clearInput();
+    return;
+    }
 
   if(mouseP[Event::ButtonLeft]){
     auto item = findFocus();

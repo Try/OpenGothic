@@ -3,10 +3,12 @@
 #include "world/npc.h"
 #include "world/world.h"
 #include "ui/dialogmenu.h"
+#include "ui/inventorymenu.h"
 
 #include <cmath>
 
-PlayerControl::PlayerControl(DialogMenu& dlg):dlg(dlg) {
+PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
+  :dlg(dlg),inv(inv) {
   }
 
 void PlayerControl::setWorld(World *w) {
@@ -17,6 +19,10 @@ void PlayerControl::setWorld(World *w) {
 bool PlayerControl::interact(Interactive &it) {
   if(world==nullptr || world->player()==nullptr)
     return false;
+  if(it.isContainer()){
+    inv.open(*world->player(),it);
+    return true;
+    }
   return dlg.start(*world->player(),it);
   }
 
