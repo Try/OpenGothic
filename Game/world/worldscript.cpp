@@ -341,6 +341,17 @@ void WorldScript::exec(const WorldScript::DlgChoise &dlg,
   runFunction(dlg.scriptFn);
   }
 
+int WorldScript::printCannotUseError(Npc& npc, int32_t atr, int32_t nValue) {
+  if(!hasSymbolName("G_CanNotUse"))
+    return 0;
+  auto id = vm.getDATFile().getSymbolIndexByName("G_CanNotUse");
+  vm.pushInt(npc.isPlayer() ? 1 : 0);
+  vm.pushInt(atr);
+  vm.pushInt(nValue);
+  ScopeVar self (vm,"self", ZMemory::toBigHandle(npc.handle()), Daedalus::IC_Npc);
+  return runFunction(id,false);
+  }
+
 int WorldScript::invokeState(NpcHandle hnpc, NpcHandle oth, const char *name) {
   auto& dat = vm.getDATFile();
   if(name==nullptr || !dat.hasSymbolName(name))
@@ -401,13 +412,12 @@ int32_t WorldScript::runFunction(const std::string& fname) {
   if(!hasSymbolName(fname))
     throw std::runtime_error("script bad call");
   auto id = vm.getDATFile().getSymbolIndexByName(fname);
-  return runFunction(id);
+  return runFunction(id,true);
   }
 
-int32_t WorldScript::runFunction(const size_t fid) {
+int32_t WorldScript::runFunction(const size_t fid,bool clearStk) {
   if(invokeRecursive)
     assert(0 && "invokeRecursive");
-  const bool clr = !invokeRecursive;
   invokeRecursive = true;
 
   auto&       dat  = vm.getDATFile();
@@ -415,7 +425,7 @@ int32_t WorldScript::runFunction(const size_t fid) {
   const char* call = sym.name.c_str();(void)call; //for debuging
 
   vm.prepareRunFunction();
-  bool ret = vm.runFunctionBySymIndex(fid,clr);
+  bool ret = vm.runFunctionBySymIndex(fid,clearStk);
   invokeRecursive = false;
   return ret;
   }

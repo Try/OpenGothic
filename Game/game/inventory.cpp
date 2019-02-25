@@ -178,8 +178,14 @@ bool Inventory::setSlot(Item *&slot, Item* next, WorldScript &vm, Npc& owner) {
     slot=nullptr;
     }
 
-  if(next==nullptr || !next->checkCond(owner))
+  int32_t atr=0,nValue=0;
+  if(next==nullptr)
     return false;
+
+  if(!next->checkCond(owner,atr,nValue)) {
+    vm.printCannotUseError(owner,atr,nValue);
+    return false;
+    }
 
   auto& itData = vm.getGameState().getItem(next->handle());
   vm.invokeItem(&owner,itData.on_equip);

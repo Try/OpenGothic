@@ -64,12 +64,20 @@ int32_t Item::cost() const {
   }
 
 bool Item::checkCond(const Npc &other) const {
+  int32_t a=0,v=0;
+  return checkCond(other,a,v);
+  }
+
+bool Item::checkCond(const Npc &other, int32_t &a, int32_t &nv) const {
   auto& itData = owner.vmItem(hitem);
 
   for(size_t i=0;i<Daedalus::GEngineClasses::C_Item::COND_ATR_MAX;++i){
     auto atr = Npc::Attribute(itData.cond_atr[i]);
-    if(other.attribute(atr)<itData.cond_value[i] && itData.cond_value[i]!=0)
+    if(other.attribute(atr)<itData.cond_value[i] && itData.cond_value[i]!=0) {
+      a  = atr;
+      nv = itData.cond_value[i];
       return false;
+      }
     }
   return true;
   }

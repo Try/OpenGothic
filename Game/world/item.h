@@ -35,6 +35,7 @@ class Item final {
     int32_t             cost() const;
 
     bool                checkCond(const Npc& other) const;
+    bool                checkCond(const Npc& other,int32_t& atr,int32_t& nv) const;
 
     Daedalus::GameState::ItemHandle handle() const { return hitem; }
     size_t                          clsId() const;
