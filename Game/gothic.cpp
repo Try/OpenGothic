@@ -36,7 +36,7 @@ Gothic::Gothic(const int argc, const char **argv) {
     gpath.push_back('/');
 
   if(wdef.empty())
-    wdef = "oldworld.zen";
+    wdef = "newworld.zen";
   setTime(gtime(8,0));
   }
 
@@ -106,8 +106,8 @@ void Gothic::aiProcessInfos(Npc& player,Npc &npc) {
   onDialogProcess(player,npc);
   }
 
-void Gothic::aiOuput(const char *msg) {
-  onDialogOutput(msg);
+void Gothic::aiOuput(Npc &player, const char *msg) {
+  onDialogOutput(player,msg);
   }
 
 void Gothic::aiCloseDialog() {

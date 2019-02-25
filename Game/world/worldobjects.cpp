@@ -95,6 +95,14 @@ void WorldObjects::removeItem(Item &it) {
     }
   }
 
+size_t WorldObjects::hasItems(const std::string &tag, size_t itemCls) {
+  for(auto& i:interactiveObj)
+    if(i.tag()==tag) {
+      return i.inventory().itemCount(itemCls);
+      }
+  return 0;
+  }
+
 Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
   auto  pos    = owner.findPoint(at);
   auto  h      = owner.script()->getGameState().insertItem(itemInstance);
@@ -156,6 +164,36 @@ void WorldObjects::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x
 
     i.marchInteractives(p,mvp,w,h);
     }
+  }
+
+Interactive *WorldObjects::aviableMob(const Npc &pl, const std::string &dest) {
+  const float dist=100*10.f;
+
+  float x = pl.position()[0];
+  float y = pl.position()[1];
+  float z = pl.position()[2];
+
+  for(auto& i:interactiveObj){
+    float dx = i.position()[0]-x;
+    float dy = i.position()[1]-y;
+    float dz = i.position()[2]-z;
+
+    if(dx*dx+dy*dy+dz*dz<dist*dist && i.isAvailable()) {
+      auto name=i.focusName();
+      if(name==dest)
+        return &i;
+      if(name.find("MOBNAME_")==0 && dest==name.c_str()+8)
+        return &i;
+      }
+    }
+  return nullptr;
+  }
+
+bool WorldObjects::aiUseMob(Npc &pl, const std::string &name) {
+  auto inter = aviableMob(pl,name);
+  if(inter==nullptr)
+    return false;
+  return pl.setInteraction(inter);
   }
 
 template<class T>

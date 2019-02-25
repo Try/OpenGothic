@@ -153,6 +153,10 @@ const Trigger *World::findTrigger(const char *name) const {
   return wobj.findTrigger(name);
   }
 
+Interactive *World::aviableMob(const Npc &pl, const std::string &name) {
+  return wobj.aviableMob(pl,name);
+  }
+
 void World::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,
                               int w,int h) const {
   wobj.marchInteractives(p,mvp,w,h);
@@ -170,8 +174,8 @@ void World::aiProcessInfos(Npc &player, Npc &npc) {
   gothic.aiProcessInfos(player,npc);
   }
 
-void World::aiOutput(const char *msg) {
-  gothic.aiOuput(msg);
+void World::aiOutput(Npc &player, const char *msg) {
+  gothic.aiOuput(player,msg);
   }
 
 void World::aiCloseDialog() {
@@ -180,6 +184,10 @@ void World::aiCloseDialog() {
 
 bool World::aiIsDlgFinished() {
   return gothic.aiIsDlgFinished();
+  }
+
+bool World::aiUseMob(Npc &pl, const std::string &name) {
+  return wobj.aiUseMob(pl,name);
   }
 
 void World::printScreen(const char *msg, int x, int y, int time, const Font &font) {
@@ -204,6 +212,10 @@ Item *World::takeItem(Item &it) {
 
 void World::removeItem(Item& it) {
   wobj.removeItem(it);
+  }
+
+size_t World::hasItems(const std::string &tag, size_t itemCls) {
+  return wobj.hasItems(tag,itemCls);
   }
 
 void World::adjustWaypoints(std::vector<ZenLoad::zCWaypointData> &wp) {
@@ -254,11 +266,12 @@ const ZenLoad::zCWaypointData *World::findFreePoint(const std::array<float,3> &p
   }
 
 const ZenLoad::zCWaypointData *World::findFreePoint(float x, float y, float z, const char *name) const {
-  const ZenLoad::zCWaypointData* ret =nullptr;
-  float                          dist=20.f; // see scripting doc
-  for(auto& w:freePoints){
-    if(w.wpName!=name)
-      continue;
+  const ZenLoad::zCWaypointData* ret   = nullptr;
+  float                          dist  = 20.f*100.f; // see scripting doc
+  auto&                          index = findFpIndex(name);
+
+  for(auto pw:index.index){
+    auto& w  = *pw;
     float dx = w.position.x-x;
     float dy = w.position.y-y;
     float dz = w.position.z-z;
@@ -281,6 +294,7 @@ void World::initScripts(bool firstTime) {
 
   if(vm->hasSymbolName(startup))
     vm->runFunction(startup);
+  tick(0); // apply armour and stuff
   }
 
 void World::loadVob(const ZenLoad::zCVobData &vob) {
@@ -370,4 +384,24 @@ void World::addInteractive(const ZenLoad::zCVobData &vob) {
 
 void World::addItem(const ZenLoad::zCVobData &vob) {
   wobj.addItem(vob);
+  }
+
+const World::FpIndex &World::findFpIndex(const char *name) const {
+  auto it = std::lower_bound(fpIndex.begin(),fpIndex.end(),name,[](FpIndex& l,const char* r){
+    return l.key<r;
+    });
+  if(it!=fpIndex.end() && it->key==name){
+    return *it;
+    }
+
+  FpIndex id;
+  id.key = name;
+  for(auto& w:freePoints){
+    if(w.wpName.find(name)==std::string::npos)
+      continue;
+    id.index.push_back(&w);
+    }
+
+  it = fpIndex.insert(it,std::move(id));
+  return *it;
   }

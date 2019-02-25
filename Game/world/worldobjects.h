@@ -33,6 +33,7 @@ class WorldObjects final {
     Item*          addItem(const ZenLoad::zCVobData &vob);
     Item*          takeItem(Item& it);
     void           removeItem(Item& it);
+    size_t         hasItems(const std::string& tag,size_t itemCls);
     void           addInteractive(const ZenLoad::zCVobData &vob);
 
     Interactive*   findInteractive(const Npc& pl, const Tempest::Matrix4x4 &v, int w, int h);
@@ -40,6 +41,9 @@ class WorldObjects final {
     Item*          findItem       (const Npc& pl, const Tempest::Matrix4x4 &v, int w, int h);
 
     void           marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
+
+    Interactive*   aviableMob(const Npc& pl,const std::string& name);
+    bool           aiUseMob  (Npc &pl, const std::string& name);
 
   private:
     World&                             owner;

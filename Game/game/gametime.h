@@ -27,12 +27,17 @@ class gtime final {
     static const int64_t minMilis =60*1000;
 
   friend bool operator == (gtime a,gtime b);
+  friend bool operator != (gtime a,gtime b);
   friend bool operator <  (gtime a,gtime b);
   friend bool operator <= (gtime a,gtime b);
   };
 
 inline bool operator == (gtime a,gtime b){
   return a.time==b.time;
+  }
+
+inline bool operator != (gtime a,gtime b){
+  return a.time!=b.time;
   }
 
 inline bool operator < (gtime a,gtime b){

@@ -59,7 +59,7 @@ void DialogMenu::tick(uint64_t dt) {
 
 bool DialogMenu::start(Npc &pl,Npc &other) {
   other.startDialog(&pl);
-  return false;
+  return true;
   }
 
 bool DialogMenu::start(Npc &pl, Interactive &other) {
@@ -73,7 +73,9 @@ void DialogMenu::aiProcessInfos(Npc &p,Npc &npc) {
   state  = State::PreStart;
   }
 
-void DialogMenu::aiOutput(const char *msg) {
+void DialogMenu::aiOutput(Npc &player,const char *msg) {
+  if(&player!=pl && &player!=other)
+    return; // vatras is here
   Entry e;
   e.txt=msg;
   e.time = uint32_t(e.txt.size()*50);

@@ -16,13 +16,18 @@ void MoveAlgo::tick(uint64_t dt) {
   float dpos[3]={};
   auto  dp  = npc.animMoveSpeed(dt);
 
+  if(currentGoTo && npc.isStanding()){
+    npc.setAnim(Npc::Move);
+    dp = npc.animMoveSpeed(dt);
+    }
+
   if(!isClimb()) {
     dpos[0]=dp.x;
     dpos[1]=npc.isFlyAnim() ? dp.y : 0;
     dpos[2]=dp.z;
     }
 
-  if((npc.anim()==Npc::Idle || (dpos[0]==0.f && dpos[1]==0.f && dpos[2]==0.f)) && isFrozen())
+  if((npc.isStanding() || (dpos[0]==0.f && dpos[1]==0.f && dpos[2]==0.f)) && isFrozen())
     return;
   float speed = std::sqrt(dpos[0]*dpos[0]+dpos[2]*dpos[2]);
 
@@ -31,6 +36,21 @@ void MoveAlgo::tick(uint64_t dt) {
   aniSpeed[0]=mulSpeed*(dpos[0]*c-dpos[2]*s);
   aniSpeed[2]=mulSpeed*(dpos[0]*s+dpos[2]*c);
   aniSpeed[1]=-dpos[1];
+
+  if(currentGoTo) {
+    float dx  = currentGoTo->position.x-npc.position()[0];
+    //float dy  = currentGoTo->position.y-npc.position()[1];
+    float dz  = currentGoTo->position.z-npc.position()[2];
+    float len = std::sqrt(dx*dx+dz*dz);
+
+    if(len<=speed){
+      currentGoTo=nullptr;
+      npc.setAnim(Npc::Idle);
+      }
+    float k = std::min(len,mulSpeed*speed)/len;
+    aniSpeed[0] = dx*k;
+    aniSpeed[2] = dz*k;
+    }
 
   auto pos = npc.position();
   pos[0]+=aniSpeed[0];
@@ -47,12 +67,30 @@ void MoveAlgo::clearSpeed() {
   flags = NoFlags;
   }
 
+bool MoveAlgo::aiGoTo(const ZenLoad::zCWaypointData *p) {
+  currentGoTo=p;
+  if(p==nullptr)
+    return false;
+  float dx  = currentGoTo->position.x-npc.position()[0];
+  float dz  = currentGoTo->position.z-npc.position()[2];
+  float len = (dx*dx+dz*dz);
+  if(len<10*10){
+    currentGoTo=nullptr;
+    return false;
+    }
+  return true;
+  }
+
 bool MoveAlgo::startClimb() {
   climbStart=world.tickCount();
   climbPos0 =npc.position();
   setAsClimb(true);
   setAsFrozen(false);
   return true;
+  }
+
+bool MoveAlgo::hasGoTo() const {
+  return currentGoTo!=nullptr;
   }
 
 bool MoveAlgo::isFaling() const {

@@ -206,20 +206,19 @@ void MainWindow::tick() {
   dialogs.tick(dt);
 
   if(dialogs.isActive()){
-    player.clearInput();
-    return;
+    clearInput();
     }
 
   if(mouseP[Event::ButtonLeft]){
     auto item = findFocus();
     if(item.interactive!=nullptr && player.interact(*item.interactive)) {
-      mouseP[Event::ButtonLeft]=false;
+      clearInput();
       }
     else if(item.npc!=nullptr && player.interact(*item.npc)) {
-      mouseP[Event::ButtonLeft]=false;
+      clearInput();
       }
     else if(item.item!=nullptr && player.interact(*item.item)) {
-      mouseP[Event::ButtonLeft]=false;
+      //clearInput();
       }
     }
   if(pressed[KeyEvent::K_F8])

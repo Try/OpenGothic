@@ -61,6 +61,7 @@ class WorldScript final {
     int  invokeState(Daedalus::GameState::NpcHandle hnpc, Daedalus::GameState::NpcHandle hother, const char* name);
     int  invokeState(Npc* npc, Npc* other, size_t fn);
     int  invokeItem (Npc* npc, size_t fn);
+    bool aiUseMob  (Npc &pl, const std::string& name);
 
     void useInteractive(Daedalus::GameState::NpcHandle hnpc, const std::string &func);
 
@@ -112,6 +113,7 @@ class WorldScript final {
     void wld_getguildattitude(Daedalus::DaedalusVM& vm);
     void wld_istime          (Daedalus::DaedalusVM& vm);
     void wld_isfpavailable   (Daedalus::DaedalusVM& vm);
+    void wld_ismobavailable  (Daedalus::DaedalusVM& vm);
 
     void mdl_setvisual       (Daedalus::DaedalusVM& vm);
     void mdl_setvisualbody   (Daedalus::DaedalusVM& vm);
@@ -144,11 +146,18 @@ class WorldScript final {
     void npc_getattitude     (Daedalus::DaedalusVM &vm);
     void npc_setperctime     (Daedalus::DaedalusVM &vm);
     void npc_percenable      (Daedalus::DaedalusVM &vm);
+    void npc_percdisable     (Daedalus::DaedalusVM &vm);
     void npc_getnearestwp    (Daedalus::DaedalusVM &vm);
     void npc_clearaiqueue    (Daedalus::DaedalusVM &vm);
     void npc_isplayer        (Daedalus::DaedalusVM &vm);
     void npc_getstatetime    (Daedalus::DaedalusVM &vm);
+    void npc_setstatetime    (Daedalus::DaedalusVM &vm);
     void npc_changeattribute (Daedalus::DaedalusVM &vm);
+    void npc_isonfp          (Daedalus::DaedalusVM &vm);
+    void npc_getheighttonpc  (Daedalus::DaedalusVM &vm);
+    void npc_getequippedarmor(Daedalus::DaedalusVM &vm);
+    void npc_canseenpc       (Daedalus::DaedalusVM &vm);
+    void npc_hasequippedmeleeweapon(Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
@@ -165,6 +174,13 @@ class WorldScript final {
     void ai_setwalkmode      (Daedalus::DaedalusVM &vm);
     void ai_waitms           (Daedalus::DaedalusVM &vm);
     void ai_aligntowp        (Daedalus::DaedalusVM &vm);
+    void ai_gotowp           (Daedalus::DaedalusVM &vm);
+    void ai_gotofp           (Daedalus::DaedalusVM &vm);
+    void ai_playanibs        (Daedalus::DaedalusVM &vm);
+    void ai_equipbestmeleeweapon(Daedalus::DaedalusVM &vm);
+    void ai_usemob           (Daedalus::DaedalusVM &vm);
+
+    void mob_hasitems        (Daedalus::DaedalusVM &vm);
 
     void ta_min              (Daedalus::DaedalusVM &vm);
 

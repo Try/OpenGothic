@@ -59,6 +59,10 @@ class Inventory final {
     bool   isChanged() const { return ch; }
     void   autoEquip(WorldScript &vm, Npc &owner);
     void   updateArmourView(WorldScript &vm, Npc& owner);
+    void   equipBestMeleWeapon(WorldScript &vm, Npc &owner);
+
+    Item*  currentArmour()     { return armour; }
+    Item*  currentMeleWeapon() { return mele;   }
 
   private:
     bool   setSlot     (Item*& slot, Item *next, WorldScript &vm, Npc &owner);
@@ -67,8 +71,11 @@ class Inventory final {
 
     Item*  findByClass(size_t cls);
     void   delItem    (Item* it, uint32_t count, WorldScript& vm, Npc& owner);
-    Item*  bestArmour (WorldScript &vm, Npc &owner);
     void   invalidateCond(Item*& slot,  Npc &owner);
+
+    Item*  bestItem       (WorldScript &vm, Npc &owner, Flags f);
+    Item*  bestArmour     (WorldScript &vm, Npc &owner);
+    Item*  bestMeleeWeapon(WorldScript &vm, Npc &owner);
 
     std::vector<std::unique_ptr<Item>> items;
     Item*                              armour=nullptr;

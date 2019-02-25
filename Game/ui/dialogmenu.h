@@ -17,7 +17,7 @@ class DialogMenu : public Tempest::Widget {
     void tick(uint64_t dt);
 
     void aiProcessInfos(Npc &player, Npc& npc);
-    void aiOutput(const char* msg);
+    void aiOutput(Npc& player, const char* msg);
     void aiClose();
     void aiIsClose(bool& ret);
     bool isActive() const;

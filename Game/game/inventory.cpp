@@ -205,6 +205,11 @@ void Inventory::updateArmourView(WorldScript &vm, Npc& owner) {
     }
   }
 
+void Inventory::equipBestMeleWeapon(WorldScript &vm, Npc &owner) {
+  auto a = bestMeleeWeapon(vm,owner);
+  setSlot(mele,a,vm,owner);
+  }
+
 bool Inventory::equipNumSlot(Item *next, WorldScript &vm, Npc &owner) {
   for(auto& i:numslot){
     if(i==nullptr){
@@ -297,13 +302,13 @@ Item *Inventory::findByClass(size_t cls) {
   return nullptr;
   }
 
-Item *Inventory::bestArmour(WorldScript &vm, Npc &owner) {
+Item* Inventory::bestItem(WorldScript &vm, Npc &owner, Inventory::Flags f) {
   Item* ret=nullptr;
   int   g  =-1;
   for(auto& i:items) {
     auto& itData = vm.getGameState().getItem(i->handle());
     auto  flag   = Flags(itData.mainflag);
-    if((flag & ITM_CAT_ARMOR)==0)
+    if((flag & f)==0)
       continue;
     if(!i->checkCond(owner))
       continue;
@@ -314,5 +319,13 @@ Item *Inventory::bestArmour(WorldScript &vm, Npc &owner) {
       }
     }
   return ret;
+  }
+
+Item *Inventory::bestArmour(WorldScript &vm, Npc &owner) {
+  return bestItem(vm,owner,ITM_CAT_ARMOR);
+  }
+
+Item *Inventory::bestMeleeWeapon(WorldScript &vm, Npc &owner) {
+  return bestItem(vm,owner,ITM_CAT_NF);
   }
 

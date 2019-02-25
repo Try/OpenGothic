@@ -21,6 +21,9 @@ class Interactive final {
     Interactive(World& owner,const ZenLoad::zCVobData &vob);
     Interactive(Interactive&&)=default;
 
+    const std::string&  tag() const;
+    const std::string&  focusName() const;
+
     std::array<float,3> position() const;
     std::array<float,3> displayPosition() const;
     const char*         displayName() const;
@@ -31,6 +34,9 @@ class Interactive final {
     bool                isContainer() const;
     Inventory&          inventory();
 
+    uint32_t            stateMask(uint32_t orig) const;
+
+    bool isAvailable() const;
     bool attach (Npc& npc);
     void dettach(Npc& npc);
 
@@ -51,6 +57,9 @@ class Interactive final {
     void setDir(Npc& npc,const Tempest::Matrix4x4& mt);
     void attach(Npc& npc,Pos& to);
     void implAddItem(char *name);
+
+    const Pos* findFreePos() const;
+    Pos*       findFreePos();
 
     World*             world = nullptr;
     ZenLoad::zCVobData data;

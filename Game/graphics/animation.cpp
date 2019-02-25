@@ -168,7 +168,7 @@ ZMath::float3 Animation::Sequence::speed(uint64_t at,uint64_t dt) const {
   float allTime=numFrames*1000/fpsRate;
   float k = -(dt/allTime);
 
-  ZMath::float3 f;
+  ZMath::float3 f={};
   f.x = moveTr.position.x*k;
   f.y = moveTr.position.y*k;
   f.z = moveTr.position.z*k;

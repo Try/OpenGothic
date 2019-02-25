@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <array>
 
+#include <zenload/zTypes.h>
+
 class Npc;
 class World;
 
@@ -14,7 +16,10 @@ class MoveAlgo final {
     void multSpeed(float s){ mulSpeed=s; }
     void clearSpeed();
 
+    auto aiGoTarget() -> const ZenLoad::zCWaypointData* { return currentGoTo; }
+    bool aiGoTo(const ZenLoad::zCWaypointData* p);
     bool startClimb();
+    bool hasGoTo() const;
 
     bool isFaling() const;
     bool isSlide()  const;
@@ -44,6 +49,7 @@ class MoveAlgo final {
 
     Npc&                npc;
     const World&        world;
+    const ZenLoad::zCWaypointData* currentGoTo=nullptr;
 
     float               mulSpeed  =1.f;
     std::array<float,3> aniSpeed={};

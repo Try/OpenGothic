@@ -29,6 +29,14 @@ Interactive::Interactive(World &owner, const ZenLoad::zCVobData &vob)
     }
   }
 
+const std::string &Interactive::tag() const {
+  return data.vobName;
+  }
+
+const std::string &Interactive::focusName() const {
+  return data.oCMOB.focusName;
+  }
+
 std::array<float,3> Interactive::position() const {
   float x=data.position.x,
         y=data.position.y,
@@ -89,6 +97,16 @@ Inventory &Interactive::inventory()  {
   return invent;
   }
 
+uint32_t Interactive::stateMask(uint32_t orig) const {
+  //orig |= Npc::BS_MOBINTERACT;
+
+  if(data.oCMOB.focusName=="MOBNAME_BENCH" ||
+     data.oCMOB.focusName=="MOBNAME_THRONE" ||
+     data.oCMOB.focusName=="MOBNAME_CHAIR")
+    orig = Npc::BS_SIT;
+  return orig;
+  }
+
 void Interactive::implAddItem(char *name) {
   char* sep = std::strchr(name,':');
   if(sep!=nullptr) {
@@ -101,18 +119,42 @@ void Interactive::implAddItem(char *name) {
     }
   }
 
-bool Interactive::attach(Npc &npc) {
+const Interactive::Pos *Interactive::findFreePos() const {
   for(auto& i:pos) {
     if(i.name=="ZS_POS0" && i.user==nullptr) {
-      attach(npc,i);
-      return true;
+      return &i;
       }
     }
   for(auto& i:pos) {
     if(i.name=="ZS_POS0_DIST" && i.user==nullptr) {
-      attach(npc,i);
-      return true;
+      return &i;
       }
+    }
+  return nullptr;
+  }
+
+Interactive::Pos *Interactive::findFreePos() {
+  for(auto& i:pos) {
+    if(i.name=="ZS_POS0" && i.user==nullptr) {
+      return &i;
+      }
+    }
+  for(auto& i:pos) {
+    if(i.name=="ZS_POS0_DIST" && i.user==nullptr) {
+      return &i;
+      }
+    }
+  return nullptr;
+  }
+
+bool Interactive::isAvailable() const {
+  return findFreePos()!=nullptr;
+  }
+
+bool Interactive::attach(Npc &npc) {
+  if(auto p=findFreePos()){
+    attach(npc,*p);
+    return true;
     }
   return false;
   }
@@ -199,6 +241,26 @@ const char* Interactive::anim(Interactive::Anim t) const {
     "S_INNOS_S1",
     "T_INNOS_S1_2_S0"
     };
+  static const char* ore[]={
+    "T_ORE_STAND_2_S0",
+    "S_ORE_S1",
+    "T_ORE_S0_2_STAND"
+    };
+  static const char* cauldron[]={
+    "T_CAULDRON_STAND_2_S0",
+    "S_CAULDRON_S1",
+    "T_CAULDRON_S0_2_STAND"
+    };
+  static const char* throne[]={
+    "T_THRONE_STAND_2_S0",
+    "S_THRONE_S1",
+    "T_THRONE_S0_2_STAND"
+    };
+  static const char* chair[]={
+    "T_CHAIR_STAND_2_S0",
+    "S_CHAIR_S1",
+    "T_THRONE_S0_2_STAND"
+    };
 
   if(data.oCMOB.focusName=="MOBNAME_INNOS" || data.oCMOB.focusName=="MOBNAME_ADDON_IDOL")
     return pray[t];
@@ -214,6 +276,14 @@ const char* Interactive::anim(Interactive::Anim t) const {
     return chest[t];
   if(data.oCMOB.focusName=="MOBNAME_FORGE")
     return forge[t];
+  if(data.oCMOB.focusName=="MOBNAME_ORE")
+    return ore[t];
+  if(data.oCMOB.focusName=="MOBNAME_CAULDRON")
+    return cauldron[t];
+  if(data.oCMOB.focusName=="MOBNAME_THRONE")
+    return throne[t];
+  if(data.oCMOB.focusName=="MOBNAME_CHAIR")
+    return chair[t];
   return lab[t];
   }
 

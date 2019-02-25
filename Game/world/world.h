@@ -65,6 +65,7 @@ class World final {
 
     const Trigger* findTrigger(const std::string& s) const { return findTrigger(s.c_str()); }
     const Trigger* findTrigger(const char* name) const;
+    Interactive*   aviableMob(const Npc &pl, const std::string& name);
 
     void  marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
@@ -72,9 +73,10 @@ class World final {
     void  exec(const WorldScript::DlgChoise& dlg, Npc& player,Npc& hnpc);
 
     void  aiProcessInfos(Npc &player, Npc& npc);
-    void  aiOutput(const char* msg);
+    void  aiOutput(Npc &player, const char* msg);
     void  aiCloseDialog();
     bool  aiIsDlgFinished();
+    bool  aiUseMob  (Npc &pl, const std::string& name);
 
     void  printScreen(const char* msg, int x, int y, int time,const Tempest::Font &font);
     void  print      (const char* msg);
@@ -83,6 +85,7 @@ class World final {
     Item* addItem    (size_t itemInstance, const char *at);
     Item* takeItem(Item& it);
     void  removeItem (Item &it);
+    size_t hasItems(const std::string& tag,size_t itemCls);
 
   private:
     std::string                           wname;
@@ -90,6 +93,12 @@ class World final {
     ZenLoad::zCWayNetData                 wayNet;
     std::vector<ZenLoad::zCWaypointData>  freePoints, startPoints;
     std::vector<ZenLoad::zCWaypointData*> indexPoints;
+
+    struct FpIndex {
+      std::string                                 key;
+      std::vector<const ZenLoad::zCWaypointData*> index;
+      };
+    mutable std::vector<FpIndex>          fpIndex;
 
     Npc*                                  npcPlayer=nullptr;
 
@@ -103,6 +112,8 @@ class World final {
     void         addStatic(const ZenLoad::zCVobData &vob);
     void         addInteractive(const ZenLoad::zCVobData &vob);
     void         addItem(const ZenLoad::zCVobData &vob);
+
+    const FpIndex& findFpIndex(const char* name) const;
 
     void         initScripts(bool firstTime);
     int32_t      runFunction(const std::string &fname);

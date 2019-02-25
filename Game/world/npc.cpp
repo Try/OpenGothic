@@ -248,11 +248,15 @@ void Npc::setAnim(Npc::Anim a,WeaponState nextSt) {
   invalidateAnim(ani,skeleton);
   }
 
+bool Npc::isStanding() const {
+  return current<IdleLast;
+  }
+
 ZMath::float3 Npc::animMoveSpeed(uint64_t dt) const {
   if(animSq!=nullptr){
     return animSq->speed(owner.tickCount()-sAnim,dt);
     }
-  return ZMath::float3();
+  return ZMath::float3(0,0,0);
   }
 
 ZMath::float3 Npc::animMoveSpeed(Anim a,uint64_t dt) const {
@@ -263,7 +267,7 @@ ZMath::float3 Npc::animMoveSpeed(Anim a,uint64_t dt) const {
       }
     return ani->speed(0,dt);
     }
-  return ZMath::float3();
+  return ZMath::float3(0,0,0);
   }
 
 bool Npc::isFlyAnim() const {
@@ -283,6 +287,16 @@ bool Npc::isSlide() const {
 
 bool Npc::isInAir() const {
   return mvAlgo.isInAir();
+  }
+
+float Npc::qDistTo(const ZenLoad::zCWaypointData *f) const {
+  if(f==nullptr)
+    return 0.f;
+
+  auto dx = f->position.x-x;
+  auto dy = f->position.y-y;
+  auto dz = f->position.z-z;
+  return dx*dx+dy*dy+dz*dz;
   }
 
 void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {
@@ -405,7 +419,7 @@ void Npc::changeAttribute(Npc::Attribute a, int32_t val) {
     invent.invalidateCond(*this);
 
   if(a==ATR_HITPOINTS && v.attribute[a]<=0){
-    //TODO: death;
+    bodySt = BodyState(BS_DEAD | bodySt);
     }
   }
 
@@ -466,7 +480,7 @@ bool Npc::implLookAt(uint64_t dt) {
     auto dz = currentLookAt->z-z;
     if(implLookAt(dx,dz,dt))
       return true;
-    currentTurnTo=nullptr;
+    currentLookAt=nullptr;
     return false;
     }
   return false;
@@ -479,9 +493,15 @@ bool Npc::implLookAt(float dx, float dz, uint64_t dt) {
 
   if(std::abs(da)<step){
     setDirection(a);
-    if(animSq!=nullptr && !animSq->isFinished(owner.tickCount()-sAnim))
-      return true;
-    setAnim(Anim::Idle);
+    if(current==Npc::RotL || current==Npc::RotR) {
+      if(currentGoTo==nullptr && animSq!=nullptr && !animSq->isFinished(owner.tickCount()-sAnim)){
+        // finish animation
+        setAnim(Anim::Idle);
+        return true;
+        }
+      setAnim(Anim::Idle);
+      return false;
+      }
     return false;
     }
 
@@ -496,6 +516,24 @@ bool Npc::implLookAt(float dx, float dz, uint64_t dt) {
   return true;
   }
 
+bool Npc::implGoTo(uint64_t dt) {
+  if(!currentGoTo)
+    return false;
+
+  float dx = currentGoTo->position.x-x;
+  //float dy = y-currentGoTo->position.y;
+  float dz = currentGoTo->position.z-z;
+
+  if(implLookAt(dx,dz,dt))
+    return true;
+  if(!mvAlgo.aiGoTo(currentGoTo)) {
+    currentFp  =currentGoTo;
+    currentGoTo=nullptr;
+    setAnim(Npc::Idle);
+    }
+  return mvAlgo.hasGoTo();
+  }
+
 void Npc::invalidateAnim(const Animation::Sequence *ani,const Skeleton* sk) {
   animSq = ani;
   sAnim  = owner.tickCount();
@@ -508,13 +546,21 @@ void Npc::tick(uint64_t dt) {
     return;
     }
 
-  setAnim(current);
+  if(attribute(ATR_HITPOINTS)<=0)
+    Log::d("TODO: death");
+
+  if(interactive()!=nullptr)
+    setAnim(Interact); else
+    setAnim(current);
   mvAlgo.tick(dt);
 
   if(waitTime>=owner.tickCount())
     return;
 
   if(implLookAt(dt))
+    return;
+
+  if(implGoTo(dt))
     return;
 
   if(aiActions.size()==0) {
@@ -546,7 +592,8 @@ void Npc::tick(uint64_t dt) {
     case AI_PlayAnim:{
       auto a = animSequence(act.s0.c_str());
       if(a!=nullptr){
-        auto tag=animByName(a->name);
+        auto tag =animByName(a->name);
+        auto prev=current;
         if(tag!=Anim::NoAnim){
           setAnim(tag);
           } else {
@@ -554,6 +601,8 @@ void Npc::tick(uint64_t dt) {
           if(animSq!=a)
             invalidateAnim(a,skeleton);
           }
+        if(Anim::IdleLoopLast<=current && current<=Anim::IdleLast)
+          current=prev;
         }
       break;
       }
@@ -561,7 +610,22 @@ void Npc::tick(uint64_t dt) {
       waitTime = owner.tickCount()+uint64_t(act.i0);
       break;
     case AI_StandUp:
-      // TODO: not implemented
+      if(current==Anim::Sit)
+        setAnim(Anim::Idle);
+      setInteraction(nullptr);
+      break;
+    case AI_GoToPoint:
+      currentGoTo = act.point;
+      break;
+    case AI_EquipMelee:
+      invent.equipBestMeleWeapon(owner,*this);
+      break;
+    case AI_UseMob:
+      if(act.i0<0){
+        setInteraction(nullptr);
+        } else {
+        owner.aiUseMob(*this,act.s0);
+        }
       break;
     }
 
@@ -570,12 +634,16 @@ void Npc::tick(uint64_t dt) {
   }
 
 void Npc::startDialog(Npc* other) {
-  auto sym     = owner.getSymbolIndex("ZS_Talk");
   currentOther = other;
-  startState(sym,true,"");
+  if(other!=nullptr)
+    owner.invokeState(hnpc,other->handle(),"B_AssessTalk");
   }
 
-void Npc::startState(size_t id,bool loop,const std::string &wp) {
+void Npc::startState(size_t id, bool loop, const std::string &wp) {
+  return startState(id,loop,wp,gtime());
+  }
+
+void Npc::startState(size_t id,bool loop,const std::string &wp,gtime endTime) {
   if(id==0)
     return;
   if(aiState.funcIni!=0 && aiState.started)
@@ -592,32 +660,84 @@ void Npc::startState(size_t id,bool loop,const std::string &wp) {
   aiState.funcLoop = loop ? owner.getSymbolIndex(fn.name+"_Loop") : 0;
   aiState.funcEnd  = owner.getSymbolIndex(fn.name+"_End");
   aiState.sTime    = owner.tickCount();
+  aiState.eTime    = endTime;
   }
 
 void Npc::tickRoutine() {
-  if(aiState.funcIni==0){
-    auto& v=owner.vmNpc(hnpc);
-    if(v.start_aistate!=0)
+  if(aiState.funcIni==0) {
+    auto& v = owner.vmNpc(hnpc);
+    auto  r = currentRoutine();
+    if(r.callback!=0) {
+      if(r.point!=nullptr)
+        v.wp = r.point->wpName;
+      auto t = endTime(r);
+      startState(r.callback,true,"",t);
+      }
+    else if(v.start_aistate!=0)
       startState(v.start_aistate,true,"");
     }
 
+  if(aiState.funcIni==0)
+    return;
+
   if(aiState.started) {
     int loop = owner.invokeState(this,currentOther,aiState.funcLoop);
+    if(aiState.eTime!=gtime() && aiState.eTime<=owner.world().time())
+      loop=1;
     if(loop!=0){
       owner.invokeState(this,currentOther,aiState.funcEnd);
       aiState = AiState();
       }
     } else {
-    owner.invokeState(this,currentOther,aiState.funcIni);
     aiState.started=true;
+    owner.invokeState(this,currentOther,aiState.funcIni);
+    }
+  }
+
+const Npc::Routine& Npc::currentRoutine() const {
+  auto time = owner.world().time();
+  time = gtime(int32_t(time.hour()),int32_t(time.minute()));
+  for(auto& i:routines){
+    if(i.end<i.start && (time<i.end || i.start<=time))
+      return i;
+    if(i.start<=time && time<i.end)
+      return i;
     }
 
-  // auto r = currentRoutine();
-  // owner.invokeState(hnpc,r.callback);
+  static Routine r;
+  return r;
+  }
+
+gtime Npc::endTime(const Npc::Routine &r) const {
+  auto wtime = owner.world().time();
+  auto time  = gtime(int32_t(wtime.hour()),int32_t(wtime.minute()));
+
+  if(r.end<r.start){
+    if(r.start<=time) {
+      return gtime(wtime.day()+1,r.end.hour(),r.end.minute());
+      }
+    if(time<r.end) {
+      return gtime(wtime.day(),r.end.hour(),r.end.minute());
+      }
+    }
+  if(r.start<=time && time<r.end) {
+    return gtime(wtime.day(),r.end.hour(),r.end.minute());
+    }
+  // error - routine is not active now
+  return wtime;
   }
 
 Npc::BodyState Npc::bodyState() const {
-  return bodySt;
+  uint32_t s = bodySt;
+  if(anim()==Anim::Move || anim()==Anim::MoveL || anim()==Anim::MoveR || anim()==Anim::MoveBack)
+    s = BS_RUN;
+  else if(anim()==Anim::Fall || anim()==Anim::FallDeep)
+    s = BS_FALL;
+  else if(anim()==Anim::Sleep)
+    s = BS_LIE;
+  if(auto i = interactive())
+    s = i->stateMask(s);
+  return BodyState(s);
   }
 
 void Npc::setToFistMode() {
@@ -645,6 +765,14 @@ void Npc::addItem(uint32_t id, Interactive &chest) {
 
 void Npc::moveItem(uint32_t id, Interactive &to) {
   Inventory::trasfer(to.inventory(),invent,this,id,1,owner);
+  }
+
+Item *Npc::currentArmour() {
+  return invent.currentArmour();
+  }
+
+Item *Npc::currentMeleWeapon() {
+  return invent.currentMeleWeapon();
   }
 
 size_t Npc::hasItem(uint32_t id) const {
@@ -706,6 +834,11 @@ void Npc::setPerceptionEnable(Npc::PercType t, size_t fn) {
     perception[t].func = fn;
   }
 
+void Npc::setPerceptionDisable(Npc::PercType t) {
+  if(t>0 && t<PERC_Count)
+    perception[t].func = 0;
+  }
+
 bool Npc::setInteraction(Interactive *id) {
   if(currentInteract==id)
     return false;
@@ -736,11 +869,16 @@ uint64_t Npc::stateTime() const {
   return owner.tickCount()-aiState.sTime;
   }
 
-void Npc::addRoutine(gtime s, gtime e, uint32_t callback) {
+void Npc::setStateTime(int64_t time) {
+  aiState.sTime = owner.tickCount()-uint64_t(time);
+  }
+
+void Npc::addRoutine(gtime s, gtime e, uint32_t callback, const ZenLoad::zCWaypointData *point) {
   Routine r;
   r.start    = s;
   r.end      = e;
   r.callback = callback;
+  r.point    = point;
   routines.push_back(r);
   }
 
@@ -863,6 +1001,27 @@ void Npc::aiWait(uint64_t dt) {
 void Npc::aiStandup() {
   AiAction a;
   a.act = AI_StandUp;
+  aiActions.push(a);
+  }
+
+void Npc::aiGoToPoint(const ZenLoad::zCWaypointData *to) {
+  AiAction a;
+  a.act   = AI_GoToPoint;
+  a.point = to;
+  aiActions.push(a);
+  }
+
+void Npc::aiEquipBestMeleWeapon() {
+  AiAction a;
+  a.act   = AI_EquipMelee;
+  aiActions.push(a);
+  }
+
+void Npc::aiUseMob(const std::string &name, int st) {
+  AiAction a;
+  a.act = AI_UseMob;
+  a.s0  = name;
+  a.i0  = st;
   aiActions.push(a);
   }
 
@@ -1023,10 +1182,39 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
   if(a==Anim::Eat)
     return animSequence("S_EAT");
 
+  if(cur==Anim::Idle && a==Anim::Sleep)
+    return animSequence("T_STAND_2_SLEEP");
+  if(cur==Anim::Sleep && a==Anim::Idle)
+    return animSequence("T_SLEEP_2_STAND");
+  if(a==Anim::Sleep)
+    return animSequence("S_SLEEP");
+
+  if(cur==Anim::Idle && a==Anim::GuardSleep)
+    return animSequence("T_STAND_2_GUARDSLEEP");
+  if(cur==Anim::GuardSleep && a==Anim::Idle)
+    return animSequence("T_GUARDSLEEP_2_STAND");
+  if(a==Anim::GuardSleep)
+    return animSequence("S_GUARDSLEEP");
+
+  if(cur==Anim::Idle && a==Anim::Sit)
+    return animSequence("T_STAND_2_SIT");
+  if(cur==Anim::Sit && a==Anim::Idle)
+    return animSequence("T_SIT_2_STAND");
+  if(a==Anim::Sit)
+    return animSequence("S_SIT");
+
+  if(a==Anim::GuardLChLeg)
+    return animSequence("T_LGUARD_CHANGELEG");
+  if(a==Anim::GuardLScratch)
+    return animSequence("T_LGUARD_SCRATCH");
+  if(a==Anim::GuardLStrectch)
+    return animSequence("T_LGUARD_STRETCH");
   if(a==Anim::Perception)
     return animSequence("T_PERCEPTION");
   if(a==Anim::Lookaround)
     return animSequence("T_HGUARD_LOOKAROUND");
+  if(a==Anim::Training)
+    return animSequence("T_1HSFREE");
 
   if(a==Anim::Fall)
     return animSequence("S_FALLDN");
@@ -1091,16 +1279,19 @@ Npc::Anim Npc::animByName(const std::string &name) const {
     return Anim::Lookaround;
   if(name=="T_STAND_2_EAT" || name=="T_EAT_2_STAND" || name=="S_EAT")
     return Anim::Eat;
+  if(name=="T_STAND_2_SLEEP" || name=="T_SLEEP_2_STAND" || name=="S_SLEEP")
+    return Anim::Sleep;
+  if(name=="T_STAND_2_GUARDSLEEP" || name=="T_GUARDSLEEP_2_STAND" || name=="S_GUARDSLEEP")
+    return Anim::GuardSleep;
+  if(name=="T_STAND_2_SIT" || name=="T_SIT_2_STAND" || name=="S_SIT")
+    return Anim::Sit;
+  if(name=="T_LGUARD_CHANGELEG")
+    return Anim::GuardLChLeg;
+  if(name=="T_LGUARD_STRETCH")
+    return Anim::GuardLStrectch;
+  if(name=="T_LGUARD_SCRATCH")
+    return Anim::GuardLScratch;
+  if(name=="T_1HSFREE")
+    return Anim::Training;
   return Anim::NoAnim;
-  }
-
-const Npc::Routine& Npc::currentRoutine() const {
-  auto time = owner.world().time();
-  for(auto& i:routines){
-    if(i.start<=time && time<i.end)
-      return i;
-    }
-
-  static Routine r;
-  return r;
   }

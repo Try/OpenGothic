@@ -287,7 +287,7 @@ void InventoryMenu::drawSlot(Painter &p,const Inventory &inv, int x, int y, size
   std::snprintf(vint,sizeof(vint),"%d",r.count());
   auto sz = p.font().textSize(vint);
   p.drawText(x+slotSize().w-sz.w-10,
-             y+slotSize().h-sz.h-5,
+             y+slotSize().h-int(p.font().pixelSize()),
              vint);
   }
 
