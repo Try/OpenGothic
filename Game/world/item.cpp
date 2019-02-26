@@ -65,10 +65,10 @@ int32_t Item::cost() const {
 
 bool Item::checkCond(const Npc &other) const {
   int32_t a=0,v=0;
-  return checkCond(other,a,v);
+  return checkCondUse(other,a,v) && checkCondRune(other,a,v);
   }
 
-bool Item::checkCond(const Npc &other, int32_t &a, int32_t &nv) const {
+bool Item::checkCondUse(const Npc &other, int32_t &a, int32_t &nv) const {
   auto& itData = owner.vmItem(hitem);
 
   for(size_t i=0;i<Daedalus::GEngineClasses::C_Item::COND_ATR_MAX;++i){
@@ -80,6 +80,13 @@ bool Item::checkCond(const Npc &other, int32_t &a, int32_t &nv) const {
       }
     }
   return true;
+  }
+
+bool Item::checkCondRune(const Npc &other, int32_t &cPl, int32_t &cIt) const {
+  auto& itData = owner.vmItem(hitem);
+  cIt          = itData.mag_circle;
+  cPl          = other.mageCycle();
+  return (cPl>=cIt);
   }
 
 size_t Item::clsId() const {

@@ -99,6 +99,7 @@ class Npc final {
       Sleep,
       GuardSleep,
       IdleLoopLast=GuardSleep,
+
       GuardLChLeg,
       GuardLScratch,
       GuardLStrectch,
@@ -213,6 +214,7 @@ class Npc final {
     bool isPlayer() const;
     void tick(uint64_t dt);
     bool startClimb(Npc::Anim ani);
+    bool checkHealth();
 
     std::array<float,3> position() const;
     std::array<float,3> cameraBone() const;
@@ -262,6 +264,7 @@ class Npc final {
     void     setRefuseTalk(uint64_t milis);
     bool     isRefuseTalk() const;
 
+    int32_t  mageCycle() const;
     int32_t  attribute (Attribute a) const;
     void     changeAttribute(Attribute a,int32_t val);
     int32_t  protection(Protection p) const;

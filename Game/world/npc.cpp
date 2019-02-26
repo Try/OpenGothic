@@ -80,6 +80,21 @@ bool Npc::startClimb(Anim ani) {
   return false;
   }
 
+bool Npc::checkHealth() {
+  auto& v = owner.vmNpc(hnpc);
+  if(v.attribute[ATR_HITPOINTS]<=1){
+    if(v.attribute[ATR_HITPOINTSMAX]<=1){
+      size_t fdead=owner.getSymbolIndex("ZS_Dead");
+      startState(fdead,true,"");
+      } else {
+      size_t fdead=owner.getSymbolIndex("ZS_Unconscious");
+      startState(fdead,true,"");
+      }
+    return false;
+    }
+  return true;
+  }
+
 std::array<float,3> Npc::position() const {
   return {{x,y,z}};
   }
@@ -393,6 +408,10 @@ bool Npc::isRefuseTalk() const {
   return refuseTalkMilis<owner.tickCount();
   }
 
+int32_t Npc::mageCycle() const {
+  return talentValue(TALENT_RUNES);
+  }
+
 void Npc::setRefuseTalk(uint64_t milis) {
   refuseTalkMilis = owner.tickCount()+milis;
   }
@@ -418,8 +437,8 @@ void Npc::changeAttribute(Npc::Attribute a, int32_t val) {
   if(val<0)
     invent.invalidateCond(*this);
 
-  if(a==ATR_HITPOINTS && v.attribute[a]<=0){
-    bodySt = BodyState(BS_DEAD | bodySt);
+  if(a==ATR_HITPOINTS){
+    checkHealth();
     }
   }
 
@@ -529,7 +548,8 @@ bool Npc::implGoTo(uint64_t dt) {
   if(!mvAlgo.aiGoTo(currentGoTo)) {
     currentFp  =currentGoTo;
     currentGoTo=nullptr;
-    setAnim(Npc::Idle);
+    if(isStanding())
+      setAnim(Npc::Idle);
     }
   return mvAlgo.hasGoTo();
   }
@@ -546,8 +566,7 @@ void Npc::tick(uint64_t dt) {
     return;
     }
 
-  if(attribute(ATR_HITPOINTS)<=0)
-    Log::d("TODO: death");
+  checkHealth();
 
   if(interactive()!=nullptr)
     setAnim(Interact); else
@@ -601,7 +620,7 @@ void Npc::tick(uint64_t dt) {
           if(animSq!=a)
             invalidateAnim(a,skeleton);
           }
-        if(Anim::IdleLoopLast<=current && current<=Anim::IdleLast)
+        if(Anim::IdleLoopLast<current && current<=Anim::IdleLast)
           current=prev;
         }
       break;
@@ -615,6 +634,7 @@ void Npc::tick(uint64_t dt) {
       setInteraction(nullptr);
       break;
     case AI_GoToPoint:
+      // TODO: check distance
       currentGoTo = act.point;
       break;
     case AI_EquipMelee:
@@ -646,6 +666,9 @@ void Npc::startState(size_t id, bool loop, const std::string &wp) {
 void Npc::startState(size_t id,bool loop,const std::string &wp,gtime endTime) {
   if(id==0)
     return;
+  if(aiState.funcIni==id)
+    return;
+
   if(aiState.funcIni!=0 && aiState.started)
     owner.invokeState(this,currentOther,aiState.funcEnd); // cleanup
 

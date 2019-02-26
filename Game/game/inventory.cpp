@@ -178,12 +178,17 @@ bool Inventory::setSlot(Item *&slot, Item* next, WorldScript &vm, Npc& owner) {
     slot=nullptr;
     }
 
-  int32_t atr=0,nValue=0;
+  int32_t atr=0,nValue=0,plMag=0,itMag=0;
   if(next==nullptr)
     return false;
 
-  if(!next->checkCond(owner,atr,nValue)) {
+  if(!next->checkCondUse(owner,atr,nValue)) {
     vm.printCannotUseError(owner,atr,nValue);
+    return false;
+    }
+
+  if(!next->checkCondRune(owner,plMag,itMag)) {
+    vm.printCannotCastError(owner,plMag,itMag);
     return false;
     }
 

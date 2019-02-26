@@ -352,6 +352,17 @@ int WorldScript::printCannotUseError(Npc& npc, int32_t atr, int32_t nValue) {
   return runFunction(id,false);
   }
 
+int WorldScript::printCannotCastError(Npc &npc, int32_t plM, int32_t itM) {
+  if(!hasSymbolName("G_CanNotCast"))
+    return 0;
+  auto id = vm.getDATFile().getSymbolIndexByName("G_CanNotCast");
+  vm.pushInt(npc.isPlayer() ? 1 : 0);
+  vm.pushInt(itM);
+  vm.pushInt(plM);
+  ScopeVar self (vm,"self", ZMemory::toBigHandle(npc.handle()), Daedalus::IC_Npc);
+  return runFunction(id,false);
+  }
+
 int WorldScript::invokeState(NpcHandle hnpc, NpcHandle oth, const char *name) {
   auto& dat = vm.getDATFile();
   if(name==nullptr || !dat.hasSymbolName(name))

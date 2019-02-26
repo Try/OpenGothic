@@ -57,7 +57,8 @@ class WorldScript final {
     auto updateDialog (const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<WorldScript::DlgChoise>;
 
     void exec(const DlgChoise &dlg, Daedalus::GameState::NpcHandle player, Daedalus::GameState::NpcHandle hnpc);
-    int  printCannotUseError(Npc &npc, int32_t atr, int32_t nValue);
+    int  printCannotUseError (Npc &npc, int32_t atr, int32_t nValue);
+    int  printCannotCastError(Npc &npc, int32_t plM, int32_t itM);
 
     int  invokeState(Daedalus::GameState::NpcHandle hnpc, Daedalus::GameState::NpcHandle hother, const char* name);
     int  invokeState(Npc* npc, Npc* other, size_t fn);
