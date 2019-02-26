@@ -383,7 +383,7 @@ const AttachBinder *Resources::bindMesh(const ProtoMesh &anim, const Skeleton &s
     static AttachBinder empty;
     return &empty;
     }
-  BindK k = std::make_pair(&s,&anim);
+  BindK k = BindK(&s,&anim,defBone ? defBone : "");
 
   auto it = inst->bindCache.find(k);
   if(it!=inst->bindCache.end())

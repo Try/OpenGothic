@@ -31,6 +31,7 @@ size_t Inventory::itemCount(const size_t cls) const {
   }
 
 const Item &Inventory::at(size_t i) const {
+  sortItems();
   return *items[i];
   }
 
@@ -38,7 +39,7 @@ void Inventory::addItem(std::unique_ptr<Item> &&p, WorldScript &vm) {
   using namespace Daedalus::GEngineClasses;
   if(p==nullptr)
     return;
-  ch=true;
+  sorted=false;
 
   const auto cls = p->clsId();
   p->setView(StaticObjects::Mesh());
@@ -62,7 +63,7 @@ void Inventory::addItem(size_t itemSymbol, uint32_t count, WorldScript &vm) {
   using namespace Daedalus::GEngineClasses;
   if(count<=0)
     return;
-  ch=true;
+  sorted=false;
 
   Item* it=findByClass(itemSymbol);
   if(it==nullptr) {
@@ -83,6 +84,7 @@ void Inventory::delItem(size_t itemSymbol, uint32_t count, WorldScript &vm, Npc&
   using namespace Daedalus::GEngineClasses;
   if(count<=0)
     return;
+  sorted=false;
   Item* it=findByClass(itemSymbol);
   return delItem(it,count,vm,owner);
   }
@@ -100,6 +102,7 @@ void Inventory::delItem(Item *it, uint32_t count, WorldScript &vm, Npc& owner) {
 
   // unequip, if have to
   unequip(it,vm,owner);
+  sorted=false;
 
   for(size_t i=0;i<items.size();++i)
     if(items[i]->clsId()==itData.instanceSymbol){
@@ -114,6 +117,9 @@ void Inventory::trasfer(Inventory &to, Inventory &from, Npc* fromNpc, size_t ite
     auto& it = *from.items[i];
     if(it.clsId()!=itemSymbol)
       continue;
+
+    from.sorted = false;
+    to.sorted   = false;
 
     auto  handle = it.handle();
     auto& itData = vm.getGameState().getItem(handle);
@@ -175,6 +181,12 @@ bool Inventory::setSlot(Item *&slot, Item* next, WorldScript &vm, Npc& owner) {
     if(flag & ITM_CAT_ARMOR){
       owner.setArmour(StaticObjects::Mesh());
       }
+    else if(flag & ITM_CAT_NF){
+      owner.setSword(StaticObjects::Mesh());
+      }
+    else if(flag & ITM_CAT_FF){
+      owner.setRangeWeapon(StaticObjects::Mesh());
+      }
     slot=nullptr;
     }
 
@@ -196,8 +208,12 @@ bool Inventory::setSlot(Item *&slot, Item* next, WorldScript &vm, Npc& owner) {
   vm.invokeItem(&owner,itData.on_equip);
   slot=next;
   slot->setAsEquiped(true);
+  slot->setSlot(slotId(slot));
   applyArmour(*slot,vm,owner,1);
+
   updateArmourView(vm,owner);
+  updateSwordView (vm,owner);
+  updateBowView   (vm,owner);
   return true;
   }
 
@@ -216,9 +232,82 @@ void Inventory::updateArmourView(WorldScript &vm, Npc& owner) {
     }
   }
 
+void Inventory::updateSwordView(WorldScript &vm, Npc &owner) {
+  if(mele==nullptr)
+    return;
+
+  auto& itData = vm.getGameState().getItem(mele->handle());
+  auto  vbody  = vm.world().getView(itData.visual,itData.material,0,itData.material);
+  owner.setSword(std::move(vbody));
+  }
+
+void Inventory::updateBowView(WorldScript &vm, Npc &owner) {
+  if(range==nullptr)
+    return;
+
+  auto flag = Flags(range->mainFlag());
+  if(flag & ITM_CAT_FF){
+    auto& itData = vm.getGameState().getItem(range->handle());
+    auto  vbody  = vm.world().getView(itData.visual,itData.material,0,itData.material);
+    owner.setRangeWeapon(std::move(vbody));
+    }
+  }
+
 void Inventory::equipBestMeleWeapon(WorldScript &vm, Npc &owner) {
   auto a = bestMeleeWeapon(vm,owner);
   setSlot(mele,a,vm,owner);
+  }
+
+const Item *Inventory::activeWeapon() const {
+  if(active!=nullptr)
+    return *active;
+  return nullptr;
+  }
+
+Item *Inventory::activeWeapon() {
+  if(active!=nullptr)
+    return *active;
+  return nullptr;
+  }
+
+void Inventory::switchActiveWeapon(uint8_t slot) {
+  if(slot==Item::NSLOT){
+    active=nullptr;
+    return;
+    }
+
+  Item** next=nullptr;
+  if(slot==1)
+    next=&mele;
+  if(slot==2)
+    next=&range;
+  if(3<=slot && slot<=10)
+    next=&numslot[slot-3];
+  if(next==active)
+    active=nullptr; else
+  if(next!=nullptr && *next!=nullptr)
+    active=next;
+  }
+
+Inventory::WeaponState Inventory::weaponState() const {
+  if(active==nullptr || *active==nullptr)
+    return WeaponState::NoWeapon;
+  if(active==&mele) {
+    if(mele->is2H())
+      return WeaponState::W2H;
+    return WeaponState::W1H;
+    }
+  if(active==&range) {
+    auto itFlag = Flags(range->itemFlag());
+    if(itFlag&ITM_CROSSBOW)
+      return WeaponState::CBow;
+    return WeaponState::Bow;
+    }
+  for(auto& i:numslot){
+    if(active==&i)
+      return WeaponState::Mage;
+    }
+  return WeaponState::NoWeapon;
   }
 
 bool Inventory::equipNumSlot(Item *next, WorldScript &vm, Npc &owner) {
@@ -275,7 +364,7 @@ bool Inventory::use(size_t cls, WorldScript &vm, Npc &owner) {
     return false;
     }
 
-  if((flag & ITM_MULTI) && itData.on_state[0]!=0){
+  if(((flag & ITM_MULTI) || (flag & ITM_MISSION)) && itData.on_state[0]!=0){
     // eat item
     vm.invokeItem(&owner,itData.on_state[0]);
     delItem(cls,1,vm,owner);
@@ -301,9 +390,14 @@ void Inventory::invalidateCond(Item *&slot, Npc &owner) {
   }
 
 void Inventory::autoEquip(WorldScript &vm, Npc &owner) {
-  ch=false;
-  auto a = bestArmour(vm,owner);
+  sortItems();
+
+  auto a = bestArmour     (vm,owner);
+  auto m = bestMeleeWeapon(vm,owner);
+  auto r = bestRangeWeapon(vm,owner);
   setSlot(armour,a,vm,owner);
+  setSlot(mele  ,m,vm,owner);
+  setSlot(range ,r,vm,owner);
   }
 
 Item *Inventory::findByClass(size_t cls) {
@@ -338,5 +432,75 @@ Item *Inventory::bestArmour(WorldScript &vm, Npc &owner) {
 
 Item *Inventory::bestMeleeWeapon(WorldScript &vm, Npc &owner) {
   return bestItem(vm,owner,ITM_CAT_NF);
+  }
+
+Item *Inventory::bestRangeWeapon(WorldScript &vm, Npc &owner) {
+  return bestItem(vm,owner,ITM_CAT_FF);
+  }
+
+void Inventory::sortItems() const {
+  if(sorted)
+    return;
+  sorted = true;
+  std::sort(items.begin(),items.end(),[](std::unique_ptr<Item>& l,std::unique_ptr<Item>& r){
+    return less(*l,*r);
+    });
+  }
+
+bool Inventory::less(Item &il, Item &ir) {
+  auto ordL = orderId(il);
+  auto ordR = orderId(ir);
+
+  if(ordL<ordR)
+    return true;
+  if(ordL>ordR)
+    return false;
+
+  if(il.cost()>ir.cost())
+    return true;
+  if(il.cost()<ir.cost())
+    return false;
+
+  return il.clsId()<ir.clsId();
+  }
+
+int Inventory::orderId(Item &i) {
+  auto flag = Flags(i.mainFlag());
+
+  if(flag&ITM_CAT_NF)
+    return 0;
+  if(flag&ITM_CAT_FF)
+    return 1;
+  if(flag&ITM_CAT_MUN)
+    return 3;
+  if(flag&ITM_CAT_POTION)
+    return 4;
+  if(flag&ITM_CAT_FOOD)
+    return 5;
+  if(flag&ITM_CAT_ARMOR)
+    return 6;
+  if(flag&ITM_CAT_RUNE)
+    return 7;
+  if(flag&ITM_CAT_DOCS)
+    return 8;
+  if(flag&ITM_CAT_LIGHT)
+    return 9;
+  return 100;
+  }
+
+uint8_t Inventory::slotId(Item *&slt) const {
+  if(&slt==&mele)
+    return 1;
+  if(&slt==&range)
+    return 2;
+
+  uint8_t id=3;
+  for(auto& i:numslot){
+    if(&i==&slt)
+      return id;
+    ++id;
+    }
+
+  return 255;
   }
 

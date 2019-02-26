@@ -10,6 +10,8 @@
 #include <zenload/zCModelMeshLib.h>
 #include <zenload/zTypes.h>
 
+#include <tuple>
+
 class Gothic;
 
 class StaticMesh;
@@ -102,10 +104,10 @@ class Resources {
 
     Tempest::Texture2d fallback;
 
-    using BindK = std::pair<const Skeleton*,const ProtoMesh*>;
+    using BindK = std::tuple<const Skeleton*,const ProtoMesh*,const std::string>;
     struct Hash {
       size_t operator()(const BindK& b) const {
-        return std::uintptr_t(b.first);
+        return std::uintptr_t(std::get<0>(b));
         }
       };
 

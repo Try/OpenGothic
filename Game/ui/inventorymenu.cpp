@@ -87,7 +87,7 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
       sel--;
     }
   else if(e.key==KeyEvent::K_D) {
-    if(((sel+1)%columsCount==0 || sel+1==pg->recordsCount() || pg->recordsCount()==0) && page<pCount) {
+    if(((sel+1)%columsCount==0 || sel+1==pg->recordsCount() || pg->recordsCount()==0) && page+1<pCount) {
       page++;
       }
     else if(sel+1<pg->recordsCount())
@@ -289,6 +289,14 @@ void InventoryMenu::drawSlot(Painter &p,const Inventory &inv, int x, int y, size
   p.drawText(x+slotSize().w-sz.w-10,
              y+slotSize().h-10,
              vint);
+
+  if(r.slot()!=Item::NSLOT){
+    std::snprintf(vint,sizeof(vint),"%d",r.slot());
+    auto sz = p.font().textSize(vint);
+    p.drawText(x+slotSize().w-sz.w-10,
+               y+int(p.font().pixelSize()),
+               vint);
+    }
   }
 
 void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {

@@ -122,6 +122,9 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("npc_canseenpc",       [this](Daedalus::DaedalusVM& vm){ npc_canseenpc(vm);        });
   vm.registerExternalFunction("npc_hasequippedmeleeweapon",
                                                      [this](Daedalus::DaedalusVM& vm){ npc_hasequippedmeleeweapon(vm); });
+  vm.registerExternalFunction("npc_getactivespell",  [this](Daedalus::DaedalusVM& vm){ npc_getactivespell(vm);   });
+  vm.registerExternalFunction("npc_getactivespellisscroll",
+                                                     [this](Daedalus::DaedalusVM& vm){ npc_getactivespellisscroll(vm); });
 
   vm.registerExternalFunction("ai_output",           [this](Daedalus::DaedalusVM& vm){ ai_output(vm);            });
   vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
@@ -179,8 +182,10 @@ void WorldScript::initCommon() {
   ext.log_addentry       = notImplementedFn<void,std::string,std::string>();
   vm.getGameState().setGameExternals(ext);
 
-  auto& currency = vm.getDATFile().getSymbolByName("TRADE_CURRENCY_INSTANCE");
-  itMi_Gold      = vm.getDATFile().getSymbolIndexByName(currency.getString(0));
+  auto& currency  = vm.getDATFile().getSymbolByName("TRADE_CURRENCY_INSTANCE");
+  itMi_Gold       = vm.getDATFile().getSymbolIndexByName(currency.getString(0));
+
+  auto& spellInst = vm.getDATFile().getSymbolByName("spellFxInstanceNames");
 
   if(itMi_Gold>0){ // FIXME
     InfoHandle h = vm.getGameState().createItem();
@@ -397,6 +402,22 @@ int WorldScript::invokeItem(Npc *npc,size_t fn) {
   return runFunction(fn);
   }
 
+int WorldScript::invokeMana(Npc &npc, Item &) {
+  auto& dat = vm.getDATFile();
+  if(!dat.hasSymbolName("Spell_ProcessMana"))
+    return Npc::SpellCode::SPL_SENDSTOP;
+
+  auto fn = dat.getSymbolIndexByName("Spell_ProcessMana");
+  if(fn==0)
+    return Npc::SpellCode::SPL_SENDSTOP;
+
+  auto hnpc = npc.handle();
+  ScopeVar self (vm,"self", ZMemory::toBigHandle(hnpc), Daedalus::IC_Npc);
+
+  vm.pushInt(npc.attribute(Npc::ATR_MANA));
+  return runFunction(fn,false);
+  }
+
 bool WorldScript::aiUseMob(Npc &pl, const std::string &name) {
   return owner.aiUseMob(pl,name);
   }
@@ -436,7 +457,7 @@ int32_t WorldScript::runFunction(const size_t fid,bool clearStk) {
   const char* call = sym.name.c_str();(void)call; //for debuging
 
   vm.prepareRunFunction();
-  bool ret = vm.runFunctionBySymIndex(fid,clearStk);
+  int32_t ret = vm.runFunctionBySymIndex(fid,clearStk);
   invokeRecursive = false;
   return ret;
   }
@@ -1118,6 +1139,38 @@ void WorldScript::npc_hasequippedmeleeweapon(Daedalus::DaedalusVM &vm) {
     vm.setReturn(0);
   }
 
+void WorldScript::npc_getactivespell(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  if(npc==nullptr){
+    vm.setReturn(-1);
+    return;
+    }
+
+  const Item* w = npc->inventory().activeWeapon();
+  if(w==nullptr || !w->isSpell()){
+    vm.setReturn(-1);
+    return;
+    }
+
+  vm.setReturn(w->spellId());
+  }
+
+void WorldScript::npc_getactivespellisscroll(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  if(npc==nullptr){
+    vm.setReturn(0);
+    return;
+    }
+
+  const Item* w = npc->inventory().activeWeapon();
+  if(w==nullptr || !w->isSpell()){
+    vm.setReturn(0);
+    return;
+    }
+
+  vm.setReturn(1);
+  }
+
 void WorldScript::ai_processinfos(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   auto pl  = owner.player();
@@ -1315,11 +1368,14 @@ void WorldScript::log_addentry(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::equipitem(Daedalus::DaedalusVM &vm) {
-  uint32_t weaponSymbol = uint32_t(vm.popDataValue());
-  auto     self         = popInstance(vm);
+  uint32_t cls  = uint32_t(vm.popDataValue());
+  auto     self = popInstance(vm);
 
-  if(self!=nullptr)
-    self->useItem(weaponSymbol);
+  if(self!=nullptr) {
+    if(self->hasItem(cls)==0)
+      self->addItem(cls,1);
+    self->aiUseItem(int32_t(cls)); // avoid recursive vm call; FIXME: recursive vm calls
+    }
   }
 
 void WorldScript::createinvitem(Daedalus::DaedalusVM &vm) {

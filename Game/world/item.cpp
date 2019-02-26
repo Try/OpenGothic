@@ -43,6 +43,32 @@ bool Item::isGold() const {
   return owner.vmItem(hitem).instanceSymbol==owner.goldId();
   }
 
+int32_t Item::mainFlag() const {
+  return owner.vmItem(hitem).mainflag;
+  }
+
+int32_t Item::itemFlag() const {
+  return owner.vmItem(hitem).flags;
+  }
+
+bool Item::isSpell() const {
+  return uint32_t(mainFlag()) & Inventory::ITM_CAT_RUNE;
+  }
+
+bool Item::is2H() const {
+  auto flg = uint32_t(itemFlag());
+  return flg & (Inventory::ITM_2HD_SWD | Inventory::ITM_2HD_AXE);
+  }
+
+bool Item::isCrossbow() const {
+  auto flg = uint32_t(itemFlag());
+  return flg & Inventory::ITM_CROSSBOW;
+  }
+
+int32_t Item::spellId() const {
+  return owner.vmItem(hitem).spell;
+  }
+
 const char *Item::uiText(size_t id) const {
   auto& v = owner.vmItem(hitem);
   return v.text[id].c_str();

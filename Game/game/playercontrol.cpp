@@ -48,24 +48,17 @@ void PlayerControl::drawFist() {
   ctrl[DrawFist]=true;
   }
 
-void PlayerControl::drawWeapon1H() {
-  ctrl[DrawWeapon1h]=true;
-  }
-
-void PlayerControl::drawWeapon2H() {
-  ctrl[DrawWeapon2h]=true;
+void PlayerControl::drawWeaponMele() {
+  ctrl[DrawWeaponMele]=true;
   }
 
 void PlayerControl::drawWeaponBow() {
   ctrl[DrawWeaponBow]=true;
   }
 
-void PlayerControl::drawWeaponCBow() {
-  ctrl[DrawWeaponCBow]=true;
-  }
-
-void PlayerControl::drawWeaponMage() {
-  ctrl[DrawWeaponMage]=true;
+void PlayerControl::drawWeaponMage(uint8_t s) {
+  if(s>=3 && s<=10)
+    ctrl[DrawWeaponMage3+s-3]=true;
   }
 
 void PlayerControl::action() {
@@ -98,6 +91,22 @@ void PlayerControl::moveLeft() {
 
 void PlayerControl::moveRight() {
   ctrl[Right]=true;
+  }
+
+void PlayerControl::actionForward() {
+  ctrl[ActForward]=true;
+  }
+
+void PlayerControl::actionLeft() {
+  ctrl[ActLeft]=true;
+  }
+
+void PlayerControl::actionRight() {
+  ctrl[ActRight]=true;
+  }
+
+void PlayerControl::actionBack() {
+  ctrl[ActBack]=true;
   }
 
 void PlayerControl::marvinF8() {
@@ -135,27 +144,6 @@ void PlayerControl::implMove(uint64_t dt) {
   Npc::Anim ani=Npc::Anim::Idle;
 
   if(pl.interactive()==nullptr) {
-    if(ctrl[DrawFist]){
-      pl.drawWeaponFist();
-      return;
-      }
-    if(ctrl[DrawWeapon1h]){
-      pl.drawWeapon1H();
-      return;
-      }
-    if(ctrl[DrawWeapon2h]){
-      pl.drawWeapon2H();
-      return;
-      }
-    if(ctrl[DrawWeaponBow]){
-      pl.drawWeaponBow();
-      return;
-      }
-    if(ctrl[DrawWeaponCBow]){
-      pl.drawWeaponCBow();
-      return;
-      }
-
     if(ctrl[RotateL]) {
       rot += rspeed*dt;
       ani  = Npc::Anim::RotL;
@@ -163,6 +151,50 @@ void PlayerControl::implMove(uint64_t dt) {
     if(ctrl[RotateR]) {
       rot -= rspeed*dt;
       ani  = Npc::Anim::RotR;
+      }
+
+    if(pl.isFaling() || pl.isSlide() || pl.isInAir()){
+      pl.setDirection(rot);
+      return;
+      }
+
+    if(ctrl[DrawFist]){
+      pl.drawWeaponFist();
+      return;
+      }
+    if(ctrl[DrawWeaponMele]){
+      pl.drawWeaponMele();
+      return;
+      }
+    if(ctrl[DrawWeaponBow]){
+      pl.drawWeaponBow();
+      return;
+      }
+    if(ctrl[DrawWeaponMage3]){
+      pl.drawMage(3);
+      return;
+      }
+
+    if(ctrl[ActForward]) {
+      auto ws = pl.weaponState();
+      if(ws==Inventory::WeaponState::W1H ||
+         ws==Inventory::WeaponState::W2H)
+        pl.swingSword();
+      else if(ws==Inventory::WeaponState::Mage)
+        pl.castSpell();
+      return;
+      }
+    if(ctrl[ActLeft] || ctrl[ActRight] || ctrl[ActBack]) {
+      auto ws = pl.weaponState();
+      if(ws==Inventory::WeaponState::W1H || ws==Inventory::WeaponState::W2H){
+        if(ctrl[ActLeft])
+          pl.swingSwordL(); else
+        if(ctrl[ActRight])
+          pl.swingSwordR(); else
+        if(ctrl[ActBack])
+          pl.blockSword();
+        return;
+        }
       }
 
     if(ctrl[Jump]) {
@@ -205,8 +237,6 @@ void PlayerControl::implMove(uint64_t dt) {
     ani = Npc::Anim::Interact;
     }
 
-  if(!pl.isFaling() && !pl.isSlide() && !pl.isInAir()){
-    pl.setAnim(ani);
-    }
+  pl.setAnim(ani);
   pl.setDirection(rot);
   }

@@ -224,25 +224,46 @@ void MainWindow::tick() {
   if(pressed[KeyEvent::K_F8])
     player.marvinF8();
 
-  if(pressed[KeyEvent::K_0]){
-    player.drawFist();
-    pressed[KeyEvent::K_0]=false;
-    }
   if(pressed[KeyEvent::K_1]){
-    player.drawWeapon1H();
+    player.drawWeaponMele();
     pressed[KeyEvent::K_1]=false;
     }
   if(pressed[KeyEvent::K_2]){
-    player.drawWeapon2H();
+    player.drawWeaponBow();
     pressed[KeyEvent::K_2]=false;
     }
+
   if(pressed[KeyEvent::K_3]){
-    player.drawWeaponBow();
+    player.drawWeaponMage(3);
     pressed[KeyEvent::K_3]=false;
     }
   if(pressed[KeyEvent::K_4]){
-    player.drawWeaponCBow();
+    player.drawWeaponMage(4);
     pressed[KeyEvent::K_4]=false;
+    }
+  if(pressed[KeyEvent::K_5]){
+    player.drawWeaponMage(5);
+    pressed[KeyEvent::K_5]=false;
+    }
+  if(pressed[KeyEvent::K_6]){
+    player.drawWeaponMage(6);
+    pressed[KeyEvent::K_6]=false;
+    }
+  if(pressed[KeyEvent::K_7]){
+    player.drawWeaponMage(7);
+    pressed[KeyEvent::K_7]=false;
+    }
+  if(pressed[KeyEvent::K_8]){
+    player.drawWeaponMage(8);
+    pressed[KeyEvent::K_8]=false;
+    }
+  if(pressed[KeyEvent::K_9]){
+    player.drawWeaponMage(9);
+    pressed[KeyEvent::K_9]=false;
+    }
+  if(pressed[KeyEvent::K_0]){
+    player.drawWeaponMage(10);
+    pressed[KeyEvent::K_0]=false;
     }
 
   if(pressed[KeyEvent::K_Space]){
@@ -253,14 +274,26 @@ void MainWindow::tick() {
     player.rotateLeft();
   if(pressed[KeyEvent::K_E])
     player.rotateRight();
-  if(pressed[KeyEvent::K_A])
-    player.moveLeft();
-  if(pressed[KeyEvent::K_D])
-    player.moveRight();
-  if(pressed[KeyEvent::K_W])
-    player.moveForward();
-  if(pressed[KeyEvent::K_S])
-    player.moveBack();
+
+  if(mouseP[Event::ButtonLeft]) {
+    if(pressed[KeyEvent::K_W])
+      player.actionForward();
+    if(pressed[KeyEvent::K_A])
+      player.actionLeft();
+    if(pressed[KeyEvent::K_D])
+      player.actionRight();
+    if(pressed[KeyEvent::K_S])
+      player.actionBack();
+    } else {
+    if(pressed[KeyEvent::K_W])
+      player.moveForward();
+    if(pressed[KeyEvent::K_A])
+      player.moveLeft();
+    if(pressed[KeyEvent::K_D])
+      player.moveRight();
+    if(pressed[KeyEvent::K_S])
+      player.moveBack();
+    }
 
   if(player.tickMove(dt)) {
     if(auto pl=gothic.player())

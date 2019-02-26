@@ -22,11 +22,9 @@ class PlayerControl final {
 
     void clearInput();
     void drawFist();
-    void drawWeapon1H();
-    void drawWeapon2H();
+    void drawWeaponMele();
     void drawWeaponBow();
-    void drawWeaponCBow();
-    void drawWeaponMage();
+    void drawWeaponMage(uint8_t s);
     void action();
     void jump();
 
@@ -37,6 +35,11 @@ class PlayerControl final {
     void moveBack();
     void moveLeft();
     void moveRight();
+
+    void actionForward();
+    void actionLeft();
+    void actionRight();
+    void actionBack();
 
     void marvinF8();
 
@@ -54,13 +57,23 @@ class PlayerControl final {
       Jump,
 
       DrawFist,
-      DrawWeapon1h,
-      DrawWeapon2h,
+      DrawWeaponMele,
       DrawWeaponBow,
-      DrawWeaponCBow,
-      DrawWeaponMage,
+
+      DrawWeaponMage3,
+      DrawWeaponMage4,
+      DrawWeaponMage5,
+      DrawWeaponMage6,
+      DrawWeaponMage7,
+      DrawWeaponMage8,
+      DrawWeaponMage9,
+      DrawWeaponMage10,
 
       Action,
+      ActForward,
+      ActLeft,
+      ActRight,
+      ActBack,
 
       Last
       };

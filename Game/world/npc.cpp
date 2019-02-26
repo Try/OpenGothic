@@ -137,7 +137,9 @@ void Npc::updateAnimation() {
     uint64_t dt = owner.tickCount() - sAnim;
     skInst->update(dt);
 
-    head  .setSkeleton(*skInst,pos);
+    head .setSkeleton(*skInst,pos);
+    sword.setSkeleton(*skInst,pos);
+    bow  .setSkeleton(*skInst,pos);
     if(armour.isEmpty())
       view  .setSkeleton(*skInst,pos); else
       armour.setSkeleton(*skInst,pos);
@@ -222,6 +224,37 @@ void Npc::setArmour(StaticObjects::Mesh &&a) {
   setPos(pos);
   }
 
+void Npc::setSword(StaticObjects::Mesh &&s) {
+  sword = std::move(s);
+  updateWeaponSkeleton();
+  setPos(pos);
+  }
+
+void Npc::setRangeWeapon(StaticObjects::Mesh &&b) {
+  bow = std::move(b);
+  updateWeaponSkeleton();
+  setPos(pos);
+  }
+
+void Npc::updateWeaponSkeleton() {
+  auto st = weaponState();
+  if(st==WeaponState::W1H || st==WeaponState::W2H){
+    sword.setSkeleton(skeleton,"ZS_RIGHTHAND");
+    } else {
+    auto weapon   = invent.currentMeleWeapon();
+    bool twoHands = weapon!=nullptr && weapon->is2H();
+    sword.setSkeleton(skeleton,twoHands ? "ZS_LONGSWORD" : "ZS_SWORD");
+    }
+
+  if(st==WeaponState::Bow || st==WeaponState::CBow){
+    bow.setSkeleton(skeleton,"ZS_LEFTTHAND");
+    } else {
+    auto raange = invent.currentRangeWeapon();
+    bool cbow   = raange!=nullptr && raange->isCrossbow();
+    bow.setSkeleton(skeleton,cbow ? "ZS_CROSSBOW" : "ZS_BOW");
+    }
+  }
+
 void Npc::setPhysic(DynamicWorld::Item &&item) {
   physic = std::move(item);
   physic.setPosition(x,y,z);
@@ -238,10 +271,11 @@ void Npc::setScale(float x, float y, float z) {
   }
 
 void Npc::setAnim(Npc::Anim a) {
-  setAnim(a,weaponSt);
+  auto weaponSt=invent.weaponState();
+  setAnim(a,weaponSt,weaponSt);
   }
 
-void Npc::setAnim(Npc::Anim a,WeaponState nextSt) {
+void Npc::setAnim(Npc::Anim a,WeaponState nextSt,WeaponState weaponSt) {
   if(animSq!=nullptr){
     if(current==a && nextSt==weaponSt && animSq->animCls==Animation::Loop)
       return;
@@ -253,7 +287,6 @@ void Npc::setAnim(Npc::Anim a,WeaponState nextSt) {
     }
   auto ani = solveAnim(a,weaponSt,current,nextSt);
   current =a;
-  weaponSt=nextSt;
   if(ani==animSq) {
     if(animSq!=nullptr && animSq->animCls==Animation::Transition){
       invalidateAnim(ani,skeleton); // restart anim
@@ -647,6 +680,10 @@ void Npc::tick(uint64_t dt) {
         owner.aiUseMob(*this,act.s0);
         }
       break;
+    case AI_UseItem:
+      if(act.i0!=0)
+        useItem(size_t(act.i0));
+      break;
     }
 
   if(invent.isChanged())
@@ -758,6 +795,8 @@ Npc::BodyState Npc::bodyState() const {
     s = BS_FALL;
   else if(anim()==Anim::Sleep)
     s = BS_LIE;
+  else if(anim()==Anim::Sit || anim()==Anim::GuardSleep)
+    s = BS_SIT;
   if(auto i = interactive())
     s = i->stateMask(s);
   return BodyState(s);
@@ -771,7 +810,7 @@ void Npc::setToFightMode(const uint32_t item) {
     addItem(item,1);
 
   useItem(item);
-  drawWeapon1H();
+  drawWeaponMele();
   }
 
 void Npc::addItem(const uint32_t item, size_t count) {
@@ -815,37 +854,87 @@ void Npc::unequipItem(uint32_t item) {
   }
 
 void Npc::closeWeapon() {
-  setAnim(current,WeaponState::NoWeapon);
+  auto weaponSt=invent.weaponState();
+  invent.switchActiveWeapon(Item::NSLOT);
+  setAnim(current,invent.weaponState(),weaponSt);
   }
 
 void Npc::drawWeaponFist() {
-  if(weaponSt==Fist)
-    closeWeapon(); else
-    setAnim(current,WeaponState::Fist);
+  auto weaponSt=invent.weaponState();
+  invent.switchActiveWeapon(1); //FIXME
+  setAnim(current,invent.weaponState(),weaponSt);
   }
 
-void Npc::drawWeapon1H() {
-  if(weaponSt==W1H)
-    closeWeapon(); else
-    setAnim(current,WeaponState::W1H);
-  }
-
-void Npc::drawWeapon2H() {
-  if(weaponSt==W2H)
-    closeWeapon(); else
-    setAnim(current,WeaponState::W2H);
+void Npc::drawWeaponMele() {
+  auto weaponSt=invent.weaponState();
+  invent.switchActiveWeapon(1);
+  setAnim(current,invent.weaponState(),weaponSt);
+  updateWeaponSkeleton();
   }
 
 void Npc::drawWeaponBow() {
-  if(weaponSt==Bow)
-    closeWeapon(); else
-    setAnim(current,WeaponState::Bow);
+  auto weaponSt=invent.weaponState();
+  invent.switchActiveWeapon(2);
+  setAnim(current,invent.weaponState(),weaponSt);
+  updateWeaponSkeleton();
   }
 
-void Npc::drawWeaponCBow() {
-  if(weaponSt==CBow)
-    closeWeapon(); else
-    setAnim(current,WeaponState::CBow);
+void Npc::drawMage(uint8_t slot) {
+  auto weaponSt=invent.weaponState();
+  invent.switchActiveWeapon(slot);
+  setAnim(current,invent.weaponState(),weaponSt);
+  updateWeaponSkeleton();
+  }
+
+void Npc::swingSword() {
+  auto active=invent.activeWeapon();
+  if(active==nullptr)
+    return;
+  auto weaponSt=invent.weaponState();
+  setAnim(Anim::Atack,weaponSt,weaponSt);
+  }
+
+void Npc::swingSwordL() {
+  auto active=invent.activeWeapon();
+  if(active==nullptr)
+    return;
+  auto weaponSt=invent.weaponState();
+  setAnim(Anim::AtackL,weaponSt,weaponSt);
+  }
+
+void Npc::swingSwordR() {
+  auto active=invent.activeWeapon();
+  if(active==nullptr)
+    return;
+  auto weaponSt=invent.weaponState();
+  setAnim(Anim::AtackR,weaponSt,weaponSt);
+  }
+
+void Npc::blockSword() {
+  auto active=invent.activeWeapon();
+  if(active==nullptr)
+    return;
+  auto weaponSt=invent.weaponState();
+  setAnim(Anim::AtackBlock,weaponSt,weaponSt);
+  }
+
+void Npc::castSpell() {
+  auto active=invent.activeWeapon();
+  if(active==nullptr)
+    return;
+  auto weaponSt=invent.weaponState();
+
+  const SpellCode code = SpellCode(owner.invokeMana(*this,*active));
+  switch(code) {
+    case SpellCode::SPL_SENDSTOP:
+      break;
+    case SpellCode::SPL_SENDCAST:
+      setAnim(Anim::Atack,Inventory::WeaponState::Mage,weaponSt);
+      break;
+    default:
+      //TODO
+      break;
+    }
   }
 
 void Npc::setPerceptionTime(uint64_t time) {
@@ -1048,6 +1137,13 @@ void Npc::aiUseMob(const std::string &name, int st) {
   aiActions.push(a);
   }
 
+void Npc::aiUseItem(int32_t id) {
+  AiAction a;
+  a.act = AI_UseItem;
+  a.i0  = id;
+  aiActions.push(a);
+  }
+
 void Npc::aiClearQueue() {
   aiActions=std::queue<AiAction>();
   }
@@ -1065,6 +1161,8 @@ void Npc::updatePos() {
 void Npc::setPos(const Matrix4x4 &m) {
   pos = m;
   head  .setObjMatrix(pos);
+  sword .setObjMatrix(pos);
+  bow   .setObjMatrix(pos);
   if(armour.isEmpty()) {
     view  .setObjMatrix(pos);
     } else {
@@ -1075,6 +1173,7 @@ void Npc::setPos(const Matrix4x4 &m) {
   }
 
 const Animation::Sequence *Npc::solveAnim(Npc::Anim a) const {
+  auto weaponSt=invent.weaponState();
   return solveAnim(a,weaponSt,a,weaponSt);
   }
 
@@ -1091,6 +1190,14 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
       return animSequence("T_RUN_2_2H");
     if(a==Anim::Move && cur==a && st==WeaponState::W2H)
       return animSequence("T_MOVE_2_2HMOVE");
+    if(a==Anim::Idle && cur==a && st==WeaponState::W2H)
+      return animSequence("T_RUN_2_BOW");
+    if(a==Anim::Move && cur==a && st==WeaponState::W2H)
+      return animSequence("T_MOVE_2_BOWMOVE");
+    if(a==Anim::Idle && cur==a && st==WeaponState::Mage)
+      return animSequence("T_MOVE_2_MAGMOVE");
+    if(a==Anim::Move && cur==a && st==WeaponState::Mage)
+      return animSequence("T_MOVE_2_MAGMOVE");
     }
   if(st0==WeaponState::W1H && st==WeaponState::NoWeapon){
     if(a==Anim::Idle && cur==a)
@@ -1103,6 +1210,12 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
       return animSequence("T_RUN_2_2H");
     if(a==Anim::Move && cur==a)
       return animSequence("T_2HMOVE_2_MOVE");
+    }
+  if(st0==WeaponState::Mage && st==WeaponState::NoWeapon){
+    if(a==Anim::Idle && cur==a)
+      return animSequence("T_RUN_2_MAG");
+    if(a==Anim::Move && cur==a)
+      return animSequence("T_MAGMOVE_2_MOVE");
     }
 
   if(true) {
@@ -1121,12 +1234,55 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
       return animSequence(currentInteract->anim(Interactive::Out));
     }
 
+  if(st==WeaponState::W1H) {
+    if(a==Anim::Atack && cur==Move)
+      return animSequence("T_1HATTACKMOVE");
+    if(a==Anim::Atack)
+      return animSequence("S_1HATTACK");
+    if(a==Anim::AtackL)
+      return animSequence("T_1HATTACKL");
+    if(a==Anim::AtackR)
+      return animSequence("T_1HATTACKR");
+    if(a==Anim::AtackBlock) {
+      switch(std::rand()%3){
+        case 0: return animSequence("T_1HPARADE_0");
+        case 1: return animSequence("T_1HPARADE_0_A2");
+        case 2: return animSequence("T_1HPARADE_0_A3");
+        }
+      }
+    }
+  else if(st==WeaponState::W2H) {
+    if(a==Anim::Atack && cur==Move)
+      return animSequence("T_2HATTACKMOVE");
+    if(a==Anim::Atack)
+      return animSequence("S_2HATTACK");
+    if(a==Anim::AtackL)
+      return animSequence("T_2HATTACKL");
+    if(a==Anim::AtackR)
+      return animSequence("T_2HATTACKR");
+    if(a==Anim::AtackBlock) {
+      switch(std::rand()%3){
+        case 0: return animSequence("T_2HPARADE_0");
+        case 1: return animSequence("T_2HPARADE_0_A2");
+        case 2: return animSequence("T_2HPARADE_0_A3");
+        }
+      }
+    }
+  else if(st==WeaponState::Mage) {
+    if(cur!=Anim::Atack && a==Atack)
+      return animSequence("T_MAGRUN_2_TRFSHOOT");
+    if(cur==Anim::Atack && a==Atack)
+      return animSequence("S_TRFSHOOT");
+    if(cur==Anim::Atack && a==Idle)
+      return animSequence("T_TRFSHOOT_2_STAND");
+    }
+
   if(cur==Anim::NoAnim && a==Idle)
     return solveAnim("S_%sRUN",st);
   if(cur==Anim::Idle && a==cur)
     return solveAnim("S_%sRUN",st);
   if(cur==Anim::Idle && a==Move)
-    return animSequence("T_RUN_2_RUNL");
+    return solveAnim("T_%sRUN_2_%sRUNL",st);
   if(cur==Anim::Fall && a==Move)
     return animSequence("T_RUN_2_RUNL");
 
@@ -1144,18 +1300,9 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
   if(cur==Anim::Move && a==cur)
     return solveAnim("S_%sRUNL",st);
   if(cur==Anim::Move && a==Idle)
-    return animSequence("T_RUNL_2_RUN");
+    return solveAnim("T_%sRUNL_2_%sRUN",st);
   if(cur==Anim::Move && a==Jump)
     return animSequence("T_RUNL_2_JUMP");
-
-  /*
-  if(a==Anim::Chest)
-    return animSequence("T_CHESTSMALL_STAND_2_S0");
-  if(a==Anim::Sit)
-    return animSequence("S_BENCH_S1");
-  if(a==Anim::Lab)
-    return animSequence("S_LAB_S0");
-  */
 
   if(cur==Anim::Idle && a==Anim::Jump)
     return animSequence("T_STAND_2_JUMP");
@@ -1265,10 +1412,11 @@ const Animation::Sequence* Npc::solveAnim(const char *format, Npc::WeaponState s
     "1H",
     "2H",
     "BOW",
-    "CBOW"
+    "CBOW",
+    "MAG"
     };
   char name[128]={};
-  std::snprintf(name,sizeof(name),format,weapon[st]);
+  std::snprintf(name,sizeof(name),format,weapon[st],weapon[st]);
   if(auto ret=animSequence(name))
     return ret;
   std::snprintf(name,sizeof(name),format,"");

@@ -125,17 +125,11 @@ class Npc final {
       Training,
       Interact,
       Talk,
-      DrawFist,
-      DrawWeapon1h
-      };
 
-    enum WeaponState : uint8_t {
-      NoWeapon,
-      Fist,
-      W1H,
-      W2H,
-      Bow,
-      CBow
+      Atack,
+      AtackL,
+      AtackR,
+      AtackBlock
       };
 
     enum Talent : uint8_t {
@@ -174,6 +168,13 @@ class Npc final {
       ATR_REGENERATEHP   = 6,
       ATR_REGENERATEMANA = 7,
       ATR_MAX
+      };
+
+    enum SpellCode : int32_t {
+      SPL_RECEIVEINVEST = 1,
+      SPL_SENDCAST      = 2,
+      SPL_SENDSTOP      = 3,
+      SPL_NEXTLEVEL     = 4
       };
 
     enum Protection : uint8_t {
@@ -233,14 +234,15 @@ class Npc final {
     void delOverlay   (const char*     sk);
     void delOverlay   (const Skeleton *sk);
 
-    void setVisualBody(StaticObjects::Mesh &&head,StaticObjects::Mesh&& body,int32_t bodyVer,int32_t bodyColor);
-    void setArmour    (StaticObjects::Mesh&& body);
-    void setPhysic    (DynamicWorld::Item&& item);
-    void setFatness   (float f);
-    void setScale     (float x,float y,float z);
-    void setAnim      (Anim a);
-    void setAnim      (Anim a, WeaponState nextSt);
-    Anim anim() const { return current; }
+    void setVisualBody (StaticObjects::Mesh &&head,StaticObjects::Mesh&& body,int32_t bodyVer,int32_t bodyColor);
+    void setArmour     (StaticObjects::Mesh&& body);
+    void setSword      (StaticObjects::Mesh&& sword);
+    void setRangeWeapon(StaticObjects::Mesh&& bow);
+    void setPhysic     (DynamicWorld::Item&& item);
+    void setFatness    (float f);
+    void setScale      (float x,float y,float z);
+    void setAnim       (Anim a);
+    Anim anim() const  { return current; }
     bool isStanding() const;
 
     int32_t bodyVer  () const { return vColor;  }
@@ -278,7 +280,6 @@ class Npc final {
     int32_t  experienceNext() const;
     int32_t  learningPoints() const;
 
-
     void      startDialog(Npc *other);
     void      startState(size_t id, bool loop, const std::string &wp);
     void      startState(size_t id, bool loop, const std::string &wp, gtime endTime);
@@ -290,16 +291,20 @@ class Npc final {
 
     void closeWeapon();
     void drawWeaponFist();
-    void drawWeapon1H();
-    void drawWeapon2H();
+    void drawWeaponMele();
     void drawWeaponBow();
-    void drawWeaponCBow();
+    void drawMage(uint8_t slot);
+    auto weaponState() const -> Inventory::WeaponState { return invent.weaponState(); }
+
+    void swingSword();
+    void swingSwordL();
+    void swingSwordR();
+    void blockSword();
+    void castSpell();
 
     void setPerceptionTime   (uint64_t time);
     void setPerceptionEnable (PercType t, size_t fn);
     void setPerceptionDisable(PercType t);
-
-    WeaponState weaponState() const { return weaponSt; }
 
     const Interactive* interactive() const { return currentInteract; }
     bool     setInteraction(Interactive* id);
@@ -343,6 +348,7 @@ class Npc final {
     void     aiGoToPoint(const ZenLoad::zCWaypointData* to);
     void     aiEquipBestMeleWeapon();
     void     aiUseMob(const std::string& name,int st);
+    void     aiUseItem(int32_t id);
     void     aiClearQueue();
 
     auto     currentWayPoint() const -> const ZenLoad::zCWaypointData* { return currentFp; }
@@ -367,7 +373,8 @@ class Npc final {
       AI_StandUp,
       AI_GoToPoint,
       AI_EquipMelee,
-      AI_UseMob
+      AI_UseMob,
+      AI_UseItem
       };
 
     struct AiAction final {
@@ -398,9 +405,13 @@ class Npc final {
       uint64_t        time=0;
       };
 
+    using WeaponState = Inventory::WeaponState;
+
     void                           updatePos();
     void                           setPos(const Tempest::Matrix4x4& m);
+    void                           updateWeaponSkeleton();
 
+    void                           setAnim  (Anim a, WeaponState nextSt, WeaponState oldSt);
     const Animation::Sequence*     solveAnim(Anim a) const;
     const Animation::Sequence*     solveAnim(Anim a, WeaponState st0, Anim cur, WeaponState st) const;
     const Animation::Sequence*     solveAnim(const char* format, WeaponState st) const;
@@ -428,17 +439,17 @@ class Npc final {
     Tempest::Matrix4x4             pos;
     StaticObjects::Mesh            head;
     StaticObjects::Mesh            view;
-    StaticObjects::Mesh            armour;
-    DynamicWorld::Item             physic;
+    StaticObjects::Mesh            sword, bow, armour;
     int32_t                        vColor =0;
     int32_t                        bdColor=0;
+    DynamicWorld::Item             physic;
 
     const Skeleton*                skeleton=nullptr;
     std::vector<Overlay>           overlay;
     const Animation::Sequence*     animSq  =nullptr;
     uint64_t                       sAnim   =0;
     Anim                           current =NoAnim;
-    WeaponState                    weaponSt=WeaponState::NoWeapon;
+    //WeaponState                    weaponSt=WeaponState::NoWeapon;
     std::shared_ptr<Pose>          skInst;
 
     std::string                    name;

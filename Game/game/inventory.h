@@ -40,12 +40,23 @@ class Inventory final {
       ITM_MULTI      = 1 << 21,
       ITM_AMULET     = 1 << 22,
       ITM_BELT       = 1 << 24,
+      ITM_TORCH	     = 1 << 28
       };
 
-    size_t goldCount() const;
-    size_t itemCount(const size_t id) const;
-    size_t recordsCount() const { return items.size(); }
-    const Item& at(size_t i) const;
+    enum WeaponState : uint8_t {
+      NoWeapon,
+      Fist,
+      W1H,
+      W2H,
+      Bow,
+      CBow,
+      Mage
+      };
+
+    size_t       goldCount() const;
+    size_t       itemCount(const size_t id) const;
+    size_t       recordsCount() const { return items.size(); }
+    const Item&  at(size_t i) const;
     static void  trasfer(Inventory& to, Inventory& from, Npc *fromNpc, size_t cls, uint32_t count, WorldScript &vm);
 
     void   addItem(std::unique_ptr<Item>&& p,  WorldScript& vm);
@@ -56,13 +67,23 @@ class Inventory final {
     bool   unequip(size_t cls, WorldScript &vm, Npc &owner);
     void   unequip(Item*  cls, WorldScript &vm, Npc &owner);
     void   invalidateCond(Npc &owner);
-    bool   isChanged() const { return ch; }
+    bool   isChanged() const { return !sorted; }
     void   autoEquip(WorldScript &vm, Npc &owner);
-    void   updateArmourView(WorldScript &vm, Npc& owner);
     void   equipBestMeleWeapon(WorldScript &vm, Npc &owner);
 
-    Item*  currentArmour()     { return armour; }
-    Item*  currentMeleWeapon() { return mele;   }
+    void   updateArmourView(WorldScript &vm, Npc& owner);
+    void   updateSwordView (WorldScript &vm, Npc& owner);
+    void   updateBowView   (WorldScript &vm, Npc& owner);
+
+    const Item*  activeWeapon() const;
+    Item*  activeWeapon();
+    void   switchActiveWeapon(uint8_t slot);
+
+    Item*  currentArmour()      { return armour; }
+    Item*  currentMeleWeapon()  { return mele;   }
+    Item*  currentRangeWeapon() { return range;  }
+
+    auto   weaponState() const -> WeaponState;
 
   private:
     bool   setSlot     (Item*& slot, Item *next, WorldScript &vm, Npc &owner);
@@ -76,16 +97,24 @@ class Inventory final {
     Item*  bestItem       (WorldScript &vm, Npc &owner, Flags f);
     Item*  bestArmour     (WorldScript &vm, Npc &owner);
     Item*  bestMeleeWeapon(WorldScript &vm, Npc &owner);
+    Item*  bestRangeWeapon(WorldScript &vm, Npc &owner);
 
-    std::vector<std::unique_ptr<Item>> items;
+    void        sortItems() const;
+    static bool less(Item& l,Item& r);
+    static int  orderId(Item& l);
+    uint8_t     slotId(Item*& slt) const;
+
+    mutable std::vector<std::unique_ptr<Item>> items;
+    mutable bool                               sorted=false;
+
     Item*                              armour=nullptr;
     Item*                              belt  =nullptr;
     Item*                              amulet=nullptr;
     Item*                              ringL =nullptr;
     Item*                              ringR =nullptr;
 
+    Item**                             active=nullptr;
     Item*                              mele  =nullptr;
     Item*                              range =nullptr;
     Item*                              numslot[8]={};
-    bool                               ch=false;
   };

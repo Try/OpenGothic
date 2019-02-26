@@ -63,6 +63,8 @@ class WorldScript final {
     int  invokeState(Daedalus::GameState::NpcHandle hnpc, Daedalus::GameState::NpcHandle hother, const char* name);
     int  invokeState(Npc* npc, Npc* other, size_t fn);
     int  invokeItem (Npc* npc, size_t fn);
+    int  invokeMana (Npc& npc, Item&  fn);
+
     bool aiUseMob  (Npc &pl, const std::string& name);
 
     void useInteractive(Daedalus::GameState::NpcHandle hnpc, const std::string &func);
@@ -160,6 +162,8 @@ class WorldScript final {
     void npc_getequippedarmor(Daedalus::DaedalusVM &vm);
     void npc_canseenpc       (Daedalus::DaedalusVM &vm);
     void npc_hasequippedmeleeweapon(Daedalus::DaedalusVM &vm);
+    void npc_getactivespell  (Daedalus::DaedalusVM &vm);
+    void npc_getactivespellisscroll(Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
