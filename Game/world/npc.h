@@ -129,7 +129,25 @@ class Npc final {
       Atack,
       AtackL,
       AtackR,
-      AtackBlock
+      AtackBlock,
+
+      MagNoMana,
+      MagFib,
+      MagWnd,
+      MagHea,
+      MagPyr,
+      MagFea,
+      MagTrf,
+      MagSum,
+      MagMsd,
+      MagStm,
+      MagFrz,
+      MagSle,
+      MagWhi,
+      MagSck,
+
+      MagFirst=MagFib,
+      MagLast =MagSck
       };
 
     enum Talent : uint8_t {
@@ -349,6 +367,7 @@ class Npc final {
     void     aiEquipBestMeleWeapon();
     void     aiUseMob(const std::string& name,int st);
     void     aiUseItem(int32_t id);
+    void     aiTeleport(const ZenLoad::zCWaypointData& to);
     void     aiClearQueue();
 
     auto     currentWayPoint() const -> const ZenLoad::zCWaypointData* { return currentFp; }
@@ -374,7 +393,8 @@ class Npc final {
       AI_GoToPoint,
       AI_EquipMelee,
       AI_UseMob,
-      AI_UseItem
+      AI_UseItem,
+      AI_Teleport
       };
 
     struct AiAction final {
@@ -415,6 +435,7 @@ class Npc final {
     const Animation::Sequence*     solveAnim(Anim a) const;
     const Animation::Sequence*     solveAnim(Anim a, WeaponState st0, Anim cur, WeaponState st) const;
     const Animation::Sequence*     solveAnim(const char* format, WeaponState st) const;
+    const Animation::Sequence*     solveMag (const char* format, Anim spell) const;
     const Animation::Sequence*     animSequence(const char* name) const;
     const char*                    animName(Anim a, WeaponState st) const;
     Anim                           animByName(const std::string& name) const;

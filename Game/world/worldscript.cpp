@@ -16,6 +16,14 @@ static std::string addExt(const std::string& s,const char* ext){
   }
 
 struct WorldScript::ScopeVar final {
+  ScopeVar(Daedalus::DaedalusVM& vm,const char* name,Npc& n)
+    :ScopeVar(vm,name, ZMemory::toBigHandle(n.handle()), Daedalus::IC_Npc){
+    }
+
+  ScopeVar(Daedalus::DaedalusVM& vm,const char* name,Npc* n)
+    :ScopeVar(vm,name,ZMemory::toBigHandle(n ? n->handle() : NpcHandle()), Daedalus::IC_Npc){
+    }
+
   ScopeVar(Daedalus::DaedalusVM& vm,const char* name, ZMemory::BigHandle h, Daedalus::EInstanceClass instanceClass)
     :vm(vm),name(name) {
     Daedalus::PARSymbol& s = vm.getDATFile().getSymbolByName(name);
@@ -148,6 +156,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("ai_equipbestmeleeweapon",
                                                      [this](Daedalus::DaedalusVM& vm){ ai_equipbestmeleeweapon(vm); });
   vm.registerExternalFunction("ai_usemob",           [this](Daedalus::DaedalusVM& vm){ ai_usemob(vm);            });
+  vm.registerExternalFunction("ai_teleport",         [this](Daedalus::DaedalusVM& vm){ ai_teleport(vm);          });
 
   vm.registerExternalFunction("mob_hasitems",        [this](Daedalus::DaedalusVM& vm){ mob_hasitems(vm);         });
 
@@ -185,7 +194,8 @@ void WorldScript::initCommon() {
   auto& currency  = vm.getDATFile().getSymbolByName("TRADE_CURRENCY_INSTANCE");
   itMi_Gold       = vm.getDATFile().getSymbolIndexByName(currency.getString(0));
 
-  auto& spellInst = vm.getDATFile().getSymbolByName("spellFxInstanceNames");
+  spellFxInstanceNames = vm.getDATFile().getSymbolIndexByName("spellFxInstanceNames");
+  spellFxAniLetters    = vm.getDATFile().getSymbolIndexByName("spellFxAniLetters");
 
   if(itMi_Gold>0){ // FIXME
     InfoHandle h = vm.getGameState().createItem();
@@ -353,7 +363,7 @@ int WorldScript::printCannotUseError(Npc& npc, int32_t atr, int32_t nValue) {
   vm.pushInt(npc.isPlayer() ? 1 : 0);
   vm.pushInt(atr);
   vm.pushInt(nValue);
-  ScopeVar self (vm,"self", ZMemory::toBigHandle(npc.handle()), Daedalus::IC_Npc);
+  ScopeVar self (vm,"self",npc);
   return runFunction(id,false);
   }
 
@@ -364,7 +374,7 @@ int WorldScript::printCannotCastError(Npc &npc, int32_t plM, int32_t itM) {
   vm.pushInt(npc.isPlayer() ? 1 : 0);
   vm.pushInt(itM);
   vm.pushInt(plM);
-  ScopeVar self (vm,"self", ZMemory::toBigHandle(npc.handle()), Daedalus::IC_Npc);
+  ScopeVar self (vm,"self",npc);
   return runFunction(id,false);
   }
 
@@ -385,11 +395,8 @@ int WorldScript::invokeState(Npc* npc, Npc* oth,size_t fn) {
   if(fn==0)
     return 1;
 
-  auto hnpc = npc ? npc->handle() : NpcHandle();
-  auto hoth = oth ? oth->handle() : NpcHandle();
-
-  ScopeVar self (vm,"self", ZMemory::toBigHandle(hnpc), Daedalus::IC_Npc);
-  ScopeVar other(vm,"other",ZMemory::toBigHandle(hoth), Daedalus::IC_Npc);
+  ScopeVar self (vm,"self", npc);
+  ScopeVar other(vm,"other",oth);
   return runFunction(fn);
   }
 
@@ -411,11 +418,56 @@ int WorldScript::invokeMana(Npc &npc, Item &) {
   if(fn==0)
     return Npc::SpellCode::SPL_SENDSTOP;
 
-  auto hnpc = npc.handle();
-  ScopeVar self (vm,"self", ZMemory::toBigHandle(hnpc), Daedalus::IC_Npc);
+  ScopeVar self (vm,"self",npc);
 
   vm.pushInt(npc.attribute(Npc::ATR_MANA));
   return runFunction(fn,false);
+  }
+
+int WorldScript::invokeSpell(Npc &npc, Item &it) {
+  auto& spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
+  auto& tag       = spellInst.getString(size_t(it.spellId()));
+  auto  str       = "Spell_Cast_" + tag;
+
+  auto& dat = vm.getDATFile();
+  auto  fn  = dat.getSymbolIndexByName(str);
+  if(fn==0)
+    return 0;
+
+  ScopeVar self(vm,"self",npc);
+  return runFunction(fn);
+  }
+
+int WorldScript::spellCastAnim(Npc&, Item &it) {
+  auto& spellAni = vm.getDATFile().getSymbolByIndex(spellFxAniLetters);
+  auto& tag      = spellAni.getString(size_t(it.spellId()));
+  if(tag=="FIB")
+    return Npc::Anim::MagFib;
+  if(tag=="WND")
+    return Npc::Anim::MagWnd;
+  if(tag=="HEA")
+    return Npc::Anim::MagHea;
+  if(tag=="PYR")
+    return Npc::Anim::MagPyr;
+  if(tag=="FEA")
+    return Npc::Anim::MagFea;
+  if(tag=="TRF")
+    return Npc::Anim::MagTrf;
+  if(tag=="SUM")
+    return Npc::Anim::MagSum;
+  if(tag=="MSD")
+    return Npc::Anim::MagMsd;
+  if(tag=="STM")
+    return Npc::Anim::MagStm;
+  if(tag=="FRZ")
+    return Npc::Anim::MagFrz;
+  if(tag=="SLE")
+    return Npc::Anim::MagSle;
+  if(tag=="WHI")
+    return Npc::Anim::MagWhi;
+  if(tag=="SCK")
+    return Npc::Anim::MagSck;
+  return Npc::Anim::MagFib;
   }
 
 bool WorldScript::aiUseMob(Npc &pl, const std::string &name) {
@@ -1319,6 +1371,14 @@ void WorldScript::ai_usemob(Daedalus::DaedalusVM &vm) {
   auto     npc   = popInstance(vm);
   if(npc!=nullptr)
     npc->aiUseMob(tg,state);
+  }
+
+void WorldScript::ai_teleport(Daedalus::DaedalusVM &vm) {
+  auto&    tg  = popString(vm);
+  auto     npc = popInstance(vm);
+  auto     pt  = owner.findPoint(tg);
+  if(npc!=nullptr && pt!=nullptr)
+    npc->aiTeleport(*pt);
   }
 
 void WorldScript::mob_hasitems(Daedalus::DaedalusVM &vm) {

@@ -594,16 +594,20 @@ void Npc::invalidateAnim(const Animation::Sequence *ani,const Skeleton* sk) {
   }
 
 void Npc::tick(uint64_t dt) {
+  /*
   if(aiType==AiType::Player) {
     mvAlgo.tick(dt);
     return;
-    }
+    }*/
 
   checkHealth();
 
   if(interactive()!=nullptr)
     setAnim(Interact); else
-    setAnim(current);
+  if(current<=IdleLoopLast)
+    setAnim(current); else
+  if(currentGoTo==nullptr && aiType!=AiType::Player)
+    setAnim(Anim::Idle);
   mvAlgo.tick(dt);
 
   if(waitTime>=owner.tickCount())
@@ -683,6 +687,11 @@ void Npc::tick(uint64_t dt) {
     case AI_UseItem:
       if(act.i0!=0)
         useItem(size_t(act.i0));
+      break;
+    case AI_Teleport: {
+      auto p = act.point->position;
+      setPosition(p.x,p.y,p.z);
+      }
       break;
     }
 
@@ -922,15 +931,23 @@ void Npc::castSpell() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return;
-  auto weaponSt=invent.weaponState();
 
   const SpellCode code = SpellCode(owner.invokeMana(*this,*active));
   switch(code) {
     case SpellCode::SPL_SENDSTOP:
+      setAnim(Anim::MagNoMana,Inventory::WeaponState::Mage,invent.weaponState());
       break;
-    case SpellCode::SPL_SENDCAST:
-      setAnim(Anim::Atack,Inventory::WeaponState::Mage,weaponSt);
+    case SpellCode::SPL_NEXTLEVEL:{
+      auto ani = Npc::Anim(owner.spellCastAnim(*this,*active));
+      setAnim(ani,Inventory::WeaponState::Mage,Inventory::WeaponState::Mage);
+      }
       break;
+    case SpellCode::SPL_SENDCAST: {
+      auto ani = Npc::Anim(owner.spellCastAnim(*this,*active));
+      setAnim(ani,Inventory::WeaponState::Mage,Inventory::WeaponState::Mage);
+      owner.invokeSpell(*this,*active);
+      break;
+      }
     default:
       //TODO
       break;
@@ -1141,6 +1158,13 @@ void Npc::aiUseItem(int32_t id) {
   AiAction a;
   a.act = AI_UseItem;
   a.i0  = id;
+  aiActions.push(a);
+  }
+
+void Npc::aiTeleport(const ZenLoad::zCWaypointData &to) {
+  AiAction a;
+  a.act   = AI_Teleport;
+  a.point = &to;
   aiActions.push(a);
   }
 
@@ -1366,6 +1390,13 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
   if(a==Anim::GuardSleep)
     return animSequence("S_GUARDSLEEP");
 
+  if(cur==Anim::Idle && (Anim::MagFirst<=a && a<=Anim::MagLast))
+    return solveMag("T_MAGRUN_2_%sSHOOT",a);
+  if((Anim::MagFirst<=cur && cur<=Anim::MagLast) && a==Anim::Idle)
+    return solveMag("T_%sSHOOT_2_STAND",cur);
+  if(Anim::MagFirst<=a && a<=Anim::MagLast)
+    return solveMag("S_%sSHOOT",a);
+
   if(cur==Anim::Idle && a==Anim::Sit)
     return animSequence("T_STAND_2_SIT");
   if(cur==Anim::Sit && a==Anim::Idle)
@@ -1385,6 +1416,8 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
     return animSequence("T_HGUARD_LOOKAROUND");
   if(a==Anim::Training)
     return animSequence("T_1HSFREE");
+  if(a==Anim::MagNoMana)
+    return animSequence("T_CASTFAIL");
 
   if(a==Anim::Fall)
     return animSequence("S_FALLDN");
@@ -1426,6 +1459,14 @@ const Animation::Sequence* Npc::solveAnim(const char *format, Npc::WeaponState s
   return animSequence(name);
   }
 
+const Animation::Sequence *Npc::solveMag(const char *format, Npc::Anim spell) const {
+  static const char* mg[]={"FIB", "WND", "HEA", "PYR", "FEA", "TRF", "SUM", "MSD", "STM", "FRZ", "SLE", "WHI", "SCK"};
+
+  char name[128]={};
+  std::snprintf(name,sizeof(name),format,mg[spell-Anim::MagFirst]);
+  return animSequence(name);
+  }
+
 const Animation::Sequence *Npc::animSequence(const char *name) const {
   for(size_t i=overlay.size();i>0;){
     --i;
@@ -1464,5 +1505,7 @@ Npc::Anim Npc::animByName(const std::string &name) const {
     return Anim::GuardLScratch;
   if(name=="T_1HSFREE")
     return Anim::Training;
+  if(name=="T_MAGRUN_2_HEASHOOT" || name=="S_HEASHOOT" || name=="T_HEASHOOT_2_STAND")
+    return Anim::MagHea;
   return Anim::NoAnim;
   }

@@ -64,6 +64,9 @@ class WorldScript final {
     int  invokeState(Npc* npc, Npc* other, size_t fn);
     int  invokeItem (Npc* npc, size_t fn);
     int  invokeMana (Npc& npc, Item&  fn);
+    int  invokeSpell(Npc& npc, Item&  fn);
+
+    int  spellCastAnim(Npc& npc, Item&  fn);
 
     bool aiUseMob  (Npc &pl, const std::string& name);
 
@@ -185,6 +188,7 @@ class WorldScript final {
     void ai_playanibs        (Daedalus::DaedalusVM &vm);
     void ai_equipbestmeleeweapon(Daedalus::DaedalusVM &vm);
     void ai_usemob           (Daedalus::DaedalusVM &vm);
+    void ai_teleport         (Daedalus::DaedalusVM &vm);
 
     void mob_hasitems        (Daedalus::DaedalusVM &vm);
 
@@ -219,6 +223,8 @@ class WorldScript final {
     std::unique_ptr<Daedalus::GameState::DaedalusDialogManager> dialogs;
 
     QuestLog                                                    quests;
-    size_t                                                      itMi_Gold;
+    size_t                                                      itMi_Gold=0;
+    size_t                                                      spellFxInstanceNames=0;
+    size_t                                                      spellFxAniLetters=0;
     std::string                                                 goldTxt;
   };
