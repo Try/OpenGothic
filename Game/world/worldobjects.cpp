@@ -129,18 +129,21 @@ void WorldObjects::addInteractive(const ZenLoad::zCVobData &vob) {
   interactiveObj.emplace_back(owner,vob);
   }
 
-Interactive* WorldObjects::findInteractive(const Npc &pl, const Matrix4x4 &v, int w, int h) {
-  auto r = findObj(interactiveObj,pl,220,150,v,w,h);
+Interactive* WorldObjects::findInteractive(const Npc &pl, const Matrix4x4 &v, int w, int h,
+                                           float rangeMin, float rangeMax, float azi) {
+  auto r = findObj(interactiveObj,pl,rangeMin,rangeMax,azi,v,w,h);
   return r;
   }
 
-Npc* WorldObjects::findNpc(const Npc &pl, const Matrix4x4 &v, int w, int h) {
-  auto r = findObj(npcArr,pl,440,150,v,w,h);
+Npc* WorldObjects::findNpc(const Npc &pl, const Matrix4x4 &v, int w, int h,
+                           float rangeMin, float rangeMax, float azi) {
+  auto r = findObj(npcArr,pl,rangeMin,rangeMax,azi,v,w,h);
   return r ? r->get() : nullptr;
   }
 
-Item *WorldObjects::findItem(const Npc &pl, const Matrix4x4 &v, int w, int h) {
-  auto r = findObj(itemArr,pl,180,120,v,w,h);
+Item *WorldObjects::findItem(const Npc &pl, const Matrix4x4 &v, int w, int h,
+                             float rangeMin, float rangeMax, float azi) {
+  auto r = findObj(itemArr,pl,rangeMin,rangeMax,azi,v,w,h);
   return r ? r->get() : nullptr;
   }
 
@@ -203,7 +206,8 @@ template<class T>
 T& deref(T& x){ return x; }
 
 template<class T>
-T* WorldObjects::findObj(std::vector<T> &src,const Npc &pl, float maxDist, float maxAngle, const Matrix4x4 &v, int w, int h) {
+T* WorldObjects::findObj(std::vector<T> &src,const Npc &pl, float minDist, float maxDist,
+                         float maxAngle, const Matrix4x4 &v, int w, int h) {
   T*    ret=nullptr;
   float rlen = w*h;
   if(owner.view()==nullptr)
@@ -211,7 +215,10 @@ T* WorldObjects::findObj(std::vector<T> &src,const Npc &pl, float maxDist, float
 
   auto        mvp  = owner.view()->viewProj(v);
   const float qmax = maxDist*maxDist;
-  const float ang  = float(std::sin((180.0-double(maxAngle))*M_PI/180.0));
+  const float qmin = minDist*minDist;
+
+  const float ang   = float(std::cos(double(maxAngle)*M_PI/180.0));
+  const float plAng = pl.rotationRad()+float(M_PI/2);
 
   for(auto& n:src){
     auto& npc=deref(n);
@@ -224,11 +231,12 @@ T* WorldObjects::findObj(std::vector<T> &src,const Npc &pl, float maxDist, float
     float dy=pl.position()[1]-pos[1];
     float dz=pl.position()[2]-pos[2];
 
-    auto angle=std::atan2(dz,dx);
-    if(std::sin(pl.rotationRad()-angle)>-ang)
-      continue;
     float l = (dx*dx+dy*dy+dz*dz);
-    if(l>qmax)
+    if(l>qmax || l<qmin)
+      continue;
+
+    auto angle=std::atan2(dz,dx);
+    if(std::cos(plAng-angle)<ang)
       continue;
 
     float x=npc.position()[0],y=npc.position()[1],z=npc.position()[2];

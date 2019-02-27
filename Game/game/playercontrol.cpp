@@ -19,6 +19,8 @@ void PlayerControl::setWorld(World *w) {
 bool PlayerControl::interact(Interactive &it) {
   if(world==nullptr || world->player()==nullptr)
     return false;
+  if(world->player()->weaponState()!=Inventory::WeaponState::NoWeapon)
+    return false;
   if(it.isContainer()){
     inv.open(*world->player(),it);
     return true;
@@ -29,11 +31,15 @@ bool PlayerControl::interact(Interactive &it) {
 bool PlayerControl::interact(Npc &other) {
   if(world==nullptr || world->player()==nullptr)
     return false;
+  if(world->player()->weaponState()!=Inventory::WeaponState::NoWeapon)
+    return false;
   return dlg.start(*world->player(),other);
   }
 
 bool PlayerControl::interact(Item &item) {
   if(world==nullptr || world->player()==nullptr)
+    return false;
+  if(world->player()->weaponState()!=Inventory::WeaponState::NoWeapon)
     return false;
   std::unique_ptr<Item> ptr {world->takeItem(item)};
   world->player()->addItem(std::move(ptr));
@@ -178,11 +184,14 @@ void PlayerControl::implMove(uint64_t dt) {
     if(ctrl[ActForward]) {
       auto ws = pl.weaponState();
       if(ws==Inventory::WeaponState::W1H ||
-         ws==Inventory::WeaponState::W2H)
+         ws==Inventory::WeaponState::W2H) {
         pl.swingSword();
-      else if(ws==Inventory::WeaponState::Mage)
-        pl.castSpell();
-      return;
+        return;
+        }
+      else if(ws==Inventory::WeaponState::Mage) {
+        if(pl.castSpell())
+          return;
+        }
       }
     if(ctrl[ActLeft] || ctrl[ActRight] || ctrl[ActBack]) {
       auto ws = pl.weaponState();

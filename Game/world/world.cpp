@@ -131,15 +131,57 @@ size_t World::getSymbolIndex(const char *s) const {
   }
 
 Focus World::findFocus(const Npc &pl, const Tempest::Matrix4x4 &v, int w, int h) {
-  auto n = wobj.findNpc(pl,v,w,h);
-  if(n)
-    return Focus(*n);
-  auto inter = wobj.findInteractive(pl,v,w,h);
-  if(inter)
+  const Daedalus::GEngineClasses::C_Focus* fptr=&script()->focusNorm();
+  switch(pl.weaponState()) {
+    case Inventory::Fist:
+    case Inventory::W1H:
+    case Inventory::W2H:
+      fptr=&script()->focusMele();
+      break;
+    case Inventory::Bow:
+    case Inventory::CBow:
+      fptr=&script()->focusRange();
+      break;
+    case Inventory::Mage:
+      fptr=&script()->focusMage();
+      break;
+    case Inventory::NoWeapon:
+      fptr=&script()->focusNorm();
+      break;
+    }
+  auto& policy = *fptr;
+
+  auto n     = policy.npc_prio <0 ? nullptr : wobj.findNpc(pl,v,w,h,         policy.npc_range1,  policy.npc_range2,  policy.npc_azi);
+  auto inter = policy.mob_prio <0 ? nullptr : wobj.findInteractive(pl,v,w,h, policy.mob_range1,  policy.mob_range2,  policy.mob_azi);
+  auto it    = policy.item_prio<0 ? nullptr : wobj.findItem(pl,v,w,h,        policy.item_range1, policy.item_range2, policy.item_azi);
+
+  if(policy.npc_prio>=policy.item_prio &&
+     policy.npc_prio>=policy.mob_prio) {
+    if(n)
+      return Focus(*n);
+    if(policy.item_prio>=policy.mob_prio && it)
+      return Focus(*it);
     return inter ? Focus(*inter) : Focus();
-  auto it = wobj.findItem(pl,v,w,h);
-  if(it)
-    return Focus(*it);
+    }
+
+  if(policy.mob_prio>=policy.item_prio &&
+     policy.mob_prio>=policy.npc_prio) {
+    if(inter)
+      return Focus(*inter);
+    if(policy.npc_prio>=policy.item_prio && n)
+      return Focus(*n);
+    return it ? Focus(*it) : Focus();
+    }
+
+  if(policy.item_prio>=policy.mob_prio &&
+     policy.item_prio>=policy.npc_prio) {
+    if(it)
+      return Focus(*it);
+    if(policy.npc_prio>=policy.mob_prio && n)
+      return Focus(*n);
+    return inter ? Focus(*inter) : Focus();
+    }
+
   return Focus();
   }
 

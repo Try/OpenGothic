@@ -318,7 +318,7 @@ class Npc final {
     void swingSwordL();
     void swingSwordR();
     void blockSword();
-    void castSpell();
+    bool castSpell();
 
     void setPerceptionTime   (uint64_t time);
     void setPerceptionEnable (PercType t, size_t fn);
@@ -467,10 +467,10 @@ class Npc final {
 
     const Skeleton*                skeleton=nullptr;
     std::vector<Overlay>           overlay;
-    const Animation::Sequence*     animSq  =nullptr;
-    uint64_t                       sAnim   =0;
-    Anim                           current =NoAnim;
-    //WeaponState                    weaponSt=WeaponState::NoWeapon;
+    const Animation::Sequence*     animSq   =nullptr;
+    uint64_t                       sAnim    =0;
+    Anim                           current  =NoAnim;
+    Anim                           prevAni  =NoAnim;
     std::shared_ptr<Pose>          skInst;
 
     std::string                    name;

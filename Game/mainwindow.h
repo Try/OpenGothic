@@ -52,6 +52,8 @@ class MainWindow : public Tempest::Window {
     void keyDownEvent   (Tempest::KeyEvent&   event) override;
     void keyUpEvent     (Tempest::KeyEvent&   event) override;
 
+    void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, float v, Tempest::AlignFlag flg);
+
     void setWorld(const std::string& name);
     void clearInput();
 
@@ -92,6 +94,10 @@ class MainWindow : public Tempest::Window {
 
     Gothic&                             gothic;
     const Tempest::Texture2d*           background=nullptr;
+
+    const Tempest::Texture2d*           barBack=nullptr;
+    const Tempest::Texture2d*           barHp  =nullptr;
+    const Tempest::Texture2d*           barMana=nullptr;
 
     bool                                mouseP[Tempest::MouseEvent::ButtonBack]={};
     bool                                pressed[Tempest::KeyEvent::K_Last]={};

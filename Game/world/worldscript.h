@@ -44,6 +44,11 @@ class WorldScript final {
     size_t      goldId() const { return itMi_Gold; }
     const char* currencyName() const { return goldTxt.c_str(); }
 
+    const Daedalus::GEngineClasses::C_Focus&          focusNorm()  const { return cFocusNorm;  }
+    const Daedalus::GEngineClasses::C_Focus&          focusMele()  const { return cFocusMele;  }
+    const Daedalus::GEngineClasses::C_Focus&          focusRange() const { return cFocusRange; }
+    const Daedalus::GEngineClasses::C_Focus&          focusMage()  const { return cFocusMage;  }
+
     Daedalus::GameState::DaedalusGameState&           getGameState();
     Daedalus::PARSymbol&                              getSymbol(const char*  s);
     Daedalus::PARSymbol&                              getSymbol(const size_t s);
@@ -97,6 +102,7 @@ class WorldScript final {
     Item* getItem(Daedalus::GameState::ItemHandle handle);
     Npc*  getNpcById(size_t id);
     Npc*  inserNpc  (size_t npcInstance, const char *at);
+    auto  getFocus(const char* name) -> Daedalus::GEngineClasses::C_Focus;
 
     static void concatstrings(Daedalus::DaedalusVM& vm);
     static void inttostring  (Daedalus::DaedalusVM& vm);
@@ -227,4 +233,6 @@ class WorldScript final {
     size_t                                                      spellFxInstanceNames=0;
     size_t                                                      spellFxAniLetters=0;
     std::string                                                 goldTxt;
+
+    Daedalus::GEngineClasses::C_Focus                           cFocusNorm,cFocusMele,cFocusRange,cFocusMage;
   };

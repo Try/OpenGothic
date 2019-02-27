@@ -30,6 +30,9 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   initSwapchain();
   setupUi();
 
+  barBack    = Resources::loadTexture("BAR_BACK.TGA");
+  barHp      = Resources::loadTexture("BAR_HEALTH.TGA");
+  barMana    = Resources::loadTexture("BAR_MANA.TGA");
   background = Resources::loadTexture("STARTSCREEN.TGA");
   timer.timeout.bind(this,&MainWindow::tick);
 
@@ -92,16 +95,16 @@ void MainWindow::paintEvent(PaintEvent& event) {
     auto vp = world->view()->viewProj(camera.view());
     p.setBrush(Color(1.0));
 
-    auto item = findFocus();
+    auto focus = findFocus();
 
-    if(item) {
-      auto pos = item.displayPosition();
+    if(focus) {
+      auto pos = focus.displayPosition();
       vp.project(pos[0],pos[1],pos[2]);
 
       int ix = int((0.5f*pos[0]+0.5f)*w());
       int iy = int((0.5f*pos[1]+0.5f)*h());
       p.setFont(Resources::font());
-      const char* txt = item.displayName();
+      const char* txt = focus.displayName();
       auto tsize = p.font().textSize(txt);
       ix-=tsize.w/2;
       if(iy<tsize.h)
@@ -109,6 +112,18 @@ void MainWindow::paintEvent(PaintEvent& event) {
       if(iy>h())
         iy = h();
       p.drawText(ix,iy,txt);
+
+      if(auto pl = focus.npc){
+        float hp = pl->attribute(Npc::ATR_HITPOINTS)/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
+        drawBar(p,barHp, w()/2,10, hp, AlignHCenter|AlignTop );
+        }
+      }
+
+    if(auto pl=gothic.player()){
+      float hp = pl->attribute(Npc::ATR_HITPOINTS)/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
+      float mp = pl->attribute(Npc::ATR_MANA)/float(pl->attribute(Npc::ATR_MANAMAX));
+      drawBar(p,barHp,  10,    h()-10, hp, AlignLeft |AlignBottom);
+      drawBar(p,barMana,w()-10,h()-10, mp, AlignRight|AlignBottom);
       }
     }
 
@@ -190,6 +205,32 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
       }
     clearInput();
     }
+  }
+
+void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y, float v, AlignFlag flg) {
+  if(barBack==nullptr || bar==nullptr)
+    return;
+  const int   destW   = int(180*(std::min(w(),800)/800.f));
+  const float k       = destW/float(std::max(barBack->w(),1));
+  const int   destH   = int(barBack->h()*k);
+  const int   destHin = int(destH*0.95f);
+
+  v = std::max(0.f,std::min(v,1.f));
+  if(flg & AlignRight)
+    x-=destW;
+  else if(flg & AlignHCenter)
+    x-=destW/2;
+  if(flg & AlignBottom)
+    y-=destH;
+
+  p.setBrush(*barBack);
+  p.drawRect(x,y,destW,destH, 0,0,barBack->w(),barBack->h());
+
+  int dy = int(0.5f*k*(barBack->h()-destHin));
+  int pd = int(9*k);
+  p.setBrush(*bar);
+  p.drawRect(x+pd,y+dy,int((destW-pd*2)*v),int(k*destHin),
+             0,0,bar->w(),bar->h());
   }
 
 void MainWindow::tick() {

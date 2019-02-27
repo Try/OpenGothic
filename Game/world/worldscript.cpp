@@ -197,6 +197,11 @@ void WorldScript::initCommon() {
   spellFxInstanceNames = vm.getDATFile().getSymbolIndexByName("spellFxInstanceNames");
   spellFxAniLetters    = vm.getDATFile().getSymbolIndexByName("spellFxAniLetters");
 
+  cFocusNorm  = getFocus("Focus_Normal");
+  cFocusMele  = getFocus("Focus_Melee");
+  cFocusRange = getFocus("Focus_Ranged");
+  cFocusMage  = getFocus("Focus_Magic");
+
   if(itMi_Gold>0){ // FIXME
     InfoHandle h = vm.getGameState().createItem();
     vm.initializeInstance(ZMemory::toBigHandle(h), itMi_Gold, Daedalus::IC_Item);
@@ -218,6 +223,20 @@ void WorldScript::initDialogs(Gothic& gothic) {
     vm.initializeInstance(ZMemory::toBigHandle(h), i, Daedalus::IC_Info);
     dialogsInfo.push_back(h);
     });
+  }
+
+Daedalus::GEngineClasses::C_Focus WorldScript::getFocus(const char *name) {
+  auto id = vm.getDATFile().getSymbolIndexByName(name);
+  if(id==0){
+    Daedalus::GEngineClasses::C_Focus r={};
+    return r;
+    }
+  auto foc = vm.getGameState().createFocus();
+  vm.initializeInstance(ZMemory::toBigHandle(foc), id, Daedalus::IC_Focus);
+
+  auto ret = vm.getGameState().getFocus(foc);
+  //vm.getGameState().remove***(foc); TODO: cleanup
+  return ret;
   }
 
 DaedalusGameState &WorldScript::getGameState() {

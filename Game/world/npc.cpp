@@ -290,7 +290,8 @@ void Npc::setAnim(Npc::Anim a,WeaponState nextSt,WeaponState weaponSt) {
       return;
     }
   auto ani = solveAnim(a,weaponSt,current,nextSt);
-  current =a;
+  prevAni  = current;
+  current  =a;
   if(ani==animSq) {
     if(animSq!=nullptr && animSq->animCls==Animation::Transition){
       invalidateAnim(ani,skeleton); // restart anim
@@ -931,10 +932,12 @@ void Npc::blockSword() {
   setAnim(Anim::AtackBlock,weaponSt,weaponSt);
   }
 
-void Npc::castSpell() {
+bool Npc::castSpell() {
   auto active=invent.activeWeapon();
-  if(active==nullptr)
-    return;
+  if(active==nullptr ||
+     (Anim::MagFirst<=current && current<=Anim::MagLast) ||
+     (Anim::MagFirst<=prevAni && prevAni<=Anim::MagLast) || !isStanding())
+    return false;
 
   const SpellCode code = SpellCode(owner.invokeMana(*this,*active));
   switch(code) {
@@ -956,6 +959,7 @@ void Npc::castSpell() {
       //TODO
       break;
     }
+  return true;
   }
 
 void Npc::setPerceptionTime(uint64_t time) {
