@@ -225,14 +225,18 @@ void Npc::setArmour(StaticObjects::Mesh &&a) {
   }
 
 void Npc::setSword(StaticObjects::Mesh &&s) {
+  auto st=weaponState();
   sword = std::move(s);
   updateWeaponSkeleton();
+  setAnim(current,weaponState(),st);
   setPos(pos);
   }
 
 void Npc::setRangeWeapon(StaticObjects::Mesh &&b) {
+  auto st=weaponState();
   bow = std::move(b);
   updateWeaponSkeleton();
+  setAnim(current,weaponState(),st);
   setPos(pos);
   }
 
@@ -247,7 +251,7 @@ void Npc::updateWeaponSkeleton() {
     }
 
   if(st==WeaponState::Bow || st==WeaponState::CBow){
-    bow.setSkeleton(skeleton,"ZS_LEFTTHAND");
+    bow.setSkeleton(skeleton,"ZS_LEFTHAND");
     } else {
     auto raange = invent.currentRangeWeapon();
     bool cbow   = raange!=nullptr && raange->isCrossbow();
@@ -621,7 +625,7 @@ void Npc::tick(uint64_t dt) {
 
   if(aiActions.size()==0) {
     tickRoutine();
-    if(invent.isChanged())
+    if(invent.isChanged() && aiType!=AiType::Player)
       invent.autoEquip(owner,*this);
     return;
     }
@@ -695,7 +699,7 @@ void Npc::tick(uint64_t dt) {
       break;
     }
 
-  if(invent.isChanged())
+  if(invent.isChanged() && aiType!=AiType::Player)
     invent.autoEquip(owner,*this);
   }
 
