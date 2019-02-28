@@ -192,6 +192,7 @@ void PlayerControl::implMove(uint64_t dt) {
         if(pl.castSpell())
           return;
         }
+      ctrl[Forward]=true;
       }
     if(ctrl[ActLeft] || ctrl[ActRight] || ctrl[ActBack]) {
       auto ws = pl.weaponState();

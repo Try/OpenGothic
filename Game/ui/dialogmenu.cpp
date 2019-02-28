@@ -73,12 +73,12 @@ void DialogMenu::aiProcessInfos(Npc &p,Npc &npc) {
   state  = State::PreStart;
   }
 
-void DialogMenu::aiOutput(Npc &player,const char *msg) {
-  if(&player!=pl && &player!=other)
+void DialogMenu::aiOutput(Npc &npc,const char *msg,uint32_t time) {
+  if(&npc!=pl && &npc!=other)
     return; // vatras is here
   Entry e;
-  e.txt=msg;
-  e.time = uint32_t(e.txt.size()*50);
+  e.txt  = msg;
+  e.time = time;
   if(txt.size()==0)
     remDlg=e.time;
   txt.emplace(txt.begin(),std::move(e));

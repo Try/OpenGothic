@@ -698,6 +698,12 @@ void Npc::tick(uint64_t dt) {
       setPosition(p.x,p.y,p.z);
       }
       break;
+    case AI_DrawWeaponMele:
+      drawWeaponMele();
+      break;
+    case AI_DrawWeaponRange:
+      drawWeaponBow();
+      break;
     }
 
   if(invent.isChanged() && aiType!=AiType::Player)
@@ -769,6 +775,8 @@ void Npc::tickRoutine() {
   }
 
 const Npc::Routine& Npc::currentRoutine() const {
+  /* TODO
+   *
   auto time = owner.world().time();
   time = gtime(int32_t(time.hour()),int32_t(time.minute()));
   for(auto& i:routines){
@@ -776,7 +784,7 @@ const Npc::Routine& Npc::currentRoutine() const {
       return i;
     if(i.start<=time && time<i.end)
       return i;
-    }
+    }*/
 
   static Routine r;
   return r;
@@ -823,7 +831,7 @@ void Npc::setToFightMode(const uint32_t item) {
   if(invent.itemCount(item)==0)
     addItem(item,1);
 
-  useItem(item);
+  useItem(item,true);
   drawWeaponMele();
   }
 
@@ -851,6 +859,10 @@ Item *Npc::currentMeleWeapon() {
   return invent.currentMeleWeapon();
   }
 
+Item *Npc::currentRangeWeapon() {
+  return invent.currentRangeWeapon();
+  }
+
 size_t Npc::hasItem(uint32_t id) const {
   return invent.itemCount(id);
   }
@@ -859,8 +871,8 @@ void Npc::delItem(uint32_t item, uint32_t amount) {
   invent.delItem(item,amount,owner,*this);
   }
 
-void Npc::useItem(uint32_t item) {
-  invent.use(item,owner,*this);
+void Npc::useItem(uint32_t item,bool force) {
+  invent.use(item,owner,*this,force);
   }
 
 void Npc::unequipItem(uint32_t item) {
@@ -974,6 +986,28 @@ void Npc::setPerceptionEnable(Npc::PercType t, size_t fn) {
 void Npc::setPerceptionDisable(Npc::PercType t) {
   if(t>0 && t<PERC_Count)
     perception[t].func = 0;
+  }
+
+void Npc::preceptionPlayer(Npc &pl) {
+  float dx = x-pl.x;
+  float dy = y-pl.y;
+  float dz = z-pl.z;
+
+  float r = owner.vmNpc(hnpc).senses_range;
+  if(dx*dx+dy*dy+dz*dz<r*r){
+    if(perception[PERC_ASSESSENEMY].func){
+      currentOther=&pl;
+      startState(perception[PERC_ASSESSENEMY].func,false,"");
+      }
+    }
+
+  r = owner.vmNpc(hnpc).senses_range;
+  if(dx*dx+dy*dy+dz*dz<r*r){
+    if(perception[PERC_ASSESSPLAYER].func){
+      currentOther=&pl;
+      // startState(perception[PERC_ASSESSPLAYER].func,false,"");
+      }
+    }
   }
 
 bool Npc::setInteraction(Interactive *id) {
@@ -1173,6 +1207,18 @@ void Npc::aiTeleport(const ZenLoad::zCWaypointData &to) {
   AiAction a;
   a.act   = AI_Teleport;
   a.point = &to;
+  aiActions.push(a);
+  }
+
+void Npc::aiReadyMeleWeapon() {
+  AiAction a;
+  a.act = AI_DrawWeaponMele;
+  aiActions.push(a);
+  }
+
+void Npc::aiReadyRangeWeapon() {
+  AiAction a;
+  a.act = AI_DrawWeaponRange;
   aiActions.push(a);
   }
 
@@ -1404,6 +1450,8 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
     return solveMag("T_%sSHOOT_2_STAND",cur);
   if(Anim::MagFirst<=a && a<=Anim::MagLast)
     return solveMag("S_%sSHOOT",a);
+  if(a==Anim::MagNoMana)
+    return animSequence("T_CASTFAIL");
 
   if(cur==Anim::Idle && a==Anim::Sit)
     return animSequence("T_STAND_2_SIT");
@@ -1424,8 +1472,8 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
     return animSequence("T_HGUARD_LOOKAROUND");
   if(a==Anim::Training)
     return animSequence("T_1HSFREE");
-  if(a==Anim::MagNoMana)
-    return animSequence("T_CASTFAIL");
+  if(a==Anim::Warn)
+    return animSequence("T_WARN");
 
   if(a==Anim::Fall)
     return animSequence("S_FALLDN");
@@ -1437,6 +1485,15 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
     return animSequence("S_SLIDE");
   if(a==Anim::SlideB)
     return animSequence("S_SLIDEB");
+
+  if(a==Anim::Chair1)
+    return animSequence("R_CHAIR_RANDOM_1");
+  if(a==Anim::Chair2)
+    return animSequence("R_CHAIR_RANDOM_2");
+  if(a==Anim::Chair3)
+    return animSequence("R_CHAIR_RANDOM_3");
+  if(a==Anim::Chair4)
+    return animSequence("R_CHAIR_RANDOM_4");
 
   // FALLBACK
   if(a==Anim::Move)
@@ -1515,5 +1572,15 @@ Npc::Anim Npc::animByName(const std::string &name) const {
     return Anim::Training;
   if(name=="T_MAGRUN_2_HEASHOOT" || name=="S_HEASHOOT" || name=="T_HEASHOOT_2_STAND")
     return Anim::MagHea;
+  if(name=="T_WARN")
+    return Anim::Warn;
+  if(name=="R_CHAIR_RANDOM_1")
+    return Anim::Chair1;
+  if(name=="R_CHAIR_RANDOM_2")
+    return Anim::Chair2;
+  if(name=="R_CHAIR_RANDOM_3")
+    return Anim::Chair3;
+  if(name=="R_CHAIR_RANDOM_4")
+    return Anim::Chair4;
   return Anim::NoAnim;
   }

@@ -19,6 +19,13 @@ void WorldObjects::tick(uint64_t dt) {
   for(auto& i:npcArr){
     i->tick(dt);
     }
+  auto pl = owner.player();
+  if(pl!=nullptr) {
+    for(auto& i:npcArr){
+      if(i.get()!=pl)
+        i->preceptionPlayer(*pl);
+      }
+    }
   }
 
 void WorldObjects::onInserNpc(NpcHandle handle,const std::string& point) {

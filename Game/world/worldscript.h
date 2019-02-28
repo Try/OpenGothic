@@ -171,8 +171,11 @@ class WorldScript final {
     void npc_getequippedarmor(Daedalus::DaedalusVM &vm);
     void npc_canseenpc       (Daedalus::DaedalusVM &vm);
     void npc_hasequippedmeleeweapon(Daedalus::DaedalusVM &vm);
+    void npc_hasequippedrangedweapon(Daedalus::DaedalusVM &vm);
     void npc_getactivespell  (Daedalus::DaedalusVM &vm);
     void npc_getactivespellisscroll(Daedalus::DaedalusVM &vm);
+    void npc_canseenpcfreelos(Daedalus::DaedalusVM &vm);
+    void npc_isinfightmode   (Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
@@ -195,6 +198,8 @@ class WorldScript final {
     void ai_equipbestmeleeweapon(Daedalus::DaedalusVM &vm);
     void ai_usemob           (Daedalus::DaedalusVM &vm);
     void ai_teleport         (Daedalus::DaedalusVM &vm);
+    void ai_stoppointat      (Daedalus::DaedalusVM &vm);
+    void ai_readymeleeweapon (Daedalus::DaedalusVM &vm);
 
     void mob_hasitems        (Daedalus::DaedalusVM &vm);
 
@@ -220,7 +225,7 @@ class WorldScript final {
     void sort(std::vector<DlgChoise>& dlg);
 
     Daedalus::DaedalusVM vm;
-    bool                 invokeRecursive=false;
+    uint8_t              invokeRecursive=0;
     World&               owner;
     std::mt19937         randGen;
 
@@ -233,6 +238,7 @@ class WorldScript final {
     size_t                                                      spellFxInstanceNames=0;
     size_t                                                      spellFxAniLetters=0;
     std::string                                                 goldTxt;
+    float                                                       viewTimePerChar=0.5;
 
     Daedalus::GEngineClasses::C_Focus                           cFocusNorm,cFocusMele,cFocusRange,cFocusMage;
   };

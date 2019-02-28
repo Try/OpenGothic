@@ -105,8 +105,13 @@ class Npc final {
       GuardLStrectch,
       Lookaround,
       Perception,
+      Chair1,
+      Chair2,
+      Chair3,
+      Chair4,
       Eat,
-      IdleLast=Eat,
+      Warn,
+      IdleLast=Warn,
 
       Move,
       MoveBack,
@@ -323,6 +328,7 @@ class Npc final {
     void setPerceptionTime   (uint64_t time);
     void setPerceptionEnable (PercType t, size_t fn);
     void setPerceptionDisable(PercType t);
+    void preceptionPlayer(Npc& pl);
 
     const Interactive* interactive() const { return currentInteract; }
     bool     setInteraction(Interactive* id);
@@ -347,13 +353,14 @@ class Npc final {
     size_t   hasItem    (uint32_t id) const;
     void     addItem    (uint32_t id, uint32_t amount);
     void     delItem    (uint32_t id, uint32_t amount);
-    void     useItem    (uint32_t item);
+    void     useItem    (uint32_t item, bool force=false);
     void     unequipItem(uint32_t item);
     void     addItem    (std::unique_ptr<Item>&& i);
     void     addItem    (uint32_t id,Interactive& chest);
     void     moveItem   (uint32_t id,Interactive& to);
     Item*    currentArmour();
     Item*    currentMeleWeapon();
+    Item*    currentRangeWeapon();
 
     void     aiLookAt(Npc* other);
     void     aiStopLookAt();
@@ -368,6 +375,8 @@ class Npc final {
     void     aiUseMob(const std::string& name,int st);
     void     aiUseItem(int32_t id);
     void     aiTeleport(const ZenLoad::zCWaypointData& to);
+    void     aiReadyMeleWeapon();
+    void     aiReadyRangeWeapon();
     void     aiClearQueue();
 
     auto     currentWayPoint() const -> const ZenLoad::zCWaypointData* { return currentFp; }
@@ -394,7 +403,9 @@ class Npc final {
       AI_EquipMelee,
       AI_UseMob,
       AI_UseItem,
-      AI_Teleport
+      AI_Teleport,
+      AI_DrawWeaponMele,
+      AI_DrawWeaponRange,
       };
 
     struct AiAction final {
@@ -416,7 +427,6 @@ class Npc final {
       };
 
     struct Perc final {
-      bool   enable=false;
       size_t func  =0;
       };
 

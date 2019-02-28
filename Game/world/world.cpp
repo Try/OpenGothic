@@ -58,8 +58,8 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
 
   vm->initDialogs(gothic);
 
-  //const char* hero="PC_HERO";
-  const char* hero="PC_ROCKEFELLER";
+  const char* hero="PC_HERO";
+  //const char* hero="PC_ROCKEFELLER";
 
   if(startPoints.size()>0)
     npcPlayer = vm->inserNpc(hero,startPoints[0].wpName.c_str()); else
@@ -216,8 +216,8 @@ void World::aiProcessInfos(Npc &player, Npc &npc) {
   gothic.aiProcessInfos(player,npc);
   }
 
-void World::aiOutput(Npc &player, const char *msg) {
-  gothic.aiOuput(player,msg);
+void World::aiOutput(Npc &player, const char *msg, uint32_t time) {
+  gothic.aiOuput(player,msg,time);
   }
 
 void World::aiCloseDialog() {

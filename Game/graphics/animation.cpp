@@ -138,6 +138,8 @@ Animation::Sequence::Sequence(const std::string &name) {
             animCls=Transition;
           else if(this->name[0]=='T' && this->name[1]=='_')
             animCls=Transition;
+          else if(this->name[0]=='R' && this->name[1]=='_')
+            animCls=Transition;
           else if(this->name[0]=='S' && this->name[1]=='_')
             animCls=Loop;
 

@@ -73,7 +73,7 @@ class World final {
     void  exec(const WorldScript::DlgChoise& dlg, Npc& player,Npc& hnpc);
 
     void  aiProcessInfos(Npc &player, Npc& npc);
-    void  aiOutput(Npc &player, const char* msg);
+    void  aiOutput(Npc &player, const char* msg, uint32_t time);
     void  aiCloseDialog();
     bool  aiIsDlgFinished();
     bool  aiUseMob  (Npc &pl, const std::string& name);

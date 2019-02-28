@@ -106,8 +106,8 @@ void Gothic::aiProcessInfos(Npc& player,Npc &npc) {
   onDialogProcess(player,npc);
   }
 
-void Gothic::aiOuput(Npc &player, const char *msg) {
-  onDialogOutput(player,msg);
+void Gothic::aiOuput(Npc &player, const char *msg, uint32_t time) {
+  onDialogOutput(player,msg,time);
   }
 
 void Gothic::aiCloseDialog() {
