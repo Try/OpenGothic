@@ -63,7 +63,7 @@ class Inventory final {
     void   addItem(const char* name, uint32_t count, WorldScript& vm);
     void   addItem(size_t cls, uint32_t count, WorldScript& vm);
     void   delItem(size_t cls, uint32_t count, WorldScript& vm, Npc &owner);
-    bool   use    (size_t cls, WorldScript &vm, Npc &owner);
+    bool   use    (size_t cls, WorldScript &vm, Npc &owner, bool force);
     bool   unequip(size_t cls, WorldScript &vm, Npc &owner);
     void   unequip(Item*  cls, WorldScript &vm, Npc &owner);
     void   invalidateCond(Npc &owner);
@@ -86,8 +86,8 @@ class Inventory final {
     auto   weaponState() const -> WeaponState;
 
   private:
-    bool   setSlot     (Item*& slot, Item *next, WorldScript &vm, Npc &owner);
-    bool   equipNumSlot(Item *next, WorldScript &vm, Npc &owner);
+    bool   setSlot     (Item*& slot, Item *next, WorldScript &vm, Npc &owner, bool force);
+    bool   equipNumSlot(Item *next, WorldScript &vm, Npc &owner, bool force);
     void   applyArmour (Item& it, WorldScript &vm, Npc &owner, int32_t sgn);
 
     Item*  findByClass(size_t cls);

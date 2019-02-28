@@ -153,25 +153,38 @@ bool Inventory::unequip(size_t cls, WorldScript &vm, Npc &owner) {
 
 void Inventory::unequip(Item *it, WorldScript &vm, Npc &owner) {
   if(armour==it)
-    setSlot(armour,nullptr,vm,owner);
+    setSlot(armour,nullptr,vm,owner,false);
   if(belt==it)
-    setSlot(belt,nullptr,vm,owner);
+    setSlot(belt,nullptr,vm,owner,false);
   if(amulet==it)
-    setSlot(amulet,nullptr,vm,owner);
+    setSlot(amulet,nullptr,vm,owner,false);
   if(ringL==it)
-    setSlot(ringL,nullptr,vm,owner);
+    setSlot(ringL,nullptr,vm,owner,false);
   if(ringR==it)
-    setSlot(ringR,nullptr,vm,owner);
+    setSlot(ringR,nullptr,vm,owner,false);
   if(mele==it)
-    setSlot(mele,nullptr,vm,owner);
+    setSlot(mele,nullptr,vm,owner,false);
   if(range==it)
-    setSlot(range,nullptr,vm,owner);
+    setSlot(range,nullptr,vm,owner,false);
   for(auto& i:numslot)
     if(i==it)
-      setSlot(i,nullptr,vm,owner);
+      setSlot(i,nullptr,vm,owner,false);
   }
 
-bool Inventory::setSlot(Item *&slot, Item* next, WorldScript &vm, Npc& owner) {
+bool Inventory::setSlot(Item *&slot, Item* next, WorldScript &vm, Npc& owner, bool force) {
+  if(next!=nullptr) {
+    int32_t atr=0,nValue=0,plMag=0,itMag=0;
+    if(!force && !next->checkCondUse(owner,atr,nValue)) {
+      vm.printCannotUseError(owner,atr,nValue);
+      return false;
+      }
+
+    if(!force && !next->checkCondRune(owner,plMag,itMag)) {
+      vm.printCannotCastError(owner,plMag,itMag);
+      return false;
+      }
+    }
+
   if(slot!=nullptr){
     auto& itData = vm.getGameState().getItem(slot->handle());
     auto  flag   = Flags(itData.mainflag);
@@ -190,19 +203,8 @@ bool Inventory::setSlot(Item *&slot, Item* next, WorldScript &vm, Npc& owner) {
     slot=nullptr;
     }
 
-  int32_t atr=0,nValue=0,plMag=0,itMag=0;
   if(next==nullptr)
     return false;
-
-  if(!next->checkCondUse(owner,atr,nValue)) {
-    vm.printCannotUseError(owner,atr,nValue);
-    return false;
-    }
-
-  if(!next->checkCondRune(owner,plMag,itMag)) {
-    vm.printCannotCastError(owner,plMag,itMag);
-    return false;
-    }
 
   auto& itData = vm.getGameState().getItem(next->handle());
   vm.invokeItem(&owner,itData.on_equip);
@@ -255,7 +257,7 @@ void Inventory::updateBowView(WorldScript &vm, Npc &owner) {
 
 void Inventory::equipBestMeleWeapon(WorldScript &vm, Npc &owner) {
   auto a = bestMeleeWeapon(vm,owner);
-  setSlot(mele,a,vm,owner);
+  setSlot(mele,a,vm,owner,false);
   }
 
 const Item *Inventory::activeWeapon() const {
@@ -310,10 +312,10 @@ Inventory::WeaponState Inventory::weaponState() const {
   return WeaponState::NoWeapon;
   }
 
-bool Inventory::equipNumSlot(Item *next, WorldScript &vm, Npc &owner) {
+bool Inventory::equipNumSlot(Item *next, WorldScript &vm, Npc &owner,bool force) {
   for(auto& i:numslot){
     if(i==nullptr){
-      setSlot(i,next,vm,owner);
+      setSlot(i,next,vm,owner,force);
       return true;
       }
     }
@@ -329,7 +331,7 @@ void Inventory::applyArmour(Item &it, WorldScript &vm, Npc &owner, int32_t sgn) 
     }
   }
 
-bool Inventory::use(size_t cls, WorldScript &vm, Npc &owner) {
+bool Inventory::use(size_t cls, WorldScript &vm, Npc &owner, bool force) {
   Item* it=findByClass(cls);
   if(it==nullptr)
     return false;
@@ -339,28 +341,28 @@ bool Inventory::use(size_t cls, WorldScript &vm, Npc &owner) {
   auto  flag     = Flags(itData.flags);
 
   if(mainflag & ITM_CAT_NF)
-    return setSlot(mele,it,vm,owner);
+    return setSlot(mele,it,vm,owner,force);
 
   if(mainflag & ITM_CAT_FF)
-    return setSlot(range,it,vm,owner);
+    return setSlot(range,it,vm,owner,force);
 
   if(mainflag & ITM_CAT_RUNE)
-    return equipNumSlot(it,vm,owner);
+    return equipNumSlot(it,vm,owner,force);
 
   if(mainflag & ITM_CAT_ARMOR)
-    return setSlot(armour,it,vm,owner);
+    return setSlot(armour,it,vm,owner,force);
 
   if(flag & ITM_BELT)
-    return setSlot(belt,it,vm,owner);
+    return setSlot(belt,it,vm,owner,force);
 
   if(flag & ITM_AMULET)
-    return setSlot(amulet,it,vm,owner);
+    return setSlot(amulet,it,vm,owner,force);
 
   if(flag & ITM_RING) {
     if(ringL==nullptr)
-      return setSlot(ringL,it,vm,owner);
+      return setSlot(ringL,it,vm,owner,force);
     if(ringR==nullptr)
-      return setSlot(ringR,it,vm,owner);
+      return setSlot(ringR,it,vm,owner,force);
     return false;
     }
 
@@ -395,9 +397,9 @@ void Inventory::autoEquip(WorldScript &vm, Npc &owner) {
   auto a = bestArmour     (vm,owner);
   auto m = bestMeleeWeapon(vm,owner);
   auto r = bestRangeWeapon(vm,owner);
-  setSlot(armour,a,vm,owner);
-  setSlot(mele  ,m,vm,owner);
-  setSlot(range ,r,vm,owner);
+  setSlot(armour,a,vm,owner,false);
+  setSlot(mele  ,m,vm,owner,false);
+  setSlot(range ,r,vm,owner,false);
   }
 
 Item *Inventory::findByClass(size_t cls) {
