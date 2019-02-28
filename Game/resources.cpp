@@ -139,7 +139,7 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
   if(it!=aniMeshCache.end())
     return it->second.get();
 
-  if(name=="ItPl_Health_Herb_02.3DS")//"Sna_Body.MDM"
+  if(name=="hum_body_Naked0.MDM")//"Sna_Body.MDM"
     Log::d("");
 
   try {

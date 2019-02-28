@@ -249,7 +249,8 @@ class Npc final {
 
     void updateAnimation();
 
-    const char* displayName() const;
+    const char*         displayName() const;
+    std::array<float,3> displayPosition() const;
     void setName      (const std::string& name);
     void setVisual    (const Skeleton *visual);
     void addOverlay   (const char*     sk, uint64_t time);
@@ -319,6 +320,8 @@ class Npc final {
     void drawMage(uint8_t slot);
     auto weaponState() const -> Inventory::WeaponState { return invent.weaponState(); }
 
+    void fistShoot();
+    void blockFist();
     void swingSword();
     void swingSwordL();
     void swingSwordR();

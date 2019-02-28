@@ -36,6 +36,7 @@ class StaticObjects final {
         void setSkeleton(const Pose&      p,const Tempest::Matrix4x4& obj);
 
         bool isEmpty() const { return subCount==0; }
+        float bboxHeight() const;
 
       private:
         std::unique_ptr<Item[]> sub;

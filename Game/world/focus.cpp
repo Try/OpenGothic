@@ -21,7 +21,7 @@ std::array<float,3> Focus::displayPosition() const {
   if(interactive)
     return interactive->displayPosition();
   if(npc)
-    return npc->position();
+    return npc->displayPosition();
   if(item)
     return item->position();
   return {{}};

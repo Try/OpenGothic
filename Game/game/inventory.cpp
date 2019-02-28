@@ -272,6 +272,12 @@ Item *Inventory::activeWeapon() {
   return nullptr;
   }
 
+void Inventory::switchActiveWeaponFist() {
+  if(active==&mele)
+    active=nullptr; else
+    active=&mele;
+  }
+
 void Inventory::switchActiveWeapon(uint8_t slot) {
   if(slot==Item::NSLOT){
     active=nullptr;
@@ -292,8 +298,13 @@ void Inventory::switchActiveWeapon(uint8_t slot) {
   }
 
 Inventory::WeaponState Inventory::weaponState() const {
-  if(active==nullptr || *active==nullptr)
+  if(active==nullptr)
     return WeaponState::NoWeapon;
+  if(*active==nullptr){
+    if(active==&mele)
+      return WeaponState::Fist;
+    return WeaponState::NoWeapon;
+    }
   if(active==&mele) {
     if(mele->is2H())
       return WeaponState::W2H;

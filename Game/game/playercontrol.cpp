@@ -50,10 +50,6 @@ void PlayerControl::clearInput() {
   std::memset(ctrl,0,sizeof(ctrl));
   }
 
-void PlayerControl::drawFist() {
-  ctrl[DrawFist]=true;
-  }
-
 void PlayerControl::drawWeaponMele() {
   ctrl[DrawWeaponMele]=true;
   }
@@ -164,12 +160,10 @@ void PlayerControl::implMove(uint64_t dt) {
       return;
       }
 
-    if(ctrl[DrawFist]){
-      pl.drawWeaponFist();
-      return;
-      }
     if(ctrl[DrawWeaponMele]){
-      pl.drawWeaponMele();
+      if(pl.currentMeleWeapon()!=nullptr)
+        pl.drawWeaponMele(); else
+        pl.drawWeaponFist();
       return;
       }
     if(ctrl[DrawWeaponBow]){
@@ -183,7 +177,10 @@ void PlayerControl::implMove(uint64_t dt) {
 
     if(ctrl[ActForward]) {
       auto ws = pl.weaponState();
-      if(ws==Inventory::WeaponState::W1H ||
+      if(ws==Inventory::WeaponState::Fist) {
+        pl.fistShoot();
+        }
+      else if(ws==Inventory::WeaponState::W1H ||
          ws==Inventory::WeaponState::W2H) {
         pl.swingSword();
         return;
@@ -196,7 +193,12 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     if(ctrl[ActLeft] || ctrl[ActRight] || ctrl[ActBack]) {
       auto ws = pl.weaponState();
-      if(ws==Inventory::WeaponState::W1H || ws==Inventory::WeaponState::W2H){
+      if(ws==Inventory::WeaponState::Fist){
+        if(ctrl[ActBack])
+          pl.blockFist();
+        return;
+        }
+      else if(ws==Inventory::WeaponState::W1H || ws==Inventory::WeaponState::W2H){
         if(ctrl[ActLeft])
           pl.swingSwordL(); else
         if(ctrl[ActRight])

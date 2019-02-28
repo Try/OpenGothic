@@ -150,6 +150,11 @@ const char *Npc::displayName() const {
   return owner.vmNpc(hnpc).name[0].c_str();
   }
 
+std::array<float,3> Npc::displayPosition() const {
+  float h = std::max(view.bboxHeight(),armour.bboxHeight());
+  return {{x,y+h,z}};
+  }
+
 void Npc::setName(const std::string &n) {
   name = n;
   }
@@ -887,7 +892,7 @@ void Npc::closeWeapon() {
 
 void Npc::drawWeaponFist() {
   auto weaponSt=invent.weaponState();
-  invent.switchActiveWeapon(1); //FIXME
+  invent.switchActiveWeaponFist();
   setAnim(current,invent.weaponState(),weaponSt);
   }
 
@@ -910,6 +915,17 @@ void Npc::drawMage(uint8_t slot) {
   invent.switchActiveWeapon(slot);
   setAnim(current,invent.weaponState(),weaponSt);
   updateWeaponSkeleton();
+  }
+
+void Npc::fistShoot() {
+  setAnim(Anim::Atack,WeaponState::Fist,WeaponState::Fist);
+  }
+
+void Npc::blockFist() {
+  auto weaponSt=invent.weaponState();
+  if(weaponSt!=Inventory::Fist)
+    return;
+  setAnim(Anim::AtackBlock,weaponSt,weaponSt);
   }
 
 void Npc::swingSword() {
@@ -1312,7 +1328,15 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
       return animSequence(currentInteract->anim(Interactive::Out));
     }
 
-  if(st==WeaponState::W1H) {
+  if(st==WeaponState::Fist) {
+    if(a==Anim::Atack && cur==Move)
+      return animSequence("T_FISTATTACKMOVE");
+    if(a==Anim::Atack)
+      return animSequence("S_FISTATTACK");
+    if(a==Anim::AtackBlock)
+      return animSequence("T_FISTPARADE_0");
+    }
+  else if(st==WeaponState::W1H) {
     if(a==Anim::Atack && cur==Move)
       return animSequence("T_1HATTACKMOVE");
     if(a==Anim::Atack)

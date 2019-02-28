@@ -77,6 +77,7 @@ class Inventory final {
 
     const Item*  activeWeapon() const;
     Item*  activeWeapon();
+    void   switchActiveWeaponFist();
     void   switchActiveWeapon(uint8_t slot);
 
     Item*  currentArmour()      { return armour; }

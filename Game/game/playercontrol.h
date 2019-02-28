@@ -21,7 +21,6 @@ class PlayerControl final {
     bool interact(Item&        item);
 
     void clearInput();
-    void drawFist();
     void drawWeaponMele();
     void drawWeaponBow();
     void drawWeaponMage(uint8_t s);
@@ -56,7 +55,6 @@ class PlayerControl final {
       RotateR,
       Jump,
 
-      DrawFist,
       DrawWeaponMele,
       DrawWeaponBow,
 

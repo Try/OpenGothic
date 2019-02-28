@@ -79,6 +79,10 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library) {
     ZenLoad::PackedSkeletalMesh pack;
     auto& mesh = library.getMeshes()[i];
     mesh.packMesh(pack,1.f);
+
+    mesh.getAABBTotal(bboxCol[0],bboxCol[1]);
+    std::swap(bboxCol[0].x,bboxCol[0].y);
+    std::swap(bboxCol[1].x,bboxCol[1].y);
     skined.emplace_back(pack);
     }
 
@@ -94,10 +98,10 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library) {
     }
 
   //auto tr = library.getRootNodeTranslation();
-  //rootTr = {{tr.x,tr.y,tr.z}};
+  //rootTr  = {{tr.x,tr.y,tr.z}};
 
-  bboxCol[0] = library.getBBoxCollisionMax();
-  bboxCol[1] = library.getBBoxCollisionMin();
+  //bboxCol[0] = library.getBBoxCollisionMax();
+  //bboxCol[1] = library.getBBoxCollisionMin();
   }
 
 ProtoMesh::ProtoMesh(const ZenLoad::PackedMesh &pm) {
