@@ -20,6 +20,8 @@ class PlayerControl final {
     bool interact(Npc&         other);
     bool interact(Item&        item);
 
+    void toogleWalkMode();
+
     void clearInput();
     void drawWeaponMele();
     void drawWeaponBow();
@@ -72,6 +74,8 @@ class PlayerControl final {
       ActLeft,
       ActRight,
       ActBack,
+
+      Walk,
 
       Last
       };

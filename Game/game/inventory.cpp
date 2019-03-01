@@ -260,6 +260,11 @@ void Inventory::equipBestMeleWeapon(WorldScript &vm, Npc &owner) {
   setSlot(mele,a,vm,owner,false);
   }
 
+void Inventory::unequipWeapons(WorldScript &vm, Npc &owner) {
+  setSlot(mele, nullptr,vm,owner,false);
+  setSlot(range,nullptr,vm,owner,false);
+  }
+
 const Item *Inventory::activeWeapon() const {
   if(active!=nullptr)
     return *active;
@@ -295,6 +300,15 @@ void Inventory::switchActiveWeapon(uint8_t slot) {
     active=nullptr; else
   if(next!=nullptr && *next!=nullptr)
     active=next;
+  }
+
+void Inventory::switchActiveSpell(int32_t spell,WorldScript &vm, Npc& owner) {
+  for(auto& i:items)
+    if(i->spellId()==spell){
+      setSlot(numslot[0],i.get(),vm,owner,true);
+      switchActiveWeapon(3);
+      return;
+      }
   }
 
 Inventory::WeaponState Inventory::weaponState() const {

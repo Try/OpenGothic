@@ -70,6 +70,7 @@ class Inventory final {
     bool   isChanged() const { return !sorted; }
     void   autoEquip(WorldScript &vm, Npc &owner);
     void   equipBestMeleWeapon(WorldScript &vm, Npc &owner);
+    void   unequipWeapons(WorldScript &vm, Npc &owner);
 
     void   updateArmourView(WorldScript &vm, Npc& owner);
     void   updateSwordView (WorldScript &vm, Npc& owner);
@@ -79,6 +80,7 @@ class Inventory final {
     Item*  activeWeapon();
     void   switchActiveWeaponFist();
     void   switchActiveWeapon(uint8_t slot);
+    void   switchActiveSpell (int32_t spell, WorldScript &vm, Npc &owner);
 
     Item*  currentArmour()      { return armour; }
     Item*  currentMeleWeapon()  { return mele;   }

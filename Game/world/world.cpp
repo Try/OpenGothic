@@ -58,8 +58,8 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
 
   vm->initDialogs(gothic);
 
-  const char* hero="PC_HERO";
-  //const char* hero="PC_ROCKEFELLER";
+  //const char* hero="PC_HERO";
+  const char* hero="PC_ROCKEFELLER";
 
   if(startPoints.size()>0)
     npcPlayer = vm->inserNpc(hero,startPoints[0].wpName.c_str()); else
@@ -258,6 +258,10 @@ void World::removeItem(Item& it) {
 
 size_t World::hasItems(const std::string &tag, size_t itemCls) {
   return wobj.hasItems(tag,itemCls);
+  }
+
+void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {
+  wobj.sendPassivePerc(self,other,victum,perc);
   }
 
 void World::adjustWaypoints(std::vector<ZenLoad::zCWaypointData> &wp) {

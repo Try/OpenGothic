@@ -18,6 +18,7 @@ class MoveAlgo final {
 
     auto aiGoTarget() -> const ZenLoad::zCWaypointData* { return currentGoTo; }
     bool aiGoTo(const ZenLoad::zCWaypointData* p);
+    bool aiGoTo(const Npc* p);
     bool startClimb();
     bool hasGoTo() const;
 
@@ -49,7 +50,8 @@ class MoveAlgo final {
 
     Npc&                npc;
     const World&        world;
-    const ZenLoad::zCWaypointData* currentGoTo=nullptr;
+    const ZenLoad::zCWaypointData* currentGoTo   =nullptr;
+    const Npc*                     currentGoToNpc=nullptr;
 
     float               mulSpeed  =1.f;
     std::array<float,3> aniSpeed={};

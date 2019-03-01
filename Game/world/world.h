@@ -67,25 +67,27 @@ class World final {
     const Trigger* findTrigger(const char* name) const;
     Interactive*   aviableMob(const Npc &pl, const std::string& name);
 
-    void  marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
+    void   marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
-    auto  updateDialog(const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<WorldScript::DlgChoise>;
-    void  exec(const WorldScript::DlgChoise& dlg, Npc& player,Npc& hnpc);
+    auto   updateDialog(const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<WorldScript::DlgChoise>;
+    void   exec(const WorldScript::DlgChoise& dlg, Npc& player,Npc& hnpc);
 
-    void  aiProcessInfos(Npc &player, Npc& npc);
-    void  aiOutput(Npc &player, const char* msg, uint32_t time);
-    void  aiCloseDialog();
-    bool  aiIsDlgFinished();
-    bool  aiUseMob  (Npc &pl, const std::string& name);
+    void   aiProcessInfos(Npc &player, Npc& npc);
+    void   aiOutput(Npc &player, const char* msg, uint32_t time);
+    void   aiCloseDialog();
+    bool   aiIsDlgFinished();
+    bool   aiUseMob  (Npc &pl, const std::string& name);
 
-    void  printScreen(const char* msg, int x, int y, int time,const Tempest::Font &font);
-    void  print      (const char* msg);
+    void   printScreen(const char* msg, int x, int y, int time,const Tempest::Font &font);
+    void   print      (const char* msg);
 
-    void  onInserNpc (Daedalus::GameState::NpcHandle handle, const std::string &s);
-    Item* addItem    (size_t itemInstance, const char *at);
-    Item* takeItem(Item& it);
-    void  removeItem (Item &it);
+    void   onInserNpc (Daedalus::GameState::NpcHandle handle, const std::string &s);
+    Item*  addItem    (size_t itemInstance, const char *at);
+    Item*  takeItem   (Item& it);
+    void   removeItem (Item &it);
     size_t hasItems(const std::string& tag,size_t itemCls);
+
+    void   sendPassivePerc(Npc& self,Npc& other,Npc& victum,int32_t perc);
 
   private:
     std::string                           wname;

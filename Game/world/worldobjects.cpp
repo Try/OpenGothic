@@ -16,14 +16,26 @@ WorldObjects::~WorldObjects() {
   }
 
 void WorldObjects::tick(uint64_t dt) {
-  for(auto& i:npcArr){
+  auto passive=std::move(sndPerc);
+  sndPerc.clear();
+
+  for(auto& i:npcArr)
     i->tick(dt);
-    }
+
   auto pl = owner.player();
   if(pl!=nullptr) {
     for(auto& i:npcArr){
+      const float x = i->position()[0];
+      const float y = i->position()[1];
+      const float z = i->position()[2];
+
       if(i.get()!=pl)
-        i->preceptionPlayer(*pl);
+        i->preceptionProcess(*pl,pl->qDistTo(x,y,z));
+
+      for(auto& r:passive) {
+        float l = i->qDistTo(r.x,r.y,r.z);
+        i->preceptionProcess(*r.other,r.victum,l,Npc::PercType(r.what));
+        }
       }
     }
   }
@@ -184,11 +196,7 @@ Interactive *WorldObjects::aviableMob(const Npc &pl, const std::string &dest) {
   float z = pl.position()[2];
 
   for(auto& i:interactiveObj){
-    float dx = i.position()[0]-x;
-    float dy = i.position()[1]-y;
-    float dz = i.position()[2]-z;
-
-    if(dx*dx+dy*dy+dz*dz<dist*dist && i.isAvailable()) {
+    if(pl.qDistTo(i)<dist*dist && i.isAvailable()) {
       auto name=i.focusName();
       if(name==dest)
         return &i;
@@ -204,6 +212,18 @@ bool WorldObjects::aiUseMob(Npc &pl, const std::string &name) {
   if(inter==nullptr)
     return false;
   return pl.setInteraction(inter);
+  }
+
+void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {
+  PercMsg m;
+  m.what   = perc;
+  m.x      = self.position()[0];
+  m.y      = self.position()[1];
+  m.z      = self.position()[2];
+  m.other  = &other;
+  m.victum = &victum;
+
+  sndPerc.push_back(m);
   }
 
 template<class T>

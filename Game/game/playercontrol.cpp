@@ -46,6 +46,13 @@ bool PlayerControl::interact(Item &item) {
   return true;
   }
 
+void PlayerControl::toogleWalkMode() {
+  if(world==nullptr || world->player()==nullptr)
+    return;
+  auto pl = world->player();
+  pl->setWalkMode(Npc::WalkBit(pl->walkMode()^Npc::WM_Walk));
+  }
+
 void PlayerControl::clearInput() {
   std::memset(ctrl,0,sizeof(ctrl));
   }

@@ -91,7 +91,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
                0,0,background->w(),background->h());
     }
 
-  if(world->view()){
+  if(world!=nullptr && world->view()){
     auto vp = world->view()->viewProj(camera.view());
     p.setBrush(Color(1.0));
 
@@ -135,7 +135,6 @@ void MainWindow::paintEvent(PaintEvent& event) {
 
   p.setFont(Resources::menuFont());
   p.drawText(5,30,fpsT);
-
   }
 
 void MainWindow::resizeEvent(SizeEvent&) {
@@ -264,6 +263,10 @@ void MainWindow::tick() {
     }
   if(pressed[KeyEvent::K_F8])
     player.marvinF8();
+  if(pressed[KeyEvent::K_Shift]){
+    player.toogleWalkMode();
+    pressed[KeyEvent::K_Shift]=false;
+    }
 
   if(pressed[KeyEvent::K_1]){
     player.drawWeaponMele();

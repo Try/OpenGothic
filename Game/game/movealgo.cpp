@@ -16,8 +16,7 @@ void MoveAlgo::tick(uint64_t dt) {
   float dpos[3]={};
   auto  dp  = npc.animMoveSpeed(dt);
 
-  if(currentGoTo && npc.isStanding()){
-    npc.setAnim(Npc::Move);
+  if(hasGoTo() && npc.isStanding()){
     dp = npc.animMoveSpeed(dt);
     }
 
@@ -27,16 +26,10 @@ void MoveAlgo::tick(uint64_t dt) {
     dpos[2]=dp.z;
     }
 
-  if((npc.isStanding() || (dpos[0]==0.f && dpos[1]==0.f && dpos[2]==0.f)) && isFrozen())
+  if((npc.isStanding() || (dpos[0]==0.f && dpos[1]==0.f && dpos[2]==0.f)) && !hasGoTo() && isFrozen())
     return;
+
   float speed = std::sqrt(dpos[0]*dpos[0]+dpos[2]*dpos[2]);
-
-  float rot = npc.rotationRad();
-  float s   = std::sin(rot), c = std::cos(rot);
-  aniSpeed[0]=mulSpeed*(dpos[0]*c-dpos[2]*s);
-  aniSpeed[2]=mulSpeed*(dpos[0]*s+dpos[2]*c);
-  aniSpeed[1]=-dpos[1];
-
   if(currentGoTo) {
     float dx  = currentGoTo->position.x-npc.position()[0];
     //float dy  = currentGoTo->position.y-npc.position()[1];
@@ -46,10 +39,39 @@ void MoveAlgo::tick(uint64_t dt) {
     if(len<=speed){
       currentGoTo=nullptr;
       npc.setAnim(Npc::Idle);
+      } else {
+      npc.setAnim(Npc::Move);
       }
-    float k = std::min(len,mulSpeed*speed)/len;
-    aniSpeed[0] = dx*k;
-    aniSpeed[2] = dz*k;
+    if(len>0.1f){
+      float k = std::min(len,mulSpeed*speed)/len;
+      aniSpeed[0] = dx*k;
+      aniSpeed[2] = dz*k;
+      }
+    }
+  else if(currentGoToNpc) {
+    float dx  = currentGoToNpc->position()[0]-npc.position()[0];
+    float dy  = currentGoToNpc->position()[1]-npc.position()[1];
+    float dz  = currentGoToNpc->position()[2]-npc.position()[2];
+    float len = std::sqrt(dx*dx+dy*dy+dz*dz);
+
+    if(len<=100){
+      currentGoToNpc=nullptr;
+      npc.setAnim(Npc::Idle);
+      } else {
+      npc.setAnim(Npc::Move);
+      }
+    if(len>0.1f){
+      float k = std::min(len,mulSpeed*speed)/len;
+      aniSpeed[0] = dx*k;
+      aniSpeed[2] = dz*k;
+      }
+    }
+  else {
+    float rot = npc.rotationRad();
+    float s   = std::sin(rot), c = std::cos(rot);
+    aniSpeed[0]=mulSpeed*(dpos[0]*c-dpos[2]*s);
+    aniSpeed[2]=mulSpeed*(dpos[0]*s+dpos[2]*c);
+    aniSpeed[1]=-dpos[1];
     }
 
   auto pos = npc.position();
@@ -71,11 +93,21 @@ bool MoveAlgo::aiGoTo(const ZenLoad::zCWaypointData *p) {
   currentGoTo=p;
   if(p==nullptr)
     return false;
-  float dx  = currentGoTo->position.x-npc.position()[0];
-  float dz  = currentGoTo->position.z-npc.position()[2];
-  float len = (dx*dx+dz*dz);
+  float len = npc.qDistTo(currentGoTo->position.x,npc.position()[1],currentGoTo->position.z);
   if(len<10*10){
     currentGoTo=nullptr;
+    return false;
+    }
+  return true;
+  }
+
+bool MoveAlgo::aiGoTo(const Npc *p) {
+  currentGoToNpc = p;
+  if(p==nullptr)
+    return false;
+  float len = npc.qDistTo(p->position()[0],npc.position()[1],p->position()[2]);
+  if(len<10*10){
+    currentGoToNpc=nullptr;
     return false;
     }
   return true;
@@ -90,7 +122,7 @@ bool MoveAlgo::startClimb() {
   }
 
 bool MoveAlgo::hasGoTo() const {
-  return currentGoTo!=nullptr;
+  return currentGoTo!=nullptr || currentGoToNpc!=nullptr;
   }
 
 bool MoveAlgo::isFaling() const {

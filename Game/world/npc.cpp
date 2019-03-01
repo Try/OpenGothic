@@ -68,6 +68,10 @@ void Npc::setAiType(Npc::AiType t) {
   aiType=t;
   }
 
+void Npc::setWalkMode(Npc::WalkBit m) {
+  wlkMode = m;
+  }
+
 bool Npc::isPlayer() const {
   return aiType==Npc::AiType::Player;
   }
@@ -123,6 +127,27 @@ float Npc::translateY() const {
 
 Npc *Npc::lookAtTarget() const {
   return currentLookAt;
+  }
+
+float Npc::qDistTo(float x1, float y1, float z1) const {
+  float dx=x-x1;
+  float dy=y-y1;
+  float dz=z-z1;
+  return dx*dx+dy*dy+dz*dz;
+  }
+
+float Npc::qDistTo(const ZenLoad::zCWaypointData *f) const {
+  if(f==nullptr)
+    return 0.f;
+  return qDistTo(f->position.x,f->position.y,f->position.z);
+  }
+
+float Npc::qDistTo(const Npc &p) const {
+  return qDistTo(p.x,p.y,p.z);
+  }
+
+float Npc::qDistTo(const Interactive &p) const {
+  return qDistTo(p.position()[0],p.position()[1],p.position()[2]);
   }
 
 void Npc::updateAnimation() {
@@ -347,16 +372,6 @@ bool Npc::isInAir() const {
   return mvAlgo.isInAir();
   }
 
-float Npc::qDistTo(const ZenLoad::zCWaypointData *f) const {
-  if(f==nullptr)
-    return 0.f;
-
-  auto dx = f->position.x-x;
-  auto dy = f->position.y-y;
-  auto dz = f->position.z-z;
-  return dx*dx+dy*dy+dz*dz;
-  }
-
 void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {
   if(t<TALENT_MAX) {
     talentsSk[t] = lvl;
@@ -579,7 +594,7 @@ bool Npc::implLookAt(float dx, float dz, uint64_t dt) {
   }
 
 bool Npc::implGoTo(uint64_t dt) {
-  if(!currentGoTo)
+  if(!currentGoTo || atackMode==true)
     return false;
 
   float dx = currentGoTo->position.x-x;
@@ -591,6 +606,23 @@ bool Npc::implGoTo(uint64_t dt) {
   if(!mvAlgo.aiGoTo(currentGoTo)) {
     currentFp  =currentGoTo;
     currentGoTo=nullptr;
+    if(isStanding())
+      setAnim(Npc::Idle);
+    }
+  return mvAlgo.hasGoTo();
+  }
+
+bool Npc::implAtack(uint64_t dt) {
+  if(!atackMode || currentTarget==nullptr)
+    return false;
+  currentOther=currentTarget;
+
+  float dx = currentTarget->x-x;
+  float dz = currentTarget->z-z;
+
+  if(implLookAt(dx,dz,dt))
+    return true;
+  if(!mvAlgo.aiGoTo(currentTarget)) {
     if(isStanding())
       setAnim(Npc::Idle);
     }
@@ -616,11 +648,14 @@ void Npc::tick(uint64_t dt) {
     setAnim(Interact); else
   if(current<=IdleLoopLast)
     setAnim(current); else
-  if(currentGoTo==nullptr && aiType!=AiType::Player)
+  if(currentGoTo==nullptr && !(currentTarget!=nullptr && atackMode) && aiType!=AiType::Player)
     setAnim(Anim::Idle);
   mvAlgo.tick(dt);
 
   if(waitTime>=owner.tickCount())
+    return;
+
+  if(implAtack(dt))
     return;
 
   if(implLookAt(dt))
@@ -709,6 +744,21 @@ void Npc::tick(uint64_t dt) {
     case AI_DrawWeaponRange:
       drawWeaponBow();
       break;
+    case AI_DrawSpell:
+      drawSpell(act.i0);
+      break;
+    case AI_Atack:
+      atackMode=true;
+      break;
+    case AI_Flee:
+      atackMode=true;
+      break;
+    case AI_Dodge:
+      setAnim(Anim::MoveBack);
+      break;
+    case AI_UnEquipWeapons:
+      invent.unequipWeapons(owner,*this);
+      break;
     }
 
   if(invent.isChanged() && aiType!=AiType::Player)
@@ -779,6 +829,14 @@ void Npc::tickRoutine() {
     }
   }
 
+void Npc::setTarget(Npc *t) {
+  currentTarget=t;
+  }
+
+Npc *Npc::target() {
+  return currentTarget;
+  }
+
 const Npc::Routine& Npc::currentRoutine() const {
   /* TODO
    *
@@ -827,9 +885,6 @@ Npc::BodyState Npc::bodyState() const {
   if(auto i = interactive())
     s = i->stateMask(s);
   return BodyState(s);
-  }
-
-void Npc::setToFistMode() {
   }
 
 void Npc::setToFightMode(const uint32_t item) {
@@ -913,6 +968,13 @@ void Npc::drawWeaponBow() {
 void Npc::drawMage(uint8_t slot) {
   auto weaponSt=invent.weaponState();
   invent.switchActiveWeapon(slot);
+  setAnim(current,invent.weaponState(),weaponSt);
+  updateWeaponSkeleton();
+  }
+
+void Npc::drawSpell(int32_t spell) {
+  auto weaponSt=invent.weaponState();
+  invent.switchActiveSpell(spell,owner,*this);
   setAnim(current,invent.weaponState(),weaponSt);
   updateWeaponSkeleton();
   }
@@ -1004,24 +1066,18 @@ void Npc::setPerceptionDisable(Npc::PercType t) {
     perception[t].func = 0;
   }
 
-void Npc::preceptionPlayer(Npc &pl) {
-  float dx = x-pl.x;
-  float dy = y-pl.y;
-  float dz = z-pl.z;
+void Npc::preceptionProcess(Npc &pl,float quadDist) {
+  preceptionProcess(pl,nullptr,quadDist,PERC_ASSESSENEMY);
+  //preceptionProcess(pl,quadDist,PERC_ASSESSPLAYER);
+  }
 
+void Npc::preceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType perc) {
   float r = owner.vmNpc(hnpc).senses_range;
-  if(dx*dx+dy*dy+dz*dz<r*r){
-    if(perception[PERC_ASSESSENEMY].func){
+  if(quadDist<r*r){
+    if(perception[perc].func){
       currentOther=&pl;
-      startState(perception[PERC_ASSESSENEMY].func,false,"");
-      }
-    }
-
-  r = owner.vmNpc(hnpc).senses_range;
-  if(dx*dx+dy*dy+dz*dz<r*r){
-    if(perception[PERC_ASSESSPLAYER].func){
-      currentOther=&pl;
-      // startState(perception[PERC_ASSESSPLAYER].func,false,"");
+      // TODO: process victum
+      startState(perception[perc].func,false,"");
       }
     }
   }
@@ -1033,7 +1089,7 @@ bool Npc::setInteraction(Interactive *id) {
     currentInteract->dettach(*this);
   currentInteract=nullptr;
 
-  if(id && id->attach(*this)){
+  if(id && id->attach(*this)) {
     currentInteract=id;
     auto st = currentInteract->stateFunc();
     if(!st.empty()) {
@@ -1238,6 +1294,37 @@ void Npc::aiReadyRangeWeapon() {
   aiActions.push(a);
   }
 
+void Npc::aiReadySpell(int32_t spell,int32_t /*mana*/) {
+  AiAction a;
+  a.act = AI_DrawSpell;
+  a.i0  = spell;
+  aiActions.push(a);
+  }
+
+void Npc::aiAtack() {
+  AiAction a;
+  a.act = AI_Atack;
+  aiActions.push(a);
+  }
+
+void Npc::aiFlee() {
+  AiAction a;
+  a.act = AI_Flee;
+  aiActions.push(a);
+  }
+
+void Npc::aiDodge() {
+  AiAction a;
+  a.act = AI_Dodge;
+  aiActions.push(a);
+  }
+
+void Npc::aiUnEquipWeapons() {
+  AiAction a;
+  a.act = AI_UnEquipWeapons;
+  aiActions.push(a);
+  }
+
 void Npc::aiClearQueue() {
   aiActions=std::queue<AiAction>();
   }
@@ -1284,10 +1371,14 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
       return animSequence("T_RUN_2_2H");
     if(a==Anim::Move && cur==a && st==WeaponState::W2H)
       return animSequence("T_MOVE_2_2HMOVE");
-    if(a==Anim::Idle && cur==a && st==WeaponState::W2H)
+    if(a==Anim::Idle && cur==a && st==WeaponState::Bow)
       return animSequence("T_RUN_2_BOW");
-    if(a==Anim::Move && cur==a && st==WeaponState::W2H)
+    if(a==Anim::Move && cur==a && st==WeaponState::Bow)
       return animSequence("T_MOVE_2_BOWMOVE");
+    if(a==Anim::Idle && cur==a && st==WeaponState::CBow)
+      return animSequence("T_RUN_2_CBOW");
+    if(a==Anim::Move && cur==a && st==WeaponState::CBow)
+      return animSequence("T_MOVE_2_CBOWMOVE");
     if(a==Anim::Idle && cur==a && st==WeaponState::Mage)
       return animSequence("T_MOVE_2_MAGMOVE");
     if(a==Anim::Move && cur==a && st==WeaponState::Mage)
@@ -1379,39 +1470,56 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
       return animSequence("T_TRFSHOOT_2_STAND");
     }
 
-  if(cur==Anim::NoAnim && a==Idle)
-    return solveAnim("S_%sRUN",st);
-  if(cur==Anim::Idle && a==cur)
-    return solveAnim("S_%sRUN",st);
-  if(cur==Anim::Idle && a==Move)
-    return solveAnim("T_%sRUN_2_%sRUNL",st);
-  if(cur==Anim::Fall && a==Move)
-    return animSequence("T_RUN_2_RUNL");
+  if((cur==Anim::Idle || cur==Anim::NoAnim) && a==Anim::Idle){
+    if(wlkMode&WM_Walk)
+      return solveAnim("S_%sWALK",st); else
+      return solveAnim("S_%sRUN", st);
+    }
+  if(cur==Anim::Idle && a==Move) {
+    if(wlkMode&WM_Walk)
+      return solveAnim("T_%sWALK_2_%sWALKL",st); else
+      return solveAnim("T_%sRUN_2_%sRUNL",  st);
+    }
+  if(cur==Anim::Move && a==cur){
+    if(wlkMode&WM_Walk)
+      return solveAnim("S_%sWALKL",st); else
+      return solveAnim("S_%sRUNL", st);
+    }
+  if(cur==Anim::Move && a==Idle) {
+    if(wlkMode&WM_Walk)
+      return solveAnim("T_%sWALKL_2_%sWALK",st); else
+      return solveAnim("T_%sRUNL_2_%sRUN",st);
+    }
 
-  if(a==Anim::RotL)
-    return solveAnim("T_%sRUNTURNL",st);
-  if(a==Anim::RotR)
-    return solveAnim("T_%sRUNTURNR",st);
-  if(a==Anim::MoveL)
+  if(a==Anim::RotL){
+    if(wlkMode&WM_Walk)
+      return solveAnim("T_%sWALKWTURNL",st); else
+      return solveAnim("T_%sRUNTURNL",st);
+    }
+  if(a==Anim::RotR){
+    if(wlkMode&WM_Walk)
+      return solveAnim("T_%sWALKWTURNR",st); else
+      return solveAnim("T_%sRUNTURNR",st);
+    }
+  if(a==Anim::MoveL) {
     return solveAnim("T_%sRUNSTRAFEL",st);
-  if(a==Anim::MoveR)
+    }
+  if(a==Anim::MoveR) {
     return solveAnim("T_%sRUNSTRAFER",st);
+    }
   if(a==Anim::MoveBack)
     return solveAnim("T_%sJUMPB",st);
 
-  if(cur==Anim::Move && a==cur)
-    return solveAnim("S_%sRUNL",st);
-  if(cur==Anim::Move && a==Idle)
-    return solveAnim("T_%sRUNL_2_%sRUN",st);
   if(cur==Anim::Move && a==Jump)
     return animSequence("T_RUNL_2_JUMP");
-
   if(cur==Anim::Idle && a==Anim::Jump)
     return animSequence("T_STAND_2_JUMP");
   if(cur==Anim::Jump && a==Anim::Idle)
     return animSequence("T_JUMP_2_STAND");
   if(a==Anim::Jump)
     return animSequence("S_JUMP");
+  if(cur==Anim::Fall && a==Move)
+    return animSequence("T_RUN_2_RUNL");
 
   if(cur==Anim::Idle && a==Anim::JumpUpLow)
     return animSequence("T_STAND_2_JUMPUPLOW");
@@ -1522,8 +1630,11 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
   // FALLBACK
   if(a==Anim::Move)
     return solveAnim("S_%sRUNL",st);
-  if(a==Anim::Idle)
-    return solveAnim("S_%sRUN",st);
+  if(a==Anim::Idle)  {
+    if(auto idle=solveAnim("S_%sRUN",st))
+      return idle;
+    return solveAnim("S_%sWALK",st);
+    }
   return nullptr;
   }
 

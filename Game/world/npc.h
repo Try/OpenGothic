@@ -36,6 +36,12 @@ class Npc final {
       JM_Up,
       };
 
+    enum WalkBit : uint8_t {
+      WM_Run  =0,
+      WM_Walk =1,
+      WM_Sneak=2
+      };
+
     enum PercType : uint8_t {
       PERC_ASSESSPLAYER  = 1,
       PERC_ASSESSENEMY   = 2,
@@ -236,6 +242,8 @@ class Npc final {
 
     void setAiType(AiType t);
     bool isPlayer() const;
+    void setWalkMode(WalkBit m);
+    auto walkMode() -> WalkBit { return wlkMode; }
     void tick(uint64_t dt);
     bool startClimb(Npc::Anim ani);
     bool checkHealth();
@@ -246,6 +254,11 @@ class Npc final {
     float               rotationRad() const;
     float               translateY() const;
     Npc*                lookAtTarget() const;
+
+    float               qDistTo(float x,float y,float z) const;
+    float               qDistTo(const ZenLoad::zCWaypointData* p) const;
+    float               qDistTo(const Npc& p) const;
+    float               qDistTo(const Interactive& p) const;
 
     void updateAnimation();
 
@@ -278,7 +291,6 @@ class Npc final {
     bool          isFaling() const;
     bool          isSlide() const;
     bool          isInAir() const;
-    float         qDistTo(const ZenLoad::zCWaypointData* p) const;
 
     void     setTalentSkill(Talent t,int32_t lvl);
     int32_t  talentSkill(Talent t) const;
@@ -310,7 +322,6 @@ class Npc final {
     BodyState bodyState() const;
     bool      isDead() const;
 
-    void setToFistMode ();
     void setToFightMode(const uint32_t item);
 
     void closeWeapon();
@@ -318,6 +329,7 @@ class Npc final {
     void drawWeaponMele();
     void drawWeaponBow();
     void drawMage(uint8_t slot);
+    void drawSpell(int32_t spell);
     auto weaponState() const -> Inventory::WeaponState { return invent.weaponState(); }
 
     void fistShoot();
@@ -331,7 +343,8 @@ class Npc final {
     void setPerceptionTime   (uint64_t time);
     void setPerceptionEnable (PercType t, size_t fn);
     void setPerceptionDisable(PercType t);
-    void preceptionPlayer(Npc& pl);
+    void preceptionProcess(Npc& pl, float quadDist);
+    void preceptionProcess(Npc& pl, Npc *victum, float quadDist, PercType perc);
 
     const Interactive* interactive() const { return currentInteract; }
     bool     setInteraction(Interactive* id);
@@ -380,9 +393,17 @@ class Npc final {
     void     aiTeleport(const ZenLoad::zCWaypointData& to);
     void     aiReadyMeleWeapon();
     void     aiReadyRangeWeapon();
+    void     aiReadySpell(int32_t spell, int32_t mana);
+    void     aiAtack();
+    void     aiFlee();
+    void     aiDodge();
+    void     aiUnEquipWeapons();
     void     aiClearQueue();
 
     auto     currentWayPoint() const -> const ZenLoad::zCWaypointData* { return currentFp; }
+
+    void     setTarget(Npc* t);
+    Npc*     target();
 
   private:
     struct Routine final {
@@ -409,6 +430,11 @@ class Npc final {
       AI_Teleport,
       AI_DrawWeaponMele,
       AI_DrawWeaponRange,
+      AI_DrawSpell,
+      AI_Atack,
+      AI_Flee,
+      AI_Dodge,
+      AI_UnEquipWeapons,
       };
 
     struct AiAction final {
@@ -456,9 +482,10 @@ class Npc final {
     const Routine&                 currentRoutine() const;
     gtime                          endTime(const Routine& r) const;
 
-    bool                           implLookAt(uint64_t dt);
-    bool                           implLookAt(float dx, float dz, uint64_t dt);
-    bool                           implGoTo  (uint64_t dt);
+    bool                           implLookAt (uint64_t dt);
+    bool                           implLookAt (float dx, float dz, uint64_t dt);
+    bool                           implGoTo   (uint64_t dt);
+    bool                           implAtack  (uint64_t dt);
     void                           invalidateAnim(const Animation::Sequence* s, const Skeleton *sk);
     void                           tickRoutine();
 
@@ -484,6 +511,7 @@ class Npc final {
     uint64_t                       sAnim    =0;
     Anim                           current  =NoAnim;
     Anim                           prevAni  =NoAnim;
+    WalkBit                        wlkMode  =WM_Run;
     std::shared_ptr<Pose>          skInst;
 
     std::string                    name;
@@ -496,11 +524,14 @@ class Npc final {
     Perc                           perception[PERC_Count];
 
     Interactive*                   currentInteract=nullptr;
-    Npc*                           currentOther=nullptr;
-    Npc*                           currentLookAt=nullptr;
-    Npc*                           currentTurnTo=nullptr;
-    const ZenLoad::zCWaypointData* currentGoTo=nullptr;
-    const ZenLoad::zCWaypointData* currentFp=nullptr;
+    Npc*                           currentOther   =nullptr;
+    Npc*                           currentLookAt  =nullptr;
+    Npc*                           currentTurnTo  =nullptr;
+    Npc*                           currentTarget  =nullptr;
+    bool                           atackMode      =false;
+
+    const ZenLoad::zCWaypointData* currentGoTo    =nullptr;
+    const ZenLoad::zCWaypointData* currentFp      =nullptr;
 
     uint64_t                       waitTime=0;
     AiType                         aiType=AiType::AiNormal;

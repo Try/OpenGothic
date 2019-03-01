@@ -176,6 +176,9 @@ class WorldScript final {
     void npc_getactivespellisscroll(Daedalus::DaedalusVM &vm);
     void npc_canseenpcfreelos(Daedalus::DaedalusVM &vm);
     void npc_isinfightmode   (Daedalus::DaedalusVM &vm);
+    void npc_settarget       (Daedalus::DaedalusVM &vm);
+    void npc_gettarget       (Daedalus::DaedalusVM &vm);
+    void npc_sendpassiveperc (Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
@@ -200,6 +203,11 @@ class WorldScript final {
     void ai_teleport         (Daedalus::DaedalusVM &vm);
     void ai_stoppointat      (Daedalus::DaedalusVM &vm);
     void ai_readymeleeweapon (Daedalus::DaedalusVM &vm);
+    void ai_readyspell       (Daedalus::DaedalusVM &vm);
+    void ai_atack            (Daedalus::DaedalusVM &vm);
+    void ai_flee             (Daedalus::DaedalusVM &vm);
+    void ai_dodge            (Daedalus::DaedalusVM &vm);
+    void ai_unequipweapons   (Daedalus::DaedalusVM &vm);
 
     void mob_hasitems        (Daedalus::DaedalusVM &vm);
 
