@@ -99,7 +99,7 @@ void DialogMenu::aiIsClose(bool &ret) {
   }
 
 bool DialogMenu::isActive() const {
-  return (state!=State::Idle);
+  return (state!=State::Idle) || txt.size()>0;
   }
 
 bool DialogMenu::onStart(Npc &p, Npc &ot) {
@@ -316,7 +316,7 @@ void DialogMenu::mouseWheelEvent(MouseEvent &e) {
   update();
   }
 
-void DialogMenu::keyDownEvent(KeyEvent &event) {
+void DialogMenu::keyUpEvent(KeyEvent &event) {
   if(state==State::Idle && txt.size()==0){
     event.ignore();
     return;

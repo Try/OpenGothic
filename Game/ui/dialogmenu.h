@@ -34,7 +34,7 @@ class DialogMenu : public Tempest::Widget {
     void mouseDownEvent (Tempest::MouseEvent& event) override;
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
 
-    void keyDownEvent   (Tempest::KeyEvent&   event) override;
+    void keyUpEvent     (Tempest::KeyEvent&   event) override;
 
   private:
     const Tempest::Texture2d* tex    =nullptr;
