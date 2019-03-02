@@ -25,6 +25,8 @@ void WorldObjects::tick(uint64_t dt) {
   auto pl = owner.player();
   if(pl!=nullptr) {
     for(auto& i:npcArr){
+      if(i->percNextTime()>owner.tickCount())
+        continue;
       const float x = i->position()[0];
       const float y = i->position()[1];
       const float z = i->position()[2];
@@ -191,23 +193,19 @@ void WorldObjects::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x
 Interactive *WorldObjects::aviableMob(const Npc &pl, const std::string &dest) {
   const float dist=100*10.f;
 
-  float x = pl.position()[0];
-  float y = pl.position()[1];
-  float z = pl.position()[2];
-
   for(auto& i:interactiveObj){
-    if(pl.qDistTo(i)<dist*dist && i.isAvailable()) {
-      auto name=i.focusName();
-      if(name==dest)
-        return &i;
-      if(name.find("MOBNAME_")==0 && dest==name.c_str()+8)
-        return &i;
+    if(pl.qDistTo(i)<dist*dist && i.isAvailable() && i.checkMobName(dest)) {
+      return &i;
       }
     }
   return nullptr;
   }
 
 bool WorldObjects::aiUseMob(Npc &pl, const std::string &name) {
+  if(auto inter=pl.interactive()){
+    if(inter->checkMobName(name))
+      return inter;
+    }
   auto inter = aviableMob(pl,name);
   if(inter==nullptr)
     return false;

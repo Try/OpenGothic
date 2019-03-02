@@ -58,7 +58,7 @@ void DialogMenu::tick(uint64_t dt) {
   }
 
 bool DialogMenu::start(Npc &pl,Npc &other) {
-  other.startDialog(&pl);
+  other.startDialog(pl);
   return true;
   }
 

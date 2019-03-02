@@ -1,5 +1,7 @@
 #pragma once
 
+#include "inventory.h"
+
 #include <array>
 
 class DialogMenu;
@@ -57,6 +59,15 @@ class PlayerControl final {
       RotateR,
       Jump,
 
+      Action,
+      ActForward,
+      ActLeft,
+      ActRight,
+      ActBack,
+
+      Walk,
+
+      CloseWeapon,
       DrawWeaponMele,
       DrawWeaponBow,
 
@@ -69,14 +80,6 @@ class PlayerControl final {
       DrawWeaponMage9,
       DrawWeaponMage10,
 
-      Action,
-      ActForward,
-      ActLeft,
-      ActRight,
-      ActBack,
-
-      Walk,
-
       Last
       };
 
@@ -85,6 +88,8 @@ class PlayerControl final {
     DialogMenu&    dlg;
     InventoryMenu& inv;
 
+    void           clrDraw();
+    auto           weaponState() const -> Inventory::WeaponState;
     void           implMove(uint64_t dt);
     void           setPos(std::array<float,3> a, uint64_t dt, float speed);
   };

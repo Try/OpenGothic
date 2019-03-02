@@ -58,8 +58,8 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
 
   vm->initDialogs(gothic);
 
-  //const char* hero="PC_HERO";
-  const char* hero="PC_ROCKEFELLER";
+  const char* hero="PC_HERO";
+  //const char* hero="PC_ROCKEFELLER";
 
   if(startPoints.size()>0)
     npcPlayer = vm->inserNpc(hero,startPoints[0].wpName.c_str()); else
@@ -335,12 +335,18 @@ int32_t World::runFunction(const std::string& fname) {
   }
 
 void World::initScripts(bool firstTime) {
-  auto dot=wname.rfind('.');
-  std::string startup = (firstTime ? "startup_" : "init_")+(dot==std::string::npos ? wname : wname.substr(0,dot));
+  auto dot  = wname.rfind('.');
+  auto name = (dot==std::string::npos ? wname : wname.substr(0,dot));
+  if( firstTime ) {
+    std::string startup = "startup_"+name;
 
-  if(vm->hasSymbolName(startup))
-    vm->runFunction(startup);
-  tick(0); // apply armour and stuff
+    if(vm->hasSymbolName(startup))
+      vm->runFunction(startup);
+    }
+
+  std::string init = "init_"+name;
+  if(vm->hasSymbolName(init))
+    vm->runFunction(init);
   }
 
 void World::loadVob(const ZenLoad::zCVobData &vob) {

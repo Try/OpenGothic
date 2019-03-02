@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <random>
 
+#include "game/aistate.h"
 #include "game/questlog.h"
 
 class Gothic;
@@ -24,6 +25,13 @@ class WorldScript final {
       int32_t                         sort=0;
       uint32_t                        scriptFn=0;
       Daedalus::GameState::InfoHandle handle={};
+      };
+
+    enum Attitude : int32_t {
+      ATT_HOSTILE  = 0,
+      ATT_ANGRY    = 1,
+      ATT_NEUTRAL  = 2,
+      ATT_FRIENDLY = 3
       };
 
     bool    hasSymbolName(const std::string& fn);
@@ -54,6 +62,7 @@ class WorldScript final {
     Daedalus::PARSymbol&                              getSymbol(const size_t s);
     size_t                                            getSymbolIndex(const char* s);
     size_t                                            getSymbolIndex(const std::string& s);
+    const AiState&                                    getAiState(size_t id);
 
     Daedalus::GEngineClasses::C_Npc&                  vmNpc (Daedalus::GameState::NpcHandle  handle);
     Daedalus::GEngineClasses::C_Item&                 vmItem(Daedalus::GameState::ItemHandle handle);
@@ -66,7 +75,7 @@ class WorldScript final {
     int  printCannotCastError(Npc &npc, int32_t plM, int32_t itM);
 
     int  invokeState(Daedalus::GameState::NpcHandle hnpc, Daedalus::GameState::NpcHandle hother, const char* name);
-    int  invokeState(Npc* npc, Npc* other, size_t fn);
+    int  invokeState(Npc* npc, Npc* other, Npc *victum, size_t fn);
     int  invokeItem (Npc* npc, size_t fn);
     int  invokeMana (Npc& npc, Item&  fn);
     int  invokeSpell(Npc& npc, Item&  fn);
@@ -77,15 +86,10 @@ class WorldScript final {
 
     void useInteractive(Daedalus::GameState::NpcHandle hnpc, const std::string &func);
 
+    Attitude guildAttitude(const Npc& p0,const Npc& p1) const;
+
   private:
     void               initCommon();
-
-    enum Attitude : int32_t {
-      ATT_HOSTILE  = 0,
-      ATT_ANGRY    = 1,
-      ATT_NEUTRAL  = 2,
-      ATT_FRIENDLY = 3
-      };
 
     struct ScopeVar;
 
@@ -123,6 +127,7 @@ class WorldScript final {
     void wld_playeffect      (Daedalus::DaedalusVM& vm);
     void wld_stopeffect      (Daedalus::DaedalusVM& vm);
     void wld_getplayerportalguild(Daedalus::DaedalusVM& vm);
+    void wld_setguildattitude(Daedalus::DaedalusVM& vm);
     void wld_getguildattitude(Daedalus::DaedalusVM& vm);
     void wld_istime          (Daedalus::DaedalusVM& vm);
     void wld_isfpavailable   (Daedalus::DaedalusVM& vm);
@@ -184,6 +189,7 @@ class WorldScript final {
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
     void ai_processinfos     (Daedalus::DaedalusVM &vm);
     void ai_standup          (Daedalus::DaedalusVM &vm);
+    void ai_standupquick     (Daedalus::DaedalusVM &vm);
     void ai_continueroutine  (Daedalus::DaedalusVM &vm);
     void ai_stoplookat       (Daedalus::DaedalusVM &vm);
     void ai_lookatnpc        (Daedalus::DaedalusVM &vm);
@@ -193,6 +199,7 @@ class WorldScript final {
     void ai_startstate       (Daedalus::DaedalusVM &vm);
     void ai_playani          (Daedalus::DaedalusVM &vm);
     void ai_setwalkmode      (Daedalus::DaedalusVM &vm);
+    void ai_wait             (Daedalus::DaedalusVM &vm);
     void ai_waitms           (Daedalus::DaedalusVM &vm);
     void ai_aligntowp        (Daedalus::DaedalusVM &vm);
     void ai_gotowp           (Daedalus::DaedalusVM &vm);
@@ -240,6 +247,7 @@ class WorldScript final {
     std::map<size_t,std::set<size_t>>                           dlgKnownInfos;
     std::vector<Daedalus::GameState::InfoHandle>                dialogsInfo;
     std::unique_ptr<Daedalus::GameState::DaedalusDialogManager> dialogs;
+    std::unordered_map<size_t,AiState>                          aiStates;
 
     QuestLog                                                    quests;
     size_t                                                      itMi_Gold=0;
@@ -247,6 +255,8 @@ class WorldScript final {
     size_t                                                      spellFxAniLetters=0;
     std::string                                                 goldTxt;
     float                                                       viewTimePerChar=0.5;
+    size_t                                                      gilCount=0;
+    std::vector<int32_t>                                        gilAttitudes;
 
     Daedalus::GEngineClasses::C_Focus                           cFocusNorm,cFocusMele,cFocusRange,cFocusMage;
   };

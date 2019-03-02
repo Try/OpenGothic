@@ -53,19 +53,42 @@ void PlayerControl::toogleWalkMode() {
   pl->setWalkMode(Npc::WalkBit(pl->walkMode()^Npc::WM_Walk));
   }
 
+Inventory::WeaponState PlayerControl::weaponState() const {
+  if(world==nullptr || world->player()==nullptr)
+    return Inventory::NoWeapon;
+  auto pl = world->player();
+  return pl->weaponState();
+  }
+
 void PlayerControl::clearInput() {
   std::memset(ctrl,0,sizeof(ctrl));
   }
 
+void PlayerControl::clrDraw() {
+  ctrl[DrawWeaponMele]=false;
+  ctrl[DrawWeaponBow] =false;
+  for(int i=0;i<8;++i)
+    ctrl[DrawWeaponMage3+i]=false;
+  }
+
 void PlayerControl::drawWeaponMele() {
-  ctrl[DrawWeaponMele]=true;
+  auto ws=weaponState();
+  clrDraw();
+  if(ws==Inventory::Fist || ws==Inventory::W1H || ws==Inventory::W2H)
+    ctrl[CloseWeapon   ]=true; else
+    ctrl[DrawWeaponMele]=true;
   }
 
 void PlayerControl::drawWeaponBow() {
-  ctrl[DrawWeaponBow]=true;
+  auto ws=weaponState();
+  clrDraw();
+  if(ws==Inventory::Bow || ws==Inventory::CBow)
+    ctrl[CloseWeapon   ]=true; else
+    ctrl[DrawWeaponBow]=true;
   }
 
 void PlayerControl::drawWeaponMage(uint8_t s) {
+  clrDraw();
   if(s>=3 && s<=10)
     ctrl[DrawWeaponMage3+s-3]=true;
   }
@@ -141,7 +164,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
   if(world==nullptr || world->player()==nullptr)
     return false;
   implMove(dt);
-  std::memset(ctrl,0,sizeof(ctrl));
+  std::memset(ctrl,0,Walk);
   return true;
   }
 
@@ -167,10 +190,17 @@ void PlayerControl::implMove(uint64_t dt) {
       return;
       }
 
+    if(ctrl[CloseWeapon]){
+      pl.closeWeapon();
+      ctrl[CloseWeapon] = !(weaponState()==Inventory::NoWeapon);
+      return;
+      }
     if(ctrl[DrawWeaponMele]){
       if(pl.currentMeleWeapon()!=nullptr)
         pl.drawWeaponMele(); else
         pl.drawWeaponFist();
+      auto ws = weaponState();
+      ctrl[DrawWeaponMele] = !(ws==Inventory::W1H || ws==Inventory::W2H || ws==Inventory::Fist);
       return;
       }
     if(ctrl[DrawWeaponBow]){

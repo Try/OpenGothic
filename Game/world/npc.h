@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <string>
+#include <deque>
 
 #include <daedalus/DaedalusVM.h>
 
@@ -43,11 +44,38 @@ class Npc final {
       };
 
     enum PercType : uint8_t {
-      PERC_ASSESSPLAYER  = 1,
-      PERC_ASSESSENEMY   = 2,
-      PERC_ASSESSFIGHTER = 3,
-      PERC_ASSESSBODY    = 4,
-      PERC_ASSESSITEM    = 5,
+      PERC_ASSESSPLAYER       = 1,
+      PERC_ASSESSENEMY        = 2,
+      PERC_ASSESSFIGHTER      = 3,
+      PERC_ASSESSBODY         = 4,
+      PERC_ASSESSITEM         = 5,
+      PERC_ASSESSMURDER       = 6,
+      PERC_ASSESSDEFEAT       = 7,
+      PERC_ASSESSDAMAGE       = 8,
+      PERC_ASSESSOTHERSDAMAGE = 9,
+      PERC_ASSESSTHREAT       = 10,
+      PERC_ASSESSREMOVEWEAPON = 11,
+      PERC_OBSERVEINTRUDER    = 12,
+      PERC_ASSESSFIGHTSOUND   = 13,
+      PERC_ASSESSQUIETSOUND   = 14,
+      PERC_ASSESSWARN         = 15,
+      PERC_CATCHTHIEF         = 16,
+      PERC_ASSESSTHEFT        = 17,
+      PERC_ASSESSCALL         = 18,
+      PERC_ASSESSTALK         = 19,
+      PERC_ASSESSGIVENITEM    = 20,
+      PERC_ASSESSFAKEGUILD    = 21,
+      PERC_MOVEMOB            = 22,
+      PERC_MOVENPC            = 23,
+      PERC_DRAWWEAPON         = 24,
+      PERC_OBSERVESUSPECT     = 25,
+      PERC_NPCCOMMAND         = 26,
+      PERC_ASSESSMAGIC        = 27,
+      PERC_ASSESSSTOPMAGIC    = 28,
+      PERC_ASSESSCASTER       = 29,
+      PERC_ASSESSSURPRISE     = 30,
+      PERC_ASSESSENTERROOM    = 31,
+      PERC_ASSESSUSEMOB       = 32,
       PERC_Count
       };
 
@@ -116,8 +144,8 @@ class Npc final {
       Chair3,
       Chair4,
       Eat,
+      IdleLast=Eat,
       Warn,
-      IdleLast=Warn,
 
       Move,
       MoveBack,
@@ -278,7 +306,7 @@ class Npc final {
     void setPhysic     (DynamicWorld::Item&& item);
     void setFatness    (float f);
     void setScale      (float x,float y,float z);
-    void setAnim       (Anim a);
+    bool setAnim(Anim a);
     Anim anim() const  { return current; }
     bool isStanding() const;
 
@@ -316,17 +344,17 @@ class Npc final {
     int32_t  experienceNext() const;
     int32_t  learningPoints() const;
 
-    void      startDialog(Npc *other);
-    void      startState(size_t id, bool loop, const std::string &wp);
-    void      startState(size_t id, bool loop, const std::string &wp, gtime endTime);
+    void      startDialog(Npc& other);
+    bool      startState(size_t id, bool loop, const std::string &wp);
+    bool      startState(size_t id, bool loop, const std::string &wp, gtime endTime);
     BodyState bodyState() const;
     bool      isDead() const;
 
     void setToFightMode(const uint32_t item);
 
-    void closeWeapon();
-    void drawWeaponFist();
-    void drawWeaponMele();
+    bool closeWeapon();
+    bool drawWeaponFist();
+    bool drawWeaponMele();
     void drawWeaponBow();
     void drawMage(uint8_t slot);
     void drawSpell(int32_t spell);
@@ -340,11 +368,15 @@ class Npc final {
     void blockSword();
     bool castSpell();
 
+    bool isEnemy(const Npc& other);
+
     void setPerceptionTime   (uint64_t time);
     void setPerceptionEnable (PercType t, size_t fn);
     void setPerceptionDisable(PercType t);
+
     void preceptionProcess(Npc& pl, float quadDist);
     void preceptionProcess(Npc& pl, Npc *victum, float quadDist, PercType perc);
+    uint64_t percNextTime() const;
 
     const Interactive* interactive() const { return currentInteract; }
     bool     setInteraction(Interactive* id);
@@ -470,7 +502,7 @@ class Npc final {
     void                           setPos(const Tempest::Matrix4x4& m);
     void                           updateWeaponSkeleton();
 
-    void                           setAnim  (Anim a, WeaponState nextSt, WeaponState oldSt);
+    bool                           setAnim(Anim a, WeaponState nextSt, WeaponState oldSt);
     const Animation::Sequence*     solveAnim(Anim a) const;
     const Animation::Sequence*     solveAnim(Anim a, WeaponState st0, Anim cur, WeaponState st) const;
     const Animation::Sequence*     solveAnim(const char* format, WeaponState st) const;
@@ -488,6 +520,7 @@ class Npc final {
     bool                           implAtack  (uint64_t dt);
     void                           invalidateAnim(const Animation::Sequence* s, const Skeleton *sk);
     void                           tickRoutine();
+    void                           nextAiAction();
 
     WorldScript&                   owner;
     Daedalus::GameState::NpcHandle hnpc;
@@ -520,7 +553,8 @@ class Npc final {
     uint64_t                       refuseTalkMilis      =0;
     Inventory                      invent;
 
-    uint64_t                       perceptionTime=0;
+    uint64_t                       perceptionTime    =0;
+    uint64_t                       perceptionNextTime=0;
     Perc                           perception[PERC_Count];
 
     Interactive*                   currentInteract=nullptr;
@@ -538,7 +572,7 @@ class Npc final {
     BodyState                      bodySt=BodyState(0);
     AiState                        aiState;
     std::vector<Routine>           routines;
-    std::queue<AiAction>           aiActions;
+    std::deque<AiAction>           aiActions;
 
     MoveAlgo                       mvAlgo;
   };

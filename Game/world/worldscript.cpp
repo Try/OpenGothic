@@ -64,6 +64,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("concatstrings", &WorldScript::concatstrings);
   vm.registerExternalFunction("inttostring",   &WorldScript::inttostring  );
   vm.registerExternalFunction("floattostring", &WorldScript::floattostring);
+  vm.registerExternalFunction("inttofloat",    &WorldScript::inttofloat   );
   vm.registerExternalFunction("floattoint",    &WorldScript::floattoint   );
 
   vm.registerExternalFunction("hlp_random",          [this](Daedalus::DaedalusVM& vm){ hlp_random(vm);         });
@@ -80,6 +81,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("wld_stopeffect",      [this](Daedalus::DaedalusVM& vm){ wld_stopeffect(vm); });
   vm.registerExternalFunction("wld_getplayerportalguild",
                                                      [this](Daedalus::DaedalusVM& vm){ wld_getplayerportalguild(vm); });
+  vm.registerExternalFunction("wld_setguildattitude",[this](Daedalus::DaedalusVM& vm){ wld_setguildattitude(vm);     });
   vm.registerExternalFunction("wld_getguildattitude",[this](Daedalus::DaedalusVM& vm){ wld_getguildattitude(vm);     });
   vm.registerExternalFunction("wld_istime",          [this](Daedalus::DaedalusVM& vm){ wld_istime(vm);               });
   vm.registerExternalFunction("wld_isfpavailable",   [this](Daedalus::DaedalusVM& vm){ wld_isfpavailable(vm);        });
@@ -145,6 +147,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
   vm.registerExternalFunction("ai_processinfos",     [this](Daedalus::DaedalusVM& vm){ ai_processinfos(vm);      });
   vm.registerExternalFunction("ai_standup",          [this](Daedalus::DaedalusVM& vm){ ai_standup(vm);           });
+  vm.registerExternalFunction("ai_standupquick",     [this](Daedalus::DaedalusVM& vm){ ai_standupquick(vm);      });
   vm.registerExternalFunction("ai_continueroutine",  [this](Daedalus::DaedalusVM& vm){ ai_continueroutine(vm);   });
   vm.registerExternalFunction("ai_printscreen",      [this](Daedalus::DaedalusVM& vm){ printscreen(vm);          });
   vm.registerExternalFunction("ai_stoplookat",       [this](Daedalus::DaedalusVM& vm){ ai_stoplookat(vm);        });
@@ -155,6 +158,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("ai_startstate",       [this](Daedalus::DaedalusVM& vm){ ai_startstate(vm);        });
   vm.registerExternalFunction("ai_playani",          [this](Daedalus::DaedalusVM& vm){ ai_playani(vm);           });
   vm.registerExternalFunction("ai_setwalkmode",      [this](Daedalus::DaedalusVM& vm){ ai_setwalkmode(vm);       });
+  vm.registerExternalFunction("ai_wait",             [this](Daedalus::DaedalusVM& vm){ ai_wait(vm);              });
   vm.registerExternalFunction("ai_waitms",           [this](Daedalus::DaedalusVM& vm){ ai_waitms(vm);            });
   vm.registerExternalFunction("ai_aligntowp",        [this](Daedalus::DaedalusVM& vm){ ai_aligntowp(vm);         });
   vm.registerExternalFunction("ai_gotowp",           [this](Daedalus::DaedalusVM& vm){ ai_gotowp(vm);            });
@@ -225,6 +229,21 @@ void WorldScript::initCommon() {
 
   auto& vtime     = vm.getDATFile().getSymbolByName("VIEW_TIME_PER_CHAR");
   viewTimePerChar = vtime.getFloat(0);
+
+
+  auto gilMax = vm.getDATFile().getSymbolByName("GIL_MAX");
+  gilCount=size_t(gilMax.getInt(0));
+
+  auto tableSz = vm.getDATFile().getSymbolByName("TAB_ANZAHL");
+  auto guilds  = vm.getDATFile().getSymbolByName("GIL_ATTITUDES");
+  gilAttitudes.resize(gilCount*gilCount,ATT_HOSTILE);
+
+  size_t tbSz=size_t(std::sqrt(tableSz.getInt()));
+  for(size_t i=0;i<tbSz;++i)
+    for(size_t r=0;r<tbSz;++r) {
+      gilAttitudes[i*gilCount+r]=guilds.getInt(i*tbSz+r);
+      gilAttitudes[r*gilCount+i]=guilds.getInt(r*tbSz+i);
+      }
   }
 
 void WorldScript::initDialogs(Gothic& gothic) {
@@ -273,6 +292,14 @@ size_t WorldScript::getSymbolIndex(const char* s) {
 
 size_t WorldScript::getSymbolIndex(const std::string &s) {
   return vm.getDATFile().getSymbolIndexByName(s);
+  }
+
+const AiState &WorldScript::getAiState(size_t id) {
+  auto it = aiStates.find(id);
+  if(it!=aiStates.end())
+    return it->second;
+  auto ins = aiStates.emplace(id,AiState(*this,id));
+  return ins.first->second;
   }
 
 Daedalus::GEngineClasses::C_Npc& WorldScript::vmNpc(Daedalus::GameState::NpcHandle handle) {
@@ -426,14 +453,15 @@ int WorldScript::invokeState(NpcHandle hnpc, NpcHandle oth, const char *name) {
   return runFunction(id);
   }
 
-int WorldScript::invokeState(Npc* npc, Npc* oth,size_t fn) {
+int WorldScript::invokeState(Npc* npc, Npc* oth, Npc* v, size_t fn) {
   if(fn==0)
     return 1;
   if(oth==nullptr)
-    oth=owner.player();
+    oth=owner.player();//FIXME: PC_Levelinspektor
 
-  ScopeVar self (vm,"self", npc);
-  ScopeVar other(vm,"other",oth);
+  ScopeVar self  (vm,"self", npc);
+  ScopeVar other (vm,"other",oth);
+  ScopeVar victum(vm,"victum",v);
   return runFunction(fn);
   }
 
@@ -522,7 +550,14 @@ void WorldScript::useInteractive(NpcHandle hnpc,const std::string& func) {
     }
   catch (...) {
     Log::i("unable to use interactive [",func,"]");
-    }
+  }
+  }
+
+WorldScript::Attitude WorldScript::guildAttitude(const Npc &p0, const Npc &p1) const {
+  auto selfG = std::min(gilCount-1,p0.guild());
+  auto npcG  = std::min(gilCount-1,p1.guild());
+  auto ret   = gilAttitudes[selfG*gilCount+npcG];
+  return Attitude(ret);
   }
 
 bool WorldScript::hasSymbolName(const std::string &fn) {
@@ -743,22 +778,27 @@ void WorldScript::wld_getplayerportalguild(Daedalus::DaedalusVM &vm) {
   vm.setReturn(GIL_PUBLIC);  // TODO: guild id for a room
   }
 
+void WorldScript::wld_setguildattitude(Daedalus::DaedalusVM &vm) {
+  size_t  gil2 = size_t(vm.popDataValue());
+  int32_t att  = vm.popDataValue();
+  size_t  gil1 = size_t(vm.popDataValue());
+  if(gilCount==0 || gil1>=gilCount || gil2>=gilCount)
+    return;
+  gilAttitudes[gil1*gilCount+gil2]=att;
+  gilAttitudes[gil2*gilCount+gil1]=att;
+  }
+
 void WorldScript::wld_getguildattitude(Daedalus::DaedalusVM &vm) {
-  const char* sz  = "TAB_ANZAHL";
-  const char* gld = "GIL_ATTITUDES";
   auto npc    = popInstance(vm);
   auto self   = popInstance(vm);
-  if(!vm.getDATFile().hasSymbolName(sz) || !vm.getDATFile().hasSymbolName(gld) || self==nullptr || npc==nullptr) {
-    vm.setReturn(ATT_NEUTRAL); // error
+  if(self==nullptr || npc==nullptr || gilCount==0) {
+    vm.setReturn(ATT_HOSTILE); // error
     return;
     }
 
-  auto tableSz = vm.getDATFile().getSymbolByName(sz);
-  auto guilds  = vm.getDATFile().getSymbolByName(gld);
-  auto count   = uint32_t(std::sqrt(tableSz.getInt()));
-  auto selfG   = std::min(count-1,self->guild());
-  auto npcG    = std::min(count-1,npc ->guild());
-  auto ret     = guilds.getInt(selfG*count+npcG);
+  auto selfG = std::min(gilCount-1,self->guild());
+  auto npcG  = std::min(gilCount-1,npc ->guild());
+  auto ret   = gilAttitudes[selfG*gilCount+npcG];
   vm.setReturn(ret);
   }
 
@@ -1315,9 +1355,11 @@ void WorldScript::npc_settarget(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::npc_gettarget(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
-  if(npc!=nullptr) {
-    size_t id = vmNpc(npc->handle()).instanceSymbol;
-    vm.setReturn(int32_t(id));
+  if(npc!=nullptr && npc->target()) {
+    Daedalus::PARSymbol& s = vm.getDATFile().getSymbolByName("other");
+    s.instanceDataHandle   = ZMemory::toBigHandle(npc->target()->handle());
+    s.instanceDataClass    = Daedalus::IC_Npc;
+    vm.setReturn(1);
     } else {
     vm.setReturn(0);
     }
@@ -1366,6 +1408,12 @@ void WorldScript::ai_standup(Daedalus::DaedalusVM &vm) {
     self->aiStandup();
   }
 
+void WorldScript::ai_standupquick(Daedalus::DaedalusVM &vm) {
+  auto self = popInstance(vm);
+  if(self!=nullptr)
+    self->aiStandup(); //TODO
+  }
+
 void WorldScript::ai_continueroutine(Daedalus::DaedalusVM &vm) {
   auto self = popInstance(vm);
   (void)self;
@@ -1387,7 +1435,8 @@ void WorldScript::ai_lookatnpc(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::ai_removeweapon(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
-  //Log::d("TODO: ai_removeweapon");
+  if(npc!=nullptr)
+    npc->aiRemoveWeapon();
   }
 
 void WorldScript::ai_turntonpc(Daedalus::DaedalusVM &vm) {
@@ -1401,7 +1450,7 @@ void WorldScript::ai_outputsvm(Daedalus::DaedalusVM &vm) {
   auto name = popString  (vm);
   auto npc  = popInstance(vm);
   auto self = popInstance(vm);
-  Log::d("TODO: ai_outputsvm");
+  Log::d("TODO: ai_outputsvm: ",name);
   }
 
 void WorldScript::ai_startstate(Daedalus::DaedalusVM &vm) {
@@ -1426,6 +1475,13 @@ void WorldScript::ai_setwalkmode(Daedalus::DaedalusVM &vm) {
   if(npc!=nullptr && mode>=0 && mode<=3){
     npc->setWalkMode(Npc::WalkBit(mode));
     }
+  }
+
+void WorldScript::ai_wait(Daedalus::DaedalusVM &vm) {
+  auto ms  = vm.popFloatValue();
+  auto npc = popInstance(vm);
+  if(npc!=nullptr && ms>0)
+    npc->aiWait(uint64_t(ms*1000));
   }
 
 void WorldScript::ai_waitms(Daedalus::DaedalusVM &vm) {

@@ -33,8 +33,17 @@ const std::string &Interactive::tag() const {
   return data.vobName;
   }
 
-const std::string &Interactive::focusName() const {
+const std::string& Interactive::focusName() const {
   return data.oCMOB.focusName;
+  }
+
+bool Interactive::checkMobName(const std::string &dest) const {
+  const auto& name=focusName();
+  if(name==dest)
+    return true;
+  if(name.find("MOBNAME_")==0 && dest==name.c_str()+8)
+    return true;
+  return false;
   }
 
 std::array<float,3> Interactive::position() const {

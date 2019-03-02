@@ -98,6 +98,7 @@ bool MoveAlgo::aiGoTo(const ZenLoad::zCWaypointData *p) {
     currentGoTo=nullptr;
     return false;
     }
+  currentGoToNpc=nullptr;
   return true;
   }
 
@@ -110,7 +111,13 @@ bool MoveAlgo::aiGoTo(const Npc *p) {
     currentGoToNpc=nullptr;
     return false;
     }
+  currentGoTo=nullptr;
   return true;
+  }
+
+void MoveAlgo::aiGoTo(const std::nullptr_t p) {
+  currentGoTo=nullptr;
+  currentGoToNpc=nullptr;
   }
 
 bool MoveAlgo::startClimb() {

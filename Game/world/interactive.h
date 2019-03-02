@@ -23,6 +23,7 @@ class Interactive final {
 
     const std::string&  tag() const;
     const std::string&  focusName() const;
+    bool                checkMobName(const std::string& dest) const;
 
     std::array<float,3> position() const;
     std::array<float,3> displayPosition() const;
