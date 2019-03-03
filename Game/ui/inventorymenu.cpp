@@ -304,7 +304,7 @@ void InventoryMenu::drawSlot(Painter &p,const Inventory &inv, int x, int y, size
 void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {
   if(!slot)
     return;
-  auto*          txt  = world ? world->script()->currencyName() : "";
+  auto*          txt  = world ? world->script()->currencyName() : nullptr;
   const uint32_t gold = player.inventory().goldCount();
   char           vint[64]={};
   if(txt==nullptr)
