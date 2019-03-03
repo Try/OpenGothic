@@ -208,10 +208,12 @@ void PlayerControl::implMove(uint64_t dt) {
       ctrl[DrawWeaponBow]=false;
       return;
       }
-    if(ctrl[DrawWeaponMage3]){
-      pl.drawMage(3);
-      ctrl[DrawWeaponMage3]=false;
-      return;
+    for(int i=0;i<8;++i){
+      if(ctrl[DrawWeaponMage3+i]){
+        pl.drawMage(uint8_t(3+i));
+        ctrl[DrawWeaponMage3+i]=false;
+        return;
+        }
       }
 
     if(ctrl[ActForward]) {
