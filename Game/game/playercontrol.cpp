@@ -205,10 +205,12 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     if(ctrl[DrawWeaponBow]){
       pl.drawWeaponBow();
+      ctrl[DrawWeaponBow]=false;
       return;
       }
     if(ctrl[DrawWeaponMage3]){
       pl.drawMage(3);
+      ctrl[DrawWeaponMage3]=false;
       return;
       }
 

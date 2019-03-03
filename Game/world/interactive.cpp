@@ -60,6 +60,8 @@ std::array<float,3> Interactive::displayPosition() const {
   }
 
 const char *Interactive::displayName() const {
+  if(data.oCMOB.focusName.empty())
+    return "";
   auto& s=world->getSymbol(data.oCMOB.focusName.c_str());
   const char* txt = s.getString(0).c_str();
   if(std::strlen(txt)==0)

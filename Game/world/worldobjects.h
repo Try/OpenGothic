@@ -56,9 +56,9 @@ class WorldObjects final {
       };
 
     World&                             owner;
+    std::vector<Interactive>           interactiveObj;
     std::vector<std::unique_ptr<Npc>>  npcArr;
     std::vector<std::unique_ptr<Item>> itemArr;
-    std::vector<Interactive>           interactiveObj;
     std::vector<Trigger>               triggers;
 
     std::vector<PercMsg>               sndPerc;
