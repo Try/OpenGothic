@@ -312,7 +312,7 @@ bool Npc::setAnim(Npc::Anim a) {
 bool Npc::setAnim(Npc::Anim a,WeaponState nextSt,WeaponState weaponSt) {
   if(animSq!=nullptr){
     if(current==a && nextSt==weaponSt && animSq->animCls==Animation::Loop)
-      return false;
+      return true;
     if((animSq->animCls==Animation::Transition &&
         current!=RotL && current!=RotR && current!=MoveL && current!=MoveR && // no idea why this animations maked as Transition
         !(current==Move && a==Jump)) && // allow to jump at any point of run animation
@@ -464,7 +464,7 @@ int32_t Npc::hitChanse(Npc::Talent t) const {
   }
 
 bool Npc::isRefuseTalk() const {
-  return refuseTalkMilis<owner.tickCount();
+  return refuseTalkMilis>=owner.tickCount();
   }
 
 int32_t Npc::mageCycle() const {
@@ -671,8 +671,8 @@ void Npc::tick(uint64_t dt) {
 void Npc::nextAiAction() {
   if(aiActions.size()==0)
     return;
-  auto act = std::move(aiActions.back());
-  aiActions.pop_back();
+  auto act = std::move(aiActions.front());
+  aiActions.pop_front();
 
   switch(act.act) {
     case AI_None: break;
@@ -690,7 +690,8 @@ void Npc::nextAiAction() {
         aiActions.push_front(std::move(act));
       break;
     case AI_StartState:
-      startState(act.func,act.i0==0,act.s0);
+      // FIXME: unknown argument #3
+      startState(act.func,true/*act.i0==0*/,act.s0);
       break;
     case AI_PlayAnim:{
       auto tag = animByName(act.s0);
@@ -752,7 +753,7 @@ void Npc::nextAiAction() {
       atackMode=true;
       break;
     case AI_Flee:
-      atackMode=true;
+      atackMode=false;
       break;
     case AI_Dodge:
       setAnim(Anim::MoveBack);
@@ -782,12 +783,14 @@ bool Npc::startState(size_t id,bool loop,const std::string &wp,gtime endTime) {
     }
 
   auto& st = owner.getAiState(id);
-  aiState.started  = false;
-  aiState.funcIni  = st.funcIni;
-  aiState.funcLoop = loop ? st.funcLoop : 0;
-  aiState.funcEnd  = st.funcEnd;
-  aiState.sTime    = owner.tickCount();
-  aiState.eTime    = endTime;
+  aiState.started      = false;
+  aiState.funcIni      = st.funcIni;
+  aiState.funcLoop     = loop ? st.funcLoop : 0;
+  aiState.funcEnd      = st.funcEnd;
+  aiState.sTime        = owner.tickCount();
+  aiState.eTime        = endTime;
+  aiState.loopNextTime = owner.tickCount();
+  aiState.hint         = st.name();
   return true;
   }
 
@@ -809,16 +812,19 @@ void Npc::tickRoutine() {
     return;
 
   if(aiState.started) {
-    int loop = owner.invokeState(this,currentOther,nullptr,aiState.funcLoop);
-    if(aiState.eTime!=gtime() && aiState.eTime<=owner.world().time())
-      loop=1;
-    if(loop!=0){
-      owner.invokeState(this,currentOther,nullptr,aiState.funcEnd);
-      if(atackMode) {
-        atackMode=false;
-        setTarget(nullptr);
+    if(aiState.loopNextTime<=owner.tickCount()){
+      aiState.loopNextTime+=1000; // one tick per second?
+      int loop = owner.invokeState(this,currentOther,nullptr,aiState.funcLoop);
+      if(aiState.eTime!=gtime() && aiState.eTime<=owner.world().time())
+        loop=1;
+      if(loop!=0){
+        owner.invokeState(this,currentOther,nullptr,aiState.funcEnd);
+        if(atackMode) {
+          atackMode=false;
+          setTarget(nullptr);
+          }
+        aiState = AiState();
         }
-      aiState = AiState();
       }
     } else {
     aiState.started=true;
@@ -1086,26 +1092,35 @@ void Npc::setPerceptionDisable(Npc::PercType t) {
   }
 
 void Npc::startDialog(Npc& pl) {
-  //preceptionProcess(pl,nullptr,0,PERC_ASSESSPLAYER);
-  owner.invokeState(hnpc,pl.handle(),"B_AssessTalk");
-  //preceptionProcess(other,nullptr,0,PERC_ASSESSTALK);
+  perceptionProcess(pl,nullptr,0,PERC_ASSESSTALK);
   }
 
-void Npc::preceptionProcess(Npc &pl,float quadDist) {
-  if(isEnemy(pl))
-    preceptionProcess(pl,nullptr,quadDist,PERC_ASSESSENEMY);
-  //preceptionProcess(pl,nullptr,quadDist,PERC_ASSESSTALK);
-  }
-
-void Npc::preceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType perc) {
+bool Npc::perceptionProcess(Npc &pl,float quadDist) {
+  static bool disable=false;
+  if(disable)
+    return false;
   float r = owner.vmNpc(hnpc).senses_range;
-  if(quadDist<r*r){
-    if(perception[perc].func){
-      currentOther=&pl;
-      owner.invokeState(this,currentOther,victum,perception[perc].func);
-      }
+  r = r*r;
+  if(quadDist>r)
+    return false;
+
+  if(isEnemy(pl) && perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSENEMY))
+     return true;
+  if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER))
+    return true;
+  return false;
+  }
+
+bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType perc) {
+  float r = owner.vmNpc(hnpc).senses_range;
+  r = r*r;
+  if(quadDist<r && perception[perc].func){
+    currentOther=&pl;
+    owner.invokeState(this,currentOther,victum,perception[perc].func);
+    return true;
     }
   perceptionNextTime=owner.tickCount()+perceptionTime;
+  return false;
   }
 
 uint64_t Npc::percNextTime() const {
@@ -1249,6 +1264,8 @@ void Npc::aiTurnToNpc(Npc *other) {
   }
 
 void Npc::aiStartState(uint32_t stateFn, int behavior, std::string wp) {
+  auto& st = owner.getAiState(stateFn);(void)st;
+
   AiAction a;
   a.act  = AI_StartState;
   a.func = stateFn;
@@ -1358,7 +1375,7 @@ void Npc::aiUnEquipWeapons() {
 void Npc::aiClearQueue() {
   aiActions  =std::deque<AiAction>();
   currentGoTo=nullptr;
-  setTarget(nullptr);
+  //setTarget(nullptr);
   }
 
 void Npc::updatePos() {

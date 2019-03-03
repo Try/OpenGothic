@@ -32,11 +32,11 @@ void WorldObjects::tick(uint64_t dt) {
       const float z = i->position()[2];
 
       if(i.get()!=pl)
-        i->preceptionProcess(*pl,pl->qDistTo(x,y,z));
+        i->perceptionProcess(*pl,pl->qDistTo(x,y,z));
 
       for(auto& r:passive) {
         float l = i->qDistTo(r.x,r.y,r.z);
-        i->preceptionProcess(*r.other,r.victum,l,Npc::PercType(r.what));
+        i->perceptionProcess(*r.other,r.victum,l,Npc::PercType(r.what));
         }
       }
     }

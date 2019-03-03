@@ -374,8 +374,8 @@ class Npc final {
     void setPerceptionEnable (PercType t, size_t fn);
     void setPerceptionDisable(PercType t);
 
-    void preceptionProcess(Npc& pl, float quadDist);
-    void preceptionProcess(Npc& pl, Npc *victum, float quadDist, PercType perc);
+    bool perceptionProcess(Npc& pl, float quadDist);
+    bool perceptionProcess(Npc& pl, Npc *victum, float quadDist, PercType perc);
     uint64_t percNextTime() const;
 
     const Interactive* interactive() const { return currentInteract; }
@@ -485,6 +485,8 @@ class Npc final {
       uint64_t sTime   =0;
       gtime    eTime;
       bool     started =false;
+      uint64_t loopNextTime=0;
+      const char* hint="";
       };
 
     struct Perc final {

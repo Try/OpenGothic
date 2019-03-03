@@ -4,7 +4,7 @@
 
 AiState::AiState(WorldScript& owner,size_t id) {
   auto& fn = owner.getSymbol(id);
-  name     = fn.name.c_str();
+  mname    = fn.name.c_str();
 
   funcIni  = id;
   funcLoop = owner.getSymbolIndex(fn.name+"_Loop");

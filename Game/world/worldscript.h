@@ -132,6 +132,8 @@ class WorldScript final {
     void wld_istime          (Daedalus::DaedalusVM& vm);
     void wld_isfpavailable   (Daedalus::DaedalusVM& vm);
     void wld_ismobavailable  (Daedalus::DaedalusVM& vm);
+    void wld_setmobroutine   (Daedalus::DaedalusVM& vm);
+    void wld_assignroomtoguild(Daedalus::DaedalusVM& vm);
 
     void mdl_setvisual       (Daedalus::DaedalusVM& vm);
     void mdl_setvisualbody   (Daedalus::DaedalusVM& vm);
@@ -184,6 +186,9 @@ class WorldScript final {
     void npc_settarget       (Daedalus::DaedalusVM &vm);
     void npc_gettarget       (Daedalus::DaedalusVM &vm);
     void npc_sendpassiveperc (Daedalus::DaedalusVM &vm);
+    void npc_checkinfo       (Daedalus::DaedalusVM &vm);
+    void npc_getportalguild  (Daedalus::DaedalusVM &vm);
+    void npc_isinplayersroom (Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
@@ -236,6 +241,7 @@ class WorldScript final {
     void playvideo           (Daedalus::DaedalusVM &vm);
     void printscreen         (Daedalus::DaedalusVM &vm);
     void print               (Daedalus::DaedalusVM &vm);
+    void perc_setrange       (Daedalus::DaedalusVM &vm);
 
     void sort(std::vector<DlgChoise>& dlg);
 
