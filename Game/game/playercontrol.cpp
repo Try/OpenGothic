@@ -88,9 +88,16 @@ void PlayerControl::drawWeaponBow() {
   }
 
 void PlayerControl::drawWeaponMage(uint8_t s) {
+  auto ws=weaponState();
   clrDraw();
-  if(s>=3 && s<=10)
-    ctrl[DrawWeaponMage3+s-3]=true;
+  auto    pl   = world ? world->player() : nullptr;
+  uint8_t slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
+  if(ws==Inventory::Mage && s==slot) {
+    ctrl[CloseWeapon   ]=true;
+    } else {
+    if(s>=3 && s<=10)
+      ctrl[DrawWeaponMage3+s-3]=true;
+    }
   }
 
 void PlayerControl::action() {
@@ -195,7 +202,7 @@ void PlayerControl::implMove(uint64_t dt) {
       ctrl[CloseWeapon] = !(weaponState()==Inventory::NoWeapon);
       return;
       }
-    if(ctrl[DrawWeaponMele]){
+    if(ctrl[DrawWeaponMele]) {
       if(pl.currentMeleWeapon()!=nullptr)
         pl.drawWeaponMele(); else
         pl.drawWeaponFist();
@@ -205,13 +212,15 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     if(ctrl[DrawWeaponBow]){
       pl.drawWeaponBow();
-      ctrl[DrawWeaponBow]=false;
+      auto ws = weaponState();
+      ctrl[DrawWeaponBow] = !(ws==Inventory::Bow || ws==Inventory::CBow);
       return;
       }
     for(int i=0;i<8;++i){
       if(ctrl[DrawWeaponMage3+i]){
         pl.drawMage(uint8_t(3+i));
-        ctrl[DrawWeaponMage3+i]=false;
+        auto ws = weaponState();
+        ctrl[DrawWeaponMage3+i] = !(ws==Inventory::Mage);
         return;
         }
       }

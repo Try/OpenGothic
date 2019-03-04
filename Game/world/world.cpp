@@ -58,8 +58,8 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
 
   vm->initDialogs(gothic);
 
-  const char* hero="PC_HERO";
-  //const char* hero="PC_ROCKEFELLER";
+  //const char* hero="PC_HERO";
+  const char* hero="PC_ROCKEFELLER";
 
   if(startPoints.size()>0)
     npcPlayer = vm->inserNpc(hero,startPoints[0].wpName.c_str()); else

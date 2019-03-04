@@ -958,6 +958,10 @@ bool Npc::drawWeaponFist() {
   auto weaponSt=invent.weaponState();
   if(weaponSt==Inventory::Fist)
     return true;
+  if(weaponSt!=Inventory::NoWeapon) {
+    closeWeapon();
+    return false;
+    }
   Anim ani = current==Anim::Idle ? Anim::Idle : Anim::Move;
   if(!setAnim(ani,Inventory::Fist,weaponSt))
     return false;
@@ -972,6 +976,10 @@ bool Npc::drawWeaponMele() {
     return true;
   if(invent.currentMeleWeapon()==nullptr)
     return drawWeaponFist();
+  if(weaponSt!=Inventory::NoWeapon) {
+    closeWeapon();
+    return false;
+    }
   auto st  = invent.currentMeleWeapon()->is2H() ? Inventory::W2H : Inventory::W1H;
   Anim ani = current==isStanding() ? Anim::Idle : Anim::Move;
   if(!setAnim(ani,st,weaponSt))
@@ -981,18 +989,35 @@ bool Npc::drawWeaponMele() {
   return true;
   }
 
-void Npc::drawWeaponBow() {
+bool Npc::drawWeaponBow() {
   auto weaponSt=invent.weaponState();
+  if(weaponSt==Inventory::Bow || weaponSt==Inventory::CBow)
+    return true;
+  if(weaponSt!=Inventory::NoWeapon) {
+    closeWeapon();
+    return false;
+    }
+  auto st  = invent.currentRangeWeapon()->isCrossbow() ? Inventory::CBow : Inventory::Bow;
+  Anim ani = current==isStanding() ? Anim::Idle : Anim::Move;
+  if(!setAnim(ani,st,weaponSt))
+    return false;
   invent.switchActiveWeapon(2);
-  setAnim(current,invent.weaponState(),weaponSt);
   updateWeaponSkeleton();
+  return true;
   }
 
-void Npc::drawMage(uint8_t slot) {
+bool Npc::drawMage(uint8_t slot) {
   auto weaponSt=invent.weaponState();
+  if(weaponSt!=Inventory::NoWeapon && weaponSt!=Inventory::Mage) {
+    closeWeapon();
+    return false;
+    }
+  Anim ani = current==isStanding() ? Anim::Idle : Anim::Move;
+  if(!setAnim(ani,Inventory::Mage,weaponSt))
+    return false;
   invent.switchActiveWeapon(slot);
-  setAnim(current,invent.weaponState(),weaponSt);
   updateWeaponSkeleton();
+  return true;
   }
 
 void Npc::drawSpell(int32_t spell) {

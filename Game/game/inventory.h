@@ -88,6 +88,7 @@ class Inventory final {
     Item*  currentRangeWeapon() { return range;  }
 
     auto   weaponState() const -> WeaponState;
+    uint8_t currentSpellSlot() const;
 
   private:
     bool   setSlot     (Item*& slot, Item *next, WorldScript &vm, Npc &owner, bool force);

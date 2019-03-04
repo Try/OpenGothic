@@ -337,6 +337,14 @@ Inventory::WeaponState Inventory::weaponState() const {
   return WeaponState::NoWeapon;
   }
 
+uint8_t Inventory::currentSpellSlot() const {
+  for(uint8_t i=0;i<8;++i){
+    if(active==&numslot[i])
+      return i+3;
+    }
+  return Item::NSLOT;
+  }
+
 bool Inventory::equipNumSlot(Item *next, WorldScript &vm, Npc &owner,bool force) {
   for(auto& i:numslot){
     if(i==nullptr){

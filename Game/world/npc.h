@@ -355,8 +355,8 @@ class Npc final {
     bool closeWeapon();
     bool drawWeaponFist();
     bool drawWeaponMele();
-    void drawWeaponBow();
-    void drawMage(uint8_t slot);
+    bool drawWeaponBow();
+    bool drawMage(uint8_t slot);
     void drawSpell(int32_t spell);
     auto weaponState() const -> Inventory::WeaponState { return invent.weaponState(); }
 
