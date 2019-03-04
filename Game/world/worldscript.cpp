@@ -181,6 +181,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("ai_flee",             [this](Daedalus::DaedalusVM& vm){ ai_flee(vm);              });
   vm.registerExternalFunction("ai_dodge",            [this](Daedalus::DaedalusVM& vm){ ai_dodge(vm);             });
   vm.registerExternalFunction("ai_unequipweapons",   [this](Daedalus::DaedalusVM& vm){ ai_unequipweapons(vm);    });
+  vm.registerExternalFunction("ai_gotonpc",          [this](Daedalus::DaedalusVM& vm){ ai_gotonpc(vm);           });
 
   vm.registerExternalFunction("mob_hasitems",        [this](Daedalus::DaedalusVM& vm){ mob_hasitems(vm);         });
 
@@ -1661,6 +1662,13 @@ void WorldScript::ai_unequipweapons(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
     npc->aiUnEquipWeapons();
+  }
+
+void WorldScript::ai_gotonpc(Daedalus::DaedalusVM &vm) {
+  auto to  = popInstance(vm);
+  auto npc = popInstance(vm);
+  if(npc!=nullptr)
+    npc->aiGoToNpc(to);
   }
 
 void WorldScript::mob_hasitems(Daedalus::DaedalusVM &vm) {

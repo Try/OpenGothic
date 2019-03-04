@@ -220,6 +220,7 @@ class WorldScript final {
     void ai_flee             (Daedalus::DaedalusVM &vm);
     void ai_dodge            (Daedalus::DaedalusVM &vm);
     void ai_unequipweapons   (Daedalus::DaedalusVM &vm);
+    void ai_gotonpc          (Daedalus::DaedalusVM &vm);
 
     void mob_hasitems        (Daedalus::DaedalusVM &vm);
 

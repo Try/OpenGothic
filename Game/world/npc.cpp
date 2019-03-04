@@ -596,22 +596,37 @@ bool Npc::implLookAt(float dx, float dz, uint64_t dt) {
   }
 
 bool Npc::implGoTo(uint64_t dt) {
-  if(!currentGoTo || atackMode==true)
+  if((!currentGoTo && !currentGoToNpc) || atackMode==true)
     return false;
 
-  float dx = currentGoTo->position.x-x;
-  //float dy = y-currentGoTo->position.y;
-  float dz = currentGoTo->position.z-z;
+  if(currentGoTo){
+    float dx = currentGoTo->position.x-x;
+    //float dy = y-currentGoTo->position.y;
+    float dz = currentGoTo->position.z-z;
 
-  if(implLookAt(dx,dz,dt))
-    return true;
-  if(!mvAlgo.aiGoTo(currentGoTo)) {
-    currentFp  =currentGoTo;
-    currentGoTo=nullptr;
-    if(isStanding())
-      setAnim(Npc::Idle);
+    if(implLookAt(dx,dz,dt))
+      return true;
+    if(!mvAlgo.aiGoTo(currentGoTo)) {
+      currentFp  =currentGoTo;
+      currentGoTo=nullptr;
+      if(isStanding())
+        setAnim(Npc::Idle);
+      }
+    return mvAlgo.hasGoTo();
+    } else {
+    float dx = currentGoToNpc->x-x;
+    //float dy = y-currentGoTo->position.y;
+    float dz = currentGoToNpc->z-z;
+
+    if(implLookAt(dx,dz,dt))
+      return true;
+    if(!mvAlgo.aiGoTo(currentGoToNpc,400)) {
+      currentGoToNpc=nullptr;
+      if(isStanding())
+        setAnim(Npc::Idle);
+      }
+    return mvAlgo.hasGoTo();
     }
-  return mvAlgo.hasGoTo();
   }
 
 bool Npc::implAtack(uint64_t dt) {
@@ -622,11 +637,11 @@ bool Npc::implAtack(uint64_t dt) {
 
   if(implLookAt(dx,dz,dt))
     return true;
-  if(!mvAlgo.aiGoTo(currentTarget)) {
+  if(!mvAlgo.aiGoTo(currentTarget,200)) {
     if(isStanding())
       setAnim(Npc::Idle);
     }
-  return true;//mvAlgo.hasGoTo();
+  return true;
   }
 
 void Npc::invalidateAnim(const Animation::Sequence *ani,const Skeleton* sk) {
@@ -652,7 +667,7 @@ void Npc::tick(uint64_t dt) {
     setAnim(Interact); else
   if(current<=IdleLoopLast)
     setAnim(current); else
-  if(currentGoTo==nullptr && !(currentTarget!=nullptr && atackMode) && aiType!=AiType::Player)
+  if(currentGoTo==nullptr && currentGoToNpc==nullptr && !(currentTarget!=nullptr && atackMode) && aiType!=AiType::Player)
     setAnim(Anim::Idle);
 
   if(waitTime>=owner.tickCount())
@@ -680,7 +695,11 @@ void Npc::nextAiAction() {
       currentLookAt=act.target;
       break;
     case AI_TurnToNpc:
-      currentTurnTo=act.target;
+      currentTurnTo =act.target;
+      break;
+    case AI_GoToNpc:
+      currentGoTo   =nullptr;
+      currentGoToNpc=act.target;
       break;
     case AI_StopLookAt:
       currentLookAt=nullptr;
@@ -719,6 +738,7 @@ void Npc::nextAiAction() {
     case AI_GoToPoint:
       // TODO: check distance
       // currentGoTo = act.point;
+      currentGoToNpc=nullptr;
       break;
     case AI_EquipMelee:
       invent.equipBestMeleWeapon(owner,*this);
@@ -1290,6 +1310,13 @@ void Npc::aiTurnToNpc(Npc *other) {
   aiActions.push_back(a);
   }
 
+void Npc::aiGoToNpc(Npc *other) {
+  AiAction a;
+  a.act    = AI_GoToNpc;
+  a.target = other;
+  aiActions.push_back(a);
+  }
+
 void Npc::aiStartState(uint32_t stateFn, int behavior, std::string wp) {
   auto& st = owner.getAiState(stateFn);(void)st;
 
@@ -1703,6 +1730,13 @@ const Animation::Sequence *Npc::solveAnim(Npc::Anim a, WeaponState st0, Npc::Ani
   if(a==Anim::Chair4)
     return animSequence("R_CHAIR_RANDOM_4");
 
+  if(a==Anim::Roam1)
+    return animSequence("R_ROAM1");
+  if(a==Anim::Roam2)
+    return animSequence("R_ROAM2");
+  if(a==Anim::Roam3)
+    return animSequence("R_ROAM3");
+
   // FALLBACK
   if(a==Anim::Move)
     return solveAnim("S_%sRUNL",st);
@@ -1793,5 +1827,11 @@ Npc::Anim Npc::animByName(const std::string &name) const {
     return Anim::Chair3;
   if(name=="R_CHAIR_RANDOM_4")
     return Anim::Chair4;
+  if(name=="R_ROAM1")
+    return Anim::Roam1;
+  if(name=="R_ROAM2")
+    return Anim::Roam2;
+  if(name=="R_ROAM3")
+    return Anim::Roam3;
   return Anim::NoAnim;
   }

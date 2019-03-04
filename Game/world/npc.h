@@ -143,6 +143,9 @@ class Npc final {
       Chair2,
       Chair3,
       Chair4,
+      Roam1,
+      Roam2,
+      Roam3,
       Eat,
       IdleLast=Eat,
       Warn,
@@ -414,6 +417,7 @@ class Npc final {
     void     aiStopLookAt();
     void     aiRemoveWeapon();
     void     aiTurnToNpc(Npc *other);
+    void     aiGoToNpc  (Npc *other);
     void     aiStartState(uint32_t stateFn,int behavior,std::string wp);
     void     aiPlayAnim(std::string ani);
     void     aiWait(uint64_t dt);
@@ -451,6 +455,7 @@ class Npc final {
       AI_StopLookAt,
       AI_RemoveWeapon,
       AI_TurnToNpc,
+      AI_GoToNpc,
       AI_StartState,
       AI_PlayAnim,
       AI_Wait,
@@ -566,6 +571,7 @@ class Npc final {
     Npc*                           currentTarget  =nullptr;
     bool                           atackMode      =false;
 
+    Npc*                           currentGoToNpc =nullptr;
     const ZenLoad::zCWaypointData* currentGoTo    =nullptr;
     const ZenLoad::zCWaypointData* currentFp      =nullptr;
 

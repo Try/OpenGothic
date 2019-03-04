@@ -90,7 +90,8 @@ void MoveAlgo::clearSpeed() {
   }
 
 bool MoveAlgo::aiGoTo(const ZenLoad::zCWaypointData *p) {
-  currentGoTo=p;
+  currentGoTo    = p;
+  currentGoToNpc = nullptr;
   if(p==nullptr)
     return false;
   float len = npc.qDistTo(currentGoTo->position.x,npc.position()[1],currentGoTo->position.z);
@@ -98,25 +99,24 @@ bool MoveAlgo::aiGoTo(const ZenLoad::zCWaypointData *p) {
     currentGoTo=nullptr;
     return false;
     }
-  currentGoToNpc=nullptr;
   return true;
   }
 
-bool MoveAlgo::aiGoTo(const Npc *p) {
+bool MoveAlgo::aiGoTo(const Npc *p,float destDist) {
   currentGoToNpc = p;
+  currentGoTo    = nullptr;
   if(p==nullptr)
     return false;
   float len = npc.qDistTo(p->position()[0],npc.position()[1],p->position()[2]);
-  if(len<10*10){
+  if(len<destDist*destDist){
     currentGoToNpc=nullptr;
     return false;
     }
-  currentGoTo=nullptr;
   return true;
   }
 
-void MoveAlgo::aiGoTo(const std::nullptr_t p) {
-  currentGoTo=nullptr;
+void MoveAlgo::aiGoTo(const std::nullptr_t) {
+  currentGoTo   =nullptr;
   currentGoToNpc=nullptr;
   }
 

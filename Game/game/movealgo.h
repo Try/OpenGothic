@@ -18,7 +18,7 @@ class MoveAlgo final {
 
     auto aiGoTarget() -> const ZenLoad::zCWaypointData* { return currentGoTo; }
     bool aiGoTo(const ZenLoad::zCWaypointData* p);
-    bool aiGoTo(const Npc* p);
+    bool aiGoTo(const Npc* p, float destDist);
     void aiGoTo(const std::nullptr_t p);
     bool startClimb();
     bool hasGoTo() const;
