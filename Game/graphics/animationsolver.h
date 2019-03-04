@@ -129,5 +129,4 @@ class AnimationSolver final {
     const Animation::Sequence*     solveMag    (const char *format,Anim spell) const;
 
     std::vector<Overlay>           overlay;
-    const Animation::Sequence*     idle=nullptr;
   };
