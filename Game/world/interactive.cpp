@@ -43,6 +43,8 @@ bool Interactive::checkMobName(const std::string &dest) const {
     return true;
   if(name.find("MOBNAME_")==0 && dest==name.c_str()+8)
     return true;
+  if(name=="MOBNAME_ANVIL" && dest=="BSANVIL")
+    return true;
   return false;
   }
 
