@@ -60,6 +60,7 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
 
   //const char* hero="PC_HERO";
   const char* hero="PC_ROCKEFELLER";
+  //const char* hero="Giant_Bug";
 
   if(startPoints.size()>0)
     npcPlayer = vm->inserNpc(hero,startPoints[0].wpName.c_str()); else
@@ -69,7 +70,7 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
     vm->setInstanceNPC("HERO",*npcPlayer);
     }
 
-  initScripts(true);
+  //initScripts(true);
   }
 
 StaticObjects::Mesh World::getView(const std::string &visual) const {
@@ -133,19 +134,19 @@ size_t World::getSymbolIndex(const char *s) const {
 Focus World::findFocus(const Npc &pl, const Tempest::Matrix4x4 &v, int w, int h) {
   const Daedalus::GEngineClasses::C_Focus* fptr=&script()->focusNorm();
   switch(pl.weaponState()) {
-    case Inventory::Fist:
-    case Inventory::W1H:
-    case Inventory::W2H:
+    case WeaponState::Fist:
+    case WeaponState::W1H:
+    case WeaponState::W2H:
       fptr=&script()->focusMele();
       break;
-    case Inventory::Bow:
-    case Inventory::CBow:
+    case WeaponState::Bow:
+    case WeaponState::CBow:
       fptr=&script()->focusRange();
       break;
-    case Inventory::Mage:
+    case WeaponState::Mage:
       fptr=&script()->focusMage();
       break;
-    case Inventory::NoWeapon:
+    case WeaponState::NoWeapon:
       fptr=&script()->focusNorm();
       break;
     }

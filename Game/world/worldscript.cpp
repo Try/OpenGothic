@@ -1353,23 +1353,23 @@ void WorldScript::npc_isinfightmode(Daedalus::DaedalusVM &vm) {
 
   auto st = npc->weaponState();
   if(mode==0){
-    vm.setReturn(st==Inventory::NoWeapon);
+    vm.setReturn(st==WeaponState::NoWeapon);
     return;
     }
   if(mode==1){
-    vm.setReturn(st==Inventory::Fist);
+    vm.setReturn(st==WeaponState::Fist);
     return;
     }
   if(mode==2){
-    vm.setReturn(st==Inventory::W1H || st==Inventory::W2H);
+    vm.setReturn(st==WeaponState::W1H || st==WeaponState::W2H);
     return;
     }
   if(mode==5){
-    vm.setReturn(st==Inventory::Bow || st==Inventory::CBow);
+    vm.setReturn(st==WeaponState::Bow || st==WeaponState::CBow);
     return;
     }
   if(mode==8){
-    vm.setReturn(st==Inventory::Mage);
+    vm.setReturn(st==WeaponState::Mage);
     return;
     }
   vm.setReturn(0);
@@ -1544,7 +1544,7 @@ void WorldScript::ai_setwalkmode(Daedalus::DaedalusVM &vm) {
   auto mode = vm.popDataValue();
   auto npc  = popInstance(vm);
   if(npc!=nullptr && mode>=0 && mode<=3){
-    npc->setWalkMode(Npc::WalkBit(mode));
+    npc->setWalkMode(WalkBit(mode));
     }
   }
 

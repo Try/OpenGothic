@@ -38,9 +38,9 @@ void MoveAlgo::tick(uint64_t dt) {
 
     if(len<=speed){
       currentGoTo=nullptr;
-      npc.setAnim(Npc::Idle);
+      npc.setAnim(AnimationSolver::Idle);
       } else {
-      npc.setAnim(Npc::Move);
+      npc.setAnim(AnimationSolver::Move);
       }
     if(len>0.1f){
       float k = std::min(len,mulSpeed*speed)/len;
@@ -56,9 +56,9 @@ void MoveAlgo::tick(uint64_t dt) {
 
     if(len<=100){
       currentGoToNpc=nullptr;
-      npc.setAnim(Npc::Idle);
+      npc.setAnim(AnimationSolver::Idle);
       } else {
-      npc.setAnim(Npc::Move);
+      npc.setAnim(AnimationSolver::Move);
       }
     if(len>0.1f){
       float k = std::min(len,mulSpeed*speed)/len;
@@ -191,7 +191,7 @@ bool MoveAlgo::processClimb() {
   if(climbHeight<=0.f)
     climbHeight=npc.clampHeight(npc.anim());
 
-  if(npc.anim()==Npc::Idle && !npc.isFlyAnim()) {
+  if(npc.anim()==AnimationSolver::Idle && !npc.isFlyAnim()) {
     auto  pos = climbPos0;
     float rot = npc.rotationRad();
     float s   = std::sin(rot), c = std::cos(rot);
@@ -284,7 +284,7 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
         nFall=true;
       }
 
-    if(dY>fallThreshold || npc.anim()==Npc::Fall)
+    if(dY>fallThreshold || npc.anim()==AnimationSolver::Fall)
       fallAni=true;
     if(dY>fallY && nFall)
       dY=fallY;
@@ -312,21 +312,21 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
   setSllideFaling(slideAni,nFall);
   if(slideAni && !nFall) {
     if(slideDir())
-      npc.setAnim(Npc::SlideA); else
-      npc.setAnim(Npc::SlideB);
+      npc.setAnim(AnimationSolver::SlideA); else
+      npc.setAnim(AnimationSolver::SlideB);
     }
   else if(nFall) {
     if(fallSpeed[0]!=0.f || fallSpeed[1]!=0.f || fallSpeed[2]!=0.f){
       if(fallSpeed[1]>1500.f) {
-        npc.setAnim(Npc::FallDeep);
+        npc.setAnim(AnimationSolver::FallDeep);
         }
-      else if((npc.anim()!=Npc::Jump || fallSpeed[1]>300.f) && npc.anim()!=Npc::Fall) {
-        if(npc.anim()==Npc::Jump) {
+      else if((npc.anim()!=AnimationSolver::Jump || fallSpeed[1]>300.f) && npc.anim()!=AnimationSolver::Fall) {
+        if(npc.anim()==AnimationSolver::Jump) {
           fallSpeed[0] += aniSpeed[0]/timeK;
           fallSpeed[1] += aniSpeed[1]/timeK;
           fallSpeed[2] += aniSpeed[2]/timeK;
           }
-        npc.setAnim(Npc::Fall);
+        npc.setAnim(AnimationSolver::Fall);
         }
       }
     }

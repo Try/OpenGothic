@@ -19,7 +19,7 @@ void PlayerControl::setWorld(World *w) {
 bool PlayerControl::interact(Interactive &it) {
   if(world==nullptr || world->player()==nullptr)
     return false;
-  if(world->player()->weaponState()!=Inventory::WeaponState::NoWeapon)
+  if(world->player()->weaponState()!=WeaponState::NoWeapon)
     return false;
   if(it.isContainer()){
     inv.open(*world->player(),it);
@@ -31,7 +31,7 @@ bool PlayerControl::interact(Interactive &it) {
 bool PlayerControl::interact(Npc &other) {
   if(world==nullptr || world->player()==nullptr)
     return false;
-  if(world->player()->weaponState()!=Inventory::WeaponState::NoWeapon)
+  if(world->player()->weaponState()!=WeaponState::NoWeapon)
     return false;
   return dlg.start(*world->player(),other);
   }
@@ -39,7 +39,7 @@ bool PlayerControl::interact(Npc &other) {
 bool PlayerControl::interact(Item &item) {
   if(world==nullptr || world->player()==nullptr)
     return false;
-  if(world->player()->weaponState()!=Inventory::WeaponState::NoWeapon)
+  if(world->player()->weaponState()!=WeaponState::NoWeapon)
     return false;
   std::unique_ptr<Item> ptr {world->takeItem(item)};
   world->player()->addItem(std::move(ptr));
@@ -50,12 +50,12 @@ void PlayerControl::toogleWalkMode() {
   if(world==nullptr || world->player()==nullptr)
     return;
   auto pl = world->player();
-  pl->setWalkMode(Npc::WalkBit(pl->walkMode()^Npc::WM_Walk));
+  pl->setWalkMode(WalkBit(pl->walkMode()^WalkBit::WM_Walk));
   }
 
-Inventory::WeaponState PlayerControl::weaponState() const {
+WeaponState PlayerControl::weaponState() const {
   if(world==nullptr || world->player()==nullptr)
-    return Inventory::NoWeapon;
+    return WeaponState::NoWeapon;
   auto pl = world->player();
   return pl->weaponState();
   }
@@ -74,7 +74,7 @@ void PlayerControl::clrDraw() {
 void PlayerControl::drawWeaponMele() {
   auto ws=weaponState();
   clrDraw();
-  if(ws==Inventory::Fist || ws==Inventory::W1H || ws==Inventory::W2H)
+  if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H)
     ctrl[CloseWeapon   ]=true; else
     ctrl[DrawWeaponMele]=true;
   }
@@ -82,7 +82,7 @@ void PlayerControl::drawWeaponMele() {
 void PlayerControl::drawWeaponBow() {
   auto ws=weaponState();
   clrDraw();
-  if(ws==Inventory::Bow || ws==Inventory::CBow)
+  if(ws==WeaponState::Bow || ws==WeaponState::CBow)
     ctrl[CloseWeapon   ]=true; else
     ctrl[DrawWeaponBow]=true;
   }
@@ -92,7 +92,7 @@ void PlayerControl::drawWeaponMage(uint8_t s) {
   clrDraw();
   auto    pl   = world ? world->player() : nullptr;
   uint8_t slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
-  if(ws==Inventory::Mage && s==slot) {
+  if(ws==WeaponState::Mage && s==slot) {
     ctrl[CloseWeapon   ]=true;
     } else {
     if(s>=3 && s<=10)
@@ -164,7 +164,7 @@ void PlayerControl::marvinF8() {
 
   pl.setPosition(pos);
   pl.clearSpeed();
-  pl.setAnim(Npc::Idle);
+  pl.setAnim(AnimationSolver::Idle);
   }
 
 bool PlayerControl::tickMove(uint64_t dt) {
@@ -199,7 +199,7 @@ void PlayerControl::implMove(uint64_t dt) {
 
     if(ctrl[CloseWeapon]){
       pl.closeWeapon();
-      ctrl[CloseWeapon] = !(weaponState()==Inventory::NoWeapon);
+      ctrl[CloseWeapon] = !(weaponState()==WeaponState::NoWeapon);
       return;
       }
     if(ctrl[DrawWeaponMele]) {
@@ -207,35 +207,43 @@ void PlayerControl::implMove(uint64_t dt) {
         pl.drawWeaponMele(); else
         pl.drawWeaponFist();
       auto ws = weaponState();
-      ctrl[DrawWeaponMele] = !(ws==Inventory::W1H || ws==Inventory::W2H || ws==Inventory::Fist);
+      ctrl[DrawWeaponMele] = !(ws==WeaponState::W1H || ws==WeaponState::W2H || ws==WeaponState::Fist);
       return;
       }
     if(ctrl[DrawWeaponBow]){
-      pl.drawWeaponBow();
-      auto ws = weaponState();
-      ctrl[DrawWeaponBow] = !(ws==Inventory::Bow || ws==Inventory::CBow);
+      if(pl.currentRangeWeapon()!=nullptr){
+        pl.drawWeaponBow();
+        auto ws = weaponState();
+        ctrl[DrawWeaponBow] = !(ws==WeaponState::Bow || ws==WeaponState::CBow);
+        } else {
+        ctrl[DrawWeaponBow] = false;
+        }
       return;
       }
-    for(int i=0;i<8;++i){
+    for(uint8_t i=0;i<8;++i){
       if(ctrl[DrawWeaponMage3+i]){
-        pl.drawMage(uint8_t(3+i));
-        auto ws = weaponState();
-        ctrl[DrawWeaponMage3+i] = !(ws==Inventory::Mage);
+        if(pl.inventory().currentSpell(i)!=nullptr){
+          pl.drawMage(uint8_t(3+i));
+          auto ws = weaponState();
+          ctrl[DrawWeaponMage3+i] = !(ws==WeaponState::Mage);
+          } else {
+          ctrl[DrawWeaponMage3+i] = false;
+          }
         return;
         }
       }
 
     if(ctrl[ActForward]) {
       auto ws = pl.weaponState();
-      if(ws==Inventory::WeaponState::Fist) {
+      if(ws==WeaponState::Fist) {
         pl.fistShoot();
         }
-      else if(ws==Inventory::WeaponState::W1H ||
-         ws==Inventory::WeaponState::W2H) {
+      else if(ws==WeaponState::W1H ||
+         ws==WeaponState::W2H) {
         pl.swingSword();
         return;
         }
-      else if(ws==Inventory::WeaponState::Mage) {
+      else if(ws==WeaponState::Mage) {
         if(pl.castSpell())
           return;
         }
@@ -243,12 +251,12 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     if(ctrl[ActLeft] || ctrl[ActRight] || ctrl[ActBack]) {
       auto ws = pl.weaponState();
-      if(ws==Inventory::WeaponState::Fist){
+      if(ws==WeaponState::Fist){
         if(ctrl[ActBack])
           pl.blockFist();
         return;
         }
-      else if(ws==Inventory::WeaponState::W1H || ws==Inventory::WeaponState::W2H){
+      else if(ws==WeaponState::W1H || ws==WeaponState::W2H){
         if(ctrl[ActLeft])
           pl.swingSwordL(); else
         if(ctrl[ActRight])
@@ -260,7 +268,7 @@ void PlayerControl::implMove(uint64_t dt) {
       }
 
     if(ctrl[Jump]) {
-      if(pl.anim()==Npc::Idle){
+      if(pl.anim()==AnimationSolver::Idle){
         switch(pl.tryJump(pl.position())){
           case Npc::JM_Up:
             ani = Npc::Anim::JumpUp;

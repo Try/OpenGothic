@@ -311,7 +311,7 @@ void Inventory::switchActiveSpell(int32_t spell,WorldScript &vm, Npc& owner) {
       }
   }
 
-Inventory::WeaponState Inventory::weaponState() const {
+WeaponState Inventory::weaponState() const {
   if(active==nullptr)
     return WeaponState::NoWeapon;
   if(*active==nullptr){

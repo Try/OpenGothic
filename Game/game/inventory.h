@@ -2,8 +2,9 @@
 
 #include <vector>
 #include <memory>
-
 #include <daedalus/DaedalusGameState.h>
+
+#include "game/constants.h"
 
 class Item;
 class WorldScript;
@@ -43,16 +44,6 @@ class Inventory final {
       ITM_TORCH	     = 1 << 28
       };
 
-    enum WeaponState : uint8_t {
-      NoWeapon,
-      Fist,
-      W1H,
-      W2H,
-      Bow,
-      CBow,
-      Mage
-      };
-
     size_t       goldCount() const;
     size_t       itemCount(const size_t id) const;
     size_t       recordsCount() const { return items.size(); }
@@ -83,9 +74,11 @@ class Inventory final {
     void   switchActiveWeapon(uint8_t slot);
     void   switchActiveSpell (int32_t spell, WorldScript &vm, Npc &owner);
 
-    Item*  currentArmour()      { return armour; }
-    Item*  currentMeleWeapon()  { return mele;   }
-    Item*  currentRangeWeapon() { return range;  }
+    Item*  currentArmour()         { return armour;     }
+    Item*  currentMeleWeapon()     { return mele;       }
+    Item*  currentRangeWeapon()    { return range;      }
+    Item*  currentSpell(uint8_t s) { return numslot[s]; }
+    const Item*  currentSpell(uint8_t s) const { return numslot[s]; }
 
     auto   weaponState() const -> WeaponState;
     uint8_t currentSpellSlot() const;

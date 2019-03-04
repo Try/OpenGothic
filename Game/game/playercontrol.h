@@ -89,7 +89,7 @@ class PlayerControl final {
     InventoryMenu& inv;
 
     void           clrDraw();
-    auto           weaponState() const -> Inventory::WeaponState;
+    auto           weaponState() const -> WeaponState;
     void           implMove(uint64_t dt);
     void           setPos(std::array<float,3> a, uint64_t dt, float speed);
   };

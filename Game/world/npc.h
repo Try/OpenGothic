@@ -3,11 +3,12 @@
 #include "graphics/staticobjects.h"
 #include "graphics/pose.h"
 #include "graphics/animation.h"
+#include "graphics/animationsolver.h"
 #include "game/gametime.h"
 #include "game/movealgo.h"
+#include "game/inventory.h"
 #include "physics/dynamicworld.h"
 #include "worldscript.h"
-#include "game/inventory.h"
 
 #include <cstdint>
 #include <string>
@@ -35,12 +36,6 @@ class Npc final {
       JM_UpLow,
       JM_UpMid,
       JM_Up,
-      };
-
-    enum WalkBit : uint8_t {
-      WM_Run  =0,
-      WM_Walk =1,
-      WM_Sneak=2
       };
 
     enum PercType : uint8_t {
@@ -124,74 +119,6 @@ class Npc final {
       BS_FLAG_FREEHANDS     = 1 << 16,
       };
 
-    enum Anim : uint16_t {
-      NoAnim,
-      Idle,
-      GuardL,
-      GuardH,
-      Sit,
-      Sleep,
-      GuardSleep,
-      IdleLoopLast=GuardSleep,
-
-      GuardLChLeg,
-      GuardLScratch,
-      GuardLStrectch,
-      Lookaround,
-      Perception,
-      Chair1,
-      Chair2,
-      Chair3,
-      Chair4,
-      Roam1,
-      Roam2,
-      Roam3,
-      Eat,
-      IdleLast=Eat,
-      Warn,
-
-      Move,
-      MoveBack,
-      MoveL,
-      MoveR,
-      RotL,
-      RotR,
-      Jump,
-      JumpUpLow,
-      JumpUpMid,
-      JumpUp,
-      Fall,
-      FallDeep,
-      SlideA,
-      SlideB,
-      Training,
-      Interact,
-      Talk,
-
-      Atack,
-      AtackL,
-      AtackR,
-      AtackBlock,
-
-      MagNoMana,
-      MagFib,
-      MagWnd,
-      MagHea,
-      MagPyr,
-      MagFea,
-      MagTrf,
-      MagSum,
-      MagMsd,
-      MagStm,
-      MagFrz,
-      MagSle,
-      MagWhi,
-      MagSck,
-
-      MagFirst=MagFib,
-      MagLast =MagSck
-      };
-
     enum Talent : uint8_t {
       TALENT_UNKNOWN            = 0,
       TALENT_1H                 = 1,
@@ -259,6 +186,8 @@ class Npc final {
       Count       = 6
       };
 
+    using Anim = AnimationSolver::Anim;
+
     Npc(WorldScript &owner, Daedalus::GameState::NpcHandle hnpc);
     Npc(const Npc&)=delete;
     ~Npc();
@@ -274,7 +203,7 @@ class Npc final {
     void setAiType(AiType t);
     bool isPlayer() const;
     void setWalkMode(WalkBit m);
-    auto walkMode() -> WalkBit { return wlkMode; }
+    auto walkMode() const { return wlkMode; }
     void tick(uint64_t dt);
     bool startClimb(Npc::Anim ani);
     bool checkHealth();
@@ -310,14 +239,14 @@ class Npc final {
     void setFatness    (float f);
     void setScale      (float x,float y,float z);
     bool setAnim(Anim a);
-    Anim anim() const  { return current; }
+    Anim anim() const  { return animation.current; }
     bool isStanding() const;
 
     int32_t bodyVer  () const { return vColor;  }
     int32_t bodyColor() const { return bdColor; }
 
     ZMath::float3 animMoveSpeed(uint64_t dt) const;
-    ZMath::float3 animMoveSpeed(Anim a, uint64_t dt) const;
+
     bool          isFlyAnim() const;
     bool          isFaling() const;
     bool          isSlide() const;
@@ -361,7 +290,7 @@ class Npc final {
     bool drawWeaponBow();
     bool drawMage(uint8_t slot);
     void drawSpell(int32_t spell);
-    auto weaponState() const -> Inventory::WeaponState { return invent.weaponState(); }
+    auto weaponState() const -> WeaponState { return invent.weaponState(); }
 
     void fistShoot();
     void blockFist();
@@ -498,25 +427,9 @@ class Npc final {
       size_t func  =0;
       };
 
-    struct Overlay final {
-      const Skeleton* sk  =nullptr;
-      uint64_t        time=0;
-      };
-
-    using WeaponState = Inventory::WeaponState;
-
+    void                           updateWeaponSkeleton();
     void                           updatePos();
     void                           setPos(const Tempest::Matrix4x4& m);
-    void                           updateWeaponSkeleton();
-
-    bool                           setAnim(Anim a, WeaponState nextSt, WeaponState oldSt);
-    const Animation::Sequence*     solveAnim(Anim a) const;
-    const Animation::Sequence*     solveAnim(Anim a, WeaponState st0, Anim cur, WeaponState st) const;
-    const Animation::Sequence*     solveAnim(const char* format, WeaponState st) const;
-    const Animation::Sequence*     solveMag (const char* format, Anim spell) const;
-    const Animation::Sequence*     animSequence(const char* name) const;
-    const char*                    animName(Anim a, WeaponState st) const;
-    Anim                           animByName(const std::string& name) const;
 
     const Routine&                 currentRoutine() const;
     gtime                          endTime(const Routine& r) const;
@@ -525,9 +438,9 @@ class Npc final {
     bool                           implLookAt (float dx, float dz, uint64_t dt);
     bool                           implGoTo   (uint64_t dt);
     bool                           implAtack  (uint64_t dt);
-    void                           invalidateAnim(const Animation::Sequence* s, const Skeleton *sk);
     void                           tickRoutine();
     void                           nextAiAction();
+    bool                           setAnim(Npc::Anim a, WeaponState st0, WeaponState st);
 
     WorldScript&                   owner;
     Daedalus::GameState::NpcHandle hnpc;
@@ -537,22 +450,12 @@ class Npc final {
     float                          angle=0.f;
     float                          sz[3]={1.f,1.f,1.f};
 
-    Tempest::Matrix4x4             pos;
-    StaticObjects::Mesh            head;
-    StaticObjects::Mesh            view;
-    StaticObjects::Mesh            sword, bow, armour;
     int32_t                        vColor =0;
     int32_t                        bdColor=0;
     DynamicWorld::Item             physic;
 
-    const Skeleton*                skeleton=nullptr;
-    std::vector<Overlay>           overlay;
-    const Animation::Sequence*     animSq   =nullptr;
-    uint64_t                       sAnim    =0;
-    Anim                           current  =NoAnim;
-    Anim                           prevAni  =NoAnim;
-    WalkBit                        wlkMode  =WM_Run;
-    std::shared_ptr<Pose>          skInst;
+    AnimationSolver                animation;
+    WalkBit                        wlkMode  =WalkBit::WM_Run;
 
     std::string                    name;
     int32_t                        talentsSk[TALENT_MAX]={};
