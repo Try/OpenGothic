@@ -774,8 +774,10 @@ bool Npc::startState(size_t id,bool loop,const std::string &wp,gtime endTime) {
   if(aiState.funcIni==id)
     return false;
 
-  if(aiState.funcIni!=0 && aiState.started)
-    owner.invokeState(this,currentOther,nullptr,aiState.funcEnd); // cleanup
+  if(aiState.funcIni!=0 && aiState.started){
+    owner.invokeState(this,currentOther,nullptr,aiState.funcLoop); // avoid ZS_Talk bug
+    owner.invokeState(this,currentOther,nullptr,aiState.funcEnd);  // cleanup
+    }
 
   if(!wp.empty()){
     auto& v=owner.vmNpc(hnpc);
@@ -893,7 +895,7 @@ void Npc::setToFightMode(const uint32_t item) {
   if(invent.itemCount(item)==0)
     addItem(item,1);
 
-  useItem(item,true);
+  invent.equip(item,owner,*this,true);
   drawWeaponMele();
   }
 
