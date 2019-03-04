@@ -102,13 +102,14 @@ class MainWindow : public Tempest::Window {
     bool                                mouseP[Tempest::MouseEvent::ButtonBack]={};
     bool                                pressed[Tempest::KeyEvent::K_Last]={};
 
-    DialogMenu      dialogs;
-    InventoryMenu   inventory;
-    Tempest::Point  mpos;
-    Tempest::PointF spin;
-    Camera          camera;
-    PlayerControl   player;
-    uint64_t        lastTick=0;
+    DialogMenu       dialogs;
+    InventoryMenu    inventory;
+    Tempest::Widget* uiKeyUp=nullptr;
+    Tempest::Point   mpos;
+    Tempest::PointF  spin;
+    Camera           camera;
+    PlayerControl    player;
+    uint64_t         lastTick=0;
 
     struct Fps {
       uint64_t dt[10]={};

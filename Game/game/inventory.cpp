@@ -400,7 +400,16 @@ bool Inventory::use(size_t cls, WorldScript &vm, Npc &owner, bool force) {
   return true;
   }
 
+bool Inventory::equip(size_t cls, WorldScript &vm, Npc &owner, bool force) {
+  Item* it=findByClass(cls);
+  if(it==nullptr || it->isEquiped())
+    return false;
+  return use(cls,vm,owner,force);
+  }
+
 void Inventory::invalidateCond(Npc &owner) {
+  if(!owner.isPlayer())
+    return; // gothic doesn't care
   invalidateCond(armour,owner);
   invalidateCond(belt  ,owner);
   invalidateCond(amulet,owner);

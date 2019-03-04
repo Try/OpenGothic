@@ -125,7 +125,6 @@ bool DialogMenu::onStart(Npc &p, Npc &ot) {
     }
 
   dlgSel=0;
-  setFocus(true);
   update();
   return true;
   }
@@ -179,7 +178,6 @@ void DialogMenu::close() {
   depth=0;
   txt.clear();
   choise.clear();
-  owner()->setFocus(true);
   state=State::Idle;
   update();
 
@@ -286,20 +284,22 @@ void DialogMenu::paintChoise(PaintEvent &e) {
     }
   }
 
+void DialogMenu::onSelect() {
+  if(txt.size()){
+    return;
+    }
+
+  if(dlgSel<choise.size())
+    onEntry(choise[dlgSel]);
+  }
+
 void DialogMenu::mouseDownEvent(MouseEvent &event) {
   if(state==State::Idle){
     event.ignore();
     return;
     }
 
-  if(txt.size()){
-    event.accept();
-    return;
-    }
-
-  if(dlgSel<choise.size())
-    onEntry(choise[dlgSel]);
-  event.accept();
+  onSelect();
   }
 
 void DialogMenu::mouseWheelEvent(MouseEvent &e) {
@@ -312,6 +312,20 @@ void DialogMenu::mouseWheelEvent(MouseEvent &e) {
     dlgSel--;
   if(e.delta<0)
     dlgSel++;
+  dlgSel = (dlgSel+choise.size())%std::max<size_t>(choise.size(),1);
+  update();
+  }
+
+void DialogMenu::keyDownEvent(KeyEvent &e) {
+  if(e.key==Event::K_Return){
+    onSelect();
+    }
+  if(e.key==Event::K_W){
+    dlgSel--;
+    }
+  if(e.key==Event::K_S){
+    dlgSel--;
+    }
   dlgSel = (dlgSel+choise.size())%std::max<size_t>(choise.size(),1);
   update();
   }

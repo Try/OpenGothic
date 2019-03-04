@@ -164,6 +164,10 @@ void MainWindow::mouseDragEvent(MouseEvent &event) {
   auto dp = (event.pos()-mpos);
   mpos = event.pos();
   spin += PointF(-dp.x,dp.y);
+  if(spin.y>90)
+    spin.y=90;
+  if(spin.y<-90)
+    spin.y=-90;
   camera.setSpin(spin);
   }
 
@@ -172,10 +176,37 @@ void MainWindow::mouseWheelEvent(MouseEvent &event) {
   }
 
 void MainWindow::keyDownEvent(KeyEvent &event) {
+  if(dialogs.isActive()){
+    dialogs.keyDownEvent(event);
+    if(event.isAccepted()){
+      uiKeyUp=&dialogs;
+      return;
+      }
+    }
+
+  if(inventory.isActive()){
+    inventory.keyDownEvent(event);
+    if(event.isAccepted()){
+      uiKeyUp=&inventory;
+      return;
+      }
+    }
+  uiKeyUp=nullptr;
   pressed[event.key]=true;
   }
 
 void MainWindow::keyUpEvent(KeyEvent &event) {
+  if(uiKeyUp==&dialogs){
+    dialogs.keyUpEvent(event);
+    if(event.isAccepted())
+      return;
+    }
+  if(uiKeyUp==&inventory){
+    inventory.keyUpEvent(event);
+    if(event.isAccepted())
+      return;
+    }
+
   pressed[event.key]=false;
 
   const char* menuEv=nullptr;
@@ -195,7 +226,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     clearInput();
     }  
   else if(event.key==KeyEvent::K_Tab){
-    if(inventory.isOpen()!=InventoryMenu::State::Closed) {
+    if(inventory.isActive()) {
       inventory.close();
       } else {
       auto pl = gothic.player();
@@ -247,6 +278,7 @@ void MainWindow::tick() {
 
   if(dialogs.isActive()){
     clearInput();
+    inventory.close();
     }
 
   if(mouseP[Event::ButtonLeft]){

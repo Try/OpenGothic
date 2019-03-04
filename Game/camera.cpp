@@ -157,7 +157,7 @@ void Camera::follow(const Npc &npc,bool includeRot) {
     auto len = std::sqrt(dx*dx+dy*dy+dz*dz);
 
     if(len>0.1f){
-      float k = 1.f;//0.25f;
+      float k = 1.f;//std::min(1.f,20.f/len);
       camPos[0] += dx*k;
       camPos[1] += dy*k;
       camPos[2] += dz*k;

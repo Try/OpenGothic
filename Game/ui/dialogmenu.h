@@ -27,6 +27,9 @@ class DialogMenu : public Tempest::Widget {
     void print      (const char* msg);
     void printScreen(const char* msg,int x,int y,int time,const Tempest::Font& font);
 
+    void keyDownEvent   (Tempest::KeyEvent&   event) override;
+    void keyUpEvent     (Tempest::KeyEvent&   event) override;
+
   protected:
     void paintEvent (Tempest::PaintEvent& e) override;
     void paintChoise(Tempest::PaintEvent& e);
@@ -34,7 +37,7 @@ class DialogMenu : public Tempest::Widget {
     void mouseDownEvent (Tempest::MouseEvent& event) override;
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
 
-    void keyUpEvent     (Tempest::KeyEvent&   event) override;
+    void onSelect();
 
   private:
     const Tempest::Texture2d* tex    =nullptr;

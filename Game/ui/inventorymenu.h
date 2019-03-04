@@ -24,11 +24,13 @@ class InventoryMenu : public Tempest::Widget {
     void  open(Npc& pl);
     void  open(Npc& pl,Interactive& chest);
     State isOpen() const;
+    bool  isActive() const;
+
+    void keyDownEvent   (Tempest::KeyEvent&   e) override;
+    void keyUpEvent     (Tempest::KeyEvent&   e) override;
 
   protected:
     void paintEvent     (Tempest::PaintEvent& e) override;
-    void keyDownEvent   (Tempest::KeyEvent&   e) override;
-    void keyUpEvent     (Tempest::KeyEvent&   e) override;
 
     void mouseDownEvent (Tempest::MouseEvent& event) override;
     void mouseUpEvent   (Tempest::MouseEvent& event) override;

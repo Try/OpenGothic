@@ -64,6 +64,7 @@ class Inventory final {
     void   addItem(size_t cls, uint32_t count, WorldScript& vm);
     void   delItem(size_t cls, uint32_t count, WorldScript& vm, Npc &owner);
     bool   use    (size_t cls, WorldScript &vm, Npc &owner, bool force);
+    bool   equip  (size_t cls, WorldScript &vm, Npc &owner, bool force);
     bool   unequip(size_t cls, WorldScript &vm, Npc &owner);
     void   unequip(Item*  cls, WorldScript &vm, Npc &owner);
     void   invalidateCond(Npc &owner);

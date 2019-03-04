@@ -31,7 +31,6 @@ void InventoryMenu::close() {
 
   page  = 0;
   state = State::Closed;
-  owner()->setFocus(true);
   update();
   }
 
@@ -41,7 +40,6 @@ void InventoryMenu::open(Npc &pl) {
   chest  = nullptr;
   page   = 0;
   adjustScroll();
-  setFocus(true);
   update();
   }
 
@@ -52,12 +50,15 @@ void InventoryMenu::open(Npc &pl, Interactive &ch) {
   page   = 0;
   pl.setInteraction(chest);
   adjustScroll();
-  setFocus(true);
   update();
   }
 
 InventoryMenu::State InventoryMenu::isOpen() const {
   return state;
+  }
+
+bool InventoryMenu::isActive() const {
+  return state!=State::Closed;
   }
 
 void InventoryMenu::keyDownEvent(KeyEvent &e) {
