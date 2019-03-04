@@ -59,6 +59,8 @@ bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState nextSt,Weapo
       return false;
     }
   auto ani = solveAnim(a,weaponSt,current,nextSt,walk,inter);
+  if(ani==nullptr)
+    ani = solveAnim(Idle,WeaponState::NoWeapon,Idle,WeaponState::NoWeapon,walk,nullptr);
   prevAni  = current;
   current  = a;
   if(ani==animSq) {
@@ -274,13 +276,15 @@ const Animation::Sequence* AnimationSolver::solveAnim(Anim a,   WeaponState st0,
     }
 
   if(a==Anim::RotL){
-    if(bool(wlkMode&WalkBit::WM_Walk))
-      return solveAnim("T_%sWALKWTURNL",st); else
+    if(bool(wlkMode&WalkBit::WM_Walk)){
+      return solveAnim("T_%sWALKWTURNL",st);
+      } else
       return solveAnim("T_%sRUNTURNL",st);
     }
   if(a==Anim::RotR){
-    if(bool(wlkMode&WalkBit::WM_Walk))
-      return solveAnim("T_%sWALKWTURNR",st); else
+    if(bool(wlkMode&WalkBit::WM_Walk)){
+      return solveAnim("T_%sWALKWTURNR",st);
+      } else
       return solveAnim("T_%sRUNTURNR",st);
     }
   if(a==Anim::MoveL) {

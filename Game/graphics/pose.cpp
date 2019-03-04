@@ -95,8 +95,9 @@ static ZenLoad::zCModelAniSample mix(const ZenLoad::zCModelAniSample& x,const Ze
   return r;
   }
 
-Pose::Pose(const Skeleton &sk, const Animation::Sequence &sq)
-  :skeleton(&sk),sequence(&sq) {
+Pose::Pose(const Skeleton &sk, const Animation::Sequence* sq)
+  :skeleton(&sk),sequence(sq) {
+  numFrames = sq ? sq->numFrames : 0;
   if(skeleton!=nullptr)
     tr = skeleton->tr; else
     tr.clear();
@@ -107,7 +108,12 @@ Pose::Pose(const Skeleton &sk, const Animation::Sequence &sq)
   }
 
 void Pose::update(uint64_t dt) {
-  if(sequence->numFrames==0 || lastT==dt)
+  if(sequence==nullptr || numFrames==0){
+    zeroSkeleton();
+    return;
+    }
+
+  if(lastT==dt)
     return;
   const Animation::Sequence& s=*sequence;
   lastT=dt;
@@ -148,6 +154,31 @@ Matrix4x4 Pose::cameraBone() const {
   if(skeleton->rootNodes.size())
     id = skeleton->rootNodes[0];
   return id<tr.size() ? tr[id] : Matrix4x4();
+  }
+
+void Pose::zeroSkeleton() {
+  auto& nodes=skeleton->tr;
+  if(nodes.size()<tr.size())
+    return;
+
+  Matrix4x4 m;
+  m.identity();
+  if(base.size()) {
+    size_t id=0;
+    if(skeleton->rootNodes.size())
+      id = skeleton->rootNodes[0];
+    auto& b0=base[id];
+    float dx=b0.at(3,0);//-s.translate.x;
+    float dy=b0.at(3,1);//-s.translate.y;
+    float dz=b0.at(3,2);//-s.translate.z;
+    //dy=0;
+    m.translate(-dx,-dy/2,-dz);
+    }
+
+  for(size_t i=0;i<tr.size();++i){
+    tr[i] = m;
+    tr[i].mul(nodes[i]);
+    }
   }
 
 void Pose::mkSkeleton(const Animation::Sequence &s) {

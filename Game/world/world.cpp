@@ -70,7 +70,7 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
     vm->setInstanceNPC("HERO",*npcPlayer);
     }
 
-  //initScripts(true);
+  initScripts(true);
   }
 
 StaticObjects::Mesh World::getView(const std::string &visual) const {

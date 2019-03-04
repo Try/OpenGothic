@@ -120,7 +120,6 @@ class AnimationSolver final {
 
     std::shared_ptr<Pose>          skInst;
     const Skeleton*                skeleton=nullptr;
-    std::vector<Overlay>           overlay;
     const Animation::Sequence*     animSq   =nullptr;
     uint64_t                       sAnim    =0;
     Anim                           current  =NoAnim;
@@ -128,4 +127,7 @@ class AnimationSolver final {
 
   private:
     const Animation::Sequence*     solveMag    (const char *format,Anim spell) const;
+
+    std::vector<Overlay>           overlay;
+    const Animation::Sequence*     idle=nullptr;
   };
