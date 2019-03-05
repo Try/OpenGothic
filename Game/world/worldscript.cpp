@@ -4,6 +4,7 @@
 #include "npc.h"
 #include "item.h"
 
+#include <fstream>
 #include <Tempest/Log>
 
 using namespace Tempest;
@@ -237,7 +238,8 @@ void WorldScript::initCommon() {
 
   auto& vtime     = vm.getDATFile().getSymbolByName("VIEW_TIME_PER_CHAR");
   viewTimePerChar = vtime.getFloat(0);
-
+  if(viewTimePerChar<=0.f)
+    viewTimePerChar=0.55f;
 
   auto gilMax = vm.getDATFile().getSymbolByName("GIL_MAX");
   gilCount=size_t(gilMax.getInt(0));
@@ -255,10 +257,9 @@ void WorldScript::initCommon() {
   }
 
 void WorldScript::initDialogs(Gothic& gothic) {
-  const char* german       ="_work/data/Scripts/content/CUTSCENE/OU.BIN";
-  const char* international="_work/data/Scripts/content/CUTSCENE/OU.DAT";
-
-  dialogs.reset(new Daedalus::GameState::DaedalusDialogManager(vm, gothic.path()+international, dlgKnownInfos));
+  loadDialogOU(gothic);
+  if(!dialogs)
+    dialogs.reset(new Daedalus::GameState::DaedalusDialogManager(vm,"",dlgKnownInfos));
 
   vm.getDATFile().iterateSymbolsOfClass("C_Info", [this](size_t i,Daedalus::PARSymbol&){
     InfoHandle h = vm.getGameState().createInfo();
@@ -266,6 +267,26 @@ void WorldScript::initDialogs(Gothic& gothic) {
     vm.initializeInstance(ZMemory::toBigHandle(h), i, Daedalus::IC_Info);
     dialogsInfo.push_back(h);
     });
+  }
+
+void WorldScript::loadDialogOU(Gothic &gothic) {
+  const char* names[]={"OU.DAT","OU.BIN"};
+  const char* dir  []={"_work/data/Scripts/content/CUTSCENE/","_work/DATA/scripts/content/CUTSCENE/"};
+
+  for(auto n:names){
+    for(auto d:dir){
+      std::string full = gothic.path()+"/"+d+n;
+      bool exist=false;
+      {
+        std::ifstream f(full.c_str());
+        exist=f.is_open();
+      }
+      if(exist){
+        dialogs.reset(new Daedalus::GameState::DaedalusDialogManager(vm, full, dlgKnownInfos));
+        return;
+        }
+      }
+    }
   }
 
 Daedalus::GEngineClasses::C_Focus WorldScript::getFocus(const char *name) {
@@ -1462,6 +1483,8 @@ void WorldScript::ai_output(Daedalus::DaedalusVM &vm) {
   if(!self)
     return;
 
+  if(!dialogs->getMessageLib().messageExists(outputname))
+    return;
   auto& message = dialogs->getMessageLib().getMessageByName(outputname);
   auto  time    = uint32_t(message.text.size()*viewTimePerChar);
   owner.aiOutput(*self,message.text.c_str(),time);

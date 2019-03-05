@@ -32,7 +32,6 @@ Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src, std::string meshLib)
     if(nodes[i].parent==size_t(-1))
       rootNodes.push_back(i);
 
-  // TODO: overlays
   anim = Resources::loadAnimation(this->meshLib);
 
   auto tr = src.getRootNodeTranslation();

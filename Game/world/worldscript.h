@@ -39,6 +39,7 @@ class WorldScript final {
     int32_t runFunction(const size_t       fid, bool clearStk=true);
 
     void       initDialogs(Gothic &gothic);
+    void       loadDialogOU(Gothic &gothic);
 
     const World& world() const { return owner; }
     uint64_t     tickCount() const;
