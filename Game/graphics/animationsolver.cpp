@@ -48,23 +48,23 @@ void AnimationSolver::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh
 
 bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState nextSt,WeaponState weaponSt,WalkBit walk,Interactive* inter) {
   if(animSq!=nullptr){
-    if(current==a && nextSt==weaponSt && animSq->animCls==Animation::Loop)
+    if(current==a && nextSt==weaponSt && animSq.cls==Animation::Loop)
       return true;
-    if((animSq->animCls==Animation::Transition &&
+    if((animSq.cls==Animation::Transition &&
         current!=RotL && current!=RotR && current!=MoveL && current!=MoveR && // no idea why this animations maked as Transition
         !(current==Move && a==Jump)) && // allow to jump at any point of run animation
-       !animSq->isFinished(tickCount-sAnim))
+       !animSq.isFinished(tickCount-sAnim))
       return false;
-    if(current==Atack && !animSq->isFinished(tickCount-sAnim) && tickCount-sAnim<1000)
+    if(current==Atack && !animSq.isFinished(tickCount-sAnim) && tickCount-sAnim<1000)
       return false;
     }
   auto ani = solveAnim(a,weaponSt,current,nextSt,walk,inter);
   if(ani==nullptr)
-    ani = solveAnim(Idle,WeaponState::NoWeapon,Idle,WeaponState::NoWeapon,walk,nullptr);
+    ani = solveAnim(Idle,WeaponState::NoWeapon,Idle,WeaponState::NoWeapon,WalkBit::WM_Run,nullptr);
   prevAni  = current;
   current  = a;
   if(ani==animSq) {
-    if(animSq!=nullptr && animSq->animCls==Animation::Transition){
+    if(animSq.cls==Animation::Transition){
       invalidateAnim(ani,skeleton,tickCount); // restart anim
       }
     return true;
@@ -76,14 +76,16 @@ bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState nextSt,Weapo
 bool AnimationSolver::isFlyAnim(uint64_t tickCount) const {
   if(animSq==nullptr)
     return false;
-  return animSq->isFly() && !animSq->isFinished(tickCount-sAnim) &&
+  return animSq.isFly() && !animSq.isFinished(tickCount-sAnim) &&
          current!=Fall && current!=FallDeep;
   }
 
-void AnimationSolver::invalidateAnim(const Animation::Sequence *ani,const Skeleton* sk,uint64_t tickCount) {
+void AnimationSolver::invalidateAnim(const Sequence ani,const Skeleton* sk,uint64_t tickCount) {
   animSq = ani;
   sAnim  = tickCount;
-  skInst = PosePool::get(sk,ani,sAnim);
+  if(ani.l0)
+    skInst = PosePool::get(sk,ani.l0,ani.l1,sAnim); else
+    skInst = PosePool::get(sk,ani.l1,sAnim);
   }
 
 void AnimationSolver::addOverlay(const Skeleton* sk,uint64_t time,uint64_t tickCount,WalkBit wlk,Interactive* inter) {
@@ -94,8 +96,8 @@ void AnimationSolver::addOverlay(const Skeleton* sk,uint64_t time,uint64_t tickC
 
   Overlay ov = {sk,time};
   overlay.push_back(ov);
-  if(animSq) {
-    auto ani=animSequence(animSq->name.c_str());
+  if(animSq!=nullptr) {
+    auto ani=animSequence(animSq.name());
     invalidateAnim(ani,skeleton,tickCount);
     } else {
     // fallback
@@ -139,7 +141,7 @@ void AnimationSolver::updateAnimation(uint64_t tickCount) {
     }
   }
 
-const Animation::Sequence* AnimationSolver::solveAnim(Anim a,   WeaponState st0,
+AnimationSolver::Sequence AnimationSolver::solveAnim(Anim a,   WeaponState st0,
                                                       Anim cur, WeaponState st,
                                                       WalkBit wlkMode,
                                                       Interactive* inter) const {
@@ -213,7 +215,7 @@ const Animation::Sequence* AnimationSolver::solveAnim(Anim a,   WeaponState st0,
     }
   else if(st==WeaponState::W1H) {
     if(a==Anim::Atack && cur==Move)
-      return animSequence("T_1HATTACKMOVE");
+      return layredSequence("S_1HRUNL","T_1HATTACKMOVE");
     if(a==Anim::Atack)
       return animSequence("S_1HATTACK");
     if(a==Anim::AtackL)
@@ -230,7 +232,7 @@ const Animation::Sequence* AnimationSolver::solveAnim(Anim a,   WeaponState st0,
     }
   else if(st==WeaponState::W2H) {
     if(a==Anim::Atack && cur==Move)
-      return animSequence("T_2HATTACKMOVE");
+      return layredSequence("S_2HRUNL","T_2HATTACKMOVE");
     if(a==Anim::Atack)
       return animSequence("S_2HATTACK");
     if(a==Anim::AtackL)
@@ -431,7 +433,7 @@ const Animation::Sequence* AnimationSolver::solveAnim(Anim a,   WeaponState st0,
   return nullptr;
   }
 
-const Animation::Sequence* AnimationSolver::solveAnim(const char *format, WeaponState st) const {
+AnimationSolver::Sequence AnimationSolver::solveAnim(const char *format, WeaponState st) const {
   static const char* weapon[] = {
     "",
     "FIST",
@@ -452,7 +454,7 @@ const Animation::Sequence* AnimationSolver::solveAnim(const char *format, Weapon
   return animSequence(name);
   }
 
-const Animation::Sequence* AnimationSolver::solveMag(const char *format,Anim spell) const {
+AnimationSolver::Sequence AnimationSolver::solveMag(const char *format,Anim spell) const {
   static const char* mg[]={"FIB", "WND", "HEA", "PYR", "FEA", "TRF", "SUM", "MSD", "STM", "FRZ", "SLE", "WHI", "SCK"};
 
   char name[128]={};
@@ -460,13 +462,19 @@ const Animation::Sequence* AnimationSolver::solveMag(const char *format,Anim spe
   return animSequence(name);
   }
 
-const Animation::Sequence* AnimationSolver::animSequence(const char *name) const {
+AnimationSolver::Sequence AnimationSolver::animSequence(const char *name) const {
   for(size_t i=overlay.size();i>0;){
     --i;
     if(auto s = overlay[i].sk->sequence(name))
       return s;
     }
   return skeleton ? skeleton->sequence(name) : nullptr;
+  }
+
+AnimationSolver::Sequence AnimationSolver::layredSequence(const char *name,const char* base) const {
+  auto a = animSequence(name);
+  auto b = animSequence(base);
+  return Sequence(a.l1,b.l1);
   }
 
 AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const {

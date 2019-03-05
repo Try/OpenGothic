@@ -32,6 +32,7 @@ class Animation final {
       uint32_t                               numFrames=0;
       uint32_t                               firstFrame=0;
       uint32_t                               lastFrame =0;
+      uint32_t                               layer     =0;
       Flags                                  flags=Flags::None;
       AnimClass                              animCls=UnknownAnim;
       ZMath::float3                          translate={};

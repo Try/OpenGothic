@@ -11,7 +11,7 @@ class Skeleton;
 class Pose final {
   public:
     Pose()=default;
-    Pose(const Skeleton& sk,const Animation::Sequence* sq);
+    Pose(const Skeleton& sk,const Animation::Sequence* sq0,const Animation::Sequence* sq1);
 
     void update(uint64_t dt);
 
@@ -27,8 +27,11 @@ class Pose final {
     void mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent);
     void zeroSkeleton();
 
+    void update(const Animation::Sequence &s,uint64_t dt);
+
     const Skeleton*            skeleton=nullptr;
     const Animation::Sequence* sequence=nullptr;
+    const Animation::Sequence* baseSq  =nullptr;
     float                      trY=0;
 
     uint64_t                   lastT=uint64_t(-1);

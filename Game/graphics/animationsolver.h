@@ -90,6 +90,29 @@ class AnimationSolver final {
       uint64_t        time=0;
       };
 
+    struct Sequence final {
+      Sequence()=default;
+      Sequence(const Animation::Sequence* s):Sequence(nullptr,s){}
+      Sequence(const Animation::Sequence* s,const Animation::Sequence* s1)
+        :cls(s1 ? s1->animCls : Animation::UnknownAnim),l0(s),l1(s1){}
+
+      Animation::AnimClass       cls=Animation::UnknownAnim;
+      const Animation::Sequence* l0=nullptr;
+      const Animation::Sequence* l1=nullptr;
+
+      const char* name() const { return l1->name.c_str(); }
+      bool isFinished(uint64_t t) const { return l1->isFinished(t); }
+      bool isFly() const { return l1->isFly(); }
+
+      operator bool () const { return l1!=nullptr; }
+
+      bool operator == (std::nullptr_t) const { return l1==nullptr; }
+      bool operator != (std::nullptr_t) const { return l1!=nullptr; }
+
+      bool operator == (const Sequence& s) const { return l0==s.l0 && l1==s.l1; }
+      bool operator != (const Sequence& s) const { return l0!=s.l0 || l1!=s.l1; }
+      };
+
     void                           setPos   (const Tempest::Matrix4x4 &m);
     void                           setVisual(const Skeleton *visual, uint64_t tickCount, WeaponState ws, WalkBit walk, Interactive* inter);
     void                           setVisualBody(StaticObjects::Mesh &&h, StaticObjects::Mesh &&body);
@@ -105,13 +128,14 @@ class AnimationSolver final {
                                            WalkBit walk, Interactive *inter);
 
     bool                           isFlyAnim(uint64_t tickCount) const;
-    void                           invalidateAnim(const Animation::Sequence *ani, const Skeleton *sk, uint64_t tickCount);
+    void                           invalidateAnim(const Sequence ani, const Skeleton *sk, uint64_t tickCount);
 
-    const Animation::Sequence*     solveAnim(const char *format, WeaponState st) const;
-    const Animation::Sequence*     solveAnim(Anim a, WeaponState st0, Anim cur, WeaponState st, WalkBit wlk, Interactive *inter) const;
+    Sequence                       solveAnim(const char *format, WeaponState st) const;
+    Sequence                       solveAnim(Anim a, WeaponState st0, Anim cur, WeaponState st, WalkBit wlk, Interactive *inter) const;
 
     AnimationSolver::Anim          animByName  (const std::string &name) const;
-    const Animation::Sequence*     animSequence(const char *name) const;
+    Sequence                       animSequence(const char *name) const;
+    Sequence                       layredSequence(const char *name, const char *base) const;
 
     Tempest::Matrix4x4             pos;
     StaticObjects::Mesh            head;
@@ -120,13 +144,13 @@ class AnimationSolver final {
 
     std::shared_ptr<Pose>          skInst;
     const Skeleton*                skeleton=nullptr;
-    const Animation::Sequence*     animSq   =nullptr;
+    Sequence                       animSq;
     uint64_t                       sAnim    =0;
     Anim                           current  =NoAnim;
     Anim                           prevAni  =NoAnim;
 
   private:
-    const Animation::Sequence*     solveMag    (const char *format,Anim spell) const;
+    Sequence                       solveMag(const char *format,Anim spell) const;
 
     std::vector<Overlay>           overlay;
   };

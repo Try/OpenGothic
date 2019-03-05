@@ -132,6 +132,7 @@ Animation::Sequence::Sequence(const std::string &name) {
         this->name      = p.getHeader().aniName;
         this->fpsRate   = p.getHeader().fpsRate;
         this->numFrames = p.getHeader().numFrames;
+        this->layer     = p.getHeader().layer;
 
         if(this->name.size()>1){
           if(this->name.find("_2_")!=std::string::npos)

@@ -95,9 +95,9 @@ static ZenLoad::zCModelAniSample mix(const ZenLoad::zCModelAniSample& x,const Ze
   return r;
   }
 
-Pose::Pose(const Skeleton &sk, const Animation::Sequence* sq)
-  :skeleton(&sk),sequence(sq) {
-  numFrames = sq ? sq->numFrames : 0;
+Pose::Pose(const Skeleton &sk, const Animation::Sequence* sq0, const Animation::Sequence *sq1)
+  :skeleton(&sk),sequence(sq0),baseSq(sq1) {
+  numFrames = baseSq ? baseSq->numFrames : 0;
   if(skeleton!=nullptr)
     tr = skeleton->tr; else
     tr.clear();
@@ -108,16 +108,23 @@ Pose::Pose(const Skeleton &sk, const Animation::Sequence* sq)
   }
 
 void Pose::update(uint64_t dt) {
-  if(sequence==nullptr || numFrames==0){
+  if(baseSq==nullptr || numFrames==0){
     zeroSkeleton();
     return;
     }
 
   if(lastT==dt)
     return;
-  const Animation::Sequence& s=*sequence;
-  lastT=dt;
 
+  if(sequence)
+    update(*sequence,dt);
+  update(*baseSq,dt);
+
+  lastT=dt;
+  mkSkeleton(*baseSq);
+  }
+
+void Pose::update(const Animation::Sequence &s, uint64_t dt) {
   uint64_t fr     = uint64_t(s.fpsRate*dt);
   float    a      = (fr%1000)/1000.f;
   uint64_t frameA = (fr/1000  );
@@ -145,8 +152,6 @@ void Pose::update(uint64_t dt) {
 
     base[s.nodeIndex[i]] = getMatrix(rot.x,rot.y,rot.z,rot.w,pos.x,pos.y,pos.z);
     }
-
-  mkSkeleton(s);
   }
 
 Matrix4x4 Pose::cameraBone() const {

@@ -186,7 +186,9 @@ void Npc::delOverlay(const Skeleton *sk) {
 
 ZMath::float3 Npc::animMoveSpeed(uint64_t dt) const {
   if(animation.animSq!=nullptr){
-    return animation.animSq->speed(owner.tickCount()-animation.sAnim,dt);
+    if(animation.animSq.l0)
+      return animation.animSq.l0->speed(owner.tickCount()-animation.sAnim,dt);
+    return animation.animSq.l1->speed(owner.tickCount()-animation.sAnim,dt);
     }
   return ZMath::float3(0,0,0);
   }
@@ -485,7 +487,7 @@ bool Npc::implLookAt(float dx, float dz, uint64_t dt) {
   if(std::abs(da)<step){
     setDirection(a);
     if(animation.current==AnimationSolver::RotL || animation.current==AnimationSolver::RotR) {
-      if(currentGoTo==nullptr && animation.animSq!=nullptr && !animation.animSq->isFinished(owner.tickCount()-animation.sAnim)){
+      if(currentGoTo==nullptr && animation.animSq!=nullptr && !animation.animSq.isFinished(owner.tickCount()-animation.sAnim)){
         // finish animation
         setAnim(Anim::Idle);
         return true;
