@@ -6,6 +6,7 @@
 #include <daedalus/DaedalusGameState.h>
 
 #include "interactive.h"
+#include "movetrigger.h"
 #include "trigger.h"
 
 class Npc;
@@ -26,8 +27,8 @@ class WorldObjects final {
     const Npc&     npc(size_t i) const { return *npcArr[i];    }
     Npc&           npc(size_t i)       { return *npcArr[i];    }
 
-    void           addTrigger(const ZenLoad::zCVobData &vob);
-    const Trigger* findTrigger(const char* name) const;
+    void           addTrigger(ZenLoad::zCVobData&& vob);
+    Trigger*       findTrigger(const char* name);
 
     Item*          addItem(size_t itemInstance, const char *at);
     Item*          addItem(const ZenLoad::zCVobData &vob);
@@ -59,7 +60,9 @@ class WorldObjects final {
     std::vector<Interactive>           interactiveObj;
     std::vector<std::unique_ptr<Npc>>  npcArr;
     std::vector<std::unique_ptr<Item>> itemArr;
+
     std::vector<Trigger>               triggers;
+    std::vector<MoveTrigger>           triggersMv;
 
     std::vector<PercMsg>               sndPerc;
 

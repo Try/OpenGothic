@@ -79,7 +79,7 @@ std::string Interactive::stateFunc() const {
   return buf;
   }
 
-const Trigger* Interactive::triggerTarget() const {
+Trigger* Interactive::triggerTarget() const {
   return world->findTrigger(data.oCMobInter.triggerTarget);
   }
 

@@ -4,11 +4,14 @@
 
 #include <zenload/zTypes.h>
 
-class Trigger final {
+class Trigger {
   public:
-    Trigger(const ZenLoad::zCVobData& data);
+    Trigger(ZenLoad::zCVobData&& data);
+    virtual ~Trigger()=default;
 
     const std::string& name() const;
-  private:
+    virtual void onTrigger();
+
+  protected:
     ZenLoad::zCVobData data;
   };

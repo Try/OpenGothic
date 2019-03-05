@@ -31,9 +31,9 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
   ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
   worldMesh->packMesh(mesh, 1.f, false);
 
-  vm.reset(new WorldScript(*this,gothic,"/_work/data/Scripts/_compiled/GOTHIC.DAT"));
+  vm.reset      (new WorldScript(*this,gothic,"/_work/data/Scripts/_compiled/GOTHIC.DAT"));
   wdynamic.reset(new DynamicWorld(*this,mesh));
-  wview.reset(new WorldView(*this,mesh,storage));
+  wview.reset   (new WorldView(*this,mesh,storage));
 
   if(1){
     for(auto& vob:world.rootVobs)
@@ -192,7 +192,7 @@ Focus World::findFocus(const Tempest::Matrix4x4 &mvp, int w, int h) {
   return findFocus(*npcPlayer,mvp,w,h);
   }
 
-const Trigger *World::findTrigger(const char *name) const {
+Trigger *World::findTrigger(const char *name) {
   return wobj.findTrigger(name);
   }
 
@@ -350,9 +350,10 @@ void World::initScripts(bool firstTime) {
     vm->runFunction(init);
   }
 
-void World::loadVob(const ZenLoad::zCVobData &vob) {
+void World::loadVob(ZenLoad::zCVobData &vob) {
   for(auto& i:vob.childVobs)
     loadVob(i);
+  vob.childVobs.clear(); // because of move
 
   if(vob.objectClass=="zCVob" ||
      vob.objectClass=="oCMOB:zCVob" ||
@@ -372,19 +373,19 @@ void World::loadVob(const ZenLoad::zCVobData &vob) {
   else if(vob.objectClass=="zCVobLevelCompo:zCVob"){
     return;
     }
-  else if(vob.objectClass=="zCMover:zCTrigger:zCVob"){
-    addStatic(vob); // castle gate
+  else if(vob.vobType==ZenLoad::zCVobData::VT_zCMover){
+    wobj.addTrigger(std::move(vob));
     }
-  else if(vob.objectClass=="oCTriggerChangeLevel:zCTrigger:zCVob"){
-    wobj.addTrigger(vob); // change world trigger
+  else if(vob.vobType==ZenLoad::zCVobData::VT_oCTriggerChangeLevel){
+    wobj.addTrigger(std::move(vob)); // change world trigger
     }
   else if(vob.objectClass=="zCTriggerWorldStart:zCVob"){
-    wobj.addTrigger(vob); // world start trigger
+    wobj.addTrigger(std::move(vob)); // world start trigger
     }
   else if(vob.objectClass=="oCTriggerScript:zCTrigger:zCVob" ||
           vob.objectClass=="zCTriggerList:zCTrigger:zCVob" ||
           vob.objectClass=="zCTrigger:zCVob"){
-    wobj.addTrigger(vob);
+    wobj.addTrigger(std::move(vob));
     }
   else if(vob.objectClass=="zCZoneZFog:zCVob" ||
           vob.objectClass=="zCZoneZFogDefault:zCZoneZFog:zCVob"){

@@ -30,7 +30,7 @@ class Interactive final {
     const char*         displayName() const;
 
     std::string         stateFunc() const;
-    const Trigger*      triggerTarget() const;
+    Trigger*            triggerTarget() const;
 
     bool                isContainer() const;
     Inventory&          inventory();

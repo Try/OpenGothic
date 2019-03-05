@@ -1,10 +1,12 @@
 #include "worldobjects.h"
 
+#include "graphics/staticobjects.h"
 #include "item.h"
 #include "npc.h"
 #include "world.h"
 
 #include <Tempest/Painter>
+
 
 using namespace Tempest;
 using namespace Daedalus::GameState;
@@ -76,13 +78,21 @@ void WorldObjects::onRemoveNpc(NpcHandle handle) {
       }
   }
 
-void WorldObjects::addTrigger(const ZenLoad::zCVobData &vob) {
-  triggers.emplace_back(vob);
+void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {
+  if(vob.vobType==ZenLoad::zCVobData::VT_zCMover){
+    triggersMv.emplace_back(std::move(vob),owner);
+    return;
+    }
+
+  triggers.emplace_back(std::move(vob));
   }
 
-const Trigger *WorldObjects::findTrigger(const char *name) const {
+Trigger *WorldObjects::findTrigger(const char *name) {
   if(name==nullptr || name[0]=='\0')
     return nullptr;
+  for(auto& i:triggersMv)
+    if(i.name()==name)
+      return &i;
   for(auto& i:triggers)
     if(i.name()==name)
       return &i;

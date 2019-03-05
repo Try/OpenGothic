@@ -63,8 +63,8 @@ class World final {
     Focus findFocus(const Npc& pl,const Tempest::Matrix4x4 &mvp, int w, int h);
     Focus findFocus(const Tempest::Matrix4x4 &mvp, int w, int h);
 
-    const Trigger* findTrigger(const std::string& s) const { return findTrigger(s.c_str()); }
-    const Trigger* findTrigger(const char* name) const;
+    Trigger*       findTrigger(const std::string& name) { return findTrigger(name.c_str()); }
+    Trigger*       findTrigger(const char*        name);
     Interactive*   aviableMob(const Npc &pl, const std::string& name);
 
     void   marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
@@ -110,7 +110,7 @@ class World final {
     std::unique_ptr<WorldScript>          vm;
 
     void         adjustWaypoints(std::vector<ZenLoad::zCWaypointData>& wp);
-    void         loadVob(const ZenLoad::zCVobData &vob);
+    void         loadVob(ZenLoad::zCVobData &vob);
     void         addStatic(const ZenLoad::zCVobData &vob);
     void         addInteractive(const ZenLoad::zCVobData &vob);
     void         addItem(const ZenLoad::zCVobData &vob);

@@ -1,9 +1,17 @@
 #include "trigger.h"
 
-Trigger::Trigger(const ZenLoad::zCVobData &data)
-  :data(data) {
+#include <Tempest/Log>
+
+using namespace Tempest;
+
+Trigger::Trigger(ZenLoad::zCVobData &&data)
+  :data(std::move(data)) {
   }
 
 const std::string &Trigger::name() const {
   return data.vobName;
+  }
+
+void Trigger::onTrigger() {
+  Log::d("TODO: trigger[",name(),"]");
   }

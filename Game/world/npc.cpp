@@ -1097,7 +1097,7 @@ bool Npc::setInteraction(Interactive *id) {
       owner.useInteractive(hnpc,st);
       }
     if(auto tr = currentInteract->triggerTarget()){
-      Log::d("TODO: trigger[",tr->name(),"]");
+      tr->onTrigger();
       }
     return true;
     }
