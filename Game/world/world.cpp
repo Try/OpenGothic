@@ -14,16 +14,16 @@
 
 using namespace Tempest;
 
-World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
+World::World(Gothic& gothic,const RendererStorage &storage, std::string file, std::function<void(int)> loadProgress)
   :wname(std::move(file)),gothic(gothic),wobj(*this) {
   using namespace Daedalus::GameState;
 
   ZenLoad::ZenParser parser(wname,Resources::vdfsIndex());
 
-  // TODO: update loader
+  loadProgress(1);
   parser.readHeader();
 
-  // TODO: update loader
+  loadProgress(5);
   ZenLoad::oCWorldData world;
   parser.readWorld(world,gothic.isGothic2());
 
@@ -31,14 +31,17 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
   ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
   worldMesh->packMesh(mesh, 1.f, false);
 
+  loadProgress(25);
   vm.reset      (new WorldScript(*this,gothic,"/_work/data/Scripts/_compiled/GOTHIC.DAT"));
   wdynamic.reset(new DynamicWorld(*this,mesh));
   wview.reset   (new WorldView(*this,mesh,storage));
+  loadProgress(35);
 
   if(1){
     for(auto& vob:world.rootVobs)
       loadVob(vob);
     }
+  loadProgress(55);
 
   wayNet = std::move(world.waynet);
   adjustWaypoints(wayNet.waypoints);
@@ -57,6 +60,7 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
     });
 
   vm->initDialogs(gothic);
+  loadProgress(70);
 
   const char* hero="PC_HERO";
   //const char* hero="PC_ROCKEFELLER";
@@ -71,6 +75,7 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
     }
 
   initScripts(true);
+  loadProgress(96);
   }
 
 StaticObjects::Mesh World::getView(const std::string &visual) const {

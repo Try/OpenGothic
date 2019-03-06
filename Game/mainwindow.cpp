@@ -36,6 +36,7 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
 
   background = Resources::loadTexture("STARTSCREEN.TGA");
   loadBox    = Resources::loadTexture("PROGRESS.TGA");
+  loadVal    = Resources::loadTexture("PROGRESS_BAR.TGA");
 
   timer.timeout.bind(this,&MainWindow::tick);
 
@@ -131,8 +132,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
     }
 
   if(gothic.checkLoading()!=Gothic::LoadState::Idle && loadBox){
-    p.setBrush(*loadBox);
-    p.drawRect(w()-loadBox->w()-50, 50, loadBox->w(),loadBox->h());
+    drawLoading(p,w()-loadBox->w()-50, 50, loadBox->w(),loadBox->h());
     }
 
   char fpsT[64]={};
@@ -269,6 +269,17 @@ void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y
   p.setBrush(*bar);
   p.drawRect(x+pd,y+dy,int((destW-pd*2)*v),int(k*destHin),
              0,0,bar->w(),bar->h());
+  }
+
+void MainWindow::drawLoading(Painter &p, int x, int y, int w, int h) {
+  float v = loadProgress.load()/100.f;
+  if(v<0.1f)
+    v=0.01f;
+  p.setBrush(*loadBox);
+  p.drawRect(x,y,w,h, 0,0,loadBox->w(),loadBox->h());
+
+  p.setBrush(*loadVal);
+  p.drawRect(x+75,y+15,int((w-130)*v),35, 0,0,loadVal->w(),loadVal->h());
   }
 
 void MainWindow::tick() {
@@ -413,10 +424,14 @@ void MainWindow::setWorld(const std::string &name) {
     setWorldImpl(nullptr);
     }
 
+  loadProgress.store(0);
   gothic.startLoading([this,name](){
+    auto progress=[this](int v){
+      loadProgress.store(v);
+      };
     loaderWorld=nullptr; // clear world-memory now
     std::this_thread::yield();
-    std::unique_ptr<World> w(new World(gothic,draw.storage(),name));
+    std::unique_ptr<World> w(new World(gothic,draw.storage(),name,progress));
     loaderWorld = std::move(w);
     });
   update();

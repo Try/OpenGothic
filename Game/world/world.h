@@ -28,7 +28,7 @@ class World final {
   public:
     World()=delete;
     World(const World&)=delete;
-    World(Gothic &gothic,const RendererStorage& storage, std::string file);
+    World(Gothic &gothic, const RendererStorage& storage, std::string file, std::function<void(int)> loadProgress);
 
     bool isEmpty() const { return wname.empty(); }
     const std::string& name() const { return wname; }

@@ -54,6 +54,7 @@ class MainWindow : public Tempest::Window {
     void keyUpEvent     (Tempest::KeyEvent&   event) override;
 
     void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, float v, Tempest::AlignFlag flg);
+    void drawLoading(Tempest::Painter& p,int x,int y,int w,int h);
 
     void setWorld(const std::string& name);
     void setWorldImpl(std::unique_ptr<World>&& w);
@@ -96,8 +97,10 @@ class MainWindow : public Tempest::Window {
 
     Gothic&                             gothic;
     std::unique_ptr<World>              loaderWorld;
+    std::atomic_int                     loadProgress;
     const Tempest::Texture2d*           background=nullptr;
     const Tempest::Texture2d*           loadBox=nullptr;
+    const Tempest::Texture2d*           loadVal=nullptr;
 
     const Tempest::Texture2d*           barBack=nullptr;
     const Tempest::Texture2d*           barHp  =nullptr;
