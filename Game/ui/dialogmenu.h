@@ -15,6 +15,7 @@ class DialogMenu : public Tempest::Widget {
     DialogMenu(Gothic& gothic);
 
     void tick(uint64_t dt);
+    void clear();
 
     void aiProcessInfos(Npc &player, Npc& npc);
     void aiOutput(Npc& npc, const char* msg, uint32_t time);

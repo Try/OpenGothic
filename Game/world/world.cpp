@@ -25,7 +25,7 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
 
   // TODO: update loader
   ZenLoad::oCWorldData world;
-  parser.readWorld(world);
+  parser.readWorld(world,gothic.isGothic2());
 
   ZenLoad::PackedMesh mesh;
   ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
@@ -58,8 +58,8 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file)
 
   vm->initDialogs(gothic);
 
-  //const char* hero="PC_HERO";
-  const char* hero="PC_ROCKEFELLER";
+  const char* hero="PC_HERO";
+  //const char* hero="PC_ROCKEFELLER";
   //const char* hero="Giant_Bug";
 
   if(startPoints.size()>0)

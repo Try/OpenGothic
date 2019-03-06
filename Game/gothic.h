@@ -2,6 +2,7 @@
 
 #include <string>
 #include <memory>
+#include <thread>
 
 #include <Tempest/Signal>
 #include <daedalus/DaedalusVM.h>
@@ -12,10 +13,19 @@ class Gothic final {
   public:
     Gothic(int argc,const char** argv);
 
+    enum class LoadState:int {
+      Idle    =0,
+      Loading =1,
+      Finalize=2
+      };
+
+    bool isGothic2() const;
+
     bool isInGame() const;
     bool doStartMenu() const { return !noMenu; }
 
     void         setWorld(std::unique_ptr<World> &&w);
+    auto         clearWorld() -> std::unique_ptr<World>;
     const World* world() const { return wrld.get(); }
     World*       world() { return wrld.get(); }
     WorldView*   worldView() const;
@@ -24,6 +34,11 @@ class Gothic final {
     void     pushPause();
     void     popPause();
     bool     isPause() const;
+
+    LoadState checkLoading();
+    bool      finishLoading();
+    void      startLoading(const std::function<void()> f);
+    void      cancelLoading();
 
     uint64_t tickCount() const;
     void     tick(uint64_t dt);
@@ -65,6 +80,9 @@ class Gothic final {
     std::string wdef, gpath;
     bool        noMenu=false;
     uint16_t    pauseSum=0;
+
+    std::thread            loaderTh;
+    std::atomic<LoadState> loadingFlag{LoadState::Idle};
 
     uint64_t               ticks=0, wrldTimePart=0;
     gtime                  wrldTime;

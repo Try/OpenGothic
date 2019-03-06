@@ -57,6 +57,12 @@ void DialogMenu::tick(uint64_t dt) {
   update();
   }
 
+void DialogMenu::clear() {
+  for(auto& i:printMsg)
+    i=PScreen();
+  pscreen.clear();
+  }
+
 bool DialogMenu::start(Npc &pl,Npc &other) {
   other.startDialog(pl);
   return true;

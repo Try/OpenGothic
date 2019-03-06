@@ -274,6 +274,11 @@ const char* Interactive::anim(Interactive::Anim t) const {
     "S_CHAIR_S1",
     "T_THRONE_S0_2_STAND"
     };
+  static const char* rotSwitch[]={
+    "T_TURNSWITCH_STAND_2_S0",
+    "T_TURNSWITCH_S0_2_S1",
+    "T_TOUCHPLATE_STAND_2_S0"
+    };
 
   if(data.oCMOB.focusName=="MOBNAME_INNOS" || data.oCMOB.focusName=="MOBNAME_ADDON_IDOL")
     return pray[t];
@@ -297,6 +302,8 @@ const char* Interactive::anim(Interactive::Anim t) const {
     return throne[t];
   if(data.oCMOB.focusName=="MOBNAME_CHAIR")
     return chair[t];
+  if(data.oCMOB.focusName=="MOBNAME_SWITCH")
+    return rotSwitch[t];
   return lab[t];
   }
 

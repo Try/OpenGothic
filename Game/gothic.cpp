@@ -35,9 +35,17 @@ Gothic::Gothic(const int argc, const char **argv) {
   if(gpath.size()>0 && gpath.back()!='/')
     gpath.push_back('/');
 
-  if(wdef.empty())
-    wdef = "newworld.zen";
+  if(wdef.empty()){
+    if(isGothic2())
+      wdef = "newworld.zen"; else
+      wdef = "world.zen";
+    }
   setTime(gtime(8,0));
+  }
+
+bool Gothic::isGothic2() const {
+  // check actually for gothic-1, any questionable case is g2notr
+  return gpath.find("Gothic/")==std::string::npos && gpath.find("gothic/")==std::string::npos;
   }
 
 bool Gothic::isInGame() const {
@@ -46,6 +54,10 @@ bool Gothic::isInGame() const {
 
 void Gothic::setWorld(std::unique_ptr<World> &&w) {
   wrld = std::move(w);
+  }
+
+std::unique_ptr<World> Gothic::clearWorld() {
+  return std::move(wrld);
   }
 
 WorldView *Gothic::worldView() const {
@@ -72,6 +84,40 @@ bool Gothic::isPause() const {
   return pauseSum;
   }
 
+Gothic::LoadState Gothic::checkLoading() {
+  return loadingFlag.load();
+  }
+
+bool Gothic::finishLoading() {
+  auto two=LoadState::Finalize;
+  if(loadingFlag.compare_exchange_strong(two,LoadState::Idle)){
+    loaderTh.join();
+    return true;
+    }
+  return false;
+  }
+
+void Gothic::startLoading(const std::function<void()> f) {
+  auto zero=LoadState::Idle;
+  if(!loadingFlag.compare_exchange_strong(zero,LoadState::Loading)){
+    return; // loading already
+    }
+
+  auto l = std::thread([this,f](){
+    f();
+    auto one=LoadState::Loading;
+    loadingFlag.compare_exchange_strong(one,LoadState::Finalize);
+    });
+  loaderTh=std::move(l);
+  }
+
+void Gothic::cancelLoading() {
+  if(loadingFlag.load()!=LoadState::Idle){
+    loaderTh.join();
+    loadingFlag.store(LoadState::Idle);
+    }
+  }
+
 uint64_t Gothic::tickCount() const {
   return ticks;
   }
@@ -91,7 +137,8 @@ void Gothic::setTime(gtime t) {
   }
 
 void Gothic::updateAnimation() {
-  wrld->updateAnimation();
+  if(wrld)
+    wrld->updateAnimation();
   }
 
 std::vector<WorldScript::DlgChoise> Gothic::updateDialog(const WorldScript::DlgChoise &dlg, Npc& player, Npc& npc) {

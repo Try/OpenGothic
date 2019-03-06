@@ -33,7 +33,10 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   barBack    = Resources::loadTexture("BAR_BACK.TGA");
   barHp      = Resources::loadTexture("BAR_HEALTH.TGA");
   barMana    = Resources::loadTexture("BAR_MANA.TGA");
+
   background = Resources::loadTexture("STARTSCREEN.TGA");
+  loadBox    = Resources::loadTexture("PROGRESS.TGA");
+
   timer.timeout.bind(this,&MainWindow::tick);
 
   gothic.onSetWorld.bind(this,&MainWindow::setWorld);
@@ -47,6 +50,7 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   }
 
 MainWindow::~MainWindow() {
+  gothic.cancelLoading();
   device.waitIdle();
   takeWidget(&dialogs);
   takeWidget(&inventory);
@@ -86,8 +90,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
     p.drawRect(0,0,w(),h());
 
     p.setBrush(*background);
-    p.drawRect((w()-background->w())/2,(h()-background->h())/2,
-               background->w(),background->h(),
+    p.drawRect(0,0,w(),h(),
                0,0,background->w(),background->h());
     }
 
@@ -125,6 +128,11 @@ void MainWindow::paintEvent(PaintEvent& event) {
       drawBar(p,barHp,  10,    h()-10, hp, AlignLeft |AlignBottom);
       drawBar(p,barMana,w()-10,h()-10, mp, AlignRight|AlignBottom);
       }
+    }
+
+  if(gothic.checkLoading()!=Gothic::LoadState::Idle && loadBox){
+    p.setBrush(*loadBox);
+    p.drawRect(w()-loadBox->w()-50, 50, loadBox->w(),loadBox->h());
     }
 
   char fpsT[64]={};
@@ -264,6 +272,15 @@ void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y
   }
 
 void MainWindow::tick() {
+  auto st = gothic.checkLoading();
+  if(st==Gothic::LoadState::Finalize){
+    setWorldImpl(std::move(loaderWorld));
+    gothic.finishLoading();
+    }
+  if(st!=Gothic::LoadState::Idle) {
+    return;
+    }
+
   auto time = Application::tickCount();
   auto dt   = time-lastTick;
   lastTick  = time;
@@ -391,17 +408,31 @@ void MainWindow::tick() {
   }
 
 void MainWindow::setWorld(const std::string &name) {
-  std::unique_ptr<World> w(new World(gothic,draw.storage(),name));
+  if(gothic.checkLoading()==Gothic::LoadState::Idle){
+    loaderWorld = gothic.clearWorld(); // clear world-memory later
+    setWorldImpl(nullptr);
+    }
+
+  gothic.startLoading([this,name](){
+    loaderWorld=nullptr; // clear world-memory now
+    std::this_thread::yield();
+    std::unique_ptr<World> w(new World(gothic,draw.storage(),name));
+    loaderWorld = std::move(w);
+    });
+  update();
+  }
+
+void MainWindow::setWorldImpl(std::unique_ptr<World> &&w) {
   gothic   .setWorld(std::move(w));
   camera   .setWorld(gothic.world());
   player   .setWorld(gothic.world());
   inventory.setWorld(gothic.world());
+  dialogs.clear();
   spin = camera.getSpin();
   draw.onWorldChanged();
 
   if(auto pl = gothic.player())
     pl->multSpeed(1.f);
-
   lastTick = Application::tickCount();
   }
 

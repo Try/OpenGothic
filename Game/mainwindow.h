@@ -23,6 +23,7 @@
 #include <daedalus/DaedalusVM.h>
 
 #include <vector>
+#include <thread>
 
 #include "world/world.h"
 #include "game/playercontrol.h"
@@ -55,6 +56,7 @@ class MainWindow : public Tempest::Window {
     void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, float v, Tempest::AlignFlag flg);
 
     void setWorld(const std::string& name);
+    void setWorldImpl(std::unique_ptr<World>&& w);
     void clearInput();
 
     void  setupUi();
@@ -93,7 +95,9 @@ class MainWindow : public Tempest::Window {
     std::vector<Tempest::FrameBuffer>   fboUi;
 
     Gothic&                             gothic;
+    std::unique_ptr<World>              loaderWorld;
     const Tempest::Texture2d*           background=nullptr;
+    const Tempest::Texture2d*           loadBox=nullptr;
 
     const Tempest::Texture2d*           barBack=nullptr;
     const Tempest::Texture2d*           barHp  =nullptr;

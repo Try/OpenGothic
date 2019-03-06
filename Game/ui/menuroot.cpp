@@ -34,7 +34,7 @@ void MenuRoot::pushMenu(GameMenu *w) {
 
 void MenuRoot::popMenu() {
   if(menuStack.size()==0) {
-    if(gothic.isInGame()) {
+    if(gothic.isInGame() || gothic.checkLoading()!=Gothic::LoadState::Idle) {
       current=nullptr;
       removeAllWidgets();
       owner()->setFocus(true);
