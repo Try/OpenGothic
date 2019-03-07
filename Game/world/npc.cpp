@@ -553,8 +553,9 @@ bool Npc::implAtack(uint64_t dt) {
   if(implLookAt(dx,dz,dt))
     return true;
   if(!mvAlgo.aiGoTo(currentTarget,200)) {
-    if(isStanding())
-      setAnim(AnimationSolver::Idle);
+    setAnim(AnimationSolver::Idle);
+    } else {
+    setAnim(AnimationSolver::Move);
     }
   return true;
   }
@@ -633,6 +634,16 @@ void Npc::nextAiAction() {
           if(animation.animSq!=a)
             animation.invalidateAnim(a,animation.skeleton,owner.tickCount());
           }
+        }
+      break;
+      }
+    case AI_PlayAnimById:{
+      auto tag = Anim(act.i0);
+      if(!setAnim(tag)) {
+        aiActions.push_front(std::move(act));
+        } else {
+        if(animation.animSq)
+          waitTime = owner.tickCount()+uint64_t(animation.animSq.totalTime());
         }
       break;
       }
@@ -880,6 +891,7 @@ bool Npc::closeWeapon() {
     return false;
   invent.switchActiveWeapon(Item::NSLOT);
   updateWeaponSkeleton();
+  owner.vmNpc(hnpc).weapon = 0;
   return true;
   }
 
@@ -896,6 +908,7 @@ bool Npc::drawWeaponFist() {
     return false;
   invent.switchActiveWeaponFist();
   updateWeaponSkeleton();
+  owner.vmNpc(hnpc).weapon = 1;
   return true;
   }
 
@@ -915,6 +928,7 @@ bool Npc::drawWeaponMele() {
     return false;
   invent.switchActiveWeapon(1);
   updateWeaponSkeleton();
+  owner.vmNpc(hnpc).weapon = (st==WeaponState::W1H ? 3:4);
   return true;
   }
 
@@ -932,6 +946,7 @@ bool Npc::drawWeaponBow() {
     return false;
   invent.switchActiveWeapon(2);
   updateWeaponSkeleton();
+  owner.vmNpc(hnpc).weapon = (st==WeaponState::W1H ? 5:6);
   return true;
   }
 
@@ -946,6 +961,7 @@ bool Npc::drawMage(uint8_t slot) {
     return false;
   invent.switchActiveWeapon(slot);
   updateWeaponSkeleton();
+  owner.vmNpc(hnpc).weapon = 7;
   return true;
   }
 
@@ -1018,7 +1034,11 @@ bool Npc::castSpell() {
       break;
     case SpellCode::SPL_SENDCAST: {
       auto ani = Npc::Anim(owner.spellCastAnim(*this,*active));
-      setAnim(ani,WeaponState::Mage,WeaponState::Mage);
+      //setAnim(ani,WeaponState::Mage,WeaponState::Mage);
+      AiAction a;
+      a.act  = AI_PlayAnimById;
+      a.i0   = ani;
+      aiActions.push_back(a);
       owner.invokeSpell(*this,*active);
       break;
       }

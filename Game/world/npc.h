@@ -387,6 +387,7 @@ class Npc final {
       AI_GoToNpc,
       AI_StartState,
       AI_PlayAnim,
+      AI_PlayAnimById,
       AI_Wait,
       AI_StandUp,
       AI_GoToPoint,
