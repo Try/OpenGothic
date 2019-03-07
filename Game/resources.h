@@ -81,6 +81,7 @@ class Resources {
     static std::vector<uint8_t> getFileData(const char*        name);
     static std::vector<uint8_t> getFileData(const std::string& name);
 
+    static bool                 hasFile(const std::string& fname);
     static VDFS::FileIndex& vdfsIndex();
 
   private:
@@ -100,7 +101,6 @@ class Resources {
 
     MeshLoadCode        loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
     ZenLoad::zCModelMeshLib loadMDS (std::string& name);
-    bool                hasFile(const std::string& fname);
 
     Tempest::Texture2d fallback;
 
@@ -118,11 +118,12 @@ class Resources {
     std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>          bindCache;
     std::unordered_map<const ProtoMesh*,std::unique_ptr<PhysicMeshShape>> phyMeshCache;
 
-    Tempest::Device& device;
-    Tempest::Font    menuFnt, mainFnt, dlgFnt;
-    Tempest::Assets  asset;
-    Gothic&          gothic;
-    VDFS::FileIndex  gothicAssets;
+    Tempest::Device&     device;
+    std::recursive_mutex sync;
+    Tempest::Font        menuFnt, mainFnt, dlgFnt;
+    Tempest::Assets      asset;
+    Gothic&              gothic;
+    VDFS::FileIndex      gothicAssets;
   };
 
 

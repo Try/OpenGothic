@@ -219,14 +219,17 @@ Animation *Resources::implLoadAnimation(std::string name) {
   }
 
 bool Resources::hasFile(const std::string &fname) {
-  return gothicAssets.hasFile(fname);
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  return inst->gothicAssets.hasFile(fname);
   }
 
 const Texture2d *Resources::loadTexture(const char *name) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadTexture(name);
   }
 
 const Tempest::Texture2d* Resources::loadTexture(const std::string &name) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadTexture(name);
   }
 
@@ -253,18 +256,22 @@ const Texture2d *Resources::loadTexture(const std::string &name, int32_t iv, int
   }
 
 const ProtoMesh *Resources::loadMesh(const std::string &name) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadMesh(name);
   }
 
 const Skeleton *Resources::loadSkeleton(const std::string &name) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadSkeleton(name);
   }
 
 const Animation *Resources::loadAnimation(const std::string &name) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadAnimation(name);
   }
 
 const PhysicMeshShape *Resources::physicMesh(const ProtoMesh *view) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
   if(view==nullptr)
     return nullptr;
   auto it = inst->phyMeshCache.find(view);
@@ -379,6 +386,8 @@ ZenLoad::zCModelMeshLib Resources::loadMDS(std::string &name) {
   }
 
 const AttachBinder *Resources::bindMesh(const ProtoMesh &anim, const Skeleton &s, const char *defBone) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+
   if(anim.submeshId.size()==0){
     static AttachBinder empty;
     return &empty;
