@@ -39,6 +39,14 @@ class AnimationSolver final {
       Roam1,
       Roam2,
       Roam3,
+      Food1,
+      Food2,
+      FoodHuge1,
+      Potition1,
+      Potition2,
+      Potition3,
+      Joint1,
+      Meat1,
       Eat,
       IdleLast=Eat,
       Warn,
@@ -101,8 +109,10 @@ class AnimationSolver final {
       const Animation::Sequence* l1=nullptr;
 
       const char* name() const { return l1->name.c_str(); }
-      bool isFinished(uint64_t t) const { return l1->isFinished(t); }
-      bool isFly() const { return l1->isFly(); }
+
+      bool  isFinished(uint64_t t) const { return l1->isFinished(t); }
+      float totalTime() const { return l1->totalTime(); }
+      bool  isFly() const { return l1->isFly(); }
 
       operator bool () const { return l1!=nullptr; }
 

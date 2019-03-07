@@ -421,6 +421,22 @@ AnimationSolver::Sequence AnimationSolver::solveAnim(Anim a,   WeaponState st0,
     return animSequence("R_ROAM2");
   if(a==Anim::Roam3)
     return animSequence("R_ROAM3");
+  if(a==Anim::Food1)
+    return animSequence("T_FOOD_RANDOM_1");
+  if(a==Anim::Food2)
+    return animSequence("T_FOOD_RANDOM_2");
+  if(a==Anim::FoodHuge1)
+    return animSequence("T_FOODHUGE_RANDOM_1");
+  if(a==Anim::Potition1)
+    return animSequence("T_POTION_RANDOM_1");
+  if(a==Anim::Potition2)
+    return animSequence("T_POTION_RANDOM_2");
+  if(a==Anim::Potition3)
+    return animSequence("T_POTION_RANDOM_3");
+  if(a==Anim::Joint1)
+    return animSequence("T_JOINT_RANDOM_1");
+  if(a==Anim::Meat1)
+    return animSequence("T_MEAT_RANDOM_1");
 
   // FALLBACK
   if(a==Anim::Move)
@@ -478,25 +494,28 @@ AnimationSolver::Sequence AnimationSolver::layredSequence(const char *name,const
   }
 
 AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const {
+  if(name=="T_HEASHOOT_2_STAND" || name=="T_LGUARD_2_STAND" || name=="T_HGUARD_2_STAND" ||
+     name=="T_EAT_2_STAND"      || name=="T_SLEEP_2_STAND"  || name=="T_GUARDSLEEP_2_STAND" ||
+     name=="T_SIT_2_STAND")
+    return Anim::Idle;
+
   if(name=="T_STAND_2_LGUARD" || name=="S_LGUARD")
     return Anim::GuardL;
   if(name=="T_STAND_2_HGUARD")
     return Anim::GuardH;
-  if(name=="T_LGUARD_2_STAND" || name=="T_HGUARD_2_STAND")
-    return Anim::Idle;
   if(name=="T_STAND_2_TALK" || name=="S_TALK")
     return Anim::Talk;
   if(name=="T_PERCEPTION")
     return Anim::Perception;
   if(name=="T_HGUARD_LOOKAROUND")
     return Anim::Lookaround;
-  if(name=="T_STAND_2_EAT" || name=="T_EAT_2_STAND" || name=="S_EAT")
+  if(name=="T_STAND_2_EAT" || name=="S_EAT")
     return Anim::Eat;
-  if(name=="T_STAND_2_SLEEP" || name=="T_SLEEP_2_STAND" || name=="S_SLEEP")
+  if(name=="T_STAND_2_SLEEP" || name=="S_SLEEP")
     return Anim::Sleep;
-  if(name=="T_STAND_2_GUARDSLEEP" || name=="T_GUARDSLEEP_2_STAND" || name=="S_GUARDSLEEP")
+  if(name=="T_STAND_2_GUARDSLEEP" || name=="S_GUARDSLEEP")
     return Anim::GuardSleep;
-  if(name=="T_STAND_2_SIT" || name=="T_SIT_2_STAND" || name=="S_SIT")
+  if(name=="T_STAND_2_SIT" || name=="S_SIT")
     return Anim::Sit;
   if(name=="T_LGUARD_CHANGELEG")
     return Anim::GuardLChLeg;
@@ -506,7 +525,7 @@ AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const
     return Anim::GuardLScratch;
   if(name=="T_1HSFREE")
     return Anim::Training;
-  if(name=="T_MAGRUN_2_HEASHOOT" || name=="S_HEASHOOT" || name=="T_HEASHOOT_2_STAND")
+  if(name=="T_MAGRUN_2_HEASHOOT" || name=="S_HEASHOOT")
     return Anim::MagHea;
   if(name=="T_WARN")
     return Anim::Warn;
@@ -524,5 +543,21 @@ AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const
     return Anim::Roam2;
   if(name=="R_ROAM3")
     return Anim::Roam3;
+  if(name=="T_FOOD_RANDOM_1")
+    return Anim::Food1;
+  if(name=="T_FOOD_RANDOM_2")
+    return Anim::Food2;
+  if(name=="T_FOODHUGE_RANDOM_1")
+    return Anim::FoodHuge1;
+  if(name=="T_POTION_RANDOM_1")
+    return Anim::Potition1;
+  if(name=="T_POTION_RANDOM_2")
+    return Anim::Potition2;
+  if(name=="T_POTION_RANDOM_3")
+    return Anim::Potition3;
+  if(name=="T_JOINT_RANDOM_1")
+    return Anim::Joint1;
+  if(name=="T_MEAT_RANDOM_1")
+    return Anim::Meat1;
   return Anim::NoAnim;
   }

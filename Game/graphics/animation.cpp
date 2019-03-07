@@ -114,10 +114,10 @@ void Animation::setupIndex() {
   }
 
 Animation::Sequence::Sequence(const std::string &name) {
-  const VDFS::FileIndex& idx = Resources::vdfsIndex();
-  if(!idx.hasFile(name))
+  if(!Resources::hasFile(name))
     return;
 
+  const VDFS::FileIndex& idx = Resources::vdfsIndex();
   ZenLoad::ZenParser            zen(name,idx);
   ZenLoad::ModelAnimationParser p(zen);
 
