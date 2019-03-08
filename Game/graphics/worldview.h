@@ -15,6 +15,7 @@ class RendererStorage;
 class WorldView {
   public:
     WorldView(const World &world, const ZenLoad::PackedMesh& wmesh, const RendererStorage& storage);
+    ~WorldView();
 
     void initPipeline(uint32_t w, uint32_t h);
     Tempest::Matrix4x4  viewProj(const Tempest::Matrix4x4 &view) const;
@@ -23,6 +24,7 @@ class WorldView {
     void updateCmd(const World &world);
     void updateUbo(const Tempest::Matrix4x4 &view, uint32_t imgId);
     void draw     (Tempest::CommandBuffer &cmd, Tempest::FrameBuffer &fbo);
+    void resetCmd ();
 
     StaticObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
     void addStatic(const ZenLoad::zCVobData &vob);

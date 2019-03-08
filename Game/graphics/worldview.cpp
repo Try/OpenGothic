@@ -12,6 +12,11 @@ WorldView::WorldView(const World &world, const ZenLoad::PackedMesh &wmesh, const
   objGroup.reserve(8192,2048);
   }
 
+WorldView::~WorldView() {
+  // cmd buffers must not be in use
+  storage.device.waitIdle();
+  }
+
 void WorldView::initPipeline(uint32_t w, uint32_t h) {
   proj.perspective(45.0f, float(w)/float(h), 0.05f, 100.0f);
   //projective.translate(0,0,0.5f);
@@ -53,6 +58,13 @@ void WorldView::draw(CommandBuffer &cmd, FrameBuffer &fbo) {
     cmd.setSecondaryPass(fbo,storage.pass());
     cmd.exec(cmdLand[fId]);
     }
+  }
+
+void WorldView::resetCmd() {
+  // cmd buffers must not be in use
+  storage.device.waitIdle();
+  cmdLand.clear();
+  nToUpdateCmd=true;
   }
 
 

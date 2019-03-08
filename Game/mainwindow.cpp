@@ -274,7 +274,7 @@ void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y
 void MainWindow::drawLoading(Painter &p, int x, int y, int w, int h) {
   float v = loadProgress.load()/100.f;
   if(v<0.1f)
-    v=0.01f;
+    v=0.1f;
   p.setBrush(*loadBox);
   p.drawRect(x,y,w,h, 0,0,loadBox->w(),loadBox->h());
 
@@ -318,7 +318,7 @@ void MainWindow::tick() {
       clearInput();
       }
     else if(item.item!=nullptr && player.interact(*item.item)) {
-      //clearInput();
+      clearInput();
       }
     }
   if(pressed[KeyEvent::K_F8])
@@ -422,6 +422,8 @@ void MainWindow::setWorld(const std::string &name) {
   if(gothic.checkLoading()==Gothic::LoadState::Idle){
     loaderWorld = gothic.clearWorld(); // clear world-memory later
     setWorldImpl(nullptr);
+    if(loaderWorld)
+      loaderWorld->view()->resetCmd();
     }
 
   loadProgress.store(0);
