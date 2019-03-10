@@ -40,8 +40,21 @@ void Renderer::onWorldChanged() {
     }
   }
 
-void Renderer::setDebugView(const Camera& camera) {
+void Renderer::setCameraView(const Camera& camera) {
   view = camera.view();
+  }
+
+bool Renderer::needToUpdateCmd() {
+  if(auto wview=gothic.worldView()) {
+    return wview->needToUpdateCmd();
+    }
+  return false;
+  }
+
+void Renderer::updateCmd() {
+  if(auto wview=gothic.worldView()) {
+    wview->updateCmd(*gothic.world());
+    }
   }
 
 void Renderer::draw(CommandBuffer &cmd, uint32_t imgId, const Gothic &gothic) {

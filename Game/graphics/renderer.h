@@ -21,7 +21,9 @@ class Renderer final {
     void initSwapchain(uint32_t w,uint32_t h);
     void onWorldChanged();
 
-    void setDebugView(const Camera &camera);
+    void setCameraView(const Camera &camera);
+    bool needToUpdateCmd();
+    void updateCmd();
     void draw(Tempest::CommandBuffer& cmd, uint32_t imgId, const Gothic& gothic);
 
     const RendererStorage&            storage() const { return stor; }

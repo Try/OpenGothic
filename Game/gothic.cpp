@@ -57,6 +57,8 @@ void Gothic::setWorld(std::unique_ptr<World> &&w) {
   }
 
 std::unique_ptr<World> Gothic::clearWorld() {
+  if(wrld)
+    wrld->view()->resetCmd();
   return std::move(wrld);
   }
 

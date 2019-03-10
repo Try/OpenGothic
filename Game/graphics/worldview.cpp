@@ -29,9 +29,12 @@ Matrix4x4 WorldView::viewProj(const Matrix4x4 &view) const {
   return viewProj;
   }
 
+bool WorldView::needToUpdateCmd() const {
+  return nToUpdateCmd || vobGroup.needToUpdateCommands() || objGroup.needToUpdateCommands();
+  }
+
 void WorldView::updateCmd(const World &world) {
-  if(nToUpdateCmd || vobGroup.needToUpdateCommands() || objGroup.needToUpdateCommands()){
-    storage.device.waitIdle();
+  if(needToUpdateCmd()){
     prebuiltCmdBuf(world);
 
     vobGroup.setAsUpdated();
@@ -95,7 +98,7 @@ void WorldView::addStatic(const ZenLoad::zCVobData &vob) {
 void WorldView::prebuiltCmdBuf(const World &world) {
   auto& device=storage.device;
 
-  cmdLand.clear();
+  resetCmd();
 
   for(size_t i=0;i<device.maxFramesInFlight();++i){
     auto cmd=device.commandSecondaryBuffer();

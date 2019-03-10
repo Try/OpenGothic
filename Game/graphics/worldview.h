@@ -21,6 +21,7 @@ class WorldView {
     Tempest::Matrix4x4  viewProj(const Tempest::Matrix4x4 &view) const;
     const Tempest::Matrix4x4& projective() const { return proj; }
 
+    bool needToUpdateCmd() const;
     void updateCmd(const World &world);
     void updateUbo(const Tempest::Matrix4x4 &view, uint32_t imgId);
     void draw     (Tempest::CommandBuffer &cmd, Tempest::FrameBuffer &fbo);

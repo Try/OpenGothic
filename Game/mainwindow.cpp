@@ -101,7 +101,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
 
     auto focus = findFocus();
 
-    if(focus) {
+    if(focus && !dialogs.isActive()) {
       auto pos = focus.displayPosition();
       vp.project(pos[0],pos[1],pos[2]);
 
@@ -422,8 +422,6 @@ void MainWindow::setWorld(const std::string &name) {
   if(gothic.checkLoading()==Gothic::LoadState::Idle){
     loaderWorld = gothic.clearWorld(); // clear world-memory later
     setWorldImpl(nullptr);
-    if(loaderWorld)
-      loaderWorld->view()->resetCmd();
     }
 
   loadProgress.store(0);
@@ -432,7 +430,6 @@ void MainWindow::setWorld(const std::string &name) {
       loadProgress.store(v);
       };
     loaderWorld=nullptr; // clear world-memory now
-    std::this_thread::yield();
     std::unique_ptr<World> w(new World(gothic,draw.storage(),name,progress));
     loaderWorld = std::move(w);
     });
@@ -451,6 +448,10 @@ void MainWindow::setWorldImpl(std::unique_ptr<World> &&w) {
   if(auto pl = gothic.player())
     pl->multSpeed(1.f);
   lastTick = Application::tickCount();
+
+  device.waitIdle();
+  for(auto& c:commandDynamic)
+    c = device.commandBuffer();
   }
 
 void MainWindow::clearInput() {
@@ -479,11 +480,17 @@ void MainWindow::render(){
   try {
     static uint64_t time=Application::tickCount();
 
+    if(Gothic::LoadState::Idle!=gothic.checkLoading())
+      ;//return;
+
     auto& context=fLocal[device.frameId()];
     Semaphore&     renderDone=commandBuffersSemaphores[device.frameId()];
     CommandBuffer& cmd       =commandDynamic[device.frameId()];
 
-    draw.setDebugView(camera);
+    if(dialogs.isActive())
+      draw.setCameraView(dialogs.dialogCamera()); else
+      draw.setCameraView(camera);
+
     if(!gothic.isPause())
       gothic.updateAnimation();
 
@@ -491,23 +498,28 @@ void MainWindow::render(){
 
     const uint32_t imgId=device.nextImage(context.imageAvailable);
 
-    if(needToUpdate())
+    if(needToUpdate())// && Gothic::LoadState::Idle==gothic.checkLoading())
       dispatchPaintEvent(surface,atlas);
 
-    cmd.begin();
+    if(draw.needToUpdateCmd()){
+      device.waitIdle();
+      for(size_t i=0;i<fLocal.size();++i){
+        fLocal[i].gpuLock.wait();
+        commandDynamic[i] = device.commandBuffer();
+        }
+      draw.updateCmd();
+      }
 
-    if(1)
-      draw.draw(cmd,imgId,gothic);
+    cmd.begin();
+    draw.draw(cmd,imgId,gothic);
 
     if(1) {
       cmd.setPass(fboUi[imgId],uiPass);
       surface.draw(device,cmd,uiPass);
       }
-
     cmd.end();
 
     device.draw(cmd,context.imageAvailable,renderDone,context.gpuLock);
-
     device.present(imgId,renderDone);
 
     auto t=Application::tickCount();
