@@ -89,6 +89,10 @@ int32_t Item::cost() const {
   return v.value;
   }
 
+int32_t Item::sellCost() const {
+  return int32_t(std::ceil(owner.tradeValueMultiplier()*cost()));
+  }
+
 bool Item::checkCond(const Npc &other) const {
   int32_t a=0,v=0;
   return checkCondUse(other,a,v) && checkCondRune(other,a,v);

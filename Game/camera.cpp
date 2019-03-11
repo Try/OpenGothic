@@ -170,3 +170,9 @@ void Camera::follow(const Npc &npc,bool includeRot) {
   if(includeRot)
     spin.x += (npc.rotation()-spin.x)/2;
   }
+
+void Camera::setPosition(float x, float y, float z) {
+  camPos[0] = x;
+  camPos[1] = y;
+  camPos[2] = z;
+  }

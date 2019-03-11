@@ -338,6 +338,8 @@ class Npc final {
     void     addItem    (std::unique_ptr<Item>&& i);
     void     addItem    (uint32_t id,Interactive& chest);
     void     moveItem   (uint32_t id,Interactive& to);
+    void     sellItem   (uint32_t id,Npc& to);
+    void     buyItem    (uint32_t id,Npc& to);
     Item*    currentArmour();
     Item*    currentMeleWeapon();
     Item*    currentRangeWeapon();
@@ -363,12 +365,16 @@ class Npc final {
     void     aiFlee();
     void     aiDodge();
     void     aiUnEquipWeapons();
+    void     aiOutput(Npc &to, std::string text);
+    void     aiStopProcessInfo();
     void     aiClearQueue();
 
     auto     currentWayPoint() const -> const ZenLoad::zCWaypointData* { return currentFp; }
 
     void     setTarget(Npc* t);
     Npc*     target();
+
+    bool     haveOutput() const;
 
   private:
     struct Routine final {
@@ -402,6 +408,8 @@ class Npc final {
       AI_Flee,
       AI_Dodge,
       AI_UnEquipWeapons,
+      AI_Output,
+      AI_StopProcessInfo,
       };
 
     struct AiAction final {

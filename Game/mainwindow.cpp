@@ -21,7 +21,7 @@ using namespace Tempest;
 
 MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),
-    draw(device,gothic),gothic(gothic),dialogs(gothic),player(dialogs,inventory) {
+    draw(device,gothic),gothic(gothic),dialogs(gothic,inventory),player(dialogs,inventory) {
   for(uint8_t i=0;i<device.maxFramesInFlight();++i){
     fLocal.emplace_back(device);
     commandBuffersSemaphores.emplace_back(device);
@@ -71,6 +71,8 @@ void MainWindow::setupUi() {
   gothic.onDialogOutput .bind(&dialogs,&DialogMenu::aiOutput);
   gothic.onDialogClose  .bind(&dialogs,&DialogMenu::aiClose);
   gothic.isDialogClose  .bind(&dialogs,&DialogMenu::aiIsClose);
+
+  gothic.onDialogForwardOutput.bind(&dialogs,&DialogMenu::aiOutputForward);
 
   gothic.onPrintScreen  .bind(&dialogs,&DialogMenu::printScreen);
   gothic.onPrint        .bind(&dialogs,&DialogMenu::print);
@@ -301,12 +303,11 @@ void MainWindow::tick() {
 
   if(dt>100)
     dt=100;
-  gothic.tick(dt);
   dialogs.tick(dt);
+  gothic.tick(dt);
 
   if(dialogs.isActive()){
     clearInput();
-    inventory.close();
     }
 
   if(mouseP[Event::ButtonLeft]){

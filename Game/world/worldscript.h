@@ -24,6 +24,7 @@ class WorldScript final {
       std::string                     title;
       int32_t                         sort=0;
       uint32_t                        scriptFn=0;
+      bool                            isTrade=false;
       Daedalus::GameState::InfoHandle handle={};
       };
 
@@ -74,6 +75,7 @@ class WorldScript final {
     void exec(const DlgChoise &dlg, Daedalus::GameState::NpcHandle player, Daedalus::GameState::NpcHandle hnpc);
     int  printCannotUseError (Npc &npc, int32_t atr, int32_t nValue);
     int  printCannotCastError(Npc &npc, int32_t plM, int32_t itM);
+    int  printCannotBuyError (Npc &npc);
 
     int  invokeState(Daedalus::GameState::NpcHandle hnpc, Daedalus::GameState::NpcHandle hother, const char* name);
     int  invokeState(Npc* npc, Npc* other, Npc *victum, size_t fn);
@@ -84,6 +86,13 @@ class WorldScript final {
     int  spellCastAnim(Npc& npc, Item&  fn);
 
     bool aiUseMob  (Npc &pl, const std::string& name);
+    bool aiOutput  (Npc &from, Npc& to, const std::string& name);
+    bool aiClose   ();
+
+    const std::string& messageByName(const std::string &id) const;
+    uint32_t           messageTime(const std::string &id) const;
+
+    float              tradeValueMultiplier() const { return tradeValMult; }
 
     void useInteractive(Daedalus::GameState::NpcHandle hnpc, const std::string &func);
 
@@ -259,6 +268,7 @@ class WorldScript final {
 
     QuestLog                                                    quests;
     size_t                                                      itMi_Gold=0;
+    float                                                       tradeValMult=0.3f;
     size_t                                                      spellFxInstanceNames=0;
     size_t                                                      spellFxAniLetters=0;
     std::string                                                 goldTxt;

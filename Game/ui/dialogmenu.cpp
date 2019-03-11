@@ -4,11 +4,13 @@
 #include <algorithm>
 
 #include "gothic.h"
+#include "inventorymenu.h"
 #include "resources.h"
 
 using namespace Tempest;
 
-DialogMenu::DialogMenu(Gothic &gothic):gothic(gothic) {
+DialogMenu::DialogMenu(Gothic &gothic, InventoryMenu &trade)
+  :gothic(gothic), trade(trade) {
   tex     = Resources::loadTexture("DLG_CHOICE.TGA");
   ambient = Resources::loadTexture("DLG_AMBIENT.TGA");
   setFocusPolicy(NoFocus);
@@ -17,6 +19,8 @@ DialogMenu::DialogMenu(Gothic &gothic):gothic(gothic) {
 void DialogMenu::tick(uint64_t dt) {
   if(state==State::PreStart){
     except.clear();
+    dlgTrade=false;
+    trade.close();
     onStart(*this->pl,*this->other);
     return;
     }
@@ -30,19 +34,12 @@ void DialogMenu::tick(uint64_t dt) {
     remPrint-=dt;
     }
 
-  if(txt.size()>0){
-    if(remDlg<dt) {
-      txt.pop_back();
-      if(txt.size()>0) {
-        remDlg=txt.back().time;
-        onEntry(txt.back());
-        } else {
-        remDlg=0;
-        onDoneText();
-        }
-      } else {
-      remDlg-=dt;
-      }
+  if(current.time<=dt){
+    current.time = 0;
+    if(dlgTrade && !haveToWaitOutput())
+      startTrade();
+    } else {
+    current.time-=dt;
     }
 
   for(size_t i=0;i<pscreen.size();){
@@ -63,6 +60,21 @@ void DialogMenu::clear() {
   pscreen.clear();
   }
 
+const Camera &DialogMenu::dialogCamera() {
+  if(pl && other){
+    camera.setWorld(gothic.world());
+    auto p0 = pl->position();
+    auto p1 = other->position();
+    camera.setPosition(0.5f*(p0[0]+p1[0]), 0.5f*(p0[1]+p1[1]), 0.5f*(p0[2]+p1[2]));
+    p0[0]-=p1[0];
+    p0[1]-=p1[1];
+    p0[2]-=p1[2];
+    float a = (std::atan2(p0[2],p0[0])/float(M_PI))*180.f;
+    camera.setSpin(PointF(a,0));
+    }
+  return camera;
+  }
+
 bool DialogMenu::start(Npc &pl,Npc &other) {
   other.startDialog(pl);
   return true;
@@ -79,23 +91,46 @@ void DialogMenu::aiProcessInfos(Npc &p,Npc &npc) {
   state  = State::PreStart;
   }
 
-void DialogMenu::aiOutput(Npc &npc,const char *msg,uint32_t time) {
-  if(&npc!=pl && &npc!=other)
+void DialogMenu::aiOutput(Npc &npc, const char *msg, bool& done) {
+  if(&npc!=pl && &npc!=other){
+    done = true;
     return; // vatras is here
-  Entry e;
-  e.txt  = msg;
-  e.time = time;
-  if(txt.size()==0)
-    remDlg=e.time;
-  txt.emplace(txt.begin(),std::move(e));
+    }
+
+  if(current.time>0){
+    done=false;
+    return;
+    }
+
+  if(forwardText.size()>0 && (forwardText[0].txt!=msg || forwardText[0].npc!=&npc)){
+    done=false;
+    return;
+    }
+
+  if(forwardText.size()>0){
+    forwardText.erase(forwardText.begin());
+    }
+
+  current.txt   = gothic.messageByName(msg);
+  current.time  = gothic.messageTime(msg);
+  done          = true;
+  waitForOutput = false;
   update();
   }
 
-void DialogMenu::aiClose() {
-  Entry e;
-  e.flag = DlgClose;
-  txt.emplace(txt.begin(),std::move(e));
+void DialogMenu::aiOutputForward(Npc &npc, const char *msg) {
+  forwardText.emplace_back(Forward{msg,&npc});
+  }
+
+void DialogMenu::aiClose(bool& ret) {
+  if(current.time>0){
+    ret=false;
+    return;
+    }
+
+  ret=true;
   choise.clear();
+  close();
   state=State::Idle;
   update();
   }
@@ -105,15 +140,15 @@ void DialogMenu::aiIsClose(bool &ret) {
   }
 
 bool DialogMenu::isActive() const {
-  return (state!=State::Idle) || txt.size()>0;
+  return (state!=State::Idle) || current.time>0;
   }
 
 bool DialogMenu::onStart(Npc &p, Npc &ot) {
-  pl     = &p;
-  other  = &ot;
-  choise = ot.dialogChoises(p,except);
-  state  = State::Active;
-  depth  = 0;
+  pl       = &p;
+  other    = &ot;
+  choise   = ot.dialogChoises(p,except);
+  state    = State::Active;
+  depth    = 0;
 
   if(choise.size()==0){
     close();
@@ -123,11 +158,6 @@ bool DialogMenu::onStart(Npc &p, Npc &ot) {
   if(choise.size()>0 && choise[0].title.size()==0){
     // important dialog
     onEntry(choise[0]);
-    /*
-    for(auto& c:choise){
-      onEntry(c);
-      break;
-      }*/
     }
 
   dlgSel=0;
@@ -182,7 +212,8 @@ void DialogMenu::close() {
   pl=nullptr;
   other=nullptr;
   depth=0;
-  txt.clear();
+  dlgTrade=false;
+  current.time=0;
   choise.clear();
   state=State::Idle;
   update();
@@ -197,24 +228,34 @@ void DialogMenu::close() {
     }
   }
 
-void DialogMenu::onEntry(const DialogMenu::Entry &e) {
-  if(e.flag&DlgClose){
-    close();
-    return;
+bool DialogMenu::haveToWaitOutput() const {
+  if(!waitForOutput)
+    return false;
+  if(pl && pl->haveOutput()){
+    return true;
     }
+  if(other && other->haveOutput()){
+    return true;
+    }
+  return false;
+  }
+
+void DialogMenu::startTrade() {
+  if(pl!=nullptr && other!=nullptr)
+    trade.trade(*pl,*other);
+  dlgTrade=false;
   }
 
 void DialogMenu::onEntry(const WorldScript::DlgChoise &e) {
   if(pl && other) {
     selected = e;
     depth    = 1;
+    dlgTrade = e.isTrade;
     except.push_back(e.scriptFn);
     gothic.dialogExec(e,*pl,*other);
-    if(txt.empty()) {
-      onDoneText(); // 'BACK' menu
-      } else {
-      onEntry(txt.back());
-      }
+
+    waitForOutput=true;
+    onDoneText();
     }
   }
 
@@ -222,16 +263,15 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
   Painter p(e);
 
   const int dw = std::min(w(),600);
-  if(txt.size()>0){
+  if(current.time>0 && trade.isOpen()==InventoryMenu::State::Closed){
     if(ambient) {
       p.setBrush(*ambient);
       p.drawRect((w()-dw)/2,20,dw,100,
                  0,0,ambient->w(),ambient->h());
       }
 
-    auto& t = txt.back();
     p.setFont(Resources::dialogFont());
-    p.drawText((w()-dw)/2,100,t.txt);
+    p.drawText((w()-dw)/2,100,current.txt);
     }
 
   paintChoise(e);
@@ -265,7 +305,7 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
   }
 
 void DialogMenu::paintChoise(PaintEvent &e) {
-  if(choise.size()==0 || txt.size()>0)
+  if(choise.size()==0 || current.time>0 || haveToWaitOutput() || trade.isOpen()!=InventoryMenu::State::Closed)
     return;
 
   Painter p(e);
@@ -291,7 +331,7 @@ void DialogMenu::paintChoise(PaintEvent &e) {
   }
 
 void DialogMenu::onSelect() {
-  if(txt.size()){
+  if(current.time>0 || haveToWaitOutput()){
     return;
     }
 
@@ -300,7 +340,7 @@ void DialogMenu::onSelect() {
   }
 
 void DialogMenu::mouseDownEvent(MouseEvent &event) {
-  if(state==State::Idle){
+  if(state==State::Idle || trade.isOpen()!=InventoryMenu::State::Closed){
     event.ignore();
     return;
     }
@@ -309,7 +349,7 @@ void DialogMenu::mouseDownEvent(MouseEvent &event) {
   }
 
 void DialogMenu::mouseWheelEvent(MouseEvent &e) {
-  if(state==State::Idle){
+  if(state==State::Idle || trade.isOpen()!=InventoryMenu::State::Closed){
     e.ignore();
     return;
     }
@@ -323,6 +363,16 @@ void DialogMenu::mouseWheelEvent(MouseEvent &e) {
   }
 
 void DialogMenu::keyDownEvent(KeyEvent &e) {
+  if(state==State::Idle){
+    e.ignore();
+    return;
+    }
+
+  if(e.key!=Event::K_ESCAPE && trade.isOpen()!=InventoryMenu::State::Closed){
+    e.ignore();
+    return;
+    }
+
   if(e.key==Event::K_Return){
     onSelect();
     }
@@ -330,23 +380,25 @@ void DialogMenu::keyDownEvent(KeyEvent &e) {
     dlgSel--;
     }
   if(e.key==Event::K_S){
-    dlgSel--;
+    dlgSel++;
     }
   dlgSel = (dlgSel+choise.size())%std::max<size_t>(choise.size(),1);
   update();
   }
 
 void DialogMenu::keyUpEvent(KeyEvent &event) {
-  if(state==State::Idle && txt.size()==0){
+  if(state==State::Idle && current.time>0){
     event.ignore();
     return;
     }
 
-  if(event.key==Event::K_ESCAPE){
-    if(txt.size()>0){
-      remDlg=0;
-      update();
+  if(event.key==Event::K_ESCAPE) {
+    if(trade.isOpen()!=InventoryMenu::State::Closed) {
+      trade.close();
+      } else {
+      current.time=1;
       }
+    update();
     }
   }
 

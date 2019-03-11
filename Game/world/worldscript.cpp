@@ -235,6 +235,8 @@ void WorldScript::initCommon() {
     goldTxt = it.name;
     vm.getGameState().removeItem(h);
     }
+  auto& tradeMul = vm.getDATFile().getSymbolByName("TRADE_VALUE_MULTIPLIER");
+  tradeValMult   = tradeMul.getFloat();
 
   auto& vtime     = vm.getDATFile().getSymbolByName("VIEW_TIME_PER_CHAR");
   viewTimePerChar = vtime.getFloat(0);
@@ -387,6 +389,7 @@ std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GameSta
         ch.title    = info.description;
         ch.scriptFn = info.information;
         ch.handle   = i;
+        ch.isTrade  = info.trade!=0;
         ch.sort     = info.nr;
         choise.emplace_back(std::move(ch));
         }
@@ -418,6 +421,7 @@ std::vector<WorldScript::DlgChoise> WorldScript::updateDialog(const WorldScript:
     ch.title    = sub.text;
     ch.scriptFn = sub.functionSym;
     ch.handle   = dlg.handle;
+    ch.isTrade  = false;
     ch.sort     = int(i);
     ret.push_back(ch);
     }
@@ -467,6 +471,14 @@ int WorldScript::printCannotCastError(Npc &npc, int32_t plM, int32_t itM) {
   vm.pushInt(plM);
   ScopeVar self (vm,"self",npc);
   return runFunction(id,false);
+  }
+
+int WorldScript::printCannotBuyError(Npc &npc) {
+  if(!hasSymbolName("player_trade_not_enough_gold"))
+    return 0;
+  auto id = vm.getDATFile().getSymbolIndexByName("player_trade_not_enough_gold");
+  ScopeVar self (vm,"self",npc);
+  return runFunction(id,true);
   }
 
 int WorldScript::invokeState(NpcHandle hnpc, NpcHandle oth, const char *name) {
@@ -574,6 +586,27 @@ bool WorldScript::aiUseMob(Npc &pl, const std::string &name) {
   return owner.aiUseMob(pl,name);
   }
 
+bool WorldScript::aiOutput(Npc &from, Npc &/*to*/, const std::string &outputname) {
+  return owner.aiOutput(from,outputname.c_str());
+  }
+
+bool WorldScript::aiClose() {
+  return owner.aiCloseDialog();
+  }
+
+const std::string &WorldScript::messageByName(const std::string& id) const {
+  if(!dialogs->getMessageLib().messageExists(id)){
+    static std::string empty;
+    return empty;
+    }
+  return dialogs->getMessageLib().getMessageByName(id).text;
+  }
+
+uint32_t WorldScript::messageTime(const std::string &id) const {
+  auto& txt = messageByName(id);
+  return uint32_t(txt.size()*viewTimePerChar);
+  }
+
 void WorldScript::useInteractive(NpcHandle hnpc,const std::string& func) {
   auto& dat = vm.getDATFile();
   if(!dat.hasSymbolName(func))
@@ -585,7 +618,7 @@ void WorldScript::useInteractive(NpcHandle hnpc,const std::string& func) {
     }
   catch (...) {
     Log::i("unable to use interactive [",func,"]");
-  }
+    }
   }
 
 WorldScript::Attitude WorldScript::guildAttitude(const Npc &p0, const Npc &p1) const {
@@ -1480,20 +1513,17 @@ void WorldScript::ai_output(Daedalus::DaedalusVM &vm) {
   auto  target     = popInstance(vm);
   auto  self       = popInstance(vm);
 
-  if(!self)
+  if(!self || !target)
     return;
 
-  if(!dialogs->getMessageLib().messageExists(outputname))
-    return;
-  auto& message = dialogs->getMessageLib().getMessageByName(outputname);
-  auto  time    = uint32_t(message.text.size()*viewTimePerChar);
-  owner.aiOutput(*self,message.text.c_str(),time);
+  owner.aiForwardOutput(*self,outputname.c_str());
+  self->aiOutput(*target,outputname);
   }
 
 void WorldScript::ai_stopprocessinfos(Daedalus::DaedalusVM &vm) {
   auto self = popInstance(vm);
-  (void)self;
-  owner.aiCloseDialog();
+  if(self)
+    self->aiStopProcessInfo();
   }
 
 void WorldScript::ai_standup(Daedalus::DaedalusVM &vm) {

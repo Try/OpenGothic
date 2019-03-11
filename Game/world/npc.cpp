@@ -585,8 +585,6 @@ void Npc::tick(uint64_t dt) {
 
   if(aiActions.size()==0) {
     tickRoutine();
-    if(invent.isChanged() && aiType!=AiType::Player)
-      invent.autoEquip(owner,*this);
     return;
     }
 
@@ -701,6 +699,14 @@ void Npc::nextAiAction() {
     case AI_UnEquipWeapons:
       invent.unequipWeapons(owner,*this);
       break;
+    case AI_Output:
+      if(!owner.aiOutput(*this,*act.target,act.s0))
+        aiActions.push_front(std::move(act));
+      break;
+    case AI_StopProcessInfo:
+      if(!owner.aiClose())
+        aiActions.push_front(std::move(act));
+      break;
     }
   }
 
@@ -783,6 +789,13 @@ Npc *Npc::target() {
   return currentTarget;
   }
 
+bool Npc::haveOutput() const {
+  for(auto& i:aiActions)
+    if(i.act==AI_Output)
+      return true;
+  return false;
+  }
+
 const Npc::Routine& Npc::currentRoutine() const {
   auto time = owner.world().time();
   time = gtime(int32_t(time.hour()),int32_t(time.minute()));
@@ -853,6 +866,24 @@ void Npc::addItem(uint32_t id, Interactive &chest) {
 
 void Npc::moveItem(uint32_t id, Interactive &to) {
   Inventory::trasfer(to.inventory(),invent,this,id,1,owner);
+  }
+
+void Npc::sellItem(uint32_t id, Npc &to) {
+  int32_t price = invent.sellPriceOf(id);
+  Inventory::trasfer(to.invent,invent,this,id,1,owner);
+  invent.addItem(owner.goldId(),uint32_t(price),owner);
+  }
+
+void Npc::buyItem(uint32_t id, Npc &from) {
+  if(id==owner.goldId())
+    return;
+  int32_t price = from.invent.priceOf(id);
+  if(price>int32_t(invent.goldCount())) {
+    owner.printCannotBuyError(*this);
+    return;
+    }
+  Inventory::trasfer(invent,from.invent,nullptr,id,1,owner);
+  invent.delItem(owner.goldId(),uint32_t(price),owner,*this);
   }
 
 Item *Npc::currentArmour() {
@@ -1352,6 +1383,20 @@ void Npc::aiDodge() {
 void Npc::aiUnEquipWeapons() {
   AiAction a;
   a.act = AI_UnEquipWeapons;
+  aiActions.push_back(a);
+  }
+
+void Npc::aiOutput(Npc& to,std::string text) {
+  AiAction a;
+  a.act    = AI_Output;
+  a.s0     = std::move(text);
+  a.target = &to;
+  aiActions.push_back(a);
+  }
+
+void Npc::aiStopProcessInfo() {
+  AiAction a;
+  a.act = AI_StopProcessInfo;
   aiActions.push_back(a);
   }
 

@@ -27,6 +27,7 @@ class Camera final {
 
     void follow(const Npc& npc, bool includeRot);
 
+    void setPosition(float x,float y,float z);
     void setSpin(const Tempest::PointF& p);
 
     Tempest::Matrix4x4 view() const;

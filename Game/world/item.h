@@ -43,6 +43,7 @@ class Item final {
     int32_t             uiValue(size_t id) const;
     size_t              count() const;
     int32_t             cost() const;
+    int32_t             sellCost() const;
 
     bool                checkCond    (const Npc& other) const;
     bool                checkCondUse (const Npc& other,int32_t& atr,int32_t& nv) const;

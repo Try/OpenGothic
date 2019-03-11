@@ -16,12 +16,14 @@ class InventoryMenu : public Tempest::Widget {
     enum class State:uint8_t {
       Closed=0,
       Equip,
-      Chest
+      Chest,
+      Trade
       };
 
     void  setWorld(const World* w);
     void  close();
     void  open(Npc& pl);
+    void  trade(Npc& pl,Npc& tr);
     void  open(Npc& pl,Interactive& chest);
     State isOpen() const;
     bool  isActive() const;
@@ -47,6 +49,7 @@ class InventoryMenu : public Tempest::Widget {
     size_t                    scroll     =0;
     const World*              world      =nullptr;
     Npc*                      player     =nullptr;
+    Npc*                      trader     =nullptr;
     Interactive*              chest      =nullptr;
     uint8_t                   page       =0;
     Tempest::Timer            takeTimer;

@@ -52,22 +52,26 @@ class Gothic final {
     void     dialogExec  (const WorldScript::DlgChoise& dlg, Npc& player, Npc& npc);
 
     void     aiProcessInfos (Npc& player, Npc& npc);
-    void     aiOuput        (Npc& player, const char* msg, uint32_t time);
-    void     aiCloseDialog  ();
+    bool     aiOuput(Npc& player, const char* msg);
+    void     aiForwardOutput(Npc& player, const char* msg);
+    bool     aiCloseDialog();
     bool     aiIsDlgFinished();
 
     void     printScreen(const char* msg, int x, int y, int time, const Tempest::Font &font);
     void     print      (const char* msg);
 
-    Tempest::Signal<void(const std::string&)>        onSetWorld;
-    Tempest::Signal<void(Npc&,Npc&)>                 onDialogProcess;
-    Tempest::Signal<void(Npc&,const char*,uint32_t)> onDialogOutput;
-    Tempest::Signal<void()>                          onDialogClose;
-    Tempest::Signal<void(bool&)>                     isDialogClose;
+    Tempest::Signal<void(const std::string&)>              onSetWorld;
+    Tempest::Signal<void(Npc&,Npc&)>                       onDialogProcess;
+    Tempest::Signal<void(Npc&,const char*,bool&)>          onDialogOutput;
+    Tempest::Signal<void(Npc&,const char*)>                onDialogForwardOutput;
+    Tempest::Signal<void(bool&)>                           onDialogClose;
+    Tempest::Signal<void(bool&)>                           isDialogClose;
 
     Tempest::Signal<void(const char*,int,int,int,const Tempest::Font&)> onPrintScreen;
     Tempest::Signal<void(const char*)>                                  onPrint;
 
+    const std::string&                    messageByName(const std::string &id) const;
+    uint32_t                              messageTime(const std::string &id) const;
     const std::string&                    path() const { return gpath; }
     const std::string&                    defaultWorld() const;
     std::unique_ptr<Daedalus::DaedalusVM> createVm(const char* datFile);

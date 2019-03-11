@@ -222,12 +222,16 @@ void World::aiProcessInfos(Npc &player, Npc &npc) {
   gothic.aiProcessInfos(player,npc);
   }
 
-void World::aiOutput(Npc &player, const char *msg, uint32_t time) {
-  gothic.aiOuput(player,msg,time);
+bool World::aiOutput(Npc &player, const char *msg) {
+  return gothic.aiOuput(player,msg);
   }
 
-void World::aiCloseDialog() {
-  gothic.aiCloseDialog();
+void World::aiForwardOutput(Npc &player, const char *msg) {
+  return gothic.aiForwardOutput(player,msg);
+  }
+
+bool World::aiCloseDialog() {
+  return gothic.aiCloseDialog();
   }
 
 bool World::aiIsDlgFinished() {

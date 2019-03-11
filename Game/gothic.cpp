@@ -155,12 +155,20 @@ void Gothic::aiProcessInfos(Npc& player,Npc &npc) {
   onDialogProcess(player,npc);
   }
 
-void Gothic::aiOuput(Npc &player, const char *msg, uint32_t time) {
-  onDialogOutput(player,msg,time);
+bool Gothic::aiOuput(Npc &player, const char *msg) {
+  bool ret=false;
+  onDialogOutput(player,msg,ret);
+  return ret;
   }
 
-void Gothic::aiCloseDialog() {
-  onDialogClose();
+void Gothic::aiForwardOutput(Npc &player, const char *msg) {
+  onDialogForwardOutput(player,msg);
+  }
+
+bool Gothic::aiCloseDialog() {
+  bool ret=false;
+  onDialogClose(ret);
+  return ret;
   }
 
 bool Gothic::aiIsDlgFinished() {
@@ -175,6 +183,21 @@ void Gothic::printScreen(const char *msg, int x, int y, int time, const Tempest:
 
 void Gothic::print(const char *msg) {
   onPrint(msg);
+  }
+
+const std::string &Gothic::messageByName(const std::string &id) const {
+  if(!wrld){
+    static std::string empty;
+    return empty;
+    }
+  return wrld->script()->messageByName(id);
+  }
+
+uint32_t Gothic::messageTime(const std::string &id) const {
+  if(!wrld){
+    return 0;
+    }
+  return wrld->script()->messageTime(id);
   }
 
 const std::string &Gothic::defaultWorld() const {

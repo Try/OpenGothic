@@ -44,6 +44,8 @@ class Inventory final {
       ITM_TORCH	     = 1 << 28
       };
 
+    int32_t      priceOf(size_t item) const;
+    int32_t      sellPriceOf(size_t item) const;
     size_t       goldCount() const;
     size_t       itemCount(const size_t id) const;
     size_t       recordsCount() const { return items.size(); }

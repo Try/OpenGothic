@@ -6,20 +6,25 @@
 #include <Tempest/Widget>
 
 #include "world/worldscript.h"
+#include "camera.h"
 
 class Npc;
 class Interactive;
+class InventoryMenu;
 
 class DialogMenu : public Tempest::Widget {
   public:
-    DialogMenu(Gothic& gothic);
+    DialogMenu(Gothic& gothic,InventoryMenu& trade);
 
     void tick(uint64_t dt);
     void clear();
 
+    const Camera& dialogCamera();
+
     void aiProcessInfos(Npc &player, Npc& npc);
-    void aiOutput(Npc& npc, const char* msg, uint32_t time);
-    void aiClose();
+    void aiOutput(Npc& npc, const char* msg, bool &done);
+    void aiOutputForward(Npc& npc, const char* msg);
+    void aiClose(bool& ret);
     void aiIsClose(bool& ret);
     bool isActive() const;
     bool start(Npc& pl,Npc& other);
@@ -44,11 +49,6 @@ class DialogMenu : public Tempest::Widget {
     const Tempest::Texture2d* tex    =nullptr;
     const Tempest::Texture2d* ambient=nullptr;
 
-    enum Flags:uint8_t {
-      NoFlags =0,
-      DlgClose
-      };
-
     enum {
       MAX_PRINT=5
       };
@@ -62,7 +62,11 @@ class DialogMenu : public Tempest::Widget {
     struct Entry {
       std::string txt;
       uint32_t    time=0;
-      Flags       flag=NoFlags;
+      };
+
+    struct Forward {
+      std::string txt;
+      Npc*        npc=nullptr;
       };
 
     struct PScreen {
@@ -75,12 +79,17 @@ class DialogMenu : public Tempest::Widget {
 
     bool onStart(Npc& pl,Npc& other);
     void onEntry(const WorldScript::DlgChoise& e);
-    void onEntry(const Entry& e);
     void onDoneText();
     void close();
+    bool haveToWaitOutput() const;
+
+    void startTrade();
 
     Gothic&                             gothic;
+    InventoryMenu&                      trade;
+
     std::vector<WorldScript::DlgChoise> choise;
+    bool                                waitForOutput=false;
     WorldScript::DlgChoise              selected;
     Npc*                                pl   =nullptr;
     Npc*                                other=nullptr;
@@ -89,9 +98,12 @@ class DialogMenu : public Tempest::Widget {
     std::vector<uint32_t>               except;
 
     State                               state=State::Idle;
-    std::vector<Entry>                  txt;
+    Entry                               current;
+    bool                                dlgTrade=false;
+    std::vector<Forward>                forwardText;
+
     std::vector<PScreen>                pscreen;
-    uint64_t                            remDlg=0;
     PScreen                             printMsg[MAX_PRINT];
     uint32_t                            remPrint=0;
+    Camera                              camera;
   };

@@ -109,8 +109,8 @@ class MainWindow : public Tempest::Window {
     bool                                mouseP[Tempest::MouseEvent::ButtonBack]={};
     bool                                pressed[Tempest::KeyEvent::K_Last]={};
 
-    DialogMenu       dialogs;
     InventoryMenu    inventory;
+    DialogMenu       dialogs;
     Tempest::Widget* uiKeyUp=nullptr;
     Tempest::Point   mpos;
     Tempest::PointF  spin;

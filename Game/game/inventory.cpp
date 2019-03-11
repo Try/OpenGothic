@@ -16,6 +16,20 @@ Inventory::Inventory() {
 Inventory::~Inventory() {
   }
 
+int32_t Inventory::priceOf(size_t cls) const {
+  for(auto& i:items)
+    if(i->clsId()==cls)
+      return i->cost();
+  return 0;
+  }
+
+int32_t Inventory::sellPriceOf(size_t cls) const {
+  for(auto& i:items)
+    if(i->clsId()==cls)
+      return i->sellCost();
+  return 0;
+  }
+
 size_t Inventory::goldCount() const {
   for(auto& i:items)
     if(i->isGold())
