@@ -13,3 +13,4 @@ CMakeLists.txt.user
 
 # Build-dir
 build/
+bin/log.txt
