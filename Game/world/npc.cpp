@@ -695,6 +695,9 @@ void Npc::nextAiAction() {
     case AI_EquipMelee:
       invent.equipBestMeleWeapon(owner,*this);
       break;
+    case AI_EquipRange:
+      invent.equipBestRangeWeapon(owner,*this);
+      break;
     case AI_UseMob:
       if(act.i0<0){
         setInteraction(nullptr);
@@ -1400,6 +1403,12 @@ void Npc::aiGoToPoint(const ZenLoad::zCWaypointData *to) {
 void Npc::aiEquipBestMeleWeapon() {
   AiAction a;
   a.act   = AI_EquipMelee;
+  aiActions.push_back(a);
+  }
+
+void Npc::aiEquipBestRangeWeapon() {
+  AiAction a;
+  a.act   = AI_EquipRange;
   aiActions.push_back(a);
   }
 

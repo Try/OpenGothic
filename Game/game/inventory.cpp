@@ -274,6 +274,11 @@ void Inventory::equipBestMeleWeapon(WorldScript &vm, Npc &owner) {
   setSlot(mele,a,vm,owner,false);
   }
 
+void Inventory::equipBestRangeWeapon(WorldScript &vm, Npc &owner) {
+  auto a = bestRangeWeapon(vm,owner);
+  setSlot(range,a,vm,owner,false);
+  }
+
 void Inventory::unequipWeapons(WorldScript &vm, Npc &owner) {
   setSlot(mele, nullptr,vm,owner,false);
   setSlot(range,nullptr,vm,owner,false);

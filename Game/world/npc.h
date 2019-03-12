@@ -359,6 +359,7 @@ class Npc final {
     void     aiStandup();
     void     aiGoToPoint(const ZenLoad::zCWaypointData* to);
     void     aiEquipBestMeleWeapon();
+    void     aiEquipBestRangeWeapon();
     void     aiUseMob(const std::string& name,int st);
     void     aiUseItem(int32_t id);
     void     aiTeleport(const ZenLoad::zCWaypointData& to);
@@ -404,6 +405,7 @@ class Npc final {
       AI_StandUp,
       AI_GoToPoint,
       AI_EquipMelee,
+      AI_EquipRange,
       AI_UseMob,
       AI_UseItem,
       AI_Teleport,
