@@ -73,6 +73,8 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("hlp_isvalidnpc",      [this](Daedalus::DaedalusVM& vm){ hlp_isvalidnpc(vm);     });
   vm.registerExternalFunction("hlp_getinstanceid",   [this](Daedalus::DaedalusVM& vm){ hlp_getinstanceid(vm);  });
   vm.registerExternalFunction("hlp_getnpc",          [this](Daedalus::DaedalusVM& vm){ hlp_getnpc(vm);         });
+  vm.registerExternalFunction("hlp_isvaliditem",     [this](Daedalus::DaedalusVM& vm){ hlp_isvaliditem(vm);    });
+  vm.registerExternalFunction("hlp_isitem",          [this](Daedalus::DaedalusVM& vm){ hlp_isitem(vm);         });
 
   vm.registerExternalFunction("wld_insertnpc",       [this](Daedalus::DaedalusVM& vm){ wld_insertnpc(vm);  });
   vm.registerExternalFunction("wld_insertitem",      [this](Daedalus::DaedalusVM& vm){ wld_insertitem(vm); });
@@ -149,6 +151,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("npc_checkinfo",       [this](Daedalus::DaedalusVM& vm){ npc_checkinfo(vm);        });
   vm.registerExternalFunction("npc_getportalguild",  [this](Daedalus::DaedalusVM& vm){ npc_getportalguild(vm);   });
   vm.registerExternalFunction("npc_isinplayersroom", [this](Daedalus::DaedalusVM& vm){ npc_isinplayersroom(vm);  });
+  vm.registerExternalFunction("npc_getreadiedweapon",[this](Daedalus::DaedalusVM& vm){ npc_getreadiedweapon(vm); });
 
   vm.registerExternalFunction("ai_output",           [this](Daedalus::DaedalusVM& vm){ ai_output(vm);            });
   vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
@@ -725,6 +728,15 @@ Item *WorldScript::getItem(ItemHandle handle) {
   return reinterpret_cast<Item*>(itData.userPtr);
   }
 
+Item *WorldScript::getItemById(size_t id) {
+  auto handle = vm.getDATFile().getSymbolByIndex(id);
+  if(handle.instanceDataClass!= Daedalus::EInstanceClass::IC_Item)
+    return nullptr;
+
+  ItemHandle hnpc = ZMemory::handleCast<ItemHandle>(handle.instanceDataHandle);
+  return getItem(hnpc);
+  }
+
 Npc* WorldScript::getNpcById(size_t id) {
   auto handle = vm.getDATFile().getSymbolByIndex(id);
   if(handle.instanceDataClass!= Daedalus::EInstanceClass::IC_Npc)
@@ -771,6 +783,12 @@ Npc *WorldScript::popInstance(Daedalus::DaedalusVM &vm) {
   uint32_t arr_self = 0;
   uint32_t idx      = vm.popVar(arr_self);
   return getNpcById(idx);
+  }
+
+Item *WorldScript::popItem(Daedalus::DaedalusVM &vm) {
+  uint32_t arr_self = 0;
+  uint32_t idx      = vm.popVar(arr_self);
+  return getItemById(idx);
   }
 
 
@@ -1500,6 +1518,39 @@ void WorldScript::npc_isinplayersroom(Daedalus::DaedalusVM &vm) {
   vm.setReturn(0); //TODO: stub
   }
 
+void WorldScript::npc_getreadiedweapon(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  if(npc==nullptr) {
+    vm.setReturn(0);
+    return;
+    }
+
+  auto  ws  = npc->weaponState();
+  Item* ret = nullptr;
+  switch(ws) {
+    case WeaponState::NoWeapon:
+    case WeaponState::Fist:
+      ret=nullptr;
+      break;
+    case WeaponState::W1H:
+    case WeaponState::W2H:
+      ret=npc->currentMeleWeapon();
+      break;
+    case WeaponState::Bow:
+    case WeaponState::CBow:
+      ret=npc->currentRangeWeapon();
+      break;
+    case WeaponState::Mage:
+      break;
+    }
+  if(ret!=nullptr){
+    auto& v = vmItem(ret->handle());
+    vm.setReturn(int32_t(v.instanceSymbol));
+    } else {
+    vm.setReturn(0);
+    }
+  }
+
 void WorldScript::ai_processinfos(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   auto pl  = owner.player();
@@ -1811,6 +1862,23 @@ void WorldScript::hlp_getinstanceid(Daedalus::DaedalusVM &vm) {
 void WorldScript::hlp_isvalidnpc(Daedalus::DaedalusVM &vm) {
   auto self = popInstance(vm);
   if(self!=nullptr)
+    vm.setReturn(1); else
+    vm.setReturn(0);
+  }
+
+void WorldScript::hlp_isitem(Daedalus::DaedalusVM &vm) {
+  uint32_t instanceSymbol = vm.popVar();
+  auto     item           = popItem(vm);
+  if(item!=nullptr){
+    auto& v = vmItem(item->handle());
+    vm.setReturn(v.instanceSymbol==instanceSymbol ? 1 : 0);
+    } else
+    vm.setReturn(0);
+  }
+
+void WorldScript::hlp_isvaliditem(Daedalus::DaedalusVM &vm) {
+  auto item = popItem(vm);
+  if(item!=nullptr)
     vm.setReturn(1); else
     vm.setReturn(0);
   }

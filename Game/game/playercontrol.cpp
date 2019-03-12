@@ -100,8 +100,11 @@ void PlayerControl::drawWeaponMage(uint8_t s) {
     }
   }
 
-void PlayerControl::action() {
-  ctrl[Action]=true;
+void PlayerControl::actionFocus(Npc& other) {
+  Npc* pl = world ? world->player() : nullptr;
+  if(pl!=nullptr)
+    pl->setTarget(&other);
+  ctrl[ActionFocus]=true;
   }
 
 void PlayerControl::jump() {
@@ -233,13 +236,20 @@ void PlayerControl::implMove(uint64_t dt) {
         }
       }
 
+    if(ctrl[ActionFocus]){
+      if(auto other = pl.target()) {
+        float dx = other->position()[0]-pl.position()[0];
+        float dz = other->position()[2]-pl.position()[2];
+        pl.lookAt(dx,dz,dt);
+        rot = pl.rotation();
+        }
+      }
     if(ctrl[ActForward]) {
       auto ws = pl.weaponState();
       if(ws==WeaponState::Fist) {
         pl.fistShoot();
         }
-      else if(ws==WeaponState::W1H ||
-         ws==WeaponState::W2H) {
+      else if(ws==WeaponState::W1H || ws==WeaponState::W2H) {
         pl.swingSword();
         return;
         }

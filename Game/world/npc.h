@@ -7,6 +7,7 @@
 #include "game/gametime.h"
 #include "game/movealgo.h"
 #include "game/inventory.h"
+#include "game/fightalgo.h"
 #include "physics/dynamicworld.h"
 #include "worldscript.h"
 
@@ -316,8 +317,8 @@ class Npc final {
     uint64_t stateTime() const;
     void     setStateTime(int64_t time);
 
-    void  addRoutine(gtime s, gtime e, uint32_t callback, const ZenLoad::zCWaypointData* point);
-    void  multSpeed(float s);
+    void     addRoutine(gtime s, gtime e, uint32_t callback, const ZenLoad::zCWaypointData* point);
+    void     multSpeed(float s);
 
     MoveCode tryMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
     MoveCode tryMoveVr(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
@@ -343,6 +344,8 @@ class Npc final {
     Item*    currentArmour();
     Item*    currentMeleWeapon();
     Item*    currentRangeWeapon();
+
+    bool     lookAt(float dx, float dz, uint64_t dt);
 
     void     aiLookAt(Npc* other);
     void     aiStopLookAt();
@@ -375,6 +378,8 @@ class Npc final {
     Npc*     target();
 
     bool     haveOutput() const;
+
+    void     doAttack(Anim anim);
 
   private:
     struct Routine final {
@@ -495,4 +500,5 @@ class Npc final {
     std::deque<AiAction>           aiActions;
 
     MoveAlgo                       mvAlgo;
+    FightAlgo                      fghAlgo;
   };

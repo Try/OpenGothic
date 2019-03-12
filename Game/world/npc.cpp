@@ -269,7 +269,7 @@ bool Npc::setAnim(Npc::Anim a) {
   }
 
 bool Npc::isStanding() const {
-  return animation.current<AnimationSolver::IdleLast;
+  return animation.current<Anim::IdleLast || animation.current==Anim::Interact;
   }
 
 bool Npc::isFlyAnim() const {
@@ -501,11 +501,11 @@ bool Npc::implLookAt(float dx, float dz, uint64_t dt) {
 
   const auto sgn = std::sin(double(da)*M_PI/180.0);
   if(sgn<0) {
-    setDirection(angle-step);
-    setAnim(Anim::RotR);
+    if(setAnim(Anim::RotR))
+      setDirection(angle-step);
     } else {
-    setDirection(angle+step);
-    setAnim(Anim::RotL);
+    if(setAnim(Anim::RotL))
+      setDirection(angle+step);
     }
   return true;
   }
@@ -552,6 +552,16 @@ bool Npc::implAtack(uint64_t dt) {
 
   if(implLookAt(dx,dz,dt))
     return true;
+
+  FightAlgo::Action act=FightAlgo::MV_MOVE;
+  if(currentTarget!=nullptr)
+    act=fghAlgo.tick(*this,*currentTarget,dt);
+
+  if(act==FightAlgo::MV_ATACK){
+    doAttack(Anim::Atack);
+    return true;
+    }
+
   if(!mvAlgo.aiGoTo(currentTarget,200)) {
     setAnim(AnimationSolver::Idle);
     } else {
@@ -796,6 +806,16 @@ bool Npc::haveOutput() const {
   return false;
   }
 
+void Npc::doAttack(Anim anim) {
+  if(!currentTarget || !fghAlgo.isInAtackRange(*this,*currentTarget))
+    return;
+  auto weaponSt=invent.weaponState();
+  if(setAnim(anim,weaponSt,weaponSt)){
+    currentTarget->perceptionProcess(*this,currentTarget,0,PERC_ASSESSDAMAGE);
+    currentTarget->changeAttribute(ATR_HITPOINTS,-10);
+    }
+  }
+
 const Npc::Routine& Npc::currentRoutine() const {
   auto time = owner.world().time();
   time = gtime(int32_t(time.hour()),int32_t(time.minute()));
@@ -896,6 +916,10 @@ Item *Npc::currentMeleWeapon() {
 
 Item *Npc::currentRangeWeapon() {
   return invent.currentRangeWeapon();
+  }
+
+bool Npc::lookAt(float dx, float dz, uint64_t dt) {
+  return implLookAt(dx,dz,dt);
   }
 
 size_t Npc::hasItem(uint32_t id) const {
@@ -1004,7 +1028,8 @@ void Npc::drawSpell(int32_t spell) {
   }
 
 void Npc::fistShoot() {
-  setAnim(Anim::Atack,WeaponState::Fist,WeaponState::Fist);
+  doAttack(Anim::Atack);
+  //setAnim(Anim::Atack,WeaponState::Fist,WeaponState::Fist);
   }
 
 void Npc::blockFist() {
@@ -1018,24 +1043,21 @@ void Npc::swingSword() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return;
-  auto weaponSt=invent.weaponState();
-  setAnim(Anim::Atack,weaponSt,weaponSt);
+  doAttack(Anim::Atack);
   }
 
 void Npc::swingSwordL() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return;
-  auto weaponSt=invent.weaponState();
-  setAnim(Anim::AtackL,weaponSt,weaponSt);
+  doAttack(Anim::AtackL);
   }
 
 void Npc::swingSwordR() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return;
-  auto weaponSt=invent.weaponState();
-  setAnim(AnimationSolver::AtackR,weaponSt,weaponSt);
+  doAttack(Anim::AtackR);
   }
 
 void Npc::blockSword() {

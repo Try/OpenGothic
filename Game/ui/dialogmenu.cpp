@@ -89,6 +89,7 @@ void DialogMenu::aiProcessInfos(Npc &p,Npc &npc) {
   pl     = &p;
   other  = &npc;
   state  = State::PreStart;
+  forwardText.clear();
   }
 
 void DialogMenu::aiOutput(Npc &npc, const char *msg, bool& done) {
@@ -119,6 +120,9 @@ void DialogMenu::aiOutput(Npc &npc, const char *msg, bool& done) {
   }
 
 void DialogMenu::aiOutputForward(Npc &npc, const char *msg) {
+  if(&npc!=pl && &npc!=other){
+    return; // vatras is here
+    }
   forwardText.emplace_back(Forward{msg,&npc});
   }
 
@@ -215,6 +219,7 @@ void DialogMenu::close() {
   dlgTrade=false;
   current.time=0;
   choise.clear();
+  forwardText.clear();
   state=State::Idle;
   update();
 
@@ -396,7 +401,8 @@ void DialogMenu::keyUpEvent(KeyEvent &event) {
     if(trade.isOpen()!=InventoryMenu::State::Closed) {
       trade.close();
       } else {
-      current.time=1;
+      if(current.time>0)
+        current.time=1;
       }
     update();
     }

@@ -321,6 +321,11 @@ void MainWindow::tick() {
     else if(item.item!=nullptr && player.interact(*item.item)) {
       clearInput();
       }
+
+    if(!pressed[KeyEvent::K_W] && !pressed[KeyEvent::K_S] && !pressed[KeyEvent::K_A] && !pressed[KeyEvent::K_D]){
+      if(item.npc)
+        player.actionFocus(*item.npc);
+      }
     }
   if(pressed[KeyEvent::K_F8])
     player.marvinF8();

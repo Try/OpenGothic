@@ -107,7 +107,7 @@ bool MoveAlgo::aiGoTo(const Npc *p,float destDist) {
   currentGoTo    = nullptr;
   if(p==nullptr)
     return false;
-  float len = npc.qDistTo(p->position()[0],npc.position()[1],p->position()[2]);
+  float len = npc.qDistTo(*p);
   if(len<destDist*destDist){
     currentGoToNpc=nullptr;
     return false;

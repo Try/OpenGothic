@@ -28,7 +28,6 @@ class PlayerControl final {
     void drawWeaponMele();
     void drawWeaponBow();
     void drawWeaponMage(uint8_t s);
-    void action();
     void jump();
 
     void rotateLeft ();
@@ -39,6 +38,7 @@ class PlayerControl final {
     void moveLeft();
     void moveRight();
 
+    void actionFocus(Npc& other);
     void actionForward();
     void actionLeft();
     void actionRight();
@@ -59,7 +59,7 @@ class PlayerControl final {
       RotateR,
       Jump,
 
-      Action,
+      ActionFocus,
       ActForward,
       ActLeft,
       ActRight,

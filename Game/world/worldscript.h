@@ -105,6 +105,7 @@ class WorldScript final {
 
     static const std::string& popString  (Daedalus::DaedalusVM &vm);
     Npc*                      popInstance(Daedalus::DaedalusVM &vm);
+    Item*                     popItem    (Daedalus::DaedalusVM &vm);
 
     template<class Ret,class ... Args>
     std::function<Ret(Args...)> notImplementedFn();
@@ -114,6 +115,7 @@ class WorldScript final {
     void onNpcReady (Daedalus::GameState::NpcHandle handle);
 
     Item* getItem(Daedalus::GameState::ItemHandle handle);
+    Item* getItemById(size_t id);
     Npc*  getNpcById(size_t id);
     Npc*  inserNpc  (size_t npcInstance, const char *at);
     auto  getFocus(const char* name) -> Daedalus::GEngineClasses::C_Focus;
@@ -127,6 +129,8 @@ class WorldScript final {
     static void hlp_strcmp   (Daedalus::DaedalusVM& vm);
     void hlp_random          (Daedalus::DaedalusVM& vm);
     void hlp_isvalidnpc      (Daedalus::DaedalusVM &vm);
+    void hlp_isitem          (Daedalus::DaedalusVM &vm);
+    void hlp_isvaliditem     (Daedalus::DaedalusVM &vm);
     void hlp_getinstanceid   (Daedalus::DaedalusVM &vm);
     void hlp_getnpc          (Daedalus::DaedalusVM &vm);
 
@@ -199,6 +203,7 @@ class WorldScript final {
     void npc_checkinfo       (Daedalus::DaedalusVM &vm);
     void npc_getportalguild  (Daedalus::DaedalusVM &vm);
     void npc_isinplayersroom (Daedalus::DaedalusVM &vm);
+    void npc_getreadiedweapon(Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
