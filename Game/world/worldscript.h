@@ -89,6 +89,9 @@ class WorldScript final {
     bool aiOutput  (Npc &from, Npc& to, const std::string& name);
     bool aiClose   ();
 
+    bool isDead       (const Npc &pl);
+    bool isUnconscious(const Npc &pl);
+
     const std::string& messageByName(const std::string &id) const;
     uint32_t           messageTime(const std::string &id) const;
 
@@ -204,6 +207,7 @@ class WorldScript final {
     void npc_getportalguild  (Daedalus::DaedalusVM &vm);
     void npc_isinplayersroom (Daedalus::DaedalusVM &vm);
     void npc_getreadiedweapon(Daedalus::DaedalusVM &vm);
+    void npc_isdrawingspell  (Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
@@ -261,10 +265,10 @@ class WorldScript final {
 
     void sort(std::vector<DlgChoise>& dlg);
 
-    Daedalus::DaedalusVM vm;
-    uint8_t              invokeRecursive=0;
-    World&               owner;
-    std::mt19937         randGen;
+    Daedalus::DaedalusVM                                        vm;
+    uint8_t                                                     invokeRecursive=0;
+    World&                                                      owner;
+    std::mt19937                                                randGen;
 
     std::map<size_t,std::set<size_t>>                           dlgKnownInfos;
     std::vector<Daedalus::GameState::InfoHandle>                dialogsInfo;
@@ -280,6 +284,9 @@ class WorldScript final {
     float                                                       viewTimePerChar=0.5;
     size_t                                                      gilCount=0;
     std::vector<int32_t>                                        gilAttitudes;
+
+    size_t                                                      ZS_Dead=0;
+    size_t                                                      ZS_Unconscious=0;
 
     Daedalus::GEngineClasses::C_Focus                           cFocusNorm,cFocusMele,cFocusRange,cFocusMage;
   };

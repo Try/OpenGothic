@@ -20,6 +20,8 @@ class AnimationSolver final {
     enum Anim : uint16_t {
       NoAnim,
       Idle,
+      DeadA,
+      DeadB,
       GuardL,
       GuardH,
       Sit,
@@ -50,6 +52,8 @@ class AnimationSolver final {
       Eat,
       IdleLast=Eat,
       Warn,
+      UnconsciousA,
+      UnconsciousB,
 
       Move,
       MoveBack,
@@ -88,9 +92,10 @@ class AnimationSolver final {
       MagSle,
       MagWhi,
       MagSck,
+      MagFbt,
 
       MagFirst=MagFib,
-      MagLast =MagSck
+      MagLast =MagFbt
       };
 
     struct Overlay final {
@@ -158,9 +163,11 @@ class AnimationSolver final {
     uint64_t                       sAnim    =0;
     Anim                           current  =NoAnim;
     Anim                           prevAni  =NoAnim;
+    Anim                           lastIdle =Idle;
 
   private:
-    Sequence                       solveMag(const char *format,Anim spell) const;
+    Sequence                       solveMag (const char *format,Anim spell) const;
+    Sequence                       solveDead(const char *format1,const char *format2) const;
 
     std::vector<Overlay>           overlay;
   };

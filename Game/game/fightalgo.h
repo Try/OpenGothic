@@ -14,5 +14,6 @@ class FightAlgo final {
       };
 
     Action tick(Npc& npc,Npc& tg,uint64_t dt);
-    bool   isInAtackRange(Npc& npc,Npc& target);
+    float  prefferedAtackDistance(const Npc &npc) const;
+    bool   isInAtackRange(const Npc &npc, const Npc &target);
   };

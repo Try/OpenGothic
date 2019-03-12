@@ -207,7 +207,7 @@ class Npc final {
     auto walkMode() const { return wlkMode; }
     void tick(uint64_t dt);
     bool startClimb(Npc::Anim ani);
-    bool checkHealth();
+    bool checkHealth(bool onChange);
 
     std::array<float,3> position() const;
     std::array<float,3> cameraBone() const;
@@ -280,8 +280,8 @@ class Npc final {
     void      startDialog(Npc& other);
     bool      startState(size_t id, bool loop, const std::string &wp);
     bool      startState(size_t id, bool loop, const std::string &wp, gtime endTime);
+    void      clearState();
     BodyState bodyState() const;
-    bool      isDead() const;
 
     void setToFightMode(const uint32_t item);
 
@@ -347,6 +347,7 @@ class Npc final {
 
     bool     lookAt(float dx, float dz, uint64_t dt);
 
+    bool     checkGoToNpcdistance(const Npc& other);
     void     aiLookAt(Npc* other);
     void     aiStopLookAt();
     void     aiRemoveWeapon();
@@ -485,7 +486,9 @@ class Npc final {
     Npc*                           currentOther   =nullptr;
     Npc*                           currentLookAt  =nullptr;
     Npc*                           currentTurnTo  =nullptr;
+    Npc*                           lastHit        =nullptr;
     Npc*                           currentTarget  =nullptr;
+    char                           lastHitType    ='A';
     bool                           atackMode      =false;
 
     Npc*                           currentGoToNpc =nullptr;

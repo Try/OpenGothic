@@ -244,7 +244,7 @@ template<class T>
 T* WorldObjects::findObj(std::vector<T> &src,const Npc &pl, float minDist, float maxDist,
                          float maxAngle, const Matrix4x4 &v, int w, int h) {
   T*    ret=nullptr;
-  float rlen = w*h;
+  float rlen = maxDist*maxDist;//w*h;
   if(owner.view()==nullptr)
     return nullptr;
 
@@ -283,7 +283,7 @@ T* WorldObjects::findObj(std::vector<T> &src,const Npc &pl, float minDist, float
     x = 0.5f*x*w;
     y = 0.5f*y*h;
 
-    l = std::sqrt(x*x+y*y);
+    l = std::sqrt(dx*dx+dy*dy+dz*dz);
     if(l<rlen){
       rlen=l;
       ret=&n;

@@ -165,6 +165,8 @@ void PlayerControl::marvinF8() {
   pos[0]+=60*s;
   pos[2]+=-60*c;
 
+  pl.changeAttribute(Npc::ATR_HITPOINTS,pl.attribute(Npc::ATR_HITPOINTSMAX));
+  pl.clearState();
   pl.setPosition(pos);
   pl.clearSpeed();
   pl.setAnim(AnimationSolver::Idle);
@@ -184,6 +186,11 @@ void PlayerControl::implMove(uint64_t dt) {
   float rspeed = 90.f/1000.f;
 
   Npc::Anim ani=Npc::Anim::Idle;
+
+  if((pl.bodyState()&Npc::BS_MAX)==Npc::BS_DEAD)
+    return;
+  if((pl.bodyState()&Npc::BS_MAX)==Npc::BS_UNCONSCIOUS)
+    return;
 
   if(pl.interactive()==nullptr) {
     if(ctrl[RotateL]) {

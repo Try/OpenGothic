@@ -52,15 +52,16 @@ void MoveAlgo::tick(uint64_t dt) {
     float dx  = currentGoToNpc->position()[0]-npc.position()[0];
     float dy  = currentGoToNpc->position()[1]-npc.position()[1];
     float dz  = currentGoToNpc->position()[2]-npc.position()[2];
-    float len = std::sqrt(dx*dx+dy*dy+dz*dz);
+    float len = (dx*dx+dy*dy+dz*dz);
 
-    if(len<=100){
+    if(npc.checkGoToNpcdistance(*currentGoToNpc)){
       currentGoToNpc=nullptr;
       npc.setAnim(AnimationSolver::Idle);
       } else {
       npc.setAnim(AnimationSolver::Move);
       }
-    if(len>0.1f){
+    if(len>0.1f*0.1f){
+      len = std::sqrt(len);
       float k = std::min(len,mulSpeed*speed)/len;
       aniSpeed[0] = dx*k;
       aniSpeed[2] = dz*k;

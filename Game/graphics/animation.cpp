@@ -104,6 +104,9 @@ Animation::Sequence& Animation::loadMAN(const std::string& name) {
   }
 
 void Animation::setupIndex() {
+  // for(auto& i:sequences)
+  //   Log::i(i.name);
+
   for(auto& i:sequences) {
     for(auto& r:sequences)
       if(r.name==i.nextStr){

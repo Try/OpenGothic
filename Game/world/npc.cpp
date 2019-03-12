@@ -84,17 +84,40 @@ bool Npc::startClimb(Anim ani) {
   return false;
   }
 
-bool Npc::checkHealth() {
+bool Npc::checkHealth(bool onChange) {
+  if(owner.isDead(*this)) {
+    setAnim(lastHitType=='A' ? Anim::DeadA : Anim::DeadB);
+    return false;
+    }
+  if(owner.isUnconscious(*this)) {
+    setAnim(lastHitType=='A' ? Anim::UnconsciousA : Anim::UnconsciousB);
+    return false;
+    }
+
   auto& v = owner.vmNpc(hnpc);
-  if(v.attribute[ATR_HITPOINTS]<=1){
+  if(v.attribute[ATR_HITPOINTS]<=1) {
     if(v.attribute[ATR_HITPOINTSMAX]<=1){
       size_t fdead=owner.getSymbolIndex("ZS_Dead");
       startState(fdead,true,"");
-      } else {
-      size_t fdead=owner.getSymbolIndex("ZS_Unconscious");
-      startState(fdead,true,"");
+      return false;
       }
-    return false;
+
+    if(onChange) {
+      if(lastHit!=nullptr){
+        float da = rotationRad()-lastHit->rotationRad();
+        if(std::cos(da)>=0)
+          lastHitType='A'; else
+          lastHitType='B';
+        }
+      if(owner.guildAttitude(*this,*currentOther)==WorldScript::ATT_HOSTILE){
+        size_t fdead=owner.getSymbolIndex("ZS_Dead");
+        startState(fdead,true,"");
+        } else {
+        size_t fdead=owner.getSymbolIndex("ZS_Unconscious");
+        startState(fdead,true,"");
+        }
+      return false;
+      }
     }
   return true;
   }
@@ -397,9 +420,10 @@ int32_t Npc::attribute(Npc::Attribute a) const {
   }
 
 void Npc::changeAttribute(Npc::Attribute a, int32_t val) {
-  if(a>=ATR_MAX)
+  if(a>=ATR_MAX || val==0)
     return;
-  auto& v = owner.vmNpc(hnpc);
+
+  auto& v    = owner.vmNpc(hnpc);
   v.attribute[a]+=val;
   if(v.attribute[a]<0)
     v.attribute[a]=0;
@@ -412,7 +436,7 @@ void Npc::changeAttribute(Npc::Attribute a, int32_t val) {
     invent.invalidateCond(*this);
 
   if(a==ATR_HITPOINTS){
-    checkHealth();
+    checkHealth(true);
     }
   }
 
@@ -453,10 +477,6 @@ int32_t Npc::experienceNext() const {
 
 int32_t Npc::learningPoints() const {
   return owner.vmNpc(hnpc).lp;
-  }
-
-bool Npc::isDead() const {
-  return (bodySt & BS_DEAD)!=0;
   }
 
 bool Npc::implLookAt(uint64_t dt) {
@@ -557,12 +577,12 @@ bool Npc::implAtack(uint64_t dt) {
   if(currentTarget!=nullptr)
     act=fghAlgo.tick(*this,*currentTarget,dt);
 
-  if(act==FightAlgo::MV_ATACK){
+  if(act==FightAlgo::MV_ATACK) {
     doAttack(Anim::Atack);
     return true;
     }
 
-  if(!mvAlgo.aiGoTo(currentTarget,200)) {
+  if(!mvAlgo.aiGoTo(currentTarget,fghAlgo.prefferedAtackDistance(*this))) {
     setAnim(AnimationSolver::Idle);
     } else {
     setAnim(AnimationSolver::Move);
@@ -571,7 +591,13 @@ bool Npc::implAtack(uint64_t dt) {
   }
 
 void Npc::tick(uint64_t dt) {
-  checkHealth();
+  if(!checkHealth(false)){
+    mvAlgo.aiGoTo(nullptr);
+    currentOther = lastHit;
+    mvAlgo.tick(dt);
+    tickRoutine(); // tick for ZS_Death
+    return;
+    }
 
   mvAlgo.tick(dt);
 
@@ -585,10 +611,8 @@ void Npc::tick(uint64_t dt) {
 
   if(interactive()!=nullptr)
     setAnim(AnimationSolver::Interact); else
-  if(animation.current<=AnimationSolver::IdleLoopLast)
-    setAnim(animation.current); else
   if(currentGoTo==nullptr && currentGoToNpc==nullptr && !(currentTarget!=nullptr && atackMode) && aiType!=AiType::Player)
-    setAnim(Anim::Idle);
+    setAnim(animation.lastIdle);
 
   if(waitTime>=owner.tickCount())
     return;
@@ -752,6 +776,15 @@ bool Npc::startState(size_t id,bool loop,const std::string &wp,gtime endTime) {
   return true;
   }
 
+void Npc::clearState() {
+  if(aiState.funcIni!=0 && aiState.started){
+    owner.invokeState(this,currentOther,nullptr,aiState.funcLoop); // avoid ZS_Talk bug
+    owner.invokeState(this,currentOther,nullptr,aiState.funcEnd);  // cleanup
+    }
+  aiState = AiState();
+  aiState.funcIni = 0;
+  }
+
 void Npc::tickRoutine() {
   if(aiState.funcIni==0) {
     auto& v = owner.vmNpc(hnpc);
@@ -807,12 +840,29 @@ bool Npc::haveOutput() const {
   }
 
 void Npc::doAttack(Anim anim) {
-  if(!currentTarget || !fghAlgo.isInAtackRange(*this,*currentTarget))
-    return;
   auto weaponSt=invent.weaponState();
-  if(setAnim(anim,weaponSt,weaponSt)){
+  auto weapon  =invent.activeWeapon();
+
+  if(weaponSt==WeaponState::Mage && weapon!=nullptr)
+    anim=Anim(owner.spellCastAnim(*this,*weapon));
+
+  if(!currentTarget || !fghAlgo.isInAtackRange(*this,*currentTarget)){
+    setAnim(anim,weaponSt,weaponSt);
+    return;
+    }
+
+  if(animation.current==anim){
+    setAnim(Anim::Idle,weaponSt,weaponSt);
+    }
+  else if(setAnim(anim,weaponSt,weaponSt)){
+    currentTarget->lastHit     =this;
+    currentTarget->currentOther=currentTarget->lastHit;
     currentTarget->perceptionProcess(*this,currentTarget,0,PERC_ASSESSDAMAGE);
-    currentTarget->changeAttribute(ATR_HITPOINTS,-10);
+
+    if(!currentTarget->isPlayer()) {
+      currentTarget->currentOther=currentTarget->lastHit;
+      currentTarget->changeAttribute(ATR_HITPOINTS,-10);
+      }
     }
   }
 
@@ -851,7 +901,11 @@ gtime Npc::endTime(const Npc::Routine &r) const {
 
 Npc::BodyState Npc::bodyState() const {
   uint32_t s = bodySt;
-  if(anim()==Anim::Move || anim()==Anim::MoveL || anim()==Anim::MoveR || anim()==Anim::MoveBack)
+  if(owner.isDead(*this))
+    s = BS_DEAD;
+  else if(owner.isUnconscious(*this))
+    s = BS_UNCONSCIOUS;
+  else if(anim()==Anim::Move || anim()==Anim::MoveL || anim()==Anim::MoveR || anim()==Anim::MoveBack)
     s = BS_RUN;
   else if(anim()==Anim::Fall || anim()==Anim::FallDeep)
     s = BS_FALL;
@@ -920,6 +974,12 @@ Item *Npc::currentRangeWeapon() {
 
 bool Npc::lookAt(float dx, float dz, uint64_t dt) {
   return implLookAt(dx,dz,dt);
+  }
+
+bool Npc::checkGoToNpcdistance(const Npc &other) {
+  if(atackMode)
+    return fghAlgo.isInAtackRange(*this,other);
+  return qDistTo(other)<=200*200;
   }
 
 size_t Npc::hasItem(uint32_t id) const {

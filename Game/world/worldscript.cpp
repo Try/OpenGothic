@@ -152,6 +152,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("npc_getportalguild",  [this](Daedalus::DaedalusVM& vm){ npc_getportalguild(vm);   });
   vm.registerExternalFunction("npc_isinplayersroom", [this](Daedalus::DaedalusVM& vm){ npc_isinplayersroom(vm);  });
   vm.registerExternalFunction("npc_getreadiedweapon",[this](Daedalus::DaedalusVM& vm){ npc_getreadiedweapon(vm); });
+  vm.registerExternalFunction("npc_isdrawingspell",  [this](Daedalus::DaedalusVM& vm){ npc_isdrawingspell(vm);   });
 
   vm.registerExternalFunction("ai_output",           [this](Daedalus::DaedalusVM& vm){ ai_output(vm);            });
   vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
@@ -228,6 +229,9 @@ void WorldScript::initCommon() {
   cFocusMele  = getFocus("Focus_Melee");
   cFocusRange = getFocus("Focus_Ranged");
   cFocusMage  = getFocus("Focus_Magic");
+
+  ZS_Dead         = getAiState(getSymbolIndex("ZS_Dead")).funcIni;
+  ZS_Unconscious  = getAiState(getSymbolIndex("ZS_Unconscious")).funcIni;
 
   auto& currency  = vm.getDATFile().getSymbolByName("TRADE_CURRENCY_INSTANCE");
   itMi_Gold       = vm.getDATFile().getSymbolIndexByName(currency.getString(0));
@@ -582,6 +586,8 @@ int WorldScript::spellCastAnim(Npc&, Item &it) {
     return Npc::Anim::MagWhi;
   if(tag=="SCK")
     return Npc::Anim::MagSck;
+  if(tag=="FBT")
+    return Npc::Anim::MagFbt;
   return Npc::Anim::MagFib;
   }
 
@@ -595,6 +601,14 @@ bool WorldScript::aiOutput(Npc &from, Npc &/*to*/, const std::string &outputname
 
 bool WorldScript::aiClose() {
   return owner.aiCloseDialog();
+  }
+
+bool WorldScript::isDead(const Npc &pl) {
+  return pl.isState(ZS_Dead);
+  }
+
+bool WorldScript::isUnconscious(const Npc &pl) {
+  return pl.isState(ZS_Unconscious);
   }
 
 const std::string &WorldScript::messageByName(const std::string& id) const {
@@ -1116,7 +1130,7 @@ void WorldScript::npc_exchangeroutine(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::npc_isdead(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
-  if(npc==nullptr || npc->isDead())
+  if(npc==nullptr || isDead(*npc))
     vm.setReturn(1); else
     vm.setReturn(0);
   }
@@ -1525,30 +1539,26 @@ void WorldScript::npc_getreadiedweapon(Daedalus::DaedalusVM &vm) {
     return;
     }
 
-  auto  ws  = npc->weaponState();
-  Item* ret = nullptr;
-  switch(ws) {
-    case WeaponState::NoWeapon:
-    case WeaponState::Fist:
-      ret=nullptr;
-      break;
-    case WeaponState::W1H:
-    case WeaponState::W2H:
-      ret=npc->currentMeleWeapon();
-      break;
-    case WeaponState::Bow:
-    case WeaponState::CBow:
-      ret=npc->currentRangeWeapon();
-      break;
-    case WeaponState::Mage:
-      break;
-    }
+  auto ret = npc->inventory().activeWeapon();
   if(ret!=nullptr){
-    auto& v = vmItem(ret->handle());
-    vm.setReturn(int32_t(v.instanceSymbol));
+    vm.setReturn(int32_t(ret->clsId()));
     } else {
     vm.setReturn(0);
     }
+  }
+
+void WorldScript::npc_isdrawingspell(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  if(npc==nullptr){
+    vm.setReturn(0);
+    return;
+    }
+  auto it = npc->inventory().activeWeapon();
+  if(it==nullptr || !it->isSpell()){
+    vm.setReturn(0);
+    return;
+    }
+  vm.setReturn(int32_t(it->clsId()));
   }
 
 void WorldScript::ai_processinfos(Daedalus::DaedalusVM &vm) {

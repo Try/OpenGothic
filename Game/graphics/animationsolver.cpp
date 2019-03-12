@@ -57,12 +57,16 @@ bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState nextSt,Weapo
       return false;
     if(current==Atack && !animSq.isFinished(tickCount-sAnim) && tickCount-sAnim<1000)
       return false;
+    if(MagFirst<=current && current<=MagLast && !animSq.isFinished(tickCount-sAnim))
+      return false;
     }
   auto ani = solveAnim(a,weaponSt,current,nextSt,walk,inter);
   if(ani==nullptr)
     ani = solveAnim(Idle,WeaponState::NoWeapon,Idle,WeaponState::NoWeapon,WalkBit::WM_Run,nullptr);
   prevAni  = current;
   current  = a;
+  if(current<IdleLoopLast)
+    lastIdle=current;
   if(ani==animSq) {
     if(animSq.cls==Animation::Transition){
       invalidateAnim(ani,skeleton,tickCount); // restart anim
@@ -141,7 +145,7 @@ void AnimationSolver::updateAnimation(uint64_t tickCount) {
     }
   }
 
-AnimationSolver::Sequence AnimationSolver::solveAnim(Anim a,   WeaponState st0,
+AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
                                                       Anim cur, WeaponState st,
                                                       WalkBit wlkMode,
                                                       Interactive* inter) const {
@@ -206,8 +210,10 @@ AnimationSolver::Sequence AnimationSolver::solveAnim(Anim a,   WeaponState st0,
     }
 
   if(st==WeaponState::Fist) {
-    if(a==Anim::Atack && cur==Move)
-      return animSequence("T_FISTATTACKMOVE");
+    if(a==Anim::Atack && cur==Move) {
+      if(auto a=animSequence("T_FISTATTACKMOVE"))
+        return a;
+      }
     if(a==Anim::Atack)
       return animSequence("S_FISTATTACK");
     if(a==Anim::AtackBlock)
@@ -246,14 +252,6 @@ AnimationSolver::Sequence AnimationSolver::solveAnim(Anim a,   WeaponState st0,
         case 2: return animSequence("T_2HPARADE_0_A3");
         }
       }
-    }
-  else if(st==WeaponState::Mage) {
-    if(cur!=Anim::Atack && a==Atack)
-      return animSequence("T_MAGRUN_2_TRFSHOOT");
-    if(cur==Anim::Atack && a==Atack)
-      return animSequence("S_TRFSHOOT");
-    if(cur==Anim::Atack && a==Idle)
-      return animSequence("T_TRFSHOOT_2_STAND");
     }
 
   if((cur==Anim::Idle || cur==Anim::NoAnim) && a==Anim::Idle){
@@ -356,6 +354,34 @@ AnimationSolver::Sequence AnimationSolver::solveAnim(Anim a,   WeaponState st0,
     return animSequence("T_SLEEP_2_STAND");
   if(a==Anim::Sleep)
     return animSequence("S_SLEEP");
+
+  if((cur==Anim::UnconsciousA || cur==Anim::UnconsciousB) && a==Anim::DeadA)
+    return solveDead("T_WOUNDEDB_2_DEAD","T_WOUNDED_2_DEADB");
+  if(cur!=Anim::DeadA && a==Anim::DeadA)
+    return solveDead("T_DEAD","T_DEADB");
+  if(a==Anim::DeadA)
+    return solveDead("S_DEAD","S_DEADB");
+
+  if((cur==Anim::UnconsciousA || cur==Anim::UnconsciousB) && a==Anim::DeadB)
+    return solveDead("T_WOUNDEDB_2_DEADB","T_WOUNDED_2_DEAD");
+  if(cur!=Anim::DeadB && a==Anim::DeadB)
+    return solveDead("T_DEADB","T_DEAD");
+  if(a==Anim::DeadB)
+    return solveDead("S_DEADB","S_DEAD");
+
+  if(cur==Anim::Idle && a==Anim::UnconsciousA)
+    return animSequence("T_STAND_2_WOUNDED");
+  if(cur==Anim::UnconsciousA && a==Anim::Idle)
+    return animSequence("T_WOUNDED_2_STAND");
+  if(a==Anim::UnconsciousA)
+    return animSequence("S_WOUNDED");
+
+  if(cur==Anim::Idle && a==Anim::UnconsciousB)
+    return animSequence("T_STAND_2_WOUNDEDB");
+  if(cur==Anim::UnconsciousB && a==Anim::Idle)
+    return animSequence("T_WOUNDEDB_2_STAND");
+  if(a==Anim::UnconsciousB)
+    return animSequence("S_WOUNDEDB");
 
   if(cur==Anim::Idle && a==Anim::GuardSleep)
     return animSequence("T_STAND_2_GUARDSLEEP");
@@ -471,11 +497,17 @@ AnimationSolver::Sequence AnimationSolver::solveAnim(const char *format, WeaponS
   }
 
 AnimationSolver::Sequence AnimationSolver::solveMag(const char *format,Anim spell) const {
-  static const char* mg[]={"FIB", "WND", "HEA", "PYR", "FEA", "TRF", "SUM", "MSD", "STM", "FRZ", "SLE", "WHI", "SCK"};
+  static const char* mg[]={"FIB", "WND", "HEA", "PYR", "FEA", "TRF", "SUM", "MSD", "STM", "FRZ", "SLE", "WHI", "SCK", "FBT"};
 
   char name[128]={};
   std::snprintf(name,sizeof(name),format,mg[spell-Anim::MagFirst]);
   return animSequence(name);
+  }
+
+AnimationSolver::Sequence AnimationSolver::solveDead(const char *format1, const char *format2) const {
+  if(auto a=animSequence(format1))
+    return a;
+  return animSequence(format2);
   }
 
 AnimationSolver::Sequence AnimationSolver::animSequence(const char *name) const {

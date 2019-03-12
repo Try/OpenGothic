@@ -12,7 +12,12 @@ FightAlgo::Action FightAlgo::tick(Npc &npc, Npc &tg, uint64_t /*dt*/) {
   return MV_MOVE;
   }
 
-bool FightAlgo::isInAtackRange(Npc &npc, Npc &tg) {
+float FightAlgo::prefferedAtackDistance(const Npc &/*npc*/) const {
+  return 200; // TODO
+  }
+
+bool FightAlgo::isInAtackRange(const Npc &npc,const Npc &tg) {
   auto dist = npc.qDistTo(tg);
-  return (dist<200*200);
+  auto pd   = prefferedAtackDistance(npc);
+  return (dist<pd*pd);
   }
