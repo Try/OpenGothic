@@ -3,6 +3,7 @@
 #include <cstdint>
 
 class Npc;
+class WorldScript;
 
 class FightAlgo final {
   public:
@@ -13,7 +14,7 @@ class FightAlgo final {
       MV_MOVE =1
       };
 
-    Action tick(Npc& npc,Npc& tg,uint64_t dt);
-    float  prefferedAtackDistance(const Npc &npc) const;
-    bool   isInAtackRange(const Npc &npc, const Npc &target);
+    Action tick(Npc& npc, Npc& tg, WorldScript &owner, uint64_t dt);
+    float  prefferedAtackDistance(const Npc &npc, WorldScript &owner) const;
+    bool   isInAtackRange(const Npc &npc, const Npc &target, WorldScript &owner);
   };

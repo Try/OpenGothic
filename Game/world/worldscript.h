@@ -58,6 +58,7 @@ class WorldScript final {
     const Daedalus::GEngineClasses::C_Focus&          focusMele()  const { return cFocusMele;  }
     const Daedalus::GEngineClasses::C_Focus&          focusRange() const { return cFocusRange; }
     const Daedalus::GEngineClasses::C_Focus&          focusMage()  const { return cFocusMage;  }
+    const Daedalus::GEngineClasses::C_GilValues&      guildVal()   const { return cGuildVal;   }
 
     Daedalus::GameState::DaedalusGameState&           getGameState();
     Daedalus::PARSymbol&                              getSymbol(const char*  s);
@@ -297,4 +298,5 @@ class WorldScript final {
     size_t                                                      ZS_Unconscious=0;
 
     Daedalus::GEngineClasses::C_Focus                           cFocusNorm,cFocusMele,cFocusRange,cFocusMage;
+    Daedalus::GEngineClasses::C_GilValues                       cGuildVal;
   };

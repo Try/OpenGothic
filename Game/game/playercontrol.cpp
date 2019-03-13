@@ -183,7 +183,8 @@ bool PlayerControl::tickMove(uint64_t dt) {
 void PlayerControl::implMove(uint64_t dt) {
   Npc&  pl     = *world->player();
   float rot    = pl.rotation();
-  float rspeed = 90.f/1000.f;
+  auto  gl     = std::min<uint32_t>(pl.guild(),GIL_MAX);
+  float rspeed = world->script()->guildVal().turn_speed[gl]*(dt/1000.f);
 
   Npc::Anim ani=Npc::Anim::Idle;
 
@@ -194,11 +195,11 @@ void PlayerControl::implMove(uint64_t dt) {
 
   if(pl.interactive()==nullptr) {
     if(ctrl[RotateL]) {
-      rot += rspeed*dt;
+      rot += rspeed;
       ani  = Npc::Anim::RotL;
       }
     if(ctrl[RotateR]) {
-      rot -= rspeed*dt;
+      rot -= rspeed;
       ani  = Npc::Anim::RotR;
       }
 

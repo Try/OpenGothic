@@ -62,7 +62,7 @@ bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState nextSt,Weapo
     }
   auto ani = solveAnim(a,weaponSt,current,nextSt,walk,inter);
   if(ani==nullptr)
-    ani = solveAnim(Idle,WeaponState::NoWeapon,Idle,WeaponState::NoWeapon,WalkBit::WM_Run,nullptr);
+    ani = solveAnim(Idle,WeaponState::Fist,Idle,WeaponState::Fist,WalkBit::WM_Run,nullptr);
   prevAni  = current;
   current  = a;
   if(current<IdleLoopLast)

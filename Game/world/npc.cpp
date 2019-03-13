@@ -456,7 +456,8 @@ uint32_t Npc::instanceSymbol() const {
   }
 
 uint32_t Npc::guild() const {
-  return uint32_t(owner.vmNpc(hnpc).guild);
+  uint32_t ret = uint32_t(owner.vmNpc(hnpc).guild);
+  return ret;
   }
 
 int32_t Npc::magicCyrcle() const {
@@ -502,7 +503,8 @@ bool Npc::implLookAt(uint64_t dt) {
 bool Npc::implLookAt(float dx, float dz, uint64_t dt) {
   float       a    = angleDir(dx,dz);
   float       da   = int(a-angle)%360;
-  float       step = 120*dt/1000.f;
+  auto        gl   = std::min<uint32_t>(guild(),GIL_MAX);
+  float       step = owner.guildVal().turn_speed[gl]*(dt/1000.f);
 
   if(std::abs(da)<step){
     setDirection(a);
@@ -531,7 +533,7 @@ bool Npc::implLookAt(float dx, float dz, uint64_t dt) {
   }
 
 bool Npc::implGoTo(uint64_t dt) {
-  if((!currentGoTo && !currentGoToNpc) || atackMode==true)
+  if((!currentGoTo && !currentGoToNpc) || currentTarget!=nullptr)
     return false;
 
   if(currentGoTo){
@@ -565,7 +567,7 @@ bool Npc::implGoTo(uint64_t dt) {
   }
 
 bool Npc::implAtack(uint64_t dt) {
-  if(!atackMode || currentTarget==nullptr)
+  if(currentTarget==nullptr || isPlayer())
     return false;
   float dx = currentTarget->x-x;
   float dz = currentTarget->z-z;
@@ -573,16 +575,21 @@ bool Npc::implAtack(uint64_t dt) {
   if(implLookAt(dx,dz,dt))
     return true;
 
+  if(owner.isDead(*currentTarget)) {
+    currentTarget=nullptr;
+    return false;
+    }
+
   FightAlgo::Action act=FightAlgo::MV_MOVE;
   if(currentTarget!=nullptr)
-    act=fghAlgo.tick(*this,*currentTarget,dt);
+    act=fghAlgo.tick(*this,*currentTarget,owner,dt);
 
   if(act==FightAlgo::MV_ATACK) {
     doAttack(Anim::Atack);
     return true;
     }
 
-  if(!mvAlgo.aiGoTo(currentTarget,fghAlgo.prefferedAtackDistance(*this))) {
+  if(!mvAlgo.aiGoTo(currentTarget,fghAlgo.prefferedAtackDistance(*this,owner))) {
     setAnim(AnimationSolver::Idle);
     } else {
     setAnim(AnimationSolver::Move);
@@ -611,7 +618,7 @@ void Npc::tick(uint64_t dt) {
 
   if(interactive()!=nullptr)
     setAnim(AnimationSolver::Interact); else
-  if(currentGoTo==nullptr && currentGoToNpc==nullptr && !(currentTarget!=nullptr && atackMode) && aiType!=AiType::Player)
+  if(currentGoTo==nullptr && currentGoToNpc==nullptr && !(currentTarget!=nullptr) && aiType!=AiType::Player)
     setAnim(animation.lastIdle);
 
   if(waitTime>=owner.tickCount())
@@ -856,7 +863,7 @@ void Npc::doAttack(Anim anim) {
   if(weaponSt==WeaponState::Mage && weapon!=nullptr)
     anim=Anim(owner.spellCastAnim(*this,*weapon));
 
-  if(!currentTarget || !fghAlgo.isInAtackRange(*this,*currentTarget)){
+  if(!currentTarget || !fghAlgo.isInAtackRange(*this,*currentTarget,owner)){
     setAnim(anim,weaponSt,weaponSt);
     return;
     }
@@ -871,7 +878,7 @@ void Npc::doAttack(Anim anim) {
 
     if(!currentTarget->isPlayer()) {
       currentTarget->currentOther=currentTarget->lastHit;
-      currentTarget->changeAttribute(ATR_HITPOINTS,-10);
+      currentTarget->changeAttribute(ATR_HITPOINTS,-100);
       }
     }
   }
@@ -988,7 +995,7 @@ bool Npc::lookAt(float dx, float dz, uint64_t dt) {
 
 bool Npc::checkGoToNpcdistance(const Npc &other) {
   if(atackMode)
-    return fghAlgo.isInAtackRange(*this,other);
+    return fghAlgo.isInAtackRange(*this,other,owner);
   return qDistTo(other)<=200*200;
   }
 
@@ -1099,7 +1106,6 @@ void Npc::drawSpell(int32_t spell) {
 
 void Npc::fistShoot() {
   doAttack(Anim::Atack);
-  //setAnim(Anim::Atack,WeaponState::Fist,WeaponState::Fist);
   }
 
 void Npc::blockFist() {
