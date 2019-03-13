@@ -210,6 +210,7 @@ class WorldScript final {
     void npc_isinplayersroom (Daedalus::DaedalusVM &vm);
     void npc_getreadiedweapon(Daedalus::DaedalusVM &vm);
     void npc_isdrawingspell  (Daedalus::DaedalusVM &vm);
+    void npc_perceiveall     (Daedalus::DaedalusVM& vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
@@ -269,15 +270,17 @@ class WorldScript final {
     void perc_setrange       (Daedalus::DaedalusVM &vm);
 
     void sort(std::vector<DlgChoise>& dlg);
+    void setNpcInfoKnown(const Daedalus::GEngineClasses::C_Npc& npc, const Daedalus::GEngineClasses::C_Info& info);
+    bool doesNpcKnowInfo(const Daedalus::GEngineClasses::C_Npc& npc, size_t infoInstance) const;
 
     Daedalus::DaedalusVM                                        vm;
     uint8_t                                                     invokeRecursive=0;
     World&                                                      owner;
     std::mt19937                                                randGen;
 
-    std::map<size_t,std::set<size_t>>                           dlgKnownInfos;
+    std::set<std::pair<size_t,size_t>>                          dlgKnownInfos;
     std::vector<Daedalus::GameState::InfoHandle>                dialogsInfo;
-    std::unique_ptr<Daedalus::GameState::DaedalusDialogManager> dialogs;
+    std::unique_ptr<ZenLoad::zCCSLib>                           dialogs;
     std::unordered_map<size_t,AiState>                          aiStates;
 
     QuestLog                                                    quests;

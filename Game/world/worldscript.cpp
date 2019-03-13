@@ -157,6 +157,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("npc_isinplayersroom", [this](Daedalus::DaedalusVM& vm){ npc_isinplayersroom(vm);  });
   vm.registerExternalFunction("npc_getreadiedweapon",[this](Daedalus::DaedalusVM& vm){ npc_getreadiedweapon(vm); });
   vm.registerExternalFunction("npc_isdrawingspell",  [this](Daedalus::DaedalusVM& vm){ npc_isdrawingspell(vm);   });
+  vm.registerExternalFunction("npc_perceiveall",     [this](Daedalus::DaedalusVM& vm){ npc_perceiveall(vm);      });
 
   vm.registerExternalFunction("ai_output",           [this](Daedalus::DaedalusVM& vm){ ai_output(vm);            });
   vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
@@ -276,7 +277,7 @@ void WorldScript::initCommon() {
 void WorldScript::initDialogs(Gothic& gothic) {
   loadDialogOU(gothic);
   if(!dialogs)
-    dialogs.reset(new Daedalus::GameState::DaedalusDialogManager(vm,"",dlgKnownInfos));
+    dialogs.reset(new ZenLoad::zCCSLib(""));
 
   vm.getDATFile().iterateSymbolsOfClass("C_Info", [this](size_t i,Daedalus::PARSymbol&){
     InfoHandle h = vm.getGameState().createInfo();
@@ -299,7 +300,7 @@ void WorldScript::loadDialogOU(Gothic &gothic) {
         exist=f.is_open();
       }
       if(exist){
-        dialogs.reset(new Daedalus::GameState::DaedalusDialogManager(vm, full, dlgKnownInfos));
+        dialogs.reset(new ZenLoad::zCCSLib(full));
         return;
         }
       }
@@ -380,7 +381,7 @@ std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GameSta
       const Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(i);
       if(info.important!=important)
         continue;
-      bool npcKnowsInfo = dialogs->doesNpcKnowInfo(pl.instanceSymbol,info.instanceSymbol);
+      bool npcKnowsInfo = doesNpcKnowInfo(pl,info.instanceSymbol);
       if(npcKnowsInfo && !info.permanent)
         continue;
 
@@ -424,7 +425,7 @@ std::vector<WorldScript::DlgChoise> WorldScript::updateDialog(const WorldScript:
 
   for(size_t i=0;i<info.subChoices.size();++i){
     auto& sub = info.subChoices[i];
-    //bool npcKnowsInfo = dialogs->doesNpcKnowInfo(pl.instanceSymbol(),info.instanceSymbol);
+    //bool npcKnowsInfo = doesNpcKnowInfo(pl.instanceSymbol(),info.instanceSymbol);
     //if(npcKnowsInfo)
     //  continue;
 
@@ -455,7 +456,7 @@ void WorldScript::exec(const WorldScript::DlgChoise &dlg,
 
   auto pl = vmNpc(player);
   if(info.information==dlg.scriptFn) {
-    dialogs->setNpcInfoKnown(pl.instanceSymbol, info.instanceSymbol);
+    setNpcInfoKnown(pl,info);
     } else {
     for(size_t i=0;i<info.subChoices.size();){
       if(info.subChoices[i].functionSym==dlg.scriptFn)
@@ -620,11 +621,11 @@ bool WorldScript::isUnconscious(const Npc &pl) {
   }
 
 const std::string &WorldScript::messageByName(const std::string& id) const {
-  if(!dialogs->getMessageLib().messageExists(id)){
+  if(!dialogs->messageExists(id)){
     static std::string empty;
     return empty;
     }
-  return dialogs->getMessageLib().getMessageByName(id).text;
+  return dialogs->getMessageByName(id).text;
   }
 
 uint32_t WorldScript::messageTime(const std::string &id) const {
@@ -1152,8 +1153,7 @@ void WorldScript::npc_knowsinfo(Daedalus::DaedalusVM &vm) {
     }
 
   Daedalus::GEngineClasses::C_Npc& vnpc = vmNpc(npc->handle());
-
-  bool knows = dialogs->doesNpcKnowInfo(vnpc.instanceSymbol, infoinstance);
+  bool knows = doesNpcKnowInfo(vnpc, infoinstance);
   vm.setReturn(knows ? 1 : 0);
   }
 
@@ -1258,13 +1258,21 @@ void WorldScript::npc_getdisttonpc(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::npc_hasequippedarmor(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
-  vm.setReturn(0); //TODO
+  if(npc!=nullptr && npc->currentArmour()!=nullptr)
+    vm.setReturn(1); else
+    vm.setReturn(0);
   }
 
 void WorldScript::npc_getattitude(Daedalus::DaedalusVM &vm) {
   auto a = popInstance(vm);
   auto b = popInstance(vm);
-  vm.setReturn(ATT_NEUTRAL); //TODO
+
+  if(a!=nullptr && b!=nullptr){
+    auto att=guildAttitude(*a,*b);
+    vm.setReturn(att); //TODO: personal attitudes
+    } else {
+    vm.setReturn(ATT_NEUTRAL);
+    }
   }
 
 void WorldScript::npc_setperctime(Daedalus::DaedalusVM &vm) {
@@ -1531,7 +1539,7 @@ void WorldScript::npc_checkinfo(Daedalus::DaedalusVM &vm) {
     Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(infoHandle);
     if(info.npc!=int32_t(npc.instanceSymbol) || info.important!=imp)
       continue;
-    bool npcKnowsInfo = dialogs->doesNpcKnowInfo(pl.instanceSymbol,info.instanceSymbol);
+    bool npcKnowsInfo = doesNpcKnowInfo(pl,info.instanceSymbol);
     if(npcKnowsInfo)
       continue;
     bool valid=false;
@@ -1583,6 +1591,11 @@ void WorldScript::npc_isdrawingspell(Daedalus::DaedalusVM &vm) {
     return;
     }
   vm.setReturn(int32_t(it->clsId()));
+  }
+
+void WorldScript::npc_perceiveall(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  (void)npc; // nop
   }
 
 void WorldScript::ai_processinfos(Daedalus::DaedalusVM &vm) {
@@ -2004,7 +2017,7 @@ void WorldScript::print(Daedalus::DaedalusVM &vm) {
   owner.print(msg.c_str());
   }
 
-void WorldScript::perc_setrange(Daedalus::DaedalusVM &vm) {
+void WorldScript::perc_setrange(Daedalus::DaedalusVM &) {
   Log::i("perc_setrange");
   }
 
@@ -2012,4 +2025,14 @@ void WorldScript::sort(std::vector<WorldScript::DlgChoise> &dlg) {
   std::sort(dlg.begin(),dlg.end(),[](const WorldScript::DlgChoise& l,const WorldScript::DlgChoise& r){
     return l.sort<r.sort;
     });
+  }
+
+void WorldScript::setNpcInfoKnown(const Daedalus::GEngineClasses::C_Npc& npc, const Daedalus::GEngineClasses::C_Info &info) {
+  auto id = std::make_pair(npc.instanceSymbol,info.instanceSymbol);
+  dlgKnownInfos.insert(id);
+  }
+
+bool WorldScript::doesNpcKnowInfo(const Daedalus::GEngineClasses::C_Npc& npc, size_t infoInstance) const {
+  auto id = std::make_pair(npc.instanceSymbol,infoInstance);
+  return dlgKnownInfos.find(id)!=dlgKnownInfos.end();
   }
