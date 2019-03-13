@@ -45,6 +45,10 @@ bool Interactive::checkMobName(const std::string &dest) const {
     return true;
   if(name=="MOBNAME_ANVIL" && dest=="BSANVIL")
     return true;
+  if(name=="MOBNAME_BOOKSBOARD" && dest=="BOOK")
+    return true;
+  if(name=="MOBNAME_GRINDSTONE" && dest=="BSSHARP")
+    return true;
   return false;
   }
 
@@ -279,6 +283,11 @@ const char* Interactive::anim(Interactive::Anim t) const {
     "T_TURNSWITCH_S0_2_S1",
     "T_TOUCHPLATE_STAND_2_S0"
     };
+  static const char* book[]={
+    "T_BOOK_STAND_2_S0",
+    "S_BOOK_S1",
+    "T_BOOK_STAND_2_S0"
+    };
 
   if(data.oCMOB.focusName=="MOBNAME_INNOS" || data.oCMOB.focusName=="MOBNAME_ADDON_IDOL")
     return pray[t];
@@ -304,6 +313,8 @@ const char* Interactive::anim(Interactive::Anim t) const {
     return chair[t];
   if(data.oCMOB.focusName=="MOBNAME_SWITCH")
     return rotSwitch[t];
+  if(data.oCMOB.focusName=="MOBNAME_BOOKSBOARD")
+    return book[t];
   return lab[t];
   }
 

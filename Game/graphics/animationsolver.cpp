@@ -501,6 +501,9 @@ AnimationSolver::Sequence AnimationSolver::solveMag(const char *format,Anim spel
 
   char name[128]={};
   std::snprintf(name,sizeof(name),format,mg[spell-Anim::MagFirst]);
+  if(auto a=animSequence(name))
+    return a;
+  std::snprintf(name,sizeof(name),format,mg[0]);
   return animSequence(name);
   }
 

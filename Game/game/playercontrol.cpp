@@ -255,12 +255,13 @@ void PlayerControl::implMove(uint64_t dt) {
       auto ws = pl.weaponState();
       if(ws==WeaponState::Fist) {
         pl.fistShoot();
+        return;
         }
-      else if(ws==WeaponState::W1H || ws==WeaponState::W2H) {
+      if(ws==WeaponState::W1H || ws==WeaponState::W2H) {
         pl.swingSword();
         return;
         }
-      else if(ws==WeaponState::Mage) {
+      if(ws==WeaponState::Mage) {
         if(pl.castSpell())
           return;
         }

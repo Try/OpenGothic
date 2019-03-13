@@ -1204,7 +1204,7 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
   if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER))
     ret = true;
   if(isEnemy(pl) && perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSENEMY))
-     ret = true;
+    ret = true;
   return ret;
   }
 
