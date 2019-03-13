@@ -98,7 +98,7 @@ bool Npc::checkHealth(bool onChange) {
   if(v.attribute[ATR_HITPOINTS]<=1) {
     if(v.attribute[ATR_HITPOINTSMAX]<=1){
       size_t fdead=owner.getSymbolIndex("ZS_Dead");
-      startState(fdead,true,"");
+      startState(fdead,"");
       return false;
       }
 
@@ -111,10 +111,10 @@ bool Npc::checkHealth(bool onChange) {
         }
       if(owner.guildAttitude(*this,*currentOther)==WorldScript::ATT_HOSTILE){
         size_t fdead=owner.getSymbolIndex("ZS_Dead");
-        startState(fdead,true,"");
+        startState(fdead,"");
         } else {
         size_t fdead=owner.getSymbolIndex("ZS_Unconscious");
-        startState(fdead,true,"");
+        startState(fdead,"");
         }
       return false;
       }
@@ -651,8 +651,7 @@ void Npc::nextAiAction() {
         aiActions.push_front(std::move(act));
       break;
     case AI_StartState:
-      // FIXME: unknown argument #3
-      startState(act.func,true/*act.i0==0*/,act.s0);
+      startState(act.func,act.s0,gtime(),act.i0==0);
       break;
     case AI_PlayAnim:{
       auto tag = animation.animByName(act.s0);
@@ -740,18 +739,25 @@ void Npc::nextAiAction() {
       if(!owner.aiOutput(*this,*act.target,act.s0))
         aiActions.push_front(std::move(act));
       break;
+    case AI_OutputSvm:
+      Log::d("TODO: ai_outputsvm: ",act.s0);
+      break;
+    case AI_OutputSvmOverlay:
+      Log::d("TODO: ai_outputsvm_overlay: ",act.s0);
+      break;
     case AI_StopProcessInfo:
-      if(!owner.aiClose())
+      if(!owner.aiClose()) {
         aiActions.push_front(std::move(act));
+        }
       break;
     }
   }
 
-bool Npc::startState(size_t id, bool loop, const std::string &wp) {
-  return startState(id,loop,wp,gtime());
+bool Npc::startState(size_t id,const std::string &wp) {
+  return startState(id,wp,gtime(),false);
   }
 
-bool Npc::startState(size_t id,bool loop,const std::string &wp,gtime endTime) {
+bool Npc::startState(size_t id,const std::string &wp, gtime endTime,bool noFinalize) {
   if(id==0)
     return false;
   if(aiState.funcIni==id)
@@ -759,7 +765,8 @@ bool Npc::startState(size_t id,bool loop,const std::string &wp,gtime endTime) {
 
   if(aiState.funcIni!=0 && aiState.started){
     owner.invokeState(this,currentOther,nullptr,aiState.funcLoop); // avoid ZS_Talk bug
-    owner.invokeState(this,currentOther,nullptr,aiState.funcEnd);  // cleanup
+    if(!noFinalize)
+      owner.invokeState(this,currentOther,nullptr,aiState.funcEnd);  // cleanup
     }
 
   if(!wp.empty()){
@@ -770,7 +777,7 @@ bool Npc::startState(size_t id,bool loop,const std::string &wp,gtime endTime) {
   auto& st = owner.getAiState(id);
   aiState.started      = false;
   aiState.funcIni      = st.funcIni;
-  aiState.funcLoop     = loop ? st.funcLoop : 0;
+  aiState.funcLoop     = st.funcLoop;
   aiState.funcEnd      = st.funcEnd;
   aiState.sTime        = owner.tickCount();
   aiState.eTime        = endTime;
@@ -796,10 +803,10 @@ void Npc::tickRoutine() {
       if(r.point!=nullptr)
         v.wp = r.point->wpName;
       auto t = endTime(r);
-      startState(r.callback,true,"",t);
+      startState(r.callback,"",t,false);
       }
     else if(v.start_aistate!=0)
-      startState(v.start_aistate,true,"");
+      startState(v.start_aistate,"");
     }
 
   if(aiState.funcIni==0)
@@ -1188,19 +1195,17 @@ void Npc::startDialog(Npc& pl) {
   }
 
 bool Npc::perceptionProcess(Npc &pl,float quadDist) {
-  static bool disable=false;
-  if(disable)
-    return false;
   float r = owner.vmNpc(hnpc).senses_range;
   r = r*r;
   if(quadDist>r)
     return false;
 
-  if(isEnemy(pl) && perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSENEMY))
-     return true;
+  bool ret=false;
   if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER))
-    return true;
-  return false;
+    ret = true;
+  if(isEnemy(pl) && perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSENEMY))
+     ret = true;
+  return ret;
   }
 
 bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType perc) {
@@ -1480,6 +1485,22 @@ void Npc::aiUnEquipWeapons() {
 void Npc::aiOutput(Npc& to,std::string text) {
   AiAction a;
   a.act    = AI_Output;
+  a.s0     = std::move(text);
+  a.target = &to;
+  aiActions.push_back(a);
+  }
+
+void Npc::aiOutputSvm(Npc &to, std::string text) {
+  AiAction a;
+  a.act    = AI_OutputSvm;
+  a.s0     = std::move(text);
+  a.target = &to;
+  aiActions.push_back(a);
+  }
+
+void Npc::aiOutputSvmOverlay(Npc &to, std::string text) {
+  AiAction a;
+  a.act    = AI_OutputSvmOverlay;
   a.s0     = std::move(text);
   a.target = &to;
   aiActions.push_back(a);

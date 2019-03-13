@@ -134,6 +134,10 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("npc_changeattribute", [this](Daedalus::DaedalusVM& vm){ npc_changeattribute(vm);  });
   vm.registerExternalFunction("npc_isonfp",          [this](Daedalus::DaedalusVM& vm){ npc_isonfp(vm);           });
   vm.registerExternalFunction("npc_getheighttonpc",  [this](Daedalus::DaedalusVM& vm){ npc_getheighttonpc(vm);   });
+  vm.registerExternalFunction("npc_getequippedmeleweapon",
+                                                     [this](Daedalus::DaedalusVM& vm){ npc_getequippedmeleweapon(vm); });
+  vm.registerExternalFunction("npc_getequippedrangedweapon",
+                                                     [this](Daedalus::DaedalusVM& vm){ npc_getequippedrangedweapon(vm); });
   vm.registerExternalFunction("npc_getequippedarmor",[this](Daedalus::DaedalusVM& vm){ npc_getequippedarmor(vm); });
   vm.registerExternalFunction("npc_canseenpc",       [this](Daedalus::DaedalusVM& vm){ npc_canseenpc(vm);        });
   vm.registerExternalFunction("npc_hasequippedmeleeweapon",
@@ -166,6 +170,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("ai_removeweapon",     [this](Daedalus::DaedalusVM& vm){ ai_removeweapon(vm);      });
   vm.registerExternalFunction("ai_turntonpc",        [this](Daedalus::DaedalusVM& vm){ ai_turntonpc(vm);         });
   vm.registerExternalFunction("ai_outputsvm",        [this](Daedalus::DaedalusVM& vm){ ai_outputsvm(vm);         });
+  vm.registerExternalFunction("ai_outputsvm_overlay",[this](Daedalus::DaedalusVM& vm){ ai_outputsvm_overlay(vm); });
   vm.registerExternalFunction("ai_startstate",       [this](Daedalus::DaedalusVM& vm){ ai_startstate(vm);        });
   vm.registerExternalFunction("ai_playani",          [this](Daedalus::DaedalusVM& vm){ ai_playani(vm);           });
   vm.registerExternalFunction("ai_setwalkmode",      [this](Daedalus::DaedalusVM& vm){ ai_setwalkmode(vm);       });
@@ -176,13 +181,14 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("ai_gotofp",           [this](Daedalus::DaedalusVM& vm){ ai_gotofp(vm);            });
   vm.registerExternalFunction("ai_playanibs",        [this](Daedalus::DaedalusVM& vm){ ai_playanibs(vm);         });
   vm.registerExternalFunction("ai_equipbestmeleeweapon",
-                                                     [this](Daedalus::DaedalusVM& vm){ ai_equipbestmeleeweapon(vm); });
-  vm.registerExternalFunction("ai_equipbestrangeweapon",
-                                                     [this](Daedalus::DaedalusVM& vm){ ai_equipbestrangeweapon(vm); });
+                                                     [this](Daedalus::DaedalusVM& vm){ ai_equipbestmeleeweapon(vm);  });
+  vm.registerExternalFunction("ai_equipbestrangedweapon",
+                                                     [this](Daedalus::DaedalusVM& vm){ ai_equipbestrangedweapon(vm); });
   vm.registerExternalFunction("ai_usemob",           [this](Daedalus::DaedalusVM& vm){ ai_usemob(vm);            });
   vm.registerExternalFunction("ai_teleport",         [this](Daedalus::DaedalusVM& vm){ ai_teleport(vm);          });
   vm.registerExternalFunction("ai_stoppointat",      [this](Daedalus::DaedalusVM& vm){ ai_stoppointat(vm);       });
   vm.registerExternalFunction("ai_readymeleeweapon", [this](Daedalus::DaedalusVM& vm){ ai_readymeleeweapon(vm);  });
+  vm.registerExternalFunction("ai_readyrangedweapon",[this](Daedalus::DaedalusVM& vm){ ai_readyrangedweapon(vm); });
   vm.registerExternalFunction("ai_readyspell",       [this](Daedalus::DaedalusVM& vm){ ai_readyspell(vm);        });
   vm.registerExternalFunction("ai_attack",           [this](Daedalus::DaedalusVM& vm){ ai_atack(vm);             });
   vm.registerExternalFunction("ai_flee",             [this](Daedalus::DaedalusVM& vm){ ai_flee(vm);              });
@@ -1357,6 +1363,26 @@ void WorldScript::npc_getheighttonpc(Daedalus::DaedalusVM &vm) {
   vm.setReturn(int32_t(ret));
   }
 
+void WorldScript::npc_getequippedmeleweapon(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  if(npc!=nullptr){
+    auto a = npc->currentRangeWeapon();
+    if(a!=nullptr)
+      vm.setReturn(int32_t(a->clsId())); else
+      vm.setReturn(0);
+    }
+  }
+
+void WorldScript::npc_getequippedrangedweapon(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  if(npc!=nullptr){
+    auto a = npc->currentRangeWeapon();
+    if(a!=nullptr)
+      vm.setReturn(int32_t(a->clsId())); else
+      vm.setReturn(0);
+    }
+  }
+
 void WorldScript::npc_getequippedarmor(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr){
@@ -1431,36 +1457,32 @@ void WorldScript::npc_canseenpcfreelos(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::npc_isinfightmode(Daedalus::DaedalusVM &vm) {
-  int32_t mode = vm.popDataValue();
-  auto    npc  = popInstance(vm);
+  FightMode mode = FightMode(vm.popDataValue());
+  auto      npc  = popInstance(vm);
 
   if(npc==nullptr){
     vm.setReturn(0);
     return;
     }
 
-  auto st = npc->weaponState();
-  if(mode==0){
-    vm.setReturn(st==WeaponState::NoWeapon);
-    return;
+  auto st  = npc->weaponState();
+  bool ret = false;
+  if(mode==FightMode::FMODE_NONE){
+    ret = (st==WeaponState::NoWeapon);
     }
-  if(mode==1){
-    vm.setReturn(st==WeaponState::Fist);
-    return;
+  else if(mode==FightMode::FMODE_FIST){
+    ret = (st==WeaponState::Fist);
     }
-  if(mode==2){
-    vm.setReturn(st==WeaponState::W1H || st==WeaponState::W2H);
-    return;
+  else if(mode==FightMode::FMODE_MELEE){
+    ret = (st==WeaponState::W1H || st==WeaponState::W2H);
     }
-  if(mode==5){
-    vm.setReturn(st==WeaponState::Bow || st==WeaponState::CBow);
-    return;
+  else if(mode==FightMode::FMODE_FAR){
+    ret = (st==WeaponState::Bow || st==WeaponState::CBow);
     }
-  if(mode==8){
-    vm.setReturn(st==WeaponState::Mage);
-    return;
+  else if(mode==FightMode::FMODE_MAGIC){
+    ret = (st==WeaponState::Mage);
     }
-  vm.setReturn(0);
+  vm.setReturn(ret ? 1: 0);
   }
 
 void WorldScript::npc_settarget(Daedalus::DaedalusVM &vm) {
@@ -1634,10 +1656,19 @@ void WorldScript::ai_turntonpc(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::ai_outputsvm(Daedalus::DaedalusVM &vm) {
-  auto name = popString  (vm);
-  auto npc  = popInstance(vm);
-  auto self = popInstance(vm);
-  Log::d("TODO: ai_outputsvm: ",name);
+  auto name   = popString  (vm);
+  auto target = popInstance(vm);
+  auto self   = popInstance(vm);
+  if(self!=nullptr && target!=nullptr)
+    self->aiOutputSvm(*target,name);
+  }
+
+void WorldScript::ai_outputsvm_overlay(Daedalus::DaedalusVM &vm) {
+  auto name   = popString  (vm);
+  auto target = popInstance(vm);
+  auto self   = popInstance(vm);
+  if(self!=nullptr && target!=nullptr)
+    self->aiOutputSvmOverlay(*target,name);
   }
 
 void WorldScript::ai_startstate(Daedalus::DaedalusVM &vm) {
@@ -1720,7 +1751,7 @@ void WorldScript::ai_equipbestmeleeweapon(Daedalus::DaedalusVM &vm) {
     npc->aiEquipBestMeleWeapon();
   }
 
-void WorldScript::ai_equipbestrangeweapon(Daedalus::DaedalusVM &vm) {
+void WorldScript::ai_equipbestrangedweapon(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
     npc->aiEquipBestRangeWeapon();
@@ -1752,6 +1783,12 @@ void WorldScript::ai_readymeleeweapon(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
     npc->aiReadyMeleWeapon();
+  }
+
+void WorldScript::ai_readyrangedweapon(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  if(npc!=nullptr)
+    npc->aiReadyRangeWeapon();
   }
 
 void WorldScript::ai_readyspell(Daedalus::DaedalusVM &vm) {

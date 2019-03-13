@@ -12,6 +12,14 @@ enum class WeaponState : uint8_t {
   Mage
   };
 
+enum class FightMode : int32_t {
+  FMODE_NONE  = 0,
+  FMODE_FIST  = 1,
+  FMODE_MELEE = 2,
+  FMODE_FAR   = 5,
+  FMODE_MAGIC = 7,
+  };
+
 enum class WalkBit : uint8_t {
   WM_Run  =0,
   WM_Walk =1,

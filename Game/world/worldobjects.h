@@ -5,6 +5,8 @@
 
 #include <daedalus/DaedalusGameState.h>
 
+#include "game/perceptionmsg.h"
+
 #include "interactive.h"
 #include "movetrigger.h"
 #include "trigger.h"
@@ -49,13 +51,6 @@ class WorldObjects final {
     void           sendPassivePerc(Npc& self,Npc& other,Npc& victum,int32_t perc);
 
   private:
-    struct PercMsg final {
-      int32_t what=0;
-      float   x=0,y=0,z=0;
-      Npc*    other =nullptr;
-      Npc*    victum=nullptr;
-      };
-
     World&                             owner;
     std::vector<Interactive>           interactiveObj;
     std::vector<std::unique_ptr<Npc>>  npcArr;
@@ -64,7 +59,7 @@ class WorldObjects final {
     std::vector<Trigger>               triggers;
     std::vector<MoveTrigger>           triggersMv;
 
-    std::vector<PercMsg>               sndPerc;
+    std::vector<PerceptionMsg>         sndPerc;
 
     template<class T>
     T* findObj(std::vector<T>& src,const Npc &pl,

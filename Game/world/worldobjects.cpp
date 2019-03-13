@@ -223,7 +223,7 @@ bool WorldObjects::aiUseMob(Npc &pl, const std::string &name) {
   }
 
 void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {
-  PercMsg m;
+  PerceptionMsg m;
   m.what   = perc;
   m.x      = self.position()[0];
   m.y      = self.position()[1];

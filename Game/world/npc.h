@@ -8,6 +8,7 @@
 #include "game/movealgo.h"
 #include "game/inventory.h"
 #include "game/fightalgo.h"
+#include "game/perceptionmsg.h"
 #include "physics/dynamicworld.h"
 #include "worldscript.h"
 
@@ -278,8 +279,8 @@ class Npc final {
     int32_t  learningPoints() const;
 
     void      startDialog(Npc& other);
-    bool      startState(size_t id, bool loop, const std::string &wp);
-    bool      startState(size_t id, bool loop, const std::string &wp, gtime endTime);
+    bool      startState(size_t id, const std::string &wp);
+    bool      startState(size_t id, const std::string &wp, gtime endTime, bool noFinalize);
     void      clearState();
     BodyState bodyState() const;
 
@@ -371,6 +372,8 @@ class Npc final {
     void     aiDodge();
     void     aiUnEquipWeapons();
     void     aiOutput(Npc &to, std::string text);
+    void     aiOutputSvm(Npc &to, std::string text);
+    void     aiOutputSvmOverlay(Npc &to, std::string text);
     void     aiStopProcessInfo();
     void     aiClearQueue();
 
@@ -417,6 +420,8 @@ class Npc final {
       AI_Dodge,
       AI_UnEquipWeapons,
       AI_Output,
+      AI_OutputSvm,
+      AI_OutputSvmOverlay,
       AI_StopProcessInfo,
       };
 

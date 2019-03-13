@@ -192,6 +192,8 @@ class WorldScript final {
     void npc_changeattribute (Daedalus::DaedalusVM &vm);
     void npc_isonfp          (Daedalus::DaedalusVM &vm);
     void npc_getheighttonpc  (Daedalus::DaedalusVM &vm);
+    void npc_getequippedmeleweapon  (Daedalus::DaedalusVM &vm);
+    void npc_getequippedrangedweapon(Daedalus::DaedalusVM &vm);
     void npc_getequippedarmor(Daedalus::DaedalusVM &vm);
     void npc_canseenpc       (Daedalus::DaedalusVM &vm);
     void npc_hasequippedmeleeweapon(Daedalus::DaedalusVM &vm);
@@ -220,6 +222,7 @@ class WorldScript final {
     void ai_removeweapon     (Daedalus::DaedalusVM &vm);
     void ai_turntonpc        (Daedalus::DaedalusVM &vm);
     void ai_outputsvm        (Daedalus::DaedalusVM &vm);
+    void ai_outputsvm_overlay(Daedalus::DaedalusVM &vm);
     void ai_startstate       (Daedalus::DaedalusVM &vm);
     void ai_playani          (Daedalus::DaedalusVM &vm);
     void ai_setwalkmode      (Daedalus::DaedalusVM &vm);
@@ -229,12 +232,13 @@ class WorldScript final {
     void ai_gotowp           (Daedalus::DaedalusVM &vm);
     void ai_gotofp           (Daedalus::DaedalusVM &vm);
     void ai_playanibs        (Daedalus::DaedalusVM &vm);
-    void ai_equipbestmeleeweapon(Daedalus::DaedalusVM &vm);
-    void ai_equipbestrangeweapon(Daedalus::DaedalusVM &vm);
+    void ai_equipbestmeleeweapon (Daedalus::DaedalusVM &vm);
+    void ai_equipbestrangedweapon(Daedalus::DaedalusVM &vm);
     void ai_usemob           (Daedalus::DaedalusVM &vm);
     void ai_teleport         (Daedalus::DaedalusVM &vm);
     void ai_stoppointat      (Daedalus::DaedalusVM &vm);
     void ai_readymeleeweapon (Daedalus::DaedalusVM &vm);
+    void ai_readyrangedweapon(Daedalus::DaedalusVM &vm);
     void ai_readyspell       (Daedalus::DaedalusVM &vm);
     void ai_atack            (Daedalus::DaedalusVM &vm);
     void ai_flee             (Daedalus::DaedalusVM &vm);
