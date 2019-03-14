@@ -62,8 +62,8 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file, st
   vm->initDialogs(gothic);
   loadProgress(70);
 
-  //const char* hero="PC_HERO";
-  const char* hero="PC_ROCKEFELLER";
+  const char* hero="PC_HERO";
+  //const char* hero="PC_ROCKEFELLER";
   //const char* hero="Giant_Bug";
 
   if(startPoints.size()>0)

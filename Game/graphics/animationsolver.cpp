@@ -61,10 +61,10 @@ bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState nextSt,Weapo
       return false;
     }
   auto ani = solveAnim(a,weaponSt,current,nextSt,walk,inter);
-  if(ani==nullptr)
-    ani = solveAnim(Idle,weaponSt,Idle,nextSt,WalkBit::WM_Run,nullptr);
-  if(ani==nullptr)
+  if(ani==nullptr) {
+    a   = Idle;
     ani = solveAnim(Idle,WeaponState::NoWeapon,Idle,WeaponState::NoWeapon,WalkBit::WM_Run,nullptr);
+    }
   prevAni  = current;
   current  = a;
   if(current<IdleLoopLast && nextSt==WeaponState::NoWeapon)
@@ -228,37 +228,20 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     if(a==Anim::AtackBlock)
       return animSequence("T_FISTPARADE_0");
     }
-  else if(st==WeaponState::W1H) {
+  else if(st==WeaponState::W1H || st==WeaponState::W2H) {
     if(a==Anim::Atack && cur==Move)
-      return layredSequence("S_1HRUNL","T_1HATTACKMOVE");
-    if(a==Anim::Atack)
-      return animSequence("S_1HATTACK");
+      return layredSequence("S_%sRUNL","T_%sATTACKMOVE",st);
     if(a==Anim::AtackL)
-      return animSequence("T_1HATTACKL");
+      return solveAnim("T_%sATTACKL",st);
     if(a==Anim::AtackR)
-      return animSequence("T_1HATTACKR");
+      return solveAnim("T_%sATTACKR",st);
+    if(a==Anim::Atack || a==Anim::AtackL || a==Anim::AtackR)
+      return solveAnim("S_%sATTACK",st);
     if(a==Anim::AtackBlock) {
       switch(std::rand()%3){
-        case 0: return animSequence("T_1HPARADE_0");
-        case 1: return animSequence("T_1HPARADE_0_A2");
-        case 2: return animSequence("T_1HPARADE_0_A3");
-        }
-      }
-    }
-  else if(st==WeaponState::W2H) {
-    if(a==Anim::Atack && cur==Move)
-      return layredSequence("S_2HRUNL","T_2HATTACKMOVE");
-    if(a==Anim::Atack)
-      return animSequence("S_2HATTACK");
-    if(a==Anim::AtackL)
-      return animSequence("T_2HATTACKL");
-    if(a==Anim::AtackR)
-      return animSequence("T_2HATTACKR");
-    if(a==Anim::AtackBlock) {
-      switch(std::rand()%3){
-        case 0: return animSequence("T_2HPARADE_0");
-        case 1: return animSequence("T_2HPARADE_0_A2");
-        case 2: return animSequence("T_2HPARADE_0_A3");
+        case 0: return solveAnim("T_%sPARADE_0",   st);
+        case 1: return solveAnim("T_%sPARADE_0_A2",st);
+        case 2: return solveAnim("T_%sPARADE_0_A3",st);
         }
       }
     }
@@ -269,9 +252,12 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
       return solveAnim("S_%sRUN", st);
     }
   if(cur==Anim::Idle && a==Move) {
+    Sequence sq;
     if(bool(wlkMode&WalkBit::WM_Walk))
-      return solveAnim("T_%sWALK_2_%sWALKL",st); else
-      return solveAnim("T_%sRUN_2_%sRUNL",  st);
+      sq = solveAnim("T_%sWALK_2_%sWALKL",st); else
+      sq = solveAnim("T_%sRUN_2_%sRUNL",  st);
+    if(sq)
+      return sq;
     }
   if(cur==Anim::Move && a==cur){
     if(bool(wlkMode&WalkBit::WM_Walk))
@@ -441,6 +427,16 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
   if(a==Anim::SlideB)
     return animSequence("S_SLIDEB");
 
+  if(a==Anim::StumbleA && current==Anim::Move)
+    return layredSequence("S_RUNL","T_STUMBLE");
+  if(a==Anim::StumbleA)
+    return animSequence("T_STUMBLE");
+
+  if(a==Anim::StumbleB && current==Anim::Move)
+    return layredSequence("S_RUNL","T_STUMBLEB");
+  if(a==Anim::StumbleB)
+    return animSequence("T_STUMBLEB");
+
   if(a==Anim::GotHit && current==Anim::Move)
     return layredSequence("S_RUNL","T_GOTHIT");
   if(a==Anim::GotHit)
@@ -539,6 +535,12 @@ AnimationSolver::Sequence AnimationSolver::animSequence(const char *name) const 
 AnimationSolver::Sequence AnimationSolver::layredSequence(const char *name,const char* base) const {
   auto a = animSequence(name);
   auto b = animSequence(base);
+  return Sequence(a.l1,b.l1);
+  }
+
+AnimationSolver::Sequence AnimationSolver::layredSequence(const char *name, const char *base, WeaponState st) const {
+  auto a = solveAnim(name,st);
+  auto b = solveAnim(base,st);
   return Sequence(a.l1,b.l1);
   }
 

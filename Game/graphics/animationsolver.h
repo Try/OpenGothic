@@ -77,6 +77,8 @@ class AnimationSolver final {
       AtackL,
       AtackR,
       AtackBlock,
+      StumbleA,
+      StumbleB,
       GotHit,
 
       MagNoMana,
@@ -153,6 +155,7 @@ class AnimationSolver final {
     AnimationSolver::Anim          animByName  (const std::string &name) const;
     Sequence                       animSequence(const char *name) const;
     Sequence                       layredSequence(const char *name, const char *base) const;
+    Sequence                       layredSequence(const char *name, const char *base, WeaponState st) const;
 
     Tempest::Matrix4x4             pos;
     StaticObjects::Mesh            head;

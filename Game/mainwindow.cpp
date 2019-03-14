@@ -304,6 +304,7 @@ void MainWindow::tick() {
   if(dt>100)
     dt=100;
   dialogs.tick(dt);
+  inventory.tick(dt);
   gothic.tick(dt);
 
   if(dialogs.isActive()){

@@ -85,6 +85,13 @@ bool Npc::startClimb(Anim ani) {
   }
 
 bool Npc::checkHealth(bool onChange) {
+  if(onChange && lastHit!=nullptr) {
+    float da = rotationRad()-lastHit->rotationRad();
+    if(std::cos(da)>=0)
+      lastHitType='A'; else
+      lastHitType='B';
+    }
+
   if(owner.isDead(*this)) {
     setAnim(lastHitType=='A' ? Anim::DeadA : Anim::DeadB);
     return false;
@@ -103,12 +110,8 @@ bool Npc::checkHealth(bool onChange) {
       }
 
     if(onChange) {
-      if(lastHit!=nullptr){
-        float da = rotationRad()-lastHit->rotationRad();
-        if(std::cos(da)>=0)
-          lastHitType='A'; else
-          lastHitType='B';
-        }
+      if(!isPlayer())
+        invent.unequipWeapons(owner,*this);
       if(owner.guildAttitude(*this,*currentOther)==WorldScript::ATT_HOSTILE){
         size_t fdead=owner.getSymbolIndex("ZS_Dead");
         startState(fdead,"");
@@ -878,21 +881,25 @@ void Npc::doAttack(Anim anim) {
     setAnim(Anim::Idle,weaponSt,weaponSt);
     }
   else if(setAnim(anim,weaponSt,weaponSt)){
-    currentTarget->lastHit     =this;
-    currentTarget->currentOther=currentTarget->lastHit;
+    currentTarget->currentOther=this;
     currentTarget->perceptionProcess(*this,currentTarget,0,PERC_ASSESSDAMAGE);
 
-    if(!currentTarget->isPlayer()) {
-      currentTarget->currentOther=currentTarget->lastHit;
-      currentTarget->changeAttribute(ATR_HITPOINTS,-100);
-      }
-
     auto ani=currentTarget->anim();
-    if(ani==Anim::Move  || ani==Anim::MoveL  || ani==Anim::MoveR ||
-       ani==Anim::Atack || ani==Anim::AtackL || ani==Anim::AtackR ||
-       ani<Anim::IdleLast)
-      currentTarget->animation.resetAni();
-    currentTarget->setAnim(Anim::GotHit);
+    if(ani!=Anim::MoveBack && ani!=Anim::AtackBlock) {
+      currentTarget->lastHit = this;
+      if(!currentTarget->isPlayer())
+        currentTarget->currentOther=currentTarget->lastHit;
+      currentTarget->changeAttribute(ATR_HITPOINTS,currentTarget->isPlayer() ? 1 : -100);
+
+      if(ani==Anim::Move  || ani==Anim::MoveL  || ani==Anim::MoveR ||
+         ani==Anim::Atack || ani==Anim::AtackL || ani==Anim::AtackR ||
+         ani<Anim::IdleLast || (Anim::MagFirst<=ani && ani<=Anim::MagLast )) {
+        currentTarget->animation.resetAni();
+        }
+      if(currentTarget->lastHitType=='A')
+        currentTarget->setAnim(Anim::StumbleA); else
+        currentTarget->setAnim(Anim::StumbleB);
+      }
     }
   }
 
@@ -966,6 +973,10 @@ void Npc::addItem(std::unique_ptr<Item>&& i) {
 
 void Npc::addItem(uint32_t id, Interactive &chest) {
   Inventory::trasfer(invent,chest.inventory(),nullptr,id,1,owner);
+  }
+
+void Npc::addItem(uint32_t id, Npc &from) {
+  Inventory::trasfer(invent,from.invent,nullptr,id,1,owner);
   }
 
 void Npc::moveItem(uint32_t id, Interactive &to) {

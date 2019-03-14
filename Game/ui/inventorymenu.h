@@ -17,16 +17,20 @@ class InventoryMenu : public Tempest::Widget {
       Closed=0,
       Equip,
       Chest,
-      Trade
+      Trade,
+      Ransack
       };
 
     void  setWorld(const World* w);
     void  close();
     void  open(Npc& pl);
     void  trade(Npc& pl,Npc& tr);
+    void  ransack(Npc& pl,Npc& tr);
     void  open(Npc& pl,Interactive& chest);
     State isOpen() const;
     bool  isActive() const;
+
+    void  tick(uint64_t dt);
 
     void keyDownEvent   (Tempest::KeyEvent&   e) override;
     void keyUpEvent     (Tempest::KeyEvent&   e) override;
@@ -65,9 +69,10 @@ class InventoryMenu : public Tempest::Widget {
 
     void          onTakeStuff();
     void          adjustScroll();
-    void          drawAll  (Tempest::Painter& p, Npc& player);
-    void          drawItems(Tempest::Painter& p, const Inventory &inv, int x, int y, int wcount, int hcount);
-    void          drawSlot (Tempest::Painter& p, const Inventory &inv, int x, int y, size_t id);
-    void          drawGold (Tempest::Painter& p, Npc &player, int x, int y);
-    void          drawInfo (Tempest::Painter& p);
+    void          drawAll   (Tempest::Painter& p, Npc& player);
+    void          drawItems (Tempest::Painter& p, const Inventory &inv, int x, int y, int wcount, int hcount);
+    void          drawSlot  (Tempest::Painter& p, const Inventory &inv, int x, int y, size_t id);
+    void          drawGold  (Tempest::Painter& p, Npc &player, int x, int y);
+    void          drawHeader(Tempest::Painter& p, const char *title, int x, int y);
+    void          drawInfo  (Tempest::Painter& p);
   };

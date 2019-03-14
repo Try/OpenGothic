@@ -12,7 +12,7 @@ InventoryMenu::InventoryMenu() {
   selT = Resources::loadTexture("INV_SLOT_HIGHLIGHTED.TGA");
   selU = Resources::loadTexture("INV_SLOT_EQUIPPED.TGA");
   tex  = Resources::loadTexture("INV_BACK.TGA");
-  // TRADE_VALUE_MULTIPLIER
+
   setFocusPolicy(NoFocus);
   takeTimer.timeout.bind(this,&InventoryMenu::onTakeStuff);
   }
@@ -54,6 +54,18 @@ void InventoryMenu::trade(Npc &pl, Npc &tr) {
   update();
   }
 
+void InventoryMenu::ransack(Npc &pl, Npc &tr) {
+  if(tr.inventory().recordsCount()==0)
+    return;
+  state  = State::Ransack;
+  player = &pl;
+  trader = &tr;
+  chest  = nullptr;
+  page   = 0;
+  adjustScroll();
+  update();
+  }
+
 void InventoryMenu::open(Npc &pl, Interactive &ch) {
   state  = State::Chest;
   player = &pl;
@@ -71,6 +83,20 @@ InventoryMenu::State InventoryMenu::isOpen() const {
 
 bool InventoryMenu::isActive() const {
   return state!=State::Closed;
+  }
+
+void InventoryMenu::tick(uint64_t /*dt*/) {
+  if(state==State::Ransack){
+    if(trader==nullptr || world==nullptr){
+      close();
+      return;
+      }
+
+    if(!world->script()->isDead(*trader) && !world->script()->isUnconscious(*trader))
+      close();
+    if(trader->inventory().recordsCount()==0)
+      close();
+    }
   }
 
 void InventoryMenu::keyDownEvent(KeyEvent &e) {
@@ -134,7 +160,7 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
       player->unequipItem(r.clsId()); else
       player->useItem    (r.clsId());
     }
-  else if(state==State::Chest || state==State::Trade) {
+  else if(state==State::Chest || state==State::Trade || state==State::Ransack) {
     takeTimer.start(100);
     onTakeStuff();
     }
@@ -226,6 +252,11 @@ void InventoryMenu::onTakeStuff() {
       player->buyItem(r.clsId(),*trader);
       }
     }
+  else if(state==State::Ransack) {
+    if(page==&trader->inventory()){
+      player->addItem(r.clsId(),*trader);
+      }
+    }
   adjustScroll();
   }
 
@@ -254,20 +285,23 @@ void InventoryMenu::drawAll(Painter &p,Npc &player) {
 
   int iy=30+34+70;
 
-  drawGold(p,player,w()-padd-2*slotSize().w,70);
-
   const int wcount = int(columsCount);
   const int hcount = int(rowsCount());
 
   if(chest!=nullptr){
+    drawHeader(p,chest->displayName(),padd,70);
     drawItems(p,chest->inventory(),padd,iy,wcount,hcount);
     }
 
-  if(trader!=nullptr){
+  if(trader!=nullptr) {
+    drawHeader(p,trader->displayName(),padd,70);
     drawItems(p,trader->inventory(),padd,iy,wcount,hcount);
     }
 
-  drawItems(p,player.inventory(),w()-padd-wcount*slotSize().w,iy,wcount,hcount);
+  if(state!=State::Ransack) {
+    drawGold (p,player,w()-padd-2*slotSize().w,70);
+    drawItems(p,player.inventory(),w()-padd-wcount*slotSize().w,iy,wcount,hcount);
+    }
   drawInfo(p);
   }
 
@@ -339,10 +373,14 @@ void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {
     txt="Gold";
 
   std::snprintf(vint,sizeof(vint),"%s : %d",txt,gold);
+  drawHeader(p,vint,x,y);
+  }
+
+void InventoryMenu::drawHeader(Painter &p,const char* title, int x, int y) {
   const int dw = slotSize().w*2;
   const int dh = 34;
-  const int tw = p.font().textSize(vint).w;
-  const int th = p.font().textSize(vint).h;
+  const int tw = p.font().textSize(title).w;
+  const int th = p.font().textSize(title).h;
 
   if(tex) {
     p.setBrush(*tex);
@@ -352,7 +390,7 @@ void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {
     p.setBrush(*slot);
     p.drawRect(x,y,dw,dh, 0,0,slot->w(),slot->h());
     }
-  p.drawText(x+(dw-tw)/2,y+dh/2+th/2,vint);
+  p.drawText(x+(dw-tw)/2,y+dh/2+th/2,title);
   }
 
 void InventoryMenu::drawInfo(Painter &p) {

@@ -339,9 +339,10 @@ class Npc final {
     void     unequipItem(uint32_t item);
     void     addItem    (std::unique_ptr<Item>&& i);
     void     addItem    (uint32_t id,Interactive& chest);
+    void     addItem    (uint32_t id,Npc& from);
     void     moveItem   (uint32_t id,Interactive& to);
     void     sellItem   (uint32_t id,Npc& to);
-    void     buyItem    (uint32_t id,Npc& to);
+    void     buyItem    (uint32_t id,Npc& from);
     Item*    currentArmour();
     Item*    currentMeleWeapon();
     Item*    currentRangeWeapon();

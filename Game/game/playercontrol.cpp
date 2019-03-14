@@ -33,6 +33,9 @@ bool PlayerControl::interact(Npc &other) {
     return false;
   if(world->player()->weaponState()!=WeaponState::NoWeapon)
     return false;
+  if(world->script()->isDead(other) || world->script()->isUnconscious(other)){
+    inv.ransack(*world->player(),other);
+    }
   return dlg.start(*world->player(),other);
   }
 
