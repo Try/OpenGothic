@@ -33,18 +33,13 @@ Animation::Animation(ZenLoad::ModelScriptBinParser &p,const std::string& name) {
         ani.lastFrame  = uint32_t(p.ani().m_LastFrame);
         if(ani.nextStr==ani.name)
           ani.animCls=Loop;
-        /*
-        for(auto& sfx : p.sfx())
-          animationAddEventSFX(anim, sfx);
-        p.sfx().clear();
+        ani.sfx = std::move(p.sfx());
+        ani.tag = std::move(p.tag());
 
+        /*
         for(auto& sfx : p.sfxGround())
           animationAddEventSFXGround(anim, sfx);
         p.sfxGround().clear();
-
-        for(auto& tag : p.tag())
-          animationAddEventTag(anim, tag);
-        p.tag().clear();
 
         for(auto& pfx:p.pfx())
           animationAddEventPFX(anim, pfx);
@@ -171,50 +166,43 @@ float Animation::Sequence::totalTime() const {
   }
 
 ZMath::float3 Animation::Sequence::speed(uint64_t at,uint64_t dt) const {
-  float allTime=numFrames*1000/fpsRate;
-  float k = -(dt/allTime);
-
   ZMath::float3 f={};
-  f.x = moveTr.position.x*k;
-  f.y = moveTr.position.y*k;
-  f.z = moveTr.position.z*k;
 
-  if(at>allTime-1)
-    at=uint64_t(allTime-1);
-  f.y = translateY(at)-translateY(at-dt);
+  auto a = translateXZ(at+dt), b=translateXZ(at);
+  f.x = a.x-b.x;
+  f.y = a.y-b.y;
+  f.z = a.z-b.z;
 
   return f;
   }
 
-float Animation::Sequence::translateY(uint64_t at) const {
-  if(numFrames==0)
-    return 0.f;
+ZMath::float3 Animation::Sequence::translateXZ(uint64_t at) const {
+  if(numFrames==0 || tr.size()==0) {
+    ZMath::float3 n={};
+    return n;
+    }
 
   uint64_t fr     = uint64_t(fpsRate*at);
   float    a      = (fr%1000)/1000.f;
-  uint64_t frameA = (fr/1000  );
-  uint64_t frameB = (fr/1000+1);
+  uint64_t frameA = fr/1000;
+  uint64_t frameB = frameA+1;
 
-  if(animCls==Animation::Loop){
-    frameA%=numFrames;
-    frameB%=numFrames;
-    } else {
-    frameA = std::min<uint64_t>(frameA,numFrames-1);
-    frameB = std::min<uint64_t>(frameB,numFrames-1);
-    }
+  auto  mA = frameA/tr.size();
+  auto  pA = tr[frameA%tr.size()];
 
-  const size_t idSize=nodeIndex.size();
-  if(idSize==0 || samples.size()%idSize!=0)
-    return 0.0;
+  auto  mB = frameB/tr.size();
+  auto  pB = tr[frameB%tr.size()];
 
-  auto* sampleA = &samples[size_t(frameA*idSize)];
-  auto* sampleB = &samples[size_t(frameB*idSize)];
+  float m = mA+(mB-mA)*a;
+  ZMath::float3 p=pA;
+  p.x += (pB.x-pA.x)*a;
+  p.y += (pB.y-pA.y)*a;
+  p.z += (pB.z-pA.z)*a;
 
-  float pos = sampleA->position.y+(sampleB->position.y-sampleA->position.y)*a;
-
-  auto& sample0 = samples[0].position;
-
-  return pos-sample0.y;
+  p.x += m*moveTr.position.x;
+  p.y += m*moveTr.position.y;
+  p.z += m*moveTr.position.z;
+  return p;
   }
 
 void Animation::Sequence::setupMoveTr() {
@@ -226,6 +214,15 @@ void Animation::Sequence::setupMoveTr() {
     moveTr.position.x = b.x-a.x;
     moveTr.position.y = b.y-a.y;
     moveTr.position.z = b.z-a.z;
+
+    tr.resize(samples.size()/sz);
+    for(size_t i=0,r=0;i<samples.size();i+=sz,++r){
+      auto& p  = tr[r];
+      auto& bi = samples[i].position;
+      p.x = bi.x-a.x;
+      p.y = bi.y-a.y;
+      p.z = bi.z-a.z;
+      }
     }
 
   if(samples.size()>0){

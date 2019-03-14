@@ -44,8 +44,13 @@ class Animation final {
       const Sequence*                        next=nullptr;
       ZenLoad::zCModelAniSample              moveTr={};
 
+      std::vector<ZMath::float3 >            tr;
+
+      std::vector<ZenLoad::zCModelScriptEventSfx> sfx;
+      std::vector<ZenLoad::zCModelScriptEventTag> tag;
+
       ZMath::float3                          speed(uint64_t at, uint64_t dt) const;
-      float                                  translateY(uint64_t at) const;
+      ZMath::float3                          translateXZ(uint64_t at) const;
 
       private:
         void setupMoveTr();
