@@ -234,6 +234,7 @@ class WorldScript final {
     void ai_gotowp           (Daedalus::DaedalusVM &vm);
     void ai_gotofp           (Daedalus::DaedalusVM &vm);
     void ai_playanibs        (Daedalus::DaedalusVM &vm);
+    void ai_equiparmor       (Daedalus::DaedalusVM &vm);
     void ai_equipbestmeleeweapon (Daedalus::DaedalusVM &vm);
     void ai_equipbestrangedweapon(Daedalus::DaedalusVM &vm);
     void ai_usemob           (Daedalus::DaedalusVM &vm);

@@ -360,6 +360,7 @@ class Npc final {
     void     aiWait(uint64_t dt);
     void     aiStandup();
     void     aiGoToPoint(const ZenLoad::zCWaypointData* to);
+    void     aiEquipArmor(int32_t id);
     void     aiEquipBestMeleWeapon();
     void     aiEquipBestRangeWeapon();
     void     aiUseMob(const std::string& name,int st);
@@ -408,6 +409,7 @@ class Npc final {
       AI_Wait,
       AI_StandUp,
       AI_GoToPoint,
+      AI_EquipArmor,
       AI_EquipMelee,
       AI_EquipRange,
       AI_UseMob,

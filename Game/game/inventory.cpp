@@ -143,7 +143,7 @@ void Inventory::trasfer(Inventory &to, Inventory &from, Npc* fromNpc, size_t ite
     if(itData.amount==count) {
       if(it.isEquiped()){
         if(fromNpc==nullptr){
-          Log::d("Inventory: invalid transfer call");
+          Log::e("Inventory: invalid transfer call");
           return; // error
           }
         from.unequip(&it,vm,*fromNpc);
@@ -461,6 +461,18 @@ void Inventory::autoEquip(WorldScript &vm, Npc &owner) {
   setSlot(armour,a,vm,owner,false);
   setSlot(mele  ,m,vm,owner,false);
   setSlot(range ,r,vm,owner,false);
+  }
+
+void Inventory::equipArmour(int32_t cls,WorldScript &vm, Npc &owner) {
+  if(cls<=0)
+    return;
+  auto it = findByClass(size_t(cls));
+  if(it==nullptr)
+    return;
+  if(uint32_t(it->mainFlag()) & ITM_CAT_ARMOR){
+    if(!it->isEquiped())
+      use(size_t(cls),vm,owner,true);
+    }
   }
 
 Item *Inventory::findByClass(size_t cls) {

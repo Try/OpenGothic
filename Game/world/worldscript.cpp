@@ -181,6 +181,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("ai_gotowp",           [this](Daedalus::DaedalusVM& vm){ ai_gotowp(vm);            });
   vm.registerExternalFunction("ai_gotofp",           [this](Daedalus::DaedalusVM& vm){ ai_gotofp(vm);            });
   vm.registerExternalFunction("ai_playanibs",        [this](Daedalus::DaedalusVM& vm){ ai_playanibs(vm);         });
+  vm.registerExternalFunction("ai_equiparmor",       [this](Daedalus::DaedalusVM& vm){ ai_equiparmor(vm);        });
   vm.registerExternalFunction("ai_equipbestmeleeweapon",
                                                      [this](Daedalus::DaedalusVM& vm){ ai_equipbestmeleeweapon(vm);  });
   vm.registerExternalFunction("ai_equipbestrangedweapon",
@@ -1798,6 +1799,13 @@ void WorldScript::ai_playanibs(Daedalus::DaedalusVM &vm) {
     (void)bs;
     npc->aiPlayAnim(ani);
     }
+  }
+
+void WorldScript::ai_equiparmor(Daedalus::DaedalusVM &vm) {
+  auto id  = vm.popDataValue();
+  auto npc = popInstance(vm);
+  if(npc!=nullptr)
+    npc->aiEquipArmor(id);
   }
 
 void WorldScript::ai_equipbestmeleeweapon(Daedalus::DaedalusVM &vm) {

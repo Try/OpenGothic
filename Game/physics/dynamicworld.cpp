@@ -16,7 +16,7 @@
 
 #include <cmath>
 
-const float DynamicWorld::ghostPadding=40;
+const float DynamicWorld::ghostPadding=50;
 const float DynamicWorld::ghostHeight =140;
 const float DynamicWorld::worldHeight =20000;
 

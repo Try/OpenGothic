@@ -704,6 +704,9 @@ void Npc::nextAiAction() {
       // currentGoTo = act.point;
       currentGoToNpc=nullptr;
       break;
+    case AI_EquipArmor:
+      invent.equipArmour(act.i0,owner,*this);
+      break;
     case AI_EquipMelee:
       invent.equipBestMeleWeapon(owner,*this);
       break;
@@ -976,7 +979,7 @@ void Npc::addItem(uint32_t id, Interactive &chest) {
   }
 
 void Npc::addItem(uint32_t id, Npc &from) {
-  Inventory::trasfer(invent,from.invent,nullptr,id,1,owner);
+  Inventory::trasfer(invent,from.invent,&from,id,1,owner);
   }
 
 void Npc::moveItem(uint32_t id, Interactive &to) {
@@ -1435,15 +1438,22 @@ void Npc::aiGoToPoint(const ZenLoad::zCWaypointData *to) {
   aiActions.push_back(a);
   }
 
+void Npc::aiEquipArmor(int32_t id) {
+  AiAction a;
+  a.act = AI_EquipArmor;
+  a.i0  = id;
+  aiActions.push_back(a);
+  }
+
 void Npc::aiEquipBestMeleWeapon() {
   AiAction a;
-  a.act   = AI_EquipMelee;
+  a.act = AI_EquipMelee;
   aiActions.push_back(a);
   }
 
 void Npc::aiEquipBestRangeWeapon() {
   AiAction a;
-  a.act   = AI_EquipRange;
+  a.act = AI_EquipRange;
   aiActions.push_back(a);
   }
 

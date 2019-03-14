@@ -63,6 +63,7 @@ class Inventory final {
     void   invalidateCond(Npc &owner);
     bool   isChanged() const { return !sorted; }
     void   autoEquip(WorldScript &vm, Npc &owner);
+    void   equipArmour(int32_t cls,WorldScript &vm, Npc &owner);
     void   equipBestMeleWeapon(WorldScript &vm, Npc &owner);
     void   equipBestRangeWeapon(WorldScript &vm, Npc &owner);
     void   unequipWeapons(WorldScript &vm, Npc &owner);
