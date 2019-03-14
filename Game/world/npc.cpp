@@ -589,7 +589,7 @@ bool Npc::implAtack(uint64_t dt) {
     return true;
     }
 
-  if(!mvAlgo.aiGoTo(currentTarget,fghAlgo.prefferedAtackDistance(*this,owner))) {
+  if(!mvAlgo.aiGoTo(currentTarget,fghAlgo.prefferedAtackDistance(*this,*currentTarget,owner))) {
     setAnim(AnimationSolver::Idle);
     } else {
     setAnim(AnimationSolver::Move);
@@ -618,8 +618,11 @@ void Npc::tick(uint64_t dt) {
 
   if(interactive()!=nullptr)
     setAnim(AnimationSolver::Interact); else
-  if(currentGoTo==nullptr && currentGoToNpc==nullptr && !(currentTarget!=nullptr) && aiType!=AiType::Player)
-    setAnim(animation.lastIdle);
+  if(currentGoTo==nullptr && currentGoToNpc==nullptr && currentTarget==nullptr && aiType!=AiType::Player) {
+    if(weaponState()==WeaponState::NoWeapon)
+      setAnim(animation.lastIdle); else
+      setAnim(Anim::Idle);
+    }
 
   if(waitTime>=owner.tickCount())
     return;
@@ -860,6 +863,9 @@ void Npc::doAttack(Anim anim) {
   auto weaponSt=invent.weaponState();
   auto weapon  =invent.activeWeapon();
 
+  if(weaponSt==WeaponState::NoWeapon)
+    return;
+
   if(weaponSt==WeaponState::Mage && weapon!=nullptr)
     anim=Anim(owner.spellCastAnim(*this,*weapon));
 
@@ -880,6 +886,13 @@ void Npc::doAttack(Anim anim) {
       currentTarget->currentOther=currentTarget->lastHit;
       currentTarget->changeAttribute(ATR_HITPOINTS,-100);
       }
+
+    auto ani=currentTarget->anim();
+    if(ani==Anim::Move  || ani==Anim::MoveL  || ani==Anim::MoveR ||
+       ani==Anim::Atack || ani==Anim::AtackL || ani==Anim::AtackR ||
+       ani<Anim::IdleLast)
+      currentTarget->animation.resetAni();
+    currentTarget->setAnim(Anim::GotHit);
     }
   }
 

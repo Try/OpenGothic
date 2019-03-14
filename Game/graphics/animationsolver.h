@@ -77,6 +77,7 @@ class AnimationSolver final {
       AtackL,
       AtackR,
       AtackBlock,
+      GotHit,
 
       MagNoMana,
       MagFib,
@@ -134,6 +135,7 @@ class AnimationSolver final {
     ZMath::float3                  animMoveSpeed(Anim a, uint64_t tickCount, uint64_t dt, WeaponState weaponSt) const;
 
     void                           updateAnimation(uint64_t tickCount);
+    void                           resetAni();
 
     void                           addOverlay(const Skeleton *sk, uint64_t time, uint64_t tickCount, WalkBit wlk, Interactive *inter);
     void                           delOverlay(const char *sk);

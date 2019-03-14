@@ -62,10 +62,12 @@ bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState nextSt,Weapo
     }
   auto ani = solveAnim(a,weaponSt,current,nextSt,walk,inter);
   if(ani==nullptr)
-    ani = solveAnim(Idle,WeaponState::Fist,Idle,WeaponState::Fist,WalkBit::WM_Run,nullptr);
+    ani = solveAnim(Idle,weaponSt,Idle,nextSt,WalkBit::WM_Run,nullptr);
+  if(ani==nullptr)
+    ani = solveAnim(Idle,WeaponState::NoWeapon,Idle,WeaponState::NoWeapon,WalkBit::WM_Run,nullptr);
   prevAni  = current;
   current  = a;
-  if(current<IdleLoopLast)
+  if(current<IdleLoopLast && nextSt==WeaponState::NoWeapon)
     lastIdle=current;
   if(ani==animSq) {
     if(animSq.cls==Animation::Transition){
@@ -145,6 +147,13 @@ void AnimationSolver::updateAnimation(uint64_t tickCount) {
     }
   }
 
+void AnimationSolver::resetAni() {
+  if(current<=Anim::IdleLoopLast)
+    return;
+  current = Anim::NoAnim;
+  animSq  = Sequence();
+  }
+
 AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
                                                       Anim cur, WeaponState st,
                                                       WalkBit wlkMode,
@@ -156,41 +165,41 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     if(a==Anim::Idle && cur==a && st==WeaponState::W1H)
       return animSequence("T_1H_2_1HRUN");
     if(a==Anim::Move && cur==a && st==WeaponState::W1H)
-      return animSequence("T_MOVE_2_1HMOVE");
+      return layredSequence("S_1HRUNL","T_MOVE_2_1HMOVE");
     if(a==Anim::Idle && cur==a && st==WeaponState::W2H)
       return animSequence("T_RUN_2_2H");
     if(a==Anim::Move && cur==a && st==WeaponState::W2H)
-      return animSequence("T_MOVE_2_2HMOVE");
+      return layredSequence("S_2HRUNL","T_MOVE_2_2HMOVE");
     if(a==Anim::Idle && cur==a && st==WeaponState::Bow)
       return animSequence("T_RUN_2_BOW");
     if(a==Anim::Move && cur==a && st==WeaponState::Bow)
-      return animSequence("T_MOVE_2_BOWMOVE");
+      return layredSequence("S_BOWRUNL","T_MOVE_2_BOWMOVE");
     if(a==Anim::Idle && cur==a && st==WeaponState::CBow)
       return animSequence("T_RUN_2_CBOW");
     if(a==Anim::Move && cur==a && st==WeaponState::CBow)
-      return animSequence("T_MOVE_2_CBOWMOVE");
+      return layredSequence("S_CBOWRUNL","T_MOVE_2_CBOWMOVE");
     if(a==Anim::Idle && cur==a && st==WeaponState::Mage)
       return animSequence("T_MOVE_2_MAGMOVE");
     if(a==Anim::Move && cur==a && st==WeaponState::Mage)
-      return animSequence("T_MOVE_2_MAGMOVE");
+      return layredSequence("S_MAGRUNL","T_MOVE_2_MAGMOVE");
     }
   if(st0==WeaponState::W1H && st==WeaponState::NoWeapon){
     if(a==Anim::Idle && cur==a)
       return animSequence("T_1HMOVE_2_MOVE");
     if(a==Anim::Move && cur==a)
-      return animSequence("T_1HMOVE_2_MOVE");
+      return layredSequence("S_1HRUNL","T_1HMOVE_2_MOVE");
     }
   if(st0==WeaponState::W2H && st==WeaponState::NoWeapon){
     if(a==Anim::Idle && cur==a)
       return animSequence("T_RUN_2_2H");
     if(a==Anim::Move && cur==a)
-      return animSequence("T_2HMOVE_2_MOVE");
+      return layredSequence("S_2HRUNL","T_2HMOVE_2_MOVE");
     }
   if(st0==WeaponState::Mage && st==WeaponState::NoWeapon){
     if(a==Anim::Idle && cur==a)
       return animSequence("T_RUN_2_MAG");
     if(a==Anim::Move && cur==a)
-      return animSequence("T_MAGMOVE_2_MOVE");
+      return layredSequence("S_MAGRUNL","T_MAGMOVE_2_MOVE");
     }
 
   if(true) {
@@ -369,14 +378,14 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
   if(a==Anim::DeadB)
     return solveDead("S_DEADB","S_DEAD");
 
-  if(cur==Anim::Idle && a==Anim::UnconsciousA)
+  if(cur!=Anim::UnconsciousA && a==Anim::UnconsciousA)
     return animSequence("T_STAND_2_WOUNDED");
   if(cur==Anim::UnconsciousA && a==Anim::Idle)
     return animSequence("T_WOUNDED_2_STAND");
   if(a==Anim::UnconsciousA)
     return animSequence("S_WOUNDED");
 
-  if(cur==Anim::Idle && a==Anim::UnconsciousB)
+  if(cur!=Anim::UnconsciousB && a==Anim::UnconsciousB)
     return animSequence("T_STAND_2_WOUNDEDB");
   if(cur==Anim::UnconsciousB && a==Anim::Idle)
     return animSequence("T_WOUNDEDB_2_STAND");
@@ -431,6 +440,11 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     return animSequence("S_SLIDE");
   if(a==Anim::SlideB)
     return animSequence("S_SLIDEB");
+
+  if(a==Anim::GotHit && current==Anim::Move)
+    return layredSequence("S_RUNL","T_GOTHIT");
+  if(a==Anim::GotHit)
+    return animSequence("T_GOTHIT");
 
   if(a==Anim::Chair1)
     return animSequence("R_CHAIR_RANDOM_1");

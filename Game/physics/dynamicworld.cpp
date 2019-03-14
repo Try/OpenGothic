@@ -16,7 +16,8 @@
 
 #include <cmath>
 
-const float DynamicWorld::ghostPadding=10;
+const float DynamicWorld::ghostPadding=40;
+const float DynamicWorld::ghostHeight =140;
 const float DynamicWorld::worldHeight =20000;
 
 DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
@@ -106,7 +107,7 @@ std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, fl
   }
 
 DynamicWorld::Item DynamicWorld::ghostObj(float r,float height) {
-  btCollisionShape*  shape = new btCapsuleShape(r*0.5f,140*0.5f);
+  btCollisionShape*  shape = new btCapsuleShape(r*0.5f,(ghostHeight-ghostPadding)*0.5f);
   btGhostObject*     obj   = new btGhostObject();
   obj->setCollisionShape(shape);
   //btCollisionObject* obj   = new btRigidBody(0,nullptr,shape);
@@ -191,7 +192,7 @@ void DynamicWorld::Item::setPosition(float x, float y, float z) {
   if(obj){
     btTransform trans;
     trans.setIdentity();
-    trans.setOrigin(btVector3(x,y+90,z));
+    trans.setOrigin(btVector3(x,y+(ghostHeight-ghostPadding)*0.5f+ghostPadding,z));
     obj->setWorldTransform(trans);
     }
   }

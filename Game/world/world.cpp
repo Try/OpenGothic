@@ -62,8 +62,8 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file, st
   vm->initDialogs(gothic);
   loadProgress(70);
 
-  const char* hero="PC_HERO";
-  //const char* hero="PC_ROCKEFELLER";
+  //const char* hero="PC_HERO";
+  const char* hero="PC_ROCKEFELLER";
   //const char* hero="Giant_Bug";
 
   if(startPoints.size()>0)
@@ -88,8 +88,8 @@ StaticObjects::Mesh World::getView(const std::string &visual, int32_t headTex, i
 
 DynamicWorld::Item World::getPhysic(const std::string& visual) {
   if(auto mesh=Resources::loadMesh(visual))
-    return physic()->ghostObj(30,mesh->colisionHeight());
-  return physic()->ghostObj(30,140);
+    return physic()->ghostObj(45,mesh->colisionHeight());
+  return physic()->ghostObj(45,140);
   }
 
 void World::updateAnimation() {

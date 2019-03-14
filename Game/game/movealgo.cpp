@@ -260,54 +260,58 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
 
   bool nFall=isFaling();
   setInAir(false);
-  if(npc.isFlyAnim()) {
-    if(oldY>ground) {
-      fallSpeed[1] = aniSpeed[1];
-      setInAir(true);
-      } else {
-      pos[1]=ground;
-      nFall=false;
-      }
-    setAsFrozen(false);
-    } else {
-    float fallY = fallSpeed[1]*timeK;
-    float dY    = (pos[1]-ground);
-    if(dY<fallY) {
-      fallSpeed[1]=0;
-      nFall=false;
-      } else {
-      float aceleration=gravity*timeK;
-      if(nFall) {
-        fallSpeed[1]+=aceleration;
+
+  if(ground!=oldY || fallSpeed[0]!=0.f || fallSpeed[1]!=0.f || fallSpeed[2]!=0.f) {
+    // process gravity
+    if(npc.isFlyAnim()) {
+      if(oldY>ground) {
+        fallSpeed[1] = aniSpeed[1];
         setInAir(true);
+        } else {
+        pos[1]=ground;
+        nFall=false;
         }
-      if(dY>fallThreshold)
-        nFall=true;
+      setAsFrozen(false);
+      } else {
+      float fallY = fallSpeed[1]*timeK;
+      float dY    = (pos[1]-ground);
+      if(dY<fallY) {
+        fallSpeed[1]=0;
+        nFall=false;
+        } else {
+        float aceleration=gravity*timeK;
+        if(nFall) {
+          fallSpeed[1]+=aceleration;
+          setInAir(true);
+          }
+        if(dY>fallThreshold)
+          nFall=true;
+        }
+
+      if(dY>fallThreshold || npc.anim()==AnimationSolver::Fall)
+        fallAni=true;
+      if(dY>fallY && nFall)
+        dY=fallY;
+      pos[0]+=fallSpeed[0]*timeK;
+      pos[1]-=dY;
+      pos[2]+=fallSpeed[2]*timeK;
       }
 
-    if(dY>fallThreshold || npc.anim()==AnimationSolver::Fall)
-      fallAni=true;
-    if(dY>fallY && nFall)
-      dY=fallY;
-    pos[0]+=fallSpeed[0]*timeK;
-    pos[1]-=dY;
-    pos[2]+=fallSpeed[2]*timeK;
-    }
-
-  switch(npc.tryMoveVr(pos,fb,5.f)) {
-    case Npc::MV_CORRECT:
-    case Npc::MV_OK: // fall anim
-      npc.setPosition(fb);
-      break;
-    case Npc::MV_FAILED:
-      fallAni=false;
-      slideAni=false;
-      nFall=false;
-      fallSpeed[0]=0;
-      fallSpeed[1]=0;
-      fallSpeed[2]=0;
-      setInAir(false);
-      break;
+    switch(npc.tryMoveVr(pos,fb,5.f)) {
+      case Npc::MV_CORRECT:
+      case Npc::MV_OK: // fall anim
+        npc.setPosition(fb);
+        break;
+      case Npc::MV_FAILED:
+        fallAni=false;
+        slideAni=false;
+        nFall=false;
+        fallSpeed[0]=0;
+        fallSpeed[1]=0;
+        fallSpeed[2]=0;
+        setInAir(false);
+        break;
+      }
     }
 
   setSllideFaling(slideAni,nFall);

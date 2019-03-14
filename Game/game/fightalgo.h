@@ -15,6 +15,6 @@ class FightAlgo final {
       };
 
     Action tick(Npc& npc, Npc& tg, WorldScript &owner, uint64_t dt);
-    float  prefferedAtackDistance(const Npc &npc, WorldScript &owner) const;
-    bool   isInAtackRange(const Npc &npc, const Npc &target, WorldScript &owner);
+    float  prefferedAtackDistance(const Npc &npc, const Npc &tg, WorldScript &owner) const;
+    bool   isInAtackRange        (const Npc &npc, const Npc &tg, WorldScript &owner);
   };

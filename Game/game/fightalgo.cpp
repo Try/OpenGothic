@@ -12,9 +12,11 @@ FightAlgo::Action FightAlgo::tick(Npc &npc, Npc &tg, WorldScript& owner, uint64_
   return MV_MOVE;
   }
 
-float FightAlgo::prefferedAtackDistance(const Npc &npc, WorldScript &owner) const {
+float FightAlgo::prefferedAtackDistance(const Npc &npc, const Npc &tg,  WorldScript &owner) const {
   auto  gl   = std::min<uint32_t>(npc.guild(),GIL_MAX);
-  float g    = owner.guildVal().fight_range_g[gl];
+  auto  glTg = std::min<uint32_t>(tg.guild(),GIL_MAX);
+
+  float g    = owner.guildVal().fight_range_g[glTg];
   float base = owner.guildVal().fight_range_base[gl];
   float fist = owner.guildVal().fight_range_fist[gl];
   return base+fist+g; // TODO
@@ -22,6 +24,6 @@ float FightAlgo::prefferedAtackDistance(const Npc &npc, WorldScript &owner) cons
 
 bool FightAlgo::isInAtackRange(const Npc &npc,const Npc &tg, WorldScript &owner) {
   auto dist = npc.qDistTo(tg);
-  auto pd   = prefferedAtackDistance(npc,owner);
+  auto pd   = prefferedAtackDistance(npc,tg,owner);
   return (dist<pd*pd);
   }

@@ -89,5 +89,6 @@ class DynamicWorld final {
     std::unique_ptr<btRigidBody>                landBody;
 
     static const float                          ghostPadding;
+    static const float                          ghostHeight;
     static const float                          worldHeight;
   };
