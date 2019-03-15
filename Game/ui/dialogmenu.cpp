@@ -115,7 +115,6 @@ void DialogMenu::aiOutput(Npc &npc, const char *msg, bool& done) {
   current.txt   = gothic.messageByName(msg);
   current.time  = gothic.messageTime(msg);
   done          = true;
-  waitForOutput = false;
   update();
   }
 
@@ -234,8 +233,6 @@ void DialogMenu::close() {
   }
 
 bool DialogMenu::haveToWaitOutput() const {
-  if(!waitForOutput)
-    return false;
   if(pl && pl->haveOutput()){
     return true;
     }
@@ -259,7 +256,6 @@ void DialogMenu::onEntry(const WorldScript::DlgChoise &e) {
     except.push_back(e.scriptFn);
     gothic.dialogExec(e,*pl,*other);
 
-    waitForOutput=true;
     onDoneText();
     }
   }

@@ -89,7 +89,6 @@ class DialogMenu : public Tempest::Widget {
     InventoryMenu&                      trade;
 
     std::vector<WorldScript::DlgChoise> choise;
-    bool                                waitForOutput=false;
     WorldScript::DlgChoise              selected;
     Npc*                                pl   =nullptr;
     Npc*                                other=nullptr;

@@ -147,6 +147,14 @@ void AnimationSolver::updateAnimation(uint64_t tickCount) {
     }
   }
 
+bool AnimationSolver::stopAnim(const std::string &ani) {
+  if(animSq!=nullptr && animSq.l1->name==ani){
+    resetAni();
+    return true;
+    }
+  return false;
+  }
+
 void AnimationSolver::resetAni() {
   if(current<=Anim::IdleLoopLast)
     return;
@@ -385,6 +393,13 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
   if(a==Anim::GuardSleep)
     return animSequence("S_GUARDSLEEP");
 
+  if(cur==Anim::Idle && a==Anim::Pee)
+    return animSequence("T_STAND_2_PEE");
+  if(cur==Anim::Pee && a==Anim::Idle)
+    return animSequence("T_PEE_2_STAND");
+  if(a==Anim::Pee)
+    return animSequence("S_PEE");
+
   if(cur==Anim::Idle && (Anim::MagFirst<=a && a<=Anim::MagLast))
     return solveMag("T_MAGRUN_2_%sSHOOT",a);
   if((Anim::MagFirst<=cur && cur<=Anim::MagLast) && a==Anim::Idle)
@@ -457,6 +472,7 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     return animSequence("R_ROAM2");
   if(a==Anim::Roam3)
     return animSequence("R_ROAM3");
+
   if(a==Anim::Food1)
     return animSequence("T_FOOD_RANDOM_1");
   if(a==Anim::Food2)
@@ -473,6 +489,12 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     return animSequence("T_JOINT_RANDOM_1");
   if(a==Anim::Meat1)
     return animSequence("T_MEAT_RANDOM_1");
+
+  if(Anim::Dance1<=a && a<=Anim::Dance9){
+    char buf[32]={};
+    std::snprintf(buf,sizeof(buf),"T_DANCE_%02d",a-Anim::Dance1+1);
+    return animSequence(buf);
+    }
 
   // FALLBACK
   if(a==Anim::Move)
@@ -547,7 +569,7 @@ AnimationSolver::Sequence AnimationSolver::layredSequence(const char *name, cons
 AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const {
   if(name=="T_HEASHOOT_2_STAND" || name=="T_LGUARD_2_STAND" || name=="T_HGUARD_2_STAND" ||
      name=="T_EAT_2_STAND"      || name=="T_SLEEP_2_STAND"  || name=="T_GUARDSLEEP_2_STAND" ||
-     name=="T_SIT_2_STAND")
+     name=="T_SIT_2_STAND"      || name=="T_PEE_2_STAND")
     return Anim::Idle;
 
   if(name=="T_STAND_2_LGUARD" || name=="S_LGUARD")
@@ -610,5 +632,25 @@ AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const
     return Anim::Joint1;
   if(name=="T_MEAT_RANDOM_1")
     return Anim::Meat1;
+  if(name=="T_STAND_2_PEE" || name=="S_PEE")
+    return Anim::Pee;
+  if(name=="T_DANCE_01")
+    return Anim::Dance1;
+  if(name=="T_DANCE_02")
+    return Anim::Dance2;
+  if(name=="T_DANCE_03")
+    return Anim::Dance3;
+  if(name=="T_DANCE_04")
+    return Anim::Dance4;
+  if(name=="T_DANCE_05")
+    return Anim::Dance5;
+  if(name=="T_DANCE_06")
+    return Anim::Dance6;
+  if(name=="T_DANCE_07")
+    return Anim::Dance7;
+  if(name=="T_DANCE_08")
+    return Anim::Dance8;
+  if(name=="T_DANCE_09")
+    return Anim::Dance9;
   return Anim::NoAnim;
   }

@@ -165,6 +165,7 @@ class WorldScript final {
     void npc_settofightmode  (Daedalus::DaedalusVM &vm);
     void npc_settofistmode   (Daedalus::DaedalusVM &vm);
     void npc_isinstate       (Daedalus::DaedalusVM &vm);
+    void npc_wasinstate      (Daedalus::DaedalusVM &vm);
     void npc_getdisttowp     (Daedalus::DaedalusVM &vm);
     void npc_exchangeroutine (Daedalus::DaedalusVM &vm);
     void npc_isdead          (Daedalus::DaedalusVM &vm);
@@ -212,6 +213,7 @@ class WorldScript final {
     void npc_getreadiedweapon(Daedalus::DaedalusVM &vm);
     void npc_isdrawingspell  (Daedalus::DaedalusVM &vm);
     void npc_perceiveall     (Daedalus::DaedalusVM& vm);
+    void npc_stopani         (Daedalus::DaedalusVM& vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);

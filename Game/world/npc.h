@@ -241,6 +241,7 @@ class Npc final {
     void setFatness    (float f);
     void setScale      (float x,float y,float z);
     bool setAnim(Anim a);
+    void stopAnim(const std::string& ani);
     Anim anim() const  { return animation.current; }
     bool isStanding() const;
 
@@ -315,6 +316,7 @@ class Npc final {
     const Interactive* interactive() const { return currentInteract; }
     bool     setInteraction(Interactive* id);
     bool     isState(uint32_t stateFn) const;
+    bool     wasInState(uint32_t stateFn) const;
     uint64_t stateTime() const;
     void     setStateTime(int64_t time);
 
@@ -509,6 +511,7 @@ class Npc final {
     AiType                         aiType=AiType::AiNormal;
     BodyState                      bodySt=BodyState(0);
     AiState                        aiState;
+    size_t                         prevAiState=0;
     std::vector<Routine>           routines;
     std::deque<AiAction>           aiActions;
 

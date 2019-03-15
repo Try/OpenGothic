@@ -49,6 +49,16 @@ class AnimationSolver final {
       Potition3,
       Joint1,
       Meat1,
+      Dance1,
+      Dance2,
+      Dance3,
+      Dance4,
+      Dance5,
+      Dance6,
+      Dance7,
+      Dance8,
+      Dance9,
+      Pee,
       Eat,
       IdleLast=Eat,
       Warn,
@@ -137,6 +147,7 @@ class AnimationSolver final {
     ZMath::float3                  animMoveSpeed(Anim a, uint64_t tickCount, uint64_t dt, WeaponState weaponSt) const;
 
     void                           updateAnimation(uint64_t tickCount);
+    bool stopAnim(const std::string& ani);
     void                           resetAni();
 
     void                           addOverlay(const Skeleton *sk, uint64_t time, uint64_t tickCount, WalkBit wlk, Interactive *inter);

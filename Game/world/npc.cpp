@@ -294,6 +294,11 @@ bool Npc::setAnim(Npc::Anim a) {
   return setAnim(a,weaponSt,weaponSt);
   }
 
+void Npc::stopAnim(const std::string &ani) {
+  if(animation.stopAnim(ani))
+    setAnim(animation.lastIdle);
+  }
+
 bool Npc::isStanding() const {
   return animation.current<Anim::IdleLast || animation.current==Anim::Interact;
   }
@@ -790,6 +795,9 @@ bool Npc::startState(size_t id,const std::string &wp, gtime endTime,bool noFinal
     v.wp = wp;
     }
 
+  if(aiState.funcIni!=0)
+    prevAiState = aiState.funcIni;
+
   auto& st = owner.getAiState(id);
   aiState.started      = false;
   aiState.funcIni      = st.funcIni;
@@ -840,7 +848,8 @@ void Npc::tickRoutine() {
           atackMode=false;
           setTarget(nullptr);
           }
-        aiState = AiState();
+        prevAiState = aiState.funcIni;
+        aiState     = AiState();
         }
       }
     } else {
@@ -1281,6 +1290,10 @@ bool Npc::setInteraction(Interactive *id) {
 
 bool Npc::isState(uint32_t stateFn) const {
   return aiState.funcIni==stateFn;
+  }
+
+bool Npc::wasInState(uint32_t stateFn) const {
+  return prevAiState==stateFn;
   }
 
 uint64_t Npc::stateTime() const {

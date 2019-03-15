@@ -106,6 +106,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("npc_settofightmode",  [this](Daedalus::DaedalusVM& vm){ npc_settofightmode(vm);   });
   vm.registerExternalFunction("npc_settofistmode",   [this](Daedalus::DaedalusVM& vm){ npc_settofistmode(vm);    });
   vm.registerExternalFunction("npc_isinstate",       [this](Daedalus::DaedalusVM& vm){ npc_isinstate(vm);        });
+  vm.registerExternalFunction("npc_wasinstate",      [this](Daedalus::DaedalusVM& vm){ npc_wasinstate(vm);       });
   vm.registerExternalFunction("npc_getdisttowp",     [this](Daedalus::DaedalusVM& vm){ npc_getdisttowp(vm);      });
   vm.registerExternalFunction("npc_exchangeroutine", [this](Daedalus::DaedalusVM& vm){ npc_exchangeroutine(vm);  });
   vm.registerExternalFunction("npc_isdead",          [this](Daedalus::DaedalusVM& vm){ npc_isdead(vm);           });
@@ -158,6 +159,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("npc_getreadiedweapon",[this](Daedalus::DaedalusVM& vm){ npc_getreadiedweapon(vm); });
   vm.registerExternalFunction("npc_isdrawingspell",  [this](Daedalus::DaedalusVM& vm){ npc_isdrawingspell(vm);   });
   vm.registerExternalFunction("npc_perceiveall",     [this](Daedalus::DaedalusVM& vm){ npc_perceiveall(vm);      });
+  vm.registerExternalFunction("npc_stopani",         [this](Daedalus::DaedalusVM& vm){ npc_stopani(vm);          });
 
   vm.registerExternalFunction("ai_output",           [this](Daedalus::DaedalusVM& vm){ ai_output(vm);            });
   vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
@@ -777,7 +779,7 @@ void WorldScript::onNpcReady(NpcHandle handle) {
   }
 
 Npc* WorldScript::getNpc(NpcHandle handle) {
-  auto  hnpc = ZMemory::handleCast<NpcHandle>(handle);
+  auto hnpc = ZMemory::handleCast<NpcHandle>(handle);
   if(!hnpc.isValid())
     return nullptr;
   auto& npcData = vm.getGameState().getNpc(hnpc);
@@ -795,7 +797,7 @@ Item *WorldScript::getItem(ItemHandle handle) {
   }
 
 Item *WorldScript::getItemById(size_t id) {
-  auto handle = vm.getDATFile().getSymbolByIndex(id);
+  auto& handle = vm.getDATFile().getSymbolByIndex(id);
   if(handle.instanceDataClass!= Daedalus::EInstanceClass::IC_Item)
     return nullptr;
 
@@ -804,7 +806,7 @@ Item *WorldScript::getItemById(size_t id) {
   }
 
 Npc* WorldScript::getNpcById(size_t id) {
-  auto handle = vm.getDATFile().getSymbolByIndex(id);
+  auto& handle = vm.getDATFile().getSymbolByIndex(id);
   if(handle.instanceDataClass!= Daedalus::EInstanceClass::IC_Npc)
     return nullptr;
 
@@ -1096,7 +1098,7 @@ void WorldScript::mdl_setmodelscale(Daedalus::DaedalusVM &vm) {
 void WorldScript::mdl_startfaceani(Daedalus::DaedalusVM &vm) {
   float time      = vm.popFloatValue();
   float intensity = vm.popFloatValue();
-  auto  ani       = popString(vm);
+  auto& ani       = popString(vm);
   auto  npc       = popInstance(vm);
   //TODO: face animation
   }
@@ -1145,6 +1147,18 @@ void WorldScript::npc_isinstate(Daedalus::DaedalusVM &vm) {
 
   if(npc!=nullptr){
     const bool ret=npc->isState(stateFn);
+    vm.setReturn(ret ? 1: 0);
+    return;
+    }
+  vm.setReturn(0);
+  }
+
+void WorldScript::npc_wasinstate(Daedalus::DaedalusVM &vm) {
+  uint32_t stateFn = uint32_t(vm.popVar());
+  auto     npc     = popInstance(vm);
+
+  if(npc!=nullptr){
+    const bool ret=npc->wasInState(stateFn);
     vm.setReturn(ret ? 1: 0);
     return;
     }
@@ -1641,6 +1655,13 @@ void WorldScript::npc_perceiveall(Daedalus::DaedalusVM &vm) {
   (void)npc; // nop
   }
 
+void WorldScript::npc_stopani(Daedalus::DaedalusVM &vm) {
+  auto& name = popString(vm);
+  auto  npc  = popInstance(vm);
+  if(npc!=nullptr)
+    npc->stopAnim(name);
+  }
+
 void WorldScript::ai_processinfos(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   auto pl  = owner.player();
@@ -1712,17 +1733,17 @@ void WorldScript::ai_turntonpc(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::ai_outputsvm(Daedalus::DaedalusVM &vm) {
-  auto name   = popString  (vm);
-  auto target = popInstance(vm);
-  auto self   = popInstance(vm);
+  auto& name   = popString  (vm);
+  auto  target = popInstance(vm);
+  auto  self   = popInstance(vm);
   if(self!=nullptr && target!=nullptr)
     self->aiOutputSvm(*target,name);
   }
 
 void WorldScript::ai_outputsvm_overlay(Daedalus::DaedalusVM &vm) {
-  auto name   = popString  (vm);
-  auto target = popInstance(vm);
-  auto self   = popInstance(vm);
+  auto& name   = popString  (vm);
+  auto  target = popInstance(vm);
+  auto  self   = popInstance(vm);
   if(self!=nullptr && target!=nullptr)
     self->aiOutputSvmOverlay(*target,name);
   }
