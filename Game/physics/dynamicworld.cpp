@@ -20,6 +20,21 @@ const float DynamicWorld::ghostPadding=50;
 const float DynamicWorld::ghostHeight =140;
 const float DynamicWorld::worldHeight =20000;
 
+struct DynamicWorld::HumShape:btCapsuleShape {
+  HumShape(btScalar radius, btScalar height):btCapsuleShape(radius,height){}
+
+  // "human" object mush have identyty scale/rotation matrix. Only translation allowed.
+  void getAabb(const btTransform& t, btVector3& aabbMin, btVector3& aabbMax) const override {
+    const btScalar rad = getRadius();
+    btVector3      extent(rad,rad,rad);
+    extent[m_upAxis]  = rad + getHalfHeight();
+    btVector3  center = t.getOrigin();
+
+    aabbMin = center - extent;
+    aabbMax = center + extent;
+    }
+  };
+
 DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
   // collision configuration contains default setup for memory, collision setup
   conf.reset(new btDefaultCollisionConfiguration());
@@ -44,6 +59,7 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
   landBody.reset(new btRigidBody(rigidBodyCI));
   landBody->setUserIndex(C_Landscape);
   world->addCollisionObject(landBody.get());
+  world->setForceUpdateAllAabbs(false);
   }
 
 DynamicWorld::~DynamicWorld(){
@@ -107,7 +123,7 @@ std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, fl
   }
 
 DynamicWorld::Item DynamicWorld::ghostObj(float r,float height) {
-  btCollisionShape*  shape = new btCapsuleShape(r*0.5f,(ghostHeight-ghostPadding)*0.5f);
+  btCollisionShape*  shape = new HumShape(r*0.5f,(ghostHeight-ghostPadding)*0.5f);
   btGhostObject*     obj   = new btGhostObject();
   obj->setCollisionShape(shape);
   //btCollisionObject* obj   = new btRigidBody(0,nullptr,shape);
@@ -117,9 +133,7 @@ DynamicWorld::Item DynamicWorld::ghostObj(float r,float height) {
   obj->setWorldTransform(trans);
   obj->setUserIndex(C_Ghost);
 
-  //obj->setCollisionFlags(obj->getCollisionFlags()|btCollisionObject::CF_KINEMATIC_OBJECT);
   world->addCollisionObject(obj);
-
   return Item(this,obj);
   }
 
@@ -145,7 +159,7 @@ DynamicWorld::Item DynamicWorld::staticObj(const PhysicMeshShape *shape, const T
   }
 
 void DynamicWorld::tick(uint64_t /*dt*/) {
-  world->updateAabbs();
+  // world->updateAabbs();
   }
 
 void DynamicWorld::deleteObj(btCollisionObject *obj) {
@@ -194,6 +208,7 @@ void DynamicWorld::Item::setPosition(float x, float y, float z) {
     trans.setIdentity();
     trans.setOrigin(btVector3(x,y+(ghostHeight-ghostPadding)*0.5f+ghostPadding,z));
     obj->setWorldTransform(trans);
+    owner->world->updateSingleAabb(obj);
     }
   }
 
@@ -202,6 +217,7 @@ void DynamicWorld::Item::setObjMatrix(const Tempest::Matrix4x4 &m) {
     btTransform trans;
     trans.setFromOpenGLMatrix(reinterpret_cast<const btScalar*>(&m));
     obj->setWorldTransform(trans);
+    owner->world->updateSingleAabb(obj);
     }
   }
 
