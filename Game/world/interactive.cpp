@@ -49,6 +49,8 @@ bool Interactive::checkMobName(const std::string &dest) const {
     return true;
   if(name=="MOBNAME_GRINDSTONE" && dest=="BSSHARP")
     return true;
+  if((name=="MOBNAME_BBQ_SCAV" || name=="MOBNAME_BARBQ_SCAV") && dest=="BARBQ")
+    return true;
   return false;
   }
 
@@ -260,7 +262,7 @@ const char* Interactive::anim(Interactive::Anim t) const {
     };
   static const char* ore[]={
     "T_ORE_STAND_2_S0",
-    "S_ORE_S1",
+    "C_ORE_S1_1",
     "T_ORE_S0_2_STAND"
     };
   static const char* cauldron[]={
@@ -287,6 +289,11 @@ const char* Interactive::anim(Interactive::Anim t) const {
     "T_BOOK_STAND_2_S0",
     "S_BOOK_S1",
     "T_BOOK_STAND_2_S0"
+    };
+  static const char* bbq[]={
+    "T_BARBQ_STAND_2_S0",
+    "S_BARBQ_S1",
+    ""
     };
 
   if(data.oCMOB.focusName=="MOBNAME_INNOS" || data.oCMOB.focusName=="MOBNAME_ADDON_IDOL")
@@ -315,6 +322,8 @@ const char* Interactive::anim(Interactive::Anim t) const {
     return rotSwitch[t];
   if(data.oCMOB.focusName=="MOBNAME_BOOKSBOARD")
     return book[t];
+  if(data.oCMOB.focusName=="MOBNAME_BBQ_SCAV" || data.oCMOB.focusName=="MOBNAME_BARBQ_SCAV")
+    return bbq[t];
   return lab[t];
   }
 

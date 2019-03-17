@@ -88,6 +88,8 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("wld_getguildattitude",[this](Daedalus::DaedalusVM& vm){ wld_getguildattitude(vm);     });
   vm.registerExternalFunction("wld_istime",          [this](Daedalus::DaedalusVM& vm){ wld_istime(vm);               });
   vm.registerExternalFunction("wld_isfpavailable",   [this](Daedalus::DaedalusVM& vm){ wld_isfpavailable(vm);        });
+  vm.registerExternalFunction("wld_isnextfpavailable",
+                                                     [this](Daedalus::DaedalusVM& vm){ wld_isnextfpavailable(vm);    });
   vm.registerExternalFunction("wld_ismobavailable",  [this](Daedalus::DaedalusVM& vm){ wld_ismobavailable(vm);       });
   vm.registerExternalFunction("wld_setmobroutine",   [this](Daedalus::DaedalusVM& vm){ wld_setmobroutine(vm);        });
   vm.registerExternalFunction("wld_assignroomtoguild",
@@ -199,6 +201,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("ai_dodge",            [this](Daedalus::DaedalusVM& vm){ ai_dodge(vm);             });
   vm.registerExternalFunction("ai_unequipweapons",   [this](Daedalus::DaedalusVM& vm){ ai_unequipweapons(vm);    });
   vm.registerExternalFunction("ai_gotonpc",          [this](Daedalus::DaedalusVM& vm){ ai_gotonpc(vm);           });
+  vm.registerExternalFunction("ai_gotonextfp",       [this](Daedalus::DaedalusVM& vm){ ai_gotonextfp(vm);        });
 
   vm.registerExternalFunction("mob_hasitems",        [this](Daedalus::DaedalusVM& vm){ mob_hasitems(vm);         });
 
@@ -983,7 +986,19 @@ void WorldScript::wld_isfpavailable(Daedalus::DaedalusVM &vm) {
     return;
     }
   auto wp = owner.findFreePoint(self->position(),name.c_str());
-  vm.setReturn(wp ? 1 : 0); //TODO: check point - it must be of use free
+  vm.setReturn(wp ? 1 : 0);
+  }
+
+void WorldScript::wld_isnextfpavailable(Daedalus::DaedalusVM &vm) {
+  auto& name = popString(vm);
+  auto  self = popInstance(vm);
+
+  if(self==nullptr){
+    vm.setReturn(0);
+    return;
+    }
+  auto fp = owner.findNextFreePoint(*self,name.c_str());
+  vm.setReturn(fp ? 1 : 0);
   }
 
 void WorldScript::wld_ismobavailable(Daedalus::DaedalusVM &vm) {
@@ -1115,7 +1130,7 @@ void WorldScript::wld_insertnpc(Daedalus::DaedalusVM &vm) {
     Log::e("invalid waypoint \"",spawnpoint,"\"");
     return;
     }
-  inserNpc(size_t(npcInstance),spawnpoint.c_str());
+  inserNpc(size_t(npcInstance),at->name.c_str());
   }
 
 void WorldScript::wld_insertitem(Daedalus::DaedalusVM &vm) {
@@ -1358,7 +1373,7 @@ void WorldScript::npc_getnearestwp(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   auto wp  = npc ? owner.findWayPoint(npc->position()) : nullptr;
   if(wp)
-    vm.setReturn(wp->wpName); else
+    vm.setReturn(wp->name); else
     vm.setReturn("");
   }
 
@@ -1403,7 +1418,7 @@ void WorldScript::npc_isonfp(Daedalus::DaedalusVM &vm) {
   if(npc!=nullptr) {
     auto w = npc->currentWayPoint();
 
-    if(w!=nullptr && w->wpName.find(val)!=std::string::npos) {
+    if(w!=nullptr && w->name.find(val)!=std::string::npos) {
       if(npc->qDistTo(w)<10*10){
         vm.setReturn(1);
         return;
@@ -1914,6 +1929,13 @@ void WorldScript::ai_gotonpc(Daedalus::DaedalusVM &vm) {
     npc->aiGoToNpc(to);
   }
 
+void WorldScript::ai_gotonextfp(Daedalus::DaedalusVM &vm) {
+  auto& to  = popString(vm);
+  auto  npc = popInstance(vm);
+  if(npc!=nullptr)
+    npc->aiGoToNextFp(to);
+  }
+
 void WorldScript::mob_hasitems(Daedalus::DaedalusVM &vm) {
   uint32_t item = vm.popVar();
   auto&    tag  = popString(vm);
@@ -1930,10 +1952,17 @@ void WorldScript::ta_min(Daedalus::DaedalusVM &vm) {
   auto     npc      = popInstance(vm);
 
   // TODO
+  npc->attachToPoint(nullptr);
   auto at=owner.findPoint(waypoint);
   if(npc!=nullptr && at!=nullptr){
-    npc->setPosition (at->position.x, at->position.y, at->position.z);
-    npc->setDirection(at->direction.x,at->direction.y,at->direction.z);
+    if(at->isLocked()){
+      auto p = owner.findNextPoint(*at);
+      if(p!=nullptr)
+        at=p;
+      }
+    npc->setPosition (at->x, at->y, at->z);
+    npc->setDirection(at->dirX,at->dirY,at->dirZ);
+    npc->attachToPoint(at);
     }
 
   npc->addRoutine(gtime(start_h,start_m),gtime(stop_h,stop_m),uint32_t(action),at);

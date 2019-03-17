@@ -45,7 +45,7 @@ void WorldObjects::tick(uint64_t dt) {
   }
 
 void WorldObjects::onInserNpc(NpcHandle handle,const std::string& point) {
-  auto  pos = owner.findPoint(point);
+  auto pos = owner.findPoint(point);
   if(pos==nullptr){
     Log::e("onInserNpc: invalid waypoint");
     }
@@ -57,11 +57,15 @@ void WorldObjects::onInserNpc(NpcHandle handle,const std::string& point) {
   if(!npcData.name[0].empty())
     ptr->setName(npcData.name[0]);
 
+  if(pos!=nullptr && pos->isLocked()){
+    auto p = owner.findNextPoint(*pos);
+    if(p)
+      pos=p;
+    }
   if(pos!=nullptr) {
-    ptr->setPosition (pos->position.x,pos->position.y,pos->position.z);
-    ptr->setDirection(pos->direction.x,
-                      pos->direction.y,
-                      pos->direction.z);
+    ptr->setPosition  (pos->x,pos->y,pos->z);
+    ptr->setDirection (pos->dirX,pos->dirY,pos->dirZ);
+    ptr->attachToPoint(pos);
     }
 
   npcArr.emplace_back(std::move(ptr));
@@ -146,10 +150,8 @@ Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
   itemArr.emplace_back(std::move(ptr));
 
   if(pos!=nullptr) {
-    it->setPosition (pos->position.x,pos->position.y,pos->position.z);
-    it->setDirection(pos->direction.x,
-                     pos->direction.y,
-                     pos->direction.z);
+    it->setPosition (pos->x,pos->y,pos->z);
+    it->setDirection(pos->dirX,pos->dirY,pos->dirZ);
     }
 
   it->setView(owner.getView(itData.visual,itData.material,0,itData.material));

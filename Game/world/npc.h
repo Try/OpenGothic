@@ -10,6 +10,7 @@
 #include "game/fightalgo.h"
 #include "game/perceptionmsg.h"
 #include "physics/dynamicworld.h"
+#include "fplock.h"
 #include "worldscript.h"
 
 #include <cstdint>
@@ -19,6 +20,7 @@
 #include <daedalus/DaedalusVM.h>
 
 class Interactive;
+class WayPoint;
 
 class Npc final {
   public:
@@ -188,6 +190,11 @@ class Npc final {
       Count       = 6
       };
 
+    enum GoToHint : uint8_t {
+      GT_Default,
+      GT_NextFp
+      };
+
     using Anim = AnimationSolver::Anim;
 
     Npc(WorldScript &owner, Daedalus::GameState::NpcHandle hnpc);
@@ -218,7 +225,7 @@ class Npc final {
     Npc*                lookAtTarget() const;
 
     float               qDistTo(float x,float y,float z) const;
-    float               qDistTo(const ZenLoad::zCWaypointData* p) const;
+    float               qDistTo(const WayPoint* p) const;
     float               qDistTo(const Npc& p) const;
     float               qDistTo(const Interactive& p) const;
 
@@ -320,7 +327,7 @@ class Npc final {
     uint64_t stateTime() const;
     void     setStateTime(int64_t time);
 
-    void     addRoutine(gtime s, gtime e, uint32_t callback, const ZenLoad::zCWaypointData* point);
+    void     addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint* point);
     void     multSpeed(float s);
 
     MoveCode tryMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
@@ -357,17 +364,18 @@ class Npc final {
     void     aiRemoveWeapon();
     void     aiTurnToNpc(Npc *other);
     void     aiGoToNpc  (Npc *other);
+    void     aiGoToNextFp(std::string fp);
     void     aiStartState(uint32_t stateFn,int behavior,std::string wp);
     void     aiPlayAnim(std::string ani);
     void     aiWait(uint64_t dt);
     void     aiStandup();
-    void     aiGoToPoint(const ZenLoad::zCWaypointData* to);
+    void     aiGoToPoint(const WayPoint* to);
     void     aiEquipArmor(int32_t id);
     void     aiEquipBestMeleWeapon();
     void     aiEquipBestRangeWeapon();
     void     aiUseMob(const std::string& name,int st);
     void     aiUseItem(int32_t id);
-    void     aiTeleport(const ZenLoad::zCWaypointData& to);
+    void     aiTeleport(const WayPoint& to);
     void     aiReadyMeleWeapon();
     void     aiReadyRangeWeapon();
     void     aiReadySpell(int32_t spell, int32_t mana);
@@ -381,7 +389,10 @@ class Npc final {
     void     aiStopProcessInfo();
     void     aiClearQueue();
 
-    auto     currentWayPoint() const -> const ZenLoad::zCWaypointData* { return currentFp; }
+    auto     currentWayPoint() const -> const WayPoint* { return currentFp; }
+    void     attachToPoint(const WayPoint* p);
+    GoToHint moveHint() const { return currentGoToFlag; }
+    void     clearGoTo();
 
     void     setTarget(Npc* t);
     Npc*     target();
@@ -392,10 +403,10 @@ class Npc final {
 
   private:
     struct Routine final {
-      gtime                          start;
-      gtime                          end;
-      uint32_t                       callback=0;
-      const ZenLoad::zCWaypointData* point=nullptr;
+      gtime           start;
+      gtime           end;
+      uint32_t        callback=0;
+      const WayPoint* point=nullptr;
       };
 
     enum Action:uint32_t {
@@ -405,12 +416,13 @@ class Npc final {
       AI_RemoveWeapon,
       AI_TurnToNpc,
       AI_GoToNpc,
+      AI_GoToNextFp,
+      AI_GoToPoint,
       AI_StartState,
       AI_PlayAnim,
       AI_PlayAnimById,
       AI_Wait,
       AI_StandUp,
-      AI_GoToPoint,
       AI_EquipArmor,
       AI_EquipMelee,
       AI_EquipRange,
@@ -431,12 +443,12 @@ class Npc final {
       };
 
     struct AiAction final {
-      Action      act   =AI_None;
-      Npc*        target=nullptr;
-      const ZenLoad::zCWaypointData* point=nullptr;
-      size_t      func  =0;
-      int         i0    =0;
-      std::string s0;
+      Action          act   =AI_None;
+      Npc*            target=nullptr;
+      const WayPoint* point=nullptr;
+      size_t          func  =0;
+      int             i0    =0;
+      std::string     s0;
       };
 
     struct AiState final {
@@ -504,8 +516,10 @@ class Npc final {
     bool                           atackMode      =false;
 
     Npc*                           currentGoToNpc =nullptr;
-    const ZenLoad::zCWaypointData* currentGoTo    =nullptr;
-    const ZenLoad::zCWaypointData* currentFp      =nullptr;
+    GoToHint                       currentGoToFlag=GoToHint::GT_Default;
+    const WayPoint*                currentGoTo    =nullptr;
+    const WayPoint*                currentFp      =nullptr;
+    FpLock                         currentFpLock;
 
     uint64_t                       waitTime=0;
     AiType                         aiType=AiType::AiNormal;

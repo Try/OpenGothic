@@ -8,6 +8,9 @@
 #include <unordered_set>
 #include <random>
 
+#include <Tempest/Matrix4x4>
+#include <Tempest/Painter>
+
 #include "game/aistate.h"
 #include "game/questlog.h"
 
@@ -145,12 +148,13 @@ class WorldScript final {
     void wld_playeffect      (Daedalus::DaedalusVM& vm);
     void wld_stopeffect      (Daedalus::DaedalusVM& vm);
     void wld_getplayerportalguild(Daedalus::DaedalusVM& vm);
-    void wld_setguildattitude(Daedalus::DaedalusVM& vm);
-    void wld_getguildattitude(Daedalus::DaedalusVM& vm);
-    void wld_istime          (Daedalus::DaedalusVM& vm);
-    void wld_isfpavailable   (Daedalus::DaedalusVM& vm);
-    void wld_ismobavailable  (Daedalus::DaedalusVM& vm);
-    void wld_setmobroutine   (Daedalus::DaedalusVM& vm);
+    void wld_setguildattitude (Daedalus::DaedalusVM& vm);
+    void wld_getguildattitude (Daedalus::DaedalusVM& vm);
+    void wld_istime           (Daedalus::DaedalusVM& vm);
+    void wld_isfpavailable    (Daedalus::DaedalusVM& vm);
+    void wld_isnextfpavailable(Daedalus::DaedalusVM& vm);
+    void wld_ismobavailable   (Daedalus::DaedalusVM& vm);
+    void wld_setmobroutine    (Daedalus::DaedalusVM& vm);
     void wld_assignroomtoguild(Daedalus::DaedalusVM& vm);
 
     void mdl_setvisual       (Daedalus::DaedalusVM& vm);
@@ -250,6 +254,7 @@ class WorldScript final {
     void ai_dodge            (Daedalus::DaedalusVM &vm);
     void ai_unequipweapons   (Daedalus::DaedalusVM &vm);
     void ai_gotonpc          (Daedalus::DaedalusVM &vm);
+    void ai_gotonextfp       (Daedalus::DaedalusVM &vm);
 
     void mob_hasitems        (Daedalus::DaedalusVM &vm);
 

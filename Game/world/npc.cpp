@@ -162,10 +162,10 @@ float Npc::qDistTo(float x1, float y1, float z1) const {
   return dx*dx+dy*dy+dz*dz;
   }
 
-float Npc::qDistTo(const ZenLoad::zCWaypointData *f) const {
+float Npc::qDistTo(const WayPoint *f) const {
   if(f==nullptr)
     return 0.f;
-  return qDistTo(f->position.x,f->position.y,f->position.z);
+  return qDistTo(f->x,f->y,f->z);
   }
 
 float Npc::qDistTo(const Npc &p) const {
@@ -545,15 +545,15 @@ bool Npc::implGoTo(uint64_t dt) {
     return false;
 
   if(currentGoTo){
-    float dx = currentGoTo->position.x-x;
+    float dx = currentGoTo->x-x;
     //float dy = y-currentGoTo->position.y;
-    float dz = currentGoTo->position.z-z;
+    float dz = currentGoTo->z-z;
 
     if(implLookAt(dx,dz,dt))
       return true;
     if(!mvAlgo.aiGoTo(currentGoTo)) {
-      currentFp  =currentGoTo;
-      currentGoTo=nullptr;
+      attachToPoint(currentGoTo);
+      currentGoTo = nullptr;
       if(isStanding())
         setAnim(AnimationSolver::Idle);
       }
@@ -629,6 +629,7 @@ void Npc::tick(uint64_t dt) {
   if(currentGoTo==nullptr && currentGoToNpc==nullptr && currentTarget==nullptr && aiType!=AiType::Player) {
     if(weaponState()==WeaponState::NoWeapon)
       setAnim(animation.lastIdle); else
+    if(animation.current>Anim::IdleLoopLast)
       setAnim(Anim::Idle);
     }
 
@@ -658,8 +659,30 @@ void Npc::nextAiAction() {
       currentTurnTo =act.target;
       break;
     case AI_GoToNpc:
-      currentGoTo   =nullptr;
-      currentGoToNpc=act.target;
+      currentGoTo     = nullptr;
+      currentGoToNpc  = act.target;
+      currentFp       = nullptr;
+      currentFpLock   = FpLock();
+      currentGoToFlag = GoToHint::GT_Default;
+      break;
+    case AI_GoToNextFp: {
+      auto fp = owner.world().findNextFreePoint(*this,act.s0.c_str());
+      if(fp!=nullptr) {
+        currentGoToNpc  = nullptr;
+        currentFp       = nullptr;
+        currentFpLock   = FpLock(*fp);
+        currentGoTo     = fp;
+        currentGoToFlag = GoToHint::GT_NextFp;
+        }
+      break;
+      }
+    case AI_GoToPoint:
+      // TODO: check distance
+      // currentGoTo = act.point;
+      currentGoToNpc  = nullptr;
+      currentFp       = nullptr;
+      currentFpLock   = FpLock();
+      currentGoToFlag = GoToHint::GT_Default;
       break;
     case AI_StopLookAt:
       currentLookAt=nullptr;
@@ -704,11 +727,6 @@ void Npc::nextAiAction() {
         setAnim(Anim::Idle);
       setInteraction(nullptr);
       break;
-    case AI_GoToPoint:
-      // TODO: check distance
-      // currentGoTo = act.point;
-      currentGoToNpc=nullptr;
-      break;
     case AI_EquipArmor:
       invent.equipArmour(act.i0,owner,*this);
       break;
@@ -730,8 +748,7 @@ void Npc::nextAiAction() {
         useItem(size_t(act.i0));
       break;
     case AI_Teleport: {
-      auto p = act.point->position;
-      setPosition(p.x,p.y,p.z);
+      setPosition(act.point->x,act.point->y,act.point->z);
       }
       break;
     case AI_DrawWeaponMele:
@@ -825,7 +842,7 @@ void Npc::tickRoutine() {
     auto  r = currentRoutine();
     if(r.callback!=0) {
       if(r.point!=nullptr)
-        v.wp = r.point->wpName;
+        v.wp = r.point->name;
       auto t = endTime(r);
       startState(r.callback,"",t,false);
       }
@@ -1237,6 +1254,8 @@ void Npc::startDialog(Npc& pl) {
   }
 
 bool Npc::perceptionProcess(Npc &pl,float quadDist) {
+  return false;
+
   float r = owner.vmNpc(hnpc).senses_range;
   r = r*r;
   if(quadDist>r)
@@ -1304,7 +1323,7 @@ void Npc::setStateTime(int64_t time) {
   aiState.sTime = owner.tickCount()-uint64_t(time);
   }
 
-void Npc::addRoutine(gtime s, gtime e, uint32_t callback, const ZenLoad::zCWaypointData *point) {
+void Npc::addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint *point) {
   Routine r;
   r.start    = s;
   r.end      = e;
@@ -1413,6 +1432,13 @@ void Npc::aiGoToNpc(Npc *other) {
   aiActions.push_back(a);
   }
 
+void Npc::aiGoToNextFp(std::string fp) {
+  AiAction a;
+  a.act = AI_GoToNextFp;
+  a.s0  = fp;
+  aiActions.push_back(a);
+  }
+
 void Npc::aiStartState(uint32_t stateFn, int behavior, std::string wp) {
   auto& st = owner.getAiState(stateFn);(void)st;
 
@@ -1444,7 +1470,7 @@ void Npc::aiStandup() {
   aiActions.push_back(a);
   }
 
-void Npc::aiGoToPoint(const ZenLoad::zCWaypointData *to) {
+void Npc::aiGoToPoint(const WayPoint *to) {
   AiAction a;
   a.act   = AI_GoToPoint;
   a.point = to;
@@ -1485,7 +1511,7 @@ void Npc::aiUseItem(int32_t id) {
   aiActions.push_back(a);
   }
 
-void Npc::aiTeleport(const ZenLoad::zCWaypointData &to) {
+void Npc::aiTeleport(const WayPoint &to) {
   AiAction a;
   a.act   = AI_Teleport;
   a.point = &to;
@@ -1569,6 +1595,19 @@ void Npc::aiClearQueue() {
   aiActions  =std::deque<AiAction>();
   currentGoTo=nullptr;
   //setTarget(nullptr);
+  }
+
+void Npc::attachToPoint(const WayPoint *p) {
+  currentFp     = p;
+  currentFpLock = FpLock(currentFp);
+  }
+
+void Npc::clearGoTo() {
+  currentGoTo    = nullptr;
+  currentGoToNpc = nullptr;
+  currentFpLock  = FpLock();
+  currentGoToFlag=GoToHint::GT_Default;
+  mvAlgo.aiGoTo(nullptr);
   }
 
 void Npc::updatePos() {

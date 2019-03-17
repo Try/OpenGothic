@@ -37,27 +37,13 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file, st
   wview.reset   (new WorldView(*this,mesh,storage));
   loadProgress(35);
 
+  wmatrix.reset(new WayMatrix(*this,world.waynet));
   if(1){
     for(auto& vob:world.rootVobs)
       loadVob(vob);
     }
+  wmatrix->buildIndex();
   loadProgress(55);
-
-  wayNet = std::move(world.waynet);
-  adjustWaypoints(wayNet.waypoints);
-  adjustWaypoints(freePoints);
-
-  for(auto& i:wayNet.waypoints)
-    if(i.wpName.find("START")==0)
-      startPoints.push_back(i);
-
-  for(auto& i:wayNet.waypoints)
-    if(i.wpName.find("START")!=std::string::npos)
-      startPoints.push_back(i);
-
-  std::sort(indexPoints.begin(),indexPoints.end(),[](const ZenLoad::zCWaypointData* a,const ZenLoad::zCWaypointData* b){
-    return a->wpName<b->wpName;
-    });
 
   vm->initDialogs(gothic);
   loadProgress(70);
@@ -66,9 +52,7 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file, st
   //const char* hero="PC_ROCKEFELLER";
   //const char* hero="Giant_Bug";
 
-  if(startPoints.size()>0)
-    npcPlayer = vm->inserNpc(hero,startPoints[0].wpName.c_str()); else
-    npcPlayer = vm->inserNpc(hero,"START");
+  npcPlayer = vm->inserNpc(hero,wmatrix->startPoint().name.c_str());
   if(npcPlayer!=nullptr) {
     npcPlayer->setAiType(Npc::AiType::Player);
     vm->setInstanceNPC("HERO",*npcPlayer);
@@ -205,9 +189,12 @@ Interactive *World::aviableMob(const Npc &pl, const std::string &name) {
   return wobj.aviableMob(pl,name);
   }
 
-void World::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,
-                              int w,int h) const {
+void World::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,int w,int h) const {
   wobj.marchInteractives(p,mvp,w,h);
+  }
+
+void World::marchPoints(Painter &p, const Matrix4x4 &mvp, int w, int h) const {
+  wmatrix->marchPoints(p,mvp,w,h);
   }
 
 std::vector<WorldScript::DlgChoise> World::updateDialog(const WorldScript::DlgChoise &dlg, Npc& player, Npc& npc) {
@@ -274,70 +261,33 @@ void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {
   wobj.sendPassivePerc(self,other,victum,perc);
   }
 
-void World::adjustWaypoints(std::vector<ZenLoad::zCWaypointData> &wp) {
-  for(auto& w:wp) {
-    w.position.y = wdynamic->dropRay(w.position.x,w.position.y,w.position.z);
-    for(auto& i:w.wpName)
-      i = char(std::toupper(i));
-    indexPoints.push_back(&w);
-    }
+const WayPoint *World::findPoint(const char *name) const {
+  return wmatrix->findPoint(name);
   }
 
-const ZenLoad::zCWaypointData *World::findPoint(const char *name) const {
-  if(name==nullptr)
-    return nullptr;
-  for(auto& i:startPoints)
-    if(i.wpName==name)
-      return &i;
-  auto it = std::lower_bound(indexPoints.begin(),indexPoints.end(),name,[](const ZenLoad::zCWaypointData* a,const char* b){
-      return a->wpName<b;
-    });
-  if(it!=indexPoints.end() && (*it)->wpName==name)
-    return *it;
-  return nullptr;
-  }
-
-const ZenLoad::zCWaypointData *World::findWayPoint(const std::array<float,3> &pos) const {
+const WayPoint* World::findWayPoint(const std::array<float,3> &pos) const {
   return findWayPoint(pos[0],pos[1],pos[2]);
   }
 
-const ZenLoad::zCWaypointData *World::findWayPoint(float x, float y, float z) const {
-  const ZenLoad::zCWaypointData* ret =nullptr;
-  float                          dist=std::numeric_limits<float>::max();
-  for(auto& w:wayNet.waypoints){
-    float dx = w.position.x-x;
-    float dy = w.position.y-y;
-    float dz = w.position.z-z;
-    float l=dx*dx+dy*dy+dz*dz;
-    if(l<dist){
-      ret  = &w;
-      dist = l;
-      }
-    }
-  return ret;
+const WayPoint* World::findWayPoint(float x, float y, float z) const {
+  return wmatrix->findWayPoint(x,y,z);
   }
 
-const ZenLoad::zCWaypointData *World::findFreePoint(const std::array<float,3> &pos,const char* name) const {
+const WayPoint *World::findFreePoint(const std::array<float,3> &pos,const char* name) const {
   return findFreePoint(pos[0],pos[1],pos[2],name);
   }
 
-const ZenLoad::zCWaypointData *World::findFreePoint(float x, float y, float z, const char *name) const {
-  const ZenLoad::zCWaypointData* ret   = nullptr;
-  float                          dist  = 20.f*100.f; // see scripting doc
-  auto&                          index = findFpIndex(name);
+const WayPoint *World::findFreePoint(float x, float y, float z, const char *name) const {
+  return wmatrix->findFreePoint(x,y,z,name);
+  }
 
-  for(auto pw:index.index){
-    auto& w  = *pw;
-    float dx = w.position.x-x;
-    float dy = w.position.y-y;
-    float dz = w.position.z-z;
-    float l=dx*dx+dy*dy+dz*dz;
-    if(l<dist){
-      ret  = &w;
-      dist = l;
-      }
-    }
-  return ret;
+const WayPoint *World::findNextFreePoint(const Npc &n, const char *name) const {
+  auto pos = n.position();
+  return wmatrix->findNextFreePoint(pos[0],pos[1],pos[2],name);
+  }
+
+const WayPoint *World::findNextPoint(const WayPoint &pos) const {
+  return wmatrix->findNextPoint(pos.x,pos.y,pos.z);
   }
 
 int32_t World::runFunction(const std::string& fname) {
@@ -404,17 +354,12 @@ void World::loadVob(ZenLoad::zCVobData &vob) {
     return;
     }
   else if(vob.objectClass=="zCVobStartpoint:zCVob") {
-    ZenLoad::zCWaypointData point={};
-    point.wpName   = vob.vobName;
-    point.position = vob.position;
-    startPoints.push_back(point);
+    float y = wdynamic->dropRay(vob.position.x,vob.position.y,vob.position.z);
+    wmatrix->addStartPoint(vob.position.x,y,vob.position.z,vob.vobName.c_str());
     }
   else if(vob.objectClass=="zCVobSpot:zCVob") {
-    ZenLoad::zCWaypointData point={};
-    point.wpName   = vob.vobName;
-    point.position = vob.position;
-    point.position.y = wdynamic->dropRay(vob.position.x,vob.position.y,vob.position.z);
-    freePoints.push_back(point);
+    float y = wdynamic->dropRay(vob.position.x,vob.position.y,vob.position.z);
+    wmatrix->addFreePoint(vob.position.x,y,vob.position.z,vob.vobName.c_str());
     }
   else if(vob.objectClass=="oCItem:zCVob") {
     addItem(vob);
@@ -447,24 +392,4 @@ void World::addInteractive(const ZenLoad::zCVobData &vob) {
 
 void World::addItem(const ZenLoad::zCVobData &vob) {
   wobj.addItem(vob);
-  }
-
-const World::FpIndex &World::findFpIndex(const char *name) const {
-  auto it = std::lower_bound(fpIndex.begin(),fpIndex.end(),name,[](FpIndex& l,const char* r){
-    return l.key<r;
-    });
-  if(it!=fpIndex.end() && it->key==name){
-    return *it;
-    }
-
-  FpIndex id;
-  id.key = name;
-  for(auto& w:freePoints){
-    if(w.wpName.find(name)==std::string::npos)
-      continue;
-    id.index.push_back(&w);
-    }
-
-  it = fpIndex.insert(it,std::move(id));
-  return *it;
   }

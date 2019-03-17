@@ -67,7 +67,7 @@ bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState nextSt,Weapo
     }
   prevAni  = current;
   current  = a;
-  if(current<IdleLoopLast && nextSt==WeaponState::NoWeapon)
+  if(current<=IdleLoopLast && nextSt==WeaponState::NoWeapon)
     lastIdle=current;
   if(ani==animSq) {
     if(animSq.cls==Animation::Transition){
@@ -259,7 +259,7 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
       return solveAnim("S_%sWALK",st); else
       return solveAnim("S_%sRUN", st);
     }
-  if(cur==Anim::Idle && a==Move) {
+  if(cur!=Anim::Move && a==Anim::Move) {
     Sequence sq;
     if(bool(wlkMode&WalkBit::WM_Walk))
       sq = solveAnim("T_%sWALK_2_%sWALKL",st); else
@@ -272,7 +272,7 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
       return solveAnim("S_%sWALKL",st); else
       return solveAnim("S_%sRUNL", st);
     }
-  if(cur==Anim::Move && a==Idle) {
+  if(cur==Anim::Move && a==Anim::Idle) {
     if(bool(wlkMode&WalkBit::WM_Walk))
       return solveAnim("T_%sWALKL_2_%sWALK",st); else
       return solveAnim("T_%sRUNL_2_%sRUN",st);
@@ -351,9 +351,9 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
   if(a==Anim::Eat)
     return animSequence("S_EAT");
 
-  if(cur==Anim::Idle && a==Anim::Sleep)
+  if(cur<=Anim::IdleLast && a==Anim::Sleep)
     return animSequence("T_STAND_2_SLEEP");
-  if(cur==Anim::Sleep && a==Anim::Idle)
+  if(cur==Anim::Sleep && a<=Anim::IdleLast)
     return animSequence("T_SLEEP_2_STAND");
   if(a==Anim::Sleep)
     return animSequence("S_SLEEP");
@@ -386,9 +386,9 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
   if(a==Anim::UnconsciousB)
     return animSequence("S_WOUNDEDB");
 
-  if(cur==Anim::Idle && a==Anim::GuardSleep)
+  if(cur!=Anim::GuardSleep && a==Anim::GuardSleep)
     return animSequence("T_STAND_2_GUARDSLEEP");
-  if(cur==Anim::GuardSleep && a==Anim::Idle)
+  if(cur==Anim::GuardSleep && a<=Anim::IdleLast && a!=Anim::GuardSleep)
     return animSequence("T_GUARDSLEEP_2_STAND");
   if(a==Anim::GuardSleep)
     return animSequence("S_GUARDSLEEP");

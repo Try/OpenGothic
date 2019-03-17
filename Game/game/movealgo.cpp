@@ -7,6 +7,7 @@ const float MoveAlgo::slideBegin   =float(std::sin(40*M_PI/180));
 const float MoveAlgo::slideEnd     =float(std::sin(0*M_PI/180));
 const float MoveAlgo::slideSpeed   =11.f;
 const float MoveAlgo::fallThreshold=45.f;
+const float MoveAlgo::closeToPointThreshold=50;
 
 MoveAlgo::MoveAlgo(Npc& unit, const World &w)
   :npc(unit),world(w) {
@@ -31,12 +32,12 @@ void MoveAlgo::tick(uint64_t dt) {
 
   float speed = std::sqrt(dpos[0]*dpos[0]+dpos[2]*dpos[2]);
   if(currentGoTo) {
-    float dx  = currentGoTo->position.x-npc.position()[0];
+    float dx  = currentGoTo->x-npc.position()[0];
     //float dy  = currentGoTo->position.y-npc.position()[1];
-    float dz  = currentGoTo->position.z-npc.position()[2];
+    float dz  = currentGoTo->z-npc.position()[2];
     float len = std::sqrt(dx*dx+dz*dz);
 
-    if(len<=speed){
+    if(len<=speed || len<closeToPointThreshold){
       currentGoTo=nullptr;
       npc.setAnim(AnimationSolver::Idle);
       } else {
@@ -90,13 +91,13 @@ void MoveAlgo::clearSpeed() {
   flags = NoFlags;
   }
 
-bool MoveAlgo::aiGoTo(const ZenLoad::zCWaypointData *p) {
+bool MoveAlgo::aiGoTo(const WayPoint *p) {
   currentGoTo    = p;
   currentGoToNpc = nullptr;
   if(p==nullptr)
     return false;
-  float len = npc.qDistTo(currentGoTo->position.x,npc.position()[1],currentGoTo->position.z);
-  if(len<10*10){
+  float len = npc.qDistTo(currentGoTo->x,npc.position()[1],currentGoTo->z);
+  if(len<closeToPointThreshold*closeToPointThreshold){
     currentGoTo=nullptr;
     return false;
     }
@@ -234,12 +235,14 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
     fallSpeed[2]+=slideSpeed*norm[2];
     } else {
     slideAni=false;
+    bool onFailed=false;
     switch(npc.tryMove(pos,fb,speed*0.5f)){
       case Npc::MV_FAILED:  {
+        onFailed=true;
         pos[0]=npc.position()[0];
         pos[2]=npc.position()[2];
         switch(npc.tryMove(pos,fb,speed*0.5f)){
-          case Npc::MV_FAILED:  pos=npc.position(); break;
+          case Npc::MV_FAILED:  pos=npc.position(); onFailed=false; break;
           case Npc::MV_CORRECT: pos=fb; break;
           case Npc::MV_OK:      break;
           }
@@ -248,6 +251,8 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
       case Npc::MV_CORRECT: pos=fb; break;
       case Npc::MV_OK:      break;
       }
+    if(onFailed)
+      onMoveFailed();
     npc.setPosition(pos);
     }
 
@@ -261,7 +266,7 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
   bool nFall=isFaling();
   setInAir(false);
 
-  if(ground!=oldY || fallSpeed[0]!=0.f || fallSpeed[1]!=0.f || fallSpeed[2]!=0.f) {
+  if(std::fabs(ground-oldY)>0.01f || fallSpeed[0]!=0.f || fallSpeed[1]!=0.f || fallSpeed[2]!=0.f) {
     // process gravity
     if(npc.isFlyAnim()) {
       if(oldY>ground) {
@@ -377,4 +382,10 @@ bool MoveAlgo::slideDir() const {
 
   auto s = std::sin(a-b);
   return s>0;
+  }
+
+void MoveAlgo::onMoveFailed() {
+  if(npc.moveHint()==Npc::GT_NextFp){
+    npc.clearGoTo();
+    }
   }

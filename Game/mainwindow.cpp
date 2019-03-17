@@ -97,6 +97,9 @@ void MainWindow::paintEvent(PaintEvent& event) {
                0,0,background->w(),background->h());
     }
 
+  if(world)
+    world->marchPoints(p,world->view()->viewProj(camera.view()),w(),h());
+
   if(world!=nullptr && world->view()){
     auto vp = world->view()->viewProj(camera.view());
     p.setBrush(Color(1.0));

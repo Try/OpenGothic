@@ -19,10 +19,13 @@
 #include "resources.h"
 #include "trigger.h"
 #include "worldobjects.h"
+#include "waypoint.h"
+#include "waymatrix.h"
 
 class Gothic;
 class RendererStorage;
 class Focus;
+class WayMatrix;
 
 class World final {
   public:
@@ -33,13 +36,16 @@ class World final {
     bool isEmpty() const { return wname.empty(); }
     const std::string& name() const { return wname; }
 
-    const ZenLoad::zCWaypointData* findPoint(const std::string& s) const { return findPoint(s.c_str()); }
-    const ZenLoad::zCWaypointData* findPoint(const char* name) const;
-    const ZenLoad::zCWaypointData* findWayPoint(const std::array<float,3>& pos) const;
-    const ZenLoad::zCWaypointData* findWayPoint(float x,float y,float z) const;
+    const WayPoint* findPoint(const std::string& s) const { return findPoint(s.c_str()); }
+    const WayPoint* findPoint(const char* name) const;
+    const WayPoint* findWayPoint(const std::array<float,3>& pos) const;
+    const WayPoint* findWayPoint(float x,float y,float z) const;
 
-    const ZenLoad::zCWaypointData* findFreePoint(const std::array<float,3>& pos,const char* name) const;
-    const ZenLoad::zCWaypointData* findFreePoint(float x,float y,float z,const char* name) const;
+    const WayPoint* findFreePoint(const std::array<float,3>& pos,const char* name) const;
+    const WayPoint* findFreePoint(float x,float y,float z,const char* name) const;
+
+    const WayPoint* findNextFreePoint(const Npc& pos,const char* name) const;
+    const WayPoint* findNextPoint(const WayPoint& pos) const;
 
     WorldView*    view()   const { return wview.get();    }
     DynamicWorld* physic() const { return wdynamic.get(); }
@@ -68,6 +74,7 @@ class World final {
     Interactive*   aviableMob(const Npc &pl, const std::string& name);
 
     void   marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
+    void   marchPoints      (Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
     auto   updateDialog(const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<WorldScript::DlgChoise>;
     void   exec(const WorldScript::DlgChoise& dlg, Npc& player,Npc& hnpc);
@@ -93,15 +100,8 @@ class World final {
   private:
     std::string                           wname;
     Gothic&                               gothic;
-    ZenLoad::zCWayNetData                 wayNet;
-    std::vector<ZenLoad::zCWaypointData>  freePoints, startPoints;
-    std::vector<ZenLoad::zCWaypointData*> indexPoints;
 
-    struct FpIndex {
-      std::string                                 key;
-      std::vector<const ZenLoad::zCWaypointData*> index;
-      };
-    mutable std::vector<FpIndex>          fpIndex;
+    std::unique_ptr<WayMatrix>            wmatrix;
 
     Npc*                                  npcPlayer=nullptr;
 
@@ -110,13 +110,10 @@ class World final {
     WorldObjects                          wobj;
     std::unique_ptr<WorldScript>          vm;
 
-    void         adjustWaypoints(std::vector<ZenLoad::zCWaypointData>& wp);
     void         loadVob(ZenLoad::zCVobData &vob);
     void         addStatic(const ZenLoad::zCVobData &vob);
     void         addInteractive(const ZenLoad::zCVobData &vob);
     void         addItem(const ZenLoad::zCVobData &vob);
-
-    const FpIndex& findFpIndex(const char* name) const;
 
     void         initScripts(bool firstTime);
     int32_t      runFunction(const std::string &fname);

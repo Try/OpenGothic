@@ -7,6 +7,7 @@
 
 class Npc;
 class World;
+class WayPoint;
 
 class MoveAlgo final {
   public:
@@ -16,8 +17,8 @@ class MoveAlgo final {
     void multSpeed(float s){ mulSpeed=s; }
     void clearSpeed();
 
-    auto aiGoTarget() -> const ZenLoad::zCWaypointData* { return currentGoTo; }
-    bool aiGoTo(const ZenLoad::zCWaypointData* p);
+    auto aiGoTarget() -> const WayPoint* { return currentGoTo; }
+    bool aiGoTo(const WayPoint* p);
     bool aiGoTo(const Npc* p, float destDist);
     void aiGoTo(const std::nullptr_t p);
     bool startClimb();
@@ -48,11 +49,12 @@ class MoveAlgo final {
     void   setPos(std::array<float,3> pos, uint64_t dt, float speed);
     bool   trySlide(std::array<float,3> &pos, std::array<float,3> &norm);
     bool   slideDir() const;
+    void   onMoveFailed();
 
     Npc&                npc;
     const World&        world;
-    const ZenLoad::zCWaypointData* currentGoTo   =nullptr;
-    const Npc*                     currentGoToNpc=nullptr;
+    const WayPoint*     currentGoTo   =nullptr;
+    const Npc*          currentGoToNpc=nullptr;
 
     float               mulSpeed  =1.f;
     std::array<float,3> aniSpeed={};
@@ -66,4 +68,5 @@ class MoveAlgo final {
     static const float slideEnd;
     static const float slideSpeed;
     static const float fallThreshold;
+    static const float closeToPointThreshold;
   };
