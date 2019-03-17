@@ -34,7 +34,13 @@ void Npc::setPosition(const std::array<float,3> &pos) {
   x = pos[0];
   y = pos[1];
   z = pos[2];
-  updatePos();
+
+  Matrix4x4& mt=animation.pos;
+  mt.set(3,0,x);
+  mt.set(3,1,y);
+  mt.set(3,2,z);
+  setPos(mt);
+  //updatePos();
   }
 
 void Npc::setDirection(float x, float /*y*/, float z) {
@@ -1254,7 +1260,7 @@ void Npc::startDialog(Npc& pl) {
   }
 
 bool Npc::perceptionProcess(Npc &pl,float quadDist) {
-  return false;
+  //return false;
 
   float r = owner.vmNpc(hnpc).senses_range;
   r = r*r;

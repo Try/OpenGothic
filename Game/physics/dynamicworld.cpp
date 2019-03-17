@@ -78,12 +78,18 @@ std::array<float,3> DynamicWorld::landNormal(float x, float y, float z) const {
     btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
       return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
       }
+
+    bool needsCollision(btBroadphaseProxy* proxy0) const override {
+      if(reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject)->getUserIndex()==C_Landscape)
+        return ClosestRayResultCallback::needsCollision(proxy0);
+      return false;
+      }
     };
 
   btVector3 s(x,y+50,z), e(x,y-worldHeight,z);
   CallBack callback{s,e};
 
-  world->rayTest(s,e,callback);
+  rayTest(s,e,callback);
 
   if(callback.hasHit())
     return {{callback.m_hitNormalWorld.x(),callback.m_hitNormalWorld.y(),callback.m_hitNormalWorld.z()}};
@@ -103,9 +109,15 @@ std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, fl
   struct CallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;
 
+    bool needsCollision(btBroadphaseProxy* proxy0) const override {
+      if(reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject)->getUserIndex()==C_Landscape)
+        return ClosestRayResultCallback::needsCollision(proxy0);
+      return false;
+      }
+
     btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
       const int idx = rayResult.m_collisionObject->getUserIndex();
-      if(idx==C_Ghost)
+      if(idx!=C_Landscape)
         return false;
       return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
       }
@@ -114,7 +126,7 @@ std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, fl
   btVector3 s(x0,y0,z0), e(x1,y1,z1);
   CallBack callback{s,e};
 
-  world->rayTest(s,e,callback);
+  rayTest(s,e,callback);
   hasCol = callback.hasHit();
 
   if(callback.hasHit())
@@ -174,9 +186,16 @@ bool DynamicWorld::hasCollision(const Item& it,std::array<float,3>& normal) {
     int                 count=0;
     std::array<float,3> norm={};
 
+    bool needsCollision(btBroadphaseProxy* proxy0) const override {
+      auto uid = reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject)->getUserIndex();
+      if(uid==C_Landscape || uid==C_Ghost)
+        return ContactResultCallback::needsCollision(proxy0);
+      return false;
+      }
+
     btScalar addSingleResult(btManifoldPoint& p,
                              const btCollisionObjectWrapper*, int, int,
-                             const btCollisionObjectWrapper*, int, int){
+                             const btCollisionObjectWrapper*, int, int) override {
       norm[0]+=p.m_normalWorldOnB.x();
       norm[1]+=p.m_normalWorldOnB.y();
       norm[2]+=p.m_normalWorldOnB.z();
@@ -184,7 +203,7 @@ bool DynamicWorld::hasCollision(const Item& it,std::array<float,3>& normal) {
       return 0;
       }
 
-    void normalize(){
+    void normalize() {
       float l = std::sqrt(norm[0]*norm[0]+norm[1]*norm[1]+norm[2]*norm[2]);
       norm[0]/=l;
       norm[1]/=l;
@@ -200,6 +219,22 @@ bool DynamicWorld::hasCollision(const Item& it,std::array<float,3>& normal) {
     normal=callback.norm;
     }
   return callback.count>0;
+  }
+
+void DynamicWorld::rayTest(const btVector3 &s,
+                           const btVector3 &e,
+                           btCollisionWorld::RayResultCallback &callback) const {
+  world->rayTest(s,e,callback);
+  /*
+  btTransform rayFromTrans,rayToTrans;
+  rayFromTrans.setIdentity();
+  rayFromTrans.setOrigin(s);
+  rayToTrans.setIdentity();
+  rayToTrans.setOrigin(e);
+  world->rayTestSingle(rayFromTrans, rayToTrans, landBody.get(),
+                       landBody->getCollisionShape(),
+                       landBody->getWorldTransform(),
+                       callback);*/
   }
 
 void DynamicWorld::Item::setPosition(float x, float y, float z) {
