@@ -126,6 +126,10 @@ void WayMatrix::addStartPoint(float x, float y, float z, const char *name) {
   }
 
 const WayPoint &WayMatrix::startPoint() const {
+  for(auto& i:startPoints)
+    if(i.name=="START_GOTHIC2")
+      return i;
+
   if(startPoints.size()>0)
     return startPoints[0];
   static WayPoint p(0,0,0,"START");
