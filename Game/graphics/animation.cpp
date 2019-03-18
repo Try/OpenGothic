@@ -82,9 +82,12 @@ Animation::Animation(ZenLoad::ModelScriptBinParser &p,const std::string& name) {
   }
 
 const Animation::Sequence* Animation::sequence(const char *name) const {
-  for(auto& i:sequences)
-    if(i.name==name)
-      return &i;
+  auto it = std::lower_bound(sequences.begin(),sequences.end(),name,[](const Sequence& s,const char* n){
+    return s.name<n;
+    });
+
+  if(it!=sequences.end() && it->name==name)
+    return &(*it);
   return nullptr;
   }
 
@@ -101,6 +104,10 @@ Animation::Sequence& Animation::loadMAN(const std::string& name) {
 void Animation::setupIndex() {
   // for(auto& i:sequences)
   //   Log::i(i.name);
+
+  std::sort(sequences.begin(),sequences.end(),[](const Sequence& a,const Sequence& b){
+    return a.name<b.name;
+    });
 
   for(auto& i:sequences) {
     for(auto& r:sequences)

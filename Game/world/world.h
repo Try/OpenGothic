@@ -53,6 +53,7 @@ class World final {
 
     StaticObjects::Mesh getView(const std::string& visual) const;
     StaticObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
+    StaticObjects::Mesh getStaticView(const std::string &visual,int32_t tex) const;
     DynamicWorld::Item  getPhysic(const std::string& visual);
 
     void     updateAnimation();

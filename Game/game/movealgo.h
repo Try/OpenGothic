@@ -68,5 +68,6 @@ class MoveAlgo final {
     static const float slideEnd;
     static const float slideSpeed;
     static const float fallThreshold;
+    static const float fallWlkThreshold;
     static const float closeToPointThreshold;
   };

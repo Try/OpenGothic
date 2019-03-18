@@ -70,6 +70,10 @@ StaticObjects::Mesh World::getView(const std::string &visual, int32_t headTex, i
   return view()->getView(visual,headTex,teetTex,bodyColor);
   }
 
+StaticObjects::Mesh World::getStaticView(const std::string &visual, int32_t tex) const {
+  return view()->getStaticView(visual,tex);
+  }
+
 DynamicWorld::Item World::getPhysic(const std::string& visual) {
   if(auto mesh=Resources::loadMesh(visual))
     return physic()->ghostObj(45,mesh->colisionHeight());

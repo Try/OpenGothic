@@ -4,6 +4,7 @@
 #include "pose.h"
 #include "posepool.h"
 #include "world/interactive.h"
+#include "world/world.h"
 
 #include "resources.h"
 
@@ -25,16 +26,17 @@ void AnimationSolver::setPos(const Matrix4x4 &m) {
     }
   }
 
-void AnimationSolver::setVisual(const Skeleton *v,uint64_t tickCount,WeaponState ws,WalkBit walk,Interactive* inter) {
+void AnimationSolver::setVisual(const Skeleton *v,uint64_t tickCount,
+                                WeaponState ws,WalkBit walk,Interactive* inter,World& owner) {
   skeleton = v;
 
   current=NoAnim;
-  setAnim(Idle,tickCount,ws,ws,walk,inter);
+  setAnim(Idle,tickCount,ws,ws,walk,inter,owner);
 
   head  .setSkeleton(skeleton);
   view  .setSkeleton(skeleton);
   armour.setSkeleton(skeleton);
-  invalidateAnim(animSq,skeleton,tickCount);
+  invalidateAnim(animSq,skeleton,owner,tickCount);
   setPos(pos); // update obj matrix
   }
 
@@ -46,7 +48,8 @@ void AnimationSolver::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh
   view.setSkeleton(skeleton);
   }
 
-bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState nextSt,WeaponState weaponSt,WalkBit walk,Interactive* inter) {
+bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState nextSt,WeaponState weaponSt,
+                              WalkBit walk,Interactive* inter,World& owner) {
   if(animSq!=nullptr){
     if(current==a && nextSt==weaponSt && animSq.cls==Animation::Loop)
       return true;
@@ -71,11 +74,11 @@ bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState nextSt,Weapo
     lastIdle=current;
   if(ani==animSq) {
     if(animSq.cls==Animation::Transition){
-      invalidateAnim(ani,skeleton,tickCount); // restart anim
+      invalidateAnim(ani,skeleton,owner,tickCount); // restart anim
       }
     return true;
     }
-  invalidateAnim(ani,skeleton,tickCount);
+  invalidateAnim(ani,skeleton,owner,tickCount);
   return true;
   }
 
@@ -86,15 +89,16 @@ bool AnimationSolver::isFlyAnim(uint64_t tickCount) const {
          current!=Fall && current!=FallDeep;
   }
 
-void AnimationSolver::invalidateAnim(const Sequence ani,const Skeleton* sk,uint64_t tickCount) {
+void AnimationSolver::invalidateAnim(const Sequence ani,const Skeleton* sk,World& owner,uint64_t tickCount) {
   animSq = ani;
   sAnim  = tickCount;
   if(ani.l0)
-    skInst = PosePool::get(sk,ani.l0,ani.l1,sAnim); else
-    skInst = PosePool::get(sk,ani.l1,sAnim);
+    skInst = owner.view()->get(sk,ani.l0,ani.l1,sAnim); else
+    skInst = owner.view()->get(sk,ani.l1,sAnim);
   }
 
-void AnimationSolver::addOverlay(const Skeleton* sk,uint64_t time,uint64_t tickCount,WalkBit wlk,Interactive* inter) {
+void AnimationSolver::addOverlay(const Skeleton* sk,uint64_t time,uint64_t tickCount,
+                                 WalkBit wlk,Interactive* inter,World& owner) {
   if(sk==nullptr)
     return;
   if(time!=0)
@@ -104,10 +108,10 @@ void AnimationSolver::addOverlay(const Skeleton* sk,uint64_t time,uint64_t tickC
   overlay.push_back(ov);
   if(animSq!=nullptr) {
     auto ani=animSequence(animSq.name());
-    invalidateAnim(ani,skeleton,tickCount);
+    invalidateAnim(ani,skeleton,owner,tickCount);
     } else {
     // fallback
-    setAnim(Idle,tickCount,WeaponState::NoWeapon,WeaponState::NoWeapon,wlk,inter);
+    setAnim(Idle,tickCount,WeaponState::NoWeapon,WeaponState::NoWeapon,wlk,inter,owner);
     }
   }
 

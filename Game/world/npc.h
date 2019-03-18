@@ -202,7 +202,7 @@ class Npc final {
     ~Npc();
 
     void setPosition  (float x,float y,float z);
-    void setPosition  (const std::array<float,3>& pos);
+    bool setPosition  (const std::array<float,3>& pos);
     void setDirection (float x,float y,float z);
     void setDirection (const std::array<float,3>& pos);
     void setDirection (float rotation);
@@ -330,8 +330,11 @@ class Npc final {
     void     addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint* point);
     void     multSpeed(float s);
 
-    MoveCode tryMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
-    MoveCode tryMoveVr(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
+    MoveCode testMove  (const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
+    MoveCode testMoveVr(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
+    bool     tryMove   (const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
+    bool     tryMove   (const std::array<float,3>& pos, float speed);
+
     JumpCode tryJump(const std::array<float,3>& pos);
     float    clampHeight(Anim a) const;
     bool     hasCollision() const { return physic.hasCollision(); }

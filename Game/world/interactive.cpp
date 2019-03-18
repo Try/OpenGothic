@@ -14,7 +14,7 @@ Interactive::Interactive(World &owner, const ZenLoad::zCVobData &vob)
 
     auto physicMesh = Resources::physicMesh(mesh); //FIXME: build physic model in Resources.cpp
 
-    view   = owner.getView(vob.visual);
+    view   = owner.getStaticView(vob.visual,0);
     physic = owner.physic()->staticObj(physicMesh,objMat);
 
     view  .setObjMatrix(objMat);

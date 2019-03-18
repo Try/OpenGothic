@@ -8,6 +8,7 @@
 #include "graphics/sky/sky.h"
 #include "graphics/staticobjects.h"
 #include "graphics/landscape.h"
+#include "posepool.h"
 
 class World;
 class RendererStorage;
@@ -27,8 +28,12 @@ class WorldView {
     void draw     (Tempest::CommandBuffer &cmd, Tempest::FrameBuffer &fbo);
     void resetCmd ();
 
-    StaticObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
+    StaticObjects::Mesh getView      (const std::string& visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
+    StaticObjects::Mesh getStaticView(const std::string& visual, int32_t material);
     void addStatic(const ZenLoad::zCVobData &vob);
+
+    std::shared_ptr<Pose> get(const Skeleton* s,const Animation::Sequence *sq,uint64_t sT);
+    std::shared_ptr<Pose> get(const Skeleton* s,const Animation::Sequence *sq,const Animation::Sequence *sq1,uint64_t sT);
 
   private:
     const World&            owner;
@@ -38,6 +43,7 @@ class WorldView {
     Landscape               land;
     StaticObjects           vobGroup;
     StaticObjects           objGroup;
+    StaticObjects           itmGroup;
     bool                    nToUpdateCmd=true;
 
     Tempest::Matrix4x4      proj;
@@ -47,6 +53,7 @@ class WorldView {
       DynamicWorld::Item  physic;
       };
 
+    PosePool                            animPool;
     std::vector<Tempest::CommandBuffer> cmdLand;
     std::vector<StaticObj>              objStatic;
 

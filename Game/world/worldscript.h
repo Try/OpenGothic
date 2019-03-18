@@ -46,6 +46,7 @@ class WorldScript final {
     void       loadDialogOU(Gothic &gothic);
 
     const World& world() const { return owner; }
+    World&       world()       { return owner; }
     uint64_t     tickCount() const;
 
     Npc*       inserNpc(const char* npcInstance,const char *at);

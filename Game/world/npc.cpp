@@ -28,9 +28,9 @@ void Npc::setPosition(float ix, float iy, float iz) {
   updatePos();
   }
 
-void Npc::setPosition(const std::array<float,3> &pos) {
+bool Npc::setPosition(const std::array<float,3> &pos) {
   if(x==pos[0] && y==pos[1] && z==pos[2])
-    return;
+    return false;
   x = pos[0];
   y = pos[1];
   z = pos[2];
@@ -40,7 +40,7 @@ void Npc::setPosition(const std::array<float,3> &pos) {
   mt.set(3,1,y);
   mt.set(3,2,z);
   setPos(mt);
-  //updatePos();
+  return true;
   }
 
 void Npc::setDirection(float x, float /*y*/, float z) {
@@ -53,7 +53,7 @@ void Npc::setDirection(const std::array<float,3> &pos) {
   }
 
 void Npc::setDirection(float rotation) {
-  if(angle==rotation)
+  if(std::fabs(angle-rotation)<1.f)
     return;
   angle = rotation;
   updatePos();
@@ -205,7 +205,7 @@ void Npc::addOverlay(const char *sk, uint64_t time) {
   }
 
 void Npc::addOverlay(const Skeleton* sk,uint64_t time) {
-  animation.addOverlay(sk,time,owner.tickCount(),wlkMode,currentInteract);
+  animation.addOverlay(sk,time,owner.tickCount(),wlkMode,currentInteract,owner.world());
   }
 
 void Npc::delOverlay(const char *sk) {
@@ -226,7 +226,7 @@ ZMath::float3 Npc::animMoveSpeed(uint64_t dt) const {
   }
 
 void Npc::setVisual(const Skeleton* v) {
-  animation.setVisual(v,owner.tickCount(),invent.weaponState(),wlkMode,currentInteract);
+  animation.setVisual(v,owner.tickCount(),invent.weaponState(),wlkMode,currentInteract,owner.world());
   }
 
 void Npc::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh &&body, int32_t bodyVer, int32_t bodyColor) {
@@ -710,7 +710,7 @@ void Npc::nextAiAction() {
         if(a!=nullptr) {
           Log::d("AI_PlayAnim: unrecognized anim: \"",act.s0,"\"");
           if(animation.animSq!=a)
-            animation.invalidateAnim(a,animation.skeleton,owner.tickCount());
+            animation.invalidateAnim(a,animation.skeleton,owner.world(),owner.tickCount());
           }
         }
       break;
@@ -1260,7 +1260,9 @@ void Npc::startDialog(Npc& pl) {
   }
 
 bool Npc::perceptionProcess(Npc &pl,float quadDist) {
-  //return false;
+  static bool disable=false;
+  if(disable)
+    return false;
 
   float r = owner.vmNpc(hnpc).senses_range;
   r = r*r;
@@ -1342,28 +1344,50 @@ void Npc::multSpeed(float s) {
   mvAlgo.multSpeed(s);
   }
 
-Npc::MoveCode Npc::tryMove(const std::array<float,3> &pos,
+Npc::MoveCode Npc::testMove(const std::array<float,3> &pos,
                            std::array<float,3> &fallback,
                            float speed) {
-  if(physic.tryMove(pos,fallback,speed))
+  if(physic.testMove(pos,fallback,speed))
     return MV_OK;
   std::array<float,3> tmp;
-  if(physic.tryMove(fallback,tmp,0))
+  if(physic.testMove(fallback,tmp,0))
     return MV_CORRECT;
   return MV_FAILED;
   }
 
-Npc::MoveCode Npc::tryMoveVr(const std::array<float,3> &pos, std::array<float,3> &fallback, float speed) {
-  if(physic.tryMove(pos,fallback,speed))
+Npc::MoveCode Npc::testMoveVr(const std::array<float,3> &pos, std::array<float,3> &fallback, float speed) {
+  if(physic.testMove(pos,fallback,speed))
     return MV_OK;
 
   std::array<float,3> p=fallback;
   for(int i=1;i<5;++i){
-    if(physic.tryMove(p,fallback,speed))
+    if(physic.testMove(p,fallback,speed))
       return MV_CORRECT;
     p=fallback;
     }
   return MV_FAILED;
+  }
+
+bool Npc::tryMove(const std::array<float,3> &pos, std::array<float,3> &fallback, float speed) {
+  if(pos==position())
+    return true;
+  if(physic.tryMove(pos,fallback,speed)) {
+    return setPosition(fallback);
+    }
+
+  std::array<float,3> p=fallback;
+  for(int i=1;i<5;++i){
+    if(physic.tryMove(p,fallback,speed)) {
+      return setPosition(fallback);
+      }
+    p=fallback;
+    }
+  return false;
+  }
+
+bool Npc::tryMove(const std::array<float,3> &pos, float speed) {
+  std::array<float,3> fallback=pos;
+  return tryMove(pos,fallback,speed);
   }
 
 Npc::JumpCode Npc::tryJump(const std::array<float,3> &p0) {
@@ -1376,15 +1400,15 @@ Npc::JumpCode Npc::tryJump(const std::array<float,3> &p0) {
   pos[0]+=dx;
   pos[2]+=dz;
 
-  if(physic.tryMove(pos))
+  if(physic.testMove(pos))
     return JM_OK;
 
   pos[1] = p0[1]+clampHeight(Anim::JumpUpLow);
-  if(physic.tryMove(pos))
+  if(physic.testMove(pos))
     return JM_UpLow;
 
   pos[1] = p0[1]+clampHeight(Anim::JumpUpMid);
-  if(physic.tryMove(pos))
+  if(physic.testMove(pos))
     return JM_UpMid;
 
   return JM_Up;
@@ -1632,5 +1656,5 @@ void Npc::setPos(const Matrix4x4 &m) {
   }
 
 bool Npc::setAnim(Npc::Anim a, WeaponState st0, WeaponState st) {
-  return animation.setAnim(a,owner.tickCount(),st0,st,wlkMode,currentInteract);
+  return animation.setAnim(a,owner.tickCount(),st0,st,wlkMode,currentInteract,owner.world());
   }

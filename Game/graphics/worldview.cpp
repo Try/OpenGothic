@@ -6,10 +6,11 @@
 using namespace Tempest;
 
 WorldView::WorldView(const World &world, const ZenLoad::PackedMesh &wmesh, const RendererStorage &storage)
-  :owner(world),storage(storage),sky(storage),land(storage,wmesh),vobGroup(storage),objGroup(storage) {
+  :owner(world),storage(storage),sky(storage),land(storage,wmesh),vobGroup(storage),objGroup(storage),itmGroup(storage) {
   sky.setWorld(owner);
   vobGroup.reserve(8192,0);
   objGroup.reserve(8192,2048);
+  itmGroup.reserve(8192,0);
   }
 
 WorldView::~WorldView() {
@@ -30,7 +31,7 @@ Matrix4x4 WorldView::viewProj(const Matrix4x4 &view) const {
   }
 
 bool WorldView::needToUpdateCmd() const {
-  return nToUpdateCmd || vobGroup.needToUpdateCommands() || objGroup.needToUpdateCommands();
+  return nToUpdateCmd || vobGroup.needToUpdateCommands() || objGroup.needToUpdateCommands() || itmGroup.needToUpdateCommands();
   }
 
 void WorldView::updateCmd(const World &world) {
@@ -39,6 +40,7 @@ void WorldView::updateCmd(const World &world) {
 
     vobGroup.setAsUpdated();
     objGroup.setAsUpdated();
+    itmGroup.setAsUpdated();
     nToUpdateCmd=false;
     }
   }
@@ -53,6 +55,8 @@ void WorldView::updateUbo(const Matrix4x4& view,uint32_t imgId) {
   vobGroup.updateUbo   (imgId);
   objGroup.setModelView(viewProj);
   objGroup.updateUbo   (imgId);
+  itmGroup.setModelView(viewProj);
+  itmGroup.updateUbo   (imgId);
   }
 
 void WorldView::draw(CommandBuffer &cmd, FrameBuffer &fbo) {
@@ -77,6 +81,12 @@ StaticObjects::Mesh WorldView::getView(const std::string &visual, int32_t headTe
   return StaticObjects::Mesh();
   }
 
+StaticObjects::Mesh WorldView::getStaticView(const std::string &visual,int32_t material) {
+  if(auto mesh=Resources::loadMesh(visual))
+    return itmGroup.get(*mesh,material,0,material);
+  return StaticObjects::Mesh();
+  }
+
 void WorldView::addStatic(const ZenLoad::zCVobData &vob) {
   auto mesh = Resources::loadMesh(vob.visual);
   if(!mesh)
@@ -95,6 +105,15 @@ void WorldView::addStatic(const ZenLoad::zCVobData &vob) {
   objStatic.push_back(std::move(obj));
   }
 
+std::shared_ptr<Pose> WorldView::get(const Skeleton *s, const Animation::Sequence *sq, uint64_t sT) {
+  return animPool.get(s,sq,sT);
+  }
+
+std::shared_ptr<Pose> WorldView::get(const Skeleton *s, const Animation::Sequence *sq,
+                                     const Animation::Sequence *sq1, uint64_t sT) {
+  return animPool.get(s,sq,sq1,sT);
+  }
+
 void WorldView::prebuiltCmdBuf(const World &world) {
   auto& device=storage.device;
 
@@ -107,12 +126,14 @@ void WorldView::prebuiltCmdBuf(const World &world) {
     land    .commitUbo(i);
     vobGroup.commitUbo(i);
     objGroup.commitUbo(i);
+    itmGroup.commitUbo(i);
 
     cmd.begin(storage.pass());
     sky     .draw(cmd,i,world);
     land    .draw(cmd,i);
     vobGroup.draw(cmd,i);
     objGroup.draw(cmd,i);
+    itmGroup.draw(cmd,i);
     cmd.end();
 
     cmdLand.emplace_back(std::move(cmd));

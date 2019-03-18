@@ -154,7 +154,7 @@ Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
     it->setDirection(pos->dirX,pos->dirY,pos->dirZ);
     }
 
-  it->setView(owner.getView(itData.visual,itData.material,0,itData.material));
+  it->setView(owner.getStaticView(itData.visual,itData.material));
   return it;
   }
 

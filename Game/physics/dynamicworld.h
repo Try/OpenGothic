@@ -50,14 +50,17 @@ class DynamicWorld final {
         void setPosition(float x,float y,float z);
         void setObjMatrix(const Tempest::Matrix4x4& m);
 
-        bool tryMove(const std::array<float,3>& pos);
-        bool tryMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
+        bool testMove(const std::array<float,3>& pos);
+        bool testMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
+        bool tryMove (const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
 
         bool hasCollision() const;
 
       private:
-        DynamicWorld* owner=nullptr;
+        DynamicWorld*       owner=nullptr;
         btCollisionObject*  obj  =nullptr;
+        void implSetPosition(float x,float y,float z);
+
       friend class DynamicWorld;
       };
 
@@ -90,6 +93,9 @@ class DynamicWorld final {
     std::unique_ptr<PhysicMesh>                 landMesh;
     std::unique_ptr<btCollisionShape>           landShape;
     std::unique_ptr<btRigidBody>                landBody;
+
+    mutable bool                                lastRayCollision=false;
+    mutable float                               lastRayDrop[4]={};
 
     static const float                          ghostPadding;
     static const float                          ghostHeight;

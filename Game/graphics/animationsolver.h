@@ -12,6 +12,7 @@ class Skeleton;
 class Overlay;
 class Pose;
 class Interactive;
+class World;
 
 class AnimationSolver final {
   public:
@@ -142,7 +143,7 @@ class AnimationSolver final {
       };
 
     void                           setPos   (const Tempest::Matrix4x4 &m);
-    void                           setVisual(const Skeleton *visual, uint64_t tickCount, WeaponState ws, WalkBit walk, Interactive* inter);
+    void                           setVisual(const Skeleton *visual, uint64_t tickCount, WeaponState ws, WalkBit walk, Interactive* inter, World &owner);
     void                           setVisualBody(StaticObjects::Mesh &&h, StaticObjects::Mesh &&body);
     ZMath::float3                  animMoveSpeed(Anim a, uint64_t tickCount, uint64_t dt, WeaponState weaponSt) const;
 
@@ -150,15 +151,15 @@ class AnimationSolver final {
     bool                           stopAnim(const std::string& ani);
     void                           resetAni();
 
-    void                           addOverlay(const Skeleton *sk, uint64_t time, uint64_t tickCount, WalkBit wlk, Interactive *inter);
+    void                           addOverlay(const Skeleton *sk, uint64_t time, uint64_t tickCount, WalkBit wlk, Interactive *inter, World &owner);
     void                           delOverlay(const char *sk);
     void                           delOverlay(const Skeleton *sk);
 
     bool                           setAnim(Anim a, uint64_t tickCount, WeaponState nextSt, WeaponState weaponSt,
-                                           WalkBit walk, Interactive *inter);
+                                           WalkBit walk, Interactive *inter, World &owner);
 
     bool                           isFlyAnim(uint64_t tickCount) const;
-    void                           invalidateAnim(const Sequence ani, const Skeleton *sk, uint64_t tickCount);
+    void                           invalidateAnim(const Sequence ani, const Skeleton *sk, World &owner, uint64_t tickCount);
 
     Sequence                       solveAnim(const char *format, WeaponState st) const;
     Sequence                       solveAnim(Anim a, WeaponState st0, Anim cur, WeaponState st, WalkBit wlk, Interactive *inter) const;

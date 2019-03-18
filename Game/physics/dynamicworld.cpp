@@ -102,7 +102,16 @@ std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, fl
   }
 
 float DynamicWorld::dropRay(float x, float y, float z, bool &hasCol) const {
-  return ray(x,y+50,z, x,y-worldHeight,z,hasCol)[1];
+  if(lastRayCollision && lastRayDrop[0]==x && lastRayDrop[1]==y && lastRayDrop[2]==z){
+    hasCol = true;
+    return lastRayDrop[3];
+    }
+  lastRayDrop[0] = x;
+  lastRayDrop[1] = y;
+  lastRayDrop[2] = z;
+  lastRayDrop[3] = ray(x,y+50,z, x,y-worldHeight,z,lastRayCollision)[1];
+  hasCol         = lastRayCollision;
+  return lastRayDrop[3];
   }
 
 std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, float y1, float z1, bool &hasCol) const {
@@ -110,15 +119,13 @@ std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, fl
     using ClosestRayResultCallback::ClosestRayResultCallback;
 
     bool needsCollision(btBroadphaseProxy* proxy0) const override {
-      if(reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject)->getUserIndex()==C_Landscape)
+      auto obj=reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject);
+      if(obj->getUserIndex()==C_Landscape)
         return ClosestRayResultCallback::needsCollision(proxy0);
       return false;
       }
 
     btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
-      const int idx = rayResult.m_collisionObject->getUserIndex();
-      if(idx!=C_Landscape)
-        return false;
       return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
       }
     };
@@ -136,7 +143,7 @@ std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, fl
 
 DynamicWorld::Item DynamicWorld::ghostObj(float r,float height) {
   btCollisionShape*  shape = new HumShape(r*0.5f,(ghostHeight-ghostPadding)*0.5f);
-  btGhostObject*     obj   = new btGhostObject();
+  btCollisionObject* obj   = new btRigidBody(0,nullptr,shape);//new btGhostObject();
   obj->setCollisionShape(shape);
   //btCollisionObject* obj   = new btRigidBody(0,nullptr,shape);
 
@@ -238,13 +245,17 @@ void DynamicWorld::rayTest(const btVector3 &s,
   }
 
 void DynamicWorld::Item::setPosition(float x, float y, float z) {
-  if(obj){
-    btTransform trans;
-    trans.setIdentity();
-    trans.setOrigin(btVector3(x,y+(ghostHeight-ghostPadding)*0.5f+ghostPadding,z));
-    obj->setWorldTransform(trans);
-    owner->world->updateSingleAabb(obj);
+  if(obj) {
+    implSetPosition(x,y,z);
     }
+  }
+
+void DynamicWorld::Item::implSetPosition(float x, float y, float z) {
+  btTransform trans;
+  trans.setIdentity();
+  trans.setOrigin(btVector3(x,y+(ghostHeight-ghostPadding)*0.5f+ghostPadding,z));
+  obj->setWorldTransform(trans);
+  owner->world->updateSingleAabb(obj);
   }
 
 void DynamicWorld::Item::setObjMatrix(const Tempest::Matrix4x4 &m) {
@@ -256,22 +267,22 @@ void DynamicWorld::Item::setObjMatrix(const Tempest::Matrix4x4 &m) {
     }
   }
 
-bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos) {
+bool DynamicWorld::Item::testMove(const std::array<float,3> &pos) {
   if(!obj)
     return false;
   std::array<float,3> tmp={};
-  auto                tr = obj->getWorldTransform();
   if(owner->hasCollision(*this,tmp))
     return true;
-  setPosition(pos[0],pos[1],pos[2]);
+  auto tr = obj->getWorldTransform();
+  implSetPosition(pos[0],pos[1],pos[2]);
   const bool ret=owner->hasCollision(*this,tmp);
   obj->setWorldTransform(tr);
   return !ret;
   }
 
-bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos,
-                                 std::array<float,3>       &fallback,
-                                 float speed) {
+bool DynamicWorld::Item::testMove(const std::array<float,3> &pos,
+                                  std::array<float,3>       &fallback,
+                                  float speed) {
   fallback=pos;
   if(!obj)
     return false;
@@ -281,9 +292,34 @@ bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos,
   if(owner->hasCollision(*this,norm))
     return true;
   //auto ground = dropRay(pos[0],pos[1],pos[2]);
-  setPosition(pos[0],pos[1],pos[2]);
+  implSetPosition(pos[0],pos[1],pos[2]);
   const bool ret=owner->hasCollision(*this,norm);
   if(ret && speed!=0.f){
+    fallback[0] = pos[0] + norm[0]*speed;
+    fallback[1] = pos[1];// - norm[1]*speed;
+    fallback[2] = pos[2] + norm[2]*speed;
+    }
+  obj->setWorldTransform(tr);
+  return !ret;
+  }
+
+bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos, std::array<float,3> &fallback, float speed) {
+  fallback=pos;
+  if(!obj)
+    return false;
+
+  std::array<float,3> norm={};
+  auto                tr = obj->getWorldTransform();
+  if(owner->hasCollision(*this,norm)){
+    implSetPosition(pos[0],pos[1],pos[2]);
+    return true;
+    }
+
+  implSetPosition(pos[0],pos[1],pos[2]);
+  const bool ret=owner->hasCollision(*this,norm);
+  if(!ret)
+    return true;
+  if(speed!=0.f){
     fallback[0] = pos[0] + norm[0]*speed;
     fallback[1] = pos[1];// - norm[1]*speed;
     fallback[2] = pos[2] + norm[2]*speed;

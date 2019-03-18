@@ -101,6 +101,7 @@ class StaticObjects final {
     UboGlobal                       uboGlobal;
 
     ObjectsBucket<UboSt,Vertex>&    getBucketSt(const Tempest::Texture2d* mat);
+    ObjectsBucket<UboSt,Vertex>&    getBucketAt(const Tempest::Texture2d* mat);
     ObjectsBucket<UboDn,VertexA>&   getBucketDn(const Tempest::Texture2d* mat);
 
     Item                            implGet(const StaticMesh& mesh,
