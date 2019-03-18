@@ -1640,6 +1640,22 @@ void Npc::clearGoTo() {
   mvAlgo.aiGoTo(nullptr);
   }
 
+bool Npc::canSeeNpc(const Npc &oth, bool freeLos) {
+  DynamicWorld* w = owner.world().physic();
+
+  if(!freeLos){
+    float dx  = x-oth.x, dz=z-oth.z;
+    float dir = angleDir(dx,dz);
+    float da  = float(M_PI)*(angle-dir)/180.f;
+    if(double(std::cos(da))<std::cos(M_PI/3))
+      return false;
+    }
+  bool ret=true;
+  // TODO: npc eyesight height
+  w->ray(x,y+180,z, oth.x,oth.y+180,oth.z, ret);
+  return !ret;
+  }
+
 void Npc::updatePos() {
   Matrix4x4 mt;
   mt.identity();

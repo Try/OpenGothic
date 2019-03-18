@@ -397,6 +397,8 @@ class Npc final {
     GoToHint moveHint() const { return currentGoToFlag; }
     void     clearGoTo();
 
+    bool     canSeeNpc(const Npc& oth,bool freeLos);
+
     void     setTarget(Npc* t);
     Npc*     target();
 

@@ -1476,7 +1476,11 @@ void WorldScript::npc_getequippedarmor(Daedalus::DaedalusVM &vm) {
 void WorldScript::npc_canseenpc(Daedalus::DaedalusVM &vm) {
   auto npc   = popInstance(vm);
   auto other = popInstance(vm);
-  vm.setReturn(1); //TODO
+  bool ret   = false;
+  if(npc!=nullptr && other!=nullptr){
+    ret = npc->canSeeNpc(*other,false);
+    }
+  vm.setReturn(ret ? 1 : 0);
   }
 
 void WorldScript::npc_hasequippedmeleeweapon(Daedalus::DaedalusVM &vm) {
@@ -1530,7 +1534,8 @@ void WorldScript::npc_canseenpcfreelos(Daedalus::DaedalusVM &vm) {
   auto oth = popInstance(vm);
 
   if(npc!=nullptr && oth!=nullptr){
-    vm.setReturn(1); // TODO: real check view
+    bool v = npc->canSeeNpc(*oth,true);
+    vm.setReturn(v ? 1 : 0);
     return;
     }
   vm.setReturn(0);
@@ -1598,7 +1603,7 @@ void WorldScript::npc_checkinfo(Daedalus::DaedalusVM &vm) {
   auto imp = vm.popDataValue();
   auto n   = popInstance(vm);
   if(n==nullptr){
-    vm.setReturn(1);
+    vm.setReturn(0);
     return;
     }
 

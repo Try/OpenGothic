@@ -38,9 +38,9 @@ class WorldScript final {
       ATT_FRIENDLY = 3
       };
 
-    bool    hasSymbolName(const std::string& fn);
-    int32_t runFunction(const std::string &fname);
-    int32_t runFunction(const size_t       fid, bool clearStk=true);
+    bool       hasSymbolName(const std::string& fn);
+    int32_t    runFunction(const std::string &fname);
+    int32_t    runFunction(const size_t       fid, bool clearStk=true);
 
     void       initDialogs(Gothic &gothic);
     void       loadDialogOU(Gothic &gothic);
