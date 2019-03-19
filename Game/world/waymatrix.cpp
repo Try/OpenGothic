@@ -17,9 +17,6 @@ WayMatrix::WayMatrix(World &world, const ZenLoad::zCWayNetData &dat)
     //at(i.second,i.first) =1.f;
     }
 
-  adjustWaypoints(wayPoints);
-  adjustWaypoints(freePoints);
-
   for(auto& i:wayPoints)
     if(i.name.find("START")==0)
       startPoints.push_back(i);
@@ -27,10 +24,6 @@ WayMatrix::WayMatrix(World &world, const ZenLoad::zCWayNetData &dat)
   for(auto& i:wayPoints)
     if(i.name.find("START")!=std::string::npos)
       startPoints.push_back(i);
-
-  std::sort(indexPoints.begin(),indexPoints.end(),[](const WayPoint* a,const WayPoint* b){
-    return a->name<b->name;
-    });
   }
 
 void WayMatrix::buildIndex() {
@@ -39,6 +32,12 @@ void WayMatrix::buildIndex() {
   adjustWaypoints(freePoints);
   std::sort(indexPoints.begin(),indexPoints.end(),[](const WayPoint* a,const WayPoint* b){
     return a->name<b->name;
+    });
+
+  for(auto& i:freePoints)
+    fpInd.push_back(&i);
+  std::sort(fpInd.begin(),fpInd.end(),[](const WayPoint* a,const WayPoint* b){
+    return a->x<b->x;
     });
   }
 
@@ -59,43 +58,14 @@ const WayPoint *WayMatrix::findWayPoint(float x, float y, float z) const {
   }
 
 const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const char *name) const {
-  const WayPoint* ret   = nullptr;
-  float           dist  = 20.f*100.f; // see scripting doc
-  auto&           index = findFpIndex(name);
-
-  for(auto pw:index.index){
-    auto& w  = *pw;
-    float dx = w.x-x;
-    float dy = w.y-y;
-    float dz = w.z-z;
-    float l=dx*dx+dy*dy+dz*dz;
-    if(l<dist){
-      ret  = &w;
-      dist = l;
-      }
-    }
-  return ret;
+  auto&  index = findFpIndex(name);
+  return findFreePoint(x,y,z,index,nullptr);
   }
 
 const WayPoint *WayMatrix::findNextFreePoint(float x, float y, float z, const char *name) const {
-  const WayPoint* cur   = findFreePoint(x,y,z,name);
-  const WayPoint* ret   = nullptr;
-  float           dist  = 20.f*100.f; // see scripting doc
   auto&           index = findFpIndex(name);
-
-  dist*=dist;
-  for(auto pw:index.index){
-    auto& w  = *pw;
-    float dx = w.x-x;
-    float dy = w.y-y;
-    float dz = w.z-z;
-    float l=dx*dx+dy*dy+dz*dz;
-    if(l<dist && &w!=cur && !w.isLocked()){
-      ret  = &w;
-      dist = l;
-      }
-    }
-  return ret;
+  const WayPoint* cur   = findFreePoint(x,y,z,index,nullptr);
+  return findFreePoint(x,y,z,index,cur);
   }
 
 const WayPoint *WayMatrix::findNextPoint(float x, float y, float z) const {
@@ -191,7 +161,39 @@ const WayMatrix::FpIndex &WayMatrix::findFpIndex(const char *name) const {
       continue;
     id.index.push_back(&w);
     }
+  // TODO: good index, not sort by 'x' :)
+  std::sort(id.index.begin(),id.index.end(),[](const WayPoint* a,const WayPoint* b){
+    return a->x<b->x;
+    });
 
   it = fpIndex.insert(it,std::move(id));
   return *it;
+  }
+
+const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpIndex& ind, const WayPoint *ex) const {
+  float R = 20.f*100.f; // see scripting doc
+  auto b = std::lower_bound(ind.index.begin(),ind.index.end(), x-R ,[](const WayPoint *a, float b){
+    return a->x<b;
+    });
+  auto e = std::upper_bound(ind.index.begin(),ind.index.end(), x+R ,[](float a,const WayPoint *b){
+    return a<b->x;
+    });
+
+  const WayPoint *ret=nullptr;
+  int32_t count = std::distance(b,e);(void) count;
+  float dist = R*R;
+  for(auto i=b;i!=e;++i){
+    auto& w  = **i;
+    if(w.isLocked() || &w==ex)
+      continue;
+    float dx = w.x-x;
+    float dy = w.y-y;
+    float dz = w.z-z;
+    float l=dx*dx+dy*dy+dz*dz;
+    if(l<dist && dz*dz<300*300){
+      ret  = &w;
+      dist = l;
+      }
+    }
+  return ret;
   }

@@ -35,6 +35,8 @@ class WayMatrix final {
     std::vector<WayPoint>  freePoints, startPoints;
     std::vector<WayPoint*> indexPoints;
 
+    std::vector<WayPoint*> fpInd;
+
     struct FpIndex {
       std::string                  key;
       std::vector<const WayPoint*> index;
@@ -44,4 +46,5 @@ class WayMatrix final {
     void                   adjustWaypoints(std::vector<WayPoint> &wp);
 
     const FpIndex&         findFpIndex(const char* name) const;
+    const WayPoint*        findFreePoint(float x, float y, float z, const FpIndex &ind, const WayPoint* ex) const;
   };
