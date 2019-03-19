@@ -113,19 +113,30 @@ void Pose::update(uint64_t dt) {
     return;
     }
 
-  if(lastT==dt)
-    return;
+  //if(lastT==dt)
+  //  return;
 
+  bool change=false;
   if(sequence)
-    update(*sequence,dt);
-  update(*baseSq,dt);
+    change |= update(*sequence,dt,frSequence);
+  change|= update(*baseSq,dt,frBase);
 
-  lastT=dt;
+  if(!change)
+    return;
+  //lastT=dt;
   mkSkeleton(*baseSq);
   }
 
-void Pose::update(const Animation::Sequence &s, uint64_t dt) {
-  uint64_t fr     = uint64_t(s.fpsRate*dt);
+bool Pose::update(const Animation::Sequence &s, uint64_t dt, uint64_t& fr) {
+  uint64_t nfr = uint64_t(s.fpsRate*dt);
+  if(nfr==fr)
+    return false;
+  fr = nfr;
+  updateFrame(s,fr);
+  return true;
+  }
+
+void Pose::updateFrame(const Animation::Sequence &s, uint64_t fr) {
   float    a      = (fr%1000)/1000.f;
   uint64_t frameA = (fr/1000  );
   uint64_t frameB = (fr/1000+1);

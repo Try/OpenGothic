@@ -5,6 +5,7 @@
 #include <BulletCollision/CollisionDispatch/btDefaultCollisionConfiguration.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
 #include <BulletCollision/BroadphaseCollision/btDbvtBroadphase.h>
+#include <BulletCollision/BroadphaseCollision/btSimpleBroadphase.h>
 #include <BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolver.h>
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
 #include <BulletDynamics/Dynamics/btSimpleDynamicsWorld.h>
@@ -39,8 +40,12 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
   // collision configuration contains default setup for memory, collision setup
   conf.reset(new btDefaultCollisionConfiguration());
   // use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
-  dispatcher.reset(new btCollisionDispatcher(conf.get()));
-  broadphase.reset(new btDbvtBroadphase());
+  auto disp = new btCollisionDispatcher(conf.get());
+  dispatcher.reset(disp);
+  disp->setDispatcherFlags(btCollisionDispatcher::CD_DISABLE_CONTACTPOOL_DYNAMIC_ALLOCATION);
+
+  btDbvtBroadphase* brod = new btDbvtBroadphase();
+  broadphase.reset(brod);
   // the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
   world.reset(new btCollisionWorld(dispatcher.get(),broadphase.get(),conf.get()));
 
@@ -50,14 +55,8 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
       landMesh->addIndex(i.indices);
 
   landShape.reset(new btBvhTriangleMeshShape(landMesh.get(),false,true));
-  btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(
-        0,                  // mass, in kg. 0 -> Static object, will never move.
-        nullptr,
-        landShape.get(),
-        btVector3(0,0,0)
-        );
-  landBody.reset(new btRigidBody(rigidBodyCI));
-  landBody->setUserIndex(C_Landscape);
+  landBody = landObj();
+
   world->addCollisionObject(landBody.get());
   world->setForceUpdateAllAabbs(false);
   }
@@ -72,8 +71,13 @@ float DynamicWorld::dropRay(float x,float y,float z) const {
   }
 
 std::array<float,3> DynamicWorld::landNormal(float x, float y, float z) const {
-  struct CallBack:btCollisionWorld::ClosestRayResultCallback {
+  struct rCallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;
+
+    rCallBack(const btVector3& rayFromWorld, const btVector3& rayToWorld)
+      :ClosestRayResultCallback(rayFromWorld,rayToWorld){
+      m_collisionFilterMask = btBroadphaseProxy::DefaultFilter | btBroadphaseProxy::StaticFilter;
+      }
 
     btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
       return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
@@ -87,7 +91,7 @@ std::array<float,3> DynamicWorld::landNormal(float x, float y, float z) const {
     };
 
   btVector3 s(x,y+50,z), e(x,y-worldHeight,z);
-  CallBack callback{s,e};
+  rCallBack callback{s,e};
 
   rayTest(s,e,callback);
 
@@ -141,16 +145,32 @@ std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, fl
   return {x1,y1,z1};
   }
 
+std::unique_ptr<btRigidBody> DynamicWorld::landObj() {
+  btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(
+        0,                  // mass, in kg. 0 -> Static object, will never move.
+        nullptr,
+        landShape.get(),
+        btVector3(0,0,0)
+        );
+  std::unique_ptr<btRigidBody> obj(new btRigidBody(rigidBodyCI));
+  obj->setUserIndex(C_Landscape);
+  obj->setFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
+  obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
+  return obj;
+  }
+
 DynamicWorld::Item DynamicWorld::ghostObj(float r,float height) {
   btCollisionShape*  shape = new HumShape(r*0.5f,(ghostHeight-ghostPadding)*0.5f);
-  btCollisionObject* obj   = new btRigidBody(0,nullptr,shape);//new btGhostObject();
+  btRigidBody*       obj   = new btRigidBody(0,nullptr,shape);//new btGhostObject();
   obj->setCollisionShape(shape);
-  //btCollisionObject* obj   = new btRigidBody(0,nullptr,shape);
 
   btTransform trans;
   trans.setIdentity();
   obj->setWorldTransform(trans);
   obj->setUserIndex(C_Ghost);
+  obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+  obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
+  //obj->setCollisionFlags(btCollisionObject::CO_GHOST_OBJECT | btCollisionObject::CO_RIGID_BODY);
 
   world->addCollisionObject(obj);
   return Item(this,obj);
@@ -166,15 +186,17 @@ DynamicWorld::Item DynamicWorld::staticObj(const PhysicMeshShape *shape, const T
         &shape->shape,
         btVector3(0,0,0)
         );
-  std::unique_ptr<btRigidBody> body(new btRigidBody(rigidBodyCI));
-  body->setUserIndex(C_Landscape);
+  std::unique_ptr<btRigidBody> obj(new btRigidBody(rigidBodyCI));
+  obj->setUserIndex(C_Landscape);
+  obj->setFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
+  obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
 
   btTransform trans;
   trans.setFromOpenGLMatrix(m.data());
-  body->setWorldTransform(trans);
+  obj->setWorldTransform(trans);
 
-  world->addCollisionObject(body.get());
-  return Item(this,body.release());
+  world->addCollisionObject(obj.get());
+  return Item(this,obj.release());
   }
 
 void DynamicWorld::tick(uint64_t /*dt*/) {
@@ -193,11 +215,8 @@ bool DynamicWorld::hasCollision(const Item& it,std::array<float,3>& normal) {
     int                 count=0;
     std::array<float,3> norm={};
 
-    bool needsCollision(btBroadphaseProxy* proxy0) const override {
-      auto uid = reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject)->getUserIndex();
-      if(uid==C_Landscape || uid==C_Ghost)
-        return ContactResultCallback::needsCollision(proxy0);
-      return false;
+    rCallBack(){
+      m_collisionFilterMask = btBroadphaseProxy::DefaultFilter | btBroadphaseProxy::StaticFilter;
       }
 
     btScalar addSingleResult(btManifoldPoint& p,
@@ -231,22 +250,25 @@ bool DynamicWorld::hasCollision(const Item& it,std::array<float,3>& normal) {
 void DynamicWorld::rayTest(const btVector3 &s,
                            const btVector3 &e,
                            btCollisionWorld::RayResultCallback &callback) const {
-  world->rayTest(s,e,callback);
-  /*
-  btTransform rayFromTrans,rayToTrans;
-  rayFromTrans.setIdentity();
-  rayFromTrans.setOrigin(s);
-  rayToTrans.setIdentity();
-  rayToTrans.setOrigin(e);
-  world->rayTestSingle(rayFromTrans, rayToTrans, landBody.get(),
-                       landBody->getCollisionShape(),
-                       landBody->getWorldTransform(),
-                       callback);*/
+  if(1){
+    world->rayTest(s,e,callback);
+    } else {
+    btTransform rayFromTrans,rayToTrans;
+    rayFromTrans.setIdentity();
+    rayFromTrans.setOrigin(s);
+    rayToTrans.setIdentity();
+    rayToTrans.setOrigin(e);
+    world->rayTestSingle(rayFromTrans, rayToTrans, landBody.get(),
+                         landBody->getCollisionShape(),
+                         landBody->getWorldTransform(),
+                         callback);
+    }
   }
 
 void DynamicWorld::Item::setPosition(float x, float y, float z) {
   if(obj) {
     implSetPosition(x,y,z);
+    owner->world->updateSingleAabb(obj);
     }
   }
 
@@ -255,7 +277,6 @@ void DynamicWorld::Item::implSetPosition(float x, float y, float z) {
   trans.setIdentity();
   trans.setOrigin(btVector3(x,y+(ghostHeight-ghostPadding)*0.5f+ghostPadding,z));
   obj->setWorldTransform(trans);
-  owner->world->updateSingleAabb(obj);
   }
 
 void DynamicWorld::Item::setObjMatrix(const Tempest::Matrix4x4 &m) {
@@ -292,7 +313,7 @@ bool DynamicWorld::Item::testMove(const std::array<float,3> &pos,
   if(owner->hasCollision(*this,norm))
     return true;
   //auto ground = dropRay(pos[0],pos[1],pos[2]);
-  implSetPosition(pos[0],pos[1],pos[2]);
+  setPosition(pos[0],pos[1],pos[2]);
   const bool ret=owner->hasCollision(*this,norm);
   if(ret && speed!=0.f){
     fallback[0] = pos[0] + norm[0]*speed;
@@ -311,14 +332,16 @@ bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos, std::array<floa
   std::array<float,3> norm={};
   auto                tr = obj->getWorldTransform();
   if(owner->hasCollision(*this,norm)){
-    implSetPosition(pos[0],pos[1],pos[2]);
+    setPosition(pos[0],pos[1],pos[2]);
     return true;
     }
 
   implSetPosition(pos[0],pos[1],pos[2]);
   const bool ret=owner->hasCollision(*this,norm);
-  if(!ret)
+  if(!ret) {
+    owner->world->updateSingleAabb(obj);
     return true;
+    }
   if(speed!=0.f){
     fallback[0] = pos[0] + norm[0]*speed;
     fallback[1] = pos[1];// - norm[1]*speed;

@@ -616,6 +616,7 @@ void Npc::tick(uint64_t dt) {
     mvAlgo.aiGoTo(nullptr);
     currentOther = lastHit;
     mvAlgo.tick(dt);
+    aiActions.clear();
     tickRoutine(); // tick for ZS_Death
     return;
     }

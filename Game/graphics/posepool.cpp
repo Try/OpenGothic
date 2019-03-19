@@ -19,6 +19,17 @@ std::shared_ptr<Pose> PosePool::get(const Skeleton *s, const Animation::Sequence
   return find(*s,sq,*sq1,sT);
   }
 
+void PosePool::updateAnimation(uint64_t tickCount) {
+  for(auto& i:chunks){
+    for(auto& r:i.timed){
+      if(r.use_count()>1){
+        uint64_t dt=tickCount - r->sTime;
+        r->pose.update(dt);
+        }
+      }
+    }
+  }
+
 PosePool::Chunk &PosePool::findChunk(const Skeleton& s, const Animation::Sequence* sq0, const Animation::Sequence* sq1) {
   for(auto& i:chunks)
     if(i.skeleton==&s && i.sq0==sq0 && i.sq1==sq1)

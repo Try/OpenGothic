@@ -35,6 +35,8 @@ class WorldView {
     std::shared_ptr<Pose> get(const Skeleton* s,const Animation::Sequence *sq,uint64_t sT);
     std::shared_ptr<Pose> get(const Skeleton* s,const Animation::Sequence *sq,const Animation::Sequence *sq1,uint64_t sT);
 
+    void updateAnimation(uint64_t tickCount);
+
   private:
     const World&            owner;
     const RendererStorage&  storage;

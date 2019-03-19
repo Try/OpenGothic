@@ -333,6 +333,11 @@ void WorldScript::initDialogs(Gothic& gothic) {
     vm.initializeInstance(ZMemory::toBigHandle(h), i, Daedalus::IC_Info);
     dialogsInfo.push_back(h);
     });
+  std::sort(dialogsInfo.begin(),dialogsInfo.end(),[this](Daedalus::GameState::InfoHandle l,Daedalus::GameState::InfoHandle r){
+    Daedalus::GEngineClasses::C_Info& ll = vm.getGameState().getInfo(l);
+    Daedalus::GEngineClasses::C_Info& rr = vm.getGameState().getInfo(r);
+    return ll.npc<rr.npc;
+    });
   }
 
 void WorldScript::loadDialogOU(Gothic &gothic) {
@@ -1612,8 +1617,19 @@ void WorldScript::npc_checkinfo(Daedalus::DaedalusVM &vm) {
   auto& pl       = vmNpc(hnpc);
   auto& npc      = vmNpc(n->handle());
 
-  for(auto& infoHandle : dialogsInfo) {
-    Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(infoHandle);
+  auto s = std::lower_bound(dialogsInfo.begin(),dialogsInfo.end(),int32_t(npc.instanceSymbol),
+                            [&vm](Daedalus::GameState::InfoHandle h,int32_t npc){
+      Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(h);
+      return info.npc<npc;
+      });
+  auto e = std::upper_bound(dialogsInfo.begin(),dialogsInfo.end(),int32_t(npc.instanceSymbol),
+                            [&vm](int32_t npc,Daedalus::GameState::InfoHandle h){
+      Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(h);
+      return npc<info.npc;
+      });
+
+  for(auto i=s;i!=e;++i) {
+    Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(*i);
     if(info.npc!=int32_t(npc.instanceSymbol) || info.important!=imp)
       continue;
     bool npcKnowsInfo = doesNpcKnowInfo(pl,info.instanceSymbol);

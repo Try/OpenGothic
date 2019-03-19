@@ -30,8 +30,8 @@ class DynamicWorld final {
     ~DynamicWorld();
 
     enum Category {
-      C_Landscape,
-      C_Ghost
+      C_Landscape = 1,
+      C_Ghost     = 2
       };
 
     struct Item {
@@ -81,7 +81,8 @@ class DynamicWorld final {
   private:
     void deleteObj(btCollisionObject* obj);
     bool hasCollision(const Item &it,std::array<float,3>& normal);
-    void rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, btCollisionWorld::RayResultCallback& resultCallback) const;
+    void rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, btCollisionWorld::RayResultCallback& resultCallback) const;    
+    std::unique_ptr<btRigidBody> landObj();
 
     struct HumShape;
 

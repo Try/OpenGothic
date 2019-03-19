@@ -12,5 +12,5 @@ PhysicMeshShape *PhysicMeshShape::load(const ZenLoad::PackedMesh &sPacked) {
   }
 
 PhysicMeshShape::PhysicMeshShape(const ZenLoad::PackedMesh& sPacked)
-  :mesh(sPacked), shape(&mesh,false,true){
+  :mesh(sPacked), shape(&mesh,true,true){
   }

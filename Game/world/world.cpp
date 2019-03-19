@@ -84,12 +84,13 @@ void World::updateAnimation() {
   static bool doAnim=true;
   if(!vm || !doAnim)
     return;
-  for(size_t i=0;i<wobj.npcCount();++i)
-    wobj.npc(i).updateAnimation();
+  //wview->updateAnimation(tickCount());
+  wobj.updateAnimation();
   }
 
 void World::tick(uint64_t dt) {
-  if(!vm)
+  static bool doTicks=true;
+  if(!vm || !doTicks)
     return;
   wobj.tick(dt);
   wdynamic->tick(dt);

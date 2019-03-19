@@ -25,6 +25,8 @@ class WorldObjects final {
     void           onInserNpc (Daedalus::GameState::NpcHandle handle, const std::string &point);
     void           onRemoveNpc(Daedalus::GameState::NpcHandle handle);
 
+    void           updateAnimation();
+
     size_t         npcCount()    const { return npcArr.size(); }
     const Npc&     npc(size_t i) const { return *npcArr[i];    }
     Npc&           npc(size_t i)       { return *npcArr[i];    }

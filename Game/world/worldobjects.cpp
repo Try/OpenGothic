@@ -6,7 +6,7 @@
 #include "world.h"
 
 #include <Tempest/Painter>
-
+#include <Tempest/Application>
 
 using namespace Tempest;
 using namespace Daedalus::GameState;
@@ -25,21 +25,22 @@ void WorldObjects::tick(uint64_t dt) {
     i->tick(dt);
 
   auto pl = owner.player();
-  if(pl!=nullptr) {
-    for(auto& i:npcArr){
-      if(i->percNextTime()>owner.tickCount())
-        continue;
-      const float x = i->position()[0];
-      const float y = i->position()[1];
-      const float z = i->position()[2];
+  if(pl==nullptr)
+    return;
 
-      if(i.get()!=pl)
-        i->perceptionProcess(*pl,pl->qDistTo(x,y,z));
+  for(auto& i:npcArr){
+    if(i->percNextTime()>owner.tickCount())
+      continue;
+    const float x = i->position()[0];
+    const float y = i->position()[1];
+    const float z = i->position()[2];
 
-      for(auto& r:passive) {
-        float l = i->qDistTo(r.x,r.y,r.z);
-        i->perceptionProcess(*r.other,r.victum,l,Npc::PercType(r.what));
-        }
+    if(i.get()!=pl)
+      i->perceptionProcess(*pl,pl->qDistTo(x,y,z));
+
+    for(auto& r:passive) {
+      float l = i->qDistTo(r.x,r.y,r.z);
+      i->perceptionProcess(*r.other,r.victum,l,Npc::PercType(r.what));
       }
     }
   }
@@ -80,6 +81,11 @@ void WorldObjects::onRemoveNpc(NpcHandle handle) {
       npcArr.pop_back();
       return;
       }
+  }
+
+void WorldObjects::updateAnimation() {
+  for(auto& i:npcArr)
+    i->updateAnimation();
   }
 
 void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {

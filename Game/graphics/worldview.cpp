@@ -114,6 +114,10 @@ std::shared_ptr<Pose> WorldView::get(const Skeleton *s, const Animation::Sequenc
   return animPool.get(s,sq,sq1,sT);
   }
 
+void WorldView::updateAnimation(uint64_t tickCount) {
+  animPool.updateAnimation(tickCount);
+  }
+
 void WorldView::prebuiltCmdBuf(const World &world) {
   auto& device=storage.device;
 
