@@ -44,9 +44,49 @@ size_t Inventory::itemCount(const size_t cls) const {
   return 0;
   }
 
+size_t Inventory::tradableCount() const {
+  size_t c=0;
+  for(auto& i:items)
+    if(!i->isEquiped() && isTakable(*i))
+      c++;
+  return c;
+  }
+
+size_t Inventory::ransackCount() const {
+  size_t c=0;
+  for(auto& i:items)
+    if(isTakable(*i))
+      c++;
+  return c;
+  }
+
 const Item &Inventory::at(size_t i) const {
   sortItems();
   return *items[i];
+  }
+
+const Item &Inventory::atTrade(size_t n) const {
+  sortItems();
+  size_t c=0;
+  for(auto& i:items)
+    if(!i->isEquiped() && isTakable(*i) && !i->isGold()) {
+      if(c==n)
+        return *i;
+      c++;
+      }
+  throw std::logic_error("index out of range");
+  }
+
+const Item &Inventory::atRansack(size_t n) const {
+  sortItems();
+  size_t c=0;
+  for(auto& i:items)
+    if(isTakable(*i)) {
+      if(c==n)
+        return *i;
+      c++;
+      }
+  throw std::logic_error("index out of range");
   }
 
 void Inventory::addItem(std::unique_ptr<Item> &&p, WorldScript &vm) {
@@ -511,6 +551,17 @@ Item *Inventory::bestMeleeWeapon(WorldScript &vm, Npc &owner) {
 
 Item *Inventory::bestRangeWeapon(WorldScript &vm, Npc &owner) {
   return bestItem(vm,owner,ITM_CAT_FF);
+  }
+
+bool Inventory::isTakable(const Item &i) const {
+  auto flag = Flags(i.mainFlag());
+  if(i.isEquiped()) {
+    if(flag & ITM_CAT_ARMOR)
+      return false;
+    if(flag & ITM_CAT_RUNE)
+      return false;
+    }
+  return true;
   }
 
 void Inventory::sortItems() const {

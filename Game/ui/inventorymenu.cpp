@@ -7,6 +7,36 @@
 
 using namespace Tempest;
 
+struct InventoryMenu::InvPage : InventoryMenu::Page {
+  InvPage(const Inventory& i):inv(i){}
+
+  bool   is(const Inventory* i) const override { return &inv==i; }
+  size_t size() const override { return inv.recordsCount(); }
+  const Item& operator[](size_t i) const override { return inv.at(i); }
+
+  const Inventory& inv;
+  };
+
+struct InventoryMenu::TradePage : InventoryMenu::Page {
+  TradePage(const Inventory& i):inv(i){}
+
+  bool   is(const Inventory* i) const override { return &inv==i; }
+  size_t size() const override { return inv.tradableCount(); }
+  const Item& operator[](size_t i) const override { return inv.atTrade(i); }
+
+  const Inventory& inv;
+  };
+
+struct InventoryMenu::RansackPage : InventoryMenu::Page {
+  RansackPage(const Inventory& i):inv(i){}
+
+  bool   is(const Inventory* i) const override { return &inv==i; }
+  size_t size() const override { return inv.ransackCount(); }
+  const Item& operator[](size_t i) const override { return inv.atRansack(i); }
+
+  const Inventory& inv;
+  };
+
 InventoryMenu::InventoryMenu() {
   slot = Resources::loadTexture("INV_SLOT.TGA");
   selT = Resources::loadTexture("INV_SLOT_HIGHLIGHTED.TGA");
@@ -30,6 +60,8 @@ void InventoryMenu::close() {
     }
 
   page  = 0;
+  pagePl .reset();
+  pageOth.reset();
   state = State::Closed;
   update();
   }
@@ -40,6 +72,8 @@ void InventoryMenu::open(Npc &pl) {
   trader = nullptr;
   chest  = nullptr;
   page   = 0;
+  pagePl .reset(new InvPage  (pl.inventory()));
+  pageOth.reset();
   adjustScroll();
   update();
   }
@@ -50,18 +84,22 @@ void InventoryMenu::trade(Npc &pl, Npc &tr) {
   trader = &tr;
   chest  = nullptr;
   page   = 0;
+  pagePl .reset(new InvPage  (pl.inventory()));
+  pageOth.reset(new TradePage(tr.inventory()));
   adjustScroll();
   update();
   }
 
 void InventoryMenu::ransack(Npc &pl, Npc &tr) {
-  if(tr.inventory().recordsCount()==0)
+  if(tr.inventory().ransackCount()==0)
     return;
   state  = State::Ransack;
   player = &pl;
   trader = &tr;
   chest  = nullptr;
   page   = 0;
+  pagePl .reset(new InvPage    (pl.inventory()));
+  pageOth.reset(new RansackPage(tr.inventory()));
   adjustScroll();
   update();
   }
@@ -72,6 +110,8 @@ void InventoryMenu::open(Npc &pl, Interactive &ch) {
   trader = nullptr;
   chest  = &ch;
   page   = 0;
+  pagePl .reset(new InvPage(pl.inventory()));
+  pageOth.reset(new InvPage(ch.inventory()));
   pl.setInteraction(chest);
   adjustScroll();
   update();
@@ -94,7 +134,7 @@ void InventoryMenu::tick(uint64_t /*dt*/) {
 
     if(!world->script()->isDead(*trader) && !world->script()->isUnconscious(*trader))
       close();
-    if(trader->inventory().recordsCount()==0)
+    if(trader->inventory().ransackCount()==0)
       close();
     }
   }
@@ -105,18 +145,15 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     return;
     }
 
-  auto pg=activePage();
-  if(pg==nullptr)
-    return;
-
-  const size_t pCount=pagesCount();
+  auto&        pg     = activePage();
+  const size_t pCount = pagesCount();
 
   if(e.key==KeyEvent::K_W){
     if(sel>=columsCount)
       sel -= columsCount;
     }
   else if(e.key==KeyEvent::K_S){
-    if(sel+columsCount<pg->recordsCount())
+    if(sel+columsCount<pg.size())
       sel += columsCount;
     }
   else if(e.key==KeyEvent::K_A){
@@ -126,10 +163,10 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
       sel--;
     }
   else if(e.key==KeyEvent::K_D) {
-    if(((sel+1)%columsCount==0 || sel+1==pg->recordsCount() || pg->recordsCount()==0) && page+1<pCount) {
+    if(((sel+1)%columsCount==0 || sel+1==pg.size() || pg.size()==0) && page+1<pCount) {
       page++;
       }
-    else if(sel+1<pg->recordsCount())
+    else if(sel+1<pg.size())
       sel++;
     }
   adjustScroll();
@@ -148,13 +185,10 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
     return;
     }
 
-  auto page=activePage();
-  if(page==nullptr)
+  auto& page=activePage();
+  if(sel>=page.size())
     return;
-
-  if(sel>=page->recordsCount())
-    return;
-  auto& r = page->at(sel);
+  auto& r = page[sel];
   if(state==State::Equip) {
     if(r.isEquiped())
       player->unequipItem(r.clsId()); else
@@ -176,16 +210,14 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
     e.ignore();
     return;
     }
-  auto pg=activePage();
-  if(pg==nullptr)
-    return;
 
+  auto& pg=activePage();
   if(e.delta>0){
     if(sel>=columsCount)
       sel -= columsCount;
     }
   else if(e.delta<0){
-    if(sel+columsCount<pg->recordsCount())
+    if(sel+columsCount<pg.size())
       sel += columsCount;
     }
   adjustScroll();
@@ -218,42 +250,39 @@ size_t InventoryMenu::pagesCount() const {
   return 1;
   }
 
-const Inventory *InventoryMenu::activePage() {
-  const Inventory* pl = player==nullptr ? nullptr : &player->inventory();
+const InventoryMenu::Page &InventoryMenu::activePage() {
+  if(pageOth!=nullptr){
+    return *(page==0 ? pageOth : pagePl);
+    }
+  if(pagePl)
+    return *pagePl;
 
-  if(chest!=nullptr){
-    return page==0 ? &chest->inventory() : pl;
-    }
-  if(trader!=nullptr){
-    return page==0 ? &trader->inventory() : pl;
-    }
-  return pl;
+  static Page n;
+  return n;
   }
 
 void InventoryMenu::onTakeStuff() {
-  auto page=activePage();
-  if(page==nullptr)
+  auto& page=activePage();
+  if(sel>=page.size())
     return;
-  if(sel>=page->recordsCount())
-    return;
-  auto& r = page->at(sel);
+  auto& r = page[sel];
 
   if(state==State::Chest) {
-    if(page==&player->inventory()){
+    if(page.is(&player->inventory())){
       player->moveItem(r.clsId(),*chest);
       } else {
       player->addItem(r.clsId(),*chest);
       }
     }
   else if(state==State::Trade) {
-    if(page==&player->inventory()){
+    if(page.is(&player->inventory())){
       player->sellItem(r.clsId(),*trader);
       } else {
       player->buyItem(r.clsId(),*trader);
       }
     }
   else if(state==State::Ransack) {
-    if(page==&trader->inventory()){
+    if(page.is(&trader->inventory())){
       player->addItem(r.clsId(),*trader);
       }
     }
@@ -261,10 +290,8 @@ void InventoryMenu::onTakeStuff() {
   }
 
 void InventoryMenu::adjustScroll() {
-  auto page=activePage();
-  if(page==nullptr)
-    return;
-  sel = std::min(sel, std::max<size_t>(page->recordsCount(),1)-1);
+  auto& page=activePage();
+  sel = std::min(sel, std::max<size_t>(page.size(),1)-1);
   while(sel<scroll*columsCount) {
     if(scroll<=1){
       scroll=0;
@@ -290,22 +317,22 @@ void InventoryMenu::drawAll(Painter &p,Npc &player) {
 
   if(chest!=nullptr){
     drawHeader(p,chest->displayName(),padd,70);
-    drawItems(p,chest->inventory(),padd,iy,wcount,hcount);
+    drawItems(p,*pageOth,padd,iy,wcount,hcount);
     }
 
   if(trader!=nullptr) {
     drawHeader(p,trader->displayName(),padd,70);
-    drawItems(p,trader->inventory(),padd,iy,wcount,hcount);
+    drawItems(p,*pageOth,padd,iy,wcount,hcount);
     }
 
   if(state!=State::Ransack) {
     drawGold (p,player,w()-padd-2*slotSize().w,70);
-    drawItems(p,player.inventory(),w()-padd-wcount*slotSize().w,iy,wcount,hcount);
+    drawItems(p,*pagePl,w()-padd-wcount*slotSize().w,iy,wcount,hcount);
     }
   drawInfo(p);
   }
 
-void InventoryMenu::drawItems(Painter &p,const Inventory &inv, int x,int y, int wcount, int hcount) {
+void InventoryMenu::drawItems(Painter &p, const Page &inv, int x, int y, int wcount, int hcount) {
   if(tex) {
     p.setBrush(*tex);
     p.drawRect(x,y,slotSize().w*wcount,slotSize().h*hcount,
@@ -321,19 +348,19 @@ void InventoryMenu::drawItems(Painter &p,const Inventory &inv, int x,int y, int 
     }
   }
 
-void InventoryMenu::drawSlot(Painter &p,const Inventory &inv, int x, int y, size_t id) {
+void InventoryMenu::drawSlot(Painter &p,const Page &inv, int x, int y, size_t id) {
   if(!slot)
     return;
   p.setBrush(*slot);
   p.drawRect(x,y,slotSize().w,slotSize().h,
              0,0,slot->w(),slot->h());
 
-  if(id>=inv.recordsCount())
+  if(id>=inv.size())
     return;
-  auto& r    = inv.at(id);
-  auto  page = activePage();
+  auto& r    = inv[id];
+  auto& page = activePage();
 
-  if(id==sel && &inv==page && selT!=nullptr){
+  if(id==sel && &page==&inv && selT!=nullptr){
     p.setBrush(*selT);
     p.drawRect(x,y,slotSize().w,slotSize().h,
                0,0,selT->w(),selT->h());
@@ -400,11 +427,11 @@ void InventoryMenu::drawInfo(Painter &p) {
   const int x    = (w()-dw)/2;
   const int y    = h()-dh-20;
 
-  const Inventory* pg=activePage();
-  if(pg==nullptr || sel>=pg->recordsCount())
+  auto& pg=activePage();
+  if(sel>=pg.size())
     return;
 
-  auto& r = pg->at(sel);
+  auto& r = pg[sel];
   if(tex) {
     p.setBrush(*tex);
     p.drawRect(x,y,dw,dh,
@@ -422,7 +449,7 @@ void InventoryMenu::drawInfo(Painter &p) {
     if(txt==nullptr || txt[0]=='\0')
       continue;
 
-    if(i+1==Item::MAX_UI_ROWS && state==State::Trade && player!=nullptr && pg==&player->inventory()){
+    if(i+1==Item::MAX_UI_ROWS && state==State::Trade && player!=nullptr && pg.is(&player->inventory())){
       val = r.sellCost();
       }
 

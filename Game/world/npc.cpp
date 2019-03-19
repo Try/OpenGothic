@@ -116,8 +116,6 @@ bool Npc::checkHealth(bool onChange) {
       }
 
     if(onChange) {
-      if(!isPlayer())
-        invent.unequipWeapons(owner,*this);
       if(owner.guildAttitude(*this,*currentOther)==WorldScript::ATT_HOSTILE){
         size_t fdead=owner.getSymbolIndex("ZS_Dead");
         startState(fdead,"");

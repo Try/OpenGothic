@@ -48,8 +48,12 @@ class Inventory final {
     int32_t      sellPriceOf(size_t item) const;
     size_t       goldCount() const;
     size_t       itemCount(const size_t id) const;
-    size_t       recordsCount() const { return items.size(); }
+    size_t       recordsCount()  const { return items.size(); }
+    size_t       tradableCount() const;
+    size_t       ransackCount() const;
     const Item&  at(size_t i) const;
+    const Item&  atTrade(size_t i) const;
+    const Item&  atRansack(size_t i) const;
     static void  trasfer(Inventory& to, Inventory& from, Npc *fromNpc, size_t cls, uint32_t count, WorldScript &vm);
 
     void   addItem(std::unique_ptr<Item>&& p,  WorldScript& vm);
@@ -100,6 +104,8 @@ class Inventory final {
     Item*  bestArmour     (WorldScript &vm, Npc &owner);
     Item*  bestMeleeWeapon(WorldScript &vm, Npc &owner);
     Item*  bestRangeWeapon(WorldScript &vm, Npc &owner);
+
+    bool   isTakable(const Item& i) const;
 
     void        sortItems() const;
     static bool less(Item& l,Item& r);
