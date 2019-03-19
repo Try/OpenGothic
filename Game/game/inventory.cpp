@@ -47,7 +47,7 @@ size_t Inventory::itemCount(const size_t cls) const {
 size_t Inventory::tradableCount() const {
   size_t c=0;
   for(auto& i:items)
-    if(!i->isEquiped() && isTakable(*i))
+    if(!i->isEquiped() && isTakable(*i) && !i->isGold())
       c++;
   return c;
   }
