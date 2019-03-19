@@ -126,29 +126,38 @@ size_t World::getSymbolIndex(const char *s) const {
   }
 
 Focus World::findFocus(const Npc &pl, const Tempest::Matrix4x4 &v, int w, int h) {
-  const Daedalus::GEngineClasses::C_Focus* fptr=&script()->focusNorm();
+  const Daedalus::GEngineClasses::C_Focus* fptr=&script()->focusNorm();  
+  auto opt = WorldObjects::NoFlg;
+
   switch(pl.weaponState()) {
     case WeaponState::Fist:
     case WeaponState::W1H:
     case WeaponState::W2H:
-      fptr=&script()->focusMele();
+      fptr = &script()->focusMele();
+      opt  = WorldObjects::NoDeath;
       break;
     case WeaponState::Bow:
     case WeaponState::CBow:
-      fptr=&script()->focusRange();
+      fptr = &script()->focusRange();
+      opt  = WorldObjects::NoDeath;
       break;
     case WeaponState::Mage:
-      fptr=&script()->focusMage();
+      fptr = &script()->focusMage();
+      opt  = WorldObjects::NoDeath;
       break;
     case WeaponState::NoWeapon:
-      fptr=&script()->focusNorm();
+      fptr = &script()->focusNorm();
       break;
     }
   auto& policy = *fptr;
 
-  auto n     = policy.npc_prio <0 ? nullptr : wobj.findNpc(pl,v,w,h,         policy.npc_range1,  policy.npc_range2,  policy.npc_azi);
-  auto inter = policy.mob_prio <0 ? nullptr : wobj.findInteractive(pl,v,w,h, policy.mob_range1,  policy.mob_range2,  policy.mob_azi);
-  auto it    = policy.item_prio<0 ? nullptr : wobj.findItem(pl,v,w,h,        policy.item_range1, policy.item_range2, policy.item_azi);
+  WorldObjects::SearchOpt optNpc {policy.npc_range1,  policy.npc_range2,  policy.npc_azi, opt};
+  WorldObjects::SearchOpt optMob {policy.mob_range1,  policy.mob_range2,  policy.mob_azi };
+  WorldObjects::SearchOpt optItm {policy.item_range1, policy.item_range2, policy.item_azi};
+
+  auto n     = policy.npc_prio <0 ? nullptr : wobj.findNpc(pl,v,w,h,         optNpc);
+  auto inter = policy.mob_prio <0 ? nullptr : wobj.findInteractive(pl,v,w,h, optMob);
+  auto it    = policy.item_prio<0 ? nullptr : wobj.findItem(pl,v,w,h,        optItm);
 
   if(policy.npc_prio>=policy.item_prio &&
      policy.npc_prio>=policy.mob_prio) {

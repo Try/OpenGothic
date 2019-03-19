@@ -247,6 +247,7 @@ void WorldScript::initCommon() {
 
   ZS_Dead         = getAiState(getSymbolIndex("ZS_Dead")).funcIni;
   ZS_Unconscious  = getAiState(getSymbolIndex("ZS_Unconscious")).funcIni;
+  ZS_Talk         = getAiState(getSymbolIndex("ZS_Talk")).funcIni;
 
   auto& currency  = vm.getDATFile().getSymbolByName("TRADE_CURRENCY_INSTANCE");
   itMi_Gold       = vm.getDATFile().getSymbolIndexByName(currency.getString(0));
@@ -671,6 +672,10 @@ bool WorldScript::isDead(const Npc &pl) {
 
 bool WorldScript::isUnconscious(const Npc &pl) {
   return pl.isState(ZS_Unconscious);
+  }
+
+bool WorldScript::isTalk(const Npc &pl) {
+  return pl.isState(ZS_Talk);
   }
 
 const std::string &WorldScript::messageByName(const std::string& id) const {
@@ -1733,7 +1738,7 @@ void WorldScript::ai_standup(Daedalus::DaedalusVM &vm) {
 void WorldScript::ai_standupquick(Daedalus::DaedalusVM &vm) {
   auto self = popInstance(vm);
   if(self!=nullptr)
-    self->aiStandup(); //TODO
+    self->aiStandupQuick();
   }
 
 void WorldScript::ai_continueroutine(Daedalus::DaedalusVM &vm) {

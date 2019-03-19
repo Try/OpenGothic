@@ -168,21 +168,18 @@ void WorldObjects::addInteractive(const ZenLoad::zCVobData &vob) {
   interactiveObj.emplace_back(owner,vob);
   }
 
-Interactive* WorldObjects::findInteractive(const Npc &pl, const Matrix4x4 &v, int w, int h,
-                                           float rangeMin, float rangeMax, float azi) {
-  auto r = findObj(interactiveObj,pl,rangeMin,rangeMax,azi,v,w,h);
+Interactive* WorldObjects::findInteractive(const Npc &pl, const Matrix4x4 &v, int w, int h, const SearchOpt& opt) {
+  auto r = findObj(interactiveObj,pl,v,w,h,opt);
   return r;
   }
 
-Npc* WorldObjects::findNpc(const Npc &pl, const Matrix4x4 &v, int w, int h,
-                           float rangeMin, float rangeMax, float azi) {
-  auto r = findObj(npcArr,pl,rangeMin,rangeMax,azi,v,w,h);
+Npc* WorldObjects::findNpc(const Npc &pl, const Matrix4x4 &v, int w, int h, const SearchOpt& opt) {
+  auto r = findObj(npcArr,pl,v,w,h,opt);
   return r ? r->get() : nullptr;
   }
 
-Item *WorldObjects::findItem(const Npc &pl, const Matrix4x4 &v, int w, int h,
-                             float rangeMin, float rangeMax, float azi) {
-  auto r = findObj(itemArr,pl,rangeMin,rangeMax,azi,v,w,h);
+Item *WorldObjects::findItem(const Npc &pl, const Matrix4x4 &v, int w, int h, const SearchOpt& opt) {
+  auto r = findObj(itemArr,pl,v,w,h,opt);
   return r ? r->get() : nullptr;
   }
 
@@ -249,23 +246,48 @@ template<class T>
 T& deref(T& x){ return x; }
 
 template<class T>
-T* WorldObjects::findObj(std::vector<T> &src,const Npc &pl, float minDist, float maxDist,
-                         float maxAngle, const Matrix4x4 &v, int w, int h) {
+bool checkFlag(T&,WorldObjects::SearchFlg){ return true; }
+
+static bool checkFlag(Npc& n,WorldObjects::SearchFlg f){
+  if( bool(f&WorldObjects::NoDeath) && n.isDead())
+    return false;
+  return true;
+  }
+
+template<class T>
+bool canSee(const Npc&,const T&){ return true; }
+
+static bool canSee(const Npc& pl,const Npc& n){
+  return pl.canSeeNpc(n,true);
+  }
+
+static bool canSee(const Npc& pl,const Interactive& n){
+  return pl.canSeeNpc(n.position()[0],n.position()[1]+100,n.position()[2],true);
+  }
+
+static bool canSee(const Npc& pl,const Item& n){
+  return pl.canSeeNpc(n.position()[0],n.position()[1]+20,n.position()[2],true);
+  }
+
+template<class T>
+T* WorldObjects::findObj(std::vector<T> &src,const Npc &pl, const Matrix4x4 &v, int w, int h,const SearchOpt& opt) {
   T*    ret=nullptr;
-  float rlen = maxDist*maxDist;//w*h;
+  float rlen = opt.rangeMax*opt.rangeMax;//w*h;
   if(owner.view()==nullptr)
     return nullptr;
 
   auto        mvp  = owner.view()->viewProj(v);
-  const float qmax = maxDist*maxDist;
-  const float qmin = minDist*minDist;
+  const float qmax = opt.rangeMax*opt.rangeMax;
+  const float qmin = opt.rangeMin*opt.rangeMin;
 
-  const float ang   = float(std::cos(double(maxAngle)*M_PI/180.0));
+  const float ang   = float(std::cos(double(opt.azi)*M_PI/180.0));
   const float plAng = pl.rotationRad()+float(M_PI/2);
 
   for(auto& n:src){
     auto& npc=deref(n);
     if(reinterpret_cast<void*>(&npc)==reinterpret_cast<const void*>(&pl))
+      continue;
+    if(!checkFlag(npc,opt.flags))
       continue;
     auto m = mvp;
 
@@ -292,7 +314,7 @@ T* WorldObjects::findObj(std::vector<T> &src,const Npc &pl, float minDist, float
     y = 0.5f*y*h;
 
     l = std::sqrt(dx*dx+dy*dy+dz*dz);
-    if(l<rlen){
+    if(l<rlen && canSee(pl,npc)){
       rlen=l;
       ret=&n;
       }

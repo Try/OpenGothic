@@ -20,6 +20,18 @@ class WorldObjects final {
     WorldObjects(World &owner);
     ~WorldObjects();
 
+    enum SearchFlg : uint8_t {
+      NoFlg  =0,
+      NoDeath=1
+      };
+
+    struct SearchOpt final {
+      float     rangeMin = 0;
+      float     rangeMax = 0;
+      float     azi      = 0;
+      SearchFlg flags    = NoFlg;
+      };
+
     void           tick(uint64_t dt);
 
     void           onInserNpc (Daedalus::GameState::NpcHandle handle, const std::string &point);
@@ -41,9 +53,9 @@ class WorldObjects final {
     size_t         hasItems(const std::string& tag,size_t itemCls);
     void           addInteractive(const ZenLoad::zCVobData &vob);
 
-    Interactive*   findInteractive(const Npc& pl, const Tempest::Matrix4x4 &v, int w, int h, float rangeMin, float rangeMax, float azi);
-    Npc*           findNpc        (const Npc& pl, const Tempest::Matrix4x4 &v, int w, int h, float rangeMin, float rangeMax, float azi);
-    Item*          findItem       (const Npc& pl, const Tempest::Matrix4x4 &v, int w, int h, float rangeMin, float rangeMax, float azi);
+    Interactive*   findInteractive(const Npc& pl, const Tempest::Matrix4x4 &v, int w, int h, const SearchOpt& opt);
+    Npc*           findNpc        (const Npc& pl, const Tempest::Matrix4x4 &v, int w, int h, const SearchOpt& opt);
+    Item*          findItem       (const Npc& pl, const Tempest::Matrix4x4 &v, int w, int h, const SearchOpt& opt);
 
     void           marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
@@ -65,6 +77,5 @@ class WorldObjects final {
 
     template<class T>
     T* findObj(std::vector<T>& src,const Npc &pl,
-               float minDist, float maxDist, float maxAngle,
-               const Tempest::Matrix4x4 &v, int w, int h);
+               const Tempest::Matrix4x4 &v, int w, int h, const SearchOpt& opt);
   };

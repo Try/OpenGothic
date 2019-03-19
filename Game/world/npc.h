@@ -310,7 +310,8 @@ class Npc final {
     void blockSword();
     bool castSpell();
 
-    bool isEnemy(const Npc& other);
+    bool isEnemy(const Npc& other) const;
+    bool isDead() const;
 
     void setPerceptionTime   (uint64_t time);
     void setPerceptionEnable (PercType t, size_t fn);
@@ -372,6 +373,7 @@ class Npc final {
     void     aiPlayAnim(std::string ani);
     void     aiWait(uint64_t dt);
     void     aiStandup();
+    void     aiStandupQuick();
     void     aiGoToPoint(const WayPoint* to);
     void     aiEquipArmor(int32_t id);
     void     aiEquipBestMeleWeapon();
@@ -397,7 +399,8 @@ class Npc final {
     GoToHint moveHint() const { return currentGoToFlag; }
     void     clearGoTo();
 
-    bool     canSeeNpc(const Npc& oth,bool freeLos);
+    bool     canSeeNpc(const Npc& oth,bool freeLos) const;
+    bool     canSeeNpc(float x,float y,float z,bool freeLos) const;
 
     void     setTarget(Npc* t);
     Npc*     target();
@@ -428,6 +431,7 @@ class Npc final {
       AI_PlayAnimById,
       AI_Wait,
       AI_StandUp,
+      AI_StandUpQuick,
       AI_EquipArmor,
       AI_EquipMelee,
       AI_EquipRange,

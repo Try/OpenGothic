@@ -96,6 +96,7 @@ class WorldScript final {
 
     bool isDead       (const Npc &pl);
     bool isUnconscious(const Npc &pl);
+    bool isTalk       (const Npc &pl);
 
     const std::string& messageByName(const std::string &id) const;
     uint32_t           messageTime(const std::string &id) const;
@@ -305,6 +306,7 @@ class WorldScript final {
 
     size_t                                                      ZS_Dead=0;
     size_t                                                      ZS_Unconscious=0;
+    size_t                                                      ZS_Talk=0;
 
     Daedalus::GEngineClasses::C_Focus                           cFocusNorm,cFocusMele,cFocusRange,cFocusMage;
     Daedalus::GEngineClasses::C_GilValues                       cGuildVal;

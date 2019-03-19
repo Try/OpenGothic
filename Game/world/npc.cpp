@@ -728,8 +728,11 @@ void Npc::nextAiAction() {
       waitTime = owner.tickCount()+uint64_t(act.i0);
       break;
     case AI_StandUp:
+      setInteraction(nullptr);
       if(animation.current==Anim::Sit)
         setAnim(Anim::Idle);
+      break;
+    case AI_StandUpQuick:
       setInteraction(nullptr);
       break;
     case AI_EquipArmor:
@@ -742,10 +745,12 @@ void Npc::nextAiAction() {
       invent.equipBestRangeWeapon(owner,*this);
       break;
     case AI_UseMob:
-      if(act.i0<0){
-        setInteraction(nullptr);
-        } else {
-        owner.aiUseMob(*this,act.s0);
+      if(!owner.isTalk(*this)){
+        if(act.i0<0){
+          setInteraction(nullptr);
+          } else {
+          owner.aiUseMob(*this,act.s0);
+          }
         }
       break;
     case AI_UseItem:
@@ -1236,8 +1241,12 @@ bool Npc::castSpell() {
   return true;
   }
 
-bool Npc::isEnemy(const Npc &other) {
+bool Npc::isEnemy(const Npc &other) const {
   return owner.guildAttitude(*this,other)==WorldScript::ATT_HOSTILE;
+  }
+
+bool Npc::isDead() const {
+  return owner.isDead(*this);
   }
 
 void Npc::setPerceptionTime(uint64_t time) {
@@ -1499,6 +1508,12 @@ void Npc::aiStandup() {
   aiActions.push_back(a);
   }
 
+void Npc::aiStandupQuick() {
+  AiAction a;
+  a.act = AI_StandUpQuick;
+  aiActions.push_back(a);
+  }
+
 void Npc::aiGoToPoint(const WayPoint *to) {
   AiAction a;
   a.act   = AI_GoToPoint;
@@ -1621,8 +1636,11 @@ void Npc::aiStopProcessInfo() {
   }
 
 void Npc::aiClearQueue() {
-  aiActions  =std::deque<AiAction>();
-  currentGoTo=nullptr;
+  aiActions.clear();
+  currentGoTo     = nullptr;
+  currentFpLock   = FpLock();
+  currentGoToFlag = GoToHint::GT_Default;
+  mvAlgo.aiGoTo(nullptr);
   //setTarget(nullptr);
   }
 
@@ -1632,18 +1650,22 @@ void Npc::attachToPoint(const WayPoint *p) {
   }
 
 void Npc::clearGoTo() {
-  currentGoTo    = nullptr;
-  currentGoToNpc = nullptr;
-  currentFpLock  = FpLock();
-  currentGoToFlag=GoToHint::GT_Default;
+  currentGoTo     = nullptr;
+  currentGoToNpc  = nullptr;
+  currentFpLock   = FpLock();
+  currentGoToFlag = GoToHint::GT_Default;
   mvAlgo.aiGoTo(nullptr);
   }
 
-bool Npc::canSeeNpc(const Npc &oth, bool freeLos) {
+bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
+  return canSeeNpc(oth.x,oth.y+180,oth.z,freeLos);
+  }
+
+bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
   DynamicWorld* w = owner.world().physic();
 
   if(!freeLos){
-    float dx  = x-oth.x, dz=z-oth.z;
+    float dx  = x-tx, dz=z-tz;
     float dir = angleDir(dx,dz);
     float da  = float(M_PI)*(angle-dir)/180.f;
     if(double(std::cos(da))<std::cos(M_PI/3))
@@ -1651,7 +1673,7 @@ bool Npc::canSeeNpc(const Npc &oth, bool freeLos) {
     }
   bool ret=true;
   // TODO: npc eyesight height
-  w->ray(x,y+180,z, oth.x,oth.y+180,oth.z, ret);
+  w->ray(x,y+180,z, tx,ty,tz, ret);
   return !ret;
   }
 
