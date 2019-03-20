@@ -304,6 +304,15 @@ const WayPoint *World::findNextPoint(const WayPoint &pos) const {
   return wmatrix->findNextPoint(pos.x,pos.y,pos.z);
   }
 
+WayPath World::wayTo(const Npc &pos, const WayPoint &end) const {
+  auto p = pos.position();
+  return wmatrix->wayTo(p[0],p[1],p[2],end);
+  }
+
+WayPath World::wayTo(float npcX, float npcY, float npcZ, const WayPoint &end) const {
+  return wmatrix->wayTo(npcX,npcY,npcZ,end);
+  }
+
 int32_t World::runFunction(const std::string& fname) {
   return vm->runFunction(fname);
   }
@@ -321,6 +330,8 @@ void World::initScripts(bool firstTime) {
   std::string init = "init_"+name;
   if(vm->hasSymbolName(init))
     vm->runFunction(init);
+
+  wobj.resetPositionToTA();
   }
 
 void World::loadVob(ZenLoad::zCVobData &vob) {

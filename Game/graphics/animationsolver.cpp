@@ -477,6 +477,13 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
   if(a==Anim::Roam3)
     return animSequence("R_ROAM3");
 
+  if(a==Anim::Pray && cur<=Anim::IdleLast)
+    return animSequence("T_STAND_2_PRAY");
+  if(a==Anim::Pray)
+    return animSequence("S_PRAY");
+
+  if(a==Anim::Plunder)
+    return animSequence("T_PLUNDER");
   if(a==Anim::Food1)
     return animSequence("T_FOOD_RANDOM_1");
   if(a==Anim::Food2)
@@ -656,5 +663,9 @@ AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const
     return Anim::Dance8;
   if(name=="T_DANCE_09")
     return Anim::Dance9;
+  if(name=="T_STAND_2_PRAY")
+    return Anim::Pray;
+  if(name=="T_PLUNDER")
+    return Anim::Plunder;
   return Anim::NoAnim;
   }

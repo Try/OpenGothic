@@ -6,6 +6,7 @@
 #include <zenload/zTypes.h>
 #include <vector>
 
+#include "waypath.h"
 #include "waypoint.h"
 
 class World;
@@ -28,8 +29,12 @@ class WayMatrix final {
     const WayPoint* findPoint(const char* name) const;
     void            marchPoints(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
+    WayPath         wayTo(float npcX,float npcY,float npcZ,const WayPoint& end) const;
+
   private:
     World&                 world;
+    using Edge = std::pair<size_t,size_t>;
+    std::vector<Edge>      edges;
 
     std::vector<WayPoint>  wayPoints;
     std::vector<WayPoint>  freePoints, startPoints;
@@ -42,6 +47,7 @@ class WayMatrix final {
       std::vector<const WayPoint*> index;
       };
     mutable std::vector<FpIndex>          fpIndex;
+    mutable std::vector<float>            pathLen;
 
     void                   adjustWaypoints(std::vector<WayPoint> &wp);
 

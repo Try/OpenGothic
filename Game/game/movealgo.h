@@ -17,6 +17,8 @@ class MoveAlgo final {
     void multSpeed(float s){ mulSpeed=s; }
     void clearSpeed();
 
+    static bool isClose(float x,float y,float z,const WayPoint& p);
+
     auto aiGoTarget() -> const WayPoint* { return currentGoTo; }
     bool aiGoTo(const WayPoint* p);
     bool aiGoTo(const Npc* p, float destDist);

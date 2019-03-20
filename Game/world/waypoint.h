@@ -25,6 +25,8 @@ class WayPoint final {
 
     std::string name;
 
+    float qDistTo(float x,float y,float z) const;
+
   private:
     mutable uint32_t useCount=0;
 

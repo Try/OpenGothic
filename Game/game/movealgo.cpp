@@ -88,13 +88,18 @@ void MoveAlgo::clearSpeed() {
   flags = NoFlags;
   }
 
+bool MoveAlgo::isClose(float x, float /*y*/, float z, const WayPoint &p) {
+  float len = p.qDistTo(x,p.y,z);
+  return (len<closeToPointThreshold*closeToPointThreshold);
+  }
+
 bool MoveAlgo::aiGoTo(const WayPoint *p) {
   currentGoTo    = p;
   currentGoToNpc = nullptr;
   if(p==nullptr)
     return false;
-  float len = npc.qDistTo(currentGoTo->x,npc.position()[1],currentGoTo->z);
-  if(len<closeToPointThreshold*closeToPointThreshold){
+
+  if(isClose(npc.position()[0],npc.position()[1],npc.position()[2],*p)){
     currentGoTo=nullptr;
     return false;
     }

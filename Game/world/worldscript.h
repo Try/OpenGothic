@@ -119,6 +119,9 @@ class WorldScript final {
     template<class Ret,class ... Args>
     std::function<Ret(Args...)> notImplementedFn();
 
+    template<void(WorldScript::*)(Daedalus::DaedalusVM &vm)>
+    void notImplementedFn(const char* name);
+
     void notImplementedRoutine(Daedalus::DaedalusVM&);
 
     void onNpcReady (Daedalus::GameState::NpcHandle handle);
@@ -167,6 +170,8 @@ class WorldScript final {
     void mdl_removeoverlaymds(Daedalus::DaedalusVM& vm);
     void mdl_setmodelscale   (Daedalus::DaedalusVM& vm);
     void mdl_startfaceani    (Daedalus::DaedalusVM& vm);
+    void mdl_applyrandomani  (Daedalus::DaedalusVM& vm);
+    void mdl_applyrandomanifreq(Daedalus::DaedalusVM& vm);
 
     void npc_settofightmode  (Daedalus::DaedalusVM &vm);
     void npc_settofistmode   (Daedalus::DaedalusVM &vm);
@@ -257,6 +262,8 @@ class WorldScript final {
     void ai_unequipweapons   (Daedalus::DaedalusVM &vm);
     void ai_gotonpc          (Daedalus::DaedalusVM &vm);
     void ai_gotonextfp       (Daedalus::DaedalusVM &vm);
+    void ai_aligntofp        (Daedalus::DaedalusVM &vm);
+    void ai_useitemtostate   (Daedalus::DaedalusVM &vm);
 
     void mob_hasitems        (Daedalus::DaedalusVM &vm);
 

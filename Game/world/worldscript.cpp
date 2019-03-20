@@ -104,6 +104,9 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("mdl_removeoverlaymds",[this](Daedalus::DaedalusVM& vm){ mdl_removeoverlaymds(vm); });
   vm.registerExternalFunction("mdl_setmodelscale",   [this](Daedalus::DaedalusVM& vm){ mdl_setmodelscale(vm);    });
   vm.registerExternalFunction("mdl_startfaceani",    [this](Daedalus::DaedalusVM& vm){ mdl_startfaceani(vm);     });
+  vm.registerExternalFunction("mdl_applyrandomani",  [this](Daedalus::DaedalusVM& vm){ mdl_applyrandomani(vm);   });
+  vm.registerExternalFunction("mdl_applyrandomanifreq",
+                                                     [this](Daedalus::DaedalusVM& vm){ mdl_applyrandomanifreq(vm);});
 
   vm.registerExternalFunction("npc_settofightmode",  [this](Daedalus::DaedalusVM& vm){ npc_settofightmode(vm);   });
   vm.registerExternalFunction("npc_settofistmode",   [this](Daedalus::DaedalusVM& vm){ npc_settofistmode(vm);    });
@@ -202,6 +205,8 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("ai_unequipweapons",   [this](Daedalus::DaedalusVM& vm){ ai_unequipweapons(vm);    });
   vm.registerExternalFunction("ai_gotonpc",          [this](Daedalus::DaedalusVM& vm){ ai_gotonpc(vm);           });
   vm.registerExternalFunction("ai_gotonextfp",       [this](Daedalus::DaedalusVM& vm){ ai_gotonextfp(vm);        });
+  vm.registerExternalFunction("ai_aligntofp",        [this](Daedalus::DaedalusVM& vm){ ai_aligntofp(vm);         });
+  vm.registerExternalFunction("ai_useitemtostate",   [this](Daedalus::DaedalusVM& vm){ ai_useitemtostate(vm);    });
 
   vm.registerExternalFunction("mob_hasitems",        [this](Daedalus::DaedalusVM& vm){ mob_hasitems(vm);         });
 
@@ -760,6 +765,15 @@ std::function<Ret(Args...)> WorldScript::notImplementedFn(){
   return std::function<Ret(Args...)>(_::fn);
   }
 
+template<void(WorldScript::*)(Daedalus::DaedalusVM &vm)>
+void WorldScript::notImplementedFn(const char* name) {
+  static bool first=true;
+  if(first){
+    Log::e("not implemented call [",name,"]");
+    first=false;
+    }
+  }
+
 void WorldScript::notImplementedRoutine(Daedalus::DaedalusVM &vm) {
   static std::unordered_set<std::string> s;
   auto fn = vm.getCallStack();
@@ -1028,13 +1042,15 @@ void WorldScript::wld_setmobroutine(Daedalus::DaedalusVM &vm) {
   auto& name = popString(vm);
   int   mm   = vm.popDataValue();
   int   hh   = vm.popDataValue();
-  Log::i("TODO: wld_setmobroutine(",hh,",",mm,",",name,",",st,")");
+  notImplementedFn<&WorldScript::wld_setmobroutine>("wld_setmobroutine");
+  //Log::i("TODO: wld_setmobroutine(",hh,",",mm,",",name,",",st,")");
   }
 
 void WorldScript::wld_assignroomtoguild(Daedalus::DaedalusVM &vm) {
   int   g    = vm.popDataValue();
   auto& name = popString(vm);
-  Log::i("TODO: wld_assignroomtoguild(",name,",",g,")");
+  notImplementedFn<&WorldScript::wld_assignroomtoguild>("wld_assignroomtoguild");
+  //Log::i("TODO: wld_assignroomtoguild(",name,",",g,")");
   }
 
 void WorldScript::mdl_setvisual(Daedalus::DaedalusVM &vm) {
@@ -1125,7 +1141,21 @@ void WorldScript::mdl_startfaceani(Daedalus::DaedalusVM &vm) {
   float intensity = vm.popFloatValue();
   auto& ani       = popString(vm);
   auto  npc       = popInstance(vm);
-  //TODO: face animation
+  notImplementedFn<&WorldScript::mdl_startfaceani>("mdl_startfaceani");
+  }
+
+void WorldScript::mdl_applyrandomani(Daedalus::DaedalusVM &vm) {
+  auto& s0  = popString(vm);
+  auto& s1  = popString(vm);
+  auto  npc = popInstance(vm);
+  notImplementedFn<&WorldScript::mdl_applyrandomani>("mdl_applyrandomani");
+  }
+
+void WorldScript::mdl_applyrandomanifreq(Daedalus::DaedalusVM &vm) {
+  auto  f0  = vm.popFloatValue();
+  auto& s1  = popString(vm);
+  auto  npc = popInstance(vm);
+  notImplementedFn<&WorldScript::mdl_applyrandomanifreq>("mdl_applyrandomanifreq");
   }
 
 void WorldScript::wld_insertnpc(Daedalus::DaedalusVM &vm) {
@@ -1215,7 +1245,7 @@ void WorldScript::npc_exchangeroutine(Daedalus::DaedalusVM &vm) {
     std::snprintf(buf,sizeof(buf),"Rtn_%s_%d",rname.c_str(),v.id);
     auto d = vm.getDATFile().getSymbolIndexByName(buf);
     if(d>0)
-      npc->aiStartState(d,0,"");
+      npc->excRoutine(d);
     }
   }
 
@@ -1654,12 +1684,14 @@ void WorldScript::npc_checkinfo(Daedalus::DaedalusVM &vm) {
 void WorldScript::npc_getportalguild(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   const int GIL_PUBLIC = 15; // _Intern/Constants.d
-  vm.setReturn(GIL_PUBLIC);  // TODO: guild id for a room
+  vm.setReturn(GIL_PUBLIC);
+  notImplementedFn<&WorldScript::npc_getportalguild>("npc_getportalguild");
   }
 
 void WorldScript::npc_isinplayersroom(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   vm.setReturn(0); //TODO: stub
+  notImplementedFn<&WorldScript::npc_isinplayersroom>("npc_isinplayersroom");
   }
 
 void WorldScript::npc_getreadiedweapon(Daedalus::DaedalusVM &vm) {
@@ -1743,8 +1775,8 @@ void WorldScript::ai_standupquick(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::ai_continueroutine(Daedalus::DaedalusVM &vm) {
   auto self = popInstance(vm);
-  (void)self;
-  Log::d("TODO: ai_continueroutine");
+  if(self!=nullptr)
+    self->aiContinueRoutine();
   }
 
 void WorldScript::ai_stoplookat(Daedalus::DaedalusVM &vm) {
@@ -1829,7 +1861,8 @@ void WorldScript::ai_waitms(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::ai_aligntowp(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
-  //Log::d("TODO: ai_aligntowp");
+  if(npc)
+    npc->aiAlignToWp();
   }
 
 void WorldScript::ai_gotowp(Daedalus::DaedalusVM &vm) {
@@ -1837,9 +1870,8 @@ void WorldScript::ai_gotowp(Daedalus::DaedalusVM &vm) {
   auto   npc      = popInstance(vm);
 
   auto to = owner.findPoint(waypoint);
-  if(npc) {
-    npc->aiGoToPoint(to);
-    }
+  if(npc && to)
+    npc->aiGoToPoint(*to);
   }
 
 void WorldScript::ai_gotofp(Daedalus::DaedalusVM &vm) {
@@ -1849,7 +1881,7 @@ void WorldScript::ai_gotofp(Daedalus::DaedalusVM &vm) {
   if(npc) {
     auto to = owner.findFreePoint(npc->position(),waypoint.c_str());
     if(to!=nullptr)
-      npc->aiGoToPoint(to);
+      npc->aiGoToPoint(*to);
     }
   }
 
@@ -1962,6 +1994,19 @@ void WorldScript::ai_gotonextfp(Daedalus::DaedalusVM &vm) {
     npc->aiGoToNextFp(to);
   }
 
+void WorldScript::ai_aligntofp(Daedalus::DaedalusVM &vm) {
+  auto  npc = popInstance(vm);
+  if(npc!=nullptr)
+    npc->aiAlignToFp();
+  }
+
+void WorldScript::ai_useitemtostate(Daedalus::DaedalusVM &vm) {
+  int32_t  state = vm.popDataValue();
+  int32_t  item  = vm.popDataValue();
+  auto     npc   = popInstance(vm);
+  notImplementedFn<&WorldScript::ai_useitemtostate>("ai_useitemtostate");
+  }
+
 void WorldScript::mob_hasitems(Daedalus::DaedalusVM &vm) {
   uint32_t item = vm.popVar();
   auto&    tag  = popString(vm);
@@ -1976,22 +2021,10 @@ void WorldScript::ta_min(Daedalus::DaedalusVM &vm) {
   int32_t  start_m  = vm.popDataValue();
   int32_t  start_h  = vm.popDataValue();
   auto     npc      = popInstance(vm);
+  auto     at       = owner.findPoint(waypoint);
 
-  // TODO
-  npc->attachToPoint(nullptr);
-  auto at=owner.findPoint(waypoint);
-  if(npc!=nullptr && at!=nullptr){
-    if(at->isLocked()){
-      auto p = owner.findNextPoint(*at);
-      if(p!=nullptr)
-        at=p;
-      }
-    npc->setPosition (at->x, at->y, at->z);
-    npc->setDirection(at->dirX,at->dirY,at->dirZ);
-    npc->attachToPoint(at);
-    }
-
-  npc->addRoutine(gtime(start_h,start_m),gtime(stop_h,stop_m),uint32_t(action),at);
+  if(npc!=nullptr)
+    npc->addRoutine(gtime(start_h,start_m),gtime(stop_h,stop_m),uint32_t(action),at);
   }
 
 void WorldScript::log_createtopic(Daedalus::DaedalusVM &vm) {
@@ -2023,7 +2056,6 @@ void WorldScript::equipitem(Daedalus::DaedalusVM &vm) {
     if(self->hasItem(cls)==0)
       self->addItem(cls,1);
     self->useItem(cls,true);
-    //self->aiUseItem(int32_t(cls)); // avoid recursive vm call; FIXME: recursive vm calls
     }
   }
 

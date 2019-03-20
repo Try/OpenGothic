@@ -47,6 +47,9 @@ class World final {
     const WayPoint* findNextFreePoint(const Npc& pos,const char* name) const;
     const WayPoint* findNextPoint(const WayPoint& pos) const;
 
+    WayPath       wayTo(const Npc& pos,const WayPoint& end) const;
+    WayPath       wayTo(float npcX,float npcY,float npcZ,const WayPoint& end) const;
+
     WorldView*    view()   const { return wview.get();    }
     DynamicWorld* physic() const { return wdynamic.get(); }
     WorldScript*  script() const { return vm.get();       }

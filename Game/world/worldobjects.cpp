@@ -28,7 +28,7 @@ void WorldObjects::tick(uint64_t dt) {
   if(pl==nullptr)
     return;
 
-  for(auto& i:npcArr){
+  for(auto& i:npcArr) {
     if(i->percNextTime()>owner.tickCount())
       continue;
     const float x = i->position()[0];
@@ -237,6 +237,11 @@ void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t p
   m.victum = &victum;
 
   sndPerc.push_back(m);
+  }
+
+void WorldObjects::resetPositionToTA() {
+  for(auto& i:npcArr)
+    i->resetPositionToTA();
   }
 
 template<class T>

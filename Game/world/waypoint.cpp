@@ -13,6 +13,13 @@ WayPoint::WayPoint(float x, float y, float z, const char *name)
   :x(x),y(y),z(z),name(upcaseof(name)){
   }
 
+float WayPoint::qDistTo(float ix, float iy, float iz) const {
+  float dx = x-ix;
+  float dy = y-iy;
+  float dz = z-iz;
+  return dx*dx+dy*dy+dz*dz;
+  }
+
 std::string WayPoint::upcaseof(const std::string &src) {
   auto ret = src;
   for(auto& i:ret)

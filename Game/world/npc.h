@@ -11,6 +11,7 @@
 #include "game/perceptionmsg.h"
 #include "physics/dynamicworld.h"
 #include "fplock.h"
+#include "waypath.h"
 #include "worldscript.h"
 
 #include <cstdint>
@@ -208,6 +209,7 @@ class Npc final {
     void setDirection (float rotation);
     void clearSpeed();
     static float angleDir(float x,float z);
+    void resetPositionToTA();
 
     void setAiType(AiType t);
     bool isPlayer() const;
@@ -329,6 +331,7 @@ class Npc final {
     void     setStateTime(int64_t time);
 
     void     addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint* point);
+    void     excRoutine(uint32_t callback);
     void     multSpeed(float s);
 
     MoveCode testMove  (const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
@@ -374,7 +377,7 @@ class Npc final {
     void     aiWait(uint64_t dt);
     void     aiStandup();
     void     aiStandupQuick();
-    void     aiGoToPoint(const WayPoint* to);
+    void     aiGoToPoint(const WayPoint &to);
     void     aiEquipArmor(int32_t id);
     void     aiEquipBestMeleWeapon();
     void     aiEquipBestRangeWeapon();
@@ -393,6 +396,9 @@ class Npc final {
     void     aiOutputSvmOverlay(Npc &to, std::string text);
     void     aiStopProcessInfo();
     void     aiClearQueue();
+    void     aiContinueRoutine();
+    void     aiAlignToFp();
+    void     aiAlignToWp();
 
     auto     currentWayPoint() const -> const WayPoint* { return currentFp; }
     void     attachToPoint(const WayPoint* p);
@@ -449,6 +455,9 @@ class Npc final {
       AI_OutputSvm,
       AI_OutputSvmOverlay,
       AI_StopProcessInfo,
+      AI_ContinueRoutine,
+      AI_AlignToFp,
+      AI_AlignToWp,
       };
 
     struct AiAction final {
@@ -487,7 +496,7 @@ class Npc final {
     bool                           implGoTo   (uint64_t dt);
     bool                           implAtack  (uint64_t dt);
     void                           tickRoutine();
-    void                           nextAiAction();
+    void                           nextAiAction(uint64_t dt);
     bool                           setAnim(Npc::Anim a, WeaponState st0, WeaponState st);
 
     WorldScript&                   owner;
@@ -528,6 +537,7 @@ class Npc final {
     GoToHint                       currentGoToFlag=GoToHint::GT_Default;
     const WayPoint*                currentGoTo    =nullptr;
     const WayPoint*                currentFp      =nullptr;
+    WayPath                        wayPath;
     FpLock                         currentFpLock;
 
     uint64_t                       waitTime=0;

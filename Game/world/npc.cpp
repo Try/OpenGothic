@@ -66,6 +66,24 @@ float Npc::angleDir(float x, float z) {
   return a;
   }
 
+void Npc::resetPositionToTA() {
+  attachToPoint(nullptr);
+  auto& rot = currentRoutine();
+  auto  at  = rot.point;
+
+  if(at==nullptr)
+    return;
+
+  if(at->isLocked()){
+    auto p = owner.world().findNextPoint(*at);
+    if(p!=nullptr)
+      at=p;
+    }
+  setPosition (at->x, at->y, at->z);
+  setDirection(at->dirX,at->dirY,at->dirZ);
+  attachToPoint(at);
+  }
+
 void Npc::clearSpeed() {
   mvAlgo.clearSpeed();
   }
@@ -523,11 +541,10 @@ bool Npc::implLookAt(float dx, float dz, uint64_t dt) {
     if(animation.current==AnimationSolver::RotL || animation.current==AnimationSolver::RotR) {
       if(currentGoTo==nullptr && animation.animSq!=nullptr && !animation.animSq.isFinished(owner.tickCount()-animation.sAnim)){
         // finish animation
-        setAnim(Anim::Idle);
-        return true;
+        return setAnim(animation.lastIdle);
         }
       if(currentGoTo==nullptr)
-        setAnim(Anim::Idle);
+        setAnim(animation.lastIdle);
       return false;
       }
     return false;
@@ -553,15 +570,18 @@ bool Npc::implGoTo(uint64_t dt) {
     //float dy = y-currentGoTo->position.y;
     float dz = currentGoTo->z-z;
 
-    if(implLookAt(dx,dz,dt))
-      return true;
+    if(!MoveAlgo::isClose(x,y,z,*currentGoTo)){
+      if(implLookAt(dx,dz,dt))
+        return true;
+      }
     if(!mvAlgo.aiGoTo(currentGoTo)) {
       attachToPoint(currentGoTo);
-      currentGoTo = nullptr;
+      currentGoTo   = wayPath.pop();
+      currentFpLock = FpLock(currentGoTo);
       if(isStanding())
         setAnim(AnimationSolver::Idle);
       }
-    return mvAlgo.hasGoTo();
+    return currentGoTo || mvAlgo.hasGoTo();
     } else {
     float dx = currentGoToNpc->x-x;
     //float dy = y-currentGoTo->position.y;
@@ -646,10 +666,10 @@ void Npc::tick(uint64_t dt) {
     return;
     }
 
-  nextAiAction();
+  nextAiAction(dt);
   }
 
-void Npc::nextAiAction() {
+void Npc::nextAiAction(uint64_t dt) {
   if(aiActions.size()==0)
     return;
   auto act = std::move(aiActions.front());
@@ -669,6 +689,7 @@ void Npc::nextAiAction() {
       currentFp       = nullptr;
       currentFpLock   = FpLock();
       currentGoToFlag = GoToHint::GT_Default;
+      wayPath.clear();
       break;
     case AI_GoToNextFp: {
       auto fp = owner.world().findNextFreePoint(*this,act.s0.c_str());
@@ -678,17 +699,20 @@ void Npc::nextAiAction() {
         currentFpLock   = FpLock(*fp);
         currentGoTo     = fp;
         currentGoToFlag = GoToHint::GT_NextFp;
+        wayPath.clear();
         }
       break;
       }
-    case AI_GoToPoint:
+    case AI_GoToPoint: {
       // TODO: check distance
-      // currentGoTo = act.point;
+      wayPath         = owner.world().wayTo(*this,*act.point);
+      currentGoTo     = wayPath.pop();
+      currentFpLock   = FpLock(currentGoTo);
       currentGoToNpc  = nullptr;
       currentFp       = nullptr;
-      currentFpLock   = FpLock();
       currentGoToFlag = GoToHint::GT_Default;
       break;
+      }
     case AI_StopLookAt:
       currentLookAt=nullptr;
       break;
@@ -798,6 +822,22 @@ void Npc::nextAiAction() {
         aiActions.push_front(std::move(act));
         }
       break;
+    case AI_ContinueRoutine:{
+      auto& r = currentRoutine();
+      auto  t = endTime(r);
+      startState(r.callback,"",t,false);
+      break;
+      }
+    case AI_AlignToWp:
+    case AI_AlignToFp:{
+      if(auto fp = currentFp){
+        if(fp->dirX!=0 || fp->dirZ!=0){
+          if(implLookAt(fp->dirX,fp->dirZ,dt))
+            aiActions.push_front(std::move(act));
+          }
+        }
+      break;
+      }
     }
   }
 
@@ -1348,6 +1388,11 @@ void Npc::addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint *point)
   routines.push_back(r);
   }
 
+void Npc::excRoutine(uint32_t callback) {
+  routines.clear();
+  owner.invokeState(this,currentOther,nullptr,callback);
+  }
+
 void Npc::multSpeed(float s) {
   mvAlgo.multSpeed(s);
   }
@@ -1514,10 +1559,10 @@ void Npc::aiStandupQuick() {
   aiActions.push_back(a);
   }
 
-void Npc::aiGoToPoint(const WayPoint *to) {
+void Npc::aiGoToPoint(const WayPoint& to) {
   AiAction a;
   a.act   = AI_GoToPoint;
-  a.point = to;
+  a.point = &to;
   aiActions.push_back(a);
   }
 
@@ -1644,6 +1689,24 @@ void Npc::aiClearQueue() {
   //setTarget(nullptr);
   }
 
+void Npc::aiContinueRoutine() {
+  AiAction a;
+  a.act = AI_ContinueRoutine;
+  aiActions.push_back(a);
+  }
+
+void Npc::aiAlignToFp() {
+  AiAction a;
+  a.act = AI_AlignToFp;
+  aiActions.push_back(a);
+  }
+
+void Npc::aiAlignToWp() {
+  AiAction a;
+  a.act = AI_AlignToWp;
+  aiActions.push_back(a);
+  }
+
 void Npc::attachToPoint(const WayPoint *p) {
   currentFp     = p;
   currentFpLock = FpLock(currentFp);
@@ -1654,6 +1717,7 @@ void Npc::clearGoTo() {
   currentGoToNpc  = nullptr;
   currentFpLock   = FpLock();
   currentGoToFlag = GoToHint::GT_Default;
+  wayPath.clear();
   mvAlgo.aiGoTo(nullptr);
   }
 
