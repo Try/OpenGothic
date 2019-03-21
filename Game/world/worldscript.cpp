@@ -3,6 +3,7 @@
 #include "gothic.h"
 #include "npc.h"
 #include "item.h"
+#include "utils/cp1251.h"
 
 #include <fstream>
 #include <Tempest/Log>
@@ -264,7 +265,7 @@ void WorldScript::initCommon() {
     InfoHandle h = vm.getGameState().createItem();
     vm.initializeInstance(ZMemory::toBigHandle(h), itMi_Gold, Daedalus::IC_Item);
     auto& it = vmItem(h);
-    goldTxt = it.name;
+    goldTxt  = cp1251::toUtf8(it.name);
     vm.getGameState().removeItem(h);
     }
   auto& tradeMul = vm.getDATFile().getSymbolByName("TRADE_VALUE_MULTIPLIER");
@@ -471,7 +472,7 @@ std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GameSta
 
       if(valid) {
         DlgChoise ch;
-        ch.title    = info.description;
+        ch.title    = cp1251::toUtf8(info.description);
         ch.scriptFn = info.information;
         ch.handle   = i;
         ch.isTrade  = info.trade!=0;
@@ -503,7 +504,7 @@ std::vector<WorldScript::DlgChoise> WorldScript::updateDialog(const WorldScript:
       valid = runFunction(info.condition)!=0;
 
     WorldScript::DlgChoise ch;
-    ch.title    = sub.text;
+    ch.title    = cp1251::toUtf8(sub.text);
     ch.scriptFn = sub.functionSym;
     ch.handle   = dlg.handle;
     ch.isTrade  = false;
@@ -698,7 +699,7 @@ const std::string &WorldScript::messageByName(const std::string& id) const {
     static std::string empty;
     return empty;
     }
-  return dialogs->getMessageByName(id).text;
+  return cp1251::toUtf8(dialogs->getMessageByName(id).text);
   }
 
 uint32_t WorldScript::messageTime(const std::string &id) const {
@@ -2177,12 +2178,12 @@ void WorldScript::printscreen(Daedalus::DaedalusVM &vm) {
   const std::string& msg      = popString(vm);
   int32_t            dialognr = vm.popDataValue();
   (void)dialognr;
-  owner.printScreen(msg.c_str(),posx,posy,timesec,Resources::fontByName(font));
+  owner.printScreen(cp1251::toUtf8(msg).c_str(),posx,posy,timesec,Resources::fontByName(font));
   }
 
 void WorldScript::print(Daedalus::DaedalusVM &vm) {
   const std::string& msg = popString(vm);
-  owner.print(msg.c_str());
+  owner.print(cp1251::toUtf8(msg).c_str());
   }
 
 void WorldScript::perc_setrange(Daedalus::DaedalusVM &) {

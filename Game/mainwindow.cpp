@@ -14,6 +14,7 @@
 #include "ui/gamemenu.h"
 #include "ui/menuroot.h"
 #include "ui/stacklayout.h"
+#include "utils/cp1251.h"
 
 #include "gothic.h"
 
@@ -113,7 +114,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
       int ix = int((0.5f*pos[0]+0.5f)*w());
       int iy = int((0.5f*pos[1]+0.5f)*h());
       p.setFont(Resources::font());
-      const char* txt = focus.displayName();
+      const char* txt = cp1251::toUtf8(focus.displayName());
       auto tsize = p.font().textSize(txt);
       ix-=tsize.w/2;
       if(iy<tsize.h)
@@ -146,7 +147,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
     info="[c]";
   std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %s",fps.get(),info);
 
-  p.setFont(Resources::menuFont());
+  p.setFont(Resources::font());
   p.drawText(5,30,fpsT);
   }
 

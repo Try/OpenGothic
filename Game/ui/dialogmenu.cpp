@@ -3,6 +3,7 @@
 #include <Tempest/Painter>
 #include <algorithm>
 
+#include "utils/cp1251.h"
 #include "gothic.h"
 #include "inventorymenu.h"
 #include "resources.h"

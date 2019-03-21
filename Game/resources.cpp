@@ -46,13 +46,21 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
   : device(device), asset("data",device),gothic(gothic) {
   inst=this;
 
-  menuFnt = Font("data/font/menu.ttf");
+  const char* menu = "data/font/menu.ttf";
+  const char* main = "data/font/main.ttf";
+
+  if(/* DISABLES CODE */ (false)) { // international chasters
+    menu = "data/font/Roboto-Regular.ttf";
+    main = "data/font/Roboto-Regular.ttf";
+    }
+
+  menuFnt = Font(menu);
   menuFnt.setPixelSize(44);
 
-  mainFnt = Font("data/font/main.ttf");
+  mainFnt = Font(main);
   mainFnt.setPixelSize(24);
 
-  dlgFnt  = Font("data/font/main.ttf");
+  dlgFnt  = Font(main);
   dlgFnt.setPixelSize(32);
 
   fallback = device.loadTexture("data/fallback.png");

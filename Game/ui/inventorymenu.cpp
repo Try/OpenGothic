@@ -2,6 +2,7 @@
 
 #include <Tempest/Painter>
 
+#include "utils/cp1251.h"
 #include "world/world.h"
 #include "resources.h"
 
@@ -157,14 +158,17 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
       sel += columsCount;
     }
   else if(e.key==KeyEvent::K_A){
-    if(sel%columsCount==0 && page>0)
+    if(sel%columsCount==0 && page>0){
       page--;
+      sel += (columsCount-1);
+      }
     else if(sel>0)
       sel--;
     }
   else if(e.key==KeyEvent::K_D) {
     if(((sel+1)%columsCount==0 || sel+1==pg.size() || pg.size()==0) && page+1<pCount) {
       page++;
+      sel -= sel%columsCount;
       }
     else if(sel+1<pg.size())
       sel++;
@@ -316,12 +320,12 @@ void InventoryMenu::drawAll(Painter &p,Npc &player) {
   const int hcount = int(rowsCount());
 
   if(chest!=nullptr){
-    drawHeader(p,chest->displayName(),padd,70);
+    drawHeader(p,cp1251::toUtf8(chest->displayName()),padd,70);
     drawItems(p,*pageOth,padd,iy,wcount,hcount);
     }
 
   if(trader!=nullptr) {
-    drawHeader(p,trader->displayName(),padd,70);
+    drawHeader(p,cp1251::toUtf8(trader->displayName()),padd,70);
     drawItems(p,*pageOth,padd,iy,wcount,hcount);
     }
 
@@ -438,11 +442,12 @@ void InventoryMenu::drawInfo(Painter &p) {
                0,0,tex->w(),tex->h());
     }
 
-  int tw = p.font().textSize(r.description()).w;
-  p.drawText(x+(dw-tw)/2,y+int(p.font().pixelSize()),r.description());
+  auto desc = cp1251::toUtf8(r.description());
+  int  tw   = p.font().textSize(desc).w;
+  p.drawText(x+(dw-tw)/2,y+int(p.font().pixelSize()),desc);
 
   for(size_t i=0;i<Item::MAX_UI_ROWS;++i){
-    const char*   txt=r.uiText(i);
+    const char*   txt=cp1251::toUtf8(r.uiText(i));
     int32_t       val=r.uiValue(i);
     char          vint[32]={};
 

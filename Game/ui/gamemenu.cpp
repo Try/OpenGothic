@@ -3,6 +3,7 @@
 #include <Tempest/Painter>
 #include <Tempest/Log>
 
+#include "utils/cp1251.h"
 #include "world/world.h"
 #include "ui/menuroot.h"
 #include "gothic.h"
@@ -158,10 +159,11 @@ void GameMenu::paintEvent(PaintEvent &e) {
     Daedalus::GEngineClasses::C_Menu_Item& item = sel->get(*vm);
     if(item.text->size()>1) {
       const char* txt = item.text[1].c_str();
-      int tw = p.font().textSize(txt).w;
+      cp1251::toUtf8(textBuf,txt);
+      int tw = p.font().textSize(textBuf.data()).w;
 
       p.setBrush(clSelected);
-      p.drawText((w()-tw)/2,h()-12,txt);
+      p.drawText((w()-tw)/2,h()-12,textBuf.data());
       }
     }
   }
@@ -234,9 +236,7 @@ void GameMenu::getText(const Daedalus::GEngineClasses::C_Menu_Item& it, std::vec
 
   const std::string& src = it.text[0];
   if(it.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_TEXT) {
-    out.resize(src.size()+1);
-    std::memcpy(&out[0],&src[0],src.size());
-    out[src.size()] = '\0';
+    cp1251::toUtf8(out,src);
     return;
     }
 
