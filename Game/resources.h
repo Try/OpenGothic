@@ -82,7 +82,7 @@ class Resources {
     static std::vector<uint8_t> getFileData(const std::string& name);
 
     static bool                 hasFile(const std::string& fname);
-    static VDFS::FileIndex& vdfsIndex();
+    static VDFS::FileIndex&     vdfsIndex();
 
   private:
     static Resources* inst;
@@ -93,7 +93,7 @@ class Resources {
       Dynamic
       };
 
-    void                addVdf(const char* vdf);
+    void                addVdf(const char16_t *vdf);
     Tempest::Texture2d* implLoadTexture(const std::string &name);
     ProtoMesh*          implLoadMesh(const std::string &name);
     Skeleton*           implLoadSkeleton(std::string name);

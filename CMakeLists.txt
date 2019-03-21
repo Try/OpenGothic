@@ -47,5 +47,5 @@ set(GLFW_BUILD_DOCS OFF CACHE STRING "" FORCE)
 set(BUILD_BULLET3 OFF CACHE STRING "" FORCE) # Can use bullet2, bullet3 wants to build examples...
 add_subdirectory(lib/bullet3)
 include_directories(lib/bullet3/src)
-target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath)
+target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath shlwapi)
 

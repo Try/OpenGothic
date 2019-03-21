@@ -46,9 +46,13 @@ struct WorldScript::ScopeVar final {
   const char*              name="";
   };
 
+static std::string toAcii(const std::u16string& src){
+  std::string acii(src.begin(),src.end());
+  return acii;
+  }
 
-WorldScript::WorldScript(World &owner, Gothic& gothic, const char *world)
-  :vm(gothic.path()+world),owner(owner){
+WorldScript::WorldScript(World &owner, Gothic& gothic, const char16_t *world)
+  :vm(toAcii(gothic.path()+world)),owner(owner){
   Daedalus::registerGothicEngineClasses(vm);
   initCommon();
   }
@@ -347,19 +351,25 @@ void WorldScript::initDialogs(Gothic& gothic) {
   }
 
 void WorldScript::loadDialogOU(Gothic &gothic) {
-  const char* names[]={"OU.DAT","OU.BIN"};
-  const char* dir  []={"_work/data/Scripts/content/CUTSCENE/","_work/DATA/scripts/content/CUTSCENE/"};
+  const char16_t* names[]={u"OU.DAT",u"OU.BIN"};
+  const char16_t* dir  []={u"_work/data/Scripts/content/CUTSCENE/",u"_work/DATA/scripts/content/CUTSCENE/"};
 
   for(auto n:names){
     for(auto d:dir){
-      std::string full = gothic.path()+"/"+d+n;
+      std::u16string full = gothic.path()+u"/"+d+n;
       bool exist=false;
       {
-        std::ifstream f(full.c_str());
-        exist=f.is_open();
+      try {
+        RFile f(full);
+        exist=f.size()>0;
+        }
+      catch(...){
+        exist=false;
+        }
       }
       if(exist){
-        dialogs.reset(new ZenLoad::zCCSLib(full));
+        std::string acii(full.begin(),full.end());
+        dialogs.reset(new ZenLoad::zCCSLib(acii));
         return;
         }
       }

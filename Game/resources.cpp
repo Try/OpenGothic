@@ -58,19 +58,23 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
   fallback = device.loadTexture("data/fallback.png");
 
   // TODO: priority for *.mod files
-  std::vector<std::string> archives;
-  Dir::scan(gothic.path()+"Data/",[this,&archives](const std::string& vdf,Dir::FileType t){
+  std::vector<std::u16string> archives;
+  Dir::scan(gothic.path()+u"Data/",[this,&archives](const std::u16string& vdf,Dir::FileType t){
     if(t==Dir::FT_File)
-      archives.push_back(this->gothic.path() + "Data/" + vdf);
+      archives.push_back(this->gothic.path() + u"Data/" + vdf);
     });
 
   // addon archives first!
-  std::sort(archives.begin(),archives.end(),[](const std::string& a,const std::string& b){
+  std::sort(archives.begin(),archives.end(),[](const std::u16string& ua,const std::u16string& ub){
+    std::string a(ua.begin(),ua.end()); //FIXME: unicode
+    std::string b(ub.begin(),ub.end()); //FIXME: unicode
     return VDFS::FileIndex::getLastModTime(a) > VDFS::FileIndex::getLastModTime(b);
     });
 
-  for(auto& i:archives)
-    gothicAssets.loadVDF(i);
+  for(auto& i:archives) {
+    std::string acii(i.begin(),i.end()); //FIXME: unicode
+    gothicAssets.loadVDF(acii);
+    }
   gothicAssets.finalizeLoad();
   }
 
@@ -100,8 +104,10 @@ VDFS::FileIndex& Resources::vdfsIndex() {
   return inst->gothicAssets;
   }
 
-void Resources::addVdf(const char *vdf) {
-  gothicAssets.loadVDF(gothic.path() + vdf);
+void Resources::addVdf(const char16_t *vdf) {
+  auto path = gothic.path() + vdf;
+  std::string acii(path.begin(),path.end()); //FIXME: unicode
+  gothicAssets.loadVDF(acii);
   }
 
 Tempest::Texture2d* Resources::implLoadTexture(const std::string& name) {

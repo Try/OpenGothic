@@ -18,7 +18,7 @@ GameMenu::GameMenu(MenuRoot &owner, Gothic &gothic, const char* menuSection)
   timer.start(100);
 
   textBuf.reserve(64);
-  vm = gothic.createVm("_work/Data/Scripts/_compiled/MENU.DAT");
+  vm = gothic.createVm(u"_work/Data/Scripts/_compiled/MENU.DAT");
 
   Daedalus::DATFile& dat=vm->getDATFile();
 

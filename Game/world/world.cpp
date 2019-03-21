@@ -32,7 +32,7 @@ World::World(Gothic& gothic,const RendererStorage &storage, std::string file, st
   worldMesh->packMesh(mesh, 1.f, false);
 
   loadProgress(25);
-  vm.reset      (new WorldScript(*this,gothic,"/_work/data/Scripts/_compiled/GOTHIC.DAT"));
+  vm.reset      (new WorldScript(*this,gothic,u"/_work/data/Scripts/_compiled/GOTHIC.DAT"));
   wdynamic.reset(new DynamicWorld(*this,mesh));
   wview.reset   (new WorldView(*this,mesh,storage));
   loadProgress(35);

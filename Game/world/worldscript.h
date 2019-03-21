@@ -21,7 +21,7 @@ class Item;
 
 class WorldScript final {
   public:
-    WorldScript(World& owner,Gothic &gothic, const char* world);
+    WorldScript(World& owner, Gothic &gothic, const char16_t *world);
 
     struct DlgChoise final {
       std::string                     title;

@@ -72,18 +72,19 @@ class Gothic final {
 
     const std::string&                    messageByName(const std::string &id) const;
     uint32_t                              messageTime(const std::string &id) const;
-    const std::string&                    path() const { return gpath; }
+    const std::u16string&                 path() const { return gpath; }
     const std::string&                    defaultWorld() const;
-    std::unique_ptr<Daedalus::DaedalusVM> createVm(const char* datFile);
+    std::unique_ptr<Daedalus::DaedalusVM> createVm(const char16_t *datFile);
 
     static void debug(const ZenLoad::zCMesh &mesh, std::ostream& out);
     static void debug(const ZenLoad::PackedMesh& mesh, std::ostream& out);
     static void debug(const ZenLoad::PackedSkeletalMesh& mesh, std::ostream& out);
 
   private:
-    std::string wdef, gpath;
-    bool        noMenu=false;
-    uint16_t    pauseSum=0;
+    std::u16string gpath;
+    std::string    wdef;
+    bool           noMenu=false;
+    uint16_t       pauseSum=0;
 
     std::thread            loaderTh;
     std::atomic<LoadState> loadingFlag{LoadState::Idle};

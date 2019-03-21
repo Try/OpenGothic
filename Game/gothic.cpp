@@ -2,6 +2,7 @@
 
 #include <zenload/zCMesh.h>
 #include <cstring>
+#include "utils/installdetect.h"
 
 // rate 14.5 to 1
 const uint64_t Gothic::multTime=29;
@@ -15,12 +16,8 @@ Gothic::Gothic(const int argc, const char **argv) {
   for(int i=1;i<argc;++i){
     if(std::strcmp(argv[i],"-g")==0){
       ++i;
-      if(i<argc) {
-        gpath=argv[i];
-        for(auto& i:gpath)
-          if(i=='\\')
-            i='/';
-        }
+      if(i<argc)
+        gpath.assign(argv[i],argv[i]+std::strlen(argv[i]));
       }
     else if(std::strcmp(argv[i],"-w")==0){
       ++i;
@@ -31,6 +28,15 @@ Gothic::Gothic(const int argc, const char **argv) {
       noMenu=true;
       }
     }
+
+  if(gpath.empty()){
+    InstallDetect inst;
+    gpath = inst.detectG2();
+    }
+
+  for(auto& i:gpath)
+    if(i=='\\')
+      i='/';
 
   if(gpath.size()>0 && gpath.back()!='/')
     gpath.push_back('/');
@@ -45,7 +51,7 @@ Gothic::Gothic(const int argc, const char **argv) {
 
 bool Gothic::isGothic2() const {
   // check actually for gothic-1, any questionable case is g2notr
-  return gpath.find("Gothic/")==std::string::npos && gpath.find("gothic/")==std::string::npos;
+  return gpath.find(u"Gothic/")==std::string::npos && gpath.find(u"gothic/")==std::string::npos;
   }
 
 bool Gothic::isInGame() const {
@@ -204,8 +210,14 @@ const std::string &Gothic::defaultWorld() const {
   return wdef;
   }
 
-std::unique_ptr<Daedalus::DaedalusVM> Gothic::createVm(const char *datFile) {
-  auto vm = std::make_unique<Daedalus::DaedalusVM>(gpath+datFile);
+std::unique_ptr<Daedalus::DaedalusVM> Gothic::createVm(const char16_t *datFile) {
+  Tempest::RFile dat(gpath+datFile);
+  size_t all=dat.size();
+
+  std::unique_ptr<uint8_t[]> byte(new uint8_t[all]);
+  dat.read(byte.get(),all);
+
+  auto vm = std::make_unique<Daedalus::DaedalusVM>(byte.get(),all,false);
   Daedalus::registerGothicEngineClasses(*vm);
   return vm;
   }
