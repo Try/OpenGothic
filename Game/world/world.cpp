@@ -111,6 +111,7 @@ void World::setDayTime(int32_t h, int32_t min) {
     } else {
     gothic.setTime(gtime(day+1,h,min));
     }
+  wobj.resetPositionToTA();
   }
 
 gtime World::time() const {
@@ -305,7 +306,11 @@ const WayPoint *World::findNextPoint(const WayPoint &pos) const {
   }
 
 WayPath World::wayTo(const Npc &pos, const WayPoint &end) const {
-  auto p = pos.position();
+  auto p     = pos.position();
+  auto point = pos.currentWayPoint();
+  if(point && MoveAlgo::isClose(pos.position(),*point)){
+    return wmatrix->wayTo(*point,end);
+    }
   return wmatrix->wayTo(p[0],p[1],p[2],end);
   }
 

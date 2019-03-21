@@ -215,7 +215,10 @@ WayPath WayMatrix::wayTo(float npcX, float npcY, float npcZ, const WayPoint &end
     ret.add(end);
     return ret;
     }
+  return wayTo(*start,end);
+  }
 
+WayPath WayMatrix::wayTo(const WayPoint& start, const WayPoint &end) const {
   intptr_t endId = std::distance<const WayPoint*>(&wayPoints[0],&end);
   if(endId<0 || size_t(endId)>=wayPoints.size()){
     if(end.name.find("FP_")==0) {
@@ -230,14 +233,14 @@ WayPath WayMatrix::wayTo(float npcX, float npcY, float npcZ, const WayPoint &end
   for(auto& i:pathLen)
     i=-1.f;
 
-  intptr_t sid = std::distance<const WayPoint*>(&wayPoints[0],start);
+  intptr_t sid = std::distance<const WayPoint*>(&wayPoints[0],&start);
   if(sid>=0 && size_t(sid)<wayPoints.size()){
     pathLen[size_t(sid)] = 0;
     }
 
   std::queue<const WayPoint*> queue;
 
-  queue.push(start);
+  queue.push(&start);
   while(pathLen[size_t(endId)]<0.f && queue.size()>0){
     auto current = queue.front(); queue.pop();
 
@@ -266,7 +269,7 @@ WayPath WayMatrix::wayTo(float npcX, float npcY, float npcZ, const WayPoint &end
   WayPath ret;
   ret.add(end);
   const WayPoint* current = &end;
-  while(current!=start){
+  while(current!=&start){
     intptr_t id = std::distance<const WayPoint*>(&wayPoints[0],current);
     if(id<0 || size_t(id)>=wayPoints.size())
       return WayPath();

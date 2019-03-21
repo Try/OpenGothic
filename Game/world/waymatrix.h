@@ -29,6 +29,7 @@ class WayMatrix final {
     const WayPoint* findPoint(const char* name) const;
     void            marchPoints(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
+    WayPath         wayTo(const WayPoint &start, const WayPoint& end) const;
     WayPath         wayTo(float npcX,float npcY,float npcZ,const WayPoint& end) const;
 
   private:
