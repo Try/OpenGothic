@@ -232,6 +232,7 @@ class Npc final {
     float               qDistTo(const Interactive& p) const;
 
     void updateAnimation();
+    void updateTransform();
 
     const char*         displayName() const;
     std::array<float,3> displayPosition() const;
@@ -487,6 +488,7 @@ class Npc final {
     void                           updateWeaponSkeleton();
     void                           updatePos();
     void                           setPos(const Tempest::Matrix4x4& m);
+    bool                           setViewPosition(const std::array<float,3> &pos);
 
     const Routine&                 currentRoutine() const;
     gtime                          endTime(const Routine& r) const;
@@ -506,6 +508,13 @@ class Npc final {
     float                          z=0.f;
     float                          angle=0.f;
     float                          sz[3]={1.f,1.f,1.f};
+
+    enum TransformBit : uint8_t {
+      TR_Pos  =1,
+      TR_Rot  =1<<1,
+      TR_Scale=1<<2,
+      };
+    uint8_t                        durtyTranform=0;
 
     int32_t                        vColor =0;
     int32_t                        bdColor=0;

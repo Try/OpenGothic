@@ -108,6 +108,7 @@ Pose::Pose(const Skeleton &sk, const Animation::Sequence* sq0, const Animation::
   }
 
 void Pose::update(uint64_t dt) {
+  std::lock_guard<std::mutex> guard(sync);
   if(baseSq==nullptr || numFrames==0){
     zeroSkeleton();
     return;

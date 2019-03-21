@@ -22,10 +22,13 @@ Npc::~Npc(){
   }
 
 void Npc::setPosition(float ix, float iy, float iz) {
+  if(x==ix && y==iy && z==iz)
+    return;
   x = ix;
   y = iy;
   z = iz;
-  updatePos();
+  durtyTranform |= TR_Pos;
+  physic.setPosition(x,y,z);
   }
 
 bool Npc::setPosition(const std::array<float,3> &pos) {
@@ -34,12 +37,16 @@ bool Npc::setPosition(const std::array<float,3> &pos) {
   x = pos[0];
   y = pos[1];
   z = pos[2];
+  durtyTranform |= TR_Pos;
+  physic.setPosition(x,y,z);
+  return true;
+  }
 
-  Matrix4x4& mt=animation.pos;
-  mt.set(3,0,x);
-  mt.set(3,1,y);
-  mt.set(3,2,z);
-  setPos(mt);
+bool Npc::setViewPosition(const std::array<float,3> &pos) {
+  x = pos[0];
+  y = pos[1];
+  z = pos[2];
+  durtyTranform |= TR_Pos;
   return true;
   }
 
@@ -56,7 +63,7 @@ void Npc::setDirection(float rotation) {
   if(std::fabs(angle-rotation)<1.f)
     return;
   angle = rotation;
-  updatePos();
+  durtyTranform |= TR_Rot;
   }
 
 float Npc::angleDir(float x, float z) {
@@ -229,6 +236,13 @@ void Npc::updateAnimation() {
   animation.updateAnimation(owner.tickCount());
   }
 
+void Npc::updateTransform() {
+  if(durtyTranform){
+    updatePos();
+    durtyTranform=0;
+    }
+  }
+
 const char *Npc::displayName() const {
   return owner.vmNpc(hnpc).name[0].c_str();
   }
@@ -279,7 +293,7 @@ void Npc::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh &&body, int
   bdColor = bodyColor;
 
   invent.updateArmourView(owner,*this);
-  updatePos(); // update obj matrix
+  durtyTranform|=TR_Pos; // update obj matrix
   }
 
 void Npc::setArmour(StaticObjects::Mesh &&a) {
@@ -335,7 +349,7 @@ void Npc::setScale(float x, float y, float z) {
   sz[0]=x;
   sz[1]=y;
   sz[2]=z;
-  updatePos();
+  durtyTranform |= TR_Scale;
   }
 
 bool Npc::setAnim(Npc::Anim a) {
@@ -563,7 +577,7 @@ bool Npc::implLookAt(float dx, float dz, uint64_t dt) {
   auto        gl   = std::min<uint32_t>(guild(),GIL_MAX);
   float       step = owner.guildVal().turn_speed[gl]*(dt/1000.f);
 
-  if(std::abs(da)<step){
+  if(std::abs(da)<=step){
     setDirection(a);
     if(animation.current==AnimationSolver::RotL || animation.current==AnimationSolver::RotR) {
       if(currentGoTo==nullptr && animation.animSq!=nullptr && !animation.animSq.isFinished(owner.tickCount()-animation.sAnim)){
@@ -1452,13 +1466,13 @@ bool Npc::tryMove(const std::array<float,3> &pos, std::array<float,3> &fallback,
   if(pos==position())
     return true;
   if(physic.tryMove(pos,fallback,speed)) {
-    return setPosition(fallback);
+    return setViewPosition(fallback);
     }
 
   std::array<float,3> p=fallback;
   for(int i=1;i<5;++i){
     if(physic.tryMove(p,fallback,speed)) {
-      return setPosition(fallback);
+      return setViewPosition(fallback);
       }
     p=fallback;
     }
@@ -1771,18 +1785,25 @@ bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
   }
 
 void Npc::updatePos() {
-  Matrix4x4 mt;
-  mt.identity();
-  mt.translate(x,y,z);
-  mt.rotateOY(180-angle);
-  mt.scale(sz[0],sz[1],sz[2]);
-
-  setPos(mt);
+  if(durtyTranform==TR_Pos){
+    Matrix4x4& mt=animation.pos;
+    mt.set(3,0,x);
+    mt.set(3,1,y);
+    mt.set(3,2,z);
+    setPos(mt);
+    } else {
+    Matrix4x4 mt;
+    mt.identity();
+    mt.translate(x,y,z);
+    mt.rotateOY(180-angle);
+    mt.scale(sz[0],sz[1],sz[2]);
+    setPos(mt);
+    }
   }
 
 void Npc::setPos(const Matrix4x4 &m) {
   animation.setPos(m);
-  physic.setPosition(x,y,z);
+  //physic.setPosition(x,y,z);
   }
 
 bool Npc::setAnim(Npc::Anim a, WeaponState st0, WeaponState st) {

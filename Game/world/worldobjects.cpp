@@ -4,6 +4,7 @@
 #include "item.h"
 #include "npc.h"
 #include "world.h"
+#include "utils/workers.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Application>
@@ -67,6 +68,7 @@ void WorldObjects::onInserNpc(NpcHandle handle,const std::string& point) {
     ptr->setPosition  (pos->x,pos->y,pos->z);
     ptr->setDirection (pos->dirX,pos->dirY,pos->dirZ);
     ptr->attachToPoint(pos);
+    ptr->updateTransform();
     }
 
   npcArr.emplace_back(std::move(ptr));
@@ -84,8 +86,16 @@ void WorldObjects::onRemoveNpc(NpcHandle handle) {
   }
 
 void WorldObjects::updateAnimation() {
-  for(auto& i:npcArr)
+  Workers::parallelFor(npcArr,8,[](std::unique_ptr<Npc>& i){
+    i->updateTransform();
     i->updateAnimation();
+    });
+
+  /*
+  for(auto& i:npcArr)
+    i->updateTransform();
+  for(auto& i:npcArr)
+    i->updateAnimation();*/
   }
 
 void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {

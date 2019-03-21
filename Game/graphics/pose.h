@@ -2,6 +2,7 @@
 
 #include <Tempest/Matrix4x4>
 #include <vector>
+#include <mutex>
 #include <memory>
 
 #include "animation.h"
@@ -39,4 +40,6 @@ class Pose final {
 
     uint64_t                   lastT=uint64_t(-1);
     uint32_t                   numFrames=0;
+
+    std::mutex                 sync;
   };
