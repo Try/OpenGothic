@@ -41,7 +41,9 @@ bool Interactive::checkMobName(const std::string &dest) const {
   const auto& name=focusName();
   if(name==dest)
     return true;
-  if(name.find("MOBNAME_")==0 && dest==name.c_str()+8)
+  if(dest=="RAPAIR")
+    return false; //TODO
+  if(name=="MOBNAME_LAB" && dest=="LAB")
     return true;
   if(name=="MOBNAME_ANVIL" && dest=="BSANVIL")
     return true;
@@ -49,7 +51,39 @@ bool Interactive::checkMobName(const std::string &dest) const {
     return true;
   if(name=="MOBNAME_GRINDSTONE" && dest=="BSSHARP")
     return true;
+  if(name=="MOBNAME_BUCKET" && dest=="BSCOOL")
+    return true;
+  if(name=="MOBNAME_FORGE" && dest=="BSFIRE")
+    return true;
   if((name=="MOBNAME_BBQ_SCAV" || name=="MOBNAME_BARBQ_SCAV") && dest=="BARBQ")
+    return true;
+  if(name=="MOBNAME_STOVE" && dest=="STOVE")
+    return true;
+  if(name=="MOBNAME_ARMCHAIR" && dest=="THRONE")
+    return true;
+  if(name=="MOBNAME_SAW" && dest=="BAUMSAEGE")
+    return true;
+  if(name=="MOBNAME_WATERPIPE" && dest=="SMOKE")
+    return true;
+  if(name=="MOBNAME_BENCH" && dest=="BENCH")
+    return true;
+  if(data.visual=="BENCH_NW_CITY_02.ASC" && dest=="BENCH")
+    return true; // bug in knoris
+  if(name=="MOBNAME_CHAIR" && dest=="CHAIR")
+    return true;
+  if(name=="MOBNAME_INNOS" && dest=="INNOS")
+    return true;
+  if(name=="MOBNAME_CAULDRON" && dest=="CAULDRON")
+    return true;
+  if(name=="MOBNAME_WINEMAKER" && dest=="HERB")
+    return true;
+  if(name=="MOBNAME_ORE" && dest=="ORE")
+    return true;
+  if(name=="MOBNAME_BED" && dest=="BEDHIGH")
+    return true;
+  if(name=="MOBNAME_THRONE" && dest=="THRONE")
+    return true;
+  if(name.find("MOBNAME_")==0 && dest==name.c_str()+8)
     return true;
   return false;
   }
@@ -140,12 +174,8 @@ void Interactive::implAddItem(char *name) {
 
 const Interactive::Pos *Interactive::findFreePos() const {
   for(auto& i:pos) {
-    if(i.name=="ZS_POS0" && i.user==nullptr) {
-      return &i;
-      }
-    }
-  for(auto& i:pos) {
-    if(i.name=="ZS_POS0_DIST" && i.user==nullptr) {
+    if(i.user==nullptr && (i.name=="ZS_POS0" || i.name=="ZS_POS0_FRONT" || i.name=="ZS_POS1_BACK" ||
+                           i.name=="ZS_POS0_DIST")) {
       return &i;
       }
     }
@@ -154,12 +184,8 @@ const Interactive::Pos *Interactive::findFreePos() const {
 
 Interactive::Pos *Interactive::findFreePos() {
   for(auto& i:pos) {
-    if(i.name=="ZS_POS0" && i.user==nullptr) {
-      return &i;
-      }
-    }
-  for(auto& i:pos) {
-    if(i.name=="ZS_POS0_DIST" && i.user==nullptr) {
+    if(i.user==nullptr && (i.name=="ZS_POS0" || i.name=="ZS_POS0_FRONT" || i.name=="ZS_POS1_BACK" ||
+                           i.name=="ZS_POS0_DIST")) {
       return &i;
       }
     }

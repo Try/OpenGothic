@@ -67,12 +67,39 @@ float Npc::angleDir(float x, float z) {
   }
 
 void Npc::resetPositionToTA() {
+  if(routines.size()==0)
+    return;
+
   attachToPoint(nullptr);
   auto& rot = currentRoutine();
   auto  at  = rot.point;
 
-  if(at==nullptr)
-    return;
+  if(at==nullptr) {
+    auto    time = owner.world().time();
+    time = gtime(int32_t(time.hour()),int32_t(time.minute()));
+    int64_t delta=std::numeric_limits<int64_t>::max();
+
+    // closest point
+    for(auto& i:routines){
+      int64_t ndelta=delta;
+      if(i.end<i.start)
+        ndelta = i.start.toInt()-time.toInt();
+      else
+        ndelta = i.end.toInt()-time.toInt();
+
+      if(i.point && ndelta<delta)
+        at = i.point;
+      }
+    // any point
+    if(at==nullptr){
+      for(auto& i:routines){
+        if(i.point)
+          at=i.point;
+        }
+      }
+    if(at==nullptr)
+      return;
+    }
 
   if(at->isLocked()){
     auto p = owner.world().findNextPoint(*at);
@@ -1710,6 +1737,8 @@ void Npc::aiAlignToWp() {
 void Npc::attachToPoint(const WayPoint *p) {
   currentFp     = p;
   currentFpLock = FpLock(currentFp);
+  if(p!=nullptr)
+    owner.vmNpc(hnpc).wp = p->name;
   }
 
 void Npc::clearGoTo() {

@@ -206,21 +206,32 @@ void WorldObjects::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x
   }
 
 Interactive *WorldObjects::aviableMob(const Npc &pl, const std::string &dest) {
-  const float dist=100*10.f;
+  const float  dist=100*10.f;
+  Interactive* ret =nullptr;
 
-  for(auto& i:interactiveObj){
-    if(pl.qDistTo(i)<dist*dist && i.isAvailable() && i.checkMobName(dest)) {
-      return &i;
-      }
+  if(auto i = pl.interactive()){
+    if(i->checkMobName(dest))
+      return i;
     }
-  return nullptr;
+
+  float curDist=dist*dist;
+  interactiveObj.find(pl.position(),dist,[&](Interactive& i){
+    if(i.isAvailable() && i.checkMobName(dest)) {
+      float d = pl.qDistTo(i);
+      if(d<curDist){
+        ret    = &i;
+        curDist = d;
+        }
+      }
+    return false;
+    });
+
+  if(ret==nullptr)
+    return nullptr;
+  return ret;
   }
 
 bool WorldObjects::aiUseMob(Npc &pl, const std::string &name) {
-  if(auto inter=pl.interactive()){
-    if(inter->checkMobName(name))
-      return inter;
-    }
   auto inter = aviableMob(pl,name);
   if(inter==nullptr)
     return false;
@@ -275,8 +286,9 @@ static bool canSee(const Npc& pl,const Item& n){
   }
 
 template<class T>
-T* WorldObjects::findObj(std::vector<T> &src,const Npc &pl, const Matrix4x4 &v, int w, int h,const SearchOpt& opt) {
-  T*    ret=nullptr;
+auto WorldObjects::findObj(T &src,const Npc &pl, const Matrix4x4 &v,
+                           int w, int h,const SearchOpt& opt) -> typename std::remove_reference<decltype(src[0])>::type* {
+  typename std::remove_reference<decltype(src[0])>::type* ret=nullptr;
   float rlen = opt.rangeMax*opt.rangeMax;//w*h;
   if(owner.view()==nullptr)
     return nullptr;

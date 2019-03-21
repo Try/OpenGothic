@@ -9,6 +9,7 @@
 
 #include "interactive.h"
 #include "movetrigger.h"
+#include "spaceindex.h"
 #include "trigger.h"
 
 class Npc;
@@ -67,7 +68,7 @@ class WorldObjects final {
 
   private:
     World&                             owner;
-    std::vector<Interactive>           interactiveObj;
+    SpaceIndex<Interactive>            interactiveObj;
     std::vector<std::unique_ptr<Npc>>  npcArr;
     std::vector<std::unique_ptr<Item>> itemArr;
 
@@ -77,6 +78,6 @@ class WorldObjects final {
     std::vector<PerceptionMsg>         sndPerc;
 
     template<class T>
-    T* findObj(std::vector<T>& src,const Npc &pl,
-               const Tempest::Matrix4x4 &v, int w, int h, const SearchOpt& opt);
+    auto findObj(T &src,const Npc &pl, const Tempest::Matrix4x4 &v,
+                 int w, int h,const SearchOpt& opt) -> typename std::remove_reference<decltype(src[0])>::type*;
   };

@@ -323,7 +323,7 @@ class Npc final {
     bool perceptionProcess(Npc& pl, Npc *victum, float quadDist, PercType perc);
     uint64_t percNextTime() const;
 
-    const Interactive* interactive() const { return currentInteract; }
+    Interactive* interactive() const { return currentInteract; }
     bool     setInteraction(Interactive* id);
     bool     isState(uint32_t stateFn) const;
     bool     wasInState(uint32_t stateFn) const;
