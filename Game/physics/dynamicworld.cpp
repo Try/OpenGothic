@@ -37,6 +37,51 @@ struct DynamicWorld::HumShape:btCapsuleShape {
     }
   };
 
+struct Broadphase : btDbvtBroadphase {
+  btAlignedObjectArray<const btDbvtNode*> rayTestStk;
+
+  struct BroadphaseRayTester : btDbvt::ICollide {
+    btBroadphaseRayCallback& m_rayCallback;
+    BroadphaseRayTester(btBroadphaseRayCallback& orgCallback) : m_rayCallback(orgCallback) {}
+    void Process(const btDbvtNode* leaf) {
+      btDbvtProxy* proxy = (btDbvtProxy*)leaf->data;
+      m_rayCallback.process(proxy);
+      }
+    };
+
+  Broadphase() {
+    rayTestStk.reserve(128);
+    }
+
+  void rayTest(const btVector3& rayFrom, const btVector3& rayTo, btBroadphaseRayCallback& rayCallback,
+               const btVector3& aabbMin, const btVector3& aabbMax) {
+    BroadphaseRayTester callback(rayCallback);
+    btAlignedObjectArray<const btDbvtNode*>* stack = &rayTestStk;
+
+    m_sets[0].rayTestInternal(m_sets[0].m_root,
+        rayFrom,
+        rayTo,
+        rayCallback.m_rayDirectionInverse,
+        rayCallback.m_signs,
+        rayCallback.m_lambda_max,
+        aabbMin,
+        aabbMax,
+        *stack,
+        callback);
+
+    m_sets[1].rayTestInternal(m_sets[1].m_root,
+        rayFrom,
+        rayTo,
+        rayCallback.m_rayDirectionInverse,
+        rayCallback.m_signs,
+        rayCallback.m_lambda_max,
+        aabbMin,
+        aabbMax,
+        *stack,
+        callback);
+    }
+  };
+
 DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
   // collision configuration contains default setup for memory, collision setup
   conf.reset(new btDefaultCollisionConfiguration());
@@ -46,7 +91,7 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
   dispatcher.reset(disp);
   disp->setDispatcherFlags(btCollisionDispatcher::CD_DISABLE_CONTACTPOOL_DYNAMIC_ALLOCATION);
 
-  btDbvtBroadphase* brod = new btDbvtBroadphase();
+  Broadphase* brod = new Broadphase();
   broadphase.reset(brod);
   // the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
   world.reset(new btCollisionWorld(dispatcher.get(),broadphase.get(),conf.get()));
