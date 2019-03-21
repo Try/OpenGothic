@@ -14,6 +14,7 @@ AnimationSolver::AnimationSolver() {
   }
 
 void AnimationSolver::setPos(const Matrix4x4 &m) {
+  // TODO: deferred setObjMatrix
   pos = m;
   head  .setObjMatrix(pos);
   sword .setObjMatrix(pos);

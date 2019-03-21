@@ -84,6 +84,8 @@ class DynamicWorld final {
     void rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, btCollisionWorld::RayResultCallback& resultCallback) const;    
     std::unique_ptr<btRigidBody> landObj();
 
+    void updateSingleAabb(btCollisionObject* obj);
+
     struct HumShape;
 
     std::unique_ptr<btCollisionConfiguration>   conf;
@@ -97,6 +99,8 @@ class DynamicWorld final {
 
     mutable bool                                lastRayCollision=false;
     mutable float                               lastRayDrop[4]={};
+
+    std::vector<btCollisionObject*>             dirtyAabb;
 
     static const float                          ghostPadding;
     static const float                          ghostHeight;

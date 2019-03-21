@@ -34,6 +34,7 @@ add_subdirectory(lib/MoltenTempest/Engine)
 include_directories(lib/MoltenTempest/Engine/include)
 target_link_libraries(${PROJECT_NAME} MoltenTempest)
 
+set(BULLET2_MULTITHREADING ON)
 set(USE_GRAPHICAL_BENCHMARK OFF CACHE STRING "" FORCE)
 set(BUILD_BULLET2_DEMOS OFF CACHE STRING "" FORCE) # No samples
 set(BUILD_OPENGL3_DEMOS OFF CACHE STRING "" FORCE) # No samples

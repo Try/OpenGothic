@@ -2,6 +2,7 @@
 #include "physicmeshshape.h"
 
 #include <BulletCollision/CollisionDispatch/btCollisionDispatcher.h>
+#include <BulletCollision/CollisionDispatch/btCollisionDispatcherMt.h>
 #include <BulletCollision/CollisionDispatch/btDefaultCollisionConfiguration.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
 #include <BulletCollision/BroadphaseCollision/btDbvtBroadphase.h>
@@ -40,7 +41,8 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
   // collision configuration contains default setup for memory, collision setup
   conf.reset(new btDefaultCollisionConfiguration());
   // use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
-  auto disp = new btCollisionDispatcher(conf.get());
+  auto disp = new btCollisionDispatcherMt(conf.get());
+  //auto disp = new btCollisionDispatcher(conf.get());
   dispatcher.reset(disp);
   disp->setDispatcherFlags(btCollisionDispatcher::CD_DISABLE_CONTACTPOOL_DYNAMIC_ALLOCATION);
 
@@ -59,6 +61,8 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
 
   world->addCollisionObject(landBody.get());
   world->setForceUpdateAllAabbs(false);
+
+  dirtyAabb.reserve(2048);
   }
 
 DynamicWorld::~DynamicWorld(){
@@ -200,7 +204,14 @@ DynamicWorld::Item DynamicWorld::staticObj(const PhysicMeshShape *shape, const T
   }
 
 void DynamicWorld::tick(uint64_t /*dt*/) {
-  // world->updateAabbs();
+  //world->updateAabbs();
+  for(auto& i:dirtyAabb)
+    world->updateSingleAabb(i);
+  dirtyAabb.clear();
+  }
+
+void DynamicWorld::updateSingleAabb(btCollisionObject *obj) {
+  dirtyAabb.push_back(obj);
   }
 
 void DynamicWorld::deleteObj(btCollisionObject *obj) {
@@ -268,7 +279,7 @@ void DynamicWorld::rayTest(const btVector3 &s,
 void DynamicWorld::Item::setPosition(float x, float y, float z) {
   if(obj) {
     implSetPosition(x,y,z);
-    owner->world->updateSingleAabb(obj);
+    owner->updateSingleAabb(obj);
     }
   }
 
@@ -284,7 +295,7 @@ void DynamicWorld::Item::setObjMatrix(const Tempest::Matrix4x4 &m) {
     btTransform trans;
     trans.setFromOpenGLMatrix(reinterpret_cast<const btScalar*>(&m));
     obj->setWorldTransform(trans);
-    owner->world->updateSingleAabb(obj);
+    owner->updateSingleAabb(obj);
     }
   }
 
@@ -339,7 +350,7 @@ bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos, std::array<floa
   implSetPosition(pos[0],pos[1],pos[2]);
   const bool ret=owner->hasCollision(*this,norm);
   if(!ret) {
-    owner->world->updateSingleAabb(obj);
+    owner->updateSingleAabb(obj);
     return true;
     }
   if(speed!=0.f){

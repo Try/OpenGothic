@@ -88,6 +88,10 @@ void MoveAlgo::clearSpeed() {
   flags = NoFlags;
   }
 
+bool MoveAlgo::isClose(const std::array<float,3> &w, const WayPoint &p) {
+  return isClose(w[0],w[1],w[2],p);
+  }
+
 bool MoveAlgo::isClose(float x, float /*y*/, float z, const WayPoint &p) {
   float len = p.qDistTo(x,p.y,z);
   return (len<closeToPointThreshold*closeToPointThreshold);
