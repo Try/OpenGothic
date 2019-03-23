@@ -15,13 +15,14 @@
 #include "game/questlog.h"
 
 class Gothic;
+class GameSession;
 class World;
 class Npc;
 class Item;
 
 class WorldScript final {
   public:
-    WorldScript(World& owner, Gothic &gothic, const char16_t *world);
+    WorldScript(GameSession &gothic);
 
     struct DlgChoise final {
       std::string                       title;
@@ -42,11 +43,11 @@ class WorldScript final {
     int32_t    runFunction  (const char* fname);
     int32_t    runFunction  (const size_t       fid, bool clearStk=true);
 
-    void       initDialogs(Gothic &gothic);
+    void       initDialogs (Gothic &gothic);
     void       loadDialogOU(Gothic &gothic);
 
-    const World& world() const { return owner; }
-    World&       world()       { return owner; }
+    const World& world() const;
+    World&       world();
     uint64_t     tickCount() const;
 
     Npc*       inserNpc(const char* npcInstance,const char *at);
@@ -71,7 +72,6 @@ class WorldScript final {
     size_t                                            getSymbolIndex(const std::string& s);
     const AiState&                                    getAiState(size_t id);
 
-    Daedalus::GEngineClasses::C_Npc&                  vmNpc (Daedalus::GEngineClasses::C_Npc *handle);
     Daedalus::GEngineClasses::C_Item&                 vmItem(Daedalus::GEngineClasses::C_Item *handle);
 
     auto dialogChoises(Daedalus::GEngineClasses::C_Npc *self, Daedalus::GEngineClasses::C_Npc *npc, const std::vector<uint32_t> &except) -> std::vector<DlgChoise>;
@@ -291,7 +291,7 @@ class WorldScript final {
 
     Daedalus::DaedalusVM                                        vm;
     uint8_t                                                     invokeRecursive=0;
-    World&                                                      owner;
+    GameSession&                                                owner;
     std::mt19937                                                randGen;
 
     std::set<std::pair<size_t,size_t>>                          dlgKnownInfos;

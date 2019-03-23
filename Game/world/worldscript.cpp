@@ -47,15 +47,8 @@ struct WorldScript::ScopeVar final {
   const char*              name="";
   };
 
-static std::vector<uint8_t> readAll(const std::u16string& src){
-  RFile                f(src);
-  std::vector<uint8_t> ret(f.size());
-  f.read(ret.data(),ret.size());
-  return ret;
-  }
-
-WorldScript::WorldScript(World &owner, Gothic& gothic, const char16_t *world)
-  :vm(readAll(gothic.path()+world)),owner(owner){
+WorldScript::WorldScript(GameSession &owner)
+  :vm(owner.loadScriptCode()),owner(owner){
   Daedalus::registerGothicEngineClasses(vm);
   initCommon();
   }
@@ -233,7 +226,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("perc_setrange",       [this](Daedalus::DaedalusVM& vm){ perc_setrange(vm);        });
 
   DaedalusGameState::GameExternals ext;
-  ext.wld_insertnpc      = [this](Daedalus::GEngineClasses::C_Npc* h,const std::string& s){ owner.onInserNpc(h,s); };
+  ext.wld_insertnpc      = [this](Daedalus::GEngineClasses::C_Npc* h,const std::string& s){ world().onInserNpc(h,s); };
   vm.getGameState().setGameExternals(ext);
 
   spellFxInstanceNames = vm.getDATFile().getSymbolIndexByName("spellFxInstanceNames");
@@ -358,6 +351,14 @@ void WorldScript::loadDialogOU(Gothic &gothic) {
     }
   }
 
+const World &WorldScript::world() const {
+  return *owner.world();
+  }
+
+World &WorldScript::world() {
+  return *owner.world();
+  }
+
 Daedalus::GEngineClasses::C_Focus WorldScript::getFocus(const char *name) {
   Daedalus::GEngineClasses::C_Focus ret={};
   auto id = vm.getDATFile().getSymbolIndexByName(name);
@@ -395,10 +396,6 @@ const AiState &WorldScript::getAiState(size_t id) {
   return ins.first->second;
   }
 
-Daedalus::GEngineClasses::C_Npc& WorldScript::vmNpc(Daedalus::GEngineClasses::C_Npc* handle) {
-  return *(handle);
-  }
-
 Daedalus::GEngineClasses::C_Item& WorldScript::vmItem(Daedalus::GEngineClasses::C_Item* handle) {
   return *(handle);
   }
@@ -406,8 +403,8 @@ Daedalus::GEngineClasses::C_Item& WorldScript::vmItem(Daedalus::GEngineClasses::
 std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GEngineClasses::C_Npc* player,
                                                                Daedalus::GEngineClasses::C_Npc* hnpc,
                                                                const std::vector<uint32_t>& except) {
-  auto& npc = vmNpc(hnpc);
-  auto& pl  = vmNpc(player);
+  auto& npc = *hnpc;
+  auto& pl  = *player;
 
   ScopeVar self (vm,"self", hnpc,   Daedalus::IC_Npc);
   ScopeVar other(vm,"other",player, Daedalus::IC_Npc);
@@ -499,15 +496,12 @@ std::vector<WorldScript::DlgChoise> WorldScript::updateDialog(const WorldScript:
 void WorldScript::exec(const WorldScript::DlgChoise &dlg,
                        Daedalus::GEngineClasses::C_Npc* player,
                        Daedalus::GEngineClasses::C_Npc* hnpc) {
-  if(dlg.handle==nullptr)
-    return;
-
   ScopeVar self (vm,"self", hnpc,   Daedalus::IC_Npc);
   ScopeVar other(vm,"other",player, Daedalus::IC_Npc);
 
   Daedalus::GEngineClasses::C_Info& info = *dlg.handle;
 
-  auto pl = vmNpc(player);
+  auto pl = *player;
   if(info.information==dlg.scriptFn) {
     setNpcInfoKnown(pl,info);
     } else {
@@ -652,7 +646,7 @@ int WorldScript::spellCastAnim(Npc&, Item &it) {
   }
 
 bool WorldScript::aiUseMob(Npc &pl, const std::string &name) {
-  return owner.aiUseMob(pl,name);
+  return world().aiUseMob(pl,name);
   }
 
 bool WorldScript::aiOutput(Npc &from, Npc &/*to*/, const std::string &outputname) {
@@ -815,7 +809,7 @@ Npc* WorldScript::inserNpc(const char *npcInstance, const char *at) {
   }
 
 void WorldScript::removeItem(Item &it) {
-  owner.removeItem(it);
+  world().removeItem(it);
   }
 
 void WorldScript::setInstanceNPC(const char *name, Npc &npc) {
@@ -824,7 +818,7 @@ void WorldScript::setInstanceNPC(const char *name, Npc &npc) {
   }
 
 Npc* WorldScript::inserNpc(size_t npcInstance, const char* at) {
-  auto pos = owner.findPoint(at);
+  auto pos = world().findPoint(at);
   if(pos==nullptr){
     Log::e("inserNpc: invalid waypoint");
     return nullptr;
@@ -903,7 +897,7 @@ void WorldScript::hlp_strcmp(Daedalus::DaedalusVM &vm) {
 void WorldScript::wld_settime(Daedalus::DaedalusVM &vm) {
   auto minute = vm.popInt();
   auto hour   = vm.popInt();
-  owner.setDayTime(hour,minute);
+  world().setDayTime(hour,minute);
   }
 
 void WorldScript::wld_getday(Daedalus::DaedalusVM &vm) {
@@ -983,7 +977,7 @@ void WorldScript::wld_isfpavailable(Daedalus::DaedalusVM &vm) {
     vm.setReturn(0);
     return;
     }
-  auto wp = owner.findFreePoint(self->position(),name.c_str());
+  auto wp = world().findFreePoint(self->position(),name.c_str());
   vm.setReturn(wp ? 1 : 0);
   }
 
@@ -995,7 +989,7 @@ void WorldScript::wld_isnextfpavailable(Daedalus::DaedalusVM &vm) {
     vm.setReturn(0);
     return;
     }
-  auto fp = owner.findNextFreePoint(*self,name.c_str());
+  auto fp = world().findNextFreePoint(*self,name.c_str());
   vm.setReturn(fp ? 1 : 0);
   }
 
@@ -1007,7 +1001,7 @@ void WorldScript::wld_ismobavailable(Daedalus::DaedalusVM &vm) {
     return;
     }
 
-  auto wp = owner.aviableMob(*self,name);
+  auto wp = world().aviableMob(*self,name);
   vm.setReturn(wp ? 1 : 0);
   }
 
@@ -1048,13 +1042,13 @@ void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
   auto        npc          = popInstance(vm);
 
   auto  vname = addExt(body,".MDM");
-  auto  vhead = head.empty() ? StaticObjects::Mesh() : owner.getView(addExt(head,".MMB"),headTexNr,teethTexNr,bodyTexColor);
-  auto  vbody = body.empty() ? StaticObjects::Mesh() : owner.getView(vname,bodyTexNr,0,bodyTexColor);
+  auto  vhead = head.empty() ? StaticObjects::Mesh() : world().getView(addExt(head,".MMB"),headTexNr,teethTexNr,bodyTexColor);
+  auto  vbody = body.empty() ? StaticObjects::Mesh() : world().getView(vname,bodyTexNr,0,bodyTexColor);
 
   if(npc==nullptr)
     return;
 
-  npc->setPhysic(owner.getPhysic(vname));
+  npc->setPhysic(world().getPhysic(vname));
   npc->setVisualBody(std::move(vhead),std::move(vbody),bodyTexNr,bodyTexColor);
 
   if(armor>=0) {
@@ -1139,7 +1133,7 @@ void WorldScript::wld_insertnpc(Daedalus::DaedalusVM &vm) {
   if(spawnpoint.empty() || npcInstance<=0)
     return;
 
-  auto at=owner.findPoint(spawnpoint);
+  auto at=world().findPoint(spawnpoint);
   if(at==nullptr){
     Log::e("invalid waypoint \"",spawnpoint,"\"");
     return;
@@ -1154,7 +1148,7 @@ void WorldScript::wld_insertitem(Daedalus::DaedalusVM &vm) {
   if(spawnpoint.empty() || itemInstance<=0)
     return;
 
-  owner.addItem(size_t(itemInstance),spawnpoint.c_str());
+  world().addItem(size_t(itemInstance),spawnpoint.c_str());
   }
 
 void WorldScript::npc_settofightmode(Daedalus::DaedalusVM &vm) {
@@ -1195,10 +1189,10 @@ void WorldScript::npc_wasinstate(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::npc_getdisttowp(Daedalus::DaedalusVM &vm) {
-  auto&    wpname   = popString(vm);
-  auto     npc      = popInstance(vm);
+  auto&    wpname = popString(vm);
+  auto     npc    = popInstance(vm);
 
-  auto* wp  = owner.findPoint(wpname);
+  auto*    wp     = world().findPoint(wpname);
 
   if(npc!=nullptr && wp!=nullptr){
     float ret = std::sqrt(npc->qDistTo(wp));
@@ -1214,7 +1208,7 @@ void WorldScript::npc_exchangeroutine(Daedalus::DaedalusVM &vm) {
   auto&    rname  = popString(vm);
   auto     npc    = popInstance(vm);
   if(npc!=nullptr) {
-    auto& v = vmNpc(npc->handle());
+    auto& v = *npc->handle();
     char buf[256]={};
     std::snprintf(buf,sizeof(buf),"Rtn_%s_%d",rname.c_str(),v.id);
     auto d = vm.getDATFile().getSymbolIndexByName(buf);
@@ -1238,7 +1232,7 @@ void WorldScript::npc_knowsinfo(Daedalus::DaedalusVM &vm) {
     return;
     }
 
-  Daedalus::GEngineClasses::C_Npc& vnpc = vmNpc(npc->handle());
+  Daedalus::GEngineClasses::C_Npc& vnpc = *npc->handle();
   bool knows = doesNpcKnowInfo(vnpc, infoinstance);
   vm.setReturn(knows ? 1 : 0);
   }
@@ -1319,7 +1313,7 @@ void WorldScript::npc_getlookattarget(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   auto ret = npc ? nullptr : npc->lookAtTarget();
   if(ret!=nullptr) {
-    auto n = vmNpc(ret->handle());
+    auto n = *(ret->handle());
     auto x = getNpcById(n.instanceSymbol);
     vm.setReturn(int32_t(n.instanceSymbol)); //TODO
     } else {
@@ -1385,7 +1379,7 @@ void WorldScript::npc_percdisable(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::npc_getnearestwp(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
-  auto wp  = npc ? owner.findWayPoint(npc->position()) : nullptr;
+  auto wp  = npc ? world().findWayPoint(npc->position()) : nullptr;
   if(wp)
     vm.setReturn(wp->name); else
     vm.setReturn("");
@@ -1439,7 +1433,7 @@ void WorldScript::npc_isonfp(Daedalus::DaedalusVM &vm) {
         }
       }
 
-    auto f = owner.findFreePoint(npc->position(),val.c_str());
+    auto f = world().findFreePoint(npc->position(),val.c_str());
     if(f!=nullptr && npc->qDistTo(f)<10*10){
       vm.setReturn(1);
       } else {
@@ -1610,7 +1604,7 @@ void WorldScript::npc_sendpassiveperc(Daedalus::DaedalusVM &vm) {
   auto npc    = popInstance(vm);
 
   if(npc && other && victum)
-    owner.sendPassivePerc(*npc,*other,*victum,id);
+    world().sendPassivePerc(*npc,*other,*victum,id);
   }
 
 void WorldScript::npc_checkinfo(Daedalus::DaedalusVM &vm) {
@@ -1627,8 +1621,8 @@ void WorldScript::npc_checkinfo(Daedalus::DaedalusVM &vm) {
     return;
     }
   auto* hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(hero.instanceDataHandle);
-  auto& pl   = vmNpc(hnpc);
-  auto& npc  = vmNpc(n->handle());
+  auto& pl   = *(hnpc);
+  auto& npc  = *(n->handle());
 
   auto s = std::lower_bound(dialogsInfo.begin(),dialogsInfo.end(),int32_t(npc.instanceSymbol),
                             [](Daedalus::GEngineClasses::C_Info* info,int32_t npc){
@@ -1845,7 +1839,7 @@ void WorldScript::ai_gotowp(Daedalus::DaedalusVM &vm) {
   auto&  waypoint = popString(vm);
   auto   npc      = popInstance(vm);
 
-  auto to = owner.findPoint(waypoint);
+  auto to = world().findPoint(waypoint);
   if(npc && to)
     npc->aiGoToPoint(*to);
   }
@@ -1857,7 +1851,7 @@ void WorldScript::ai_gotofp(Daedalus::DaedalusVM &vm) {
   if(npc) {
     if(waypoint=="STAND")
       return; // bug with "NW_BIGFARM_HOUSE_OUT_03"
-    auto to = owner.findFreePoint(npc->position(),waypoint.c_str());
+    auto to = world().findFreePoint(npc->position(),waypoint.c_str());
     if(to!=nullptr)
       npc->aiGoToPoint(*to);
     }
@@ -1903,7 +1897,7 @@ void WorldScript::ai_usemob(Daedalus::DaedalusVM &vm) {
 void WorldScript::ai_teleport(Daedalus::DaedalusVM &vm) {
   auto&    tg  = popString(vm);
   auto     npc = popInstance(vm);
-  auto     pt  = owner.findPoint(tg);
+  auto     pt  = world().findPoint(tg);
   if(npc!=nullptr && pt!=nullptr)
     npc->aiTeleport(*pt);
   }
@@ -1988,7 +1982,7 @@ void WorldScript::ai_useitemtostate(Daedalus::DaedalusVM &vm) {
 void WorldScript::mob_hasitems(Daedalus::DaedalusVM &vm) {
   uint32_t item = vm.popVar();
   auto&    tag  = popString(vm);
-  vm.setReturn(int(owner.hasItems(tag,item)));
+  vm.setReturn(int(world().hasItems(tag,item)));
   }
 
 void WorldScript::ta_min(Daedalus::DaedalusVM &vm) {
@@ -1999,7 +1993,7 @@ void WorldScript::ta_min(Daedalus::DaedalusVM &vm) {
   int32_t  start_m  = vm.popInt();
   int32_t  start_h  = vm.popInt();
   auto     npc      = popInstance(vm);
-  auto     at       = owner.findPoint(waypoint);
+  auto     at       = world().findPoint(waypoint);
 
   if(npc!=nullptr)
     npc->addRoutine(gtime(start_h,start_m),gtime(stop_h,stop_m),uint32_t(action),at);
@@ -2056,7 +2050,7 @@ void WorldScript::hlp_getinstanceid(Daedalus::DaedalusVM &vm) {
   auto self = popInstance(vm);
 
   if(self!=nullptr){
-    auto v = vmNpc(self->handle());
+    auto v = *(self->handle());
     vm.setReturn(int32_t(v.instanceSymbol));
     return;
     }

@@ -7,6 +7,7 @@
 #include <Tempest/Signal>
 #include <daedalus/DaedalusVM.h>
 
+#include "game/gamesession.h"
 #include "world/world.h"
 
 class Gothic final {
@@ -24,43 +25,39 @@ class Gothic final {
     bool isInGame() const;
     bool doStartMenu() const { return !noMenu; }
 
-    void         setWorld(std::unique_ptr<World> &&w);
-    auto         clearWorld() -> std::unique_ptr<World>;
-    const World* world() const { return wrld.get(); }
-    World*       world() { return wrld.get(); }
+    void         setGame(std::unique_ptr<GameSession> &&w);
+    auto         clearGame() -> std::unique_ptr<GameSession>;
+    const World* world() const;
+    World*       world();
     WorldView*   worldView() const;
     Npc*         player();
 
-    void     pushPause();
-    void     popPause();
-    bool     isPause() const;
+    void      pushPause();
+    void      popPause();
+    bool      isPause() const;
 
     LoadState checkLoading();
     bool      finishLoading();
     void      startLoading(const std::function<void()> f);
     void      cancelLoading();
 
-    uint64_t tickCount() const;
-    void     tick(uint64_t dt);
+    void      tick(uint64_t dt);
 
-    gtime    time() const { return  wrldTime; }
-    void     setTime(gtime t);
+    void      updateAnimation();
 
-    void     updateAnimation();
+    auto      updateDialog(const WorldScript::DlgChoise& dlg, Npc& player, Npc& npc) -> std::vector<WorldScript::DlgChoise>;
+    void      dialogExec  (const WorldScript::DlgChoise& dlg, Npc& player, Npc& npc);
 
-    auto     updateDialog(const WorldScript::DlgChoise& dlg, Npc& player, Npc& npc) -> std::vector<WorldScript::DlgChoise>;
-    void     dialogExec  (const WorldScript::DlgChoise& dlg, Npc& player, Npc& npc);
+    void      aiProcessInfos (Npc& player, Npc& npc);
+    bool      aiOuput(Npc& player, const char* msg);
+    void      aiForwardOutput(Npc& player, const char* msg);
+    bool      aiCloseDialog();
+    bool      aiIsDlgFinished();
 
-    void     aiProcessInfos (Npc& player, Npc& npc);
-    bool     aiOuput(Npc& player, const char* msg);
-    void     aiForwardOutput(Npc& player, const char* msg);
-    bool     aiCloseDialog();
-    bool     aiIsDlgFinished();
+    void      printScreen(const char* msg, int x, int y, int time, const Tempest::Font &font);
+    void      print      (const char* msg);
 
-    void     printScreen(const char* msg, int x, int y, int time, const Tempest::Font &font);
-    void     print      (const char* msg);
-
-    Tempest::Signal<void(const std::string&)>              onSetWorld;
+    Tempest::Signal<void(const std::string&)>              onStartGame;
     Tempest::Signal<void(Npc&,Npc&)>                       onDialogProcess;
     Tempest::Signal<void(Npc&,const char*,bool&)>          onDialogOutput;
     Tempest::Signal<void(Npc&,const char*)>                onDialogForwardOutput;
@@ -81,18 +78,13 @@ class Gothic final {
     static void debug(const ZenLoad::PackedSkeletalMesh& mesh, std::ostream& out);
 
   private:
-    std::u16string gpath;
-    std::string    wdef;
-    bool           noMenu=false;
-    uint16_t       pauseSum=0;
+    std::u16string               gpath;
+    std::string                  wdef;
+    bool                         noMenu=false;
+    uint16_t                     pauseSum=0;
 
-    std::thread            loaderTh;
-    std::atomic<LoadState> loadingFlag{LoadState::Idle};
+    std::thread                  loaderTh;
+    std::atomic<LoadState>       loadingFlag{LoadState::Idle};
 
-    uint64_t               ticks=0, wrldTimePart=0;
-    gtime                  wrldTime;
-    std::unique_ptr<World> wrld;
-
-    static const uint64_t  multTime;
-    static const uint64_t  divTime;
+    std::unique_ptr<GameSession> game;
   };

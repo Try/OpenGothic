@@ -160,7 +160,7 @@ bool Npc::checkHealth(bool onChange) {
     return false;
     }
 
-  auto& v = owner.vmNpc(hnpc);
+  auto& v = *hnpc;
   if(v.attribute[ATR_HITPOINTS]<=1) {
     if(v.attribute[ATR_HITPOINTSMAX]<=1){
       size_t fdead=owner.getSymbolIndex("ZS_Dead");
@@ -245,7 +245,7 @@ void Npc::updateTransform() {
   }
 
 const char *Npc::displayName() const {
-  return owner.vmNpc(hnpc).name[0].c_str();
+  return hnpc->name[0].c_str();
   }
 
 std::array<float,3> Npc::displayPosition() const {
@@ -469,7 +469,7 @@ int32_t Npc::talentValue(Npc::Talent t) const {
 
 int32_t Npc::hitChanse(Npc::Talent t) const {
   if(t<Daedalus::GEngineClasses::MAX_HITCHANCE)
-    return owner.vmNpc(hnpc).hitChance[t];
+    return hnpc->hitChance[t];
   return 0;
   }
 
@@ -487,7 +487,7 @@ void Npc::setRefuseTalk(uint64_t milis) {
 
 int32_t Npc::attribute(Npc::Attribute a) const {
   if(a<ATR_MAX)
-    return owner.vmNpc(hnpc).attribute[a];
+    return hnpc->attribute[a];
   return 0;
   }
 
@@ -495,7 +495,7 @@ void Npc::changeAttribute(Npc::Attribute a, int32_t val) {
   if(a>=ATR_MAX || val==0)
     return;
 
-  auto& v    = owner.vmNpc(hnpc);
+  auto& v = *hnpc;
   v.attribute[a]+=val;
   if(v.attribute[a]<0)
     v.attribute[a]=0;
@@ -514,21 +514,21 @@ void Npc::changeAttribute(Npc::Attribute a, int32_t val) {
 
 int32_t Npc::protection(Npc::Protection p) const {
   if(p<PROT_MAX)
-    return owner.vmNpc(hnpc).protection[p];
+    return hnpc->protection[p];
   return 0;
   }
 
 void Npc::changeProtection(Npc::Protection p, int32_t val) {
   if(p<PROT_MAX)
-    owner.vmNpc(hnpc).protection[p]=val;
+    hnpc->protection[p]=val;
   }
 
 uint32_t Npc::instanceSymbol() const {
-  return uint32_t(owner.vmNpc(hnpc).instanceSymbol);
+  return uint32_t(hnpc->instanceSymbol);
   }
 
 uint32_t Npc::guild() const {
-  uint32_t ret = uint32_t(owner.vmNpc(hnpc).guild);
+  uint32_t ret = uint32_t(hnpc->guild);
   return ret;
   }
 
@@ -537,19 +537,19 @@ int32_t Npc::magicCyrcle() const {
   }
 
 int32_t Npc::level() const {
-  return owner.vmNpc(hnpc).level;
+  return hnpc->level;
   }
 
 int32_t Npc::experience() const {
-  return owner.vmNpc(hnpc).exp;
+  return hnpc->exp;
   }
 
 int32_t Npc::experienceNext() const {
-  return owner.vmNpc(hnpc).exp_next;
+  return hnpc->exp_next;
   }
 
 int32_t Npc::learningPoints() const {
-  return owner.vmNpc(hnpc).lp;
+  return hnpc->lp;
   }
 
 bool Npc::implLookAt(uint64_t dt) {
@@ -904,8 +904,7 @@ bool Npc::startState(size_t id,const std::string &wp, gtime endTime,bool noFinal
     }
 
   if(!wp.empty()){
-    auto& v=owner.vmNpc(hnpc);
-    v.wp = wp;
+    hnpc->wp = wp;
     }
 
   if(aiState.funcIni!=0)
@@ -934,7 +933,7 @@ void Npc::clearState() {
 
 void Npc::tickRoutine() {
   if(aiState.funcIni==0) {
-    auto& v = owner.vmNpc(hnpc);
+    auto& v = *hnpc;
     auto  r = currentRoutine();
     if(r.callback!=0) {
       if(r.point!=nullptr)
@@ -1172,7 +1171,7 @@ bool Npc::closeWeapon() {
     return false;
   invent.switchActiveWeapon(Item::NSLOT);
   updateWeaponSkeleton();
-  owner.vmNpc(hnpc).weapon = 0;
+  hnpc->weapon = 0;
   return true;
   }
 
@@ -1189,7 +1188,7 @@ bool Npc::drawWeaponFist() {
     return false;
   invent.switchActiveWeaponFist();
   updateWeaponSkeleton();
-  owner.vmNpc(hnpc).weapon = 1;
+  hnpc->weapon = 1;
   return true;
   }
 
@@ -1209,7 +1208,7 @@ bool Npc::drawWeaponMele() {
     return false;
   invent.switchActiveWeapon(1);
   updateWeaponSkeleton();
-  owner.vmNpc(hnpc).weapon = (st==WeaponState::W1H ? 3:4);
+  hnpc->weapon = (st==WeaponState::W1H ? 3:4);
   return true;
   }
 
@@ -1227,7 +1226,7 @@ bool Npc::drawWeaponBow() {
     return false;
   invent.switchActiveWeapon(2);
   updateWeaponSkeleton();
-  owner.vmNpc(hnpc).weapon = (st==WeaponState::W1H ? 5:6);
+  hnpc->weapon = (st==WeaponState::W1H ? 5:6);
   return true;
   }
 
@@ -1242,7 +1241,7 @@ bool Npc::drawMage(uint8_t slot) {
     return false;
   invent.switchActiveWeapon(slot);
   updateWeaponSkeleton();
-  owner.vmNpc(hnpc).weapon = 7;
+  hnpc->weapon = 7;
   return true;
   }
 
@@ -1358,7 +1357,7 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
   if(disable)
     return false;
 
-  float r = owner.vmNpc(hnpc).senses_range;
+  float r = hnpc->senses_range;
   r = r*r;
   if(quadDist>r)
     return false;
@@ -1372,7 +1371,7 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
   }
 
 bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType perc) {
-  float r = owner.vmNpc(hnpc).senses_range;
+  float r = hnpc->senses_range;
   r = r*r;
   if(quadDist<r && perception[perc].func){
     currentOther=&pl;

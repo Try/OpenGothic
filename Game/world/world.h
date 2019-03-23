@@ -22,7 +22,7 @@
 #include "waypoint.h"
 #include "waymatrix.h"
 
-class Gothic;
+class GameSession;
 class RendererStorage;
 class Focus;
 class WayMatrix;
@@ -31,9 +31,9 @@ class World final {
   public:
     World()=delete;
     World(const World&)=delete;
-    World(Gothic &gothic, const RendererStorage& storage, std::string file, std::function<void(int)> loadProgress);
+    World(GameSession &gothic, const RendererStorage& storage, std::string file, uint8_t isG2, std::function<void(int)> loadProgress);
 
-    bool isEmpty() const { return wname.empty(); }
+    void  createPlayer(const char* cls);
     const std::string& name() const { return wname; }
 
     const WayPoint* findPoint(const std::string& s) const { return findPoint(s.c_str()); }
@@ -52,7 +52,7 @@ class World final {
 
     WorldView*    view()   const { return wview.get();    }
     DynamicWorld* physic() const { return wdynamic.get(); }
-    WorldScript*  script() const { return vm.get();       }
+    WorldScript*  script() const;
 
     StaticObjects::Mesh getView(const std::string& visual) const;
     StaticObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
@@ -60,6 +60,8 @@ class World final {
     DynamicWorld::Item  getPhysic(const std::string& visual);
 
     void     updateAnimation();
+
+    void     resetPositionToTA();
 
     Npc*     player() const { return npcPlayer; }
     void     tick(uint64_t dt);
@@ -79,9 +81,6 @@ class World final {
 
     void   marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
     void   marchPoints      (Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
-
-    auto   updateDialog(const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<WorldScript::DlgChoise>;
-    void   exec(const WorldScript::DlgChoise& dlg, Npc& player,Npc& hnpc);
 
     void   aiProcessInfos(Npc &player, Npc& npc);
     bool   aiOutput(Npc &player, const char* msg);
@@ -103,7 +102,7 @@ class World final {
 
   private:
     std::string                           wname;
-    Gothic&                               gothic;
+    GameSession&                          game;
 
     std::unique_ptr<WayMatrix>            wmatrix;
 
@@ -112,7 +111,6 @@ class World final {
     std::unique_ptr<DynamicWorld>         wdynamic;
     std::unique_ptr<WorldView>            wview;
     WorldObjects                          wobj;
-    std::unique_ptr<WorldScript>          vm;
 
     void         loadVob(ZenLoad::zCVobData &vob);
     void         addStatic(const ZenLoad::zCVobData &vob);

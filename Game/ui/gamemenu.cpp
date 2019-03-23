@@ -261,7 +261,7 @@ void GameMenu::exec(const Daedalus::GEngineClasses::C_Menu_Item &item) {
 
 bool GameMenu::exec(const std::string &action) {
   if(action=="NEW_GAME"){
-    gothic.onSetWorld(gothic.defaultWorld());
+    gothic.onStartGame(gothic.defaultWorld());
     owner.popMenu();
     return true;
     }
@@ -350,6 +350,10 @@ void GameMenu::set(const char *item, const char *value) {
   }
 
 void GameMenu::initValues() {
+  gtime time;
+  if(auto w = gothic.world())
+    time = w->time();
+
   set("MENU_ITEM_PLAYERGUILD","Debugger");
   set("MENU_ITEM_LEVEL","0");
   for(auto& i:hItems) {
@@ -357,11 +361,11 @@ void GameMenu::initValues() {
       i.visible=false;
       }
     if(i.name=="MENU_ITEM_DAY") {
-      i.handle.text[0] = std::to_string(gothic.time().day());
+      i.handle.text[0] = std::to_string(time.day());
       }
     if(i.name=="MENU_ITEM_TIME") {
       char form[64]={};
-      std::snprintf(form,sizeof(form),"%d:%02d",int(gothic.time().hour()),int(gothic.time().minute()));
+      std::snprintf(form,sizeof(form),"%d:%02d",int(time.hour()),int(time.minute()));
       i.handle.text[0] = form;
       }
     }

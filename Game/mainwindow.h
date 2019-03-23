@@ -34,6 +34,7 @@
 
 class MenuRoot;
 class Gothic;
+class GameSession;
 class Interactive;
 
 class MainWindow : public Tempest::Window {
@@ -56,8 +57,8 @@ class MainWindow : public Tempest::Window {
     void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, float v, Tempest::AlignFlag flg);
     void drawLoading(Tempest::Painter& p,int x,int y,int w,int h);
 
-    void setWorld(const std::string& name);
-    void setWorldImpl(std::unique_ptr<World>&& w);
+    void startGame(const std::string& name);
+    void setGameImpl(std::unique_ptr<GameSession>&& w);
     void clearInput();
 
     void  setupUi();
@@ -96,7 +97,7 @@ class MainWindow : public Tempest::Window {
     std::vector<Tempest::FrameBuffer>   fboUi;
 
     Gothic&                             gothic;
-    std::unique_ptr<World>              loaderWorld;
+    std::unique_ptr<GameSession>        loaderSession;
     std::atomic_int                     loadProgress;
     const Tempest::Texture2d*           background=nullptr;
     const Tempest::Texture2d*           loadBox=nullptr;

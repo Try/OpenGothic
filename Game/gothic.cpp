@@ -4,10 +4,6 @@
 #include <cstring>
 #include "utils/installdetect.h"
 
-// rate 14.5 to 1
-const uint64_t Gothic::multTime=29;
-const uint64_t Gothic::divTime =2;
-
 Gothic::Gothic(const int argc, const char **argv) {
   //setWorld(std::make_unique<World>());
   if(argc<1)
@@ -46,7 +42,6 @@ Gothic::Gothic(const int argc, const char **argv) {
       wdef = "newworld.zen"; else
       wdef = "world.zen";
     }
-  setTime(gtime(8,0));
   }
 
 bool Gothic::isGothic2() const {
@@ -55,28 +50,40 @@ bool Gothic::isGothic2() const {
   }
 
 bool Gothic::isInGame() const {
-  return wrld!=nullptr && !wrld->isEmpty();
+  return game!=nullptr;
   }
 
-void Gothic::setWorld(std::unique_ptr<World> &&w) {
-  wrld = std::move(w);
+const World *Gothic::world() const {
+  if(game)
+    return game->world();
+  return nullptr;
   }
 
-std::unique_ptr<World> Gothic::clearWorld() {
-  if(wrld)
-    wrld->view()->resetCmd();
-  return std::move(wrld);
+World *Gothic::world() {
+  if(game)
+    return game->world();
+  return nullptr;
+  }
+
+void Gothic::setGame(std::unique_ptr<GameSession> &&w) {
+  game = std::move(w);
+  }
+
+std::unique_ptr<GameSession> Gothic::clearGame() {
+  if(game)
+    game->view()->resetCmd();
+  return std::move(game);
   }
 
 WorldView *Gothic::worldView() const {
-  if(wrld)
-    return wrld->view();
+  if(game)
+    return game->view();
   return nullptr;
   }
 
 Npc *Gothic::player() {
-  if(wrld)
-    return wrld->player();
+  if(game)
+    return game->player();
   return nullptr;
   }
 
@@ -126,35 +133,21 @@ void Gothic::cancelLoading() {
     }
   }
 
-uint64_t Gothic::tickCount() const {
-  return ticks;
-  }
-
 void Gothic::tick(uint64_t dt) {
-  ticks+=dt;
-
-  uint64_t add = (dt+wrldTimePart)*multTime;
-  wrldTimePart=add%divTime;
-
-  wrldTime.addMilis(add/divTime);
-  wrld->tick(dt);
-  }
-
-void Gothic::setTime(gtime t) {
-  wrldTime=t;
+  game->tick(dt);
   }
 
 void Gothic::updateAnimation() {
-  if(wrld)
-    wrld->updateAnimation();
+  if(game)
+    game->updateAnimation();
   }
 
 std::vector<WorldScript::DlgChoise> Gothic::updateDialog(const WorldScript::DlgChoise &dlg, Npc& player, Npc& npc) {
-  return wrld->updateDialog(dlg,player,npc);
+  return game->updateDialog(dlg,player,npc);
   }
 
 void Gothic::dialogExec(const WorldScript::DlgChoise &dlg, Npc& player, Npc& npc) {
-  wrld->exec(dlg,player,npc);
+  game->dialogExec(dlg,player,npc);
   }
 
 void Gothic::aiProcessInfos(Npc& player,Npc &npc) {
@@ -192,18 +185,18 @@ void Gothic::print(const char *msg) {
   }
 
 const std::string &Gothic::messageByName(const std::string &id) const {
-  if(!wrld){
+  if(!game){
     static std::string empty;
     return empty;
     }
-  return wrld->script()->messageByName(id);
+  return game->messageByName(id);
   }
 
 uint32_t Gothic::messageTime(const std::string &id) const {
-  if(!wrld){
+  if(!game){
     return 0;
     }
-  return wrld->script()->messageTime(id);
+  return game->messageTime(id);
   }
 
 const std::string &Gothic::defaultWorld() const {

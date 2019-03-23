@@ -3,7 +3,7 @@
 #include "world.h"
 #include "worldscript.h"
 
-Item::Item(WorldScript& owner, Daedalus::GEngineClasses::C_Item *hitem)
+Item::Item(WorldScript& owner,Daedalus::GEngineClasses::C_Item *hitem)
   :owner(owner),hitem(hitem){
   }
 
@@ -28,11 +28,11 @@ void Item::setMatrix(const Tempest::Matrix4x4 &m) {
   }
 
 const char *Item::displayName() const {
-  return owner.vmItem(hitem).name.c_str();
+  return hitem->name.c_str();
   }
 
 const char *Item::description() const {
-  return owner.vmItem(hitem).description.c_str();
+  return hitem->description.c_str();
   }
 
 std::array<float,3> Item::position() const {
@@ -40,15 +40,15 @@ std::array<float,3> Item::position() const {
   }
 
 bool Item::isGold() const {
-  return owner.vmItem(hitem).instanceSymbol==owner.goldId();
+  return hitem->instanceSymbol==owner.goldId();
   }
 
 int32_t Item::mainFlag() const {
-  return owner.vmItem(hitem).mainflag;
+  return hitem->mainflag;
   }
 
 int32_t Item::itemFlag() const {
-  return owner.vmItem(hitem).flags;
+  return hitem->flags;
   }
 
 bool Item::isSpell() const {
@@ -66,27 +66,23 @@ bool Item::isCrossbow() const {
   }
 
 int32_t Item::spellId() const {
-  return owner.vmItem(hitem).spell;
+  return hitem->spell;
   }
 
 const char *Item::uiText(size_t id) const {
-  auto& v = owner.vmItem(hitem);
-  return v.text[id].c_str();
+  return hitem->text[id].c_str();
   }
 
 int32_t Item::uiValue(size_t id) const {
-  auto& v = owner.vmItem(hitem);
-  return v.count[id];
+  return hitem->count[id];
   }
 
 size_t Item::count() const {
-  auto& v = owner.vmItem(hitem);
-  return v.amount;
+  return hitem->amount;
   }
 
 int32_t Item::cost() const {
-  auto& v = owner.vmItem(hitem);
-  return v.value;
+  return hitem->value;
   }
 
 int32_t Item::sellCost() const {
@@ -99,7 +95,7 @@ bool Item::checkCond(const Npc &other) const {
   }
 
 bool Item::checkCondUse(const Npc &other, int32_t &a, int32_t &nv) const {
-  auto& itData = owner.vmItem(hitem);
+  auto& itData = *hitem;
 
   for(size_t i=0;i<Daedalus::GEngineClasses::C_Item::COND_ATR_MAX;++i){
     auto atr = Npc::Attribute(itData.cond_atr[i]);
@@ -113,14 +109,13 @@ bool Item::checkCondUse(const Npc &other, int32_t &a, int32_t &nv) const {
   }
 
 bool Item::checkCondRune(const Npc &other, int32_t &cPl, int32_t &cIt) const {
-  auto& itData = owner.vmItem(hitem);
-  cIt          = itData.mag_circle;
-  cPl          = other.mageCycle();
+  cIt = hitem->mag_circle;
+  cPl = other.mageCycle();
   return (cPl>=cIt);
   }
 
 size_t Item::clsId() const {
-  return owner.vmItem(hitem).instanceSymbol;
+  return hitem->instanceSymbol;
   }
 
 void Item::updateMatrix() {

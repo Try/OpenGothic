@@ -41,10 +41,10 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
 
   timer.timeout.bind(this,&MainWindow::tick);
 
-  gothic.onSetWorld.bind(this,&MainWindow::setWorld);
+  gothic.onStartGame.bind(this,&MainWindow::startGame);
 
   if(!gothic.doStartMenu()) {
-    setWorld(gothic.defaultWorld());
+    startGame(gothic.defaultWorld());
     rootMenu->popMenu();
     }
 
@@ -58,7 +58,7 @@ MainWindow::~MainWindow() {
   takeWidget(&inventory);
   removeAllWidgets();
   // unload
-  gothic.setWorld(std::unique_ptr<World>());
+  gothic.setGame(std::unique_ptr<GameSession>());
   }
 
 void MainWindow::setupUi() {
@@ -291,7 +291,7 @@ void MainWindow::drawLoading(Painter &p, int x, int y, int w, int h) {
 void MainWindow::tick() {
   auto st = gothic.checkLoading();
   if(st==Gothic::LoadState::Finalize){
-    setWorldImpl(std::move(loaderWorld));
+    setGameImpl(std::move(loaderSession));
     gothic.finishLoading();
     }
   if(st!=Gothic::LoadState::Idle) {
@@ -429,10 +429,10 @@ void MainWindow::tick() {
     }
   }
 
-void MainWindow::setWorld(const std::string &name) {
+void MainWindow::startGame(const std::string &name) {
   if(gothic.checkLoading()==Gothic::LoadState::Idle){
-    loaderWorld = gothic.clearWorld(); // clear world-memory later
-    setWorldImpl(nullptr);
+    loaderSession = gothic.clearGame(); // clear world-memory later
+    setGameImpl(nullptr);
     }
 
   loadProgress.store(0);
@@ -440,15 +440,15 @@ void MainWindow::setWorld(const std::string &name) {
     auto progress=[this](int v){
       loadProgress.store(v);
       };
-    loaderWorld=nullptr; // clear world-memory now
-    std::unique_ptr<World> w(new World(gothic,draw.storage(),name,progress));
-    loaderWorld = std::move(w);
+    loaderSession = nullptr; // clear world-memory now
+    std::unique_ptr<GameSession> w(new GameSession(gothic,draw.storage(),name,progress));
+    loaderSession = std::move(w);
     });
   update();
   }
 
-void MainWindow::setWorldImpl(std::unique_ptr<World> &&w) {
-  gothic   .setWorld(std::move(w));
+void MainWindow::setGameImpl(std::unique_ptr<GameSession> &&w) {
+  gothic   .setGame(std::move(w));
   camera   .setWorld(gothic.world());
   player   .setWorld(gothic.world());
   inventory.setWorld(gothic.world());
