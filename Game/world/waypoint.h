@@ -28,8 +28,8 @@ class WayPoint final {
     std::string name;
 
     // TODO: beautify
-    mutable float   pathLen=std::numeric_limits<float>::max();
-    mutable uint8_t pathGen=0;
+    mutable float    pathLen=std::numeric_limits<float>::max();
+    mutable uint16_t pathGen=0;
 
     float qDistTo(float x,float y,float z) const;
 

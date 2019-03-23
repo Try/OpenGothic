@@ -237,6 +237,11 @@ WayPath WayMatrix::wayTo(const WayPoint& start, const WayPoint &end) const {
     }
 
   pathGen++;
+  if(pathGen==1){
+    // new cycle
+    for(auto& i:wayPoints)
+      i.pathGen=0;
+    }
   start.pathLen = 0;
   start.pathGen = pathGen;
 
