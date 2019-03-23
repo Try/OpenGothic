@@ -122,7 +122,7 @@ void Inventory::addItem(size_t itemSymbol, uint32_t count, WorldScript &vm) {
   Item* it=findByClass(itemSymbol);
   if(it==nullptr) {
     auto  h      = vm.getGameState().insertItem(itemSymbol);
-    auto& itData = vm.getGameState().getItem(h);
+    auto& itData = *h;
 
     std::unique_ptr<Item> ptr{new Item(vm,h)};
     itData.userPtr = ptr.get();
@@ -147,7 +147,7 @@ void Inventory::delItem(Item *it, uint32_t count, WorldScript &vm, Npc& owner) {
   if(it==nullptr)
     return;
   auto  handle = it->handle();
-  auto& itData = vm.getGameState().getItem(handle);
+  auto& itData = *handle;
   if(itData.amount>count)
     itData.amount-=count; else
     itData.amount = 0;
@@ -176,7 +176,7 @@ void Inventory::trasfer(Inventory &to, Inventory &from, Npc* fromNpc, size_t ite
     to.sorted   = false;
 
     auto  handle = it.handle();
-    auto& itData = vm.getGameState().getItem(handle);
+    auto& itData = *handle;
     if(count>itData.amount)
       count=itData.amount;
 
@@ -240,7 +240,7 @@ bool Inventory::setSlot(Item *&slot, Item* next, WorldScript &vm, Npc& owner, bo
     }
 
   if(slot!=nullptr){
-    auto& itData = vm.getGameState().getItem(slot->handle());
+    auto& itData = *slot->handle();
     auto  flag   = Flags(itData.mainflag);
     vm.invokeItem(&owner,itData.on_unequip);
     applyArmour(*slot,vm,owner,-1);
@@ -260,7 +260,7 @@ bool Inventory::setSlot(Item *&slot, Item* next, WorldScript &vm, Npc& owner, bo
   if(next==nullptr)
     return false;
 
-  auto& itData = vm.getGameState().getItem(next->handle());
+  auto& itData = *next->handle();
   vm.invokeItem(&owner,itData.on_equip);
   slot=next;
   slot->setAsEquiped(true);
@@ -277,7 +277,7 @@ void Inventory::updateArmourView(WorldScript &vm, Npc& owner) {
   if(armour==nullptr)
     return;
 
-  auto& itData = vm.getGameState().getItem(armour->handle());
+  auto& itData = *armour->handle();
   auto  flag   = Flags(itData.mainflag);
   if(flag & ITM_CAT_ARMOR){
     auto visual = itData.visual_change;
@@ -292,7 +292,7 @@ void Inventory::updateSwordView(WorldScript &vm, Npc &owner) {
   if(mele==nullptr)
     return;
 
-  auto& itData = vm.getGameState().getItem(mele->handle());
+  auto& itData = *mele->handle();
   auto  vbody  = vm.world().getView(itData.visual,itData.material,0,itData.material);
   owner.setSword(std::move(vbody));
   }
@@ -303,7 +303,7 @@ void Inventory::updateBowView(WorldScript &vm, Npc &owner) {
 
   auto flag = Flags(range->mainFlag());
   if(flag & ITM_CAT_FF){
-    auto& itData = vm.getGameState().getItem(range->handle());
+    auto& itData = *range->handle();
     auto  vbody  = vm.world().getView(itData.visual,itData.material,0,itData.material);
     owner.setRangeWeapon(std::move(vbody));
     }
@@ -415,7 +415,7 @@ bool Inventory::equipNumSlot(Item *next, WorldScript &vm, Npc &owner,bool force)
   }
 
 void Inventory::applyArmour(Item &it, WorldScript &vm, Npc &owner, int32_t sgn) {
-  auto& itData = vm.getGameState().getItem(it.handle());
+  auto& itData = *it.handle();
 
   for(size_t i=0;i<Npc::PROT_MAX;++i){
     auto v = owner.protection(Npc::Protection(i));
@@ -428,7 +428,7 @@ bool Inventory::use(size_t cls, WorldScript &vm, Npc &owner, bool force) {
   if(it==nullptr)
     return false;
 
-  auto& itData   = vm.getGameState().getItem(it->handle());
+  auto& itData   = *it->handle();
   auto  mainflag = Flags(itData.mainflag);
   auto  flag     = Flags(itData.flags);
 
@@ -526,7 +526,7 @@ Item* Inventory::bestItem(WorldScript &vm, Npc &owner, Inventory::Flags f) {
   Item* ret=nullptr;
   int   g  =-1;
   for(auto& i:items) {
-    auto& itData = vm.getGameState().getItem(i->handle());
+    auto& itData = *i->handle();
     auto  flag   = Flags(itData.mainflag);
     if((flag & f)==0)
       continue;

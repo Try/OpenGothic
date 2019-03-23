@@ -20,6 +20,10 @@ float WayPoint::qDistTo(float ix, float iy, float iz) const {
   return dx*dx+dy*dy+dz*dz;
   }
 
+void WayPoint::connect(WayPoint *w) {
+  conn.push_back(w);
+  }
+
 std::string WayPoint::upcaseof(const std::string &src) {
   auto ret = src;
   for(auto& i:ret)

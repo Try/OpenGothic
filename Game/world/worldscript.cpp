@@ -19,14 +19,14 @@ static std::string addExt(const std::string& s,const char* ext){
 
 struct WorldScript::ScopeVar final {
   ScopeVar(Daedalus::DaedalusVM& vm,const char* name,Npc& n)
-    :ScopeVar(vm,name, ZMemory::toBigHandle(n.handle()), Daedalus::IC_Npc){
+    :ScopeVar(vm,name,n.handle(), Daedalus::IC_Npc){
     }
 
   ScopeVar(Daedalus::DaedalusVM& vm,const char* name,Npc* n)
-    :ScopeVar(vm,name,ZMemory::toBigHandle(n ? n->handle() : NpcHandle()), Daedalus::IC_Npc){
+    :ScopeVar(vm,name,n ? n->handle() : nullptr, Daedalus::IC_Npc){
     }
 
-  ScopeVar(Daedalus::DaedalusVM& vm,const char* name, ZMemory::BigHandle h, Daedalus::EInstanceClass instanceClass)
+  ScopeVar(Daedalus::DaedalusVM& vm,const char* name, void* h, Daedalus::EInstanceClass instanceClass)
     :vm(vm),name(name) {
     Daedalus::PARSymbol& s = vm.getDATFile().getSymbolByName(name);
     cls    = s.instanceDataClass;
@@ -41,31 +41,27 @@ struct WorldScript::ScopeVar final {
     s.instanceDataClass  = cls;
     }
 
-  ZMemory::BigHandle       handle;
+  void*                    handle=nullptr;
   Daedalus::EInstanceClass cls;
   Daedalus::DaedalusVM&    vm;
   const char*              name="";
   };
 
-static std::string toAcii(const std::u16string& src){
-  std::string acii(src.begin(),src.end());
-  return acii;
+static std::vector<uint8_t> readAll(const std::u16string& src){
+  RFile                f(src);
+  std::vector<uint8_t> ret(f.size());
+  f.read(ret.data(),ret.size());
+  return ret;
   }
 
 WorldScript::WorldScript(World &owner, Gothic& gothic, const char16_t *world)
-  :vm(toAcii(gothic.path()+world)),owner(owner){
+  :vm(readAll(gothic.path()+world)),owner(owner){
   Daedalus::registerGothicEngineClasses(vm);
   initCommon();
   }
 
 void WorldScript::initCommon() {
-  auto& tbl = vm.getDATFile().getSymTable();
-  for(auto& i:tbl.symbolsByName) {
-    if(i.first.size()==0 || std::isdigit(i.first[0]))
-      continue;
-    //Log::d(i.first);
-    vm.registerExternalFunction(i.first,[this](Daedalus::DaedalusVM& vm){return notImplementedRoutine(vm);});
-    }
+  vm.registerUnsatisfiedLink([this](Daedalus::DaedalusVM& vm){return notImplementedRoutine(vm);});
 
   vm.registerExternalFunction("concatstrings", &WorldScript::concatstrings);
   vm.registerExternalFunction("inttostring",   &WorldScript::inttostring  );
@@ -237,14 +233,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("perc_setrange",       [this](Daedalus::DaedalusVM& vm){ perc_setrange(vm);        });
 
   DaedalusGameState::GameExternals ext;
-  ext.wld_insertnpc      = [this](NpcHandle h,const std::string& s){ owner.onInserNpc(h,s); };
-  ext.post_wld_insertnpc = [this](NpcHandle h){ onNpcReady(h); };
-
-  ext.wld_insertitem     = notImplementedFn<void,ItemHandle>();
-  ext.wld_removenpc      = notImplementedFn<void,NpcHandle>();
-  ext.log_createtopic    = notImplementedFn<void,std::string>();
-  ext.log_settopicstatus = notImplementedFn<void,std::string>();
-  ext.log_addentry       = notImplementedFn<void,std::string,std::string>();
+  ext.wld_insertnpc      = [this](Daedalus::GEngineClasses::C_Npc* h,const std::string& s){ owner.onInserNpc(h,s); };
   vm.getGameState().setGameExternals(ext);
 
   spellFxInstanceNames = vm.getDATFile().getSymbolIndexByName("spellFxInstanceNames");
@@ -260,13 +249,11 @@ void WorldScript::initCommon() {
   ZS_Talk         = getAiState(getSymbolIndex("ZS_Talk")).funcIni;
 
   auto& currency  = vm.getDATFile().getSymbolByName("TRADE_CURRENCY_INSTANCE");
-  itMi_Gold       = vm.getDATFile().getSymbolIndexByName(currency.getString(0));
+  itMi_Gold       = vm.getDATFile().getSymbolIndexByName(currency.getString(0).c_str());
   if(itMi_Gold>0){ // FIXME
-    InfoHandle h = vm.getGameState().createItem();
-    vm.initializeInstance(ZMemory::toBigHandle(h), itMi_Gold, Daedalus::IC_Item);
-    auto& it = vmItem(h);
-    goldTxt  = cp1251::toUtf8(it.name);
-    vm.getGameState().removeItem(h);
+    Daedalus::GEngineClasses::C_Item item={};
+    vm.initializeInstance(&item, itMi_Gold, Daedalus::IC_Item);
+    goldTxt = cp1251::toUtf8(item.name);
     }
   auto& tradeMul = vm.getDATFile().getSymbolByName("TRADE_VALUE_MULTIPLIER");
   tradeValMult   = tradeMul.getFloat();
@@ -290,13 +277,9 @@ void WorldScript::initCommon() {
       gilAttitudes[r*gilCount+i]=guilds.getInt(r*tbSz+i);
       }
 
-
   auto id = vm.getDATFile().getSymbolIndexByName("Gil_Values");
   if(id!=0){
-    auto gil = vm.getGameState().createGilValues();
-    vm.initializeInstance(ZMemory::toBigHandle(gil), id, Daedalus::IC_GilValues);
-    cGuildVal = vm.getGameState().getGilValues(gil);
-
+    vm.initializeInstance(&cGuildVal, id, Daedalus::IC_GilValues);
     for(size_t i=0;i<Guild::GIL_PUBLIC;++i){
       cGuildVal.water_depth_knee   [i]=cGuildVal.water_depth_knee   [Guild::GIL_HUMAN];
       cGuildVal.water_depth_chest  [i]=cGuildVal.water_depth_chest  [Guild::GIL_HUMAN];
@@ -339,15 +322,13 @@ void WorldScript::initDialogs(Gothic& gothic) {
     dialogs.reset(new ZenLoad::zCCSLib(""));
 
   vm.getDATFile().iterateSymbolsOfClass("C_Info", [this](size_t i,Daedalus::PARSymbol&){
-    InfoHandle h = vm.getGameState().createInfo();
-    // Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(h);
-    vm.initializeInstance(ZMemory::toBigHandle(h), i, Daedalus::IC_Info);
+    Daedalus::GEngineClasses::C_Info* h = vm.getGameState().createInfo();
+    vm.initializeInstance(h, i, Daedalus::IC_Info);
     dialogsInfo.push_back(h);
     });
-  std::sort(dialogsInfo.begin(),dialogsInfo.end(),[this](Daedalus::GameState::InfoHandle l,Daedalus::GameState::InfoHandle r){
-    Daedalus::GEngineClasses::C_Info& ll = vm.getGameState().getInfo(l);
-    Daedalus::GEngineClasses::C_Info& rr = vm.getGameState().getInfo(r);
-    return ll.npc<rr.npc;
+  std::sort(dialogsInfo.begin(),dialogsInfo.end(),[](Daedalus::GEngineClasses::C_Info* l,
+                                                     Daedalus::GEngineClasses::C_Info* r){
+    return l->npc<r->npc;
     });
   }
 
@@ -378,16 +359,11 @@ void WorldScript::loadDialogOU(Gothic &gothic) {
   }
 
 Daedalus::GEngineClasses::C_Focus WorldScript::getFocus(const char *name) {
+  Daedalus::GEngineClasses::C_Focus ret={};
   auto id = vm.getDATFile().getSymbolIndexByName(name);
-  if(id==0){
-    Daedalus::GEngineClasses::C_Focus r={};
-    return r;
-    }
-  auto foc = vm.getGameState().createFocus();
-  vm.initializeInstance(ZMemory::toBigHandle(foc), id, Daedalus::IC_Focus);
-
-  auto ret = vm.getGameState().getFocus(foc);
-  //vm.getGameState().remove***(foc); TODO: cleanup
+  if(id==0)
+    return ret;
+  vm.initializeInstance(&ret, id, Daedalus::IC_Focus);
   return ret;
   }
 
@@ -408,7 +384,7 @@ size_t WorldScript::getSymbolIndex(const char* s) {
   }
 
 size_t WorldScript::getSymbolIndex(const std::string &s) {
-  return vm.getDATFile().getSymbolIndexByName(s);
+  return vm.getDATFile().getSymbolIndexByName(s.c_str());
   }
 
 const AiState &WorldScript::getAiState(size_t id) {
@@ -419,26 +395,28 @@ const AiState &WorldScript::getAiState(size_t id) {
   return ins.first->second;
   }
 
-Daedalus::GEngineClasses::C_Npc& WorldScript::vmNpc(Daedalus::GameState::NpcHandle handle) {
-  return vm.getGameState().getNpc(handle);
+Daedalus::GEngineClasses::C_Npc& WorldScript::vmNpc(Daedalus::GEngineClasses::C_Npc* handle) {
+  return *(handle);
   }
 
-Daedalus::GEngineClasses::C_Item& WorldScript::vmItem(ItemHandle handle) {
-  return vm.getGameState().getItem(handle);
+Daedalus::GEngineClasses::C_Item& WorldScript::vmItem(Daedalus::GEngineClasses::C_Item* handle) {
+  return *(handle);
   }
 
-std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GameState::NpcHandle player,
-                                                               Daedalus::GameState::NpcHandle hnpc,
+std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GEngineClasses::C_Npc* player,
+                                                               Daedalus::GEngineClasses::C_Npc* hnpc,
                                                                const std::vector<uint32_t>& except) {
   auto& npc = vmNpc(hnpc);
   auto& pl  = vmNpc(player);
 
-  ScopeVar self (vm,"self", ZMemory::toBigHandle(hnpc),   Daedalus::IC_Npc);
-  ScopeVar other(vm,"other",ZMemory::toBigHandle(player), Daedalus::IC_Npc);
+  ScopeVar self (vm,"self", hnpc,   Daedalus::IC_Npc);
+  ScopeVar other(vm,"other",player, Daedalus::IC_Npc);
 
-  std::vector<InfoHandle> hDialog;
+  std::vector<Daedalus::GEngineClasses::C_Info*> hDialog;
   for(auto& infoHandle : dialogsInfo) {
-    Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(infoHandle);
+    if(infoHandle==nullptr)
+      continue;
+    Daedalus::GEngineClasses::C_Info& info = *infoHandle;
     if(info.npc==int32_t(npc.instanceSymbol)) {
       hDialog.push_back(infoHandle);
       }
@@ -448,7 +426,7 @@ std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GameSta
 
   for(int important=1;important>=0;--important){
     for(auto& i:hDialog) {
-      const Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(i);
+      const Daedalus::GEngineClasses::C_Info& info = *i;
       if(info.important!=important)
         continue;
       bool npcKnowsInfo = doesNpcKnowInfo(pl,info.instanceSymbol);
@@ -490,7 +468,9 @@ std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GameSta
   }
 
 std::vector<WorldScript::DlgChoise> WorldScript::updateDialog(const WorldScript::DlgChoise &dlg, Npc& /*pl*/,Npc&) {
-  const Daedalus::GEngineClasses::C_Info& info = getGameState().getInfo(dlg.handle);
+  if(dlg.handle==nullptr)
+    return {};
+  const Daedalus::GEngineClasses::C_Info& info = *dlg.handle;
   std::vector<WorldScript::DlgChoise>     ret;
 
   for(size_t i=0;i<info.subChoices.size();++i){
@@ -517,12 +497,15 @@ std::vector<WorldScript::DlgChoise> WorldScript::updateDialog(const WorldScript:
   }
 
 void WorldScript::exec(const WorldScript::DlgChoise &dlg,
-                       Daedalus::GameState::NpcHandle player,
-                       Daedalus::GameState::NpcHandle hnpc) {
-  ScopeVar self (vm,"self", ZMemory::toBigHandle(hnpc),   Daedalus::IC_Npc);
-  ScopeVar other(vm,"other",ZMemory::toBigHandle(player), Daedalus::IC_Npc);
+                       Daedalus::GEngineClasses::C_Npc* player,
+                       Daedalus::GEngineClasses::C_Npc* hnpc) {
+  if(dlg.handle==nullptr)
+    return;
 
-  Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(dlg.handle);
+  ScopeVar self (vm,"self", hnpc,   Daedalus::IC_Npc);
+  ScopeVar other(vm,"other",player, Daedalus::IC_Npc);
+
+  Daedalus::GEngineClasses::C_Info& info = *dlg.handle;
 
   auto pl = vmNpc(player);
   if(info.information==dlg.scriptFn) {
@@ -538,9 +521,9 @@ void WorldScript::exec(const WorldScript::DlgChoise &dlg,
   }
 
 int WorldScript::printCannotUseError(Npc& npc, int32_t atr, int32_t nValue) {
-  if(!hasSymbolName("G_CanNotUse"))
-    return 0;
   auto id = vm.getDATFile().getSymbolIndexByName("G_CanNotUse");
+  if(id==size_t(-1))
+    return 0;
   vm.pushInt(npc.isPlayer() ? 1 : 0);
   vm.pushInt(atr);
   vm.pushInt(nValue);
@@ -549,9 +532,9 @@ int WorldScript::printCannotUseError(Npc& npc, int32_t atr, int32_t nValue) {
   }
 
 int WorldScript::printCannotCastError(Npc &npc, int32_t plM, int32_t itM) {
-  if(!hasSymbolName("G_CanNotCast"))
-    return 0;
   auto id = vm.getDATFile().getSymbolIndexByName("G_CanNotCast");
+  if(id==size_t(-1))
+    return 0;
   vm.pushInt(npc.isPlayer() ? 1 : 0);
   vm.pushInt(itM);
   vm.pushInt(plM);
@@ -560,28 +543,27 @@ int WorldScript::printCannotCastError(Npc &npc, int32_t plM, int32_t itM) {
   }
 
 int WorldScript::printCannotBuyError(Npc &npc) {
-  if(!hasSymbolName("player_trade_not_enough_gold"))
-    return 0;
   auto id = vm.getDATFile().getSymbolIndexByName("player_trade_not_enough_gold");
+  if(id==size_t(-1))
+    return 0;
   ScopeVar self (vm,"self",npc);
   return runFunction(id,true);
   }
 
-int WorldScript::invokeState(NpcHandle hnpc, NpcHandle oth, const char *name) {
+int WorldScript::invokeState(Daedalus::GEngineClasses::C_Npc* hnpc, Daedalus::GEngineClasses::C_Npc* oth, const char *name) {
   auto& dat = vm.getDATFile();
-  if(name==nullptr || !dat.hasSymbolName(name))
-    return 1;
+  auto  id  = dat.getSymbolIndexByName(name);
+  if(id==size_t(-1))
+    return 0;
 
-  auto id = dat.getSymbolIndexByName(name);
-
-  ScopeVar self (vm,"self", ZMemory::toBigHandle(hnpc), Daedalus::IC_Npc);
-  ScopeVar other(vm,"other",ZMemory::toBigHandle(oth),  Daedalus::IC_Npc);
+  ScopeVar self (vm,"self", hnpc, Daedalus::IC_Npc);
+  ScopeVar other(vm,"other",oth,  Daedalus::IC_Npc);
 
   return runFunction(id);
   }
 
 int WorldScript::invokeState(Npc* npc, Npc* oth, Npc* v, size_t fn) {
-  if(fn==0)
+  if(fn==size_t(-1))
     return 1;
   if(oth==nullptr){
     // auto& lvl = vm.getDATFile().getSymbolByName("PC_Levelinspektor");
@@ -599,21 +581,18 @@ int WorldScript::invokeState(Npc* npc, Npc* oth, Npc* v, size_t fn) {
   }
 
 int WorldScript::invokeItem(Npc *npc,size_t fn) {
-  if(fn==0)
+  if(fn==size_t(-1))
     return 1;
 
-  auto hnpc = npc ? npc->handle() : NpcHandle();
-  ScopeVar self (vm,"self", ZMemory::toBigHandle(hnpc), Daedalus::IC_Npc);
+  auto hnpc = npc ? npc->handle() : nullptr;
+  ScopeVar self (vm,"self",hnpc,Daedalus::IC_Npc);
   return runFunction(fn);
   }
 
 int WorldScript::invokeMana(Npc &npc, Item &) {
   auto& dat = vm.getDATFile();
-  if(!dat.hasSymbolName("Spell_ProcessMana"))
-    return Npc::SpellCode::SPL_SENDSTOP;
-
-  auto fn = dat.getSymbolIndexByName("Spell_ProcessMana");
-  if(fn==0)
+  auto fn   = dat.getSymbolIndexByName("Spell_ProcessMana");
+  if(fn==size_t(-1))
     return Npc::SpellCode::SPL_SENDSTOP;
 
   ScopeVar self (vm,"self",npc);
@@ -628,8 +607,8 @@ int WorldScript::invokeSpell(Npc &npc, Item &it) {
   auto  str       = "Spell_Cast_" + tag;
 
   auto& dat = vm.getDATFile();
-  auto  fn  = dat.getSymbolIndexByName(str);
-  if(fn==0)
+  auto  fn  = dat.getSymbolIndexByName(str.c_str());
+  if(fn==size_t(-1))
     return 0;
 
   ScopeVar self(vm,"self",npc);
@@ -637,6 +616,8 @@ int WorldScript::invokeSpell(Npc &npc, Item &it) {
   }
 
 int WorldScript::spellCastAnim(Npc&, Item &it) {
+  if(spellFxAniLetters==size_t(-1))
+    return Npc::Anim::MagFib;
   auto& spellAni = vm.getDATFile().getSymbolByIndex(spellFxAniLetters);
   auto& tag      = spellAni.getString(size_t(it.spellId()));
   if(tag=="FIB")
@@ -707,14 +688,14 @@ uint32_t WorldScript::messageTime(const std::string &id) const {
   return uint32_t(txt.size()*viewTimePerChar);
   }
 
-void WorldScript::useInteractive(NpcHandle hnpc,const std::string& func) {
+void WorldScript::useInteractive(Daedalus::GEngineClasses::C_Npc* hnpc,const std::string& func) {
   auto& dat = vm.getDATFile();
-  if(!dat.hasSymbolName(func))
+  if(!dat.hasSymbolName(func.c_str()))
     return;
 
-  ScopeVar self(vm,"self",ZMemory::toBigHandle(hnpc),Daedalus::IC_Npc);
+  ScopeVar self(vm,"self",hnpc,Daedalus::IC_Npc);
   try {
-    runFunction(func);
+    runFunction(func.c_str());
     }
   catch (...) {
     Log::i("unable to use interactive [",func,"]");
@@ -728,14 +709,14 @@ WorldScript::Attitude WorldScript::guildAttitude(const Npc &p0, const Npc &p1) c
   return Attitude(ret);
   }
 
-bool WorldScript::hasSymbolName(const std::string &fn) {
+bool WorldScript::hasSymbolName(const char* fn) {
   return vm.getDATFile().hasSymbolName(fn);
   }
 
-int32_t WorldScript::runFunction(const std::string& fname) {
-  if(!hasSymbolName(fname))
-    throw std::runtime_error("script bad call");
+int32_t WorldScript::runFunction(const char *fname) {
   auto id = vm.getDATFile().getSymbolIndexByName(fname);
+  if(id==size_t(-1))
+    throw std::runtime_error("script bad call");
   return runFunction(id,true);
   }
 
@@ -751,7 +732,6 @@ int32_t WorldScript::runFunction(const size_t fid,bool clearStk) {
   auto&       sym  = dat.getSymbolByIndex(fid);
   const char* call = sym.name.c_str();(void)call; //for debuging
 
-  vm.prepareRunFunction();
   int32_t ret = vm.runFunctionBySymIndex(fid,clearStk);
   invokeRecursive--;
   return ret;
@@ -786,69 +766,44 @@ void WorldScript::notImplementedFn(const char* name) {
   }
 
 void WorldScript::notImplementedRoutine(Daedalus::DaedalusVM &vm) {
-  static std::unordered_set<std::string> s;
-  auto fn = vm.getCallStack();
+  static std::set<std::string> s;
+  auto& fn = vm.currentCall();
 
-  if(s.find(fn[0])==s.end()){
-    s.insert(fn[0]);
-    Log::e("not implemented call [",fn[0],"]");
+  if(s.find(fn)==s.end()){
+    s.insert(fn);
+    Log::e("not implemented call [",fn,"]");
     }
   }
 
-void WorldScript::onNpcReady(NpcHandle handle) {
-  auto  hnpc    = ZMemory::handleCast<NpcHandle>(handle);
-  auto& npcData = vm.getGameState().getNpc(hnpc);
-
-  Npc* npc=getNpc(hnpc);
-  if(npc==nullptr)
-    return;
-
-  if(!npcData.name[0].empty())
-    npc->setName(npcData.name[0]);
-
-  if(npcData.daily_routine!=0) {
-    vm.prepareRunFunction();
-
-    ScopeVar self(vm, "self", ZMemory::toBigHandle(handle), Daedalus::IC_Npc);
-    vm.setCurrentInstance(vm.getDATFile().getSymbolIndexByName("self"));
-
-    vm.runFunctionBySymIndex(npcData.daily_routine,false);
-    }
+Npc* WorldScript::getNpc(Daedalus::GEngineClasses::C_Npc *handle) {
+  if(handle==nullptr)
+    return nullptr;
+  assert(handle->userPtr); // engine bug, if null
+  return reinterpret_cast<Npc*>(handle->userPtr);
   }
 
-Npc* WorldScript::getNpc(NpcHandle handle) {
-  auto hnpc = ZMemory::handleCast<NpcHandle>(handle);
-  if(!hnpc.isValid())
+Item *WorldScript::getItem(Daedalus::GEngineClasses::C_Item* handle) {
+  if(handle==nullptr)
     return nullptr;
-  auto& npcData = vm.getGameState().getNpc(hnpc);
-  assert(npcData.userPtr); // engine bug, if null
-  return reinterpret_cast<Npc*>(npcData.userPtr);
-  }
-
-Item *WorldScript::getItem(ItemHandle handle) {
-  auto h = ZMemory::handleCast<ItemHandle>(handle);
-  if(!h.isValid())
-    return nullptr;
-  auto& itData = vm.getGameState().getItem(h);
+  auto& itData = *handle;
   assert(itData.userPtr); // engine bug, if null
   return reinterpret_cast<Item*>(itData.userPtr);
   }
 
 Item *WorldScript::getItemById(size_t id) {
   auto& handle = vm.getDATFile().getSymbolByIndex(id);
-  if(handle.instanceDataClass!= Daedalus::EInstanceClass::IC_Item)
+  if(handle.instanceDataClass!=Daedalus::EInstanceClass::IC_Item)
     return nullptr;
-
-  ItemHandle hnpc = ZMemory::handleCast<ItemHandle>(handle.instanceDataHandle);
+  auto hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Item*>(handle.instanceDataHandle);
   return getItem(hnpc);
   }
 
 Npc* WorldScript::getNpcById(size_t id) {
   auto& handle = vm.getDATFile().getSymbolByIndex(id);
-  if(handle.instanceDataClass!= Daedalus::EInstanceClass::IC_Npc)
+  if(handle.instanceDataClass!=Daedalus::EInstanceClass::IC_Npc)
     return nullptr;
 
-  NpcHandle hnpc = ZMemory::handleCast<NpcHandle>(handle.instanceDataHandle);
+  auto hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(handle.instanceDataHandle);
   return getNpc(hnpc);
   }
 
@@ -865,7 +820,7 @@ void WorldScript::removeItem(Item &it) {
 
 void WorldScript::setInstanceNPC(const char *name, Npc &npc) {
   assert(vm.getDATFile().hasSymbolName(name));
-  vm.setInstance(name, ZMemory::toBigHandle(npc.handle()), Daedalus::EInstanceClass::IC_Npc);
+  vm.setInstance(name,npc.handle(),Daedalus::EInstanceClass::IC_Npc);
   }
 
 Npc* WorldScript::inserNpc(size_t npcInstance, const char* at) {
@@ -874,8 +829,16 @@ Npc* WorldScript::inserNpc(size_t npcInstance, const char* at) {
     Log::e("inserNpc: invalid waypoint");
     return nullptr;
     }
-  auto h = vm.getGameState().insertNPC(npcInstance,at);
-  return getNpc(h);
+  auto hnpc = vm.getGameState().insertNPC(npcInstance,at);
+  Npc* npc  = getNpc(hnpc);
+  if(!hnpc->name[0].empty())
+    npc->setName(hnpc->name[0]);
+
+  if(hnpc->daily_routine!=0) {
+    ScopeVar self(vm, "self", hnpc, Daedalus::IC_Npc);
+    vm.runFunctionBySymIndex(hnpc->daily_routine,false);
+    }
+  return npc;
   }
 
 const std::string& WorldScript::popString(Daedalus::DaedalusVM &vm) {
@@ -907,27 +870,27 @@ void WorldScript::concatstrings(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::inttostring(Daedalus::DaedalusVM &vm){
-  int32_t x = vm.popDataValue<int32_t>();
+  int32_t x = vm.popInt();
   vm.setReturn(std::to_string(x)); //TODO: std::move?
   }
 
 void WorldScript::floattostring(Daedalus::DaedalusVM &vm) {
-  auto x = vm.popFloatValue();
+  auto x = vm.popFloat();
   vm.setReturn(std::to_string(x)); //TODO: std::move?
   }
 
 void WorldScript::floattoint(Daedalus::DaedalusVM &vm) {
-  auto x = vm.popFloatValue();
+  auto x = vm.popFloat();
   vm.setReturn(int32_t(x));
   }
 
 void WorldScript::inttofloat(Daedalus::DaedalusVM &vm) {
-  auto x = vm.popDataValue();
+  auto x = vm.popInt();
   vm.setReturn(float(x));
   }
 
 void WorldScript::hlp_random(Daedalus::DaedalusVM &vm) {
-  uint32_t mod = uint32_t(std::max(1,vm.popDataValue()));
+  uint32_t mod = uint32_t(std::max(1,vm.popInt()));
   vm.setReturn(int32_t(randGen() % mod));
   }
 
@@ -938,8 +901,8 @@ void WorldScript::hlp_strcmp(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::wld_settime(Daedalus::DaedalusVM &vm) {
-  auto minute = vm.popDataValue();
-  auto hour   = vm.popDataValue();
+  auto minute = vm.popInt();
+  auto hour   = vm.popInt();
   owner.setDayTime(hour,minute);
   }
 
@@ -949,10 +912,10 @@ void WorldScript::wld_getday(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
-  int32_t            a        = vm.popDataValue();
-  int32_t            b        = vm.popDataValue();
-  int32_t            c        = vm.popDataValue();
-  int32_t            d        = vm.popDataValue();
+  int32_t            a        = vm.popInt();
+  int32_t            b        = vm.popInt();
+  int32_t            c        = vm.popInt();
+  int32_t            d        = vm.popInt();
   auto               npc1     = popInstance(vm);
   auto               npc0     = popInstance(vm);
   const std::string& visual   = popString(vm);
@@ -971,9 +934,9 @@ void WorldScript::wld_getplayerportalguild(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::wld_setguildattitude(Daedalus::DaedalusVM &vm) {
-  size_t  gil2 = size_t(vm.popDataValue());
-  int32_t att  = vm.popDataValue();
-  size_t  gil1 = size_t(vm.popDataValue());
+  size_t  gil2 = size_t(vm.popInt());
+  int32_t att  = vm.popInt();
+  size_t  gil1 = size_t(vm.popInt());
   if(gilCount==0 || gil1>=gilCount || gil2>=gilCount)
     return;
   gilAttitudes[gil1*gilCount+gil2]=att;
@@ -981,8 +944,8 @@ void WorldScript::wld_setguildattitude(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::wld_getguildattitude(Daedalus::DaedalusVM &vm) {
-  int32_t g0 = vm.popDataValue();
-  int32_t g1 = vm.popDataValue();
+  int32_t g0 = vm.popInt();
+  int32_t g1 = vm.popInt();
   if(g0<0 || g1<0 || gilCount==0) {
     vm.setReturn(ATT_HOSTILE); // error
     return;
@@ -995,10 +958,10 @@ void WorldScript::wld_getguildattitude(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::wld_istime(Daedalus::DaedalusVM &vm) {
-  int32_t min1  = vm.popDataValue();
-  int32_t hour1 = vm.popDataValue();
-  int32_t min0  = vm.popDataValue();
-  int32_t hour0 = vm.popDataValue();
+  int32_t min1  = vm.popInt();
+  int32_t hour1 = vm.popInt();
+  int32_t min0  = vm.popInt();
+  int32_t hour0 = vm.popInt();
 
   gtime begin{hour0,min0}, end{hour1,min1};
   gtime now = owner.time();
@@ -1049,16 +1012,16 @@ void WorldScript::wld_ismobavailable(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::wld_setmobroutine(Daedalus::DaedalusVM &vm) {
-  int   st   = vm.popDataValue();
+  int   st   = vm.popInt();
   auto& name = popString(vm);
-  int   mm   = vm.popDataValue();
-  int   hh   = vm.popDataValue();
+  int   mm   = vm.popInt();
+  int   hh   = vm.popInt();
   notImplementedFn<&WorldScript::wld_setmobroutine>("wld_setmobroutine");
   //Log::i("TODO: wld_setmobroutine(",hh,",",mm,",",name,",",st,")");
   }
 
 void WorldScript::wld_assignroomtoguild(Daedalus::DaedalusVM &vm) {
-  int   g    = vm.popDataValue();
+  int   g    = vm.popInt();
   auto& name = popString(vm);
   notImplementedFn<&WorldScript::wld_assignroomtoguild>("wld_assignroomtoguild");
   //Log::i("TODO: wld_assignroomtoguild(",name,",",g,")");
@@ -1075,12 +1038,12 @@ void WorldScript::mdl_setvisual(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
-  int32_t     armor        = vm.popDataValue();
-  int32_t     teethTexNr   = vm.popDataValue();
-  int32_t     headTexNr    = vm.popDataValue();
+  int32_t     armor        = vm.popInt();
+  int32_t     teethTexNr   = vm.popInt();
+  int32_t     headTexNr    = vm.popInt();
   auto&       head         = popString(vm);
-  int32_t     bodyTexColor = vm.popDataValue();
-  int32_t     bodyTexNr    = vm.popDataValue();
+  int32_t     bodyTexColor = vm.popInt();
+  int32_t     bodyTexNr    = vm.popInt();
   auto&       body         = popString(vm);
   auto        npc          = popInstance(vm);
 
@@ -1102,7 +1065,7 @@ void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::mdl_setmodelfatness(Daedalus::DaedalusVM &vm) {
-  float    fat = vm.popFloatValue();
+  float    fat = vm.popFloat();
   auto     npc = popInstance(vm);
 
   if(npc!=nullptr)
@@ -1119,7 +1082,7 @@ void WorldScript::mdl_applyoverlaymds(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::mdl_applyoverlaymdstimed(Daedalus::DaedalusVM &vm) {
-  int32_t     ticks       = vm.popDataValue();
+  int32_t     ticks       = vm.popInt();
   auto&       overlayname = popString(vm);
   auto        npc         = popInstance(vm);
   auto        skelet      = Resources::loadSkeleton(overlayname);
@@ -1138,9 +1101,9 @@ void WorldScript::mdl_removeoverlaymds(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::mdl_setmodelscale(Daedalus::DaedalusVM &vm) {
-  float z   = vm.popFloatValue();
-  float y   = vm.popFloatValue();
-  float x   = vm.popFloatValue();
+  float z   = vm.popFloat();
+  float y   = vm.popFloat();
+  float x   = vm.popFloat();
   auto  npc = popInstance(vm);
 
   if(npc!=nullptr)
@@ -1148,8 +1111,8 @@ void WorldScript::mdl_setmodelscale(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::mdl_startfaceani(Daedalus::DaedalusVM &vm) {
-  float time      = vm.popFloatValue();
-  float intensity = vm.popFloatValue();
+  float time      = vm.popFloat();
+  float intensity = vm.popFloat();
   auto& ani       = popString(vm);
   auto  npc       = popInstance(vm);
   notImplementedFn<&WorldScript::mdl_startfaceani>("mdl_startfaceani");
@@ -1163,7 +1126,7 @@ void WorldScript::mdl_applyrandomani(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::mdl_applyrandomanifreq(Daedalus::DaedalusVM &vm) {
-  auto  f0  = vm.popFloatValue();
+  auto  f0  = vm.popFloat();
   auto& s1  = popString(vm);
   auto  npc = popInstance(vm);
   notImplementedFn<&WorldScript::mdl_applyrandomanifreq>("mdl_applyrandomanifreq");
@@ -1171,7 +1134,7 @@ void WorldScript::mdl_applyrandomanifreq(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::wld_insertnpc(Daedalus::DaedalusVM &vm) {
   const std::string& spawnpoint = popString(vm);
-  int32_t npcInstance = vm.popDataValue();
+  int32_t npcInstance = vm.popInt();
 
   if(spawnpoint.empty() || npcInstance<=0)
     return;
@@ -1186,7 +1149,7 @@ void WorldScript::wld_insertnpc(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::wld_insertitem(Daedalus::DaedalusVM &vm) {
   const std::string& spawnpoint   = popString(vm);
-  int32_t            itemInstance = vm.popDataValue();
+  int32_t            itemInstance = vm.popInt();
 
   if(spawnpoint.empty() || itemInstance<=0)
     return;
@@ -1195,7 +1158,7 @@ void WorldScript::wld_insertitem(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::npc_settofightmode(Daedalus::DaedalusVM &vm) {
-  int32_t weaponSymbol = vm.popDataValue();
+  int32_t weaponSymbol = vm.popInt();
   auto    npc          = popInstance(vm);
   if(npc!=nullptr && weaponSymbol>=0)
     npc->setToFightMode(uint32_t(weaponSymbol));
@@ -1268,7 +1231,7 @@ void WorldScript::npc_isdead(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::npc_knowsinfo(Daedalus::DaedalusVM &vm) {
-  uint32_t infoinstance = uint32_t(vm.popDataValue());
+  uint32_t infoinstance = uint32_t(vm.popInt());
   auto     npc          = popInstance(vm);
   if(!npc){
     vm.setReturn(0);
@@ -1281,15 +1244,15 @@ void WorldScript::npc_knowsinfo(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::npc_settalentskill(Daedalus::DaedalusVM &vm) {
-  int  lvl     = vm.popDataValue();
-  int  t       = vm.popDataValue();
+  int  lvl     = vm.popInt();
+  int  t       = vm.popInt();
   auto npc     = popInstance(vm);
   if(npc!=nullptr)
     npc->setTalentSkill(Npc::Talent(t),lvl);
   }
 
 void WorldScript::npc_gettalentskill(Daedalus::DaedalusVM &vm) {
-  uint32_t skillId = uint32_t(vm.popDataValue());
+  uint32_t skillId = uint32_t(vm.popInt());
   uint32_t self    = vm.popVar();
   auto     npc     = getNpcById(self);
 
@@ -1298,15 +1261,15 @@ void WorldScript::npc_gettalentskill(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::npc_settalentvalue(Daedalus::DaedalusVM &vm) {
-  int lvl  = vm.popDataValue();
-  int t    = vm.popDataValue();
+  int lvl  = vm.popInt();
+  int t    = vm.popInt();
   auto npc = popInstance(vm);
   if(npc!=nullptr)
     npc->setTalentValue(Npc::Talent(t),lvl);
   }
 
 void WorldScript::npc_gettalentvalue(Daedalus::DaedalusVM &vm) {
-  uint32_t skillId = uint32_t(vm.popDataValue());
+  uint32_t skillId = uint32_t(vm.popInt());
   auto     npc     = popInstance(vm);
 
   int32_t  skill   = npc==nullptr ? 0 : npc->talentValue(Npc::Talent(skillId));
@@ -1314,7 +1277,7 @@ void WorldScript::npc_gettalentvalue(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::npc_setrefusetalk(Daedalus::DaedalusVM &vm) {
-  int32_t  timeSec = vm.popDataValue();
+  int32_t  timeSec = vm.popInt();
   auto     npc     = popInstance(vm);
   if(npc)
     npc->setRefuseTalk(uint64_t(std::max(timeSec,0)));
@@ -1328,7 +1291,7 @@ void WorldScript::npc_refusetalk(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::npc_hasitems(Daedalus::DaedalusVM &vm) {
-  uint32_t itemId = uint32_t(vm.popDataValue());
+  uint32_t itemId = uint32_t(vm.popInt());
   auto     npc    = popInstance(vm);
   if(npc!=nullptr)
     vm.setReturn(int32_t(npc->hasItem(itemId))); else
@@ -1336,8 +1299,8 @@ void WorldScript::npc_hasitems(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::npc_removeinvitems(Daedalus::DaedalusVM &vm) {
-  uint32_t amount = uint32_t(vm.popDataValue());
-  uint32_t itemId = uint32_t(vm.popDataValue());
+  uint32_t amount = uint32_t(vm.popInt());
+  uint32_t itemId = uint32_t(vm.popInt());
   auto     npc    = popInstance(vm);
 
   if(npc!=nullptr)
@@ -1399,22 +1362,22 @@ void WorldScript::npc_getattitude(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::npc_setperctime(Daedalus::DaedalusVM &vm) {
-  float sec = vm.popFloatValue();
+  float sec = vm.popFloat();
   auto  npc = popInstance(vm);
   if(npc)
     npc->setPerceptionTime(uint64_t(sec*1000));
   }
 
 void WorldScript::npc_percenable(Daedalus::DaedalusVM &vm) {
-  int32_t fn  = vm.popDataValue();
-  int32_t pr  = vm.popDataValue();
+  int32_t fn  = vm.popInt();
+  int32_t pr  = vm.popInt();
   auto    npc = popInstance(vm);
   if(npc && fn>=0)
     npc->setPerceptionEnable(Npc::PercType(pr),size_t(fn));
   }
 
 void WorldScript::npc_percdisable(Daedalus::DaedalusVM &vm) {
-  int32_t pr  = vm.popDataValue();
+  int32_t pr  = vm.popInt();
   auto    npc = popInstance(vm);
   if(npc)
     npc->setPerceptionDisable(Npc::PercType(pr));
@@ -1449,15 +1412,15 @@ void WorldScript::npc_getstatetime(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::npc_setstatetime(Daedalus::DaedalusVM &vm) {
-  int32_t val = vm.popDataValue();
+  int32_t val = vm.popInt();
   auto    npc = popInstance(vm);
   if(npc)
     npc->setStateTime(val*1000);
   }
 
 void WorldScript::npc_changeattribute(Daedalus::DaedalusVM &vm) {
-  int32_t val  = vm.popDataValue();
-  int32_t atr  = vm.popDataValue();
+  int32_t val  = vm.popInt();
+  int32_t atr  = vm.popInt();
   auto    npc  = popInstance(vm);
   if(npc!=nullptr && atr>=0)
     npc->changeAttribute(Npc::Attribute(atr),val);
@@ -1593,7 +1556,7 @@ void WorldScript::npc_canseenpcfreelos(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::npc_isinfightmode(Daedalus::DaedalusVM &vm) {
-  FightMode mode = FightMode(vm.popDataValue());
+  FightMode mode = FightMode(vm.popInt());
   auto      npc  = popInstance(vm);
 
   if(npc==nullptr){
@@ -1632,7 +1595,7 @@ void WorldScript::npc_gettarget(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr && npc->target()) {
     Daedalus::PARSymbol& s = vm.getDATFile().getSymbolByName("other");
-    s.instanceDataHandle   = ZMemory::toBigHandle(npc->target()->handle());
+    s.instanceDataHandle   = npc->target()->handle();
     s.instanceDataClass    = Daedalus::IC_Npc;
     vm.setReturn(1);
     } else {
@@ -1643,7 +1606,7 @@ void WorldScript::npc_gettarget(Daedalus::DaedalusVM &vm) {
 void WorldScript::npc_sendpassiveperc(Daedalus::DaedalusVM &vm) {
   auto other  = popInstance(vm);
   auto victum = popInstance(vm);
-  auto id     = vm.popDataValue();
+  auto id     = vm.popInt();
   auto npc    = popInstance(vm);
 
   if(npc && other && victum)
@@ -1651,31 +1614,33 @@ void WorldScript::npc_sendpassiveperc(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::npc_checkinfo(Daedalus::DaedalusVM &vm) {
-  auto imp = vm.popDataValue();
+  auto imp = vm.popInt();
   auto n   = popInstance(vm);
   if(n==nullptr){
     vm.setReturn(0);
     return;
     }
 
-  auto& hero     = vm.getDATFile().getSymbolByName("other");
-  NpcHandle hnpc = ZMemory::handleCast<NpcHandle>(hero.instanceDataHandle);
-  auto& pl       = vmNpc(hnpc);
-  auto& npc      = vmNpc(n->handle());
+  auto& hero = vm.getDATFile().getSymbolByName("other");
+  if(hero.instanceDataClass!=Daedalus::EInstanceClass::IC_Npc){
+    vm.setReturn(0);
+    return;
+    }
+  auto* hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(hero.instanceDataHandle);
+  auto& pl   = vmNpc(hnpc);
+  auto& npc  = vmNpc(n->handle());
 
   auto s = std::lower_bound(dialogsInfo.begin(),dialogsInfo.end(),int32_t(npc.instanceSymbol),
-                            [&vm](Daedalus::GameState::InfoHandle h,int32_t npc){
-      Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(h);
-      return info.npc<npc;
+                            [](Daedalus::GEngineClasses::C_Info* info,int32_t npc){
+      return info->npc<npc;
       });
   auto e = std::upper_bound(dialogsInfo.begin(),dialogsInfo.end(),int32_t(npc.instanceSymbol),
-                            [&vm](int32_t npc,Daedalus::GameState::InfoHandle h){
-      Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(h);
-      return npc<info.npc;
+                            [](int32_t npc,Daedalus::GEngineClasses::C_Info* info){
+      return npc<info->npc;
       });
 
   for(auto i=s;i!=e;++i) {
-    Daedalus::GEngineClasses::C_Info& info = vm.getGameState().getInfo(*i);
+    Daedalus::GEngineClasses::C_Info& info = **i;
     if(info.npc!=int32_t(npc.instanceSymbol) || info.important!=imp)
       continue;
     bool npcKnowsInfo = doesNpcKnowInfo(pl,info.instanceSymbol);
@@ -1834,8 +1799,8 @@ void WorldScript::ai_outputsvm_overlay(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::ai_startstate(Daedalus::DaedalusVM &vm) {
   auto& wp    = popString(vm);
-  auto  state = vm.popDataValue();
-  auto  func  = vm.popDataValue();
+  auto  state = vm.popInt();
+  auto  func  = vm.popInt();
   auto  self  = popInstance(vm);
   if(self!=nullptr && func>0)
     self->aiStartState(uint32_t(func),state,wp);
@@ -1849,7 +1814,7 @@ void WorldScript::ai_playani(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::ai_setwalkmode(Daedalus::DaedalusVM &vm) {
-  auto mode = vm.popDataValue();
+  auto mode = vm.popInt();
   auto npc  = popInstance(vm);
   if(npc!=nullptr && mode>=0 && mode<=3){
     npc->setWalkMode(WalkBit(mode));
@@ -1857,14 +1822,14 @@ void WorldScript::ai_setwalkmode(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::ai_wait(Daedalus::DaedalusVM &vm) {
-  auto ms  = vm.popFloatValue();
+  auto ms  = vm.popFloat();
   auto npc = popInstance(vm);
   if(npc!=nullptr && ms>0)
     npc->aiWait(uint64_t(ms*1000));
   }
 
 void WorldScript::ai_waitms(Daedalus::DaedalusVM &vm) {
-  auto ms  = vm.popDataValue();
+  auto ms  = vm.popInt();
   auto npc = popInstance(vm);
   if(npc!=nullptr && ms>0)
     npc->aiWait(uint64_t(ms));
@@ -1890,6 +1855,8 @@ void WorldScript::ai_gotofp(Daedalus::DaedalusVM &vm) {
   auto   npc      = popInstance(vm);
 
   if(npc) {
+    if(waypoint=="STAND")
+      return; // bug with "NW_BIGFARM_HOUSE_OUT_03"
     auto to = owner.findFreePoint(npc->position(),waypoint.c_str());
     if(to!=nullptr)
       npc->aiGoToPoint(*to);
@@ -1907,7 +1874,7 @@ void WorldScript::ai_playanibs(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::ai_equiparmor(Daedalus::DaedalusVM &vm) {
-  auto id  = vm.popDataValue();
+  auto id  = vm.popInt();
   auto npc = popInstance(vm);
   if(npc!=nullptr)
     npc->aiEquipArmor(id);
@@ -1926,7 +1893,7 @@ void WorldScript::ai_equipbestrangedweapon(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::ai_usemob(Daedalus::DaedalusVM &vm) {
-  int32_t  state = vm.popDataValue();
+  int32_t  state = vm.popInt();
   auto&    tg    = popString(vm);
   auto     npc   = popInstance(vm);
   if(npc!=nullptr)
@@ -1960,8 +1927,8 @@ void WorldScript::ai_readyrangedweapon(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::ai_readyspell(Daedalus::DaedalusVM &vm) {
-  auto mana  = vm.popDataValue();
-  auto spell = vm.popDataValue();
+  auto mana  = vm.popInt();
+  auto spell = vm.popInt();
   auto npc   = popInstance(vm);
   if(npc!=nullptr)
     npc->aiReadySpell(spell,mana);
@@ -2012,8 +1979,8 @@ void WorldScript::ai_aligntofp(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::ai_useitemtostate(Daedalus::DaedalusVM &vm) {
-  int32_t  state = vm.popDataValue();
-  int32_t  item  = vm.popDataValue();
+  int32_t  state = vm.popInt();
+  int32_t  item  = vm.popInt();
   auto     npc   = popInstance(vm);
   notImplementedFn<&WorldScript::ai_useitemtostate>("ai_useitemtostate");
   }
@@ -2026,11 +1993,11 @@ void WorldScript::mob_hasitems(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::ta_min(Daedalus::DaedalusVM &vm) {
   auto&    waypoint = popString(vm);
-  int32_t  action   = vm.popDataValue();
-  int32_t  stop_m   = vm.popDataValue();
-  int32_t  stop_h   = vm.popDataValue();
-  int32_t  start_m  = vm.popDataValue();
-  int32_t  start_h  = vm.popDataValue();
+  int32_t  action   = vm.popInt();
+  int32_t  stop_m   = vm.popInt();
+  int32_t  stop_h   = vm.popInt();
+  int32_t  start_m  = vm.popInt();
+  int32_t  start_h  = vm.popInt();
   auto     npc      = popInstance(vm);
   auto     at       = owner.findPoint(waypoint);
 
@@ -2039,14 +2006,14 @@ void WorldScript::ta_min(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::log_createtopic(Daedalus::DaedalusVM &vm) {
-  int32_t section   = vm.popDataValue();
+  int32_t section   = vm.popInt();
   auto&   topicName = popString(vm);
 
   quests.add(topicName,QuestLog::Section(section));
   }
 
 void WorldScript::log_settopicstatus(Daedalus::DaedalusVM &vm) {
-  int32_t status    = vm.popDataValue();
+  int32_t status    = vm.popInt();
   auto&   topicName = popString(vm);
 
   quests.setStatus(topicName,QuestLog::Status(status));
@@ -2060,7 +2027,7 @@ void WorldScript::log_addentry(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::equipitem(Daedalus::DaedalusVM &vm) {
-  uint32_t cls  = uint32_t(vm.popDataValue());
+  uint32_t cls  = uint32_t(vm.popInt());
   auto     self = popInstance(vm);
 
   if(self!=nullptr) {
@@ -2071,15 +2038,15 @@ void WorldScript::equipitem(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::createinvitem(Daedalus::DaedalusVM &vm) {
-  uint32_t itemInstance = uint32_t(vm.popDataValue());
+  uint32_t itemInstance = uint32_t(vm.popInt());
   auto     self         = popInstance(vm);
   if(self!=nullptr)
     self->addItem(itemInstance,1);
   }
 
 void WorldScript::createinvitems(Daedalus::DaedalusVM &vm) {
-  uint32_t amount       = uint32_t(vm.popDataValue());
-  uint32_t itemInstance = uint32_t(vm.popDataValue());
+  uint32_t amount       = uint32_t(vm.popInt());
+  uint32_t itemInstance = uint32_t(vm.popInt());
   auto     self         = popInstance(vm);
   if(self!=nullptr)
     self->addItem(itemInstance,amount);
@@ -2132,21 +2099,24 @@ void WorldScript::hlp_getnpc(Daedalus::DaedalusVM &vm) {
 void WorldScript::info_addchoice(Daedalus::DaedalusVM &vm) {
   uint32_t func         = vm.popVar();
   auto&    text         = popString(vm);
-  uint32_t infoInstance = uint32_t(vm.popDataValue());
+  uint32_t infoInstance = uint32_t(vm.popInt());
 
-  ZMemory::BigHandle                h     = vm.getDATFile().getSymbolByIndex(infoInstance).instanceDataHandle;
-  Daedalus::GameState::InfoHandle   hInfo = ZMemory::handleCast<Daedalus::GameState::InfoHandle>(h);
-  Daedalus::GEngineClasses::C_Info& cInfo = vm.getGameState().getInfo(hInfo);
-
+  auto& sym = vm.getDATFile().getSymbolByIndex(infoInstance);
+  if(sym.instanceDataClass!=Daedalus::EInstanceClass::IC_Info)
+    return;
+  void*                             h     = sym.instanceDataHandle;
+  Daedalus::GEngineClasses::C_Info& cInfo = *reinterpret_cast<Daedalus::GEngineClasses::C_Info*>(h);
   cInfo.addChoice(Daedalus::GEngineClasses::SubChoice{text, func});
   }
 
 void WorldScript::info_clearchoices(Daedalus::DaedalusVM &vm) {
-  uint32_t infoInstance = uint32_t(vm.popDataValue());
+  uint32_t infoInstance = uint32_t(vm.popInt());
 
-  ZMemory::BigHandle                h     = vm.getDATFile().getSymbolByIndex(infoInstance).instanceDataHandle;
-  Daedalus::GameState::InfoHandle   hInfo = ZMemory::handleCast<Daedalus::GameState::InfoHandle>(h);
-  Daedalus::GEngineClasses::C_Info& cInfo = vm.getGameState().getInfo(hInfo);
+  auto& sym = vm.getDATFile().getSymbolByIndex(infoInstance);
+  if(sym.instanceDataClass!=Daedalus::EInstanceClass::IC_Info)
+    return;
+  void*                             h     = sym.instanceDataHandle;
+  Daedalus::GEngineClasses::C_Info& cInfo = *reinterpret_cast<Daedalus::GEngineClasses::C_Info*>(h);
 
   cInfo.subChoices.clear();
   }
@@ -2156,7 +2126,7 @@ void WorldScript::infomanager_hasfinished(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::introducechapter(Daedalus::DaedalusVM &vm) {
-  int32_t waittime = vm.popDataValue();
+  int32_t waittime = vm.popInt();
   auto&   sound    = popString(vm);
   auto&   texture  = popString(vm);
   auto&   subtitle = popString(vm);
@@ -2171,12 +2141,12 @@ void WorldScript::playvideo(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::printscreen(Daedalus::DaedalusVM &vm) {
-  int32_t            timesec  = vm.popDataValue();
+  int32_t            timesec  = vm.popInt();
   const std::string& font     = popString(vm);
-  int32_t            posy     = vm.popDataValue();
-  int32_t            posx     = vm.popDataValue();
+  int32_t            posy     = vm.popInt();
+  int32_t            posx     = vm.popInt();
   const std::string& msg      = popString(vm);
-  int32_t            dialognr = vm.popDataValue();
+  int32_t            dialognr = vm.popInt();
   (void)dialognr;
   owner.printScreen(cp1251::toUtf8(msg).c_str(),posx,posy,timesec,Resources::fontByName(font));
   }

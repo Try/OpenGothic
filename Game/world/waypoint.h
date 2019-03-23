@@ -27,8 +27,12 @@ class WayPoint final {
 
     float qDistTo(float x,float y,float z) const;
 
+    void connect(WayPoint* w);
+
   private:
     mutable uint32_t useCount=0;
+
+    std::vector<WayPoint*> conn;
 
     static std::string upcaseof(const std::string& src);
 

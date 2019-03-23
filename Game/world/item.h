@@ -9,7 +9,7 @@ class Npc;
 
 class Item final {
   public:
-    Item(WorldScript& owner,Daedalus::GameState::ItemHandle hnpc);
+    Item(WorldScript& owner,Daedalus::GEngineClasses::C_Item* hnpc);
     Item(Item&&)=default;
     Item& operator=(Item&&)=default;
 
@@ -49,16 +49,16 @@ class Item final {
     bool                checkCondUse (const Npc& other,int32_t& atr,int32_t& nv) const;
     bool                checkCondRune(const Npc& other,int32_t& cPl,int32_t& cIt) const;
 
-    Daedalus::GameState::ItemHandle handle() const { return hitem; }
-    size_t                          clsId() const;
+    Daedalus::GEngineClasses::C_Item* handle() const { return hitem; }
+    size_t                            clsId() const;
 
   private:
     void updateMatrix();
 
-    WorldScript&                    owner;
-    Daedalus::GameState::ItemHandle hitem={};
-    StaticObjects::Mesh             view;
-    std::array<float,3>             pos={};
-    bool                            equiped=false;
-    uint8_t                         itSlot=NSLOT;
+    WorldScript&                      owner;
+    Daedalus::GEngineClasses::C_Item* hitem={};
+    StaticObjects::Mesh               view;
+    std::array<float,3>               pos={};
+    bool                              equiped=false;
+    uint8_t                           itSlot=NSLOT;
   };

@@ -40,14 +40,15 @@ PosePool::Chunk &PosePool::findChunk(const Skeleton& s, const Animation::Sequenc
 
 std::shared_ptr<Pose> PosePool::find(const Skeleton& s,
                                      const Animation::Sequence* sq0, const Animation::Sequence& sq1, uint64_t sTime) {
+  /*
   uint64_t fr  = std::max<uint64_t>(1000u/std::max<uint64_t>(uint64_t(sq1.fpsRate),1),1);
   sTime        = sTime%std::max<uint64_t>(1,uint64_t(sq1.totalTime()));
   size_t frame = size_t(sTime)/size_t(fr);
 
   Chunk& c=findChunk(s,sq0,&sq1);
   if(sq0==nullptr){
-    if(c.timed.size()==0)
-      c.timed.resize(sq1.numFrames+1);
+    if(c.timed.size()<=frame)
+      c.timed.resize(frame+1);
     auto lk = c.timed[frame];
     if(lk!=nullptr)
       return std::shared_ptr<Pose>(lk,&lk->pose);
@@ -63,6 +64,9 @@ std::shared_ptr<Pose> PosePool::find(const Skeleton& s,
     }
   auto i = std::make_shared<Inst>(s,sq0,&sq1,sTime);
   c.timed.push_back(i);
+  return std::shared_ptr<Pose>(i,&i->pose);*/
+
+  auto i = std::make_shared<Inst>(s,sq0,&sq1,sTime);
   return std::shared_ptr<Pose>(i,&i->pose);
   }
 

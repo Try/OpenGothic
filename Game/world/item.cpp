@@ -3,7 +3,7 @@
 #include "world.h"
 #include "worldscript.h"
 
-Item::Item(WorldScript& owner,Daedalus::GameState::ItemHandle hitem)
+Item::Item(WorldScript& owner, Daedalus::GEngineClasses::C_Item *hitem)
   :owner(owner),hitem(hitem){
   }
 

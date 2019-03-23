@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <limits>
 
+using namespace Tempest;
+
 WayMatrix::WayMatrix(World &world, const ZenLoad::zCWayNetData &dat)
   :world(world) {
   wayPoints.resize(dat.waypoints.size());

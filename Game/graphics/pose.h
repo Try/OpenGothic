@@ -38,8 +38,6 @@ class Pose final {
     uint64_t                   frBase    =uint64_t(-1);
     float                      trY=0;
 
-    uint64_t                   lastT=uint64_t(-1);
     uint32_t                   numFrames=0;
-
     std::mutex                 sync;
   };

@@ -12,7 +12,7 @@
 
 using namespace Tempest;
 
-Npc::Npc(WorldScript &owner, Daedalus::GameState::NpcHandle hnpc)
+Npc::Npc(WorldScript &owner, Daedalus::GEngineClasses::C_Npc *hnpc)
   :owner(owner),hnpc(hnpc),mvAlgo(*this,owner.world()){
   }
 
@@ -78,6 +78,7 @@ void Npc::resetPositionToTA() {
     return;
 
   attachToPoint(nullptr);
+  setInteraction(nullptr);
   auto& rot = currentRoutine();
   auto  at  = rot.point;
 
@@ -618,9 +619,12 @@ bool Npc::implGoTo(uint64_t dt) {
     if(!mvAlgo.aiGoTo(currentGoTo)) {
       attachToPoint(currentGoTo);
       currentGoTo   = wayPath.pop();
-      currentFpLock = FpLock(currentGoTo);
-      if(isStanding())
-        setAnim(AnimationSolver::Idle);
+      if(currentGoTo!=nullptr) {
+        currentFpLock = FpLock(*currentGoTo);
+        } else {
+        if(isStanding())
+          setAnim(AnimationSolver::Idle);
+        }
       }
     return currentGoTo || mvAlgo.hasGoTo();
     } else {
@@ -680,6 +684,7 @@ void Npc::tick(uint64_t dt) {
     return;
     }
 
+  // do parallel?
   mvAlgo.tick(dt);
 
   if(!implAtack(dt)) {
@@ -1724,7 +1729,6 @@ void Npc::aiStopProcessInfo() {
 void Npc::aiClearQueue() {
   aiActions.clear();
   currentGoTo     = nullptr;
-  currentFpLock   = FpLock();
   currentGoToFlag = GoToHint::GT_Default;
   mvAlgo.aiGoTo(nullptr);
   //setTarget(nullptr);
@@ -1751,14 +1755,11 @@ void Npc::aiAlignToWp() {
 void Npc::attachToPoint(const WayPoint *p) {
   currentFp     = p;
   currentFpLock = FpLock(currentFp);
-  if(p!=nullptr)
-    owner.vmNpc(hnpc).wp = p->name;
   }
 
 void Npc::clearGoTo() {
   currentGoTo     = nullptr;
   currentGoToNpc  = nullptr;
-  currentFpLock   = FpLock();
   currentGoToFlag = GoToHint::GT_Default;
   wayPath.clear();
   mvAlgo.aiGoTo(nullptr);

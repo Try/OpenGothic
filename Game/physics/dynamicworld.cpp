@@ -44,13 +44,13 @@ struct Broadphase : btDbvtBroadphase {
     btBroadphaseRayCallback& m_rayCallback;
     BroadphaseRayTester(btBroadphaseRayCallback& orgCallback) : m_rayCallback(orgCallback) {}
     void Process(const btDbvtNode* leaf) {
-      btDbvtProxy* proxy = (btDbvtProxy*)leaf->data;
+      btDbvtProxy* proxy = reinterpret_cast<btDbvtProxy*>(leaf->data);
       m_rayCallback.process(proxy);
       }
     };
 
   Broadphase() {
-    rayTestStk.reserve(128);
+    rayTestStk.reserve(btDbvt::DOUBLE_STACKSIZE);
     }
 
   void rayTest(const btVector3& rayFrom, const btVector3& rayTo, btBroadphaseRayCallback& rayCallback,

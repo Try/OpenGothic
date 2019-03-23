@@ -28,7 +28,7 @@ class UboStorage {
   private:
     struct PerFrame final {
       Tempest::UniformBuffer uboData;
-      bool                   uboChanged=false; // invalidate ubo array
+      std::atomic_bool       uboChanged{false};  // invalidate ubo array
       };
 
     std::unique_ptr<PerFrame[]> pf;

@@ -93,7 +93,7 @@ class World final {
     void   printScreen(const char* msg, int x, int y, int time,const Tempest::Font &font);
     void   print      (const char* msg);
 
-    void   onInserNpc (Daedalus::GameState::NpcHandle handle, const std::string &s);
+    void   onInserNpc (Daedalus::GEngineClasses::C_Npc* handle, const std::string &s);
     Item*  addItem    (size_t itemInstance, const char *at);
     Item*  takeItem   (Item& it);
     void   removeItem (Item &it);
@@ -120,5 +120,4 @@ class World final {
     void         addItem(const ZenLoad::zCVobData &vob);
 
     void         initScripts(bool firstTime);
-    int32_t      runFunction(const std::string &fname);
   };

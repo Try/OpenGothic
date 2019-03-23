@@ -114,9 +114,6 @@ void Pose::update(uint64_t dt) {
     return;
     }
 
-  //if(lastT==dt)
-  //  return;
-
   bool change=false;
   if(sequence)
     change |= update(*sequence,dt,frSequence);
@@ -124,7 +121,6 @@ void Pose::update(uint64_t dt) {
 
   if(!change)
     return;
-  //lastT=dt;
   mkSkeleton(*baseSq);
   }
 

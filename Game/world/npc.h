@@ -198,7 +198,7 @@ class Npc final {
 
     using Anim = AnimationSolver::Anim;
 
-    Npc(WorldScript &owner, Daedalus::GameState::NpcHandle hnpc);
+    Npc(WorldScript &owner, Daedalus::GEngineClasses::C_Npc* hnpc);
     Npc(const Npc&)=delete;
     ~Npc();
 
@@ -346,7 +346,7 @@ class Npc final {
 
     std::vector<WorldScript::DlgChoise> dialogChoises(Npc &player, const std::vector<uint32_t> &except);
 
-    Daedalus::GameState::NpcHandle handle(){ return  hnpc; }
+    Daedalus::GEngineClasses::C_Npc* handle(){ return  hnpc; }
 
     auto     inventory() const -> const Inventory& { return invent; }
     size_t   hasItem    (uint32_t id) const;
@@ -502,7 +502,7 @@ class Npc final {
     bool                           setAnim(Npc::Anim a, WeaponState st0, WeaponState st);
 
     WorldScript&                   owner;
-    Daedalus::GameState::NpcHandle hnpc;
+    Daedalus::GEngineClasses::C_Npc* hnpc;
     float                          x=0.f;
     float                          y=0.f;
     float                          z=0.f;

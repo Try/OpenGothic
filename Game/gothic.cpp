@@ -217,7 +217,7 @@ std::unique_ptr<Daedalus::DaedalusVM> Gothic::createVm(const char16_t *datFile) 
   std::unique_ptr<uint8_t[]> byte(new uint8_t[all]);
   dat.read(byte.get(),all);
 
-  auto vm = std::make_unique<Daedalus::DaedalusVM>(byte.get(),all,false);
+  auto vm = std::make_unique<Daedalus::DaedalusVM>(byte.get(),all);
   Daedalus::registerGothicEngineClasses(*vm);
   return vm;
   }

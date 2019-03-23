@@ -252,7 +252,7 @@ void World::print(const char *msg) {
   gothic.print(msg);
   }
 
-void World::onInserNpc(Daedalus::GameState::NpcHandle handle, const std::string &s) {
+void World::onInserNpc(Daedalus::GEngineClasses::C_Npc *handle, const std::string &s) {
   return wobj.onInserNpc(handle,s);
   }
 
@@ -318,23 +318,19 @@ WayPath World::wayTo(float npcX, float npcY, float npcZ, const WayPoint &end) co
   return wmatrix->wayTo(npcX,npcY,npcZ,end);
   }
 
-int32_t World::runFunction(const std::string& fname) {
-  return vm->runFunction(fname);
-  }
-
 void World::initScripts(bool firstTime) {
   auto dot  = wname.rfind('.');
   auto name = (dot==std::string::npos ? wname : wname.substr(0,dot));
   if( firstTime ) {
     std::string startup = "startup_"+name;
 
-    if(vm->hasSymbolName(startup))
-      vm->runFunction(startup);
+    if(vm->hasSymbolName(startup.c_str()))
+      vm->runFunction(startup.c_str());
     }
 
   std::string init = "init_"+name;
-  if(vm->hasSymbolName(init))
-    vm->runFunction(init);
+  if(vm->hasSymbolName(init.c_str()))
+    vm->runFunction(init.c_str());
 
   wobj.resetPositionToTA();
   }

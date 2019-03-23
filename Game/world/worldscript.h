@@ -24,11 +24,11 @@ class WorldScript final {
     WorldScript(World& owner, Gothic &gothic, const char16_t *world);
 
     struct DlgChoise final {
-      std::string                     title;
-      int32_t                         sort=0;
-      uint32_t                        scriptFn=0;
-      bool                            isTrade=false;
-      Daedalus::GameState::InfoHandle handle={};
+      std::string                       title;
+      int32_t                           sort=0;
+      uint32_t                          scriptFn=0;
+      bool                              isTrade=false;
+      Daedalus::GEngineClasses::C_Info* handle=nullptr;
       };
 
     enum Attitude : int32_t {
@@ -38,9 +38,9 @@ class WorldScript final {
       ATT_FRIENDLY = 3
       };
 
-    bool       hasSymbolName(const std::string& fn);
-    int32_t    runFunction(const std::string &fname);
-    int32_t    runFunction(const size_t       fid, bool clearStk=true);
+    bool       hasSymbolName(const char *fn);
+    int32_t    runFunction  (const char* fname);
+    int32_t    runFunction  (const size_t       fid, bool clearStk=true);
 
     void       initDialogs(Gothic &gothic);
     void       loadDialogOU(Gothic &gothic);
@@ -52,7 +52,7 @@ class WorldScript final {
     Npc*       inserNpc(const char* npcInstance,const char *at);
     void       removeItem(Item& it);
 
-    Npc*       getNpc(Daedalus::GameState::NpcHandle handle);
+    Npc*       getNpc(Daedalus::GEngineClasses::C_Npc* handle);
     void       setInstanceNPC(const char* name,Npc& npc);
 
     size_t      goldId() const { return itMi_Gold; }
@@ -71,18 +71,18 @@ class WorldScript final {
     size_t                                            getSymbolIndex(const std::string& s);
     const AiState&                                    getAiState(size_t id);
 
-    Daedalus::GEngineClasses::C_Npc&                  vmNpc (Daedalus::GameState::NpcHandle  handle);
-    Daedalus::GEngineClasses::C_Item&                 vmItem(Daedalus::GameState::ItemHandle handle);
+    Daedalus::GEngineClasses::C_Npc&                  vmNpc (Daedalus::GEngineClasses::C_Npc *handle);
+    Daedalus::GEngineClasses::C_Item&                 vmItem(Daedalus::GEngineClasses::C_Item *handle);
 
-    auto dialogChoises(Daedalus::GameState::NpcHandle self, Daedalus::GameState::NpcHandle npc, const std::vector<uint32_t> &except) -> std::vector<DlgChoise>;
+    auto dialogChoises(Daedalus::GEngineClasses::C_Npc *self, Daedalus::GEngineClasses::C_Npc *npc, const std::vector<uint32_t> &except) -> std::vector<DlgChoise>;
     auto updateDialog (const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<WorldScript::DlgChoise>;
 
-    void exec(const DlgChoise &dlg, Daedalus::GameState::NpcHandle player, Daedalus::GameState::NpcHandle hnpc);
+    void exec(const DlgChoise &dlg, Daedalus::GEngineClasses::C_Npc *player, Daedalus::GEngineClasses::C_Npc *hnpc);
     int  printCannotUseError (Npc &npc, int32_t atr, int32_t nValue);
     int  printCannotCastError(Npc &npc, int32_t plM, int32_t itM);
     int  printCannotBuyError (Npc &npc);
 
-    int  invokeState(Daedalus::GameState::NpcHandle hnpc, Daedalus::GameState::NpcHandle hother, const char* name);
+    int  invokeState(Daedalus::GEngineClasses::C_Npc *hnpc, Daedalus::GEngineClasses::C_Npc *hother, const char* name);
     int  invokeState(Npc* npc, Npc* other, Npc *victum, size_t fn);
     int  invokeItem (Npc* npc, size_t fn);
     int  invokeMana (Npc& npc, Item&  fn);
@@ -103,7 +103,7 @@ class WorldScript final {
 
     float              tradeValueMultiplier() const { return tradeValMult; }
 
-    void useInteractive(Daedalus::GameState::NpcHandle hnpc, const std::string &func);
+    void useInteractive(Daedalus::GEngineClasses::C_Npc *hnpc, const std::string &func);
 
     Attitude guildAttitude(const Npc& p0,const Npc& p1) const;
 
@@ -124,9 +124,7 @@ class WorldScript final {
 
     void notImplementedRoutine(Daedalus::DaedalusVM&);
 
-    void onNpcReady (Daedalus::GameState::NpcHandle handle);
-
-    Item* getItem(Daedalus::GameState::ItemHandle handle);
+    Item* getItem(Daedalus::GEngineClasses::C_Item *handle);
     Item* getItemById(size_t id);
     Npc*  getNpcById(size_t id);
     Npc*  inserNpc  (size_t npcInstance, const char *at);
@@ -297,7 +295,7 @@ class WorldScript final {
     std::mt19937                                                randGen;
 
     std::set<std::pair<size_t,size_t>>                          dlgKnownInfos;
-    std::vector<Daedalus::GameState::InfoHandle>                dialogsInfo;
+    std::vector<Daedalus::GEngineClasses::C_Info*>              dialogsInfo;
     std::unique_ptr<ZenLoad::zCCSLib>                           dialogs;
     std::unordered_map<size_t,AiState>                          aiStates;
 

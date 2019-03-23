@@ -32,7 +32,7 @@ class GameMenu : public Tempest::Widget {
     MenuRoot&                             owner;
     std::unique_ptr<Daedalus::DaedalusVM> vm;
 
-    Daedalus::GameState::MenuHandle       hMenu;
+    Daedalus::GEngineClasses::C_Menu      menu={};
     const Tempest::Texture2d*             back=nullptr;
 
     Tempest::Color                        clNormal  ={1.f,0.87f,0.67f,1.f};
@@ -44,12 +44,10 @@ class GameMenu : public Tempest::Widget {
     Tempest::Timer                        timer;
 
     struct Item {
-      std::string                         name;
-      Daedalus::GameState::MenuItemHandle handle={};
-      const Tempest::Texture2d*           img=nullptr;
-      bool                                visible=true;
-
-      Daedalus::GEngineClasses::C_Menu_Item& get(Daedalus::DaedalusVM& vm);
+      std::string                           name;
+      Daedalus::GEngineClasses::C_Menu_Item handle={};
+      const Tempest::Texture2d*             img=nullptr;
+      bool                                  visible=true;
       };
     Item                                  hItems[Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS];
     uint32_t                              curItem=0;

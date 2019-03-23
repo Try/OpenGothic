@@ -46,15 +46,14 @@ void WorldObjects::tick(uint64_t dt) {
     }
   }
 
-void WorldObjects::onInserNpc(NpcHandle handle,const std::string& point) {
+void WorldObjects::onInserNpc(Daedalus::GEngineClasses::C_Npc *handle, const std::string& point) {
   auto pos = owner.findPoint(point);
   if(pos==nullptr){
     Log::e("onInserNpc: invalid waypoint");
     }
-  auto  hnpc    = ZMemory::handleCast<NpcHandle>(handle);
-  auto& npcData = owner.script()->getGameState().getNpc(hnpc);
+  auto& npcData = *handle;
 
-  std::unique_ptr<Npc> ptr{new Npc(*owner.script(),hnpc)};
+  std::unique_ptr<Npc> ptr{new Npc(*owner.script(),handle)};
   npcData.userPtr = ptr.get();
   if(!npcData.name[0].empty())
     ptr->setName(npcData.name[0]);
@@ -74,28 +73,11 @@ void WorldObjects::onInserNpc(NpcHandle handle,const std::string& point) {
   npcArr.emplace_back(std::move(ptr));
   }
 
-void WorldObjects::onRemoveNpc(NpcHandle handle) {
-  // TODO: clear other weak-references
-  const Npc* p = owner.script()->getNpc(handle);
-  for(size_t i=0;i<npcArr.size();++i)
-    if(p==npcArr[i].get()){
-      npcArr[i]=std::move(npcArr.back());
-      npcArr.pop_back();
-      return;
-      }
-  }
-
 void WorldObjects::updateAnimation() {
   Workers::parallelFor(npcArr,8,[](std::unique_ptr<Npc>& i){
     i->updateTransform();
     i->updateAnimation();
     });
-
-  /*
-  for(auto& i:npcArr)
-    i->updateTransform();
-  for(auto& i:npcArr)
-    i->updateAnimation();*/
   }
 
 void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {
@@ -157,7 +139,7 @@ size_t WorldObjects::hasItems(const std::string &tag, size_t itemCls) {
 Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
   auto  pos    = owner.findPoint(at);
   auto  h      = owner.script()->getGameState().insertItem(itemInstance);
-  auto& itData = owner.script()->getGameState().getItem(h);
+  auto& itData = *h;
 
   std::unique_ptr<Item> ptr{new Item(*owner.script(),h)};
   auto* it=ptr.get();

@@ -22,17 +22,10 @@ GameMenu::GameMenu(MenuRoot &owner, Gothic &gothic, const char* menuSection)
   vm = gothic.createVm(u"_work/Data/Scripts/_compiled/MENU.DAT");
 
   Daedalus::DATFile& dat=vm->getDATFile();
-
-  hMenu = vm->getGameState().createMenu();
-  vm->initializeInstance(ZMemory::toBigHandle(hMenu),
+  vm->initializeInstance(&menu,
                          dat.getSymbolIndexByName(menuSection),
                          Daedalus::IC_Menu);
-
-  Daedalus::GEngineClasses::C_Menu& menu = vm->getGameState().getMenu(hMenu);
-
   back = Resources::loadTexture(menu.backPic);
-  //back = Resources::loadTexture("menu_gothicshadow.tga");
-  //back = Resources::loadTexture("menu_gothic.tga");
 
   initItems();
   if(menu.flags & Daedalus::GEngineClasses::C_Menu::MENU_SHOW_INFO) {
@@ -58,23 +51,18 @@ GameMenu::GameMenu(MenuRoot &owner, Gothic &gothic, const char* menuSection)
 
 GameMenu::~GameMenu() {
   gothic.popPause();
-  vm->getGameState().removeMenu(hMenu);
   }
 
 void GameMenu::initItems() {
-  Daedalus::GEngineClasses::C_Menu& menu = vm->getGameState().getMenu(hMenu);
-
   for(int i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;++i){
     if(menu.items[i].empty())
       continue;
 
-    hItems[i].name   = menu.items[i];
-    hItems[i].handle = vm->getGameState().createMenuItem();
-    vm->initializeInstance(ZMemory::toBigHandle(hItems[i].handle),
-                           vm->getDATFile().getSymbolIndexByName(hItems[i].name),
+    hItems[i].name = menu.items[i];
+    vm->initializeInstance(&hItems[i].handle,
+                           vm->getDATFile().getSymbolIndexByName(hItems[i].name.c_str()),
                            Daedalus::IC_MenuItem);
-    auto& item=hItems[i].get(*vm);
-    hItems[i].img = Resources::loadTexture(item.backPic);
+    hItems[i].img = Resources::loadTexture(hItems[i].handle.backPic);
     }
   }
 
@@ -87,9 +75,9 @@ void GameMenu::paintEvent(PaintEvent &e) {
     }
 
   for(auto& hItem:hItems){
-    if(!hItem.handle.isValid() || !hItem.visible)
+    if(!hItem.visible)
       continue;
-    Daedalus::GEngineClasses::C_Menu_Item&        item = hItem.get(*vm);
+    Daedalus::GEngineClasses::C_Menu_Item&        item = hItem.handle;
     Daedalus::GEngineClasses::C_Menu_Item::EFlags flags=Daedalus::GEngineClasses::C_Menu_Item::EFlags(item.flags);
     getText(item,textBuf);
 
@@ -156,7 +144,7 @@ void GameMenu::paintEvent(PaintEvent &e) {
 
   if(auto sel=selectedItem()){
     p.setFont(Resources::font());
-    Daedalus::GEngineClasses::C_Menu_Item& item = sel->get(*vm);
+    Daedalus::GEngineClasses::C_Menu_Item& item = sel->handle;
     if(item.text->size()>1) {
       const char* txt = item.text[1].c_str();
       cp1251::toUtf8(textBuf,txt);
@@ -179,7 +167,7 @@ void GameMenu::onMove(int dy) {
 
 void GameMenu::onSelect() {
   if(auto sel=selectedItem()){
-    Daedalus::GEngineClasses::C_Menu_Item& item = sel->get(*vm);
+    Daedalus::GEngineClasses::C_Menu_Item& item = sel->handle;
     exec(item);
     }
   }
@@ -189,8 +177,6 @@ void GameMenu::onTick() {
 
   const float fx = 640.0f;
   const float fy = 480.0f;
-
-  Daedalus::GEngineClasses::C_Menu& menu = vm->getGameState().getMenu(hMenu);
 
   if(menu.flags & Daedalus::GEngineClasses::C_Menu::MENU_DONTSCALE_DIM)
     resize(int(menu.dimx/scriptDiv*fx),int(menu.dimy/scriptDiv*fy));
@@ -204,8 +190,7 @@ void GameMenu::onTick() {
 
 GameMenu::Item *GameMenu::selectedItem() {
   if(curItem<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS)
-    if(hItems[curItem].handle.isValid())
-      return &hItems[curItem];
+    return &hItems[curItem];
   return nullptr;
   }
 
@@ -214,19 +199,13 @@ void GameMenu::setSelection(int desired,int seek) {
   for(int i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;++i,cur+=uint32_t(seek)) {
     cur%=Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;
 
-    if(hItems[cur].handle.isValid()) {
-      auto& it=hItems[cur].get(*vm);
-      if((it.flags&Daedalus::GEngineClasses::C_Menu_Item::EFlags::IT_SELECTABLE) && isEnabled(it)){
-        curItem=cur;
-        return;
-        }
+    auto& it=hItems[cur].handle;
+    if((it.flags&Daedalus::GEngineClasses::C_Menu_Item::EFlags::IT_SELECTABLE) && isEnabled(it)){
+      curItem=cur;
+      return;
       }
     }
   curItem=uint32_t(-1);
-  }
-
-Daedalus::GEngineClasses::C_Menu_Item &GameMenu::Item::get(Daedalus::DaedalusVM &vm) {
-  return vm.getGameState().getMenuItem(handle);
   }
 
 void GameMenu::getText(const Daedalus::GEngineClasses::C_Menu_Item& it, std::vector<char> &out) {
@@ -365,8 +344,7 @@ void GameMenu::set(const char *item, const int32_t value, const int32_t max) {
 void GameMenu::set(const char *item, const char *value) {
   for(auto& i:hItems)
     if(i.name==item) {
-      Daedalus::GEngineClasses::C_Menu_Item& item = i.get(*vm);
-      item.text[0]=value;
+      i.handle.text[0]=value;
       return;
       }
   }
@@ -379,14 +357,12 @@ void GameMenu::initValues() {
       i.visible=false;
       }
     if(i.name=="MENU_ITEM_DAY") {
-      Daedalus::GEngineClasses::C_Menu_Item& item = i.get(*vm);
-      item.text[0] = std::to_string(gothic.time().day());
+      i.handle.text[0] = std::to_string(gothic.time().day());
       }
     if(i.name=="MENU_ITEM_TIME") {
-      Daedalus::GEngineClasses::C_Menu_Item& item = i.get(*vm);
       char form[64]={};
       std::snprintf(form,sizeof(form),"%d:%02d",int(gothic.time().hour()),int(gothic.time().minute()));
-      item.text[0] = form;
+      i.handle.text[0] = form;
       }
     }
   }

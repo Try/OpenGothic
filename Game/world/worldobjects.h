@@ -35,8 +35,7 @@ class WorldObjects final {
 
     void           tick(uint64_t dt);
 
-    void           onInserNpc (Daedalus::GameState::NpcHandle handle, const std::string &point);
-    void           onRemoveNpc(Daedalus::GameState::NpcHandle handle);
+    void           onInserNpc (Daedalus::GEngineClasses::C_Npc* handle, const std::string &point);
 
     void           updateAnimation();
 
