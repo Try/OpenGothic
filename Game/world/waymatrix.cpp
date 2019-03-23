@@ -14,15 +14,7 @@ WayMatrix::WayMatrix(World &world, const ZenLoad::zCWayNetData &dat)
     wayPoints[i] = WayPoint(dat.waypoints[i]);
     }
 
-  edges.resize(2*dat.edges.size());
-  for(size_t i=0;i<dat.edges.size();++i){
-    edges[i*2  ] = dat.edges[i];
-    edges[i*2+1] = dat.edges[i];
-    std::swap(edges[i*2+1].first,edges[i*2+1].second);
-    }
-  std::sort(edges.begin(),edges.end(),[](const Edge& a,const Edge& b){
-    return a.first<b.first;
-    });
+  edges = dat.edges;
 
   for(auto& i:wayPoints)
     if(i.name.find("START")==0)
@@ -31,6 +23,9 @@ WayMatrix::WayMatrix(World &world, const ZenLoad::zCWayNetData &dat)
   for(auto& i:wayPoints)
     if(i.name.find("START")!=std::string::npos)
       startPoints.push_back(i);
+
+  stk[0].reserve(256);
+  stk[1].reserve(256);
   }
 
 void WayMatrix::buildIndex() {
@@ -46,6 +41,16 @@ void WayMatrix::buildIndex() {
   std::sort(fpInd.begin(),fpInd.end(),[](const WayPoint* a,const WayPoint* b){
     return a->x<b->x;
     });
+
+  for(auto& i:edges){
+    if(i.first<wayPoints.size() && i.second<wayPoints.size()){
+      auto& a = wayPoints[i.first ];
+      auto& b = wayPoints[i.second];
+
+      a.connect(b);
+      b.connect(a);
+      }
+    }
   }
 
 const WayPoint *WayMatrix::findWayPoint(float x, float y, float z) const {
@@ -231,64 +236,43 @@ WayPath WayMatrix::wayTo(const WayPoint& start, const WayPoint &end) const {
     return WayPath();
     }
 
-  pathLen.resize(wayPoints.size(), -1.f);
-  for(auto& i:pathLen)
-    i=-1.f;
+  pathGen++;
+  start.pathLen = 0;
+  start.pathGen = pathGen;
 
-  intptr_t sid = std::distance<const WayPoint*>(&wayPoints[0],&start);
-  if(sid>=0 && size_t(sid)<wayPoints.size()){
-    pathLen[size_t(sid)] = 0;
-    }
+  std::vector<const WayPoint*> *front=&stk[0], *back=&stk[1];
+  stk[0].clear();
+  stk[1].clear();
 
-  std::queue<const WayPoint*> queue;
+  front->push_back(&start);
 
-  queue.push(&start);
-  while(pathLen[size_t(endId)]<0.f && queue.size()>0){
-    auto current = queue.front(); queue.pop();
+  while(end.pathGen!=pathGen && front->size()>0){
+    for(auto& wp:*front){
+      float l0 = wp->pathLen;
 
-    intptr_t id = std::distance<const WayPoint*>(&wayPoints[0],current);
-    if(id<0 || size_t(id)>=wayPoints.size())
-      return WayPath();
-
-    auto s = std::lower_bound(edges.begin(),edges.end(),id,[](const Edge& e,intptr_t id){
-      return e.first<size_t(id);
-      });
-    auto e = std::upper_bound(edges.begin(),edges.end(),id,[](intptr_t id,const Edge& e){
-      return size_t(id)<e.first;
-      });
-
-    float l0 = pathLen[size_t(id)];
-    for(auto i=s;i!=e;++i){
-      size_t n  = i->second;
-      float  l1 = l0+1.f;
-      if(pathLen[n]<0.f || pathLen[n]>l1){
-        pathLen[n]=l1;
-        queue.push(&wayPoints[n]);
+      for(auto i:wp->connections()){
+        float l1 = l0+1.f;
+        if(i->pathGen!=pathGen || i->pathLen>l1){
+          i->pathLen = l1;
+          i->pathGen = pathGen;
+          back->push_back(i);
+          }
         }
       }
+    std::swap(front,back);
+    back->clear();
     }
 
   WayPath ret;
   ret.add(end);
   const WayPoint* current = &end;
   while(current!=&start){
-    intptr_t id = std::distance<const WayPoint*>(&wayPoints[0],current);
-    if(id<0 || size_t(id)>=wayPoints.size())
-      return WayPath();
+    float l0 = current->pathLen;
 
-    auto s = std::lower_bound(edges.begin(),edges.end(),id,[](const Edge& e,intptr_t id){
-      return e.first<size_t(id);
-      });
-    auto e = std::upper_bound(edges.begin(),edges.end(),id,[](intptr_t id,const Edge& e){
-      return size_t(id)<e.first;
-      });
-
-    float l0 = pathLen[size_t(id)];
     const WayPoint* next=nullptr;
-    for(auto i=s;i!=e;++i){
-      size_t n = i->second;
-      if(pathLen[n]>=0.f && pathLen[n]<l0){
-        next=&wayPoints[n];
+    for(auto i:current->connections()){
+      if(i->pathGen==pathGen && i->pathLen<l0){
+        next=i;
         break;
         }
       }

@@ -48,7 +48,9 @@ class WayMatrix final {
       std::vector<const WayPoint*> index;
       };
     mutable std::vector<FpIndex>          fpIndex;
-    mutable std::vector<float>            pathLen;
+
+    mutable uint8_t                       pathGen=0;
+    mutable std::vector<const WayPoint*>  stk[2];
 
     void                   adjustWaypoints(std::vector<WayPoint> &wp);
 
