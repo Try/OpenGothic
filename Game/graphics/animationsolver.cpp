@@ -94,8 +94,8 @@ void AnimationSolver::invalidateAnim(const Sequence ani,const Skeleton* sk,World
   animSq = ani;
   sAnim  = tickCount;
   if(ani.l0)
-    skInst = owner.view()->get(sk,ani.l0,ani.l1,sAnim); else
-    skInst = owner.view()->get(sk,ani.l1,sAnim);
+    skInst = owner.view()->get(sk,ani.l0,ani.l1,sAnim,skInst); else
+    skInst = owner.view()->get(sk,ani.l1,sAnim,skInst);
   }
 
 void AnimationSolver::addOverlay(const Skeleton* sk,uint64_t time,uint64_t tickCount,

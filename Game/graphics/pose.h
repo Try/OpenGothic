@@ -14,6 +14,7 @@ class Pose final {
     Pose()=default;
     Pose(const Skeleton& sk,const Animation::Sequence* sq0,const Animation::Sequence* sq1);
 
+    void reset(const Skeleton& sk,const Animation::Sequence* sq0,const Animation::Sequence* sq1);
     void update(uint64_t dt);
 
     float              translateY() const { return trY; }

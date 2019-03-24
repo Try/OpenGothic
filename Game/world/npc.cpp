@@ -169,7 +169,8 @@ bool Npc::checkHealth(bool onChange) {
       }
 
     if(onChange) {
-      if(owner.guildAttitude(*this,*currentOther)==WorldScript::ATT_HOSTILE){
+      // currentOther must be externaly initialized
+      if(owner.guildAttitude(*this,*currentOther)==WorldScript::ATT_HOSTILE || guild()>GIL_SEPERATOR_HUM){
         size_t fdead=owner.getSymbolIndex("ZS_Dead");
         startState(fdead,"");
         } else {

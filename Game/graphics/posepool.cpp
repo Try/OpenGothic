@@ -7,15 +7,23 @@ PosePool::Inst::Inst(const Skeleton& s, const Animation::Sequence* sq, const Ani
 PosePool::PosePool() {
   }
 
-std::shared_ptr<Pose> PosePool::get(const Skeleton *s, const Animation::Sequence *sq1,uint64_t sT) {
-  return get(s,nullptr,sq1,sT);
+std::shared_ptr<Pose> PosePool::get(const Skeleton *s, const Animation::Sequence *sq1, uint64_t sT, std::shared_ptr<Pose> &prev) {
+  return get(s,nullptr,sq1,sT,prev);
   }
 
-std::shared_ptr<Pose> PosePool::get(const Skeleton *s, const Animation::Sequence *sq, const Animation::Sequence *sq1, uint64_t sT) {
+std::shared_ptr<Pose> PosePool::get(const Skeleton *s,
+                                    const Animation::Sequence *sq, const Animation::Sequence *sq1,
+                                    uint64_t sT, std::shared_ptr<Pose> &prev) {
+  if(prev.use_count()==1) {
+    prev->reset(*s,sq,sq1);
+    return prev;
+    }
+
   if(s==nullptr)
     return nullptr;
   if(sq1==nullptr)
     return find(*s);
+  // no cache for now, to be parallel friendly
   return find(*s,sq,*sq1,sT);
   }
 
@@ -40,45 +48,11 @@ PosePool::Chunk &PosePool::findChunk(const Skeleton& s, const Animation::Sequenc
 
 std::shared_ptr<Pose> PosePool::find(const Skeleton& s,
                                      const Animation::Sequence* sq0, const Animation::Sequence& sq1, uint64_t sTime) {
-  /*
-  uint64_t fr  = std::max<uint64_t>(1000u/std::max<uint64_t>(uint64_t(sq1.fpsRate),1),1);
-  sTime        = sTime%std::max<uint64_t>(1,uint64_t(sq1.totalTime()));
-  size_t frame = size_t(sTime)/size_t(fr);
-
-  Chunk& c=findChunk(s,sq0,&sq1);
-  if(sq0==nullptr){
-    if(c.timed.size()<=frame)
-      c.timed.resize(frame+1);
-    auto lk = c.timed[frame];
-    if(lk!=nullptr)
-      return std::shared_ptr<Pose>(lk,&lk->pose);
-    auto i = std::make_shared<Inst>(s,sq0,&sq1,sTime);
-    c.timed[frame] = i;
-    return std::shared_ptr<Pose>(i,&i->pose);
-    }
-
-  for(auto& i:c.timed) {
-    if(i && i->sTime==sTime){
-      return std::shared_ptr<Pose>(i,&i->pose);
-      }
-    }
-  auto i = std::make_shared<Inst>(s,sq0,&sq1,sTime);
-  c.timed.push_back(i);
-  return std::shared_ptr<Pose>(i,&i->pose);*/
-
   auto i = std::make_shared<Inst>(s,sq0,&sq1,sTime);
   return std::shared_ptr<Pose>(i,&i->pose);
   }
 
 std::shared_ptr<Pose> PosePool::find(const Skeleton &s) {
-  Chunk& c=findChunk(s,nullptr,nullptr);
-  for(auto& i:c.timed){
-    //auto i = pi.lock();
-    if(i->sTime==0){
-      return std::shared_ptr<Pose>(i,&i->pose);
-      }
-    }
   auto i = std::make_shared<Inst>(s,nullptr,nullptr,0);
-  c.timed.push_back(i);
   return std::shared_ptr<Pose>(i,&i->pose);
   }

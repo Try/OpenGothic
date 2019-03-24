@@ -107,6 +107,22 @@ Pose::Pose(const Skeleton &sk, const Animation::Sequence* sq0, const Animation::
   trY = sk.rootTr[1];
   }
 
+void Pose::reset(const Skeleton &sk, const Animation::Sequence *sq0, const Animation::Sequence *sq1) {
+  if(skeleton!=&sk){
+    skeleton = &sk;
+    if(skeleton!=nullptr)
+      tr = skeleton->tr; else
+      tr.clear();
+    base = tr;
+    for(size_t i=0;i<base.size() && i<sk.nodes.size();++i)
+      base[i] = sk.nodes[i].tr;
+    trY = sk.rootTr[1];
+    }
+  sequence  = sq0;
+  baseSq    = sq1;
+  numFrames = baseSq ? baseSq->numFrames : 0;
+  }
+
 void Pose::update(uint64_t dt) {
   std::lock_guard<std::mutex> guard(sync);
   if(baseSq==nullptr || numFrames==0){
