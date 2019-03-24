@@ -167,8 +167,21 @@ void Camera::follow(const Npc &npc,bool includeRot) {
     hasPos = true;
     }
 
-  if(includeRot)
-    spin.x += (npc.rotation()-spin.x)/2;
+  if(includeRot) {
+    spin.x = npc.rotation();
+    /*
+    float da   = (std::fmod(npc.rotation(),180.f) - std::fmod(spin.x,180.f));
+    float rot  = std::sin(da*float(M_PI)/180.f);
+    float diff = std::fabs(std::fmod(da,180.f))/4;
+
+    if(std::cos(rot)<0)
+      diff += 180;
+
+    if(rot>0)
+      spin.x += diff; else // left
+    if(rot<0)
+      spin.x -= diff;  // right*/
+    }
   }
 
 void Camera::setPosition(float x, float y, float z) {

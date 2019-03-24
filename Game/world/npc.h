@@ -292,7 +292,7 @@ class Npc final {
     void      startDialog(Npc& other);
     bool      startState(size_t id, const std::string &wp);
     bool      startState(size_t id, const std::string &wp, gtime endTime, bool noFinalize);
-    void      clearState();
+    void      clearState(bool noFinalize);
     BodyState bodyState() const;
 
     void setToFightMode(const uint32_t item);

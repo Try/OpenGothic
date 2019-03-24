@@ -34,7 +34,8 @@ bool PlayerControl::interact(Npc &other) {
   if(world->player()->weaponState()!=WeaponState::NoWeapon)
     return false;
   if(world->script()->isDead(other) || world->script()->isUnconscious(other)){
-    inv.ransack(*world->player(),other);
+    if(!inv.ransack(*world->player(),other))
+      world->script()->printNothingToGet();
     }
   return dlg.start(*world->player(),other);
   }
@@ -169,7 +170,7 @@ void PlayerControl::marvinF8() {
   pos[2]+=-60*c;
 
   pl.changeAttribute(Npc::ATR_HITPOINTS,pl.attribute(Npc::ATR_HITPOINTSMAX));
-  pl.clearState();
+  pl.clearState(false);
   pl.setPosition(pos);
   pl.clearSpeed();
   pl.setAnim(AnimationSolver::Idle);

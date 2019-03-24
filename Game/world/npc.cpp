@@ -574,12 +574,13 @@ bool Npc::implLookAt(uint64_t dt) {
   }
 
 bool Npc::implLookAt(float dx, float dz, uint64_t dt) {
-  float       a    = angleDir(dx,dz);
-  float       da   = int(a-angle)%360;
-  auto        gl   = std::min<uint32_t>(guild(),GIL_MAX);
-  float       step = owner.guildVal().turn_speed[gl]*(dt/1000.f);
+  auto  gl   = std::min<uint32_t>(guild(),GIL_MAX);
+  float step = owner.guildVal().turn_speed[gl]*(dt/1000.f);
 
-  if(std::abs(da)<=step){
+  float a    = angleDir(dx,dz);
+  float da   = a-angle;
+
+  if(std::abs(int(da)%180)<=step){
     setDirection(a);
     if(animation.current==AnimationSolver::RotL || animation.current==AnimationSolver::RotR) {
       if(currentGoTo==nullptr && animation.animSq!=nullptr && !animation.animSq.isFinished(owner.tickCount()-animation.sAnim)){
@@ -613,13 +614,14 @@ bool Npc::implGoTo(uint64_t dt) {
     //float dy = y-currentGoTo->position.y;
     float dz = currentGoTo->z-z;
 
-    if(!MoveAlgo::isClose(x,y,z,*currentGoTo)){
-      if(implLookAt(dx,dz,dt))
-        return true;
+    if(implLookAt(dx,dz,dt)){
+      mvAlgo.aiGoTo(nullptr);
+      return true;
       }
+
     if(!mvAlgo.aiGoTo(currentGoTo)) {
       attachToPoint(currentGoTo);
-      currentGoTo   = wayPath.pop();
+      currentGoTo = wayPath.pop();
       if(currentGoTo!=nullptr) {
         currentFpLock = FpLock(*currentGoTo);
         } else {
@@ -898,12 +900,7 @@ bool Npc::startState(size_t id,const std::string &wp, gtime endTime,bool noFinal
   if(aiState.funcIni==id)
     return false;
 
-  if(aiState.funcIni!=0 && aiState.started){
-    owner.invokeState(this,currentOther,nullptr,aiState.funcLoop); // avoid ZS_Talk bug
-    if(!noFinalize)
-      owner.invokeState(this,currentOther,nullptr,aiState.funcEnd);  // cleanup
-    }
-
+  clearState(noFinalize);
   if(!wp.empty()){
     hnpc->wp = wp;
     }
@@ -923,10 +920,11 @@ bool Npc::startState(size_t id,const std::string &wp, gtime endTime,bool noFinal
   return true;
   }
 
-void Npc::clearState() {
+void Npc::clearState(bool noFinalize) {
   if(aiState.funcIni!=0 && aiState.started){
     owner.invokeState(this,currentOther,nullptr,aiState.funcLoop); // avoid ZS_Talk bug
-    owner.invokeState(this,currentOther,nullptr,aiState.funcEnd);  // cleanup
+    if(!noFinalize)
+      owner.invokeState(this,currentOther,nullptr,aiState.funcEnd);  // cleanup
     }
   aiState = AiState();
   aiState.funcIni = 0;
@@ -1435,6 +1433,9 @@ void Npc::addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint *point)
   }
 
 void Npc::excRoutine(uint32_t callback) {
+  //clearState(true);
+  aiState.funcEnd=0; // no cleanup
+
   routines.clear();
   owner.invokeState(this,currentOther,nullptr,callback);
   }

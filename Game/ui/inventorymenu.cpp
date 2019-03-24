@@ -91,9 +91,9 @@ void InventoryMenu::trade(Npc &pl, Npc &tr) {
   update();
   }
 
-void InventoryMenu::ransack(Npc &pl, Npc &tr) {
+bool InventoryMenu::ransack(Npc &pl, Npc &tr) {
   if(tr.inventory().ransackCount()==0)
-    return;
+    return false;
   state  = State::Ransack;
   player = &pl;
   trader = &tr;
@@ -103,6 +103,7 @@ void InventoryMenu::ransack(Npc &pl, Npc &tr) {
   pageOth.reset(new RansackPage(tr.inventory()));
   adjustScroll();
   update();
+  return true;
   }
 
 void InventoryMenu::open(Npc &pl, Interactive &ch) {

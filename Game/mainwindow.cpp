@@ -509,7 +509,7 @@ void MainWindow::render(){
 
     const uint32_t imgId=device.nextImage(context.imageAvailable);
 
-    if(needToUpdate())// && Gothic::LoadState::Idle==gothic.checkLoading())
+    if(needToUpdate())
       dispatchPaintEvent(surface,atlas);
 
     if(draw.needToUpdateCmd()){

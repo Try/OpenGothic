@@ -26,7 +26,7 @@ class InventoryMenu : public Tempest::Widget {
     void  close();
     void  open(Npc& pl);
     void  trade(Npc& pl,Npc& tr);
-    void  ransack(Npc& pl,Npc& tr);
+    bool ransack(Npc& pl,Npc& tr);
     void  open(Npc& pl,Interactive& chest);
     State isOpen() const;
     bool  isActive() const;

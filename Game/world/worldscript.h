@@ -101,6 +101,8 @@ class WorldScript final {
     const std::string& messageByName(const std::string &id) const;
     uint32_t           messageTime(const std::string &id) const;
 
+    int printNothingToGet();
+
     float              tradeValueMultiplier() const { return tradeValMult; }
 
     void useInteractive(Daedalus::GEngineClasses::C_Npc *hnpc, const std::string &func);

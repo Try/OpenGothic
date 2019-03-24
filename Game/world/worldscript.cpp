@@ -682,6 +682,14 @@ uint32_t WorldScript::messageTime(const std::string &id) const {
   return uint32_t(txt.size()*viewTimePerChar);
   }
 
+int WorldScript::printNothingToGet() {
+  auto id = vm.getDATFile().getSymbolIndexByName("player_plunder_is_empty");
+  if(id==size_t(-1))
+    return 0;
+  ScopeVar self (vm,"self",owner.player());
+  return runFunction(id,false);
+  }
+
 void WorldScript::useInteractive(Daedalus::GEngineClasses::C_Npc* hnpc,const std::string& func) {
   auto& dat = vm.getDATFile();
   if(!dat.hasSymbolName(func.c_str()))
