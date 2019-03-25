@@ -256,11 +256,12 @@ WayPath WayMatrix::wayTo(const WayPoint& start, const WayPoint &end) const {
       float l0 = wp->pathLen;
 
       for(auto i:wp->connections()){
-        float l1 = l0+1.f;
-        if(i->pathGen!=pathGen || i->pathLen>l1){
-          i->pathLen = l1;
-          i->pathGen = pathGen;
-          back->push_back(i);
+        auto& w  = *i.point;
+        float l1 = l0+i.len;
+        if(w.pathGen!=pathGen || w.pathLen>l1){
+          w.pathLen = l1;
+          w.pathGen = pathGen;
+          back->push_back(&w);
           }
         }
       }
@@ -276,8 +277,8 @@ WayPath WayMatrix::wayTo(const WayPoint& start, const WayPoint &end) const {
 
     const WayPoint* next=nullptr;
     for(auto i:current->connections()){
-      if(i->pathGen==pathGen && i->pathLen<l0){
-        next=i;
+      if(i.point->pathGen==pathGen && i.point->pathLen<l0){
+        next=i.point;
         break;
         }
       }

@@ -225,6 +225,9 @@ class WorldScript final {
     void npc_isdrawingspell  (Daedalus::DaedalusVM &vm);
     void npc_perceiveall     (Daedalus::DaedalusVM& vm);
     void npc_stopani         (Daedalus::DaedalusVM& vm);
+    void npc_settrueguild    (Daedalus::DaedalusVM& vm);
+    void npc_gettrueguild    (Daedalus::DaedalusVM& vm);
+    void npc_clearinventory  (Daedalus::DaedalusVM& vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);

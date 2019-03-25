@@ -159,6 +159,9 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("npc_isdrawingspell",  [this](Daedalus::DaedalusVM& vm){ npc_isdrawingspell(vm);   });
   vm.registerExternalFunction("npc_perceiveall",     [this](Daedalus::DaedalusVM& vm){ npc_perceiveall(vm);      });
   vm.registerExternalFunction("npc_stopani",         [this](Daedalus::DaedalusVM& vm){ npc_stopani(vm);          });
+  vm.registerExternalFunction("npc_settrueguild",    [this](Daedalus::DaedalusVM& vm){ npc_settrueguild(vm);     });
+  vm.registerExternalFunction("npc_gettrueguild",    [this](Daedalus::DaedalusVM& vm){ npc_gettrueguild(vm);     });
+  vm.registerExternalFunction("npc_clearinventory",  [this](Daedalus::DaedalusVM& vm){ npc_clearinventory(vm);   });
 
   vm.registerExternalFunction("ai_output",           [this](Daedalus::DaedalusVM& vm){ ai_output(vm);            });
   vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
@@ -1711,6 +1714,26 @@ void WorldScript::npc_stopani(Daedalus::DaedalusVM &vm) {
   auto  npc  = popInstance(vm);
   if(npc!=nullptr)
     npc->stopAnim(name);
+  }
+
+void WorldScript::npc_settrueguild(Daedalus::DaedalusVM &vm) {
+  auto  gil = vm.popInt();
+  auto  npc = popInstance(vm);
+  if(npc!=nullptr)
+    npc->setTrueGuild(gil);
+  }
+
+void WorldScript::npc_gettrueguild(Daedalus::DaedalusVM &vm) {
+  auto  npc = popInstance(vm);
+  if(npc!=nullptr)
+    vm.setReturn(npc->trueGuild()); else
+    vm.setReturn(int32_t(GIL_NONE));
+  }
+
+void WorldScript::npc_clearinventory(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  if(npc!=nullptr)
+    npc->clearInventory();
   }
 
 void WorldScript::ai_processinfos(Daedalus::DaedalusVM &vm) {

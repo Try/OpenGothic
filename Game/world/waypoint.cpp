@@ -1,5 +1,7 @@
 #include "waypoint.h"
 
+#include <cmath>
+
 WayPoint::WayPoint() {
   }
 
@@ -21,7 +23,10 @@ float WayPoint::qDistTo(float ix, float iy, float iz) const {
   }
 
 void WayPoint::connect(WayPoint &w) {
-  conn.push_back(&w);
+  float l = std::sqrt(qDistTo(w.x,w.y,w.z));
+  if(l<=0)
+    return;
+  conn.push_back({&w,l});
   }
 
 std::string WayPoint::upcaseof(const std::string &src) {

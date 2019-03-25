@@ -283,6 +283,8 @@ class Npc final {
 
     uint32_t instanceSymbol() const;
     uint32_t guild() const;
+    void     setTrueGuild(int32_t g);
+    int32_t  trueGuild() const;
     int32_t  magicCyrcle() const;
     int32_t  level() const;
     int32_t  experience() const;
@@ -360,6 +362,7 @@ class Npc final {
     void     moveItem   (uint32_t id,Interactive& to);
     void     sellItem   (uint32_t id,Npc& to);
     void     buyItem    (uint32_t id,Npc& from);
+    void     clearInventory();
     Item*    currentArmour();
     Item*    currentMeleWeapon();
     Item*    currentRangeWeapon();
@@ -524,6 +527,7 @@ class Npc final {
     WalkBit                        wlkMode  =WalkBit::WM_Run;
 
     std::string                    name;
+    int32_t                        trGuild=GIL_NONE;
     int32_t                        talentsSk[TALENT_MAX]={};
     int32_t                        talentsVl[TALENT_MAX]={};
     uint64_t                       refuseTalkMilis      =0;

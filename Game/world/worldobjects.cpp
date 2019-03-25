@@ -124,7 +124,7 @@ Item *WorldObjects::takeItem(Item &it) {
 
 void WorldObjects::removeItem(Item &it) {
   if(auto ptr=takeItem(it)){
-    owner.script()->getGameState().removeItem(ptr->handle());
+    delete ptr;
     }
   }
 

@@ -533,6 +533,16 @@ uint32_t Npc::guild() const {
   return ret;
   }
 
+void Npc::setTrueGuild(int32_t g) {
+  trGuild = g;
+  }
+
+int32_t Npc::trueGuild() const {
+  if(trGuild==GIL_NONE)
+    return hnpc->guild;
+  return trGuild;
+  }
+
 int32_t Npc::magicCyrcle() const {
   return talentSkill(TALENT_RUNES);
   }
@@ -1122,6 +1132,10 @@ void Npc::buyItem(uint32_t id, Npc &from) {
     }
   Inventory::trasfer(invent,from.invent,nullptr,id,1,owner);
   invent.delItem(owner.goldId(),uint32_t(price),owner,*this);
+  }
+
+void Npc::clearInventory() {
+  invent.clear(owner,*this);
   }
 
 Item *Npc::currentArmour() {

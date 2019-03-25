@@ -27,6 +27,11 @@ class WayPoint final {
 
     std::string name;
 
+    struct Conn final {
+      WayPoint* point=nullptr;
+      float     len  =0;
+      };
+
     // TODO: beautify
     mutable float    pathLen=std::numeric_limits<float>::max();
     mutable uint16_t pathGen=0;
@@ -34,12 +39,12 @@ class WayPoint final {
     float qDistTo(float x,float y,float z) const;
 
     void connect(WayPoint& w);
-    const std::vector<WayPoint*>& connections() const { return conn; }
+    const std::vector<Conn>& connections() const { return conn; }
 
   private:
     mutable uint32_t useCount=0;
 
-    std::vector<WayPoint*> conn;
+    std::vector<Conn> conn;
 
     static std::string upcaseof(const std::string& src);
 
