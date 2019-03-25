@@ -71,6 +71,7 @@ class Inventory final {
     void   equipBestMeleWeapon(WorldScript &vm, Npc &owner);
     void   equipBestRangeWeapon(WorldScript &vm, Npc &owner);
     void   unequipWeapons(WorldScript &vm, Npc &owner);
+    void   clear(WorldScript &vm, Npc &owner);
 
     void   updateArmourView(WorldScript &vm, Npc& owner);
     void   updateSwordView (WorldScript &vm, Npc& owner);

@@ -103,7 +103,6 @@ void Inventory::addItem(std::unique_ptr<Item> &&p, WorldScript &vm) {
     } else {
     auto& c = vm.vmItem(p->handle());
     vm.vmItem(it->handle()).amount += c.amount;
-    vm.getGameState().removeItem(p->handle());
     }
   }
 
@@ -163,7 +162,6 @@ void Inventory::delItem(Item *it, uint32_t count, WorldScript &vm, Npc& owner) {
       items.erase(items.begin()+int(i));
       break;
       }
-  vm.getGameState().removeItem(handle);
   }
 
 void Inventory::trasfer(Inventory &to, Inventory &from, Npc* fromNpc, size_t itemSymbol, uint32_t count, WorldScript &vm) {
@@ -322,6 +320,13 @@ void Inventory::equipBestRangeWeapon(WorldScript &vm, Npc &owner) {
 void Inventory::unequipWeapons(WorldScript &vm, Npc &owner) {
   setSlot(mele, nullptr,vm,owner,false);
   setSlot(range,nullptr,vm,owner,false);
+  }
+
+void Inventory::clear(WorldScript &vm, Npc &owner) {
+  for(auto& i:items)
+    if(i->isEquiped())
+      unequip(i.get(),vm,owner);
+  items.clear();
   }
 
 const Item *Inventory::activeWeapon() const {

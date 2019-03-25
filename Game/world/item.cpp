@@ -7,6 +7,10 @@ Item::Item(WorldScript& owner,Daedalus::GEngineClasses::C_Item *hitem)
   :owner(owner),hitem(hitem){
   }
 
+Item::~Item() {
+  delete hitem;
+  }
+
 void Item::setView(StaticObjects::Mesh &&m) {
   view = std::move(m);
   updateMatrix();

@@ -11,6 +11,7 @@ class Item final {
   public:
     Item(WorldScript& owner,Daedalus::GEngineClasses::C_Item* hnpc);
     Item(Item&&)=default;
+    ~Item();
     Item& operator=(Item&&)=default;
 
     enum { MAX_UI_ROWS=6, NSLOT=255 };
