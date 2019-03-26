@@ -213,7 +213,7 @@ void PlayerControl::implMove(uint64_t dt) {
       }
 
     if(ctrl[CloseWeapon]){
-      pl.closeWeapon();
+      pl.closeWeapon(false);
       ctrl[CloseWeapon] = !(weaponState()==WeaponState::NoWeapon);
       return;
       }

@@ -145,10 +145,15 @@ bool Npc::startClimb(Anim ani) {
 
 bool Npc::checkHealth(bool onChange) {
   if(onChange && lastHit!=nullptr) {
-    float da = rotationRad()-lastHit->rotationRad();
-    if(std::cos(da)>=0)
-      lastHitType='A'; else
-      lastHitType='B';
+    uint32_t g = guild();
+    if(g==GIL_SKELETON || g==GIL_SKELETON_MAGE || g==GIL_SUMMONED_SKELETON) {
+      lastHitType='A';
+      } else {
+      float da = rotationRad()-lastHit->rotationRad();
+      if(std::cos(da)>=0)
+        lastHitType='A'; else
+        lastHitType='B';
+      }
     }
 
   if(owner.isDead(*this)) {
@@ -157,6 +162,7 @@ bool Npc::checkHealth(bool onChange) {
     }
   if(owner.isUnconscious(*this)) {
     setAnim(lastHitType=='A' ? Anim::UnconsciousA : Anim::UnconsciousB);
+    closeWeapon(true);
     return false;
     }
 
@@ -564,22 +570,21 @@ int32_t Npc::learningPoints() const {
   }
 
 bool Npc::implLookAt(uint64_t dt) {
-  if(currentTurnTo!=nullptr){
-    auto dx = currentTurnTo->x-x;
-    auto dz = currentTurnTo->z-z;
-    if(implLookAt(dx,dz,true,dt))
-      return true;
-    currentTurnTo=nullptr;
-    return false;
-    }
   if(currentLookAt!=nullptr) {
-    auto dx = currentLookAt->x-x;
-    auto dz = currentLookAt->z-z;
-    if(implLookAt(dx,dz,true,dt))
+    if(implLookAt(*currentLookAt,dt))
       return true;
     currentLookAt=nullptr;
     return false;
     }
+  return false;
+  }
+
+bool Npc::implLookAt(const Npc &oth, uint64_t dt) {
+  auto dx = oth.x-x;
+  auto dz = oth.z-z;
+  if(implLookAt(dx,dz,true,dt))
+    return true;
+  currentLookAt=nullptr;
   return false;
   }
 
@@ -590,7 +595,7 @@ bool Npc::implLookAt(float dx, float dz, bool anim, uint64_t dt) {
   float a    = angleDir(dx,dz);
   float da   = a-angle;
 
-  if(std::abs(int(da)%180)<=step){
+  if(std::abs(int(da)%180)<=step && std::cos(double(da)*M_PI/180.0)>0){
     setDirection(a);
     if(animation.current==AnimationSolver::RotL || animation.current==AnimationSolver::RotR) {
       if(currentGoTo==nullptr && animation.animSq!=nullptr && !animation.animSq.isFinished(owner.tickCount()-animation.sAnim)){
@@ -767,7 +772,7 @@ void Npc::takeDamage(Npc &other) {
     fghAlgo.onTakeHit();
     if(!isPlayer())
       currentOther=lastHit;
-    changeAttribute(ATR_HITPOINTS,isPlayer() ? 1 : -100);
+    changeAttribute(ATR_HITPOINTS,isPlayer() ? -1 : -100);
 
     if(ani==Anim::Move  || ani==Anim::MoveL  || ani==Anim::MoveR ||
        ani==Anim::Atack || ani==Anim::AtackL || ani==Anim::AtackR ||
@@ -833,13 +838,18 @@ void Npc::nextAiAction(uint64_t dt) {
 
   switch(act.act) {
     case AI_None: break;
-    case AI_LookAt:
+    case AI_LookAt:{
       currentLookAt=act.target;
       break;
-    case AI_TurnToNpc:
-      currentTurnTo =act.target;
+      }
+    case AI_TurnToNpc: {
+      if(act.target!=nullptr && implLookAt(*act.target,dt)){
+        aiActions.push_front(std::move(act));
+        }
       break;
+      }
     case AI_GoToNpc:
+      setInteraction(nullptr);
       currentGoTo     = nullptr;
       currentGoToNpc  = act.target;
       currentFp       = nullptr;
@@ -848,6 +858,7 @@ void Npc::nextAiAction(uint64_t dt) {
       wayPath.clear();
       break;
     case AI_GoToNextFp: {
+      setInteraction(nullptr);
       auto fp = owner.world().findNextFreePoint(*this,act.s0.c_str());
       if(fp!=nullptr) {
         currentGoToNpc  = nullptr;
@@ -860,6 +871,7 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
       }
     case AI_GoToPoint: {
+      setInteraction(nullptr);
       // TODO: check distance
       wayPath         = owner.world().wayTo(*this,*act.point);
       currentGoTo     = wayPath.pop();
@@ -873,7 +885,7 @@ void Npc::nextAiAction(uint64_t dt) {
       currentLookAt=nullptr;
       break;
     case AI_RemoveWeapon:
-      if(!closeWeapon())
+      if(!closeWeapon(false))
         aiActions.push_front(std::move(act));
       break;
     case AI_StartState:
@@ -987,7 +999,7 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_AlignToWp:
     case AI_AlignToFp:{
       if(auto fp = currentFp){
-        if(fp->dirX!=0 || fp->dirZ!=0){
+        if((fp->dirX!=0 || fp->dirZ!=0) && currentTarget==nullptr){
           if(implLookAt(fp->dirX,fp->dirZ,true,dt))
             aiActions.push_front(std::move(act));
           }
@@ -1257,11 +1269,11 @@ void Npc::unequipItem(uint32_t item) {
   invent.unequip(item,owner,*this);
   }
 
-bool Npc::closeWeapon() {
+bool Npc::closeWeapon(bool noAnim) {
   auto weaponSt=invent.weaponState();
   if(weaponSt==WeaponState::NoWeapon)
     return true;
-  if(!setAnim(animation.current,WeaponState::NoWeapon,weaponSt))
+  if(!noAnim && !setAnim(animation.current,WeaponState::NoWeapon,weaponSt))
     return false;
   invent.switchActiveWeapon(Item::NSLOT);
   updateWeaponSkeleton();
@@ -1274,7 +1286,7 @@ bool Npc::drawWeaponFist() {
   if(weaponSt==WeaponState::Fist)
     return true;
   if(weaponSt!=WeaponState::NoWeapon) {
-    closeWeapon();
+    closeWeapon(false);
     return false;
     }
   Anim ani = animation.current==Anim::Idle ? Anim::Idle : Anim::Move;
@@ -1293,7 +1305,7 @@ bool Npc::drawWeaponMele() {
   if(invent.currentMeleWeapon()==nullptr)
     return drawWeaponFist();
   if(weaponSt!=WeaponState::NoWeapon) {
-    closeWeapon();
+    closeWeapon(false);
     return false;
     }
   auto st  = invent.currentMeleWeapon()->is2H() ? WeaponState::W2H : WeaponState::W1H;
@@ -1311,7 +1323,7 @@ bool Npc::drawWeaponBow() {
   if(weaponSt==WeaponState::Bow || weaponSt==WeaponState::CBow)
     return true;
   if(weaponSt!=WeaponState::NoWeapon) {
-    closeWeapon();
+    closeWeapon(false);
     return false;
     }
   auto st  = invent.currentRangeWeapon()->isCrossbow() ? WeaponState::CBow : WeaponState::Bow;
@@ -1327,7 +1339,7 @@ bool Npc::drawWeaponBow() {
 bool Npc::drawMage(uint8_t slot) {
   auto weaponSt=invent.weaponState();
   if(weaponSt!=WeaponState::NoWeapon && weaponSt!=WeaponState::Mage) {
-    closeWeapon();
+    closeWeapon(false);
     return false;
     }
   Anim ani = animation.current==isStanding() ? Anim::Idle : Anim::Move;
@@ -1426,6 +1438,10 @@ bool Npc::isEnemy(const Npc &other) const {
 
 bool Npc::isDead() const {
   return owner.isDead(*this);
+  }
+
+bool Npc::isPrehit() const {
+  return fghWaitToDamage<owner.tickCount();
   }
 
 void Npc::setPerceptionTime(uint64_t time) {

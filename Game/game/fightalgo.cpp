@@ -18,6 +18,11 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, WorldScript& owner) {
     return fillQueue(owner,ai.my_w_strafe);
     }
 
+  if(tg.isPrehit()){
+    //return fillQueue(owner,ai.enemy_stormprehit);
+    return fillQueue(owner,ai.enemy_prehit);
+    }
+
   if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H){
     if(isInAtackRange(npc,tg,owner)) {
       if(npc.anim()==AnimationSolver::Move)

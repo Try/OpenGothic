@@ -299,7 +299,7 @@ class Npc final {
 
     void setToFightMode(const uint32_t item);
 
-    bool closeWeapon();
+    bool closeWeapon(bool noAnim);
     bool drawWeaponFist();
     bool drawWeaponMele();
     bool drawWeaponBow();
@@ -317,6 +317,7 @@ class Npc final {
 
     bool isEnemy(const Npc& other) const;
     bool isDead() const;
+    bool isPrehit() const;
 
     void setPerceptionTime   (uint64_t time);
     void setPerceptionEnable (PercType t, size_t fn);
@@ -499,6 +500,7 @@ class Npc final {
     gtime                          endTime(const Routine& r) const;
 
     bool                           implLookAt (uint64_t dt);
+    bool                           implLookAt (const Npc& oth,uint64_t dt);
     bool                           implLookAt (float dx, float dz, bool anim, uint64_t dt);
     bool                           implGoTo   (uint64_t dt);
     bool                           implAtack  (uint64_t dt);
@@ -544,7 +546,6 @@ class Npc final {
     Interactive*                   currentInteract=nullptr;
     Npc*                           currentOther   =nullptr;
     Npc*                           currentLookAt  =nullptr;
-    Npc*                           currentTurnTo  =nullptr;
     Npc*                           lastHit        =nullptr;
     Npc*                           currentTarget  =nullptr;
     char                           lastHitType    ='A';
