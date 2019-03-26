@@ -322,11 +322,13 @@ void Inventory::unequipWeapons(WorldScript &vm, Npc &owner) {
   setSlot(range,nullptr,vm,owner,false);
   }
 
-void Inventory::clear(WorldScript &vm, Npc &owner) {
+void Inventory::clear(WorldScript&, Npc&) {
+  std::vector<std::unique_ptr<Item>> used;
   for(auto& i:items)
-    if(i->isEquiped())
-      unequip(i.get(),vm,owner);
-  items.clear();
+    if(i->isEquiped()){
+      used.emplace_back(std::move(i));
+      }
+  items = std::move(used); // Gothic don't clear items, which are in use
   }
 
 const Item *Inventory::activeWeapon() const {
@@ -527,7 +529,7 @@ Item *Inventory::findByClass(size_t cls) {
   return nullptr;
   }
 
-Item* Inventory::bestItem(WorldScript &vm, Npc &owner, Inventory::Flags f) {
+Item* Inventory::bestItem(WorldScript &, Npc &owner, Inventory::Flags f) {
   Item* ret=nullptr;
   int   g  =-1;
   for(auto& i:items) {
