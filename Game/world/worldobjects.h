@@ -42,6 +42,7 @@ class WorldObjects final {
     size_t         npcCount()    const { return npcArr.size(); }
     const Npc&     npc(size_t i) const { return *npcArr[i];    }
     Npc&           npc(size_t i)       { return *npcArr[i];    }
+    void           detectNpc(const float x,const float y,const float z,std::function<void(Npc&)> f);
 
     void           addTrigger(ZenLoad::zCVobData&& vob);
     Trigger*       findTrigger(const char* name);

@@ -47,6 +47,8 @@ class World final {
     const WayPoint* findNextFreePoint(const Npc& pos,const char* name) const;
     const WayPoint* findNextPoint(const WayPoint& pos) const;
 
+    void            detectNpc(const float x,const float y,const float z,std::function<void(Npc&)> f);
+
     WayPath       wayTo(const Npc& pos,const WayPoint& end) const;
     WayPath       wayTo(float npcX,float npcY,float npcZ,const WayPoint& end) const;
 

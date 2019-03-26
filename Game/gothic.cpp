@@ -42,6 +42,8 @@ Gothic::Gothic(const int argc, const char **argv) {
       wdef = "newworld.zen"; else
       wdef = "world.zen";
     }
+
+  fight.reset(new FightAi(*this));
   }
 
 bool Gothic::isGothic2() const {
@@ -174,6 +176,10 @@ bool Gothic::aiIsDlgFinished() {
   bool v=true;
   isDialogClose(v);
   return v;
+  }
+
+const FightAi::FA &Gothic::getFightAi(size_t i) const {
+  return fight->get(i);
   }
 
 void Gothic::printScreen(const char *msg, int x, int y, int time, const Tempest::Font &font) {

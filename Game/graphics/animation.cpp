@@ -172,6 +172,15 @@ float Animation::Sequence::totalTime() const {
   return numFrames*1000/fpsRate;
   }
 
+ZMath::float3 Animation::Sequence::translation(uint64_t dt) const {
+  float k = float(dt)/totalTime();
+  ZMath::float3 p = moveTr.position;
+  p.x*=k;
+  p.y*=k;
+  p.z*=k;
+  return p;
+  }
+
 ZMath::float3 Animation::Sequence::speed(uint64_t at,uint64_t dt) const {
   ZMath::float3 f={};
 
@@ -187,6 +196,11 @@ ZMath::float3 Animation::Sequence::translateXZ(uint64_t at) const {
   if(numFrames==0 || tr.size()==0) {
     ZMath::float3 n={};
     return n;
+    }
+  if(animCls==Transition && !isFly()){
+    uint64_t all=uint64_t(totalTime());
+    if(at>all)
+      at = all;
     }
 
   uint64_t fr     = uint64_t(fpsRate*at);

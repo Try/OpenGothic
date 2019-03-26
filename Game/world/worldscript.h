@@ -11,6 +11,7 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Painter>
 
+#include "game/fightai.h"
 #include "game/aistate.h"
 #include "game/questlog.h"
 
@@ -50,6 +51,8 @@ class WorldScript final {
     World&       world();
     uint64_t     tickCount() const;
 
+    uint32_t     rand(uint32_t max);
+
     Npc*       inserNpc(const char* npcInstance,const char *at);
     void       removeItem(Item& it);
 
@@ -64,6 +67,7 @@ class WorldScript final {
     const Daedalus::GEngineClasses::C_Focus&          focusRange() const { return cFocusRange; }
     const Daedalus::GEngineClasses::C_Focus&          focusMage()  const { return cFocusMage;  }
     const Daedalus::GEngineClasses::C_GilValues&      guildVal()   const { return cGuildVal;   }
+    const FightAi::FA&                                getFightAi(size_t i) const;
 
     Daedalus::GameState::DaedalusGameState&           getGameState();
     Daedalus::PARSymbol&                              getSymbol(const char*  s);
@@ -161,6 +165,7 @@ class WorldScript final {
     void wld_ismobavailable   (Daedalus::DaedalusVM& vm);
     void wld_setmobroutine    (Daedalus::DaedalusVM& vm);
     void wld_assignroomtoguild(Daedalus::DaedalusVM& vm);
+    void wld_detectnpc        (Daedalus::DaedalusVM& vm);
 
     void mdl_setvisual       (Daedalus::DaedalusVM& vm);
     void mdl_setvisualbody   (Daedalus::DaedalusVM& vm);

@@ -415,9 +415,11 @@ class Npc final {
     void     setTarget(Npc* t);
     Npc*     target();
 
+    void     setOther(Npc* ot);
+
     bool     haveOutput() const;
 
-    void     doAttack(Anim anim);
+    bool doAttack(Anim anim);
 
   private:
     struct Routine final {
@@ -497,12 +499,14 @@ class Npc final {
     gtime                          endTime(const Routine& r) const;
 
     bool                           implLookAt (uint64_t dt);
-    bool                           implLookAt (float dx, float dz, uint64_t dt);
+    bool                           implLookAt (float dx, float dz, bool anim, uint64_t dt);
     bool                           implGoTo   (uint64_t dt);
     bool                           implAtack  (uint64_t dt);
     void                           tickRoutine();
     void                           nextAiAction(uint64_t dt);
     bool                           setAnim(Npc::Anim a, WeaponState st0, WeaponState st);
+    void                           commitDamage();
+    void                           takeDamage(Npc& other);
 
     WorldScript&                   owner;
     Daedalus::GEngineClasses::C_Npc* hnpc;
@@ -563,4 +567,5 @@ class Npc final {
 
     MoveAlgo                       mvAlgo;
     FightAlgo                      fghAlgo;
+    uint64_t                       fghWaitToDamage=0;
   };

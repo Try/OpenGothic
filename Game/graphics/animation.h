@@ -49,6 +49,7 @@ class Animation final {
       std::vector<ZenLoad::zCModelScriptEventSfx> sfx;
       std::vector<ZenLoad::zCModelScriptEventTag> tag;
 
+      ZMath::float3                          translation(uint64_t dt) const;
       ZMath::float3                          speed(uint64_t at, uint64_t dt) const;
       ZMath::float3                          translateXZ(uint64_t at) const;
 

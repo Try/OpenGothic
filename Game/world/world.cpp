@@ -291,6 +291,10 @@ const WayPoint *World::findNextPoint(const WayPoint &pos) const {
   return wmatrix->findNextPoint(pos.x,pos.y,pos.z);
   }
 
+void World::detectNpc(const float x, const float y, const float z, std::function<void(Npc&)> f) {
+  wobj.detectNpc(x,y,z,f);
+  }
+
 WayPath World::wayTo(const Npc &pos, const WayPoint &end) const {
   auto p     = pos.position();
   auto point = pos.currentWayPoint();

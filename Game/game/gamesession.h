@@ -51,6 +51,8 @@ class GameSession final {
     void         printScreen(const char *msg, int x, int y, int time, const Tempest::Font &font);
     void         print(const char *msg);
 
+    const FightAi::FA& getFightAi(size_t i) const;
+
   private:
     void         initScripts(bool firstTime);
 

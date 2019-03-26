@@ -567,7 +567,7 @@ bool Npc::implLookAt(uint64_t dt) {
   if(currentTurnTo!=nullptr){
     auto dx = currentTurnTo->x-x;
     auto dz = currentTurnTo->z-z;
-    if(implLookAt(dx,dz,dt))
+    if(implLookAt(dx,dz,true,dt))
       return true;
     currentTurnTo=nullptr;
     return false;
@@ -575,7 +575,7 @@ bool Npc::implLookAt(uint64_t dt) {
   if(currentLookAt!=nullptr) {
     auto dx = currentLookAt->x-x;
     auto dz = currentLookAt->z-z;
-    if(implLookAt(dx,dz,dt))
+    if(implLookAt(dx,dz,true,dt))
       return true;
     currentLookAt=nullptr;
     return false;
@@ -583,7 +583,7 @@ bool Npc::implLookAt(uint64_t dt) {
   return false;
   }
 
-bool Npc::implLookAt(float dx, float dz, uint64_t dt) {
+bool Npc::implLookAt(float dx, float dz, bool anim, uint64_t dt) {
   auto  gl   = std::min<uint32_t>(guild(),GIL_MAX);
   float step = owner.guildVal().turn_speed[gl]*(dt/1000.f);
 
@@ -605,11 +605,17 @@ bool Npc::implLookAt(float dx, float dz, uint64_t dt) {
     }
 
   const auto sgn = std::sin(double(da)*M_PI/180.0);
-  if(sgn<0) {
-    if(setAnim(Anim::RotR))
-      setDirection(angle-step);
+  if(anim) {
+    if(sgn<0) {
+      if(setAnim(Anim::RotR))
+        setDirection(angle-step);
+      } else {
+      if(setAnim(Anim::RotL))
+        setDirection(angle+step);
+      }
     } else {
-    if(setAnim(Anim::RotL))
+    if(sgn<0)
+      setDirection(angle-step); else
       setDirection(angle+step);
     }
   return true;
@@ -624,7 +630,7 @@ bool Npc::implGoTo(uint64_t dt) {
     //float dy = y-currentGoTo->position.y;
     float dz = currentGoTo->z-z;
 
-    if(implLookAt(dx,dz,dt)){
+    if(implLookAt(dx,dz,true,dt)){
       mvAlgo.aiGoTo(nullptr);
       return true;
       }
@@ -645,7 +651,7 @@ bool Npc::implGoTo(uint64_t dt) {
     //float dy = y-currentGoTo->position.y;
     float dz = currentGoToNpc->z-z;
 
-    if(implLookAt(dx,dz,dt))
+    if(implLookAt(dx,dz,true,dt))
       return true;
     if(!mvAlgo.aiGoTo(currentGoToNpc,400)) {
       currentGoToNpc=nullptr;
@@ -662,8 +668,11 @@ bool Npc::implAtack(uint64_t dt) {
   float dx = currentTarget->x-x;
   float dz = currentTarget->z-z;
 
-  if(implLookAt(dx,dz,dt))
-    return true;
+  auto ani = anim();
+  if(ani!=Anim::Atack && ani!=Anim::AtackBlock){
+    if(implLookAt(dx,dz,false,dt))
+      return true;
+    }
 
   if(owner.isDead(*currentTarget)) {
     currentTarget=nullptr;
@@ -674,21 +683,106 @@ bool Npc::implAtack(uint64_t dt) {
   if(currentTarget!=nullptr)
     act=fghAlgo.tick(*this,*currentTarget,owner,dt);
 
-  if(act==FightAlgo::MV_ATACK) {
-    doAttack(Anim::Atack);
+  if(act==FightAlgo::MV_BLOCK) {
+    if(setAnim(Anim::AtackBlock))
+      fghAlgo.consumeAction();
     return true;
     }
 
-  if(!mvAlgo.aiGoTo(currentTarget,fghAlgo.prefferedAtackDistance(*this,*currentTarget,owner))) {
-    setAnim(AnimationSolver::Idle);
-    } else {
-    setAnim(AnimationSolver::Move);
+  if(act==FightAlgo::MV_ATACK) {
+    if(doAttack(Anim::Atack))
+      fghAlgo.consumeAction();
+    return true;
     }
+
+  if(act==FightAlgo::MV_ATACKL) {
+    if(doAttack(Anim::AtackL))
+      fghAlgo.consumeAction();
+    return true;
+    }
+
+  if(act==FightAlgo::MV_ATACKR) {
+    if(doAttack(Anim::AtackR))
+      fghAlgo.consumeAction();
+    return true;
+    }
+
+  if(act==FightAlgo::MV_STRAFEL) {
+    if(setAnim(Npc::Anim::MoveL))
+      fghAlgo.consumeAction();
+    return true;
+    }
+
+  if(act==FightAlgo::MV_STRAFER) {
+    if(setAnim(Npc::Anim::MoveR))
+      fghAlgo.consumeAction();
+    return true;
+    }
+
+  if(act==FightAlgo::MV_JUMPBACK) {
+    if(setAnim(Npc::Anim::MoveBack))
+      fghAlgo.consumeAction();
+    return true;
+    }
+
+  if(act==FightAlgo::MV_NULL) {
+    fghAlgo.consumeAction();
+    return true;
+    }
+
+  if(act==FightAlgo::MV_MOVE) {
+    fghAlgo.consumeAction();
+    if(!mvAlgo.aiGoTo(currentTarget,fghAlgo.prefferedAtackDistance(*this,*currentTarget,owner))) {
+      setAnim(AnimationSolver::Idle);
+      }
+    }
+
   return true;
+  }
+
+void Npc::commitDamage() {
+  fghWaitToDamage = uint64_t(-1);
+  if(currentTarget==nullptr)
+    return;
+
+  auto ani = anim();
+  if(ani!=Anim::Atack && ani!=Anim::AtackL && ani!=Anim::AtackR)
+    return;
+
+  if(!fghAlgo.isInAtackRange(*this,*currentTarget,owner))
+    return;
+  currentTarget->takeDamage(*this);
+  }
+
+void Npc::takeDamage(Npc &other) {
+  if(isDead())
+    return;
+
+  currentOther=&other;
+  perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
+
+  auto ani=anim();
+  if(ani!=Anim::MoveBack && ani!=Anim::AtackBlock) {
+    lastHit = &other;
+    fghAlgo.onTakeHit();
+    if(!isPlayer())
+      currentOther=lastHit;
+    changeAttribute(ATR_HITPOINTS,isPlayer() ? 1 : -100);
+
+    if(ani==Anim::Move  || ani==Anim::MoveL  || ani==Anim::MoveR ||
+       ani==Anim::Atack || ani==Anim::AtackL || ani==Anim::AtackR ||
+       ani<Anim::IdleLast || (Anim::MagFirst<=ani && ani<=Anim::MagLast )) {
+      animation.resetAni();
+      }
+    if(lastHitType=='A')
+      setAnim(Anim::StumbleA); else
+      setAnim(Anim::StumbleB);
+    }
   }
 
 void Npc::tick(uint64_t dt) {
   if(!checkHealth(false)){
+    fghWaitToDamage = uint64_t(-1);
     mvAlgo.aiGoTo(nullptr);
     currentOther = lastHit;
     mvAlgo.tick(dt);
@@ -696,6 +790,9 @@ void Npc::tick(uint64_t dt) {
     tickRoutine(); // tick for ZS_Death
     return;
     }
+
+  if(fghWaitToDamage<owner.tickCount())
+    commitDamage();
 
   // do parallel?
   mvAlgo.tick(dt);
@@ -891,7 +988,7 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_AlignToFp:{
       if(auto fp = currentFp){
         if(fp->dirX!=0 || fp->dirZ!=0){
-          if(implLookAt(fp->dirX,fp->dirZ,dt))
+          if(implLookAt(fp->dirX,fp->dirZ,true,dt))
             aiActions.push_front(std::move(act));
           }
         }
@@ -988,6 +1085,10 @@ Npc *Npc::target() {
   return currentTarget;
   }
 
+void Npc::setOther(Npc *ot) {
+  currentOther = ot;
+  }
+
 bool Npc::haveOutput() const {
   for(auto& i:aiActions)
     if(i.act==AI_Output)
@@ -995,45 +1096,25 @@ bool Npc::haveOutput() const {
   return false;
   }
 
-void Npc::doAttack(Anim anim) {
+bool Npc::doAttack(Anim anim) {
   auto weaponSt=invent.weaponState();
   auto weapon  =invent.activeWeapon();
 
   if(weaponSt==WeaponState::NoWeapon)
-    return;
+    return false;
 
   if(weaponSt==WeaponState::Mage && weapon!=nullptr)
     anim=Anim(owner.spellCastAnim(*this,*weapon));
 
-  if(!currentTarget || !fghAlgo.isInAtackRange(*this,*currentTarget,owner)){
-    setAnim(anim,weaponSt,weaponSt);
-    return;
-    }
-
   if(animation.current==anim){
-    setAnim(Anim::Idle,weaponSt,weaponSt);
+    return setAnim(Anim::Idle,weaponSt,weaponSt);
     }
-  else if(setAnim(anim,weaponSt,weaponSt)){
-    currentTarget->currentOther=this;
-    currentTarget->perceptionProcess(*this,currentTarget,0,PERC_ASSESSDAMAGE);
 
-    auto ani=currentTarget->anim();
-    if(ani!=Anim::MoveBack && ani!=Anim::AtackBlock) {
-      currentTarget->lastHit = this;
-      if(!currentTarget->isPlayer())
-        currentTarget->currentOther=currentTarget->lastHit;
-      currentTarget->changeAttribute(ATR_HITPOINTS,currentTarget->isPlayer() ? 1 : -100);
-
-      if(ani==Anim::Move  || ani==Anim::MoveL  || ani==Anim::MoveR ||
-         ani==Anim::Atack || ani==Anim::AtackL || ani==Anim::AtackR ||
-         ani<Anim::IdleLast || (Anim::MagFirst<=ani && ani<=Anim::MagLast )) {
-        currentTarget->animation.resetAni();
-        }
-      if(currentTarget->lastHitType=='A')
-        currentTarget->setAnim(Anim::StumbleA); else
-        currentTarget->setAnim(Anim::StumbleB);
-      }
+  if(setAnim(anim,weaponSt,weaponSt)){
+    fghWaitToDamage = 800;
+    return true;
     }
+  return false;
   }
 
 const Npc::Routine& Npc::currentRoutine() const {
@@ -1151,7 +1232,7 @@ Item *Npc::currentRangeWeapon() {
   }
 
 bool Npc::lookAt(float dx, float dz, uint64_t dt) {
-  return implLookAt(dx,dz,dt);
+  return implLookAt(dx,dz,true,dt);
   }
 
 bool Npc::checkGoToNpcdistance(const Npc &other) {
@@ -1362,6 +1443,7 @@ void Npc::setPerceptionDisable(Npc::PercType t) {
   }
 
 void Npc::startDialog(Npc& pl) {
+  currentOther=&pl;
   perceptionProcess(pl,nullptr,0,PERC_ASSESSTALK);
   }
 
@@ -1387,8 +1469,8 @@ bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType 
   float r = hnpc->senses_range;
   r = r*r;
   if(quadDist<r && perception[perc].func){
-    currentOther=&pl;
-    owner.invokeState(this,currentOther,victum,perception[perc].func);
+    owner.invokeState(this,&pl,victum,perception[perc].func);
+    //currentOther=&pl;
     return true;
     }
   perceptionNextTime=owner.tickCount()+perceptionTime;
@@ -1825,3 +1907,4 @@ void Npc::setPos(const Matrix4x4 &m) {
 bool Npc::setAnim(Npc::Anim a, WeaponState st0, WeaponState st) {
   return animation.setAnim(a,owner.tickCount(),st0,st,wlkMode,currentInteract,owner.world());
   }
+

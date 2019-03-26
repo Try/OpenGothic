@@ -80,6 +80,11 @@ void WorldObjects::updateAnimation() {
     });
   }
 
+void WorldObjects::detectNpc(const float x, const float y, const float z, std::function<void (Npc &)> f) {
+  for(auto& i:npcArr)
+    f(*i);
+  }
+
 void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {
   if(vob.vobType==ZenLoad::zCVobData::VT_zCMover){
     triggersMv.emplace_back(std::move(vob),owner);

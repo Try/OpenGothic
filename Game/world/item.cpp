@@ -73,6 +73,10 @@ int32_t Item::spellId() const {
   return hitem->spell;
   }
 
+int32_t Item::swordLength() const {
+  return hitem->range;
+  }
+
 const char *Item::uiText(size_t id) const {
   return hitem->text[id].c_str();
   }

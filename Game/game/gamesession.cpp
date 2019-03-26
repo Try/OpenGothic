@@ -21,8 +21,8 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
   vm->initDialogs(gothic);
   loadProgress(70);
 
-  const char* hero="PC_HERO";
-  //const char* hero="PC_ROCKEFELLER";
+  //const char* hero="PC_HERO";
+  const char* hero="PC_ROCKEFELLER";
   //const char* hero="Giant_Bug";
   wrld->createPlayer(hero);
 
@@ -130,6 +130,10 @@ void GameSession::printScreen(const char *msg, int x, int y, int time, const Tem
 
 void GameSession::print(const char *msg) {
   gothic.print(msg);
+  }
+
+const FightAi::FA &GameSession::getFightAi(size_t i) const {
+  return gothic.getFightAi(i);
   }
 
 void GameSession::initScripts(bool firstTime) {

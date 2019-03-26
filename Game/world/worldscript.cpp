@@ -88,6 +88,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("wld_setmobroutine",   [this](Daedalus::DaedalusVM& vm){ wld_setmobroutine(vm);        });
   vm.registerExternalFunction("wld_assignroomtoguild",
                                                      [this](Daedalus::DaedalusVM& vm){ wld_assignroomtoguild(vm);    });
+  vm.registerExternalFunction("wld_detectnpc",       [this](Daedalus::DaedalusVM& vm){ wld_detectnpc(vm);            });
 
   vm.registerExternalFunction("mdl_setvisual",       [this](Daedalus::DaedalusVM& vm){ mdl_setvisual(vm);        });
   vm.registerExternalFunction("mdl_setvisualbody",   [this](Daedalus::DaedalusVM& vm){ mdl_setvisualbody(vm);    });
@@ -246,7 +247,7 @@ void WorldScript::initCommon() {
 
   auto& currency  = vm.getDATFile().getSymbolByName("TRADE_CURRENCY_INSTANCE");
   itMi_Gold       = vm.getDATFile().getSymbolIndexByName(currency.getString(0).c_str());
-  if(itMi_Gold>0){ // FIXME
+  if(itMi_Gold!=size_t(-1)){ // FIXME
     Daedalus::GEngineClasses::C_Item item={};
     vm.initializeInstance(&item, itMi_Gold, Daedalus::IC_Item);
     goldTxt = cp1251::toUtf8(item.name);
@@ -274,7 +275,7 @@ void WorldScript::initCommon() {
       }
 
   auto id = vm.getDATFile().getSymbolIndexByName("Gil_Values");
-  if(id!=0){
+  if(id!=size_t(-1)){
     vm.initializeInstance(&cGuildVal, id, Daedalus::IC_GilValues);
     for(size_t i=0;i<Guild::GIL_PUBLIC;++i){
       cGuildVal.water_depth_knee   [i]=cGuildVal.water_depth_knee   [Guild::GIL_HUMAN];
@@ -365,7 +366,7 @@ World &WorldScript::world() {
 Daedalus::GEngineClasses::C_Focus WorldScript::getFocus(const char *name) {
   Daedalus::GEngineClasses::C_Focus ret={};
   auto id = vm.getDATFile().getSymbolIndexByName(name);
-  if(id==0)
+  if(id==size_t(-1))
     return ret;
   vm.initializeInstance(&ret, id, Daedalus::IC_Focus);
   return ret;
@@ -746,6 +747,10 @@ uint64_t WorldScript::tickCount() const {
   return owner.tickCount();
   }
 
+uint32_t WorldScript::rand(uint32_t max) {
+  return randGen()%max;
+  }
+
 template<class Ret,class ... Args>
 std::function<Ret(Args...)> WorldScript::notImplementedFn(){
   struct _{
@@ -826,6 +831,10 @@ void WorldScript::removeItem(Item &it) {
 void WorldScript::setInstanceNPC(const char *name, Npc &npc) {
   assert(vm.getDATFile().hasSymbolName(name));
   vm.setInstance(name,npc.handle(),Daedalus::EInstanceClass::IC_Npc);
+  }
+
+const FightAi::FA &WorldScript::getFightAi(size_t i) const {
+  return owner.getFightAi(i);
   }
 
 Npc* WorldScript::inserNpc(size_t npcInstance, const char* at) {
@@ -1030,6 +1039,35 @@ void WorldScript::wld_assignroomtoguild(Daedalus::DaedalusVM &vm) {
   auto& name = popString(vm);
   notImplementedFn<&WorldScript::wld_assignroomtoguild>("wld_assignroomtoguild");
   //Log::i("TODO: wld_assignroomtoguild(",name,",",g,")");
+  }
+
+void WorldScript::wld_detectnpc(Daedalus::DaedalusVM &vm) {
+  int   guild  = vm.popInt();
+  int   state  = vm.popInt();
+  int   inst   = vm.popInt();
+  auto  npc    = popInstance(vm);
+  if(npc==nullptr) {
+    vm.setReturn(0);
+    return;
+    }
+  Npc*  ret =nullptr;
+  float dist=std::numeric_limits<float>::max();
+
+  world().detectNpc(0,0,0, [inst,state,guild,&ret,&dist,npc](Npc& n){
+    if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
+       (state==-1 || n.isState(uint32_t(state))) &&
+       (guild==-1 || int32_t(n.guild())==guild) &&
+       (&n!=npc)) {
+      float d = n.qDistTo(*npc);
+      if(d<dist){
+        ret = &n;
+        dist = d;
+        }
+      }
+    });
+  if(ret)
+    npc->setOther(ret);
+  vm.setReturn(ret ? 1 : 0);
   }
 
 void WorldScript::mdl_setvisual(Daedalus::DaedalusVM &vm) {

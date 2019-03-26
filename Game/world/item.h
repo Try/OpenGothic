@@ -39,6 +39,7 @@ class Item final {
     bool                is2H() const;
     bool                isCrossbow() const;
     int32_t             spellId() const;
+    int32_t             swordLength() const;
 
     const char*         uiText (size_t id) const;
     int32_t             uiValue(size_t id) const;

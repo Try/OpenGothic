@@ -306,6 +306,9 @@ bool DynamicWorld::hasCollision(const Item& it,std::array<float,3>& normal) {
 void DynamicWorld::rayTest(const btVector3 &s,
                            const btVector3 &e,
                            btCollisionWorld::RayResultCallback &callback) const {
+  if(s==e)
+    return;
+
   if(1){
     world->rayTest(s,e,callback);
     } else {
