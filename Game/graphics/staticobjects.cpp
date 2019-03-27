@@ -204,13 +204,6 @@ void StaticObjects::Mesh::setSkeleton(const Pose &p,const Tempest::Matrix4x4& ob
     }
   }
 
-float StaticObjects::Mesh::bboxHeight() const {
-  if(ani) {
-    return ani->bboxCol[1].y-ani->bboxCol[0].y;
-    }
-  return 0;
-  }
-
 void StaticObjects::Mesh::setObjMatrix(const Tempest::Matrix4x4 &mt) {
   if(ani!=nullptr){
     auto mat=mt;

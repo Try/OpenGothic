@@ -18,7 +18,7 @@
 
 #include <cmath>
 
-const float DynamicWorld::ghostPadding=50;
+const float DynamicWorld::ghostPadding=50-22.5f;
 const float DynamicWorld::ghostHeight =140;
 const float DynamicWorld::worldHeight =20000;
 
@@ -208,8 +208,12 @@ std::unique_ptr<btRigidBody> DynamicWorld::landObj() {
   return obj;
   }
 
-DynamicWorld::Item DynamicWorld::ghostObj(float r,float height) {
-  btCollisionShape*  shape = new HumShape(r*0.5f,(ghostHeight-ghostPadding)*0.5f);
+DynamicWorld::Item DynamicWorld::ghostObj(float dim,float height) {
+  // r      = 45; //hum
+  // height = 140
+  if(dim>45)
+    dim=45;
+  btCollisionShape*  shape = new HumShape(dim*0.5f,std::max(height-ghostPadding-dim,0.f)*0.5f);
   btRigidBody*       obj   = new btRigidBody(0,nullptr,shape);//new btGhostObject();
   obj->setCollisionShape(shape);
 
@@ -222,7 +226,7 @@ DynamicWorld::Item DynamicWorld::ghostObj(float r,float height) {
   //obj->setCollisionFlags(btCollisionObject::CO_GHOST_OBJECT | btCollisionObject::CO_RIGID_BODY);
 
   world->addCollisionObject(obj);
-  return Item(this,obj);
+  return Item(this,obj,height,dim*0.5f);
   }
 
 DynamicWorld::Item DynamicWorld::staticObj(const PhysicMeshShape *shape, const Tempest::Matrix4x4 &m) {
@@ -245,23 +249,32 @@ DynamicWorld::Item DynamicWorld::staticObj(const PhysicMeshShape *shape, const T
   obj->setWorldTransform(trans);
 
   world->addCollisionObject(obj.get());
-  return Item(this,obj.release());
+  return Item(this,obj.release(),0,0);
   }
 
 void DynamicWorld::tick(uint64_t /*dt*/) {
   //world->updateAabbs();
   for(auto& i:dirtyAabb)
-    world->updateSingleAabb(i);
+    ;//world->updateSingleAabb(i);
   dirtyAabb.clear();
   }
 
 void DynamicWorld::updateSingleAabb(btCollisionObject *obj) {
-  dirtyAabb.push_back(obj);
+  //dirtyAabb.push_back(obj);
+  world->updateSingleAabb(obj);
   }
 
 void DynamicWorld::deleteObj(btCollisionObject *obj) {
   if(!obj)
     return;
+  for(size_t i=0;i<dirtyAabb.size();){
+    if(dirtyAabb[i]==obj){
+      dirtyAabb[i] = dirtyAabb.back();
+      dirtyAabb.pop_back();
+      } else {
+      ++i;
+      }
+    }
   world->removeCollisionObject(obj);
   delete obj;
   }
@@ -334,7 +347,8 @@ void DynamicWorld::Item::setPosition(float x, float y, float z) {
 void DynamicWorld::Item::implSetPosition(float x, float y, float z) {
   btTransform trans;
   trans.setIdentity();
-  trans.setOrigin(btVector3(x,y+(ghostHeight-ghostPadding)*0.5f+ghostPadding,z));
+  trans.setOrigin(btVector3(x,y+(height-r-ghostPadding)*0.5f+r+ghostPadding,z));
+  // trans.setOrigin(btVector3(x,y+(ghostHeight-ghostPadding)*0.5f+ghostPadding,z));
   obj->setWorldTransform(trans);
   }
 
@@ -407,7 +421,7 @@ bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos, std::array<floa
     fallback[2] = pos[2] + norm[2]*speed;
     }
   obj->setWorldTransform(tr);
-  return !ret;
+  return false;
   }
 
 bool DynamicWorld::Item::hasCollision() const {

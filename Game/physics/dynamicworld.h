@@ -37,13 +37,15 @@ class DynamicWorld final {
     struct Item {
       public:
         Item()=default;
-        Item(DynamicWorld* owner,btCollisionObject* obj):owner(owner),obj(obj){}
-        Item(Item&& it):owner(it.owner),obj(it.obj){it.obj=nullptr;}
+        Item(DynamicWorld* owner,btCollisionObject* obj,float h,float r):owner(owner),obj(obj),height(h),r(r){}
+        Item(Item&& it):owner(it.owner),obj(it.obj),height(it.height),r(it.r){it.obj=nullptr;}
         ~Item() { if(owner) owner->deleteObj(obj); }
 
         Item& operator = (Item&& it){
           std::swap(owner,it.owner);
           std::swap(obj,it.obj);
+          std::swap(height,it.height);
+          std::swap(r,it.r);
           return *this;
           }
 
@@ -57,8 +59,10 @@ class DynamicWorld final {
         bool hasCollision() const;
 
       private:
-        DynamicWorld*       owner=nullptr;
-        btCollisionObject*  obj  =nullptr;
+        DynamicWorld*       owner  = nullptr;
+        btCollisionObject*  obj    = nullptr;
+        float               height = 0.f;
+        float               r      = 0.f;
         void implSetPosition(float x,float y,float z);
 
       friend class DynamicWorld;
@@ -73,7 +77,7 @@ class DynamicWorld final {
     std::array<float,3> ray(float x0, float y0, float z0,
                             float x1, float y1,float z1,bool& hasCol) const;
 
-    Item ghostObj (float r, float height);
+    Item ghostObj (float dim, float height);
     Item staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
 
     void tick(uint64_t dt);

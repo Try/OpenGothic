@@ -79,10 +79,6 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library) {
     ZenLoad::PackedSkeletalMesh pack;
     auto& mesh = library.getMeshes()[i];
     mesh.packMesh(pack,1.f);
-
-    mesh.getAABBTotal(bboxCol[0],bboxCol[1]);
-    std::swap(bboxCol[0].x,bboxCol[0].y);
-    std::swap(bboxCol[1].x,bboxCol[1].y);
     skined.emplace_back(pack);
     }
 
@@ -125,10 +121,6 @@ ProtoMesh::ProtoMesh(const ZenLoad::PackedMesh &pm) {
   nodes.back().submeshIdB = 0;
   nodes.back().submeshIdE = submeshId.size();
   nodes.back().transform.identity();
-  }
-
-float ProtoMesh::colisionHeight() const {
-  return bboxCol[1].y-bboxCol[0].y;
   }
 
 size_t ProtoMesh::skinedNodesCount() const {

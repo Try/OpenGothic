@@ -256,7 +256,9 @@ const char *Npc::displayName() const {
   }
 
 std::array<float,3> Npc::displayPosition() const {
-  float h = std::max(animation.view.bboxHeight(),animation.armour.bboxHeight());
+  float h = 0;
+  if(animation.skeleton)
+    h = animation.skeleton->colisionHeight()*1.5f;
   return {{x,y+h,z}};
   }
 
@@ -801,8 +803,8 @@ void Npc::tick(uint64_t dt) {
   if(!checkHealth(false)){
     fghWaitToDamage = uint64_t(-1);
     mvAlgo.aiGoTo(nullptr);
-    currentOther = lastHit;
     mvAlgo.tick(dt);
+    currentOther = lastHit;
     aiActions.clear();
     tickRoutine(); // tick for ZS_Death
     return;
@@ -884,8 +886,8 @@ void Npc::nextAiAction(uint64_t dt) {
       }
     case AI_GoToPoint: {
       setInteraction(nullptr);
-      // TODO: check distance
-      wayPath         = owner.world().wayTo(*this,*act.point);
+      if(wayPath.last()!=act.point)
+        wayPath = owner.world().wayTo(*this,*act.point);
       currentGoTo     = wayPath.pop();
       currentFpLock   = FpLock(currentGoTo);
       currentGoToNpc  = nullptr;
@@ -1062,7 +1064,7 @@ void Npc::clearState(bool noFinalize) {
   }
 
 void Npc::tickRoutine() {
-  if(aiState.funcIni==0) {
+  if(aiState.funcIni==0 && !isPlayer()) {
     auto& v = *hnpc;
     auto  r = currentRoutine();
     if(r.callback!=0) {
@@ -1135,7 +1137,7 @@ bool Npc::doAttack(Anim anim) {
     }
 
   if(fghWaitToDamage==uint64_t(-1) && setAnim(anim,weaponSt,weaponSt)){
-    fghWaitToDamage = owner.tickCount()+200;
+    fghWaitToDamage = owner.tickCount()+400;
     return true;
     }
   return false;

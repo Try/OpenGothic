@@ -7,6 +7,9 @@ using namespace Tempest;
 
 Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src, std::string meshLib)
   :meshLib(std::move(meshLib)){
+  bboxCol[0] = src.getBBoxCollisionMin();
+  bboxCol[1] = src.getBBoxCollisionMax();
+
   nodes.resize(src.getNodes().size());
   tr.resize(src.getNodes().size());
 
@@ -66,6 +69,16 @@ const Animation::Sequence* Skeleton::sequence(const char *name) const {
 void Skeleton::debug() const {
   if(anim)
     anim->debug();
+  }
+
+float Skeleton::colisionHeight() const {
+  return std::fabs(bboxCol[1].y-bboxCol[0].y);
+  }
+
+float Skeleton::colisionRadius() const {
+  float x = std::fabs(bboxCol[1].x-bboxCol[0].x);
+  float y = std::fabs(bboxCol[1].z-bboxCol[0].z);
+  return std::max(x,y); //TODO
   }
 
 void Skeleton::mkSkeleton() {

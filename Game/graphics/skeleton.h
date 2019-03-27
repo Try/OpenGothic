@@ -23,11 +23,16 @@ class Skeleton final {
     std::vector<Tempest::Matrix4x4> tr;
     std::array<float,3>             rootTr={};
 
+    ZMath::float3                   bboxCol[2]={};
+
     size_t                          findNode(const char*        name,size_t def=size_t(-1)) const;
     size_t                          findNode(const std::string& name,size_t def=size_t(-1)) const;
 
     const Animation::Sequence*      sequence(const char* name) const;
     void                            debug() const;
+
+    float                           colisionHeight() const;
+    float                           colisionRadius() const;
 
   private:
     std::string      meshLib;
