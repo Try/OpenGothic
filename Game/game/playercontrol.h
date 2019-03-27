@@ -38,6 +38,7 @@ class PlayerControl final {
     void moveLeft();
     void moveRight();
 
+    void setTarget(Npc* other);
     void actionFocus(Npc& other);
     void actionForward();
     void actionLeft();

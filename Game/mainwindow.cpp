@@ -317,6 +317,9 @@ void MainWindow::tick() {
     }
 
   currentFocus = findFocus(mouseP[Event::ButtonLeft] ? &currentFocus : nullptr);
+  if(currentFocus.npc!=nullptr)
+    player.setTarget(currentFocus.npc);
+
   if(mouseP[Event::ButtonLeft]){
     auto focus = currentFocus;
     if(focus.interactive!=nullptr && player.interact(*focus.interactive)) {

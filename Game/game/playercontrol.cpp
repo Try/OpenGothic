@@ -139,6 +139,12 @@ void PlayerControl::moveRight() {
   ctrl[Right]=true;
   }
 
+void PlayerControl::setTarget(Npc *other) {
+  if(world==nullptr || world->player()==nullptr)
+    return;
+  world->player()->setTarget(other);
+  }
+
 void PlayerControl::actionForward() {
   ctrl[ActForward]=true;
   }
