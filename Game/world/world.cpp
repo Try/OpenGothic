@@ -3,6 +3,7 @@
 #include "gothic.h"
 #include "focus.h"
 #include "resources.h"
+#include "graphics/skeleton.h"
 
 #include <zenload/zCMesh.h>
 #include <fstream>
@@ -53,6 +54,10 @@ void World::createPlayer(const char *cls) {
     }
   }
 
+void World::postInit() {
+  // game.script()->inserNpc("Snapper",wmatrix->startPoint().name.c_str());
+  }
+
 StaticObjects::Mesh World::getView(const std::string &visual) const {
   return getView(visual,0,0,0);
   }
@@ -66,9 +71,9 @@ StaticObjects::Mesh World::getStaticView(const std::string &visual, int32_t tex)
   }
 
 DynamicWorld::Item World::getPhysic(const std::string& visual) {
-  if(auto mesh=Resources::loadMesh(visual))
-    return physic()->ghostObj(45,mesh->colisionHeight());
-  return physic()->ghostObj(45,140);
+  if(auto sk=Resources::loadSkeleton(visual))
+    return physic()->ghostObj(sk->colisionRadius(),sk->colisionHeight());
+  return physic()->ghostObj(45.f,140);
   }
 
 void World::updateAnimation() {
@@ -281,6 +286,15 @@ const WayPoint* World::findWayPoint(const std::array<float,3> &pos) const {
 
 const WayPoint* World::findWayPoint(float x, float y, float z) const {
   return wmatrix->findWayPoint(x,y,z);
+  }
+
+const WayPoint *World::findFreePoint(const Npc &npc, const char *name) const {
+  if(auto p = npc.currentWayPoint()){
+    if(p->name.find(name)!=std::string::npos) {
+      return p;
+      }
+    }
+  return findFreePoint(npc.position(),name);
   }
 
 const WayPoint *World::findFreePoint(const std::array<float,3> &pos,const char* name) const {

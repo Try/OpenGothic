@@ -997,7 +997,8 @@ void WorldScript::wld_isfpavailable(Daedalus::DaedalusVM &vm) {
     vm.setReturn(0);
     return;
     }
-  auto wp = world().findFreePoint(self->position(),name.c_str());
+
+  auto wp = world().findFreePoint(*self,name.c_str());
   vm.setReturn(wp ? 1 : 0);
   }
 
@@ -1078,6 +1079,7 @@ void WorldScript::mdl_setvisual(Daedalus::DaedalusVM &vm) {
 
   auto skelet = Resources::loadSkeleton (visual);
   npc->setVisual(skelet);
+  npc->setPhysic(world().getPhysic(visual));
   }
 
 void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
@@ -1097,7 +1099,7 @@ void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
   if(npc==nullptr)
     return;
 
-  npc->setPhysic(world().getPhysic(vname));
+  //npc->setPhysic(world().getPhysic(vname));
   npc->setVisualBody(std::move(vhead),std::move(vbody),bodyTexNr,bodyTexColor);
 
   if(armor>=0) {
@@ -1476,14 +1478,14 @@ void WorldScript::npc_isonfp(Daedalus::DaedalusVM &vm) {
     auto w = npc->currentWayPoint();
 
     if(w!=nullptr && w->name.find(val)!=std::string::npos) {
-      if(npc->qDistTo(w)<10*10){
+      if(MoveAlgo::isClose(npc->position(),*w)){
         vm.setReturn(1);
         return;
         }
       }
 
-    auto f = world().findFreePoint(npc->position(),val.c_str());
-    if(f!=nullptr && npc->qDistTo(f)<10*10){
+    auto f = world().findFreePoint(*npc,val.c_str());
+    if(f!=nullptr && MoveAlgo::isClose(npc->position(),*f)){
       vm.setReturn(1);
       } else {
       vm.setReturn(0);
@@ -1920,7 +1922,7 @@ void WorldScript::ai_gotofp(Daedalus::DaedalusVM &vm) {
   if(npc) {
     if(waypoint=="STAND")
       return; // bug with "NW_BIGFARM_HOUSE_OUT_03"
-    auto to = world().findFreePoint(npc->position(),waypoint.c_str());
+    auto to = world().findFreePoint(*npc,waypoint.c_str());
     if(to!=nullptr)
       npc->aiGoToPoint(*to);
     }

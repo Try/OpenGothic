@@ -16,3 +16,9 @@ const WayPoint *WayPath::pop() {
   dat.pop_back();
   return ret;
   }
+
+const WayPoint *WayPath::last() const {
+  if(dat.size()==0)
+    return nullptr;
+  return dat[0];
+  }

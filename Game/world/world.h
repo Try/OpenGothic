@@ -34,6 +34,7 @@ class World final {
     World(GameSession &gothic, const RendererStorage& storage, std::string file, uint8_t isG2, std::function<void(int)> loadProgress);
 
     void  createPlayer(const char* cls);
+    void  postInit();
     const std::string& name() const { return wname; }
 
     const WayPoint* findPoint(const std::string& s) const { return findPoint(s.c_str()); }
@@ -41,6 +42,7 @@ class World final {
     const WayPoint* findWayPoint(const std::array<float,3>& pos) const;
     const WayPoint* findWayPoint(float x,float y,float z) const;
 
+    const WayPoint* findFreePoint(const Npc& pos,const char* name) const;
     const WayPoint* findFreePoint(const std::array<float,3>& pos,const char* name) const;
     const WayPoint* findFreePoint(float x,float y,float z,const char* name) const;
 

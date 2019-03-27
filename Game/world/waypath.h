@@ -12,6 +12,7 @@ class WayPath final {
     void clear();
 
     const WayPoint* pop();
+    const WayPoint* last() const;
 
   private:
     std::vector<const WayPoint*> dat;

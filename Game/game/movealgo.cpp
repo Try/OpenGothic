@@ -48,9 +48,9 @@ void MoveAlgo::tick(uint64_t dt) {
     }
   else if(currentGoToNpc) {
     float dx  = currentGoToNpc->position()[0]-npc.position()[0];
-    float dy  = currentGoToNpc->position()[1]-npc.position()[1];
+    //float dy  = currentGoToNpc->position()[1]-npc.position()[1];
     float dz  = currentGoToNpc->position()[2]-npc.position()[2];
-    float len = (dx*dx+dy*dy+dz*dz);
+    float len = (dx*dx+dz*dz);
 
     if(npc.checkGoToNpcdistance(*currentGoToNpc)){
       currentGoToNpc=nullptr;
@@ -229,6 +229,7 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
   std::array<float,3> norm={};
   bool                fallAni  = false;
   bool                slideAni = false;
+  bool                grounded = false;
   bool                isWalk   = bool(npc.walkMode()&WalkBit::WM_Walk);
   float               timeK    = float(dt)/1000.f;
 
@@ -246,12 +247,32 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
     if(isWalk && !npc.isFlyAnim()){
       bool valid  = false;
       auto ground = world.physic()->dropRay(pos[0],oldY,pos[2],valid);
-      if(valid && oldY-ground>=fallThreshold)
-        pos = npc.position();
+      if(valid) {
+        if(ground>=oldY && ground<=oldY+fallThreshold){
+          pos[1]=ground;
+          grounded = true;
+          } else
+        if(oldY>ground && oldY<ground+fallThreshold){
+          pos[1]=ground;
+          grounded = true;
+          } else {
+          pos      = npc.position();
+          grounded = false;
+          onFailed = true;
+          }
+        }
+      } else {
+      bool valid = false;
+      auto ground = world.physic()->dropRay(pos[0],oldY,pos[2],valid);
+      if(valid && ground>oldY && ground<=oldY+fallThreshold && !npc.isFlyAnim()) {
+        pos[1]=ground;
+        grounded = true;
+        }
       }
     if(!npc.tryMove(pos,fb,speed*0.5f)) {
       pos[0]=npc.position()[0];
       pos[2]=npc.position()[2];
+      onFailed=true;
       if(pos[1]!=oldY) {
         if(!npc.tryMove(pos,fb,speed*0.5f)){
           pos=npc.position();
@@ -261,6 +282,11 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
       }
     if(onFailed)
       onMoveFailed();
+    }
+
+  if(grounded) {
+    setInAir(false);
+    return;
     }
 
   bool frozen=(npc.position()==pos && !isInAir());
