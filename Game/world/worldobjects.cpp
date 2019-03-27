@@ -165,17 +165,38 @@ void WorldObjects::addInteractive(const ZenLoad::zCVobData &vob) {
   interactiveObj.emplace_back(owner,vob);
   }
 
-Interactive* WorldObjects::findInteractive(const Npc &pl, const Matrix4x4 &v, int w, int h, const SearchOpt& opt) {
+Interactive* WorldObjects::validateInteractive(Interactive *def) {
+  return validateObj(interactiveObj,def);
+  }
+
+Npc *WorldObjects::validateNpc(Npc *def) {
+  return validateObj(npcArr,def);
+  }
+
+Item *WorldObjects::validateItem(Item *def) {
+  return validateObj(itemArr,def);
+  }
+
+Interactive* WorldObjects::findInteractive(const Npc &pl, Interactive* def, const Matrix4x4 &v, int w, int h, const SearchOpt& opt) {
+  def = validateInteractive(def);
+  if(def && testObjRange(*def,pl,opt))
+    return def;
   auto r = findObj(interactiveObj,pl,v,w,h,opt);
   return r;
   }
 
-Npc* WorldObjects::findNpc(const Npc &pl, const Matrix4x4 &v, int w, int h, const SearchOpt& opt) {
+Npc* WorldObjects::findNpc(const Npc &pl, Npc *def, const Matrix4x4 &v, int w, int h, const SearchOpt& opt) {
+  def = validateNpc(def);
+  if(def && testObjRange(*def,pl,opt))
+    return def;
   auto r = findObj(npcArr,pl,v,w,h,opt);
   return r ? r->get() : nullptr;
   }
 
-Item *WorldObjects::findItem(const Npc &pl, const Matrix4x4 &v, int w, int h, const SearchOpt& opt) {
+Item *WorldObjects::findItem(const Npc &pl, Item *def, const Matrix4x4 &v, int w, int h, const SearchOpt& opt) {
+  def = validateObj(itemArr,def);
+  if(def && testObjRange(*def,pl,opt))
+    return def;
   auto r = findObj(itemArr,pl,v,w,h,opt);
   return r ? r->get() : nullptr;
   }
@@ -283,55 +304,97 @@ static bool canSee(const Npc& pl,const Item& n){
   }
 
 template<class T>
-auto WorldObjects::findObj(T &src,const Npc &pl, const Matrix4x4 &v,
+auto WorldObjects::findObj(T &src,const Npc &pl, const Matrix4x4 &mvp,
                            int w, int h,const SearchOpt& opt) -> typename std::remove_reference<decltype(src[0])>::type* {
   typename std::remove_reference<decltype(src[0])>::type* ret=nullptr;
-  float rlen = opt.rangeMax*opt.rangeMax;//w*h;
+  float rlen = opt.rangeMax*opt.rangeMax;
   if(owner.view()==nullptr)
     return nullptr;
 
-  auto        mvp  = owner.view()->viewProj(v);
-  const float qmax = opt.rangeMax*opt.rangeMax;
-  const float qmin = opt.rangeMin*opt.rangeMin;
-
-  const float ang   = float(std::cos(double(opt.azi)*M_PI/180.0));
-  const float plAng = pl.rotationRad()+float(M_PI/2);
-
   for(auto& n:src){
-    auto& npc=deref(n);
-    if(reinterpret_cast<void*>(&npc)==reinterpret_cast<const void*>(&pl))
-      continue;
-    if(!checkFlag(npc,opt.flags))
-      continue;
-    auto m = mvp;
-
-    auto pos = npc.position();
-    float dx=pl.position()[0]-pos[0];
-    float dy=pl.position()[1]-pos[1];
-    float dz=pl.position()[2]-pos[2];
-
-    float l = (dx*dx+dy*dy+dz*dz);
-    if(l>qmax || l<qmin)
-      continue;
-
-    auto angle=std::atan2(dz,dx);
-    if(std::cos(plAng-angle)<ang)
-      continue;
-
-    float x=npc.position()[0],y=npc.position()[1],z=npc.position()[2];
-    m.project(x,y,z);
-
-    if(z<0.f || z>1.f)
-      continue;
-
-    x = 0.5f*x*w;
-    y = 0.5f*y*h;
-
-    l = std::sqrt(dx*dx+dy*dy+dz*dz);
-    if(l<rlen && canSee(pl,npc)){
-      rlen=l;
+    float nlen = rlen;
+    if(testObj(n,pl,mvp,w,h,opt,nlen)){
+      rlen = nlen;
       ret=&n;
       }
     }
   return ret;
+  }
+
+template<class T>
+bool WorldObjects::testObjRange(T &src, const Npc &pl, const WorldObjects::SearchOpt &opt) {
+  float rlen = opt.rangeMax*opt.rangeMax;
+  return testObjRange(src,pl,opt,rlen);
+  }
+
+template<class T>
+bool WorldObjects::testObjRange(T &src, const Npc &pl, const WorldObjects::SearchOpt &opt,float& rlen){
+  const float qmax  = opt.rangeMax*opt.rangeMax;
+  const float qmin  = opt.rangeMin*opt.rangeMin;
+  const float plAng = pl.rotationRad()+float(M_PI/2);
+  const float ang   = float(std::cos(double(opt.azi)*M_PI/180.0));
+
+  auto& npc=deref(src);
+  if(reinterpret_cast<void*>(&npc)==reinterpret_cast<const void*>(&pl))
+    return false;
+
+  if(!checkFlag(npc,opt.flags))
+    return false;
+
+  auto pos = npc.position();
+  float dx=pl.position()[0]-pos[0];
+  float dy=pl.position()[1]-pos[1];
+  float dz=pl.position()[2]-pos[2];
+
+  float l = (dx*dx+dy*dy+dz*dz);
+  if(l>qmax || l<qmin)
+    return false;
+
+  auto angle=std::atan2(dz,dx);
+  if(std::cos(plAng-angle)<ang)
+    return false;
+
+  l = std::sqrt(dx*dx+dy*dy+dz*dz);
+  if(l<rlen && canSee(pl,npc)){
+    rlen=l;
+    return true;
+    }
+  return false;
+  }
+
+template<class T>
+bool WorldObjects::testObj(T &src, const Npc &pl, const Matrix4x4 &mvp,
+                           int w, int h, const WorldObjects::SearchOpt &opt,float& rlen) {
+  float l=rlen;
+  if(!testObjRange(src,pl,opt,l))
+    return false;
+
+  auto& npc = deref(src);
+  auto  pos = npc.position();
+  float x   = pos[0],y=pos[1],z=pos[2];
+  mvp.project(x,y,z);
+
+  if(z<0.f || z>1.f)
+    return false;
+
+  x = 0.5f*x*w;
+  y = 0.5f*y*h;
+
+  if(l<rlen && canSee(pl,npc)){
+    rlen=l;
+    return true;
+    }
+  return false;
+  }
+
+template<class T, class E>
+E *WorldObjects::validateObj(T &src, E *e) {
+  if(e==nullptr)
+    return e;
+  for(auto& i:src){
+    auto& npc=deref(i);
+    if(reinterpret_cast<void*>(&npc)==reinterpret_cast<const void*>(e))
+      return e;
+    }
+  return nullptr;
   }

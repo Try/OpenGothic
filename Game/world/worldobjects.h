@@ -54,9 +54,13 @@ class WorldObjects final {
     size_t         hasItems(const std::string& tag,size_t itemCls);
     void           addInteractive(const ZenLoad::zCVobData &vob);
 
-    Interactive*   findInteractive(const Npc& pl, const Tempest::Matrix4x4 &v, int w, int h, const SearchOpt& opt);
-    Npc*           findNpc        (const Npc& pl, const Tempest::Matrix4x4 &v, int w, int h, const SearchOpt& opt);
-    Item*          findItem       (const Npc& pl, const Tempest::Matrix4x4 &v, int w, int h, const SearchOpt& opt);
+    Interactive*   validateInteractive(Interactive *def);
+    Npc*           validateNpc        (Npc         *def);
+    Item*          validateItem       (Item        *def);
+
+    Interactive*   findInteractive(const Npc& pl, Interactive *def, const Tempest::Matrix4x4 &v, int w, int h, const SearchOpt& opt);
+    Npc*           findNpc        (const Npc& pl, Npc* def, const Tempest::Matrix4x4 &v, int w, int h, const SearchOpt& opt);
+    Item*          findItem       (const Npc& pl, Item* def, const Tempest::Matrix4x4 &v, int w, int h, const SearchOpt& opt);
 
     void           marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
@@ -77,7 +81,17 @@ class WorldObjects final {
 
     std::vector<PerceptionMsg>         sndPerc;
 
+    template<class T,class E>
+    E*   validateObj(T &src,E* e);
+
     template<class T>
-    auto findObj(T &src,const Npc &pl, const Tempest::Matrix4x4 &v,
+    auto findObj(T &src,const Npc &pl, const Tempest::Matrix4x4 &mvp,
                  int w, int h,const SearchOpt& opt) -> typename std::remove_reference<decltype(src[0])>::type*;
+    template<class T>
+    bool testObj(T &src,const Npc &pl, const Tempest::Matrix4x4 &mvp,
+                 int w, int h,const SearchOpt& opt,float& rlen);
+    template<class T>
+    bool testObjRange(T &src,const Npc &pl, const SearchOpt& opt);
+    template<class T>
+    bool testObjRange(T &src,const Npc &pl, const SearchOpt& opt,float& rlen);
   };

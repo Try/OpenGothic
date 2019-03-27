@@ -26,6 +26,7 @@
 #include <thread>
 
 #include "world/world.h"
+#include "world/focus.h"
 #include "game/playercontrol.h"
 #include "graphics/renderer.h"
 #include "resources.h"
@@ -62,7 +63,7 @@ class MainWindow : public Tempest::Window {
     void clearInput();
 
     void  setupUi();
-    Focus findFocus();
+    Focus findFocus(Focus *prev);
 
     void render() override;
     void initSwapchain();
@@ -110,14 +111,15 @@ class MainWindow : public Tempest::Window {
     bool                                mouseP[Tempest::MouseEvent::ButtonBack]={};
     bool                                pressed[Tempest::KeyEvent::K_Last]={};
 
-    InventoryMenu    inventory;
-    DialogMenu       dialogs;
-    Tempest::Widget* uiKeyUp=nullptr;
-    Tempest::Point   mpos;
-    Tempest::PointF  spin;
-    Camera           camera;
-    PlayerControl    player;
-    uint64_t         lastTick=0;
+    InventoryMenu                       inventory;
+    DialogMenu                          dialogs;
+    Tempest::Widget*                    uiKeyUp=nullptr;
+    Tempest::Point                      mpos;
+    Tempest::PointF                     spin;
+    Camera                              camera;
+    PlayerControl                       player;
+    Focus                               currentFocus;
+    uint64_t                            lastTick=0;
 
     struct Fps {
       uint64_t dt[10]={};

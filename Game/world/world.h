@@ -74,8 +74,10 @@ class World final {
     Daedalus::PARSymbol& getSymbol(const char* s) const;
     size_t               getSymbolIndex(const char* s) const;
 
-    Focus findFocus(const Npc& pl,const Tempest::Matrix4x4 &mvp, int w, int h);
-    Focus findFocus(const Tempest::Matrix4x4 &mvp, int w, int h);
+    Focus validateFocus(const Focus& def);
+
+    Focus findFocus(const Npc& pl, const Focus &def, const Tempest::Matrix4x4 &mvp, int w, int h);
+    Focus findFocus(const Focus& def, const Tempest::Matrix4x4 &mvp, int w, int h);
 
     Trigger*       findTrigger(const std::string& name) { return findTrigger(name.c_str()); }
     Trigger*       findTrigger(const char*        name);

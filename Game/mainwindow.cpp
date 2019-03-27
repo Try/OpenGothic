@@ -9,7 +9,6 @@
 #include <Tempest/Application>
 #include <Tempest/Log>
 
-#include "world/focus.h"
 #include "ui/dialogmenu.h"
 #include "ui/gamemenu.h"
 #include "ui/menuroot.h"
@@ -79,9 +78,12 @@ void MainWindow::setupUi() {
   gothic.onPrint        .bind(&dialogs,&DialogMenu::print);
   }
 
-Focus MainWindow::findFocus() {
-  if(auto gw = gothic.world())
-    return gw->findFocus(camera.view(),w(),h());
+Focus MainWindow::findFocus(Focus* prev) {
+  if(auto gw = gothic.world()) {
+    if(prev)
+      return gw->findFocus(*prev,camera.view(),w(),h());
+    return gw->findFocus(Focus(),camera.view(),w(),h());
+    }
   return Focus();
   }
 
@@ -105,8 +107,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
     auto vp = world->view()->viewProj(camera.view());
     p.setBrush(Color(1.0));
 
-    auto focus = findFocus();
-
+    auto focus = world->validateFocus(currentFocus);
     if(focus && !dialogs.isActive()) {
       auto pos = focus.displayPosition();
       vp.project(pos[0],pos[1],pos[2]);
@@ -125,7 +126,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
 
       if(auto pl = focus.npc){
         float hp = pl->attribute(Npc::ATR_HITPOINTS)/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
-        drawBar(p,barHp, w()/2,10, hp, AlignHCenter|AlignTop );
+        drawBar(p,barHp, w()/2,10, hp, AlignHCenter|AlignTop);
         }
       }
 
@@ -315,21 +316,22 @@ void MainWindow::tick() {
     clearInput();
     }
 
+  currentFocus = findFocus(mouseP[Event::ButtonLeft] ? &currentFocus : nullptr);
   if(mouseP[Event::ButtonLeft]){
-    auto item = findFocus();
-    if(item.interactive!=nullptr && player.interact(*item.interactive)) {
+    auto focus = currentFocus;
+    if(focus.interactive!=nullptr && player.interact(*focus.interactive)) {
       clearInput();
       }
-    else if(item.npc!=nullptr && player.interact(*item.npc)) {
+    else if(focus.npc!=nullptr && player.interact(*focus.npc)) {
       clearInput();
       }
-    else if(item.item!=nullptr && player.interact(*item.item)) {
+    else if(focus.item!=nullptr && player.interact(*focus.item)) {
       clearInput();
       }
 
     if(!pressed[KeyEvent::K_W] && !pressed[KeyEvent::K_S] && !pressed[KeyEvent::K_A] && !pressed[KeyEvent::K_D]){
-      if(item.npc)
-        player.actionFocus(*item.npc);
+      if(focus.npc)
+        player.actionFocus(*focus.npc);
       }
     }
   if(pressed[KeyEvent::K_F8])
@@ -412,7 +414,7 @@ void MainWindow::tick() {
 
   if(player.tickMove(dt)) {
     if(auto pl=gothic.player())
-      camera.follow(*pl,!mouseP[Event::ButtonLeft]);
+      camera.follow(*pl,!mouseP[Event::ButtonLeft] || currentFocus);
     } else {
     if(pressed[KeyEvent::K_Q])
       camera.rotateLeft();

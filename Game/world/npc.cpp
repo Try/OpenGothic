@@ -754,6 +754,18 @@ void Npc::commitDamage() {
   if(ani!=Anim::Atack && ani!=Anim::AtackL && ani!=Anim::AtackR)
     return;
 
+  static const float maxAngle = std::cos(float(M_PI/12));
+
+  const float dx    = x-currentTarget->x;
+  const float dz    = z-currentTarget->z;
+  const float plAng = rotationRad()+float(M_PI/2);
+
+  const float da = plAng-std::atan2(dz,dx);
+  const float c  = std::cos(da);
+
+  if(c<maxAngle)
+    return;
+
   if(!fghAlgo.isInAtackRange(*this,*currentTarget,owner))
     return;
   currentTarget->takeDamage(*this);
@@ -1122,8 +1134,8 @@ bool Npc::doAttack(Anim anim) {
     return setAnim(Anim::Idle,weaponSt,weaponSt);
     }
 
-  if(setAnim(anim,weaponSt,weaponSt)){
-    fghWaitToDamage = 800;
+  if(fghWaitToDamage==uint64_t(-1) && setAnim(anim,weaponSt,weaponSt)){
+    fghWaitToDamage = owner.tickCount()+200;
     return true;
     }
   return false;

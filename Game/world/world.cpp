@@ -120,7 +120,16 @@ size_t World::getSymbolIndex(const char *s) const {
   return game.script()->getSymbolIndex(s);
   }
 
-Focus World::findFocus(const Npc &pl, const Tempest::Matrix4x4 &v, int w, int h) {
+Focus World::validateFocus(const Focus &def) {
+  Focus ret = def;
+  ret.npc         = wobj.validateNpc(ret.npc);
+  ret.interactive = wobj.validateInteractive(ret.interactive);
+  ret.item        = wobj.validateItem(ret.item);
+
+  return ret;
+  }
+
+Focus World::findFocus(const Npc &pl, const Focus& def, const Tempest::Matrix4x4 &v, int w, int h) {
   const Daedalus::GEngineClasses::C_Focus* fptr=&game.script()->focusNorm();
   auto opt = WorldObjects::NoFlg;
 
@@ -150,9 +159,9 @@ Focus World::findFocus(const Npc &pl, const Tempest::Matrix4x4 &v, int w, int h)
   WorldObjects::SearchOpt optMob {policy.mob_range1,  policy.mob_range2,  policy.mob_azi };
   WorldObjects::SearchOpt optItm {policy.item_range1, policy.item_range2, policy.item_azi};
 
-  auto n     = policy.npc_prio <0 ? nullptr : wobj.findNpc(pl,v,w,h,         optNpc);
-  auto inter = policy.mob_prio <0 ? nullptr : wobj.findInteractive(pl,v,w,h, optMob);
-  auto it    = policy.item_prio<0 ? nullptr : wobj.findItem(pl,v,w,h,        optItm);
+  auto n     = policy.npc_prio <0 ? nullptr : wobj.findNpc        (pl,def.npc,        v,w,h, optNpc);
+  auto inter = policy.mob_prio <0 ? nullptr : wobj.findInteractive(pl,def.interactive,v,w,h, optMob);
+  auto it    = policy.item_prio<0 ? nullptr : wobj.findItem       (pl,def.item,       v,w,h, optItm);
 
   if(policy.npc_prio>=policy.item_prio &&
      policy.npc_prio>=policy.mob_prio) {
@@ -184,10 +193,10 @@ Focus World::findFocus(const Npc &pl, const Tempest::Matrix4x4 &v, int w, int h)
   return Focus();
   }
 
-Focus World::findFocus(const Tempest::Matrix4x4 &mvp, int w, int h) {
+Focus World::findFocus(const Focus &def, const Tempest::Matrix4x4 &mvp, int w, int h) {
   if(npcPlayer==nullptr)
     return Focus();
-  return findFocus(*npcPlayer,mvp,w,h);
+  return findFocus(*npcPlayer,def,mvp,w,h);
   }
 
 Trigger *World::findTrigger(const char *name) {
