@@ -234,7 +234,7 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
   if(st==WeaponState::Fist) {
     if(a==Anim::Atack && cur==Move) {
       if(auto a=animSequence("T_FISTATTACKMOVE"))
-        return a;
+        return layredSequence("S_%sRUNL","T_%sATTACKMOVE",st);
       }
     if(a==Anim::Atack)
       return animSequence("S_FISTATTACK");
