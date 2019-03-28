@@ -290,7 +290,7 @@ const WayPoint* World::findWayPoint(float x, float y, float z) const {
 
 const WayPoint *World::findFreePoint(const Npc &npc, const char *name) const {
   if(auto p = npc.currentWayPoint()){
-    if(p->name.find(name)!=std::string::npos) {
+    if(p->checkName(name)) {
       return p;
       }
     }
@@ -380,12 +380,16 @@ void World::loadVob(ZenLoad::zCVobData &vob) {
     return;
     }
   else if(vob.objectClass=="zCVobStartpoint:zCVob") {
-    float y = wdynamic->dropRay(vob.position.x,vob.position.y,vob.position.z);
-    wmatrix->addStartPoint(vob.position.x,y,vob.position.z,vob.vobName.c_str());
+    float dx = vob.rotationMatrix.v[2].x;
+    float dy = vob.rotationMatrix.v[2].y;
+    float dz = vob.rotationMatrix.v[2].z;
+    wmatrix->addStartPoint(vob.position.x,vob.position.y,vob.position.z,dx,dy,dz,vob.vobName.c_str());
     }
   else if(vob.objectClass=="zCVobSpot:zCVob") {
-    float y = wdynamic->dropRay(vob.position.x,vob.position.y,vob.position.z);
-    wmatrix->addFreePoint(vob.position.x,y,vob.position.z,vob.vobName.c_str());
+    float dx = vob.rotationMatrix.v[2].x;
+    float dy = vob.rotationMatrix.v[2].y;
+    float dz = vob.rotationMatrix.v[2].z;
+    wmatrix->addFreePoint(vob.position.x,vob.position.y,vob.position.z,dx,dy,dz,vob.vobName.c_str());
     }
   else if(vob.objectClass=="oCItem:zCVob") {
     addItem(vob);

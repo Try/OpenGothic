@@ -420,7 +420,7 @@ class Npc final {
 
     bool     haveOutput() const;
 
-    bool doAttack(Anim anim);
+    bool     doAttack(Anim anim);
 
   private:
     struct Routine final {

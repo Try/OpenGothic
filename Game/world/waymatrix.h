@@ -20,8 +20,8 @@ class WayMatrix final {
     const WayPoint* findNextFreePoint(float x,float y,float z,const char* name) const;
     const WayPoint* findNextPoint(float x,float y,float z) const;
 
-    void            addFreePoint (float x,float y,float z,const char* name);
-    void            addStartPoint(float x,float y,float z,const char* name);
+    void            addFreePoint (float x,float y,float z,float dx,float dy,float dz,const char* name);
+    void            addStartPoint(float x,float y,float z,float dx,float dy,float dz,const char* name);
 
     const WayPoint& startPoint() const;
     void            buildIndex();

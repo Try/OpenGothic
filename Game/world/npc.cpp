@@ -79,6 +79,9 @@ void Npc::resetPositionToTA() {
 
   attachToPoint(nullptr);
   setInteraction(nullptr);
+  aiClearQueue();
+  clearState(true);
+
   auto& rot = currentRoutine();
   auto  at  = rot.point;
 
@@ -353,6 +356,7 @@ void Npc::setPhysic(DynamicWorld::Item &&item) {
   }
 
 void Npc::setFatness(float) {
+  // TODO
   }
 
 void Npc::setScale(float x, float y, float z) {
@@ -793,9 +797,11 @@ void Npc::takeDamage(Npc &other) {
        ani<Anim::IdleLast || (Anim::MagFirst<=ani && ani<=Anim::MagLast )) {
       animation.resetAni();
       }
-    if(lastHitType=='A')
-      setAnim(Anim::StumbleA); else
-      setAnim(Anim::StumbleB);
+    if(attribute(ATR_HITPOINTS)>0){
+      if(lastHitType=='A')
+        setAnim(Anim::StumbleA); else
+        setAnim(Anim::StumbleB);
+      }
     }
   }
 
@@ -826,7 +832,8 @@ void Npc::tick(uint64_t dt) {
 
   if(interactive()!=nullptr)
     setAnim(AnimationSolver::Interact); else
-  if(currentGoTo==nullptr && currentGoToNpc==nullptr && currentTarget==nullptr && aiType!=AiType::Player) {
+  if(currentGoTo==nullptr && currentGoToNpc==nullptr && currentTarget==nullptr &&
+     aiType!=AiType::Player && anim()!=Anim::Pray && anim()!=Anim::PrayRand) {
     if(weaponState()==WeaponState::NoWeapon)
       setAnim(animation.lastIdle); else
     if(animation.current>Anim::IdleLoopLast)
@@ -993,9 +1000,12 @@ void Npc::nextAiAction(uint64_t dt) {
       if(!owner.aiOutput(*this,*act.target,act.s0))
         aiActions.push_front(std::move(act));
       break;
-    case AI_OutputSvm:
-      Log::d("TODO: ai_outputsvm: ",act.s0);
+    case AI_OutputSvm:{
+      // Log::d("TODO: ai_outputsvm: ",act.s0);
+      auto ani = std::rand()%10+Anim::Dialog1;
+      setAnim(Anim(ani));
       break;
+      }
     case AI_OutputSvmOverlay:
       Log::d("TODO: ai_outputsvm_overlay: ",act.s0);
       break;
@@ -1137,7 +1147,7 @@ bool Npc::doAttack(Anim anim) {
     }
 
   if(fghWaitToDamage==uint64_t(-1) && setAnim(anim,weaponSt,weaponSt)){
-    fghWaitToDamage = owner.tickCount()+400;
+    fghWaitToDamage = owner.tickCount()+300;
     return true;
     }
   return false;
@@ -1177,19 +1187,21 @@ gtime Npc::endTime(const Npc::Routine &r) const {
   }
 
 Npc::BodyState Npc::bodyState() const {
-  uint32_t s = bodySt;
+  uint32_t s   = bodySt;
+  auto     ani = anim();
   if(owner.isDead(*this))
     s = BS_DEAD;
   else if(owner.isUnconscious(*this))
     s = BS_UNCONSCIOUS;
-  else if(anim()==Anim::Move || anim()==Anim::MoveL || anim()==Anim::MoveR || anim()==Anim::MoveBack)
+  else if(ani==Anim::Move || ani==Anim::MoveL || ani==Anim::MoveR || ani==Anim::MoveBack)
     s = BS_RUN;
-  else if(anim()==Anim::Fall || anim()==Anim::FallDeep)
+  else if(ani==Anim::Fall || ani==Anim::FallDeep)
     s = BS_FALL;
-  else if(anim()==Anim::Sleep)
+  else if(ani==Anim::Sleep)
     s = BS_LIE;
-  else if(anim()==Anim::Sit || anim()==Anim::GuardSleep)
+  else if(ani==Anim::Sit || ani==Anim::GuardSleep || ani==Anim::Pray || ani==Anim::PrayRand)
     s = BS_SIT;
+
   if(auto i = interactive())
     s = i->stateMask(s);
   return BodyState(s);
@@ -1903,7 +1915,7 @@ bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
     float dx  = x-tx, dz=z-tz;
     float dir = angleDir(dx,dz);
     float da  = float(M_PI)*(angle-dir)/180.f;
-    if(double(std::cos(da))<std::cos(M_PI/3))
+    if(double(std::cos(da))>0)
       return false;
     }
   bool ret=true;

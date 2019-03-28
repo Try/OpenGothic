@@ -1477,7 +1477,7 @@ void WorldScript::npc_isonfp(Daedalus::DaedalusVM &vm) {
   if(npc!=nullptr) {
     auto w = npc->currentWayPoint();
 
-    if(w!=nullptr && w->name.find(val)!=std::string::npos) {
+    if(w!=nullptr && w->checkName(val)) {
       if(MoveAlgo::isClose(npc->position(),*w)){
         vm.setReturn(1);
         return;
@@ -1533,8 +1533,8 @@ void WorldScript::npc_getequippedarmor(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::npc_canseenpc(Daedalus::DaedalusVM &vm) {
-  auto npc   = popInstance(vm);
   auto other = popInstance(vm);
+  auto npc   = popInstance(vm);
   bool ret   = false;
   if(npc!=nullptr && other!=nullptr){
     ret = npc->canSeeNpc(*other,false);
@@ -1780,6 +1780,7 @@ void WorldScript::ai_processinfos(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   auto pl  = owner.player();
   if(pl!=nullptr && npc!=nullptr) {
+    npc->setOther(pl);
     owner.aiProcessInfos(*pl,*npc);
     }
   }
@@ -1920,8 +1921,14 @@ void WorldScript::ai_gotofp(Daedalus::DaedalusVM &vm) {
   auto   npc      = popInstance(vm);
 
   if(npc) {
-    if(waypoint=="STAND")
-      return; // bug with "NW_BIGFARM_HOUSE_OUT_03"
+    /*
+    const WayPoint* to=nullptr;
+    if(waypoint=="STAND") {
+      to = world().findFreePoint(*npc,"");
+      //return; // bug with "NW_BIGFARM_HOUSE_OUT_03"
+      } else {
+      to = world().findFreePoint(*npc,waypoint.c_str());
+      }*/
     auto to = world().findFreePoint(*npc,waypoint.c_str());
     if(to!=nullptr)
       npc->aiGoToPoint(*to);

@@ -32,6 +32,7 @@ void WayMatrix::buildIndex() {
   indexPoints.clear();
   adjustWaypoints(wayPoints);
   adjustWaypoints(freePoints);
+  adjustWaypoints(startPoints);
   std::sort(indexPoints.begin(),indexPoints.end(),[](const WayPoint* a,const WayPoint* b){
     return a->name<b->name;
     });
@@ -99,12 +100,12 @@ const WayPoint *WayMatrix::findNextPoint(float x, float y, float z) const {
   return ret;
   }
 
-void WayMatrix::addFreePoint(float x, float y, float z, const char *name) {
-  freePoints.emplace_back(x,y,z,name);
+void WayMatrix::addFreePoint(float x, float y, float z, float dx, float dy, float dz, const char *name) {
+  freePoints.emplace_back(x,y,z,dx,dy,dz,name);
   }
 
-void WayMatrix::addStartPoint(float x, float y, float z, const char *name) {
-  startPoints.emplace_back(x,y,z,name);
+void WayMatrix::addStartPoint(float x, float y, float z, float dx, float dy, float dz, const char *name) {
+  startPoints.emplace_back(x,y,z,dx,dy,dz,name);
   }
 
 const WayPoint &WayMatrix::startPoint() const {
@@ -169,7 +170,7 @@ const WayMatrix::FpIndex &WayMatrix::findFpIndex(const char *name) const {
   FpIndex id;
   id.key = name;
   for(auto& w:freePoints){
-    if(w.name.find(name)==std::string::npos)
+    if(!w.checkName(name))
       continue;
     id.index.push_back(&w);
     }

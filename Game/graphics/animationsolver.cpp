@@ -478,10 +478,12 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
   if(a==Anim::Roam3)
     return animSequence("R_ROAM3");
 
-  if(a==Anim::Pray && cur<=Anim::IdleLast)
+  if(a==Anim::Pray && cur<=Anim::IdleLast && cur!=Anim::Pray && cur!=Anim::PrayRand)
     return animSequence("T_STAND_2_PRAY");
   if(a==Anim::Pray)
     return animSequence("S_PRAY");
+  if(a==Anim::PrayRand)
+    return animSequence("T_PRAY_RANDOM");
 
   if(a==Anim::Plunder)
     return animSequence("T_PLUNDER");
@@ -505,6 +507,12 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
   if(Anim::Dance1<=a && a<=Anim::Dance9){
     char buf[32]={};
     std::snprintf(buf,sizeof(buf),"T_DANCE_%02d",a-Anim::Dance1+1);
+    return animSequence(buf);
+    }
+
+  if(Anim::Dialog1<=a && a<=Anim::Dialog10){
+    char buf[32]={};
+    std::snprintf(buf,sizeof(buf),"T_DIALOGGESTURE_%02d",a-Anim::Dialog1+1);
     return animSequence(buf);
     }
 
@@ -666,6 +674,8 @@ AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const
     return Anim::Dance9;
   if(name=="T_STAND_2_PRAY")
     return Anim::Pray;
+  if(name=="T_PRAY_RANDOM")
+    return Anim::PrayRand;
   if(name=="T_PLUNDER")
     return Anim::Plunder;
   return Anim::NoAnim;

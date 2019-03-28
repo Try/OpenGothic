@@ -10,12 +10,16 @@ class WayPoint final {
     WayPoint();
     WayPoint(const ZenLoad::zCWaypointData& dat);
     WayPoint(float x,float y,float z,const char* name);
+    WayPoint(float x,float y,float z,float dx,float dy,float dz,const char* name);
     WayPoint(const WayPoint&)=default;
     WayPoint(WayPoint&&)=default;
 
     WayPoint& operator = (WayPoint&&)=default;
     bool isLocked() const { return useCount!=0; }
     bool isFreePoint() const { return conn.size()==0; }
+
+    bool checkName(const std::string& name) const;
+    bool checkName(const char* name) const;
 
     float x=0;
     float y=0;
