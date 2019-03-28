@@ -65,6 +65,9 @@ void InventoryMenu::close() {
   pageOth.reset();
   state = State::Closed;
   update();
+
+  if(auto snd = Resources::loadSound("INV_CLOSE.WAV"))
+    snd->play();
   }
 
 void InventoryMenu::open(Npc &pl) {
@@ -77,6 +80,9 @@ void InventoryMenu::open(Npc &pl) {
   pageOth.reset();
   adjustScroll();
   update();
+
+  if(auto snd = Resources::loadSound("INV_CHANGE.WAV"))
+    snd->play();
   }
 
 void InventoryMenu::trade(Npc &pl, Npc &tr) {

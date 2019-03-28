@@ -4,6 +4,8 @@
 #include <Tempest/Font>
 #include <Tempest/Texture2d>
 #include <Tempest/Device>
+#include <Tempest/SoundDevice>
+#include <Tempest/Sound>
 
 #include <vdfs/fileIndex.h>
 
@@ -23,7 +25,7 @@ class PhysicMeshShape;
 
 class Resources {
   public:
-    explicit Resources(Gothic& gothic,Tempest::Device& device);
+    explicit Resources(Gothic& gothic, Tempest::Device& device, Tempest::SoundDevice &sound);
     ~Resources();
 
     enum ApphaFunc:uint8_t {
@@ -72,6 +74,8 @@ class Resources {
     static const Animation*          loadAnimation(const std::string& name);
     static const PhysicMeshShape*    physicMesh   (const ProtoMesh*   view);
 
+    static Tempest::Sound*           loadSound(const char* name);
+
     template<class V>
     static Tempest::VertexBuffer<V> loadVbo(const V* data,size_t sz){ return inst->device.loadVbo(data,sz,Tempest::BufferFlags::Static); }
 
@@ -98,6 +102,7 @@ class Resources {
     ProtoMesh*          implLoadMesh(const std::string &name);
     Skeleton*           implLoadSkeleton(std::string name);
     Animation*          implLoadAnimation(std::string name);
+    Tempest::Sound*     implLoadSound(const std::string &name);
 
     MeshLoadCode        loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
     ZenLoad::zCModelMeshLib loadMDS (std::string& name);
@@ -117,13 +122,15 @@ class Resources {
     std::unordered_map<std::string,std::unique_ptr<Animation>>            animCache;
     std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>          bindCache;
     std::unordered_map<const ProtoMesh*,std::unique_ptr<PhysicMeshShape>> phyMeshCache;
+    std::unordered_map<std::string,std::unique_ptr<Tempest::Sound>>       sndCache;
 
-    Tempest::Device&     device;
-    std::recursive_mutex sync;
-    Tempest::Font        menuFnt, mainFnt, dlgFnt;
-    Tempest::Assets      asset;
-    Gothic&              gothic;
-    VDFS::FileIndex      gothicAssets;
+    Tempest::Device&      device;
+    Tempest::SoundDevice& sound;
+    std::recursive_mutex  sync;
+    Tempest::Font         menuFnt, mainFnt, dlgFnt;
+    Tempest::Assets       asset;
+    Gothic&               gothic;
+    VDFS::FileIndex       gothicAssets;
   };
 
 

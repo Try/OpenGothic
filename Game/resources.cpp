@@ -42,8 +42,8 @@ static void emplaceTag(char* buf, char tag){
     }
   }
 
-Resources::Resources(Gothic &gothic, Tempest::Device &device)
-  : device(device), asset("data",device),gothic(gothic) {
+Resources::Resources(Gothic &gothic, Tempest::Device &device, Tempest::SoundDevice& sound)
+  : device(device), sound(sound), asset("data",device),gothic(gothic) {
   inst=this;
 
   const char* menu = "data/font/menu.ttf";
@@ -232,6 +232,32 @@ Animation *Resources::implLoadAnimation(std::string name) {
     }
   }
 
+Sound *Resources::implLoadSound(const std::string &name) {
+  if(name.size()==0)
+    return nullptr;
+
+  auto it=sndCache.find(name);
+  if(it!=sndCache.end())
+    return it->second.get();
+
+  std::vector<uint8_t> data=getFileData(name);
+  if(data.empty())
+    return nullptr;
+
+  try {
+    Tempest::MemReader rd(data.data(),data.size());
+
+    std::unique_ptr<Sound> t{new Sound(sound.load(rd))};
+    Sound* ret=t.get();
+    sndCache[name] = std::move(t);
+    return ret;
+    }
+  catch(...){
+    Log::e("unable to load sound \"",name,"\"");
+    return nullptr;
+    }
+  }
+
 bool Resources::hasFile(const std::string &fname) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->gothicAssets.hasFile(fname);
@@ -292,6 +318,11 @@ const PhysicMeshShape *Resources::physicMesh(const ProtoMesh *view) {
   if(it!=inst->phyMeshCache.end())
     return it->second.get();
   return nullptr;
+  }
+
+Sound *Resources::loadSound(const char *name) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  return inst->implLoadSound(name);
   }
 
 std::vector<uint8_t> Resources::getFileData(const char *name) {

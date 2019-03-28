@@ -19,8 +19,8 @@
 
 using namespace Tempest;
 
-MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
-  : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),
+MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api, Tempest::SoundDevice& sound)
+  : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device,sound),
     draw(device,gothic),gothic(gothic),dialogs(gothic,inventory),player(dialogs,inventory) {
   for(uint8_t i=0;i<device.maxFramesInFlight();++i){
     fLocal.emplace_back(device);
