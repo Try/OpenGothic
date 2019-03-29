@@ -377,7 +377,7 @@ void Npc::stopAnim(const std::string &ani) {
   }
 
 bool Npc::isStanding() const {
-  return animation.current<Anim::IdleLast || animation.current==Anim::Interact;
+  return animation.current<Anim::IdleLast;
   }
 
 bool Npc::isFlyAnim() const {
@@ -769,7 +769,7 @@ void Npc::commitDamage() {
   const float da = plAng-std::atan2(dz,dx);
   const float c  = std::cos(da);
 
-  if(c<maxAngle)
+  if(c<maxAngle && dx*dx+dz*dz>20*20)
     return;
 
   if(!fghAlgo.isInAtackRange(*this,*currentTarget,owner))
