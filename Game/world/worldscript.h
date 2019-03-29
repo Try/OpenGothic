@@ -289,9 +289,12 @@ class WorldScript final {
     void info_clearchoices   (Daedalus::DaedalusVM &vm);
     void infomanager_hasfinished(Daedalus::DaedalusVM &vm);
 
+    void snd_play            (Daedalus::DaedalusVM &vm);
+
     void introducechapter    (Daedalus::DaedalusVM &vm);
     void playvideo           (Daedalus::DaedalusVM &vm);
     void printscreen         (Daedalus::DaedalusVM &vm);
+    void printdialog         (Daedalus::DaedalusVM &vm);
     void print               (Daedalus::DaedalusVM &vm);
     void perc_setrange       (Daedalus::DaedalusVM &vm);
 

@@ -223,9 +223,12 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("infomanager_hasfinished",
                                                      [this](Daedalus::DaedalusVM& vm){ infomanager_hasfinished(vm); });
 
+  vm.registerExternalFunction("snd_play",            [this](Daedalus::DaedalusVM& vm){ snd_play(vm);             });
+
   vm.registerExternalFunction("introducechapter",    [this](Daedalus::DaedalusVM& vm){ introducechapter(vm);     });
   vm.registerExternalFunction("playvideo",           [this](Daedalus::DaedalusVM& vm){ playvideo(vm);            });
   vm.registerExternalFunction("printscreen",         [this](Daedalus::DaedalusVM& vm){ printscreen(vm);          });
+  vm.registerExternalFunction("printdialog",         [this](Daedalus::DaedalusVM& vm){ printdialog(vm);          });
   vm.registerExternalFunction("print",               [this](Daedalus::DaedalusVM& vm){ print(vm);                });
   vm.registerExternalFunction("perc_setrange",       [this](Daedalus::DaedalusVM& vm){ perc_setrange(vm);        });
 
@@ -2197,13 +2200,20 @@ void WorldScript::infomanager_hasfinished(Daedalus::DaedalusVM &vm) {
   vm.setReturn(owner.aiIsDlgFinished() ? 1 : 0);
   }
 
+void WorldScript::snd_play(Daedalus::DaedalusVM &vm) {
+  auto& file = popString(vm);
+  if(auto s = Resources::loadSound(file+".wav"))
+    s->play();
+  }
+
 void WorldScript::introducechapter(Daedalus::DaedalusVM &vm) {
-  int32_t waittime = vm.popInt();
-  auto&   sound    = popString(vm);
-  auto&   texture  = popString(vm);
-  auto&   subtitle = popString(vm);
-  auto&   title    = popString(vm);
-  Log::i("chapter screen not implemented [",subtitle,", ",texture,"]");
+  ChapterScreen::Show s;
+  s.time     = vm.popInt();
+  s.sound    = popString(vm);
+  s.img      = popString(vm);
+  s.subtitle = popString(vm);
+  s.title    = popString(vm);
+  owner.introChapter(s);
   }
 
 void WorldScript::playvideo(Daedalus::DaedalusVM &vm) {
@@ -2213,6 +2223,16 @@ void WorldScript::playvideo(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::printscreen(Daedalus::DaedalusVM &vm) {
+  int32_t            timesec = vm.popInt();
+  const std::string& font    = popString(vm);
+  int32_t            posy    = vm.popInt();
+  int32_t            posx    = vm.popInt();
+  const std::string& msg     = popString(vm);
+  owner.printScreen(cp1251::toUtf8(msg).c_str(),posx,posy,timesec,Resources::fontByName(font));
+  vm.setReturn(0);
+  }
+
+void WorldScript::printdialog(Daedalus::DaedalusVM &vm) {
   int32_t            timesec  = vm.popInt();
   const std::string& font     = popString(vm);
   int32_t            posy     = vm.popInt();
@@ -2221,6 +2241,7 @@ void WorldScript::printscreen(Daedalus::DaedalusVM &vm) {
   int32_t            dialognr = vm.popInt();
   (void)dialognr;
   owner.printScreen(cp1251::toUtf8(msg).c_str(),posx,posy,timesec,Resources::fontByName(font));
+  vm.setReturn(0);
   }
 
 void WorldScript::print(Daedalus::DaedalusVM &vm) {

@@ -21,7 +21,7 @@ using namespace Tempest;
 
 MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api, Tempest::SoundDevice& sound)
   : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device,sound),
-    draw(device,gothic),gothic(gothic),dialogs(gothic,inventory),player(dialogs,inventory) {
+    draw(device,gothic),gothic(gothic),dialogs(gothic,inventory),chapter(gothic),player(dialogs,inventory) {
   for(uint8_t i=0;i<device.maxFramesInFlight();++i){
     fLocal.emplace_back(device);
     commandBuffersSemaphores.emplace_back(device);
@@ -55,6 +55,7 @@ MainWindow::~MainWindow() {
   device.waitIdle();
   takeWidget(&dialogs);
   takeWidget(&inventory);
+  takeWidget(&chapter);
   removeAllWidgets();
   // unload
   gothic.setGame(std::unique_ptr<GameSession>());
@@ -64,6 +65,7 @@ void MainWindow::setupUi() {
   setLayout(new StackLayout());
   addWidget(&dialogs);
   addWidget(&inventory);
+  addWidget(&chapter);
   rootMenu = &addWidget(new MenuRoot(gothic));
   rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_MAIN"));
 
@@ -76,6 +78,8 @@ void MainWindow::setupUi() {
 
   gothic.onPrintScreen  .bind(&dialogs,&DialogMenu::printScreen);
   gothic.onPrint        .bind(&dialogs,&DialogMenu::print);
+
+  gothic.onIntroChapter .bind(&chapter,&ChapterScreen::show);
   }
 
 Focus MainWindow::findFocus(Focus* prev) {
@@ -191,6 +195,14 @@ void MainWindow::mouseWheelEvent(MouseEvent &event) {
   }
 
 void MainWindow::keyDownEvent(KeyEvent &event) {
+  if(chapter.isActive()){
+    chapter.keyDownEvent(event);
+    if(event.isAccepted()){
+      uiKeyUp=&chapter;
+      return;
+      }
+    }
+
   if(dialogs.isActive()){
     dialogs.keyDownEvent(event);
     if(event.isAccepted()){
@@ -211,6 +223,11 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
   }
 
 void MainWindow::keyUpEvent(KeyEvent &event) {
+  if(uiKeyUp==&chapter){
+    chapter.keyUpEvent(event);
+    if(event.isAccepted())
+      return;
+    }
   if(uiKeyUp==&dialogs){
     dialogs.keyUpEvent(event);
     if(event.isAccepted())

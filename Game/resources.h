@@ -75,6 +75,7 @@ class Resources {
     static const PhysicMeshShape*    physicMesh   (const ProtoMesh*   view);
 
     static Tempest::Sound*           loadSound(const char* name);
+    static Tempest::Sound*           loadSound(const std::string& name);
 
     template<class V>
     static Tempest::VertexBuffer<V> loadVbo(const V* data,size_t sz){ return inst->device.loadVbo(data,sz,Tempest::BufferFlags::Static); }

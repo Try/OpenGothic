@@ -325,6 +325,11 @@ Sound *Resources::loadSound(const char *name) {
   return inst->implLoadSound(name);
   }
 
+Sound *Resources::loadSound(const std::string &name) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  return inst->implLoadSound(name.c_str());
+  }
+
 std::vector<uint8_t> Resources::getFileData(const char *name) {
   std::vector<uint8_t> data;
   inst->gothicAssets.getFileData(name,data);

@@ -10,6 +10,7 @@
 #include "game/fightai.h"
 #include "game/gamesession.h"
 #include "world/world.h"
+#include "ui/chapterscreen.h"
 
 class Gothic final {
   public:
@@ -69,6 +70,8 @@ class Gothic final {
 
     Tempest::Signal<void(const char*,int,int,int,const Tempest::Font&)> onPrintScreen;
     Tempest::Signal<void(const char*)>                                  onPrint;
+
+    Tempest::Signal<void(const ChapterScreen::Show&)>                   onIntroChapter;
 
     const std::string&                    messageByName(const std::string &id) const;
     uint32_t                              messageTime(const std::string &id) const;

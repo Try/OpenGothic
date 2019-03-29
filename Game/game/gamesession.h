@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include "ui/chapterscreen.h"
 #include "world/worldscript.h"
 #include "gametime.h"
 
@@ -50,6 +51,7 @@ class GameSession final {
     bool         aiIsDlgFinished();
     void         printScreen(const char *msg, int x, int y, int time, const Tempest::Font &font);
     void         print(const char *msg);
+    void         introChapter(const ChapterScreen::Show& s);
 
     const FightAi::FA& getFightAi(size_t i) const;
 
@@ -63,6 +65,9 @@ class GameSession final {
 
     uint64_t                     ticks=0, wrldTimePart=0;
     gtime                        wrldTime;
+
+    ChapterScreen::Show          chapter;
+    bool                         pendingChapter=false;
 
     static const uint64_t        multTime;
     static const uint64_t        divTime;

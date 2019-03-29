@@ -60,14 +60,16 @@ void InventoryMenu::close() {
     chest  = nullptr;
     }
 
+  if(state!=State::Closed) {
+    if(auto snd = Resources::loadSound("INV_CLOSE.WAV"))
+      snd->play();
+    }
+
   page  = 0;
   pagePl .reset();
   pageOth.reset();
   state = State::Closed;
   update();
-
-  if(auto snd = Resources::loadSound("INV_CLOSE.WAV"))
-    snd->play();
   }
 
 void InventoryMenu::open(Npc &pl) {

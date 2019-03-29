@@ -79,6 +79,13 @@ void GameSession::tick(uint64_t dt) {
 
   wrldTime.addMilis(add/divTime);
   wrld->tick(dt);
+
+  if(pendingChapter){
+    if(aiIsDlgFinished()) {
+      gothic.onIntroChapter(chapter);
+      pendingChapter=false;
+      }
+    }
   }
 
 void GameSession::updateAnimation() {
@@ -135,6 +142,11 @@ void GameSession::printScreen(const char *msg, int x, int y, int time, const Tem
 
 void GameSession::print(const char *msg) {
   gothic.print(msg);
+  }
+
+void GameSession::introChapter(const ChapterScreen::Show &s) {
+  pendingChapter = true;
+  chapter        = s;
   }
 
 const FightAi::FA &GameSession::getFightAi(size_t i) const {
