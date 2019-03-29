@@ -19,8 +19,8 @@ void main() {
   v.xyz/=v.w;
   vec3 view = v.xyz/max(abs(v.y),0.001);//normalize(v.xyz);
 
-  vec4 cloudL1 = texture(textureL1,view.xz*0.2+ubo.dxy1);
-  vec4 cloudL0 = texture(textureL0,view.xz*0.2+ubo.dxy0);
+  vec4 cloudL1 = texture(textureL1,view.zx*0.2+ubo.dxy1);
+  vec4 cloudL0 = texture(textureL0,view.zx*0.2+ubo.dxy0);
 
   vec4 c = cloudL0+cloudL1;
   outColor = mix(ubo.color,c,min(1.0,c.a));
