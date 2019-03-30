@@ -162,7 +162,7 @@ float DynamicWorld::dropRay(float x, float y, float z, bool &hasCol) const {
   lastRayDrop[0] = x;
   lastRayDrop[1] = y;
   lastRayDrop[2] = z;
-  lastRayDrop[3] = ray(x,y+50,z, x,y-worldHeight,z,lastRayCollision)[1];
+  lastRayDrop[3] = ray(x,y+ghostPadding,z, x,y-worldHeight,z,lastRayCollision)[1];
   hasCol         = lastRayCollision;
   return lastRayDrop[3];
   }

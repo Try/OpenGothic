@@ -57,6 +57,7 @@ class DynamicWorld final {
         bool tryMove (const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
 
         bool hasCollision() const;
+        float radius() const { return r; }
 
       private:
         DynamicWorld*       owner  = nullptr;

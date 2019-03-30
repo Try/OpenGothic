@@ -113,8 +113,12 @@ const WayPoint &WayMatrix::startPoint() const {
     if(i.name=="START_GOTHIC2")
       return i;
 
+  for(auto& i:startPoints)
+    if(i.name=="START")
+      return i;
+
   if(startPoints.size()>0)
-    return startPoints[0];
+    return startPoints.back();
   static WayPoint p(0,0,0,"START");
   return p;
   }

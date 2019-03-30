@@ -216,6 +216,8 @@ Animation *Resources::implLoadAnimation(std::string name) {
     return it->second.get();
 
   try {
+    if(!gothicAssets.hasFile(name))
+      std::memcpy(&name[name.size()-3],"MDH",3); // gothic1
     ZenLoad::ZenParser            zen(name,gothicAssets);
     ZenLoad::ModelScriptBinParser p(zen);
 

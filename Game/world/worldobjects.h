@@ -73,8 +73,10 @@ class WorldObjects final {
   private:
     World&                             owner;
     SpaceIndex<Interactive>            interactiveObj;
+    SpaceIndex<std::unique_ptr<Item>>  itemArr;
+
     std::vector<std::unique_ptr<Npc>>  npcArr;
-    std::vector<std::unique_ptr<Item>> itemArr;
+    std::vector<Npc*>                  npcNear;
 
     std::vector<Trigger>               triggers;
     std::vector<MoveTrigger>           triggersMv;
@@ -94,4 +96,6 @@ class WorldObjects final {
     bool testObjRange(T &src,const Npc &pl, const SearchOpt& opt);
     template<class T>
     bool testObjRange(T &src,const Npc &pl, const SearchOpt& opt,float& rlen);
+
+    void           tickNear(uint64_t dt);
   };

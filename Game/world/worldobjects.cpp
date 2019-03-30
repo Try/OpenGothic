@@ -13,6 +13,7 @@ using namespace Tempest;
 using namespace Daedalus::GameState;
 
 WorldObjects::WorldObjects(World& owner):owner(owner){
+  npcNear.reserve(512);
   }
 
 WorldObjects::~WorldObjects() {
@@ -29,21 +30,38 @@ void WorldObjects::tick(uint64_t dt) {
   if(pl==nullptr)
     return;
 
-  for(auto& i:npcArr) {
-    if(i->percNextTime()>owner.tickCount())
-      continue;
-    const float x = i->position()[0];
-    const float y = i->position()[1];
-    const float z = i->position()[2];
+  npcNear.clear();
+  const float nearDist = 3000*3000;
 
-    if(i.get()!=pl)
-      i->perceptionProcess(*pl,pl->qDistTo(x,y,z));
+  for(auto& i:npcArr) {
+    float dist = pl->qDistTo(*i);
+    if(dist<nearDist && !i->isDown())
+      npcNear.push_back(i.get());
+    }
+  tickNear(dt);
+
+  for(auto& i:npcArr) {
+    if(i->isPlayer() || i->percNextTime()>owner.tickCount())
+      continue;
 
     for(auto& r:passive) {
       float l = i->qDistTo(r.x,r.y,r.z);
       i->perceptionProcess(*r.other,r.victum,l,Npc::PercType(r.what));
       }
+    float dist = pl->qDistTo(*i);
+    i->perceptionProcess(*pl,dist);
     }
+  }
+
+void WorldObjects::tickNear(uint64_t /*dt*/) {
+  for(size_t i=0;i<npcNear.size();++i)
+    for(size_t r=i+1;r<npcNear.size();++r){
+      Npc& a = *npcNear[i];
+      Npc& b = *npcNear[r];
+
+      a.setNearestEnemy(b);
+      b.setNearestEnemy(a);
+      }
   }
 
 void WorldObjects::onInserNpc(Daedalus::GEngineClasses::C_Npc *handle, const std::string& point) {
@@ -110,8 +128,7 @@ Item* WorldObjects::addItem(const ZenLoad::zCVobData &vob) {
   size_t inst = owner.getSymbolIndex(vob.oCItem.instanceName.c_str());
   Item*  it   = addItem(inst,nullptr);
 
-  Matrix4x4 m;
-  std::memcpy(&m,vob.worldMatrix.m,sizeof(m));
+  Matrix4x4 m { vob.worldMatrix.mv };
   it->setMatrix(m);
   return it;
   }
@@ -177,12 +194,25 @@ Item *WorldObjects::validateItem(Item *def) {
   return validateObj(itemArr,def);
   }
 
-Interactive* WorldObjects::findInteractive(const Npc &pl, Interactive* def, const Matrix4x4 &v, int w, int h, const SearchOpt& opt) {
+Interactive* WorldObjects::findInteractive(const Npc &pl, Interactive* def, const Matrix4x4 &mvp,
+                                           int w, int h, const SearchOpt& opt) {
   def = validateInteractive(def);
   if(def && testObjRange(*def,pl,opt))
     return def;
-  auto r = findObj(interactiveObj,pl,v,w,h,opt);
-  return r;
+  if(owner.view()==nullptr)
+    return nullptr;
+
+  Interactive* ret  = nullptr;
+  float rlen = opt.rangeMax*opt.rangeMax;
+  interactiveObj.find(pl.position(),opt.rangeMax,[&](Interactive& n){
+    float nlen = rlen;
+    if(testObj(n,pl,mvp,w,h,opt,nlen)){
+      rlen = nlen;
+      ret  = &n;
+      }
+    return false;
+    });
+  return ret;
   }
 
 Npc* WorldObjects::findNpc(const Npc &pl, Npc *def, const Matrix4x4 &v, int w, int h, const SearchOpt& opt) {
@@ -193,12 +223,24 @@ Npc* WorldObjects::findNpc(const Npc &pl, Npc *def, const Matrix4x4 &v, int w, i
   return r ? r->get() : nullptr;
   }
 
-Item *WorldObjects::findItem(const Npc &pl, Item *def, const Matrix4x4 &v, int w, int h, const SearchOpt& opt) {
+Item *WorldObjects::findItem(const Npc &pl, Item *def, const Matrix4x4 &mvp, int w, int h, const SearchOpt& opt) {
   def = validateObj(itemArr,def);
   if(def && testObjRange(*def,pl,opt))
     return def;
-  auto r = findObj(itemArr,pl,v,w,h,opt);
-  return r ? r->get() : nullptr;
+  if(owner.view()==nullptr)
+    return nullptr;
+
+  Item* ret  = nullptr;
+  float rlen = opt.rangeMax*opt.rangeMax;
+  itemArr.find(pl.position(),opt.rangeMax,[&](std::unique_ptr<Item>& n){
+    float nlen = rlen;
+    if(testObj(n,pl,mvp,w,h,opt,nlen)){
+      rlen = nlen;
+      ret  = n.get();
+      }
+    return false;
+    });
+  return ret;
   }
 
 void WorldObjects::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,

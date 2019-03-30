@@ -222,6 +222,7 @@ class WorldScript final {
     void npc_isinfightmode   (Daedalus::DaedalusVM &vm);
     void npc_settarget       (Daedalus::DaedalusVM &vm);
     void npc_gettarget       (Daedalus::DaedalusVM &vm);
+    void npc_getnexttarget   (Daedalus::DaedalusVM& vm);
     void npc_sendpassiveperc (Daedalus::DaedalusVM &vm);
     void npc_checkinfo       (Daedalus::DaedalusVM &vm);
     void npc_getportalguild  (Daedalus::DaedalusVM &vm);

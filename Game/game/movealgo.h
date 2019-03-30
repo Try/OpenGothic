@@ -53,6 +53,7 @@ class MoveAlgo final {
     bool   trySlide(std::array<float,3> &pos, std::array<float,3> &norm);
     bool   slideDir() const;
     void   onMoveFailed();
+    float  dropRay(float x, float y, float z, bool &hasCol) const;
 
     Npc&                npc;
     const World&        world;

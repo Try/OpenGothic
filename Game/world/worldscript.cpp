@@ -152,6 +152,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("npc_isinfightmode",   [this](Daedalus::DaedalusVM& vm){ npc_isinfightmode(vm);    });
   vm.registerExternalFunction("npc_settarget",       [this](Daedalus::DaedalusVM& vm){ npc_settarget(vm);        });
   vm.registerExternalFunction("npc_gettarget",       [this](Daedalus::DaedalusVM& vm){ npc_gettarget(vm);        });
+  vm.registerExternalFunction("npc_getnexttarget",   [this](Daedalus::DaedalusVM& vm){ npc_getnexttarget(vm);    });
   vm.registerExternalFunction("npc_sendpassiveperc", [this](Daedalus::DaedalusVM& vm){ npc_sendpassiveperc(vm);  });
   vm.registerExternalFunction("npc_checkinfo",       [this](Daedalus::DaedalusVM& vm){ npc_checkinfo(vm);        });
   vm.registerExternalFunction("npc_getportalguild",  [this](Daedalus::DaedalusVM& vm){ npc_getportalguild(vm);   });
@@ -1639,14 +1640,58 @@ void WorldScript::npc_settarget(Daedalus::DaedalusVM &vm) {
     npc->setTarget(oth);
   }
 
+/**
+ * @brief WorldScript::npc_gettarget
+ * Fill 'other' with the current npc target.
+ * set by Npc_SetTarget () or Npc_GetNextTarget ().
+ * - return: current target saved -> TRUE
+ * no target saved -> FALSE
+ */
 void WorldScript::npc_gettarget(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
+  Daedalus::PARSymbol& s = vm.getDATFile().getSymbolByName("other");
+
   if(npc!=nullptr && npc->target()) {
-    Daedalus::PARSymbol& s = vm.getDATFile().getSymbolByName("other");
-    s.instanceDataHandle   = npc->target()->handle();
-    s.instanceDataClass    = Daedalus::IC_Npc;
+    s.instanceDataHandle = npc->target()->handle();
+    s.instanceDataClass  = Daedalus::IC_Npc;
     vm.setReturn(1);
     } else {
+    s.instanceDataHandle = nullptr;
+    s.instanceDataClass  = Daedalus::IC_Npc;
+    vm.setReturn(0);
+    }
+  }
+
+void WorldScript::npc_getnexttarget(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  Npc* ret = nullptr;
+
+  if(npc!=nullptr){
+    float dist = npc->handle()->senses_range;
+    dist*=dist;
+
+    world().detectNpc(npc->position(),[&,npc](Npc& oth){
+      if(!oth.isDown() && oth.isEnemy(*npc)){
+        float qd = oth.qDistTo(*npc);
+        if(qd<dist){
+          dist=qd;
+          ret = &oth;
+          }
+        }
+      return false;
+      });
+    if(ret!=nullptr)
+      npc->setTarget(ret);
+    }
+
+  Daedalus::PARSymbol& s = vm.getDATFile().getSymbolByName("other");
+  if(ret!=nullptr) {
+    s.instanceDataHandle = ret->handle();
+    s.instanceDataClass  = Daedalus::IC_Npc;
+    vm.setReturn(1);
+    } else {
+    s.instanceDataHandle = nullptr;
+    s.instanceDataClass  = Daedalus::IC_Npc;
     vm.setReturn(0);
     }
   }
@@ -1924,14 +1969,6 @@ void WorldScript::ai_gotofp(Daedalus::DaedalusVM &vm) {
   auto   npc      = popInstance(vm);
 
   if(npc) {
-    /*
-    const WayPoint* to=nullptr;
-    if(waypoint=="STAND") {
-      to = world().findFreePoint(*npc,"");
-      //return; // bug with "NW_BIGFARM_HOUSE_OUT_03"
-      } else {
-      to = world().findFreePoint(*npc,waypoint.c_str());
-      }*/
     auto to = world().findFreePoint(*npc,waypoint.c_str());
     if(to!=nullptr)
       npc->aiGoToPoint(*to);
@@ -2125,6 +2162,17 @@ void WorldScript::createinvitems(Daedalus::DaedalusVM &vm) {
   auto     self         = popInstance(vm);
   if(self!=nullptr)
     self->addItem(itemInstance,amount);
+  /*
+  Daedalus::PARSymbol& s = vm.getDATFile().getSymbolByName("item");
+  if(ret!=nullptr) {
+    s.instanceDataHandle = ret->handle();
+    s.instanceDataClass  = Daedalus::IC_Item;
+    vm.setReturn(1);
+    } else {
+    s.instanceDataHandle = nullptr;
+    s.instanceDataClass  = Daedalus::IC_Item;
+    vm.setReturn(0);
+    }*/
   }
 
 void WorldScript::hlp_getinstanceid(Daedalus::DaedalusVM &vm) {

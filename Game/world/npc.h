@@ -25,9 +25,10 @@ class WayPoint;
 
 class Npc final {
   public:
-    enum class AiType : uint8_t {
-      AiNormal,
+    enum class ProcessPolicy : uint8_t {
       Player,
+      AiNormal,
+      AiFar
       };
 
     enum MoveCode : uint8_t {
@@ -211,7 +212,7 @@ class Npc final {
     static float angleDir(float x,float z);
     void resetPositionToTA();
 
-    void setAiType(AiType t);
+    void setProcessPolicy(ProcessPolicy t);
     bool isPlayer() const;
     void setWalkMode(WalkBit m);
     auto walkMode() const { return wlkMode; }
@@ -221,6 +222,7 @@ class Npc final {
 
     std::array<float,3> position() const;
     std::array<float,3> cameraBone() const;
+    float               collisionRadius() const;
     float               rotation() const;
     float               rotationRad() const;
     float               translateY() const;
@@ -317,6 +319,8 @@ class Npc final {
 
     bool isEnemy(const Npc& other) const;
     bool isDead() const;
+    bool isUnconscious() const;
+    bool isDown() const;
     bool isPrehit() const;
 
     void setPerceptionTime   (uint64_t time);
@@ -415,6 +419,8 @@ class Npc final {
 
     void     setTarget(Npc* t);
     Npc*     target();
+
+    void     setNearestEnemy(Npc &n);
 
     void     setOther(Npc* ot);
 
@@ -550,6 +556,7 @@ class Npc final {
     Npc*                           currentTarget  =nullptr;
     char                           lastHitType    ='A';
     bool                           atackMode      =false;
+    Npc*                           nearestEnemy   =nullptr;
 
     Npc*                           currentGoToNpc =nullptr;
     GoToHint                       currentGoToFlag=GoToHint::GT_Default;
@@ -559,7 +566,7 @@ class Npc final {
     FpLock                         currentFpLock;
 
     uint64_t                       waitTime=0;
-    AiType                         aiType=AiType::AiNormal;
+    ProcessPolicy                  aiPolicy=ProcessPolicy::AiNormal;
     BodyState                      bodySt=BodyState(0);
     AiState                        aiState;
     size_t                         prevAiState=0;

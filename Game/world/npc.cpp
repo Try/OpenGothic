@@ -126,8 +126,8 @@ void Npc::clearSpeed() {
   mvAlgo.clearSpeed();
   }
 
-void Npc::setAiType(Npc::AiType t) {
-  aiType=t;
+void Npc::setProcessPolicy(ProcessPolicy t) {
+  aiPolicy=t;
   }
 
 void Npc::setWalkMode(WalkBit m) {
@@ -135,7 +135,7 @@ void Npc::setWalkMode(WalkBit m) {
   }
 
 bool Npc::isPlayer() const {
-  return aiType==Npc::AiType::Player;
+  return aiPolicy==Npc::ProcessPolicy::Player;
   }
 
 bool Npc::startClimb(Anim ani) {
@@ -159,11 +159,15 @@ bool Npc::checkHealth(bool onChange) {
       }
     }
 
-  if(owner.isDead(*this)) {
+  if(isDead()) {
+    if(onChange)
+      animation.resetAni();
     setAnim(lastHitType=='A' ? Anim::DeadA : Anim::DeadB);
     return false;
     }
-  if(owner.isUnconscious(*this)) {
+  if(isUnconscious()) {
+    if(onChange)
+      animation.resetAni();
     setAnim(lastHitType=='A' ? Anim::UnconsciousA : Anim::UnconsciousB);
     closeWeapon(true);
     return false;
@@ -177,11 +181,13 @@ bool Npc::checkHealth(bool onChange) {
       return false;
       }
 
-    if(onChange) {
+    if(onChange && currentOther!=nullptr) {
       // currentOther must be externaly initialized
       if(owner.guildAttitude(*this,*currentOther)==WorldScript::ATT_HOSTILE || guild()>GIL_SEPERATOR_HUM){
-        size_t fdead=owner.getSymbolIndex("ZS_Dead");
-        startState(fdead,"");
+        if(v.attribute[ATR_HITPOINTS]<=0){
+          size_t fdead=owner.getSymbolIndex("ZS_Dead");
+          startState(fdead,"");
+          }
         } else {
         size_t fdead=owner.getSymbolIndex("ZS_Unconscious");
         startState(fdead,"");
@@ -204,6 +210,10 @@ std::array<float,3> Npc::cameraBone() const {
   bone.project(r[0],r[1],r[2]);
   animation.pos.project (r[0],r[1],r[2]);
   return r;
+  }
+
+float Npc::collisionRadius() const {
+  return physic.radius();
   }
 
 float Npc::rotation() const {
@@ -636,6 +646,11 @@ bool Npc::implGoTo(uint64_t dt) {
   if((!currentGoTo && !currentGoToNpc) || currentTarget!=nullptr)
     return false;
 
+  if(currentTarget!=nullptr && currentTarget->isDead()){
+    tickRoutine();
+    return false;
+    }
+
   if(currentGoTo){
     float dx = currentGoTo->x-x;
     //float dy = y-currentGoTo->position.y;
@@ -676,6 +691,12 @@ bool Npc::implGoTo(uint64_t dt) {
 bool Npc::implAtack(uint64_t dt) {
   if(currentTarget==nullptr || isPlayer())
     return false;
+
+  if(currentTarget->isDead()) {
+    //currentTarget=nullptr;
+    return false;
+    }
+
   float dx = currentTarget->x-x;
   float dz = currentTarget->z-z;
 
@@ -683,11 +704,6 @@ bool Npc::implAtack(uint64_t dt) {
   if(ani!=Anim::Atack && ani!=Anim::AtackBlock){
     if(implLookAt(dx,dz,false,dt))
       return true;
-    }
-
-  if(owner.isDead(*currentTarget)) {
-    currentTarget=nullptr;
-    return false;
     }
 
   FightAlgo::Action act=FightAlgo::MV_MOVE;
@@ -833,7 +849,7 @@ void Npc::tick(uint64_t dt) {
   if(interactive()!=nullptr)
     setAnim(AnimationSolver::Interact); else
   if(currentGoTo==nullptr && currentGoToNpc==nullptr && currentTarget==nullptr &&
-     aiType!=AiType::Player && anim()!=Anim::Pray && anim()!=Anim::PrayRand) {
+     aiPolicy!=ProcessPolicy::Player && anim()!=Anim::Pray && anim()!=Anim::PrayRand) {
     if(weaponState()==WeaponState::NoWeapon)
       setAnim(animation.lastIdle); else
     if(animation.current>Anim::IdleLoopLast)
@@ -1121,6 +1137,19 @@ Npc *Npc::target() {
   return currentTarget;
   }
 
+void Npc::setNearestEnemy(Npc& n) {
+  if(!isEnemy(n))
+    return;
+  if(nearestEnemy==nullptr || nearestEnemy->isDown()){
+    nearestEnemy = &n;
+    return;
+    }
+  float d2 = qDistTo(n);
+  float d1 = qDistTo(*nearestEnemy);
+  if(d2<d1)
+    nearestEnemy = &n;
+  }
+
 void Npc::setOther(Npc *ot) {
   currentOther = ot;
   }
@@ -1189,9 +1218,9 @@ gtime Npc::endTime(const Npc::Routine &r) const {
 Npc::BodyState Npc::bodyState() const {
   uint32_t s   = bodySt;
   auto     ani = anim();
-  if(owner.isDead(*this))
+  if(isDead())
     s = BS_DEAD;
-  else if(owner.isUnconscious(*this))
+  else if(isUnconscious())
     s = BS_UNCONSCIOUS;
   else if(ani==Anim::Move || ani==Anim::MoveL || ani==Anim::MoveR || ani==Anim::MoveBack)
     s = BS_RUN;
@@ -1466,6 +1495,14 @@ bool Npc::isDead() const {
   return owner.isDead(*this);
   }
 
+bool Npc::isUnconscious() const {
+  return owner.isUnconscious(*this);
+  }
+
+bool Npc::isDown() const {
+  return isUnconscious() || isDead();
+  }
+
 bool Npc::isPrehit() const {
   return fghWaitToDamage<owner.tickCount();
   }
@@ -1485,8 +1522,10 @@ void Npc::setPerceptionDisable(Npc::PercType t) {
   }
 
 void Npc::startDialog(Npc& pl) {
+  auto oth = currentOther;
   currentOther=&pl;
-  perceptionProcess(pl,nullptr,0,PERC_ASSESSTALK);
+  if(!perceptionProcess(pl,nullptr,0,PERC_ASSESSTALK))
+    currentOther = oth;
   }
 
 bool Npc::perceptionProcess(Npc &pl,float quadDist) {
@@ -1496,14 +1535,21 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
 
   float r = hnpc->senses_range;
   r = r*r;
-  if(quadDist>r)
-    return false;
 
   bool ret=false;
-  if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER))
-    ret = true;
-  if(isEnemy(pl) && perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSENEMY))
-    ret = true;
+  if(quadDist<r){
+    if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER))
+      ret = true;
+    }
+  if(nearestEnemy!=nullptr){
+    float dist=qDistTo(*nearestEnemy);
+    if(perceptionProcess(*nearestEnemy,nullptr,dist,PERC_ASSESSENEMY)){
+      currentOther = nearestEnemy;
+      ret          = true;
+      } else {
+      nearestEnemy = nullptr;
+      }
+    }
   return ret;
   }
 

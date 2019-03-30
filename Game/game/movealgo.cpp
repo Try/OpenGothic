@@ -27,8 +27,11 @@ void MoveAlgo::tick(uint64_t dt) {
   if(npc.interactive()!=nullptr)
     return;
 
-  if((npc.isStanding() || (dpos[0]==0.f && dpos[1]==0.f && dpos[2]==0.f)) && !hasGoTo() && isFrozen())
-    return;
+  if(!hasGoTo() && isFrozen()) {
+    bool nullMove = (dpos[0]==0.f && dpos[1]==0.f && dpos[2]==0.f);
+    if(npc.isStanding() || nullMove)
+      return;
+    }
 
   float speed = std::sqrt(dpos[0]*dpos[0]+dpos[2]*dpos[2]);
   if(currentGoTo) {
@@ -239,7 +242,7 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
   if(processClimb())
     return;
 
-  bool frozen = (npc.position()==pos && !isInAir());
+  bool frozen = (npc.position()==pos && flags==NoFlags);
   auto oldY   = npc.position()[1];
   if(!isWalk && trySlide(fb,norm)){
     slideAni=true;
@@ -250,35 +253,37 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
     bool onFailed=false;
     if(isWalk && !npc.isFlyAnim()){
       bool valid  = false;
-      auto ground = world.physic()->dropRay(pos[0],oldY,pos[2],valid);
+      auto ground = dropRay(pos[0],oldY,pos[2],valid);
       if(valid) {
         if(ground==oldY){
-          frozen   = true;
           grounded = true;
           } else
         if(ground>oldY && ground<=oldY+fallThreshold){
           pos[1]   = ground;
+          frozen   = false;
           grounded = true;
           } else
         if(oldY>ground && oldY<ground+fallThreshold){
           pos[1]   = ground;
+          frozen   = false;
           grounded = true;
           } else {
           pos      = npc.position();
           grounded = false;
+          frozen   = false;
           onFailed = true;
           }
         }
       } else {
       bool valid = false;
-      auto ground = world.physic()->dropRay(pos[0],oldY,pos[2],valid);
+      auto ground = dropRay(pos[0],oldY,pos[2],valid);
       if(valid) {
         if(ground==oldY){
-          frozen   = true;
           grounded = true;
           }
         else if(ground>oldY && ground<=oldY+fallThreshold && !npc.isFlyAnim()) {
           pos[1]=ground;
+          frozen   = false;
           grounded = true;
           }
         }
@@ -299,15 +304,14 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
     }
 
   if(grounded) {
-    setAsFrozen(frozen);
-    setInAir(false);
+    flags = Frozen;
     return;
     }
 
   oldY = std::max(oldY,pos[1]);
 
   bool valid  = false;
-  auto ground = world.physic()->dropRay(pos[0],oldY,pos[2],valid);
+  auto ground = dropRay(pos[0],oldY,pos[2],valid);
   setAsFrozen(false);
 
   bool nFall=isFaling();
@@ -393,7 +397,7 @@ bool MoveAlgo::trySlide(std::array<float,3>& pos,std::array<float,3>& norm) {
 
   bool  badFall = false;
   bool  valid   = false;
-  auto  ground  = world.physic()->dropRay(pos[0],pos[1],pos[2],valid);
+  auto  ground  = dropRay(pos[0],pos[1],pos[2],valid);
   float delta   = (pos[1]-ground);
 
   if(valid && delta>fallThreshold) {
@@ -425,4 +429,8 @@ void MoveAlgo::onMoveFailed() {
   if(npc.moveHint()==Npc::GT_NextFp){
     npc.clearGoTo();
     }
+  }
+
+float MoveAlgo::dropRay(float x, float y, float z, bool &hasCol) const {
+  return world.physic()->dropRay(x,y+2*npc.collisionRadius(),z,hasCol);
   }

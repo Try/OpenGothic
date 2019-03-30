@@ -142,7 +142,7 @@ void InventoryMenu::tick(uint64_t /*dt*/) {
       return;
       }
 
-    if(!world->script()->isDead(*trader) && !world->script()->isUnconscious(*trader))
+    if(!trader->isDown())
       close();
     if(trader->inventory().ransackCount()==0)
       close();

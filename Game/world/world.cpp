@@ -49,7 +49,7 @@ World::World(GameSession& game,const RendererStorage &storage, std::string file,
 void World::createPlayer(const char *cls) {
   npcPlayer = game.script()->inserNpc(cls,wmatrix->startPoint().name.c_str());
   if(npcPlayer!=nullptr) {
-    npcPlayer->setAiType(Npc::AiType::Player);
+    npcPlayer->setProcessPolicy(Npc::ProcessPolicy::Player);
     game.script()->setInstanceNPC("HERO",*npcPlayer);
     }
   }
@@ -312,6 +312,10 @@ const WayPoint *World::findNextFreePoint(const Npc &n, const char *name) const {
 
 const WayPoint *World::findNextPoint(const WayPoint &pos) const {
   return wmatrix->findNextPoint(pos.x,pos.y,pos.z);
+  }
+
+void World::detectNpc(const std::array<float,3> p, std::function<void (Npc &)> f) {
+  wobj.detectNpc(p[0],p[1],p[2],f);
   }
 
 void World::detectNpc(const float x, const float y, const float z, std::function<void(Npc&)> f) {

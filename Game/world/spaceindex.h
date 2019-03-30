@@ -4,9 +4,10 @@
 #include <cstdint>
 #include <algorithm>
 #include <array>
+#include <memory>
 
 template<class T>
-class SpaceIndex {
+class SpaceIndex final {
   public:
     SpaceIndex()=default;
 
@@ -16,16 +17,20 @@ class SpaceIndex {
       arr.emplace_back(std::forward<Args>(args)...);
       }
 
-          T& operator[](size_t i){ return arr[i]; }
+          T& operator[](size_t i)       { return arr[i]; }
     const T& operator[](size_t i) const { return arr[i]; }
 
     size_t size() const { return arr.size(); }
 
-    auto begin()        { return arr.begin(); }
-    auto end()          { return arr.end();   }
+    auto  begin()        { return arr.begin(); }
+    auto  end()          { return arr.end();   }
 
-    auto begin()  const { return arr.begin(); }
-    auto end()    const { return arr.end();   }
+    auto  begin()  const { return arr.begin(); }
+    auto  end()    const { return arr.end();   }
+
+    auto& back() { return arr.back(); }
+
+    void pop_back() { arr.pop_back(); index.clear(); }
 
     void buildIndex() {
       index.resize(arr.size());
@@ -57,7 +62,8 @@ class SpaceIndex {
       auto RQ = R*R;
       size_t count = std::distance(s,e); (void)count;
       for(auto i=s;i!=e;++i) {
-        if( qDist(x,y,z,*i)<RQ ){
+        T* t = *i;
+        if( qDist(x,y,z,t)<RQ ){
           if( f(**i) )
             return;
           }
@@ -68,11 +74,23 @@ class SpaceIndex {
     std::vector<T>  arr;
     std::vector<T*> index;
 
-    static float X(const T* t) {
+    template<class U>
+    static float X(const std::unique_ptr<U>* t) {
+      return X(t->get());
+      }
+
+    template<class U>
+    static float qDist(float x,float y,float z,const std::unique_ptr<U>* t) {
+      return qDist(x,y,z,t->get());
+      }
+
+    template<class U>
+    static float X(const U* t) {
       return t->position()[0];
       }
 
-    static float qDist(float x,float y,float z,const T* t) {
+    template<class U>
+    static float qDist(float x,float y,float z,const U* t) {
       x -= t->position()[0];
       y -= t->position()[1];
       z -= t->position()[2];
