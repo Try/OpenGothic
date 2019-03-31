@@ -695,7 +695,7 @@ bool Npc::isAtackMode() const {
   }
 
 bool Npc::implAtack(uint64_t dt) {
-  if(currentTarget==nullptr || isPlayer())
+  if(currentTarget==nullptr || isPlayer() || isTalk())
     return false;
 
   if(currentTarget->isDead()){
@@ -888,7 +888,7 @@ void Npc::tick(uint64_t dt) {
       }
     }
 
-  if(!aiState.started) {
+  if(!aiState.started && aiState.funcIni!=0) {
     tickRoutine();
     }
   else if(aiActions.size()==0) {
