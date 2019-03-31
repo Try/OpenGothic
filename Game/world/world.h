@@ -123,6 +123,7 @@ class World final {
     void         addStatic(const ZenLoad::zCVobData &vob);
     void         addInteractive(const ZenLoad::zCVobData &vob);
     void         addItem(const ZenLoad::zCVobData &vob);
+    void         addSound(const ZenLoad::zCVobData &vob);
 
     void         initScripts(bool firstTime);
   };

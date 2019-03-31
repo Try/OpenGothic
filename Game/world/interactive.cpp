@@ -104,10 +104,14 @@ std::array<float,3> Interactive::displayPosition() const {
 const char *Interactive::displayName() const {
   if(data.oCMOB.focusName.empty())
     return "";
-  auto& s=world->getSymbol(data.oCMOB.focusName.c_str());
+  const char* strId=data.oCMOB.focusName.c_str();
+  if(world->getSymbolIndex(strId)==size_t(-1)){
+    return data.vobName.c_str();
+    }
+  auto& s=world->getSymbol(strId);
   const char* txt = s.getString(0).c_str();
   if(std::strlen(txt)==0)
-    txt=data.vobName.c_str();
+    txt="";
   return txt;
   }
 

@@ -404,6 +404,7 @@ void World::loadVob(ZenLoad::zCVobData &vob) {
     }
   else if(vob.objectClass=="oCZoneMusic:zCVob" ||
           vob.objectClass=="oCZoneMusicDefault:oCZoneMusic:zCVob") {
+    addSound(vob);
     }
   else if(vob.objectClass=="zCVobLight:zCVob") {
     }
@@ -426,4 +427,7 @@ void World::addInteractive(const ZenLoad::zCVobData &vob) {
 
 void World::addItem(const ZenLoad::zCVobData &vob) {
   wobj.addItem(vob);
+  }
+
+void World::addSound(const ZenLoad::zCVobData &) {
   }
