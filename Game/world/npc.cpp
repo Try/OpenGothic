@@ -19,6 +19,7 @@ Npc::Npc(WorldScript &owner, Daedalus::GEngineClasses::C_Npc *hnpc)
 Npc::~Npc(){
   if(currentInteract)
     currentInteract->dettach(*this);
+  delete hnpc;
   }
 
 void Npc::setPosition(float ix, float iy, float iz) {
@@ -74,7 +75,7 @@ float Npc::angleDir(float x, float z) {
   }
 
 void Npc::resetPositionToTA() {
-  if(routines.size()==0)
+  if(routines.size()==0 || isDead())
     return;
 
   attachToPoint(nullptr);
@@ -643,13 +644,8 @@ bool Npc::implLookAt(float dx, float dz, bool anim, uint64_t dt) {
   }
 
 bool Npc::implGoTo(uint64_t dt) {
-  if((!currentGoTo && !currentGoToNpc) || currentTarget!=nullptr)
+  if(!currentGoTo && !currentGoToNpc)
     return false;
-
-  if(currentTarget!=nullptr && currentTarget->isDead()){
-    tickRoutine();
-    return false;
-    }
 
   if(currentGoTo){
     float dx = currentGoTo->x-x;
@@ -688,13 +684,22 @@ bool Npc::implGoTo(uint64_t dt) {
     }
   }
 
+bool Npc::isAtackMode() const {
+  if(interactive()!=nullptr)
+    return false;
+  if(currentTarget==nullptr || isPlayer())
+    return false;
+  if(currentTarget->isDead())
+    return false;
+  return true;
+  }
+
 bool Npc::implAtack(uint64_t dt) {
   if(currentTarget==nullptr || isPlayer())
     return false;
 
-  if(currentTarget->isDead()) {
-    //currentTarget=nullptr;
-    return false;
+  if(currentTarget->isDead()){
+    return true;
     }
 
   float dx = currentTarget->x-x;
@@ -794,7 +799,7 @@ void Npc::commitDamage() {
   }
 
 void Npc::takeDamage(Npc &other) {
-  if(isDead())
+  if(isDead() || isImmortal())
     return;
 
   currentOther=&other;
@@ -806,7 +811,8 @@ void Npc::takeDamage(Npc &other) {
     fghAlgo.onTakeHit();
     if(!isPlayer())
       currentOther=lastHit;
-    changeAttribute(ATR_HITPOINTS,isPlayer() ? -1 : -100);
+    int dmg = other.damageValue(*this);
+    changeAttribute(ATR_HITPOINTS,isPlayer() ? -1 : -dmg);
 
     if(ani==Anim::Move  || ani==Anim::MoveL  || ani==Anim::MoveR ||
        ani==Anim::Atack || ani==Anim::AtackL || ani==Anim::AtackR ||
@@ -819,6 +825,26 @@ void Npc::takeDamage(Npc &other) {
         setAnim(Anim::StumbleB);
       }
     }
+  }
+
+int Npc::damageValue(Npc &other) const {
+  const int dtype = hnpc->damagetype;
+  int hitCh = -1;
+  if(auto w = invent.activeWeapon()){
+    if(w->is2H())
+      hitCh = TALENT_2H; else
+      hitCh = TALENT_1H;
+    }
+  int v = attribute(Attribute::ATR_STRENGTH);
+  for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
+    if((dtype & (1<<i))==0)
+      continue;
+    int vd = std::max(hnpc->damage[i] - other.hnpc->protection[i],0);
+    if(hitCh<0 || hnpc->hitChance[hitCh]<int(owner.rand(100)))
+      vd = (vd-1)/10;
+    v += vd;
+    }
+  return std::max(v,3);
   }
 
 void Npc::tick(uint64_t dt) {
@@ -838,32 +864,37 @@ void Npc::tick(uint64_t dt) {
   // do parallel?
   mvAlgo.tick(dt);
 
-  if(!implAtack(dt)) {
+  if(waitTime>=owner.tickCount())
+    return;
+
+  const bool isAtk = isAtackMode();
+  if(isAtk) {
+    implAtack(dt);
+    } else {
     if(implLookAt(dt))
       return;
 
     if(implGoTo(dt))
       return;
+
+    if(interactive()!=nullptr)
+      setAnim(AnimationSolver::Interact); else
+    if(currentGoTo==nullptr && currentGoToNpc==nullptr && (currentTarget==nullptr || currentTarget->isDown()) &&
+       aiPolicy!=ProcessPolicy::Player && anim()!=Anim::Pray && anim()!=Anim::PrayRand) {
+      if(weaponState()==WeaponState::NoWeapon)
+        setAnim(animation.lastIdle); else
+      if(animation.current>Anim::IdleLoopLast)
+        setAnim(Anim::Idle);
+      }
     }
 
-  if(interactive()!=nullptr)
-    setAnim(AnimationSolver::Interact); else
-  if(currentGoTo==nullptr && currentGoToNpc==nullptr && currentTarget==nullptr &&
-     aiPolicy!=ProcessPolicy::Player && anim()!=Anim::Pray && anim()!=Anim::PrayRand) {
-    if(weaponState()==WeaponState::NoWeapon)
-      setAnim(animation.lastIdle); else
-    if(animation.current>Anim::IdleLoopLast)
-      setAnim(Anim::Idle);
+  if(!aiState.started) {
+    tickRoutine();
     }
-
-  if(waitTime>=owner.tickCount())
-    return;
-
-  if(aiActions.size()==0) {
+  else if(aiActions.size()==0) {
     tickRoutine();
     return;
     }
-
   nextAiAction(dt);
   }
 
@@ -1081,7 +1112,10 @@ bool Npc::startState(size_t id,const std::string &wp, gtime endTime,bool noFinal
 
 void Npc::clearState(bool noFinalize) {
   if(aiState.funcIni!=0 && aiState.started){
-    owner.invokeState(this,currentOther,nullptr,aiState.funcLoop); // avoid ZS_Talk bug
+    if(owner.isTalk(*this)) {
+      // avoid ZS_Talk bug
+      owner.invokeState(this,currentOther,nullptr,aiState.funcLoop);
+      }
     if(!noFinalize)
       owner.invokeState(this,currentOther,nullptr,aiState.funcEnd);  // cleanup
     }
@@ -1503,8 +1537,16 @@ bool Npc::isDown() const {
   return isUnconscious() || isDead();
   }
 
+bool Npc::isTalk() const {
+  return owner.isTalk(*this);
+  }
+
 bool Npc::isPrehit() const {
   return fghWaitToDamage<owner.tickCount();
+  }
+
+bool Npc::isImmortal() const {
+  return hnpc->flags & Daedalus::GEngineClasses::C_Npc::ENPCFlag::EFLAG_IMMORTAL;
   }
 
 void Npc::setPerceptionTime(uint64_t time) {
@@ -1522,10 +1564,8 @@ void Npc::setPerceptionDisable(Npc::PercType t) {
   }
 
 void Npc::startDialog(Npc& pl) {
-  auto oth = currentOther;
-  currentOther=&pl;
-  if(!perceptionProcess(pl,nullptr,0,PERC_ASSESSTALK))
-    currentOther = oth;
+  if(perceptionProcess(pl,nullptr,0,PERC_ASSESSTALK))
+    currentOther=&pl;
   }
 
 bool Npc::perceptionProcess(Npc &pl,float quadDist) {
@@ -1538,10 +1578,12 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
 
   bool ret=false;
   if(quadDist<r){
-    if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER))
-      ret = true;
+    if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER)) {
+      //currentOther = &pl;
+      ret          = true;
+      }
     }
-  if(nearestEnemy!=nullptr){
+  if(nearestEnemy!=nullptr && !isTalk()){
     float dist=qDistTo(*nearestEnemy);
     if(perceptionProcess(*nearestEnemy,nullptr,dist,PERC_ASSESSENEMY)){
       currentOther = nearestEnemy;
@@ -1915,6 +1957,7 @@ void Npc::aiClearQueue() {
   aiActions.clear();
   currentGoTo     = nullptr;
   currentGoToFlag = GoToHint::GT_Default;
+  wayPath.clear();
   mvAlgo.aiGoTo(nullptr);
   //setTarget(nullptr);
   }

@@ -272,6 +272,7 @@ class WorldScript final {
     void ai_gotonpc          (Daedalus::DaedalusVM &vm);
     void ai_gotonextfp       (Daedalus::DaedalusVM &vm);
     void ai_aligntofp        (Daedalus::DaedalusVM &vm);
+    void ai_useitem          (Daedalus::DaedalusVM &vm);
     void ai_useitemtostate   (Daedalus::DaedalusVM &vm);
 
     void mob_hasitems        (Daedalus::DaedalusVM &vm);

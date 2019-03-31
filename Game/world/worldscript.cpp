@@ -205,6 +205,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("ai_gotonpc",          [this](Daedalus::DaedalusVM& vm){ ai_gotonpc(vm);           });
   vm.registerExternalFunction("ai_gotonextfp",       [this](Daedalus::DaedalusVM& vm){ ai_gotonextfp(vm);        });
   vm.registerExternalFunction("ai_aligntofp",        [this](Daedalus::DaedalusVM& vm){ ai_aligntofp(vm);         });
+  vm.registerExternalFunction("ai_useitem",          [this](Daedalus::DaedalusVM& vm){ ai_useitem(vm);           });
   vm.registerExternalFunction("ai_useitemtostate",   [this](Daedalus::DaedalusVM& vm){ ai_useitemtostate(vm);    });
 
   vm.registerExternalFunction("mob_hasitems",        [this](Daedalus::DaedalusVM& vm){ mob_hasitems(vm);         });
@@ -2088,6 +2089,13 @@ void WorldScript::ai_aligntofp(Daedalus::DaedalusVM &vm) {
   auto  npc = popInstance(vm);
   if(npc!=nullptr)
     npc->aiAlignToFp();
+  }
+
+void WorldScript::ai_useitem(Daedalus::DaedalusVM &vm) {
+  int32_t  item  = vm.popInt();
+  auto     npc   = popInstance(vm);
+  if(npc)
+    npc->aiUseItem(item);
   }
 
 void WorldScript::ai_useitemtostate(Daedalus::DaedalusVM &vm) {

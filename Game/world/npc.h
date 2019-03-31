@@ -321,7 +321,9 @@ class Npc final {
     bool isDead() const;
     bool isUnconscious() const;
     bool isDown() const;
+    bool isTalk() const;
     bool isPrehit() const;
+    bool isImmortal() const;
 
     void setPerceptionTime   (uint64_t time);
     void setPerceptionEnable (PercType t, size_t fn);
@@ -510,11 +512,13 @@ class Npc final {
     bool                           implLookAt (float dx, float dz, bool anim, uint64_t dt);
     bool                           implGoTo   (uint64_t dt);
     bool                           implAtack  (uint64_t dt);
+    bool                           isAtackMode() const;
     void                           tickRoutine();
     void                           nextAiAction(uint64_t dt);
     bool                           setAnim(Npc::Anim a, WeaponState st0, WeaponState st);
     void                           commitDamage();
     void                           takeDamage(Npc& other);
+    int                            damageValue(Npc &other) const;
 
     WorldScript&                   owner;
     Daedalus::GEngineClasses::C_Npc* hnpc;
