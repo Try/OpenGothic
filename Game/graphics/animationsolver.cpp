@@ -175,44 +175,49 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     return nullptr;
 
   if(st0==WeaponState::NoWeapon){
-    if(a==Anim::Idle && cur==a && st==WeaponState::W1H)
+    if(st==WeaponState::W1H){
+      if(a==Anim::Move && cur==a)
+        return layredSequence("S_1HRUNL","T_MOVE_2_1HMOVE");
       return animSequence("T_1H_2_1HRUN");
-    if(a==Anim::Move && cur==a && st==WeaponState::W1H)
-      return layredSequence("S_1HRUNL","T_MOVE_2_1HMOVE");
-    if(a==Anim::Idle && cur==a && st==WeaponState::W2H)
+      }
+    if(st==WeaponState::W2H){
+      if(a==Anim::Move && cur==a)
+        return layredSequence("S_2HRUNL","T_MOVE_2_2HMOVE");
       return animSequence("T_RUN_2_2H");
-    if(a==Anim::Move && cur==a && st==WeaponState::W2H)
-      return layredSequence("S_2HRUNL","T_MOVE_2_2HMOVE");
-    if(a==Anim::Idle && cur==a && st==WeaponState::Bow)
+      }
+    if(st==WeaponState::Bow){
+      if(a==Anim::Move && cur==a)
+        return layredSequence("S_BOWRUNL","T_MOVE_2_BOWMOVE");
       return animSequence("T_RUN_2_BOW");
-    if(a==Anim::Move && cur==a && st==WeaponState::Bow)
-      return layredSequence("S_BOWRUNL","T_MOVE_2_BOWMOVE");
-    if(a==Anim::Idle && cur==a && st==WeaponState::CBow)
+      }
+    if(st==WeaponState::CBow){
+      if(a==Anim::Move && cur==a)
+        return layredSequence("S_CBOWRUNL","T_MOVE_2_CBOWMOVE");
       return animSequence("T_RUN_2_CBOW");
-    if(a==Anim::Move && cur==a && st==WeaponState::CBow)
-      return layredSequence("S_CBOWRUNL","T_MOVE_2_CBOWMOVE");
-    if(a==Anim::Idle && cur==a && st==WeaponState::Mage)
+      }
+    if(st==WeaponState::Mage){
+      if(a==Anim::Move && cur==a)
+        return layredSequence("S_MAGRUNL","T_MOVE_2_MAGMOVE");
       return animSequence("T_MOVE_2_MAGMOVE");
-    if(a==Anim::Move && cur==a && st==WeaponState::Mage)
-      return layredSequence("S_MAGRUNL","T_MOVE_2_MAGMOVE");
+      }
     }
-  if(st0==WeaponState::W1H && st==WeaponState::NoWeapon){
-    if(a==Anim::Idle && cur==a)
+
+  if(st==WeaponState::NoWeapon){
+    if(st0==WeaponState::W1H){
+      if(a==Anim::Move && cur==a)
+        return layredSequence("S_1HRUNL","T_1HMOVE_2_MOVE");
       return animSequence("T_1HMOVE_2_MOVE");
-    if(a==Anim::Move && cur==a)
-      return layredSequence("S_1HRUNL","T_1HMOVE_2_MOVE");
-    }
-  if(st0==WeaponState::W2H && st==WeaponState::NoWeapon){
-    if(a==Anim::Idle && cur==a)
+      }
+    if(st0==WeaponState::W2H){
+      if(a==Anim::Move && cur==a)
+        return layredSequence("S_2HRUNL","T_2HMOVE_2_MOVE");
       return animSequence("T_RUN_2_2H");
-    if(a==Anim::Move && cur==a)
-      return layredSequence("S_2HRUNL","T_2HMOVE_2_MOVE");
-    }
-  if(st0==WeaponState::Mage && st==WeaponState::NoWeapon){
-    if(a==Anim::Idle && cur==a)
+      }
+    if(st0==WeaponState::Mage){
+      if(a==Anim::Move && cur==a)
+        return layredSequence("S_MAGRUNL","T_MAGMOVE_2_MOVE");
       return animSequence("T_RUN_2_MAG");
-    if(a==Anim::Move && cur==a)
-      return layredSequence("S_MAGRUNL","T_MAGMOVE_2_MOVE");
+      }
     }
 
   if(true) {

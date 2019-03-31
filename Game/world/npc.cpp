@@ -702,6 +702,9 @@ bool Npc::implAtack(uint64_t dt) {
     return true;
     }
 
+  if(weaponState()==WeaponState::NoWeapon)
+    return false;
+
   float dx = currentTarget->x-x;
   float dz = currentTarget->z-z;
 
