@@ -54,6 +54,7 @@ class MoveAlgo final {
     bool   slideDir() const;
     void   onMoveFailed();
     float  dropRay(float x, float y, float z, bool &hasCol) const;
+    void   applyRotation(std::array<float,3> &out, float *in);
 
     Npc&                npc;
     const World&        world;

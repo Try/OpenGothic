@@ -46,10 +46,12 @@ void MoveAlgo::tick(uint64_t dt) {
       } else {
       npc.setAnim(AnimationSolver::Move);
       }
-    if(len>0.1f){
-      float k = std::min(len,mulSpeed*speed)/len;
-      aniSpeed[0] = dx*k;
-      aniSpeed[2] = dz*k;
+    if(speed>0.1f){
+      len = std::sqrt(len);
+      float k = std::min(len,speed)/speed;
+      dpos[0]*=k;
+      dpos[2]*=k;
+      applyRotation(aniSpeed,dpos);
       }
     }
   else if(currentGoToNpc) {
@@ -64,19 +66,15 @@ void MoveAlgo::tick(uint64_t dt) {
       } else {
       npc.setAnim(AnimationSolver::Move);
       }
-    if(len>0.1f*0.1f){
+    if(speed>0.1f){
       len = std::sqrt(len);
-      float k = std::min(len,mulSpeed*speed)/len;
-      aniSpeed[0] = dx*k;
-      aniSpeed[2] = dz*k;
+      float k = std::min(len,speed)/speed;
+      dpos[0]*=k;
+      dpos[2]*=k;
+      applyRotation(aniSpeed,dpos);
       }
-    }
-  else {
-    float rot = npc.rotationRad();
-    float s   = std::sin(rot), c = std::cos(rot);
-    aniSpeed[0]=-mulSpeed*(dpos[0]*c-dpos[2]*s);
-    aniSpeed[2]=-mulSpeed*(dpos[0]*s+dpos[2]*c);
-    aniSpeed[1]=dpos[1];
+    } else {
+    applyRotation(aniSpeed,dpos);
     }
 
   auto pos = npc.position();
@@ -93,6 +91,15 @@ void MoveAlgo::clearSpeed() {
   fallSpeed[2]=0;
   flags = NoFlags;
   }
+
+void MoveAlgo::applyRotation(std::array<float,3> &out, float* dpos) {
+  float rot = npc.rotationRad();
+  float s   = std::sin(rot), c = std::cos(rot);
+  out[0] = -mulSpeed*(dpos[0]*c-dpos[2]*s);
+  out[2] = -mulSpeed*(dpos[0]*s+dpos[2]*c);
+  out[1] = dpos[1];
+  }
+
 
 bool MoveAlgo::isClose(const std::array<float,3> &w, const WayPoint &p) {
   return isClose(w[0],w[1],w[2],p);
