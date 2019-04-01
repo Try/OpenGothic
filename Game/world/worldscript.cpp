@@ -1074,7 +1074,7 @@ void WorldScript::wld_detectnpc(Daedalus::DaedalusVM &vm) {
   Npc*  ret =nullptr;
   float dist=std::numeric_limits<float>::max();
 
-  world().detectNpc(0,0,0, [inst,state,guild,&ret,&dist,npc](Npc& n){
+  world().detectNpc(npc->position(), [inst,state,guild,&ret,&dist,npc](Npc& n){
     if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
        (state==-1 || n.isState(uint32_t(state))) &&
        (guild==-1 || int32_t(n.guild())==guild) &&

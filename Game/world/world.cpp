@@ -353,6 +353,7 @@ void World::loadVob(ZenLoad::zCVobData &vob) {
   else if(vob.objectClass=="oCMobInter:oCMOB:zCVob" ||
           vob.objectClass=="oCMobContainer:oCMobInter:oCMOB:zCVob" ||
           vob.objectClass=="oCMobDoor:oCMobInter:oCMOB:zCVob" ||
+          vob.objectClass=="oCMobBed:oCMobInter:oCMOB:zCVob" ||
           vob.objectClass=="oCMobSwitch:oCMobInter:oCMOB:zCVob"){
     addInteractive(vob);
     }
@@ -376,10 +377,13 @@ void World::loadVob(ZenLoad::zCVobData &vob) {
           vob.objectClass=="zCTrigger:zCVob"){
     wobj.addTrigger(std::move(vob));
     }
+  else if(vob.objectClass=="zCMessageFilter:zCVob"){
+    }
   else if(vob.objectClass=="zCZoneZFog:zCVob" ||
           vob.objectClass=="zCZoneZFogDefault:zCZoneZFog:zCVob"){
     }
   else if(vob.objectClass=="zCZoneVobFarPlaneDefault:zCZoneVobFarPlane:zCVob" ||
+          vob.objectClass=="zCZoneVobFarPlane:zCVob" ||
           vob.objectClass=="zCVobLensFlare:zCVob"){
     return;
     }
