@@ -136,6 +136,8 @@ class WorldScript final {
     Npc*  inserNpc  (size_t npcInstance, const char *at);
     auto  getFocus(const char* name) -> Daedalus::GEngineClasses::C_Focus;
 
+    void storeItem(Item* it);
+
     static void concatstrings(Daedalus::DaedalusVM& vm);
     static void inttostring  (Daedalus::DaedalusVM& vm);
     static void floattostring(Daedalus::DaedalusVM& vm);
@@ -257,6 +259,7 @@ class WorldScript final {
     void ai_gotofp           (Daedalus::DaedalusVM &vm);
     void ai_playanibs        (Daedalus::DaedalusVM &vm);
     void ai_equiparmor       (Daedalus::DaedalusVM &vm);
+    void ai_equipbestarmor   (Daedalus::DaedalusVM &vm);
     void ai_equipbestmeleeweapon (Daedalus::DaedalusVM &vm);
     void ai_equipbestrangedweapon(Daedalus::DaedalusVM &vm);
     void ai_usemob           (Daedalus::DaedalusVM &vm);
@@ -269,6 +272,7 @@ class WorldScript final {
     void ai_flee             (Daedalus::DaedalusVM &vm);
     void ai_dodge            (Daedalus::DaedalusVM &vm);
     void ai_unequipweapons   (Daedalus::DaedalusVM &vm);
+    void ai_unequiparmor     (Daedalus::DaedalusVM &vm);
     void ai_gotonpc          (Daedalus::DaedalusVM &vm);
     void ai_gotonextfp       (Daedalus::DaedalusVM &vm);
     void ai_aligntofp        (Daedalus::DaedalusVM &vm);
@@ -299,6 +303,11 @@ class WorldScript final {
     void printdialog         (Daedalus::DaedalusVM &vm);
     void print               (Daedalus::DaedalusVM &vm);
     void perc_setrange       (Daedalus::DaedalusVM &vm);
+
+    void printdebug          (Daedalus::DaedalusVM &vm);
+    void printdebugch        (Daedalus::DaedalusVM &vm);
+    void printdebuginst      (Daedalus::DaedalusVM &vm);
+    void printdebuginstch    (Daedalus::DaedalusVM &vm);
 
     void sort(std::vector<DlgChoise>& dlg);
     void setNpcInfoKnown(const Daedalus::GEngineClasses::C_Npc& npc, const Daedalus::GEngineClasses::C_Info& info);

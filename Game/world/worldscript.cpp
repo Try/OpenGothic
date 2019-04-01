@@ -18,33 +18,36 @@ static std::string addExt(const std::string& s,const char* ext){
   }
 
 struct WorldScript::ScopeVar final {
-  ScopeVar(Daedalus::DaedalusVM& vm,const char* name,Npc& n)
-    :ScopeVar(vm,name,n.handle(), Daedalus::IC_Npc){
+  ScopeVar(Daedalus::DaedalusVM& vm,Daedalus::PARSymbol& sym,Npc& n)
+    :ScopeVar(vm,sym,n.handle(),Daedalus::IC_Npc){
     }
 
-  ScopeVar(Daedalus::DaedalusVM& vm,const char* name,Npc* n)
-    :ScopeVar(vm,name,n ? n->handle() : nullptr, Daedalus::IC_Npc){
+  ScopeVar(Daedalus::DaedalusVM& vm,Daedalus::PARSymbol& sym,Npc* n)
+    :ScopeVar(vm,sym,n ? n->handle() : nullptr, Daedalus::IC_Npc){
     }
 
-  ScopeVar(Daedalus::DaedalusVM& vm,const char* name, void* h, Daedalus::EInstanceClass instanceClass)
-    :vm(vm),name(name) {
-    Daedalus::PARSymbol& s = vm.getDATFile().getSymbolByName(name);
-    cls    = s.instanceDataClass;
-    handle = s.instanceDataHandle;
-    s.instanceDataHandle = h;
-    s.instanceDataClass  = instanceClass;
+  ScopeVar(Daedalus::DaedalusVM& vm,const char* name, Daedalus::GEngineClasses::C_Npc* h)
+    :ScopeVar(vm,vm.getDATFile().getSymbolByName(name),h,Daedalus::IC_Npc){
     }
+
+  ScopeVar(Daedalus::DaedalusVM& vm,Daedalus::PARSymbol& sym, Daedalus::GEngineClasses::Instance* h, Daedalus::EInstanceClass instanceClass)
+    :vm(vm),sym(sym) {
+    cls    = sym.instanceDataClass;
+    handle = sym.instanceDataHandle;
+    sym.instanceDataHandle = h;
+    sym.instanceDataClass  = instanceClass;
+    }
+
   ScopeVar(const ScopeVar&)=delete;
   ~ScopeVar(){
-    Daedalus::PARSymbol& s = vm.getDATFile().getSymbolByName(name);
-    s.instanceDataHandle = handle;
-    s.instanceDataClass  = cls;
+    sym.instanceDataHandle = handle;
+    sym.instanceDataClass  = cls;
     }
 
   void*                    handle=nullptr;
   Daedalus::EInstanceClass cls;
   Daedalus::DaedalusVM&    vm;
-  const char*              name="";
+  Daedalus::PARSymbol&     sym;
   };
 
 WorldScript::WorldScript(GameSession &owner)
@@ -188,6 +191,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("ai_gotofp",           [this](Daedalus::DaedalusVM& vm){ ai_gotofp(vm);            });
   vm.registerExternalFunction("ai_playanibs",        [this](Daedalus::DaedalusVM& vm){ ai_playanibs(vm);         });
   vm.registerExternalFunction("ai_equiparmor",       [this](Daedalus::DaedalusVM& vm){ ai_equiparmor(vm);        });
+  vm.registerExternalFunction("ai_equipbestarmor",   [this](Daedalus::DaedalusVM& vm){ ai_equipbestarmor(vm);    });
   vm.registerExternalFunction("ai_equipbestmeleeweapon",
                                                      [this](Daedalus::DaedalusVM& vm){ ai_equipbestmeleeweapon(vm);  });
   vm.registerExternalFunction("ai_equipbestrangedweapon",
@@ -202,6 +206,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("ai_flee",             [this](Daedalus::DaedalusVM& vm){ ai_flee(vm);              });
   vm.registerExternalFunction("ai_dodge",            [this](Daedalus::DaedalusVM& vm){ ai_dodge(vm);             });
   vm.registerExternalFunction("ai_unequipweapons",   [this](Daedalus::DaedalusVM& vm){ ai_unequipweapons(vm);    });
+  vm.registerExternalFunction("ai_unequiparmor",     [this](Daedalus::DaedalusVM& vm){ ai_unequiparmor(vm);      });
   vm.registerExternalFunction("ai_gotonpc",          [this](Daedalus::DaedalusVM& vm){ ai_gotonpc(vm);           });
   vm.registerExternalFunction("ai_gotonextfp",       [this](Daedalus::DaedalusVM& vm){ ai_gotonextfp(vm);        });
   vm.registerExternalFunction("ai_aligntofp",        [this](Daedalus::DaedalusVM& vm){ ai_aligntofp(vm);         });
@@ -233,6 +238,11 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("printdialog",         [this](Daedalus::DaedalusVM& vm){ printdialog(vm);          });
   vm.registerExternalFunction("print",               [this](Daedalus::DaedalusVM& vm){ print(vm);                });
   vm.registerExternalFunction("perc_setrange",       [this](Daedalus::DaedalusVM& vm){ perc_setrange(vm);        });
+
+  vm.registerExternalFunction("printdebug",          [this](Daedalus::DaedalusVM& vm){ printdebug(vm);           });
+  vm.registerExternalFunction("printdebugch",        [this](Daedalus::DaedalusVM& vm){ printdebugch(vm);         });
+  vm.registerExternalFunction("printdebuginst",      [this](Daedalus::DaedalusVM& vm){ printdebuginst(vm);       });
+  vm.registerExternalFunction("printdebuginstch",    [this](Daedalus::DaedalusVM& vm){ printdebuginstch(vm);     });
 
   DaedalusGameState::GameExternals ext;
   ext.wld_insertnpc      = [this](Daedalus::GEngineClasses::C_Npc* h,const std::string& s){ world().onInserNpc(h,s); };
@@ -377,6 +387,17 @@ Daedalus::GEngineClasses::C_Focus WorldScript::getFocus(const char *name) {
   return ret;
   }
 
+void WorldScript::storeItem(Item *itm) {
+  Daedalus::PARSymbol& s = vm.globalItem();
+  if(itm!=nullptr) {
+    s.instanceDataHandle = itm->handle();
+    s.instanceDataClass  = Daedalus::IC_Item;
+    } else {
+    s.instanceDataHandle = nullptr;
+    s.instanceDataClass  = Daedalus::IC_Item;
+    }
+  }
+
 DaedalusGameState &WorldScript::getGameState() {
   return vm.getGameState();
   }
@@ -415,8 +436,8 @@ std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GEngine
   auto& npc = *hnpc;
   auto& pl  = *player;
 
-  ScopeVar self (vm,"self", hnpc,   Daedalus::IC_Npc);
-  ScopeVar other(vm,"other",player, Daedalus::IC_Npc);
+  ScopeVar self (vm, vm.globalSelf(),  hnpc,   Daedalus::IC_Npc);
+  ScopeVar other(vm, vm.globalOther(), player, Daedalus::IC_Npc);
 
   std::vector<Daedalus::GEngineClasses::C_Info*> hDialog;
   for(auto& infoHandle : dialogsInfo) {
@@ -505,8 +526,8 @@ std::vector<WorldScript::DlgChoise> WorldScript::updateDialog(const WorldScript:
 void WorldScript::exec(const WorldScript::DlgChoise &dlg,
                        Daedalus::GEngineClasses::C_Npc* player,
                        Daedalus::GEngineClasses::C_Npc* hnpc) {
-  ScopeVar self (vm,"self", hnpc,   Daedalus::IC_Npc);
-  ScopeVar other(vm,"other",player, Daedalus::IC_Npc);
+  ScopeVar self (vm, vm.globalSelf(),  hnpc,   Daedalus::IC_Npc);
+  ScopeVar other(vm, vm.globalOther(), player, Daedalus::IC_Npc);
 
   Daedalus::GEngineClasses::C_Info& info = *dlg.handle;
 
@@ -530,7 +551,7 @@ int WorldScript::printCannotUseError(Npc& npc, int32_t atr, int32_t nValue) {
   vm.pushInt(npc.isPlayer() ? 1 : 0);
   vm.pushInt(atr);
   vm.pushInt(nValue);
-  ScopeVar self (vm,"self",npc);
+  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
   return runFunction(id,false);
   }
 
@@ -541,7 +562,7 @@ int WorldScript::printCannotCastError(Npc &npc, int32_t plM, int32_t itM) {
   vm.pushInt(npc.isPlayer() ? 1 : 0);
   vm.pushInt(itM);
   vm.pushInt(plM);
-  ScopeVar self (vm,"self",npc);
+  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
   return runFunction(id,false);
   }
 
@@ -549,7 +570,7 @@ int WorldScript::printCannotBuyError(Npc &npc) {
   auto id = vm.getDATFile().getSymbolIndexByName("player_trade_not_enough_gold");
   if(id==size_t(-1))
     return 0;
-  ScopeVar self (vm,"self",npc);
+  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
   return runFunction(id,true);
   }
 
@@ -559,9 +580,8 @@ int WorldScript::invokeState(Daedalus::GEngineClasses::C_Npc* hnpc, Daedalus::GE
   if(id==size_t(-1))
     return 0;
 
-  ScopeVar self (vm,"self", hnpc, Daedalus::IC_Npc);
-  ScopeVar other(vm,"other",oth,  Daedalus::IC_Npc);
-
+  ScopeVar self (vm, vm.globalSelf(),  hnpc, Daedalus::IC_Npc);
+  ScopeVar other(vm, vm.globalOther(), oth,  Daedalus::IC_Npc);
   return runFunction(id);
   }
 
@@ -577,18 +597,16 @@ int WorldScript::invokeState(Npc* npc, Npc* oth, Npc* v, size_t fn) {
   if(v==nullptr)
     v=owner.player();
 
-  ScopeVar self  (vm,"self",  npc);
-  ScopeVar other (vm,"other", oth);
-  ScopeVar victum(vm,"victim",v);
+  ScopeVar self  (vm, vm.globalSelf(),   npc);
+  ScopeVar other (vm, vm.globalOther(),  oth);
+  ScopeVar victum(vm, vm.globalVictim(), oth);
   return runFunction(fn);
   }
 
 int WorldScript::invokeItem(Npc *npc,size_t fn) {
   if(fn==size_t(-1))
     return 1;
-
-  auto hnpc = npc ? npc->handle() : nullptr;
-  ScopeVar self (vm,"self",hnpc,Daedalus::IC_Npc);
+  ScopeVar self(vm, vm.globalSelf(), npc);
   return runFunction(fn);
   }
 
@@ -598,7 +616,7 @@ int WorldScript::invokeMana(Npc &npc, Item &) {
   if(fn==size_t(-1))
     return Npc::SpellCode::SPL_SENDSTOP;
 
-  ScopeVar self (vm,"self",npc);
+  ScopeVar self(vm, vm.globalSelf(), npc);
 
   vm.pushInt(npc.attribute(Npc::ATR_MANA));
   return runFunction(fn,false);
@@ -614,7 +632,7 @@ int WorldScript::invokeSpell(Npc &npc, Item &it) {
   if(fn==size_t(-1))
     return 0;
 
-  ScopeVar self(vm,"self",npc);
+  ScopeVar self(vm, vm.globalSelf(), npc);
   return runFunction(fn);
   }
 
@@ -695,7 +713,7 @@ int WorldScript::printNothingToGet() {
   auto id = vm.getDATFile().getSymbolIndexByName("player_plunder_is_empty");
   if(id==size_t(-1))
     return 0;
-  ScopeVar self (vm,"self",owner.player());
+  ScopeVar self(vm, vm.globalSelf(), owner.player());
   return runFunction(id,false);
   }
 
@@ -704,7 +722,7 @@ void WorldScript::useInteractive(Daedalus::GEngineClasses::C_Npc* hnpc,const std
   if(!dat.hasSymbolName(func.c_str()))
     return;
 
-  ScopeVar self(vm,"self",hnpc,Daedalus::IC_Npc);
+  ScopeVar self(vm,vm.globalSelf(),hnpc,Daedalus::IC_Npc);
   try {
     runFunction(func.c_str());
     }
@@ -854,17 +872,14 @@ Npc* WorldScript::inserNpc(size_t npcInstance, const char* at) {
     npc->setName(hnpc->name[0]);
 
   if(hnpc->daily_routine!=0) {
-    ScopeVar self(vm, "self", hnpc, Daedalus::IC_Npc);
+    ScopeVar self(vm,vm.globalSelf(),hnpc,Daedalus::IC_Npc);
     vm.runFunctionBySymIndex(hnpc->daily_routine,false);
     }
   return npc;
   }
 
 const std::string& WorldScript::popString(Daedalus::DaedalusVM &vm) {
-  uint32_t arr;
-  uint32_t idx = vm.popVar(arr);
-
-  return vm.getDATFile().getSymbolByIndex(idx).getString(arr, vm.getCurrentInstanceDataPtr());
+  return vm.popString();
   }
 
 Npc *WorldScript::popInstance(Daedalus::DaedalusVM &vm) {
@@ -1993,6 +2008,12 @@ void WorldScript::ai_equiparmor(Daedalus::DaedalusVM &vm) {
     npc->aiEquipArmor(id);
   }
 
+void WorldScript::ai_equipbestarmor(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  if(npc!=nullptr)
+    npc->aiEquipBestArmor();
+  }
+
 void WorldScript::ai_equipbestmeleeweapon(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
@@ -2069,6 +2090,12 @@ void WorldScript::ai_unequipweapons(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
     npc->aiUnEquipWeapons();
+  }
+
+void WorldScript::ai_unequiparmor(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  if(npc!=nullptr)
+    npc->aiUnEquipArmor();
   }
 
 void WorldScript::ai_gotonpc(Daedalus::DaedalusVM &vm) {
@@ -2160,27 +2187,20 @@ void WorldScript::equipitem(Daedalus::DaedalusVM &vm) {
 void WorldScript::createinvitem(Daedalus::DaedalusVM &vm) {
   uint32_t itemInstance = uint32_t(vm.popInt());
   auto     self         = popInstance(vm);
-  if(self!=nullptr)
-    self->addItem(itemInstance,1);
+  if(self!=nullptr) {
+    Item* itm = self->addItem(itemInstance,1);
+    storeItem(itm);
+    }
   }
 
 void WorldScript::createinvitems(Daedalus::DaedalusVM &vm) {
   uint32_t amount       = uint32_t(vm.popInt());
   uint32_t itemInstance = uint32_t(vm.popInt());
   auto     self         = popInstance(vm);
-  if(self!=nullptr)
-    self->addItem(itemInstance,amount);
-  /*
-  Daedalus::PARSymbol& s = vm.getDATFile().getSymbolByName("item");
-  if(ret!=nullptr) {
-    s.instanceDataHandle = ret->handle();
-    s.instanceDataClass  = Daedalus::IC_Item;
-    vm.setReturn(1);
-    } else {
-    s.instanceDataHandle = nullptr;
-    s.instanceDataClass  = Daedalus::IC_Item;
-    vm.setReturn(0);
-    }*/
+  if(self!=nullptr) {
+    Item* itm = self->addItem(itemInstance,amount);
+    storeItem(itm);
+    }
   }
 
 void WorldScript::hlp_getinstanceid(Daedalus::DaedalusVM &vm) {
@@ -2307,6 +2327,28 @@ void WorldScript::print(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::perc_setrange(Daedalus::DaedalusVM &) {
   Log::i("perc_setrange");
+  }
+
+void WorldScript::printdebug(Daedalus::DaedalusVM &vm) {
+  const std::string& msg = popString(vm);
+  Log::d("[zspy]: ",msg);
+  }
+
+void WorldScript::printdebugch(Daedalus::DaedalusVM &vm) {
+  const std::string& msg = popString(vm);
+  int                ch  = vm.popInt();
+  Log::d("[zspy,",ch,"]: ",msg);
+  }
+
+void WorldScript::printdebuginst(Daedalus::DaedalusVM &vm) {
+  const std::string& msg = popString(vm);
+  Log::d("[zspy]: ",msg);
+  }
+
+void WorldScript::printdebuginstch(Daedalus::DaedalusVM &vm) {
+  const std::string& msg = popString(vm);
+  int                ch  = vm.popInt();
+  Log::d("[zspy,",ch,"]: ",msg);
   }
 
 void WorldScript::sort(std::vector<WorldScript::DlgChoise> &dlg) {

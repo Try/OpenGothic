@@ -359,11 +359,11 @@ class Npc final {
 
     auto     inventory() const -> const Inventory& { return invent; }
     size_t   hasItem    (uint32_t id) const;
-    void     addItem    (uint32_t id, uint32_t amount);
+    Item*    addItem    (uint32_t id, uint32_t amount);
+    Item*    addItem    (std::unique_ptr<Item>&& i);
     void     delItem    (uint32_t id, uint32_t amount);
     void     useItem    (uint32_t item, bool force=false);
     void     unequipItem(uint32_t item);
-    void     addItem    (std::unique_ptr<Item>&& i);
     void     addItem    (uint32_t id,Interactive& chest);
     void     addItem    (uint32_t id,Npc& from);
     void     moveItem   (uint32_t id,Interactive& to);
@@ -390,6 +390,7 @@ class Npc final {
     void     aiStandupQuick();
     void     aiGoToPoint(const WayPoint &to);
     void     aiEquipArmor(int32_t id);
+    void     aiEquipBestArmor();
     void     aiEquipBestMeleWeapon();
     void     aiEquipBestRangeWeapon();
     void     aiUseMob(const std::string& name,int st);
@@ -402,6 +403,7 @@ class Npc final {
     void     aiFlee();
     void     aiDodge();
     void     aiUnEquipWeapons();
+    void     aiUnEquipArmor();
     void     aiOutput(Npc &to, std::string text);
     void     aiOutputSvm(Npc &to, std::string text);
     void     aiOutputSvmOverlay(Npc &to, std::string text);
@@ -454,6 +456,7 @@ class Npc final {
       AI_StandUp,
       AI_StandUpQuick,
       AI_EquipArmor,
+      AI_EquipBestArmor,
       AI_EquipMelee,
       AI_EquipRange,
       AI_UseMob,
@@ -466,6 +469,7 @@ class Npc final {
       AI_Flee,
       AI_Dodge,
       AI_UnEquipWeapons,
+      AI_UnEquipArmor,
       AI_Output,
       AI_OutputSvm,
       AI_OutputSvmOverlay,

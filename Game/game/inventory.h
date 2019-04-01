@@ -56,9 +56,9 @@ class Inventory final {
     const Item&  atRansack(size_t i) const;
     static void  trasfer(Inventory& to, Inventory& from, Npc *fromNpc, size_t cls, uint32_t count, WorldScript &vm);
 
-    void   addItem(std::unique_ptr<Item>&& p,  WorldScript& vm);
+    Item*  addItem(std::unique_ptr<Item>&& p,  WorldScript& vm);
     void   addItem(const char* name, uint32_t count, WorldScript& vm);
-    void   addItem(size_t cls, uint32_t count, WorldScript& vm);
+    Item*  addItem(size_t cls, uint32_t count, WorldScript& vm);
     void   delItem(size_t cls, uint32_t count, WorldScript& vm, Npc &owner);
     bool   use    (size_t cls, WorldScript &vm, Npc &owner, bool force);
     bool   equip  (size_t cls, WorldScript &vm, Npc &owner, bool force);
@@ -68,9 +68,11 @@ class Inventory final {
     bool   isChanged() const { return !sorted; }
     void   autoEquip(WorldScript &vm, Npc &owner);
     void   equipArmour(int32_t cls,WorldScript &vm, Npc &owner);
-    void   equipBestMeleWeapon(WorldScript &vm, Npc &owner);
+    void   equipBestArmour     (WorldScript &vm, Npc &owner);
+    void   equipBestMeleWeapon (WorldScript &vm, Npc &owner);
     void   equipBestRangeWeapon(WorldScript &vm, Npc &owner);
     void   unequipWeapons(WorldScript &vm, Npc &owner);
+    void   unequipArmour(WorldScript &vm, Npc &owner);
     void   clear(WorldScript &vm, Npc &owner);
 
     void   updateArmourView(WorldScript &vm, Npc& owner);

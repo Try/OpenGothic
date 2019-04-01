@@ -183,6 +183,11 @@ void FightAlgo::consumeAction() {
   tr[MV_MAX-1]=MV_NULL;
   }
 
+void FightAlgo::onClearTarget() {
+  queueId = Daedalus::GEngineClasses::Move(0);
+  tr[0]   = MV_NULL;
+  }
+
 void FightAlgo::onTakeHit() {
   hitFlg = true;
   for(auto& i:tr)

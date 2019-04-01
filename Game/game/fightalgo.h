@@ -27,6 +27,7 @@ class FightAlgo final {
 
     Action tick(Npc& npc, Npc& tg, WorldScript &owner, uint64_t dt);
     void   consumeAction();
+    void   onClearTarget();
     void   onTakeHit();
 
     float  prefferedAtackDistance(const Npc &npc, const Npc &tg, WorldScript &owner) const;
@@ -43,7 +44,7 @@ class FightAlgo final {
     static float  weaponOnlyRange(WorldScript &owner,const Npc &npc);
 
     uint16_t                       waitT=0;
-    Daedalus::GEngineClasses::Move queueId=Daedalus::GEngineClasses::MOVE_RUN;
+    Daedalus::GEngineClasses::Move queueId=Daedalus::GEngineClasses::Move(0);
     Action                         tr   [MV_MAX]={};
     bool                           hitFlg=false;
   };

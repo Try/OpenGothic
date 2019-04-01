@@ -89,10 +89,10 @@ const Item &Inventory::atRansack(size_t n) const {
   throw std::logic_error("index out of range");
   }
 
-void Inventory::addItem(std::unique_ptr<Item> &&p, WorldScript &vm) {
+Item* Inventory::addItem(std::unique_ptr<Item> &&p, WorldScript &vm) {
   using namespace Daedalus::GEngineClasses;
   if(p==nullptr)
-    return;
+    return nullptr;
   sorted=false;
 
   const auto cls = p->clsId();
@@ -100,9 +100,11 @@ void Inventory::addItem(std::unique_ptr<Item> &&p, WorldScript &vm) {
   Item* it=findByClass(cls);
   if(it==nullptr) {
     items.emplace_back(std::move(p));
+    return items.back().get();
     } else {
     auto& c = vm.vmItem(p->handle());
     vm.vmItem(it->handle()).amount += c.amount;
+    return p.get();
     }
   }
 
@@ -112,10 +114,10 @@ void Inventory::addItem(const char *name, uint32_t count, WorldScript &vm) {
     addItem(id,count,vm);
   }
 
-void Inventory::addItem(size_t itemSymbol, uint32_t count, WorldScript &vm) {
+Item* Inventory::addItem(size_t itemSymbol, uint32_t count, WorldScript &vm) {
   using namespace Daedalus::GEngineClasses;
   if(count<=0)
-    return;
+    return nullptr;
   sorted=false;
 
   Item* it=findByClass(itemSymbol);
@@ -128,8 +130,10 @@ void Inventory::addItem(size_t itemSymbol, uint32_t count, WorldScript &vm) {
     itData.amount  = count;
     it = ptr.get();
     items.emplace_back(std::move(ptr));
+    return items.back().get();
     } else {
     vm.vmItem(it->handle()).amount += count;
+    return it;
     }
   }
 
@@ -320,6 +324,10 @@ void Inventory::equipBestRangeWeapon(WorldScript &vm, Npc &owner) {
 void Inventory::unequipWeapons(WorldScript &vm, Npc &owner) {
   setSlot(mele, nullptr,vm,owner,false);
   setSlot(range,nullptr,vm,owner,false);
+  }
+
+void Inventory::unequipArmour(WorldScript &vm, Npc &owner) {
+  setSlot(armour,nullptr,vm,owner,false);
   }
 
 void Inventory::clear(WorldScript&, Npc&) {
@@ -520,6 +528,11 @@ void Inventory::equipArmour(int32_t cls,WorldScript &vm, Npc &owner) {
     if(!it->isEquiped())
       use(size_t(cls),vm,owner,true);
     }
+  }
+
+void Inventory::equipBestArmour(WorldScript &vm, Npc &owner) {
+  auto a = bestArmour(vm,owner);
+  setSlot(armour,a,vm,owner,false);
   }
 
 Item *Inventory::findByClass(size_t cls) {

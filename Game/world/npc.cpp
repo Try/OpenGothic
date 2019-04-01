@@ -161,14 +161,10 @@ bool Npc::checkHealth(bool onChange) {
     }
 
   if(isDead()) {
-    if(onChange)
-      animation.resetAni();
     setAnim(lastHitType=='A' ? Anim::DeadA : Anim::DeadB);
     return false;
     }
   if(isUnconscious()) {
-    if(onChange)
-      animation.resetAni();
     setAnim(lastHitType=='A' ? Anim::UnconsciousA : Anim::UnconsciousB);
     closeWeapon(true);
     return false;
@@ -187,10 +183,12 @@ bool Npc::checkHealth(bool onChange) {
       if(owner.guildAttitude(*this,*currentOther)==WorldScript::ATT_HOSTILE || guild()>GIL_SEPERATOR_HUM){
         if(v.attribute[ATR_HITPOINTS]<=0){
           size_t fdead=owner.getSymbolIndex("ZS_Dead");
+          animation.resetAni();
           startState(fdead,"");
           }
         } else {
         size_t fdead=owner.getSymbolIndex("ZS_Unconscious");
+        animation.resetAni();
         startState(fdead,"");
         }
       return false;
@@ -781,7 +779,7 @@ void Npc::commitDamage() {
     return;
 
   auto ani = anim();
-  if(ani!=Anim::Atack && ani!=Anim::AtackL && ani!=Anim::AtackR)
+  if(ani!=Anim::Atack && ani!=Anim::AtackL && ani!=Anim::AtackR && !(Anim::MagFirst<=ani && ani<=Anim::MagLast))
     return;
 
   static const float maxAngle = std::cos(float(M_PI/12));
@@ -1001,6 +999,9 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_EquipArmor:
       invent.equipArmour(act.i0,owner,*this);
       break;
+    case AI_EquipBestArmor:
+      invent.equipBestArmour(owner,*this);
+      break;
     case AI_EquipMelee:
       invent.equipBestMeleWeapon(owner,*this);
       break;
@@ -1025,6 +1026,7 @@ void Npc::nextAiAction(uint64_t dt) {
       }
       break;
     case AI_DrawWeaponMele:
+      fghAlgo.onClearTarget();
       if(!drawWeaponMele())
         aiActions.push_front(std::move(act));
       break;
@@ -1045,6 +1047,9 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
     case AI_UnEquipWeapons:
       invent.unequipWeapons(owner,*this);
+      break;
+    case AI_UnEquipArmor:
+      invent.unequipArmour(owner,*this);
       break;
     case AI_Output:
       if(!owner.aiOutput(*this,*act.target,act.s0))
@@ -1155,8 +1160,9 @@ void Npc::tickRoutine() {
           atackMode=false;
           setTarget(nullptr);
           }
-        prevAiState = aiState.funcIni;
-        aiState     = AiState();
+        currentOther = nullptr;
+        prevAiState  = aiState.funcIni;
+        aiState      = AiState();
         }
       }
     } else {
@@ -1281,12 +1287,12 @@ void Npc::setToFightMode(const uint32_t item) {
   drawWeaponMele();
   }
 
-void Npc::addItem(const uint32_t item, size_t count) {
-  invent.addItem(item,count,owner);
+Item* Npc::addItem(const uint32_t item, size_t count) {
+  return invent.addItem(item,count,owner);
   }
 
-void Npc::addItem(std::unique_ptr<Item>&& i) {
-  invent.addItem(std::move(i),owner);
+Item* Npc::addItem(std::unique_ptr<Item>&& i) {
+  return invent.addItem(std::move(i),owner);
   }
 
 void Npc::addItem(uint32_t id, Interactive &chest) {
@@ -1849,6 +1855,12 @@ void Npc::aiEquipArmor(int32_t id) {
   aiActions.push_back(a);
   }
 
+void Npc::aiEquipBestArmor() {
+  AiAction a;
+  a.act = AI_EquipBestArmor;
+  aiActions.push_back(a);
+  }
+
 void Npc::aiEquipBestMeleWeapon() {
   AiAction a;
   a.act = AI_EquipMelee;
@@ -1923,6 +1935,12 @@ void Npc::aiDodge() {
 void Npc::aiUnEquipWeapons() {
   AiAction a;
   a.act = AI_UnEquipWeapons;
+  aiActions.push_back(a);
+  }
+
+void Npc::aiUnEquipArmor() {
+  AiAction a;
+  a.act = AI_UnEquipArmor;
   aiActions.push_back(a);
   }
 
