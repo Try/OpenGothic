@@ -153,7 +153,7 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
   if(it!=aniMeshCache.end())
     return it->second.get();
 
-  if(name=="hum_body_Naked0.MDM")//"Sna_Body.MDM"
+  if(name=="Hum_Head_Pony.MMB")//"Sna_Body.MDM"
     Log::d("");
 
   try {
@@ -260,6 +260,30 @@ Sound *Resources::implLoadSound(const std::string &name) {
     }
   }
 
+Dx8::Segment *Resources::implLoadMusic(const std::string &name) {
+  if(name.size()==0)
+    return nullptr;
+
+  auto it=musicCache.find(name);
+  if(it!=musicCache.end())
+    return it->second.get();
+
+  try {
+    std::u16string p = gothic.path();
+    p.append(name.begin(),name.end());
+    Tempest::RFile rd(p);
+
+    std::unique_ptr<Dx8::Segment> t{new Dx8::Segment(rd)};
+    Dx8::Segment* ret=t.get();
+    musicCache[name] = std::move(t);
+    return ret;
+    }
+  catch(...){
+    Log::e("unable to load music \"",name,"\"");
+    return nullptr;
+    }
+  }
+
 bool Resources::hasFile(const std::string &fname) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->gothicAssets.hasFile(fname);
@@ -329,7 +353,12 @@ Sound *Resources::loadSound(const char *name) {
 
 Sound *Resources::loadSound(const std::string &name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implLoadSound(name.c_str());
+  return inst->implLoadSound(name);
+  }
+
+Dx8::Segment *Resources::loadMusic(const std::string &name) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  return inst->implLoadMusic(name);
   }
 
 std::vector<uint8_t> Resources::getFileData(const char *name) {

@@ -54,6 +54,7 @@ class GameSession final {
     void         introChapter(const ChapterScreen::Show& s);
 
     const FightAi::FA& getFightAi(size_t i) const;
+    const Daedalus::GEngineClasses::C_MusicTheme& getMusicTheme(const char* name) const;
 
   private:
     void         initScripts(bool firstTime);

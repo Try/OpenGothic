@@ -43,7 +43,9 @@ Gothic::Gothic(const int argc, const char **argv) {
       wdef = "world.zen";
     }
 
-  fight.reset(new FightAi(*this));
+  fight. reset(new FightAi(*this));
+  camera.reset(new CameraDefinitions(*this));
+  music .reset(new MusicDefinitions(*this));
   }
 
 bool Gothic::isGothic2() const {
@@ -176,6 +178,10 @@ bool Gothic::aiIsDlgFinished() {
   bool v=true;
   isDialogClose(v);
   return v;
+  }
+
+const Daedalus::GEngineClasses::C_MusicTheme& Gothic::getMusicTheme(const char *name) {
+  return music->get(name);
   }
 
 const FightAi::FA &Gothic::getFightAi(size_t i) const {

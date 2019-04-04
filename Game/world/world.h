@@ -19,6 +19,7 @@
 #include "resources.h"
 #include "trigger.h"
 #include "worldobjects.h"
+#include "worldsound.h"
 #include "waypoint.h"
 #include "waymatrix.h"
 
@@ -117,6 +118,7 @@ class World final {
 
     std::unique_ptr<DynamicWorld>         wdynamic;
     std::unique_ptr<WorldView>            wview;
+    WorldSound                            wsound;
     WorldObjects                          wobj;
 
     void         loadVob(ZenLoad::zCVobData &vob);

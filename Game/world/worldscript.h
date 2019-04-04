@@ -1,8 +1,8 @@
 #pragma once
 
-#include <daedalus/DaedalusDialogManager.h>
 #include <daedalus/DaedalusStdlib.h>
 #include <daedalus/DaedalusVM.h>
+#include <zenload/zCCSLib.h>
 
 #include <memory>
 #include <unordered_set>

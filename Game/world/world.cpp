@@ -1,22 +1,21 @@
 #include "world.h"
 
+#include <zenload/zCMesh.h>
+#include <fstream>
+#include <functional>
+
+#include <Tempest/Log>
+#include <Tempest/Painter>
+
 #include "gothic.h"
 #include "focus.h"
 #include "resources.h"
 #include "graphics/skeleton.h"
 
-#include <zenload/zCMesh.h>
-#include <fstream>
-#include <functional>
-#include <daedalus/DaedalusDialogManager.h>
-
-#include <Tempest/Log>
-#include <Tempest/Painter>
-
 using namespace Tempest;
 
 World::World(GameSession& game,const RendererStorage &storage, std::string file, uint8_t isG2, std::function<void(int)> loadProgress)
-  :wname(std::move(file)),game(game),wobj(*this) {
+  :wname(std::move(file)),game(game),wsound(game,*this),wobj(*this) {
   using namespace Daedalus::GameState;
 
   ZenLoad::ZenParser parser(wname,Resources::vdfsIndex());
@@ -93,6 +92,8 @@ void World::tick(uint64_t dt) {
     return;
   wobj.tick(dt);
   wdynamic->tick(dt);
+  if(auto pl = player())
+    wsound.tick(*pl);
   }
 
 uint64_t World::tickCount() const {
@@ -433,5 +434,9 @@ void World::addItem(const ZenLoad::zCVobData &vob) {
   wobj.addItem(vob);
   }
 
-void World::addSound(const ZenLoad::zCVobData &) {
+void World::addSound(const ZenLoad::zCVobData &vob) {
+  if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusic)
+    wsound.addZone(vob);
+  else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusicDefault)
+    wsound.seDefaultZone(vob);
   }

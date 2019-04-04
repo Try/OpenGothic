@@ -153,6 +153,10 @@ const FightAi::FA &GameSession::getFightAi(size_t i) const {
   return gothic.getFightAi(i);
   }
 
+const Daedalus::GEngineClasses::C_MusicTheme &GameSession::getMusicTheme(const char *name) const {
+  return gothic.getMusicTheme(name);
+  }
+
 void GameSession::initScripts(bool firstTime) {
   auto& wname = wrld->name();
   auto dot    = wname.rfind('.');

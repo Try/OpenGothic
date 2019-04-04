@@ -7,6 +7,8 @@
 #include <Tempest/Signal>
 #include <daedalus/DaedalusVM.h>
 
+#include "game/cameradefinitions.h"
+#include "game/musicdefinitions.h"
 #include "game/fightai.h"
 #include "game/gamesession.h"
 #include "world/world.h"
@@ -56,7 +58,8 @@ class Gothic final {
     bool      aiCloseDialog();
     bool      aiIsDlgFinished();
 
-    const FightAi::FA& getFightAi(size_t i) const;
+    auto      getFightAi(size_t i) const -> const FightAi::FA&;
+    auto      getMusicTheme(const char* name) -> const Daedalus::GEngineClasses::C_MusicTheme&;
 
     void      printScreen(const char* msg, int x, int y, int time, const Tempest::Font &font);
     void      print      (const char* msg);
@@ -84,14 +87,16 @@ class Gothic final {
     static void debug(const ZenLoad::PackedSkeletalMesh& mesh, std::ostream& out);
 
   private:
-    std::u16string               gpath;
-    std::string                  wdef;
-    bool                         noMenu=false;
-    uint16_t                     pauseSum=0;
+    std::u16string                     gpath;
+    std::string                        wdef;
+    bool                               noMenu=false;
+    uint16_t                           pauseSum=0;
 
-    std::thread                  loaderTh;
-    std::atomic<LoadState>       loadingFlag{LoadState::Idle};
+    std::thread                        loaderTh;
+    std::atomic<LoadState>             loadingFlag{LoadState::Idle};
 
-    std::unique_ptr<GameSession> game;
-    std::unique_ptr<FightAi>     fight;
+    std::unique_ptr<GameSession>       game;
+    std::unique_ptr<FightAi>           fight;
+    std::unique_ptr<CameraDefinitions> camera;
+    std::unique_ptr<MusicDefinitions>  music;
   };

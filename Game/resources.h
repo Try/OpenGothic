@@ -14,6 +14,8 @@
 
 #include <tuple>
 
+#include "dmusic/segment.h"
+
 class Gothic;
 
 class StaticMesh;
@@ -77,6 +79,8 @@ class Resources {
     static Tempest::Sound*           loadSound(const char* name);
     static Tempest::Sound*           loadSound(const std::string& name);
 
+    static Dx8::Segment*             loadMusic(const std::string& name);
+
     template<class V>
     static Tempest::VertexBuffer<V> loadVbo(const V* data,size_t sz){ return inst->device.loadVbo(data,sz,Tempest::BufferFlags::Static); }
 
@@ -104,6 +108,7 @@ class Resources {
     Skeleton*           implLoadSkeleton(std::string name);
     Animation*          implLoadAnimation(std::string name);
     Tempest::Sound*     implLoadSound(const std::string &name);
+    Dx8::Segment*       implLoadMusic(const std::string& name);
 
     MeshLoadCode        loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
     ZenLoad::zCModelMeshLib loadMDS (std::string& name);
@@ -124,6 +129,7 @@ class Resources {
     std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>          bindCache;
     std::unordered_map<const ProtoMesh*,std::unique_ptr<PhysicMeshShape>> phyMeshCache;
     std::unordered_map<std::string,std::unique_ptr<Tempest::Sound>>       sndCache;
+    std::unordered_map<std::string,std::unique_ptr<Dx8::Segment>>         musicCache;
 
     Tempest::Device&      device;
     Tempest::SoundDevice& sound;
