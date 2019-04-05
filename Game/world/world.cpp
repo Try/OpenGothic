@@ -10,6 +10,7 @@
 #include "gothic.h"
 #include "focus.h"
 #include "resources.h"
+#include "game/serialize.h"
 #include "graphics/skeleton.h"
 
 using namespace Tempest;
@@ -39,14 +40,46 @@ World::World(GameSession& game,const RendererStorage &storage, std::string file,
   wmatrix.reset(new WayMatrix(*this,world.waynet));
   if(1){
     for(auto& vob:world.rootVobs)
-      loadVob(vob);
+      loadVob(vob,true);
+    }
+  wmatrix->buildIndex();
+  loadProgress(100);
+  }
+
+World::World(GameSession &game, const RendererStorage &storage,
+             Serialize &fin, uint8_t isG2, std::function<void(int)> loadProgress)
+  :wname(fin.read<std::string>()),game(game),wsound(game,*this),wobj(*this) {
+  using namespace Daedalus::GameState;
+
+  ZenLoad::ZenParser parser(wname,Resources::vdfsIndex());
+
+  loadProgress(1);
+  parser.readHeader();
+
+  loadProgress(10);
+  ZenLoad::oCWorldData world;
+  parser.readWorld(world,isG2==2);
+
+  ZenLoad::PackedMesh mesh;
+  ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
+  worldMesh->packMesh(mesh, 1.f, false);
+
+  loadProgress(50);
+  wdynamic.reset(new DynamicWorld(*this,mesh));
+  wview.reset   (new WorldView(*this,mesh,storage));
+  loadProgress(70);
+
+  wmatrix.reset(new WayMatrix(*this,world.waynet));
+  if(1){
+    for(auto& vob:world.rootVobs)
+      loadVob(vob,false);
     }
   wmatrix->buildIndex();
   loadProgress(100);
   }
 
 void World::createPlayer(const char *cls) {
-  npcPlayer = game.script()->inserNpc(cls,wmatrix->startPoint().name.c_str());
+  npcPlayer = addNpc(cls,wmatrix->startPoint().name.c_str());//game.script()->inserNpc(cls,wmatrix->startPoint().name.c_str());
   if(npcPlayer!=nullptr) {
     npcPlayer->setProcessPolicy(Npc::ProcessPolicy::Player);
     game.script()->setInstanceNPC("HERO",*npcPlayer);
@@ -55,6 +88,19 @@ void World::createPlayer(const char *cls) {
 
 void World::postInit() {
   // game.script()->inserNpc("Snapper",wmatrix->startPoint().name.c_str());
+  }
+
+void World::load(Serialize &fout) {
+  wobj.load(fout);
+  npcPlayer = wobj.findHero();
+  if(npcPlayer!=nullptr) {
+    game.script()->setInstanceNPC("HERO",*npcPlayer);
+    }
+  }
+
+void World::save(Serialize &fout) {
+  fout.write(wname);
+  wobj.save(fout);
   }
 
 StaticObjects::Mesh World::getView(const std::string &visual) const {
@@ -253,8 +299,15 @@ bool World::aiUseMob(Npc &pl, const std::string &name) {
   return wobj.aiUseMob(pl,name);
   }
 
-void World::onInserNpc(Daedalus::GEngineClasses::C_Npc *handle, const std::string &s) {
-  return wobj.onInserNpc(handle,s);
+Npc *World::addNpc(const char *name, const char *at) {
+  size_t id = script()->getSymbolIndex(name);
+  if(id==0)
+    return nullptr;
+  return wobj.addNpc(id,at);
+  }
+
+Npc *World::addNpc(size_t npcInstance, const char *at) {
+  return wobj.addNpc(npcInstance,at);
   }
 
 Item *World::addItem(size_t itemInstance, const char *at) {
@@ -340,9 +393,9 @@ WorldScript *World::script() const {
   return game.script();
   }
 
-void World::loadVob(ZenLoad::zCVobData &vob) {
+void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
   for(auto& i:vob.childVobs)
-    loadVob(i);
+    loadVob(i,startup);
   vob.childVobs.clear(); // because of move
 
   if(vob.objectClass=="zCVob" ||
@@ -401,7 +454,8 @@ void World::loadVob(ZenLoad::zCVobData &vob) {
     wmatrix->addFreePoint(vob.position.x,vob.position.y,vob.position.z,dx,dy,dz,vob.vobName.c_str());
     }
   else if(vob.objectClass=="oCItem:zCVob") {
-    addItem(vob);
+    if(startup)
+      addItem(vob);
     }
   else if(vob.objectClass=="zCVobSound" ||
           vob.objectClass=="zCVobSound:zCVob" ||

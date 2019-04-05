@@ -1,11 +1,11 @@
 #include "inventory.h"
-
 #include <Tempest/Log>
 
 #include "world/worldscript.h"
 #include "world/item.h"
 #include "world/npc.h"
 #include "world/world.h"
+#include "serialize.h"
 
 using namespace Daedalus::GameState;
 using namespace Tempest;
@@ -14,6 +14,63 @@ Inventory::Inventory() {
   }
 
 Inventory::~Inventory() {
+  }
+
+void Inventory::load(WorldScript& vm, Npc& owner, Serialize &s) {
+  uint32_t sz=0;
+  items.clear();
+  s.read(sz);
+  for(size_t i=0;i<sz;++i)
+    items.emplace_back(std::make_unique<Item>(vm,s));
+
+  armour = readPtr(s);
+  belt   = readPtr(s);
+  amulet = readPtr(s);
+  ringL  = readPtr(s);
+  ringR  = readPtr(s);
+  mele   = readPtr(s);
+  range  = readPtr(s);
+  for(auto& i:numslot)
+    i = readPtr(s);
+
+  uint8_t id=255;
+  s.read(id);
+  if(id==1)
+    active=&mele;
+  else if(id==2)
+    active=&range;
+  else if(3<=id && id<10)
+    active=&numslot[id-3];
+
+  updateArmourView(vm,owner);
+  updateSwordView (vm,owner);
+  updateBowView   (vm,owner);
+  }
+
+void Inventory::save(Serialize &fout) {
+  uint32_t sz=items.size();
+  fout.write(sz);
+  for(auto& i:items)
+    i->save(fout);
+  fout.write(indexOf(armour));
+  fout.write(indexOf(belt)  );
+  fout.write(indexOf(amulet));
+  fout.write(indexOf(ringL) );
+  fout.write(indexOf(ringR) );
+  fout.write(indexOf(mele)  );
+  fout.write(indexOf(range) );
+  for(auto& i:numslot)
+    fout.write(indexOf(i));
+
+  uint8_t id=255;
+  if(active==&mele)
+    id=1;
+  else if(active==&range)
+    id=2;
+  for(int i=0;i<8;++i)
+    if(active==&numslot[i])
+      id = uint8_t(3+i);
+  fout.write(id);
   }
 
 int32_t Inventory::priceOf(size_t cls) const {
@@ -89,7 +146,7 @@ const Item &Inventory::atRansack(size_t n) const {
   throw std::logic_error("index out of range");
   }
 
-Item* Inventory::addItem(std::unique_ptr<Item> &&p, WorldScript &vm) {
+Item* Inventory::addItem(std::unique_ptr<Item> &&p) {
   using namespace Daedalus::GEngineClasses;
   if(p==nullptr)
     return nullptr;
@@ -102,8 +159,8 @@ Item* Inventory::addItem(std::unique_ptr<Item> &&p, WorldScript &vm) {
     items.emplace_back(std::move(p));
     return items.back().get();
     } else {
-    auto& c = vm.vmItem(p->handle());
-    vm.vmItem(it->handle()).amount += c.amount;
+    auto& c = *p->handle();
+    it->handle()->amount += c.amount;
     return p.get();
     }
   }
@@ -122,17 +179,12 @@ Item* Inventory::addItem(size_t itemSymbol, uint32_t count, WorldScript &vm) {
 
   Item* it=findByClass(itemSymbol);
   if(it==nullptr) {
-    auto  h      = vm.getGameState().insertItem(itemSymbol);
-    auto& itData = *h;
-
-    std::unique_ptr<Item> ptr{new Item(vm,h)};
-    itData.userPtr = ptr.get();
-    itData.amount  = count;
-    it = ptr.get();
+    std::unique_ptr<Item> ptr{new Item(vm,itemSymbol)};
+    ptr->setCount(count);
     items.emplace_back(std::move(ptr));
     return items.back().get();
     } else {
-    vm.vmItem(it->handle()).amount += count;
+    it->handle()->amount += count;
     return it;
     }
   }
@@ -190,7 +242,7 @@ void Inventory::trasfer(Inventory &to, Inventory &from, Npc* fromNpc, size_t ite
           }
         from.unequip(&it,vm,*fromNpc);
         }
-      to.addItem(std::move(from.items[i]),vm);
+      to.addItem(std::move(from.items[i]));
       from.items.erase(from.items.begin()+int(i));
       } else {
       itData.amount-=count;
@@ -429,7 +481,7 @@ bool Inventory::equipNumSlot(Item *next, WorldScript &vm, Npc &owner,bool force)
   return false;
   }
 
-void Inventory::applyArmour(Item &it, WorldScript &vm, Npc &owner, int32_t sgn) {
+void Inventory::applyArmour(Item &it, WorldScript &, Npc &owner, int32_t sgn) {
   auto& itData = *it.handle();
 
   for(size_t i=0;i<Npc::PROT_MAX;++i){
@@ -648,5 +700,20 @@ uint8_t Inventory::slotId(Item *&slt) const {
     }
 
   return 255;
+  }
+
+uint32_t Inventory::indexOf(const Item *it) const {
+  for(size_t i=0;i<items.size();++i)
+    if(items[i].get()==it)
+      return i;
+  return uint32_t(-1);
+  }
+
+Item *Inventory::readPtr(Serialize &fin) {
+  uint32_t v=uint32_t(-1);
+  fin.read(v);
+  if(v<items.size())
+    return items[v].get();
+  return nullptr;
   }
 

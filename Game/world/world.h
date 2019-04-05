@@ -33,10 +33,14 @@ class World final {
     World()=delete;
     World(const World&)=delete;
     World(GameSession &gothic, const RendererStorage& storage, std::string file, uint8_t isG2, std::function<void(int)> loadProgress);
+    World(GameSession &gothic, const RendererStorage& storage, Serialize& fin, uint8_t isG2, std::function<void(int)> loadProgress);
 
     void  createPlayer(const char* cls);
     void  postInit();
     const std::string& name() const { return wname; }
+
+    void  load(Serialize& fout);
+    void  save(Serialize& fout);
 
     const WayPoint* findPoint(const std::string& s) const { return findPoint(s.c_str()); }
     const WayPoint* findPoint(const char* name) const;
@@ -100,7 +104,8 @@ class World final {
     void   printScreen(const char* msg, int x, int y, int time,const Tempest::Font &font);
     void   print      (const char* msg);
 
-    void   onInserNpc (Daedalus::GEngineClasses::C_Npc* handle, const std::string &s);
+    Npc*   addNpc     (const char* name, const char *at);
+    Npc*   addNpc     (size_t itemInstance, const char *at);
     Item*  addItem    (size_t itemInstance, const char *at);
     Item*  takeItem   (Item& it);
     void   removeItem (Item &it);
@@ -121,7 +126,7 @@ class World final {
     WorldSound                            wsound;
     WorldObjects                          wobj;
 
-    void         loadVob(ZenLoad::zCVobData &vob);
+    void         loadVob(ZenLoad::zCVobData &vob, bool startup);
     void         addStatic(const ZenLoad::zCVobData &vob);
     void         addInteractive(const ZenLoad::zCVobData &vob);
     void         addItem(const ZenLoad::zCVobData &vob);

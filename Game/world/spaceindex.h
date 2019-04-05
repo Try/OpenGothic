@@ -11,6 +11,11 @@ class SpaceIndex final {
   public:
     SpaceIndex()=default;
 
+    void clear() {
+      arr.clear();
+      index.clear();
+      }
+
     template<typename... Args>
     void emplace_back(Args&&... args) {
       index.clear();

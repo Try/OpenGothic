@@ -10,13 +10,17 @@ class World;
 class WorldView;
 class RendererStorage;
 class Npc;
+class Serialize;
 
 class GameSession final {
   public:
     GameSession()=delete;
     GameSession(const World&)=delete;
     GameSession(Gothic &gothic, const RendererStorage& storage, std::string file, std::function<void(int)> loadProgress);
+    GameSession(Gothic &gothic, const RendererStorage& storage, Serialize&  fin, std::function<void(int)> loadProgress);
     ~GameSession();
+
+    void         save(Serialize& fout);
 
     void         setWorld(std::unique_ptr<World> &&w);
     auto         clearWorld() -> std::unique_ptr<World>;

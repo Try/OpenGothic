@@ -9,12 +9,16 @@
 class Item;
 class WorldScript;
 class Npc;
+class Serialize;
 
 class Inventory final {
   public:
     Inventory();
     Inventory(Inventory&&)=default;
     ~Inventory();
+
+    void load(WorldScript &vm, Npc &owner, Serialize& s);
+    void save(Serialize& s);
 
     enum Flags : uint32_t {
       ITM_CAT_NONE   = 1 << 0,
@@ -56,7 +60,7 @@ class Inventory final {
     const Item&  atRansack(size_t i) const;
     static void  trasfer(Inventory& to, Inventory& from, Npc *fromNpc, size_t cls, uint32_t count, WorldScript &vm);
 
-    Item*  addItem(std::unique_ptr<Item>&& p,  WorldScript& vm);
+    Item*  addItem(std::unique_ptr<Item>&& p);
     void   addItem(const char* name, uint32_t count, WorldScript& vm);
     Item*  addItem(size_t cls, uint32_t count, WorldScript& vm);
     void   delItem(size_t cls, uint32_t count, WorldScript& vm, Npc &owner);
@@ -117,6 +121,9 @@ class Inventory final {
 
     mutable std::vector<std::unique_ptr<Item>> items;
     mutable bool                               sorted=false;
+
+    uint32_t                           indexOf(const Item* it) const;
+    Item*                              readPtr(Serialize& fin);
 
     Item*                              armour=nullptr;
     Item*                              belt  =nullptr;

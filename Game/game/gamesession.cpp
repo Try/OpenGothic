@@ -1,4 +1,5 @@
 #include "gamesession.h"
+#include "serialize.h"
 
 #include "world/world.h"
 #include "gothic.h"
@@ -35,7 +36,33 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
   loadProgress(96);
   }
 
+GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Serialize &fin, std::function<void(int)> loadProgress)
+  :gothic(gothic) {
+  loadProgress(0);
+  bool isG2=false;
+  fin.read(ticks,wrldTimePart,wrldTime,isG2);
+
+  uint8_t ver = isG2 ? 2 : 1;
+
+  vm.reset(new WorldScript(*this,fin));
+  setWorld(std::unique_ptr<World>(new World(*this,storage,fin,ver,[&](int v){
+    loadProgress(int(v*0.55));
+    })));
+
+  vm->initDialogs(gothic);
+  loadProgress(70);
+  wrld->load(fin);
+  loadProgress(96);
+  }
+
 GameSession::~GameSession() {
+  }
+
+void GameSession::save(Serialize &fout) {
+  fout.write(ticks,wrldTimePart,wrldTime,bool(gothic.isGothic2()));
+  vm->save(fout);
+  if(wrld)
+    wrld->save(fout);
   }
 
 void GameSession::setWorld(std::unique_ptr<World> &&w) {

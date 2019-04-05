@@ -2,6 +2,8 @@
 
 #include <zenload/zCMesh.h>
 #include <cstring>
+
+#include "game/serialize.h"
 #include "utils/installdetect.h"
 
 Gothic::Gothic(const int argc, const char **argv) {
@@ -144,6 +146,15 @@ void Gothic::tick(uint64_t dt) {
 void Gothic::updateAnimation() {
   if(game)
     game->updateAnimation();
+  }
+
+void Gothic::quickSave() {
+  if(!game)
+    return;
+
+  Tempest::WFile f("qsave.sav");
+  Serialize      s(f);
+  game->save(s);
   }
 
 std::vector<WorldScript::DlgChoise> Gothic::updateDialog(const WorldScript::DlgChoise &dlg, Npc& player, Npc& npc) {

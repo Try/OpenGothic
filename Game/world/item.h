@@ -6,13 +6,17 @@
 
 class WorldScript;
 class Npc;
+class Serialize;
 
 class Item final {
   public:
-    Item(WorldScript& owner,Daedalus::GEngineClasses::C_Item* hnpc);
+  Item(WorldScript& owner, size_t inst);
+  Item(WorldScript& owner, Serialize& fin);
     Item(Item&&)=default;
     ~Item();
     Item& operator=(Item&&)=default;
+
+    void save(Serialize& fout);
 
     enum { MAX_UI_ROWS=6, NSLOT=255 };
 
@@ -41,9 +45,11 @@ class Item final {
     int32_t             spellId() const;
     int32_t             swordLength() const;
 
+    void                setCount(size_t cnt);
+    size_t              count() const;
+
     const char*         uiText (size_t id) const;
     int32_t             uiValue(size_t id) const;
-    size_t              count() const;
     int32_t             cost() const;
     int32_t             sellCost() const;
 
@@ -51,14 +57,15 @@ class Item final {
     bool                checkCondUse (const Npc& other,int32_t& atr,int32_t& nv) const;
     bool                checkCondRune(const Npc& other,int32_t& cPl,int32_t& cIt) const;
 
-    Daedalus::GEngineClasses::C_Item* handle() const { return hitem; }
+    const Daedalus::GEngineClasses::C_Item* handle() const { return &hitem; }
+    Daedalus::GEngineClasses::C_Item*       handle() { return &hitem; }
     size_t                            clsId() const;
 
   private:
     void updateMatrix();
 
+    Daedalus::GEngineClasses::C_Item  hitem={};
     WorldScript&                      owner;
-    Daedalus::GEngineClasses::C_Item* hitem={};
     StaticObjects::Mesh               view;
     std::array<float,3>               pos={};
     bool                              equiped=false;

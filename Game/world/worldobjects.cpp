@@ -1,5 +1,6 @@
 #include "worldobjects.h"
 
+#include "game/serialize.h"
 #include "graphics/staticobjects.h"
 #include "item.h"
 #include "npc.h"
@@ -17,6 +18,32 @@ WorldObjects::WorldObjects(World& owner):owner(owner){
   }
 
 WorldObjects::~WorldObjects() {
+  }
+
+void WorldObjects::load(Serialize &fin) {
+  uint32_t sz = npcArr.size();
+
+  fin.read(sz);
+  npcArr.clear();
+  for(size_t i=0;i<sz;++i)
+    npcArr.emplace_back(std::make_unique<Npc>(*owner.script(),fin));
+
+  fin.read(sz);
+  itemArr.clear();
+  for(size_t i=0;i<sz;++i)
+    itemArr.emplace_back(std::make_unique<Item>(*owner.script(),fin));
+  }
+
+void WorldObjects::save(Serialize &fout) {
+  uint32_t sz = npcArr.size();
+  fout.write(sz);
+  for(auto& i:npcArr)
+    i->save(fout);
+
+  sz = itemArr.size();
+  fout.write(sz);
+  for(auto& i:itemArr)
+    i->save(fout);
   }
 
 void WorldObjects::tick(uint64_t dt) {
@@ -53,6 +80,29 @@ void WorldObjects::tick(uint64_t dt) {
     }
   }
 
+Npc *WorldObjects::addNpc(size_t npcInstance, const char *at) {
+  auto pos = owner.findPoint(at);
+  if(pos==nullptr){
+    Log::e("inserNpc: invalid waypoint");
+    return nullptr;
+    }
+  Npc* npc = new Npc(*owner.script(),npcInstance,at);
+  if(pos!=nullptr && pos->isLocked()){
+    auto p = owner.findNextPoint(*pos);
+    if(p)
+      pos=p;
+    }
+  if(pos!=nullptr) {
+    npc->setPosition  (pos->x,pos->y,pos->z);
+    npc->setDirection (pos->dirX,pos->dirY,pos->dirZ);
+    npc->attachToPoint(pos);
+    npc->updateTransform();
+    }
+
+  npcArr.emplace_back(npc);
+  return npc;
+  }
+
 void WorldObjects::tickNear(uint64_t /*dt*/) {
   for(size_t i=0;i<npcNear.size();++i)
     for(size_t r=i+1;r<npcNear.size();++r){
@@ -64,38 +114,19 @@ void WorldObjects::tickNear(uint64_t /*dt*/) {
       }
   }
 
-void WorldObjects::onInserNpc(Daedalus::GEngineClasses::C_Npc *handle, const std::string& point) {
-  auto pos = owner.findPoint(point);
-  if(pos==nullptr){
-    Log::e("onInserNpc: invalid waypoint");
-    }
-  auto& npcData = *handle;
-
-  std::unique_ptr<Npc> ptr{new Npc(*owner.script(),handle)};
-  npcData.userPtr = ptr.get();
-  if(!npcData.name[0].empty())
-    ptr->setName(npcData.name[0]);
-
-  if(pos!=nullptr && pos->isLocked()){
-    auto p = owner.findNextPoint(*pos);
-    if(p)
-      pos=p;
-    }
-  if(pos!=nullptr) {
-    ptr->setPosition  (pos->x,pos->y,pos->z);
-    ptr->setDirection (pos->dirX,pos->dirY,pos->dirZ);
-    ptr->attachToPoint(pos);
-    ptr->updateTransform();
-    }
-
-  npcArr.emplace_back(std::move(ptr));
-  }
-
 void WorldObjects::updateAnimation() {
   Workers::parallelFor(npcArr,8,[](std::unique_ptr<Npc>& i){
     i->updateTransform();
     i->updateAnimation();
     });
+  }
+
+Npc *WorldObjects::findHero() {
+  for(auto& i:npcArr){
+    if(i->processPolicy()==Npc::ProcessPolicy::Player)
+      return i.get();
+    }
+  return nullptr;
   }
 
 void WorldObjects::detectNpc(const float x, const float y, const float z, std::function<void (Npc &)> f) {
@@ -159,14 +190,10 @@ size_t WorldObjects::hasItems(const std::string &tag, size_t itemCls) {
   }
 
 Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
-  auto  pos    = owner.findPoint(at);
-  auto  h      = owner.script()->getGameState().insertItem(itemInstance);
-  auto& itData = *h;
+  auto  pos = owner.findPoint(at);
 
-  std::unique_ptr<Item> ptr{new Item(*owner.script(),h)};
+  std::unique_ptr<Item> ptr{new Item(*owner.script(),itemInstance)};
   auto* it=ptr.get();
-  itData.userPtr = ptr.get();
-  itData.amount  = 1;
   itemArr.emplace_back(std::move(ptr));
 
   if(pos!=nullptr) {
@@ -174,6 +201,7 @@ Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
     it->setDirection(pos->dirX,pos->dirY,pos->dirZ);
     }
 
+  auto& itData = *it->handle();
   it->setView(owner.getStaticView(itData.visual,itData.material));
   return it;
   }

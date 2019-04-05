@@ -16,6 +16,7 @@
 #include "utils/cp1251.h"
 
 #include "gothic.h"
+#include "game/serialize.h"
 
 using namespace Tempest;
 
@@ -243,6 +244,13 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
 
   const char* menuEv=nullptr;
 
+  if(event.key==KeyEvent::K_F5){
+    gothic.quickSave();
+    }
+  else if(event.key==KeyEvent::K_F6){
+    loadGame("qsave.sav");
+    }
+
   if(event.key==KeyEvent::K_ESCAPE)
     menuEv="MENU_MAIN";
   else if(event.key==KeyEvent::K_Back)
@@ -451,6 +459,26 @@ void MainWindow::tick() {
     }
   }
 
+void MainWindow::loadGame(const std::string &name) {
+  if(gothic.checkLoading()==Gothic::LoadState::Idle){
+    loaderSession = gothic.clearGame(); // clear world-memory later
+    setGameImpl(nullptr);
+    }
+
+  loadProgress.store(0);
+  gothic.startLoading([this,name](){
+    auto progress=[this](int v){
+      loadProgress.store(v);
+      };
+    loaderSession = nullptr; // clear world-memory now
+    Tempest::RFile file(name);
+    Serialize      s(file);
+    std::unique_ptr<GameSession> w(new GameSession(gothic,draw.storage(),s,progress));
+    loaderSession = std::move(w);
+    });
+  update();
+  }
+
 void MainWindow::startGame(const std::string &name) {
   if(gothic.checkLoading()==Gothic::LoadState::Idle){
     loaderSession = gothic.clearGame(); // clear world-memory later
@@ -512,9 +540,6 @@ void MainWindow::initSwapchain(){
 void MainWindow::render(){
   try {
     static uint64_t time=Application::tickCount();
-
-    if(Gothic::LoadState::Idle!=gothic.checkLoading())
-      ;//return;
 
     auto& context=fLocal[device.frameId()];
     Semaphore&     renderDone=commandBuffersSemaphores[device.frameId()];

@@ -48,6 +48,7 @@ class Gothic final {
     void      tick(uint64_t dt);
 
     void      updateAnimation();
+    void      quickSave();
 
     auto      updateDialog(const WorldScript::DlgChoise& dlg, Npc& player, Npc& npc) -> std::vector<WorldScript::DlgChoise>;
     void      dialogExec  (const WorldScript::DlgChoise& dlg, Npc& player, Npc& npc);

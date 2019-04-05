@@ -15,6 +15,7 @@
 class Npc;
 class Item;
 class World;
+class Serialize;
 
 class WorldObjects final {
   public:
@@ -33,12 +34,16 @@ class WorldObjects final {
       SearchFlg flags    = NoFlg;
       };
 
+    void           load(Serialize& fout);
+    void           save(Serialize& fout);
     void           tick(uint64_t dt);
 
+    Npc*           addNpc(size_t itemInstance, const char *at);
     void           onInserNpc (Daedalus::GEngineClasses::C_Npc* handle, const std::string &point);
 
     void           updateAnimation();
 
+    Npc*           findHero();
     size_t         npcCount()    const { return npcArr.size(); }
     const Npc&     npc(size_t i) const { return *npcArr[i];    }
     Npc&           npc(size_t i)       { return *npcArr[i];    }

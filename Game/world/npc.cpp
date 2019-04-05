@@ -5,6 +5,7 @@
 #include "interactive.h"
 #include "graphics/skeleton.h"
 #include "graphics/posepool.h"
+#include "game/serialize.h"
 #include "worldscript.h"
 #include "trigger.h"
 #include "world.h"
@@ -12,14 +13,106 @@
 
 using namespace Tempest;
 
-Npc::Npc(WorldScript &owner, Daedalus::GEngineClasses::C_Npc *hnpc)
-  :owner(owner),hnpc(hnpc),mvAlgo(*this,owner.world()){
+Npc::Npc(WorldScript &owner, size_t instance, const char* waypoint)
+  :owner(owner),hnpc(nullptr),mvAlgo(*this,owner.world()){
+  hnpc                 = new Daedalus::GEngineClasses::C_Npc();
+  hnpc->wp             = waypoint;
+  hnpc->instanceSymbol = instance;
+  hnpc->userPtr        = this;
+  owner.initializeInstance(*hnpc,instance);
+  }
+
+Npc::Npc(WorldScript &owner, Serialize &fin)
+  :owner(owner),hnpc(nullptr),mvAlgo(*this,owner.world()){
+  hnpc          = new Daedalus::GEngineClasses::C_Npc();
+  hnpc->userPtr = this;
+  int32_t     flags=0;
+  uint8_t     policy=0;
+  uint32_t    size=0;
+  std::string str;
+
+  Daedalus::GEngineClasses::C_Npc& h = *hnpc;
+  fin.read(h.instanceSymbol);
+  fin.read(h.id,h.name,h.slot,h.effect,h.npcType);
+  fin.read(flags); h.flags=Daedalus::GEngineClasses::C_Npc::ENPCFlag(flags);
+  fin.read(h.attribute,h.hitChance,h.protection,h.damage);
+  fin.read(h.damagetype,h.guild,h.level);
+  fin.read(h.mission);
+  fin.read(h.fight_tactic,h.weapon,h.voice,h.voicePitch,h.bodymass);
+  fin.read(h.daily_routine,h.start_aistate);
+  fin.read(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
+  fin.read(h.aivar);
+  fin.read(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
+
+  fin.read(policy); aiPolicy=ProcessPolicy(policy);
+  fin.read(x,y,z,angle,sz);
+
+  fin.read(str);
+  setVisual(str.c_str());
+  fin.read(body,head,vHead,vTeeth,bdColor,vColor);
+  setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
+  durtyTranform|=(TR_Pos|TR_Rot|TR_Scale);
+
+  fin.read(wlkMode);
+  fin.read(trGuild,talentsSk,talentsVl,refuseTalkMilis);
+  invent.load(owner,*this,fin);
+  fin.read(perceptionTime,perceptionNextTime);
+  for(auto& i:perception)
+    fin.read(i.func);
+  fin.read(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
+
+  fin.read(size);
+  routines.resize(size);
+  for(auto& i:routines){
+    fin.read(i.start,i.end,i.callback);
+    fin.read(str);
+    i.point = owner.world().findPoint(str);
+    }
   }
 
 Npc::~Npc(){
   if(currentInteract)
     currentInteract->dettach(*this);
   delete hnpc;
+  }
+
+void Npc::save(Serialize &fout) {
+  Daedalus::GEngineClasses::C_Npc& h = *hnpc;
+  fout.write(h.instanceSymbol);
+  fout.write(h.id,h.name,h.slot,h.effect,h.npcType);
+  fout.write(int32_t(h.flags));
+  fout.write(h.attribute,h.hitChance,h.protection,h.damage);
+  fout.write(h.damagetype,h.guild,h.level);
+  fout.write(h.mission);
+  fout.write(h.fight_tactic,h.weapon,h.voice,h.voicePitch,h.bodymass);
+  fout.write(h.daily_routine,h.start_aistate);
+  fout.write(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
+  fout.write(h.aivar);
+  fout.write(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
+
+  fout.write(uint8_t(aiPolicy));
+  fout.write(x,y,z,angle,sz);
+
+  if(animation.skeleton)
+    fout.write(animation.skeleton->name()); else
+    fout.write(std::string(""));
+  fout.write(body,head,vHead,vTeeth,bdColor,vColor);
+  fout.write(wlkMode);
+  fout.write(trGuild,talentsSk,talentsVl,refuseTalkMilis);
+  invent.save(fout);
+  fout.write(perceptionTime,perceptionNextTime);
+  for(auto& i:perception)
+    fout.write(i.func);
+
+  fout.write(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
+
+  fout.write(uint32_t(routines.size()));
+  for(auto& i:routines){
+    fout.write(i.start,i.end,i.callback);
+    if(i.point)
+      fout.write(i.point->name); else
+      fout.write(std::string(""));
+    }
   }
 
 void Npc::setPosition(float ix, float iy, float iz) {
@@ -278,6 +371,12 @@ void Npc::setName(const std::string &n) {
   name = n;
   }
 
+void Npc::setVisual(const char* visual) {
+  auto skelet = Resources::loadSkeleton(visual);
+  setVisual(skelet);
+  setPhysic(owner.world().getPhysic(visual));
+  }
+
 void Npc::addOverlay(const char *sk, uint64_t time) {
   auto skelet = Resources::loadSkeleton(sk);
   addOverlay(skelet,time);
@@ -308,15 +407,46 @@ void Npc::setVisual(const Skeleton* v) {
   animation.setVisual(v,owner.tickCount(),invent.weaponState(),wlkMode,currentInteract,owner.world());
   }
 
-void Npc::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh &&body, int32_t bodyVer, int32_t bodyColor) {
-  animation.setVisualBody(std::move(h),std::move(body));
+static std::string addExt(const std::string& s,const char* ext){
+  if(s.size()>0 && s.back()=='.')
+    return s+&ext[1];
+  return s+ext;
+  }
 
+void Npc::setVisualBody(int32_t headTexNr, int32_t teethTexNr, int32_t bodyTexNr, int32_t bodyTexColor,
+                        const std::string &body, const std::string &head) {
+  auto& w = owner.world();
+
+  auto  vname = addExt(body,".MDM");
+  auto  vhead = head.empty() ? StaticObjects::Mesh() : w.getView(addExt(head,".MMB"),headTexNr,teethTexNr,bodyTexColor);
+  auto  vbody = body.empty() ? StaticObjects::Mesh() : w.getView(vname,bodyTexNr,0,bodyTexColor);
+
+  animation.setVisualBody(std::move(vhead),std::move(vbody));
+  this->body = body;
+  this->head = head;
+  vHead      = headTexNr;
+  vTeeth     = teethTexNr;
+  vColor     = bodyTexNr;
+  bdColor    = bodyTexColor;
+
+  invent.updateArmourView(owner,*this);
+  durtyTranform|=TR_Pos; // update obj matrix
+  //setVisualBody(std::move(vhead),std::move(vbody),bodyTexNr,bodyTexColor,body,head);
+  }
+
+/*
+void Npc::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh &&b, int32_t bodyVer, int32_t bodyColor,
+                        const std::string &bodyS, const std::string &headS) {
+  animation.setVisualBody(std::move(h),std::move(b));
+
+  body    = bodyS;
+  head    = headS;
   vColor  = bodyVer;
   bdColor = bodyColor;
 
   invent.updateArmourView(owner,*this);
   durtyTranform|=TR_Pos; // update obj matrix
-  }
+  }*/
 
 void Npc::setArmour(StaticObjects::Mesh &&a) {
   animation.armour = std::move(a);
@@ -1292,7 +1422,7 @@ Item* Npc::addItem(const uint32_t item, size_t count) {
   }
 
 Item* Npc::addItem(std::unique_ptr<Item>&& i) {
-  return invent.addItem(std::move(i),owner);
+  return invent.addItem(std::move(i));
   }
 
 void Npc::addItem(uint32_t id, Interactive &chest) {

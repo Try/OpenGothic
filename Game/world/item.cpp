@@ -1,14 +1,52 @@
 #include "item.h"
 
-#include "world.h"
+#include "game/serialize.h"
 #include "worldscript.h"
+#include "world.h"
 
-Item::Item(WorldScript& owner,Daedalus::GEngineClasses::C_Item *hitem)
-  :owner(owner),hitem(hitem){
+Item::Item(WorldScript &owner, size_t itemInstance)
+  :owner(owner) {
+  hitem.instanceSymbol = itemInstance;
+  hitem.userPtr=this;
+
+  owner.initializeInstance(hitem,itemInstance);
+  hitem.amount=1;
+  }
+
+Item::Item(WorldScript &owner, Serialize &fin)
+  :owner(owner) {
+  auto& h = hitem;
+  fin.read(h.instanceSymbol);
+  fin.read(h.id,h.name,h.nameID,h.hp,h.hp_max,h.mainflag);
+  fin.read(h.flags,h.weight,h.value,h.damageType,h.damageTotal,h.damage);
+  fin.read(h.wear,h.protection,h.nutrition,h.cond_atr,h.cond_value,h.change_atr,h.change_value,h.magic);
+  fin.read(h.on_equip,h.on_unequip,h.on_state);
+  fin.read(h.owner,h.ownerGuild,h.disguiseGuild,h.visual,h.visual_change);
+  fin.read(h.effect,h.visual_skin,h.scemeName,h.material);
+  fin.read(h.munition,h.spell,h.range,h.mag_circle);
+  fin.read(h.description,h.text,h.count);
+  fin.read(h.inv_zbias,h.inv_rotx,h.inv_roty,h.inv_rotz,h.inv_animate);
+  fin.read(h.amount);
+  fin.read(pos[0],pos[1],pos[2],equiped,itSlot);
   }
 
 Item::~Item() {
-  delete hitem;
+  }
+
+void Item::save(Serialize &fout) {
+  auto& h = hitem;
+  fout.write(h.instanceSymbol);
+  fout.write(h.id,h.name,h.nameID,h.hp,h.hp_max,h.mainflag);
+  fout.write(h.flags,h.weight,h.value,h.damageType,h.damageTotal,h.damage);
+  fout.write(h.wear,h.protection,h.nutrition,h.cond_atr,h.cond_value,h.change_atr,h.change_value,h.magic);
+  fout.write(h.on_equip,h.on_unequip,h.on_state);
+  fout.write(h.owner,h.ownerGuild,h.disguiseGuild,h.visual,h.visual_change);
+  fout.write(h.effect,h.visual_skin,h.scemeName,h.material);
+  fout.write(h.munition,h.spell,h.range,h.mag_circle);
+  fout.write(h.description,h.text,h.count);
+  fout.write(h.inv_zbias,h.inv_rotx,h.inv_roty,h.inv_rotz,h.inv_animate);
+  fout.write(h.amount);
+  fout.write(pos[0],pos[1],pos[2],equiped,itSlot);
   }
 
 void Item::setView(StaticObjects::Mesh &&m) {
@@ -32,11 +70,11 @@ void Item::setMatrix(const Tempest::Matrix4x4 &m) {
   }
 
 const char *Item::displayName() const {
-  return hitem->name.c_str();
+  return hitem.name.c_str();
   }
 
 const char *Item::description() const {
-  return hitem->description.c_str();
+  return hitem.description.c_str();
   }
 
 std::array<float,3> Item::position() const {
@@ -44,15 +82,15 @@ std::array<float,3> Item::position() const {
   }
 
 bool Item::isGold() const {
-  return hitem->instanceSymbol==owner.goldId();
+  return hitem.instanceSymbol==owner.goldId();
   }
 
 int32_t Item::mainFlag() const {
-  return hitem->mainflag;
+  return hitem.mainflag;
   }
 
 int32_t Item::itemFlag() const {
-  return hitem->flags;
+  return hitem.flags;
   }
 
 bool Item::isSpell() const {
@@ -70,27 +108,31 @@ bool Item::isCrossbow() const {
   }
 
 int32_t Item::spellId() const {
-  return hitem->spell;
+  return hitem.spell;
   }
 
 int32_t Item::swordLength() const {
-  return hitem->range;
+  return hitem.range;
+  }
+
+void Item::setCount(size_t cnt) {
+  hitem.amount = cnt;
   }
 
 const char *Item::uiText(size_t id) const {
-  return hitem->text[id].c_str();
+  return hitem.text[id].c_str();
   }
 
 int32_t Item::uiValue(size_t id) const {
-  return hitem->count[id];
+  return hitem.count[id];
   }
 
 size_t Item::count() const {
-  return hitem->amount;
+  return hitem.amount;
   }
 
 int32_t Item::cost() const {
-  return hitem->value;
+  return hitem.value;
   }
 
 int32_t Item::sellCost() const {
@@ -103,13 +145,11 @@ bool Item::checkCond(const Npc &other) const {
   }
 
 bool Item::checkCondUse(const Npc &other, int32_t &a, int32_t &nv) const {
-  auto& itData = *hitem;
-
   for(size_t i=0;i<Daedalus::GEngineClasses::C_Item::COND_ATR_MAX;++i){
-    auto atr = Npc::Attribute(itData.cond_atr[i]);
-    if(other.attribute(atr)<itData.cond_value[i] && itData.cond_value[i]!=0) {
+    auto atr = Npc::Attribute(hitem.cond_atr[i]);
+    if(other.attribute(atr)<hitem.cond_value[i] && hitem.cond_value[i]!=0) {
       a  = atr;
-      nv = itData.cond_value[i];
+      nv = hitem.cond_value[i];
       return false;
       }
     }
@@ -117,13 +157,13 @@ bool Item::checkCondUse(const Npc &other, int32_t &a, int32_t &nv) const {
   }
 
 bool Item::checkCondRune(const Npc &other, int32_t &cPl, int32_t &cIt) const {
-  cIt = hitem->mag_circle;
+  cIt = hitem.mag_circle;
   cPl = other.mageCycle();
   return (cPl>=cIt);
   }
 
 size_t Item::clsId() const {
-  return hitem->instanceSymbol;
+  return hitem.instanceSymbol;
   }
 
 void Item::updateMatrix() {

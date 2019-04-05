@@ -199,9 +199,12 @@ class Npc final {
 
     using Anim = AnimationSolver::Anim;
 
-    Npc(WorldScript &owner, Daedalus::GEngineClasses::C_Npc* hnpc);
+    Npc(WorldScript &owner, size_t instance, const char *waypoint);
+    Npc(WorldScript &owner, Serialize& fin);
     Npc(const Npc&)=delete;
     ~Npc();
+
+    void save(Serialize& fout);
 
     void setPosition  (float x,float y,float z);
     bool setPosition  (const std::array<float,3>& pos);
@@ -213,6 +216,8 @@ class Npc final {
     void resetPositionToTA();
 
     void setProcessPolicy(ProcessPolicy t);
+    auto processPolicy() const -> ProcessPolicy { return aiPolicy; }
+
     bool isPlayer() const;
     void setWalkMode(WalkBit m);
     auto walkMode() const { return wlkMode; }
@@ -239,13 +244,15 @@ class Npc final {
     const char*         displayName() const;
     std::array<float,3> displayPosition() const;
     void setName      (const std::string& name);
+    void setVisual    (const char *visual);
     void setVisual    (const Skeleton *visual);
     void addOverlay   (const char*     sk, uint64_t time);
     void addOverlay   (const Skeleton *sk, uint64_t time);
     void delOverlay   (const char*     sk);
     void delOverlay   (const Skeleton *sk);
 
-    void setVisualBody (StaticObjects::Mesh &&head,StaticObjects::Mesh&& body,int32_t bodyVer,int32_t bodyColor);
+    void setVisualBody (int32_t headTexNr,int32_t teethTexNr,int32_t bodyVer,int32_t bodyColor,const std::string& body,const std::string& head);
+    //void setVisualBody (StaticObjects::Mesh &&h,StaticObjects::Mesh&& b,int32_t bodyVer,int32_t bodyColor,const std::string& body,const std::string& head);
     void setArmour     (StaticObjects::Mesh&& body);
     void setSword      (StaticObjects::Mesh&& sword);
     void setRangeWeapon(StaticObjects::Mesh&& bow);
@@ -539,7 +546,8 @@ class Npc final {
       };
     uint8_t                        durtyTranform=0;
 
-    int32_t                        vColor =0;
+    std::string                    body,head;
+    int32_t                        vHead=0, vTeeth=0, vColor =0;
     int32_t                        bdColor=0;
     DynamicWorld::Item             physic;
 

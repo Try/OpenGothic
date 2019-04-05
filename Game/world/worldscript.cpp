@@ -4,18 +4,13 @@
 #include "npc.h"
 #include "item.h"
 #include "utils/cp1251.h"
+#include "game/serialize.h"
 
 #include <fstream>
 #include <Tempest/Log>
 
 using namespace Tempest;
 using namespace Daedalus::GameState;
-
-static std::string addExt(const std::string& s,const char* ext){
-  if(s.size()>0 && s.back()=='.')
-    return s+&ext[1];
-  return s+ext;
-  }
 
 struct WorldScript::ScopeVar final {
   ScopeVar(Daedalus::DaedalusVM& vm,Daedalus::PARSymbol& sym,Npc& n)
@@ -54,6 +49,46 @@ WorldScript::WorldScript(GameSession &owner)
   :vm(owner.loadScriptCode()),owner(owner){
   Daedalus::registerGothicEngineClasses(vm);
   initCommon();
+  }
+
+WorldScript::WorldScript(GameSession &owner, Serialize &fin)
+  :WorldScript(owner){
+  std::string name;
+  uint32_t sz=0;
+  fin.read(sz);
+  for(size_t i=0;i<sz;++i){
+    uint32_t t=Daedalus::EParType::EParType_Void;
+    fin.read(t);
+    switch(t) {
+      case Daedalus::EParType::EParType_Int:{
+        fin.read(name);
+        auto& s = getSymbol(name.c_str());
+        fin.read(s.intData);
+        break;
+        }
+      case Daedalus::EParType::EParType_Float:{
+        fin.read(name);
+        auto& s = getSymbol(name.c_str());
+        fin.read(s.floatData);
+        break;
+        }
+      case Daedalus::EParType::EParType_String:{
+        fin.read(name);
+        auto& s = getSymbol(name.c_str());
+        fin.read(s.strData);
+        break;
+        }
+      }
+    }
+
+  fin.read(sz);
+  for(size_t i=0;i<sz;++i){
+    uint32_t f=0,s=0;
+    fin.read(f,s);
+    dlgKnownInfos.insert(std::make_pair(f,s));
+    }
+
+  fin.read(gilAttitudes);
   }
 
 void WorldScript::initCommon() {
@@ -244,10 +279,6 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("printdebuginst",      [this](Daedalus::DaedalusVM& vm){ printdebuginst(vm);       });
   vm.registerExternalFunction("printdebuginstch",    [this](Daedalus::DaedalusVM& vm){ printdebuginstch(vm);     });
 
-  DaedalusGameState::GameExternals ext;
-  ext.wld_insertnpc      = [this](Daedalus::GEngineClasses::C_Npc* h,const std::string& s){ world().onInserNpc(h,s); };
-  vm.getGameState().setGameExternals(ext);
-
   spellFxInstanceNames = vm.getDATFile().getSymbolIndexByName("spellFxInstanceNames");
   spellFxAniLetters    = vm.getDATFile().getSymbolIndexByName("spellFxAniLetters");
 
@@ -370,6 +401,68 @@ void WorldScript::loadDialogOU(Gothic &gothic) {
     }
   }
 
+void WorldScript::initializeInstance(Daedalus::GEngineClasses::C_Npc &n, size_t instance) {
+  auto& s = vm.getDATFile().getSymbolByIndex(instance);
+  s.instanceDataHandle = &n;
+  s.instanceDataClass  = Daedalus::IC_Npc;
+  vm.initializeInstance(&n,instance,Daedalus::IC_Npc);
+
+  if(n.daily_routine!=0) {
+    ScopeVar self(vm,vm.globalSelf(),&n,Daedalus::IC_Npc);
+    vm.runFunctionBySymIndex(n.daily_routine,false);
+    }
+  }
+
+void WorldScript::initializeInstance(Daedalus::GEngineClasses::C_Item &it,size_t instance) {
+  vm.initializeInstance(&it,instance,Daedalus::IC_Item);
+  }
+
+void WorldScript::save(Serialize &fout) {
+  auto&  dat = vm.getDATFile().getSymTable().symbols;
+  fout.write(uint32_t(dat.size()));
+  for(auto& i:dat){
+    saveSym(fout,i);
+    }
+
+  fout.write(uint32_t(dlgKnownInfos.size()));
+  for(auto& i:dlgKnownInfos)
+    fout.write(uint32_t(i.first),uint32_t(i.second));
+
+  fout.write(uint32_t(gilAttitudes.size()));
+  for(auto& i:gilAttitudes)
+    fout.write(i);
+  }
+
+void WorldScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
+  switch(i.properties.elemProps.type) {
+    case Daedalus::EParType::EParType_Int:
+      if(i.intData.size()>0){
+        fout.write(i.properties.elemProps.type);
+        fout.write(i.name,i.intData);
+        return;
+        }
+      break;
+    case Daedalus::EParType::EParType_Float:
+      if(i.floatData.size()>0){
+        fout.write(i.properties.elemProps.type);
+        fout.write(i.name,i.floatData);
+        return;
+        }
+      break;
+    case Daedalus::EParType::EParType_String:
+      if(i.floatData.size()>0){
+        fout.write(i.properties.elemProps.type);
+        fout.write(i.name,i.strData);
+        return;
+        }
+      break;
+    case Daedalus::EParType::EParType_Instance:
+      fout.write(i.properties.elemProps.type);
+      return;
+    }
+  fout.write(uint32_t(Daedalus::EParType::EParType_Void));
+  }
+
 const World &WorldScript::world() const {
   return *owner.world();
   }
@@ -424,10 +517,6 @@ const AiState &WorldScript::getAiState(size_t id) {
     return it->second;
   auto ins = aiStates.emplace(id,AiState(*this,id));
   return ins.first->second;
-  }
-
-Daedalus::GEngineClasses::C_Item& WorldScript::vmItem(Daedalus::GEngineClasses::C_Item* handle) {
-  return *(handle);
   }
 
 std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GEngineClasses::C_Npc* player,
@@ -840,13 +929,6 @@ Npc* WorldScript::getNpcById(size_t id) {
   return getNpc(hnpc);
   }
 
-Npc* WorldScript::inserNpc(const char *npcInstance, const char *at) {
-  size_t id = vm.getDATFile().getSymbolIndexByName(npcInstance);
-  if(id==0)
-    return nullptr;
-  return inserNpc(id,at);
-  }
-
 void WorldScript::removeItem(Item &it) {
   world().removeItem(it);
   }
@@ -860,23 +942,21 @@ const FightAi::FA &WorldScript::getFightAi(size_t i) const {
   return owner.getFightAi(i);
   }
 
+/*
 Npc* WorldScript::inserNpc(size_t npcInstance, const char* at) {
   auto pos = world().findPoint(at);
   if(pos==nullptr){
     Log::e("inserNpc: invalid waypoint");
     return nullptr;
     }
-  auto hnpc = vm.getGameState().insertNPC(npcInstance,at);
-  Npc* npc  = getNpc(hnpc);
-  if(!hnpc->name[0].empty())
-    npc->setName(hnpc->name[0]);
-
+  Npc* npc = new Npc(*this,npcInstance,at);
+  auto hnpc = npc->handle();
   if(hnpc->daily_routine!=0) {
     ScopeVar self(vm,vm.globalSelf(),hnpc,Daedalus::IC_Npc);
     vm.runFunctionBySymIndex(hnpc->daily_routine,false);
     }
   return npc;
-  }
+  }*/
 
 const std::string& WorldScript::popString(Daedalus::DaedalusVM &vm) {
   return vm.popString();
@@ -1096,10 +1176,7 @@ void WorldScript::mdl_setvisual(Daedalus::DaedalusVM &vm) {
   auto               npc    = popInstance(vm);
   if(npc==nullptr)
     return;
-
-  auto skelet = Resources::loadSkeleton (visual);
-  npc->setVisual(skelet);
-  npc->setPhysic(world().getPhysic(visual));
+  npc->setVisual(visual.c_str());
   }
 
 void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
@@ -1112,15 +1189,15 @@ void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
   auto&       body         = popString(vm);
   auto        npc          = popInstance(vm);
 
+  if(npc==nullptr)
+    return;
+  npc->setVisualBody(headTexNr,teethTexNr,bodyTexNr,bodyTexColor,body,head);
+
+  /*
   auto  vname = addExt(body,".MDM");
   auto  vhead = head.empty() ? StaticObjects::Mesh() : world().getView(addExt(head,".MMB"),headTexNr,teethTexNr,bodyTexColor);
   auto  vbody = body.empty() ? StaticObjects::Mesh() : world().getView(vname,bodyTexNr,0,bodyTexColor);
-
-  if(npc==nullptr)
-    return;
-
-  //npc->setPhysic(world().getPhysic(vname));
-  npc->setVisualBody(std::move(vhead),std::move(vbody),bodyTexNr,bodyTexColor);
+  npc->setVisualBody(std::move(vhead),std::move(vbody),bodyTexNr,bodyTexColor,body,head);*/
 
   if(armor>=0) {
     if(npc->hasItem(uint32_t(armor))==0)
@@ -1209,7 +1286,7 @@ void WorldScript::wld_insertnpc(Daedalus::DaedalusVM &vm) {
     Log::e("invalid waypoint \"",spawnpoint,"\"");
     return;
     }
-  inserNpc(size_t(npcInstance),at->name.c_str());
+  world().addNpc(size_t(npcInstance),at->name.c_str());
   }
 
 void WorldScript::wld_insertitem(Daedalus::DaedalusVM &vm) {
@@ -2225,7 +2302,7 @@ void WorldScript::hlp_isitem(Daedalus::DaedalusVM &vm) {
   uint32_t instanceSymbol = vm.popVar();
   auto     item           = popItem(vm);
   if(item!=nullptr){
-    auto& v = vmItem(item->handle());
+    auto& v = *(item->handle());
     vm.setReturn(v.instanceSymbol==instanceSymbol ? 1 : 0);
     } else
     vm.setReturn(0);
@@ -2366,3 +2443,5 @@ bool WorldScript::doesNpcKnowInfo(const Daedalus::GEngineClasses::C_Npc& npc, si
   auto id = std::make_pair(npc.instanceSymbol,infoInstance);
   return dlgKnownInfos.find(id)!=dlgKnownInfos.end();
   }
+
+

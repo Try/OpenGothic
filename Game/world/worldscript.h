@@ -20,10 +20,12 @@ class GameSession;
 class World;
 class Npc;
 class Item;
+class Serialize;
 
 class WorldScript final {
   public:
     WorldScript(GameSession &gothic);
+    WorldScript(GameSession &gothic,Serialize& fin);
 
     struct DlgChoise final {
       std::string                       title;
@@ -47,20 +49,23 @@ class WorldScript final {
     void       initDialogs (Gothic &gothic);
     void       loadDialogOU(Gothic &gothic);
 
+    void       initializeInstance(Daedalus::GEngineClasses::C_Npc&  n,  size_t instance);
+    void       initializeInstance(Daedalus::GEngineClasses::C_Item& it, size_t instance);
+
+    void       save(Serialize& fout);
+
     const World& world() const;
     World&       world();
     uint64_t     tickCount() const;
 
     uint32_t     rand(uint32_t max);
+    void         removeItem(Item& it);
 
-    Npc*       inserNpc(const char* npcInstance,const char *at);
-    void       removeItem(Item& it);
+    Npc*         getNpc(Daedalus::GEngineClasses::C_Npc* handle);
+    void         setInstanceNPC(const char* name,Npc& npc);
 
-    Npc*       getNpc(Daedalus::GEngineClasses::C_Npc* handle);
-    void       setInstanceNPC(const char* name,Npc& npc);
-
-    size_t      goldId() const { return itMi_Gold; }
-    const char* currencyName() const { return goldTxt.c_str(); }
+    size_t       goldId() const { return itMi_Gold; }
+    const char*  currencyName() const { return goldTxt.c_str(); }
 
     const Daedalus::GEngineClasses::C_Focus&          focusNorm()  const { return cFocusNorm;  }
     const Daedalus::GEngineClasses::C_Focus&          focusMele()  const { return cFocusMele;  }
@@ -75,8 +80,6 @@ class WorldScript final {
     size_t                                            getSymbolIndex(const char* s);
     size_t                                            getSymbolIndex(const std::string& s);
     const AiState&                                    getAiState(size_t id);
-
-    Daedalus::GEngineClasses::C_Item&                 vmItem(Daedalus::GEngineClasses::C_Item *handle);
 
     auto dialogChoises(Daedalus::GEngineClasses::C_Npc *self, Daedalus::GEngineClasses::C_Npc *npc, const std::vector<uint32_t> &except) -> std::vector<DlgChoise>;
     auto updateDialog (const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<WorldScript::DlgChoise>;
@@ -105,12 +108,9 @@ class WorldScript final {
     const std::string& messageByName(const std::string &id) const;
     uint32_t           messageTime(const std::string &id) const;
 
-    int printNothingToGet();
-
-    float              tradeValueMultiplier() const { return tradeValMult; }
-
-    void useInteractive(Daedalus::GEngineClasses::C_Npc *hnpc, const std::string &func);
-
+    int      printNothingToGet();
+    float    tradeValueMultiplier() const { return tradeValMult; }
+    void     useInteractive(Daedalus::GEngineClasses::C_Npc *hnpc, const std::string &func);
     Attitude guildAttitude(const Npc& p0,const Npc& p1) const;
 
   private:
@@ -133,7 +133,6 @@ class WorldScript final {
     Item* getItem(Daedalus::GEngineClasses::C_Item *handle);
     Item* getItemById(size_t id);
     Npc*  getNpcById(size_t id);
-    Npc*  inserNpc  (size_t npcInstance, const char *at);
     auto  getFocus(const char* name) -> Daedalus::GEngineClasses::C_Focus;
 
     void storeItem(Item* it);
@@ -312,6 +311,8 @@ class WorldScript final {
     void sort(std::vector<DlgChoise>& dlg);
     void setNpcInfoKnown(const Daedalus::GEngineClasses::C_Npc& npc, const Daedalus::GEngineClasses::C_Info& info);
     bool doesNpcKnowInfo(const Daedalus::GEngineClasses::C_Npc& npc, size_t infoInstance) const;
+
+    void saveSym(Serialize& fout,const Daedalus::PARSymbol& s);
 
     Daedalus::DaedalusVM                                        vm;
     uint8_t                                                     invokeRecursive=0;
