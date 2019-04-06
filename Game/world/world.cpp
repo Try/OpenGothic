@@ -103,6 +103,26 @@ void World::save(Serialize &fout) {
   wobj.save(fout);
   }
 
+uint32_t World::npcId(const void *ptr) const {
+  return wobj.npcId(ptr);
+  }
+
+uint32_t World::itmId(const void *ptr) const {
+  return wobj.itmId(ptr);
+  }
+
+Npc *World::npcById(uint32_t id) {
+  if(id<wobj.npcCount())
+    return &wobj.npc(id);
+  return nullptr;
+  }
+
+Item *World::itmById(uint32_t id) {
+  if(id<wobj.itmCount())
+    return &wobj.itm(id);
+  return nullptr;
+  }
+
 StaticObjects::Mesh World::getView(const std::string &visual) const {
   return getView(visual,0,0,0);
   }

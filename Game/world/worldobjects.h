@@ -38,6 +38,9 @@ class WorldObjects final {
     void           save(Serialize& fout);
     void           tick(uint64_t dt);
 
+    uint32_t       npcId(const void* ptr) const;
+    uint32_t       itmId(const void* ptr) const;
+
     Npc*           addNpc(size_t itemInstance, const char *at);
     void           onInserNpc (Daedalus::GEngineClasses::C_Npc* handle, const std::string &point);
 
@@ -48,6 +51,9 @@ class WorldObjects final {
     const Npc&     npc(size_t i) const { return *npcArr[i];    }
     Npc&           npc(size_t i)       { return *npcArr[i];    }
     void           detectNpc(const float x,const float y,const float z,std::function<void(Npc&)> f);
+
+    size_t         itmCount()    const { return itemArr.size(); }
+    Item&          itm(size_t i)       { return *itemArr[i];    }
 
     void           addTrigger(ZenLoad::zCVobData&& vob);
     Trigger*       findTrigger(const char* name);

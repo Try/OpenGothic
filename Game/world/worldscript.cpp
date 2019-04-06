@@ -40,7 +40,7 @@ struct WorldScript::ScopeVar final {
     }
 
   void*                    handle=nullptr;
-  Daedalus::EInstanceClass cls;
+  Daedalus::EInstanceClass cls   =Daedalus::IC_None;
   Daedalus::DaedalusVM&    vm;
   Daedalus::PARSymbol&     sym;
   };
@@ -53,34 +53,7 @@ WorldScript::WorldScript(GameSession &owner)
 
 WorldScript::WorldScript(GameSession &owner, Serialize &fin)
   :WorldScript(owner){
-  std::string name;
   uint32_t sz=0;
-  fin.read(sz);
-  for(size_t i=0;i<sz;++i){
-    uint32_t t=Daedalus::EParType::EParType_Void;
-    fin.read(t);
-    switch(t) {
-      case Daedalus::EParType::EParType_Int:{
-        fin.read(name);
-        auto& s = getSymbol(name.c_str());
-        fin.read(s.intData);
-        break;
-        }
-      case Daedalus::EParType::EParType_Float:{
-        fin.read(name);
-        auto& s = getSymbol(name.c_str());
-        fin.read(s.floatData);
-        break;
-        }
-      case Daedalus::EParType::EParType_String:{
-        fin.read(name);
-        auto& s = getSymbol(name.c_str());
-        fin.read(s.strData);
-        break;
-        }
-      }
-    }
-
   fin.read(sz);
   for(size_t i=0;i<sz;++i){
     uint32_t f=0,s=0;
@@ -282,14 +255,14 @@ void WorldScript::initCommon() {
   spellFxInstanceNames = vm.getDATFile().getSymbolIndexByName("spellFxInstanceNames");
   spellFxAniLetters    = vm.getDATFile().getSymbolIndexByName("spellFxAniLetters");
 
-  cFocusNorm  = getFocus("Focus_Normal");
-  cFocusMele  = getFocus("Focus_Melee");
-  cFocusRange = getFocus("Focus_Ranged");
-  cFocusMage  = getFocus("Focus_Magic");
+  cFocusNorm           = getFocus("Focus_Normal");
+  cFocusMele           = getFocus("Focus_Melee");
+  cFocusRange          = getFocus("Focus_Ranged");
+  cFocusMage           = getFocus("Focus_Magic");
 
-  ZS_Dead         = getAiState(getSymbolIndex("ZS_Dead")).funcIni;
-  ZS_Unconscious  = getAiState(getSymbolIndex("ZS_Unconscious")).funcIni;
-  ZS_Talk         = getAiState(getSymbolIndex("ZS_Talk")).funcIni;
+  ZS_Dead              = getAiState(getSymbolIndex("ZS_Dead")).funcIni;
+  ZS_Unconscious       = getAiState(getSymbolIndex("ZS_Unconscious")).funcIni;
+  ZS_Talk              = getAiState(getSymbolIndex("ZS_Talk")).funcIni;
 
   auto& currency  = vm.getDATFile().getSymbolByName("TRADE_CURRENCY_INSTANCE");
   itMi_Gold       = vm.getDATFile().getSymbolIndexByName(currency.getString(0).c_str());
@@ -418,12 +391,6 @@ void WorldScript::initializeInstance(Daedalus::GEngineClasses::C_Item &it,size_t
   }
 
 void WorldScript::save(Serialize &fout) {
-  auto&  dat = vm.getDATFile().getSymTable().symbols;
-  fout.write(uint32_t(dat.size()));
-  for(auto& i:dat){
-    saveSym(fout,i);
-    }
-
   fout.write(uint32_t(dlgKnownInfos.size()));
   for(auto& i:dlgKnownInfos)
     fout.write(uint32_t(i.first),uint32_t(i.second));
@@ -431,6 +398,64 @@ void WorldScript::save(Serialize &fout) {
   fout.write(uint32_t(gilAttitudes.size()));
   for(auto& i:gilAttitudes)
     fout.write(i);
+  }
+
+void WorldScript::saveVar(Serialize &fout) {
+  auto&  dat = vm.getDATFile().getSymTable().symbols;
+  fout.write(uint32_t(dat.size()));
+  for(auto& i:dat){
+    saveSym(fout,i);
+    }
+  }
+
+void WorldScript::loadVar(Serialize &fin) {
+  std::string name;
+  uint32_t sz=0;
+  fin.read(sz);
+  for(size_t i=0;i<sz;++i){
+    uint32_t t=Daedalus::EParType::EParType_Void;
+    fin.read(t);
+    switch(t) {
+      case Daedalus::EParType::EParType_Int:{
+        fin.read(name);
+        auto& s = getSymbol(name.c_str());
+        fin.read(s.intData);
+        break;
+        }
+      case Daedalus::EParType::EParType_Float:{
+        fin.read(name);
+        auto& s = getSymbol(name.c_str());
+        fin.read(s.floatData);
+        break;
+        }
+      case Daedalus::EParType::EParType_String:{
+        fin.read(name);
+        auto& s = getSymbol(name.c_str());
+        fin.read(s.strData);
+        break;
+        }
+      case Daedalus::EParType::EParType_Instance:{
+        uint8_t dataClass=0;
+        fin.read(dataClass);
+        if(dataClass>0){
+          uint32_t id=0;
+          fin.read(name,id);
+          auto& s = getSymbol(name.c_str());
+          if(dataClass==1) {
+            auto npc = world().npcById(id);
+            s.instanceDataClass  = Daedalus::IC_Npc;
+            s.instanceDataHandle = npc ? npc->handle() : nullptr;
+            }
+          else if(dataClass==2) {
+            auto itm = world().itmById(id);
+            s.instanceDataClass  = Daedalus::IC_Item;
+            s.instanceDataHandle = itm ? itm->handle() : nullptr;
+            }
+          }
+        break;
+        }
+      }
+    }
   }
 
 void WorldScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
@@ -450,7 +475,7 @@ void WorldScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
         }
       break;
     case Daedalus::EParType::EParType_String:
-      if(i.floatData.size()>0){
+      if(i.strData.size()>0){
         fout.write(i.properties.elemProps.type);
         fout.write(i.name,i.strData);
         return;
@@ -458,6 +483,26 @@ void WorldScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
       break;
     case Daedalus::EParType::EParType_Instance:
       fout.write(i.properties.elemProps.type);
+      if(i.name=="LEHMAR")
+        Log::i("");
+      if(i.instanceDataClass==Daedalus::IC_None){
+        if(i.instanceDataHandle)
+          Log::d("");
+        fout.write(uint8_t(0));
+        }
+      else if(i.instanceDataClass==Daedalus::IC_Npc){
+        fout.write(uint8_t(1),i.name,world().npcId(i.instanceDataHandle));
+        }
+      else if(i.instanceDataClass==Daedalus::IC_Item){
+        fout.write(uint8_t(2),i.name,world().itmId(i.instanceDataHandle));
+        }
+      else if(i.instanceDataClass==Daedalus::IC_Focus || i.instanceDataClass==Daedalus::IC_GilValues ||
+              i.instanceDataClass==Daedalus::IC_Info) {
+        fout.write(uint8_t(0));
+        }
+      else {
+        fout.write(uint8_t(0));
+        }
       return;
     }
   fout.write(uint32_t(Daedalus::EParType::EParType_Void));

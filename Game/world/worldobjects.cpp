@@ -80,6 +80,20 @@ void WorldObjects::tick(uint64_t dt) {
     }
   }
 
+uint32_t WorldObjects::npcId(const void *ptr) const {
+  for(size_t i=0;i<npcArr.size();++i)
+    if(npcArr[i]->handle()==ptr)
+      return i;
+  return uint32_t(-1);
+  }
+
+uint32_t WorldObjects::itmId(const void *ptr) const {
+  for(size_t i=0;i<itemArr.size();++i)
+    if(itemArr[i]->handle()==ptr)
+      return i;
+  return uint32_t(-1);
+  }
+
 Npc *WorldObjects::addNpc(size_t npcInstance, const char *at) {
   auto pos = owner.findPoint(at);
   if(pos==nullptr){

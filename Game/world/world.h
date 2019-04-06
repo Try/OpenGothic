@@ -42,6 +42,11 @@ class World final {
     void  load(Serialize& fout);
     void  save(Serialize& fout);
 
+    uint32_t        npcId(const void* ptr) const;
+    uint32_t        itmId(const void* ptr) const;
+    Npc*            npcById(uint32_t id);
+    Item*           itmById(uint32_t id);
+
     const WayPoint* findPoint(const std::string& s) const { return findPoint(s.c_str()); }
     const WayPoint* findPoint(const char* name) const;
     const WayPoint* findWayPoint(const std::array<float,3>& pos) const;
@@ -57,12 +62,12 @@ class World final {
     void            detectNpc(const std::array<float,3> p,std::function<void(Npc&)> f);
     void            detectNpc(const float x,const float y,const float z,std::function<void(Npc&)> f);
 
-    WayPath       wayTo(const Npc& pos,const WayPoint& end) const;
-    WayPath       wayTo(float npcX,float npcY,float npcZ,const WayPoint& end) const;
+    WayPath         wayTo(const Npc& pos,const WayPoint& end) const;
+    WayPath         wayTo(float npcX,float npcY,float npcZ,const WayPoint& end) const;
 
-    WorldView*    view()   const { return wview.get();    }
-    DynamicWorld* physic() const { return wdynamic.get(); }
-    WorldScript*  script() const;
+    WorldView*      view()   const { return wview.get();    }
+    DynamicWorld*   physic() const { return wdynamic.get(); }
+    WorldScript*    script() const;
 
     StaticObjects::Mesh getView(const std::string& visual) const;
     StaticObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;

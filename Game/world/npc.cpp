@@ -44,6 +44,7 @@ Npc::Npc(WorldScript &owner, Serialize &fin)
   fin.read(h.aivar);
   fin.read(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
 
+  name = h.name[0];
   fin.read(policy); aiPolicy=ProcessPolicy(policy);
   fin.read(x,y,z,angle,sz);
 

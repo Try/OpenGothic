@@ -53,6 +53,8 @@ class WorldScript final {
     void       initializeInstance(Daedalus::GEngineClasses::C_Item& it, size_t instance);
 
     void       save(Serialize& fout);
+    void       saveVar(Serialize& fout);
+    void       loadVar(Serialize& fin);
 
     const World& world() const;
     World&       world();

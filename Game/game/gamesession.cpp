@@ -52,6 +52,7 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Seriali
   vm->initDialogs(gothic);
   loadProgress(70);
   wrld->load(fin);
+  vm->loadVar(fin);
   loadProgress(96);
   }
 
@@ -63,6 +64,7 @@ void GameSession::save(Serialize &fout) {
   vm->save(fout);
   if(wrld)
     wrld->save(fout);
+  vm->saveVar(fout);
   }
 
 void GameSession::setWorld(std::unique_ptr<World> &&w) {
