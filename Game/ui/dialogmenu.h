@@ -98,6 +98,7 @@ class DialogMenu : public Tempest::Widget {
 
     State                               state=State::Idle;
     Entry                               current;
+    bool                                curentIsPl=false;
     bool                                dlgTrade=false;
     std::vector<Forward>                forwardText;
 

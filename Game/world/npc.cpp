@@ -274,7 +274,7 @@ bool Npc::checkHealth(bool onChange) {
 
     if(onChange && currentOther!=nullptr) {
       // currentOther must be externaly initialized
-      if(owner.guildAttitude(*this,*currentOther)==WorldScript::ATT_HOSTILE || guild()>GIL_SEPERATOR_HUM){
+      if(owner.personAttitude(*this,*currentOther)==ATT_HOSTILE || guild()>GIL_SEPERATOR_HUM){
         if(v.attribute[ATR_HITPOINTS]<=0){
           size_t fdead=owner.getSymbolIndex("ZS_Dead");
           animation.resetAni();
@@ -713,6 +713,14 @@ int32_t Npc::experienceNext() const {
 
 int32_t Npc::learningPoints() const {
   return hnpc->lp;
+  }
+
+void Npc::setAttitude(Attitude att) {
+  permAttitude = att;
+  }
+
+void Npc::setTempAttitude(Attitude att) {
+  tmpAttitude = att;
   }
 
 bool Npc::implLookAt(uint64_t dt) {
@@ -1662,7 +1670,7 @@ bool Npc::castSpell() {
   }
 
 bool Npc::isEnemy(const Npc &other) const {
-  return owner.guildAttitude(*this,other)==WorldScript::ATT_HOSTILE;
+  return owner.personAttitude(*this,other)==ATT_HOSTILE;
   }
 
 bool Npc::isDead() const {

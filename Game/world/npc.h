@@ -300,6 +300,12 @@ class Npc final {
     int32_t  experienceNext() const;
     int32_t  learningPoints() const;
 
+    void      setAttitude(Attitude att);
+    Attitude  attitude() const { return permAttitude; }
+
+    void      setTempAttitude(Attitude att);
+    Attitude  tempAttitude() const { return tmpAttitude; }
+
     void      startDialog(Npc& other);
     bool      startState(size_t id, const std::string &wp);
     bool      startState(size_t id, const std::string &wp, gtime endTime, bool noFinalize);
@@ -560,6 +566,8 @@ class Npc final {
     int32_t                        talentsVl[TALENT_MAX]={};
     uint64_t                       refuseTalkMilis      =0;
     Inventory                      invent;
+    Attitude                       permAttitude=ATT_NULL;
+    Attitude                       tmpAttitude=ATT_NULL;
 
     uint64_t                       perceptionTime    =0;
     uint64_t                       perceptionNextTime=0;

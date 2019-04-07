@@ -111,3 +111,11 @@ inline WalkBit operator | (WalkBit a,const WalkBit& b){
 inline WalkBit operator ^ (WalkBit a,const WalkBit& b){
   return WalkBit(uint8_t(a)^uint8_t(b));
   }
+
+enum Attitude : int32_t {
+  ATT_HOSTILE  = 0,
+  ATT_ANGRY    = 1,
+  ATT_NEUTRAL  = 2,
+  ATT_FRIENDLY = 3,
+  ATT_NULL     = -1
+  };

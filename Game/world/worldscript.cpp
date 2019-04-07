@@ -134,7 +134,6 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("npc_getlookattarget", [this](Daedalus::DaedalusVM& vm){ npc_getlookattarget(vm);  });
   vm.registerExternalFunction("npc_getdisttonpc",    [this](Daedalus::DaedalusVM& vm){ npc_getdisttonpc(vm);     });
   vm.registerExternalFunction("npc_hasequippedarmor",[this](Daedalus::DaedalusVM& vm){ npc_hasequippedarmor(vm); });
-  vm.registerExternalFunction("npc_getattitude",     [this](Daedalus::DaedalusVM& vm){ npc_getattitude(vm);      });
   vm.registerExternalFunction("npc_setperctime",     [this](Daedalus::DaedalusVM& vm){ npc_setperctime(vm);      });
   vm.registerExternalFunction("npc_percenable",      [this](Daedalus::DaedalusVM& vm){ npc_percenable(vm);       });
   vm.registerExternalFunction("npc_percdisable",     [this](Daedalus::DaedalusVM& vm){ npc_percdisable(vm);      });
@@ -175,6 +174,10 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("npc_settrueguild",    [this](Daedalus::DaedalusVM& vm){ npc_settrueguild(vm);     });
   vm.registerExternalFunction("npc_gettrueguild",    [this](Daedalus::DaedalusVM& vm){ npc_gettrueguild(vm);     });
   vm.registerExternalFunction("npc_clearinventory",  [this](Daedalus::DaedalusVM& vm){ npc_clearinventory(vm);   });
+  vm.registerExternalFunction("npc_getattitude",     [this](Daedalus::DaedalusVM& vm){ npc_getattitude(vm);      });
+  vm.registerExternalFunction("npc_getpermattitude", [this](Daedalus::DaedalusVM& vm){ npc_getpermattitude(vm);  });
+  vm.registerExternalFunction("npc_setattitude",     [this](Daedalus::DaedalusVM& vm){ npc_setattitude(vm);      });
+  vm.registerExternalFunction("npc_settempattitude", [this](Daedalus::DaedalusVM& vm){ npc_settempattitude(vm);  });
 
   vm.registerExternalFunction("ai_output",           [this](Daedalus::DaedalusVM& vm){ ai_output(vm);            });
   vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
@@ -483,11 +486,7 @@ void WorldScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
       break;
     case Daedalus::EParType::EParType_Instance:
       fout.write(i.properties.elemProps.type);
-      if(i.name=="LEHMAR")
-        Log::i("");
       if(i.instanceDataClass==Daedalus::IC_None){
-        if(i.instanceDataHandle)
-          Log::d("");
         fout.write(uint8_t(0));
         }
       else if(i.instanceDataClass==Daedalus::IC_Npc){
@@ -865,11 +864,22 @@ void WorldScript::useInteractive(Daedalus::GEngineClasses::C_Npc* hnpc,const std
     }
   }
 
-WorldScript::Attitude WorldScript::guildAttitude(const Npc &p0, const Npc &p1) const {
+Attitude WorldScript::guildAttitude(const Npc &p0, const Npc &p1) const {
   auto selfG = std::min(gilCount-1,p0.guild());
   auto npcG  = std::min(gilCount-1,p1.guild());
   auto ret   = gilAttitudes[selfG*gilCount+npcG];
   return Attitude(ret);
+  }
+
+Attitude WorldScript::personAttitude(const Npc &p0, const Npc &p1) const {
+  Attitude att=ATT_NULL;
+  if(p0.isPlayer())
+    att = p1.attitude();
+  if(p1.isPlayer())
+    att = p0.attitude();
+  if(att==ATT_NULL)
+    att = guildAttitude(p0,p1);
+  return att;
   }
 
 bool WorldScript::hasSymbolName(const char* fn) {
@@ -1536,18 +1546,6 @@ void WorldScript::npc_hasequippedarmor(Daedalus::DaedalusVM &vm) {
     vm.setReturn(0);
   }
 
-void WorldScript::npc_getattitude(Daedalus::DaedalusVM &vm) {
-  auto a = popInstance(vm);
-  auto b = popInstance(vm);
-
-  if(a!=nullptr && b!=nullptr){
-    auto att=guildAttitude(*a,*b);
-    vm.setReturn(att); //TODO: personal attitudes
-    } else {
-    vm.setReturn(ATT_NEUTRAL);
-    }
-  }
-
 void WorldScript::npc_setperctime(Daedalus::DaedalusVM &vm) {
   float sec = vm.popFloat();
   auto  npc = popInstance(vm);
@@ -1960,6 +1958,44 @@ void WorldScript::npc_clearinventory(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
     npc->clearInventory();
+  }
+
+void WorldScript::npc_getattitude(Daedalus::DaedalusVM &vm) {
+  auto a = popInstance(vm);
+  auto b = popInstance(vm);
+
+  if(a!=nullptr && b!=nullptr){
+    auto att=personAttitude(*a,*b);
+    vm.setReturn(att); //TODO: temp attitudes
+    } else {
+    vm.setReturn(ATT_NEUTRAL);
+    }
+  }
+
+void WorldScript::npc_getpermattitude(Daedalus::DaedalusVM &vm) {
+  auto a = popInstance(vm);
+  auto b = popInstance(vm);
+
+  if(a!=nullptr && b!=nullptr){
+    auto att=personAttitude(*a,*b);
+    vm.setReturn(att);
+    } else {
+    vm.setReturn(ATT_NEUTRAL);
+    }
+  }
+
+void WorldScript::npc_setattitude(Daedalus::DaedalusVM &vm) {
+  int32_t att = vm.popInt();
+  auto    npc = popInstance(vm);
+  if(npc!=nullptr)
+    npc->setAttitude(Attitude(att));
+  }
+
+void WorldScript::npc_settempattitude(Daedalus::DaedalusVM &vm) {
+  int32_t att = vm.popInt();
+  auto    npc = popInstance(vm);
+  if(npc!=nullptr)
+    npc->setTempAttitude(Attitude(att));
   }
 
 void WorldScript::ai_processinfos(Daedalus::DaedalusVM &vm) {

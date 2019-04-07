@@ -71,6 +71,9 @@ const Camera &DialogMenu::dialogCamera() {
     p0[1]-=p1[1];
     p0[2]-=p1[2];
     float a = (std::atan2(p0[2],p0[0])/float(M_PI))*180.f;
+    if(curentIsPl)
+      a+=45; else
+      a-=45;
 
     camera.setSpin(PointF(a,0));
     }
@@ -116,6 +119,7 @@ void DialogMenu::aiOutput(Npc &npc, const char *msg, bool& done) {
 
   current.txt  = gothic.messageByName(msg);
   current.time = gothic.messageTime(msg);
+  curentIsPl   = (pl==&npc);
   done         = true;
   update();
   }

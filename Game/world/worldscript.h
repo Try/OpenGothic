@@ -11,6 +11,7 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Painter>
 
+#include "game/constants.h"
 #include "game/fightai.h"
 #include "game/aistate.h"
 #include "game/questlog.h"
@@ -33,13 +34,6 @@ class WorldScript final {
       uint32_t                          scriptFn=0;
       bool                              isTrade=false;
       Daedalus::GEngineClasses::C_Info* handle=nullptr;
-      };
-
-    enum Attitude : int32_t {
-      ATT_HOSTILE  = 0,
-      ATT_ANGRY    = 1,
-      ATT_NEUTRAL  = 2,
-      ATT_FRIENDLY = 3
       };
 
     bool       hasSymbolName(const char *fn);
@@ -114,6 +108,7 @@ class WorldScript final {
     float    tradeValueMultiplier() const { return tradeValMult; }
     void     useInteractive(Daedalus::GEngineClasses::C_Npc *hnpc, const std::string &func);
     Attitude guildAttitude(const Npc& p0,const Npc& p1) const;
+    Attitude personAttitude(const Npc& p0,const Npc& p1) const;
 
   private:
     void               initCommon();
@@ -201,7 +196,6 @@ class WorldScript final {
     void npc_getlookattarget (Daedalus::DaedalusVM &vm);
     void npc_getdisttonpc    (Daedalus::DaedalusVM &vm);
     void npc_hasequippedarmor(Daedalus::DaedalusVM &vm);
-    void npc_getattitude     (Daedalus::DaedalusVM &vm);
     void npc_setperctime     (Daedalus::DaedalusVM &vm);
     void npc_percenable      (Daedalus::DaedalusVM &vm);
     void npc_percdisable     (Daedalus::DaedalusVM &vm);
@@ -225,18 +219,22 @@ class WorldScript final {
     void npc_isinfightmode   (Daedalus::DaedalusVM &vm);
     void npc_settarget       (Daedalus::DaedalusVM &vm);
     void npc_gettarget       (Daedalus::DaedalusVM &vm);
-    void npc_getnexttarget   (Daedalus::DaedalusVM& vm);
+    void npc_getnexttarget   (Daedalus::DaedalusVM &vm);
     void npc_sendpassiveperc (Daedalus::DaedalusVM &vm);
     void npc_checkinfo       (Daedalus::DaedalusVM &vm);
     void npc_getportalguild  (Daedalus::DaedalusVM &vm);
     void npc_isinplayersroom (Daedalus::DaedalusVM &vm);
     void npc_getreadiedweapon(Daedalus::DaedalusVM &vm);
     void npc_isdrawingspell  (Daedalus::DaedalusVM &vm);
-    void npc_perceiveall     (Daedalus::DaedalusVM& vm);
-    void npc_stopani         (Daedalus::DaedalusVM& vm);
-    void npc_settrueguild    (Daedalus::DaedalusVM& vm);
-    void npc_gettrueguild    (Daedalus::DaedalusVM& vm);
-    void npc_clearinventory  (Daedalus::DaedalusVM& vm);
+    void npc_perceiveall     (Daedalus::DaedalusVM &vm);
+    void npc_stopani         (Daedalus::DaedalusVM &vm);
+    void npc_settrueguild    (Daedalus::DaedalusVM &vm);
+    void npc_gettrueguild    (Daedalus::DaedalusVM &vm);
+    void npc_clearinventory  (Daedalus::DaedalusVM &vm);
+    void npc_getattitude     (Daedalus::DaedalusVM &vm);
+    void npc_getpermattitude (Daedalus::DaedalusVM &vm);
+    void npc_setattitude     (Daedalus::DaedalusVM &vm);
+    void npc_settempattitude (Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
