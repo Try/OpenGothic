@@ -38,7 +38,7 @@ float WayPoint::qDistTo(float ix, float iy, float iz) const {
   }
 
 void WayPoint::connect(WayPoint &w) {
-  float l = std::sqrt(qDistTo(w.x,w.y,w.z));
+  int32_t l = int32_t(std::sqrt(qDistTo(w.x,w.y,w.z)));
   if(l<=0)
     return;
   conn.push_back({&w,l});

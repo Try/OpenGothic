@@ -33,11 +33,11 @@ class WayPoint final {
 
     struct Conn final {
       WayPoint* point=nullptr;
-      float     len  =0;
+      int32_t   len  =0;
       };
 
     // TODO: beautify
-    mutable float    pathLen=std::numeric_limits<float>::max();
+    mutable int32_t  pathLen=std::numeric_limits<int32_t>::max();
     mutable uint16_t pathGen=0;
 
     float qDistTo(float x,float y,float z) const;
