@@ -1618,23 +1618,27 @@ void WorldScript::npc_changeattribute(Daedalus::DaedalusVM &vm) {
 void WorldScript::npc_isonfp(Daedalus::DaedalusVM &vm) {
   auto& val = popString(vm);
   auto  npc = popInstance(vm);
-  if(npc!=nullptr) {
-    auto w = npc->currentWayPoint();
+  if(npc==nullptr) {
+    vm.setReturn(0);
+    return;
+    }
 
-    if(w!=nullptr && w->checkName(val)) {
-      if(MoveAlgo::isClose(npc->position(),*w)){
-        vm.setReturn(1);
-        return;
-        }
-      }
-
-    auto f = world().findFreePoint(*npc,val.c_str());
-    if(f!=nullptr && MoveAlgo::isClose(npc->position(),*f)){
+  auto w = npc->currentWayPoint();
+  if(w!=nullptr && w->checkName(val) && w->isFreePoint()) {
+    if(MoveAlgo::isClose(npc->position(),*w)){
       vm.setReturn(1);
-      } else {
-      vm.setReturn(0);
+      return;
       }
     }
+  vm.setReturn(0);
+
+  /*
+  auto f = world().findFreePoint(*npc,val.c_str());
+  if(f!=nullptr && f->isFreePoint() && f->checkName(val) && MoveAlgo::isClose(npc->position(),*f)){
+    vm.setReturn(1);
+    } else {
+    vm.setReturn(0);
+    }*/
   }
 
 void WorldScript::npc_getheighttonpc(Daedalus::DaedalusVM &vm) {

@@ -291,8 +291,8 @@ void World::aiProcessInfos(Npc &player, Npc &npc) {
   game.aiProcessInfos(player,npc);
   }
 
-bool World::aiOutput(Npc &player, const char *msg) {
-  return game.aiOutput(player,msg);
+void World::aiOutputSound(Npc &player, const std::string &msg) {
+  wsound.aiOutput(player.position(),msg);
   }
 
 void World::aiForwardOutput(Npc &player, const char *msg) {
@@ -364,7 +364,7 @@ const WayPoint* World::findWayPoint(float x, float y, float z) const {
 
 const WayPoint *World::findFreePoint(const Npc &npc, const char *name) const {
   if(auto p = npc.currentWayPoint()){
-    if(p->checkName(name)) {
+    if(p->isFreePoint() && p->checkName(name)) {
       return p;
       }
     }
