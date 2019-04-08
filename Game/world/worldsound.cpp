@@ -1,5 +1,6 @@
 #include "worldsound.h"
 
+#include <Tempest/SoundEffect>
 #include "game/gamesession.h"
 #include "world.h"
 #include "resources.h"
@@ -38,4 +39,19 @@ void WorldSound::tick(Npc &player) {
   auto& theme = game.getMusicTheme(name);
 
   auto snd = Resources::loadMusic("_work/Data/Music/newworld/"+theme.file);
+  }
+
+float WorldSound::qDist(const std::array<float,3> &a, const std::array<float,3> &b) {
+  float dx=a[0]-b[0];
+  float dy=a[1]-b[1];
+  float dz=a[2]-b[2];
+  return dx*dx+dy*dy+dz*dz;
+  }
+
+void WorldSound::aiOutput(const std::array<float,3>& pos,const std::string &outputname) {
+  if(qDist(pos,plPos)<800*800){
+    auto snd = Resources::loadSound(outputname+".wav");
+    if(snd)
+      snd->play();
+    }
   }

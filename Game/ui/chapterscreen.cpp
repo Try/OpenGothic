@@ -1,6 +1,7 @@
 #include "chapterscreen.h"
 
 #include <Tempest/Painter>
+#include <Tempest/SoundEffect>
 
 #include "gothic.h"
 #include "resources.h"

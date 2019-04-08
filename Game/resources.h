@@ -5,7 +5,6 @@
 #include <Tempest/Texture2d>
 #include <Tempest/Device>
 #include <Tempest/SoundDevice>
-#include <Tempest/Sound>
 
 #include <vdfs/fileIndex.h>
 
@@ -76,8 +75,11 @@ class Resources {
     static const Animation*          loadAnimation(const std::string& name);
     static const PhysicMeshShape*    physicMesh   (const ProtoMesh*   view);
 
-    static Tempest::Sound*           loadSound(const char* name);
-    static Tempest::Sound*           loadSound(const std::string& name);
+    static Tempest::SoundEffect*     loadSound(const char* name);
+    static Tempest::SoundEffect*     loadSound(const std::string& name);
+
+    static Tempest::Sound            loadSoundBuffer(const std::string& name);
+    static Tempest::Sound            loadSoundBuffer(const char*        name);
 
     static Dx8::Segment*             loadMusic(const std::string& name);
 
@@ -102,13 +104,14 @@ class Resources {
       Dynamic
       };
 
-    void                addVdf(const char16_t *vdf);
-    Tempest::Texture2d* implLoadTexture(const std::string &name);
-    ProtoMesh*          implLoadMesh(const std::string &name);
-    Skeleton*           implLoadSkeleton(std::string name);
-    Animation*          implLoadAnimation(std::string name);
-    Tempest::Sound*     implLoadSound(const std::string &name);
-    Dx8::Segment*       implLoadMusic(const std::string& name);
+    void                  addVdf(const char16_t *vdf);
+    Tempest::Texture2d*   implLoadTexture(const std::string &name);
+    ProtoMesh*            implLoadMesh(const std::string &name);
+    Skeleton*             implLoadSkeleton(std::string name);
+    Animation*            implLoadAnimation(std::string name);
+    Tempest::SoundEffect* implLoadSound(const char *name);
+    Tempest::Sound        implLoadSoundBuffer(const char* name);
+    Dx8::Segment*         implLoadMusic(const std::string& name);
 
     MeshLoadCode        loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
     ZenLoad::zCModelMeshLib loadMDS (std::string& name);
@@ -128,7 +131,7 @@ class Resources {
     std::unordered_map<std::string,std::unique_ptr<Animation>>            animCache;
     std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>          bindCache;
     std::unordered_map<const ProtoMesh*,std::unique_ptr<PhysicMeshShape>> phyMeshCache;
-    std::unordered_map<std::string,std::unique_ptr<Tempest::Sound>>       sndCache;
+    std::unordered_map<std::string,std::unique_ptr<Tempest::SoundEffect>> sndCache;
     std::unordered_map<std::string,std::unique_ptr<Dx8::Segment>>         musicCache;
 
     Tempest::Device&      device;

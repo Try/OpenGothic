@@ -1,6 +1,7 @@
 #include "inventorymenu.h"
 
 #include <Tempest/Painter>
+#include <Tempest/SoundEffect>
 
 #include "utils/cp1251.h"
 #include "world/world.h"

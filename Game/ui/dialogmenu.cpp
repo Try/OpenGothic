@@ -117,10 +117,23 @@ void DialogMenu::aiOutput(Npc &npc, const char *msg, bool& done) {
     forwardText.erase(forwardText.begin());
     }
 
+  if(pl==&npc) {
+    if(other!=nullptr)
+      other->stopDlgAnim();
+    } else {
+    if(pl!=nullptr)
+      pl->stopDlgAnim();
+    }
+
   current.txt  = gothic.messageByName(msg);
   current.time = gothic.messageTime(msg);
+  currentSnd   = SoundEffect(Resources::loadSoundBuffer(std::string(msg)+".wav"));
   curentIsPl   = (pl==&npc);
   done         = true;
+
+  currentSnd.play();
+  if(auto t = currentSnd.timeLength())
+    current.time = uint32_t(t);
   update();
   }
 
@@ -226,15 +239,16 @@ void DialogMenu::close() {
   choise.clear();
   forwardText.clear();
   state=State::Idle;
+  currentSnd = SoundEffect();
   update();
 
   if(prevPl){
     prevPl->setInteraction(nullptr);
+    prevPl->stopDlgAnim();
     }
   if(proveNpc && proveNpc!=prevPl){
-    //proveNpc->tickState();
-    //proveNpc->startState(Npc::State::INVALID,nullptr);
     proveNpc->setInteraction(nullptr);
+    proveNpc->stopDlgAnim();
     }
   }
 
@@ -403,8 +417,10 @@ void DialogMenu::keyUpEvent(KeyEvent &event) {
     if(trade.isOpen()!=InventoryMenu::State::Closed) {
       trade.close();
       } else {
-      if(current.time>0)
+      if(current.time>0) {
+        currentSnd = SoundEffect();
         current.time=1;
+        }
       }
     update();
     }

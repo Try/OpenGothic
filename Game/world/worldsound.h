@@ -13,6 +13,8 @@ class WorldSound final {
     void seDefaultZone(const ZenLoad::zCVobData &vob);
     void addZone(const ZenLoad::zCVobData &vob);
 
+    void aiOutput(const std::array<float,3> &pos, const std::string& outputname);
+
     void tick(Npc& player);
 
   private:
@@ -20,6 +22,8 @@ class WorldSound final {
       ZMath::float3 bbox[2]={};
       std::string   name;
       };
+
+    static float qDist(const std::array<float,3>& a,const std::array<float,3>& b);
 
     GameSession&      game;
     World&            owner;

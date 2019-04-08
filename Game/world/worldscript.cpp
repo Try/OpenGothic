@@ -8,6 +8,7 @@
 
 #include <fstream>
 #include <Tempest/Log>
+#include <Tempest/SoundEffect>
 
 using namespace Tempest;
 using namespace Daedalus::GameState;
@@ -810,7 +811,10 @@ bool WorldScript::aiUseMob(Npc &pl, const std::string &name) {
   }
 
 bool WorldScript::aiOutput(Npc &from, Npc &/*to*/, const std::string &outputname) {
-  return owner.aiOutput(from,outputname.c_str());
+  if(!owner.aiOutput(from,outputname.c_str()))
+    return false;
+  //world().aiOutputSound(from,outputname);
+  return true;
   }
 
 bool WorldScript::aiClose() {

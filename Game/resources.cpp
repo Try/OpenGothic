@@ -5,7 +5,8 @@
 #include <Tempest/Device>
 #include <Tempest/Dir>
 #include <Tempest/Application>
-
+#include <Tempest/Sound>
+#include <Tempest/SoundEffect>
 #include <Tempest/Log>
 
 #include <zenload/modelScriptParser.h>
@@ -234,8 +235,8 @@ Animation *Resources::implLoadAnimation(std::string name) {
     }
   }
 
-Sound *Resources::implLoadSound(const std::string &name) {
-  if(name.size()==0)
+SoundEffect *Resources::implLoadSound(const char* name) {
+  if(name==nullptr || *name=='\0')
     return nullptr;
 
   auto it=sndCache.find(name);
@@ -249,14 +250,29 @@ Sound *Resources::implLoadSound(const std::string &name) {
   try {
     Tempest::MemReader rd(data.data(),data.size());
 
-    std::unique_ptr<Sound> t{new Sound(sound.load(rd))};
-    Sound* ret=t.get();
+    auto s = sound.load(rd);
+    std::unique_ptr<SoundEffect> t{new SoundEffect(s)};
+    SoundEffect* ret=t.get();
     sndCache[name] = std::move(t);
     return ret;
     }
   catch(...){
     Log::e("unable to load sound \"",name,"\"");
     return nullptr;
+    }
+  }
+
+Sound Resources::implLoadSoundBuffer(const char *name) {
+  std::vector<uint8_t> data=getFileData(name);
+  if(data.empty())
+    return Sound();
+  try {
+    Tempest::MemReader rd(data.data(),data.size());
+    return sound.load(rd);
+    }
+  catch(...){
+    Log::e("unable to load sound \"",name,"\"");
+    return Sound();
     }
   }
 
@@ -346,14 +362,24 @@ const PhysicMeshShape *Resources::physicMesh(const ProtoMesh *view) {
   return nullptr;
   }
 
-Sound *Resources::loadSound(const char *name) {
+SoundEffect *Resources::loadSound(const char *name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadSound(name);
   }
 
-Sound *Resources::loadSound(const std::string &name) {
+SoundEffect *Resources::loadSound(const std::string &name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implLoadSound(name);
+  return inst->implLoadSound(name.c_str());
+  }
+
+Sound Resources::loadSoundBuffer(const std::string &name) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  return inst->implLoadSoundBuffer(name.c_str());
+  }
+
+Sound Resources::loadSoundBuffer(const char *name) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  return inst->implLoadSoundBuffer(name);
   }
 
 Dx8::Segment *Resources::loadMusic(const std::string &name) {

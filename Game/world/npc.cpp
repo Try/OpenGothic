@@ -20,6 +20,7 @@ Npc::Npc(WorldScript &owner, size_t instance, const char* waypoint)
   hnpc->instanceSymbol = instance;
   hnpc->userPtr        = this;
   owner.initializeInstance(*hnpc,instance);
+  name = hnpc->name[0];
   }
 
 Npc::Npc(WorldScript &owner, Serialize &fin)
@@ -215,6 +216,19 @@ void Npc::resetPositionToTA() {
   setPosition (at->x, at->y, at->z);
   setDirection(at->dirX,at->dirY,at->dirZ);
   attachToPoint(at);
+  }
+
+void Npc::startDlgAnim() {
+  auto ani = std::rand()%10+Anim::Dialog1;
+  setAnim(Anim(ani));
+  }
+
+void Npc::stopDlgAnim() {
+  auto a = anim();
+  if(Anim::Dialog1<=a && a<=Anim::Dialog10){
+    animation.resetAni();
+    setAnim(animation.lastIdle);
+    }
   }
 
 void Npc::clearSpeed() {
@@ -1191,13 +1205,15 @@ void Npc::nextAiAction(uint64_t dt) {
       invent.unequipArmour(owner,*this);
       break;
     case AI_Output:
-      if(!owner.aiOutput(*this,*act.target,act.s0))
+      if(!owner.aiOutput(*this,*act.target,act.s0)) {
         aiActions.push_front(std::move(act));
+        } else {
+        startDlgAnim();
+        }
       break;
     case AI_OutputSvm:{
       // Log::d("TODO: ai_outputsvm: ",act.s0);
-      auto ani = std::rand()%10+Anim::Dialog1;
-      setAnim(Anim(ani));
+      startDlgAnim();
       break;
       }
     case AI_OutputSvmOverlay:
@@ -1333,6 +1349,8 @@ void Npc::setNearestEnemy(Npc& n) {
   }
 
 void Npc::setOther(Npc *ot) {
+  if(isTalk() && ot && !ot->isPlayer())
+    Log::e("unxepected perc acton");
   currentOther = ot;
   }
 
@@ -1340,6 +1358,7 @@ bool Npc::haveOutput() const {
   for(auto& i:aiActions)
     if(i.act==AI_Output)
       return true;
+
   return false;
   }
 
@@ -1734,7 +1753,9 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
   if(nearestEnemy!=nullptr && !isTalk()){
     float dist=qDistTo(*nearestEnemy);
     if(perceptionProcess(*nearestEnemy,nullptr,dist,PERC_ASSESSENEMY)){
-      currentOther = nearestEnemy;
+      if(isTalk())
+        Log::e("unxepected perc acton"); else
+        currentOther = nearestEnemy;
       ret          = true;
       } else {
       nearestEnemy = nullptr;

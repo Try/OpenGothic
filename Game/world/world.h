@@ -100,7 +100,7 @@ class World final {
     void   marchPoints      (Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
     void   aiProcessInfos(Npc &player, Npc& npc);
-    bool   aiOutput(Npc &player, const char* msg);
+    void aiOutputSound(Npc &player, const std::string& msg);
     void   aiForwardOutput(Npc &player, const char* msg);
     bool   aiCloseDialog();
     bool   aiIsDlgFinished();

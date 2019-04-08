@@ -215,6 +215,9 @@ class Npc final {
     static float angleDir(float x,float z);
     void resetPositionToTA();
 
+    void startDlgAnim();
+    void stopDlgAnim();
+
     void setProcessPolicy(ProcessPolicy t);
     auto processPolicy() const -> ProcessPolicy { return aiPolicy; }
 

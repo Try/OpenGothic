@@ -331,8 +331,8 @@ void MainWindow::tick() {
   if(gothic.isPause())
     return;
 
-  if(dt>100)
-    dt=100;
+  if(dt>50)
+    dt=50;
   dialogs.tick(dt);
   inventory.tick(dt);
   gothic.tick(dt);

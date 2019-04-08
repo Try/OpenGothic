@@ -4,6 +4,7 @@
 #include <Tempest/Texture2d>
 #include <Tempest/Timer>
 #include <Tempest/Widget>
+#include <Tempest/SoundEffect>
 
 #include "world/worldscript.h"
 #include "camera.h"
@@ -98,6 +99,7 @@ class DialogMenu : public Tempest::Widget {
 
     State                               state=State::Idle;
     Entry                               current;
+    Tempest::SoundEffect                currentSnd;
     bool                                curentIsPl=false;
     bool                                dlgTrade=false;
     std::vector<Forward>                forwardText;
