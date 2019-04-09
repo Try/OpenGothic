@@ -81,6 +81,11 @@ const WayPoint *WayMatrix::findNextFreePoint(float x, float y, float z, const ch
   return findFreePoint(x,y,z,index,cur);
   }
 
+const WayPoint *WayMatrix::findNextFreePoint(float x, float y, float z, const char *name, const WayPoint *cur) const {
+  auto& index = findFpIndex(name);
+  return findFreePoint(x,y,z,index,cur);
+  }
+
 const WayPoint *WayMatrix::findNextPoint(float x, float y, float z) const {
   const WayPoint* ret   = nullptr;
   float           dist  = 20.f*100.f; // see scripting doc

@@ -23,7 +23,7 @@ const float DynamicWorld::ghostHeight =140;
 const float DynamicWorld::worldHeight =20000;
 
 struct DynamicWorld::HumShape:btCapsuleShape {
-  HumShape(btScalar radius, btScalar height):btCapsuleShape(radius,height){}
+  HumShape(btScalar radius, btScalar height):btCapsuleShape(height<=0.f ? 0.f : radius,height){}
 
   // "human" object mush have identyty scale/rotation matrix. Only translation allowed.
   void getAabb(const btTransform& t, btVector3& aabbMin, btVector3& aabbMax) const override {

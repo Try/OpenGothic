@@ -16,7 +16,7 @@ class WayPoint final {
 
     WayPoint& operator = (WayPoint&&)=default;
     bool isLocked() const { return useCount!=0; }
-    bool isFreePoint() const { return conn.size()==0; }
+    bool isFreePoint() const;
 
     bool checkName(const std::string& name) const;
     bool checkName(const char* name) const;

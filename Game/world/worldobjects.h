@@ -42,7 +42,6 @@ class WorldObjects final {
     uint32_t       itmId(const void* ptr) const;
 
     Npc*           addNpc(size_t itemInstance, const char *at);
-    void           onInserNpc (Daedalus::GEngineClasses::C_Npc* handle, const std::string &point);
 
     void           updateAnimation();
 

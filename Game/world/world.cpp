@@ -136,6 +136,8 @@ StaticObjects::Mesh World::getStaticView(const std::string &visual, int32_t tex)
   }
 
 DynamicWorld::Item World::getPhysic(const std::string& visual) {
+  if(visual.find("Meatbug.mds")!=std::string::npos)
+    Log::d("");
   if(auto sk=Resources::loadSkeleton(visual))
     return physic()->ghostObj(sk->colisionRadius(),sk->colisionHeight());
   return physic()->ghostObj(45.f,140);
@@ -381,7 +383,7 @@ const WayPoint *World::findFreePoint(float x, float y, float z, const char *name
 
 const WayPoint *World::findNextFreePoint(const Npc &n, const char *name) const {
   auto pos = n.position();
-  return wmatrix->findNextFreePoint(pos[0],pos[1],pos[2],name);
+  return wmatrix->findNextFreePoint(pos[0],pos[1],pos[2],name,n.currentWayPoint());
   }
 
 const WayPoint *World::findNextPoint(const WayPoint &pos) const {

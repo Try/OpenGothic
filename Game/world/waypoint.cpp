@@ -20,6 +20,10 @@ WayPoint::WayPoint(float x, float y, float z, float dx, float dy, float dz, cons
   :x(x),y(y),z(z),dirX(dx),dirY(dy),dirZ(dz),name(upcaseof(name)){
   }
 
+bool WayPoint::isFreePoint() const {
+  return conn.size()<1;
+  }
+
 bool WayPoint::checkName(const std::string &name) const {
   return checkName(name.c_str());
   }
@@ -27,7 +31,10 @@ bool WayPoint::checkName(const std::string &name) const {
 bool WayPoint::checkName(const char *n) const {
   if(name.find(n)!=std::string::npos)
     return true;
-  return std::strcmp(n,"STAND")==0;
+  if(std::strcmp(n,"STAND")==0) {
+    return name.find("_PATH_")==std::string::npos;
+    }
+  return false;
   }
 
 float WayPoint::qDistTo(float ix, float iy, float iz) const {
