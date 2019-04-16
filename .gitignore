@@ -9,8 +9,9 @@
 *.app
 
 # IDE
-CMakeLists.txt.user
+CMakeLists.txt.user*
 
 # Build-dir
 build/
 bin/log.txt
+bin/qsave.sav

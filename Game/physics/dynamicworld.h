@@ -54,6 +54,7 @@ class DynamicWorld final {
 
         bool testMove(const std::array<float,3>& pos);
         bool testMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
+        bool tryMoveN(const std::array<float,3>& pos, std::array<float,3> &norm);
         bool tryMove (const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
 
         bool hasCollision() const;
@@ -78,7 +79,7 @@ class DynamicWorld final {
     std::array<float,3> ray(float x0, float y0, float z0,
                             float x1, float y1,float z1,bool& hasCol) const;
 
-    Item ghostObj (float dim, float height);
+    Item ghostObj (const ZMath::float3& min,const ZMath::float3& max);
     Item staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
 
     void tick(uint64_t dt);

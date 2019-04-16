@@ -28,7 +28,12 @@ PhysicMesh::PhysicMesh(const std::vector<ZenLoad::WorldVertex> &v)
 
 void PhysicMesh::addIndex(const std::vector<uint32_t> &index) {
   size_t off=id.size();
-  id.insert(id.end(),index.begin(),index.end());
+  id.resize(off+index.size());
+  for(size_t i=0;i<index.size();i+=3){
+    id[off+i+0] = index[i+0];
+    id[off+i+1] = index[i+2];
+    id[off+i+2] = index[i+1];
+    }
 
   btIndexedMesh meshIndex={};
   meshIndex.m_numTriangles = id.size()/3;

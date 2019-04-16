@@ -108,6 +108,7 @@ void GameSession::tick(uint64_t dt) {
 
   wrldTime.addMilis(add/divTime);
   wrld->tick(dt);
+  // std::this_thread::sleep_for(std::chrono::milliseconds(60));
 
   if(pendingChapter){
     if(aiIsDlgFinished()) {

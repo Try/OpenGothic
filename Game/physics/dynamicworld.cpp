@@ -14,7 +14,9 @@
 #include <BulletCollision/CollisionShapes/btCapsuleShape.h>
 #include <BulletCollision/CollisionShapes/btBvhTriangleMeshShape.h>
 #include <BulletCollision/CollisionShapes/btTriangleMesh.h>
+#include <BulletCollision/CollisionShapes/btConeShape.h>
 #include <LinearMath/btDefaultMotionState.h>
+#include <BulletCollision/NarrowPhaseCollision/btRaycastCallback.h>
 
 #include <cmath>
 
@@ -185,6 +187,7 @@ std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, fl
 
   btVector3 s(x0,y0,z0), e(x1,y1,z1);
   CallBack callback{s,e};
+  callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
 
   rayTest(s,e,callback);
   hasCol = callback.hasHit();
@@ -208,13 +211,18 @@ std::unique_ptr<btRigidBody> DynamicWorld::landObj() {
   return obj;
   }
 
-DynamicWorld::Item DynamicWorld::ghostObj(float dim,float height) {
-  // r      = 45; //hum
-  // height = 140
-  if(dim>45)
-    dim=45;
-  btCollisionShape*  shape = new HumShape(dim*0.5f,std::max(height-ghostPadding-dim,0.f)*0.5f);
-  btRigidBody*       obj   = new btRigidBody(0,nullptr,shape);//new btGhostObject();
+DynamicWorld::Item DynamicWorld::ghostObj(const ZMath::float3 &min, const ZMath::float3 &max) {
+  static const float dimMax=45.f;
+  float dx     = max.x-min.x;
+  float dz     = max.z-min.z;
+  float dim    = std::max(dx,dz);
+  float height = max.y-min.y;
+
+  if(dim>dimMax)
+    dim=dimMax;
+
+  btCollisionShape* shape = new HumShape(dim*0.5f,std::max(height-ghostPadding,0.f)*0.5f);
+  btRigidBody*      obj   = new btRigidBody(0,nullptr,shape);//new btGhostObject();
   obj->setCollisionShape(shape);
 
   btTransform trans;
@@ -223,7 +231,6 @@ DynamicWorld::Item DynamicWorld::ghostObj(float dim,float height) {
   obj->setUserIndex(C_Ghost);
   obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
   obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
-  //obj->setCollisionFlags(btCollisionObject::CO_GHOST_OBJECT | btCollisionObject::CO_RIGID_BODY);
 
   world->addCollisionObject(obj);
   return Item(this,obj,height,dim*0.5f);
@@ -283,8 +290,9 @@ bool DynamicWorld::hasCollision(const Item& it,std::array<float,3>& normal) {
   struct rCallBack : public btCollisionWorld::ContactResultCallback {
     int                 count=0;
     std::array<float,3> norm={};
+    btCollisionObject*  src=nullptr;
 
-    rCallBack(){
+    explicit rCallBack(btCollisionObject* src):src(src){
       m_collisionFilterMask = btBroadphaseProxy::DefaultFilter | btBroadphaseProxy::StaticFilter;
       }
 
@@ -306,7 +314,7 @@ bool DynamicWorld::hasCollision(const Item& it,std::array<float,3>& normal) {
       }
     };
 
-  rCallBack callback;
+  rCallBack callback{it.obj};
   world->contactTest(it.obj, callback);
 
   if(callback.count>0){
@@ -322,7 +330,7 @@ void DynamicWorld::rayTest(const btVector3 &s,
   if(s==e)
     return;
 
-  if(1){
+  if(/* DISABLES CODE */ (1)){
     world->rayTest(s,e,callback);
     } else {
     btTransform rayFromTrans,rayToTrans;
@@ -395,6 +403,28 @@ bool DynamicWorld::Item::testMove(const std::array<float,3> &pos,
     }
   obj->setWorldTransform(tr);
   return !ret;
+  }
+
+bool DynamicWorld::Item::tryMoveN(const std::array<float,3> &pos, std::array<float,3> &norm) {
+  norm = {};
+
+  if(!obj)
+    return false;
+  auto tr = obj->getWorldTransform();
+  if(owner->hasCollision(*this,norm)){
+    setPosition(pos[0],pos[1],pos[2]);
+    return true;
+    }
+
+  implSetPosition(pos[0],pos[1],pos[2]);
+  const bool ret=owner->hasCollision(*this,norm);
+  if(!ret) {
+    owner->updateSingleAabb(obj);
+    return true;
+    }
+
+  obj->setWorldTransform(tr);
+  return false;
   }
 
 bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos, std::array<float,3> &fallback, float speed) {

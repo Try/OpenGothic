@@ -136,11 +136,10 @@ StaticObjects::Mesh World::getStaticView(const std::string &visual, int32_t tex)
   }
 
 DynamicWorld::Item World::getPhysic(const std::string& visual) {
-  if(visual.find("Meatbug.mds")!=std::string::npos)
-    Log::d("");
   if(auto sk=Resources::loadSkeleton(visual))
-    return physic()->ghostObj(sk->colisionRadius(),sk->colisionHeight());
-  return physic()->ghostObj(45.f,140);
+    return physic()->ghostObj(sk->bboxCol[0],sk->bboxCol[1]);
+  ZMath::float3 zero={};
+  return physic()->ghostObj(zero,zero);
   }
 
 void World::updateAnimation() {

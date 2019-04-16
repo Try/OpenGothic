@@ -1736,7 +1736,7 @@ void Npc::startDialog(Npc& pl) {
   }
 
 bool Npc::perceptionProcess(Npc &pl,float quadDist) {
-  static bool disable=false;
+  static bool disable=true;
   if(disable)
     return false;
 
@@ -1866,16 +1866,34 @@ Npc::MoveCode Npc::testMoveVr(const std::array<float,3> &pos, std::array<float,3
 bool Npc::tryMove(const std::array<float,3> &pos, std::array<float,3> &fallback, float speed) {
   if(pos==position())
     return true;
-  if(physic.tryMove(pos,fallback,speed)) {
-    return setViewPosition(fallback);
+
+  std::array<float,3> norm={};
+  if(physic.tryMoveN(pos,norm)){
+    fallback = pos;
+    return setViewPosition(pos);
     }
 
-  std::array<float,3> p=fallback;
-  for(int i=1;i<5;++i){
-    if(physic.tryMove(p,fallback,speed)) {
-      return setViewPosition(fallback);
+  if(speed>=physic.radius() || speed==0.f)
+    return false;
+
+  /*
+  if(norm[2]>0)
+    Log::d("");
+  if(norm[2]<0)
+    Log::d("");*/
+
+  float scale=speed*0.25f;
+  for(int i=1;i<4;++i){
+    std::array<float,3> p=pos;
+    p[0]+=norm[0]*scale*i;
+    //p[1]+=norm[1]*scale*i;
+    p[2]+=norm[2]*scale*i;
+
+    std::array<float,3> nn={};
+    if(physic.tryMoveN(p,nn)) {
+      fallback = p;
+      return setViewPosition(p);
       }
-    p=fallback;
     }
   return false;
   }

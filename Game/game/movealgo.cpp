@@ -295,12 +295,12 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
           }
         }
       }
-    if(!npc.tryMove(pos,fb,speed*0.5f)) {
+    if(!npc.tryMove(pos,fb,speed)) {
       pos[0]=npc.position()[0];
       pos[2]=npc.position()[2];
       onFailed=true;
       if(pos[1]!=oldY) {
-        if(!npc.tryMove(pos,fb,speed*0.5f)){
+        if(!npc.tryMove(pos,fb,speed)){
           pos=npc.position();
           onFailed=false;
           }
@@ -359,7 +359,7 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
       pos[2]+=fallSpeed[2]*timeK;
       }
 
-    if(!npc.tryMove(pos,5.f)) {
+    if(!npc.tryMove(pos,0.0f)) {
       fallAni=false;
       slideAni=false;
       nFall=false;
