@@ -100,6 +100,7 @@ void DialogMenu::aiProcessInfos(Npc &p,Npc &npc) {
 void DialogMenu::aiOutput(Npc &npc, const char *msg, bool& done) {
   if(&npc!=pl && &npc!=other){
     done = true;
+    npc.emitSound(msg);
     return; // vatras is here
     }
 
@@ -127,7 +128,7 @@ void DialogMenu::aiOutput(Npc &npc, const char *msg, bool& done) {
 
   current.txt  = gothic.messageByName(msg);
   current.time = gothic.messageTime(msg);
-  currentSnd   = SoundEffect(Resources::loadSoundBuffer(std::string(msg)+".wav"));
+  currentSnd   = soundDevice.load(Resources::loadSoundBuffer(std::string(msg)+".wav"));
   curentIsPl   = (pl==&npc);
   done         = true;
 

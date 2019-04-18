@@ -26,7 +26,7 @@ class PhysicMeshShape;
 
 class Resources {
   public:
-    explicit Resources(Gothic& gothic, Tempest::Device& device, Tempest::SoundDevice &sound);
+    explicit Resources(Gothic& gothic, Tempest::Device& device);
     ~Resources();
 
     enum ApphaFunc:uint8_t {
@@ -109,9 +109,9 @@ class Resources {
     ProtoMesh*            implLoadMesh(const std::string &name);
     Skeleton*             implLoadSkeleton(std::string name);
     Animation*            implLoadAnimation(std::string name);
-    Tempest::SoundEffect* implLoadSound(const char *name);
     Tempest::Sound        implLoadSoundBuffer(const char* name);
     Dx8::Segment*         implLoadMusic(const std::string& name);
+    Tempest::SoundEffect* implLoadSound(const char *name);
 
     MeshLoadCode        loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
     ZenLoad::zCModelMeshLib loadMDS (std::string& name);
@@ -131,11 +131,13 @@ class Resources {
     std::unordered_map<std::string,std::unique_ptr<Animation>>            animCache;
     std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>          bindCache;
     std::unordered_map<const ProtoMesh*,std::unique_ptr<PhysicMeshShape>> phyMeshCache;
-    std::unordered_map<std::string,std::unique_ptr<Tempest::SoundEffect>> sndCache;
     std::unordered_map<std::string,std::unique_ptr<Dx8::Segment>>         musicCache;
 
+    //std::unordered_map<std::string,Tempest::Sound>                        sndBufCache;
+    std::unordered_map<std::string,std::unique_ptr<Tempest::SoundEffect>> sndCache;
+
     Tempest::Device&      device;
-    Tempest::SoundDevice& sound;
+    Tempest::SoundDevice  sound;
     std::recursive_mutex  sync;
     Tempest::Font         menuFnt, mainFnt, dlgFnt;
     Tempest::Assets       asset;

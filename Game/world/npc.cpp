@@ -70,6 +70,8 @@ Npc::Npc(WorldScript &owner, Serialize &fin)
     fin.read(str);
     i.point = owner.world().findPoint(str);
     }
+
+  animation.load(fin);
   }
 
 Npc::~Npc(){
@@ -115,6 +117,8 @@ void Npc::save(Serialize &fout) {
       fout.write(i.point->name); else
       fout.write(std::string(""));
     }
+
+  animation.save(fout);
   }
 
 void Npc::setPosition(float ix, float iy, float iz) {
@@ -1381,6 +1385,10 @@ bool Npc::doAttack(Anim anim) {
     return true;
     }
   return false;
+  }
+
+void Npc::emitSound(const char *sound) {
+  owner.world().emitSound(sound,x,y,z);
   }
 
 const Npc::Routine& Npc::currentRoutine() const {

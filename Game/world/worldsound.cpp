@@ -5,6 +5,8 @@
 #include "world.h"
 #include "resources.h"
 
+const float WorldSound::maxDist = 3000; // 30 meters
+
 WorldSound::WorldSound(GameSession &game, World& owner):game(game),owner(owner) {
   auto snd = Resources::loadMusic("_work/Data/Music/newworld/Gamestart.sgt");
   //auto snd = Resources::loadMusic("_work/Data/Music/newworld/owd_daystd.sgt");
@@ -26,8 +28,38 @@ void WorldSound::addZone(const ZenLoad::zCVobData &vob) {
   zones.emplace_back(std::move(z));
   }
 
+void WorldSound::emitSound(const char* s, float x, float y, float z) {
+  if(qDist({x,y,z},plPos)<maxDist*maxDist){
+    char buf[256]={};
+    std::snprintf(buf,sizeof(buf),"%s.wav",s);
+
+    Tempest::SoundEffect eff = dev.load(Resources::loadSoundBuffer(buf));
+    eff.setPosition(x,y,z);
+    eff.setMaxDistance(maxDist/2);
+    eff.setRefDistance(800);
+    eff.play();
+    effect.emplace_back(std::move(eff));
+    }
+  }
+
 void WorldSound::tick(Npc &player) {
   plPos = player.position();
+
+  float rot = player.rotationRad()+float(M_PI/2.0);
+  float s   = std::sin(rot);
+  float c   = std::cos(rot);
+
+  dev.setListenerPosition(plPos[0],plPos[1],plPos[2]);
+  dev.setListenerDirection(c,0,s, 0,1,0);
+
+  for(size_t i=0;i<effect.size();){
+    if(effect[i].isFinished()){
+      effect[i]=std::move(effect.back());
+      effect.pop_back();
+      } else {
+      ++i;
+      }
+    }
 
   const size_t sep = def.name.find('_');
   const char*  tag = def.name.c_str();
@@ -49,9 +81,8 @@ float WorldSound::qDist(const std::array<float,3> &a, const std::array<float,3> 
   }
 
 void WorldSound::aiOutput(const std::array<float,3>& pos,const std::string &outputname) {
-  if(qDist(pos,plPos)<800*800){
-    auto snd = Resources::loadSound(outputname+".wav");
-    if(snd)
+  if(qDist(pos,plPos)<maxDist*maxDist){
+    if(auto snd = Resources::loadSound(outputname+".wav"))
       snd->play();
     }
   }

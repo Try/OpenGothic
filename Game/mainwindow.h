@@ -41,7 +41,7 @@ class Interactive;
 
 class MainWindow : public Tempest::Window {
   public:
-    explicit MainWindow(Gothic& gothic, Tempest::VulkanApi& api, Tempest::SoundDevice &sound);
+    explicit MainWindow(Gothic& gothic, Tempest::VulkanApi& api);
     ~MainWindow() override;
 
   private:

@@ -5,6 +5,7 @@
 #include <Tempest/Timer>
 #include <Tempest/Widget>
 #include <Tempest/SoundEffect>
+#include <Tempest/SoundDevice>
 
 #include "world/worldscript.h"
 #include "camera.h"
@@ -108,4 +109,6 @@ class DialogMenu : public Tempest::Widget {
     PScreen                             printMsg[MAX_PRINT];
     uint32_t                            remPrint=0;
     Camera                              camera;
+
+    Tempest::SoundDevice                soundDevice;
   };

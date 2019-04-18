@@ -20,8 +20,8 @@
 
 using namespace Tempest;
 
-MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api, Tempest::SoundDevice& sound)
-  : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device,sound),
+MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
+  : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),
     draw(device,gothic),gothic(gothic),dialogs(gothic,inventory),chapter(gothic),player(dialogs,inventory) {
   for(uint8_t i=0;i<device.maxFramesInFlight();++i){
     fLocal.emplace_back(device);
@@ -578,7 +578,9 @@ void MainWindow::render(){
     cmd.end();
 
     device.draw(cmd,context.imageAvailable,renderDone,context.gpuLock);
+    auto tt = Application::tickCount();
     device.present(imgId,renderDone);
+    tt = Application::tickCount()-tt;
 
     auto t=Application::tickCount();
     fps.push(t-time);

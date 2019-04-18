@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Tempest/SoundDevice>
+#include <Tempest/SoundEffect>
 #include <zenload/zTypes.h>
 
 class GameSession;
@@ -13,6 +15,7 @@ class WorldSound final {
     void seDefaultZone(const ZenLoad::zCVobData &vob);
     void addZone(const ZenLoad::zCVobData &vob);
 
+    void emitSound(const char *s, float x, float y, float z);
     void aiOutput(const std::array<float,3> &pos, const std::string& outputname);
 
     void tick(Npc& player);
@@ -30,5 +33,9 @@ class WorldSound final {
     std::vector<Zone> zones;
     Zone              def;
 
-    std::array<float,3> plPos;
+    std::array<float,3>               plPos;
+    std::vector<Tempest::SoundEffect> effect;
+    Tempest::SoundDevice              dev;
+
+    static const float maxDist;
   };

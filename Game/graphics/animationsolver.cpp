@@ -5,6 +5,7 @@
 #include "posepool.h"
 #include "world/interactive.h"
 #include "world/world.h"
+#include "game/serialize.h"
 
 #include "resources.h"
 
@@ -589,6 +590,33 @@ AnimationSolver::Sequence AnimationSolver::layredSequence(const char *name, cons
   auto a = solveAnim(name,st);
   auto b = solveAnim(base,st);
   return Sequence(a.l1,b.l1);
+  }
+
+void AnimationSolver::save(Serialize &fout) {
+  fout.write(uint32_t(overlay.size()));
+  for(auto& i:overlay){
+    fout.write(i.sk->name(),i.time);
+    }
+  }
+
+void AnimationSolver::load(Serialize &fin) {
+  uint32_t sz=0;
+  std::string s;
+
+  fin.read(sz);
+  overlay.resize(sz);
+  for(auto& i:overlay){
+    fin.read(s,i.time);
+    i.sk = Resources::loadSkeleton(s);
+    }
+  for(size_t i=0;i<overlay.size();){
+    if(overlay[i].sk){
+      ++i;
+      } else {
+      overlay[i] = overlay.back();
+      overlay.pop_back();
+      }
+    }
   }
 
 AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const {

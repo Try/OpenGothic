@@ -182,6 +182,9 @@ class AnimationSolver final {
     Sequence                       layredSequence(const char *name, const char *base) const;
     Sequence                       layredSequence(const char *name, const char *base, WeaponState st) const;
 
+    void                           save(Serialize& fout);
+    void                           load(Serialize& fin );
+
     Tempest::Matrix4x4             pos;
     StaticObjects::Mesh            head;
     StaticObjects::Mesh            view;

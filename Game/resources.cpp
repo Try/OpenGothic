@@ -43,8 +43,8 @@ static void emplaceTag(char* buf, char tag){
     }
   }
 
-Resources::Resources(Gothic &gothic, Tempest::Device &device, Tempest::SoundDevice& sound)
-  : device(device), sound(sound), asset("data",device),gothic(gothic) {
+Resources::Resources(Gothic &gothic, Tempest::Device &device)
+  : device(device), asset("data",device),gothic(gothic) {
   inst=this;
 
   const char* menu = "data/font/menu.ttf";
@@ -251,7 +251,7 @@ SoundEffect *Resources::implLoadSound(const char* name) {
     Tempest::MemReader rd(data.data(),data.size());
 
     auto s = sound.load(rd);
-    std::unique_ptr<SoundEffect> t{new SoundEffect(s)};
+    std::unique_ptr<SoundEffect> t{new SoundEffect(std::move(s))};
     SoundEffect* ret=t.get();
     sndCache[name] = std::move(t);
     return ret;
@@ -268,7 +268,7 @@ Sound Resources::implLoadSoundBuffer(const char *name) {
     return Sound();
   try {
     Tempest::MemReader rd(data.data(),data.size());
-    return sound.load(rd);
+    return Sound(rd);
     }
   catch(...){
     Log::e("unable to load sound \"",name,"\"");

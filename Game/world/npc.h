@@ -447,6 +447,7 @@ class Npc final {
     bool     haveOutput() const;
 
     bool     doAttack(Anim anim);
+    void     emitSound(const char* sound);
 
   private:
     struct Routine final {

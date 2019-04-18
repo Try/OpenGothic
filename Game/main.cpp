@@ -13,10 +13,9 @@ int main(int argc,const char** argv) {
 
   Tempest::VulkanApi   api(Tempest::ApiFlags::NoFlags);
   //Tempest::VulkanApi api(Tempest::ApiFlags::Validation);
-  Tempest::SoundDevice sound;
 
   Gothic             g2(argc,argv);
-  MainWindow         wx(g2,api,sound);
+  MainWindow         wx(g2,api);
 
   Tempest::Application app;
   return app.exec();
