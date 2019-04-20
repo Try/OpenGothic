@@ -813,7 +813,15 @@ bool WorldScript::aiUseMob(Npc &pl, const std::string &name) {
 bool WorldScript::aiOutput(Npc &from, Npc &/*to*/, const std::string &outputname) {
   if(!owner.aiOutput(from,outputname.c_str()))
     return false;
-  //world().aiOutputSound(from,outputname);
+  return true;
+  }
+
+bool WorldScript::aiOutputSvm(Npc &from, Npc &/*to*/, const std::string &outputname, int32_t voice) {
+  char buf[256]={};
+  if(outputname.size()>0 && outputname[0]=='$')
+    std::snprintf(buf,sizeof(buf),"SVM_%d_%s",voice,outputname.c_str()+1); else
+    std::snprintf(buf,sizeof(buf),"SVM_%d_%s",voice,outputname.c_str());
+  from.emitDlgSound(buf);
   return true;
   }
 

@@ -5,7 +5,8 @@
 #include "world.h"
 #include "resources.h"
 
-const float WorldSound::maxDist = 3000; // 30 meters
+const float WorldSound::maxDist   = 1600; // 16 meters
+const float WorldSound::talkRange = 800;
 
 WorldSound::WorldSound(GameSession &game, World& owner):game(game),owner(owner) {
   auto snd = Resources::loadMusic("_work/Data/Music/newworld/Gamestart.sgt");
@@ -28,21 +29,25 @@ void WorldSound::addZone(const ZenLoad::zCVobData &vob) {
   zones.emplace_back(std::move(z));
   }
 
-void WorldSound::emitSound(const char* s, float x, float y, float z) {
-  if(qDist({x,y,z},plPos)<maxDist*maxDist){
-    char buf[256]={};
-    std::snprintf(buf,sizeof(buf),"%s.wav",s);
-
-    Tempest::SoundEffect eff = dev.load(Resources::loadSoundBuffer(buf));
+void WorldSound::emitSound(const char* s, float x, float y, float z, float range) {
+  std::lock_guard<std::mutex> guard(sync);
+  if(qDist({x,y,z},plPos)<4*maxDist*maxDist){
+    auto snd = Resources::loadSoundFx(s);
+    if(snd==nullptr)
+      return;
+    Tempest::SoundEffect eff = snd->getEffect(dev);
+    if(eff.isEmpty())
+      return;
     eff.setPosition(x,y,z);
-    eff.setMaxDistance(maxDist/2);
-    eff.setRefDistance(800);
+    eff.setMaxDistance(maxDist);
+    eff.setRefDistance(range);
     eff.play();
     effect.emplace_back(std::move(eff));
     }
   }
 
 void WorldSound::tick(Npc &player) {
+  std::lock_guard<std::mutex> guard(sync);
   plPos = player.position();
 
   float rot = player.rotationRad()+float(M_PI/2.0);
@@ -81,7 +86,8 @@ float WorldSound::qDist(const std::array<float,3> &a, const std::array<float,3> 
   }
 
 void WorldSound::aiOutput(const std::array<float,3>& pos,const std::string &outputname) {
-  if(qDist(pos,plPos)<maxDist*maxDist){
+  std::lock_guard<std::mutex> guard(sync);
+  if(qDist(pos,plPos)<4*maxDist*maxDist){
     if(auto snd = Resources::loadSound(outputname+".wav"))
       snd->play();
     }

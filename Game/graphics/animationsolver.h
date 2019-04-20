@@ -160,6 +160,7 @@ class AnimationSolver final {
     void                           setVisualBody(StaticObjects::Mesh &&h, StaticObjects::Mesh &&body);
     ZMath::float3                  animMoveSpeed(Anim a, uint64_t tickCount, uint64_t dt, WeaponState weaponSt) const;
 
+    void                           emitSfx(Npc &npc, uint64_t tickCount);
     void                           updateAnimation(uint64_t tickCount);
     bool                           stopAnim(const std::string& ani);
     void                           resetAni();

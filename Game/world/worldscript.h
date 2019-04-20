@@ -93,9 +93,10 @@ class WorldScript final {
 
     int  spellCastAnim(Npc& npc, Item&  fn);
 
-    bool aiUseMob  (Npc &pl, const std::string& name);
-    bool aiOutput  (Npc &from, Npc& to, const std::string& name);
-    bool aiClose   ();
+    bool aiUseMob   (Npc &pl, const std::string& name);
+    bool aiOutput   (Npc &from, Npc& to, const std::string& name);
+    bool aiOutputSvm(Npc &from, Npc& to, const std::string& name, int32_t voice);
+    bool aiClose    ();
 
     bool isDead       (const Npc &pl);
     bool isUnconscious(const Npc &pl);

@@ -365,6 +365,7 @@ float Npc::qDistTo(const Interactive &p) const {
   }
 
 void Npc::updateAnimation() {
+  animation.emitSfx(*this,owner.tickCount());
   animation.updateAnimation(owner.tickCount());
   }
 
@@ -1216,12 +1217,17 @@ void Npc::nextAiAction(uint64_t dt) {
         }
       break;
     case AI_OutputSvm:{
-      // Log::d("TODO: ai_outputsvm: ",act.s0);
-      startDlgAnim();
+      if(!owner.aiOutputSvm(*this,*act.target,act.s0,hnpc->voice)) {
+        aiActions.push_front(std::move(act));
+        } else {
+        startDlgAnim();
+        }
       break;
       }
     case AI_OutputSvmOverlay:
-      Log::d("TODO: ai_outputsvm_overlay: ",act.s0);
+      if(!owner.aiOutputSvm(*this,*act.target,act.s0,hnpc->voice)) {
+        aiActions.push_front(std::move(act));
+        }
       break;
     case AI_StopProcessInfo:
       if(!owner.aiClose()) {
@@ -1387,8 +1393,12 @@ bool Npc::doAttack(Anim anim) {
   return false;
   }
 
-void Npc::emitSound(const char *sound) {
-  owner.world().emitSound(sound,x,y,z);
+void Npc::emitDlgSound(const char *sound) {
+  owner.world().emitSound(sound,x,y,z,WorldSound::talkRange);
+  }
+
+void Npc::emitSound(const char *sound, float range) {
+  owner.world().emitSound(sound,x,y,z,range);
   }
 
 const Npc::Routine& Npc::currentRoutine() const {
@@ -1744,7 +1754,7 @@ void Npc::startDialog(Npc& pl) {
   }
 
 bool Npc::perceptionProcess(Npc &pl,float quadDist) {
-  static bool disable=true;
+  static bool disable=false;
   if(disable)
     return false;
 

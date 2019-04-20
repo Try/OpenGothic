@@ -8,6 +8,7 @@
 #include "animation.h"
 
 class Skeleton;
+class Npc;
 
 class Pose final {
   public:
@@ -16,6 +17,7 @@ class Pose final {
 
     void reset(const Skeleton& sk,const Animation::Sequence* sq0,const Animation::Sequence* sq1);
     void update(uint64_t dt);
+    void emitSfx(Npc &npc, uint64_t dt);
 
     float              translateY() const { return trY; }
     Tempest::Matrix4x4 cameraBone() const;
@@ -31,6 +33,7 @@ class Pose final {
 
     bool update(const Animation::Sequence &s, uint64_t dt, uint64_t &fr);
     void updateFrame(const Animation::Sequence &s,uint64_t fr);
+    void emitSfx(Npc &npc, const Animation::Sequence &s, uint64_t dt, uint64_t fr);
 
     const Skeleton*            skeleton=nullptr;
     const Animation::Sequence* sequence=nullptr;
@@ -40,5 +43,4 @@ class Pose final {
     float                      trY=0;
 
     uint32_t                   numFrames=0;
-    std::mutex                 sync;
   };

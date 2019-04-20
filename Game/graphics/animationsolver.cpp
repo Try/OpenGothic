@@ -153,6 +153,13 @@ void AnimationSolver::updateAnimation(uint64_t tickCount) {
     }
   }
 
+void AnimationSolver::emitSfx(Npc& npc,uint64_t tickCount) {
+  if(skInst!=nullptr){
+    uint64_t dt = tickCount - sAnim;
+    skInst->emitSfx(npc,dt);
+    }
+  }
+
 bool AnimationSolver::stopAnim(const std::string &ani) {
   if(animSq!=nullptr && animSq.l1->name==ani){
     resetAni();

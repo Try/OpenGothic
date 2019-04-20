@@ -100,7 +100,7 @@ void DialogMenu::aiProcessInfos(Npc &p,Npc &npc) {
 void DialogMenu::aiOutput(Npc &npc, const char *msg, bool& done) {
   if(&npc!=pl && &npc!=other){
     done = true;
-    npc.emitSound(msg);
+    npc.emitDlgSound(msg);
     return; // vatras is here
     }
 

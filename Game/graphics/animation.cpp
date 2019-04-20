@@ -10,6 +10,7 @@
 using namespace Tempest;
 
 Animation::Animation(ZenLoad::ModelScriptBinParser &p,const std::string& name) {
+  Sequence* current=nullptr;
   while(true) {
     ZenLoad::ModelScriptParser::EChunkType type=p.parse();
     switch (type) {
@@ -27,48 +28,36 @@ Animation::Animation(ZenLoad::ModelScriptBinParser &p,const std::string& name) {
         // p.ani().m_Dir;
 
         auto& ani      = loadMAN(name+'-'+p.ani().m_Name+".MAN");
+        current        = &ani;
         ani.flags      = Flags(p.ani().m_Flags);
         ani.nextStr    = p.ani().m_Next;
         ani.firstFrame = uint32_t(p.ani().m_FirstFrame);
         ani.lastFrame  = uint32_t(p.ani().m_LastFrame);
         if(ani.nextStr==ani.name)
           ani.animCls=Loop;
-        ani.sfx = std::move(p.sfx());
-        ani.tag = std::move(p.tag());
-
-        /*
-        for(auto& sfx : p.sfxGround())
-          animationAddEventSFXGround(anim, sfx);
-        p.sfxGround().clear();
-
-        for(auto& pfx:p.pfx())
-          animationAddEventPFX(anim, pfx);
-        p.pfx().clear();
-
-        for(auto& pfxStop:p.pfxStop())
-          animationAddEventPFXStop(anim, pfxStop);
-        p.pfxStop().clear();
-        */
         break;
         }
 
       case ZenLoad::ModelScriptParser::CHUNK_EVENT_SFX: {
-        //animationAddEventSFX(anim, p.sfx().back());
-        p.sfx().clear();
+        if(current)
+          current->sfx = std::move(p.sfx());
         break;
         }
       case ZenLoad::ModelScriptParser::CHUNK_EVENT_SFX_GRND: {
-        // animationAddEventSFXGround(anim, p.sfx().back());
-        p.sfxGround().clear();
+        if(current)
+          current->gfx = std::move(p.sfxGround());
+        break;
+        }
+      case ZenLoad::ModelScriptParser::CHUNK_MODEL_TAG: {
+        if(current)
+          current->tag = std::move(p.tag());
         break;
         }
       case ZenLoad::ModelScriptParser::CHUNK_EVENT_PFX: {
-        // animationAddEventPFX(anim, p.pfx().back());
         p.pfx().clear();
         break;
         }
       case ZenLoad::ModelScriptParser::CHUNK_EVENT_PFX_STOP: {
-        // animationAddEventPFXStop(anim, p.pfxStop().back());
         p.pfxStop().clear();
         break;
         }

@@ -351,8 +351,8 @@ void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {
   wobj.sendPassivePerc(self,other,victum,perc);
   }
 
-void World::emitSound(const char* s, float x, float y, float z) {
-  wsound.emitSound(s,x,y,z);
+void World::emitSound(const char* s, float x, float y, float z, float range) {
+  wsound.emitSound(s,x,y,z,range);
   }
 
 const WayPoint *World::findPoint(const char *name) const {

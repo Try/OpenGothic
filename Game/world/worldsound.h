@@ -3,6 +3,7 @@
 #include <Tempest/SoundDevice>
 #include <Tempest/SoundEffect>
 #include <zenload/zTypes.h>
+#include <mutex>
 
 class GameSession;
 class World;
@@ -15,10 +16,12 @@ class WorldSound final {
     void seDefaultZone(const ZenLoad::zCVobData &vob);
     void addZone(const ZenLoad::zCVobData &vob);
 
-    void emitSound(const char *s, float x, float y, float z);
+    void emitSound(const char *s, float x, float y, float z, float range);
     void aiOutput(const std::array<float,3> &pos, const std::string& outputname);
 
     void tick(Npc& player);
+
+    static const float talkRange;
 
   private:
     struct Zone final {
@@ -36,6 +39,8 @@ class WorldSound final {
     std::array<float,3>               plPos;
     std::vector<Tempest::SoundEffect> effect;
     Tempest::SoundDevice              dev;
+
+    std::mutex                        sync;
 
     static const float maxDist;
   };

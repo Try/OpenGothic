@@ -1,6 +1,7 @@
 #include "pose.h"
 
 #include "skeleton.h"
+#include "world/npc.h"
 
 #include <cmath>
 
@@ -124,7 +125,6 @@ void Pose::reset(const Skeleton &sk, const Animation::Sequence *sq0, const Anima
   }
 
 void Pose::update(uint64_t dt) {
-  std::lock_guard<std::mutex> guard(sync);
   if(baseSq==nullptr || numFrames==0){
     zeroSkeleton();
     return;
@@ -175,6 +175,38 @@ void Pose::updateFrame(const Animation::Sequence &s, uint64_t fr) {
     auto& rot = smp.rotation;
 
     base[s.nodeIndex[i]] = getMatrix(rot.x,rot.y,rot.z,rot.w,pos.x,pos.y,pos.z);
+    }
+  }
+
+void Pose::emitSfx(Npc &npc, uint64_t dt) {
+  if(sequence)
+    emitSfx(npc,*sequence,dt,frSequence);
+  if(baseSq)
+    emitSfx(npc,*baseSq,dt,frBase);
+  }
+
+void Pose::emitSfx(Npc &npc, const Animation::Sequence &s, uint64_t dt, uint64_t fr) {
+  uint64_t frameA = (fr/1000);
+  uint64_t frameB = (uint64_t(s.fpsRate*dt)/1000);
+
+  if(s.animCls==Animation::Loop){
+    frameA%=s.numFrames;
+    frameB%=s.numFrames;
+    } else {
+    frameA = std::min<uint64_t>(frameA,s.numFrames-1);
+    frameB = std::min<uint64_t>(frameB,s.numFrames-1);
+    }
+
+  const bool invert = (frameB<frameA);
+  for(auto& i:s.sfx){
+    if((frameA<=uint64_t(i.m_Frame) && uint64_t(i.m_Frame)<frameB) ^ invert)
+      npc.emitSound(i.m_Name.c_str(),i.m_Range);
+    }
+  if(!npc.isInAir()) {
+    for(auto& i:s.gfx){
+      if((frameA<=uint64_t(i.m_Frame) && uint64_t(i.m_Frame)<frameB) ^ invert)
+        npc.emitSound(i.m_Name.c_str(),i.m_Range);
+      }
     }
   }
 
