@@ -130,6 +130,14 @@ class Resources {
         }
       };
 
+    Tempest::Device&      device;
+    Tempest::SoundDevice  sound;
+    std::recursive_mutex  sync;
+    Tempest::Font         menuFnt, mainFnt, dlgFnt;
+    Tempest::Assets       asset;
+    Gothic&               gothic;
+    VDFS::FileIndex       gothicAssets;
+
     std::unordered_map<std::string,std::unique_ptr<Tempest::Texture2d>>   texCache;
     std::unordered_map<std::string,std::unique_ptr<ProtoMesh>>            aniMeshCache;
     std::unordered_map<std::string,std::unique_ptr<Skeleton>>             skeletonCache;
@@ -140,14 +148,6 @@ class Resources {
 
     std::unordered_map<std::string,std::unique_ptr<SoundFx>>              sndFxCache;
     std::unordered_map<std::string,std::unique_ptr<Tempest::SoundEffect>> sndCache;
-
-    Tempest::Device&      device;
-    Tempest::SoundDevice  sound;
-    std::recursive_mutex  sync;
-    Tempest::Font         menuFnt, mainFnt, dlgFnt;
-    Tempest::Assets       asset;
-    Gothic&               gothic;
-    VDFS::FileIndex       gothicAssets;
   };
 
 

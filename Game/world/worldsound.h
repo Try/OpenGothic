@@ -38,8 +38,8 @@ class WorldSound final {
     Zone              def;
 
     std::array<float,3>               plPos;
-    std::vector<Tempest::SoundEffect> effect;
     Tempest::SoundDevice              dev;
+    std::vector<Tempest::SoundEffect> effect;
 
     std::mutex                        sync;
 
