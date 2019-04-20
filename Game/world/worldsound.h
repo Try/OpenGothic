@@ -20,6 +20,7 @@ class WorldSound final {
     void aiOutput(const std::array<float,3> &pos, const std::string& outputname);
 
     void tick(Npc& player);
+    bool isInListenerRange(const std::array<float,3> &pos) const;
 
     static const float talkRange;
 

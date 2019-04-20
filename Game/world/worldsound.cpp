@@ -31,7 +31,7 @@ void WorldSound::addZone(const ZenLoad::zCVobData &vob) {
 
 void WorldSound::emitSound(const char* s, float x, float y, float z, float range) {
   std::lock_guard<std::mutex> guard(sync);
-  if(qDist({x,y,z},plPos)<4*maxDist*maxDist){
+  if(isInListenerRange({x,y,z})){
     auto snd = Resources::loadSoundFx(s);
     if(snd==nullptr)
       return;
@@ -78,6 +78,10 @@ void WorldSound::tick(Npc &player) {
   auto snd = Resources::loadMusic("_work/Data/Music/newworld/"+theme.file);
   }
 
+bool WorldSound::isInListenerRange(const std::array<float,3> &pos) const {
+  return qDist(pos,plPos)<4*maxDist*maxDist;
+  }
+
 float WorldSound::qDist(const std::array<float,3> &a, const std::array<float,3> &b) {
   float dx=a[0]-b[0];
   float dy=a[1]-b[1];
@@ -87,7 +91,7 @@ float WorldSound::qDist(const std::array<float,3> &a, const std::array<float,3> 
 
 void WorldSound::aiOutput(const std::array<float,3>& pos,const std::string &outputname) {
   std::lock_guard<std::mutex> guard(sync);
-  if(qDist(pos,plPos)<4*maxDist*maxDist){
+  if(isInListenerRange(pos)){
     if(auto snd = Resources::loadSound(outputname+".wav"))
       snd->play();
     }

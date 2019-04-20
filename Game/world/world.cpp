@@ -351,6 +351,10 @@ void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {
   wobj.sendPassivePerc(self,other,victum,perc);
   }
 
+bool World::isInListenerRange(const std::array<float,3> &pos) const {
+  return wsound.isInListenerRange(pos);
+  }
+
 void World::emitSound(const char* s, float x, float y, float z, float range) {
   wsound.emitSound(s,x,y,z,range);
   }

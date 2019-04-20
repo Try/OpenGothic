@@ -117,6 +117,8 @@ class World final {
     size_t hasItems(const std::string& tag,size_t itemCls);
 
     void   sendPassivePerc(Npc& self,Npc& other,Npc& victum,int32_t perc);
+
+    bool   isInListenerRange(const std::array<float,3> &pos) const;
     void   emitSound(const char *s, float x, float y, float z, float range);
 
   private:

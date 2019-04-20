@@ -365,7 +365,8 @@ float Npc::qDistTo(const Interactive &p) const {
   }
 
 void Npc::updateAnimation() {
-  animation.emitSfx(*this,owner.tickCount());
+  if(owner.world().isInListenerRange({x,y,z}))
+    animation.emitSfx(*this,owner.tickCount());
   animation.updateAnimation(owner.tickCount());
   }
 
