@@ -827,8 +827,8 @@ bool WorldScript::aiOutput(Npc &from, Npc &/*to*/, const std::string &outputname
 bool WorldScript::aiOutputSvm(Npc &from, Npc &/*to*/, const std::string &outputname, int32_t voice) {
   char buf[256]={};
   if(outputname.size()>0 && outputname[0]=='$')
-    std::snprintf(buf,sizeof(buf),"SVM_%d_%s",voice,outputname.c_str()+1); else
-    std::snprintf(buf,sizeof(buf),"SVM_%d_%s",voice,outputname.c_str());
+    std::snprintf(buf,sizeof(buf),"SVM_%d_%s.WAV",voice,outputname.c_str()+1); else
+    std::snprintf(buf,sizeof(buf),"SVM_%d_%s.WAV",voice,outputname.c_str());
   from.emitDlgSound(buf);
   return true;
   }
@@ -1016,22 +1016,6 @@ void WorldScript::setInstanceNPC(const char *name, Npc &npc) {
 const FightAi::FA &WorldScript::getFightAi(size_t i) const {
   return owner.getFightAi(i);
   }
-
-/*
-Npc* WorldScript::inserNpc(size_t npcInstance, const char* at) {
-  auto pos = world().findPoint(at);
-  if(pos==nullptr){
-    Log::e("inserNpc: invalid waypoint");
-    return nullptr;
-    }
-  Npc* npc = new Npc(*this,npcInstance,at);
-  auto hnpc = npc->handle();
-  if(hnpc->daily_routine!=0) {
-    ScopeVar self(vm,vm.globalSelf(),hnpc,Daedalus::IC_Npc);
-    vm.runFunctionBySymIndex(hnpc->daily_routine,false);
-    }
-  return npc;
-  }*/
 
 const std::string& WorldScript::popString(Daedalus::DaedalusVM &vm) {
   return vm.popString();

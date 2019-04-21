@@ -983,7 +983,10 @@ void Npc::takeDamage(Npc &other) {
       if(lastHitType=='A')
         setAnim(Anim::StumbleA); else
         setAnim(Anim::StumbleB);
+      //emitSoundEffect("FIG_DUMMYWOUND",25);
       }
+    } else {
+    emitSoundEffect("D_PARADE",25);
     }
   }
 
@@ -1395,11 +1398,17 @@ bool Npc::doAttack(Anim anim) {
   }
 
 void Npc::emitDlgSound(const char *sound) {
-  owner.world().emitSound(sound,x,y,z,WorldSound::talkRange);
+  owner.world().emitDlgSound(sound,x,y,z,WorldSound::talkRange);
   }
 
-void Npc::emitSound(const char *sound, float range) {
-  owner.world().emitSound(sound,x,y,z,range);
+void Npc::emitSoundEffect(const char *sound, float range) {
+  owner.world().emitSoundEffect(sound,x,y,z,range);
+  }
+
+void Npc::emitSoundGround(const char* sound, float range) {
+  char buf[256]={};
+  std::snprintf(buf,sizeof(buf),"%s_%s",sound,"EARTH");
+  owner.world().emitSoundEffect(buf,x,y,z,range);
   }
 
 const Npc::Routine& Npc::currentRoutine() const {

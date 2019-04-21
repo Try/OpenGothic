@@ -22,8 +22,8 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
   vm->initDialogs(gothic);
   loadProgress(70);
 
-  //const char* hero="PC_HERO";
-  const char* hero="PC_ROCKEFELLER";
+  const char* hero="PC_HERO";
+  //const char* hero="PC_ROCKEFELLER";
   //const char* hero="Giant_Bug";
   //const char* hero="OrcWarrior_Rest";
   //const char* hero = "Snapper";
@@ -177,6 +177,10 @@ void GameSession::print(const char *msg) {
 void GameSession::introChapter(const ChapterScreen::Show &s) {
   pendingChapter = true;
   chapter        = s;
+  }
+
+const Daedalus::GEngineClasses::C_SFX& GameSession::getSoundScheme(const char *name) const {
+  return gothic.getSoundScheme(name);
   }
 
 const FightAi::FA &GameSession::getFightAi(size_t i) const {

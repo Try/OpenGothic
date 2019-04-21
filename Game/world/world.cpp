@@ -355,7 +355,11 @@ bool World::isInListenerRange(const std::array<float,3> &pos) const {
   return wsound.isInListenerRange(pos);
   }
 
-void World::emitSound(const char* s, float x, float y, float z, float range) {
+void World::emitDlgSound(const char* s, float x, float y, float z, float range) {
+  wsound.emitDlgSound(s,x,y,z,range);
+  }
+
+void World::emitSoundEffect(const char *s, float x, float y, float z, float range) {
   wsound.emitSound(s,x,y,z,range);
   }
 

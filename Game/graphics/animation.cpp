@@ -39,13 +39,25 @@ Animation::Animation(ZenLoad::ModelScriptBinParser &p,const std::string& name) {
         }
 
       case ZenLoad::ModelScriptParser::CHUNK_EVENT_SFX: {
-        if(current)
-          current->sfx = std::move(p.sfx());
+        if(current) {
+          if(current->sfx.size()==0) {
+            current->sfx = std::move(p.sfx());
+            } else {
+            current->sfx.insert(current->sfx.end(), p.sfx().begin(), p.sfx().end());
+            p.sfx().clear();
+            }
+          }
         break;
         }
       case ZenLoad::ModelScriptParser::CHUNK_EVENT_SFX_GRND: {
-        if(current)
-          current->gfx = std::move(p.sfxGround());
+        if(current) {
+          if(current->gfx.size()==0) {
+            current->gfx = std::move(p.sfx());
+            } else {
+            current->gfx.insert(current->gfx.end(), p.sfx().begin(), p.sfx().end());
+            p.sfx().clear();
+            }
+          }
         break;
         }
       case ZenLoad::ModelScriptParser::CHUNK_MODEL_TAG: {

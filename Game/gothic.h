@@ -7,6 +7,7 @@
 #include <Tempest/Signal>
 #include <daedalus/DaedalusVM.h>
 
+#include "game/sounddefinitions.h"
 #include "game/cameradefinitions.h"
 #include "game/musicdefinitions.h"
 #include "game/fightai.h"
@@ -61,6 +62,7 @@ class Gothic final {
 
     auto      getFightAi(size_t i) const -> const FightAi::FA&;
     auto      getMusicTheme(const char* name) -> const Daedalus::GEngineClasses::C_MusicTheme&;
+    auto      getSoundScheme(const char* name) -> const Daedalus::GEngineClasses::C_SFX&;
 
     void      printScreen(const char* msg, int x, int y, int time, const Tempest::Font &font);
     void      print      (const char* msg);
@@ -99,5 +101,6 @@ class Gothic final {
     std::unique_ptr<GameSession>       game;
     std::unique_ptr<FightAi>           fight;
     std::unique_ptr<CameraDefinitions> camera;
+    std::unique_ptr<SoundDefinitions>  soundDef;
     std::unique_ptr<MusicDefinitions>  music;
   };

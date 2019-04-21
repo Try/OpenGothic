@@ -5,6 +5,8 @@
 #include "world.h"
 #include "resources.h"
 
+using namespace Tempest;
+
 const float WorldSound::maxDist   = 1600; // 16 meters
 const float WorldSound::talkRange = 800;
 
@@ -31,14 +33,36 @@ void WorldSound::addZone(const ZenLoad::zCVobData &vob) {
 
 void WorldSound::emitSound(const char* s, float x, float y, float z, float range) {
   std::lock_guard<std::mutex> guard(sync);
+
   if(isInListenerRange({x,y,z})){
-    auto snd = Resources::loadSoundFx(s);
+    if(std::strcmp("WHOOSH",s)==0){
+      }
+
+    auto snd = implLoadSoundFx(s);
     if(snd==nullptr)
       return;
     Tempest::SoundEffect eff = snd->getEffect(dev);
     if(eff.isEmpty())
       return;
     eff.setPosition(x,y,z);
+    eff.setMaxDistance(maxDist);
+    eff.setRefDistance(range);
+    eff.play();
+    effect.emplace_back(std::move(eff));
+    }
+  }
+
+void WorldSound::emitDlgSound(const char *s, float x, float y, float z, float range) {
+  std::lock_guard<std::mutex> guard(sync);
+
+  if(isInListenerRange({x,y,z})){
+    auto snd = Resources::loadSoundBuffer(s);
+    if(snd.isEmpty())
+      return;
+    Tempest::SoundEffect eff = dev.load(snd);
+    if(eff.isEmpty())
+      return;
+    eff.setPosition(x,y+180,z);
     eff.setMaxDistance(maxDist);
     eff.setRefDistance(range);
     eff.play();
@@ -54,7 +78,7 @@ void WorldSound::tick(Npc &player) {
   float s   = std::sin(rot);
   float c   = std::cos(rot);
 
-  dev.setListenerPosition(plPos[0],plPos[1],plPos[2]);
+  dev.setListenerPosition(plPos[0],plPos[1]+180/*head pos*/,plPos[2]);
   dev.setListenerDirection(c,0,s, 0,1,0);
 
   for(size_t i=0;i<effect.size();){
@@ -94,5 +118,24 @@ void WorldSound::aiOutput(const std::array<float,3>& pos,const std::string &outp
   if(isInListenerRange(pos)){
     if(auto snd = Resources::loadSound(outputname+".wav"))
       snd->play();
+    }
+  }
+
+
+SoundFx *WorldSound::implLoadSoundFx(const char *name) {
+  if(name==nullptr || *name=='\0')
+    return nullptr;
+
+  auto it=sndFxCache.find(name);
+  if(it!=sndFxCache.end())
+    return &it->second;
+
+  try {
+    auto ret = sndFxCache.emplace(name,SoundFx(game,name));
+    return &ret.first->second;
+    }
+  catch(...){
+    Log::e("unable to load soundfx \"",name,"\"");
+    return nullptr;
     }
   }

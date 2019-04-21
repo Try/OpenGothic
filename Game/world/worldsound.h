@@ -1,5 +1,7 @@
 #pragma once
 
+#include "soundfx.h"
+
 #include <Tempest/SoundDevice>
 #include <Tempest/SoundEffect>
 #include <zenload/zTypes.h>
@@ -17,6 +19,7 @@ class WorldSound final {
     void addZone(const ZenLoad::zCVobData &vob);
 
     void emitSound(const char *s, float x, float y, float z, float range);
+    void emitDlgSound(const char *s, float x, float y, float z, float range);
     void aiOutput(const std::array<float,3> &pos, const std::string& outputname);
 
     void tick(Npc& player);
@@ -30,6 +33,7 @@ class WorldSound final {
       std::string   name;
       };
 
+    SoundFx*     implLoadSoundFx(const char *name);
     static float qDist(const std::array<float,3>& a,const std::array<float,3>& b);
 
     GameSession&      game;
@@ -38,8 +42,10 @@ class WorldSound final {
     Zone              def;
 
     std::array<float,3>               plPos;
-    Tempest::SoundDevice              dev;
-    std::vector<Tempest::SoundEffect> effect;
+
+    Tempest::SoundDevice                    dev;
+    std::vector<Tempest::SoundEffect>       effect;
+    std::unordered_map<std::string,SoundFx> sndFxCache;
 
     std::mutex                        sync;
 

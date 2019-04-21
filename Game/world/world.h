@@ -119,7 +119,8 @@ class World final {
     void   sendPassivePerc(Npc& self,Npc& other,Npc& victum,int32_t perc);
 
     bool   isInListenerRange(const std::array<float,3> &pos) const;
-    void   emitSound(const char *s, float x, float y, float z, float range);
+    void   emitDlgSound(const char *s, float x, float y, float z, float range);
+    void   emitSoundEffect(const char *s, float x, float y, float z, float range);
 
   private:
     std::string                           wname;

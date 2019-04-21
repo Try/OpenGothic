@@ -82,9 +82,6 @@ class Resources {
     static Tempest::Sound            loadSoundBuffer(const std::string& name);
     static Tempest::Sound            loadSoundBuffer(const char*        name);
 
-    static SoundFx*                  loadSoundFx(const std::string& name);
-    static SoundFx*                  loadSoundFx(const char*        name);
-
     static Dx8::Segment*             loadMusic(const std::string& name);
 
     template<class V>
@@ -116,7 +113,6 @@ class Resources {
     Tempest::Sound        implLoadSoundBuffer(const char* name);
     Dx8::Segment*         implLoadMusic(const std::string& name);
     Tempest::SoundEffect* implLoadSound(const char *name);
-    SoundFx*              implLoadSoundFx(const char *name);
 
     MeshLoadCode          loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
     ZenLoad::zCModelMeshLib loadMDS (std::string& name);
@@ -146,7 +142,6 @@ class Resources {
     std::unordered_map<const ProtoMesh*,std::unique_ptr<PhysicMeshShape>> phyMeshCache;
     std::unordered_map<std::string,std::unique_ptr<Dx8::Segment>>         musicCache;
 
-    std::unordered_map<std::string,std::unique_ptr<SoundFx>>              sndFxCache;
     std::unordered_map<std::string,std::unique_ptr<Tempest::SoundEffect>> sndCache;
   };
 

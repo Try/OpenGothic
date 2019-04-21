@@ -354,7 +354,7 @@ const char* Interactive::anim(Interactive::Anim t) const {
     return book[t];
   if(data.oCMOB.focusName=="MOBNAME_BBQ_SCAV" || data.oCMOB.focusName=="MOBNAME_BARBQ_SCAV")
     return bbq[t];
-  return lab[t];
+  return chair[t];
   }
 
 void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const {

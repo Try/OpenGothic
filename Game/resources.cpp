@@ -262,26 +262,6 @@ SoundEffect *Resources::implLoadSound(const char* name) {
     }
   }
 
-SoundFx *Resources::implLoadSoundFx(const char *name) {
-  if(name==nullptr || *name=='\0')
-    return nullptr;
-
-  auto it=sndFxCache.find(name);
-  if(it!=sndFxCache.end())
-    return it->second.get();
-
-  try {
-    std::unique_ptr<SoundFx> t{new SoundFx(name)};
-    SoundFx* ret=t.get();
-    sndFxCache[name] = std::move(t);
-    return ret;
-    }
-  catch(...){
-    Log::e("unable to load soundfx \"",name,"\"");
-    return nullptr;
-    }
-  }
-
 Sound Resources::implLoadSoundBuffer(const char *name) {
   std::vector<uint8_t> data=getFileData(name);
   if(data.empty())
@@ -400,16 +380,6 @@ Sound Resources::loadSoundBuffer(const std::string &name) {
 Sound Resources::loadSoundBuffer(const char *name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadSoundBuffer(name);
-  }
-
-SoundFx *Resources::loadSoundFx(const std::string &name) {
-  std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implLoadSoundFx(name.c_str());
-  }
-
-SoundFx *Resources::loadSoundFx(const char *name) {
-  std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implLoadSoundFx(name);
   }
 
 Dx8::Segment *Resources::loadMusic(const std::string &name) {
