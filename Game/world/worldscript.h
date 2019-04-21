@@ -321,6 +321,7 @@ class WorldScript final {
     std::mt19937                                                randGen;
 
     std::set<std::pair<size_t,size_t>>                          dlgKnownInfos;
+    std::unique_ptr<Daedalus::GEngineClasses::C_Info[]>         dialogStorage;
     std::vector<Daedalus::GEngineClasses::C_Info*>              dialogsInfo;
     std::unique_ptr<ZenLoad::zCCSLib>                           dialogs;
     std::unordered_map<size_t,AiState>                          aiStates;
