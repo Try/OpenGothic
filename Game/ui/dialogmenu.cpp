@@ -100,7 +100,9 @@ void DialogMenu::aiProcessInfos(Npc &p,Npc &npc) {
 void DialogMenu::aiOutput(Npc &npc, const char *msg, bool& done) {
   if(&npc!=pl && &npc!=other){
     done = true;
-    npc.emitDlgSound(msg);
+    char buf[256]={};
+    std::snprintf(buf,sizeof(buf),"%s.WAV",msg);
+    npc.emitDlgSound(buf);
     return; // vatras is here
     }
 
