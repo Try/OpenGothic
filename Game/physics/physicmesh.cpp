@@ -4,12 +4,12 @@ PhysicMesh::PhysicMesh(const ZenLoad::PackedMesh &sPacked)
   :PhysicMesh(sPacked.vertices) {
   for(auto& i:sPacked.subMeshes)
     if(!i.material.noCollDet && i.indices.size()>0)
-      addIndex(i.indices);
+      addIndex(i.indices,i.material.matGroup);
   }
 
 PhysicMesh::PhysicMesh(const std::vector<ZMath::float3>& v, const std::vector<uint32_t>& index)
   :PhysicMesh(v){
-  addIndex(index);
+  addIndex(index,0);
   }
 
 PhysicMesh::PhysicMesh(const std::vector<ZMath::float3>& v)
@@ -26,7 +26,7 @@ PhysicMesh::PhysicMesh(const std::vector<ZenLoad::WorldVertex> &v)
     }
   }
 
-void PhysicMesh::addIndex(const std::vector<uint32_t> &index) {
+void PhysicMesh::addIndex(const std::vector<uint32_t> &index, uint8_t material) {
   size_t off=id.size();
   id.resize(off+index.size());
   for(size_t i=0;i<index.size();i+=3){
@@ -47,8 +47,14 @@ void PhysicMesh::addIndex(const std::vector<uint32_t> &index) {
   meshIndex.m_vertexStride        = sizeof(btVector3);
 
   m_indexedMeshes.push_back(meshIndex);
-  segments.push_back(Segment{off,int(index.size()/3)});
+  segments.push_back(Segment{off,int(index.size()/3),material});
   adjustMesh();
+  }
+
+uint8_t PhysicMesh::getMaterialId(size_t segment) const {
+  if(segment<segments.size())
+    return segments[segment].mat;
+  return 0;
   }
 
 void PhysicMesh::adjustMesh(){

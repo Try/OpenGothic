@@ -1,6 +1,7 @@
 #include "npc.h"
 
 #include <Tempest/Matrix4x4>
+#include <zenload/zCMaterial.h>
 
 #include "interactive.h"
 #include "graphics/skeleton.h"
@@ -273,6 +274,7 @@ bool Npc::checkHealth(bool onChange) {
     }
 
   if(isDead()) {
+    physic.setEnable(false);
     setAnim(lastHitType=='A' ? Anim::DeadA : Anim::DeadB);
     return false;
     }
@@ -306,6 +308,7 @@ bool Npc::checkHealth(bool onChange) {
       return false;
       }
     }
+  physic.setEnable(true);
   return true;
   }
 
@@ -1399,16 +1402,17 @@ bool Npc::doAttack(Anim anim) {
   }
 
 void Npc::emitDlgSound(const char *sound) {
-  owner.world().emitDlgSound(sound,x,y,z,WorldSound::talkRange);
+  owner.world().emitDlgSound(sound,x,y+180,z,WorldSound::talkRange);
   }
 
 void Npc::emitSoundEffect(const char *sound, float range) {
-  owner.world().emitSoundEffect(sound,x,y,z,range);
+  owner.world().emitSoundEffect(sound,x,y+100,z,range);
   }
 
 void Npc::emitSoundGround(const char* sound, float range) {
-  char buf[256]={};
-  std::snprintf(buf,sizeof(buf),"%s_%s",sound,"EARTH");
+  char    buf[256]={};
+  uint8_t mat = mvAlgo.groundMaterial();
+  std::snprintf(buf,sizeof(buf),"%s_%s",sound,ZenLoad::MaterialGroupNames[mat]);
   owner.world().emitSoundEffect(buf,x,y,z,range);
   }
 
@@ -1600,6 +1604,9 @@ bool Npc::drawWeaponMele() {
   invent.switchActiveWeapon(1);
   updateWeaponSkeleton();
   hnpc->weapon = (st==WeaponState::W1H ? 3:4);
+  if(invent.currentMeleWeapon()->handle()->material==ItemMaterial::MAT_METAL)
+    emitSoundEffect("DRAWSOUND_ME",50); else
+    emitSoundEffect("DRAWSOUND_WO",50);
   return true;
   }
 
@@ -1618,6 +1625,7 @@ bool Npc::drawWeaponBow() {
   invent.switchActiveWeapon(2);
   updateWeaponSkeleton();
   hnpc->weapon = (st==WeaponState::W1H ? 5:6);
+  emitSoundEffect("DRAWSOUND_BOW",25);
   return true;
   }
 
@@ -1913,10 +1921,9 @@ bool Npc::tryMove(const std::array<float,3> &pos, std::array<float,3> &fallback,
     Log::d("");*/
 
   float scale=speed*0.25f;
-  for(int i=1;i<4;++i){
+  for(int i=1;i<4+3;++i){
     std::array<float,3> p=pos;
     p[0]+=norm[0]*scale*i;
-    //p[1]+=norm[1]*scale*i;
     p[2]+=norm[2]*scale*i;
 
     std::array<float,3> nn={};
@@ -2237,9 +2244,8 @@ bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
     if(double(std::cos(da))>0)
       return false;
     }
-  bool ret=true;
   // TODO: npc eyesight height
-  w->ray(x,y+180,z, tx,ty,tz, ret);
+  const bool ret = w->ray(x,y+180,z, tx,ty,tz).hasCol;
   return !ret;
   }
 

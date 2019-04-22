@@ -16,12 +16,14 @@ class PhysicMesh:public btTriangleIndexVertexArray {
     PhysicMesh(const PhysicMesh&)=delete;
     PhysicMesh(PhysicMesh&&)=delete;
 
-    void addIndex(const std::vector<uint32_t>& index);
+    void addIndex(const std::vector<uint32_t>& index, uint8_t material);
+    uint8_t getMaterialId(size_t segment) const;
 
   private:
     struct Segment {
-      size_t off;
-      int    size;
+      size_t  off;
+      int     size;
+      uint8_t mat;
       };
 
     std::vector<btVector3> vert;

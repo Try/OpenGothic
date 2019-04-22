@@ -33,6 +33,8 @@ class MoveAlgo final {
     bool isInAir()  const;
     bool isClimb()  const;
 
+    uint8_t groundMaterial() const;
+
   private:
     enum Flags : uint32_t {
       NoFlags=0,

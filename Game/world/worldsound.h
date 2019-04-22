@@ -41,13 +41,13 @@ class WorldSound final {
     std::vector<Zone> zones;
     Zone              def;
 
-    std::array<float,3>               plPos;
+    std::array<float,3>                     plPos;
 
     Tempest::SoundDevice                    dev;
     std::vector<Tempest::SoundEffect>       effect;
     std::unordered_map<std::string,SoundFx> sndFxCache;
 
-    std::mutex                        sync;
+    std::mutex                              sync;
 
     static const float maxDist;
   };

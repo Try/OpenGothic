@@ -30,8 +30,9 @@ class DynamicWorld final {
     ~DynamicWorld();
 
     enum Category {
-      C_Landscape = 1,
-      C_Ghost     = 2
+      C_Null      = 1,
+      C_Landscape = 2,
+      C_Ghost     = 3
       };
 
     struct Item {
@@ -51,13 +52,14 @@ class DynamicWorld final {
 
         void setPosition(float x,float y,float z);
         void setObjMatrix(const Tempest::Matrix4x4& m);
+        void setEnable(bool e);
 
         bool testMove(const std::array<float,3>& pos);
         bool testMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
         bool tryMoveN(const std::array<float,3>& pos, std::array<float,3> &norm);
         bool tryMove (const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
 
-        bool hasCollision() const;
+        bool  hasCollision() const;
         float radius() const { return r; }
 
       private:
@@ -70,14 +72,22 @@ class DynamicWorld final {
       friend class DynamicWorld;
       };
 
-    float dropRay(float x, float y, float z,bool& hasCol) const;
-    float dropRay(float x, float y, float z) const;
-    std::array<float,3> landNormal(float x, float y, float z) const;
+    struct RayResult final {
+      std::array<float,3> v={};
+      uint8_t             mat=0;
+      bool                hasCol=0;
 
-    std::array<float,3> ray(float x0, float y0, float z0,
-                            float x1, float y1,float z1) const;
-    std::array<float,3> ray(float x0, float y0, float z0,
-                            float x1, float y1,float z1,bool& hasCol) const;
+      float               x() const { return v[0]; }
+      float               y() const { return v[1]; }
+      float               z() const { return v[2]; }
+      };
+
+    RayResult dropRay(float x, float y, float z,bool& hasCol) const;
+    RayResult dropRay(float x, float y, float z) const;
+
+    RayResult ray(float x0, float y0, float z0, float x1, float y1, float z1) const;
+
+    std::array<float,3> landNormal(float x, float y, float z) const;
 
     Item ghostObj (const ZMath::float3& min,const ZMath::float3& max);
     Item staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
@@ -103,10 +113,8 @@ class DynamicWorld final {
     std::unique_ptr<btCollisionShape>           landShape;
     std::unique_ptr<btRigidBody>                landBody;
 
-    mutable bool                                lastRayCollision=false;
-    mutable float                               lastRayDrop[4]={};
-
-    std::vector<btCollisionObject*>             dirtyAabb;
+    mutable RayResult                           lastRayDrop;
+    mutable float                               lastRayDropXyz[3]={};
 
     static const float                          ghostPadding;
     static const float                          ghostHeight;

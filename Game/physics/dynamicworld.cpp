@@ -15,8 +15,11 @@
 #include <BulletCollision/CollisionShapes/btBvhTriangleMeshShape.h>
 #include <BulletCollision/CollisionShapes/btTriangleMesh.h>
 #include <BulletCollision/CollisionShapes/btConeShape.h>
+#include <BulletCollision/CollisionShapes/btMultimaterialTriangleMeshShape.h>
 #include <LinearMath/btDefaultMotionState.h>
 #include <BulletCollision/NarrowPhaseCollision/btRaycastCallback.h>
+
+#include <zenload/zCMaterial.h>
 
 #include <cmath>
 
@@ -87,6 +90,7 @@ struct Broadphase : btDbvtBroadphase {
 DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
   // collision configuration contains default setup for memory, collision setup
   conf.reset(new btDefaultCollisionConfiguration());
+
   // use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
   auto disp = new btCollisionDispatcherMt(conf.get());
   //auto disp = new btCollisionDispatcher(conf.get());
@@ -100,23 +104,22 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
 
   landMesh.reset(new PhysicMesh(pkg.vertices));
   for(auto& i:pkg.subMeshes)
-    if(!i.material.noCollDet && i.indices.size()>0)
-      landMesh->addIndex(i.indices);
+    if(!i.material.noCollDet && i.indices.size()>0 && i.material.matGroup!=ZenLoad::MaterialGroup::WATER)
+      landMesh->addIndex(i.indices,i.material.matGroup);
 
-  landShape.reset(new btBvhTriangleMeshShape(landMesh.get(),false,true));
+  //landShape.reset(new btBvhTriangleMeshShape(landMesh.get(),false,true));
+  landShape.reset(new btMultimaterialTriangleMeshShape(landMesh.get(),false,true));
   landBody = landObj();
 
   world->addCollisionObject(landBody.get());
   world->setForceUpdateAllAabbs(false);
-
-  dirtyAabb.reserve(2048);
   }
 
 DynamicWorld::~DynamicWorld(){
   world->removeCollisionObject(landBody.get());
   }
 
-float DynamicWorld::dropRay(float x,float y,float z) const {
+DynamicWorld::RayResult DynamicWorld::dropRay(float x,float y,float z) const {
   bool unused;
   return dropRay(x,y,z,unused);
   }
@@ -151,27 +154,23 @@ std::array<float,3> DynamicWorld::landNormal(float x, float y, float z) const {
   return {0,1,0};
   }
 
-std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, float y1, float z1) const {
-  bool unused;
-  return ray(x0,y0,z0,x1,y1,z1,unused);
-  }
-
-float DynamicWorld::dropRay(float x, float y, float z, bool &hasCol) const {
-  if(lastRayCollision && lastRayDrop[0]==x && lastRayDrop[1]==y && lastRayDrop[2]==z){
+DynamicWorld::RayResult DynamicWorld::dropRay(float x, float y, float z, bool &hasCol) const {
+  if(lastRayDrop.hasCol && lastRayDropXyz[0]==x && lastRayDropXyz[1]==y && lastRayDropXyz[2]==z){
     hasCol = true;
-    return lastRayDrop[3];
+    return lastRayDrop;
     }
-  lastRayDrop[0] = x;
-  lastRayDrop[1] = y;
-  lastRayDrop[2] = z;
-  lastRayDrop[3] = ray(x,y+ghostPadding,z, x,y-worldHeight,z,lastRayCollision)[1];
-  hasCol         = lastRayCollision;
-  return lastRayDrop[3];
+  lastRayDropXyz[0] = x;
+  lastRayDropXyz[1] = y;
+  lastRayDropXyz[2] = z;
+  lastRayDrop       = ray(x,y+ghostPadding,z, x,y-worldHeight,z);
+  hasCol            = lastRayDrop.hasCol;
+  return lastRayDrop;
   }
 
-std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, float y1, float z1, bool &hasCol) const {
+DynamicWorld::RayResult DynamicWorld::ray(float x0, float y0, float z0, float x1, float y1, float z1) const {
   struct CallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;
+    uint8_t matId = 0;
 
     bool needsCollision(btBroadphaseProxy* proxy0) const override {
       auto obj=reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject);
@@ -181,6 +180,14 @@ std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, fl
       }
 
     btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
+      auto shape = rayResult.m_collisionObject->getCollisionShape();
+      if(shape) {
+        auto s  = reinterpret_cast<const btMultimaterialTriangleMeshShape*>(shape);
+        auto mt = reinterpret_cast<const PhysicMesh*>(s->getMeshInterface());
+
+        size_t id = size_t(rayResult.m_localShapeInfo->m_shapePart);
+        matId = mt->getMaterialId(id);
+        }
       return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
       }
     };
@@ -190,11 +197,11 @@ std::array<float,3> DynamicWorld::ray(float x0, float y0, float z0, float x1, fl
   callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
 
   rayTest(s,e,callback);
-  hasCol = callback.hasHit();
+  //hasCol = callback.hasHit();
 
   if(callback.hasHit())
-    return {{callback.m_hitPointWorld.x(),callback.m_hitPointWorld.y(),callback.m_hitPointWorld.z()}};
-  return {x1,y1,z1};
+    return RayResult{{callback.m_hitPointWorld.x(),callback.m_hitPointWorld.y(),callback.m_hitPointWorld.z()},callback.matId,true};
+  return RayResult{{x1,y1,z1},callback.matId,false};
   }
 
 std::unique_ptr<btRigidBody> DynamicWorld::landObj() {
@@ -261,9 +268,6 @@ DynamicWorld::Item DynamicWorld::staticObj(const PhysicMeshShape *shape, const T
 
 void DynamicWorld::tick(uint64_t /*dt*/) {
   //world->updateAabbs();
-  for(auto& i:dirtyAabb)
-    ;//world->updateSingleAabb(i);
-  dirtyAabb.clear();
   }
 
 void DynamicWorld::updateSingleAabb(btCollisionObject *obj) {
@@ -274,14 +278,6 @@ void DynamicWorld::updateSingleAabb(btCollisionObject *obj) {
 void DynamicWorld::deleteObj(btCollisionObject *obj) {
   if(!obj)
     return;
-  for(size_t i=0;i<dirtyAabb.size();){
-    if(dirtyAabb[i]==obj){
-      dirtyAabb[i] = dirtyAabb.back();
-      dirtyAabb.pop_back();
-      } else {
-      ++i;
-      }
-    }
   world->removeCollisionObject(obj);
   delete obj;
   }
@@ -366,6 +362,12 @@ void DynamicWorld::Item::setObjMatrix(const Tempest::Matrix4x4 &m) {
     trans.setFromOpenGLMatrix(reinterpret_cast<const btScalar*>(&m));
     obj->setWorldTransform(trans);
     owner->updateSingleAabb(obj);
+    }
+  }
+
+void DynamicWorld::Item::setEnable(bool e) {
+  if(obj){
+    obj->setUserIndex(e ? C_Ghost : C_Null);
     }
   }
 

@@ -87,7 +87,7 @@ Matrix4x4 Camera::view() const {
 
   r0=camPos;r0[1]+=180;
 
-  auto d = world->physic()->ray(r0[0],r0[1],r0[2], r1[0],r1[1],r1[2]);
+  auto d = world->physic()->ray(r0[0],r0[1],r0[2], r1[0],r1[1],r1[2]).v;
   //auto d = world->physic()->ray(camPos[0],camPos[1]+180,camPos[2], r1[0],r1[1],r1[2]);
   d[0]-=r0[0];
   d[1]-=r0[1];
@@ -145,7 +145,7 @@ void Camera::implMove(Tempest::Event::KeyType key) {
     camPos[2]+=dpos*c;
     }
   if(world)
-    camPos[1] = world->physic()->dropRay(camPos[0],camPos[1],camPos[2]);
+    camPos[1] = world->physic()->dropRay(camPos[0],camPos[1],camPos[2]).y();
   }
 
 void Camera::follow(const Npc &npc,bool includeRot) {

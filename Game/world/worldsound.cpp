@@ -11,6 +11,7 @@ const float WorldSound::maxDist   = 1600; // 16 meters
 const float WorldSound::talkRange = 800;
 
 WorldSound::WorldSound(GameSession &game, World& owner):game(game),owner(owner) {
+  plPos = {{-1000000,-1000000,-1000000}};
   auto snd = Resources::loadMusic("_work/Data/Music/newworld/Gamestart.sgt");
   //auto snd = Resources::loadMusic("_work/Data/Music/newworld/owd_daystd.sgt");
   }

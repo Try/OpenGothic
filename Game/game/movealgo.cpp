@@ -207,7 +207,6 @@ bool MoveAlgo::processClimb() {
   if(!isClimb())
     return false;
   float dspeed = 35.f;
-  bool  valid  = false;
 
   if(climbHeight<=0.f)
     climbHeight=npc.clampHeight(npc.anim());
@@ -219,9 +218,9 @@ bool MoveAlgo::processClimb() {
     pos[0]+= dspeed*s;
     pos[2]+=-dspeed*c;
 
-    auto ground = world.physic()->dropRay(pos[0],pos[1]+climbHeight+10,pos[2],valid);
-    if(valid) {
-      pos[1]=ground;
+    auto ground = world.physic()->dropRay(pos[0],pos[1]+climbHeight+10,pos[2]);
+    if(ground.hasCol) {
+      pos[1]=ground.y();
       std::array<float,3> fb={};
       if(npc.testMove(pos,fb,0))
         npc.setPosition(fb);
@@ -439,5 +438,12 @@ void MoveAlgo::onMoveFailed() {
   }
 
 float MoveAlgo::dropRay(float x, float y, float z, bool &hasCol) const {
-  return world.physic()->dropRay(x,y+2*npc.collisionRadius(),z,hasCol);
+  auto r = world.physic()->dropRay(x,y+2*npc.collisionRadius(),z,hasCol);
+  return r.y();
+  }
+
+uint8_t MoveAlgo::groundMaterial() const {
+  const std::array<float,3> &pos = npc.position();
+  auto r = world.physic()->dropRay(pos[0],pos[1]+2*npc.collisionRadius(),pos[2]);
+  return r.mat;
   }
