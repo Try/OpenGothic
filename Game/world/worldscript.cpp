@@ -739,6 +739,11 @@ int WorldScript::invokeState(Npc* npc, Npc* oth, Npc* v, size_t fn) {
   if(v==nullptr)
     v=owner.player();
 
+  if(fn==ZS_Talk){
+    if(!oth->isPlayer())
+      Log::e("unxepected perc acton");
+    }
+
   ScopeVar self  (vm, vm.globalSelf(),   npc);
   ScopeVar other (vm, vm.globalOther(),  oth);
   ScopeVar victum(vm, vm.globalVictim(), oth);
@@ -1791,7 +1796,7 @@ void WorldScript::npc_settarget(Daedalus::DaedalusVM &vm) {
  */
 void WorldScript::npc_gettarget(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
-  Daedalus::PARSymbol& s = vm.getDATFile().getSymbolByName("other");
+  Daedalus::PARSymbol& s = vm.globalOther();
 
   if(npc!=nullptr && npc->target()) {
     s.instanceDataHandle = npc->target()->handle();
@@ -2009,6 +2014,7 @@ void WorldScript::ai_processinfos(Daedalus::DaedalusVM &vm) {
   auto pl  = owner.player();
   if(pl!=nullptr && npc!=nullptr) {
     npc->setOther(pl);
+    pl ->setOther(npc);
     owner.aiProcessInfos(*pl,*npc);
     }
   }
@@ -2096,8 +2102,16 @@ void WorldScript::ai_startstate(Daedalus::DaedalusVM &vm) {
   auto  state = vm.popInt();
   auto  func  = vm.popInt();
   auto  self  = popInstance(vm);
-  if(self!=nullptr && func>0)
-    self->aiStartState(uint32_t(func),state,wp);
+  Daedalus::PARSymbol& s = vm.globalOther();
+  if(self!=nullptr && func>0){
+    Npc* oth = nullptr;
+    if(s.instanceDataClass==Daedalus::IC_Npc){
+      auto npc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(s.instanceDataHandle);
+      if(npc)
+        oth = reinterpret_cast<Npc*>(npc->userPtr);
+      }
+    self->aiStartState(uint32_t(func),state,oth,wp);
+    }
   }
 
 void WorldScript::ai_playani(Daedalus::DaedalusVM &vm) {

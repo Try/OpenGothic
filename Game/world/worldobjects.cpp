@@ -30,8 +30,13 @@ void WorldObjects::load(Serialize &fin) {
 
   fin.read(sz);
   itemArr.clear();
-  for(size_t i=0;i<sz;++i)
-    itemArr.emplace_back(std::make_unique<Item>(*owner.script(),fin));
+  for(size_t i=0;i<sz;++i){
+    auto it = std::make_unique<Item>(*owner.script(),fin);
+
+    auto& h = *it->handle();
+    it->setView(owner.getStaticView(h.visual,h.material));
+    itemArr.emplace_back(std::move(it));
+    }
   }
 
 void WorldObjects::save(Serialize &fout) {

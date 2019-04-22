@@ -156,6 +156,7 @@ Item* Inventory::addItem(std::unique_ptr<Item> &&p) {
   p->setView(StaticObjects::Mesh());
   Item* it=findByClass(cls);
   if(it==nullptr) {
+    p->clearView();
     items.emplace_back(std::move(p));
     return items.back().get();
     } else {
@@ -180,6 +181,7 @@ Item* Inventory::addItem(size_t itemSymbol, uint32_t count, WorldScript &vm) {
   Item* it=findByClass(itemSymbol);
   if(it==nullptr) {
     std::unique_ptr<Item> ptr{new Item(vm,itemSymbol)};
+    ptr->clearView();
     ptr->setCount(count);
     items.emplace_back(std::move(ptr));
     return items.back().get();

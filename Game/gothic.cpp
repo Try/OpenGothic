@@ -156,6 +156,8 @@ void Gothic::quickSave() {
   Tempest::WFile f("qsave.sav");
   Serialize      s(f);
   game->save(s);
+
+  print("Game saved"); //TODO: translation
   }
 
 std::vector<WorldScript::DlgChoise> Gothic::updateDialog(const WorldScript::DlgChoise &dlg, Npc& player, Npc& npc) {

@@ -10,8 +10,8 @@ class Serialize;
 
 class Item final {
   public:
-  Item(WorldScript& owner, size_t inst);
-  Item(WorldScript& owner, Serialize& fin);
+    Item(WorldScript& owner, size_t inst);
+    Item(WorldScript& owner, Serialize& fin);
     Item(Item&&)=default;
     ~Item();
     Item& operator=(Item&&)=default;
@@ -21,9 +21,10 @@ class Item final {
     enum { MAX_UI_ROWS=6, NSLOT=255 };
 
     void setView      (StaticObjects::Mesh&& m);
+    void clearView    ();
+
     void setPosition  (float x,float y,float z);
     void setDirection (float x,float y,float z);
-
     void setMatrix(const Tempest::Matrix4x4& m);
 
     bool isEquiped() const    { return equiped; }
@@ -59,7 +60,7 @@ class Item final {
 
     const Daedalus::GEngineClasses::C_Item* handle() const { return &hitem; }
     Daedalus::GEngineClasses::C_Item*       handle() { return &hitem; }
-    size_t                            clsId() const;
+    size_t                                  clsId() const;
 
   private:
     void updateMatrix();
@@ -68,6 +69,7 @@ class Item final {
     WorldScript&                      owner;
     StaticObjects::Mesh               view;
     std::array<float,3>               pos={};
+    Tempest::Matrix4x4                mat;
     bool                              equiped=false;
     uint8_t                           itSlot=NSLOT;
   };

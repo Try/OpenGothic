@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Tempest/IDevice>
+#include <Tempest/Matrix4x4>
 #include <Tempest/ODevice>
 
 #include <stdexcept>
@@ -54,6 +55,9 @@ class Serialize final {
 
     void write(float  i)    { writeBytes(&i,sizeof(i)); }
     void read (float& i)    { readBytes (&i,sizeof(i)); }
+
+    void write(const Tempest::Matrix4x4& i) { writeBytes(&i,sizeof(i)); }
+    void read (Tempest::Matrix4x4& i)       { readBytes (&i,sizeof(i)); }
 
     void write(const std::string&              s);
     void read (std::string&                    s);
