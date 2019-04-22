@@ -962,7 +962,7 @@ void Npc::takeDamage(Npc &other) {
   if(isDead() || isImmortal())
     return;
 
-  currentOther=&other;
+  setOther(&other);
   perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
 
   auto ani=anim();
@@ -970,7 +970,7 @@ void Npc::takeDamage(Npc &other) {
     lastHit = &other;
     fghAlgo.onTakeHit();
     if(!isPlayer())
-      currentOther=lastHit;
+      setOther(lastHit);
     int dmg = other.damageValue(*this);
     changeAttribute(ATR_HITPOINTS,isPlayer() ? -1 : -dmg);
 
@@ -1015,7 +1015,7 @@ void Npc::tick(uint64_t dt) {
     fghWaitToDamage = uint64_t(-1);
     mvAlgo.aiGoTo(nullptr);
     mvAlgo.tick(dt);
-    currentOther = lastHit;
+    setOther(lastHit);
     aiActions.clear();
     tickRoutine(); // tick for ZS_Death
     return;
@@ -1120,7 +1120,8 @@ void Npc::nextAiAction(uint64_t dt) {
         aiActions.push_front(std::move(act));
       break;
     case AI_StartState:
-      startState(act.func,act.s0,gtime(),act.i0==0);
+      if(startState(act.func,act.s0,gtime(),act.i0==0))
+        setOther(act.target);
       break;
     case AI_PlayAnim:{
       auto tag = animation.animByName(act.s0);
@@ -1760,7 +1761,7 @@ void Npc::setPerceptionDisable(Npc::PercType t) {
 
 void Npc::startDialog(Npc& pl) {
   if(perceptionProcess(pl,nullptr,0,PERC_ASSESSTALK))
-    currentOther=&pl;
+    setOther(&pl);
   }
 
 bool Npc::perceptionProcess(Npc &pl,float quadDist) {
@@ -1778,12 +1779,13 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
       ret          = true;
       }
     }
-  if(nearestEnemy!=nullptr && !isTalk()){
+  if(nearestEnemy!=nullptr){
     float dist=qDistTo(*nearestEnemy);
     if(perceptionProcess(*nearestEnemy,nullptr,dist,PERC_ASSESSENEMY)){
+      /*
       if(isTalk())
         Log::e("unxepected perc acton"); else
-        currentOther = nearestEnemy;
+        setOther(nearestEnemy);*/
       ret          = true;
       } else {
       nearestEnemy = nullptr;
@@ -2010,14 +2012,15 @@ void Npc::aiGoToNextFp(std::string fp) {
   aiActions.push_back(a);
   }
 
-void Npc::aiStartState(uint32_t stateFn, int behavior, std::string wp) {
+void Npc::aiStartState(uint32_t stateFn, int behavior, Npc* other, std::string wp) {
   auto& st = owner.getAiState(stateFn);(void)st;
 
   AiAction a;
-  a.act  = AI_StartState;
-  a.func = stateFn;
-  a.i0   = behavior;
-  a.s0   = std::move(wp);
+  a.act    = AI_StartState;
+  a.func   = stateFn;
+  a.i0     = behavior;
+  a.s0     = std::move(wp);
+  a.target = other;
   aiActions.push_back(a);
   }
 

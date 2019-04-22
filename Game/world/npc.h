@@ -399,7 +399,7 @@ class Npc final {
     void     aiTurnToNpc(Npc *other);
     void     aiGoToNpc  (Npc *other);
     void     aiGoToNextFp(std::string fp);
-    void     aiStartState(uint32_t stateFn,int behavior,std::string wp);
+    void     aiStartState(uint32_t stateFn, int behavior, Npc *other, std::string wp);
     void     aiPlayAnim(std::string ani);
     void     aiWait(uint64_t dt);
     void     aiStandup();
