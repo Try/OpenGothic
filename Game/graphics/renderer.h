@@ -13,6 +13,7 @@
 
 class Gothic;
 class Camera;
+class InventoryMenu;
 
 class Renderer final {
   public:
@@ -25,20 +26,20 @@ class Renderer final {
     bool needToUpdateCmd();
     void updateCmd();
     void draw(Tempest::CommandBuffer& cmd, uint32_t imgId, const Gothic& gothic);
+    void draw(Tempest::CommandBuffer& cmd, uint32_t imgId, InventoryMenu& inv);
 
     const RendererStorage&            storage() const { return stor; }
 
   private:
     Tempest::Device&                  device;
     Gothic&                           gothic;
-    Tempest::Matrix4x4                view;
+    Tempest::Matrix4x4                view, shadow;
 
     Tempest::Texture2d                zbuffer;
+    Tempest::Texture2d                shadowMap, shadowZ;
     std::vector<Tempest::FrameBuffer> fbo3d;
+    Tempest::FrameBuffer              fboShadow;
 
-    Tempest::RenderPass               mainPass;
+    Tempest::RenderPass               mainPass, shadowPass;
     RendererStorage                   stor;
-    // Tempest::PointF                   spin;
-    // std::array<float,3>               cam;
-    // float                             zoom=1.f;
   };

@@ -3,6 +3,7 @@
 #include <Tempest/Color>
 
 #include "graphics/submesh/staticmesh.h"
+#include "ui/inventorymenu.h"
 #include "camera.h"
 #include "gothic.h"
 
@@ -14,14 +15,25 @@ Renderer::Renderer(Tempest::Device &device,Gothic& gothic)
   }
 
 void Renderer::initSwapchain(uint32_t w,uint32_t h) {
+  const uint32_t smSize = 2048;
   if(zbuffer.w()==int(w) && zbuffer.h()==int(h))
     return;
 
   const size_t imgC=device.swapchainImageCount();
   fbo3d.clear();
 
-  zbuffer  = device.createTexture(TextureFormat::Depth16,w,h,false);
-  mainPass = device.pass(Color(0.0),1.f,zbuffer.format());
+  zbuffer    = device.createTexture(TextureFormat::Depth16,w,h,false);
+  mainPass   = device.pass(Color(0.0),1.f,zbuffer.format());
+
+  shadowMap  = device.createTexture(TextureFormat::RGBA8,  smSize,smSize,false);
+  shadowZ    = device.createTexture(TextureFormat::Depth16,smSize,smSize,false);
+  shadowPass = device.pass(Color(1.0),1.f,shadowMap.format(),zbuffer.format());
+  fboShadow  = device.frameBuffer(shadowMap,shadowZ,shadowPass);
+
+  Sampler2d smp;
+  smp.setClamping(ClampMode::ClampToBorder);
+  smp.anisotropic = false;
+  shadowMap.setSampler(smp);
 
   for(size_t i=0;i<imgC;++i) {
     Tempest::Frame frame=device.frame(i);
@@ -29,6 +41,8 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
     }
 
   stor.initPipeline(mainPass,w,h);
+  stor.initShadow  (shadowPass,smSize,smSize);
+  //stor.initShadow  (mainPass,w,h);
   if(auto wview=gothic.worldView())
     wview->initPipeline(w,h);
   }
@@ -41,7 +55,9 @@ void Renderer::onWorldChanged() {
   }
 
 void Renderer::setCameraView(const Camera& camera) {
-  view = camera.view();
+  view   = camera.view();
+  if(auto wview=gothic.worldView())
+    shadow = camera.viewShadow(wview->mainLight().dir());
   }
 
 bool Renderer::needToUpdateCmd() {
@@ -53,19 +69,30 @@ bool Renderer::needToUpdateCmd() {
 
 void Renderer::updateCmd() {
   if(auto wview=gothic.worldView()) {
-    wview->updateCmd(*gothic.world());
+    //wview->updateCmd(*gothic.world(),Resources::fallbackTexture());
+    wview->updateCmd(*gothic.world(),shadowMap,shadowPass);
     }
   }
 
 void Renderer::draw(CommandBuffer &cmd, uint32_t imgId, const Gothic &gothic) {
-  FrameBuffer& fbo = fbo3d[imgId];
+  FrameBuffer& fboFr = fbo3d[imgId];
 
   if(auto wview=gothic.worldView()) {
-    wview->updateCmd(*gothic.world());
+    wview->updateCmd(*gothic.world(),shadowMap,shadowPass);
+    wview->updateUbo(view,shadow,device.frameId());
 
-    wview->updateUbo(view,device.frameId());
-    wview->draw(cmd,fbo);
+    wview->drawShadow(cmd,fboShadow,shadowPass,imgId);
+    wview->draw      (cmd,fboFr,storage().pass(),imgId);
+
+    //wview->drawShadow(cmd,fboFr,storage().pass(),imgId);
     } else {
-    cmd.setPass(fbo,storage().pass());
+    cmd.setPass(fboFr,storage().pass());
     }
+  }
+
+void Renderer::draw(CommandBuffer &cmd, uint32_t imgId, InventoryMenu &inventory) {
+  FrameBuffer& fbo = fbo3d[imgId];
+
+  cmd.setPass(fbo,storage().pass());
+  inventory.draw(cmd,device.frameId());
   }

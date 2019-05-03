@@ -26,16 +26,35 @@ class StaticObjects final {
   public:
     StaticObjects(const RendererStorage& storage);
 
+    class Mesh;
+    class Node;
+
+    class Node final {
+      public:
+        Node(Node&&)=default;
+
+        const Tempest::Texture2d &texture() const;
+        void                      draw(Tempest::CommandBuffer &cmd, const Tempest::RenderPipeline &pipeline, uint32_t imgId) const;
+
+      private:
+        Node(const Item* it):it(it){}
+        const Item* it=nullptr;
+
+      friend class Mesh;
+      };
+
     class Mesh final {
       public:
         Mesh()=default;
         Mesh(const ProtoMesh* mesh,std::unique_ptr<Item[]>&& sub,size_t subCount):sub(std::move(sub)),subCount(subCount),ani(mesh){}
 
-        void setObjMatrix(const Tempest::Matrix4x4& mt);
-        void setSkeleton(const Skeleton* sk,const char* defBone=nullptr);
-        void setSkeleton(const Pose&      p,const Tempest::Matrix4x4& obj);
+        void   setObjMatrix(const Tempest::Matrix4x4& mt);
+        void   setSkeleton(const Skeleton* sk,const char* defBone=nullptr);
+        void   setSkeleton(const Pose&      p,const Tempest::Matrix4x4& obj);
 
-        bool isEmpty() const { return subCount==0; }
+        bool   isEmpty()    const { return subCount==0; }
+        size_t nodesCount() const { return subCount;    }
+        Node   node(size_t i) const { return Node(&sub[i]); }
 
       private:
         std::unique_ptr<Item[]> sub;
@@ -51,16 +70,18 @@ class StaticObjects final {
     Mesh get(const ProtoMesh&  mesh,int32_t headTexVar,int32_t teethTex,int32_t bodyColor);
 
     void updateUbo(uint32_t imgId);
-    void commitUbo(uint32_t imgId);
+    void commitUbo(uint32_t imgId, const Tempest::Texture2d &shadowMap);
 
     void reserve(size_t stat,size_t dyn);
 
-    void draw     (Tempest::CommandBuffer &cmd, uint32_t imgId);
+    void draw      (Tempest::CommandBuffer &cmd, uint32_t imgId);
+    void drawShadow(Tempest::CommandBuffer &cmd, uint32_t imgId);
 
     bool needToUpdateCommands() const;
     void setAsUpdated();
 
-    void setModelView(const Tempest::Matrix4x4& m);
+    void setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4 &shadow);
+    void setLight(const std::array<float,3>& l);
 
   private:
     using Vertex  = Resources::Vertex;
@@ -70,6 +91,7 @@ class StaticObjects final {
       std::array<float,3>           lightDir={{0,0,1}};
       float                         padding=0;
       Tempest::Matrix4x4            modelView;
+      Tempest::Matrix4x4            shadowView;
       };
 
     struct UboSt final {

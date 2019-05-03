@@ -108,6 +108,54 @@ Matrix4x4 Camera::view() const {
   return view;
   }
 
+Matrix4x4 Camera::viewShadow(const std::array<float,3>& ldir) const {
+  const float scale = 0.0008f;
+  const float c = std::cos(spin.x*float(M_PI)/180.f), s = std::sin(spin.x*float(M_PI)/180.f);
+
+  Matrix4x4 view;
+  view.identity();
+  view.translate(0.f,0.5f,0.5f);
+  view.rotate(/*spin.y*/90, 1, 0, 0);
+  view.translate(0.f,0.f,0.f);
+  view.rotate(spin.x, 0, 1, 0);
+  view.scale(scale,scale*0.3f,scale);
+  //view.scale(scale);
+  view.translate(camPos[0],camPos[1],camPos[2]);
+  view.scale(-1,-1,-1);
+  //return view;
+
+  auto inv = view;
+  inv.inverse();
+  float cx=0,cy=0,cz=0;
+  inv.project(cx,cy,cz);
+  cy=camPos[1];
+
+  float lx  = view.at(1,0);
+  float ly  = view.at(1,1);
+  float lz  = view.at(1,2);
+  float k   = ldir[1]!=0.f ? lz/ldir[1] : 0.f;
+
+  lx = -ldir[0]*k;
+  ly = -ldir[2]*k;
+  lz =  ldir[1]*k;
+
+  float dx = lx*c-ly*s;
+  float dy = lx*s+ly*c;
+
+  view.set(1,0, dx);
+  view.set(1,1, dy);
+  view.set(1,2, lz);
+
+  // float cx = camPos[0],
+  //       cy = camPos[1],
+  //       cz = camPos[2];
+  view.project(cx,cy,cz);
+  view.set(3,0, view.at(3,0)-cx);
+  view.set(3,1, view.at(3,1)-cy);
+
+  return view;
+  }
+
 Matrix4x4 Camera::mkView(float dist) const {
   const float scale=0.0008f;
   Matrix4x4 view;

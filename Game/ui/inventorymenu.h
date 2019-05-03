@@ -4,6 +4,8 @@
 #include <Tempest/Texture2d>
 #include <Tempest/Timer>
 
+#include "graphics/inventoryrenderer.h"
+
 class Npc;
 class Item;
 class Inventory;
@@ -12,7 +14,7 @@ class World;
 
 class InventoryMenu : public Tempest::Widget {
   public:
-    InventoryMenu();
+    InventoryMenu(const RendererStorage &storage);
 
     enum class State:uint8_t {
       Closed=0,
@@ -26,15 +28,16 @@ class InventoryMenu : public Tempest::Widget {
     void  close();
     void  open(Npc& pl);
     void  trade(Npc& pl,Npc& tr);
-    bool ransack(Npc& pl,Npc& tr);
+    bool  ransack(Npc& pl,Npc& tr);
     void  open(Npc& pl,Interactive& chest);
     State isOpen() const;
     bool  isActive() const;
 
     void  tick(uint64_t dt);
+    void  draw(Tempest::CommandBuffer& cmd,uint32_t imgId);
 
-    void keyDownEvent   (Tempest::KeyEvent&   e) override;
-    void keyUpEvent     (Tempest::KeyEvent&   e) override;
+    void  keyDownEvent   (Tempest::KeyEvent&   e) override;
+    void  keyUpEvent     (Tempest::KeyEvent&   e) override;
 
   protected:
     void paintEvent     (Tempest::PaintEvent& e) override;
@@ -72,6 +75,7 @@ class InventoryMenu : public Tempest::Widget {
     std::unique_ptr<Page>     pagePl, pageOth;
     uint8_t                   page       =0;
     Tempest::Timer            takeTimer;
+    InventoryRenderer         renderer;
 
     const size_t              columsCount=5;
     size_t                    rowsCount() const;

@@ -39,7 +39,7 @@ struct InventoryMenu::RansackPage : InventoryMenu::Page {
   const Inventory& inv;
   };
 
-InventoryMenu::InventoryMenu() {
+InventoryMenu::InventoryMenu(const RendererStorage &storage):renderer(storage) {
   slot = Resources::loadTexture("INV_SLOT.TGA");
   selT = Resources::loadTexture("INV_SLOT_HIGHLIGHTED.TGA");
   selU = Resources::loadTexture("INV_SLOT_EQUIPPED.TGA");
@@ -402,6 +402,8 @@ void InventoryMenu::drawSlot(Painter &p,const Page &inv, int x, int y, size_t id
                vint);
     p.setBrush(Color(1,1,1,1));
     }
+
+  renderer.drawItem(x,y,slotSize().w,slotSize().h,r);
   }
 
 void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {
@@ -477,3 +479,6 @@ void InventoryMenu::drawInfo(Painter &p) {
     }
   }
 
+void InventoryMenu::draw(CommandBuffer &cmd, uint32_t imgId) {
+  renderer.draw(cmd,imgId);
+  }

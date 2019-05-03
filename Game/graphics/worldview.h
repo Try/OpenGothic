@@ -8,6 +8,7 @@
 #include "graphics/sky/sky.h"
 #include "graphics/staticobjects.h"
 #include "graphics/landscape.h"
+#include "light.h"
 #include "posepool.h"
 
 class World;
@@ -19,14 +20,18 @@ class WorldView {
     ~WorldView();
 
     void initPipeline(uint32_t w, uint32_t h);
-    Tempest::Matrix4x4  viewProj(const Tempest::Matrix4x4 &view) const;
+
+    Tempest::Matrix4x4        viewProj(const Tempest::Matrix4x4 &view) const;
     const Tempest::Matrix4x4& projective() const { return proj; }
 
+    const Light&              mainLight() const;
+
     bool needToUpdateCmd() const;
-    void updateCmd(const World &world);
-    void updateUbo(const Tempest::Matrix4x4 &view, uint32_t imgId);
-    void draw     (Tempest::CommandBuffer &cmd, Tempest::FrameBuffer &fbo);
-    void resetCmd ();
+    void updateCmd (const World &world, const Tempest::Texture2d &shadow, const Tempest::RenderPass &shadowPass);
+    void updateUbo (const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4 &shadow, uint32_t imgId);
+    void drawShadow(Tempest::CommandBuffer &cmd, Tempest::FrameBuffer &fbo, const Tempest::RenderPass &pass, uint32_t imgId);
+    void draw      (Tempest::CommandBuffer &cmd, Tempest::FrameBuffer &fbo, const Tempest::RenderPass &pass, uint32_t imgId);
+    void resetCmd  ();
 
     StaticObjects::Mesh getView      (const std::string& visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
     StaticObjects::Mesh getStaticView(const std::string& visual, int32_t material);
@@ -41,6 +46,7 @@ class WorldView {
     const World&            owner;
     const RendererStorage&  storage;
 
+    Light                   sun;
     Sky                     sky;
     Landscape               land;
     StaticObjects           vobGroup;
@@ -56,8 +62,8 @@ class WorldView {
       };
 
     PosePool                            animPool;
-    std::vector<Tempest::CommandBuffer> cmdLand;
+    std::vector<Tempest::CommandBuffer> cmdMain,cmdShadow;
     std::vector<StaticObj>              objStatic;
 
-    void prebuiltCmdBuf(const World &world);
+    void prebuiltCmdBuf(const World &world, const Tempest::Texture2d &shadowMap, const Tempest::RenderPass &shadowPass);
   };

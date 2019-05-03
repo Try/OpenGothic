@@ -15,5 +15,13 @@ void AbstractObjectsBucket::Item::setSkeleton(const Pose &p) {
   owner->setSkeleton(id,p);
   }
 
+const Tempest::Texture2d &AbstractObjectsBucket::Item::texture() const {
+  return owner->texture();
+  }
+
+void AbstractObjectsBucket::Item::draw(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) const {
+  owner->draw(id,cmd,pipeline,imgId);
+  }
+
 AbstractObjectsBucket::AbstractObjectsBucket() {
   }

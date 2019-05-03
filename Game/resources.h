@@ -65,7 +65,7 @@ class Resources {
     static Tempest::Font dialogFont() { return inst->dlgFnt;  }
     static Tempest::Font font()       { return inst->mainFnt; }
 
-    static const Tempest::Texture2d* fallbackTexture();
+    static const Tempest::Texture2d& fallbackTexture();
     static const Tempest::Texture2d* loadTexture(const char* name);
     static const Tempest::Texture2d* loadTexture(const std::string& name);
     static const Tempest::Texture2d* loadTexture(const std::string& name,int32_t v,int32_t c);

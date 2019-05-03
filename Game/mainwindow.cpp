@@ -22,7 +22,7 @@ using namespace Tempest;
 
 MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),
-    draw(device,gothic),gothic(gothic),dialogs(gothic,inventory),chapter(gothic),player(dialogs,inventory) {
+    draw(device,gothic),gothic(gothic),inventory(draw.storage()),dialogs(gothic,inventory),chapter(gothic),player(dialogs,inventory) {
   for(uint8_t i=0;i<device.maxFramesInFlight();++i){
     fLocal.emplace_back(device);
     commandBuffersSemaphores.emplace_back(device);
@@ -565,11 +565,12 @@ void MainWindow::render(){
         fLocal[i].gpuLock.wait();
         commandDynamic[i] = device.commandBuffer();
         }
-      draw.updateCmd();
+      //draw.updateCmd();
       }
 
     cmd.begin();
     draw.draw(cmd,imgId,gothic);
+    //draw.draw(cmd,imgId,inventory);
 
     if(1) {
       cmd.setPass(fboUi[imgId],uiPass);

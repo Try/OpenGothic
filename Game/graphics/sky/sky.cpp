@@ -40,7 +40,7 @@ void Sky::setWorld(const World &world) {
     if(day.lay[i].texture==nullptr)
       day.lay[i].texture = skyTexture(nullptr,day.day,i);
     if(day.lay[i].texture==nullptr)
-      day.lay[i].texture = Resources::fallbackTexture();
+      day.lay[i].texture = &Resources::fallbackTexture();
     }
   }
 

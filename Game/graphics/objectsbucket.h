@@ -19,17 +19,19 @@ class ObjectsBucket : public AbstractObjectsBucket {
       : tex(tex),uStorage(uStorage) {
       size_t pfSize=device.maxFramesInFlight();
       pf.reset(new PerFrame[pfSize]);
-      for(size_t i=0;i<pfSize;++i)
+      for(size_t i=0;i<pfSize;++i) {
         pf[i].ubo = device.uniforms(layout);
+        }
       }
 
-    const Tempest::Texture2d&   texture() const { return *tex; }
-    Tempest::Uniforms&          getUbo(size_t imgId) { return pf[imgId].ubo; }
+    const Tempest::Texture2d&   texture() const override { return *tex; }
+    Tempest::Uniforms&          uboMain(size_t imgId) { return pf[imgId].ubo; }
 
     size_t                      alloc(const Tempest::VertexBuffer<Vertex> &vbo, const Tempest::IndexBuffer<uint32_t> &ibo);
     void                        free(size_t i) override;
 
     void                        draw(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId);
+    void                        draw(size_t id,Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) override;
 
     bool                        needToUpdateCommands() const;
     void                        setAsUpdated();
@@ -42,7 +44,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
       };
 
     struct PerFrame final {
-      Tempest::Uniforms        ubo;
+      Tempest::Uniforms ubo, uboSh;
       };
 
     const Tempest::Texture2d*   tex=nullptr;
@@ -141,6 +143,18 @@ void ObjectsBucket<Ubo,Vertex>::draw(Tempest::CommandBuffer &cmd,const Tempest::
     cmd.setUniforms(pipeline,frame.ubo,1,&offset);
     cmd.draw(*di.vbo,*di.ibo);
     }
+  }
+
+template<class Ubo,class Vertex>
+void ObjectsBucket<Ubo,Vertex>::draw(size_t id,Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) {
+  auto& frame = pf[imgId];
+  auto& di    = data[id];
+  if(di.vbo==nullptr)
+    return;
+  uint32_t offset = di.ubo*uStorage.elementSize();
+
+  cmd.setUniforms(pipeline,frame.ubo,1,&offset);
+  cmd.draw(*di.vbo,*di.ibo);
   }
 
 template<class Ubo, class Vertex>

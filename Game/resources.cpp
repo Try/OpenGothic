@@ -105,8 +105,8 @@ Font Resources::fontByName(const std::string &fontName) {
     }
   }
 
-const Texture2d *Resources::fallbackTexture() {
-  return &inst->fallback;
+const Texture2d& Resources::fallbackTexture() {
+  return inst->fallback;
   }
 
 VDFS::FileIndex& Resources::vdfsIndex() {
