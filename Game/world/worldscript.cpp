@@ -1222,7 +1222,7 @@ void WorldScript::wld_detectnpc(Daedalus::DaedalusVM &vm) {
     if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
        (state==-1 || n.isState(uint32_t(state))) &&
        (guild==-1 || int32_t(n.guild())==guild) &&
-       (&n!=npc)) {
+       (&n!=npc) && !n.isDead()) {
       float d = n.qDistTo(*npc);
       if(d<dist){
         ret = &n;
@@ -1230,8 +1230,10 @@ void WorldScript::wld_detectnpc(Daedalus::DaedalusVM &vm) {
         }
       }
     });
-  if(ret)
-    npc->setOther(ret);
+  if(ret) {
+    vm.globalOther().instanceDataHandle = ret->handle();
+    vm.globalOther().instanceDataClass  = Daedalus::IC_Npc;
+    }
   vm.setReturn(ret ? 1 : 0);
   }
 
