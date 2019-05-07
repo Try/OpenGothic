@@ -120,7 +120,8 @@ class World final {
 
     bool   isInListenerRange(const std::array<float,3> &pos) const;
     void   emitDlgSound(const char *s, float x, float y, float z, float range);
-    void   emitSoundEffect(const char *s, float x, float y, float z, float range);
+    void   emitSoundEffect(const char *s, float x, float y, float z, float range, Tempest::SoundEffect *slot);
+    void   takeSoundSlot(Tempest::SoundEffect&& eff);
 
   private:
     std::string                           wname;

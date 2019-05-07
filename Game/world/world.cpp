@@ -359,8 +359,12 @@ void World::emitDlgSound(const char* s, float x, float y, float z, float range) 
   wsound.emitDlgSound(s,x,y,z,range);
   }
 
-void World::emitSoundEffect(const char *s, float x, float y, float z, float range) {
-  wsound.emitSound(s,x,y,z,range);
+void World::emitSoundEffect(const char *s, float x, float y, float z, float range, Tempest::SoundEffect* slot) {
+  wsound.emitSound(s,x,y,z,range,slot);
+  }
+
+void World::takeSoundSlot(SoundEffect &&eff)  {
+  wsound.takeSoundSlot(std::move(eff));
   }
 
 const WayPoint *World::findPoint(const char *name) const {

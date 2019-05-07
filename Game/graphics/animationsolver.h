@@ -199,6 +199,8 @@ class AnimationSolver final {
     Anim                           prevAni  =NoAnim;
     Anim                           lastIdle =Idle;
 
+    Tempest::SoundEffect           soundSlot;
+
   private:
     Sequence                       solveMag (const char *format,Anim spell) const;
     Sequence                       solveDead(const char *format1,const char *format2) const;

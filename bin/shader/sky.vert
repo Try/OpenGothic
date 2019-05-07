@@ -11,5 +11,5 @@ layout(location = 0) out vec2 outPos;
 
 void main() {
   outPos      = inPos;
-  gl_Position = vec4(inPos.xy, 0.0, 1.0);
+  gl_Position = vec4(inPos.xy, 1.0, 1.0);
   }

@@ -979,6 +979,7 @@ void Npc::takeDamage(Npc &other) {
 
     if(ani==Anim::Move  || ani==Anim::MoveL  || ani==Anim::MoveR ||
        ani==Anim::Atack || ani==Anim::AtackL || ani==Anim::AtackR ||
+       ani==Anim::Warn  ||
        ani<Anim::IdleLast || (Anim::MagFirst<=ani && ani<=Anim::MagLast )) {
       animation.resetAni();
       }
@@ -989,7 +990,7 @@ void Npc::takeDamage(Npc &other) {
       //emitSoundEffect("FIG_DUMMYWOUND",25);
       }
     } else {
-    emitSoundEffect("D_PARADE",25);
+    emitSoundEffect("D_PARADE",25,true);
     }
   }
 
@@ -1405,15 +1406,15 @@ void Npc::emitDlgSound(const char *sound) {
   owner.world().emitDlgSound(sound,x,y+180,z,WorldSound::talkRange);
   }
 
-void Npc::emitSoundEffect(const char *sound, float range) {
-  owner.world().emitSoundEffect(sound,x,y+100,z,range);
+void Npc::emitSoundEffect(const char *sound, float range, bool freeSlot) {
+  owner.world().emitSoundEffect(sound,x,y+100,z,range,freeSlot ? nullptr : &animation.soundSlot);
   }
 
-void Npc::emitSoundGround(const char* sound, float range) {
+void Npc::emitSoundGround(const char* sound, float range, bool freeSlot) {
   char    buf[256]={};
   uint8_t mat = mvAlgo.groundMaterial();
   std::snprintf(buf,sizeof(buf),"%s_%s",sound,ZenLoad::MaterialGroupNames[mat]);
-  owner.world().emitSoundEffect(buf,x,y,z,range);
+  owner.world().emitSoundEffect(buf,x,y,z,range,freeSlot ? nullptr : &animation.soundSlot);
   }
 
 const Npc::Routine& Npc::currentRoutine() const {
@@ -1605,8 +1606,8 @@ bool Npc::drawWeaponMele() {
   updateWeaponSkeleton();
   hnpc->weapon = (st==WeaponState::W1H ? 3:4);
   if(invent.currentMeleWeapon()->handle()->material==ItemMaterial::MAT_METAL)
-    emitSoundEffect("DRAWSOUND_ME",50); else
-    emitSoundEffect("DRAWSOUND_WO",50);
+    emitSoundEffect("DRAWSOUND_ME",50,true); else
+    emitSoundEffect("DRAWSOUND_WO",50,true);
   return true;
   }
 
@@ -1625,7 +1626,7 @@ bool Npc::drawWeaponBow() {
   invent.switchActiveWeapon(2);
   updateWeaponSkeleton();
   hnpc->weapon = (st==WeaponState::W1H ? 5:6);
-  emitSoundEffect("DRAWSOUND_BOW",25);
+  emitSoundEffect("DRAWSOUND_BOW",25,true);
   return true;
   }
 

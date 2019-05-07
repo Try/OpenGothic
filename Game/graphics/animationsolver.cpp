@@ -80,6 +80,7 @@ bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState nextSt,Weapo
       }
     return true;
     }
+  owner.takeSoundSlot(std::move(soundSlot));
   invalidateAnim(ani,skeleton,owner,tickCount);
   return true;
   }

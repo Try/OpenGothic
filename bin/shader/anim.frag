@@ -22,13 +22,17 @@ void main() {
   if(t.a<0.5)
     discard;
 #ifdef SHADOW_MAP
-  outColor = vec4(inShadowPos.xyz,0.0);
+  outColor = vec4(inShadowPos.zzz,0.0);
 #else
   float lambert = max(0.0,dot(inLight,normalize(inNormal)));
   vec3  shPos   = inShadowPos.xyz/inShadowPos.w;
-  vec3  shMap   = texture(textureSm,shPos.xy*vec2(0.5,0.5)+vec2(0.5)).xyz;
-  float shZ     = min(0.99,shPos.z);
-  float light   = lambert*smoothstep(shZ-0.01,shZ,shMap.z);
+
+  float light = lambert;
+  if(abs(shPos.x)<1.0 && abs(shPos.y)<1.0){
+    float shMap = texture(textureSm,shPos.xy*vec2(0.5,0.5)+vec2(0.5)).r;
+    float shZ   = min(0.99,shPos.z);
+    light       = lambert*smoothstep(shZ-0.01,shZ,shMap);
+    }
 
   vec3  ambient = vec3(0.25);//*inColor.xyz
   vec3  diffuse = vec3(1.0)*inColor.xyz;

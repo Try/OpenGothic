@@ -70,7 +70,7 @@ void RendererStorage::initPipeline(Tempest::RenderPass &pass,uint32_t w, uint32_
   stateLnd.setCullFaceMode(RenderState::CullMode::Front);
 
   RenderState stateSky;
-  stateSky.setZTestMode   (RenderState::ZTestMode::Always);
+  stateSky.setZTestMode   (RenderState::ZTestMode::LEqual);
   stateSky.setCullFaceMode(RenderState::CullMode::Front);
   
   pSky       = device.pipeline<Resources::VertexFsq>(pass,w,h,Triangles,stateSky,layoutSky,vsSky,    fsSky    );

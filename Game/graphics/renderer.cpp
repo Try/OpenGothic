@@ -12,6 +12,18 @@ using namespace Tempest;
 Renderer::Renderer(Tempest::Device &device,Gothic& gothic)
   :device(device),gothic(gothic),stor(device) {
   view.identity();
+
+  const TextureFormat zfrm[] = {
+    TextureFormat::RG16,
+    TextureFormat::RGB8,
+    TextureFormat::RGBA8,
+    };
+  for(auto& i:zfrm) {
+    if(device.caps().hasAttachFormat(i) && device.caps().hasSamplerFormat(i)){
+      shadowFormat = i;
+      break;
+      }
+    }
   }
 
 void Renderer::initSwapchain(uint32_t w,uint32_t h) {
@@ -25,7 +37,7 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
   zbuffer    = device.createTexture(TextureFormat::Depth16,w,h,false);
   mainPass   = device.pass(Color(0.0),1.f,zbuffer.format());
 
-  shadowMap  = device.createTexture(TextureFormat::RGBA8,  smSize,smSize,false);
+  shadowMap  = device.createTexture(shadowFormat,smSize,smSize,false);
   shadowZ    = device.createTexture(TextureFormat::Depth16,smSize,smSize,false);
   shadowPass = device.pass(Color(1.0),1.f,shadowMap.format(),zbuffer.format());
   fboShadow  = device.frameBuffer(shadowMap,shadowZ,shadowPass);

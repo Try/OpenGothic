@@ -20,17 +20,21 @@ class ObjectsBucket : public AbstractObjectsBucket {
       size_t pfSize=device.maxFramesInFlight();
       pf.reset(new PerFrame[pfSize]);
       for(size_t i=0;i<pfSize;++i) {
-        pf[i].ubo = device.uniforms(layout);
+        pf[i].ubo   = device.uniforms(layout);
+        pf[i].uboSh = device.uniforms(layout);
         }
       }
 
     const Tempest::Texture2d&   texture() const override { return *tex; }
-    Tempest::Uniforms&          uboMain(size_t imgId) { return pf[imgId].ubo; }
+    Tempest::Uniforms&          uboMain  (size_t imgId) { return pf[imgId].ubo;   }
+    Tempest::Uniforms&          uboShadow(size_t imgId) { return pf[imgId].uboSh; }
 
     size_t                      alloc(const Tempest::VertexBuffer<Vertex> &vbo, const Tempest::IndexBuffer<uint32_t> &ibo);
     void                        free(size_t i) override;
 
-    void                        draw(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId);
+    void                        draw      (Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId);
+    void                        drawShadow(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId);
+
     void                        draw(size_t id,Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) override;
 
     bool                        needToUpdateCommands() const;
@@ -141,6 +145,28 @@ void ObjectsBucket<Ubo,Vertex>::draw(Tempest::CommandBuffer &cmd,const Tempest::
     uint32_t offset = di.ubo*uStorage.elementSize();
 
     cmd.setUniforms(pipeline,frame.ubo,1,&offset);
+    cmd.draw(*di.vbo,*di.ibo);
+    }
+  }
+
+template<class Ubo,class Vertex>
+void ObjectsBucket<Ubo,Vertex>::drawShadow(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) {
+  auto& frame = pf[imgId];
+  index.resize(data.size());
+  for(size_t i=0;i<index.size();++i)
+    index[i]=&data[i];
+
+  std::sort(index.begin(),index.end(),[](const NonUbo* a,const NonUbo* b){
+    return a->ibo<b->ibo;
+    });
+
+  for(size_t i=0;i<index.size();++i){
+    auto& di = *index[i];
+    if(di.vbo==nullptr)
+      continue;
+    uint32_t offset = di.ubo*uStorage.elementSize();
+
+    cmd.setUniforms(pipeline,frame.uboSh,1,&offset);
     cmd.draw(*di.vbo,*di.ibo);
     }
   }

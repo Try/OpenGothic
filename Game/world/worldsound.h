@@ -18,8 +18,9 @@ class WorldSound final {
     void seDefaultZone(const ZenLoad::zCVobData &vob);
     void addZone(const ZenLoad::zCVobData &vob);
 
-    void emitSound(const char *s, float x, float y, float z, float range);
+    void emitSound(const char *s, float x, float y, float z, float range, Tempest::SoundEffect *slot);
     void emitDlgSound(const char *s, float x, float y, float z, float range);
+    void takeSoundSlot(Tempest::SoundEffect&& eff);
     void aiOutput(const std::array<float,3> &pos, const std::string& outputname);
 
     void tick(Npc& player);

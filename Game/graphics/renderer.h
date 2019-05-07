@@ -37,6 +37,7 @@ class Renderer final {
 
     Tempest::Texture2d                zbuffer;
     Tempest::Texture2d                shadowMap, shadowZ;
+    Tempest::TextureFormat            shadowFormat=Tempest::TextureFormat::RGBA8;
     std::vector<Tempest::FrameBuffer> fbo3d;
     Tempest::FrameBuffer              fboShadow;
 

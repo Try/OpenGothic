@@ -69,7 +69,10 @@ void Landscape::commitUbo(uint32_t frameId,const Tempest::Texture2d& shadowMap) 
     auto& uboS=uboSm  [i];
 
     if(prev==lnd.texture && alpha==lnd.alpha)
-      continue;
+      continue; //HINT: usless :(
+    prev  = lnd.texture;
+    alpha = lnd.alpha;
+
     if(uboL.isEmpty())
       uboL = storage.device.uniforms(storage.uboLndLayout());
     if(uboS.isEmpty())

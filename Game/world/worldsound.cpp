@@ -7,7 +7,7 @@
 
 using namespace Tempest;
 
-const float WorldSound::maxDist   = 1600; // 16 meters
+const float WorldSound::maxDist   = 3500; // 35 meters
 const float WorldSound::talkRange = 800;
 
 WorldSound::WorldSound(GameSession &game, World& owner):game(game),owner(owner) {
@@ -32,9 +32,14 @@ void WorldSound::addZone(const ZenLoad::zCVobData &vob) {
   zones.emplace_back(std::move(z));
   }
 
-void WorldSound::emitSound(const char* s, float x, float y, float z, float range) {
-  std::lock_guard<std::mutex> guard(sync);
+void WorldSound::emitSound(const char* s, float x, float y, float z, float range, Tempest::SoundEffect* slot) {
+  if(slot && !slot->isFinished())
+    return;
 
+  if(range<=0.f)
+    range = 35.f;
+
+  std::lock_guard<std::mutex> guard(sync);
   if(isInListenerRange({x,y,z})){
     if(std::strcmp("WHOOSH",s)==0){
       }
@@ -47,9 +52,11 @@ void WorldSound::emitSound(const char* s, float x, float y, float z, float range
       return;
     eff.setPosition(x,y,z);
     eff.setMaxDistance(maxDist);
-    eff.setRefDistance(range);
+    eff.setRefDistance(100);
     eff.play();
-    effect.emplace_back(std::move(eff));
+    if(slot)
+      *slot = std::move(eff); else
+      effect.emplace_back(std::move(eff));
     }
   }
 
@@ -69,6 +76,12 @@ void WorldSound::emitDlgSound(const char *s, float x, float y, float z, float ra
     eff.play();
     effect.emplace_back(std::move(eff));
     }
+  }
+
+void WorldSound::takeSoundSlot(SoundEffect &&eff) {
+  if(eff.isEmpty() || eff.isFinished())
+    return;
+  effect.emplace_back(std::move(eff));
   }
 
 void WorldSound::tick(Npc &player) {

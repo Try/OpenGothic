@@ -179,10 +179,10 @@ void Pose::updateFrame(const Animation::Sequence &s, uint64_t fr) {
   }
 
 void Pose::emitSfx(Npc &npc, uint64_t dt) {
-  if(sequence)
-    emitSfx(npc,*sequence,dt,frSequence);
   if(baseSq)
     emitSfx(npc,*baseSq,dt,frBase);
+  if(sequence)
+    emitSfx(npc,*sequence,dt,frSequence);
   }
 
 void Pose::emitSfx(Npc &npc, const Animation::Sequence &s, uint64_t dt, uint64_t fr) {
@@ -200,12 +200,12 @@ void Pose::emitSfx(Npc &npc, const Animation::Sequence &s, uint64_t dt, uint64_t
   const bool invert = (frameB<frameA);
   for(auto& i:s.sfx){
     if((frameA<=uint64_t(i.m_Frame) && uint64_t(i.m_Frame)<frameB) ^ invert)
-      npc.emitSoundEffect(i.m_Name.c_str(),i.m_Range);
+      npc.emitSoundEffect(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
     }
   if(!npc.isInAir()) {
     for(auto& i:s.gfx){
       if((frameA<=uint64_t(i.m_Frame) && uint64_t(i.m_Frame)<frameB) ^ invert)
-        npc.emitSoundGround(i.m_Name.c_str(),i.m_Range);
+        npc.emitSoundGround(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
       }
     }
   }

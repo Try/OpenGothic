@@ -166,11 +166,11 @@ void WorldView::prebuiltCmdBuf(const World &world,const Texture2d& shadowMap,con
     auto cmd=device.commandSecondaryBuffer();
 
     cmd.begin(storage.pass());
-    sky     .draw(cmd,i,world);
     land    .draw(cmd,i);
     vobGroup.draw(cmd,i);
     objGroup.draw(cmd,i);
     itmGroup.draw(cmd,i);
+    sky     .draw(cmd,i,world);
     cmd.end();
 
     cmdMain.emplace_back(std::move(cmd));
