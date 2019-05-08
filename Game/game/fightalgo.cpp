@@ -176,7 +176,7 @@ FightAlgo::Action FightAlgo::tick(Npc &npc, Npc &tg, WorldScript& owner, uint64_
 
 void FightAlgo::consumeAction() {
   if(tr[0]==MV_STRAFEL || tr[0]==MV_STRAFER)
-    waitT = 600;
+    waitT = 300;
 
   for(size_t i=1;i<MV_MAX;++i)
     tr[i-1]=tr[i];
