@@ -38,7 +38,9 @@ Landscape::Landscape(const RendererStorage &storage, const ZenLoad::PackedMesh &
     }
 
   std::sort(blocks.begin(),blocks.end(),[](const Block& a,const Block& b){
-    return std::tie(a.alpha,a.texture)<std::tie(b.alpha,b.texture);
+    auto fa = a.texture->format();
+    auto fb = b.texture->format();
+    return std::tie(a.alpha,a.texture,fa)<std::tie(b.alpha,b.texture,fb);
     });
   }
 
@@ -93,7 +95,25 @@ void Landscape::draw(Tempest::CommandBuffer &cmd, uint32_t frameId) {
   }
 
 void Landscape::drawShadow(CommandBuffer &cmd, uint32_t frameId) {
-  implDraw(cmd,storage.pLandSh,storage.pLandSh,   1,frameId);
+  PerFrame& pf      = this->pf[frameId];
+  auto&     uboLand = pf.ubo[1];
+
+  uint8_t tex=255;
+  for(size_t i=0;i<blocks.size();++i){
+    auto& lnd=blocks [i];
+    auto& ubo=uboLand[i];
+
+    if(ubo.isEmpty())
+      continue;
+
+    uint8_t tx = (lnd.texture && Tempest::TextureFormat::DXT1==lnd.texture->format()) ? 1 : 0;
+    if(tx!=tex){
+      tex = tx;
+      uint32_t offset=0;
+      cmd.setUniforms(storage.pLandSh,ubo,1,&offset);
+      }
+    cmd.draw(vbo,lnd.ibo);
+    }
   }
 
 void Landscape::implDraw(CommandBuffer &cmd,const RenderPipeline &p,const RenderPipeline &alpha,uint8_t uboId,uint32_t frameId) {
