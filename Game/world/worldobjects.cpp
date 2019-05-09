@@ -64,11 +64,21 @@ void WorldObjects::tick(uint64_t dt) {
 
   npcNear.clear();
   const float nearDist = 3000*3000;
+  const float farDist  = 6000*6000;
 
   for(auto& i:npcArr) {
     float dist = pl->qDistTo(*i);
-    if(dist<nearDist && !i->isDown())
-      npcNear.push_back(i.get());
+    if(dist<nearDist){
+      if(!i->isDown())
+        npcNear.push_back(i.get());
+      if(i.get()!=pl)
+        i->setProcessPolicy(Npc::ProcessPolicy::AiNormal);
+      } else
+    if(dist<farDist) {
+      i->setProcessPolicy(Npc::ProcessPolicy::AiFar);
+      } else {
+      i->setProcessPolicy(Npc::ProcessPolicy::AiFar2);
+      }
     }
   tickNear(dt);
 

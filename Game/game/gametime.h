@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 
 class gtime final {
   public:
@@ -18,6 +19,8 @@ class gtime final {
     int64_t hour()      const { return (time/hourMilis)%24; }
     int64_t minute()    const { return (time/minMilis )%60; }
 
+    static const gtime endOfTime() { return gtime(std::numeric_limits<int64_t>::max()); }
+
   private:
     explicit gtime(int64_t milis):time(milis){}
 
@@ -31,6 +34,7 @@ class gtime final {
   friend bool operator <  (gtime a,gtime b);
   friend bool operator <= (gtime a,gtime b);
   };
+
 
 inline bool operator == (gtime a,gtime b){
   return a.time==b.time;

@@ -1124,7 +1124,7 @@ void Npc::nextAiAction(uint64_t dt) {
         aiActions.push_front(std::move(act));
       break;
     case AI_StartState:
-      if(startState(act.func,act.s0,gtime(),act.i0==0))
+      if(startState(act.func,act.s0,gtime::endOfTime(),act.i0==0))
         setOther(act.target);
       break;
     case AI_PlayAnim:{
@@ -1263,7 +1263,7 @@ void Npc::nextAiAction(uint64_t dt) {
   }
 
 bool Npc::startState(size_t id,const std::string &wp) {
-  return startState(id,wp,gtime(),false);
+  return startState(id,wp,gtime::endOfTime(),false);
   }
 
 bool Npc::startState(size_t id,const std::string &wp, gtime endTime,bool noFinalize) {
@@ -1315,18 +1315,23 @@ void Npc::tickRoutine() {
       auto t = endTime(r);
       startState(r.callback,"",t,false);
       }
-    else if(v.start_aistate!=0)
+    else if(v.start_aistate!=0) {
       startState(v.start_aistate,"");
+      }
     }
 
   if(aiState.funcIni==0)
+    return;
+
+  /*HACK: don't process far away Npc*/
+  if(aiPolicy==Npc::ProcessPolicy::AiFar2 && routines.size()==0)
     return;
 
   if(aiState.started) {
     if(aiState.loopNextTime<=owner.tickCount()){
       aiState.loopNextTime+=1000; // one tick per second?
       int loop = owner.invokeState(this,currentOther,nullptr,aiState.funcLoop);
-      if(aiState.eTime!=gtime() && aiState.eTime<=owner.world().time())
+      if(aiState.eTime<=owner.world().time())
         loop=1;
       if(loop!=0){
         owner.invokeState(this,currentOther,nullptr,aiState.funcEnd);
@@ -1363,7 +1368,7 @@ void Npc::setNearestEnemy(Npc& n) {
     }
   float d2 = qDistTo(n);
   float d1 = qDistTo(*nearestEnemy);
-  if(d2<d1)
+  if(d2<d1 && canSeeNpc(n,true))
     nearestEnemy = &n;
   }
 
@@ -1782,7 +1787,7 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
   r = r*r;
 
   bool ret=false;
-  if(quadDist<r){
+  if(quadDist<r && canSeeNpc(pl,true)){
     if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER)) {
       //currentOther = &pl;
       ret          = true;

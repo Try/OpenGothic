@@ -28,7 +28,8 @@ class Npc final {
     enum class ProcessPolicy : uint8_t {
       Player,
       AiNormal,
-      AiFar
+      AiFar,
+      AiFar2
       };
 
     enum MoveCode : uint8_t {
@@ -512,7 +513,7 @@ class Npc final {
       size_t   funcLoop=0;
       size_t   funcEnd =0;
       uint64_t sTime   =0;
-      gtime    eTime;
+      gtime    eTime   =gtime::endOfTime();
       bool     started =false;
       uint64_t loopNextTime=0;
       const char* hint="";
