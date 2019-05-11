@@ -3,6 +3,7 @@
 #include <Tempest/Matrix4x4>
 #include <vector>
 
+#include "world/gsoundeffect.h"
 #include "game/inventory.h"
 #include "game/constants.h"
 #include "staticobjects.h"
@@ -199,7 +200,7 @@ class AnimationSolver final {
     Anim                           prevAni  =NoAnim;
     Anim                           lastIdle =Idle;
 
-    Tempest::SoundEffect           soundSlot;
+    GSoundEffect                   soundSlot;
 
   private:
     Sequence                       solveMag (const char *format,Anim spell) const;

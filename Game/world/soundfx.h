@@ -6,6 +6,8 @@
 
 #include <daedalus/DaedalusStdlib.h>
 
+#include "gsoundeffect.h"
+
 class GameSession;
 
 class SoundFx {
@@ -14,7 +16,7 @@ class SoundFx {
     SoundFx(SoundFx&&)=default;
     SoundFx& operator=(SoundFx&&)=default;
 
-    Tempest::SoundEffect getEffect(Tempest::SoundDevice& dev);
+    GSoundEffect getEffect(Tempest::SoundDevice& dev);
 
   private:
     struct SoundVar {

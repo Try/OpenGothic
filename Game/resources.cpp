@@ -55,6 +55,9 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
     main = "data/font/Roboto-Regular.ttf";
     }
 
+  fBuff .reserve(8*1024*1024);
+  ddsBuf.reserve(8*1024*1024);
+
   menuFnt = Font(menu);
   menuFnt.setPixelSize(44);
 
@@ -119,7 +122,7 @@ void Resources::addVdf(const char16_t *vdf) {
   gothicAssets.loadVDF(acii);
   }
 
-Tempest::Texture2d* Resources::implLoadTexture(const std::string& name) {
+Tempest::Texture2d* Resources::implLoadTexture(std::string name) {
   if(name.size()==0)
     return nullptr;
 
@@ -127,17 +130,31 @@ Tempest::Texture2d* Resources::implLoadTexture(const std::string& name) {
   if(it!=texCache.end())
     return it->second.get();
 
-  std::vector<uint8_t> data=getFileData(name);
-  if(data.empty())
-    return nullptr;
+  if(getFileData(name.c_str(),fBuff))
+    return implLoadTexture(std::move(name),fBuff);
 
+  if(name.rfind(".TGA")==name.size()-4){
+    auto n = name;
+    n.resize(n.size()-4);
+    n+="-C.TEX";
+    if(!getFileData(n.c_str(),fBuff))
+      return nullptr;
+    ddsBuf.clear();
+    ZenLoad::convertZTEX2DDS(fBuff,ddsBuf);
+    return implLoadTexture(std::move(name),ddsBuf);
+    }
+
+  return nullptr;
+  }
+
+Texture2d *Resources::implLoadTexture(std::string&& name,const std::vector<uint8_t> &data) {
   try {
     Tempest::MemReader rd(data.data(),data.size());
     Tempest::Pixmap    pm(rd);
 
     std::unique_ptr<Texture2d> t{new Texture2d(device.loadTexture(pm))};
     Texture2d* ret=t.get();
-    texCache[name] = std::move(t);
+    texCache[std::move(name)] = std::move(t);
     return ret;
     }
   catch(...){
@@ -243,12 +260,11 @@ SoundEffect *Resources::implLoadSound(const char* name) {
   if(it!=sndCache.end())
     return it->second.get();
 
-  std::vector<uint8_t> data=getFileData(name);
-  if(data.empty())
+  if(!getFileData(name,fBuff))
     return nullptr;
 
   try {
-    Tempest::MemReader rd(data.data(),data.size());
+    Tempest::MemReader rd(fBuff.data(),fBuff.size());
 
     auto s = sound.load(rd);
     std::unique_ptr<SoundEffect> t{new SoundEffect(std::move(s))};
@@ -263,11 +279,10 @@ SoundEffect *Resources::implLoadSound(const char* name) {
   }
 
 Sound Resources::implLoadSoundBuffer(const char *name) {
-  std::vector<uint8_t> data=getFileData(name);
-  if(data.empty())
+  if(!getFileData(name,fBuff))
     return Sound();
   try {
-    Tempest::MemReader rd(data.data(),data.size());
+    Tempest::MemReader rd(fBuff.data(),fBuff.size());
     return Sound(rd);
     }
   catch(...){
@@ -387,6 +402,11 @@ Dx8::Segment *Resources::loadMusic(const std::string &name) {
   return inst->implLoadMusic(name);
   }
 
+bool Resources::getFileData(const char *name, std::vector<uint8_t> &dat) {
+  dat.clear();
+  return inst->gothicAssets.getFileData(name,dat);
+  }
+
 std::vector<uint8_t> Resources::getFileData(const char *name) {
   std::vector<uint8_t> data;
   inst->gothicAssets.getFileData(name,data);
@@ -396,19 +416,6 @@ std::vector<uint8_t> Resources::getFileData(const char *name) {
 std::vector<uint8_t> Resources::getFileData(const std::string &name) {
   std::vector<uint8_t> data;
   inst->gothicAssets.getFileData(name,data);
-  if(data.size()!=0)
-    return data;
-
-  if(name.rfind(".TGA")==name.size()-4){
-    auto n = name;
-    n.resize(n.size()-4);
-    n+="-C.TEX";
-    inst->gothicAssets.getFileData(n,data);
-    std::vector<uint8_t> ztex;
-    ZenLoad::convertZTEX2DDS(data,ztex);
-    //ZenLoad::convertDDSToRGBA8(data, ztex);
-    return ztex;
-    }
   return data;
   }
 

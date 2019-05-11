@@ -204,6 +204,34 @@ DynamicWorld::RayResult DynamicWorld::ray(float x0, float y0, float z0, float x1
   return RayResult{{x1,y1,z1},callback.matId,false};
   }
 
+float DynamicWorld::soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const {
+  struct CallBack:btCollisionWorld::ClosestRayResultCallback {
+    using ClosestRayResultCallback::ClosestRayResultCallback;
+
+    uint32_t cnt =0;
+
+    bool needsCollision(btBroadphaseProxy* proxy0) const override {
+      auto obj=reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject);
+      if(obj->getUserIndex()==C_Landscape)
+        return ClosestRayResultCallback::needsCollision(proxy0);
+      return false;
+      }
+
+    btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
+      cnt++;
+      return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
+      }
+    };
+
+  btVector3 s(x0,y0,z0), e(x1,y1,z1);
+  CallBack callback{s,e};
+  callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal;
+
+  rayTest(s,e,callback);
+  float tlen = (s-e).length();
+  return (callback.cnt>=2 ? 1.f : 0)*tlen;
+  }
+
 std::unique_ptr<btRigidBody> DynamicWorld::landObj() {
   btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(
         0,                  // mass, in kg. 0 -> Static object, will never move.

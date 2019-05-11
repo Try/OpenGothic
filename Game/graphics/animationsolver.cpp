@@ -299,15 +299,17 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
 
   if(a==Anim::RotL){
     if(bool(wlkMode&WalkBit::WM_Walk)){
-      return solveAnim("T_%sWALKWTURNL",st);
-      } else
-      return solveAnim("T_%sRUNTURNL",st);
+      if(auto ani=solveAnim("T_%sWALKTURNL",st))
+        return ani;
+      }
+    return solveAnim("T_%sRUNTURNL",st);
     }
   if(a==Anim::RotR){
     if(bool(wlkMode&WalkBit::WM_Walk)){
-      return solveAnim("T_%sWALKWTURNR",st);
-      } else
-      return solveAnim("T_%sRUNTURNR",st);
+      if(auto ani=solveAnim("T_%sWALKTURNR",st))
+        return ani;
+      }
+    return solveAnim("T_%sRUNTURNR",st);
     }
   if(a==Anim::MoveL) {
     return solveAnim("T_%sRUNSTRAFEL",st);

@@ -91,6 +91,7 @@ class Resources {
     static Tempest::IndexBuffer<V>  loadIbo(const V* data,size_t sz){ return inst->device.loadIbo(data,sz,Tempest::BufferFlags::Static); }
 
     static std::vector<uint8_t> getFileData(const char*        name);
+    static bool                 getFileData(const char*        name,std::vector<uint8_t>& dat);
     static std::vector<uint8_t> getFileData(const std::string& name);
 
     static bool                 hasFile(const std::string& fname);
@@ -106,7 +107,8 @@ class Resources {
       };
 
     void                  addVdf(const char16_t *vdf);
-    Tempest::Texture2d*   implLoadTexture(const std::string &name);
+    Tempest::Texture2d*   implLoadTexture(std::string name);
+    Tempest::Texture2d*   implLoadTexture(std::string &&name, const std::vector<uint8_t> &data);
     ProtoMesh*            implLoadMesh(const std::string &name);
     Skeleton*             implLoadSkeleton(std::string name);
     Animation*            implLoadAnimation(std::string name);
@@ -133,6 +135,8 @@ class Resources {
     Tempest::Assets       asset;
     Gothic&               gothic;
     VDFS::FileIndex       gothicAssets;
+
+    std::vector<uint8_t>  fBuff, ddsBuf;
 
     std::unordered_map<std::string,std::unique_ptr<Tempest::Texture2d>>   texCache;
     std::unordered_map<std::string,std::unique_ptr<ProtoMesh>>            aniMeshCache;

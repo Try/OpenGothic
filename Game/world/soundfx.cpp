@@ -23,11 +23,11 @@ SoundFx::SoundFx(GameSession &gothic, const char* s) {
     Log::d("unable to load sound fx: ",s);
   }
 
-SoundEffect SoundFx::getEffect(SoundDevice &dev) {
+GSoundEffect SoundFx::getEffect(SoundDevice &dev) {
   if(inst.size()==0)
-    return SoundEffect();
-  SoundVar& var    = inst[size_t(std::rand())%inst.size()];
-  auto      effect = dev.load(var.snd);
+    return GSoundEffect();
+  SoundVar&    var    = inst[size_t(std::rand())%inst.size()];
+  GSoundEffect effect = dev.load(var.snd);
   effect.setVolume(var.vol);
   return effect;
   }

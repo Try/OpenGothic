@@ -101,6 +101,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("wld_assignroomtoguild",
                                                      [this](Daedalus::DaedalusVM& vm){ wld_assignroomtoguild(vm);    });
   vm.registerExternalFunction("wld_detectnpc",       [this](Daedalus::DaedalusVM& vm){ wld_detectnpc(vm);            });
+  vm.registerExternalFunction("wld_detectitem",      [this](Daedalus::DaedalusVM& vm){ wld_detectitem(vm);           });
 
   vm.registerExternalFunction("mdl_setvisual",       [this](Daedalus::DaedalusVM& vm){ mdl_setvisual(vm);        });
   vm.registerExternalFunction("mdl_setvisualbody",   [this](Daedalus::DaedalusVM& vm){ mdl_setvisualbody(vm);    });
@@ -1235,6 +1236,17 @@ void WorldScript::wld_detectnpc(Daedalus::DaedalusVM &vm) {
     vm.globalOther().instanceDataClass  = Daedalus::IC_Npc;
     }
   vm.setReturn(ret ? 1 : 0);
+  }
+
+void WorldScript::wld_detectitem(Daedalus::DaedalusVM &vm) {
+  int   flags = vm.popInt();
+  auto  npc   = popInstance(vm);
+
+  (void)flags;
+  (void)npc;
+
+  notImplementedFn<&WorldScript::wld_detectitem>("wld_detectitem");
+  vm.setReturn(0);
   }
 
 void WorldScript::mdl_setvisual(Daedalus::DaedalusVM &vm) {

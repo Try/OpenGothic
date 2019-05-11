@@ -86,6 +86,7 @@ class DynamicWorld final {
     RayResult dropRay(float x, float y, float z) const;
 
     RayResult ray(float x0, float y0, float z0, float x1, float y1, float z1) const;
+    float     soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const;
 
     std::array<float,3> landNormal(float x, float y, float z) const;
 

@@ -165,6 +165,7 @@ class WorldScript final {
     void wld_setmobroutine    (Daedalus::DaedalusVM& vm);
     void wld_assignroomtoguild(Daedalus::DaedalusVM& vm);
     void wld_detectnpc        (Daedalus::DaedalusVM& vm);
+    void wld_detectitem       (Daedalus::DaedalusVM& vm);
 
     void mdl_setvisual       (Daedalus::DaedalusVM& vm);
     void mdl_setvisualbody   (Daedalus::DaedalusVM& vm);

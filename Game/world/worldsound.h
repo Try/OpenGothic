@@ -10,6 +10,7 @@
 class GameSession;
 class World;
 class Npc;
+class GSoundEffect;
 
 class WorldSound final {
   public:
@@ -18,12 +19,13 @@ class WorldSound final {
     void seDefaultZone(const ZenLoad::zCVobData &vob);
     void addZone(const ZenLoad::zCVobData &vob);
 
-    void emitSound(const char *s, float x, float y, float z, float range, Tempest::SoundEffect *slot);
+    void emitSound(const char *s, float x, float y, float z, float range, GSoundEffect *slot);
     void emitDlgSound(const char *s, float x, float y, float z, float range);
-    void takeSoundSlot(Tempest::SoundEffect&& eff);
+    void takeSoundSlot(GSoundEffect &&eff);
     void aiOutput(const std::array<float,3> &pos, const std::string& outputname);
 
     void tick(Npc& player);
+    void tickSlot(GSoundEffect &slot);
     bool isInListenerRange(const std::array<float,3> &pos) const;
 
     static const float talkRange;
@@ -45,7 +47,7 @@ class WorldSound final {
     std::array<float,3>                     plPos;
 
     Tempest::SoundDevice                    dev;
-    std::vector<Tempest::SoundEffect>       effect;
+    std::vector<GSoundEffect>               effect;
     std::unordered_map<std::string,SoundFx> sndFxCache;
 
     std::mutex                              sync;

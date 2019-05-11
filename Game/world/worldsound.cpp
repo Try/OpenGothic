@@ -32,7 +32,7 @@ void WorldSound::addZone(const ZenLoad::zCVobData &vob) {
   zones.emplace_back(std::move(z));
   }
 
-void WorldSound::emitSound(const char* s, float x, float y, float z, float range, Tempest::SoundEffect* slot) {
+void WorldSound::emitSound(const char* s, float x, float y, float z, float range, GSoundEffect* slot) {
   if(slot && !slot->isFinished())
     return;
 
@@ -47,12 +47,13 @@ void WorldSound::emitSound(const char* s, float x, float y, float z, float range
     auto snd = implLoadSoundFx(s);
     if(snd==nullptr)
       return;
-    Tempest::SoundEffect eff = snd->getEffect(dev);
+    GSoundEffect eff = snd->getEffect(dev);
     if(eff.isEmpty())
       return;
     eff.setPosition(x,y,z);
     eff.setMaxDistance(maxDist);
     eff.setRefDistance(100);
+    tickSlot(eff);
     eff.play();
     if(slot)
       *slot = std::move(eff); else
@@ -78,8 +79,8 @@ void WorldSound::emitDlgSound(const char *s, float x, float y, float z, float ra
     }
   }
 
-void WorldSound::takeSoundSlot(SoundEffect &&eff) {
-  if(eff.isEmpty() || eff.isFinished())
+void WorldSound::takeSoundSlot(GSoundEffect &&eff) {
+  if(eff.isFinished())
     return;
   effect.emplace_back(std::move(eff));
   }
@@ -100,6 +101,7 @@ void WorldSound::tick(Npc &player) {
       effect[i]=std::move(effect.back());
       effect.pop_back();
       } else {
+      tickSlot(effect[i]);
       ++i;
       }
     }
@@ -114,6 +116,16 @@ void WorldSound::tick(Npc &player) {
   auto& theme = game.getMusicTheme(name);
 
   auto snd = Resources::loadMusic("_work/Data/Music/newworld/"+theme.file);
+  }
+
+void WorldSound::tickSlot(GSoundEffect& slot) {
+  if(slot.isFinished())
+    return;
+  auto  dyn = owner.physic();
+  auto  pos = slot.position();
+  float occ = dyn->soundOclusion(plPos[0],plPos[1]+180/*head pos*/,plPos[2], pos[0],pos[1],pos[2]);
+
+  slot.setOcclusion(std::max(0.f,1.f-occ/20.f));
   }
 
 bool WorldSound::isInListenerRange(const std::array<float,3> &pos) const {

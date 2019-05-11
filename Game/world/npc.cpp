@@ -1015,6 +1015,8 @@ int Npc::damageValue(Npc &other) const {
   }
 
 void Npc::tick(uint64_t dt) {
+  owner.world().tickSlot(animation.soundSlot);
+
   if(!checkHealth(false)){
     fghWaitToDamage = uint64_t(-1);
     mvAlgo.aiGoTo(nullptr);
@@ -1418,7 +1420,7 @@ void Npc::emitSoundEffect(const char *sound, float range, bool freeSlot) {
 void Npc::emitSoundGround(const char* sound, float range, bool freeSlot) {
   char    buf[256]={};
   uint8_t mat = mvAlgo.groundMaterial();
-  std::snprintf(buf,sizeof(buf),"%s_%s",sound,ZenLoad::MaterialGroupNames[mat]);
+  std::snprintf(buf,sizeof(buf),"%s_%s",sound,ZenLoad::zCMaterial::getMatGroupString(ZenLoad::MaterialGroup(mat)));
   owner.world().emitSoundEffect(buf,x,y,z,range,freeSlot ? nullptr : &animation.soundSlot);
   }
 
