@@ -24,7 +24,8 @@ class WorldObjects final {
 
     enum SearchFlg : uint8_t {
       NoFlg  =0,
-      NoDeath=1
+      NoDeath=1,
+      NoAngle=2
       };
 
     struct SearchOpt final {

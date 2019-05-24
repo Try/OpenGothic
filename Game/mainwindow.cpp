@@ -22,7 +22,7 @@ using namespace Tempest;
 
 MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),
-    draw(device,gothic),gothic(gothic),inventory(draw.storage()),dialogs(gothic,inventory),chapter(gothic),player(dialogs,inventory) {
+    draw(device,gothic),gothic(gothic),inventory(draw.storage()),dialogs(gothic,inventory),chapter(gothic),camera(gothic),player(dialogs,inventory) {
   for(uint8_t i=0;i<device.maxFramesInFlight();++i){
     fLocal.emplace_back(device);
     commandBuffersSemaphores.emplace_back(device);
@@ -188,6 +188,8 @@ void MainWindow::mouseDragEvent(MouseEvent &event) {
     spin.y=90;
   if(spin.y<-90)
     spin.y=-90;
+  if(currentFocus.npc)
+    return;
   camera.setSpin(spin);
   }
 
@@ -442,7 +444,7 @@ void MainWindow::tick() {
 
   if(player.tickMove(dt)) {
     if(auto pl=gothic.player())
-      camera.follow(*pl,!mouseP[Event::ButtonLeft] || currentFocus);
+      camera.follow(*pl,dt,!mouseP[Event::ButtonLeft] || currentFocus);
     } else {
     if(pressed[KeyEvent::K_Q])
       camera.rotateLeft();

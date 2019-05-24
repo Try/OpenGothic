@@ -63,6 +63,7 @@ class Gothic final {
     auto      getFightAi(size_t i) const -> const FightAi::FA&;
     auto      getMusicTheme(const char* name) -> const Daedalus::GEngineClasses::C_MusicTheme&;
     auto      getSoundScheme(const char* name) -> const Daedalus::GEngineClasses::C_SFX&;
+    auto      getCameraDef() const -> const CameraDefinitions&;
 
     void      printScreen(const char* msg, int x, int y, int time, const Tempest::Font &font);
     void      print      (const char* msg);

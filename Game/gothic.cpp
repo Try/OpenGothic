@@ -194,6 +194,10 @@ bool Gothic::aiIsDlgFinished() {
   return v;
   }
 
+const CameraDefinitions& Gothic::getCameraDef() const {
+  return *camera;
+  }
+
 const Daedalus::GEngineClasses::C_SFX& Gothic::getSoundScheme(const char *name) {
   return soundDef->getSfx(name);
   }

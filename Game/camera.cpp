@@ -1,12 +1,26 @@
 #include "camera.h"
 
 #include "game/playercontrol.h"
+#include "gothic.h"
 #include "world/world.h"
 
 using namespace Tempest;
 
+static float length(const std::array<float,3>& d){
+  return std::sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
+  }
+
+static float angleMod(float a){
+  a = std::fmod(a,360.f);
+  if(a<-180.f)
+    a+=360.f;
+  if(a>180.f)
+    a-=360.f;
+  return a;
+  }
+
 // TODO: System/Camera/CamInst.d
-Camera::Camera() {
+Camera::Camera(Gothic &gothic) : gothic(gothic) {
   spin.y    = 0;
   camPos[1] = 1000;
   }
@@ -58,56 +72,6 @@ void Camera::setSpin(const PointF &p) {
   spin = p;
   }
 
-static float length(const std::array<float,3>& d){
-  return std::sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
-  }
-
-Matrix4x4 Camera::view() const {
-  const float dist    = 375;
-  const float minDist = 55;
-
-  if(world==nullptr)
-    return mkView(dist);
-
-  const auto proj = world->view()->projective();
-
-  Matrix4x4 view=proj;//mkView(dist);
-  view.mul(mkView(dist));
-
-  Matrix4x4 vinv=view;
-  vinv.inverse();
-
-  float distMd = dist;
-  float u = 0,v=0;
-  std::array<float,3> r0={u,v,0.5};
-  std::array<float,3> r1={u,v,0};
-
-  vinv.project(r0[0],r0[1],r0[2]);
-  vinv.project(r1[0],r1[1],r1[2]);
-
-  r0=camPos;r0[1]+=180;
-
-  auto d = world->physic()->ray(r0[0],r0[1],r0[2], r1[0],r1[1],r1[2]).v;
-  //auto d = world->physic()->ray(camPos[0],camPos[1]+180,camPos[2], r1[0],r1[1],r1[2]);
-  d[0]-=r0[0];
-  d[1]-=r0[1];
-  d[2]-=r0[2];
-
-  r1[0]-=r0[0];
-  r1[1]-=r0[1];
-  r1[2]-=r0[2];
-
-  float dist0 = length(r1);
-  float dist1 = length(d);
-
-  float md = std::max(dist-std::max(0.f,dist0-dist1),minDist);
-  if(md<distMd)
-    distMd=md;
-
-  view=mkView(distMd);
-  return view;
-  }
-
 Matrix4x4 Camera::viewShadow(const std::array<float,3>& ldir) const {
   const float scale = 0.0008f;
   const float c = std::cos(spin.x*float(M_PI)/180.f), s = std::sin(spin.x*float(M_PI)/180.f);
@@ -157,17 +121,22 @@ Matrix4x4 Camera::viewShadow(const std::array<float,3>& ldir) const {
   }
 
 Matrix4x4 Camera::mkView(float dist) const {
-  const float scale=0.0008f;
+  const float scale=0.001f;
   Matrix4x4 view;
   view.identity();
   view.translate(0,0,dist*scale/zoom);
   view.rotate(spin.y, 1, 0, 0);
   view.rotate(spin.x, 0, 1, 0);
-  view.scale(scale);
-  view.translate(camPos[0],camPos[1]+180,camPos[2]);
+  view.scale(0.0007f);
+  view.translate(camPos[0],camPos[1]+200,camPos[2]);
   //view.translate(camPos[0],-camBone[1],camPos[2]);
   view.scale(-1,-1,-1);
   return view;
+  }
+
+const Daedalus::GEngineClasses::CCamSys &Camera::cameraDef() const {
+  auto& camd = gothic.getCameraDef();
+  return camd.stdCam();
   }
 
 void Camera::implMove(Tempest::Event::KeyType key) {
@@ -196,7 +165,17 @@ void Camera::implMove(Tempest::Event::KeyType key) {
     camPos[1] = world->physic()->dropRay(camPos[0],camPos[1],camPos[2]).y();
   }
 
-void Camera::follow(const Npc &npc,bool includeRot) {
+void Camera::setPosition(float x, float y, float z) {
+  camPos[0] = x;
+  camPos[1] = y;
+  camPos[2] = z;
+  }
+
+void Camera::follow(const Npc &npc,uint64_t dt,bool includeRot) {
+  const auto& def     = cameraDef();
+  const float dtF     = dt/1000.f;
+  const float maxDist = 100;
+
   if(hasPos){
     auto pos = npc.position();
     auto dx  = (pos[0]-camPos[0]);
@@ -205,7 +184,11 @@ void Camera::follow(const Npc &npc,bool includeRot) {
     auto len = std::sqrt(dx*dx+dy*dy+dz*dz);
 
     if(len>0.1f){
-      float k = 1.f;//std::min(1.f,20.f/len);
+      float tr = std::min(def.veloTrans*dtF*7.f,len);
+      if(len-tr>maxDist)
+        tr += (len-maxDist);
+
+      float k = tr/len;
       camPos[0] += dx*k;
       camPos[1] += dy*k;
       camPos[2] += dz*k;
@@ -215,25 +198,67 @@ void Camera::follow(const Npc &npc,bool includeRot) {
     hasPos = true;
     }
 
-  if(includeRot) {
-    spin.x = npc.rotation();
-    /*
-    float da   = (std::fmod(npc.rotation(),180.f) - std::fmod(spin.x,180.f));
-    float rot  = std::sin(da*float(M_PI)/180.f);
-    float diff = std::fabs(std::fmod(da,180.f))/4;
+  if(includeRot && def.rotate!=0) {
+    float angle = npc.rotation();
+    float da    = angleMod(spin.x-angle);
 
-    if(std::cos(rot)<0)
-      diff += 180;
+    float shift = def.veloRot*dtF*60.f; // my guess: speed is angle per frame
+    if(da<def.minAzimuth)
+      shift = +(def.minAzimuth-da);
+    if(da>def.maxAzimuth)
+      shift = -(def.maxAzimuth-da);
 
-    if(rot>0)
-      spin.x += diff; else // left
-    if(rot<0)
-      spin.x -= diff;  // right*/
+    if(da>0){
+      shift = -std::min(+da,shift);
+      } else {
+      shift = +std::min(-da,shift);
+      }
+    spin.x += shift;
     }
   }
 
-void Camera::setPosition(float x, float y, float z) {
-  camPos[0] = x;
-  camPos[1] = y;
-  camPos[2] = z;
+Matrix4x4 Camera::view() const {
+  const float dist    = 300;//375;
+  const float minDist = 65;//200;
+
+  if(world==nullptr)
+    return mkView(dist);
+
+  const auto proj = world->view()->projective();
+
+  Matrix4x4 view=proj;//mkView(dist);
+  view.mul(mkView(dist));
+
+  Matrix4x4 vinv=view;
+  vinv.inverse();
+
+  float distMd = dist;
+  float u = 0,v = 0;
+  std::array<float,3> r0={u,v,0.5};
+  std::array<float,3> r1={u,v,0};
+
+  vinv.project(r0[0],r0[1],r0[2]);
+  vinv.project(r1[0],r1[1],r1[2]);
+
+  r0=camPos;r0[1]+=180;
+
+  auto d = world->physic()->ray(r0[0],r0[1],r0[2], r1[0],r1[1],r1[2]).v;
+  //auto d = world->physic()->ray(camPos[0],camPos[1]+180,camPos[2], r1[0],r1[1],r1[2]);
+  d[0]-=r0[0];
+  d[1]-=r0[1];
+  d[2]-=r0[2];
+
+  r1[0]-=r0[0];
+  r1[1]-=r0[1];
+  r1[2]-=r0[2];
+
+  float dist0 = length(r1);
+  float dist1 = length(d);
+
+  float md = std::max(dist-std::max(0.f,dist0-dist1),minDist);
+  if(md<distMd)
+    distMd=md;
+
+  view=mkView(distMd);
+  return view;
   }

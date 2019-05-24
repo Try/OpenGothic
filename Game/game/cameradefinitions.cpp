@@ -6,6 +6,7 @@ CameraDefinitions::CameraDefinitions(Gothic &gothic) {
   auto vm = gothic.createVm(u"_work/Data/Scripts/_compiled/Camera.dat");
 
   camModDialog = loadCam(*vm,"CamModDialog");
+  camModNormal = loadCam(*vm,"CAMMODNORMAL");
   }
 
 Daedalus::GEngineClasses::CCamSys CameraDefinitions::loadCam(Daedalus::DaedalusVM& vm,const char *name) {

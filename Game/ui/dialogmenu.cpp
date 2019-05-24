@@ -11,7 +11,7 @@
 using namespace Tempest;
 
 DialogMenu::DialogMenu(Gothic &gothic, InventoryMenu &trade)
-  :gothic(gothic), trade(trade) {
+  :gothic(gothic), trade(trade), camera(gothic) {
   tex     = Resources::loadTexture("DLG_CHOICE.TGA");
   ambient = Resources::loadTexture("DLG_AMBIENT.TGA");
   setFocusPolicy(NoFocus);

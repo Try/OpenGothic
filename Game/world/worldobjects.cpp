@@ -274,8 +274,12 @@ Interactive* WorldObjects::findInteractive(const Npc &pl, Interactive* def, cons
 
 Npc* WorldObjects::findNpc(const Npc &pl, Npc *def, const Matrix4x4 &v, int w, int h, const SearchOpt& opt) {
   def = validateNpc(def);
-  if(def && testObjRange(*def,pl,opt))
-    return def;
+  if(def) {
+    auto xopt  = opt;
+    xopt.flags = SearchFlg(xopt.flags | SearchFlg::NoAngle);
+    if(def && testObjRange(*def,pl,xopt))
+      return def;
+    }
   auto r = findObj(npcArr,pl,v,w,h,opt);
   return r ? r->get() : nullptr;
   }
@@ -450,7 +454,7 @@ bool WorldObjects::testObjRange(T &src, const Npc &pl, const WorldObjects::Searc
     return false;
 
   auto angle=std::atan2(dz,dx);
-  if(std::cos(plAng-angle)<ang)
+  if(std::cos(plAng-angle)<ang && !bool(opt.flags&WorldObjects::NoAngle))
     return false;
 
   l = std::sqrt(dx*dx+dy*dy+dz*dz);
