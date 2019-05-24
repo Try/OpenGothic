@@ -391,7 +391,7 @@ class Npc final {
     Item*    currentMeleWeapon();
     Item*    currentRangeWeapon();
 
-    bool     lookAt(float dx, float dz, uint64_t dt);
+    bool     lookAt(float dx, float dz, bool anim, uint64_t dt);
 
     bool     checkGoToNpcdistance(const Npc& other);
     void     aiLookAt(Npc* other);

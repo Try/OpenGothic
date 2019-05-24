@@ -1540,8 +1540,8 @@ Item *Npc::currentRangeWeapon() {
   return invent.currentRangeWeapon();
   }
 
-bool Npc::lookAt(float dx, float dz, uint64_t dt) {
-  return implLookAt(dx,dz,true,dt);
+bool Npc::lookAt(float dx, float dz, bool anim, uint64_t dt) {
+  return implLookAt(dx,dz,anim,dt);
   }
 
 bool Npc::checkGoToNpcdistance(const Npc &other) {

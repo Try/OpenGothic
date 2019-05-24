@@ -258,7 +258,7 @@ void PlayerControl::implMove(uint64_t dt) {
       if(auto other = pl.target()) {
         float dx = other->position()[0]-pl.position()[0];
         float dz = other->position()[2]-pl.position()[2];
-        pl.lookAt(dx,dz,dt);
+        pl.lookAt(dx,dz,true,dt);
         rot = pl.rotation();
         }
       }
@@ -337,5 +337,17 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   pl.setAnim(ani);
+  if(ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR){
+    if(auto other = pl.target()){
+      if(other->isDown()){
+        pl.setOther(nullptr);
+        } else {
+        float dx = other->position()[0]-pl.position()[0];
+        float dz = other->position()[2]-pl.position()[2];
+        pl.lookAt(dx,dz,false,dt);
+        rot = pl.rotation();
+        }
+      }
+    }
   pl.setDirection(rot);
   }
