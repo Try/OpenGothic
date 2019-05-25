@@ -25,6 +25,7 @@
 #include "graphics/animation.h"
 #include "graphics/attachbinder.h"
 #include "physics/physicmeshshape.h"
+#include "dmusic/riff.h"
 
 #include "gothic.h"
 
@@ -302,9 +303,14 @@ Dx8::Segment *Resources::implLoadMusic(const std::string &name) {
   try {
     std::u16string p = gothic.path();
     p.append(name.begin(),name.end());
-    Tempest::RFile rd(p);
+    Tempest::RFile fin(p);
 
-    std::unique_ptr<Dx8::Segment> t{new Dx8::Segment(rd)};
+    std::vector<uint8_t> data(fin.size());
+    fin.read(reinterpret_cast<char*>(&data[0]),data.size());
+
+    Dx8::Riff riff{data.data(),data.size()};
+
+    std::unique_ptr<Dx8::Segment> t{new Dx8::Segment(riff)};
     Dx8::Segment* ret=t.get();
     musicCache[name] = std::move(t);
     return ret;
