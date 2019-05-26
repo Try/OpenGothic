@@ -1,12 +1,60 @@
 ### OpenGothic
-open source remake of Gothic2: Night of the raven.
+open source remake of Gothic 2: Night of the raven.
 
 ----
 ![Screenshoot](doc/scr0.png)
+##### Work in progress
+Core gameplay is done, you can complete first chapter as paladin; mercenary/mage are not tested yet.
+Chapter two  is not available for not, because oCTriggerChangeLevel not implemented
 
+##### How to play
+1. Install original gothic game from CD/Steam/GOG/etc
+*you have to install original game, since OpenGothic does not have any game assets or game scripts as built-in*
+2. Build OpenGothic from source
+3. run '/OpenGothic/bin/Gothic2Notr.exe -g "C:\Program Files (x86)\Path\To\Gothic II"'
 
----
-Work in progress
+##### Features
+* General
+    * Walk - Done
+    * Walk(in water) - Not Implemented
+    * Run - Done
+    * Sneak - Not Implemented
+    * Jump - Done
+    * Jump(pull-up) - Not Implemented
+    * Swimming - Not Implemented
+    * Physic - mostly Done, with Bullet collision. Need small tweaks/tuning
+* Loot
+    * Pick an object - Partial(no animation)
+    * Chest - Done
+    * Ransack a body - Done
+    * Object ownership/theft reaction - Not Implemented 
+* Dialogs
+    * Dialog script - Done
+    * Trading - Done ( only G2 style, sorry G1 fans )
+* Battle
+    * Hit box - Partial(same for everyone) 
+    * Melee combat - Done
+    * Range - Not Implemented
+    * Magic - Not Implemented
+* Visual
+    * Body animation - Done
+    * Head/Morph animation - Not Implemented
+    * Shadows - in progress
+    * Mob-use animations(seat/cook/sleep) - Partial
+* UI
+    * Inventory - Partial (no item priviews)
+    * Game menu/menu script - Done, except scrollbars
+    * Character info screen - done
+    * Quest log - Not Implemented 
+* Sound
+    * animation sfx/gfx - Done
+    * sound blockers - Done(but implementation is very simple)
+    * music - in progress
 
----
-[Daedalus scripts api](doc/script_api.md)
+##### Scripting
+Mostly done: [list of scripts api functions](doc/script_api.md)
+
+##### Command line arguments
+* -g specify gothic game catalog
+* -nomenu - skip main menu
+* -w <worldname.zen> - startup world; newworld.zen is default
