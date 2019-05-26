@@ -66,4 +66,5 @@ Return TRUE, if current game time is in range [S .. E) or [E .. S)
 * func void Wld_InsertNpc(var int npcInstance,var string spawnPoint)
 Inserts an C_Npc object in world, at 'spawnPoint' location
 * func void Wld_InsertNpcAndRespawn(var int instance,var string spawnPoint,var float spawnDelay)
-![!](doc/ni.png) Not implemented. Seems to be unused in original game
+
+![!](ni.png) Not implemented. Seems to be unused in original game
