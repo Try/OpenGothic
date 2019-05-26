@@ -43,6 +43,7 @@ Return instance-id of item
 ### npc api
 * func int Npc_GetStateTime(var C_Npc npc)
 Return how much time 'npc' spent in current state
+
 * func void Npc_SetStateTime(var C_Npc npc,var int seconds)
 Overrides state-time for 'npc'
 
@@ -58,13 +59,64 @@ Example:
 * func void AI_Wait(var C_Npc npc,var float s)
 Wait for 's' seconds
 
+* func void AI_PlayAni(var C_Npc npc,var string anim)
+play animation 'anim', for 'npc'.
+
+* func void AI_StandUp(var C_Npc npc)
+dettach 'npc' from MOBSI object.
+![!](ni.png) it's not clear how exactly this function should work
+
+* func void AI_StandUpQuick(var C_Npc npc)
+same as AI_StandUp, but skips animation
+
+* func void AI_Quicklook(var C_Npc npc,var C_Npc other)
+turn head of 'npc' to 'other', for a two seconds
+![!](ni.png) Not implemented.
+
+* func void AI_LookAt(var C_Npc npc,var string name)
+'npc' starts look to point with name='name'
+![!](ni.png) Not implemented.
+
+* func void AI_LookAtNpc(var C_Npc npc,var C_Npc other)
+'npc' starts look to 'other'
+
+* func void AI_StopLookAt(var C_Npc npc)
+'npc' stops looking to npc/point
+
+* func void AI_PointAt(var C_Npc npc,var string name)
+![!](ni.png) Not implemented.
+
+* func void AI_PointAtNpc(var C_Npc npc,var C_Npc other)
+![!](ni.png) Not implemented.
+
+* func void AI_StopPointAt(var C_Npc npc)
+![!](ni.png) Not implemented.
+
+* func void AI_TakeItem(var C_Npc npc, var C_Item item) 
+![!](ni.png) Not implemented.
+
+* func void AI_DropItem(var C_Npc npc, var int itemid) 
+![!](ni.png) Not implemented.
+
+* func void AI_UseItem(var C_Npc npc,var int itemInstance)
+use item of class 'itemInstance'. Nop, if 'npc' doesn't have any of 'itemInstance' items.
+
+* func void AI_UseItemToState(var C_Npc npc,var int itemInstance,var int state);
+![!](ni.png) Not implemented.
+
+* func void AI_UseMob(var C_Npc npc,var string schemeName,var int targetState)
+'npc' stats using MOBSIS with scheme 'schemeName', if MOBSIS is not busy
+
 ### world api
 * func int Wld_GetDay()
 Return days from start of adventure, starting from zero.
+
 * func int Wld_IsTime (var int hourS,var int minS,var int hourE,var int minE)
 Return TRUE, if current game time is in range [S .. E) or [E .. S)
+
 * func void Wld_InsertNpc(var int npcInstance,var string spawnPoint)
 Inserts an C_Npc object in world, at 'spawnPoint' location
-* func void Wld_InsertNpcAndRespawn(var int instance,var string spawnPoint,var float spawnDelay)
 
+* func void Wld_InsertNpcAndRespawn(var int instance,var string spawnPoint,var float spawnDelay)
 ![!](ni.png) Not implemented. Seems to be unused in original game
+* 
