@@ -2,10 +2,11 @@
 open source remake of Gothic2: Night of the raven.
 
 ----
-![Screenshoot](https://raw.githubusercontent.com/Try/OpenGothic/master/doc/scr0.png)
+![Screenshoot](blob/master/doc/scr0.png)
 
 
 ---
-Daedalus scripts api
-[a relative link](doc/other_file.md)
+Work in progress
 
+---
+[Daedalus scripts api](blob/master/doc/script_api.md)
