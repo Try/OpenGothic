@@ -333,6 +333,8 @@ class Npc final {
     void swingSwordR();
     void blockSword();
     bool castSpell();
+    bool aimBow();
+    bool shootBow();
 
     bool isEnemy(const Npc& other) const;
     bool isDead() const;

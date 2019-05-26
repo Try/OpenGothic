@@ -767,7 +767,8 @@ bool Npc::implLookAt(const Npc &oth, uint64_t dt) {
 
 bool Npc::implLookAt(float dx, float dz, bool anim, uint64_t dt) {
   auto  gl   = std::min<uint32_t>(guild(),GIL_MAX);
-  float step = owner.guildVal().turn_speed[gl]*(dt/1000.f);
+  //float step = owner.guildVal().turn_speed[gl]*(dt/1000.f);
+  float step = owner.guildVal().turn_speed[gl]*(dt/1000.f)*60.f/100.f;
 
   float a    = angleDir(dx,dz);
   float da   = a-angle;
@@ -812,7 +813,7 @@ bool Npc::implGoTo(uint64_t dt) {
     //float dy = y-currentGoTo->position.y;
     float dz = currentGoTo->z-z;
 
-    if(implLookAt(dx,dz,true,dt)){
+    if(implLookAt(dx,dz,walkMode()!=WalkBit::WM_Run,dt)){
       mvAlgo.aiGoTo(nullptr);
       return true;
       }
@@ -1731,6 +1732,23 @@ bool Npc::castSpell() {
       break;
     }
   return true;
+  }
+
+bool Npc::aimBow() {
+  auto active=invent.activeWeapon();
+  if(active==nullptr)
+    return false;
+  auto weaponSt=invent.weaponState();
+  return setAnim(Anim::AimBow,weaponSt,weaponSt);
+  }
+
+bool Npc::shootBow() {
+  auto active=invent.activeWeapon();
+  if(active==nullptr)
+    return false;
+  auto weaponSt=invent.weaponState();
+  return setAnim(Anim::Atack,weaponSt,weaponSt);
+//  return setAnim(Anim::AimBow,weaponSt,weaponSt);
   }
 
 bool Npc::isEnemy(const Npc &other) const {
