@@ -5,7 +5,7 @@ open source remake of Gothic 2: Night of the raven.
 ![Screenshoot](doc/scr0.png)
 ##### Work in progress
 Core gameplay is done, you can complete first chapter as paladin; mercenary/mage are not tested yet.
-Chapter two  is not available for not, because oCTriggerChangeLevel not implemented
+Chapter two is not available for now, because oCTriggerChangeLevel not implemented.
 
 ##### How to play
 1. Install original gothic game from CD/Steam/GOG/etc
