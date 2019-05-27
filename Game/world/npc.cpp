@@ -875,9 +875,7 @@ bool Npc::implAtack(uint64_t dt) {
       return true;
     }
 
-  FightAlgo::Action act=FightAlgo::MV_MOVE;
-  if(currentTarget!=nullptr)
-    act=fghAlgo.tick(*this,*currentTarget,owner,dt);
+  FightAlgo::Action act = fghAlgo.tick(*this,*currentTarget,owner,dt);
 
   if(act==FightAlgo::MV_BLOCK) {
     if(setAnim(Anim::AtackBlock))
@@ -885,31 +883,28 @@ bool Npc::implAtack(uint64_t dt) {
     return true;
     }
 
-  if(act==FightAlgo::MV_ATACK) {
-    if(doAttack(Anim::Atack))
+  if(act==FightAlgo::MV_ATACK || act==FightAlgo::MV_ATACKL || act==FightAlgo::MV_ATACKR) {
+    static const Anim ani[3]={Anim::Atack,Anim::AtackL,Anim::AtackR};
+    if(act!=FightAlgo::MV_ATACK && !fghAlgo.isInAtackRange(*this,*currentTarget,owner)){
       fghAlgo.consumeAction();
-    return true;
-    }
-
-  if(act==FightAlgo::MV_ATACKL) {
-    if(doAttack(Anim::AtackL))
-      fghAlgo.consumeAction();
-    return true;
-    }
-
-  if(act==FightAlgo::MV_ATACKR) {
-    if(doAttack(Anim::AtackR))
+      return true;
+      }
+    if(doAttack(ani[act-FightAlgo::MV_ATACK]))
       fghAlgo.consumeAction();
     return true;
     }
 
   if(act==FightAlgo::MV_STRAFEL) {
+    if(implLookAt(*currentTarget,dt))
+      return true;
     if(setAnim(Npc::Anim::MoveL))
       fghAlgo.consumeAction();
     return true;
     }
 
   if(act==FightAlgo::MV_STRAFER) {
+    if(implLookAt(*currentTarget,dt))
+      return true;
     if(setAnim(Npc::Anim::MoveR))
       fghAlgo.consumeAction();
     return true;
