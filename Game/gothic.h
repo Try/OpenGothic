@@ -22,7 +22,8 @@ class Gothic final {
     enum class LoadState:int {
       Idle    =0,
       Loading =1,
-      Finalize=2
+      Finalize=2,
+      Failed  =3
       };
 
     bool isGothic2() const;

@@ -50,9 +50,7 @@ RendererStorage::RendererStorage(Tempest::Device &device)
   layoutSky.add(2,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
   }
 
-void RendererStorage::initPipeline(Tempest::RenderPass &pass,uint32_t w, uint32_t h) {
-  if((pLand.w()==w && pLand.h()==h) || w==0 || h==0)
-    return;
+void RendererStorage::initPipeline(Tempest::RenderPass &pass) {
   renderPass=&pass;
 
   RenderState stateAlpha;
@@ -73,25 +71,24 @@ void RendererStorage::initPipeline(Tempest::RenderPass &pass,uint32_t w, uint32_
   stateSky.setZTestMode   (RenderState::ZTestMode::LEqual);
   stateSky.setCullFaceMode(RenderState::CullMode::Front);
   
-  pSky       = device.pipeline<Resources::VertexFsq>(pass,w,h,Triangles,stateSky,layoutSky,vsSky,    fsSky    );
+  pSky       = device.pipeline<Resources::VertexFsq>(Triangles,stateSky,layoutSky,vsSky,    fsSky    );
   
-  pLandAlpha = device.pipeline<Resources::Vertex>   (pass,  w,h,Triangles,stateAlpha,layoutLnd,land.vs,land.fs);
-  pLand      = device.pipeline<Resources::Vertex>   (pass,  w,h,Triangles,stateLnd,  layoutLnd,land.vs,land.fs);
+  pLandAlpha = device.pipeline<Resources::Vertex>   (Triangles,stateAlpha,layoutLnd,land.vs,land.fs);
+  pLand      = device.pipeline<Resources::Vertex>   (Triangles,stateLnd,  layoutLnd,land.vs,land.fs);
 
-  pObject    = device.pipeline<Resources::Vertex>   (pass,w,h,Triangles,stateObj,layoutObj,object.vs,object.fs);
-  pAnim      = device.pipeline<Resources::VertexA>  (pass,w,h,Triangles,stateObj,layoutAni,ani.vs,   ani.fs   );
+  pObject    = device.pipeline<Resources::Vertex>   (Triangles,stateObj,layoutObj,object.vs,object.fs);
+  pAnim      = device.pipeline<Resources::VertexA>  (Triangles,stateObj,layoutAni,ani.vs,   ani.fs   );
+
+  initShadow();
   }
 
-void RendererStorage::initShadow(RenderPass &shadow, uint32_t w, uint32_t h) {
-  if((pLandSh.w()==w && pLandSh.h()==h) || w==0 || h==0)
-    return;
-
+void RendererStorage::initShadow() {
   RenderState state;
   state.setZTestMode   (RenderState::ZTestMode::Less);
   state.setCullFaceMode(RenderState::CullMode::Back);
   //state.setCullFaceMode(RenderState::CullMode::Front);
 
-  pLandSh    = device.pipeline<Resources::Vertex> (shadow,w,h,Triangles,state,layoutLnd,land.vsShadow,  land.fsShadow  );
-  pObjectSh  = device.pipeline<Resources::Vertex> (shadow,w,h,Triangles,state,layoutObj,object.vsShadow,object.fsShadow);
-  pAnimSh    = device.pipeline<Resources::VertexA>(shadow,w,h,Triangles,state,layoutAni,ani.vsShadow,   ani.fsShadow   );
+  pLandSh    = device.pipeline<Resources::Vertex> (Triangles,state,layoutLnd,land.vsShadow,  land.fsShadow  );
+  pObjectSh  = device.pipeline<Resources::Vertex> (Triangles,state,layoutObj,object.vsShadow,object.fsShadow);
+  pAnimSh    = device.pipeline<Resources::VertexA>(Triangles,state,layoutAni,ani.vsShadow,   ani.fsShadow   );
   }

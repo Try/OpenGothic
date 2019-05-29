@@ -94,8 +94,8 @@ class MainWindow : public Tempest::Window {
 
     std::vector<FrameLocal>             fLocal;
 
-    std::vector<Tempest::CommandBuffer> commandDynamic;
-    std::vector<Tempest::Semaphore>     commandBuffersSemaphores;
+    std::vector<Tempest::PrimaryCommandBuffer> commandDynamic;
+    std::vector<Tempest::Semaphore>            commandBuffersSemaphores;
 
     std::vector<Tempest::FrameBuffer>   fboUi;
 

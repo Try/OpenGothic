@@ -9,8 +9,7 @@ class RendererStorage {
   public:
     RendererStorage(Tempest::Device& device);
 
-    void initPipeline(Tempest::RenderPass &pass, uint32_t w, uint32_t h);
-    void initShadow(Tempest::RenderPass &shadow, uint32_t w, uint32_t h);
+    void initPipeline(Tempest::RenderPass &pass);
 
     Tempest::Device&        device;
     Tempest::RenderPipeline pLand, pLandAlpha, pObject, pAnim, pSky;
@@ -35,4 +34,6 @@ class RendererStorage {
 
     Tempest::Shader         vsSky,fsSky;
     Material                land, object, ani;
+
+    void initShadow();
   };

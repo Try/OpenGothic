@@ -29,8 +29,8 @@ class WorldView {
     bool needToUpdateCmd() const;
     void updateCmd (const World &world, const Tempest::Texture2d &shadow, const Tempest::RenderPass &shadowPass);
     void updateUbo (const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4 &shadow, uint32_t imgId);
-    void drawShadow(Tempest::CommandBuffer &cmd, Tempest::FrameBuffer &fbo, const Tempest::RenderPass &pass, uint32_t imgId);
-    void draw      (Tempest::CommandBuffer &cmd, Tempest::FrameBuffer &fbo, const Tempest::RenderPass &pass, uint32_t imgId);
+    void drawShadow(Tempest::PrimaryCommandBuffer &cmd, Tempest::FrameBuffer &fbo, const Tempest::RenderPass &pass, uint32_t imgId);
+    void draw      (Tempest::PrimaryCommandBuffer &cmd, Tempest::FrameBuffer &fbo, const Tempest::RenderPass &pass, uint32_t imgId);
     void resetCmd  ();
 
     StaticObjects::Mesh getView      (const std::string& visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
@@ -55,6 +55,8 @@ class WorldView {
     bool                    nToUpdateCmd=true;
 
     Tempest::Matrix4x4      proj;
+    uint32_t                vpWidth=0;
+    uint32_t                vpHeight=0;
 
     struct StaticObj {
       StaticObjects::Mesh mesh;

@@ -322,7 +322,10 @@ void MainWindow::tick() {
     setGameImpl(std::move(loaderSession));
     gothic.finishLoading();
     }
-  if(st!=Gothic::LoadState::Idle) {
+  else if(st==Gothic::LoadState::Failed) {
+    Log::i("");
+    }
+  else if(st!=Gothic::LoadState::Idle) {
     return;
     }
 
@@ -359,10 +362,13 @@ void MainWindow::tick() {
       clearInput();
       }
 
+    /*
     if(!pressed[KeyEvent::K_W] && !pressed[KeyEvent::K_S] && !pressed[KeyEvent::K_A] && !pressed[KeyEvent::K_D]){
       if(focus.npc)
         player.actionFocus(*focus.npc);
-      }
+      }*/
+    if(focus.npc)
+      player.actionFocus(*focus.npc);
     }
   if(pressed[KeyEvent::K_F8])
     player.marvinF8();
@@ -543,16 +549,17 @@ void MainWindow::render(){
   try {
     static uint64_t time=Application::tickCount();
 
-    auto& context=fLocal[device.frameId()];
+    auto&          context   =fLocal[device.frameId()];
     Semaphore&     renderDone=commandBuffersSemaphores[device.frameId()];
-    CommandBuffer& cmd       =commandDynamic[device.frameId()];
+    PrimaryCommandBuffer& cmd=commandDynamic[device.frameId()];
 
     if(dialogs.isActive())
       draw.setCameraView(dialogs.dialogCamera()); else
       draw.setCameraView(camera);
 
     if(!gothic.isPause())
-      gothic.updateAnimation();
+      gothic.updateAnimation(); else
+      Tempest::Application::sleep(5);
 
     context.gpuLock.wait();
 
@@ -576,7 +583,7 @@ void MainWindow::render(){
 
     if(1) {
       cmd.setPass(fboUi[imgId],uiPass);
-      surface.draw(device,cmd,uiPass);
+      surface.draw(device,cmd);
       }
     cmd.end();
 

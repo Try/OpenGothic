@@ -1,5 +1,6 @@
 #include "gothic.h"
 
+#include <Tempest/Log>
 #include <zenload/zCMesh.h>
 #include <cstring>
 
@@ -111,8 +112,10 @@ Gothic::LoadState Gothic::checkLoading() {
   }
 
 bool Gothic::finishLoading() {
-  auto two=LoadState::Finalize;
-  if(loadingFlag.compare_exchange_strong(two,LoadState::Idle)){
+  auto state = checkLoading();
+  if(state!=LoadState::Finalize && state!=LoadState::Failed)
+    return false;
+  if(loadingFlag.compare_exchange_strong(state,LoadState::Idle)){
     loaderTh.join();
     return true;
     }
@@ -126,9 +129,15 @@ void Gothic::startLoading(const std::function<void()> f) {
     }
 
   auto l = std::thread([this,f](){
-    f();
     auto one=LoadState::Loading;
-    loadingFlag.compare_exchange_strong(one,LoadState::Finalize);
+    try {
+      f();
+      loadingFlag.compare_exchange_strong(one,LoadState::Finalize);
+      }
+    catch(std::bad_alloc&){
+      Tempest::Log::e("loading error: out of memory");
+      loadingFlag.compare_exchange_strong(one,LoadState::Failed);
+      }
     });
   loaderTh=std::move(l);
   }

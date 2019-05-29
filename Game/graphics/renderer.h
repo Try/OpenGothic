@@ -25,8 +25,8 @@ class Renderer final {
     void setCameraView(const Camera &camera);
     bool needToUpdateCmd();
     void updateCmd();
-    void draw(Tempest::CommandBuffer& cmd, uint32_t imgId, const Gothic& gothic);
-    void draw(Tempest::CommandBuffer& cmd, uint32_t imgId, InventoryMenu& inv);
+    void draw(Tempest::PrimaryCommandBuffer &cmd, uint32_t imgId, const Gothic& gothic);
+    void draw(Tempest::PrimaryCommandBuffer &cmd, uint32_t imgId, InventoryMenu& inv);
 
     const RendererStorage&            storage() const { return stor; }
 

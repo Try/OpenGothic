@@ -22,6 +22,8 @@ WorldView::~WorldView() {
 
 void WorldView::initPipeline(uint32_t w, uint32_t h) {
   proj.perspective(45.0f, float(w)/float(h), 0.05f, 100.0f);
+  vpWidth  = w;
+  vpHeight = h;
   nToUpdateCmd=true;
   }
 
@@ -53,9 +55,9 @@ void WorldView::updateCmd(const World &world,const Tempest::Texture2d& shadow,co
 void WorldView::updateUbo(const Matrix4x4& view,const Tempest::Matrix4x4 &shadow,uint32_t imgId) {
   auto viewProj=this->viewProj(view);
 
-  sky     .setMatrix   (imgId,viewProj);
-  land    .setMatrix   (imgId,viewProj,shadow);
-  land    .setLight(sun.dir());
+  sky .setMatrix(imgId,viewProj);
+  land.setMatrix(imgId,viewProj,shadow);
+  land.setLight(sun.dir());
 
   vobGroup.setModelView(viewProj,shadow);
   vobGroup.setLight    (sun.dir());
@@ -68,19 +70,17 @@ void WorldView::updateUbo(const Matrix4x4& view,const Tempest::Matrix4x4 &shadow
   itmGroup.updateUbo   (imgId);
   }
 
-void WorldView::drawShadow(CommandBuffer &cmd, FrameBuffer &fbo,const RenderPass &pass, uint32_t /*imgId*/) {
+void WorldView::drawShadow(PrimaryCommandBuffer &cmd, FrameBuffer &fbo,const RenderPass &pass, uint32_t /*imgId*/) {
   if(!cmdShadow.empty()) {
     const uint32_t fId=storage.device.frameId();
-    cmd.setSecondaryPass(fbo,pass);
-    cmd.exec(cmdShadow[fId]);
+    cmd.exec(fbo,pass,cmdShadow[fId]);
     }
   }
 
-void WorldView::draw(CommandBuffer &cmd, FrameBuffer &fbo, const RenderPass &pass, uint32_t /*imgId*/) {
+void WorldView::draw(PrimaryCommandBuffer &cmd, FrameBuffer &fbo, const RenderPass &pass, uint32_t /*imgId*/) {
   if(!cmdMain.empty()) {
     const uint32_t fId=storage.device.frameId();
-    cmd.setSecondaryPass(fbo,pass);
-    cmd.exec(cmdMain[fId]);
+    cmd.exec(fbo,pass,cmdMain[fId]);
     }
   }
 
@@ -147,13 +147,14 @@ void WorldView::prebuiltCmdBuf(const World &world,const Texture2d& shadowMap,con
     land    .commitUbo(i,shadowMap);
     vobGroup.commitUbo(i,shadowMap);
     objGroup.commitUbo(i,shadowMap);
+
     itmGroup.commitUbo(i,shadowMap);
     }
 
   for(size_t i=0;i<count;++i) {
-    auto cmd=device.commandSecondaryBuffer();
+    auto cmd=device.commandSecondaryBuffer(shadowPass,shadowMap.w(),shadowMap.h());
 
-    cmd.begin(shadowPass);
+    cmd.begin();
     land    .drawShadow(cmd,i);
     vobGroup.drawShadow(cmd,i);
     objGroup.drawShadow(cmd,i);
@@ -163,9 +164,9 @@ void WorldView::prebuiltCmdBuf(const World &world,const Texture2d& shadowMap,con
     }
 
   for(size_t i=0;i<count;++i) {
-    auto cmd=device.commandSecondaryBuffer();
+    auto cmd=device.commandSecondaryBuffer(storage.pass(),vpWidth,vpHeight);
 
-    cmd.begin(storage.pass());
+    cmd.begin();
     land    .draw(cmd,i);
     vobGroup.draw(cmd,i);
     objGroup.draw(cmd,i);

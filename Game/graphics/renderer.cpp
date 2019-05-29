@@ -52,9 +52,7 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
     fbo3d.emplace_back(device.frameBuffer(frame,zbuffer,mainPass));
     }
 
-  stor.initPipeline(mainPass,w,h);
-  stor.initShadow  (shadowPass,smSize,smSize);
-  //stor.initShadow  (mainPass,w,h);
+  stor.initPipeline(mainPass);
   if(auto wview=gothic.worldView())
     wview->initPipeline(w,h);
   }
@@ -86,7 +84,7 @@ void Renderer::updateCmd() {
     }
   }
 
-void Renderer::draw(CommandBuffer &cmd, uint32_t imgId, const Gothic &gothic) {
+void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, const Gothic &gothic) {
   FrameBuffer& fboFr = fbo3d[imgId];
 
   if(auto wview=gothic.worldView()) {
@@ -94,6 +92,7 @@ void Renderer::draw(CommandBuffer &cmd, uint32_t imgId, const Gothic &gothic) {
     wview->updateUbo(view,shadow,device.frameId());
 
     wview->drawShadow(cmd,fboShadow,shadowPass,imgId);
+    //cmd.changeLayout (shadowMap,TextureLayout::Sampler,TextureLayout::ColorAttach);
     wview->draw      (cmd,fboFr,storage().pass(),imgId);
 
     //wview->drawShadow(cmd,fboFr,storage().pass(),imgId);
@@ -102,7 +101,7 @@ void Renderer::draw(CommandBuffer &cmd, uint32_t imgId, const Gothic &gothic) {
     }
   }
 
-void Renderer::draw(CommandBuffer &cmd, uint32_t imgId, InventoryMenu &inventory) {
+void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, InventoryMenu &inventory) {
   FrameBuffer& fbo = fbo3d[imgId];
 
   cmd.setPass(fbo,storage().pass());
