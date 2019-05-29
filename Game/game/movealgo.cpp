@@ -358,7 +358,7 @@ void MoveAlgo::setPos(std::array<float,3> pos,uint64_t dt,float speed) {
       pos[2]+=fallSpeed[2]*timeK;
       }
 
-    if(!npc.tryMove(pos,0.0f)) {
+    if(!npc.tryMove(pos,speed)) {
       fallAni=false;
       slideAni=false;
       nFall=false;

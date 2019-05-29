@@ -127,7 +127,7 @@ Matrix4x4 Camera::mkView(float dist) const {
   view.translate(0,0,dist*scale/zoom);
   view.rotate(spin.y, 1, 0, 0);
   view.rotate(spin.x, 0, 1, 0);
-  view.scale(0.0007f);
+  view.scale(0.0009f);
   view.translate(camPos[0],camPos[1]+200,camPos[2]);
   //view.translate(camPos[0],-camBone[1],camPos[2]);
   view.scale(-1,-1,-1);
@@ -182,9 +182,11 @@ void Camera::follow(const Npc &npc,uint64_t dt,bool includeRot) {
     auto dy  = (pos[1]-camPos[1]);
     auto dz  = (pos[2]-camPos[2]);
     auto len = std::sqrt(dx*dx+dy*dy+dz*dz);
+    dist += (len/100.f);
 
+    /*
     if(len>0.1f){
-      float tr = std::min(def.veloTrans*dtF*7.f,len);
+      float tr = std::min(def.veloTrans*dtF,len);
       if(len-tr>maxDist)
         tr += (len-maxDist);
 
@@ -192,10 +194,24 @@ void Camera::follow(const Npc &npc,uint64_t dt,bool includeRot) {
       camPos[0] += dx*k;
       camPos[1] += dy*k;
       camPos[2] += dz*k;
-      }
+      }*/
+    camPos = pos;
     } else {
     camPos = npc.position();
     hasPos = true;
+    }
+
+  if(dist<def.minRange)
+    dist = def.minRange;
+  if(dist>def.maxRange)
+    dist = def.maxRange;
+
+  if(def.translate){
+    float dd = std::fabs(def.bestRange-dist);
+    dd = std::min(dd,def.veloTrans*dtF *0.01f);
+    if(def.bestRange<dist)
+      dd = -dd;
+    dist+=dd;
     }
 
   if(includeRot && def.rotate!=0) {
@@ -217,8 +233,9 @@ void Camera::follow(const Npc &npc,uint64_t dt,bool includeRot) {
     }
   }
 
+//5sec
 Matrix4x4 Camera::view() const {
-  const float dist    = 300;//375;
+  const float dist    = this->dist*100.f;//300;//375;
   const float minDist = 65;//200;
 
   if(world==nullptr)

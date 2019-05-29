@@ -77,10 +77,10 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("hlp_random",          [this](Daedalus::DaedalusVM& vm){ hlp_random(vm);         });
   vm.registerExternalFunction("hlp_strcmp",          &WorldScript::hlp_strcmp                                   );
   vm.registerExternalFunction("hlp_isvalidnpc",      [this](Daedalus::DaedalusVM& vm){ hlp_isvalidnpc(vm);     });
-  vm.registerExternalFunction("hlp_getinstanceid",   [this](Daedalus::DaedalusVM& vm){ hlp_getinstanceid(vm);  });
-  vm.registerExternalFunction("hlp_getnpc",          [this](Daedalus::DaedalusVM& vm){ hlp_getnpc(vm);         });
   vm.registerExternalFunction("hlp_isvaliditem",     [this](Daedalus::DaedalusVM& vm){ hlp_isvaliditem(vm);    });
   vm.registerExternalFunction("hlp_isitem",          [this](Daedalus::DaedalusVM& vm){ hlp_isitem(vm);         });
+  vm.registerExternalFunction("hlp_getnpc",          [this](Daedalus::DaedalusVM& vm){ hlp_getnpc(vm);         });
+  vm.registerExternalFunction("hlp_getinstanceid",   [this](Daedalus::DaedalusVM& vm){ hlp_getinstanceid(vm);  });
 
   vm.registerExternalFunction("wld_insertnpc",       [this](Daedalus::DaedalusVM& vm){ wld_insertnpc(vm);  });
   vm.registerExternalFunction("wld_insertitem",      [this](Daedalus::DaedalusVM& vm){ wld_insertitem(vm); });
@@ -2396,13 +2396,23 @@ void WorldScript::createinvitems(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::hlp_getinstanceid(Daedalus::DaedalusVM &vm) {
-  auto self = popInstance(vm);
+  uint32_t arr_self = 0;
+  uint32_t idx      = vm.popVar(arr_self);
+  auto     self     = getNpcById(idx);
 
   if(self!=nullptr){
     auto v = *(self->handle());
     vm.setReturn(int32_t(v.instanceSymbol));
     return;
     }
+
+  auto item = getItemById(idx);
+  if(item!=nullptr){
+    auto v = *(item->handle());
+    vm.setReturn(int32_t(v.instanceSymbol));
+    return;
+    }
+
   vm.setReturn(-1);
   }
 
