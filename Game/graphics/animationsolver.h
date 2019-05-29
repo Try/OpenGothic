@@ -105,6 +105,7 @@ class AnimationSolver final {
       StumbleA,
       StumbleB,
       GotHit,
+      AimBow,
 
       MagNoMana,
       MagFib,

@@ -194,7 +194,7 @@ void PlayerControl::implMove(uint64_t dt) {
   Npc&  pl     = *world->player();
   float rot    = pl.rotation();
   auto  gl     = std::min<uint32_t>(pl.guild(),GIL_MAX);
-  float rspeed = world->script()->guildVal().turn_speed[gl]*(dt/1000.f);
+  float rspeed = world->script()->guildVal().turn_speed[gl]*(dt/1000.f)*60.f/100.f;
 
   Npc::Anim ani=Npc::Anim::Idle;
 
@@ -260,6 +260,11 @@ void PlayerControl::implMove(uint64_t dt) {
         float dz = other->position()[2]-pl.position()[2];
         pl.lookAt(dx,dz,true,dt);
         rot = pl.rotation();
+
+        if(pl.weaponState()==WeaponState::Bow){
+          pl.aimBow();
+          return;
+          }
         }
       }
     if(ctrl[ActForward]) {
@@ -271,6 +276,10 @@ void PlayerControl::implMove(uint64_t dt) {
       if(ws==WeaponState::W1H || ws==WeaponState::W2H) {
         pl.swingSword();
         return;
+        }
+      if(ws==WeaponState::Bow) {
+        if(pl.shootBow())
+          return;
         }
       if(ws==WeaponState::Mage) {
         if(pl.castSpell())

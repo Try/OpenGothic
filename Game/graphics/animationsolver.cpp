@@ -272,6 +272,17 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
         }
       }
     }
+  else if(st==WeaponState::Bow){
+    if(a==Anim::AimBow && cur!=Anim::AimBow)
+      return animSequence("T_BOWRUN_2_BOWAIM");
+    if(a!=Anim::AimBow && cur==Anim::AimBow)
+      return animSequence("T_BOWAIM_2_BOWRUN");
+    if(a==Anim::AimBow)
+      return animSequence("S_BOWSHOOT");
+
+    if(a==Anim::Atack)
+      return animSequence("S_BOWSHOOT");
+    }
 
   if((cur==Anim::Idle || cur==Anim::NoAnim) && a==Anim::Idle){
     if(bool(wlkMode&WalkBit::WM_Walk))
