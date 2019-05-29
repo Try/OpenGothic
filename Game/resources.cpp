@@ -78,16 +78,12 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
     });
 
   // addon archives first!
-  std::sort(archives.begin(),archives.end(),[](const std::u16string& ua,const std::u16string& ub){
-    std::string a(ua.begin(),ua.end()); //FIXME: unicode
-    std::string b(ub.begin(),ub.end()); //FIXME: unicode
+  std::sort(archives.begin(),archives.end(),[](const std::u16string& a,const std::u16string& b){
     return VDFS::FileIndex::getLastModTime(a) > VDFS::FileIndex::getLastModTime(b);
     });
 
-  for(auto& i:archives) {
-    std::string acii(i.begin(),i.end()); //FIXME: unicode
-    gothicAssets.loadVDF(acii);
-    }
+  for(auto& i:archives)
+    gothicAssets.loadVDF(i);
   gothicAssets.finalizeLoad();
   }
 
@@ -115,12 +111,6 @@ const Texture2d& Resources::fallbackTexture() {
 
 VDFS::FileIndex& Resources::vdfsIndex() {
   return inst->gothicAssets;
-  }
-
-void Resources::addVdf(const char16_t *vdf) {
-  auto path = gothic.path() + vdf;
-  std::string acii(path.begin(),path.end()); //FIXME: unicode
-  gothicAssets.loadVDF(acii);
   }
 
 Tempest::Texture2d* Resources::implLoadTexture(std::string name) {

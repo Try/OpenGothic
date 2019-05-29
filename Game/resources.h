@@ -106,7 +106,6 @@ class Resources {
       Dynamic
       };
 
-    void                  addVdf(const char16_t *vdf);
     Tempest::Texture2d*   implLoadTexture(std::string name);
     Tempest::Texture2d*   implLoadTexture(std::string &&name, const std::vector<uint8_t> &data);
     ProtoMesh*            implLoadMesh(const std::string &name);
