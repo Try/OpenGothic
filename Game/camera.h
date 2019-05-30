@@ -41,7 +41,7 @@ class Camera final {
     std::array<float,3>   camBone={};
     Tempest::PointF       spin;
     float                 zoom=1.f;
-    float                 dist=0.f;
+    float                 dist=3.f;
 
     const World*          world=nullptr;
     bool                  hasPos=false;
