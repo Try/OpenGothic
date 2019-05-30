@@ -14,7 +14,7 @@ class World;
 
 class InventoryMenu : public Tempest::Widget {
   public:
-    InventoryMenu(const RendererStorage &storage);
+    InventoryMenu(Gothic& gothic,const RendererStorage &storage);
 
     enum class State:uint8_t {
       Closed=0,
@@ -59,6 +59,7 @@ class InventoryMenu : public Tempest::Widget {
     struct TradePage;
     struct RansackPage;
 
+    Gothic&                   gothic;
     const Tempest::Texture2d* tex =nullptr;
     const Tempest::Texture2d* slot=nullptr;
     const Tempest::Texture2d* selT=nullptr;

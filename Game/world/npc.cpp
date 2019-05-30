@@ -299,11 +299,23 @@ bool Npc::checkHealth(bool onChange) {
           size_t fdead=owner.getSymbolIndex("ZS_Dead");
           animation.resetAni();
           startState(fdead,"");
+
+          if(hnpc->voice>0){
+            char name[32]={};
+            std::snprintf(name,sizeof(name),"SVM_%d_DEAD",int(hnpc->voice));
+            emitSoundEffect(name,25,true);
+            }
           }
         } else {
         size_t fdead=owner.getSymbolIndex("ZS_Unconscious");
         animation.resetAni();
         startState(fdead,"");
+
+        if(hnpc->voice>0){
+          char name[32]={};
+          std::snprintf(name,sizeof(name),"SVM_%d_AARGH",int(hnpc->voice));
+          emitSoundEffect(name,25,true);
+          }
         }
       return false;
       }

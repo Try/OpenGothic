@@ -8,15 +8,16 @@
 
 #include "gsoundeffect.h"
 
-class GameSession;
+class Gothic;
 
 class SoundFx {
   public:
-    SoundFx(GameSession& gothic,const char *tagname);
+    SoundFx(Gothic &gothic, const char *tagname);
     SoundFx(SoundFx&&)=default;
     SoundFx& operator=(SoundFx&&)=default;
 
-    GSoundEffect getEffect(Tempest::SoundDevice& dev);
+    GSoundEffect         getEffect(Tempest::SoundDevice& dev) const;
+    Tempest::SoundEffect getGlobal(Tempest::SoundDevice& dev) const;
 
   private:
     struct SoundVar {
@@ -28,6 +29,6 @@ class SoundFx {
       };
 
     std::vector<SoundVar> inst;
-    void loadVariants(GameSession &gothic, const char* name);
+    void loadVariants(Gothic &gothic, const char* name);
   };
 

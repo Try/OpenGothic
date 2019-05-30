@@ -2479,9 +2479,10 @@ void WorldScript::infomanager_hasfinished(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::snd_play(Daedalus::DaedalusVM &vm) {
-  auto& file = popString(vm);
-  if(auto s = Resources::loadSound(file+".wav"))
-    s->play();
+  auto file = popString(vm);
+  for(auto& c:file)
+    c = char(std::toupper(c));
+  owner.emitGlobalSound(file);
   }
 
 void WorldScript::introducechapter(Daedalus::DaedalusVM &vm) {

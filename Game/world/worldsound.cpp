@@ -44,7 +44,7 @@ void WorldSound::emitSound(const char* s, float x, float y, float z, float range
     if(std::strcmp("WHOOSH",s)==0){
       }
 
-    auto snd = implLoadSoundFx(s);
+    auto snd = game.loadSoundFx(s);
     if(snd==nullptr)
       return;
     GSoundEffect eff = snd->getEffect(dev);
@@ -143,26 +143,6 @@ float WorldSound::qDist(const std::array<float,3> &a, const std::array<float,3> 
 void WorldSound::aiOutput(const std::array<float,3>& pos,const std::string &outputname) {
   std::lock_guard<std::mutex> guard(sync);
   if(isInListenerRange(pos)){
-    if(auto snd = Resources::loadSound(outputname+".wav"))
-      snd->play();
-    }
-  }
-
-
-SoundFx *WorldSound::implLoadSoundFx(const char *name) {
-  if(name==nullptr || *name=='\0')
-    return nullptr;
-
-  auto it=sndFxCache.find(name);
-  if(it!=sndFxCache.end())
-    return &it->second;
-
-  try {
-    auto ret = sndFxCache.emplace(name,SoundFx(game,name));
-    return &ret.first->second;
-    }
-  catch(...){
-    Log::e("unable to load soundfx \"",name,"\"");
-    return nullptr;
+    game.emitGlobalSound(Resources::loadSoundBuffer(outputname+".wav"));
     }
   }

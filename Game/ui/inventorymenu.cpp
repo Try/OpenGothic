@@ -5,6 +5,7 @@
 
 #include "utils/cp1251.h"
 #include "world/world.h"
+#include "gothic.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -39,7 +40,8 @@ struct InventoryMenu::RansackPage : InventoryMenu::Page {
   const Inventory& inv;
   };
 
-InventoryMenu::InventoryMenu(const RendererStorage &storage):renderer(storage) {
+InventoryMenu::InventoryMenu(Gothic &gothic, const RendererStorage &storage)
+  :gothic(gothic),renderer(storage) {
   slot = Resources::loadTexture("INV_SLOT.TGA");
   selT = Resources::loadTexture("INV_SLOT_HIGHLIGHTED.TGA");
   selU = Resources::loadTexture("INV_SLOT_EQUIPPED.TGA");
@@ -62,8 +64,9 @@ void InventoryMenu::close() {
     }
 
   if(state!=State::Closed) {
-    if(auto snd = Resources::loadSound("INV_CLOSE.WAV"))
-      snd->play();
+    if(state==State::Trade)
+      gothic.emitGlobalSound("TRADE_CLOSE"); else
+      gothic.emitGlobalSound("INV_CLOSE");
     }
 
   page  = 0;
@@ -84,8 +87,8 @@ void InventoryMenu::open(Npc &pl) {
   adjustScroll();
   update();
 
-  if(auto snd = Resources::loadSound("INV_CHANGE.WAV"))
-    snd->play();
+  gothic.emitGlobalSound("INV_OPEN");
+  //gothic.emitGlobalSound("INV_CHANGE");
   }
 
 void InventoryMenu::trade(Npc &pl, Npc &tr) {
@@ -98,6 +101,7 @@ void InventoryMenu::trade(Npc &pl, Npc &tr) {
   pageOth.reset(new TradePage(tr.inventory()));
   adjustScroll();
   update();
+  gothic.emitGlobalSound("TRADE_OPEN");
   }
 
 bool InventoryMenu::ransack(Npc &pl, Npc &tr) {
@@ -112,6 +116,7 @@ bool InventoryMenu::ransack(Npc &pl, Npc &tr) {
   pageOth.reset(new RansackPage(tr.inventory()));
   adjustScroll();
   update();
+  gothic.emitGlobalSound("INV_OPEN");
   return true;
   }
 

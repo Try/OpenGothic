@@ -22,7 +22,7 @@ using namespace Tempest;
 
 MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),
-    draw(device,gothic),gothic(gothic),inventory(draw.storage()),dialogs(gothic,inventory),chapter(gothic),camera(gothic),player(dialogs,inventory) {
+    draw(device,gothic),gothic(gothic),inventory(gothic,draw.storage()),dialogs(gothic,inventory),chapter(gothic),camera(gothic),player(dialogs,inventory) {
   for(uint8_t i=0;i<device.maxFramesInFlight();++i){
     fLocal.emplace_back(device);
     commandBuffersSemaphores.emplace_back(device);
@@ -323,7 +323,7 @@ void MainWindow::tick() {
     gothic.finishLoading();
     }
   else if(st==Gothic::LoadState::Failed) {
-    Log::i("");
+    gothic.finishLoading();
     }
   else if(st!=Gothic::LoadState::Idle) {
     return;
@@ -488,6 +488,8 @@ void MainWindow::loadGame(const std::string &name) {
   }
 
 void MainWindow::startGame(const std::string &name) {
+  gothic.emitGlobalSound(gothic.loadSoundFx("NEWGAME"));
+
   if(gothic.checkLoading()==Gothic::LoadState::Idle){
     loaderSession = gothic.clearGame(); // clear world-memory later
     setGameImpl(nullptr);

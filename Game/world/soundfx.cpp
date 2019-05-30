@@ -3,6 +3,7 @@
 #include <Tempest/Log>
 
 #include "game/gamesession.h"
+#include "gothic.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -11,7 +12,7 @@ SoundFx::SoundVar::SoundVar(const Daedalus::GEngineClasses::C_SFX &sfx, Sound &&
   :snd(std::move(snd)),vol(sfx.vol/127.f){
   }
 
-SoundFx::SoundFx(GameSession &gothic, const char* s) {
+SoundFx::SoundFx(Gothic &gothic, const char* s) {
   auto& sfx = gothic.getSoundScheme(s);
   auto  snd = Resources::loadSoundBuffer(sfx.file);
 
@@ -23,16 +24,25 @@ SoundFx::SoundFx(GameSession &gothic, const char* s) {
     Log::d("unable to load sound fx: ",s);
   }
 
-GSoundEffect SoundFx::getEffect(SoundDevice &dev) {
+GSoundEffect SoundFx::getEffect(SoundDevice &dev) const {
   if(inst.size()==0)
     return GSoundEffect();
-  SoundVar&    var    = inst[size_t(std::rand())%inst.size()];
+  auto&        var    = inst[size_t(std::rand())%inst.size()];
   GSoundEffect effect = dev.load(var.snd);
   effect.setVolume(var.vol);
   return effect;
   }
 
-void SoundFx::loadVariants(GameSession &gothic, const char *s) {
+SoundEffect SoundFx::getGlobal(SoundDevice &dev) const {
+  if(inst.size()==0)
+    return SoundEffect();
+  auto&       var    = inst[size_t(std::rand())%inst.size()];
+  SoundEffect effect = dev.load(var.snd);
+  effect.setVolume(var.vol);
+  return effect;
+  }
+
+void SoundFx::loadVariants(Gothic &gothic, const char *s) {
   char name[256]={};
   for(int i=1;i<100;++i){
     std::snprintf(name,sizeof(name),"%s_A%02d",s,i);

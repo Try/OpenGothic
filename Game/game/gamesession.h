@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Tempest/Sound>
 #include <memory>
 #include "ui/chapterscreen.h"
 #include "world/worldscript.h"
@@ -12,10 +13,12 @@ class RendererStorage;
 class Npc;
 class Serialize;
 
+class SoundFx;
+
 class GameSession final {
   public:
     GameSession()=delete;
-    GameSession(const World&)=delete;
+    GameSession(const GameSession&)=delete;
     GameSession(Gothic &gothic, const RendererStorage& storage, std::string file, std::function<void(int)> loadProgress);
     GameSession(Gothic &gothic, const RendererStorage& storage, Serialize&  fin, std::function<void(int)> loadProgress);
     ~GameSession();
@@ -32,6 +35,9 @@ class GameSession final {
     WorldScript* script() const { return vm.get(); }
 
     auto         loadScriptCode() -> std::vector<uint8_t>;
+    SoundFx*     loadSoundFx(const char *name);
+    void         emitGlobalSound(const Tempest::Sound& sfx);
+    void         emitGlobalSound(const std::string& sfx);
 
     Npc*         player();
 
@@ -59,7 +65,6 @@ class GameSession final {
 
     auto         getFightAi(size_t i) const -> const FightAi::FA&;
     auto         getMusicTheme(const char* name) const ->  const Daedalus::GEngineClasses::C_MusicTheme&;
-    auto         getSoundScheme(const char* name) const ->  const Daedalus::GEngineClasses::C_SFX&;
 
   private:
     void         initScripts(bool firstTime);

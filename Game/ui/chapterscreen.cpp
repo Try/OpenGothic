@@ -22,8 +22,7 @@ void ChapterScreen::show(const Show& s) {
   if(s.time>0)
     timer.start(uint64_t(s.time));
   timer.timeout.bind(this,&ChapterScreen::close);
-  if(auto snd = Resources::loadSound(s.sound))
-    snd->play();
+  gothic.emitGlobalSoundWav(s.sound);
   update();
   }
 

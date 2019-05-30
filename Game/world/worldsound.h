@@ -36,7 +36,6 @@ class WorldSound final {
       std::string   name;
       };
 
-    SoundFx*     implLoadSoundFx(const char *name);
     static float qDist(const std::array<float,3>& a,const std::array<float,3>& b);
 
     GameSession&      game;
@@ -48,7 +47,6 @@ class WorldSound final {
 
     Tempest::SoundDevice                    dev;
     std::vector<GSoundEffect>               effect;
-    std::unordered_map<std::string,SoundFx> sndFxCache;
 
     std::mutex                              sync;
 

@@ -38,6 +38,14 @@ class Gothic final {
     WorldView*   worldView() const;
     Npc*         player();
 
+    SoundFx*  loadSoundFx(const char* name);
+    void      emitGlobalSound(const char*        sfx);
+    void      emitGlobalSound(const std::string& sfx);
+    void      emitGlobalSound(const SoundFx*     sfx);
+    void      emitGlobalSound(const Tempest::Sound& sfx);
+
+    void      emitGlobalSoundWav(const std::string& wav);
+
     void      pushPause();
     void      popPause();
     bool      isPause() const;
@@ -105,4 +113,9 @@ class Gothic final {
     std::unique_ptr<CameraDefinitions> camera;
     std::unique_ptr<SoundDefinitions>  soundDef;
     std::unique_ptr<MusicDefinitions>  music;
+
+    std::mutex                              syncSnd;
+    Tempest::SoundDevice                    sndDev;
+    std::unordered_map<std::string,SoundFx> sndFxCache;
+    std::vector<Tempest::SoundEffect>       sndStorage;
   };

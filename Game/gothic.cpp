@@ -95,6 +95,80 @@ Npc *Gothic::player() {
   return nullptr;
   }
 
+SoundFx *Gothic::loadSoundFx(const char *name) {
+  if(name==nullptr || *name=='\0')
+    return nullptr;
+
+  std::lock_guard<std::mutex> guard(syncSnd);
+  auto it=sndFxCache.find(name);
+  if(it!=sndFxCache.end())
+    return &it->second;
+
+  try {
+    auto ret = sndFxCache.emplace(name,SoundFx(*this,name));
+    return &ret.first->second;
+    }
+  catch(...){
+    Tempest::Log::e("unable to load soundfx \"",name,"\"");
+    return nullptr;
+    }
+  }
+
+void Gothic::emitGlobalSound(const char *sfx) {
+  emitGlobalSound(loadSoundFx(sfx));
+  }
+
+void Gothic::emitGlobalSound(const std::string &sfx) {
+  emitGlobalSound(loadSoundFx(sfx.c_str()));
+  }
+
+void Gothic::emitGlobalSound(const SoundFx *sfx) {
+  if(sfx!=nullptr){
+    auto s = sfx->getGlobal(sndDev);
+    s.play();
+
+    for(size_t i=0;i<sndStorage.size();){
+      if(sndStorage[i].isFinished()){
+        sndStorage[i]=std::move(sndStorage.back());
+        sndStorage.pop_back();
+        } else {
+        ++i;
+        }
+      }
+    sndStorage.push_back(std::move(s));
+    }
+  }
+
+void Gothic::emitGlobalSound(const Tempest::Sound &sfx) {
+  auto s = sndDev.load(sfx);
+  s.play();
+
+  for(size_t i=0;i<sndStorage.size();){
+    if(sndStorage[i].isFinished()){
+      sndStorage[i]=std::move(sndStorage.back());
+      sndStorage.pop_back();
+      } else {
+      ++i;
+      }
+    }
+  sndStorage.push_back(std::move(s));
+  }
+
+void Gothic::emitGlobalSoundWav(const std::string &wav) {
+  auto s = sndDev.load(Resources::loadSoundBuffer(wav));
+  s.play();
+
+  for(size_t i=0;i<sndStorage.size();){
+    if(sndStorage[i].isFinished()){
+      sndStorage[i]=std::move(sndStorage.back());
+      sndStorage.pop_back();
+      } else {
+      ++i;
+      }
+    }
+  sndStorage.push_back(std::move(s));
+  }
+
 void Gothic::pushPause() {
   pauseSum++;
   }

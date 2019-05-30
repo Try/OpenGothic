@@ -161,6 +161,7 @@ void GameMenu::resizeEvent(SizeEvent &) {
   }
 
 void GameMenu::onMove(int dy) {
+  gothic.emitGlobalSound(gothic.loadSoundFx("MENU_BROWSE"));
   setSelection(int(curItem)+dy, dy>0 ? 1 : -1);
   update();
   }
@@ -168,6 +169,7 @@ void GameMenu::onMove(int dy) {
 void GameMenu::onSelect() {
   if(auto sel=selectedItem()){
     Daedalus::GEngineClasses::C_Menu_Item& item = sel->handle;
+    gothic.emitGlobalSound(gothic.loadSoundFx("MENU_SELECT"));
     exec(item);
     }
   }
@@ -251,10 +253,11 @@ void GameMenu::exec(const Daedalus::GEngineClasses::C_Menu_Item &item) {
   for(auto action:item.onSelAction)
     switch(action) {
       case SEL_ACTION_BACK:
+        gothic.emitGlobalSound(gothic.loadSoundFx("MENU_ESC"));
         owner.popMenu();
         return;
       case SEL_ACTION_CLOSE:
-        //TODO
+        gothic.emitGlobalSound(gothic.loadSoundFx("MENU_ESC"));
         break;
       }
   }
