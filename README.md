@@ -1,5 +1,7 @@
 ### OpenGothic
-open source remake of Gothic 2: Night of the raven.
+Open source remake of Gothic 2: Night of the raven.
+Motivation: Original Gothic 1 and Gothic 2 is still great games to play, but it not easy to make them work on modern systems.
+The goal of this project is to make feature complete Gothic client-app compatible with game itself and regular mods for it.
 
 ----
 ![Screenshoot](doc/scr0.png)
@@ -53,6 +55,12 @@ Chapter two is not available for now, because oCTriggerChangeLevel not implement
 
 ##### Scripting
 Mostly done: [list of scripts api functions](doc/script_api.md)
+
+##### Mods compatibility
+Mods delivered as *.mod files shoud work, since *.mod contains visual content and scripts.
+Don't expect mods created with AST-SDK to work, since original Gothic and OpenGothic are not binary compatible.
+Don't expect DirectX11 mod to work, since technicaly it's not a mod. But Project is aiming to have a good grphics with shaders out of box.
+
 
 ##### Command line arguments
 * -g specify gothic game catalog
