@@ -59,7 +59,7 @@ Mostly done: [list of scripts api functions](doc/script_api.md)
 ##### Mods compatibility
 Mods delivered as *.mod files shoud work, since *.mod contains visual content and scripts.
 Don't expect mods created with AST-SDK to work, since original Gothic and OpenGothic are not binary compatible.
-Don't expect DirectX11 mod to work, since technicaly it's not a mod. But Project is aiming to have a good grphics with shaders out of box.
+Don't expect DirectX11 mod to work, since technicaly it's not a mod. But Project is aiming to have a good graphics with shaders out of box.
 
 
 ##### Command line arguments
