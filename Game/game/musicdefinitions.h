@@ -5,7 +5,7 @@
 
 class Gothic;
 
-class MusicDefinitions {
+class MusicDefinitions final {
   public:
     MusicDefinitions(Gothic &gothic);
 
