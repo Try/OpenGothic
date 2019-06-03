@@ -539,7 +539,15 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
 
   if(Anim::Dialog1<=a && a<=Anim::Dialog10){
     char buf[32]={};
-    std::snprintf(buf,sizeof(buf),"T_DIALOGGESTURE_%02d",a-Anim::Dialog1+1);
+    std::snprintf(buf,sizeof(buf),"T_DIALOGGESTURE_%02d",int(a-Anim::Dialog1+1));
+    return animSequence(buf);
+    }
+
+  if(Anim::Fear1<=a && a<=Anim::Fear3){
+    char buf[32]={};
+    if(Anim::Fear1<=cur && cur<=Anim::Fear3)
+      std::snprintf(buf,sizeof(buf),"T_STAND_2_FEAR_VICTIM%d",int(a-Anim::Fear1+1)); else
+      std::snprintf(buf,sizeof(buf),"S_FEAR_VICTIM%d",int(a-Anim::Fear1+1));
     return animSequence(buf);
     }
 
@@ -726,6 +734,12 @@ AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const
     return Anim::Dance8;
   if(name=="T_DANCE_09")
     return Anim::Dance9;
+  if(name=="T_STAND_2_FEAR_VICTIM1" || name=="FEAR_VICTIM1")
+    return Anim::Fear1;
+  if(name=="T_STAND_2_FEAR_VICTIM2" || name=="FEAR_VICTIM2")
+    return Anim::Fear2;
+  if(name=="T_STAND_2_FEAR_VICTIM3" || name=="FEAR_VICTIM3")
+    return Anim::Fear3;
   if(name=="T_STAND_2_PRAY")
     return Anim::Pray;
   if(name=="T_PRAY_RANDOM")
