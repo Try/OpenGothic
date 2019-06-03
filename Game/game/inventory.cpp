@@ -298,7 +298,6 @@ bool Inventory::setSlot(Item *&slot, Item* next, WorldScript &vm, Npc& owner, bo
   if(slot!=nullptr){
     auto& itData = *slot->handle();
     auto  flag   = Flags(itData.mainflag);
-    vm.invokeItem(&owner,itData.on_unequip);
     applyArmour(*slot,vm,owner,-1);
     slot->setAsEquiped(false);
     if(flag & ITM_CAT_ARMOR){
@@ -311,13 +310,13 @@ bool Inventory::setSlot(Item *&slot, Item* next, WorldScript &vm, Npc& owner, bo
       owner.setRangeWeapon(StaticObjects::Mesh());
       }
     slot=nullptr;
+    vm.invokeItem(&owner,itData.on_unequip);
     }
 
   if(next==nullptr)
     return false;
 
   auto& itData = *next->handle();
-  vm.invokeItem(&owner,itData.on_equip);
   slot=next;
   slot->setAsEquiped(true);
   slot->setSlot(slotId(slot));
@@ -326,6 +325,7 @@ bool Inventory::setSlot(Item *&slot, Item* next, WorldScript &vm, Npc& owner, bo
   updateArmourView(vm,owner);
   updateSwordView (vm,owner);
   updateBowView   (vm,owner);
+  vm.invokeItem(&owner,itData.on_equip);
   return true;
   }
 
