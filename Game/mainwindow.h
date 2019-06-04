@@ -71,6 +71,7 @@ class MainWindow : public Tempest::Window {
     void initSwapchain();
 
     void tick();
+    Camera::Mode solveCameraMode() const;
 
     Tempest::Device       device;
     Tempest::TextureAtlas atlas;

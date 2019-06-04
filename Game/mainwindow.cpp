@@ -449,8 +449,10 @@ void MainWindow::tick() {
     }
 
   if(player.tickMove(dt)) {
-    if(auto pl=gothic.player())
+    if(auto pl=gothic.player()) {
+      camera.setMode(solveCameraMode());
       camera.follow(*pl,dt,!mouseP[Event::ButtonLeft] || currentFocus);
+      }
     } else {
     if(pressed[KeyEvent::K_Q])
       camera.rotateLeft();
@@ -465,6 +467,30 @@ void MainWindow::tick() {
     if(pressed[KeyEvent::K_S])
       camera.moveBack();
     }
+  }
+
+Camera::Mode MainWindow::solveCameraMode() const {
+  if(inventory.isOpen()==InventoryMenu::State::Equip ||
+     inventory.isOpen()==InventoryMenu::State::Ransack)
+    return Camera::Inventory;
+
+  if(auto pl=gothic.player()){
+    switch(pl->weaponState()){
+      case WeaponState::Fist:
+      case WeaponState::W1H:
+      case WeaponState::W2H:
+        return Camera::Melee;
+      case WeaponState::Bow:
+      case WeaponState::CBow:
+        return Camera::Ranged;
+      case WeaponState::Mage:
+        return Camera::Ranged;
+      case WeaponState::NoWeapon:
+        return Camera::Normal;
+      }
+    }
+
+  return Camera::Normal;
   }
 
 void MainWindow::loadGame(const std::string &name) {

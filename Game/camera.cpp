@@ -38,10 +38,12 @@ void Camera::setWorld(const World *w) {
   }
 
 void Camera::changeZoom(int delta) {
+  const float dd=0.15f;
   if(delta>0)
-    zoom *= 1.1f;
+    dist -= dd;
   if(delta<0)
-    zoom /= 1.1f;
+    dist += dd;
+  clampZoom(dist);
   }
 
 void Camera::rotateLeft() {
@@ -66,6 +68,10 @@ void Camera::moveLeft() {
 
 void Camera::moveRight() {
   implMove(KeyEvent::K_D);
+  }
+
+void Camera::setMode(Camera::Mode m) {
+  camMod = m;
   }
 
 void Camera::setSpin(const PointF &p) {
@@ -128,7 +134,7 @@ Matrix4x4 Camera::mkView(float dist) const {
   view.rotate(spin.y, 1, 0, 0);
   view.rotate(spin.x, 0, 1, 0);
   view.scale(0.0009f);
-  view.translate(camPos[0],camPos[1]+200,camPos[2]);
+  view.translate(camPos[0],camPos[1],camPos[2]);
   //view.translate(camPos[0],-camBone[1],camPos[2]);
   view.scale(-1,-1,-1);
   return view;
@@ -136,7 +142,29 @@ Matrix4x4 Camera::mkView(float dist) const {
 
 const Daedalus::GEngineClasses::CCamSys &Camera::cameraDef() const {
   auto& camd = gothic.getCameraDef();
+  if(camMod==Normal)
+    return camd.stdCam();
+  if(camMod==Inventory)
+    return camd.inventoryCam();
+  if(camMod==Melee)
+    return camd.meleeCam();
+  if(camMod==Ranged)
+    return camd.rangeCam();
+  if(camMod==Magic)
+    return camd.mageCam();
   return camd.stdCam();
+  }
+
+void Camera::clampZoom(float &zoom) {
+  const auto& def = cameraDef();
+
+  if(zoom<0 && zoom<def.minRange)
+    zoom = def.bestRange;
+
+  if(zoom>def.maxRange)
+    zoom = def.maxRange;
+  if(zoom<def.minRange)
+    zoom = def.minRange;
   }
 
 void Camera::implMove(Tempest::Event::KeyType key) {
@@ -172,46 +200,43 @@ void Camera::setPosition(float x, float y, float z) {
   }
 
 void Camera::follow(const Npc &npc,uint64_t dt,bool includeRot) {
-  const auto& def     = cameraDef();
-  const float dtF     = dt/1000.f;
-  const float maxDist = 100;
+  const auto& def = cameraDef();
+  const float dtF = dt/1000.f;
+
+  clampZoom(dist);
 
   if(hasPos){
-    auto pos = npc.position();
+    auto  pos = npc.position();
+    float tr  = npc.translateY();
+    // min/best/max Elevation
+    // normal:    0/30/90
+    // inventory: 0/20/90
+    pos[1] += tr + tr*(def.bestElevation-10)/20.f; // HACK
+
+    isInMove = (npc.anim()==AnimationSolver::Move  ||
+                npc.anim()==AnimationSolver::MoveL ||
+                npc.anim()==AnimationSolver::MoveR ||
+                npc.anim()==AnimationSolver::Jump);
+
     auto dx  = (pos[0]-camPos[0]);
     auto dy  = (pos[1]-camPos[1]);
     auto dz  = (pos[2]-camPos[2]);
     auto len = std::sqrt(dx*dx+dy*dy+dz*dz);
-    dist += (len/100.f);
 
-    /*
-    if(len>0.1f){
-      float tr = std::min(def.veloTrans*dtF,len);
+    if(len>0.1f && def.translate){
+      const float maxDist = 100;
+      float       speed   = isInMove ? 0.f : def.veloTrans*dtF*10.f;
+      float       tr      = std::min(speed,len);
       if(len-tr>maxDist)
         tr += (len-maxDist);
 
       float k = tr/len;
-      camPos[0] += dx*k;
-      camPos[1] += dy*k;
-      camPos[2] += dz*k;
-      }*/
-    camPos = pos;
+      setPosition(camPos[0]+dx*k, camPos[1]+dy*k, camPos[2]+dz*k);
+      }
     } else {
-    camPos = npc.position();
-    hasPos = true;
-    }
-
-  if(dist<def.minRange)
-    dist = def.minRange;
-  if(dist>def.maxRange)
-    dist = def.maxRange;
-
-  if(def.translate){
-    float dd = std::fabs(def.bestRange-dist);
-    dd = std::min(dd,def.veloTrans*dtF *0.01f);
-    if(def.bestRange<dist)
-      dd = -dd;
-    dist+=dd;
+    camPos   = npc.position();
+    hasPos   = true;
+    isInMove = false;
     }
 
   if(includeRot && def.rotate!=0) {
@@ -233,10 +258,9 @@ void Camera::follow(const Npc &npc,uint64_t dt,bool includeRot) {
     }
   }
 
-//5sec
 Matrix4x4 Camera::view() const {
-  const float dist    = this->dist*100.f;//300;//375;
-  const float minDist = 65;//200;
+  const float dist    = this->dist*100.f;
+  const float minDist = 65;
 
   if(world==nullptr)
     return mkView(dist);
@@ -257,7 +281,7 @@ Matrix4x4 Camera::view() const {
   vinv.project(r0[0],r0[1],r0[2]);
   vinv.project(r1[0],r1[1],r1[2]);
 
-  r0=camPos;r0[1]+=180;
+  r0=camPos;//r0[1]+=180;
 
   auto d = world->physic()->ray(r0[0],r0[1],r0[2], r1[0],r1[1],r1[2]).v;
   //auto d = world->physic()->ray(camPos[0],camPos[1]+180,camPos[2], r1[0],r1[1],r1[2]);

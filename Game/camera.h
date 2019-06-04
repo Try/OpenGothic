@@ -14,6 +14,15 @@ class Camera final {
   public:
     Camera(Gothic& gothic);
 
+    enum Mode {
+      Dialog,
+      Normal,
+      Inventory,
+      Melee,
+      Ranged,
+      Magic
+      };
+
     void setWorld(const World* w);
 
     void changeZoom(int delta);
@@ -27,6 +36,7 @@ class Camera final {
     void moveLeft();
     void moveRight();
 
+    void setMode(Mode m);
     void follow(const Npc& npc, uint64_t dt, bool includeRot);
 
     void setPosition(float x,float y,float z);
@@ -38,6 +48,7 @@ class Camera final {
   private:
     Gothic&               gothic;
     std::array<float,3>   camPos={};
+    bool                  isInMove=false;
     std::array<float,3>   camBone={};
     Tempest::PointF       spin;
     float                 zoom=1.f;
@@ -45,9 +56,11 @@ class Camera final {
 
     const World*          world=nullptr;
     bool                  hasPos=false;
+    Mode                  camMod=Normal;
 
     void implMove(Tempest::KeyEvent::KeyType t);
     Tempest::Matrix4x4 mkView(float dist) const;
 
     const Daedalus::GEngineClasses::CCamSys& cameraDef() const;
+    void clampZoom(float& z);
   };

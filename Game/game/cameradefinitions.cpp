@@ -5,8 +5,12 @@
 CameraDefinitions::CameraDefinitions(Gothic &gothic) {
   auto vm = gothic.createVm(u"_work/Data/Scripts/_compiled/Camera.dat");
 
-  camModDialog = loadCam(*vm,"CamModDialog");
-  camModNormal = loadCam(*vm,"CAMMODNORMAL");
+  camModDialog    = loadCam(*vm,"CamModDialog");
+  camModInventory = loadCam(*vm,"CamModInventory");
+  camModNormal    = loadCam(*vm,"CAMMODNORMAL");
+  camModMelee     = loadCam(*vm,"CAMMODMELEE");
+  camModRange     = loadCam(*vm,"CamModRanged");
+  camModMage      = loadCam(*vm,"CamModMagic");
   }
 
 Daedalus::GEngineClasses::CCamSys CameraDefinitions::loadCam(Daedalus::DaedalusVM& vm,const char *name) {
