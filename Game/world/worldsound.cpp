@@ -16,7 +16,7 @@ WorldSound::WorldSound(GameSession &game, World& owner):game(game),owner(owner) 
   //auto snd = Resources::loadMusic("_work/Data/Music/newworld/owd_daystd.sgt");
   }
 
-void WorldSound::seDefaultZone(const ZenLoad::zCVobData &vob) {
+void WorldSound::setDefaultZone(const ZenLoad::zCVobData &vob) {
   def.bbox[0] = vob.bbox[0];
   def.bbox[1] = vob.bbox[1];
   def.name    = vob.vobName;
@@ -30,6 +30,30 @@ void WorldSound::addZone(const ZenLoad::zCVobData &vob) {
   z.name    = vob.vobName;
 
   zones.emplace_back(std::move(z));
+  }
+
+void WorldSound::addSound(const ZenLoad::zCVobData &vob) {
+  return;
+
+  auto& pr = vob.zCVobSound;
+  auto snd = game.loadSoundFx(pr.sndName.c_str());
+  if(snd==nullptr)
+    return;
+
+  WSound s{std::move(*snd)};
+  s.eff = s.proto.getEffect(dev);
+  if(s.eff.isEmpty())
+    return;
+
+  s.eff.setPosition(vob.position.x,vob.position.y,vob.position.z);
+  s.eff.setMaxDistance(maxDist);
+  s.eff.setRefDistance(0);
+  s.eff.setVolume(0.3f);
+  s.active   = pr.sndStartOn;
+  s.delay    = uint64_t(pr.sndRandDelay*1000);
+  s.delayVar = uint64_t(pr.sndRandDelayVar*1000);
+
+  worldEff.emplace_back(std::move(s));
   }
 
 void WorldSound::emitSound(const char* s, float x, float y, float z, float range, GSoundEffect* slot) {
@@ -53,7 +77,7 @@ void WorldSound::emitSound(const char* s, float x, float y, float z, float range
     eff.setPosition(x,y,z);
     //eff.setMaxDistance(maxDist);
     eff.setMaxDistance(range*100);
-    eff.setRefDistance(100);
+    eff.setRefDistance(0);
     tickSlot(eff);
     eff.play();
     if(slot)
@@ -104,6 +128,12 @@ void WorldSound::tick(Npc &player) {
       } else {
       tickSlot(effect[i]);
       ++i;
+      }
+    }
+
+  for(size_t i=0;i<worldEff.size();++i){
+    if(worldEff[i].active && worldEff[i].eff.isFinished()){
+      worldEff[i].eff.play();
       }
     }
 

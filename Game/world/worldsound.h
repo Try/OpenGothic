@@ -16,8 +16,9 @@ class WorldSound final {
   public:
     WorldSound(GameSession& game,World& world);
 
-    void seDefaultZone(const ZenLoad::zCVobData &vob);
-    void addZone(const ZenLoad::zCVobData &vob);
+    void setDefaultZone(const ZenLoad::zCVobData &vob);
+    void addZone       (const ZenLoad::zCVobData &vob);
+    void addSound      (const ZenLoad::zCVobData &vob);
 
     void emitSound(const char *s, float x, float y, float z, float range, GSoundEffect *slot);
     void emitDlgSound(const char *s, float x, float y, float z, float range);
@@ -36,6 +37,15 @@ class WorldSound final {
       std::string   name;
       };
 
+    struct WSound final {
+      WSound(SoundFx&& s):proto(std::move(s)){}
+      SoundFx      proto;
+      GSoundEffect eff;
+      bool         active=false;
+      uint64_t     delay   =0;
+      uint64_t     delayVar=0;
+      };
+
     static float qDist(const std::array<float,3>& a,const std::array<float,3>& b);
 
     GameSession&      game;
@@ -47,6 +57,7 @@ class WorldSound final {
 
     Tempest::SoundDevice                    dev;
     std::vector<GSoundEffect>               effect;
+    std::vector<WSound>                     worldEff;
 
     std::mutex                              sync;
 
