@@ -1279,6 +1279,10 @@ void Npc::nextAiAction(uint64_t dt) {
         });
       break;
       }
+    case AI_SetWalkMode:{
+      setWalkMode(WalkBit(act.i0));
+      break;
+      }
     }
   }
 
@@ -2265,6 +2269,13 @@ void Npc::aiSetNpcsToState(size_t func, int32_t radius) {
   a.act  = AI_SetNpcsToState;
   a.func = func;
   a.i0   = radius;
+  aiActions.push_back(a);
+  }
+
+void Npc::aiSetWalkMode(WalkBit w) {
+  AiAction a;
+  a.act  = AI_SetWalkMode;
+  a.i0   = int(w);
   aiActions.push_back(a);
   }
 

@@ -434,6 +434,7 @@ class Npc final {
     void     aiAlignToFp();
     void     aiAlignToWp();
     void     aiSetNpcsToState(size_t func, int32_t radius);
+    void     aiSetWalkMode(WalkBit w);
 
     auto     currentWayPoint() const -> const WayPoint* { return currentFp; }
     void     attachToPoint(const WayPoint* p);
@@ -502,7 +503,8 @@ class Npc final {
       AI_ContinueRoutine,
       AI_AlignToFp,
       AI_AlignToWp,
-      AI_SetNpcsToState
+      AI_SetNpcsToState,
+      AI_SetWalkMode
       };
 
     struct AiAction final {

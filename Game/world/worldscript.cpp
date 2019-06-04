@@ -2188,10 +2188,13 @@ void WorldScript::ai_playani(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::ai_setwalkmode(Daedalus::DaedalusVM &vm) {
-  auto mode = vm.popInt();
-  auto npc  = popInstance(vm);
-  if(npc!=nullptr && mode>=0 && mode<=3){ //TODO: ai_queue, weapon flags
-    npc->setWalkMode(WalkBit(mode));
+  int32_t weaponBit = 0x80;
+  int32_t modeBits  = vm.popInt();
+  auto    npc       = popInstance(vm);
+
+  int32_t mode = modeBits & (~weaponBit);
+  if(npc!=nullptr && mode>=0 && mode<=3){ //TODO: weapon flags
+    npc->aiSetWalkMode(WalkBit(mode));
     }
   }
 
