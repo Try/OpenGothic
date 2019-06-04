@@ -14,4 +14,8 @@ CMakeLists.txt.user*
 # Build-dir
 build/
 bin/log.txt
+bin/dbg.bin
 bin/qsave.sav
+
+# internal
+internal/
