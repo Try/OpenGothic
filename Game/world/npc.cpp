@@ -972,7 +972,7 @@ void Npc::commitDamage() {
   }
 
 void Npc::takeDamage(Npc &other) {
-  if(isDead() || isImmortal())
+  if(isDead())
     return;
 
   setOther(&other);
@@ -984,7 +984,7 @@ void Npc::takeDamage(Npc &other) {
     fghAlgo.onTakeHit();
     if(!isPlayer())
       setOther(lastHit);
-    int dmg = other.damageValue(*this);
+    int dmg = isImmortal() ? 0 : other.damageValue(*this);
     changeAttribute(ATR_HITPOINTS,isPlayer() ? -1 : -dmg);
 
     if(ani==Anim::Move  || ani==Anim::MoveL  || ani==Anim::MoveR ||
