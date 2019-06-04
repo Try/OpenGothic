@@ -128,3 +128,9 @@ enum ItemMaterial : uint8_t {
   MAT_CLAY    = 4,
   MAT_GLAS    = 5
   };
+
+enum SpellCategory:int32_t {
+  SPELL_GOOD   =0,
+  SPELL_NEUTRAL=1,
+  SPELL_BAD    =2,
+  };

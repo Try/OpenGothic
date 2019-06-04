@@ -5,6 +5,7 @@
 #include "item.h"
 #include "utils/cp1251.h"
 #include "game/serialize.h"
+#include "game/spelldefinitions.h"
 
 #include <fstream>
 #include <Tempest/Log>
@@ -160,6 +161,11 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("npc_getactivespell",  [this](Daedalus::DaedalusVM& vm){ npc_getactivespell(vm);   });
   vm.registerExternalFunction("npc_getactivespellisscroll",
                                                      [this](Daedalus::DaedalusVM& vm){ npc_getactivespellisscroll(vm); });
+  vm.registerExternalFunction("npc_getactivespellcat",
+                                                     [this](Daedalus::DaedalusVM& vm){ npc_getactivespellcat(vm); });
+  vm.registerExternalFunction("npc_setactivespellinfo",
+                                                     [this](Daedalus::DaedalusVM& vm){ npc_setactivespellinfo(vm); });
+
   vm.registerExternalFunction("npc_canseenpcfreelos",[this](Daedalus::DaedalusVM& vm){ npc_canseenpcfreelos(vm); });
   vm.registerExternalFunction("npc_isinfightmode",   [this](Daedalus::DaedalusVM& vm){ npc_isinfightmode(vm);    });
   vm.registerExternalFunction("npc_settarget",       [this](Daedalus::DaedalusVM& vm){ npc_settarget(vm);        });
@@ -180,6 +186,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("npc_getpermattitude", [this](Daedalus::DaedalusVM& vm){ npc_getpermattitude(vm);  });
   vm.registerExternalFunction("npc_setattitude",     [this](Daedalus::DaedalusVM& vm){ npc_setattitude(vm);      });
   vm.registerExternalFunction("npc_settempattitude", [this](Daedalus::DaedalusVM& vm){ npc_settempattitude(vm);  });
+  vm.registerExternalFunction("npc_hasbodyflag",     [this](Daedalus::DaedalusVM& vm){ npc_hasbodyflag(vm);      });
 
   vm.registerExternalFunction("ai_output",           [this](Daedalus::DaedalusVM& vm){ ai_output(vm);            });
   vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
@@ -225,6 +232,7 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("ai_aligntofp",        [this](Daedalus::DaedalusVM& vm){ ai_aligntofp(vm);         });
   vm.registerExternalFunction("ai_useitem",          [this](Daedalus::DaedalusVM& vm){ ai_useitem(vm);           });
   vm.registerExternalFunction("ai_useitemtostate",   [this](Daedalus::DaedalusVM& vm){ ai_useitemtostate(vm);    });
+  vm.registerExternalFunction("ai_setnpcstostate",   [this](Daedalus::DaedalusVM& vm){ ai_setnpcstostate(vm);    });
 
   vm.registerExternalFunction("mob_hasitems",        [this](Daedalus::DaedalusVM& vm){ mob_hasitems(vm);         });
 
@@ -259,6 +267,8 @@ void WorldScript::initCommon() {
 
   spellFxInstanceNames = vm.getDATFile().getSymbolIndexByName("spellFxInstanceNames");
   spellFxAniLetters    = vm.getDATFile().getSymbolIndexByName("spellFxAniLetters");
+
+  spells               = std::make_unique<SpellDefinitions>(vm);
 
   cFocusNorm           = getFocus("Focus_Normal");
   cFocusMele           = getFocus("Focus_Melee");
@@ -770,7 +780,7 @@ int WorldScript::invokeMana(Npc &npc, Item &) {
   return runFunction(fn,false);
   }
 
-int WorldScript::invokeSpell(Npc &npc, Item &it) {
+int WorldScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
   auto& spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
   auto& tag       = spellInst.getString(size_t(it.spellId()));
   auto  str       = "Spell_Cast_" + tag;
@@ -780,7 +790,8 @@ int WorldScript::invokeSpell(Npc &npc, Item &it) {
   if(fn==size_t(-1))
     return 0;
 
-  ScopeVar self(vm, vm.globalSelf(), npc);
+  ScopeVar self (vm, vm.globalSelf(),  npc);
+  ScopeVar other(vm, vm.globalOther(), target);
   return runFunction(fn);
   }
 
@@ -1519,12 +1530,12 @@ void WorldScript::npc_hasitems(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::npc_removeinvitems(Daedalus::DaedalusVM &vm) {
-  uint32_t amount = uint32_t(vm.popInt());
+  int32_t  amount = vm.popInt();
   uint32_t itemId = uint32_t(vm.popInt());
   auto     npc    = popInstance(vm);
 
-  if(npc!=nullptr)
-    npc->delItem(itemId,amount);
+  if(npc!=nullptr && amount>0)
+    npc->delItem(itemId,uint32_t(amount));
   }
 
 void WorldScript::npc_getbodystate(Daedalus::DaedalusVM &vm) {
@@ -1671,7 +1682,7 @@ void WorldScript::npc_getequippedmeleweapon(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr){
     auto a = npc->currentRangeWeapon();
-    if(a!=nullptr)
+    if(a!=nullptr) //FIXME: return value is C_Item
       vm.setReturn(int32_t(a->clsId())); else
       vm.setReturn(0);
     }
@@ -1681,7 +1692,7 @@ void WorldScript::npc_getequippedrangedweapon(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr){
     auto a = npc->currentRangeWeapon();
-    if(a!=nullptr)
+    if(a!=nullptr) //FIXME: return value is C_Item
       vm.setReturn(int32_t(a->clsId())); else
       vm.setReturn(0);
     }
@@ -1691,7 +1702,7 @@ void WorldScript::npc_getequippedarmor(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr){
     auto a = npc->currentArmour();
-    if(a!=nullptr)
+    if(a!=nullptr) //FIXME: return value is C_Item
       vm.setReturn(int32_t(a->clsId())); else
       vm.setReturn(0);
     }
@@ -1845,7 +1856,7 @@ void WorldScript::npc_getnexttarget(Daedalus::DaedalusVM &vm) {
       npc->setTarget(ret);
     }
 
-  Daedalus::PARSymbol& s = vm.getDATFile().getSymbolByName("other");
+  Daedalus::PARSymbol& s = vm.globalOther();
   if(ret!=nullptr) {
     s.instanceDataHandle = ret->handle();
     s.instanceDataClass  = Daedalus::IC_Npc;
@@ -2023,6 +2034,47 @@ void WorldScript::npc_settempattitude(Daedalus::DaedalusVM &vm) {
     npc->setTempAttitude(Attitude(att));
   }
 
+void WorldScript::npc_hasbodyflag(Daedalus::DaedalusVM &vm) {
+  int32_t bodyflag = vm.popInt();
+  auto    npc      = popInstance(vm);
+  if(npc==nullptr){
+    vm.setReturn(0);
+    return;
+    }
+  int32_t st = npc->bodyState()&Npc::BS_MAX_FLAGS;
+  bodyflag&=Npc::BS_MAX_FLAGS;
+  vm.setReturn(bool(bodyflag&st) ? 1 : 0);
+  }
+
+void WorldScript::npc_getactivespellcat(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  if(npc==nullptr){
+    vm.setReturn(SPELL_GOOD);
+    return;
+    }
+
+  const Item* w = npc->inventory().activeWeapon();
+  if(w==nullptr || !w->isSpell()){
+    vm.setReturn(SPELL_GOOD);
+    return;
+    }
+
+  const int id       = w->spellId();
+  auto&     spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
+  auto&     tag       = spellInst.getString(size_t(id));
+
+  auto& spell  = spells->find(tag);
+  vm.setReturn(spell.spellType);
+  }
+
+void WorldScript::npc_setactivespellinfo(Daedalus::DaedalusVM &vm) {
+  int32_t v   = vm.popInt();
+  auto    npc = popInstance(vm);
+
+  notImplementedFn<&WorldScript::npc_setactivespellinfo>("npc_setactivespellinfo");
+  vm.setReturn(0);
+  }
+
 void WorldScript::ai_processinfos(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   auto pl  = owner.player();
@@ -2138,7 +2190,7 @@ void WorldScript::ai_playani(Daedalus::DaedalusVM &vm) {
 void WorldScript::ai_setwalkmode(Daedalus::DaedalusVM &vm) {
   auto mode = vm.popInt();
   auto npc  = popInstance(vm);
-  if(npc!=nullptr && mode>=0 && mode<=3){
+  if(npc!=nullptr && mode>=0 && mode<=3){ //TODO: ai_queue, weapon flags
     npc->setWalkMode(WalkBit(mode));
     }
   }
@@ -2324,6 +2376,14 @@ void WorldScript::ai_useitemtostate(Daedalus::DaedalusVM &vm) {
   notImplementedFn<&WorldScript::ai_useitemtostate>("ai_useitemtostate");
   }
 
+void WorldScript::ai_setnpcstostate(Daedalus::DaedalusVM &vm) {
+  int32_t  radius = vm.popInt();
+  int32_t  state  = vm.popInt();
+  auto     npc    = popInstance(vm);
+  if(npc && state>0)
+    npc->aiSetNpcsToState(size_t(state),radius);
+  }
+
 void WorldScript::mob_hasitems(Daedalus::DaedalusVM &vm) {
   uint32_t item = vm.popVar();
   auto&    tag  = popString(vm);
@@ -2348,14 +2408,19 @@ void WorldScript::log_createtopic(Daedalus::DaedalusVM &vm) {
   int32_t section   = vm.popInt();
   auto&   topicName = popString(vm);
 
-  quests.add(topicName,QuestLog::Section(section));
+  if(section==QuestLog::Mission || section==QuestLog::Note)
+    quests.add(topicName,QuestLog::Section(section));
   }
 
 void WorldScript::log_settopicstatus(Daedalus::DaedalusVM &vm) {
   int32_t status    = vm.popInt();
   auto&   topicName = popString(vm);
 
-  quests.setStatus(topicName,QuestLog::Status(status));
+  if(status==int32_t(QuestLog::Status::Running) ||
+     status==int32_t(QuestLog::Status::Success) ||
+     status==int32_t(QuestLog::Status::Failed ) ||
+     status==int32_t(QuestLog::Status::Obsolete))
+    quests.setStatus(topicName,QuestLog::Status(status));
   }
 
 void WorldScript::log_addentry(Daedalus::DaedalusVM &vm) {
@@ -2386,11 +2451,11 @@ void WorldScript::createinvitem(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::createinvitems(Daedalus::DaedalusVM &vm) {
-  uint32_t amount       = uint32_t(vm.popInt());
+  int32_t  amount       = int32_t(vm.popInt());
   uint32_t itemInstance = uint32_t(vm.popInt());
   auto     self         = popInstance(vm);
-  if(self!=nullptr) {
-    Item* itm = self->addItem(itemInstance,amount);
+  if(self!=nullptr && amount>0) {
+    Item* itm = self->addItem(itemInstance,uint32_t(amount));
     storeItem(itm);
     }
   }

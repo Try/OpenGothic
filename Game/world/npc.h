@@ -124,6 +124,8 @@ class Npc final {
       BS_MOD_TRANSFORMED    = 1 << 12,
       BS_FLAG_INTERRUPTABLE = 1 << 15,
       BS_FLAG_FREEHANDS     = 1 << 16,
+
+      BS_MAX_FLAGS          = BS_FLAG_INTERRUPTABLE | BS_FLAG_FREEHANDS,
       };
 
     enum Talent : uint8_t {
@@ -431,6 +433,7 @@ class Npc final {
     void     aiContinueRoutine();
     void     aiAlignToFp();
     void     aiAlignToWp();
+    void     aiSetNpcsToState(size_t func, int32_t radius);
 
     auto     currentWayPoint() const -> const WayPoint* { return currentFp; }
     void     attachToPoint(const WayPoint* p);
@@ -499,6 +502,7 @@ class Npc final {
       AI_ContinueRoutine,
       AI_AlignToFp,
       AI_AlignToWp,
+      AI_SetNpcsToState
       };
 
     struct AiAction final {

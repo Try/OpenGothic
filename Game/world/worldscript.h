@@ -2,6 +2,7 @@
 
 #include <daedalus/DaedalusStdlib.h>
 #include <daedalus/DaedalusVM.h>
+#include <game/spelldefinitions.h>
 #include <zenload/zCCSLib.h>
 
 #include <memory>
@@ -89,7 +90,7 @@ class WorldScript final {
     int  invokeState(Npc* npc, Npc* other, Npc *victum, size_t fn);
     int  invokeItem (Npc* npc, size_t fn);
     int  invokeMana (Npc& npc, Item&  fn);
-    int  invokeSpell(Npc& npc, Item&  fn);
+    int  invokeSpell(Npc& npc, Npc *target, Item&  fn);
 
     int  spellCastAnim(Npc& npc, Item&  fn);
 
@@ -217,6 +218,8 @@ class WorldScript final {
     void npc_hasequippedrangedweapon(Daedalus::DaedalusVM &vm);
     void npc_getactivespell  (Daedalus::DaedalusVM &vm);
     void npc_getactivespellisscroll(Daedalus::DaedalusVM &vm);
+    void npc_getactivespellcat(Daedalus::DaedalusVM &vm);
+    void npc_setactivespellinfo(Daedalus::DaedalusVM &vm);
     void npc_canseenpcfreelos(Daedalus::DaedalusVM &vm);
     void npc_isinfightmode   (Daedalus::DaedalusVM &vm);
     void npc_settarget       (Daedalus::DaedalusVM &vm);
@@ -237,6 +240,7 @@ class WorldScript final {
     void npc_getpermattitude (Daedalus::DaedalusVM &vm);
     void npc_setattitude     (Daedalus::DaedalusVM &vm);
     void npc_settempattitude (Daedalus::DaedalusVM &vm);
+    void npc_hasbodyflag     (Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
@@ -279,6 +283,7 @@ class WorldScript final {
     void ai_aligntofp        (Daedalus::DaedalusVM &vm);
     void ai_useitem          (Daedalus::DaedalusVM &vm);
     void ai_useitemtostate   (Daedalus::DaedalusVM &vm);
+    void ai_setnpcstostate   (Daedalus::DaedalusVM &vm);
 
     void mob_hasitems        (Daedalus::DaedalusVM &vm);
 
@@ -320,6 +325,8 @@ class WorldScript final {
     uint8_t                                                     invokeRecursive=0;
     GameSession&                                                owner;
     std::mt19937                                                randGen;
+
+    std::unique_ptr<SpellDefinitions>                           spells;
 
     std::set<std::pair<size_t,size_t>>                          dlgKnownInfos;
     std::unique_ptr<Daedalus::GEngineClasses::C_Info[]>         dialogStorage;

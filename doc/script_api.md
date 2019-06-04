@@ -370,6 +370,21 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 * ![!](ni.png) `func int Npc_GetActiveSpellLevel(var C_Npc npc)`  
   Not implemented.
 
+* `func int Npc_GetActiveSpellCat(var C_Npc npc)`  
+  Return category of active spell, for caster 'npc'
+
+
+| code | desription | value |
+---|---|--
+| SPELL_GOOD | Good/Frienly spell | 0
+| SPELL_NEUTRAL | Neutral spell | 1
+| SPELL_BAD | Bad/Aggressive spell | 2
+
+* ![!](ni.png) `func int Npc_SetActiveSpellInfo(var C_Npc npc,int value)`  
+  Assign a new 'value' to internal field of 'npc'.
+  Return previous value.
+  Not implemented.
+
 * ![!](ni.png) `func int Npc_HasSpell(var C_Npc npc, var int spellId)`  
   Returns TRUE, if 'npc' has specified by 'spellId' spell in inventory.  
   Not implemented.

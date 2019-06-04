@@ -103,7 +103,10 @@ int32_t Item::itemFlag() const {
   }
 
 bool Item::isSpell() const {
-  return uint32_t(mainFlag()) & Inventory::ITM_CAT_RUNE;
+  if(uint32_t(mainFlag()) & Inventory::ITM_CAT_RUNE){
+    return uint32_t(hitem.flags)&Inventory::ITM_MULTI;
+    }
+  return false;
   }
 
 bool Item::is2H() const {

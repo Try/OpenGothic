@@ -224,6 +224,8 @@ void Npc::resetPositionToTA() {
   }
 
 void Npc::startDlgAnim() {
+  if(weaponState()!=WeaponState::NoWeapon)
+    return;
   auto ani = std::rand()%10+Anim::Dialog1;
   setAnim(Anim(ani));
   }
@@ -1269,6 +1271,14 @@ void Npc::nextAiAction(uint64_t dt) {
         }
       break;
       }
+    case AI_SetNpcsToState:{
+      const int32_t r = act.i0*act.i0;
+      owner.world().detectNpc(position(),[&act,this,r](Npc& other){
+        if(&other!=this && qDistTo(other)<r)
+          other.aiStartState(act.func,1,other.currentOther,other.hnpc->wp);
+        });
+      break;
+      }
     }
   }
 
@@ -1726,12 +1736,12 @@ bool Npc::castSpell() {
       break;
     case SpellCode::SPL_SENDCAST: {
       auto ani = Npc::Anim(owner.spellCastAnim(*this,*active));
-      //setAnim(ani,WeaponState::Mage,WeaponState::Mage);
       AiAction a;
       a.act  = AI_PlayAnimById;
       a.i0   = ani;
       aiActions.push_back(a);
-      owner.invokeSpell(*this,*active);
+      owner.invokeSpell(*this,currentTarget,*active);
+      currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSDAMAGE);
       break;
       }
     default:
@@ -1755,7 +1765,7 @@ bool Npc::shootBow() {
     return false;
   auto weaponSt=invent.weaponState();
   return setAnim(Anim::Atack,weaponSt,weaponSt);
-//  return setAnim(Anim::AimBow,weaponSt,weaponSt);
+  //  return setAnim(Anim::AimBow,weaponSt,weaponSt);
   }
 
 bool Npc::isEnemy(const Npc &other) const {
@@ -2250,6 +2260,14 @@ void Npc::aiAlignToWp() {
   aiActions.push_back(a);
   }
 
+void Npc::aiSetNpcsToState(size_t func, int32_t radius) {
+  AiAction a;
+  a.act  = AI_SetNpcsToState;
+  a.func = func;
+  a.i0   = radius;
+  aiActions.push_back(a);
+  }
+
 void Npc::attachToPoint(const WayPoint *p) {
   currentFp     = p;
   currentFpLock = FpLock(currentFp);
@@ -2274,7 +2292,7 @@ bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
     float dx  = x-tx, dz=z-tz;
     float dir = angleDir(dx,dz);
     float da  = float(M_PI)*(angle-dir)/180.f;
-    if(double(std::cos(da))>0)
+    if(double(std::cos(da))>0) // FIXME: spec requires +-100 view angle range
       return false;
     }
   // TODO: npc eyesight height
