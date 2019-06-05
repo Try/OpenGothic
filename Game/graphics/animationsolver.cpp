@@ -551,6 +551,13 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     return animSequence(buf);
     }
 
+  if(Anim::MagicSleep==a && cur!=Anim::MagicSleep)
+    return animSequence("T_STAND_2_VICTIM_SLE");
+  if(cur==Anim::MagicSleep && a!=Anim::MagicSleep)
+    return animSequence("T_VICTIM_SLE_2_STAND");
+  if(a==Anim::MagicSleep)
+    return animSequence("S_VICTIM_SLE");
+
   // FALLBACK
   if(a==Anim::Move)
     return solveAnim("S_%sRUNL",st);
@@ -651,7 +658,7 @@ void AnimationSolver::load(Serialize &fin) {
 AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const {
   if(name=="T_HEASHOOT_2_STAND" || name=="T_LGUARD_2_STAND" || name=="T_HGUARD_2_STAND" ||
      name=="T_EAT_2_STAND"      || name=="T_SLEEP_2_STAND"  || name=="T_GUARDSLEEP_2_STAND" ||
-     name=="T_SIT_2_STAND"      || name=="T_PEE_2_STAND")
+     name=="T_SIT_2_STAND"      || name=="T_PEE_2_STAND"    || name=="T_VICTIM_SLE_2_STAND")
     return Anim::Idle;
 
   if(name=="T_STAND_2_LGUARD" || name=="S_LGUARD")
@@ -734,12 +741,14 @@ AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const
     return Anim::Dance8;
   if(name=="T_DANCE_09")
     return Anim::Dance9;
-  if(name=="T_STAND_2_FEAR_VICTIM1" || name=="FEAR_VICTIM1")
+  if(name=="T_STAND_2_FEAR_VICTIM1" || name=="S_FEAR_VICTIM1")
     return Anim::Fear1;
-  if(name=="T_STAND_2_FEAR_VICTIM2" || name=="FEAR_VICTIM2")
+  if(name=="T_STAND_2_FEAR_VICTIM2" || name=="S_FEAR_VICTIM2")
     return Anim::Fear2;
-  if(name=="T_STAND_2_FEAR_VICTIM3" || name=="FEAR_VICTIM3")
+  if(name=="T_STAND_2_FEAR_VICTIM3" || name=="S_FEAR_VICTIM3")
     return Anim::Fear3;
+  if(name=="T_STAND_2_VICTIM_SLE" || name=="S_VICTIM_SLE")
+    return Anim::MagicSleep;
   if(name=="T_STAND_2_PRAY")
     return Anim::Pray;
   if(name=="T_PRAY_RANDOM")

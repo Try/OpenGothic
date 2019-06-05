@@ -29,7 +29,8 @@ class AnimationSolver final {
       Sit,
       Sleep,
       GuardSleep,
-      IdleLoopLast=GuardSleep,
+      MagicSleep,
+      IdleLoopLast=MagicSleep,
 
       Pray,
       PrayRand,
