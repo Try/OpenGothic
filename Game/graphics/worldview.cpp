@@ -56,8 +56,9 @@ void WorldView::updateUbo(const Matrix4x4& view,const Tempest::Matrix4x4 &shadow
   auto viewProj=this->viewProj(view);
 
   sky .setMatrix(imgId,viewProj);
+  sky .setLight (sun.dir());
   land.setMatrix(imgId,viewProj,shadow);
-  land.setLight(sun.dir());
+  land.setLight (sun.dir());
 
   vobGroup.setModelView(viewProj,shadow);
   vobGroup.setLight    (sun.dir());
