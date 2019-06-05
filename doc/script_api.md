@@ -358,11 +358,17 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 * ![!](ni.png) `func int Npc_GetActiveSpell(var C_Npc npc)`  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_GetLastHitSpellID(var C_Npc npc)`  
-  Not implemented.
+* `func int Npc_GetLastHitSpellID(var C_Npc npc)`  
+  Return Id of spell witch hit 'npc' last
 
 * ![!](ni.png) `func int Npc_GetLastHitSpellCat(var C_Npc npc)`  
-  Not implemented.
+  Return category of spell witch hit 'npc' last
+
+| code | desription | value |
+---|---|--
+| SPELL_GOOD | Good/Frienly spell | 0
+| SPELL_NEUTRAL | Neutral spell | 1
+| SPELL_BAD | Bad/Aggressive spell | 2
 
 * ![!](ni.png) `func int Npc_SetActiveSpellInfo(var C_Npc npc, var int i1)`  
   Not implemented.
@@ -372,13 +378,6 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 
 * `func int Npc_GetActiveSpellCat(var C_Npc npc)`  
   Return category of active spell, for caster 'npc'
-
-
-| code | desription | value |
----|---|--
-| SPELL_GOOD | Good/Frienly spell | 0
-| SPELL_NEUTRAL | Neutral spell | 1
-| SPELL_BAD | Bad/Aggressive spell | 2
 
 * ![!](ni.png) `func int Npc_SetActiveSpellInfo(var C_Npc npc,int value)`  
   Assign a new 'value' to internal field of 'npc'.
@@ -420,7 +419,7 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 | PERC_DRAWWEAPON | ? | Not implemented | 24
 | PERC_OBSERVESUSPECT | ? | Not implemented | 25
 | PERC_NPCCOMMAND | ? | Not implemented | 26
-| PERC_ASSESSMAGIC | ? | Not implemented | 27
+| PERC_ASSESSMAGIC | Process spell casted on 'npc' | Done | 27
 | PERC_ASSESSSTOPMAGIC | ? | Not implemented | 28
 | PERC_ASSESSCASTER | ? | Not implemented | 29
 | PERC_ASSESSSURPRISE | ? | Not implemented | 30

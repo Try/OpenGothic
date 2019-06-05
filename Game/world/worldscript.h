@@ -89,7 +89,7 @@ class WorldScript final {
     int  invokeState(Daedalus::GEngineClasses::C_Npc *hnpc, Daedalus::GEngineClasses::C_Npc *hother, const char* name);
     int  invokeState(Npc* npc, Npc* other, Npc *victum, size_t fn);
     int  invokeItem (Npc* npc, size_t fn);
-    int  invokeMana (Npc& npc, Item&  fn);
+    int  invokeMana (Npc& npc, Npc* target, Item&  fn);
     int  invokeSpell(Npc& npc, Npc *target, Item&  fn);
 
     int  spellCastAnim(Npc& npc, Item&  fn);
@@ -241,6 +241,8 @@ class WorldScript final {
     void npc_setattitude     (Daedalus::DaedalusVM &vm);
     void npc_settempattitude (Daedalus::DaedalusVM &vm);
     void npc_hasbodyflag     (Daedalus::DaedalusVM &vm);
+    void npc_getlasthitspellid(Daedalus::DaedalusVM &vm);
+    void npc_getlasthitspellcat(Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);

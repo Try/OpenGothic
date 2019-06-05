@@ -1728,7 +1728,8 @@ bool Npc::castSpell() {
      (Anim::MagFirst<=animation.prevAni && animation.prevAni<=Anim::MagLast) || !isStanding())
     return false;
 
-  const SpellCode code = SpellCode(owner.invokeMana(*this,*active));
+  const int32_t   splId = active->spellId();
+  const SpellCode code  = SpellCode(owner.invokeMana(*this,currentTarget,*active));
   switch(code) {
     case SpellCode::SPL_SENDSTOP:
       setAnim(Anim::MagNoMana,WeaponState::Mage,invent.weaponState());
@@ -1745,7 +1746,10 @@ bool Npc::castSpell() {
       a.i0   = ani;
       aiActions.push_back(a);
       owner.invokeSpell(*this,currentTarget,*active);
-      currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSDAMAGE);
+      if(currentTarget!=nullptr){
+        currentTarget->lastHitSpell = splId;
+        currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
+        }
       break;
       }
     default:

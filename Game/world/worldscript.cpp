@@ -187,6 +187,10 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("npc_setattitude",     [this](Daedalus::DaedalusVM& vm){ npc_setattitude(vm);      });
   vm.registerExternalFunction("npc_settempattitude", [this](Daedalus::DaedalusVM& vm){ npc_settempattitude(vm);  });
   vm.registerExternalFunction("npc_hasbodyflag",     [this](Daedalus::DaedalusVM& vm){ npc_hasbodyflag(vm);      });
+  vm.registerExternalFunction("npc_getlasthitspellid",
+                                                     [this](Daedalus::DaedalusVM& vm){ npc_getlasthitspellid(vm);});
+  vm.registerExternalFunction("npc_getlasthitspellcat",
+                                                     [this](Daedalus::DaedalusVM& vm){ npc_getlasthitspellcat(vm);});
 
   vm.registerExternalFunction("ai_output",           [this](Daedalus::DaedalusVM& vm){ ai_output(vm);            });
   vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
@@ -768,13 +772,14 @@ int WorldScript::invokeItem(Npc *npc,size_t fn) {
   return runFunction(fn);
   }
 
-int WorldScript::invokeMana(Npc &npc, Item &) {
+int WorldScript::invokeMana(Npc &npc, Npc* target, Item &) {
   auto& dat = vm.getDATFile();
   auto fn   = dat.getSymbolIndexByName("Spell_ProcessMana");
   if(fn==size_t(-1))
     return Npc::SpellCode::SPL_SENDSTOP;
 
-  ScopeVar self(vm, vm.globalSelf(), npc);
+  ScopeVar self (vm, vm.globalSelf(),  npc);
+  ScopeVar other(vm, vm.globalOther(), target);
 
   vm.pushInt(npc.attribute(Npc::ATR_MANA));
   return runFunction(fn,false);
@@ -1740,7 +1745,7 @@ void WorldScript::npc_getactivespell(Daedalus::DaedalusVM &vm) {
     }
 
   const Item* w = npc->inventory().activeWeapon();
-  if(w==nullptr || !w->isSpell()){
+  if(w==nullptr || !w->isSpellOrRune()){
     vm.setReturn(-1);
     return;
     }
@@ -2046,6 +2051,29 @@ void WorldScript::npc_hasbodyflag(Daedalus::DaedalusVM &vm) {
   vm.setReturn(bool(bodyflag&st) ? 1 : 0);
   }
 
+void WorldScript::npc_getlasthitspellid(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  if(npc==nullptr){
+    vm.setReturn(0);
+    return;
+    }
+  vm.setReturn(npc->lastHitSpellId());
+  }
+
+void WorldScript::npc_getlasthitspellcat(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  if(npc==nullptr){
+    vm.setReturn(SPELL_GOOD);
+    return;
+    }
+  const int id        = npc->lastHitSpellId();
+  auto&     spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
+  auto&     tag       = spellInst.getString(size_t(id));
+
+  auto& spell  = spells->find(tag);
+  vm.setReturn(spell.spellType);
+  }
+
 void WorldScript::npc_getactivespellcat(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc==nullptr){
@@ -2054,12 +2082,12 @@ void WorldScript::npc_getactivespellcat(Daedalus::DaedalusVM &vm) {
     }
 
   const Item* w = npc->inventory().activeWeapon();
-  if(w==nullptr || !w->isSpell()){
+  if(w==nullptr || !w->isSpellOrRune()){
     vm.setReturn(SPELL_GOOD);
     return;
     }
 
-  const int id       = w->spellId();
+  const int id        = w->spellId();
   auto&     spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
   auto&     tag       = spellInst.getString(size_t(id));
 

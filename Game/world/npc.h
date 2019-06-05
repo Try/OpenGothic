@@ -350,8 +350,8 @@ class Npc final {
     void setPerceptionEnable (PercType t, size_t fn);
     void setPerceptionDisable(PercType t);
 
-    bool perceptionProcess(Npc& pl, float quadDist);
-    bool perceptionProcess(Npc& pl, Npc *victum, float quadDist, PercType perc);
+    bool     perceptionProcess(Npc& pl, float quadDist);
+    bool     perceptionProcess(Npc& pl, Npc *victum, float quadDist, PercType perc);
     uint64_t percNextTime() const;
 
     Interactive* interactive() const { return currentInteract; }
@@ -448,6 +448,7 @@ class Npc final {
     Npc*     target();
 
     void     setNearestEnemy(Npc &n);
+    int32_t  lastHitSpellId() const { return lastHitSpell; }
 
     void     setOther(Npc* ot);
 
@@ -592,8 +593,9 @@ class Npc final {
     Npc*                           currentOther   =nullptr;
     Npc*                           currentLookAt  =nullptr;
     Npc*                           lastHit        =nullptr;
-    Npc*                           currentTarget  =nullptr;
     char                           lastHitType    ='A';
+    int32_t                        lastHitSpell  =0;
+    Npc*                           currentTarget  =nullptr;
     bool                           atackMode      =false;
     Npc*                           nearestEnemy   =nullptr;
 
