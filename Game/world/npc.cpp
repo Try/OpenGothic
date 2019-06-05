@@ -1753,8 +1753,8 @@ bool Npc::castSpell() {
       break;
       }
     default:
-      //TODO
-      break;
+      Log::d("unexpected Spell_ProcessMana result: '",int(code),"' for spell '",splId,"'");
+      return false;
     }
   return true;
   }

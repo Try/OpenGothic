@@ -65,7 +65,6 @@ class MainWindow : public Tempest::Window {
     void clearInput();
 
     void  setupUi();
-    Focus findFocus(Focus *prev);
 
     void render() override;
     void initSwapchain();

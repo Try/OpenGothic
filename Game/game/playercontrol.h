@@ -1,5 +1,6 @@
 #pragma once
 
+#include "world/focus.h"
 #include "inventory.h"
 
 #include <array>
@@ -10,6 +11,7 @@ class World;
 class Interactive;
 class Npc;
 class Item;
+class Camera;
 
 class PlayerControl final {
   public:
@@ -49,6 +51,8 @@ class PlayerControl final {
 
     bool tickMove(uint64_t dt);
 
+    Focus findFocus(Focus *prev, const Camera &camera, int w, int h);
+
   private:
     enum Control : uint8_t {
       Idle,
@@ -85,6 +89,8 @@ class PlayerControl final {
       };
 
     bool           ctrl[Control::Last]={};
+    bool           cacheFocus=false;
+
     World*         world=nullptr;
     DialogMenu&    dlg;
     InventoryMenu& inv;

@@ -85,15 +85,6 @@ void MainWindow::setupUi() {
   gothic.onIntroChapter .bind(&chapter,&ChapterScreen::show);
   }
 
-Focus MainWindow::findFocus(Focus* prev) {
-  if(auto gw = gothic.world()) {
-    if(prev)
-      return gw->findFocus(*prev,camera.view(),w(),h());
-    return gw->findFocus(Focus(),camera.view(),w(),h());
-    }
-  return Focus();
-  }
-
 void MainWindow::paintEvent(PaintEvent& event) {
   Painter p(event);
   auto world = gothic.world();
@@ -351,7 +342,7 @@ void MainWindow::tick() {
     clearInput();
     }
 
-  currentFocus = findFocus(mouseP[Event::ButtonLeft] ? &currentFocus : nullptr);
+  currentFocus = player.findFocus(&currentFocus,camera,w(),h());
   if(currentFocus.npc!=nullptr)
     player.setTarget(currentFocus.npc);
 

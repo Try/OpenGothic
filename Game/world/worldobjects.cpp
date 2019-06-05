@@ -414,6 +414,9 @@ auto WorldObjects::findObj(T &src,const Npc &pl, const Matrix4x4 &mvp,
   if(owner.view()==nullptr)
     return nullptr;
 
+  if(opt.collectAlgo==TARGET_COLLECT_NONE || opt.collectAlgo==TARGET_COLLECT_CASTER)
+    return nullptr;
+
   for(auto& n:src){
     float nlen = rlen;
     if(testObj(n,pl,mvp,w,h,opt,nlen)){
@@ -477,7 +480,7 @@ bool WorldObjects::testObj(T &src, const Npc &pl, const Matrix4x4 &mvp,
   float x   = pos[0],y=pos[1],z=pos[2];
   mvp.project(x,y,z);
 
-  if(z<0.f)// || z>1.f)
+  if(z<0.f)
     return false;
 
   x = 0.5f*x*w;

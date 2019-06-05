@@ -204,7 +204,8 @@ Focus World::validateFocus(const Focus &def) {
 
 Focus World::findFocus(const Npc &pl, const Focus& def, const Tempest::Matrix4x4 &v, int w, int h) {
   const Daedalus::GEngineClasses::C_Focus* fptr=&game.script()->focusNorm();
-  auto opt = WorldObjects::NoFlg;
+  auto opt  = WorldObjects::NoFlg;
+  auto coll = TARGET_COLLECT_FOCUS;
 
   switch(pl.weaponState()) {
     case WeaponState::Fist:
@@ -218,19 +219,24 @@ Focus World::findFocus(const Npc &pl, const Focus& def, const Tempest::Matrix4x4
       fptr = &game.script()->focusRange();
       opt  = WorldObjects::NoDeath;
       break;
-    case WeaponState::Mage:
+    case WeaponState::Mage:{
       fptr = &game.script()->focusMage();
+      int32_t id  = player()->inventory().activeWeapon()->spellId();
+      auto&   spl = script()->getSpell(id);
+
+      coll = TargetCollect(spl.targetCollectAlgo);
       opt  = WorldObjects::NoDeath;
       break;
+      }
     case WeaponState::NoWeapon:
       fptr = &game.script()->focusNorm();
       break;
     }
   auto& policy = *fptr;
 
-  WorldObjects::SearchOpt optNpc {policy.npc_range1,  policy.npc_range2,  policy.npc_azi, opt};
-  WorldObjects::SearchOpt optMob {policy.mob_range1,  policy.mob_range2,  policy.mob_azi };
-  WorldObjects::SearchOpt optItm {policy.item_range1, policy.item_range2, policy.item_azi};
+  WorldObjects::SearchOpt optNpc {policy.npc_range1,  policy.npc_range2,  policy.npc_azi,  coll, opt};
+  WorldObjects::SearchOpt optMob {policy.mob_range1,  policy.mob_range2,  policy.mob_azi,  coll };
+  WorldObjects::SearchOpt optItm {policy.item_range1, policy.item_range2, policy.item_azi, coll };
 
   auto n     = policy.npc_prio <0 ? nullptr : wobj.findNpc        (pl,def.npc,        v,w,h, optNpc);
   auto inter = policy.mob_prio <0 ? nullptr : wobj.findInteractive(pl,def.interactive,v,w,h, optMob);

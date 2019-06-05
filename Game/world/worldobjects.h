@@ -29,10 +29,11 @@ class WorldObjects final {
       };
 
     struct SearchOpt final {
-      float     rangeMin = 0;
-      float     rangeMax = 0;
-      float     azi      = 0;
-      SearchFlg flags    = NoFlg;
+      float         rangeMin    = 0;
+      float         rangeMax    = 0;
+      float         azi         = 0;
+      TargetCollect collectAlgo = TARGET_COLLECT_CASTER;
+      SearchFlg     flags       = NoFlg;
       };
 
     void           load(Serialize& fout);

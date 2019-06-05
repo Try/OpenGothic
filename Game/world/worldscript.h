@@ -77,6 +77,7 @@ class WorldScript final {
     size_t                                            getSymbolIndex(const char* s);
     size_t                                            getSymbolIndex(const std::string& s);
     const AiState&                                    getAiState(size_t id);
+    const Daedalus::GEngineClasses::C_Spell&          getSpell(int32_t splId);
 
     auto dialogChoises(Daedalus::GEngineClasses::C_Npc *self, Daedalus::GEngineClasses::C_Npc *npc, const std::vector<uint32_t> &except) -> std::vector<DlgChoise>;
     auto updateDialog (const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<WorldScript::DlgChoise>;

@@ -182,9 +182,21 @@ void PlayerControl::marvinF8() {
   pl.setAnim(AnimationSolver::Idle);
   }
 
+Focus PlayerControl::findFocus(Focus* prev,const Camera& camera,int w, int h) {
+  if(world==nullptr)
+    return Focus();
+  if(!cacheFocus)
+    prev = nullptr;
+
+  if(prev)
+    return world->findFocus(*prev,camera.view(),w,h);
+  return world->findFocus(Focus(),camera.view(),w,h);
+  }
+
 bool PlayerControl::tickMove(uint64_t dt) {
   if(world==nullptr || world->player()==nullptr)
     return false;
+  cacheFocus = ctrl[ActionFocus] || ctrl[ActForward] || ctrl[ActLeft] || ctrl[ActRight] || ctrl[ActBack];
   implMove(dt);
   std::memset(ctrl,0,Walk);
   return true;

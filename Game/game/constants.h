@@ -134,3 +134,14 @@ enum SpellCategory:int32_t {
   SPELL_NEUTRAL=1,
   SPELL_BAD    =2,
   };
+
+enum TargetCollect : int32_t {
+  TARGET_COLLECT_NONE                  = 0, // target will be set by effect (range, azi, elev)
+  TARGET_COLLECT_CASTER                = 1, // target is the caster
+  TARGET_COLLECT_FOCUS                 = 2, // target is the focus vob
+  TARGET_COLLECT_ALL                   = 3, // all targets in range will be assembled
+  TARGET_COLLECT_FOCUS_FALLBACK_NONE   = 4, // target is the focus vob, if the focus vob is not valid, the trajectory will be set by the effect
+  TARGET_COLLECT_FOCUS_FALLBACK_CASTER = 5, // target is the focus vob, if the focus vob is not valid, the target is the caster
+  TARGET_COLLECT_ALL_FALLBACK_NONE     = 6, // all targets in range will be assembled, if there are no valid targets, the trajectory will be set by the effect
+  TARGET_COLLECT_ALL_FALLBACK_CASTER   = 7, // all targets in range will be assembled, if there are no valid targets, the target is the caster
+  };

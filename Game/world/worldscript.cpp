@@ -590,6 +590,12 @@ const AiState &WorldScript::getAiState(size_t id) {
   return ins.first->second;
   }
 
+const Daedalus::GEngineClasses::C_Spell &WorldScript::getSpell(int32_t splId) {
+  auto& spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
+  auto& tag       = spellInst.getString(size_t(splId));
+  return spells->find(tag);
+  }
+
 std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GEngineClasses::C_Npc* player,
                                                                Daedalus::GEngineClasses::C_Npc* hnpc,
                                                                const std::vector<uint32_t>& except) {
@@ -2066,11 +2072,8 @@ void WorldScript::npc_getlasthitspellcat(Daedalus::DaedalusVM &vm) {
     vm.setReturn(SPELL_GOOD);
     return;
     }
-  const int id        = npc->lastHitSpellId();
-  auto&     spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
-  auto&     tag       = spellInst.getString(size_t(id));
-
-  auto& spell  = spells->find(tag);
+  const int id    = npc->lastHitSpellId();
+  auto&     spell = getSpell(id);
   vm.setReturn(spell.spellType);
   }
 
@@ -2087,11 +2090,8 @@ void WorldScript::npc_getactivespellcat(Daedalus::DaedalusVM &vm) {
     return;
     }
 
-  const int id        = w->spellId();
-  auto&     spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
-  auto&     tag       = spellInst.getString(size_t(id));
-
-  auto& spell  = spells->find(tag);
+  const int id    = w->spellId();
+  auto&     spell = getSpell(id);
   vm.setReturn(spell.spellType);
   }
 
