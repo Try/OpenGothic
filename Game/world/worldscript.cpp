@@ -349,6 +349,9 @@ void WorldScript::initCommon() {
       cGuildVal.turn_speed         [i]=cGuildVal.turn_speed         [Guild::GIL_HUMAN];
       }
     }
+
+  if(hasSymbolName("startup_global"))
+    runFunction("startup_global");
   }
 
 void WorldScript::initDialogs(Gothic& gothic) {
