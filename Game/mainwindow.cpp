@@ -39,6 +39,8 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   loadBox    = Resources::loadTexture("PROGRESS.TGA");
   loadVal    = Resources::loadTexture("PROGRESS_BAR.TGA");
 
+  backgroundLoad = background;
+
   timer.timeout.bind(this,&MainWindow::tick);
 
   gothic.onStartGame.bind(this,&MainWindow::startGame);
@@ -100,9 +102,12 @@ void MainWindow::paintEvent(PaintEvent& event) {
     p.setBrush(Color(0.0));
     p.drawRect(0,0,w(),h());
 
-    p.setBrush(*background);
+    auto back = background;
+    if(gothic.checkLoading()!=Gothic::LoadState::Idle && backgroundLoad!=nullptr)
+      back = backgroundLoad;
+    p.setBrush(*back);
     p.drawRect(0,0,w(),h(),
-               0,0,background->w(),background->h());
+               0,0,back->w(),back->h());
     }
 
   if(world)
@@ -144,7 +149,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
     }
 
   if(gothic.checkLoading()!=Gothic::LoadState::Idle && loadBox){
-    drawLoading(p,w()-loadBox->w()-50, 50, loadBox->w(),loadBox->h());
+    drawLoading(p,int(w()*0.92)-loadBox->w(), int(h()*0.12), loadBox->w(),loadBox->h());
     }
 
   char fpsT[64]={};
@@ -499,6 +504,7 @@ void MainWindow::loadGame(const std::string &name) {
     setGameImpl(nullptr);
     }
 
+  backgroundLoad = Resources::loadTexture("LOADING_OLDWORLD.TGA"); //LOADING_OLDWORLD.TGA - for world-change trigger
   loadProgress.store(0);
   gothic.startLoading([this,name](){
     auto progress=[this](int v){
@@ -515,6 +521,7 @@ void MainWindow::loadGame(const std::string &name) {
 
 void MainWindow::startGame(const std::string &name) {
   gothic.emitGlobalSound(gothic.loadSoundFx("NEWGAME"));
+  backgroundLoad = Resources::loadTexture("LOADING.TGA");
 
   if(gothic.checkLoading()==Gothic::LoadState::Idle){
     loaderSession = gothic.clearGame(); // clear world-memory later

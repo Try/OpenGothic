@@ -104,6 +104,7 @@ class MainWindow : public Tempest::Window {
     std::unique_ptr<GameSession>        loaderSession;
     std::atomic_int                     loadProgress;
     const Tempest::Texture2d*           background=nullptr;
+    const Tempest::Texture2d*           backgroundLoad=nullptr;
     const Tempest::Texture2d*           loadBox=nullptr;
     const Tempest::Texture2d*           loadVal=nullptr;
 
