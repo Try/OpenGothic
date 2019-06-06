@@ -343,8 +343,7 @@ void MainWindow::tick() {
     }
 
   currentFocus = player.findFocus(&currentFocus,camera,w(),h());
-  if(currentFocus.npc!=nullptr)
-    player.setTarget(currentFocus.npc);
+  player.setTarget(currentFocus.npc);
 
   if(mouseP[Event::ButtonLeft]){
     auto focus = currentFocus;
@@ -358,11 +357,6 @@ void MainWindow::tick() {
       clearInput();
       }
 
-    /*
-    if(!pressed[KeyEvent::K_W] && !pressed[KeyEvent::K_S] && !pressed[KeyEvent::K_A] && !pressed[KeyEvent::K_D]){
-      if(focus.npc)
-        player.actionFocus(*focus.npc);
-      }*/
     if(focus.npc)
       player.actionFocus(*focus.npc);
     }

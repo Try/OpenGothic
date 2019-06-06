@@ -276,7 +276,7 @@ Npc* WorldObjects::findNpc(const Npc &pl, Npc *def, const Matrix4x4 &v, int w, i
   def = validateNpc(def);
   if(def) {
     auto xopt  = opt;
-    xopt.flags = SearchFlg(xopt.flags | SearchFlg::NoAngle);
+    xopt.flags = SearchFlg(xopt.flags | SearchFlg::NoAngle | SearchFlg::NoRay);
     if(def && testObjRange(*def,pl,xopt))
       return def;
     }
@@ -457,11 +457,11 @@ bool WorldObjects::testObjRange(T &src, const Npc &pl, const WorldObjects::Searc
     return false;
 
   auto angle=std::atan2(dz,dx);
-  if(std::cos(plAng-angle)<ang && !bool(opt.flags&WorldObjects::NoAngle))
+  if(std::cos(plAng-angle)<ang && !bool(opt.flags&SearchFlg::NoAngle))
     return false;
 
   l = std::sqrt(dx*dx+dy*dy+dz*dz);
-  if(l<rlen && canSee(pl,npc)){
+  if(l<rlen && (bool(opt.flags&SearchFlg::NoRay) || canSee(pl,npc))){
     rlen=l;
     return true;
     }
