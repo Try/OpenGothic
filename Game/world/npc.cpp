@@ -827,7 +827,7 @@ bool Npc::implGoTo(uint64_t dt) {
     //float dy = y-currentGoTo->position.y;
     float dz = currentGoTo->z-z;
 
-    if(implLookAt(dx,dz,walkMode()!=WalkBit::WM_Run,dt)){
+    if(implLookAt(dx,dz,walkMode()!=WalkBit::WM_Run,dt)){ // TODO: force rotation, if angle > 45deg
       mvAlgo.aiGoTo(nullptr);
       return true;
       }
@@ -977,6 +977,7 @@ void Npc::takeDamage(Npc &other) {
 
   setOther(&other);
   perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
+  owner.world().sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
 
   auto ani=anim();
   if(ani!=Anim::MoveBack && ani!=Anim::AtackBlock) {
@@ -985,7 +986,11 @@ void Npc::takeDamage(Npc &other) {
     if(!isPlayer())
       setOther(lastHit);
     int dmg = isImmortal() ? 0 : other.damageValue(*this);
-    changeAttribute(ATR_HITPOINTS,isPlayer() ? -1 : -dmg);
+    if(isPlayer() && owner.isRamboMode())
+      dmg = std::min(1,dmg);
+    changeAttribute(ATR_HITPOINTS,-dmg);
+
+    owner.world().emitWeaponsSound(other,*this);
 
     if(ani==Anim::Move  || ani==Anim::MoveL  || ani==Anim::MoveR ||
        ani==Anim::Atack || ani==Anim::AtackL || ani==Anim::AtackR ||
@@ -1006,7 +1011,7 @@ void Npc::takeDamage(Npc &other) {
 
 int Npc::damageValue(Npc &other) const {
   const int dtype = hnpc->damagetype;
-  int hitCh = -1;
+  uint8_t   hitCh = TALENT_UNKNOWN;
   if(auto w = invent.activeWeapon()){
     if(w->is2H())
       hitCh = TALENT_2H; else
@@ -1017,7 +1022,7 @@ int Npc::damageValue(Npc &other) const {
     if((dtype & (1<<i))==0)
       continue;
     int vd = std::max(hnpc->damage[i] - other.hnpc->protection[i],0);
-    if(hitCh<0 || hnpc->hitChance[hitCh]<int(owner.rand(100)))
+    if(hnpc->hitChance[hitCh]<int(owner.rand(100)))
       vd = (vd-1)/10;
     v += vd;
     }

@@ -49,6 +49,7 @@ class Gothic final {
     void      pushPause();
     void      popPause();
     bool      isPause() const;
+    bool      isRamboMode() const;
 
     LoadState checkLoading();
     bool      finishLoading();
@@ -104,6 +105,7 @@ class Gothic final {
     std::string                        wdef;
     bool                               noMenu=false;
     uint16_t                           pauseSum=0;
+    bool                               isRambo=false;
 
     std::thread                        loaderTh;
     std::atomic<LoadState>             loadingFlag{LoadState::Idle};

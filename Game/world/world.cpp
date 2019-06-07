@@ -357,6 +357,54 @@ void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {
   wobj.sendPassivePerc(self,other,victum,perc);
   }
 
+void World::emitWeaponsSound(Npc &self, Npc &other) {
+  /*
+   WO - Wood
+   ME - Metal
+   ST - Stone
+   FL - Flesh
+   WA - Water
+   EA - Earth
+   SA - Sand
+   UD - Undefined
+   */
+  // ItemMaterial
+  static std::initializer_list<const char*> mat={
+    "WO",
+    "ST",
+    "ME",
+    "LE", //MAT_LEATHER,
+    "SA"  //MAT_CLAY,
+    "ST", //MAT_GLAS,
+    };
+  auto p0 = self.position();
+  auto p1 = other.position();
+
+  const char* selfMt="";
+  const char* othMt ="FL";
+
+  if(self.guild()>Guild::GIL_SEPERATOR_HUM)
+    selfMt = "JA"; else //Jaws
+    selfMt = "FI"; //Fist
+
+  if(auto a = self.inventory().activeWeapon()){
+    int32_t m = a->handle()->material;
+    if(m==ItemMaterial::MAT_WOOD)
+      selfMt = "WO"; else
+      selfMt = "ME";
+    }
+
+  if(auto a = other.currentArmour()){
+    int32_t m = a->handle()->material;
+    if(0<=m && size_t(m)<mat.size())
+      othMt = *(mat.begin()+m);
+    }
+
+  char buf[128]={};
+  std::snprintf(buf,sizeof(buf),"CS_MAM_%s_%s",selfMt,othMt);
+  wsound.emitSound(buf, 0.5f*(p0[0]+p1[0]), 0.5f*(p0[1]+p1[1]), 0.5f*(p0[2]+p1[2]),25.f,nullptr);
+  }
+
 bool World::isInListenerRange(const std::array<float,3> &pos) const {
   return wsound.isInListenerRange(pos);
   }

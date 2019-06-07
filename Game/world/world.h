@@ -116,7 +116,8 @@ class World final {
     void   removeItem (Item &it);
     size_t hasItems(const std::string& tag,size_t itemCls);
 
-    void   sendPassivePerc(Npc& self,Npc& other,Npc& victum,int32_t perc);
+    void   sendPassivePerc (Npc& self,Npc& other,Npc& victum,int32_t perc);
+    void   emitWeaponsSound(Npc& self,Npc& other);
 
     bool   isInListenerRange(const std::array<float,3> &pos) const;
     void   emitDlgSound(const char *s, float x, float y, float z, float range);

@@ -8,7 +8,6 @@
 #include "utils/installdetect.h"
 
 Gothic::Gothic(const int argc, const char **argv) {
-  //setWorld(std::make_unique<World>());
   if(argc<1)
     return;
 
@@ -25,6 +24,9 @@ Gothic::Gothic(const int argc, const char **argv) {
       }
     else if(std::strcmp(argv[i],"-nomenu")==0){
       noMenu=true;
+      }
+    else if(std::strcmp(argv[i],"-rambo")==0){
+      isRambo=true;
       }
     }
 
@@ -179,6 +181,10 @@ void Gothic::popPause() {
 
 bool Gothic::isPause() const {
   return pauseSum;
+  }
+
+bool Gothic::isRamboMode() const {
+  return isRambo;
   }
 
 Gothic::LoadState Gothic::checkLoading() {

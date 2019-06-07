@@ -28,6 +28,8 @@ class GameSession final {
     void         setWorld(std::unique_ptr<World> &&w);
     auto         clearWorld() -> std::unique_ptr<World>;
 
+    bool         isRamboMode() const;
+
     const World* world() const { return wrld.get(); }
     World*       world()       { return wrld.get(); }
 

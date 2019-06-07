@@ -234,7 +234,9 @@ void Camera::follow(const Npc &npc,uint64_t dt,bool includeRot) {
       setPosition(camPos[0]+dx*k, camPos[1]+dy*k, camPos[2]+dz*k);
       }
     } else {
-    camPos   = npc.position();
+    camPos    = npc.position();
+    float tr  = npc.translateY();
+    camPos[1] += tr + tr*(def.bestElevation-10)/20.f;
     hasPos   = true;
     isInMove = false;
     }

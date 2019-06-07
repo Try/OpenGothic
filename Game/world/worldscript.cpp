@@ -1044,6 +1044,10 @@ void WorldScript::setInstanceNPC(const char *name, Npc &npc) {
   vm.setInstance(name,npc.handle(),Daedalus::EInstanceClass::IC_Npc);
   }
 
+bool WorldScript::isRamboMode() const {
+  return owner.isRamboMode();
+  }
+
 const FightAi::FA &WorldScript::getFightAi(size_t i) const {
   return owner.getFightAi(i);
   }
@@ -1883,8 +1887,8 @@ void WorldScript::npc_getnexttarget(Daedalus::DaedalusVM &vm) {
   }
 
 void WorldScript::npc_sendpassiveperc(Daedalus::DaedalusVM &vm) {
-  auto other  = popInstance(vm);
   auto victum = popInstance(vm);
+  auto other  = popInstance(vm);
   auto id     = vm.popInt();
   auto npc    = popInstance(vm);
 

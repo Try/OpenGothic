@@ -77,6 +77,10 @@ std::unique_ptr<World> GameSession::clearWorld() {
   return std::move(wrld);
   }
 
+bool GameSession::isRamboMode() const {
+  return gothic.isRamboMode();
+  }
+
 WorldView *GameSession::view() const {
   if(wrld)
     return wrld->view();
