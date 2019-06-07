@@ -15,6 +15,7 @@ DialogMenu::DialogMenu(Gothic &gothic, InventoryMenu &trade)
   tex     = Resources::loadTexture("DLG_CHOICE.TGA");
   ambient = Resources::loadTexture("DLG_AMBIENT.TGA");
   setFocusPolicy(NoFocus);
+  camera.setMode(Camera::Dialog);
   }
 
 void DialogMenu::tick(uint64_t dt) {
@@ -52,6 +53,7 @@ void DialogMenu::tick(uint64_t dt) {
       ++i;
       }
     }
+
   update();
   }
 
@@ -66,7 +68,9 @@ const Camera &DialogMenu::dialogCamera() {
     camera.setWorld(gothic.world());
     auto p0 = pl->position();
     auto p1 = other->position();
-    camera.setPosition(0.5f*(p0[0]+p1[0]), 0.5f*(p0[1]+p1[1]), 0.5f*(p0[2]+p1[2]));
+    camera.setPosition(0.5f*(p0[0]+p1[0]),
+                       0.5f*(p0[1]+p1[1])+1.5f*pl->translateY(),
+                       0.5f*(p0[2]+p1[2]));
     p0[0]-=p1[0];
     p0[1]-=p1[1];
     p0[2]-=p1[2];
