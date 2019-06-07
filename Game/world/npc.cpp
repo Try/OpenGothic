@@ -668,7 +668,7 @@ bool Npc::isRefuseTalk() const {
   }
 
 int32_t Npc::mageCycle() const {
-  return talentValue(TALENT_RUNES);
+  return talentSkill(TALENT_RUNES);
   }
 
 void Npc::setRefuseTalk(uint64_t milis) {
@@ -1024,7 +1024,8 @@ int Npc::damageValue(Npc &other) const {
     int vd = std::max(hnpc->damage[i] - other.hnpc->protection[i],0);
     if(hnpc->hitChance[hitCh]<int(owner.rand(100)))
       vd = (vd-1)/10;
-    v += vd;
+    if(other.hnpc->protection[i]>=0) // Filter immune
+      v += vd;
     }
   return std::max(v,3);
   }
