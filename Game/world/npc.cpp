@@ -1078,6 +1078,8 @@ void Npc::tick(uint64_t dt) {
     }
   else if(aiActions.size()==0) {
     tickRoutine();
+    if(aiActions.size()>0)
+      nextAiAction(dt);
     return;
     }
   nextAiAction(dt);
@@ -1142,7 +1144,7 @@ void Npc::nextAiAction(uint64_t dt) {
         aiActions.push_front(std::move(act));
       break;
     case AI_StartState:
-      if(startState(act.func,act.s0,gtime::endOfTime(),act.i0==0))
+      if(startState(act.func,act.s0,aiState.eTime,act.i0==0))
         setOther(act.target);
       break;
     case AI_PlayAnim:{
