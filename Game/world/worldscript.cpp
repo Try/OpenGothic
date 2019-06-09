@@ -491,6 +491,17 @@ void WorldScript::loadVar(Serialize &fin) {
     }
   }
 
+void WorldScript::resetVarPointers() {
+  auto&  dat = vm.getDATFile().getSymTable().symbols;
+  for(size_t i=0;i<dat.size();++i){
+    auto& s = vm.getDATFile().getSymbolByIndex(i);
+    if(s.properties.elemProps.type==Daedalus::EParType::EParType_Instance){
+      s.instanceDataClass  = Daedalus::IC_None;
+      s.instanceDataHandle = nullptr;
+      }
+    }
+  }
+
 void WorldScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
   switch(i.properties.elemProps.type) {
     case Daedalus::EParType::EParType_Int:
@@ -2659,7 +2670,7 @@ void WorldScript::printdebuginstch(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::sort(std::vector<WorldScript::DlgChoise> &dlg) {
   std::sort(dlg.begin(),dlg.end(),[](const WorldScript::DlgChoise& l,const WorldScript::DlgChoise& r){
-    return l.sort<r.sort;
+    return std::tie(l.sort,l.scriptFn)<std::tie(r.sort,r.scriptFn); // small hack with scriptfn to reproduce behavior of original game
     });
   }
 
