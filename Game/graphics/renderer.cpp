@@ -34,11 +34,11 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
   const size_t imgC=device.swapchainImageCount();
   fbo3d.clear();
 
-  zbuffer    = device.createTexture(TextureFormat::Depth16,w,h,false);
+  zbuffer    = device.createTexture(TextureFormat::Depth24x8,w,h,false);
   mainPass   = device.pass(Color(0.0),1.f,zbuffer.format());
 
   shadowMap  = device.createTexture(shadowFormat,smSize,smSize,false);
-  shadowZ    = device.createTexture(TextureFormat::Depth16,smSize,smSize,false);
+  shadowZ    = device.createTexture(TextureFormat::Depth24x8,smSize,smSize,false);
   shadowPass = device.pass(Color(1.0),1.f,shadowMap.format(),zbuffer.format());
   fboShadow  = device.frameBuffer(shadowMap,shadowZ,shadowPass);
 
@@ -65,7 +65,7 @@ void Renderer::onWorldChanged() {
   }
 
 void Renderer::setCameraView(const Camera& camera) {
-  view   = camera.view();
+  view = camera.view();
   if(auto wview=gothic.worldView())
     shadow = camera.viewShadow(wview->mainLight().dir());
   }
