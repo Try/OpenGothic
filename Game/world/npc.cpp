@@ -15,7 +15,7 @@
 using namespace Tempest;
 
 Npc::Npc(WorldScript &owner, size_t instance, const char* waypoint)
-  :owner(owner),hnpc(nullptr),mvAlgo(*this,owner.world()){
+  :owner(owner),hnpc(nullptr),mvAlgo(*this){
   hnpc                 = new Daedalus::GEngineClasses::C_Npc();
   hnpc->wp             = waypoint;
   hnpc->instanceSymbol = instance;
@@ -25,7 +25,7 @@ Npc::Npc(WorldScript &owner, size_t instance, const char* waypoint)
   }
 
 Npc::Npc(WorldScript &owner, Serialize &fin)
-  :owner(owner),hnpc(nullptr),mvAlgo(*this,owner.world()){
+  :owner(owner),hnpc(nullptr),mvAlgo(*this){
   hnpc          = new Daedalus::GEngineClasses::C_Npc();
   hnpc->userPtr = this;
   int32_t     flags=0;
@@ -326,6 +326,10 @@ bool Npc::checkHealth(bool onChange) {
   return true;
   }
 
+World& Npc::world() {
+  return owner.world();
+  }
+
 std::array<float,3> Npc::position() const {
   return {{x,y,z}};
   }
@@ -530,6 +534,24 @@ void Npc::updateWeaponSkeleton() {
 void Npc::setPhysic(DynamicWorld::Item &&item) {
   physic = std::move(item);
   physic.setPosition(x,y,z);
+  }
+
+void Npc::resetView(bool clear) {
+  if(clear){
+    setPhysic(DynamicWorld::Item());
+    animation.setVisualBody(StaticObjects::Mesh(),StaticObjects::Mesh());
+    animation.sword  = StaticObjects::Mesh();
+    animation.bow    = StaticObjects::Mesh();
+    animation.armour = StaticObjects::Mesh();
+    return;
+    }
+
+  if(animation.skeleton!=nullptr) {
+    auto& name = animation.skeleton->name();
+    setPhysic(owner.world().getPhysic(name));
+    setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
+    setVisual(name.c_str());
+    }
   }
 
 void Npc::setFatness(float) {
@@ -1017,12 +1039,15 @@ int Npc::damageValue(Npc &other) const {
       hitCh = TALENT_2H; else
       hitCh = TALENT_1H;
     }
-  int v = attribute(Attribute::ATR_STRENGTH);
+  int s          = attribute(Attribute::ATR_STRENGTH);
+  int v          = 0;
+  int critChance = int(owner.rand(100));
+
   for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
     if((dtype & (1<<i))==0)
       continue;
-    int vd = std::max(hnpc->damage[i] - other.hnpc->protection[i],0);
-    if(hnpc->hitChance[hitCh]<int(owner.rand(100)))
+    int vd = std::max(s + hnpc->damage[i] - other.hnpc->protection[i],0);
+    if(hnpc->hitChance[hitCh]<critChance)
       vd = (vd-1)/10;
     if(other.hnpc->protection[i]>=0) // Filter immune
       v += vd;
@@ -1039,6 +1064,7 @@ void Npc::tick(uint64_t dt) {
     mvAlgo.tick(dt);
     setOther(lastHit);
     aiActions.clear();
+    setPhysic(DynamicWorld::Item());
     tickRoutine(); // tick for ZS_Death
     return;
     }
