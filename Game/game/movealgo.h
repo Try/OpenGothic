@@ -11,7 +11,7 @@ class WayPoint;
 
 class MoveAlgo final {
   public:
-    MoveAlgo(Npc& unit,const World& w);
+    MoveAlgo(Npc& unit);
 
     void tick(uint64_t dt);
     void multSpeed(float s){ mulSpeed=s; }
@@ -59,7 +59,6 @@ class MoveAlgo final {
     void   applyRotation(std::array<float,3> &out, float *in);
 
     Npc&                npc;
-    const World&        world;
     const WayPoint*     currentGoTo   =nullptr;
     const Npc*          currentGoToNpc=nullptr;
 

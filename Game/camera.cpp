@@ -25,8 +25,7 @@ Camera::Camera(Gothic &gothic) : gothic(gothic) {
   camPos[1] = 1000;
   }
 
-void Camera::setWorld(const World *w) {
-  world = w;
+void Camera::setWorld(const World *world) {
   if(world){
     auto pl = world->player();
     if(pl) {
@@ -189,7 +188,7 @@ void Camera::implMove(Tempest::Event::KeyType key) {
     camPos[0]+=dpos*s;
     camPos[2]+=dpos*c;
     }
-  if(world)
+  if(auto world = gothic.world())
     camPos[1] = world->physic()->dropRay(camPos[0],camPos[1],camPos[2]).y();
   }
 
@@ -264,6 +263,7 @@ Matrix4x4 Camera::view() const {
   const float dist    = this->dist*100.f;
   const float minDist = 65;
 
+  auto world = gothic.world();
   if(world==nullptr)
     return mkView(dist);
 

@@ -54,7 +54,6 @@ class Camera final {
     float                 zoom=1.f;
     float                 dist=3.f;
 
-    const World*          world=nullptr;
     bool                  hasPos=false;
     Mode                  camMod=Normal;
 

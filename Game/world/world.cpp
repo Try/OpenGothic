@@ -79,11 +79,19 @@ World::World(GameSession &game, const RendererStorage &storage,
   }
 
 void World::createPlayer(const char *cls) {
-  npcPlayer = addNpc(cls,wmatrix->startPoint().name.c_str());//game.script()->inserNpc(cls,wmatrix->startPoint().name.c_str());
+  npcPlayer = addNpc(cls,wmatrix->startPoint().name.c_str());
   if(npcPlayer!=nullptr) {
     npcPlayer->setProcessPolicy(Npc::ProcessPolicy::Player);
     game.script()->setInstanceNPC("HERO",*npcPlayer);
     }
+  }
+
+void World::insertPlayer(std::unique_ptr<Npc> &&npc,const char* waypoint) {
+  if(npc==nullptr)
+    return;
+  npcPlayer = wobj.insertPlayer(std::move(npc),waypoint);
+  if(npcPlayer!=nullptr)
+    game.script()->setInstanceNPC("HERO",*npcPlayer);
   }
 
 void World::postInit() {
@@ -93,9 +101,8 @@ void World::postInit() {
 void World::load(Serialize &fout) {
   wobj.load(fout);
   npcPlayer = wobj.findHero();
-  if(npcPlayer!=nullptr) {
+  if(npcPlayer!=nullptr)
     game.script()->setInstanceNPC("HERO",*npcPlayer);
-    }
   }
 
 void World::save(Serialize &fout) {
@@ -151,6 +158,10 @@ void World::updateAnimation() {
 
 void World::resetPositionToTA() {
   wobj.resetPositionToTA();
+  }
+
+std::unique_ptr<Npc> World::takeHero() {
+  return wobj.takeNpc(npcPlayer);
   }
 
 void World::tick(uint64_t dt) {
@@ -284,6 +295,10 @@ Trigger *World::findTrigger(const char *name) {
 
 Interactive *World::aviableMob(const Npc &pl, const std::string &name) {
   return wobj.aviableMob(pl,name);
+  }
+
+void World::changeWorld(const std::string& world, const std::string& wayPoint) {
+  game.changeWorld(world,wayPoint);
   }
 
 void World::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,int w,int h) const {

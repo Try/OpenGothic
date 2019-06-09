@@ -8,22 +8,22 @@
 const uint64_t GameSession::multTime=29;
 const uint64_t GameSession::divTime =2;
 
-GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::string file, std::function<void (int)> loadProgress)
-  :gothic(gothic) {
-  loadProgress(0);
+GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::string file)
+  :gothic(gothic), storage(storage) {
+  gothic.setLoadingProgress(0);
   setTime(gtime(8,0));
   uint8_t ver = gothic.isGothic2() ? 2 : 1;
 
   vm.reset(new WorldScript(*this));
   setWorld(std::unique_ptr<World>(new World(*this,storage,file,ver,[&](int v){
-    loadProgress(int(v*0.55));
+    gothic.setLoadingProgress(int(v*0.55));
     })));
 
   vm->initDialogs(gothic);
-  loadProgress(70);
+  gothic.setLoadingProgress(70);
 
-  const char* hero="PC_HERO";
-  //const char* hero="PC_ROCKEFELLER";
+  //const char* hero="PC_HERO";
+  const char* hero="PC_ROCKEFELLER";
   //const char* hero="Giant_Bug";
   //const char* hero="OrcWarrior_Rest";
   //const char* hero = "Snapper";
@@ -33,12 +33,12 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
   wrld->postInit();
 
   initScripts(true);
-  loadProgress(96);
+  gothic.setLoadingProgress(96);
   }
 
-GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Serialize &fin, std::function<void(int)> loadProgress)
-  :gothic(gothic) {
-  loadProgress(0);
+GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Serialize &fin)
+  :gothic(gothic), storage(storage) {
+  gothic.setLoadingProgress(0);
   bool isG2=false;
   fin.read(ticks,wrldTimePart,wrldTime,isG2);
 
@@ -46,14 +46,14 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Seriali
 
   vm.reset(new WorldScript(*this,fin));
   setWorld(std::unique_ptr<World>(new World(*this,storage,fin,ver,[&](int v){
-    loadProgress(int(v*0.55));
+    gothic.setLoadingProgress(int(v*0.55));
     })));
 
   vm->initDialogs(gothic);
-  loadProgress(70);
+  gothic.setLoadingProgress(70);
   wrld->load(fin);
   vm->loadVar(fin);
-  loadProgress(96);
+  gothic.setLoadingProgress(96);
   }
 
 GameSession::~GameSession() {
@@ -75,6 +75,49 @@ std::unique_ptr<World> GameSession::clearWorld() {
   if(wrld)
     wrld->view()->resetCmd();
   return std::move(wrld);
+  }
+
+void GameSession::changeWorld(const std::string& world, const std::string& wayPoint) {
+  char buf[128]={};
+  size_t beg = world.rfind('\\');
+  size_t end = world.rfind('.');
+
+  std::string wname;
+  if(beg!=std::string::npos && end!=std::string::npos)
+    wname = world.substr(beg+1,end-beg-1); else
+    wname = world;
+
+  std::snprintf(buf,sizeof(buf),"LOADING_%s.TGA",wname.c_str());  // final load-screen name, like "LOADING_OLDWORLD.TGA"
+
+  // don't waste resources on update/sync
+  auto hero = wrld->takeHero();
+  hero->resetView(true);
+
+  auto h = hero.release();
+  gothic.startLoading(buf,[this,world,wayPoint,h](){
+    implChangeWorld(std::unique_ptr<Npc>(h),world,wayPoint);
+    });
+  }
+
+void GameSession::implChangeWorld(std::unique_ptr<Npc>&& hero,const std::string& world, const std::string& wayPoint) {
+  const uint8_t ver = gothic.isGothic2() ? 2 : 1;
+  const char*   w   = world.c_str();
+  size_t        cut = world.rfind('\\');
+  if(cut!=std::string::npos)
+    w = w+cut+1;
+
+  setWorld(std::unique_ptr<World>(new World(*this,storage,w,ver,[&](int v){
+    gothic.setLoadingProgress(v);
+    })));
+
+  vm->resetVarPointers();
+
+  hero->setTarget(nullptr);
+  hero->setOther (nullptr);
+  hero->resetView(false);
+  wrld->insertPlayer(std::move(hero),wayPoint.c_str());
+
+  initScripts(false);
   }
 
 bool GameSession::isRamboMode() const {

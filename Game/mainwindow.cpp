@@ -39,11 +39,10 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   loadBox    = Resources::loadTexture("PROGRESS.TGA");
   loadVal    = Resources::loadTexture("PROGRESS_BAR.TGA");
 
-  backgroundLoad = background;
-
   timer.timeout.bind(this,&MainWindow::tick);
 
-  gothic.onStartGame.bind(this,&MainWindow::startGame);
+  gothic.onStartGame  .bind(this,&MainWindow::startGame);
+  gothic.onWorldLoaded.bind(this,&MainWindow::onWorldLoaded);
 
   if(!gothic.doStartMenu()) {
     startGame(gothic.defaultWorld());
@@ -93,12 +92,11 @@ void MainWindow::paintEvent(PaintEvent& event) {
     p.setBrush(Color(0.0));
     p.drawRect(0,0,w(),h());
 
-    auto back = background;
-    if(gothic.checkLoading()!=Gothic::LoadState::Idle && backgroundLoad!=nullptr)
-      back = backgroundLoad;
-    p.setBrush(*back);
-    p.drawRect(0,0,w(),h(),
-               0,0,back->w(),back->h());
+    if(gothic.checkLoading()==Gothic::LoadState::Idle) {
+      p.setBrush(*background);
+      p.drawRect(0,0,w(),h(),
+                 0,0,background->w(),background->h());
+      }
     }
 
   if(world)
@@ -176,6 +174,9 @@ void MainWindow::mouseUpEvent(MouseEvent &event) {
 
 void MainWindow::mouseDragEvent(MouseEvent &event) {
   if(!mouseP[Event::ButtonLeft] || dialogs.isActive())
+    return;
+  auto st = gothic.checkLoading();
+  if(st==Gothic::LoadState::Loading)
     return;
   auto dp = (event.pos()-mpos);
   mpos = event.pos();
@@ -302,20 +303,28 @@ void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y
   }
 
 void MainWindow::drawLoading(Painter &p, int x, int y, int w, int h) {
-  float v = loadProgress.load()/100.f;
+  float v = gothic.loadingProgress()/100.f;
   if(v<0.1f)
     v=0.1f;
+
+  if(auto back = gothic.loadingBanner()) {
+    p.setBrush(*back);
+    p.drawRect(0,0,this->w(),this->h(),
+               0,0,back->w(),back->h());
+    }
+
   p.setBrush(*loadBox);
   p.drawRect(x,y,w,h, 0,0,loadBox->w(),loadBox->h());
 
   p.setBrush(*loadVal);
-  p.drawRect(x+75,y+15,int((w-130)*v),35, 0,0,loadVal->w(),loadVal->h());
+  p.drawRect(x+75,y+15,int((w-145)*v),35, 0,0,loadVal->w(),loadVal->h());
   }
 
 void MainWindow::tick() {
   auto st = gothic.checkLoading();
   if(st==Gothic::LoadState::Finalize){
-    setGameImpl(std::move(loaderSession));
+    if(loaderSession!=nullptr)
+      setGameImpl(std::move(loaderSession));
     gothic.finishLoading();
     }
   else if(st==Gothic::LoadState::Failed) {
@@ -487,60 +496,59 @@ void MainWindow::loadGame(const std::string &name) {
   if(gothic.checkLoading()==Gothic::LoadState::Idle){
     loaderSession = gothic.clearGame(); // clear world-memory later
     setGameImpl(nullptr);
+    onWorldLoaded();
     }
 
-  backgroundLoad = Resources::loadTexture("LOADING_OLDWORLD.TGA"); //LOADING_OLDWORLD.TGA - for world-change trigger
-  loadProgress.store(0);
-  gothic.startLoading([this,name](){
-    auto progress=[this](int v){
-      loadProgress.store(v);
-      };
+  //LOADING_OLDWORLD.TGA - for world-change trigger
+  gothic.startLoading("LOADING_OLDWORLD.TGA",[this,name](){
     loaderSession = nullptr; // clear world-memory now
     Tempest::RFile file(name);
     Serialize      s(file);
-    std::unique_ptr<GameSession> w(new GameSession(gothic,draw.storage(),s,progress));
+    std::unique_ptr<GameSession> w(new GameSession(gothic,draw.storage(),s));
     loaderSession = std::move(w);
     });
+
   update();
   }
 
 void MainWindow::startGame(const std::string &name) {
   gothic.emitGlobalSound(gothic.loadSoundFx("NEWGAME"));
-  backgroundLoad = Resources::loadTexture("LOADING.TGA");
 
   if(gothic.checkLoading()==Gothic::LoadState::Idle){
     loaderSession = gothic.clearGame(); // clear world-memory later
     setGameImpl(nullptr);
+    onWorldLoaded();
     }
 
-  loadProgress.store(0);
-  gothic.startLoading([this,name](){
-    auto progress=[this](int v){
-      loadProgress.store(v);
-      };
+  gothic.startLoading("LOADING.TGA",[this,name](){
     loaderSession = nullptr; // clear world-memory now
-    std::unique_ptr<GameSession> w(new GameSession(gothic,draw.storage(),name,progress));
+    std::unique_ptr<GameSession> w(new GameSession(gothic,draw.storage(),name));
     loaderSession = std::move(w);
     });
   update();
   }
 
-void MainWindow::setGameImpl(std::unique_ptr<GameSession> &&w) {
-  gothic   .setGame(std::move(w));
-  camera   .setWorld(gothic.world());
-  player   .setWorld(gothic.world());
-  inventory.setWorld(gothic.world());
+void MainWindow::onWorldLoaded() {
+  World* w = gothic.world();
+
+  //camera   .setWorld(w);
+  player   .setWorld(w);
+  inventory.setWorld(w);
   dialogs.clear();
   spin = camera.getSpin();
   draw.onWorldChanged();
 
-  if(auto pl = gothic.player())
-    pl->multSpeed(1.f);
-  lastTick = Application::tickCount();
-
   device.waitIdle();
   for(auto& c:commandDynamic)
     c = device.commandBuffer();
+
+  if(auto pl = gothic.player())
+    pl->multSpeed(1.f);
+  lastTick = Application::tickCount();
+  }
+
+void MainWindow::setGameImpl(std::unique_ptr<GameSession> &&w) {
+  gothic.setGame(std::move(w));
   }
 
 void MainWindow::clearInput() {
@@ -569,9 +577,9 @@ void MainWindow::render(){
   try {
     static uint64_t time=Application::tickCount();
 
-    auto&          context   =fLocal[device.frameId()];
-    Semaphore&     renderDone=commandBuffersSemaphores[device.frameId()];
-    PrimaryCommandBuffer& cmd=commandDynamic[device.frameId()];
+    auto&                 context    = fLocal[device.frameId()];
+    Semaphore&            renderDone = commandBuffersSemaphores[device.frameId()];
+    PrimaryCommandBuffer& cmd        = commandDynamic[device.frameId()];
 
     if(dialogs.isActive())
       draw.setCameraView(dialogs.dialogCamera()); else

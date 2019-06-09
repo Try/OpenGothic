@@ -97,6 +97,18 @@ Npc *Gothic::player() {
   return nullptr;
   }
 
+int Gothic::loadingProgress() const {
+  return loadProgress.load();
+  }
+
+void Gothic::setLoadingProgress(int v) {
+  loadProgress.store(v);
+  }
+
+const Tempest::Texture2d *Gothic::loadingBanner() const {
+  return loadTex;
+  }
+
 SoundFx *Gothic::loadSoundFx(const char *name) {
   if(name==nullptr || *name=='\0')
     return nullptr;
@@ -197,12 +209,16 @@ bool Gothic::finishLoading() {
     return false;
   if(loadingFlag.compare_exchange_strong(state,LoadState::Idle)){
     loaderTh.join();
+    onWorldLoaded();
     return true;
     }
   return false;
   }
 
-void Gothic::startLoading(const std::function<void()> f) {
+void Gothic::startLoading(const char* banner,const std::function<void()> f) {
+  loadTex = Resources::loadTexture(banner);
+  loadProgress.store(0);
+
   auto zero=LoadState::Idle;
   if(!loadingFlag.compare_exchange_strong(zero,LoadState::Loading)){
     return; // loading already

@@ -10,8 +10,8 @@ const float MoveAlgo::fallThreshold        =45.f;
 const float MoveAlgo::fallWlkThreshold     =10.f;
 const float MoveAlgo::closeToPointThreshold=50;
 
-MoveAlgo::MoveAlgo(Npc& unit, const World &w)
-  :npc(unit),world(w) {
+MoveAlgo::MoveAlgo(Npc& unit)
+  :npc(unit) {
   }
 
 void MoveAlgo::tick(uint64_t dt) {
@@ -142,7 +142,7 @@ void MoveAlgo::aiGoTo(const std::nullptr_t) {
   }
 
 bool MoveAlgo::startClimb() {
-  climbStart=world.tickCount();
+  climbStart=npc.world().tickCount();
   climbPos0 =npc.position();
   setAsClimb(true);
   setAsFrozen(false);
@@ -218,7 +218,7 @@ bool MoveAlgo::processClimb() {
     pos[0]+= dspeed*s;
     pos[2]+=-dspeed*c;
 
-    auto ground = world.physic()->dropRay(pos[0],pos[1]+climbHeight+10,pos[2]);
+    auto ground = npc.world().physic()->dropRay(pos[0],pos[1]+climbHeight+10,pos[2]);
     if(ground.hasCol) {
       pos[1]=ground.y();
       std::array<float,3> fb={};
@@ -415,7 +415,7 @@ bool MoveAlgo::trySlide(std::array<float,3>& pos,std::array<float,3>& norm) {
     badFall=true;
     }
 
-  norm = world.physic()->landNormal(pos[0],pos[1],pos[2]);
+  norm = npc.world().physic()->landNormal(pos[0],pos[1],pos[2]);
 
   if(badFall || (slideEnd<norm[1] && norm[1]<slideBegin)) { // sliding
     return true;
@@ -438,12 +438,12 @@ void MoveAlgo::onMoveFailed() {
   }
 
 float MoveAlgo::dropRay(float x, float y, float z, bool &hasCol) const {
-  auto r = world.physic()->dropRay(x,y+2*npc.collisionRadius(),z,hasCol);
+  auto r = npc.world().physic()->dropRay(x,y+2*npc.collisionRadius(),z,hasCol);
   return r.y();
   }
 
 uint8_t MoveAlgo::groundMaterial() const {
   const std::array<float,3> &pos = npc.position();
-  auto r = world.physic()->dropRay(pos[0],pos[1]+2*npc.collisionRadius(),pos[2]);
+  auto r = npc.world().physic()->dropRay(pos[0],pos[1]+2*npc.collisionRadius(),pos[2]);
   return r.mat;
   }

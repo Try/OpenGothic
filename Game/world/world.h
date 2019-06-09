@@ -36,6 +36,7 @@ class World final {
     World(GameSession &gothic, const RendererStorage& storage, Serialize& fin, uint8_t isG2, std::function<void(int)> loadProgress);
 
     void  createPlayer(const char* cls);
+    void  insertPlayer(std::unique_ptr<Npc>&& npc, const char *waypoint);
     void  postInit();
     const std::string& name() const { return wname; }
 
@@ -78,7 +79,9 @@ class World final {
 
     void     resetPositionToTA();
 
+    auto     takeHero() -> std::unique_ptr<Npc>;
     Npc*     player() const { return npcPlayer; }
+
     void     tick(uint64_t dt);
     uint64_t tickCount() const;
     void     setDayTime(int32_t h,int32_t min);
@@ -95,6 +98,7 @@ class World final {
     Trigger*       findTrigger(const std::string& name) { return findTrigger(name.c_str()); }
     Trigger*       findTrigger(const char*        name);
     Interactive*   aviableMob(const Npc &pl, const std::string& name);
+    void           changeWorld(const std::string &world, const std::string &wayPoint);
 
     void   marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
     void   marchPoints      (Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;

@@ -51,6 +51,8 @@ class WorldScript final {
     void       saveVar(Serialize& fout);
     void       loadVar(Serialize& fin);
 
+    void       resetVarPointers();
+
     const World& world() const;
     World&       world();
     uint64_t     tickCount() const;

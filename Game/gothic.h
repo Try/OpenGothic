@@ -38,6 +38,10 @@ class Gothic final {
     WorldView*   worldView() const;
     Npc*         player();
 
+    auto      loadingBanner() const -> const Tempest::Texture2d*;
+    int       loadingProgress() const;
+    void      setLoadingProgress(int v);
+
     SoundFx*  loadSoundFx(const char* name);
     void      emitGlobalSound(const char*        sfx);
     void      emitGlobalSound(const std::string& sfx);
@@ -53,7 +57,7 @@ class Gothic final {
 
     LoadState checkLoading();
     bool      finishLoading();
-    void      startLoading(const std::function<void()> f);
+    void      startLoading(const char *banner, const std::function<void()> f);
     void      cancelLoading();
 
     void      tick(uint64_t dt);
@@ -89,6 +93,7 @@ class Gothic final {
     Tempest::Signal<void(const char*)>                                  onPrint;
 
     Tempest::Signal<void(const ChapterScreen::Show&)>                   onIntroChapter;
+    Tempest::Signal<void()>                                             onWorldLoaded;
 
     const std::string&                    messageByName(const std::string &id) const;
     uint32_t                              messageTime(const std::string &id) const;
@@ -107,6 +112,8 @@ class Gothic final {
     uint16_t                           pauseSum=0;
     bool                               isRambo=false;
 
+    const Tempest::Texture2d*          loadTex=nullptr;
+    std::atomic_int                    loadProgress{0};
     std::thread                        loaderTh;
     std::atomic<LoadState>             loadingFlag{LoadState::Idle};
 

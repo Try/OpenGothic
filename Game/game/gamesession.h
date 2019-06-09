@@ -19,14 +19,16 @@ class GameSession final {
   public:
     GameSession()=delete;
     GameSession(const GameSession&)=delete;
-    GameSession(Gothic &gothic, const RendererStorage& storage, std::string file, std::function<void(int)> loadProgress);
-    GameSession(Gothic &gothic, const RendererStorage& storage, Serialize&  fin, std::function<void(int)> loadProgress);
+    GameSession(Gothic &gothic, const RendererStorage& storage, std::string file);
+    GameSession(Gothic &gothic, const RendererStorage& storage, Serialize&  fin);
     ~GameSession();
 
     void         save(Serialize& fout);
 
     void         setWorld(std::unique_ptr<World> &&w);
     auto         clearWorld() -> std::unique_ptr<World>;
+
+    void         changeWorld(const std::string &world, const std::string &wayPoint);
 
     bool         isRamboMode() const;
 
@@ -70,8 +72,10 @@ class GameSession final {
 
   private:
     void         initScripts(bool firstTime);
+    void         implChangeWorld(std::unique_ptr<Npc>&& hero,const std::string &world, const std::string &wayPoint);
 
     Gothic&                      gothic;
+    const RendererStorage&       storage;
 
     std::unique_ptr<WorldScript> vm;
     std::unique_ptr<World>       wrld;

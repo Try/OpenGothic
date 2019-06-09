@@ -15,3 +15,6 @@ const std::string &Trigger::name() const {
 void Trigger::onTrigger() {
   Log::d("TODO: trigger[",name(),"]");
   }
+
+void Trigger::onIntersect(Npc &) {
+  }

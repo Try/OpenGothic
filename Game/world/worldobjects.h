@@ -11,6 +11,7 @@
 #include "movetrigger.h"
 #include "spaceindex.h"
 #include "trigger.h"
+#include "zonetrigger.h"
 
 class Npc;
 class Item;
@@ -45,6 +46,8 @@ class WorldObjects final {
     uint32_t       itmId(const void* ptr) const;
 
     Npc*           addNpc(size_t itemInstance, const char *at);
+    Npc *insertPlayer(std::unique_ptr<Npc>&& npc, const char *waypoint);
+    auto           takeNpc(const Npc* npc) -> std::unique_ptr<Npc>;
 
     void           updateAnimation();
 
@@ -59,6 +62,8 @@ class WorldObjects final {
 
     void           addTrigger(ZenLoad::zCVobData&& vob);
     Trigger*       findTrigger(const char* name);
+    Trigger*       findTrigger(const std::array<float,3>& xyz);
+    Trigger*       findTrigger(float x,float y,float z);
 
     Item*          addItem(size_t itemInstance, const char *at);
     Item*          addItem(const ZenLoad::zCVobData &vob);
@@ -93,6 +98,7 @@ class WorldObjects final {
 
     std::vector<Trigger>               triggers;
     std::vector<MoveTrigger>           triggersMv;
+    std::vector<ZoneTrigger>           triggersZn;
 
     std::vector<PerceptionMsg>         sndPerc;
 

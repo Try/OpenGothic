@@ -231,6 +231,8 @@ class Npc final {
     bool startClimb(Npc::Anim ani);
     bool checkHealth(bool onChange);
 
+    auto world() -> World&;
+
     std::array<float,3> position() const;
     std::array<float,3> cameraBone() const;
     float               collisionRadius() const;
@@ -263,6 +265,7 @@ class Npc final {
     void setSword      (StaticObjects::Mesh&& sword);
     void setRangeWeapon(StaticObjects::Mesh&& bow);
     void setPhysic     (DynamicWorld::Item&& item);
+    void resetView     (bool clear);
     void setFatness    (float f);
     void setScale      (float x,float y,float z);
     bool setAnim(Anim a);

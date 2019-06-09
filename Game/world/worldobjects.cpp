@@ -132,6 +132,41 @@ Npc *WorldObjects::addNpc(size_t npcInstance, const char *at) {
   return npc;
   }
 
+Npc* WorldObjects::insertPlayer(std::unique_ptr<Npc> &&npc,const char* at) {
+  auto pos = owner.findPoint(at);
+  if(pos==nullptr){
+    Log::e("insertPlayer: invalid waypoint");
+    return nullptr;
+    }
+
+  if(pos!=nullptr && pos->isLocked()){
+    auto p = owner.findNextPoint(*pos);
+    if(p)
+      pos=p;
+    }
+  if(pos!=nullptr) {
+    npc->setPosition  (pos->x,pos->y,pos->z);
+    npc->setDirection (pos->dirX,pos->dirY,pos->dirZ);
+    npc->attachToPoint(pos);
+    npc->updateTransform();
+    }
+  npcArr.emplace_back(std::move(npc));
+  return npcArr.back().get();
+  }
+
+std::unique_ptr<Npc> WorldObjects::takeNpc(const Npc* ptr) {
+  for(size_t i=0; i<npcArr.size(); ++i){
+    auto& npc=*npcArr[i];
+    if(&npc==ptr){
+      auto ret=std::move(npcArr[i]);
+      npcArr[i] = std::move(npcArr.back());
+      npcArr.pop_back();
+      return ret;
+      }
+    }
+  return nullptr;
+  }
+
 void WorldObjects::tickNear(uint64_t /*dt*/) {
   for(size_t i=0;i<npcNear.size();++i)
     for(size_t r=i+1;r<npcNear.size();++r){
@@ -141,6 +176,11 @@ void WorldObjects::tickNear(uint64_t /*dt*/) {
       a.setNearestEnemy(b);
       b.setNearestEnemy(a);
       }
+  for(Npc* i:npcNear){
+    auto* t = findTrigger(i->position());
+    if(t!=nullptr)
+      t->onIntersect(*i);
+    }
   }
 
 void WorldObjects::updateAnimation() {
@@ -159,6 +199,10 @@ Npc *WorldObjects::findHero() {
   }
 
 void WorldObjects::detectNpc(const float x, const float y, const float z, std::function<void (Npc &)> f) {
+  (void)x;
+  (void)y;
+  (void)z;
+  //TODO: handle x,y,z
   for(auto& i:npcArr)
     f(*i);
   }
@@ -166,6 +210,11 @@ void WorldObjects::detectNpc(const float x, const float y, const float z, std::f
 void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {
   if(vob.vobType==ZenLoad::zCVobData::VT_zCMover){
     triggersMv.emplace_back(std::move(vob),owner);
+    return;
+    }
+
+  if(vob.vobType==ZenLoad::zCVobData::VT_oCTriggerChangeLevel){
+    triggersZn.emplace_back(std::move(vob),owner);
     return;
     }
 
@@ -180,6 +229,17 @@ Trigger *WorldObjects::findTrigger(const char *name) {
       return &i;
   for(auto& i:triggers)
     if(i.name()==name)
+      return &i;
+  return nullptr;
+  }
+
+Trigger *WorldObjects::findTrigger(const std::array<float,3> &p) {
+  return findTrigger(p[0],p[1],p[2]);
+  }
+
+Trigger *WorldObjects::findTrigger(float x, float y, float z) {
+  for(auto& i:triggersZn)
+    if(i.checkPos(x,y,z))
       return &i;
   return nullptr;
   }

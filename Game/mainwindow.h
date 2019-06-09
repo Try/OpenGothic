@@ -61,6 +61,7 @@ class MainWindow : public Tempest::Window {
 
     void loadGame (const std::string& name);
     void startGame(const std::string& name);
+    void onWorldLoaded();
     void setGameImpl(std::unique_ptr<GameSession>&& w);
     void clearInput();
 
@@ -101,9 +102,8 @@ class MainWindow : public Tempest::Window {
 
     Gothic&                             gothic;
     std::unique_ptr<GameSession>        loaderSession;
-    std::atomic_int                     loadProgress;
+
     const Tempest::Texture2d*           background=nullptr;
-    const Tempest::Texture2d*           backgroundLoad=nullptr;
     const Tempest::Texture2d*           loadBox=nullptr;
     const Tempest::Texture2d*           loadVal=nullptr;
 
