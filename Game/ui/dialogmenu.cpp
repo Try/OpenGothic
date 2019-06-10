@@ -65,7 +65,7 @@ void DialogMenu::clear() {
 
 const Camera &DialogMenu::dialogCamera() {
   if(pl && other){
-    camera.setWorld(gothic.world());
+    camera.reset();
     auto p0 = pl->position();
     auto p1 = other->position();
     camera.setPosition(0.5f*(p0[0]+p1[0]),

@@ -54,7 +54,7 @@ ObjectsBucket<StaticObjects::UboSt,Resources::Vertex> &StaticObjects::getBucketS
     if(&i.texture()==mat)
       return i;
 
-  chunksSt.emplace_back(ObjectsBucket<UboSt,Resources::Vertex>(mat,storage.uboObjLayout(),device,storageSt));
+  chunksSt.emplace_back(mat,storage.uboObjLayout(),device,storageSt);
   return chunksSt.back();
   }
 
@@ -65,7 +65,7 @@ ObjectsBucket<StaticObjects::UboDn,Resources::VertexA> &StaticObjects::getBucket
     if(&i.texture()==mat)
       return i;
 
-  chunksDn.emplace_back(ObjectsBucket<UboDn,Resources::VertexA>(mat,storage.uboObjLayout(),device,storageDn));
+  chunksDn.emplace_back(mat,storage.uboObjLayout(),device,storageDn);
   return chunksDn.back();
   }
 

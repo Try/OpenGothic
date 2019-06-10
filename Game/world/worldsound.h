@@ -41,21 +41,20 @@ class WorldSound final {
       WSound(SoundFx&& s):proto(std::move(s)){}
       SoundFx      proto;
       GSoundEffect eff;
-      bool         active=false;
+      bool         active  =false;
       uint64_t     delay   =0;
       uint64_t     delayVar=0;
       };
 
     static float qDist(const std::array<float,3>& a,const std::array<float,3>& b);
 
-    GameSession&      game;
-    World&            owner;
-    std::vector<Zone> zones;
-    Zone              def;
+    GameSession&                            game;
+    World&                                  owner;
+    std::vector<Zone>                       zones;
+    Zone                                    def;
 
     std::array<float,3>                     plPos;
 
-    Tempest::SoundDevice                    dev;
     std::vector<GSoundEffect>               effect;
     std::vector<WSound>                     worldEff;
 

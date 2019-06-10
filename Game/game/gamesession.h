@@ -1,7 +1,9 @@
 #pragma once
 
 #include <Tempest/Sound>
+#include <Tempest/SoundDevice>
 #include <memory>
+
 #include "ui/chapterscreen.h"
 #include "world/worldscript.h"
 #include "gametime.h"
@@ -12,7 +14,7 @@ class WorldView;
 class RendererStorage;
 class Npc;
 class Serialize;
-
+class GSoundEffect;
 class SoundFx;
 
 class GameSession final {
@@ -40,10 +42,13 @@ class GameSession final {
 
     auto         loadScriptCode() -> std::vector<uint8_t>;
     SoundFx*     loadSoundFx(const char *name);
+    auto         loadSound(const Tempest::Sound& raw) -> Tempest::SoundEffect;
+    auto         loadSound(const SoundFx&        fx)  -> GSoundEffect;
     void         emitGlobalSound(const Tempest::Sound& sfx);
     void         emitGlobalSound(const std::string& sfx);
 
     Npc*         player();
+    void         updateListenerPos(Npc& npc);
 
     gtime        time() const { return  wrldTime; }
     void         setTime(gtime t);
@@ -71,18 +76,26 @@ class GameSession final {
     auto         getMusicTheme(const char* name) const ->  const Daedalus::GEngineClasses::C_MusicTheme&;
 
   private:
+    bool         isWorldKnown(const std::string& name) const;
     void         initScripts(bool firstTime);
     void         implChangeWorld(std::unique_ptr<Npc>&& hero,const std::string &world, const std::string &wayPoint);
+
+    struct ChWorld {
+      std::string zen, wp;
+      };
 
     Gothic&                      gothic;
     const RendererStorage&       storage;
 
+    Tempest::SoundDevice         sound;
     std::unique_ptr<WorldScript> vm;
     std::unique_ptr<World>       wrld;
+    std::vector<std::string>     visitedWorlds;
 
     uint64_t                     ticks=0, wrldTimePart=0;
     gtime                        wrldTime;
 
+    ChWorld                      chWorld;
     ChapterScreen::Show          chapter;
     bool                         pendingChapter=false;
 

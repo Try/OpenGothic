@@ -32,6 +32,7 @@ void InventoryRenderer::draw(Tempest::CommandBuffer &cmd, uint32_t imgId) {
   }
 
 void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
+  /*
   auto& itData = *item.handle();
   if(auto mesh=Resources::loadMesh(itData.visual)) {
     Tempest::Matrix4x4 mat;
@@ -47,5 +48,5 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
     itm.w    = w;
     itm.h    = h;
     items.push_back(std::move(itm));
-    }
+    }*/
   }

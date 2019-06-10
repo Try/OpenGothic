@@ -24,7 +24,6 @@ class InventoryMenu : public Tempest::Widget {
       Ransack
       };
 
-    void  setWorld(const World* w);
     void  close();
     void  open(Npc& pl);
     void  trade(Npc& pl,Npc& tr);
@@ -68,7 +67,6 @@ class InventoryMenu : public Tempest::Widget {
     State                     state      =State::Closed;
     size_t                    sel        =0;
     size_t                    scroll     =0;
-    const World*              world      =nullptr;
     Npc*                      player     =nullptr;
     Npc*                      trader     =nullptr;
     Interactive*              chest      =nullptr;
@@ -86,6 +84,7 @@ class InventoryMenu : public Tempest::Widget {
     size_t                    pagesCount() const;
 
     const Page&               activePage();
+    const World*              world() const;
 
     void          onTakeStuff();
     void          adjustScroll();

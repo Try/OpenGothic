@@ -547,10 +547,12 @@ void Npc::resetView(bool clear) {
     }
 
   if(animation.skeleton!=nullptr) {
-    auto& name = animation.skeleton->name();
-    setPhysic(owner.world().getPhysic(name));
-    setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
+    auto name = animation.skeleton->name();
     setVisual(name.c_str());
+    setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
+    setPhysic(owner.world().getPhysic(name));
+    invent.updateBowView(owner,*this);
+    invent.updateSwordView(owner,*this);
     }
   }
 
@@ -1415,6 +1417,10 @@ void Npc::setTarget(Npc *t) {
 
 Npc *Npc::target() {
   return currentTarget;
+  }
+
+void Npc::clearNearestEnemy() {
+  nearestEnemy = nullptr;
   }
 
 void Npc::setNearestEnemy(Npc& n) {

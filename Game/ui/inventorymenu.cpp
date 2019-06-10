@@ -51,11 +51,6 @@ InventoryMenu::InventoryMenu(Gothic &gothic, const RendererStorage &storage)
   takeTimer.timeout.bind(this,&InventoryMenu::onTakeStuff);
   }
 
-void InventoryMenu::setWorld(const World *w) {
-  world=w;
-  update();
-  }
-
 void InventoryMenu::close() {
   if(player!=nullptr){
     player->setInteraction(nullptr);
@@ -143,7 +138,7 @@ bool InventoryMenu::isActive() const {
 
 void InventoryMenu::tick(uint64_t /*dt*/) {
   if(state==State::Ransack){
-    if(trader==nullptr || world==nullptr){
+    if(trader==nullptr){
       close();
       return;
       }
@@ -240,6 +235,10 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
       sel += columsCount;
     }
   adjustScroll();
+  }
+
+const World *InventoryMenu::world() const {
+  return gothic.world();
   }
 
 size_t InventoryMenu::rowsCount() const {
@@ -414,7 +413,8 @@ void InventoryMenu::drawSlot(Painter &p,const Page &inv, int x, int y, size_t id
 void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {
   if(!slot)
     return;
-  auto*          txt  = world ? world->script()->currencyName() : nullptr;
+  auto           w    = world();
+  auto*          txt  = w ? w->script()->currencyName() : nullptr;
   const uint32_t gold = player.inventory().goldCount();
   char           vint[64]={};
   if(txt==nullptr)

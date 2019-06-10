@@ -4,63 +4,64 @@
 #include "world/world.h"
 #include "ui/dialogmenu.h"
 #include "ui/inventorymenu.h"
+#include "gothic.h"
 
 #include <cmath>
 
-PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
-  :dlg(dlg),inv(inv) {
-  }
-
-void PlayerControl::setWorld(World *w) {
-  world = w;
-  clearInput();
+PlayerControl::PlayerControl(Gothic &gothic, DialogMenu& dlg, InventoryMenu &inv)
+  :gothic(gothic), dlg(dlg),inv(inv) {
   }
 
 bool PlayerControl::interact(Interactive &it) {
-  if(world==nullptr || world->player()==nullptr)
+  auto w = world();
+  if(w==nullptr || w->player()==nullptr)
     return false;
-  if(world->player()->weaponState()!=WeaponState::NoWeapon)
+  if(w->player()->weaponState()!=WeaponState::NoWeapon)
     return false;
   if(it.isContainer()){
-    inv.open(*world->player(),it);
+    inv.open(*w->player(),it);
     return true;
     }
-  return dlg.start(*world->player(),it);
+  return dlg.start(*w->player(),it);
   }
 
 bool PlayerControl::interact(Npc &other) {
-  if(world==nullptr || world->player()==nullptr)
+  auto w = world();
+  if(w==nullptr || w->player()==nullptr)
     return false;
-  if(world->player()->weaponState()!=WeaponState::NoWeapon)
+  if(w->player()->weaponState()!=WeaponState::NoWeapon)
     return false;
-  if(world->script()->isDead(other) || world->script()->isUnconscious(other)){
-    if(!inv.ransack(*world->player(),other))
-      world->script()->printNothingToGet();
+  if(w->script()->isDead(other) || w->script()->isUnconscious(other)){
+    if(!inv.ransack(*w->player(),other))
+      w->script()->printNothingToGet();
     }
-  return dlg.start(*world->player(),other);
+  return dlg.start(*w->player(),other);
   }
 
 bool PlayerControl::interact(Item &item) {
-  if(world==nullptr || world->player()==nullptr)
+  auto w = world();
+  if(w==nullptr || w->player()==nullptr)
     return false;
-  if(world->player()->weaponState()!=WeaponState::NoWeapon)
+  if(w->player()->weaponState()!=WeaponState::NoWeapon)
     return false;
-  std::unique_ptr<Item> ptr {world->takeItem(item)};
-  world->player()->addItem(std::move(ptr));
+  std::unique_ptr<Item> ptr {w->takeItem(item)};
+  w->player()->addItem(std::move(ptr));
   return true;
   }
 
 void PlayerControl::toogleWalkMode() {
-  if(world==nullptr || world->player()==nullptr)
+  auto w = world();
+  if(w==nullptr || w->player()==nullptr)
     return;
-  auto pl = world->player();
+  auto pl = w->player();
   pl->setWalkMode(WalkBit(pl->walkMode()^WalkBit::WM_Walk));
   }
 
 WeaponState PlayerControl::weaponState() const {
-  if(world==nullptr || world->player()==nullptr)
+  auto w = world();
+  if(w==nullptr || w->player()==nullptr)
     return WeaponState::NoWeapon;
-  auto pl = world->player();
+  auto pl = w->player();
   return pl->weaponState();
   }
 
@@ -92,9 +93,11 @@ void PlayerControl::drawWeaponBow() {
   }
 
 void PlayerControl::drawWeaponMage(uint8_t s) {
-  auto ws=weaponState();
+  auto w  = world();
+  auto ws = weaponState();
   clrDraw();
-  auto    pl   = world ? world->player() : nullptr;
+
+  auto    pl   = w ? w->player() : nullptr;
   uint8_t slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
   if(ws==WeaponState::Mage && s==slot) {
     ctrl[CloseWeapon   ]=true;
@@ -105,7 +108,8 @@ void PlayerControl::drawWeaponMage(uint8_t s) {
   }
 
 void PlayerControl::actionFocus(Npc& other) {
-  Npc* pl = world ? world->player() : nullptr;
+  auto w  = world();
+  Npc* pl = w ? w->player() : nullptr;
   if(pl!=nullptr)
     pl->setTarget(&other);
   ctrl[ActionFocus]=true;
@@ -140,11 +144,12 @@ void PlayerControl::moveRight() {
   }
 
 void PlayerControl::setTarget(Npc *other) {
-  if(world==nullptr || world->player()==nullptr)
+  auto w = world();
+  if(w==nullptr || w->player()==nullptr)
     return;
   auto ws = weaponState();
   if(other!=nullptr || (ws!=WeaponState::W1H && ws!=WeaponState::W2H))
-    world->player()->setTarget(other); // dont lose focus in melee combat
+    w->player()->setTarget(other); // dont lose focus in melee combat
   }
 
 void PlayerControl::actionForward() {
@@ -164,10 +169,11 @@ void PlayerControl::actionBack() {
   }
 
 void PlayerControl::marvinF8() {
-  if(world==nullptr || world->player()==nullptr)
+  auto w = world();
+  if(w==nullptr || w->player()==nullptr)
     return;
 
-  auto& pl  = *world->player();
+  auto& pl  = *w->player();
   auto  pos = pl.position();
   float rot = pl.rotationRad();
   float s   = std::sin(rot), c = std::cos(rot);
@@ -184,19 +190,25 @@ void PlayerControl::marvinF8() {
   pl.setAnim(AnimationSolver::Idle);
   }
 
-Focus PlayerControl::findFocus(Focus* prev,const Camera& camera,int w, int h) {
-  if(world==nullptr)
+Focus PlayerControl::findFocus(Focus* prev,const Camera& camera,int wx, int hx) {
+  auto w = world();
+  if(w==nullptr)
     return Focus();
   if(!cacheFocus)
     prev = nullptr;
 
   if(prev)
-    return world->findFocus(*prev,camera.view(),w,h);
-  return world->findFocus(Focus(),camera.view(),w,h);
+    return w->findFocus(*prev,camera.view(),wx,hx);
+  return w->findFocus(Focus(),camera.view(),wx,hx);
+  }
+
+World *PlayerControl::world() const {
+  return gothic.world();
   }
 
 bool PlayerControl::tickMove(uint64_t dt) {
-  if(world==nullptr || world->player()==nullptr)
+  auto w = world();
+  if(w==nullptr || w->player()==nullptr)
     return false;
   cacheFocus = ctrl[ActionFocus] || ctrl[ActForward] || ctrl[ActLeft] || ctrl[ActRight] || ctrl[ActBack];
   implMove(dt);
@@ -205,10 +217,11 @@ bool PlayerControl::tickMove(uint64_t dt) {
   }
 
 void PlayerControl::implMove(uint64_t dt) {
-  Npc&  pl     = *world->player();
+  auto  w      = world();
+  Npc&  pl     = *w->player();
   float rot    = pl.rotation();
   auto  gl     = std::min<uint32_t>(pl.guild(),GIL_MAX);
-  float rspeed = world->script()->guildVal().turn_speed[gl]*(dt/1000.f)*60.f/100.f;
+  float rspeed = w->script()->guildVal().turn_speed[gl]*(dt/1000.f)*60.f/100.f;
 
   Npc::Anim ani=Npc::Anim::Idle;
 

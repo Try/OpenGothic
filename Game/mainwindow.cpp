@@ -22,7 +22,8 @@ using namespace Tempest;
 
 MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),
-    draw(device,gothic),gothic(gothic),inventory(gothic,draw.storage()),dialogs(gothic,inventory),chapter(gothic),camera(gothic),player(dialogs,inventory) {
+    draw(device,gothic),gothic(gothic),inventory(gothic,draw.storage()),
+    dialogs(gothic,inventory),chapter(gothic),camera(gothic),player(gothic,dialogs,inventory) {
   for(uint8_t i=0;i<device.maxFramesInFlight();++i){
     fLocal.emplace_back(device);
     commandBuffersSemaphores.emplace_back(device);
@@ -529,12 +530,11 @@ void MainWindow::startGame(const std::string &name) {
   }
 
 void MainWindow::onWorldLoaded() {
-  World* w = gothic.world();
+  camera   .reset();
+  player   .clearInput();
+  inventory.update();
+  dialogs  .clear();
 
-  //camera   .setWorld(w);
-  player   .setWorld(w);
-  inventory.setWorld(w);
-  dialogs.clear();
   spin = camera.getSpin();
   draw.onWorldChanged();
 
@@ -544,7 +544,8 @@ void MainWindow::onWorldLoaded() {
 
   if(auto pl = gothic.player())
     pl->multSpeed(1.f);
-  lastTick = Application::tickCount();
+  lastTick     = Application::tickCount();
+  currentFocus = Focus();
   }
 
 void MainWindow::setGameImpl(std::unique_ptr<GameSession> &&w) {

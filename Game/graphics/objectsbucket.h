@@ -25,6 +25,12 @@ class ObjectsBucket : public AbstractObjectsBucket {
         }
       }
 
+    ObjectsBucket(ObjectsBucket&&)=default;
+
+    ~ObjectsBucket(){
+      assert(data.size()==freeList.size());
+      }
+
     const Tempest::Texture2d&   texture() const override { return *tex; }
     Tempest::Uniforms&          uboMain  (size_t imgId) { return pf[imgId].ubo;   }
     Tempest::Uniforms&          uboShadow(size_t imgId) { return pf[imgId].uboSh; }

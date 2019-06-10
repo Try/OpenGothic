@@ -55,7 +55,7 @@ class Gothic final {
     bool      isPause() const;
     bool      isRamboMode() const;
 
-    LoadState checkLoading();
+    LoadState checkLoading() const;
     bool      finishLoading();
     void      startLoading(const char *banner, const std::function<void()> f);
     void      cancelLoading();

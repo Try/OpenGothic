@@ -12,13 +12,13 @@ class Interactive;
 class Npc;
 class Item;
 class Camera;
+class Gothic;
 
 class PlayerControl final {
   public:
-    PlayerControl(DialogMenu& dlg,InventoryMenu& inv);
+    PlayerControl(Gothic& gothic,DialogMenu& dlg,InventoryMenu& inv);
 
     void changeZoom(int delta);
-    void setWorld(World* w);
 
     bool interact(Interactive& it);
     bool interact(Npc&         other);
@@ -91,10 +91,11 @@ class PlayerControl final {
     bool           ctrl[Control::Last]={};
     bool           cacheFocus=false;
 
-    World*         world=nullptr;
+    Gothic&        gothic;
     DialogMenu&    dlg;
     InventoryMenu& inv;
 
+    World*         world() const;
     void           clrDraw();
     auto           weaponState() const -> WeaponState;
     void           implMove(uint64_t dt);

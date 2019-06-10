@@ -25,15 +25,20 @@ Camera::Camera(Gothic &gothic) : gothic(gothic) {
   camPos[1] = 1000;
   }
 
-void Camera::setWorld(const World *world) {
-  if(world){
-    auto pl = world->player();
-    if(pl) {
-      camPos  = pl->position();
-      camBone = pl->cameraBone();
-      spin.x  = pl->rotation();
-      }
-    }
+void Camera::reset() {
+  auto world = gothic.world();
+  if(world==nullptr)
+    return;
+  auto pl = world->player();
+  if(pl==nullptr)
+    return;
+
+  auto& def  = cameraDef();
+  float tr   = pl->translateY();
+  camPos     = pl->position();
+  camBone    = pl->cameraBone();
+  spin.x     = pl->rotation();
+  camPos[1] += tr + tr*(def.bestElevation-10)/20.f;
   }
 
 void Camera::changeZoom(int delta) {
@@ -233,9 +238,7 @@ void Camera::follow(const Npc &npc,uint64_t dt,bool includeRot) {
       setPosition(camPos[0]+dx*k, camPos[1]+dy*k, camPos[2]+dz*k);
       }
     } else {
-    camPos    = npc.position();
-    float tr  = npc.translateY();
-    camPos[1] += tr + tr*(def.bestElevation-10)/20.f;
+    reset();
     hasPos   = true;
     isInMove = false;
     }

@@ -23,7 +23,7 @@ class Camera final {
       Magic
       };
 
-    void setWorld(const World* w);
+    void reset();
 
     void changeZoom(int delta);
     Tempest::PointF getSpin() const { return spin; }

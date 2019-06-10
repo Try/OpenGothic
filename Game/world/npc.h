@@ -209,11 +209,11 @@ class Npc final {
 
     void save(Serialize& fout);
 
-    void setPosition  (float x,float y,float z);
-    bool setPosition  (const std::array<float,3>& pos);
-    void setDirection (float x,float y,float z);
-    void setDirection (const std::array<float,3>& pos);
-    void setDirection (float rotation);
+    void setPosition (float x,float y,float z);
+    bool setPosition (const std::array<float,3>& pos);
+    void setDirection(float x,float y,float z);
+    void setDirection(const std::array<float,3>& pos);
+    void setDirection(float rotation);
     void clearSpeed();
     static float angleDir(float x,float z);
     void resetPositionToTA();
@@ -450,6 +450,7 @@ class Npc final {
     void     setTarget(Npc* t);
     Npc*     target();
 
+    void     clearNearestEnemy();
     void     setNearestEnemy(Npc &n);
     int32_t  lastHitSpellId() const { return lastHitSpell; }
 
@@ -591,6 +592,10 @@ class Npc final {
     uint64_t                       perceptionTime    =0;
     uint64_t                       perceptionNextTime=0;
     Perc                           perception[PERC_Count];
+
+    struct WorldAttach final {
+
+      };
 
     Interactive*                   currentInteract=nullptr;
     Npc*                           currentOther   =nullptr;

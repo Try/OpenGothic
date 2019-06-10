@@ -35,13 +35,14 @@ void WorldSound::addZone(const ZenLoad::zCVobData &vob) {
 void WorldSound::addSound(const ZenLoad::zCVobData &vob) {
   return;
 
+  // TODO: fix background sound
   auto& pr = vob.zCVobSound;
   auto snd = game.loadSoundFx(pr.sndName.c_str());
   if(snd==nullptr)
     return;
 
   WSound s{std::move(*snd)};
-  s.eff = s.proto.getEffect(dev);
+  s.eff = game.loadSound(s.proto);
   if(s.eff.isEmpty())
     return;
 
@@ -71,7 +72,7 @@ void WorldSound::emitSound(const char* s, float x, float y, float z, float range
     auto snd = game.loadSoundFx(s);
     if(snd==nullptr)
       return;
-    GSoundEffect eff = snd->getEffect(dev);
+    GSoundEffect eff = game.loadSound(*snd);
     if(eff.isEmpty())
       return;
     eff.setPosition(x,y,z);
@@ -93,7 +94,7 @@ void WorldSound::emitDlgSound(const char *s, float x, float y, float z, float ra
     auto snd = Resources::loadSoundBuffer(s);
     if(snd.isEmpty())
       return;
-    Tempest::SoundEffect eff = dev.load(snd);
+    Tempest::SoundEffect eff = game.loadSound(snd);
     if(eff.isEmpty())
       return;
     eff.setPosition(x,y+180,z);
@@ -114,12 +115,7 @@ void WorldSound::tick(Npc &player) {
   std::lock_guard<std::mutex> guard(sync);
   plPos = player.position();
 
-  float rot = player.rotationRad()+float(M_PI/2.0);
-  float s   = std::sin(rot);
-  float c   = std::cos(rot);
-
-  dev.setListenerPosition(plPos[0],plPos[1]+180/*head pos*/,plPos[2]);
-  dev.setListenerDirection(c,0,s, 0,1,0);
+  game.updateListenerPos(player);
 
   for(size_t i=0;i<effect.size();){
     if(effect[i].isFinished()){

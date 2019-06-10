@@ -199,7 +199,7 @@ bool Gothic::isRamboMode() const {
   return isRambo;
   }
 
-Gothic::LoadState Gothic::checkLoading() {
+Gothic::LoadState Gothic::checkLoading() const {
   return loadingFlag.load();
   }
 
@@ -250,6 +250,8 @@ void Gothic::tick(uint64_t dt) {
   }
 
 void Gothic::updateAnimation() {
+  if(checkLoading()!=LoadState::Idle)
+    return;
   if(game)
     game->updateAnimation();
   }

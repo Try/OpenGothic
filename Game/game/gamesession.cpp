@@ -1,8 +1,12 @@
 #include "gamesession.h"
-#include "serialize.h"
 
+#include <Tempest/Log>
+
+#include "serialize.h"
 #include "world/world.h"
 #include "gothic.h"
+
+using namespace Tempest;
 
 // rate 14.5 to 1
 const uint64_t GameSession::multTime=29;
@@ -68,6 +72,10 @@ void GameSession::save(Serialize &fout) {
   }
 
 void GameSession::setWorld(std::unique_ptr<World> &&w) {
+  if(wrld) {
+    if(!isWorldKnown(wrld->name()))
+      visitedWorlds.push_back(wrld->name());
+    }
   wrld = std::move(w);
   }
 
@@ -78,46 +86,8 @@ std::unique_ptr<World> GameSession::clearWorld() {
   }
 
 void GameSession::changeWorld(const std::string& world, const std::string& wayPoint) {
-  char buf[128]={};
-  size_t beg = world.rfind('\\');
-  size_t end = world.rfind('.');
-
-  std::string wname;
-  if(beg!=std::string::npos && end!=std::string::npos)
-    wname = world.substr(beg+1,end-beg-1); else
-    wname = world;
-
-  std::snprintf(buf,sizeof(buf),"LOADING_%s.TGA",wname.c_str());  // final load-screen name, like "LOADING_OLDWORLD.TGA"
-
-  // don't waste resources on update/sync
-  auto hero = wrld->takeHero();
-  hero->resetView(true);
-
-  auto h = hero.release();
-  gothic.startLoading(buf,[this,world,wayPoint,h](){
-    implChangeWorld(std::unique_ptr<Npc>(h),world,wayPoint);
-    });
-  }
-
-void GameSession::implChangeWorld(std::unique_ptr<Npc>&& hero,const std::string& world, const std::string& wayPoint) {
-  const uint8_t ver = gothic.isGothic2() ? 2 : 1;
-  const char*   w   = world.c_str();
-  size_t        cut = world.rfind('\\');
-  if(cut!=std::string::npos)
-    w = w+cut+1;
-
-  setWorld(std::unique_ptr<World>(new World(*this,storage,w,ver,[&](int v){
-    gothic.setLoadingProgress(v);
-    })));
-
-  vm->resetVarPointers();
-
-  hero->setTarget(nullptr);
-  hero->setOther (nullptr);
-  hero->resetView(false);
-  wrld->insertPlayer(std::move(hero),wayPoint.c_str());
-
-  initScripts(false);
+  chWorld.zen = world;
+  chWorld.wp  = wayPoint;
   }
 
 bool GameSession::isRamboMode() const {
@@ -141,6 +111,14 @@ SoundFx *GameSession::loadSoundFx(const char *name) {
   return gothic.loadSoundFx(name);
   }
 
+Tempest::SoundEffect GameSession::loadSound(const Tempest::Sound &raw) {
+  return sound.load(raw);
+  }
+
+GSoundEffect GameSession::loadSound(const SoundFx &fx) {
+  return fx.getEffect(sound);
+  }
+
 void GameSession::emitGlobalSound(const Tempest::Sound &sfx) {
   gothic.emitGlobalSound(sfx);
   }
@@ -153,6 +131,15 @@ Npc* GameSession::player() {
   if(wrld)
     return wrld->player();
   return nullptr;
+  }
+
+void GameSession::updateListenerPos(Npc &npc) {
+  auto plPos = npc.position();
+  float rot = npc.rotationRad()+float(M_PI/2.0);
+  float s   = std::sin(rot);
+  float c   = std::cos(rot);
+  sound.setListenerPosition(plPos[0],plPos[1]+180/*head pos*/,plPos[2]);
+  sound.setListenerDirection(c,0,s, 0,1,0);
   }
 
 void GameSession::setTime(gtime t) {
@@ -175,6 +162,61 @@ void GameSession::tick(uint64_t dt) {
       pendingChapter=false;
       }
     }
+
+  if(!chWorld.zen.empty()){
+    char buf[128]={};
+    size_t beg = chWorld.zen.rfind('\\');
+    size_t end = chWorld.zen.rfind('.');
+
+    std::string wname;
+    if(beg!=std::string::npos && end!=std::string::npos)
+      wname = chWorld.zen.substr(beg+1,end-beg-1); else
+      wname = chWorld.zen;
+
+    std::snprintf(buf,sizeof(buf),"LOADING_%s.TGA",wname.c_str());  // final load-screen name, like "LOADING_OLDWORLD.TGA"
+
+    // don't waste resources on update/sync
+    auto hero = wrld->takeHero();
+    auto wrld = clearWorld();
+
+    hero->resetView(true);
+    hero->attachToPoint(nullptr);
+
+    auto h = hero.release();
+    auto w = wrld.release();
+    gothic.startLoading(buf,[this,h,w](){
+      delete w;
+      implChangeWorld(std::unique_ptr<Npc>(h),chWorld.zen,chWorld.wp);
+      chWorld.zen.clear();
+      Log::i("World ready to play");
+      });
+    }
+  }
+
+void GameSession::implChangeWorld(std::unique_ptr<Npc>&& hero,const std::string& world, const std::string& wayPoint) {
+  const uint8_t ver = gothic.isGothic2() ? 2 : 1;
+  const char*   w   = world.c_str();
+  size_t        cut = world.rfind('\\');
+  if(cut!=std::string::npos)
+    w = w+cut+1;
+
+  setWorld(std::unique_ptr<World>(new World(*this,storage,w,ver,[&](int v){
+    gothic.setLoadingProgress(v);
+    })));
+
+  vm->resetVarPointers();
+
+  if(1){
+    // move hero to world
+    hero->setTarget(nullptr);
+    hero->setOther (nullptr);
+    hero->resetView(false);
+    hero->clearNearestEnemy();
+    wrld->insertPlayer(std::move(hero),wayPoint.c_str());
+    }
+
+  // initScripts(!isWorldKnown(wrld->name()));
+  Log::i("Done loading world[",world,"]");
   }
 
 void GameSession::updateAnimation() {
@@ -236,6 +278,13 @@ void GameSession::print(const char *msg) {
 void GameSession::introChapter(const ChapterScreen::Show &s) {
   pendingChapter = true;
   chapter        = s;
+  }
+
+bool GameSession::isWorldKnown(const std::string &name) const {
+  for(auto& i:visitedWorlds)
+    if(i==name)
+      return true;
+  return false;
   }
 
 const FightAi::FA &GameSession::getFightAi(size_t i) const {
