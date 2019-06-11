@@ -269,6 +269,9 @@ void WorldScript::initCommon() {
   vm.registerExternalFunction("printdebuginst",      [this](Daedalus::DaedalusVM& vm){ printdebuginst(vm);       });
   vm.registerExternalFunction("printdebuginstch",    [this](Daedalus::DaedalusVM& vm){ printdebuginstch(vm);     });
 
+  vm.registerExternalFunction("game_initgerman",     [this](Daedalus::DaedalusVM& vm){ game_initgerman(vm);      });
+  vm.registerExternalFunction("game_initenglish",    [this](Daedalus::DaedalusVM& vm){ game_initenglish(vm);     });
+
   spellFxInstanceNames = vm.getDATFile().getSymbolIndexByName("spellFxInstanceNames");
   spellFxAniLetters    = vm.getDATFile().getSymbolIndexByName("spellFxAniLetters");
 
@@ -1106,6 +1109,12 @@ void WorldScript::floattoint(Daedalus::DaedalusVM &vm) {
 void WorldScript::inttofloat(Daedalus::DaedalusVM &vm) {
   auto x = vm.popInt();
   vm.setReturn(float(x));
+  }
+
+void WorldScript::game_initgerman(Daedalus::DaedalusVM&) {
+  }
+
+void WorldScript::game_initenglish(Daedalus::DaedalusVM &) {
   }
 
 void WorldScript::hlp_random(Daedalus::DaedalusVM &vm) {

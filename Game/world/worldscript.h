@@ -146,6 +146,9 @@ class WorldScript final {
     static void floattoint   (Daedalus::DaedalusVM& vm);
     static void inttofloat   (Daedalus::DaedalusVM& vm);
 
+    void game_initgerman     (Daedalus::DaedalusVM& vm);
+    void game_initenglish    (Daedalus::DaedalusVM& vm);
+
     static void hlp_strcmp   (Daedalus::DaedalusVM& vm);
     void hlp_random          (Daedalus::DaedalusVM& vm);
     void hlp_isvalidnpc      (Daedalus::DaedalusVM &vm);

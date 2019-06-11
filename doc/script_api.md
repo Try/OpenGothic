@@ -1009,6 +1009,13 @@ Mdl_ApplyOverlayMdsTimed(self,"HUMANS_SPRINT.MDS",120000); // SchnellerHering po
 * `func int Snd_GetDistToSource(var C_Npc npc)`  
   Return distance from 'npc' to closest sound source.
 
+### language api(1.30)
+Effect of this functions, in original game, is unknown. OpenGothic do nothing.
+* `func void Game_InitGerman()`  
+  
+* `func void Game_InitEnglish()`  
+  
+
 ### debug  api
 all functions of debug api in OpenGothic write info to `std::out`.
 * `func void PrintDebugInst(string text)`  
