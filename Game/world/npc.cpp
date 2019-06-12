@@ -15,28 +15,74 @@
 using namespace Tempest;
 
 Npc::Npc(WorldScript &owner, size_t instance, const char* waypoint)
-  :owner(owner),hnpc(nullptr),mvAlgo(*this){
-  hnpc                 = new Daedalus::GEngineClasses::C_Npc();
-  hnpc->wp             = waypoint;
-  hnpc->instanceSymbol = instance;
-  hnpc->userPtr        = this;
-  owner.initializeInstance(*hnpc,instance);
-  name = hnpc->name[0];
+  :owner(owner),mvAlgo(*this){
+  hnpc.wp             = waypoint;
+  hnpc.instanceSymbol = instance;
+  hnpc.userPtr        = this;
+  owner.initializeInstance(hnpc,instance);
   }
 
 Npc::Npc(WorldScript &owner, Serialize &fin)
-  :owner(owner),hnpc(nullptr),mvAlgo(*this){
-  hnpc          = new Daedalus::GEngineClasses::C_Npc();
-  hnpc->userPtr = this;
-  int32_t     flags=0;
-  uint8_t     policy=0;
-  uint32_t    size=0;
-  std::string str;
+  :owner(owner),mvAlgo(*this){
+  hnpc.userPtr = this;
 
-  Daedalus::GEngineClasses::C_Npc& h = *hnpc;
+  load(fin,hnpc);
+
+  fin.read(x,y,z,angle,sz);
+  fin.read(durtyTranform,body,head,vHead,vTeeth,bdColor,vColor);
+  fin.read(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
+
+  setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
+  animation.load(fin,*this);
+
+  fin.read(reinterpret_cast<int32_t&>(permAttitude),reinterpret_cast<int32_t&>(tmpAttitude));
+  fin.read(perceptionTime,perceptionNextTime);
+  for(auto& i:perception)
+    fin.read(i.func);
+  invent.load(owner,*this,fin);
+  loadAiState(fin);
+  }
+
+Npc::~Npc(){
+  if(currentInteract)
+    currentInteract->dettach(*this);
+  }
+
+void Npc::save(Serialize &fout) {
+  save(fout,hnpc);
+
+  fout.write(x,y,z,angle,sz);
+  fout.write(durtyTranform,body,head,vHead,vTeeth,bdColor,vColor);
+  fout.write(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
+  animation.save(fout);
+
+  fout.write(int32_t(permAttitude),int32_t(tmpAttitude));
+  fout.write(perceptionTime,perceptionNextTime);
+  for(auto& i:perception)
+    fout.write(i.func);
+
+  invent.save(fout);
+  saveAiState(fout);
+  }
+
+void Npc::save(Serialize &fout, Daedalus::GEngineClasses::C_Npc &h) const {
+  fout.write(h.instanceSymbol);
+  fout.write(h.id,h.name,h.slot,h.effect,h.npcType);
+  save(fout,h.flags);
+  fout.write(h.attribute,h.hitChance,h.protection,h.damage);
+  fout.write(h.damagetype,h.guild,h.level);
+  fout.write(h.mission);
+  fout.write(h.fight_tactic,h.weapon,h.voice,h.voicePitch,h.bodymass);
+  fout.write(h.daily_routine,h.start_aistate);
+  fout.write(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
+  fout.write(h.aivar);
+  fout.write(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
+  }
+
+void Npc::load(Serialize &fin, Daedalus::GEngineClasses::C_Npc &h) {
   fin.read(h.instanceSymbol);
   fin.read(h.id,h.name,h.slot,h.effect,h.npcType);
-  fin.read(flags); h.flags=Daedalus::GEngineClasses::C_Npc::ENPCFlag(flags);
+  load(fin,h.flags);
   fin.read(h.attribute,h.hitChance,h.protection,h.damage);
   fin.read(h.damagetype,h.guild,h.level);
   fin.read(h.mission);
@@ -45,24 +91,44 @@ Npc::Npc(WorldScript &owner, Serialize &fin)
   fin.read(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
   fin.read(h.aivar);
   fin.read(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
+  }
 
-  name = h.name[0];
-  fin.read(policy); aiPolicy=ProcessPolicy(policy);
-  fin.read(x,y,z,angle,sz);
+void Npc::save(Serialize &fout, const Daedalus::GEngineClasses::C_Npc::ENPCFlag &flg) const {
+  fout.write(int32_t(flg));
+  }
 
-  fin.read(str);
-  setVisual(str.c_str());
-  fin.read(body,head,vHead,vTeeth,bdColor,vColor);
-  setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
-  durtyTranform|=(TR_Pos|TR_Rot|TR_Scale);
+void Npc::load(Serialize &fin, Daedalus::GEngineClasses::C_Npc::ENPCFlag &flg) {
+  int32_t flags=0;
+  fin.read(flags);
+  flg=Daedalus::GEngineClasses::C_Npc::ENPCFlag(flags);
+  }
 
-  fin.read(wlkMode);
-  fin.read(trGuild,talentsSk,talentsVl,refuseTalkMilis);
-  invent.load(owner,*this,fin);
-  fin.read(perceptionTime,perceptionNextTime);
-  for(auto& i:perception)
-    fin.read(i.func);
+void Npc::saveAiState(Serialize& fout) const {
+  fout.write(waitTime,uint8_t(aiPolicy));
+  fout.write(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
+  fout.write(aiPrevState);
+
+  fout.write(uint32_t(routines.size()));
+  for(auto& i:routines){
+    fout.write(i.start,i.end,i.callback);
+    fout.write(i.point ? i.point->name : "");
+    }
+
+  fout.write(uint32_t(aiActions.size()));
+  for(auto& i:aiActions){
+    fout.write(uint32_t(i.act));
+    fout.write(i.point ? i.point->name : "");
+    fout.write(i.func,i.i0,i.s0);
+    }
+  }
+
+void Npc::loadAiState(Serialize& fin) {
+  size_t      size=0;
+  std::string str;
+
+  fin.read(waitTime,reinterpret_cast<uint8_t&>(aiPolicy));
   fin.read(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
+  fin.read(aiPrevState);
 
   fin.read(size);
   routines.resize(size);
@@ -72,54 +138,15 @@ Npc::Npc(WorldScript &owner, Serialize &fin)
     i.point = owner.world().findPoint(str);
     }
 
-  animation.load(fin);
-  }
+  fin.read(size);
+  aiActions.resize(size);
+  for(auto& i:aiActions){
+    fin.write(uint32_t(i.act));
+    fin.write(str);
+    fin.write(i.func,i.i0,i.s0);
 
-Npc::~Npc(){
-  if(currentInteract)
-    currentInteract->dettach(*this);
-  delete hnpc;
-  }
-
-void Npc::save(Serialize &fout) {
-  Daedalus::GEngineClasses::C_Npc& h = *hnpc;
-  fout.write(h.instanceSymbol);
-  fout.write(h.id,h.name,h.slot,h.effect,h.npcType);
-  fout.write(int32_t(h.flags));
-  fout.write(h.attribute,h.hitChance,h.protection,h.damage);
-  fout.write(h.damagetype,h.guild,h.level);
-  fout.write(h.mission);
-  fout.write(h.fight_tactic,h.weapon,h.voice,h.voicePitch,h.bodymass);
-  fout.write(h.daily_routine,h.start_aistate);
-  fout.write(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
-  fout.write(h.aivar);
-  fout.write(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
-
-  fout.write(uint8_t(aiPolicy));
-  fout.write(x,y,z,angle,sz);
-
-  if(animation.skeleton)
-    fout.write(animation.skeleton->name()); else
-    fout.write(std::string(""));
-  fout.write(body,head,vHead,vTeeth,bdColor,vColor);
-  fout.write(wlkMode);
-  fout.write(trGuild,talentsSk,talentsVl,refuseTalkMilis);
-  invent.save(fout);
-  fout.write(perceptionTime,perceptionNextTime);
-  for(auto& i:perception)
-    fout.write(i.func);
-
-  fout.write(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
-
-  fout.write(uint32_t(routines.size()));
-  for(auto& i:routines){
-    fout.write(i.start,i.end,i.callback);
-    if(i.point)
-      fout.write(i.point->name); else
-      fout.write(std::string(""));
+    i.point = owner.world().findPoint(str);
     }
-
-  animation.save(fout);
   }
 
 void Npc::setPosition(float ix, float iy, float iz) {
@@ -286,9 +313,8 @@ bool Npc::checkHealth(bool onChange) {
     return false;
     }
 
-  auto& v = *hnpc;
-  if(v.attribute[ATR_HITPOINTS]<=1) {
-    if(v.attribute[ATR_HITPOINTSMAX]<=1){
+  if(hnpc.attribute[ATR_HITPOINTS]<=1) {
+    if(hnpc.attribute[ATR_HITPOINTSMAX]<=1){
       size_t fdead=owner.getSymbolIndex("ZS_Dead");
       startState(fdead,"");
       return false;
@@ -297,14 +323,14 @@ bool Npc::checkHealth(bool onChange) {
     if(onChange && currentOther!=nullptr) {
       // currentOther must be externaly initialized
       if(owner.personAttitude(*this,*currentOther)==ATT_HOSTILE || guild()>GIL_SEPERATOR_HUM){
-        if(v.attribute[ATR_HITPOINTS]<=0){
+        if(hnpc.attribute[ATR_HITPOINTS]<=0){
           size_t fdead=owner.getSymbolIndex("ZS_Dead");
           animation.resetAni();
           startState(fdead,"");
 
-          if(hnpc->voice>0){
+          if(hnpc.voice>0){
             char name[32]={};
-            std::snprintf(name,sizeof(name),"SVM_%d_DEAD",int(hnpc->voice));
+            std::snprintf(name,sizeof(name),"SVM_%d_DEAD",int(hnpc.voice));
             emitSoundEffect(name,25,true);
             }
           }
@@ -313,9 +339,9 @@ bool Npc::checkHealth(bool onChange) {
         animation.resetAni();
         startState(fdead,"");
 
-        if(hnpc->voice>0){
+        if(hnpc.voice>0){
           char name[32]={};
-          std::snprintf(name,sizeof(name),"SVM_%d_AARGH",int(hnpc->voice));
+          std::snprintf(name,sizeof(name),"SVM_%d_AARGH",int(hnpc.voice));
           emitSoundEffect(name,25,true);
           }
         }
@@ -399,7 +425,7 @@ void Npc::updateTransform() {
   }
 
 const char *Npc::displayName() const {
-  return hnpc->name[0].c_str();
+  return hnpc.name[0].c_str();
   }
 
 std::array<float,3> Npc::displayPosition() const {
@@ -407,10 +433,6 @@ std::array<float,3> Npc::displayPosition() const {
   if(animation.skeleton)
     h = animation.skeleton->colisionHeight()*1.5f;
   return {{x,y+h,z}};
-  }
-
-void Npc::setName(const std::string &n) {
-  name = n;
   }
 
 void Npc::setVisual(const char* visual) {
@@ -683,7 +705,7 @@ int32_t Npc::talentValue(Npc::Talent t) const {
 
 int32_t Npc::hitChanse(Npc::Talent t) const {
   if(t<Daedalus::GEngineClasses::MAX_HITCHANCE)
-    return hnpc->hitChance[t];
+    return hnpc.hitChance[t];
   return 0;
   }
 
@@ -701,7 +723,7 @@ void Npc::setRefuseTalk(uint64_t milis) {
 
 int32_t Npc::attribute(Npc::Attribute a) const {
   if(a<ATR_MAX)
-    return hnpc->attribute[a];
+    return hnpc.attribute[a];
   return 0;
   }
 
@@ -709,14 +731,13 @@ void Npc::changeAttribute(Npc::Attribute a, int32_t val) {
   if(a>=ATR_MAX || val==0)
     return;
 
-  auto& v = *hnpc;
-  v.attribute[a]+=val;
-  if(v.attribute[a]<0)
-    v.attribute[a]=0;
-  if(a==ATR_HITPOINTS && v.attribute[a]>v.attribute[ATR_HITPOINTSMAX])
-    v.attribute[a] = v.attribute[ATR_HITPOINTSMAX];
-  if(a==ATR_MANA && v.attribute[a]>v.attribute[ATR_MANAMAX])
-    v.attribute[a] = v.attribute[ATR_MANAMAX];
+  hnpc.attribute[a]+=val;
+  if(hnpc.attribute[a]<0)
+    hnpc.attribute[a]=0;
+  if(a==ATR_HITPOINTS && hnpc.attribute[a]>hnpc.attribute[ATR_HITPOINTSMAX])
+    hnpc.attribute[a] = hnpc.attribute[ATR_HITPOINTSMAX];
+  if(a==ATR_MANA && hnpc.attribute[a]>hnpc.attribute[ATR_MANAMAX])
+    hnpc.attribute[a] = hnpc.attribute[ATR_MANAMAX];
 
   if(val<0)
     invent.invalidateCond(*this);
@@ -728,22 +749,21 @@ void Npc::changeAttribute(Npc::Attribute a, int32_t val) {
 
 int32_t Npc::protection(Npc::Protection p) const {
   if(p<PROT_MAX)
-    return hnpc->protection[p];
+    return hnpc.protection[p];
   return 0;
   }
 
 void Npc::changeProtection(Npc::Protection p, int32_t val) {
   if(p<PROT_MAX)
-    hnpc->protection[p]=val;
+    hnpc.protection[p]=val;
   }
 
 uint32_t Npc::instanceSymbol() const {
-  return uint32_t(hnpc->instanceSymbol);
+  return uint32_t(hnpc.instanceSymbol);
   }
 
 uint32_t Npc::guild() const {
-  uint32_t ret = uint32_t(hnpc->guild);
-  return ret;
+  return uint32_t(hnpc.guild);
   }
 
 void Npc::setTrueGuild(int32_t g) {
@@ -752,7 +772,7 @@ void Npc::setTrueGuild(int32_t g) {
 
 int32_t Npc::trueGuild() const {
   if(trGuild==GIL_NONE)
-    return hnpc->guild;
+    return hnpc.guild;
   return trGuild;
   }
 
@@ -761,19 +781,19 @@ int32_t Npc::magicCyrcle() const {
   }
 
 int32_t Npc::level() const {
-  return hnpc->level;
+  return hnpc.level;
   }
 
 int32_t Npc::experience() const {
-  return hnpc->exp;
+  return hnpc.exp;
   }
 
 int32_t Npc::experienceNext() const {
-  return hnpc->exp_next;
+  return hnpc.exp_next;
   }
 
 int32_t Npc::learningPoints() const {
-  return hnpc->lp;
+  return hnpc.lp;
   }
 
 void Npc::setAttitude(Attitude att) {
@@ -1034,7 +1054,7 @@ void Npc::takeDamage(Npc &other) {
   }
 
 int Npc::damageValue(Npc &other) const {
-  const int dtype = hnpc->damagetype;
+  const int dtype = hnpc.damagetype;
   uint8_t   hitCh = TALENT_UNKNOWN;
   if(auto w = invent.activeWeapon()){
     if(w->is2H())
@@ -1048,10 +1068,10 @@ int Npc::damageValue(Npc &other) const {
   for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
     if((dtype & (1<<i))==0)
       continue;
-    int vd = std::max(s + hnpc->damage[i] - other.hnpc->protection[i],0);
-    if(hnpc->hitChance[hitCh]<critChance)
+    int vd = std::max(s + hnpc.damage[i] - other.hnpc.protection[i],0);
+    if(hnpc.hitChance[hitCh]<critChance)
       vd = (vd-1)/10;
-    if(other.hnpc->protection[i]>=0) // Filter immune
+    if(other.hnpc.protection[i]>=0) // Filter immune
       v += vd;
     }
   return std::max(v,3);
@@ -1274,7 +1294,7 @@ void Npc::nextAiAction(uint64_t dt) {
         }
       break;
     case AI_OutputSvm:{
-      if(!owner.aiOutputSvm(*this,*act.target,act.s0,hnpc->voice)) {
+      if(!owner.aiOutputSvm(*this,*act.target,act.s0,hnpc.voice)) {
         aiActions.push_front(std::move(act));
         } else {
         startDlgAnim();
@@ -1282,7 +1302,7 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
       }
     case AI_OutputSvmOverlay:
-      if(!owner.aiOutputSvm(*this,*act.target,act.s0,hnpc->voice)) {
+      if(!owner.aiOutputSvm(*this,*act.target,act.s0,hnpc.voice)) {
         aiActions.push_front(std::move(act));
         }
       break;
@@ -1311,7 +1331,7 @@ void Npc::nextAiAction(uint64_t dt) {
       const int32_t r = act.i0*act.i0;
       owner.world().detectNpc(position(),[&act,this,r](Npc& other){
         if(&other!=this && qDistTo(other)<r)
-          other.aiStartState(act.func,1,other.currentOther,other.hnpc->wp);
+          other.aiStartState(act.func,1,other.currentOther,other.hnpc.wp);
         });
       break;
       }
@@ -1333,12 +1353,11 @@ bool Npc::startState(size_t id,const std::string &wp, gtime endTime,bool noFinal
     return false;
 
   clearState(noFinalize);
-  if(!wp.empty()){
-    hnpc->wp = wp;
-    }
+  if(!wp.empty())
+    hnpc.wp = wp;
 
   if(aiState.funcIni!=0)
-    prevAiState = aiState.funcIni;
+    aiPrevState = aiState.funcIni;
 
   auto& st = owner.getAiState(id);
   aiState.started      = false;
@@ -1367,16 +1386,15 @@ void Npc::clearState(bool noFinalize) {
 
 void Npc::tickRoutine() {
   if(aiState.funcIni==0 && !isPlayer()) {
-    auto& v = *hnpc;
     auto  r = currentRoutine();
     if(r.callback!=0) {
       if(r.point!=nullptr)
-        v.wp = r.point->name;
+        hnpc.wp = r.point->name;
       auto t = endTime(r);
       startState(r.callback,"",t,false);
       }
-    else if(v.start_aistate!=0) {
-      startState(v.start_aistate,"");
+    else if(hnpc.start_aistate!=0) {
+      startState(hnpc.start_aistate,"");
       }
     }
 
@@ -1400,7 +1418,7 @@ void Npc::tickRoutine() {
           setTarget(nullptr);
           }
         currentOther = nullptr;
-        prevAiState  = aiState.funcIni;
+        aiPrevState  = aiState.funcIni;
         aiState      = AiState();
         }
       }
@@ -1520,7 +1538,7 @@ gtime Npc::endTime(const Npc::Routine &r) const {
   }
 
 Npc::BodyState Npc::bodyState() const {
-  uint32_t s   = bodySt;
+  uint32_t s   = 0;
   auto     ani = anim();
   if(isDead())
     s = BS_DEAD;
@@ -1636,7 +1654,7 @@ bool Npc::closeWeapon(bool noAnim) {
     return false;
   invent.switchActiveWeapon(Item::NSLOT);
   updateWeaponSkeleton();
-  hnpc->weapon = 0;
+  hnpc.weapon = 0;
   return true;
   }
 
@@ -1653,7 +1671,7 @@ bool Npc::drawWeaponFist() {
     return false;
   invent.switchActiveWeaponFist();
   updateWeaponSkeleton();
-  hnpc->weapon = 1;
+  hnpc.weapon = 1;
   return true;
   }
 
@@ -1673,7 +1691,7 @@ bool Npc::drawWeaponMele() {
     return false;
   invent.switchActiveWeapon(1);
   updateWeaponSkeleton();
-  hnpc->weapon = (st==WeaponState::W1H ? 3:4);
+  hnpc.weapon = (st==WeaponState::W1H ? 3:4);
   if(invent.currentMeleWeapon()->handle()->material==ItemMaterial::MAT_METAL)
     emitSoundEffect("DRAWSOUND_ME",50,true); else
     emitSoundEffect("DRAWSOUND_WO",50,true);
@@ -1694,7 +1712,7 @@ bool Npc::drawWeaponBow() {
     return false;
   invent.switchActiveWeapon(2);
   updateWeaponSkeleton();
-  hnpc->weapon = (st==WeaponState::W1H ? 5:6);
+  hnpc.weapon = (st==WeaponState::W1H ? 5:6);
   emitSoundEffect("DRAWSOUND_BOW",25,true);
   return true;
   }
@@ -1710,7 +1728,7 @@ bool Npc::drawMage(uint8_t slot) {
     return false;
   invent.switchActiveWeapon(slot);
   updateWeaponSkeleton();
-  hnpc->weapon = 7;
+  hnpc.weapon = 7;
   return true;
   }
 
@@ -1841,7 +1859,7 @@ bool Npc::isPrehit() const {
   }
 
 bool Npc::isImmortal() const {
-  return hnpc->flags & Daedalus::GEngineClasses::C_Npc::ENPCFlag::EFLAG_IMMORTAL;
+  return hnpc.flags & Daedalus::GEngineClasses::C_Npc::ENPCFlag::EFLAG_IMMORTAL;
   }
 
 void Npc::setPerceptionTime(uint64_t time) {
@@ -1868,7 +1886,7 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
   if(disable)
     return false;
 
-  float r = hnpc->senses_range;
+  float r = hnpc.senses_range;
   r = r*r;
 
   bool ret=false;
@@ -1894,7 +1912,7 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
   }
 
 bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType perc) {
-  float r = hnpc->senses_range;
+  float r = hnpc.senses_range;
   r = r*r;
   if(quadDist<r && perception[perc].func){
     owner.invokeState(this,&pl,victum,perception[perc].func);
@@ -1920,7 +1938,7 @@ bool Npc::setInteraction(Interactive *id) {
     currentInteract=id;
     auto st = currentInteract->stateFunc();
     if(!st.empty()) {
-      owner.useInteractive(hnpc,st);
+      owner.useInteractive(&hnpc,st);
       }
     if(auto tr = currentInteract->triggerTarget()){
       tr->onTrigger();
@@ -1936,7 +1954,7 @@ bool Npc::isState(uint32_t stateFn) const {
   }
 
 bool Npc::wasInState(uint32_t stateFn) const {
-  return prevAiState==stateFn;
+  return aiPrevState==stateFn;
   }
 
 uint64_t Npc::stateTime() const {
@@ -2067,7 +2085,7 @@ float Npc::clampHeight(Npc::Anim a) const {
   }
 
 std::vector<WorldScript::DlgChoise> Npc::dialogChoises(Npc& player,const std::vector<uint32_t> &except) {
-  return owner.dialogChoises(player.hnpc,this->hnpc,except);
+  return owner.dialogChoises(&player.hnpc,&this->hnpc,except);
   }
 
 void Npc::aiLookAt(Npc *other) {

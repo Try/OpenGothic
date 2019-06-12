@@ -25,7 +25,7 @@ class WayPoint;
 
 class Npc final {
   public:
-    enum class ProcessPolicy : uint8_t {
+    enum ProcessPolicy : uint8_t {
       Player,
       AiNormal,
       AiFar,
@@ -251,7 +251,6 @@ class Npc final {
 
     const char*         displayName() const;
     std::array<float,3> displayPosition() const;
-    void setName      (const std::string& name);
     void setVisual    (const char *visual);
     void setVisual    (const Skeleton *visual);
     void addOverlay   (const char*     sk, uint64_t time);
@@ -379,7 +378,7 @@ class Npc final {
 
     std::vector<WorldScript::DlgChoise> dialogChoises(Npc &player, const std::vector<uint32_t> &except);
 
-    Daedalus::GEngineClasses::C_Npc* handle(){ return  hnpc; }
+    Daedalus::GEngineClasses::C_Npc* handle(){ return  &hnpc; }
 
     auto     inventory() const -> const Inventory& { return invent; }
     size_t   hasItem    (uint32_t id) const;
@@ -512,10 +511,16 @@ class Npc final {
       AI_SetWalkMode
       };
 
+    enum TransformBit : uint8_t {
+      TR_Pos  =1,
+      TR_Rot  =1<<1,
+      TR_Scale=1<<2,
+      };
+
     struct AiAction final {
       Action          act   =AI_None;
       Npc*            target=nullptr;
-      const WayPoint* point=nullptr;
+      const WayPoint* point =nullptr;
       size_t          func  =0;
       int             i0    =0;
       std::string     s0;
@@ -557,54 +562,68 @@ class Npc final {
     void                           takeDamage(Npc& other);
     int                            damageValue(Npc &other) const;
 
+    void                           save(Serialize& fout,Daedalus::GEngineClasses::C_Npc& hnpc) const;
+    void                           load(Serialize& fin, Daedalus::GEngineClasses::C_Npc& hnpc);
+
+    void                           save(Serialize& fout,const Daedalus::GEngineClasses::C_Npc::ENPCFlag& flg) const;
+    void                           load(Serialize& fin, Daedalus::GEngineClasses::C_Npc::ENPCFlag&       flg);
+
+    void                           saveAiState(Serialize& fout) const;
+    void                           loadAiState(Serialize& fin);
+
     WorldScript&                   owner;
-    Daedalus::GEngineClasses::C_Npc* hnpc;
+    Daedalus::GEngineClasses::C_Npc hnpc={};
     float                          x=0.f;
     float                          y=0.f;
     float                          z=0.f;
     float                          angle=0.f;
     float                          sz[3]={1.f,1.f,1.f};
 
-    enum TransformBit : uint8_t {
-      TR_Pos  =1,
-      TR_Rot  =1<<1,
-      TR_Scale=1<<2,
-      };
+    // visual props
     uint8_t                        durtyTranform=0;
-
     std::string                    body,head;
     int32_t                        vHead=0, vTeeth=0, vColor =0;
     int32_t                        bdColor=0;
+    AnimationSolver                animation;
+
     DynamicWorld::Item             physic;
 
-    AnimationSolver                animation;
-    WalkBit                        wlkMode  =WalkBit::WM_Run;
-
-    std::string                    name;
-    int32_t                        trGuild=GIL_NONE;
+    WalkBit                        wlkMode              =WalkBit::WM_Run;
+    int32_t                        trGuild              =GIL_NONE;
     int32_t                        talentsSk[TALENT_MAX]={};
     int32_t                        talentsVl[TALENT_MAX]={};
     uint64_t                       refuseTalkMilis      =0;
-    Inventory                      invent;
-    Attitude                       permAttitude=ATT_NULL;
-    Attitude                       tmpAttitude=ATT_NULL;
 
+    // attitude
+    Attitude                       permAttitude=ATT_NULL;
+    Attitude                       tmpAttitude =ATT_NULL;
+
+    // perception
     uint64_t                       perceptionTime    =0;
     uint64_t                       perceptionNextTime=0;
     Perc                           perception[PERC_Count];
 
-    struct WorldAttach final {
+    // inventory
+    Inventory                      invent;
 
-      };
+    // last hit
+    Npc*                           lastHit        =nullptr;
+    char                           lastHitType    ='A';
+    int32_t                        lastHitSpell  =0;
+
+    // ai state
+    uint64_t                       waitTime=0;
+    ProcessPolicy                  aiPolicy=ProcessPolicy::AiNormal;
+    AiState                        aiState;
+    size_t                         aiPrevState=0;
+    std::deque<AiAction>           aiActions;
+    std::vector<Routine>           routines;
+    bool                           atackMode=false; // FIXME: ai_atack/ai_flee
 
     Interactive*                   currentInteract=nullptr;
     Npc*                           currentOther   =nullptr;
     Npc*                           currentLookAt  =nullptr;
-    Npc*                           lastHit        =nullptr;
-    char                           lastHitType    ='A';
-    int32_t                        lastHitSpell  =0;
     Npc*                           currentTarget  =nullptr;
-    bool                           atackMode      =false;
     Npc*                           nearestEnemy   =nullptr;
 
     Npc*                           currentGoToNpc =nullptr;
@@ -613,14 +632,6 @@ class Npc final {
     const WayPoint*                currentFp      =nullptr;
     WayPath                        wayPath;
     FpLock                         currentFpLock;
-
-    uint64_t                       waitTime=0;
-    ProcessPolicy                  aiPolicy=ProcessPolicy::AiNormal;
-    BodyState                      bodySt=BodyState(0);
-    AiState                        aiState;
-    size_t                         prevAiState=0;
-    std::vector<Routine>           routines;
-    std::deque<AiAction>           aiActions;
 
     MoveAlgo                       mvAlgo;
     FightAlgo                      fghAlgo;
