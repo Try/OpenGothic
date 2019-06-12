@@ -68,7 +68,7 @@ class World final {
 
     WorldView*      view()   const { return wview.get();    }
     DynamicWorld*   physic() const { return wdynamic.get(); }
-    WorldScript*    script() const;
+    WorldScript&    script() const;
 
     StaticObjects::Mesh getView(const std::string& visual) const;
     StaticObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;

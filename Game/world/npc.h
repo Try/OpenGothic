@@ -202,8 +202,8 @@ class Npc final {
 
     using Anim = AnimationSolver::Anim;
 
-    Npc(WorldScript &owner, size_t instance, const char *waypoint);
-    Npc(WorldScript &owner, Serialize& fin);
+    Npc(World &owner, size_t instance, const char *waypoint);
+    Npc(World &owner, Serialize& fin);
     Npc(const Npc&)=delete;
     ~Npc();
 
@@ -571,7 +571,7 @@ class Npc final {
     void                           saveAiState(Serialize& fout) const;
     void                           loadAiState(Serialize& fin);
 
-    WorldScript&                   owner;
+    World&                         owner;
     Daedalus::GEngineClasses::C_Npc hnpc={};
     float                          x=0.f;
     float                          y=0.f;

@@ -4,16 +4,16 @@
 #include "worldscript.h"
 #include "world.h"
 
-Item::Item(WorldScript &owner, size_t itemInstance)
+Item::Item(World &owner, size_t itemInstance)
   :owner(owner) {
   hitem.instanceSymbol = itemInstance;
   hitem.userPtr=this;
 
-  owner.initializeInstance(hitem,itemInstance);
+  owner.script().initializeInstance(hitem,itemInstance);
   hitem.amount=1;
   }
 
-Item::Item(WorldScript &owner, Serialize &fin)
+Item::Item(World &owner, Serialize &fin)
   :owner(owner) {
   auto& h = hitem;
   fin.read(h.instanceSymbol);
@@ -91,7 +91,7 @@ std::array<float,3> Item::position() const {
   }
 
 bool Item::isGold() const {
-  return hitem.instanceSymbol==owner.goldId();
+  return hitem.instanceSymbol==owner.script().goldId();
   }
 
 int32_t Item::mainFlag() const {
@@ -151,7 +151,7 @@ int32_t Item::cost() const {
   }
 
 int32_t Item::sellCost() const {
-  return int32_t(std::ceil(owner.tradeValueMultiplier()*cost()));
+  return int32_t(std::ceil(owner.script().tradeValueMultiplier()*cost()));
   }
 
 bool Item::checkCond(const Npc &other) const {

@@ -161,6 +161,9 @@ class AnimationSolver final {
       bool operator != (const Sequence& s) const { return l0!=s.l0 || l1!=s.l1; }
       };
 
+    void                           save(Serialize& fout);
+    void                           load(Serialize& fin, Npc &owner);
+
     void                           setPos   (const Tempest::Matrix4x4 &m);
     void                           setVisual(const Skeleton *visual, uint64_t tickCount, WeaponState ws, WalkBit walk, Interactive* inter, World &owner);
     void                           setVisualBody(StaticObjects::Mesh &&h, StaticObjects::Mesh &&body);
@@ -188,9 +191,6 @@ class AnimationSolver final {
     Sequence                       animSequence(const char *name) const;
     Sequence                       layredSequence(const char *name, const char *base) const;
     Sequence                       layredSequence(const char *name, const char *base, WeaponState st) const;
-
-    void                           save(Serialize& fout);
-    void                           load(Serialize& fin );
 
     Tempest::Matrix4x4             pos;
     StaticObjects::Mesh            head;

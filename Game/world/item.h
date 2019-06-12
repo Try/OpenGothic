@@ -4,14 +4,14 @@
 
 #include "graphics/staticobjects.h"
 
-class WorldScript;
+class World;
 class Npc;
 class Serialize;
 
 class Item final {
   public:
-    Item(WorldScript& owner, size_t inst);
-    Item(WorldScript& owner, Serialize& fin);
+    Item(World& owner, size_t inst);
+    Item(World& owner, Serialize& fin);
     Item(Item&&)=default;
     ~Item();
     Item& operator=(Item&&)=default;
@@ -67,7 +67,7 @@ class Item final {
     void updateMatrix();
 
     Daedalus::GEngineClasses::C_Item  hitem={};
-    WorldScript&                      owner;
+    World&                            owner;
     StaticObjects::Mesh               view;
     std::array<float,3>               pos={};
     Tempest::Matrix4x4                mat;

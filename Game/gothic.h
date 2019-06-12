@@ -53,6 +53,8 @@ class Gothic final {
     void      pushPause();
     void      popPause();
     bool      isPause() const;
+
+    bool      isDebugMode() const;
     bool      isRamboMode() const;
 
     LoadState checkLoading() const;
@@ -110,6 +112,7 @@ class Gothic final {
     std::string                        wdef;
     bool                               noMenu=false;
     uint16_t                           pauseSum=0;
+    bool                               isDebug=false;
     bool                               isRambo=false;
 
     const Tempest::Texture2d*          loadTex=nullptr;

@@ -88,64 +88,67 @@ void MainWindow::setupUi() {
 void MainWindow::paintEvent(PaintEvent& event) {
   Painter p(event);
   auto world = gothic.world();
+  auto st    = gothic.checkLoading();
+
+  const char* info="";
 
   if(world==nullptr && background!=nullptr) {
     p.setBrush(Color(0.0));
     p.drawRect(0,0,w(),h());
 
-    if(gothic.checkLoading()==Gothic::LoadState::Idle) {
+    if(st==Gothic::LoadState::Idle) {
       p.setBrush(*background);
       p.drawRect(0,0,w(),h(),
                  0,0,background->w(),background->h());
       }
     }
 
-  if(world)
-    world->marchPoints(p,world->view()->viewProj(camera.view()),w(),h());
+  if(st!=Gothic::LoadState::Idle){
+    if(loadBox)
+      drawLoading(p,int(w()*0.92)-loadBox->w(), int(h()*0.12), loadBox->w(),loadBox->h());
+    } else {
+    if(world!=nullptr && world->view()){
+      world->marchPoints(p,world->view()->viewProj(camera.view()),w(),h());
 
-  if(world!=nullptr && world->view()){
-    auto vp = world->view()->viewProj(camera.view());
-    p.setBrush(Color(1.0));
+      auto vp = world->view()->viewProj(camera.view());
+      p.setBrush(Color(1.0));
 
-    auto focus = world->validateFocus(currentFocus);
-    if(focus && !dialogs.isActive()) {
-      auto pos = focus.displayPosition();
-      vp.project(pos[0],pos[1],pos[2]);
+      auto focus = world->validateFocus(currentFocus);
+      if(focus && !dialogs.isActive()) {
+        auto pos = focus.displayPosition();
+        vp.project(pos[0],pos[1],pos[2]);
 
-      int ix = int((0.5f*pos[0]+0.5f)*w());
-      int iy = int((0.5f*pos[1]+0.5f)*h());
-      p.setFont(Resources::font());
-      const char* txt = cp1251::toUtf8(focus.displayName());
-      auto tsize = p.font().textSize(txt);
-      ix-=tsize.w/2;
-      if(iy<tsize.h)
-        iy = tsize.h;
-      if(iy>h())
-        iy = h();
-      p.drawText(ix,iy,txt);
+        int ix = int((0.5f*pos[0]+0.5f)*w());
+        int iy = int((0.5f*pos[1]+0.5f)*h());
+        p.setFont(Resources::font());
+        const char* txt = cp1251::toUtf8(focus.displayName());
+        auto tsize = p.font().textSize(txt);
+        ix-=tsize.w/2;
+        if(iy<tsize.h)
+          iy = tsize.h;
+        if(iy>h())
+          iy = h();
+        p.drawText(ix,iy,txt);
 
-      if(auto pl = focus.npc){
+        if(auto pl = focus.npc){
+          float hp = pl->attribute(Npc::ATR_HITPOINTS)/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
+          drawBar(p,barHp, w()/2,10, hp, AlignHCenter|AlignTop);
+          }
+        }
+
+      if(auto pl=gothic.player()){
         float hp = pl->attribute(Npc::ATR_HITPOINTS)/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
-        drawBar(p,barHp, w()/2,10, hp, AlignHCenter|AlignTop);
+        float mp = pl->attribute(Npc::ATR_MANA)/float(pl->attribute(Npc::ATR_MANAMAX));
+        drawBar(p,barHp,  10,    h()-10, hp, AlignLeft |AlignBottom);
+        drawBar(p,barMana,w()-10,h()-10, mp, AlignRight|AlignBottom);
         }
       }
 
-    if(auto pl=gothic.player()){
-      float hp = pl->attribute(Npc::ATR_HITPOINTS)/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
-      float mp = pl->attribute(Npc::ATR_MANA)/float(pl->attribute(Npc::ATR_MANAMAX));
-      drawBar(p,barHp,  10,    h()-10, hp, AlignLeft |AlignBottom);
-      drawBar(p,barMana,w()-10,h()-10, mp, AlignRight|AlignBottom);
-      }
-    }
-
-  if(gothic.checkLoading()!=Gothic::LoadState::Idle && loadBox){
-    drawLoading(p,int(w()*0.92)-loadBox->w(), int(h()*0.12), loadBox->w(),loadBox->h());
+    if(world && world->player() && world->player()->hasCollision())
+      info="[c]";
     }
 
   char fpsT[64]={};
-  const char* info="";
-  if(world && world->player() && world->player()->hasCollision())
-    info="[c]";
   std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %s",fps.get(),info);
 
   p.setFont(Resources::font());

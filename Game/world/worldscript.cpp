@@ -878,10 +878,6 @@ bool WorldScript::aiOutputSvm(Npc &from, Npc &/*to*/, const std::string &outputn
   return true;
   }
 
-bool WorldScript::aiClose() {
-  return owner.aiCloseDialog();
-  }
-
 bool WorldScript::isDead(const Npc &pl) {
   return pl.isState(ZS_Dead);
   }

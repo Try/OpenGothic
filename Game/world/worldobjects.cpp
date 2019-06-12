@@ -26,12 +26,12 @@ void WorldObjects::load(Serialize &fin) {
   fin.read(sz);
   npcArr.clear();
   for(size_t i=0;i<sz;++i)
-    npcArr.emplace_back(std::make_unique<Npc>(*owner.script(),fin));
+    npcArr.emplace_back(std::make_unique<Npc>(owner,fin));
 
   fin.read(sz);
   itemArr.clear();
   for(size_t i=0;i<sz;++i){
-    auto it = std::make_unique<Item>(*owner.script(),fin);
+    auto it = std::make_unique<Item>(owner,fin);
 
     auto& h = *it->handle();
     it->setView(owner.getStaticView(h.visual,h.material));
@@ -115,7 +115,7 @@ Npc *WorldObjects::addNpc(size_t npcInstance, const char *at) {
     Log::e("inserNpc: invalid waypoint");
     return nullptr;
     }
-  Npc* npc = new Npc(*owner.script(),npcInstance,at);
+  Npc* npc = new Npc(owner,npcInstance,at);
   if(pos!=nullptr && pos->isLocked()){
     auto p = owner.findNextPoint(*pos);
     if(p)
@@ -281,7 +281,7 @@ size_t WorldObjects::hasItems(const std::string &tag, size_t itemCls) {
 Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
   auto  pos = owner.findPoint(at);
 
-  std::unique_ptr<Item> ptr{new Item(*owner.script(),itemInstance)};
+  std::unique_ptr<Item> ptr{new Item(owner,itemInstance)};
   auto* it=ptr.get();
   itemArr.emplace_back(std::move(ptr));
 

@@ -233,7 +233,7 @@ Focus World::findFocus(const Npc &pl, const Focus& def, const Tempest::Matrix4x4
     case WeaponState::Mage:{
       fptr = &game.script()->focusMage();
       int32_t id  = player()->inventory().activeWeapon()->spellId();
-      auto&   spl = script()->getSpell(id);
+      auto&   spl = script().getSpell(id);
 
       coll = TargetCollect(spl.targetCollectAlgo);
       opt  = WorldObjects::NoDeath;
@@ -342,7 +342,7 @@ bool World::aiUseMob(Npc &pl, const std::string &name) {
   }
 
 Npc *World::addNpc(const char *name, const char *at) {
-  size_t id = script()->getSymbolIndex(name);
+  size_t id = script().getSymbolIndex(name);
   if(id==0)
     return nullptr;
   return wobj.addNpc(id,at);
@@ -499,8 +499,8 @@ WayPath World::wayTo(float npcX, float npcY, float npcZ, const WayPoint &end) co
   return wmatrix->wayTo(npcX,npcY,npcZ,end);
   }
 
-WorldScript *World::script() const {
-  return game.script();
+WorldScript &World::script() const {
+  return *game.script();
   }
 
 void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {

@@ -31,9 +31,9 @@ bool PlayerControl::interact(Npc &other) {
     return false;
   if(w->player()->weaponState()!=WeaponState::NoWeapon)
     return false;
-  if(w->script()->isDead(other) || w->script()->isUnconscious(other)){
+  if(w->script().isDead(other) || w->script().isUnconscious(other)){
     if(!inv.ransack(*w->player(),other))
-      w->script()->printNothingToGet();
+      w->script().printNothingToGet();
     }
   return dlg.start(*w->player(),other);
   }
@@ -183,6 +183,8 @@ void PlayerControl::marvinF8() {
   pos[0]+=60*s;
   pos[2]+=-60*c;
 
+  if(pl.attribute(Npc::ATR_HITPOINTS)<=0)
+    pl.resetView(false);
   pl.changeAttribute(Npc::ATR_HITPOINTS,pl.attribute(Npc::ATR_HITPOINTSMAX));
   pl.clearState(false);
   pl.setPosition(pos);
@@ -221,7 +223,7 @@ void PlayerControl::implMove(uint64_t dt) {
   Npc&  pl     = *w->player();
   float rot    = pl.rotation();
   auto  gl     = std::min<uint32_t>(pl.guild(),GIL_MAX);
-  float rspeed = w->script()->guildVal().turn_speed[gl]*(dt/1000.f)*60.f/100.f;
+  float rspeed = w->script().guildVal().turn_speed[gl]*(dt/1000.f)*60.f/100.f;
 
   Npc::Anim ani=Npc::Anim::Idle;
 

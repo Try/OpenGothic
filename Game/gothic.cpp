@@ -28,6 +28,9 @@ Gothic::Gothic(const int argc, const char **argv) {
     else if(std::strcmp(argv[i],"-rambo")==0){
       isRambo=true;
       }
+    else if(std::strcmp(argv[i],"-validation")==0 || std::strcmp(argv[i],"-v")==0){
+      isDebug=true;
+      }
     }
 
   if(gpath.empty()){
@@ -195,6 +198,10 @@ bool Gothic::isPause() const {
   return pauseSum;
   }
 
+bool Gothic::isDebugMode() const {
+  return isDebug;
+  }
+
 bool Gothic::isRamboMode() const {
   return isRambo;
   }
@@ -236,6 +243,8 @@ void Gothic::startLoading(const char* banner,const std::function<void()> f) {
       }
     });
   loaderTh=std::move(l);
+  //loaderTh.join();
+  //loaderTh = std::thread([](){});
   }
 
 void Gothic::cancelLoading() {

@@ -16,6 +16,7 @@ class Npc;
 class Serialize;
 class GSoundEffect;
 class SoundFx;
+class WorldStateStorage;
 
 class GameSession final {
   public:
@@ -76,29 +77,38 @@ class GameSession final {
     auto         getMusicTheme(const char* name) const ->  const Daedalus::GEngineClasses::C_MusicTheme&;
 
   private:
-    bool         isWorldKnown(const std::string& name) const;
-    void         initScripts(bool firstTime);
-    void         implChangeWorld(std::unique_ptr<Npc>&& hero,const std::string &world, const std::string &wayPoint);
-
     struct ChWorld {
       std::string zen, wp;
       };
 
-    Gothic&                      gothic;
-    const RendererStorage&       storage;
+    struct HeroStorage {
+      void                 save(Npc& npc);
+      std::unique_ptr<Npc> load(World &owner) const;
 
-    Tempest::SoundDevice         sound;
-    std::unique_ptr<WorldScript> vm;
-    std::unique_ptr<World>       wrld;
-    std::vector<std::string>     visitedWorlds;
+      std::vector<uint8_t> storage;
+      };
 
-    uint64_t                     ticks=0, wrldTimePart=0;
-    gtime                        wrldTime;
+    bool         isWorldKnown(const std::string& name) const;
+    void         initScripts(bool firstTime);
+    void         implChangeWorld(const HeroStorage &hero, const std::string &world, const std::string &wayPoint);
+    auto         allocWorld(const std::string& name, std::function<void(int)> loadProgress) -> std::unique_ptr<World>;
 
-    ChWorld                      chWorld;
-    ChapterScreen::Show          chapter;
-    bool                         pendingChapter=false;
+    Gothic&                        gothic;
+    const RendererStorage&         storage;
 
-    static const uint64_t        multTime;
-    static const uint64_t        divTime;
+    Tempest::SoundDevice           sound;
+    std::unique_ptr<WorldScript>   vm;
+    std::unique_ptr<World>         wrld;
+
+    uint64_t                       ticks=0, wrldTimePart=0;
+    gtime                          wrldTime;
+
+    std::vector<WorldStateStorage> visitedWorlds;
+
+    ChWorld                        chWorld;
+    ChapterScreen::Show            chapter;
+    bool                           pendingChapter=false;
+
+    static const uint64_t          multTime;
+    static const uint64_t          divTime;
   };

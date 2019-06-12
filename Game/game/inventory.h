@@ -7,6 +7,7 @@
 #include "game/constants.h"
 
 class Item;
+class World;
 class WorldScript;
 class Npc;
 class Serialize;
@@ -17,7 +18,7 @@ class Inventory final {
     Inventory(Inventory&&)=default;
     ~Inventory();
 
-    void load(WorldScript &vm, Npc &owner, Serialize& s);
+    void load(Npc &owner, Serialize& s);
     void save(Serialize& s);
 
     enum Flags : uint32_t {
@@ -58,36 +59,36 @@ class Inventory final {
     const Item&  at(size_t i) const;
     const Item&  atTrade(size_t i) const;
     const Item&  atRansack(size_t i) const;
-    static void  trasfer(Inventory& to, Inventory& from, Npc *fromNpc, size_t cls, uint32_t count, WorldScript &vm);
+    static void  trasfer(Inventory& to, Inventory& from, Npc *fromNpc, size_t cls, uint32_t count, World &wrld);
 
     Item*  addItem(std::unique_ptr<Item>&& p);
-    void   addItem(const char* name, uint32_t count, WorldScript& vm);
-    Item*  addItem(size_t cls, uint32_t count, WorldScript& vm);
-    void   delItem(size_t cls, uint32_t count, WorldScript& vm, Npc &owner);
-    bool   use    (size_t cls, WorldScript &vm, Npc &owner, bool force);
-    bool   equip  (size_t cls, WorldScript &vm, Npc &owner, bool force);
-    bool   unequip(size_t cls, WorldScript &vm, Npc &owner);
-    void   unequip(Item*  cls, WorldScript &vm, Npc &owner);
+    void   addItem(const char* name, uint32_t count, World &owner);
+    Item*  addItem(size_t cls, uint32_t count, World &owner);
+    void   delItem(size_t cls, uint32_t count, Npc &owner);
+    bool   use    (size_t cls, Npc &owner, bool force);
+    bool   equip  (size_t cls, Npc &owner, bool force);
+    bool   unequip(size_t cls, Npc &owner);
+    void   unequip(Item*  cls, Npc &owner);
     void   invalidateCond(Npc &owner);
     bool   isChanged() const { return !sorted; }
-    void   autoEquip(WorldScript &vm, Npc &owner);
-    void   equipArmour(int32_t cls,WorldScript &vm, Npc &owner);
-    void   equipBestArmour     (WorldScript &vm, Npc &owner);
-    void   equipBestMeleWeapon (WorldScript &vm, Npc &owner);
-    void   equipBestRangeWeapon(WorldScript &vm, Npc &owner);
+    void   autoEquip(Npc &owner);
+    void   equipArmour         (int32_t cls, Npc &owner);
+    void   equipBestArmour     (Npc &owner);
+    void   equipBestMeleWeapon (Npc &owner);
+    void   equipBestRangeWeapon(Npc &owner);
     void   unequipWeapons(WorldScript &vm, Npc &owner);
     void   unequipArmour(WorldScript &vm, Npc &owner);
     void   clear(WorldScript &vm, Npc &owner);
 
-    void   updateArmourView(WorldScript &vm, Npc& owner);
-    void   updateSwordView (WorldScript &vm, Npc& owner);
-    void   updateBowView   (WorldScript &vm, Npc& owner);
+    void   updateArmourView(Npc& owner);
+    void   updateSwordView (Npc& owner);
+    void   updateBowView   (Npc& owner);
 
     const Item*  activeWeapon() const;
     Item*  activeWeapon();
     void   switchActiveWeaponFist();
     void   switchActiveWeapon(uint8_t slot);
-    void   switchActiveSpell (int32_t spell, WorldScript &vm, Npc &owner);
+    void   switchActiveSpell (int32_t spell, Npc &owner);
 
     Item*  currentArmour()         { return armour;     }
     Item*  currentMeleWeapon()     { return mele;       }
@@ -99,18 +100,18 @@ class Inventory final {
     uint8_t currentSpellSlot() const;
 
   private:
-    bool   setSlot     (Item*& slot, Item *next, WorldScript &vm, Npc &owner, bool force);
-    bool   equipNumSlot(Item *next, WorldScript &vm, Npc &owner, bool force);
-    void   applyArmour (Item& it, WorldScript &vm, Npc &owner, int32_t sgn);
+    bool   setSlot     (Item*& slot, Item *next, Npc &owner, bool force);
+    bool   equipNumSlot(Item *next, Npc &owner, bool force);
+    void   applyArmour (Item& it, Npc &owner, int32_t sgn);
 
     Item*  findByClass(size_t cls);
-    void   delItem    (Item* it, uint32_t count, WorldScript& vm, Npc& owner);
+    void   delItem    (Item* it, uint32_t count, Npc& owner);
     void   invalidateCond(Item*& slot,  Npc &owner);
 
-    Item*  bestItem       (WorldScript &vm, Npc &owner, Flags f);
-    Item*  bestArmour     (WorldScript &vm, Npc &owner);
-    Item*  bestMeleeWeapon(WorldScript &vm, Npc &owner);
-    Item*  bestRangeWeapon(WorldScript &vm, Npc &owner);
+    Item*  bestItem       (Npc &owner, Flags f);
+    Item*  bestArmour     (Npc &owner);
+    Item*  bestMeleeWeapon(Npc &owner);
+    Item*  bestRangeWeapon(Npc &owner);
 
     bool   isTakable(const Item& i) const;
 
