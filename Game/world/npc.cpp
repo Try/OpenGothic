@@ -29,11 +29,14 @@ Npc::Npc(World &owner, Serialize &fin)
   load(fin,hnpc);
 
   fin.read(x,y,z,angle,sz);
-  fin.read(durtyTranform,body,head,vHead,vTeeth,bdColor,vColor);
+  fin.read(body,head,vHead,vTeeth,bdColor,vColor);
   fin.read(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
+  durtyTranform = TR_Pos|TR_Rot|TR_Scale;
 
-  setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
   animation.load(fin,*this);
+  setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
+  if(animation.skeleton)
+    setPhysic(owner.getPhysic(animation.skeleton->name()));
 
   fin.read(reinterpret_cast<int32_t&>(permAttitude),reinterpret_cast<int32_t&>(tmpAttitude));
   fin.read(perceptionTime,perceptionNextTime);
@@ -52,7 +55,7 @@ void Npc::save(Serialize &fout) {
   save(fout,hnpc);
 
   fout.write(x,y,z,angle,sz);
-  fout.write(durtyTranform,body,head,vHead,vTeeth,bdColor,vColor);
+  fout.write(body,head,vHead,vTeeth,bdColor,vColor);
   fout.write(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
   animation.save(fout);
 
@@ -141,9 +144,9 @@ void Npc::loadAiState(Serialize& fin) {
   fin.read(size);
   aiActions.resize(size);
   for(auto& i:aiActions){
-    fin.write(uint32_t(i.act));
-    fin.write(str);
-    fin.write(i.func,i.i0,i.s0);
+    fin.read(reinterpret_cast<uint32_t&>(i.act));
+    fin.read(str);
+    fin.read(i.func,i.i0,i.s0);
 
     i.point = owner.findPoint(str);
     }

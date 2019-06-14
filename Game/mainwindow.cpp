@@ -179,9 +179,6 @@ void MainWindow::mouseUpEvent(MouseEvent &event) {
 void MainWindow::mouseDragEvent(MouseEvent &event) {
   if(!mouseP[Event::ButtonLeft] || dialogs.isActive())
     return;
-  auto st = gothic.checkLoading();
-  if(st==Gothic::LoadState::Loading)
-    return;
   auto dp = (event.pos()-mpos);
   mpos = event.pos();
   spin += PointF(-dp.x,dp.y);
@@ -326,12 +323,7 @@ void MainWindow::drawLoading(Painter &p, int x, int y, int w, int h) {
 
 void MainWindow::tick() {
   auto st = gothic.checkLoading();
-  if(st==Gothic::LoadState::Finalize){
-    if(loaderSession!=nullptr)
-      setGameImpl(std::move(loaderSession));
-    gothic.finishLoading();
-    }
-  else if(st==Gothic::LoadState::Failed) {
+  if(st==Gothic::LoadState::Finalize || st==Gothic::LoadState::Failed) {
     gothic.finishLoading();
     }
   else if(st!=Gothic::LoadState::Idle) {
@@ -498,18 +490,17 @@ Camera::Mode MainWindow::solveCameraMode() const {
 
 void MainWindow::loadGame(const std::string &name) {
   if(gothic.checkLoading()==Gothic::LoadState::Idle){
-    loaderSession = gothic.clearGame(); // clear world-memory later
     setGameImpl(nullptr);
     onWorldLoaded();
     }
 
   //LOADING_OLDWORLD.TGA - for world-change trigger
-  gothic.startLoading("LOADING_OLDWORLD.TGA",[this,name](){
-    loaderSession = nullptr; // clear world-memory now
+  gothic.startLoading("LOADING_OLDWORLD.TGA",[this,name](std::unique_ptr<GameSession>&& game){
+    game = nullptr; // clear world-memory now
     Tempest::RFile file(name);
     Serialize      s(file);
     std::unique_ptr<GameSession> w(new GameSession(gothic,draw.storage(),s));
-    loaderSession = std::move(w);
+    return w;
     });
 
   update();
@@ -519,15 +510,14 @@ void MainWindow::startGame(const std::string &name) {
   gothic.emitGlobalSound(gothic.loadSoundFx("NEWGAME"));
 
   if(gothic.checkLoading()==Gothic::LoadState::Idle){
-    loaderSession = gothic.clearGame(); // clear world-memory later
     setGameImpl(nullptr);
     onWorldLoaded();
     }
 
-  gothic.startLoading("LOADING.TGA",[this,name](){
-    loaderSession = nullptr; // clear world-memory now
+  gothic.startLoading("LOADING.TGA",[this,name](std::unique_ptr<GameSession>&& game){
+    game = nullptr; // clear world-memory now
     std::unique_ptr<GameSession> w(new GameSession(gothic,draw.storage(),name));
-    loaderSession = std::move(w);
+    return w;
     });
   update();
   }

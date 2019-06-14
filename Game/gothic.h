@@ -59,7 +59,7 @@ class Gothic final {
 
     LoadState checkLoading() const;
     bool      finishLoading();
-    void      startLoading(const char *banner, const std::function<void()> f);
+    void      startLoading(const char *banner, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
     void      cancelLoading();
 
     void      tick(uint64_t dt);
@@ -120,7 +120,7 @@ class Gothic final {
     std::thread                        loaderTh;
     std::atomic<LoadState>             loadingFlag{LoadState::Idle};
 
-    std::unique_ptr<GameSession>       game;
+    std::unique_ptr<GameSession>       game, pendingGame;
     std::unique_ptr<FightAi>           fight;
     std::unique_ptr<CameraDefinitions> camera;
     std::unique_ptr<SoundDefinitions>  soundDef;

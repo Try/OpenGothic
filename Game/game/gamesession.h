@@ -90,8 +90,8 @@ class GameSession final {
 
     bool         isWorldKnown(const std::string& name) const;
     void         initScripts(bool firstTime);
-    void         implChangeWorld(const HeroStorage &hero, const std::string &world, const std::string &wayPoint);
-    auto         allocWorld(const std::string& name, std::function<void(int)> loadProgress) -> std::unique_ptr<World>;
+    auto         implChangeWorld(std::unique_ptr<GameSession> &&game, const std::string &world, const std::string &wayPoint) -> std::unique_ptr<GameSession>;
+    auto         findStorage(const std::string& name) -> const WorldStateStorage&;
 
     Gothic&                        gothic;
     const RendererStorage&         storage;

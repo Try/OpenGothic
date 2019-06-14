@@ -259,7 +259,6 @@ class Npc final {
     void delOverlay   (const Skeleton *sk);
 
     void setVisualBody (int32_t headTexNr,int32_t teethTexNr,int32_t bodyVer,int32_t bodyColor,const std::string& body,const std::string& head);
-    //void setVisualBody (StaticObjects::Mesh &&h,StaticObjects::Mesh&& b,int32_t bodyVer,int32_t bodyColor,const std::string& body,const std::string& head);
     void setArmour     (StaticObjects::Mesh&& body);
     void setSword      (StaticObjects::Mesh&& sword);
     void setRangeWeapon(StaticObjects::Mesh&& bow);

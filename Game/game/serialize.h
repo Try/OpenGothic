@@ -16,6 +16,9 @@ class Serialize final {
 
     Serialize(Tempest::ODevice& fout);
     Serialize(Tempest::IDevice&  fin);
+    Serialize(Serialize&&)=default;
+
+    static Serialize empty();
 
     template<class T>
     T read(){ T t; read(t); return t; }
@@ -104,6 +107,8 @@ class Serialize final {
     void read (float (&s)[sz]) { readArr(s); }
 
   private:
+    Serialize();
+
     void readBytes(void* v,size_t sz){
       if(in->read(v,sz)!=sz)
         throw std::runtime_error("unable to read save-game file");

@@ -87,10 +87,8 @@ void Renderer::updateCmd() {
 void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, const Gothic &gothic) {
   FrameBuffer& fboFr = fbo3d[imgId];
 
-  auto st    = gothic.checkLoading();
   auto wview = gothic.worldView();
-
-  if(st==Gothic::LoadState::Idle && wview!=nullptr) {
+  if(wview!=nullptr) {
     wview->updateCmd(*gothic.world(),shadowMap,shadowPass);
     wview->updateUbo(view,shadow,device.frameId());
 

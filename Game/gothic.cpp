@@ -216,13 +216,15 @@ bool Gothic::finishLoading() {
     return false;
   if(loadingFlag.compare_exchange_strong(state,LoadState::Idle)){
     loaderTh.join();
+    if(pendingGame!=nullptr)
+      game = std::move(pendingGame);
     onWorldLoaded();
     return true;
     }
   return false;
   }
 
-void Gothic::startLoading(const char* banner,const std::function<void()> f) {
+void Gothic::startLoading(const char* banner, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f) {
   loadTex = Resources::loadTexture(banner);
   loadProgress.store(0);
 
@@ -231,20 +233,28 @@ void Gothic::startLoading(const char* banner,const std::function<void()> f) {
     return; // loading already
     }
 
-  auto l = std::thread([this,f](){
-    auto one=LoadState::Loading;
-    try {
-      f();
-      loadingFlag.compare_exchange_strong(one,LoadState::Finalize);
-      }
-    catch(std::bad_alloc&){
-      Tempest::Log::e("loading error: out of memory");
-      loadingFlag.compare_exchange_strong(one,LoadState::Failed);
-      }
-    });
-  loaderTh=std::move(l);
-  //loaderTh.join();
-  //loaderTh = std::thread([](){});
+  auto g = clearGame().release();
+  try{
+    auto l = std::thread([this,f,g](){
+      std::unique_ptr<GameSession> game(g);
+      auto one=LoadState::Loading;
+      try {
+        auto next   = f(std::move(game));
+        pendingGame = std::move(next);
+        loadingFlag.compare_exchange_strong(one,LoadState::Finalize);
+        }
+      catch(std::bad_alloc&){
+        Tempest::Log::e("loading error: out of memory");
+        loadingFlag.compare_exchange_strong(one,LoadState::Failed);
+        }
+      });
+    loaderTh=std::move(l);
+    //loaderTh.join();
+    //loaderTh = std::thread([](){});
+    }
+  catch(...){
+    delete g; // delete manually, if we can't start thread
+    }
   }
 
 void Gothic::cancelLoading() {
@@ -259,8 +269,6 @@ void Gothic::tick(uint64_t dt) {
   }
 
 void Gothic::updateAnimation() {
-  if(checkLoading()!=LoadState::Idle)
-    return;
   if(game)
     game->updateAnimation();
   }

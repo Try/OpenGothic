@@ -15,7 +15,7 @@ AnimationSolver::AnimationSolver() {
   }
 
 void AnimationSolver::save(Serialize &fout) {
-  if(skeleton==nullptr)
+  if(skeleton!=nullptr)
     fout.write(skeleton->name()); else
     fout.write(std::string(""));
 

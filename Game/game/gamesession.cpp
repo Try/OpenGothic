@@ -200,54 +200,67 @@ void GameSession::tick(uint64_t dt) {
 
     std::snprintf(buf,sizeof(buf),"LOADING_%s.TGA",wname.c_str());  // format load-screen name, like "LOADING_OLDWORLD.TGA"
 
-    auto hero = wrld->takeHero();
-    HeroStorage hdata;
-    if(hero)
-      hdata.save(*hero);
-
-    auto w = wrld.release();
-    gothic.startLoading(buf,[this,hdata,w](){
-      delete w;
-      implChangeWorld(hdata,chWorld.zen,chWorld.wp);
+    gothic.startLoading(buf,[this](std::unique_ptr<GameSession>&& game){
+      auto ret = implChangeWorld(std::move(game),chWorld.zen,chWorld.wp);
       chWorld.zen.clear();
-      Log::i("World ready to play");
+      return ret;
       });
     }
   }
 
-void GameSession::implChangeWorld(const HeroStorage& hero,const std::string& world, const std::string& wayPoint) {
+auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
+                                  const std::string& world, const std::string& wayPoint) -> std::unique_ptr<GameSession> {
   const char*   w   = world.c_str();
   size_t        cut = world.rfind('\\');
   if(cut!=std::string::npos)
     w = w+cut+1;
 
-  auto wrld = allocWorld(w,[&](int v){
-    gothic.setLoadingProgress(v);
-    });
+  auto hero = wrld->takeHero();
+  HeroStorage hdata;
+  if(hero)
+    hdata.save(*hero);
+  hero = nullptr;
+  clearWorld();
 
+  auto& gothic = game->gothic;
   vm->resetVarPointers();
 
+  const uint8_t            ver = gothic.isGothic2() ? 2 : 1;
+  const WorldStateStorage& wss = findStorage(w);
+
+  auto loadProgress = [&gothic](int v){
+    gothic.setLoadingProgress(v);
+    };
+
+  Tempest::MemReader rd{wss.storage.data(),wss.storage.size()};
+  Serialize          fin = wss.storage.empty() ? Serialize::empty() : Serialize{rd};
+
+  std::unique_ptr<World> ret;
+  if(wss.storage.empty())
+    ret = std::unique_ptr<World>(new World(*this,storage,w,  ver,loadProgress)); else
+    ret = std::unique_ptr<World>(new World(*this,storage,fin,ver,loadProgress));
+  setWorld(std::move(ret));
+
+  if(!wss.storage.empty())
+    wrld->load(fin);
+
   if(1){
-    // move hero to world
-    auto ptr = hero.load(*wrld);
-    wrld->insertPlayer(std::move(ptr),wayPoint.c_str());
+    // put hero to world
+    auto ptr = hdata.load(*game->wrld);
+    game->wrld->insertPlayer(std::move(ptr),wayPoint.c_str());
     }
+  initScripts(wss.storage.empty());
 
-  initScripts(!isWorldKnown(wrld->name()));
   Log::i("Done loading world[",world,"]");
-
-  setWorld(std::move(wrld));
+  return std::move(game);
   }
 
-std::unique_ptr<World> GameSession::allocWorld(const std::string &name,std::function<void(int)> loadProgress) {
-  const uint8_t ver = gothic.isGothic2() ? 2 : 1;
-
+const WorldStateStorage& GameSession::findStorage(const std::string &name) {
   for(auto& i:visitedWorlds)
-    if(i.name==name){
-      return i.load(*this,storage,ver,loadProgress);
-      }
-
-  return std::unique_ptr<World>(new World(*this,storage,name,ver,loadProgress));
+    if(i.name==name)
+      return i;
+  static WorldStateStorage wss;
+  return wss;
   }
 
 void GameSession::updateAnimation() {

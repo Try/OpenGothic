@@ -20,6 +20,15 @@ Serialize::Serialize(Tempest::IDevice &fin) : in(&fin){
     throw std::runtime_error("invalid file format");
   }
 
+Serialize Serialize::empty() {
+  Serialize e;
+  return e;
+  }
+
+Serialize::Serialize()
+  :ver(Version){
+  }
+
 void Serialize::write(const std::string &s) {
   uint32_t sz=s.size();
   write(sz);
