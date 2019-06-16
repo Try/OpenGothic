@@ -51,6 +51,7 @@ class MainWindow : public Tempest::Window {
     void mouseDownEvent (Tempest::MouseEvent& event) override;
     void mouseUpEvent   (Tempest::MouseEvent& event) override;
     void mouseDragEvent (Tempest::MouseEvent& event) override;
+    void mouseMoveEvent (Tempest::MouseEvent& event) override;
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
 
     void keyDownEvent   (Tempest::KeyEvent&   event) override;
@@ -64,8 +65,10 @@ class MainWindow : public Tempest::Window {
     void onWorldLoaded();
     void setGameImpl(std::unique_ptr<GameSession>&& w);
     void clearInput();
+    void setFullscreen(bool fs);
+    void processMouse(Tempest::MouseEvent& event, bool fs);
 
-    void  setupUi();
+    void setupUi();
 
     void render() override;
     void initSwapchain();

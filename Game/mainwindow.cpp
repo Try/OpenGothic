@@ -24,6 +24,8 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),
     draw(device,gothic),gothic(gothic),inventory(gothic,draw.storage()),
     dialogs(gothic,inventory),chapter(gothic),camera(gothic),player(gothic,dialogs,inventory) {
+  //SystemApi::setAsFullscreen(hwnd(),true);
+
   for(uint8_t i=0;i<device.maxFramesInFlight();++i){
     fLocal.emplace_back(device);
     commandBuffersSemaphores.emplace_back(device);
@@ -177,11 +179,27 @@ void MainWindow::mouseUpEvent(MouseEvent &event) {
   }
 
 void MainWindow::mouseDragEvent(MouseEvent &event) {
-  if(!mouseP[Event::ButtonLeft] || dialogs.isActive())
+  const bool fs = SystemApi::isFullscreen(hwnd());
+  if(!mouseP[Event::ButtonLeft] && !fs)
+    return;
+  processMouse(event,false);
+  }
+
+void MainWindow::mouseMoveEvent(MouseEvent &event) {
+  const bool fs = SystemApi::isFullscreen(hwnd());
+  if(fs) {
+    spin = camera.getSpin();
+    processMouse(event,true);
+    mpos = event.pos();
+    }
+  }
+
+void MainWindow::processMouse(MouseEvent &event,bool fs) {
+  if(dialogs.isActive() || gothic.isPause())
     return;
   auto dp = (event.pos()-mpos);
   mpos = event.pos();
-  spin += PointF(-dp.x,dp.y);
+  spin += PointF(fs ? 0 : -dp.x,dp.y);
   if(spin.y>90)
     spin.y=90;
   if(spin.y<-90)
@@ -244,7 +262,10 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
 
   const char* menuEv=nullptr;
 
-  if(event.key==KeyEvent::K_F5){
+  if(event.key==KeyEvent::K_F3) {
+    setFullscreen(!SystemApi::isFullscreen(hwnd()));
+    }
+  else if(event.key==KeyEvent::K_F5){
     gothic.quickSave();
     }
   else if(event.key==KeyEvent::K_F6){
@@ -549,6 +570,10 @@ void MainWindow::clearInput() {
   player.clearInput();
   std::memset(pressed,0,sizeof(pressed));
   std::memset(mouseP,0,sizeof(mouseP));
+  }
+
+void MainWindow::setFullscreen(bool fs) {
+  SystemApi::setAsFullscreen(hwnd(),fs);
   }
 
 void MainWindow::initSwapchain(){
