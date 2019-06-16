@@ -15,7 +15,14 @@ class WorldStateStorage final {
   public:
     WorldStateStorage()=default;
     WorldStateStorage(World &w);
+    WorldStateStorage(const WorldStateStorage&)=delete;
+    WorldStateStorage(WorldStateStorage&&)=default;
+    WorldStateStorage& operator = (WorldStateStorage&&)=default;
 
-    const std::string name;
+    bool                 isEmpty() const { return storage.empty(); }
+    const std::string&   name()    const { return wname; }
     std::vector<uint8_t> storage;
+
+  private:
+    std::string          wname;
   };

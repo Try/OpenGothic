@@ -43,6 +43,7 @@ Npc::Npc(World &owner, Serialize &fin)
   for(auto& i:perception)
     fin.read(i.func);
   invent.load(*this,fin);
+  fin.read(lastHitType,lastHitSpell);
   loadAiState(fin);
   }
 
@@ -65,6 +66,7 @@ void Npc::save(Serialize &fout) {
     fout.write(i.func);
 
   invent.save(fout);
+  fout.write(lastHitType,lastHitSpell);
   saveAiState(fout);
   }
 

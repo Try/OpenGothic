@@ -101,8 +101,9 @@ void GameSession::setWorld(std::unique_ptr<World> &&w) {
 
 std::unique_ptr<World> GameSession::clearWorld() {
   if(wrld) {
-    if(!isWorldKnown(wrld->name()))
+    if(!isWorldKnown(wrld->name())) {
       visitedWorlds.emplace_back(*wrld);
+      }
     wrld->view()->resetCmd();
     }
   return std::move(wrld);
@@ -222,26 +223,25 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
   hero = nullptr;
   clearWorld();
 
-  auto& gothic = game->gothic;
   vm->resetVarPointers();
 
   const uint8_t            ver = gothic.isGothic2() ? 2 : 1;
   const WorldStateStorage& wss = findStorage(w);
 
-  auto loadProgress = [&gothic](int v){
+  auto loadProgress = [this](int v){
     gothic.setLoadingProgress(v);
     };
 
   Tempest::MemReader rd{wss.storage.data(),wss.storage.size()};
-  Serialize          fin = wss.storage.empty() ? Serialize::empty() : Serialize{rd};
+  Serialize          fin = wss.isEmpty() ? Serialize::empty() : Serialize{rd};
 
   std::unique_ptr<World> ret;
-  if(wss.storage.empty())
+  if(wss.isEmpty())
     ret = std::unique_ptr<World>(new World(*this,storage,w,  ver,loadProgress)); else
     ret = std::unique_ptr<World>(new World(*this,storage,fin,ver,loadProgress));
   setWorld(std::move(ret));
 
-  if(!wss.storage.empty())
+  if(!wss.isEmpty())
     wrld->load(fin);
 
   if(1){
@@ -249,7 +249,14 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
     auto ptr = hdata.load(*game->wrld);
     game->wrld->insertPlayer(std::move(ptr),wayPoint.c_str());
     }
-  initScripts(wss.storage.empty());
+  initScripts(wss.isEmpty());
+
+  for(auto& i:visitedWorlds)
+    if(i.name()==wrld->name()){
+      i = std::move(visitedWorlds.back());
+      visitedWorlds.pop_back();
+      break;
+      }
 
   Log::i("Done loading world[",world,"]");
   return std::move(game);
@@ -257,7 +264,7 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
 
 const WorldStateStorage& GameSession::findStorage(const std::string &name) {
   for(auto& i:visitedWorlds)
-    if(i.name==name)
+    if(i.name()==name)
       return i;
   static WorldStateStorage wss;
   return wss;
@@ -326,7 +333,7 @@ void GameSession::introChapter(const ChapterScreen::Show &s) {
 
 bool GameSession::isWorldKnown(const std::string &name) const {
   for(auto& i:visitedWorlds)
-    if(i.name==name)
+    if(i.name()==name)
       return true;
   return false;
   }

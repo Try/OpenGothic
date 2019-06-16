@@ -23,6 +23,13 @@ void AnimationSolver::save(Serialize &fout) {
   for(auto& i:overlay){
     fout.write(i.sk->name(),i.time);
     }
+
+  fout.write(sAnim);
+  fout.write(uint16_t(current),uint16_t(prevAni),uint16_t(lastIdle));
+
+  fout.write(uint8_t(animSq.cls));
+  fout.write(animSq.l0 ? animSq.l0->name : "");
+  fout.write(animSq.l1 ? animSq.l1->name : "");
   }
 
 void AnimationSolver::load(Serialize &fin,Npc& npc) {
@@ -46,6 +53,18 @@ void AnimationSolver::load(Serialize &fin,Npc& npc) {
       overlay.pop_back();
       }
     }
+  fin.read(sAnim);
+  fin.read(reinterpret_cast<uint16_t&>(current),reinterpret_cast<uint16_t&>(prevAni),reinterpret_cast<uint16_t&>(lastIdle));
+
+  fin.read(reinterpret_cast<uint8_t&>(animSq.cls));
+  fin.read(s);
+  Sequence l0 = animSequence(s.c_str());
+  animSq.l0 = l0.l1;
+
+  fin.read(s);
+  Sequence l1 = animSequence(s.c_str());
+  animSq.l1 = l1.l1;
+  invalidateAnim(animSq,skeleton,npc.world(),sAnim);
   }
 
 void AnimationSolver::setPos(const Matrix4x4 &m) {
@@ -642,6 +661,8 @@ AnimationSolver::Sequence AnimationSolver::solveDead(const char *format1, const 
   }
 
 AnimationSolver::Sequence AnimationSolver::animSequence(const char *name) const {
+  if(name==nullptr || name[0]=='\0')
+    return Sequence();
   for(size_t i=overlay.size();i>0;){
     --i;
     if(auto s = overlay[i].sk->sequence(name))

@@ -38,11 +38,17 @@ class Serialize final {
     void write(WalkBit   i) { writeBytes(&i,sizeof(i)); }
     void read (WalkBit&  i) { readBytes (&i,sizeof(i)); }
 
-    void write(bool  i)     { write(uint8_t(i ? 1 : 0)); }
-    void read (bool& i)     { uint8_t x=0; read(x); i=(x!=0); }
+    void write(bool      i) { write(uint8_t(i ? 1 : 0)); }
+    void read (bool&     i) { uint8_t x=0; read(x); i=(x!=0); }
+
+    void write(char      i) { writeBytes(&i,sizeof(i)); }
+    void read (char&     i) { readBytes (&i,sizeof(i)); }
 
     void write(uint8_t   i) { writeBytes(&i,sizeof(i)); }
     void read (uint8_t&  i) { readBytes (&i,sizeof(i)); }
+
+    void write(uint16_t  i) { writeBytes(&i,sizeof(i)); }
+    void read (uint16_t& i) { readBytes (&i,sizeof(i)); }
 
     void write(int32_t   i) { writeBytes(&i,sizeof(i)); }
     void read (int32_t&  i) { readBytes (&i,sizeof(i)); }

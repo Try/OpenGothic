@@ -8,7 +8,7 @@
 #include "serialize.h"
 
 WorldStateStorage::WorldStateStorage(World &w)
-  :name(w.name()){
+  :wname(w.name()){
   Tempest::MemWriter wr{storage};
   Serialize          sr{wr};
   w.save(sr);
