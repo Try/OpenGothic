@@ -86,6 +86,7 @@ void Npc::save(Serialize &fout, Daedalus::GEngineClasses::C_Npc &h) const {
 
 void Npc::load(Serialize &fin, Daedalus::GEngineClasses::C_Npc &h) {
   fin.read(h.instanceSymbol);
+  owner.script().initializeInstance(h,h.instanceSymbol);
   fin.read(h.id,h.name,h.slot,h.effect,h.npcType);
   load(fin,h.flags);
   fin.read(h.attribute,h.hitChance,h.protection,h.damage);
@@ -96,6 +97,10 @@ void Npc::load(Serialize &fin, Daedalus::GEngineClasses::C_Npc &h) {
   fin.read(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
   fin.read(h.aivar);
   fin.read(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
+
+  auto& sym = owner.script().getSymbol(hnpc.instanceSymbol);
+  sym.instanceDataHandle = &hnpc;
+  sym.instanceDataClass  = Daedalus::IC_Npc;
   }
 
 void Npc::save(Serialize &fout, const Daedalus::GEngineClasses::C_Npc::ENPCFlag &flg) const {

@@ -498,8 +498,11 @@ void WorldScript::resetVarPointers() {
   auto&  dat = vm.getDATFile().getSymTable().symbols;
   for(size_t i=0;i<dat.size();++i){
     auto& s = vm.getDATFile().getSymbolByIndex(i);
+    if(s.properties.elemProps.type!=Daedalus::EParType::EParType_Instance && s.instanceDataHandle)
+      Log::i("");
+    if(s.name=="SLEEPABIT_S1.ROCK")
+      Log::i("");
     if(s.instanceDataClass==Daedalus::IC_Npc || s.instanceDataClass==Daedalus::IC_Item){
-      s.instanceDataClass = Daedalus::IC_None;
       s.instanceDataHandle = nullptr;
       }
     }

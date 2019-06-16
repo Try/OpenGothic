@@ -13,3 +13,13 @@ WorldStateStorage::WorldStateStorage(World &w)
   Serialize          sr{wr};
   w.save(sr);
   }
+
+WorldStateStorage::WorldStateStorage(Serialize &fin)
+  :wname(fin.read<std::string>()){
+  fin.read(storage);
+  }
+
+void WorldStateStorage::save(Serialize &fout) const {
+  fout.write(wname);
+  fout.write(storage);
+  }

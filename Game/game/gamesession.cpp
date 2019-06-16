@@ -46,8 +46,8 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
   vm->initDialogs(gothic);
   gothic.setLoadingProgress(70);
 
-  //const char* hero="PC_HERO";
-  const char* hero="PC_ROCKEFELLER";
+  const char* hero="PC_HERO";
+  //const char* hero="PC_ROCKEFELLER";
   //const char* hero="Giant_Bug";
   //const char* hero="OrcWarrior_Rest";
   //const char* hero = "Snapper";
@@ -63,10 +63,14 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
 GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Serialize &fin)
   :gothic(gothic), storage(storage) {
   gothic.setLoadingProgress(0);
-  bool isG2=false;
+  bool     isG2=false;
+  uint16_t wssSize=0;
   fin.read(ticks,wrldTimePart,wrldTime,isG2);
+  fin.read(wssSize);
+  for(size_t i=0;i<wssSize;++i)
+    visitedWorlds.emplace_back(fin);
 
-  uint8_t ver = isG2 ? 2 : 1;
+  const uint8_t ver = isG2 ? 2 : 1;
 
   vm.reset(new WorldScript(*this,fin));
   setWorld(std::unique_ptr<World>(new World(*this,storage,fin,ver,[&](int v){
@@ -85,6 +89,10 @@ GameSession::~GameSession() {
 
 void GameSession::save(Serialize &fout) {
   fout.write(ticks,wrldTimePart,wrldTime,bool(gothic.isGothic2()));
+  fout.write(uint16_t(visitedWorlds.size()));
+  for(auto& i:visitedWorlds)
+    i.save(fout);
+
   vm->save(fout);
   if(wrld)
     wrld->save(fout);

@@ -16,6 +16,8 @@ Item::Item(World &owner, size_t itemInstance)
 Item::Item(World &owner, Serialize &fin)
   :owner(owner) {
   auto& h = hitem;
+  h.userPtr = this;
+
   fin.read(h.instanceSymbol);
   fin.read(h.id,h.name,h.nameID,h.hp,h.hp_max,h.mainflag);
   fin.read(h.flags,h.weight,h.value,h.damageType,h.damageTotal,h.damage);
@@ -31,6 +33,10 @@ Item::Item(World &owner, Serialize &fin)
   fin.read(mat);
 
   view.setObjMatrix(mat);
+
+  auto& sym = owner.script().getSymbol(h.instanceSymbol);
+  sym.instanceDataHandle = &h;
+  sym.instanceDataClass  = Daedalus::IC_Item;
   }
 
 Item::~Item() {
