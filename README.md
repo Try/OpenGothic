@@ -7,10 +7,9 @@ The goal of this project is to make feature complete Gothic client-app compatibl
 ![Screenshoot](doc/scr0.png)
 ##### Work in progress
 Core gameplay is done, you can complete first chapter as paladin; mercenary/mage are not tested yet.
-Chapter two is not available for now, because oCTriggerChangeLevel not implemented.
 
 ##### How to play
-1. Install original gothic game from CD/Steam/GOG/etc
+1. Install original gothic game from CD/Steam/GOG/etc  
 *you have to install original game, since OpenGothic does not have any game assets or game scripts as built-in*
 2. Build OpenGothic from source
 3. run '/OpenGothic/bin/Gothic2Notr.exe -g "C:\Program Files (x86)\Path\To\Gothic II"'
@@ -34,7 +33,7 @@ Chapter two is not available for now, because oCTriggerChangeLevel not implement
     * Dialog script - Done
     * Trading - Done ( only G2 style, sorry G1 fans )
 * Battle
-    * Hit box - Partial(same for everyone) 
+    * Hit box - Partial(same bbox for everyone) 
     * Melee combat - Done
     * Range - Not Implemented
     * Magic - Not Implemented
