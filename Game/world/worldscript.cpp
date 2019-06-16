@@ -498,8 +498,8 @@ void WorldScript::resetVarPointers() {
   auto&  dat = vm.getDATFile().getSymTable().symbols;
   for(size_t i=0;i<dat.size();++i){
     auto& s = vm.getDATFile().getSymbolByIndex(i);
-    if(s.properties.elemProps.type==Daedalus::EParType::EParType_Instance){
-      s.instanceDataClass  = Daedalus::IC_None;
+    if(s.instanceDataClass==Daedalus::IC_Npc || s.instanceDataClass==Daedalus::IC_Item){
+      s.instanceDataClass = Daedalus::IC_None;
       s.instanceDataHandle = nullptr;
       }
     }
@@ -1043,6 +1043,16 @@ Npc* WorldScript::getNpcById(size_t id) {
 
   auto hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(handle.instanceDataHandle);
   return getNpc(hnpc);
+  }
+
+Daedalus::GEngineClasses::C_Info* WorldScript::getInfo(size_t id) {
+  auto& sym = vm.getDATFile().getSymbolByIndex(id);
+  if(sym.instanceDataClass!=Daedalus::EInstanceClass::IC_Info)
+    return nullptr;
+  void* h = sym.instanceDataHandle;
+  if(h==nullptr)
+    Log::e("invalid C_Info object: \"",sym.name,"\"");
+  return reinterpret_cast<Daedalus::GEngineClasses::C_Info*>(h);
   }
 
 void WorldScript::removeItem(Item &it) {
@@ -2517,8 +2527,9 @@ void WorldScript::createinvitems(Daedalus::DaedalusVM &vm) {
 void WorldScript::hlp_getinstanceid(Daedalus::DaedalusVM &vm) {
   uint32_t arr_self = 0;
   uint32_t idx      = vm.popVar(arr_self);
-  auto     self     = getNpcById(idx);
 
+  auto& handle = vm.getDATFile().getSymbolByIndex(idx);(void)handle;
+  auto self = getNpcById(idx);
   if(self!=nullptr){
     auto v = *(self->handle());
     vm.setReturn(int32_t(v.instanceSymbol));
@@ -2532,6 +2543,7 @@ void WorldScript::hlp_getinstanceid(Daedalus::DaedalusVM &vm) {
     return;
     }
 
+  // Log::d("hlp_getinstanceid: name \"",handle.name,"\" not found");
   vm.setReturn(-1);
   }
 
@@ -2561,7 +2573,7 @@ void WorldScript::hlp_isvaliditem(Daedalus::DaedalusVM &vm) {
 
 void WorldScript::hlp_getnpc(Daedalus::DaedalusVM &vm) {
   uint32_t instanceSymbol = vm.popVar();
-  auto     handle         = vm.getDATFile().getSymbolByIndex(instanceSymbol);
+  auto&    handle         = vm.getDATFile().getSymbolByIndex(instanceSymbol);(void)handle;
 
   if(auto npc = getNpcById(instanceSymbol))
     vm.setReturn(int32_t(instanceSymbol)); else
@@ -2573,24 +2585,19 @@ void WorldScript::info_addchoice(Daedalus::DaedalusVM &vm) {
   auto&    text         = popString(vm);
   uint32_t infoInstance = uint32_t(vm.popInt());
 
-  auto& sym = vm.getDATFile().getSymbolByIndex(infoInstance);
-  if(sym.instanceDataClass!=Daedalus::EInstanceClass::IC_Info)
+  auto info = getInfo(infoInstance);
+  if(info==nullptr)
     return;
-  void*                             h     = sym.instanceDataHandle;
-  Daedalus::GEngineClasses::C_Info& cInfo = *reinterpret_cast<Daedalus::GEngineClasses::C_Info*>(h);
-  cInfo.addChoice(Daedalus::GEngineClasses::SubChoice{text, func});
+  info->addChoice(Daedalus::GEngineClasses::SubChoice{text, func});
   }
 
 void WorldScript::info_clearchoices(Daedalus::DaedalusVM &vm) {
   uint32_t infoInstance = uint32_t(vm.popInt());
 
-  auto& sym = vm.getDATFile().getSymbolByIndex(infoInstance);
-  if(sym.instanceDataClass!=Daedalus::EInstanceClass::IC_Info)
+  auto info = getInfo(infoInstance);
+  if(info==nullptr)
     return;
-  void*                             h     = sym.instanceDataHandle;
-
-  Daedalus::GEngineClasses::C_Info& cInfo = *reinterpret_cast<Daedalus::GEngineClasses::C_Info*>(h);
-  cInfo.subChoices.clear();
+  info->subChoices.clear();
   }
 
 void WorldScript::infomanager_hasfinished(Daedalus::DaedalusVM &vm) {

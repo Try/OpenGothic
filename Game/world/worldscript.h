@@ -134,7 +134,8 @@ class WorldScript final {
 
     Item* getItem(Daedalus::GEngineClasses::C_Item *handle);
     Item* getItemById(size_t id);
-    Npc*  getNpcById(size_t id);
+    Npc*  getNpcById (size_t id);
+    auto  getInfo    (size_t id) -> Daedalus::GEngineClasses::C_Info*;
     auto  getFocus(const char* name) -> Daedalus::GEngineClasses::C_Focus;
 
     void storeItem(Item* it);
