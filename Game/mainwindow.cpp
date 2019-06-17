@@ -182,6 +182,8 @@ void MainWindow::mouseDragEvent(MouseEvent &event) {
   const bool fs = SystemApi::isFullscreen(hwnd());
   if(!mouseP[Event::ButtonLeft] && !fs)
     return;
+  if(currentFocus.npc)
+    return;
   processMouse(event,false);
   }
 
@@ -204,8 +206,6 @@ void MainWindow::processMouse(MouseEvent &event,bool fs) {
     spin.y=90;
   if(spin.y<-90)
     spin.y=-90;
-  if(currentFocus.npc)
-    return;
   camera.setSpin(spin);
   }
 
