@@ -286,26 +286,33 @@ void WorldScript::initCommon() {
   ZS_Unconscious       = getAiState(getSymbolIndex("ZS_Unconscious")).funcIni;
   ZS_Talk              = getAiState(getSymbolIndex("ZS_Talk")).funcIni;
 
-  auto& currency  = vm.getDATFile().getSymbolByName("TRADE_CURRENCY_INSTANCE");
-  itMi_Gold       = vm.getDATFile().getSymbolIndexByName(currency.getString(0).c_str());
-  if(itMi_Gold!=size_t(-1)){ // FIXME
-    Daedalus::GEngineClasses::C_Item item={};
-    vm.initializeInstance(&item, itMi_Gold, Daedalus::IC_Item);
-    goldTxt = cp1251::toUtf8(item.name);
-    }
-  auto& tradeMul = vm.getDATFile().getSymbolByName("TRADE_VALUE_MULTIPLIER");
-  tradeValMult   = tradeMul.getFloat();
+  auto& dat = vm.getDATFile();
 
-  auto& vtime     = vm.getDATFile().getSymbolByName("VIEW_TIME_PER_CHAR");
-  viewTimePerChar = vtime.getFloat(0);
-  if(viewTimePerChar<=0.f)
+  if(owner.isGothic2()){
+    auto& currency = dat.getSymbolByName("TRADE_CURRENCY_INSTANCE");
+    itMi_Gold      = dat.getSymbolIndexByName(currency.getString(0).c_str());
+    if(itMi_Gold!=size_t(-1)){ // FIXME
+      Daedalus::GEngineClasses::C_Item item={};
+      vm.initializeInstance(&item, itMi_Gold, Daedalus::IC_Item);
+      goldTxt = cp1251::toUtf8(item.name);
+      }
+    auto& tradeMul = dat.getSymbolByName("TRADE_VALUE_MULTIPLIER");
+    tradeValMult   = tradeMul.getFloat();
+
+    auto& vtime     = dat.getSymbolByName("VIEW_TIME_PER_CHAR");
+    viewTimePerChar = vtime.getFloat(0);
+    if(viewTimePerChar<=0.f)
+      viewTimePerChar=0.55f;
+    } else {
+    tradeValMult   = 1.f;
     viewTimePerChar=0.55f;
+    }
 
-  auto gilMax = vm.getDATFile().getSymbolByName("GIL_MAX");
+  auto gilMax = dat.getSymbolByName("GIL_MAX");
   gilCount=size_t(gilMax.getInt(0));
 
-  auto tableSz = vm.getDATFile().getSymbolByName("TAB_ANZAHL");
-  auto guilds  = vm.getDATFile().getSymbolByName("GIL_ATTITUDES");
+  auto tableSz = dat.getSymbolByName("TAB_ANZAHL");
+  auto guilds  = dat.getSymbolByName("GIL_ATTITUDES");
   gilAttitudes.resize(gilCount*gilCount,ATT_HOSTILE);
 
   size_t tbSz=size_t(std::sqrt(tableSz.getInt()));
@@ -315,7 +322,7 @@ void WorldScript::initCommon() {
       gilAttitudes[r*gilCount+i]=guilds.getInt(r*tbSz+i);
       }
 
-  auto id = vm.getDATFile().getSymbolIndexByName("Gil_Values");
+  auto id = dat.getSymbolIndexByName("Gil_Values");
   if(id!=size_t(-1)){
     vm.initializeInstance(&cGuildVal, id, Daedalus::IC_GilValues);
     for(size_t i=0;i<Guild::GIL_PUBLIC;++i){
@@ -1328,13 +1335,6 @@ void WorldScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
   if(npc==nullptr)
     return;
   npc->setVisualBody(headTexNr,teethTexNr,bodyTexNr,bodyTexColor,body,head);
-
-  /*
-  auto  vname = addExt(body,".MDM");
-  auto  vhead = head.empty() ? StaticObjects::Mesh() : world().getView(addExt(head,".MMB"),headTexNr,teethTexNr,bodyTexColor);
-  auto  vbody = body.empty() ? StaticObjects::Mesh() : world().getView(vname,bodyTexNr,0,bodyTexColor);
-  npc->setVisualBody(std::move(vhead),std::move(vbody),bodyTexNr,bodyTexColor,body,head);*/
-
   if(armor>=0) {
     if(npc->hasItem(uint32_t(armor))==0)
       npc->addItem(uint32_t(armor),1);
@@ -2669,18 +2669,18 @@ void WorldScript::printdebug(Daedalus::DaedalusVM &vm) {
 void WorldScript::printdebugch(Daedalus::DaedalusVM &vm) {
   const std::string& msg = popString(vm);
   int                ch  = vm.popInt();
-  Log::d("[zspy,",ch,"]: ",msg);
+  //Log::d("[zspy,",ch,"]: ",msg);
   }
 
 void WorldScript::printdebuginst(Daedalus::DaedalusVM &vm) {
   const std::string& msg = popString(vm);
-  Log::d("[zspy]: ",msg);
+  //Log::d("[zspy]: ",msg);
   }
 
 void WorldScript::printdebuginstch(Daedalus::DaedalusVM &vm) {
   const std::string& msg = popString(vm);
   int                ch  = vm.popInt();
-  Log::d("[zspy,",ch,"]: ",msg);
+  //Log::d("[zspy,",ch,"]: ",msg);
   }
 
 void WorldScript::sort(std::vector<WorldScript::DlgChoise> &dlg) {

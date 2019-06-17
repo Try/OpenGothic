@@ -79,6 +79,7 @@ World *Gothic::world() {
   }
 
 void Gothic::setGame(std::unique_ptr<GameSession> &&w) {
+  clearGame();
   game = std::move(w);
   }
 

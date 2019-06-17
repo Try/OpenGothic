@@ -34,6 +34,7 @@ class GameSession final {
     void         changeWorld(const std::string &world, const std::string &wayPoint);
 
     bool         isRamboMode() const;
+    bool         isGothic2() const;
 
     const World* world() const { return wrld.get(); }
     World*       world()       { return wrld.get(); }

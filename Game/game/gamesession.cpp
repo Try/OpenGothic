@@ -126,6 +126,10 @@ bool GameSession::isRamboMode() const {
   return gothic.isRamboMode();
   }
 
+bool GameSession::isGothic2() const {
+  return gothic.isGothic2();
+  }
+
 WorldView *GameSession::view() const {
   if(wrld)
     return wrld->view();
