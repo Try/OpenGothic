@@ -212,27 +212,36 @@ Skeleton* Resources::implLoadSkeleton(std::string name) {
   }
 
 Animation *Resources::implLoadAnimation(std::string name) {
-  if(name.size()==0)
+  if(name.size()<4)
     return nullptr;
-
-  if(name.rfind(".MDS")==name.size()-4 ||
-     name.rfind(".mds")==name.size()-4 ||
-     name.rfind(".MDH")==name.size()-4)
-    std::memcpy(&name[name.size()-3],"MSB",3);
 
   auto it=animCache.find(name);
   if(it!=animCache.end())
     return it->second.get();
 
   try {
-    if(!gothicAssets.hasFile(name))
-      std::memcpy(&name[name.size()-3],"MDH",3); // gothic1
-    ZenLoad::ZenParser            zen(name,gothicAssets);
-    ZenLoad::ModelScriptBinParser p(zen);
+    Animation* ret=nullptr;
+    if(gothic.isGothic2()){
+      if(name.rfind(".MDS")==name.size()-4 ||
+         name.rfind(".mds")==name.size()-4 ||
+         name.rfind(".MDH")==name.size()-4)
+        std::memcpy(&name[name.size()-3],"MSB",3);
+      ZenLoad::ZenParser            zen(name,gothicAssets);
+      ZenLoad::ModelScriptBinParser p(zen);
 
-    std::unique_ptr<Animation> t{new Animation(p,name.substr(0,name.size()-4))};
-    Animation* ret=t.get();
-    animCache[name] = std::move(t);
+      std::unique_ptr<Animation> t{new Animation(p,name.substr(0,name.size()-4),false)};
+      ret=t.get();
+      animCache[name] = std::move(t);
+      } else {
+      if(name.rfind(".MDH")==name.size()-4)
+        std::memcpy(&name[name.size()-3],"MDS",3);
+      ZenLoad::ZenParser zen(name,gothicAssets);
+      ZenLoad::ModelScriptTextParser p(zen);
+
+      std::unique_ptr<Animation> t{new Animation(p,name.substr(0,name.size()-4),true)};
+      ret=t.get();
+      animCache[name] = std::move(t);
+      }
     if(!hasFile(name))
       throw std::runtime_error("load failed");
     return ret;
@@ -306,6 +315,7 @@ Dx8::Segment *Resources::implLoadMusic(const std::string &name) {
     return ret;
     }
   catch(...){
+    musicCache[name] = nullptr;
     Log::e("unable to load music \"",name,"\"");
     return nullptr;
     }

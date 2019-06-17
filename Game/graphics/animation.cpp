@@ -9,7 +9,7 @@
 
 using namespace Tempest;
 
-Animation::Animation(ZenLoad::ModelScriptBinParser &p,const std::string& name) {
+Animation::Animation(ZenLoad::ModelScriptParser &p,const std::string& name,const bool ignoreErrChunks) {
   Sequence* current=nullptr;
   while(true) {
     ZenLoad::ModelScriptParser::EChunkType type=p.parse();
@@ -74,7 +74,8 @@ Animation::Animation(ZenLoad::ModelScriptBinParser &p,const std::string& name) {
         break;
         }
       case ZenLoad::ModelScriptParser::CHUNK_ERROR:
-        throw std::runtime_error("animation load error");
+        if(!ignoreErrChunks)
+          throw std::runtime_error("animation load error");
       default:
         // Log::d("not implemented anim tag");
         break;

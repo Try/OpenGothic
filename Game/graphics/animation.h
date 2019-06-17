@@ -57,7 +57,7 @@ class Animation final {
         void setupMoveTr();
       };
 
-    Animation(ZenLoad::ModelScriptBinParser& p, const std::string &name);
+    Animation(ZenLoad::ModelScriptParser& p, const std::string &name, bool ignoreErrChunks);
 
     const Sequence *sequence(const char* name) const;
     void            debug() const;
