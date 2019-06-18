@@ -25,12 +25,14 @@ void MoveAlgo::tick(uint64_t dt) {
     }
 
   if(npc.interactive()!=nullptr){
-    applyRotation(aniSpeed,dpos);
-    auto pos = npc.position();
-    pos[0]+=aniSpeed[0];
-    pos[2]+=aniSpeed[2];
-    pos[1]+=dpos[1];
-    npc.setPosition(pos);
+    if(npc.anim()==AnimationSolver::Interact){
+      applyRotation(aniSpeed,dpos);
+      auto pos = npc.position();
+      pos[0]+=aniSpeed[0];
+      pos[2]+=aniSpeed[2];
+      pos[1]+=dpos[1];
+      npc.setPosition(pos);
+      }
     return;
     }
 

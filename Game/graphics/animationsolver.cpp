@@ -300,12 +300,14 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
       inter->nextState();
       return ret;
       }
-    if(cur==Interact && a!=Interact){
-      auto ret = inter->anim(*this,Interactive::Out);
-      inter->prevState();
-      return ret;
-      }
     }
+  /*
+  // TODO: interactives dettach
+  if(inter==nullptr && cur==Interact){
+    auto ret = inter->anim(*this,Interactive::Out);
+    inter->prevState();
+    return ret;
+    }*/
 
   if(st==WeaponState::Fist) {
     if(a==Anim::Atack && cur==Move) {

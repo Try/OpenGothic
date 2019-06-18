@@ -218,12 +218,7 @@ void Interactive::dettach(Npc &npc) {
   }
 
 void Interactive::setPos(Npc &npc,std::array<float,3> pos) {
-  bool valid=false;
-  auto ground = world->physic()->dropRay(pos[0],pos[1],pos[2],valid);
-  if(valid) {
-    pos[1]=ground.y();
-    npc.setPosition(pos);
-    }
+  npc.setPosition(pos);
   }
 
 void Interactive::setDir(Npc &npc, const Tempest::Matrix4x4 &mat) {
