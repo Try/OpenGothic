@@ -27,6 +27,10 @@ void DialogMenu::tick(uint64_t dt) {
     return;
     }
 
+  if(pl!=nullptr && other==nullptr){
+    invokeMobsiState();
+    }
+
   if(remPrint<dt){
     for(size_t i=1;i<MAX_PRINT;++i)
       printMsg[i-1u]=printMsg[i];
@@ -55,6 +59,20 @@ void DialogMenu::tick(uint64_t dt) {
     }
 
   update();
+  }
+
+void DialogMenu::invokeMobsiState() {
+  if(pl==nullptr)
+    return;
+  auto inter = pl->interactive();
+  if(inter==nullptr || mobsiState==inter->stateId())
+    return;
+  mobsiState = inter->stateId();
+  auto st = inter->stateFunc();
+  if(!st.empty()) {
+    auto& sc = pl->world().script();
+    sc.useInteractive(pl->handle(),st);
+    }
   }
 
 void DialogMenu::clear() {
@@ -91,6 +109,8 @@ bool DialogMenu::start(Npc &pl,Npc &other) {
 
 bool DialogMenu::start(Npc &pl, Interactive &other) {
   pl.setInteraction(&other);
+  this->pl    = &pl;
+  this->other = nullptr;
   return true;
   }
 

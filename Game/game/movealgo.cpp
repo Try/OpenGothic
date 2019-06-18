@@ -24,8 +24,15 @@ void MoveAlgo::tick(uint64_t dt) {
     dpos[2]=dp.z;
     }
 
-  if(npc.interactive()!=nullptr)
+  if(npc.interactive()!=nullptr){
+    applyRotation(aniSpeed,dpos);
+    auto pos = npc.position();
+    pos[0]+=aniSpeed[0];
+    pos[2]+=aniSpeed[2];
+    pos[1]+=dpos[1];
+    npc.setPosition(pos);
     return;
+    }
 
   if(!hasGoTo() && isFrozen()) {
     bool nullMove = (dpos[0]==0.f && dpos[1]==0.f && dpos[2]==0.f);

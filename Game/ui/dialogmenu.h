@@ -84,6 +84,7 @@ class DialogMenu : public Tempest::Widget {
     void onDoneText();
     void close();
     bool haveToWaitOutput() const;
+    void invokeMobsiState();
 
     void startTrade();
 
@@ -104,6 +105,7 @@ class DialogMenu : public Tempest::Widget {
     bool                                curentIsPl=false;
     bool                                dlgTrade=false;
     std::vector<Forward>                forwardText;
+    int32_t                             mobsiState=-1;
 
     std::vector<PScreen>                pscreen;
     PScreen                             printMsg[MAX_PRINT];

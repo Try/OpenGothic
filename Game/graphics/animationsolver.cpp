@@ -290,12 +290,21 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     }
 
   if(inter!=nullptr) {
-    if(cur!=Interact && a==Interact)
-      return animSequence(inter->anim(Interactive::In));
-    if(cur==Interact && a==Interact)
-      return animSequence(inter->anim(Interactive::Active));
-    if(cur==Interact && a!=Interact)
-      return animSequence(inter->anim(Interactive::Out));
+    if(cur!=Interact && a==Interact){
+      auto ret = inter->anim(*this,Interactive::In);
+      inter->nextState();
+      return ret;
+      }
+    if(cur==Interact && a==Interact){
+      auto ret = inter->anim(*this,Interactive::In);
+      inter->nextState();
+      return ret;
+      }
+    if(cur==Interact && a!=Interact){
+      auto ret = inter->anim(*this,Interactive::Out);
+      inter->prevState();
+      return ret;
+      }
     }
 
   if(st==WeaponState::Fist) {
@@ -429,12 +438,17 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
   if(a==Anim::Talk)
     return animSequence("S_TALK");
 
-  if(cur==Anim::Idle && a==Anim::Eat)
-    return animSequence("T_STAND_2_EAT");
+  if(cur==Anim::Idle && a==Anim::Eat){
+    if(auto ani=animSequence("T_STAND_2_EAT"))
+      return ani;
+    }
   if(cur==Anim::Eat && a==Anim::Idle)
     return animSequence("T_EAT_2_STAND");
-  if(a==Anim::Eat)
-    return animSequence("S_EAT");
+  if(a==Anim::Eat){
+    if(auto ani=animSequence("S_EAT"))
+      return ani;
+    return animSequence("S_FOOD_S0");
+    }
 
   if(cur<=Anim::IdleLast && a==Anim::Sleep)
     return animSequence("T_STAND_2_SLEEP");

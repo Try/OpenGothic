@@ -2,6 +2,7 @@
 
 #include <Tempest/Matrix4x4>
 #include "physics/dynamicworld.h"
+#include "graphics/animationsolver.h"
 #include "graphics/staticobjects.h"
 #include "graphics/protomesh.h"
 #include "game/inventory.h"
@@ -12,10 +13,10 @@ class Trigger;
 
 class Interactive final {
   public:
-    enum Anim : uint8_t {
-      In,
-      Active,
-      Out
+    enum Anim : int8_t {
+      In    = 1,
+      Active= 0,
+      Out   =-1
       };
 
     Interactive(World& owner,const ZenLoad::zCVobData &vob);
@@ -30,6 +31,7 @@ class Interactive final {
     const char*         displayName() const;
 
     std::string         stateFunc() const;
+    int32_t             stateId() const { return state; }
     Trigger*            triggerTarget() const;
 
     bool                isContainer() const;
@@ -41,7 +43,9 @@ class Interactive final {
     bool attach (Npc& npc);
     void dettach(Npc& npc);
 
-    const char* anim(Anim t) const;
+    void nextState();
+    void prevState();
+    auto anim(const AnimationSolver &solver, Anim t) const -> AnimationSolver::Sequence;
     void marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
     Tempest::Matrix4x4     objMat;

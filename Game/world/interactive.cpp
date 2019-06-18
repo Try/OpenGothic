@@ -3,6 +3,7 @@
 #include "world.h"
 
 #include <Tempest/Painter>
+#include <Tempest/Log>
 
 Interactive::Interactive(World &owner, const ZenLoad::zCVobData &vob)
   :world(&owner),data(vob) {
@@ -116,7 +117,7 @@ const char *Interactive::displayName() const {
   }
 
 std::string Interactive::stateFunc() const {
-  if(data.oCMobInter.onStateFunc.empty())
+  if(data.oCMobInter.onStateFunc.empty() || state<0)
     return std::string();
   char buf[256]={};
   std::snprintf(buf,sizeof(buf),"%s_S%d",data.oCMobInter.onStateFunc.c_str(),state);
@@ -212,7 +213,7 @@ void Interactive::dettach(Npc &npc) {
   for(auto& i:pos)
     if(i.user==&npc) {
       i.user=nullptr;
-      state=0;
+      state=-1;
       }
   }
 
@@ -251,110 +252,98 @@ void Interactive::attach(Npc &npc, Interactive::Pos &to) {
   setDir(npc,mat);
   npc.setInteraction(this);
 
-  state = (1)%std::max(data.oCMobInter.stateNum+1,1);
+  state = -1;
   }
 
-const char* Interactive::anim(Interactive::Anim t) const {
-  static const char* lab[]={
-    "T_LAB_STAND_2_S0",
-    "S_LAB_S1",
-    "T_LAB_S0_2_STAND"
-    };
-  static const char* anv[]={
-    "T_BSANVIL_STAND_2_S0",
-    "S_BSANVIL_S1",
-    "T_BSANVIL_S0_2_STAND"
-    };
-  static const char* grind[]={
-    "T_BSSHARP_STAND_2_S0",
-    "S_BSSHARP_S1",
-    "T_BSSHARP_S0_2_STAND"
-    };
-  static const char* bench[]={
-    "T_BENCH_STAND_2_S0",
-    "S_BENCH_S1",
-    "T_THRONE_S0_2_STAND"
-    };
-  static const char* chest[]={
-    "T_CHESTSMALL_STAND_2_S0",
-    "S_CHESTSMALL_S1",
-    "T_CHESTSMALL_S1_2_S0"
-    };
-  static const char* forge[]={
-    "T_BSFIRE_STAND_2_S0",
-    "S_BSFIRE_S1",
-    "T_BSFIRE_S0_2_STAND"
-    };
-  static const char* pray[]={
-    "T_INNOS_STAND_2_S0",
-    "S_INNOS_S1",
-    "T_INNOS_S1_2_S0"
-    };
-  static const char* ore[]={
-    "T_ORE_STAND_2_S0",
-    "C_ORE_S1_1",
-    "T_ORE_S0_2_STAND"
-    };
-  static const char* cauldron[]={
-    "T_CAULDRON_STAND_2_S0",
-    "S_CAULDRON_S1",
-    "T_CAULDRON_S0_2_STAND"
-    };
-  static const char* throne[]={
-    "T_THRONE_STAND_2_S0",
-    "S_THRONE_S1",
-    "T_THRONE_S0_2_STAND"
-    };
-  static const char* chair[]={
-    "T_CHAIR_STAND_2_S0",
-    "S_CHAIR_S1",
-    "T_THRONE_S0_2_STAND"
-    };
-  static const char* rotSwitch[]={
-    "T_TURNSWITCH_STAND_2_S0",
-    "T_TURNSWITCH_S0_2_S1",
-    "T_TOUCHPLATE_STAND_2_S0"
-    };
-  static const char* book[]={
-    "T_BOOK_STAND_2_S0",
-    "S_BOOK_S1",
-    "T_BOOK_STAND_2_S0"
-    };
-  static const char* bbq[]={
-    "T_BARBQ_STAND_2_S0",
-    "S_BARBQ_S1",
-    ""
-    };
+void Interactive::nextState() {
+  state = std::min(data.oCMobInter.stateNum,state+1);
+  }
 
-  if(data.oCMOB.focusName=="MOBNAME_INNOS" || data.oCMOB.focusName=="MOBNAME_ADDON_IDOL")
-    return pray[t];
-  if(data.oCMOB.focusName=="MOBNAME_LAB")
-    return lab[t];
-  if(data.oCMOB.focusName=="MOBNAME_ANVIL")
-    return anv[t];
-  if(data.oCMOB.focusName=="MOBNAME_GRINDSTONE")
-    return grind[t];
+void Interactive::prevState() {
+  state = std::max(-1,state-1);
+  }
+
+AnimationSolver::Sequence Interactive::anim(const AnimationSolver &solver, Anim t) const {
+  int         st[]     = {state,state+t};
+  char        ss[2][8] = {};
+  const char* tag      = "";
+
+  st[1] = std::max(-1,std::min(st[1],data.oCMobInter.stateNum));
+
+  char buf[256]={};
+
+  for(int i=0;i<2;++i){
+    if(st[i]<0)
+      std::snprintf(ss[i],sizeof(ss[i]),"STAND"); else
+      std::snprintf(ss[i],sizeof(ss[i]),"S%d",st[i]);
+    }
+
   if(data.oCMOB.focusName=="MOBNAME_BENCH")
-    return bench[t];
-  if(data.oCMOB.focusName=="MOBNAME_CHEST")
-    return chest[t];
-  if(data.oCMOB.focusName=="MOBNAME_FORGE")
-    return forge[t];
-  if(data.oCMOB.focusName=="MOBNAME_ORE")
-    return ore[t];
-  if(data.oCMOB.focusName=="MOBNAME_CAULDRON")
-    return cauldron[t];
-  if(data.oCMOB.focusName=="MOBNAME_THRONE")
-    return throne[t];
-  if(data.oCMOB.focusName=="MOBNAME_CHAIR")
-    return chair[t];
-  if(data.oCMOB.focusName=="MOBNAME_SWITCH")
-    return rotSwitch[t];
-  if(data.oCMOB.focusName=="MOBNAME_BOOKSBOARD")
-    return book[t];
-  if(data.oCMOB.focusName=="MOBNAME_BBQ_SCAV" || data.oCMOB.focusName=="MOBNAME_BARBQ_SCAV")
-    return bbq[t];
-  return chair[t];
+    tag = "BENCH";
+  else if(data.oCMOB.focusName=="MOBNAME_ANVIL")
+    tag = "BSANVIL";
+  else if(data.oCMOB.focusName=="MOBNAME_LAB")
+    tag = "LAB";
+  else if(data.oCMOB.focusName=="MOBNAME_CHEST" || data.oCMOB.focusName=="Chest")
+    tag = "CHESTSMALL";
+  else if(data.oCMOB.focusName=="MOBNAME_CHESTBIG")
+    tag = "CHESTBIG";
+  else if(data.oCMOB.focusName=="MOBNAME_FORGE")
+    tag = "BSFIRE";
+  else if(data.oCMOB.focusName=="MOBNAME_BOOKSBOARD")
+    tag = "BOOK";
+  else if(data.oCMOB.focusName=="MOBNAME_BBQ_SCAV" || data.oCMOB.focusName=="MOBNAME_BARBQ_SCAV")
+    tag = "BARBQ";
+  else if(data.oCMOB.focusName=="MOBNAME_SWITCH" || data.oCMOB.focusName=="MOBNAME_ADDON_ORNAMENTSWITCH")
+    tag = "TURNSWITCH";
+  else if(data.oCMOB.focusName=="MOBNAME_CHAIR")
+    tag = "CHAIR";
+  else if(data.oCMOB.focusName=="MOBNAME_THRONE" || data.oCMOB.focusName=="MOBNAME_SEAT" || data.oCMOB.focusName=="MOBNAME_ARMCHAIR")
+    tag = "THRONE";
+  else if(data.oCMOB.focusName=="MOBNAME_CAULDRON")
+    tag = "CAULDRON";
+  else if(data.oCMOB.focusName=="MOBNAME_ORE")
+    tag = "ORE";
+  else if(data.oCMOB.focusName=="MOBNAME_GRINDSTONE")
+    tag = "BSSHARP";
+  else if(data.oCMOB.focusName=="MOBNAME_INNOS")
+    tag = "INNOS";
+  else if(data.oCMOB.focusName=="MOBNAME_ADDON_IDOL")
+    tag = "INNOS";//"IDOL";
+  else if(data.oCMOB.focusName=="MOBNAME_STOVE")
+    tag = "STOVE";
+  else if(data.oCMOB.focusName=="MOBNAME_BED")
+    tag = "BEDHIGH_BACK";
+  else if(data.oCMOB.focusName=="MOBNAME_BUCKET")
+    tag = "BSCOOL";
+  else if(data.oCMOB.focusName=="MOBNAME_RUNEMAKER")
+    tag = "RMAKER";
+  else if(data.oCMOB.focusName=="MOBNAME_WATERPIPE")
+    tag = "SMOKE";
+  else if(data.oCMOB.focusName=="MOBNAME_SAW")
+    tag = "BAUMSAEGE";
+  else if(data.oCMOB.focusName=="MOBNAME_PAN")
+    tag = "PAN";
+  else if(data.oCMOB.focusName=="MOBNAME_DOOR")
+    tag = "DOOR_BACK";
+  else if(data.oCMOB.focusName=="MOBNAME_WINEMAKER")
+    tag = "HERB"; //?
+  else if(data.visual=="LEVER_1_OC.MDS")
+    tag = "LEVER";
+  else if(data.visual=="REPAIR_PLANK.ASC")
+    tag = "REPAIR";
+  else if(data.visual=="BENCH_NW_CITY_02.ASC")
+    tag = "BENCH";
+  else if(data.visual=="PAN_OC.MDS")
+    tag = "PAN";
+  else {
+    Tempest::Log::i("unable to recognize mobsi{",data.oCMOB.focusName,", ",data.visual,"}");
+    }
+
+  if(st[0]==st[1])
+    std::snprintf(buf,sizeof(buf),"S_%s_%s",tag,ss[0]); else
+    std::snprintf(buf,sizeof(buf),"T_%s_%s_2_%s",tag,ss[0],ss[1]);
+  return solver.animSequence(buf);
   }
 
 void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const {
