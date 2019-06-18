@@ -31,7 +31,7 @@ void main() {
   if(abs(shPos.x)<1.0 && abs(shPos.y)<1.0){
     float shMap = texture(textureSm,shPos.xy*vec2(0.5,0.5)+vec2(0.5)).r;
     float shZ   = min(0.99,shPos.z);
-    light       = lambert*smoothstep(shZ-0.01,shZ,shMap);
+    light       = lambert*smoothstep(shZ-0.002,shZ,shMap);
     }
 
   vec3  ambient = vec3(0.25);//*inColor.xyz
