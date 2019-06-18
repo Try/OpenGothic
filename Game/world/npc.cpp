@@ -198,7 +198,7 @@ void Npc::setDirection(const std::array<float,3> &pos) {
   }
 
 void Npc::setDirection(float rotation) {
-  if(std::fabs(angle-rotation)<1.f)
+  if(std::fabs(angle-rotation)<0.001f)
     return;
   angle = rotation;
   durtyTranform |= TR_Rot;
@@ -866,7 +866,8 @@ bool Npc::implGoTo(uint64_t dt) {
     //float dy = y-currentGoTo->position.y;
     float dz = currentGoTo->z-z;
 
-    if(implLookAt(dx,dz,walkMode()!=WalkBit::WM_Run,dt)){ // TODO: force rotation, if angle > 45deg
+    bool needToRot = (walkMode()!=WalkBit::WM_Run && anim()==Anim::Move);
+    if(implLookAt(dx,dz,needToRot,dt)){ // TODO: force rotation, if angle > 45deg
       mvAlgo.aiGoTo(nullptr);
       return true;
       }
@@ -984,6 +985,10 @@ bool Npc::implAtack(uint64_t dt) {
   return true;
   }
 
+void Npc::implAiWait(uint64_t dt) {
+  waitTime = owner.tickCount()+dt;
+  }
+
 void Npc::commitDamage() {
   fghWaitToDamage = uint64_t(-1);
   if(currentTarget==nullptr)
@@ -1081,7 +1086,7 @@ void Npc::tick(uint64_t dt) {
     mvAlgo.tick(dt);
     setOther(lastHit);
     aiActions.clear();
-    setPhysic(DynamicWorld::Item());
+    //setPhysic(DynamicWorld::Item());
     tickRoutine(); // tick for ZS_Death
     return;
     }
@@ -1216,7 +1221,7 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
       }
     case AI_Wait:
-      waitTime = owner.tickCount()+uint64_t(act.i0);
+      implAiWait(uint64_t(act.i0));
       break;
     case AI_StandUp:
       setInteraction(nullptr);
@@ -1872,7 +1877,7 @@ void Npc::setPerceptionDisable(Npc::PercType t) {
   }
 
 void Npc::startDialog(Npc& pl) {
-  if(isDown())
+  if(pl.isDown())
     return;
   if(perceptionProcess(pl,nullptr,0,PERC_ASSESSTALK))
     setOther(&pl);
@@ -1933,10 +1938,6 @@ bool Npc::setInteraction(Interactive *id) {
 
   if(id && id->attach(*this)) {
     currentInteract=id;
-    auto st = currentInteract->stateFunc();
-    if(!st.empty()) {
-      owner.script().useInteractive(&hnpc,st);
-      }
     if(auto tr = currentInteract->triggerTarget()){
       tr->onTrigger();
       }

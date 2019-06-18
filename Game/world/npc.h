@@ -553,6 +553,7 @@ class Npc final {
     bool                           implLookAt (float dx, float dz, bool anim, uint64_t dt);
     bool                           implGoTo   (uint64_t dt);
     bool                           implAtack  (uint64_t dt);
+    void                           implAiWait (uint64_t dt);
     bool                           isAtackMode() const;
     void                           tickRoutine();
     void                           nextAiAction(uint64_t dt);
