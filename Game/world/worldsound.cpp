@@ -79,8 +79,8 @@ void WorldSound::emitSound(const char* s, float x, float y, float z, float range
     //eff.setMaxDistance(maxDist);
     eff.setMaxDistance(range*100);
     eff.setRefDistance(0);
-    tickSlot(eff);
     eff.play();
+    tickSlot(eff);
     if(slot)
       *slot = std::move(eff); else
       effect.emplace_back(std::move(eff));

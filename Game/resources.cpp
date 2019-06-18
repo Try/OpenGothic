@@ -460,8 +460,12 @@ Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoa
     if(zmm.getMesh().getNumSubmeshes()==0)
       return MeshLoadCode::Error;
     zmm.getMesh().packMesh(sPacked,1.f);
+    for(auto& i:sPacked.vertices){
+      // FIXME: hack with morph mesh-normals
+      std::swap(i.Normal.y,i.Normal.z);
+      i.Normal.z=-i.Normal.z;
+      }
     return MeshLoadCode::Static;
-    // return MeshLoadCode::Dynamic;
     }
 
   if(name.rfind(".MDMS")==name.size()-5 ||

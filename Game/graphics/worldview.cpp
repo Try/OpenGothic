@@ -12,7 +12,7 @@ WorldView::WorldView(const World &world, const ZenLoad::PackedMesh &wmesh, const
   objGroup.reserve(8192,2048);
   itmGroup.reserve(8192,0);
 
-  sun.setDir(1,-2,1);
+  sun.setDir(1,-1,1);
   }
 
 WorldView::~WorldView() {
