@@ -322,7 +322,9 @@ AnimationSolver::Sequence Interactive::anim(const AnimationSolver &solver, Anim 
   else if(data.oCMOB.focusName=="MOBNAME_DOOR")
     tag = "DOOR_BACK";
   else if(data.oCMOB.focusName=="MOBNAME_WINEMAKER")
-    tag = "HERB"; //?
+    tag = "HERB";
+  else if(data.visual=="TREASURE_ADDON_01.ASC")
+    tag = "TREASURE";
   else if(data.visual=="LEVER_1_OC.MDS")
     tag = "LEVER";
   else if(data.visual=="REPAIR_PLANK.ASC")
