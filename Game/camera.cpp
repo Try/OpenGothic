@@ -131,15 +131,14 @@ Matrix4x4 Camera::viewShadow(const std::array<float,3>& ldir) const {
   }
 
 Matrix4x4 Camera::mkView(float dist) const {
-  const float scale=0.001f;
+  const float scale=0.0009f;
   Matrix4x4 view;
   view.identity();
-  view.translate(0,0,dist*scale/zoom);
+  view.translate(0,0,dist*scale);
   view.rotate(spin.y, 1, 0, 0);
   view.rotate(spin.x, 0, 1, 0);
-  view.scale(0.0009f);
+  view.scale(scale);
   view.translate(camPos[0],camPos[1],camPos[2]);
-  //view.translate(camPos[0],-camBone[1],camPos[2]);
   view.scale(-1,-1,-1);
   return view;
   }
@@ -263,8 +262,8 @@ void Camera::follow(const Npc &npc,uint64_t dt,bool includeRot) {
   }
 
 Matrix4x4 Camera::view() const {
-  const float dist    = this->dist*100.f;
-  const float minDist = 65;
+  const float dist    = this->dist*100.f/zoom;
+  const float minDist = 25;
 
   auto world = gothic.world();
   if(world==nullptr)
@@ -272,38 +271,44 @@ Matrix4x4 Camera::view() const {
 
   const auto proj = world->view()->projective();
 
-  Matrix4x4 view=proj;//mkView(dist);
+  Matrix4x4 view=proj;
   view.mul(mkView(dist));
 
   Matrix4x4 vinv=view;
   vinv.inverse();
 
   float distMd = dist;
-  float u = 0,v = 0;
-  std::array<float,3> r0={u,v,0.5};
-  std::array<float,3> r1={u,v,0};
 
-  vinv.project(r0[0],r0[1],r0[2]);
-  vinv.project(r1[0],r1[1],r1[2]);
+  static int n = 1, nn=1;
+  for(int i=-n;i<=n;++i)
+    for(int r=-n;r<=n;++r) {
+      float u = i/float(nn),v = r/float(nn);
+      std::array<float,3> r0=camPos;
+      std::array<float,3> r1={u,v,0};
 
-  r0=camPos;//r0[1]+=180;
+      view.project(r0[0],r0[1],r0[2]);
+      //r0[0] = u;
+      //r0[1] = v;
 
-  auto d = world->physic()->ray(r0[0],r0[1],r0[2], r1[0],r1[1],r1[2]).v;
-  //auto d = world->physic()->ray(camPos[0],camPos[1]+180,camPos[2], r1[0],r1[1],r1[2]);
-  d[0]-=r0[0];
-  d[1]-=r0[1];
-  d[2]-=r0[2];
+      vinv.project(r0[0],r0[1],r0[2]);
+      vinv.project(r1[0],r1[1],r1[2]);
 
-  r1[0]-=r0[0];
-  r1[1]-=r0[1];
-  r1[2]-=r0[2];
+      auto d = world->physic()->ray(r0[0],r0[1],r0[2], r1[0],r1[1],r1[2]).v;
+      d[0]-=r0[0];
+      d[1]-=r0[1];
+      d[2]-=r0[2];
 
-  float dist0 = length(r1);
-  float dist1 = length(d);
+      r1[0]-=r0[0];
+      r1[1]-=r0[1];
+      r1[2]-=r0[2];
 
-  float md = std::max(dist-std::max(0.f,dist0-dist1),minDist);
-  if(md<distMd)
-    distMd=md;
+      float dist0 = length(r1);
+      float dist1 = length(d);
+
+      float md = std::max(dist-std::max(0.f,dist0-dist1),minDist);
+      if(md<distMd)
+        distMd=md;
+      }
 
   view=mkView(distMd);
   return view;
