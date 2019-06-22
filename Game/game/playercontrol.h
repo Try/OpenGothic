@@ -34,6 +34,7 @@ class PlayerControl final {
 
     void rotateLeft ();
     void rotateRight();
+    void rotateMouse(int dAngle);
 
     void moveForward();
     void moveBack();
@@ -90,6 +91,8 @@ class PlayerControl final {
 
     bool           ctrl[Control::Last]={};
     bool           cacheFocus=false;
+    uint64_t       rotMouse=0;
+    bool           rotMouseDir=false;
 
     Gothic&        gothic;
     DialogMenu&    dlg;

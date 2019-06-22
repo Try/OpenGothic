@@ -127,6 +127,11 @@ void PlayerControl::rotateRight() {
   ctrl[RotateR]=true;
   }
 
+void PlayerControl::rotateMouse(int dAngle) {
+  rotMouse    = std::abs(dAngle)>3 ? 40u : rotMouse;
+  rotMouseDir = dAngle>0;
+  }
+
 void PlayerControl::moveForward() {
   ctrl[Forward]=true;
   }
@@ -236,10 +241,25 @@ void PlayerControl::implMove(uint64_t dt) {
     if(ctrl[RotateL]) {
       rot += rspeed;
       ani  = Npc::Anim::RotL;
+      rotMouse=0;
       }
     if(ctrl[RotateR]) {
       rot -= rspeed;
       ani  = Npc::Anim::RotR;
+      rotMouse=0;
+      }
+
+    if(rotMouse>0) {
+      if(rotMouseDir){
+        rot += rspeed;
+        ani  = Npc::Anim::RotL;
+        } else {
+        rot -= rspeed;
+        ani  = Npc::Anim::RotR;
+        }
+      if(rotMouse<dt)
+        rotMouse=0; else
+        rotMouse-=dt;
       }
 
     if(pl.isFaling() || pl.isSlide() || pl.isInAir()){
