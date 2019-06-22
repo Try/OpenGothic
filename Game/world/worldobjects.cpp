@@ -83,13 +83,17 @@ void WorldObjects::tick(uint64_t dt) {
   tickNear(dt);
 
   for(auto& i:npcArr) {
-    if(i->isPlayer() || i->percNextTime()>owner.tickCount())
+    if(i->isPlayer())
       continue;
-
     for(auto& r:passive) {
+      if(r.self==i.get())
+        continue;
       float l = i->qDistTo(r.x,r.y,r.z);
       i->perceptionProcess(*r.other,r.victum,l,Npc::PercType(r.what));
       }
+
+    if(i->percNextTime()>owner.tickCount())
+      continue;
     float dist = pl->qDistTo(*i);
     i->perceptionProcess(*pl,dist);
     }
@@ -425,6 +429,7 @@ void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t p
   m.x      = self.position()[0];
   m.y      = self.position()[1];
   m.z      = self.position()[2];
+  m.self   = &self;
   m.other  = &other;
   m.victum = &victum;
 

@@ -542,6 +542,7 @@ Example:
   'npc' stops looking to npc/point
 
 * ![!](ni.png) `func void AI_PointAt(var C_Npc npc,var string name)`  
+  plays a specific animation of pointing to something(Jorgen use it to show where Pedro did go)
   Not implemented.
 
 * ![!](ni.png) `func void AI_PointAtNpc(var C_Npc npc,var C_Npc other)`  

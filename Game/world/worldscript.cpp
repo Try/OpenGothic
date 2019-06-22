@@ -775,7 +775,7 @@ int WorldScript::invokeState(Daedalus::GEngineClasses::C_Npc* hnpc, Daedalus::GE
   return runFunction(id);
   }
 
-int WorldScript::invokeState(Npc* npc, Npc* oth, Npc* v, size_t fn) {
+int WorldScript::invokeState(Npc* npc, Npc* oth, Npc* vic, size_t fn) {
   if(fn==size_t(-1))
     return 1;
   if(oth==nullptr){
@@ -784,8 +784,8 @@ int WorldScript::invokeState(Npc* npc, Npc* oth, Npc* v, size_t fn) {
     // auto n = getNpc(hnpc);
     oth=owner.player();//FIXME: PC_Levelinspektor
     }
-  if(v==nullptr)
-    v=owner.player();
+  if(vic==nullptr)
+    vic=owner.player();
 
   if(fn==ZS_Talk){
     if(!oth->isPlayer())
@@ -794,8 +794,19 @@ int WorldScript::invokeState(Npc* npc, Npc* oth, Npc* v, size_t fn) {
 
   ScopeVar self  (vm, vm.globalSelf(),   npc);
   ScopeVar other (vm, vm.globalOther(),  oth);
-  ScopeVar victum(vm, vm.globalVictim(), oth);
-  return runFunction(fn);
+  ScopeVar victum(vm, vm.globalVictim(), vic);
+  const int ret = runFunction(fn);
+  if(vm.globalOther().instanceDataClass==Daedalus::IC_Npc){
+    auto oth2 = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(vm.globalOther().instanceDataHandle);
+    if(oth2!=oth->handle()) {
+      static bool once=true;
+      if(once){
+        Log::d("TODO: mutale other");
+        once=false;
+        }
+      }
+    }
+  return ret;
   }
 
 int WorldScript::invokeItem(Npc *npc,size_t fn) {
