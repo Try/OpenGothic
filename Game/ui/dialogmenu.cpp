@@ -75,10 +75,40 @@ void DialogMenu::invokeMobsiState() {
     }
   }
 
+void DialogMenu::drawTextMultiline(Painter &p, int x, int y, int w, int h, const std::string &txt,bool isPl) {
+  const int pdd=10;
+  y+=int(p.font().pixelSize());
+
+  p.setFont(Resources::dialogFont());
+  p.setBrush(Color(1,1,1));
+  if(isPl){
+    p.drawText(x+pdd, y+pdd,
+               w-2*pdd, h-2*pdd, txt);
+    } else {
+    if(other!=nullptr){
+      auto txt = other->displayName();
+      auto sz  = p.font().textSize(txt);
+      p.drawText(x+(w-sz.w)/2,y,txt);
+      y+=int(p.font().pixelSize());
+      h-=int(p.font().pixelSize());
+      }
+    p.setBrush(Color(0.81f,0.78f,0.01f));
+    p.drawText(x+pdd, y+pdd,
+               w-2*pdd, h-2*pdd, txt);
+    }
+  p.setBrush(Color(1,1,1));
+  }
+
 void DialogMenu::clear() {
   for(auto& i:printMsg)
     i=PScreen();
   pscreen.clear();
+  }
+
+void DialogMenu::onWorldChanged() {
+  choise.clear();
+  close();
+  state=State::Idle;
   }
 
 const Camera &DialogMenu::dialogCamera() {
@@ -318,8 +348,7 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
                  0,0,ambient->w(),ambient->h());
       }
 
-    p.setFont(Resources::dialogFont());
-    p.drawText((w()-dw)/2,100,current.txt);
+    drawTextMultiline(p,(w()-dw)/2,20,dw,100,current.txt,curentIsPl);
     }
 
   paintChoise(e);

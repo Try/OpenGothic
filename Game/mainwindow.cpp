@@ -180,7 +180,7 @@ void MainWindow::mouseUpEvent(MouseEvent &event) {
 
 void MainWindow::mouseDragEvent(MouseEvent &event) {
   const bool fs = SystemApi::isFullscreen(hwnd());
-  if(!mouseP[Event::ButtonLeft] && !fs)
+  if(!mouseP[Event::ButtonLeft] || fs)
     return;
   if(currentFocus.npc)
     return;
@@ -192,7 +192,8 @@ void MainWindow::mouseMoveEvent(MouseEvent &event) {
   if(fs) {
     spin = camera.getSpin();
     processMouse(event,true);
-    mpos = event.pos();
+    mpos = Point(w()/2,h()/2);
+    SystemApi::setCursorPosition(mpos.x,mpos.y);
     }
   }
 
@@ -207,6 +208,8 @@ void MainWindow::processMouse(MouseEvent &event,bool fs) {
   if(spin.y<-90)
     spin.y=-90;
   camera.setSpin(spin);
+  if(fs)
+    player.rotateMouse(-dp.x);
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
@@ -547,9 +550,10 @@ void MainWindow::onWorldLoaded() {
   camera   .reset();
   player   .clearInput();
   inventory.update();
-  dialogs  .clear();
+  dialogs  .onWorldChanged();
 
   spin = camera.getSpin();
+  mpos = Point(w()/2,h()/2);
   draw.onWorldChanged();
 
   device.waitIdle();
@@ -574,6 +578,9 @@ void MainWindow::clearInput() {
 
 void MainWindow::setFullscreen(bool fs) {
   SystemApi::setAsFullscreen(hwnd(),fs);
+  mpos = Point(w()/2,h()/2);
+  SystemApi::setCursorPosition(mpos.x,mpos.y);
+  SystemApi::showCursor(!fs);
   }
 
 void MainWindow::initSwapchain(){

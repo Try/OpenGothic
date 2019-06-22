@@ -21,6 +21,8 @@ class DialogMenu : public Tempest::Widget {
     void tick(uint64_t dt);
     void clear();
 
+    void onWorldChanged();
+
     const Camera& dialogCamera();
 
     void aiProcessInfos(Npc &player, Npc& npc);
@@ -85,6 +87,8 @@ class DialogMenu : public Tempest::Widget {
     void close();
     bool haveToWaitOutput() const;
     void invokeMobsiState();
+
+    void drawTextMultiline(Tempest::Painter& p, int x, int y, int w, int h, const std::string& txt, bool isPl);
 
     void startTrade();
 
