@@ -900,12 +900,9 @@ bool Npc::implAtack(uint64_t dt) {
   if(weaponState()==WeaponState::NoWeapon)
     return false;
 
-  float dx = currentTarget->x-x;
-  float dz = currentTarget->z-z;
-
   auto ani = anim();
   if(ani!=Anim::Atack && ani!=Anim::AtackBlock){
-    if(implLookAt(dx,dz,false,dt))
+    if(implLookAt(*currentTarget,dt))
       return true;
     }
 
@@ -929,16 +926,12 @@ bool Npc::implAtack(uint64_t dt) {
     }
 
   if(act==FightAlgo::MV_STRAFEL) {
-    if(implLookAt(*currentTarget,dt))
-      return true;
     if(setAnim(Npc::Anim::MoveL))
       fghAlgo.consumeAction();
     return true;
     }
 
   if(act==FightAlgo::MV_STRAFER) {
-    if(implLookAt(*currentTarget,dt))
-      return true;
     if(setAnim(Npc::Anim::MoveR))
       fghAlgo.consumeAction();
     return true;
