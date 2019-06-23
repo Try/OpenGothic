@@ -71,8 +71,8 @@ class Interactive final {
     Inventory          invent;
     int                state=0;
 
-    std::vector<Pos>    pos;
-    const ProtoMesh*    mesh = nullptr;
-    StaticObjects::Mesh view;
-    DynamicWorld::Item  physic;
+    std::vector<Pos>         pos;
+    const ProtoMesh*         mesh = nullptr;
+    StaticObjects::Mesh      view;
+    DynamicWorld::StaticItem physic;
   };

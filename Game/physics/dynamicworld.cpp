@@ -21,6 +21,7 @@
 
 #include <zenload/zCMaterial.h>
 
+#include <algorithm>
 #include <cmath>
 
 const float DynamicWorld::ghostPadding=50-22.5f;
@@ -87,6 +88,130 @@ struct Broadphase : btDbvtBroadphase {
     }
   };
 
+struct DynamicWorld::NpcBody : btRigidBody {
+  NpcBody(btCollisionShape* shape):btRigidBody(0,nullptr,shape){}
+
+  std::array<float,3> pos={};
+  float               r=0, h=0;
+  bool                enable=true;
+
+  void setPosition(float x,float y,float z){
+    setPosition({x,y,z});
+    }
+
+  void setPosition(const std::array<float,3>& p){
+    if(p==pos)
+      return;
+    pos = p;
+    //updateAaBb = true;
+
+    btTransform trans;
+    trans.setIdentity();
+    trans.setOrigin(btVector3(pos[0],pos[1]+(h-r-ghostPadding)*0.5f+r+ghostPadding,pos[2]));
+    setWorldTransform(trans);
+    }
+  };
+
+struct DynamicWorld::NpcBodyList final {
+  NpcBodyList(DynamicWorld& wrld):wrld(wrld){}
+
+  void add(NpcBody* b){
+    body.push_back(b);
+    srt=false;
+    }
+
+  bool del(void* b){
+    for(size_t i=0;i<body.size();++i){
+      if(body[i]!=b)
+        continue;
+      body[i]=body.back();
+      body.pop_back();
+      srt=false;
+      return true;
+      }
+    return false;
+    }
+
+  void resize(NpcBody& n, float h, float r){
+    n.r = r;
+    n.h = h;
+    }
+
+  void move(NpcBody& n, const std::array<float,3>& pos){
+    n.setPosition(pos);
+    srt=false;
+    }
+
+  void move(NpcBody& n, float x, float y, float z){
+    n.setPosition(x,y,z);
+    srt=false;
+    }
+
+  bool hasCollision(const DynamicWorld::Item& obj,std::array<float,3>& normal){
+    static bool disable=false;
+    if(disable)
+      return false;
+
+    const NpcBody* pn = dynamic_cast<const NpcBody*>(obj.obj);
+    if(pn==nullptr)
+      return false;
+    const NpcBody& n = *pn;
+
+#if 1
+    auto l = body.begin();
+    auto r = body.end();
+#else
+    adjustSort();
+    auto l = std::lower_bound(body.begin(),body.end(),n.pos[0]-n.r,[](NpcBody* b,float x){ return b->pos[0]<x; });
+    auto r = std::upper_bound(body.begin(),body.end(),n.pos[0]+n.r,[](float x,NpcBody* b){ return x<b->pos[0]; });
+#endif
+
+    const int dist = std::distance(l,r); (void)dist;
+    if(dist<=1)
+      return false;
+
+    bool ret=false;
+    for(;l!=r;++l){
+      if((**l).enable && hasCollision(n,**l,normal))
+        ret = true;
+      }
+    return ret;
+    }
+
+  bool hasCollision(const NpcBody& a,const NpcBody& b,std::array<float,3>& normal){
+    if(&a==&b)
+      return false;
+    auto dx = a.pos[0]-b.pos[0], dy = a.pos[1]-b.pos[1], dz = a.pos[2]-b.pos[2];
+    auto r  = a.r+b.r;
+    auto h  = 0.5f*(a.h+b.h); //FIXME
+
+    if(dx*dx+dz*dz>r*r)
+      return false;
+    if(dy*dy>h*h)
+      return false;
+
+    normal[0] += dx;
+    normal[1] += dy;
+    normal[2] += dz;
+    return true;
+    }
+
+  void adjustSort() {
+    srt=true;
+    std::sort(body.begin(),body.end(),[](NpcBody* a,NpcBody* b){
+      return a->pos[0] < b->pos[0];
+      });
+    }
+
+  void updateAabbs() {
+
+    }
+
+  DynamicWorld&         wrld;
+  std::vector<NpcBody*> body;
+  bool                  srt=false;
+  };
+
 DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
   // collision configuration contains default setup for memory, collision setup
   conf.reset(new btDefaultCollisionConfiguration());
@@ -113,6 +238,8 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
 
   world->addCollisionObject(landBody.get());
   world->setForceUpdateAllAabbs(false);
+
+  npcList.reset(new NpcBodyList(*this));
   }
 
 DynamicWorld::~DynamicWorld(){
@@ -128,17 +255,22 @@ std::array<float,3> DynamicWorld::landNormal(float x, float y, float z) const {
   struct rCallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;
 
+    Category colCat=Category::C_Null;
+
     rCallBack(const btVector3& rayFromWorld, const btVector3& rayToWorld)
       :ClosestRayResultCallback(rayFromWorld,rayToWorld){
       m_collisionFilterMask = btBroadphaseProxy::DefaultFilter | btBroadphaseProxy::StaticFilter;
       }
 
     btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
+      auto obj = rayResult.m_collisionObject;
+      colCat = Category(obj->getUserIndex());
       return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
       }
 
     bool needsCollision(btBroadphaseProxy* proxy0) const override {
-      if(reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject)->getUserIndex()==C_Landscape)
+      int32_t uid = reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject)->getUserIndex();
+      if(uid==C_Landscape || uid==C_Object)
         return ClosestRayResultCallback::needsCollision(proxy0);
       return false;
       }
@@ -149,7 +281,7 @@ std::array<float,3> DynamicWorld::landNormal(float x, float y, float z) const {
 
   rayTest(s,e,callback);
 
-  if(callback.hasHit())
+  if(callback.hasHit() && callback.colCat==DynamicWorld::C_Landscape)
     return {{callback.m_hitNormalWorld.x(),callback.m_hitNormalWorld.y(),callback.m_hitNormalWorld.z()}};
   return {0,1,0};
   }
@@ -170,11 +302,12 @@ DynamicWorld::RayResult DynamicWorld::dropRay(float x, float y, float z, bool &h
 DynamicWorld::RayResult DynamicWorld::ray(float x0, float y0, float z0, float x1, float y1, float z1) const {
   struct CallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;
-    uint8_t matId = 0;
+    uint8_t  matId  = 0;
+    Category colCat = C_Null;
 
     bool needsCollision(btBroadphaseProxy* proxy0) const override {
       auto obj=reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject);
-      if(obj->getUserIndex()==C_Landscape)
+      if(obj->getUserIndex()==C_Landscape || obj->getUserIndex()==C_Object)
         return ClosestRayResultCallback::needsCollision(proxy0);
       return false;
       }
@@ -186,8 +319,9 @@ DynamicWorld::RayResult DynamicWorld::ray(float x0, float y0, float z0, float x1
         auto mt = reinterpret_cast<const PhysicMesh*>(s->getMeshInterface());
 
         size_t id = size_t(rayResult.m_localShapeInfo->m_shapePart);
-        matId = mt->getMaterialId(id);
+        matId  = mt->getMaterialId(id);
         }
+      colCat = Category(rayResult.m_collisionObject->getUserIndex());
       return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
       }
     };
@@ -199,9 +333,12 @@ DynamicWorld::RayResult DynamicWorld::ray(float x0, float y0, float z0, float x1
   rayTest(s,e,callback);
   //hasCol = callback.hasHit();
 
-  if(callback.hasHit())
-    return RayResult{{callback.m_hitPointWorld.x(),callback.m_hitPointWorld.y(),callback.m_hitPointWorld.z()},callback.matId,true};
-  return RayResult{{x1,y1,z1},callback.matId,false};
+  if(callback.hasHit()){
+    x1 = callback.m_hitPointWorld.x();
+    y1 = callback.m_hitPointWorld.y();
+    z1 = callback.m_hitPointWorld.z();
+    }
+  return RayResult{{x1,y1,z1},callback.matId,callback.colCat,callback.hasHit()};
   }
 
 float DynamicWorld::soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const {
@@ -212,7 +349,7 @@ float DynamicWorld::soundOclusion(float x0, float y0, float z0, float x1, float 
 
     bool needsCollision(btBroadphaseProxy* proxy0) const override {
       auto obj=reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject);
-      if(obj->getUserIndex()==C_Landscape)
+      if(obj->getUserIndex()==C_Landscape || obj->getUserIndex()==C_Object)
         return ClosestRayResultCallback::needsCollision(proxy0);
       return false;
       }
@@ -251,14 +388,14 @@ DynamicWorld::Item DynamicWorld::ghostObj(const ZMath::float3 &min, const ZMath:
   float dx     = max.x-min.x;
   float dz     = max.z-min.z;
   float dim    = std::max(dx,dz);
+  float dimU   = dim;
   float height = max.y-min.y;
 
   if(dim>dimMax)
     dim=dimMax;
 
   btCollisionShape* shape = new HumShape(dim*0.5f,std::max(height-ghostPadding,0.f)*0.5f);
-  btRigidBody*      obj   = new btRigidBody(0,nullptr,shape);//new btGhostObject();
-  obj->setCollisionShape(shape);
+  NpcBody*          obj   = new NpcBody(shape);
 
   btTransform trans;
   trans.setIdentity();
@@ -267,13 +404,15 @@ DynamicWorld::Item DynamicWorld::ghostObj(const ZMath::float3 &min, const ZMath:
   obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
   obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
 
-  world->addCollisionObject(obj);
+  //world->addCollisionObject(obj);
+  npcList->add(obj);
+  npcList->resize(*obj,height,dimU*0.5f);
   return Item(this,obj,height,dim*0.5f);
   }
 
-DynamicWorld::Item DynamicWorld::staticObj(const PhysicMeshShape *shape, const Tempest::Matrix4x4 &m) {
+DynamicWorld::StaticItem DynamicWorld::staticObj(const PhysicMeshShape *shape, const Tempest::Matrix4x4 &m) {
   if(shape==nullptr)
-    return Item();
+    return StaticItem();
 
   btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(
         0,                  // mass, in kg. 0 -> Static object, will never move.
@@ -282,7 +421,7 @@ DynamicWorld::Item DynamicWorld::staticObj(const PhysicMeshShape *shape, const T
         btVector3(0,0,0)
         );
   std::unique_ptr<btRigidBody> obj(new btRigidBody(rigidBodyCI));
-  obj->setUserIndex(C_Landscape);
+  obj->setUserIndex(C_Object);
   obj->setFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
   obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
 
@@ -291,26 +430,45 @@ DynamicWorld::Item DynamicWorld::staticObj(const PhysicMeshShape *shape, const T
   obj->setWorldTransform(trans);
 
   world->addCollisionObject(obj.get());
-  return Item(this,obj.release(),0,0);
+  return StaticItem(this,obj.release());
   }
 
 void DynamicWorld::tick(uint64_t /*dt*/) {
   //world->updateAabbs();
+  npcList->updateAabbs();
   }
 
 void DynamicWorld::updateSingleAabb(btCollisionObject *obj) {
-  //dirtyAabb.push_back(obj);
   world->updateSingleAabb(obj);
+  }
+
+void DynamicWorld::deleteObj(DynamicWorld::NpcBody *obj) {
+  if(!obj)
+    return;
+
+  if(!npcList->del(obj))
+    world->removeCollisionObject(obj);
+  delete obj;
   }
 
 void DynamicWorld::deleteObj(btCollisionObject *obj) {
   if(!obj)
     return;
-  world->removeCollisionObject(obj);
+
+  if(!npcList->del(obj))
+    world->removeCollisionObject(obj);
   delete obj;
   }
 
 bool DynamicWorld::hasCollision(const Item& it,std::array<float,3>& normal) {
+  if(npcList->hasCollision(it,normal)){
+    float l = std::sqrt(normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2]);
+    normal[0]/=l;
+    normal[1]/=l;
+    normal[2]/=l;
+    return true;
+    }
+
   struct rCallBack : public btCollisionWorld::ContactResultCallback {
     int                 count=0;
     std::array<float,3> norm={};
@@ -369,10 +527,11 @@ void DynamicWorld::rayTest(const btVector3 &s,
     }
   }
 
+
 void DynamicWorld::Item::setPosition(float x, float y, float z) {
   if(obj) {
     implSetPosition(x,y,z);
-    owner->updateSingleAabb(obj);
+    owner->npcList->move(*obj,x,y,z);
     }
   }
 
@@ -380,23 +539,15 @@ void DynamicWorld::Item::implSetPosition(float x, float y, float z) {
   btTransform trans;
   trans.setIdentity();
   trans.setOrigin(btVector3(x,y+(height-r-ghostPadding)*0.5f+r+ghostPadding,z));
-  // trans.setOrigin(btVector3(x,y+(ghostHeight-ghostPadding)*0.5f+ghostPadding,z));
   obj->setWorldTransform(trans);
-  }
 
-void DynamicWorld::Item::setObjMatrix(const Tempest::Matrix4x4 &m) {
-  if(obj){
-    btTransform trans;
-    trans.setFromOpenGLMatrix(reinterpret_cast<const btScalar*>(&m));
-    obj->setWorldTransform(trans);
-    owner->updateSingleAabb(obj);
-    }
+  if(auto npc = dynamic_cast<NpcBody*>(obj))
+    owner->npcList->move(*npc,x,y,z);
   }
 
 void DynamicWorld::Item::setEnable(bool e) {
-  if(obj){
-    obj->setUserIndex(e ? C_Ghost : C_Null);
-    }
+  if(obj)
+    obj->enable = e;
   }
 
 bool DynamicWorld::Item::testMove(const std::array<float,3> &pos) {
@@ -405,10 +556,10 @@ bool DynamicWorld::Item::testMove(const std::array<float,3> &pos) {
   std::array<float,3> tmp={};
   if(owner->hasCollision(*this,tmp))
     return true;
-  auto tr = obj->getWorldTransform();
+  auto tr = obj->pos;
   implSetPosition(pos[0],pos[1],pos[2]);
   const bool ret=owner->hasCollision(*this,tmp);
-  obj->setWorldTransform(tr);
+  owner->npcList->move(*obj,tr);
   return !ret;
   }
 
@@ -420,7 +571,7 @@ bool DynamicWorld::Item::testMove(const std::array<float,3> &pos,
     return false;
 
   std::array<float,3> norm={};
-  auto                tr = obj->getWorldTransform();
+  auto                tr = obj->pos;
   if(owner->hasCollision(*this,norm))
     return true;
   //auto ground = dropRay(pos[0],pos[1],pos[2]);
@@ -431,7 +582,7 @@ bool DynamicWorld::Item::testMove(const std::array<float,3> &pos,
     fallback[1] = pos[1];// - norm[1]*speed;
     fallback[2] = pos[2] + norm[2]*speed;
     }
-  obj->setWorldTransform(tr);
+  owner->npcList->move(*obj,tr);
   return !ret;
   }
 
@@ -440,7 +591,7 @@ bool DynamicWorld::Item::tryMoveN(const std::array<float,3> &pos, std::array<flo
 
   if(!obj)
     return false;
-  auto tr = obj->getWorldTransform();
+  auto tr = obj->pos;
   if(owner->hasCollision(*this,norm)){
     setPosition(pos[0],pos[1],pos[2]);
     return true;
@@ -449,11 +600,11 @@ bool DynamicWorld::Item::tryMoveN(const std::array<float,3> &pos, std::array<flo
   implSetPosition(pos[0],pos[1],pos[2]);
   const bool ret=owner->hasCollision(*this,norm);
   if(!ret) {
-    owner->updateSingleAabb(obj);
+    owner->npcList->move(*obj,pos[0],pos[1],pos[2]);
     return true;
     }
 
-  obj->setWorldTransform(tr);
+  owner->npcList->move(*obj,tr);
   return false;
   }
 
@@ -463,7 +614,7 @@ bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos, std::array<floa
     return false;
 
   std::array<float,3> norm={};
-  auto                tr = obj->getWorldTransform();
+  auto                tr = obj->pos;
   if(owner->hasCollision(*this,norm)){
     setPosition(pos[0],pos[1],pos[2]);
     return true;
@@ -472,7 +623,7 @@ bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos, std::array<floa
   implSetPosition(pos[0],pos[1],pos[2]);
   const bool ret=owner->hasCollision(*this,norm);
   if(!ret) {
-    owner->updateSingleAabb(obj);
+    owner->npcList->move(*obj,pos[0],pos[1],pos[2]);
     return true;
     }
   if(speed!=0.f){
@@ -480,7 +631,7 @@ bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos, std::array<floa
     fallback[1] = pos[1];// - norm[1]*speed;
     fallback[2] = pos[2] + norm[2]*speed;
     }
-  obj->setWorldTransform(tr);
+  owner->npcList->move(*obj,tr);
   return false;
   }
 
@@ -489,4 +640,13 @@ bool DynamicWorld::Item::hasCollision() const {
     return false;
   std::array<float,3> tmp;
   return owner->hasCollision(*this,tmp);
+  }
+
+void DynamicWorld::StaticItem::setObjMatrix(const Tempest::Matrix4x4 &m) {
+  if(obj){
+    btTransform trans;
+    trans.setFromOpenGLMatrix(reinterpret_cast<const btScalar*>(&m));
+    obj->setWorldTransform(trans);
+    owner->updateSingleAabb(obj);
+    }
   }

@@ -12,11 +12,11 @@ class MoveTrigger : public Trigger {
 
   private:
     void setView     (StaticObjects::Mesh&& m);
-    void setPhysic   (DynamicWorld::Item&&  p);
+    void setPhysic   (DynamicWorld::StaticItem&&  p);
     void setObjMatrix(const Tempest::Matrix4x4 &m);
 
-    StaticObjects::Mesh view;
-    DynamicWorld::Item  physic;
-    uint32_t            frame=0;
-    Tempest::Matrix4x4  pos;
+    StaticObjects::Mesh      view;
+    DynamicWorld::StaticItem physic;
+    uint32_t                 frame=0;
+    Tempest::Matrix4x4       pos;
   };

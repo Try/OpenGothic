@@ -20,7 +20,7 @@ void MoveTrigger::setView(StaticObjects::Mesh &&m) {
   view = std::move(m);
   }
 
-void MoveTrigger::setPhysic(DynamicWorld::Item &&p) {
+void MoveTrigger::setPhysic(DynamicWorld::StaticItem &&p) {
   physic = std::move(p);
   }
 

@@ -25,6 +25,11 @@ class PhysicMeshShape;
 class World;
 
 class DynamicWorld final {
+  private:
+    struct HumShape;
+    struct NpcBody;
+    struct NpcBodyList;
+
   public:
     DynamicWorld(World &world, const ZenLoad::PackedMesh &pkg);
     ~DynamicWorld();
@@ -32,13 +37,14 @@ class DynamicWorld final {
     enum Category {
       C_Null      = 1,
       C_Landscape = 2,
-      C_Ghost     = 3
+      C_Object    = 3,
+      C_Ghost     = 4
       };
 
     struct Item {
       public:
         Item()=default;
-        Item(DynamicWorld* owner,btCollisionObject* obj,float h,float r):owner(owner),obj(obj),height(h),r(r){}
+        Item(DynamicWorld* owner,NpcBody* obj,float h,float r):owner(owner),obj(obj),height(h),r(r){}
         Item(Item&& it):owner(it.owner),obj(it.obj),height(it.height),r(it.r){it.obj=nullptr;}
         ~Item() { if(owner) owner->deleteObj(obj); }
 
@@ -51,7 +57,6 @@ class DynamicWorld final {
           }
 
         void setPosition(float x,float y,float z);
-        void setObjMatrix(const Tempest::Matrix4x4& m);
         void setEnable(bool e);
 
         bool testMove(const std::array<float,3>& pos);
@@ -64,7 +69,7 @@ class DynamicWorld final {
 
       private:
         DynamicWorld*       owner  = nullptr;
-        btCollisionObject*  obj    = nullptr;
+        NpcBody*            obj    = nullptr;
         float               height = 0.f;
         float               r      = 0.f;
         void implSetPosition(float x,float y,float z);
@@ -72,10 +77,31 @@ class DynamicWorld final {
       friend class DynamicWorld;
       };
 
+    struct StaticItem {
+      public:
+        StaticItem()=default;
+        StaticItem(DynamicWorld* owner,btCollisionObject* obj):owner(owner),obj(obj){}
+        StaticItem(StaticItem&& it):owner(it.owner),obj(it.obj){it.obj=nullptr;}
+        ~StaticItem() { if(owner) owner->deleteObj(obj); }
+
+        StaticItem& operator = (StaticItem&& it){
+          std::swap(owner,it.owner);
+          std::swap(obj,it.obj);
+          return *this;
+          }
+
+        void setObjMatrix(const Tempest::Matrix4x4& m);
+
+      private:
+        DynamicWorld*       owner  = nullptr;
+        btCollisionObject*  obj    = nullptr;
+      };
+
     struct RayResult final {
       std::array<float,3> v={};
-      uint8_t             mat=0;
-      bool                hasCol=0;
+      uint8_t             mat    = 0;
+      Category            colCat = C_Null;
+      bool                hasCol = 0;
 
       float               x() const { return v[0]; }
       float               y() const { return v[1]; }
@@ -90,20 +116,20 @@ class DynamicWorld final {
 
     std::array<float,3> landNormal(float x, float y, float z) const;
 
-    Item ghostObj (const ZMath::float3& min,const ZMath::float3& max);
-    Item staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
+    Item       ghostObj (const ZMath::float3& min,const ZMath::float3& max);
+    StaticItem staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
 
     void tick(uint64_t dt);
 
   private:
+    void deleteObj(NpcBody* obj);
     void deleteObj(btCollisionObject* obj);
+
     bool hasCollision(const Item &it,std::array<float,3>& normal);
     void rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, btCollisionWorld::RayResultCallback& resultCallback) const;    
     std::unique_ptr<btRigidBody> landObj();
 
     void updateSingleAabb(btCollisionObject* obj);
-
-    struct HumShape;
 
     std::unique_ptr<btCollisionConfiguration>   conf;
     std::unique_ptr<btDispatcher>               dispatcher;
@@ -113,6 +139,8 @@ class DynamicWorld final {
     std::unique_ptr<PhysicMesh>                 landMesh;
     std::unique_ptr<btCollisionShape>           landShape;
     std::unique_ptr<btRigidBody>                landBody;
+
+    std::unique_ptr<NpcBodyList>                npcList;
 
     mutable RayResult                           lastRayDrop;
     mutable float                               lastRayDropXyz[3]={};

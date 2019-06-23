@@ -59,8 +59,8 @@ class WorldView {
     uint32_t                vpHeight=0;
 
     struct StaticObj {
-      StaticObjects::Mesh mesh;
-      DynamicWorld::Item  physic;
+      StaticObjects::Mesh      mesh;
+      DynamicWorld::StaticItem physic;
       };
 
     PosePool                            animPool;
