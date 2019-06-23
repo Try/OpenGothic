@@ -553,26 +553,6 @@ void Npc::setPhysic(DynamicWorld::Item &&item) {
   physic.setPosition(x,y,z);
   }
 
-void Npc::resetView(bool clear) {
-  if(clear){
-    setPhysic(DynamicWorld::Item());
-    animation.setVisualBody(StaticObjects::Mesh(),StaticObjects::Mesh());
-    animation.sword  = StaticObjects::Mesh();
-    animation.bow    = StaticObjects::Mesh();
-    animation.armour = StaticObjects::Mesh();
-    return;
-    }
-
-  if(animation.skeleton!=nullptr) {
-    auto name = animation.skeleton->name();
-    setVisual(name.c_str());
-    setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
-    setPhysic(owner.getPhysic(name));
-    invent.updateBowView  (*this);
-    invent.updateSwordView(*this);
-    }
-  }
-
 void Npc::setFatness(float) {
   // TODO
   }

@@ -263,7 +263,6 @@ class Npc final {
     void setSword      (StaticObjects::Mesh&& sword);
     void setRangeWeapon(StaticObjects::Mesh&& bow);
     void setPhysic     (DynamicWorld::Item&& item);
-    void resetView     (bool clear);
     void setFatness    (float f);
     void setScale      (float x,float y,float z);
     bool setAnim(Anim a);

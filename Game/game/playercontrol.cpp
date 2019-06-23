@@ -188,8 +188,6 @@ void PlayerControl::marvinF8() {
   pos[0]+=60*s;
   pos[2]+=-60*c;
 
-  if(pl.attribute(Npc::ATR_HITPOINTS)<=0)
-    pl.resetView(false);
   pl.changeAttribute(Npc::ATR_HITPOINTS,pl.attribute(Npc::ATR_HITPOINTSMAX));
   pl.clearState(false);
   pl.setPosition(pos);
