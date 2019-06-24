@@ -92,7 +92,7 @@ struct DynamicWorld::NpcBody : btRigidBody {
   NpcBody(btCollisionShape* shape):btRigidBody(0,nullptr,shape){}
 
   std::array<float,3> pos={};
-  float               r=0, h=0;
+  float               r=0, h=0, rX=0, rZ=0;
   bool                enable=true;
 
   void setPosition(float x,float y,float z){
@@ -132,8 +132,12 @@ struct DynamicWorld::NpcBodyList final {
     return false;
     }
 
-  void resize(NpcBody& n, float h, float r){
-    n.r = r;
+  void resize(NpcBody& n, float h, float dx, float dz){
+    n.rX = dx;
+    n.rZ = dz;
+
+    //n.r = std::max(dx,dz)*0.5f;
+    n.r = (dx+dz)*0.25f;
     n.h = h;
     }
 
@@ -387,7 +391,6 @@ DynamicWorld::Item DynamicWorld::ghostObj(const ZMath::float3 &min, const ZMath:
   float dx     = max.x-min.x;
   float dz     = max.z-min.z;
   float dim    = std::max(dx,dz);
-  float dimU   = dim;
   float height = max.y-min.y;
 
   if(dim>dimMax)
@@ -405,7 +408,7 @@ DynamicWorld::Item DynamicWorld::ghostObj(const ZMath::float3 &min, const ZMath:
 
   //world->addCollisionObject(obj);
   npcList->add(obj);
-  npcList->resize(*obj,height,dimU*0.5f);
+  npcList->resize(*obj,height,dx,dz);
   return Item(this,obj,height,dim*0.5f);
   }
 
