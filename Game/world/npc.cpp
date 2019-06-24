@@ -800,7 +800,6 @@ bool Npc::implLookAt(const Npc &oth, uint64_t dt) {
 
 bool Npc::implLookAt(float dx, float dz, bool anim, uint64_t dt) {
   auto  gl   = std::min<uint32_t>(guild(),GIL_MAX);
-  //float step = owner.guildVal().turn_speed[gl]*(dt/1000.f);
   float step = owner.script().guildVal().turn_speed[gl]*(dt/1000.f)*60.f/100.f;
 
   float a    = angleDir(dx,dz);
@@ -821,6 +820,8 @@ bool Npc::implLookAt(float dx, float dz, bool anim, uint64_t dt) {
     }
 
   const auto sgn = std::sin(double(da)*M_PI/180.0);
+  if(animation.current==Anim::MoveR || animation.current==Anim::MoveL)
+    anim=false;
   if(anim) {
     if(sgn<0) {
       if(setAnim(Anim::RotR))
@@ -901,10 +902,11 @@ bool Npc::implAtack(uint64_t dt) {
     return false;
 
   auto ani = anim();
-  if(ani!=Anim::Atack && ani!=Anim::AtackBlock){
-    if(implLookAt(*currentTarget,dt))
-      return true;
-    }
+  if((ani==Anim::Atack || ani==Anim::AtackBlock) && !animation.animSq.isFinished(owner.tickCount()-animation.sAnim))
+    return true;
+
+  if(implLookAt(*currentTarget,dt))
+    return true;
 
   FightAlgo::Action act = fghAlgo.tick(*this,*currentTarget,owner.script(),dt);
 
@@ -927,13 +929,13 @@ bool Npc::implAtack(uint64_t dt) {
 
   if(act==FightAlgo::MV_STRAFEL) {
     if(setAnim(Npc::Anim::MoveL))
-      fghAlgo.consumeAction();
+      fghAlgo.consumeAndWait(animation.animSq.totalTime());
     return true;
     }
 
   if(act==FightAlgo::MV_STRAFER) {
     if(setAnim(Npc::Anim::MoveR))
-      fghAlgo.consumeAction();
+      fghAlgo.consumeAndWait(animation.animSq.totalTime());
     return true;
     }
 

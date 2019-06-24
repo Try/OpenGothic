@@ -183,6 +183,15 @@ void FightAlgo::consumeAction() {
   tr[MV_MAX-1]=MV_NULL;
   }
 
+void FightAlgo::consumeAndWait(float dt) {
+  consumeAction();
+  if(dt<0)
+    dt=0;
+  if(dt>std::numeric_limits<uint16_t>::max())
+    dt=std::numeric_limits<uint16_t>::max();
+  waitT=uint16_t(dt);
+  }
+
 void FightAlgo::onClearTarget() {
   queueId = Daedalus::GEngineClasses::Move(0);
   tr[0]   = MV_NULL;

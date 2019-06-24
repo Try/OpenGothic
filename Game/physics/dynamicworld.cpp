@@ -183,11 +183,10 @@ struct DynamicWorld::NpcBodyList final {
       return false;
     auto dx = a.pos[0]-b.pos[0], dy = a.pos[1]-b.pos[1], dz = a.pos[2]-b.pos[2];
     auto r  = a.r+b.r;
-    auto h  = 0.5f*(a.h+b.h); //FIXME
 
     if(dx*dx+dz*dz>r*r)
       return false;
-    if(dy*dy>h*h)
+    if(dy>b.h || dy<-a.h)
       return false;
 
     normal[0] += dx;

@@ -27,6 +27,7 @@ class FightAlgo final {
 
     Action tick(Npc& npc, Npc& tg, WorldScript &owner, uint64_t dt);
     void   consumeAction();
+    void   consumeAndWait(float dt);
     void   onClearTarget();
     void   onTakeHit();
 
