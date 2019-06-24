@@ -180,11 +180,11 @@ void MainWindow::mouseUpEvent(MouseEvent &event) {
 
 void MainWindow::mouseDragEvent(MouseEvent &event) {
   const bool fs = SystemApi::isFullscreen(hwnd());
-  if(!mouseP[Event::ButtonLeft] || fs)
+  if(!mouseP[Event::ButtonLeft] && !fs)
     return;
-  if(currentFocus.npc)
+  if(currentFocus.npc && !fs)
     return;
-  processMouse(event,false);
+  processMouse(event,fs);
   }
 
 void MainWindow::mouseMoveEvent(MouseEvent &event) {
@@ -202,14 +202,19 @@ void MainWindow::processMouse(MouseEvent &event,bool fs) {
     return;
   auto dp = (event.pos()-mpos);
   mpos = event.pos();
-  spin += PointF(fs ? 0 : -dp.x,dp.y);
+  spin += PointF(-dp.x,dp.y);
   if(spin.y>90)
     spin.y=90;
   if(spin.y<-90)
     spin.y=-90;
-  camera.setSpin(spin);
-  if(fs)
-    player.rotateMouse(-dp.x);
+  if(fs) {
+    if(!currentFocus.npc)
+      player.rotateMouse(-dp.x);
+    spin.x = camera.getSpin().x;
+    camera.setSpin(spin);
+    } else {
+    camera.setSpin(spin);
+    }
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
@@ -470,7 +475,7 @@ void MainWindow::tick() {
   if(player.tickMove(dt)) {
     if(auto pl=gothic.player()) {
       camera.setMode(solveCameraMode());
-      camera.follow(*pl,dt,!mouseP[Event::ButtonLeft] || currentFocus);
+      camera.follow(*pl,dt,!mouseP[Event::ButtonLeft] || currentFocus || SystemApi::isFullscreen(hwnd()));
       }
     } else {
     if(pressed[KeyEvent::K_Q])
