@@ -15,8 +15,8 @@ bool DialogMenu::Pipe::output(Npc &npc, const std::string &text) {
   }
 
 bool DialogMenu::Pipe::outputSvm(Npc &npc, const std::string &text, int voice) {
-  Log::d("TODO");
-  return true;
+  auto& svm = owner.gothic.messageFromSvm(text,voice);
+  return owner.aiOutput(npc,svm.c_str());
   }
 
 bool DialogMenu::Pipe::outputOv(Npc &npc, const std::string &text, int voice) {

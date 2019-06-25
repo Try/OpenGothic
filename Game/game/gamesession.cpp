@@ -295,6 +295,14 @@ void GameSession::dialogExec(const WorldScript::DlgChoise &dlg, Npc& player, Npc
   return vm->exec(dlg,player.handle(),npc.handle());
   }
 
+const std::string &GameSession::messageFromSvm(const std::string &id, int voice) const {
+  if(!wrld){
+    static std::string empty;
+    return empty;
+    }
+  return vm->messageFromSvm(id,voice);
+  }
+
 const std::string &GameSession::messageByName(const std::string &id) const {
   if(!wrld){
     static std::string empty;

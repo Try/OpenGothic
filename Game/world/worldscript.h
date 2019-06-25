@@ -12,6 +12,7 @@
 #include <Tempest/Painter>
 
 #include "game/aiouputpipe.h"
+#include "game/svmdefinitions.h"
 #include "game/spelldefinitions.h"
 #include "game/constants.h"
 #include "game/fightai.h"
@@ -107,6 +108,7 @@ class WorldScript final {
     bool isUnconscious(const Npc &pl);
     bool isTalk       (const Npc &pl);
 
+    const std::string& messageFromSvm(const std::string &id,int voice) const;
     const std::string& messageByName(const std::string &id) const;
     uint32_t           messageTime(const std::string &id) const;
 
@@ -354,6 +356,7 @@ class WorldScript final {
     std::mt19937                                                randGen;
 
     std::unique_ptr<SpellDefinitions>                           spells;
+    std::unique_ptr<SvmDefinitions>                             svm;
 
     std::set<std::pair<size_t,size_t>>                          dlgKnownInfos;
     std::unique_ptr<Daedalus::GEngineClasses::C_Info[]>         dialogStorage;

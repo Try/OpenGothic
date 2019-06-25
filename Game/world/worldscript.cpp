@@ -294,6 +294,7 @@ void WorldScript::initCommon() {
   spellFxAniLetters    = vm.getDATFile().getSymbolIndexByName("spellFxAniLetters");
 
   spells               = std::make_unique<SpellDefinitions>(vm);
+  svm                  = std::make_unique<SvmDefinitions>(vm);
 
   cFocusNorm           = getFocus("Focus_Normal");
   cFocusMele           = getFocus("Focus_Melee");
@@ -909,12 +910,10 @@ bool WorldScript::aiOutput(Npc &npc, const std::string &outputname) {
   return true;
   }
 
-bool WorldScript::aiOutputSvm(Npc &from, const std::string &outputname, int32_t voice) {
-  char buf[256]={};
-  if(outputname.size()>0 && outputname[0]=='$')
-    std::snprintf(buf,sizeof(buf),"SVM_%d_%s.WAV",voice,outputname.c_str()+1); else
-    std::snprintf(buf,sizeof(buf),"SVM_%d_%s.WAV",voice,outputname.c_str());
-  from.emitDlgSound(buf);
+bool WorldScript::aiOutputSvm(Npc &npc, const std::string &outputname, int32_t voice) {
+  auto& sv = svm->find(outputname.c_str(),voice);
+  if(sv.size()>0)
+    return aiOutput(npc,sv);
   return true;
   }
 
@@ -928,6 +927,10 @@ bool WorldScript::isUnconscious(const Npc &pl) {
 
 bool WorldScript::isTalk(const Npc &pl) {
   return pl.isState(ZS_Talk);
+  }
+
+const std::string &WorldScript::messageFromSvm(const std::string &id, int voice) const {
+  return svm->find(id.c_str(),voice);
   }
 
 const std::string &WorldScript::messageByName(const std::string& id) const {

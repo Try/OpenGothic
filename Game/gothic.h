@@ -91,8 +91,10 @@ class Gothic final {
     Tempest::Signal<void(const ChapterScreen::Show&)>                   onIntroChapter;
     Tempest::Signal<void()>                                             onWorldLoaded;
 
+    const std::string&                    messageFromSvm(const std::string &id,int voice) const;
     const std::string&                    messageByName(const std::string &id) const;
     uint32_t                              messageTime(const std::string &id) const;
+
     const std::u16string&                 path() const { return gpath; }
     const std::string&                    defaultWorld() const;
     std::unique_ptr<Daedalus::DaedalusVM> createVm(const char16_t *datFile);

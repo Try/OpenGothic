@@ -204,6 +204,8 @@ bool Npc::performOutput(const Npc::AiAction &act) {
   const int order = act.target->aiOutputOrderId();
   if(order<act.i0)
     return false;
+  if(aiPolicy>=AiFar)
+    return true; // don't waste CPU on far-away svm-talks
   if(act.act==AI_Output           && outputPipe->output   (*this,act.s0))
     return true;
   if(act.act==AI_OutputSvm        && outputPipe->outputSvm(*this,act.s0,hnpc.voice))

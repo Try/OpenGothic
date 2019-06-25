@@ -327,6 +327,14 @@ void Gothic::print(const char *msg) {
   onPrint(msg);
   }
 
+const std::string &Gothic::messageFromSvm(const std::string &id, int voice) const {
+  if(!game){
+    static std::string empty;
+    return empty;
+    }
+  return game->messageFromSvm(id,voice);
+  }
+
 const std::string &Gothic::messageByName(const std::string &id) const {
   if(!game){
     static std::string empty;

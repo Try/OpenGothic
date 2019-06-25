@@ -62,8 +62,9 @@ class GameSession final {
     auto         updateDialog(const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<WorldScript::DlgChoise>;
     void         dialogExec(const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc);
 
-    const std::string &messageByName(const std::string &id) const;
-    uint32_t     messageTime(const std::string &id) const;
+    const std::string& messageFromSvm(const std::string &id,int voice) const;
+    const std::string& messageByName(const std::string &id) const;
+    uint32_t           messageTime(const std::string &id) const;
 
     AiOuputPipe* openDlgOuput(Npc &player, Npc &npc);
     bool         aiIsDlgFinished();
