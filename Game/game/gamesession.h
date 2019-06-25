@@ -65,11 +65,9 @@ class GameSession final {
     const std::string &messageByName(const std::string &id) const;
     uint32_t     messageTime(const std::string &id) const;
 
-    void         aiProcessInfos(Npc &player, Npc &npc);
-    bool         aiOutput(Npc &player, const char *msg);
-    void         aiForwardOutput(Npc &player, const char *msg);
-    bool         aiCloseDialog();
+    AiOuputPipe* openDlgOuput(Npc &player, Npc &npc);
     bool         aiIsDlgFinished();
+
     void         printScreen(const char *msg, int x, int y, int time, const Tempest::Font &font);
     void         print(const char *msg);
     void         introChapter(const ChapterScreen::Show& s);

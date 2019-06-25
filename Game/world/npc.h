@@ -425,9 +425,10 @@ class Npc final {
     void     aiDodge();
     void     aiUnEquipWeapons();
     void     aiUnEquipArmor();
-    void     aiOutput(Npc &to, std::string text);
-    void     aiOutputSvm(Npc &to, std::string text);
-    void     aiOutputSvmOverlay(Npc &to, std::string text);
+    void     aiProcessInfo(Npc& other);
+    void     aiOutput(Npc &to, std::string text, int order);
+    void     aiOutputSvm(Npc &to, std::string text, int order);
+    void     aiOutputSvmOverlay(Npc &to, std::string text, int order);
     void     aiStopProcessInfo();
     void     aiClearQueue();
     void     aiContinueRoutine();
@@ -501,6 +502,7 @@ class Npc final {
       AI_Output,
       AI_OutputSvm,
       AI_OutputSvmOverlay,
+      AI_ProcessInfo,
       AI_StopProcessInfo,
       AI_ContinueRoutine,
       AI_AlignToFp,
@@ -543,6 +545,9 @@ class Npc final {
     void                           updatePos();
     void                           setPos(const Tempest::Matrix4x4& m);
     bool                           setViewPosition(const std::array<float,3> &pos);
+
+    int                            aiOutputOrderId() const;
+    bool performOutput(const AiAction &ai);
 
     const Routine&                 currentRoutine() const;
     gtime                          endTime(const Routine& r) const;
@@ -624,6 +629,7 @@ class Npc final {
     Npc*                           currentLookAt  =nullptr;
     Npc*                           currentTarget  =nullptr;
     Npc*                           nearestEnemy   =nullptr;
+    AiOuputPipe*                   outputPipe     =nullptr;
 
     Npc*                           currentGoToNpc =nullptr;
     GoToHint                       currentGoToFlag=GoToHint::GT_Default;

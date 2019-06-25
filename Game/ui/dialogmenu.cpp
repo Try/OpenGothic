@@ -10,8 +10,31 @@
 
 using namespace Tempest;
 
+bool DialogMenu::Pipe::output(Npc &npc, const std::string &text) {
+  return owner.aiOutput(npc,text.c_str());
+  }
+
+bool DialogMenu::Pipe::outputSvm(Npc &npc, const std::string &text, int voice) {
+  Log::d("TODO");
+  return true;
+  }
+
+bool DialogMenu::Pipe::outputOv(Npc &npc, const std::string &text, int voice) {
+  return outputSvm(npc,text,voice);
+  }
+
+bool DialogMenu::Pipe::close() {
+  return owner.aiClose();
+  }
+
+bool DialogMenu::Pipe::isFinished() {
+  bool ret=false;
+  owner.aiIsClose(ret);
+  return ret;
+  }
+
 DialogMenu::DialogMenu(Gothic &gothic, InventoryMenu &trade)
-  :gothic(gothic), trade(trade), camera(gothic) {
+  :gothic(gothic), trade(trade), pipe(*this) , camera(gothic) {
   tex     = Resources::loadTexture("DLG_CHOICE.TGA");
   ambient = Resources::loadTexture("DLG_AMBIENT.TGA");
   setFocusPolicy(NoFocus);
@@ -144,35 +167,21 @@ bool DialogMenu::start(Npc &pl, Interactive &other) {
   return true;
   }
 
-void DialogMenu::aiProcessInfos(Npc &p,Npc &npc) {
-  pl     = &p;
+void DialogMenu::openPipe(Npc &player, Npc &npc, AiOuputPipe *&out) {
+  out    = &pipe;
+  pl     = &player;
   other  = &npc;
   state  = State::PreStart;
-  forwardText.clear();
   }
 
-void DialogMenu::aiOutput(Npc &npc, const char *msg, bool& done) {
+bool DialogMenu::aiOutput(Npc &npc, const char *msg) {
   if(&npc!=pl && &npc!=other){
-    done = true;
-    char buf[256]={};
-    std::snprintf(buf,sizeof(buf),"%s.WAV",msg);
-    npc.emitDlgSound(buf);
-    return; // vatras is here
+    Log::e("unexpected aiOutput call: ",msg);
+    return false;
     }
 
-  if(current.time>0){
-    done=false;
-    return;
-    }
-
-  if(forwardText.size()>0 && (forwardText[0].txt!=msg || forwardText[0].npc!=&npc)){
-    done=false;
-    return;
-    }
-
-  if(forwardText.size()>0){
-    forwardText.erase(forwardText.begin());
-    }
+  if(current.time>0)
+    return false;
 
   if(pl==&npc) {
     if(other!=nullptr)
@@ -186,32 +195,24 @@ void DialogMenu::aiOutput(Npc &npc, const char *msg, bool& done) {
   current.time = gothic.messageTime(msg);
   currentSnd   = soundDevice.load(Resources::loadSoundBuffer(std::string(msg)+".wav"));
   curentIsPl   = (pl==&npc);
-  done         = true;
 
   currentSnd.play();
   if(auto t = currentSnd.timeLength())
     current.time = uint32_t(t);
   update();
+  return true;
   }
 
-void DialogMenu::aiOutputForward(Npc &npc, const char *msg) {
-  if(&npc!=pl && &npc!=other){
-    return; // vatras is here
-    }
-  forwardText.emplace_back(Forward{msg,&npc});
-  }
-
-void DialogMenu::aiClose(bool& ret) {
+bool DialogMenu::aiClose() {
   if(current.time>0){
-    ret=false;
-    return;
+    return false;
     }
 
-  ret=true;
   choise.clear();
   close();
   state=State::Idle;
   update();
+  return true;
   }
 
 void DialogMenu::aiIsClose(bool &ret) {
@@ -294,7 +295,6 @@ void DialogMenu::close() {
   dlgTrade=false;
   current.time=0;
   choise.clear();
-  forwardText.clear();
   state=State::Idle;
   currentSnd = SoundEffect();
   update();
@@ -481,4 +481,5 @@ void DialogMenu::keyUpEvent(KeyEvent &event) {
     update();
     }
   }
+
 

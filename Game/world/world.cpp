@@ -309,20 +309,12 @@ void World::marchPoints(Painter &p, const Matrix4x4 &mvp, int w, int h) const {
   wmatrix->marchPoints(p,mvp,w,h);
   }
 
-void World::aiProcessInfos(Npc &player, Npc &npc) {
-  game.aiProcessInfos(player,npc);
+AiOuputPipe *World::openDlgOuput(Npc &player, Npc &npc) {
+  return game.openDlgOuput(player,npc);
   }
 
 void World::aiOutputSound(Npc &player, const std::string &msg) {
   wsound.aiOutput(player.position(),msg);
-  }
-
-void World::aiForwardOutput(Npc &player, const char *msg) {
-  return game.aiForwardOutput(player,msg);
-  }
-
-bool World::aiCloseDialog() {
-  return game.aiCloseDialog();
   }
 
 bool World::aiIsDlgFinished() {

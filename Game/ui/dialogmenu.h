@@ -25,10 +25,8 @@ class DialogMenu : public Tempest::Widget {
 
     const Camera& dialogCamera();
 
-    void aiProcessInfos(Npc &player, Npc& npc);
-    void aiOutput(Npc& npc, const char* msg, bool &done);
-    void aiOutputForward(Npc& npc, const char* msg);
-    void aiClose(bool& ret);
+    void openPipe(Npc &player, Npc& npc, AiOuputPipe*& out);
+
     void aiIsClose(bool& ret);
     bool isActive() const;
     bool start(Npc& pl,Npc& other);
@@ -52,6 +50,19 @@ class DialogMenu : public Tempest::Widget {
   private:
     const Tempest::Texture2d* tex    =nullptr;
     const Tempest::Texture2d* ambient=nullptr;
+
+    struct Pipe : AiOuputPipe {
+      Pipe(DialogMenu& owner):owner(owner){}
+
+      bool output   (Npc &npc, const std::string& text) override;
+      bool outputSvm(Npc& npc, const std::string& text, int voice) override;
+      bool outputOv (Npc& npc, const std::string& text, int voice) override;
+
+      bool close() override;
+      bool isFinished() override;
+
+      DialogMenu& owner;
+      };
 
     enum {
       MAX_PRINT=5
@@ -85,6 +96,9 @@ class DialogMenu : public Tempest::Widget {
     void onEntry(const WorldScript::DlgChoise& e);
     void onDoneText();
     void close();
+    bool aiOutput(Npc& npc, const char* msg);
+    bool aiClose();
+
     bool haveToWaitOutput() const;
     void invokeMobsiState();
 
@@ -94,6 +108,7 @@ class DialogMenu : public Tempest::Widget {
 
     Gothic&                             gothic;
     InventoryMenu&                      trade;
+    Pipe                                pipe;
 
     std::vector<WorldScript::DlgChoise> choise;
     WorldScript::DlgChoise              selected;
@@ -108,7 +123,6 @@ class DialogMenu : public Tempest::Widget {
     Tempest::SoundEffect                currentSnd;
     bool                                curentIsPl=false;
     bool                                dlgTrade=false;
-    std::vector<Forward>                forwardText;
     int32_t                             mobsiState=-1;
 
     std::vector<PScreen>                pscreen;

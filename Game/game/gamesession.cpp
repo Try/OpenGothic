@@ -310,20 +310,10 @@ uint32_t GameSession::messageTime(const std::string &id) const {
   return vm->messageTime(id);
   }
 
-void GameSession::aiProcessInfos(Npc &player, Npc &npc) {
-  gothic.aiProcessInfos(player,npc);
-  }
-
-bool GameSession::aiOutput(Npc &player, const char *msg) {
-  return gothic.aiOuput(player,msg);
-  }
-
-void GameSession::aiForwardOutput(Npc &player, const char *msg) {
-  return gothic.aiForwardOutput(player,msg);
-  }
-
-bool GameSession::aiCloseDialog() {
-  return gothic.aiCloseDialog();
+AiOuputPipe *GameSession::openDlgOuput(Npc &player, Npc &npc) {
+  AiOuputPipe* ret=nullptr;
+  gothic.openDialogPipe(player, npc, ret);
+  return ret;
   }
 
 bool GameSession::aiIsDlgFinished() {

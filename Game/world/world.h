@@ -103,10 +103,9 @@ class World final {
     void   marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
     void   marchPoints      (Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
-    void   aiProcessInfos(Npc &player, Npc& npc);
+    AiOuputPipe* openDlgOuput(Npc &player, Npc &npc);
+
     void   aiOutputSound(Npc &player, const std::string& msg);
-    void   aiForwardOutput(Npc &player, const char* msg);
-    bool   aiCloseDialog();
     bool   aiIsDlgFinished();
     bool   aiUseMob  (Npc &pl, const std::string& name);
 

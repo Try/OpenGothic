@@ -2,7 +2,6 @@
 
 #include <daedalus/DaedalusStdlib.h>
 #include <daedalus/DaedalusVM.h>
-#include <game/spelldefinitions.h>
 #include <zenload/zCCSLib.h>
 
 #include <memory>
@@ -12,6 +11,8 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Painter>
 
+#include "game/aiouputpipe.h"
+#include "game/spelldefinitions.h"
 #include "game/constants.h"
 #include "game/fightai.h"
 #include "game/aistate.h"
@@ -60,8 +61,10 @@ class WorldScript final {
     uint32_t     rand(uint32_t max);
     void         removeItem(Item& it);
 
-    Npc*         getNpc(Daedalus::GEngineClasses::C_Npc* handle);
     void         setInstanceNPC(const char* name,Npc& npc);
+
+    AiOuputPipe* openAiOuput();
+    AiOuputPipe* openDlgOuput(Npc &player, Npc &npc);
 
     size_t       goldId() const { return itMi_Gold; }
     const char*  currencyName() const { return goldTxt.c_str(); }
@@ -99,8 +102,6 @@ class WorldScript final {
     int  spellCastAnim(Npc& npc, Item&  fn);
 
     bool aiUseMob   (Npc &pl, const std::string& name);
-    bool aiOutput   (Npc &from, Npc& to, const std::string& name);
-    bool aiOutputSvm(Npc &from, Npc& to, const std::string& name, int32_t voice);
 
     bool isDead       (const Npc &pl);
     bool isUnconscious(const Npc &pl);
@@ -118,6 +119,19 @@ class WorldScript final {
   private:
     void               initCommon();
 
+    struct GlobalOutput : AiOuputPipe {
+      GlobalOutput(WorldScript& owner):owner(owner){}
+
+      bool output   (Npc &npc, const std::string& text) override;
+      bool outputSvm(Npc& npc, const std::string& text, int voice) override;
+      bool outputOv (Npc& npc, const std::string& text, int voice) override;
+      bool isFinished() override;
+
+      bool close() override { return true; }
+
+      WorldScript& owner;
+      };
+
     struct ScopeVar;
 
     static const std::string& popString  (Daedalus::DaedalusVM &vm);
@@ -132,13 +146,17 @@ class WorldScript final {
 
     void notImplementedRoutine(Daedalus::DaedalusVM&);
 
-    Item* getItem(Daedalus::GEngineClasses::C_Item *handle);
+    Item* getItem(Daedalus::GEngineClasses::C_Item* handle);
     Item* getItemById(size_t id);
+    Npc*  getNpc(Daedalus::GEngineClasses::C_Npc*   handle);
     Npc*  getNpcById (size_t id);
     auto  getInfo    (size_t id) -> Daedalus::GEngineClasses::C_Info*;
     auto  getFocus(const char* name) -> Daedalus::GEngineClasses::C_Focus;
 
-    void storeItem(Item* it);
+    void  storeItem(Item* it);
+
+    bool  aiOutput   (Npc &from, const std::string& name);
+    bool  aiOutputSvm(Npc &from, const std::string& name, int32_t voice);
 
     static void concatstrings(Daedalus::DaedalusVM& vm);
     static void inttostring  (Daedalus::DaedalusVM& vm);
@@ -342,6 +360,7 @@ class WorldScript final {
     std::vector<Daedalus::GEngineClasses::C_Info*>              dialogsInfo;
     std::unique_ptr<ZenLoad::zCCSLib>                           dialogs;
     std::unordered_map<size_t,AiState>                          aiStates;
+    std::unique_ptr<AiOuputPipe>                                aiDefaultPipe;
 
     QuestLog                                                    quests;
     size_t                                                      itMi_Gold=0;
@@ -352,6 +371,7 @@ class WorldScript final {
     float                                                       viewTimePerChar=0.5;
     size_t                                                      gilCount=0;
     std::vector<int32_t>                                        gilAttitudes;
+    int                                                         aiOutOrderId=0;
 
     size_t                                                      ZS_Dead=0;
     size_t                                                      ZS_Unconscious=0;

@@ -47,9 +47,27 @@ struct WorldScript::ScopeVar final {
   Daedalus::PARSymbol&     sym;
   };
 
+
+bool WorldScript::GlobalOutput::output(Npc& npc,const std::string &text) {
+  return owner.aiOutput(npc,text);
+  }
+
+bool WorldScript::GlobalOutput::outputSvm(Npc &npc, const std::string &text, int voice) {
+  return owner.aiOutputSvm(npc,text,voice);
+  }
+
+bool WorldScript::GlobalOutput::outputOv(Npc &npc, const std::string &text, int voice) {
+  return owner.aiOutputSvm(npc,text,voice);
+  }
+
+bool WorldScript::GlobalOutput::isFinished() {
+  return true;
+  }
+
 WorldScript::WorldScript(GameSession &owner)
   :vm(owner.loadScriptCode()),owner(owner){
   Daedalus::registerGothicEngineClasses(vm);
+  aiDefaultPipe.reset(new GlobalOutput(*this));
   initCommon();
   }
 
@@ -884,13 +902,14 @@ bool WorldScript::aiUseMob(Npc &pl, const std::string &name) {
   return world().aiUseMob(pl,name);
   }
 
-bool WorldScript::aiOutput(Npc &from, Npc &/*to*/, const std::string &outputname) {
-  if(!owner.aiOutput(from,outputname.c_str()))
-    return false;
+bool WorldScript::aiOutput(Npc &npc, const std::string &outputname) {
+  char buf[256]={};
+  std::snprintf(buf,sizeof(buf),"%s.WAV",outputname.c_str());
+  npc.emitDlgSound(buf);
   return true;
   }
 
-bool WorldScript::aiOutputSvm(Npc &from, Npc &/*to*/, const std::string &outputname, int32_t voice) {
+bool WorldScript::aiOutputSvm(Npc &from, const std::string &outputname, int32_t voice) {
   char buf[256]={};
   if(outputname.size()>0 && outputname[0]=='$')
     std::snprintf(buf,sizeof(buf),"SVM_%d_%s.WAV",voice,outputname.c_str()+1); else
@@ -1083,6 +1102,16 @@ void WorldScript::removeItem(Item &it) {
 void WorldScript::setInstanceNPC(const char *name, Npc &npc) {
   assert(vm.getDATFile().hasSymbolName(name));
   vm.setInstance(name,npc.handle(),Daedalus::EInstanceClass::IC_Npc);
+  }
+
+AiOuputPipe *WorldScript::openAiOuput() {
+  return aiDefaultPipe.get();
+  }
+
+AiOuputPipe *WorldScript::openDlgOuput(Npc &player, Npc &npc) {
+  if(player.isPlayer())
+    return owner.openDlgOuput(player,npc);
+  return owner.openDlgOuput(npc,player);
   }
 
 bool WorldScript::isRamboMode() const {
@@ -2154,9 +2183,8 @@ void WorldScript::ai_processinfos(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   auto pl  = owner.player();
   if(pl!=nullptr && npc!=nullptr) {
-    npc->setOther(pl);
-    pl ->setOther(npc);
-    owner.aiProcessInfos(*pl,*npc);
+    aiOutOrderId=0;
+    npc->aiProcessInfo(*pl);
     }
   }
 
@@ -2168,8 +2196,8 @@ void WorldScript::ai_output(Daedalus::DaedalusVM &vm) {
   if(!self || !target)
     return;
 
-  owner.aiForwardOutput(*self,outputname.c_str());
-  self->aiOutput(*target,outputname);
+  self->aiOutput(*target,outputname,aiOutOrderId);
+  ++aiOutOrderId;
   }
 
 void WorldScript::ai_stopprocessinfos(Daedalus::DaedalusVM &vm) {
@@ -2226,16 +2254,20 @@ void WorldScript::ai_outputsvm(Daedalus::DaedalusVM &vm) {
   auto& name   = popString  (vm);
   auto  target = popInstance(vm);
   auto  self   = popInstance(vm);
-  if(self!=nullptr && target!=nullptr)
-    self->aiOutputSvm(*target,name);
+  if(self!=nullptr && target!=nullptr) {
+    self->aiOutputSvm(*target,name,aiOutOrderId);
+    ++aiOutOrderId;
+    }
   }
 
 void WorldScript::ai_outputsvm_overlay(Daedalus::DaedalusVM &vm) {
   auto& name   = popString  (vm);
   auto  target = popInstance(vm);
   auto  self   = popInstance(vm);
-  if(self!=nullptr && target!=nullptr)
-    self->aiOutputSvmOverlay(*target,name);
+  if(self!=nullptr && target!=nullptr) {
+    self->aiOutputSvmOverlay(*target,name,aiOutOrderId);
+    ++aiOutOrderId;
+    }
   }
 
 void WorldScript::ai_startstate(Daedalus::DaedalusVM &vm) {

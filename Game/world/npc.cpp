@@ -16,6 +16,8 @@ using namespace Tempest;
 
 Npc::Npc(World &owner, size_t instance, const char* waypoint)
   :owner(owner),mvAlgo(*this){
+  outputPipe          = owner.script().openAiOuput();
+
   hnpc.wp             = waypoint;
   hnpc.instanceSymbol = instance;
   hnpc.userPtr        = this;
@@ -24,6 +26,8 @@ Npc::Npc(World &owner, size_t instance, const char* waypoint)
 
 Npc::Npc(World &owner, Serialize &fin)
   :owner(owner),mvAlgo(*this){
+  outputPipe = owner.script().openAiOuput();
+
   hnpc.userPtr = this;
 
   load(fin,hnpc);
@@ -186,6 +190,27 @@ bool Npc::setViewPosition(const std::array<float,3> &pos) {
   z = pos[2];
   durtyTranform |= TR_Pos;
   return true;
+  }
+
+int Npc::aiOutputOrderId() const {
+  int v = std::numeric_limits<int>::max();
+  for(auto& i:aiActions)
+    if(i.i0<v && (i.act==AI_Output || i.act==AI_OutputSvm || i.act==AI_OutputSvmOverlay))
+      v = i.i0;
+  return v;
+  }
+
+bool Npc::performOutput(const Npc::AiAction &act) {
+  const int order = act.target->aiOutputOrderId();
+  if(order<act.i0)
+    return false;
+  if(act.act==AI_Output           && outputPipe->output   (*this,act.s0))
+    return true;
+  if(act.act==AI_OutputSvm        && outputPipe->outputSvm(*this,act.s0,hnpc.voice))
+    return true;
+  if(act.act==AI_OutputSvmOverlay && outputPipe->outputSvm(*this,act.s0,hnpc.voice))
+    return true;
+  return false;
   }
 
 void Npc::setDirection(float x, float /*y*/, float z) {
@@ -1262,27 +1287,30 @@ void Npc::nextAiAction(uint64_t dt) {
       invent.unequipArmour(owner.script(),*this);
       break;
     case AI_Output:
-      if(!owner.script().aiOutput(*this,*act.target,act.s0)) {
-        aiActions.push_front(std::move(act));
+    case AI_OutputSvm:
+    case AI_OutputSvmOverlay:{
+      if(performOutput(act)) {
+        if(act.act!=AI_OutputSvmOverlay)
+          startDlgAnim();
         } else {
-        startDlgAnim();
-        }
-      break;
-    case AI_OutputSvm:{
-      if(!owner.script().aiOutputSvm(*this,*act.target,act.s0,hnpc.voice)) {
         aiActions.push_front(std::move(act));
-        } else {
-        startDlgAnim();
         }
       break;
       }
-    case AI_OutputSvmOverlay:
-      if(!owner.script().aiOutputSvm(*this,*act.target,act.s0,hnpc.voice)) {
+    case AI_ProcessInfo:
+      if(auto p = owner.script().openDlgOuput(*this,*act.target)) {
+        outputPipe = p;
+        setOther(act.target);
+        act.target->setOther(this);
+        act.target->outputPipe = p;
+        } else {
         aiActions.push_front(std::move(act));
         }
       break;
     case AI_StopProcessInfo:
-      if(!owner.aiCloseDialog()) {
+      if(outputPipe->close()) {
+        outputPipe = owner.script().openAiOuput();
+        } else {
         aiActions.push_front(std::move(act));
         }
       break;
@@ -1436,11 +1464,7 @@ void Npc::setOther(Npc *ot) {
   }
 
 bool Npc::haveOutput() const {
-  for(auto& i:aiActions)
-    if(i.act==AI_Output)
-      return true;
-
-  return false;
+  return aiOutputOrderId()!=std::numeric_limits<int>::max();
   }
 
 bool Npc::doAttack(Anim anim) {
@@ -2242,27 +2266,37 @@ void Npc::aiUnEquipArmor() {
   aiActions.push_back(a);
   }
 
-void Npc::aiOutput(Npc& to,std::string text) {
+void Npc::aiProcessInfo(Npc &other) {
+  AiAction a;
+  a.act    = AI_ProcessInfo;
+  a.target = &other;
+  aiActions.push_back(a);
+  }
+
+void Npc::aiOutput(Npc& to, std::string text, int order) {
   AiAction a;
   a.act    = AI_Output;
   a.s0     = std::move(text);
   a.target = &to;
+  a.i0     = order;
   aiActions.push_back(a);
   }
 
-void Npc::aiOutputSvm(Npc &to, std::string text) {
+void Npc::aiOutputSvm(Npc &to, std::string text, int order) {
   AiAction a;
   a.act    = AI_OutputSvm;
   a.s0     = std::move(text);
   a.target = &to;
+  a.i0     = order;
   aiActions.push_back(a);
   }
 
-void Npc::aiOutputSvmOverlay(Npc &to, std::string text) {
+void Npc::aiOutputSvmOverlay(Npc &to, std::string text, int order) {
   AiAction a;
   a.act    = AI_OutputSvmOverlay;
   a.s0     = std::move(text);
   a.target = &to;
+  a.i0     = order;
   aiActions.push_back(a);
   }
 

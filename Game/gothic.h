@@ -70,10 +70,7 @@ class Gothic final {
     auto      updateDialog(const WorldScript::DlgChoise& dlg, Npc& player, Npc& npc) -> std::vector<WorldScript::DlgChoise>;
     void      dialogExec  (const WorldScript::DlgChoise& dlg, Npc& player, Npc& npc);
 
-    void      aiProcessInfos (Npc& player, Npc& npc);
-    bool      aiOuput(Npc& player, const char* msg);
-    void      aiForwardOutput(Npc& player, const char* msg);
-    bool      aiCloseDialog();
+    void      openDialogPipe (Npc& player, Npc& npc, AiOuputPipe*& pipe);
     bool      aiIsDlgFinished();
 
     auto      getFightAi(size_t i) const -> const FightAi::FA&;
@@ -85,10 +82,7 @@ class Gothic final {
     void      print      (const char* msg);
 
     Tempest::Signal<void(const std::string&)>              onStartGame;
-    Tempest::Signal<void(Npc&,Npc&)>                       onDialogProcess;
-    Tempest::Signal<void(Npc&,const char*,bool&)>          onDialogOutput;
-    Tempest::Signal<void(Npc&,const char*)>                onDialogForwardOutput;
-    Tempest::Signal<void(bool&)>                           onDialogClose;
+    Tempest::Signal<void(Npc&,Npc&,AiOuputPipe*&)>         onDialogPipe;
     Tempest::Signal<void(bool&)>                           isDialogClose;
 
     Tempest::Signal<void(const char*,int,int,int,const Tempest::Font&)> onPrintScreen;

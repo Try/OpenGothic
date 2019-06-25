@@ -293,24 +293,8 @@ void Gothic::dialogExec(const WorldScript::DlgChoise &dlg, Npc& player, Npc& npc
   game->dialogExec(dlg,player,npc);
   }
 
-void Gothic::aiProcessInfos(Npc& player,Npc &npc) {
-  onDialogProcess(player,npc);
-  }
-
-bool Gothic::aiOuput(Npc &player, const char *msg) {
-  bool ret=false;
-  onDialogOutput(player,msg,ret);
-  return ret;
-  }
-
-void Gothic::aiForwardOutput(Npc &player, const char *msg) {
-  onDialogForwardOutput(player,msg);
-  }
-
-bool Gothic::aiCloseDialog() {
-  bool ret=false;
-  onDialogClose(ret);
-  return ret;
+void Gothic::openDialogPipe(Npc &player, Npc &npc, AiOuputPipe *&pipe) {
+  onDialogPipe(player,npc,pipe);
   }
 
 bool Gothic::aiIsDlgFinished() {
