@@ -906,6 +906,7 @@ bool WorldScript::aiUseMob(Npc &pl, const std::string &name) {
 bool WorldScript::aiOutput(Npc &npc, const std::string &outputname) {
   char buf[256]={};
   std::snprintf(buf,sizeof(buf),"%s.WAV",outputname.c_str());
+  npc.setAiOutputBarrier(messageTime(outputname));
   npc.emitDlgSound(buf);
   return true;
   }

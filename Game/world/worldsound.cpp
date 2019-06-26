@@ -87,7 +87,7 @@ void WorldSound::emitSound(const char* s, float x, float y, float z, float range
     }
   }
 
-void WorldSound::emitDlgSound(const char *s, float x, float y, float z, float range) {
+void WorldSound::emitDlgSound(const char *s, float x, float y, float z, float range, uint64_t& timeLen) {
   std::lock_guard<std::mutex> guard(sync);
 
   if(isInListenerRange({x,y,z})){
@@ -101,6 +101,7 @@ void WorldSound::emitDlgSound(const char *s, float x, float y, float z, float ra
     eff.setMaxDistance(maxDist);
     eff.setRefDistance(range);
     eff.play();
+    timeLen = eff.timeLength();
     effect.emplace_back(std::move(eff));
     }
   }

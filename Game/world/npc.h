@@ -455,6 +455,7 @@ class Npc final {
     void     setOther(Npc* ot);
 
     bool     haveOutput() const;
+    void     setAiOutputBarrier(uint64_t dt);
 
     bool     doAttack(Anim anim);
     void     emitDlgSound(const char* sound);
@@ -547,7 +548,7 @@ class Npc final {
     bool                           setViewPosition(const std::array<float,3> &pos);
 
     int                            aiOutputOrderId() const;
-    bool performOutput(const AiAction &ai);
+    bool                           performOutput(const AiAction &ai);
 
     const Routine&                 currentRoutine() const;
     gtime                          endTime(const Routine& r) const;
@@ -617,6 +618,7 @@ class Npc final {
 
     // ai state
     uint64_t                       waitTime=0;
+    uint64_t                       aiOutputBarrier=0;
     ProcessPolicy                  aiPolicy=ProcessPolicy::AiNormal;
     AiState                        aiState;
     size_t                         aiPrevState=0;

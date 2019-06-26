@@ -204,6 +204,8 @@ bool Npc::performOutput(const Npc::AiAction &act) {
   const int order = act.target->aiOutputOrderId();
   if(order<act.i0)
     return false;
+  if(aiOutputBarrier>owner.tickCount() && act.target==this)
+    return false;
   if(aiPolicy>=AiFar)
     return true; // don't waste CPU on far-away svm-talks
   if(act.act==AI_Output           && outputPipe->output   (*this,act.s0))
@@ -1469,6 +1471,10 @@ bool Npc::haveOutput() const {
   return aiOutputOrderId()!=std::numeric_limits<int>::max();
   }
 
+void Npc::setAiOutputBarrier(uint64_t dt) {
+  aiOutputBarrier = owner.tickCount()+dt;
+  }
+
 bool Npc::doAttack(Anim anim) {
   auto weaponSt=invent.weaponState();
   auto weapon  =invent.activeWeapon();
@@ -1491,7 +1497,9 @@ bool Npc::doAttack(Anim anim) {
   }
 
 void Npc::emitDlgSound(const char *sound) {
-  owner.emitDlgSound(sound,x,y+180,z,WorldSound::talkRange);
+  uint64_t dt=0;
+  owner.emitDlgSound(sound,x,y+180,z,WorldSound::talkRange,dt);
+  setAiOutputBarrier(dt);
   }
 
 void Npc::emitSoundEffect(const char *sound, float range, bool freeSlot) {
@@ -1901,7 +1909,7 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
     }
   if(nearestEnemy!=nullptr){
     float dist=qDistTo(*nearestEnemy);
-    if(perceptionProcess(*nearestEnemy,nullptr,dist,PERC_ASSESSENEMY)){
+    if(!nearestEnemy->isDown() && perceptionProcess(*nearestEnemy,nullptr,dist,PERC_ASSESSENEMY)){
       /*
       if(isTalk())
         Log::e("unxepected perc acton"); else
