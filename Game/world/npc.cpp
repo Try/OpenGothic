@@ -1314,6 +1314,8 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_StopProcessInfo:
       if(outputPipe->close()) {
         outputPipe = owner.script().openAiOuput();
+        if(currentOther!=nullptr)
+          currentOther->outputPipe = owner.script().openAiOuput();
         } else {
         aiActions.push_front(std::move(act));
         }
