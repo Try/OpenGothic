@@ -204,7 +204,7 @@ bool Npc::performOutput(const Npc::AiAction &act) {
   const int order = act.target->aiOutputOrderId();
   if(order<act.i0)
     return false;
-  if(aiOutputBarrier>owner.tickCount() && act.target==this)
+  if(aiOutputBarrier>owner.tickCount() && act.target==this && !isPlayer())
     return false;
   if(aiPolicy>=AiFar)
     return true; // don't waste CPU on far-away svm-talks
