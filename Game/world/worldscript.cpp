@@ -392,21 +392,13 @@ void WorldScript::initDialogs(Gothic& gothic) {
   vm.getDATFile().iterateSymbolsOfClass("C_Info", [&count](size_t,Daedalus::PARSymbol&){
     ++count;
     });
-  dialogStorage.reset(new Daedalus::GEngineClasses::C_Info[count]);
   dialogsInfo.resize(count);
 
   count=0;
   vm.getDATFile().iterateSymbolsOfClass("C_Info", [this,&count](size_t i,Daedalus::PARSymbol&){
-    Daedalus::GEngineClasses::C_Info& h = dialogStorage[count];
+    Daedalus::GEngineClasses::C_Info& h = dialogsInfo[count];
     vm.initializeInstance(&h, i, Daedalus::IC_Info);
     ++count;
-    });
-
-  for(size_t i=0;i<count;++i)
-    dialogsInfo[i] = &dialogStorage[i];
-  std::sort(dialogsInfo.begin(),dialogsInfo.end(),[](Daedalus::GEngineClasses::C_Info* l,
-                                                     Daedalus::GEngineClasses::C_Info* r){
-    return l->npc<r->npc;
     });
   }
 
@@ -653,8 +645,8 @@ std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GEngine
 
   std::vector<Daedalus::GEngineClasses::C_Info*> hDialog;
   for(auto& info : dialogsInfo) {
-    if(info->npc==int32_t(npc.instanceSymbol)) {
-      hDialog.push_back(info);
+    if(info.npc==int32_t(npc.instanceSymbol)) {
+      hDialog.push_back(&info);
       }
     }
 
@@ -1986,17 +1978,7 @@ void WorldScript::npc_checkinfo(Daedalus::DaedalusVM &vm) {
   auto& pl   = *(hnpc);
   auto& npc  = *(n->handle());
 
-  auto s = std::lower_bound(dialogsInfo.begin(),dialogsInfo.end(),int32_t(npc.instanceSymbol),
-                            [](Daedalus::GEngineClasses::C_Info* info,int32_t npc){
-      return info->npc<npc;
-      });
-  auto e = std::upper_bound(dialogsInfo.begin(),dialogsInfo.end(),int32_t(npc.instanceSymbol),
-                            [](int32_t npc,Daedalus::GEngineClasses::C_Info* info){
-      return npc<info->npc;
-      });
-
-  for(auto i=s;i!=e;++i) {
-    Daedalus::GEngineClasses::C_Info& info = **i;
+  for(auto& info:dialogsInfo) {
     if(info.npc!=int32_t(npc.instanceSymbol) || info.important!=imp)
       continue;
     bool npcKnowsInfo = doesNpcKnowInfo(pl,info.instanceSymbol);
