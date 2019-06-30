@@ -94,6 +94,7 @@ class WorldObjects final {
     SpaceIndex<std::unique_ptr<Item>>  itemArr;
 
     std::vector<std::unique_ptr<Npc>>  npcArr;
+    std::vector<std::unique_ptr<Npc>>  npcInvalid;
     std::vector<Npc*>                  npcNear;
 
     std::vector<Trigger>               triggers;

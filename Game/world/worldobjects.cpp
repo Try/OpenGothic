@@ -437,8 +437,18 @@ void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t p
   }
 
 void WorldObjects::resetPositionToTA() {
-  for(auto& i:npcArr)
-    i->resetPositionToTA();
+  for(size_t i=0;i<npcArr.size();)
+    if(npcArr[i]->resetPositionToTA()){
+      ++i;
+      } else {
+      npcInvalid.emplace_back(std::move(npcArr[i]));
+      npcArr.erase(npcArr.begin()+int(i));
+
+      auto& npc = *npcInvalid.back();
+      npc.attachToPoint(nullptr);
+      npc.setPosition(-1000,-1000,-1000); // FIXME
+      npc.updateTransform();
+      }
   }
 
 template<class T>
