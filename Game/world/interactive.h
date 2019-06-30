@@ -56,6 +56,7 @@ class Interactive final {
       std::string        name;
       size_t             node=0;
       Tempest::Matrix4x4 pos;
+      bool               isAttachPoint() const;
       };
 
     void setPos(Npc& npc,std::array<float,3> pos);
@@ -65,6 +66,8 @@ class Interactive final {
 
     const Pos* findFreePos() const;
     Pos*       findFreePos();
+    auto       worldPos(const Pos &to) const -> std::array<float,3>;
+    float      qDistanceTo(const Npc &npc, const Pos &to);
 
     World*             world = nullptr;
     ZenLoad::zCVobData data;

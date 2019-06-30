@@ -178,23 +178,30 @@ void Interactive::implAddItem(char *name) {
   }
 
 const Interactive::Pos *Interactive::findFreePos() const {
-  for(auto& i:pos) {
-    if(i.user==nullptr && (i.name=="ZS_POS0" || i.name=="ZS_POS0_FRONT" || i.name=="ZS_POS1_BACK" ||
-                           i.name=="ZS_POS0_DIST")) {
+  for(auto& i:pos)
+    if(i.user==nullptr && i.isAttachPoint()) {
       return &i;
       }
-    }
   return nullptr;
   }
 
 Interactive::Pos *Interactive::findFreePos() {
-  for(auto& i:pos) {
-    if(i.user==nullptr && (i.name=="ZS_POS0" || i.name=="ZS_POS0_FRONT" || i.name=="ZS_POS1_BACK" ||
-                           i.name=="ZS_POS0_DIST")) {
+  for(auto& i:pos)
+    if(i.user==nullptr && i.isAttachPoint()) {
       return &i;
       }
-    }
   return nullptr;
+  }
+
+std::array<float,3> Interactive::worldPos(const Interactive::Pos &to) const {
+  auto mat = objMat;
+  auto pos = mesh->mapToRoot(to.node);
+  mat.mul(pos);
+
+  float x=0, y=0, z=0;
+
+  mat.project(x,y,z);
+  return {x,y,z};
   }
 
 bool Interactive::isAvailable() const {
@@ -202,7 +209,19 @@ bool Interactive::isAvailable() const {
   }
 
 bool Interactive::attach(Npc &npc) {
-  if(auto p=findFreePos()){
+  float dist = 0;
+  Pos*  p    = nullptr;
+  for(auto& i:pos){
+    if(i.user || !i.isAttachPoint())
+      continue;
+    float d = qDistanceTo(npc,i);
+    if(d<dist || p==nullptr) {
+      p    = &i;
+      dist = d;
+      }
+    }
+
+  if(p!=nullptr){
     attach(npc,*p);
     return true;
     }
@@ -245,9 +264,13 @@ void Interactive::attach(Npc &npc, Interactive::Pos &to) {
   setPos(npc,{x,y-npc.translateY(),z});
 
   setDir(npc,mat);
-  npc.setInteraction(this);
-
+  //npc.setInteraction(this);
   state = -1;
+  }
+
+float Interactive::qDistanceTo(const Npc &npc, const Interactive::Pos &to) {
+  auto p = worldPos(to);
+  return npc.qDistTo(p[0],p[1]-npc.translateY(),p[2]);
   }
 
 void Interactive::nextState() {
@@ -362,4 +385,11 @@ void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x
 
     p.drawRect(int(x),int(y),1,1);
     }
+  }
+
+bool Interactive::Pos::isAttachPoint() const {
+  return name=="ZS_POS0" || name=="ZS_POS0_FRONT" || name=="ZS_POS0_DIST" ||
+         name=="ZS_POS1" || name=="ZS_POS1_BACK" ||
+         name=="ZS_POS2" ||
+         name=="ZS_POS3";
   }
