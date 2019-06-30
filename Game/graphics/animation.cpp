@@ -3,6 +3,7 @@
 #include <Tempest/Log>
 
 #include <zenload/modelAnimationParser.h>
+#include <zenload/zCModelPrototype.h>
 #include <zenload/zenParser.h>
 
 #include "resources.h"
@@ -35,6 +36,8 @@ Animation::Animation(ZenLoad::ModelScriptParser &p,const std::string& name,const
         ani.lastFrame  = uint32_t(p.ani().m_LastFrame);
         if(ani.nextStr==ani.name)
           ani.animCls=Loop;
+        if(ani.name=="S_2HATTACK")
+          Log::i("");
         break;
         }
 
@@ -73,12 +76,32 @@ Animation::Animation(ZenLoad::ModelScriptParser &p,const std::string& name,const
         p.pfxStop().clear();
         break;
         }
+      case ZenLoad::ModelScriptParser::CHUNK_EVENT_TAG: {
+        if(current){
+          if(current->events.size()==0) {
+            current->events = std::move(p.event());
+            } else {
+            current->events.insert(current->events.end(), p.event().begin(), p.event().end());
+            p.event().clear();
+            }
+          }
+        break;
+        }
+      case ZenLoad::ModelScriptParser::CHUNK_MESH_AND_TREE:
+      case ZenLoad::ModelScriptParser::CHUNK_REGISTER_MESH:
+        break;
       case ZenLoad::ModelScriptParser::CHUNK_ERROR:
         if(!ignoreErrChunks)
           throw std::runtime_error("animation load error");
-      default:
-        // Log::d("not implemented anim tag");
         break;
+      default:{
+        static std::unordered_set<int> v;
+        if(v.find(type)==v.end()){
+          Log::d("not implemented anim chunk: ",int(type));
+          v.insert(type);
+          }
+        break;
+        }
       }
     }
   }
@@ -106,6 +129,18 @@ Animation::Sequence& Animation::loadMAN(const std::string& name) {
 void Animation::setupIndex() {
   // for(auto& i:sequences)
   //   Log::i(i.name);
+  for(auto& sq:sequences) {
+    if(sq.fpsRate<=0.f)
+      continue;
+    for(auto& r:sq.events)
+      if(r.m_Def==ZenLoad::DEF_HIT_END){
+        auto& w = r.m_Int;
+        sq.defHitEnd.resize(w.size());
+        for(size_t i=0;i<w.size();++i){
+          sq.defHitEnd[i] = uint64_t(w[i]*1000/sq.fpsRate);
+          }
+        }
+    }
 
   std::sort(sequences.begin(),sequences.end(),[](const Sequence& a,const Sequence& b){
     return a.name<b.name;
@@ -168,6 +203,13 @@ Animation::Sequence::Sequence(const std::string &name) {
 
 bool Animation::Sequence::isFinished(uint64_t t) const {
   return t>=totalTime();
+  }
+
+bool Animation::Sequence::isAtackFinished(uint64_t t) const {
+  for(auto& i:defHitEnd)
+    if(t>i)
+      return true;
+  return t>=totalTime();// || t>=1000;
   }
 
 float Animation::Sequence::totalTime() const {

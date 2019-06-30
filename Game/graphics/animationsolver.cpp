@@ -113,7 +113,7 @@ bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState nextSt,Weapo
         !(current==Move && a==Jump)) && // allow to jump at any point of run animation
        !animSq.isFinished(tickCount-sAnim))
       return false;
-    if(current==Atack && !animSq.isFinished(tickCount-sAnim) && tickCount-sAnim<1000)
+    if(current==Atack && !animSq.isAtackFinished(tickCount-sAnim))
       return false;
     if(MagFirst<=current && current<=MagLast && !animSq.isFinished(tickCount-sAnim))
       return false;

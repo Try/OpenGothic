@@ -931,7 +931,7 @@ bool Npc::implAtack(uint64_t dt) {
     return false;
 
   auto ani = anim();
-  if((ani==Anim::Atack || ani==Anim::AtackBlock) && !animation.animSq.isFinished(owner.tickCount()-animation.sAnim))
+  if((ani==Anim::Atack || ani==Anim::AtackBlock) && !animation.animSq.isAtackFinished(owner.tickCount()-animation.sAnim))
     return true;
 
   if(implLookAt(*currentTarget,dt))

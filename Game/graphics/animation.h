@@ -25,6 +25,7 @@ class Animation final {
       bool                                   isMove() const { return bool(flags&Flags::Move); }
       bool                                   isFly()  const { return bool(flags&Flags::Fly);  }
       bool                                   isFinished(uint64_t t) const;
+      bool                                   isAtackFinished(uint64_t t) const;
       float                                  totalTime() const;
 
       std::string                            name;
@@ -48,6 +49,8 @@ class Animation final {
 
       std::vector<ZenLoad::zCModelScriptEventSfx> sfx, gfx;
       std::vector<ZenLoad::zCModelScriptEventTag> tag;
+      std::vector<ZenLoad::zCModelEvent>          events;
+      std::vector<uint64_t>                       defHitEnd;
 
       ZMath::float3                          translation(uint64_t dt) const;
       ZMath::float3                          speed(uint64_t at, uint64_t dt) const;

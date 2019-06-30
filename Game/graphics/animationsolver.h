@@ -149,6 +149,7 @@ class AnimationSolver final {
       const char* name() const { return l1->name.c_str(); }
 
       bool  isFinished(uint64_t t) const { return l1->isFinished(t); }
+      bool  isAtackFinished(uint64_t t) const { return l1->isAtackFinished(t); }
       float totalTime() const { return l1->totalTime(); }
       bool  isFly() const { return l1->isFly(); }
 
