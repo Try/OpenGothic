@@ -240,9 +240,9 @@ float Npc::angleDir(float x, float z) {
   return a;
   }
 
-void Npc::resetPositionToTA() {
+bool Npc::resetPositionToTA() {
   if(routines.size()==0 || isDead())
-    return;
+    return !isDead();
 
   attachToPoint(nullptr);
   setInteraction(nullptr);
@@ -276,7 +276,7 @@ void Npc::resetPositionToTA() {
         }
       }
     if(at==nullptr)
-      return;
+      return false;
     }
 
   if(at->isLocked()){
@@ -287,6 +287,7 @@ void Npc::resetPositionToTA() {
   setPosition (at->x, at->y, at->z);
   setDirection(at->dirX,at->dirY,at->dirZ);
   attachToPoint(at);
+  return true;
   }
 
 void Npc::startDlgAnim() {

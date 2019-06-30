@@ -216,7 +216,7 @@ class Npc final {
     void setDirection(float rotation);
     void clearSpeed();
     static float angleDir(float x,float z);
-    void resetPositionToTA();
+    bool resetPositionToTA();
 
     void startDlgAnim();
     void stopDlgAnim();
