@@ -167,9 +167,9 @@ Item* Inventory::addItem(std::unique_ptr<Item> &&p) {
   }
 
 void Inventory::addItem(const char *name, uint32_t count, World &owner) {
-  auto& vm = owner.script();
+  auto&  vm = owner.script();
   size_t id = vm.getSymbolIndex(name);
-  if(id>0)
+  if(id!=size_t(-1))
     addItem(id,count,owner);
   }
 

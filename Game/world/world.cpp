@@ -335,7 +335,7 @@ bool World::aiUseMob(Npc &pl, const std::string &name) {
 
 Npc *World::addNpc(const char *name, const char *at) {
   size_t id = script().getSymbolIndex(name);
-  if(id==0)
+  if(id==size_t(-1))
     return nullptr;
   return wobj.addNpc(id,at);
   }
