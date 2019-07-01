@@ -112,8 +112,8 @@ void DialogMenu::drawTextMultiline(Painter &p, int x, int y, int w, int h, const
       auto txt = other->displayName();
       auto sz  = p.font().textSize(txt);
       p.drawText(x+(w-sz.w)/2,y,txt);
-      y+=int(p.font().pixelSize());
-      h-=int(p.font().pixelSize());
+      y+=int(sz.h);
+      h-=int(sz.h);
       }
     p.setBrush(Color(0.81f,0.78f,0.01f));
     p.drawText(x+pdd, y+pdd,
@@ -452,15 +452,20 @@ void DialogMenu::keyDownEvent(KeyEvent &e) {
 
   if(e.key==Event::K_Return){
     onSelect();
+    return;
     }
-  if(e.key==Event::K_W){
-    dlgSel--;
+  if(e.key==Event::K_W || e.key==Event::K_S || e.key==Event::K_ESCAPE){
+    if(e.key==Event::K_W){
+      dlgSel--;
+      }
+    if(e.key==Event::K_S){
+      dlgSel++;
+      }
+    dlgSel = (dlgSel+choise.size())%std::max<size_t>(choise.size(),1);
+    update();
+    return;
     }
-  if(e.key==Event::K_S){
-    dlgSel++;
-    }
-  dlgSel = (dlgSel+choise.size())%std::max<size_t>(choise.size(),1);
-  update();
+  e.ignore();
   }
 
 void DialogMenu::keyUpEvent(KeyEvent &event) {

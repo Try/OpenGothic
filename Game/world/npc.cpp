@@ -253,7 +253,7 @@ bool Npc::resetPositionToTA() {
   auto  at  = rot.point;
 
   if(at==nullptr) {
-    auto    time = owner.time();
+    auto time = owner.time();
     time = gtime(int32_t(time.hour()),int32_t(time.minute()));
     int64_t delta=std::numeric_limits<int64_t>::max();
 
@@ -1324,7 +1324,7 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_ContinueRoutine:{
       auto& r = currentRoutine();
       auto  t = endTime(r);
-      startState(r.callback,"",t,false);
+      startState(r.callback,r.point ? r.point->name : "",t,false);
       break;
       }
     case AI_AlignToWp:
@@ -1396,12 +1396,12 @@ void Npc::clearState(bool noFinalize) {
 
 void Npc::tickRoutine() {
   if(aiState.funcIni==0 && !isPlayer()) {
-    auto  r = currentRoutine();
+    auto r = currentRoutine();
     if(r.callback!=0) {
       if(r.point!=nullptr)
         hnpc.wp = r.point->name;
       auto t = endTime(r);
-      startState(r.callback,"",t,false);
+      startState(r.callback,r.point ? r.point->name : "",t,false);
       }
     else if(hnpc.start_aistate!=0) {
       startState(hnpc.start_aistate,"");
@@ -1419,8 +1419,11 @@ void Npc::tickRoutine() {
     if(aiState.loopNextTime<=owner.tickCount()){
       aiState.loopNextTime+=1000; // one tick per second?
       int loop = owner.script().invokeState(this,currentOther,nullptr,aiState.funcLoop);
-      if(aiState.eTime<=owner.time())
-        loop=1;
+      if(aiState.eTime<=owner.time()) {
+        if(!isTalk()) {
+          loop=1; // have to hack ZS_Talk bugs
+          }
+        }
       if(loop!=0){
         owner.script().invokeState(this,currentOther,nullptr,aiState.funcEnd);
         if(atackMode) {
@@ -1896,7 +1899,7 @@ void Npc::startDialog(Npc& pl) {
   }
 
 bool Npc::perceptionProcess(Npc &pl,float quadDist) {
-  static bool disable=false;
+  static bool disable=true;
   if(disable)
     return false;
 
