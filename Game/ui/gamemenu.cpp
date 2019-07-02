@@ -22,7 +22,7 @@ GameMenu::GameMenu(MenuRoot &owner, Gothic &gothic, const char* menuSection)
   vm = gothic.createVm(u"_work/Data/Scripts/_compiled/MENU.DAT");
 
   Daedalus::DATFile& dat=vm->getDATFile();
-  vm->initializeInstance(&menu,
+  vm->initializeInstance(menu,
                          dat.getSymbolIndexByName(menuSection),
                          Daedalus::IC_Menu);
   back = Resources::loadTexture(menu.backPic);
@@ -59,7 +59,7 @@ void GameMenu::initItems() {
       continue;
 
     hItems[i].name = menu.items[i];
-    vm->initializeInstance(&hItems[i].handle,
+    vm->initializeInstance(hItems[i].handle,
                            vm->getDATFile().getSymbolIndexByName(hItems[i].name.c_str()),
                            Daedalus::IC_MenuItem);
     hItems[i].img = Resources::loadTexture(hItems[i].handle.backPic);

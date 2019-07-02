@@ -27,7 +27,7 @@ Daedalus::GEngineClasses::C_FightAI FightAi::loadAi(Daedalus::DaedalusVM& vm,con
   auto id = vm.getDATFile().getSymbolIndexByName(name);
   if(id==size_t(-1))
     return ret;
-  vm.initializeInstance(&ret, id, Daedalus::IC_FightAi);
+  vm.initializeInstance(ret, id, Daedalus::IC_FightAi);
   return ret;
   }
 

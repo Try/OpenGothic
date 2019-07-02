@@ -16,7 +16,7 @@ const std::string &SvmDefinitions::find(const char *speech, const int intId) {
       svm.resize(id+1);
     if(svm[id].instanceSymbol==0){
       size_t i = vm.getDATFile().getSymbolIndexByName(name);
-      vm.initializeInstance(&svm[id], i, Daedalus::IC_Svm);
+      vm.initializeInstance(svm[id], i, Daedalus::IC_Svm);
       }
 
     std::snprintf(name,sizeof(name),"C_SVM.%s",speech+1);

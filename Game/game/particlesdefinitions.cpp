@@ -6,7 +6,7 @@
 using namespace Tempest;
 
 ParticlesDefinitions::ParticlesDefinitions(Gothic& gothic) {
-  vm = gothic.createVm(u"_work/Data/Scripts/_compiled/Music.dat");
+  vm = gothic.createVm(u"_work/Data/Scripts/_compiled/PARTICLEFX.dat");
   }
 
 const Daedalus::GEngineClasses::C_ParticleFX &ParticlesDefinitions::get(const char *name) {
@@ -19,6 +19,6 @@ const Daedalus::GEngineClasses::C_ParticleFX &ParticlesDefinitions::get(const ch
     return ret;
     }
 
-  vm->initializeInstance(&mm, id, Daedalus::IC_Pfx);
-  return mm;
+  vm->initializeInstance(pfx, id, Daedalus::IC_Pfx);
+  return pfx;
   }

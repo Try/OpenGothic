@@ -18,6 +18,6 @@ Daedalus::GEngineClasses::CCamSys CameraDefinitions::loadCam(Daedalus::DaedalusV
   auto id = vm.getDATFile().getSymbolIndexByName(name);
   if(id==size_t(-1))
     return ret;
-  vm.initializeInstance(&ret, id, Daedalus::IC_CamSys);
+  vm.initializeInstance(ret, id, Daedalus::IC_CamSys);
   return ret;
   }

@@ -13,7 +13,7 @@ SpellDefinitions::SpellDefinitions(Daedalus::DaedalusVM &vm) {
   spl.resize(count);
   count=0;
   vm.getDATFile().iterateSymbolsOfClass("C_Spell", [&](size_t i,Daedalus::PARSymbol& p){
-    vm.initializeInstance(&spl[count], i, Daedalus::IC_Spell);
+    vm.initializeInstance(spl[count], i, Daedalus::IC_Spell);
     spl[count].instName = p.name;
     ++count;
     });

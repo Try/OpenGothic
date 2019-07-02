@@ -13,5 +13,5 @@ class ParticlesDefinitions final {
 
   private:
     std::unique_ptr<Daedalus::DaedalusVM>  vm;
-    Daedalus::GEngineClasses::C_ParticleFX mm;
+    Daedalus::GEngineClasses::C_ParticleFX pfx;
   };

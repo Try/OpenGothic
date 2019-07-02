@@ -19,6 +19,6 @@ const Daedalus::GEngineClasses::C_MusicTheme &MusicDefinitions::get(const char *
     return ret;
     }
 
-  vm->initializeInstance(&mm, id, Daedalus::IC_MusicTheme);
+  vm->initializeInstance(mm, id, Daedalus::IC_MusicTheme);
   return mm;
   }

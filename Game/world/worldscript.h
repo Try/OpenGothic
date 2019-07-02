@@ -78,7 +78,6 @@ class WorldScript final {
     const Daedalus::GEngineClasses::C_GilValues&      guildVal()   const { return cGuildVal;   }
     const FightAi::FA&                                getFightAi(size_t i) const;
 
-    Daedalus::GameState::DaedalusGameState&           getGameState();
     Daedalus::PARSymbol&                              getSymbol(const char*  s);
     Daedalus::PARSymbol&                              getSymbol(const size_t s);
     size_t                                            getSymbolIndex(const char* s);

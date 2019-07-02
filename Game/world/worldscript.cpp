@@ -41,10 +41,10 @@ struct WorldScript::ScopeVar final {
     sym.instanceDataClass  = cls;
     }
 
-  void*                    handle=nullptr;
-  Daedalus::EInstanceClass cls   =Daedalus::IC_None;
-  Daedalus::DaedalusVM&    vm;
-  Daedalus::PARSymbol&     sym;
+  Daedalus::GEngineClasses::Instance* handle=nullptr;
+  Daedalus::EInstanceClass            cls   =Daedalus::IC_None;
+  Daedalus::DaedalusVM&               vm;
+  Daedalus::PARSymbol&                sym;
   };
 
 
@@ -312,7 +312,7 @@ void WorldScript::initCommon() {
     itMi_Gold      = dat.getSymbolIndexByName(currency.getString(0).c_str());
     if(itMi_Gold!=size_t(-1)){ // FIXME
       Daedalus::GEngineClasses::C_Item item={};
-      vm.initializeInstance(&item, itMi_Gold, Daedalus::IC_Item);
+      vm.initializeInstance(item, itMi_Gold, Daedalus::IC_Item);
       goldTxt = cp1251::toUtf8(item.name);
       }
     auto& tradeMul = dat.getSymbolByName("TRADE_VALUE_MULTIPLIER");
@@ -343,7 +343,7 @@ void WorldScript::initCommon() {
 
   auto id = dat.getSymbolIndexByName("Gil_Values");
   if(id!=size_t(-1)){
-    vm.initializeInstance(&cGuildVal, id, Daedalus::IC_GilValues);
+    vm.initializeInstance(cGuildVal, id, Daedalus::IC_GilValues);
     for(size_t i=0;i<Guild::GIL_PUBLIC;++i){
       cGuildVal.water_depth_knee   [i]=cGuildVal.water_depth_knee   [Guild::GIL_HUMAN];
       cGuildVal.water_depth_chest  [i]=cGuildVal.water_depth_chest  [Guild::GIL_HUMAN];
@@ -397,7 +397,7 @@ void WorldScript::initDialogs(Gothic& gothic) {
   count=0;
   vm.getDATFile().iterateSymbolsOfClass("C_Info", [this,&count](size_t i,Daedalus::PARSymbol&){
     Daedalus::GEngineClasses::C_Info& h = dialogsInfo[count];
-    vm.initializeInstance(&h, i, Daedalus::IC_Info);
+    vm.initializeInstance(h, i, Daedalus::IC_Info);
     ++count;
     });
   }
@@ -432,7 +432,7 @@ void WorldScript::initializeInstance(Daedalus::GEngineClasses::C_Npc &n, size_t 
   auto& s = vm.getDATFile().getSymbolByIndex(instance);
   s.instanceDataHandle = &n;
   s.instanceDataClass  = Daedalus::IC_Npc;
-  vm.initializeInstance(&n,instance,Daedalus::IC_Npc);
+  vm.initializeInstance(n,instance,Daedalus::IC_Npc);
 
   if(n.daily_routine!=0) {
     ScopeVar self(vm,vm.globalSelf(),&n,Daedalus::IC_Npc);
@@ -441,7 +441,7 @@ void WorldScript::initializeInstance(Daedalus::GEngineClasses::C_Npc &n, size_t 
   }
 
 void WorldScript::initializeInstance(Daedalus::GEngineClasses::C_Item &it,size_t instance) {
-  vm.initializeInstance(&it,instance,Daedalus::IC_Item);
+  vm.initializeInstance(it,instance,Daedalus::IC_Item);
   }
 
 void WorldScript::save(Serialize &fout) {
@@ -585,7 +585,7 @@ Daedalus::GEngineClasses::C_Focus WorldScript::getFocus(const char *name) {
   auto id = vm.getDATFile().getSymbolIndexByName(name);
   if(id==size_t(-1))
     return ret;
-  vm.initializeInstance(&ret, id, Daedalus::IC_Focus);
+  vm.initializeInstance(ret, id, Daedalus::IC_Focus);
   return ret;
   }
 
@@ -598,10 +598,6 @@ void WorldScript::storeItem(Item *itm) {
     s.instanceDataHandle = nullptr;
     s.instanceDataClass  = Daedalus::IC_Item;
     }
-  }
-
-DaedalusGameState &WorldScript::getGameState() {
-  return vm.getGameState();
   }
 
 Daedalus::PARSymbol &WorldScript::getSymbol(const char *s) {
@@ -807,11 +803,8 @@ int WorldScript::invokeState(Npc* npc, Npc* oth, Npc* vic, size_t fn) {
   if(vm.globalOther().instanceDataClass==Daedalus::IC_Npc){
     auto oth2 = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(vm.globalOther().instanceDataHandle);
     if(oth2!=oth->handle()) {
-      static bool once=true;
-      if(once){
-        Log::d("TODO: mutale other");
-        once=false;
-        }
+      Npc* other = getNpc(oth2);
+      npc->setOther(other);
       }
     }
   return ret;
