@@ -740,7 +740,7 @@ AI_OutputSVM(self,self,"$SMALLTALK01");
   Not recomended to use in original Gothic.
 
 * `func void AI_ContinueRoutine(var C_Npc npc)`  
-  Extra kick after Npc_ExchangeRoutine.
+  'npc' returns back to his dayly routine.
 
 * `func void AI_ReadySpell(var C_Npc npc, var int spellID, var int investMana)`  
   'npc' draw a spell with specified 'spellId'.
