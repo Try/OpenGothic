@@ -281,7 +281,7 @@ void Interactive::prevState() {
   state = std::max(-1,state-1);
   }
 
-AnimationSolver::Sequence Interactive::anim(const AnimationSolver &solver, Anim t) const {
+AnimationSolver::Sequence Interactive::anim(const AnimationSolver &solver, Anim t) {
   int         st[]     = {state,state+t};
   char        ss[2][8] = {};
   const char* tag      = "";
@@ -360,7 +360,8 @@ AnimationSolver::Sequence Interactive::anim(const AnimationSolver &solver, Anim 
     Tempest::Log::i("unable to recognize mobsi{",data.oCMOB.focusName,", ",data.visual,"}");
     }
 
-  if(st[0]==st[1])
+  loopState = (st[0]==st[1]);
+  if(loopState)
     std::snprintf(buf,sizeof(buf),"S_%s_%s",tag,ss[0]); else
     std::snprintf(buf,sizeof(buf),"T_%s_%s_2_%s",tag,ss[0],ss[1]);
   return solver.animSequence(buf);

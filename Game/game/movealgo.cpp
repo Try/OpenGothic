@@ -25,7 +25,7 @@ void MoveAlgo::tick(uint64_t dt) {
     }
 
   if(npc.interactive()!=nullptr){
-    if(npc.anim()==AnimationSolver::Interact){
+    if(npc.anim()==AnimationSolver::Interact && !npc.interactive()->isLoopState()){
       applyRotation(aniSpeed,dpos);
       auto pos = npc.position();
       pos[0]+=aniSpeed[0];

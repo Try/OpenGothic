@@ -294,6 +294,7 @@ void Npc::startDlgAnim() {
   if(weaponState()!=WeaponState::NoWeapon)
     return;
   auto ani = std::rand()%10+Anim::Dialog1;
+  animation.lastIdle = Anim::Idle;
   setAnim(Anim(ani));
   }
 

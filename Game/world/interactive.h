@@ -40,12 +40,13 @@ class Interactive final {
     uint32_t            stateMask(uint32_t orig) const;
 
     bool isAvailable() const;
+    bool isLoopState() const { return loopState; }
     bool attach (Npc& npc);
     void dettach(Npc& npc);
 
     void nextState();
     void prevState();
-    auto anim(const AnimationSolver &solver, Anim t) const -> AnimationSolver::Sequence;
+    auto anim(const AnimationSolver &solver, Anim t) -> AnimationSolver::Sequence;
     void marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
     Tempest::Matrix4x4     objMat;
@@ -73,6 +74,7 @@ class Interactive final {
     ZenLoad::zCVobData data;
     Inventory          invent;
     int                state=0;
+    bool               loopState=false;
 
     std::vector<Pos>         pos;
     const ProtoMesh*         mesh = nullptr;
