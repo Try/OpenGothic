@@ -309,6 +309,8 @@ class Npc final {
     void      setAttitude(Attitude att);
     Attitude  attitude() const { return permAttitude; }
 
+    bool      isFriend() const;
+
     void      setTempAttitude(Attitude att);
     Attitude  tempAttitude() const { return tmpAttitude; }
 

@@ -969,13 +969,17 @@ Attitude WorldScript::guildAttitude(const Npc &p0, const Npc &p1) const {
   }
 
 Attitude WorldScript::personAttitude(const Npc &p0, const Npc &p1) const {
+  if(!p0.isPlayer() && p1.isPlayer())
+    return guildAttitude(p0,p1);
+
   Attitude att=ATT_NULL;
-  if(p0.isPlayer())
-    att = p1.attitude();
-  if(p1.isPlayer())
-    att = p0.attitude();
-  if(att==ATT_NULL)
-    att = guildAttitude(p0,p1);
+  const Npc& npc = p0.isPlayer() ? p1 : p0;
+  att = npc.attitude();
+  if(att!=ATT_NULL)
+    return att;
+  if(npc.isFriend())
+    return ATT_FRIENDLY;
+  att = guildAttitude(p0,p1);
   return att;
   }
 

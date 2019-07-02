@@ -76,7 +76,7 @@ void Npc::save(Serialize &fout) {
 
 void Npc::save(Serialize &fout, Daedalus::GEngineClasses::C_Npc &h) const {
   fout.write(h.instanceSymbol);
-  fout.write(h.id,h.name,h.slot,h.effect,h.npcType);
+  fout.write(h.id,h.name,h.slot,h.effect,int32_t(h.npcType));
   save(fout,h.flags);
   fout.write(h.attribute,h.hitChance,h.protection,h.damage);
   fout.write(h.damagetype,h.guild,h.level);
@@ -91,7 +91,7 @@ void Npc::save(Serialize &fout, Daedalus::GEngineClasses::C_Npc &h) const {
 void Npc::load(Serialize &fin, Daedalus::GEngineClasses::C_Npc &h) {
   fin.read(h.instanceSymbol);
   owner.script().initializeInstance(h,h.instanceSymbol);
-  fin.read(h.id,h.name,h.slot,h.effect,h.npcType);
+  fin.read(h.id,h.name,h.slot,h.effect, reinterpret_cast<int32_t&>(h.npcType));
   load(fin,h.flags);
   fin.read(h.attribute,h.hitChance,h.protection,h.damage);
   fin.read(h.damagetype,h.guild,h.level);
@@ -805,12 +805,16 @@ void Npc::setAttitude(Attitude att) {
   permAttitude = att;
   }
 
+bool Npc::isFriend() const {
+  return hnpc.npcType==Daedalus::GEngineClasses::ENPCType::NPCTYPE_FRIEND;
+  }
+
 void Npc::setTempAttitude(Attitude att) {
   tmpAttitude = att;
   }
 
 bool Npc::implLookAt(uint64_t dt) {
-  if(currentLookAt!=nullptr) {
+  if(currentLookAt!=nullptr && interactive()==nullptr) {
     if(implLookAt(*currentLookAt,dt))
       return true;
     currentLookAt=nullptr;
@@ -1095,6 +1099,9 @@ void Npc::tick(uint64_t dt) {
     tickRoutine(); // tick for ZS_Death
     return;
     }
+
+  if(hnpc.id==468)
+    Log::i("");
 
   if(fghWaitToDamage<owner.tickCount())
     commitDamage();
@@ -1988,11 +1995,13 @@ void Npc::addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint *point)
   }
 
 void Npc::excRoutine(uint32_t callback) {
-  //clearState(true);
-  aiState.funcEnd=0; // no cleanup
+  //aiState.funcEnd=0; // no cleanup
 
   routines.clear();
   owner.script().invokeState(this,currentOther,nullptr,callback);
+  aiState.eTime = gtime();
+  //setInteraction(nullptr);
+  //aiContinueRoutine();
   }
 
 void Npc::multSpeed(float s) {
