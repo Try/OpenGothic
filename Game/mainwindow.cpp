@@ -24,7 +24,8 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),
     draw(device,gothic),gothic(gothic),inventory(gothic,draw.storage()),
     dialogs(gothic,inventory),chapter(gothic),camera(gothic),player(gothic,dialogs,inventory) {
-  //SystemApi::setAsFullscreen(hwnd(),true);
+  if(!gothic.isWindowMode())
+    setFullscreen(true);
 
   for(uint8_t i=0;i<device.maxFramesInFlight();++i){
     fLocal.emplace_back(device);
@@ -613,8 +614,7 @@ void MainWindow::render(){
       draw.setCameraView(camera);
 
     if(!gothic.isPause())
-      gothic.updateAnimation(); else
-      Tempest::Application::sleep(5);
+      gothic.updateAnimation();
 
     context.gpuLock.wait();
 
@@ -643,11 +643,13 @@ void MainWindow::render(){
     cmd.end();
 
     device.draw(cmd,context.imageAvailable,renderDone,context.gpuLock);
-    auto tt = Application::tickCount();
     device.present(imgId,renderDone);
-    tt = Application::tickCount()-tt;
 
-    auto t=Application::tickCount();
+    auto t = Application::tickCount();
+    if(t-time<16 && !gothic.isInGame()){
+      Application::sleep(uint32_t(16-(t-time)));
+      t = Application::tickCount();
+      }
     fps.push(t-time);
     time=t;
     }

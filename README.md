@@ -65,3 +65,6 @@ Don't expect DirectX11 mod to work, since technicaly it's not a mod. But Project
 * -g specify gothic game catalog
 * -nomenu - skip main menu
 * -w <worldname.zen> - startup world; newworld.zen is default
+* -window - window mode
+* -rambo - reduce damage to player to 1hp
+* -v -validation - enable Vulkan validation mode

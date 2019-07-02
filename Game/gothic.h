@@ -56,6 +56,7 @@ class Gothic final {
 
     bool      isDebugMode() const;
     bool      isRamboMode() const;
+    bool      isWindowMode() const { return isWindow; }
 
     LoadState checkLoading() const;
     bool      finishLoading();
@@ -107,6 +108,7 @@ class Gothic final {
     std::u16string                     gpath;
     std::string                        wdef;
     bool                               noMenu=false;
+    bool                               isWindow=false;
     uint16_t                           pauseSum=0;
     bool                               isDebug=false;
     bool                               isRambo=false;

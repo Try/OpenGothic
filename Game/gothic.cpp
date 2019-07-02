@@ -22,6 +22,9 @@ Gothic::Gothic(const int argc, const char **argv) {
       if(i<argc)
         wdef=argv[i];
       }
+    else if(std::strcmp(argv[i],"-window")==0){
+      isWindow=true;
+      }
     else if(std::strcmp(argv[i],"-nomenu")==0){
       noMenu=true;
       }

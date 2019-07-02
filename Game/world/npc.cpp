@@ -1906,7 +1906,7 @@ void Npc::startDialog(Npc& pl) {
   }
 
 bool Npc::perceptionProcess(Npc &pl,float quadDist) {
-  static bool disable=true;
+  static bool disable=false;
   if(disable)
     return false;
 
@@ -1938,7 +1938,9 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
 bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType perc) {
   float r = hnpc.senses_range;
   r = r*r;
-  if(quadDist<r && perception[perc].func){
+  if(quadDist>r)
+    return false;
+  if(perception[perc].func){
     owner.script().invokeState(this,&pl,victum,perception[perc].func);
     //currentOther=&pl;
     return true;
