@@ -105,6 +105,8 @@ void AnimationSolver::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh
 
 bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState nextSt,WeaponState weaponSt,
                               WalkBit walk,Interactive* inter,World& owner) {
+  if(Npc::Anim::DeadB<a && a<Npc::Anim::IdleLoopLast && nextSt!=WeaponState::NoWeapon)
+    a = Npc::Anim::Idle;
   if(animSq!=nullptr){
     if(current==a && nextSt==weaponSt && animSq.cls==Animation::Loop)
       return true;

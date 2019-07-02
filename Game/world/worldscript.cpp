@@ -790,10 +790,7 @@ int WorldScript::invokeState(Npc* npc, Npc* oth, Npc* vic, size_t fn) {
   if(fn==size_t(-1))
     return 1;
   if(oth==nullptr){
-    // auto& lvl = vm.getDATFile().getSymbolByName("PC_Levelinspektor");
-    // NpcHandle hnpc = ZMemory::handleCast<NpcHandle>(lvl.instanceDataHandle);
-    // auto n = getNpc(hnpc);
-    oth=owner.player();//FIXME: PC_Levelinspektor
+    oth=npc; //FIXME: PC_Levelinspektor?
     }
   if(vic==nullptr)
     vic=owner.player();
@@ -969,7 +966,7 @@ Attitude WorldScript::guildAttitude(const Npc &p0, const Npc &p1) const {
   }
 
 Attitude WorldScript::personAttitude(const Npc &p0, const Npc &p1) const {
-  if(!p0.isPlayer() && p1.isPlayer())
+  if(!p0.isPlayer() && !p1.isPlayer())
     return guildAttitude(p0,p1);
 
   Attitude att=ATT_NULL;
