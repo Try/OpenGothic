@@ -1,7 +1,7 @@
 #include "inventory.h"
 #include <Tempest/Log>
 
-#include "world/worldscript.h"
+#include "game/gamescript.h"
 #include "world/item.h"
 #include "world/npc.h"
 #include "world/world.h"

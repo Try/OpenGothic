@@ -9,10 +9,10 @@
 #include "game/inventory.h"
 #include "game/fightalgo.h"
 #include "game/perceptionmsg.h"
+#include "game/gamescript.h"
 #include "physics/dynamicworld.h"
 #include "fplock.h"
 #include "waypath.h"
-#include "worldscript.h"
 
 #include <cstdint>
 #include <string>

@@ -7,7 +7,7 @@
 #include "graphics/skeleton.h"
 #include "graphics/posepool.h"
 #include "game/serialize.h"
-#include "worldscript.h"
+#include "game/gamescript.h"
 #include "trigger.h"
 #include "world.h"
 #include "resources.h"

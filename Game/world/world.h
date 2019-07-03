@@ -12,7 +12,7 @@
 #include "graphics/worldview.h"
 #include "graphics/staticobjects.h"
 #include "physics/dynamicworld.h"
-#include "worldscript.h"
+#include "game/gamescript.h"
 #include "item.h"
 #include "npc.h"
 #include "interactive.h"

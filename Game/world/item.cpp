@@ -1,7 +1,7 @@
 #include "item.h"
 
 #include "game/serialize.h"
-#include "worldscript.h"
+#include "game/gamescript.h"
 #include "world.h"
 
 Item::Item(World &owner, size_t itemInstance)

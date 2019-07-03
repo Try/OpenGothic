@@ -7,7 +7,7 @@
 #include <Tempest/SoundEffect>
 #include <Tempest/SoundDevice>
 
-#include "world/worldscript.h"
+#include "game/gamescript.h"
 #include "camera.h"
 
 class Npc;

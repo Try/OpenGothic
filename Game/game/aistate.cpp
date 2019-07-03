@@ -1,6 +1,6 @@
 #include "aistate.h"
 
-#include "world/worldscript.h"
+#include "game/gamescript.h"
 
 AiState::AiState(GameScript& owner,size_t id) {
   auto& fn = owner.getSymbol(id);

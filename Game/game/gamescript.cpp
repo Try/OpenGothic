@@ -1,11 +1,11 @@
-#include "worldscript.h"
+#include "gamescript.h"
 
 #include "gothic.h"
-#include "npc.h"
-#include "item.h"
-#include "utils/cp1251.h"
+#include "world/npc.h"
+#include "world/item.h"
 #include "game/serialize.h"
 #include "game/spelldefinitions.h"
+#include "utils/cp1251.h"
 
 #include <fstream>
 #include <Tempest/Log>

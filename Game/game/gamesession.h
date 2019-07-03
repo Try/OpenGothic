@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "ui/chapterscreen.h"
-#include "world/worldscript.h"
+#include "game/gamescript.h"
 #include "gametime.h"
 
 class Gothic;
