@@ -226,7 +226,7 @@ bool DialogMenu::isActive() const {
 bool DialogMenu::onStart(Npc &p, Npc &ot) {
   pl       = &p;
   other    = &ot;
-  choise   = ot.dialogChoises(p,except);
+  choise   = ot.dialogChoises(p,except,state==State::PreStart);
   state    = State::Active;
   depth    = 0;
 

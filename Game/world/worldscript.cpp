@@ -420,7 +420,7 @@ void WorldScript::loadDialogOU(Gothic &gothic) {
         }
       }
       if(exist){
-        std::string acii(full.begin(),full.end());
+        std::string acii(full.begin(),full.end()); //FIXME: #6 unicode support
         dialogs.reset(new ZenLoad::zCCSLib(acii));
         return;
         }
@@ -632,7 +632,8 @@ const Daedalus::GEngineClasses::C_Spell &WorldScript::getSpell(int32_t splId) {
 
 std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GEngineClasses::C_Npc* player,
                                                                Daedalus::GEngineClasses::C_Npc* hnpc,
-                                                               const std::vector<uint32_t>& except) {
+                                                               const std::vector<uint32_t>& except,
+                                                               bool includeImp) {
   auto& npc = *hnpc;
   auto& pl  = *player;
 
@@ -648,7 +649,7 @@ std::vector<WorldScript::DlgChoise> WorldScript::dialogChoises(Daedalus::GEngine
 
   std::vector<DlgChoise> choise;
 
-  for(int important=1;important>=0;--important){
+  for(int important=includeImp ? 1 : 0;important>=0;--important){
     for(auto& i:hDialog) {
       const Daedalus::GEngineClasses::C_Info& info = *i;
       if(info.important!=important)
@@ -1963,13 +1964,13 @@ void WorldScript::npc_checkinfo(Daedalus::DaedalusVM &vm) {
     return;
     }
 
-  auto& hero = vm.getDATFile().getSymbolByName("other");
+  auto& hero = vm.globalOther();
   if(hero.instanceDataClass!=Daedalus::EInstanceClass::IC_Npc){
     vm.setReturn(0);
     return;
     }
-  auto* hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(hero.instanceDataHandle);
-  auto& pl   = *(hnpc);
+  auto* hpl  = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(hero.instanceDataHandle);
+  auto& pl   = *(hpl);
   auto& npc  = *(n->handle());
 
   for(auto& info:dialogsInfo) {
