@@ -93,7 +93,7 @@ class DialogMenu : public Tempest::Widget {
       };
 
     bool onStart(Npc& pl,Npc& other);
-    void onEntry(const WorldScript::DlgChoise& e);
+    void onEntry(const GameScript::DlgChoise& e);
     void onDoneText();
     void close();
     bool aiOutput(Npc& npc, const char* msg);
@@ -110,8 +110,8 @@ class DialogMenu : public Tempest::Widget {
     InventoryMenu&                      trade;
     Pipe                                pipe;
 
-    std::vector<WorldScript::DlgChoise> choise;
-    WorldScript::DlgChoise              selected;
+    std::vector<GameScript::DlgChoise> choise;
+    GameScript::DlgChoise              selected;
     Npc*                                pl   =nullptr;
     Npc*                                other=nullptr;
     size_t                              dlgSel=0;

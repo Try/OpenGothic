@@ -2,7 +2,7 @@
 
 #include "world/worldscript.h"
 
-AiState::AiState(WorldScript& owner,size_t id) {
+AiState::AiState(GameScript& owner,size_t id) {
   auto& fn = owner.getSymbol(id);
   mname    = fn.name.c_str();
 

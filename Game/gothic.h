@@ -68,8 +68,8 @@ class Gothic final {
     void      updateAnimation();
     void      quickSave();
 
-    auto      updateDialog(const WorldScript::DlgChoise& dlg, Npc& player, Npc& npc) -> std::vector<WorldScript::DlgChoise>;
-    void      dialogExec  (const WorldScript::DlgChoise& dlg, Npc& player, Npc& npc);
+    auto      updateDialog(const GameScript::DlgChoise& dlg, Npc& player, Npc& npc) -> std::vector<GameScript::DlgChoise>;
+    void      dialogExec  (const GameScript::DlgChoise& dlg, Npc& player, Npc& npc);
 
     void      openDialogPipe (Npc& player, Npc& npc, AiOuputPipe*& pipe);
     bool      aiIsDlgFinished();

@@ -38,7 +38,7 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
   setTime(gtime(8,0));
   uint8_t ver = gothic.isGothic2() ? 2 : 1;
 
-  vm.reset(new WorldScript(*this));
+  vm.reset(new GameScript(*this));
   setWorld(std::unique_ptr<World>(new World(*this,storage,file,ver,[&](int v){
     gothic.setLoadingProgress(int(v*0.55));
     })));
@@ -72,7 +72,7 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Seriali
 
   const uint8_t ver = isG2 ? 2 : 1;
 
-  vm.reset(new WorldScript(*this,fin));
+  vm.reset(new GameScript(*this,fin));
   setWorld(std::unique_ptr<World>(new World(*this,storage,fin,ver,[&](int v){
     gothic.setLoadingProgress(int(v*0.55));
     })));
@@ -287,11 +287,11 @@ void GameSession::updateAnimation() {
     wrld->updateAnimation();
   }
 
-std::vector<WorldScript::DlgChoise> GameSession::updateDialog(const WorldScript::DlgChoise &dlg, Npc& player, Npc& npc) {
+std::vector<GameScript::DlgChoise> GameSession::updateDialog(const GameScript::DlgChoise &dlg, Npc& player, Npc& npc) {
   return vm->updateDialog(dlg,player,npc);
   }
 
-void GameSession::dialogExec(const WorldScript::DlgChoise &dlg, Npc& player, Npc& npc) {
+void GameSession::dialogExec(const GameScript::DlgChoise &dlg, Npc& player, Npc& npc) {
   return vm->exec(dlg,player.handle(),npc.handle());
   }
 

@@ -2109,7 +2109,7 @@ float Npc::clampHeight(Npc::Anim a) const {
     }
   }
 
-std::vector<WorldScript::DlgChoise> Npc::dialogChoises(Npc& player,const std::vector<uint32_t> &except,bool includeImp) {
+std::vector<GameScript::DlgChoise> Npc::dialogChoises(Npc& player,const std::vector<uint32_t> &except,bool includeImp) {
   return owner.script().dialogChoises(&player.hnpc,&this->hnpc,except,includeImp);
   }
 

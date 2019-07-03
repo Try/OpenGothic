@@ -40,7 +40,7 @@ class GameSession final {
     World*       world()       { return wrld.get(); }
 
     WorldView*   view()   const;
-    WorldScript* script() const { return vm.get(); }
+    GameScript* script() const { return vm.get(); }
 
     auto         loadScriptCode() -> std::vector<uint8_t>;
     SoundFx*     loadSoundFx(const char *name);
@@ -59,8 +59,8 @@ class GameSession final {
 
     void         updateAnimation();
 
-    auto         updateDialog(const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<WorldScript::DlgChoise>;
-    void         dialogExec(const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc);
+    auto         updateDialog(const GameScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoise>;
+    void         dialogExec(const GameScript::DlgChoise &dlg, Npc &player, Npc &npc);
 
     const std::string& messageFromSvm(const std::string &id,int voice) const;
     const std::string& messageByName(const std::string &id) const;
@@ -97,7 +97,7 @@ class GameSession final {
     const RendererStorage&         storage;
 
     Tempest::SoundDevice           sound;
-    std::unique_ptr<WorldScript>   vm;
+    std::unique_ptr<GameScript>   vm;
     std::unique_ptr<World>         wrld;
 
     uint64_t                       ticks=0, wrldTimePart=0;

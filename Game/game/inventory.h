@@ -8,7 +8,7 @@
 
 class Item;
 class World;
-class WorldScript;
+class GameScript;
 class Npc;
 class Serialize;
 
@@ -76,9 +76,9 @@ class Inventory final {
     void   equipBestArmour     (Npc &owner);
     void   equipBestMeleWeapon (Npc &owner);
     void   equipBestRangeWeapon(Npc &owner);
-    void   unequipWeapons(WorldScript &vm, Npc &owner);
-    void   unequipArmour(WorldScript &vm, Npc &owner);
-    void   clear(WorldScript &vm, Npc &owner);
+    void   unequipWeapons(GameScript &vm, Npc &owner);
+    void   unequipArmour(GameScript &vm, Npc &owner);
+    void   clear(GameScript &vm, Npc &owner);
 
     void   updateArmourView(Npc& owner);
     void   updateSwordView (Npc& owner);

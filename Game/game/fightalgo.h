@@ -5,7 +5,7 @@
 #include <daedalus/DaedalusStdlib.h>
 
 class Npc;
-class WorldScript;
+class GameScript;
 
 class FightAlgo final {
   public:
@@ -25,24 +25,24 @@ class FightAlgo final {
       MV_MAX      = 6
       };
 
-    Action tick(Npc& npc, Npc& tg, WorldScript &owner, uint64_t dt);
+    Action tick(Npc& npc, Npc& tg, GameScript &owner, uint64_t dt);
     void   consumeAction();
     void   consumeAndWait(float dt);
     void   onClearTarget();
     void   onTakeHit();
 
-    float  prefferedAtackDistance(const Npc &npc, const Npc &tg, WorldScript &owner) const;
-    bool   isInAtackRange        (const Npc &npc, const Npc &tg, WorldScript &owner);
-    bool   isInGRange            (const Npc &npc, const Npc &tg, WorldScript &owner);
+    float  prefferedAtackDistance(const Npc &npc, const Npc &tg, GameScript &owner) const;
+    bool   isInAtackRange        (const Npc &npc, const Npc &tg, GameScript &owner);
+    bool   isInGRange            (const Npc &npc, const Npc &tg, GameScript &owner);
 
   private:
-    void   fillQueue(Npc &npc, Npc &tg, WorldScript& owner);
-    void   fillQueue(WorldScript& owner,const Daedalus::GEngineClasses::C_FightAI& src);
-    Action nextFromQueue(WorldScript& owner);
+    void   fillQueue(Npc &npc, Npc &tg, GameScript& owner);
+    void   fillQueue(GameScript& owner,const Daedalus::GEngineClasses::C_FightAI& src);
+    Action nextFromQueue(GameScript& owner);
 
-    static float  gRange         (WorldScript &owner,const Npc &npc);
-    static float  weaponRange    (WorldScript &owner,const Npc &npc);
-    static float  weaponOnlyRange(WorldScript &owner,const Npc &npc);
+    static float  gRange         (GameScript &owner,const Npc &npc);
+    static float  weaponRange    (GameScript &owner,const Npc &npc);
+    static float  weaponOnlyRange(GameScript &owner,const Npc &npc);
 
     uint16_t                       waitT=0;
     Daedalus::GEngineClasses::Move queueId=Daedalus::GEngineClasses::Move(0);

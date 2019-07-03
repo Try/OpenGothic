@@ -491,7 +491,7 @@ WayPath World::wayTo(float npcX, float npcY, float npcZ, const WayPoint &end) co
   return wmatrix->wayTo(npcX,npcY,npcZ,end);
   }
 
-WorldScript &World::script() const {
+GameScript &World::script() const {
   return *game.script();
   }
 

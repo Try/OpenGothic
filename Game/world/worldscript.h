@@ -26,10 +26,10 @@ class Npc;
 class Item;
 class Serialize;
 
-class WorldScript final {
+class GameScript final {
   public:
-    WorldScript(GameSession &gothic);
-    WorldScript(GameSession &gothic,Serialize& fin);
+    GameScript(GameSession &gothic);
+    GameScript(GameSession &gothic,Serialize& fin);
 
     struct DlgChoise final {
       std::string                       title;
@@ -86,7 +86,7 @@ class WorldScript final {
     const Daedalus::GEngineClasses::C_Spell&          getSpell(int32_t splId);
 
     auto dialogChoises(Daedalus::GEngineClasses::C_Npc *self, Daedalus::GEngineClasses::C_Npc *npc, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<DlgChoise>;
-    auto updateDialog (const WorldScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<WorldScript::DlgChoise>;
+    auto updateDialog (const GameScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoise>;
 
     void exec(const DlgChoise &dlg, Daedalus::GEngineClasses::C_Npc *player, Daedalus::GEngineClasses::C_Npc *hnpc);
     int  printCannotUseError (Npc &npc, int32_t atr, int32_t nValue);
@@ -121,7 +121,7 @@ class WorldScript final {
     void               initCommon();
 
     struct GlobalOutput : AiOuputPipe {
-      GlobalOutput(WorldScript& owner):owner(owner){}
+      GlobalOutput(GameScript& owner):owner(owner){}
 
       bool output   (Npc &npc, const std::string& text) override;
       bool outputSvm(Npc& npc, const std::string& text, int voice) override;
@@ -130,7 +130,7 @@ class WorldScript final {
 
       bool close() override { return true; }
 
-      WorldScript& owner;
+      GameScript& owner;
       };
 
     struct ScopeVar;
@@ -142,7 +142,7 @@ class WorldScript final {
     template<class Ret,class ... Args>
     std::function<Ret(Args...)> notImplementedFn();
 
-    template<void(WorldScript::*)(Daedalus::DaedalusVM &vm)>
+    template<void(GameScript::*)(Daedalus::DaedalusVM &vm)>
     void notImplementedFn(const char* name);
 
     void notImplementedRoutine(Daedalus::DaedalusVM&);

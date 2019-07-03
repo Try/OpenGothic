@@ -325,7 +325,7 @@ void DialogMenu::startTrade() {
   dlgTrade=false;
   }
 
-void DialogMenu::onEntry(const WorldScript::DlgChoise &e) {
+void DialogMenu::onEntry(const GameScript::DlgChoise &e) {
   if(pl && other) {
     selected = e;
     depth    = 1;

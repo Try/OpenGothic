@@ -2,11 +2,11 @@
 
 #include <cstdlib>
 
-class WorldScript;
+class GameScript;
 
 class AiState final {
   public:
-    AiState(WorldScript &owner, size_t id);
+    AiState(GameScript &owner, size_t id);
 
     size_t funcIni =0;
     size_t funcLoop=0;

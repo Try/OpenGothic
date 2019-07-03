@@ -6,7 +6,7 @@
 FightAlgo::FightAlgo() {
   }
 
-void FightAlgo::fillQueue(Npc &npc, Npc &tg, WorldScript& owner) {
+void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
   auto& ai = owner.getFightAi(size_t(npc.handle()->fight_tactic));
   auto  ws = npc.weaponState();
 
@@ -56,7 +56,7 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, WorldScript& owner) {
   return fillQueue(owner,ai.my_w_nofocus);
   }
 
-void FightAlgo::fillQueue(WorldScript& owner,const Daedalus::GEngineClasses::C_FightAI &src) {
+void FightAlgo::fillQueue(GameScript& owner,const Daedalus::GEngineClasses::C_FightAI &src) {
   size_t sz=0;
   for(size_t i=0;i<Daedalus::GEngineClasses::MAX_MOVE;++i){
     if(src.move[i]==0)
@@ -68,7 +68,7 @@ void FightAlgo::fillQueue(WorldScript& owner,const Daedalus::GEngineClasses::C_F
   queueId = src.move[owner.rand(sz)];
   }
 
-FightAlgo::Action FightAlgo::nextFromQueue(WorldScript& owner) {
+FightAlgo::Action FightAlgo::nextFromQueue(GameScript& owner) {
   if(tr[0]==MV_NULL){
     switch(queueId) {
       case Daedalus::GEngineClasses::MOVE_RUN:{
@@ -161,7 +161,7 @@ FightAlgo::Action FightAlgo::nextFromQueue(WorldScript& owner) {
   return tr[0];
   }
 
-FightAlgo::Action FightAlgo::tick(Npc &npc, Npc &tg, WorldScript& owner, uint64_t dt) {
+FightAlgo::Action FightAlgo::tick(Npc &npc, Npc &tg, GameScript& owner, uint64_t dt) {
   if(uint64_t(waitT)>=dt){
     waitT-=dt;
     return MV_NULL;
@@ -203,38 +203,38 @@ void FightAlgo::onTakeHit() {
     i = MV_NULL;
   }
 
-float FightAlgo::prefferedAtackDistance(const Npc &npc, const Npc &tg,  WorldScript &owner) const {
+float FightAlgo::prefferedAtackDistance(const Npc &npc, const Npc &tg,  GameScript &owner) const {
   auto  gl     = std::min<uint32_t>(tg.guild(), GIL_MAX);
   float baseTg = owner.guildVal().fight_range_base[gl];
 
   return baseTg+weaponRange(owner,npc);
   }
 
-bool FightAlgo::isInAtackRange(const Npc &npc,const Npc &tg, WorldScript &owner) {
+bool FightAlgo::isInAtackRange(const Npc &npc,const Npc &tg, GameScript &owner) {
   auto dist = npc.qDistTo(tg);
   auto pd   = prefferedAtackDistance(npc,tg,owner);
   return (dist<pd*pd);
   }
 
-bool FightAlgo::isInGRange(const Npc &npc, const Npc &tg, WorldScript &owner) {
+bool FightAlgo::isInGRange(const Npc &npc, const Npc &tg, GameScript &owner) {
   auto dist = npc.qDistTo(tg);
   auto pd   = gRange(owner,npc);
   return (dist<pd*pd);
   }
 
-float FightAlgo::gRange(WorldScript &owner, const Npc &npc) {
+float FightAlgo::gRange(GameScript &owner, const Npc &npc) {
   auto  gl = std::min<uint32_t>(npc.guild(),GIL_MAX);
   auto& gv = owner.guildVal();
   return gv.fight_range_g[gl]+gv.fight_range_base[gl]+weaponOnlyRange(owner,npc);
   }
 
-float FightAlgo::weaponRange(WorldScript &owner, const Npc &npc) {
+float FightAlgo::weaponRange(GameScript &owner, const Npc &npc) {
   auto  gl = std::min<uint32_t>(npc.guild(),GIL_MAX);
   auto& gv = owner.guildVal();
   return gv.fight_range_base[gl]+weaponOnlyRange(owner,npc);
   }
 
-float FightAlgo::weaponOnlyRange(WorldScript &owner,const Npc &npc) {
+float FightAlgo::weaponOnlyRange(GameScript &owner,const Npc &npc) {
   auto  gl  = std::min<uint32_t>(npc.guild(),GIL_MAX);
   auto& gv  = owner.guildVal();
   auto  w   = npc.inventory().activeWeapon();

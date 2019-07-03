@@ -283,7 +283,7 @@ void Inventory::unequip(Item *it, Npc &owner) {
   }
 
 bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
-  WorldScript& vm = owner.world().script();
+  GameScript& vm = owner.world().script();
 
   if(next!=nullptr) {
     int32_t atr=0,nValue=0,plMag=0,itMag=0;
@@ -378,16 +378,16 @@ void Inventory::equipBestRangeWeapon(Npc &owner) {
   setSlot(range,a,owner,false);
   }
 
-void Inventory::unequipWeapons(WorldScript &vm, Npc &owner) {
+void Inventory::unequipWeapons(GameScript &vm, Npc &owner) {
   setSlot(mele, nullptr,owner,false);
   setSlot(range,nullptr,owner,false);
   }
 
-void Inventory::unequipArmour(WorldScript &vm, Npc &owner) {
+void Inventory::unequipArmour(GameScript &vm, Npc &owner) {
   setSlot(armour,nullptr,owner,false);
   }
 
-void Inventory::clear(WorldScript&, Npc&) {
+void Inventory::clear(GameScript&, Npc&) {
   std::vector<std::unique_ptr<Item>> used;
   for(auto& i:items)
     if(i->isEquiped()){

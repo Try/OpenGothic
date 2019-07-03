@@ -376,7 +376,7 @@ class Npc final {
     float    clampHeight(Anim a) const;
     bool     hasCollision() const { return physic.hasCollision(); }
 
-    std::vector<WorldScript::DlgChoise> dialogChoises(Npc &player, const std::vector<uint32_t> &except, bool includeImp);
+    std::vector<GameScript::DlgChoise> dialogChoises(Npc &player, const std::vector<uint32_t> &except, bool includeImp);
 
     Daedalus::GEngineClasses::C_Npc* handle(){ return  &hnpc; }
 
