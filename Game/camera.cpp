@@ -38,6 +38,7 @@ void Camera::reset() {
   camPos     = pl->position();
   camBone    = pl->cameraBone();
   spin.x     = pl->rotation();
+  spin.y     = 0;
   camPos[1] += tr + tr*(def.bestElevation-10)/20.f;
   }
 
