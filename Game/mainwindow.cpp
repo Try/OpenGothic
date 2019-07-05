@@ -205,7 +205,7 @@ void MainWindow::processMouse(MouseEvent &event,bool fs) {
   if(spin.y<-90)
     spin.y=-90;
   if(fs) {
-    if(!currentFocus.npc)
+    if(!(currentFocus.npc && player.weaponState()!=WeaponState::NoWeapon))
       player.rotateMouse(-dp.x);
     spin.x = camera.getSpin().x;
     camera.setSpin(spin);

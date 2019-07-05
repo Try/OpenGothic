@@ -53,6 +53,7 @@ class PlayerControl final {
     bool tickMove(uint64_t dt);
 
     Focus findFocus(Focus *prev, const Camera &camera, int w, int h);
+    auto  weaponState() const -> WeaponState;
 
   private:
     enum Control : uint8_t {
@@ -100,7 +101,6 @@ class PlayerControl final {
 
     World*         world() const;
     void           clrDraw();
-    auto           weaponState() const -> WeaponState;
     void           implMove(uint64_t dt);
     void           setPos(std::array<float,3> a, uint64_t dt, float speed);
   };
