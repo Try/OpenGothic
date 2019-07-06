@@ -151,6 +151,9 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
   Removes 'amount' of items with class 'itemInstance' from 'npc' inventory.  
   this function takes no effect, if amount<1.
 
+* `func int Npc_ClearInventory(var C_Npc npc)`  
+  Remove all items from inventory of 'npc', except mission items and equipped items.
+
 * `func C_Item Npc_GetEquippedMeleeWeapon(var C_Npc npc)`  
   Returns current melee weapon of 'npc'.
 

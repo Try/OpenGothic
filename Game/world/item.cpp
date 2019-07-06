@@ -84,6 +84,10 @@ void Item::setMatrix(const Tempest::Matrix4x4 &m) {
   view.setObjMatrix(m);
   }
 
+bool Item::isMission() const {
+  return (uint32_t(hitem.flags)&Inventory::ITM_MISSION);
+  }
+
 const char *Item::displayName() const {
   return hitem.name.c_str();
   }

@@ -390,7 +390,7 @@ void Inventory::unequipArmour(GameScript &vm, Npc &owner) {
 void Inventory::clear(GameScript&, Npc&) {
   std::vector<std::unique_ptr<Item>> used;
   for(auto& i:items)
-    if(i->isEquiped()){
+    if(i->isEquiped() || i->isMission()){
       used.emplace_back(std::move(i));
       }
   items = std::move(used); // Gothic don't clear items, which are in use

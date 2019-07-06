@@ -27,6 +27,7 @@ class Item final {
     void setDirection (float x,float y,float z);
     void setMatrix(const Tempest::Matrix4x4& m);
 
+    bool isMission() const;
     bool isEquiped() const    { return equiped; }
     void setAsEquiped(bool e) { equiped=e; if(!e) itSlot=NSLOT; }
 
