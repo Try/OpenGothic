@@ -87,7 +87,7 @@ class Inventory final {
     const Item*  activeWeapon() const;
     Item*  activeWeapon();
     void   switchActiveWeaponFist();
-    void   switchActiveWeapon(uint8_t slot);
+    void   switchActiveWeapon(Npc &owner, uint8_t slot);
     void   switchActiveSpell (int32_t spell, Npc &owner);
 
     Item*  currentArmour()         { return armour;     }
@@ -114,6 +114,7 @@ class Inventory final {
     Item*  bestRangeWeapon(Npc &owner);
 
     bool   isTakable(const Item& i) const;
+    void   applyWeaponStats(Npc &owner, const Item& weap, int sgn);
 
     void        sortItems() const;
     static bool less(Item& l,Item& r);

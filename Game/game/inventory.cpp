@@ -298,7 +298,7 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
       }
     }
 
-  if(slot!=nullptr){
+  if(slot!=nullptr) {
     auto& itData = *slot->handle();
     auto  flag   = Flags(itData.mainflag);
     applyArmour(*slot,owner,-1);
@@ -312,6 +312,8 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
     else if(flag & ITM_CAT_FF){
       owner.setRangeWeapon(StaticObjects::Mesh());
       }
+    if(&slot==active)
+      applyWeaponStats(owner,*slot,-1);
     slot=nullptr;
     vm.invokeItem(&owner,itData.on_unequip);
     }
@@ -328,6 +330,8 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
   updateArmourView(owner);
   updateSwordView (owner);
   updateBowView   (owner);
+  if(&slot==active)
+    applyWeaponStats(owner,*slot,1);
   vm.invokeItem(&owner,itData.on_equip);
   return true;
   }
@@ -414,8 +418,10 @@ void Inventory::switchActiveWeaponFist() {
     active=&mele;
   }
 
-void Inventory::switchActiveWeapon(uint8_t slot) {
+void Inventory::switchActiveWeapon(Npc& owner,uint8_t slot) {
   if(slot==Item::NSLOT){
+    if(active!=nullptr && *active!=nullptr)
+      applyWeaponStats(owner,**active,-1);
     active=nullptr;
     return;
     }
@@ -431,13 +437,16 @@ void Inventory::switchActiveWeapon(uint8_t slot) {
     active=nullptr; else
   if(next!=nullptr && *next!=nullptr)
     active=next;
+
+  if(active!=nullptr && *active!=nullptr)
+    applyWeaponStats(owner,**active,1);
   }
 
 void Inventory::switchActiveSpell(int32_t spell, Npc& owner) {
   for(auto& i:items)
     if(i->spellId()==spell){
       setSlot(numslot[0],i.get(),owner,true);
-      switchActiveWeapon(3);
+      switchActiveWeapon(owner,3);
       return;
       }
   }
@@ -640,6 +649,17 @@ bool Inventory::isTakable(const Item &i) const {
       return false;
     }
   return true;
+  }
+
+void Inventory::applyWeaponStats(Npc& owner, const Item &weapon, int sgn) {
+  auto& hnpc = *owner.handle();
+  hnpc.damagetype = sgn>0 ? weapon.handle()->damageType : (1 << Daedalus::GEngineClasses::DAM_INDEX_BLUNT);
+  for(size_t i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
+    hnpc.damage[i] += sgn*weapon.handle()->damage[i];
+    if(weapon.handle()->damageType & (1<<i)) {
+      hnpc.damage[i] += sgn*weapon.handle()->damageTotal;
+      }
+    }
   }
 
 void Inventory::sortItems() const {

@@ -1675,9 +1675,10 @@ bool Npc::closeWeapon(bool noAnim) {
     return true;
   if(!noAnim && !setAnim(animation.current,WeaponState::NoWeapon,weaponSt))
     return false;
-  invent.switchActiveWeapon(Item::NSLOT);
-  updateWeaponSkeleton();
+  invent.switchActiveWeapon(*this,Item::NSLOT);
   hnpc.weapon = 0;
+
+  updateWeaponSkeleton();
   return true;
   }
 
@@ -1708,13 +1709,18 @@ bool Npc::drawWeaponMele() {
     closeWeapon(false);
     return false;
     }
-  auto st  = invent.currentMeleWeapon()->is2H() ? WeaponState::W2H : WeaponState::W1H;
-  Anim ani = animation.current==isStanding()    ? Anim::Idle       : Anim::Move;
+
+  auto& weapon = *invent.currentMeleWeapon();
+  auto  st     = weapon.is2H() ? WeaponState::W2H : WeaponState::W1H;
+  Anim  ani    = animation.current==isStanding()    ? Anim::Idle       : Anim::Move;
   if(!setAnim(ani,st,weaponSt))
     return false;
-  invent.switchActiveWeapon(1);
-  updateWeaponSkeleton();
+
+  invent.switchActiveWeapon(*this,1);
   hnpc.weapon = (st==WeaponState::W1H ? 3:4);
+
+  updateWeaponSkeleton();
+
   if(invent.currentMeleWeapon()->handle()->material==ItemMaterial::MAT_METAL)
     emitSoundEffect("DRAWSOUND_ME",50,true); else
     emitSoundEffect("DRAWSOUND_WO",50,true);
@@ -1729,13 +1735,17 @@ bool Npc::drawWeaponBow() {
     closeWeapon(false);
     return false;
     }
-  auto st  = invent.currentRangeWeapon()->isCrossbow() ? WeaponState::CBow : WeaponState::Bow;
-  Anim ani = animation.current==isStanding()           ? Anim::Idle        : Anim::Move;
+
+  auto& weapon = *invent.currentMeleWeapon();
+  auto  st     = weapon.isCrossbow() ? WeaponState::CBow : WeaponState::Bow;
+  Anim  ani    = animation.current==isStanding()           ? Anim::Idle        : Anim::Move;
   if(!setAnim(ani,st,weaponSt))
     return false;
-  invent.switchActiveWeapon(2);
-  updateWeaponSkeleton();
+  invent.switchActiveWeapon(*this,2);
   hnpc.weapon = (st==WeaponState::W1H ? 5:6);
+
+  updateWeaponSkeleton();
+
   emitSoundEffect("DRAWSOUND_BOW",25,true);
   return true;
   }
@@ -1749,9 +1759,10 @@ bool Npc::drawMage(uint8_t slot) {
   Anim ani = animation.current==isStanding() ? Anim::Idle : Anim::Move;
   if(!setAnim(ani,WeaponState::Mage,weaponSt))
     return false;
-  invent.switchActiveWeapon(slot);
-  updateWeaponSkeleton();
+  invent.switchActiveWeapon(*this,slot);
   hnpc.weapon = 7;
+
+  updateWeaponSkeleton();
   return true;
   }
 
