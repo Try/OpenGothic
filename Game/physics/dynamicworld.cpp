@@ -94,14 +94,16 @@ struct DynamicWorld::NpcBody : btRigidBody {
   std::array<float,3> pos={};
   float               r=0, h=0, rX=0, rZ=0;
   bool                enable=true;
+  bool                frozen=false;
+  uint64_t            lastMove=0;
 
-  void setPosition(float x,float y,float z){
-    setPosition({x,y,z});
+  bool setPosition(float x,float y,float z){
+    return setPosition({x,y,z});
     }
 
-  void setPosition(const std::array<float,3>& p){
+  bool setPosition(const std::array<float,3>& p){
     if(p==pos)
-      return;
+      return false;
     pos = p;
     //updateAaBb = true;
 
@@ -109,24 +111,37 @@ struct DynamicWorld::NpcBody : btRigidBody {
     trans.setIdentity();
     trans.setOrigin(btVector3(pos[0],pos[1]+(h-r-ghostPadding)*0.5f+r+ghostPadding,pos[2]));
     setWorldTransform(trans);
+    return true;
     }
   };
 
 struct DynamicWorld::NpcBodyList final {
-  NpcBodyList(DynamicWorld& wrld):wrld(wrld){}
+  NpcBodyList(DynamicWorld& wrld):wrld(wrld){
+    body.reserve(1024);
+    frozen.reserve(1024);
+    }
 
   void add(NpcBody* b){
     body.push_back(b);
-    srt=false;
+    //srt=false;
     }
 
   bool del(void* b){
-    for(size_t i=0;i<body.size();++i){
-      if(body[i]!=b)
-        continue;
-      body[i]=body.back();
-      body.pop_back();
+    if(del(b,body))
+      return true;
+    if(del(b,frozen)){
       srt=false;
+      return true;
+      }
+    return false;
+    }
+
+  bool del(void* b,std::vector<NpcBody*>& arr){
+    for(size_t i=0;i<arr.size();++i){
+      if(arr[i]!=b)
+        continue;
+      arr[i]=arr.back();
+      arr.pop_back();
       return true;
       }
     return false;
@@ -142,13 +157,20 @@ struct DynamicWorld::NpcBodyList final {
     }
 
   void move(NpcBody& n, const std::array<float,3>& pos){
-    n.setPosition(pos);
-    srt=false;
+    const bool move = n.setPosition(pos);
+    if(move)
+      n.lastMove=tick;
+
+    if(move && n.frozen){
+      del(&n,frozen);
+      body.push_back(&n);
+      n.frozen=false;
+      srt=false;
+      }
     }
 
   void move(NpcBody& n, float x, float y, float z){
-    n.setPosition(x,y,z);
-    srt=false;
+    move(n,{x,y,z});
     }
 
   bool hasCollision(const DynamicWorld::Item& obj,std::array<float,3>& normal){
@@ -161,14 +183,26 @@ struct DynamicWorld::NpcBodyList final {
       return false;
     const NpcBody& n = *pn;
 
-#if 1
-    auto l = body.begin();
-    auto r = body.end();
-#else
-    adjustSort();
-    auto l = std::lower_bound(body.begin(),body.end(),n.pos[0]-n.r,[](NpcBody* b,float x){ return b->pos[0]<x; });
-    auto r = std::upper_bound(body.begin(),body.end(),n.pos[0]+n.r,[](float x,NpcBody* b){ return x<b->pos[0]; });
-#endif
+    if(srt){
+      if(hasCollision(n,frozen,normal,true))
+        return true;
+      return hasCollision(n,body,normal,false);
+      } else {
+      if(hasCollision(n,body,normal,false))
+        return true;
+      //adjustSort();
+      return hasCollision(n,frozen,normal,false);
+      }
+    }
+
+  bool hasCollision(const NpcBody& n,const std::vector<NpcBody*>& arr,std::array<float,3>& normal, bool sorted) {
+    auto l = arr.begin();
+    auto r = arr.end();
+
+    if(sorted) {
+      l = std::lower_bound(arr.begin(),arr.end(),n.pos[0]-n.r,[](NpcBody* b,float x){ return b->pos[0]<x; });
+      r = std::upper_bound(arr.begin(),arr.end(),n.pos[0]+n.r,[](float x,NpcBody* b){ return x<b->pos[0]; });
+      }
 
     const int dist = std::distance(l,r); (void)dist;
     if(dist<=1)
@@ -201,18 +235,41 @@ struct DynamicWorld::NpcBodyList final {
 
   void adjustSort() {
     srt=true;
-    std::sort(body.begin(),body.end(),[](NpcBody* a,NpcBody* b){
+    std::sort(frozen.begin(),frozen.end(),[](NpcBody* a,NpcBody* b){
       return a->pos[0] < b->pos[0];
       });
     }
 
   void updateAabbs() {
+    for(size_t i=0;i<body.size();)
+      if(body[i]->lastMove!=tick){
+        body[i]->frozen=true;
+        frozen.push_back(body[i]);
+        body[i]=body.back();
+        body.pop_back();
+        } else {
+        ++i;
+        }
 
+    for(size_t i=0;i<frozen.size();)
+      if(frozen[i]->lastMove==tick){
+        frozen[i]->frozen=false;
+        body.push_back(frozen[i]);
+        frozen[i]=frozen.back();
+        frozen.pop_back();
+        } else {
+        ++i;
+        }
+
+    adjustSort();
+    tick++;
     }
 
   DynamicWorld&         wrld;
-  std::vector<NpcBody*> body;
+  std::vector<NpcBody*> body, frozen;
   bool                  srt=false;
+  uint64_t              tick=0;
+
   };
 
 DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
