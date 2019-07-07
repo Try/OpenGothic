@@ -420,7 +420,7 @@ void GameScript::loadDialogOU(Gothic &gothic) {
         }
       }
       if(exist){
-        std::string acii(full.begin(),full.end()); //FIXME: #6 unicode support
+        std::string acii(full.begin(),full.end()); //FIXME: #14 unicode support
         dialogs.reset(new ZenLoad::zCCSLib(acii));
         return;
         }
@@ -429,9 +429,6 @@ void GameScript::loadDialogOU(Gothic &gothic) {
   }
 
 void GameScript::initializeInstance(Daedalus::GEngineClasses::C_Npc &n, size_t instance) {
-  auto& s = vm.getDATFile().getSymbolByIndex(instance);
-  s.instanceDataHandle = &n;
-  s.instanceDataClass  = Daedalus::IC_Npc;
   vm.initializeInstance(n,instance,Daedalus::IC_Npc);
 
   if(n.daily_routine!=0) {
@@ -1073,6 +1070,11 @@ Npc* GameScript::getNpcById(size_t id) {
     return nullptr;
 
   auto hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(handle.instanceDataHandle);
+  if(hnpc==nullptr) {
+    auto obj = world().findNpcByInstance(id);
+    handle.instanceDataHandle = obj ? obj->handle() : nullptr;
+    hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(handle.instanceDataHandle);
+    }
   return getNpc(hnpc);
   }
 
@@ -1204,8 +1206,7 @@ void GameScript::wld_stopeffect(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::wld_getplayerportalguild(Daedalus::DaedalusVM &vm) {
-  const int GIL_PUBLIC = 15; // _Intern/Constants.d
-  vm.setReturn(GIL_PUBLIC);  // TODO: guild id for a room
+  vm.setReturn(int(Guild::GIL_NONE));  // TODO: guild id for a room
   }
 
 void GameScript::wld_setguildattitude(Daedalus::DaedalusVM &vm) {
@@ -1992,8 +1993,7 @@ void GameScript::npc_checkinfo(Daedalus::DaedalusVM &vm) {
 
 void GameScript::npc_getportalguild(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
-  const int GIL_PUBLIC = 15; // _Intern/Constants.d
-  vm.setReturn(GIL_PUBLIC);
+  vm.setReturn(int(Guild::GIL_NONE));
   notImplementedFn<&GameScript::npc_getportalguild>("npc_getportalguild");
   }
 

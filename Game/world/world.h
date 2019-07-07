@@ -81,6 +81,7 @@ class World final {
 
     auto     takeHero() -> std::unique_ptr<Npc>;
     Npc*     player() const { return npcPlayer; }
+    Npc*     findNpcByInstance(size_t instance);
 
     void     tick(uint64_t dt);
     uint64_t tickCount() const;
@@ -140,6 +141,7 @@ class World final {
     std::unique_ptr<WorldView>            wview;
     WorldSound                            wsound;
     WorldObjects                          wobj;
+    std::unique_ptr<Npc>                  lvlInspector;
 
     void         loadVob(ZenLoad::zCVobData &vob, bool startup);
     void         addStatic(const ZenLoad::zCVobData &vob);

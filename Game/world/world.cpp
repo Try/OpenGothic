@@ -95,6 +95,9 @@ void World::insertPlayer(std::unique_ptr<Npc> &&npc,const char* waypoint) {
   }
 
 void World::postInit() {
+  // NOTE: level inspector override player stats globaly
+  // lvlInspector.reset(new Npc(*this,script().getSymbolIndex("PC_Levelinspektor"),""));
+
   // game.script()->inserNpc("Snapper",wmatrix->startPoint().name.c_str());
   }
 
@@ -162,6 +165,10 @@ void World::resetPositionToTA() {
 
 std::unique_ptr<Npc> World::takeHero() {
   return wobj.takeNpc(npcPlayer);
+  }
+
+Npc *World::findNpcByInstance(size_t instance) {
+  return wobj.findNpcByInstance(instance);
   }
 
 void World::tick(uint64_t dt) {
@@ -528,8 +535,10 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
   else if(vob.objectClass=="zCTriggerWorldStart:zCVob"){
     wobj.addTrigger(std::move(vob)); // world start trigger
     }
-  else if(vob.objectClass=="oCTriggerScript:zCTrigger:zCVob" ||
-          vob.objectClass=="zCTriggerList:zCTrigger:zCVob" ||
+  else if(vob.objectClass=="oCTriggerScript:zCTrigger:zCVob"){
+    wobj.addTrigger(std::move(vob));
+    }
+  else if(vob.objectClass=="zCTriggerList:zCTrigger:zCVob" ||
           vob.objectClass=="zCTrigger:zCVob"){
     wobj.addTrigger(std::move(vob));
     }

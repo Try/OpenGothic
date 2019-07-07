@@ -46,12 +46,13 @@ class WorldObjects final {
     uint32_t       itmId(const void* ptr) const;
 
     Npc*           addNpc(size_t itemInstance, const char *at);
-    Npc *insertPlayer(std::unique_ptr<Npc>&& npc, const char *waypoint);
+    Npc*           insertPlayer(std::unique_ptr<Npc>&& npc, const char *waypoint);
     auto           takeNpc(const Npc* npc) -> std::unique_ptr<Npc>;
 
     void           updateAnimation();
 
     Npc*           findHero();
+    Npc*           findNpcByInstance(size_t instance);
     size_t         npcCount()    const { return npcArr.size(); }
     const Npc&     npc(size_t i) const { return *npcArr[i];    }
     Npc&           npc(size_t i)       { return *npcArr[i];    }

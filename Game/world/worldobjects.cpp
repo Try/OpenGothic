@@ -202,6 +202,13 @@ Npc *WorldObjects::findHero() {
   return nullptr;
   }
 
+Npc *WorldObjects::findNpcByInstance(size_t instance) {
+  for(auto& i:npcArr)
+    if(i->handle()->instanceSymbol==instance)
+      return i.get();
+  return nullptr;
+  }
+
 void WorldObjects::detectNpc(const float x, const float y, const float z, std::function<void (Npc &)> f) {
   (void)x;
   (void)y;
