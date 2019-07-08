@@ -154,6 +154,8 @@ struct DynamicWorld::NpcBodyList final {
     //n.r = std::max(dx,dz)*0.5f;
     n.r = (dx+dz)*0.25f;
     n.h = h;
+
+    maxR = std::max(maxR,n.r);
     }
 
   void move(NpcBody& n, const std::array<float,3>& pos){
@@ -200,8 +202,9 @@ struct DynamicWorld::NpcBodyList final {
     auto r = arr.end();
 
     if(sorted) {
-      l = std::lower_bound(arr.begin(),arr.end(),n.pos[0]-n.r,[](NpcBody* b,float x){ return b->pos[0]<x; });
-      r = std::upper_bound(arr.begin(),arr.end(),n.pos[0]+n.r,[](float x,NpcBody* b){ return x<b->pos[0]; });
+      const float dX = maxR+n.r;
+      l = std::lower_bound(arr.begin(),arr.end(),n.pos[0]-dX,[](NpcBody* b,float x){ return b->pos[0]<x; });
+      r = std::upper_bound(arr.begin(),arr.end(),n.pos[0]+dX,[](float x,NpcBody* b){ return x<b->pos[0]; });
       }
 
     const int dist = std::distance(l,r); (void)dist;
@@ -269,7 +272,7 @@ struct DynamicWorld::NpcBodyList final {
   std::vector<NpcBody*> body, frozen;
   bool                  srt=false;
   uint64_t              tick=0;
-
+  float                 maxR=0;
   };
 
 DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
