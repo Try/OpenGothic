@@ -432,12 +432,13 @@ class Npc final {
     void     aiOutputSvm(Npc &to, std::string text, int order);
     void     aiOutputSvmOverlay(Npc &to, std::string text, int order);
     void     aiStopProcessInfo();
-    void     aiClearQueue();
     void     aiContinueRoutine();
     void     aiAlignToFp();
     void     aiAlignToWp();
     void     aiSetNpcsToState(size_t func, int32_t radius);
     void     aiSetWalkMode(WalkBit w);
+
+    void     clearAiQueue();
 
     auto     currentWayPoint() const -> const WayPoint* { return currentFp; }
     void     attachToPoint(const WayPoint* p);

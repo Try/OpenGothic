@@ -583,6 +583,50 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
   if(a==Anim::PrayRand)
     return animSequence("T_PRAY_RANDOM");
 
+  static const std::pair<const char*,Npc::Anim> schemes[]={
+    {"FOOD",       Npc::Anim::Food1},
+    {"FOODHUGE",   Npc::Anim::FoodHuge1},
+    {"POTION",     Npc::Anim::Potition1},
+    {"POTIONFAST", Npc::Anim::PotitionFast},
+    //{"RICE",       Npc::Anim::Rice1},
+    {"MEAT",       Npc::Anim::Meat1},
+    //{"JOINT",      Npc::Anim::Joint1},
+    {"MAP",        Npc::Anim::Map1},
+    //{"MAPSEALED",  Npc::Anim::MapSeal1},
+    {"FIRESPIT",  Npc::Anim::Firespit1}
+    };
+  for(auto& i:schemes){
+    if(cur<Anim::IdleLast && a==i.second)
+      return solveItemUse("T_%s_STAND_2_S0",i.first);
+    if(cur==i.second && a<Anim::IdleLast)
+      return solveItemUse("T_%s_S0_2_STAND",i.first);
+    if(a==i.second)
+      return solveItemUse("S_%s_S0",i.first);
+    }
+
+  if(cur==Anim::Idle && a==Anim::MapSeal1)
+    return animSequence("T_MAP_STAND_2_S0");
+  if(cur==Anim::MapSeal1 && a==Anim::Idle)
+    return animSequence("T_MAPSEALED_S0_2_STAND");
+  if(a==Anim::MapSeal1)
+    return animSequence("S_MAP_S0");
+
+  if(cur==Anim::Idle && (a==Anim::Rice1 || a==Anim::Rice2))
+    return animSequence("T_RICE_STAND_2_S0");
+  if((cur==Anim::Rice1 || cur==Anim::Rice2) && a==Anim::Idle)
+    return animSequence("T_RICE_S0_2_STAND");
+  if(a==Anim::Rice1)
+    return animSequence("T_RICE_RANDOM_1");
+  if(a==Anim::Rice2)
+    return animSequence("T_RICE_RANDOM_2");
+
+  if(cur==Anim::Idle && a==Anim::Joint1)
+    return animSequence("T_JOINT_STAND_2_S0");
+  if(cur==Anim::Joint1 && a==Anim::Idle)
+    return animSequence("T_JOUNT_S0_2_STAND");
+  if(a==Anim::Joint1)
+    return animSequence("S_JOINT_S0");//FIXME
+
   if(a==Anim::Plunder)
     return animSequence("T_PLUNDER");
   if(a==Anim::Food1)
@@ -597,10 +641,6 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     return animSequence("T_POTION_RANDOM_2");
   if(a==Anim::Potition3)
     return animSequence("T_POTION_RANDOM_3");
-  if(a==Anim::Joint1)
-    return animSequence("T_JOINT_RANDOM_1");
-  if(a==Anim::Meat1)
-    return animSequence("T_MEAT_RANDOM_1");
 
   if(Anim::Dance1<=a && a<=Anim::Dance9){
     char buf[32]={};
@@ -676,6 +716,12 @@ AnimationSolver::Sequence AnimationSolver::solveDead(const char *format1, const 
   if(auto a=animSequence(format1))
     return a;
   return animSequence(format2);
+  }
+
+AnimationSolver::Sequence AnimationSolver::solveItemUse(const char *format, const char *scheme) const {
+  char buf[128]={};
+  std::snprintf(buf,sizeof(buf),format,scheme);
+  return animSequence(buf);
   }
 
 AnimationSolver::Sequence AnimationSolver::animSequence(const char *name) const {
@@ -801,5 +847,13 @@ AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const
     return Anim::PrayRand;
   if(name=="T_PLUNDER")
     return Anim::Plunder;
+  if(name=="S_FOOD_S0")
+    return Anim::Food1;
+  if(name=="S_FOODHUGE_S0")
+    return Anim::FoodHuge1;
+  if(name=="S_POTIONFAST_S0")
+    return Anim::PotitionFast;
+  if(name=="S_POTION_S0")
+    return Anim::Potition1;
   return Anim::NoAnim;
   }

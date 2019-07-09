@@ -246,7 +246,7 @@ bool Npc::resetPositionToTA() {
 
   attachToPoint(nullptr);
   setInteraction(nullptr);
-  aiClearQueue();
+  clearAiQueue();
   clearState(true);
 
   auto& rot = currentRoutine();
@@ -2345,15 +2345,6 @@ void Npc::aiStopProcessInfo() {
   aiActions.push_back(a);
   }
 
-void Npc::aiClearQueue() {
-  aiActions.clear();
-  currentGoTo     = nullptr;
-  currentGoToFlag = GoToHint::GT_Default;
-  wayPath.clear();
-  mvAlgo.aiGoTo(nullptr);
-  //setTarget(nullptr);
-  }
-
 void Npc::aiContinueRoutine() {
   AiAction a;
   a.act = AI_ContinueRoutine;
@@ -2385,6 +2376,15 @@ void Npc::aiSetWalkMode(WalkBit w) {
   a.act  = AI_SetWalkMode;
   a.i0   = int(w);
   aiActions.push_back(a);
+  }
+
+void Npc::clearAiQueue() {
+  aiActions.clear();
+  currentGoTo     = nullptr;
+  currentGoToFlag = GoToHint::GT_Default;
+  wayPath.clear();
+  mvAlgo.aiGoTo(nullptr);
+  //setTarget(nullptr);
   }
 
 void Npc::attachToPoint(const WayPoint *p) {

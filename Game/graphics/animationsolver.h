@@ -52,8 +52,14 @@ class AnimationSolver final {
       Potition1,
       Potition2,
       Potition3,
+      PotitionFast,
       Joint1,
+      Map1,
+      MapSeal1,
+      Firespit1,
       Meat1,
+      Rice1,
+      Rice2,
       Dance1,
       Dance2,
       Dance3,
@@ -209,8 +215,9 @@ class AnimationSolver final {
     GSoundEffect                   soundSlot;
 
   private:
-    Sequence                       solveMag (const char *format,Anim spell) const;
-    Sequence                       solveDead(const char *format1,const char *format2) const;
+    Sequence                       solveMag    (const char *format,Anim spell) const;
+    Sequence                       solveDead   (const char *format1,const char *format2) const;
+    Sequence                       solveItemUse(const char *format,const char* scheme) const;
 
     std::vector<Overlay>           overlay;
   };

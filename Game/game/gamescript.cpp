@@ -1692,7 +1692,7 @@ void GameScript::npc_getnearestwp(Daedalus::DaedalusVM &vm) {
 void GameScript::npc_clearaiqueue(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc)
-    npc->aiClearQueue();
+    npc->clearAiQueue();
   }
 
 void GameScript::npc_isplayer(Daedalus::DaedalusVM &vm) {

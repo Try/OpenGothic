@@ -539,13 +539,48 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
     return false;
     }
 
-  if(((flag & ITM_MULTI) || (flag & ITM_MISSION)) && itData.on_state[0]!=0){
-    // eat item
+  static const std::pair<const char*,Npc::Anim> schemes[]={
+    {"FOOD",       Npc::Anim::Food1},
+    {"FOODHUGE",   Npc::Anim::FoodHuge1},
+    {"POTION",     Npc::Anim::Potition1},
+    {"POTIONFAST", Npc::Anim::PotitionFast},
+    {"RICE",       Npc::Anim::Rice1},
+    {"MEAT",       Npc::Anim::Meat1},
+    {"JOINT",      Npc::Anim::Joint1},
+    {"MAP",        Npc::Anim::Map1},
+    {"MAPSEALED",  Npc::Anim::MapSeal1},
+    {"FIRESPIT",  Npc::Anim::Firespit1}
+    };
+  for(auto& i:schemes){
+    if(it->handle()->scemeName==i.first){
+      if(owner.anim()==i.second || !owner.setAnim(i.second))
+        return false;
+      }
+    }
+
+  if(itData.on_state[0]!=0){
     auto& vm = owner.world().script();
     vm.invokeItem(&owner,itData.on_state[0]);
+    }
+
+  if(it->handle()->scemeName=="FOOD" ||
+     it->handle()->scemeName=="FOODHUGE" ||
+     it->handle()->scemeName=="POTION" ||
+     it->handle()->scemeName=="POTIONFAST" ||
+     it->handle()->scemeName=="RICE" ||
+     it->handle()->scemeName=="MEAT" ||
+     it->handle()->scemeName=="JOINT" ||
+     it->handle()->scemeName=="MAPSEALED" ||
+     // it->handle()->scemeName=="MAP"||
+     // it->handle()->scemeName=="BROOM" ||
+     // it->handle()->scemeName=="LUTE" ||
+     // it->handle()->scemeName=="FIRESPIT"
+     false){
+    // eat item
     delItem(cls,1,owner);
     return true;
     }
+
   return true;
   }
 
