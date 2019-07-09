@@ -204,6 +204,12 @@ void MainWindow::processMouse(MouseEvent &event,bool fs) {
     spin.y=90;
   if(spin.y<-90)
     spin.y=-90;
+
+  if(inventory.isActive()){
+    camera.setSpin(spin);
+    return;
+    }
+
   if(fs) {
     if(!(currentFocus.npc && player.weaponState()!=WeaponState::NoWeapon))
       player.rotateMouse(-dp.x);
@@ -472,7 +478,7 @@ void MainWindow::tick() {
   if(player.tickMove(dt)) {
     if(auto pl=gothic.player()) {
       camera.setMode(solveCameraMode());
-      camera.follow(*pl,dt,!mouseP[Event::ButtonLeft] || currentFocus || SystemApi::isFullscreen(hwnd()));
+      camera.follow(*pl,dt,(!mouseP[Event::ButtonLeft] || currentFocus || SystemApi::isFullscreen(hwnd())) && !inventory.isActive());
       }
     } else {
     if(pressed[KeyEvent::K_Q])
