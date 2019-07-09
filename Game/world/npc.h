@@ -562,7 +562,7 @@ class Npc final {
     bool                           implGoTo   (uint64_t dt);
     bool                           implAtack  (uint64_t dt);
     void                           implAiWait (uint64_t dt);
-    bool                           isAtackMode() const;
+    void                           implFaiWait(uint64_t dt);
     void                           tickRoutine();
     void                           nextAiAction(uint64_t dt);
     bool                           setAnim(Npc::Anim a, WeaponState st0, WeaponState st);
@@ -621,13 +621,13 @@ class Npc final {
 
     // ai state
     uint64_t                       waitTime=0;
+    uint64_t                       faiWaitTime=0;
     uint64_t                       aiOutputBarrier=0;
     ProcessPolicy                  aiPolicy=ProcessPolicy::AiNormal;
     AiState                        aiState;
     size_t                         aiPrevState=0;
     std::deque<AiAction>           aiActions;
     std::vector<Routine>           routines;
-    bool                           atackMode=false; // FIXME: ai_atack/ai_flee
 
     Interactive*                   currentInteract=nullptr;
     Npc*                           currentOther   =nullptr;

@@ -645,8 +645,8 @@ Example:
 * `func void AI_ReadyRangedWeapon(var C_Npc npc)`  
   'npc' draws bow or crossbow.
 
-* ![!](ni.png) `func void AI_Attack(var C_Npc npc)`  
-  Not implemented.
+* `func void AI_Attack(var C_Npc npc)`  
+  Fetch next instruction from C_FightAI, corresponding to npc.fight_tactic
 
 * ![!](ni.png) `func void AI_FinishingMove(var C_Npc npc, var C_Npc other)`  
   npc performs killing move on 'other'.  

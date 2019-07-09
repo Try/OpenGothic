@@ -27,7 +27,7 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
     if(isInAtackRange(npc,tg,owner)) {
       if(npc.anim()==AnimationSolver::Move)
         return fillQueue(owner,ai.my_w_runto);
-      if(isInAtackRange(npc,tg,owner))
+      if(isInFocusAngle(npc,tg))
         return fillQueue(owner,ai.my_w_focus);
       return fillQueue(owner,ai.my_w_nofocus);
       }
@@ -38,7 +38,8 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
       return fillQueue(owner,ai.my_g_focus);
       }
 
-    return fillQueue(owner,ai.my_w_nofocus);
+    return fillQueue(owner,ai.my_w_runto);
+    //return fillQueue(owner,ai.my_w_nofocus);
     }
 
   if(ws==WeaponState::Bow || ws==WeaponState::CBow){
@@ -134,7 +135,7 @@ FightAlgo::Action FightAlgo::nextFromQueue(GameScript& owner) {
         break;
         }
       case Daedalus::GEngineClasses::MOVE_TURNTOHIT:{
-        // nop
+        tr[0] = MV_TURN2HIT;
         break;
         }
       case Daedalus::GEngineClasses::MOVE_PARADE:{
@@ -146,11 +147,13 @@ FightAlgo::Action FightAlgo::nextFromQueue(GameScript& owner) {
         }
       case Daedalus::GEngineClasses::MOVE_WAIT:
       case Daedalus::GEngineClasses::MOVE_WAIT_EXT:{
-        waitT = 200;
+        //waitT = 200;
+        tr[0] = MV_WAIT;
         break;
         }
       case Daedalus::GEngineClasses::MOVE_WAIT_LONGER:{
-        waitT = 300;
+        //waitT = 300;
+        tr[0] = MV_WAITLONG;
         break;
         }
       case Daedalus::GEngineClasses::MAX_FIGHTAI:
@@ -161,35 +164,22 @@ FightAlgo::Action FightAlgo::nextFromQueue(GameScript& owner) {
   return tr[0];
   }
 
-FightAlgo::Action FightAlgo::tick(Npc &npc, Npc &tg, GameScript& owner, uint64_t dt) {
-  if(uint64_t(waitT)>=dt){
-    waitT-=dt;
-    return MV_NULL;
-    }
-  waitT=0;
+bool FightAlgo::hasInstructions() const {
+  return tr[0]!=MV_NULL;
+  }
 
-  if(queueId==0){
-    fillQueue(npc,tg,owner);
-    }
-  return nextFromQueue(owner);
+bool FightAlgo::fetchInstructions(Npc &npc, Npc &tg, GameScript& owner) {
+  //if(queueId!=0)
+  //  return false;
+  fillQueue(npc,tg,owner);
+  nextFromQueue(owner);
+  return true;
   }
 
 void FightAlgo::consumeAction() {
-  if(tr[0]==MV_STRAFEL || tr[0]==MV_STRAFER)
-    waitT = 300;
-
   for(size_t i=1;i<MV_MAX;++i)
     tr[i-1]=tr[i];
   tr[MV_MAX-1]=MV_NULL;
-  }
-
-void FightAlgo::consumeAndWait(float dt) {
-  consumeAction();
-  if(dt<0)
-    dt=0;
-  if(dt>std::numeric_limits<uint16_t>::max())
-    dt=std::numeric_limits<uint16_t>::max();
-  waitT=uint16_t(dt);
   }
 
 void FightAlgo::onClearTarget() {
@@ -210,6 +200,13 @@ float FightAlgo::prefferedAtackDistance(const Npc &npc, const Npc &tg,  GameScri
   return baseTg+weaponRange(owner,npc);
   }
 
+float FightAlgo::prefferedGDistance(const Npc &npc, const Npc &tg, GameScript &owner) const {
+  auto  gl     = std::min<uint32_t>(tg.guild(), GIL_MAX);
+  float baseTg = owner.guildVal().fight_range_base[gl];
+
+  return baseTg+gRange(owner,npc);
+  }
+
 bool FightAlgo::isInAtackRange(const Npc &npc,const Npc &tg, GameScript &owner) {
   auto dist = npc.qDistTo(tg);
   auto pd   = prefferedAtackDistance(npc,tg,owner);
@@ -218,8 +215,23 @@ bool FightAlgo::isInAtackRange(const Npc &npc,const Npc &tg, GameScript &owner) 
 
 bool FightAlgo::isInGRange(const Npc &npc, const Npc &tg, GameScript &owner) {
   auto dist = npc.qDistTo(tg);
-  auto pd   = gRange(owner,npc);
+  auto pd   = prefferedGDistance(npc,tg,owner);
   return (dist<pd*pd);
+  }
+
+bool FightAlgo::isInFocusAngle(const Npc &npc, const Npc &tg) {
+  static const float maxAngle = std::cos(float(M_PI/12));
+
+  const float dx    = npc.position()[0]-tg.position()[0];
+  const float dz    = npc.position()[2]-tg.position()[2];
+  const float plAng = npc.rotationRad()+float(M_PI/2);
+
+  const float da = plAng-std::atan2(dz,dx);
+  const float c  = std::cos(da);
+
+  if(c<maxAngle && dx*dx+dz*dz>20*20)
+    return false;
+  return true;
   }
 
 float FightAlgo::gRange(GameScript &owner, const Npc &npc) {

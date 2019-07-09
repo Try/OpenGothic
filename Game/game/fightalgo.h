@@ -21,30 +21,36 @@ class FightAlgo final {
       MV_STRAFEL  = 6,
       MV_STRAFER  = 7,
       MV_BLOCK    = 8,
+      MV_WAIT     = 9,
+      MV_WAITLONG = 10,
+      MV_TURN2HIT = 11,
 
       MV_MAX      = 6
       };
 
-    Action tick(Npc& npc, Npc& tg, GameScript &owner, uint64_t dt);
+    Action nextFromQueue(GameScript& owner);
     void   consumeAction();
-    void   consumeAndWait(float dt);
     void   onClearTarget();
     void   onTakeHit();
 
+    bool   hasInstructions() const;
+    bool   fetchInstructions(Npc &npc, Npc &tg, GameScript& owner);
+
     float  prefferedAtackDistance(const Npc &npc, const Npc &tg, GameScript &owner) const;
+    float  prefferedGDistance    (const Npc &npc, const Npc &tg, GameScript &owner) const;
+
     bool   isInAtackRange        (const Npc &npc, const Npc &tg, GameScript &owner);
     bool   isInGRange            (const Npc &npc, const Npc &tg, GameScript &owner);
+    bool   isInFocusAngle        (const Npc &npc, const Npc &tg);
 
   private:
     void   fillQueue(Npc &npc, Npc &tg, GameScript& owner);
     void   fillQueue(GameScript& owner,const Daedalus::GEngineClasses::C_FightAI& src);
-    Action nextFromQueue(GameScript& owner);
 
     static float  gRange         (GameScript &owner,const Npc &npc);
     static float  weaponRange    (GameScript &owner,const Npc &npc);
     static float  weaponOnlyRange(GameScript &owner,const Npc &npc);
 
-    uint16_t                       waitT=0;
     Daedalus::GEngineClasses::Move queueId=Daedalus::GEngineClasses::Move(0);
     Action                         tr   [MV_MAX]={};
     bool                           hitFlg=false;

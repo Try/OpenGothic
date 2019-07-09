@@ -118,7 +118,7 @@ void Npc::load(Serialize &fin, Daedalus::GEngineClasses::C_Npc::ENPCFlag &flg) {
   }
 
 void Npc::saveAiState(Serialize& fout) const {
-  fout.write(waitTime,uint8_t(aiPolicy));
+  fout.write(waitTime,faiWaitTime,uint8_t(aiPolicy));
   fout.write(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
   fout.write(aiPrevState);
 
@@ -140,7 +140,7 @@ void Npc::loadAiState(Serialize& fin) {
   size_t      size=0;
   std::string str;
 
-  fin.read(waitTime,reinterpret_cast<uint8_t&>(aiPolicy));
+  fin.read(waitTime,faiWaitTime,reinterpret_cast<uint8_t&>(aiPolicy));
   fin.read(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
   fin.read(aiPrevState);
 
@@ -915,16 +915,6 @@ bool Npc::implGoTo(uint64_t dt) {
     }
   }
 
-bool Npc::isAtackMode() const {
-  if(interactive()!=nullptr)
-    return false;
-  if(currentTarget==nullptr || isPlayer())
-    return false;
-  if(currentTarget->isDead())
-    return false;
-  return true;
-  }
-
 bool Npc::implAtack(uint64_t dt) {
   if(currentTarget==nullptr || isPlayer() || isTalk())
     return false;
@@ -940,10 +930,16 @@ bool Npc::implAtack(uint64_t dt) {
   if((ani==Anim::Atack || ani==Anim::AtackBlock) && !animation.animSq.isAtackFinished(owner.tickCount()-animation.sAnim))
     return true;
 
+  if(!fghAlgo.hasInstructions())
+    return false;
+
   if(implLookAt(*currentTarget,dt))
     return true;
 
-  FightAlgo::Action act = fghAlgo.tick(*this,*currentTarget,owner.script(),dt);
+  if(faiWaitTime>=owner.tickCount())
+    return true;
+
+  FightAlgo::Action act = fghAlgo.nextFromQueue(owner.script());
 
   if(act==FightAlgo::MV_BLOCK) {
     if(setAnim(Anim::AtackBlock))
@@ -962,15 +958,25 @@ bool Npc::implAtack(uint64_t dt) {
     return true;
     }
 
+  if(act==FightAlgo::MV_TURN2HIT) {
+    if(!implLookAt(*currentTarget,dt))
+      fghAlgo.consumeAction();
+    return true;
+    }
+
   if(act==FightAlgo::MV_STRAFEL) {
-    if(setAnim(Npc::Anim::MoveL))
-      fghAlgo.consumeAndWait(animation.animSq.totalTime());
+    if(setAnim(Npc::Anim::MoveL)){
+      implFaiWait(uint64_t(animation.animSq.totalTime()));
+      fghAlgo.consumeAction();
+      }
     return true;
     }
 
   if(act==FightAlgo::MV_STRAFER) {
-    if(setAnim(Npc::Anim::MoveR))
-      fghAlgo.consumeAndWait(animation.animSq.totalTime());
+    if(setAnim(Npc::Anim::MoveR)){
+      implFaiWait(uint64_t(animation.animSq.totalTime()));
+      fghAlgo.consumeAction();
+      }
     return true;
     }
 
@@ -980,16 +986,34 @@ bool Npc::implAtack(uint64_t dt) {
     return true;
     }
 
-  if(act==FightAlgo::MV_NULL) {
+  if(act==FightAlgo::MV_MOVE) {
+    if(!mvAlgo.aiGoTo(currentTarget,fghAlgo.prefferedGDistance(*this,*currentTarget,owner.script()))) {
+      fghAlgo.consumeAction();
+      aiState.loopNextTime=0; //force ZS_MM_Attack_Loop call
+      //fghAlgo.fetchInstructions(*this,*currentTarget,owner.script());
+      return false;
+      }
+    return false;
+    }
+
+  if(act==FightAlgo::MV_WAIT) {
+    implFaiWait(200);
     fghAlgo.consumeAction();
+    setAnim(AnimationSolver::Idle);
     return true;
     }
 
-  if(act==FightAlgo::MV_MOVE) {
+  if(act==FightAlgo::MV_WAITLONG) {
+    implFaiWait(300);
     fghAlgo.consumeAction();
-    if(!mvAlgo.aiGoTo(currentTarget,fghAlgo.prefferedAtackDistance(*this,*currentTarget,owner.script()))) {
-      setAnim(AnimationSolver::Idle);
-      }
+    setAnim(AnimationSolver::Idle);
+    return true;
+    }
+
+  if(act==FightAlgo::MV_NULL) {
+    fghAlgo.consumeAction();
+    setAnim(AnimationSolver::Idle);
+    return true;
     }
 
   return true;
@@ -997,6 +1021,10 @@ bool Npc::implAtack(uint64_t dt) {
 
 void Npc::implAiWait(uint64_t dt) {
   waitTime = owner.tickCount()+dt;
+  }
+
+void Npc::implFaiWait(uint64_t dt) {
+  faiWaitTime = owner.tickCount()+dt;
   }
 
 void Npc::commitDamage() {
@@ -1008,20 +1036,12 @@ void Npc::commitDamage() {
   if(ani!=Anim::Atack && ani!=Anim::AtackL && ani!=Anim::AtackR && !(Anim::MagFirst<=ani && ani<=Anim::MagLast))
     return;
 
-  static const float maxAngle = std::cos(float(M_PI/12));
-
-  const float dx    = x-currentTarget->x;
-  const float dz    = z-currentTarget->z;
-  const float plAng = rotationRad()+float(M_PI/2);
-
-  const float da = plAng-std::atan2(dz,dx);
-  const float c  = std::cos(da);
-
-  if(c<maxAngle && dx*dx+dz*dz>20*20)
-    return;
-
   if(!fghAlgo.isInAtackRange(*this,*currentTarget,owner.script()))
     return;
+
+  if(!fghAlgo.isInFocusAngle(*this,*currentTarget))
+    return;
+
   currentTarget->takeDamage(*this);
   }
 
@@ -1101,9 +1121,6 @@ void Npc::tick(uint64_t dt) {
     return;
     }
 
-  if(hnpc.id==468)
-    Log::i("");
-
   if(fghWaitToDamage<owner.tickCount())
     commitDamage();
 
@@ -1113,25 +1130,23 @@ void Npc::tick(uint64_t dt) {
   if(waitTime>=owner.tickCount())
     return;
 
-  const bool isAtk = isAtackMode();
-  if(isAtk) {
-    implAtack(dt);
-    } else {
-    if(implLookAt(dt))
-      return;
+  if(implAtack(dt))
+    return;
 
-    if(implGoTo(dt))
-      return;
+  if(implLookAt(dt))
+    return;
 
-    if(interactive()!=nullptr)
-      setAnim(AnimationSolver::Interact); else
-    if(currentGoTo==nullptr && currentGoToNpc==nullptr && (currentTarget==nullptr || currentTarget->isDown()) &&
-       aiPolicy!=ProcessPolicy::Player && anim()!=Anim::Pray && anim()!=Anim::PrayRand) {
-      if(weaponState()==WeaponState::NoWeapon)
-        setAnim(animation.lastIdle); else
-      if(animation.current>Anim::IdleLoopLast)
-        setAnim(Anim::Idle);
-      }
+  if(implGoTo(dt))
+    return;
+
+  if(interactive()!=nullptr)
+    setAnim(AnimationSolver::Interact); else
+  if(currentGoTo==nullptr && currentGoToNpc==nullptr && (currentTarget==nullptr || currentTarget->isDown()) &&
+     aiPolicy!=ProcessPolicy::Player && anim()!=Anim::Pray && anim()!=Anim::PrayRand) {
+    if(weaponState()==WeaponState::NoWeapon)
+      setAnim(animation.lastIdle); else
+    if(animation.current>Anim::IdleLoopLast)
+      setAnim(Anim::Idle);
     }
 
   if(!aiState.started && aiState.funcIni!=0) {
@@ -1229,7 +1244,7 @@ void Npc::nextAiAction(uint64_t dt) {
         aiActions.push_front(std::move(act));
         } else {
         if(animation.animSq)
-          waitTime = owner.tickCount()+uint64_t(animation.animSq.totalTime());
+          implAiWait(uint64_t(animation.animSq.totalTime()));
         }
       break;
       }
@@ -1285,10 +1300,14 @@ void Npc::nextAiAction(uint64_t dt) {
       drawSpell(act.i0);
       break;
     case AI_Atack:
-      atackMode=true;
+      //atackMode=true;
+      if(currentTarget!=nullptr){
+        if(!fghAlgo.fetchInstructions(*this,*currentTarget,owner.script()))
+          aiActions.push_front(std::move(act));
+        }
       break;
     case AI_Flee:
-      atackMode=false;
+      //atackMode=false;
       break;
     case AI_Dodge:
       setAnim(Anim::MoveBack);
@@ -1434,10 +1453,6 @@ void Npc::tickRoutine() {
         }
       if(loop!=0){
         owner.script().invokeState(this,currentOther,nullptr,aiState.funcEnd);
-        if(atackMode) {
-          atackMode=false;
-          setTarget(nullptr);
-          }
         currentOther = nullptr;
         aiPrevState  = aiState.funcIni;
         aiState      = AiState();
@@ -1648,9 +1663,8 @@ bool Npc::lookAt(float dx, float dz, bool anim, uint64_t dt) {
   }
 
 bool Npc::checkGoToNpcdistance(const Npc &other) {
-  if(atackMode)
-    return fghAlgo.isInAtackRange(*this,other,owner.script());
-  return qDistTo(other)<=200*200;
+  return fghAlgo.isInAtackRange(*this,other,owner.script());
+  //return qDistTo(other)<=200*200;
   }
 
 size_t Npc::hasItem(uint32_t id) const {
@@ -2380,6 +2394,8 @@ void Npc::aiSetWalkMode(WalkBit w) {
 
 void Npc::clearAiQueue() {
   aiActions.clear();
+  waitTime        = 0;
+  faiWaitTime     = 0;
   currentGoTo     = nullptr;
   currentGoToFlag = GoToHint::GT_Default;
   wayPath.clear();
