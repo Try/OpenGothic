@@ -122,6 +122,7 @@ class World final {
 
     void   sendPassivePerc (Npc& self,Npc& other,Npc& victum,int32_t perc);
     void   emitWeaponsSound(Npc& self,Npc& other);
+    void   emitBlockSound  (Npc& self,Npc& other);
 
     bool   isInListenerRange(const std::array<float,3> &pos) const;
     void   emitDlgSound(const char *s, float x, float y, float z, float range, uint64_t &timeLen);

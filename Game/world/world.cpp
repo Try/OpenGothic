@@ -419,6 +419,37 @@ void World::emitWeaponsSound(Npc &self, Npc &other) {
   wsound.emitSound(buf, 0.5f*(p0[0]+p1[0]), 0.5f*(p0[1]+p1[1]), 0.5f*(p0[2]+p1[2]),25.f,nullptr);
   }
 
+void World::emitBlockSound(Npc &self, Npc &other) {
+  // ItemMaterial
+  auto p0 = self.position();
+  auto p1 = other.position();
+
+  const char* selfMt="ME";
+  const char* othMt ="ME";
+
+  if(self.guild()>Guild::GIL_SEPERATOR_HUM)
+    selfMt = "JA"; else //Jaws
+    selfMt = "FI"; //Fist
+
+  if(auto a = self.inventory().activeWeapon()){
+    int32_t m = a->handle()->material;
+    if(m==ItemMaterial::MAT_WOOD)
+      selfMt = "WO"; else
+      selfMt = "ME";
+    }
+
+  if(auto a = other.inventory().activeWeapon()){
+    int32_t m = a->handle()->material;
+    if(m==ItemMaterial::MAT_WOOD)
+      selfMt = "WO"; else
+      selfMt = "ME";
+    }
+
+  char buf[128]={};
+  std::snprintf(buf,sizeof(buf),"CS_IAI_%s_%s",selfMt,othMt);
+  wsound.emitSound(buf, 0.5f*(p0[0]+p1[0]), 0.5f*(p0[1]+p1[1]), 0.5f*(p0[2]+p1[2]),25.f,nullptr);
+  }
+
 bool World::isInListenerRange(const std::array<float,3> &pos) const {
   return wsound.isInListenerRange(pos);
   }

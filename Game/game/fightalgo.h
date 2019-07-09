@@ -13,22 +13,23 @@ class FightAlgo final {
 
     enum Action : uint8_t {
       MV_NULL     = 0,
-      MV_MOVE     = 1,
-      MV_JUMPBACK = 2,
-      MV_ATACK    = 3,
-      MV_ATACKL   = 4,
-      MV_ATACKR   = 5,
-      MV_STRAFEL  = 6,
-      MV_STRAFER  = 7,
+      MV_MOVEG    = 1,
+      MV_MOVEA    = 2,
+      MV_JUMPBACK = 3,
+      MV_ATACK    = 4,
+      MV_ATACKL   = 5,
+      MV_ATACKR   = 6,
+      MV_STRAFEL  = 7,
+      MV_STRAFER  = 8,
       MV_BLOCK    = 8,
-      MV_WAIT     = 9,
-      MV_WAITLONG = 10,
-      MV_TURN2HIT = 11,
+      MV_WAIT     = 10,
+      MV_WAITLONG = 11,
+      MV_TURN2HIT = 12,
 
       MV_MAX      = 6
       };
 
-    Action nextFromQueue(GameScript& owner);
+    Action nextFromQueue(Npc &npc, Npc &tg, GameScript& owner);
     void   consumeAction();
     void   onClearTarget();
     void   onTakeHit();

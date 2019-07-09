@@ -69,11 +69,14 @@ void FightAlgo::fillQueue(GameScript& owner,const Daedalus::GEngineClasses::C_Fi
   queueId = src.move[owner.rand(sz)];
   }
 
-FightAlgo::Action FightAlgo::nextFromQueue(GameScript& owner) {
+FightAlgo::Action FightAlgo::nextFromQueue(Npc& npc, Npc& tg, GameScript& owner) {
   if(tr[0]==MV_NULL){
     switch(queueId) {
+      case Daedalus::GEngineClasses::MOVE_TURN:
       case Daedalus::GEngineClasses::MOVE_RUN:{
-        tr[0] = MV_MOVE;
+        if(isInGRange(npc,tg,owner))
+          tr[0] = MV_MOVEA; else
+          tr[0] = MV_MOVEG;
         break;
         }
       case Daedalus::GEngineClasses::MOVE_RUNBACK:{
@@ -82,10 +85,6 @@ FightAlgo::Action FightAlgo::nextFromQueue(GameScript& owner) {
         }
       case Daedalus::GEngineClasses::MOVE_JUMPBACK:{
         tr[0] = MV_JUMPBACK;
-        break;
-        }
-      case Daedalus::GEngineClasses::MOVE_TURN:{
-        tr[0] = MV_MOVE;
         break;
         }
       case Daedalus::GEngineClasses::MOVE_STRAFE:{
@@ -169,10 +168,8 @@ bool FightAlgo::hasInstructions() const {
   }
 
 bool FightAlgo::fetchInstructions(Npc &npc, Npc &tg, GameScript& owner) {
-  //if(queueId!=0)
-  //  return false;
   fillQueue(npc,tg,owner);
-  nextFromQueue(owner);
+  nextFromQueue(npc,tg,owner);
   return true;
   }
 

@@ -939,7 +939,7 @@ bool Npc::implAtack(uint64_t dt) {
   if(faiWaitTime>=owner.tickCount())
     return true;
 
-  FightAlgo::Action act = fghAlgo.nextFromQueue(owner.script());
+  FightAlgo::Action act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
 
   if(act==FightAlgo::MV_BLOCK) {
     if(setAnim(Anim::AtackBlock))
@@ -986,11 +986,15 @@ bool Npc::implAtack(uint64_t dt) {
     return true;
     }
 
-  if(act==FightAlgo::MV_MOVE) {
-    if(!mvAlgo.aiGoTo(currentTarget,fghAlgo.prefferedGDistance(*this,*currentTarget,owner.script()))) {
+  if(act==FightAlgo::MV_MOVEA || act==FightAlgo::MV_MOVEG) {
+    const float d = act==FightAlgo::MV_MOVEG ?
+          fghAlgo.prefferedGDistance(*this,*currentTarget,owner.script()) :
+          fghAlgo.prefferedAtackDistance(*this,*currentTarget,owner.script());
+    if(!mvAlgo.aiGoTo(currentTarget,d)) {
       fghAlgo.consumeAction();
       aiState.loopNextTime=0; //force ZS_MM_Attack_Loop call
-      //fghAlgo.fetchInstructions(*this,*currentTarget,owner.script());
+      if(act==FightAlgo::MV_MOVEA)
+        setAnim(AnimationSolver::Idle);
       return false;
       }
     return false;
@@ -1079,7 +1083,9 @@ void Npc::takeDamage(Npc &other) {
       //emitSoundEffect("FIG_DUMMYWOUND",25);
       }
     } else {
-    emitSoundEffect("D_PARADE",25,true);
+    if(invent.activeWeapon()!=nullptr)
+      owner.emitBlockSound(other,*this);
+    //emitSoundEffect("D_PARADE",25,true);
     }
   }
 
@@ -2400,6 +2406,7 @@ void Npc::clearAiQueue() {
   currentGoToFlag = GoToHint::GT_Default;
   wayPath.clear();
   mvAlgo.aiGoTo(nullptr);
+  fghAlgo.onClearTarget();
   //setTarget(nullptr);
   }
 
