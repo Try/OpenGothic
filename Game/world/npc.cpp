@@ -919,8 +919,10 @@ bool Npc::implAtack(uint64_t dt) {
   if(currentTarget==nullptr || isPlayer() || isTalk())
     return false;
 
-  if(currentTarget->isDead()){
-    return true;
+  if(currentTarget->isDown()){
+    // NOTE: don't clear internal target, to make scripts happy
+    //currentTarget=nullptr;
+    return false;
     }
 
   if(weaponState()==WeaponState::NoWeapon)
@@ -992,7 +994,7 @@ bool Npc::implAtack(uint64_t dt) {
           fghAlgo.prefferedAtackDistance(*this,*currentTarget,owner.script());
     if(!mvAlgo.aiGoTo(currentTarget,d)) {
       fghAlgo.consumeAction();
-      aiState.loopNextTime=0; //force ZS_MM_Attack_Loop call
+      aiState.loopNextTime=owner.tickCount(); //force ZS_MM_Attack_Loop call
       if(act==FightAlgo::MV_MOVEA)
         setAnim(AnimationSolver::Idle);
       return false;
@@ -1028,7 +1030,8 @@ void Npc::implAiWait(uint64_t dt) {
   }
 
 void Npc::implFaiWait(uint64_t dt) {
-  faiWaitTime = owner.tickCount()+dt;
+  faiWaitTime          = owner.tickCount()+dt;
+  aiState.loopNextTime = faiWaitTime;
   }
 
 void Npc::commitDamage() {
@@ -1061,6 +1064,7 @@ void Npc::takeDamage(Npc &other) {
   if(ani!=Anim::MoveBack && ani!=Anim::AtackBlock) {
     lastHit = &other;
     fghAlgo.onTakeHit();
+    implFaiWait(0);
     if(!isPlayer())
       setOther(lastHit);
     int dmg = isImmortal() ? 0 : other.damageValue(*this);
