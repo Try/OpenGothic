@@ -16,8 +16,9 @@ before_build:
   - set Path=C:/Qt/Tools/mingw530_32/bin;%Path%
   - set CC=C:/Qt/Tools/mingw530_32/bin/gcc.exe
   - set CXX=C:/Qt/Tools/mingw530_32/bin/g++.exe
-  - curl -L --silent --show-error --output VulkanSDK.exe https://vulkan.lunarg.com/sdk/download/1.0.51.0/windows/VulkanSDK-1.0.51.0-Installer.exe?Human=true
+  - curl -L --silent --show-error --output VulkanSDK.exe https://vulkan.lunarg.com/sdk/download/1.0.65.1/windows/VulkanSDK-1.0.65.1-Installer.exe?Human=true
   - VulkanSDK.exe /S
+  - set VK_SDK_PATH=C:VulkanSDK/1.0.65.1
 
 build_script:
   - cmake --version
