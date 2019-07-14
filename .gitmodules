@@ -2,8 +2,8 @@
 	path = lib/ZenLib
   url = https://github.com/Try/ZenLib.git
 [submodule "lib/MoltenTempest"]
-  path = lib/MoltenTempest
-  url = https://github.com/Try/MoltenTempest.git
+	path = lib/MoltenTempest
+	url = https://github.com/Try/MoltenTempest.git
 [submodule "lib/bullet3"]
 	path = lib/bullet3
 	url = https://github.com/bulletphysics/bullet3.git
