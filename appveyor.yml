@@ -1,0 +1,46 @@
+install:
+  - cmd: git submodule -q update --init
+
+environment:
+  matrix:
+    - QMAKE_SPEC : "win32-g++"
+      CXX:   mingw53_32
+
+configuration:
+  - release
+
+before_build:
+  # Prepare the out-of-source build directory.
+  - mkdir build
+  - set Path=C:/Qt/Tools/mingw530_32/bin;%Path%
+
+build_script:
+  - cmake --version
+  - cmake -H. -Bbuild -G "MinGW Makefiles" -DBUILD_EXTRAS:BOOL=OFF" "-DCMAKE_BUILD_TYPE:STRING=Debug" "-DCMAKE_CXX_COMPILER:STRING=C:/Qt/Tools/mingw530_32/bin/g++.exe"  "-DCMAKE_C_COMPILER:STRING=C:/Qt/Tools/mingw530_32/bin/gcc.exe" "-DCMAKE_PREFIX_PATH:STRING=C:/Qt/5.9.1/mingw53_32" "-DCMAKE_MAKE_PROGRAM:STRING=C:/Qt/mingw530_32/bin/mingw32-make.exe"
+  - cmake --build ./build --target all
+
+after_build:
+  - echo gothic-win32-v%appveyor_build_version% >> VERSION
+  - set name="bin/gothic-%CXX%-%CONFIGURATION%.zip"
+  - mkdir bin
+  - 7z a %name%    VERSION
+  - 7z a %name%    lib\*
+  - 7z a %name% -r bin/*.exe
+
+artifacts:
+  - path: bin/gothic-$(CXX)-$(CONFIGURATION).zip
+    name: archive
+
+deploy:
+  release: gothic-win32-v$(appveyor_build_version)
+  description: 'no release description'
+  provider: GitHub
+  auth_token:
+    secure: F+uuqiw9spJMK5f1giN0HjRVJrxn6AFGrhNyTa0pq/pIrZTxKdd/hcXUdsT+gtmV
+  artifact: archive
+  draft: true
+  force_update: true
+  prerelease: true
+  on:
+    branch: master                # release from master branch only
+    appveyor_repo_tag: true       # deploy on tag push only
