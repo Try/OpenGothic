@@ -16,6 +16,8 @@ before_build:
 
 build_script:
   - cmake --version
+  - gcc   --version
+  - g++   --version
   - cmake -H. -Bbuild -G "MinGW Makefiles" -DCMAKE_SH="CMAKE_SH-NOTFOUND" -DBUILD_EXTRAS:BOOL=OFF" "-DCMAKE_BUILD_TYPE:STRING=Debug" "-DCMAKE_CXX_COMPILER:STRING=C:/Qt/Tools/mingw530_32/bin/g++.exe"  "-DCMAKE_C_COMPILER:STRING=C:/Qt/Tools/mingw530_32/bin/gcc.exe" "-DCMAKE_PREFIX_PATH:STRING=C:/Qt/5.9.1/mingw53_32" "-DCMAKE_MAKE_PROGRAM:STRING=C:/Qt/mingw530_32/bin/mingw32-make.exe"
   - cmake --build ./build --target all
 
