@@ -13,6 +13,8 @@ before_build:
   # Prepare the out-of-source build directory.
   - mkdir build
   - set Path=C:/Qt/Tools/mingw530_32/bin;%Path%
+  - set CC=C:/Qt/Tools/mingw530_32/bin/gcc.exe
+  - set CXX=C:/Qt/Tools/mingw530_32/bin/g++.exe
 
 build_script:
   - cmake --version
