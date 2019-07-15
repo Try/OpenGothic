@@ -31,8 +31,8 @@ after_build:
   - echo gothic-win32-v%appveyor_build_version% >> VERSION
   - set name="bin/open_gothic.zip"
   - 7z a %name%    VERSION
-  - 7z a %name%    shader\*.spirv
-  - 7z a %name%    data\*
+  - 7z a %name%    bin/shader\*.spirv
+  - 7z a %name%    bin/data\*
   - 7z a %name% -r bin/*.exe
 
 artifacts:
