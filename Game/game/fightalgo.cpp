@@ -15,7 +15,9 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
 
   if(hitFlg){
     hitFlg = false;
-    return fillQueue(owner,ai.my_w_strafe);
+    fillQueue(owner,ai.my_w_strafe);
+    if(queueId!=0)
+      return;
     }
 
   if(tg.isPrehit()){
