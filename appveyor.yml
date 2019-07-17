@@ -34,6 +34,10 @@ after_build:
   - 7z a %name%    bin/shader\*.spirv
   - 7z a %name%    bin/data\*
   - 7z a %name% -r bin/*.exe
+  - 7z a %name% -r build/lib/MoltenTempest/bin/*.dll
+  - 7z a %name% -r C:/Qt/Tools/mingw530_32/bin/libgcc_s_dw2-1.dll
+  - 7z a %name% -r C:/Qt/Tools/mingw530_32/bin/libstdc++-6.dll
+  - 7z a %name% -r C:/Qt/Tools/mingw530_32/bin/libwinpthread-1.dll
 
 artifacts:
   - path: bin/open_gothic.zip
@@ -44,7 +48,7 @@ deploy:
   description: 'no release description'
   provider: GitHub
   auth_token:
-    secure: F+uuqiw9spJMK5f1giN0HjRVJrxn6AFGrhNyTa0pq/pIrZTxKdd/hcXUdsT+gtmV
+    secure: YLdtUMsAcc8FUr3kgwhQW7nkl5jDpLKbelvzWzzTWUfAiDd92Kd15rjlDJVEEFzo
   artifact: archive
   draft: true
   force_update: true
