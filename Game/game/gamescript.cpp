@@ -1142,12 +1142,12 @@ void GameScript::concatstrings(Daedalus::DaedalusVM &vm) {
 
 void GameScript::inttostring(Daedalus::DaedalusVM &vm){
   int32_t x = vm.popInt();
-  vm.setReturn(std::to_string(x)); //TODO: std::move?
+  vm.setReturn(std::to_string(x));
   }
 
 void GameScript::floattostring(Daedalus::DaedalusVM &vm) {
   auto x = vm.popFloat();
-  vm.setReturn(std::to_string(x)); //TODO: std::move?
+  vm.setReturn(std::to_string(x));
   }
 
 void GameScript::floattoint(Daedalus::DaedalusVM &vm) {
