@@ -23,7 +23,7 @@ using namespace Tempest;
 MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),
     draw(device,gothic),gothic(gothic),inventory(gothic,draw.storage()),
-    dialogs(gothic,inventory),chapter(gothic),camera(gothic),player(gothic,dialogs,inventory) {
+    dialogs(gothic,inventory),document(gothic),chapter(gothic),camera(gothic),player(gothic,dialogs,inventory) {
   if(!gothic.isWindowMode())
     setFullscreen(true);
 
@@ -62,6 +62,7 @@ MainWindow::~MainWindow() {
   takeWidget(&dialogs);
   takeWidget(&inventory);
   takeWidget(&chapter);
+  takeWidget(&document);
   removeAllWidgets();
   // unload
   gothic.setGame(std::unique_ptr<GameSession>());
@@ -69,6 +70,7 @@ MainWindow::~MainWindow() {
 
 void MainWindow::setupUi() {
   setLayout(new StackLayout());
+  addWidget(&document);
   addWidget(&dialogs);
   addWidget(&inventory);
   addWidget(&chapter);
@@ -82,6 +84,7 @@ void MainWindow::setupUi() {
   gothic.onPrint       .bind(&dialogs,&DialogMenu::print);
 
   gothic.onIntroChapter.bind(&chapter,&ChapterScreen::show);
+  gothic.onShowDocument.bind(&document,&DocumentMenu::show);
   }
 
 void MainWindow::paintEvent(PaintEvent& event) {
@@ -233,6 +236,14 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
       }
     }
 
+  if(document.isActive()){
+    document.keyDownEvent(event);
+    if(event.isAccepted()){
+      uiKeyUp=&document;
+      return;
+      }
+    }
+
   if(dialogs.isActive()){
     dialogs.keyDownEvent(event);
     if(event.isAccepted()){
@@ -255,6 +266,11 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
 void MainWindow::keyUpEvent(KeyEvent &event) {
   if(uiKeyUp==&chapter){
     chapter.keyUpEvent(event);
+    if(event.isAccepted())
+      return;
+    }
+  if(uiKeyUp==&document){
+    document.keyUpEvent(event);
     if(event.isAccepted())
       return;
     }

@@ -13,6 +13,7 @@
 #include "game/fightai.h"
 #include "game/gamesession.h"
 #include "world/world.h"
+#include "ui/documentmenu.h"
 #include "ui/chapterscreen.h"
 
 class Gothic final {
@@ -90,6 +91,7 @@ class Gothic final {
     Tempest::Signal<void(const char*)>                                  onPrint;
 
     Tempest::Signal<void(const ChapterScreen::Show&)>                   onIntroChapter;
+    Tempest::Signal<void(const DocumentMenu::Show&)>                    onShowDocument;
     Tempest::Signal<void()>                                             onWorldLoaded;
 
     const std::string&                    messageFromSvm(const std::string &id,int voice) const;

@@ -341,6 +341,10 @@ void GameSession::introChapter(const ChapterScreen::Show &s) {
   chapter        = s;
   }
 
+void GameSession::showDocument(const DocumentMenu::Show &s) {
+  gothic.onShowDocument(s);
+  }
+
 bool GameSession::isWorldKnown(const std::string &name) const {
   for(auto& i:visitedWorlds)
     if(i.name()==name)

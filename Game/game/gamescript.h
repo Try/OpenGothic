@@ -18,6 +18,7 @@
 #include "game/fightai.h"
 #include "game/aistate.h"
 #include "game/questlog.h"
+#include "ui/documentmenu.h"
 
 class Gothic;
 class GameSession;
@@ -135,7 +136,6 @@ class GameScript final {
 
     struct ScopeVar;
 
-    static const std::string& popString  (Daedalus::DaedalusVM &vm);
     Npc*                      popInstance(Daedalus::DaedalusVM &vm);
     Item*                     popItem    (Daedalus::DaedalusVM &vm);
 
@@ -153,6 +153,7 @@ class GameScript final {
     Npc*  getNpcById (size_t id);
     auto  getInfo    (size_t id) -> Daedalus::GEngineClasses::C_Info*;
     auto  getFocus(const char* name) -> Daedalus::GEngineClasses::C_Focus;
+    auto  getDocument(int id) -> std::unique_ptr<DocumentMenu::Show>&;
 
     void  storeItem(Item* it);
 
@@ -331,6 +332,15 @@ class GameScript final {
 
     void snd_play            (Daedalus::DaedalusVM &vm);
 
+    void doc_create          (Daedalus::DaedalusVM &vm);
+    void doc_createmap       (Daedalus::DaedalusVM &vm);
+    void doc_setpage         (Daedalus::DaedalusVM &vm);
+    void doc_setpages        (Daedalus::DaedalusVM &vm);
+    void doc_printline       (Daedalus::DaedalusVM &vm);
+    void doc_printlines      (Daedalus::DaedalusVM &vm);
+    void doc_setmargins      (Daedalus::DaedalusVM &vm);
+    void doc_show            (Daedalus::DaedalusVM &vm);
+
     void introducechapter    (Daedalus::DaedalusVM &vm);
     void playvideo           (Daedalus::DaedalusVM &vm);
     void printscreen         (Daedalus::DaedalusVM &vm);
@@ -380,4 +390,6 @@ class GameScript final {
 
     Daedalus::GEngineClasses::C_Focus                           cFocusNorm,cFocusMele,cFocusRange,cFocusMage;
     Daedalus::GEngineClasses::C_GilValues                       cGuildVal;
+
+    std::vector<std::unique_ptr<DocumentMenu::Show>>            documents;
   };

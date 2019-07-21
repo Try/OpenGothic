@@ -4,6 +4,7 @@
 #include <Tempest/SoundDevice>
 #include <memory>
 
+#include "ui/documentmenu.h"
 #include "ui/chapterscreen.h"
 #include "game/gamescript.h"
 #include "gametime.h"
@@ -72,6 +73,7 @@ class GameSession final {
     void         printScreen(const char *msg, int x, int y, int time, const Tempest::Font &font);
     void         print(const char *msg);
     void         introChapter(const ChapterScreen::Show& s);
+    void         showDocument(const DocumentMenu::Show& s);
 
     auto         getFightAi(size_t i) const -> const FightAi::FA&;
     auto         getMusicTheme(const char* name) const ->  const Daedalus::GEngineClasses::C_MusicTheme&;

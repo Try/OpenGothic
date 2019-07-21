@@ -887,7 +887,7 @@ Example
 Mdl_ApplyOverlayMdsTimed(self,"HUMANS_SPRINT.MDS",120000); // SchnellerHering potion effect
 ```
 
-* ![!](ni.png) `func void Mdl_ApplyRandomAni(var C_Npc npc, var string s1, var string s2 )`  
+* ![!](ni.png) `func void Mdl_ApplyRandomAni(var C_Npc npc, var string s1, var string s2)`  
   Not implemented.
 
 * ![!](ni.png) `func void Mdl_ApplyRandomAniFreq(var C_Npc npc, var string s1, var float f2)`  
@@ -907,20 +907,23 @@ Mdl_ApplyOverlayMdsTimed(self,"HUMANS_SPRINT.MDS",120000); // SchnellerHering po
   Takes no effect in OpenGothic for now.
 
 ### document api
-* ![!](ni.png) `func int Doc_Create()`  
-  Not implemented.
+* `func int Doc_Create()`  
+  Allocate new document object.  
+  Returns integer handle to created document.  
 
 * ![!](ni.png) `func int Doc_CreateMap()`  
   Not implemented.
 
-* ![!](ni.png) `func void Doc_SetPages(var int document, var int count)`  
-  Not implemented.
+* `func void Doc_SetPages(var int document, var int count)`  
+  Set pages count for document with handle 'document'  
 
-* ![!](ni.png) `func void Doc_SetPage(var int document, var int page, var string texture, var int scale)`  
-  Not implemented.
+* `func void Doc_SetPage(var int document, var int page, var string texture, var int scale)`  
+  Set background texture for 'page' of document  
+  If page is -1, then texture is going to be applyed to the document itself  
 
-* ![!](ni.png) `func void Doc_SetMargins(var int document, var int page, var int left, var int top, var int right, var int bottom, var int pixels)`  
-  Not implemented.
+* `func void Doc_SetMargins(var int document, var int page, var int left, var int top, var int right, var int bottom, var int pixels)`  
+  Set margins for 'page' of document  
+  If page is -1, then margins is going to be applyed to the document itself  
 
 * ![!](ni.png) `func void Doc_SetFont(var int document, var int page, var string font)`  
   Not implemented.
@@ -932,13 +935,14 @@ Mdl_ApplyOverlayMdsTimed(self,"HUMANS_SPRINT.MDS",120000); // SchnellerHering po
   Not implemented.
 
 * ![!](ni.png) `func void Doc_PrintLine(var int document, var int page, var string text)`  
-  Not implemented.
+  Not implemented.  
 
 * ![!](ni.png) `func void Doc_PrintLines(var int document, var int page, var string text)`  
-  Not implemented.
+  Not implemented.  
 
-* ![!](ni.png) `func void Doc_Show(var int document)`  
-  Not implemented.
+* `func void Doc_Show(var int document)`  
+  Present document with handle 'document' to screen.  
+  Handle is no longer valid after this call.  
 
 ### ai-timetable
 * ![!](ni.png) `func void TA(var c_npc self, var int start_h, var int stop_h, var func state, var string waypoint)`  

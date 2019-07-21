@@ -33,6 +33,7 @@
 #include "ui/dialogmenu.h"
 #include "ui/inventorymenu.h"
 #include "ui/chapterscreen.h"
+#include "ui/documentmenu.h"
 
 class MenuRoot;
 class Gothic;
@@ -118,6 +119,7 @@ class MainWindow : public Tempest::Window {
 
     InventoryMenu                       inventory;
     DialogMenu                          dialogs;
+    DocumentMenu                        document;
     ChapterScreen                       chapter;
 
     Tempest::Widget*                    uiKeyUp=nullptr;
