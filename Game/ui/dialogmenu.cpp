@@ -109,7 +109,7 @@ void DialogMenu::drawTextMultiline(Painter &p, int x, int y, int w, int h, const
                w-2*pdd, h-2*pdd, txt);
     } else {
     if(other!=nullptr){
-      auto txt = other->displayName();
+      auto txt = cp1251::toUtf8(other->displayName());
       auto sz  = p.font().textSize(txt);
       p.drawText(x+(w-sz.w)/2,y,txt);
       y+=int(sz.h);

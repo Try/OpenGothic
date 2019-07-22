@@ -100,6 +100,7 @@ class Gothic final {
 
     const std::u16string&                 path() const { return gpath; }
     const std::string&                    defaultWorld() const;
+    const std::string&                    defaultSave() const;
     std::unique_ptr<Daedalus::DaedalusVM> createVm(const char16_t *datFile);
 
     static void debug(const ZenLoad::zCMesh &mesh, std::ostream& out);
@@ -107,24 +108,25 @@ class Gothic final {
     static void debug(const ZenLoad::PackedSkeletalMesh& mesh, std::ostream& out);
 
   private:
-    std::u16string                     gpath;
-    std::string                        wdef;
-    bool                               noMenu=false;
-    bool                               isWindow=false;
-    uint16_t                           pauseSum=0;
-    bool                               isDebug=false;
-    bool                               isRambo=false;
+    std::u16string                          gpath;
+    std::string                             wdef;
+    std::string                             saveDef;
+    bool                                    noMenu=false;
+    bool                                    isWindow=false;
+    uint16_t                                pauseSum=0;
+    bool                                    isDebug=false;
+    bool                                    isRambo=false;
 
-    const Tempest::Texture2d*          loadTex=nullptr;
-    std::atomic_int                    loadProgress{0};
-    std::thread                        loaderTh;
-    std::atomic<LoadState>             loadingFlag{LoadState::Idle};
+    const Tempest::Texture2d*               loadTex=nullptr;
+    std::atomic_int                         loadProgress{0};
+    std::thread                             loaderTh;
+    std::atomic<LoadState>                  loadingFlag{LoadState::Idle};
 
-    std::unique_ptr<GameSession>       game, pendingGame;
-    std::unique_ptr<FightAi>           fight;
-    std::unique_ptr<CameraDefinitions> camera;
-    std::unique_ptr<SoundDefinitions>  soundDef;
-    std::unique_ptr<MusicDefinitions>  music;
+    std::unique_ptr<GameSession>            game, pendingGame;
+    std::unique_ptr<FightAi>                fight;
+    std::unique_ptr<CameraDefinitions>      camera;
+    std::unique_ptr<SoundDefinitions>       soundDef;
+    std::unique_ptr<MusicDefinitions>       music;
 
     std::mutex                              syncSnd;
     Tempest::SoundDevice                    sndDev;

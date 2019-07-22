@@ -50,7 +50,7 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
       continue;
     auto& mgr = (i.flg&F_Margin) ? i.margins : document.margins;
 
-    const int w = (800+mgr.xMargin())/document.pages.size();
+    const int w = back->w();//(800+mgr.xMargin())/document.pages.size();
 
     p.setBrush(*back);
     p.drawRect(x,0,w,back->h(),

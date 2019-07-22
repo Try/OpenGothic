@@ -48,7 +48,11 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   gothic.onStartGame  .bind(this,&MainWindow::startGame);
   gothic.onWorldLoaded.bind(this,&MainWindow::onWorldLoaded);
 
-  if(!gothic.doStartMenu()) {
+  if(!gothic.defaultSave().empty()){
+    loadGame(gothic.defaultSave());
+    rootMenu->popMenu();
+    }
+  else if(!gothic.doStartMenu()) {
     startGame(gothic.defaultWorld());
     rootMenu->popMenu();
     }
@@ -373,6 +377,8 @@ void MainWindow::tick() {
   auto st = gothic.checkLoading();
   if(st==Gothic::LoadState::Finalize || st==Gothic::LoadState::Failed) {
     gothic.finishLoading();
+    if(st==Gothic::LoadState::Failed)
+      rootMenu->setMenu("MENU_MAIN");
     }
   else if(st!=Gothic::LoadState::Idle) {
     return;
@@ -542,8 +548,7 @@ void MainWindow::loadGame(const std::string &name) {
     onWorldLoaded();
     }
 
-  //LOADING_OLDWORLD.TGA - for world-change trigger
-  gothic.startLoading("LOADING_OLDWORLD.TGA",[this,name](std::unique_ptr<GameSession>&& game){
+  gothic.startLoading("LOADING.TGA",[this,name](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
     Tempest::RFile file(name);
     Serialize      s(file);

@@ -17,6 +17,13 @@ Gothic::Gothic(const int argc, const char **argv) {
       if(i<argc)
         gpath.assign(argv[i],argv[i]+std::strlen(argv[i]));
       }
+    else if(std::strcmp(argv[i],"-save")==0){
+      ++i;
+      if(i<argc){
+        if(std::strcmp(argv[i],"q")==0)
+          saveDef = "qsave.sav";
+        }
+      }
     else if(std::strcmp(argv[i],"-w")==0){
       ++i;
       if(i<argc)
@@ -251,6 +258,10 @@ void Gothic::startLoading(const char* banner, const std::function<std::unique_pt
         Tempest::Log::e("loading error: out of memory");
         loadingFlag.compare_exchange_strong(one,LoadState::Failed);
         }
+      catch(std::system_error&){
+        Tempest::Log::e("loading error: unable to open file");
+        loadingFlag.compare_exchange_strong(one,LoadState::Failed);
+        }
       });
     loaderTh=std::move(l);
     //loaderTh.join();
@@ -269,7 +280,8 @@ void Gothic::cancelLoading() {
   }
 
 void Gothic::tick(uint64_t dt) {
-  game->tick(dt);
+  if(game)
+    game->tick(dt);
   }
 
 void Gothic::updateAnimation() {
@@ -355,6 +367,10 @@ uint32_t Gothic::messageTime(const std::string &id) const {
 
 const std::string &Gothic::defaultWorld() const {
   return wdef;
+  }
+
+const std::string &Gothic::defaultSave() const {
+  return saveDef;
   }
 
 std::unique_ptr<Daedalus::DaedalusVM> Gothic::createVm(const char16_t *datFile) {
