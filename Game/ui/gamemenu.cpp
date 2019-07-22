@@ -13,18 +13,17 @@ using namespace Tempest;
 
 static const float scriptDiv=8192.0f;
 
-GameMenu::GameMenu(MenuRoot &owner, Gothic &gothic, const char* menuSection)
-  :gothic(gothic), owner(owner) {
+GameMenu::GameMenu(MenuRoot &owner, Daedalus::DaedalusVM &vm, Gothic &gothic, const char* menuSection)
+  :gothic(gothic), owner(owner), vm(vm) {
   timer.timeout.bind(this,&GameMenu::onTick);
   timer.start(100);
 
   textBuf.reserve(64);
-  vm = gothic.createVm(u"_work/Data/Scripts/_compiled/MENU.DAT");
 
-  Daedalus::DATFile& dat=vm->getDATFile();
-  vm->initializeInstance(menu,
-                         dat.getSymbolIndexByName(menuSection),
-                         Daedalus::IC_Menu);
+  Daedalus::DATFile& dat=vm.getDATFile();
+  vm.initializeInstance(menu,
+                        dat.getSymbolIndexByName(menuSection),
+                        Daedalus::IC_Menu);
   back = Resources::loadTexture(menu.backPic);
 
   initItems();
@@ -50,6 +49,10 @@ GameMenu::GameMenu(MenuRoot &owner, Gothic &gothic, const char* menuSection)
   }
 
 GameMenu::~GameMenu() {
+  for(int i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;++i)
+    vm.clearReferences(hItems[i].handle);
+  vm.clearReferences(menu);
+
   gothic.popPause();
   }
 
@@ -59,9 +62,9 @@ void GameMenu::initItems() {
       continue;
 
     hItems[i].name = menu.items[i];
-    vm->initializeInstance(hItems[i].handle,
-                           vm->getDATFile().getSymbolIndexByName(hItems[i].name.c_str()),
-                           Daedalus::IC_MenuItem);
+    vm.initializeInstance(hItems[i].handle,
+                          vm.getDATFile().getSymbolIndexByName(hItems[i].name.c_str()),
+                          Daedalus::IC_MenuItem);
     hItems[i].img = Resources::loadTexture(hItems[i].handle.backPic);
     }
   }
@@ -286,7 +289,7 @@ bool GameMenu::exec(const std::string &action) {
 
   for(auto subMenu:menuList)
     if(action==subMenu) {
-      owner.pushMenu(new GameMenu(owner,gothic,subMenu));
+      owner.pushMenu(new GameMenu(owner,vm,gothic,subMenu));
       return false;
       }
   return false;

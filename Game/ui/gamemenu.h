@@ -14,7 +14,7 @@ class Npc;
 
 class GameMenu : public Tempest::Widget {
   public:
-    GameMenu(MenuRoot& owner, Gothic& gothic, const char *menuSection);
+    GameMenu(MenuRoot& owner, Daedalus::DaedalusVM& vm, Gothic& gothic, const char *menuSection);
     ~GameMenu() override;
 
     void setPlayer(const Npc& pl);
@@ -30,7 +30,7 @@ class GameMenu : public Tempest::Widget {
   private:
     Gothic&                               gothic;
     MenuRoot&                             owner;
-    std::unique_ptr<Daedalus::DaedalusVM> vm;
+    Daedalus::DaedalusVM&                 vm;
 
     Daedalus::GEngineClasses::C_Menu      menu={};
     const Tempest::Texture2d*             back=nullptr;

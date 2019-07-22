@@ -75,7 +75,7 @@ void MainWindow::setupUi() {
   addWidget(&inventory);
   addWidget(&chapter);
   rootMenu = &addWidget(new MenuRoot(gothic));
-  rootMenu->setMenu(new GameMenu(*rootMenu,gothic,"MENU_MAIN"));
+  rootMenu->setMenu("MENU_MAIN");
 
   gothic.onDialogPipe  .bind(&dialogs,&DialogMenu::openPipe);
   gothic.isDialogClose .bind(&dialogs,&DialogMenu::aiIsClose);
@@ -307,7 +307,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     menuEv="MENU_STATUS";
 
   if(menuEv!=nullptr) {
-    rootMenu->setMenu(new GameMenu(*rootMenu,gothic,menuEv));
+    rootMenu->setMenu(menuEv);
     rootMenu->setFocus(true);
     if(auto pl = gothic.player())
       rootMenu->setPlayer(*pl);

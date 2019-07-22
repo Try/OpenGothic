@@ -8,9 +8,18 @@ using namespace Tempest;
 MenuRoot::MenuRoot(Gothic &gothic)
   :gothic(gothic){
   setFocus(true);
+  vm = gothic.createVm(u"_work/Data/Scripts/_compiled/MENU.DAT");
   }
 
 MenuRoot::~MenuRoot() {
+  }
+
+void MenuRoot::setMenu(const char *menuEv) {
+  if(!vm->getDATFile().hasSymbolName(menuEv)){
+    Log::e("invalid menu-id: ",menuEv);
+    return;
+    }
+  setMenu(new GameMenu(*this,*vm,gothic,menuEv));
   }
 
 void MenuRoot::setMenu(GameMenu *w) {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Tempest/Widget>
+#include <daedalus/DaedalusVM.h>
 
 class Gothic;
 class GameMenu;
@@ -11,6 +12,7 @@ class MenuRoot : public Tempest::Widget {
     MenuRoot(Gothic& gothic);
     ~MenuRoot() override;
 
+    void setMenu(const char* menu);
     void setMenu(GameMenu* w);
     void pushMenu(GameMenu* w);
     void popMenu();
@@ -27,6 +29,7 @@ class MenuRoot : public Tempest::Widget {
 
   private:
     Gothic&                                gothic;
+    std::unique_ptr<Daedalus::DaedalusVM>  vm;
     GameMenu*                              current=nullptr;
     std::vector<std::unique_ptr<GameMenu>> menuStack;
   };
