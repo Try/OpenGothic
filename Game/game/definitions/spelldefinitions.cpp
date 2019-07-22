@@ -5,7 +5,7 @@
 
 using namespace Tempest;
 
-SpellDefinitions::SpellDefinitions(Daedalus::DaedalusVM &vm) {
+SpellDefinitions::SpellDefinitions(Daedalus::DaedalusVM &vm) : vm(vm) {
   size_t count=0;
   vm.getDATFile().iterateSymbolsOfClass("C_Spell", [&count](size_t,Daedalus::PARSymbol&){
     ++count;
@@ -17,6 +17,10 @@ SpellDefinitions::SpellDefinitions(Daedalus::DaedalusVM &vm) {
     spl[count].instName = p.name;
     ++count;
     });
+  }
+
+SpellDefinitions::~SpellDefinitions() {
+  vm.clearReferences(Daedalus::IC_Spell);
   }
 
 const Daedalus::GEngineClasses::C_Spell &SpellDefinitions::find(const std::string& instanceName) const {

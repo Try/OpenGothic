@@ -1,4 +1,4 @@
-#include "fightai.h"
+#include "fightaidefinitions.h"
 
 #include "gothic.h"
 
@@ -13,6 +13,8 @@ FightAi::FightAi(Gothic& gothic) {
   fAi.resize(size_t(count));
   for(size_t i=1;i<fAi.size();++i)
     fAi[i] = loadAi(*vm,i);
+
+  vm->clearReferences(Daedalus::IC_FightAi);
   }
 
 const FightAi::FA &FightAi::get(size_t i) {

@@ -35,11 +35,17 @@ Item::Item(World &owner, Serialize &fin)
   view.setObjMatrix(mat);
 
   auto& sym = owner.script().getSymbol(h.instanceSymbol);
-  sym.instanceDataHandle = &h;
-  sym.instanceDataClass  = Daedalus::IC_Item;
+  sym.instance.set(&h,Daedalus::IC_Item);
+  }
+
+Item::Item(Item &&it)
+  : hitem(it.hitem),owner(it.owner),view(std::move(it.view)),
+    pos(it.pos),mat(it.mat),equiped(it.equiped),itSlot(it.itSlot){
   }
 
 Item::~Item() {
+  owner.script().clearReferences(hitem);
+  assert(hitem.useCount==0);
   }
 
 void Item::save(Serialize &fout) {

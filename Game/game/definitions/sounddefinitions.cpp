@@ -13,6 +13,7 @@ SoundDefinitions::SoundDefinitions(Gothic &gothic) {
     vm->initializeInstance(sfx, i, Daedalus::IC_Sfx);
     this->sfx[s.name] = std::move(sfx);
     });
+  vm->clearReferences(Daedalus::IC_Sfx);
   }
 
 const Daedalus::GEngineClasses::C_SFX& SoundDefinitions::getSfx(const char *name) {

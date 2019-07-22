@@ -7,6 +7,7 @@ class Gothic;
 class SvmDefinitions final {
   public:
     SvmDefinitions(Daedalus::DaedalusVM &vm);
+    ~SvmDefinitions();
 
     const std::string &                    find(const char* speech,const int id);
 

@@ -54,6 +54,8 @@ Npc::Npc(World &owner, Serialize &fin)
 Npc::~Npc(){
   if(currentInteract)
     currentInteract->dettach(*this);
+  owner.script().clearReferences(hnpc);
+  assert(hnpc.useCount==0);
   }
 
 void Npc::save(Serialize &fout) {
@@ -103,8 +105,7 @@ void Npc::load(Serialize &fin, Daedalus::GEngineClasses::C_Npc &h) {
   fin.read(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
 
   auto& sym = owner.script().getSymbol(hnpc.instanceSymbol);
-  sym.instanceDataHandle = &hnpc;
-  sym.instanceDataClass  = Daedalus::IC_Npc;
+  sym.instance.set(&hnpc, Daedalus::IC_Npc);
   }
 
 void Npc::save(Serialize &fout, const Daedalus::GEngineClasses::C_Npc::ENPCFlag &flg) const {

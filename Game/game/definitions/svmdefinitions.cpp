@@ -5,6 +5,10 @@
 SvmDefinitions::SvmDefinitions(Daedalus::DaedalusVM &vm):vm(vm) {
   }
 
+SvmDefinitions::~SvmDefinitions() {
+  vm.clearReferences(Daedalus::IC_Svm);
+  }
+
 const std::string &SvmDefinitions::find(const char *speech, const int intId) {
   if(speech!=nullptr && speech[0]=='$' && intId>=0){
     const size_t id=size_t(intId);

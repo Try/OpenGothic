@@ -7,6 +7,7 @@ class Gothic;
 class SpellDefinitions final {
   public:
     SpellDefinitions(Daedalus::DaedalusVM &vm);
+    ~SpellDefinitions();
 
     const Daedalus::GEngineClasses::C_Spell &find(const std::string &instanceName) const;
 
@@ -14,5 +15,6 @@ class SpellDefinitions final {
     struct Spell:Daedalus::GEngineClasses::C_Spell {
       std::string instName;
       };
-    std::vector<Spell> spl;
+    Daedalus::DaedalusVM& vm;
+    std::vector<Spell>    spl;
   };

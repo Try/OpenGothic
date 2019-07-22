@@ -11,11 +11,11 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Painter>
 
+#include "game/definitions/svmdefinitions.h"
+#include "game/definitions/spelldefinitions.h"
+#include "game/definitions/fightaidefinitions.h"
 #include "game/aiouputpipe.h"
-#include "game/svmdefinitions.h"
-#include "game/spelldefinitions.h"
 #include "game/constants.h"
-#include "game/fightai.h"
 #include "game/aistate.h"
 #include "game/questlog.h"
 #include "ui/documentmenu.h"
@@ -31,6 +31,7 @@ class GameScript final {
   public:
     GameScript(GameSession &gothic);
     GameScript(GameSession &gothic,Serialize& fin);
+    ~GameScript();
 
     struct DlgChoise final {
       std::string                       title;
@@ -40,21 +41,22 @@ class GameScript final {
       Daedalus::GEngineClasses::C_Info* handle=nullptr;
       };
 
-    bool       hasSymbolName(const char *fn);
-    int32_t    runFunction  (const char* fname);
-    int32_t    runFunction  (const size_t       fid, bool clearStk=true);
+    bool         hasSymbolName(const char *fn);
+    int32_t      runFunction  (const char* fname);
+    int32_t      runFunction  (const size_t       fid, bool clearStk=true);
 
-    void       initDialogs (Gothic &gothic);
-    void       loadDialogOU(Gothic &gothic);
+    void         initDialogs (Gothic &gothic);
+    void         loadDialogOU(Gothic &gothic);
 
-    void       initializeInstance(Daedalus::GEngineClasses::C_Npc&  n,  size_t instance);
-    void       initializeInstance(Daedalus::GEngineClasses::C_Item& it, size_t instance);
+    void         initializeInstance(Daedalus::GEngineClasses::C_Npc&  n,  size_t instance);
+    void         initializeInstance(Daedalus::GEngineClasses::C_Item& it, size_t instance);
+    void         clearReferences(Daedalus::GEngineClasses::Instance& ptr);
 
-    void       save(Serialize& fout);
-    void       saveVar(Serialize& fout);
-    void       loadVar(Serialize& fin);
+    void         save(Serialize& fout);
+    void         saveVar(Serialize& fout);
+    void         loadVar(Serialize& fin);
 
-    void       resetVarPointers();
+    void         resetVarPointers();
 
     const World& world() const;
     World&       world();

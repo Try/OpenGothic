@@ -9,6 +9,10 @@ MusicDefinitions::MusicDefinitions(Gothic& gothic) {
   vm = gothic.createVm(u"_work/Data/Scripts/_compiled/Music.dat");
   }
 
+MusicDefinitions::~MusicDefinitions() {
+  vm->clearReferences(Daedalus::IC_MusicTheme);
+  }
+
 const Daedalus::GEngineClasses::C_MusicTheme &MusicDefinitions::get(const char *name) {
   static Daedalus::GEngineClasses::C_MusicTheme ret={};
   if(!vm)

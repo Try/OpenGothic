@@ -7,10 +7,10 @@
 #include <Tempest/Signal>
 #include <daedalus/DaedalusVM.h>
 
-#include "game/sounddefinitions.h"
-#include "game/cameradefinitions.h"
-#include "game/musicdefinitions.h"
-#include "game/fightai.h"
+#include "game/definitions/sounddefinitions.h"
+#include "game/definitions/cameradefinitions.h"
+#include "game/definitions/musicdefinitions.h"
+#include "game/definitions/fightaidefinitions.h"
 #include "game/gamesession.h"
 #include "world/world.h"
 #include "ui/documentmenu.h"

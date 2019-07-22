@@ -9,6 +9,10 @@ ParticlesDefinitions::ParticlesDefinitions(Gothic& gothic) {
   vm = gothic.createVm(u"_work/Data/Scripts/_compiled/PARTICLEFX.dat");
   }
 
+ParticlesDefinitions::~ParticlesDefinitions() {
+  vm->clearReferences(Daedalus::IC_Pfx);
+  }
+
 const Daedalus::GEngineClasses::C_ParticleFX &ParticlesDefinitions::get(const char *name) {
   static Daedalus::GEngineClasses::C_ParticleFX ret={};
   if(!vm)

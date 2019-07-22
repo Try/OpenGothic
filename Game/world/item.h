@@ -12,9 +12,9 @@ class Item final {
   public:
     Item(World& owner, size_t inst);
     Item(World& owner, Serialize& fin);
-    Item(Item&&)=default;
+    Item(Item&&);
     ~Item();
-    Item& operator=(Item&&)=default;
+    Item& operator=(Item&&)=delete;
 
     void save(Serialize& fout);
 

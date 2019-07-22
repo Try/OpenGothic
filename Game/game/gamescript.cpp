@@ -1,10 +1,10 @@
 #include "gamescript.h"
 
+#include "game/definitions/spelldefinitions.h"
 #include "gothic.h"
 #include "world/npc.h"
 #include "world/item.h"
 #include "game/serialize.h"
-#include "game/spelldefinitions.h"
 #include "utils/cp1251.h"
 
 #include <fstream>
@@ -29,22 +29,18 @@ struct GameScript::ScopeVar final {
 
   ScopeVar(Daedalus::DaedalusVM& vm,Daedalus::PARSymbol& sym, Daedalus::GEngineClasses::Instance* h, Daedalus::EInstanceClass instanceClass)
     :vm(vm),sym(sym) {
-    cls    = sym.instanceDataClass;
-    handle = sym.instanceDataHandle;
-    sym.instanceDataHandle = h;
-    sym.instanceDataClass  = instanceClass;
+    prev = sym.instance;
+    sym.instance.set(h,instanceClass);
     }
 
   ScopeVar(const ScopeVar&)=delete;
   ~ScopeVar(){
-    sym.instanceDataHandle = handle;
-    sym.instanceDataClass  = cls;
+    sym.instance = prev;
     }
 
-  Daedalus::GEngineClasses::Instance* handle=nullptr;
-  Daedalus::EInstanceClass            cls   =Daedalus::IC_None;
-  Daedalus::DaedalusVM&               vm;
-  Daedalus::PARSymbol&                sym;
+  Daedalus::InstancePtr prev;
+  Daedalus::DaedalusVM& vm;
+  Daedalus::PARSymbol&  sym;
   };
 
 
@@ -82,6 +78,10 @@ GameScript::GameScript(GameSession &owner, Serialize &fin)
     }
 
   fin.read(gilAttitudes);
+  }
+
+GameScript::~GameScript() {
+  vm.clearReferences(Daedalus::IC_Info);
   }
 
 void GameScript::initCommon() {
@@ -322,6 +322,7 @@ void GameScript::initCommon() {
     if(itMi_Gold!=size_t(-1)){ // FIXME
       Daedalus::GEngineClasses::C_Item item={};
       vm.initializeInstance(item, itMi_Gold, Daedalus::IC_Item);
+      clearReferences(item);
       goldTxt = cp1251::toUtf8(item.name);
       }
     auto& tradeMul = dat.getSymbolByName("TRADE_VALUE_MULTIPLIER");
@@ -353,6 +354,7 @@ void GameScript::initCommon() {
   auto id = dat.getSymbolIndexByName("Gil_Values");
   if(id!=size_t(-1)){
     vm.initializeInstance(cGuildVal, id, Daedalus::IC_GilValues);
+    clearReferences(cGuildVal);
     for(size_t i=0;i<Guild::GIL_PUBLIC;++i){
       cGuildVal.water_depth_knee   [i]=cGuildVal.water_depth_knee   [Guild::GIL_HUMAN];
       cGuildVal.water_depth_chest  [i]=cGuildVal.water_depth_chest  [Guild::GIL_HUMAN];
@@ -450,6 +452,10 @@ void GameScript::initializeInstance(Daedalus::GEngineClasses::C_Item &it,size_t 
   vm.initializeInstance(it,instance,Daedalus::IC_Item);
   }
 
+void GameScript::clearReferences(Daedalus::GEngineClasses::Instance &ptr) {
+  vm.clearReferences(ptr);
+  }
+
 void GameScript::save(Serialize &fout) {
   fout.write(uint32_t(dlgKnownInfos.size()));
   for(auto& i:dlgKnownInfos)
@@ -503,13 +509,11 @@ void GameScript::loadVar(Serialize &fin) {
           auto& s = getSymbol(name.c_str());
           if(dataClass==1) {
             auto npc = world().npcById(id);
-            s.instanceDataClass  = Daedalus::IC_Npc;
-            s.instanceDataHandle = npc ? npc->handle() : nullptr;
+            s.instance.set(npc ? npc->handle() : nullptr, Daedalus::IC_Npc);
             }
           else if(dataClass==2) {
             auto itm = world().itmById(id);
-            s.instanceDataClass  = Daedalus::IC_Item;
-            s.instanceDataHandle = itm ? itm->handle() : nullptr;
+            s.instance.set(itm ? itm->handle() : nullptr, Daedalus::IC_Item);
             }
           }
         break;
@@ -522,12 +526,8 @@ void GameScript::resetVarPointers() {
   auto&  dat = vm.getDATFile().getSymTable().symbols;
   for(size_t i=0;i<dat.size();++i){
     auto& s = vm.getDATFile().getSymbolByIndex(i);
-    if(s.properties.elemProps.type!=Daedalus::EParType::EParType_Instance && s.instanceDataHandle)
-      Log::i("");
-    if(s.name=="SLEEPABIT_S1.ROCK")
-      Log::i("");
-    if(s.instanceDataClass==Daedalus::IC_Npc || s.instanceDataClass==Daedalus::IC_Item){
-      s.instanceDataHandle = nullptr;
+    if(s.instance.instanceOf(Daedalus::IC_Npc) || s.instance.instanceOf(Daedalus::IC_Item)){
+      s.instance = nullptr;
       }
     }
   }
@@ -557,17 +557,17 @@ void GameScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
       break;
     case Daedalus::EParType::EParType_Instance:
       fout.write(i.properties.elemProps.type);
-      if(i.instanceDataClass==Daedalus::IC_None){
+      if(i.instance.instanceOf(Daedalus::IC_None)){
         fout.write(uint8_t(0));
         }
-      else if(i.instanceDataClass==Daedalus::IC_Npc){
-        fout.write(uint8_t(1),i.name,world().npcId(i.instanceDataHandle));
+      else if(i.instance.instanceOf(Daedalus::IC_Npc)){
+        fout.write(uint8_t(1),i.name,world().npcId(i.instance.get()));
         }
-      else if(i.instanceDataClass==Daedalus::IC_Item){
-        fout.write(uint8_t(2),i.name,world().itmId(i.instanceDataHandle));
+      else if(i.instance.instanceOf(Daedalus::IC_Item)){
+        fout.write(uint8_t(2),i.name,world().itmId(i.instance.get()));
         }
-      else if(i.instanceDataClass==Daedalus::IC_Focus || i.instanceDataClass==Daedalus::IC_GilValues ||
-              i.instanceDataClass==Daedalus::IC_Info) {
+      else if(i.instance.instanceOf(Daedalus::IC_Focus) || i.instance.instanceOf(Daedalus::IC_GilValues) ||
+              i.instance.instanceOf(Daedalus::IC_Info)) {
         fout.write(uint8_t(0));
         }
       else {
@@ -592,6 +592,7 @@ Daedalus::GEngineClasses::C_Focus GameScript::getFocus(const char *name) {
   if(id==size_t(-1))
     return ret;
   vm.initializeInstance(ret, id, Daedalus::IC_Focus);
+  vm.clearReferences(ret);
   return ret;
   }
 
@@ -605,11 +606,9 @@ std::unique_ptr<DocumentMenu::Show>& GameScript::getDocument(int id) {
 void GameScript::storeItem(Item *itm) {
   Daedalus::PARSymbol& s = vm.globalItem();
   if(itm!=nullptr) {
-    s.instanceDataHandle = itm->handle();
-    s.instanceDataClass  = Daedalus::IC_Item;
+    s.instance.set(itm->handle(),Daedalus::IC_Item);
     } else {
-    s.instanceDataHandle = nullptr;
-    s.instanceDataClass  = Daedalus::IC_Item;
+    s.instance.set(nullptr,Daedalus::IC_Item);
     }
   }
 
@@ -814,8 +813,8 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, size_t fn) {
   ScopeVar other (vm, vm.globalOther(),  oth);
   ScopeVar victum(vm, vm.globalVictim(), vic);
   const int ret = runFunction(fn);
-  if(vm.globalOther().instanceDataClass==Daedalus::IC_Npc){
-    auto oth2 = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(vm.globalOther().instanceDataHandle);
+  if(vm.globalOther().instance.instanceOf(Daedalus::IC_Npc)){
+    auto oth2 = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(vm.globalOther().instance.get());
     if(oth2!=oth->handle()) {
       Npc* other = getNpc(oth2);
       npc->setOther(other);
@@ -1074,31 +1073,31 @@ Item *GameScript::getItem(Daedalus::GEngineClasses::C_Item* handle) {
 
 Item *GameScript::getItemById(size_t id) {
   auto& handle = vm.getDATFile().getSymbolByIndex(id);
-  if(handle.instanceDataClass!=Daedalus::EInstanceClass::IC_Item)
+  if(!handle.instance.instanceOf(Daedalus::EInstanceClass::IC_Item))
     return nullptr;
-  auto hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Item*>(handle.instanceDataHandle);
+  auto hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Item*>(handle.instance.get());
   return getItem(hnpc);
   }
 
 Npc* GameScript::getNpcById(size_t id) {
   auto& handle = vm.getDATFile().getSymbolByIndex(id);
-  if(handle.instanceDataClass!=Daedalus::EInstanceClass::IC_Npc)
+  if(!handle.instance.instanceOf(Daedalus::EInstanceClass::IC_Npc))
     return nullptr;
 
-  auto hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(handle.instanceDataHandle);
+  auto hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(handle.instance.get());
   if(hnpc==nullptr) {
     auto obj = world().findNpcByInstance(id);
-    handle.instanceDataHandle = obj ? obj->handle() : nullptr;
-    hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(handle.instanceDataHandle);
+    handle.instance.set(obj ? obj->handle() : nullptr,Daedalus::EInstanceClass::IC_Npc);
+    hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(handle.instance.get());
     }
   return getNpc(hnpc);
   }
 
 Daedalus::GEngineClasses::C_Info* GameScript::getInfo(size_t id) {
   auto& sym = vm.getDATFile().getSymbolByIndex(id);
-  if(sym.instanceDataClass!=Daedalus::EInstanceClass::IC_Info)
+  if(!sym.instance.instanceOf(Daedalus::EInstanceClass::IC_Info))
     return nullptr;
-  void* h = sym.instanceDataHandle;
+  auto* h = sym.instance.get();
   if(h==nullptr)
     Log::e("invalid C_Info object: \"",sym.name,"\"");
   return reinterpret_cast<Daedalus::GEngineClasses::C_Info*>(h);
@@ -1340,10 +1339,8 @@ void GameScript::wld_detectnpc(Daedalus::DaedalusVM &vm) {
         }
       }
     });
-  if(ret) {
-    vm.globalOther().instanceDataHandle = ret->handle();
-    vm.globalOther().instanceDataClass  = Daedalus::IC_Npc;
-    }
+  if(ret)
+    vm.globalOther().instance.set(ret->handle(), Daedalus::IC_Npc);
   vm.setReturn(ret ? 1 : 0);
   }
 
@@ -1915,12 +1912,10 @@ void GameScript::npc_gettarget(Daedalus::DaedalusVM &vm) {
   Daedalus::PARSymbol& s = vm.globalOther();
 
   if(npc!=nullptr && npc->target()) {
-    s.instanceDataHandle = npc->target()->handle();
-    s.instanceDataClass  = Daedalus::IC_Npc;
+    s.instance.set(npc->target()->handle(),Daedalus::IC_Npc);
     vm.setReturn(1);
     } else {
-    s.instanceDataHandle = nullptr;
-    s.instanceDataClass  = Daedalus::IC_Npc;
+    s.instance.set(nullptr,Daedalus::IC_Npc);
     vm.setReturn(0);
     }
   }
@@ -1949,12 +1944,10 @@ void GameScript::npc_getnexttarget(Daedalus::DaedalusVM &vm) {
 
   Daedalus::PARSymbol& s = vm.globalOther();
   if(ret!=nullptr) {
-    s.instanceDataHandle = ret->handle();
-    s.instanceDataClass  = Daedalus::IC_Npc;
+    s.instance.set(ret->handle(),Daedalus::IC_Npc);
     vm.setReturn(1);
     } else {
-    s.instanceDataHandle = nullptr;
-    s.instanceDataClass  = Daedalus::IC_Npc;
+    s.instance.set(nullptr,Daedalus::IC_Npc);
     vm.setReturn(0);
     }
   }
@@ -1978,11 +1971,11 @@ void GameScript::npc_checkinfo(Daedalus::DaedalusVM &vm) {
     }
 
   auto& hero = vm.globalOther();
-  if(hero.instanceDataClass!=Daedalus::EInstanceClass::IC_Npc){
+  if(!hero.instance.instanceOf(Daedalus::EInstanceClass::IC_Npc)){
     vm.setReturn(0);
     return;
     }
-  auto* hpl  = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(hero.instanceDataHandle);
+  auto* hpl  = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(hero.instance.get());
   auto& pl   = *(hpl);
   auto& npc  = *(n->handle());
 
@@ -2271,8 +2264,8 @@ void GameScript::ai_startstate(Daedalus::DaedalusVM &vm) {
   Daedalus::PARSymbol& s = vm.globalOther();
   if(self!=nullptr && func>0){
     Npc* oth = nullptr;
-    if(s.instanceDataClass==Daedalus::IC_Npc){
-      auto npc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(s.instanceDataHandle);
+    if(s.instance.instanceOf(Daedalus::IC_Npc)){
+      auto npc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(s.instance.get());
       if(npc)
         oth = reinterpret_cast<Npc*>(npc->userPtr);
       }
@@ -2808,24 +2801,28 @@ void GameScript::perc_setrange(Daedalus::DaedalusVM &) {
 
 void GameScript::printdebug(Daedalus::DaedalusVM &vm) {
   const std::string& msg = vm.popString();
-  Log::d("[zspy]: ",msg);
+  if(owner.isGothic2())
+    Log::d("[zspy]: ",msg);
   }
 
 void GameScript::printdebugch(Daedalus::DaedalusVM &vm) {
   const std::string& msg = vm.popString();
   int                ch  = vm.popInt();
-  //Log::d("[zspy,",ch,"]: ",msg);
+  if(owner.isGothic2())
+    Log::d("[zspy,",ch,"]: ",msg);
   }
 
 void GameScript::printdebuginst(Daedalus::DaedalusVM &vm) {
   const std::string& msg = vm.popString();
-  //Log::d("[zspy]: ",msg);
+  if(owner.isGothic2())
+    Log::d("[zspy]: ",msg);
   }
 
 void GameScript::printdebuginstch(Daedalus::DaedalusVM &vm) {
   const std::string& msg = vm.popString();
   int                ch  = vm.popInt();
-  //Log::d("[zspy,",ch,"]: ",msg);
+  if(owner.isGothic2())
+    Log::d("[zspy,",ch,"]: ",msg);
   }
 
 void GameScript::sort(std::vector<GameScript::DlgChoise> &dlg) {

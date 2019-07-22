@@ -8,6 +8,7 @@ class Gothic;
 class MusicDefinitions final {
   public:
     MusicDefinitions(Gothic &gothic);
+    ~MusicDefinitions();
 
     const Daedalus::GEngineClasses::C_MusicTheme& get(const char* name);
 
