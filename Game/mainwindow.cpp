@@ -140,6 +140,11 @@ void MainWindow::paintEvent(PaintEvent& event) {
           float hp = pl->attribute(Npc::ATR_HITPOINTS)/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
           drawBar(p,barHp, w()/2,10, hp, AlignHCenter|AlignTop);
           }
+
+        /*
+        if(auto pl = focus.interactive){
+          pl->marchInteractives(p,vp,w(),h());
+          }*/
         }
 
       if(auto pl=gothic.player()){

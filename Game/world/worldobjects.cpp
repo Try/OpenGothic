@@ -481,7 +481,7 @@ static bool canSee(const Npc& pl,const Npc& n){
   }
 
 static bool canSee(const Npc& pl,const Interactive& n){
-  return pl.canSeeNpc(n.position()[0],n.position()[1]+100,n.position()[2],true);
+  return n.canSeeNpc(pl,true);
   }
 
 static bool canSee(const Npc& pl,const Item& n){

@@ -165,6 +165,21 @@ uint32_t Interactive::stateMask(uint32_t orig) const {
   return orig;
   }
 
+bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
+  for(auto& i:pos){
+    auto mat = objMat;
+    auto pos = mesh->mapToRoot(i.node);
+    mat.mul(pos);
+
+    float x = mat.at(3,0);
+    float y = mat.at(3,1);
+    float z = mat.at(3,2);
+    if(npc.canSeeNpc(x,y,z,freeLos))
+      return true;
+    }
+  return false;
+  }
+
 void Interactive::implAddItem(char *name) {
   char* sep = std::strchr(name,':');
   if(sep!=nullptr) {
@@ -372,7 +387,6 @@ void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x
 
   for(auto& m:pos){
     auto mat = objMat;
-    //mat.translate(mesh->rootTr[0],mesh->rootTr[1],mesh->rootTr[2]);
     auto pos = mesh->mapToRoot(m.node);
     mat.mul(pos);
 

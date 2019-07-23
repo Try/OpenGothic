@@ -39,6 +39,8 @@ class Interactive final {
 
     uint32_t            stateMask(uint32_t orig) const;
 
+    bool                canSeeNpc(const Npc &npc, bool freeLos) const;
+
     bool isAvailable() const;
     bool isLoopState() const { return loopState; }
     bool attach (Npc& npc);
