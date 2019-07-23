@@ -246,12 +246,14 @@ void Camera::follow(const Npc &npc,uint64_t dt,bool includeRot) {
   if(includeRot && def.rotate!=0) {
     float angle = npc.rotation();
     float da    = angleMod(spin.x-angle);
+    float min   = def.minAzimuth+180;
+    float max   = def.maxAzimuth-180;
 
     float shift = def.veloRot*dtF*60.f; // my guess: speed is angle per frame
-    if(da<def.minAzimuth)
-      shift = std::max(shift,+(def.minAzimuth-da));
-    if(da>def.maxAzimuth)
-      shift = std::max(shift,-(def.maxAzimuth-da));
+    if(da<min)
+      shift = std::max(shift,+(min-da));
+    if(da>max)
+      shift = std::max(shift,-(max-da));
 
     if(da>0){
       shift = -std::min(+da,shift);
