@@ -18,6 +18,10 @@ void DocumentMenu::close() {
   if(!active)
     return;
   active=false;
+
+  if(auto pl = gothic.player()) {
+    pl->setInteraction(nullptr);
+    }
   }
 
 void DocumentMenu::keyDownEvent(KeyEvent &e) {
@@ -40,26 +44,37 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
   if(!active)
     return;
 
-  int x=0;
+  int mw = 0, mh = 0;
+  for(auto& i:document.pages){
+    auto back = Resources::loadTexture((i.flg&F_Backgr) ? i.img : document.img);
+    if(!back)
+      continue;
+    mw += back->w();
+    mh = std::max(mh,back->h());
+    }
+
+  float k = std::min(1.f,(800.f+document.margins.xMargin())/std::max(mw,1));
+
+  int x=int(w()-k*mw)/2, y = (h()-mh)/2;
+
   Painter p(e);
   p.setFont(Resources::dialogFont());
-
   for(auto& i:document.pages){
     auto back = Resources::loadTexture((i.flg&F_Backgr) ? i.img : document.img);
     if(!back)
       continue;
     auto& mgr = (i.flg&F_Margin) ? i.margins : document.margins;
 
-    const int w = back->w();//(800+mgr.xMargin())/document.pages.size();
+    const int w = int(k*back->w());
 
     p.setBrush(*back);
-    p.drawRect(x,0,w,back->h(),
+    p.drawRect(x,y,w,back->h(),
                0,0,back->w(),back->h());
 
     p.setBrush(Color(0.04f,0.04f,0.04f,1));
 
     p.drawText(x+mgr.left,
-               mgr.top,
+               y+mgr.top,
                w - mgr.xMargin(),
                back->h() - mgr.yMargin(),
                i.text);

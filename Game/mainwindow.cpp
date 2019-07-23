@@ -87,7 +87,7 @@ void MainWindow::setupUi() {
   gothic.onPrintScreen .bind(&dialogs,&DialogMenu::printScreen);
   gothic.onPrint       .bind(&dialogs,&DialogMenu::print);
 
-  gothic.onIntroChapter.bind(&chapter,&ChapterScreen::show);
+  gothic.onIntroChapter.bind(&chapter, &ChapterScreen::show);
   gothic.onShowDocument.bind(&document,&DocumentMenu::show);
   }
 
@@ -419,6 +419,9 @@ void MainWindow::tick() {
     if(focus.npc)
       player.actionFocus(*focus.npc);
     }
+  if(document.isActive())
+    clearInput();
+
   if(pressed[KeyEvent::K_F8])
     player.marvinF8();
   if(pressed[KeyEvent::K_Shift]){
