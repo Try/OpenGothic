@@ -24,7 +24,7 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 * `func int Hlp_StrCmp(var string s1,var string s2)`  
   Retunrn True, if s1 is equal to s2; False otherwise
 
-* `func int Hlp_IsValidNpc(VAR C_Npc self)`  
+* `func int Hlp_IsValidNpc(var C_Npc self)`  
   Returns True, if 'self' is valid reference to C_Npc; False otherwise
 
 * `func int Hlp_IsValidItem(var C_Item item)`  
@@ -43,7 +43,7 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 * `func int Hlp_GetInstanceID(var C_Item item)`  
   Return instance-id of item
 
-* ![!](ni.png) `func int Hlp_CutscenePlayed (VAR STRING csName)`  
+* ![!](ni.png) `func int Hlp_CutscenePlayed (var string csName)`  
   Return TRUE, if cutscene is played  
   Not implemented.
 
@@ -911,8 +911,10 @@ Mdl_ApplyOverlayMdsTimed(self,"HUMANS_SPRINT.MDS",120000); // SchnellerHering po
   Allocate new document object.  
   Returns integer handle to created document.  
 
-* ![!](ni.png) `func int Doc_CreateMap()`  
-  Not implemented.
+* `func int Doc_CreateMap()`  
+  Allocate new document/map object.  
+  Difference between 'Doc_Create' and 'Doc_CreateMap' is a cursor showing player position in world  
+  Returns integer handle to created document.  
 
 * `func void Doc_SetPages(var int document, var int count)`  
   Set pages count for document with handle 'document'  
@@ -934,11 +936,11 @@ Mdl_ApplyOverlayMdsTimed(self,"HUMANS_SPRINT.MDS",120000); // SchnellerHering po
 * ![!](ni.png) `func void Doc_SetLevelCoords(var int document, var int left, var int top, var int right, var int bottom)`  
   Not implemented.
 
-* ![!](ni.png) `func void Doc_PrintLine(var int document, var int page, var string text)`  
-  Not implemented.  
+* `func void Doc_PrintLine(var int document, var int page, var string text)`  
+  Append single line 'text' block to 'page' of the 'document'  
 
-* ![!](ni.png) `func void Doc_PrintLines(var int document, var int page, var string text)`  
-  Not implemented.  
+* `func void Doc_PrintLines(var int document, var int page, var string text)`  
+  Append multiline line 'text' block to 'page' of the 'document'  
 
 * `func void Doc_Show(var int document)`  
   Present document with handle 'document' to screen.  
