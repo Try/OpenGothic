@@ -83,21 +83,23 @@ void Camera::setSpin(const PointF &p) {
   spin = p;
   }
 
-Matrix4x4 Camera::viewShadow(const std::array<float,3>& ldir) const {
+Matrix4x4 Camera::viewShadow(const std::array<float,3>& ldir, int layer) const {
   const float scale = 0.0008f;
   const float c = std::cos(spin.x*float(M_PI)/180.f), s = std::sin(spin.x*float(M_PI)/180.f);
 
   Matrix4x4 view;
   view.identity();
+
+  if(layer>0)
+    view.scale(0.2f);
+
   view.translate(0.f,0.5f,0.5f);
   view.rotate(/*spin.y*/90, 1, 0, 0);
   view.translate(0.f,0.f,0.f);
   view.rotate(spin.x, 0, 1, 0);
   view.scale(scale,scale*0.3f,scale);
-  //view.scale(scale);
   view.translate(camPos[0],camPos[1],camPos[2]);
   view.scale(-1,-1,-1);
-  //return view;
 
   auto inv = view;
   inv.inverse();

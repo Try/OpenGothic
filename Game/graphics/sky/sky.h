@@ -61,5 +61,4 @@ class Sky final {
     const World*                  world=nullptr;
 
     static std::array<float,3>    color;
-    static std::array<Vertex,6>   fsq;
   };

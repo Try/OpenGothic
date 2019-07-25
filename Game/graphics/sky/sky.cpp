@@ -9,17 +9,10 @@
 
 using namespace Tempest;
 
-std::array<Sky::Vertex,6> Sky::fsq =
- {{
-    {-1,-1},{ 1,1},{1,-1},
-    {-1,-1},{-1,1},{1, 1}
- }};
-
 std::array<float,3> Sky::color = {{0.47f,0.55f,0.70f}};
 
 Sky::Sky(const RendererStorage &storage)
   :storage(storage),uboGpu(storage.device) {
-  vbo = Resources::loadVbo(fsq.data(),fsq.size());
   for(uint32_t i=0;i<storage.device.maxFramesInFlight();++i)
     uboGpu.desc(i) = storage.device.uniforms(storage.uboSkyLayout());
   }
@@ -72,7 +65,7 @@ void Sky::commitUbo(uint32_t frameId) {
 void Sky::draw(Tempest::CommandBuffer &cmd, uint32_t frameId, const World&) {
   size_t offset=0;
   cmd.setUniforms(storage.pSky,uboGpu.desc(frameId),1,&offset);
-  cmd.draw(vbo);
+  cmd.draw(Resources::fsqVbo());
   }
 
 void Sky::setLight(const std::array<float,3> &l) {

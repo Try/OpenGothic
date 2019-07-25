@@ -11,7 +11,8 @@ Landscape::Landscape(const RendererStorage &storage, const ZenLoad::PackedMesh &
 
   pf.reset(new PerFrame[device.maxFramesInFlight()]);
   for(size_t i=0;i<device.maxFramesInFlight();++i){
-    pf[i].uboGpu = device.loadUbo(&uboCpu,sizeof(uboCpu));
+    pf[i].uboGpu[0] = device.loadUbo(&uboCpu,sizeof(uboCpu));
+    pf[i].uboGpu[1] = device.loadUbo(&uboCpu,sizeof(uboCpu));
     }
 
   static_assert(sizeof(Resources::Vertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
@@ -44,10 +45,16 @@ Landscape::Landscape(const RendererStorage &storage, const ZenLoad::PackedMesh &
     });
   }
 
-void Landscape::setMatrix(uint32_t frameId, const Matrix4x4 &mat, const Matrix4x4 &sh) {
+void Landscape::setMatrix(uint32_t frameId, const Matrix4x4 &mat, const Matrix4x4 *sh, size_t shCount) {
+  assert(shCount==2);
+
   uboCpu.mvp    = mat;
-  uboCpu.shadow = sh;
-  pf[frameId].uboGpu.update(&uboCpu,0,sizeof(uboCpu));
+  uboCpu.shadow = sh[1];
+  pf[frameId].uboGpu[1].update(&uboCpu,0,sizeof(uboCpu));
+
+  uboCpu.mvp    = mat;
+  uboCpu.shadow = sh[0];
+  pf[frameId].uboGpu[0].update(&uboCpu,0,sizeof(uboCpu));
   }
 
 void Landscape::setLight(const std::array<float,3> &l) {
@@ -57,18 +64,21 @@ void Landscape::setLight(const std::array<float,3> &l) {
 void Landscape::commitUbo(uint32_t frameId,const Tempest::Texture2d& shadowMap) {
   PerFrame& pf      = this->pf[frameId];
   auto&     uboLand = pf.ubo[0];
-  auto&     uboSm   = pf.ubo[1];
+  auto&     uboSm0  = pf.ubo[1];
+  auto&     uboSm1  = pf.ubo[2];
 
   const Texture2d* prev =nullptr;
   bool             alpha=false;
 
   uboLand.resize(blocks.size());
-  uboSm  .resize(blocks.size());
+  uboSm0 .resize(blocks.size());
+  uboSm1 .resize(blocks.size());
 
   for(size_t i=0;i<blocks.size();++i){
-    auto& lnd =blocks [i];
-    auto& uboL=uboLand[i];
-    auto& uboS=uboSm  [i];
+    auto& lnd  =blocks [i];
+    auto& uboL =uboLand[i];
+    auto& uboS0=uboSm0 [i];
+    auto& uboS1=uboSm1 [i];
 
     if(prev==lnd.texture && alpha==lnd.alpha)
       continue; //HINT: usless :(
@@ -77,16 +87,22 @@ void Landscape::commitUbo(uint32_t frameId,const Tempest::Texture2d& shadowMap) 
 
     if(uboL.isEmpty())
       uboL = storage.device.uniforms(storage.uboLndLayout());
-    if(uboS.isEmpty())
-      uboS = storage.device.uniforms(storage.uboLndLayout());
+    if(uboS0.isEmpty())
+      uboS0 = storage.device.uniforms(storage.uboLndLayout());
+    if(uboS1.isEmpty())
+      uboS1 = storage.device.uniforms(storage.uboLndLayout());
 
-    uboL.set(0,pf.uboGpu,0,sizeof(uboCpu));
+    uboL.set(0,pf.uboGpu[0],0,sizeof(uboCpu));
     uboL.set(2,*lnd.texture);
     uboL.set(3,shadowMap);
 
-    uboS.set(0,pf.uboGpu,0,sizeof(uboCpu));
-    uboS.set(2,*lnd.texture);
-    uboS.set(3,Resources::fallbackTexture());
+    uboS0.set(0,pf.uboGpu[0],0,sizeof(uboCpu));
+    uboS0.set(2,*lnd.texture);
+    uboS0.set(3,Resources::fallbackTexture());
+
+    uboS1.set(0,pf.uboGpu[1],0,sizeof(uboCpu));
+    uboS1.set(2,*lnd.texture);
+    uboS1.set(3,Resources::fallbackTexture());
     }
   }
 
@@ -94,9 +110,9 @@ void Landscape::draw(Tempest::CommandBuffer &cmd, uint32_t frameId) {
   implDraw(cmd,storage.pLand,  storage.pLandAlpha,0,frameId);
   }
 
-void Landscape::drawShadow(CommandBuffer &cmd, uint32_t frameId) {
+void Landscape::drawShadow(CommandBuffer &cmd, uint32_t frameId, int layer) {
   PerFrame& pf      = this->pf[frameId];
-  auto&     uboLand = pf.ubo[1];
+  auto&     uboLand = pf.ubo[1+layer];
 
   uint8_t tex=255;
   for(size_t i=0;i<blocks.size();++i){

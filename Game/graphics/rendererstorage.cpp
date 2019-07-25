@@ -31,6 +31,9 @@ RendererStorage::RendererStorage(Tempest::Device &device)
   vsSky = device.loadShader("shader/sky.vert.sprv");
   fsSky = device.loadShader("shader/sky.frag.sprv");
 
+  vsComp = device.loadShader("shader/shadow_compose.vert.sprv");
+  fsComp = device.loadShader("shader/shadow_compose.frag.sprv");
+
   layoutLnd.add(0,Tempest::UniformsLayout::UboDyn, Tempest::UniformsLayout::Vertex);
   layoutLnd.add(2,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
   layoutLnd.add(3,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
@@ -48,6 +51,9 @@ RendererStorage::RendererStorage(Tempest::Device &device)
   layoutSky.add(0,Tempest::UniformsLayout::UboDyn, Tempest::UniformsLayout::Fragment);
   layoutSky.add(1,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
   layoutSky.add(2,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
+
+  layoutComp.add(0,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
+  layoutComp.add(1,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
   }
 
 void RendererStorage::initPipeline(Tempest::RenderPass &pass) {
@@ -67,11 +73,12 @@ void RendererStorage::initPipeline(Tempest::RenderPass &pass) {
   stateLnd.setZTestMode   (RenderState::ZTestMode::Less);
   stateLnd.setCullFaceMode(RenderState::CullMode::Front);
 
-  RenderState stateSky;
-  stateSky.setZTestMode   (RenderState::ZTestMode::LEqual);
-  stateSky.setCullFaceMode(RenderState::CullMode::Front);
+  RenderState stateFsq;
+  stateFsq.setZTestMode   (RenderState::ZTestMode::LEqual);
+  stateFsq.setCullFaceMode(RenderState::CullMode::Front);
   
-  pSky       = device.pipeline<Resources::VertexFsq>(Triangles,stateSky,layoutSky,vsSky,    fsSky    );
+  pSky           = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutSky, vsSky,  fsSky );
+  pComposeShadow = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutComp,vsComp, fsComp);
   
   pLandAlpha = device.pipeline<Resources::Vertex>   (Triangles,stateAlpha,layoutLnd,land.vs,land.fs);
   pLand      = device.pipeline<Resources::Vertex>   (Triangles,stateLnd,  layoutLnd,land.vs,land.fs);
@@ -88,7 +95,7 @@ void RendererStorage::initShadow() {
   state.setCullFaceMode(RenderState::CullMode::Back);
   //state.setCullFaceMode(RenderState::CullMode::Front);
 
-  pLandSh    = device.pipeline<Resources::Vertex> (Triangles,state,layoutLnd,land.vsShadow,  land.fsShadow  );
-  pObjectSh  = device.pipeline<Resources::Vertex> (Triangles,state,layoutObj,object.vsShadow,object.fsShadow);
-  pAnimSh    = device.pipeline<Resources::VertexA>(Triangles,state,layoutAni,ani.vsShadow,   ani.fsShadow   );
+  pLandSh   = device.pipeline<Resources::Vertex> (Triangles,state,layoutLnd,land.vsShadow,  land.fsShadow  );
+  pObjectSh = device.pipeline<Resources::Vertex> (Triangles,state,layoutObj,object.vsShadow,object.fsShadow);
+  pAnimSh   = device.pipeline<Resources::VertexA>(Triangles,state,layoutAni,ani.vsShadow,   ani.fsShadow   );
   }

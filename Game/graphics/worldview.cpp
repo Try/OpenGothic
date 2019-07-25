@@ -38,7 +38,8 @@ const Light &WorldView::mainLight() const {
   }
 
 bool WorldView::needToUpdateCmd() const {
-  return nToUpdateCmd || vobGroup.needToUpdateCommands() || objGroup.needToUpdateCommands() || itmGroup.needToUpdateCommands();
+  return nToUpdateCmd || vobGroup.needToUpdateCommands() ||
+         objGroup.needToUpdateCommands() || itmGroup.needToUpdateCommands();
   }
 
 void WorldView::updateCmd(const World &world,const Tempest::Texture2d& shadow,const RenderPass& shadowPass) {
@@ -52,29 +53,30 @@ void WorldView::updateCmd(const World &world,const Tempest::Texture2d& shadow,co
   nToUpdateCmd=false;
   }
 
-void WorldView::updateUbo(const Matrix4x4& view,const Tempest::Matrix4x4 &shadow,uint32_t imgId) {
+void WorldView::updateUbo(const Matrix4x4& view,const Tempest::Matrix4x4* shadow,size_t shCount,uint32_t imgId) {
   auto viewProj=this->viewProj(view);
 
   sky .setMatrix(imgId,viewProj);
   sky .setLight (sun.dir());
-  land.setMatrix(imgId,viewProj,shadow);
+  land.setMatrix(imgId,viewProj,shadow,shCount);
   land.setLight (sun.dir());
 
-  vobGroup.setModelView(viewProj,shadow);
+  vobGroup.setModelView(viewProj,shadow[0]);
   vobGroup.setLight    (sun.dir());
   vobGroup.updateUbo   (imgId);
-  objGroup.setModelView(viewProj,shadow);
+  objGroup.setModelView(viewProj,shadow[0]);
   objGroup.setLight    (sun.dir());
   objGroup.updateUbo   (imgId);
-  itmGroup.setModelView(viewProj,shadow);
+  itmGroup.setModelView(viewProj,shadow[0]);
   itmGroup.setLight    (sun.dir());
   itmGroup.updateUbo   (imgId);
   }
 
-void WorldView::drawShadow(PrimaryCommandBuffer &cmd, FrameBuffer &fbo,const RenderPass &pass, uint32_t /*imgId*/) {
-  if(!cmdShadow.empty()) {
+void WorldView::drawShadow(PrimaryCommandBuffer &cmd, FrameBuffer &fbo,const RenderPass &pass,
+                           uint32_t /*imgId*/, uint8_t layer) {
+  if(!cmdShadow[layer].empty()) {
     const uint32_t fId=storage.device.frameId();
-    cmd.exec(fbo,pass,cmdShadow[fId]);
+    cmd.exec(fbo,pass,cmdShadow[layer][fId]);
     }
   }
 
@@ -89,7 +91,8 @@ void WorldView::resetCmd() {
   // cmd buffers must not be in use
   storage.device.waitIdle();
   cmdMain.clear();
-  cmdShadow.clear();
+  cmdShadow[0].clear();
+  cmdShadow[1].clear();
   nToUpdateCmd=true;
   }
 
@@ -156,12 +159,20 @@ void WorldView::prebuiltCmdBuf(const World &world,const Texture2d& shadowMap,con
     auto cmd=device.commandSecondaryBuffer(shadowPass,shadowMap.w(),shadowMap.h());
 
     cmd.begin();
-    land    .drawShadow(cmd,i);
+    land    .drawShadow(cmd,i,0);
     vobGroup.drawShadow(cmd,i);
     objGroup.drawShadow(cmd,i);
     itmGroup.drawShadow(cmd,i);
     cmd.end();
-    cmdShadow.emplace_back(std::move(cmd));
+    cmdShadow[0].emplace_back(std::move(cmd));
+    }
+
+  for(size_t i=0;i<count;++i) {
+    auto cmd=device.commandSecondaryBuffer(shadowPass,shadowMap.w(),shadowMap.h());
+    cmd.begin();
+    land.drawShadow(cmd,i,1);
+    cmd.end();
+    cmdShadow[1].emplace_back(std::move(cmd));
     }
 
   for(size_t i=0;i<count;++i) {

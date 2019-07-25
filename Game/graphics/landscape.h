@@ -15,12 +15,12 @@ class Landscape final {
   public:
     Landscape(const RendererStorage& storage,const ZenLoad::PackedMesh& wmesh);
 
-    void setMatrix(uint32_t frameId, const Tempest::Matrix4x4& mat, const Tempest::Matrix4x4 &sh);
+    void setMatrix(uint32_t frameId, const Tempest::Matrix4x4& mat, const Tempest::Matrix4x4 *sh, size_t shCount);
     void setLight(const std::array<float,3>& l);
 
     void commitUbo(uint32_t frameId, const Tempest::Texture2d &shadowMap);
     void draw(Tempest::CommandBuffer &cmd, uint32_t frameId);
-    void drawShadow(Tempest::CommandBuffer &cmd, uint32_t frameId);
+    void drawShadow(Tempest::CommandBuffer &cmd, uint32_t frameId, int layer);
 
   private:
     struct UboLand {
@@ -31,8 +31,8 @@ class Landscape final {
       };
 
     struct PerFrame {
-      std::vector<Tempest::Uniforms> ubo[2];
-      Tempest::UniformBuffer         uboGpu;
+      std::vector<Tempest::Uniforms> ubo[3];
+      Tempest::UniformBuffer         uboGpu[2];
       };
 
     struct Block {

@@ -43,7 +43,7 @@ class Camera final {
     void setSpin(const Tempest::PointF& p);
 
     Tempest::Matrix4x4 view() const;
-    Tempest::Matrix4x4 viewShadow(const std::array<float,3> &ldir) const;
+    Tempest::Matrix4x4 viewShadow(const std::array<float,3> &ldir,int layer) const;
 
   private:
     Gothic&               gothic;

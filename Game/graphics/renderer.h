@@ -33,14 +33,19 @@ class Renderer final {
   private:
     Tempest::Device&                  device;
     Gothic&                           gothic;
-    Tempest::Matrix4x4                view, shadow;
+    Tempest::Matrix4x4                view;
+    Tempest::Matrix4x4                shadow[2];
 
     Tempest::Texture2d                zbuffer;
-    Tempest::Texture2d                shadowMap, shadowZ;
+    Tempest::Texture2d                shadowMap[2], shadowZ[2], shadowMapFinal;
     Tempest::TextureFormat            shadowFormat=Tempest::TextureFormat::RGBA8;
     std::vector<Tempest::FrameBuffer> fbo3d;
-    Tempest::FrameBuffer              fboShadow;
+    Tempest::FrameBuffer              fboShadow[2], fboCompose;
 
-    Tempest::RenderPass               mainPass, shadowPass;
+    Tempest::RenderPass               mainPass, shadowPass, composePass;
+
+    Tempest::Uniforms                 uboShadowComp;
     RendererStorage                   stor;
+
+    void composeShadow(Tempest::PrimaryCommandBuffer &cmd, Tempest::FrameBuffer &fbo);
   };

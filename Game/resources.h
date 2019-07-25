@@ -97,6 +97,8 @@ class Resources {
     static bool                 hasFile(const std::string& fname);
     static VDFS::FileIndex&     vdfsIndex();
 
+    static const Tempest::VertexBuffer<VertexFsq> &fsqVbo();
+
   private:
     static Resources* inst;
 
@@ -136,6 +138,7 @@ class Resources {
     VDFS::FileIndex       gothicAssets;
 
     std::vector<uint8_t>  fBuff, ddsBuf;
+    Tempest::VertexBuffer<VertexFsq> fsq;
 
     std::unordered_map<std::string,std::unique_ptr<Tempest::Texture2d>>   texCache;
     std::unordered_map<std::string,std::unique_ptr<ProtoMesh>>            aniMeshCache;

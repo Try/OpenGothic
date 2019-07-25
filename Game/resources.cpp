@@ -56,6 +56,13 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
     main = "data/font/Roboto-Regular.ttf";
     }
 
+  static std::array<VertexFsq,6> fsqBuf =
+   {{
+      {-1,-1},{ 1,1},{1,-1},
+      {-1,-1},{-1,1},{1, 1}
+   }};
+  fsq = Resources::loadVbo(fsqBuf.data(),fsqBuf.size());
+
   fBuff .reserve(8*1024*1024);
   ddsBuf.reserve(8*1024*1024);
 
@@ -111,6 +118,10 @@ const Texture2d& Resources::fallbackTexture() {
 
 VDFS::FileIndex& Resources::vdfsIndex() {
   return inst->gothicAssets;
+  }
+
+const Tempest::VertexBuffer<Resources::VertexFsq> &Resources::fsqVbo() {
+  return inst->fsq;
   }
 
 Tempest::Texture2d* Resources::implLoadTexture(std::string name) {

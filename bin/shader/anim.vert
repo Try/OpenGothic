@@ -84,7 +84,7 @@ vec4 normal(){
   }
 
 void main() {
-  outUV     = inUV;
+  outUV      = inUV;
 
   vec4 pos   = vertexPos();
 #ifdef OBJ
