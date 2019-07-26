@@ -163,10 +163,9 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 * `func C_Item Npc_GetEquippedArmor(var C_Npc npc)`  
   Returns current armour of 'npc'.
 
-* ![!](ni.png) `func int Npc_HasEquippedWeapon(var C_Npc npc)`  
+* `func int Npc_HasEquippedWeapon(var C_Npc npc)`  
   Returns TRUE, if 'npc' has any equipped weapon.  
   Same as: `Npc_HasEquippedMeleeWeapon(npc) || Npc_HasEquippedRangedWeapon(npc)`
-  Not implemented.  
 
 * ![!](ni.png) `func int Npc_HasEquippedMeleeWeapon(var C_Npc npc)`  
   Returns TRUE, if 'npc' has equipped melee weapon.  
@@ -774,9 +773,8 @@ AI_OutputSVM(self,self,"$SMALLTALK01");
   Create 'amount' of items with class 'itemId' inside a  chest with name 'mobName'.  
   Not implemented.
 
-* ![!](ni.png) `func int Mob_HasItems(var string mobName, var int itemId)`  
+* `func int Mob_HasItems(var string mobName, var int itemId)`  
   Return count of items with class 'itemId', inside of the chest with name 'mobName'  
-  Not implemented.
 
 ### world api
 * `func int Wld_GetDay()`  

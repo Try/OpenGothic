@@ -68,7 +68,8 @@ GameScript::GameScript(GameSession &owner)
   }
 
 GameScript::GameScript(GameSession &owner, Serialize &fin)
-  :GameScript(owner){
+  :GameScript(owner) {
+  quests.load(fin);
   uint32_t sz=0;
   fin.read(sz);
   for(size_t i=0;i<sz;++i){
@@ -172,6 +173,8 @@ void GameScript::initCommon() {
                                                      [this](Daedalus::DaedalusVM& vm){ npc_getequippedrangedweapon(vm); });
   vm.registerExternalFunction("npc_getequippedarmor",[this](Daedalus::DaedalusVM& vm){ npc_getequippedarmor(vm); });
   vm.registerExternalFunction("npc_canseenpc",       [this](Daedalus::DaedalusVM& vm){ npc_canseenpc(vm);        });
+  vm.registerExternalFunction("npc_hasequippedweapon",
+                                                     [this](Daedalus::DaedalusVM& vm){ npc_hasequippedweapon(vm); });
   vm.registerExternalFunction("npc_hasequippedmeleeweapon",
                                                      [this](Daedalus::DaedalusVM& vm){ npc_hasequippedmeleeweapon(vm); });
   vm.registerExternalFunction("npc_hasequippedrangedweapon",
@@ -457,6 +460,7 @@ void GameScript::clearReferences(Daedalus::GEngineClasses::Instance &ptr) {
   }
 
 void GameScript::save(Serialize &fout) {
+  quests.save(fout);
   fout.write(uint32_t(dlgKnownInfos.size()));
   for(auto& i:dlgKnownInfos)
     fout.write(uint32_t(i.first),uint32_t(i.second));
@@ -1804,6 +1808,15 @@ void GameScript::npc_canseenpc(Daedalus::DaedalusVM &vm) {
     ret = npc->canSeeNpc(*other,false);
     }
   vm.setReturn(ret ? 1 : 0);
+  }
+
+void GameScript::npc_hasequippedweapon(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  if(npc!=nullptr &&
+     (npc->currentMeleWeapon()!=nullptr ||
+      npc->currentRangeWeapon()!=nullptr))
+    vm.setReturn(1); else
+    vm.setReturn(0);
   }
 
 void GameScript::npc_hasequippedmeleeweapon(Daedalus::DaedalusVM &vm) {

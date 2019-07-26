@@ -99,7 +99,7 @@ class GameSession final {
     const RendererStorage&         storage;
 
     Tempest::SoundDevice           sound;
-    std::unique_ptr<GameScript>   vm;
+    std::unique_ptr<GameScript>    vm;
     std::unique_ptr<World>         wrld;
 
     uint64_t                       ticks=0, wrldTimePart=0;

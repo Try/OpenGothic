@@ -243,6 +243,7 @@ class GameScript final {
     void npc_getequippedrangedweapon(Daedalus::DaedalusVM &vm);
     void npc_getequippedarmor(Daedalus::DaedalusVM &vm);
     void npc_canseenpc       (Daedalus::DaedalusVM &vm);
+    void npc_hasequippedweapon(Daedalus::DaedalusVM &vm);
     void npc_hasequippedmeleeweapon(Daedalus::DaedalusVM &vm);
     void npc_hasequippedrangedweapon(Daedalus::DaedalusVM &vm);
     void npc_getactivespell  (Daedalus::DaedalusVM &vm);
