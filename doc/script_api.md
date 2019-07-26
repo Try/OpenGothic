@@ -167,17 +167,14 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
   Returns TRUE, if 'npc' has any equipped weapon.  
   Same as: `Npc_HasEquippedMeleeWeapon(npc) || Npc_HasEquippedRangedWeapon(npc)`
 
-* ![!](ni.png) `func int Npc_HasEquippedMeleeWeapon(var C_Npc npc)`  
+* `func int Npc_HasEquippedMeleeWeapon(var C_Npc npc)`  
   Returns TRUE, if 'npc' has equipped melee weapon.  
-  Not implemented.
 
-* ![!](ni.png) `func int Npc_HasEquippedRangedWeapon(var C_Npc npc)`  
+* `func int Npc_HasEquippedRangedWeapon(var C_Npc npc)`  
   Returns TRUE, if 'npc' has equipped ranged weapon.  
-  Not implemented.
 
-* ![!](ni.png) `func int Npc_HasEquippedArmor(var C_Npc npc)`  
+* `func int Npc_HasEquippedArmor(var C_Npc npc)`  
   Returns TRUE, if 'npc' has equipped armor.  
-  Not implemented.
 
 * ![!](ni.png) `func int Npc_OwnedByNpc(var C_Item item, var C_Npc npc)`  
   Returns TRUE, if 'npc' is owner of 'item'.  
