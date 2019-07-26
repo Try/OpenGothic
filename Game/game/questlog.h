@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 
+class Serialize;
+
 class QuestLog final {
   public:
     QuestLog();
@@ -30,6 +32,9 @@ class QuestLog final {
     Quest& add      (const std::string& name,Section s);
     void   setStatus(const std::string& name,Status  s);
     void   addEntry (const std::string& name,const std::string& entry);
+
+    void   save(Serialize &fout);
+    void   load(Serialize &fin);
 
   private:
     Quest* find(const std::string& name);

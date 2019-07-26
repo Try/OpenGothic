@@ -1,4 +1,5 @@
 #include "questlog.h"
+#include "serialize.h"
 
 QuestLog::QuestLog() {
   }
@@ -31,4 +32,22 @@ QuestLog::Quest *QuestLog::find(const std::string &name) {
     if(i.name==name)
       return &i;
   return nullptr;
+  }
+
+void QuestLog::save(Serialize &fout) {
+  uint32_t sz=0;
+  fout.write(sz);
+  for(auto& i:quests){
+    fout.write(i.name,uint8_t(i.section),uint8_t(i.status),i.entry);
+    }
+  }
+
+void QuestLog::load(Serialize &fin) {
+  uint32_t sz=0;
+  fin.read(sz);
+  quests.resize(sz);
+
+  for(auto& i:quests){
+    fin.read(i.name,reinterpret_cast<uint8_t&>(i.section),reinterpret_cast<uint8_t&>(i.status),i.entry);
+    }
   }
