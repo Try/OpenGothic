@@ -49,6 +49,7 @@ Npc::Npc(World &owner, Serialize &fin)
   invent.load(*this,fin);
   fin.read(lastHitType,lastHitSpell);
   loadAiState(fin);
+  fin.read(fghLastEventTime);
   }
 
 Npc::~Npc(){
@@ -74,6 +75,7 @@ void Npc::save(Serialize &fout) {
   invent.save(fout);
   fout.write(lastHitType,lastHitSpell);
   saveAiState(fout);
+  fout.write(fghLastEventTime);
   }
 
 void Npc::save(Serialize &fout, Daedalus::GEngineClasses::C_Npc &h) const {
@@ -1036,7 +1038,6 @@ void Npc::implFaiWait(uint64_t dt) {
   }
 
 void Npc::commitDamage() {
-  fghWaitToDamage = uint64_t(-1);
   if(currentTarget==nullptr)
     return;
 
@@ -1121,8 +1122,14 @@ int Npc::damageValue(Npc &other) const {
 void Npc::tick(uint64_t dt) {
   owner.tickSlot(animation.soundSlot);
 
+  Animation::EvCount ev;
+  animation.processEvents(fghLastEventTime,owner.tickCount(),ev);
+
+  if(ev.count[ZenLoad::DEF_OPT_FRAME]>0){
+    commitDamage();
+    }
+
   if(!checkHealth(false)){
-    fghWaitToDamage = uint64_t(-1);
     mvAlgo.aiGoTo(nullptr);
     mvAlgo.tick(dt);
     setOther(lastHit);
@@ -1131,9 +1138,6 @@ void Npc::tick(uint64_t dt) {
     tickRoutine(); // tick for ZS_Death
     return;
     }
-
-  if(fghWaitToDamage<owner.tickCount())
-    commitDamage();
 
   // do parallel?
   mvAlgo.tick(dt);
@@ -1529,11 +1533,7 @@ bool Npc::doAttack(Anim anim) {
     return setAnim(Anim::Idle,weaponSt,weaponSt);
     }
 
-  if(fghWaitToDamage==uint64_t(-1) && setAnim(anim,weaponSt,weaponSt)){
-    fghWaitToDamage = owner.tickCount()+300;
-    return true;
-    }
-  return false;
+  return setAnim(anim,weaponSt,weaponSt);
   }
 
 void Npc::emitDlgSound(const char *sound) {
@@ -1675,7 +1675,6 @@ bool Npc::lookAt(float dx, float dz, bool anim, uint64_t dt) {
 
 bool Npc::checkGoToNpcdistance(const Npc &other) {
   return fghAlgo.isInAtackRange(*this,other,owner.script());
-  //return qDistTo(other)<=200*200;
   }
 
 size_t Npc::hasItem(uint32_t id) const {
@@ -1914,7 +1913,7 @@ bool Npc::isTalk() const {
   }
 
 bool Npc::isPrehit() const {
-  return fghWaitToDamage<owner.tickCount();
+  return anim()==Anim::Atack && anim()==Anim::AtackL && anim()==Anim::AtackR;
   }
 
 bool Npc::isImmortal() const {

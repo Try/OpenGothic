@@ -132,7 +132,7 @@ void Animation::setupIndex() {
   for(auto& sq:sequences) {
     if(sq.fpsRate<=0.f)
       continue;
-    for(auto& r:sq.events)
+    for(auto& r:sq.events) {
       if(r.m_Def==ZenLoad::DEF_HIT_END){
         auto& w = r.m_Int;
         sq.defHitEnd.resize(w.size());
@@ -140,6 +140,14 @@ void Animation::setupIndex() {
           sq.defHitEnd[i] = uint64_t(w[i]*1000/sq.fpsRate);
           }
         }
+      if(r.m_Def==ZenLoad::DEF_OPT_FRAME){
+        auto& w = r.m_Int;
+        sq.defOptFrame.resize(w.size());
+        for(size_t i=0;i<w.size();++i){
+          sq.defOptFrame[i] = uint64_t(w[i]*1000/sq.fpsRate);
+          }
+        }
+      }
     }
 
   std::sort(sequences.begin(),sequences.end(),[](const Sequence& a,const Sequence& b){
@@ -214,6 +222,14 @@ bool Animation::Sequence::isAtackFinished(uint64_t t) const {
 
 float Animation::Sequence::totalTime() const {
   return numFrames*1000/fpsRate;
+  }
+
+void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const {
+  for(auto& i:defOptFrame){
+    if(barrier<i+sTime && i+sTime<=now){
+      ev.count[ZenLoad::DEF_OPT_FRAME]++;
+      }
+    }
   }
 
 ZMath::float3 Animation::Sequence::translation(uint64_t dt) const {

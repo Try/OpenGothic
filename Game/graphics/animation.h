@@ -19,6 +19,10 @@ class Animation final {
       Loop
       };
 
+    struct EvCount final {
+      uint8_t count[ZenLoad::EModelScriptAniDef::DEF_LAST]={};
+      };
+
     struct Sequence final {
       Sequence(const std::string& name);
 
@@ -27,6 +31,7 @@ class Animation final {
       bool                                   isFinished(uint64_t t) const;
       bool                                   isAtackFinished(uint64_t t) const;
       float                                  totalTime() const;
+      void                                   processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const;
 
       std::string                            name;
       float                                  fpsRate=60.f;
@@ -50,7 +55,9 @@ class Animation final {
       std::vector<ZenLoad::zCModelScriptEventSfx> sfx, gfx;
       std::vector<ZenLoad::zCModelScriptEventTag> tag;
       std::vector<ZenLoad::zCModelEvent>          events;
-      std::vector<uint64_t>                       defHitEnd;
+
+      std::vector<uint64_t>                       defHitEnd;   // hit-end time
+      std::vector<uint64_t>                       defOptFrame; // damage commitment timings
 
       ZMath::float3                          translation(uint64_t dt) const;
       ZMath::float3                          speed(uint64_t at, uint64_t dt) const;

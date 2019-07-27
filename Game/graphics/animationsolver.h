@@ -156,6 +156,13 @@ class AnimationSolver final {
 
       bool  isFinished(uint64_t t) const { return l1->isFinished(t); }
       bool  isAtackFinished(uint64_t t) const { return l1->isAtackFinished(t); }
+      void  processEvents(uint64_t& barrier,uint64_t sTime,uint64_t now, Animation::EvCount& ev) const {
+        if(l1)
+          l1->processEvents(barrier,sTime,now,ev);
+        if(l0)
+          l0->processEvents(barrier,sTime,now,ev);
+        barrier = now;
+        }
       float totalTime() const { return l1->totalTime(); }
       bool  isFly() const { return l1->isFly(); }
 
@@ -198,6 +205,8 @@ class AnimationSolver final {
     Sequence                       animSequence(const char *name) const;
     Sequence                       layredSequence(const char *name, const char *base) const;
     Sequence                       layredSequence(const char *name, const char *base, WeaponState st) const;
+
+    void                           processEvents(uint64_t& barrier, uint64_t now, Animation::EvCount &ev) const;
 
     Tempest::Matrix4x4             pos;
     StaticObjects::Mesh            head;

@@ -747,6 +747,10 @@ AnimationSolver::Sequence AnimationSolver::layredSequence(const char *name, cons
   return Sequence(a.l1,b.l1);
   }
 
+void AnimationSolver::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount& ev) const {
+  animSq.processEvents(barrier,sAnim,now,ev);
+  }
+
 AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const {
   if(name=="T_HEASHOOT_2_STAND" || name=="T_LGUARD_2_STAND" || name=="T_HGUARD_2_STAND" ||
      name=="T_EAT_2_STAND"      || name=="T_SLEEP_2_STAND"  || name=="T_GUARDSLEEP_2_STAND" ||

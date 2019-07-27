@@ -645,5 +645,5 @@ class Npc final {
 
     MoveAlgo                       mvAlgo;
     FightAlgo                      fghAlgo;
-    uint64_t                       fghWaitToDamage=0;
+    uint64_t                       fghLastEventTime=0;
   };
