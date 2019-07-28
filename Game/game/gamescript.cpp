@@ -420,26 +420,23 @@ void GameScript::loadDialogOU(Gothic &gothic) {
   const char16_t* names[]={u"OU.DAT",u"OU.BIN"};
   const char16_t* dir  []={u"_work/data/Scripts/content/CUTSCENE/",u"_work/DATA/scripts/content/CUTSCENE/"};
 
-  for(auto n:names){
+  for(auto n:names)
     for(auto d:dir){
       std::u16string full = gothic.path()+u"/"+d+n;
-      bool exist=false;
-      {
       try {
+        std::vector<uint8_t> data;
         RFile f(full);
-        exist=f.size()>0;
-        }
-      catch(...){
-        exist=false;
-        }
-      }
-      if(exist){
-        std::string acii(full.begin(),full.end()); //FIXME: #14 unicode support
-        dialogs.reset(new ZenLoad::zCCSLib(acii));
+        data.resize(f.size());
+        f.read(&data[0],data.size());
+
+        ZenLoad::ZenParser parser(data.data(),data.size());
+        dialogs.reset(new ZenLoad::zCCSLib(parser));
         return;
         }
+      catch(...){
+        // loop to next possible path
+        }
       }
-    }
   }
 
 void GameScript::initializeInstance(Daedalus::GEngineClasses::C_Npc &n, size_t instance) {
