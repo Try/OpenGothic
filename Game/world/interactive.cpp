@@ -129,8 +129,7 @@ Trigger* Interactive::triggerTarget() const {
   }
 
 bool Interactive::isContainer() const {
-  return data.objectClass.find("oCMobContainer")!=std::string::npos;
-  //return data.vobType==ZenLoad::zCVobData::VT_oCMobContainer;
+  return data.vobType==ZenLoad::zCVobData::VT_oCMobContainer;
   }
 
 Inventory &Interactive::inventory()  {

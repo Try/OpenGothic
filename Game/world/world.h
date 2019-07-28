@@ -149,7 +149,6 @@ class World final {
     void         addInteractive(const ZenLoad::zCVobData &vob);
     void         addItem(const ZenLoad::zCVobData &vob);
     void         addSound(const ZenLoad::zCVobData &vob);
-    void         addMusic(const ZenLoad::zCVobData &vob);
 
     void         initScripts(bool firstTime);
   };

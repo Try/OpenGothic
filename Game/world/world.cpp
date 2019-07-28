@@ -563,7 +563,7 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCTriggerChangeLevel){
     wobj.addTrigger(std::move(vob)); // change world trigger
     }
-  else if(vob.objectClass=="zCTriggerWorldStart:zCVob"){
+  else if(vob.vobType==ZenLoad::zCVobData::VT_oCTriggerWorldStart){
     wobj.addTrigger(std::move(vob)); // world start trigger
     }
   else if(vob.objectClass=="oCTriggerScript:zCTrigger:zCVob"){
@@ -583,7 +583,7 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
           vob.objectClass=="zCVobLensFlare:zCVob"){
     return;
     }
-  else if(vob.objectClass=="zCVobStartpoint:zCVob") {
+  else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobStartpoint) {
     float dx = vob.rotationMatrix.v[2].x;
     float dy = vob.rotationMatrix.v[2].y;
     float dz = vob.rotationMatrix.v[2].z;
@@ -595,7 +595,7 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
     float dz = vob.rotationMatrix.v[2].z;
     wmatrix->addFreePoint(vob.position.x,vob.position.y,vob.position.z,dx,dy,dz,vob.vobName.c_str());
     }
-  else if(vob.objectClass=="oCItem:zCVob") {
+  else if(vob.vobType==ZenLoad::zCVobData::VT_oCItem) {
     if(startup)
       addItem(vob);
     }
@@ -604,9 +604,11 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
           vob.objectClass=="zCVobSoundDaytime:zCVobSound:zCVob") {
     addSound(vob);
     }
-  else if(vob.objectClass=="oCZoneMusic:zCVob" ||
-          vob.objectClass=="oCZoneMusicDefault:oCZoneMusic:zCVob") {
-    addMusic(vob);
+  else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusic) {
+    wsound.addZone(vob);
+    }
+  else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusicDefault) {
+    wsound.setDefaultZone(vob);
     }
   else if(vob.objectClass=="zCVobLight:zCVob") {
     }
@@ -633,13 +635,4 @@ void World::addItem(const ZenLoad::zCVobData &vob) {
 
 void World::addSound(const ZenLoad::zCVobData &vob) {
   wsound.addSound(vob);
-  }
-
-void World::addMusic(const ZenLoad::zCVobData &vob) {
-  if(vob.vobType==ZenLoad::zCVobData::VT_zCVobSound)
-    wsound.addZone(vob);
-  if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusic)
-    wsound.addZone(vob);
-  else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusicDefault)
-    wsound.setDefaultZone(vob);
   }
