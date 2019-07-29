@@ -41,9 +41,10 @@ class WorldSound final {
       WSound(SoundFx&& s):proto(std::move(s)){}
       SoundFx      proto;
       GSoundEffect eff;
-      bool         active  =false;
-      uint64_t     delay   =0;
-      uint64_t     delayVar=0;
+      bool         active        =false;
+      uint64_t     delay         =0;
+      uint64_t     delayVar      =0;
+      uint64_t     restartTimeout=0;
       };
 
     static float qDist(const std::array<float,3>& a,const std::array<float,3>& b);

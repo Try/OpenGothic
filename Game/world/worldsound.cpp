@@ -33,9 +33,6 @@ void WorldSound::addZone(const ZenLoad::zCVobData &vob) {
   }
 
 void WorldSound::addSound(const ZenLoad::zCVobData &vob) {
-  return;
-
-  // TODO: fix background sound
   auto& pr = vob.zCVobSound;
   auto snd = game.loadSoundFx(pr.sndName.c_str());
   if(snd==nullptr)
@@ -47,9 +44,9 @@ void WorldSound::addSound(const ZenLoad::zCVobData &vob) {
     return;
 
   s.eff.setPosition(vob.position.x,vob.position.y,vob.position.z);
-  s.eff.setMaxDistance(maxDist);
+  s.eff.setMaxDistance(pr.sndRadius);
   s.eff.setRefDistance(0);
-  s.eff.setVolume(0.3f);
+  s.eff.setVolume(0.5f);
   s.active   = pr.sndStartOn;
   s.delay    = uint64_t(pr.sndRandDelay*1000);
   s.delayVar = uint64_t(pr.sndRandDelayVar*1000);
@@ -66,9 +63,6 @@ void WorldSound::emitSound(const char* s, float x, float y, float z, float range
 
   std::lock_guard<std::mutex> guard(sync);
   if(isInListenerRange({x,y,z})){
-    if(std::strcmp("WHOOSH",s)==0){
-      }
-
     auto snd = game.loadSoundFx(s);
     if(snd==nullptr)
       return;
@@ -128,9 +122,16 @@ void WorldSound::tick(Npc &player) {
       }
     }
 
-  for(size_t i=0;i<worldEff.size();++i){
-    if(worldEff[i].active && worldEff[i].eff.isFinished()){
-      worldEff[i].eff.play();
+  for(auto& i:worldEff) {
+    if(i.active && i.eff.isFinished() && i.restartTimeout<owner.tickCount()){
+      if(i.restartTimeout==0){
+        i.restartTimeout = owner.tickCount() + i.delay;
+        if(i.delayVar>0)
+          i.restartTimeout += uint64_t(std::rand())%i.delayVar;
+        } else {
+        i.restartTimeout=0;
+        i.eff.play();
+        }
       }
     }
 
@@ -151,7 +152,7 @@ void WorldSound::tickSlot(GSoundEffect& slot) {
     return;
   auto  dyn = owner.physic();
   auto  pos = slot.position();
-  float occ = dyn->soundOclusion(plPos[0],plPos[1]+180/*head pos*/,plPos[2], pos[0],pos[1],pos[2]);
+  float occ = dyn->soundOclusion(plPos[0],plPos[1]+180/*head pos*/,plPos[2], pos[0],pos[1]+100,pos[2]);
 
   slot.setOcclusion(std::max(0.f,1.f-occ/20.f));
   }

@@ -599,10 +599,10 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
     if(startup)
       addItem(vob);
     }
-  else if(vob.objectClass=="zCVobSound" ||
-          vob.objectClass=="zCVobSound:zCVob" ||
+  else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobSound ||
           vob.objectClass=="zCVobSoundDaytime:zCVobSound:zCVob") {
-    addSound(vob);
+    // TODO: zCVobSoundDaytime daytime handle
+    wsound.addSound(vob);
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusic) {
     wsound.addZone(vob);
@@ -631,8 +631,4 @@ void World::addInteractive(const ZenLoad::zCVobData &vob) {
 
 void World::addItem(const ZenLoad::zCVobData &vob) {
   wobj.addItem(vob);
-  }
-
-void World::addSound(const ZenLoad::zCVobData &vob) {
-  wsound.addSound(vob);
   }
