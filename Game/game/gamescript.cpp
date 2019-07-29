@@ -302,6 +302,8 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("game_initgerman",     [this](Daedalus::DaedalusVM& vm){ game_initgerman(vm);      });
   vm.registerExternalFunction("game_initenglish",    [this](Daedalus::DaedalusVM& vm){ game_initenglish(vm);     });
 
+  vm.registerExternalFunction("exitgame",            [this](Daedalus::DaedalusVM& vm){ exitgame(vm);             });
+
   spellFxInstanceNames = vm.getDATFile().getSymbolIndexByName("spellFxInstanceNames");
   spellFxAniLetters    = vm.getDATFile().getSymbolIndexByName("spellFxAniLetters");
 
@@ -2833,6 +2835,10 @@ void GameScript::printdebuginstch(Daedalus::DaedalusVM &vm) {
   int                ch  = vm.popInt();
   if(owner.isGothic2())
     Log::d("[zspy,",ch,"]: ",msg);
+  }
+
+void GameScript::exitgame(Daedalus::DaedalusVM&) {
+  Tempest::SystemApi::exit();
   }
 
 void GameScript::sort(std::vector<GameScript::DlgChoise> &dlg) {

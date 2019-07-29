@@ -969,8 +969,8 @@ Mdl_ApplyOverlayMdsTimed(self,"HUMANS_SPRINT.MDS",120000); // SchnellerHering po
 
 ### game session api
 
-* ![!](ni.png) `func void ExitGame()`  
-  Not implemented.
+* `func void ExitGame()`  
+  Shutdown game client
 
 * ![!](ni.png) `func void ExitSession()`  
   Not implemented.

@@ -272,6 +272,11 @@ bool GameMenu::exec(const std::string &action) {
     return true;
     }
 
+  if(action=="LEAVE_GAME"){
+    Tempest::SystemApi::exit();
+    return true;
+    }
+
   static const char* menuList[]={
     "MENU_OPTIONS",
     "MENU_SAVEGAME_LOAD",
