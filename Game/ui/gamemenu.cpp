@@ -53,6 +53,7 @@ GameMenu::~GameMenu() {
     vm.clearReferences(hItems[i].handle);
   vm.clearReferences(menu);
 
+  gothic.flushSettings();
   gothic.popPause();
   }
 
@@ -66,6 +67,7 @@ void GameMenu::initItems() {
                           vm.getDATFile().getSymbolIndexByName(hItems[i].name.c_str()),
                           Daedalus::IC_MenuItem);
     hItems[i].img = Resources::loadTexture(hItems[i].handle.backPic);
+    updateItem(hItems[i]);
     }
   }
 
@@ -82,7 +84,7 @@ void GameMenu::paintEvent(PaintEvent &e) {
       continue;
     Daedalus::GEngineClasses::C_Menu_Item&        item = hItem.handle;
     Daedalus::GEngineClasses::C_Menu_Item::EFlags flags=Daedalus::GEngineClasses::C_Menu_Item::EFlags(item.flags);
-    getText(item,textBuf);
+    getText(hItem,textBuf);
 
     Color clText = clNormal;
     if(item.fontName=="font_old_10_white.tga"){
@@ -171,9 +173,8 @@ void GameMenu::onMove(int dy) {
 
 void GameMenu::onSelect() {
   if(auto sel=selectedItem()){
-    Daedalus::GEngineClasses::C_Menu_Item& item = sel->handle;
     gothic.emitGlobalSound(gothic.loadSoundFx("MENU_SELECT"));
-    exec(item);
+    exec(*sel);
     }
   }
 
@@ -199,6 +200,24 @@ GameMenu::Item *GameMenu::selectedItem() {
   return nullptr;
   }
 
+GameMenu::Item *GameMenu::selectedNextItem(Item *it) {
+  uint32_t cur=curItem+1;
+  for(size_t i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;++i)
+    if(&hItems[i]==it) {
+      cur=i+1;
+      break;
+      }
+
+  for(int i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;++i,cur++) {
+    cur%=Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;
+
+    auto& it=hItems[cur].handle;
+    if(isEnabled(it))
+      return &hItems[cur];
+    }
+  return nullptr;
+  }
+
 void GameMenu::setSelection(int desired,int seek) {
   uint32_t cur=uint32_t(desired);
   for(int i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;++i,cur+=uint32_t(seek)) {
@@ -213,26 +232,19 @@ void GameMenu::setSelection(int desired,int seek) {
   curItem=uint32_t(-1);
   }
 
-void GameMenu::getText(const Daedalus::GEngineClasses::C_Menu_Item& it, std::vector<char> &out) {
+void GameMenu::getText(const Item& it, std::vector<char> &out) {
   if(out.size()==0)
     out.resize(1);
   out[0]='\0';
 
-  const std::string& src = it.text[0];
-  if(it.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_TEXT) {
+  const std::string& src = it.handle.text[0];
+  if(it.handle.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_TEXT) {
     cp1251::toUtf8(out,src);
     return;
     }
 
-  if(it.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_CHOICEBOX) {
-    size_t pos = src.find("#");
-    if(pos==std::string::npos)
-      pos = src.find("|");
-    if(pos==std::string::npos)
-      pos = src.size();
-    out.resize(pos+1);
-    std::memcpy(&out[0],&src[0],pos);
-    out[pos] = '\0';
+  if(it.handle.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_CHOICEBOX) {
+    strEnum(src.c_str(),it.value,out);
     return;
     }
   }
@@ -245,64 +257,111 @@ bool GameMenu::isEnabled(const Daedalus::GEngineClasses::C_Menu_Item &item) {
   return true;
   }
 
-void GameMenu::exec(const Daedalus::GEngineClasses::C_Menu_Item &item) {
+void GameMenu::exec(Item &p) {
+  auto* it = &p;
+  while(it!=nullptr){
+    if(it==&p)
+      execSingle(*it); else
+      execChgOption(*it);
+    if(it->handle.flags & Daedalus::GEngineClasses::C_Menu_Item::IT_EFFECTS_NEXT) {
+      auto next=selectedNextItem(it);
+      if(next!=&p)
+        it=next;
+      } else {
+      it=nullptr;
+      }
+    }
+
+  if(exitFlag)
+    owner.popMenu();
+  }
+
+void GameMenu::execSingle(Item &it) {
   using namespace Daedalus::GEngineClasses::MenuConstants;
 
-  for(auto& str:item.onSelAction_S)
-    if(!str.empty())
-      if(exec(str))
-        return;
+  auto& item          = it.handle;
+  auto& onSelAction   = item.onSelAction;
+  auto& onSelAction_S = item.onSelAction_S;
+  auto& onEventAction = item.onEventAction;
 
-  for(auto action:item.onSelAction)
+  for(size_t i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_SEL_ACTIONS;++i) {
+    auto action = onSelAction[i];
     switch(action) {
+      case SEL_ACTION_UNDEF:
+        break;
       case SEL_ACTION_BACK:
         gothic.emitGlobalSound(gothic.loadSoundFx("MENU_ESC"));
-        owner.popMenu();
-        return;
+        exitFlag = true;
+        break;
+      case SEL_ACTION_STARTMENU:
+        if(vm.getDATFile().hasSymbolName(onSelAction_S[i].c_str()))
+          owner.pushMenu(new GameMenu(owner,vm,gothic,onSelAction_S[i].c_str()));
+        break;
+      case SEL_ACTION_STARTITEM:
+        Log::d("TODO: save/load at", onSelAction_S[i]);
+        break;
       case SEL_ACTION_CLOSE:
         gothic.emitGlobalSound(gothic.loadSoundFx("MENU_ESC"));
+        exitFlag = true;
+        if(onSelAction_S[i]=="NEW_GAME")
+          gothic.onStartGame(gothic.defaultWorld());
+        else if(onSelAction_S[i]=="LEAVE_GAME")
+          Tempest::SystemApi::exit();
+        else if(onSelAction_S[i]=="SAVEGAME_SAVE")
+          ;
+        else if(onSelAction_S[i]=="SAVEGAME_LOAD")
+          ;
+        break;
+      case SEL_ACTION_CONCOMMANDS:
+        // unknown
+        break;
+      case SEL_ACTION_PLAY_SOUND:
+        gothic.emitGlobalSound(gothic.loadSoundFx(onSelAction_S[i].c_str()));
+        break;
+      case SEL_ACTION_EXECCOMMANDS:
         break;
       }
-  }
-
-bool GameMenu::exec(const std::string &action) {
-  if(action=="NEW_GAME"){
-    gothic.onStartGame(gothic.defaultWorld());
-    owner.popMenu();
-    return true;
     }
 
-  if(action=="LEAVE_GAME"){
-    Tempest::SystemApi::exit();
-    return true;
+  if(onEventAction[SEL_EVENT_EXECUTE]>0){
+    vm.runFunctionBySymIndex(size_t(onEventAction[SEL_EVENT_EXECUTE]),true);
     }
 
-  static const char* menuList[]={
-    "MENU_OPTIONS",
-    "MENU_SAVEGAME_LOAD",
-    "MENU_SAVEGAME_SAVE",
-    "MENU_STATUS",
-    "MENU_LEAVE_GAME",
-    "MENU_OPT_GAME",
-    "MENU_OPT_GRAPHICS",
-    "MENU_OPT_VIDEO",
-    "MENU_OPT_AUDIO",
-    "MENU_OPT_CONTROLS",
-    "MENU_OPT_CONTROLS_EXTKEYS",
-    "MENU_OPT_EXT"
-    };
-
-  for(auto subMenu:menuList)
-    if(action==subMenu) {
-      owner.pushMenu(new GameMenu(owner,vm,gothic,subMenu));
-      return false;
-      }
-  return false;
+  execChgOption(it);
   }
 
-const char *GameMenu::strEnum(const char *en, int id) {
+void GameMenu::execChgOption(Item &item) {
+  auto& sec = item.handle.onChgSetOptionSection;
+  auto& opt = item.handle.onChgSetOption;
+  if(sec.empty() || opt.empty())
+    return;
+
+  updateItem(item);
+  item.value += 1; // next value
+
+  size_t cnt = strEnumSize(item.handle.text[0].c_str());
+  if(cnt>0)
+    item.value%=cnt; else
+    item.value =0;
+  gothic.settingsSetI(sec.c_str(), opt.c_str(), item.value);
+  }
+
+void GameMenu::updateItem(GameMenu::Item &item) {
+  auto& it   = item.handle;
+  item.value = gothic.settingsGetI(it.onChgSetOptionSection.c_str(), it.onChgSetOption.c_str());
+  }
+
+const char *GameMenu::strEnum(const char *en, int id, std::vector<char> &out) {
   int num=0;
-  for(size_t i=0;en[i];++i){
+
+  size_t i=0;
+  for(size_t r=0;en[r];++r)
+    if(en[r]=='#'){
+      i=r+1;
+      break;
+      }
+
+  for(;en[i];++i){
     size_t b=i;
     for(size_t r=i;en[r];++r,++i)
       if(en[r]=='|')
@@ -310,22 +369,39 @@ const char *GameMenu::strEnum(const char *en, int id) {
 
     if(id==num) {
       size_t sz=i-b;
-      textBuf.resize(sz+1);
-      std::memcpy(&textBuf[0],&en[b],sz);
-      textBuf[sz]='\0';
+      out.resize(sz+1);
+      std::memcpy(&out[0],&en[b],sz);
+      out[sz]='\0';
       return textBuf.data();
       }
     ++num;
     }
   for(size_t i=0;en[i];++i){
     if(en[i]=='#' || en[i]=='|'){
-      textBuf.resize(i+1);
-      std::memcpy(&textBuf[0],en,i);
-      textBuf[i]='\0';
-      return textBuf.data();
+      out.resize(i+1);
+      std::memcpy(&out[0],en,i);
+      out[i]='\0';
+      return out.data();
       }
     }
   return "";
+  }
+
+size_t GameMenu::strEnumSize(const char *en) {
+  if(en==nullptr)
+    return 0;
+  size_t cnt = 0;
+  for(size_t i=0;en[i];++i) {
+    if(en[i]=='#' || en[i]=='|') {
+      cnt += en[i]=='|' ? 2 : 1;
+      i++;
+      for(;en[i];++i) {
+        if(en[i]=='|')
+          cnt++;
+        }
+      }
+    }
+  return cnt;
   }
 
 void GameMenu::set(const char *item, const uint32_t value) {
@@ -419,7 +495,7 @@ void GameMenu::setPlayer(const Npc &pl) {
 
     const int sk=pl.talentSkill(Npc::Talent(i));
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d_SKILL",i);
-    set(buf,strEnum(talV.getString(i).c_str(),sk));
+    set(buf,strEnum(talV.getString(i).c_str(),sk,textBuf));
 
     const int val=pl.hitChanse(Npc::Talent(i));
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d",i);

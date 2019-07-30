@@ -13,6 +13,7 @@
 #include "game/definitions/fightaidefinitions.h"
 #include "game/gamesession.h"
 #include "world/world.h"
+#include "utils/inifile.h"
 #include "ui/documentmenu.h"
 #include "ui/chapterscreen.h"
 
@@ -103,6 +104,10 @@ class Gothic final {
     const std::string&                    defaultSave() const;
     std::unique_ptr<Daedalus::DaedalusVM> createVm(const char16_t *datFile);
 
+    int       settingsGetI(const char* sec,const char* name) const;
+    void      settingsSetI(const char* sec, const char* name, int val);
+    void      flushSettings() const;
+
     static void debug(const ZenLoad::zCMesh &mesh, std::ostream& out);
     static void debug(const ZenLoad::PackedMesh& mesh, std::ostream& out);
     static void debug(const ZenLoad::PackedSkeletalMesh& mesh, std::ostream& out);
@@ -127,6 +132,7 @@ class Gothic final {
     std::unique_ptr<CameraDefinitions>      camera;
     std::unique_ptr<SoundDefinitions>       soundDef;
     std::unique_ptr<MusicDefinitions>       music;
+    std::unique_ptr<IniFile>                iniFile;
 
     std::mutex                              syncSnd;
     Tempest::SoundDevice                    sndDev;

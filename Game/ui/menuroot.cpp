@@ -9,6 +9,7 @@ MenuRoot::MenuRoot(Gothic &gothic)
   :gothic(gothic){
   setFocus(true);
   vm = gothic.createVm(u"_work/Data/Scripts/_compiled/MENU.DAT");
+  vm->registerUnsatisfiedLink([](Daedalus::DaedalusVM&){});
   }
 
 MenuRoot::~MenuRoot() {

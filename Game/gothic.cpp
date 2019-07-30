@@ -61,6 +61,7 @@ Gothic::Gothic(const int argc, const char **argv) {
       wdef = "world.zen";
     }
 
+  iniFile .reset(new IniFile(u"Gothic.ini"));
   fight   .reset(new FightAi(*this));
   camera  .reset(new CameraDefinitions(*this));
   soundDef.reset(new SoundDefinitions(*this));
@@ -383,6 +384,18 @@ std::unique_ptr<Daedalus::DaedalusVM> Gothic::createVm(const char16_t *datFile) 
   auto vm = std::make_unique<Daedalus::DaedalusVM>(byte.get(),all);
   Daedalus::registerGothicEngineClasses(*vm);
   return vm;
+  }
+
+int Gothic::settingsGetI(const char *sec, const char *name) const {
+  return iniFile->getI(sec,name);
+  }
+
+void Gothic::settingsSetI(const char *sec, const char *name, int val) {
+  iniFile->set(sec,name,val);
+  }
+
+void Gothic::flushSettings() const {
+  iniFile->flush();
   }
 
 void Gothic::debug(const ZenLoad::zCMesh &mesh, std::ostream &out) {

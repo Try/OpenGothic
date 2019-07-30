@@ -48,21 +48,27 @@ class GameMenu : public Tempest::Widget {
       Daedalus::GEngineClasses::C_Menu_Item handle={};
       const Tempest::Texture2d*             img=nullptr;
       bool                                  visible=true;
+      int                                   value=0;
       };
     Item                                  hItems[Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS];
     uint32_t                              curItem=0;
+    bool                                  exitFlag=false;
 
     Item*                                 selectedItem();
+    Item*                                 selectedNextItem(Item* cur);
     void                                  setSelection(int cur, int seek=1);
     void                                  initItems();
     void                                  initValues();
-    void                                  getText(const Daedalus::GEngineClasses::C_Menu_Item&,std::vector<char>& out);
+    void                                  getText(const Item &it, std::vector<char>& out);
     bool                                  isEnabled(const Daedalus::GEngineClasses::C_Menu_Item& item);
 
-    void                                  exec(const Daedalus::GEngineClasses::C_Menu_Item& item);
-    bool                                  exec(const std::string& action);
+    void                                  exec         (Item &item);
+    void                                  execSingle   (Item &it);
+    void                                  execChgOption(Item &item);
+    void                                  updateItem   (Item &item);
 
-    const char*                           strEnum(const char* en,int id);
+    const char*                           strEnum(const char* en, int id, std::vector<char> &out);
+    size_t                                strEnumSize(const char* en);
 
     void                                  set(const char* item,const uint32_t value);
     void                                  set(const char* item,const int32_t  value);

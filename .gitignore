@@ -16,6 +16,7 @@ build/
 bin/log.txt
 bin/dbg.bin
 bin/qsave.sav
+bin/Gothic.ini
 
 # internal
 internal/
