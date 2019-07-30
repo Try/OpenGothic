@@ -35,7 +35,7 @@ QuestLog::Quest *QuestLog::find(const std::string &name) {
   }
 
 void QuestLog::save(Serialize &fout) {
-  uint32_t sz=0;
+  uint32_t sz=quests.size();
   fout.write(sz);
   for(auto& i:quests){
     fout.write(i.name,uint8_t(i.section),uint8_t(i.status),i.entry);
