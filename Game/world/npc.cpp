@@ -775,6 +775,10 @@ uint32_t Npc::guild() const {
   return uint32_t(hnpc.guild);
   }
 
+bool Npc::isMonster() const {
+  return Guild::GIL_SEPERATOR_HUM<guild() && guild()<Guild::GIL_SEPERATOR_ORC;
+  }
+
 void Npc::setTrueGuild(int32_t g) {
   trGuild = g;
   }

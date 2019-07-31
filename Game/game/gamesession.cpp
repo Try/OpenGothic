@@ -46,8 +46,8 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
   vm->initDialogs(gothic);
   gothic.setLoadingProgress(70);
 
-  const char* hero = "PC_HERO";
-  //const char* hero = "PC_ROCKEFELLER";
+  //const char* hero = "PC_HERO";
+  const char* hero = "PC_ROCKEFELLER";
   //const char* hero = "Giant_Bug";
   //const char* hero = "OrcWarrior_Rest";
   //const char* hero = "Snapper";
@@ -199,7 +199,7 @@ void GameSession::tick(uint64_t dt) {
       }
     }
 
-  if(!chWorld.zen.empty()){
+  if(Resources::vdfsIndex().hasFile(chWorld.zen)){
     char buf[128]={};
     for(auto& c:chWorld.zen)
       c = char(std::tolower(c));
@@ -208,7 +208,9 @@ void GameSession::tick(uint64_t dt) {
 
     std::string wname;
     if(beg!=std::string::npos && end!=std::string::npos)
-      wname = chWorld.zen.substr(beg+1,end-beg-1); else
+      wname = chWorld.zen.substr(beg+1,end-beg-1);
+    else if(end!=std::string::npos)
+      wname = chWorld.zen.substr(0,end); else
       wname = chWorld.zen;
 
     std::snprintf(buf,sizeof(buf),"LOADING_%s.TGA",wname.c_str());  // format load-screen name, like "LOADING_OLDWORLD.TGA"
@@ -223,6 +225,11 @@ void GameSession::tick(uint64_t dt) {
 
 auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
                                   const std::string& world, const std::string& wayPoint) -> std::unique_ptr<GameSession> {
+  if(!Resources::vdfsIndex().hasFile(world)) {
+    Log::i("World not found[",world,"]");
+    return std::move(game);
+    }
+
   const char*   w   = world.c_str();
   size_t        cut = world.rfind('\\');
   if(cut!=std::string::npos)

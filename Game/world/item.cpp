@@ -6,6 +6,7 @@
 
 Item::Item(World &owner, size_t itemInstance)
   :owner(owner) {
+  assert(itemInstance!=size_t(-1));
   hitem.instanceSymbol = itemInstance;
   hitem.userPtr=this;
 

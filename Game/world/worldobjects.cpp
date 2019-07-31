@@ -258,6 +258,8 @@ Trigger *WorldObjects::findTrigger(float x, float y, float z) {
 Item* WorldObjects::addItem(const ZenLoad::zCVobData &vob) {
   size_t inst = owner.getSymbolIndex(vob.oCItem.instanceName.c_str());
   Item*  it   = addItem(inst,nullptr);
+  if(it==nullptr)
+    return nullptr;
 
   Matrix4x4 m { vob.worldMatrix.mv };
   it->setMatrix(m);
@@ -290,6 +292,9 @@ size_t WorldObjects::hasItems(const std::string &tag, size_t itemCls) {
   }
 
 Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
+  if(itemInstance==size_t(-1))
+    return nullptr;
+
   auto  pos = owner.findPoint(at);
 
   std::unique_ptr<Item> ptr{new Item(owner,itemInstance)};
