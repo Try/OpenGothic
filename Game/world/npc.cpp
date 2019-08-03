@@ -2061,37 +2061,20 @@ Npc::MoveCode Npc::testMove(const std::array<float,3> &pos,
   return MV_FAILED;
   }
 
-Npc::MoveCode Npc::testMoveVr(const std::array<float,3> &pos, std::array<float,3> &fallback, float speed) {
-  if(physic.testMove(pos,fallback,speed))
-    return MV_OK;
-
-  std::array<float,3> p=fallback;
-  for(int i=1;i<5;++i){
-    if(physic.testMove(p,fallback,speed))
-      return MV_CORRECT;
-    p=fallback;
-    }
-  return MV_FAILED;
-  }
-
-bool Npc::tryMove(const std::array<float,3> &pos, std::array<float,3> &fallback, float speed) {
-  if(pos==position())
+bool Npc::tryMove(const std::array<float,3> &dp) {
+  if(dp[0]==0.f && dp[1]==0.f && dp[2]==0.f)
     return true;
 
-  std::array<float,3> norm={};
+  std::array<float,3> pos  = {x+dp[0],y+dp[1],z+dp[2]};
+  std::array<float,3> norm = {};
+
   if(physic.tryMoveN(pos,norm)){
-    fallback = pos;
     return setViewPosition(pos);
     }
 
+  const float speed = std::sqrt(dp[0]*dp[0]+dp[1]*dp[1]+dp[2]*dp[2]);
   if(speed>=physic.radius() || speed==0.f)
     return false;
-
-  /*
-  if(norm[2]>0)
-    Log::d("");
-  if(norm[2]<0)
-    Log::d("");*/
 
   float scale=speed*0.25f;
   for(int i=1;i<4+3;++i){
@@ -2101,16 +2084,10 @@ bool Npc::tryMove(const std::array<float,3> &pos, std::array<float,3> &fallback,
 
     std::array<float,3> nn={};
     if(physic.tryMoveN(p,nn)) {
-      fallback = p;
       return setViewPosition(p);
       }
     }
   return false;
-  }
-
-bool Npc::tryMove(const std::array<float,3> &pos, float speed) {
-  std::array<float,3> fallback=pos;
-  return tryMove(pos,fallback,speed);
   }
 
 Npc::JumpCode Npc::tryJump(const std::array<float,3> &p0) {

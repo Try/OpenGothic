@@ -369,9 +369,7 @@ class Npc final {
     void     multSpeed(float s);
 
     MoveCode testMove  (const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
-    MoveCode testMoveVr(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
-    bool     tryMove   (const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
-    bool     tryMove   (const std::array<float,3>& pos, float speed);
+    bool     tryMove   (const std::array<float,3> &dp);
 
     JumpCode tryJump(const std::array<float,3>& pos);
     float    clampHeight(Anim a) const;
