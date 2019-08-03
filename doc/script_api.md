@@ -976,7 +976,7 @@ Mdl_ApplyOverlayMdsTimed(self,"HUMANS_SPRINT.MDS",120000); // SchnellerHering po
   Not implemented.
 
 * ![!](ni.png) `func int PlayVideo(var string filename)`  
-  Returns FALSE, if video not played
+  Returns FALSE, if video not played  
   Empty implementation.
 
 * ![!](ni.png) `func int	PlayVideoEx(var string filename, var int screenBlend, var int exitSession)`  
