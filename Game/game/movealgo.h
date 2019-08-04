@@ -14,6 +14,13 @@ class MoveAlgo final {
   public:
     MoveAlgo(Npc& unit);
 
+    enum JumpCode : uint8_t {
+      JM_OK,
+      JM_UpLow,
+      JM_UpMid,
+      JM_Up,
+      };
+
     void tick(uint64_t dt);
     void multSpeed(float s){ mulSpeed=s; }
     void clearSpeed();
@@ -25,7 +32,7 @@ class MoveAlgo final {
     bool aiGoTo(const WayPoint* p);
     bool aiGoTo(const Npc* p, float destDist);
     void aiGoTo(const std::nullptr_t p);
-    bool startClimb();
+    bool startClimb(JumpCode ani);
     bool hasGoTo() const;
 
     bool isFaling()  const;
@@ -42,6 +49,7 @@ class MoveAlgo final {
     bool tickSlide  (uint64_t dt);
     void tickGravity(uint64_t dt);
     void tickSwim   (uint64_t dt);
+    void tickClimb  (uint64_t dt);
     bool tryMove    (float x, float y, float z);
 
     enum Flags : uint32_t {
@@ -92,16 +100,16 @@ class MoveAlgo final {
       float wdepth=0.f;
       };
     mutable Cache       cache;
+    Flags               flags=NoFlags;
 
     float               mulSpeed  =1.f;
     std::array<float,3> fallSpeed ={};
     float               fallCount=0.f;
-    std::array<float,3> aniSpeed  ={};
 
     uint64_t            climbStart=0;
     std::array<float,3> climbPos0={};
     float               climbHeight=0.f;
-    Flags               flags=NoFlags;
+    JumpCode            jmp=JumpCode::JM_OK;
 
     static const float closeToPointThreshold;
     static const float gravity;

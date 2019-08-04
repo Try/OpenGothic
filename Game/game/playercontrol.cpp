@@ -352,24 +352,12 @@ void PlayerControl::implMove(uint64_t dt) {
 
     if(ctrl[Jump]) {
       if(pl.anim()==AnimationSolver::Idle){
-        switch(pl.tryJump(pl.position())){
-          case Npc::JM_Up:
-            ani = Npc::Anim::JumpUp;
-            break;
-          case Npc::JM_UpLow:
-            ani = Npc::Anim::JumpUpLow;
-            break;
-          case Npc::JM_UpMid:
-            ani = Npc::Anim::JumpUpMid;
-            break;
-          case Npc::JM_OK:
-            ani = Npc::Anim::Jump;
-            break;
-          }
-        if(!pl.isFaling() && !pl.isSlide() && ani!=Npc::Anim::Jump){
-          pl.startClimb(ani);
+        auto code = pl.tryJump(pl.position());
+        if(!pl.isFaling() && !pl.isSlide() && code!=Npc::JumpCode::JM_OK){
+          pl.startClimb(code);
           return;
           }
+        ani = Npc::Anim::Jump;
         } else {
         ani = Npc::Anim::Jump;
         }

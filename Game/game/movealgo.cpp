@@ -158,6 +158,12 @@ void MoveAlgo::tickGravity(uint64_t dt) {
     }
   }
 
+void MoveAlgo::tickClimb(uint64_t dt) {
+  tickGravity(dt);
+  if(fallSpeed[1]<=0.f || !isInAir())
+    setAsClimb(false);
+  }
+
 void MoveAlgo::tickSwim(uint64_t dt) {
   auto  dp            = npcMoveSpeed(dt);
   auto  pos           = npc.position();
@@ -190,7 +196,7 @@ void MoveAlgo::tick(uint64_t dt) {
     return tickMobsi(dt);
 
   if(isClimb())
-    ;//return; // TODO
+    return tickClimb(dt);
 
   if(isSwim())
     return tickSwim(dt);
@@ -230,7 +236,6 @@ void MoveAlgo::tick(uint64_t dt) {
   if(0.f<dY && npc.isFlyAnim()) {
     // jump animation
     tryMove(dp[0],dp[1],dp[2]);
-    aniSpeed = dp;
 
     fallSpeed[0] += dp[0];
     fallSpeed[1] += dp[1];
@@ -244,10 +249,9 @@ void MoveAlgo::tick(uint64_t dt) {
       return;
     // move down the ramp
     if(tryMove(dp[0],-dY,dp[2])){
-      aniSpeed = {dp[0],-dY,dp[2]};
       } else {
       if(tryMove(dp[0],dp[1],dp[2]))
-        aniSpeed = dp;
+        ;
       }
     setInAir  (false);
     setAsSlide(false);
@@ -257,7 +261,6 @@ void MoveAlgo::tick(uint64_t dt) {
       return;
     // move up the ramp
     tryMove(dp[0],-dY,dp[2]);
-    aniSpeed = dp;
     setInAir  (false);
     setAsSlide(false);
     }
@@ -414,10 +417,27 @@ void MoveAlgo::aiGoTo(const std::nullptr_t) {
   currentGoToNpc=nullptr;
   }
 
-bool MoveAlgo::startClimb() {
-  climbStart=npc.world().tickCount();
-  climbPos0 =npc.position();
-  setAsClimb(true);
+bool MoveAlgo::startClimb(JumpCode ani) {
+  climbStart = npc.world().tickCount();
+  climbPos0  = npc.position();
+  jmp        = ani;
+
+  if(jmp==JM_Up){
+    setAsClimb(true);
+    setInAir(true);
+    fallSpeed[0]=0.f;
+    fallSpeed[1]=0.75f*gravity;
+    fallSpeed[2]=0.f;
+    fallCount   =-1.f;
+    }
+  else if(jmp==JM_UpMid){
+    setAsClimb(true);
+    setInAir(true);
+    fallSpeed[0]=0.f;
+    fallSpeed[1]=0.4f*gravity;
+    fallSpeed[2]=0.f;
+    fallCount   =-1.f;
+    }
   return true;
   }
 

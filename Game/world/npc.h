@@ -38,12 +38,7 @@ class Npc final {
       MV_CORRECT
       };
 
-    enum JumpCode : uint8_t {
-      JM_OK,
-      JM_UpLow,
-      JM_UpMid,
-      JM_Up,
-      };
+    using JumpCode = MoveAlgo::JumpCode;
 
     enum PercType : uint8_t {
       PERC_ASSESSPLAYER       = 1,
@@ -228,7 +223,7 @@ class Npc final {
     void setWalkMode(WalkBit m);
     auto walkMode() const { return wlkMode; }
     void tick(uint64_t dt);
-    bool startClimb(Npc::Anim ani);
+    bool startClimb(JumpCode code);
     bool checkHealth(bool onChange);
 
     auto world() -> World&;

@@ -325,8 +325,23 @@ bool Npc::isPlayer() const {
   return aiPolicy==Npc::ProcessPolicy::Player;
   }
 
-bool Npc::startClimb(Anim ani) {
-  if(mvAlgo.startClimb()){
+bool Npc::startClimb(JumpCode code) {
+  Anim ani = Anim::Idle;
+  switch(code){
+    case Npc::JumpCode::JM_Up:
+      ani = Npc::Anim::JumpUp;
+      break;
+    case Npc::JumpCode::JM_UpLow:
+      ani = Npc::Anim::JumpUpLow;
+      break;
+    case Npc::JumpCode::JM_UpMid:
+      ani = Npc::Anim::JumpUpMid;
+      break;
+    case Npc::JumpCode::JM_OK:
+      ani = Npc::Anim::Jump;
+      break;
+    }
+  if(mvAlgo.startClimb(code)){
     setAnim(ani);
     return true;
     }
@@ -770,7 +785,7 @@ uint32_t Npc::instanceSymbol() const {
   }
 
 uint32_t Npc::guild() const {
-  return std::min(uint32_t(hnpc.guild), uint32_t(GIL_MAX));
+  return std::min(uint32_t(hnpc.guild), uint32_t(GIL_MAX-1));
   }
 
 bool Npc::isMonster() const {
@@ -2107,25 +2122,28 @@ Npc::JumpCode Npc::tryJump(const std::array<float,3> &p0) {
   pos[2]+=dz;
 
   if(physic.testMove(pos))
-    return JM_OK;
+    return JumpCode::JM_OK;
 
   pos[1] = p0[1]+clampHeight(Anim::JumpUpLow);
   if(physic.testMove(pos))
-    return JM_UpLow;
+    return JumpCode::JM_UpLow;
 
   pos[1] = p0[1]+clampHeight(Anim::JumpUpMid);
   if(physic.testMove(pos))
-    return JM_UpMid;
+    return JumpCode::JM_UpMid;
 
-  return JM_Up;
+  return JumpCode::JM_Up;
   }
 
 float Npc::clampHeight(Npc::Anim a) const {
+  auto& g = owner.script().guildVal();
+  auto  i = guild();
+
   switch(a) {
     case AnimationSolver::JumpUpLow:
-      return 60;
+      return g.jumplow_height[i];
     case AnimationSolver::JumpUpMid:
-      return 155;
+      return g.jumpmid_height[i];
     default:
       return 0;
     }
