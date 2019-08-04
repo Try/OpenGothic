@@ -126,6 +126,9 @@ bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState weaponSt,
     ani = solveAnim(Idle,WeaponState::NoWeapon,Idle,WeaponState::NoWeapon,WalkBit::WM_Run,nullptr);
     }
 
+  if(ani==nullptr)
+    return false;
+
   if(prevAni!=current)
     prevAni = current;
 
@@ -368,11 +371,14 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
       return animSequence("S_BOWSHOOT");
     }
 
-  if((cur==Anim::Idle || cur==Anim::NoAnim) && a==Anim::Idle){
-    if(bool(wlkMode&WalkBit::WM_Walk) && st==WeaponState::NoWeapon)
-      return solveAnim("S_%sWALK",st);
-    else
-      return solveAnim("S_%sRUN", st);
+  if((cur==Anim::Idle || cur==Anim::NoAnim) && a==Anim::Idle) {
+    if(bool(wlkMode&WalkBit::WM_Walk) && st==WeaponState::NoWeapon) {
+      if(auto sq=solveAnim("S_%sWALK",st))
+        return sq;
+      }
+    if(auto sq=solveAnim("S_%sRUN",st)) // there are no RUN for 'Waran'
+      return sq;
+    return solveAnim("S_%sWALK", st);
     }
   if(cur!=Anim::Move && a==Anim::Move) {
     Sequence sq;
