@@ -125,7 +125,10 @@ bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState weaponSt,
     a   = Idle;
     ani = solveAnim(Idle,WeaponState::NoWeapon,Idle,WeaponState::NoWeapon,WalkBit::WM_Run,nullptr);
     }
-  prevAni    = current;
+
+  if(prevAni!=current)
+    prevAni = current;
+
   current    = a;
   currentW   = weaponSt;
   currentWlk = walk;
@@ -364,7 +367,7 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     }
 
   if((cur==Anim::Idle || cur==Anim::NoAnim) && a==Anim::Idle){
-    if(bool(wlkMode&WalkBit::WM_Walk))
+    if(bool(wlkMode&WalkBit::WM_Walk) && st==WeaponState::NoWeapon)
       return solveAnim("S_%sWALK",st);
     else
       return solveAnim("S_%sRUN", st);

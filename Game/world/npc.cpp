@@ -1163,7 +1163,8 @@ void Npc::tick(uint64_t dt) {
     if(weaponState()==WeaponState::NoWeapon)
       setAnim(animation.lastIdle); else
     if(animation.current>Anim::IdleLoopLast)
-      setAnim(Anim::Idle);
+      setAnim(Anim::Idle); else
+      setAnim(animation.current);
     }
 
   if(!aiState.started && aiState.funcIni!=0) {
