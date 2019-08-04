@@ -564,7 +564,7 @@ class Npc final {
     void                           implFaiWait(uint64_t dt);
     void                           tickRoutine();
     void                           nextAiAction(uint64_t dt);
-    bool                           setAnim(Npc::Anim a, WeaponState st0, WeaponState st);
+    bool                           setAnim(Npc::Anim a, WeaponState st);
     void                           commitDamage();
     void                           takeDamage(Npc& other);
     int                            damageValue(Npc &other) const;

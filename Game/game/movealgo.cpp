@@ -110,18 +110,20 @@ void MoveAlgo::tickGravity(uint64_t dt) {
   fallSpeed[1]+=aceleration;
 
   // check ground
-  auto  pos    = npc.position();
-  float pY     = pos[1];
-  bool  valid  = false;
-  auto  ground = dropRay(pos[0], pos[1]+fallThreshold, pos[2], valid);
-  float dY     = pY-ground;
+  auto  pos      = npc.position();
+  float pY       = pos[1];
+  float chest    = waterDepthChest();
+  bool  valid    = false;
+  auto  ground   = dropRay(pos[0], pos[1]+fallThreshold, pos[2], valid);
+  auto  water    = waterRay(pos[0], pos[1], pos[2]);
+  float fallStop = std::max(water-chest,ground);
 
   auto dp = fallSpeed;
   dp[0]*=timeK;
   dp[1]*=timeK;
   dp[2]*=timeK;
 
-  if(pY+dp[1]>ground) {
+  if(pY+dp[1]>fallStop) {
     // continue falling
     if(!tryMove(dp[0],dp[1],dp[2])) {
       fallSpeed[1]=0.f;
@@ -140,20 +142,58 @@ void MoveAlgo::tickGravity(uint64_t dt) {
     if(fallSpeed[1]<-100.f && npc.anim()==Npc::Anim::Jump)
       npc.setAnim(AnimationSolver::Fall);
     } else {
-    // attach to ground
-    tryMove(0.f,-dY,0.f);
-    clearSpeed();
-    setInAir(false);
+    if(ground+chest<water && !npc.isDead()) {
+      // attach to water
+      tryMove(0.f,water-pY,0.f);
+      clearSpeed();
+      setInAir(false);
+      setInWater(true);
+      setAsSwim(true);
+      } else {
+      // attach to ground
+      tryMove(0.f,ground-pY,0.f);
+      clearSpeed();
+      setInAir(false);
+      }
     }
+  }
+
+void MoveAlgo::tickSwim(uint64_t dt) {
+  auto  dp            = npcMoveSpeed(dt);
+  auto  pos           = npc.position();
+  float pY            = pos[1];
+  float fallThreshold = stepHeight();
+  auto  chest         = waterDepthChest();
+
+  bool  valid  = false;
+  auto  ground = dropRay (pos[0]+dp[0], pos[1]+dp[1]+fallThreshold, pos[2]+dp[2], valid);
+  auto  water  = waterRay(pos[0]+dp[0], pos[1]+dp[1]-chest, pos[2]+dp[2]);
+
+  if(ground+chest>=water){
+    setAsSwim(false);
+    tryMove(dp[0],ground-pY,dp[2]);
+    npc.setAnim(npc.anim());
+    return;
+    }
+
+  if(npc.isDead()){
+    setAsSwim(false);
+    return;
+    }
+
+  // swim on top of water
+  tryMove(dp[0],water-pY,dp[2]);
   }
 
 void MoveAlgo::tick(uint64_t dt) {
   if(npc.interactive()!=nullptr)
     return tickMobsi(dt);
 
-  //return;
   if(isClimb())
     ;//return; // TODO
+
+  if(isSwim())
+    return tickSwim(dt);
 
   if(isInAir() && !npc.isFlyAnim()) {
     return tickGravity(dt);
@@ -166,20 +206,26 @@ void MoveAlgo::tick(uint64_t dt) {
       return;
     }
 
-  //return;
   auto  dp            = npcMoveSpeed(dt);
   auto  pos           = npc.position();
   float pY            = pos[1];
   float fallThreshold = stepHeight();
 
-  float qSpeed = (dp[0]*dp[0]+dp[2]*dp[2]);
-  if(qSpeed<=0.f && !isInAir() && !isSlide())
-    ;//return;
-
   // moving NPC, by animation
   bool  valid  = false;
-  auto  ground = dropRay(pos[0]+dp[0], pos[1]+dp[1]+fallThreshold, pos[2]+dp[2], valid);
+  auto  ground = dropRay (pos[0]+dp[0], pos[1]+dp[1]+fallThreshold, pos[2]+dp[2], valid);
+  auto  water  = waterRay(pos[0]+dp[0], pos[1]+dp[1], pos[2]+dp[2]);
   float dY     = pY-ground;
+
+  if(!npc.isDead() && ground+waterDepthChest()<water){
+    setInWater(true);
+    setAsSwim(true);
+    npc.setAnim(npc.anim());
+    return;
+    }
+  if(ground+waterDepthKnee()<water)
+    setInWater(true); else
+    setInWater(false);
 
   if(0.f<dY && npc.isFlyAnim()) {
     // jump animation
@@ -299,20 +345,33 @@ std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt) {
   }
 
 float MoveAlgo::stepHeight() const {
-  auto gl = std::min<uint32_t>(npc.guild(),GIL_MAX);
-  return npc.world().script().guildVal().step_height[gl];
+  auto gl = npc.guild();
+  auto v  = npc.world().script().guildVal().step_height[gl];
+  if(v>0.f)
+    return v;
+  return 50;
   }
 
 float MoveAlgo::slideAngle() const {
-  auto  gl = std::min<uint32_t>(npc.guild(),GIL_MAX);
+  auto  gl = npc.guild();
   float k  = float(M_PI)/180.f;
   return std::sin((90-npc.world().script().guildVal().slide_angle[gl])*k);
   }
 
 float MoveAlgo::slideAngle2() const {
-  auto  gl = std::min<uint32_t>(npc.guild(),GIL_MAX);
+  auto  gl = npc.guild();
   float k  = float(M_PI)/180.f;
   return std::sin(npc.world().script().guildVal().slide_angle2[gl]*k);
+  }
+
+float MoveAlgo::waterDepthKnee() const {
+  auto gl = npc.guild();
+  return npc.world().script().guildVal().water_depth_knee[gl];
+  }
+
+float MoveAlgo::waterDepthChest() const {
+  auto gl = npc.guild();
+  return npc.world().script().guildVal().water_depth_chest[gl];
   }
 
 bool MoveAlgo::isClose(const std::array<float,3> &w, const WayPoint &p) {
@@ -359,7 +418,6 @@ bool MoveAlgo::startClimb() {
   climbStart=npc.world().tickCount();
   climbPos0 =npc.position();
   setAsClimb(true);
-  setAsFrozen(false);
   return true;
   }
 
@@ -375,10 +433,6 @@ bool MoveAlgo::isSlide() const {
   return flags&Slide;
   }
 
-bool MoveAlgo::isFrozen() const {
-  return flags&Frozen;
-  }
-
 bool MoveAlgo::isInAir() const {
   return flags&InAir;
   }
@@ -387,10 +441,12 @@ bool MoveAlgo::isClimb() const {
   return flags&Climb;
   }
 
-void MoveAlgo::setAsFrozen(bool f) {
-  if(f)
-    flags=Flags(flags|Frozen); else
-    flags=Flags(flags&(~Frozen));
+bool MoveAlgo::isInWater() const {
+  return flags&InWater;
+  }
+
+bool MoveAlgo::isSwim() const {
+  return flags&Swim;
   }
 
 void MoveAlgo::setInAir(bool f) {
@@ -409,6 +465,18 @@ void MoveAlgo::setAsSlide(bool f) {
   if(f)
     flags=Flags(flags|Slide);  else
     flags=Flags(flags&(~Slide));
+  }
+
+void MoveAlgo::setInWater(bool f) {
+  if(f)
+    flags=Flags(flags|InWater);  else
+    flags=Flags(flags&(~InWater));
+  }
+
+void MoveAlgo::setAsSwim(bool f) {
+  if(f)
+    flags=Flags(flags|Swim);  else
+    flags=Flags(flags&(~Swim));
   }
 
 bool MoveAlgo::processClimb() {
@@ -460,14 +528,29 @@ void MoveAlgo::onMoveFailed() {
 float MoveAlgo::dropRay(float x, float y, float z, bool &hasCol) const {
   static const float eps = 0.001f;
 
-  if(std::fabs(cache.x-x)>eps || std::fabs(cache.y-y)>eps || std::fabs(cache.z-z)>eps){
-    cache.x = x;
-    cache.y = y;
-    cache.z = z;
-    cache.rayCastRet = npc.world().physic()->dropRay(x,y,z,cache.hasCol).y();
+  if(std::fabs(cache.x-x)>eps || std::fabs(cache.y-y)>eps || std::fabs(cache.z-z)>eps) {
+    auto ret         = npc.world().physic()->dropRay(x,y,z);
+    cache.x          = x;
+    cache.y          = y;
+    cache.z          = z;
+    cache.hasCol     = ret.hasCol;
+    cache.rayCastRet = ret.y();
     }
   hasCol = cache.hasCol;
   return cache.rayCastRet;
+  }
+
+float MoveAlgo::waterRay(float x, float y, float z) const {
+  static const float eps = 0.001f;
+
+  if(std::fabs(cache.wx-x)>eps || std::fabs(cache.wy-y)>eps || std::fabs(cache.wz-z)>eps) {
+    auto ret     = npc.world().physic()->waterRay(x,y,z);
+    cache.wx     = x;
+    cache.wy     = y;
+    cache.wz     = z;
+    cache.wdepth = ret.y();
+    }
+  return cache.wdepth;
   }
 
 std::array<float,3> MoveAlgo::normalRay(float x, float y, float z) const {

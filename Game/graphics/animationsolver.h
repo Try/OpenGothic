@@ -192,7 +192,7 @@ class AnimationSolver final {
     void                           delOverlay(const char *sk);
     void                           delOverlay(const Skeleton *sk);
 
-    bool                           setAnim(Anim a, uint64_t tickCount, WeaponState nextSt, WeaponState weaponSt,
+    bool                           setAnim(Anim a, uint64_t tickCount, WeaponState weaponSt,
                                            WalkBit walk, Interactive *inter, World &owner);
 
     bool                           isFlyAnim(uint64_t tickCount) const;
@@ -217,9 +217,12 @@ class AnimationSolver final {
     const Skeleton*                skeleton=nullptr;
     Sequence                       animSq;
     uint64_t                       sAnim    =0;
-    Anim                           current  =NoAnim;
-    Anim                           prevAni  =NoAnim;
-    Anim                           lastIdle =Idle;
+
+    Anim                           current    = NoAnim;
+    WeaponState                    currentW   = WeaponState::NoWeapon;
+    WalkBit                        currentWlk = WalkBit::WM_Walk;
+    Anim                           prevAni    = NoAnim;
+    Anim                           lastIdle   = Idle;
 
     GSoundEffect                   soundSlot;
 

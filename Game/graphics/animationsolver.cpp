@@ -86,7 +86,7 @@ void AnimationSolver::setVisual(const Skeleton *v,uint64_t tickCount,
   skeleton = v;
 
   current=NoAnim;
-  setAnim(Idle,tickCount,ws,ws,walk,inter,owner);
+  setAnim(Idle,tickCount,ws,walk,inter,owner);
 
   head  .setSkeleton(skeleton);
   view  .setSkeleton(skeleton);
@@ -103,12 +103,12 @@ void AnimationSolver::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh
   view.setSkeleton(skeleton);
   }
 
-bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState nextSt,WeaponState weaponSt,
+bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState weaponSt,
                               WalkBit walk,Interactive* inter,World& owner) {
-  if(Npc::Anim::DeadB<a && a<Npc::Anim::IdleLoopLast && nextSt!=WeaponState::NoWeapon)
+  if(Npc::Anim::DeadB<a && a<Npc::Anim::IdleLoopLast && weaponSt!=WeaponState::NoWeapon)
     a = Npc::Anim::Idle;
   if(animSq!=nullptr){
-    if(current==a && nextSt==weaponSt && animSq.cls==Animation::Loop)
+    if(current==a && currentW==weaponSt && currentWlk==walk && animSq.cls==Animation::Loop)
       return true;
     if((animSq.cls==Animation::Transition &&
         current!=RotL && current!=RotR && current!=MoveL && current!=MoveR && // no idea why this animations maked as Transition
@@ -120,14 +120,17 @@ bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState nextSt,Weapo
     if(MagFirst<=current && current<=MagLast && !animSq.isFinished(tickCount-sAnim))
       return false;
     }
-  auto ani = solveAnim(a,weaponSt,current,nextSt,walk,inter);
+  auto ani = solveAnim(a,currentW,current,weaponSt,walk,inter);
   if(ani==nullptr) {
     a   = Idle;
     ani = solveAnim(Idle,WeaponState::NoWeapon,Idle,WeaponState::NoWeapon,WalkBit::WM_Run,nullptr);
     }
-  prevAni  = current;
-  current  = a;
-  if(current<=IdleLoopLast && nextSt==WeaponState::NoWeapon)
+  prevAni    = current;
+  current    = a;
+  currentW   = weaponSt;
+  currentWlk = walk;
+
+  if(current<=IdleLoopLast && weaponSt==WeaponState::NoWeapon)
     lastIdle=current;
   if(ani==animSq) {
     if(animSq.cls==Animation::Transition){
@@ -169,7 +172,7 @@ void AnimationSolver::addOverlay(const Skeleton* sk,uint64_t time,uint64_t tickC
     invalidateAnim(ani,skeleton,owner,tickCount);
     } else {
     // fallback
-    setAnim(Idle,tickCount,WeaponState::NoWeapon,WeaponState::NoWeapon,wlk,inter,owner);
+    setAnim(Idle,tickCount,WeaponState::NoWeapon,wlk,inter,owner);
     }
   }
 
@@ -311,6 +314,16 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     return ret;
     }*/
 
+  if(bool(wlkMode & WalkBit::WM_Swim)) {
+    if(a==Anim::Move)
+      return solveAnim("S_SWIMF",st);
+    if(a==Anim::MoveL)
+      return solveAnim("T_SWIMTURNL",st);
+    if(a==Anim::MoveR)
+      return solveAnim("T_SWIMTURNR",st);
+    return solveAnim("S_SWIM",st);
+    }
+
   if(st==WeaponState::Fist) {
     if(a==Anim::Atack && cur==Move) {
       if(auto a=animSequence("T_FISTATTACKMOVE"))
@@ -352,11 +365,14 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
 
   if((cur==Anim::Idle || cur==Anim::NoAnim) && a==Anim::Idle){
     if(bool(wlkMode&WalkBit::WM_Walk))
-      return solveAnim("S_%sWALK",st); else
+      return solveAnim("S_%sWALK",st);
+    else
       return solveAnim("S_%sRUN", st);
     }
   if(cur!=Anim::Move && a==Anim::Move) {
     Sequence sq;
+    if(bool(wlkMode&WalkBit::WM_Water))
+      sq = solveAnim("T_%sWALK_2_%sWALKWL",st); else
     if(bool(wlkMode&WalkBit::WM_Walk))
       sq = solveAnim("T_%sWALK_2_%sWALKL",st); else
       sq = solveAnim("T_%sRUN_2_%sRUNL",  st);
@@ -364,17 +380,25 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
       return sq;
     }
   if(cur==Anim::Move && a==cur){
+    if(bool(wlkMode&WalkBit::WM_Water))
+      return solveAnim("S_%sWALKWL",st); else
     if(bool(wlkMode&WalkBit::WM_Walk))
       return solveAnim("S_%sWALKL",st); else
       return solveAnim("S_%sRUNL", st);
     }
   if(cur==Anim::Move && a==Anim::Idle) {
+    if(bool(wlkMode&WalkBit::WM_Water))
+      return solveAnim("T_%sWALKWL_2_%sWALK",st); else
     if(bool(wlkMode&WalkBit::WM_Walk))
       return solveAnim("T_%sWALKL_2_%sWALK",st); else
       return solveAnim("T_%sRUNL_2_%sRUN",st);
     }
 
   if(a==Anim::RotL){
+    if(bool(wlkMode&WalkBit::WM_Water)){
+      if(auto ani=solveAnim("T_%sWALKWTURNL",st))
+        return ani;
+      }
     if(bool(wlkMode&WalkBit::WM_Walk)){
       if(auto ani=solveAnim("T_%sWALKTURNL",st))
         return ani;
@@ -382,6 +406,10 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     return solveAnim("T_%sRUNTURNL",st);
     }
   if(a==Anim::RotR){
+    if(bool(wlkMode&WalkBit::WM_Water)){
+      if(auto ani=solveAnim("T_%sWALKWTURNR",st))
+        return ani;
+      }
     if(bool(wlkMode&WalkBit::WM_Walk)){
       if(auto ani=solveAnim("T_%sWALKTURNR",st))
         return ani;
@@ -389,9 +417,17 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     return solveAnim("T_%sRUNTURNR",st);
     }
   if(a==Anim::MoveL) {
+    if(bool(wlkMode&WalkBit::WM_Water)){
+      if(auto ani=solveAnim("T_%sWALKWSTRAFEL",st))
+        return ani;
+      }
     return solveAnim("T_%sRUNSTRAFEL",st);
     }
   if(a==Anim::MoveR) {
+    if(bool(wlkMode&WalkBit::WM_Water)){
+      if(auto ani=solveAnim("T_%sWALKWSTRAFER",st))
+        return ani;
+      }
     return solveAnim("T_%sRUNSTRAFER",st);
     }
   if(a==Anim::MoveBack)

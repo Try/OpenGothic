@@ -97,7 +97,9 @@ enum class FightMode : int32_t {
 enum class WalkBit : uint8_t {
   WM_Run  =0,
   WM_Walk =1,
-  WM_Sneak=2
+  WM_Sneak=2,
+  WM_Water=4,
+  WM_Swim =8,
   };
 
 inline WalkBit operator & (WalkBit a,const WalkBit& b){

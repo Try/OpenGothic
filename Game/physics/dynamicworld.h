@@ -37,8 +37,9 @@ class DynamicWorld final {
     enum Category {
       C_Null      = 1,
       C_Landscape = 2,
-      C_Object    = 3,
-      C_Ghost     = 4
+      C_Water     = 3,
+      C_Object    = 4,
+      C_Ghost     = 5
       };
 
     struct Item {
@@ -108,11 +109,12 @@ class DynamicWorld final {
       float               z() const { return v[2]; }
       };
 
-    RayResult dropRay(float x, float y, float z,bool& hasCol) const;
-    RayResult dropRay(float x, float y, float z) const;
+    RayResult dropRay (float x, float y, float z) const;
+    RayResult waterRay(float x, float y, float z) const;
 
-    RayResult ray(float x0, float y0, float z0, float x1, float y1, float z1) const;
+    RayResult ray          (float x0, float y0, float z0, float x1, float y1, float z1) const;
     float     soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const;
+    RayResult implWaterRay (float x0, float y0, float z0, float x1, float y1, float z1) const;
 
     std::array<float,3> landNormal(float x, float y, float z) const;
 
@@ -127,7 +129,9 @@ class DynamicWorld final {
 
     bool hasCollision(const Item &it,std::array<float,3>& normal);
     void rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, btCollisionWorld::RayResultCallback& resultCallback) const;    
+
     std::unique_ptr<btRigidBody> landObj();
+    std::unique_ptr<btRigidBody> waterObj();
 
     void updateSingleAabb(btCollisionObject* obj);
 
@@ -140,10 +144,11 @@ class DynamicWorld final {
     std::unique_ptr<btCollisionShape>           landShape;
     std::unique_ptr<btRigidBody>                landBody;
 
-    std::unique_ptr<NpcBodyList>                npcList;
+    std::unique_ptr<btCollisionShape>           waterShape;
+    std::unique_ptr<btRigidBody>                waterBody;
+    std::unique_ptr<PhysicMesh>                 waterMesh;
 
-    mutable RayResult                           lastRayDrop;
-    mutable float                               lastRayDropXyz[3]={};
+    std::unique_ptr<NpcBodyList>                npcList;
 
     static const float                          ghostPadding;
     static const float                          ghostHeight;

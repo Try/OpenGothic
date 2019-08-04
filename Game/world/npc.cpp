@@ -548,18 +548,16 @@ void Npc::setArmour(StaticObjects::Mesh &&a) {
   }
 
 void Npc::setSword(StaticObjects::Mesh &&s) {
-  auto st=weaponState();
   animation.sword = std::move(s);
   updateWeaponSkeleton();
-  setAnim(animation.current,weaponState(),st);
+  setAnim(animation.current,weaponState());
   setPos(animation.pos);
   }
 
 void Npc::setRangeWeapon(StaticObjects::Mesh &&b) {
-  auto st=weaponState();
   animation.bow = std::move(b);
   updateWeaponSkeleton();
-  setAnim(animation.current,weaponState(),st);
+  setAnim(animation.current,weaponState());
   setPos(animation.pos);
   }
 
@@ -600,7 +598,7 @@ void Npc::setScale(float x, float y, float z) {
 
 bool Npc::setAnim(Npc::Anim a) {
   auto weaponSt=invent.weaponState();
-  return setAnim(a,weaponSt,weaponSt);
+  return setAnim(a,weaponSt);
   }
 
 void Npc::stopAnim(const std::string &ani) {
@@ -772,7 +770,7 @@ uint32_t Npc::instanceSymbol() const {
   }
 
 uint32_t Npc::guild() const {
-  return uint32_t(hnpc.guild);
+  return std::min(uint32_t(hnpc.guild), uint32_t(GIL_MAX));
   }
 
 bool Npc::isMonster() const {
@@ -1534,10 +1532,10 @@ bool Npc::doAttack(Anim anim) {
     anim=Anim(owner.script().spellCastAnim(*this,*weapon));
 
   if(animation.current==anim){
-    return setAnim(Anim::Idle,weaponSt,weaponSt);
+    return setAnim(Anim::Idle,weaponSt);
     }
 
-  return setAnim(anim,weaponSt,weaponSt);
+  return setAnim(anim,weaponSt);
   }
 
 void Npc::emitDlgSound(const char *sound) {
@@ -1701,7 +1699,7 @@ bool Npc::closeWeapon(bool noAnim) {
   auto weaponSt=invent.weaponState();
   if(weaponSt==WeaponState::NoWeapon)
     return true;
-  if(!noAnim && !setAnim(animation.current,WeaponState::NoWeapon,weaponSt))
+  if(!noAnim && !setAnim(animation.current,WeaponState::NoWeapon))
     return false;
   invent.switchActiveWeapon(*this,Item::NSLOT);
   hnpc.weapon = 0;
@@ -1719,7 +1717,7 @@ bool Npc::drawWeaponFist() {
     return false;
     }
   Anim ani = animation.current==Anim::Idle ? Anim::Idle : Anim::Move;
-  if(!setAnim(ani,WeaponState::Fist,weaponSt))
+  if(!setAnim(ani,WeaponState::Fist))
     return false;
   invent.switchActiveWeaponFist();
   updateWeaponSkeleton();
@@ -1741,7 +1739,7 @@ bool Npc::drawWeaponMele() {
   auto& weapon = *invent.currentMeleWeapon();
   auto  st     = weapon.is2H() ? WeaponState::W2H : WeaponState::W1H;
   Anim  ani    = animation.current==isStanding()    ? Anim::Idle       : Anim::Move;
-  if(!setAnim(ani,st,weaponSt))
+  if(!setAnim(ani,st))
     return false;
 
   invent.switchActiveWeapon(*this,1);
@@ -1767,7 +1765,7 @@ bool Npc::drawWeaponBow() {
   auto& weapon = *invent.currentMeleWeapon();
   auto  st     = weapon.isCrossbow() ? WeaponState::CBow : WeaponState::Bow;
   Anim  ani    = animation.current==isStanding()           ? Anim::Idle        : Anim::Move;
-  if(!setAnim(ani,st,weaponSt))
+  if(!setAnim(ani,st))
     return false;
   invent.switchActiveWeapon(*this,2);
   hnpc.weapon = (st==WeaponState::W1H ? 5:6);
@@ -1785,7 +1783,7 @@ bool Npc::drawMage(uint8_t slot) {
     return false;
     }
   Anim ani = animation.current==isStanding() ? Anim::Idle : Anim::Move;
-  if(!setAnim(ani,WeaponState::Mage,weaponSt))
+  if(!setAnim(ani,weaponSt))
     return false;
   invent.switchActiveWeapon(*this,slot);
   hnpc.weapon = 7;
@@ -1795,9 +1793,8 @@ bool Npc::drawMage(uint8_t slot) {
   }
 
 void Npc::drawSpell(int32_t spell) {
-  auto weaponSt=invent.weaponState();
   invent.switchActiveSpell(spell,*this);
-  setAnim(animation.current,invent.weaponState(),weaponSt);
+  setAnim(animation.current,invent.weaponState());
   updateWeaponSkeleton();
   }
 
@@ -1809,7 +1806,7 @@ void Npc::blockFist() {
   auto weaponSt=invent.weaponState();
   if(weaponSt!=WeaponState::Fist)
     return;
-  setAnim(Anim::AtackBlock,weaponSt,weaponSt);
+  setAnim(Anim::AtackBlock,weaponSt);
   }
 
 void Npc::swingSword() {
@@ -1838,7 +1835,7 @@ void Npc::blockSword() {
   if(active==nullptr)
     return;
   auto weaponSt=invent.weaponState();
-  setAnim(AnimationSolver::AtackBlock,weaponSt,weaponSt);
+  setAnim(AnimationSolver::AtackBlock,weaponSt);
   }
 
 bool Npc::castSpell() {
@@ -1852,11 +1849,11 @@ bool Npc::castSpell() {
   const SpellCode code  = SpellCode(owner.script().invokeMana(*this,currentTarget,*active));
   switch(code) {
     case SpellCode::SPL_SENDSTOP:
-      setAnim(Anim::MagNoMana,WeaponState::Mage,invent.weaponState());
+      setAnim(Anim::MagNoMana,invent.weaponState());
       break;
     case SpellCode::SPL_NEXTLEVEL:{
       auto ani = Npc::Anim(owner.script().spellCastAnim(*this,*active));
-      setAnim(ani,WeaponState::Mage,WeaponState::Mage);
+      setAnim(ani,WeaponState::Mage);
       }
       break;
     case SpellCode::SPL_SENDCAST: {
@@ -1884,7 +1881,7 @@ bool Npc::aimBow() {
   if(active==nullptr)
     return false;
   auto weaponSt=invent.weaponState();
-  return setAnim(Anim::AimBow,weaponSt,weaponSt);
+  return setAnim(Anim::AimBow,weaponSt);
   }
 
 bool Npc::shootBow() {
@@ -1892,8 +1889,7 @@ bool Npc::shootBow() {
   if(active==nullptr)
     return false;
   auto weaponSt=invent.weaponState();
-  return setAnim(Anim::Atack,weaponSt,weaponSt);
-  //  return setAnim(Anim::AimBow,weaponSt,weaponSt);
+  return setAnim(Anim::Atack,weaponSt);
   }
 
 bool Npc::isEnemy(const Npc &other) const {
@@ -2449,7 +2445,12 @@ void Npc::setPos(const Matrix4x4 &m) {
   //physic.setPosition(x,y,z);
   }
 
-bool Npc::setAnim(Npc::Anim a, WeaponState st0, WeaponState st) {
-  return animation.setAnim(a,owner.tickCount(),st0,st,wlkMode,currentInteract,owner);
+bool Npc::setAnim(Npc::Anim a, WeaponState st) {
+  auto w = wlkMode;
+  if(mvAlgo.isSwim())
+    w = WalkBit::WM_Swim;
+  else if(mvAlgo.isInWater())
+    w = WalkBit::WM_Water;
+  return animation.setAnim(a,owner.tickCount(),st,w,currentInteract,owner);
   }
 

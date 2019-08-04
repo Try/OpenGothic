@@ -28,11 +28,12 @@ class MoveAlgo final {
     bool startClimb();
     bool hasGoTo() const;
 
-    bool isFaling() const;
-    bool isSlide()  const;
-    bool isFrozen() const;
-    bool isInAir()  const;
-    bool isClimb()  const;
+    bool isFaling()  const;
+    bool isSlide()   const;
+    bool isInAir()   const;
+    bool isClimb()   const;
+    bool isInWater() const;
+    bool isSwim() const;
 
     uint8_t groundMaterial() const;
 
@@ -40,27 +41,28 @@ class MoveAlgo final {
     void tickMobsi  (uint64_t dt);
     bool tickSlide  (uint64_t dt);
     void tickGravity(uint64_t dt);
+    void tickSwim   (uint64_t dt);
     bool tryMove    (float x, float y, float z);
 
     enum Flags : uint32_t {
       NoFlags=0,
-      Frozen =1<<1,
-      InAir  =1<<2,
-      Faling =1<<3,
-      Slide  =1<<4,
-      Climb  =1<<5
+      InAir  =1<<1,
+      Faling =1<<2,
+      Slide  =1<<3,
+      Climb  =1<<4,
+      InWater=1<<5,
+      Swim   =1<<6
       };
 
-    void   setAsFrozen(bool f);
     void   setInAir(bool f);
     void   setAsClimb(bool f);
     void   setAsSlide(bool f);
+    void   setInWater(bool f);
+    void   setAsSwim (bool f);
 
     bool   processClimb();
     bool   slideDir() const;
     void   onMoveFailed();
-    float  dropRay  (float x, float y, float z, bool &hasCol) const;
-    auto   normalRay(float x, float y, float z) const -> std::array<float,3>;
     void   applyRotation(std::array<float,3> &out, float *in) const;
     auto   animMoveSpeed(uint64_t dt) const -> std::array<float,3>;
     auto   npcMoveSpeed (uint64_t dt) -> std::array<float,3>;
@@ -68,6 +70,12 @@ class MoveAlgo final {
     float  stepHeight()  const;
     float  slideAngle()  const;
     float  slideAngle2() const;
+    float  waterDepthKnee() const;
+    float  waterDepthChest() const;
+
+    float  dropRay  (float x, float y, float z, bool &hasCol) const;
+    float  waterRay (float x, float y, float z) const;
+    auto   normalRay(float x, float y, float z) const -> std::array<float,3>;
 
     Npc&                npc;
     const WayPoint*     currentGoTo   =nullptr;
@@ -79,6 +87,9 @@ class MoveAlgo final {
 
       float nx=0,ny=0,nz=std::numeric_limits<float>::infinity();
       std::array<float,3> norm={};
+
+      float wx=0,wy=0,wz=std::numeric_limits<float>::infinity();
+      float wdepth=0.f;
       };
     mutable Cache       cache;
 

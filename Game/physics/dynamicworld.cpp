@@ -290,28 +290,33 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
   // the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
   world.reset(new btCollisionWorld(dispatcher.get(),broadphase.get(),conf.get()));
 
-  landMesh.reset(new PhysicMesh(pkg.vertices));
-  for(auto& i:pkg.subMeshes)
-    if(!i.material.noCollDet && i.indices.size()>0 && i.material.matGroup!=ZenLoad::MaterialGroup::WATER)
-      landMesh->addIndex(i.indices,i.material.matGroup);
+  landMesh .reset(new PhysicMesh(pkg.vertices));
+  waterMesh.reset(new PhysicMesh(pkg.vertices));
 
-  //landShape.reset(new btBvhTriangleMeshShape(landMesh.get(),false,true));
+  for(auto& i:pkg.subMeshes)
+    if(!i.material.noCollDet && i.indices.size()>0) {
+      if(i.material.matGroup==ZenLoad::MaterialGroup::WATER)
+        waterMesh->addIndex(i.indices,i.material.matGroup); else
+        landMesh ->addIndex(i.indices,i.material.matGroup);
+      }
+
   landShape.reset(new btMultimaterialTriangleMeshShape(landMesh.get(),false,true));
   landBody = landObj();
 
+  waterShape.reset(new btMultimaterialTriangleMeshShape(waterMesh.get(),false,true));
+  waterBody = waterObj();
+
   world->addCollisionObject(landBody.get());
+  world->addCollisionObject(waterBody.get());
+
   world->setForceUpdateAllAabbs(false);
 
   npcList.reset(new NpcBodyList(*this));
   }
 
 DynamicWorld::~DynamicWorld(){
-  world->removeCollisionObject(landBody.get());
-  }
-
-DynamicWorld::RayResult DynamicWorld::dropRay(float x,float y,float z) const {
-  bool unused;
-  return dropRay(x,y,z,unused);
+  world->removeCollisionObject(waterBody.get());
+  world->removeCollisionObject(landBody .get());
   }
 
 std::array<float,3> DynamicWorld::landNormal(float x, float y, float z) const {
@@ -349,17 +354,50 @@ std::array<float,3> DynamicWorld::landNormal(float x, float y, float z) const {
   return {0,1,0};
   }
 
-DynamicWorld::RayResult DynamicWorld::dropRay(float x, float y, float z, bool &hasCol) const {
-  if(lastRayDrop.hasCol && lastRayDropXyz[0]==x && lastRayDropXyz[1]==y && lastRayDropXyz[2]==z){
-    hasCol = true;
-    return lastRayDrop;
+DynamicWorld::RayResult DynamicWorld::dropRay(float x, float y, float z) const {
+  RayResult rayDrop = ray(x,y+ghostPadding,z, x,y-worldHeight,z);
+  return rayDrop;
+  }
+
+DynamicWorld::RayResult DynamicWorld::waterRay(float x, float y, float z) const {
+  RayResult rayDrop = implWaterRay(x,y,z, x,y+worldHeight,z);
+  return rayDrop;
+  }
+
+DynamicWorld::RayResult DynamicWorld::implWaterRay(float x0, float y0, float z0, float x1, float y1, float z1) const {
+  struct CallBack:btCollisionWorld::ClosestRayResultCallback {
+    using ClosestRayResultCallback::ClosestRayResultCallback;
+    uint8_t  matId  = 0;
+    Category colCat = C_Water;
+
+    btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
+      return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
+      }
+    };
+
+  btVector3 s(x0,y0,z0), e(x1,y1,z1);
+  CallBack callback{s,e};
+  //callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
+
+  btTransform rayFromTrans,rayToTrans;
+  rayFromTrans.setIdentity();
+  rayFromTrans.setOrigin(s);
+  rayToTrans.setIdentity();
+  rayToTrans.setOrigin(e);
+  world->rayTestSingle(rayFromTrans, rayToTrans, waterBody.get(),
+                       waterBody->getCollisionShape(),
+                       waterBody->getWorldTransform(),
+                       callback);
+  // rayTest(s,e,callback);
+
+  if(callback.hasHit()){
+    x1 = callback.m_hitPointWorld.x();
+    y1 = callback.m_hitPointWorld.y();
+    z1 = callback.m_hitPointWorld.z();
+    } else {
+    y1 = y0-worldHeight;
     }
-  lastRayDropXyz[0] = x;
-  lastRayDropXyz[1] = y;
-  lastRayDropXyz[2] = z;
-  lastRayDrop       = ray(x,y+ghostPadding,z, x,y-worldHeight,z);
-  hasCol            = lastRayDrop.hasCol;
-  return lastRayDrop;
+  return RayResult{{x1,y1,z1},callback.matId,callback.colCat,callback.hasHit()};
   }
 
 DynamicWorld::RayResult DynamicWorld::ray(float x0, float y0, float z0, float x1, float y1, float z1) const {
@@ -446,6 +484,20 @@ std::unique_ptr<btRigidBody> DynamicWorld::landObj() {
   return obj;
   }
 
+std::unique_ptr<btRigidBody> DynamicWorld::waterObj() {
+  btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(
+        0,                  // mass, in kg. 0 -> Static object, will never move.
+        nullptr,
+        waterShape.get(),
+        btVector3(0,0,0)
+        );
+  std::unique_ptr<btRigidBody> obj(new btRigidBody(rigidBodyCI));
+  obj->setUserIndex(C_Water);
+  obj->setFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
+  obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
+  return obj;
+  }
+
 DynamicWorld::Item DynamicWorld::ghostObj(const ZMath::float3 &min, const ZMath::float3 &max) {
   static const float dimMax=45.f;
   float dx     = max.x-min.x;
@@ -496,7 +548,6 @@ DynamicWorld::StaticItem DynamicWorld::staticObj(const PhysicMeshShape *shape, c
   }
 
 void DynamicWorld::tick(uint64_t /*dt*/) {
-  //world->updateAabbs();
   npcList->updateAabbs();
   }
 
@@ -538,6 +589,13 @@ bool DynamicWorld::hasCollision(const Item& it,std::array<float,3>& normal) {
 
     explicit rCallBack(btCollisionObject* src):src(src){
       m_collisionFilterMask = btBroadphaseProxy::DefaultFilter | btBroadphaseProxy::StaticFilter;
+      }
+
+    bool needsCollision(btBroadphaseProxy* proxy0) const override {
+      auto obj=reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject);
+      if(obj->getUserIndex()!=C_Water)
+        return ContactResultCallback::needsCollision(proxy0);
+      return false;
       }
 
     btScalar addSingleResult(btManifoldPoint& p,
