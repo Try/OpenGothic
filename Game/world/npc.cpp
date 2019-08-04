@@ -1158,7 +1158,7 @@ void Npc::tick(uint64_t dt) {
 
   if(interactive()!=nullptr)
     setAnim(AnimationSolver::Interact); else
-  if(currentGoTo==nullptr && currentGoToNpc==nullptr && (currentTarget==nullptr || currentTarget->isDown()) &&
+  if(currentGoTo==nullptr && currentGoToNpc==nullptr &&
      aiPolicy!=ProcessPolicy::Player && anim()!=Anim::Pray && anim()!=Anim::PrayRand) {
     if(weaponState()==WeaponState::NoWeapon)
       setAnim(animation.lastIdle); else
@@ -1595,6 +1595,8 @@ Npc::BodyState Npc::bodyState() const {
     s = BS_DEAD;
   else if(isUnconscious())
     s = BS_UNCONSCIOUS;
+  else if(mvAlgo.isSwim())
+    s = BS_SWIM;
   else if(ani==Anim::Move || ani==Anim::MoveL || ani==Anim::MoveR || ani==Anim::MoveBack)
     s = BS_RUN;
   else if(ani==Anim::Fall || ani==Anim::FallDeep)
