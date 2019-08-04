@@ -201,7 +201,7 @@ void GameSession::tick(uint64_t dt) {
       }
     }
 
-  if(Resources::vdfsIndex().hasFile(chWorld.zen)){
+  if(!chWorld.zen.empty()) {
     char buf[128]={};
     for(auto& c:chWorld.zen)
       c = char(std::tolower(c));
@@ -215,27 +215,31 @@ void GameSession::tick(uint64_t dt) {
       wname = chWorld.zen.substr(0,end); else
       wname = chWorld.zen;
 
-    std::snprintf(buf,sizeof(buf),"LOADING_%s.TGA",wname.c_str());  // format load-screen name, like "LOADING_OLDWORLD.TGA"
+    const char *w = (beg!=std::string::npos) ? (chWorld.zen.c_str()+beg+1) : chWorld.zen.c_str();
 
-    gothic.startLoading(buf,[this](std::unique_ptr<GameSession>&& game){
-      auto ret = implChangeWorld(std::move(game),chWorld.zen,chWorld.wp);
-      chWorld.zen.clear();
-      return ret;
-      });
+    if(Resources::vdfsIndex().hasFile(w)) {
+      std::snprintf(buf,sizeof(buf),"LOADING_%s.TGA",wname.c_str());  // format load-screen name, like "LOADING_OLDWORLD.TGA"
+
+      gothic.startLoading(buf,[this](std::unique_ptr<GameSession>&& game){
+        auto ret = implChangeWorld(std::move(game),chWorld.zen,chWorld.wp);
+        chWorld.zen.clear();
+        return ret;
+        });
+      }
     }
   }
 
 auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
                                   const std::string& world, const std::string& wayPoint) -> std::unique_ptr<GameSession> {
-  if(!Resources::vdfsIndex().hasFile(world)) {
-    Log::i("World not found[",world,"]");
-    return std::move(game);
-    }
-
   const char*   w   = world.c_str();
   size_t        cut = world.rfind('\\');
   if(cut!=std::string::npos)
     w = w+cut+1;
+
+  if(!Resources::vdfsIndex().hasFile(w)) {
+    Log::i("World not found[",world,"]");
+    return std::move(game);
+    }
 
   auto hero = wrld->takeHero();
   HeroStorage hdata;
