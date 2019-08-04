@@ -272,7 +272,9 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
       }
     }
 
-  if(st==WeaponState::NoWeapon){
+  if(st==WeaponState::NoWeapon &&
+     cur!=Anim::UnconsciousA && cur!=Anim::UnconsciousB &&
+     cur!=Anim::DeadA        && cur!=Anim::DeadB){
     if(st0==WeaponState::W1H){
       if(a==Anim::Move && cur==a)
         return layredSequence("S_1HRUNL","T_1HMOVE_2_MOVE");

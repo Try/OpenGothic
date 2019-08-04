@@ -1002,9 +1002,12 @@ bool Npc::implAtack(uint64_t dt) {
       aiState.loopNextTime=owner.tickCount(); //force ZS_MM_Attack_Loop call
       if(act==FightAlgo::MV_MOVEA)
         setAnim(AnimationSolver::Idle);
-      return false;
+      implAiTick(dt);
+      return true;
       }
-    return false;
+
+    implAiTick(dt);
+    return true;
     }
 
   if(act==FightAlgo::MV_WAIT) {
@@ -1027,6 +1030,20 @@ bool Npc::implAtack(uint64_t dt) {
     return true;
     }
 
+  return true;
+  }
+
+bool Npc::implAiTick(uint64_t dt) {
+  if(!aiState.started && aiState.funcIni!=0) {
+    tickRoutine();
+    }
+  else if(aiActions.size()==0) {
+    tickRoutine();
+    if(aiActions.size()>0)
+      nextAiAction(dt);
+    return false;
+    }
+  nextAiAction(dt);
   return true;
   }
 
@@ -1166,17 +1183,7 @@ void Npc::tick(uint64_t dt) {
       setAnim(Anim::Idle); else
       setAnim(animation.current);
     }
-
-  if(!aiState.started && aiState.funcIni!=0) {
-    tickRoutine();
-    }
-  else if(aiActions.size()==0) {
-    tickRoutine();
-    if(aiActions.size()>0)
-      nextAiAction(dt);
-    return;
-    }
-  nextAiAction(dt);
+  implAiTick(dt);
   }
 
 void Npc::nextAiAction(uint64_t dt) {
@@ -2445,7 +2452,6 @@ void Npc::updatePos() {
 
 void Npc::setPos(const Matrix4x4 &m) {
   animation.setPos(m);
-  //physic.setPosition(x,y,z);
   }
 
 bool Npc::setAnim(Npc::Anim a, WeaponState st) {
