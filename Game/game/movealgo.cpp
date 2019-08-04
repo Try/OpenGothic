@@ -287,6 +287,17 @@ void MoveAlgo::clearSpeed() {
   fallCount   =-1.f;
   }
 
+void MoveAlgo::accessDamFly(float dx, float dz) {
+  if(flags==0) {
+    float len = std::sqrt(dx*dx+dz*dz);
+    fallSpeed[0]=gravity*dx/len;
+    fallSpeed[1]=0.4f*gravity;
+    fallSpeed[2]=gravity*dz/len;
+    fallCount   =-1.f;
+    setInAir(true);
+    }
+  }
+
 void MoveAlgo::applyRotation(std::array<float,3> &out, float* dpos) const {
   float rot = npc.rotationRad();
   float s   = std::sin(rot), c = std::cos(rot);

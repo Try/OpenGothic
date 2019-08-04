@@ -1108,6 +1108,9 @@ void Npc::takeDamage(Npc &other) {
       dmg = std::min(1,dmg);
     changeAttribute(ATR_HITPOINTS,-dmg);
 
+    if(other.hnpc.damagetype & (1<<Daedalus::GEngineClasses::DAM_INDEX_FLY))
+      mvAlgo.accessDamFly(x-other.x,z-other.z); // throw enemy
+
     owner.emitWeaponsSound(other,*this);
 
     if(ani==Anim::Move  || ani==Anim::MoveL  || ani==Anim::MoveR ||

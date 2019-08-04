@@ -24,6 +24,7 @@ class MoveAlgo final {
     void tick(uint64_t dt);
     void multSpeed(float s){ mulSpeed=s; }
     void clearSpeed();
+    void accessDamFly(float dx,float dz);
 
     static bool isClose(const std::array<float,3>& w,const WayPoint& p);
     static bool isClose(float x,float y,float z,const WayPoint& p);
