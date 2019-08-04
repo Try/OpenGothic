@@ -392,6 +392,7 @@ class Npc final {
     Item*    currentRangeWeapon();
 
     bool     lookAt(float dx, float dz, bool anim, uint64_t dt);
+    bool     playAnimByName(const std::string& name);
 
     bool     checkGoToNpcdistance(const Npc& other);
     void     aiLookAt(Npc* other);

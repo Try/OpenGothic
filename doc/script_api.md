@@ -370,7 +370,7 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 * `func int Npc_GetLastHitSpellID(var C_Npc npc)`  
   Return Id of spell witch hit 'npc' last
 
-* ![#](nu.png) `func int Npc_GetLastHitSpellCat(var C_Npc npc)`  
+* `func int Npc_GetLastHitSpellCat(var C_Npc npc)`  
   Return category of spell witch hit 'npc' last
 
 | code | desription | value |
@@ -474,7 +474,7 @@ Npc_SendPassivePerc(self,PERC_ASSESSFIGHTSOUND,self,other); // calls PERC_ASSESS
   Returns TRUE, if 'item' is visible from 'npc' point of view.  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_CanSeeSource(var C_Npc npc)`
+* ![!](ni.png) `func int Npc_CanSeeSource(var C_Npc npc)`  
   Returns TRUE, if source of sound is visible from 'npc' point of view.  
   Not implemented.
 
@@ -487,7 +487,7 @@ Npc_SendPassivePerc(self,PERC_ASSESSFIGHTSOUND,self,other); // calls PERC_ASSESS
 * ![#](nu.png) `func int Npc_WasPlayerInMyRoom(var C_Npc npc)`  
   Not implemented.
 
-* ![!](ni.png) `func void Npc_PlayAni(var C_Npc npc,var string anim)`  
+* `func void Npc_PlayAni(var C_Npc npc,var string anim)`  
   Play animation 'anim', for 'npc'.
 
 * ![!](ni.png) `func int Npc_GetPortalGuild(var C_Npc npc)`  
@@ -1003,7 +1003,7 @@ Mdl_ApplyOverlayMdsTimed(self,"HUMANS_SPRINT.MDS",120000); // SchnellerHering po
 * ![!](ni.png) `func void ExitSession()`  
   Not implemented.
 
-* ![#](nu.png) `func int PlayVideo(var string filename)`  
+* ![!](ni.png) `func int PlayVideo(var string filename)`  
   Returns FALSE, if video not played  
   Empty implementation.
 
@@ -1051,6 +1051,7 @@ Effect of this functions, in original game, is unknown. OpenGothic do nothing.
 
 ### debug  api
 all functions of debug api in OpenGothic write info to `std::out`.
+Note: there is no logging implementation for G1, since G1 spams too much.
 * `func void PrintDebugInst(string text)`  
   Writes `test` to debugoutput.
 

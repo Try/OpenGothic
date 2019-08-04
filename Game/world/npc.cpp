@@ -1267,18 +1267,8 @@ void Npc::nextAiAction(uint64_t dt) {
         setOther(act.target);
       break;
     case AI_PlayAnim:{
-      auto tag = animation.animByName(act.s0);
-      if(tag!=Anim::NoAnim){
-        if(!setAnim(tag))
-          aiActions.push_front(std::move(act));
-        } else {
-        auto a = animation.animSequence(act.s0.c_str());
-        if(a!=nullptr) {
-          Log::d("AI_PlayAnim: unrecognized anim: \"",act.s0,"\"");
-          if(animation.animSq!=a)
-            animation.invalidateAnim(a,animation.skeleton,owner,owner.tickCount());
-          }
-        }
+      if(!playAnimByName(act.s0))
+        aiActions.push_front(std::move(act));
       break;
       }
     case AI_PlayAnimById:{
@@ -1701,6 +1691,21 @@ Item *Npc::currentRangeWeapon() {
 
 bool Npc::lookAt(float dx, float dz, bool anim, uint64_t dt) {
   return implLookAt(dx,dz,anim,dt);
+  }
+
+bool Npc::playAnimByName(const std::string &name) {
+  auto tag = animation.animByName(name);
+  if(tag!=Anim::NoAnim){
+    return setAnim(tag);
+    } else {
+    auto a = animation.animSequence(name.c_str());
+    if(a!=nullptr) {
+      Log::d("AI_PlayAnim: unrecognized anim: \"",name,"\"");
+      if(animation.animSq!=a)
+        animation.invalidateAnim(a,animation.skeleton,owner,owner.tickCount());
+      }
+    return true;
+    }
   }
 
 bool Npc::checkGoToNpcdistance(const Npc &other) {

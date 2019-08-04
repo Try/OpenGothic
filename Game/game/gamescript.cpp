@@ -121,6 +121,7 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("wld_assignroomtoguild",
                                                      [this](Daedalus::DaedalusVM& vm){ wld_assignroomtoguild(vm);    });
   vm.registerExternalFunction("wld_detectnpc",       [this](Daedalus::DaedalusVM& vm){ wld_detectnpc(vm);            });
+  vm.registerExternalFunction("wld_detectnpcex",     [this](Daedalus::DaedalusVM& vm){ wld_detectnpcex(vm);          });
   vm.registerExternalFunction("wld_detectitem",      [this](Daedalus::DaedalusVM& vm){ wld_detectitem(vm);           });
 
   vm.registerExternalFunction("mdl_setvisual",       [this](Daedalus::DaedalusVM& vm){ mdl_setvisual(vm);        });
@@ -213,6 +214,7 @@ void GameScript::initCommon() {
                                                      [this](Daedalus::DaedalusVM& vm){ npc_getlasthitspellid(vm);});
   vm.registerExternalFunction("npc_getlasthitspellcat",
                                                      [this](Daedalus::DaedalusVM& vm){ npc_getlasthitspellcat(vm);});
+  vm.registerExternalFunction("npc_playani",         [this](Daedalus::DaedalusVM& vm){ npc_playani(vm);          });
 
   vm.registerExternalFunction("ai_output",           [this](Daedalus::DaedalusVM& vm){ ai_output(vm);            });
   vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
@@ -1350,6 +1352,37 @@ void GameScript::wld_detectnpc(Daedalus::DaedalusVM &vm) {
   vm.setReturn(ret ? 1 : 0);
   }
 
+void GameScript::wld_detectnpcex(Daedalus::DaedalusVM &vm) {
+  int   player = vm.popInt();
+  int   guild  = vm.popInt();
+  int   state  = vm.popInt();
+  int   inst   = vm.popInt();
+  auto  npc    = popInstance(vm);
+  if(npc==nullptr) {
+    vm.setReturn(0);
+    return;
+    }
+  Npc*  ret =nullptr;
+  float dist=std::numeric_limits<float>::max();
+
+  world().detectNpc(npc->position(), [inst,state,guild,&ret,&dist,npc,player](Npc& n){
+    if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
+       (state==-1 || n.isState(uint32_t(state))) &&
+       (guild==-1 || int32_t(n.guild())==guild) &&
+       (&n!=npc) && !n.isDead() &&
+       (player!=0 || !n.isPlayer())) {
+      float d = n.qDistTo(*npc);
+      if(d<dist){
+        ret = &n;
+        dist = d;
+        }
+      }
+    });
+  if(ret)
+    vm.globalOther().instance.set(ret->handle(), Daedalus::IC_Npc);
+  vm.setReturn(ret ? 1 : 0);
+  }
+
 void GameScript::wld_detectitem(Daedalus::DaedalusVM &vm) {
   int   flags = vm.popInt();
   auto  npc   = popInstance(vm);
@@ -2160,6 +2193,13 @@ void GameScript::npc_getlasthitspellcat(Daedalus::DaedalusVM &vm) {
   const int id    = npc->lastHitSpellId();
   auto&     spell = getSpell(id);
   vm.setReturn(spell.spellType);
+  }
+
+void GameScript::npc_playani(Daedalus::DaedalusVM &vm) {
+  auto name = vm.popString();
+  auto npc  = popInstance(vm);
+  if(npc!=nullptr)
+    npc->playAnimByName(name);
   }
 
 void GameScript::npc_getactivespellcat(Daedalus::DaedalusVM &vm) {

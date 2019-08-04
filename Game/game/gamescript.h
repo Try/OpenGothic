@@ -195,6 +195,7 @@ class GameScript final {
     void wld_setmobroutine    (Daedalus::DaedalusVM& vm);
     void wld_assignroomtoguild(Daedalus::DaedalusVM& vm);
     void wld_detectnpc        (Daedalus::DaedalusVM& vm);
+    void wld_detectnpcex      (Daedalus::DaedalusVM& vm);
     void wld_detectitem       (Daedalus::DaedalusVM& vm);
 
     void mdl_setvisual       (Daedalus::DaedalusVM& vm);
@@ -274,6 +275,7 @@ class GameScript final {
     void npc_hasbodyflag     (Daedalus::DaedalusVM &vm);
     void npc_getlasthitspellid(Daedalus::DaedalusVM &vm);
     void npc_getlasthitspellcat(Daedalus::DaedalusVM &vm);
+    void npc_playani         (Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
