@@ -223,6 +223,7 @@ class GameScript final {
     void npc_setrefusetalk   (Daedalus::DaedalusVM &vm);
     void npc_refusetalk      (Daedalus::DaedalusVM &vm);
     void npc_hasitems        (Daedalus::DaedalusVM &vm);
+    void npc_removeinvitem   (Daedalus::DaedalusVM &vm);
     void npc_removeinvitems  (Daedalus::DaedalusVM &vm);
     void npc_getbodystate    (Daedalus::DaedalusVM &vm);
     void npc_getlookattarget (Daedalus::DaedalusVM &vm);
@@ -239,7 +240,7 @@ class GameScript final {
     void npc_changeattribute (Daedalus::DaedalusVM &vm);
     void npc_isonfp          (Daedalus::DaedalusVM &vm);
     void npc_getheighttonpc  (Daedalus::DaedalusVM &vm);
-    void npc_getequippedmeleweapon  (Daedalus::DaedalusVM &vm);
+    void npc_getequippedmeleeweapon (Daedalus::DaedalusVM &vm);
     void npc_getequippedrangedweapon(Daedalus::DaedalusVM &vm);
     void npc_getequippedarmor(Daedalus::DaedalusVM &vm);
     void npc_canseenpc       (Daedalus::DaedalusVM &vm);

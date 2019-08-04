@@ -1,5 +1,9 @@
 ## Daedalus scripts
-Daedalus is script language, made for original gothic game. OpenGothic uses VM from ZenLib library and implements most of game-engine script api:
+Daedalus is script language, made for original gothic game. OpenGothic uses VM from ZenLib library and implements most of game-engine script api.
+
+### legend
+* ![!](ni.png) - Not implemented function. Can affect gameplay.
+* ![#](nu.png) - Not implemented and not used function. Cannot affect gameplay of game itself, can break some mods.
 
 ### types api
 * `func string ConcatStrings(var string lhs,var string rhs)`  
@@ -43,7 +47,7 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 * `func int Hlp_GetInstanceID(var C_Item item)`  
   Return instance-id of item
 
-* ![!](ni.png) `func int Hlp_CutscenePlayed (var string csName)`  
+* ![#](nu.png) `func int Hlp_CutscenePlayed (var string csName)`  
   Return TRUE, if cutscene is played  
   Not implemented.
 
@@ -64,8 +68,8 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
   Return current bodystate of 'npc', as bitset.
   Not user-friendly, use helper function C_BodyStateContains(self,bodystate)
 
-* ![!](ni.png) `func int Npc_HasBodyFlag(var C_Npc npc, var int bodyFlag)`  
-  Not implemented.
+* `func int Npc_HasBodyFlag(var C_Npc npc, var int bodyFlag)`  
+  Checks npc state for specified flag. Most used argument for bodyFlag is BS_FLAG_INTERRUPTABLE.
 
 * `func void Npc_SetToFistMode(var C_Npc npc)`  
   Set npc to melee fight-mode, with no weapon in hands
@@ -89,19 +93,22 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 * `func C_Item Npc_GetReadiedWeapon(var C_Npc npc)`  
   Returns current active weapon(sword for FMODE_MELEE, bow for FMODE_FAR, etc)
 
-* ![!](ni.png) `func int Npc_HasReadiedWeapon(var C_Npc npc)`  
+* ![!](ni.png) `func bool Npc_IsDrawingWeapon(var C_Npc npc)`  
+  Not implemented.
+
+* ![#](nu.png) `func int Npc_HasReadiedWeapon(var C_Npc npc)`  
   Returns TRUE, if npc has any weapon in hands  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_HasReadiedMeleeWeapon(var C_Npc npc)`  
+* ![#](nu.png) `func int Npc_HasReadiedMeleeWeapon(var C_Npc npc)`  
   Returns TRUE, if npc has melee weapon in hands.  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_HasReadiedRangedWeapon(var C_Npc npc)`  
+* ![#](nu.png) `func int Npc_HasReadiedRangedWeapon(var C_Npc npc)`  
   Returns TRUE, if npc has ranged weapon in hands.  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_HasRangedWeaponWithAmmo(var C_Npc npc)`  
+* ![#](nu.png) `func int Npc_HasRangedWeaponWithAmmo(var C_Npc npc)`  
   Returns TRUE, if npc has ranged weapon in hands and appropriate ammo in inventory.  
   Not implemented.
 
@@ -115,24 +122,24 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
   FALSE, if target not found.  
   Note: in original Gothic you have to call Npc_PerceiveAll, before process any search; OpenGothic doesn't care.
 
-* ![!](ni.png) `func int Npc_IsNextTargetAvailable(var C_Npc npc)`  
+* ![#](nu.png) `func int Npc_IsNextTargetAvailable(var C_Npc npc)`  
   Similar to Npc_GetNextTarget, but not changing 'other' and npc.target.  
   Not implemented.
 
 * `func void Npc_SetTarget(var C_Npc npc, var C_Npc other)`  
   Assign internal reference npc.target to 'other'.
 
-* ![!](ni.png) `func int Npc_AreWeStronger(var C_Npc npc, var C_Npc other)`  
+* ![#](nu.png) `func int Npc_AreWeStronger(var C_Npc npc, var C_Npc other)`  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_IsAiming(var C_Npc npc, var C_Npc other)`  
+* ![#](nu.png) `func int Npc_IsAiming(var C_Npc npc, var C_Npc other)`  
   Return TRUE, if 'npc' is aiming to 'other', with bow, crossbow or magic.  
   Not implemented.
 
 * `func int Npc_IsOnFP(var C_Npc npc, var string fpname)`  
   Returns TRUE, if 'npc' is standing of fp with name 'fpname'.
 
-* ![!](ni.png) `func int Npc_IsWayBlocked(var C_Npc self)`  
+* ![#](nu.png) `func int Npc_IsWayBlocked(var C_Npc self)`  
   Not implemented. Seems to be unused in original game.
 
 * ![!](ni.png) `func C_Item Npc_GetInvItem(var C_Npc npc, var int itemInstance)`  
@@ -141,7 +148,7 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 * `func int Npc_HasItems(var C_Npc npc, var int itemInstance)`  
   Return count of items with class 'itemInstance' in 'npc' inventory.
 
-* ![!](ni.png) `func int Npc_GetInvItemBySlot(var C_Npc npc, var int category, var int slotNr)`  
+* ![#](nu.png) `func int Npc_GetInvItemBySlot(var C_Npc npc, var int category, var int slotNr)`  
   Not implemented.
 
 * `func void Npc_RemoveInvItem(var C_Npc npc, var int itemInstance)`  
@@ -180,24 +187,24 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
   Returns TRUE, if 'npc' is owner of 'item'.  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_OwnedByGuild(var C_Item item, var int guildId)`  
+* ![#](nu.png) `func int Npc_OwnedByGuild(var C_Item item, var int guildId)`  
   Returns TRUE, if guild, specified by 'guildId', is owner of 'item'.  
   Not implemented.
 
 * ![!](ni.png) `func int Npc_IsDetectedMobOwnedByNpc(var C_Npc npc, var C_Npc owner)`  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_IsDetectedMobOwnedByGuild(var C_Npc npc, var int guildId)`  
+* ![#](nu.png) `func int Npc_IsDetectedMobOwnedByGuild(var C_Npc npc, var int guildId)`  
   Not implemented.
 
-* ![!](ni.png) `func void Npc_GiveItem(var C_Npc from, var C_Item item, var C_Npc to)`  
+* ![#](nu.png) `func void Npc_GiveItem(var C_Npc from, var C_Item item, var C_Npc to)`  
   move 'item' from inventory of 'from' to inventory of 'to'.  
   Not implemented. Seem to be unused in G2.
 
-* ![!](ni.png) `func int Npc_StartItemReactModules(var C_Npc npc, var C_Npc other, var C_Item item)`  
+* ![#](nu.png) `func int Npc_StartItemReactModules(var C_Npc npc, var C_Npc other, var C_Item item)`  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_HasOffered(var C_Npc npc, var C_Npc other, var int itemId)`  
+* ![#](nu.png) `func int Npc_HasOffered(var C_Npc npc, var C_Npc other, var int itemId)`  
   Not implemented.
 
 * `func void Npc_SetRefuseTalk(var C_Npc npc, var int timeSec)`  
@@ -207,25 +214,25 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 * `func int Npc_RefuseTalk(var C_Npc npc)`  
   Returns TRUE, if npc still refuses to talk
 
-* ![!](ni.png) `func void Npc_MemoryEntry(var C_Npc npc, var int source, var C_Npc offender, var int newsid, var C_Npc victim)`  
+* ![#](nu.png) `func void Npc_MemoryEntry(var C_Npc npc, var int source, var C_Npc offender, var int newsid, var C_Npc victim)`  
   Not implemented.
 
-* ![!](ni.png) `func void Npc_MemoryEntryGuild(var C_Npc npc, var int source, var C_Npc offender, var int newsid, var C_Npc victimguild)`  
+* ![#](nu.png) `func void Npc_MemoryEntryGuild(var C_Npc npc, var int source, var C_Npc offender, var int newsid, var C_Npc victimguild)`  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_HasNews(var C_Npc npc, var int newsID, var C_Npc offender, var C_Npc victim)`  
+* ![#](nu.png) `func int Npc_HasNews(var C_Npc npc, var int newsID, var C_Npc offender, var C_Npc victim)`  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_IsNewsGossip(var C_Npc npc, var int newsNumber)`  
+* ![#](nu.png) `func int Npc_IsNewsGossip(var C_Npc npc, var int newsNumber)`  
   Not implemented.
 
-* ![!](ni.png) `func C_Npc Npc_GetNewsWitness(var C_Npc npc, var int newsNumber)`  
+* ![#](nu.png) `func C_Npc Npc_GetNewsWitness(var C_Npc npc, var int newsNumber)`  
   Not implemented.
 
-* ![!](ni.png) `func C_Npc Npc_GetNewsVictim(var C_Npc npc, var int newsNumber)`  
+* ![#](nu.png) `func C_Npc Npc_GetNewsVictim(var C_Npc npc, var int newsNumber)`  
   Not implemented.
 
-* ![!](ni.png) `func C_Npc Npc_GetNewsOffender(var C_Npc npc, var int newsNumber)`  
+* ![#](nu.png) `func C_Npc Npc_GetNewsOffender(var C_Npc npc, var int newsNumber)`  
   Not implemented.
 
 * `func int Npc_IsDead(var C_Npc npc)`  
@@ -237,25 +244,25 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 * `func int Npc_CheckInfo(var C_Npc npc, var int important)`  
   Returns TRUE, if 'npc' has any info to tell, with important level equals 'important'
 
-* ![!](ni.png) `func int NPC_GiveInfo(var C_Npc npc, var int important)`  
+* ![#](nu.png) `func int NPC_GiveInfo(var C_Npc npc, var int important)`  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_CheckAvailableMission(var C_Npc npc, var int missionState, var int important)`  
+* ![#](nu.png) `func int Npc_CheckAvailableMission(var C_Npc npc, var int missionState, var int important)`  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_CheckRunningMission(var C_Npc npc, var int important)`  
+* ![#](nu.png) `func int Npc_CheckRunningMission(var C_Npc npc, var int important)`  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_CheckOfferMission(var C_Npc npc, var int important)`  
+* ![#](nu.png) `func int Npc_CheckOfferMission(var C_Npc npc, var int important)`  
   Not implemented.
 
 * `func int Npc_IsPlayer(var C_Npc npc)`  
   Return TRUE, if 'npc' is the player
 
-* ![!](ni.png) `func int Npc_HasDetectedNpc(var C_Npc npc, var C_Npc other)`  
+* ![#](nu.png) `func int Npc_HasDetectedNpc(var C_Npc npc, var C_Npc other)`  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_IsNear(var C_Npc npc, var C_Npc other)`  
+* ![#](nu.png) `func int Npc_IsNear(var C_Npc npc, var C_Npc other)`  
   Not implemented.
 
 * `func int Npc_GetDistToNpc(var C_Npc npc1, var C_Npc npc2)`  
@@ -263,6 +270,9 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 
 * `func int Npc_GetHeightToNpc(var C_Npc npc1, var C_Npc npc2)`  
   Return distance by Y axis from 'npc1' to 'npc2' in santimeters.
+
+* ![!](ni.png) `func int Npc_GetHeightToItem(var C_Npc npc1, var C_Item itm)`  
+  Return distance by Y axis from 'npc1' to 'itm' in santimeters.
 
 * `func int Npc_GetDistToWP(var C_Npc npc, var string wpName)`  
   Return distance from 'npc' to waypoint with name 'wpName'.
@@ -302,10 +312,10 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 * `func int Npc_GetGuildAttitude(var C_Npc npc, var C_Npc other)`  
   Return attitude betwen guilds of 'npc' and 'other'
 
-* ![!](ni.png) `func void Npc_SetKnowsPlayer(var C_Npc npc, var C_Npc player)`  
+* ![#](nu.png) `func void Npc_SetKnowsPlayer(var C_Npc npc, var C_Npc player)`  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_KnowsPlayer(var C_Npc npc, var C_Npc player)`  
+* ![#](nu.png) `func int Npc_KnowsPlayer(var C_Npc npc, var C_Npc player)`  
   Not implemented.
 
 * `func void Npc_ClearAIQueue(var C_Npc npc)`  
@@ -339,28 +349,28 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 | ATR_REGENERATEHP | Hit point regeneration | 6
 | ATR_REGENERATEMANA | Mana regeneration | 7
 
-* ![!](ni.png) `func void Npc_HasTalent(var C_Npc npc, var int tal)`  
+* ![#](nu.png) `func void Npc_HasTalent(var C_Npc npc, var int tal)`  
   Not implemented.
 
-* ![!](ni.png) `func void Npc_HasFightTalent(var C_Npc npc, var int tal)`  
+* ![#](nu.png) `func void Npc_HasFightTalent(var C_Npc npc, var int tal)`  
   Not implemented.
 
-* ![!](ni.png) `func void Npc_CreateSpell(var C_Npc npc, var int spellnr)`  
+* ![#](nu.png) `func void Npc_CreateSpell(var C_Npc npc, var int spellnr)`  
   Not implemented.
 
-* ![!](ni.png) `func void Npc_LearnSpell(var C_Npc npc, var int spellnr)`  
+* ![#](nu.png) `func void Npc_LearnSpell(var C_Npc npc, var int spellnr)`  
   Not implemented.
 
-* ![!](ni.png) `func void Npc_SetTeleportPos(var C_Npc npc)`  
+* ![#](nu.png) `func void Npc_SetTeleportPos(var C_Npc npc)`  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_GetActiveSpell(var C_Npc npc)`  
+* ![#](nu.png) `func int Npc_GetActiveSpell(var C_Npc npc)`  
   Not implemented.
 
 * `func int Npc_GetLastHitSpellID(var C_Npc npc)`  
   Return Id of spell witch hit 'npc' last
 
-* ![!](ni.png) `func int Npc_GetLastHitSpellCat(var C_Npc npc)`  
+* ![#](nu.png) `func int Npc_GetLastHitSpellCat(var C_Npc npc)`  
   Return category of spell witch hit 'npc' last
 
 | code | desription | value |
@@ -372,18 +382,18 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 * ![!](ni.png) `func int Npc_SetActiveSpellInfo(var C_Npc npc, var int i1)`  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_GetActiveSpellLevel(var C_Npc npc)`  
+* ![#](nu.png) `func int Npc_GetActiveSpellLevel(var C_Npc npc)`  
   Not implemented.
 
 * `func int Npc_GetActiveSpellCat(var C_Npc npc)`  
   Return category of active spell, for caster 'npc'
 
-* ![!](ni.png) `func int Npc_SetActiveSpellInfo(var C_Npc npc,int value)`  
+* ![#](nu.png) `func int Npc_SetActiveSpellInfo(var C_Npc npc,int value)`  
   Assign a new 'value' to internal field of 'npc'.
   Return previous value.
   Not implemented.
 
-* ![!](ni.png) `func int Npc_HasSpell(var C_Npc npc, var int spellId)`  
+* ![#](nu.png) `func int Npc_HasSpell(var C_Npc npc, var int spellId)`  
   Returns TRUE, if 'npc' has specified by 'spellId' spell in inventory.  
   Not implemented.
 
@@ -431,7 +441,7 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 * `func void Npc_SetPercTime(var C_Npc npc, var float seconds)`  
   Set timer interval for perceptions of 'npc'
 
-* ![!](ni.png) `func void Perc_SetRange(var int percId, var int range)`  
+* ![#](nu.png) `func void Perc_SetRange(var int percId, var int range)`  
   Set range for perception with id equals to 'percId'.  
   Not implemented.
 
@@ -443,11 +453,11 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 Npc_SendPassivePerc(self,PERC_ASSESSFIGHTSOUND,self,other); // calls PERC_ASSESSFIGHTSOUND from 'self'
 ```
 
-* ![!](ni.png) `func void Npc_SendSinglePerc(var C_Npc npc, var C_Npc target, var int percId)`  
+* ![#](nu.png) `func void Npc_SendSinglePerc(var C_Npc npc, var C_Npc target, var int percId)`  
   Same as `Npc_SendPassivePerc`, but without overriding `self` and `other`.  
   Not implemented.
 
-* ![!](ni.png) `func void Npc_PerceiveAll(var C_Npc npc)`  
+* ![#](nu.png) `func void Npc_PerceiveAll(var C_Npc npc)`  
   Implemented as nop.
 
 * ![!](ni.png) `func string Npc_GetDetectedMob(var C_Npc npc)`  
@@ -460,7 +470,7 @@ Npc_SendPassivePerc(self,PERC_ASSESSFIGHTSOUND,self,other); // calls PERC_ASSESS
 * `func int Npc_CanSeeNpcFreeLOS(var C_Npc npc1, var C_Npc npc2)`  
   Returns TRUE, if 'npc2' is visible from 'npc1' point of view, without checking view direction.
 
-* ![!](ni.png) `func int Npc_CanSeeItem(var C_Npc npc, var C_Item item)`  
+* ![#](nu.png) `func int Npc_CanSeeItem(var C_Npc npc, var C_Item item)`  
   Returns TRUE, if 'item' is visible from 'npc' point of view.  
   Not implemented.
 
@@ -468,17 +478,32 @@ Npc_SendPassivePerc(self,PERC_ASSESSFIGHTSOUND,self,other); // calls PERC_ASSESS
   Returns TRUE, if source of sound is visible from 'npc' point of view.  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_IsInCutscene(var C_Npc npc)`  
+* ![#](nu.png) `func int Npc_IsInCutscene(var C_Npc npc)`  
+  Not implemented.
+
+* ![#](nu.png) `func int Npc_IsPlayerInMyRoom(var C_Npc npc)`  
+  Not implemented.
+
+* ![#](nu.png) `func int Npc_WasPlayerInMyRoom(var C_Npc npc)`  
+  Not implemented.
+
+* ![!](ni.png) `func void Npc_PlayAni(var C_Npc npc,var string anim)`  
+  Play animation 'anim', for 'npc'.
+
+* ![!](ni.png) `func int Npc_GetPortalGuild(var C_Npc npc)`  
+  Not implemented.
+
+* ![!](ni.png) `func int Npc_IsInPlayersRoom(var C_Npc npc)`  
   Not implemented.
 
 ### missions module
-* ![!](ni.png) `func void Mis_SetStatus(var int missionName, var int newStatus)`  
+* ![#](nu.png) `func void Mis_SetStatus(var int missionName, var int newStatus)`  
   Not implemented.
 
-* ![!](ni.png) `func int Mis_GetStatus(var int missionName)`  
+* ![#](nu.png) `func int Mis_GetStatus(var int missionName)`  
   Not implemented.
 
-* ![!](ni.png) `func int Mis_OnTime(var int missionName)`  
+* ![#](nu.png) `func int Mis_OnTime(var int missionName)`  
   Not implemented.
 
 ### quest-log module
@@ -519,18 +544,18 @@ Example:
 * `func void AI_PlayAni(var C_Npc npc,var string anim)`  
   Play animation 'anim', for 'npc'.
 
-* ![!](ni.png) `func void AI_StandUp(var C_Npc npc)`  
+* ![#](nu.png) `func void AI_StandUp(var C_Npc npc)`  
   Dettach 'npc' from MOBSI object.  
   Note: it's not clear how exactly this function should work.
 
 * `func void AI_StandUpQuick(var C_Npc npc)`  
   Same as AI_StandUp, but skips animation.
 
-* ![!](ni.png) `func void AI_Quicklook(var C_Npc npc,var C_Npc other)`  
+* ![#](nu.png) `func void AI_Quicklook(var C_Npc npc,var C_Npc other)`  
   Turn head of 'npc' to 'other', for a two seconds.  
   Not implemented.
 
-* ![!](ni.png) `func void AI_LookAt(var C_Npc npc,var string name)`  
+* ![#](nu.png) `func void AI_LookAt(var C_Npc npc,var string name)`  
   'npc' starts look to point with name='name'.  
   Not implemented.
 
@@ -547,13 +572,13 @@ Example:
 * ![!](ni.png) `func void AI_PointAtNpc(var C_Npc npc,var C_Npc other)`  
   Not implemented.
 
-* ![!](ni.png) `func void AI_StopPointAt(var C_Npc npc)`  
+* ![#](nu.png) `func void AI_StopPointAt(var C_Npc npc)`  
   Not implemented.
 
 * ![!](ni.png) `func void AI_TakeItem(var C_Npc npc, var C_Item item)`  
   Not implemented.
 
-* ![!](ni.png) `func void AI_DropItem(var C_Npc npc, var int itemid)`  
+* ![#](nu.png) `func void AI_DropItem(var C_Npc npc, var int itemid)`  
   Not implemented.
 
 * `func void AI_UseItem(var C_Npc npc,var int itemInstance)`  
@@ -596,7 +621,7 @@ Example:
   'npc' stats walk to 'item'.  
   Not implemented.
 
-* ![!](ni.png) `func void AI_GotoSound(var C_Npc npc)`  
+* ![#](nu.png) `func void AI_GotoSound(var C_Npc npc)`  
   'npc' stats closest sound source.  
   Not implemented.
 
@@ -606,15 +631,15 @@ Example:
 * `func void AI_TurnToNpc(var C_Npc npc, var C_Npc other)`  
   'npc' turns to 'other'.
 
-* ![!](ni.png) `func void AI_TurnAway(var C_Npc npc, var C_Npc other)`  
+* ![#](nu.png) `func void AI_TurnAway(var C_Npc npc, var C_Npc other)`  
   'npc' turns away from 'other'.  
   Not implemented.
 
-* ![!](ni.png) `func void AI_WhirlAround(var C_Npc npc, var C_Npc other)`  
+* ![#](nu.png) `func void AI_WhirlAround(var C_Npc npc, var C_Npc other)`  
   'npc' turns (but fast!) to 'other'.  
   Not implemented.
 
-* ![!](ni.png) `func void AI_TurnToSound(var C_Npc npc)`  
+* ![#](nu.png) `func void AI_TurnToSound(var C_Npc npc)`  
   'npc' turns to closest source of sound.  
   Not implemented.
 
@@ -624,7 +649,7 @@ Example:
 * `func void AI_Dodge(var C_Npc npc)`  
   'npc' make one step backward.
 
-* ![!](ni.png) `func void AI_PlayAniBS(var C_Npc npc, var string aniname, var int bodystate)`  
+* ![#](nu.png) `func void AI_PlayAniBS(var C_Npc npc, var string aniname, var int bodystate)`  
   'npc' start a new animation sequence with name='aniname'.  
   Bodystate is not handled for now - so it's same as AI_PlayAni(npc,aniname).  
 
@@ -648,26 +673,26 @@ Example:
   npc performs killing move on 'other'.  
   Not implemented.
 
-* ![!](ni.png) `func void AI_Defend(var C_Npc npc)`  
+* ![#](nu.png) `func void AI_Defend(var C_Npc npc)`  
   Not implemented. Seems to be unused by original Gothic 2
 
-* ![!](ni.png) `func void AI_Flee(var C_Npc npc)`  
+* ![#](nu.png) `func void AI_Flee(var C_Npc npc)`  
   Flee away from npc.target, counter function to AI_Attack
   Not implemented.
 
-* ![!](ni.png) `func void AI_AimAt(var C_Npc npc, var C_Npc other)`  
+* ![#](nu.png) `func void AI_AimAt(var C_Npc npc, var C_Npc other)`  
   make 'npc' aim to 'other'.
   Not implemented.
 
-* ![!](ni.png) `func void AI_ShootAt(var C_Npc npc, var C_Npc other)`  
+* ![#](nu.png) `func void AI_ShootAt(var C_Npc npc, var C_Npc other)`  
   make 'npc' shoot to 'other'.
   Not implemented.
 
-* ![!](ni.png) `func void AI_StopAim(var C_Npc npc)`  
+* ![#](nu.png) `func void AI_StopAim(var C_Npc npc)`  
   'npc' stops aiming.  
   Not implemented.
 
-* ![!](ni.png) `func void AI_LookForItem(var C_Npc npc, var int instance)`  
+* ![#](nu.png) `func void AI_LookForItem(var C_Npc npc, var int instance)`  
   Not implemented.
 
 * `func void AI_EquipBestMeleeWeapon(var C_Npc npc)`  
@@ -706,17 +731,17 @@ AI_OutputSVM(self,self,"$SMALLTALK01");
 * `func void AI_OutputSVM_Overlay(var C_Npc npc, var C_Npc target, var string svmname)`  
   Similar to AI_OutputSVM, but works wih no animation.  
 
-* ![!](ni.png) `func void AI_WaitTillEnd(var C_Npc npc, var C_Npc other)`  
+* ![#](nu.png) `func void AI_WaitTillEnd(var C_Npc npc, var C_Npc other)`  
   'npc' waits for 'other' to finish current AI_ command.  
   Not implemented. Seems to be unused in Gothic2.
 
-* ![!](ni.png) `func void AI_Ask(var C_Npc npc, var func anserYes, var func answerNo)`  
+* ![#](nu.png) `func void AI_Ask(var C_Npc npc, var func anserYes, var func answerNo)`  
   Not implemented.
 
-* ![!](ni.png) `func void AI_AskText(var C_Npc npc, var func funcYes, var func funcNo, var string strYes, var string strNo)`  
+* ![#](nu.png) `func void AI_AskText(var C_Npc npc, var func funcYes, var func funcNo, var string strYes, var string strNo)`  
   Not implemented.
 
-* ![!](ni.png) `func void AI_WaitForQuestion(var C_Npc npc, var func scriptFunc)`  
+* ![#](nu.png) `func void AI_WaitForQuestion(var C_Npc npc, var func scriptFunc)`  
   Not implemented.
 
 * `func void AI_StopProcessInfos(var C_Npc npc)`  
@@ -744,10 +769,13 @@ AI_OutputSVM(self,self,"$SMALLTALK01");
 * `func void AI_ReadySpell(var C_Npc npc, var int spellID, var int investMana)`  
   'npc' draw a spell with specified 'spellId'.
 
-* ![!](ni.png) `func void AI_UnreadySpell(var C_Npc npc)`  
+* ![#](nu.png) `func void AI_UnreadySpell(var C_Npc npc)`  
   Not implemented.
 
-* ![!](ni.png) `func void AI_PlayCutscene(var C_Npc npc, var string csName)`  
+* ![#](nu.png) `func void AI_PlayCutscene(var C_Npc npc, var string csName)`  
+  Not implemented.
+  
+* ![!](ni.png) `func AI_StopFx(var C_Npc npc, var string csName)`  
   Not implemented.
 
 ### inventory api
@@ -766,7 +794,7 @@ AI_OutputSVM(self,self,"$SMALLTALK01");
   Function do nothing, if this item is already equipped.
 
 ### mobsi api
-* ![!](ni.png) `func void Mob_CreateItems(var string mobName, var int itemId, var int amount)`  
+* ![#](nu.png) `func void Mob_CreateItems(var string mobName, var int itemId, var int amount)`  
   Create 'amount' of items with class 'itemId' inside a  chest with name 'mobName'.  
   Not implemented.
 
@@ -783,7 +811,7 @@ AI_OutputSVM(self,self,"$SMALLTALK01");
 * `func void Wld_InsertNpc(var int npcInstance,var string spawnPoint)`  
   Inserts an C_Npc object in world, at 'spawnPoint' location.
 
-* ![!](ni.png) `func void Wld_InsertNpcAndRespawn(var int instance,var string spawnPoint,var float spawnDelay)`  
+* ![#](nu.png) `func void Wld_InsertNpcAndRespawn(var int instance,var string spawnPoint,var float spawnDelay)`  
   Not implemented. Seems to be unused in original game.
 
 * `func int Wld_IsMobAvailable(var C_Npc npc, var string schemeName)`  
@@ -802,11 +830,11 @@ AI_OutputSVM(self,self,"$SMALLTALK01");
 * `func void Wld_InsertItem(var int itemInstance, var string spawnPoint)`  
   Inserts an C_Item object in world, at ‘spawnPoint’ location.
 
-* ![!](ni.png) `func int Wld_RemoveItem(var C_Item item)`  
+* ![#](nu.png) `func int Wld_RemoveItem(var C_Item item)`  
   Removes 'item' from world.  
   Not implemented.
 
-* ![!](ni.png) `func int Wld_DetectPlayer(var C_Npc npc)`  
+* ![#](nu.png) `func int Wld_DetectPlayer(var C_Npc npc)`  
   Return TRUE, if player is near to 'npc'.  
   Not implemented.
 
@@ -816,10 +844,10 @@ AI_OutputSVM(self,self,"$SMALLTALK01");
 * `func int Wld_GetGuildAttitude(var int guild1, var int guild2)`  
   Return a attitude betwen 'guild1' and 'guild2'.
 
-* ![!](ni.png) `func void Wld_ExchangeGuildAttitudes(var string name)`  
+* ![#](nu.png) `func void Wld_ExchangeGuildAttitudes(var string name)`  
   Not implemented.
 
-* ![!](ni.png) `func void Wld_SetObjectRoutine(var int hour1, var int min1, var string objName, var int state)`  
+* ![#](nu.png) `func void Wld_SetObjectRoutine(var int hour1, var int min1, var string objName, var int state)`  
   Not implemented.
 
 * ![!](ni.png) `func void Wld_SetMobRoutine(var int hour1, var int min1, var strnig objName, var int state)`  
@@ -842,25 +870,25 @@ AI_OutputSVM(self,self,"$SMALLTALK01");
 * ![!](ni.png) `func void Wld_AssignRoomToGuild(var string rootm, var int guild)`  
   Not implemented.
 
-* ![!](ni.png) `func void Wld_AssignRoomToNpc(var string rootm, var C_Npc owner)`  
+* ![#](nu.png) `func void Wld_AssignRoomToNpc(var string rootm, var C_Npc owner)`  
   Not implemented.
 
-* ![!](ni.png) `func C_Npc Wld_GetPlayerPortalOwner()`  
+* ![#](nu.png) `func C_Npc Wld_GetPlayerPortalOwner()`  
   Not implemented.
 
 * `func int Wld_GetPlayerPortalGuild()`  
   Not implemented.
 
-* ![!](ni.png) `func C_Npc Wld_GetFormerPlayerPortalOwner()`  
+* ![#](nu.png) `func C_Npc Wld_GetFormerPlayerPortalOwner()`  
   Not implemented.
 
 * ![!](ni.png) `func int Wld_GetFormerPlayerPortalGuild()`  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_IsPlayerInMyRoom(var C_Npc npc)`  
+* ![!](ni.png) `func void Wld_SpawnNpcRange(var C_Npc npc, var int clsId, var int count, var int lifetime)  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_WasPlayerInMyRoom(var C_Npc npc)`  
+* ![!](ni.png) `func bool Wld_IsRaining()`  
   Not implemented.
 
 ### view model api
@@ -891,7 +919,7 @@ Mdl_ApplyOverlayMdsTimed(self,"HUMANS_SPRINT.MDS",120000); // SchnellerHering po
 * ![!](ni.png) `func void Mdl_StartFaceAni(var C_Npc npc, var string name, var float intensity, var float holdTime)`  
   Not implemented.
 
-* ![!](ni.png) `func void Mdl_ApplyRandomFaceAni(var C_Npc self, var string name, var float timeMin, var float timeMinVar, var float timeMax, var float timeMaxVar, var float probMin)`  
+* ![#](nu.png) `func void Mdl_ApplyRandomFaceAni(var C_Npc self, var string name, var float timeMin, var float timeMinVar, var float timeMax, var float timeMaxVar, var float probMin)`  
   Not implemented.
 
 * `func void Mdl_SetModelScale(var C_Npc npc, var float x, var float y, var float z)`  
@@ -942,7 +970,7 @@ Mdl_ApplyOverlayMdsTimed(self,"HUMANS_SPRINT.MDS",120000); // SchnellerHering po
   Handle is no longer valid after this call.  
 
 ### ai-timetable
-* ![!](ni.png) `func void TA(var c_npc self, var int start_h, var int stop_h, var func state, var string waypoint)`  
+* ![#](nu.png) `func void TA(var c_npc self, var int start_h, var int stop_h, var func state, var string waypoint)`  
   Shortcut for TA_Min.  
   Not implemented.
 
@@ -950,21 +978,21 @@ Mdl_ApplyOverlayMdsTimed(self,"HUMANS_SPRINT.MDS",120000); // SchnellerHering po
   Add a new routine to 'npc' timetable. (start_h,start_m) - hour and minute to start; (stop_h,stop_m) - hour and minute to stop. 'state' - state function for this routine.  
   if stop time less then start time, then routine going to be performed over midnight.  
 
-* ![!](ni.png) `func void TA_BeginOverlay(var C_Npc npc)`  
+* ![#](nu.png) `func void TA_BeginOverlay(var C_Npc npc)`  
   Not implemented.
 
-* ![!](ni.png) `func void TA_EndOverlay(var C_Npc npc)`  
+* ![#](nu.png) `func void TA_EndOverlay(var C_Npc npc)`  
   Not implemented.
 
-* ![!](ni.png) `func void TA_RemoveOverlay(var C_Npc npc)`  
+* ![#](nu.png) `func void TA_RemoveOverlay(var C_Npc npc)`  
   Not implemented.
 
-* ![!](ni.png) `func void TA_CS(var C_Npc npc, var string csName, var string roleName)`  
+* ![#](nu.png) `func void TA_CS(var C_Npc npc, var string csName, var string roleName)`  
   csName - name of cutscene file  
   roleName - role for npc  
   Not implemented.
 
-* ![!](ni.png) `func void Rtn_Exchange(var string oldRoutine, var string newRoutine)`  
+* ![#](nu.png) `func void Rtn_Exchange(var string oldRoutine, var string newRoutine)`  
   Not implemented.
 
 ### game session api
@@ -975,15 +1003,15 @@ Mdl_ApplyOverlayMdsTimed(self,"HUMANS_SPRINT.MDS",120000); // SchnellerHering po
 * ![!](ni.png) `func void ExitSession()`  
   Not implemented.
 
-* ![!](ni.png) `func int PlayVideo(var string filename)`  
+* ![#](nu.png) `func int PlayVideo(var string filename)`  
   Returns FALSE, if video not played  
   Empty implementation.
 
-* ![!](ni.png) `func int	PlayVideoEx(var string filename, var int screenBlend, var int exitSession)`  
+* ![!](ni.png) `func int PlayVideoEx(var string filename, var int screenBlend, var int exitSession)`  
   Returns FALSE, if video not played.  
   Not implemented.
 
-* ![!](ni.png) `func void SetPercentDone(var int percentDone)`  
+* ![#](nu.png) `func void SetPercentDone(var int percentDone)`  
   Loading progress bar handled by OpenGothic implementation.  
   Function seems to be unused in Gothic2(legacy from G1?)  
   Not implemented.
@@ -1000,15 +1028,15 @@ Mdl_ApplyOverlayMdsTimed(self,"HUMANS_SPRINT.MDS",120000); // SchnellerHering po
 * `func void Snd_Play(var string scheme)`  
   Emit a global sound described by sound scheme(C_SFX) with name `scheme`.
 
-* `func void Snd_Play3D(var C_Npc npc, var string scheme)`  
+* ![!](ni.png) `func void Snd_Play3D(var C_Npc npc, var string scheme)`  
   Emit a sound described by sound scheme(C_SFX) with name `scheme`.  
   Sound positioning in world is going to be attached to `npc` position.
 
-* ![!](ni.png) `func int Snd_IsSourceNpc(var C_Npc npc)`  
+* ![#](nu.png) `func int Snd_IsSourceNpc(var C_Npc npc)`  
   if `npc` is source of last sound then set global variable `other` to `npc` and return TRUE.  
   Not implemented.
 
-* ![!](ni.png) `func int Snd_IsSourceItem(var C_Npc npc)`  
+* ![#](nu.png) `func int Snd_IsSourceItem(var C_Npc npc)`  
   Not implemented.
 
 * `func int Snd_GetDistToSource(var C_Npc npc)`  

@@ -151,6 +151,7 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("npc_setrefusetalk",   [this](Daedalus::DaedalusVM& vm){ npc_setrefusetalk(vm);    });
   vm.registerExternalFunction("npc_refusetalk",      [this](Daedalus::DaedalusVM& vm){ npc_refusetalk(vm);       });
   vm.registerExternalFunction("npc_hasitems",        [this](Daedalus::DaedalusVM& vm){ npc_hasitems(vm);         });
+  vm.registerExternalFunction("npc_removeinvitem",   [this](Daedalus::DaedalusVM& vm){ npc_removeinvitem(vm);    });
   vm.registerExternalFunction("npc_removeinvitems",  [this](Daedalus::DaedalusVM& vm){ npc_removeinvitems(vm);   });
   vm.registerExternalFunction("npc_getbodystate",    [this](Daedalus::DaedalusVM& vm){ npc_getbodystate(vm);     });
   vm.registerExternalFunction("npc_getlookattarget", [this](Daedalus::DaedalusVM& vm){ npc_getlookattarget(vm);  });
@@ -167,8 +168,8 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("npc_changeattribute", [this](Daedalus::DaedalusVM& vm){ npc_changeattribute(vm);  });
   vm.registerExternalFunction("npc_isonfp",          [this](Daedalus::DaedalusVM& vm){ npc_isonfp(vm);           });
   vm.registerExternalFunction("npc_getheighttonpc",  [this](Daedalus::DaedalusVM& vm){ npc_getheighttonpc(vm);   });
-  vm.registerExternalFunction("npc_getequippedmeleweapon",
-                                                     [this](Daedalus::DaedalusVM& vm){ npc_getequippedmeleweapon(vm); });
+  vm.registerExternalFunction("npc_getequippedmeleeweapon",
+                                                     [this](Daedalus::DaedalusVM& vm){ npc_getequippedmeleeweapon(vm); });
   vm.registerExternalFunction("npc_getequippedrangedweapon",
                                                      [this](Daedalus::DaedalusVM& vm){ npc_getequippedrangedweapon(vm); });
   vm.registerExternalFunction("npc_getequippedarmor",[this](Daedalus::DaedalusVM& vm){ npc_getequippedarmor(vm); });
@@ -303,6 +304,8 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("game_initenglish",    [this](Daedalus::DaedalusVM& vm){ game_initenglish(vm);     });
 
   vm.registerExternalFunction("exitgame",            [this](Daedalus::DaedalusVM& vm){ exitgame(vm);             });
+
+  // vm.validateExternals();
 
   spellFxInstanceNames = vm.getDATFile().getSymbolIndexByName("spellFxInstanceNames");
   spellFxAniLetters    = vm.getDATFile().getSymbolIndexByName("spellFxAniLetters");
@@ -1620,6 +1623,14 @@ void GameScript::npc_hasitems(Daedalus::DaedalusVM &vm) {
     vm.setReturn(0);
   }
 
+void GameScript::npc_removeinvitem(Daedalus::DaedalusVM &vm) {
+  uint32_t itemId = uint32_t(vm.popInt());
+  auto     npc    = popInstance(vm);
+
+  if(npc!=nullptr)
+    npc->delItem(itemId,1);
+  }
+
 void GameScript::npc_removeinvitems(Daedalus::DaedalusVM &vm) {
   int32_t  amount = vm.popInt();
   uint32_t itemId = uint32_t(vm.popInt());
@@ -1769,7 +1780,7 @@ void GameScript::npc_getheighttonpc(Daedalus::DaedalusVM &vm) {
   vm.setReturn(int32_t(ret));
   }
 
-void GameScript::npc_getequippedmeleweapon(Daedalus::DaedalusVM &vm) {
+void GameScript::npc_getequippedmeleeweapon(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr){
     auto a = npc->currentRangeWeapon();
