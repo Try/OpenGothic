@@ -492,7 +492,7 @@ void World::emitWeaponsSound(Npc &self, Npc &other) {
   if(self.isMonster() || self.inventory().activeWeapon()==nullptr)
     std::snprintf(buf,sizeof(buf),"CS_MAM_%s_%s",selfMt,othMt); else
     std::snprintf(buf,sizeof(buf),"CS_IAM_%s_%s",selfMt,othMt);
-  wsound.emitSound(buf, 0.5f*(p0[0]+p1[0]), 0.5f*(p0[1]+p1[1]), 0.5f*(p0[2]+p1[2]),25.f,nullptr);
+  wsound.emitSound(buf, 0.5f*(p0[0]+p1[0]), 0.5f*(p0[1]+p1[1]), 0.5f*(p0[2]+p1[2]),2500.f,nullptr);
   }
 
 void World::emitBlockSound(Npc &self, Npc &other) {
@@ -523,7 +523,7 @@ void World::emitBlockSound(Npc &self, Npc &other) {
 
   char buf[128]={};
   std::snprintf(buf,sizeof(buf),"CS_IAI_%s_%s",selfMt,othMt);
-  wsound.emitSound(buf, 0.5f*(p0[0]+p1[0]), 0.5f*(p0[1]+p1[1]), 0.5f*(p0[2]+p1[2]),25.f,nullptr);
+  wsound.emitSound(buf, 0.5f*(p0[0]+p1[0]), 0.5f*(p0[1]+p1[1]), 0.5f*(p0[2]+p1[2]),2500.f,nullptr);
   }
 
 bool World::isInListenerRange(const std::array<float,3> &pos) const {

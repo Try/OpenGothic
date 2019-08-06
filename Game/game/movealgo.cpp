@@ -248,10 +248,9 @@ void MoveAlgo::tick(uint64_t dt) {
     if(tickSlide(dt))
       return;
     // move down the ramp
-    if(tryMove(dp[0],-dY,dp[2])){
-      } else {
-      if(tryMove(dp[0],dp[1],dp[2]))
-        ;
+    if(!tryMove(dp[0],-dY,dp[2])){
+      if(!tryMove(dp[0],dp[1],dp[2]))
+        onMoveFailed();
       }
     setInAir  (false);
     setAsSlide(false);
@@ -260,7 +259,8 @@ void MoveAlgo::tick(uint64_t dt) {
     if(tickSlide(dt))
       return;
     // move up the ramp
-    tryMove(dp[0],-dY,dp[2]);
+    if(!tryMove(dp[0],-dY,dp[2]))
+      onMoveFailed();
     setInAir  (false);
     setAsSlide(false);
     }

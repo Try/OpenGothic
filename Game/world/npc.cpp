@@ -975,8 +975,14 @@ bool Npc::implAtack(uint64_t dt) {
       fghAlgo.consumeAction();
       return true;
       }
-    if(doAttack(ani[act-FightAlgo::MV_ATACK]))
-      fghAlgo.consumeAction();
+
+    if(weaponState()==WeaponState::Mage){
+      if(castSpell())
+        fghAlgo.consumeAction();
+      } else {
+      if(doAttack(ani[act-FightAlgo::MV_ATACK]))
+        fghAlgo.consumeAction();
+      }
     return true;
     }
 
@@ -1547,10 +1553,8 @@ bool Npc::doAttack(Anim anim) {
   if(weaponSt==WeaponState::Mage && weapon!=nullptr)
     anim=Anim(owner.script().spellCastAnim(*this,*weapon));
 
-  if(animation.current==anim){
-    return setAnim(Anim::Idle,weaponSt);
-    }
-
+  if(animation.current==anim)
+    return false;
   return setAnim(anim,weaponSt);
   }
 
@@ -1781,8 +1785,8 @@ bool Npc::drawWeaponMele() {
   updateWeaponSkeleton();
 
   if(invent.currentMeleWeapon()->handle()->material==ItemMaterial::MAT_METAL)
-    emitSoundEffect("DRAWSOUND_ME",50,true); else
-    emitSoundEffect("DRAWSOUND_WO",50,true);
+    emitSoundEffect("DRAWSOUND_ME",500,true); else
+    emitSoundEffect("DRAWSOUND_WO",500,true);
   return true;
   }
 
