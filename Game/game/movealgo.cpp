@@ -17,7 +17,7 @@ void MoveAlgo::tickMobsi(uint64_t dt) {
   auto dp  = animMoveSpeed(dt);
   auto pos = npc.position();
   pos[0]+=dp[0];
-  pos[1]+=dp[1];
+  //pos[1]+=dp[1];
   pos[2]+=dp[2];
   npc.setPosition(pos);
   setAsSlide(false);
