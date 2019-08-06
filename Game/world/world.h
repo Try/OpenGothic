@@ -35,12 +35,16 @@ class World final {
     World(GameSession &gothic, const RendererStorage& storage, std::string file, uint8_t isG2, std::function<void(int)> loadProgress);
     World(GameSession &gothic, const RendererStorage& storage, Serialize& fin, uint8_t isG2, std::function<void(int)> loadProgress);
 
+    struct BspPortal final {
+      int32_t guild=GIL_NONE;
+      };
+
     void  createPlayer(const char* cls);
     void  insertPlayer(std::unique_ptr<Npc>&& npc, const char *waypoint);
     void  postInit();
     const std::string& name() const { return wname; }
 
-    void  load(Serialize& fout);
+    void  load(Serialize& fin );
     void  save(Serialize& fout);
 
     uint32_t        npcId(const void* ptr) const;
@@ -68,7 +72,10 @@ class World final {
 
     WorldView*      view()   const { return wview.get();    }
     DynamicWorld*   physic() const { return wdynamic.get(); }
-    GameScript&    script() const;
+    GameScript&     script() const;
+
+    void            assignRoomToGuild(const std::string& room,int32_t guildId);
+    int32_t         guildOfRoom(const std::array<float,3>& pos);
 
     StaticObjects::Mesh getView(const std::string& visual) const;
     StaticObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
@@ -82,6 +89,7 @@ class World final {
     auto     takeHero() -> std::unique_ptr<Npc>;
     Npc*     player() const { return npcPlayer; }
     Npc*     findNpcByInstance(size_t instance);
+    auto     roomAt(const std::array<float,3>& arr) -> const std::string&;
 
     void     tick(uint64_t dt);
     uint64_t tickCount() const;
@@ -135,6 +143,8 @@ class World final {
     GameSession&                          game;
 
     std::unique_ptr<WayMatrix>            wmatrix;
+    ZenLoad::zCBspTreeData                bsp;
+    std::vector<BspPortal>                bspPortals;
 
     Npc*                                  npcPlayer=nullptr;
 
@@ -148,6 +158,8 @@ class World final {
     void         addStatic(const ZenLoad::zCVobData &vob);
     void         addInteractive(const ZenLoad::zCVobData &vob);
     void         addItem(const ZenLoad::zCVobData &vob);
+    auto         roomAt(const ZenLoad::zCBspNode &node) -> const std::string &;
+    auto         portalAt(const std::string& tag) -> BspPortal*;
 
     void         initScripts(bool firstTime);
   };

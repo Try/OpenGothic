@@ -155,8 +155,12 @@ void MainWindow::paintEvent(PaintEvent& event) {
         }
       }
 
-    if(world && world->player() && world->player()->hasCollision())
-      info="[c]";
+    if(world && world->player()) {
+      if(world->player()->hasCollision())
+        info="[c]";
+      else
+        info = world->roomAt(world->player()->position()).c_str();
+      }
     }
 
   char fpsT[64]={};

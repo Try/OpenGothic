@@ -490,8 +490,9 @@ Npc_SendPassivePerc(self,PERC_ASSESSFIGHTSOUND,self,other); // calls PERC_ASSESS
 * `func void Npc_PlayAni(var C_Npc npc,var string anim)`  
   Play animation 'anim', for 'npc'.
 
-* ![!](ni.png) `func int Npc_GetPortalGuild(var C_Npc npc)`  
-  Not implemented.
+* `func int Npc_GetPortalGuild(var C_Npc npc)`  
+  if 'npc' located inside room, return guild assigned for this room.  
+  otherwise returns GIL_NONE  
 
 * ![!](ni.png) `func int Npc_IsInPlayersRoom(var C_Npc npc)`  
   Not implemented.
@@ -867,8 +868,8 @@ AI_OutputSVM(self,self,"$SMALLTALK01");
 * ![!](ni.png) `func int Wld_DetectItem(var C_Npc npc, var int flags)`  
   Not implemented.
 
-* ![!](ni.png) `func void Wld_AssignRoomToGuild(var string rootm, var int guild)`  
-  Not implemented.
+* `func void Wld_AssignRoomToGuild(var string room, var int guild)`  
+  assigns a new 'guildId' to room, specified by 'room'
 
 * ![#](nu.png) `func void Wld_AssignRoomToNpc(var string rootm, var C_Npc owner)`  
   Not implemented.
@@ -877,7 +878,9 @@ AI_OutputSVM(self,self,"$SMALLTALK01");
   Not implemented.
 
 * `func int Wld_GetPlayerPortalGuild()`  
-  Not implemented.
+  if 'player' located inside room, return guild assigned for this room.  
+  otherwise returns GIL_NONE  
+  same as `Npc_GetPortalGuild(player)`
 
 * ![#](nu.png) `func C_Npc Wld_GetFormerPlayerPortalOwner()`  
   Not implemented.
@@ -885,7 +888,7 @@ AI_OutputSVM(self,self,"$SMALLTALK01");
 * ![!](ni.png) `func int Wld_GetFormerPlayerPortalGuild()`  
   Not implemented.
 
-* ![!](ni.png) `func void Wld_SpawnNpcRange(var C_Npc npc, var int clsId, var int count, var int lifetime)  
+* ![!](ni.png) `func void Wld_SpawnNpcRange(var C_Npc npc, var int clsId, var int count, var int lifetime)`  
   Not implemented.
 
 * ![!](ni.png) `func bool Wld_IsRaining()`  

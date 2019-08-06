@@ -1225,7 +1225,10 @@ void GameScript::wld_stopeffect(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::wld_getplayerportalguild(Daedalus::DaedalusVM &vm) {
-  vm.setReturn(int(Guild::GIL_NONE));  // TODO: guild id for a room
+  int32_t g = GIL_NONE;
+  if(auto p = world().player())
+    g = world().guildOfRoom(p->position());
+  vm.setReturn(g);
   }
 
 void GameScript::wld_setguildattitude(Daedalus::DaedalusVM &vm) {
@@ -1319,8 +1322,7 @@ void GameScript::wld_setmobroutine(Daedalus::DaedalusVM &vm) {
 void GameScript::wld_assignroomtoguild(Daedalus::DaedalusVM &vm) {
   int   g    = vm.popInt();
   auto& name = vm.popString();
-  notImplementedFn<&GameScript::wld_assignroomtoguild>("wld_assignroomtoguild");
-  //Log::i("TODO: wld_assignroomtoguild(",name,",",g,")");
+  world().assignRoomToGuild(name,g);
   }
 
 void GameScript::wld_detectnpc(Daedalus::DaedalusVM &vm) {
@@ -2053,13 +2055,18 @@ void GameScript::npc_checkinfo(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::npc_getportalguild(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  vm.setReturn(int(Guild::GIL_NONE));
-  notImplementedFn<&GameScript::npc_getportalguild>("npc_getportalguild");
+  int32_t g  = GIL_NONE;
+  auto   npc = popInstance(vm);
+  if(npc!=nullptr)
+    g = world().guildOfRoom(npc->position());
+  vm.setReturn(g);
   }
 
 void GameScript::npc_isinplayersroom(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+  int32_t g   = GIL_NONE;
+  auto    npc = popInstance(vm);
+  if(npc!=nullptr)
+    g = world().guildOfRoom(npc->position());
   vm.setReturn(0); //TODO: stub
   notImplementedFn<&GameScript::npc_isinplayersroom>("npc_isinplayersroom");
   }

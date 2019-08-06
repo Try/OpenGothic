@@ -43,6 +43,9 @@ World::World(GameSession& game,const RendererStorage &storage, std::string file,
       loadVob(vob,true);
     }
   wmatrix->buildIndex();
+  bsp = std::move(world.bspTree);
+  bspPortals.resize(bsp.sectors.size());
+
   loadProgress(100);
   }
 
@@ -75,6 +78,9 @@ World::World(GameSession &game, const RendererStorage &storage,
       loadVob(vob,false);
     }
   wmatrix->buildIndex();
+  bsp = std::move(world.bspTree);
+  bspPortals.resize(bsp.sectors.size());
+
   loadProgress(100);
   }
 
@@ -101,8 +107,19 @@ void World::postInit() {
   // game.script()->inserNpc("Snapper",wmatrix->startPoint().name.c_str());
   }
 
-void World::load(Serialize &fout) {
-  wobj.load(fout);
+void World::load(Serialize &fin) {
+  wobj.load(fin);
+
+  uint32_t sz=0;
+  fin.read(sz);
+  std::string tag;
+  for(size_t i=0;i<sz;++i) {
+    int32_t guild=GIL_NONE;
+    fin.read(tag,guild);
+    if(auto p = portalAt(tag))
+      p->guild = guild;
+    }
+
   npcPlayer = wobj.findHero();
   if(npcPlayer!=nullptr)
     game.script()->setInstanceNPC("HERO",*npcPlayer);
@@ -111,6 +128,11 @@ void World::load(Serialize &fout) {
 void World::save(Serialize &fout) {
   fout.write(wname);
   wobj.save(fout);
+
+  fout.write(uint32_t(bspPortals.size()));
+  for(size_t i=0;i<bspPortals.size();++i) {
+    fout.write(bsp.sectors[i].name,bspPortals[i].guild);
+    }
   }
 
 uint32_t World::npcId(const void *ptr) const {
@@ -169,6 +191,58 @@ std::unique_ptr<Npc> World::takeHero() {
 
 Npc *World::findNpcByInstance(size_t instance) {
   return wobj.findNpcByInstance(instance);
+  }
+
+const std::string& World::roomAt(const std::array<float,3> &arr) {
+  static std::string empty;
+
+  if(bsp.nodes.empty())
+    return empty;
+
+  const float x=arr[0], y=arr[1], z=arr[2];
+
+  const ZenLoad::zCBspNode* node=&bsp.nodes[0];
+
+  while(true) {
+    const float* v    = node->plane.v;
+    float        sgn  = v[0]*x + v[1]*y + v[2]*z - v[3];
+    uint32_t     next = (sgn>0) ? node->front : node->back;
+    if(next>=bsp.nodes.size())
+      break;
+    node = &bsp.nodes[next];
+    }
+
+  if(node->bbox3dMin.x <= x && x <node->bbox3dMax.x &&
+     node->bbox3dMin.y <= y && y <node->bbox3dMax.y &&
+     node->bbox3dMin.z <= z && z <node->bbox3dMax.z) {
+    return roomAt(*node);
+    }
+
+  return empty;
+  }
+
+const std::string& World::roomAt(const ZenLoad::zCBspNode& node) {
+  for(auto& i:bsp.sectors) {
+    for(auto r:i.bspNodeIndices)
+      if(r<bsp.leafIndices.size()){
+        size_t idx = bsp.leafIndices[r];
+        if(idx<bsp.nodes.size() && &bsp.nodes[idx]==&node) {
+          return i.name;
+          }
+        }
+    }
+  static std::string empty;
+  return empty;
+  }
+
+World::BspPortal* World::portalAt(const std::string &tag) {
+  if(tag.empty())
+    return nullptr;
+
+  for(size_t i=0;i<bsp.sectors.size();++i)
+    if(bsp.sectors[i].name==tag)
+      return &bspPortals[i];
+  return nullptr;
   }
 
 void World::tick(uint64_t dt) {
@@ -533,6 +607,25 @@ WayPath World::wayTo(float npcX, float npcY, float npcZ, const WayPoint &end) co
 
 GameScript &World::script() const {
   return *game.script();
+  }
+
+void World::assignRoomToGuild(const std::string &r, int32_t guildId) {
+  auto room = r;
+  for(auto& i:room)
+    i = char(std::toupper(i));
+
+  if(auto room=portalAt(r)){
+    room->guild=guildId;
+    }
+
+  Log::d("room not found: ",room);
+  }
+
+int32_t World::guildOfRoom(const std::array<float,3> &pos) {
+  const std::string& tg = roomAt(pos);
+  if(auto room=portalAt(tg))
+    return room->guild;
+  return GIL_NONE;
   }
 
 void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
