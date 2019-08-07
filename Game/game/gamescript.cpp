@@ -2063,12 +2063,18 @@ void GameScript::npc_getportalguild(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::npc_isinplayersroom(Daedalus::DaedalusVM &vm) {
-  int32_t g   = GIL_NONE;
   auto    npc = popInstance(vm);
-  if(npc!=nullptr)
-    g = world().guildOfRoom(npc->position());
-  vm.setReturn(0); //TODO: stub
-  notImplementedFn<&GameScript::npc_isinplayersroom>("npc_isinplayersroom");
+  auto    pl  = world().player();
+
+  if(npc!=nullptr && pl!=nullptr) {
+    int32_t g1 = world().guildOfRoom(pl->position());
+    int32_t g2 = world().guildOfRoom(npc->position());
+    if(g1==g2) {
+      vm.setReturn(1);
+      return;
+      }
+    }
+  vm.setReturn(0);
   }
 
 void GameScript::npc_getreadiedweapon(Daedalus::DaedalusVM &vm) {
