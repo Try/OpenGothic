@@ -13,7 +13,9 @@ CMakeLists.txt.user*
 
 # Build-dir
 build/
+build-*/
 bin/log.txt
+bin/crash.log
 bin/dbg.bin
 bin/qsave.sav
 bin/Gothic.ini

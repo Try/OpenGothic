@@ -1,6 +1,0 @@
----crashlog(ExceptionFilter)---
-0x00470772: CrashLog::dumpStack(char const*) in D:\Programming\OpenGothic\bin\Gothic2Notr.exe
-0x004705c5: __ZL16exceptionHandlerP19_EXCEPTION_POINTERS@4 in D:\Programming\OpenGothic\bin\Gothic2Notr.exe
-0x73db5cb0: UnhandledExceptionFilter in C:\WINDOWS\System32\KERNELBASE.dll
-0x7726da71: RtlCaptureStackContext in C:\WINDOWS\SYSTEM32\ntdll.dll
-0x77234198: RtlAreBitsSet in C:\WINDOWS\SYSTEM32\ntdll.dll

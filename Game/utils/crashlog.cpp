@@ -19,31 +19,8 @@ static LONG WINAPI exceptionHandler(PEXCEPTION_POINTERS) {
   }
 #endif
 
-static void signalHandler(int signum) {
-  std::signal(signum, SIG_DFL);
-  CrashLog::dumpStack(signum);
-  std::raise(signum);
-  }
-
-[[noreturn]]
-static void terminateHandler() {
-  CrashLog::dumpStack("std::terminate");
-  std::abort();
-  }
-
-void CrashLog::setup() {
-#ifdef __WINDOWS__
-  SetUnhandledExceptionFilter(exceptionHandler);
-#else
-  std::signal(SIGSEGV, &signalHandler);
-  std::signal(SIGABRT, &signalHandler);
-  std::signal(SIGFPE,  &signalHandler);
-  std::signal(SIGABRT, &signalHandler);
-#endif
-  std::set_terminate(terminateHandler);
-  }
-
-void CrashLog::dumpStack(int sig) {
+static void signalHandler(int sig) {
+  std::signal(sig, SIG_DFL);
   const char* sname = nullptr;
   char buf[16]={};
   if(sig==SIGSEGV)
@@ -59,7 +36,26 @@ void CrashLog::dumpStack(int sig) {
     sname = buf;
     }
 
-  dumpStack(sname);
+  CrashLog::dumpStack(sname);
+  std::raise(sig);
+  }
+
+[[noreturn]]
+static void terminateHandler() {
+  CrashLog::dumpStack("std::terminate");
+  std::abort();
+  }
+
+void CrashLog::setup() {
+#ifdef __WINDOWS__
+  SetUnhandledExceptionFilter(exceptionHandler);
+#endif
+
+  std::signal(SIGSEGV, &signalHandler);
+  std::signal(SIGABRT, &signalHandler);
+  std::signal(SIGFPE,  &signalHandler);
+  std::signal(SIGABRT, &signalHandler);
+  std::set_terminate(terminateHandler);
   }
 
 void CrashLog::dumpStack(const char *sig) {
