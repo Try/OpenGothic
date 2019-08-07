@@ -5,10 +5,12 @@
 
 #include <vector>
 
+#include "utils/crashlog.h"
 #include "gothic.h"
 #include "mainwindow.h"
 
 int main(int argc,const char** argv) {
+  CrashLog::setup();
   VDFS::FileIndex::initVDFS(argv[0]);
 
   Gothic             g2(argc,argv);
