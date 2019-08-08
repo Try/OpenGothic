@@ -18,15 +18,17 @@ const std::string &SvmDefinitions::find(const char *speech, const int intId) {
 
     if(svm.size()<=id)
       svm.resize(id+1);
-    if(svm[id].instanceSymbol==0){
+    if(svm[id]==nullptr)
+      svm[id].reset(new Daedalus::GEngineClasses::C_SVM());
+    if(svm[id]->instanceSymbol==0){
       size_t i = vm.getDATFile().getSymbolIndexByName(name);
-      vm.initializeInstance(svm[id], i, Daedalus::IC_Svm);
+      vm.initializeInstance(*svm[id], i, Daedalus::IC_Svm);
       }
 
     std::snprintf(name,sizeof(name),"C_SVM.%s",speech+1);
 
-    auto& i = vm.getDATFile().getSymbolByName(name);
-    return i.getString(0,&svm[size_t(id)]);
+    auto& i = vm.getDATFile().getSymbolByName(name); //TODO: optimize
+    return i.getString(0,svm[size_t(id)].get());
     }
 
   static const std::string empty;
