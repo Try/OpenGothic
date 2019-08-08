@@ -262,10 +262,7 @@ const std::string& World::roomAt(const ZenLoad::zCBspNode& node) {
         }
     }
   if(count==1) {
-    for(auto& i:bsp.portals)
-      if(i.backSectorName==*ret || i.frontSectorName==*ret){
-        Log::d();
-        }
+    // TODO: portals
     return *ret;
     }
   static std::string empty;
