@@ -610,12 +610,12 @@ GameScript &World::script() const {
   }
 
 void World::assignRoomToGuild(const std::string &r, int32_t guildId) {
-  auto room = r;
+  std::string room = r;
   for(auto& i:room)
     i = char(std::toupper(i));
 
-  if(auto room=portalAt(r)){
-    room->guild=guildId;
+  if(auto rx=portalAt(room)){
+    rx->guild=guildId;
     }
 
   Log::d("room not found: ",room);
