@@ -44,7 +44,7 @@ World::World(GameSession& game,const RendererStorage &storage, std::string file,
     }
   wmatrix->buildIndex();
   bsp = std::move(world.bspTree);
-  bspPortals.resize(bsp.sectors.size());
+  bspSectors.resize(bsp.sectors.size());
 
   loadProgress(100);
   }
@@ -79,7 +79,7 @@ World::World(GameSession &game, const RendererStorage &storage,
     }
   wmatrix->buildIndex();
   bsp = std::move(world.bspTree);
-  bspPortals.resize(bsp.sectors.size());
+  bspSectors.resize(bsp.sectors.size());
 
   loadProgress(100);
   }
@@ -129,9 +129,9 @@ void World::save(Serialize &fout) {
   fout.write(wname);
   wobj.save(fout);
 
-  fout.write(uint32_t(bspPortals.size()));
-  for(size_t i=0;i<bspPortals.size();++i) {
-    fout.write(bsp.sectors[i].name,bspPortals[i].guild);
+  fout.write(uint32_t(bspSectors.size()));
+  for(size_t i=0;i<bspSectors.size();++i) {
+    fout.write(bsp.sectors[i].name,bspSectors[i].guild);
     }
   }
 
@@ -201,6 +201,28 @@ const std::string& World::roomAt(const std::array<float,3> &arr) {
 
   const float x=arr[0], y=arr[1], z=arr[2];
 
+  /*
+  for(auto& i:bsp.sectors) {
+    size_t cnt = 0;
+    for(auto r:i.bspNodeIndices) {
+      if(r>=bsp.leafIndices.size())
+        break;
+      size_t idx = bsp.leafIndices[r];
+      if(idx>=bsp.nodes.size())
+        break;
+      const ZenLoad::zCBspNode& node = bsp.nodes[idx];
+      const float* v   = node.plane.v;
+      float        sgn = v[0]*x + v[1]*y + v[2]*z - v[3];
+      if(sgn<0)
+        break;
+      }
+
+    if(cnt==i.bspNodeIndices.size()) {
+      return i.name;
+      }
+    }
+  return empty;*/
+
   const ZenLoad::zCBspNode* node=&bsp.nodes[0];
 
   while(true) {
@@ -209,6 +231,7 @@ const std::string& World::roomAt(const std::array<float,3> &arr) {
     uint32_t     next = (sgn>0) ? node->front : node->back;
     if(next>=bsp.nodes.size())
       break;
+
     node = &bsp.nodes[next];
     }
 
@@ -222,26 +245,40 @@ const std::string& World::roomAt(const std::array<float,3> &arr) {
   }
 
 const std::string& World::roomAt(const ZenLoad::zCBspNode& node) {
+  std::string* ret=nullptr;
+  size_t       count=0;
+  auto         id = &node-bsp.nodes.data();(void)id;
+
   for(auto& i:bsp.sectors) {
     for(auto r:i.bspNodeIndices)
       if(r<bsp.leafIndices.size()){
         size_t idx = bsp.leafIndices[r];
-        if(idx<bsp.nodes.size() && &bsp.nodes[idx]==&node) {
-          return i.name;
+        if(idx>=bsp.nodes.size())
+          continue;
+        if(&bsp.nodes[idx]==&node) {
+          ret = &i.name;
+          count++;
           }
         }
+    }
+  if(count==1) {
+    for(auto& i:bsp.portals)
+      if(i.backSectorName==*ret || i.frontSectorName==*ret){
+        Log::d();
+        }
+    return *ret;
     }
   static std::string empty;
   return empty;
   }
 
-World::BspPortal* World::portalAt(const std::string &tag) {
+World::BspSector* World::portalAt(const std::string &tag) {
   if(tag.empty())
     return nullptr;
 
   for(size_t i=0;i<bsp.sectors.size();++i)
     if(bsp.sectors[i].name==tag)
-      return &bspPortals[i];
+      return &bspSectors[i];
   return nullptr;
   }
 

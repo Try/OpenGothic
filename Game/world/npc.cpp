@@ -1609,7 +1609,7 @@ gtime Npc::endTime(const Npc::Routine &r) const {
   }
 
 Npc::BodyState Npc::bodyState() const {
-  uint32_t s   = 0;
+  uint32_t s   = BS_STAND;
   auto     ani = anim();
   if(isDead())
     s = BS_DEAD;
@@ -1617,8 +1617,14 @@ Npc::BodyState Npc::bodyState() const {
     s = BS_UNCONSCIOUS;
   else if(mvAlgo.isSwim())
     s = BS_SWIM;
-  else if(ani==Anim::Move || ani==Anim::MoveL || ani==Anim::MoveR || ani==Anim::MoveBack)
-    s = BS_RUN;
+  else if(ani==Anim::Move || ani==Anim::MoveL || ani==Anim::MoveR || ani==Anim::MoveBack) {
+    if(wlkMode==WalkBit::WM_Run)
+      s = BS_RUN;
+    else if(wlkMode==WalkBit::WM_Walk)
+      s = BS_WALK;
+    else if(wlkMode==WalkBit::WM_Sneak)
+      s = BS_SNEAK;
+    }
   else if(ani==Anim::Fall || ani==Anim::FallDeep)
     s = BS_FALL;
   else if(ani==Anim::Sleep)

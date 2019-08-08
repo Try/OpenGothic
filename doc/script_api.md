@@ -423,7 +423,7 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 | PERC_ASSESSTALK | ? | Not implemented | 19
 | PERC_ASSESSGIVENITEM | ? | Not implemented | 20
 | PERC_ASSESSFAKEGUILD | ? | Not implemented | 21
-| PERC_MOVEMOB | ? | Not implemented | 21
+| PERC_MOVEMOB | ? | Not implemented | 22
 | PERC_MOVENPC | ? | Not implemented | 23
 | PERC_DRAWWEAPON | ? | Not implemented | 24
 | PERC_OBSERVESUSPECT | ? | Not implemented | 25
@@ -432,7 +432,7 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 | PERC_ASSESSSTOPMAGIC | ? | Not implemented | 28
 | PERC_ASSESSCASTER | ? | Not implemented | 29
 | PERC_ASSESSSURPRISE | ? | Not implemented | 30
-| PERC_ASSESSENTERROOM | ? | Not implemented | 31
+| PERC_ASSESSENTERROOM | player is inside some room  | Not implemented | 31
 | PERC_ASSESSUSEMOB | ? | Not implemented | 32
 
 * `func void Npc_PercDisable(var C_Npc npc, var int percId)`  
@@ -861,9 +861,8 @@ AI_OutputSVM(self,self,"$SMALLTALK01");
   `dest.guild` must be equal to `guild`, if param `guild` is not -1  
   If such `dest` exist, then function returns TRUE and write result to global variable `other`.
 
-* ![!](ni.png) `func int Wld_DetectNpcEx(var C_Npc npc, var int npcInstance, var func aiState, var int guild, var int detectPlayer)`  
+* `func int Wld_DetectNpcEx(var C_Npc npc, var int npcInstance, var func aiState, var int guild, var int detectPlayer)`  
   Same as Wld_DetectNpc, but excludes player from search, if `detectPlayer`!=TRUE.  
-  Not implemented.
 
 * ![!](ni.png) `func int Wld_DetectItem(var C_Npc npc, var int flags)`  
   Not implemented.

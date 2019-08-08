@@ -82,6 +82,8 @@ void WorldObjects::tick(uint64_t dt) {
     }
   tickNear(dt);
 
+  const int32_t guild = owner.guildOfRoom(pl->position());
+
   for(auto& i:npcArr) {
     if(i->isPlayer())
       continue;
@@ -96,6 +98,8 @@ void WorldObjects::tick(uint64_t dt) {
       continue;
     float dist = pl->qDistTo(*i);
     i->perceptionProcess(*pl,dist);
+    if(guild!=Guild::GIL_NONE)
+      ;//i->perceptionProcess(*pl,nullptr,dist,Npc::PERC_ASSESSENTERROOM);
     }
   }
 

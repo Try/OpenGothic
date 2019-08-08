@@ -36,7 +36,7 @@ bool MoveAlgo::tryMove(float x,float y,float z) {
 bool MoveAlgo::tickSlide(uint64_t dt) {
   float fallThreshold = stepHeight();
 
-  if(isInAir())
+  if(isInAir() || npc.isFlyAnim())
     return false;
 
   auto  pos    = npc.position();
@@ -233,7 +233,7 @@ void MoveAlgo::tick(uint64_t dt) {
     setInWater(true); else
     setInWater(false);
 
-  if(0.f<dY && npc.isFlyAnim()) {
+  if(-fallThreshold<dY && npc.isFlyAnim()) {
     // jump animation
     tryMove(dp[0],dp[1],dp[2]);
 

@@ -35,7 +35,7 @@ class World final {
     World(GameSession &gothic, const RendererStorage& storage, std::string file, uint8_t isG2, std::function<void(int)> loadProgress);
     World(GameSession &gothic, const RendererStorage& storage, Serialize& fin, uint8_t isG2, std::function<void(int)> loadProgress);
 
-    struct BspPortal final {
+    struct BspSector final {
       int32_t guild=GIL_NONE;
       };
 
@@ -144,7 +144,7 @@ class World final {
 
     std::unique_ptr<WayMatrix>            wmatrix;
     ZenLoad::zCBspTreeData                bsp;
-    std::vector<BspPortal>                bspPortals;
+    std::vector<BspSector>                bspSectors;
 
     Npc*                                  npcPlayer=nullptr;
 
@@ -159,7 +159,7 @@ class World final {
     void         addInteractive(const ZenLoad::zCVobData &vob);
     void         addItem(const ZenLoad::zCVobData &vob);
     auto         roomAt(const ZenLoad::zCBspNode &node) -> const std::string &;
-    auto         portalAt(const std::string& tag) -> BspPortal*;
+    auto         portalAt(const std::string& tag) -> BspSector*;
 
     void         initScripts(bool firstTime);
   };
