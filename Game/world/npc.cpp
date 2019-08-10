@@ -764,9 +764,8 @@ void Npc::changeAttribute(Npc::Attribute a, int32_t val) {
   if(val<0)
     invent.invalidateCond(*this);
 
-  if(a==ATR_HITPOINTS){
+  if(a==ATR_HITPOINTS)
     checkHealth(true);
-    }
   }
 
 int32_t Npc::protection(Npc::Protection p) const {
@@ -901,7 +900,7 @@ bool Npc::implGoTo(uint64_t dt) {
     float dx = currentGoTo->x-x;
     float dz = currentGoTo->z-z;
 
-    bool needToRot = (walkMode()!=WalkBit::WM_Run && anim()==Anim::Move);
+    bool needToRot = true;//(walkMode()!=WalkBit::WM_Run && anim()==Anim::Move);
     if(implLookAt(dx,dz,needToRot,dt)){ // TODO: force rotation, if angle > 45deg
       mvAlgo.aiGoTo(nullptr);
       return true;
@@ -1105,10 +1104,13 @@ void Npc::takeDamage(Npc &other) {
     return;
 
   setOther(&other);
-  perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
+  owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
 
   auto ani=anim();
   if(ani!=Anim::MoveBack && ani!=Anim::AtackBlock) {
+    perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
+    owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
+
     lastHit = &other;
     fghAlgo.onTakeHit();
     implFaiWait(0);
@@ -1118,6 +1120,13 @@ void Npc::takeDamage(Npc &other) {
     if(isPlayer() && owner.script().isRamboMode())
       dmg = std::min(1,dmg);
     changeAttribute(ATR_HITPOINTS,-dmg);
+
+    if(isUnconscious()){
+      owner.sendPassivePerc(*this,other,*this,PERC_ASSESSDEFEAT);
+      }
+    else if(isDead()) {
+      owner.sendPassivePerc(*this,other,*this,PERC_ASSESSMURDER);
+      }
 
     if(other.hnpc.damagetype & (1<<Daedalus::GEngineClasses::DAM_INDEX_FLY))
       mvAlgo.accessDamFly(x-other.x,z-other.z); // throw enemy

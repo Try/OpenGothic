@@ -2350,10 +2350,11 @@ void GameScript::ai_startstate(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::ai_playani(Daedalus::DaedalusVM &vm) {
-  auto name = vm.popString();
-  auto npc  = popInstance(vm);
-  if(npc!=nullptr)
+  auto& name = vm.popString();
+  auto  npc  = popInstance(vm);
+  if(npc!=nullptr) {
     npc->aiPlayAnim(name);
+    }
   }
 
 void GameScript::ai_setwalkmode(Daedalus::DaedalusVM &vm) {
