@@ -29,9 +29,9 @@ class MoveAlgo final {
     static bool isClose(const std::array<float,3>& w,const WayPoint& p);
     static bool isClose(float x,float y,float z,const WayPoint& p);
 
-    auto aiGoTarget() -> const WayPoint* { return currentGoTo; }
+    auto aiGoTarget() -> const WayPoint*;
     bool aiGoTo(const WayPoint* p);
-    bool aiGoTo(const Npc* p, float destDist);
+    bool aiGoTo(Npc *p, float destDist);
     void aiGoTo(const std::nullptr_t p);
     bool startClimb(JumpCode ani);
     bool hasGoTo() const;
@@ -86,10 +86,6 @@ class MoveAlgo final {
     float  waterRay (float x, float y, float z) const;
     auto   normalRay(float x, float y, float z) const -> std::array<float,3>;
 
-    Npc&                npc;
-    const WayPoint*     currentGoTo   =nullptr;
-    const Npc*          currentGoToNpc=nullptr;
-
     struct Cache {
       float x=0,y=0,z=std::numeric_limits<float>::infinity();
       float rayCastRet=0; bool hasCol=false;
@@ -100,6 +96,8 @@ class MoveAlgo final {
       float wx=0,wy=0,wz=std::numeric_limits<float>::infinity();
       float wdepth=0.f;
       };
+
+    Npc&                npc;
     mutable Cache       cache;
     Flags               flags=NoFlags;
 

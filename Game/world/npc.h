@@ -402,7 +402,7 @@ class Npc final {
     void     aiGoToNpc  (Npc *other);
     void     aiGoToNextFp(std::string fp);
     void     aiStartState(uint32_t stateFn, int behavior, Npc *other, std::string wp);
-    void     aiPlayAnim(std::string ani);
+    void     aiPlayAnim(const std::string &ani);
     void     aiWait(uint64_t dt);
     void     aiStandup();
     void     aiStandupQuick();
@@ -642,4 +642,6 @@ class Npc final {
     MoveAlgo                       mvAlgo;
     FightAlgo                      fghAlgo;
     uint64_t                       fghLastEventTime=0;
+
+  friend class MoveAlgo;
   };

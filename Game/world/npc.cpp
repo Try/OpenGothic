@@ -899,7 +899,6 @@ bool Npc::implGoTo(uint64_t dt) {
 
   if(currentGoTo){
     float dx = currentGoTo->x-x;
-    //float dy = y-currentGoTo->position.y;
     float dz = currentGoTo->z-z;
 
     bool needToRot = (walkMode()!=WalkBit::WM_Run && anim()==Anim::Move);
@@ -909,7 +908,6 @@ bool Npc::implGoTo(uint64_t dt) {
       }
 
     if(!mvAlgo.aiGoTo(currentGoTo)) {
-      attachToPoint(currentGoTo);
       currentGoTo = wayPath.pop();
       if(currentGoTo!=nullptr) {
         currentFpLock = FpLock(*currentGoTo);
@@ -918,20 +916,28 @@ bool Npc::implGoTo(uint64_t dt) {
           setAnim(AnimationSolver::Idle);
         }
       }
-    return currentGoTo || mvAlgo.hasGoTo();
+
+    if(mvAlgo.hasGoTo()) {
+      mvAlgo.tick(dt);
+      return true;
+      }
+    return false;
     } else {
     float dx = currentGoToNpc->x-x;
-    //float dy = y-currentGoTo->position.y;
     float dz = currentGoToNpc->z-z;
 
     if(implLookAt(dx,dz,true,dt))
       return true;
     if(!mvAlgo.aiGoTo(currentGoToNpc,400)) {
-      currentGoToNpc=nullptr;
       if(isStanding())
         setAnim(AnimationSolver::Idle);
       }
-    return mvAlgo.hasGoTo();
+
+    if(mvAlgo.hasGoTo()) {
+      mvAlgo.tick(dt);
+      return true;
+      }
+    return false;
     }
   }
 
@@ -1100,7 +1106,6 @@ void Npc::takeDamage(Npc &other) {
 
   setOther(&other);
   perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
-  owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
 
   auto ani=anim();
   if(ani!=Anim::MoveBack && ani!=Anim::AtackBlock) {
@@ -1177,25 +1182,25 @@ void Npc::tick(uint64_t dt) {
     mvAlgo.tick(dt);
     setOther(lastHit);
     aiActions.clear();
-    //setPhysic(DynamicWorld::Item());
     tickRoutine(); // tick for ZS_Death
     return;
     }
 
-  // do parallel?
-  mvAlgo.tick(dt);
-
   if(waitTime>=owner.tickCount())
     return;
 
-  if(implAtack(dt))
+  if(implAtack(dt)) {
+    mvAlgo.tick(dt);
     return;
+    }
 
   if(implLookAt(dt))
     return;
 
   if(implGoTo(dt))
     return;
+
+  mvAlgo.tick(dt);
 
   if(interactive()!=nullptr)
     setAnim(AnimationSolver::Interact); else
@@ -1704,18 +1709,13 @@ bool Npc::lookAt(float dx, float dz, bool anim, uint64_t dt) {
   }
 
 bool Npc::playAnimByName(const std::string &name) {
-  auto tag = animation.animByName(name);
-  if(tag!=Anim::NoAnim){
-    return setAnim(tag);
-    } else {
-    auto a = animation.animSequence(name.c_str());
-    if(a!=nullptr) {
-      Log::d("AI_PlayAnim: unrecognized anim: \"",name,"\"");
-      if(animation.animSq!=a)
-        animation.invalidateAnim(a,animation.skeleton,owner,owner.tickCount());
-      }
-    return true;
+  auto a = animation.animSequence(name.c_str());
+  if(a!=nullptr) {
+    Log::d("AI_PlayAnim: unrecognized anim: \"",name,"\"");
+    if(animation.animSq!=a)
+      animation.invalidateAnim(a,animation.skeleton,owner,owner.tickCount());
     }
+  return true;
   }
 
 bool Npc::checkGoToNpcdistance(const Npc &other) {
@@ -2223,11 +2223,20 @@ void Npc::aiStartState(uint32_t stateFn, int behavior, Npc* other, std::string w
   aiActions.push_back(a);
   }
 
-void Npc::aiPlayAnim(std::string ani) {
-  AiAction a;
-  a.act  = AI_PlayAnim;
-  a.s0   = std::move(ani);
-  aiActions.push_back(a);
+void Npc::aiPlayAnim(const std::string& ani) {
+  auto tag = animation.animByName(ani);
+  if(tag!=Anim::NoAnim) {
+    // fast-path, if we know this anim
+    AiAction a;
+    a.act  = AI_PlayAnimById;
+    a.i0   = tag;
+    aiActions.push_back(a);
+    } else {
+    AiAction a;
+    a.act  = AI_PlayAnim;
+    a.s0   = ani;
+    aiActions.push_back(a);
+    }
   }
 
 void Npc::aiWait(uint64_t dt) {
@@ -2430,6 +2439,7 @@ void Npc::clearAiQueue() {
   waitTime        = 0;
   faiWaitTime     = 0;
   currentGoTo     = nullptr;
+  currentGoToNpc  = nullptr;
   currentGoToFlag = GoToHint::GT_Default;
   wayPath.clear();
   mvAlgo.aiGoTo(nullptr);

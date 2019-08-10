@@ -320,14 +320,14 @@ std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt) {
 
   const float qSpeed = dp[0]*dp[0]+dp[2]*dp[2];
 
-  if(currentGoTo) {
-    float dx   = currentGoTo->x-npc.position()[0];
-    float dz   = currentGoTo->z-npc.position()[2];
+  if(npc.currentGoTo) {
+    float dx   = npc.currentGoTo->x-npc.position()[0];
+    float dz   = npc.currentGoTo->z-npc.position()[2];
     float qLen = (dx*dx+dz*dz);
 
     if(qLen<=qSpeed || qLen<closeToPointThreshold*closeToPointThreshold){
-      currentGoTo=nullptr;
-      npc.setAnim(AnimationSolver::Idle);
+      npc.currentGoTo=nullptr;
+      //npc.setAnim(AnimationSolver::Idle);
       } else {
       npc.setAnim(AnimationSolver::Move);
       }
@@ -337,14 +337,14 @@ std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt) {
       dp[2]*=k;
       }
     }
-  else if(currentGoToNpc) {
-    float dx   = currentGoToNpc->position()[0]-npc.position()[0];
-    float dz   = currentGoToNpc->position()[2]-npc.position()[2];
+  else if(npc.currentGoToNpc) {
+    float dx   = npc.currentGoToNpc->position()[0]-npc.position()[0];
+    float dz   = npc.currentGoToNpc->position()[2]-npc.position()[2];
     float qLen = (dx*dx+dz*dz);
 
-    if(npc.checkGoToNpcdistance(*currentGoToNpc)){
-      currentGoToNpc=nullptr;
-      npc.setAnim(AnimationSolver::Idle);
+    if(npc.checkGoToNpcdistance(*npc.currentGoToNpc)){
+      npc.currentGoToNpc=nullptr;
+      //npc.setAnim(AnimationSolver::Idle);
       } else {
       npc.setAnim(AnimationSolver::Move);
       }
@@ -397,35 +397,40 @@ bool MoveAlgo::isClose(float x, float /*y*/, float z, const WayPoint &p) {
   return (len<closeToPointThreshold*closeToPointThreshold);
   }
 
+const WayPoint* MoveAlgo::aiGoTarget() {
+  return npc.currentGoTo;
+  }
+
 bool MoveAlgo::aiGoTo(const WayPoint *p) {
-  currentGoTo    = p;
-  currentGoToNpc = nullptr;
+  npc.currentGoTo    = p;
+  npc.currentGoToNpc = nullptr;
   if(p==nullptr)
     return false;
 
   if(isClose(npc.position()[0],npc.position()[1],npc.position()[2],*p)){
-    currentGoTo=nullptr;
+    npc.attachToPoint(npc.currentGoTo);
+    npc.currentGoTo = nullptr;
     return false;
     }
   return true;
   }
 
-bool MoveAlgo::aiGoTo(const Npc *p,float destDist) {
-  currentGoToNpc = p;
-  currentGoTo    = nullptr;
+bool MoveAlgo::aiGoTo(Npc *p,float destDist) {
+  npc.currentGoToNpc = p;
+  npc.currentGoTo    = nullptr;
   if(p==nullptr)
     return false;
   float len = npc.qDistTo(*p);
   if(len<destDist*destDist){
-    currentGoToNpc=nullptr;
+    npc.currentGoToNpc = nullptr;
     return false;
     }
   return true;
   }
 
 void MoveAlgo::aiGoTo(const std::nullptr_t) {
-  currentGoTo   =nullptr;
-  currentGoToNpc=nullptr;
+  //currentGoTo   =nullptr;
+  //currentGoToNpc=nullptr;
   }
 
 bool MoveAlgo::startClimb(JumpCode ani) {
@@ -453,7 +458,7 @@ bool MoveAlgo::startClimb(JumpCode ani) {
   }
 
 bool MoveAlgo::hasGoTo() const {
-  return currentGoTo!=nullptr || currentGoToNpc!=nullptr;
+  return npc.currentGoTo!=nullptr || npc.currentGoToNpc!=nullptr;
   }
 
 bool MoveAlgo::isFaling() const {
