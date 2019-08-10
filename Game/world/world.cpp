@@ -201,28 +201,6 @@ const std::string& World::roomAt(const std::array<float,3> &arr) {
 
   const float x=arr[0], y=arr[1], z=arr[2];
 
-  /*
-  for(auto& i:bsp.sectors) {
-    size_t cnt = 0;
-    for(auto r:i.bspNodeIndices) {
-      if(r>=bsp.leafIndices.size())
-        break;
-      size_t idx = bsp.leafIndices[r];
-      if(idx>=bsp.nodes.size())
-        break;
-      const ZenLoad::zCBspNode& node = bsp.nodes[idx];
-      const float* v   = node.plane.v;
-      float        sgn = v[0]*x + v[1]*y + v[2]*z - v[3];
-      if(sgn<0)
-        break;
-      }
-
-    if(cnt==i.bspNodeIndices.size()) {
-      return i.name;
-      }
-    }
-  return empty;*/
-
   const ZenLoad::zCBspNode* node=&bsp.nodes[0];
 
   while(true) {
@@ -650,6 +628,7 @@ void World::assignRoomToGuild(const std::string &r, int32_t guildId) {
 
   if(auto rx=portalAt(room)){
     rx->guild=guildId;
+    return;
     }
 
   Log::d("room not found: ",room);
