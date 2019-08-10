@@ -55,6 +55,10 @@ Core gameplay is done, you can complete first chapter as paladin; mercenary/mage
 ##### Scripting
 Mostly done: [list of scripts api functions](doc/script_api.md)
 
+##### Trigger and MOBSI
+Work in progress.
+[list of mobsi](doc/vob.md)
+
 ##### Mods compatibility
 Mods delivered as *.mod files shoud work, since *.mod contains visual content and scripts.
 Don't expect mods created with AST-SDK to work, since original Gothic and OpenGothic are not binary compatible.
