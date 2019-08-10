@@ -30,7 +30,7 @@ build_script:
 after_build:
   - echo gothic-win32-v%appveyor_build_version% >> VERSION
   - set name="bin/open_gothic.zip"
-  - copy /b/y "build\lib\MoltenTempest\bin\libMoltenTempest.dll" "bin\libMoltenTempest_RelWithDebugInfo.dll"
+  - copy /b/y "build\lib\MoltenTempest\bin\libMoltenTempest.dll" "bin\libMoltenTempest.dll"
   - copy /b/y "C:\Qt\Tools\mingw530_32\bin\libgcc_s_dw2-1.dll"   "bin\libgcc_s_dw2-1.dll"
   - copy /b/y "C:\Qt\Tools\mingw530_32\bin\libstdc++-6.dll"      "bin\libstdc++-6.dll"
   - copy /b/y "C:\Qt\Tools\mingw530_32\bin\libwinpthread-1.dll"  "bin\libwinpthread-1.dll"
