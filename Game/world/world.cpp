@@ -657,8 +657,10 @@ void World::assignRoomToGuild(const std::string &r, int32_t guildId) {
 
 int32_t World::guildOfRoom(const std::array<float,3> &pos) {
   const std::string& tg = roomAt(pos);
-  if(auto room=portalAt(tg))
-    return room->guild;
+  if(auto room=portalAt(tg)) {
+    if(room->guild==GIL_PUBLIC) //FIXME: proper portal implementation
+      return room->guild;
+    }
   return GIL_NONE;
   }
 
