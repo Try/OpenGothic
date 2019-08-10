@@ -2182,6 +2182,8 @@ std::vector<GameScript::DlgChoise> Npc::dialogChoises(Npc& player,const std::vec
   }
 
 void Npc::aiLookAt(Npc *other) {
+  if(aiActions.size()>0 && aiActions.back().act==AI_LookAt)
+    return;
   AiAction a;
   a.act    = AI_LookAt;
   a.target = other;

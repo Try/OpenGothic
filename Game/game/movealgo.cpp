@@ -323,10 +323,7 @@ std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt) {
     float dz   = npc.currentGoTo->z-npc.position()[2];
     float qLen = (dx*dx+dz*dz);
 
-    if(qLen<=qSpeed || qLen<closeToPointThreshold*closeToPointThreshold){
-      npc.currentGoTo=nullptr;
-      //npc.setAnim(AnimationSolver::Idle);
-      } else {
+    if(qLen>qSpeed && qLen>=closeToPointThreshold*closeToPointThreshold){
       npc.setAnim(AnimationSolver::Move);
       }
     if(qSpeed>0.01f){
