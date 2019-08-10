@@ -35,25 +35,19 @@ bool MoveAlgo::tryMove(float x,float y,float z) {
 
 bool MoveAlgo::tickSlide(uint64_t dt) {
   float fallThreshold = stepHeight();
+  auto  pos           = npc.position();
 
-  if(isInAir() || npc.isFlyAnim())
+  if(!testSlide(pos[0],pos[1]+fallThreshold,pos[2])) {
+    setAsSlide(false);
     return false;
+    }
 
-  auto  pos    = npc.position();
   auto  norm   = normalRay(pos[0],pos[1]+fallThreshold,pos[2]);
   // check ground
   float pY     = pos[1];
   bool  valid  = false;
   auto  ground = dropRay(pos[0], pos[1]+fallThreshold, pos[2], valid);
   float dY     = pY-ground;
-
-  const float slideBegin = slideAngle();
-  const float slideEnd   = slideAngle2();
-
-  if(!(slideEnd<norm[1] && norm[1]<slideBegin)) { // sliding
-    setAsSlide(false);
-    return false;
-    }
 
   if(dY>fallThreshold*2) {
     fallSpeed[0] *=2;
@@ -245,8 +239,10 @@ void MoveAlgo::tick(uint64_t dt) {
     setAsSlide(false);
     }
   else if(0.f<=dY && dY<fallThreshold) {
-    if(tickSlide(dt))
+    if(testSlide(pos[0]+dp[0], pos[1]+dp[1]+fallThreshold, pos[2]+dp[2])) {
+      setAsSlide(true);
       return;
+      }
     // move down the ramp
     if(!tryMove(dp[0],-dY,dp[2])){
       if(!tryMove(dp[0],dp[1],dp[2]))
@@ -256,8 +252,10 @@ void MoveAlgo::tick(uint64_t dt) {
     setAsSlide(false);
     }
   else if(-fallThreshold<dY && dY<0.f) {
-    if(tickSlide(dt))
+    if(testSlide(pos[0]+dp[0], pos[1]+dp[1]+fallThreshold, pos[2]+dp[2])) {
+      setAsSlide(true);
       return;
+      }
     // move up the ramp
     if(!tryMove(dp[0],-dY,dp[2]))
       onMoveFailed();
@@ -358,6 +356,21 @@ std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt) {
   return dp;
   }
 
+bool MoveAlgo::testSlide(float x,float y,float z) const {
+  if(isInAir() || npc.isFlyAnim())
+    return false;
+
+  auto  norm             = normalRay(x,y,z);
+  // check ground
+  const float slideBegin = slideAngle();
+  const float slideEnd   = slideAngle2();
+
+  if(!(slideEnd<norm[1] && norm[1]<slideBegin)) {
+    return false;
+    }
+  return true;
+  }
+
 float MoveAlgo::stepHeight() const {
   auto gl = npc.guild();
   auto v  = npc.world().script().guildVal().step_height[gl];
@@ -426,11 +439,6 @@ bool MoveAlgo::aiGoTo(Npc *p,float destDist) {
     return false;
     }
   return true;
-  }
-
-void MoveAlgo::aiGoTo(const std::nullptr_t) {
-  //currentGoTo   =nullptr;
-  //currentGoToNpc=nullptr;
   }
 
 bool MoveAlgo::startClimb(JumpCode ani) {
@@ -562,7 +570,7 @@ void MoveAlgo::onMoveFailed() {
   }
 
 float MoveAlgo::dropRay(float x, float y, float z, bool &hasCol) const {
-  static const float eps = 0.001f;
+  static const float eps = 0.1f; // 1milimeter
 
   if(std::fabs(cache.x-x)>eps || std::fabs(cache.y-y)>eps || std::fabs(cache.z-z)>eps) {
     auto ret         = npc.world().physic()->dropRay(x,y,z);
@@ -571,13 +579,20 @@ float MoveAlgo::dropRay(float x, float y, float z, bool &hasCol) const {
     cache.z          = z;
     cache.hasCol     = ret.hasCol;
     cache.rayCastRet = ret.y();
+    if(ret.hasCol) {
+      // store also normal
+      cache.nx   = x;
+      cache.ny   = y;
+      cache.nz   = z;
+      cache.norm = ret.n;
+      }
     }
   hasCol = cache.hasCol;
   return cache.rayCastRet;
   }
 
 float MoveAlgo::waterRay(float x, float y, float z) const {
-  static const float eps = 0.001f;
+  static const float eps = 0.1f;
 
   if(std::fabs(cache.wx-x)>eps || std::fabs(cache.wy-y)>eps || std::fabs(cache.wz-z)>eps) {
     auto ret     = npc.world().physic()->waterRay(x,y,z);

@@ -100,6 +100,7 @@ class DynamicWorld final {
 
     struct RayResult final {
       std::array<float,3> v={};
+      std::array<float,3> n={};
       uint8_t             mat    = 0;
       Category            colCat = C_Null;
       bool                hasCol = 0;

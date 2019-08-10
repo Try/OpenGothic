@@ -32,7 +32,6 @@ class MoveAlgo final {
     auto aiGoTarget() -> const WayPoint*;
     bool aiGoTo(const WayPoint* p);
     bool aiGoTo(Npc *p, float destDist);
-    void aiGoTo(const std::nullptr_t p);
     bool startClimb(JumpCode ani);
     bool hasGoTo() const;
 
@@ -75,6 +74,7 @@ class MoveAlgo final {
     void   applyRotation(std::array<float,3> &out, float *in) const;
     auto   animMoveSpeed(uint64_t dt) const -> std::array<float,3>;
     auto   npcMoveSpeed (uint64_t dt) -> std::array<float,3>;
+    bool   testSlide(float x, float y, float z) const;
 
     float  stepHeight()  const;
     float  slideAngle()  const;

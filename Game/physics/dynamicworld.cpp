@@ -388,7 +388,6 @@ DynamicWorld::RayResult DynamicWorld::implWaterRay(float x0, float y0, float z0,
                        waterBody->getCollisionShape(),
                        waterBody->getWorldTransform(),
                        callback);
-  // rayTest(s,e,callback);
 
   if(callback.hasHit()){
     x1 = callback.m_hitPointWorld.x();
@@ -397,7 +396,7 @@ DynamicWorld::RayResult DynamicWorld::implWaterRay(float x0, float y0, float z0,
     } else {
     y1 = y0-worldHeight;
     }
-  return RayResult{{x1,y1,z1},callback.matId,callback.colCat,callback.hasHit()};
+  return RayResult{{x1,y1,z1},{0,1,0},callback.matId,callback.colCat,callback.hasHit()};
   }
 
 DynamicWorld::RayResult DynamicWorld::ray(float x0, float y0, float z0, float x1, float y1, float z1) const {
@@ -432,14 +431,20 @@ DynamicWorld::RayResult DynamicWorld::ray(float x0, float y0, float z0, float x1
   callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
 
   rayTest(s,e,callback);
-  //hasCol = callback.hasHit();
 
+  float nx=0,ny=1,nz=0;
   if(callback.hasHit()){
     x1 = callback.m_hitPointWorld.x();
     y1 = callback.m_hitPointWorld.y();
     z1 = callback.m_hitPointWorld.z();
+    if(callback.colCat==DynamicWorld::C_Landscape) {
+      nx = callback.m_hitNormalWorld.x();
+      ny = callback.m_hitNormalWorld.y();
+      nz = callback.m_hitNormalWorld.z();
+      }
     }
-  return RayResult{{x1,y1,z1},callback.matId,callback.colCat,callback.hasHit()};
+  return RayResult{{x1,y1,z1},{nx,ny,nz},
+                   callback.matId,callback.colCat,callback.hasHit()};
   }
 
 float DynamicWorld::soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const {

@@ -553,7 +553,7 @@ class Npc final {
 
     bool                           implLookAt (uint64_t dt);
     bool                           implLookAt (const Npc& oth,uint64_t dt);
-    bool                           implLookAt (float dx, float dz, bool anim, uint64_t dt);
+    bool                           implLookAt (float dx, float dz, int noAniAngle, uint64_t dt);
     bool                           implGoTo   (uint64_t dt);
     bool                           implAtack  (uint64_t dt);
     bool                           implAiTick (uint64_t dt);

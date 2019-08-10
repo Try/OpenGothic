@@ -846,13 +846,13 @@ bool Npc::implLookAt(uint64_t dt) {
 bool Npc::implLookAt(const Npc &oth, uint64_t dt) {
   auto dx = oth.x-x;
   auto dz = oth.z-z;
-  if(implLookAt(dx,dz,true,dt))
+  if(implLookAt(dx,dz,360,dt))
     return true;
   currentLookAt=nullptr;
   return false;
   }
 
-bool Npc::implLookAt(float dx, float dz, bool anim, uint64_t dt) {
+bool Npc::implLookAt(float dx, float dz, int noAniAngle, uint64_t dt) {
   auto  gl   = std::min<uint32_t>(guild(),GIL_MAX);
   float step = owner.script().guildVal().turn_speed[gl]*(dt/1000.f)*60.f/100.f;
 
@@ -873,6 +873,7 @@ bool Npc::implLookAt(float dx, float dz, bool anim, uint64_t dt) {
     return false;
     }
 
+  bool anim = std::abs(int(da)%180)<=noAniAngle;
   const auto sgn = std::sin(double(da)*M_PI/180.0);
   if(animation.current==Anim::MoveR || animation.current==Anim::MoveL)
     anim=false;
@@ -900,9 +901,9 @@ bool Npc::implGoTo(uint64_t dt) {
     float dx = currentGoTo->x-x;
     float dz = currentGoTo->z-z;
 
-    bool needToRot = true;//(walkMode()!=WalkBit::WM_Run && anim()==Anim::Move);
-    if(implLookAt(dx,dz,needToRot,dt)){ // TODO: force rotation, if angle > 45deg
-      mvAlgo.aiGoTo(nullptr);
+    bool needToRot = (walkMode()!=WalkBit::WM_Run && anim()==Anim::Move) ? 45 : 0;
+    if(implLookAt(dx,dz,needToRot,dt)){
+      mvAlgo.tick(dt);
       return true;
       }
 
@@ -925,7 +926,7 @@ bool Npc::implGoTo(uint64_t dt) {
     float dx = currentGoToNpc->x-x;
     float dz = currentGoToNpc->z-z;
 
-    if(implLookAt(dx,dz,true,dt))
+    if(implLookAt(dx,dz,360,dt))
       return true;
     if(!mvAlgo.aiGoTo(currentGoToNpc,400)) {
       if(isStanding())
@@ -1411,7 +1412,7 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_AlignToFp:{
       if(auto fp = currentFp){
         if((fp->dirX!=0 || fp->dirZ!=0) && currentTarget==nullptr){
-          if(implLookAt(fp->dirX,fp->dirZ,true,dt))
+          if(implLookAt(fp->dirX,fp->dirZ,360,dt))
             aiActions.push_front(std::move(act));
           }
         }
@@ -1714,7 +1715,7 @@ Item *Npc::currentRangeWeapon() {
   }
 
 bool Npc::lookAt(float dx, float dz, bool anim, uint64_t dt) {
-  return implLookAt(dx,dz,anim,dt);
+  return implLookAt(dx,dz,anim ? 360 : 0,dt);
   }
 
 bool Npc::playAnimByName(const std::string &name) {
