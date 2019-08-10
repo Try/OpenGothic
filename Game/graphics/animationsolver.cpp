@@ -295,6 +295,27 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
       }
     }
 
+  if((cur==Anim::UnconsciousA || cur==Anim::UnconsciousB) && a==Anim::DeadA)
+    return solveDead("T_WOUNDEDB_2_DEAD","T_WOUNDED_2_DEADB");
+  if(cur!=Anim::DeadA && a==Anim::DeadA)
+    return solveDead("T_DEAD","T_DEADB");
+  if(a==Anim::DeadA)
+    return solveDead("S_DEAD","S_DEADB");
+
+  if((cur==Anim::UnconsciousA || cur==Anim::UnconsciousB) && a==Anim::DeadB)
+    return solveDead("T_WOUNDEDB_2_DEADB","T_WOUNDED_2_DEAD");
+  if(cur!=Anim::DeadB && a==Anim::DeadB)
+    return solveDead("T_DEADB","T_DEAD");
+  if(a==Anim::DeadB)
+    return solveDead("S_DEADB","S_DEAD");
+
+  if(cur!=Anim::UnconsciousA && a==Anim::UnconsciousA)
+    return animSequence("T_STAND_2_WOUNDED");
+  if(cur==Anim::UnconsciousA && a==Anim::Idle)
+    return animSequence("T_WOUNDED_2_STAND");
+  if(a==Anim::UnconsciousA)
+    return animSequence("S_WOUNDED");
+
   if(true) {
     if(st0==WeaponState::Fist && st==WeaponState::NoWeapon)
       return animSequence("T_FISTMOVE_2_MOVE");
@@ -507,27 +528,6 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     return animSequence("T_SLEEP_2_STAND");
   if(a==Anim::Sleep)
     return animSequence("S_SLEEP");
-
-  if((cur==Anim::UnconsciousA || cur==Anim::UnconsciousB) && a==Anim::DeadA)
-    return solveDead("T_WOUNDEDB_2_DEAD","T_WOUNDED_2_DEADB");
-  if(cur!=Anim::DeadA && a==Anim::DeadA)
-    return solveDead("T_DEAD","T_DEADB");
-  if(a==Anim::DeadA)
-    return solveDead("S_DEAD","S_DEADB");
-
-  if((cur==Anim::UnconsciousA || cur==Anim::UnconsciousB) && a==Anim::DeadB)
-    return solveDead("T_WOUNDEDB_2_DEADB","T_WOUNDED_2_DEAD");
-  if(cur!=Anim::DeadB && a==Anim::DeadB)
-    return solveDead("T_DEADB","T_DEAD");
-  if(a==Anim::DeadB)
-    return solveDead("S_DEADB","S_DEAD");
-
-  if(cur!=Anim::UnconsciousA && a==Anim::UnconsciousA)
-    return animSequence("T_STAND_2_WOUNDED");
-  if(cur==Anim::UnconsciousA && a==Anim::Idle)
-    return animSequence("T_WOUNDED_2_STAND");
-  if(a==Anim::UnconsciousA)
-    return animSequence("S_WOUNDED");
 
   if(cur!=Anim::UnconsciousB && a==Anim::UnconsciousB)
     return animSequence("T_STAND_2_WOUNDEDB");

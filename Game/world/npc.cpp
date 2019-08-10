@@ -382,7 +382,7 @@ bool Npc::checkHealth(bool onChange) {
     if(onChange && currentOther!=nullptr) {
       // currentOther must be externaly initialized
       if(owner.script().personAttitude(*this,*currentOther)==ATT_HOSTILE || guild()>GIL_SEPERATOR_HUM){
-        if(hnpc.attribute[ATR_HITPOINTS]<=0){
+        if(hnpc.attribute[ATR_HITPOINTS]<=0) {
           size_t fdead=owner.getSymbolIndex("ZS_Dead");
           animation.resetAni();
           startState(fdead,"");
