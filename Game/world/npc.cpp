@@ -49,6 +49,12 @@ Npc::Npc(World &owner, Serialize &fin)
   invent.load(*this,fin);
   fin.read(lastHitType,lastHitSpell);
   loadAiState(fin);
+
+  fin.read(reinterpret_cast<uint8_t&>(currentGoToFlag),currentGoTo,currentFp,currentFpLock);
+  wayPath.load(fin);
+
+  mvAlgo.load(fin);
+  fghAlgo.load(fin);
   fin.read(fghLastEventTime);
   }
 
@@ -75,6 +81,12 @@ void Npc::save(Serialize &fout) {
   invent.save(fout);
   fout.write(lastHitType,lastHitSpell);
   saveAiState(fout);
+
+  fout.write(uint8_t(currentGoToFlag),currentGoTo,currentFp,currentFpLock);
+  wayPath.save(fout);
+
+  mvAlgo.save(fout);
+  fghAlgo.save(fout);
   fout.write(fghLastEventTime);
   }
 
@@ -125,44 +137,36 @@ void Npc::saveAiState(Serialize& fout) const {
   fout.write(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
   fout.write(aiPrevState);
 
-  fout.write(uint32_t(routines.size()));
-  for(auto& i:routines){
-    fout.write(i.start,i.end,i.callback);
-    fout.write(i.point ? i.point->name : "");
-    }
-
   fout.write(uint32_t(aiActions.size()));
   for(auto& i:aiActions){
     fout.write(uint32_t(i.act));
-    fout.write(i.point ? i.point->name : "");
-    fout.write(i.func,i.i0,i.s0);
+    fout.write(i.point,i.func,i.i0,i.s0);
+    }
+
+  fout.write(uint32_t(routines.size()));
+  for(auto& i:routines){
+    fout.write(i.start,i.end,i.callback,i.point);
     }
   }
 
 void Npc::loadAiState(Serialize& fin) {
   size_t      size=0;
-  std::string str;
 
   fin.read(waitTime,faiWaitTime,reinterpret_cast<uint8_t&>(aiPolicy));
   fin.read(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
   fin.read(aiPrevState);
 
   fin.read(size);
-  routines.resize(size);
-  for(auto& i:routines){
-    fin.read(i.start,i.end,i.callback);
-    fin.read(str);
-    i.point = owner.findPoint(str);
-    }
-
-  fin.read(size);
   aiActions.resize(size);
   for(auto& i:aiActions){
     fin.read(reinterpret_cast<uint32_t&>(i.act));
-    fin.read(str);
-    fin.read(i.func,i.i0,i.s0);
+    fin.read(i.point,i.func,i.i0,i.s0);
+    }
 
-    i.point = owner.findPoint(str);
+  fin.read(size);
+  routines.resize(size);
+  for(auto& i:routines){
+    fin.read(i.start,i.end,i.callback,i.point);
     }
   }
 

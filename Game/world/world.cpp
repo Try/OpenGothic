@@ -108,6 +108,7 @@ void World::postInit() {
   }
 
 void World::load(Serialize &fin) {
+  fin.setContext(this);
   wobj.load(fin);
 
   uint32_t sz=0;
@@ -126,6 +127,7 @@ void World::load(Serialize &fin) {
   }
 
 void World::save(Serialize &fout) {
+  fout.setContext(this);
   fout.write(wname);
   wobj.save(fout);
 

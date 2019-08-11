@@ -1,6 +1,8 @@
 #include "fplock.h"
 #include "waypoint.h"
 
+#include "game/serialize.h"
+
 FpLock::FpLock() {
   }
 
@@ -31,4 +33,14 @@ FpLock &FpLock::operator=(FpLock &&other) {
   pt = other.pt;
   other.pt=nullptr;
   return *this;
+  }
+
+void FpLock::load(Serialize &fin) {
+  fin.read(pt);
+  if(pt)
+    pt->useCount++;
+  }
+
+void FpLock::save(Serialize &fout) const {
+  fout.write(pt);
   }

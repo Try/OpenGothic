@@ -2,6 +2,9 @@
 
 #include <cstring>
 
+#include "world/world.h"
+#include "world/waypoint.h"
+
 const char Serialize::tag[]="OpenGothic/Save";
 
 Serialize::Serialize(Tempest::ODevice & d):out(&d) {
@@ -41,4 +44,21 @@ void Serialize::read(std::string &s) {
   s.resize(sz);
   if(sz>0)
     readBytes(&s[0],sz);
+  }
+
+void Serialize::write(const WayPoint *wptr) {
+  write(wptr ? wptr->name : "");
+  }
+
+void Serialize::read(const WayPoint *&wptr) {
+  read(tmpStr);
+  wptr = ctx->findPoint(tmpStr);
+  }
+
+void Serialize::write(const FpLock &fp) {
+  fp.save(*this);
+  }
+
+void Serialize::read(FpLock &fp) {
+  fp.load(*this);
   }

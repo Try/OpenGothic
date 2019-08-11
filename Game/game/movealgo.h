@@ -9,6 +9,7 @@
 class Npc;
 class World;
 class WayPoint;
+class Serialize;
 
 class MoveAlgo final {
   public:
@@ -22,6 +23,9 @@ class MoveAlgo final {
       };
 
     void tick(uint64_t dt);
+    void load(Serialize& fin);
+    void save(Serialize& fout) const;
+
     void multSpeed(float s){ mulSpeed=s; }
     void clearSpeed();
     void accessDamFly(float dx,float dz);

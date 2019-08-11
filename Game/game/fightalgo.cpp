@@ -2,8 +2,23 @@
 
 #include "world/npc.h"
 #include "world/item.h"
+#include "serialize.h"
 
 FightAlgo::FightAlgo() {
+  }
+
+void FightAlgo::load(Serialize &fin) {
+  fin.read(reinterpret_cast<int32_t&>(queueId));
+  for(int i=0;i<MV_MAX;++i)
+    fin.read(reinterpret_cast<uint8_t&>(tr[i]));
+  fin.read(hitFlg);
+  }
+
+void FightAlgo::save(Serialize &fout) {
+  fout.write(int32_t(queueId));
+  for(int i=0;i<MV_MAX;++i)
+    fout.write(uint8_t(tr[i]));
+  fout.write(hitFlg);
   }
 
 void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {

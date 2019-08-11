@@ -611,9 +611,9 @@ class Npc final {
     Inventory                      invent;
 
     // last hit
-    Npc*                           lastHit        =nullptr;
-    char                           lastHitType    ='A';
-    int32_t                        lastHitSpell  =0;
+    Npc*                           lastHit      = nullptr;
+    char                           lastHitType  = 'A';
+    int32_t                        lastHitSpell = 0;
 
     // ai state
     uint64_t                       waitTime=0;
@@ -636,8 +636,8 @@ class Npc final {
     GoToHint                       currentGoToFlag=GoToHint::GT_Default;
     const WayPoint*                currentGoTo    =nullptr;
     const WayPoint*                currentFp      =nullptr;
-    WayPath                        wayPath;
     FpLock                         currentFpLock;
+    WayPath                        wayPath;
 
     MoveAlgo                       mvAlgo;
     FightAlgo                      fghAlgo;

@@ -6,9 +6,14 @@
 
 #include <stdexcept>
 #include <vector>
+#include <array>
 
 #include "gametime.h"
 #include "constants.h"
+
+class WayPoint;
+class World;
+class FpLock;
 
 class Serialize final {
   public:
@@ -19,6 +24,8 @@ class Serialize final {
     Serialize(Serialize&&)=default;
 
     static Serialize empty();
+
+    void setContext(World* ctx) { this->ctx=ctx; }
 
     template<class T>
     T read(){ T t; read(t); return t; }
@@ -71,6 +78,12 @@ class Serialize final {
     void write(const std::string&              s);
     void read (std::string&                    s);
 
+    void write(const WayPoint*  wptr);
+    void read (const WayPoint*& wptr);
+
+    void write(const FpLock& fp);
+    void read (FpLock& fp);
+
     template<class T>
     void write(const std::vector<T>& s) {
       uint32_t sz=s.size();
@@ -112,6 +125,17 @@ class Serialize final {
     template<size_t sz>
     void read (float (&s)[sz]) { readArr(s); }
 
+
+    template<size_t sz>
+    void write(const std::array<float,sz>& v) {
+      writeBytes(&v[0],sz);
+      }
+
+    template<size_t sz>
+    void read (std::array<float,sz>& v) {
+      readBytes(&v[0],sz);
+      }
+
   private:
     Serialize();
 
@@ -139,4 +163,6 @@ class Serialize final {
     Tempest::ODevice* out=nullptr;
     Tempest::IDevice* in =nullptr;
     uint16_t          ver=Version;
+    World*            ctx=nullptr;
+    std::string       tmpStr;
   };

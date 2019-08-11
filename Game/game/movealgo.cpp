@@ -1,4 +1,5 @@
 #include "movealgo.h"
+#include "serialize.h"
 
 #include "world/world.h"
 #include "world/npc.h"
@@ -8,6 +9,18 @@ const float MoveAlgo::gravity              =100*9.8f;
 
 MoveAlgo::MoveAlgo(Npc& unit)
   :npc(unit) {
+  }
+
+void MoveAlgo::load(Serialize &fin) {
+  fin.read(reinterpret_cast<uint32_t&>(flags));
+  fin.read(mulSpeed,fallSpeed,fallCount,climbStart,climbPos0,climbHeight);
+  fin.read(reinterpret_cast<uint8_t&>(jmp));
+  }
+
+void MoveAlgo::save(Serialize &fout) const {
+  fout.write(uint32_t(flags));
+  fout.write(mulSpeed,fallSpeed,fallCount,climbStart,climbPos0,climbHeight);
+  fout.write(uint8_t(jmp));
   }
 
 void MoveAlgo::tickMobsi(uint64_t dt) {

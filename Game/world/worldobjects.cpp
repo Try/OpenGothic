@@ -98,8 +98,6 @@ void WorldObjects::tick(uint64_t dt) {
       continue;
     float dist = pl->qDistTo(*i);
     i->perceptionProcess(*pl,dist);
-    if(guild!=Guild::GIL_NONE)
-      ;//i->perceptionProcess(*pl,nullptr,dist,Npc::PERC_ASSESSENTERROOM);
     }
   }
 

@@ -3,10 +3,14 @@
 #include <vector>
 
 class WayPoint;
+class Serialize;
 
 class WayPath final {
   public:
     WayPath();
+
+    void load(Serialize& fin);
+    void save(Serialize& fout);
 
     void add(const WayPoint& p){ dat.push_back(&p); }
     void clear();

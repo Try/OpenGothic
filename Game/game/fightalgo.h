@@ -6,10 +6,14 @@
 
 class Npc;
 class GameScript;
+class Serialize;
 
 class FightAlgo final {
   public:
     FightAlgo();
+
+    void load(Serialize& fin);
+    void save(Serialize& fout);
 
     enum Action : uint8_t {
       MV_NULL     = 0,
