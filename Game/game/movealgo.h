@@ -22,9 +22,10 @@ class MoveAlgo final {
       JM_Up,
       };
 
-    void tick(uint64_t dt);
     void load(Serialize& fin);
     void save(Serialize& fout) const;
+
+    void tick(uint64_t dt,bool fai=false);
 
     void multSpeed(float s){ mulSpeed=s; }
     void clearSpeed();
@@ -78,7 +79,7 @@ class MoveAlgo final {
     void   onMoveFailed();
     void   applyRotation(std::array<float,3> &out, float *in) const;
     auto   animMoveSpeed(uint64_t dt) const -> std::array<float,3>;
-    auto   npcMoveSpeed (uint64_t dt) -> std::array<float,3>;
+    auto   npcMoveSpeed (uint64_t dt,bool fai) -> std::array<float,3>;
     auto   go2NpcMoveSpeed (const std::array<float,3> &dp, const Npc &tg) -> std::array<float,3>;
     auto   go2WpMoveSpeed  (std::array<float,3> dp, float x, float z) -> std::array<float,3>;
     bool   testSlide(float x, float y, float z) const;
@@ -119,4 +120,5 @@ class MoveAlgo final {
 
     static const float closeToPointThreshold;
     static const float gravity;
+    static const float eps;
   };

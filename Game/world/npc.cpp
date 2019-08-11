@@ -877,7 +877,7 @@ bool Npc::implLookAt(float dx, float dz, int noAniAngle, uint64_t dt) {
     return false;
     }
 
-  bool anim = std::abs(int(da)%180)<=noAniAngle;
+  bool anim = std::abs(int(da)%180)>noAniAngle;
   const auto sgn = std::sin(double(da)*M_PI/180.0);
   if(animation.current==Anim::MoveR || animation.current==Anim::MoveL)
     anim=false;
@@ -905,7 +905,7 @@ bool Npc::implGoTo(uint64_t dt) {
     float dx = currentGoTo->x-x;
     float dz = currentGoTo->z-z;
 
-    bool needToRot = (walkMode()!=WalkBit::WM_Run && anim()==Anim::Move) ? 45 : 0;
+    int needToRot = (walkMode()!=WalkBit::WM_Run && anim()==Anim::Move) ? 45 : 0;
     if(implLookAt(dx,dz,needToRot,dt)){
       mvAlgo.tick(dt);
       return true;
@@ -922,6 +922,7 @@ bool Npc::implGoTo(uint64_t dt) {
       }
 
     if(mvAlgo.hasGoTo()) {
+      setAnim(AnimationSolver::Move);
       mvAlgo.tick(dt);
       return true;
       }
@@ -938,6 +939,7 @@ bool Npc::implGoTo(uint64_t dt) {
       }
 
     if(mvAlgo.hasGoTo()) {
+      setAnim(AnimationSolver::Move);
       mvAlgo.tick(dt);
       return true;
       }
@@ -1200,11 +1202,13 @@ void Npc::tick(uint64_t dt) {
     return;
     }
 
-  if(waitTime>=owner.tickCount())
+  if(waitTime>=owner.tickCount()) {
+    mvAlgo.tick(dt);
     return;
+    }
 
   if(implAtack(dt)) {
-    mvAlgo.tick(dt);
+    mvAlgo.tick(dt,true);
     return;
     }
 

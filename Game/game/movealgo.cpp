@@ -4,8 +4,9 @@
 #include "world/world.h"
 #include "world/npc.h"
 
-const float MoveAlgo::closeToPointThreshold=50;
-const float MoveAlgo::gravity              =100*9.8f;
+const float MoveAlgo::closeToPointThreshold = 50;
+const float MoveAlgo::gravity               = 100*9.8f;
+const float MoveAlgo::eps                   = 1.f; // 1-milimeter
 
 MoveAlgo::MoveAlgo(Npc& unit)
   :npc(unit) {
@@ -39,7 +40,6 @@ void MoveAlgo::tickMobsi(uint64_t dt) {
 
 bool MoveAlgo::tryMove(float x,float y,float z) {
   if(npc.isStanding() && !isSlide() && !isFaling()) {
-    static const float eps = 1.f;
     if(std::fabs(x)<eps && std::fabs(y)<eps && std::fabs(z)<eps)
       return true;
     }
@@ -172,7 +172,7 @@ void MoveAlgo::tickClimb(uint64_t dt) {
   }
 
 void MoveAlgo::tickSwim(uint64_t dt) {
-  auto  dp            = npcMoveSpeed(dt);
+  auto  dp            = npcMoveSpeed(dt,false);
   auto  pos           = npc.position();
   float pY            = pos[1];
   float fallThreshold = stepHeight();
@@ -198,7 +198,7 @@ void MoveAlgo::tickSwim(uint64_t dt) {
   tryMove(dp[0],water-pY,dp[2]);
   }
 
-void MoveAlgo::tick(uint64_t dt) {
+void MoveAlgo::tick(uint64_t dt, bool fai) {
   if(npc.interactive()!=nullptr)
     return tickMobsi(dt);
 
@@ -219,7 +219,7 @@ void MoveAlgo::tick(uint64_t dt) {
       return;
     }
 
-  auto  dp            = npcMoveSpeed(dt);
+  auto  dp            = npcMoveSpeed(dt,fai);
   auto  pos           = npc.position();
   float pY            = pos[1];
   float fallThreshold = stepHeight();
@@ -326,18 +326,20 @@ std::array<float,3> MoveAlgo::animMoveSpeed(uint64_t dt) const {
   return ret;
   }
 
-std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt) {
+std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt,bool fai) {
   std::array<float,3> dp = animMoveSpeed(dt);
   if(!npc.isFlyAnim())
     dp[1] = 0.f;
 
-  if(npc.currentTarget!=nullptr && !npc.isPlayer() && !npc.currentTarget->isDown()) {
-    /* don't, controlled by FAI
-      if(npc.checkGoToNpcdistance(*npc.currentTarget))
-        return {};
-       npc.setAnim(AnimationSolver::Move);
-       */
-    return go2NpcMoveSpeed(dp,*npc.currentTarget);
+  if(fai) {
+    if(npc.currentTarget!=nullptr && !npc.isPlayer() && !npc.currentTarget->isDown()) {
+      /* don't, controlled by FAI
+        if(npc.checkGoToNpcdistance(*npc.currentTarget))
+          return {};
+         npc.setAnim(AnimationSolver::Move);
+         */
+      return go2NpcMoveSpeed(dp,*npc.currentTarget);
+      }
     }
 
   if(npc.currentGoToNpc) {
@@ -345,12 +347,10 @@ std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt) {
       npc.currentGoToNpc=nullptr;
       return {};
       }
-    npc.setAnim(AnimationSolver::Move);
     return go2NpcMoveSpeed(dp,*npc.currentTarget);
     }
 
   if(npc.currentGoTo) {
-    npc.setAnim(AnimationSolver::Move);
     return go2WpMoveSpeed(dp,npc.currentGoTo->x,npc.currentGoTo->z);
     }
 
@@ -600,8 +600,6 @@ void MoveAlgo::onMoveFailed() {
   }
 
 float MoveAlgo::dropRay(float x, float y, float z, bool &hasCol) const {
-  static const float eps = 0.1f; // 1milimeter
-
   if(std::fabs(cache.x-x)>eps || std::fabs(cache.y-y)>eps || std::fabs(cache.z-z)>eps) {
     auto ret         = npc.world().physic()->dropRay(x,y,z);
     cache.x          = x;
@@ -635,8 +633,6 @@ float MoveAlgo::waterRay(float x, float y, float z) const {
   }
 
 std::array<float,3> MoveAlgo::normalRay(float x, float y, float z) const {
-  static const float eps = 0.1f;
-
   if(std::fabs(cache.nx-x)>eps || std::fabs(cache.ny-y)>eps || std::fabs(cache.nz-z)>eps){
     cache.nx   = x;
     cache.ny   = y;
