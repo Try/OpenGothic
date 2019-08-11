@@ -407,20 +407,20 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 | PERC_ASSESSFIGHTER | ? | Not implemented | 3
 | PERC_ASSESSBODY | ? | Not implemented | 4
 | PERC_ASSESSITEM | ? | Not implemented | 5
-| PERC_ASSESSMURDER | ? | Not implemented | 6
-| PERC_ASSESSDEFEAT | ? | Not implemented | 7
+| PERC_ASSESSMURDER | other was killed | Done | 6
+| PERC_ASSESSDEFEAT | npc fall in unconscious | Done | 7
 | PERC_ASSESSDAMAGE | 'npc' receive damage | Done | 8
-| PERC_ASSESSOTHERSDAMAGE | ? | Not implemented | 9
+| PERC_ASSESSOTHERSDAMAGE | 'npc' nearby receives damage | Done | 9
 | PERC_ASSESSTHREAT | ? | Not implemented | 10
 | PERC_ASSESSREMOVEWEAPON | ? | Not implemented | 11
 | PERC_OBSERVEINTRUDER | ? | Not implemented | 12
-| PERC_ASSESSFIGHTSOUND | ? | Not implemented | 13
+| PERC_ASSESSFIGHTSOUND | fight happening nearby | Done | 13
 | PERC_ASSESSQUIETSOUND | ? | Not implemented | 14
 | PERC_ASSESSWARN | ? | Not implemented | 15
 | PERC_CATCHTHIEF | ? | Not implemented | 16
 | PERC_ASSESSTHEFT | ? | Not implemented | 17
 | PERC_ASSESSCALL | ? | Not implemented | 18
-| PERC_ASSESSTALK | ? | Not implemented | 19
+| PERC_ASSESSTALK | player want's to start dialog | Done | 19
 | PERC_ASSESSGIVENITEM | ? | Not implemented | 20
 | PERC_ASSESSFAKEGUILD | ? | Not implemented | 21
 | PERC_MOVEMOB | ? | Not implemented | 22
@@ -433,7 +433,7 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 | PERC_ASSESSCASTER | ? | Not implemented | 29
 | PERC_ASSESSSURPRISE | ? | Not implemented | 30
 | PERC_ASSESSENTERROOM | player is inside some room  | Not implemented | 31
-| PERC_ASSESSUSEMOB | ? | Not implemented | 32
+| PERC_ASSESSUSEMOB | other uses any of mobsi objects | Not implemented | 32
 
 * `func void Npc_PercDisable(var C_Npc npc, var int percId)`  
   clear perception callback with 'percId' index for 'npc'.
