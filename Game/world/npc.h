@@ -376,6 +376,7 @@ class Npc final {
 
     auto     inventory() const -> const Inventory& { return invent; }
     size_t   hasItem    (uint32_t id) const;
+    Item*    getItem    (uint32_t id);
     Item*    addItem    (uint32_t id, uint32_t amount);
     Item*    addItem    (std::unique_ptr<Item>&& i);
     void     delItem    (uint32_t id, uint32_t amount);

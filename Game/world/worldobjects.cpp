@@ -82,8 +82,6 @@ void WorldObjects::tick(uint64_t dt) {
     }
   tickNear(dt);
 
-  const int32_t guild = owner.guildOfRoom(pl->position());
-
   for(auto& i:npcArr) {
     if(i->isPlayer())
       continue;
@@ -91,6 +89,8 @@ void WorldObjects::tick(uint64_t dt) {
       if(r.self==i.get())
         continue;
       float l = i->qDistTo(r.x,r.y,r.z);
+      if(r.item!=size_t(-1) && r.other!=nullptr)
+        owner.script().setInstanceItem(*r.other,r.item);
       i->perceptionProcess(*r.other,r.victum,l,Npc::PercType(r.what));
       }
 
@@ -446,6 +446,20 @@ void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t p
   m.self   = &self;
   m.other  = &other;
   m.victum = &victum;
+
+  sndPerc.push_back(m);
+  }
+
+void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &itm, int32_t perc) {
+  PerceptionMsg m;
+  m.what   = perc;
+  m.x      = self.position()[0];
+  m.y      = self.position()[1];
+  m.z      = self.position()[2];
+  m.self   = &self;
+  m.other  = &other;
+  m.victum = &victum;
+  m.item   = itm.handle()->instanceSymbol;
 
   sndPerc.push_back(m);
   }

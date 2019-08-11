@@ -129,6 +129,7 @@ class World final {
     size_t hasItems(const std::string& tag,size_t itemCls);
 
     void   sendPassivePerc (Npc& self,Npc& other,Npc& victum,int32_t perc);
+    void   sendPassivePerc (Npc& self,Npc& other,Npc& victum, Item& item,int32_t perc);
     void   emitWeaponsSound(Npc& self,Npc& other);
     void   emitBlockSound  (Npc& self,Npc& other);
 

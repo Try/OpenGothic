@@ -117,6 +117,11 @@ size_t Inventory::ransackCount() const {
   return c;
   }
 
+Item &Inventory::at(size_t i) {
+  sortItems();
+  return *items[i];
+  }
+
 const Item &Inventory::at(size_t i) const {
   sortItems();
   return *items[i];
@@ -252,6 +257,10 @@ void Inventory::trasfer(Inventory &to, Inventory &from, Npc* fromNpc, size_t ite
       to.addItem(itemSymbol,count,wrld);
       }
     }
+  }
+
+Item *Inventory::getItem(size_t instance) {
+  return findByClass(instance);
   }
 
 bool Inventory::unequip(size_t cls, Npc &owner) {

@@ -1744,6 +1744,10 @@ size_t Npc::hasItem(uint32_t id) const {
   return invent.itemCount(id);
   }
 
+Item *Npc::getItem(uint32_t id) {
+  return invent.getItem(id);
+  }
+
 void Npc::delItem(uint32_t item, uint32_t amount) {
   invent.delItem(item,amount,*this);
   }

@@ -66,6 +66,7 @@ class GameScript final {
     void         removeItem(Item& it);
 
     void         setInstanceNPC(const char* name,Npc& npc);
+    void         setInstanceItem(Npc& holder, size_t itemId);
 
     AiOuputPipe* openAiOuput();
     AiOuputPipe* openDlgOuput(Npc &player, Npc &npc);
@@ -278,6 +279,7 @@ class GameScript final {
     void npc_playani         (Daedalus::DaedalusVM &vm);
     void npc_isdetectedmobownedbynpc(Daedalus::DaedalusVM &vm);
     void npc_getdetectedmob  (Daedalus::DaedalusVM &vm);
+    void npc_ownedbynpc      (Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);

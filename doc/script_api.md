@@ -183,9 +183,8 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 * `func int Npc_HasEquippedArmor(var C_Npc npc)`  
   Returns TRUE, if 'npc' has equipped armor.  
 
-* ![!](ni.png) `func int Npc_OwnedByNpc(var C_Item item, var C_Npc npc)`  
+* `func int Npc_OwnedByNpc(var C_Item item, var C_Npc npc)`  
   Returns TRUE, if 'npc' is owner of 'item'.  
-  Not implemented.
 
 * ![#](nu.png) `func int Npc_OwnedByGuild(var C_Item item, var int guildId)`  
   Returns TRUE, if guild, specified by 'guildId', is owner of 'item'.  
@@ -418,7 +417,7 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 | PERC_ASSESSQUIETSOUND | ? | Not implemented | 14
 | PERC_ASSESSWARN | ? | Not implemented | 15
 | PERC_CATCHTHIEF | ? | Not implemented | 16
-| PERC_ASSESSTHEFT | ? | Not implemented | 17
+| PERC_ASSESSTHEFT | player takes an item | Done | 17
 | PERC_ASSESSCALL | ? | Not implemented | 18
 | PERC_ASSESSTALK | player want's to start dialog | Done | 19
 | PERC_ASSESSGIVENITEM | ? | Not implemented | 20
@@ -494,8 +493,8 @@ Npc_SendPassivePerc(self,PERC_ASSESSFIGHTSOUND,self,other); // calls PERC_ASSESS
   if 'npc' located inside room, return guild assigned for this room.  
   otherwise returns GIL_NONE  
 
-* ![!](ni.png) `func int Npc_IsInPlayersRoom(var C_Npc npc)`  
-  Not implemented.
+* `func int Npc_IsInPlayersRoom(var C_Npc npc)`  
+  Returns TRUE, if 'npc' is in same room as player.
 
 ### missions module
 * ![#](nu.png) `func void Mis_SetStatus(var int missionName, var int newStatus)`  

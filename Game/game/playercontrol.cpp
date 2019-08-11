@@ -42,10 +42,14 @@ bool PlayerControl::interact(Item &item) {
   auto w = world();
   if(w==nullptr || w->player()==nullptr)
     return false;
-  if(w->player()->weaponState()!=WeaponState::NoWeapon)
+  auto pl = w->player();
+  if(pl->weaponState()!=WeaponState::NoWeapon)
     return false;
   std::unique_ptr<Item> ptr {w->takeItem(item)};
-  w->player()->addItem(std::move(ptr));
+  auto it = ptr.get();
+  pl->addItem(std::move(ptr));
+
+  w->sendPassivePerc(*pl,*pl,*pl,*it,Npc::PERC_ASSESSTHEFT);
   return true;
   }
 

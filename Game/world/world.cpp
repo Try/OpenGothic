@@ -459,6 +459,10 @@ void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {
   wobj.sendPassivePerc(self,other,victum,perc);
   }
 
+void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &item, int32_t perc) {
+  wobj.sendPassivePerc(self,other,victum,item,perc);
+  }
+
 void World::emitWeaponsSound(Npc &self, Npc &other) {
   /*
    WO - Wood

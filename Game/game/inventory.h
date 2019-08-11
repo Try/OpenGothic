@@ -57,10 +57,12 @@ class Inventory final {
     size_t       tradableCount() const;
     size_t       ransackCount() const;
     const Item&  at(size_t i) const;
+    Item&        at(size_t i);
     const Item&  atTrade(size_t i) const;
     const Item&  atRansack(size_t i) const;
     static void  trasfer(Inventory& to, Inventory& from, Npc *fromNpc, size_t cls, uint32_t count, World &wrld);
 
+    Item*  getItem(size_t instance);
     Item*  addItem(std::unique_ptr<Item>&& p);
     void   addItem(const char* name, uint32_t count, World &owner);
     Item*  addItem(size_t cls, uint32_t count, World &owner);

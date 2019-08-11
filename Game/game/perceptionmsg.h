@@ -11,4 +11,5 @@ class PerceptionMsg final {
     Npc*    self  =nullptr;
     Npc*    other =nullptr;
     Npc*    victum=nullptr;
+    size_t  item  =size_t(-1);
   };
