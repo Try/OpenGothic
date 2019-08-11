@@ -7,8 +7,8 @@ The goal of this project is to make feature complete Gothic client-app compatibl
 [![version](https://img.shields.io/github/release-pre/Try/opengothic?style=for-the-badge)](https://github.com/Try/opengothic/releases/latest)
 ![Screenshoot](doc/scr0.png)
 ##### Work in progress
-Core gameplay is done, you can complete first chapter as paladin; mercenary/mage are not tested yet.
-[![Build status](https://ci.appveyor.com/api/projects/status/github/Try/opengothic?svg=true)](https://ci.appveyor.com/project/Try/opengothic)
+[![Build status](https://ci.appveyor.com/api/projects/status/github/Try/opengothic?svg=true)](https://ci.appveyor.com/project/Try/opengothic)  
+Core gameplay is done, you can complete first chapter as paladin; mercenary/mage are not tested yet.  
 
 ##### How to play
 1. Install original gothic game from CD/Steam/GOG/etc  
@@ -19,12 +19,12 @@ Core gameplay is done, you can complete first chapter as paladin; mercenary/mage
 ##### Features
 * General
     * Walk - Done
-    * Walk(in water) - Not Implemented
+    * Walk(in water) - Done
     * Run - Done
     * Sneak - Not Implemented
     * Jump - Done
     * Jump(pull-up) - Not Implemented
-    * Swimming - Not Implemented
+    * Swimming - Partial
     * Physic - mostly Done, with Bullet collision. Need small tweaks/tuning
 * Loot
     * Pick an object - Partial(no animation)
