@@ -318,40 +318,47 @@ std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt) {
   if(!npc.isFlyAnim())
     dp[1] = 0.f;
 
-  const float qSpeed = dp[0]*dp[0]+dp[2]*dp[2];
-
-  if(npc.currentGoTo) {
-    float dx   = npc.currentGoTo->x-npc.position()[0];
-    float dz   = npc.currentGoTo->z-npc.position()[2];
-    float qLen = (dx*dx+dz*dz);
-
-    if(qLen>qSpeed && qLen>=closeToPointThreshold*closeToPointThreshold){
-      npc.setAnim(AnimationSolver::Move);
-      }
-    if(qSpeed>0.01f){
-      float k = std::sqrt(std::min(qLen,qSpeed)/qSpeed);
-      dp[0]*=k;
-      dp[2]*=k;
-      }
+  if(npc.currentTarget!=nullptr && !npc.isPlayer() && !npc.currentTarget->isDown()) {
+    /* don't, controlled by FAI
+      if(npc.checkGoToNpcdistance(*npc.currentTarget))
+        return {};
+       npc.setAnim(AnimationSolver::Move);
+       */
+    return go2NpcMoveSpeed(dp,*npc.currentTarget);
     }
-  else if(npc.currentGoToNpc) {
-    float dx   = npc.currentGoToNpc->position()[0]-npc.position()[0];
-    float dz   = npc.currentGoToNpc->position()[2]-npc.position()[2];
-    float qLen = (dx*dx+dz*dz);
 
+  if(npc.currentGoToNpc) {
     if(npc.checkGoToNpcdistance(*npc.currentGoToNpc)){
       npc.currentGoToNpc=nullptr;
-      //npc.setAnim(AnimationSolver::Idle);
-      } else {
-      npc.setAnim(AnimationSolver::Move);
+      return {};
       }
-    if(qSpeed>0.01f){
-      float k = std::sqrt(std::min(qLen,qSpeed)/qSpeed);
-      dp[0]*=k;
-      dp[2]*=k;
-      }
+    npc.setAnim(AnimationSolver::Move);
+    return go2NpcMoveSpeed(dp,*npc.currentTarget);
     }
 
+  if(npc.currentGoTo) {
+    npc.setAnim(AnimationSolver::Move);
+    return go2WpMoveSpeed(dp,npc.currentGoTo->x,npc.currentGoTo->z);
+    }
+
+  return dp;
+  }
+
+std::array<float,3> MoveAlgo::go2NpcMoveSpeed(const std::array<float,3>& dp,const Npc& tg) {
+  return go2WpMoveSpeed(dp,tg.position()[0],tg.position()[2]);
+  }
+
+std::array<float,3> MoveAlgo::go2WpMoveSpeed(std::array<float,3> dp, float x, float z) {
+  float dx   = x-npc.position()[0];
+  float dz   = z-npc.position()[2];
+  float qLen = (dx*dx+dz*dz);
+
+  const float qSpeed = dp[0]*dp[0]+dp[2]*dp[2];
+  if(qSpeed>0.01f){
+    float k = std::sqrt(std::min(qLen,qSpeed)/qSpeed);
+    dp[0]*=k;
+    dp[2]*=k;
+    }
   return dp;
   }
 
@@ -409,10 +416,6 @@ bool MoveAlgo::isClose(float x, float /*y*/, float z, const WayPoint &p) {
   return (len<closeToPointThreshold*closeToPointThreshold);
   }
 
-const WayPoint* MoveAlgo::aiGoTarget() {
-  return npc.currentGoTo;
-  }
-
 bool MoveAlgo::aiGoTo(const WayPoint *p) {
   npc.currentGoTo    = p;
   npc.currentGoToNpc = nullptr;
@@ -437,6 +440,21 @@ bool MoveAlgo::aiGoTo(Npc *p,float destDist) {
     npc.currentGoToNpc = nullptr;
     return false;
     }
+  return true;
+  }
+
+bool MoveAlgo::aiGoToTarget(float destDist) {
+  npc.currentGoToNpc = nullptr;
+  npc.currentGoTo    = nullptr;
+
+  auto p = npc.currentTarget;
+  if(p==nullptr)
+    return false;
+  float len = npc.qDistTo(*p);
+  if(len<destDist*destDist){
+    return false;
+    }
+  npc.setAnim(Npc::Anim::Move);
   return true;
   }
 

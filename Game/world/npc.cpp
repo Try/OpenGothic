@@ -1024,7 +1024,7 @@ bool Npc::implAtack(uint64_t dt) {
     const float d = act==FightAlgo::MV_MOVEG ?
           fghAlgo.prefferedGDistance(*this,*currentTarget,owner.script()) :
           fghAlgo.prefferedAtackDistance(*this,*currentTarget,owner.script());
-    if(!mvAlgo.aiGoTo(currentTarget,d)) {
+    if(!mvAlgo.aiGoToTarget(d)) {
       fghAlgo.consumeAction();
       aiState.loopNextTime=owner.tickCount(); //force ZS_MM_Attack_Loop call
       if(act==FightAlgo::MV_MOVEA)

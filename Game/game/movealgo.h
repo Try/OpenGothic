@@ -29,9 +29,10 @@ class MoveAlgo final {
     static bool isClose(const std::array<float,3>& w,const WayPoint& p);
     static bool isClose(float x,float y,float z,const WayPoint& p);
 
-    auto aiGoTarget() -> const WayPoint*;
     bool aiGoTo(const WayPoint* p);
     bool aiGoTo(Npc *p, float destDist);
+    bool aiGoToTarget(float destDist);
+
     bool startClimb(JumpCode ani);
     bool hasGoTo() const;
 
@@ -74,6 +75,8 @@ class MoveAlgo final {
     void   applyRotation(std::array<float,3> &out, float *in) const;
     auto   animMoveSpeed(uint64_t dt) const -> std::array<float,3>;
     auto   npcMoveSpeed (uint64_t dt) -> std::array<float,3>;
+    auto   go2NpcMoveSpeed (const std::array<float,3> &dp, const Npc &tg) -> std::array<float,3>;
+    auto   go2WpMoveSpeed  (std::array<float,3> dp, float x, float z) -> std::array<float,3>;
     bool   testSlide(float x, float y, float z) const;
 
     float  stepHeight()  const;
