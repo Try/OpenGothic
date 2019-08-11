@@ -28,6 +28,9 @@ Interactive::Interactive(World &owner, const ZenLoad::zCVobData &vob)
       pos[i].node = mesh->pos[i].node;
       }
     }
+
+  for(auto& i:data.oCMOB.owner)
+    i = char(std::toupper(i));
   }
 
 const std::string &Interactive::tag() const {
@@ -89,6 +92,10 @@ bool Interactive::checkMobName(const std::string &dest) const {
   return false;
   }
 
+const std::string &Interactive::ownerName() const {
+  return data.oCMOB.owner;
+  }
+
 std::array<float,3> Interactive::position() const {
   float x=data.position.x,
         y=data.position.y,
@@ -126,6 +133,74 @@ std::string Interactive::stateFunc() const {
 
 Trigger* Interactive::triggerTarget() const {
   return world->findTrigger(data.oCMobInter.triggerTarget);
+  }
+
+const char *Interactive::schemeName() const {
+  const char* tag = "";
+  if(data.oCMOB.focusName=="MOBNAME_BENCH")
+    tag = "BENCH";
+  else if(data.oCMOB.focusName=="MOBNAME_ANVIL")
+    tag = "BSANVIL";
+  else if(data.oCMOB.focusName=="MOBNAME_LAB")
+    tag = "LAB";
+  else if(data.oCMOB.focusName=="MOBNAME_CHEST" || data.oCMOB.focusName=="Chest")
+    tag = "CHESTSMALL";
+  else if(data.oCMOB.focusName=="MOBNAME_CHESTBIG")
+    tag = "CHESTBIG";
+  else if(data.oCMOB.focusName=="MOBNAME_FORGE")
+    tag = "BSFIRE";
+  else if(data.oCMOB.focusName=="MOBNAME_BOOKSBOARD")
+    tag = "BOOK";
+  else if(data.oCMOB.focusName=="MOBNAME_BBQ_SCAV" || data.oCMOB.focusName=="MOBNAME_BARBQ_SCAV")
+    tag = "BARBQ";
+  else if(data.oCMOB.focusName=="MOBNAME_SWITCH" || data.oCMOB.focusName=="MOBNAME_ADDON_ORNAMENTSWITCH")
+    tag = "TURNSWITCH";
+  else if(data.oCMOB.focusName=="MOBNAME_CHAIR")
+    tag = "CHAIR";
+  else if(data.oCMOB.focusName=="MOBNAME_THRONE" || data.oCMOB.focusName=="MOBNAME_SEAT" || data.oCMOB.focusName=="MOBNAME_ARMCHAIR")
+    tag = "THRONE";
+  else if(data.oCMOB.focusName=="MOBNAME_CAULDRON")
+    tag = "CAULDRON";
+  else if(data.oCMOB.focusName=="MOBNAME_ORE")
+    tag = "ORE";
+  else if(data.oCMOB.focusName=="MOBNAME_GRINDSTONE")
+    tag = "BSSHARP";
+  else if(data.oCMOB.focusName=="MOBNAME_INNOS")
+    tag = "INNOS";
+  else if(data.oCMOB.focusName=="MOBNAME_ADDON_IDOL")
+    tag = "INNOS";//"IDOL";
+  else if(data.oCMOB.focusName=="MOBNAME_STOVE")
+    tag = "STOVE";
+  else if(data.oCMOB.focusName=="MOBNAME_BED")
+    tag = "BEDHIGH_BACK";
+  else if(data.oCMOB.focusName=="MOBNAME_BUCKET")
+    tag = "BSCOOL";
+  else if(data.oCMOB.focusName=="MOBNAME_RUNEMAKER")
+    tag = "RMAKER";
+  else if(data.oCMOB.focusName=="MOBNAME_WATERPIPE")
+    tag = "SMOKE";
+  else if(data.oCMOB.focusName=="MOBNAME_SAW")
+    tag = "BAUMSAEGE";
+  else if(data.oCMOB.focusName=="MOBNAME_PAN")
+    tag = "PAN";
+  else if(data.oCMOB.focusName=="MOBNAME_DOOR")
+    tag = "DOOR_BACK";
+  else if(data.oCMOB.focusName=="MOBNAME_WINEMAKER")
+    tag = "HERB";
+  else if(data.visual=="TREASURE_ADDON_01.ASC")
+    tag = "TREASURE";
+  else if(data.visual=="LEVER_1_OC.MDS")
+    tag = "LEVER";
+  else if(data.visual=="REPAIR_PLANK.ASC")
+    tag = "REPAIR";
+  else if(data.visual=="BENCH_NW_CITY_02.ASC")
+    tag = "BENCH";
+  else if(data.visual=="PAN_OC.MDS")
+    tag = "PAN";
+  else {
+    Tempest::Log::i("unable to recognize mobsi{",data.oCMOB.focusName,", ",data.visual,"}");
+    }
+  return tag;
   }
 
 bool Interactive::isContainer() const {
@@ -298,7 +373,7 @@ void Interactive::prevState() {
 AnimationSolver::Sequence Interactive::anim(const AnimationSolver &solver, Anim t) {
   int         st[]     = {state,state+t};
   char        ss[2][8] = {};
-  const char* tag      = "";
+  const char* tag      = schemeName();
 
   st[1] = std::max(-1,std::min(st[1],data.oCMobInter.stateNum));
 
@@ -308,70 +383,6 @@ AnimationSolver::Sequence Interactive::anim(const AnimationSolver &solver, Anim 
     if(st[i]<0)
       std::snprintf(ss[i],sizeof(ss[i]),"STAND"); else
       std::snprintf(ss[i],sizeof(ss[i]),"S%d",st[i]);
-    }
-
-  if(data.oCMOB.focusName=="MOBNAME_BENCH")
-    tag = "BENCH";
-  else if(data.oCMOB.focusName=="MOBNAME_ANVIL")
-    tag = "BSANVIL";
-  else if(data.oCMOB.focusName=="MOBNAME_LAB")
-    tag = "LAB";
-  else if(data.oCMOB.focusName=="MOBNAME_CHEST" || data.oCMOB.focusName=="Chest")
-    tag = "CHESTSMALL";
-  else if(data.oCMOB.focusName=="MOBNAME_CHESTBIG")
-    tag = "CHESTBIG";
-  else if(data.oCMOB.focusName=="MOBNAME_FORGE")
-    tag = "BSFIRE";
-  else if(data.oCMOB.focusName=="MOBNAME_BOOKSBOARD")
-    tag = "BOOK";
-  else if(data.oCMOB.focusName=="MOBNAME_BBQ_SCAV" || data.oCMOB.focusName=="MOBNAME_BARBQ_SCAV")
-    tag = "BARBQ";
-  else if(data.oCMOB.focusName=="MOBNAME_SWITCH" || data.oCMOB.focusName=="MOBNAME_ADDON_ORNAMENTSWITCH")
-    tag = "TURNSWITCH";
-  else if(data.oCMOB.focusName=="MOBNAME_CHAIR")
-    tag = "CHAIR";
-  else if(data.oCMOB.focusName=="MOBNAME_THRONE" || data.oCMOB.focusName=="MOBNAME_SEAT" || data.oCMOB.focusName=="MOBNAME_ARMCHAIR")
-    tag = "THRONE";
-  else if(data.oCMOB.focusName=="MOBNAME_CAULDRON")
-    tag = "CAULDRON";
-  else if(data.oCMOB.focusName=="MOBNAME_ORE")
-    tag = "ORE";
-  else if(data.oCMOB.focusName=="MOBNAME_GRINDSTONE")
-    tag = "BSSHARP";
-  else if(data.oCMOB.focusName=="MOBNAME_INNOS")
-    tag = "INNOS";
-  else if(data.oCMOB.focusName=="MOBNAME_ADDON_IDOL")
-    tag = "INNOS";//"IDOL";
-  else if(data.oCMOB.focusName=="MOBNAME_STOVE")
-    tag = "STOVE";
-  else if(data.oCMOB.focusName=="MOBNAME_BED")
-    tag = "BEDHIGH_BACK";
-  else if(data.oCMOB.focusName=="MOBNAME_BUCKET")
-    tag = "BSCOOL";
-  else if(data.oCMOB.focusName=="MOBNAME_RUNEMAKER")
-    tag = "RMAKER";
-  else if(data.oCMOB.focusName=="MOBNAME_WATERPIPE")
-    tag = "SMOKE";
-  else if(data.oCMOB.focusName=="MOBNAME_SAW")
-    tag = "BAUMSAEGE";
-  else if(data.oCMOB.focusName=="MOBNAME_PAN")
-    tag = "PAN";
-  else if(data.oCMOB.focusName=="MOBNAME_DOOR")
-    tag = "DOOR_BACK";
-  else if(data.oCMOB.focusName=="MOBNAME_WINEMAKER")
-    tag = "HERB";
-  else if(data.visual=="TREASURE_ADDON_01.ASC")
-    tag = "TREASURE";
-  else if(data.visual=="LEVER_1_OC.MDS")
-    tag = "LEVER";
-  else if(data.visual=="REPAIR_PLANK.ASC")
-    tag = "REPAIR";
-  else if(data.visual=="BENCH_NW_CITY_02.ASC")
-    tag = "BENCH";
-  else if(data.visual=="PAN_OC.MDS")
-    tag = "PAN";
-  else {
-    Tempest::Log::i("unable to recognize mobsi{",data.oCMOB.focusName,", ",data.visual,"}");
     }
 
   loopState = (st[0]==st[1]);

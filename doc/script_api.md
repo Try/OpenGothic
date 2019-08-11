@@ -191,8 +191,8 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
   Returns TRUE, if guild, specified by 'guildId', is owner of 'item'.  
   Not implemented.
 
-* ![!](ni.png) `func int Npc_IsDetectedMobOwnedByNpc(var C_Npc npc, var C_Npc owner)`  
-  Not implemented.
+* `func int Npc_IsDetectedMobOwnedByNpc(var C_Npc npc, var C_Npc user)`  
+  Returns TRUE, if 'user' is currently use an mob owned by 'npc'.  
 
 * ![#](nu.png) `func int Npc_IsDetectedMobOwnedByGuild(var C_Npc npc, var int guildId)`  
   Not implemented.
@@ -433,7 +433,7 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
 | PERC_ASSESSCASTER | ? | Not implemented | 29
 | PERC_ASSESSSURPRISE | ? | Not implemented | 30
 | PERC_ASSESSENTERROOM | player is inside some room  | Not implemented | 31
-| PERC_ASSESSUSEMOB | other uses any of mobsi objects | Not implemented | 32
+| PERC_ASSESSUSEMOB | other uses any of mobsi objects | Done | 32
 
 * `func void Npc_PercDisable(var C_Npc npc, var int percId)`  
   clear perception callback with 'percId' index for 'npc'.
@@ -460,8 +460,8 @@ Npc_SendPassivePerc(self,PERC_ASSESSFIGHTSOUND,self,other); // calls PERC_ASSESS
 * ![#](nu.png) `func void Npc_PerceiveAll(var C_Npc npc)`  
   Implemented as nop.
 
-* ![!](ni.png) `func string Npc_GetDetectedMob(var C_Npc npc)`  
-  Not implemented.
+* `func string Npc_GetDetectedMob(var C_Npc npc)`  
+  Returns scheme name of MOB, whitch is currently in use by 'npc'. If 'npc' is not using any of MOB returns empty string.
 
 * `func int Npc_CanSeeNpc(var C_Npc npc1, var C_Npc npc2)`  
   Returns TRUE, if npc2 is visible from 'npc1' point of view.  

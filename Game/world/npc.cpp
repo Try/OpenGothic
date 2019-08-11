@@ -2058,6 +2058,7 @@ bool Npc::setInteraction(Interactive *id) {
   currentInteract=nullptr;
 
   if(id && id->attach(*this)) {
+    owner.sendPassivePerc(*this,*this,*this,PERC_ASSESSUSEMOB);
     currentInteract=id;
     if(auto tr = currentInteract->triggerTarget()){
       tr->onTrigger();
@@ -2486,12 +2487,13 @@ bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
 
 bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
   DynamicWorld* w = owner.physic();
+  static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
 
   if(!freeLos){
     float dx  = x-tx, dz=z-tz;
     float dir = angleDir(dx,dz);
     float da  = float(M_PI)*(angle-dir)/180.f;
-    if(double(std::cos(da))>0) // FIXME: spec requires +-100 view angle range
+    if(double(std::cos(da))>ref)
       return false;
     }
   // TODO: npc eyesight height

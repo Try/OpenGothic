@@ -276,6 +276,8 @@ class GameScript final {
     void npc_getlasthitspellid(Daedalus::DaedalusVM &vm);
     void npc_getlasthitspellcat(Daedalus::DaedalusVM &vm);
     void npc_playani         (Daedalus::DaedalusVM &vm);
+    void npc_isdetectedmobownedbynpc(Daedalus::DaedalusVM &vm);
+    void npc_getdetectedmob  (Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);

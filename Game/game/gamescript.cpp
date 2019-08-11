@@ -216,6 +216,10 @@ void GameScript::initCommon() {
                                                      [this](Daedalus::DaedalusVM& vm){ npc_getlasthitspellcat(vm);});
   vm.registerExternalFunction("npc_playani",         [this](Daedalus::DaedalusVM& vm){ npc_playani(vm);          });
 
+  vm.registerExternalFunction("npc_isdetectedmobownedbynpc",
+                                                     [this](Daedalus::DaedalusVM& vm){ npc_isdetectedmobownedbynpc(vm);});
+  vm.registerExternalFunction("npc_getdetectedmob",  [this](Daedalus::DaedalusVM& vm){ npc_getdetectedmob(vm);   });
+
   vm.registerExternalFunction("ai_output",           [this](Daedalus::DaedalusVM& vm){ ai_output(vm);            });
   vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
   vm.registerExternalFunction("ai_processinfos",     [this](Daedalus::DaedalusVM& vm){ ai_processinfos(vm);      });
@@ -2213,6 +2217,29 @@ void GameScript::npc_playani(Daedalus::DaedalusVM &vm) {
   auto npc  = popInstance(vm);
   if(npc!=nullptr)
     npc->playAnimByName(name);
+  }
+
+void GameScript::npc_isdetectedmobownedbynpc(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  auto usr = popInstance(vm);
+
+  if(npc!=nullptr && usr!=nullptr && usr->interactive()!=nullptr){
+    auto& inst = vm.getDATFile().getSymbolByIndex(npc->instanceSymbol());
+    auto& ow   = usr->interactive()->ownerName();
+    vm.setReturn(inst.name==ow ? 1 : 0);
+    return;
+    }
+  vm.setReturn(0);
+  }
+
+void GameScript::npc_getdetectedmob(Daedalus::DaedalusVM &vm) {
+  auto usr = popInstance(vm);
+  if(usr!=nullptr && usr->interactive()!=nullptr){
+    auto i = usr->interactive();
+    vm.setReturn(i->schemeName());
+    return;
+    }
+  vm.setReturn("");
   }
 
 void GameScript::npc_getactivespellcat(Daedalus::DaedalusVM &vm) {
