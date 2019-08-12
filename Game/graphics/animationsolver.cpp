@@ -276,8 +276,8 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     }
 
   if(st==WeaponState::NoWeapon &&
-     cur!=Anim::UnconsciousA && cur!=Anim::UnconsciousB &&
-     cur!=Anim::DeadA        && cur!=Anim::DeadB){
+     a!=Anim::UnconsciousA && a!=Anim::UnconsciousB &&
+     a!=Anim::DeadA        && a!=Anim::DeadB){
     if(st0==WeaponState::W1H){
       if(a==Anim::Move && cur==a)
         return layredSequence("S_1HRUNL","T_1HMOVE_2_MOVE");
@@ -296,7 +296,7 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     }
 
   if((cur==Anim::UnconsciousA || cur==Anim::UnconsciousB) && a==Anim::DeadA)
-    return solveDead("T_WOUNDEDB_2_DEAD","T_WOUNDED_2_DEADB");
+    return solveDead("T_WOUNDED_2_DEAD","T_WOUNDEDB_2_DEADB");
   if(cur!=Anim::DeadA && a==Anim::DeadA)
     return solveDead("T_DEAD","T_DEADB");
   if(a==Anim::DeadA)
@@ -379,6 +379,8 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
         case 2: return solveAnim("T_%sPARADE_0_A3",st);
         }
       }
+    if(a==Anim::AtackFinish)
+      return solveAnim("T_%sSFINISH",st);
     }
   else if(st==WeaponState::Bow){
     if(a==Anim::AimBow && cur!=Anim::AimBow)

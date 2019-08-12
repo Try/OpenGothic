@@ -112,10 +112,7 @@ void PlayerControl::drawWeaponMage(uint8_t s) {
   }
 
 void PlayerControl::actionFocus(Npc& other) {
-  auto w  = world();
-  Npc* pl = w ? w->player() : nullptr;
-  if(pl!=nullptr)
-    pl->setTarget(&other);
+  setTarget(&other);
   ctrl[ActionFocus]=true;
   }
 
@@ -153,12 +150,13 @@ void PlayerControl::moveRight() {
   }
 
 void PlayerControl::setTarget(Npc *other) {
-  auto w = world();
-  if(w==nullptr || w->player()==nullptr)
+  auto w  = world();
+  auto pl = w ? w->player() : nullptr;
+  if(pl==nullptr || pl->anim()==Npc::Anim::AtackFinish)
     return;
-  auto ws = weaponState();
+  auto ws = pl->weaponState();
   if(other!=nullptr || (ws!=WeaponState::W1H && ws!=WeaponState::W2H))
-    w->player()->setTarget(other); // dont lose focus in melee combat
+    pl->setTarget(other); // dont lose focus in melee combat
   }
 
 void PlayerControl::actionForward() {
@@ -323,7 +321,9 @@ void PlayerControl::implMove(uint64_t dt) {
         return;
         }
       if(ws==WeaponState::W1H || ws==WeaponState::W2H) {
-        pl.swingSword();
+        if(pl.target()->isUnconscious())
+          pl.finishingMove(); else
+          pl.swingSword();
         return;
         }
       if(ws==WeaponState::Bow) {
@@ -383,9 +383,9 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   pl.setAnim(ani);
-  if(ctrl[ActionFocus] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR){
+  if(ctrl[ActionFocus] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.anim()==Npc::Anim::AtackFinish){
     if(auto other = pl.target()){
-      if(pl.weaponState()==WeaponState::NoWeapon || other->isDown()){
+      if((pl.weaponState()==WeaponState::NoWeapon || other->isDown()) && pl.anim()!=Npc::Anim::AtackFinish){
         pl.setOther(nullptr);
         } else {
         float dx = other->position()[0]-pl.position()[0];

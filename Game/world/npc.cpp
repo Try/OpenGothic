@@ -352,7 +352,7 @@ bool Npc::startClimb(JumpCode code) {
   return false;
   }
 
-bool Npc::checkHealth(bool onChange) {
+bool Npc::checkHealth(bool onChange,bool forceKill) {
   if(onChange && lastHit!=nullptr) {
     uint32_t g = guild();
     if(g==GIL_SKELETON || g==GIL_SKELETON_MAGE || g==GIL_SUMMONED_SKELETON) {
@@ -370,7 +370,7 @@ bool Npc::checkHealth(bool onChange) {
     setAnim(lastHitType=='A' ? Anim::DeadA : Anim::DeadB);
     return false;
     }
-  if(isUnconscious()) {
+  if(isUnconscious() && !forceKill) {
     setAnim(lastHitType=='A' ? Anim::UnconsciousA : Anim::UnconsciousB);
     closeWeapon(true);
     return false;
@@ -385,10 +385,12 @@ bool Npc::checkHealth(bool onChange) {
 
     if(onChange && currentOther!=nullptr) {
       // currentOther must be externaly initialized
-      if(owner.script().personAttitude(*this,*currentOther)==ATT_HOSTILE || guild()>GIL_SEPERATOR_HUM){
+      if(owner.script().personAttitude(*this,*currentOther)==ATT_HOSTILE ||
+         guild()>GIL_SEPERATOR_HUM || forceKill){
         if(hnpc.attribute[ATR_HITPOINTS]<=0) {
           size_t fdead=owner.getSymbolIndex("ZS_Dead");
-          animation.resetAni();
+          if(animation.current!=Anim::UnconsciousA && animation.current!=Anim::UnconsciousB)
+            animation.resetAni();
           startState(fdead,"");
 
           if(hnpc.voice>0){
@@ -398,6 +400,7 @@ bool Npc::checkHealth(bool onChange) {
             }
           }
         } else {
+        hnpc.attribute[ATR_HITPOINTS]=1;
         size_t fdead=owner.getSymbolIndex("ZS_Unconscious");
         animation.resetAni();
         startState(fdead,"");
@@ -769,7 +772,7 @@ void Npc::changeAttribute(Npc::Attribute a, int32_t val) {
     invent.invalidateCond(*this);
 
   if(a==ATR_HITPOINTS)
-    checkHealth(true);
+    checkHealth(true,false);
   }
 
 int32_t Npc::protection(Npc::Protection p) const {
@@ -850,7 +853,7 @@ bool Npc::implLookAt(uint64_t dt) {
 bool Npc::implLookAt(const Npc &oth, uint64_t dt) {
   auto dx = oth.x-x;
   auto dz = oth.z-z;
-  if(implLookAt(dx,dz,360,dt))
+  if(implLookAt(dx,dz,180,dt))
     return true;
   currentLookAt=nullptr;
   return false;
@@ -931,7 +934,7 @@ bool Npc::implGoTo(uint64_t dt) {
     float dx = currentGoToNpc->x-x;
     float dz = currentGoToNpc->z-z;
 
-    if(implLookAt(dx,dz,360,dt))
+    if(implLookAt(dx,dz,180,dt))
       return true;
     if(!mvAlgo.aiGoTo(currentGoToNpc,400)) {
       if(isStanding())
@@ -1118,6 +1121,9 @@ void Npc::takeDamage(Npc &other) {
     perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
     owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
 
+    if(!isDown())
+      owner.emitWeaponsSound(other,*this);
+
     lastHit = &other;
     fghAlgo.onTakeHit();
     implFaiWait(0);
@@ -1137,8 +1143,6 @@ void Npc::takeDamage(Npc &other) {
 
     if(other.hnpc.damagetype & (1<<Daedalus::GEngineClasses::DAM_INDEX_FLY))
       mvAlgo.accessDamFly(x-other.x,z-other.z); // throw enemy
-
-    owner.emitWeaponsSound(other,*this);
 
     if(ani==Anim::Move  || ani==Anim::MoveL  || ani==Anim::MoveR ||
        ani==Anim::Atack || ani==Anim::AtackL || ani==Anim::AtackR ||
@@ -1193,7 +1197,7 @@ void Npc::tick(uint64_t dt) {
     commitDamage();
     }
 
-  if(!checkHealth(false)){
+  if(!checkHealth(false,false)){
     mvAlgo.aiGoTo(nullptr);
     mvAlgo.tick(dt);
     setOther(lastHit);
@@ -1723,7 +1727,7 @@ Item *Npc::currentRangeWeapon() {
   }
 
 bool Npc::lookAt(float dx, float dz, bool anim, uint64_t dt) {
-  return implLookAt(dx,dz,anim ? 360 : 0,dt);
+  return implLookAt(dx,dz,anim ? 0 : 180,dt);
   }
 
 bool Npc::playAnimByName(const std::string &name) {
@@ -1872,6 +1876,18 @@ void Npc::blockFist() {
   if(weaponSt!=WeaponState::Fist)
     return;
   setAnim(Anim::AtackBlock,weaponSt);
+  }
+
+void Npc::finishingMove() {
+  auto active=invent.activeWeapon();
+  if(active==nullptr)
+    return;
+
+  if(currentTarget!=nullptr && doAttack(Anim::AtackFinish)) {
+    currentTarget->hnpc.attribute[Npc::Attribute::ATR_HITPOINTS] = 0;
+    currentTarget->checkHealth(true,true);
+    owner.sendPassivePerc(*this,*this,*currentTarget,PERC_ASSESSMURDER);
+    }
   }
 
 void Npc::swingSword() {

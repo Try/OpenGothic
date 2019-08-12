@@ -224,7 +224,7 @@ class Npc final {
     auto walkMode() const { return wlkMode; }
     void tick(uint64_t dt);
     bool startClimb(JumpCode code);
-    bool checkHealth(bool onChange);
+    bool checkHealth(bool onChange, bool forceKill);
 
     auto world() -> World&;
 
@@ -328,6 +328,7 @@ class Npc final {
 
     void fistShoot();
     void blockFist();
+    void finishingMove();
     void swingSword();
     void swingSwordL();
     void swingSwordR();

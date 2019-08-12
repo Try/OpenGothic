@@ -112,6 +112,7 @@ class AnimationSolver final {
       AtackL,
       AtackR,
       AtackBlock,
+      AtackFinish,
       StumbleA,
       StumbleB,
       GotHit,
