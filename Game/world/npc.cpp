@@ -853,7 +853,7 @@ bool Npc::implLookAt(uint64_t dt) {
 bool Npc::implLookAt(const Npc &oth, uint64_t dt) {
   auto dx = oth.x-x;
   auto dz = oth.z-z;
-  if(implLookAt(dx,dz,180,dt))
+  if(implLookAt(dx,dz,0,dt))
     return true;
   currentLookAt=nullptr;
   return false;
@@ -934,7 +934,7 @@ bool Npc::implGoTo(uint64_t dt) {
     float dx = currentGoToNpc->x-x;
     float dz = currentGoToNpc->z-z;
 
-    if(implLookAt(dx,dz,180,dt))
+    if(implLookAt(dx,dz,45,dt))
       return true;
     if(!mvAlgo.aiGoTo(currentGoToNpc,400)) {
       if(isStanding())
@@ -1424,7 +1424,7 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_AlignToFp:{
       if(auto fp = currentFp){
         if(fp->dirX!=0.f || fp->dirZ!=0.f){
-          if(implLookAt(fp->dirX,fp->dirZ,360,dt))
+          if(implLookAt(fp->dirX,fp->dirZ,0,dt))
             aiActions.push_front(std::move(act));
           }
         }
