@@ -266,6 +266,7 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("ai_useitem",          [this](Daedalus::DaedalusVM& vm){ ai_useitem(vm);           });
   vm.registerExternalFunction("ai_useitemtostate",   [this](Daedalus::DaedalusVM& vm){ ai_useitemtostate(vm);    });
   vm.registerExternalFunction("ai_setnpcstostate",   [this](Daedalus::DaedalusVM& vm){ ai_setnpcstostate(vm);    });
+  vm.registerExternalFunction("ai_finishingmove",    [this](Daedalus::DaedalusVM& vm){ ai_finishingmove(vm);     });
 
   vm.registerExternalFunction("mob_hasitems",        [this](Daedalus::DaedalusVM& vm){ mob_hasitems(vm);         });
 
@@ -1694,7 +1695,7 @@ void GameScript::npc_getbodystate(Daedalus::DaedalusVM &vm) {
 
 void GameScript::npc_getlookattarget(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
-  auto ret = npc ? nullptr : npc->lookAtTarget();
+  auto ret = npc ? npc->lookAtTarget() : nullptr;
   if(ret!=nullptr) {
     auto n = *(ret->handle());
     auto x = getNpcById(n.instanceSymbol);
@@ -2601,6 +2602,13 @@ void GameScript::ai_setnpcstostate(Daedalus::DaedalusVM &vm) {
   auto     npc    = popInstance(vm);
   if(npc && state>0)
     npc->aiSetNpcsToState(size_t(state),radius);
+  }
+
+void GameScript::ai_finishingmove(Daedalus::DaedalusVM &vm) {
+  auto oth = popInstance(vm);
+  auto npc = popInstance(vm);
+  if(npc!=nullptr && oth!=nullptr)
+    npc->aiFinishingMove(*oth);
   }
 
 void GameScript::mob_hasitems(Daedalus::DaedalusVM &vm) {

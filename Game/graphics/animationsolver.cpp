@@ -380,7 +380,7 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
         }
       }
     if(a==Anim::AtackFinish)
-      return solveAnim("T_%sSFINISH",st);
+      return solveAnim("T_1HSFINISH",st);
     }
   else if(st==WeaponState::Bow){
     if(a==Anim::AimBow && cur!=Anim::AimBow)

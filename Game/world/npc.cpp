@@ -1423,7 +1423,7 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_AlignToWp:
     case AI_AlignToFp:{
       if(auto fp = currentFp){
-        if((fp->dirX!=0 || fp->dirZ!=0) && currentTarget==nullptr){
+        if(fp->dirX!=0.f || fp->dirZ!=0.f){
           if(implLookAt(fp->dirX,fp->dirZ,360,dt))
             aiActions.push_front(std::move(act));
           }
@@ -1440,6 +1440,28 @@ void Npc::nextAiAction(uint64_t dt) {
       }
     case AI_SetWalkMode:{
       setWalkMode(WalkBit(act.i0));
+      break;
+      }
+    case AI_FinishingMove:{
+      if(!act.target->isUnconscious())
+        break;
+
+      if(!fghAlgo.isInAtackRange(*this,*act.target,owner.script())){
+        aiActions.push_front(std::move(act));
+
+        float dx = act.target->x-x;
+        float dz = act.target->z-z;
+        if(implLookAt(dx,dz,180,dt))
+          break;
+        setAnim(Anim::Move);
+        if(mvAlgo.aiGoTo(currentGoToNpc,fghAlgo.prefferedAtackDistance(*this,*act.target,owner.script())))
+          break;
+        }
+      else if(canFinish(*act.target)){
+        setTarget(act.target);
+        if(!finishingMove())
+          aiActions.push_front(std::move(act));
+        }
       break;
       }
     }
@@ -1867,6 +1889,15 @@ void Npc::drawSpell(int32_t spell) {
   updateWeaponSkeleton();
   }
 
+bool Npc::canFinish(Npc& oth) {
+  auto ws = weaponState();
+  if(ws!=WeaponState::W1H && ws!=WeaponState::W2H)
+    return false;
+  if(!oth.isUnconscious() || !fghAlgo.isInAtackRange(*this,oth,owner.script()))
+    return false;
+  return true;
+  }
+
 void Npc::fistShoot() {
   doAttack(Anim::Atack);
   }
@@ -1878,16 +1909,17 @@ void Npc::blockFist() {
   setAnim(Anim::AtackBlock,weaponSt);
   }
 
-void Npc::finishingMove() {
-  auto active=invent.activeWeapon();
-  if(active==nullptr)
-    return;
+bool Npc::finishingMove() {
+  if(currentTarget==nullptr || !canFinish(*currentTarget))
+    return false;
 
-  if(currentTarget!=nullptr && doAttack(Anim::AtackFinish)) {
+  if(doAttack(Anim::AtackFinish)) {
     currentTarget->hnpc.attribute[Npc::Attribute::ATR_HITPOINTS] = 0;
     currentTarget->checkHealth(true,true);
     owner.sendPassivePerc(*this,*this,*currentTarget,PERC_ASSESSMURDER);
+    return true;
     }
+  return false;
   }
 
 void Npc::swingSword() {
@@ -2472,6 +2504,13 @@ void Npc::aiSetWalkMode(WalkBit w) {
   AiAction a;
   a.act  = AI_SetWalkMode;
   a.i0   = int(w);
+  aiActions.push_back(a);
+  }
+
+void Npc::aiFinishingMove(Npc &other) {
+  AiAction a;
+  a.act    = AI_FinishingMove;
+  a.target = &other;
   aiActions.push_back(a);
   }
 

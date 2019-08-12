@@ -321,7 +321,7 @@ void PlayerControl::implMove(uint64_t dt) {
         return;
         }
       if(ws==WeaponState::W1H || ws==WeaponState::W2H) {
-        if(pl.target()->isUnconscious())
+        if(pl.target()!=nullptr && pl.canFinish(*pl.target()))
           pl.finishingMove(); else
           pl.swingSword();
         return;

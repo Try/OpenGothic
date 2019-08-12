@@ -323,6 +323,7 @@ class GameScript final {
     void ai_useitem          (Daedalus::DaedalusVM &vm);
     void ai_useitemtostate   (Daedalus::DaedalusVM &vm);
     void ai_setnpcstostate   (Daedalus::DaedalusVM &vm);
+    void ai_finishingmove    (Daedalus::DaedalusVM &vm);
 
     void mob_hasitems        (Daedalus::DaedalusVM &vm);
 

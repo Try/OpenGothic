@@ -669,9 +669,8 @@ Example:
 * `func void AI_Attack(var C_Npc npc)`  
   Fetch next instruction from C_FightAI, corresponding to npc.fight_tactic
 
-* ![!](ni.png) `func void AI_FinishingMove(var C_Npc npc, var C_Npc other)`  
+* `func void AI_FinishingMove(var C_Npc npc, var C_Npc other)`  
   npc performs killing move on 'other'.  
-  Not implemented.
 
 * ![#](nu.png) `func void AI_Defend(var C_Npc npc)`  
   Not implemented. Seems to be unused by original Gothic 2

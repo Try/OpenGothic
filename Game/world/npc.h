@@ -326,9 +326,10 @@ class Npc final {
     void drawSpell(int32_t spell);
     auto weaponState() const -> WeaponState { return invent.weaponState(); }
 
+    bool canFinish(Npc &oth);
     void fistShoot();
     void blockFist();
-    void finishingMove();
+    bool finishingMove();
     void swingSword();
     void swingSwordL();
     void swingSwordR();
@@ -434,6 +435,7 @@ class Npc final {
     void     aiAlignToWp();
     void     aiSetNpcsToState(size_t func, int32_t radius);
     void     aiSetWalkMode(WalkBit w);
+    void     aiFinishingMove(Npc& other);
 
     void     clearAiQueue();
 
@@ -509,7 +511,8 @@ class Npc final {
       AI_AlignToFp,
       AI_AlignToWp,
       AI_SetNpcsToState,
-      AI_SetWalkMode
+      AI_SetWalkMode,
+      AI_FinishingMove,
       };
 
     enum TransformBit : uint8_t {
