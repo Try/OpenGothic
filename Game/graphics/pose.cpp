@@ -119,9 +119,11 @@ void Pose::reset(const Skeleton &sk, const Animation::Sequence *sq0, const Anima
       base[i] = sk.nodes[i].tr;
     trY = sk.rootTr[1];
     }
-  sequence  = sq0;
-  baseSq    = sq1;
-  numFrames = baseSq ? baseSq->numFrames : 0;
+  sequence   = sq0;
+  baseSq     = sq1;
+  frSequence = uint64_t(-1);
+  frBase     = uint64_t(-1);
+  numFrames  = baseSq ? baseSq->numFrames : 0;
   }
 
 void Pose::update(uint64_t dt) {
@@ -186,8 +188,13 @@ void Pose::emitSfx(Npc &npc, uint64_t dt) {
   }
 
 void Pose::emitSfx(Npc &npc, const Animation::Sequence &s, uint64_t dt, uint64_t fr) {
+  if(fr==uint64_t(-1) || s.numFrames==0 || (s.sfx.size()==0 && s.gfx.size()==0))
+    return;
   uint64_t frameA = (fr/1000);
   uint64_t frameB = (uint64_t(s.fpsRate*dt)/1000);
+
+  if(frameA==frameB)
+    return;
 
   if(s.animCls==Animation::Loop){
     frameA%=s.numFrames;
@@ -199,7 +206,8 @@ void Pose::emitSfx(Npc &npc, const Animation::Sequence &s, uint64_t dt, uint64_t
 
   const bool invert = (frameB<frameA);
   for(auto& i:s.sfx){
-    if((frameA<=uint64_t(i.m_Frame) && uint64_t(i.m_Frame)<frameB) ^ invert)
+    uint64_t fr = uint64_t(i.m_Frame);
+    if((frameA<=fr && fr<frameB) ^ invert)
       npc.emitSoundEffect(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
     }
   if(!npc.isInAir()) {
