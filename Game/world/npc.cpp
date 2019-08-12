@@ -2071,7 +2071,7 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
     }
   if(nearestEnemy!=nullptr){
     float dist=qDistTo(*nearestEnemy);
-    if(!nearestEnemy->isDown() && perceptionProcess(*nearestEnemy,nullptr,dist,PERC_ASSESSENEMY)){
+    if(!nearestEnemy->isDown() && canSeeNpc(*nearestEnemy,false) && perceptionProcess(*nearestEnemy,nullptr,dist,PERC_ASSESSENEMY)){
       /*
       if(isTalk())
         Log::e("unxepected perc acton"); else
