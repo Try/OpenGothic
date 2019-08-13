@@ -142,6 +142,9 @@ class GameScript final {
     Npc*                      popInstance(Daedalus::DaedalusVM &vm);
     Item*                     popItem    (Daedalus::DaedalusVM &vm);
 
+    void                      pushInstance(Daedalus::DaedalusVM &vm,Npc*  npc);
+    void                      pushItem    (Daedalus::DaedalusVM &vm,Item* it);
+
     template<class Ret,class ... Args>
     std::function<Ret(Args...)> notImplementedFn();
 

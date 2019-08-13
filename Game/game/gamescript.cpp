@@ -1149,15 +1149,33 @@ const FightAi::FA &GameScript::getFightAi(size_t i) const {
   }
 
 Npc *GameScript::popInstance(Daedalus::DaedalusVM &vm) {
-  uint32_t arr_self = 0;
-  uint32_t idx      = vm.popVar(arr_self);
+  uint32_t idx = vm.popUInt();
   return getNpcById(idx);
   }
 
 Item *GameScript::popItem(Daedalus::DaedalusVM &vm) {
-  uint32_t arr_self = 0;
-  uint32_t idx      = vm.popVar(arr_self);
+  uint32_t idx = vm.popUInt();
   return getItemById(idx);
+  }
+
+void GameScript::pushInstance(Daedalus::DaedalusVM &vm, Npc *npc) {
+  if(npc==nullptr){
+    vm.setReturn(-1);
+    return;
+    }
+  auto& sym = vm.getDATFile().getSymbolByIndex(npc->handle()->instanceSymbol);
+  sym.instance.set(npc->handle(),Daedalus::IC_Npc); // TODO: proper symbols
+  vm.setReturn(int(npc->handle()->instanceSymbol));
+  }
+
+void GameScript::pushItem(Daedalus::DaedalusVM &vm, Item *it) {
+  if(it==nullptr){
+    vm.setReturn(-1);
+    return;
+    }
+  auto& sym = vm.getDATFile().getSymbolByIndex(it->handle()->instanceSymbol);
+  sym.instance.set(it->handle(),Daedalus::IC_Item); // TODO: proper symbols
+  vm.setReturn(int(it->handle()->instanceSymbol));
   }
 
 
@@ -1541,7 +1559,7 @@ void GameScript::npc_settofistmode(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::npc_isinstate(Daedalus::DaedalusVM &vm) {
-  uint32_t stateFn = uint32_t(vm.popVar());
+  uint32_t stateFn = vm.popUInt();
   auto     npc     = popInstance(vm);
 
   if(npc!=nullptr){
@@ -1553,7 +1571,7 @@ void GameScript::npc_isinstate(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::npc_wasinstate(Daedalus::DaedalusVM &vm) {
-  uint32_t stateFn = uint32_t(vm.popVar());
+  uint32_t stateFn = vm.popUInt();
   auto     npc     = popInstance(vm);
 
   if(npc!=nullptr){
@@ -1623,8 +1641,7 @@ void GameScript::npc_settalentskill(Daedalus::DaedalusVM &vm) {
 
 void GameScript::npc_gettalentskill(Daedalus::DaedalusVM &vm) {
   uint32_t skillId = uint32_t(vm.popInt());
-  uint32_t self    = vm.popVar();
-  auto     npc     = getNpcById(self);
+  auto     npc     = popInstance(vm);
 
   int32_t  skill   = npc==nullptr ? 0 : npc->talentSkill(Npc::Talent(skillId));
   vm.setReturn(skill);
@@ -1696,13 +1713,7 @@ void GameScript::npc_getbodystate(Daedalus::DaedalusVM &vm) {
 void GameScript::npc_getlookattarget(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   auto ret = npc ? npc->lookAtTarget() : nullptr;
-  if(ret!=nullptr) {
-    auto n = *(ret->handle());
-    auto x = getNpcById(n.instanceSymbol);
-    vm.setReturn(int32_t(n.instanceSymbol)); //TODO
-    } else {
-    vm.setReturn(0);
-    }
+  pushInstance(vm,ret);
   }
 
 void GameScript::npc_getdisttonpc(Daedalus::DaedalusVM &vm) {
@@ -1829,9 +1840,7 @@ void GameScript::npc_getequippedmeleeweapon(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr){
     auto a = npc->currentRangeWeapon();
-    if(a!=nullptr) //FIXME: return value is C_Item
-      vm.setReturn(int32_t(a->clsId())); else
-      vm.setReturn(0);
+    pushItem(vm,a);
     }
   }
 
@@ -1839,9 +1848,7 @@ void GameScript::npc_getequippedrangedweapon(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr){
     auto a = npc->currentRangeWeapon();
-    if(a!=nullptr) //FIXME: return value is C_Item
-      vm.setReturn(int32_t(a->clsId())); else
-      vm.setReturn(0);
+    pushItem(vm,a);
     }
   }
 
@@ -1849,9 +1856,7 @@ void GameScript::npc_getequippedarmor(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr){
     auto a = npc->currentArmour();
-    if(a!=nullptr) //FIXME: return value is C_Item
-      vm.setReturn(int32_t(a->clsId())); else
-      vm.setReturn(0);
+    pushItem(vm,a);
     }
   }
 
@@ -2456,7 +2461,7 @@ void GameScript::ai_gotofp(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::ai_playanibs(Daedalus::DaedalusVM &vm) {
-  Npc::BodyState bs  = Npc::BodyState(vm.popVar());
+  Npc::BodyState bs  = Npc::BodyState(vm.popUInt());
   auto&          ani = vm.popString();
   auto           npc = popInstance(vm);
   if(npc!=nullptr){
@@ -2612,7 +2617,7 @@ void GameScript::ai_finishingmove(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::mob_hasitems(Daedalus::DaedalusVM &vm) {
-  uint32_t item = vm.popVar();
+  uint32_t item = vm.popUInt();
   auto&    tag  = vm.popString();
   vm.setReturn(int(world().hasItems(tag,item)));
   }
@@ -2688,11 +2693,8 @@ void GameScript::createinvitems(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::hlp_getinstanceid(Daedalus::DaedalusVM &vm) {
-  uint32_t arr_self = 0;
-  uint32_t idx      = vm.popVar(arr_self);
-
-  auto& handle = vm.getDATFile().getSymbolByIndex(idx);(void)handle;
-  auto self = getNpcById(idx);
+  uint32_t idx  = vm.popUInt();
+  auto     self = getNpcById(idx);
   if(self!=nullptr){
     auto v = *(self->handle());
     vm.setReturn(int32_t(v.instanceSymbol));
@@ -2718,7 +2720,7 @@ void GameScript::hlp_isvalidnpc(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::hlp_isitem(Daedalus::DaedalusVM &vm) {
-  uint32_t instanceSymbol = vm.popVar();
+  uint32_t instanceSymbol = vm.popUInt();
   auto     item           = popItem(vm);
   if(item!=nullptr){
     auto& v = *(item->handle());
@@ -2735,7 +2737,7 @@ void GameScript::hlp_isvaliditem(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::hlp_getnpc(Daedalus::DaedalusVM &vm) {
-  uint32_t instanceSymbol = vm.popVar();
+  uint32_t instanceSymbol = vm.popUInt();
   auto&    handle         = vm.getDATFile().getSymbolByIndex(instanceSymbol);(void)handle;
 
   if(auto npc = getNpcById(instanceSymbol))
@@ -2744,7 +2746,7 @@ void GameScript::hlp_getnpc(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::info_addchoice(Daedalus::DaedalusVM &vm) {
-  uint32_t func         = vm.popVar();
+  uint32_t func         = vm.popUInt();
   auto&    text         = vm.popString();
   uint32_t infoInstance = uint32_t(vm.popInt());
 
