@@ -13,18 +13,31 @@ Renderer::Renderer(Tempest::Device &device,Gothic& gothic)
   :device(device),gothic(gothic),stor(device) {
   view.identity();
 
-  const TextureFormat zfrm[] = {
+  static const TextureFormat shfrm[] = {
     TextureFormat::RG16,
     TextureFormat::RGB8,
     TextureFormat::RGBA8,
     };
-  for(auto& i:zfrm) {
+  static const TextureFormat zfrm[] = {
+    TextureFormat::Depth24x8,
+    TextureFormat::Depth16,
+    };
+
+  for(auto& i:shfrm) {
     if(device.caps().hasAttachFormat(i) && device.caps().hasSamplerFormat(i)){
       shadowFormat = i;
       break;
       }
     }
 
+  for(auto& i:zfrm) {
+    if(device.caps().hasAttachFormat(i)){
+      zBufferFormat = i;
+      break;
+      }
+    }
+
+  Log::i("Depth format = ",int(zBufferFormat)," Shadow format = ",int(shadowFormat));
   uboShadowComp = stor.device.uniforms(stor.uboComposeLayout());
   }
 
@@ -36,7 +49,7 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
   const size_t imgC=device.swapchainImageCount();
   fbo3d.clear();
 
-  zbuffer        = device.createTexture(TextureFormat::Depth24x8,w,h,false);
+  zbuffer        = device.createTexture(zBufferFormat,w,h,false);
   mainPass       = device.pass(Color(0.0),1.f,zbuffer.format());
   shadowMapFinal = device.createTexture(shadowFormat,smSize,smSize,false);
 
@@ -47,7 +60,7 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
   shadowPass = device.pass(Color(1.0),1.f,shadowMapFinal.format(),zbuffer.format());
   for(int i=0;i<2;++i){
     shadowMap[i] = device.createTexture(shadowFormat,smSize,smSize,false);
-    shadowZ[i]   = device.createTexture(TextureFormat::Depth24x8,smSize,smSize,false);
+    shadowZ[i]   = device.createTexture(zBufferFormat,smSize,smSize,false);
     fboShadow[i] = device.frameBuffer(shadowMap[i],shadowZ[i],shadowPass);
     shadowMap[i].setSampler(smp);
     }
