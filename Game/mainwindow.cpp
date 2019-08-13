@@ -17,6 +17,7 @@
 
 #include "gothic.h"
 #include "game/serialize.h"
+#include "utils/crashlog.h"
 
 using namespace Tempest;
 
@@ -24,6 +25,7 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),
     draw(device,gothic),gothic(gothic),inventory(gothic,draw.storage()),
     dialogs(gothic,inventory),document(gothic),chapter(gothic),camera(gothic),player(gothic,dialogs,inventory) {
+  CrashLog::setGpu(device.renderer());
   if(!gothic.isWindowMode())
     setFullscreen(true);
 

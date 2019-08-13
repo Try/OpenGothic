@@ -19,6 +19,7 @@ Renderer::Renderer(Tempest::Device &device,Gothic& gothic)
     TextureFormat::RGBA8,
     };
   static const TextureFormat zfrm[] = {
+    //TextureFormat::Depth24S8,
     TextureFormat::Depth24x8,
     TextureFormat::Depth16,
     };
@@ -31,7 +32,7 @@ Renderer::Renderer(Tempest::Device &device,Gothic& gothic)
     }
 
   for(auto& i:zfrm) {
-    if(device.caps().hasAttachFormat(i)){
+    if(device.caps().hasDepthFormat(i)){
       zBufferFormat = i;
       break;
       }

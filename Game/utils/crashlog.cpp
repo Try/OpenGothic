@@ -6,9 +6,12 @@
 #include <cstring>
 #include <csignal>
 #include <fstream>
+#include <cstring>
 
 #include <dbg/frames.hpp>
 #include <dbg/symbols.hpp>
+
+static char gpuName[64]={};
 
 #ifdef __WINDOWS__
 #include <errhandlingapi.h>
@@ -58,6 +61,10 @@ void CrashLog::setup() {
   std::set_terminate(terminateHandler);
   }
 
+void CrashLog::setGpu(const char *name) {
+  std::strncpy(gpuName,name,sizeof(gpuName)-1);
+  }
+
 void CrashLog::dumpStack(const char *sig) {
   dbg::symdb          db;
   dbg::call_stack<64> traceback;
@@ -66,11 +73,17 @@ void CrashLog::dumpStack(const char *sig) {
     sig = "SIGSEGV";
 
   std::cout << std::endl << "---crashlog(" <<  sig   << ")---" << std::endl;
+  writeSysInfo(std::cout);
   traceback.collect(0);
   traceback.log(db, std::cout);
   std::cout << std::endl;
 
   std::ofstream fout("crash.log");
   fout << "---crashlog(" <<  sig << ")---" << std::endl;
+  writeSysInfo(fout);
   traceback.log(db, fout);
+  }
+
+void CrashLog::writeSysInfo(std::ostream &fout) {
+  fout << "GPU: " << gpuName << std::endl;
   }
