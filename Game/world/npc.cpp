@@ -967,13 +967,15 @@ bool Npc::implAtack(uint64_t dt) {
   if((ani==Anim::Atack || ani==Anim::AtackBlock) && !animation.animSq.isAtackFinished(owner.tickCount()-animation.sAnim))
     return true;
 
+  if(faiWaitTime>=owner.tickCount()) {
+    implLookAt(*currentTarget,dt);
+    return true;
+    }
+
   if(!fghAlgo.hasInstructions())
     return false;
 
   if(implLookAt(*currentTarget,dt))
-    return true;
-
-  if(faiWaitTime>=owner.tickCount())
     return true;
 
   FightAlgo::Action act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
