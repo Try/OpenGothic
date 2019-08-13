@@ -908,7 +908,7 @@ bool Npc::implGoTo(uint64_t dt) {
     float dx = currentGoTo->x-x;
     float dz = currentGoTo->z-z;
 
-    int needToRot = (walkMode()!=WalkBit::WM_Run && anim()==Anim::Move) ? 45 : 0;
+    int needToRot = (walkMode()==WalkBit::WM_Run && anim()==Anim::Move) ? 45 : 0;
     if(implLookAt(dx,dz,needToRot,dt)){
       mvAlgo.tick(dt);
       return true;
