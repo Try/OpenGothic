@@ -8,10 +8,10 @@
 #include "game/perceptionmsg.h"
 
 #include "interactive.h"
-#include "movetrigger.h"
 #include "spaceindex.h"
-#include "trigger.h"
-#include "zonetrigger.h"
+#include "triggers/movetrigger.h"
+#include "triggers/trigger.h"
+#include "triggers/zonetrigger.h"
 
 class Npc;
 class Item;

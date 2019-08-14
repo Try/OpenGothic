@@ -1,6 +1,6 @@
 #include "zonetrigger.h"
 
-#include "world.h"
+#include "world/world.h"
 
 ZoneTrigger::ZoneTrigger(ZenLoad::zCVobData &&data, World &owner)
   :Trigger(std::move(data)), owner(owner){

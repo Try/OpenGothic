@@ -1,6 +1,6 @@
 #include "movetrigger.h"
 
-#include "world.h"
+#include "world/world.h"
 
 MoveTrigger::MoveTrigger(ZenLoad::zCVobData&& d,World& owner)
   :Trigger(std::move(d)) {

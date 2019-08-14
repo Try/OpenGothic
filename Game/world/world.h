@@ -12,16 +12,16 @@
 #include "graphics/worldview.h"
 #include "graphics/staticobjects.h"
 #include "physics/dynamicworld.h"
+#include "triggers/trigger.h"
 #include "game/gamescript.h"
 #include "item.h"
 #include "npc.h"
 #include "interactive.h"
-#include "resources.h"
-#include "trigger.h"
 #include "worldobjects.h"
 #include "worldsound.h"
 #include "waypoint.h"
 #include "waymatrix.h"
+#include "resources.h"
 
 class GameSession;
 class RendererStorage;
