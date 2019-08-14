@@ -33,7 +33,7 @@ class Interactive final {
 
     std::string         stateFunc() const;
     int32_t             stateId() const { return state; }
-    Trigger*            triggerTarget() const;
+    void                emitTriggerEvent() const;
     const char*         schemeName() const;
 
     bool                isContainer() const;

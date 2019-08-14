@@ -9,7 +9,7 @@ class ZoneTrigger : public Trigger {
     ZoneTrigger(ZenLoad::zCVobData&& data, World &owner);
 
     void onIntersect(Npc& n) override;
-    bool checkPos(float x,float y,float z) const;
+    bool checkPos(float x,float y,float z) const override;
 
   private:
     World &owner;

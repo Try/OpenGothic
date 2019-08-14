@@ -62,9 +62,7 @@ class WorldObjects final {
     Item&          itm(size_t i)       { return *itemArr[i];    }
 
     void           addTrigger(ZenLoad::zCVobData&& vob);
-    Trigger*       findTrigger(const char* name);
-    Trigger*       findTrigger(const std::array<float,3>& xyz);
-    Trigger*       findTrigger(float x,float y,float z);
+    void           triggerEvent(const TriggerEvent& e);
 
     Item*          addItem(size_t itemInstance, const char *at);
     Item*          addItem(const ZenLoad::zCVobData &vob);
@@ -99,11 +97,12 @@ class WorldObjects final {
     std::vector<std::unique_ptr<Npc>>  npcInvalid;
     std::vector<Npc*>                  npcNear;
 
-    std::vector<Trigger>               triggers;
-    std::vector<MoveTrigger>           triggersMv;
-    std::vector<ZoneTrigger>           triggersZn;
+    std::vector<std::unique_ptr<Trigger>> triggers;
+    std::vector<Trigger*>                 triggersMv;
+    std::vector<Trigger*>                 triggersZn;
 
     std::vector<PerceptionMsg>         sndPerc;
+    std::vector<TriggerEvent>          triggerEvents;
 
     template<class T,class E>
     E*   validateObj(T &src,E* e);
@@ -120,4 +119,5 @@ class WorldObjects final {
     bool testObjRange(T &src,const Npc &pl, const SearchOpt& opt,float& rlen);
 
     void           tickNear(uint64_t dt);
+    void           tickTriggers(uint64_t dt);
   };

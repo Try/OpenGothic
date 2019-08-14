@@ -12,9 +12,13 @@ const std::string &Trigger::name() const {
   return data.vobName;
   }
 
-void Trigger::onTrigger() {
-  Log::d("TODO: trigger[",name(),"]");
+void Trigger::onTrigger(const TriggerEvent&) {
+  Log::d("TODO: trigger[",name(),";",data.objectClass,"]");
   }
 
 void Trigger::onIntersect(Npc &) {
+  }
+
+bool Trigger::checkPos(float,float,float) const{
+  return false;
   }

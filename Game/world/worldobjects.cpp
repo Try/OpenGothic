@@ -6,9 +6,12 @@
 #include "npc.h"
 #include "world.h"
 #include "utils/workers.h"
+#include "world/triggers/codemaster.h"
+#include "world/triggers/triggerscript.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Application>
+
 
 using namespace Tempest;
 using namespace Daedalus::GameState;
@@ -81,6 +84,7 @@ void WorldObjects::tick(uint64_t dt) {
       }
     }
   tickNear(dt);
+  tickTriggers(dt);
 
   for(auto& i:npcArr) {
     if(i->isPlayer())
@@ -183,10 +187,21 @@ void WorldObjects::tickNear(uint64_t /*dt*/) {
       b.setNearestEnemy(a);
       }
   for(Npc* i:npcNear){
-    auto* t = findTrigger(i->position());
-    if(t!=nullptr)
-      t->onIntersect(*i);
+    auto pos=i->position();
+    for(Trigger* t:triggersZn)
+      if(t->checkPos(pos[0],pos[1],pos[2]))
+        t->onIntersect(*i);
     }
+  }
+
+void WorldObjects::tickTriggers(uint64_t /*dt*/) {
+  auto evt = std::move(triggerEvents);
+  triggerEvents.clear();
+
+  for(auto& e:evt)
+    for(auto& i:triggers)
+      if(i->name()==e.target)
+        i->onTrigger(e);
   }
 
 void WorldObjects::updateAnimation() {
@@ -221,40 +236,33 @@ void WorldObjects::detectNpc(const float x, const float y, const float z, std::f
   }
 
 void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {
-  if(vob.vobType==ZenLoad::zCVobData::VT_zCMover){
-    triggersMv.emplace_back(std::move(vob),owner);
-    return;
+  std::unique_ptr<Trigger> tg;
+  switch(vob.vobType) {
+    case ZenLoad::zCVobData::VT_zCMover:
+      tg.reset(new MoveTrigger(std::move(vob),owner));
+      triggersMv.emplace_back(tg.get());
+      break;
+
+    case ZenLoad::zCVobData::VT_oCTriggerChangeLevel:
+      tg.reset(new ZoneTrigger(std::move(vob),owner));
+      triggersZn.emplace_back(tg.get());
+      break;
+
+    case ZenLoad::zCVobData::VT_zCCodeMaster:
+      tg.reset(new CodeMaster(std::move(vob),owner));
+      break;
+
+    case ZenLoad::zCVobData::VT_zCTriggerScript:
+      tg.reset(new TriggerScript(std::move(vob),owner));
+      break;
+    default:
+      tg.reset(new Trigger(std::move(vob)));
     }
-
-  if(vob.vobType==ZenLoad::zCVobData::VT_oCTriggerChangeLevel){
-    triggersZn.emplace_back(std::move(vob),owner);
-    return;
-    }
-
-  triggers.emplace_back(std::move(vob));
+  triggers.emplace_back(std::move(tg));
   }
 
-Trigger *WorldObjects::findTrigger(const char *name) {
-  if(name==nullptr || name[0]=='\0')
-    return nullptr;
-  for(auto& i:triggersMv)
-    if(i.name()==name)
-      return &i;
-  for(auto& i:triggers)
-    if(i.name()==name)
-      return &i;
-  return nullptr;
-  }
-
-Trigger *WorldObjects::findTrigger(const std::array<float,3> &p) {
-  return findTrigger(p[0],p[1],p[2]);
-  }
-
-Trigger *WorldObjects::findTrigger(float x, float y, float z) {
-  for(auto& i:triggersZn)
-    if(i.checkPos(x,y,z))
-      return &i;
-  return nullptr;
+void WorldObjects::triggerEvent(const TriggerEvent &e) {
+  triggerEvents.push_back(e);
   }
 
 Item* WorldObjects::addItem(const ZenLoad::zCVobData &vob) {

@@ -384,12 +384,12 @@ Focus World::findFocus(const Focus &def, const Tempest::Matrix4x4 &mvp, int w, i
   return findFocus(*npcPlayer,def,mvp,w,h);
   }
 
-Trigger *World::findTrigger(const char *name) {
-  return wobj.findTrigger(name);
-  }
-
 Interactive *World::aviableMob(const Npc &pl, const std::string &name) {
   return wobj.aviableMob(pl,name);
+  }
+
+void World::triggerEvent(const TriggerEvent &e) {
+  wobj.triggerEvent(e);
   }
 
 void World::changeWorld(const std::string& world, const std::string& wayPoint) {

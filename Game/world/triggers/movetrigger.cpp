@@ -30,7 +30,7 @@ void MoveTrigger::setObjMatrix(const Tempest::Matrix4x4 &m) {
   physic.setObjMatrix(m);
   }
 
-void MoveTrigger::onTrigger() {
+void MoveTrigger::onTrigger(const TriggerEvent&) {
   if(data.zCMover.keyframes.size()==0)
     return;
 

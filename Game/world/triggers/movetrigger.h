@@ -8,7 +8,7 @@ class MoveTrigger : public Trigger {
   public:
     MoveTrigger(ZenLoad::zCVobData&& data, World &owner);
 
-    void onTrigger() override;
+    void onTrigger(const TriggerEvent& evt) override;
 
   private:
     void setView     (StaticObjects::Mesh&& m);

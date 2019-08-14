@@ -8,7 +8,7 @@
 #include "graphics/posepool.h"
 #include "game/serialize.h"
 #include "game/gamescript.h"
-#include "triggers/trigger.h"
+#include "world/triggers/trigger.h"
 #include "world.h"
 #include "resources.h"
 
@@ -2114,9 +2114,7 @@ bool Npc::setInteraction(Interactive *id) {
   if(id && id->attach(*this)) {
     owner.sendPassivePerc(*this,*this,*this,PERC_ASSESSUSEMOB);
     currentInteract=id;
-    if(auto tr = currentInteract->triggerTarget()){
-      tr->onTrigger();
-      }
+    currentInteract->emitTriggerEvent();
     return true;
     }
 

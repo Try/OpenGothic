@@ -104,8 +104,7 @@ class World final {
     Focus findFocus(const Npc& pl, const Focus &def, const Tempest::Matrix4x4 &mvp, int w, int h);
     Focus findFocus(const Focus& def, const Tempest::Matrix4x4 &mvp, int w, int h);
 
-    Trigger*       findTrigger(const std::string& name) { return findTrigger(name.c_str()); }
-    Trigger*       findTrigger(const char*        name);
+    void           triggerEvent(const TriggerEvent& e);
     Interactive*   aviableMob(const Npc &pl, const std::string& name);
     void           changeWorld(const std::string &world, const std::string &wayPoint);
 

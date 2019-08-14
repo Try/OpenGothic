@@ -131,8 +131,11 @@ std::string Interactive::stateFunc() const {
   return buf;
   }
 
-Trigger* Interactive::triggerTarget() const {
-  return world->findTrigger(data.oCMobInter.triggerTarget);
+void Interactive::emitTriggerEvent() const {
+  if(data.oCMobInter.triggerTarget.empty())
+    return;
+  const TriggerEvent evt(data.oCMobInter.triggerTarget,data.vobName);
+  world->triggerEvent(evt);
   }
 
 const char *Interactive::schemeName() const {
