@@ -3,7 +3,7 @@
 #include "world/world.h"
 
 ZoneTrigger::ZoneTrigger(ZenLoad::zCVobData &&data, World &owner)
-  :Trigger(std::move(data)), owner(owner){
+  :Trigger(std::move(data),owner){
   }
 
 bool ZoneTrigger::checkPos(float x, float y, float z) const {

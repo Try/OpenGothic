@@ -4,6 +4,7 @@
 #include <zenload/zTypes.h>
 
 class Npc;
+class World;
 
 class TriggerEvent final {
   public:
@@ -16,7 +17,7 @@ class TriggerEvent final {
 
 class Trigger {
   public:
-    Trigger(ZenLoad::zCVobData&& data);
+    Trigger(ZenLoad::zCVobData&& data,World& owner);
     virtual ~Trigger()=default;
 
     const std::string& name() const;
@@ -26,4 +27,5 @@ class Trigger {
 
   protected:
     ZenLoad::zCVobData data;
+    World&             owner;
   };

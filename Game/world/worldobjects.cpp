@@ -256,7 +256,7 @@ void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {
       tg.reset(new TriggerScript(std::move(vob),owner));
       break;
     default:
-      tg.reset(new Trigger(std::move(vob)));
+      tg.reset(new Trigger(std::move(vob),owner));
     }
   triggers.emplace_back(std::move(tg));
   }

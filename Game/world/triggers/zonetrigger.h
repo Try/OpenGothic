@@ -10,7 +10,4 @@ class ZoneTrigger : public Trigger {
 
     void onIntersect(Npc& n) override;
     bool checkPos(float x,float y,float z) const override;
-
-  private:
-    World &owner;
   };

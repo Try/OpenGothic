@@ -3,7 +3,7 @@
 #include "world/world.h"
 
 CodeMaster::CodeMaster(ZenLoad::zCVobData&& data, World &owner)
-  :Trigger(std::move(data)), owner(owner), keys(this->data.zCCodeMaster.slaveVobName.size()) {
+  :Trigger(std::move(data),owner), keys(this->data.zCCodeMaster.slaveVobName.size()) {
   }
 
 void CodeMaster::onTrigger(const TriggerEvent &evt) {

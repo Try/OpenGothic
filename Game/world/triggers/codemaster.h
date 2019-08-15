@@ -11,7 +11,6 @@ class CodeMaster : public Trigger {
     void onTrigger(const TriggerEvent& evt) override;
 
   private:
-    World&            owner;
     std::vector<bool> keys;
   };
 

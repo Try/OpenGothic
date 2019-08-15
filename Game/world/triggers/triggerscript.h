@@ -9,7 +9,4 @@ class TriggerScript : public Trigger {
     TriggerScript(ZenLoad::zCVobData&& data, World &owner);
 
     void onTrigger(const TriggerEvent& evt) override;
-
-  private:
-    World &owner;
   };
