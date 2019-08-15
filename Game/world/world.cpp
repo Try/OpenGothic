@@ -656,14 +656,14 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
 
   if(vob.objectClass=="zCVob" ||
      vob.objectClass=="oCMOB:zCVob" ||
-     vob.objectClass=="zCPFXControler:zCVob" ||
-     vob.objectClass=="oCMobFire:oCMobInter:oCMOB:zCVob") {
+     vob.objectClass=="zCPFXControler:zCVob") {
     addStatic(vob);
     }
-  else if(vob.objectClass=="oCMobDoor:oCMobInter:oCMOB:zCVob" ||
-          vob.objectClass=="oCMobBed:oCMobInter:oCMOB:zCVob" ||
+  else if(vob.vobType==ZenLoad::zCVobData::VT_oCMobBed ||
+          vob.vobType==ZenLoad::zCVobData::VT_oCMobDoor ||
           vob.vobType==ZenLoad::zCVobData::VT_oCMobInter ||
           vob.vobType==ZenLoad::zCVobData::VT_oCMobContainer ||
+          vob.vobType==ZenLoad::zCVobData::VT_oCMobFire ||
           vob.vobType==ZenLoad::zCVobData::VT_oCMobSwitch){
     addInteractive(vob);
     }
@@ -676,20 +676,12 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
   else if(vob.vobType==ZenLoad::zCVobData::VT_zCMover){
     wobj.addTrigger(std::move(vob));
     }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_oCTriggerChangeLevel){
-    wobj.addTrigger(std::move(vob)); // change world trigger
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_oCTriggerWorldStart){
-    wobj.addTrigger(std::move(vob)); // world start trigger
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_zCCodeMaster){
-    wobj.addTrigger(std::move(vob));
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_zCTriggerScript){
-    wobj.addTrigger(std::move(vob));
-    }
-  else if(vob.objectClass=="zCTriggerList:zCTrigger:zCVob" ||
-          vob.objectClass=="zCTrigger:zCVob"){
+  else if(vob.vobType==ZenLoad::zCVobData::VT_zCCodeMaster ||
+          vob.vobType==ZenLoad::zCVobData::VT_zCTrigger ||
+          vob.vobType==ZenLoad::zCVobData::VT_zCTriggerList ||
+          vob.vobType==ZenLoad::zCVobData::VT_zCTriggerScript ||
+          vob.vobType==ZenLoad::zCVobData::VT_oCTriggerWorldStart ||
+          vob.vobType==ZenLoad::zCVobData::VT_oCTriggerChangeLevel){
     wobj.addTrigger(std::move(vob));
     }
   else if(vob.objectClass=="zCMessageFilter:zCVob"){

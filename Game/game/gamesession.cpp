@@ -28,6 +28,7 @@ std::unique_ptr<Npc> GameSession::HeroStorage::load(World& owner) const {
     return nullptr;
   Tempest::MemReader rd{storage};
   Serialize          sr{rd};
+  sr.setContext(&owner);
   return std::make_unique<Npc>(owner,sr);
   }
 

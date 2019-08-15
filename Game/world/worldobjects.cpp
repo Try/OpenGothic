@@ -6,12 +6,13 @@
 #include "npc.h"
 #include "world.h"
 #include "utils/workers.h"
+
 #include "world/triggers/codemaster.h"
 #include "world/triggers/triggerscript.h"
+#include "world/triggers/triggerlist.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Application>
-
 
 using namespace Tempest;
 using namespace Daedalus::GameState;
@@ -198,10 +199,16 @@ void WorldObjects::tickTriggers(uint64_t /*dt*/) {
   auto evt = std::move(triggerEvents);
   triggerEvents.clear();
 
-  for(auto& e:evt)
+  for(auto& e:evt) {
+    bool emitted=false;
     for(auto& i:triggers)
-      if(i->name()==e.target)
+      if(i->name()==e.target) {
         i->onTrigger(e);
+        emitted=true;
+        }
+    if(!emitted)
+      Log::d("unable to process trigger: \"",e.target,"\"");
+    }
   }
 
 void WorldObjects::updateAnimation() {
@@ -254,6 +261,10 @@ void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {
 
     case ZenLoad::zCVobData::VT_zCTriggerScript:
       tg.reset(new TriggerScript(std::move(vob),owner));
+      break;
+
+    case ZenLoad::zCVobData::VT_zCTriggerList:
+      tg.reset(new TriggerList(std::move(vob),owner));
       break;
     default:
       tg.reset(new Trigger(std::move(vob),owner));
