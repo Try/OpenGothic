@@ -1809,7 +1809,7 @@ bool Npc::drawWeaponFist() {
     closeWeapon(false);
     return false;
     }
-  Anim ani = animation.current==Anim::Idle ? Anim::Idle : Anim::Move;
+  Anim ani = animation.current<=Anim::IdleLast ? Anim::Idle : Anim::Move;
   if(!setAnim(ani,WeaponState::Fist))
     return false;
   invent.switchActiveWeaponFist();
@@ -1848,16 +1848,16 @@ bool Npc::drawWeaponMele() {
 
 bool Npc::drawWeaponBow() {
   auto weaponSt=invent.weaponState();
-  if(weaponSt==WeaponState::Bow || weaponSt==WeaponState::CBow)
+  if(weaponSt==WeaponState::Bow || weaponSt==WeaponState::CBow || invent.currentRangeWeapon()==nullptr)
     return true;
   if(weaponSt!=WeaponState::NoWeapon) {
     closeWeapon(false);
     return false;
     }
 
-  auto& weapon = *invent.currentMeleWeapon();
+  auto& weapon = *invent.currentRangeWeapon();
   auto  st     = weapon.isCrossbow() ? WeaponState::CBow : WeaponState::Bow;
-  Anim  ani    = animation.current==isStanding()           ? Anim::Idle        : Anim::Move;
+  Anim  ani    = animation.current==isStanding() ? Anim::Idle : Anim::Move;
   if(!setAnim(ani,st))
     return false;
   invent.switchActiveWeapon(*this,2);
