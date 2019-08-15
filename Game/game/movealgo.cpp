@@ -267,8 +267,6 @@ void MoveAlgo::tick(uint64_t dt, bool fai) {
     }
   else if(-fallThreshold<dY && dY<0.f) {
     if(testSlide(pos[0]+dp[0], pos[1]+dp[1]+fallThreshold, pos[2]+dp[2])) {
-      tryMove(dp[0],-dY,dp[2]);
-      setAsSlide(true);
       return;
       }
     // move up the ramp
