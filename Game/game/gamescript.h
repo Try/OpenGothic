@@ -382,6 +382,7 @@ class GameScript final {
 
     std::unique_ptr<SpellDefinitions>                           spells;
     std::unique_ptr<SvmDefinitions>                             svm;
+    uint64_t                                                    svmBarrier=0;
 
     std::set<std::pair<size_t,size_t>>                          dlgKnownInfos;
     std::vector<Daedalus::GEngineClasses::C_Info>               dialogsInfo;

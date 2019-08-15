@@ -922,6 +922,9 @@ bool GameScript::aiOutput(Npc &npc, const std::string &outputname) {
 
 bool GameScript::aiOutputSvm(Npc &npc, const std::string &outputname, int32_t voice) {
   auto& sv = svm->find(outputname.c_str(),voice);
+  if(tickCount()<svmBarrier)
+    return true;
+  svmBarrier = tickCount()+messageTime(sv);
   if(sv.size()>0)
     return aiOutput(npc,sv);
   return true;
