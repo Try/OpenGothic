@@ -221,7 +221,7 @@ bool Npc::performOutput(const Npc::AiAction &act) {
     return true;
   if(act.act==AI_OutputSvm        && outputPipe->outputSvm(*this,act.s0,hnpc.voice))
     return true;
-  if(act.act==AI_OutputSvmOverlay && outputPipe->outputSvm(*this,act.s0,hnpc.voice))
+  if(act.act==AI_OutputSvmOverlay && outputPipe->outputOv(*this,act.s0,hnpc.voice))
     return true;
   return false;
   }
