@@ -1677,7 +1677,7 @@ void GameScript::npc_setrefusetalk(Daedalus::DaedalusVM &vm) {
   int32_t  timeSec = vm.popInt();
   auto     npc     = popInstance(vm);
   if(npc)
-    npc->setRefuseTalk(uint64_t(std::max(timeSec,0)));
+    npc->setRefuseTalk(uint64_t(std::max(timeSec*1000,0)));
   }
 
 void GameScript::npc_refusetalk(Daedalus::DaedalusVM &vm) {
