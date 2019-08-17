@@ -22,7 +22,8 @@ bool PlayerControl::interact(Interactive &it) {
     inv.open(*w->player(),it);
     return true;
     }
-  return dlg.start(*w->player(),it);
+  w->player()->setInteraction(&it);
+  return true;
   }
 
 bool PlayerControl::interact(Npc &other) {
@@ -35,7 +36,8 @@ bool PlayerControl::interact(Npc &other) {
     if(!inv.ransack(*w->player(),other))
       w->script().printNothingToGet();
     }
-  return dlg.start(*w->player(),other);
+  other.startDialog(*w->player());
+  return true;
   }
 
 bool PlayerControl::interact(Item &item) {
@@ -51,6 +53,25 @@ bool PlayerControl::interact(Item &item) {
 
   w->sendPassivePerc(*pl,*pl,*pl,*it,Npc::PERC_ASSESSTHEFT);
   return true;
+  }
+
+void PlayerControl::invokeMobsiState() {
+  auto w = world();
+  if(w==nullptr || w->player()==nullptr)
+    return;
+  auto pl = w->player();
+  if(pl==nullptr)
+    return;
+
+  auto inter = pl->interactive();
+  if(inter==nullptr || mobsiState==inter->stateId())
+    return;
+  mobsiState = inter->stateId();
+  auto st = inter->stateFunc();
+  if(!st.empty()) {
+    auto& sc = pl->world().script();
+    sc.useInteractive(pl->handle(),st);
+    }
   }
 
 void PlayerControl::toogleWalkMode() {
@@ -220,6 +241,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
   cacheFocus = ctrl[ActionFocus] || ctrl[ActForward] || ctrl[ActLeft] || ctrl[ActRight] || ctrl[ActBack];
   implMove(dt);
   std::memset(ctrl,0,Walk);
+  invokeMobsiState();
   return true;
   }
 

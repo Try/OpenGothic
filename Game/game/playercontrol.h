@@ -94,6 +94,7 @@ class PlayerControl final {
     bool           cacheFocus=false;
     uint64_t       rotMouse=0;
     bool           rotMouseDir=false;
+    int32_t        mobsiState=-1;
 
     Gothic&        gothic;
     DialogMenu&    dlg;
@@ -103,4 +104,5 @@ class PlayerControl final {
     void           clrDraw();
     void           implMove(uint64_t dt);
     void           setPos(std::array<float,3> a, uint64_t dt, float speed);
+    void           invokeMobsiState();
   };

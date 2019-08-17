@@ -29,8 +29,6 @@ class DialogMenu : public Tempest::Widget {
 
     void aiIsClose(bool& ret);
     bool isActive() const;
-    bool start(Npc& pl,Npc& other);
-    bool start(Npc& pl,Interactive& other);
 
     void print      (const char* msg);
     void printScreen(const char* msg,int x,int y,int time,const Tempest::Font& font);
@@ -100,7 +98,6 @@ class DialogMenu : public Tempest::Widget {
     bool aiClose();
 
     bool haveToWaitOutput() const;
-    void invokeMobsiState();
 
     void drawTextMultiline(Tempest::Painter& p, int x, int y, int w, int h, const std::string& txt, bool isPl);
 
