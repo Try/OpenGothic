@@ -383,36 +383,37 @@ bool Npc::checkHealth(bool onChange,bool forceKill) {
       return false;
       }
 
-    if(onChange && currentOther!=nullptr) {
-      // currentOther must be externaly initialized
-      if(owner.script().personAttitude(*this,*currentOther)==ATT_HOSTILE ||
-         guild()>GIL_SEPERATOR_HUM || forceKill){
-        if(hnpc.attribute[ATR_HITPOINTS]<=0) {
-          size_t fdead=owner.getSymbolIndex("ZS_Dead");
-          if(animation.current!=Anim::UnconsciousA && animation.current!=Anim::UnconsciousB)
-            animation.resetAni();
-          startState(fdead,"");
-
-          if(hnpc.voice>0){
-            char name[32]={};
-            std::snprintf(name,sizeof(name),"SVM_%d_DEAD",int(hnpc.voice));
-            emitSoundEffect(name,25,true);
-            }
-          }
-        } else {
-        hnpc.attribute[ATR_HITPOINTS]=1;
-        size_t fdead=owner.getSymbolIndex("ZS_Unconscious");
-        animation.resetAni();
+    if(currentOther==nullptr ||
+       forceKill ||
+       owner.script().personAttitude(*this,*currentOther)==ATT_HOSTILE ||
+       guild()>GIL_SEPERATOR_HUM){
+      if(hnpc.attribute[ATR_HITPOINTS]<=0) {
+        size_t fdead=owner.getSymbolIndex("ZS_Dead");
+        if(animation.current!=Anim::UnconsciousA && animation.current!=Anim::UnconsciousB)
+          animation.resetAni();
         startState(fdead,"");
 
-        if(hnpc.voice>0){
+        if(hnpc.voice>0 && currentOther!=nullptr){
+          // in case of battle currentOther!=nullptr,
+          // if else detch is scripted
           char name[32]={};
-          std::snprintf(name,sizeof(name),"SVM_%d_AARGH",int(hnpc.voice));
+          std::snprintf(name,sizeof(name),"SVM_%d_DEAD",int(hnpc.voice));
           emitSoundEffect(name,25,true);
           }
         }
-      return false;
+      } else {
+      hnpc.attribute[ATR_HITPOINTS]=1;
+      size_t fdead=owner.getSymbolIndex("ZS_Unconscious");
+      animation.resetAni();
+      startState(fdead,"");
+
+      if(hnpc.voice>0){
+        char name[32]={};
+        std::snprintf(name,sizeof(name),"SVM_%d_AARGH",int(hnpc.voice));
+        emitSoundEffect(name,25,true);
+        }
       }
+    return false;
     }
   physic.setEnable(true);
   return true;
