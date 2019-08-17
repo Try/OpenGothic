@@ -208,6 +208,8 @@ int Npc::aiOutputOrderId() const {
   }
 
 bool Npc::performOutput(const Npc::AiAction &act) {
+  if(act.target==nullptr) //FIXME: target is null after loading
+    return true;
   const int order = act.target->aiOutputOrderId();
   if(order<act.i0)
     return false;
