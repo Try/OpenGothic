@@ -1189,6 +1189,27 @@ int Npc::damageValue(Npc &other) const {
   return std::max(v,3);
   }
 
+Npc *Npc::updateNearestEnemy() {
+  if(aiPolicy!=ProcessPolicy::AiNormal)
+    return nullptr;
+
+  Npc* ret=nearestEnemy;
+  owner.detectNpcNear([this,&ret](Npc& n){
+    if(!isEnemy(n))
+      return;
+    if(ret==nullptr || ret->isDown()){
+      ret = &n;
+      return;
+      }
+    float d2 = qDistTo(n);
+    float d1 = qDistTo(*ret);
+    if(d2<d1 && canSeeNpc(n,true))
+      ret = &n;
+    });
+  nearestEnemy = ret;
+  return nearestEnemy;
+  }
+
 void Npc::tick(uint64_t dt) {
   owner.tickSlot(animation.soundSlot);
 
@@ -1434,7 +1455,7 @@ void Npc::nextAiAction(uint64_t dt) {
       }
     case AI_SetNpcsToState:{
       const int32_t r = act.i0*act.i0;
-      owner.detectNpc(position(),[&act,this,r](Npc& other){
+      owner.detectNpc(position(),hnpc.senses_range,[&act,this,r](Npc& other){
         if(&other!=this && qDistTo(other)<r)
           other.aiStartState(act.func,1,other.currentOther,other.hnpc.wp);
         });
@@ -1565,19 +1586,6 @@ Npc *Npc::target() {
 
 void Npc::clearNearestEnemy() {
   nearestEnemy = nullptr;
-  }
-
-void Npc::setNearestEnemy(Npc& n) {
-  if(!isEnemy(n))
-    return;
-  if(nearestEnemy==nullptr || nearestEnemy->isDown()){
-    nearestEnemy = &n;
-    return;
-    }
-  float d2 = qDistTo(n);
-  float d1 = qDistTo(*nearestEnemy);
-  if(d2<d1 && canSeeNpc(n,true))
-    nearestEnemy = &n;
   }
 
 void Npc::setOther(Npc *ot) {
@@ -2046,7 +2054,7 @@ void Npc::setPerceptionEnable(Npc::PercType t, size_t fn) {
 
 void Npc::setPerceptionDisable(Npc::PercType t) {
   if(t>0 && t<PERC_Count)
-    perception[t].func = 0;
+    perception[t].func = size_t(-1);
   }
 
 void Npc::startDialog(Npc& pl) {
@@ -2071,9 +2079,10 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
       ret          = true;
       }
     }
-  if(nearestEnemy!=nullptr){
-    float dist=qDistTo(*nearestEnemy);
-    if(!nearestEnemy->isDown() && canSeeNpc(*nearestEnemy,false) && perceptionProcess(*nearestEnemy,nullptr,dist,PERC_ASSESSENEMY)){
+  Npc* enem=hasPerc(PERC_ASSESSENEMY) ? updateNearestEnemy() : nullptr;
+  if(enem!=nullptr){
+    float dist=qDistTo(*enem);
+    if(!enem->isDown() && canSeeNpc(*enem,false) && perceptionProcess(*enem,nullptr,dist,PERC_ASSESSENEMY)){
       /*
       if(isTalk())
         Log::e("unxepected perc acton"); else
@@ -2091,13 +2100,17 @@ bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType 
   r = r*r;
   if(quadDist>r)
     return false;
-  if(perception[perc].func){
+  if(hasPerc(perc)){
     owner.script().invokeState(this,&pl,victum,perception[perc].func);
     //currentOther=&pl;
     return true;
     }
   perceptionNextTime=owner.tickCount()+perceptionTime;
   return false;
+  }
+
+bool Npc::hasPerc(Npc::PercType perc) const {
+  return perception[perc].func!=size_t(-1);
   }
 
 uint64_t Npc::percNextTime() const {

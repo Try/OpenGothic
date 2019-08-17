@@ -1375,7 +1375,7 @@ void GameScript::wld_detectnpc(Daedalus::DaedalusVM &vm) {
   Npc*  ret =nullptr;
   float dist=std::numeric_limits<float>::max();
 
-  world().detectNpc(npc->position(), [inst,state,guild,&ret,&dist,npc](Npc& n){
+  world().detectNpc(npc->position(), npc->handle()->senses_range, [inst,state,guild,&ret,&dist,npc](Npc& n){
     if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
        (state==-1 || n.isState(uint32_t(state))) &&
        (guild==-1 || int32_t(n.guild())==guild) &&
@@ -1405,7 +1405,7 @@ void GameScript::wld_detectnpcex(Daedalus::DaedalusVM &vm) {
   Npc*  ret =nullptr;
   float dist=std::numeric_limits<float>::max();
 
-  world().detectNpc(npc->position(), [inst,state,guild,&ret,&dist,npc,player](Npc& n){
+  world().detectNpc(npc->position(), npc->handle()->senses_range, [inst,state,guild,&ret,&dist,npc,player](Npc& n){
     if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
        (state==-1 || n.isState(uint32_t(state))) &&
        (guild==-1 || int32_t(n.guild())==guild) &&
@@ -2011,7 +2011,7 @@ void GameScript::npc_getnexttarget(Daedalus::DaedalusVM &vm) {
     float dist = npc->handle()->senses_range;
     dist*=dist;
 
-    world().detectNpc(npc->position(),[&,npc](Npc& oth){
+    world().detectNpc(npc->position(),npc->handle()->senses_range,[&,npc](Npc& oth){
       if(!oth.isDown() && oth.isEnemy(*npc)){
         float qd = oth.qDistTo(*npc);
         if(qd<dist){
@@ -2706,14 +2706,14 @@ void GameScript::hlp_getinstanceid(Daedalus::DaedalusVM &vm) {
   uint32_t idx  = vm.popUInt();
   auto     self = getNpcById(idx);
   if(self!=nullptr){
-    auto v = *(self->handle());
+    auto& v = *(self->handle());
     vm.setReturn(int32_t(v.instanceSymbol));
     return;
     }
 
   auto item = getItemById(idx);
   if(item!=nullptr){
-    auto v = *(item->handle());
+    auto& v = *(item->handle());
     vm.setReturn(int32_t(v.instanceSymbol));
     return;
     }

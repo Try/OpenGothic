@@ -352,6 +352,7 @@ class Npc final {
 
     bool     perceptionProcess(Npc& pl, float quadDist);
     bool     perceptionProcess(Npc& pl, Npc *victum, float quadDist, PercType perc);
+    bool     hasPerc(PercType perc) const;
     uint64_t percNextTime() const;
 
     Interactive* interactive() const { return currentInteract; }
@@ -452,7 +453,6 @@ class Npc final {
     Npc*     target();
 
     void     clearNearestEnemy();
-    void     setNearestEnemy(Npc &n);
     int32_t  lastHitSpellId() const { return lastHitSpell; }
 
     void     setOther(Npc* ot);
@@ -543,7 +543,7 @@ class Npc final {
       };
 
     struct Perc final {
-      size_t func  =0;
+      size_t func = size_t(-1);
       };
 
     void                           updateWeaponSkeleton();
@@ -571,6 +571,7 @@ class Npc final {
     void                           commitDamage();
     void                           takeDamage(Npc& other);
     int                            damageValue(Npc &other) const;
+    Npc*                           updateNearestEnemy();
 
     void                           save(Serialize& fout,Daedalus::GEngineClasses::C_Npc& hnpc) const;
     void                           load(Serialize& fin, Daedalus::GEngineClasses::C_Npc& hnpc);

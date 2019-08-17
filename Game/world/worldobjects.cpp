@@ -179,14 +179,15 @@ std::unique_ptr<Npc> WorldObjects::takeNpc(const Npc* ptr) {
   }
 
 void WorldObjects::tickNear(uint64_t /*dt*/) {
+  /*
   for(size_t i=0;i<npcNear.size();++i)
     for(size_t r=i+1;r<npcNear.size();++r){
       Npc& a = *npcNear[i];
       Npc& b = *npcNear[r];
 
       a.setNearestEnemy(b);
-      b.setNearestEnemy(a);
-      }
+      b.setNearestEnemy(a); //FIXME: perfomance
+      }*/
   for(Npc* i:npcNear){
     auto pos=i->position();
     for(Trigger* t:triggersZn)
@@ -233,13 +234,23 @@ Npc *WorldObjects::findNpcByInstance(size_t instance) {
   return nullptr;
   }
 
-void WorldObjects::detectNpc(const float x, const float y, const float z, std::function<void (Npc &)> f) {
-  (void)x;
-  (void)y;
-  (void)z;
-  //TODO: handle x,y,z
-  for(auto& i:npcArr)
+void WorldObjects::detectNpcNear(std::function<void (Npc &)> f) {
+  for(auto& i:npcNear)
     f(*i);
+  }
+
+void WorldObjects::detectNpc(const float x, const float y, const float z,
+                             const float r, std::function<void (Npc &)> f) {
+  float maxDist=r*r;
+  for(auto& i:npcArr) {
+    float dx=i->position()[0]-x;
+    float dy=i->position()[1]-y;
+    float dz=i->position()[2]-z;
+
+    float qDist = dx*dx+dy*dy+dz*dz;
+    if(qDist<maxDist)
+      f(*i);
+    }
   }
 
 void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {

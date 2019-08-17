@@ -603,12 +603,16 @@ const WayPoint *World::findNextPoint(const WayPoint &pos) const {
   return wmatrix->findNextPoint(pos.x,pos.y,pos.z);
   }
 
-void World::detectNpc(const std::array<float,3> p, std::function<void (Npc &)> f) {
-  wobj.detectNpc(p[0],p[1],p[2],f);
+void World::detectNpcNear(std::function<void (Npc &)> f) {
+  wobj.detectNpcNear(f);
   }
 
-void World::detectNpc(const float x, const float y, const float z, std::function<void(Npc&)> f) {
-  wobj.detectNpc(x,y,z,f);
+void World::detectNpc(const std::array<float,3> p, const float r, std::function<void (Npc &)> f) {
+  wobj.detectNpc(p[0],p[1],p[2],r,f);
+  }
+
+void World::detectNpc(const float x, const float y, const float z, const float r, std::function<void(Npc&)> f) {
+  wobj.detectNpc(x,y,z,r,f);
   }
 
 WayPath World::wayTo(const Npc &pos, const WayPoint &end) const {
