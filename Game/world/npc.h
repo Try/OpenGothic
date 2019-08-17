@@ -437,6 +437,7 @@ class Npc final {
     void     aiSetWalkMode(WalkBit w);
     void     aiFinishingMove(Npc& other);
 
+    bool     isAiQueueEmpty() const;
     void     clearAiQueue();
 
     auto     currentWayPoint() const -> const WayPoint* { return currentFp; }

@@ -237,6 +237,11 @@ void PlayerControl::implMove(uint64_t dt) {
   if((pl.bodyState()&Npc::BS_MAX)==Npc::BS_UNCONSCIOUS)
     return;
 
+  if(!pl.isAiQueueEmpty()) {
+    pl.setAnim(Npc::Anim::Idle);
+    return;
+    }
+
   if(pl.interactive()==nullptr) {
     if(ctrl[RotateL]) {
       rot += rspeed;

@@ -2514,6 +2514,13 @@ void Npc::aiFinishingMove(Npc &other) {
   aiActions.push_back(a);
   }
 
+bool Npc::isAiQueueEmpty() const {
+  return aiActions.size()==0 &&
+         waitTime<owner.tickCount() &&
+         currentGoTo==nullptr &&
+         currentGoToNpc==nullptr;
+  }
+
 void Npc::clearAiQueue() {
   aiActions.clear();
   waitTime        = 0;
@@ -2522,9 +2529,7 @@ void Npc::clearAiQueue() {
   currentGoToNpc  = nullptr;
   currentGoToFlag = GoToHint::GT_Default;
   wayPath.clear();
-  mvAlgo.aiGoTo(nullptr);
   fghAlgo.onClearTarget();
-  //setTarget(nullptr);
   }
 
 void Npc::attachToPoint(const WayPoint *p) {
