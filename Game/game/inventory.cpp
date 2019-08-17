@@ -289,6 +289,11 @@ void Inventory::unequip(Item *it, Npc &owner) {
   for(auto& i:numslot)
     if(i==it)
       setSlot(i,nullptr,owner,false);
+  if(it->isEquiped()) {
+    // error
+    Log::e("[",owner.displayName(),"] inconsistent inventory state");
+    setSlot(it,nullptr,owner,false);
+    }
   }
 
 bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
@@ -773,6 +778,8 @@ uint8_t Inventory::slotId(Item *&slt) const {
   }
 
 uint32_t Inventory::indexOf(const Item *it) const {
+  if(it==nullptr)
+    return uint32_t(-1);
   for(size_t i=0;i<items.size();++i)
     if(items[i].get()==it)
       return i;
