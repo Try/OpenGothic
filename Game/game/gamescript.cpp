@@ -49,11 +49,11 @@ bool GameScript::GlobalOutput::output(Npc& npc,const std::string &text) {
   }
 
 bool GameScript::GlobalOutput::outputSvm(Npc &npc, const std::string &text, int voice) {
-  return owner.aiOutputSvm(npc,text,voice);
+  return owner.aiOutputSvm(npc,text,voice,false);
   }
 
 bool GameScript::GlobalOutput::outputOv(Npc &npc, const std::string &text, int voice) {
-  return owner.aiOutputSvm(npc,text,voice);
+  return owner.aiOutputSvm(npc,text,voice,true);
   }
 
 bool GameScript::GlobalOutput::isFinished() {
@@ -920,11 +920,15 @@ bool GameScript::aiOutput(Npc &npc, const std::string &outputname) {
   return true;
   }
 
-bool GameScript::aiOutputSvm(Npc &npc, const std::string &outputname, int32_t voice) {
+bool GameScript::aiOutputSvm(Npc &npc, const std::string &outputname, int32_t voice, bool overlay) {
   auto& sv = svm->find(outputname.c_str(),voice);
-  if(tickCount()<svmBarrier)
-    return true;
-  svmBarrier = tickCount()+messageTime(sv);
+  if(overlay) {
+    if(tickCount()<svmBarrier)
+      return true;
+
+    svmBarrier = tickCount()+messageTime(sv);
+    }
+
   if(sv.size()>0)
     return aiOutput(npc,sv);
   return true;
@@ -955,6 +959,9 @@ const std::string &GameScript::messageByName(const std::string& id) const {
   }
 
 uint32_t GameScript::messageTime(const std::string &id) const {
+  auto  s   = Resources::loadSoundBuffer(id+".wav");
+  if(s.timeLength()>0)
+    return uint32_t(s.timeLength());
   auto& txt = messageByName(id);
   return uint32_t(txt.size()*viewTimePerChar);
   }

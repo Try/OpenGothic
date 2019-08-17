@@ -196,8 +196,6 @@ bool DialogMenu::aiOutput(Npc &npc, const char *msg) {
   curentIsPl   = (pl==&npc);
 
   currentSnd.play();
-  if(auto t = currentSnd.timeLength())
-    current.time = uint32_t(t);
   update();
   return true;
   }

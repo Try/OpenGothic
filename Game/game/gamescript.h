@@ -164,7 +164,7 @@ class GameScript final {
     void  storeItem(Item* it);
 
     bool  aiOutput   (Npc &from, const std::string& name);
-    bool  aiOutputSvm(Npc &from, const std::string& name, int32_t voice);
+    bool  aiOutputSvm(Npc &from, const std::string& name, int32_t voice, bool overlay);
 
     static void concatstrings(Daedalus::DaedalusVM& vm);
     static void inttostring  (Daedalus::DaedalusVM& vm);
