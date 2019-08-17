@@ -345,7 +345,7 @@ std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt,bool fai) {
       npc.currentGoToNpc=nullptr;
       return {};
       }
-    return go2NpcMoveSpeed(dp,*npc.currentTarget);
+    return go2NpcMoveSpeed(dp,*npc.currentGoToNpc);
     }
 
   if(npc.currentGoTo) {
