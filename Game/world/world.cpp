@@ -46,6 +46,7 @@ World::World(GameSession& game,const RendererStorage &storage, std::string file,
   bsp = std::move(world.bspTree);
   bspSectors.resize(bsp.sectors.size());
 
+  wobj.triggerOnStart();
   loadProgress(100);
   }
 

@@ -20,10 +20,13 @@ class Trigger {
     Trigger(ZenLoad::zCVobData&& data,World& owner);
     virtual ~Trigger()=default;
 
-    const std::string& name() const;
-    virtual void onTrigger(const TriggerEvent& evt);
-    virtual void onIntersect(Npc& n);
-    virtual bool checkPos(float x,float y,float z) const;
+    ZenLoad::zCVobData::EVobType vobType() const;
+    const std::string&           name() const;
+    virtual void                 onTrigger(const TriggerEvent& evt);
+    virtual void                 onIntersect(Npc& n);
+
+    virtual bool                 hasVolume() const;
+    virtual bool                 checkPos(float x,float y,float z) const;
 
   protected:
     ZenLoad::zCVobData data;

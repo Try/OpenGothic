@@ -63,6 +63,7 @@ class WorldObjects final {
 
     void           addTrigger(ZenLoad::zCVobData&& vob);
     void           triggerEvent(const TriggerEvent& e);
+    void           triggerOnStart();
 
     Item*          addItem(size_t itemInstance, const char *at);
     Item*          addItem(const ZenLoad::zCVobData &vob);

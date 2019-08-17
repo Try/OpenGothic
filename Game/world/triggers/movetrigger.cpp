@@ -34,7 +34,9 @@ void MoveTrigger::onTrigger(const TriggerEvent&) {
   if(data.zCMover.keyframes.size()==0)
     return;
 
-  frame = (frame+1)%data.zCMover.keyframes.size();
+  if(frame==0)
+    frame=data.zCMover.keyframes.size()-1; else
+    frame=0;
 
   auto m = pos;
   m.set(3,0, data.zCMover.keyframes[frame].pos.x);

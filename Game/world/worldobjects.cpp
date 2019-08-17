@@ -252,7 +252,6 @@ void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {
 
     case ZenLoad::zCVobData::VT_oCTriggerChangeLevel:
       tg.reset(new ZoneTrigger(std::move(vob),owner));
-      triggersZn.emplace_back(tg.get());
       break;
 
     case ZenLoad::zCVobData::VT_zCCodeMaster:
@@ -269,11 +268,21 @@ void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {
     default:
       tg.reset(new Trigger(std::move(vob),owner));
     }
+  if(tg->hasVolume())
+    triggersZn.emplace_back(tg.get());
   triggers.emplace_back(std::move(tg));
   }
 
 void WorldObjects::triggerEvent(const TriggerEvent &e) {
   triggerEvents.push_back(e);
+  }
+
+void WorldObjects::triggerOnStart() {
+  for(auto& i:triggers)
+    if(i->vobType()==ZenLoad::zCVobData::VT_oCTriggerWorldStart) {
+      TriggerEvent evt(i->name(),"");
+      i->onTrigger(evt);
+      }
   }
 
 Item* WorldObjects::addItem(const ZenLoad::zCVobData &vob) {
