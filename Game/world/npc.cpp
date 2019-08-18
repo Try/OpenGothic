@@ -106,7 +106,7 @@ void Npc::save(Serialize &fout, Daedalus::GEngineClasses::C_Npc &h) const {
 
 void Npc::load(Serialize &fin, Daedalus::GEngineClasses::C_Npc &h) {
   fin.read(h.instanceSymbol);
-  owner.script().initializeInstance(h,h.instanceSymbol);
+  // owner.script().initializeInstance(h,h.instanceSymbol);
   fin.read(h.id,h.name,h.slot,h.effect, reinterpret_cast<int32_t&>(h.npcType));
   load(fin,h.flags);
   fin.read(h.attribute,h.hitChance,h.protection,h.damage);
@@ -403,7 +403,8 @@ bool Npc::checkHealth(bool onChange,bool forceKill) {
           emitSoundEffect(name,25,true);
           }
         }
-      } else {
+      }
+    else if(onChange) {
       hnpc.attribute[ATR_HITPOINTS]=1;
       size_t fdead=owner.getSymbolIndex("ZS_Unconscious");
       animation.resetAni();
