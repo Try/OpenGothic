@@ -127,6 +127,7 @@ class World final {
     Item*  takeItem   (Item& it);
     void   removeItem (Item &it);
     size_t hasItems(const std::string& tag,size_t itemCls);
+    void   shootBullet(size_t itmId,float x,float y,float z,float dx,float dy,float dz);
 
     void   sendPassivePerc (Npc& self,Npc& other,Npc& victum,int32_t perc);
     void   sendPassivePerc (Npc& self,Npc& other,Npc& victum, Item& item,int32_t perc);

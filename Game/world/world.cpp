@@ -456,6 +456,10 @@ size_t World::hasItems(const std::string &tag, size_t itemCls) {
   return wobj.hasItems(tag,itemCls);
   }
 
+void World::shootBullet(size_t itmId, float x, float y, float z, float dx, float dy, float dz) {
+  return wobj.shootBullet(itmId,x,y,z,dx,dy,dz);
+  }
+
 void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {
   wobj.sendPassivePerc(self,other,victum,perc);
   }

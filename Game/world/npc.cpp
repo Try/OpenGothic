@@ -2018,7 +2018,33 @@ bool Npc::shootBow() {
   if(active==nullptr)
     return false;
   auto weaponSt=invent.weaponState();
-  return setAnim(Anim::Atack,weaponSt);
+  if(!setAnim(Anim::Atack,weaponSt))
+    return false;
+
+  float dx=1.f,dy=0.f,dz=0.f, speed=800;
+  if(currentTarget!=nullptr){
+    dx = currentTarget->x-x;
+    dy = (currentTarget->y+currentTarget->translateY())-(y+translateY());
+    dz = currentTarget->z-z;
+    float l = std::sqrt(dx*dx+dy*dy+dz*dz);
+    if(l>0.01f){
+      dx = speed*dx/l;
+      dy = speed*dy/l;
+      dz = speed*dz/l;
+      }
+    } else {
+    float a = rotationRad()-float(M_PI/2);
+    float c = std::cos(a), s = std::sin(a);
+    dx = c*speed;
+    dz = s*speed;
+    }
+
+  if(auto w = invent.activeWeapon()){
+    int32_t munition = w->handle()->munition;
+    if(munition>0)
+      owner.shootBullet(size_t(munition), x,y+translateY(),z,dx,dy,dz);
+    }
+  return true;
   }
 
 bool Npc::isEnemy(const Npc &other) const {

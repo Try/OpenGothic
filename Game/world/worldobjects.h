@@ -5,10 +5,10 @@
 
 #include <daedalus/DaedalusGameState.h>
 
-#include "game/perceptionmsg.h"
-
+#include "bullet.h"
 #include "interactive.h"
 #include "spaceindex.h"
+#include "game/perceptionmsg.h"
 #include "triggers/movetrigger.h"
 #include "triggers/trigger.h"
 #include "triggers/zonetrigger.h"
@@ -71,6 +71,9 @@ class WorldObjects final {
     Item*          takeItem(Item& it);
     void           removeItem(Item& it);
     size_t         hasItems(const std::string& tag,size_t itemCls);
+
+    void           shootBullet(size_t itmId,float x,float y,float z,float dx,float dy,float dz);
+
     void           addInteractive(const ZenLoad::zCVobData &vob);
 
     Interactive*   validateInteractive(Interactive *def);
@@ -94,6 +97,8 @@ class WorldObjects final {
     World&                             owner;
     SpaceIndex<Interactive>            interactiveObj;
     SpaceIndex<std::unique_ptr<Item>>  itemArr;
+
+    std::vector<Bullet>                bullets;
 
     std::vector<std::unique_ptr<Npc>>  npcArr;
     std::vector<std::unique_ptr<Npc>>  npcInvalid;
