@@ -571,6 +571,7 @@ class Npc final {
     void                           commitDamage();
     void                           takeDamage(Npc& other);
     int                            damageValue(Npc &other) const;
+    int32_t                        damageTypeMask() const;
     Npc*                           updateNearestEnemy();
 
     void                           save(Serialize& fout,Daedalus::GEngineClasses::C_Npc& hnpc) const;

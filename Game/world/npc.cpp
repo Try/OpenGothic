@@ -1147,7 +1147,7 @@ void Npc::takeDamage(Npc &other) {
       owner.sendPassivePerc(*this,other,*this,PERC_ASSESSMURDER);
       }
 
-    if(other.hnpc.damagetype & (1<<Daedalus::GEngineClasses::DAM_INDEX_FLY))
+    if(other.damageTypeMask() & (1<<Daedalus::GEngineClasses::DAM_INDEX_FLY))
       mvAlgo.accessDamFly(x-other.x,z-other.z); // throw enemy
 
     if(ani==Anim::Move  || ani==Anim::MoveL  || ani==Anim::MoveR ||
@@ -1169,8 +1169,8 @@ void Npc::takeDamage(Npc &other) {
     }
   }
 
-int Npc::damageValue(Npc &other) const {
-  const int dtype = hnpc.damagetype;
+int Npc::damageValue(Npc &other) const {  
+  const int dtype = damageTypeMask();
   uint8_t   hitCh = TALENT_UNKNOWN;
   if(auto w = invent.activeWeapon()){
     if(w->is2H())
@@ -1191,6 +1191,12 @@ int Npc::damageValue(Npc &other) const {
       v += vd;
     }
   return std::max(v,3);
+  }
+
+int32_t Npc::damageTypeMask() const {
+  if(auto w = invent.activeWeapon())
+    return w->handle()->damageType;
+  return hnpc.damagetype;
   }
 
 Npc *Npc::updateNearestEnemy() {
