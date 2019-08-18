@@ -2047,8 +2047,10 @@ bool Npc::shootBow() {
 
   if(auto w = invent.activeWeapon()){
     int32_t munition = w->handle()->munition;
-    if(munition>0)
+    if(munition>0 && invent.itemCount(size_t(munition))>0) {
+      invent.delItem(size_t(munition),1,*this);
       owner.shootBullet(size_t(munition), x,y+translateY(),z,dx,dy,dz);
+      }
     }
   return true;
   }
