@@ -136,7 +136,7 @@ bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState weaponSt,
   currentW   = weaponSt;
   currentWlk = walk;
 
-  if(current<=IdleLoopLast && weaponSt==WeaponState::NoWeapon)
+  if(current<=IdleLoopLast && (weaponSt==WeaponState::NoWeapon || weaponSt==WeaponState::Fist))
     lastIdle=current;
   if(ani==animSq) {
     if(animSq.cls==Animation::Transition){
@@ -382,16 +382,18 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     if(a==Anim::AtackFinish)
       return solveAnim("T_1HSFINISH",st);
     }
-  else if(st==WeaponState::Bow){
-    if(a==Anim::AimBow && cur!=Anim::AimBow)
-      return animSequence("T_BOWRUN_2_BOWAIM");
+  else if(st==WeaponState::Bow || st==WeaponState::CBow){
+    if(a==Anim::AimBow && cur!=Anim::AimBow && cur!=Anim::Atack)
+      return solveAnim("T_%sRUN_2_%sAIM",st);
+    if(a==Anim::Atack && cur==Anim::AimBow)
+      return solveAnim("T_%sRELOAD",st);
     if(a!=Anim::AimBow && cur==Anim::AimBow)
-      return animSequence("T_BOWAIM_2_BOWRUN");
+      return solveAnim("T_%sAIM_2_%sRUN",st);
     if(a==Anim::AimBow)
-      return animSequence("S_BOWSHOOT");
+      return solveAnim("S_%sSHOOT",st);
 
     if(a==Anim::Atack)
-      return animSequence("S_BOWSHOOT");
+      return animSequence("T_BOWRELOAD");
     }
 
   if((cur==Anim::Idle || cur==Anim::NoAnim) && a==Anim::Idle) {

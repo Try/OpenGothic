@@ -331,13 +331,15 @@ void PlayerControl::implMove(uint64_t dt) {
       }
 
     if(ctrl[ActionFocus]){
+      auto ws = pl.weaponState();
       if(auto other = pl.target()) {
-        if(pl.weaponState()==WeaponState::Bow){
+        if(ws==WeaponState::Bow || ws==WeaponState::CBow){
           float dx = other->position()[0]-pl.position()[0];
           float dz = other->position()[2]-pl.position()[2];
           pl.lookAt(dx,dz,false,dt);
           pl.aimBow();
-          return;
+          if(!ctrl[ActForward])
+            return;
           }
         }
       }
@@ -353,7 +355,7 @@ void PlayerControl::implMove(uint64_t dt) {
           pl.swingSword();
         return;
         }
-      if(ws==WeaponState::Bow) {
+      if(ws==WeaponState::Bow || ws==WeaponState::CBow) {
         if(pl.shootBow())
           return;
         }
