@@ -6,6 +6,7 @@
 #include "world/npc.h"
 #include "world/world.h"
 #include "serialize.h"
+#include <daedalus/DaedalusExcept.h>
 
 using namespace Daedalus::GameState;
 using namespace Tempest;
@@ -186,11 +187,20 @@ Item* Inventory::addItem(size_t itemSymbol, uint32_t count, World &owner) {
 
   Item* it=findByClass(itemSymbol);
   if(it==nullptr) {
-    std::unique_ptr<Item> ptr{new Item(owner,itemSymbol)};
-    ptr->clearView();
-    ptr->setCount(count);
-    items.emplace_back(std::move(ptr));
-    return items.back().get();
+    try {
+      std::unique_ptr<Item> ptr{new Item(owner,itemSymbol)};
+      ptr->clearView();
+      ptr->setCount(count);
+      items.emplace_back(std::move(ptr));
+      return items.back().get();
+      }
+    catch(const Daedalus::InvalidCall& call) {
+      Log::e("[invalid call in VM, while initializing item: ",itemSymbol,"]");
+      for(auto& i:call.callstack)
+        Log::e("-",i);
+      Log::e("---end of callstack---");
+      return nullptr;
+      }
     } else {
     it->handle()->amount += count;
     return it;
@@ -396,12 +406,12 @@ void Inventory::equipBestRangeWeapon(Npc &owner) {
   setSlot(range,a,owner,false);
   }
 
-void Inventory::unequipWeapons(GameScript &vm, Npc &owner) {
+void Inventory::unequipWeapons(GameScript &, Npc &owner) {
   setSlot(mele, nullptr,owner,false);
   setSlot(range,nullptr,owner,false);
   }
 
-void Inventory::unequipArmour(GameScript &vm, Npc &owner) {
+void Inventory::unequipArmour(GameScript &, Npc &owner) {
   setSlot(armour,nullptr,owner,false);
   }
 
