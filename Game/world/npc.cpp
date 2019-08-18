@@ -1559,7 +1559,9 @@ void Npc::tickRoutine() {
   if(aiState.started) {
     if(aiState.loopNextTime<=owner.tickCount()){
       aiState.loopNextTime+=1000; // one tick per second?
-      int loop = owner.script().invokeState(this,currentOther,nullptr,aiState.funcLoop);
+      int loop = 1;
+      if(aiState.funcLoop!=size_t(-1)) // ZS_GETMEAT have no looping, fox example
+        loop = owner.script().invokeState(this,currentOther,nullptr,aiState.funcLoop);
       if(aiState.eTime<=owner.time()) {
         if(!isTalk()) {
           loop=1; // have to hack ZS_Talk bugs
