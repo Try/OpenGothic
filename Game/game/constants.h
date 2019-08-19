@@ -147,3 +147,19 @@ enum TargetCollect : int32_t {
   TARGET_COLLECT_ALL_FALLBACK_NONE     = 6, // all targets in range will be assembled, if there are no valid targets, the trajectory will be set by the effect
   TARGET_COLLECT_ALL_FALLBACK_CASTER   = 7, // all targets in range will be assembled, if there are no valid targets, the target is the caster
   };
+
+
+enum class SensesBit : int32_t {
+  SENSE_NONE  = 0,
+  SENSE_SEE   = 1 << 0,
+  SENSE_HEAR  = 1 << 1,
+  SENSE_SMELL = 1 << 2,
+  };
+
+inline SensesBit operator & (SensesBit a,const SensesBit& b){
+  return SensesBit(uint8_t(a)&uint8_t(b));
+  }
+
+inline SensesBit operator | (SensesBit a,const SensesBit& b){
+  return SensesBit(uint8_t(a)|uint8_t(b));
+  }

@@ -1225,7 +1225,7 @@ Npc *Npc::updateNearestEnemy() {
       }
     float d2 = qDistTo(n);
     float d1 = qDistTo(*ret);
-    if(d2<d1 && canSeeNpc(n,true))
+    if(d2<d1 && canSenseNpc(n,true)!=SensesBit::SENSE_NONE)
       ret = &n;
     });
   nearestEnemy = ret;
@@ -1648,7 +1648,7 @@ void Npc::emitDlgSound(const char *sound) {
   }
 
 void Npc::emitSoundEffect(const char *sound, float range, bool freeSlot) {
-  owner.emitSoundEffect(sound,x,y+100,z,range,freeSlot ? nullptr : &animation.soundSlot);
+  owner.emitSoundEffect(sound,x,y+translateY(),z,range,freeSlot ? nullptr : &animation.soundSlot);
   }
 
 void Npc::emitSoundGround(const char* sound, float range, bool freeSlot) {
@@ -2135,7 +2135,7 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
   r = r*r;
 
   bool ret=false;
-  if(quadDist<r && canSeeNpc(pl,true)){
+  if(quadDist<r && canSenseNpc(pl,true)!=SensesBit::SENSE_NONE){
     if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER)) {
       //currentOther = &pl;
       ret          = true;
@@ -2144,7 +2144,7 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
   Npc* enem=hasPerc(PERC_ASSESSENEMY) ? updateNearestEnemy() : nullptr;
   if(enem!=nullptr){
     float dist=qDistTo(*enem);
-    if(!enem->isDown() && canSeeNpc(*enem,false) && perceptionProcess(*enem,nullptr,dist,PERC_ASSESSENEMY)){
+    if(!enem->isDown() && canSenseNpc(*enem,false)!=SensesBit::SENSE_NONE && perceptionProcess(*enem,nullptr,dist,PERC_ASSESSENEMY)){
       /*
       if(isTalk())
         Log::e("unxepected perc acton"); else
@@ -2625,19 +2625,37 @@ bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
   }
 
 bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
+  SensesBit s = canSenseNpc(tx,ty,tz,freeLos);
+  return int32_t(s&SensesBit::SENSE_SEE)!=0;
+  }
+
+SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos) const {
+  return canSenseNpc(oth.x,oth.y+180,oth.z,freeLos);
+  }
+
+SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos) const {
   DynamicWorld* w = owner.physic();
   static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
+
+  if(qDistTo(tx,ty,tz)>hnpc.senses_range*hnpc.senses_range)
+    return SensesBit::SENSE_NONE;
+
+  SensesBit ret=SensesBit::SENSE_SMELL;
+  ret = ret | SensesBit::SENSE_HEAR; // TODO:sneaking
 
   if(!freeLos){
     float dx  = x-tx, dz=z-tz;
     float dir = angleDir(dx,dz);
     float da  = float(M_PI)*(angle-dir)/180.f;
-    if(double(std::cos(da))>ref)
-      return false;
+    if(double(std::cos(da))<=ref)
+      if(!w->ray(x,y+180,z, tx,ty,tz).hasCol)
+        ret = ret | SensesBit::SENSE_SEE;
+    } else {
+    // TODO: npc eyesight height
+    if(!w->ray(x,y+180,z, tx,ty,tz).hasCol)
+      ret = ret | SensesBit::SENSE_SEE;
     }
-  // TODO: npc eyesight height
-  const bool ret = w->ray(x,y+180,z, tx,ty,tz).hasCol;
-  return !ret;
+  return ret & SensesBit(hnpc.senses);
   }
 
 void Npc::updatePos() {
