@@ -188,10 +188,11 @@ void Pose::emitSfx(Npc &npc, uint64_t dt) {
   }
 
 void Pose::emitSfx(Npc &npc, const Animation::Sequence &s, uint64_t dt, uint64_t fr) {
-  if(fr==uint64_t(-1) || s.numFrames==0 || (s.sfx.size()==0 && s.gfx.size()==0))
+  if(s.numFrames==0 || (s.sfx.size()==0 && s.gfx.size()==0))
     return;
-  uint64_t frameA = (fr/1000);
-  uint64_t frameB = (uint64_t(s.fpsRate*dt)/1000);
+
+  uint64_t frameA = fr==uint64_t(-1) ? 0 : (fr/1000+1);
+  uint64_t frameB = (uint64_t(s.fpsRate*dt)/1000+1);
 
   if(frameA==frameB)
     return;
@@ -206,13 +207,14 @@ void Pose::emitSfx(Npc &npc, const Animation::Sequence &s, uint64_t dt, uint64_t
 
   const bool invert = (frameB<frameA);
   for(auto& i:s.sfx){
-    uint64_t fr = uint64_t(i.m_Frame);
+    uint64_t fr = uint64_t(i.m_Frame-int(s.firstFrame));
     if((frameA<=fr && fr<frameB) ^ invert)
       npc.emitSoundEffect(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
     }
   if(!npc.isInAir()) {
     for(auto& i:s.gfx){
-      if((frameA<=uint64_t(i.m_Frame) && uint64_t(i.m_Frame)<frameB) ^ invert)
+      uint64_t fr = uint64_t(i.m_Frame-int(s.firstFrame));
+      if((frameA<=fr && fr<frameB) ^ invert)
         npc.emitSoundGround(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
       }
     }
