@@ -59,7 +59,7 @@ void WorldSound::emitSound(const char* s, float x, float y, float z, float range
     return;
 
   if(range<=0.f)
-    range = 35.f;
+    range = 3500.f;
 
   std::lock_guard<std::mutex> guard(sync);
   if(isInListenerRange({x,y,z})){
@@ -70,9 +70,10 @@ void WorldSound::emitSound(const char* s, float x, float y, float z, float range
     if(eff.isEmpty())
       return;
     eff.setPosition(x,y,z);
-    //eff.setMaxDistance(maxDist);
-    eff.setMaxDistance(range);
-    eff.setRefDistance(0);
+    eff.setMaxDistance(maxDist);
+    eff.setRefDistance(range);
+    //eff.setMaxDistance(range);
+    //eff.setRefDistance(0);
     eff.play();
     tickSlot(eff);
     if(slot)
@@ -152,9 +153,9 @@ void WorldSound::tickSlot(GSoundEffect& slot) {
     return;
   auto  dyn = owner.physic();
   auto  pos = slot.position();
-  float occ = dyn->soundOclusion(plPos[0],plPos[1]+180/*head pos*/,plPos[2], pos[0],pos[1]+100,pos[2]);
+  float occ = dyn->soundOclusion(plPos[0],plPos[1]+180/*head pos*/,plPos[2], pos[0],pos[1],pos[2]);
 
-  slot.setOcclusion(std::max(0.f,1.f-occ/20.f));
+  slot.setOcclusion(std::max(0.f,1.f-occ));
   }
 
 bool WorldSound::isInListenerRange(const std::array<float,3> &pos) const {

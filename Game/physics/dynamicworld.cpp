@@ -448,21 +448,26 @@ DynamicWorld::RayResult DynamicWorld::ray(float x0, float y0, float z0, float x1
   }
 
 float DynamicWorld::soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const {
-  struct CallBack:btCollisionWorld::ClosestRayResultCallback {
-    using ClosestRayResultCallback::ClosestRayResultCallback;
+  struct CallBack:btCollisionWorld::AllHitsRayResultCallback {
+    using AllHitsRayResultCallback::AllHitsRayResultCallback;
 
-    uint32_t cnt =0;
+    enum { FRAC_MAX=16 };
+    uint32_t           cnt            = 0;
+    float              frac[FRAC_MAX] = {};
 
     bool needsCollision(btBroadphaseProxy* proxy0) const override {
       auto obj=reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject);
-      if(obj->getUserIndex()==C_Landscape || obj->getUserIndex()==C_Object)
-        return ClosestRayResultCallback::needsCollision(proxy0);
+      int id = obj->getUserIndex();
+      if(id==C_Landscape || id==C_Water || id==C_Object)
+        return AllHitsRayResultCallback::needsCollision(proxy0);
       return false;
       }
 
     btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
+      if(cnt<FRAC_MAX)
+        frac[cnt] = rayResult.m_hitFraction;
       cnt++;
-      return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
+      return AllHitsRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
       }
     };
 
@@ -471,8 +476,21 @@ float DynamicWorld::soundOclusion(float x0, float y0, float z0, float x1, float 
   callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal;
 
   rayTest(s,e,callback);
+  if(callback.cnt<2)
+    return 0;
+
+  if(callback.cnt>=CallBack::FRAC_MAX)
+    return 1;
+
+  float fr=0;
+  std::sort(callback.frac,callback.frac+callback.cnt);
+  for(size_t i=1;i<callback.cnt;i+=2) {
+    fr += (callback.frac[i]-callback.frac[i-1]);
+    }
+
   float tlen = (s-e).length();
-  return (callback.cnt>=2 ? 1.f : 0)*tlen;
+  // let's say: 1.5 meter wall blocks sound completly :)
+  return (tlen*fr)/150.f;
   }
 
 std::unique_ptr<btRigidBody> DynamicWorld::landObj() {

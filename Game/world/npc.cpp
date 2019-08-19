@@ -1128,7 +1128,7 @@ void Npc::commitDamage() {
   }
 
 void Npc::takeDamage(Npc &other) {
-  if(isDead())
+  if(isDown())
     return;
 
   setOther(&other);
