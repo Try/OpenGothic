@@ -288,6 +288,16 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
         return layredSequence("S_2HRUNL","T_2HMOVE_2_MOVE");
       return animSequence("T_RUN_2_2H");
       }
+    if(st0==WeaponState::Bow){
+      if(a==Anim::Move && cur==a)
+        return layredSequence("S_BOWRUNL","T_BOWMOVE_2_MOVE");
+      return animSequence("T_BOWMOVE_2_MOVE");
+      }
+    if(st0==WeaponState::CBow){
+      if(a==Anim::Move && cur==a)
+        return layredSequence("S_CBOWRUNL","T_CBOWMOVE_2_MOVE");
+      return animSequence("T_CBOWMOVE_2_MOVE");
+      }
     if(st0==WeaponState::Mage){
       if(a==Anim::Move && cur==a)
         return layredSequence("S_MAGRUNL","T_MAGMOVE_2_MOVE");
@@ -388,12 +398,12 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     if(a==Anim::Atack && cur==Anim::AimBow)
       return solveAnim("T_%sRELOAD",st);
     if(a!=Anim::AimBow && cur==Anim::AimBow)
-      return solveAnim("T_%sAIM_2_%sRUN",st);
+      return solveAnim("T_BOWAIM_2_BOWRUN",st);
     if(a==Anim::AimBow)
       return solveAnim("S_%sSHOOT",st);
 
     if(a==Anim::Atack)
-      return animSequence("T_BOWRELOAD");
+      return solveAnim("T_%sRELOAD",st);
     }
 
   if((cur==Anim::Idle || cur==Anim::NoAnim) && a==Anim::Idle) {

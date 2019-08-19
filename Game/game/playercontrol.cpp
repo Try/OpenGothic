@@ -137,6 +137,10 @@ void PlayerControl::actionFocus(Npc& other) {
   ctrl[ActionFocus]=true;
   }
 
+void PlayerControl::emptyFocus() {
+  ctrl[EmptyFocus]=true;
+  }
+
 void PlayerControl::jump() {
   ctrl[Jump]=true;
   }
@@ -251,6 +255,7 @@ void PlayerControl::implMove(uint64_t dt) {
   float rot    = pl.rotation();
   auto  gl     = std::min<uint32_t>(pl.guild(),GIL_MAX);
   float rspeed = w->script().guildVal().turn_speed[gl]*(dt/1000.f)*60.f/100.f;
+  auto  ws     = pl.weaponState();
 
   Npc::Anim ani=Npc::Anim::Idle;
 
@@ -330,19 +335,23 @@ void PlayerControl::implMove(uint64_t dt) {
         }
       }
 
-    if(ctrl[ActionFocus]){
-      auto ws = pl.weaponState();
-      if(auto other = pl.target()) {
-        if(ws==WeaponState::Bow || ws==WeaponState::CBow){
-          float dx = other->position()[0]-pl.position()[0];
-          float dz = other->position()[2]-pl.position()[2];
-          pl.lookAt(dx,dz,false,dt);
-          pl.aimBow();
-          if(!ctrl[ActForward])
-            return;
-          }
+    if((ws==WeaponState::Bow || ws==WeaponState::CBow) &&
+       pl.hasAmunition()){
+      auto other = pl.target();
+      if(other!=nullptr && ctrl[ActionFocus]) {
+        float dx = other->position()[0]-pl.position()[0];
+        float dz = other->position()[2]-pl.position()[2];
+        pl.lookAt(dx,dz,false,dt);
+        pl.aimBow();
+        } else
+      if(ctrl[EmptyFocus]){
+        pl.aimBow();
         }
+      // no move
+      if(!ctrl[ActForward] && (ctrl[ActionFocus] || ctrl[EmptyFocus]))
+        return;
       }
+
     if(ctrl[ActForward]) {
       auto ws = pl.weaponState();
       if(ws==WeaponState::Fist) {

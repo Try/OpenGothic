@@ -598,7 +598,9 @@ void Npc::updateWeaponSkeleton() {
     }
 
   if(st==WeaponState::Bow || st==WeaponState::CBow){
-    animation.bow.setSkeleton(animation.skeleton,"ZS_LEFTHAND");
+    if(st==WeaponState::Bow)
+      animation.bow.setSkeleton(animation.skeleton,"ZS_LEFTHAND"); else
+      animation.bow.setSkeleton(animation.skeleton,"ZS_RIGHTHAND");
     } else {
     auto range = invent.currentRangeWeapon();
     bool cbow  = range!=nullptr && range->isCrossbow();
@@ -997,10 +999,20 @@ bool Npc::implAtack(uint64_t dt) {
       return true;
       }
 
-    if(weaponState()==WeaponState::Mage){
+    auto ws = weaponState();
+    if(ws==WeaponState::Mage){
       if(castSpell())
         fghAlgo.consumeAction();
-      } else {
+      }
+    else if(ws==WeaponState::Bow || ws==WeaponState::CBow){
+      if(shootBow())
+        fghAlgo.consumeAction();
+      }
+    else if(ws==WeaponState::Fist){
+      if(doAttack(Anim::Atack))
+        fghAlgo.consumeAction();
+      }
+    else {
       if(doAttack(ani[act-FightAlgo::MV_ATACK]))
         fghAlgo.consumeAction();
       }
@@ -2023,6 +2035,11 @@ bool Npc::shootBow() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
+
+  const int32_t munition = active->handle()->munition;
+  if(!hasAmunition())
+    return false;
+
   auto weaponSt=invent.weaponState();
   if(!setAnim(Anim::Atack,weaponSt))
     return false;
@@ -2045,13 +2062,18 @@ bool Npc::shootBow() {
     dz = s*speed;
     }
 
-  if(auto w = invent.activeWeapon()){
-    int32_t munition = w->handle()->munition;
-    if(munition>0 && invent.itemCount(size_t(munition))>0) {
-      invent.delItem(size_t(munition),1,*this);
-      owner.shootBullet(size_t(munition), x,y+translateY(),z,dx,dy,dz);
-      }
-    }
+  invent.delItem(size_t(munition),1,*this);
+  owner.shootBullet(size_t(munition), x,y+translateY(),z,dx,dy,dz);
+  return true;
+  }
+
+bool Npc::hasAmunition() const {
+  auto active=invent.activeWeapon();
+  if(active==nullptr)
+    return false;
+  const int32_t munition = active->handle()->munition;
+  if(munition<0 || invent.itemCount(size_t(munition))<=0)
+    return false;
   return true;
   }
 

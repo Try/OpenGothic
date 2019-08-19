@@ -43,6 +43,7 @@ class PlayerControl final {
 
     void setTarget(Npc* other);
     void actionFocus(Npc& other);
+    void emptyFocus();
     void actionForward();
     void actionLeft();
     void actionRight();
@@ -66,6 +67,7 @@ class PlayerControl final {
       RotateR,
       Jump,
 
+      EmptyFocus,
       ActionFocus,
       ActForward,
       ActLeft,

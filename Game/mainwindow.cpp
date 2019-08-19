@@ -428,7 +428,8 @@ void MainWindow::tick() {
       }
 
     if(focus.npc)
-      player.actionFocus(*focus.npc);
+      player.actionFocus(*focus.npc); else
+      player.emptyFocus();
     }
   if(document.isActive())
     clearInput();

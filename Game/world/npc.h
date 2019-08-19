@@ -337,6 +337,7 @@ class Npc final {
     bool castSpell();
     bool aimBow();
     bool shootBow();
+    bool hasAmunition() const;
 
     bool isEnemy(const Npc& other) const;
     bool isDead() const;
