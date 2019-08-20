@@ -663,9 +663,12 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
     loadVob(i,startup);
   vob.childVobs.clear(); // because of move
 
-  if(vob.objectClass=="zCVob" ||
-     vob.objectClass=="oCMOB:zCVob" ||
-     vob.objectClass=="zCPFXControler:zCVob") {
+  if(vob.vobType==ZenLoad::zCVobData::VT_oCMOB) {
+    // Irdotar bow-triggers
+    // focusOverride=true
+    Tempest::Log::d("unexpected vob class ",vob.objectClass);
+    }
+  else if(vob.vobType==ZenLoad::zCVobData::VT_zCVob) {
     addStatic(vob);
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCMobBed ||
@@ -675,9 +678,6 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
           vob.vobType==ZenLoad::zCVobData::VT_oCMobFire ||
           vob.vobType==ZenLoad::zCVobData::VT_oCMobSwitch){
     addInteractive(vob);
-    }
-  else if(vob.objectClass=="zCVobAnimate:zCVob"){ // ork flags
-    addStatic(vob); //TODO: morph animation
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobLevelCompo){
     return;
@@ -693,23 +693,13 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
           vob.vobType==ZenLoad::zCVobData::VT_oCTriggerChangeLevel){
     wobj.addTrigger(std::move(vob));
     }
-  else if(vob.objectClass=="zCMessageFilter:zCVob"){
-    }
-  else if(vob.objectClass=="zCZoneZFog:zCVob" ||
-          vob.objectClass=="zCZoneZFogDefault:zCZoneZFog:zCVob"){
-    }
-  else if(vob.objectClass=="zCZoneVobFarPlaneDefault:zCZoneVobFarPlane:zCVob" ||
-          vob.objectClass=="zCZoneVobFarPlane:zCVob" ||
-          vob.objectClass=="zCVobLensFlare:zCVob"){
-    return;
-    }
   else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobStartpoint) {
     float dx = vob.rotationMatrix.v[2].x;
     float dy = vob.rotationMatrix.v[2].y;
     float dz = vob.rotationMatrix.v[2].z;
     wmatrix->addStartPoint(vob.position.x,vob.position.y,vob.position.z,dx,dy,dz,vob.vobName.c_str());
     }
-  else if(vob.objectClass=="zCVobSpot:zCVob") {
+  else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobSpot) {
     float dx = vob.rotationMatrix.v[2].x;
     float dy = vob.rotationMatrix.v[2].y;
     float dz = vob.rotationMatrix.v[2].z;
@@ -720,7 +710,7 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
       addItem(vob);
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobSound ||
-          vob.objectClass=="zCVobSoundDaytime:zCVobSound:zCVob") {
+          vob.vobType==ZenLoad::zCVobData::VT_zCVobSoundDaytime) {
     // TODO: zCVobSoundDaytime daytime handle
     wsound.addSound(vob);
     }
@@ -730,7 +720,21 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusicDefault) {
     wsound.setDefaultZone(vob);
     }
-  else if(vob.objectClass=="zCVobLight:zCVob") {
+  else if(vob.objectClass=="zCVobAnimate:zCVob" || // ork flags
+          vob.objectClass=="zCPFXControler:zCVob"){
+    addStatic(vob); //TODO: morph animation
+    }
+  else if(vob.objectClass=="oCTouchDamage:zCTouchDamage:zCVob" ||
+          vob.objectClass=="zCMessageFilter:zCVob"){
+    // NOT IMPLEMENTED
+    }
+  else if(vob.objectClass=="zCVobLight:zCVob" ||
+          vob.objectClass=="zCVobLensFlare:zCVob" ||
+          vob.objectClass=="zCZoneVobFarPlane:zCVob" ||
+          vob.objectClass=="zCZoneVobFarPlaneDefault:zCZoneVobFarPlane:zCVob" ||
+          vob.objectClass=="zCZoneZFog:zCVob" ||
+          vob.objectClass=="zCZoneZFogDefault:zCZoneZFog:zCVob") {
+    // WONT-IMPLEMENT
     }
   else {
     static std::unordered_set<std::string> cls;

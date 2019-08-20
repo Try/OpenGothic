@@ -7,6 +7,8 @@
 #include <zenload/zTypes.h>
 #include <mutex>
 
+#include "game/gametime.h"
+
 class GameSession;
 class World;
 class Npc;
@@ -41,10 +43,17 @@ class WorldSound final {
       WSound(SoundFx&& s):proto(std::move(s)){}
       SoundFx      proto;
       GSoundEffect eff;
+
+      bool         loop          =false;
       bool         active        =false;
       uint64_t     delay         =0;
       uint64_t     delayVar      =0;
       uint64_t     restartTimeout=0;
+
+
+      gtime        sndStart;
+      gtime        sndEnd;
+      GSoundEffect eff2;
       };
 
     static float qDist(const std::array<float,3>& a,const std::array<float,3>& b);

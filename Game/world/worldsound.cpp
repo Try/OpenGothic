@@ -33,8 +33,8 @@ void WorldSound::addZone(const ZenLoad::zCVobData &vob) {
   }
 
 void WorldSound::addSound(const ZenLoad::zCVobData &vob) {
-  auto& pr = vob.zCVobSound;
-  auto snd = game.loadSoundFx(pr.sndName.c_str());
+  auto& pr  = vob.zCVobSound;
+  auto  snd = game.loadSoundFx(pr.sndName.c_str());
   if(snd==nullptr)
     return;
 
@@ -47,9 +47,28 @@ void WorldSound::addSound(const ZenLoad::zCVobData &vob) {
   s.eff.setMaxDistance(pr.sndRadius);
   s.eff.setRefDistance(0);
   s.eff.setVolume(0.5f);
+
+  s.loop     = pr.sndType==ZenLoad::SoundMode::SM_LOOPING;
   s.active   = pr.sndStartOn;
   s.delay    = uint64_t(pr.sndRandDelay*1000);
   s.delayVar = uint64_t(pr.sndRandDelayVar*1000);
+
+  if(vob.vobType==ZenLoad::zCVobData::VT_zCVobSoundDaytime) {
+    float b = vob.zCVobSoundDaytime.sndStartTime;
+    float e = vob.zCVobSoundDaytime.sndEndTime;
+
+    s.sndStart = gtime(int(b),int(b*60)%60);
+    s.sndEnd   = gtime(int(e),int(e*60)%60);
+
+    s.eff2 = game.loadSound(s.proto);
+    s.eff2.setPosition(vob.position.x,vob.position.y,vob.position.z);
+    s.eff2.setMaxDistance(pr.sndRadius);
+    s.eff2.setRefDistance(0);
+    s.eff2.setVolume(0.5f);
+    } else {
+    s.sndStart = gtime(0,0);
+    s.sndEnd   = gtime(24,0);
+    }
 
   worldEff.emplace_back(std::move(s));
   }
@@ -124,15 +143,20 @@ void WorldSound::tick(Npc &player) {
     }
 
   for(auto& i:worldEff) {
-    if(i.active && i.eff.isFinished() && i.restartTimeout<owner.tickCount()){
-      if(i.restartTimeout==0){
-        i.restartTimeout = owner.tickCount() + i.delay;
-        if(i.delayVar>0)
-          i.restartTimeout += uint64_t(std::rand())%i.delayVar;
-        } else {
-        i.restartTimeout=0;
-        i.eff.play();
+    if(i.active && i.eff.isFinished() && (i.restartTimeout<owner.tickCount() || i.loop)){
+      if(i.restartTimeout!=0) {
+        auto time = owner.time();
+        time = gtime(0,time.hour(),time.minute());
+        if(i.sndStart<= time && time<i.sndEnd){
+          i.eff.play();
+          } else {
+          if(!i.eff2.isEmpty())
+            i.eff2.play();
+          }
         }
+      i.restartTimeout = owner.tickCount() + i.delay;
+      if(i.delayVar>0)
+        i.restartTimeout += uint64_t(std::rand())%i.delayVar;
       }
     }
 

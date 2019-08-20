@@ -120,7 +120,8 @@ void WorldView::addStatic(const ZenLoad::zCVobData &vob) {
   auto objMat = Tempest::Matrix4x4(v);
 
   StaticObj obj;
-  obj.mesh   = vobGroup.get(*mesh,0,0,0);
+  if(vob.showVisual)
+    obj.mesh = vobGroup.get(*mesh,0,0,0);
   obj.physic = owner.physic()->staticObj(physic,objMat);
   obj.mesh.setObjMatrix(objMat);
 

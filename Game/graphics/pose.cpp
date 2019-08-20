@@ -206,6 +206,9 @@ void Pose::emitSfx(Npc &npc, const Animation::Sequence &s, uint64_t dt, uint64_t
     }
 
   const bool invert = (frameB<frameA);
+  if(invert)
+    std::swap(frameA,frameB);
+
   for(auto& i:s.sfx){
     uint64_t fr = uint64_t(i.m_Frame-int(s.firstFrame));
     if((frameA<=fr && fr<frameB) ^ invert)
