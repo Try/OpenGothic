@@ -403,8 +403,10 @@ bool Npc::checkHealth(bool onChange,bool forceKill) {
           emitSoundEffect(name,25,true);
           }
         }
+      return false;
       }
-    else if(onChange) {
+
+    if(onChange) {
       hnpc.attribute[ATR_HITPOINTS]=1;
       size_t fdead=owner.getSymbolIndex("ZS_Unconscious");
       animation.resetAni();
@@ -415,8 +417,8 @@ bool Npc::checkHealth(bool onChange,bool forceKill) {
         std::snprintf(name,sizeof(name),"SVM_%d_AARGH",int(hnpc.voice));
         emitSoundEffect(name,25,true);
         }
+      return false;
       }
-    return false;
     }
   physic.setEnable(true);
   return true;
@@ -2131,11 +2133,8 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
   if(disable)
     return false;
 
-  float r = hnpc.senses_range;
-  r = r*r;
-
   bool ret=false;
-  if(quadDist<r && canSenseNpc(pl,true)!=SensesBit::SENSE_NONE){
+  if(hasPerc(PERC_ASSESSPLAYER) && canSenseNpc(pl,true)!=SensesBit::SENSE_NONE){
     if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER)) {
       //currentOther = &pl;
       ret          = true;
