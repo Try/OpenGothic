@@ -50,11 +50,6 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
   float fallThreshold = stepHeight();
   auto  pos           = npc.position();
 
-  if(!testSlide(pos[0],pos[1]+fallThreshold,pos[2])) {
-    setAsSlide(false);
-    return false;
-    }
-
   auto  norm   = normalRay(pos[0],pos[1]+fallThreshold,pos[2]);
   // check ground
   float pY     = pos[1];
@@ -64,7 +59,6 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
 
   if(dY>fallThreshold*2) {
     fallSpeed[0] *=2;
-    fallSpeed[1] = 0.f;
     fallSpeed[2] *=2;
     setInAir  (true);
     setAsSlide(false);
@@ -76,6 +70,11 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
     fallSpeed[1] = 0.f;
     fallSpeed[2] = 0.f;
     fallCount=-1.f;
+    }
+
+  if(!testSlide(pos[0],pos[1]+fallThreshold,pos[2])) {
+    setAsSlide(false);
+    return false;
     }
 
   const float timeK = float(dt)/100.f;
@@ -278,15 +277,19 @@ void MoveAlgo::tick(uint64_t dt, bool fai) {
   else if(0.f<dY) {
     const bool walk = bool(npc.walkMode()&WalkBit::WM_Walk);
     if((!walk && npc.isPlayer()) ||
-       (dY<300.f && !npc.isPlayer())) {
+       (dY<300.f && !npc.isPlayer()) ||
+       isSlide()) {
       // start to fall of cliff
-      tryMove(dp[0],0,dp[2]);
-      fallSpeed[0] = 0.3f*dp[0];
-      fallSpeed[1] = 0.f;
-      fallSpeed[2] = 0.3f*dp[2];
-      fallCount    = dt;
-      setInAir  (true);
-      setAsSlide(false);
+      if(tryMove(dp[0],dp[1],dp[2])){
+        fallSpeed[0] = 0.3f*dp[0];
+        fallSpeed[1] = 0.f;
+        fallSpeed[2] = 0.3f*dp[2];
+        fallCount    = dt;
+        setInAir  (true);
+        setAsSlide(false);
+        } else {
+        tryMove(dp[0],0,dp[2]);
+        }
       }
     }
   }
