@@ -46,7 +46,7 @@ World::World(GameSession& game,const RendererStorage &storage, std::string file,
   bsp = std::move(world.bspTree);
   bspSectors.resize(bsp.sectors.size());
 
-  wobj.triggerOnStart();
+  wobj.triggerOnStart(true);
   loadProgress(100);
   }
 
@@ -82,6 +82,7 @@ World::World(GameSession &game, const RendererStorage &storage,
   bsp = std::move(world.bspTree);
   bspSectors.resize(bsp.sectors.size());
 
+  wobj.triggerOnStart(false);
   loadProgress(100);
   }
 
@@ -663,19 +664,27 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
     loadVob(i,startup);
   vob.childVobs.clear(); // because of move
 
-  if(vob.vobType==ZenLoad::zCVobData::VT_oCMOB) {
+  if(vob.vobType==ZenLoad::zCVobData::VT_zCVob) {
+    addStatic(vob);
+    }
+  else if(vob.vobType==ZenLoad::zCVobData::VT_oCMOB) {
     // Irdotar bow-triggers
     // focusOverride=true
-    Tempest::Log::d("unexpected vob class ",vob.objectClass);
+
+    // Graves/Pointers
+    // see focusName
+    // Tempest::Log::d("unexpected vob class ",vob.objectClass);
+    if(vob.oCMOB.focusName.size()>0)
+      addInteractive(vob); else
+      addStatic(vob);
     }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_zCVob) {
+  else if(vob.vobType==ZenLoad::zCVobData::VT_oCMobFire){
     addStatic(vob);
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCMobBed ||
           vob.vobType==ZenLoad::zCVobData::VT_oCMobDoor ||
           vob.vobType==ZenLoad::zCVobData::VT_oCMobInter ||
           vob.vobType==ZenLoad::zCVobData::VT_oCMobContainer ||
-          vob.vobType==ZenLoad::zCVobData::VT_oCMobFire ||
           vob.vobType==ZenLoad::zCVobData::VT_oCMobSwitch){
     addInteractive(vob);
     }
@@ -692,6 +701,9 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
           vob.vobType==ZenLoad::zCVobData::VT_oCTriggerWorldStart ||
           vob.vobType==ZenLoad::zCVobData::VT_oCTriggerChangeLevel){
     wobj.addTrigger(std::move(vob));
+    }
+  else if(vob.vobType==ZenLoad::zCVobData::VT_zCMessageFilter) {
+
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobStartpoint) {
     float dx = vob.rotationMatrix.v[2].x;
@@ -725,7 +737,7 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
     addStatic(vob); //TODO: morph animation
     }
   else if(vob.objectClass=="oCTouchDamage:zCTouchDamage:zCVob" ||
-          vob.objectClass=="zCMessageFilter:zCVob"){
+          vob.objectClass=="oCMobLadder:oCMobInter:oCMOB:zCVob"){
     // NOT IMPLEMENTED
     }
   else if(vob.objectClass=="zCVobLight:zCVob" ||

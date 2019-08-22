@@ -131,35 +131,35 @@ struct oCMobWheel : oCMobInter {};
 ```c++
 struct oCMobDoor : oCMobInter {
     // Not parsed yet
-};
+    };
 ```
 
 #### zCPFXControler
 ```c++
 struct zCPFXControler : zCVob {
     // Not parsed yet
-};
+    };
 ```
 
 #### zCVobAnimate
 ```c++
 struct zCVobAnimate : zCVob {
     // Not parsed yet
-};
+    };
 ```
 
 #### zCVobLensFlare
 ```c++
 struct zCVobLensFlare : zCVob {
     // Not parsed yet
-};
+    };
 ```
 
 #### zCVobLight
 ```c++
 struct zCVobLight : zCVob {
     // Not parsed yet
-};
+    };
 ```
 
 #### zCVobSpot

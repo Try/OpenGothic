@@ -10,6 +10,7 @@
 #include "world/triggers/codemaster.h"
 #include "world/triggers/triggerscript.h"
 #include "world/triggers/triggerlist.h"
+#include "world/triggers/triggerworldstart.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Application>
@@ -276,6 +277,10 @@ void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {
       tg.reset(new TriggerScript(std::move(vob),owner));
       break;
 
+    case ZenLoad::zCVobData::VT_oCTriggerWorldStart:
+      tg.reset(new TriggerWorldStart(std::move(vob),owner));
+      break;
+
     case ZenLoad::zCVobData::VT_zCTriggerList:
       tg.reset(new TriggerList(std::move(vob),owner));
       break;
@@ -291,10 +296,10 @@ void WorldObjects::triggerEvent(const TriggerEvent &e) {
   triggerEvents.push_back(e);
   }
 
-void WorldObjects::triggerOnStart() {
+void WorldObjects::triggerOnStart(bool wrldStartup) {
   for(auto& i:triggers)
     if(i->vobType()==ZenLoad::zCVobData::VT_oCTriggerWorldStart) {
-      TriggerEvent evt(i->name(),"");
+      TriggerEvent evt(wrldStartup);
       i->onTrigger(evt);
       }
   }

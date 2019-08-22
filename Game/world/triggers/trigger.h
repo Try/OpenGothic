@@ -10,9 +10,11 @@ class TriggerEvent final {
   public:
     TriggerEvent()=default;
     TriggerEvent(std::string target,std::string emitter):target(std::move(target)), emitter(std::move(emitter)){}
+    TriggerEvent(bool startup):wrldStartup(startup){}
 
     const std::string target;
     const std::string emitter;
+    bool              wrldStartup=false;
   };
 
 class Trigger {
