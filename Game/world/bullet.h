@@ -13,9 +13,14 @@ class Bullet final {
     ~Bullet();
     Bullet& operator=(Bullet&&)=delete;
 
+    void setPosition  (const std::array<float,3>& p);
     void setPosition  (float x,float y,float z);
     void setDirection (float x,float y,float z);
     void setView(StaticObjects::Mesh&& m);
+
+    const std::array<float,3>& position()  const { return pos;  }
+    const std::array<float,3>& direction() const { return dir;  }
+    float                      speed()     const { return dirL; }
 
     void tick(uint64_t dt);
 
@@ -24,7 +29,7 @@ class Bullet final {
     StaticObjects::Mesh               view;
     std::array<float,3>               pos={};
     std::array<float,3>               dir={};
-    float                             ang=0.f;
+    float                             dirL=0.f;
     Tempest::Matrix4x4                mat;
 
     void updateMatrix();

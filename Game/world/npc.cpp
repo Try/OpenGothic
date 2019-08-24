@@ -2046,22 +2046,22 @@ bool Npc::shootBow() {
   if(!setAnim(Anim::Atack,weaponSt))
     return false;
 
-  float dx=1.f,dy=0.f,dz=0.f, speed=800;
+  float dx=1.f,dy=0.f,dz=0.f;
   if(currentTarget!=nullptr){
     dx = currentTarget->x-x;
     dy = (currentTarget->y+currentTarget->translateY())-(y+translateY());
     dz = currentTarget->z-z;
     float l = std::sqrt(dx*dx+dy*dy+dz*dz);
     if(l>0.01f){
-      dx = speed*dx/l;
-      dy = speed*dy/l;
-      dz = speed*dz/l;
+      dx = dx/l;
+      dy = dy/l;
+      dz = dz/l;
       }
     } else {
     float a = rotationRad()-float(M_PI/2);
     float c = std::cos(a), s = std::sin(a);
-    dx = c*speed;
-    dz = s*speed;
+    dx = c;
+    dz = s;
     }
 
   invent.delItem(size_t(munition),1,*this);

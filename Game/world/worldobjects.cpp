@@ -341,11 +341,12 @@ size_t WorldObjects::hasItems(const std::string &tag, size_t itemCls) {
   }
 
 void WorldObjects::shootBullet(size_t itmId, float x, float y, float z, float dx, float dy, float dz) {
+  float speed=3000;
   bullets.emplace_back(owner,itmId);
   auto& b = bullets.back();
 
   b.setPosition(x,y,z);
-  b.setDirection(dx,dy,dz);
+  b.setDirection(dx*speed,dy*speed,dz*speed);
   }
 
 Item *WorldObjects::addItem(size_t itemInstance, const char *at) {

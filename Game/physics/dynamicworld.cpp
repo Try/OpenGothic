@@ -1,4 +1,6 @@
 #include "dynamicworld.h"
+
+#include "world/bullet.h"
 #include "physicmeshshape.h"
 
 #include <BulletCollision/CollisionDispatch/btCollisionDispatcher.h>
@@ -300,7 +302,7 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
         landMesh ->addIndex(i.indices,i.material.matGroup);
       }
 
-  landShape.reset(new btMultimaterialTriangleMeshShape(landMesh.get(),false,true));
+  landShape.reset(new btMultimaterialTriangleMeshShape(landMesh.get(),true,true));
   landBody = landObj();
 
   waterShape.reset(new btMultimaterialTriangleMeshShape(waterMesh.get(),false,true));
@@ -568,6 +570,71 @@ DynamicWorld::StaticItem DynamicWorld::staticObj(const PhysicMeshShape *shape, c
 
   world->addCollisionObject(obj.get());
   return StaticItem(this,obj.release());
+  }
+
+void DynamicWorld::moveBullet(Bullet &b, float dx, float dy, float dz) {
+  auto  p  = b.position();
+  float x0 = p[0];
+  float y0 = p[1];
+  float z0 = p[2];
+  float x1 = x0+dx;
+  float y1 = y0+dy;
+  float z1 = z0+dz;
+
+  struct CallBack:btCollisionWorld::ClosestRayResultCallback {
+    using ClosestRayResultCallback::ClosestRayResultCallback;
+    uint8_t  matId = ZenLoad::NUM_MAT_GROUPS;
+
+    bool needsCollision(btBroadphaseProxy* proxy0) const override {
+      auto obj=reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject);
+      if(obj->getUserIndex()==C_Landscape || obj->getUserIndex()==C_Object)
+        return ClosestRayResultCallback::needsCollision(proxy0);
+      return false;
+      }
+
+    btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
+      auto shape = rayResult.m_collisionObject->getCollisionShape();
+      if(shape) {
+        auto s  = reinterpret_cast<const btMultimaterialTriangleMeshShape*>(shape);
+        auto mt = reinterpret_cast<const PhysicMesh*>(s->getMeshInterface());
+
+        size_t id = size_t(rayResult.m_localShapeInfo->m_shapePart);
+        matId  = mt->getMaterialId(id);
+        }
+      return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
+      }
+    };
+
+  btVector3 s(x0,y0,z0), e(x1,y1,z1);
+  CallBack callback{s,e};
+  callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
+
+  rayTest(s,e,callback);
+
+  if(callback.matId<ZenLoad::NUM_MAT_GROUPS){
+    if(callback.matId==ZenLoad::MaterialGroup::METAL ||
+       callback.matId==ZenLoad::MaterialGroup::STONE) {
+      auto d = b.direction();
+      btVector3 m = {d[0],d[1],d[2]};
+      btVector3 n = callback.m_hitNormalWorld;
+
+      n.normalize();
+      float l = b.speed();
+      m/=l;
+
+      btVector3 dir = m - 2*m.dot(n)*n;
+      dir*=(l*0.5f); //slow-down
+
+      float a = callback.m_closestHitFraction;
+      if(a>0.1f) {
+        if(l>10.f)
+          b.setPosition(x0+dx*a,y0+dy*a,z0+dz*a);
+        b.setDirection(dir.x(),dir.y(),dir.z());
+        }
+      }
+    } else {
+    b.setPosition(x1,y1,z1);
+    }
   }
 
 void DynamicWorld::tick(uint64_t /*dt*/) {

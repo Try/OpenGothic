@@ -23,6 +23,7 @@ class btTriangleMesh;
 
 class PhysicMeshShape;
 class World;
+class Bullet;
 
 class DynamicWorld final {
   private:
@@ -115,12 +116,13 @@ class DynamicWorld final {
 
     RayResult ray          (float x0, float y0, float z0, float x1, float y1, float z1) const;
     float     soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const;
-    RayResult implWaterRay (float x0, float y0, float z0, float x1, float y1, float z1) const;
 
     std::array<float,3> landNormal(float x, float y, float z) const;
 
     Item       ghostObj (const ZMath::float3& min,const ZMath::float3& max);
     StaticItem staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
+
+    void moveBullet(Bullet& b,float dx,float dy,float dz);
 
     void tick(uint64_t dt);
 
@@ -128,6 +130,7 @@ class DynamicWorld final {
     void deleteObj(NpcBody* obj);
     void deleteObj(btCollisionObject* obj);
 
+    RayResult implWaterRay (float x0, float y0, float z0, float x1, float y1, float z1) const;
     bool hasCollision(const Item &it,std::array<float,3>& normal);
     void rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, btCollisionWorld::RayResultCallback& resultCallback) const;    
 
