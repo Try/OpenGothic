@@ -606,8 +606,9 @@ float MoveAlgo::dropRay(float x, float y, float z, bool &hasCol) const {
     cache.x          = x;
     cache.y          = y;
     cache.z          = z;
-    cache.hasCol     = ret.hasCol;
     cache.rayCastRet = ret.y();
+    cache.mat        = ret.mat;
+    cache.hasCol     = ret.hasCol;
     if(ret.hasCol) {
       // store also normal
       cache.nx   = x;
@@ -644,9 +645,17 @@ std::array<float,3> MoveAlgo::normalRay(float x, float y, float z) const {
   return cache.norm;
   }
 
+uint8_t MoveAlgo::groundMaterial(float x, float y, float z) const {
+  if(std::fabs(cache.x-x)>eps || std::fabs(cache.y-y)>eps || std::fabs(cache.z-z)>eps) {
+    auto r = npc.world().physic()->dropRay(x,y,z);
+    return r.mat;
+    }
+  return cache.mat;
+  }
+
 uint8_t MoveAlgo::groundMaterial() const {
-  const std::array<float,3> &pos = npc.position();
-  auto r = npc.world().physic()->dropRay(pos[0],pos[1],pos[2]);
-  return r.mat;
+  const std::array<float,3> &p = npc.position();
+  float   fallThreshold = stepHeight(); //make cache happy
+  return groundMaterial(p[0],p[1]+fallThreshold,p[2]);
   }
 

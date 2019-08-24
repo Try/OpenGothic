@@ -90,13 +90,16 @@ class MoveAlgo final {
     float  waterDepthKnee() const;
     float  waterDepthChest() const;
 
-    float  dropRay  (float x, float y, float z, bool &hasCol) const;
-    float  waterRay (float x, float y, float z) const;
-    auto   normalRay(float x, float y, float z) const -> std::array<float,3>;
+    float   dropRay  (float x, float y, float z, bool &hasCol) const;
+    float   waterRay (float x, float y, float z) const;
+    auto    normalRay(float x, float y, float z) const -> std::array<float,3>;
+    uint8_t groundMaterial(float x, float y, float z) const;
 
     struct Cache {
-      float x=0,y=0,z=std::numeric_limits<float>::infinity();
-      float rayCastRet=0; bool hasCol=false;
+      float   x=0,y=0,z=std::numeric_limits<float>::infinity();
+      float   rayCastRet=0;
+      uint8_t mat=0;
+      bool    hasCol=false;
 
       float nx=0,ny=0,nz=std::numeric_limits<float>::infinity();
       std::array<float,3> norm={};
