@@ -2175,7 +2175,7 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
   Npc* enem=hasPerc(PERC_ASSESSENEMY) ? updateNearestEnemy() : nullptr;
   if(enem!=nullptr){
     float dist=qDistTo(*enem);
-    if(!enem->isDown() && canSenseNpc(*enem,false)!=SensesBit::SENSE_NONE && perceptionProcess(*enem,nullptr,dist,PERC_ASSESSENEMY)){
+    if(canSenseNpc(*enem,false)!=SensesBit::SENSE_NONE && perceptionProcess(*enem,nullptr,dist,PERC_ASSESSENEMY)){
       /*
       if(isTalk())
         Log::e("unxepected perc acton"); else

@@ -1,5 +1,7 @@
 #include "fightalgo.h"
 
+#include <Tempest/Log>
+
 #include "world/npc.h"
 #include "world/item.h"
 #include "serialize.h"
@@ -55,8 +57,9 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
       return fillQueue(owner,ai.my_g_focus);
       }
 
-    return fillQueue(owner,ai.my_w_runto);
-    //return fillQueue(owner,ai.my_w_nofocus);
+    if(npc.anim()==AnimationSolver::Move)
+      return fillQueue(owner,ai.my_w_runto);
+    return fillQueue(owner,ai.my_w_nofocus);
     }
 
   if(ws==WeaponState::Bow || ws==WeaponState::CBow){
@@ -172,8 +175,15 @@ FightAlgo::Action FightAlgo::nextFromQueue(Npc& npc, Npc& tg, GameScript& owner)
         tr[0] = MV_WAITLONG;
         break;
         }
-      case Daedalus::GEngineClasses::MAX_FIGHTAI:
+      case 0:
         break;
+      default: {
+        static std::unordered_set<int32_t> inst;
+        if(inst.find(queueId)==inst.end()) {
+          Tempest::Log::d("unrecognized FAI instruction: ",queueId);
+          inst.insert(queueId);
+          }
+        }
       }
     queueId=Daedalus::GEngineClasses::Move(0);
     }
