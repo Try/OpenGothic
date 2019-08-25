@@ -354,7 +354,7 @@ bool Npc::startClimb(JumpCode code) {
   return false;
   }
 
-bool Npc::checkHealth(bool onChange,bool forceKill) {
+bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
   if(onChange && lastHit!=nullptr) {
     uint32_t g = guild();
     if(g==GIL_SKELETON || g==GIL_SKELETON_MAGE || g==GIL_SUMMONED_SKELETON) {
@@ -372,7 +372,7 @@ bool Npc::checkHealth(bool onChange,bool forceKill) {
     setAnim(lastHitType=='A' ? Anim::DeadA : Anim::DeadB);
     return false;
     }
-  if(isUnconscious() && !forceKill) {
+  if(isUnconscious() && allowUnconscious) {
     setAnim(lastHitType=='A' ? Anim::UnconsciousA : Anim::UnconsciousB);
     closeWeapon(true);
     return false;
@@ -386,7 +386,7 @@ bool Npc::checkHealth(bool onChange,bool forceKill) {
       }
 
     if(currentOther==nullptr ||
-       forceKill ||
+       !allowUnconscious ||
        owner.script().personAttitude(*this,*currentOther)==ATT_HOSTILE ||
        guild()>GIL_SEPERATOR_HUM){
       if(hnpc.attribute[ATR_HITPOINTS]<=0) {
@@ -612,6 +612,7 @@ void Npc::updateWeaponSkeleton() {
 
 void Npc::setPhysic(DynamicWorld::Item &&item) {
   physic = std::move(item);
+  physic.setUserPointer(this);
   physic.setPosition(x,y,z);
   }
 
@@ -764,7 +765,7 @@ int32_t Npc::attribute(Npc::Attribute a) const {
   return 0;
   }
 
-void Npc::changeAttribute(Npc::Attribute a, int32_t val) {
+void Npc::changeAttribute(Npc::Attribute a, int32_t val, bool allowUnconscious) {
   if(a>=ATR_MAX || val==0)
     return;
 
@@ -780,7 +781,7 @@ void Npc::changeAttribute(Npc::Attribute a, int32_t val) {
     invent.invalidateCond(*this);
 
   if(a==ATR_HITPOINTS)
-    checkHealth(true,false);
+    checkHealth(true,allowUnconscious);
   }
 
 int32_t Npc::protection(Npc::Protection p) const {
@@ -1130,6 +1131,10 @@ void Npc::commitDamage() {
   }
 
 void Npc::takeDamage(Npc &other) {
+  takeDamage(other,nullptr);
+  }
+
+void Npc::takeDamage(Npc &other, const Bullet *b) {
   if(isDown())
     return;
 
@@ -1137,7 +1142,7 @@ void Npc::takeDamage(Npc &other) {
   owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
 
   auto ani=anim();
-  if(ani!=Anim::MoveBack && ani!=Anim::AtackBlock) {
+  if((ani!=Anim::MoveBack && ani!=Anim::AtackBlock) || b!=nullptr) {
     perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
     owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
 
@@ -1149,10 +1154,10 @@ void Npc::takeDamage(Npc &other) {
     implFaiWait(0);
     if(!isPlayer())
       setOther(lastHit);
-    int dmg = isImmortal() ? 0 : other.damageValue(*this);
+    int dmg = isImmortal() ? 0 : other.damageValue(*this,b);
     if(isPlayer() && owner.script().isRamboMode())
       dmg = std::min(1,dmg);
-    changeAttribute(ATR_HITPOINTS,-dmg);
+    changeAttribute(ATR_HITPOINTS,-dmg,b==nullptr);
 
     if(isUnconscious()){
       owner.sendPassivePerc(*this,other,*this,PERC_ASSESSDEFEAT);
@@ -1174,37 +1179,61 @@ void Npc::takeDamage(Npc &other) {
       if(lastHitType=='A')
         setAnim(Anim::StumbleA); else
         setAnim(Anim::StumbleB);
-      //emitSoundEffect("FIG_DUMMYWOUND",25);
       }
     } else {
     if(invent.activeWeapon()!=nullptr)
       owner.emitBlockSound(other,*this);
-    //emitSoundEffect("D_PARADE",25,true);
     }
   }
 
-int Npc::damageValue(Npc &other) const {  
-  const int dtype = damageTypeMask();
-  uint8_t   hitCh = TALENT_UNKNOWN;
-  if(auto w = invent.activeWeapon()){
-    if(w->is2H())
-      hitCh = TALENT_2H; else
-      hitCh = TALENT_1H;
-    }
-  int s          = attribute(Attribute::ATR_STRENGTH);
-  int v          = 0;
-  int critChance = int(owner.script().rand(100));
+int Npc::damageValue(Npc &other, const Bullet* b) const {
+  int value = 0;
 
+  if(b!=nullptr) {
+    // Bow/CBow
+    auto dmg = b->damage();
+
+    for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
+      int vd = std::max(dmg[size_t(i)] - other.hnpc.protection[i],0);
+      if(other.hnpc.protection[i]>=0) // Filter immune
+        value += vd;
+      }
+    } else {
+    // Swords/Fists
+    const int dtype = damageTypeMask();
+    uint8_t   hitCh = TALENT_UNKNOWN;
+    if(auto w = invent.activeWeapon()){
+      if(w->is2H())
+        hitCh = TALENT_2H; else
+        hitCh = TALENT_1H;
+      }
+
+    int s          = attribute(Attribute::ATR_STRENGTH);
+    int critChance = int(owner.script().rand(100));
+
+    for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
+      if((dtype & (1<<i))==0)
+        continue;
+      int vd = std::max(s + hnpc.damage[i] - other.hnpc.protection[i],0);
+      if(hnpc.hitChance[hitCh]<critChance)
+        vd = (vd-1)/10;
+      if(other.hnpc.protection[i]>=0) // Filter immune
+        value += vd;
+      }
+    }
+  return std::max(value,3);
+  }
+
+std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> Npc::rangeDamageValue() const {
+  const int dtype = damageTypeMask();
+  int d = attribute(Attribute::ATR_DEXTERITY);
+  std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> ret={};
   for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
     if((dtype & (1<<i))==0)
       continue;
-    int vd = std::max(s + hnpc.damage[i] - other.hnpc.protection[i],0);
-    if(hnpc.hitChance[hitCh]<critChance)
-      vd = (vd-1)/10;
-    if(other.hnpc.protection[i]>=0) // Filter immune
-      v += vd;
+    ret[size_t(i)] = d + hnpc.damage[i];
     }
-  return std::max(v,3);
+  return ret;
   }
 
 int32_t Npc::damageTypeMask() const {
@@ -1244,7 +1273,7 @@ void Npc::tick(uint64_t dt) {
     commitDamage();
     }
 
-  if(!checkHealth(false,false)){
+  if(!checkHealth(false,true)){
     mvAlgo.aiGoTo(nullptr);
     mvAlgo.tick(dt);
     setOther(lastHit);
@@ -1951,7 +1980,7 @@ bool Npc::finishingMove() {
 
   if(doAttack(Anim::AtackFinish)) {
     currentTarget->hnpc.attribute[Npc::Attribute::ATR_HITPOINTS] = 0;
-    currentTarget->checkHealth(true,true);
+    currentTarget->checkHealth(true,false);
     owner.sendPassivePerc(*this,*this,*currentTarget,PERC_ASSESSMURDER);
     return true;
     }
@@ -2065,7 +2094,10 @@ bool Npc::shootBow() {
     }
 
   invent.delItem(size_t(munition),1,*this);
-  owner.shootBullet(size_t(munition), x,y+translateY(),z,dx,dy,dz);
+  auto& b = owner.shootBullet(size_t(munition), x,y+translateY(),z,dx,dy,dz);
+  b.setOwner(this);
+  b.setDamage(rangeDamageValue());
+
   return true;
   }
 

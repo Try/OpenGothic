@@ -287,7 +287,7 @@ class Npc final {
 
     int32_t  mageCycle() const;
     int32_t  attribute (Attribute a) const;
-    void     changeAttribute(Attribute a,int32_t val);
+    void     changeAttribute(Attribute a, int32_t val, bool allowUnconscious);
     int32_t  protection(Protection p) const;
     void     changeProtection(Protection p,int32_t val);
 
@@ -464,6 +464,7 @@ class Npc final {
     void     setAiOutputBarrier(uint64_t dt);
 
     bool     doAttack(Anim anim);
+    void     takeDamage(Npc& other,const Bullet* b);
     void     emitDlgSound(const char* sound);
     void     emitSoundEffect(const char* sound, float range, bool freeSlot);
     void     emitSoundGround(const char* sound, float range, bool freeSlot);
@@ -573,7 +574,8 @@ class Npc final {
     bool                           setAnim(Npc::Anim a, WeaponState st);
     void                           commitDamage();
     void                           takeDamage(Npc& other);
-    int                            damageValue(Npc &other) const;
+    int                            damageValue(Npc &other, const Bullet *b) const;
+    auto                           rangeDamageValue() const -> std::array<int32_t, Daedalus::GEngineClasses::DAM_INDEX_MAX>;
     int32_t                        damageTypeMask() const;
     Npc*                           updateNearestEnemy();
 

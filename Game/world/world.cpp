@@ -457,7 +457,7 @@ size_t World::hasItems(const std::string &tag, size_t itemCls) {
   return wobj.hasItems(tag,itemCls);
   }
 
-void World::shootBullet(size_t itmId, float x, float y, float z, float dx, float dy, float dz) {
+Bullet& World::shootBullet(size_t itmId, float x, float y, float z, float dx, float dy, float dz) {
   return wobj.shootBullet(itmId,x,y,z,dx,dy,dz);
   }
 
@@ -517,6 +517,28 @@ void World::emitWeaponsSound(Npc &self, Npc &other) {
     std::snprintf(buf,sizeof(buf),"CS_MAM_%s_%s",selfMt,othMt); else
     std::snprintf(buf,sizeof(buf),"CS_IAM_%s_%s",selfMt,othMt);
   wsound.emitSound(buf, 0.5f*(p0[0]+p1[0]), 0.5f*(p0[1]+p1[1]), 0.5f*(p0[2]+p1[2]),2500.f,nullptr);
+  }
+
+void World::emitLandHitSound(float x,float y,float z,uint8_t m0, uint8_t m1) {
+  // ItemMaterial
+  static const char* mat[]={
+    "WO",
+    "ST",
+    "ME",
+    "FL", //"LE", //MAT_LEATHER,
+    "SA"  //MAT_CLAY,
+    "ST", //MAT_GLAS,
+    };
+
+  const char *sm0 = "ME";
+  const char *sm1 = "ME";
+
+  sm0 = mat[m0];
+  sm1 = mat[m1];
+
+  char buf[128]={};
+  std::snprintf(buf,sizeof(buf),"CS_IHL_%s_%s",sm0,sm1);
+  wsound.emitSound(buf, x,y,z,2500.f,nullptr);
   }
 
 void World::emitBlockSound(Npc &self, Npc &other) {

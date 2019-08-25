@@ -1810,7 +1810,7 @@ void GameScript::npc_changeattribute(Daedalus::DaedalusVM &vm) {
   int32_t atr  = vm.popInt();
   auto    npc  = popInstance(vm);
   if(npc!=nullptr && atr>=0)
-    npc->changeAttribute(Npc::Attribute(atr),val);
+    npc->changeAttribute(Npc::Attribute(atr),val,false);
   }
 
 void GameScript::npc_isonfp(Daedalus::DaedalusVM &vm) {

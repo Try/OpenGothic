@@ -4,6 +4,7 @@
 
 #include <zenload/zCMesh.h>
 #include <zenload/zTypes.h>
+#include <zenload/zCMaterial.h>
 #include <LinearMath/btScalar.h>
 #include <memory>
 #include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
@@ -24,6 +25,7 @@ class btTriangleMesh;
 class PhysicMeshShape;
 class World;
 class Bullet;
+class Npc;
 
 class DynamicWorld final {
   private:
@@ -60,6 +62,7 @@ class DynamicWorld final {
 
         void setPosition(float x,float y,float z);
         void setEnable(bool e);
+        void setUserPointer(void* p);
 
         bool testMove(const std::array<float,3>& pos);
         bool testMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
@@ -111,6 +114,11 @@ class DynamicWorld final {
       float               z() const { return v[2]; }
       };
 
+    struct BulletMv final {
+      Npc*                npc=nullptr;
+      uint8_t             mat = ZenLoad::NUM_MAT_GROUPS;
+      };
+
     RayResult dropRay (float x, float y, float z) const;
     RayResult waterRay(float x, float y, float z) const;
 
@@ -122,7 +130,7 @@ class DynamicWorld final {
     Item       ghostObj (const ZMath::float3& min,const ZMath::float3& max);
     StaticItem staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
 
-    void moveBullet(Bullet& b,float dx,float dy,float dz);
+    BulletMv   moveBullet(Bullet& b,float dx,float dy,float dz);
 
     void tick(uint64_t dt);
 

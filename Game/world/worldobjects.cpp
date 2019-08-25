@@ -63,8 +63,19 @@ void WorldObjects::tick(uint64_t dt) {
   for(auto& i:npcArr)
     i->tick(dt);
 
-  for(auto& i:bullets)
-    i.tick(dt);
+  for(size_t i=0;i<bullets.size();){
+    if(bullets[i].flags()&Bullet::Stopped) {
+      ++i;
+      continue;
+      }
+
+    if(bullets[i].tick(dt)){
+      bullets[i]=std::move(bullets.back());
+      bullets.pop_back();
+      } else {
+      ++i;
+      }
+    }
 
   auto pl = owner.player();
   if(pl==nullptr)
@@ -340,13 +351,14 @@ size_t WorldObjects::hasItems(const std::string &tag, size_t itemCls) {
   return 0;
   }
 
-void WorldObjects::shootBullet(size_t itmId, float x, float y, float z, float dx, float dy, float dz) {
+Bullet& WorldObjects::shootBullet(size_t itmId, float x, float y, float z, float dx, float dy, float dz) {
   float speed=3000;
   bullets.emplace_back(owner,itmId);
   auto& b = bullets.back();
 
   b.setPosition(x,y,z);
   b.setDirection(dx*speed,dy*speed,dz*speed);
+  return b;
   }
 
 Item *WorldObjects::addItem(size_t itemInstance, const char *at) {

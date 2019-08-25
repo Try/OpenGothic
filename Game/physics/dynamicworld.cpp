@@ -21,8 +21,6 @@
 #include <LinearMath/btDefaultMotionState.h>
 #include <BulletCollision/NarrowPhaseCollision/btRaycastCallback.h>
 
-#include <zenload/zCMaterial.h>
-
 #include <algorithm>
 #include <cmath>
 
@@ -175,6 +173,38 @@ struct DynamicWorld::NpcBodyList final {
 
   void move(NpcBody& n, float x, float y, float z){
     move(n,{x,y,z});
+    }
+
+  NpcBody* rayTest(const btVector3& s, const btVector3& e){
+    struct CallBack:btCollisionWorld::ClosestRayResultCallback {
+      using ClosestRayResultCallback::ClosestRayResultCallback;
+      };
+    CallBack callback{s,e};
+
+    btTransform rayFromTrans,rayToTrans;
+    rayFromTrans.setIdentity();
+    rayFromTrans.setOrigin(s);
+    rayToTrans.setIdentity();
+    rayToTrans.setOrigin(e);
+    for(auto i:body)
+      if(rayTestSingle(rayFromTrans, rayToTrans, *i, callback))
+        return i;
+    for(auto i:frozen)
+      if(rayTestSingle(rayFromTrans, rayToTrans, *i, callback))
+        return i;
+    return nullptr;
+    }
+
+  bool rayTestSingle(const btTransform& s,
+                     const btTransform& e, NpcBody& npc,
+                     btCollisionWorld::RayResultCallback& callback){
+    if(!npc.enable)
+      return false;
+    wrld.world->rayTestSingle(s, e, &npc,
+                              npc.getCollisionShape(),
+                              npc.getWorldTransform(),
+                              callback);
+    return callback.hasHit();
     }
 
   bool hasCollision(const DynamicWorld::Item& obj,std::array<float,3>& normal){
@@ -572,7 +602,7 @@ DynamicWorld::StaticItem DynamicWorld::staticObj(const PhysicMeshShape *shape, c
   return StaticItem(this,obj.release());
   }
 
-void DynamicWorld::moveBullet(Bullet &b, float dx, float dy, float dz) {
+DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, float dz) {
   auto  p  = b.position();
   float x0 = p[0];
   float y0 = p[1];
@@ -609,8 +639,14 @@ void DynamicWorld::moveBullet(Bullet &b, float dx, float dy, float dz) {
   CallBack callback{s,e};
   callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
 
+  if(auto ptr = npcList->rayTest(s,e)) {
+    BulletMv ret;
+    ret.npc = reinterpret_cast<Npc*>(ptr->getUserPointer());
+    return ret;
+    }
   rayTest(s,e,callback);
 
+  BulletMv ret;
   if(callback.matId<ZenLoad::NUM_MAT_GROUPS){
     if(callback.matId==ZenLoad::MaterialGroup::METAL ||
        callback.matId==ZenLoad::MaterialGroup::STONE) {
@@ -626,15 +662,22 @@ void DynamicWorld::moveBullet(Bullet &b, float dx, float dy, float dz) {
       dir*=(l*0.5f); //slow-down
 
       float a = callback.m_closestHitFraction;
-      if(a>0.1f) {
-        if(l>10.f)
+      if(l>10.f) {
+        if(a>0.1f)
           b.setPosition(x0+dx*a,y0+dy*a,z0+dz*a);
         b.setDirection(dir.x(),dir.y(),dir.z());
+        ret.mat = callback.matId;
+        } else {
+        b.setFlags(Bullet::Stopped);
         }
+      } else {
+      b.setFlags(Bullet::Stopped);
       }
     } else {
     b.setPosition(x1,y1,z1);
     }
+
+  return ret;
   }
 
 void DynamicWorld::tick(uint64_t /*dt*/) {
@@ -758,6 +801,10 @@ void DynamicWorld::Item::implSetPosition(float x, float y, float z) {
 void DynamicWorld::Item::setEnable(bool e) {
   if(obj)
     obj->enable = e;
+  }
+
+void DynamicWorld::Item::setUserPointer(void *p) {
+  obj->setUserPointer(p);
   }
 
 bool DynamicWorld::Item::testMove(const std::array<float,3> &pos) {

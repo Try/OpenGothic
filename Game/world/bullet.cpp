@@ -3,12 +3,13 @@
 #include "world.h"
 
 Bullet::Bullet(World& owner, size_t itemInstance)
-  :owner(owner){
+  :wrld(&owner){
   // FIXME: proper item creation
   Daedalus::GEngineClasses::C_Item  hitem={};
   owner.script().initializeInstance(hitem,itemInstance);
   owner.script().clearReferences(hitem);
 
+  material = uint8_t(hitem.material);
   setView(owner.getStaticView(hitem.visual,hitem.material));
   }
 
@@ -37,7 +38,15 @@ void Bullet::setView(StaticObjects::Mesh &&m) {
   updateMatrix();
   }
 
-void Bullet::tick(uint64_t dt) {
+void Bullet::setOwner(Npc *n) {
+  ow = n;
+  }
+
+Npc *Bullet::owner() const {
+  return ow;
+  }
+
+bool Bullet::tick(uint64_t dt) {
   float k  = dt/1000.f;
   float dx = dir[0]*k;
   float dy = dir[1]*k;
@@ -45,7 +54,14 @@ void Bullet::tick(uint64_t dt) {
 
   dir[1] -= 9.8f*100.f*k; // FIXME: gravity
 
-  owner.physic()->moveBullet(*this,dx,dy,dz);
+  auto r = wrld->physic()->moveBullet(*this,dx,dy,dz);
+  if(r.mat<ZenLoad::NUM_MAT_GROUPS)
+    wrld->emitLandHitSound(pos[0],pos[1],pos[2],material,r.mat);
+  if(r.npc!=nullptr && ow!=nullptr){
+    r.npc->takeDamage(*ow,this);
+    return true;
+    }
+  return false;
   }
 
 void Bullet::updateMatrix() {
@@ -59,6 +75,6 @@ void Bullet::updateMatrix() {
   mat.identity();
   mat.translate(pos[0],pos[1],pos[2]);
   mat.rotateOY(-ang);
-  mat.rotateOX(a2);
+  mat.rotateOZ(-a2);
   view.setObjMatrix(mat);
   }
