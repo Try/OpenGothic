@@ -747,15 +747,15 @@ std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::Dl
   return ret;
   }
 
-void GameScript::exec(const GameScript::DlgChoise &dlg,
-                       Daedalus::GEngineClasses::C_Npc* player,
-                       Daedalus::GEngineClasses::C_Npc* hnpc) {
-  ScopeVar self (vm, vm.globalSelf(),  hnpc,   Daedalus::IC_Npc);
-  ScopeVar other(vm, vm.globalOther(), player, Daedalus::IC_Npc);
+void GameScript::exec(const GameScript::DlgChoise &dlg,Npc& player, Npc& npc) {
+  ScopeVar self (vm, vm.globalSelf(),  npc.handle(),    Daedalus::IC_Npc);
+  ScopeVar other(vm, vm.globalOther(), player.handle(), Daedalus::IC_Npc);
 
   Daedalus::GEngineClasses::C_Info& info = *dlg.handle;
 
-  auto pl = *player;
+  player.stopAnim("");
+  auto pl = *player.handle();
+
   if(info.information==dlg.scriptFn) {
     setNpcInfoKnown(pl,info);
     } else {

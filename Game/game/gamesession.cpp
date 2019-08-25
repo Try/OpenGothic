@@ -306,7 +306,7 @@ std::vector<GameScript::DlgChoise> GameSession::updateDialog(const GameScript::D
   }
 
 void GameSession::dialogExec(const GameScript::DlgChoise &dlg, Npc& player, Npc& npc) {
-  return vm->exec(dlg,player.handle(),npc.handle());
+  return vm->exec(dlg,player,npc);
   }
 
 const std::string &GameSession::messageFromSvm(const std::string &id, int voice) const {

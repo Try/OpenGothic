@@ -92,7 +92,7 @@ class GameScript final {
     auto dialogChoises(Daedalus::GEngineClasses::C_Npc *self, Daedalus::GEngineClasses::C_Npc *npc, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<DlgChoise>;
     auto updateDialog (const GameScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoise>;
 
-    void exec(const DlgChoise &dlg, Daedalus::GEngineClasses::C_Npc *player, Daedalus::GEngineClasses::C_Npc *hnpc);
+    void exec(const DlgChoise &dlg, Npc &player, Npc &npc);
     int  printCannotUseError (Npc &npc, int32_t atr, int32_t nValue);
     int  printCannotCastError(Npc &npc, int32_t plM, int32_t itM);
     int  printCannotBuyError (Npc &npc);
