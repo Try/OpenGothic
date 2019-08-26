@@ -28,6 +28,7 @@ class AnimationSolver final {
       GuardH,
       Sit,
       Sleep,
+      Talk,
       GuardSleep,
       MagicSleep,
       IdleLoopLast=MagicSleep,
@@ -106,7 +107,6 @@ class AnimationSolver final {
       SlideB,
       Training,
       Interact,
-      Talk,
 
       Atack,
       AtackL,

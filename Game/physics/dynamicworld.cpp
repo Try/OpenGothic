@@ -602,7 +602,7 @@ DynamicWorld::StaticItem DynamicWorld::staticObj(const PhysicMeshShape *shape, c
   return StaticItem(this,obj.release());
   }
 
-DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, float dz) {
+DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, float dz, uint64_t dt) {
   auto  p  = b.position();
   float x0 = p[0];
   float y0 = p[1];
@@ -662,9 +662,8 @@ DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, f
       dir*=(l*0.5f); //slow-down
 
       float a = callback.m_closestHitFraction;
-      if(l>10.f) {
-        if(a>0.1f)
-          b.setPosition(x0+dx*a,y0+dy*a,z0+dz*a);
+      if(l*a>10.f) {
+        b.setPosition(x0+dx*a,y0+dy*a,z0+dz*a);
         b.setDirection(dir.x(),dir.y(),dir.z());
         ret.mat = callback.matId;
         } else {
@@ -674,6 +673,10 @@ DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, f
       b.setFlags(Bullet::Stopped);
       }
     } else {
+    float k = dt/1000.f;
+    auto  d = b.direction();
+    d[1] -= gravity*k;
+    b.setDirection(d[0],d[1],d[2]);
     b.setPosition(x1,y1,z1);
     }
 

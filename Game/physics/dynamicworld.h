@@ -34,6 +34,8 @@ class DynamicWorld final {
     struct NpcBodyList;
 
   public:
+    static constexpr float gravity = 100*9.8f;
+
     DynamicWorld(World &world, const ZenLoad::PackedMesh &pkg);
     ~DynamicWorld();
 
@@ -130,7 +132,7 @@ class DynamicWorld final {
     Item       ghostObj (const ZMath::float3& min,const ZMath::float3& max);
     StaticItem staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
 
-    BulletMv   moveBullet(Bullet& b,float dx,float dy,float dz);
+    BulletMv   moveBullet(Bullet& b, float dx, float dy, float dz, uint64_t dt);
 
     void tick(uint64_t dt);
 

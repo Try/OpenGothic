@@ -5,7 +5,7 @@
 #include "world/npc.h"
 
 const float MoveAlgo::closeToPointThreshold = 50;
-const float MoveAlgo::gravity               = 100*9.8f;
+const float MoveAlgo::gravity               = DynamicWorld::gravity;
 const float MoveAlgo::eps                   = 1.f; // 1-milimeter
 
 MoveAlgo::MoveAlgo(Npc& unit)
