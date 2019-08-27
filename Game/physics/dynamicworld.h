@@ -34,7 +34,8 @@ class DynamicWorld final {
     struct NpcBodyList;
 
   public:
-    static constexpr float gravity = 100*9.8f;
+    static constexpr float gravity     = 100*9.8f;
+    static constexpr float bulletSpeed = 3000; //per sec
 
     DynamicWorld(World &world, const ZenLoad::PackedMesh &pkg);
     ~DynamicWorld();

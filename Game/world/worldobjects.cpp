@@ -352,7 +352,7 @@ size_t WorldObjects::hasItems(const std::string &tag, size_t itemCls) {
   }
 
 Bullet& WorldObjects::shootBullet(size_t itmId, float x, float y, float z, float dx, float dy, float dz) {
-  float speed=3000;
+  float speed=DynamicWorld::bulletSpeed;
   bullets.emplace_back(owner,itmId);
   auto& b = bullets.back();
 

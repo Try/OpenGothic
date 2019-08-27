@@ -1308,7 +1308,7 @@ void Npc::tick(uint64_t dt) {
   if(currentGoTo==nullptr && currentGoToNpc==nullptr &&
      aiActions.size()==0 &&
      aiPolicy!=ProcessPolicy::Player &&
-     anim()!=Anim::Pray && anim()!=Anim::PrayRand && anim()!=Anim::Talk) {
+     anim()!=Anim::Pray && anim()!=Anim::PrayRand && anim()!=Anim::Talk && anim()!=Anim::Sleep) {
     if(weaponState()==WeaponState::NoWeapon)
       setAnim(animation.lastIdle); else
     if(animation.current>Anim::IdleLoopLast)
@@ -2081,16 +2081,25 @@ bool Npc::shootBow() {
     return false;
 
   float dx=1.f,dy=0.f,dz=0.f;
-  if(currentTarget!=nullptr){
+  if(currentTarget!=nullptr) {
+    float y1 = (currentTarget->y+currentTarget->translateY());
+    float y0 = (y+translateY());
+
     dx = currentTarget->x-x;
-    dy = (currentTarget->y+currentTarget->translateY())-(y+translateY());
+    dy = y1-y0;
     dz = currentTarget->z-z;
-    float l = std::sqrt(dx*dx+dy*dy+dz*dz);
-    if(l>0.01f){
-      dx = dx/l;
-      dy = dy/l;
-      dz = dz/l;
-      }
+
+    float lxz   = std::sqrt(dx*dx+0*0+dz*dz);
+    float speed = DynamicWorld::bulletSpeed;
+    float t     = lxz/speed;
+
+    dy = (y1-y0)/t + 0.5f*DynamicWorld::gravity*t;
+    dx/=t;
+    dz/=t;
+
+    dx = dx/speed;
+    dy = dy/speed;
+    dz = dz/speed;
     } else {
     float a = rotationRad()-float(M_PI/2);
     float c = std::cos(a), s = std::sin(a);

@@ -603,13 +603,15 @@ DynamicWorld::StaticItem DynamicWorld::staticObj(const PhysicMeshShape *shape, c
   }
 
 DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, float dz, uint64_t dt) {
+  float k  = dt/1000.f;
+
   auto  p  = b.position();
   float x0 = p[0];
   float y0 = p[1];
   float z0 = p[2];
-  float x1 = x0+dx;
-  float y1 = y0+dy;
-  float z1 = z0+dz;
+  float x1 = x0+dx*k;
+  float y1 = y0+dy*k-gravity*k*k;
+  float z1 = z0+dz*k;
 
   struct CallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;
@@ -673,8 +675,9 @@ DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, f
       b.setFlags(Bullet::Stopped);
       }
     } else {
-    float k = dt/1000.f;
     auto  d = b.direction();
+    if(d[1]<gravity*k)
+      ;//return ret;
     d[1] -= gravity*k;
     b.setDirection(d[0],d[1],d[2]);
     b.setPosition(x1,y1,z1);
