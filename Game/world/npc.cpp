@@ -1303,7 +1303,9 @@ void Npc::tick(uint64_t dt) {
   if(interactive()!=nullptr)
     setAnim(AnimationSolver::Interact); else
   if(currentGoTo==nullptr && currentGoToNpc==nullptr &&
-     aiPolicy!=ProcessPolicy::Player && anim()!=Anim::Pray && anim()!=Anim::PrayRand) {
+     aiActions.size()==0 &&
+     aiPolicy!=ProcessPolicy::Player &&
+     anim()!=Anim::Pray && anim()!=Anim::PrayRand && anim()!=Anim::Talk) {
     if(weaponState()==WeaponState::NoWeapon)
       setAnim(animation.lastIdle); else
     if(animation.current>Anim::IdleLoopLast)

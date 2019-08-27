@@ -344,6 +344,10 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
       inter->nextState();
       return ret;
       }
+    if(inter->stateId()==-1){
+      auto ret = inter->anim(*this,Interactive::Out);
+      return ret;
+      }
     }
   /*
   // TODO: interactives dettach
