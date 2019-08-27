@@ -1246,7 +1246,10 @@ Npc *Npc::updateNearestEnemy() {
   if(aiPolicy!=ProcessPolicy::AiNormal)
     return nullptr;
 
-  Npc* ret=nearestEnemy;
+  Npc* ret=nullptr;
+  if(nearestEnemy!=nullptr && (!nearestEnemy->isDown() && canSenseNpc(*nearestEnemy,true)!=SensesBit::SENSE_NONE))
+    ret=nearestEnemy;
+
   owner.detectNpcNear([this,&ret](Npc& n){
     if(!isEnemy(n))
       return;
@@ -2177,7 +2180,7 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
   Npc* enem=hasPerc(PERC_ASSESSENEMY) ? updateNearestEnemy() : nullptr;
   if(enem!=nullptr){
     float dist=qDistTo(*enem);
-    if(canSenseNpc(*enem,false)!=SensesBit::SENSE_NONE && perceptionProcess(*enem,nullptr,dist,PERC_ASSESSENEMY)){
+    if(perceptionProcess(*enem,nullptr,dist,PERC_ASSESSENEMY)){
       /*
       if(isTalk())
         Log::e("unxepected perc acton"); else
