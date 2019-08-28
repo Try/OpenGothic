@@ -2178,6 +2178,9 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
   if(disable)
     return false;
 
+  if(isPlayer())
+    return true;
+
   bool ret=false;
   if(hasPerc(PERC_ASSESSPLAYER) && canSenseNpc(pl,true)!=SensesBit::SENSE_NONE){
     if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER)) {
@@ -2204,7 +2207,7 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
 bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType perc) {
   float r = hnpc.senses_range;
   r = r*r;
-  if(quadDist>r)
+  if(quadDist>r || isPlayer())
     return false;
   if(hasPerc(perc)){
     owner.script().invokeState(this,&pl,victum,perception[perc].func);
