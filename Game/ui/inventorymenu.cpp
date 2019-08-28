@@ -47,6 +47,11 @@ InventoryMenu::InventoryMenu(Gothic &gothic, const RendererStorage &storage)
   selU = Resources::loadTexture("INV_SLOT_EQUIPPED.TGA");
   tex  = Resources::loadTexture("INV_BACK.TGA");
 
+  int invMaxColumns = gothic.settingsGetI("GAME","invMaxColumns");
+  if(invMaxColumns>0)
+    columsCount = size_t(invMaxColumns); else
+    columsCount = 5;
+
   setFocusPolicy(NoFocus);
   takeTimer.timeout.bind(this,&InventoryMenu::onTakeStuff);
   }
@@ -157,31 +162,32 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     }
 
   auto&        pg     = activePage();
+  auto&        sel    = activePageSel();
   const size_t pCount = pagesCount();
 
   if(e.key==KeyEvent::K_W){
-    if(sel>=columsCount)
-      sel -= columsCount;
+    if(sel.sel>=columsCount)
+      sel.sel -= columsCount;
     }
   else if(e.key==KeyEvent::K_S){
-    if(sel+columsCount<pg.size())
-      sel += columsCount;
+    if(sel.sel+columsCount<pg.size())
+      sel.sel += columsCount;
     }
   else if(e.key==KeyEvent::K_A){
-    if(sel%columsCount==0 && page>0){
+    if(sel.sel%columsCount==0 && page>0){
       page--;
-      sel += (columsCount-1);
+      sel.sel += (columsCount-1);
       }
-    else if(sel>0)
-      sel--;
+    else if(sel.sel>0)
+      sel.sel--;
     }
   else if(e.key==KeyEvent::K_D) {
-    if(((sel+1)%columsCount==0 || sel+1==pg.size() || pg.size()==0) && page+1<pCount) {
+    if(((sel.sel+1)%columsCount==0 || sel.sel+1==pg.size() || pg.size()==0) && page+1<pCount) {
       page++;
-      sel -= sel%columsCount;
+      sel.sel -= sel.sel%columsCount;
       }
-    else if(sel+1<pg.size())
-      sel++;
+    else if(sel.sel+1<pg.size())
+      sel.sel++;
     }
   adjustScroll();
   update();
@@ -199,10 +205,12 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
     return;
     }
 
-  auto& page=activePage();
-  if(sel>=page.size())
+  auto& page = activePage();
+  auto& sel  = activePageSel();
+
+  if(sel.sel>=page.size())
     return;
-  auto& r = page[sel];
+  auto& r = page[sel.sel];
   if(state==State::Equip) {
     if(r.isEquiped())
       player->unequipItem(r.clsId()); else
@@ -225,14 +233,15 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
     return;
     }
 
-  auto& pg=activePage();
+  auto& pg  = activePage();
+  auto& sel = activePageSel();
   if(e.delta>0){
-    if(sel>=columsCount)
-      sel -= columsCount;
+    if(sel.sel>=columsCount)
+      sel.sel -= columsCount;
     }
   else if(e.delta<0){
-    if(sel+columsCount<pg.size())
-      sel += columsCount;
+    if(sel.sel+columsCount<pg.size())
+      sel.sel += columsCount;
     }
   adjustScroll();
   }
@@ -279,11 +288,18 @@ const InventoryMenu::Page &InventoryMenu::activePage() {
   return n;
   }
 
+InventoryMenu::PageLocal &InventoryMenu::activePageSel() {
+  if(pageOth!=nullptr)
+    return (page==0 ? pageLocal[0] : pageLocal[1]);
+  return pageLocal[1];
+  }
+
 void InventoryMenu::onTakeStuff() {
-  auto& page=activePage();
-  if(sel>=page.size())
+  auto& page = activePage();
+  auto& sel  = activePageSel();
+  if(sel.sel>=page.size())
     return;
-  auto& r = page[sel];
+  auto& r = page[sel.sel];
 
   if(state==State::Chest) {
     if(page.is(&player->inventory())){
@@ -309,18 +325,19 @@ void InventoryMenu::onTakeStuff() {
 
 void InventoryMenu::adjustScroll() {
   auto& page=activePage();
-  sel = std::min(sel, std::max<size_t>(page.size(),1)-1);
-  while(sel<scroll*columsCount) {
-    if(scroll<=1){
-      scroll=0;
+  auto& sel =activePageSel();
+  sel.sel = std::min(sel.sel, std::max<size_t>(page.size(),1)-1);
+  while(sel.sel<sel.scroll*columsCount) {
+    if(sel.scroll<=1){
+      sel.scroll=0;
       return;
       }
-    scroll-=1;
+    sel.scroll-=1;
     }
 
   const size_t hcount=rowsCount();
-  while(sel>=(scroll+hcount)*columsCount) {
-    scroll+=1;
+  while(sel.sel>=(sel.scroll+hcount)*columsCount) {
+    sel.scroll+=1;
     }
   }
 
@@ -335,22 +352,22 @@ void InventoryMenu::drawAll(Painter &p,Npc &player) {
 
   if(chest!=nullptr){
     drawHeader(p,cp1251::toUtf8(chest->displayName()),padd,70);
-    drawItems(p,*pageOth,padd,iy,wcount,hcount);
+    drawItems(p,*pageOth,pageLocal[0],padd,iy,wcount,hcount);
     }
 
   if(trader!=nullptr) {
     drawHeader(p,cp1251::toUtf8(trader->displayName()),padd,70);
-    drawItems(p,*pageOth,padd,iy,wcount,hcount);
+    drawItems(p,*pageOth,pageLocal[0],padd,iy,wcount,hcount);
     }
 
   if(state!=State::Ransack) {
     drawGold (p,player,w()-padd-2*slotSize().w,70);
-    drawItems(p,*pagePl,w()-padd-wcount*slotSize().w,iy,wcount,hcount);
+    drawItems(p,*pagePl,pageLocal[1],w()-padd-wcount*slotSize().w,iy,wcount,hcount);
     }
   drawInfo(p);
   }
 
-void InventoryMenu::drawItems(Painter &p, const Page &inv, int x, int y, int wcount, int hcount) {
+void InventoryMenu::drawItems(Painter &p, const Page &inv, const PageLocal& sel, int x, int y, int wcount, int hcount) {
   if(tex) {
     p.setBrush(*tex);
     p.drawRect(x,y,slotSize().w*wcount,slotSize().h*hcount,
@@ -360,13 +377,13 @@ void InventoryMenu::drawItems(Painter &p, const Page &inv, int x, int y, int wco
   for(int i=0;i<hcount;++i){
     for(int r=0;r<wcount;++r){
       int sx = x + r*slotSize().w;
-      drawSlot(p,inv, sx,y, size_t((int(scroll)+i)*wcount+r));
+      drawSlot(p,inv,sel, sx,y, size_t((int(sel.scroll)+i)*wcount+r));
       }
     y+=slotSize().h;
     }
   }
 
-void InventoryMenu::drawSlot(Painter &p,const Page &inv, int x, int y, size_t id) {
+void InventoryMenu::drawSlot(Painter &p, const Page &inv, const PageLocal &sel, int x, int y, size_t id) {
   if(!slot)
     return;
   p.setBrush(*slot);
@@ -378,7 +395,7 @@ void InventoryMenu::drawSlot(Painter &p,const Page &inv, int x, int y, size_t id
   auto& r    = inv[id];
   auto& page = activePage();
 
-  if(id==sel && &page==&inv && selT!=nullptr){
+  if(id==sel.sel && &page==&inv && selT!=nullptr){
     p.setBrush(*selT);
     p.drawRect(x,y,slotSize().w,slotSize().h,
                0,0,selT->w(),selT->h());
@@ -448,11 +465,13 @@ void InventoryMenu::drawInfo(Painter &p) {
   const int x    = (w()-dw)/2;
   const int y    = h()-dh-20;
 
-  auto& pg=activePage();
-  if(sel>=pg.size())
+  auto& pg  = activePage();
+  auto& sel = activePageSel();
+
+  if(sel.sel>=pg.size())
     return;
 
-  auto& r = pg[sel];
+  auto& r = pg[sel.sel];
   if(tex) {
     p.setBrush(*tex);
     p.drawRect(x,y,dw,dh,

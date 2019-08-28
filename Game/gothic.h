@@ -104,7 +104,7 @@ class Gothic final {
     const std::string&                    defaultSave() const;
     std::unique_ptr<Daedalus::DaedalusVM> createVm(const char16_t *datFile);
 
-    int       settingsGetI(const char* sec,const char* name) const;
+    int       settingsGetI(const char* sec, const char* name) const;
     void      settingsSetI(const char* sec, const char* name, int val);
     void      flushSettings() const;
 
