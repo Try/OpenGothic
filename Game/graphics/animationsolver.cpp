@@ -226,7 +226,7 @@ void AnimationSolver::emitSfx(Npc& npc,uint64_t tickCount) {
   }
 
 bool AnimationSolver::stopAnim(const std::string &ani) {
-  if(animSq!=nullptr && animSq.l1->name==ani){
+  if(animSq!=nullptr && (animSq.l1->name==ani || ani.empty())){
     resetAni();
     return true;
     }
@@ -819,7 +819,8 @@ void AnimationSolver::processEvents(uint64_t &barrier, uint64_t now, Animation::
 AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const {
   if(name=="T_HEASHOOT_2_STAND" || name=="T_LGUARD_2_STAND" || name=="T_HGUARD_2_STAND" ||
      name=="T_EAT_2_STAND"      || name=="T_SLEEP_2_STAND"  || name=="T_GUARDSLEEP_2_STAND" ||
-     name=="T_SIT_2_STAND"      || name=="T_PEE_2_STAND"    || name=="T_VICTIM_SLE_2_STAND")
+     name=="T_SIT_2_STAND"      || name=="T_PEE_2_STAND"    || name=="T_VICTIM_SLE_2_STAND" ||
+     name=="T_TALK_2_STAND")
     return Anim::Idle;
 
   if(name=="T_STAND_2_LGUARD" || name=="S_LGUARD")
