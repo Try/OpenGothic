@@ -2036,8 +2036,8 @@ void GameScript::npc_getnexttarget(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::npc_sendpassiveperc(Daedalus::DaedalusVM &vm) {
-  auto victum = popInstance(vm);
   auto other  = popInstance(vm);
+  auto victum = popInstance(vm);
   auto id     = vm.popInt();
   auto npc    = popInstance(vm);
 
