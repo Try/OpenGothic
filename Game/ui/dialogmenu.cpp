@@ -146,7 +146,7 @@ void DialogMenu::openPipe(Npc &player, Npc &npc, AiOuputPipe *&out) {
 bool DialogMenu::aiOutput(Npc &npc, const char *msg) {
   if(&npc!=pl && &npc!=other){
     Log::e("unexpected aiOutput call: ",msg);
-    return false;
+    return true;
     }
 
   if(current.time>0)
