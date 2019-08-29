@@ -2046,6 +2046,9 @@ bool Npc::castSpell() {
         currentTarget->lastHitSpell = splId;
         currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
         }
+      if(active->isSpell()) {
+        invent.delItem(active->clsId(),1,*this);
+        }
       break;
       }
     default:
