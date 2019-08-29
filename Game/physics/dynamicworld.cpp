@@ -657,7 +657,7 @@ DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, f
       btVector3 n = callback.m_hitNormalWorld;
 
       n.normalize();
-      float l = b.speed();
+      const float l = b.speed();
       m/=l;
 
       btVector3 dir = m - 2*m.dot(n)*n;
@@ -667,6 +667,7 @@ DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, f
       b.setPosition(x0+(x1-x0)*a,y0+(y1-y0)*a,z0+(z1-z0)*a);
       if(l*a>10.f) {
         b.setDirection(dir.x(),dir.y(),dir.z());
+        b.addLen(l*a);
         ret.mat = callback.matId;
         } else {
         b.setFlags(Bullet::Stopped);
@@ -677,12 +678,13 @@ DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, f
       b.setFlags(Bullet::Stopped);
       }
     } else {
-    auto  d = b.direction();
-    if(d[1]<gravity*k)
-      ;//return ret;
+    const float l = b.speed();
+    auto d = b.direction();
     d[1] -= gravity*k;
+
     b.setDirection(d[0],d[1],d[2]);
     b.setPosition(x1,y1,z1);
+    b.addLen(l);
     }
 
   return ret;

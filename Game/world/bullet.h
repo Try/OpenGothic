@@ -30,13 +30,20 @@ class Bullet final {
     const std::array<float,3>& position()  const { return pos;  }
     const std::array<float,3>& direction() const { return dir;  }
     float                      speed()     const { return dirL; }
+
     Flg                        flags()     const { return flg;  }
     void                       setFlags(Flg f) { flg=f; }
 
     auto                       damage() const -> const std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX>& { return dmg; }
     void                       setDamage(std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> d) { dmg=d; }
 
-    bool tick(uint64_t dt);
+    float                      hitChance() const { return hitCh; }
+    void                       setHitChance(float h) { hitCh=h; }
+
+    void                       addLen(float l) { totalL+=l; }
+    float                      pathLength() const { return totalL; }
+
+    bool                       tick(uint64_t dt);
 
   private:
     World*                            wrld=nullptr;
@@ -47,6 +54,8 @@ class Bullet final {
     std::array<float,3>               pos={};
     std::array<float,3>               dir={};
     float                             dirL=0.f;
+    float                             totalL=0.f;
+    float                             hitCh=1.f;
     Tempest::Matrix4x4                mat;
     uint8_t                           material=0;
     Flg                               flg=NoFlags;

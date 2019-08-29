@@ -1185,8 +1185,11 @@ int Npc::damageValue(Npc &other, const Bullet* b) const {
 
   if(b!=nullptr) {
     // Bow/CBow
-    auto dmg = b->damage();
+    const float maxRange = 3500; // from Focus_Ranged
+    if(b->pathLength()>maxRange*b->hitChance() && b->hitChance()<1.f)
+      return 0;
 
+    auto dmg = b->damage();
     for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
       int vd = std::max(dmg[size_t(i)] - other.hnpc.protection[i],0);
       if(other.hnpc.protection[i]>=0) // Filter immune
@@ -2075,8 +2078,8 @@ bool Npc::shootBow() {
 
   float dx=1.f,dy=0.f,dz=0.f;
   if(currentTarget!=nullptr) {
-    float y1 = (currentTarget->y*0+currentTarget->physic.centerY());
-    float y0 = (y+translateY());
+    float y1 = currentTarget->physic.centerY();
+    float y0 = y+translateY();
 
     dx = currentTarget->x-x;
     dy = y1-y0;
@@ -2104,6 +2107,11 @@ bool Npc::shootBow() {
   auto& b = owner.shootBullet(size_t(munition), x,y+translateY(),z,dx,dy,dz);
   b.setOwner(this);
   b.setDamage(rangeDamageValue());
+
+  auto rgn = currentRangeWeapon();
+  if(rgn!=nullptr && rgn->isCrossbow())
+    b.setHitChance(hnpc.hitChance[TALENT_CROSSBOW]/100.f); else
+    b.setHitChance(hnpc.hitChance[TALENT_BOW]/100.f);
 
   return true;
   }
