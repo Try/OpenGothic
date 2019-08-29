@@ -154,10 +154,14 @@ struct DynamicWorld::NpcBodyList final {
     return false;
     }
 
-  bool delLazy(void* b,std::vector<Record>& arr){
+  bool delMisordered(void* b,std::vector<Record>& arr){
     for(size_t i=0;i<arr.size();++i){
       if(arr[i].body!=b)
         continue;
+      const float x = arr[i].x;
+      if((i==0 || arr[i-1].x<x) &&
+         (i+1==arr.size() || x<arr[i+1].x))
+        return false;
       arr[i].body = nullptr;
       return true;
       }
@@ -181,14 +185,13 @@ struct DynamicWorld::NpcBodyList final {
       n.lastMove=tick;
 
     if(move && n.frozen){
-      delLazy(&n,frozen);
-      // srt=false;
-
-      Record r;
-      r.body = &n;
-      r.x    = n.pos[0];
-      body.push_back(r);
-      n.frozen=false;
+      if(delMisordered(&n,frozen)){
+        Record r;
+        r.body = &n;
+        r.x    = n.pos[0];
+        body.push_back(r);
+        n.frozen=false;
+        }
       }
     }
 
