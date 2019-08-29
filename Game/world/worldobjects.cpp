@@ -111,7 +111,12 @@ void WorldObjects::tick(uint64_t dt) {
       float l = i->qDistTo(r.x,r.y,r.z);
       if(r.item!=size_t(-1) && r.other!=nullptr)
         owner.script().setInstanceItem(*r.other,r.item);
-      i->perceptionProcess(*r.other,r.victum,l,Npc::PercType(r.what));
+      if(l<i->handle()->senses_range*i->handle()->senses_range) {
+        // aproximation of behavior of original G2
+        if(i->canSenseNpc(*r.other, true)!=SensesBit::SENSE_NONE &&
+           i->canSenseNpc(*r.victum,true)!=SensesBit::SENSE_NONE)
+          i->perceptionProcess(*r.other,r.victum,l,Npc::PercType(r.what));
+        }
       }
 
     if(i->percNextTime()>owner.tickCount())
