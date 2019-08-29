@@ -204,7 +204,7 @@ class Npc final {
 
     void save(Serialize& fout);
 
-    void setPosition (float x,float y,float z);
+    bool setPosition (float x,float y,float z);
     bool setPosition (const std::array<float,3>& pos);
     void setDirection(float x,float y,float z);
     void setDirection(const std::array<float,3>& pos);

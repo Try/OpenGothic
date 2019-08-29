@@ -664,14 +664,16 @@ DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, f
       dir*=(l*0.5f); //slow-down
 
       float a = callback.m_closestHitFraction;
+      b.setPosition(x0+(x1-x0)*a,y0+(y1-y0)*a,z0+(z1-z0)*a);
       if(l*a>10.f) {
-        b.setPosition(x0+dx*a,y0+dy*a,z0+dz*a);
         b.setDirection(dir.x(),dir.y(),dir.z());
         ret.mat = callback.matId;
         } else {
         b.setFlags(Bullet::Stopped);
         }
       } else {
+      float a = callback.m_closestHitFraction;
+      b.setPosition(x0+(x1-x0)*a,y0+(y1-y0)*a,z0+(z1-z0)*a);
       b.setFlags(Bullet::Stopped);
       }
     } else {
@@ -811,6 +813,14 @@ void DynamicWorld::Item::setEnable(bool e) {
 
 void DynamicWorld::Item::setUserPointer(void *p) {
   obj->setUserPointer(p);
+  }
+
+float DynamicWorld::Item::centerY() const {
+  if(obj) {
+    const btTransform& tr = obj->getWorldTransform();
+    return tr.getOrigin().y();
+    }
+  return 0;
   }
 
 bool DynamicWorld::Item::testMove(const std::array<float,3> &pos) {

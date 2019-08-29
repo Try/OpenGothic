@@ -170,25 +170,19 @@ void Npc::loadAiState(Serialize& fin) {
     }
   }
 
-void Npc::setPosition(float ix, float iy, float iz) {
+bool Npc::setPosition(float ix, float iy, float iz) {
   if(x==ix && y==iy && z==iz)
-    return;
+    return false;
   x = ix;
   y = iy;
   z = iz;
   durtyTranform |= TR_Pos;
   physic.setPosition(x,y,z);
+  return true;
   }
 
 bool Npc::setPosition(const std::array<float,3> &pos) {
-  if(x==pos[0] && y==pos[1] && z==pos[2])
-    return false;
-  x = pos[0];
-  y = pos[1];
-  z = pos[2];
-  durtyTranform |= TR_Pos;
-  physic.setPosition(x,y,z);
-  return true;
+  return setPosition(pos[0],pos[1],pos[2]);
   }
 
 bool Npc::setViewPosition(const std::array<float,3> &pos) {
@@ -2081,7 +2075,7 @@ bool Npc::shootBow() {
 
   float dx=1.f,dy=0.f,dz=0.f;
   if(currentTarget!=nullptr) {
-    float y1 = (currentTarget->y+currentTarget->translateY());
+    float y1 = (currentTarget->y*0+currentTarget->physic.centerY());
     float y0 = (y+translateY());
 
     dx = currentTarget->x-x;

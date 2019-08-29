@@ -63,14 +63,16 @@ class DynamicWorld final {
           return *this;
           }
 
-        void setPosition(float x,float y,float z);
-        void setEnable(bool e);
-        void setUserPointer(void* p);
+        void  setPosition(float x,float y,float z);
+        void  setEnable(bool e);
+        void  setUserPointer(void* p);
 
-        bool testMove(const std::array<float,3>& pos);
-        bool testMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
-        bool tryMoveN(const std::array<float,3>& pos, std::array<float,3> &norm);
-        bool tryMove (const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
+        float centerY() const;
+
+        bool  testMove(const std::array<float,3>& pos);
+        bool  testMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
+        bool  tryMoveN(const std::array<float,3>& pos, std::array<float,3> &norm);
+        bool  tryMove (const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
 
         bool  hasCollision() const;
         float radius() const { return r; }
