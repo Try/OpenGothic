@@ -116,14 +116,21 @@ struct DynamicWorld::NpcBody : btRigidBody {
   };
 
 struct DynamicWorld::NpcBodyList final {
+  struct Record final {
+    NpcBody* body=nullptr;
+    float    x   =0.f;
+    };
+
   NpcBodyList(DynamicWorld& wrld):wrld(wrld){
     body.reserve(1024);
     frozen.reserve(1024);
     }
 
   void add(NpcBody* b){
-    body.push_back(b);
-    //srt=false;
+    Record r;
+    r.body = b;
+    r.x    = b->pos[0];
+    body.push_back(r);
     }
 
   bool del(void* b){
@@ -136,12 +143,22 @@ struct DynamicWorld::NpcBodyList final {
     return false;
     }
 
-  bool del(void* b,std::vector<NpcBody*>& arr){
+  bool del(void* b,std::vector<Record>& arr){
     for(size_t i=0;i<arr.size();++i){
-      if(arr[i]!=b)
+      if(arr[i].body!=b)
         continue;
       arr[i]=arr.back();
       arr.pop_back();
+      return true;
+      }
+    return false;
+    }
+
+  bool delLazy(void* b,std::vector<Record>& arr){
+    for(size_t i=0;i<arr.size();++i){
+      if(arr[i].body!=b)
+        continue;
+      arr[i].body = nullptr;
       return true;
       }
     return false;
@@ -164,10 +181,14 @@ struct DynamicWorld::NpcBodyList final {
       n.lastMove=tick;
 
     if(move && n.frozen){
-      del(&n,frozen);
-      body.push_back(&n);
+      delLazy(&n,frozen);
+      // srt=false;
+
+      Record r;
+      r.body = &n;
+      r.x    = n.pos[0];
+      body.push_back(r);
       n.frozen=false;
-      srt=false;
       }
     }
 
@@ -187,11 +208,11 @@ struct DynamicWorld::NpcBodyList final {
     rayToTrans.setIdentity();
     rayToTrans.setOrigin(e);
     for(auto i:body)
-      if(rayTestSingle(rayFromTrans, rayToTrans, *i, callback))
-        return i;
+      if(rayTestSingle(rayFromTrans, rayToTrans, *i.body, callback))
+        return i.body;
     for(auto i:frozen)
-      if(rayTestSingle(rayFromTrans, rayToTrans, *i, callback))
-        return i;
+      if(i.body!=nullptr && rayTestSingle(rayFromTrans, rayToTrans, *i.body, callback))
+        return i.body;
     return nullptr;
     }
 
@@ -229,14 +250,14 @@ struct DynamicWorld::NpcBodyList final {
       }
     }
 
-  bool hasCollision(const NpcBody& n,const std::vector<NpcBody*>& arr,std::array<float,3>& normal, bool sorted) {
+  bool hasCollision(const NpcBody& n,const std::vector<Record>& arr,std::array<float,3>& normal, bool sorted) {
     auto l = arr.begin();
     auto r = arr.end();
 
     if(sorted) {
       const float dX = maxR+n.r;
-      l = std::lower_bound(arr.begin(),arr.end(),n.pos[0]-dX,[](NpcBody* b,float x){ return b->pos[0]<x; });
-      r = std::upper_bound(arr.begin(),arr.end(),n.pos[0]+dX,[](float x,NpcBody* b){ return x<b->pos[0]; });
+      l = std::lower_bound(arr.begin(),arr.end(),n.pos[0]-dX,[](const Record& b,float x){ return b.x<x; });
+      r = std::upper_bound(arr.begin(),arr.end(),n.pos[0]+dX,[](float x,const Record& b){ return x<b.x; });
       }
 
     const int dist = std::distance(l,r); (void)dist;
@@ -245,7 +266,8 @@ struct DynamicWorld::NpcBodyList final {
 
     bool ret=false;
     for(;l!=r;++l){
-      if((**l).enable && hasCollision(n,**l,normal))
+      auto& v = (*l);
+      if(v.body!=nullptr && v.body->enable && hasCollision(n,*v.body,normal))
         ret = true;
       }
     return ret;
@@ -270,38 +292,44 @@ struct DynamicWorld::NpcBodyList final {
 
   void adjustSort() {
     srt=true;
-    std::sort(frozen.begin(),frozen.end(),[](NpcBody* a,NpcBody* b){
-      return a->pos[0] < b->pos[0];
+    std::sort(frozen.begin(),frozen.end(),[](Record& a,Record& b){
+      return a.x < b.x;
       });
     }
 
   void updateAabbs() {
-    for(size_t i=0;i<body.size();)
-      if(body[i]->lastMove!=tick){
-        body[i]->frozen=true;
+    for(size_t i=0;i<body.size();) {if(body[i].body->lastMove!=tick){
+        body[i].body->frozen=true;
         frozen.push_back(body[i]);
         body[i]=body.back();
         body.pop_back();
         } else {
         ++i;
         }
+      }
 
-    for(size_t i=0;i<frozen.size();)
-      if(frozen[i]->lastMove==tick){
-        frozen[i]->frozen=false;
+    for(size_t i=0;i<frozen.size();) {
+      if(frozen[i].body==nullptr) {
+        frozen[i]=frozen.back();
+        frozen.pop_back();
+        }
+      else if(frozen[i].body->lastMove==tick){
+        frozen[i].body->frozen=false;
         body.push_back(frozen[i]);
         frozen[i]=frozen.back();
         frozen.pop_back();
-        } else {
+        }
+      else {
         ++i;
         }
+      }
 
     adjustSort();
     tick++;
     }
 
   DynamicWorld&         wrld;
-  std::vector<NpcBody*> body, frozen;
+  std::vector<Record>   body, frozen;
   bool                  srt=false;
   uint64_t              tick=0;
   float                 maxR=0;
