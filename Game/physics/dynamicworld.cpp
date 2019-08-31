@@ -160,8 +160,10 @@ struct DynamicWorld::NpcBodyList final {
         continue;
       const float x = arr[i].x;
       if((i==0 || arr[i-1].x<x) &&
-         (i+1==arr.size() || x<arr[i+1].x))
+         (i+1==arr.size() || x<arr[i+1].x)) {
+        arr[i].x = arr[i].body->pos[0];
         return false;
+        }
       arr[i].body = nullptr;
       return true;
       }
@@ -188,7 +190,7 @@ struct DynamicWorld::NpcBodyList final {
       if(delMisordered(&n,frozen)){
         Record r;
         r.body = &n;
-        r.x    = n.pos[0];
+        r.x    = 0.f;
         body.push_back(r);
         n.frozen=false;
         }
@@ -301,11 +303,15 @@ struct DynamicWorld::NpcBodyList final {
     }
 
   void updateAabbs() {
-    for(size_t i=0;i<body.size();) {if(body[i].body->lastMove!=tick){
-        body[i].body->frozen=true;
-        frozen.push_back(body[i]);
+    for(size_t i=0;i<body.size();) {
+      if(body[i].body->lastMove!=tick){
+        auto b = body[i];
         body[i]=body.back();
         body.pop_back();
+
+        b.body->frozen=true;
+        b.x = b.body->pos[0];
+        frozen.push_back(b);
         } else {
         ++i;
         }
@@ -715,7 +721,7 @@ DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, f
 
     b.setDirection(d[0],d[1],d[2]);
     b.setPosition(x1,y1,z1);
-    b.addLen(l);
+    b.addLen(l*k);
     }
 
   return ret;
