@@ -1140,9 +1140,6 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
     perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
     owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
 
-    if(!isDown())
-      owner.emitWeaponsSound(other,*this);
-
     lastHit = &other;
     fghAlgo.onTakeHit();
     implFaiWait(0);
@@ -1151,6 +1148,12 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
     int dmg = isImmortal() ? 0 : other.damageValue(*this,b);
     if(isPlayer() && owner.script().isRamboMode())
       dmg = std::min(1,dmg);
+
+    if(dmg<=0)
+      return;
+
+    if(!isDown())
+      owner.emitWeaponsSound(other,*this);
     changeAttribute(ATR_HITPOINTS,-dmg,b==nullptr);
 
     if(isUnconscious()){
