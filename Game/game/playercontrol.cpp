@@ -328,6 +328,11 @@ void PlayerControl::implMove(uint64_t dt) {
           pl.drawMage(uint8_t(3+i));
           auto ws = weaponState();
           ctrl[DrawWeaponMage3+i] = !(ws==WeaponState::Mage);
+          if(ws==WeaponState::Mage) {
+            if(auto spl = pl.inventory().currentSpell(i)) {
+              gothic.print(spl->description());
+              }
+            }
           } else {
           ctrl[DrawWeaponMage3+i] = false;
           }
