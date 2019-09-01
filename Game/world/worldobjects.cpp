@@ -199,19 +199,10 @@ std::unique_ptr<Npc> WorldObjects::takeNpc(const Npc* ptr) {
   }
 
 void WorldObjects::tickNear(uint64_t /*dt*/) {
-  /*
-  for(size_t i=0;i<npcNear.size();++i)
-    for(size_t r=i+1;r<npcNear.size();++r){
-      Npc& a = *npcNear[i];
-      Npc& b = *npcNear[r];
-
-      a.setNearestEnemy(b);
-      b.setNearestEnemy(a); //FIXME: perfomance
-      }*/
   for(Npc* i:npcNear){
     auto pos=i->position();
     for(Trigger* t:triggersZn)
-      if(t->checkPos(pos[0],pos[1],pos[2]))
+      if(t->checkPos(pos[0],pos[1]+i->translateY(),pos[2]))
         t->onIntersect(*i);
     }
   }
