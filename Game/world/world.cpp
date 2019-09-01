@@ -745,7 +745,6 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobSound ||
           vob.vobType==ZenLoad::zCVobData::VT_zCVobSoundDaytime) {
-    // TODO: zCVobSoundDaytime daytime handle
     wsound.addSound(vob);
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusic) {
