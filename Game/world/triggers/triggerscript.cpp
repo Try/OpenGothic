@@ -3,7 +3,7 @@
 #include "world/world.h"
 
 TriggerScript::TriggerScript(ZenLoad::zCVobData&& data, World &owner)
-  :Trigger(std::move(data),owner){
+  :AbstractTrigger(std::move(data),owner){
   }
 
 void TriggerScript::onTrigger(const TriggerEvent &) {

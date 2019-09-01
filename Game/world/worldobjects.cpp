@@ -201,7 +201,7 @@ std::unique_ptr<Npc> WorldObjects::takeNpc(const Npc* ptr) {
 void WorldObjects::tickNear(uint64_t /*dt*/) {
   for(Npc* i:npcNear){
     auto pos=i->position();
-    for(Trigger* t:triggersZn)
+    for(AbstractTrigger* t:triggersZn)
       if(t->checkPos(pos[0],pos[1]+i->translateY(),pos[2]))
         t->onIntersect(*i);
     }
@@ -265,7 +265,7 @@ void WorldObjects::detectNpc(const float x, const float y, const float z,
   }
 
 void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {
-  std::unique_ptr<Trigger> tg;
+  std::unique_ptr<AbstractTrigger> tg;
   switch(vob.vobType) {
     case ZenLoad::zCVobData::VT_zCMover:
       tg.reset(new MoveTrigger(std::move(vob),owner));

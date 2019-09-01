@@ -1,10 +1,10 @@
 #pragma once
 
-#include "trigger.h"
+#include "abstracttrigger.h"
 
 class World;
 
-class TriggerScript : public Trigger {
+class TriggerScript : public AbstractTrigger {
   public:
     TriggerScript(ZenLoad::zCVobData&& data, World &owner);
 

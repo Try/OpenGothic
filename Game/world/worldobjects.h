@@ -104,9 +104,9 @@ class WorldObjects final {
     std::vector<std::unique_ptr<Npc>>  npcInvalid;
     std::vector<Npc*>                  npcNear;
 
-    std::vector<std::unique_ptr<Trigger>> triggers;
-    std::vector<Trigger*>                 triggersMv;
-    std::vector<Trigger*>                 triggersZn;
+    std::vector<std::unique_ptr<AbstractTrigger>> triggers;
+    std::vector<AbstractTrigger*>                 triggersMv;
+    std::vector<AbstractTrigger*>                 triggersZn;
 
     std::vector<PerceptionMsg>         sndPerc;
     std::vector<TriggerEvent>          triggerEvents;

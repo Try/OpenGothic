@@ -3,7 +3,7 @@
 #include "world/world.h"
 
 MoveTrigger::MoveTrigger(ZenLoad::zCVobData&& d,World& owner)
-  :Trigger(std::move(d),owner) {
+  :AbstractTrigger(std::move(d),owner) {
   float v[16]={};
   std::memcpy(v,data.worldMatrix.m,sizeof(v));
 

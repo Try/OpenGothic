@@ -2,9 +2,9 @@
 
 #include "graphics/staticobjects.h"
 #include "physics/dynamicworld.h"
-#include "trigger.h"
+#include "abstracttrigger.h"
 
-class MoveTrigger : public Trigger {
+class MoveTrigger : public AbstractTrigger {
   public:
     MoveTrigger(ZenLoad::zCVobData&& data, World &owner);
 

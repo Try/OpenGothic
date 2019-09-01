@@ -1,9 +1,10 @@
 #pragma once
-#include "trigger.h"
+
+#include "abstracttrigger.h"
 
 class World;
 
-class TriggerList : public Trigger {
+class TriggerList : public AbstractTrigger {
   public:
     TriggerList(ZenLoad::zCVobData&& data, World &owner);
 
