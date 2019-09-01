@@ -125,6 +125,10 @@ void GameSession::changeWorld(const std::string& world, const std::string& wayPo
   chWorld.wp  = wayPoint;
   }
 
+void GameSession::exitSession() {
+  exitSessionFlg=true;
+  }
+
 bool GameSession::isRamboMode() const {
   return gothic.isRamboMode();
   }
@@ -194,6 +198,14 @@ void GameSession::tick(uint64_t dt) {
   wrldTime.addMilis(add/divTime);
   wrld->tick(dt);
   // std::this_thread::sleep_for(std::chrono::milliseconds(60));
+
+  if(exitSessionFlg) {
+    auto& g = gothic;
+    exitSessionFlg = false;
+    g.clearGame();
+    g.onSessionExit();
+    return;
+    }
 
   if(pendingChapter){
     if(aiIsDlgFinished()) {

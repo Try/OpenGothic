@@ -312,6 +312,7 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("game_initenglish",    [this](Daedalus::DaedalusVM& vm){ game_initenglish(vm);     });
 
   vm.registerExternalFunction("exitgame",            [this](Daedalus::DaedalusVM& vm){ exitgame(vm);             });
+  vm.registerExternalFunction("exitsession",         [this](Daedalus::DaedalusVM& vm){ exitsession(vm);          });
 
   // vm.validateExternals();
 
@@ -2970,6 +2971,10 @@ void GameScript::printdebuginstch(Daedalus::DaedalusVM &vm) {
 
 void GameScript::exitgame(Daedalus::DaedalusVM&) {
   Tempest::SystemApi::exit();
+  }
+
+void GameScript::exitsession(Daedalus::DaedalusVM&) {
+  owner.exitSession();
   }
 
 void GameScript::sort(std::vector<GameScript::DlgChoise> &dlg) {

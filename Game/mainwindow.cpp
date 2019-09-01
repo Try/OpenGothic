@@ -49,6 +49,7 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
 
   gothic.onStartGame  .bind(this,&MainWindow::startGame);
   gothic.onWorldLoaded.bind(this,&MainWindow::onWorldLoaded);
+  gothic.onSessionExit.bind(this,&MainWindow::onSessionExit);
 
   if(!gothic.defaultSave().empty()){
     loadGame(gothic.defaultSave());
@@ -608,6 +609,10 @@ void MainWindow::onWorldLoaded() {
     pl->multSpeed(1.f);
   lastTick     = Application::tickCount();
   currentFocus = Focus();
+  }
+
+void MainWindow::onSessionExit() {
+  rootMenu->setMenu("MENU_MAIN");
   }
 
 void MainWindow::setGameImpl(std::unique_ptr<GameSession> &&w) {

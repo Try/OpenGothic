@@ -64,6 +64,7 @@ class MainWindow : public Tempest::Window {
     void loadGame (const std::string& name);
     void startGame(const std::string& name);
     void onWorldLoaded();
+    void onSessionExit();
     void setGameImpl(std::unique_ptr<GameSession>&& w);
     void clearInput();
     void setFullscreen(bool fs);

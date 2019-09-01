@@ -33,6 +33,7 @@ class GameSession final {
     auto         clearWorld() -> std::unique_ptr<World>;
 
     void         changeWorld(const std::string &world, const std::string &wayPoint);
+    void         exitSession();
 
     bool         isRamboMode() const;
     bool         isGothic2() const;
@@ -41,7 +42,7 @@ class GameSession final {
     World*       world()       { return wrld.get(); }
 
     WorldView*   view()   const;
-    GameScript* script() const { return vm.get(); }
+    GameScript*  script() const { return vm.get(); }
 
     auto         loadScriptCode() -> std::vector<uint8_t>;
     SoundFx*     loadSoundFx(const char *name);
@@ -108,6 +109,7 @@ class GameSession final {
     std::vector<WorldStateStorage> visitedWorlds;
 
     ChWorld                        chWorld;
+    bool                           exitSessionFlg=false;
     ChapterScreen::Show            chapter;
     bool                           pendingChapter=false;
 

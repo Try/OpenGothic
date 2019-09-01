@@ -368,6 +368,7 @@ class GameScript final {
     void printdebuginstch    (Daedalus::DaedalusVM &vm);
 
     void exitgame            (Daedalus::DaedalusVM &vm);
+    void exitsession         (Daedalus::DaedalusVM &vm);
 
     void sort(std::vector<DlgChoise>& dlg);
     void setNpcInfoKnown(const Daedalus::GEngineClasses::C_Npc& npc, const Daedalus::GEngineClasses::C_Info& info);

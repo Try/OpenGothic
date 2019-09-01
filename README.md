@@ -37,8 +37,8 @@ Core gameplay is done, you can complete first chapter as paladin; mercenary/mage
 * Battle
     * Hit box - Partial(same bbox for everyone) 
     * Melee combat - Done
-    * Range - Not Implemented
-    * Magic - Not Implemented
+    * Range - Done
+    * Magic - Partial (only some of spells working)
 * Visual
     * Body animation - Done
     * Head/Morph animation - Not Implemented
@@ -47,7 +47,7 @@ Core gameplay is done, you can complete first chapter as paladin; mercenary/mage
 * UI
     * Inventory - Partial (no item priviews)
     * Game menu/menu script - Done, except scrollbars
-    * Character info screen - done
+    * Character info screen - Done
     * Quest log - Not Implemented 
 * Sound
     * animation sfx/gfx - Done
@@ -62,9 +62,9 @@ Work in progress.
 [list of mobsi](doc/vob.md)
 
 ##### Mods compatibility
-Mods delivered as *.mod files shoud work, since *.mod contains visual content and scripts.
-Don't expect mods created with AST-SDK to work, since original Gothic and OpenGothic are not binary compatible.
-Don't expect DirectX11 mod to work, since technicaly it's not a mod. But Project is aiming to have a good graphics with shaders out of box.
+Mods delivered as *.mod files shoud work, since *.mod contains visual content and scripts.  
+Don't expect mods created with AST-SDK to work, since original Gothic and OpenGothic are not binary compatible.  
+Don't expect DirectX11 mod to work, since technicaly it's not a mod. But Project is aiming to have a good graphics with shaders out of box.  
 
 
 ##### Command line arguments

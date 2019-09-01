@@ -1000,8 +1000,8 @@ Mdl_ApplyOverlayMdsTimed(self,"HUMANS_SPRINT.MDS",120000); // SchnellerHering po
 * `func void ExitGame()`  
   Shutdown game client
 
-* ![!](ni.png) `func void ExitSession()`  
-  Not implemented.
+* `func void ExitSession()`  
+  Shutdown game session
 
 * ![!](ni.png) `func int PlayVideo(var string filename)`  
   Returns FALSE, if video not played  
