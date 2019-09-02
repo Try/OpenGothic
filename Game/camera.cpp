@@ -83,6 +83,11 @@ void Camera::setSpin(const PointF &p) {
   spin = p;
   }
 
+void Camera::setDistance(float d) {
+  dist = d*0.01f;
+  clampZoom(dist);
+  }
+
 Matrix4x4 Camera::viewShadow(const std::array<float,3>& ldir, int layer) const {
   const float scale = 0.0008f;
   const float c = std::cos(spin.x*float(M_PI)/180.f), s = std::sin(spin.x*float(M_PI)/180.f);

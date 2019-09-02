@@ -126,11 +126,14 @@ const Camera &DialogMenu::dialogCamera() {
     p0[0]-=p1[0];
     p0[1]-=p1[1];
     p0[2]-=p1[2];
+
+    float l = std::sqrt(p0[0]*p0[0]+p0[1]*p0[1]+p0[2]*p0[2]);
     float a = (std::atan2(p0[2],p0[0])/float(M_PI))*180.f;
     if(curentIsPl)
       a+=45; else
       a-=45;
 
+    camera.setDistance(l);
     camera.setSpin(PointF(a,0));
     }
   return camera;

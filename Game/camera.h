@@ -41,6 +41,7 @@ class Camera final {
 
     void setPosition(float x,float y,float z);
     void setSpin(const Tempest::PointF& p);
+    void setDistance(float d);
 
     Tempest::Matrix4x4 view() const;
     Tempest::Matrix4x4 viewShadow(const std::array<float,3> &ldir,int layer) const;
