@@ -725,7 +725,7 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
     wobj.addTrigger(std::move(vob));
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_zCMessageFilter) {
-
+    wobj.addTrigger(std::move(vob));
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobStartpoint) {
     float dx = vob.rotationMatrix.v[2].x;

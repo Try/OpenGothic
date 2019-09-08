@@ -11,6 +11,7 @@
 #include "world/triggers/triggerscript.h"
 #include "world/triggers/triggerlist.h"
 #include "world/triggers/triggerworldstart.h"
+#include "world/triggers/messagefilter.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Application>
@@ -291,6 +292,11 @@ void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {
     case ZenLoad::zCVobData::VT_zCTriggerList:
       tg.reset(new TriggerList(std::move(vob),owner));
       break;
+
+    case ZenLoad::zCVobData::VT_zCMessageFilter:
+      tg.reset(new MessageFilter(std::move(vob),owner));
+      break;
+
     default:
       tg.reset(new Trigger(std::move(vob),owner));
     }
@@ -529,8 +535,12 @@ void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &itm
   }
 
 void WorldObjects::resetPositionToTA() {
-  for(size_t i=0;i<npcArr.size();)
-    if(npcArr[i]->resetPositionToTA()){
+  for(size_t i=0;i<npcArr.size();) {
+    auto& n = *npcArr[i];
+    if(n.resetPositionToTA() ||
+       n.handle()->npcType==Daedalus::GEngineClasses::NPCTYPE_MAIN ||
+       n.handle()->npcType==Daedalus::GEngineClasses::NPCTYPE_OCMAIN ||
+       n.handle()->npcType==Daedalus::GEngineClasses::NPCTYPE_BL_MAIN){
       ++i;
       } else {
       npcInvalid.emplace_back(std::move(npcArr[i]));
@@ -541,6 +551,7 @@ void WorldObjects::resetPositionToTA() {
       npc.setPosition(-1000,-1000,-1000); // FIXME
       npc.updateTransform();
       }
+    }
   }
 
 template<class T>

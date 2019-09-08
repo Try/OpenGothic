@@ -387,11 +387,15 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     if(a==Anim::Atack || a==Anim::AtackL || a==Anim::AtackR)
       return solveAnim("S_%sATTACK",st);
     if(a==Anim::AtackBlock) {
+      AnimationSolver::Sequence s;
       switch(std::rand()%3){
-        case 0: return solveAnim("T_%sPARADE_0",   st);
-        case 1: return solveAnim("T_%sPARADE_0_A2",st);
-        case 2: return solveAnim("T_%sPARADE_0_A3",st);
+        case 0: s = solveAnim("T_%sPARADE_0",   st); break;
+        case 1: s = solveAnim("T_%sPARADE_0_A2",st); break;
+        case 2: s = solveAnim("T_%sPARADE_0_A3",st); break;
         }
+      if(s==nullptr)
+        s = solveAnim("T_%sPARADE_0",st);
+      return s;
       }
     if(a==Anim::AtackFinish)
       return solveAnim("T_1HSFINISH",st);
