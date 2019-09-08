@@ -23,7 +23,7 @@ class Pattern final {
     uint32_t             timeLength() const;
 
   private:
-    void implRead(Riff &riff);
+    void                 implRead(Riff &riff);
   };
 
 }

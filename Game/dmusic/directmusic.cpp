@@ -35,8 +35,8 @@ const Style &DirectMusic::style(const Reference &id) {
 
 const DlsCollection &DirectMusic::dlsCollection(const Reference &id) {
   for(auto& i:dls){
-    if(i.first==id.file)
-      return i.second;
+    if(i->first==id.file)
+      return i->second;
     }
 
   Tempest::RFile fin(id.file);
@@ -48,6 +48,6 @@ const DlsCollection &DirectMusic::dlsCollection(const Reference &id) {
   Riff          r{data.data(),data.size()};
   DlsCollection stl(r);
 
-  dls.emplace_back(id.file,std::move(stl));
-  return dls.back().second;
+  dls.emplace_back(new std::pair<std::u16string,DlsCollection>(id.file,std::move(stl)));
+  return dls.back()->second;
   }

@@ -29,14 +29,10 @@ class Style final {
     std::vector<Part>    parts;
     std::vector<Pattern> patterns;
 
-    void exec(const Pattern& p) const;
-    void mix (const Pattern& p) const;
+    const Part *findPart(const GUID& guid) const;
 
   private:
     void implRead(Riff &input);
-    const Part *findPart(const GUID& guid) const;
-    void exec(const Style::Part& part) const;
-    void mix(Mixer& m,const Style::Part& part) const;
   };
 
 }

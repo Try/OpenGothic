@@ -27,6 +27,27 @@ struct DMUS_IO_TRACK_HEADER final {
   char     fccType[4] = {};
   };
 
+enum DMUS_CHORDKEYF_FLAGS : uint8_t {
+  DMUS_CHORDKEYF_SILENT = 1
+  };
+
+struct DMUS_IO_CHORD final {
+  char16_t             wszName[16]={};
+  uint32_t             mtTime     =0;
+  uint16_t             wMeasure   =0;
+  uint8_t              bBeat      =0;
+  DMUS_CHORDKEYF_FLAGS bFlags     =DMUS_CHORDKEYF_FLAGS(0);
+  };
+
+struct DMUS_IO_SUBCHORD final {
+  uint32_t dwChordPattern    = 0;
+  uint32_t dwScalePattern    = 0;
+  uint32_t dwInversionPoints = 0;
+  uint32_t dwLevels          = 0;
+  uint8_t  bChordRoot        = 0;
+  uint8_t  bScaleRoot        = 0;
+  };
+
 struct DMUS_IO_REFERENCE final {
   GUID          guidClassID;
   //uint32_t dwValidData = 0;
@@ -115,6 +136,7 @@ struct DMUS_IO_STYLENOTE final {
   uint16_t            wMusicValue    = 0;
   uint8_t             bVelocity      = 0;
   uint8_t             bTimeRange     = 0;
+  uint8_t             bDurRange      = 0;
   uint8_t             bVelRange      = 0;
   uint8_t             bInversionID   = 0;
   DMUS_PLAYMODE_FLAGS bPlayModeFlags = DMUS_PLAYMODE_FLAGS(0);

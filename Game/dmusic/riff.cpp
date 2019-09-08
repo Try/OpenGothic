@@ -71,6 +71,12 @@ void Riff::read(void *dest, size_t s) {
   at+=s;
   }
 
+void Riff::skip(size_t s) {
+  if(at+s>sz)
+    onError("read err");
+  at+=s;
+  }
+
 void Riff::onError(const char *msg) {
   throw std::runtime_error(msg);
   }

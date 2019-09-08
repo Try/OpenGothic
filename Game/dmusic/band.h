@@ -1,5 +1,6 @@
 #pragma once
 
+#include "info.h"
 #include "reference.h"
 #include "riff.h"
 #include "structs.h"
@@ -21,6 +22,7 @@ class Band final {
 
     GUID                    guid;
     DMUS_IO_VERSION         vers;
+    Unfo                    info;
     std::vector<Instrument> intrument;
 
   private:

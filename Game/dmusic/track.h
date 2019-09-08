@@ -20,14 +20,25 @@ class Track final {
       Reference reference;
       };
 
-    class StyleTrack {
+    struct StyleTrack {
+      StyleTrack(Riff &chunk);
+      std::vector<StyleRef> styles;
+      };
+
+    class Chord {
       public:
-        StyleTrack(Riff &chunk);
-        std::vector<StyleRef> styles;
+        Chord(Riff &chunk);
+
+        uint32_t                      header=0;
+        DMUS_IO_CHORD                 ioChord;
+        std::vector<DMUS_IO_SUBCHORD> subchord;
+      private:
+        void implReadList(Riff &input);
       };
 
     DMUS_IO_TRACK_HEADER        head;
     std::shared_ptr<StyleTrack> sttr;
+    std::shared_ptr<Chord>      cord;
 
   private:
     void implReadList(Riff &input);

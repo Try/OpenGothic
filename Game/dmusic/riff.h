@@ -29,6 +29,7 @@ class Riff final {
     void read(std::string& str);
     void read(std::vector<uint8_t>& vec);
     void read(void* dest,size_t sz);
+    void skip(size_t sz);
     void read(void* ctx, Callback cb);
     template<class F>
     void read(F f){

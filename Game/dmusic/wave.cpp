@@ -2,6 +2,7 @@
 
 #include <Tempest/File>
 #include <Tempest/MemReader>
+#include <Tempest/MemWriter>
 #include <Tempest/Log>
 
 #include <stdexcept>
@@ -93,6 +94,145 @@ Wave::Wave(Riff& input) {
     wfmt.wBlockAlign      = 2;
     wfmt.wBitsPerSample   = 16;
     }
+  }
+
+Wave::Wave(const char *dbg) {
+  uint16_t                   samplesPerBlock=0;
+  std::unique_ptr<int16_t[]> adpcm_i_coefs;
+  uint16_t                   nCoefs=0;
+  int                        errct=0;
+
+  {
+  Tempest::RFile f(dbg);
+  f.seek(4+4*4);//wave + fmt
+  f.read(&wfmt,16);
+
+  if(wfmt.wFormatTag==Dx8::Wave::ADPCM) {
+    uint16_t cbSize=0;
+    f.read(&cbSize,2);
+
+    f.read(&samplesPerBlock,sizeof(samplesPerBlock));
+    f.read(&nCoefs,sizeof(nCoefs));
+    if(nCoefs<7 || nCoefs>0x100)
+      throw std::runtime_error("invalid MS ADPCM sound");
+    if(cbSize<4+4*nCoefs)
+      throw std::runtime_error("invalid MS ADPCM sound");
+
+    adpcm_i_coefs.reset(new int16_t[nCoefs*2]);
+    for(size_t i=0; i<2*nCoefs; i++) {
+      f.read(&adpcm_i_coefs[i],2);
+      if(i<14)
+        errct += (adpcm_i_coefs[i] != msAdpcmIcoef[i/2][i%2]);
+      }
+    }
+
+  f.seek(4);
+  uint32_t len=0;
+  f.read(&len,4);
+  wavedata.resize(len);
+  f.read(&wavedata[0],wavedata.size());
+  }
+
+  if(wfmt.wFormatTag==Dx8::Wave::ADPCM){
+    std::vector<uint8_t> src = std::move(wavedata);
+    wavedata.clear();
+    decodeAdpcm(src.data(),src.size(),samplesPerBlock,nCoefs,adpcm_i_coefs.get());
+
+    wfmt.wFormatTag       = Dx8::Wave::PCM;
+    wfmt.wChannels        = 2;
+    //wfmt.dwSamplesPerSec;
+    wfmt.dwAvgBytesPerSec = wfmt.dwSamplesPerSec * wfmt.wChannels;
+    wfmt.wBlockAlign      = 2;
+    wfmt.wBitsPerSample   = 16;
+    }
+
+  int16_t buf[16]={};
+  std::memcpy(buf,&wavedata[0],sizeof(buf));
+  Tempest::Log::i(buf[0]);
+  }
+
+void Wave::save(const char *path) const {
+  Tempest::WFile f(path);
+  f.write("RIFF",4);
+
+  uint32_t fmtSize = sizeof(wfmt) + (extra.size()>0 ? (2+extra.size()) : 0);
+  uint32_t sz=  8+fmtSize + 8+wavedata.size();
+  f.write(reinterpret_cast<const char*>(&sz),4);
+  f.write("WAVE",4);
+
+  f.write("fmt ",4);
+  sz=fmtSize;
+  f.write(&sz,4);
+  f.write(&wfmt,sizeof(wfmt));
+  if(extra.size()>0){
+    uint16_t sz=uint16_t(extra.size());
+    f.write(&sz,2);
+    f.write(&extra[0],extra.size());
+    }
+
+  f.write("data",4);
+  sz=wavedata.size();
+  f.write(&sz,4);
+  f.write(wavedata.data(),sz);
+  }
+
+Tempest::Sound Wave::toSound() const {
+  struct IoHlp:Tempest::IDevice {
+    size_t               pos=0;
+    std::vector<uint8_t> buf;
+
+    size_t  read(void* dest,size_t count){
+      size_t c = std::min(count, buf.size()-pos);
+
+      std::memcpy(dest, buf.data()+pos, c);
+      pos+=c;
+
+      return c;
+      }
+
+    size_t  size() const {
+      return buf.size();
+      }
+
+    uint8_t peek() {
+      if(pos==buf.size())
+        return 0;
+      return buf[pos];
+      }
+
+    size_t  seek(size_t advance) {
+      size_t c = std::min(advance, buf.size()-pos);
+      pos += c;
+      return c;
+      }
+    };
+
+  IoHlp h;
+
+  Tempest::MemWriter f(h.buf);
+  f.write("RIFF",4);
+
+  uint32_t fmtSize = sizeof(wfmt) + (extra.size()>0 ? (2+extra.size()) : 0);
+  uint32_t sz=  8+fmtSize + 8+wavedata.size();
+  f.write(reinterpret_cast<const char*>(&sz),4);
+  f.write("WAVE",4);
+
+  f.write("fmt ",4);
+  sz=fmtSize;
+  f.write(&sz,4);
+  f.write(&wfmt,sizeof(wfmt));
+  if(extra.size()>0){
+    uint16_t sz=uint16_t(extra.size());
+    f.write(&sz,2);
+    f.write(&extra[0],extra.size());
+    }
+
+  f.write("data",4);
+  sz=wavedata.size();
+  f.write(&sz,4);
+  f.write(wavedata.data(),sz);
+
+  return Tempest::Sound(h);
   }
 
 void Wave::implRead(Riff &input) {

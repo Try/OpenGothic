@@ -19,9 +19,7 @@ Segment::Segment(Riff &input) {
   }
 
 void Segment::implReadList(Riff& input) {
-  char listId[5]={};
-  input.read(&listId,4);
-  if(std::strcmp(listId,"trkl")==0){
+  if(input.isListId("trkl")){
     input.read([&](Riff& ch){
       track.emplace_back(ch);
       });
