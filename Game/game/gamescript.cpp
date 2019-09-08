@@ -2845,7 +2845,7 @@ void GameScript::doc_printline(Daedalus::DaedalusVM &vm) {
 
   auto& doc = getDocument(handle);
   if(doc!=nullptr && page>=0 && size_t(page)<doc->pages.size()){
-    doc->pages[size_t(page)].text += text;
+    doc->pages[size_t(page)].text += cp1251::toUtf8(text);
     doc->pages[size_t(page)].text += "\n";
     }
   }
@@ -2857,7 +2857,7 @@ void GameScript::doc_printlines(Daedalus::DaedalusVM &vm) {
 
   auto& doc = getDocument(handle);
   if(doc!=nullptr && page>=0 && size_t(page)<doc->pages.size()){
-    doc->pages[size_t(page)].text += text;
+    doc->pages[size_t(page)].text += cp1251::toUtf8(text);
     doc->pages[size_t(page)].text += "\n";
     }
   }
@@ -2902,8 +2902,8 @@ void GameScript::introducechapter(Daedalus::DaedalusVM &vm) {
   s.time     = vm.popInt();
   s.sound    = vm.popString();
   s.img      = vm.popString();
-  s.subtitle = vm.popString();
-  s.title    = vm.popString();
+  s.subtitle = cp1251::toUtf8(vm.popString());
+  s.title    = cp1251::toUtf8(vm.popString());
   owner.introChapter(s);
   }
 

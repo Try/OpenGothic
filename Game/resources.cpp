@@ -51,9 +51,9 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
   const char* menu = "data/font/menu.ttf";
   const char* main = "data/font/main.ttf";
 
-  if(/* DISABLES CODE */ (false)) { // international chasters
-    menu = "data/font/Roboto-Regular.ttf";
-    main = "data/font/Roboto-Regular.ttf";
+  if(/* DISABLES CODE */ (true)) { // international chasters
+    menu = "data/font/Kelvinch-Roman.otf";
+    main = "data/font/Kelvinch-Roman.otf";
     }
 
   static std::array<VertexFsq,6> fsqBuf =
@@ -63,17 +63,19 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
    }};
   fsq = Resources::loadVbo(fsqBuf.data(),fsqBuf.size());
 
+  const float mult=0.75f;
+
   fBuff .reserve(8*1024*1024);
   ddsBuf.reserve(8*1024*1024);
 
   menuFnt = Font(menu);
-  menuFnt.setPixelSize(44);
+  menuFnt.setPixelSize(44*mult);
 
   mainFnt = Font(main);
-  mainFnt.setPixelSize(24);
+  mainFnt.setPixelSize(24*mult);
 
   dlgFnt  = Font(main);
-  dlgFnt.setPixelSize(32);
+  dlgFnt.setPixelSize(32*mult);
 
   fallback = device.loadTexture("data/fallback.png");
 
