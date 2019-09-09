@@ -9,6 +9,7 @@ class MoveTrigger : public AbstractTrigger {
     MoveTrigger(ZenLoad::zCVobData&& data, World &owner);
 
     void onTrigger(const TriggerEvent& evt) override;
+    bool hasVolume() const override;
 
   private:
     void setView     (StaticObjects::Mesh&& m);

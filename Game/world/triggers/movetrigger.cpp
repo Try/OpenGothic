@@ -44,3 +44,7 @@ void MoveTrigger::onTrigger(const TriggerEvent&) {
   m.set(3,2, data.zCMover.keyframes[frame].pos.z);
   setObjMatrix(m);
   }
+
+bool MoveTrigger::hasVolume() const {
+  return false;
+  }
