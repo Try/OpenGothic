@@ -12,6 +12,10 @@ SoundFx::SoundVar::SoundVar(const Daedalus::GEngineClasses::C_SFX &sfx, Sound &&
   :snd(std::move(snd)),vol(sfx.vol/127.f){
   }
 
+SoundFx::SoundVar::SoundVar(const float vol, Sound &&snd)
+  :snd(std::move(snd)),vol(vol/127.f){
+  }
+
 SoundFx::SoundFx(Gothic &gothic, const char* s) {
   auto& sfx = gothic.getSoundScheme(s);
   auto  snd = Resources::loadSoundBuffer(sfx.file);
@@ -22,6 +26,11 @@ SoundFx::SoundFx(Gothic &gothic, const char* s) {
 
   if(inst.size()==0)
     Log::d("unable to load sound fx: ",s);
+  }
+
+SoundFx::SoundFx(Gothic &, Sound &&snd) {
+  if(!snd.isEmpty())
+    inst.emplace_back(127.f,std::move(snd));
   }
 
 GSoundEffect SoundFx::getEffect(SoundDevice &dev) const {

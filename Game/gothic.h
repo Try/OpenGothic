@@ -44,7 +44,9 @@ class Gothic final {
     int       loadingProgress() const;
     void      setLoadingProgress(int v);
 
-    SoundFx*  loadSoundFx(const char* name);
+    SoundFx*  loadSoundFx   (const char* name);
+    SoundFx*  loadSoundWavFx(const char *name);
+
     void      emitGlobalSound(const char*        sfx);
     void      emitGlobalSound(const std::string& sfx);
     void      emitGlobalSound(const SoundFx*     sfx);
@@ -138,5 +140,6 @@ class Gothic final {
     std::mutex                              syncSnd;
     Tempest::SoundDevice                    sndDev;
     std::unordered_map<std::string,SoundFx> sndFxCache;
+    std::unordered_map<std::string,SoundFx> sndWavCache;
     std::vector<Tempest::SoundEffect>       sndStorage;
   };

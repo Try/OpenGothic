@@ -91,8 +91,32 @@ void WorldSound::emitSound(const char* s, float x, float y, float z, float range
     eff.setPosition(x,y,z);
     eff.setMaxDistance(maxDist);
     eff.setRefDistance(range);
-    //eff.setMaxDistance(range);
-    //eff.setRefDistance(0);
+    eff.play();
+    tickSlot(eff);
+    if(slot)
+      *slot = std::move(eff); else
+      effect.emplace_back(std::move(eff));
+    }
+  }
+
+void WorldSound::emitSoundRaw(const char *s, float x, float y, float z, float range, GSoundEffect *slot) {
+  if(slot && !slot->isFinished())
+    return;
+
+  if(range<=0.f)
+    range = 3500.f;
+
+  std::lock_guard<std::mutex> guard(sync);
+  if(isInListenerRange({x,y,z})){
+    auto snd = game.loadSoundWavFx(s);
+    if(snd==nullptr)
+      return;
+    GSoundEffect eff = game.loadSound(*snd);
+    if(eff.isEmpty())
+      return;
+    eff.setPosition(x,y,z);
+    eff.setMaxDistance(maxDist);
+    eff.setRefDistance(range);
     eff.play();
     tickSlot(eff);
     if(slot)

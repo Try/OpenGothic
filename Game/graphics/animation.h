@@ -20,7 +20,9 @@ class Animation final {
       };
 
     struct EvCount final {
-      uint8_t count[ZenLoad::EModelScriptAniDef::DEF_LAST]={};
+      uint8_t def_opt_frame=0;
+      uint8_t def_draw=0;
+      uint8_t def_undraw=0;
       };
 
     struct Sequence final {
@@ -58,6 +60,8 @@ class Animation final {
 
       std::vector<uint64_t>                       defHitEnd;   // hit-end time
       std::vector<uint64_t>                       defOptFrame; // damage commitment timings
+      std::vector<uint64_t>                       defDraw;     // draw-weapon sound
+      std::vector<uint64_t>                       defUndraw;   // undraw sound
 
       ZMath::float3                          translation(uint64_t dt) const;
       ZMath::float3                          speed(uint64_t at, uint64_t dt) const;

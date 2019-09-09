@@ -154,6 +154,10 @@ SoundFx *GameSession::loadSoundFx(const char *name) {
   return gothic.loadSoundFx(name);
   }
 
+SoundFx *GameSession::loadSoundWavFx(const char *name) {
+  return gothic.loadSoundWavFx(name);
+  }
+
 Tempest::SoundEffect GameSession::loadSound(const Tempest::Sound &raw) {
   return sound.load(raw);
   }

@@ -584,6 +584,10 @@ void World::emitSoundEffect(const char *s, float x, float y, float z, float rang
   wsound.emitSound(s,x,y,z,range,slot);
   }
 
+void World::emitSoundRaw(const char *s, float x, float y, float z, float range, GSoundEffect *slot) {
+  wsound.emitSoundRaw(s,x,y,z,range,slot);
+  }
+
 void World::takeSoundSlot(GSoundEffect &&eff)  {
   wsound.takeSoundSlot(std::move(eff));
   }

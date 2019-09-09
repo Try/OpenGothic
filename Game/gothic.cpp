@@ -143,6 +143,24 @@ SoundFx *Gothic::loadSoundFx(const char *name) {
     }
   }
 
+SoundFx *Gothic::loadSoundWavFx(const char* name) {
+  auto snd = Resources::loadSoundBuffer(name);
+
+  std::lock_guard<std::mutex> guard(syncSnd);
+  auto it=sndWavCache.find(name);
+  if(it!=sndWavCache.end())
+    return &it->second;
+
+  try {
+    auto ret = sndWavCache.emplace(name,SoundFx(*this,std::move(snd)));
+    return &ret.first->second;
+    }
+  catch(...){
+    Tempest::Log::e("unable to load soundfx \"",name,"\"");
+    return nullptr;
+    }
+  }
+
 void Gothic::emitGlobalSound(const char *sfx) {
   emitGlobalSound(loadSoundFx(sfx));
   }

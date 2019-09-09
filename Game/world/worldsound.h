@@ -22,7 +22,8 @@ class WorldSound final {
     void addZone       (const ZenLoad::zCVobData &vob);
     void addSound      (const ZenLoad::zCVobData &vob);
 
-    void emitSound(const char *s, float x, float y, float z, float range, GSoundEffect *slot);
+    void emitSound   (const char *s, float x, float y, float z, float range, GSoundEffect *slot);
+    void emitSoundRaw(const char *s, float x, float y, float z, float range, GSoundEffect *slot);
     void emitDlgSound(const char *s, float x, float y, float z, float range, uint64_t &timeLen);
     void takeSoundSlot(GSoundEffect &&eff);
     void aiOutput(const std::array<float,3> &pos, const std::string& outputname);

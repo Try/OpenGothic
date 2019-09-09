@@ -1272,7 +1272,7 @@ void Npc::tick(uint64_t dt) {
   Animation::EvCount ev;
   animation.processEvents(fghLastEventTime,owner.tickCount(),ev);
 
-  if(ev.count[ZenLoad::DEF_OPT_FRAME]>0){
+  if(ev.def_opt_frame>0){
     commitDamage();
     }
 
@@ -1865,6 +1865,13 @@ bool Npc::closeWeapon(bool noAnim) {
   hnpc.weapon = 0;
 
   updateWeaponSkeleton();
+
+  if(auto w = invent.currentMeleWeapon()){
+    if(w->handle()->material==ItemMaterial::MAT_METAL)
+      owner.emitSoundRaw("UNDRAWSOUND_ME.WAV",x,y+translateY(),z,500,nullptr); else
+      owner.emitSoundRaw("UNDRAWSOUND_WO.WAV",x,y+translateY(),z,500,nullptr);
+    }
+
   return true;
   }
 
@@ -1908,8 +1915,8 @@ bool Npc::drawWeaponMele() {
   updateWeaponSkeleton();
 
   if(invent.currentMeleWeapon()->handle()->material==ItemMaterial::MAT_METAL)
-    emitSoundEffect("DRAWSOUND_ME",500,true); else
-    emitSoundEffect("DRAWSOUND_WO",500,true);
+    owner.emitSoundRaw("DRAWSOUND_ME.WAV",x,y+translateY(),z,500,nullptr); else
+    owner.emitSoundRaw("DRAWSOUND_WO.WAV",x,y+translateY(),z,500,nullptr);
   return true;
   }
 

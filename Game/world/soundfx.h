@@ -13,6 +13,7 @@ class Gothic;
 class SoundFx {
   public:
     SoundFx(Gothic &gothic, const char *tagname);
+    SoundFx(Gothic &gothic, Tempest::Sound &&raw);
     SoundFx(SoundFx&&)=default;
     SoundFx& operator=(SoundFx&&)=default;
 
@@ -23,6 +24,7 @@ class SoundFx {
     struct SoundVar {
       SoundVar()=default;
       SoundVar(const Daedalus::GEngineClasses::C_SFX& sfx,Tempest::Sound&& snd);
+      SoundVar(const float vol,Tempest::Sound&& snd);
 
       Tempest::Sound snd;
       float          vol = 0.5f;

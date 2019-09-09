@@ -126,6 +126,13 @@ Animation::Sequence& Animation::loadMAN(const std::string& name) {
   return sequences.back();
   }
 
+static void setupTime(std::vector<uint64_t>& t0,const std::vector<int32_t>& inp,float fps){
+  t0.resize(inp.size());
+  for(size_t i=0;i<inp.size();++i){
+    t0[i] = uint64_t(inp[i]*1000/fps);
+    }
+  }
+
 void Animation::setupIndex() {
   // for(auto& i:sequences)
   //   Log::i(i.name);
@@ -133,20 +140,14 @@ void Animation::setupIndex() {
     if(sq.fpsRate<=0.f)
       continue;
     for(auto& r:sq.events) {
-      if(r.m_Def==ZenLoad::DEF_HIT_END){
-        auto& w = r.m_Int;
-        sq.defHitEnd.resize(w.size());
-        for(size_t i=0;i<w.size();++i){
-          sq.defHitEnd[i] = uint64_t(w[i]*1000/sq.fpsRate);
-          }
-        }
-      if(r.m_Def==ZenLoad::DEF_OPT_FRAME){
-        auto& w = r.m_Int;
-        sq.defOptFrame.resize(w.size());
-        for(size_t i=0;i<w.size();++i){
-          sq.defOptFrame[i] = uint64_t(w[i]*1000/sq.fpsRate);
-          }
-        }
+      if(r.m_Def==ZenLoad::DEF_HIT_END)
+        setupTime(sq.defHitEnd,r.m_Int,sq.fpsRate);
+      if(r.m_Def==ZenLoad::DEF_OPT_FRAME)
+        setupTime(sq.defOptFrame,r.m_Int,sq.fpsRate);
+      if(r.m_Def==ZenLoad::DEF_DRAWSOUND)
+        setupTime(sq.defDraw,r.m_Int,sq.fpsRate);
+      if(r.m_Def==ZenLoad::DEF_UNDRAWSOUND)
+        setupTime(sq.defUndraw,r.m_Int,sq.fpsRate);
       }
     }
 
@@ -225,11 +226,15 @@ float Animation::Sequence::totalTime() const {
   }
 
 void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const {
-  for(auto& i:defOptFrame){
-    if(barrier<i+sTime && i+sTime<=now){
-      ev.count[ZenLoad::DEF_OPT_FRAME]++;
-      }
-    }
+  for(auto& i:defOptFrame)
+    if(barrier<i+sTime && i+sTime<=now)
+      ev.def_opt_frame++;
+  for(auto& i:defDraw)
+    if(barrier<i+sTime && i+sTime<=now)
+      ev.def_draw++;
+  for(auto& i:defUndraw)
+    if(barrier<i+sTime && i+sTime<=now)
+      ev.def_undraw++;
   }
 
 ZMath::float3 Animation::Sequence::translation(uint64_t dt) const {
