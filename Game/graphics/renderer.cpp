@@ -62,20 +62,19 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
   for(int i=0;i<2;++i){
     shadowMap[i] = device.createTexture(shadowFormat,smSize,smSize,false);
     shadowZ[i]   = device.createTexture(zBufferFormat,smSize,smSize,false);
-    fboShadow[i] = device.frameBuffer(shadowMap[i],shadowZ[i],shadowPass);
+    fboShadow[i] = device.frameBuffer(shadowMap[i],shadowZ[i]);
     shadowMap[i].setSampler(smp);
     }
 
   for(size_t i=0;i<imgC;++i) {
     Tempest::Frame frame=device.frame(i);
-    fbo3d.emplace_back(device.frameBuffer(frame,zbuffer,mainPass));
+    fbo3d.emplace_back(device.frameBuffer(frame,zbuffer));
     }
 
   composePass    = device.pass(Color(0.0),shadowMapFinal.format());
-  fboCompose     = device.frameBuffer(shadowMapFinal,composePass);
+  fboCompose     = device.frameBuffer(shadowMapFinal);
   shadowMapFinal.setSampler(smp);
 
-  stor.initPipeline(mainPass);
   if(auto wview=gothic.worldView())
     wview->initPipeline(w,h);
 
@@ -108,7 +107,7 @@ bool Renderer::needToUpdateCmd() {
 void Renderer::updateCmd() {
   if(auto wview=gothic.worldView()) {
     //wview->updateCmd(*gothic.world(),Resources::fallbackTexture());
-    wview->updateCmd(*gothic.world(),shadowMapFinal,shadowPass);
+    wview->updateCmd(*gothic.world(),shadowMapFinal,mainPass,shadowPass);
     }
   }
 
@@ -117,30 +116,28 @@ void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, const Gothic &got
 
   auto wview = gothic.worldView();
   if(wview!=nullptr) {
-    wview->updateCmd(*gothic.world(),shadowMapFinal,shadowPass);
+    wview->updateCmd(*gothic.world(),shadowMapFinal,mainPass,shadowPass);
     wview->updateUbo(view,shadow,2,device.frameId());
 
     cmd.exchangeLayout(shadowMap[0],TextureLayout::Undefined,TextureLayout::ColorAttach);
     cmd.exchangeLayout(shadowMap[1],TextureLayout::Undefined,TextureLayout::ColorAttach);
+
     wview->drawShadow(cmd,fboShadow[0],shadowPass,imgId,0);
     wview->drawShadow(cmd,fboShadow[1],shadowPass,imgId,1);
 
-    //cmd.barrier      (shadowMap[0],Stage::Fragment,Stage::Fragment);
-    //cmd.barrier      (shadowMap[1],Stage::Fragment,Stage::Fragment);
-
     //composeShadow(cmd,fboFr);
     composeShadow(cmd,fboCompose);
-    //cmd.barrier      (shadowMapFinal,Stage::Fragment,Stage::Fragment);
-    wview->draw      (cmd,fboFr,storage().pass(),imgId);
+
+    wview->draw(cmd,fboFr,mainPass,imgId);
     } else {
-    cmd.setPass(fboFr,storage().pass());
+    cmd.setPass(fboFr,mainPass);
     }
   }
 
 void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, InventoryMenu &inventory) {
   FrameBuffer& fbo = fbo3d[imgId];
 
-  cmd.setPass(fbo,storage().pass());
+  cmd.setPass(fbo,mainPass);
   inventory.draw(cmd,device.frameId());
   }
 
@@ -149,6 +146,6 @@ void Renderer::composeShadow(PrimaryCommandBuffer &cmd, FrameBuffer &fbo) {
   cmd.exchangeLayout(shadowMap[1],TextureLayout::ColorAttach,TextureLayout::Sampler);
 
   cmd.setPass(fbo,composePass);
-  cmd.setUniforms(stor.pComposeShadow,uboShadowComp); // FIXME: vulkan image-layouts
+  cmd.setUniforms(stor.pComposeShadow,uboShadowComp);
   cmd.draw(Resources::fsqVbo());
   }

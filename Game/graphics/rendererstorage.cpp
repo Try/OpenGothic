@@ -54,11 +54,12 @@ RendererStorage::RendererStorage(Tempest::Device &device)
 
   layoutComp.add(0,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
   layoutComp.add(1,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
+
+  initPipeline();
+  initShadow();
   }
 
-void RendererStorage::initPipeline(Tempest::RenderPass &pass) {
-  renderPass=&pass;
-
+void RendererStorage::initPipeline() {
   RenderState stateAlpha;
   stateAlpha.setBlendSource (RenderState::BlendMode::src_alpha);
   stateAlpha.setBlendDest   (RenderState::BlendMode::one_minus_src_alpha);
@@ -80,13 +81,11 @@ void RendererStorage::initPipeline(Tempest::RenderPass &pass) {
   pSky           = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutSky, vsSky,  fsSky );
   pComposeShadow = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutComp,vsComp, fsComp);
   
-  pLandAlpha = device.pipeline<Resources::Vertex>   (Triangles,stateAlpha,layoutLnd,land.vs,land.fs);
-  pLand      = device.pipeline<Resources::Vertex>   (Triangles,stateLnd,  layoutLnd,land.vs,land.fs);
+  pLandAlpha     = device.pipeline<Resources::Vertex>   (Triangles,stateAlpha,layoutLnd,land.vs,land.fs);
+  pLand          = device.pipeline<Resources::Vertex>   (Triangles,stateLnd,  layoutLnd,land.vs,land.fs);
 
-  pObject    = device.pipeline<Resources::Vertex>   (Triangles,stateObj,layoutObj,object.vs,object.fs);
-  pAnim      = device.pipeline<Resources::VertexA>  (Triangles,stateObj,layoutAni,ani.vs,   ani.fs   );
-
-  initShadow();
+  pObject        = device.pipeline<Resources::Vertex>   (Triangles,stateObj,layoutObj,object.vs,object.fs);
+  pAnim          = device.pipeline<Resources::VertexA>  (Triangles,stateObj,layoutAni,ani.vs,   ani.fs   );
   }
 
 void RendererStorage::initShadow() {

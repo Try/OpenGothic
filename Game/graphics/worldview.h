@@ -28,7 +28,7 @@ class WorldView {
     void tick(uint64_t dt);
 
     bool needToUpdateCmd() const;
-    void updateCmd (const World &world, const Tempest::Texture2d &shadow, const Tempest::RenderPass &shadowPass);
+    void updateCmd (const World &world, const Tempest::Texture2d &shadow, const Tempest::RenderPass &mainPass, const Tempest::RenderPass &shadowPass);
     void updateUbo (const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4 *shadow, size_t shCount, uint32_t imgId);
     void drawShadow(Tempest::PrimaryCommandBuffer &cmd, Tempest::FrameBuffer &fbo, const Tempest::RenderPass &pass, uint32_t imgId, uint8_t layer);
     void draw      (Tempest::PrimaryCommandBuffer &cmd, Tempest::FrameBuffer &fbo, const Tempest::RenderPass &pass, uint32_t imgId);
@@ -72,5 +72,5 @@ class WorldView {
     std::vector<StaticObj>              objStatic;
 
     void setupSunDir(float t, float pulse);
-    void prebuiltCmdBuf(const World &world, const Tempest::Texture2d &shadowMap, const Tempest::RenderPass &shadowPass);
+    void prebuiltCmdBuf(const World &world, const Tempest::Texture2d &shadowMap, const Tempest::RenderPass &mainPass, const Tempest::RenderPass &shadowPass);
   };

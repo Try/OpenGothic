@@ -9,14 +9,11 @@ class RendererStorage {
   public:
     RendererStorage(Tempest::Device& device);
 
-    void initPipeline(Tempest::RenderPass &pass);
-
     Tempest::Device&        device;
     Tempest::RenderPipeline pLand, pLandAlpha, pObject, pAnim, pSky;
     Tempest::RenderPipeline pLandSh, pObjectSh, pAnimSh;
     Tempest::RenderPipeline pComposeShadow;
 
-    const Tempest::RenderPass&     pass()         const { return *renderPass; }
     const Tempest::UniformsLayout& uboObjLayout() const { return layoutObj; }
     const Tempest::UniformsLayout& uboLndLayout() const { return layoutLnd; }
     const Tempest::UniformsLayout& uboSkyLayout() const { return layoutSky; }
@@ -30,13 +27,12 @@ class RendererStorage {
       void load(Tempest::Device &device,const char* f);
       };
 
-    Tempest::RenderPass* renderPass=nullptr;
-
     Tempest::UniformsLayout layoutLnd, layoutObj, layoutAni, layoutSky, layoutComp;
 
     Tempest::Shader         vsSky,fsSky;
     Tempest::Shader         vsComp,fsComp;
     Material                land, object, ani;
 
+    void initPipeline();
     void initShadow();
   };

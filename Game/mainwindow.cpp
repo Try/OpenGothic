@@ -641,7 +641,7 @@ void MainWindow::initSwapchain(){
 
   for(size_t i=0;i<imgC;++i) {
     Tempest::Frame frame=device.frame(i);
-    fboUi.emplace_back(device.frameBuffer(frame,uiPass));
+    fboUi.emplace_back(device.frameBuffer(frame));
     commandDynamic.emplace_back(device.commandBuffer());
     }
 

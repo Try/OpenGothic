@@ -71,10 +71,11 @@ bool WorldView::needToUpdateCmd() const {
          itmGroup.needToUpdateCommands();
   }
 
-void WorldView::updateCmd(const World &world,const Tempest::Texture2d& shadow,const RenderPass& shadowPass) {
+void WorldView::updateCmd(const World &world,const Tempest::Texture2d& shadow,
+                          const RenderPass& mainPass,const RenderPass& shadowPass) {
   if(!needToUpdateCmd())
     return;
-  prebuiltCmdBuf(world,shadow,shadowPass);
+  prebuiltCmdBuf(world,shadow,mainPass,shadowPass);
 
   vobGroup.setAsUpdated();
   objGroup.setAsUpdated();
@@ -170,7 +171,8 @@ void WorldView::updateAnimation(uint64_t tickCount) {
   animPool.updateAnimation(tickCount);
   }
 
-void WorldView::prebuiltCmdBuf(const World &world,const Texture2d& shadowMap,const RenderPass& shadowPass) {
+void WorldView::prebuiltCmdBuf(const World &world,const Texture2d& shadowMap,
+                               const RenderPass& mainPass,const RenderPass& shadowPass) {
   auto&  device = storage.device;
   size_t count  = device.maxFramesInFlight();
 
@@ -206,7 +208,7 @@ void WorldView::prebuiltCmdBuf(const World &world,const Texture2d& shadowMap,con
     }
 
   for(size_t i=0;i<count;++i) {
-    auto cmd=device.commandSecondaryBuffer(storage.pass(),vpWidth,vpHeight);
+    auto cmd=device.commandSecondaryBuffer(mainPass,vpWidth,vpHeight);
 
     cmd.begin();
     land    .draw(cmd,i);
