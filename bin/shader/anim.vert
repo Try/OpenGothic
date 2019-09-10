@@ -9,6 +9,8 @@ layout(std140,binding = 0) uniform UboScene {
   vec3 ldir;
   mat4 mv;
   mat4 shadow;
+  vec3 ambient;
+  vec4 sunCl;
   } scene;
 
 #if defined(OBJ) || defined(SKINING)
@@ -48,6 +50,8 @@ layout(location = 1) out vec4 outShadowPos;
 layout(location = 2) out vec3 outNormal;
 layout(location = 3) out vec4 outColor;
 layout(location = 4) out vec3 outLight;
+layout(location = 5) out vec3 outAmbient;
+layout(location = 6) out vec3 outSun;
 #endif
 
 vec4 vertexPos() {
@@ -101,6 +105,8 @@ void main() {
   outShadowPos = shPos;
   outColor     = inColor;
   outLight     = scene.ldir;
+  outAmbient   = scene.ambient.rgb;
+  outSun       = scene.sunCl.rgb;
 #  ifdef OBJ
   outNormal    = (ubo.obj*norm).xyz;
   gl_Position  = scene.mv*ubo.obj*pos;

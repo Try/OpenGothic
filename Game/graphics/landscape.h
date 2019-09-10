@@ -10,13 +10,14 @@
 
 class World;
 class RendererStorage;
+class Light;
 
 class Landscape final {
   public:
     Landscape(const RendererStorage& storage,const ZenLoad::PackedMesh& wmesh);
 
     void setMatrix(uint32_t frameId, const Tempest::Matrix4x4& mat, const Tempest::Matrix4x4 *sh, size_t shCount);
-    void setLight(const std::array<float,3>& l);
+    void setLight(const Light& l,const Tempest::Vec3& ambient);
 
     void commitUbo(uint32_t frameId, const Tempest::Texture2d &shadowMap);
     void draw(Tempest::CommandBuffer &cmd, uint32_t frameId);
@@ -28,6 +29,8 @@ class Landscape final {
       float               padding=0;
       Tempest::Matrix4x4  mvp;
       Tempest::Matrix4x4  shadow;
+      std::array<float,4> lightAmb={{0,0,0}};
+      std::array<float,4> lightCl ={{1,1,1}};
       };
 
     struct PerFrame {

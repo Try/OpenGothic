@@ -5,6 +5,7 @@
 #include <Tempest/Log>
 
 #include "attachbinder.h"
+#include "light.h"
 #include "rendererstorage.h"
 
 StaticObjects::StaticObjects(const RendererStorage &storage)
@@ -43,8 +44,13 @@ void StaticObjects::setModelView(const Tempest::Matrix4x4 &m,const Tempest::Matr
   uboGlobal.shadowView = shadow;
   }
 
-void StaticObjects::setLight(const std::array<float,3> &l) {
-  uboGlobal.lightDir = {-l[0],-l[1],-l[2]};
+void StaticObjects::setLight(const Light &l,const Tempest::Vec3& ambient) {
+  auto  d = l.dir();
+  auto& c = l.color();
+
+  uboGlobal.lightDir = {-d[0],-d[1],-d[2]};
+  uboGlobal.lightCl  = {c.x,c.y,c.z,0.f};
+  uboGlobal.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
   }
 
 ObjectsBucket<StaticObjects::UboSt,Resources::Vertex> &StaticObjects::getBucketSt(const Tempest::Texture2d *mat) {

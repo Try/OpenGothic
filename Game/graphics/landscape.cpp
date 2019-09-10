@@ -57,8 +57,12 @@ void Landscape::setMatrix(uint32_t frameId, const Matrix4x4 &mat, const Matrix4x
   pf[frameId].uboGpu[0].update(&uboCpu,0,sizeof(uboCpu));
   }
 
-void Landscape::setLight(const std::array<float,3> &l) {
-  uboCpu.lightDir = {-l[0],-l[1],-l[2]};
+void Landscape::setLight(const Light &l, const Vec3 &ambient) {
+  auto  d = l.dir();
+  auto& c = l.color();
+  uboCpu.lightDir = {-d[0],-d[1],-d[2]};
+  uboCpu.lightCl  = {c.x,c.y,c.z,0.f};
+  uboCpu.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
   }
 
 void Landscape::commitUbo(uint32_t frameId,const Tempest::Texture2d& shadowMap) {

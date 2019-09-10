@@ -93,6 +93,9 @@ Matrix4x4 Camera::viewShadow(const std::array<float,3>& ldir, int layer) const {
   const float c = std::cos(spin.x*float(M_PI)/180.f), s = std::sin(spin.x*float(M_PI)/180.f);
 
   Matrix4x4 view;
+  if(ldir[1]>=0.f)
+    return view;
+
   view.identity();
 
   if(layer>0)
@@ -117,8 +120,9 @@ Matrix4x4 Camera::viewShadow(const std::array<float,3>& ldir, int layer) const {
   float lz  = view.at(1,2);
   float k   = ldir[1]!=0.f ? lz/ldir[1] : 0.f;
 
-  lx = -ldir[0]*k;
-  ly = -ldir[2]*k;
+  lx = -ldir[2]*k;
+  ly = -ldir[0]*k;
+
   lz =  ldir[1]*k;
 
   float dx = lx*c-ly*s;

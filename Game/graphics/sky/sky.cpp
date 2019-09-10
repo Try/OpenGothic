@@ -9,7 +9,8 @@
 
 using namespace Tempest;
 
-std::array<float,3> Sky::color = {{0.47f,0.55f,0.70f}};
+//std::array<float,3> Sky::color = {{0.47f,0.55f,0.70f}};
+std::array<float,3> Sky::color = {{0.2f, 0.5f, 0.66f}};
 
 Sky::Sky(const RendererStorage &storage)
   :storage(storage),uboGpu(storage.device) {

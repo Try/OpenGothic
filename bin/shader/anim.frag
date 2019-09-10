@@ -13,6 +13,8 @@ layout(location = 1) in vec4 inShadowPos;
 layout(location = 2) in vec3 inNormal;
 layout(location = 3) in vec4 inColor;
 layout(location = 4) in vec3 inLight;
+layout(location = 5) in vec3 inAmbient;
+layout(location = 6) in vec3 inSun;
 #endif
 
 layout(location = 0) out vec4 outColor;
@@ -55,9 +57,11 @@ void main() {
       light = lambert*implShadowVal(shPos1.xy*vec2(0.5,0.5)+vec2(0.5),shPos1.z,1);
     }
 
-  vec3  ambient = vec3(0.25);//*inColor.xyz
-  vec3  diffuse = vec3(1.0)*inColor.xyz;
-  vec3  color   = mix(ambient,diffuse,clamp(light,0.0,1.0));
+  // vec3  ambient = vec3(0.25);//*inColor.xyz
+  // vec3  diffuse = vec3(1.0)*inColor.xyz;
+  // vec3  color   = mix(ambient,diffuse,clamp(light,0.0,1.0));
+
+  vec3  color   = (inAmbient+inSun*inColor.xyz*clamp(light,0.0,1.0));
   outColor      = vec4(t.rgb*color,t.a);
 
   //outColor = vec4(vec3(shMap),1.0);

@@ -267,6 +267,7 @@ void World::tick(uint64_t dt) {
     return;
   wobj.tick(dt);
   wdynamic->tick(dt);
+  wview->tick(dt);
   if(auto pl = player())
     wsound.tick(*pl);
   }

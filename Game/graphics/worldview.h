@@ -23,8 +23,9 @@ class WorldView {
 
     Tempest::Matrix4x4        viewProj(const Tempest::Matrix4x4 &view) const;
     const Tempest::Matrix4x4& projective() const { return proj; }
-
     const Light&              mainLight() const;
+
+    void tick(uint64_t dt);
 
     bool needToUpdateCmd() const;
     void updateCmd (const World &world, const Tempest::Texture2d &shadow, const Tempest::RenderPass &shadowPass);
@@ -47,6 +48,8 @@ class WorldView {
     const RendererStorage&  storage;
 
     Light                   sun;
+    Tempest::Vec3           ambient;
+
     Sky                     sky;
     Landscape               land;
     StaticObjects           vobGroup;
@@ -68,5 +71,6 @@ class WorldView {
     std::vector<Tempest::CommandBuffer> cmdShadow[2];
     std::vector<StaticObj>              objStatic;
 
+    void setupSunDir(float t, float pulse);
     void prebuiltCmdBuf(const World &world, const Tempest::Texture2d &shadowMap, const Tempest::RenderPass &shadowPass);
   };

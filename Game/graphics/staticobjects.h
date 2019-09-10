@@ -18,6 +18,7 @@
 
 class RendererStorage;
 class Pose;
+class Light;
 
 class StaticObjects final {
   private:
@@ -81,7 +82,7 @@ class StaticObjects final {
     void setAsUpdated();
 
     void setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4 &shadow);
-    void setLight(const std::array<float,3>& l);
+    void setLight(const Light &l, const Tempest::Vec3 &ambient);
 
   private:
     using Vertex  = Resources::Vertex;
@@ -92,6 +93,8 @@ class StaticObjects final {
       float                         padding=0;
       Tempest::Matrix4x4            modelView;
       Tempest::Matrix4x4            shadowView;
+      std::array<float,4>           lightAmb={{0,0,0}};
+      std::array<float,4>           lightCl ={{1,1,1}};
       };
 
     struct UboSt final {

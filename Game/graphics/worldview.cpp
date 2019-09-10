@@ -1,5 +1,7 @@
 #include "worldview.h"
 
+#include <Tempest/Application>
+
 #include "world/world.h"
 #include "rendererstorage.h"
 
@@ -37,9 +39,36 @@ const Light &WorldView::mainLight() const {
   return sun;
   }
 
+void WorldView::tick(uint64_t /*dt*/) {
+  float t = float(double(owner.time().timeInDay().toInt())/double(gtime(1,0,0).toInt()));
+  t = std::fmod(t+0.5f,1.f);
+  //float k = 1.f-std::fabs(t-0.5f)*2.f;
+
+  //float  t = (Application::tickCount()%40000)/40000.f; // [0-1]
+  float  k = std::fabs(t*2.f-1.f)*2.f-1.f;// [-1 - 0 - 1 - 0 - -1]
+
+  //static float k=0.2f;
+
+  float a  = std::max(0.f,k);
+  auto clr = Vec3(0.75f,0.75f,0.75f)*a;
+  ambient  = Vec3(0.2f,0.2f,0.3f)*(1.f-a)+Vec3(0.25f,0.25f,0.25f)*a;
+
+  setupSunDir(k,t);
+  sun.setColor(clr);
+  }
+
+void WorldView::setupSunDir(float t,float pulse) {
+  float a  = 360-360*pulse;
+  a = a*float(M_PI/180.0);
+
+  sun.setDir(std::cos(a),std::min(0.9f,-1.0f*t),std::sin(a));
+  }
+
 bool WorldView::needToUpdateCmd() const {
-  return nToUpdateCmd || vobGroup.needToUpdateCommands() ||
-         objGroup.needToUpdateCommands() || itmGroup.needToUpdateCommands();
+  return nToUpdateCmd ||
+         vobGroup.needToUpdateCommands() ||
+         objGroup.needToUpdateCommands() ||
+         itmGroup.needToUpdateCommands();
   }
 
 void WorldView::updateCmd(const World &world,const Tempest::Texture2d& shadow,const RenderPass& shadowPass) {
@@ -59,16 +88,16 @@ void WorldView::updateUbo(const Matrix4x4& view,const Tempest::Matrix4x4* shadow
   sky .setMatrix(imgId,viewProj);
   sky .setLight (sun.dir());
   land.setMatrix(imgId,viewProj,shadow,shCount);
-  land.setLight (sun.dir());
+  land.setLight (sun,ambient);
 
   vobGroup.setModelView(viewProj,shadow[0]);
-  vobGroup.setLight    (sun.dir());
+  vobGroup.setLight    (sun,ambient);
   vobGroup.updateUbo   (imgId);
   objGroup.setModelView(viewProj,shadow[0]);
-  objGroup.setLight    (sun.dir());
+  objGroup.setLight    (sun,ambient);
   objGroup.updateUbo   (imgId);
   itmGroup.setModelView(viewProj,shadow[0]);
-  itmGroup.setLight    (sun.dir());
+  itmGroup.setLight    (sun,ambient);
   itmGroup.updateUbo   (imgId);
   }
 
