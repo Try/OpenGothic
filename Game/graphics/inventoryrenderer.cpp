@@ -29,7 +29,7 @@ void InventoryRenderer::draw(Tempest::CommandBuffer &cmd, uint32_t imgId) {
     mv.scale(0.8f,1.f,1.f);
     }
   itmGroup.setModelView(mv,Tempest::Matrix4x4());
-  itmGroup.commitUbo(imgId,Tempest::Texture2d());
+  itmGroup.commitUbo(imgId,Resources::fallbackTexture());
   itmGroup.updateUbo(imgId);
 
   for(auto& i:items){
