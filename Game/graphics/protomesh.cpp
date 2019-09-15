@@ -121,6 +121,9 @@ ProtoMesh::ProtoMesh(const ZenLoad::PackedMesh &pm) {
   nodes.back().submeshIdB = 0;
   nodes.back().submeshIdE = submeshId.size();
   nodes.back().transform.identity();
+
+  bbox[0] = Tempest::Vec3(pm.bbox[0].x,pm.bbox[0].y,pm.bbox[0].z);
+  bbox[1] = Tempest::Vec3(pm.bbox[1].x,pm.bbox[1].y,pm.bbox[1].z);
   }
 
 size_t ProtoMesh::skinedNodesCount() const {

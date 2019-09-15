@@ -44,6 +44,7 @@ class Renderer final {
     Tempest::FrameBuffer              fboShadow[2], fboCompose;
 
     Tempest::RenderPass               mainPass, shadowPass, composePass;
+    Tempest::RenderPass               inventoryPass;
 
     Tempest::Uniforms                 uboShadowComp;
     RendererStorage                   stor;

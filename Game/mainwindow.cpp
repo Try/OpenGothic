@@ -637,14 +637,13 @@ void MainWindow::initSwapchain(){
   commandDynamic.clear();
   fboUi.clear();
 
-  uiPass=device.pass(FboMode::Preserve|FboMode::PresentOut,FboMode::Discard,TextureFormat::Undefined);
-
   for(size_t i=0;i<imgC;++i) {
     Tempest::Frame frame=device.frame(i);
     fboUi.emplace_back(device.frameBuffer(frame));
     commandDynamic.emplace_back(device.commandBuffer());
     }
 
+  uiPass = device.pass(FboMode::Preserve);
   draw.initSwapchain(uint32_t(w()),uint32_t(h()));
   }
 
@@ -680,13 +679,14 @@ void MainWindow::render(){
       }
 
     cmd.begin();
-    draw.draw(cmd,imgId,gothic);
-    //draw.draw(cmd,imgId,inventory);
 
+    draw.draw(cmd,imgId,gothic);
     if(1) {
       cmd.setPass(fboUi[imgId],uiPass);
       surface.draw(device,cmd);
+      draw.draw(cmd,imgId,inventory);
       }
+
     cmd.end();
 
     device.draw(cmd,context.imageAvailable,renderDone,context.gpuLock);

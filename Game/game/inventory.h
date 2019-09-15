@@ -32,6 +32,7 @@ class Inventory final {
       ITM_CAT_POTION = 1 << 7,
       ITM_CAT_LIGHT  = 1 << 8,
       ITM_CAT_RUNE   = 1 << 9,
+      ITM_CAT_MAGIC  = 1u << 31,
       ITM_10         = 1 << 10, // ???
       ITM_RING       = 1 << 11,
       ITM_MISSION    = 1 << 12,
@@ -120,7 +121,7 @@ class Inventory final {
 
     void        sortItems() const;
     static bool less(Item& l,Item& r);
-    static int  orderId(Item& l);
+    static auto orderId(Item& l) -> std::pair<int,int>;
     uint8_t     slotId(Item*& slt) const;
 
     mutable std::vector<std::unique_ptr<Item>> items;

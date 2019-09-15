@@ -42,52 +42,7 @@ const std::string& Interactive::focusName() const {
   }
 
 bool Interactive::checkMobName(const std::string &dest) const {
-  const auto& name=focusName();
-  if(name==dest)
-    return true;
-  if(dest=="RAPAIR")
-    return false; //TODO
-  if(name=="MOBNAME_LAB" && dest=="LAB")
-    return true;
-  if(name=="MOBNAME_ANVIL" && dest=="BSANVIL")
-    return true;
-  if(name=="MOBNAME_BOOKSBOARD" && dest=="BOOK")
-    return true;
-  if(name=="MOBNAME_GRINDSTONE" && dest=="BSSHARP")
-    return true;
-  if(name=="MOBNAME_BUCKET" && dest=="BSCOOL")
-    return true;
-  if(name=="MOBNAME_FORGE" && dest=="BSFIRE")
-    return true;
-  if((name=="MOBNAME_BBQ_SCAV" || name=="MOBNAME_BARBQ_SCAV") && dest=="BARBQ")
-    return true;
-  if(name=="MOBNAME_STOVE" && dest=="STOVE")
-    return true;
-  if(name=="MOBNAME_ARMCHAIR" && dest=="THRONE")
-    return true;
-  if(name=="MOBNAME_SAW" && dest=="BAUMSAEGE")
-    return true;
-  if(name=="MOBNAME_WATERPIPE" && dest=="SMOKE")
-    return true;
-  if(name=="MOBNAME_BENCH" && dest=="BENCH")
-    return true;
-  if(data.visual=="BENCH_NW_CITY_02.ASC" && dest=="BENCH")
-    return true; // bug in knoris
-  if(name=="MOBNAME_CHAIR" && dest=="CHAIR")
-    return true;
-  if(name=="MOBNAME_INNOS" && dest=="INNOS")
-    return true;
-  if(name=="MOBNAME_CAULDRON" && dest=="CAULDRON")
-    return true;
-  if(name=="MOBNAME_WINEMAKER" && dest=="HERB")
-    return true;
-  if(name=="MOBNAME_ORE" && dest=="ORE")
-    return true;
-  if(name=="MOBNAME_BED" && dest=="BEDHIGH")
-    return true;
-  if(name=="MOBNAME_THRONE" && dest=="THRONE")
-    return true;
-  if(name.find("MOBNAME_")==0 && dest==name.c_str()+8)
+  if(schemeName()==dest)
     return true;
   return false;
   }
@@ -201,7 +156,7 @@ const char *Interactive::schemeName() const {
   else if(data.visual=="PAN_OC.MDS")
     tag = "PAN";
   else {
-    Tempest::Log::i("unable to recognize mobsi{",data.oCMOB.focusName,", ",data.visual,"}");
+    // Tempest::Log::i("unable to recognize mobsi{",data.oCMOB.focusName,", ",data.visual,"}");
     }
   return tag;
   }
@@ -254,6 +209,17 @@ bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
     if(npc.canSeeNpc(x,y,z,freeLos))
       return true;
     }
+
+  // graves
+  if(pos.size()==0){
+    auto mat = objMat;
+
+    float x = mat.at(3,0);
+    float y = mat.at(3,1);
+    float z = mat.at(3,2);
+    if(npc.canSeeNpc(x,y,z,freeLos))
+      return true;
+    }
   return false;
   }
 
@@ -267,6 +233,13 @@ void Interactive::implAddItem(char *name) {
     } else {
     invent.addItem(name,1,*world);
     }
+  }
+
+void Interactive::autoDettachNpc() {
+  for(auto& i:pos)
+    if(i.user!=nullptr) {
+      i.user->setInteraction(nullptr);
+      }
   }
 
 const Interactive::Pos *Interactive::findFreePos() const {
@@ -320,12 +293,14 @@ bool Interactive::attach(Npc &npc) {
   return false;
   }
 
-void Interactive::dettach(Npc &npc) {
+bool Interactive::dettach(Npc &npc) {
   for(auto& i:pos)
     if(i.user==&npc) {
       i.user=nullptr;
       state=-1;
+      npc.setAnim(Npc::Anim::Idle);
       }
+  return true;
   }
 
 void Interactive::setPos(Npc &npc,std::array<float,3> pos) {
@@ -367,6 +342,11 @@ float Interactive::qDistanceTo(const Npc &npc, const Interactive::Pos &to) {
 
 void Interactive::nextState() {
   state = std::min(data.oCMobInter.stateNum,state+1);
+  if(state==data.oCMobInter.stateNum){
+    if(//data.vobType==ZenLoad::zCVobData::VT_oCMobDoor ||
+       data.vobType==ZenLoad::zCVobData::VT_oCMobSwitch)
+      autoDettachNpc();
+    }
   }
 
 void Interactive::prevState() {

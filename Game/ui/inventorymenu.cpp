@@ -57,6 +57,7 @@ InventoryMenu::InventoryMenu(Gothic &gothic, const RendererStorage &storage)
   }
 
 void InventoryMenu::close() {
+  renderer.reset();
   if(player!=nullptr){
     player->setInteraction(nullptr);
     player = nullptr;
@@ -278,9 +279,8 @@ size_t InventoryMenu::pagesCount() const {
   }
 
 const InventoryMenu::Page &InventoryMenu::activePage() {
-  if(pageOth!=nullptr){
+  if(pageOth!=nullptr)
     return *(page==0 ? pageOth : pagePl);
-    }
   if(pagePl)
     return *pagePl;
 
@@ -342,6 +342,7 @@ void InventoryMenu::adjustScroll() {
   }
 
 void InventoryMenu::drawAll(Painter &p,Npc &player) {
+  renderer.reset();
   p.setFont(Resources::font());
   const int padd = 43;
 
@@ -501,6 +502,9 @@ void InventoryMenu::drawInfo(Painter &p) {
     if(val!=0)
       p.drawText(x+dw-tw-20,y+int((i+2)*p.font().pixelSize()),vint);
     }
+
+  const int sz=dh;
+  renderer.drawItem(x+dw-sz-sz/2,y,sz,sz,r);
   }
 
 void InventoryMenu::draw(CommandBuffer &cmd, uint32_t imgId) {

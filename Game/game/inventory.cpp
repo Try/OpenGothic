@@ -747,28 +747,37 @@ bool Inventory::less(Item &il, Item &ir) {
   return il.clsId()<ir.clsId();
   }
 
-int Inventory::orderId(Item &i) {
-  auto flag = Flags(i.mainFlag());
+std::pair<int, int> Inventory::orderId(Item &i) {
+  // TODO: invCatOrder = COMBAT,POTION,FOOD,ARMOR,MAGIC,RUNE,DOCS,OTHER,NONE
 
-  if(flag&ITM_CAT_NF)
-    return 0;
-  if(flag&ITM_CAT_FF)
-    return 1;
-  if(flag&ITM_CAT_MUN)
-    return 3;
-  if(flag&ITM_CAT_POTION)
-    return 4;
-  if(flag&ITM_CAT_FOOD)
-    return 5;
-  if(flag&ITM_CAT_ARMOR)
-    return 6;
-  if(flag&ITM_CAT_RUNE)
-    return 7;
-  if(flag&ITM_CAT_DOCS)
-    return 8;
-  if(flag&ITM_CAT_LIGHT)
-    return 9;
-  return 100;
+  // auto flg  = Flags(i.itemFlag());
+  auto mflg = Flags(i.mainFlag());
+
+  if(mflg&ITM_CAT_NF)
+    return std::make_pair(0,-i.handle()->damageTotal);
+  if(mflg&ITM_CAT_FF)
+    return std::make_pair(1,-i.handle()->damageTotal);
+  if(mflg&ITM_CAT_MUN)
+    return std::make_pair(2,i.clsId());
+  if(mflg&ITM_CAT_POTION)
+    return std::make_pair(3,-i.clsId());
+  if(mflg&ITM_CAT_FOOD)
+    return std::make_pair(4,-i.cost());
+  if(mflg&ITM_CAT_ARMOR)
+    return std::make_pair(5,-i.cost());
+  if(mflg&ITM_CAT_MAGIC)
+    return std::make_pair(6,-i.cost());
+  if(mflg&ITM_CAT_RUNE)
+    return std::make_pair(i.isSpell() ? 8 : 7,-i.cost());
+  if(mflg&ITM_CAT_DOCS)
+    return std::make_pair(9,-i.clsId());
+  if(mflg&ITM_CAT_LIGHT)
+    return std::make_pair(10,-i.cost());
+  if(mflg&ITM_CAT_NONE)
+    return std::make_pair(12,-i.cost());
+
+  // OTHER
+  return std::make_pair(11,-i.cost());
   }
 
 uint8_t Inventory::slotId(Item *&slt) const {

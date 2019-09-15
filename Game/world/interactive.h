@@ -46,7 +46,7 @@ class Interactive final {
     bool isAvailable() const;
     bool isLoopState() const { return loopState; }
     bool attach (Npc& npc);
-    void dettach(Npc& npc);
+    bool dettach(Npc& npc);
 
     void nextState();
     void prevState();
@@ -68,6 +68,7 @@ class Interactive final {
     void setDir(Npc& npc,const Tempest::Matrix4x4& mt);
     void attach(Npc& npc,Pos& to);
     void implAddItem(char *name);
+    void autoDettachNpc();
 
     const Pos* findFreePos() const;
     Pos*       findFreePos();

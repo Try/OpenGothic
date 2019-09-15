@@ -12,6 +12,8 @@ class InventoryRenderer {
     InventoryRenderer(const RendererStorage& storage);
 
     void draw(Tempest::CommandBuffer& cmd, uint32_t imgId);
+
+    void reset();
     void drawItem(int x, int y, int w, int h, const Item &item);
 
   private:

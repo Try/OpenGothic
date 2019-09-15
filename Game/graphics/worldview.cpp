@@ -171,8 +171,8 @@ void WorldView::updateAnimation(uint64_t tickCount) {
   animPool.updateAnimation(tickCount);
   }
 
-void WorldView::prebuiltCmdBuf(const World &world,const Texture2d& shadowMap,
-                               const RenderPass& mainPass,const RenderPass& shadowPass) {
+void WorldView::prebuiltCmdBuf(const World &world, const Texture2d& shadowMap,
+                               const RenderPass& mainPass, const RenderPass& shadowPass) {
   auto&  device = storage.device;
   size_t count  = device.maxFramesInFlight();
 
@@ -187,6 +187,7 @@ void WorldView::prebuiltCmdBuf(const World &world,const Texture2d& shadowMap,
     itmGroup.commitUbo(i,shadowMap);
     }
 
+  // cascade#0 detail shadow
   for(size_t i=0;i<count;++i) {
     auto cmd=device.commandSecondaryBuffer(shadowPass,shadowMap.w(),shadowMap.h());
 
@@ -199,6 +200,7 @@ void WorldView::prebuiltCmdBuf(const World &world,const Texture2d& shadowMap,
     cmdShadow[0].emplace_back(std::move(cmd));
     }
 
+  // cascade#1 shadow
   for(size_t i=0;i<count;++i) {
     auto cmd=device.commandSecondaryBuffer(shadowPass,shadowMap.w(),shadowMap.h());
     cmd.begin();

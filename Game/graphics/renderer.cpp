@@ -51,16 +51,18 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
   fbo3d.clear();
 
   zbuffer        = device.createTexture(zBufferFormat,w,h,false);
-  mainPass       = device.pass(Color(0.0),1.f,zbuffer.format());
+  mainPass       = device.pass(Attachment(Color(0.0),TextureFormat::Undefined), //FIXME
+                               Attachment(1.f,zbuffer.format()));
   shadowMapFinal = device.createTexture(shadowFormat,smSize,smSize,false);
 
   Sampler2d smp;
   smp.setClamping(ClampMode::ClampToBorder);
   smp.anisotropic = false;
 
-  shadowPass = device.pass(Color(1.0),1.f,shadowMapFinal.format(),zbuffer.format());
+  shadowPass = device.pass(Attachment(Color(1.0),shadowMapFinal.format()),
+                           Attachment(1.f,zbuffer.format()));
   for(int i=0;i<2;++i){
-    shadowMap[i] = device.createTexture(shadowFormat,smSize,smSize,false);
+    shadowMap[i] = device.createTexture(shadowFormat, smSize,smSize,false);
     shadowZ[i]   = device.createTexture(zBufferFormat,smSize,smSize,false);
     fboShadow[i] = device.frameBuffer(shadowMap[i],shadowZ[i]);
     shadowMap[i].setSampler(smp);
@@ -71,8 +73,8 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
     fbo3d.emplace_back(device.frameBuffer(frame,zbuffer));
     }
 
-  composePass    = device.pass(Color(0.0),shadowMapFinal.format());
-  fboCompose     = device.frameBuffer(shadowMapFinal);
+  composePass = device.pass(Attachment(Color(0.0),shadowMapFinal.format()));
+  fboCompose  = device.frameBuffer(shadowMapFinal);
   shadowMapFinal.setSampler(smp);
 
   if(auto wview=gothic.worldView())
@@ -80,6 +82,8 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
 
   uboShadowComp.set(0,shadowMap[0]);
   uboShadowComp.set(1,shadowMap[1]);
+
+  inventoryPass = device.pass(FboMode::Submit|FboMode::PreserveIn, Attachment(1.f,zbuffer.format()));
   }
 
 void Renderer::onWorldChanged() {
@@ -116,7 +120,8 @@ void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, const Gothic &got
 
   auto wview = gothic.worldView();
   if(wview!=nullptr) {
-    wview->updateCmd(*gothic.world(),shadowMapFinal,mainPass,shadowPass);
+    wview->updateCmd(*gothic.world(),shadowMapFinal,
+                     mainPass,shadowPass);
     wview->updateUbo(view,shadow,2,device.frameId());
 
     cmd.exchangeLayout(shadowMap[0],TextureLayout::Undefined,TextureLayout::ColorAttach);
@@ -137,7 +142,7 @@ void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, const Gothic &got
 void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, InventoryMenu &inventory) {
   FrameBuffer& fbo = fbo3d[imgId];
 
-  cmd.setPass(fbo,mainPass);
+  cmd.setPass(fbo,inventoryPass);
   inventory.draw(cmd,device.frameId());
   }
 
