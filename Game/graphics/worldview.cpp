@@ -40,16 +40,14 @@ const Light &WorldView::mainLight() const {
   }
 
 void WorldView::tick(uint64_t /*dt*/) {
+  //float k = 1.f-std::fabs(t-0.5f)*2.f;
+  //float  t = (Application::tickCount()%40000)/40000.f; // [0-1]
+
   float t = float(double(owner.time().timeInDay().toInt())/double(gtime(1,0,0).toInt()));
   t = std::fmod(t+0.5f,1.f);
-  //float k = 1.f-std::fabs(t-0.5f)*2.f;
-
-  //float  t = (Application::tickCount()%40000)/40000.f; // [0-1]
   float  k = std::fabs(t*2.f-1.f)*2.f-1.f;// [-1 - 0 - 1 - 0 - -1]
 
-  //static float k=0.2f;
-
-  float a  = std::max(0.f,k);
+  float a  = std::max(0.f,std::min(k*3.f,1.f));
   auto clr = Vec3(0.75f,0.75f,0.75f)*a;
   ambient  = Vec3(0.2f,0.2f,0.3f)*(1.f-a)+Vec3(0.25f,0.25f,0.25f)*a;
 

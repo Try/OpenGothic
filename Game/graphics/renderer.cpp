@@ -51,16 +51,14 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
   fbo3d.clear();
 
   zbuffer        = device.createTexture(zBufferFormat,w,h,false);
-  mainPass       = device.pass(Attachment(Color(0.0),TextureFormat::Undefined), //FIXME
-                               Attachment(1.f,zbuffer.format()));
+  mainPass       = device.pass(Attachment(FboMode::PreserveOut,Color(0.0)), Attachment(FboMode::Discard,1.f));
   shadowMapFinal = device.createTexture(shadowFormat,smSize,smSize,false);
 
   Sampler2d smp;
   smp.setClamping(ClampMode::ClampToBorder);
   smp.anisotropic = false;
 
-  shadowPass = device.pass(Attachment(Color(1.0),shadowMapFinal.format()),
-                           Attachment(1.f,zbuffer.format()));
+  shadowPass = device.pass(Attachment(FboMode::PreserveOut,Color(1.0)), Attachment(FboMode::Discard,1.f));
   for(int i=0;i<2;++i){
     shadowMap[i] = device.createTexture(shadowFormat, smSize,smSize,false);
     shadowZ[i]   = device.createTexture(zBufferFormat,smSize,smSize,false);
@@ -73,7 +71,7 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
     fbo3d.emplace_back(device.frameBuffer(frame,zbuffer));
     }
 
-  composePass = device.pass(Attachment(Color(0.0),shadowMapFinal.format()));
+  composePass = device.pass(FboMode::PreserveOut);
   fboCompose  = device.frameBuffer(shadowMapFinal);
   shadowMapFinal.setSampler(smp);
 
@@ -83,7 +81,7 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
   uboShadowComp.set(0,shadowMap[0]);
   uboShadowComp.set(1,shadowMap[1]);
 
-  inventoryPass = device.pass(FboMode::Submit|FboMode::PreserveIn, Attachment(1.f,zbuffer.format()));
+  inventoryPass = device.pass(FboMode::Submit|FboMode::PreserveIn, Attachment(FboMode::Discard,1.f));
   }
 
 void Renderer::onWorldChanged() {
