@@ -675,7 +675,6 @@ void MainWindow::render(){
         fLocal[i].gpuLock.wait();
         commandDynamic[i] = device.commandBuffer();
         }
-      //draw.updateCmd();
       }
 
     cmd.begin();

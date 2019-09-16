@@ -72,10 +72,10 @@ bool WorldView::needToUpdateCmd() const {
   }
 
 void WorldView::updateCmd(const World &world,const Tempest::Texture2d& shadow,
-                          const RenderPass& mainPass,const RenderPass& shadowPass) {
+                          const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay) {
   if(!needToUpdateCmd())
     return;
-  prebuiltCmdBuf(world,shadow,mainPass,shadowPass);
+  prebuiltCmdBuf(world,shadow,mainLay,shadowLay);
 
   vobGroup.setAsUpdated();
   objGroup.setAsUpdated();
@@ -104,10 +104,10 @@ void WorldView::updateUbo(const Matrix4x4& view,const Tempest::Matrix4x4* shadow
 
 void WorldView::drawShadow(PrimaryCommandBuffer &cmd, FrameBuffer &fbo,const RenderPass &pass,
                            uint32_t /*imgId*/, uint8_t layer) {
-  if(!cmdShadow[layer].empty()) {
-    const uint32_t fId=storage.device.frameId();
-    cmd.exec(fbo,pass,cmdShadow[layer][fId]);
-    }
+  if(cmdShadow[layer].empty())
+    return;
+  const uint32_t fId=storage.device.frameId();
+  cmd.exec(fbo,pass,cmdShadow[layer][fId]);
   }
 
 void WorldView::draw(PrimaryCommandBuffer &cmd, FrameBuffer &fbo, const RenderPass &pass, uint32_t /*imgId*/) {
@@ -172,7 +172,7 @@ void WorldView::updateAnimation(uint64_t tickCount) {
   }
 
 void WorldView::prebuiltCmdBuf(const World &world, const Texture2d& shadowMap,
-                               const RenderPass& mainPass, const RenderPass& shadowPass) {
+                               const FrameBufferLayout& mainLay,const FrameBufferLayout& shadowLay) {
   auto&  device = storage.device;
   size_t count  = device.maxFramesInFlight();
 
@@ -189,7 +189,7 @@ void WorldView::prebuiltCmdBuf(const World &world, const Texture2d& shadowMap,
 
   // cascade#0 detail shadow
   for(size_t i=0;i<count;++i) {
-    auto cmd=device.commandSecondaryBuffer(shadowPass,shadowMap.w(),shadowMap.h());
+    auto cmd=device.commandSecondaryBuffer(shadowLay);
 
     cmd.begin();
     land    .drawShadow(cmd,i,0);
@@ -202,7 +202,7 @@ void WorldView::prebuiltCmdBuf(const World &world, const Texture2d& shadowMap,
 
   // cascade#1 shadow
   for(size_t i=0;i<count;++i) {
-    auto cmd=device.commandSecondaryBuffer(shadowPass,shadowMap.w(),shadowMap.h());
+    auto cmd=device.commandSecondaryBuffer(shadowLay);
     cmd.begin();
     land.drawShadow(cmd,i,1);
     cmd.end();
@@ -210,7 +210,7 @@ void WorldView::prebuiltCmdBuf(const World &world, const Texture2d& shadowMap,
     }
 
   for(size_t i=0;i<count;++i) {
-    auto cmd=device.commandSecondaryBuffer(mainPass,vpWidth,vpHeight);
+    auto cmd=device.commandSecondaryBuffer(mainLay);
 
     cmd.begin();
     land    .draw(cmd,i);

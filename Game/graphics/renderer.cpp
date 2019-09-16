@@ -111,7 +111,7 @@ bool Renderer::needToUpdateCmd() {
 void Renderer::updateCmd() {
   if(auto wview=gothic.worldView()) {
     //wview->updateCmd(*gothic.world(),Resources::fallbackTexture());
-    wview->updateCmd(*gothic.world(),shadowMapFinal,mainPass,shadowPass);
+    wview->updateCmd(*gothic.world(),shadowMapFinal,fbo3d[0].layout(),fboShadow[0].layout());
     }
   }
 
@@ -121,7 +121,7 @@ void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, const Gothic &got
   auto wview = gothic.worldView();
   if(wview!=nullptr) {
     wview->updateCmd(*gothic.world(),shadowMapFinal,
-                     mainPass,shadowPass);
+                     fboFr.layout(),fboShadow->layout());
     wview->updateUbo(view,shadow,2,device.frameId());
 
     cmd.exchangeLayout(shadowMap[0],TextureLayout::Undefined,TextureLayout::ColorAttach);
