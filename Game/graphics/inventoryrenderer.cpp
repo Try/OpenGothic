@@ -100,13 +100,21 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
       mat.rotateOZ(invZ+itData.inv_rotz);
       mat.rotateOY(invY+itData.inv_roty);
       }
+    else if(flg&Inventory::ITM_CAT_DOCS) {
+      static const float invX = 180;
+      static const float invY = 90;
+      static const float invZ = -90;
+      mat.rotateOX(invX);
+      mat.rotateOZ(invZ);
+      mat.rotateOY(invY);
+      }
     else if(flg&Inventory::ITM_CAT_NONE) {
       static const float invX = 135;
       static const float invY = 90;
       static const float invZ = 45;
-      mat.rotateOX(invX+itData.inv_rotx);
-      mat.rotateOZ(invZ+itData.inv_rotz);
-      mat.rotateOY(invY+itData.inv_roty);
+      mat.rotateOX(invX-itData.inv_rotx);
+      mat.rotateOZ(invZ-itData.inv_rotz);
+      mat.rotateOY(invY-itData.inv_roty);
       } else {
       static const float invX = 180;
       static const float invY = -90;
