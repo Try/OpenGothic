@@ -31,8 +31,8 @@ class WorldView {
     void updateCmd (const World &world, const Tempest::Texture2d &shadow,
                     const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay);
     void updateUbo (const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4 *shadow, size_t shCount, uint32_t imgId);
-    void drawShadow(Tempest::PrimaryCommandBuffer &cmd, Tempest::FrameBuffer &fbo, const Tempest::RenderPass &pass, uint32_t imgId, uint8_t layer);
-    void draw      (Tempest::PrimaryCommandBuffer &cmd, Tempest::FrameBuffer &fbo, const Tempest::RenderPass &pass, uint32_t imgId);
+    void drawShadow(const Tempest::FrameBuffer &fbo, const Tempest::RenderPass &p, Tempest::PrimaryCommandBuffer &cmd, uint8_t layer);
+    void drawMain  (const Tempest::FrameBuffer &fbo, const Tempest::RenderPass &p, Tempest::PrimaryCommandBuffer &cmd);
     void resetCmd  ();
 
     StaticObjects::Mesh getView      (const std::string& visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
@@ -72,7 +72,7 @@ class WorldView {
     std::vector<Tempest::CommandBuffer> cmdShadow[2];
     std::vector<StaticObj>              objStatic;
 
-    void setupSunDir(float t, float pulse);
+    void setupSunDir(float pulse,float ang);
     void prebuiltCmdBuf(const World &world, const Tempest::Texture2d &shadowMap,
                         const Tempest::FrameBufferLayout &mainLay,
                         const Tempest::FrameBufferLayout &shadowLay);

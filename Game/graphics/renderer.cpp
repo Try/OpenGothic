@@ -117,24 +117,25 @@ void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, const Gothic &got
   FrameBuffer& fboFr = fbo3d[imgId];
 
   auto wview = gothic.worldView();
-  if(wview!=nullptr) {
-    wview->updateCmd(*gothic.world(),shadowMapFinal,
-                     fboFr.layout(),fboShadow->layout());
-    wview->updateUbo(view,shadow,2,device.frameId());
-
-    cmd.exchangeLayout(shadowMap[0],TextureLayout::Undefined,TextureLayout::ColorAttach);
-    cmd.exchangeLayout(shadowMap[1],TextureLayout::Undefined,TextureLayout::ColorAttach);
-
-    wview->drawShadow(cmd,fboShadow[0],shadowPass,imgId,0);
-    wview->drawShadow(cmd,fboShadow[1],shadowPass,imgId,1);
-
-    //composeShadow(cmd,fboFr);
-    composeShadow(cmd,fboCompose);
-
-    wview->draw(cmd,fboFr,mainPass,imgId);
-    } else {
+  if(wview==nullptr) {
+    // just clear
     cmd.setPass(fboFr,mainPass);
+    return;
     }
+
+  wview->updateCmd(*gothic.world(),shadowMapFinal,fboFr.layout(),fboShadow->layout());
+  wview->updateUbo(view,shadow,2,device.frameId());
+
+  cmd.exchangeLayout(shadowMap[0],TextureLayout::Undefined,TextureLayout::ColorAttach);
+  cmd.exchangeLayout(shadowMap[1],TextureLayout::Undefined,TextureLayout::ColorAttach);
+
+  for(uint8_t i=0;i<2;++i) {
+    cmd.setPass(fboShadow[i],shadowPass);
+    wview->drawShadow(fboShadow[i],shadowPass,cmd,i);
+    }
+
+  composeShadow(cmd,fboCompose);
+  wview->drawMain(fboFr,mainPass,cmd);
   }
 
 void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, InventoryMenu &inventory) {

@@ -40,26 +40,45 @@ const Light &WorldView::mainLight() const {
   }
 
 void WorldView::tick(uint64_t /*dt*/) {
-  //float k = 1.f-std::fabs(t-0.5f)*2.f;
-  //float  t = (Application::tickCount()%40000)/40000.f; // [0-1]
+  //float t     = float(double(owner.time().timeInDay().toInt())/double(gtime(1,0,0).toInt()));
+  //float t     = (Application::tickCount()%40000)/40000.f; // [0-1]
+  //float pulse = t*2.f-1.f;
 
-  float t = float(double(owner.time().timeInDay().toInt())/double(gtime(1,0,0).toInt()));
-  t = std::fmod(t+0.5f,1.f);
-  float  k = std::fabs(t*2.f-1.f)*2.f-1.f;// [-1 - 0 - 1 - 0 - -1]
+  const int64_t rise     = gtime(3,1).toInt();
+  const int64_t meridian = gtime(11,46).toInt();
+  const int64_t set      = gtime(20,32).toInt();
+  const int64_t midnight = gtime(1,0,0).toInt();
+  const int64_t now      = owner.time().timeInDay().toInt();
 
-  float a  = std::max(0.f,std::min(k*3.f,1.f));
+  float pulse = 0.f;
+  if(rise<=now && now<meridian){
+    pulse =  0.f + float(now-rise)/float(meridian-rise);
+    }
+  else if(meridian<=now && now<set){
+    pulse =  1.f - float(now-meridian)/float(set-meridian);
+    }
+  else if(set<=now){
+    pulse =  0.f - float(now-set)/float(midnight-set);
+    }
+  else if(now<rise){
+    pulse = -1.f + (float(now)/float(rise));
+    }
+
+  float k = float(now)/float(midnight);
+
+  float a  = std::max(0.f,std::min(pulse*3.f,1.f));
   auto clr = Vec3(0.75f,0.75f,0.75f)*a;
   ambient  = Vec3(0.2f,0.2f,0.3f)*(1.f-a)+Vec3(0.25f,0.25f,0.25f)*a;
 
-  setupSunDir(k,t);
+  setupSunDir(pulse,std::fmod(k+0.25f,1.f));
   sun.setColor(clr);
   }
 
-void WorldView::setupSunDir(float t,float pulse) {
-  float a  = 360-360*pulse;
+void WorldView::setupSunDir(float pulse,float ang) {
+  float a  = 360-360*ang;
   a = a*float(M_PI/180.0);
 
-  sun.setDir(std::cos(a),std::min(0.9f,-1.0f*t),std::sin(a));
+  sun.setDir(std::cos(a),std::min(0.9f,-1.0f*pulse),std::sin(a));
   }
 
 bool WorldView::needToUpdateCmd() const {
@@ -100,19 +119,18 @@ void WorldView::updateUbo(const Matrix4x4& view,const Tempest::Matrix4x4* shadow
   itmGroup.updateUbo   (imgId);
   }
 
-void WorldView::drawShadow(PrimaryCommandBuffer &cmd, FrameBuffer &fbo,const RenderPass &pass,
-                           uint32_t /*imgId*/, uint8_t layer) {
+void WorldView::drawShadow(const FrameBuffer &fbo, const RenderPass &p, PrimaryCommandBuffer &cmd, uint8_t layer) {
   if(cmdShadow[layer].empty())
     return;
   const uint32_t fId=storage.device.frameId();
-  cmd.exec(fbo,pass,cmdShadow[layer][fId]);
+  cmd.exec(fbo,p,cmdShadow[layer][fId]);
   }
 
-void WorldView::draw(PrimaryCommandBuffer &cmd, FrameBuffer &fbo, const RenderPass &pass, uint32_t /*imgId*/) {
-  if(!cmdMain.empty()) {
-    const uint32_t fId=storage.device.frameId();
-    cmd.exec(fbo,pass,cmdMain[fId]);
-    }
+void WorldView::drawMain(const FrameBuffer &fbo, const RenderPass &p, PrimaryCommandBuffer &cmd) {
+  if(cmdMain.empty())
+    return;
+  const uint32_t fId=storage.device.frameId();
+  cmd.exec(fbo,p,cmdMain[fId]);
   }
 
 void WorldView::resetCmd() {

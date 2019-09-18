@@ -38,11 +38,11 @@ float shadowVal(in vec2 uv, in float shPosZ, in int layer) {
   return ret*0.25;
   }
 
-float calcShadow(vec3 shPos0, vec3 shPos1){
+float calcShadow(vec3 shPos0, vec3 shPos1) {
   if(abs(shPos0.x)<0.99 && abs(shPos0.y)<0.99)
     return shadowVal(shPos0.xy*vec2(0.5,0.5)+vec2(0.5),shPos0.z,0);
 
-  if(abs(shPos1.x)<1.0 && abs(shPos1.y)<1.0)
+  if(abs(shPos1.x)<0.99 && abs(shPos1.y)<0.99)
     return implShadowVal(shPos1.xy*vec2(0.5,0.5)+vec2(0.5),shPos1.z,1);
 
   return 1.0;
@@ -57,7 +57,7 @@ void main() {
 #else
   float lambert = max(0.0,dot(inLight,normalize(inNormal)));
   vec3  shPos0  = (inShadowPos.xyz)/inShadowPos.w;
-  vec3  shPos1  = (inShadowPos.xyz*vec3(0.2))/inShadowPos.w;
+  vec3  shPos1  = shPos0*0.2;
 
   float light = lambert;
   light *= calcShadow(shPos0,shPos1);
@@ -72,6 +72,6 @@ void main() {
   //outColor = vec4(vec3(shMap),1.0);
   //outColor = vec4(vec3(light),1.0);
   //vec4 shMap = texture(textureSm,shPos1.xy*vec2(0.5,0.5)+vec2(0.5));
-  //outColor = vec4(vec3(shMap.rgb),1.0);
+  //outColor   = vec4(vec3(shMap.ggg),1.0);
 #endif
   }
