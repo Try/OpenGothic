@@ -717,7 +717,7 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     return animSequence(buf);
     }
 
-  if(Anim::Dialog1<=a && a<=Anim::Dialog10){
+  if(Anim::Dialog1<=a && a<=Anim::Dialog21){
     char buf[32]={};
     std::snprintf(buf,sizeof(buf),"T_DIALOGGESTURE_%02d",int(a-Anim::Dialog1+1));
     return animSequence(buf);
@@ -929,5 +929,13 @@ AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const
     return Anim::PotitionFast;
   if(name=="S_POTION_S0")
     return Anim::Potition1;
+  if(name.find("T_DIALOGGESTURE_")==0){
+    for(int i=Anim::Dialog1;i<=DialogLastG1;++i){
+      char buf[32]={};
+      std::snprintf(buf,sizeof(buf),"T_DIALOGGESTURE_%02d",int(i-Anim::Dialog1+1));
+      if(name==buf)
+        return Anim(i);
+      }
+    }
   return Anim::NoAnim;
   }
