@@ -104,13 +104,13 @@ Resources::~Resources() {
   }
 
 Font Resources::fontByName(const std::string &fontName) {
-  if(fontName=="FONT_OLD_10_WHITE.TGA"){
+  if(fontName=="FONT_OLD_10_WHITE.TGA" || fontName=="font_old_10_white.tga"){
     return Resources::font();
     }
   else if(fontName=="FONT_OLD_10_WHITE_HI.TGA"){
     return Resources::font();
     }
-  else if(fontName=="FONT_OLD_20_WHITE.TGA"){
+  else if(fontName=="FONT_OLD_20_WHITE.TGA" || fontName=="font_old_20_white.tga"){
     return Resources::menuFont();
     } else {
     return Resources::menuFont();
@@ -247,7 +247,7 @@ Animation *Resources::implLoadAnimation(std::string name) {
          name.rfind(".MDH")==name.size()-4)
         std::memcpy(&name[name.size()-3],"MSB",3);
       ZenLoad::ZenParser            zen(name,gothicAssets);
-      ZenLoad::ModelScriptBinParser p(zen);
+      ZenLoad::MdsParserBin         p(zen);
 
       std::unique_ptr<Animation> t{new Animation(p,name.substr(0,name.size()-4),false)};
       ret=t.get();
@@ -256,7 +256,7 @@ Animation *Resources::implLoadAnimation(std::string name) {
       if(name.rfind(".MDH")==name.size()-4)
         std::memcpy(&name[name.size()-3],"MDS",3);
       ZenLoad::ZenParser zen(name,gothicAssets);
-      ZenLoad::ModelScriptTextParser p(zen);
+      ZenLoad::MdsParserTxt p(zen);
 
       std::unique_ptr<Animation> t{new Animation(p,name.substr(0,name.size()-4),true)};
       ret=t.get();

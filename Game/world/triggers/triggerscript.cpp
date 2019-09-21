@@ -7,5 +7,10 @@ TriggerScript::TriggerScript(ZenLoad::zCVobData&& data, World &owner)
   }
 
 void TriggerScript::onTrigger(const TriggerEvent &) {
-  owner.script().runFunction(data.zCTriggerScript.scriptFunc.c_str());
+  try {
+    owner.script().runFunction(data.zCTriggerScript.scriptFunc.c_str());
+    }
+  catch(std::runtime_error& e){
+    Tempest::Log::e("exception in trigger-script: ",e.what());
+    }
   }

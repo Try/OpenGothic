@@ -302,7 +302,7 @@ bool Npc::resetPositionToTA() {
 void Npc::startDlgAnim() {
   if(weaponState()!=WeaponState::NoWeapon)
     return;
-  auto ani = std::rand()%10+Anim::Dialog1;
+  auto ani = std::rand()%(Anim::DialogLastG2-Anim::DialogFirst)+Anim::DialogFirst;
   animation.lastIdle = Anim::Idle;
   setAnim(Anim(ani));
   }
@@ -1619,15 +1619,21 @@ void Npc::tickRoutine() {
   if(aiState.started) {
     if(aiState.loopNextTime<=owner.tickCount()){
       aiState.loopNextTime+=1000; // one tick per second?
-      int loop = 1;
-      if(aiState.funcLoop!=size_t(-1)) // ZS_GETMEAT have no looping, for example
+      int loop = 0;
+      if(aiState.funcLoop!=size_t(-1)) {
         loop = owner.script().invokeState(this,currentOther,nullptr,aiState.funcLoop);
+        } else {
+        // ZS_DEATH   have no looping, in G1, G2 classic
+        // ZS_GETMEAT have no looping, at all
+        loop = aiState.funcIni==owner.script().getSymbolIndex("ZS_GETMEAT") ? 1 : 0;
+        }
+
       if(aiState.eTime<=owner.time()) {
         if(!isTalk()) {
           loop=1; // have to hack ZS_Talk bugs
           }
         }
-      if(loop!=0){
+      if(loop!=0) {
         owner.script().invokeState(this,currentOther,nullptr,aiState.funcEnd);
         currentOther = nullptr;
         aiPrevState  = aiState.funcIni;
@@ -2233,6 +2239,7 @@ bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType 
   if(hasPerc(perc)){
     owner.script().invokeState(this,&pl,victum,perception[perc].func);
     //currentOther=&pl;
+    perceptionNextTime=owner.tickCount()+perceptionTime;
     return true;
     }
   perceptionNextTime=owner.tickCount()+perceptionTime;
