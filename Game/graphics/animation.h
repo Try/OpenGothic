@@ -55,7 +55,7 @@ class Animation final {
       std::vector<ZMath::float3 >            tr;
 
       std::vector<ZenLoad::zCModelScriptEventSfx> sfx, gfx;
-      std::vector<ZenLoad::zCModelScriptEventTag> tag;
+      std::vector<ZenLoad::zCModelEvent>          tag;
       std::vector<ZenLoad::zCModelEvent>          events;
 
       std::vector<uint64_t>                       defHitEnd;   // hit-end time
@@ -71,7 +71,7 @@ class Animation final {
         void setupMoveTr();
       };
 
-    Animation(ZenLoad::ModelScriptParser& p, const std::string &name, bool ignoreErrChunks);
+    Animation(ZenLoad::MdsParser &p, const std::string &name, bool ignoreErrChunks);
 
     const Sequence *sequence(const char* name) const;
     void            debug() const;

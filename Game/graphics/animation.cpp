@@ -10,16 +10,16 @@
 
 using namespace Tempest;
 
-Animation::Animation(ZenLoad::ModelScriptParser &p,const std::string& name,const bool ignoreErrChunks) {
+Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ignoreErrChunks) {
   Sequence* current=nullptr;
   while(true) {
-    ZenLoad::ModelScriptParser::EChunkType type=p.parse();
+    ZenLoad::MdsParser::Chunk type=p.parse();
     switch (type) {
-      case ZenLoad::ModelScriptParser::CHUNK_EOF: {
+      case ZenLoad::MdsParser::CHUNK_EOF: {
         setupIndex();
         return;
         }
-      case ZenLoad::ModelScriptParser::CHUNK_ANI: {
+      case ZenLoad::MdsParser::CHUNK_ANI: {
         // p.ani().m_Name;
         // p.ani().m_Layer;
         // p.ani().m_BlendIn;
@@ -28,12 +28,12 @@ Animation::Animation(ZenLoad::ModelScriptParser &p,const std::string& name,const
         // p.ani().m_LastFrame;
         // p.ani().m_Dir;
 
-        auto& ani      = loadMAN(name+'-'+p.ani().m_Name+".MAN");
+        auto& ani      = loadMAN(name+'-'+p.ani.m_Name+".MAN");
         current        = &ani;
-        ani.flags      = Flags(p.ani().m_Flags);
-        ani.nextStr    = p.ani().m_Next;
-        ani.firstFrame = uint32_t(p.ani().m_FirstFrame);
-        ani.lastFrame  = uint32_t(p.ani().m_LastFrame);
+        ani.flags      = Flags(p.ani.m_Flags);
+        ani.nextStr    = p.ani.m_Next;
+        ani.firstFrame = uint32_t(p.ani.m_FirstFrame);
+        ani.lastFrame  = uint32_t(p.ani.m_LastFrame);
         if(ani.nextStr==ani.name)
           ani.animCls=Loop;
         if(ani.name=="S_2HATTACK")
@@ -41,56 +41,56 @@ Animation::Animation(ZenLoad::ModelScriptParser &p,const std::string& name,const
         break;
         }
 
-      case ZenLoad::ModelScriptParser::CHUNK_EVENT_SFX: {
+      case ZenLoad::MdsParser::CHUNK_EVENT_SFX: {
         if(current) {
           if(current->sfx.size()==0) {
-            current->sfx = std::move(p.sfx());
+            current->sfx = std::move(p.sfx);
             } else {
-            current->sfx.insert(current->sfx.end(), p.sfx().begin(), p.sfx().end());
-            p.sfx().clear();
+            current->sfx.insert(current->sfx.end(), p.sfx.begin(), p.sfx.end());
+            p.sfx.clear();
             }
           }
         break;
         }
-      case ZenLoad::ModelScriptParser::CHUNK_EVENT_SFX_GRND: {
+      case ZenLoad::MdsParser::CHUNK_EVENT_SFX_GRND: {
         if(current) {
           if(current->gfx.size()==0) {
-            current->gfx = std::move(p.sfx());
+            current->gfx = std::move(p.gfx);
             } else {
-            current->gfx.insert(current->gfx.end(), p.sfx().begin(), p.sfx().end());
-            p.sfx().clear();
+            current->gfx.insert(current->gfx.end(), p.gfx.begin(), p.gfx.end());
+            p.gfx.clear();
             }
           }
         break;
         }
-      case ZenLoad::ModelScriptParser::CHUNK_MODEL_TAG: {
+      case ZenLoad::MdsParser::CHUNK_MODEL_TAG: {
         if(current)
-          current->tag = std::move(p.tag());
+          current->tag = std::move(p.modelTag);
         break;
         }
-      case ZenLoad::ModelScriptParser::CHUNK_EVENT_PFX: {
-        p.pfx().clear();
+      case ZenLoad::MdsParser::CHUNK_EVENT_PFX: {
+        p.pfx.clear();
         break;
         }
-      case ZenLoad::ModelScriptParser::CHUNK_EVENT_PFX_STOP: {
-        p.pfxStop().clear();
+      case ZenLoad::MdsParser::CHUNK_EVENT_PFX_STOP: {
+        p.pfxStop.clear();
         break;
         }
-      case ZenLoad::ModelScriptParser::CHUNK_EVENT_TAG: {
+      case ZenLoad::MdsParser::CHUNK_EVENT_TAG: {
         if(current){
           if(current->events.size()==0) {
-            current->events = std::move(p.event());
+            current->events = std::move(p.eventTag);
             } else {
-            current->events.insert(current->events.end(), p.event().begin(), p.event().end());
-            p.event().clear();
+            current->events.insert(current->events.end(), p.eventTag.begin(), p.eventTag.end());
+            p.eventTag.clear();
             }
           }
         break;
         }
-      case ZenLoad::ModelScriptParser::CHUNK_MESH_AND_TREE:
-      case ZenLoad::ModelScriptParser::CHUNK_REGISTER_MESH:
+      case ZenLoad::MdsParser::CHUNK_MESH_AND_TREE:
+      case ZenLoad::MdsParser::CHUNK_REGISTER_MESH:
         break;
-      case ZenLoad::ModelScriptParser::CHUNK_ERROR:
+      case ZenLoad::MdsParser::CHUNK_ERROR:
         if(!ignoreErrChunks)
           throw std::runtime_error("animation load error");
         break;
