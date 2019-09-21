@@ -79,6 +79,9 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
 
   fallback = device.loadTexture("data/fallback.png");
 
+  Pixmap pm(1,1,Pixmap::Format::RGBA);
+  fbZero = device.loadTexture(pm);
+
   // TODO: priority for *.mod files
   std::vector<std::u16string> archives;
   Dir::scan(gothic.path()+u"Data/",[this,&archives](const std::u16string& vdf,Dir::FileType t){
@@ -118,6 +121,10 @@ const Texture2d& Resources::fallbackTexture() {
   return inst->fallback;
   }
 
+const Texture2d &Resources::fallbackBlack() {
+  return inst->fbZero;
+  }
+
 VDFS::FileIndex& Resources::vdfsIndex() {
   return inst->gothicAssets;
   }
@@ -139,8 +146,8 @@ Tempest::Texture2d* Resources::implLoadTexture(std::string name) {
 
   if(name.rfind(".TGA")==name.size()-4){
     auto n = name;
-    n.resize(n.size()-4);
-    n+="-C.TEX";
+    n.resize(n.size()+2);
+    std::memcpy(&n[0]+n.size()-6,"-C.TEX",6);
     if(!getFileData(n.c_str(),fBuff))
       return nullptr;
     ddsBuf.clear();

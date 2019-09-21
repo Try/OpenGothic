@@ -5,15 +5,19 @@
 #define iSteps 16
 #define jSteps 8
 
-layout(binding = 1) uniform sampler2D textureL0;
-layout(binding = 2) uniform sampler2D textureL1;
+layout(binding = 1) uniform sampler2D textureDayL0;
+layout(binding = 2) uniform sampler2D textureDayL1;
+
+layout(binding = 3) uniform sampler2D textureNightL0;
+layout(binding = 4) uniform sampler2D textureNightL1;
 
 layout(std140,binding = 0) uniform UniformBufferObject {
-  mat4 mvp;
-  vec4 color;
-  vec2 dxy0;
-  vec2 dxy1;
-  vec3 sunDir;
+  mat4  mvp;
+  vec4  color;
+  vec2  dxy0;
+  vec2  dxy1;
+  vec3  sunDir;
+  float night;
   } ubo;
 
 layout(location = 0) in vec2 inPos;
@@ -122,6 +126,20 @@ float phase(float alpha, float g) {
   return (a/b)*(c/d);
   }
 
+vec4 clounds(vec3 texc){
+  vec4 cloudDL1 = texture(textureDayL1,texc.zx*0.3+ubo.dxy1);
+  vec4 cloudDL0 = texture(textureDayL0,texc.zx*0.3+ubo.dxy0);
+  vec4 day      = (cloudDL0+cloudDL1);
+  return day;
+  }
+
+vec4 stars(vec3 texc){
+  vec4 cloudNL1 = texture(textureNightL1,texc.zx*0.3+ubo.dxy1);
+  vec4 cloudNL0 = texture(textureNightL0,texc.zx*0.6);
+  vec4 night    = (cloudNL0+cloudNL1);
+  return vec4(night.rgb,ubo.night);
+  }
+
 void main() {
   vec4  v      = ubo.mvp*vec4(inPos,1.0,1.0);
   vec3  view   = normalize(v.xyz);
@@ -148,12 +166,12 @@ void main() {
   color = 1.0 - exp(-1.0 * color);
 
   vec3 texc    = view.xyz/max(abs(view.y*2.0),0.001);
-  vec4 cloudL1 = texture(textureL1,texc.zx*0.3+ubo.dxy1);
-  vec4 cloudL0 = texture(textureL0,texc.zx*0.3+ubo.dxy0);
-  vec4 c       = (cloudL0+cloudL1);
-  vec3 cloud   = c.rgb*clamp(sunDir.y*2.0+0.1,0.1,1.0);
+  vec4 day     = clounds(texc);
+  //vec3 cloud   = c.rgb*clamp(sunDir.y*2.0+0.1,0.1,1.0);
+  vec4 night   = stars(texc);
+  vec4 cloud   = mix(day,night,ubo.night);
 
-  color        = mix(color,cloud,min(1.0,c.a));
+  color        = mix(color.rgb,cloud.rgb,min(1.0,cloud.a));
 
   outColor     = vec4(color,1.0);
   }

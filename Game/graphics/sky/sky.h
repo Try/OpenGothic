@@ -22,20 +22,14 @@ class Sky final {
     void commitUbo(uint32_t frameId);
     void draw(Tempest::CommandBuffer &cmd, uint32_t frameId, const World &world);
     void setLight(const std::array<float,3>& l);
+    void setDayNight(float dayF);
 
     struct Layer final {
       const Tempest::Texture2d* texture=nullptr;
-      float                     speed[2]={};
-      float                     scale=1.f;
-      float                     alpha=1.f;
       };
 
     struct State final {
-      Layer               lay[2];
-      //std::array<float,3> colorA, colorB;
-      std::array<float,3> fog;
-      bool                day=true;
-      float               time=0.f;
+      Layer lay[2];
       };
 
   private:
@@ -44,10 +38,10 @@ class Sky final {
       float              color[4]={};
       float              dxy0[2]={};
       float              dxy1[2]={};
-      float              sky [4]={};
+      float              sky [3]={};
+      float              night  =1.0;
       };
 
-    State                         interpolateState(float time);
     static std::array<float,3>    mkColor(uint8_t r,uint8_t g,uint8_t b);
     const Tempest::Texture2d*     skyTexture(const char* name, bool day, size_t id);
     const Tempest::Texture2d*     implSkyTexture(const char* name, bool day, size_t id);
@@ -57,7 +51,7 @@ class Sky final {
     UboChain<UboGlobal>           uboGpu;
     Tempest::VertexBuffer<Vertex> vbo;
 
-    State                         day;
+    State                         day, night;
     const World*                  world=nullptr;
 
     static std::array<float,3>    color;

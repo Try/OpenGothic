@@ -244,8 +244,14 @@ float Npc::angleDir(float x, float z) {
   }
 
 bool Npc::resetPositionToTA() {
-  if(routines.size()==0 || isDead())
-    return !isDead();
+  const auto npcType   = hnpc.npcType;
+  const bool isMainNpc = (npcType==Daedalus::GEngineClasses::NPCTYPE_MAIN ||
+                          npcType==Daedalus::GEngineClasses::NPCTYPE_OCMAIN ||
+                          npcType==Daedalus::GEngineClasses::NPCTYPE_BL_MAIN);
+  if(routines.size()==0 || (isDead() && !isMainNpc)) {
+    // remove bodyes of dead, non-main npc
+    return isMainNpc || !isDead();
+    }
 
   attachToPoint(nullptr);
   setInteraction(nullptr);
@@ -652,7 +658,7 @@ bool Npc::isInAir() const {
   }
 
 void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {
-  if(t<TALENT_MAX) {
+  if(t<TALENT_MAX_G2) {
     talentsSk[t] = lvl;
     if(t==TALENT_1H){
       if(lvl==0){
@@ -719,18 +725,18 @@ void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {
   }
 
 int32_t Npc::talentSkill(Npc::Talent t) const {
-  if(t<TALENT_MAX)
+  if(t<TALENT_MAX_G2)
     return talentsSk[t];
   return 0;
   }
 
 void Npc::setTalentValue(Npc::Talent t, int32_t lvl) {
-  if(t<TALENT_MAX)
+  if(t<TALENT_MAX_G2)
     talentsVl[t] = lvl;
   }
 
 int32_t Npc::talentValue(Npc::Talent t) const {
-  if(t<TALENT_MAX)
+  if(t<TALENT_MAX_G2)
     return talentsVl[t];
   return 0;
   }

@@ -47,7 +47,9 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
   vm->initDialogs(gothic);
   gothic.setLoadingProgress(70);
 
-  const char* hero = "PC_HERO";
+  const bool testMode=false;
+
+  const char* hero = testMode ? "PC_ROCKEFELLER" : "PC_HERO";
   //const char* hero = "PC_ROCKEFELLER";
   //const char* hero = "Giant_Bug";
   //const char* hero = "OrcWarrior_Rest";
@@ -59,7 +61,8 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
   wrld->createPlayer(hero);
   wrld->postInit();
 
-  initScripts(true);
+  if(!testMode)
+    initScripts(true);
   gothic.setLoadingProgress(96);
   }
 

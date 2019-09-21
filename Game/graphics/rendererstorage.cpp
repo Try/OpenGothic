@@ -51,6 +51,8 @@ RendererStorage::RendererStorage(Tempest::Device &device)
   layoutSky.add(0,Tempest::UniformsLayout::UboDyn, Tempest::UniformsLayout::Fragment);
   layoutSky.add(1,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
   layoutSky.add(2,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
+  layoutSky.add(3,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
+  layoutSky.add(4,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
 
   layoutComp.add(0,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);
   layoutComp.add(1,Tempest::UniformsLayout::Texture,Tempest::UniformsLayout::Fragment);

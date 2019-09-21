@@ -537,10 +537,7 @@ void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &itm
 void WorldObjects::resetPositionToTA() {
   for(size_t i=0;i<npcArr.size();) {
     auto& n = *npcArr[i];
-    if(n.resetPositionToTA() ||
-       n.handle()->npcType==Daedalus::GEngineClasses::NPCTYPE_MAIN ||
-       n.handle()->npcType==Daedalus::GEngineClasses::NPCTYPE_OCMAIN ||
-       n.handle()->npcType==Daedalus::GEngineClasses::NPCTYPE_BL_MAIN){
+    if(n.resetPositionToTA()){
       ++i;
       } else {
       npcInvalid.emplace_back(std::move(npcArr[i]));

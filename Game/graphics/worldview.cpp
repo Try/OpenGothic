@@ -72,6 +72,7 @@ void WorldView::tick(uint64_t /*dt*/) {
 
   setupSunDir(pulse,std::fmod(k+0.25f,1.f));
   sun.setColor(clr);
+  sky.setDayNight(std::min(std::max(pulse*3.f,0.f),1.f));
   }
 
 void WorldView::setupSunDir(float pulse,float ang) {
@@ -105,6 +106,7 @@ void WorldView::updateUbo(const Matrix4x4& view,const Tempest::Matrix4x4* shadow
 
   sky .setMatrix(imgId,viewProj);
   sky .setLight (sun.dir());
+
   land.setMatrix(imgId,viewProj,shadow,shCount);
   land.setLight (sun,ambient);
 

@@ -66,6 +66,7 @@ class Resources {
     static Tempest::Font font()       { return inst->mainFnt; }
 
     static const Tempest::Texture2d& fallbackTexture();
+    static const Tempest::Texture2d& fallbackBlack();
     static const Tempest::Texture2d* loadTexture(const char* name);
     static const Tempest::Texture2d* loadTexture(const std::string& name);
     static const Tempest::Texture2d* loadTexture(const std::string& name,int32_t v,int32_t c);
@@ -120,7 +121,7 @@ class Resources {
     MeshLoadCode          loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
     ZenLoad::zCModelMeshLib loadMDS (std::string& name);
 
-    Tempest::Texture2d fallback;
+    Tempest::Texture2d fallback, fbZero;
 
     using BindK = std::tuple<const Skeleton*,const ProtoMesh*,const std::string>;
     struct Hash {

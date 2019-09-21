@@ -146,7 +146,8 @@ class Npc final {
       TALENT_D                  = 20,
       TALENT_E                  = 21,
 
-      TALENT_MAX                = 22
+      TALENT_MAX_G1             = 12,
+      TALENT_MAX_G2             = 22
       };
 
     enum Attribute : uint8_t {
@@ -605,11 +606,11 @@ class Npc final {
 
     DynamicWorld::Item             physic;
 
-    WalkBit                        wlkMode              =WalkBit::WM_Run;
-    int32_t                        trGuild              =GIL_NONE;
-    int32_t                        talentsSk[TALENT_MAX]={};
-    int32_t                        talentsVl[TALENT_MAX]={};
-    uint64_t                       refuseTalkMilis      =0;
+    WalkBit                        wlkMode                 =WalkBit::WM_Run;
+    int32_t                        trGuild                 =GIL_NONE;
+    int32_t                        talentsSk[TALENT_MAX_G2]={};
+    int32_t                        talentsVl[TALENT_MAX_G2]={};
+    uint64_t                       refuseTalkMilis         =0;
 
     // attitude
     Attitude                       permAttitude=ATT_NULL;
