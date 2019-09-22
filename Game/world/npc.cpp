@@ -4,6 +4,7 @@
 #include <zenload/zCMaterial.h>
 
 #include "interactive.h"
+#include "graphics/visualfx.h"
 #include "graphics/skeleton.h"
 #include "graphics/posepool.h"
 #include "game/serialize.h"
@@ -1450,11 +1451,18 @@ void Npc::nextAiAction(uint64_t dt) {
         aiActions.push_front(std::move(act));
       break;
     case AI_DrawWeaponRange:
-      drawWeaponBow();
+      fghAlgo.onClearTarget();
+      if(!drawWeaponBow())
+        aiActions.push_front(std::move(act));
       break;
-    case AI_DrawSpell:
-      drawSpell(act.i0);
+    case AI_DrawSpell: {
+      const int32_t spell = act.i0;
+      fghAlgo.onClearTarget();
+      // invent.switchActiveSpell(spell,*this);
+      if(!drawSpell(spell))
+        aiActions.push_front(std::move(act));
       break;
+      }
     case AI_Atack:
       //atackMode=true;
       if(currentTarget!=nullptr){
@@ -1960,6 +1968,15 @@ bool Npc::drawWeaponBow() {
   }
 
 bool Npc::drawMage(uint8_t slot) {
+  Item* it = invent.currentSpell(slot-3);
+  if(it==nullptr) {
+    closeWeapon(false);
+    return true;
+    }
+  return drawSpell(it->spellId());
+  }
+
+bool Npc::drawSpell(int32_t spell) {
   auto weaponSt=invent.weaponState();
   if(weaponSt!=WeaponState::NoWeapon && weaponSt!=WeaponState::Mage) {
     closeWeapon(false);
@@ -1968,17 +1985,19 @@ bool Npc::drawMage(uint8_t slot) {
   Anim ani = animation.current==isStanding() ? Anim::Idle : Anim::Move;
   if(!setAnim(ani,weaponSt))
     return false;
-  invent.switchActiveWeapon(*this,slot);
+
+  invent.switchActiveSpell(spell,*this);
   hnpc.weapon = 7;
+
+  if(auto sp = invent.activeWeapon()){
+    if(const VisualFx* p = owner.loadVisualFx(sp->handle()->effect.c_str())){
+      const ParticleFx* pfx = owner.loadParticleFx(p->handle().visName_S.c_str());
+      (void)pfx;
+      }
+    }
 
   updateWeaponSkeleton();
   return true;
-  }
-
-void Npc::drawSpell(int32_t spell) {
-  invent.switchActiveSpell(spell,*this);
-  setAnim(animation.current,invent.weaponState());
-  updateWeaponSkeleton();
   }
 
 bool Npc::canFinish(Npc& oth) {

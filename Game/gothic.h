@@ -7,10 +7,13 @@
 #include <Tempest/Signal>
 #include <daedalus/DaedalusVM.h>
 
+#include "game/definitions/visualfxdefinitions.h"
 #include "game/definitions/sounddefinitions.h"
 #include "game/definitions/cameradefinitions.h"
 #include "game/definitions/musicdefinitions.h"
 #include "game/definitions/fightaidefinitions.h"
+#include "game/definitions/particlesdefinitions.h"
+
 #include "game/gamesession.h"
 #include "world/world.h"
 #include "utils/inifile.h"
@@ -46,6 +49,9 @@ class Gothic final {
 
     SoundFx*  loadSoundFx   (const char* name);
     SoundFx*  loadSoundWavFx(const char *name);
+
+    auto      loadParticleFx(const char* name) -> const ParticleFx*;
+    auto      loadVisualFx  (const char* name) -> const VisualFx*;
 
     void      emitGlobalSound(const char*        sfx);
     void      emitGlobalSound(const std::string& sfx);
@@ -134,6 +140,8 @@ class Gothic final {
     std::unique_ptr<FightAi>                fight;
     std::unique_ptr<CameraDefinitions>      camera;
     std::unique_ptr<SoundDefinitions>       soundDef;
+    std::unique_ptr<VisualFxDefinitions>    vfxDef;
+    std::unique_ptr<ParticlesDefinitions>   particleDef;
     std::unique_ptr<MusicDefinitions>       music;
     std::unique_ptr<IniFile>                iniFile;
 

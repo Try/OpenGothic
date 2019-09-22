@@ -61,11 +61,13 @@ Gothic::Gothic(const int argc, const char **argv) {
       wdef = "world.zen";
     }
 
-  iniFile .reset(new IniFile(u"Gothic.ini"));
-  fight   .reset(new FightAi(*this));
-  camera  .reset(new CameraDefinitions(*this));
-  soundDef.reset(new SoundDefinitions(*this));
-  music   .reset(new MusicDefinitions(*this));
+  iniFile    .reset(new IniFile(u"Gothic.ini"));
+  fight      .reset(new FightAi(*this));
+  camera     .reset(new CameraDefinitions(*this));
+  soundDef   .reset(new SoundDefinitions(*this));
+  particleDef.reset(new ParticlesDefinitions(*this));
+  vfxDef     .reset(new VisualFxDefinitions(*this));
+  music      .reset(new MusicDefinitions(*this));
   }
 
 bool Gothic::isGothic2() const {
@@ -159,6 +161,14 @@ SoundFx *Gothic::loadSoundWavFx(const char* name) {
     Tempest::Log::e("unable to load soundfx \"",name,"\"");
     return nullptr;
     }
+  }
+
+const VisualFx* Gothic::loadVisualFx(const char *name) {
+  return vfxDef->get(name);
+  }
+
+const ParticleFx* Gothic::loadParticleFx(const char *name) {
+  return particleDef->get(name);
   }
 
 void Gothic::emitGlobalSound(const char *sfx) {

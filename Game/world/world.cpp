@@ -178,6 +178,14 @@ DynamicWorld::Item World::getPhysic(const std::string& visual) {
   return physic()->ghostObj(zero,zero);
   }
 
+const VisualFx *World::loadVisualFx(const char *name) {
+  return game.loadVisualFx(name);
+  }
+
+const ParticleFx* World::loadParticleFx(const char *name) {
+  return game.loadParticleFx(name);
+  }
+
 void World::updateAnimation() {
   static bool doAnim=true;
   if(!doAnim)

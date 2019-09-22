@@ -6,7 +6,7 @@
 using namespace Tempest;
 
 SoundDefinitions::SoundDefinitions(Gothic &gothic) {
-  auto vm = gothic.createVm(u"_work/Data/Scripts/_compiled/SFX.dat");
+  auto vm = gothic.createVm(u"_work/Data/scripts/_compiled/SFX.dat");
 
   vm->getDATFile().iterateSymbolsOfClass("C_SFX",[this,&vm](size_t i,Daedalus::PARSymbol& s){
     Daedalus::GEngineClasses::C_SFX sfx;

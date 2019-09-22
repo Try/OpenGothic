@@ -17,6 +17,8 @@ class Npc;
 class Serialize;
 class GSoundEffect;
 class SoundFx;
+class ParticleFx;
+class VisualFx;
 class WorldStateStorage;
 
 class GameSession final {
@@ -47,6 +49,8 @@ class GameSession final {
     auto         loadScriptCode() -> std::vector<uint8_t>;
     SoundFx*     loadSoundFx(const char *name);
     SoundFx*     loadSoundWavFx(const char *name);
+    auto         loadParticleFx(const char* name) -> const ParticleFx*;
+    auto         loadVisualFx(const char* name) -> const VisualFx*;
     auto         loadSound(const Tempest::Sound& raw) -> Tempest::SoundEffect;
     auto         loadSound(const SoundFx&        fx)  -> GSoundEffect;
     void         emitGlobalSound(const Tempest::Sound& sfx);

@@ -467,6 +467,14 @@ void Inventory::switchActiveWeapon(Npc& owner,uint8_t slot) {
   }
 
 void Inventory::switchActiveSpell(int32_t spell, Npc& owner) {
+  for(uint8_t i=0;i<8;++i) {
+    auto s = numslot[i];
+    if(s!=nullptr && s->isSpellOrRune() && s->spellId()==spell){
+      switchActiveWeapon(owner,i+3);
+      return;
+      }
+    }
+
   for(auto& i:items)
     if(i->spellId()==spell){
       setSlot(numslot[0],i.get(),owner,true);

@@ -97,7 +97,7 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
       default:{
         static std::unordered_set<int> v;
         if(v.find(type)==v.end()){
-          Log::d("not implemented anim chunk: ",int(type));
+          //Log::d("not implemented anim chunk: ",int(type));
           v.insert(type);
           }
         break;
