@@ -42,7 +42,8 @@ const std::string& Interactive::focusName() const {
   }
 
 bool Interactive::checkMobName(const std::string &dest) const {
-  if(schemeName()==dest)
+  const char* scheme=schemeName();
+  if(scheme==dest)
     return true;
   return false;
   }
@@ -130,7 +131,7 @@ const char *Interactive::schemeName() const {
   else if(data.oCMOB.focusName=="MOBNAME_STOVE")
     tag = "STOVE";
   else if(data.oCMOB.focusName=="MOBNAME_BED")
-    tag = "BEDHIGH_BACK";
+    tag = "BEDHIGH";
   else if(data.oCMOB.focusName=="MOBNAME_BUCKET")
     tag = "BSCOOL";
   else if(data.oCMOB.focusName=="MOBNAME_RUNEMAKER")
@@ -145,6 +146,8 @@ const char *Interactive::schemeName() const {
     tag = "DOOR_BACK";
   else if(data.oCMOB.focusName=="MOBNAME_WINEMAKER")
     tag = "HERB";
+  else if(data.oCMOB.focusName=="MOBNAME_BOOKSTAND")
+    tag = "BOOK";
   else if(data.visual=="TREASURE_ADDON_01.ASC")
     tag = "TREASURE";
   else if(data.visual=="LEVER_1_OC.MDS")
@@ -357,6 +360,12 @@ AnimationSolver::Sequence Interactive::anim(const AnimationSolver &solver, Anim 
   int         st[]     = {state,state+t};
   char        ss[2][8] = {};
   const char* tag      = schemeName();
+  const char* point    = "";
+
+  for(auto& i:pos)
+    if(i.user!=nullptr) {
+      point = i.posTag();
+      }
 
   st[1] = std::max(-1,std::min(st[1],data.oCMobInter.stateNum));
 
@@ -370,8 +379,8 @@ AnimationSolver::Sequence Interactive::anim(const AnimationSolver &solver, Anim 
 
   loopState = (st[0]==st[1]);
   if(loopState)
-    std::snprintf(buf,sizeof(buf),"S_%s_%s",tag,ss[0]); else
-    std::snprintf(buf,sizeof(buf),"T_%s_%s_2_%s",tag,ss[0],ss[1]);
+    std::snprintf(buf,sizeof(buf),"S_%s%s_%s",tag,point,ss[0]); else
+    std::snprintf(buf,sizeof(buf),"T_%s%s_%s_2_%s",tag,point,ss[0],ss[1]);
   return solver.animSequence(buf);
   }
 
@@ -393,6 +402,14 @@ void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x
 
     p.drawRect(int(x),int(y),1,1);
     }
+  }
+
+const char *Interactive::Pos::posTag() const {
+  if(name=="ZS_POS0_FRONT")
+    return "_FRONT";
+  if(name=="ZS_POS1_BACK")
+    return "_BACK";
+  return "";
   }
 
 bool Interactive::Pos::isAttachPoint() const {

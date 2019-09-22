@@ -61,6 +61,8 @@ class Interactive final {
       std::string        name;
       size_t             node=0;
       Tempest::Matrix4x4 pos;
+
+      const char*        posTag() const;
       bool               isAttachPoint() const;
       };
 
