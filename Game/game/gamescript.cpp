@@ -351,6 +351,14 @@ void GameScript::initCommon() {
     if(viewTimePerChar<=0.f)
       viewTimePerChar=0.55f;
     } else {
+    itMi_Gold      = dat.getSymbolIndexByName("ItMiNugget");
+    if(itMi_Gold!=size_t(-1)){ // FIXME
+      Daedalus::GEngineClasses::C_Item item={};
+      vm.initializeInstance(item, itMi_Gold, Daedalus::IC_Item);
+      clearReferences(item);
+      goldTxt = cp1251::toUtf8(item.name);
+      }
+    //
     tradeValMult   = 1.f;
     viewTimePerChar=0.55f;
     }
