@@ -36,8 +36,8 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
         ani.lastFrame  = uint32_t(p.ani.m_LastFrame);
         if(ani.nextStr==ani.name)
           ani.animCls=Loop;
-        if(ani.name=="S_2HATTACK")
-          Log::i("");
+        //if(ani.name=="S_2HATTACK")
+        //  Log::i("");
         break;
         }
 
@@ -144,6 +144,8 @@ void Animation::setupIndex() {
         setupTime(sq.defHitEnd,r.m_Int,sq.fpsRate);
       if(r.m_Def==ZenLoad::DEF_OPT_FRAME)
         setupTime(sq.defOptFrame,r.m_Int,sq.fpsRate);
+      if(r.m_Def==ZenLoad::DEF_PAR_FRAME)
+        setupTime(sq.defParFrame,r.m_Int,sq.fpsRate);
       if(r.m_Def==ZenLoad::DEF_DRAWSOUND)
         setupTime(sq.defDraw,r.m_Int,sq.fpsRate);
       if(r.m_Def==ZenLoad::DEF_UNDRAWSOUND)
@@ -219,6 +221,12 @@ bool Animation::Sequence::isAtackFinished(uint64_t t) const {
     if(t>i)
       return true;
   return t>=totalTime();// || t>=1000;
+  }
+
+bool Animation::Sequence::isParWindow(uint64_t t) const {
+  if(defParFrame.size()!=2)
+    return false;
+  return defParFrame[0]<=t && t<defParFrame[1];
   }
 
 float Animation::Sequence::totalTime() const {

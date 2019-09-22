@@ -173,6 +173,7 @@ class AnimationSolver final {
 
       bool  isFinished(uint64_t t) const { return l1->isFinished(t); }
       bool  isAtackFinished(uint64_t t) const { return l1->isAtackFinished(t); }
+      bool  isParWindow(uint64_t t) const { return l1->isParWindow(t); }
       void  processEvents(uint64_t& barrier,uint64_t sTime,uint64_t now, Animation::EvCount& ev) const {
         if(l1)
           l1->processEvents(barrier,sTime,now,ev);

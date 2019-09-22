@@ -1142,7 +1142,8 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
   owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
 
   auto ani=anim();
-  if((ani!=Anim::MoveBack && ani!=Anim::AtackBlock) || b!=nullptr) {
+  bool isBlock = animation.animSq.isParWindow(owner.tickCount()-animation.sAnim);
+  if((ani!=Anim::MoveBack && ani!=Anim::AtackBlock && !isBlock) || b!=nullptr) {
     perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
     owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
 
@@ -1151,15 +1152,16 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
     implFaiWait(0);
     if(!isPlayer())
       setOther(lastHit);
-    int dmg = isImmortal() ? 0 : other.damageValue(*this,b);
+    auto hitResult = other.damageValue(*this,b);
+    int dmg = isImmortal() ? 0 : std::get<0>(hitResult);
     if(isPlayer() && owner.script().isRamboMode())
       dmg = std::min(1,dmg);
 
+    if(!isDown() && std::get<1>(hitResult)>0)
+      owner.emitWeaponsSound(other,*this);
+
     if(dmg<=0)
       return;
-
-    if(!isDown())
-      owner.emitWeaponsSound(other,*this);
     changeAttribute(ATR_HITPOINTS,-dmg,b==nullptr);
 
     if(isUnconscious()){
@@ -1189,14 +1191,14 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
     }
   }
 
-int Npc::damageValue(Npc &other, const Bullet* b) const {
+std::tuple<int,bool> Npc::damageValue(Npc &other, const Bullet* b) const {
   int value = 0;
 
   if(b!=nullptr) {
     // Bow/CBow
     const float maxRange = 3500; // from Focus_Ranged
     if(b->pathLength()>maxRange*b->hitChance() && b->hitChance()<1.f)
-      return 0;
+      return std::make_tuple(0,false);
 
     auto dmg = b->damage();
     for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
@@ -1227,7 +1229,9 @@ int Npc::damageValue(Npc &other, const Bullet* b) const {
         value += vd;
       }
     }
-  return std::max(value,3);
+
+  int damage = std::max(value,3);
+  return std::make_tuple(damage,true);
   }
 
 std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> Npc::rangeDamageValue() const {

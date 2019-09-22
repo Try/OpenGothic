@@ -575,7 +575,7 @@ class Npc final {
     bool                           setAnim(Npc::Anim a, WeaponState st);
     void                           commitDamage();
     void                           takeDamage(Npc& other);
-    int                            damageValue(Npc &other, const Bullet *b) const;
+    std::tuple<int, bool>          damageValue(Npc &other, const Bullet *b) const;
     auto                           rangeDamageValue() const -> std::array<int32_t, Daedalus::GEngineClasses::DAM_INDEX_MAX>;
     int32_t                        damageTypeMask() const;
     Npc*                           updateNearestEnemy();

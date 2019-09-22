@@ -32,6 +32,7 @@ class Animation final {
       bool                                   isFly()  const { return bool(flags&Flags::Fly);  }
       bool                                   isFinished(uint64_t t) const;
       bool                                   isAtackFinished(uint64_t t) const;
+      bool                                   isParWindow(uint64_t t) const;
       float                                  totalTime() const;
       void                                   processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const;
 
@@ -60,6 +61,7 @@ class Animation final {
 
       std::vector<uint64_t>                       defHitEnd;   // hit-end time
       std::vector<uint64_t>                       defOptFrame; // damage commitment timings
+      std::vector<uint64_t>                       defParFrame; // block timings
       std::vector<uint64_t>                       defDraw;     // draw-weapon sound
       std::vector<uint64_t>                       defUndraw;   // undraw sound
 
