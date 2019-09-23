@@ -10,12 +10,13 @@ class RendererStorage {
     RendererStorage(Tempest::Device& device);
 
     Tempest::Device&        device;
-    Tempest::RenderPipeline pLand, pLandAlpha, pObject, pAnim, pSky;
+    Tempest::RenderPipeline pLand, pLandAlpha, pObject, pAnim, pPfx, pSky;
     Tempest::RenderPipeline pLandSh, pObjectSh, pAnimSh;
     Tempest::RenderPipeline pComposeShadow;
 
     const Tempest::UniformsLayout& uboObjLayout() const { return layoutObj; }
     const Tempest::UniformsLayout& uboLndLayout() const { return layoutLnd; }
+    const Tempest::UniformsLayout& uboPfxLayout() const { return layoutLnd; }
     const Tempest::UniformsLayout& uboSkyLayout() const { return layoutSky; }
     const Tempest::UniformsLayout& uboComposeLayout() const { return layoutComp; }
 
@@ -31,7 +32,7 @@ class RendererStorage {
 
     Tempest::Shader         vsSky,fsSky;
     Tempest::Shader         vsComp,fsComp;
-    Material                land, object, ani;
+    Material                land, object, ani, pfx;
 
     void initPipeline();
     void initShadow();

@@ -167,6 +167,10 @@ StaticObjects::Mesh World::getView(const std::string &visual, int32_t headTex, i
   return view()->getView(visual,headTex,teetTex,bodyColor);
   }
 
+PfxObjects::Emitter World::getView(const ParticleFx *decl) const {
+  return view()->getView(decl);
+  }
+
 StaticObjects::Mesh World::getStaticView(const std::string &visual, int32_t tex) const {
   return view()->getStaticView(visual,tex);
   }

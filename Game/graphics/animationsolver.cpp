@@ -215,6 +215,7 @@ void AnimationSolver::updateAnimation(uint64_t tickCount) {
     if(armour.isEmpty())
       view  .setSkeleton(*skInst,pos); else
       armour.setSkeleton(*skInst,pos);
+    pfx.setPosition(pos.at(3,0),pos.at(3,1),pos.at(3,2));
     }
   }
 

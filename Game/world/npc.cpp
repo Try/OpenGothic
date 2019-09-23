@@ -1990,10 +1990,9 @@ bool Npc::drawSpell(int32_t spell) {
   hnpc.weapon = 7;
 
   if(auto sp = invent.activeWeapon()){
-    if(const VisualFx* p = owner.loadVisualFx(sp->handle()->effect.c_str())){
-      const ParticleFx* pfx = owner.loadParticleFx(p->handle().visName_S.c_str());
-      (void)pfx;
-      }
+    const ParticleFx* pfx      = owner.script().getSpellFx(sp->spellId());
+    auto              vemitter = owner.getView(pfx);
+    animation.pfx = std::move(vemitter);
     }
 
   updateWeaponSkeleton();

@@ -8,7 +8,8 @@
 using namespace Tempest;
 
 WorldView::WorldView(const World &world, const ZenLoad::PackedMesh &wmesh, const RendererStorage &storage)
-  :owner(world),storage(storage),sky(storage),land(storage,wmesh),vobGroup(storage),objGroup(storage),itmGroup(storage) {
+  :owner(world),storage(storage),sky(storage),land(storage,wmesh),
+    vobGroup(storage),objGroup(storage),itmGroup(storage),pfxGroup(storage) {
   sky.setWorld(owner);
   vobGroup.reserve(8192,0);
   objGroup.reserve(8192,2048);
@@ -86,7 +87,8 @@ bool WorldView::needToUpdateCmd() const {
   return nToUpdateCmd ||
          vobGroup.needToUpdateCommands() ||
          objGroup.needToUpdateCommands() ||
-         itmGroup.needToUpdateCommands();
+         itmGroup.needToUpdateCommands() ||
+         pfxGroup.needToUpdateCommands();
   }
 
 void WorldView::updateCmd(const World &world,const Tempest::Texture2d& shadow,
@@ -98,6 +100,7 @@ void WorldView::updateCmd(const World &world,const Tempest::Texture2d& shadow,
   vobGroup.setAsUpdated();
   objGroup.setAsUpdated();
   itmGroup.setAsUpdated();
+  pfxGroup.setAsUpdated();
   nToUpdateCmd=false;
   }
 
@@ -119,6 +122,9 @@ void WorldView::updateUbo(const Matrix4x4& view,const Tempest::Matrix4x4* shadow
   itmGroup.setModelView(viewProj,shadow[0]);
   itmGroup.setLight    (sun,ambient);
   itmGroup.updateUbo   (imgId);
+  pfxGroup.setModelView(viewProj,shadow[0]);
+  pfxGroup.setLight    (sun,ambient);
+  pfxGroup.updateUbo   (imgId);
   }
 
 void WorldView::drawShadow(const FrameBuffer &fbo, const RenderPass &p, PrimaryCommandBuffer &cmd, uint8_t layer) {
@@ -144,7 +150,6 @@ void WorldView::resetCmd() {
   nToUpdateCmd=true;
   }
 
-
 StaticObjects::Mesh WorldView::getView(const std::string &visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
   if(auto mesh=Resources::loadMesh(visual))
     return objGroup.get(*mesh,headTex,teethTex,bodyColor);
@@ -155,6 +160,12 @@ StaticObjects::Mesh WorldView::getStaticView(const std::string &visual,int32_t m
   if(auto mesh=Resources::loadMesh(visual))
     return itmGroup.get(*mesh,material,0,material);
   return StaticObjects::Mesh();
+  }
+
+PfxObjects::Emitter WorldView::getView(const ParticleFx *decl) {
+  if(decl!=nullptr)
+    return pfxGroup.get(*decl);
+  return PfxObjects::Emitter();
   }
 
 void WorldView::addStatic(const ZenLoad::zCVobData &vob) {
@@ -201,8 +212,8 @@ void WorldView::prebuiltCmdBuf(const World &world, const Texture2d& shadowMap,
     land    .commitUbo(i,shadowMap);
     vobGroup.commitUbo(i,shadowMap);
     objGroup.commitUbo(i,shadowMap);
-
     itmGroup.commitUbo(i,shadowMap);
+    pfxGroup.commitUbo(i,shadowMap);
     }
 
   // cascade#0 detail shadow
@@ -236,6 +247,7 @@ void WorldView::prebuiltCmdBuf(const World &world, const Texture2d& shadowMap,
     objGroup.draw(cmd,i);
     itmGroup.draw(cmd,i);
     sky     .draw(cmd,i,world);
+    pfxGroup.draw(cmd,i);
     cmd.end();
 
     cmdMain.emplace_back(std::move(cmd));

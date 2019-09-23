@@ -27,6 +27,7 @@ RendererStorage::RendererStorage(Tempest::Device &device)
   land  .load(device,"land");
   object.load(device,"object");
   ani   .load(device,"anim");
+  pfx   .load(device,"pfx");
 
   vsSky = device.loadShader("shader/sky.vert.sprv");
   fsSky = device.loadShader("shader/sky.frag.sprv");
@@ -79,6 +80,10 @@ void RendererStorage::initPipeline() {
   RenderState stateFsq;
   stateFsq.setZTestMode   (RenderState::ZTestMode::LEqual);
   stateFsq.setCullFaceMode(RenderState::CullMode::Front);
+
+  RenderState statePfx;
+  statePfx.setZTestMode   (RenderState::ZTestMode::LEqual);
+  statePfx.setCullFaceMode(RenderState::CullMode::Front);
   
   pSky           = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutSky, vsSky,  fsSky );
   pComposeShadow = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutComp,vsComp, fsComp);
@@ -88,6 +93,8 @@ void RendererStorage::initPipeline() {
 
   pObject        = device.pipeline<Resources::Vertex>   (Triangles,stateObj,layoutObj,object.vs,object.fs);
   pAnim          = device.pipeline<Resources::VertexA>  (Triangles,stateObj,layoutAni,ani.vs,   ani.fs   );
+
+  pPfx           = device.pipeline<Resources::Vertex>   (Triangles,stateLnd,layoutLnd,pfx.vs,pfx.fs);
   }
 
 void RendererStorage::initShadow() {

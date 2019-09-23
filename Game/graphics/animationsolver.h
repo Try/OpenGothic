@@ -7,6 +7,7 @@
 #include "game/inventory.h"
 #include "game/constants.h"
 #include "staticobjects.h"
+#include "pfxobjects.h"
 #include "animation.h"
 
 class Skeleton;
@@ -230,6 +231,7 @@ class AnimationSolver final {
     StaticObjects::Mesh            head;
     StaticObjects::Mesh            view;
     StaticObjects::Mesh            sword, bow, armour;
+    PfxObjects::Emitter            pfx;
 
     std::shared_ptr<Pose>          skInst;
     const Skeleton*                skeleton=nullptr;

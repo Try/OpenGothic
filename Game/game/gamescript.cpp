@@ -1,10 +1,11 @@
 #include "gamescript.h"
 
 #include "game/definitions/spelldefinitions.h"
+#include "game/serialize.h"
+#include "graphics/visualfx.h"
 #include "gothic.h"
 #include "world/npc.h"
 #include "world/item.h"
-#include "game/serialize.h"
 #include "utils/cp1251.h"
 
 #include <fstream>
@@ -666,6 +667,23 @@ const Daedalus::GEngineClasses::C_Spell &GameScript::getSpell(int32_t splId) {
   return spells->find(tag);
   }
 
+const ParticleFx* GameScript::getSpellFx(int32_t splId) {
+  auto& spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
+  auto& tag       = spellInst.getString(size_t(splId));
+
+  const char* key = "";//"_KEY_INIT";
+
+  char name[256]={};
+  std::snprintf(name,sizeof(name),"spellFX_%s%s",tag.c_str(),key);
+
+  const VisualFx* vfx = owner.loadVisualFx(name);
+  if(vfx==nullptr)
+    return nullptr;
+
+  const ParticleFx* pfx = owner.loadParticleFx(vfx->handle().visName_S.c_str());
+  return pfx;
+  }
+
 std::vector<GameScript::DlgChoise> GameScript::dialogChoises(Daedalus::GEngineClasses::C_Npc* player,
                                                                Daedalus::GEngineClasses::C_Npc* hnpc,
                                                                const std::vector<uint32_t>& except,
@@ -1264,7 +1282,8 @@ void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
   auto               npc0     = popInstance(vm);
   const std::string& visual   = vm.popString();
 
-  Log::i("effect not implemented [",visual,"]");
+  const ParticleFx* pfx = owner.loadParticleFx(visual.c_str());
+  Log::i("effect not implemented [",visual," ",reinterpret_cast<const void*>(pfx),"]");
   }
 
 void GameScript::wld_stopeffect(Daedalus::DaedalusVM &vm) {

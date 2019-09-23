@@ -14,6 +14,9 @@ glslangValidator -V -DOBJ                        anim.frag   -o object.frag.sprv
 glslangValidator -V -DOBJ -DSKINING              anim.vert   -o anim.vert.sprv
 glslangValidator -V -DOBJ -DSKINING              anim.frag   -o anim.frag.sprv
 
+glslangValidator -V                              anim.vert   -o pfx.vert.sprv
+glslangValidator -V                              anim.frag   -o pfx.frag.sprv
+
 
 glslangValidator -V -DSHADOW_MAP                 anim.vert   -o land_shadow.vert.sprv
 glslangValidator -V -DSHADOW_MAP                 anim.frag   -o land_shadow.frag.sprv
@@ -23,3 +26,6 @@ glslangValidator -V -DOBJ -DSHADOW_MAP           anim.frag   -o object_shadow.fr
 
 glslangValidator -V -DOBJ -DSKINING -DSHADOW_MAP anim.vert   -o anim_shadow.vert.sprv
 glslangValidator -V -DOBJ -DSKINING -DSHADOW_MAP anim.frag   -o anim_shadow.frag.sprv
+
+glslangValidator -V -DSHADOW_MAP                 anim.vert   -o pfx_shadow.vert.sprv
+glslangValidator -V -DSHADOW_MAP                 anim.frag   -o pfx_shadow.frag.sprv
