@@ -897,7 +897,13 @@ int GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
 
   ScopeVar self (vm, vm.globalSelf(),  npc);
   ScopeVar other(vm, vm.globalOther(), target);
-  return runFunction(fn);
+  try {
+    return runFunction(fn);
+    }
+  catch(...){
+    Log::d("unable to call spell-script: \"",str,"\'");
+    return 0;
+    }
   }
 
 int GameScript::spellCastAnim(Npc&, Item &it) {
