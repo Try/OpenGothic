@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <list>
+#include <random>
 
 #include "resources.h"
 #include "ubochain.h"
@@ -30,16 +31,19 @@ class PfxObjects final {
 
         Emitter(const Emitter&)=delete;
 
-        void setPosition(float x,float y,float z);
+        void   setPosition(float x,float y,float z);
 
-        //void   setSkeleton(const Skeleton* sk,const char* defBone=nullptr);
-        //void   setSkeleton(const Pose&      p,const Tempest::Matrix4x4& obj);
+        void   setAttachPoint(const Skeleton* skeleton,const char* defBone=nullptr);
+        void   setSkeleton   (const Pose& p,const Tempest::Matrix4x4& obj);
+        void   setObjMatrix  (const Tempest::Matrix4x4& mt);
 
       private:
         Emitter(Bucket &b,size_t id);
 
-        Bucket* bucket=nullptr;
-        size_t  id=0;
+        Bucket*         bucket  =nullptr;
+        const Skeleton* skeleton=nullptr;
+        size_t          id      =0;
+        size_t          boneId  =size_t(-1);
 
       friend class PfxObjects;
       };
@@ -52,7 +56,7 @@ class PfxObjects final {
     bool    needToUpdateCommands() const;
     void    setAsUpdated();
 
-    void    updateUbo(uint32_t imgId);
+    void    updateUbo(uint32_t imgId, uint64_t ticks);
     void    commitUbo(uint32_t imgId, const Tempest::Texture2d &shadowMap);
     void    draw     (Tempest::CommandBuffer &cmd, uint32_t imgId);
 
@@ -74,29 +78,53 @@ class PfxObjects final {
       Tempest::VertexBufferDyn<Vertex> vbo;
       };
 
-    struct ImplEmitter {
-      float pos[3]={};
-      bool  enable=true;
+    struct ImplEmitter final {
+      float    pos[3]={};
+      bool     alive=true;
+      size_t   offset=0;
+      size_t   size=0;
+
+      uint64_t timeTotal=0;
+      uint64_t emited=0;
+      };
+
+    struct ParState final {
+      uint16_t      life=0,maxLife=1;
+      Tempest::Vec3 pos, dir;
+
+      float         rotation=0.f, drotation=0.f;
+
+      float         lifeTime() const;
       };
 
     struct Bucket final {
-      Bucket(const RendererStorage& storage,const ParticleFx &ow);
+      Bucket(const RendererStorage& storage,const ParticleFx &ow,PfxObjects* parent);
       std::unique_ptr<PerFrame[]> pf;
 
       std::vector<Vertex>         vbo;
-      std::vector<ImplEmitter>    impl;
+      std::vector<ParState>       particles;
 
+      std::vector<ImplEmitter>    impl;
       const ParticleFx*           owner=nullptr;
+      PfxObjects*                 parent=nullptr;
+
+      size_t                      alloc(size_t size);
+      void                        init(size_t particle);
+      void                        finalize(size_t particle);
+      void                        shrink();
       };
 
-    Bucket&                getBucket(const ParticleFx& decl);
-    void                   tickSys(Bucket& b);
+    static float                  randf();
+    Bucket&                       getBucket(const ParticleFx& decl);
+    void                          tickSys (Bucket& b, uint64_t dt);
+    void                          buildVbo(Bucket& b);
 
-    const RendererStorage&   storage;
-    std::list<Bucket>        bucket;
+    const RendererStorage&        storage;
+    std::list<Bucket>             bucket;
 
-    UboChain<UboGlobal,void> uboGlobalPf;
-    UboGlobal                uboGlobal;
-    bool                     updateCmd=false;
+    static std::mt19937           rndEngine;
+    UboChain<UboGlobal,void>      uboGlobalPf;
+    UboGlobal                     uboGlobal;
+    uint64_t                      lastUpdate=0;
+    bool                          updateCmd=false;
   };
-

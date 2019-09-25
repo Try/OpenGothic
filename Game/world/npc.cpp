@@ -572,7 +572,7 @@ void Npc::setVisualBody(int32_t headTexNr, int32_t teethTexNr, int32_t bodyTexNr
 
 void Npc::setArmour(StaticObjects::Mesh &&a) {
   animation.armour = std::move(a);
-  animation.armour.setSkeleton(animation.skeleton);
+  animation.armour.setAttachPoint(animation.skeleton);
   setPos(animation.pos);
   }
 
@@ -593,22 +593,24 @@ void Npc::setRangeWeapon(StaticObjects::Mesh &&b) {
 void Npc::updateWeaponSkeleton() {
   auto st = weaponState();
   if(st==WeaponState::W1H || st==WeaponState::W2H){
-    animation.sword.setSkeleton(animation.skeleton,"ZS_RIGHTHAND");
+    animation.sword.setAttachPoint(animation.skeleton,"ZS_RIGHTHAND");
     } else {
     auto weapon   = invent.currentMeleWeapon();
     bool twoHands = weapon!=nullptr && weapon->is2H();
-    animation.sword.setSkeleton(animation.skeleton,twoHands ? "ZS_LONGSWORD" : "ZS_SWORD");
+    animation.sword.setAttachPoint(animation.skeleton,twoHands ? "ZS_LONGSWORD" : "ZS_SWORD");
     }
 
   if(st==WeaponState::Bow || st==WeaponState::CBow){
     if(st==WeaponState::Bow)
-      animation.bow.setSkeleton(animation.skeleton,"ZS_LEFTHAND"); else
-      animation.bow.setSkeleton(animation.skeleton,"ZS_RIGHTHAND");
+      animation.bow.setAttachPoint(animation.skeleton,"ZS_LEFTHAND"); else
+      animation.bow.setAttachPoint(animation.skeleton,"ZS_RIGHTHAND");
     } else {
     auto range = invent.currentRangeWeapon();
     bool cbow  = range!=nullptr && range->isCrossbow();
-    animation.bow.setSkeleton(animation.skeleton,cbow ? "ZS_CROSSBOW" : "ZS_BOW");
+    animation.bow.setAttachPoint(animation.skeleton,cbow ? "ZS_CROSSBOW" : "ZS_BOW");
     }
+  if(st==WeaponState::Mage)
+    animation.pfx.setAttachPoint(animation.skeleton,"ZS_RIGHTHAND");
   }
 
 void Npc::setPhysic(DynamicWorld::Item &&item) {
@@ -1887,15 +1889,18 @@ bool Npc::closeWeapon(bool noAnim) {
     return false;
   invent.switchActiveWeapon(*this,Item::NSLOT);
   hnpc.weapon = 0;
+  animation.pfx = PfxObjects::Emitter();
 
   updateWeaponSkeleton();
+
+  if(weaponSt!=WeaponState::W1H && weaponSt!=WeaponState::W2H)
+    return true;
 
   if(auto w = invent.currentMeleWeapon()){
     if(w->handle()->material==ItemMaterial::MAT_METAL)
       owner.emitSoundRaw("UNDRAWSOUND_ME.WAV",x,y+translateY(),z,500,nullptr); else
       owner.emitSoundRaw("UNDRAWSOUND_WO.WAV",x,y+translateY(),z,500,nullptr);
     }
-
   return true;
   }
 

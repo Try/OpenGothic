@@ -210,11 +210,11 @@ void StaticObjects::drawShadow(Tempest::CommandBuffer &cmd, uint32_t imgId) {
     c.drawShadow(cmd,storage.pAnimSh,imgId);
   }
 
-void StaticObjects::Mesh::setSkeleton(const Skeleton *sk, const char *defBone) {
+void StaticObjects::Mesh::setAttachPoint(const Skeleton *sk, const char *defBone) {
   skeleton = sk;
 
-  if(ani!=nullptr && sk!=nullptr)
-    binder=Resources::bindMesh(*ani,*sk,defBone);
+  if(ani!=nullptr && skeleton!=nullptr)
+    binder=Resources::bindMesh(*ani,*skeleton,defBone);
 
   for(size_t i=0;i<subCount;++i)
     sub[i].setSkeleton(sk);

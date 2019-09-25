@@ -50,8 +50,12 @@ float calcShadow(vec3 shPos0, vec3 shPos1) {
 
 void main() {
   vec4 t = texture(textureD,inUV);
+
+#ifndef PFX
   if(t.a<0.5)
     discard;
+#endif
+
 #ifdef SHADOW_MAP
   outColor = vec4(inShadowPos.zzz,0.0);
 #else
@@ -60,6 +64,7 @@ void main() {
   vec3  shPos1  = shPos0*0.2;
 
   float light = lambert;
+#ifndef PFX
   light *= calcShadow(shPos0,shPos1);
 
   // vec3  ambient = vec3(0.25);//*inColor.xyz
@@ -67,6 +72,9 @@ void main() {
   // vec3  color   = mix(ambient,diffuse,clamp(light,0.0,1.0));
 
   vec3  color   = (inAmbient+inSun*inColor.xyz*clamp(light,0.0,1.0));
+#else
+  vec3  color   = t.rgb*inColor.rgb;
+#endif
   outColor      = vec4(t.rgb*color,t.a);
 
   //outColor = vec4(vec3(shMap),1.0);

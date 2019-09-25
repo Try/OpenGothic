@@ -22,12 +22,12 @@ const VisualFx *VisualFxDefinitions::get(const char *name) {
   auto def = implGet(name);
   if(def==nullptr)
     return nullptr;
-  std::unique_ptr<VisualFx> p{new VisualFx(*def)};
+  std::unique_ptr<VisualFx> p{new VisualFx(std::move(*def))};
   auto ret = vfx.insert(std::make_pair<std::string,std::unique_ptr<VisualFx>>(name,std::move(p)));
   return ret.first->second.get();
   }
 
-const Daedalus::GEngineClasses::CFx_Base *VisualFxDefinitions::implGet(const char *name) {
+Daedalus::GEngineClasses::CFx_Base *VisualFxDefinitions::implGet(const char *name) {
   static Daedalus::GEngineClasses::CFx_Base ret={};
   if(!vm)
     return nullptr;

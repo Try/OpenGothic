@@ -73,6 +73,7 @@ void AnimationSolver::setPos(const Matrix4x4 &m) {
   head  .setObjMatrix(pos);
   sword .setObjMatrix(pos);
   bow   .setObjMatrix(pos);
+  pfx   .setObjMatrix(pos);
   if(armour.isEmpty()) {
     view  .setObjMatrix(pos);
     } else {
@@ -88,9 +89,9 @@ void AnimationSolver::setVisual(const Skeleton *v,uint64_t tickCount,
   current=NoAnim;
   setAnim(Idle,tickCount,ws,walk,inter,owner);
 
-  head  .setSkeleton(skeleton);
-  view  .setSkeleton(skeleton);
-  armour.setSkeleton(skeleton);
+  head  .setAttachPoint(skeleton);
+  view  .setAttachPoint(skeleton);
+  armour.setAttachPoint(skeleton);
   invalidateAnim(animSq,skeleton,owner,tickCount);
   setPos(pos); // update obj matrix
   }
@@ -99,8 +100,8 @@ void AnimationSolver::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh
   head    = std::move(h);
   view    = std::move(body);
 
-  head.setSkeleton(skeleton,"BIP01 HEAD");
-  view.setSkeleton(skeleton);
+  head.setAttachPoint(skeleton,"BIP01 HEAD");
+  view.setAttachPoint(skeleton);
   }
 
 bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState weaponSt,
@@ -212,10 +213,10 @@ void AnimationSolver::updateAnimation(uint64_t tickCount) {
     head .setSkeleton(*skInst,pos);
     sword.setSkeleton(*skInst,pos);
     bow  .setSkeleton(*skInst,pos);
+    pfx  .setSkeleton(*skInst,pos);
     if(armour.isEmpty())
       view  .setSkeleton(*skInst,pos); else
       armour.setSkeleton(*skInst,pos);
-    pfx.setPosition(pos.at(3,0),pos.at(3,1),pos.at(3,2));
     }
   }
 

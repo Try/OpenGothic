@@ -19,5 +19,5 @@ class VisualFxDefinitions final {
     std::unique_ptr<Daedalus::DaedalusVM>                     vm;
     std::unordered_map<std::string,std::unique_ptr<VisualFx>> vfx;
 
-    const Daedalus::GEngineClasses::CFx_Base *implGet(const char* name);
+    Daedalus::GEngineClasses::CFx_Base *implGet(const char* name);
   };

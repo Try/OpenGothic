@@ -98,10 +98,10 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
     gothicAssets.loadVDF(i);
   gothicAssets.finalizeLoad();
 
-  auto v = getFileData("mfx_sleep_star-C.TEX");
-  ZenLoad::convertZTEX2DDS(v,ddsBuf);
-  Tempest::WFile f("mfx_sleep_star.dds");
-  f.write(ddsBuf.data(),ddsBuf.size());
+  // auto v = getFileData("mfx_sleep_star-C.TEX");
+  // ZenLoad::convertZTEX2DDS(v,ddsBuf);
+  // Tempest::WFile f("mfx_sleep_star.dds");
+  // f.write(ddsBuf.data(),ddsBuf.size());
   }
 
 Resources::~Resources() {

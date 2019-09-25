@@ -124,7 +124,7 @@ void WorldView::updateUbo(const Matrix4x4& view,const Tempest::Matrix4x4* shadow
   itmGroup.updateUbo   (imgId);
   pfxGroup.setModelView(viewProj,shadow[0]);
   pfxGroup.setLight    (sun,ambient);
-  pfxGroup.updateUbo   (imgId);
+  pfxGroup.updateUbo   (imgId,owner.tickCount());
   }
 
 void WorldView::drawShadow(const FrameBuffer &fbo, const RenderPass &p, PrimaryCommandBuffer &cmd, uint8_t layer) {

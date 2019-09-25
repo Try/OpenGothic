@@ -2,7 +2,7 @@
 
 using namespace Tempest;
 
-VisualFx::VisualFx(const Daedalus::GEngineClasses::CFx_Base &src):fx(&src) {
+VisualFx::VisualFx(Daedalus::GEngineClasses::CFx_Base &&src):fx(std::move(src)) {
   if(src.visAlphaBlendFunc_S=="ADD") {
     rs.setBlendSource(RenderState::BlendMode::one);
     rs.setBlendDest  (RenderState::BlendMode::one);
