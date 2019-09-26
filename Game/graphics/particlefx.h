@@ -19,10 +19,9 @@ class ParticleFx final {
       };
 
     enum class Dir:uint8_t {
-      None,
+      Rand,
       Dir,
-      Target,
-      Mesh
+      Target
       };
 
     enum class AlphaFunc:uint8_t {
@@ -42,7 +41,7 @@ class ParticleFx final {
 
     EmitterType   shpType_S=EmitterType::Point;
     std::string   shpFOR_S;
-    std::string   shpOffsetVec_S;
+    Tempest::Vec3 shpOffsetVec_S;
     std::string   shpDistribType_S;
     float         shpDistribWalkSpeed=0.f;
     bool          shpIsVolume=false;
@@ -54,10 +53,10 @@ class ParticleFx final {
     bool          shpScaleIsSmooth=false;
     float         shpScaleFPS=0.f;
 
-    Dir           dirMode_S=Dir::None;
+    Dir           dirMode_S=Dir::Rand;
     std::string   dirFOR_S;
     std::string   dirModeTargetFOR_S;
-    std::string   dirModeTargetPos_S;
+    Tempest::Vec3 dirModeTargetPos_S;
     float         dirAngleHead=0.f;
     float         dirAngleHeadVar=0.f;
     float         dirAngleElev=0.f;
@@ -68,7 +67,7 @@ class ParticleFx final {
     float         lspPartAvg=0.f;
     float         lspPartVar=0.f;
 
-    std::string   flyGravity_S;
+    Tempest::Vec3 flyGravity_S;
     bool          flyCollDet_B=false;
 
     const Tempest::Texture2d* visName_S=nullptr;
@@ -103,8 +102,6 @@ class ParticleFx final {
     uint64_t      maxLifetime() const;
 
   private:
-    const Daedalus::GEngineClasses::C_ParticleFX* src=nullptr;
-
     static auto          loadTexture(const std::string& src) -> const Tempest::Texture2d*;
     static Tempest::Vec2 loadVec2(const std::string& src);
     static Tempest::Vec3 loadVec3(const std::string& src);

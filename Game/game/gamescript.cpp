@@ -1288,8 +1288,8 @@ void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
   auto               npc0     = popInstance(vm);
   const std::string& visual   = vm.popString();
 
-  const ParticleFx* pfx = owner.loadParticleFx(visual.c_str());
-  Log::i("effect not implemented [",visual," ",reinterpret_cast<const void*>(pfx),"]");
+  const VisualFx* vfx = owner.loadVisualFx(visual.c_str());
+  Log::i("effect not implemented [",visual," ",reinterpret_cast<const void*>(vfx),"]");
   }
 
 void GameScript::wld_stopeffect(Daedalus::DaedalusVM &vm) {

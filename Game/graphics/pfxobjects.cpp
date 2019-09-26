@@ -119,7 +119,7 @@ void PfxObjects::Bucket::init(size_t particle) {
     dz = 0;
     }
   else if(owner->shpType_S==ParticleFx::EmitterType::Sphere) {
-    float theta = float(2 *M_PI)*randf();
+    float theta = float(2.0*M_PI)*randf();
     float phi   = std::acos(1.f - 2.f * randf());
     dx    = std::sin(phi) * std::cos(theta);
     dy    = std::sin(phi) * std::sin(theta);
@@ -133,19 +133,21 @@ void PfxObjects::Bucket::init(size_t particle) {
     p.pos = Vec3();
     }
   Vec3 dim = owner->shpDim_S*0.5f;
-  p.pos = Vec3(dx*dim.x,dy*dim.y,dz*dim.z);
+  p.pos = Vec3(dx*dim.x,dy*dim.y,dz*dim.z)+owner->shpOffsetVec_S;
 
-  if(owner->dirMode_S==ParticleFx::Dir::None) {
-    dx  = randf()*2.f-1.f;
-    dy  = randf()*2.f-1.f;
-    dz  = randf()*2.f-1.f;
-    //p.dir  = Vec3(dx,dy,dz);
+  if(owner->dirMode_S==ParticleFx::Dir::Rand) {
+    p.rotation  = randf()*float(2.0*M_PI);
+    }
+  else if(owner->dirMode_S==ParticleFx::Dir::Dir) {
+    p.rotation  = (owner->dirAngleHead+(2.f*randf()-1.f)*owner->dirAngleHeadVar)*float(M_PI)/180.f;
+    p.drotation = (owner->dirAngleElev+(2.f*randf()-1.f)*owner->dirAngleElevVar)*float(M_PI)/180.f;
+    }
+  else if(owner->dirMode_S==ParticleFx::Dir::Target) {
+    // p.rotation  = std::atan2(p.pos.y,p.pos.x);
     }
 
-  p.rotation  = (owner->dirAngleHead+(2.f*randf()-1.f)*owner->dirAngleHeadVar)*float(M_PI)/180.f;
-  p.drotation = (owner->dirAngleElev+(2.f*randf()-1.f)*owner->dirAngleElevVar)*float(M_PI)/180.f;
-  p.life      = uint16_t(owner->lspPartAvg+owner->lspPartVar*(2.f*randf()-1.f));
-  p.maxLife   = p.life;
+  p.life    = uint16_t(owner->lspPartAvg+owner->lspPartVar*(2.f*randf()-1.f));
+  p.maxLife = p.life;
   }
 
 void PfxObjects::Bucket::finalize(size_t particle) {

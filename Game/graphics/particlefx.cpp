@@ -4,8 +4,7 @@
 
 using namespace Tempest;
 
-ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src)
-  :src(&src) {
+ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src) {
   ppsValue            = src.ppsValue;
   ppsScaleKeys_S      = src.ppsScaleKeys_S;
   ppsIsLooping        = src.ppsIsLooping!=0;
@@ -16,7 +15,7 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src)
 
   shpType_S           = loadEmitType(src.shpType_S);
   shpFOR_S            = src.shpFOR_S;
-  shpOffsetVec_S      = src.shpOffsetVec_S;
+  shpOffsetVec_S      = loadVec3(src.shpOffsetVec_S);
   shpDistribType_S    = src.shpDistribType_S;
   shpDistribWalkSpeed = src.shpDistribWalkSpeed;
   shpIsVolume         = src.shpIsVolume!=0;
@@ -31,7 +30,7 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src)
   dirMode_S           = loadDirType(src.dirMode_S);
   dirFOR_S            = src.dirFOR_S;
   dirModeTargetFOR_S  = src.dirModeTargetFOR_S;
-  dirModeTargetPos_S  = src.dirModeTargetPos_S;
+  dirModeTargetPos_S  = loadVec3(src.dirModeTargetPos_S);
   dirAngleHead        = src.dirAngleHead;
   dirAngleHeadVar     = src.dirAngleHeadVar;
   dirAngleElev        = src.dirAngleElev;
@@ -42,7 +41,7 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src)
   lspPartAvg          = src.lspPartAvg;
   lspPartVar          = src.lspPartVar;
 
-  flyGravity_S        = src.flyGravity_S;
+  flyGravity_S        = loadVec3(src.flyGravity_S);
   flyCollDet_B        = src.flyCollDet_B!=0;
 
   visName_S           = loadTexture(src.visName_S);
@@ -69,10 +68,10 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src)
   flockMode           = src.flockMode;
   flockStrength       = src.flockStrength;
 
-  useEmittersFOR      = src.useEmittersFOR;
+  useEmittersFOR      = src.useEmittersFOR!=0;
 
   timeStartEnd_S      = src.timeStartEnd_S;
-  m_bIsAmbientPFX     = src.m_bIsAmbientPFX;
+  m_bIsAmbientPFX     = src.m_bIsAmbientPFX!=0;
   }
 
 uint64_t ParticleFx::maxLifetime() const {
@@ -141,15 +140,13 @@ ParticleFx::EmitterType ParticleFx::loadEmitType(const std::string &src) {
   }
 
 ParticleFx::Dir ParticleFx::loadDirType(const std::string &src) {
-  if(src=="NONE")
-    return Dir::None;
+  if(src=="RAND")
+    return Dir::Rand;
   if(src=="DIR")
     return Dir::Dir;
   if(src=="TARGET")
     return Dir::Target;
-  if(src=="MESH")
-    return Dir::Mesh;
-  return Dir::None;
+  return Dir::Rand;
   }
 
 ParticleFx::AlphaFunc ParticleFx::loadAlphaFn(const std::string &src) {
