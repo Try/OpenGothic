@@ -51,7 +51,7 @@ float calcShadow(vec3 shPos0, vec3 shPos1) {
 void main() {
   vec4 t = texture(textureD,inUV);
 
-#ifndef PFX
+#ifdef ATEST
   if(t.a<0.5)
     discard;
 #endif

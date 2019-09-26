@@ -6,29 +6,6 @@ using namespace Tempest;
 
 ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src)
   :src(&src) {
-  /*
-  if(view->w()>0){
-    frameCount = std::max(1,view->h()/view->w());
-    }
-
-  shpType_S       = loadEmitType(src.shpType_S);
-  shpDim_S        = loadVec3(src.shpDim_S);
-  dirMode_S       = loadDirType(src.dirMode_S);
-
-  colorS          = loadVec3(src.visTexColorStart_S);
-  colorE          = loadVec3(src.visTexColorEnd_S);
-  visSizeStart_S  = loadVec3(src.visSizeStart_S);
-  visSizeEndScale = src.visSizeEndScale;
-
-  dirAngleHead    = src.dirAngleHead;
-  dirAngleHeadVar = src.dirAngleHeadVar;
-
-  dirAngleElev    = src.dirAngleElev;
-  dirAngleElevVar = src.dirAngleElevVar;
-
-  emitPerSec = int32_t(src.ppsValue);
-  */
-
   ppsValue            = src.ppsValue;
   ppsScaleKeys_S      = src.ppsScaleKeys_S;
   ppsIsLooping        = src.ppsIsLooping!=0;
@@ -66,7 +43,7 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src)
   lspPartVar          = src.lspPartVar;
 
   flyGravity_S        = src.flyGravity_S;
-  flyCollDet_B        = src.flyCollDet_B;
+  flyCollDet_B        = src.flyCollDet_B!=0;
 
   visName_S           = loadTexture(src.visName_S);
   visOrientation_S    = src.visOrientation_S;
