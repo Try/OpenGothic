@@ -1,5 +1,7 @@
 #include "cp1251.h"
 
+#include <Tempest/Platform>
+
 #ifdef __WINDOWS__
 #include <windows.h>
 #endif
