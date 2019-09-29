@@ -66,6 +66,7 @@ void CrashLog::setGpu(const char *name) {
   }
 
 void CrashLog::dumpStack(const char *sig) {
+#ifdef __WINDOWS__
   dbg::symdb          db;
   dbg::call_stack<64> traceback;
 
@@ -82,6 +83,7 @@ void CrashLog::dumpStack(const char *sig) {
   fout << "---crashlog(" <<  sig << ")---" << std::endl;
   writeSysInfo(fout);
   traceback.log(db, fout);
+#endif
   }
 
 void CrashLog::writeSysInfo(std::ostream &fout) {

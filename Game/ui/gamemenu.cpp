@@ -484,9 +484,9 @@ void GameMenu::setPlayer(const Npc &pl) {
   set("MENU_ITEM_ARMOR_3", pl.protection(Npc::PROT_FIRE));
   set("MENU_ITEM_ARMOR_4", pl.protection(Npc::PROT_MAGIC));
 
-  const size_t talentMax = gothic.isGothic2() ? Npc::TALENT_MAX_G2 : Npc::TALENT_MAX_G1;
-  for(size_t i=0;i<talentMax;++i){
-    auto& str = tal.getString(i);
+  const int talentMax = gothic.isGothic2() ? Npc::TALENT_MAX_G2 : Npc::TALENT_MAX_G1;
+  for(int i=0;i<talentMax;++i){
+    auto& str = tal.getString(size_t(i));
     if(str.empty())
       continue;
 
@@ -496,7 +496,7 @@ void GameMenu::setPlayer(const Npc &pl) {
 
     const int sk=pl.talentSkill(Npc::Talent(i));
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d_SKILL",i);
-    set(buf,strEnum(talV.getString(i).c_str(),sk,textBuf));
+    set(buf,strEnum(talV.getString(size_t(i)).c_str(),sk,textBuf));
 
     const int val=pl.hitChanse(Npc::Talent(i));
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d",i);

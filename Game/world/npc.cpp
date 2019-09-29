@@ -1789,7 +1789,7 @@ void Npc::setToFightMode(const uint32_t item) {
   drawWeaponMele();
   }
 
-Item* Npc::addItem(const uint32_t item, size_t count) {
+Item* Npc::addItem(const uint32_t item, uint32_t count) {
   return invent.addItem(item,count,owner);
   }
 

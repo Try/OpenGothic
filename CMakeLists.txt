@@ -24,12 +24,15 @@ file(GLOB SOURCES
   )
 
 link_directories(${PROJECT_NAME} "$ENV{VK_SDK_PATH}/Lib32")
+link_directories(${PROJECT_NAME} "$ENV{VK_SDK_PATH}/lib")
 
 add_executable(${PROJECT_NAME} ${SOURCES} icon.rc )
 
 add_subdirectory(lib/edd-dbg)
 include_directories(lib/edd-dbg/include)
-target_link_libraries(${PROJECT_NAME} edd_dbg)
+if(WIN32)
+  target_link_libraries(${PROJECT_NAME} edd_dbg)
+endif()
 
 add_subdirectory(lib/ZenLib)
 include_directories(lib/ZenLib)
@@ -52,5 +55,10 @@ set(GLFW_BUILD_DOCS OFF CACHE STRING "" FORCE)
 set(BUILD_BULLET3 OFF CACHE STRING "" FORCE) # Can use bullet2, bullet3 wants to build examples...
 add_subdirectory(lib/bullet3)
 include_directories(lib/bullet3/src)
-target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath shlwapi DbgHelp)
+
+if(WIN32)
+  target_link_libraries(${PROJECT_NAME} shlwapi DbgHelp)
+endif()
+
+target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath)
 

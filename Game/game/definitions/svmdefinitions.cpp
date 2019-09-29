@@ -14,7 +14,7 @@ const std::string &SvmDefinitions::find(const char *speech, const int intId) {
     const size_t id=size_t(intId);
 
     char name[128]={};
-    std::snprintf(name,sizeof(name),"SVM_%d",id);
+    std::snprintf(name,sizeof(name),"SVM_%d",int(id));
 
     if(svm.size()<=id)
       svm.resize(id+1);

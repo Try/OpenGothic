@@ -11,7 +11,9 @@
 #include <cstring>
 
 InstallDetect::InstallDetect() {
+#ifdef __WINDOWS__
   pfiles = programFiles();
+#endif
   }
 
 std::u16string InstallDetect::detectG2() {

@@ -1023,8 +1023,8 @@ void GameScript::useInteractive(Daedalus::GEngineClasses::C_Npc* hnpc,const std:
   }
 
 Attitude GameScript::guildAttitude(const Npc &p0, const Npc &p1) const {
-  auto selfG = std::min(gilCount-1,p0.guild());
-  auto npcG  = std::min(gilCount-1,p1.guild());
+  auto selfG = std::min<size_t>(gilCount-1,p0.guild());
+  auto npcG  = std::min<size_t>(gilCount-1,p1.guild());
   auto ret   = gilAttitudes[selfG*gilCount+npcG];
   return Attitude(ret);
   }

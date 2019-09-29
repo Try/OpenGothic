@@ -1,6 +1,8 @@
 #include "cp1251.h"
 
+#ifdef __WINDOWS__
 #include <windows.h>
+#endif
 #include <string>
 
 cp1251::cp1251() {
@@ -25,6 +27,7 @@ void cp1251::terminate(std::vector<char> &in) {
 
 template<class String>
 void cp1251::implToUtf8(String &out, const char *in) {
+#ifdef __WINDOWS__
   int len = MultiByteToWideChar(1251, 0, in, -1, nullptr, 0);
   if(len<=0){
     out.resize(1);
@@ -50,6 +53,9 @@ void cp1251::implToUtf8(String &out, const char *in) {
     out[0]=0;
     return;
     }
+#else
+#warning "TODO: implToUtf8"
+#endif
   terminate(out);
   }
 

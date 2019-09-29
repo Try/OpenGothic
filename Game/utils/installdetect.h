@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Tempest/Platform>
 #include <string>
 
 class InstallDetect final {
@@ -9,7 +10,9 @@ class InstallDetect final {
     std::u16string detectG2();
 
   private:
+#ifdef __WINDOWS__
     std::u16string programFiles();
+#endif
     bool           check(const std::u16string &path);
 
     std::u16string pfiles;
