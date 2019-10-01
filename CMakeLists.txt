@@ -23,7 +23,12 @@ file(GLOB SOURCES
     "Game/**/**/**/*.cpp"
   )
 
-link_directories(${PROJECT_NAME} "$ENV{VK_SDK_PATH}/Lib32")
+if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+  link_directories(${PROJECT_NAME} "$ENV{VK_SDK_PATH}/lib")
+else()
+  link_directories(${PROJECT_NAME} "$ENV{VK_SDK_PATH}/Lib32")
+endif()
+
 link_directories(${PROJECT_NAME} "$ENV{VK_SDK_PATH}/lib")
 
 add_executable(${PROJECT_NAME} ${SOURCES} icon.rc )

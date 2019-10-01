@@ -3,6 +3,7 @@
 #include <thread>
 #include <mutex>
 #include <vector>
+#include <functional>
 
 #include "semaphore.h"
 
