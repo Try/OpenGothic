@@ -30,7 +30,7 @@ namespace dbg
         context.ContextFlags = CONTEXT_FULL;
 
         // RtlCaptureContext() crashes with heavy optimizations on MinGW 4.7.
-#if defined(__MINGW32__)
+#if defined(__MINGW32__) && !defined(_M_AMD64)
         DWORD eip_val = 0;
         DWORD esp_val = 0;
         DWORD ebp_val = 0;
@@ -42,7 +42,6 @@ namespace dbg
         context.Eip = eip_val;
         context.Esp = esp_val;
         context.Ebp = ebp_val;
-
         skip = 2;
 #else
         const dll kernel32("kernel32.dll");
