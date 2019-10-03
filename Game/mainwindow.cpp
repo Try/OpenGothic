@@ -633,11 +633,11 @@ void MainWindow::setFullscreen(bool fs) {
   }
 
 void MainWindow::initSwapchain(){
-  const size_t imgC=device.swapchainImageCount();
+  const uint32_t imgC=device.swapchainImageCount();
   commandDynamic.clear();
   fboUi.clear();
 
-  for(size_t i=0;i<imgC;++i) {
+  for(uint32_t i=0;i<imgC;++i) {
     Tempest::Frame frame=device.frame(i);
     fboUi.emplace_back(device.frameBuffer(frame));
     commandDynamic.emplace_back(device.commandBuffer());

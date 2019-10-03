@@ -151,7 +151,7 @@ void Npc::saveAiState(Serialize& fout) const {
   }
 
 void Npc::loadAiState(Serialize& fin) {
-  size_t      size=0;
+  uint32_t size=0;
 
   fin.read(waitTime,faiWaitTime,reinterpret_cast<uint8_t&>(aiPolicy));
   fin.read(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
