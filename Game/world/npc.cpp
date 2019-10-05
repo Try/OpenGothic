@@ -1431,7 +1431,7 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
     case AI_UseItem:
       if(act.i0!=0)
-        useItem(size_t(act.i0));
+        useItem(uint32_t(act.i0));
       break;
     case AI_Teleport: {
       setPosition(act.point->x,act.point->y,act.point->z);
@@ -1524,7 +1524,7 @@ void Npc::nextAiAction(uint64_t dt) {
       const int32_t r = act.i0*act.i0;
       owner.detectNpc(position(),hnpc.senses_range,[&act,this,r](Npc& other){
         if(&other!=this && qDistTo(other)<r)
-          other.aiStartState(act.func,1,other.currentOther,other.hnpc.wp);
+          other.aiStartState(uint32_t(act.func),1,other.currentOther,other.hnpc.wp);
         });
       break;
       }

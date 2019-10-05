@@ -11,7 +11,7 @@
 #include <dbg/frames.hpp>
 #include <dbg/symbols.hpp>
 
-static char gpuName[64]={};
+static char gpuName[64]="?";
 
 #ifdef __WINDOWS__
 #include <errhandlingapi.h>
