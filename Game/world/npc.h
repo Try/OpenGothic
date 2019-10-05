@@ -255,7 +255,7 @@ class Npc final {
     void delOverlay   (const Skeleton *sk);
 
     void setVisualBody (int32_t headTexNr,int32_t teethTexNr,int32_t bodyVer,int32_t bodyColor,const std::string& body,const std::string& head);
-    void setArmour     (StaticObjects::Mesh&& body);
+    void updateArmour  ();
     void setSword      (StaticObjects::Mesh&& sword);
     void setRangeWeapon(StaticObjects::Mesh&& bow);
     void setPhysic     (DynamicWorld::Item&& item);
@@ -265,9 +265,6 @@ class Npc final {
     void stopAnim(const std::string& ani);
     Anim anim() const  { return animation.current; }
     bool isStanding() const;
-
-    int32_t bodyVer  () const { return vColor;  }
-    int32_t bodyColor() const { return bdColor; }
 
     ZMath::float3 animMoveSpeed(uint64_t dt) const;
 

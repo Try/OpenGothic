@@ -40,8 +40,8 @@ Npc::Npc(World &owner, Serialize &fin)
 
   animation.load(fin,*this);
   setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
-  if(animation.skeleton)
-    setPhysic(owner.getPhysic(animation.skeleton->name()));
+  if(animation.visual.skeleton)
+    setPhysic(owner.getPhysic(animation.visual.skeleton->name()));
 
   fin.read(reinterpret_cast<int32_t&>(permAttitude),reinterpret_cast<int32_t&>(tmpAttitude));
   fin.read(perceptionTime,perceptionNextTime);
@@ -439,7 +439,7 @@ std::array<float,3> Npc::cameraBone() const {
   auto bone=animation.skInst->cameraBone();
   std::array<float,3> r={{}};
   bone.project(r[0],r[1],r[2]);
-  animation.pos.project (r[0],r[1],r[2]);
+  animation.visual.pos.project (r[0],r[1],r[2]);
   return r;
   }
 
@@ -503,8 +503,8 @@ const char *Npc::displayName() const {
 
 std::array<float,3> Npc::displayPosition() const {
   float h = 0;
-  if(animation.skeleton)
-    h = animation.skeleton->colisionHeight()*1.5f;
+  if(animation.visual.skeleton)
+    h = animation.visual.skeleton->colisionHeight()*1.5f;
   return {{x,y+h,z}};
   }
 
@@ -551,66 +551,56 @@ static std::string addExt(const std::string& s,const char* ext){
   }
 
 void Npc::setVisualBody(int32_t headTexNr, int32_t teethTexNr, int32_t bodyTexNr, int32_t bodyTexColor,
-                        const std::string &body, const std::string &head) {
+                        const std::string &ibody, const std::string &ihead) {
   auto& w = owner;
 
-  auto  vname = addExt(body,".MDM");
-  auto  vhead = head.empty() ? StaticObjects::Mesh() : w.getView(addExt(head,".MMB"),headTexNr,teethTexNr,bodyTexColor);
-  auto  vbody = body.empty() ? StaticObjects::Mesh() : w.getView(vname,bodyTexNr,0,bodyTexColor);
+  body    = ibody;
+  head    = ihead;
+  vHead   = headTexNr;
+  vTeeth  = teethTexNr;
+  vColor  = bodyTexNr;
+  bdColor = bodyTexColor;
 
+  auto  vhead = head.empty() ? StaticObjects::Mesh() : w.getView(addExt(head,".MMB"),vHead,vTeeth,bdColor);
+  auto  vbody = body.empty() ? StaticObjects::Mesh() : w.getView(addExt(body,".MDM"),vColor,0,bdColor);
   animation.setVisualBody(std::move(vhead),std::move(vbody));
-  this->body = body;
-  this->head = head;
-  vHead      = headTexNr;
-  vTeeth     = teethTexNr;
-  vColor     = bodyTexNr;
-  bdColor    = bodyTexColor;
 
   invent.updateArmourView(*this);
   durtyTranform|=TR_Pos; // update obj matrix
   }
 
-void Npc::setArmour(StaticObjects::Mesh &&a) {
-  animation.armour = std::move(a);
-  animation.armour.setAttachPoint(animation.skeleton);
-  setPos(animation.pos);
+void Npc::updateArmour() {
+  auto  ar = invent.currentArmour();
+  auto& w  = owner;
+
+  if(ar==nullptr) {
+    auto  vbody = body.empty() ? StaticObjects::Mesh() : w.getView(addExt(body,".MDM"),vColor,0,bdColor);
+    animation.visual.setArmour(std::move(vbody));
+    } else {
+    auto& itData = *ar->handle();
+    auto  flag   = Inventory::Flags(itData.mainflag);
+    if(flag & Inventory::ITM_CAT_ARMOR){
+      auto visual = itData.visual_change;
+      if(visual.rfind(".asc")==visual.size()-4)
+        std::memcpy(&visual[visual.size()-3],"MDM",3);
+      auto vbody  = visual.empty() ? StaticObjects::Mesh() : w.getView(visual,vColor,0,bdColor);
+      animation.visual.setArmour(std::move(vbody));
+      }
+    }
   }
 
 void Npc::setSword(StaticObjects::Mesh &&s) {
-  animation.sword = std::move(s);
+  animation.visual.setSword(std::move(s));
   updateWeaponSkeleton();
-  setAnim(animation.current,weaponState());
-  setPos(animation.pos);
   }
 
 void Npc::setRangeWeapon(StaticObjects::Mesh &&b) {
-  animation.bow = std::move(b);
+  animation.visual.setRangeWeapon(std::move(b));
   updateWeaponSkeleton();
-  setAnim(animation.current,weaponState());
-  setPos(animation.pos);
   }
 
 void Npc::updateWeaponSkeleton() {
-  auto st = weaponState();
-  if(st==WeaponState::W1H || st==WeaponState::W2H){
-    animation.sword.setAttachPoint(animation.skeleton,"ZS_RIGHTHAND");
-    } else {
-    auto weapon   = invent.currentMeleWeapon();
-    bool twoHands = weapon!=nullptr && weapon->is2H();
-    animation.sword.setAttachPoint(animation.skeleton,twoHands ? "ZS_LONGSWORD" : "ZS_SWORD");
-    }
-
-  if(st==WeaponState::Bow || st==WeaponState::CBow){
-    if(st==WeaponState::Bow)
-      animation.bow.setAttachPoint(animation.skeleton,"ZS_LEFTHAND"); else
-      animation.bow.setAttachPoint(animation.skeleton,"ZS_RIGHTHAND");
-    } else {
-    auto range = invent.currentRangeWeapon();
-    bool cbow  = range!=nullptr && range->isCrossbow();
-    animation.bow.setAttachPoint(animation.skeleton,cbow ? "ZS_CROSSBOW" : "ZS_BOW");
-    }
-  if(st==WeaponState::Mage)
-    animation.pfx.setAttachPoint(animation.skeleton,"ZS_RIGHTHAND");
+  animation.visual.updateWeaponSkeleton(weaponState(),invent.currentMeleWeapon(),invent.currentRangeWeapon());
   }
 
 void Npc::setPhysic(DynamicWorld::Item &&item) {
@@ -1852,7 +1842,7 @@ bool Npc::playAnimByName(const std::string &name) {
   if(a!=nullptr) {
     Log::d("AI_PlayAnim: unrecognized anim: \"",name,"\"");
     if(animation.animSq!=a)
-      animation.invalidateAnim(a,animation.skeleton,owner,owner.tickCount());
+      animation.invalidateAnim(a,animation.visual.skeleton,owner,owner.tickCount());
     }
   return true;
   }
@@ -1889,8 +1879,6 @@ bool Npc::closeWeapon(bool noAnim) {
     return false;
   invent.switchActiveWeapon(*this,Item::NSLOT);
   hnpc.weapon = 0;
-  animation.pfx = PfxObjects::Emitter();
-
   updateWeaponSkeleton();
 
   if(weaponSt!=WeaponState::W1H && weaponSt!=WeaponState::W2H)
@@ -1997,7 +1985,7 @@ bool Npc::drawSpell(int32_t spell) {
   if(auto sp = invent.activeWeapon()){
     const ParticleFx* pfx      = owner.script().getSpellFx(sp->spellId());
     auto              vemitter = owner.getView(pfx);
-    animation.pfx = std::move(vemitter);
+    animation.visual.setSpell(std::move(vemitter));
     }
 
   updateWeaponSkeleton();
@@ -2762,7 +2750,7 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos) const {
 
 void Npc::updatePos() {
   if(durtyTranform==TR_Pos){
-    Matrix4x4& mt=animation.pos;
+    Matrix4x4& mt=animation.visual.pos;
     mt.set(3,0,x);
     mt.set(3,1,y);
     mt.set(3,2,z);

@@ -327,8 +327,12 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
     auto  flag   = Flags(itData.mainflag);
     applyArmour(*slot,owner,-1);
     slot->setAsEquiped(false);
+    if(&slot==active)
+      applyWeaponStats(owner,*slot,-1);
+    slot=nullptr;
+
     if(flag & ITM_CAT_ARMOR){
-      owner.setArmour(StaticObjects::Mesh());
+      owner.updateArmour();
       }
     else if(flag & ITM_CAT_NF){
       owner.setSword(StaticObjects::Mesh());
@@ -336,9 +340,6 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
     else if(flag & ITM_CAT_FF){
       owner.setRangeWeapon(StaticObjects::Mesh());
       }
-    if(&slot==active)
-      applyWeaponStats(owner,*slot,-1);
-    slot=nullptr;
     vm.invokeItem(&owner,itData.on_unequip);
     }
 
@@ -366,13 +367,8 @@ void Inventory::updateArmourView(Npc& owner) {
 
   auto& itData = *armour->handle();
   auto  flag   = Flags(itData.mainflag);
-  if(flag & ITM_CAT_ARMOR){
-    auto visual = itData.visual_change;
-    if(visual.rfind(".asc")==visual.size()-4)
-      std::memcpy(&visual[visual.size()-3],"MDM",3);
-    auto vbody  = visual.empty() ? StaticObjects::Mesh() : owner.world().getView(visual,owner.bodyVer(),0,owner.bodyColor());
-    owner.setArmour(std::move(vbody));
-    }
+  if(flag & ITM_CAT_ARMOR)
+    owner.updateArmour();
   }
 
 void Inventory::updateSwordView(Npc &owner) {

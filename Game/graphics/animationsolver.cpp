@@ -15,9 +15,7 @@ AnimationSolver::AnimationSolver() {
   }
 
 void AnimationSolver::save(Serialize &fout) {
-  if(skeleton!=nullptr)
-    fout.write(skeleton->name()); else
-    fout.write(std::string(""));
+  visual.save(fout);
 
   fout.write(uint32_t(overlay.size()));
   for(auto& i:overlay){
@@ -36,8 +34,7 @@ void AnimationSolver::load(Serialize &fin,Npc& npc) {
   uint32_t sz=0;
   std::string s;
 
-  fin.read(s);
-  npc.setVisual(s.c_str());
+  visual.load(fin,npc);
 
   fin.read(sz);
   overlay.resize(sz);
@@ -64,44 +61,24 @@ void AnimationSolver::load(Serialize &fin,Npc& npc) {
   fin.read(s);
   Sequence l1 = animSequence(s.c_str());
   animSq.l1 = l1.l1;
-  invalidateAnim(animSq,skeleton,npc.world(),sAnim);
+  invalidateAnim(animSq,visual.skeleton,npc.world(),sAnim);
   }
 
 void AnimationSolver::setPos(const Matrix4x4 &m) {
-  // TODO: deferred setObjMatrix
-  pos = m;
-  head  .setObjMatrix(pos);
-  sword .setObjMatrix(pos);
-  bow   .setObjMatrix(pos);
-  pfx   .setObjMatrix(pos);
-  if(armour.isEmpty()) {
-    view  .setObjMatrix(pos);
-    } else {
-    armour.setObjMatrix(pos);
-    view  .setObjMatrix(Matrix4x4());
-    }
+  visual.setPos(m);
   }
 
 void AnimationSolver::setVisual(const Skeleton *v,uint64_t tickCount,
                                 WeaponState ws,WalkBit walk,Interactive* inter,World& owner) {
-  skeleton = v;
-
+  visual.setVisual(v);
   current=NoAnim;
   setAnim(Idle,tickCount,ws,walk,inter,owner);
 
-  head  .setAttachPoint(skeleton);
-  view  .setAttachPoint(skeleton);
-  armour.setAttachPoint(skeleton);
-  invalidateAnim(animSq,skeleton,owner,tickCount);
-  setPos(pos); // update obj matrix
+  invalidateAnim(animSq,visual.skeleton,owner,tickCount);
   }
 
 void AnimationSolver::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh &&body) {
-  head    = std::move(h);
-  view    = std::move(body);
-
-  head.setAttachPoint(skeleton,"BIP01 HEAD");
-  view.setAttachPoint(skeleton);
+  visual.setVisualBody(std::move(h),std::move(body));
   }
 
 bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState weaponSt,
@@ -141,12 +118,12 @@ bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,WeaponState weaponSt,
     lastIdle=current;
   if(ani==animSq) {
     if(animSq.cls==Animation::Transition){
-      invalidateAnim(ani,skeleton,owner,tickCount); // restart anim
+      invalidateAnim(ani,visual.skeleton,owner,tickCount); // restart anim
       }
     return true;
     }
   owner.takeSoundSlot(std::move(soundSlot));
-  invalidateAnim(ani,skeleton,owner,tickCount);
+  invalidateAnim(ani,visual.skeleton,owner,tickCount);
   return true;
   }
 
@@ -176,7 +153,7 @@ void AnimationSolver::addOverlay(const Skeleton* sk,uint64_t time,uint64_t tickC
   overlay.push_back(ov);
   if(animSq!=nullptr) {
     auto ani=animSequence(animSq.name());
-    invalidateAnim(ani,skeleton,owner,tickCount);
+    invalidateAnim(ani,visual.skeleton,owner,tickCount);
     } else {
     // fallback
     setAnim(Idle,tickCount,WeaponState::NoWeapon,wlk,inter,owner);
@@ -209,14 +186,7 @@ void AnimationSolver::updateAnimation(uint64_t tickCount) {
   if(skInst!=nullptr){
     uint64_t dt = tickCount - sAnim;
     skInst->update(dt);
-
-    head .setSkeleton(*skInst,pos);
-    sword.setSkeleton(*skInst,pos);
-    bow  .setSkeleton(*skInst,pos);
-    pfx  .setSkeleton(*skInst,pos);
-    if(armour.isEmpty())
-      view  .setSkeleton(*skInst,pos); else
-      armour.setSkeleton(*skInst,pos);
+    visual.updateAnimation(*skInst);
     }
   }
 
@@ -246,7 +216,7 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
                                                       Anim cur, WeaponState st,
                                                       WalkBit wlkMode,
                                                       Interactive* inter) const {
-  if(skeleton==nullptr)
+  if(visual.skeleton==nullptr)
     return nullptr;
 
   if(st0==WeaponState::NoWeapon){
@@ -803,7 +773,7 @@ AnimationSolver::Sequence AnimationSolver::animSequence(const char *name) const 
     if(auto s = overlay[i].sk->sequence(name))
       return s;
     }
-  return skeleton ? skeleton->sequence(name) : nullptr;
+  return visual.skeleton ? visual.skeleton->sequence(name) : nullptr;
   }
 
 AnimationSolver::Sequence AnimationSolver::layredSequence(const char *name,const char* base) const {

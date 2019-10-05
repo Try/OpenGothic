@@ -9,6 +9,7 @@
 #include "staticobjects.h"
 #include "pfxobjects.h"
 #include "animation.h"
+#include "mdlvisual.h"
 
 class Skeleton;
 class Overlay;
@@ -227,14 +228,9 @@ class AnimationSolver final {
 
     void                           processEvents(uint64_t& barrier, uint64_t now, Animation::EvCount &ev) const;
 
-    Tempest::Matrix4x4             pos;
-    StaticObjects::Mesh            head;
-    StaticObjects::Mesh            view;
-    StaticObjects::Mesh            sword, bow, armour;
-    PfxObjects::Emitter            pfx;
+    MdlVisual                      visual;
 
     std::shared_ptr<Pose>          skInst;
-    const Skeleton*                skeleton=nullptr;
     Sequence                       animSq;
     uint64_t                       sAnim    =0;
 
