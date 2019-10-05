@@ -45,7 +45,7 @@ static void emplaceTag(char* buf, char tag){
   }
 
 Resources::Resources(Gothic &gothic, Tempest::Device &device)
-  : device(device), asset("data",device),gothic(gothic) {
+  : device(device), asset("data",device), gothic(gothic) {
   inst=this;
 
   const char* menu = "data/font/menu.ttf";
@@ -84,28 +84,43 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
 
   // TODO: priority for *.mod files
   std::vector<std::u16string> archives;
-  Dir::scan(gothic.path()+u"Data/",[this,&archives](const std::u16string& vdf,Dir::FileType t){
-    if(t==Dir::FT_File)
-      archives.push_back(this->gothic.path() + u"Data/" + vdf);
-    });
+  detectVdf(archives,gothic.path()+u"Data/");
 
   // addon archives first!
   std::sort(archives.begin(),archives.end(),[](const std::u16string& a,const std::u16string& b){
-    return VDFS::FileIndex::getLastModTime(a) > VDFS::FileIndex::getLastModTime(b);
+    int aIsMod = (a.rfind(u".mod")==a.size()-4) ? 1 : 0;
+    int bIsMod = (b.rfind(u".mod")==b.size()-4) ? 1 : 0;
+    return std::make_tuple(aIsMod,VDFS::FileIndex::getLastModTime(a)) >
+           std::make_tuple(bIsMod,VDFS::FileIndex::getLastModTime(b));
     });
 
   for(auto& i:archives)
     gothicAssets.loadVDF(i);
   gothicAssets.finalizeLoad();
 
-  // auto v = getFileData("mfx_sleep_star-C.TEX");
-  // ZenLoad::convertZTEX2DDS(v,ddsBuf);
-  // Tempest::WFile f("mfx_sleep_star.dds");
-  // f.write(ddsBuf.data(),ddsBuf.size());
+  // auto v = getFileData("BSANVIL_OC_USE.asc");
+  // Tempest::WFile f("../internal/BSANVIL_OC_USE.asc");
+  // f.write(v.data(),v.size());
   }
 
 Resources::~Resources() {
   inst=nullptr;
+  }
+
+void Resources::detectVdf(std::vector<std::u16string> &ret, const std::u16string &root) {
+  Dir::scan(root,[this,&root,&ret](const std::u16string& vdf,Dir::FileType t){
+    if(t==Dir::FT_File) {
+      auto file = root + vdf;
+      if(VDFS::FileIndex::getLastModTime(file)>0 || vdf.rfind(u".mod")==vdf.size()-4)
+        ret.emplace_back(std::move(file));
+      return;
+      }
+
+    if(t==Dir::FT_Dir && vdf!=u".." && vdf!=u".") {
+      auto dir = root + vdf + u"/";
+      detectVdf(ret,dir);
+      }
+    });
   }
 
 Font Resources::fontByName(const std::string &fontName) {
