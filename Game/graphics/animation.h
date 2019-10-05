@@ -1,6 +1,7 @@
 #pragma once
 
 #include <zenload/modelScriptParser.h>
+#include <memory>
 
 class Animation final {
   public:
@@ -25,35 +26,17 @@ class Animation final {
       uint8_t def_undraw=0;
       };
 
-    struct Sequence final {
-      Sequence(const std::string& name);
+    struct AnimData final {
+      ZMath::float3                               translate={};
+      ZenLoad::zCModelAniSample                   moveTr={};
 
-      bool                                   isMove() const { return bool(flags&Flags::Move); }
-      bool                                   isFly()  const { return bool(flags&Flags::Fly);  }
-      bool                                   isFinished(uint64_t t) const;
-      bool                                   isAtackFinished(uint64_t t) const;
-      bool                                   isParWindow(uint64_t t) const;
-      float                                  totalTime() const;
-      void                                   processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const;
+      std::vector<ZenLoad::zCModelAniSample>      samples;
+      std::vector<uint32_t>                       nodeIndex;
 
-      std::string                            name;
-      float                                  fpsRate=60.f;
-      uint32_t                               numFrames=0;
-      uint32_t                               firstFrame=0;
-      uint32_t                               lastFrame =0;
-      uint32_t                               layer     =0;
-      Flags                                  flags=Flags::None;
-      AnimClass                              animCls=UnknownAnim;
-      ZMath::float3                          translate={};
-
-      std::vector<ZenLoad::zCModelAniSample> samples;
-      std::vector<uint32_t>                  nodeIndex;
-
-      std::string                            nextStr;
-      const Sequence*                        next=nullptr;
-      ZenLoad::zCModelAniSample              moveTr={};
-
-      std::vector<ZMath::float3 >            tr;
+      uint32_t                                    firstFrame=0;
+      uint32_t                                    lastFrame =0;
+      float                                       fpsRate   =60.f;
+      uint32_t                                    numFrames =0;
 
       std::vector<ZenLoad::zCModelScriptEventSfx> sfx, gfx;
       std::vector<ZenLoad::zCModelEvent>          tag;
@@ -65,9 +48,37 @@ class Animation final {
       std::vector<uint64_t>                       defDraw;     // draw-weapon sound
       std::vector<uint64_t>                       defUndraw;   // undraw sound
 
+      void                                        setupMoveTr();
+      void                                        setupEvents(float fpsRate);
+      };
+
+    struct Sequence final {
+      Sequence()=default;
+      Sequence(const std::string& name);
+
+      bool                                   isMove() const { return bool(flags&Flags::Move); }
+      bool                                   isFly()  const { return bool(flags&Flags::Fly);  }
+      bool                                   isFinished(uint64_t t) const;
+      bool                                   isAtackFinished(uint64_t t) const;
+      bool                                   isParWindow(uint64_t t) const;
+      float                                  totalTime() const;
+      void                                   processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const;
+
       ZMath::float3                          translation(uint64_t dt) const;
       ZMath::float3                          speed(uint64_t at, uint64_t dt) const;
       ZMath::float3                          translateXZ(uint64_t at) const;
+
+      std::string                            name;
+      uint32_t                               layer  =0;
+      Flags                                  flags  =Flags::None;
+      AnimClass                              animCls=UnknownAnim;
+      bool                                   reverse=false;
+      std::string                            nextStr;
+
+      std::shared_ptr<AnimData>              data;
+      const Sequence*                        next=nullptr;
+
+      std::vector<ZMath::float3>             tr;
 
       private:
         void setupMoveTr();
@@ -79,7 +90,9 @@ class Animation final {
     void            debug() const;
 
   private:
-    std::vector<Sequence> sequences;
     Sequence& loadMAN(const std::string &name);
-    void setupIndex();
+    void      setupIndex();
+
+    std::vector<Sequence>                       sequences;
+    std::vector<ZenLoad::zCModelScriptAniAlias> ref;
   };

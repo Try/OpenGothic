@@ -98,7 +98,7 @@ static ZenLoad::zCModelAniSample mix(const ZenLoad::zCModelAniSample& x,const Ze
 
 Pose::Pose(const Skeleton &sk, const Animation::Sequence* sq0, const Animation::Sequence *sq1)
   :skeleton(&sk),sequence(sq0),baseSq(sq1) {
-  numFrames = baseSq ? baseSq->numFrames : 0;
+  numFrames = baseSq ? baseSq->data->numFrames : 0;
   if(skeleton!=nullptr)
     tr = skeleton->tr; else
     tr.clear();
@@ -123,7 +123,7 @@ void Pose::reset(const Skeleton &sk, const Animation::Sequence *sq0, const Anima
   baseSq     = sq1;
   frSequence = uint64_t(-1);
   frBase     = uint64_t(-1);
-  numFrames  = baseSq ? baseSq->numFrames : 0;
+  numFrames  = baseSq ? baseSq->data->numFrames : 0;
   }
 
 void Pose::update(uint64_t dt) {
@@ -143,7 +143,7 @@ void Pose::update(uint64_t dt) {
   }
 
 bool Pose::update(const Animation::Sequence &s, uint64_t dt, uint64_t& fr) {
-  uint64_t nfr = uint64_t(s.fpsRate*dt);
+  uint64_t nfr = uint64_t(s.data->fpsRate*dt);
   if(nfr==fr)
     return false;
   fr = nfr;
@@ -157,26 +157,27 @@ void Pose::updateFrame(const Animation::Sequence &s, uint64_t fr) {
   uint64_t frameB = (fr/1000+1);
 
   if(s.animCls==Animation::Loop){
-    frameA%=s.numFrames;
-    frameB%=s.numFrames;
+    frameA%=s.data->numFrames;
+    frameB%=s.data->numFrames;
     } else {
-    frameA = std::min<uint64_t>(frameA,s.numFrames-1);
-    frameB = std::min<uint64_t>(frameB,s.numFrames-1);
+    frameA = std::min<uint64_t>(frameA,s.data->numFrames-1);
+    frameB = std::min<uint64_t>(frameB,s.data->numFrames-1);
     }
 
-  const size_t idSize=s.nodeIndex.size();
-  if(idSize==0 || s.samples.size()%idSize!=0)
+  auto& d = *s.data;
+  const size_t idSize=d.nodeIndex.size();
+  if(idSize==0 || d.samples.size()%idSize!=0)
     return;
 
-  auto* sampleA = &s.samples[size_t(frameA*idSize)];
-  auto* sampleB = &s.samples[size_t(frameB*idSize)];
+  auto* sampleA = &d.samples[size_t(frameA*idSize)];
+  auto* sampleB = &d.samples[size_t(frameB*idSize)];
 
   for(size_t i=0;i<idSize;++i) {
     auto  smp = mix(sampleA[i],sampleB[i],a);
     auto& pos = smp.position;
     auto& rot = smp.rotation;
 
-    base[s.nodeIndex[i]] = getMatrix(rot.x,rot.y,rot.z,rot.w,pos.x,pos.y,pos.z);
+    base[d.nodeIndex[i]] = getMatrix(rot.x,rot.y,rot.z,rot.w,pos.x,pos.y,pos.z);
     }
   }
 
@@ -188,35 +189,36 @@ void Pose::emitSfx(Npc &npc, uint64_t dt) {
   }
 
 void Pose::emitSfx(Npc &npc, const Animation::Sequence &s, uint64_t dt, uint64_t fr) {
-  if(s.numFrames==0 || (s.sfx.size()==0 && s.gfx.size()==0))
+  auto& d = *s.data;
+  if(d.numFrames==0 || (d.sfx.size()==0 && d.gfx.size()==0))
     return;
 
   uint64_t frameA = fr==uint64_t(-1) ? 0 : (fr/1000+1);
-  uint64_t frameB = (uint64_t(s.fpsRate*dt)/1000+1);
+  uint64_t frameB = (uint64_t(d.fpsRate*dt)/1000+1);
 
   if(frameA==frameB)
     return;
 
   if(s.animCls==Animation::Loop){
-    frameA%=s.numFrames;
-    frameB%=s.numFrames;
+    frameA%=d.numFrames;
+    frameB%=d.numFrames;
     } else {
-    frameA = std::min<uint64_t>(frameA,s.numFrames-1);
-    frameB = std::min<uint64_t>(frameB,s.numFrames-1);
+    frameA = std::min<uint64_t>(frameA,d.numFrames-1);
+    frameB = std::min<uint64_t>(frameB,d.numFrames-1);
     }
 
   const bool invert = (frameB<frameA);
   if(invert)
     std::swap(frameA,frameB);
 
-  for(auto& i:s.sfx){
-    uint64_t fr = uint64_t(i.m_Frame-int(s.firstFrame));
+  for(auto& i:d.sfx){
+    uint64_t fr = uint64_t(i.m_Frame-int(d.firstFrame));
     if((frameA<=fr && fr<frameB) ^ invert)
       npc.emitSoundEffect(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
     }
   if(!npc.isInAir()) {
-    for(auto& i:s.gfx){
-      uint64_t fr = uint64_t(i.m_Frame-int(s.firstFrame));
+    for(auto& i:d.gfx){
+      uint64_t fr = uint64_t(i.m_Frame-int(d.firstFrame));
       if((frameA<=fr && fr<frameB) ^ invert)
         npc.emitSoundGround(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
       }
@@ -264,7 +266,7 @@ void Pose::mkSkeleton(const Animation::Sequence &s) {
       id = skeleton->rootNodes[0];
     auto& b0=base[id];
     float dx=b0.at(3,0);//-s.translate.x;
-    float dy=b0.at(3,1)-s.translate.y;
+    float dy=b0.at(3,1)-s.data->translate.y;
     float dz=b0.at(3,2);//-s.translate.z;
     if(!s.isFly())
       dy=0;

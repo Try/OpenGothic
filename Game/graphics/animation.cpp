@@ -10,8 +10,16 @@
 
 using namespace Tempest;
 
+static void setupTime(std::vector<uint64_t>& t0,const std::vector<int32_t>& inp,float fps){
+  t0.resize(inp.size());
+  for(size_t i=0;i<inp.size();++i){
+    t0[i] = uint64_t(inp[i]*1000/fps);
+    }
+  }
+
 Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ignoreErrChunks) {
-  Sequence* current=nullptr;
+  AnimData* current=nullptr;
+
   while(true) {
     ZenLoad::MdsParser::Chunk type=p.parse();
     switch (type) {
@@ -20,24 +28,25 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
         return;
         }
       case ZenLoad::MdsParser::CHUNK_ANI: {
-        // p.ani().m_Name;
-        // p.ani().m_Layer;
-        // p.ani().m_BlendIn;
-        // p.ani().m_BlendOut;
-        // p.ani().m_Flags;
-        // p.ani().m_LastFrame;
-        // p.ani().m_Dir;
-
         auto& ani      = loadMAN(name+'-'+p.ani.m_Name+".MAN");
-        current        = &ani;
+        current        = ani.data.get();
+
+        ani.layer      = p.ani.m_Layer;
         ani.flags      = Flags(p.ani.m_Flags);
         ani.nextStr    = p.ani.m_Next;
-        ani.firstFrame = uint32_t(p.ani.m_FirstFrame);
-        ani.lastFrame  = uint32_t(p.ani.m_LastFrame);
+        ani.reverse    = p.ani.m_Dir!=ZenLoad::MSB_FORWARD;
         if(ani.nextStr==ani.name)
           ani.animCls=Loop;
+
+        current->firstFrame = uint32_t(p.ani.m_FirstFrame);
+        current->lastFrame  = uint32_t(p.ani.m_LastFrame);
         //if(ani.name=="S_2HATTACK")
         //  Log::i("");
+        break;
+        }
+      case ZenLoad::MdsParser::CHUNK_ANI_ALIAS:{
+        ref.emplace_back(std::move(p.alias));
+        current = nullptr;
         break;
         }
 
@@ -126,31 +135,32 @@ Animation::Sequence& Animation::loadMAN(const std::string& name) {
   return sequences.back();
   }
 
-static void setupTime(std::vector<uint64_t>& t0,const std::vector<int32_t>& inp,float fps){
-  t0.resize(inp.size());
-  for(size_t i=0;i<inp.size();++i){
-    t0[i] = uint64_t(inp[i]*1000/fps);
-    }
-  }
-
 void Animation::setupIndex() {
   // for(auto& i:sequences)
   //   Log::i(i.name);
   for(auto& sq:sequences) {
-    if(sq.fpsRate<=0.f)
+    if(sq.data->fpsRate<=0.f)
       continue;
-    for(auto& r:sq.events) {
-      if(r.m_Def==ZenLoad::DEF_HIT_END)
-        setupTime(sq.defHitEnd,r.m_Int,sq.fpsRate);
-      if(r.m_Def==ZenLoad::DEF_OPT_FRAME)
-        setupTime(sq.defOptFrame,r.m_Int,sq.fpsRate);
-      if(r.m_Def==ZenLoad::DEF_PAR_FRAME)
-        setupTime(sq.defParFrame,r.m_Int,sq.fpsRate);
-      if(r.m_Def==ZenLoad::DEF_DRAWSOUND)
-        setupTime(sq.defDraw,r.m_Int,sq.fpsRate);
-      if(r.m_Def==ZenLoad::DEF_UNDRAWSOUND)
-        setupTime(sq.defUndraw,r.m_Int,sq.fpsRate);
-      }
+    sq.data->setupEvents(sq.data->fpsRate);
+    }
+
+  for(auto& r:ref) {
+    Sequence ani;
+    for(auto& s:sequences)
+      if(s.name==r.m_Alias)
+        ani.data = s.data;
+
+    if(ani.data==nullptr)
+      continue;
+
+    ani.name    = r.m_Name;
+    ani.layer   = r.m_Layer;
+    ani.flags   = Flags(r.m_Flags);
+    ani.reverse = r.m_Dir!=ZenLoad::MSB_FORWARD;
+    ani.nextStr = r.m_Next;
+    if(ani.nextStr==ani.name)
+      ani.animCls=Loop;
+    sequences.emplace_back(std::move(ani));
     }
 
   std::sort(sequences.begin(),sequences.end(),[](const Sequence& a,const Sequence& b){
@@ -166,6 +176,7 @@ void Animation::setupIndex() {
     }
   }
 
+
 Animation::Sequence::Sequence(const std::string &name) {
   if(!Resources::hasFile(name))
     return;
@@ -174,6 +185,7 @@ Animation::Sequence::Sequence(const std::string &name) {
   ZenLoad::ZenParser            zen(name,idx);
   ZenLoad::ModelAnimationParser p(zen);
 
+  data = std::make_shared<AnimData>();
   while(true) {
     ZenLoad::ModelAnimationParser::EChunkType type = p.parse();
     switch(type) {
@@ -182,10 +194,10 @@ Animation::Sequence::Sequence(const std::string &name) {
         return;
         }
       case ZenLoad::ModelAnimationParser::CHUNK_HEADER: {
-        this->name      = p.getHeader().aniName;
-        this->fpsRate   = p.getHeader().fpsRate;
-        this->numFrames = p.getHeader().numFrames;
-        this->layer     = p.getHeader().layer;
+        this->name            = p.getHeader().aniName;
+        this->layer           = p.getHeader().layer;
+        this->data->fpsRate   = p.getHeader().fpsRate;
+        this->data->numFrames = p.getHeader().numFrames;
 
         if(this->name.size()>1){
           if(this->name.find("_2_")!=std::string::npos)
@@ -203,8 +215,8 @@ Animation::Sequence::Sequence(const std::string &name) {
         break;
         }
       case ZenLoad::ModelAnimationParser::CHUNK_RAWDATA:
-        nodeIndex = std::move(p.getNodeIndex());
-        samples   = p.getSamples();
+        data->nodeIndex = std::move(p.getNodeIndex());
+        data->samples   = p.getSamples();
         break;
       case ZenLoad::ModelAnimationParser::CHUNK_ERROR:
         throw std::runtime_error("animation load error");
@@ -217,37 +229,37 @@ bool Animation::Sequence::isFinished(uint64_t t) const {
   }
 
 bool Animation::Sequence::isAtackFinished(uint64_t t) const {
-  for(auto& i:defHitEnd)
+  for(auto& i:data->defHitEnd)
     if(t>i)
       return true;
   return t>=totalTime();// || t>=1000;
   }
 
 bool Animation::Sequence::isParWindow(uint64_t t) const {
-  if(defParFrame.size()!=2)
+  if(data->defParFrame.size()!=2)
     return false;
-  return defParFrame[0]<=t && t<defParFrame[1];
+  return data->defParFrame[0]<=t && t<data->defParFrame[1];
   }
 
 float Animation::Sequence::totalTime() const {
-  return numFrames*1000/fpsRate;
+  return data->numFrames*1000/data->fpsRate;
   }
 
 void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const {
-  for(auto& i:defOptFrame)
+  for(auto& i:data->defOptFrame)
     if(barrier<i+sTime && i+sTime<=now)
       ev.def_opt_frame++;
-  for(auto& i:defDraw)
+  for(auto& i:data->defDraw)
     if(barrier<i+sTime && i+sTime<=now)
       ev.def_draw++;
-  for(auto& i:defUndraw)
+  for(auto& i:data->defUndraw)
     if(barrier<i+sTime && i+sTime<=now)
       ev.def_undraw++;
   }
 
 ZMath::float3 Animation::Sequence::translation(uint64_t dt) const {
   float k = float(dt)/totalTime();
-  ZMath::float3 p = moveTr.position;
+  ZMath::float3 p = data->moveTr.position;
   p.x*=k;
   p.y*=k;
   p.z*=k;
@@ -266,7 +278,7 @@ ZMath::float3 Animation::Sequence::speed(uint64_t at,uint64_t dt) const {
   }
 
 ZMath::float3 Animation::Sequence::translateXZ(uint64_t at) const {
-  if(numFrames==0 || tr.size()==0) {
+  if(data->numFrames==0 || tr.size()==0) {
     ZMath::float3 n={};
     return n;
     }
@@ -276,7 +288,7 @@ ZMath::float3 Animation::Sequence::translateXZ(uint64_t at) const {
       at = all;
     }
 
-  uint64_t fr     = uint64_t(fpsRate*at);
+  uint64_t fr     = uint64_t(data->fpsRate*at);
   float    a      = (fr%1000)/1000.f;
   uint64_t frameA = fr/1000;
   uint64_t frameB = frameA+1;
@@ -293,33 +305,49 @@ ZMath::float3 Animation::Sequence::translateXZ(uint64_t at) const {
   p.y += (pB.y-pA.y)*a;
   p.z += (pB.z-pA.z)*a;
 
-  p.x += m*moveTr.position.x;
-  p.y += m*moveTr.position.y;
-  p.z += m*moveTr.position.z;
+  p.x += m*data->moveTr.position.x;
+  p.y += m*data->moveTr.position.y;
+  p.z += m*data->moveTr.position.z;
   return p;
   }
 
 void Animation::Sequence::setupMoveTr() {
-  size_t sz = nodeIndex.size();
+  auto& d = *data;
+  size_t sz = d.nodeIndex.size();
 
-  if(samples.size()>0 && samples.size()>=sz) {
-    auto& a = samples[0].position;
-    auto& b = samples[samples.size()-sz].position;
-    moveTr.position.x = b.x-a.x;
-    moveTr.position.y = b.y-a.y;
-    moveTr.position.z = b.z-a.z;
+  if(d.samples.size()>0 && d.samples.size()>=sz) {
+    auto& a = d.samples[0].position;
+    auto& b = d.samples[d.samples.size()-sz].position;
+    d.moveTr.position.x = b.x-a.x;
+    d.moveTr.position.y = b.y-a.y;
+    d.moveTr.position.z = b.z-a.z;
 
-    tr.resize(samples.size()/sz);
-    for(size_t i=0,r=0;i<samples.size();i+=sz,++r){
+    tr.resize(d.samples.size()/sz);
+    for(size_t i=0,r=0;i<d.samples.size();i+=sz,++r){
       auto& p  = tr[r];
-      auto& bi = samples[i].position;
+      auto& bi = d.samples[i].position;
       p.x = bi.x-a.x;
       p.y = bi.y-a.y;
       p.z = bi.z-a.z;
       }
     }
 
-  if(samples.size()>0){
-    translate=samples[0].position;
+  if(d.samples.size()>0){
+    d.translate=d.samples[0].position;
+    }
+  }
+
+void Animation::AnimData::setupEvents(float fpsRate) {
+  for(auto& r:events) {
+    if(r.m_Def==ZenLoad::DEF_HIT_END)
+      setupTime(defHitEnd,r.m_Int,fpsRate);
+    if(r.m_Def==ZenLoad::DEF_OPT_FRAME)
+      setupTime(defOptFrame,r.m_Int,fpsRate);
+    if(r.m_Def==ZenLoad::DEF_PAR_FRAME)
+      setupTime(defParFrame,r.m_Int,fpsRate);
+    if(r.m_Def==ZenLoad::DEF_DRAWSOUND)
+      setupTime(defDraw,r.m_Int,fpsRate);
+    if(r.m_Def==ZenLoad::DEF_UNDRAWSOUND)
+      setupTime(defUndraw,r.m_Int,fpsRate);
     }
   }
