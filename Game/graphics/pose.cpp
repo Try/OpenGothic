@@ -164,6 +164,11 @@ void Pose::updateFrame(const Animation::Sequence &s, uint64_t fr) {
     frameB = std::min<uint64_t>(frameB,s.data->numFrames-1);
     }
 
+  if(s.reverse) {
+    frameA = s.data->numFrames-1-frameA;
+    frameB = s.data->numFrames-1-frameB;
+    }
+
   auto& d = *s.data;
   const size_t idSize=d.nodeIndex.size();
   if(idSize==0 || d.samples.size()%idSize!=0)
