@@ -151,6 +151,7 @@ void PfxObjects::Bucket::init(size_t particle) {
     }
   else if(owner->dirMode_S==ParticleFx::Dir::Target) {
     // p.rotation  = std::atan2(p.pos.y,p.pos.x);
+    p.rotation  = randf()*float(2.0*M_PI); //FIXME
     }
 
   p.life    = uint16_t(owner->lspPartAvg+owner->lspPartVar*(2.f*randf()-1.f));
@@ -348,35 +349,41 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b) {
       continue;
 
     for(size_t i=0;i<p.size;++i) {
-      ParState& ps = b.particles[i];
+      ParState& ps = b.particles[i+p.offset];
       Vertex*   v  = &b.vbo[(p.offset+i)*6];
 
       if(ps.life==0)
         continue;
 
       const float a   = ps.lifeTime();
-      const Vec3  cl  = colorS*(1.f-a) + colorE*a;
+      const Vec3  cl  = colorS*(1.f-a)        + colorE*a;
+      const float clA = visAlphaStart*(1.f-a) + visAlphaEnd*a;
 
       const float szX = visSizeStart_S.x*(1.f + a*(visSizeEndScale-1.f));
       const float szY = visSizeStart_S.y*(1.f + a*(visSizeEndScale-1.f));
-      const float clA = visAlphaStart+a*(visAlphaEnd-visAlphaStart);
 
       float l[3]={};
       float t[3]={};
       rotate(l,t,ps.rotation,left,top);
 
-      uint32_t color=0;
+      struct Color {
+        uint8_t r=0;
+        uint8_t g=0;
+        uint8_t b=0;
+        uint8_t a=0;
+        } color;
+
       if(visAlphaFunc==ParticleFx::AlphaFunc::Add) {
-        color|=uint32_t(255)      << 24;
-        color|=uint32_t(cl.z*clA) << 16;
-        color|=uint32_t(cl.y*clA) << 8;
-        color|=uint32_t(cl.x*clA) << 0;
+        color.r = uint8_t(cl.x*clA);
+        color.g = uint8_t(cl.y*clA);
+        color.b = uint8_t(cl.z*clA);
+        color.a = uint8_t(255);
         }
       else if(visAlphaFunc==ParticleFx::AlphaFunc::Blend) {
-        color|=uint32_t(clA*255) << 24;
-        color|=uint32_t(cl.z)    << 16;
-        color|=uint32_t(cl.y)    << 8;
-        color|=uint32_t(cl.x)    << 0;
+        color.r = uint8_t(cl.x);
+        color.g = uint8_t(cl.y);
+        color.b = uint8_t(cl.z);
+        color.a = uint8_t(clA*255);
         }
 
       for(int i=0;i<6;++i) {
@@ -391,7 +398,7 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b) {
         v[i].uv[0]  = (dx[i]+0.5f);//float(ow.frameCount);
         v[i].uv[1]  = (dy[i]+0.5f);
 
-        v[i].color  = color;
+        std::memcpy(&v[i].color,&color,4);
         }
       }
     }

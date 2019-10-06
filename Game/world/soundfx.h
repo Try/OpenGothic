@@ -31,6 +31,7 @@ class SoundFx {
       };
 
     std::vector<SoundVar> inst;
+    void implLoad(Gothic &gothic, const char* name);
     void loadVariants(Gothic &gothic, const char* name);
   };
 

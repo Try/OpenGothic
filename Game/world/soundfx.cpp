@@ -17,12 +17,24 @@ SoundFx::SoundVar::SoundVar(const float vol, Sound &&snd)
   }
 
 SoundFx::SoundFx(Gothic &gothic, const char* s) {
-  auto& sfx = gothic.getSoundScheme(s);
-  auto  snd = Resources::loadSoundBuffer(sfx.file);
+  implLoad(gothic,s);
+  if(inst.size()!=0)
+    return;
+  // lowcase?
+  std::string name = s;
+  for(auto& i:name)
+    i = char(std::toupper(i));
 
-  if(!snd.isEmpty())
-    inst.emplace_back(sfx,std::move(snd));
-  loadVariants(gothic,s);
+  implLoad(gothic,name.c_str());
+  if(inst.size()!=0)
+    return;
+
+  if(name.rfind(".WAV")==name.size()-4) {
+    auto snd = Resources::loadSoundBuffer(name);
+    if(snd.isEmpty())
+      Log::d("unable to load sound fx: ",s); else
+      inst.emplace_back(1.f,std::move(snd));
+    }
 
   if(inst.size()==0)
     Log::d("unable to load sound fx: ",s);
@@ -49,6 +61,16 @@ SoundEffect SoundFx::getGlobal(SoundDevice &dev) const {
   SoundEffect effect = dev.load(var.snd);
   effect.setVolume(var.vol);
   return effect;
+  }
+
+void SoundFx::implLoad(Gothic &gothic, const char *s) {
+  auto& sfx = gothic.getSoundScheme(s);
+  auto  snd = Resources::loadSoundBuffer(sfx.file);
+
+  if(!snd.isEmpty())
+    inst.emplace_back(sfx,std::move(snd));
+  loadVariants(gothic,s);
+
   }
 
 void SoundFx::loadVariants(Gothic &gothic, const char *s) {

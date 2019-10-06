@@ -595,31 +595,6 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
       return solveItemUse("S_%s_S0",i.first);
     }
 
-  /*
-  if(cur==Anim::Idle && a==Anim::MapSeal1)
-    return animSequence("T_MAP_STAND_2_S0");
-  if(cur==Anim::MapSeal1 && a==Anim::Idle)
-    return animSequence("T_MAPSEALED_S0_2_STAND");
-  if(a==Anim::MapSeal1)
-    return animSequence("S_MAP_S0");
-
-  if(cur==Anim::Idle && (a==Anim::Rice1 || a==Anim::Rice2))
-    return animSequence("T_RICE_STAND_2_S0");
-  if((cur==Anim::Rice1 || cur==Anim::Rice2) && a==Anim::Idle)
-    return animSequence("T_RICE_S0_2_STAND");
-  if(a==Anim::Rice1)
-    return animSequence("T_RICE_RANDOM_1");
-  if(a==Anim::Rice2)
-    return animSequence("T_RICE_RANDOM_2");
-
-  if(cur==Anim::Idle && a==Anim::Joint1)
-    return animSequence("T_JOINT_STAND_2_S0");
-  if(cur==Anim::Joint1 && a==Anim::Idle)
-    return animSequence("T_JOUNT_S0_2_STAND");
-  if(a==Anim::Joint1)
-    return animSequence("S_JOINT_S0");//FIXME
-  */
-
   if(a==Anim::Plunder)
     return animSequence("T_PLUNDER");
   if(a==Anim::Food1)
