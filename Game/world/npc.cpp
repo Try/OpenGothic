@@ -1800,6 +1800,17 @@ void Npc::setToFightMode(const uint32_t item) {
   hnpc.weapon  = (st==WeaponState::W1H ? 3:4);
   }
 
+void Npc::setToFistMode() {
+  auto weaponSt=invent.weaponState();
+  if(weaponSt==WeaponState::Fist)
+    return;
+  invent.switchActiveWeaponFist();
+  if(animation.visual.setToFightMode(WeaponState::Fist))
+    updateWeaponSkeleton();
+  animation.resetAni();
+  hnpc.weapon  = 1;
+  }
+
 Item* Npc::addItem(const uint32_t item, uint32_t count) {
   return invent.addItem(item,count,owner);
   }

@@ -316,6 +316,7 @@ class Npc final {
     BodyState bodyState() const;
 
     void setToFightMode(const uint32_t item);
+    void setToFistMode();
 
     bool closeWeapon(bool noAnim);
     bool drawWeaponFist();

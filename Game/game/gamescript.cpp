@@ -1602,7 +1602,7 @@ void GameScript::npc_settofightmode(Daedalus::DaedalusVM &vm) {
 void GameScript::npc_settofistmode(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->drawWeaponFist();
+    npc->setToFistMode();
   }
 
 void GameScript::npc_isinstate(Daedalus::DaedalusVM &vm) {
