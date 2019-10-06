@@ -2049,7 +2049,7 @@ void GameScript::npc_getnexttarget(Daedalus::DaedalusVM &vm) {
     dist*=dist;
 
     world().detectNpc(npc->position(),npc->handle()->senses_range,[&,npc](Npc& oth){
-      if(!oth.isDown() && oth.isEnemy(*npc)){
+      if(!oth.isDown() && oth.isEnemy(*npc) && npc->canSeeNpc(oth,true)){
         float qd = oth.qDistTo(*npc);
         if(qd<dist){
           dist=qd;

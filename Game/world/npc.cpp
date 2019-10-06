@@ -1254,21 +1254,22 @@ Npc *Npc::updateNearestEnemy() {
   if(aiPolicy!=ProcessPolicy::AiNormal)
     return nullptr;
 
-  Npc* ret=nullptr;
-  if(nearestEnemy!=nullptr && (!nearestEnemy->isDown() && canSenseNpc(*nearestEnemy,true)!=SensesBit::SENSE_NONE))
-    ret=nearestEnemy;
+  Npc*  ret  = nullptr;
+  float dist = std::numeric_limits<float>::max();
+  if(nearestEnemy!=nullptr && (!nearestEnemy->isDown() && canSenseNpc(*nearestEnemy,true)!=SensesBit::SENSE_NONE)) {
+    ret  = nearestEnemy;
+    dist = qDistTo(*ret);
+    }
 
-  owner.detectNpcNear([this,&ret](Npc& n){
+  owner.detectNpcNear([this,&ret,&dist](Npc& n){
     if(!isEnemy(n))
       return;
-    if(ret==nullptr || ret->isDown()){
-      ret = &n;
-      return;
+
+    float d = qDistTo(n);
+    if(d<dist && canSenseNpc(n,true)!=SensesBit::SENSE_NONE) {
+      ret  = &n;
+      dist = d;
       }
-    float d2 = qDistTo(n);
-    float d1 = qDistTo(*ret);
-    if(d2<d1 && canSenseNpc(n,true)!=SensesBit::SENSE_NONE)
-      ret = &n;
     });
   nearestEnemy = ret;
   return nearestEnemy;
@@ -2750,8 +2751,11 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos) const {
   if(qDistTo(tx,ty,tz)>hnpc.senses_range*hnpc.senses_range)
     return SensesBit::SENSE_NONE;
 
-  SensesBit ret=SensesBit::SENSE_SMELL;
-  ret = ret | SensesBit::SENSE_HEAR; // TODO:sneaking
+  SensesBit ret=SensesBit::SENSE_NONE;
+  if(owner.roomAt({tx,ty,tz})==owner.roomAt({x,y,z})) {
+    ret = ret | SensesBit::SENSE_SMELL;
+    ret = ret | SensesBit::SENSE_HEAR; // TODO:sneaking
+    }
 
   if(!freeLos){
     float dx  = x-tx, dz=z-tz;
