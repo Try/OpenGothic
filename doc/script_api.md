@@ -100,9 +100,8 @@ Daedalus is script language, made for original gothic game. OpenGothic uses VM f
   Returns TRUE, if npc has any weapon in hands  
   Not implemented.
 
-* ![#](nu.png) `func int Npc_HasReadiedMeleeWeapon(var C_Npc npc)`  
+* `func int Npc_HasReadiedMeleeWeapon(var C_Npc npc)`  
   Returns TRUE, if npc has melee weapon in hands.  
-  Not implemented.
 
 * ![#](nu.png) `func int Npc_HasReadiedRangedWeapon(var C_Npc npc)`  
   Returns TRUE, if npc has ranged weapon in hands.  

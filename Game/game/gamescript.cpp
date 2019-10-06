@@ -200,6 +200,8 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("npc_getportalguild",  [this](Daedalus::DaedalusVM& vm){ npc_getportalguild(vm);   });
   vm.registerExternalFunction("npc_isinplayersroom", [this](Daedalus::DaedalusVM& vm){ npc_isinplayersroom(vm);  });
   vm.registerExternalFunction("npc_getreadiedweapon",[this](Daedalus::DaedalusVM& vm){ npc_getreadiedweapon(vm); });
+  vm.registerExternalFunction("npc_hasreadiedmeleeweapon",
+                                                     [this](Daedalus::DaedalusVM& vm){ npc_hasreadiedmeleeweapon(vm); });
   vm.registerExternalFunction("npc_isdrawingspell",  [this](Daedalus::DaedalusVM& vm){ npc_isdrawingspell(vm);   });
   vm.registerExternalFunction("npc_perceiveall",     [this](Daedalus::DaedalusVM& vm){ npc_perceiveall(vm);      });
   vm.registerExternalFunction("npc_stopani",         [this](Daedalus::DaedalusVM& vm){ npc_stopani(vm);          });
@@ -2150,6 +2152,18 @@ void GameScript::npc_getreadiedweapon(Daedalus::DaedalusVM &vm) {
     } else {
     vm.setReturn(0);
     }
+  }
+
+void GameScript::npc_hasreadiedmeleeweapon(Daedalus::DaedalusVM &vm) {
+  auto npc = popInstance(vm);
+  if(npc==nullptr) {
+    vm.setReturn(0);
+    return;
+    }
+  auto ws = npc->weaponState();
+  if(ws==WeaponState::W1H || ws==WeaponState::W2H)
+    vm.setReturn(1); else
+    vm.setReturn(0);
   }
 
 void GameScript::npc_isdrawingspell(Daedalus::DaedalusVM &vm) {

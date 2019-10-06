@@ -268,6 +268,7 @@ class GameScript final {
     void npc_getportalguild  (Daedalus::DaedalusVM &vm);
     void npc_isinplayersroom (Daedalus::DaedalusVM &vm);
     void npc_getreadiedweapon(Daedalus::DaedalusVM &vm);
+    void npc_hasreadiedmeleeweapon(Daedalus::DaedalusVM &vm);
     void npc_isdrawingspell  (Daedalus::DaedalusVM &vm);
     void npc_perceiveall     (Daedalus::DaedalusVM &vm);
     void npc_stopani         (Daedalus::DaedalusVM &vm);
