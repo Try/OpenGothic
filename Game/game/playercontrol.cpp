@@ -51,7 +51,8 @@ bool PlayerControl::interact(Item &item) {
   auto it = ptr.get();
   pl->addItem(std::move(ptr));
 
-  w->sendPassivePerc(*pl,*pl,*pl,*it,Npc::PERC_ASSESSTHEFT);
+  if(it->handle()->owner!=0)
+    w->sendPassivePerc(*pl,*pl,*pl,*it,Npc::PERC_ASSESSTHEFT);
   return true;
   }
 
