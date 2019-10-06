@@ -260,8 +260,8 @@ struct zCCodeMaster : zCVob {
 ```c++
 struct zCTrigger : zCVob {
     string  triggerTarget;
-    uint8_t unknown0;
-    uint8_t unknown1;
+    uint8_t flags;
+    uint8_t filterFlags;
     string  respondToVobName;
     int     numCanBeActivated;
     float   retriggerWaitSec;
@@ -282,7 +282,7 @@ struct zCMover : zCTrigger {
     float       touchBlockerDamage;
     float       stayOpenTimeSec;
     bool        moverLocked;
-    bool        autoLinkEnable;
+    bool        autoLinkEnabled;
 #ifdef GOTHIC2
     bool        autoRotate;
 #endif    
@@ -311,8 +311,12 @@ struct oCTriggerScript : zCTrigger {
 #### zCTriggerList
 ```c++
 struct zCTriggerList::Entry final {
-    string triggerTarget;
-    float  fireDelay;
+#ifdef GOTHIC2
+    string triggerTarget{id};
+#else
+    string slaveVobName{id};
+#endif
+    float  fireDelay{id};
     };
 // Fire delay is not implemented 
 struct zCTriggerList : zCTrigger {
