@@ -29,7 +29,7 @@ class MdlVisual final {
     void                           setMagicWeapon(PfxObjects::Emitter&& spell);
     bool                           setFightMode(const ZenLoad::EFightMode mode);
 
-    bool setToFightMode(const WeaponState ws);
+    bool                           setToFightMode(const WeaponState ws);
     void                           updateWeaponSkeleton(const Item *sword, const Item *bow);
     void                           updateAnimation(Pose &pose);
 
