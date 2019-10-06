@@ -50,6 +50,13 @@ void PfxObjects::Emitter::setPosition(float x, float y, float z) {
   v.pos[2] = z;
   }
 
+void PfxObjects::Emitter::setActive(bool act) {
+  if(bucket==nullptr)
+    return;
+  auto& v = bucket->impl[id];
+  v.active=act;
+  }
+
 void PfxObjects::Emitter::setAttachPoint(const Skeleton *sk, const char *defBone) {
   skeleton = sk;
   if(skeleton!=nullptr)
@@ -283,6 +290,10 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b,uint64_t dt) {
 
     p.timeTotal+=dt;
     uint64_t emited = (p.timeTotal*uint64_t(b.owner->ppsValue*100))/(1000*100);
+    if(!p.active) {
+      p.emited = emited;
+      return;
+      }
     while(p.emited<emited) {
       p.emited++;
 

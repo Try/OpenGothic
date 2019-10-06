@@ -194,40 +194,7 @@ void Pose::emitSfx(Npc &npc, uint64_t dt) {
   }
 
 void Pose::emitSfx(Npc &npc, const Animation::Sequence &s, uint64_t dt, uint64_t fr) {
-  auto& d = *s.data;
-  if(d.numFrames==0 || (d.sfx.size()==0 && d.gfx.size()==0))
-    return;
-
-  uint64_t frameA = fr==uint64_t(-1) ? 0 : (fr/1000+1);
-  uint64_t frameB = (uint64_t(d.fpsRate*dt)/1000+1);
-
-  if(frameA==frameB)
-    return;
-
-  if(s.animCls==Animation::Loop){
-    frameA%=d.numFrames;
-    frameB%=d.numFrames;
-    } else {
-    frameA = std::min<uint64_t>(frameA,d.numFrames-1);
-    frameB = std::min<uint64_t>(frameB,d.numFrames-1);
-    }
-
-  const bool invert = (frameB<frameA);
-  if(invert)
-    std::swap(frameA,frameB);
-
-  for(auto& i:d.sfx){
-    uint64_t fr = uint64_t(i.m_Frame-int(d.firstFrame));
-    if((frameA<=fr && fr<frameB) ^ invert)
-      npc.emitSoundEffect(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
-    }
-  if(!npc.isInAir()) {
-    for(auto& i:d.gfx){
-      uint64_t fr = uint64_t(i.m_Frame-int(d.firstFrame));
-      if((frameA<=fr && fr<frameB) ^ invert)
-        npc.emitSoundGround(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
-      }
-    }
+  s.emitSfx(npc,dt,fr);
   }
 
 Matrix4x4 Pose::cameraBone() const {

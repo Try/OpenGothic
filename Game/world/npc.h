@@ -258,6 +258,7 @@ class Npc final {
     void updateArmour  ();
     void setSword      (StaticObjects::Mesh&& sword);
     void setRangeWeapon(StaticObjects::Mesh&& bow);
+    void setMagicWeapon(PfxObjects::Emitter&& spell);
     void setPhysic     (DynamicWorld::Item&& item);
     void setFatness    (float f);
     void setScale      (float x,float y,float z);

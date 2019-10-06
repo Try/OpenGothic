@@ -6,6 +6,7 @@
 #include <zenload/zCModelPrototype.h>
 #include <zenload/zenParser.h>
 
+#include "world/npc.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -138,11 +139,8 @@ Animation::Sequence& Animation::loadMAN(const std::string& name) {
 void Animation::setupIndex() {
   // for(auto& i:sequences)
   //   Log::i(i.name);
-  for(auto& sq:sequences) {
-    if(sq.data->fpsRate<=0.f)
-      continue;
+  for(auto& sq:sequences)
     sq.data->setupEvents(sq.data->fpsRate);
-    }
 
   for(auto& r:ref) {
     Sequence ani;
@@ -225,14 +223,14 @@ Animation::Sequence::Sequence(const std::string &name) {
   }
 
 bool Animation::Sequence::isFinished(uint64_t t) const {
-  return t>=totalTime();
+  return t>totalTime();
   }
 
 bool Animation::Sequence::isAtackFinished(uint64_t t) const {
   for(auto& i:data->defHitEnd)
     if(t>i)
       return true;
-  return t>=totalTime();// || t>=1000;
+  return t>totalTime();
   }
 
 bool Animation::Sequence::isParWindow(uint64_t t) const {
@@ -246,15 +244,117 @@ float Animation::Sequence::totalTime() const {
   }
 
 void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const {
-  for(auto& i:data->defOptFrame)
-    if(barrier<i+sTime && i+sTime<=now)
+  auto& d         = *data;
+  auto  numFrames = d.numFrames;
+  if(numFrames==0)
+    return;
+
+  float    fpsRate = data->fpsRate;
+  uint64_t frameA  = uint64_t((barrier-sTime)*fpsRate)/1000;
+  uint64_t frameB  = uint64_t((now    -sTime)*fpsRate)/1000;
+
+  if(frameA==frameB)
+    return;
+
+  if(animCls==Animation::Loop){
+    frameA%=numFrames;
+    frameB%=numFrames;
+    } else {
+    frameA = std::min<uint64_t>(frameA,numFrames-1);
+    frameB = std::min<uint64_t>(frameB,numFrames-1);
+    }
+
+  if(reverse) {
+    frameA = numFrames-1-frameA;
+    frameB = numFrames-1-frameB;
+    std::swap(frameA,frameB);
+    }
+
+  const bool invert = (frameB<frameA);
+  if(invert)
+    std::swap(frameA,frameB);
+
+  for(auto& e:d.events) {
+    if(e.m_Def==ZenLoad::DEF_OPT_FRAME) {
+      for(auto i:e.m_Int){
+        uint64_t fr = uint64_t(i-int(d.firstFrame));
+        if((frameA<=fr && fr<frameB) ^ invert)
+          processEvent(e,ev);
+        }
+      } else {
+      uint64_t fr = uint64_t(e.m_Frame-int(d.firstFrame));
+      if((frameA<=fr && fr<frameB) ^ invert)
+        processEvent(e,ev);
+      }
+    }
+  }
+
+void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation::EvCount &ev) {
+  switch(e.m_Def) {
+    case ZenLoad::DEF_NULL:
+    case ZenLoad::DEF_LAST:
+      break;
+    case ZenLoad::DEF_OPT_FRAME:
       ev.def_opt_frame++;
-  for(auto& i:data->defDraw)
-    if(barrier<i+sTime && i+sTime<=now)
+      break;
+    case ZenLoad::DEF_FIGHTMODE:
+      ev.weaponCh = e.m_Fmode;
+      break;
+    case ZenLoad::DEF_DRAWSOUND:
       ev.def_draw++;
-  for(auto& i:data->defUndraw)
-    if(barrier<i+sTime && i+sTime<=now)
+      break;
+    case ZenLoad::DEF_UNDRAWSOUND:
       ev.def_undraw++;
+      break;
+    case ZenLoad::DEF_PAR_FRAME:
+      break;
+    default:
+      break; //TODO
+    }
+  }
+
+void Animation::Sequence::emitSfx(Npc &npc, uint64_t now, uint64_t fr) const {
+  auto& d         = *data;
+  auto  numFrames = d.numFrames;
+  if(numFrames==0 || (d.sfx.size()==0 && d.gfx.size()==0))
+    return;
+
+  uint64_t frameA = fr==uint64_t(-1) ? 0 : (fr/1000+1);
+  uint64_t frameB = (uint64_t(d.fpsRate*now)/1000+1);
+
+  if(frameA==frameB)
+    return;
+
+  if(animCls==Animation::Loop){
+    frameA%=numFrames;
+    frameB%=numFrames;
+    } else {
+    frameA = std::min<uint64_t>(frameA,numFrames-1);
+    frameB = std::min<uint64_t>(frameB,numFrames-1);
+    }
+
+  if(reverse) {
+    frameA = numFrames-1-frameA;
+    frameB = numFrames-1-frameB;
+    std::swap(frameA,frameB);
+    }
+
+  const bool invert = (frameB<frameA);
+  if(invert)
+    std::swap(frameA,frameB);
+
+  for(auto& i:d.sfx){
+    uint64_t fr = uint64_t(i.m_Frame-int(d.firstFrame));
+    if((frameA<=fr && fr<frameB) ^ invert)
+      npc.emitSoundEffect(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
+    }
+  if(!npc.isInAir()) {
+    for(auto& i:d.gfx){
+      uint64_t fr = uint64_t(i.m_Frame-int(d.firstFrame));
+      if((frameA<=fr && fr<frameB) ^ invert)
+        npc.emitSoundGround(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
+      }
+    }
   }
 
 ZMath::float3 Animation::Sequence::translation(uint64_t dt) const {
@@ -338,16 +438,13 @@ void Animation::Sequence::setupMoveTr() {
   }
 
 void Animation::AnimData::setupEvents(float fpsRate) {
+  if(fpsRate<=0.f)
+    return;
+
   for(auto& r:events) {
     if(r.m_Def==ZenLoad::DEF_HIT_END)
       setupTime(defHitEnd,r.m_Int,fpsRate);
-    if(r.m_Def==ZenLoad::DEF_OPT_FRAME)
-      setupTime(defOptFrame,r.m_Int,fpsRate);
     if(r.m_Def==ZenLoad::DEF_PAR_FRAME)
       setupTime(defParFrame,r.m_Int,fpsRate);
-    if(r.m_Def==ZenLoad::DEF_DRAWSOUND)
-      setupTime(defDraw,r.m_Int,fpsRate);
-    if(r.m_Def==ZenLoad::DEF_UNDRAWSOUND)
-      setupTime(defUndraw,r.m_Int,fpsRate);
     }
   }

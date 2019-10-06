@@ -564,8 +564,8 @@ void Npc::setVisualBody(int32_t headTexNr, int32_t teethTexNr, int32_t bodyTexNr
   auto  vhead = head.empty() ? StaticObjects::Mesh() : w.getView(addExt(head,".MMB"),vHead,vTeeth,bdColor);
   auto  vbody = body.empty() ? StaticObjects::Mesh() : w.getView(addExt(body,".MDM"),vColor,0,bdColor);
   animation.setVisualBody(std::move(vhead),std::move(vbody));
+  updateArmour();
 
-  invent.updateArmourView(*this);
   durtyTranform|=TR_Pos; // update obj matrix
   }
 
@@ -599,8 +599,13 @@ void Npc::setRangeWeapon(StaticObjects::Mesh &&b) {
   updateWeaponSkeleton();
   }
 
+void Npc::setMagicWeapon(PfxObjects::Emitter &&s) {
+  animation.visual.setMagicWeapon(std::move(s));
+  updateWeaponSkeleton();
+  }
+
 void Npc::updateWeaponSkeleton() {
-  animation.visual.updateWeaponSkeleton(weaponState(),invent.currentMeleWeapon(),invent.currentRangeWeapon());
+  animation.visual.updateWeaponSkeleton(invent.currentMeleWeapon(),invent.currentRangeWeapon());
   }
 
 void Npc::setPhysic(DynamicWorld::Item &&item) {
@@ -1275,9 +1280,10 @@ void Npc::tick(uint64_t dt) {
   Animation::EvCount ev;
   animation.processEvents(fghLastEventTime,owner.tickCount(),ev);
 
-  if(ev.def_opt_frame>0){
+  if(ev.def_opt_frame>0)
     commitDamage();
-    }
+  if(animation.visual.setFightMode(ev.weaponCh))
+    updateWeaponSkeleton();
 
   if(!checkHealth(false,true)){
     mvAlgo.aiGoTo(nullptr);
@@ -1775,8 +1781,22 @@ void Npc::setToFightMode(const uint32_t item) {
   if(invent.itemCount(item)==0)
     addItem(item,1);
 
+  auto weaponSt=invent.weaponState();
+
   invent.equip(item,*this,true);
-  drawWeaponMele();
+  invent.switchActiveWeapon(*this,1);
+
+  if(weaponSt==WeaponState::W1H || weaponSt==WeaponState::W2H)
+    return;
+
+  weaponSt=invent.weaponState();
+  if(animation.visual.setToFightMode(weaponSt))
+    updateWeaponSkeleton();
+  animation.resetAni();
+
+  auto& weapon = *currentMeleWeapon();
+  auto  st     = weapon.is2H() ? WeaponState::W2H : WeaponState::W1H;
+  hnpc.weapon  = (st==WeaponState::W1H ? 3:4);
   }
 
 Item* Npc::addItem(const uint32_t item, uint32_t count) {
@@ -1922,7 +1942,7 @@ bool Npc::drawWeaponMele() {
 
   auto& weapon = *invent.currentMeleWeapon();
   auto  st     = weapon.is2H() ? WeaponState::W2H : WeaponState::W1H;
-  Anim  ani    = animation.current==isStanding()    ? Anim::Idle       : Anim::Move;
+  Anim  ani    = isStanding()  ? Anim::Idle       : Anim::Move;
   if(!setAnim(ani,st))
     return false;
 
@@ -1985,7 +2005,7 @@ bool Npc::drawSpell(int32_t spell) {
   if(auto sp = invent.activeWeapon()){
     const ParticleFx* pfx      = owner.script().getSpellFx(sp->spellId());
     auto              vemitter = owner.getView(pfx);
-    animation.visual.setSpell(std::move(vemitter));
+    setMagicWeapon(std::move(vemitter));
     }
 
   updateWeaponSkeleton();
@@ -2775,6 +2795,6 @@ bool Npc::setAnim(Npc::Anim a, WeaponState st) {
     w = WalkBit::WM_Swim;
   else if(mvAlgo.isInWater())
     w = WalkBit::WM_Water;
-  return animation.setAnim(a,owner.tickCount(),st,w,currentInteract,owner);
+  return animation.setAnim(a,owner.tickCount(),fghLastEventTime,st,w,currentInteract,owner);
   }
 

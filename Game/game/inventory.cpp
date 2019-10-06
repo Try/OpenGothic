@@ -340,6 +340,9 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
     else if(flag & ITM_CAT_FF){
       owner.setRangeWeapon(StaticObjects::Mesh());
       }
+    else if(flag & ITM_CAT_RUNE){
+      owner.setMagicWeapon(PfxObjects::Emitter());
+      }
     vm.invokeItem(&owner,itData.on_unequip);
     }
 

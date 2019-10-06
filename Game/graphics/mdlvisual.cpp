@@ -30,12 +30,7 @@ void MdlVisual::setPos(const Tempest::Matrix4x4 &m) {
   sword .setObjMatrix(pos);
   bow   .setObjMatrix(pos);
   pfx   .setObjMatrix(pos);
-  if(armour.isEmpty()) {
-    view  .setObjMatrix(pos);
-    } else {
-    armour.setObjMatrix(pos);
-    view  .setObjMatrix(Matrix4x4());
-    }
+  view  .setObjMatrix(pos);
   }
 
 // mdl_setvisual
@@ -43,7 +38,6 @@ void MdlVisual::setVisual(const Skeleton *v) {
   skeleton = v;
   head  .setAttachPoint(skeleton);
   view  .setAttachPoint(skeleton);
-  armour.setAttachPoint(skeleton);
   setPos(pos); // update obj matrix
   }
 
@@ -72,12 +66,52 @@ void MdlVisual::setRangeWeapon(StaticObjects::Mesh &&b) {
   setPos(pos);
   }
 
-void MdlVisual::setSpell(PfxObjects::Emitter &&spell) {
+void MdlVisual::setMagicWeapon(PfxObjects::Emitter &&spell) {
   pfx = std::move(spell);
   setPos(pos);
   }
 
-void MdlVisual::updateWeaponSkeleton(WeaponState st,const Item* weapon,const Item* range) {
+bool MdlVisual::setFightMode(const ZenLoad::EFightMode mode) {
+  WeaponState f=WeaponState::NoWeapon;
+
+  switch(mode) {
+    case ZenLoad::FM_LAST:
+      return false;
+    case ZenLoad::FM_NONE:
+      f=WeaponState::NoWeapon;
+      break;
+    case ZenLoad::FM_FIST:
+      f=WeaponState::Fist;
+      break;
+    case ZenLoad::FM_1H:
+      f=WeaponState::W1H;
+      break;
+    case ZenLoad::FM_2H:
+      f=WeaponState::W2H;
+      break;
+    case ZenLoad::FM_BOW:
+      f=WeaponState::Bow;
+      break;
+    case ZenLoad::FM_CBOW:
+      f=WeaponState::CBow;
+      break;
+    case ZenLoad::FM_MAG:
+      f=WeaponState::Mage;
+      break;
+    }
+
+  return setToFightMode(f);
+  }
+
+bool MdlVisual::setToFightMode(const WeaponState f) {
+  if(f==fightMode)
+    return false;
+  fightMode = f;
+  return true;
+  }
+
+void MdlVisual::updateWeaponSkeleton(const Item* weapon,const Item* range) {
+  auto st = fightMode;
   if(st==WeaponState::W1H || st==WeaponState::W2H){
     sword.setAttachPoint(skeleton,"ZS_RIGHTHAND");
     } else {
@@ -94,8 +128,8 @@ void MdlVisual::updateWeaponSkeleton(WeaponState st,const Item* weapon,const Ite
     bow.setAttachPoint(skeleton,cbow ? "ZS_CROSSBOW" : "ZS_BOW");
     }
   if(st==WeaponState::Mage)
-    pfx.setAttachPoint(skeleton,"ZS_RIGHTHAND"); else
-    pfx = PfxObjects::Emitter();
+    pfx.setAttachPoint(skeleton,"ZS_RIGHTHAND");
+  pfx.setActive(st==WeaponState::Mage);
   }
 
 void MdlVisual::updateAnimation(Pose& pose) {
@@ -103,7 +137,5 @@ void MdlVisual::updateAnimation(Pose& pose) {
   sword.setSkeleton(pose,pos);
   bow  .setSkeleton(pose,pos);
   pfx  .setSkeleton(pose,pos);
-  if(armour.isEmpty())
-    view  .setSkeleton(pose,pos); else
-    armour.setSkeleton(pose,pos);
+  view .setSkeleton(pose,pos);
   }

@@ -212,7 +212,8 @@ class AnimationSolver final {
     void                           delOverlay(const char *sk);
     void                           delOverlay(const Skeleton *sk);
 
-    bool                           setAnim(Anim a, uint64_t tickCount, WeaponState weaponSt,
+    bool                           setAnim(Anim a, uint64_t tickCount, uint64_t fghLastEventTime,
+                                           WeaponState weaponSt,
                                            WalkBit walk, Interactive *inter, World &owner);
 
     bool                           isFlyAnim(uint64_t tickCount) const;

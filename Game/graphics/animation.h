@@ -3,6 +3,8 @@
 #include <zenload/modelScriptParser.h>
 #include <memory>
 
+class Npc;
+
 class Animation final {
   public:
     enum Flags : uint32_t {
@@ -21,9 +23,10 @@ class Animation final {
       };
 
     struct EvCount final {
-      uint8_t def_opt_frame=0;
-      uint8_t def_draw=0;
-      uint8_t def_undraw=0;
+      uint8_t              def_opt_frame=0;
+      uint8_t              def_draw=0;
+      uint8_t              def_undraw=0;
+      ZenLoad::EFightMode  weaponCh=ZenLoad::FM_LAST;
       };
 
     struct AnimData final {
@@ -43,10 +46,7 @@ class Animation final {
       std::vector<ZenLoad::zCModelEvent>          events;
 
       std::vector<uint64_t>                       defHitEnd;   // hit-end time
-      std::vector<uint64_t>                       defOptFrame; // damage commitment timings
       std::vector<uint64_t>                       defParFrame; // block timings
-      std::vector<uint64_t>                       defDraw;     // draw-weapon sound
-      std::vector<uint64_t>                       defUndraw;   // undraw sound
 
       void                                        setupMoveTr();
       void                                        setupEvents(float fpsRate);
@@ -62,7 +62,9 @@ class Animation final {
       bool                                   isAtackFinished(uint64_t t) const;
       bool                                   isParWindow(uint64_t t) const;
       float                                  totalTime() const;
+
       void                                   processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const;
+      void                                   emitSfx(Npc &npc, uint64_t now, uint64_t fr) const;
 
       ZMath::float3                          translation(uint64_t dt) const;
       ZMath::float3                          speed(uint64_t at, uint64_t dt) const;
@@ -82,6 +84,7 @@ class Animation final {
 
       private:
         void setupMoveTr();
+        static void processEvent(const ZenLoad::zCModelEvent& e, EvCount& ev);
       };
 
     Animation(ZenLoad::MdsParser &p, const std::string &name, bool ignoreErrChunks);

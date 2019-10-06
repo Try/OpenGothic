@@ -1,5 +1,6 @@
 #pragma once
 
+#include <zenload/zCModelScript.h>
 #include <Tempest/Matrix4x4>
 
 #include "game/constants.h"
@@ -25,9 +26,11 @@ class MdlVisual final {
     void                           setArmour     (StaticObjects::Mesh&& body);
     void                           setSword      (StaticObjects::Mesh&& sword);
     void                           setRangeWeapon(StaticObjects::Mesh&& bow);
-    void                           setSpell      (PfxObjects::Emitter&& spell);
+    void                           setMagicWeapon(PfxObjects::Emitter&& spell);
+    bool                           setFightMode(const ZenLoad::EFightMode mode);
 
-    void                           updateWeaponSkeleton(WeaponState st, const Item *sword, const Item *bow);
+    bool setToFightMode(const WeaponState ws);
+    void                           updateWeaponSkeleton(const Item *sword, const Item *bow);
     void                           updateAnimation(Pose &pose);
 
     const Skeleton*                skeleton=nullptr;
@@ -36,7 +39,9 @@ class MdlVisual final {
   private:
     StaticObjects::Mesh            head;
     StaticObjects::Mesh            view;
-    StaticObjects::Mesh            sword, bow, armour;
+    StaticObjects::Mesh            sword, bow;
     PfxObjects::Emitter            pfx;
+
+    WeaponState                    fightMode=WeaponState::NoWeapon;
   };
 

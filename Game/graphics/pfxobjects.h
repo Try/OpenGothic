@@ -32,6 +32,7 @@ class PfxObjects final {
         Emitter(const Emitter&)=delete;
 
         void   setPosition(float x,float y,float z);
+        void   setActive(bool act);
 
         void   setAttachPoint(const Skeleton* skeleton,const char* defBone=nullptr);
         void   setSkeleton   (const Pose& p,const Tempest::Matrix4x4& obj);
@@ -81,6 +82,8 @@ class PfxObjects final {
     struct ImplEmitter final {
       float    pos[3]={};
       bool     alive=true;
+      bool     active=true;
+
       size_t   offset=0;
       size_t   size=0;
 
