@@ -35,6 +35,7 @@ class Animation final {
 
       std::vector<ZenLoad::zCModelAniSample>      samples;
       std::vector<uint32_t>                       nodeIndex;
+      std::vector<ZMath::float3>                  tr;
 
       uint32_t                                    firstFrame=0;
       uint32_t                                    lastFrame =0;
@@ -79,8 +80,6 @@ class Animation final {
 
       std::shared_ptr<AnimData>              data;
       const Sequence*                        next=nullptr;
-
-      std::vector<ZMath::float3>             tr;
 
       private:
         void setupMoveTr();

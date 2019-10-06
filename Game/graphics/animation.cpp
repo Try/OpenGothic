@@ -378,7 +378,8 @@ ZMath::float3 Animation::Sequence::speed(uint64_t at,uint64_t dt) const {
   }
 
 ZMath::float3 Animation::Sequence::translateXZ(uint64_t at) const {
-  if(data->numFrames==0 || tr.size()==0) {
+  auto& d = *data;
+  if(d.numFrames==0 || d.tr.size()==0) {
     ZMath::float3 n={};
     return n;
     }
@@ -393,11 +394,11 @@ ZMath::float3 Animation::Sequence::translateXZ(uint64_t at) const {
   uint64_t frameA = fr/1000;
   uint64_t frameB = frameA+1;
 
-  auto  mA = frameA/tr.size();
-  auto  pA = tr[frameA%tr.size()];
+  auto  mA = frameA/d.tr.size();
+  auto  pA = d.tr[frameA%d.tr.size()];
 
-  auto  mB = frameB/tr.size();
-  auto  pB = tr[frameB%tr.size()];
+  auto  mB = frameB/d.tr.size();
+  auto  pB = d.tr[frameB%d.tr.size()];
 
   float m = mA+(mB-mA)*a;
   ZMath::float3 p=pA;
@@ -412,28 +413,31 @@ ZMath::float3 Animation::Sequence::translateXZ(uint64_t at) const {
   }
 
 void Animation::Sequence::setupMoveTr() {
-  auto& d = *data;
-  size_t sz = d.nodeIndex.size();
+  data->setupMoveTr();
+  }
 
-  if(d.samples.size()>0 && d.samples.size()>=sz) {
-    auto& a = d.samples[0].position;
-    auto& b = d.samples[d.samples.size()-sz].position;
-    d.moveTr.position.x = b.x-a.x;
-    d.moveTr.position.y = b.y-a.y;
-    d.moveTr.position.z = b.z-a.z;
+void Animation::AnimData::setupMoveTr() {
+  size_t sz = nodeIndex.size();
 
-    tr.resize(d.samples.size()/sz);
-    for(size_t i=0,r=0;i<d.samples.size();i+=sz,++r){
+  if(samples.size()>0 && samples.size()>=sz) {
+    auto& a = samples[0].position;
+    auto& b = samples[samples.size()-sz].position;
+    moveTr.position.x = b.x-a.x;
+    moveTr.position.y = b.y-a.y;
+    moveTr.position.z = b.z-a.z;
+
+    tr.resize(samples.size()/sz);
+    for(size_t i=0,r=0;i<samples.size();i+=sz,++r){
       auto& p  = tr[r];
-      auto& bi = d.samples[i].position;
+      auto& bi = samples[i].position;
       p.x = bi.x-a.x;
       p.y = bi.y-a.y;
       p.z = bi.z-a.z;
       }
     }
 
-  if(d.samples.size()>0){
-    d.translate=d.samples[0].position;
+  if(samples.size()>0){
+    translate=samples[0].position;
     }
   }
 
