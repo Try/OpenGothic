@@ -579,12 +579,12 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     {"FOODHUGE",   Npc::Anim::FoodHuge1},
     {"POTION",     Npc::Anim::Potition1},
     {"POTIONFAST", Npc::Anim::PotitionFast},
-    //{"RICE",       Npc::Anim::Rice1},
+    {"RICE",       Npc::Anim::Rice1},
     {"MEAT",       Npc::Anim::Meat1},
-    //{"JOINT",      Npc::Anim::Joint1},
+    {"JOINT",      Npc::Anim::Joint1},
     {"MAP",        Npc::Anim::Map1},
-    //{"MAPSEALED",  Npc::Anim::MapSeal1},
-    {"FIRESPIT",  Npc::Anim::Firespit1}
+    {"MAPSEALED",  Npc::Anim::MapSeal1},
+    {"FIRESPIT",   Npc::Anim::Firespit1}
     };
   for(auto& i:schemes){
     if(cur<Anim::IdleLast && a==i.second)
@@ -595,6 +595,7 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
       return solveItemUse("S_%s_S0",i.first);
     }
 
+  /*
   if(cur==Anim::Idle && a==Anim::MapSeal1)
     return animSequence("T_MAP_STAND_2_S0");
   if(cur==Anim::MapSeal1 && a==Anim::Idle)
@@ -617,6 +618,7 @@ AnimationSolver::Sequence AnimationSolver::solveAnim( Anim a,   WeaponState st0,
     return animSequence("T_JOUNT_S0_2_STAND");
   if(a==Anim::Joint1)
     return animSequence("S_JOINT_S0");//FIXME
+  */
 
   if(a==Anim::Plunder)
     return animSequence("T_PLUNDER");
