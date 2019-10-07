@@ -19,7 +19,7 @@ before_build:
   - cmd: VulkanSDK.exe /S
   - cmd: set VK_SDK_PATH=C:/VulkanSDK/1.0.65.1
   - sh:  wget -O vulkansdk-linux-x86_64-1.0.65.0.tar.gz https://vulkan.lunarg.com/sdk/download/1.0.65.0/linux/vulkansdk-linux-x86_64-1.0.65.0.tar.gz?Human=true
-  - sh:  tar -xzf vulkansdk-linux-x86_64-1.0.65.0.tar.gz
+  - sh:  tar -xf vulkansdk-linux-x86_64-1.0.65.0.tar.gz
   - sh:  chmod ugo+x vulkansdk-linux-x86_64-1.0.65.0.run
   - sh:  ./vulkansdk-linux-x86_64-1.0.65.0.run
   - sh:  export VK_SDK_PATH=%APPVEYOR_BUILD_FOLDER%/VulkanSDK/1.0.65.0/x86_64
