@@ -19,7 +19,7 @@ elseif(MSVC)
       "src/windows/*.cpp"
       "src/windows/msvc/*.hpp"
       "src/windows/msvc/*.cpp")
-endif(MSVC)
+endif(MINGW)
 
 file(GLOB SOURCES_OSX
     "src/osx/*.hpp"

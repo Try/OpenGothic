@@ -5,7 +5,15 @@ set (CMAKE_CXX_STANDARD 14)
 
 include_directories("Game")
 
-SET(CMAKE_DEBUG_POSTFIX "")
+set(CMAKE_DEBUG_POSTFIX "")
+
+if(POLICY CMP0990)
+  cmake_policy(SET CMP0990 OLD)
+endif()
+
+if(POLICY CMP0015)
+  cmake_policy(SET CMP0015 OLD)
+endif()
 
 set(CMAKE_BINARY_DIR ../)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
