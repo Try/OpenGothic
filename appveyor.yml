@@ -18,7 +18,7 @@ before_build:
   - cmd: curl -L --silent --show-error --output VulkanSDK.exe https://vulkan.lunarg.com/sdk/download/1.0.65.1/windows/VulkanSDK-1.0.65.1-Installer.exe?Human=true
   - cmd: VulkanSDK.exe /S
   - cmd: set VK_SDK_PATH=C:/VulkanSDK/1.0.65.1
-  - sh:  wget -O vulkansdk-linux-x86_64-1.0.65.0.run https://vulkan.lunarg.com/sdk/download/1.0.65.0/linux/vulkansdk-linux-x86_64-1.0.65.0.tar.gz?Human=true
+  - sh:  wget -O vulkansdk-linux-x86_64-1.0.65.0.tar.gz https://vulkan.lunarg.com/sdk/download/1.0.65.0/linux/vulkansdk-linux-x86_64-1.0.65.0.tar.gz?Human=true
   - sh:  tar -xzf vulkansdk-linux-x86_64-1.0.65.0.tar.gz
   - sh:  chmod ugo+x vulkansdk-linux-x86_64-1.0.65.0.run
   - sh:  ./vulkansdk-linux-x86_64-1.0.65.0.run
