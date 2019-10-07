@@ -76,12 +76,12 @@ class StaticObjects final {
     void reserve(size_t stat,size_t dyn);
 
     void draw      (Tempest::CommandBuffer &cmd, uint32_t imgId);
-    void drawShadow(Tempest::CommandBuffer &cmd, uint32_t imgId);
+    void drawShadow(Tempest::CommandBuffer &cmd, uint32_t imgId, int layer=0);
 
     bool needToUpdateCommands() const;
     void setAsUpdated();
 
-    void setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4 &shadow);
+    void setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4 *sh, size_t shCount);
     void setLight(const Light &l, const Tempest::Vec3 &ambient);
 
   private:
@@ -121,8 +121,9 @@ class StaticObjects final {
     std::list<ObjectsBucket<UboSt,Vertex >> chunksSt;
     std::list<ObjectsBucket<UboDn,VertexA>> chunksDn;
 
-    UboChain<UboGlobal,void>        uboGlobalPf;
+    UboChain<UboGlobal,void>        uboGlobalPf[2];
     UboGlobal                       uboGlobal;
+    Tempest::Matrix4x4              shadowView1;
 
     ObjectsBucket<UboSt,Vertex>&    getBucketSt(const Tempest::Texture2d* mat);
     ObjectsBucket<UboSt,Vertex>&    getBucketAt(const Tempest::Texture2d* mat);

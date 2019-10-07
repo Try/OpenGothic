@@ -9,7 +9,7 @@
 #include "rendererstorage.h"
 
 StaticObjects::StaticObjects(const RendererStorage &storage)
-  :storage(storage),storageSt(storage.device),storageDn(storage.device),uboGlobalPf(storage.device) {
+  :storage(storage),storageSt(storage.device),storageDn(storage.device),uboGlobalPf{storage.device,storage.device} {
   uboGlobal.lightDir={{1,1,-1}};
   float l=0;
   for(auto i:uboGlobal.lightDir)
@@ -39,9 +39,12 @@ void StaticObjects::setAsUpdated() {
     i.setAsUpdated();
   }
 
-void StaticObjects::setModelView(const Tempest::Matrix4x4 &m,const Tempest::Matrix4x4 &shadow) {
+void StaticObjects::setModelView(const Tempest::Matrix4x4 &m, const Tempest::Matrix4x4 *sh, size_t shCount) {
+  assert(shCount==2);
+
   uboGlobal.modelView  = m;
-  uboGlobal.shadowView = shadow;
+  uboGlobal.shadowView = sh[0];
+  shadowView1          = sh[1];
   }
 
 void StaticObjects::setLight(const Light &l,const Tempest::Vec3& ambient) {
@@ -151,7 +154,11 @@ void StaticObjects::updateUbo(uint32_t imgId) {
   storageSt.updateUbo(imgId);
   storageDn.updateUbo(imgId);
 
-  uboGlobalPf.update(uboGlobal,imgId);
+  uboGlobalPf[0].update(uboGlobal,imgId);
+
+  auto ubo2 = uboGlobal;
+  ubo2.shadowView = shadowView1;
+  uboGlobalPf[1].update(ubo2,imgId);
   }
 
 void StaticObjects::commitUbo(uint32_t imgId,const Tempest::Texture2d& shadowMap) {
@@ -162,32 +169,34 @@ void StaticObjects::commitUbo(uint32_t imgId,const Tempest::Texture2d& shadowMap
 
   for(auto& i:chunksSt){
     auto& ubo = i.uboMain(imgId);
-    ubo.set(0,uboGlobalPf[imgId],0,sizeof(UboGlobal));
+    ubo.set(0,uboGlobalPf[0][imgId],0,sizeof(UboGlobal));
     ubo.set(1,storageSt[imgId],0,storageSt.elementSize());
     ubo.set(2,i.texture());
     ubo.set(3,shadowMap);
     }
   for(auto& i:chunksDn){
     auto& ubo = i.uboMain(imgId);
-    ubo.set(0,uboGlobalPf[imgId],0,sizeof(UboGlobal));
+    ubo.set(0,uboGlobalPf[0][imgId],0,sizeof(UboGlobal));
     ubo.set(1,storageDn[imgId],0,storageDn.elementSize());
     ubo.set(2,i.texture());
     ubo.set(3,shadowMap);
     }
 
-  for(auto& i:chunksSt){
-    auto& ubo = i.uboShadow(imgId);
-    ubo.set(0,uboGlobalPf[imgId],0,sizeof(UboGlobal));
-    ubo.set(1,storageSt[imgId],0,storageSt.elementSize());
-    ubo.set(2,i.texture());
-    ubo.set(3,Resources::fallbackTexture());
-    }
-  for(auto& i:chunksDn){
-    auto& ubo = i.uboShadow(imgId);
-    ubo.set(0,uboGlobalPf[imgId],0,sizeof(UboGlobal));
-    ubo.set(1,storageDn[imgId],0,storageDn.elementSize());
-    ubo.set(2,i.texture());
-    ubo.set(3,Resources::fallbackTexture());
+  for(int layer=0;layer<2;++layer) {
+    for(auto& i:chunksSt){
+      auto& ubo = i.uboShadow(imgId,layer);
+      ubo.set(0,uboGlobalPf[layer][imgId],0,sizeof(UboGlobal));
+      ubo.set(1,storageSt[imgId],0,storageSt.elementSize());
+      ubo.set(2,i.texture());
+      ubo.set(3,Resources::fallbackTexture());
+      }
+    for(auto& i:chunksDn){
+      auto& ubo = i.uboShadow(imgId,layer);
+      ubo.set(0,uboGlobalPf[layer][imgId],0,sizeof(UboGlobal));
+      ubo.set(1,storageDn[imgId],0,storageDn.elementSize());
+      ubo.set(2,i.texture());
+      ubo.set(3,Resources::fallbackTexture());
+      }
     }
   }
 
@@ -203,11 +212,11 @@ void StaticObjects::draw(Tempest::CommandBuffer &cmd, uint32_t imgId) {
     c.draw(cmd,storage.pAnim,imgId);
   }
 
-void StaticObjects::drawShadow(Tempest::CommandBuffer &cmd, uint32_t imgId) {
+void StaticObjects::drawShadow(Tempest::CommandBuffer &cmd, uint32_t imgId, int layer) {
   for(auto& c:chunksSt)
-    c.drawShadow(cmd,storage.pObjectSh,imgId);
+    c.drawShadow(cmd,storage.pObjectSh,imgId,layer);
   for(auto& c:chunksDn)
-    c.drawShadow(cmd,storage.pAnimSh,imgId);
+    c.drawShadow(cmd,storage.pAnimSh,imgId,layer);
   }
 
 void StaticObjects::Mesh::setAttachPoint(const Skeleton *sk, const char *defBone) {

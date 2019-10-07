@@ -47,7 +47,7 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
   if(zbuffer.w()==int(w) && zbuffer.h()==int(h))
     return;
 
-  const size_t imgC=device.swapchainImageCount();
+  const uint32_t imgC=device.swapchainImageCount();
   fbo3d.clear();
 
   zbuffer        = device.createTexture(zBufferFormat,w,h,false);
@@ -66,7 +66,7 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
     shadowMap[i].setSampler(smp);
     }
 
-  for(size_t i=0;i<imgC;++i) {
+  for(uint32_t i=0;i<imgC;++i) {
     Tempest::Frame frame=device.frame(i);
     fbo3d.emplace_back(device.frameBuffer(frame,zbuffer));
     }

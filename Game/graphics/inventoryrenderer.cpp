@@ -28,7 +28,8 @@ void InventoryRenderer::draw(Tempest::CommandBuffer &cmd, uint32_t imgId) {
     // mv.perspective(45.0f, float(w)/float(h), 0.001f, 100.0f);
     mv.scale(0.8f,1.f,1.f);
     }
-  itmGroup.setModelView(mv,Tempest::Matrix4x4());
+  Tempest::Matrix4x4 shMv[2];
+  itmGroup.setModelView(mv,shMv,2);
   itmGroup.commitUbo(imgId,Resources::fallbackTexture());
   itmGroup.updateUbo(imgId);
 

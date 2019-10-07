@@ -19,6 +19,8 @@ layout(location = 6) in vec3 inSun;
 
 layout(location = 0) out vec4 outColor;
 
+const float shadowSize=2048.0;
+
 float implShadowVal(in vec2 uv, in float shPosZ, in int layer) {
   float shMap = texture(textureSm,uv)[layer];
   float shZ   = min(0.99,shPosZ);
@@ -28,12 +30,20 @@ float implShadowVal(in vec2 uv, in float shPosZ, in int layer) {
 
 float shadowVal(in vec2 uv, in float shPosZ, in int layer) {
   // TODO: uniform shadowmap resolution
-  float d1 = 0.5/2048.0;
-  float d2 = 1.5/2048.0;
-  float ret = implShadowVal(uv+vec2(-d2, d1),shPosZ,layer) +
-              implShadowVal(uv+vec2( d1, d1),shPosZ,layer) +
-              implShadowVal(uv+vec2(-d2, d2),shPosZ,layer) +
-              implShadowVal(uv+vec2( d1,-d2),shPosZ,layer);
+  vec2 offset = fract(uv.xy * shadowSize * 0.5);  // mod
+  offset = vec2(offset.x>0.25,offset.y>0.25);
+  // y ^= x in floating point
+  offset.y += offset.x;
+  if(offset.y>1.1)
+    offset.y = 0;
+  offset/=shadowSize;
+
+  float d1 = 0.5/shadowSize;
+  float d2 = 1.5/shadowSize;
+  float ret = implShadowVal(uv+offset+vec2(-d2, d1),shPosZ,layer) +
+              implShadowVal(uv+offset+vec2( d1, d1),shPosZ,layer) +
+              implShadowVal(uv+offset+vec2(-d2, d2),shPosZ,layer) +
+              implShadowVal(uv+offset+vec2( d1,-d2),shPosZ,layer);
 
   return ret*0.25;
   }

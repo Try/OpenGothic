@@ -20,8 +20,9 @@ class ObjectsBucket : public AbstractObjectsBucket {
       size_t pfSize=device.maxFramesInFlight();
       pf.reset(new PerFrame[pfSize]);
       for(size_t i=0;i<pfSize;++i) {
-        pf[i].ubo   = device.uniforms(layout);
-        pf[i].uboSh = device.uniforms(layout);
+        pf[i].ubo      = device.uniforms(layout);
+        pf[i].uboSh[0] = device.uniforms(layout);
+        pf[i].uboSh[1] = device.uniforms(layout);
         }
       }
 
@@ -33,13 +34,13 @@ class ObjectsBucket : public AbstractObjectsBucket {
 
     const Tempest::Texture2d&   texture() const override { return *tex; }
     Tempest::Uniforms&          uboMain  (size_t imgId) { return pf[imgId].ubo;   }
-    Tempest::Uniforms&          uboShadow(size_t imgId) { return pf[imgId].uboSh; }
+    Tempest::Uniforms&          uboShadow(size_t imgId,int layer) { return pf[imgId].uboSh[layer]; }
 
     size_t                      alloc(const Tempest::VertexBuffer<Vertex> &vbo, const Tempest::IndexBuffer<uint32_t> &ibo);
     void                        free(size_t i) override;
 
     void                        draw      (Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId);
-    void                        drawShadow(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId);
+    void                        drawShadow(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId, int layer);
 
     void                        draw(size_t id,Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) override;
 
@@ -54,7 +55,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
       };
 
     struct PerFrame final {
-      Tempest::Uniforms ubo, uboSh;
+      Tempest::Uniforms ubo, uboSh[2];
       };
 
     const Tempest::Texture2d*   tex=nullptr;
@@ -156,7 +157,7 @@ void ObjectsBucket<Ubo,Vertex>::draw(Tempest::CommandBuffer &cmd,const Tempest::
   }
 
 template<class Ubo,class Vertex>
-void ObjectsBucket<Ubo,Vertex>::drawShadow(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) {
+void ObjectsBucket<Ubo,Vertex>::drawShadow(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId, int layer) {
   auto& frame = pf[imgId];
   index.resize(data.size());
   for(size_t i=0;i<index.size();++i)
@@ -172,7 +173,7 @@ void ObjectsBucket<Ubo,Vertex>::drawShadow(Tempest::CommandBuffer &cmd,const Tem
       continue;
     uint32_t offset = di.ubo*uStorage.elementSize();
 
-    cmd.setUniforms(pipeline,frame.uboSh,1,&offset);
+    cmd.setUniforms(pipeline,frame.uboSh[layer],1,&offset);
     cmd.draw(*di.vbo,*di.ibo);
     }
   }

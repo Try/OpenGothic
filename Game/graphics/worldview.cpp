@@ -113,15 +113,16 @@ void WorldView::updateUbo(const Matrix4x4& view,const Tempest::Matrix4x4* shadow
   land.setMatrix(imgId,viewProj,shadow,shCount);
   land.setLight (sun,ambient);
 
-  vobGroup.setModelView(viewProj,shadow[0]);
+  vobGroup.setModelView(viewProj,shadow,shCount);
   vobGroup.setLight    (sun,ambient);
   vobGroup.updateUbo   (imgId);
-  objGroup.setModelView(viewProj,shadow[0]);
+  objGroup.setModelView(viewProj,shadow,shCount);
   objGroup.setLight    (sun,ambient);
   objGroup.updateUbo   (imgId);
-  itmGroup.setModelView(viewProj,shadow[0]);
+  itmGroup.setModelView(viewProj,shadow,shCount);
   itmGroup.setLight    (sun,ambient);
   itmGroup.updateUbo   (imgId);
+
   pfxGroup.setModelView(viewProj,shadow[0]);
   pfxGroup.setLight    (sun,ambient);
   pfxGroup.updateUbo   (imgId,owner.tickCount());
@@ -202,12 +203,12 @@ void WorldView::updateAnimation(uint64_t tickCount) {
 
 void WorldView::prebuiltCmdBuf(const World &world, const Texture2d& shadowMap,
                                const FrameBufferLayout& mainLay,const FrameBufferLayout& shadowLay) {
-  auto&  device = storage.device;
-  size_t count  = device.maxFramesInFlight();
+  auto&    device = storage.device;
+  uint32_t count  = device.maxFramesInFlight();
 
   resetCmd();
 
-  for(size_t i=0;i<count;++i){
+  for(uint32_t i=0;i<count;++i){
     sky     .commitUbo(i);
     land    .commitUbo(i,shadowMap);
     vobGroup.commitUbo(i,shadowMap);
@@ -217,7 +218,7 @@ void WorldView::prebuiltCmdBuf(const World &world, const Texture2d& shadowMap,
     }
 
   // cascade#0 detail shadow
-  for(size_t i=0;i<count;++i) {
+  for(uint32_t i=0;i<count;++i) {
     auto cmd=device.commandSecondaryBuffer(shadowLay);
 
     cmd.begin();
@@ -230,15 +231,16 @@ void WorldView::prebuiltCmdBuf(const World &world, const Texture2d& shadowMap,
     }
 
   // cascade#1 shadow
-  for(size_t i=0;i<count;++i) {
+  for(uint32_t i=0;i<count;++i) {
     auto cmd=device.commandSecondaryBuffer(shadowLay);
     cmd.begin();
     land.drawShadow(cmd,i,1);
+    vobGroup.drawShadow(cmd,i,1);
     cmd.end();
     cmdShadow[1].emplace_back(std::move(cmd));
     }
 
-  for(size_t i=0;i<count;++i) {
+  for(uint32_t i=0;i<count;++i) {
     auto cmd=device.commandSecondaryBuffer(mainLay);
 
     cmd.begin();
