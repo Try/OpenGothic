@@ -22,7 +22,7 @@ before_build:
   - sh:  tar -xzf vulkansdk-linux-x86_64-1.0.65.0.tar.gz
   - sh:  chmod ugo+x vulkansdk-linux-x86_64-1.0.65.0.run
   - sh:  ./vulkansdk-linux-x86_64-1.0.65.0.run
-  - sh:  export VK_SDK_PATH=$TRAVIS_BUILD_DIR/VulkanSDK/1.0.65.0/x86_64
+  - sh:  export VK_SDK_PATH=%APPVEYOR_BUILD_FOLDER%/VulkanSDK/1.0.65.0/x86_64
 
 build_script:
   - cmake --version
