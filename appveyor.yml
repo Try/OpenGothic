@@ -1,9 +1,12 @@
 install:
   - cmd: git submodule -q update --init
 
+image:
+  - Visual Studio 2017
+  - Ubuntu
+
 environment:
   matrix:
-    - QMAKE_SPEC : "win32-g++"
       CXX:   mingw53_32
 
 configuration:
@@ -13,32 +16,35 @@ before_build:
   # Prepare the out-of-source build directory.
   - mkdir build
   - git submodule update --init --recursive
-  - set Path=C:/Qt/Tools/mingw530_32/bin;%Path%
-  - set CC=C:/Qt/Tools/mingw530_32/bin/gcc.exe
-  - set CXX=C:/Qt/Tools/mingw530_32/bin/g++.exe
-  - curl -L --silent --show-error --output VulkanSDK.exe https://vulkan.lunarg.com/sdk/download/1.0.65.1/windows/VulkanSDK-1.0.65.1-Installer.exe?Human=true
-  - VulkanSDK.exe /S
-  - set VK_SDK_PATH=C:/VulkanSDK/1.0.65.1
+  - cmd: set Path=C:/Qt/Tools/mingw530_32/bin;%Path%
+  - cmd: set CC=C:/Qt/Tools/mingw530_32/bin/gcc.exe
+  - cmd: set CXX=C:/Qt/Tools/mingw530_32/bin/g++.exe
+  - cmd: curl -L --silent --show-error --output VulkanSDK.exe https://vulkan.lunarg.com/sdk/download/1.0.65.1/windows/VulkanSDK-1.0.65.1-Installer.exe?Human=true
+  - cmd: VulkanSDK.exe /S
+  - cmd: set VK_SDK_PATH=C:/VulkanSDK/1.0.65.1
 
 build_script:
   - cmake --version
   - gcc   --version
   - g++   --version
-  - cmake -H. -Bbuild -G "MinGW Makefiles" -DCMAKE_SH="CMAKE_SH-NOTFOUND" -DBUILD_EXTRAS:BOOL=OFF" "-DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo" "-DCMAKE_PREFIX_PATH:STRING=C:/Qt/5.9.1/mingw53_32" "-DCMAKE_MAKE_PROGRAM:STRING=C:/Qt/mingw530_32/bin/mingw32-make.exe"
+  - cmd: cmake -H. -Bbuild -G "MinGW Makefiles" -DCMAKE_SH="CMAKE_SH-NOTFOUND" -DBUILD_EXTRAS:BOOL=OFF" "-DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo" "-DCMAKE_PREFIX_PATH:STRING=C:/Qt/5.9.1/mingw53_32" "-DCMAKE_MAKE_PROGRAM:STRING=C:/Qt/mingw530_32/bin/mingw32-make.exe"
+  - sh:  cmake -H. -Bbuild -DBUILD_EXTRAS:BOOL=OFF" "-DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo"
   - cmake --build ./build --target all
 
 after_build:
-  - echo gothic-win32-v%appveyor_build_version% >> VERSION
+  - cmd: echo gothic-win32-v%appveyor_build_version% >> VERSION
+  - cmd: echo gothic-linux-v%appveyor_build_version% >> VERSION
   - set name="bin/open_gothic.zip"
-  - copy /b/y "build\lib\MoltenTempest\bin\libMoltenTempest.dll" "bin\libMoltenTempest.dll"
-  - copy /b/y "C:\Qt\Tools\mingw530_32\bin\libgcc_s_dw2-1.dll"   "bin\libgcc_s_dw2-1.dll"
-  - copy /b/y "C:\Qt\Tools\mingw530_32\bin\libstdc++-6.dll"      "bin\libstdc++-6.dll"
-  - copy /b/y "C:\Qt\Tools\mingw530_32\bin\libwinpthread-1.dll"  "bin\libwinpthread-1.dll"
+  - cmd: copy /b/y "build\lib\MoltenTempest\bin\libMoltenTempest.dll" "bin\libMoltenTempest.dll"
+  - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libgcc_s_dw2-1.dll"   "bin\libgcc_s_dw2-1.dll"
+  - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libstdc++-6.dll"      "bin\libstdc++-6.dll"
+  - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libwinpthread-1.dll"  "bin\libwinpthread-1.dll"
+  - sh:  cp        "build/lib/MoltenTempest/bin/libMoltenTempest.dll" "bin/libMoltenTempest.dll"
   - 7z a %name%    VERSION
-  - 7z a %name%    bin\shader\*.sprv
-  - 7z a %name%    bin\data\*
-  - 7z a %name% -r bin\*.exe
-  - 7z a %name% -r bin\*.dll
+  - 7z a %name%    "bin/shader/*.sprv"
+  - 7z a %name%    "bin/data/*"
+  - 7z a %name% -r "bin/*.exe"
+  - 7z a %name% -r "bin/*.dll"
 
 artifacts:
   - path: bin/open_gothic.zip
