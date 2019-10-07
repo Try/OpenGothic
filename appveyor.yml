@@ -5,10 +5,6 @@ image:
   - Visual Studio 2017
   - Ubuntu
 
-environment:
-  matrix:
-      CXX:   mingw53_32
-
 configuration:
   - release
 
