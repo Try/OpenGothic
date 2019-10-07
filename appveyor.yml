@@ -18,13 +18,17 @@ before_build:
   - cmd: curl -L --silent --show-error --output VulkanSDK.exe https://vulkan.lunarg.com/sdk/download/1.0.65.1/windows/VulkanSDK-1.0.65.1-Installer.exe?Human=true
   - cmd: VulkanSDK.exe /S
   - cmd: set VK_SDK_PATH=C:/VulkanSDK/1.0.65.1
+  - sh:  wget -O vulkansdk-linux-x86_64-1.0.65.1.run https://vulkan.lunarg.com/sdk/download/1.0.65.1/linux/vulkansdk-linux-x86_64-1.0.65.1.run?Human=true
+  - sh:  chmod ugo+x vulkansdk-linux-x86_64-1.0.65.1.run
+  - sh:  ./vulkansdk-linux-x86_64-1.0.65.1.run
+  - sh:  export VK_SDK_PATH=$TRAVIS_BUILD_DIR/VulkanSDK/1.0.65.1/x86_64
 
 build_script:
   - cmake --version
   - gcc   --version
   - g++   --version
-  - cmd: cmake -H. -Bbuild -G "MinGW Makefiles" -DCMAKE_SH="CMAKE_SH-NOTFOUND" "-DBUILD_EXTRAS:BOOL=OFF" "-DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo" "-DCMAKE_PREFIX_PATH:STRING=C:/Qt/5.9.1/mingw53_32" "-DCMAKE_MAKE_PROGRAM:STRING=C:/Qt/mingw530_32/bin/mingw32-make.exe"
-  - sh:  cmake -H. -Bbuild -DBUILD_EXTRAS:BOOL=OFF "-DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo"
+  - cmd: cmake -H. -Bbuild -G "MinGW Makefiles" -DCMAKE_SH="CMAKE_SH-NOTFOUND" -DBUILD_EXTRAS:BOOL=OFF -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DCMAKE_PREFIX_PATH:STRING=C:/Qt/5.9.1/mingw53_32 -DCMAKE_MAKE_PROGRAM:STRING=C:/Qt/mingw530_32/bin/mingw32-make.exe
+  - sh:  cmake -H. -Bbuild -DBUILD_EXTRAS:BOOL=OFF -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
   - cmake --build ./build --target all
 
 after_build:
