@@ -38,7 +38,7 @@ after_build:
   - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libgcc_s_dw2-1.dll"   "bin\libgcc_s_dw2-1.dll"
   - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libstdc++-6.dll"      "bin\libstdc++-6.dll"
   - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libwinpthread-1.dll"  "bin\libwinpthread-1.dll"
-  - sh:  cp        "build/lib/MoltenTempest/bin/libMoltenTempest.so"  "bin/libMoltenTempest.so"
+  - sh:  cp        "build/lib/MoltenTempest/lib/libMoltenTempest.so"  "bin/libMoltenTempest.so"
   - 7z a %name%    VERSION
   - 7z a %name%    "bin/shader/*.sprv"
   - 7z a %name%    "bin/data/*"
