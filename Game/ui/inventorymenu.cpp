@@ -409,7 +409,7 @@ void InventoryMenu::drawSlot(Painter &p, const Page &inv, const PageLocal &sel, 
     }
 
   char  vint[32]={};
-  std::snprintf(vint,sizeof(vint),"%d",r.count());
+  std::snprintf(vint,sizeof(vint),"%d",int(r.count()));
   auto sz = p.font().textSize(vint);
   p.drawText(x+slotSize().w-sz.w-10,
              y+slotSize().h-10,
@@ -417,7 +417,7 @@ void InventoryMenu::drawSlot(Painter &p, const Page &inv, const PageLocal &sel, 
 
   if(r.slot()!=Item::NSLOT){
     p.setBrush(Color(1,0,0,1));
-    std::snprintf(vint,sizeof(vint),"%d",r.slot());
+    std::snprintf(vint,sizeof(vint),"%d",int(r.slot()));
     auto sz = p.font().textSize(vint);
     p.drawText(x+10,
                y+slotSize().h/2+sz.h/2,

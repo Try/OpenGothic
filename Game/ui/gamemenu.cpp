@@ -202,7 +202,7 @@ GameMenu::Item *GameMenu::selectedItem() {
 
 GameMenu::Item *GameMenu::selectedNextItem(Item *it) {
   uint32_t cur=curItem+1;
-  for(size_t i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;++i)
+  for(uint32_t i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;++i)
     if(&hItems[i]==it) {
       cur=i+1;
       break;

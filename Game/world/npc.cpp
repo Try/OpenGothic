@@ -92,7 +92,7 @@ void Npc::save(Serialize &fout) {
   }
 
 void Npc::save(Serialize &fout, Daedalus::GEngineClasses::C_Npc &h) const {
-  fout.write(h.instanceSymbol);
+  fout.write(uint32_t(h.instanceSymbol));
   fout.write(h.id,h.name,h.slot,h.effect,int32_t(h.npcType));
   save(fout,h.flags);
   fout.write(h.attribute,h.hitChance,h.protection,h.damage);
@@ -106,8 +106,8 @@ void Npc::save(Serialize &fout, Daedalus::GEngineClasses::C_Npc &h) const {
   }
 
 void Npc::load(Serialize &fin, Daedalus::GEngineClasses::C_Npc &h) {
-  fin.read(h.instanceSymbol);
-  // owner.script().initializeInstance(h,h.instanceSymbol);
+  uint32_t instanceSymbol=0;
+  fin.read(instanceSymbol); h.instanceSymbol = instanceSymbol;
   fin.read(h.id,h.name,h.slot,h.effect, reinterpret_cast<int32_t&>(h.npcType));
   load(fin,h.flags);
   fin.read(h.attribute,h.hitChance,h.protection,h.damage);
@@ -2398,10 +2398,11 @@ bool Npc::tryMove(const std::array<float,3> &dp) {
   }
 
 Npc::JumpCode Npc::tryJump(const std::array<float,3> &p0) {
-  float len = 20.f;
+  float len = 40.f;
   float rot = rotationRad();
   float s   = std::sin(rot), c = std::cos(rot);
   float dx  = len*s, dz = -len*c;
+  float trY = -translateY();
 
   auto pos = p0;
   pos[0]+=dx;
@@ -2410,11 +2411,11 @@ Npc::JumpCode Npc::tryJump(const std::array<float,3> &p0) {
   if(physic.testMove(pos))
     return JumpCode::JM_OK;
 
-  pos[1] = p0[1]+clampHeight(Anim::JumpUpLow);
+  pos[1] = p0[1]+clampHeight(Anim::JumpUpLow)+trY;
   if(physic.testMove(pos))
     return JumpCode::JM_UpLow;
 
-  pos[1] = p0[1]+clampHeight(Anim::JumpUpMid);
+  pos[1] = p0[1]+clampHeight(Anim::JumpUpMid)+trY;
   if(physic.testMove(pos))
     return JumpCode::JM_UpMid;
 

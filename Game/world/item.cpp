@@ -19,7 +19,8 @@ Item::Item(World &owner, Serialize &fin)
   auto& h = hitem;
   h.userPtr = this;
 
-  fin.read(h.instanceSymbol);
+  uint32_t instanceSymbol=0;
+  fin.read(instanceSymbol); h.instanceSymbol = instanceSymbol;
   fin.read(h.id,h.name,h.nameID,h.hp,h.hp_max,h.mainflag);
   fin.read(h.flags,h.weight,h.value,h.damageType,h.damageTotal,h.damage);
   fin.read(h.wear,h.protection,h.nutrition,h.cond_atr,h.cond_value,h.change_atr,h.change_value,h.magic);
@@ -51,7 +52,7 @@ Item::~Item() {
 
 void Item::save(Serialize &fout) {
   auto& h = hitem;
-  fout.write(h.instanceSymbol);
+  fout.write(uint32_t(h.instanceSymbol));
   fout.write(h.id,h.name,h.nameID,h.hp,h.hp_max,h.mainflag);
   fout.write(h.flags,h.weight,h.value,h.damageType,h.damageTotal,h.damage);
   fout.write(h.wear,h.protection,h.nutrition,h.cond_atr,h.cond_value,h.change_atr,h.change_value,h.magic);
@@ -148,7 +149,7 @@ int32_t Item::swordLength() const {
   }
 
 void Item::setCount(size_t cnt) {
-  hitem.amount = cnt;
+  hitem.amount = uint32_t(cnt);
   }
 
 const char *Item::uiText(size_t id) const {

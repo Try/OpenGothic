@@ -32,7 +32,7 @@ class Item final {
     void setAsEquiped(bool e) { equiped=e; if(!e) itSlot=NSLOT; }
 
     uint8_t slot() const      { return itSlot;  }
-    void setSlot(uint8_t s)   { itSlot = s;     }
+    void    setSlot(uint8_t s)   { itSlot = s;     }
 
     const char*         displayName() const;
     const char*         description() const;
