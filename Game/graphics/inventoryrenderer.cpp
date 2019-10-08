@@ -60,11 +60,18 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
     if(Inventory::Flags(itData.flags)&Inventory::ITM_RING)
       mat.scale(0.4f);
 
-    if(flg&(Inventory::ITM_CAT_NF | Inventory::ITM_CAT_FF | Inventory::ITM_CAT_MUN |
-            Inventory::ITM_CAT_ARMOR)) {
+    if(flg&(Inventory::ITM_CAT_NF | Inventory::ITM_CAT_FF | Inventory::ITM_CAT_MUN)) {
       static const float invX = -45;
       static const float invY = 0;
       static const float invZ = 90;
+      mat.rotateOX(invX+itData.inv_rotx);
+      mat.rotateOZ(invZ+itData.inv_rotz);
+      mat.rotateOY(invY+itData.inv_roty);
+      }
+    else if(flg&Inventory::ITM_CAT_ARMOR) {
+      static const float invX = 0;
+      static const float invY = -90;
+      static const float invZ = 180;
       mat.rotateOX(invX+itData.inv_rotx);
       mat.rotateOZ(invZ+itData.inv_rotz);
       mat.rotateOY(invY+itData.inv_roty);
