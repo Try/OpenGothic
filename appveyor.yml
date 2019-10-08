@@ -6,7 +6,7 @@ configuration:
   - release
 
 before_build:
-  - sh: sudo apt-get install libvulkan-dev
+  # - sh: sudo apt-get install libvulkan-dev
   # Prepare the out-of-source build directory.
   - mkdir build
   - git submodule update --init --recursive
