@@ -71,6 +71,8 @@ include_directories(lib/bullet3/src)
 
 if(WIN32)
   target_link_libraries(${PROJECT_NAME} shlwapi DbgHelp)
+elseif(UNIX)
+  target_link_libraries(${PROJECT_NAME} -lpthread)
 endif()
 
 target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath)
