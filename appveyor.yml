@@ -31,20 +31,23 @@ build_script:
   - cmake --build ./build --target all
 
 after_build:
+  # generate version string
   - cmd: echo gothic-win32-v%appveyor_build_version% >> VERSION
-  - cmd: echo gothic-linux-v%appveyor_build_version% >> VERSION
-  - set name="bin/open_gothic.zip"
+  - sh:  echo gothic-linux-v%appveyor_build_version% >> VERSION
+
   - cmd: copy /b/y "build\lib\MoltenTempest\bin\libMoltenTempest.dll" "bin\libMoltenTempest.dll"
   - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libgcc_s_dw2-1.dll"   "bin\libgcc_s_dw2-1.dll"
   - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libstdc++-6.dll"      "bin\libstdc++-6.dll"
   - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libwinpthread-1.dll"  "bin\libwinpthread-1.dll"
   - sh:  cp        "build/lib/MoltenTempest/lib/libMoltenTempest.so"  "bin/libMoltenTempest.so"
   # zip the results
+  - cmd: set name="bin/open_gothic.zip"
   - cmd: 7z a %name%    VERSION
   - cmd: 7z a %name%    "bin/shader/*.sprv"
   - cmd: 7z a %name%    "bin/data/*"
   - cmd: 7z a %name% -r "bin/*.exe"
   - cmd: 7z a %name% -r "bin/*.dll"
+  - sh:  export name="bin/open_gothic.zip"
   - sh:  7z a $name     VERSION
   - sh:  7z a $name     "bin/shader/*.sprv"
   - sh:  7z a $name     "bin/data/*"
