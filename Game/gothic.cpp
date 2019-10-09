@@ -1,12 +1,15 @@
 #include "gothic.h"
 
 #include <Tempest/Log>
+#include <Tempest/TextCodec>
 #include <zenload/zCMesh.h>
 #include <cstring>
 
 #include "game/serialize.h"
 #include "utils/installdetect.h"
 #include "utils/fileutil.h"
+
+using namespace Tempest;
 
 Gothic::Gothic(const int argc, const char **argv) {
   if(argc<1)
@@ -55,6 +58,11 @@ Gothic::Gothic(const int argc, const char **argv) {
 
   if(gpath.size()>0 && gpath.back()!='/')
     gpath.push_back('/');
+
+  if(!validateGothicPath()) {
+    Log::e("invalid gothic path: \"",TextCodec::toUtf8(gpath),"\"");
+    throw std::logic_error("gothic not found!"); //TODO: user-friendly message-box
+    }
 
   if(wdef.empty()){
     if(isGothic2())
@@ -471,9 +479,9 @@ void Gothic::debug(const ZenLoad::PackedSkeletalMesh &mesh, std::ostream &out) {
 bool Gothic::validateGothicPath() const {
   if(gpath.empty())
     return false;
-
   if(!FileUtil::exists(gpath+u"Data"))
     return false;
-
+  if(!FileUtil::exists(gpath+u"_work/Data"))
+    return false;
   return true;
   }
