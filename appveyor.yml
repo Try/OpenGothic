@@ -39,11 +39,17 @@ after_build:
   - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libstdc++-6.dll"      "bin\libstdc++-6.dll"
   - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libwinpthread-1.dll"  "bin\libwinpthread-1.dll"
   - sh:  cp        "build/lib/MoltenTempest/lib/libMoltenTempest.so"  "bin/libMoltenTempest.so"
-  - 7z a %name%    VERSION
-  - 7z a %name%    "bin/shader/*.sprv"
-  - 7z a %name%    "bin/data/*"
-  - 7z a %name% -r "bin/*.exe"
-  - 7z a %name% -r "bin/*.dll"
+  # zip the results
+  - cmd: 7z a %name%    VERSION
+  - cmd: 7z a %name%    "bin/shader/*.sprv"
+  - cmd: 7z a %name%    "bin/data/*"
+  - cmd: 7z a %name% -r "bin/*.exe"
+  - cmd: 7z a %name% -r "bin/*.dll"
+  - sh:  7z a $name     VERSION
+  - sh:  7z a $name     "bin/shader/*.sprv"
+  - sh:  7z a $name     "bin/data/*"
+  - sh:  7z a $name  -r "bin/*.exe"
+  - sh:  7z a $name  -r "bin/*.dll"
 
 artifacts:
   - path: bin/open_gothic.zip
