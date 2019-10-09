@@ -13,7 +13,5 @@ class InstallDetect final {
 #ifdef __WINDOWS__
     std::u16string programFiles();
 #endif
-    bool           check(const std::u16string &path);
-
     std::u16string pfiles;
   };

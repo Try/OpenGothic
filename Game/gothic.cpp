@@ -6,6 +6,7 @@
 
 #include "game/serialize.h"
 #include "utils/installdetect.h"
+#include "utils/fileutil.h"
 
 Gothic::Gothic(const int argc, const char **argv) {
   if(argc<1)
@@ -465,4 +466,14 @@ void Gothic::debug(const ZenLoad::PackedSkeletalMesh &mesh, std::ostream &out) {
       out << "f " << 1+tri[0] << " " << 1+tri[1] << " " << 1+tri[2] << std::endl;
       }
     }
+  }
+
+bool Gothic::validateGothicPath() const {
+  if(gpath.empty())
+    return false;
+
+  if(!FileUtil::exists(gpath+u"Data"))
+    return false;
+
+  return true;
   }

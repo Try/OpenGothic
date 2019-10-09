@@ -9,6 +9,7 @@
 #endif
 
 #include <cstring>
+#include "utils/fileutil.h"
 
 InstallDetect::InstallDetect() {
 #ifdef __WINDOWS__
@@ -18,20 +19,12 @@ InstallDetect::InstallDetect() {
 
 std::u16string InstallDetect::detectG2() {
   auto akela = pfiles+u"/Akella Games/Gothic II/";
-  if(check(akela))
+  if(FileUtil::exists(akela))
     return akela;
   auto steam = pfiles+u"/Steam/steamapps/common/Gothic II/";
-  if(check(steam))
+  if(FileUtil::exists(steam))
     return steam;
   return u"";
-  }
-
-bool InstallDetect::check(const std::u16string& path) {
-#ifdef __WINDOWS__
-  return PathFileExistsW(reinterpret_cast<const WCHAR*>(path.c_str()));
-#else
-  return false; //TODO
-#endif
   }
 
 #ifdef __WINDOWS__

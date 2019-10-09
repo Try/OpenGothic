@@ -150,4 +150,6 @@ class Gothic final {
     std::unordered_map<std::string,SoundFx> sndFxCache;
     std::unordered_map<std::string,SoundFx> sndWavCache;
     std::vector<Tempest::SoundEffect>       sndStorage;
+
+    bool                                    validateGothicPath() const;
   };
