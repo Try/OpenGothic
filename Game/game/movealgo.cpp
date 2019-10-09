@@ -654,8 +654,13 @@ uint8_t MoveAlgo::groundMaterial(float x, float y, float z) const {
   }
 
 uint8_t MoveAlgo::groundMaterial() const {
+  const float stp = stepHeight();
+
+  if(cache.wdepth+stp>cache.y)
+    return ZenLoad::MaterialGroup::WATER;
+
+  //make cache happy by addup fallThreshold
   const std::array<float,3> &p = npc.position();
-  float   fallThreshold = stepHeight(); //make cache happy
-  return groundMaterial(p[0],p[1]+fallThreshold,p[2]);
+  return groundMaterial(p[0],p[1]+stp,p[2]);
   }
 
