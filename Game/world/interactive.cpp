@@ -289,10 +289,8 @@ bool Interactive::attach(Npc &npc) {
       }
     }
 
-  if(p!=nullptr){
-    attach(npc,*p);
-    return true;
-    }
+  if(p!=nullptr)
+    return attach(npc,*p);
   return false;
   }
 
@@ -320,7 +318,7 @@ void Interactive::setDir(Npc &npc, const Tempest::Matrix4x4 &mat) {
   npc.setDirection(x1-x0,y1-y0,z1-z0);
   }
 
-void Interactive::attach(Npc &npc, Interactive::Pos &to) {
+bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
   assert(to.user==nullptr);
 
   auto mat = objMat;
@@ -331,11 +329,16 @@ void Interactive::attach(Npc &npc, Interactive::Pos &to) {
   float x=0, y=0, z=0;
 
   mat.project(x,y,z);
-  setPos(npc,{x,y-npc.translateY(),z});
 
+  std::array<float,3> mv = {x,y-npc.translateY(),z}, fallback={};
+  if(!npc.testMove(mv,fallback,0))
+    return false;
+
+  setPos(npc,mv);
   setDir(npc,mat);
-  //npc.setInteraction(this);
+
   state = -1;
+  return true;
   }
 
 float Interactive::qDistanceTo(const Npc &npc, const Interactive::Pos &to) {

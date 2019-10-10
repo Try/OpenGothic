@@ -439,10 +439,6 @@ void World::print(const char *msg) {
   game.print(msg);
   }
 
-bool World::aiUseMob(Npc &pl, const std::string &name) {
-  return wobj.aiUseMob(pl,name);
-  }
-
 Npc *World::addNpc(const char *name, const char *at) {
   size_t id = script().getSymbolIndex(name);
   if(id==size_t(-1))

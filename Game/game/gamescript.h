@@ -107,8 +107,6 @@ class GameScript final {
 
     int  spellCastAnim(Npc& npc, Item&  fn);
 
-    bool aiUseMob   (Npc &pl, const std::string& name);
-
     bool isDead       (const Npc &pl);
     bool isUnconscious(const Npc &pl);
     bool isTalk       (const Npc &pl);

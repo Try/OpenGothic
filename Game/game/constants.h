@@ -76,6 +76,10 @@ enum Guild: uint32_t {
   GIL_MAX                     = 66
   };
 
+enum {
+  MAX_AI_USE_DISTANCE=150
+  };
+
 enum class WeaponState : uint8_t {
   NoWeapon,
   Fist,

@@ -944,10 +944,6 @@ int GameScript::spellCastAnim(Npc&, Item &it) {
   return Npc::Anim::MagFib;
   }
 
-bool GameScript::aiUseMob(Npc &pl, const std::string &name) {
-  return world().aiUseMob(pl,name);
-  }
-
 bool GameScript::aiOutput(Npc &npc, const std::string &outputname) {
   char buf[256]={};
   std::snprintf(buf,sizeof(buf),"%s.WAV",outputname.c_str());

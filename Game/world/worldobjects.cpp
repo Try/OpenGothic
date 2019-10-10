@@ -500,13 +500,6 @@ Interactive *WorldObjects::aviableMob(const Npc &pl, const std::string &dest) {
   return ret;
   }
 
-bool WorldObjects::aiUseMob(Npc &pl, const std::string &name) {
-  auto inter = aviableMob(pl,name);
-  if(inter==nullptr)
-    return false;
-  return pl.setInteraction(inter);
-  }
-
 void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {
   PerceptionMsg m;
   m.what   = perc;

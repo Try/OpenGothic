@@ -1430,15 +1430,28 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_EquipRange:
       invent.equipBestRangeWeapon(*this);
       break;
-    case AI_UseMob:
-      if(!owner.script().isTalk(*this)){
-        if(act.i0<0){
-          setInteraction(nullptr);
-          } else {
-          owner.aiUseMob(*this,act.s0);
-          }
+    case AI_UseMob: {
+      if(owner.script().isTalk(*this)) {
+        aiActions.push_front(std::move(act));
+        break;
         }
+      if(act.i0<0){
+        setInteraction(nullptr);
+        break;
+        }
+      auto inter = owner.aviableMob(*this,act.s0);
+      if(inter==nullptr) {
+        aiActions.push_front(std::move(act));
+        break;
+        }
+
+      if(qDistTo(*inter)>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) { // too far
+        //break; //TODO
+        }
+      if(!setInteraction(inter))
+        aiActions.push_front(std::move(act));
       break;
+      }
     case AI_UseItem:
       if(act.i0!=0)
         useItem(uint32_t(act.i0));

@@ -22,7 +22,10 @@ bool PlayerControl::interact(Interactive &it) {
     inv.open(*w->player(),it);
     return true;
     }
-  w->player()->setInteraction(&it);
+
+  if(!w->player()->setInteraction(&it)){
+
+    }
   return true;
   }
 

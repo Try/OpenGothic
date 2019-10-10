@@ -43,15 +43,15 @@ class Interactive final {
 
     bool                canSeeNpc(const Npc &npc, bool freeLos) const;
 
-    bool isAvailable() const;
-    bool isLoopState() const { return loopState; }
-    bool attach (Npc& npc);
-    bool dettach(Npc& npc);
+    bool                isAvailable() const;
+    bool                isLoopState() const { return loopState; }
+    bool                attach (Npc& npc);
+    bool                dettach(Npc& npc);
 
-    void nextState();
-    void prevState();
-    auto anim(const AnimationSolver &solver, Anim t) -> AnimationSolver::Sequence;
-    void marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
+    void                nextState();
+    void                prevState();
+    auto                anim(const AnimationSolver &solver, Anim t) -> AnimationSolver::Sequence;
+    void                marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
     Tempest::Matrix4x4     objMat;
 
@@ -68,7 +68,7 @@ class Interactive final {
 
     void setPos(Npc& npc,std::array<float,3> pos);
     void setDir(Npc& npc,const Tempest::Matrix4x4& mt);
-    void attach(Npc& npc,Pos& to);
+    bool attach(Npc& npc,Pos& to);
     void implAddItem(char *name);
     void autoDettachNpc();
 

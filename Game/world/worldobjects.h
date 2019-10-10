@@ -87,7 +87,6 @@ class WorldObjects final {
     void           marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
     Interactive*   aviableMob(const Npc& pl,const std::string& name);
-    bool           aiUseMob  (Npc &pl, const std::string& name);
 
     void           sendPassivePerc(Npc& self,Npc& other,Npc& victum,int32_t perc);
     void           sendPassivePerc(Npc& self,Npc& other,Npc& victum,Item& itm,int32_t perc);

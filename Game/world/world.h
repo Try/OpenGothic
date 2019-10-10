@@ -122,7 +122,6 @@ class World final {
 
     void   aiOutputSound(Npc &player, const std::string& msg);
     bool   aiIsDlgFinished();
-    bool   aiUseMob  (Npc &pl, const std::string& name);
 
     void   printScreen(const char* msg, int x, int y, int time,const Tempest::Font &font);
     void   print      (const char* msg);
