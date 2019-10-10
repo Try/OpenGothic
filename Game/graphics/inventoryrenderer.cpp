@@ -54,11 +54,12 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
     Inventory::Flags flg = Inventory::Flags(item.mainFlag());
 
     sz = 2.f/sz;
+    if(sz>0.1f)
+      sz=0.1f;
+
     Tempest::Matrix4x4 mat;
     mat.identity();
     mat.scale(sz);
-    if(Inventory::Flags(itData.flags)&Inventory::ITM_RING)
-      mat.scale(0.4f);
 
     if(flg&(Inventory::ITM_CAT_NF | Inventory::ITM_CAT_FF | Inventory::ITM_CAT_MUN)) {
       static const float invX = -45;
@@ -84,7 +85,7 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
       mat.rotateOZ(invZ+itData.inv_rotz);
       mat.rotateOY(invY+itData.inv_roty);
       }
-    else if(flg&Inventory::ITM_CAT_MAGIC) {
+    else if((flg&Inventory::ITM_CAT_MAGIC) || (Inventory::Flags(itData.flags)&Inventory::ITM_RING)) {
       static const float invX = 200;
       static const float invY = 0;
       static const float invZ = 90;
