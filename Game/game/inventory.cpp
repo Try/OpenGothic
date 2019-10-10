@@ -340,9 +340,6 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
     else if(flag & ITM_CAT_FF){
       owner.setRangeWeapon(StaticObjects::Mesh());
       }
-    else if(flag & ITM_CAT_RUNE){
-      owner.setMagicWeapon(PfxObjects::Emitter());
-      }
     vm.invokeItem(&owner,itData.on_unequip);
     }
 
@@ -358,8 +355,10 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
   updateArmourView(owner);
   updateSwordView (owner);
   updateBowView   (owner);
-  if(&slot==active)
+  if(&slot==active) {
+    updateRuneView  (owner);
     applyWeaponStats(owner,*slot,1);
+    }
   vm.invokeItem(&owner,itData.on_equip);
   return true;
   }
@@ -393,6 +392,19 @@ void Inventory::updateBowView(Npc &owner) {
     auto  vbody  = owner.world().getView(itData.visual,itData.material,0,itData.material);
     owner.setRangeWeapon(std::move(vbody));
     }
+  }
+
+void Inventory::updateRuneView(Npc &owner) {
+  if(active==nullptr || *active==nullptr)
+    return;
+
+  auto* sp = *active;
+  if(!sp->isSpellOrRune())
+    return;
+
+  const ParticleFx* pfx      = owner.world().script().getSpellFx(sp->spellId());
+  auto              vemitter = owner.world().getView(pfx);
+  owner.setMagicWeapon(std::move(vemitter));
   }
 
 void Inventory::equipBestMeleWeapon(Npc &owner) {
@@ -470,6 +482,7 @@ void Inventory::switchActiveSpell(int32_t spell, Npc& owner) {
     auto s = numslot[i];
     if(s!=nullptr && s->isSpellOrRune() && s->spellId()==spell){
       switchActiveWeapon(owner,i+3);
+      updateRuneView(owner);
       return;
       }
     }
@@ -478,6 +491,7 @@ void Inventory::switchActiveSpell(int32_t spell, Npc& owner) {
     if(i->spellId()==spell){
       setSlot(numslot[0],i.get(),owner,true);
       switchActiveWeapon(owner,3);
+      updateRuneView(owner);
       return;
       }
   }
@@ -580,7 +594,7 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
     {"JOINT",      Npc::Anim::Joint1},
     {"MAP",        Npc::Anim::Map1},
     {"MAPSEALED",  Npc::Anim::MapSeal1},
-    {"FIRESPIT",  Npc::Anim::Firespit1}
+    {"FIRESPIT",   Npc::Anim::Firespit1}
     };
   for(auto& i:schemes){
     if(it->handle()->scemeName==i.first){

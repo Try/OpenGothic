@@ -86,6 +86,7 @@ class Inventory final {
     void   updateArmourView(Npc& owner);
     void   updateSwordView (Npc& owner);
     void   updateBowView   (Npc& owner);
+    void   updateRuneView  (Npc& owner);
 
     const Item*  activeWeapon() const;
     Item*  activeWeapon();

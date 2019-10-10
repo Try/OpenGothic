@@ -2017,12 +2017,6 @@ bool Npc::drawSpell(int32_t spell) {
   invent.switchActiveSpell(spell,*this);
   hnpc.weapon = 7;
 
-  if(auto sp = invent.activeWeapon()){
-    const ParticleFx* pfx      = owner.script().getSpellFx(sp->spellId());
-    auto              vemitter = owner.getView(pfx);
-    setMagicWeapon(std::move(vemitter));
-    }
-
   updateWeaponSkeleton();
   return true;
   }
