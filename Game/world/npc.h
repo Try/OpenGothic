@@ -225,7 +225,6 @@ class Npc final {
     auto walkMode() const { return wlkMode; }
     void tick(uint64_t dt);
     bool startClimb(JumpCode code);
-    bool checkHealth(bool onChange, bool forceKill);
 
     auto world() -> World&;
 
@@ -578,6 +577,8 @@ class Npc final {
     auto                           rangeDamageValue() const -> std::array<int32_t, Daedalus::GEngineClasses::DAM_INDEX_MAX>;
     int32_t                        damageTypeMask() const;
     Npc*                           updateNearestEnemy();
+    bool                           checkHealth(bool onChange, bool forceKill);
+    void                           onNoHealth(bool death);
 
     void                           save(Serialize& fout,Daedalus::GEngineClasses::C_Npc& hnpc) const;
     void                           load(Serialize& fin, Daedalus::GEngineClasses::C_Npc& hnpc);

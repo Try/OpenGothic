@@ -390,39 +390,42 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
        !allowUnconscious ||
        owner.script().personAttitude(*this,*currentOther)==ATT_HOSTILE ||
        guild()>GIL_SEPERATOR_HUM){
-      if(hnpc.attribute[ATR_HITPOINTS]<=0) {
-        size_t fdead=owner.getSymbolIndex("ZS_Dead");
-        if(animation.current!=Anim::UnconsciousA && animation.current!=Anim::UnconsciousB)
-          animation.resetAni();
-        startState(fdead,"");
-
-        if(hnpc.voice>0 && currentOther!=nullptr){
-          // in case of battle currentOther!=nullptr,
-          // if else detch is scripted
-          char name[32]={};
-          std::snprintf(name,sizeof(name),"SVM_%d_DEAD",int(hnpc.voice));
-          emitSoundEffect(name,25,true);
-          }
-        }
+      if(hnpc.attribute[ATR_HITPOINTS]<=0)
+        onNoHealth(true);
       return false;
       }
 
     if(onChange) {
-      hnpc.attribute[ATR_HITPOINTS]=1;
-      size_t fdead=owner.getSymbolIndex("ZS_Unconscious");
-      animation.resetAni();
-      startState(fdead,"");
-
-      if(hnpc.voice>0){
-        char name[32]={};
-        std::snprintf(name,sizeof(name),"SVM_%d_AARGH",int(hnpc.voice));
-        emitSoundEffect(name,25,true);
-        }
+      onNoHealth(false);
       return false;
       }
     }
   physic.setEnable(true);
   return true;
+  }
+
+void Npc::onNoHealth(bool death) {
+  // TODO: drop the weapon instead
+  animation.visual.setToFightMode(WeaponState::NoWeapon);
+  updateWeaponSkeleton();
+
+  const char* svm   = death ? "SVM_%d_DEAD" : "SVM_%d_AARGH";
+  const char* state = death ? "ZS_Dead"     : "ZS_Unconscious";
+
+  if(!death)
+    hnpc.attribute[ATR_HITPOINTS]=1;
+
+  size_t fdead=owner.getSymbolIndex(state);
+  if(animation.current!=Anim::UnconsciousA && animation.current!=Anim::UnconsciousB)
+    animation.resetAni();
+  startState(fdead,"");
+  if(hnpc.voice>0 && currentOther!=nullptr){
+    // in case of battle currentOther!=nullptr,
+    // if else death is scripted
+    char name[32]={};
+    std::snprintf(name,sizeof(name),svm,int(hnpc.voice));
+    emitSoundEffect(name,25,true);
+    }
   }
 
 World& Npc::world() {
