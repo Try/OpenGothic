@@ -22,73 +22,73 @@ class MoveAlgo final {
       JM_Up,
       };
 
-    void load(Serialize& fin);
-    void save(Serialize& fout) const;
-
-    void tick(uint64_t dt,bool fai=false);
-
-    void multSpeed(float s){ mulSpeed=s; }
-    void clearSpeed();
-    void accessDamFly(float dx,float dz);
-
     static bool isClose(const std::array<float,3>& w,const WayPoint& p);
     static bool isClose(float x,float y,float z,const WayPoint& p);
 
-    bool aiGoTo(const WayPoint* p);
-    bool aiGoTo(Npc *p, float destDist);
-    bool aiGoToTarget(float destDist);
+    void    load(Serialize& fin);
+    void    save(Serialize& fout) const;
 
-    bool startClimb(JumpCode ani);
-    bool hasGoTo() const;
+    void    tick(uint64_t dt,bool fai=false);
 
-    bool isFaling()  const;
-    bool isSlide()   const;
-    bool isInAir()   const;
-    bool isClimb()   const;
-    bool isInWater() const;
-    bool isSwim() const;
+    void    multSpeed(float s){ mulSpeed=s; }
+    void    clearSpeed();
+    void    accessDamFly(float dx,float dz);
+
+    bool    aiGoTo(const WayPoint* p);
+    bool    aiGoTo(Npc *p, float destDist);
+    bool    aiGoToTarget(float destDist);
+
+    bool    startClimb(JumpCode ani);
+    bool    hasGoTo() const;
+
+    bool    isFaling()  const;
+    bool    isSlide()   const;
+    bool    isInAir()   const;
+    bool    isJumpup()  const;
+    bool    isInWater() const;
+    bool    isSwim()    const;
 
     uint8_t groundMaterial() const;
 
   private:
-    void tickMobsi  (uint64_t dt);
-    bool tickSlide  (uint64_t dt);
-    void tickGravity(uint64_t dt);
-    void tickSwim   (uint64_t dt);
-    void tickClimb  (uint64_t dt);
-    bool tryMove    (float x, float y, float z);
+    void    tickMobsi  (uint64_t dt);
+    bool    tickSlide  (uint64_t dt);
+    void    tickGravity(uint64_t dt);
+    void    tickSwim   (uint64_t dt);
+    void    tickJumpup (uint64_t dt);
+    bool    tryMove    (float x, float y, float z);
 
     enum Flags : uint32_t {
       NoFlags=0,
       InAir  =1<<1,
       Faling =1<<2,
       Slide  =1<<3,
-      Climb  =1<<4,
+      JumpUp =1<<4,
       InWater=1<<5,
       Swim   =1<<6
       };
 
-    void   setInAir(bool f);
-    void   setAsClimb(bool f);
-    void   setAsSlide(bool f);
-    void   setInWater(bool f);
-    void   setAsSwim (bool f);
+    void    setInAir   (bool f);
+    void    setAsJumpup(bool f);
+    void    setAsSlide (bool f);
+    void    setInWater (bool f);
+    void    setAsSwim  (bool f);
 
-    bool   processClimb();
-    bool   slideDir() const;
-    void   onMoveFailed();
-    void   applyRotation(std::array<float,3> &out, float *in) const;
-    auto   animMoveSpeed(uint64_t dt) const -> std::array<float,3>;
-    auto   npcMoveSpeed (uint64_t dt,bool fai) -> std::array<float,3>;
-    auto   go2NpcMoveSpeed (const std::array<float,3> &dp, const Npc &tg) -> std::array<float,3>;
-    auto   go2WpMoveSpeed  (std::array<float,3> dp, float x, float z) -> std::array<float,3>;
-    bool   testSlide(float x, float y, float z) const;
+    bool    slideDir() const;
+    void    onMoveFailed();
+    void    applyRotation(std::array<float,3> &out, float *in) const;
+    auto    animMoveSpeed(uint64_t dt) const -> std::array<float,3>;
+    auto    npcMoveSpeed (uint64_t dt,bool fai) -> std::array<float,3>;
+    auto    go2NpcMoveSpeed (const std::array<float,3> &dp, const Npc &tg) -> std::array<float,3>;
+    auto    go2WpMoveSpeed  (std::array<float,3> dp, float x, float z) -> std::array<float,3>;
+    bool    testSlide(float x, float y, float z) const;
+    bool    testClimp(float scale) const;
 
-    float  stepHeight()  const;
-    float  slideAngle()  const;
-    float  slideAngle2() const;
-    float  waterDepthKnee() const;
-    float  waterDepthChest() const;
+    float   stepHeight()  const;
+    float   slideAngle()  const;
+    float   slideAngle2() const;
+    float   waterDepthKnee() const;
+    float   waterDepthChest() const;
 
     float   dropRay  (float x, float y, float z, bool &hasCol) const;
     float   waterRay (float x, float y, float z) const;

@@ -164,10 +164,38 @@ void MoveAlgo::tickGravity(uint64_t dt) {
     }
   }
 
-void MoveAlgo::tickClimb(uint64_t dt) {
+
+bool MoveAlgo::testClimp(float scale) const {
+  float len=100;
+  std::array<float,3> ret = {}, v={0,0,len*scale};
+  applyRotation(ret,v.data());
+
+  ret[0]+=npc.x;
+  ret[1]+=npc.y+npc.translateY();
+  ret[2]+=npc.z;
+
+  return npc.testMove(ret,v,0.f);
+  }
+
+void MoveAlgo::tickJumpup(uint64_t dt) {
   tickGravity(dt);
-  if(fallSpeed[1]<=0.f || !isInAir())
-    setAsClimb(false);
+  if(fallSpeed[1]<=0.f || !isInAir()) {
+    setAsJumpup(false);
+    return;
+    }
+
+  float len=50;
+  std::array<float,3> ret = {}, v={0,npc.translateY(),len};
+  applyRotation(ret,v.data());
+
+  if(testClimp(0.25f) &&
+     testClimp(0.50f) &&
+     testClimp(0.75f) &&
+     testClimp(1.f)){
+    setAsJumpup(false);
+    tryMove(ret[0],ret[1],ret[2]);
+    return;
+    }
   }
 
 void MoveAlgo::tickSwim(uint64_t dt) {
@@ -201,8 +229,8 @@ void MoveAlgo::tick(uint64_t dt, bool fai) {
   if(npc.interactive()!=nullptr)
     return tickMobsi(dt);
 
-  if(isClimb())
-    return tickClimb(dt);
+  if(isJumpup())
+    return tickJumpup(dt);
 
   if(isSwim())
     return tickSwim(dt);
@@ -478,7 +506,7 @@ bool MoveAlgo::startClimb(JumpCode ani) {
   jmp        = ani;
 
   if(jmp==JM_Up){
-    setAsClimb(true);
+    setAsJumpup(true);
     setInAir(true);
     fallSpeed[0]=0.f;
     fallSpeed[1]=0.75f*gravity;
@@ -486,7 +514,7 @@ bool MoveAlgo::startClimb(JumpCode ani) {
     fallCount   =-1.f;
     }
   else if(jmp==JM_UpMid){
-    setAsClimb(true);
+    setAsJumpup(true);
     setInAir(true);
     fallSpeed[0]=0.f;
     fallSpeed[1]=0.4f*gravity;
@@ -512,8 +540,8 @@ bool MoveAlgo::isInAir() const {
   return flags&InAir;
   }
 
-bool MoveAlgo::isClimb() const {
-  return flags&Climb;
+bool MoveAlgo::isJumpup() const {
+  return flags&JumpUp;
   }
 
 bool MoveAlgo::isInWater() const {
@@ -530,10 +558,10 @@ void MoveAlgo::setInAir(bool f) {
     flags=Flags(flags&(~InAir));
   }
 
-void MoveAlgo::setAsClimb(bool f) {
+void MoveAlgo::setAsJumpup(bool f) {
   if(f)
-    flags=Flags(flags|Climb); else
-    flags=Flags(flags&(~Climb));
+    flags=Flags(flags|JumpUp); else
+    flags=Flags(flags&(~JumpUp));
   }
 
 void MoveAlgo::setAsSlide(bool f) {
@@ -552,38 +580,6 @@ void MoveAlgo::setAsSwim(bool f) {
   if(f)
     flags=Flags(flags|Swim);  else
     flags=Flags(flags&(~Swim));
-  }
-
-bool MoveAlgo::processClimb() {
-  if(!isClimb())
-    return false;
-  float dspeed = 35.f;
-
-  if(climbHeight<=0.f)
-    climbHeight=npc.clampHeight(npc.anim());
-
-  if(npc.anim()==AnimationSolver::Idle && !npc.isFlyAnim()) {
-    auto  pos = climbPos0;
-    float rot = npc.rotationRad();
-    float s   = std::sin(rot), c = std::cos(rot);
-    pos[0]+= dspeed*s;
-    pos[2]+=-dspeed*c;
-
-    auto ground = npc.world().physic()->dropRay(pos[0],pos[1]+climbHeight+10,pos[2]);
-    if(ground.hasCol) {
-      pos[1]=ground.y();
-      std::array<float,3> fb={};
-      if(npc.testMove(pos,fb,0))
-        npc.setPosition(fb);
-      }
-    setAsClimb(false);
-    climbHeight=0;
-    return true;
-    }
-
-  auto pos = npc.position();
-  npc.setPosition(pos);
-  return true;
   }
 
 bool MoveAlgo::slideDir() const {
