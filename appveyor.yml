@@ -70,5 +70,5 @@ deploy:
   prerelease: true
   on:
     branch: master                # release from master branch only
-    image: Visual Studio 2017
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
     appveyor_repo_tag: true       # deploy on tag push only
