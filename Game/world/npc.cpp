@@ -567,8 +567,8 @@ void Npc::setVisualBody(int32_t headTexNr, int32_t teethTexNr, int32_t bodyTexNr
   vColor  = bodyTexNr;
   bdColor = bodyTexColor;
 
-  auto  vhead = head.empty() ? StaticObjects::Mesh() : w.getView(addExt(head,".MMB"),vHead,vTeeth,bdColor);
-  auto  vbody = body.empty() ? StaticObjects::Mesh() : w.getView(addExt(body,".MDM"),vColor,0,bdColor);
+  auto  vhead = head.empty() ? MeshObjects::Mesh() : w.getView(addExt(head,".MMB"),vHead,vTeeth,bdColor);
+  auto  vbody = body.empty() ? MeshObjects::Mesh() : w.getView(addExt(body,".MDM"),vColor,0,bdColor);
   animation.setVisualBody(std::move(vhead),std::move(vbody));
   updateArmour();
 
@@ -580,7 +580,7 @@ void Npc::updateArmour() {
   auto& w  = owner;
 
   if(ar==nullptr) {
-    auto  vbody = body.empty() ? StaticObjects::Mesh() : w.getView(addExt(body,".MDM"),vColor,0,bdColor);
+    auto  vbody = body.empty() ? MeshObjects::Mesh() : w.getView(addExt(body,".MDM"),vColor,0,bdColor);
     animation.visual.setArmour(std::move(vbody));
     } else {
     auto& itData = *ar->handle();
@@ -589,18 +589,18 @@ void Npc::updateArmour() {
       auto visual = itData.visual_change;
       if(visual.rfind(".asc")==visual.size()-4)
         std::memcpy(&visual[visual.size()-3],"MDM",3);
-      auto vbody  = visual.empty() ? StaticObjects::Mesh() : w.getView(visual,vColor,0,bdColor);
+      auto vbody  = visual.empty() ? MeshObjects::Mesh() : w.getView(visual,vColor,0,bdColor);
       animation.visual.setArmour(std::move(vbody));
       }
     }
   }
 
-void Npc::setSword(StaticObjects::Mesh &&s) {
+void Npc::setSword(MeshObjects::Mesh &&s) {
   animation.visual.setSword(std::move(s));
   updateWeaponSkeleton();
   }
 
-void Npc::setRangeWeapon(StaticObjects::Mesh &&b) {
+void Npc::setRangeWeapon(MeshObjects::Mesh &&b) {
   animation.visual.setRangeWeapon(std::move(b));
   updateWeaponSkeleton();
   }

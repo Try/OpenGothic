@@ -1,14 +1,14 @@
-#include "pose.h"
-#include "skeleton.h"
-#include "staticobjects.h"
+#include "meshobjects.h"
 
 #include <Tempest/Log>
 
+#include "skeleton.h"
+#include "pose.h"
 #include "attachbinder.h"
 #include "light.h"
 #include "rendererstorage.h"
 
-StaticObjects::StaticObjects(const RendererStorage &storage)
+MeshObjects::MeshObjects(const RendererStorage &storage)
   :storage(storage),storageSt(storage.device),storageDn(storage.device),uboGlobalPf{storage.device,storage.device} {
   uboGlobal.lightDir={{1,1,-1}};
   float l=0;
@@ -22,7 +22,7 @@ StaticObjects::StaticObjects(const RendererStorage &storage)
   uboGlobal.shadowView.identity();
   }
 
-bool StaticObjects::needToUpdateCommands() const {
+bool MeshObjects::needToUpdateCommands() const {
   for(auto& i:chunksSt)
     if(i.needToUpdateCommands())
       return true;
@@ -32,14 +32,14 @@ bool StaticObjects::needToUpdateCommands() const {
   return false;
   }
 
-void StaticObjects::setAsUpdated() {
+void MeshObjects::setAsUpdated() {
   for(auto& i:chunksSt)
     i.setAsUpdated();
   for(auto& i:chunksDn)
     i.setAsUpdated();
   }
 
-void StaticObjects::setModelView(const Tempest::Matrix4x4 &m, const Tempest::Matrix4x4 *sh, size_t shCount) {
+void MeshObjects::setModelView(const Tempest::Matrix4x4 &m, const Tempest::Matrix4x4 *sh, size_t shCount) {
   assert(shCount==2);
 
   uboGlobal.modelView  = m;
@@ -47,7 +47,7 @@ void StaticObjects::setModelView(const Tempest::Matrix4x4 &m, const Tempest::Mat
   shadowView1          = sh[1];
   }
 
-void StaticObjects::setLight(const Light &l,const Tempest::Vec3& ambient) {
+void MeshObjects::setLight(const Light &l,const Tempest::Vec3& ambient) {
   auto  d = l.dir();
   auto& c = l.color();
 
@@ -56,7 +56,7 @@ void StaticObjects::setLight(const Light &l,const Tempest::Vec3& ambient) {
   uboGlobal.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
   }
 
-ObjectsBucket<StaticObjects::UboSt,Resources::Vertex> &StaticObjects::getBucketSt(const Tempest::Texture2d *mat) {
+ObjectsBucket<MeshObjects::UboSt,Resources::Vertex> &MeshObjects::getBucketSt(const Tempest::Texture2d *mat) {
   auto& device=storage.device;
 
   for(auto& i:chunksSt)
@@ -67,7 +67,7 @@ ObjectsBucket<StaticObjects::UboSt,Resources::Vertex> &StaticObjects::getBucketS
   return chunksSt.back();
   }
 
-ObjectsBucket<StaticObjects::UboDn,Resources::VertexA> &StaticObjects::getBucketDn(const Tempest::Texture2d *mat) {
+ObjectsBucket<MeshObjects::UboDn,Resources::VertexA> &MeshObjects::getBucketDn(const Tempest::Texture2d *mat) {
   auto& device=storage.device;
 
   for(auto& i:chunksDn)
@@ -78,21 +78,21 @@ ObjectsBucket<StaticObjects::UboDn,Resources::VertexA> &StaticObjects::getBucket
   return chunksDn.back();
   }
 
-StaticObjects::Item StaticObjects::implGet(const StaticMesh &mesh, const Tempest::Texture2d *mat,
+MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const Tempest::Texture2d *mat,
                                            const Tempest::IndexBuffer<uint32_t>& ibo) {
   auto&        bucket = getBucketSt(mat);
   const size_t id     = bucket.alloc(mesh.vbo,ibo);
   return Item(bucket,id);
   }
 
-StaticObjects::Item StaticObjects::implGet(const AnimMesh &mesh, const Tempest::Texture2d *mat,
+MeshObjects::Item MeshObjects::implGet(const AnimMesh &mesh, const Tempest::Texture2d *mat,
                                            const Tempest::IndexBuffer<uint32_t> &ibo) {
   auto&        bucket = getBucketDn(mat);
   const size_t id     = bucket.alloc(mesh.vbo,ibo);
   return Item(bucket,id);
   }
 
-const Tempest::Texture2d *StaticObjects::solveTex(const Tempest::Texture2d *def, const std::string &format, int32_t v, int32_t c) {
+const Tempest::Texture2d *MeshObjects::solveTex(const Tempest::Texture2d *def, const std::string &format, int32_t v, int32_t c) {
   if(format.find_first_of("VC")!=std::string::npos){
     auto ntex = Resources::loadTexture(format,v,c);
     if(ntex!=nullptr)
@@ -101,7 +101,7 @@ const Tempest::Texture2d *StaticObjects::solveTex(const Tempest::Texture2d *def,
   return def;
   }
 
-StaticObjects::Mesh StaticObjects::get(const StaticMesh &mesh) {
+MeshObjects::Mesh MeshObjects::get(const StaticMesh &mesh) {
   std::unique_ptr<Item[]> dat(new Item[mesh.sub.size()]);
   for(size_t i=0;i<mesh.sub.size();++i){
     dat[i] = implGet(mesh,mesh.sub[i].texture,mesh.sub[i].ibo);
@@ -109,7 +109,7 @@ StaticObjects::Mesh StaticObjects::get(const StaticMesh &mesh) {
   return Mesh(nullptr,std::move(dat),mesh.sub.size());
   }
 
-StaticObjects::Mesh StaticObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_t teethTex, int32_t bodyColor) {
+MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_t teethTex, int32_t bodyColor) {
   const size_t skinnedCount=mesh.skinedNodesCount();
   std::unique_ptr<Item[]> dat(new Item[mesh.submeshId.size()+skinnedCount]);
 
@@ -150,7 +150,7 @@ StaticObjects::Mesh StaticObjects::get(const ProtoMesh& mesh, int32_t texVar, in
   return Mesh(&mesh,std::move(dat),count);
   }
 
-void StaticObjects::updateUbo(uint32_t imgId) {
+void MeshObjects::updateUbo(uint32_t imgId) {
   storageSt.updateUbo(imgId);
   storageDn.updateUbo(imgId);
 
@@ -161,7 +161,7 @@ void StaticObjects::updateUbo(uint32_t imgId) {
   uboGlobalPf[1].update(ubo2,imgId);
   }
 
-void StaticObjects::commitUbo(uint32_t imgId,const Tempest::Texture2d& shadowMap) {
+void MeshObjects::commitUbo(uint32_t imgId,const Tempest::Texture2d& shadowMap) {
   auto& device=storage.device;
 
   storageSt.commitUbo(device,imgId);
@@ -200,26 +200,26 @@ void StaticObjects::commitUbo(uint32_t imgId,const Tempest::Texture2d& shadowMap
     }
   }
 
-void StaticObjects::reserve(size_t stat, size_t dyn) {
+void MeshObjects::reserve(size_t stat, size_t dyn) {
   storageSt.reserve(stat);
   storageDn.reserve(dyn);
   }
 
-void StaticObjects::draw(Tempest::CommandBuffer &cmd, uint32_t imgId) {
+void MeshObjects::draw(Tempest::CommandBuffer &cmd, uint32_t imgId) {
   for(auto& c:chunksSt)
     c.draw(cmd,storage.pObject,imgId);
   for(auto& c:chunksDn)
     c.draw(cmd,storage.pAnim,imgId);
   }
 
-void StaticObjects::drawShadow(Tempest::CommandBuffer &cmd, uint32_t imgId, int layer) {
+void MeshObjects::drawShadow(Tempest::CommandBuffer &cmd, uint32_t imgId, int layer) {
   for(auto& c:chunksSt)
     c.drawShadow(cmd,storage.pObjectSh,imgId,layer);
   for(auto& c:chunksDn)
     c.drawShadow(cmd,storage.pAnimSh,imgId,layer);
   }
 
-void StaticObjects::Mesh::setAttachPoint(const Skeleton *sk, const char *defBone) {
+void MeshObjects::Mesh::setAttachPoint(const Skeleton *sk, const char *defBone) {
   skeleton = sk;
 
   if(ani!=nullptr && skeleton!=nullptr)
@@ -229,7 +229,7 @@ void StaticObjects::Mesh::setAttachPoint(const Skeleton *sk, const char *defBone
     sub[i].setSkeleton(sk);
   }
 
-void StaticObjects::Mesh::setSkeleton(const Pose &p,const Tempest::Matrix4x4& obj) {
+void MeshObjects::Mesh::setSkeleton(const Pose &p,const Tempest::Matrix4x4& obj) {
   for(size_t i=0;i<subCount;++i)
     sub[i].setSkeleton(p);
 
@@ -246,7 +246,7 @@ void StaticObjects::Mesh::setSkeleton(const Pose &p,const Tempest::Matrix4x4& ob
     }
   }
 
-void StaticObjects::Mesh::setObjMatrix(const Tempest::Matrix4x4 &mt) {
+void MeshObjects::Mesh::setObjMatrix(const Tempest::Matrix4x4 &mt) {
   if(ani!=nullptr){
     auto mat=mt;
     mat.translate(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
@@ -270,7 +270,7 @@ void StaticObjects::Mesh::setObjMatrix(const Tempest::Matrix4x4 &mt) {
     }
   }
 
-void StaticObjects::Mesh::setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix4x4 &mt,size_t parent) {
+void MeshObjects::Mesh::setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix4x4 &mt,size_t parent) {
   for(size_t i=0;i<ani.nodes.size();++i)
     if(ani.nodes[i].parentId==parent) {
       auto mat=mt;
@@ -285,21 +285,21 @@ void StaticObjects::Mesh::setObjMatrix(const ProtoMesh &ani, const Tempest::Matr
       }
   }
 
-void StaticObjects::UboDn::setSkeleton(const Skeleton *sk) {
+void MeshObjects::UboDn::setSkeleton(const Skeleton *sk) {
   if(sk==nullptr)
     return;
   for(size_t i=0;i<sk->tr.size();++i)
     skel[i] = sk->tr[i];
   }
 
-void StaticObjects::UboDn::setSkeleton(const Pose& p) {
+void MeshObjects::UboDn::setSkeleton(const Pose& p) {
   std::memcpy(&skel[0],p.tr.data(),p.tr.size()*sizeof(skel[0]));
   }
 
-const Tempest::Texture2d& StaticObjects::Node::texture() const {
+const Tempest::Texture2d& MeshObjects::Node::texture() const {
   return it->texture();
   }
 
-void StaticObjects::Node::draw(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) const {
+void MeshObjects::Node::draw(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) const {
   it->draw(cmd,pipeline,imgId);
   }

@@ -159,11 +159,11 @@ Item *World::itmById(uint32_t id) {
   return nullptr;
   }
 
-StaticObjects::Mesh World::getView(const std::string &visual) const {
+MeshObjects::Mesh World::getView(const std::string &visual) const {
   return getView(visual,0,0,0);
   }
 
-StaticObjects::Mesh World::getView(const std::string &visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const {
+MeshObjects::Mesh World::getView(const std::string &visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const {
   return view()->getView(visual,headTex,teetTex,bodyColor);
   }
 
@@ -171,7 +171,7 @@ PfxObjects::Emitter World::getView(const ParticleFx *decl) const {
   return view()->getView(decl);
   }
 
-StaticObjects::Mesh World::getStaticView(const std::string &visual, int32_t tex) const {
+MeshObjects::Mesh World::getStaticView(const std::string &visual, int32_t tex) const {
   return view()->getStaticView(visual,tex);
   }
 

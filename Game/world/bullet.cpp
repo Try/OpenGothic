@@ -32,7 +32,7 @@ void Bullet::setDirection(float x, float y, float z) {
   updateMatrix();
   }
 
-void Bullet::setView(StaticObjects::Mesh &&m) {
+void Bullet::setView(MeshObjects::Mesh &&m) {
   view = std::move(m);
   view.setObjMatrix(mat);
   updateMatrix();

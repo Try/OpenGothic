@@ -67,13 +67,13 @@ void Item::save(Serialize &fout) {
   fout.write(mat);
   }
 
-void Item::setView(StaticObjects::Mesh &&m) {
+void Item::setView(MeshObjects::Mesh &&m) {
   view = std::move(m);
   view.setObjMatrix(mat);
   }
 
 void Item::clearView() {
-  view = StaticObjects::Mesh();
+  view = MeshObjects::Mesh();
   }
 
 void Item::setPosition(float x, float y, float z) {

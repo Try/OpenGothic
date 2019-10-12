@@ -20,12 +20,12 @@ class RendererStorage;
 class Pose;
 class Light;
 
-class StaticObjects final {
+class MeshObjects final {
   private:
     using Item = AbstractObjectsBucket::Item;
 
   public:
-    StaticObjects(const RendererStorage& storage);
+    MeshObjects(const RendererStorage& storage);
 
     class Mesh;
     class Node;

@@ -3,7 +3,7 @@
 #include <Tempest/Matrix4x4>
 #include "physics/dynamicworld.h"
 #include "graphics/animationsolver.h"
-#include "graphics/staticobjects.h"
+#include "graphics/meshobjects.h"
 #include "graphics/protomesh.h"
 #include "game/inventory.h"
 
@@ -85,6 +85,6 @@ class Interactive final {
 
     std::vector<Pos>         pos;
     const ProtoMesh*         mesh = nullptr;
-    StaticObjects::Mesh      view;
+    MeshObjects::Mesh        view;
     DynamicWorld::StaticItem physic;
   };

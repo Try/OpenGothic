@@ -1,7 +1,5 @@
 #pragma once
 
-#include "graphics/staticobjects.h"
-#include "physics/dynamicworld.h"
 #include "abstracttrigger.h"
 
 class ZoneTrigger : public AbstractTrigger {

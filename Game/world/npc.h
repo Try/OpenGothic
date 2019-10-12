@@ -1,6 +1,6 @@
 #pragma once
 
-#include "graphics/staticobjects.h"
+#include "graphics/meshobjects.h"
 #include "graphics/pose.h"
 #include "graphics/animation.h"
 #include "graphics/animationsolver.h"
@@ -255,8 +255,8 @@ class Npc final {
 
     void setVisualBody (int32_t headTexNr,int32_t teethTexNr,int32_t bodyVer,int32_t bodyColor,const std::string& body,const std::string& head);
     void updateArmour  ();
-    void setSword      (StaticObjects::Mesh&& sword);
-    void setRangeWeapon(StaticObjects::Mesh&& bow);
+    void setSword      (MeshObjects::Mesh&& sword);
+    void setRangeWeapon(MeshObjects::Mesh&& bow);
     void setMagicWeapon(PfxObjects::Emitter&& spell);
     void setPhysic     (DynamicWorld::Item&& item);
     void setFatness    (float f);

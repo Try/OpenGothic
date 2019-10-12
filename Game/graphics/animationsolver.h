@@ -6,7 +6,7 @@
 #include "world/gsoundeffect.h"
 #include "game/inventory.h"
 #include "game/constants.h"
-#include "staticobjects.h"
+#include "meshobjects.h"
 #include "pfxobjects.h"
 #include "animation.h"
 #include "mdlvisual.h"
@@ -200,7 +200,7 @@ class AnimationSolver final {
 
     void                           setPos   (const Tempest::Matrix4x4 &m);
     void                           setVisual(const Skeleton *visual, uint64_t tickCount, WeaponState ws, WalkBit walk, Interactive* inter, World &owner);
-    void                           setVisualBody(StaticObjects::Mesh &&h, StaticObjects::Mesh &&body);
+    void                           setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body);
     ZMath::float3                  animMoveSpeed(Anim a, uint64_t tickCount, uint64_t dt, WeaponState weaponSt) const;
 
     void                           emitSfx(Npc &npc, uint64_t tickCount);

@@ -42,7 +42,7 @@ void MdlVisual::setVisual(const Skeleton *v) {
   }
 
 // mdl_setvisualbody
-void MdlVisual::setVisualBody(StaticObjects::Mesh &&h, StaticObjects::Mesh &&body) {
+void MdlVisual::setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body) {
   head    = std::move(h);
   view    = std::move(body);
 
@@ -50,18 +50,18 @@ void MdlVisual::setVisualBody(StaticObjects::Mesh &&h, StaticObjects::Mesh &&bod
   view.setAttachPoint(skeleton);
   }
 
-void MdlVisual::setArmour(StaticObjects::Mesh &&a) {
+void MdlVisual::setArmour(MeshObjects::Mesh &&a) {
   view = std::move(a);
   view.setAttachPoint(skeleton);
   setPos(pos);
   }
 
-void MdlVisual::setSword(StaticObjects::Mesh &&s) {
+void MdlVisual::setSword(MeshObjects::Mesh &&s) {
   sword = std::move(s);
   setPos(pos);
   }
 
-void MdlVisual::setRangeWeapon(StaticObjects::Mesh &&b) {
+void MdlVisual::setRangeWeapon(MeshObjects::Mesh &&b) {
   bow = std::move(b);
   setPos(pos);
   }

@@ -159,7 +159,7 @@ Item* Inventory::addItem(std::unique_ptr<Item> &&p) {
   sorted=false;
 
   const auto cls = p->clsId();
-  p->setView(StaticObjects::Mesh());
+  p->setView(MeshObjects::Mesh());
   Item* it=findByClass(cls);
   if(it==nullptr) {
     p->clearView();
@@ -335,10 +335,10 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
       owner.updateArmour();
       }
     else if(flag & ITM_CAT_NF){
-      owner.setSword(StaticObjects::Mesh());
+      owner.setSword(MeshObjects::Mesh());
       }
     else if(flag & ITM_CAT_FF){
-      owner.setRangeWeapon(StaticObjects::Mesh());
+      owner.setRangeWeapon(MeshObjects::Mesh());
       }
     vm.invokeItem(&owner,itData.on_unequip);
     }

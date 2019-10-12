@@ -1,6 +1,6 @@
 #pragma once
 
-#include "graphics/staticobjects.h"
+#include "graphics/meshobjects.h"
 #include "physics/dynamicworld.h"
 #include "abstracttrigger.h"
 
@@ -12,11 +12,11 @@ class MoveTrigger : public AbstractTrigger {
     bool hasVolume() const override;
 
   private:
-    void setView     (StaticObjects::Mesh&& m);
+    void setView     (MeshObjects::Mesh&& m);
     void setPhysic   (DynamicWorld::StaticItem&&  p);
     void setObjMatrix(const Tempest::Matrix4x4 &m);
 
-    StaticObjects::Mesh      view;
+    MeshObjects::Mesh        view;
     DynamicWorld::StaticItem physic;
     uint32_t                 frame=0;
     Tempest::Matrix4x4       pos;

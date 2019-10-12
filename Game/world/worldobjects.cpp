@@ -1,7 +1,7 @@
 #include "worldobjects.h"
 
 #include "game/serialize.h"
-#include "graphics/staticobjects.h"
+#include "graphics/meshobjects.h"
 #include "item.h"
 #include "npc.h"
 #include "world.h"

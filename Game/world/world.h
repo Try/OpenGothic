@@ -10,7 +10,7 @@
 #include <zenload/zTypes.h>
 
 #include "graphics/worldview.h"
-#include "graphics/staticobjects.h"
+#include "graphics/meshobjects.h"
 #include "physics/dynamicworld.h"
 #include "triggers/trigger.h"
 #include "game/gamescript.h"
@@ -80,10 +80,10 @@ class World final {
     void            assignRoomToGuild(const std::string& room,int32_t guildId);
     int32_t         guildOfRoom(const std::array<float,3>& pos);
 
-    StaticObjects::Mesh getView(const std::string& visual) const;
-    StaticObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
+    MeshObjects::Mesh getView(const std::string& visual) const;
+    MeshObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
     PfxObjects::Emitter getView(const ParticleFx* decl) const;
-    StaticObjects::Mesh getStaticView(const std::string &visual,int32_t tex) const;
+    MeshObjects::Mesh getStaticView(const std::string &visual,int32_t tex) const;
     DynamicWorld::Item  getPhysic(const std::string& visual);
 
     const VisualFx*   loadVisualFx(const char* name);

@@ -3,7 +3,7 @@
 #include <Tempest/Device>
 #include <Tempest/Matrix4x4>
 
-#include "staticobjects.h"
+#include "meshobjects.h"
 
 class Item;
 
@@ -22,12 +22,12 @@ class InventoryRenderer {
       };
 
     struct Itm {
-      StaticObjects::Mesh mesh;
+      MeshObjects::Mesh mesh;
       int x=0,y=0,w=0,h=0;
       };
 
     const RendererStorage&              storage;
-    StaticObjects                       itmGroup;
+    MeshObjects                       itmGroup;
     std::vector<Itm>                    items;
   };
 

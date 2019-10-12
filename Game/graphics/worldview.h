@@ -6,8 +6,9 @@
 #include "physics/dynamicworld.h"
 
 #include "graphics/sky/sky.h"
-#include "graphics/staticobjects.h"
+#include "graphics/meshobjects.h"
 #include "graphics/landscape.h"
+#include "graphics/meshobjects.h"
 #include "graphics/pfxobjects.h"
 #include "light.h"
 #include "posepool.h"
@@ -37,8 +38,8 @@ class WorldView {
     void drawMain  (const Tempest::FrameBuffer &fbo, const Tempest::RenderPass &p, Tempest::PrimaryCommandBuffer &cmd);
     void resetCmd  ();
 
-    StaticObjects::Mesh getView      (const std::string& visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
-    StaticObjects::Mesh getStaticView(const std::string& visual, int32_t material);
+    MeshObjects::Mesh   getView      (const std::string& visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
+    MeshObjects::Mesh   getStaticView(const std::string& visual, int32_t material);
     PfxObjects::Emitter getView      (const ParticleFx* decl);
 
     void addStatic(const ZenLoad::zCVobData &vob);
@@ -57,9 +58,9 @@ class WorldView {
 
     Sky                     sky;
     Landscape               land;
-    StaticObjects           vobGroup;
-    StaticObjects           objGroup;
-    StaticObjects           itmGroup;
+    MeshObjects             vobGroup;
+    MeshObjects             objGroup;
+    MeshObjects             itmGroup;
     PfxObjects              pfxGroup;
 
     bool                    nToUpdateCmd=true;
@@ -69,7 +70,7 @@ class WorldView {
     uint32_t                vpHeight=0;
 
     struct StaticObj {
-      StaticObjects::Mesh      mesh;
+      MeshObjects::Mesh        mesh;
       DynamicWorld::StaticItem physic;
       };
 

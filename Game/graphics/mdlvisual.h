@@ -5,7 +5,7 @@
 
 #include "game/constants.h"
 #include "pfxobjects.h"
-#include "staticobjects.h"
+#include "meshobjects.h"
 
 class Serialize;
 class Npc;
@@ -21,11 +21,11 @@ class MdlVisual final {
 
     void                           setPos(const Tempest::Matrix4x4 &m);
     void                           setVisual(const Skeleton *visual);
-    void                           setVisualBody(StaticObjects::Mesh &&h, StaticObjects::Mesh &&body);
+    void                           setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body);
 
-    void                           setArmour     (StaticObjects::Mesh&& body);
-    void                           setSword      (StaticObjects::Mesh&& sword);
-    void                           setRangeWeapon(StaticObjects::Mesh&& bow);
+    void                           setArmour     (MeshObjects::Mesh&& body);
+    void                           setSword      (MeshObjects::Mesh&& sword);
+    void                           setRangeWeapon(MeshObjects::Mesh&& bow);
     void                           setMagicWeapon(PfxObjects::Emitter&& spell);
     bool                           setFightMode(const ZenLoad::EFightMode mode);
 
@@ -37,9 +37,9 @@ class MdlVisual final {
     Tempest::Matrix4x4             pos;
 
   private:
-    StaticObjects::Mesh            head;
-    StaticObjects::Mesh            view;
-    StaticObjects::Mesh            sword, bow;
+    MeshObjects::Mesh              head;
+    MeshObjects::Mesh              view;
+    MeshObjects::Mesh              sword, bow;
     PfxObjects::Emitter            pfx;
 
     WeaponState                    fightMode=WeaponState::NoWeapon;

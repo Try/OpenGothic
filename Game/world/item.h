@@ -2,7 +2,7 @@
 
 #include <daedalus/DaedalusVM.h>
 
-#include "graphics/staticobjects.h"
+#include "graphics/meshobjects.h"
 
 class World;
 class Npc;
@@ -20,7 +20,7 @@ class Item final {
 
     enum { MAX_UI_ROWS=6, NSLOT=255 };
 
-    void setView      (StaticObjects::Mesh&& m);
+    void setView      (MeshObjects::Mesh&& m);
     void clearView    ();
 
     void setPosition  (float x,float y,float z);
@@ -69,7 +69,7 @@ class Item final {
 
     Daedalus::GEngineClasses::C_Item  hitem={};
     World&                            owner;
-    StaticObjects::Mesh               view;
+    MeshObjects::Mesh                 view;
     std::array<float,3>               pos={};
     Tempest::Matrix4x4                mat;
     bool                              equiped=false;

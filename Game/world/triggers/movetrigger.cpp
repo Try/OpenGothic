@@ -16,7 +16,7 @@ MoveTrigger::MoveTrigger(ZenLoad::zCVobData&& d,World& owner)
   setObjMatrix(Tempest::Matrix4x4(v));
   }
 
-void MoveTrigger::setView(StaticObjects::Mesh &&m) {
+void MoveTrigger::setView(MeshObjects::Mesh &&m) {
   view = std::move(m);
   }
 

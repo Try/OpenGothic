@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "graphics/staticobjects.h"
+#include "graphics/meshobjects.h"
 
 class World;
 class Npc;
@@ -22,7 +22,7 @@ class Bullet final {
     void setPosition  (const std::array<float,3>& p);
     void setPosition  (float x,float y,float z);
     void setDirection (float x,float y,float z);
-    void setView(StaticObjects::Mesh&& m);
+    void setView      (MeshObjects::Mesh&& m);
 
     void setOwner(Npc* n);
     Npc* owner() const;
@@ -50,7 +50,7 @@ class Bullet final {
     Npc*                              ow=nullptr;
     std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> dmg={};
 
-    StaticObjects::Mesh               view;
+    MeshObjects::Mesh                 view;
     std::array<float,3>               pos={};
     std::array<float,3>               dir={};
     float                             dirL=0.f;

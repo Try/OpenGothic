@@ -77,7 +77,7 @@ void AnimationSolver::setVisual(const Skeleton *v,uint64_t tickCount,
   invalidateAnim(animSq,visual.skeleton,owner,tickCount);
   }
 
-void AnimationSolver::setVisualBody(StaticObjects::Mesh&& h, StaticObjects::Mesh &&body) {
+void AnimationSolver::setVisualBody(MeshObjects::Mesh&& h, MeshObjects::Mesh &&body) {
   visual.setVisualBody(std::move(h),std::move(body));
   }
 
