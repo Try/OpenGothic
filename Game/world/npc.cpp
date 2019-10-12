@@ -57,6 +57,8 @@ Npc::Npc(World &owner, Serialize &fin)
   mvAlgo.load(fin);
   fghAlgo.load(fin);
   fin.read(fghLastEventTime);
+
+  animation.visual.setToFightMode(weaponState()); //FIXME
   }
 
 Npc::~Npc(){
@@ -379,7 +381,8 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
     return false;
     }
 
-  if(hnpc.attribute[ATR_HITPOINTS]<=1) {
+  const int minHp = isMonster() ? 0 : 1;
+  if(hnpc.attribute[ATR_HITPOINTS]<=minHp) {
     if(hnpc.attribute[ATR_HITPOINTSMAX]<=1){
       size_t fdead=owner.getSymbolIndex("ZS_Dead");
       startState(fdead,"");
@@ -1431,12 +1434,12 @@ void Npc::nextAiAction(uint64_t dt) {
       invent.equipBestRangeWeapon(*this);
       break;
     case AI_UseMob: {
-      if(owner.script().isTalk(*this)) {
-        aiActions.push_front(std::move(act));
-        break;
-        }
       if(act.i0<0){
         setInteraction(nullptr);
+        break;
+        }
+      if(owner.script().isTalk(*this)) {
+        aiActions.push_front(std::move(act));
         break;
         }
       auto inter = owner.aviableMob(*this,act.s0);
@@ -1509,6 +1512,8 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
       }
     case AI_ProcessInfo:
+      if(act.target==nullptr)
+        break;
       if(auto p = owner.script().openDlgOuput(*this,*act.target)) {
         outputPipe = p;
         setOther(act.target);
