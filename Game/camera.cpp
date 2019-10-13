@@ -228,10 +228,10 @@ void Camera::follow(const Npc &npc,uint64_t dt,bool includeRot) {
     // inventory: 0/20/90
     pos[1] += tr + tr*(def.bestElevation-10)/20.f; // HACK
 
-    isInMove = (npc.anim()==AnimationSolver::Move  ||
-                npc.anim()==AnimationSolver::MoveL ||
-                npc.anim()==AnimationSolver::MoveR ||
-                npc.anim()==AnimationSolver::Jump);
+    isInMove = npc.isInAnim(AnimationSolver::Move)  ||
+               npc.isInAnim(AnimationSolver::MoveL) ||
+               npc.isInAnim(AnimationSolver::MoveR) ||
+               npc.isInAnim(AnimationSolver::Jump);
 
     auto dx  = (pos[0]-camPos[0]);
     auto dy  = (pos[1]-camPos[1]);

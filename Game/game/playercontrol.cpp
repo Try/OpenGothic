@@ -181,7 +181,7 @@ void PlayerControl::moveRight() {
 void PlayerControl::setTarget(Npc *other) {
   auto w  = world();
   auto pl = w ? w->player() : nullptr;
-  if(pl==nullptr || pl->anim()==Npc::Anim::AtackFinish)
+  if(pl==nullptr || pl->isInAnim(Npc::Anim::AtackFinish))
     return;
   auto ws = pl->weaponState();
   if(other!=nullptr || (ws!=WeaponState::W1H && ws!=WeaponState::W2H))
@@ -402,7 +402,7 @@ void PlayerControl::implMove(uint64_t dt) {
       }
 
     if(ctrl[Jump]) {
-      if(pl.anim()==AnimationSolver::Idle){
+      if(pl.isInAnim(AnimationSolver::Idle)){
         auto code = pl.tryJump(pl.position());
         if(!pl.isFaling() && !pl.isSlide() && code!=Npc::JumpCode::JM_OK){
           pl.startClimb(code);
@@ -430,9 +430,9 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   pl.setAnim(ani);
-  if(ctrl[ActionFocus] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.anim()==Npc::Anim::AtackFinish){
+  if(ctrl[ActionFocus] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.isInAnim(Npc::Anim::AtackFinish)) {
     if(auto other = pl.target()){
-      if((pl.weaponState()==WeaponState::NoWeapon || other->isDown()) && pl.anim()!=Npc::Anim::AtackFinish){
+      if((pl.weaponState()==WeaponState::NoWeapon || other->isDown()) && pl.isInAnim(Npc::Anim::AtackFinish)){
         pl.setOther(nullptr);
         } else {
         float dx = other->position()[0]-pl.position()[0];

@@ -311,10 +311,12 @@ void Npc::startDlgAnim() {
   }
 
 void Npc::stopDlgAnim() {
-  auto a = anim();
-  if(Anim::Dialog1<=a && a<=Anim::Dialog10){
-    animation.resetAni();
-    setAnim(animation.lastIdle);
+  for(uint16_t i=Anim::Dialog1; i<Anim::Dialog10; i++){
+    if(isInAnim(Anim(i))){
+      animation.resetAni();
+      setAnim(animation.lastIdle);
+      break;
+      }
     }
   }
 
@@ -641,6 +643,10 @@ void Npc::stopAnim(const std::string &ani) {
     setAnim(animation.lastIdle);
   }
 
+bool Npc::isInAnim(Npc::Anim a) const {
+  return animation.current==a;
+  }
+
 bool Npc::isStanding() const {
   return animation.current<Anim::IdleLast;
   }
@@ -921,7 +927,7 @@ bool Npc::implGoTo(uint64_t dt) {
     float dx = currentGoTo->x-x;
     float dz = currentGoTo->z-z;
 
-    int needToRot = (walkMode()==WalkBit::WM_Run && anim()==Anim::Move) ? 45 : 0;
+    int needToRot = (walkMode()==WalkBit::WM_Run && isInAnim(Anim::Move)) ? 45 : 0;
     if(implLookAt(dx,dz,needToRot,dt)){
       mvAlgo.tick(dt);
       return true;
@@ -976,8 +982,7 @@ bool Npc::implAtack(uint64_t dt) {
   if(weaponState()==WeaponState::NoWeapon)
     return false;
 
-  auto ani = anim();
-  if((ani==Anim::Atack || ani==Anim::AtackBlock) && !animation.animSq.isAtackFinished(owner.tickCount()-animation.sAnim))
+  if((isInAnim(Anim::Atack) || isInAnim(Anim::AtackBlock)) && !animation.animSq.isAtackFinished(owner.tickCount()-animation.sAnim))
     return true;
 
   if(faiWaitTime>=owner.tickCount()) {
@@ -1120,17 +1125,10 @@ void Npc::implFaiWait(uint64_t dt) {
 void Npc::commitDamage() {
   if(currentTarget==nullptr)
     return;
-
-  auto ani = anim();
-  if(ani!=Anim::Atack && ani!=Anim::AtackL && ani!=Anim::AtackR && !(Anim::MagFirst<=ani && ani<=Anim::MagLast))
-    return;
-
   if(!fghAlgo.isInAtackRange(*this,*currentTarget,owner.script()))
     return;
-
   if(!fghAlgo.isInFocusAngle(*this,*currentTarget))
     return;
-
   currentTarget->takeDamage(*this);
   }
 
@@ -1145,9 +1143,8 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
   setOther(&other);
   owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
 
-  auto ani=anim();
   bool isBlock = animation.animSq.isParWindow(owner.tickCount()-animation.sAnim);
-  if((ani!=Anim::MoveBack && ani!=Anim::AtackBlock && !isBlock) || b!=nullptr) {
+  if((!isInAnim(Anim::MoveBack) && !isInAnim(Anim::AtackBlock) && !isBlock) || b!=nullptr) {
     perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
     owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
 
@@ -1178,12 +1175,13 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
     if(other.damageTypeMask() & (1<<Daedalus::GEngineClasses::DAM_INDEX_FLY))
       mvAlgo.accessDamFly(x-other.x,z-other.z); // throw enemy
 
-    if(ani==Anim::Move  || ani==Anim::MoveL  || ani==Anim::MoveR ||
-       ani==Anim::Atack || ani==Anim::AtackL || ani==Anim::AtackR ||
-       ani==Anim::Warn  ||
+    /*
+    if(isInAnim(Anim::Move)  || isInAnim(Anim::MoveL)  || isInAnim(Anim::MoveR) ||
+       isInAnim(Anim::Atack) || isInAnim(Anim::AtackL) || isInAnim(Anim::AtackR) ||
+       isInAnim(Anim::Warn)  ||
        ani<Anim::IdleLast || (Anim::MagFirst<=ani && ani<=Anim::MagLast )) {
       animation.resetAni();
-      }
+      }*/
     if(attribute(ATR_HITPOINTS)>0){
       if(lastHitType=='A')
         setAnim(Anim::StumbleA); else
@@ -1323,7 +1321,7 @@ void Npc::tick(uint64_t dt) {
     setAnim(AnimationSolver::Interact); else
   if(currentGoTo==nullptr && currentGoToNpc==nullptr &&
      aiPolicy!=ProcessPolicy::Player &&
-     anim()!=Anim::Pray && anim()!=Anim::PrayRand && anim()!=Anim::Talk && anim()!=Anim::Sleep) {
+     !isInAnim(Anim::Pray) && !isInAnim(Anim::PrayRand) && !isInAnim(Anim::Talk) && !isInAnim(Anim::Sleep)) {
     if(weaponState()==WeaponState::NoWeapon)
       setAnim(animation.lastIdle); else
     if(animation.current>Anim::IdleLoopLast)
@@ -1771,15 +1769,14 @@ gtime Npc::endTime(const Npc::Routine &r) const {
   }
 
 Npc::BodyState Npc::bodyState() const {
-  uint32_t s   = BS_STAND;
-  auto     ani = anim();
+  uint32_t s = BS_STAND;
   if(isDead())
     s = BS_DEAD;
   else if(isUnconscious())
     s = BS_UNCONSCIOUS;
   else if(mvAlgo.isSwim())
     s = BS_SWIM;
-  else if(ani==Anim::Move || ani==Anim::MoveL || ani==Anim::MoveR || ani==Anim::MoveBack) {
+  else if(isInAnim(Anim::Move) || isInAnim(Anim::MoveL) || isInAnim(Anim::MoveR) || isInAnim(Anim::MoveBack)) {
     if(wlkMode==WalkBit::WM_Run)
       s = BS_RUN;
     else if(wlkMode==WalkBit::WM_Walk)
@@ -1787,11 +1784,11 @@ Npc::BodyState Npc::bodyState() const {
     else if(wlkMode==WalkBit::WM_Sneak)
       s = BS_SNEAK;
     }
-  else if(ani==Anim::Fall || ani==Anim::FallDeep)
+  else if(isInAnim(Anim::Fall) || isInAnim(Anim::FallDeep))
     s = BS_FALL;
-  else if(ani==Anim::Sleep)
+  else if(isInAnim(Anim::Sleep))
     s = BS_LIE;
-  else if(ani==Anim::Sit || ani==Anim::GuardSleep || ani==Anim::Pray || ani==Anim::PrayRand)
+  else if(isInAnim(Anim::Sit) || isInAnim(Anim::GuardSleep) || isInAnim(Anim::Pray) || isInAnim(Anim::PrayRand))
     s = BS_SIT;
 
   if(auto i = interactive())
@@ -2234,7 +2231,7 @@ bool Npc::isTalk() const {
   }
 
 bool Npc::isPrehit() const {
-  return anim()==Anim::Atack && anim()==Anim::AtackL && anim()==Anim::AtackR;
+  return isInAnim(Anim::Atack) || isInAnim(Anim::AtackL) || isInAnim(Anim::AtackR);
   }
 
 bool Npc::isImmortal() const {

@@ -25,7 +25,7 @@ void MoveAlgo::save(Serialize &fout) const {
   }
 
 void MoveAlgo::tickMobsi(uint64_t dt) {
-  if(npc.anim()!=AnimationSolver::Interact || npc.interactive()->isLoopState())
+  if(npc.isInAnim(AnimationSolver::Interact) || npc.interactive()->isLoopState())
     return;
 
   auto dp  = animMoveSpeed(dt);
@@ -145,7 +145,7 @@ void MoveAlgo::tickGravity(uint64_t dt) {
       npc.setAnim(AnimationSolver::FallDeep); else
     if(fallSpeed[1]<-300.f)
       npc.setAnim(AnimationSolver::Fall); else
-    if(fallSpeed[1]<-100.f && npc.anim()==Npc::Anim::Jump)
+    if(fallSpeed[1]<-100.f && npc.isInAnim(Npc::Anim::Jump))
       npc.setAnim(AnimationSolver::Fall);
     } else {
     if(ground+chest<water && !npc.isDead()) {
@@ -212,7 +212,7 @@ void MoveAlgo::tickSwim(uint64_t dt) {
   if(ground+chest>=water){
     setAsSwim(false);
     tryMove(dp[0],ground-pY,dp[2]);
-    npc.setAnim(npc.anim());
+    //npc.setAnim(npc.anim()); // TODO: reset anim
     return;
     }
 
@@ -260,7 +260,7 @@ void MoveAlgo::tick(uint64_t dt, bool fai) {
   if(!npc.isDead() && ground+waterDepthChest()<water){
     setInWater(true);
     setAsSwim(true);
-    npc.setAnim(npc.anim());
+    //npc.setAnim(npc.anim()); //TODO: reset anim
     return;
     }
   if(ground+waterDepthKnee()<water)

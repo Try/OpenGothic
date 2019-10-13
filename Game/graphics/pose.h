@@ -33,14 +33,18 @@ class Pose final {
 
     bool update(const Animation::Sequence &s, uint64_t dt, uint64_t &fr);
     void updateFrame(const Animation::Sequence &s,uint64_t fr);
-    void emitSfx(Npc &npc, const Animation::Sequence &s, uint64_t dt, uint64_t fr);
 
+    void addLayer(const Animation::Sequence* seq);
+
+    struct Layer final {
+      const Animation::Sequence* seq = nullptr;
+      uint64_t                   frame=uint64_t(-1);
+      };
     const Skeleton*            skeleton=nullptr;
-    const Animation::Sequence* sequence=nullptr;
-    const Animation::Sequence* baseSq  =nullptr;
-    uint64_t                   frSequence=uint64_t(-1);
-    uint64_t                   frBase    =uint64_t(-1);
+    // const Animation::Sequence* sequence=nullptr;
+    // const Animation::Sequence* baseSq  =nullptr;
+    //uint64_t                   frSequence=uint64_t(-1);
+    //uint64_t                   frBase    =uint64_t(-1);
+    std::vector<Layer>         lay;
     float                      trY=0;
-
-    uint32_t                   numFrames=0;
   };

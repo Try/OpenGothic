@@ -97,8 +97,7 @@ static ZenLoad::zCModelAniSample mix(const ZenLoad::zCModelAniSample& x,const Ze
   }
 
 Pose::Pose(const Skeleton &sk, const Animation::Sequence* sq0, const Animation::Sequence *sq1)
-  :skeleton(&sk),sequence(sq0),baseSq(sq1) {
-  numFrames = baseSq ? baseSq->data->numFrames : 0;
+  :skeleton(&sk) {
   if(skeleton!=nullptr)
     tr = skeleton->tr; else
     tr.clear();
@@ -106,6 +105,9 @@ Pose::Pose(const Skeleton &sk, const Animation::Sequence* sq0, const Animation::
   for(size_t i=0;i<base.size() && i<sk.nodes.size();++i)
     base[i] = sk.nodes[i].tr;
   trY = sk.rootTr[1];
+
+  addLayer(sq0);
+  addLayer(sq1);
   }
 
 void Pose::reset(const Skeleton &sk, const Animation::Sequence *sq0, const Animation::Sequence *sq1) {
@@ -119,27 +121,24 @@ void Pose::reset(const Skeleton &sk, const Animation::Sequence *sq0, const Anima
       base[i] = sk.nodes[i].tr;
     trY = sk.rootTr[1];
     }
-  sequence   = sq0;
-  baseSq     = sq1;
-  frSequence = uint64_t(-1);
-  frBase     = uint64_t(-1);
-  numFrames  = baseSq ? baseSq->data->numFrames : 0;
+  lay.clear();
+  addLayer(sq0);
+  addLayer(sq1);
   }
 
 void Pose::update(uint64_t dt) {
-  if(baseSq==nullptr || numFrames==0){
+  if(lay.size()==0){
     zeroSkeleton();
     return;
     }
 
   bool change=false;
-  if(sequence)
-    change |= update(*sequence,dt,frSequence);
-  change|= update(*baseSq,dt,frBase);
+  for(auto& i:lay)
+    change |= update(*i.seq,dt,i.frame);
 
   if(!change)
     return;
-  mkSkeleton(*baseSq);
+  mkSkeleton(*lay[0].seq);
   }
 
 bool Pose::update(const Animation::Sequence &s, uint64_t dt, uint64_t& fr) {
@@ -186,15 +185,18 @@ void Pose::updateFrame(const Animation::Sequence &s, uint64_t fr) {
     }
   }
 
-void Pose::emitSfx(Npc &npc, uint64_t dt) {
-  if(baseSq)
-    emitSfx(npc,*baseSq,dt,frBase);
-  if(sequence)
-    emitSfx(npc,*sequence,dt,frSequence);
+void Pose::addLayer(const Animation::Sequence *seq) {
+  if(seq==nullptr)
+    return;
+  Layer l;
+  l.seq    = seq;
+  l.frame = uint64_t(-1);
+  lay.push_back(l);
   }
 
-void Pose::emitSfx(Npc &npc, const Animation::Sequence &s, uint64_t dt, uint64_t fr) {
-  s.emitSfx(npc,dt,fr);
+void Pose::emitSfx(Npc &npc, uint64_t dt) {
+  for(auto& i:lay)
+    i.seq->emitSfx(npc,dt,i.frame);
   }
 
 Matrix4x4 Pose::cameraBone() const {

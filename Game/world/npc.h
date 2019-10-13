@@ -263,7 +263,7 @@ class Npc final {
     void setScale      (float x,float y,float z);
     bool setAnim(Anim a);
     void stopAnim(const std::string& ani);
-    Anim anim() const  { return animation.current; }
+    bool isInAnim(Anim a) const;
     bool isStanding() const;
 
     ZMath::float3 animMoveSpeed(uint64_t dt) const;
