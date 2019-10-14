@@ -45,7 +45,28 @@ static void signalHandler(int sig) {
 
 [[noreturn]]
 static void terminateHandler() {
-  CrashLog::dumpStack("std::terminate");
+  char msg[128] = "std::terminate";
+  std::exception_ptr p = std::current_exception();
+  if(p) {
+    try {
+      std::rethrow_exception(p);
+      }
+    catch (std::system_error& e) {
+      std::snprintf(msg,sizeof(msg),"std::system_error(%s)",e.what());
+      }
+    catch (std::runtime_error& e) {
+      std::snprintf(msg,sizeof(msg),"std::runtime_error(%s)",e.what());
+      }
+    catch (std::logic_error& e) {
+      std::snprintf(msg,sizeof(msg),"std::logic_error(%s)",e.what());
+      }
+    catch (std::bad_alloc& e) {
+      std::snprintf(msg,sizeof(msg),"std::bad_alloc(%s)",e.what());
+      }
+    catch (...) {
+      }
+    }
+  CrashLog::dumpStack(msg);
   std::abort();
   }
 
