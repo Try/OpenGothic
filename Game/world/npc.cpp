@@ -6,7 +6,6 @@
 #include "interactive.h"
 #include "graphics/visualfx.h"
 #include "graphics/skeleton.h"
-#include "graphics/posepool.h"
 #include "game/serialize.h"
 #include "game/gamescript.h"
 #include "world/triggers/trigger.h"
@@ -442,9 +441,7 @@ std::array<float,3> Npc::position() const {
   }
 
 std::array<float,3> Npc::cameraBone() const {
-  if(animation.skInst==nullptr)
-    return {{}};
-  auto bone=animation.skInst->cameraBone();
+  auto bone=animation.pose().cameraBone();
   std::array<float,3> r={{}};
   bone.project(r[0],r[1],r[2]);
   animation.visual.pos.project (r[0],r[1],r[2]);
@@ -464,7 +461,7 @@ float Npc::rotationRad() const {
   }
 
 float Npc::translateY() const {
-  return animation.skInst ? animation.skInst->translateY() : 0;
+  return animation.pose().translateY();
   }
 
 Npc *Npc::lookAtTarget() const {
@@ -540,12 +537,7 @@ void Npc::delOverlay(const Skeleton *sk) {
   }
 
 ZMath::float3 Npc::animMoveSpeed(uint64_t dt) const {
-  if(animation.animSq!=nullptr){
-    if(animation.animSq.l0)
-      return animation.animSq.l0->speed(owner.tickCount()-animation.sAnim,dt);
-    return animation.animSq.l1->speed(owner.tickCount()-animation.sAnim,dt);
-    }
-  return ZMath::float3(0,0,0);
+  return animation.pose().animMoveSpeed(owner.tickCount(),dt);
   }
 
 void Npc::setVisual(const Skeleton* v) {
@@ -887,6 +879,8 @@ bool Npc::implLookAt(float dx, float dz, int noAniAngle, uint64_t dt) {
 
   if(std::abs(int(da)%180)<=step && std::cos(double(da)*M_PI/180.0)>0){
     setDirection(a);
+    // TODO
+    /*
     if(animation.current==AnimationSolver::RotL || animation.current==AnimationSolver::RotR) {
       if(currentGoTo==nullptr && animation.animSq!=nullptr && !animation.animSq.isFinished(owner.tickCount()-animation.sAnim)){
         // finish animation
@@ -895,7 +889,7 @@ bool Npc::implLookAt(float dx, float dz, int noAniAngle, uint64_t dt) {
       if(currentGoTo==nullptr)
         setAnim(animation.lastIdle);
       return false;
-      }
+      }*/
     return false;
     }
 
@@ -982,7 +976,7 @@ bool Npc::implAtack(uint64_t dt) {
   if(weaponState()==WeaponState::NoWeapon)
     return false;
 
-  if((isInAnim(Anim::Atack) || isInAnim(Anim::AtackBlock)) && !animation.animSq.isAtackFinished(owner.tickCount()-animation.sAnim))
+  if((isInAnim(Anim::Atack) || isInAnim(Anim::AtackBlock)) && !animation.pose().isAtackFinished(owner.tickCount()))
     return true;
 
   if(faiWaitTime>=owner.tickCount()) {
@@ -1143,7 +1137,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
   setOther(&other);
   owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
 
-  bool isBlock = animation.animSq.isParWindow(owner.tickCount()-animation.sAnim);
+  bool isBlock = animation.pose().isParWindow(owner.tickCount());
   if((!isInAnim(Anim::MoveBack) && !isInAnim(Anim::AtackBlock) && !isBlock) || b!=nullptr) {
     perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
     owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
@@ -1283,7 +1277,7 @@ void Npc::tick(uint64_t dt) {
   owner.tickSlot(animation.soundSlot);
 
   Animation::EvCount ev;
-  animation.processEvents(fghLastEventTime,owner.tickCount(),ev);
+  animation.pose().processEvents(fghLastEventTime,owner.tickCount(),ev);
 
   if(ev.def_opt_frame>0)
     commitDamage();
@@ -1892,7 +1886,7 @@ bool Npc::playAnimByName(const std::string &name) {
   if(a!=nullptr) {
     Log::d("AI_PlayAnim: unrecognized anim: \"",name,"\"");
     if(animation.animSq!=a)
-      animation.invalidateAnim(a,animation.visual.skeleton,owner,owner.tickCount());
+      animation.invalidateAnim(a,animation.visual.skeleton,owner.tickCount());
     }
   return true;
   }

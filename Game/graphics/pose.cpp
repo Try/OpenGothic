@@ -1,6 +1,7 @@
 #include "pose.h"
 
 #include "skeleton.h"
+#include "game/serialize.h"
 #include "world/npc.h"
 
 #include <cmath>
@@ -106,11 +107,60 @@ Pose::Pose(const Skeleton &sk, const Animation::Sequence* sq0, const Animation::
     base[i] = sk.nodes[i].tr;
   trY = sk.rootTr[1];
 
-  addLayer(sq0);
-  addLayer(sq1);
+  addLayer(sq0,0);
+  addLayer(sq1,0);
   }
 
-void Pose::reset(const Skeleton &sk, const Animation::Sequence *sq0, const Animation::Sequence *sq1) {
+void Pose::save(Serialize &fout) {
+  uint8_t sz=uint8_t(lay.size());
+  fout.write(sz);
+  for(auto& i:lay) {
+    fout.write(i.seq->name,i.frame,i.sAnim);
+    }
+  }
+
+void Pose::load(Serialize &fin,const AnimationSolver& solver) {
+  std::string name;
+  uint8_t sz=uint8_t(lay.size());
+
+  fin.read(sz);
+  lay.resize(sz);
+  for(auto& i:lay) {
+    fin.read(name,i.frame,i.sAnim);
+    i.seq = solver.findSequence(name.c_str());
+    }
+  removeIf(lay,[](const Layer& l){
+    return l.seq==nullptr;
+    });
+  }
+
+bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, uint64_t tickCount) {
+  if(sq==nullptr)
+    return false;
+
+  for(auto& i:lay)
+    if(i.seq->layer==sq->layer) {
+      const bool finished  = i.seq->isFinished(tickCount-i.sAnim);
+      const bool interrupt = i.seq->canInterrupt();
+      if(i.seq==sq && (interrupt || finished))
+        return true;
+      if(!interrupt && !finished)
+        return false;
+      const Animation::Sequence* tr=nullptr;
+      if(i.seq->shortName.size()>0 && sq->shortName.size()>0) {
+        char tansition[256]={};
+        std::snprintf(tansition,sizeof(tansition),"T_%s_2_%s",i.seq->shortName.c_str(),sq->shortName.c_str());
+        tr = solver.findSequence(tansition);
+        }
+      i.seq   = tr ? tr : sq;
+      i.sAnim = tickCount;
+      return true;
+      }
+  addLayer(sq,tickCount);
+  return true;
+  }
+
+void Pose::reset(const Skeleton &sk, uint64_t tickCount, const Animation::Sequence *sq0, const Animation::Sequence *sq1) {
   if(skeleton!=&sk){
     skeleton = &sk;
     if(skeleton!=nullptr)
@@ -122,11 +172,11 @@ void Pose::reset(const Skeleton &sk, const Animation::Sequence *sq0, const Anima
     trY = sk.rootTr[1];
     }
   lay.clear();
-  addLayer(sq0);
-  addLayer(sq1);
+  addLayer(sq0,tickCount);
+  addLayer(sq1,tickCount);
   }
 
-void Pose::update(uint64_t dt) {
+void Pose::update(uint64_t tickCount) {
   if(lay.size()==0){
     zeroSkeleton();
     return;
@@ -134,7 +184,14 @@ void Pose::update(uint64_t dt) {
 
   bool change=false;
   for(auto& i:lay)
-    change |= update(*i.seq,dt,i.frame);
+    change |= update(*i.seq,tickCount-i.sAnim,i.frame);
+
+  removeIf(lay,[tickCount](const Layer& i){
+    if(!(i.seq->flags & Animation::Idle)) {
+      return i.seq->isFinished(tickCount-i.sAnim);
+      }
+    return false;
+    });
 
   if(!change)
     return;
@@ -185,18 +242,61 @@ void Pose::updateFrame(const Animation::Sequence &s, uint64_t fr) {
     }
   }
 
-void Pose::addLayer(const Animation::Sequence *seq) {
+void Pose::addLayer(const Animation::Sequence *seq, uint64_t tickCount) {
   if(seq==nullptr)
     return;
   Layer l;
-  l.seq    = seq;
+  l.seq   = seq;
   l.frame = uint64_t(-1);
+  l.sAnim = tickCount;
   lay.push_back(l);
+  std::sort(lay.begin(),lay.end(),[](const Layer& a,const Layer& b){
+    return a.seq->layer<b.seq->layer;
+    });
   }
 
-void Pose::emitSfx(Npc &npc, uint64_t dt) {
+void Pose::emitSfx(Npc &npc, uint64_t tickCount) {
   for(auto& i:lay)
-    i.seq->emitSfx(npc,dt,i.frame);
+    i.seq->emitSfx(npc,tickCount-i.sAnim,i.frame);
+  }
+
+void Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev) const {
+  for(auto& i:lay)
+    i.seq->processEvents(barrier,i.sAnim,now,ev);
+  }
+
+ZMath::float3 Pose::animMoveSpeed(uint64_t tickCount,uint64_t dt) const {
+  if(lay.size()>0)
+    return lay[0].seq->speed(tickCount-lay[0].sAnim,dt);
+  return ZMath::float3(0,0,0);
+  }
+
+bool Pose::isParWindow(uint64_t tickCount) const {
+  for(auto& i:lay)
+    if(i.seq->isParWindow(tickCount-i.sAnim))
+      return true;
+  return false;
+  }
+
+bool Pose::isAtackFinished(uint64_t tickCount) const {
+  for(auto& i:lay)
+    if(i.seq->isAtackFinished(tickCount-i.sAnim))
+      return true;
+  return false;
+  }
+
+bool Pose::isFlyAnim() const {
+  for(auto& i:lay)
+    if(i.seq->isFly())
+      return true;
+  return false;
+  }
+
+bool Pose::isInAnim(const char* sq) const {
+  for(auto& i:lay)
+    if(i.seq->shortName==sq)
+      return true;
+  return false;
   }
 
 Matrix4x4 Pose::cameraBone() const {
@@ -279,4 +379,17 @@ void Pose::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
     tr[i].mul(base[i]);
     mkSkeleton(tr[i],i);
     }
+  }
+
+template<class T, class F>
+void Pose::removeIf(T &t, F f) {
+  size_t ret=0;
+  for(size_t i=0;i<t.size();++i) {
+    if( !f(t[i]) ) {
+      if(ret!=i)
+        t[ret] = t[i];
+      ret++;
+      }
+    }
+  t.resize(ret);
   }

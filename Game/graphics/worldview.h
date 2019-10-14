@@ -11,7 +11,6 @@
 #include "graphics/meshobjects.h"
 #include "graphics/pfxobjects.h"
 #include "light.h"
-#include "posepool.h"
 
 class World;
 class RendererStorage;
@@ -44,11 +43,6 @@ class WorldView {
 
     void addStatic(const ZenLoad::zCVobData &vob);
 
-    std::shared_ptr<Pose> get(const Skeleton* s,const Animation::Sequence *sq,uint64_t sT,std::shared_ptr<Pose>& prev);
-    std::shared_ptr<Pose> get(const Skeleton* s,const Animation::Sequence *sq,const Animation::Sequence *sq1,uint64_t sT,std::shared_ptr<Pose>& prev);
-
-    void updateAnimation(uint64_t tickCount);
-
   private:
     const World&            owner;
     const RendererStorage&  storage;
@@ -74,7 +68,6 @@ class WorldView {
       DynamicWorld::StaticItem physic;
       };
 
-    PosePool                            animPool;
     std::vector<Tempest::CommandBuffer> cmdMain;
     std::vector<Tempest::CommandBuffer> cmdShadow[2];
     std::vector<StaticObj>              objStatic;

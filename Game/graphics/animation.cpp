@@ -175,12 +175,12 @@ void Animation::setupIndex() {
   }
 
 
-Animation::Sequence::Sequence(const std::string &name) {
-  if(!Resources::hasFile(name))
+Animation::Sequence::Sequence(const std::string &fname) {
+  if(!Resources::hasFile(fname))
     return;
 
   const VDFS::FileIndex& idx = Resources::vdfsIndex();
-  ZenLoad::ZenParser            zen(name,idx);
+  ZenLoad::ZenParser            zen(fname,idx);
   ZenLoad::ModelAnimationParser p(zen);
 
   data = std::make_shared<AnimData>();
@@ -192,12 +192,15 @@ Animation::Sequence::Sequence(const std::string &name) {
         return;
         }
       case ZenLoad::ModelAnimationParser::CHUNK_HEADER: {
-        this->name            = p.getHeader().aniName;
-        this->layer           = p.getHeader().layer;
-        this->data->fpsRate   = p.getHeader().fpsRate;
-        this->data->numFrames = p.getHeader().numFrames;
+        name            = p.getHeader().aniName;
+        layer           = p.getHeader().layer;
+        data->fpsRate   = p.getHeader().fpsRate;
+        data->numFrames = p.getHeader().numFrames;
 
-        if(this->name.size()>1){
+        if(name.find("S_")==0)
+          shortName = name.substr(2);
+
+        if(name.size()>1){
           if(this->name.find("_2_")!=std::string::npos)
             animCls=Transition;
           else if(this->name[0]=='T' && this->name[1]=='_')
@@ -223,7 +226,20 @@ Animation::Sequence::Sequence(const std::string &name) {
   }
 
 bool Animation::Sequence::isFinished(uint64_t t) const {
+  if(!data->defHitEnd.empty()) {
+    for(auto& i:data->defHitEnd)
+      if(t>i)
+        return true;
+    }
   return t>totalTime();
+  }
+
+bool Animation::Sequence::canInterrupt() const {
+  if(animCls==Animation::Transition)
+    return false;
+  if(!data->defHitEnd.empty())
+    return false;
+  return true;
   }
 
 bool Animation::Sequence::isAtackFinished(uint64_t t) const {

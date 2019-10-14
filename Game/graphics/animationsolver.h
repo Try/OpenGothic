@@ -157,8 +157,8 @@ class AnimationSolver final {
       };
 
     struct Overlay final {
-      const Skeleton* sk  =nullptr;
-      uint64_t        time=0;
+      const Skeleton* skeleton=nullptr;
+      uint64_t        time    =0;
       };
 
     struct Sequence final {
@@ -217,23 +217,18 @@ class AnimationSolver final {
                                            WalkBit walk, Interactive *inter, World &owner);
 
     bool                           isFlyAnim(uint64_t tickCount) const;
-    void                           invalidateAnim(const Sequence ani, const Skeleton *sk, World &owner, uint64_t tickCount);
-
-    Sequence                       solveAnim(const char *format, WeaponState st) const;
-    Sequence                       solveAnim(Anim a, WeaponState st0, Anim cur, WeaponState st, WalkBit wlk, Interactive *inter) const;
+    void                           invalidateAnim(const Sequence ani, const Skeleton *sk, uint64_t tickCount);
 
     AnimationSolver::Anim          animByName  (const std::string &name) const;
+    const Animation::Sequence*     findSequence(const char* name) const;
     Sequence                       animSequence(const char *name) const;
     Sequence                       layredSequence(const char *name, const char *base) const;
     Sequence                       layredSequence(const char *name, const char *base, WeaponState st) const;
 
-    void                           processEvents(uint64_t& barrier, uint64_t now, Animation::EvCount &ev) const;
+    const Pose&                    pose() const;
 
     MdlVisual                      visual;
-
-    std::shared_ptr<Pose>          skInst;
     Sequence                       animSq;
-    uint64_t                       sAnim    =0;
 
     Anim                           current    = NoAnim;
     WeaponState                    currentW   = WeaponState::NoWeapon;
@@ -244,9 +239,13 @@ class AnimationSolver final {
     GSoundEffect                   soundSlot;
 
   private:
+    const Animation::Sequence*     startAnim(Anim a, WeaponState st0, Anim cur, WeaponState st, WalkBit wlk, Interactive *inter) const;
+    const Animation::Sequence*     solveAnim(const char *format, WeaponState st) const;
+
     Sequence                       solveMag    (const char *format,Anim spell) const;
     Sequence                       solveDead   (const char *format1,const char *format2) const;
-    Sequence                       solveItemUse(const char *format,const char* scheme) const;
+    const Animation::Sequence*     solveItemUse(const char *format,const char* scheme) const;
 
+    std::unique_ptr<Pose>          skInst;
     std::vector<Overlay>           overlay;
   };

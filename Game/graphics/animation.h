@@ -60,6 +60,7 @@ class Animation final {
       bool                                   isMove() const { return bool(flags&Flags::Move); }
       bool                                   isFly()  const { return bool(flags&Flags::Fly);  }
       bool                                   isFinished(uint64_t t) const;
+      bool                                   canInterrupt() const;
       bool                                   isAtackFinished(uint64_t t) const;
       bool                                   isParWindow(uint64_t t) const;
       float                                  totalTime() const;
@@ -71,7 +72,7 @@ class Animation final {
       ZMath::float3                          speed(uint64_t at, uint64_t dt) const;
       ZMath::float3                          translateXZ(uint64_t at) const;
 
-      std::string                            name;
+      std::string                            name, shortName;
       uint32_t                               layer  =0;
       Flags                                  flags  =Flags::None;
       AnimClass                              animCls=UnknownAnim;
