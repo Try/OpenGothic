@@ -81,49 +81,6 @@ bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,uint64_t fghLastEventTim
     return true;
     }
   return false;
-  /*
-  if(Npc::Anim::DeadB<a && a<Npc::Anim::IdleLoopLast && weaponSt!=WeaponState::NoWeapon)
-    a = Npc::Anim::Idle;
-  if(animSq!=nullptr){
-    if(current==a && currentW==weaponSt && currentWlk==walk && animSq.cls==Animation::Loop)
-      return true;
-    if((animSq.cls==Animation::Transition &&
-        current!=RotL && current!=RotR && current!=MoveL && current!=MoveR && // no idea why this animations maked as Transition
-        !(current==Move && a==Jump)) && // allow to jump at any point of run animation
-       !animSq.isFinished(fghLastEventTime-sAnim))
-      return false;
-    if(current==Atack && !animSq.isAtackFinished(fghLastEventTime-sAnim))
-      return false;
-    if(MagFirst<=current && current<=MagLast && !animSq.isFinished(tickCount-sAnim))
-      return false;
-    }
-  auto ani = solveAnim(a,currentW,current,weaponSt,walk,inter);
-  if(ani==nullptr) {
-    a   = Idle;
-    ani = solveAnim(Idle,WeaponState::NoWeapon,Idle,WeaponState::NoWeapon,WalkBit::WM_Run,nullptr);
-    }
-
-  if(ani==nullptr)
-    return false;
-
-  if(prevAni!=current)
-    prevAni = current;
-
-  current    = a;
-  currentW   = weaponSt;
-  currentWlk = walk;
-
-  if(current<=IdleLoopLast && (weaponSt==WeaponState::NoWeapon || weaponSt==WeaponState::Fist))
-    lastIdle=current;
-  if(ani==animSq) {
-    if(animSq.cls==Animation::Transition){
-      invalidateAnim(ani,visual.skeleton,tickCount); // restart anim
-      }
-    return true;
-    }
-  owner.takeSoundSlot(std::move(soundSlot));
-  invalidateAnim(ani,visual.skeleton,tickCount);
-  return true;*/
   }
 
 bool AnimationSolver::isFlyAnim(uint64_t /*tickCount*/) const {
@@ -206,18 +163,66 @@ void AnimationSolver::resetAni() {
 const Animation::Sequence* AnimationSolver::startAnim(AnimationSolver::Anim a, WeaponState st0,
                                                       AnimationSolver::Anim /*cur*/, WeaponState st,
                                                       WalkBit wlkMode, Interactive *inter) const {
+  // Atack
+  if(st==WeaponState::Fist) {
+    if(a==Anim::Atack && skInst->isInAnim("S_FISTRUNL")) {
+      if(auto a=animSequence("T_FISTATTACKMOVE"))
+        return solveAnim("T_%sATTACKMOVE",st);
+      }
+    if(a==Anim::Atack)
+      return solveAnim("S_FISTATTACK",st);
+    if(a==Anim::AtackBlock)
+      return solveAnim("T_FISTPARADE_0",st);
+    }
+  else if(st==WeaponState::W1H || st==WeaponState::W2H) {
+    if(a==Anim::Atack && (skInst->isInAnim("S_1HRUNL") || skInst->isInAnim("S_2HRUNL")))
+      return solveAnim("T_%sATTACKMOVE",st);
+    if(a==Anim::AtackL)
+      return solveAnim("T_%sATTACKL",st);
+    if(a==Anim::AtackR)
+      return solveAnim("T_%sATTACKR",st);
+    if(a==Anim::Atack || a==Anim::AtackL || a==Anim::AtackR)
+      return solveAnim("S_%sATTACK",st); // TODO: proper atack  window
+    if(a==Anim::AtackBlock) {
+      const Animation::Sequence* s=nullptr;
+      switch(std::rand()%3){
+        case 0: s = solveAnim("T_%sPARADE_0",   st); break;
+        case 1: s = solveAnim("T_%sPARADE_0_A2",st); break;
+        case 2: s = solveAnim("T_%sPARADE_0_A3",st); break;
+        }
+      if(s==nullptr)
+        s = solveAnim("T_%sPARADE_0",st);
+      return s;
+      }
+    if(a==Anim::AtackFinish)
+      return solveAnim("T_%sSFINISH",st);
+    }
+  else if(st==WeaponState::Bow || st==WeaponState::CBow){
+    if(a==Anim::AimBow) {
+      if(!skInst->isInAnim("T_BOWRELOAD") && !skInst->isInAnim("T_CBOWRELOAD") &&
+         !skInst->isInAnim("S_BOWSHOOT")  && !skInst->isInAnim("S_CBOWSHOOT"))
+        return solveAnim("T_%sRUN_2_%sAIM",st);
+      return solveAnim("S_%sSHOOT",st);
+      }
+    if(a==Anim::Atack)
+      return solveAnim("T_%sRELOAD",st);
+    if(a!=Anim::AimBow &&
+       (skInst->isInAnim("T_BOWRELOAD") || skInst->isInAnim("T_CBOWRELOAD") ||
+        skInst->isInAnim("T_BOWRUN_2_BOWAIM") || skInst->isInAnim("T_CBOWRUN_2_CBOWAIM")))
+      return solveAnim("T_%sAIM_2_%sRUN",st);
+    }
   // Weapon draw/undraw
   if(st0==WeaponState::NoWeapon && st!=WeaponState::NoWeapon){
-    if(skInst->isInAnim("RUNL"))
+    if(skInst->isInAnim("S_RUNL"))
       return solveAnim("T_MOVE_2_%sMOVE",st);
     return solveAnim("T_%s_2_%sRUN",st);
     }
   if(st==WeaponState::NoWeapon && st0!=WeaponState::NoWeapon &&
      a!=Anim::UnconsciousA && a!=Anim::UnconsciousB &&
      a!=Anim::DeadA        && a!=Anim::DeadB){
-    if(skInst->isInAnim("1HRUNL")  || skInst->isInAnim("2HRUNL") ||
-       skInst->isInAnim("BOWRUNL") || skInst->isInAnim("CBOWRUNL") ||
-       skInst->isInAnim("MAGRUNL"))
+    if(skInst->isInAnim("S_1HRUNL")  || skInst->isInAnim("S_2HRUNL") ||
+       skInst->isInAnim("S_BOWRUNL") || skInst->isInAnim("S_CBOWRUNL") ||
+       skInst->isInAnim("S_MAGRUNL"))
       return solveAnim("T_%sMOVE_2_MOVE",st0);
     return solveAnim("T_%sRUN_2_%s",st0);
     }
@@ -262,6 +267,7 @@ const Animation::Sequence* AnimationSolver::startAnim(AnimationSolver::Anim a, W
     return solveAnim("T_%sJUMPB",st);
     }
   // Rotation
+  /*
   if(a==RotL) {
     if(bool(wlkMode & WalkBit::WM_Swim))
       return solveAnim("T_SWIMTURNL",st);
@@ -279,51 +285,10 @@ const Animation::Sequence* AnimationSolver::startAnim(AnimationSolver::Anim a, W
     if(bool(wlkMode & WalkBit::WM_Water))
       return solveAnim("T_%sWALKWTURNR",st);
     return solveAnim("T_%sRUNTURNR",st);
-    }
+    }*/
   // Jump
   if(a==Jump)
     return solveAnim("S_JUMP",st);
-  // Atack
-  if(st==WeaponState::Fist) {
-    if(a==Anim::Atack && skInst->isInAnim("FISTRUNL")) {
-      if(auto a=animSequence("T_FISTATTACKMOVE"))
-        return solveAnim("T_%sATTACKMOVE",st);
-      }
-    if(a==Anim::Atack)
-      return solveAnim("S_FISTATTACK",st);
-    if(a==Anim::AtackBlock)
-      return solveAnim("T_FISTPARADE_0",st);
-    }
-  else if(st==WeaponState::W1H || st==WeaponState::W2H) {
-    if(a==Anim::Atack && (skInst->isInAnim("1HRUNL") || skInst->isInAnim("2HRUNL")))
-      return solveAnim("T_%sATTACKMOVE",st);
-    if(a==Anim::AtackL)
-      return solveAnim("T_%sATTACKL",st);
-    if(a==Anim::AtackR)
-      return solveAnim("T_%sATTACKR",st);
-    if(a==Anim::Atack || a==Anim::AtackL || a==Anim::AtackR)
-      return solveAnim("S_%sATTACK",st); // TODO: proper atack  window
-    if(a==Anim::AtackBlock) {
-      const Animation::Sequence* s=nullptr;
-      switch(std::rand()%3){
-        case 0: s = solveAnim("T_%sPARADE_0",   st); break;
-        case 1: s = solveAnim("T_%sPARADE_0_A2",st); break;
-        case 2: s = solveAnim("T_%sPARADE_0_A3",st); break;
-        }
-      if(s==nullptr)
-        s = solveAnim("T_%sPARADE_0",st);
-      return s;
-      }
-    if(a==Anim::AtackFinish)
-      return solveAnim("T_%sSFINISH",st);
-    }
-  else if(st==WeaponState::Bow || st==WeaponState::CBow){
-    if(a==Anim::AimBow)
-      return solveAnim("S_%sAIM",st); //TODO: aniComb
-      //return solveAnim("S_%sSHOOT",st);
-    if(a==Anim::Atack)
-      return solveAnim("T_%sRELOAD",st);
-    }
 
   static const std::pair<const char*,Npc::Anim> schemes[]={
     {"FOOD",       Npc::Anim::Food1},
@@ -841,19 +806,6 @@ const Animation::Sequence* AnimationSolver::findSequence(const char *name) const
       return s;
     }
   return visual.skeleton ? visual.skeleton->sequence(name) : nullptr;
-  }
-
-AnimationSolver::Sequence AnimationSolver::layredSequence(const char *name,const char* base) const {
-  auto a = animSequence(name);
-  auto b = animSequence(base);
-  return Sequence(a.l1,b.l1);
-  }
-
-AnimationSolver::Sequence AnimationSolver::layredSequence(const char *name, const char *base, WeaponState st) const {
-  auto a = solveAnim(name,st);
-  auto b = solveAnim(base,st);
-  throw "";
-  //return Sequence(a.l1,b.l1);
   }
 
 AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const {

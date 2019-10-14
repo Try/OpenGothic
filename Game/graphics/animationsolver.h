@@ -222,8 +222,6 @@ class AnimationSolver final {
     AnimationSolver::Anim          animByName  (const std::string &name) const;
     const Animation::Sequence*     findSequence(const char* name) const;
     Sequence                       animSequence(const char *name) const;
-    Sequence                       layredSequence(const char *name, const char *base) const;
-    Sequence                       layredSequence(const char *name, const char *base, WeaponState st) const;
 
     const Pose&                    pose() const;
 

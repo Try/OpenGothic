@@ -41,13 +41,36 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
 
         current->firstFrame = uint32_t(p.ani.m_FirstFrame);
         current->lastFrame  = uint32_t(p.ani.m_LastFrame);
-        //if(ani.name=="S_2HATTACK")
-        //  Log::i("");
         break;
         }
       case ZenLoad::MdsParser::CHUNK_ANI_ALIAS:{
         ref.emplace_back(std::move(p.alias));
         current = nullptr;
+        break;
+        }
+      case ZenLoad::MdsParser::CHUNK_ANI_COMB:{
+        current = nullptr;
+        char name[256]={};
+        std::snprintf(name,sizeof(name),"%s%d",p.comb.m_Asc.c_str(),1);
+
+        bool found=false;
+        for(size_t r=0;r<sequences.size();++r) { // reverse search: expect to find animations right before aniComb
+          auto& i = sequences[sequences.size()-r-1];
+          if(i.name==name) {
+            auto d = i.data;
+            sequences.emplace_back();
+            Animation::Sequence& ani = sequences.back();
+            ani.name    = p.ani.m_Name;
+            ani.layer   = p.comb.m_Layer;
+            ani.flags   = Flags(p.comb.m_Flags);
+            ani.nextStr = p.comb.m_Next;
+            ani.data    = d; // set first as default
+            found=true;
+            break;
+            }
+          }
+        if(!found)
+          Log::d("comb not found: ",p.comb.m_Name," -> ",p.comb.m_Asc); // error
         break;
         }
 
@@ -137,8 +160,6 @@ Animation::Sequence& Animation::loadMAN(const std::string& name) {
   }
 
 void Animation::setupIndex() {
-  // for(auto& i:sequences)
-  //   Log::i(i.name);
   for(auto& sq:sequences)
     sq.data->setupEvents(sq.data->fpsRate);
 
@@ -148,8 +169,10 @@ void Animation::setupIndex() {
       if(s.name==r.m_Alias)
         ani.data = s.data;
 
-    if(ani.data==nullptr)
+    if(ani.data==nullptr) {
+      Log::d("alias not found: ",r.m_Name," -> ",r.m_Alias);
       continue;
+      }
 
     ani.name    = r.m_Name;
     ani.layer   = r.m_Layer;
@@ -172,6 +195,9 @@ void Animation::setupIndex() {
         break;
         }
     }
+
+  // for(auto& i:sequences)
+  //   Log::i(i.name);
   }
 
 
@@ -199,7 +225,9 @@ Animation::Sequence::Sequence(const std::string &fname) {
 
         if(name.find("S_")==0)
           shortName = name.substr(2);
+        animCls=Transition;
 
+        /*
         if(name.size()>1){
           if(this->name.find("_2_")!=std::string::npos)
             animCls=Transition;
@@ -212,7 +240,7 @@ Animation::Sequence::Sequence(const std::string &fname) {
 
           //if(this->name=="S_JUMP" || this->name=="S_JUMPUP")
           //  animCls=Transition;
-          }
+          }*/
         break;
         }
       case ZenLoad::ModelAnimationParser::CHUNK_RAWDATA:
@@ -226,6 +254,9 @@ Animation::Sequence::Sequence(const std::string &fname) {
   }
 
 bool Animation::Sequence::isFinished(uint64_t t) const {
+  if(isRotate())
+    return true;// FIXME: proper rotate
+
   if(!data->defHitEnd.empty()) {
     for(auto& i:data->defHitEnd)
       if(t>i)

@@ -346,19 +346,20 @@ void PlayerControl::implMove(uint64_t dt) {
 
     if((ws==WeaponState::Bow || ws==WeaponState::CBow) &&
        pl.hasAmunition()){
-      auto other = pl.target();
-      if(other!=nullptr && ctrl[ActionFocus]) {
-        float dx = other->position()[0]-pl.position()[0];
-        float dz = other->position()[2]-pl.position()[2];
-        pl.lookAt(dx,dz,false,dt);
-        pl.aimBow();
-        } else
+      if(ctrl[ActionFocus]) {
+        if(auto other = pl.target()) {
+          float dx = other->position()[0]-pl.position()[0];
+          float dz = other->position()[2]-pl.position()[2];
+          pl.lookAt(dx,dz,false,dt);
+          pl.aimBow();
+          return;
+          }
+        }
       if(ctrl[EmptyFocus]){
         pl.aimBow();
+        if(!ctrl[ActForward])
+          return;
         }
-      // no move
-      if(!ctrl[ActForward] && (ctrl[ActionFocus] || ctrl[EmptyFocus]))
-        return;
       }
 
     if(ctrl[ActForward]) {
@@ -374,14 +375,15 @@ void PlayerControl::implMove(uint64_t dt) {
         return;
         }
       if(ws==WeaponState::Bow || ws==WeaponState::CBow) {
-        if(pl.shootBow())
-          return;
+        pl.shootBow();
+        return;
         }
       if(ws==WeaponState::Mage) {
-        if(pl.castSpell())
-          return;
+        pl.castSpell();
+        return;
         }
-      ctrl[Forward]=true;
+      ctrl[ActForward]=true;
+      ctrl[Forward]   =true;
       }
     if(ctrl[ActLeft] || ctrl[ActRight] || ctrl[ActBack]) {
       auto ws = pl.weaponState();

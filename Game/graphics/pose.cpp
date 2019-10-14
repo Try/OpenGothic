@@ -185,13 +185,23 @@ void Pose::update(uint64_t tickCount) {
   bool change=false;
   for(auto& i:lay)
     change |= update(*i.seq,tickCount-i.sAnim,i.frame);
-
-  removeIf(lay,[tickCount](const Layer& i){
-    if(!(i.seq->flags & Animation::Idle)) {
-      return i.seq->isFinished(tickCount-i.sAnim);
+  size_t ret=0;
+  for(size_t i=0;i<lay.size();++i) {
+    const auto& l = lay[i];
+    if((l.seq->flags & Animation::Idle) || !l.seq->isFinished(tickCount-l.sAnim)) {
+      if(ret!=i)
+        lay[ret] = lay[i];
+      ret++;
+      } else {
+      if(lay[i].seq!=nullptr && lay[i].seq->next!=nullptr) {
+        lay[i].seq = lay[i].seq->next;
+        ret++;
+        }
       }
-    return false;
-    });
+    }
+  if(ret==0)
+    ret=1;
+  lay.resize(ret);
 
   if(!change)
     return;
@@ -294,7 +304,7 @@ bool Pose::isFlyAnim() const {
 
 bool Pose::isInAnim(const char* sq) const {
   for(auto& i:lay)
-    if(i.seq->shortName==sq)
+    if(i.seq->name==sq)
       return true;
   return false;
   }
