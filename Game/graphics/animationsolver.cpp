@@ -10,27 +10,32 @@
 
 using namespace Tempest;
 
-AnimationSolver::AnimationSolver()
-  :skInst(std::make_unique<Pose>()) {
+static const std::pair<const char*,AnimationSolver::Anim> schemes[]={
+  {"FOOD",       AnimationSolver::Anim::Food1},
+  {"FOODHUGE",   AnimationSolver::Anim::FoodHuge1},
+  {"POTION",     AnimationSolver::Anim::Potition1},
+  {"POTIONFAST", AnimationSolver::Anim::PotitionFast},
+  {"JOINT",      AnimationSolver::Anim::Joint1},
+  {"MAP",        AnimationSolver::Anim::Map1},
+  {"MAPSEALED",  AnimationSolver::Anim::MapSeal1},
+  {"FIRESPIT",   AnimationSolver::Anim::Firespit1},
+  {"MEAT",       AnimationSolver::Anim::Meat1},
+  {"RICE",       AnimationSolver::Anim::Rice1},
+  };
+
+AnimationSolver::AnimationSolver() {
   }
 
 void AnimationSolver::save(Serialize &fout) {
-  visual.save(fout);
-
   fout.write(uint32_t(overlay.size()));
   for(auto& i:overlay){
     fout.write(i.skeleton->name(),i.time);
     }
-
-  skInst->save(fout);
-  fout.write(uint16_t(current),uint16_t(prevAni),uint16_t(lastIdle));
   }
 
-void AnimationSolver::load(Serialize &fin,Npc& npc) {
+void AnimationSolver::load(Serialize &fin) {
   uint32_t sz=0;
   std::string s;
-
-  visual.load(fin,npc);
 
   fin.read(sz);
   overlay.resize(sz);
@@ -38,65 +43,23 @@ void AnimationSolver::load(Serialize &fin,Npc& npc) {
     fin.read(s,i.time);
     i.skeleton = Resources::loadSkeleton(s);
     }
-  for(size_t i=0;i<overlay.size();){
-    if(overlay[i].skeleton){
-      ++i;
-      } else {
-      overlay[i] = overlay.back();
-      overlay.pop_back();
-      }
+
+  sz=0;
+  for(size_t i=0;i<overlay.size();++i){
+    overlay[sz]=overlay[i];
+    if(overlay[i].skeleton!=nullptr)
+      ++sz;
     }
-  skInst->load(fin,*this);
-  fin.read(reinterpret_cast<uint16_t&>(current),reinterpret_cast<uint16_t&>(prevAni),reinterpret_cast<uint16_t&>(lastIdle));
+  overlay.resize(sz);
   }
 
-const Pose& AnimationSolver::pose() const {
-  return *skInst;
+void AnimationSolver::setSkeleton(const Skeleton *sk) {
+  baseSk = sk;
   }
 
-void AnimationSolver::setPos(const Matrix4x4 &m) {
-  visual.setPos(m);
-  }
-
-void AnimationSolver::setVisual(const Skeleton *v,uint64_t tickCount,
-                                WeaponState ws,WalkBit walk,Interactive* inter,World& owner) {
-  visual.setVisual(v);
-  skInst->setSkeleton(v);
-  current=NoAnim;
-  setAnim(Idle,tickCount,tickCount,ws,walk,inter,owner);
-  }
-
-void AnimationSolver::setVisualBody(MeshObjects::Mesh&& h, MeshObjects::Mesh &&body) {
-  visual.setVisualBody(std::move(h),std::move(body));
-  }
-
-bool AnimationSolver::setAnim(Anim a,uint64_t tickCount,uint64_t fghLastEventTime,
-                              WeaponState weaponSt,
-                              WalkBit walk,Interactive* inter,World& owner) {
-  const Animation::Sequence *sq = startAnim(a,currentW,current,weaponSt,walk,inter);
-  if(skInst->startAnim(*this,sq,tickCount)) {
-    currentW   = weaponSt;
-    currentWlk = walk;
-    return true;
-    }
-  return false;
-  }
-
-bool AnimationSolver::isFlyAnim(uint64_t /*tickCount*/) const {
-  return skInst->isFlyAnim() && current!=Fall && current!=FallDeep;
-  }
-
-uint64_t AnimationSolver::animationTotalTime() const {
-  return skInst->animationTotalTime();
-  }
-
-void AnimationSolver::addOverlay(const Skeleton* sk,uint64_t time,uint64_t tickCount,
-                                 WalkBit /*wlk*/,Interactive* /*inter*/,World& /*owner*/) {
+void AnimationSolver::addOverlay(const Skeleton* sk,uint64_t time) {
   if(sk==nullptr)
     return;
-  if(time!=0)
-    time+=tickCount;
-
   Overlay ov = {sk,time};
   overlay.push_back(ov);
   }
@@ -116,148 +79,134 @@ void AnimationSolver::delOverlay(const Skeleton *sk) {
       }
   }
 
-void AnimationSolver::updateAnimation(uint64_t tickCount) {
+void AnimationSolver::update(uint64_t tickCount) {
   for(size_t i=0;i<overlay.size();){
     auto& ov = overlay[i];
     if(ov.time!=0 && ov.time<tickCount)
       overlay.erase(overlay.begin()+int(i)); else
       ++i;
     }
-
-  skInst->update(tickCount);
-  visual.updateAnimation(*skInst);
   }
 
-void AnimationSolver::emitSfx(Npc& npc,uint64_t tickCount) {
-  skInst->emitSfx(npc,tickCount);
-  }
-
-bool AnimationSolver::stopAnim(const std::string &ani) {
-  return skInst->stopAnim(ani.c_str());
-  }
-
-void AnimationSolver::resetAni() {
-  if(current<=Anim::IdleLoopLast)
-    return;
-  current = Anim::NoAnim;
-  }
-
-const Animation::Sequence* AnimationSolver::startAnim(AnimationSolver::Anim a, WeaponState st0,
-                                                      AnimationSolver::Anim /*cur*/, WeaponState st,
-                                                      WalkBit wlkMode, Interactive *inter) const {
+const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, WeaponState st, WalkBit wlkMode, const Pose& pose) const {
   // Atack
   if(st==WeaponState::Fist) {
-    if(a==Anim::Atack && skInst->isInAnim("S_FISTRUNL")) {
-      if(auto s=solveAnim("T_FISTATTACKMOVE"))
+    if(a==Anim::Atack && pose.isInAnim("S_FISTRUNL")) {
+      if(auto s=solveFrm("T_FISTATTACKMOVE"))
         return s;
       }
     if(a==Anim::Atack)
-      return solveAnim("S_FISTATTACK");
+      return solveFrm("S_FISTATTACK");
     if(a==Anim::AtackBlock)
-      return solveAnim("T_FISTPARADE_0");
+      return solveFrm("T_FISTPARADE_0");
     }
   else if(st==WeaponState::W1H || st==WeaponState::W2H) {
-    if(a==Anim::Atack && (skInst->isInAnim("S_1HRUNL") || skInst->isInAnim("S_2HRUNL")))
-      return solveAnim("T_%sATTACKMOVE",st);
+    if(a==Anim::Atack && (pose.isInAnim("S_1HRUNL") || pose.isInAnim("S_2HRUNL")))
+      return solveFrm("T_%sATTACKMOVE",st);
     if(a==Anim::AtackL)
-      return solveAnim("T_%sATTACKL",st);
+      return solveFrm("T_%sATTACKL",st);
     if(a==Anim::AtackR)
-      return solveAnim("T_%sATTACKR",st);
+      return solveFrm("T_%sATTACKR",st);
     if(a==Anim::Atack || a==Anim::AtackL || a==Anim::AtackR)
-      return solveAnim("S_%sATTACK",st); // TODO: proper atack  window
+      return solveFrm("S_%sATTACK",st); // TODO: proper atack  window
     if(a==Anim::AtackBlock) {
       const Animation::Sequence* s=nullptr;
       switch(std::rand()%3){
-        case 0: s = solveAnim("T_%sPARADE_0",   st); break;
-        case 1: s = solveAnim("T_%sPARADE_0_A2",st); break;
-        case 2: s = solveAnim("T_%sPARADE_0_A3",st); break;
+        case 0: s = solveFrm("T_%sPARADE_0",   st); break;
+        case 1: s = solveFrm("T_%sPARADE_0_A2",st); break;
+        case 2: s = solveFrm("T_%sPARADE_0_A3",st); break;
         }
       if(s==nullptr)
-        s = solveAnim("T_%sPARADE_0",st);
+        s = solveFrm("T_%sPARADE_0",st);
       return s;
       }
     if(a==Anim::AtackFinish)
-      return solveAnim("T_%sSFINISH",st);
+      return solveFrm("T_%sSFINISH",st);
     }
-  else if(st==WeaponState::Bow || st==WeaponState::CBow){
+  else if(st==WeaponState::Bow || st==WeaponState::CBow) {
     if(a==Anim::AimBow) {
-      if(!skInst->isInAnim("T_BOWRELOAD") && !skInst->isInAnim("T_CBOWRELOAD") &&
-         !skInst->isInAnim("S_BOWSHOOT")  && !skInst->isInAnim("S_CBOWSHOOT"))
-        return solveAnim("T_%sRUN_2_%sAIM",st);
-      return solveAnim("S_%sSHOOT",st);
+      if(!pose.isInAnim("T_BOWRELOAD") && !pose.isInAnim("T_CBOWRELOAD") &&
+         !pose.isInAnim("S_BOWSHOOT")  && !pose.isInAnim("S_CBOWSHOOT"))
+        return solveFrm("T_%sRUN_2_%sAIM",st);
+      return solveFrm("S_%sSHOOT",st);
       }
     if(a==Anim::Atack)
-      return solveAnim("T_%sRELOAD",st);
+      return solveFrm("T_%sRELOAD",st);
     if(a!=Anim::AimBow &&
-       (skInst->isInAnim("T_BOWRELOAD") || skInst->isInAnim("T_CBOWRELOAD") ||
-        skInst->isInAnim("T_BOWRUN_2_BOWAIM") || skInst->isInAnim("T_CBOWRUN_2_CBOWAIM")))
-      return solveAnim("T_%sAIM_2_%sRUN",st);
+       (pose.isInAnim("T_BOWRELOAD")       || pose.isInAnim("T_CBOWRELOAD") ||
+        pose.isInAnim("T_BOWRUN_2_BOWAIM") || pose.isInAnim("T_CBOWRUN_2_CBOWAIM")))
+      return solveFrm("T_%sAIM_2_%sRUN",st);
     }
-  // Magic-cast
-  if(Anim::MagFirst<=a && a<=Anim::MagLast) {
-    if(skInst->isInAnim("S_MAGRUN"))
-      return solveMag("T_MAGRUN_2_%sSHOOT",a); else
-      return solveMag("S_%sSHOOT",a);
+  else if(st==WeaponState::Mage) {
+    // Magic-cast
+    if(Anim::MagFirst<=a && a<=Anim::MagLast) {
+      if(pose.isInAnim("S_MAGRUN"))
+        return solveMag("T_MAGRUN_2_%sSHOOT",a); else
+        return solveMag("S_%sSHOOT",a);
+      }
+    for(uint8_t i=Anim::MagFirst;i<=Anim::MagLast;++i) {
+      auto sq = solveMag("S_%sSHOOT",Anim(i));
+      if(pose.isInAnim(sq))
+        return solveMag("T_%sSHOOT_2_STAND",Anim(i));
+      }
     }
   if(a==Anim::MagNoMana)
-    return solveAnim("T_CASTFAIL",st);
-  //if((Anim::MagFirst<=cur && cur<=Anim::MagLast) && a==Anim::Idle)
-  //  return solveMag("T_%sSHOOT_2_STAND",cur);
+    return solveFrm("T_CASTFAIL");
+  // Item-use
+  if(Anim::Food1<=a && a<=Anim::Rice2) {
+    for(auto& i:schemes){
+      if(a!=i.second)
+        continue;
+      char S_ID_S0[128]={};
+      std::snprintf(S_ID_S0,sizeof(S_ID_S0),"S_%s_S0",i.first);
 
-  // Weapon draw/undraw
-  if(st0==WeaponState::NoWeapon && st!=WeaponState::NoWeapon){
-    if(skInst->isInAnim("S_RUNL"))
-      return solveAnim("T_MOVE_2_%sMOVE",st);
-    return solveAnim("T_%s_2_%sRUN",st);
-    }
-  if(st==WeaponState::NoWeapon && st0!=WeaponState::NoWeapon &&
-     a!=Anim::UnconsciousA && a!=Anim::UnconsciousB &&
-     a!=Anim::DeadA        && a!=Anim::DeadB){
-    if(skInst->isInAnim("S_1HRUNL")  || skInst->isInAnim("S_2HRUNL") ||
-       skInst->isInAnim("S_BOWRUNL") || skInst->isInAnim("S_CBOWRUNL") ||
-       skInst->isInAnim("S_MAGRUNL"))
-      return solveAnim("T_%sMOVE_2_MOVE",st0);
-    return solveAnim("T_%sRUN_2_%s",st0);
+      if(a==i.second && !pose.isInAnim(S_ID_S0))
+        return solveItemUse("T_%s_STAND_2_S0",i.first);
+      if(a<Anim::IdleLast && pose.isInAnim(S_ID_S0))
+        return solveItemUse("T_%s_S0_2_STAND",i.first);
+      if(a==i.second)
+        return solveItemUse("S_%s_S0",i.first);
+      }
     }
   // Move
   if(a==Idle) {
     if(bool(wlkMode & WalkBit::WM_Swim))
-      return solveAnim("S_SWIM");
+      return solveFrm("S_SWIM");
     if(bool(wlkMode&WalkBit::WM_Walk))
-      return solveAnim("S_%sWALK",st);
-    return solveAnim("S_%sRUN",st);
+      return solveFrm("S_%sWALK",st);
+    return solveFrm("S_%sRUN",st);
     }
   if(a==Move) {
     if(bool(wlkMode & WalkBit::WM_Swim))
-      return solveAnim("S_SWIMF",st);
+      return solveFrm("S_SWIMF",st);
     if(bool(wlkMode & WalkBit::WM_Walk))
-      return solveAnim("S_%sWALKL",st);
+      return solveFrm("S_%sWALKL",st);
     if(bool(wlkMode & WalkBit::WM_Water))
-      return solveAnim("S_%sWALKWL",st);
-    return solveAnim("S_%sRUNL",st);
+      return solveFrm("S_%sWALKWL",st);
+    return solveFrm("S_%sRUNL",st);
     }
   if(a==MoveL) {
     if(bool(wlkMode & WalkBit::WM_Swim))
-      return solveAnim("S_SWIM"); // ???
+      return solveFrm("S_SWIM"); // ???
     if(bool(wlkMode & WalkBit::WM_Walk))
-      return solveAnim("T_%sWALKWSTRAFEL",st);
+      return solveFrm("T_%sWALKWSTRAFEL",st);
     if(bool(wlkMode & WalkBit::WM_Water))
-      return solveAnim("T_%sWALKWSTRAFEL",st);
-    return solveAnim("T_%sRUNSTRAFEL",st);
+      return solveFrm("T_%sWALKWSTRAFEL",st);
+    return solveFrm("T_%sRUNSTRAFEL",st);
     }
   if(a==MoveR) {
     if(bool(wlkMode & WalkBit::WM_Swim))
-      return solveAnim("S_SWIM"); // ???
+      return solveFrm("S_SWIM"); // ???
     if(bool(wlkMode & WalkBit::WM_Walk))
-      return solveAnim("T_%sWALKWSTRAFER",st);
+      return solveFrm("T_%sWALKWSTRAFER",st);
     if(bool(wlkMode & WalkBit::WM_Water))
-      return solveAnim("T_%sWALKWSTRAFER",st);
-    return solveAnim("T_%sRUNSTRAFER",st);
+      return solveFrm("T_%sWALKWSTRAFER",st);
+    return solveFrm("T_%sRUNSTRAFER",st);
     }
   if(a==Anim::MoveBack) {
     if(bool(wlkMode & WalkBit::WM_Swim))
-      return solveAnim("S_SWIMB");
-    return solveAnim("T_%sJUMPB",st);
+      return solveFrm("S_SWIMB");
+    return solveFrm("T_%sJUMPB",st);
     }
   // Rotation
   /*
@@ -281,35 +230,7 @@ const Animation::Sequence* AnimationSolver::startAnim(AnimationSolver::Anim a, W
     }*/
   // Jump
   if(a==Jump)
-    return solveAnim("S_JUMP");
-
-  static const std::pair<const char*,Npc::Anim> schemes[]={
-    {"FOOD",       Npc::Anim::Food1},
-    {"FOODHUGE",   Npc::Anim::FoodHuge1},
-    {"POTION",     Npc::Anim::Potition1},
-    {"POTIONFAST", Npc::Anim::PotitionFast},
-    {"RICE",       Npc::Anim::Rice1},
-    {"MEAT",       Npc::Anim::Meat1},
-    {"JOINT",      Npc::Anim::Joint1},
-    {"MAP",        Npc::Anim::Map1},
-    {"MAPSEALED",  Npc::Anim::MapSeal1},
-    {"FIRESPIT",   Npc::Anim::Firespit1}
-    };
-  for(auto& i:schemes){
-    if(a!=i.second)
-      continue;
-    char buf[128]={};
-    std::snprintf(buf,sizeof(buf),"S_%s_S0",i.first);
-    //return solveAnim(buf,st);
-
-    /*
-    if(skInst->isInAnim(buf) && a==i.second)
-      return solveItemUse("T_%s_STAND_2_S0",i.first);
-    if(cur==i.second && a<Anim::IdleLast)
-      return solveItemUse("T_%s_S0_2_STAND",i.first);
-    if(a==i.second)
-      return solveItemUse("S_%s_S0",i.first);*/
-    }
+    return solveFrm("S_JUMP");
   return nullptr;
 
   /*
@@ -735,7 +656,39 @@ const Animation::Sequence* AnimationSolver::startAnim(AnimationSolver::Anim a, W
   */
   }
 
-const Animation::Sequence *AnimationSolver::solveAnim(const char *format, WeaponState st) const {
+const Animation::Sequence *AnimationSolver::solveAnim(WeaponState st, WeaponState cur, const Pose &pose) const {
+  // Weapon draw/undraw
+  if(st==cur)
+    return nullptr;
+  if(st==WeaponState::NoWeapon){
+    if(pose.isInAnim("S_1HRUNL")   || pose.isInAnim("S_2HRUNL") ||
+       pose.isInAnim("S_BOWRUNL")  || pose.isInAnim("S_CBOWRUNL") ||
+       pose.isInAnim("S_FISTRUNL") || pose.isInAnim("S_MAGRUNL"))
+      return solveFrm("T_%sMOVE_2_MOVE",cur);
+    return solveFrm("T_%sRUN_2_%s",cur);
+    }
+  if(st==WeaponState::Fist ||
+     st==WeaponState::W1H  || st==WeaponState::W2H ||
+     st==WeaponState::Bow  || st==WeaponState::CBow ||
+     st==WeaponState::Mage){
+    if(pose.isInAnim("S_RUNL"))
+      return solveFrm("T_MOVE_2_%sMOVE",st);
+    return solveFrm("T_%s_2_%sRUN",st);
+    }
+  return nullptr;
+  }
+
+const Animation::Sequence *AnimationSolver::solveAnim(Interactive *inter, AnimationSolver::Anim a, const Pose &) const {
+  if(inter==nullptr)
+    return nullptr;
+  if(a==AnimationSolver::InteractOut) {
+    return inter->anim(*this,Interactive::Out);
+    } else {
+    return inter->anim(*this,Interactive::In);
+    }
+  }
+
+const Animation::Sequence *AnimationSolver::solveFrm(const char *format, WeaponState st) const {
   static const char* weapon[] = {
     "",
     "FIST",
@@ -747,16 +700,16 @@ const Animation::Sequence *AnimationSolver::solveAnim(const char *format, Weapon
     };
   char name[128]={};
   std::snprintf(name,sizeof(name),format,weapon[int(st)],weapon[int(st)]);
-  if(auto ret=solveAnim(name))
+  if(auto ret=solveFrm(name))
     return ret;
   std::snprintf(name,sizeof(name),format,"");
-  if(auto ret=solveAnim(name))
+  if(auto ret=solveFrm(name))
     return ret;
   std::snprintf(name,sizeof(name),format,"FIST");
-  return solveAnim(name);
+  return solveFrm(name);
   }
 
-const Animation::Sequence *AnimationSolver::solveAnim(const char *name) const {
+const Animation::Sequence *AnimationSolver::solveFrm(const char *name) const {
   if(name==nullptr || name[0]=='\0')
     return nullptr;
   for(size_t i=overlay.size();i>0;){
@@ -764,7 +717,7 @@ const Animation::Sequence *AnimationSolver::solveAnim(const char *name) const {
     if(auto s = overlay[i].skeleton->sequence(name))
       return s;
     }
-  return visual.skeleton ? visual.skeleton->sequence(name) : nullptr;
+  return baseSk ? baseSk->sequence(name) : nullptr;
   }
 
 const Animation::Sequence* AnimationSolver::solveMag(const char *format,Anim spell) const {
@@ -772,22 +725,22 @@ const Animation::Sequence* AnimationSolver::solveMag(const char *format,Anim spe
 
   char name[128]={};
   std::snprintf(name,sizeof(name),format,mg[spell-Anim::MagFirst]);
-  if(auto a=solveAnim(name))
+  if(auto a=solveFrm(name))
     return a;
   std::snprintf(name,sizeof(name),format,mg[0]);
-  return solveAnim(name);
+  return solveFrm(name);
   }
 
 const Animation::Sequence *AnimationSolver::solveDead(const char *format1, const char *format2) const {
-  if(auto a=solveAnim(format1))
+  if(auto a=solveFrm(format1))
     return a;
-  return solveAnim(format2);
+  return solveFrm(format2);
   }
 
 const Animation::Sequence* AnimationSolver::solveItemUse(const char *format, const char *scheme) const {
   char buf[128]={};
   std::snprintf(buf,sizeof(buf),format,scheme);
-  return solveAnim(buf);
+  return solveFrm(buf);
   }
 
 AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const {

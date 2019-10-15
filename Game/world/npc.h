@@ -3,7 +3,7 @@
 #include "graphics/meshobjects.h"
 #include "graphics/pose.h"
 #include "graphics/animation.h"
-#include "graphics/animationsolver.h"
+#include "graphics/mdlvisual.h"
 #include "game/gametime.h"
 #include "game/movealgo.h"
 #include "game/inventory.h"
@@ -551,7 +551,6 @@ class Npc final {
 
     void                           updateWeaponSkeleton();
     void                           updatePos();
-    void                           setPos(const Tempest::Matrix4x4& m);
     bool                           setViewPosition(const std::array<float,3> &pos);
 
     int                            aiOutputOrderId() const;
@@ -602,7 +601,8 @@ class Npc final {
     std::string                    body,head;
     int32_t                        vHead=0, vTeeth=0, vColor =0;
     int32_t                        bdColor=0;
-    AnimationSolver                animation;
+    MdlVisual                      visual;
+    GSoundEffect                   soundSlot;
 
     DynamicWorld::Item             physic;
 

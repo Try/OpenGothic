@@ -81,6 +81,9 @@ class Serialize final {
     void write(const WayPoint*  wptr);
     void read (const WayPoint*& wptr);
 
+    void write(const WeaponState  w);
+    void read (WeaponState &w);
+
     void write(const FpLock& fp);
     void read (FpLock& fp);
 

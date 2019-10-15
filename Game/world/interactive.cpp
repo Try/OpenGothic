@@ -384,7 +384,7 @@ const Animation::Sequence* Interactive::anim(const AnimationSolver &solver, Anim
   if(loopState)
     std::snprintf(buf,sizeof(buf),"S_%s%s_%s",tag,point,ss[0]); else
     std::snprintf(buf,sizeof(buf),"T_%s%s_%s_2_%s",tag,point,ss[0],ss[1]);
-  return solver.solveAnim(buf);
+  return solver.solveFrm(buf);
   }
 
 void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const {

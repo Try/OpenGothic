@@ -33,6 +33,7 @@ class Pose final {
     bool               isAtackFinished(uint64_t tickCount) const;
     bool               isFlyAnim() const;
     bool               isInAnim(const char *sq) const;
+    bool               isInAnim(const Animation::Sequence* sq) const;
     uint64_t           animationTotalTime() const;
 
     float              translateY() const { return trY; }

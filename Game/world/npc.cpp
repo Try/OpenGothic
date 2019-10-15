@@ -37,10 +37,8 @@ Npc::Npc(World &owner, Serialize &fin)
   fin.read(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
   durtyTranform = TR_Pos|TR_Rot|TR_Scale;
 
-  animation.load(fin,*this);
+  visual.load(fin,*this);
   setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
-  if(animation.visual.skeleton)
-    setPhysic(owner.getPhysic(animation.visual.skeleton->name()));
 
   fin.read(reinterpret_cast<int32_t&>(permAttitude),reinterpret_cast<int32_t&>(tmpAttitude));
   fin.read(perceptionTime,perceptionNextTime);
@@ -56,8 +54,6 @@ Npc::Npc(World &owner, Serialize &fin)
   mvAlgo.load(fin);
   fghAlgo.load(fin);
   fin.read(fghLastEventTime);
-
-  animation.visual.setToFightMode(weaponState()); //FIXME
   }
 
 Npc::~Npc(){
@@ -73,7 +69,7 @@ void Npc::save(Serialize &fout) {
   fout.write(x,y,z,angle,sz);
   fout.write(body,head,vHead,vTeeth,bdColor,vColor);
   fout.write(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
-  animation.save(fout);
+  visual.save(fout);
 
   fout.write(int32_t(permAttitude),int32_t(tmpAttitude));
   fout.write(perceptionTime,perceptionNextTime);
@@ -305,15 +301,15 @@ void Npc::startDlgAnim() {
   if(weaponState()!=WeaponState::NoWeapon)
     return;
   auto ani = std::rand()%(Anim::DialogLastG2-Anim::DialogFirst)+Anim::DialogFirst;
-  animation.lastIdle = Anim::Idle;
   setAnim(Anim(ani));
   }
 
 void Npc::stopDlgAnim() {
   for(uint16_t i=Anim::Dialog1; i<Anim::Dialog10; i++){
     if(isInAnim(Anim(i))){
-      animation.resetAni();
-      setAnim(animation.lastIdle);
+      // TODO
+      //animation.resetAni();
+      //setAnim(animation.lastIdle);
       break;
       }
     }
@@ -410,7 +406,7 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
 
 void Npc::onNoHealth(bool death) {
   // TODO: drop the weapon instead
-  animation.visual.setToFightMode(WeaponState::NoWeapon);
+  visual.setToFightMode(WeaponState::NoWeapon);
   updateWeaponSkeleton();
 
   const char* svm   = death ? "SVM_%d_DEAD" : "SVM_%d_AARGH";
@@ -420,8 +416,8 @@ void Npc::onNoHealth(bool death) {
     hnpc.attribute[ATR_HITPOINTS]=1;
 
   size_t fdead=owner.getSymbolIndex(state);
-  if(animation.current!=Anim::UnconsciousA && animation.current!=Anim::UnconsciousB)
-    animation.resetAni();
+  //if(animation.current!=Anim::UnconsciousA && animation.current!=Anim::UnconsciousB)
+  //  animation.resetAni();
   startState(fdead,"");
   if(hnpc.voice>0 && currentOther!=nullptr){
     // in case of battle currentOther!=nullptr,
@@ -441,10 +437,10 @@ std::array<float,3> Npc::position() const {
   }
 
 std::array<float,3> Npc::cameraBone() const {
-  auto bone=animation.pose().cameraBone();
+  auto bone=visual.pose().cameraBone();
   std::array<float,3> r={{}};
   bone.project(r[0],r[1],r[2]);
-  animation.visual.pos.project (r[0],r[1],r[2]);
+  visual.pos.project (r[0],r[1],r[2]);
   return r;
   }
 
@@ -461,7 +457,7 @@ float Npc::rotationRad() const {
   }
 
 float Npc::translateY() const {
-  return animation.pose().translateY();
+  return visual.pose().translateY();
   }
 
 Npc *Npc::lookAtTarget() const {
@@ -490,9 +486,7 @@ float Npc::qDistTo(const Interactive &p) const {
   }
 
 void Npc::updateAnimation() {
-  if(owner.isInListenerRange({x,y,z}))
-    animation.emitSfx(*this,owner.tickCount());
-  animation.updateAnimation(owner.tickCount());
+  visual.updateAnimation(*this);
   }
 
 void Npc::updateTransform() {
@@ -508,8 +502,8 @@ const char *Npc::displayName() const {
 
 std::array<float,3> Npc::displayPosition() const {
   float h = 0;
-  if(animation.visual.skeleton)
-    h = animation.visual.skeleton->colisionHeight()*1.5f;
+  if(visual.skeleton)
+    h = visual.skeleton->colisionHeight()*1.5f;
   return {{x,y+h,z}};
   }
 
@@ -525,23 +519,25 @@ void Npc::addOverlay(const char *sk, uint64_t time) {
   }
 
 void Npc::addOverlay(const Skeleton* sk,uint64_t time) {
-  animation.addOverlay(sk,time,owner.tickCount(),wlkMode,currentInteract,owner);
+  if(time!=0)
+    time+=owner.tickCount();
+  visual.addOverlay(sk,time);
   }
 
 void Npc::delOverlay(const char *sk) {
-  animation.delOverlay(sk);
+  visual.delOverlay(sk);
   }
 
 void Npc::delOverlay(const Skeleton *sk) {
-  animation.delOverlay(sk);
+  visual.delOverlay(sk);
   }
 
 ZMath::float3 Npc::animMoveSpeed(uint64_t dt) const {
-  return animation.pose().animMoveSpeed(owner.tickCount(),dt);
+  return visual.pose().animMoveSpeed(owner.tickCount(),dt);
   }
 
 void Npc::setVisual(const Skeleton* v) {
-  animation.setVisual(v,owner.tickCount(),invent.weaponState(),wlkMode,currentInteract,owner);
+  visual.setVisual(v);
   }
 
 static std::string addExt(const std::string& s,const char* ext){
@@ -563,7 +559,7 @@ void Npc::setVisualBody(int32_t headTexNr, int32_t teethTexNr, int32_t bodyTexNr
 
   auto  vhead = head.empty() ? MeshObjects::Mesh() : w.getView(addExt(head,".MMB"),vHead,vTeeth,bdColor);
   auto  vbody = body.empty() ? MeshObjects::Mesh() : w.getView(addExt(body,".MDM"),vColor,0,bdColor);
-  animation.setVisualBody(std::move(vhead),std::move(vbody));
+  visual.setVisualBody(std::move(vhead),std::move(vbody));
   updateArmour();
 
   durtyTranform|=TR_Pos; // update obj matrix
@@ -575,37 +571,37 @@ void Npc::updateArmour() {
 
   if(ar==nullptr) {
     auto  vbody = body.empty() ? MeshObjects::Mesh() : w.getView(addExt(body,".MDM"),vColor,0,bdColor);
-    animation.visual.setArmour(std::move(vbody));
+    visual.setArmour(std::move(vbody));
     } else {
     auto& itData = *ar->handle();
     auto  flag   = Inventory::Flags(itData.mainflag);
     if(flag & Inventory::ITM_CAT_ARMOR){
-      auto visual = itData.visual_change;
-      if(visual.rfind(".asc")==visual.size()-4)
-        std::memcpy(&visual[visual.size()-3],"MDM",3);
-      auto vbody  = visual.empty() ? MeshObjects::Mesh() : w.getView(visual,vColor,0,bdColor);
-      animation.visual.setArmour(std::move(vbody));
+      auto asc = itData.visual_change;
+      if(asc.rfind(".asc")==asc.size()-4)
+        std::memcpy(&asc[asc.size()-3],"MDM",3);
+      auto vbody  = asc.empty() ? MeshObjects::Mesh() : w.getView(asc,vColor,0,bdColor);
+      visual.setArmour(std::move(vbody));
       }
     }
   }
 
 void Npc::setSword(MeshObjects::Mesh &&s) {
-  animation.visual.setSword(std::move(s));
+  visual.setSword(std::move(s));
   updateWeaponSkeleton();
   }
 
 void Npc::setRangeWeapon(MeshObjects::Mesh &&b) {
-  animation.visual.setRangeWeapon(std::move(b));
+  visual.setRangeWeapon(std::move(b));
   updateWeaponSkeleton();
   }
 
 void Npc::setMagicWeapon(PfxObjects::Emitter &&s) {
-  animation.visual.setMagicWeapon(std::move(s));
+  visual.setMagicWeapon(std::move(s));
   updateWeaponSkeleton();
   }
 
 void Npc::updateWeaponSkeleton() {
-  animation.visual.updateWeaponSkeleton(invent.currentMeleWeapon(),invent.currentRangeWeapon());
+  visual.updateWeaponSkeleton(invent.currentMeleWeapon(),invent.currentRangeWeapon());
   }
 
 void Npc::setPhysic(DynamicWorld::Item &&item) {
@@ -631,20 +627,19 @@ bool Npc::setAnim(Npc::Anim a) {
   }
 
 void Npc::stopAnim(const std::string &ani) {
-  if(animation.stopAnim(ani))
-    setAnim(animation.lastIdle);
+  visual.stopAnim(ani.c_str());
   }
 
 bool Npc::isInAnim(Npc::Anim a) const {
-  return animation.current==a;
+  return visual.isInAnim(a);
   }
 
 bool Npc::isStanding() const {
-  return animation.current<Anim::IdleLast;
+  return visual.isStanding();
   }
 
 bool Npc::isFlyAnim() const {
-  return animation.isFlyAnim(owner.tickCount());
+  return visual.pose().isFlyAnim();
   }
 
 bool Npc::isFaling() const {
@@ -879,7 +874,7 @@ bool Npc::implLookAt(float dx, float dz, int noAniAngle, uint64_t dt) {
 
   if(std::abs(int(da)%180)<=step && std::cos(double(da)*M_PI/180.0)>0){
     setDirection(a);
-    // TODO
+    // TODO: stop rotation animation
     /*
     if(animation.current==AnimationSolver::RotL || animation.current==AnimationSolver::RotR) {
       if(currentGoTo==nullptr && animation.animSq!=nullptr && !animation.animSq.isFinished(owner.tickCount()-animation.sAnim)){
@@ -893,23 +888,11 @@ bool Npc::implLookAt(float dx, float dz, int noAniAngle, uint64_t dt) {
     return false;
     }
 
-  bool anim = std::abs(int(da)%180)>noAniAngle;
+  //bool anim = std::abs(int(da)%180)>noAniAngle;
   const auto sgn = std::sin(double(da)*M_PI/180.0);
-  if(animation.current==Anim::MoveR || animation.current==Anim::MoveL)
-    anim=false;
-  if(anim) {
-    if(sgn<0) {
-      if(setAnim(Anim::RotR))
-        setDirection(angle-step);
-      } else {
-      if(setAnim(Anim::RotL))
-        setDirection(angle+step);
-      }
-    } else {
-    if(sgn<0)
-      setDirection(angle-step); else
-      setDirection(angle+step);
-    }
+  if(sgn<0)
+    setDirection(angle-step); else
+    setDirection(angle+step);
   return true;
   }
 
@@ -976,7 +959,7 @@ bool Npc::implAtack(uint64_t dt) {
   if(weaponState()==WeaponState::NoWeapon)
     return false;
 
-  if((isInAnim(Anim::Atack) || isInAnim(Anim::AtackBlock)) && !animation.pose().isAtackFinished(owner.tickCount()))
+  if((isInAnim(Anim::Atack) || isInAnim(Anim::AtackBlock)) && !visual.pose().isAtackFinished(owner.tickCount()))
     return true;
 
   if(faiWaitTime>=owner.tickCount()) {
@@ -1033,7 +1016,7 @@ bool Npc::implAtack(uint64_t dt) {
 
   if(act==FightAlgo::MV_STRAFEL) {
     if(setAnim(Npc::Anim::MoveL)){
-      implFaiWait(animation.animationTotalTime());
+      implFaiWait(visual.pose().animationTotalTime());
       fghAlgo.consumeAction();
       }
     return true;
@@ -1041,7 +1024,7 @@ bool Npc::implAtack(uint64_t dt) {
 
   if(act==FightAlgo::MV_STRAFER) {
     if(setAnim(Npc::Anim::MoveR)){
-      implFaiWait(animation.animationTotalTime());
+      implFaiWait(visual.pose().animationTotalTime());
       fghAlgo.consumeAction();
       }
     return true;
@@ -1137,7 +1120,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
   setOther(&other);
   owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
 
-  bool isBlock = animation.pose().isParWindow(owner.tickCount());
+  bool isBlock = visual.pose().isParWindow(owner.tickCount());
   if((!isInAnim(Anim::MoveBack) && !isInAnim(Anim::AtackBlock) && !isBlock) || b!=nullptr) {
     perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
     owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
@@ -1274,14 +1257,14 @@ Npc *Npc::updateNearestEnemy() {
   }
 
 void Npc::tick(uint64_t dt) {
-  owner.tickSlot(animation.soundSlot);
+  owner.tickSlot(soundSlot);
 
   Animation::EvCount ev;
-  animation.pose().processEvents(fghLastEventTime,owner.tickCount(),ev);
+  visual.pose().processEvents(fghLastEventTime,owner.tickCount(),ev);
 
   if(ev.def_opt_frame>0)
     commitDamage();
-  if(animation.visual.setFightMode(ev.weaponCh))
+  if(visual.setFightMode(ev.weaponCh))
     updateWeaponSkeleton();
 
   if(!checkHealth(false,true)){
@@ -1312,7 +1295,9 @@ void Npc::tick(uint64_t dt) {
   mvAlgo.tick(dt);
 
   if(interactive()!=nullptr)
-    setAnim(AnimationSolver::Interact); else
+    setAnim(AnimationSolver::Interact);
+  /*
+  else
   if(currentGoTo==nullptr && currentGoToNpc==nullptr &&
      aiPolicy!=ProcessPolicy::Player &&
      !isInAnim(Anim::Pray) && !isInAnim(Anim::PrayRand) && !isInAnim(Anim::Talk) && !isInAnim(Anim::Sleep)) {
@@ -1321,7 +1306,7 @@ void Npc::tick(uint64_t dt) {
     if(animation.current>Anim::IdleLoopLast)
       setAnim(Anim::Idle); else
       setAnim(animation.current);
-    }
+    }*/
   implAiTick(dt);
   }
 
@@ -1397,7 +1382,7 @@ void Npc::nextAiAction(uint64_t dt) {
       if(!setAnim(tag)) {
         aiActions.push_front(std::move(act));
         } else {
-        implAiWait(animation.animationTotalTime());
+        implAiWait(visual.pose().animationTotalTime());
         }
       break;
       }
@@ -1406,8 +1391,8 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
     case AI_StandUp:
       setInteraction(nullptr);
-      if(animation.current==Anim::Sit)
-        setAnim(Anim::Idle);
+      //if(animation.current==Anim::Sit)
+      //  setAnim(Anim::Idle);
       break;
     case AI_StandUpQuick:
       setInteraction(nullptr);
@@ -1706,8 +1691,8 @@ bool Npc::doAttack(Anim anim) {
   if(weaponSt==WeaponState::Mage && weapon!=nullptr)
     anim=Anim(owner.script().spellCastAnim(*this,*weapon));
 
-  if(animation.current==anim)
-    return false;
+  //if(animation.current==anim)
+  //  return false;
   return setAnim(anim,weaponSt);
   }
 
@@ -1718,14 +1703,14 @@ void Npc::emitDlgSound(const char *sound) {
   }
 
 void Npc::emitSoundEffect(const char *sound, float range, bool freeSlot) {
-  owner.emitSoundEffect(sound,x,y+translateY(),z,range,freeSlot ? nullptr : &animation.soundSlot);
+  owner.emitSoundEffect(sound,x,y+translateY(),z,range,freeSlot ? nullptr : &soundSlot);
   }
 
 void Npc::emitSoundGround(const char* sound, float range, bool freeSlot) {
   char    buf[256]={};
   uint8_t mat = mvAlgo.groundMaterial();
   std::snprintf(buf,sizeof(buf),"%s_%s",sound,ZenLoad::zCMaterial::getMatGroupString(ZenLoad::MaterialGroup(mat)));
-  owner.emitSoundEffect(buf,x,y,z,range,freeSlot ? nullptr : &animation.soundSlot);
+  owner.emitSoundEffect(buf,x,y,z,range,freeSlot ? nullptr : &soundSlot);
   }
 
 const Npc::Routine& Npc::currentRoutine() const {
@@ -1802,9 +1787,8 @@ void Npc::setToFightMode(const uint32_t item) {
     return;
 
   weaponSt=invent.weaponState();
-  if(animation.visual.setToFightMode(weaponSt))
+  if(visual.setToFightMode(weaponSt))
     updateWeaponSkeleton();
-  animation.resetAni();
 
   auto& weapon = *currentMeleWeapon();
   auto  st     = weapon.is2H() ? WeaponState::W2H : WeaponState::W1H;
@@ -1816,9 +1800,8 @@ void Npc::setToFistMode() {
   if(weaponSt==WeaponState::Fist)
     return;
   invent.switchActiveWeaponFist();
-  if(animation.visual.setToFightMode(WeaponState::Fist))
+  if(visual.setToFightMode(WeaponState::Fist))
     updateWeaponSkeleton();
-  animation.resetAni();
   hnpc.weapon  = 1;
   }
 
@@ -1881,6 +1864,8 @@ bool Npc::lookAt(float dx, float dz, bool anim, uint64_t dt) {
   }
 
 bool Npc::playAnimByName(const std::string &name) {
+  Log::d("AI_PlayAnim: unrecognized anim: \"",name,"\"");
+  /*
   auto a = animation.solveAnim(name.c_str());
   if(a!=nullptr) {
     Log::d("Npc::playAnimByName: todo \"",name,"\"");
@@ -1888,7 +1873,7 @@ bool Npc::playAnimByName(const std::string &name) {
     //  animation.invalidateAnim(a,animation.visual.skeleton,owner.tickCount());
     } else {
     Log::d("AI_PlayAnim: unrecognized anim: \"",name,"\"");
-    }
+    }*/
   return true;
   }
 
@@ -1920,7 +1905,7 @@ bool Npc::closeWeapon(bool noAnim) {
   auto weaponSt=invent.weaponState();
   if(weaponSt==WeaponState::NoWeapon)
     return true;
-  if(!noAnim && !setAnim(animation.current,WeaponState::NoWeapon))
+  if(!noAnim && !visual.setAnim(*this,WeaponState::NoWeapon))
     return false;
   invent.switchActiveWeapon(*this,Item::NSLOT);
   hnpc.weapon = 0;
@@ -1945,8 +1930,7 @@ bool Npc::drawWeaponFist() {
     closeWeapon(false);
     return false;
     }
-  Anim ani = animation.current<=Anim::IdleLast ? Anim::Idle : Anim::Move;
-  if(!setAnim(ani,WeaponState::Fist))
+  if(!visual.setAnim(*this,WeaponState::Fist))
     return false;
   invent.switchActiveWeaponFist();
   updateWeaponSkeleton();
@@ -1967,8 +1951,7 @@ bool Npc::drawWeaponMele() {
 
   auto& weapon = *invent.currentMeleWeapon();
   auto  st     = weapon.is2H() ? WeaponState::W2H : WeaponState::W1H;
-  Anim  ani    = isStanding()  ? Anim::Idle       : Anim::Move;
-  if(!setAnim(ani,st))
+  if(!visual.setAnim(*this,st))
     return false;
 
   invent.switchActiveWeapon(*this,1);
@@ -1993,8 +1976,7 @@ bool Npc::drawWeaponBow() {
 
   auto& weapon = *invent.currentRangeWeapon();
   auto  st     = weapon.isCrossbow() ? WeaponState::CBow : WeaponState::Bow;
-  Anim  ani    = animation.current==isStanding() ? Anim::Idle : Anim::Move;
-  if(!setAnim(ani,st))
+  if(!visual.setAnim(*this,st))
     return false;
   invent.switchActiveWeapon(*this,2);
   hnpc.weapon = (st==WeaponState::W1H ? 5:6);
@@ -2020,8 +2002,7 @@ bool Npc::drawSpell(int32_t spell) {
     closeWeapon(false);
     return false;
     }
-  Anim ani = animation.current==isStanding() ? Anim::Idle : Anim::Move;
-  if(!setAnim(ani,weaponSt))
+  if(!visual.setAnim(*this,WeaponState::Mage))
     return false;
 
   invent.switchActiveSpell(spell,*this);
@@ -2095,9 +2076,12 @@ void Npc::blockSword() {
 
 bool Npc::castSpell() {
   auto active=invent.activeWeapon();
+  /*
   if(active==nullptr ||
      (Anim::MagFirst<=animation.current && animation.current<=Anim::MagLast) ||
      (Anim::MagFirst<=animation.prevAni && animation.prevAni<=Anim::MagLast) || !isStanding())
+    return false;*/
+  if(active==nullptr)
     return false;
 
   const int32_t   splId = active->spellId();
@@ -2311,6 +2295,7 @@ uint64_t Npc::percNextTime() const {
 bool Npc::setInteraction(Interactive *id) {
   if(currentInteract==id)
     return false;
+  setAnim(Npc::Anim::InteractOut);
   if(currentInteract)
     currentInteract->dettach(*this);
   currentInteract=nullptr;
@@ -2502,7 +2487,7 @@ void Npc::aiStartState(uint32_t stateFn, int behavior, Npc* other, std::string w
   }
 
 void Npc::aiPlayAnim(const std::string& ani) {
-  auto tag = animation.animByName(ani);
+  auto tag = visual.animByName(ani);
   if(tag!=Anim::NoAnim) {
     // fast-path, if we know this anim
     AiAction a;
@@ -2793,23 +2778,15 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos) const {
 
 void Npc::updatePos() {
   if(durtyTranform==TR_Pos){
-    Matrix4x4& mt=animation.visual.pos;
-    mt.set(3,0,x);
-    mt.set(3,1,y);
-    mt.set(3,2,z);
-    setPos(mt);
+    visual.setPos(x,y,z);
     } else {
     Matrix4x4 mt;
     mt.identity();
     mt.translate(x,y,z);
     mt.rotateOY(180-angle);
     mt.scale(sz[0],sz[1],sz[2]);
-    setPos(mt);
+    visual.setPos(mt);
     }
-  }
-
-void Npc::setPos(const Matrix4x4 &m) {
-  animation.setPos(m);
   }
 
 bool Npc::setAnim(Npc::Anim a, WeaponState st) {
@@ -2818,6 +2795,6 @@ bool Npc::setAnim(Npc::Anim a, WeaponState st) {
     w = WalkBit::WM_Swim;
   else if(mvAlgo.isInWater())
     w = WalkBit::WM_Water;
-  return animation.setAnim(a,owner.tickCount(),fghLastEventTime,st,w,currentInteract,owner);
+  return visual.setAnim(*this,a,st);
   }
 

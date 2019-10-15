@@ -4,50 +4,82 @@
 #include "game/serialize.h"
 #include "world/npc.h"
 #include "world/item.h"
+#include "world/world.h"
 
 using namespace Tempest;
 
-MdlVisual::MdlVisual() {
+MdlVisual::MdlVisual()
+  :skInst(std::make_unique<Pose>()) {
   }
 
 void MdlVisual::save(Serialize &fout) {
+  fout.write(fightMode);
   if(skeleton!=nullptr)
     fout.write(skeleton->name()); else
     fout.write(std::string(""));
+  solver.save(fout);
+  skInst->save(fout);
   }
 
 void MdlVisual::load(Serialize &fin,Npc& npc) {
   std::string s;
 
+  fin.read(fightMode);
   fin.read(s);
   npc.setVisual(s.c_str());
+  solver.load(fin);
+  skInst->load(fin,solver);
+  }
+
+void MdlVisual::setPos(float x, float y, float z) {
+  pos.set(3,0,x);
+  pos.set(3,1,y);
+  pos.set(3,2,z);
+  setPos(pos);
   }
 
 void MdlVisual::setPos(const Tempest::Matrix4x4 &m) {
   // TODO: deferred setObjMatrix
   pos = m;
-  head  .setObjMatrix(pos);
-  sword .setObjMatrix(pos);
-  bow   .setObjMatrix(pos);
-  pfx   .setObjMatrix(pos);
-  view  .setObjMatrix(pos);
+  head .setObjMatrix(pos);
+  sword.setObjMatrix(pos);
+  bow  .setObjMatrix(pos);
+  pfx  .setObjMatrix(pos);
+  view .setObjMatrix(pos);
   }
 
 // mdl_setvisual
 void MdlVisual::setVisual(const Skeleton *v) {
   skeleton = v;
+  solver.setSkeleton(skeleton);
+  skInst->setSkeleton(v);
   head  .setAttachPoint(skeleton);
   view  .setAttachPoint(skeleton);
   setPos(pos); // update obj matrix
   }
 
-// mdl_setvisualbody
+// Mdl_SetVisualBody
 void MdlVisual::setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body) {
   head    = std::move(h);
   view    = std::move(body);
 
   head.setAttachPoint(skeleton,"BIP01 HEAD");
   view.setAttachPoint(skeleton);
+  }
+
+// Mdl_ApplyOverlayMdsTimed, Mdl_ApplyOverlayMds
+void MdlVisual::addOverlay(const Skeleton *sk, uint64_t time) {
+  solver.addOverlay(sk,time);
+  }
+
+// Mdl_RemoveOverlayMDS
+void MdlVisual::delOverlay(const char *sk) {
+  solver.delOverlay(sk);
+  }
+
+// Mdl_RemoveOverlayMDS
+void MdlVisual::delOverlay(const Skeleton *sk) {
+  solver.delOverlay(sk);
   }
 
 void MdlVisual::setArmour(MeshObjects::Mesh &&a) {
@@ -132,10 +164,66 @@ void MdlVisual::updateWeaponSkeleton(const Item* weapon,const Item* range) {
   pfx.setActive(st==WeaponState::Mage);
   }
 
-void MdlVisual::updateAnimation(Pose& pose) {
+void MdlVisual::updateAnimation(Npc& npc) {
+  Pose&    pose      = *skInst;
+  uint64_t tickCount = npc.world().tickCount();
+
+  if(npc.world().isInListenerRange(npc.position()))
+    pose.emitSfx(npc,tickCount);
+
+  solver.update(tickCount);
+  pose.update(tickCount);
+
   head .setSkeleton(pose,pos);
   sword.setSkeleton(pose,pos);
   bow  .setSkeleton(pose,pos);
   pfx  .setSkeleton(pose,pos);
   view .setSkeleton(pose,pos);
+  }
+
+void MdlVisual::stopAnim(const char* ani) {
+  skInst->stopAnim(ani);
+  }
+
+bool MdlVisual::isInAnim(AnimationSolver::Anim a) const {
+  return false; //TODO
+  }
+
+bool MdlVisual::isStanding() const {
+  return false; //TODO
+  }
+
+bool MdlVisual::setAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st) {
+  if(auto inter = npc.interactive()) {
+    const Animation::Sequence *sq = solver.solveAnim(inter,a,*skInst);
+    if(sq!=nullptr){
+      if(skInst->startAnim(solver,sq,npc.world().tickCount())) {
+        if(a==AnimationSolver::Anim::Interact)
+          inter->nextState(); else
+          inter->prevState();
+        return true;
+        }
+      return false;
+      }
+    }
+
+  const Animation::Sequence *sq = solver.solveAnim(a,st,npc.walkMode(),*skInst);
+  if(skInst->startAnim(solver,sq,npc.world().tickCount())) {
+    return true;
+    }
+  return false;
+  }
+
+bool MdlVisual::setAnim(Npc &npc, WeaponState st) {
+  const Animation::Sequence *sq = solver.solveAnim(st,fightMode,*skInst);
+  if(sq==nullptr)
+    return true;
+  if(skInst->startAnim(solver,sq,npc.world().tickCount())) {
+    return true;
+    }
+  return false;
+  }
+
+AnimationSolver::Anim MdlVisual::animByName(const std::string &name) const {
+  return solver.animByName(name);
   }

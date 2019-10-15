@@ -9,7 +9,6 @@
 #include "meshobjects.h"
 #include "pfxobjects.h"
 #include "animation.h"
-#include "mdlvisual.h"
 
 class Skeleton;
 class Overlay;
@@ -125,6 +124,7 @@ class AnimationSolver final {
       SlideB,
       Training,
       Interact,
+      InteractOut,
 
       Atack,
       AtackL,
@@ -162,51 +162,31 @@ class AnimationSolver final {
       };
 
     void                           save(Serialize& fout);
-    void                           load(Serialize& fin, Npc &owner);
+    void                           load(Serialize& fin);
 
-    void                           setPos   (const Tempest::Matrix4x4 &m);
-    void                           setVisual(const Skeleton *visual, uint64_t tickCount, WeaponState ws, WalkBit walk, Interactive* inter, World &owner);
-    void                           setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body);
-    ZMath::float3                  animMoveSpeed(Anim a, uint64_t tickCount, uint64_t dt, WeaponState weaponSt) const;
+    void                           setSkeleton(const Skeleton* sk);
+    void                           update(uint64_t tickCount);
 
-    void                           emitSfx(Npc &npc, uint64_t tickCount);
-    void                           updateAnimation(uint64_t tickCount);
-    bool                           stopAnim(const std::string& ani);
-    void                           resetAni();
-
-    void                           addOverlay(const Skeleton *sk, uint64_t time, uint64_t tickCount, WalkBit wlk, Interactive *inter, World &owner);
+    void                           addOverlay(const Skeleton *sk, uint64_t time);
     void                           delOverlay(const char *sk);
     void                           delOverlay(const Skeleton *sk);
 
-    bool                           setAnim(Anim a, uint64_t tickCount, uint64_t fghLastEventTime,
-                                           WeaponState weaponSt,
-                                           WalkBit walk, Interactive *inter, World &owner);
-
-    bool                           isFlyAnim(uint64_t tickCount) const;
-    uint64_t                       animationTotalTime() const;
-
     AnimationSolver::Anim          animByName  (const std::string &name) const;
-    const Animation::Sequence*     solveAnim(const char *format) const;
-
-    const Pose&                    pose() const;
-
-    MdlVisual                      visual;
-    Anim                           current    = NoAnim;
-    WeaponState                    currentW   = WeaponState::NoWeapon;
-    WalkBit                        currentWlk = WalkBit::WM_Walk;
-    Anim                           prevAni    = NoAnim;
-    Anim                           lastIdle   = Idle;
-
-    GSoundEffect                   soundSlot;
+    const Animation::Sequence*     solveFrm    (const char *format) const;
+    const Animation::Sequence*     solveAnim(Anim a, WeaponState st, WalkBit wlk, const Pose &pose) const;
+    const Animation::Sequence*     solveAnim(WeaponState st, WeaponState cur, const Pose &pose) const;
+    const Animation::Sequence*     solveAnim(Interactive *inter, Anim a, const Pose &pose) const;
 
   private:
-    const Animation::Sequence*     startAnim(Anim a, WeaponState st0, Anim cur, WeaponState st, WalkBit wlk, Interactive *inter) const;
-    const Animation::Sequence*     solveAnim(const char *format, WeaponState st) const;
+    const Animation::Sequence*     solveFrm    (const char *format, WeaponState st) const;
 
     const Animation::Sequence*     solveMag    (const char *format,Anim spell) const;
     const Animation::Sequence*     solveDead   (const char *format1,const char *format2) const;
     const Animation::Sequence*     solveItemUse(const char *format,const char* scheme) const;
 
-    std::unique_ptr<Pose>          skInst;
+    const Skeleton*                baseSk=nullptr;
     std::vector<Overlay>           overlay;
+
+    WeaponState                    currentW   = WeaponState::NoWeapon;
+    WalkBit                        currentWlk = WalkBit::WM_Walk;
   };

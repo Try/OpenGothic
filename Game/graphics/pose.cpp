@@ -119,7 +119,7 @@ void Pose::load(Serialize &fin,const AnimationSolver& solver) {
   lay.resize(sz);
   for(auto& i:lay) {
     fin.read(name,i.frame,i.sAnim);
-    i.seq = solver.solveAnim(name.c_str());
+    i.seq = solver.solveFrm(name.c_str());
     }
   removeIf(lay,[](const Layer& l){
     return l.seq==nullptr;
@@ -157,7 +157,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       if(i.seq->shortName.size()>0 && sq->shortName.size()>0) {
         char tansition[256]={};
         std::snprintf(tansition,sizeof(tansition),"T_%s_2_%s",i.seq->shortName.c_str(),sq->shortName.c_str());
-        tr = solver.solveAnim(tansition);
+        tr = solver.solveFrm(tansition);
         }
       i.seq   = tr ? tr : sq;
       i.sAnim = tickCount;
@@ -298,6 +298,7 @@ void Pose::emitSfx(Npc &npc, uint64_t tickCount) {
 void Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev) const {
   for(auto& i:lay)
     i.seq->processEvents(barrier,i.sAnim,now,ev);
+  barrier=now;
   }
 
 ZMath::float3 Pose::animMoveSpeed(uint64_t tickCount,uint64_t dt) const {
@@ -330,6 +331,13 @@ bool Pose::isFlyAnim() const {
 bool Pose::isInAnim(const char* sq) const {
   for(auto& i:lay)
     if(i.seq->name==sq)
+      return true;
+  return false;
+  }
+
+bool Pose::isInAnim(const Animation::Sequence *sq) const {
+  for(auto& i:lay)
+    if(i.seq==sq)
       return true;
   return false;
   }
