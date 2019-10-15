@@ -328,6 +328,13 @@ bool Pose::isFlyAnim() const {
   return false;
   }
 
+bool Pose::isIdle() const {
+  for(auto& i:lay)
+    if(!i.seq->isIdle())
+      return false;
+  return true;
+  }
+
 bool Pose::isInAnim(const char* sq) const {
   for(auto& i:lay)
     if(i.seq->name==sq)

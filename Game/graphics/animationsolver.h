@@ -186,7 +186,4 @@ class AnimationSolver final {
 
     const Skeleton*                baseSk=nullptr;
     std::vector<Overlay>           overlay;
-
-    WeaponState                    currentW   = WeaponState::NoWeapon;
-    WalkBit                        currentWlk = WalkBit::WM_Walk;
   };

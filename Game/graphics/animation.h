@@ -58,8 +58,9 @@ class Animation final {
       Sequence(const std::string& name);
 
       bool                                   isRotate() const { return bool(flags&Flags::Rotate); }
-      bool                                   isMove()   const { return bool(flags&Flags::Move); }
-      bool                                   isFly()    const { return bool(flags&Flags::Fly);  }
+      bool                                   isMove()   const { return bool(flags&Flags::Move);   }
+      bool                                   isFly()    const { return bool(flags&Flags::Fly);    }
+      bool                                   isIdle()   const { return bool(flags&Flags::Idle);   }
       bool                                   isFinished(uint64_t t) const;
       bool                                   canInterrupt() const;
       bool                                   isAtackFinished(uint64_t t) const;

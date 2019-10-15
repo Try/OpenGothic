@@ -626,6 +626,10 @@ bool Npc::setAnim(Npc::Anim a) {
   return setAnim(a,weaponSt);
   }
 
+void Npc::setAnimRotate(int rot) {
+  visual.setRotation(*this,rot);
+  }
+
 void Npc::stopAnim(const std::string &ani) {
   visual.stopAnim(ani.c_str());
   }
@@ -874,21 +878,13 @@ bool Npc::implLookAt(float dx, float dz, int noAniAngle, uint64_t dt) {
 
   if(std::abs(int(da)%180)<=step && std::cos(double(da)*M_PI/180.0)>0){
     setDirection(a);
-    // TODO: stop rotation animation
-    /*
-    if(animation.current==AnimationSolver::RotL || animation.current==AnimationSolver::RotR) {
-      if(currentGoTo==nullptr && animation.animSq!=nullptr && !animation.animSq.isFinished(owner.tickCount()-animation.sAnim)){
-        // finish animation
-        return setAnim(animation.lastIdle);
-        }
-      if(currentGoTo==nullptr)
-        setAnim(animation.lastIdle);
-      return false;
-      }*/
+    visual.setRotation(*this,0);
     return false;
     }
 
-  //bool anim = std::abs(int(da)%180)>noAniAngle;
+  if(std::abs(int(da)%180)>noAniAngle)
+    visual.setRotation(*this,int(da));
+
   const auto sgn = std::sin(double(da)*M_PI/180.0);
   if(sgn<0)
     setDirection(angle-step); else
@@ -2790,11 +2786,6 @@ void Npc::updatePos() {
   }
 
 bool Npc::setAnim(Npc::Anim a, WeaponState st) {
-  auto w = wlkMode;
-  if(mvAlgo.isSwim())
-    w = WalkBit::WM_Swim;
-  else if(mvAlgo.isInWater())
-    w = WalkBit::WM_Water;
   return visual.setAnim(*this,a,st);
   }
 

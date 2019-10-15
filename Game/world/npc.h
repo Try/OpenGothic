@@ -262,6 +262,7 @@ class Npc final {
     void setFatness    (float f);
     void setScale      (float x,float y,float z);
     bool setAnim(Anim a);
+    void setAnimRotate(int rot);
     void stopAnim(const std::string& ani);
     bool isInAnim(Anim a) const;
     bool isStanding() const;

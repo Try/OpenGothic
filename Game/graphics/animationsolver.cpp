@@ -209,28 +209,51 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     return solveFrm("T_%sJUMPB",st);
     }
   // Rotation
-  /*
   if(a==RotL) {
     if(bool(wlkMode & WalkBit::WM_Swim))
-      return solveAnim("T_SWIMTURNL");
+      return solveFrm("T_SWIMTURNL");
     if(bool(wlkMode & WalkBit::WM_Walk))
-      return solveAnim("T_%sWALKTURNL",st);
+      return solveFrm("T_%sWALKTURNL",st);
     if(bool(wlkMode & WalkBit::WM_Water))
-      return solveAnim("T_%sWALKWTURNL",st);
-    return solveAnim("T_%sRUNTURNL",st);
+      return solveFrm("T_%sWALKWTURNL",st);
+    return solveFrm("T_%sRUNTURNL",st);
     }
   if(a==RotR) {
     if(bool(wlkMode & WalkBit::WM_Swim))
-      return solveAnim("T_SWIMTURNR");
+      return solveFrm("T_SWIMTURNR");
     if(bool(wlkMode & WalkBit::WM_Walk))
-      return solveAnim("T_%sWALKTURNR",st);
+      return solveFrm("T_%sWALKTURNR",st);
     if(bool(wlkMode & WalkBit::WM_Water))
-      return solveAnim("T_%sWALKWTURNR",st);
-    return solveAnim("T_%sRUNTURNR",st);
-    }*/
-  // Jump
-  if(a==Jump)
+      return solveFrm("T_%sWALKWTURNR",st);
+    return solveFrm("T_%sRUNTURNR",st);
+    }
+  // Jump regular
+  /*
+  if(cur==Anim::Move && a==Jump)
+    return animSequence("T_RUNL_2_JUMP");
+  if(cur==Anim::Idle && a==Anim::Jump)
+    return animSequence("T_STAND_2_JUMP");
+  if(cur==Anim::Jump && a==Anim::Idle)
+    return animSequence("T_JUMP_2_STAND");
+  if(a==Anim::Jump)
+    return animSequence("S_JUMP");
+  if(cur==Anim::Fall && a==Move)
+    return animSequence("T_RUN_2_RUNL");
+    */
+  if(a==Jump) {
+    if(pose.isIdle())
+      return solveFrm("T_STAND_2_JUMP");
     return solveFrm("S_JUMP");
+    /*
+    if(!pose.isInAnim("S_JUMP")) {
+      if(pose.isIdle())
+        return solveFrm("T_STAND_2_JUMP"); else
+        return solveFrm("T_RUNL_2_JUMP");
+      }
+    return solveFrm("S_JUMP");*/
+    }
+  if(a==Anim::Fall)
+    return solveFrm("S_FALLDN");
   return nullptr;
 
   /*

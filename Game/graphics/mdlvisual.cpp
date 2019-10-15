@@ -190,7 +190,7 @@ bool MdlVisual::isInAnim(AnimationSolver::Anim a) const {
   }
 
 bool MdlVisual::isStanding() const {
-  return false; //TODO
+  return skInst->isIdle();
   }
 
 bool MdlVisual::setAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st) {
@@ -222,6 +222,30 @@ bool MdlVisual::setAnim(Npc &npc, WeaponState st) {
     return true;
     }
   return false;
+  }
+
+void MdlVisual::setRotation(Npc &npc, int dir) {
+  const Animation::Sequence *sq = nullptr;
+  if(dir==0) {
+    if(rotation!=nullptr) {
+      if(skInst->stopAnim(rotation->name.c_str()))
+        rotation = nullptr;
+      }
+    return;
+    }
+  if(!skInst->isIdle())
+    return;
+  if(dir<0) {
+    sq = solver.solveAnim(AnimationSolver::Anim::RotL,fightMode,npc.walkMode(),*skInst);
+    } else {
+    sq = solver.solveAnim(AnimationSolver::Anim::RotR,fightMode,npc.walkMode(),*skInst);
+    }
+  if(sq==nullptr)
+    return;
+  if(skInst->startAnim(solver,sq,npc.world().tickCount())) {
+    rotation = sq;
+    return;
+    }
   }
 
 AnimationSolver::Anim MdlVisual::animByName(const std::string &name) const {

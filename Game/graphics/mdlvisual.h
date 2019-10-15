@@ -46,6 +46,7 @@ class MdlVisual final {
     bool                           isStanding() const;
     bool                           setAnim(Npc &npc, AnimationSolver::Anim a, WeaponState st);
     bool                           setAnim(Npc &npc, WeaponState st);
+    void                           setRotation(Npc &npc, int dir);
     AnimationSolver::Anim          animByName(const std::string& name) const;
 
     const Skeleton*                skeleton=nullptr;
@@ -58,6 +59,7 @@ class MdlVisual final {
     PfxObjects::Emitter            pfx;
 
     WeaponState                    fightMode=WeaponState::NoWeapon;
+    const Animation::Sequence*     rotation=nullptr;
     AnimationSolver                solver;
     std::unique_ptr<Pose>          skInst;
   };

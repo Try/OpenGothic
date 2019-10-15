@@ -273,25 +273,26 @@ void PlayerControl::implMove(uint64_t dt) {
     return;
     }
 
+  int rotation=0;
   if(pl.interactive()==nullptr) {
     if(ctrl[RotateL]) {
       rot += rspeed;
-      ani  = Npc::Anim::RotL;
+      rotation = -1;
       rotMouse=0;
       }
     if(ctrl[RotateR]) {
       rot -= rspeed;
-      ani  = Npc::Anim::RotR;
+      rotation = 1;
       rotMouse=0;
       }
 
     if(rotMouse>0) {
       if(rotMouseDir){
         rot += rspeed;
-        ani  = Npc::Anim::RotL;
+        rotation = -1;
         } else {
         rot -= rspeed;
-        ani  = Npc::Anim::RotR;
+        rotation = 1;
         }
       if(rotMouse<dt)
         rotMouse=0; else
@@ -432,6 +433,7 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   pl.setAnim(ani);
+  pl.setAnimRotate(ani==Npc::Anim::Idle ? rotation : 0);
   if(ctrl[ActionFocus] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.isInAnim(Npc::Anim::AtackFinish)) {
     if(auto other = pl.target()){
       if((pl.weaponState()==WeaponState::NoWeapon || other->isDown()) && pl.isInAnim(Npc::Anim::AtackFinish)){
