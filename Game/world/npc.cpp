@@ -1033,7 +1033,7 @@ bool Npc::implAtack(uint64_t dt) {
 
   if(act==FightAlgo::MV_STRAFEL) {
     if(setAnim(Npc::Anim::MoveL)){
-      implFaiWait(uint64_t(animation.animSq.totalTime()));
+      implFaiWait(animation.animationTotalTime());
       fghAlgo.consumeAction();
       }
     return true;
@@ -1041,7 +1041,7 @@ bool Npc::implAtack(uint64_t dt) {
 
   if(act==FightAlgo::MV_STRAFER) {
     if(setAnim(Npc::Anim::MoveR)){
-      implFaiWait(uint64_t(animation.animSq.totalTime()));
+      implFaiWait(animation.animationTotalTime());
       fghAlgo.consumeAction();
       }
     return true;
@@ -1397,8 +1397,7 @@ void Npc::nextAiAction(uint64_t dt) {
       if(!setAnim(tag)) {
         aiActions.push_front(std::move(act));
         } else {
-        if(animation.animSq)
-          implAiWait(uint64_t(animation.animSq.totalTime()));
+        implAiWait(animation.animationTotalTime());
         }
       break;
       }
@@ -1882,11 +1881,13 @@ bool Npc::lookAt(float dx, float dz, bool anim, uint64_t dt) {
   }
 
 bool Npc::playAnimByName(const std::string &name) {
-  auto a = animation.animSequence(name.c_str());
+  auto a = animation.solveAnim(name.c_str());
   if(a!=nullptr) {
+    Log::d("Npc::playAnimByName: todo \"",name,"\"");
+    //if(animation.animSq!=a)
+    //  animation.invalidateAnim(a,animation.visual.skeleton,owner.tickCount());
+    } else {
     Log::d("AI_PlayAnim: unrecognized anim: \"",name,"\"");
-    if(animation.animSq!=a)
-      animation.invalidateAnim(a,animation.visual.skeleton,owner.tickCount());
     }
   return true;
   }

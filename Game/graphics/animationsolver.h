@@ -161,40 +161,6 @@ class AnimationSolver final {
       uint64_t        time    =0;
       };
 
-    struct Sequence final {
-      Sequence()=default;
-      Sequence(const Animation::Sequence* s):Sequence(nullptr,s){}
-      Sequence(const Animation::Sequence* s,const Animation::Sequence* s1)
-        :cls(s1 ? s1->animCls : Animation::UnknownAnim),l0(s),l1(s1){}
-
-      Animation::AnimClass       cls=Animation::UnknownAnim;
-      const Animation::Sequence* l0=nullptr;
-      const Animation::Sequence* l1=nullptr;
-
-      const char* name() const { return l1->name.c_str(); }
-
-      bool  isFinished(uint64_t t) const { return l1->isFinished(t); }
-      bool  isAtackFinished(uint64_t t) const { return l1->isAtackFinished(t); }
-      bool  isParWindow(uint64_t t) const { return l1->isParWindow(t); }
-      void  processEvents(uint64_t& barrier,uint64_t sTime,uint64_t now, Animation::EvCount& ev) const {
-        if(l1)
-          l1->processEvents(barrier,sTime,now,ev);
-        if(l0)
-          l0->processEvents(barrier,sTime,now,ev);
-        barrier = now;
-        }
-      float totalTime() const { return l1->totalTime(); }
-      bool  isFly() const { return l1->isFly(); }
-
-      operator bool () const { return l1!=nullptr; }
-
-      bool operator == (std::nullptr_t) const { return l1==nullptr; }
-      bool operator != (std::nullptr_t) const { return l1!=nullptr; }
-
-      bool operator == (const Sequence& s) const { return l0==s.l0 && l1==s.l1; }
-      bool operator != (const Sequence& s) const { return l0!=s.l0 || l1!=s.l1; }
-      };
-
     void                           save(Serialize& fout);
     void                           load(Serialize& fin, Npc &owner);
 
@@ -217,17 +183,14 @@ class AnimationSolver final {
                                            WalkBit walk, Interactive *inter, World &owner);
 
     bool                           isFlyAnim(uint64_t tickCount) const;
-    void                           invalidateAnim(const Sequence ani, const Skeleton *sk, uint64_t tickCount);
+    uint64_t                       animationTotalTime() const;
 
     AnimationSolver::Anim          animByName  (const std::string &name) const;
-    const Animation::Sequence*     findSequence(const char* name) const;
-    Sequence                       animSequence(const char *name) const;
+    const Animation::Sequence*     solveAnim(const char *format) const;
 
     const Pose&                    pose() const;
 
     MdlVisual                      visual;
-    Sequence                       animSq;
-
     Anim                           current    = NoAnim;
     WeaponState                    currentW   = WeaponState::NoWeapon;
     WalkBit                        currentWlk = WalkBit::WM_Walk;
@@ -240,8 +203,8 @@ class AnimationSolver final {
     const Animation::Sequence*     startAnim(Anim a, WeaponState st0, Anim cur, WeaponState st, WalkBit wlk, Interactive *inter) const;
     const Animation::Sequence*     solveAnim(const char *format, WeaponState st) const;
 
-    Sequence                       solveMag    (const char *format,Anim spell) const;
-    Sequence                       solveDead   (const char *format1,const char *format2) const;
+    const Animation::Sequence*     solveMag    (const char *format,Anim spell) const;
+    const Animation::Sequence*     solveDead   (const char *format1,const char *format2) const;
     const Animation::Sequence*     solveItemUse(const char *format,const char* scheme) const;
 
     std::unique_ptr<Pose>          skInst;

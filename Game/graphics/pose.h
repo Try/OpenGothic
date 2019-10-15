@@ -20,7 +20,9 @@ class Pose final {
     void               save(Serialize& fout);
     void               load(Serialize& fin, const AnimationSolver &solver);
 
+    void               setSkeleton(const Skeleton *sk);
     bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq, uint64_t tickCount);
+    bool               stopAnim(const char* name);
     void               reset(const Skeleton& sk,uint64_t tickCount,const Animation::Sequence* sq0,const Animation::Sequence* sq1);
     void               update(uint64_t tickCount);
 
@@ -31,6 +33,7 @@ class Pose final {
     bool               isAtackFinished(uint64_t tickCount) const;
     bool               isFlyAnim() const;
     bool               isInAnim(const char *sq) const;
+    uint64_t           animationTotalTime() const;
 
     float              translateY() const { return trY; }
     Tempest::Matrix4x4 cameraBone() const;

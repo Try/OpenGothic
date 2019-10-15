@@ -97,16 +97,8 @@ static ZenLoad::zCModelAniSample mix(const ZenLoad::zCModelAniSample& x,const Ze
   return r;
   }
 
-Pose::Pose(const Skeleton &sk, const Animation::Sequence* sq0, const Animation::Sequence *sq1)
-  :skeleton(&sk) {
-  if(skeleton!=nullptr)
-    tr = skeleton->tr; else
-    tr.clear();
-  base = tr;
-  for(size_t i=0;i<base.size() && i<sk.nodes.size();++i)
-    base[i] = sk.nodes[i].tr;
-  trY = sk.rootTr[1];
-
+Pose::Pose(const Skeleton &sk, const Animation::Sequence* sq0, const Animation::Sequence *sq1) {
+  setSkeleton(&sk);
   addLayer(sq0,0);
   addLayer(sq1,0);
   }
@@ -127,11 +119,26 @@ void Pose::load(Serialize &fin,const AnimationSolver& solver) {
   lay.resize(sz);
   for(auto& i:lay) {
     fin.read(name,i.frame,i.sAnim);
-    i.seq = solver.findSequence(name.c_str());
+    i.seq = solver.solveAnim(name.c_str());
     }
   removeIf(lay,[](const Layer& l){
     return l.seq==nullptr;
     });
+  }
+
+void Pose::setSkeleton(const Skeleton* sk) {
+  if(skeleton==sk)
+    return;
+  skeleton = sk;
+  if(skeleton!=nullptr)
+    tr = skeleton->tr; else
+    tr.clear();
+  base = tr;
+  for(size_t i=0;i<base.size() && i<skeleton->nodes.size();++i)
+    base[i] = skeleton->nodes[i].tr;
+  trY = skeleton->rootTr[1];
+
+  lay.clear();
   }
 
 bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, uint64_t tickCount) {
@@ -150,7 +157,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       if(i.seq->shortName.size()>0 && sq->shortName.size()>0) {
         char tansition[256]={};
         std::snprintf(tansition,sizeof(tansition),"T_%s_2_%s",i.seq->shortName.c_str(),sq->shortName.c_str());
-        tr = solver.findSequence(tansition);
+        tr = solver.solveAnim(tansition);
         }
       i.seq   = tr ? tr : sq;
       i.sAnim = tickCount;
@@ -158,6 +165,24 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       }
   addLayer(sq,tickCount);
   return true;
+  }
+
+bool Pose::stopAnim(const char *name) {
+  bool done=false;
+  size_t ret=0;
+  for(size_t i=0;i<lay.size();++i) {
+    if(lay[i].seq->name!=name) {
+      if(ret!=i)
+        lay[ret] = lay[i];
+      ret++;
+      } else {
+      done=true;
+      }
+    }
+  // if(ret==0)
+  //   ret=1;
+  lay.resize(ret);
+  return done;
   }
 
 void Pose::reset(const Skeleton &sk, uint64_t tickCount, const Animation::Sequence *sq0, const Animation::Sequence *sq1) {
@@ -309,14 +334,23 @@ bool Pose::isInAnim(const char* sq) const {
   return false;
   }
 
+uint64_t Pose::animationTotalTime() const {
+  uint64_t ret=0;
+  for(auto& i:lay)
+    ret = std::max(ret,uint64_t(i.seq->totalTime()));
+  return ret;
+  }
+
 Matrix4x4 Pose::cameraBone() const {
   size_t id=4;
-  if(skeleton->rootNodes.size())
+  if(skeleton!=nullptr && skeleton->rootNodes.size())
     id = skeleton->rootNodes[0];
   return id<tr.size() ? tr[id] : Matrix4x4();
   }
 
 void Pose::zeroSkeleton() {
+  if(skeleton==nullptr)
+    return;
   auto& nodes=skeleton->tr;
   if(nodes.size()<tr.size())
     return;
@@ -342,6 +376,8 @@ void Pose::zeroSkeleton() {
   }
 
 void Pose::mkSkeleton(const Animation::Sequence &s) {
+  if(skeleton==nullptr)
+    return;
   Matrix4x4 m;
   m.identity();
   if(base.size()) {
@@ -363,8 +399,9 @@ void Pose::mkSkeleton(const Animation::Sequence &s) {
   }
 
 void Pose::mkSkeleton(const Matrix4x4 &mt) {
+  if(skeleton==nullptr)
+    return;
   auto& nodes=skeleton->nodes;
-
   for(size_t i=0;i<nodes.size();++i){
     if(nodes[i].parent!=size_t(-1))
       continue;
@@ -380,8 +417,9 @@ void Pose::mkSkeleton(const Matrix4x4 &mt) {
   }
 
 void Pose::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
+  if(skeleton==nullptr)
+    return;
   auto& nodes=skeleton->nodes;
-
   for(size_t i=0;i<nodes.size();++i){
     if(nodes[i].parent!=parent)
       continue;

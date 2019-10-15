@@ -76,7 +76,7 @@ class Animation final {
       std::string                            name, shortName;
       uint32_t                               layer  =0;
       Flags                                  flags  =Flags::None;
-      AnimClass                              animCls=UnknownAnim;
+      AnimClass                              animCls=Transition;
       bool                                   reverse=false;
       std::string                            nextStr;
 
