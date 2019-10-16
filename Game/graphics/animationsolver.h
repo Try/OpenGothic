@@ -180,6 +180,7 @@ class AnimationSolver final {
   private:
     const Animation::Sequence*     solveFrm    (const char *format, WeaponState st) const;
 
+    const Animation::Sequence*     solveAmbient(Anim playById) const;
     const Animation::Sequence*     solveMag    (const char *format,Anim spell) const;
     const Animation::Sequence*     solveDead   (const char *format1,const char *format2) const;
     const Animation::Sequence*     solveItemUse(const char *format,const char* scheme) const;

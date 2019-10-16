@@ -32,6 +32,7 @@ class Pose final {
     bool               isParWindow(uint64_t tickCount) const;
     bool               isAtackFinished(uint64_t tickCount) const;
     bool               isFlyAnim() const;
+    bool isStanding() const;
     bool               isIdle() const;
     bool               isInAnim(const char *sq) const;
     bool               isInAnim(const Animation::Sequence* sq) const;

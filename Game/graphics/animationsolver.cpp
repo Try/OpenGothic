@@ -268,436 +268,11 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     return solveFrm("S_WOUNDED");
   if(a==Anim::UnconsciousB)
     return solveFrm("S_WOUNDEDB");
-  if(a==Anim::Warn)
-    return solveFrm("T_WARN");
 
-  if(a==Anim::GuardL)
-    return solveFrm("S_LGUARD");
-  if(a==Anim::GuardH)
-    return solveFrm("S_HGUARD");
+  if(auto sq = solveAmbient(a))
+    return sq;
+
   return nullptr;
-
-  /*
-  if(st0==WeaponState::NoWeapon && st!=WeaponState::NoWeapon){
-    if(a==Anim::Move && cur==a)
-      return layredSequence("S_%sRUNL","T_MOVE_2_%sMOVE",st);
-    return solveAnim("T_%s_2_%sRUN",st);
-    }
-
-  if(st==WeaponState::NoWeapon && st0!=WeaponState::NoWeapon &&
-     a!=Anim::UnconsciousA && a!=Anim::UnconsciousB &&
-     a!=Anim::DeadA        && a!=Anim::DeadB){
-    if(a==Anim::Move && cur==a)
-      return layredSequence("S_%sRUNL","T_%sMOVE_2_MOVE",st0);
-    return solveAnim("T_%sRUN_2_%s",st0);
-    }
-
-  if((cur==Anim::UnconsciousA || cur==Anim::UnconsciousB) && a==Anim::DeadA)
-    return solveDead("T_WOUNDED_2_DEAD","T_WOUNDEDB_2_DEADB");
-  if(cur!=Anim::DeadA && a==Anim::DeadA)
-    return solveDead("T_DEAD","T_DEADB");
-  if(a==Anim::DeadA)
-    return solveDead("S_DEAD","S_DEADB");
-
-  if((cur==Anim::UnconsciousA || cur==Anim::UnconsciousB) && a==Anim::DeadB)
-    return solveDead("T_WOUNDEDB_2_DEADB","T_WOUNDED_2_DEAD");
-  if(cur!=Anim::DeadB && a==Anim::DeadB)
-    return solveDead("T_DEADB","T_DEAD");
-  if(a==Anim::DeadB)
-    return solveDead("S_DEADB","S_DEAD");
-
-  if(cur!=Anim::UnconsciousA && a==Anim::UnconsciousA)
-    return animSequence("T_STAND_2_WOUNDED");
-  if(cur==Anim::UnconsciousA && a==Anim::Idle)
-    return animSequence("T_WOUNDED_2_STAND");
-  if(a==Anim::UnconsciousA)
-    return animSequence("S_WOUNDED");
-
-  if(inter!=nullptr) {
-    if(cur!=Interact && a==Interact){
-      auto ret = inter->anim(*this,Interactive::In);
-      inter->nextState();
-      return ret;
-      }
-    if(cur==Interact && a==Interact){
-      auto ret = inter->anim(*this,Interactive::In);
-      inter->nextState();
-      return ret;
-      }
-    if(inter->stateId()==-1){
-      auto ret = inter->anim(*this,Interactive::Out);
-      return ret;
-      }
-    }
-
-  if(bool(wlkMode & WalkBit::WM_Swim)) {
-    if(a==Anim::Move)
-      return solveAnim("S_SWIMF",st);
-    if(a==Anim::MoveL)
-      return solveAnim("T_SWIMTURNL",st);
-    if(a==Anim::MoveR)
-      return solveAnim("T_SWIMTURNR",st);
-    return solveAnim("S_SWIM",st);
-    }
-
-  if(st==WeaponState::Fist) {
-    if(a==Anim::Atack && cur==Move) {
-      if(auto a=animSequence("T_FISTATTACKMOVE"))
-        return layredSequence("S_%sRUNL","T_%sATTACKMOVE",st);
-      }
-    if(a==Anim::Atack)
-      return animSequence("S_FISTATTACK");
-    if(a==Anim::AtackBlock)
-      return animSequence("T_FISTPARADE_0");
-    }
-  else if(st==WeaponState::W1H || st==WeaponState::W2H) {
-    if(a==Anim::Atack && cur==Move)
-      return layredSequence("S_%sRUNL","T_%sATTACKMOVE",st);
-    if(a==Anim::AtackL)
-      return solveAnim("T_%sATTACKL",st);
-    if(a==Anim::AtackR)
-      return solveAnim("T_%sATTACKR",st);
-    if(a==Anim::Atack || a==Anim::AtackL || a==Anim::AtackR)
-      return solveAnim("S_%sATTACK",st);
-    if(a==Anim::AtackBlock) {
-      AnimationSolver::Sequence s;
-      switch(std::rand()%3){
-        case 0: s = solveAnim("T_%sPARADE_0",   st); break;
-        case 1: s = solveAnim("T_%sPARADE_0_A2",st); break;
-        case 2: s = solveAnim("T_%sPARADE_0_A3",st); break;
-        }
-      if(s==nullptr)
-        s = solveAnim("T_%sPARADE_0",st);
-      return s;
-      }
-    if(a==Anim::AtackFinish)
-      return solveAnim("T_1HSFINISH",st);
-    }
-  else if(st==WeaponState::Bow || st==WeaponState::CBow){
-    if(a==Anim::AimBow && cur!=Anim::AimBow && cur!=Anim::Atack)
-      return solveAnim("T_%sRUN_2_%sAIM",st);
-    if(a==Anim::Atack && cur==Anim::AimBow)
-      return solveAnim("T_%sRELOAD",st);
-    if(a!=Anim::AimBow && cur==Anim::AimBow)
-      return solveAnim("T_BOWAIM_2_BOWRUN",st);
-    if(a==Anim::AimBow)
-      return solveAnim("S_%sSHOOT",st);
-
-    if(a==Anim::Atack)
-      return solveAnim("T_%sRELOAD",st);
-    }
-
-  if((cur==Anim::Idle || cur==Anim::NoAnim) && a==Anim::Idle) {
-    if(bool(wlkMode&WalkBit::WM_Walk) && st==WeaponState::NoWeapon) {
-      if(auto sq=solveAnim("S_%sWALK",st))
-        return sq;
-      }
-    if(auto sq=solveAnim("S_%sRUN",st)) // there are no RUN for 'Waran'
-      return sq;
-    return solveAnim("S_%sWALK", st);
-    }
-  if(cur!=Anim::Move && a==Anim::Move) {
-    Sequence sq;
-    if(bool(wlkMode&WalkBit::WM_Water))
-      sq = solveAnim("T_%sWALK_2_%sWALKWL",st); else
-    if(bool(wlkMode&WalkBit::WM_Walk))
-      sq = solveAnim("T_%sWALK_2_%sWALKL",st); else
-      sq = solveAnim("T_%sRUN_2_%sRUNL",  st);
-    if(sq)
-      return sq;
-    }
-  if(cur==Anim::Move && a==cur){
-    if(bool(wlkMode&WalkBit::WM_Water))
-      return solveAnim("S_%sWALKWL",st); else
-    if(bool(wlkMode&WalkBit::WM_Walk))
-      return solveAnim("S_%sWALKL",st); else
-      return solveAnim("S_%sRUNL", st);
-    }
-  if(cur==Anim::Move && a==Anim::Idle) {
-    if(bool(wlkMode&WalkBit::WM_Water))
-      return solveAnim("T_%sWALKWL_2_%sWALK",st); else
-    if(bool(wlkMode&WalkBit::WM_Walk))
-      return solveAnim("T_%sWALKL_2_%sWALK",st); else
-      return solveAnim("T_%sRUNL_2_%sRUN",st);
-    }
-
-  if(a==Anim::RotL){
-    if(bool(wlkMode&WalkBit::WM_Water)){
-      if(auto ani=solveAnim("T_%sWALKWTURNL",st))
-        return ani;
-      }
-    if(bool(wlkMode&WalkBit::WM_Walk)){
-      if(auto ani=solveAnim("T_%sWALKTURNL",st))
-        return ani;
-      }
-    return solveAnim("T_%sRUNTURNL",st);
-    }
-  if(a==Anim::RotR){
-    if(bool(wlkMode&WalkBit::WM_Water)){
-      if(auto ani=solveAnim("T_%sWALKWTURNR",st))
-        return ani;
-      }
-    if(bool(wlkMode&WalkBit::WM_Walk)){
-      if(auto ani=solveAnim("T_%sWALKTURNR",st))
-        return ani;
-      }
-    return solveAnim("T_%sRUNTURNR",st);
-    }
-  if(a==Anim::MoveL) {
-    if(bool(wlkMode&WalkBit::WM_Water)){
-      if(auto ani=solveAnim("T_%sWALKWSTRAFEL",st))
-        return ani;
-      }
-    return solveAnim("T_%sRUNSTRAFEL",st);
-    }
-  if(a==Anim::MoveR) {
-    if(bool(wlkMode&WalkBit::WM_Water)){
-      if(auto ani=solveAnim("T_%sWALKWSTRAFER",st))
-        return ani;
-      }
-    return solveAnim("T_%sRUNSTRAFER",st);
-    }
-  if(a==Anim::MoveBack)
-    return solveAnim("T_%sJUMPB",st);
-
-  if(cur==Anim::Move && a==Jump)
-    return animSequence("T_RUNL_2_JUMP");
-  if(cur==Anim::Idle && a==Anim::Jump)
-    return animSequence("T_STAND_2_JUMP");
-  if(cur==Anim::Jump && a==Anim::Idle)
-    return animSequence("T_JUMP_2_STAND");
-  if(a==Anim::Jump)
-    return animSequence("S_JUMP");
-  if(cur==Anim::Fall && a==Move)
-    return animSequence("T_RUN_2_RUNL");
-
-  if(cur==Anim::Idle && a==Anim::JumpUpLow)
-    return animSequence("T_STAND_2_JUMPUPLOW");
-  if(cur==Anim::JumpUpLow && a==Anim::Idle)
-    return animSequence("T_JUMPUPLOW_2_STAND");
-  if(a==Anim::JumpUpLow)
-    return animSequence("S_JUMPUPLOW");
-
-  if(cur==Anim::Idle && a==Anim::JumpUpMid)
-    return animSequence("T_STAND_2_JUMPUPMID");
-  if(cur==Anim::JumpUpMid && a==Anim::Idle)
-    return animSequence("T_JUMPUPMID_2_STAND");
-  if(a==Anim::JumpUpMid)
-    return animSequence("S_JUMPUPMID");
-
-  if(cur==Anim::Idle && a==Anim::JumpUp)
-    return animSequence("T_STAND_2_JUMPUP");
-  if(a==Anim::JumpUp)
-    return animSequence("S_JUMPUP");
-
-  if(cur==Anim::Idle && a==Anim::GuardL)
-    return animSequence("T_STAND_2_LGUARD");
-  if(a==Anim::GuardL)
-    return animSequence("S_LGUARD");
-
-  if(cur==Anim::Idle && a==Anim::GuardH)
-    return animSequence("T_STAND_2_HGUARD");
-  if(a==Anim::GuardH)
-    return animSequence("S_HGUARD");
-
-  if(cur==Anim::Idle && a==Anim::Talk)
-    return animSequence("T_STAND_2_TALK");
-  if(a==Anim::Talk)
-    return animSequence("S_TALK");
-
-  if(cur==Anim::Idle && a==Anim::Eat){
-    if(auto ani=animSequence("T_STAND_2_EAT"))
-      return ani;
-    }
-  if(cur==Anim::Eat && a==Anim::Idle)
-    return animSequence("T_EAT_2_STAND");
-  if(a==Anim::Eat){
-    if(auto ani=animSequence("S_EAT"))
-      return ani;
-    return animSequence("S_FOOD_S0");
-    }
-
-  if(cur<=Anim::IdleLast && a==Anim::Sleep)
-    return animSequence("T_STAND_2_SLEEP");
-  if(cur==Anim::Sleep && a<=Anim::IdleLast)
-    return animSequence("T_SLEEP_2_STAND");
-  if(a==Anim::Sleep)
-    return animSequence("S_SLEEP");
-
-  if(cur!=Anim::UnconsciousB && a==Anim::UnconsciousB)
-    return animSequence("T_STAND_2_WOUNDEDB");
-  if(cur==Anim::UnconsciousB && a==Anim::Idle)
-    return animSequence("T_WOUNDEDB_2_STAND");
-  if(a==Anim::UnconsciousB)
-    return animSequence("S_WOUNDEDB");
-
-  if(cur!=Anim::GuardSleep && a==Anim::GuardSleep)
-    return animSequence("T_STAND_2_GUARDSLEEP");
-  if(cur==Anim::GuardSleep && a<=Anim::IdleLast && a!=Anim::GuardSleep)
-    return animSequence("T_GUARDSLEEP_2_STAND");
-  if(a==Anim::GuardSleep)
-    return animSequence("S_GUARDSLEEP");
-
-  if(cur==Anim::Idle && a==Anim::Pee)
-    return animSequence("T_STAND_2_PEE");
-  if(cur==Anim::Pee && a==Anim::Idle)
-    return animSequence("T_PEE_2_STAND");
-  if(a==Anim::Pee)
-    return animSequence("S_PEE");
-
-  if(cur==Anim::Idle && (Anim::MagFirst<=a && a<=Anim::MagLast))
-    return solveMag("T_MAGRUN_2_%sSHOOT",a);
-  if((Anim::MagFirst<=cur && cur<=Anim::MagLast) && a==Anim::Idle)
-    return solveMag("T_%sSHOOT_2_STAND",cur);
-  if(Anim::MagFirst<=a && a<=Anim::MagLast)
-    return solveMag("S_%sSHOOT",a);
-  if(a==Anim::MagNoMana)
-    return animSequence("T_CASTFAIL");
-
-  if(cur==Anim::Idle && a==Anim::Sit)
-    return animSequence("T_STAND_2_SIT");
-  if(cur==Anim::Sit && a==Anim::Idle)
-    return animSequence("T_SIT_2_STAND");
-  if(a==Anim::Sit)
-    return animSequence("S_SIT");
-
-  if(a==Anim::GuardLChLeg)
-    return animSequence("T_LGUARD_CHANGELEG");
-  if(a==Anim::GuardLScratch)
-    return animSequence("T_LGUARD_SCRATCH");
-  if(a==Anim::GuardLStrectch)
-    return animSequence("T_LGUARD_STRETCH");
-  if(a==Anim::Perception)
-    return animSequence("T_PERCEPTION");
-  if(a==Anim::Lookaround)
-    return animSequence("T_HGUARD_LOOKAROUND");
-  if(a==Anim::Training)
-    return animSequence("T_1HSFREE");
-  if(a==Anim::Warn)
-    return animSequence("T_WARN");
-
-  if(a==Anim::Fall)
-    return animSequence("S_FALLDN");
-  //if(cur==Fall && a==Anim::FallDeep)
-  //  return animSequence("T_FALL_2_FALLEN");
-  if(a==Anim::FallDeep)
-    return animSequence("S_FALL");
-  if(a==Anim::SlideA)
-    return animSequence("S_SLIDE");
-  if(a==Anim::SlideB)
-    return animSequence("S_SLIDEB");
-
-  if(a==Anim::StumbleA && current==Anim::Move)
-    return layredSequence("S_RUNL","T_STUMBLE");
-  if(a==Anim::StumbleA)
-    return animSequence("T_STUMBLE");
-
-  if(a==Anim::StumbleB && current==Anim::Move)
-    return layredSequence("S_RUNL","T_STUMBLEB");
-  if(a==Anim::StumbleB)
-    return animSequence("T_STUMBLEB");
-
-  if(a==Anim::GotHit && current==Anim::Move)
-    return layredSequence("S_RUNL","T_GOTHIT");
-  if(a==Anim::GotHit)
-    return animSequence("T_GOTHIT");
-
-  if(a==Anim::Chair1)
-    return animSequence("R_CHAIR_RANDOM_1");
-  if(a==Anim::Chair2)
-    return animSequence("R_CHAIR_RANDOM_2");
-  if(a==Anim::Chair3)
-    return animSequence("R_CHAIR_RANDOM_3");
-  if(a==Anim::Chair4)
-    return animSequence("R_CHAIR_RANDOM_4");
-
-  if(a==Anim::Roam1)
-    return animSequence("R_ROAM1");
-  if(a==Anim::Roam2)
-    return animSequence("R_ROAM2");
-  if(a==Anim::Roam3)
-    return animSequence("R_ROAM3");
-
-  if(a==Anim::Pray && cur<=Anim::IdleLast && cur!=Anim::Pray && cur!=Anim::PrayRand)
-    return animSequence("T_STAND_2_PRAY");
-  if(a==Anim::Pray)
-    return animSequence("S_PRAY");
-  if(a==Anim::PrayRand)
-    return animSequence("T_PRAY_RANDOM");
-
-  static const std::pair<const char*,Npc::Anim> schemes[]={
-    {"FOOD",       Npc::Anim::Food1},
-    {"FOODHUGE",   Npc::Anim::FoodHuge1},
-    {"POTION",     Npc::Anim::Potition1},
-    {"POTIONFAST", Npc::Anim::PotitionFast},
-    {"RICE",       Npc::Anim::Rice1},
-    {"MEAT",       Npc::Anim::Meat1},
-    {"JOINT",      Npc::Anim::Joint1},
-    {"MAP",        Npc::Anim::Map1},
-    {"MAPSEALED",  Npc::Anim::MapSeal1},
-    {"FIRESPIT",   Npc::Anim::Firespit1}
-    };
-  for(auto& i:schemes){
-    if(cur<Anim::IdleLast && a==i.second)
-      return solveItemUse("T_%s_STAND_2_S0",i.first);
-    if(cur==i.second && a<Anim::IdleLast)
-      return solveItemUse("T_%s_S0_2_STAND",i.first);
-    if(a==i.second)
-      return solveItemUse("S_%s_S0",i.first);
-    }
-
-  if(a==Anim::Plunder)
-    return animSequence("T_PLUNDER");
-  if(a==Anim::Food1)
-    return animSequence("T_FOOD_RANDOM_1");
-  if(a==Anim::Food2)
-    return animSequence("T_FOOD_RANDOM_2");
-  if(a==Anim::FoodHuge1)
-    return animSequence("T_FOODHUGE_RANDOM_1");
-  if(a==Anim::Potition1)
-    return animSequence("T_POTION_RANDOM_1");
-  if(a==Anim::Potition2)
-    return animSequence("T_POTION_RANDOM_2");
-  if(a==Anim::Potition3)
-    return animSequence("T_POTION_RANDOM_3");
-
-  if(Anim::Dance1<=a && a<=Anim::Dance9){
-    char buf[32]={};
-    std::snprintf(buf,sizeof(buf),"T_DANCE_%02d",a-Anim::Dance1+1);
-    return animSequence(buf);
-    }
-
-  if(Anim::Dialog1<=a && a<=Anim::Dialog21){
-    char buf[32]={};
-    std::snprintf(buf,sizeof(buf),"T_DIALOGGESTURE_%02d",int(a-Anim::Dialog1+1));
-    return animSequence(buf);
-    }
-
-  if(Anim::Fear1<=a && a<=Anim::Fear3){
-    char buf[32]={};
-    if(Anim::Fear1<=cur && cur<=Anim::Fear3)
-      std::snprintf(buf,sizeof(buf),"T_STAND_2_FEAR_VICTIM%d",int(a-Anim::Fear1+1)); else
-      std::snprintf(buf,sizeof(buf),"S_FEAR_VICTIM%d",int(a-Anim::Fear1+1));
-    return animSequence(buf);
-    }
-
-  if(Anim::MagicSleep==a && cur!=Anim::MagicSleep)
-    return animSequence("T_STAND_2_VICTIM_SLE");
-  if(cur==Anim::MagicSleep && a!=Anim::MagicSleep)
-    return animSequence("T_VICTIM_SLE_2_STAND");
-  if(a==Anim::MagicSleep)
-    return animSequence("S_VICTIM_SLE");
-
-  // FALLBACK
-  if(a==Anim::Move)
-    return solveAnim("S_%sRUNL",st);
-  if(a==Anim::Idle)  {
-    if(auto idle=solveAnim("S_%sRUN",st))
-      return idle;
-    return solveAnim("S_%sWALK",st);
-    }
-  return nullptr;
-  */
   }
 
 const Animation::Sequence *AnimationSolver::solveAnim(WeaponState st, WeaponState cur, const Pose &pose) const {
@@ -785,6 +360,89 @@ const Animation::Sequence* AnimationSolver::solveItemUse(const char *format, con
   char buf[128]={};
   std::snprintf(buf,sizeof(buf),format,scheme);
   return solveFrm(buf);
+  }
+
+const Animation::Sequence *AnimationSolver::solveAmbient(AnimationSolver::Anim a) const {
+  if(a==Anim::GuardL)
+    return solveFrm("S_LGUARD");
+  if(a==Anim::GuardH)
+    return solveFrm("S_HGUARD");
+  if(a==Anim::Sit)
+    return solveFrm("S_SIT");
+  if(a==Anim::Sleep)
+    return solveFrm("S_SLEEP");
+  if(a==Anim::GuardSleep)
+    return solveFrm("S_GUARDSLEEP");
+  if(a==Anim::MagicSleep)
+    return solveFrm("S_VICTIM_SLE");
+  if(a==Anim::Pray)
+    return solveFrm("S_PRAY");
+  if(a==Anim::PrayRand)
+    return solveFrm("T_PRAY_RANDOM");
+  if(a==Anim::Talk)
+    return solveFrm("S_TALK");
+  if(a==Anim::GuardLChLeg)
+    return solveFrm("T_LGUARD_CHANGELEG");
+  if(a==Anim::GuardLScratch)
+    return solveFrm("T_LGUARD_SCRATCH");
+  if(a==Anim::GuardLStrectch)
+    return solveFrm("T_LGUARD_STRETCH");
+  if(a==Anim::Lookaround)
+    return solveFrm("T_HGUARD_LOOKAROUND");
+  if(a==Anim::Perception)
+    return solveFrm("T_PERCEPTION");
+  if(a==Anim::Chair1)
+    return solveFrm("R_CHAIR_RANDOM_1");
+  if(a==Anim::Chair2)
+    return solveFrm("R_CHAIR_RANDOM_2");
+  if(a==Anim::Chair3)
+    return solveFrm("R_CHAIR_RANDOM_3");
+  if(a==Anim::Chair4)
+    return solveFrm("R_CHAIR_RANDOM_4");
+  if(a==Anim::Roam1)
+    return solveFrm("R_ROAM1");
+  if(a==Anim::Roam2)
+    return solveFrm("R_ROAM2");
+  if(a==Anim::Roam3)
+    return solveFrm("R_ROAM3");
+  if(a==Anim::Food1)
+    return solveFrm("T_FOOD_RANDOM_1");
+  if(a==Anim::Food2)
+    return solveFrm("T_FOOD_RANDOM_2");
+  if(a==Anim::FoodHuge1)
+    return solveFrm("T_FOODHUGE_RANDOM_1");
+  if(a==Anim::Potition1)
+    return solveFrm("T_POTION_RANDOM_1");
+  if(a==Anim::Potition2)
+    return solveFrm("T_POTION_RANDOM_2");
+  if(a==Anim::Potition3)
+    return solveFrm("T_POTION_RANDOM_3");
+  if(Anim::Dance1<=a && a<=Anim::Dance9){
+    char buf[32]={};
+    std::snprintf(buf,sizeof(buf),"T_DANCE_%02d",a-Anim::Dance1+1);
+    return solveFrm(buf);
+    }
+  if(Anim::Dialog1<=a && a<=Anim::Dialog21){
+    char buf[32]={};
+    std::snprintf(buf,sizeof(buf),"T_DIALOGGESTURE_%02d",int(a-Anim::Dialog1+1));
+    return solveFrm(buf);
+    }
+  if(Anim::Fear1<=a && a<=Anim::Fear3){
+    char buf[32]={};
+    std::snprintf(buf,sizeof(buf),"S_FEAR_VICTIM%d",int(a-Anim::Fear1+1));
+    return solveFrm(buf);
+    }
+  if(a==Anim::Plunder)
+    return solveFrm("T_PLUNDER");
+  if(a==Anim::Pee)
+    return solveFrm("S_PEE");
+  if(a==Anim::Eat)
+    return solveFrm("S_EAT");
+  if(a==Anim::Warn)
+    return solveFrm("T_WARN");
+  if(a==Anim::Training)
+    return solveFrm("T_1HSFREE");
+  return nullptr;
   }
 
 AnimationSolver::Anim AnimationSolver::animByName(const std::string &name) const {

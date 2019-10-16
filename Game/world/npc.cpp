@@ -425,6 +425,7 @@ void Npc::onNoHealth(bool death) {
     emitSoundEffect(name,25,true);
     }
 
+  setInteraction(nullptr);
   if(death)
     setAnim(lastHitType=='A' ? Anim::DeadA        : Anim::DeadB); else
     setAnim(lastHitType=='A' ? Anim::UnconsciousA : Anim::UnconsciousB);
@@ -1369,8 +1370,11 @@ void Npc::nextAiAction(uint64_t dt) {
       currentLookAt=nullptr;
       break;
     case AI_RemoveWeapon:
-      if(!closeWeapon(false))
+      if(closeWeapon(false)) {
+        setAnim(Anim::Idle);
+        } else {
         aiActions.push_front(std::move(act));
+        }
       break;
     case AI_StartState:
       if(startState(act.func,act.s0,aiState.eTime,act.i0==0))

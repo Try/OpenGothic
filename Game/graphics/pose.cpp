@@ -213,25 +213,26 @@ void Pose::update(uint64_t tickCount) {
     return;
     }
 
-  bool change=false;
-  for(auto& i:lay)
-    change |= update(*i.seq,tickCount-i.sAnim,i.frame);
   size_t ret=0;
   for(size_t i=0;i<lay.size();++i) {
     const auto& l = lay[i];
-    if((l.seq->flags & Animation::Idle) || !l.seq->isFinished(tickCount-l.sAnim)) {
-      if(ret!=i)
-        lay[ret] = lay[i];
-      ret++;
-      } else {
-      if(lay[i].seq!=nullptr && lay[i].seq->next!=nullptr) {
+    //if((l.seq->flags & Animation::Idle) || !l.seq->isFinished(tickCount-l.sAnim)) {
+    if(l.seq->animCls!=Animation::Loop && l.seq->isFinished(tickCount-l.sAnim)) {
+      if(lay[i].seq->next!=nullptr) {
         lay[i].seq = lay[i].seq->next;
         ret++;
         }
+      } else {
+      if(ret!=i)
+        lay[ret] = lay[i];
+      ret++;
       }
     }
   lay.resize(ret);
 
+  bool change=false;
+  for(auto& i:lay)
+    change |= update(*i.seq,tickCount-i.sAnim,i.frame);
   if(!change)
     return;
   mkSkeleton(*lay[0].seq);
@@ -330,6 +331,17 @@ bool Pose::isFlyAnim() const {
     if(i.seq->isFly())
       return true;
   return false;
+  }
+
+bool Pose::isStanding() const {
+  if(lay.size()!=1 || isIdle())
+    return false;
+  // check common idle animations
+  auto& s = *lay[0].seq;
+  return s.name=="S_FISTRUN" || s.name=="S_MAGRUN"  ||
+         s.name=="S_1HRUN"   || s.name=="S_BOWRUN"  ||
+         s.name=="S_2HRUN"   || s.name=="S_CBOWRUN" ||
+         s.name=="S_RUN";
   }
 
 bool Pose::isIdle() const {

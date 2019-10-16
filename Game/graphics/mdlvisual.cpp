@@ -192,21 +192,22 @@ bool MdlVisual::isInAnim(AnimationSolver::Anim a) const {
   }
 
 bool MdlVisual::isStanding() const {
-  return skInst->isIdle();
+  return skInst->isStanding();
   }
 
 bool MdlVisual::setAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st) {
-  if(auto inter = npc.interactive()) {
+  if(a==AnimationSolver::Interact || a==AnimationSolver::InteractOut) {
+    auto inter = npc.interactive();
     const Animation::Sequence *sq = solver.solveAnim(inter,a,*skInst);
-    if(sq!=nullptr){
+    if(sq!=nullptr && inter!=nullptr){
       if(skInst->startAnim(solver,sq,false,npc.world().tickCount())) {
         if(a==AnimationSolver::Anim::Interact)
           inter->nextState(); else
           inter->prevState();
         return true;
         }
-      return false;
       }
+    return false;
     }
 
   bool forceAnim=false;
