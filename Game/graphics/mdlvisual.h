@@ -41,7 +41,7 @@ class MdlVisual final {
     const Pose&                    pose() const { return *skInst; }
     void                           updateAnimation(Npc &owner);
 
-    void                           stopAnim(const char *ani);
+    void                           stopAnim(Npc &npc, const char *ani);
     bool                           isInAnim(AnimationSolver::Anim a) const;
     bool                           isStanding() const;
     bool                           setAnim(Npc &npc, AnimationSolver::Anim a, WeaponState st);

@@ -21,7 +21,7 @@ class Pose final {
     void               load(Serialize& fin, const AnimationSolver &solver);
 
     void               setSkeleton(const Skeleton *sk);
-    bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq, uint64_t tickCount);
+    bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq, bool force, uint64_t tickCount);
     bool               stopAnim(const char* name);
     void               reset(const Skeleton& sk,uint64_t tickCount,const Animation::Sequence* sq0,const Animation::Sequence* sq1);
     void               update(uint64_t tickCount);
@@ -35,6 +35,7 @@ class Pose final {
     bool               isIdle() const;
     bool               isInAnim(const char *sq) const;
     bool               isInAnim(const Animation::Sequence* sq) const;
+    bool               hasAnim() const;
     uint64_t           animationTotalTime() const;
 
     float              translateY() const { return trY; }

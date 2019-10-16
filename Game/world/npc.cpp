@@ -369,11 +369,9 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
 
   if(isDead()) {
     physic.setEnable(false);
-    setAnim(lastHitType=='A' ? Anim::DeadA : Anim::DeadB);
     return false;
     }
   if(isUnconscious() && allowUnconscious) {
-    setAnim(lastHitType=='A' ? Anim::UnconsciousA : Anim::UnconsciousB);
     closeWeapon(true);
     return false;
     }
@@ -426,6 +424,10 @@ void Npc::onNoHealth(bool death) {
     std::snprintf(name,sizeof(name),svm,int(hnpc.voice));
     emitSoundEffect(name,25,true);
     }
+
+  if(death)
+    setAnim(lastHitType=='A' ? Anim::DeadA        : Anim::DeadB); else
+    setAnim(lastHitType=='A' ? Anim::UnconsciousA : Anim::UnconsciousB);
   }
 
 World& Npc::world() {
@@ -622,8 +624,12 @@ void Npc::setScale(float x, float y, float z) {
   }
 
 bool Npc::setAnim(Npc::Anim a) {
-  auto weaponSt=invent.weaponState();
-  return setAnim(a,weaponSt);
+  auto st=invent.weaponState();
+  return visual.setAnim(*this,a,st);
+  }
+
+bool Npc::setAnim(Npc::Anim a, WeaponState st) {
+  return visual.setAnim(*this,a,st);
   }
 
 void Npc::setAnimRotate(int rot) {
@@ -631,7 +637,7 @@ void Npc::setAnimRotate(int rot) {
   }
 
 void Npc::stopAnim(const std::string &ani) {
-  visual.stopAnim(ani.c_str());
+  visual.stopAnim(*this,ani.c_str());
   }
 
 bool Npc::isInAnim(Npc::Anim a) const {
@@ -911,8 +917,7 @@ bool Npc::implGoTo(uint64_t dt) {
       if(currentGoTo!=nullptr) {
         currentFpLock = FpLock(*currentGoTo);
         } else {
-        if(isStanding())
-          setAnim(AnimationSolver::Idle);
+        setAnim(AnimationSolver::Idle);
         }
       }
 
@@ -1255,6 +1260,9 @@ Npc *Npc::updateNearestEnemy() {
 void Npc::tick(uint64_t dt) {
   owner.tickSlot(soundSlot);
 
+  if(!visual.pose().hasAnim())
+    setAnim(AnimationSolver::Idle);
+
   Animation::EvCount ev;
   visual.pose().processEvents(fghLastEventTime,owner.tickCount(),ev);
 
@@ -1387,8 +1395,7 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
     case AI_StandUp:
       setInteraction(nullptr);
-      //if(animation.current==Anim::Sit)
-      //  setAnim(Anim::Idle);
+      setAnim(Anim::Idle);
       break;
     case AI_StandUpQuick:
       setInteraction(nullptr);
@@ -2783,9 +2790,5 @@ void Npc::updatePos() {
     mt.scale(sz[0],sz[1],sz[2]);
     visual.setPos(mt);
     }
-  }
-
-bool Npc::setAnim(Npc::Anim a, WeaponState st) {
-  return visual.setAnim(*this,a,st);
   }
 

@@ -254,6 +254,27 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     }
   if(a==Anim::Fall)
     return solveFrm("S_FALLDN");
+  if(a==Anim::DeadA) {
+    if(pose.isInAnim("S_WOUNDED") || pose.isInAnim("S_WOUNDEDB"))
+      return solveDead("T_WOUNDED_2_DEAD","T_WOUNDEDB_2_DEADB"); else
+      return solveDead("T_DEAD", "T_DEADB");
+    }
+  if(a==Anim::DeadB) {
+    if(pose.isInAnim("S_WOUNDED") || pose.isInAnim("S_WOUNDEDB"))
+      return solveDead("T_WOUNDEDB_2_DEADB","T_WOUNDED_2_DEAD"); else
+      return solveDead("T_DEADB","T_DEAD");
+    }
+  if(a==Anim::UnconsciousA)
+    return solveFrm("S_WOUNDED");
+  if(a==Anim::UnconsciousB)
+    return solveFrm("S_WOUNDEDB");
+  if(a==Anim::Warn)
+    return solveFrm("T_WARN");
+
+  if(a==Anim::GuardL)
+    return solveFrm("S_LGUARD");
+  if(a==Anim::GuardH)
+    return solveFrm("S_HGUARD");
   return nullptr;
 
   /*

@@ -353,7 +353,8 @@ void PlayerControl::implMove(uint64_t dt) {
           float dz = other->position()[2]-pl.position()[2];
           pl.lookAt(dx,dz,false,dt);
           pl.aimBow();
-          return;
+          if(!ctrl[ActForward])
+            return;
           }
         }
       if(ctrl[EmptyFocus]){

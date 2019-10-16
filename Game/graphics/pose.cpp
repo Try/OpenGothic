@@ -141,22 +141,30 @@ void Pose::setSkeleton(const Skeleton* sk) {
   lay.clear();
   }
 
-bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, uint64_t tickCount) {
+bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, bool force, uint64_t tickCount) {
   if(sq==nullptr)
     return false;
 
   for(auto& i:lay)
     if(i.seq->layer==sq->layer) {
       const bool finished  = i.seq->isFinished(tickCount-i.sAnim);
-      const bool interrupt = i.seq->canInterrupt();
+      const bool interrupt = force || i.seq->canInterrupt();
       if(i.seq==sq && (interrupt || finished))
         return true;
       if(!interrupt && !finished)
         return false;
+      char tansition[256]={};
       const Animation::Sequence* tr=nullptr;
       if(i.seq->shortName.size()>0 && sq->shortName.size()>0) {
-        char tansition[256]={};
         std::snprintf(tansition,sizeof(tansition),"T_%s_2_%s",i.seq->shortName.c_str(),sq->shortName.c_str());
+        tr = solver.solveFrm(tansition);
+        }
+      if(tr==nullptr) {
+        std::snprintf(tansition,sizeof(tansition),"T_STAND_2_%s",sq->shortName.c_str());
+        tr = solver.solveFrm(tansition);
+        }
+      if(tr==nullptr) {
+        std::snprintf(tansition,sizeof(tansition),"T_%s_2_STAND",i.seq->shortName.c_str());
         tr = solver.solveFrm(tansition);
         }
       i.seq   = tr ? tr : sq;
@@ -179,8 +187,6 @@ bool Pose::stopAnim(const char *name) {
       done=true;
       }
     }
-  // if(ret==0)
-  //   ret=1;
   lay.resize(ret);
   return done;
   }
@@ -224,8 +230,6 @@ void Pose::update(uint64_t tickCount) {
         }
       }
     }
-  if(ret==0)
-    ret=1;
   lay.resize(ret);
 
   if(!change)
@@ -246,21 +250,21 @@ void Pose::updateFrame(const Animation::Sequence &s, uint64_t fr) {
   float    a      = (fr%1000)/1000.f;
   uint64_t frameA = (fr/1000  );
   uint64_t frameB = (fr/1000+1);
+  auto& d = *s.data;
 
   if(s.animCls==Animation::Loop){
-    frameA%=s.data->numFrames;
-    frameB%=s.data->numFrames;
+    frameA%=d.numFrames;
+    frameB%=d.numFrames;
     } else {
-    frameA = std::min<uint64_t>(frameA,s.data->numFrames-1);
-    frameB = std::min<uint64_t>(frameB,s.data->numFrames-1);
+    frameA = std::min<uint64_t>(frameA,d.numFrames-1);
+    frameB = std::min<uint64_t>(frameB,d.numFrames-1);
     }
 
   if(s.reverse) {
-    frameA = s.data->numFrames-1-frameA;
-    frameB = s.data->numFrames-1-frameB;
+    frameA = d.numFrames-1-frameA;
+    frameB = d.numFrames-1-frameB;
     }
 
-  auto& d = *s.data;
   const size_t idSize=d.nodeIndex.size();
   if(idSize==0 || d.samples.size()%idSize!=0)
     return;
@@ -347,6 +351,10 @@ bool Pose::isInAnim(const Animation::Sequence *sq) const {
     if(i.seq==sq)
       return true;
   return false;
+  }
+
+bool Pose::hasAnim() const {
+  return lay.size()>0;
   }
 
 uint64_t Pose::animationTotalTime() const {

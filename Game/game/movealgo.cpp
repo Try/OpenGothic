@@ -270,8 +270,6 @@ void MoveAlgo::tick(uint64_t dt, bool fai) {
   if(-fallThreshold<dY && npc.isFlyAnim()) {
     // jump animation
     tryMove(dp[0],dp[1],dp[2]);
-    if(npc.isInAnim(Npc::Anim::Jump))
-      npc.setAnim(Npc::Anim::Fall);
     fallSpeed[0] += dp[0];
     fallSpeed[1] += dp[1];
     fallSpeed[2] += dp[2];
