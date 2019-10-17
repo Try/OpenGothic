@@ -297,19 +297,8 @@ bool Npc::resetPositionToTA() {
   return true;
   }
 
-void Npc::startDlgAnim() {
-  if(weaponState()!=WeaponState::NoWeapon)
-    return;
-  auto ani = std::rand()%(Anim::DialogLastG2-Anim::DialogFirst)+Anim::DialogFirst;
-  setAnim(Anim(ani));
-  }
-
 void Npc::stopDlgAnim() {
-  for(uint16_t i=Anim::DialogFirst; i<Anim::DialogLastG1; i++){
-    char buf[32]={};
-    std::snprintf(buf,sizeof(buf),"T_DIALOGGESTURE_%02d",int(i-Anim::DialogFirst+1));
-    visual.stopAnim(*this,buf);
-    }
+  visual.stopDlgAnim();
   }
 
 void Npc::clearSpeed() {
@@ -1504,7 +1493,7 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_OutputSvmOverlay:{
       if(performOutput(act)) {
         if(act.act!=AI_OutputSvmOverlay)
-          startDlgAnim();
+          visual.setAnimDialog(*this);
         } else {
         aiActions.push_front(std::move(act));
         }

@@ -167,7 +167,6 @@ class Npc final {
     static float angleDir(float x,float z);
     bool resetPositionToTA();
 
-    void startDlgAnim();
     void stopDlgAnim();
 
     void setProcessPolicy(ProcessPolicy t);

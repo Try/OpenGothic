@@ -253,3 +253,28 @@ void MdlVisual::setRotation(Npc &npc, int dir) {
 bool MdlVisual::setAnimItem(Npc &npc, const char *scheme) {
   return skInst->setAnimItem(solver,npc,scheme);
   }
+
+bool MdlVisual::setAnimDialog(Npc &npc) {
+  //const int countG1 = 21;
+  const int countG2 = 11;
+  const int id      = std::rand()%countG2 + 1;
+
+  char name[32]={};
+  std::snprintf(name,sizeof(name),"T_DIALOGGESTURE_%s",id);
+
+  const Animation::Sequence *sq = solver.solveFrm(name);
+  if(skInst->startAnim(solver,sq,BS_NONE,false,npc.world().tickCount())) {
+    return true;
+    }
+  return false;
+  }
+
+void MdlVisual::stopDlgAnim() {
+  //const int countG1 = 21;
+  const int countG2 = 11;
+  for(uint16_t i=0; i<countG2; i++){
+    char buf[32]={};
+    std::snprintf(buf,sizeof(buf),"T_DIALOGGESTURE_%02d",i+1);
+    skInst->stopAnim(buf);
+    }
+  }

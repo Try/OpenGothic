@@ -248,12 +248,6 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     return solveFrm("S_WOUNDED");
   if(a==Anim::UnconsciousB)
     return solveFrm("S_WOUNDEDB");
-
-  if(Anim::Dialog1<=a && a<=Anim::Dialog21){
-    char buf[32]={};
-    std::snprintf(buf,sizeof(buf),"T_DIALOGGESTURE_%02d",int(a-Anim::Dialog1+1));
-    return solveFrm(buf);
-    }
   return nullptr;
   }
 
