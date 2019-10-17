@@ -25,52 +25,7 @@ class AnimationSolver final {
       Idle,
       DeadA,
       DeadB,
-      GuardL,
-      GuardH,
-      Sit,
-      Sleep,
-      GuardSleep,
-      MagicSleep,
-      IdleLoopLast=MagicSleep,
 
-      Pray,
-      PrayRand,
-      Talk,
-      GuardLChLeg,
-      GuardLScratch,
-      GuardLStrectch,
-      Lookaround,
-      Perception,
-      Chair1,
-      Chair2,
-      Chair3,
-      Chair4,
-      Roam1,
-      Roam2,
-      Roam3,
-      Food1,
-      Food2,
-      FoodHuge1,
-      Potition1,
-      Potition2,
-      Potition3,
-      PotitionFast,
-      Joint1,
-      Map1,
-      MapSeal1,
-      Firespit1,
-      Meat1,
-      Rice1,
-      Rice2,
-      Dance1,
-      Dance2,
-      Dance3,
-      Dance4,
-      Dance5,
-      Dance6,
-      Dance7,
-      Dance8,
-      Dance9,
       Dialog1,
       Dialog2,
       Dialog3,
@@ -97,14 +52,6 @@ class AnimationSolver final {
       DialogLastG2=Dialog11,
       DialogLastG1=Dialog21,
 
-      Fear1,
-      Fear2,
-      Fear3,
-      Plunder,
-      Pee,
-      Eat,
-      IdleLast=Eat,
-      Warn,
       UnconsciousA,
       UnconsciousB,
 
@@ -122,7 +69,6 @@ class AnimationSolver final {
       FallDeep,
       SlideA,
       SlideB,
-      Training,
       Interact,
       InteractOut,
 
@@ -171,8 +117,7 @@ class AnimationSolver final {
     void                           delOverlay(const char *sk);
     void                           delOverlay(const Skeleton *sk);
 
-    AnimationSolver::Anim          animByName  (const std::string &name) const;
-    const Animation::Sequence*     solveFrm    (const char *format) const;
+    const Animation::Sequence*     solveFrm (const char *format) const;
     const Animation::Sequence*     solveAnim(Anim a, WeaponState st, WalkBit wlk, const Pose &pose) const;
     const Animation::Sequence*     solveAnim(WeaponState st, WeaponState cur, const Pose &pose) const;
     const Animation::Sequence*     solveAnim(Interactive *inter, Anim a, const Pose &pose) const;
@@ -180,10 +125,8 @@ class AnimationSolver final {
   private:
     const Animation::Sequence*     solveFrm    (const char *format, WeaponState st) const;
 
-    const Animation::Sequence*     solveAmbient(Anim playById) const;
-    const Animation::Sequence*     solveMag    (const char *format,Anim spell) const;
-    const Animation::Sequence*     solveDead   (const char *format1,const char *format2) const;
-    const Animation::Sequence*     solveItemUse(const char *format,const char* scheme) const;
+    const Animation::Sequence*     solveMag    (const char *format, Anim spell) const;
+    const Animation::Sequence*     solveDead   (const char *format1, const char *format2) const;
 
     const Skeleton*                baseSk=nullptr;
     std::vector<Overlay>           overlay;

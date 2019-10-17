@@ -110,9 +110,8 @@ void Pose::save(Serialize &fout) {
   for(auto& i:lay) {
     fout.write(i.seq->name,i.frame,i.sAnim);
     }
-  if(rotation!=nullptr)
-    fout.write(rotation->name); else
-    fout.write(std::string());
+  fout.write(rotation ? rotation->name : "");
+  fout.write(itemUse  ? itemUse->name  : "");
   }
 
 void Pose::load(Serialize &fin,const AnimationSolver& solver) {
@@ -133,6 +132,18 @@ void Pose::load(Serialize &fin,const AnimationSolver& solver) {
     if(i.seq->name==name)
       rotation = i.seq;
     }
+  fin.read(name);
+  for(auto& i:lay) {
+    if(i.seq->name==name)
+      itemUse = i.seq;
+    }
+  }
+
+BodyState Pose::bodyState() const {
+  uint32_t b = BS_NONE;
+  for(auto& i:lay)
+    b |= i.bs;
+  return BodyState(b);
   }
 
 void Pose::setSkeleton(const Skeleton* sk) {
@@ -150,7 +161,7 @@ void Pose::setSkeleton(const Skeleton* sk) {
   lay.clear();
   }
 
-bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, bool force, uint64_t tickCount) {
+bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, BodyState bs, bool force, uint64_t tickCount) {
   if(sq==nullptr)
     return false;
 
@@ -164,6 +175,12 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
         return false;
       char tansition[256]={};
       const Animation::Sequence* tr=nullptr;
+      if(i.seq==itemUse) {
+        if(i.seq->shortName.empty())
+          return false;
+        std::snprintf(tansition,sizeof(tansition),"T_%s_2_STAND",i.seq->shortName.c_str(),sq->shortName.c_str());
+        tr = solver.solveFrm(tansition);
+        }
       if(i.seq->shortName.size()>0 && sq->shortName.size()>0) {
         std::snprintf(tansition,sizeof(tansition),"T_%s_2_%s",i.seq->shortName.c_str(),sq->shortName.c_str());
         tr = solver.solveFrm(tansition);
@@ -176,9 +193,11 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
         std::snprintf(tansition,sizeof(tansition),"T_%s_2_STAND",i.seq->shortName.c_str());
         tr = solver.solveFrm(tansition);
         }
+      onRemoveLayer(i);
       i.seq   = tr ? tr : sq;
       i.sAnim = tickCount;
       i.frame = uint64_t(-1);
+      i.bs    = bs;
       return true;
       }
   addLayer(sq,tickCount);
@@ -194,12 +213,10 @@ bool Pose::stopAnim(const char *name) {
         lay[ret] = lay[i];
       ret++;
       } else {
-      if(lay[i].seq==rotation)
-        rotation=nullptr;
+      onRemoveLayer(lay[i]);
       done=true;
       }
     }
-  rotation=nullptr;
   lay.resize(ret);
   return done;
   }
@@ -215,9 +232,11 @@ void Pose::update(AnimationSolver& solver, uint64_t tickCount) {
   for(size_t i=0;i<lay.size();++i) {
     const auto& l = lay[i];
     if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount-l.sAnim)) {
-      if(lay[i].seq==rotation)
-        rotation=nullptr;
       auto next=getNext(solver,lay[i].seq);
+      if(lay[i].seq==itemUse)
+        itemUse=next;
+      onRemoveLayer(lay[i]);
+
       if(next!=nullptr) {
         doSort       = lay[i].seq->layer!=next->layer;
         lay[i].seq   = next;
@@ -301,12 +320,18 @@ void Pose::addLayer(const Animation::Sequence *seq, uint64_t tickCount) {
     return;
   Layer l;
   l.seq   = seq;
-  l.frame = uint64_t(-1);
   l.sAnim = tickCount;
   lay.push_back(l);
   std::sort(lay.begin(),lay.end(),[](const Layer& a,const Layer& b){
     return a.seq->layer<b.seq->layer;
     });
+  }
+
+void Pose::onRemoveLayer(Pose::Layer &l) {
+  if(l.seq==rotation)
+    rotation=nullptr;
+  if(l.seq==itemUse)
+    itemUse=nullptr;
   }
 
 void Pose::emitSfx(Npc &npc, uint64_t tickCount) {
@@ -437,10 +462,24 @@ void Pose::setRotation(const AnimationSolver &solver, Npc &npc, WeaponState figh
     }
   if(sq==nullptr)
     return;
-  if(startAnim(solver,sq,false,npc.world().tickCount())) {
+  if(startAnim(solver,sq,BS_NONE,false,npc.world().tickCount())) {
     rotation = sq;
     return;
     }
+  }
+
+bool Pose::setAnimItem(const AnimationSolver &solver, Npc &npc, const char *scheme) {
+  if(itemUse!=nullptr)
+    return false;
+  char T_ID_STAND_2_S0[128]={};
+  std::snprintf(T_ID_STAND_2_S0,sizeof(T_ID_STAND_2_S0),"T_%s_STAND_2_S0",scheme);
+
+  const Animation::Sequence *sq = solver.solveFrm(T_ID_STAND_2_S0);
+  if(startAnim(solver,sq,BS_NONE,false,npc.world().tickCount())) {
+    itemUse = sq;
+    return true;
+    }
+  return false;
   }
 
 void Pose::zeroSkeleton() {

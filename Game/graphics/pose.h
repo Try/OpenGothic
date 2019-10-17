@@ -21,8 +21,10 @@ class Pose final {
     void               save(Serialize& fout);
     void               load(Serialize& fin, const AnimationSolver &solver);
 
+    BodyState          bodyState() const;
     void               setSkeleton(const Skeleton *sk);
-    bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq, bool force, uint64_t tickCount);
+    bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq, BodyState bs,
+                                 bool force, uint64_t tickCount);
     bool               stopAnim(const char* name);
     void               update(AnimationSolver &solver, uint64_t tickCount);
 
@@ -45,11 +47,19 @@ class Pose final {
     Tempest::Matrix4x4 cameraBone() const;
 
     void               setRotation(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir);
+    bool               setAnimItem(const AnimationSolver &solver, Npc &npc, const char* scheme);
 
     std::vector<Tempest::Matrix4x4> tr;
     std::vector<Tempest::Matrix4x4> base;
 
   private:
+    struct Layer final {
+      const Animation::Sequence* seq   = nullptr;
+      uint64_t                   frame = uint64_t(-1);
+      uint64_t                   sAnim = 0;
+      BodyState                  bs    = BS_NONE;
+      };
+
     void mkSkeleton(const Animation::Sequence &s);
     void mkSkeleton(const Tempest::Matrix4x4 &mt);
     void mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent);
@@ -61,16 +71,14 @@ class Pose final {
     auto getNext(AnimationSolver& solver, const Animation::Sequence* sq) -> const Animation::Sequence*;
 
     void addLayer(const Animation::Sequence* seq, uint64_t tickCount);
+    void onRemoveLayer(Layer& l);
+
     template<class T,class F>
     void removeIf(T& t,F f);
 
-    struct Layer final {
-      const Animation::Sequence* seq   = nullptr;
-      uint64_t                   frame = uint64_t(-1);
-      uint64_t                   sAnim = 0;
-      };
     const Skeleton*            skeleton=nullptr;
     std::vector<Layer>         lay;
     const Animation::Sequence* rotation=nullptr;
+    const Animation::Sequence* itemUse=nullptr;
     float                      trY=0;
   };

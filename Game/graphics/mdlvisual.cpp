@@ -184,7 +184,7 @@ void MdlVisual::updateAnimation(Npc& npc) {
 void MdlVisual::stopAnim(Npc& npc,const char* ani) {
   skInst->stopAnim(ani);
   if(!skInst->hasAnim())
-    setAnim(npc,AnimationSolver::Idle,fightMode);
+    setAnim(npc,AnimationSolver::Idle,fightMode,npc.walkMode());
   }
 
 bool MdlVisual::isRunTo(const Npc& npc) const {
@@ -196,7 +196,17 @@ bool MdlVisual::isStanding() const {
   return skInst->isStanding();
   }
 
-bool MdlVisual::setAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st) {
+bool MdlVisual::setAnim(Npc &npc, const char *name, BodyState bs) {
+  bool forceAnim=true;
+
+  const Animation::Sequence *sq = solver.solveFrm(name);
+  if(skInst->startAnim(solver,sq,bs,forceAnim,npc.world().tickCount())) {
+    return true;
+    }
+  return false;
+  }
+
+bool MdlVisual::setAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk) {
   // for those use MdlVisual::setRotation
   assert(a!=AnimationSolver::Anim::RotL && a!=AnimationSolver::Anim::RotR);
 
@@ -204,7 +214,7 @@ bool MdlVisual::setAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st) {
     auto inter = npc.interactive();
     const Animation::Sequence *sq = solver.solveAnim(inter,a,*skInst);
     if(sq!=nullptr && inter!=nullptr){
-      if(skInst->startAnim(solver,sq,false,npc.world().tickCount())) {
+      if(skInst->startAnim(solver,sq,BS_NONE,false,npc.world().tickCount())) {
         if(a==AnimationSolver::Anim::Interact)
           inter->nextState(); else
           inter->prevState();
@@ -219,8 +229,8 @@ bool MdlVisual::setAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st) {
      a==AnimationSolver::Anim::DeadB || a==AnimationSolver::Anim::UnconsciousB)
     forceAnim=true;
 
-  const Animation::Sequence *sq = solver.solveAnim(a,st,npc.walkMode(),*skInst);
-  if(skInst->startAnim(solver,sq,forceAnim,npc.world().tickCount())) {
+  const Animation::Sequence *sq = solver.solveAnim(a,st,wlk,*skInst);
+  if(skInst->startAnim(solver,sq,BS_NONE,forceAnim,npc.world().tickCount())) {
     return true;
     }
   return false;
@@ -230,7 +240,7 @@ bool MdlVisual::setAnim(Npc &npc, WeaponState st) {
   const Animation::Sequence *sq = solver.solveAnim(st,fightMode,*skInst);
   if(sq==nullptr)
     return true;
-  if(skInst->startAnim(solver,sq,false,npc.world().tickCount())) {
+  if(skInst->startAnim(solver,sq,BS_NONE,false,npc.world().tickCount())) {
     return true;
     }
   return false;
@@ -240,6 +250,6 @@ void MdlVisual::setRotation(Npc &npc, int dir) {
   skInst->setRotation(solver,npc,fightMode,dir);
   }
 
-AnimationSolver::Anim MdlVisual::animByName(const std::string &name) const {
-  return solver.animByName(name);
+bool MdlVisual::setAnimItem(Npc &npc, const char *scheme) {
+  return skInst->setAnimItem(solver,npc,scheme);
   }

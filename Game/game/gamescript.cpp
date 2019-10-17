@@ -2253,8 +2253,8 @@ void GameScript::npc_hasbodyflag(Daedalus::DaedalusVM &vm) {
     vm.setReturn(0);
     return;
     }
-  int32_t st = npc->bodyState()&Npc::BS_MAX_FLAGS;
-  bodyflag&=Npc::BS_MAX_FLAGS;
+  int32_t st = npc->bodyState()&BS_MAX_FLAGS;
+  bodyflag&=BS_MAX_FLAGS;
   vm.setReturn(bool(bodyflag&st) ? 1 : 0);
   }
 
@@ -2279,10 +2279,10 @@ void GameScript::npc_getlasthitspellcat(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::npc_playani(Daedalus::DaedalusVM &vm) {
-  auto name = vm.popString();
-  auto npc  = popInstance(vm);
+  auto& name = vm.popString();
+  auto  npc  = popInstance(vm);
   if(npc!=nullptr)
-    npc->playAnimByName(name);
+    npc->playAnimByName(name,BS_NONE);
   }
 
 void GameScript::npc_isdetectedmobownedbynpc(Daedalus::DaedalusVM &vm) {
@@ -2516,13 +2516,11 @@ void GameScript::ai_gotofp(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::ai_playanibs(Daedalus::DaedalusVM &vm) {
-  Npc::BodyState bs  = Npc::BodyState(vm.popUInt());
+  BodyState      bs  = BodyState(vm.popUInt());
   auto&          ani = vm.popString();
   auto           npc = popInstance(vm);
-  if(npc!=nullptr){
-    (void)bs;
-    npc->aiPlayAnim(ani);
-    }
+  if(npc!=nullptr)
+    npc->aiPlayAnimBs(ani,bs);
   }
 
 void GameScript::ai_equiparmor(Daedalus::DaedalusVM &vm) {

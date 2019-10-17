@@ -621,17 +621,28 @@ void Npc::setScale(float x, float y, float z) {
   durtyTranform |= TR_Scale;
   }
 
-bool Npc::setAnim(Npc::Anim a) {
-  auto st=invent.weaponState();
-  return visual.setAnim(*this,a,st);
+bool Npc::playAnimByName(const std::string &name,BodyState bs) {
+  return visual.setAnim(*this,name.c_str(),bs);
   }
 
-bool Npc::setAnim(Npc::Anim a, WeaponState st) {
-  return visual.setAnim(*this,a,st);
+bool Npc::setAnim(Npc::Anim a) {
+  auto st  = invent.weaponState();
+  auto wlk = walkMode();
+  if(mvAlgo.isSwim())
+    wlk = WalkBit::WM_Swim;
+  else if(mvAlgo.isInWater())
+    wlk = WalkBit::WM_Water;
+  return visual.setAnim(*this,a,st,wlk);
   }
 
 void Npc::setAnimRotate(int rot) {
   visual.setRotation(*this,rot);
+  }
+
+bool Npc::setAnimItem(const char *scheme) {
+  if(scheme==nullptr || scheme[0]==0)
+    return true;
+  return visual.setAnimItem(*this,scheme);
   }
 
 void Npc::stopAnim(const std::string &ani) {
@@ -1381,10 +1392,15 @@ void Npc::nextAiAction(uint64_t dt) {
         setOther(act.target);
       break;
     case AI_PlayAnim:{
-      if(!playAnimByName(act.s0))
+      if(!playAnimByName(act.s0,BS_NONE))
         aiActions.push_front(std::move(act));
       break;
       }
+    case AI_PlayAnimBs:{
+      if(!playAnimByName(act.s0,BodyState(act.i0)))
+        aiActions.push_front(std::move(act));
+      }
+      break;
     case AI_PlayAnimById:{
       auto tag = Anim(act.i0);
       if(!setAnim(tag)) {
@@ -1700,7 +1716,7 @@ bool Npc::doAttack(Anim anim) {
 
   //if(animation.current==anim)
   //  return false;
-  return setAnim(anim,weaponSt);
+  return setAnim(anim);
   }
 
 void Npc::emitDlgSound(const char *sound) {
@@ -1753,29 +1769,30 @@ gtime Npc::endTime(const Npc::Routine &r) const {
   return wtime;
   }
 
-Npc::BodyState Npc::bodyState() const {
-  uint32_t s = BS_STAND;
-  if(isDead())
-    s = BS_DEAD;
-  else if(isUnconscious())
-    s = BS_UNCONSCIOUS;
-  else if(mvAlgo.isSwim())
-    s = BS_SWIM;
-  else if(!isStanding()) {
+BodyState Npc::bodyState() const {
+  uint32_t s = visual.pose().bodyState();
+  if(isStanding()) {
+    s |= BS_STAND;
+    } else {
+    /*
     if(wlkMode==WalkBit::WM_Run)
       s = BS_RUN;
     else if(wlkMode==WalkBit::WM_Walk)
       s = BS_WALK;
     else if(wlkMode==WalkBit::WM_Sneak)
       s = BS_SNEAK;
+      */
     }
+
+  if(mvAlgo.isSwim())
+    s |= BS_SWIM;
+
+  if(isDead())
+    s = BS_DEAD;
+  else if(isUnconscious())
+    s = BS_UNCONSCIOUS;
   else if(isInAnim(Anim::Fall) || isInAnim(Anim::FallDeep))
     s = BS_FALL;
-  else if(isInAnim(Anim::Sleep))
-    s = BS_LIE;
-  else if(isInAnim(Anim::Sit)  || isInAnim(Anim::GuardSleep) ||
-          isInAnim(Anim::Pray) || isInAnim(Anim::PrayRand))
-    s = BS_SIT;
 
   if(auto i = interactive())
     s = i->stateMask(s);
@@ -1869,20 +1886,6 @@ Item *Npc::currentRangeWeapon() {
 
 bool Npc::lookAt(float dx, float dz, bool anim, uint64_t dt) {
   return implLookAt(dx,dz,anim ? 0 : 180,dt);
-  }
-
-bool Npc::playAnimByName(const std::string &name) {
-  Log::d("AI_PlayAnim: unrecognized anim: \"",name,"\"");
-  /*
-  auto a = animation.solveAnim(name.c_str());
-  if(a!=nullptr) {
-    Log::d("Npc::playAnimByName: todo \"",name,"\"");
-    //if(animation.animSq!=a)
-    //  animation.invalidateAnim(a,animation.visual.skeleton,owner.tickCount());
-    } else {
-    Log::d("AI_PlayAnim: unrecognized anim: \"",name,"\"");
-    }*/
-  return true;
   }
 
 bool Npc::checkGoToNpcdistance(const Npc &other) {
@@ -2037,7 +2040,7 @@ void Npc::blockFist() {
   auto weaponSt=invent.weaponState();
   if(weaponSt!=WeaponState::Fist)
     return;
-  setAnim(Anim::AtackBlock,weaponSt);
+  setAnim(Anim::AtackBlock);
   }
 
 bool Npc::finishingMove() {
@@ -2078,8 +2081,7 @@ void Npc::blockSword() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return;
-  auto weaponSt=invent.weaponState();
-  setAnim(AnimationSolver::AtackBlock,weaponSt);
+  setAnim(AnimationSolver::AtackBlock);
   }
 
 bool Npc::castSpell() {
@@ -2096,11 +2098,11 @@ bool Npc::castSpell() {
   const SpellCode code  = SpellCode(owner.script().invokeMana(*this,currentTarget,*active));
   switch(code) {
     case SpellCode::SPL_SENDSTOP:
-      setAnim(Anim::MagNoMana,invent.weaponState());
+      setAnim(Anim::MagNoMana);
       break;
     case SpellCode::SPL_NEXTLEVEL:{
       auto ani = Npc::Anim(owner.script().spellCastAnim(*this,*active));
-      setAnim(ani,WeaponState::Mage);
+      setAnim(ani);
       }
       break;
     case SpellCode::SPL_SENDCAST: {
@@ -2130,8 +2132,7 @@ bool Npc::aimBow() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
-  auto weaponSt=invent.weaponState();
-  return setAnim(Anim::AimBow,weaponSt);
+  return setAnim(Anim::AimBow);
   }
 
 bool Npc::shootBow() {
@@ -2143,8 +2144,7 @@ bool Npc::shootBow() {
   if(!hasAmunition())
     return false;
 
-  auto weaponSt=invent.weaponState();
-  if(!setAnim(Anim::Atack,weaponSt))
+  if(!setAnim(Anim::Atack))
     return false;
 
   float dx=1.f,dy=0.f,dz=0.f;
@@ -2495,19 +2495,18 @@ void Npc::aiStartState(uint32_t stateFn, int behavior, Npc* other, std::string w
   }
 
 void Npc::aiPlayAnim(const std::string& ani) {
-  auto tag = visual.animByName(ani);
-  if(tag!=Anim::NoAnim) {
-    // fast-path, if we know this anim
-    AiAction a;
-    a.act  = AI_PlayAnimById;
-    a.i0   = tag;
-    aiActions.push_back(a);
-    } else {
-    AiAction a;
-    a.act  = AI_PlayAnim;
-    a.s0   = ani;
-    aiActions.push_back(a);
-    }
+  AiAction a;
+  a.act  = AI_PlayAnim;
+  a.s0   = ani; //TODO: COW-Strings
+  aiActions.push_back(a);
+  }
+
+void Npc::aiPlayAnimBs(const std::string &ani,BodyState bs) {
+  AiAction a;
+  a.act  = AI_PlayAnimBs;
+  a.s0   = ani;
+  a.i0   = int(bs);
+  aiActions.push_back(a);
   }
 
 void Npc::aiWait(uint64_t dt) {

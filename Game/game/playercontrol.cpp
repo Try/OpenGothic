@@ -267,9 +267,9 @@ void PlayerControl::implMove(uint64_t dt) {
 
   Npc::Anim ani=Npc::Anim::Idle;
 
-  if((pl.bodyState()&Npc::BS_MAX)==Npc::BS_DEAD)
+  if((pl.bodyState()&BS_MAX)==BS_DEAD)
     return;
-  if((pl.bodyState()&Npc::BS_MAX)==Npc::BS_UNCONSCIOUS)
+  if((pl.bodyState()&BS_MAX)==BS_UNCONSCIOUS)
     return;
 
   if(!pl.isAiQueueEmpty()) {

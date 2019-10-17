@@ -44,10 +44,11 @@ class MdlVisual final {
     void                           stopAnim(Npc &npc, const char *ani);
     bool                           isRunTo(const Npc &npc) const;
     bool                           isStanding() const;
-    bool                           setAnim(Npc &npc, AnimationSolver::Anim a, WeaponState st);
+    bool                           setAnim(Npc &npc, const char* name, BodyState bs);
+    bool                           setAnim(Npc &npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk);
     bool                           setAnim(Npc &npc, WeaponState st);
     void                           setRotation(Npc &npc, int dir);
-    AnimationSolver::Anim          animByName(const std::string& name) const;
+    bool                           setAnimItem(Npc &npc, const char* scheme);
 
     const Skeleton*                skeleton=nullptr;
     Tempest::Matrix4x4             pos;

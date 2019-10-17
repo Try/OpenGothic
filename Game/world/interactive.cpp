@@ -200,19 +200,19 @@ uint32_t Interactive::stateMask(uint32_t orig) const {
   const char* s = schemeName();
   for(auto i:MOB_SIT){
     if(std::strcmp(i,s)==0)
-      return Npc::BS_SIT;
+      return BS_SIT;
     }
   for(auto i:MOB_LIE){
     if(std::strcmp(i,s)==0)
-      return Npc::BS_LIE;
+      return BS_LIE;
     }
   for(auto i:MOB_CLIMB){
     if(std::strcmp(i,s)==0)
-      return Npc::BS_CLIMB;
+      return BS_CLIMB;
     }
   for(auto i:MOB_NOTINTERRUPTABLE){
     if(std::strcmp(i,s)==0)
-      return Npc::BS_CLIMB;
+      ;//return BS_MOBINTERACT_INTERRUPT;
     }
   return orig;
   }
