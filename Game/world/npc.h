@@ -218,7 +218,7 @@ class Npc final {
     void setAnimRotate(int rot);
     bool setAnimItem(const char* scheme);
     void stopAnim(const std::string& ani);
-    bool isInAnim(Anim a) const;
+    bool isFinishingMove() const;
 
     ZMath::float3 animMoveSpeed(uint64_t dt) const;
 

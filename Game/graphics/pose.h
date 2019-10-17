@@ -26,6 +26,7 @@ class Pose final {
     bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq, BodyState bs,
                                  bool force, uint64_t tickCount);
     bool               stopAnim(const char* name);
+    void               stopAllAnim();
     void               update(AnimationSolver &solver, uint64_t tickCount);
 
     ZMath::float3      animMoveSpeed(uint64_t tickCount, uint64_t dt) const;
@@ -33,6 +34,7 @@ class Pose final {
     void               processEvents(uint64_t& barrier, uint64_t now, Animation::EvCount &ev) const;
     bool               isParWindow(uint64_t tickCount) const;
     bool               isAtackFinished(uint64_t tickCount) const;
+    bool               isDefence(uint64_t tickCount) const;
     bool               isJumpAnim() const;
     bool               isFlyAnim() const;
     bool               isStanding() const;

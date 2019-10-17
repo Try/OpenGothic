@@ -316,7 +316,8 @@ bool Interactive::dettach(Npc &npc) {
     if(i.user==&npc) {
       i.user=nullptr;
       state=-1;
-      npc.setAnim(Npc::Anim::Idle);
+      if(!npc.isDown())
+        npc.setAnim(Npc::Anim::Idle);
       }
   return true;
   }

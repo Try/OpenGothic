@@ -218,21 +218,6 @@ Animation::Sequence::Sequence(const std::string &fname) {
 
         if(name.find("S_")==0)
           shortName = name.substr(2);
-
-        /*
-        if(name.size()>1){
-          if(this->name.find("_2_")!=std::string::npos)
-            animCls=Transition;
-          else if(this->name[0]=='T' && this->name[1]=='_')
-            animCls=Transition;
-          else if(this->name[0]=='R' && this->name[1]=='_')
-            animCls=Transition;
-          else if(this->name[0]=='S' && this->name[1]=='_')
-            animCls=Loop;
-
-          //if(this->name=="S_JUMP" || this->name=="S_JUMPUP")
-          //  animCls=Transition;
-          }*/
         break;
         }
       case ZenLoad::ModelAnimationParser::CHUNK_RAWDATA:
@@ -269,13 +254,22 @@ bool Animation::Sequence::isAtackFinished(uint64_t t) const {
   for(auto& i:data->defHitEnd)
     if(t>i)
       return true;
-  return t>totalTime();
+  // no atach
+  return true;//t>totalTime();
   }
 
 bool Animation::Sequence::isParWindow(uint64_t t) const {
   if(data->defParFrame.size()!=2)
     return false;
   return data->defParFrame[0]<=t && t<data->defParFrame[1];
+  }
+
+bool Animation::Sequence::isWindow(uint64_t t) const {
+  for(size_t i=0;i+1<data->defWindow.size();i+=2) {
+    if(data->defWindow[i+0]<=t && t<data->defWindow[i+1])
+      return true;
+    }
+  return false;
   }
 
 float Animation::Sequence::totalTime() const {
@@ -346,6 +340,8 @@ void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation
       ev.def_undraw++;
       break;
     case ZenLoad::DEF_PAR_FRAME:
+      break;
+    case ZenLoad::DEF_WINDOW:
       break;
     default:
       break; //TODO
@@ -489,5 +485,7 @@ void Animation::AnimData::setupEvents(float fpsRate) {
       setupTime(defHitEnd,r.m_Int,fpsRate);
     if(r.m_Def==ZenLoad::DEF_PAR_FRAME)
       setupTime(defParFrame,r.m_Int,fpsRate);
+    if(r.m_Def==ZenLoad::DEF_WINDOW)
+      setupTime(defWindow,r.m_Int,fpsRate);
     }
   }

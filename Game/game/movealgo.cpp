@@ -26,7 +26,7 @@ void MoveAlgo::save(Serialize &fout) const {
 
 void MoveAlgo::tickMobsi(uint64_t dt) {
   if(npc.interactive()->isLoopState())
-    return;
+    ;//return;
 
   auto dp  = animMoveSpeed(dt);
   auto pos = npc.position();
@@ -57,6 +57,8 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
   auto  ground = dropRay(pos[0], pos[1]+fallThreshold, pos[2], valid);
   float dY     = pY-ground;
 
+  //if(ground+chest<water)
+  //  ;
   if(dY>fallThreshold*2) {
     fallSpeed[0] *=2;
     fallSpeed[2] *=2;
@@ -144,8 +146,6 @@ void MoveAlgo::tickGravity(uint64_t dt) {
     if(fallSpeed[1]<-1500.f)
       npc.setAnim(AnimationSolver::FallDeep); else
     if(fallSpeed[1]<-300.f)
-      npc.setAnim(AnimationSolver::Fall); else
-    if(fallSpeed[1]<-100.f && npc.isInAnim(Npc::Anim::Jump))
       npc.setAnim(AnimationSolver::Fall);
     } else {
     if(ground+chest<water && !npc.isDead()) {
@@ -575,6 +575,8 @@ void MoveAlgo::setInWater(bool f) {
   }
 
 void MoveAlgo::setAsSwim(bool f) {
+  if(f)
+    npc.closeWeapon(true);
   if(f)
     flags=Flags(flags|Swim);  else
     flags=Flags(flags&(~Swim));

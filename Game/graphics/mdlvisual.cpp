@@ -224,12 +224,16 @@ bool MdlVisual::setAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkB
     return false;
     }
 
+  const Animation::Sequence *sq = solver.solveAnim(a,st,wlk,*skInst);
+
   bool forceAnim=false;
   if(a==AnimationSolver::Anim::DeadA || a==AnimationSolver::Anim::UnconsciousA ||
-     a==AnimationSolver::Anim::DeadB || a==AnimationSolver::Anim::UnconsciousB)
+     a==AnimationSolver::Anim::DeadB || a==AnimationSolver::Anim::UnconsciousB) {
+    if(sq!=nullptr)
+      skInst->stopAllAnim();
     forceAnim=true;
+    }
 
-  const Animation::Sequence *sq = solver.solveAnim(a,st,wlk,*skInst);
   if(skInst->startAnim(solver,sq,BS_NONE,forceAnim,npc.world().tickCount())) {
     return true;
     }

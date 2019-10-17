@@ -47,7 +47,8 @@ class Animation final {
       std::vector<ZenLoad::zCModelEvent>          events;
 
       std::vector<uint64_t>                       defHitEnd;   // hit-end time
-      std::vector<uint64_t>                       defParFrame; // block timings
+      std::vector<uint64_t>                       defParFrame;
+      std::vector<uint64_t>                       defWindow;
 
       void                                        setupMoveTr();
       void                                        setupEvents(float fpsRate);
@@ -65,6 +66,7 @@ class Animation final {
       bool                                   canInterrupt() const;
       bool                                   isAtackFinished(uint64_t t) const;
       bool                                   isParWindow(uint64_t t) const;
+      bool                                   isWindow(uint64_t t) const;
       float                                  totalTime() const;
 
       void                                   processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const;

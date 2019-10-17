@@ -221,6 +221,12 @@ bool Pose::stopAnim(const char *name) {
   return done;
   }
 
+void Pose::stopAllAnim() {
+  for(auto& i:lay)
+    onRemoveLayer(i);
+  lay.clear();
+  }
+
 void Pose::update(AnimationSolver& solver, uint64_t tickCount) {
   if(lay.size()==0){
     zeroSkeleton();
@@ -367,6 +373,29 @@ bool Pose::isAtackFinished(uint64_t tickCount) const {
   for(auto& i:lay)
     if(i.seq->isAtackFinished(tickCount-i.sAnim))
       return true;
+  return false;
+  }
+
+bool Pose::isDefence(uint64_t tickCount) const {
+  char buf[32]={};
+  static const char* alt[3]={"","_A2","_A3"};
+
+  for(auto& i:lay) {
+    if(i.seq->isWindow(tickCount-i.sAnim)) {
+      for(int h=1;h<=2;++h) {
+        for(int v=0;v<3;++v) {
+          std::snprintf(buf,sizeof(buf),"T_%dHPARADE_0%s",h,alt[v]);
+          if(i.seq->name==buf)
+            return true;
+          }
+        }
+      }
+    for(int h=1;h<=2;++h) {
+      std::snprintf(buf,sizeof(buf),"T_%dHJUMPB",h);
+      if(i.seq->name==buf)
+        return true;
+      }
+    }
   return false;
   }
 
