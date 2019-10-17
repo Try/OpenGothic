@@ -513,10 +513,12 @@ void MainWindow::tick() {
       player.moveBack();
     }
 
+  const bool followCamera=player.isInMove();
   if(player.tickMove(dt)) {
     if(auto pl=gothic.player()) {
       camera.setMode(solveCameraMode());
-      camera.follow(*pl,dt,(!mouseP[Event::ButtonLeft] || currentFocus || SystemApi::isFullscreen(hwnd())) && !inventory.isActive());
+      camera.follow(*pl,dt,followCamera,
+                    (!mouseP[Event::ButtonLeft] || currentFocus || SystemApi::isFullscreen(hwnd())) && !inventory.isActive());
       }
     } else {
     if(pressed[KeyEvent::K_Q])

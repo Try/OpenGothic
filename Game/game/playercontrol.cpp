@@ -178,6 +178,10 @@ void PlayerControl::moveRight() {
   ctrl[Right]=true;
   }
 
+bool PlayerControl::isInMove() {
+  return ctrl[Forward] | ctrl[Left] | ctrl[Right]; // | ctrl[Back];
+  }
+
 void PlayerControl::setTarget(Npc *other) {
   auto w  = world();
   auto pl = w ? w->player() : nullptr;

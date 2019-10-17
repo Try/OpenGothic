@@ -124,18 +124,18 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
       return solveFrm("T_%sSFINISH",st);
     }
   else if(st==WeaponState::Bow || st==WeaponState::CBow) {
+    // S_BOWAIM -> S_BOWSHOOT+T_BOWRELOAD -> S_BOWAIM
     if(a==Anim::AimBow) {
-      if(!pose.isInAnim("T_BOWRELOAD") && !pose.isInAnim("T_CBOWRELOAD") &&
-         !pose.isInAnim("S_BOWSHOOT")  && !pose.isInAnim("S_CBOWSHOOT"))
-        return solveFrm("T_%sRUN_2_%sAIM",st);
-      return solveFrm("S_%sSHOOT",st);
+      if(pose.isInAnim("S_BOWRUN") || pose.isInAnim("S_CBOWRUN"))
+        return solveFrm("T_%sRUN_2_%sAIM",st); else
+        return solveFrm("S_%sSHOOT",st);
       }
     if(a==Anim::Atack)
       return solveFrm("T_%sRELOAD",st);
-    if(a!=Anim::AimBow &&
-       (pose.isInAnim("T_BOWRELOAD")       || pose.isInAnim("T_CBOWRELOAD") ||
-        pose.isInAnim("T_BOWRUN_2_BOWAIM") || pose.isInAnim("T_CBOWRUN_2_CBOWAIM")))
-      return solveFrm("T_%sAIM_2_%sRUN",st);
+    if(a==Anim::Idle) {
+      if(pose.isInAnim("S_BOWSHOOT") || pose.isInAnim("S_CBOWSHOOT"))
+        return solveFrm("T_%sAIM_2_%sRUN",st);
+      }
     }
   else if(st==WeaponState::Mage) {
     // Magic-cast
@@ -155,17 +155,21 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
   // Item-use
   if(Anim::Food1<=a && a<=Anim::Rice2) {
     for(auto& i:schemes){
-      if(a!=i.second)
-        continue;
-      char S_ID_S0[128]={};
-      std::snprintf(S_ID_S0,sizeof(S_ID_S0),"S_%s_S0",i.first);
+      char S_ID_S0[128]={}, T_ID_STAND_2_S0[128]={};
+      std::snprintf(T_ID_STAND_2_S0,sizeof(T_ID_STAND_2_S0),"T_%s_STAND_2_S0",i.first);
 
-      if(a==i.second && !pose.isInAnim(S_ID_S0))
-        return solveItemUse("T_%s_STAND_2_S0",i.first);
-      if(a<Anim::IdleLast && pose.isInAnim(S_ID_S0))
-        return solveItemUse("T_%s_S0_2_STAND",i.first);
-      if(a==i.second)
-        return solveItemUse("S_%s_S0",i.first);
+      if(a==i.second) {
+        std::snprintf(S_ID_S0,sizeof(S_ID_S0),"S_%s_S0",i.first);
+        if(a==i.second && !pose.isInAnim(S_ID_S0))
+          return solveFrm(T_ID_STAND_2_S0);
+        if(a==i.second)
+          return solveFrm(S_ID_S0);
+        } else {
+        if(a<Anim::IdleLast && pose.isInAnim(S_ID_S0))
+          return solveItemUse("T_%s_S0_2_STAND",i.first);
+        if(a<Anim::IdleLast && !pose.isInAnim(T_ID_STAND_2_S0))
+          return solveItemUse("S_%s_S0",i.first); //FIXME
+        }
       }
     }
   // Move
@@ -254,6 +258,10 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     }
   if(a==Anim::Fall)
     return solveFrm("S_FALLDN");
+  if(a==Anim::StumbleA)
+    return solveFrm("T_STUMBLE");
+  if(a==Anim::StumbleB)
+    return solveFrm("T_STUMBLEB");
   if(a==Anim::DeadA) {
     if(pose.isInAnim("S_WOUNDED") || pose.isInAnim("S_WOUNDEDB"))
       return solveDead("T_WOUNDED_2_DEAD","T_WOUNDEDB_2_DEADB"); else

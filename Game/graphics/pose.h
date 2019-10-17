@@ -5,6 +5,7 @@
 #include <mutex>
 #include <memory>
 
+#include "game/constants.h"
 #include "animation.h"
 
 class Skeleton;
@@ -23,8 +24,7 @@ class Pose final {
     void               setSkeleton(const Skeleton *sk);
     bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq, bool force, uint64_t tickCount);
     bool               stopAnim(const char* name);
-    void               reset(const Skeleton& sk,uint64_t tickCount,const Animation::Sequence* sq0,const Animation::Sequence* sq1);
-    void               update(uint64_t tickCount);
+    void               update(AnimationSolver &solver, uint64_t tickCount);
 
     ZMath::float3      animMoveSpeed(uint64_t tickCount, uint64_t dt) const;
     void               emitSfx(Npc &npc, uint64_t tickCount);
@@ -32,7 +32,8 @@ class Pose final {
     bool               isParWindow(uint64_t tickCount) const;
     bool               isAtackFinished(uint64_t tickCount) const;
     bool               isFlyAnim() const;
-    bool isStanding() const;
+    bool               isStanding() const;
+    bool               isPrehit() const;
     bool               isIdle() const;
     bool               isInAnim(const char *sq) const;
     bool               isInAnim(const Animation::Sequence* sq) const;
@@ -41,6 +42,8 @@ class Pose final {
 
     float              translateY() const { return trY; }
     Tempest::Matrix4x4 cameraBone() const;
+
+    void               setRotation(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir);
 
     std::vector<Tempest::Matrix4x4> tr;
     std::vector<Tempest::Matrix4x4> base;
@@ -54,6 +57,8 @@ class Pose final {
     bool update(const Animation::Sequence &s, uint64_t dt, uint64_t &fr);
     void updateFrame(const Animation::Sequence &s,uint64_t fr);
 
+    auto getNext(AnimationSolver& solver, const Animation::Sequence* sq) -> const Animation::Sequence*;
+
     void addLayer(const Animation::Sequence* seq, uint64_t tickCount);
     template<class T,class F>
     void removeIf(T& t,F f);
@@ -65,5 +70,6 @@ class Pose final {
       };
     const Skeleton*            skeleton=nullptr;
     std::vector<Layer>         lay;
+    const Animation::Sequence* rotation=nullptr;
     float                      trY=0;
   };

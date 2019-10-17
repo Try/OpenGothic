@@ -42,7 +42,7 @@ class MdlVisual final {
     void                           updateAnimation(Npc &owner);
 
     void                           stopAnim(Npc &npc, const char *ani);
-    bool                           isInAnim(AnimationSolver::Anim a) const;
+    bool                           isRunTo(const Npc &npc) const;
     bool                           isStanding() const;
     bool                           setAnim(Npc &npc, AnimationSolver::Anim a, WeaponState st);
     bool                           setAnim(Npc &npc, WeaponState st);
@@ -59,7 +59,6 @@ class MdlVisual final {
     PfxObjects::Emitter            pfx;
 
     WeaponState                    fightMode=WeaponState::NoWeapon;
-    const Animation::Sequence*     rotation=nullptr;
     AnimationSolver                solver;
     std::unique_ptr<Pose>          skInst;
   };

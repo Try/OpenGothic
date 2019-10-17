@@ -191,12 +191,29 @@ Inventory &Interactive::inventory()  {
   }
 
 uint32_t Interactive::stateMask(uint32_t orig) const {
-  //orig |= Npc::BS_MOBINTERACT;
-
-  if(data.oCMOB.focusName=="MOBNAME_BENCH" ||
-     data.oCMOB.focusName=="MOBNAME_THRONE" ||
-     data.oCMOB.focusName=="MOBNAME_CHAIR")
-    orig = Npc::BS_SIT;
+  static const char* MOB_SIT[]   = {"BENCH","CHAIR","GROUND","THRONE"};
+  static const char* MOB_LIE[]   = {"BED","BEDHIGH","BEDLOW"};
+  static const char* MOB_CLIMB[] = {"CLIMB","LADDER","RANKE"};
+  static const char* MOB_NOTINTERRUPTABLE[] =
+     {"DOOR","LEVER","TOUCHPLATE","TURNSWITCH","VWHEEL","CHESTBIG","CHESTSMALL","HERB","IDOL","PAN","SMOKE","INNOS"};
+  // TODO: fetch MOB_* from script
+  const char* s = schemeName();
+  for(auto i:MOB_SIT){
+    if(std::strcmp(i,s)==0)
+      return Npc::BS_SIT;
+    }
+  for(auto i:MOB_LIE){
+    if(std::strcmp(i,s)==0)
+      return Npc::BS_LIE;
+    }
+  for(auto i:MOB_CLIMB){
+    if(std::strcmp(i,s)==0)
+      return Npc::BS_CLIMB;
+    }
+  for(auto i:MOB_NOTINTERRUPTABLE){
+    if(std::strcmp(i,s)==0)
+      return Npc::BS_CLIMB;
+    }
   return orig;
   }
 

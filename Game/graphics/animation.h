@@ -79,10 +79,9 @@ class Animation final {
       Flags                                  flags  =Flags::None;
       AnimClass                              animCls=Transition;
       bool                                   reverse=false;
-      std::string                            nextStr;
+      std::string                            next;
 
       std::shared_ptr<AnimData>              data;
-      const Sequence*                        next=nullptr;
 
       private:
         void setupMoveTr();

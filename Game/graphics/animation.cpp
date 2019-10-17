@@ -34,11 +34,8 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
 
         ani.layer      = p.ani.m_Layer;
         ani.flags      = Flags(p.ani.m_Flags);
-        ani.nextStr    = p.ani.m_Next;
+        ani.next       = p.ani.m_Next;
         ani.reverse    = p.ani.m_Dir!=ZenLoad::MSB_FORWARD;
-        if(ani.nextStr==ani.name)
-          ani.animCls=Loop;
-
         current->firstFrame = uint32_t(p.ani.m_FirstFrame);
         current->lastFrame  = uint32_t(p.ani.m_LastFrame);
         break;
@@ -63,7 +60,7 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
             ani.name    = p.ani.m_Name;
             ani.layer   = p.comb.m_Layer;
             ani.flags   = Flags(p.comb.m_Flags);
-            ani.nextStr = p.comb.m_Next;
+            ani.next    = p.comb.m_Next;
             ani.data    = d; // set first as default
             found=true;
             break;
@@ -178,22 +175,18 @@ void Animation::setupIndex() {
     ani.layer   = r.m_Layer;
     ani.flags   = Flags(r.m_Flags);
     ani.reverse = r.m_Dir!=ZenLoad::MSB_FORWARD;
-    ani.nextStr = r.m_Next;
-    if(ani.nextStr==ani.name)
-      ani.animCls=Loop;
+    ani.next    = r.m_Next;
     sequences.emplace_back(std::move(ani));
     }
+  ref.clear();
 
   std::sort(sequences.begin(),sequences.end(),[](const Sequence& a,const Sequence& b){
     return a.name<b.name;
     });
 
   for(auto& i:sequences) {
-    for(auto& r:sequences)
-      if(r.name==i.nextStr){
-        i.next = &r;
-        break;
-        }
+    if(i.next==i.name)
+      i.animCls = Loop;
     }
 
   // for(auto& i:sequences)
@@ -225,7 +218,6 @@ Animation::Sequence::Sequence(const std::string &fname) {
 
         if(name.find("S_")==0)
           shortName = name.substr(2);
-        animCls=Transition;
 
         /*
         if(name.size()>1){

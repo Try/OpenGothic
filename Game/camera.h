@@ -37,7 +37,7 @@ class Camera final {
     void moveRight();
 
     void setMode(Mode m);
-    void follow(const Npc& npc, uint64_t dt, bool includeRot);
+    void follow(const Npc& npc, uint64_t dt, bool inMove, bool includeRot);
 
     void setPosition(float x,float y,float z);
     void setSpin(const Tempest::PointF& p);
