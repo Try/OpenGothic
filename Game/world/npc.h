@@ -270,6 +270,7 @@ class Npc final {
 
     ZMath::float3 animMoveSpeed(uint64_t dt) const;
 
+    bool          isJumpAnim() const;
     bool          isFlyAnim() const;
     bool          isFaling() const;
     bool          isSlide() const;

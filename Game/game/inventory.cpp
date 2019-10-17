@@ -598,7 +598,7 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
     };
   for(auto& i:schemes){
     if(it->handle()->scemeName==i.first){
-      if(owner.isInAnim(i.second) || !owner.setAnim(i.second))
+      if(!owner.setAnim(i.second))
         return false;
       }
     }

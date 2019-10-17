@@ -232,32 +232,35 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     return solveFrm("T_%sRUNTURNR",st);
     }
   // Jump regular
-  /*
-  if(cur==Anim::Move && a==Jump)
-    return animSequence("T_RUNL_2_JUMP");
-  if(cur==Anim::Idle && a==Anim::Jump)
-    return animSequence("T_STAND_2_JUMP");
-  if(cur==Anim::Jump && a==Anim::Idle)
-    return animSequence("T_JUMP_2_STAND");
-  if(a==Anim::Jump)
-    return animSequence("S_JUMP");
-  if(cur==Anim::Fall && a==Move)
-    return animSequence("T_RUN_2_RUNL");
-    */
   if(a==Jump) {
     if(pose.isIdle())
       return solveFrm("T_STAND_2_JUMP");
     return solveFrm("S_JUMP");
-    /*
-    if(!pose.isInAnim("S_JUMP")) {
-      if(pose.isIdle())
-        return solveFrm("T_STAND_2_JUMP"); else
-        return solveFrm("T_RUNL_2_JUMP");
-      }
-    return solveFrm("S_JUMP");*/
     }
+  if(a==JumpUpLow) {
+    if(pose.isIdle())
+      return solveFrm("T_STAND_2_JUMPUPLOW");
+    return solveFrm("S_JUMPUPLOW");
+    }
+  if(a==JumpUpMid) {
+    if(pose.isIdle())
+      return solveFrm("T_STAND_2_JUMPUPMID");
+    return solveFrm("S_JUMPUPMID");
+    }
+  if(a==JumpUp) {
+    if(pose.isIdle())
+      return solveFrm("T_STAND_2_JUMPUP");
+    return solveFrm("S_JUMPUP");
+    }
+
   if(a==Anim::Fall)
     return solveFrm("S_FALLDN");
+  if(a==Anim::FallDeep)
+    return solveFrm("S_FALL");
+  if(a==Anim::SlideA)
+    return solveFrm("S_SLIDE");
+  if(a==Anim::SlideB)
+    return solveFrm("S_SLIDEB");
   if(a==Anim::StumbleA)
     return solveFrm("T_STUMBLE");
   if(a==Anim::StumbleB)

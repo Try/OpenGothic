@@ -164,19 +164,6 @@ void MoveAlgo::tickGravity(uint64_t dt) {
     }
   }
 
-
-bool MoveAlgo::testClimp(float scale) const {
-  float len=100;
-  std::array<float,3> ret = {}, v={0,0,len*scale};
-  applyRotation(ret,v.data());
-
-  ret[0]+=npc.x;
-  ret[1]+=npc.y+npc.translateY();
-  ret[2]+=npc.z;
-
-  return npc.testMove(ret,v,0.f);
-  }
-
 void MoveAlgo::tickJumpup(uint64_t dt) {
   tickGravity(dt);
   if(fallSpeed[1]<=0.f || !isInAir()) {
@@ -235,7 +222,7 @@ void MoveAlgo::tick(uint64_t dt, bool fai) {
   if(isSwim())
     return tickSwim(dt);
 
-  if(isInAir() && !npc.isFlyAnim()) {
+  if(isInAir() && !npc.isJumpAnim()) {
     return tickGravity(dt);
     }
 
@@ -356,7 +343,7 @@ std::array<float,3> MoveAlgo::animMoveSpeed(uint64_t dt) const {
 
 std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt,bool fai) {
   std::array<float,3> dp = animMoveSpeed(dt);
-  if(!npc.isFlyAnim())
+  if(!npc.isJumpAnim())
     dp[1] = 0.f;
 
   if(fai) {
@@ -403,8 +390,20 @@ std::array<float,3> MoveAlgo::go2WpMoveSpeed(std::array<float,3> dp, float x, fl
   return dp;
   }
 
+bool MoveAlgo::testClimp(float scale) const {
+  float len=100;
+  std::array<float,3> ret = {}, v={0,0,len*scale};
+  applyRotation(ret,v.data());
+
+  ret[0]+=npc.x;
+  ret[1]+=npc.y+npc.translateY();
+  ret[2]+=npc.z;
+
+  return npc.testMove(ret,v,0.f);
+  }
+
 bool MoveAlgo::testSlide(float x,float y,float z) const {
-  if(isInAir() || npc.isFlyAnim())
+  if(isInAir() || npc.isJumpAnim())
     return false;
 
   auto  norm             = normalRay(x,y,z);

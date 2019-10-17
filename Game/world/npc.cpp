@@ -650,6 +650,10 @@ bool Npc::isStanding() const {
   return visual.isStanding();
   }
 
+bool Npc::isJumpAnim() const {
+  return visual.pose().isJumpAnim();
+  }
+
 bool Npc::isFlyAnim() const {
   return visual.pose().isFlyAnim();
   }

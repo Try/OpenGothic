@@ -345,6 +345,13 @@ bool Pose::isAtackFinished(uint64_t tickCount) const {
   return false;
   }
 
+bool Pose::isJumpAnim() const {
+  for(auto& i:lay)
+    if(i.seq->isFly() && i.seq->name!="S_JUMP" && i.seq->name!="S_FALL" && i.seq->name!="S_FALLDN")
+      return true;
+  return false;
+  }
+
 bool Pose::isFlyAnim() const {
   for(auto& i:lay)
     if(i.seq->isFly())
