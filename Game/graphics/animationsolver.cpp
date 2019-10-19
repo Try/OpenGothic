@@ -147,7 +147,7 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
       return solveFrm("S_%sWALK",st);
     return solveFrm("S_%sRUN",st);
     }
-  if(a==Move) {
+  if(a==Move)  {
     if(bool(wlkMode & WalkBit::WM_Swim))
       return solveFrm("S_SWIMF",st);
     if(bool(wlkMode & WalkBit::WM_Walk))

@@ -921,9 +921,10 @@ bool Npc::implGoTo(uint64_t dt) {
     if(!mvAlgo.aiGoTo(currentGoTo)) {
       currentGoTo = wayPath.pop();
       if(currentGoTo!=nullptr) {
-        currentFpLock = FpLock(*currentGoTo);
+        attachToPoint(currentGoTo);
         } else
       if(!visual.isStanding()) {
+        mvAlgo.aiGoTo(nullptr);
         setAnim(AnimationSolver::Idle);
         }
       }
@@ -1360,10 +1361,9 @@ void Npc::nextAiAction(uint64_t dt) {
       if(wayPath.last()!=act.point)
         wayPath = owner.wayTo(*this,*act.point);
       currentGoTo     = wayPath.pop();
-      currentFpLock   = FpLock(currentGoTo);
       currentGoToNpc  = nullptr;
-      currentFp       = nullptr;
       currentGoToFlag = GoToHint::GT_Default;
+      attachToPoint(currentGoTo);
       break;
       }
     case AI_StopLookAt:
@@ -1759,32 +1759,32 @@ gtime Npc::endTime(const Npc::Routine &r) const {
   }
 
 BodyState Npc::bodyState() const {
+  if(isDead())
+    return BS_DEAD;
+  if(isUnconscious())
+    return BS_UNCONSCIOUS;
+  if(isFaling())
+    return BS_FALL;
+
   uint32_t s = visual.pose().bodyState();
+  if(mvAlgo.isSwim())
+    s |= BS_SWIM;
+  if(auto i = interactive())
+    s = i->stateMask(s);
+  if(s!=0)
+    return BodyState(s);
+
   if(isStanding()) {
     s |= BS_STAND;
     } else {
-    /*
     if(wlkMode==WalkBit::WM_Run)
       s = BS_RUN;
     else if(wlkMode==WalkBit::WM_Walk)
       s = BS_WALK;
     else if(wlkMode==WalkBit::WM_Sneak)
       s = BS_SNEAK;
-      */
     }
 
-  if(mvAlgo.isSwim())
-    s |= BS_SWIM;
-
-  if(isDead())
-    s = BS_DEAD;
-  else if(isUnconscious())
-    s = BS_UNCONSCIOUS;
-  else if(isFaling())
-    s = BS_FALL;
-
-  if(auto i = interactive())
-    s = i->stateMask(s);
   return BodyState(s);
   }
 

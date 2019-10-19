@@ -264,7 +264,7 @@ bool MdlVisual::setAnimDialog(Npc &npc) {
   const int id      = std::rand()%countG2 + 1;
 
   char name[32]={};
-  std::snprintf(name,sizeof(name),"T_DIALOGGESTURE_%s",id);
+  std::snprintf(name,sizeof(name),"T_DIALOGGESTURE_%02d",id);
 
   const Animation::Sequence *sq = solver.solveFrm(name);
   if(skInst->startAnim(solver,sq,BS_NONE,false,npc.world().tickCount())) {

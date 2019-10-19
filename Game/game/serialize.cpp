@@ -55,7 +55,7 @@ void Serialize::read(const WayPoint *&wptr) {
   wptr = ctx->findPoint(tmpStr);
   }
 
-void Serialize::write(const WeaponState w) {
+void Serialize::write(WeaponState w) {
   write(uint8_t(w));
   }
 

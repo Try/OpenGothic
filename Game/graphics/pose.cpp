@@ -108,7 +108,7 @@ void Pose::save(Serialize &fout) {
   uint8_t sz=uint8_t(lay.size());
   fout.write(sz);
   for(auto& i:lay) {
-    fout.write(i.seq->name,i.frame,i.sAnim);
+    fout.write(i.seq->name,i.frame,i.sAnim,i.bs);
     }
   fout.write(rotation ? rotation->name : "");
   fout.write(itemUse  ? itemUse->name  : "");
@@ -121,7 +121,7 @@ void Pose::load(Serialize &fin,const AnimationSolver& solver) {
   fin.read(sz);
   lay.resize(sz);
   for(auto& i:lay) {
-    fin.read(name,i.frame,i.sAnim);
+    fin.read(name,i.frame,i.sAnim,i.bs);
     i.seq = solver.solveFrm(name.c_str());
     }
   removeIf(lay,[](const Layer& l){
@@ -338,6 +338,8 @@ void Pose::onRemoveLayer(Pose::Layer &l) {
     rotation=nullptr;
   if(l.seq==itemUse)
     itemUse=nullptr;
+  if(l.seq->name=="S_SIT")
+    Log::d("");
   }
 
 void Pose::emitSfx(Npc &npc, uint64_t tickCount) {
