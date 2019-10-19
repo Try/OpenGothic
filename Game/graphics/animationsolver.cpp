@@ -124,19 +124,6 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
         return solveFrm("T_%sAIM_2_%sRUN",st);
       }
     }
-  else if(st==WeaponState::Mage) {
-    // Magic-cast
-    if(Anim::MagFirst<=a && a<=Anim::MagLast) {
-      if(pose.isInAnim("S_MAGRUN"))
-        return solveMag("T_MAGRUN_2_%sSHOOT",a); else
-        return solveMag("S_%sSHOOT",a);
-      }
-    for(uint8_t i=Anim::MagFirst;i<=Anim::MagLast;++i) {
-      auto sq = solveMag("S_%sSHOOT",Anim(i));
-      if(pose.isInAnim(sq))
-        return solveMag("T_%sSHOOT_2_STAND",Anim(i));
-      }
-    }
   if(a==Anim::MagNoMana)
     return solveFrm("T_CASTFAIL");
   // Move
@@ -235,19 +222,23 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
   if(a==Anim::DeadA) {
     if(pose.isInAnim("S_WOUNDED")  || pose.isInAnim("T_STAND_2_WOUNDED") ||
        pose.isInAnim("S_WOUNDEDB") || pose.isInAnim("T_STAND_2_WOUNDEDB"))
-      return solveDead("T_WOUNDED_2_DEAD","T_WOUNDEDB_2_DEADB"); else
-      return solveDead("T_DEAD", "T_DEADB");
+      return solveDead("T_WOUNDED_2_DEAD","T_WOUNDEDB_2_DEADB");
+    if(pose.hasAnim())
+      return solveDead("T_DEAD", "T_DEADB"); else
+      return solveDead("S_DEAD", "S_DEADB");
     }
   if(a==Anim::DeadB) {
     if(pose.isInAnim("S_WOUNDED")  || pose.isInAnim("T_STAND_2_WOUNDED") ||
        pose.isInAnim("S_WOUNDEDB") || pose.isInAnim("T_STAND_2_WOUNDEDB"))
-      return solveDead("T_WOUNDEDB_2_DEADB","T_WOUNDED_2_DEAD"); else
-      return solveDead("T_DEADB","T_DEAD");
+      return solveDead("T_WOUNDEDB_2_DEADB","T_WOUNDED_2_DEAD");
+    if(pose.hasAnim())
+      return solveDead("T_DEADB","T_DEAD"); else
+      return solveDead("S_DEADB","S_DEAD");
     }
   if(a==Anim::UnconsciousA)
-    return solveFrm("S_WOUNDED");
+    return solveFrm("T_STAND_2_WOUNDED");
   if(a==Anim::UnconsciousB)
-    return solveFrm("S_WOUNDEDB");
+    return solveFrm("T_STAND_2_WOUNDEDB");
   return nullptr;
   }
 
@@ -315,14 +306,9 @@ const Animation::Sequence *AnimationSolver::solveFrm(const char *name) const {
   return baseSk ? baseSk->sequence(name) : nullptr;
   }
 
-const Animation::Sequence* AnimationSolver::solveMag(const char *format,Anim spell) const {
-  static const char* mg[]={"FIB", "WND", "HEA", "PYR", "FEA", "TRF", "SUM", "MSD", "STM", "FRZ", "SLE", "WHI", "SCK", "FBT"};
-
+const Animation::Sequence* AnimationSolver::solveMag(const char *format, const std::string &spell) const {
   char name[128]={};
-  std::snprintf(name,sizeof(name),format,mg[spell-Anim::MagFirst]);
-  if(auto a=solveFrm(name))
-    return a;
-  std::snprintf(name,sizeof(name),format,mg[0]);
+  std::snprintf(name,sizeof(name),format,spell.c_str());
   return solveFrm(name);
   }
 

@@ -49,6 +49,7 @@ class MdlVisual final {
     bool                           setAnim(Npc &npc, WeaponState st);
     void                           setRotation(Npc &npc, int dir);
     bool                           setAnimItem(Npc &npc, const char* scheme);
+    bool                           setAnimSpell(Npc &npc, const char* scheme);
     bool                           setAnimDialog(Npc &npc);
     void                           stopDlgAnim();
     void                           stopAnim(Npc &npc, const char *ani);

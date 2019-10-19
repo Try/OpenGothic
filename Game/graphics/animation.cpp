@@ -187,6 +187,12 @@ void Animation::setupIndex() {
   for(auto& i:sequences) {
     if(i.next==i.name)
       i.animCls = Loop;
+    if(i.name.find("S_")==0)
+      i.shortName = &i.name[2];
+    if(i.name=="T_1HRUN_2_1H"   || i.name=="T_BOWRUN_2_BOW" ||
+       i.name=="T_2HRUN_2_2H"   || i.name=="T_CBOWRUN_2_CBOW" ||
+       i.name=="T_MAGRUN_2_MAG" || i.name=="T_FISTRUN_2_FIST")
+      i.next = "";
     }
 
   // for(auto& i:sequences)
@@ -215,9 +221,6 @@ Animation::Sequence::Sequence(const std::string &fname) {
         layer           = p.getHeader().layer;
         data->fpsRate   = p.getHeader().fpsRate;
         data->numFrames = p.getHeader().numFrames;
-
-        if(name.find("S_")==0)
-          shortName = name.substr(2);
         break;
         }
       case ZenLoad::ModelAnimationParser::CHUNK_RAWDATA:

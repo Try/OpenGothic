@@ -240,6 +240,7 @@ bool MdlVisual::setAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkB
       bs = BS_NONE;
       break;
     case AnimationSolver::Anim::Idle:
+    case AnimationSolver::Anim::MagNoMana:
       bs = BS_STAND;
       break;
     case AnimationSolver::Anim::DeadA:
@@ -322,6 +323,17 @@ void MdlVisual::setRotation(Npc &npc, int dir) {
 
 bool MdlVisual::setAnimItem(Npc &npc, const char *scheme) {
   return skInst->setAnimItem(solver,npc,scheme);
+  }
+
+bool MdlVisual::setAnimSpell(Npc &npc, const char *scheme) {
+  char name[128]={};
+  std::snprintf(name,sizeof(name),"S_%sSHOOT",scheme);
+
+  const Animation::Sequence *sq = solver.solveFrm(name);
+  if(skInst->startAnim(solver,sq,BS_CASTING,true,npc.world().tickCount())) {
+    return true;
+    }
+  return false;
   }
 
 bool MdlVisual::setAnimDialog(Npc &npc) {

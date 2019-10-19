@@ -370,6 +370,10 @@ void PlayerControl::implMove(uint64_t dt) {
 
     if(ctrl[ActForward]) {
       auto ws = pl.weaponState();
+      if(ws==WeaponState::NoWeapon) {
+        ctrl[ActForward]=true;
+        ctrl[Forward]   =true;
+        }
       if(ws==WeaponState::Fist) {
         pl.fistShoot();
         return;
@@ -381,15 +385,13 @@ void PlayerControl::implMove(uint64_t dt) {
         return;
         }
       if(ws==WeaponState::Bow || ws==WeaponState::CBow) {
-        pl.shootBow();
-        return;
+        if(pl.shootBow())
+          return;
         }
       if(ws==WeaponState::Mage) {
-        pl.castSpell();
-        return;
+        if(pl.castSpell())
+          return;
         }
-      ctrl[ActForward]=true;
-      ctrl[Forward]   =true;
       }
     if(ctrl[ActLeft] || ctrl[ActRight] || ctrl[ActBack]) {
       auto ws = pl.weaponState();

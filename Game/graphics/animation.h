@@ -76,7 +76,8 @@ class Animation final {
       ZMath::float3                          speed(uint64_t at, uint64_t dt) const;
       ZMath::float3                          translateXZ(uint64_t at) const;
 
-      std::string                            name, shortName;
+      std::string                            name;
+      const char*                            shortName = nullptr;
       uint32_t                               layer  =0;
       Flags                                  flags  =Flags::None;
       AnimClass                              animCls=Transition;

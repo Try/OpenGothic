@@ -908,40 +908,14 @@ int GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
     }
   }
 
-int GameScript::spellCastAnim(Npc&, Item &it) {
-  if(spellFxAniLetters==size_t(-1))
-    return Npc::Anim::MagFib;
+const std::string& GameScript::spellCastAnim(Npc&, Item &it) {
+  if(spellFxAniLetters==size_t(-1)) {
+    static const std::string FIB = "FIB";
+    return FIB;
+    }
   auto& spellAni = vm.getDATFile().getSymbolByIndex(spellFxAniLetters);
   auto& tag      = spellAni.getString(size_t(it.spellId()));
-  if(tag=="FIB")
-    return Npc::Anim::MagFib;
-  if(tag=="WND")
-    return Npc::Anim::MagWnd;
-  if(tag=="HEA")
-    return Npc::Anim::MagHea;
-  if(tag=="PYR")
-    return Npc::Anim::MagPyr;
-  if(tag=="FEA")
-    return Npc::Anim::MagFea;
-  if(tag=="TRF")
-    return Npc::Anim::MagTrf;
-  if(tag=="SUM")
-    return Npc::Anim::MagSum;
-  if(tag=="MSD")
-    return Npc::Anim::MagMsd;
-  if(tag=="STM")
-    return Npc::Anim::MagStm;
-  if(tag=="FRZ")
-    return Npc::Anim::MagFrz;
-  if(tag=="SLE")
-    return Npc::Anim::MagSle;
-  if(tag=="WHI")
-    return Npc::Anim::MagWhi;
-  if(tag=="SCK")
-    return Npc::Anim::MagSck;
-  if(tag=="FBT")
-    return Npc::Anim::MagFbt;
-  return Npc::Anim::MagFib;
+  return tag;
   }
 
 bool GameScript::aiOutput(Npc &npc, const std::string &outputname) {

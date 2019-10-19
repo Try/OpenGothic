@@ -167,7 +167,8 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
 
   for(auto& i:lay)
     if(i.seq->layer==sq->layer) {
-      const bool finished  = i.seq->isFinished(tickCount-i.sAnim);
+      const bool hasNext   = (i.seq->next.empty() && i.seq->animCls!=Animation::Loop);
+      const bool finished  = i.seq->isFinished(tickCount-i.sAnim) && !hasNext;
       const bool interrupt = force || i.seq->canInterrupt();
       if(i.seq==sq && (interrupt || finished))
         return true;
@@ -176,21 +177,21 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       char tansition[256]={};
       const Animation::Sequence* tr=nullptr;
       if(i.seq==itemUse) {
-        if(i.seq->shortName.empty())
+        if(i.seq->shortName==nullptr)
           return false;
-        std::snprintf(tansition,sizeof(tansition),"T_%s_2_STAND",i.seq->shortName.c_str(),sq->shortName.c_str());
+        std::snprintf(tansition,sizeof(tansition),"T_%s_2_STAND",i.seq->shortName,sq->shortName);
         tr = solver.solveFrm(tansition);
         }
-      if(i.seq->shortName.size()>0 && sq->shortName.size()>0) {
-        std::snprintf(tansition,sizeof(tansition),"T_%s_2_%s",i.seq->shortName.c_str(),sq->shortName.c_str());
+      if(i.seq->shortName!=nullptr && sq->shortName!=nullptr) {
+        std::snprintf(tansition,sizeof(tansition),"T_%s_2_%s",i.seq->shortName,sq->shortName);
         tr = solver.solveFrm(tansition);
         }
       if(tr==nullptr) {
-        std::snprintf(tansition,sizeof(tansition),"T_STAND_2_%s",sq->shortName.c_str());
+        std::snprintf(tansition,sizeof(tansition),"T_STAND_2_%s",sq->shortName);
         tr = solver.solveFrm(tansition);
         }
       if(tr==nullptr && sq->isIdle()) {
-        std::snprintf(tansition,sizeof(tansition),"T_%s_2_STAND",i.seq->shortName.c_str());
+        std::snprintf(tansition,sizeof(tansition),"T_%s_2_STAND",i.seq->shortName);
         tr = solver.solveFrm(tansition);
         }
       onRemoveLayer(i);
@@ -422,10 +423,13 @@ bool Pose::isStanding() const {
   if(s.isIdle())
     return true;
   // check common idle animations
-  return s.name=="S_FISTRUN" || s.name=="S_MAGRUN"  ||
-         s.name=="S_1HRUN"   || s.name=="S_BOWRUN"  ||
-         s.name=="S_2HRUN"   || s.name=="S_CBOWRUN" ||
-         s.name=="S_RUN"     || s.name=="S_WALK";
+  return s.name=="S_FISTRUN"  || s.name=="S_MAGRUN"  ||
+         s.name=="S_1HRUN"    || s.name=="S_BOWRUN"  ||
+         s.name=="S_2HRUN"    || s.name=="S_CBOWRUN" ||
+         s.name=="S_RUN"      || s.name=="S_WALK"    ||
+         s.name=="S_FISTWALK" || s.name=="S_MAGWALK" ||
+         s.name=="S_1HWALK"   || s.name=="S_BOWWALK" ||
+         s.name=="S_2HWALK"   || s.name=="S_CBOWWALK";
   }
 
 bool Pose::isPrehit() const {

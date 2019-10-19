@@ -55,24 +55,7 @@ class AnimationSolver final {
       StumbleB,
       AimBow,
 
-      MagNoMana,
-      MagFib,
-      MagWnd,
-      MagHea,
-      MagPyr,
-      MagFea,
-      MagTrf,
-      MagSum,
-      MagMsd,
-      MagStm,
-      MagFrz,
-      MagSle,
-      MagWhi,
-      MagSck,
-      MagFbt,
-
-      MagFirst=MagFib,
-      MagLast =MagFbt
+      MagNoMana
       };
 
     struct Overlay final {
@@ -98,7 +81,7 @@ class AnimationSolver final {
   private:
     const Animation::Sequence*     solveFrm    (const char *format, WeaponState st) const;
 
-    const Animation::Sequence*     solveMag    (const char *format, Anim spell) const;
+    const Animation::Sequence*     solveMag    (const char *format, const std::string& spell) const;
     const Animation::Sequence*     solveDead   (const char *format1, const char *format2) const;
 
     const Skeleton*                baseSk=nullptr;

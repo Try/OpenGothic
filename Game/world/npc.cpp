@@ -22,6 +22,11 @@ Npc::Npc(World &owner, size_t instance, const char* waypoint)
   hnpc.instanceSymbol = instance;
   hnpc.userPtr        = this;
   owner.script().initializeInstance(hnpc,instance);
+  if(hnpc.attribute[ATR_HITPOINTS]<=1 && hnpc.attribute[ATR_HITPOINTSMAX]<=1) {
+    size_t fdead=owner.getSymbolIndex("ZS_Dead");
+    startState(fdead,"");
+    onNoHealth(true);
+    }
   }
 
 Npc::Npc(World &owner, Serialize &fin)
@@ -400,8 +405,6 @@ void Npc::onNoHealth(bool death) {
     hnpc.attribute[ATR_HITPOINTS]=1;
 
   size_t fdead=owner.getSymbolIndex(state);
-  //if(animation.current!=Anim::UnconsciousA && animation.current!=Anim::UnconsciousB)
-  //  animation.resetAni();
   startState(fdead,"");
   if(hnpc.voice>0 && currentOther!=nullptr){
     // in case of battle currentOther!=nullptr,
@@ -1270,8 +1273,9 @@ void Npc::tick(uint64_t dt) {
 
   if(ev.def_opt_frame>0)
     commitDamage();
-  if(visual.setFightMode(ev.weaponCh))
+  if(visual.setFightMode(ev.weaponCh)) {
     updateWeaponSkeleton();
+    }
 
   if(!checkHealth(false,true)){
     mvAlgo.aiGoTo(nullptr);
@@ -1302,17 +1306,6 @@ void Npc::tick(uint64_t dt) {
 
   if(interactive()!=nullptr)
     setAnim(AnimationSolver::Interact);
-  /*
-  else
-  if(currentGoTo==nullptr && currentGoToNpc==nullptr &&
-     aiPolicy!=ProcessPolicy::Player &&
-     !isInAnim(Anim::Pray) && !isInAnim(Anim::PrayRand) && !isInAnim(Anim::Talk) && !isInAnim(Anim::Sleep)) {
-    if(weaponState()==WeaponState::NoWeapon)
-      setAnim(animation.lastIdle); else
-    if(animation.current>Anim::IdleLoopLast)
-      setAnim(Anim::Idle); else
-      setAnim(animation.current);
-    }*/
   implAiTick(dt);
   }
 
@@ -1493,7 +1486,8 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_OutputSvmOverlay:{
       if(performOutput(act)) {
         if(act.act!=AI_OutputSvmOverlay)
-          visual.setAnimDialog(*this);
+          if(weaponState()==WeaponState::NoWeapon)
+            visual.setAnimDialog(*this);
         } else {
         aiActions.push_front(std::move(act));
         }
@@ -1695,16 +1689,8 @@ void Npc::setAiOutputBarrier(uint64_t dt) {
 
 bool Npc::doAttack(Anim anim) {
   auto weaponSt=invent.weaponState();
-  auto weapon  =invent.activeWeapon();
-
-  if(weaponSt==WeaponState::NoWeapon)
+  if(weaponSt==WeaponState::NoWeapon || weaponSt==WeaponState::Mage)
     return false;
-
-  if(weaponSt==WeaponState::Mage && weapon!=nullptr)
-    anim=Anim(owner.script().spellCastAnim(*this,*weapon));
-
-  //if(animation.current==anim)
-  //  return false;
   return setAnim(anim);
   }
 
@@ -2083,12 +2069,10 @@ void Npc::blockSword() {
 
 bool Npc::castSpell() {
   auto active=invent.activeWeapon();
-  /*
-  if(active==nullptr ||
-     (Anim::MagFirst<=animation.current && animation.current<=Anim::MagLast) ||
-     (Anim::MagFirst<=animation.prevAni && animation.prevAni<=Anim::MagLast) || !isStanding())
-    return false;*/
   if(active==nullptr)
+    return false;
+
+  if(!isStanding())
     return false;
 
   const int32_t   splId = active->spellId();
@@ -2098,24 +2082,22 @@ bool Npc::castSpell() {
       setAnim(Anim::MagNoMana);
       break;
     case SpellCode::SPL_NEXTLEVEL:{
-      auto ani = Npc::Anim(owner.script().spellCastAnim(*this,*active));
-      setAnim(ani);
+      auto& ani = owner.script().spellCastAnim(*this,*active);
+      if(!visual.setAnimSpell(*this,ani.c_str()))
+        return false;
       }
       break;
     case SpellCode::SPL_SENDCAST: {
-      auto ani = Npc::Anim(owner.script().spellCastAnim(*this,*active));
-      AiAction a;
-      a.act  = AI_PlayAnimById;
-      a.i0   = ani;
-      aiActions.push_back(a);
+      auto& ani = owner.script().spellCastAnim(*this,*active);
+      if(!visual.setAnimSpell(*this,ani.c_str()))
+        return false;
       owner.script().invokeSpell(*this,currentTarget,*active);
       if(currentTarget!=nullptr){
         currentTarget->lastHitSpell = splId;
         currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
         }
-      if(active->isSpell()) {
+      if(active->isSpell())
         invent.delItem(active->clsId(),1,*this);
-        }
       break;
       }
     default:
