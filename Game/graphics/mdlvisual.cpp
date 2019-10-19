@@ -308,10 +308,12 @@ bool MdlVisual::setAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkB
   }
 
 bool MdlVisual::setAnim(Npc &npc, WeaponState st) {
-  const Animation::Sequence *sq = solver.solveAnim(st,fightMode,*skInst);
+  const bool run = (skInst->bodyState()&BS_MAX)==BS_RUN;
+
+  const Animation::Sequence *sq = solver.solveAnim(st,fightMode,run);
   if(sq==nullptr)
     return true;
-  if(skInst->startAnim(solver,sq,BS_NONE,false,npc.world().tickCount())) {
+  if(skInst->startAnim(solver,sq,(run ? BS_RUN : BS_STAND),false,npc.world().tickCount())) {
     return true;
     }
   return false;

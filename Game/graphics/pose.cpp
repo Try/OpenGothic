@@ -339,8 +339,6 @@ void Pose::onRemoveLayer(Pose::Layer &l) {
     rotation=nullptr;
   if(l.seq==itemUse)
     itemUse=nullptr;
-  if(l.seq->name=="S_SIT")
-    Log::d("");
   }
 
 void Pose::emitSfx(Npc &npc, uint64_t tickCount) {
@@ -356,12 +354,8 @@ void Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev
 
 ZMath::float3 Pose::animMoveSpeed(uint64_t tickCount,uint64_t dt) const {
   ZMath::float3 ret(0,0,0);
-  for(auto& i:lay) {
-    auto d = i.seq->speed(tickCount-i.sAnim,dt);
-    ret.x+=d.x;
-    ret.y+=d.y;
-    ret.z+=d.z;
-    }
+  if(lay.size()>0)
+    ret = lay[0].seq->speed(tickCount-lay[0].sAnim,dt);
   return ret;
   }
 

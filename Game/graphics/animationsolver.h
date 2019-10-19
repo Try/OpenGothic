@@ -75,7 +75,7 @@ class AnimationSolver final {
 
     const Animation::Sequence*     solveFrm (const char *format) const;
     const Animation::Sequence*     solveAnim(Anim a, WeaponState st, WalkBit wlk, const Pose &pose) const;
-    const Animation::Sequence*     solveAnim(WeaponState st, WeaponState cur, const Pose &pose) const;
+    const Animation::Sequence*     solveAnim(WeaponState st, WeaponState cur, bool run) const;
     const Animation::Sequence*     solveAnim(Interactive *inter, Anim a, const Pose &pose) const;
 
   private:

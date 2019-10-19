@@ -142,8 +142,8 @@ class World final {
 
     bool   isInListenerRange(const std::array<float,3> &pos) const;
     void   emitDlgSound   (const char *s, float x, float y, float z, float range, uint64_t &timeLen);
-    void   emitSoundEffect(const char *s, float x, float y, float z, float range, GSoundEffect *slot);
-    void   emitSoundRaw   (const char *s, float x, float y, float z, float range, GSoundEffect *slot);
+    void   emitSoundEffect(const char *s, float x, float y, float z, float range, bool freeSlot);
+    void   emitSoundRaw   (const char *s, float x, float y, float z, float range, bool freeSlot);
     void   takeSoundSlot(GSoundEffect &&eff);
     void   tickSlot(GSoundEffect &slot);
 

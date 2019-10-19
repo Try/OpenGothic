@@ -446,7 +446,6 @@ class Npc final {
       AI_StartState,
       AI_PlayAnim,
       AI_PlayAnimBs,
-      AI_PlayAnimById,
       AI_Wait,
       AI_StandUp,
       AI_StandUpQuick,
@@ -560,7 +559,6 @@ class Npc final {
     int32_t                        vHead=0, vTeeth=0, vColor =0;
     int32_t                        bdColor=0;
     MdlVisual                      visual;
-    GSoundEffect                   soundSlot;
 
     DynamicWorld::Item             physic;
 

@@ -1263,8 +1263,6 @@ Npc *Npc::updateNearestEnemy() {
   }
 
 void Npc::tick(uint64_t dt) {
-  owner.tickSlot(soundSlot);
-
   if(!visual.pose().hasAnim())
     setAnim(AnimationSolver::Idle);
 
@@ -1273,9 +1271,8 @@ void Npc::tick(uint64_t dt) {
 
   if(ev.def_opt_frame>0)
     commitDamage();
-  if(visual.setFightMode(ev.weaponCh)) {
+  if(visual.setFightMode(ev.weaponCh))
     updateWeaponSkeleton();
-    }
 
   if(!checkHealth(false,true)){
     mvAlgo.aiGoTo(nullptr);
@@ -1374,21 +1371,18 @@ void Npc::nextAiAction(uint64_t dt) {
         setOther(act.target);
       break;
     case AI_PlayAnim:{
-      if(!playAnimByName(act.s0,BS_NONE))
+      if(playAnimByName(act.s0,BS_NONE)) {
+        implAiWait(visual.pose().animationTotalTime());
+        } else {
         aiActions.push_front(std::move(act));
+        }
       break;
       }
     case AI_PlayAnimBs:{
-      if(!playAnimByName(act.s0,BodyState(act.i0)))
-        aiActions.push_front(std::move(act));
-      }
-      break;
-    case AI_PlayAnimById:{
-      auto tag = Anim(act.i0);
-      if(!setAnim(tag)) {
-        aiActions.push_front(std::move(act));
-        } else {
+      if(playAnimByName(act.s0,BodyState(act.i0))) {
         implAiWait(visual.pose().animationTotalTime());
+        } else {
+        aiActions.push_front(std::move(act));
         }
       break;
       }
@@ -1543,7 +1537,7 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
       }
     case AI_FinishingMove:{
-      if(!act.target->isUnconscious())
+      if(act.target==nullptr || !act.target->isUnconscious())
         break;
 
       if(!fghAlgo.isInAtackRange(*this,*act.target,owner.script())){
@@ -1701,14 +1695,14 @@ void Npc::emitDlgSound(const char *sound) {
   }
 
 void Npc::emitSoundEffect(const char *sound, float range, bool freeSlot) {
-  owner.emitSoundEffect(sound,x,y+translateY(),z,range,freeSlot ? nullptr : &soundSlot);
+  owner.emitSoundEffect(sound,x,y+translateY(),z,range,freeSlot);
   }
 
 void Npc::emitSoundGround(const char* sound, float range, bool freeSlot) {
   char    buf[256]={};
   uint8_t mat = mvAlgo.groundMaterial();
   std::snprintf(buf,sizeof(buf),"%s_%s",sound,ZenLoad::zCMaterial::getMatGroupString(ZenLoad::MaterialGroup(mat)));
-  owner.emitSoundEffect(buf,x,y,z,range,freeSlot ? nullptr : &soundSlot);
+  owner.emitSoundEffect(buf,x,y,z,range,freeSlot);
   }
 
 const Npc::Routine& Npc::currentRoutine() const {
@@ -1902,8 +1896,8 @@ bool Npc::closeWeapon(bool noAnim) {
 
   if(auto w = invent.currentMeleWeapon()){
     if(w->handle()->material==ItemMaterial::MAT_METAL)
-      owner.emitSoundRaw("UNDRAWSOUND_ME.WAV",x,y+translateY(),z,500,nullptr); else
-      owner.emitSoundRaw("UNDRAWSOUND_WO.WAV",x,y+translateY(),z,500,nullptr);
+      owner.emitSoundRaw("UNDRAWSOUND_ME.WAV",x,y+translateY(),z,500,false); else
+      owner.emitSoundRaw("UNDRAWSOUND_WO.WAV",x,y+translateY(),z,500,false);
     }
   return true;
   }
@@ -1948,8 +1942,8 @@ bool Npc::drawWeaponMele() {
   updateWeaponSkeleton();
 
   if(invent.currentMeleWeapon()->handle()->material==ItemMaterial::MAT_METAL)
-    owner.emitSoundRaw("DRAWSOUND_ME.WAV",x,y+translateY(),z,500,nullptr); else
-    owner.emitSoundRaw("DRAWSOUND_WO.WAV",x,y+translateY(),z,500,nullptr);
+    owner.emitSoundRaw("DRAWSOUND_ME.WAV",x,y+translateY(),z,500,false); else
+    owner.emitSoundRaw("DRAWSOUND_WO.WAV",x,y+translateY(),z,500,false);
   return true;
   }
 

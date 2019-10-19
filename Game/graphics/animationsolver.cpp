@@ -242,24 +242,24 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
   return nullptr;
   }
 
-const Animation::Sequence *AnimationSolver::solveAnim(WeaponState st, WeaponState cur, const Pose &pose) const {
+const Animation::Sequence *AnimationSolver::solveAnim(WeaponState st, WeaponState cur, bool run) const {
   // Weapon draw/undraw
   if(st==cur)
     return nullptr;
-  if(st==WeaponState::NoWeapon){
-    if(pose.isInAnim("S_1HRUNL")   || pose.isInAnim("S_2HRUNL") ||
-       pose.isInAnim("S_BOWRUNL")  || pose.isInAnim("S_CBOWRUNL") ||
-       pose.isInAnim("S_FISTRUNL") || pose.isInAnim("S_MAGRUNL"))
-      return solveFrm("T_%sMOVE_2_MOVE",cur);
-    return solveFrm("T_%sRUN_2_%s",cur);
-    }
-  if(st==WeaponState::Fist ||
-     st==WeaponState::W1H  || st==WeaponState::W2H ||
-     st==WeaponState::Bow  || st==WeaponState::CBow ||
-     st==WeaponState::Mage){
-    if(pose.isInAnim("S_RUNL"))
-      return solveFrm("T_MOVE_2_%sMOVE",st);
-    return solveFrm("T_%s_2_%sRUN",st);
+  switch(st) {
+    case WeaponState::NoWeapon:
+      if(run)
+        return solveFrm("T_%sMOVE_2_MOVE",cur);
+      return solveFrm("T_%sRUN_2_%s",cur);
+    case WeaponState::Fist:
+    case WeaponState::Mage:
+    case WeaponState::W1H:
+    case WeaponState::W2H:
+    case WeaponState::Bow:
+    case WeaponState::CBow:
+      if(run)
+        return solveFrm("T_MOVE_2_%sMOVE",st);
+      return solveFrm("T_%s_2_%sRUN",st);
     }
   return nullptr;
   }

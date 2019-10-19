@@ -525,7 +525,7 @@ void World::emitWeaponsSound(Npc &self, Npc &other) {
   if(self.isMonster() || self.inventory().activeWeapon()==nullptr)
     std::snprintf(buf,sizeof(buf),"CS_MAM_%s_%s",selfMt,othMt); else
     std::snprintf(buf,sizeof(buf),"CS_IAM_%s_%s",selfMt,othMt);
-  wsound.emitSound(buf, 0.5f*(p0[0]+p1[0]), 0.5f*(p0[1]+p1[1]), 0.5f*(p0[2]+p1[2]),2500.f,nullptr);
+  wsound.emitSound(buf, 0.5f*(p0[0]+p1[0]), 0.5f*(p0[1]+p1[1]), 0.5f*(p0[2]+p1[2]),2500.f,false);
   }
 
 void World::emitLandHitSound(float x,float y,float z,uint8_t m0, uint8_t m1) {
@@ -547,7 +547,7 @@ void World::emitLandHitSound(float x,float y,float z,uint8_t m0, uint8_t m1) {
 
   char buf[128]={};
   std::snprintf(buf,sizeof(buf),"CS_IHL_%s_%s",sm0,sm1);
-  wsound.emitSound(buf, x,y,z,2500.f,nullptr);
+  wsound.emitSound(buf, x,y,z,2500.f,false);
   }
 
 void World::emitBlockSound(Npc &self, Npc &other) {
@@ -578,7 +578,7 @@ void World::emitBlockSound(Npc &self, Npc &other) {
 
   char buf[128]={};
   std::snprintf(buf,sizeof(buf),"CS_IAI_%s_%s",selfMt,othMt);
-  wsound.emitSound(buf, 0.5f*(p0[0]+p1[0]), 0.5f*(p0[1]+p1[1]), 0.5f*(p0[2]+p1[2]),2500.f,nullptr);
+  wsound.emitSound(buf, 0.5f*(p0[0]+p1[0]), 0.5f*(p0[1]+p1[1]), 0.5f*(p0[2]+p1[2]),2500.f,false);
   }
 
 bool World::isInListenerRange(const std::array<float,3> &pos) const {
@@ -589,12 +589,12 @@ void World::emitDlgSound(const char* s, float x, float y, float z, float range, 
   wsound.emitDlgSound(s,x,y,z,range,timeLen);
   }
 
-void World::emitSoundEffect(const char *s, float x, float y, float z, float range, GSoundEffect* slot) {
-  wsound.emitSound(s,x,y,z,range,slot);
+void World::emitSoundEffect(const char *s, float x, float y, float z, float range, bool freeSlot) {
+  wsound.emitSound(s,x,y,z,range,freeSlot);
   }
 
-void World::emitSoundRaw(const char *s, float x, float y, float z, float range, GSoundEffect *slot) {
-  wsound.emitSoundRaw(s,x,y,z,range,slot);
+void World::emitSoundRaw(const char *s, float x, float y, float z, float range, bool freeSlot) {
+  wsound.emitSoundRaw(s,x,y,z,range,freeSlot);
   }
 
 void World::takeSoundSlot(GSoundEffect &&eff)  {
