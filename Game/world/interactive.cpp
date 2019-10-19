@@ -365,7 +365,10 @@ float Interactive::qDistanceTo(const Npc &npc, const Interactive::Pos &to) {
   }
 
 void Interactive::nextState() {
+  auto prev = state;
   state = std::min(data.oCMobInter.stateNum,state+1);
+  if(prev==state)
+    loopState = true;
   if(state==data.oCMobInter.stateNum){
     if(//data.vobType==ZenLoad::zCVobData::VT_oCMobDoor ||
        data.vobType==ZenLoad::zCVobData::VT_oCMobSwitch)
@@ -374,6 +377,7 @@ void Interactive::nextState() {
   }
 
 void Interactive::prevState() {
+  loopState = false;
   state = std::max(-1,state-1);
   }
 
@@ -398,8 +402,7 @@ const Animation::Sequence* Interactive::anim(const AnimationSolver &solver, Anim
       std::snprintf(ss[i],sizeof(ss[i]),"S%d",st[i]);
     }
 
-  loopState = (st[0]==st[1]);
-  if(loopState)
+  if(st[0]==st[1])
     std::snprintf(buf,sizeof(buf),"S_%s%s_%s",tag,point,ss[0]); else
     std::snprintf(buf,sizeof(buf),"T_%s%s_%s_2_%s",tag,point,ss[0],ss[1]);
   return solver.solveFrm(buf);

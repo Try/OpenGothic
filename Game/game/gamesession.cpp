@@ -61,7 +61,7 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
   wrld->createPlayer(hero);
   wrld->postInit();
 
-  //if(!testMode)
+  if(!testMode)
     initScripts(true);
   gothic.setLoadingProgress(96);
   }

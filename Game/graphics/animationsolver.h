@@ -53,7 +53,6 @@ class AnimationSolver final {
       AtackFinish,
       StumbleA,
       StumbleB,
-      GotHit,
       AimBow,
 
       MagNoMana,

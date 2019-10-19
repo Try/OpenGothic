@@ -41,7 +41,6 @@ class MdlVisual final {
     const Pose&                    pose() const { return *skInst; }
     void                           updateAnimation(Npc &owner);
 
-    void                           stopAnim(Npc &npc, const char *ani);
     bool                           isRunTo(const Npc &npc) const;
     bool                           isStanding() const;
 
@@ -52,6 +51,7 @@ class MdlVisual final {
     bool                           setAnimItem(Npc &npc, const char* scheme);
     bool                           setAnimDialog(Npc &npc);
     void                           stopDlgAnim();
+    void                           stopAnim(Npc &npc, const char *ani);
 
     const Skeleton*                skeleton=nullptr;
     Tempest::Matrix4x4             pos;

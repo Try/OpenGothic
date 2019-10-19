@@ -214,7 +214,7 @@ bool MdlVisual::setAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkB
     auto inter = npc.interactive();
     const Animation::Sequence *sq = solver.solveAnim(inter,a,*skInst);
     if(sq!=nullptr && inter!=nullptr){
-      if(skInst->startAnim(solver,sq,BS_NONE,false,npc.world().tickCount())) {
+      if(skInst->startAnim(solver,sq,BS_MOBINTERACT,false,npc.world().tickCount())) {
         if(a==AnimationSolver::Anim::Interact)
           inter->nextState(); else
           inter->prevState();
@@ -234,7 +234,73 @@ bool MdlVisual::setAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkB
     forceAnim=true;
     }
 
-  if(skInst->startAnim(solver,sq,BS_NONE,forceAnim,npc.world().tickCount())) {
+  BodyState bs = BS_NONE;
+  switch(a) {
+    case AnimationSolver::Anim::NoAnim:
+      bs = BS_NONE;
+      break;
+    case AnimationSolver::Anim::Idle:
+      bs = BS_STAND;
+      break;
+    case AnimationSolver::Anim::DeadA:
+    case AnimationSolver::Anim::DeadB:
+      bs = BS_DEAD;
+      break;
+    case AnimationSolver::Anim::UnconsciousA:
+    case AnimationSolver::Anim::UnconsciousB:
+      bs = BS_UNCONSCIOUS;
+      break;
+    case AnimationSolver::Anim::Move:
+    case AnimationSolver::Anim::MoveL:
+    case AnimationSolver::Anim::MoveR:
+    case AnimationSolver::Anim::MoveBack:
+      if(bool(wlk & WalkBit::WM_Walk))
+        bs = BS_WALK; else
+        bs = BS_RUN;
+      break;
+    case AnimationSolver::Anim::RotL:
+    case AnimationSolver::Anim::RotR:
+      break;
+    case AnimationSolver::Anim::Jump:
+    case AnimationSolver::Anim::JumpUpLow:
+    case AnimationSolver::Anim::JumpUpMid:
+    case AnimationSolver::Anim::JumpUp:
+      bs = BS_JUMP;
+      break;
+    case AnimationSolver::Anim::Fall:
+    case AnimationSolver::Anim::FallDeep:
+      bs = BS_FALL;
+      break;
+    case AnimationSolver::Anim::SlideA:
+    case AnimationSolver::Anim::SlideB:
+      bs = BS_NONE;
+      break;
+    case AnimationSolver::Anim::Interact:
+    case AnimationSolver::Anim::InteractOut:
+      bs = BS_MOBINTERACT;
+      break;
+    case AnimationSolver::Anim::Atack:
+    case AnimationSolver::Anim::AtackL:
+    case AnimationSolver::Anim::AtackR:
+    case AnimationSolver::Anim::AtackFinish:
+      bs = BS_NONE;
+      break;
+    case AnimationSolver::Anim::AtackBlock:
+      bs = BS_PARADE;
+      break;
+    case AnimationSolver::Anim::StumbleA:
+    case AnimationSolver::Anim::StumbleB:
+      bs = BS_PARADE;
+      break;
+    case AnimationSolver::Anim::AimBow:
+      bs = BS_AIMNEAR; //TODO: BS_AIMFAR
+      break;
+    }
+
+  if(bool(wlk & WalkBit::WM_Swim))
+    bs = BS_SWIM;
+
+  if(skInst->startAnim(solver,sq,bs,forceAnim,npc.world().tickCount())) {
     return true;
     }
   return false;

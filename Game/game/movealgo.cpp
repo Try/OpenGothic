@@ -26,7 +26,7 @@ void MoveAlgo::save(Serialize &fout) const {
 
 void MoveAlgo::tickMobsi(uint64_t dt) {
   if(npc.interactive()->isLoopState())
-    ;//return;
+    return;
 
   auto dp  = animMoveSpeed(dt);
   auto pos = npc.position();

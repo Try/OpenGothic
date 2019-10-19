@@ -142,7 +142,7 @@ void Pose::load(Serialize &fin,const AnimationSolver& solver) {
 BodyState Pose::bodyState() const {
   uint32_t b = BS_NONE;
   for(auto& i:lay)
-    b |= i.bs;
+    b = std::max(b,uint32_t(i.bs));
   return BodyState(b);
   }
 
