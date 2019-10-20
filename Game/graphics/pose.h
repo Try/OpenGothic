@@ -16,7 +16,6 @@ class Npc;
 class Pose final {
   public:
     Pose()=default;
-    Pose(const Skeleton& sk,const Animation::Sequence* sq0,const Animation::Sequence* sq1);
 
     void               save(Serialize& fout);
     void               load(Serialize& fin, const AnimationSolver &solver);
@@ -72,7 +71,7 @@ class Pose final {
 
     auto getNext(AnimationSolver& solver, const Animation::Sequence* sq) -> const Animation::Sequence*;
 
-    void addLayer(const Animation::Sequence* seq, uint64_t tickCount);
+    void addLayer(const Animation::Sequence* seq, BodyState bs, uint64_t tickCount);
     void onRemoveLayer(Layer& l);
 
     template<class T,class F>

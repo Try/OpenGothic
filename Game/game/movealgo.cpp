@@ -507,17 +507,17 @@ bool MoveAlgo::startClimb(JumpCode ani) {
     setAsJumpup(true);
     setInAir(true);
     fallSpeed[0]=0.f;
-    fallSpeed[1]=0.75f*gravity;
+    fallSpeed[1]=0.55f*gravity;
     fallSpeed[2]=0.f;
-    fallCount   =-1.f;
+    fallCount   =1000.f;
     }
   else if(jmp==JM_UpMid){
-    setAsJumpup(true);
+    setAsJumpup(false);
     setInAir(true);
-    fallSpeed[0]=0.f;
-    fallSpeed[1]=0.4f*gravity;
-    fallSpeed[2]=0.f;
-    fallCount   =-1.f;
+    }
+  else if(jmp==JM_UpLow){
+    setAsJumpup(false);
+    setInAir(true);
     }
   return true;
   }

@@ -98,12 +98,6 @@ static ZenLoad::zCModelAniSample mix(const ZenLoad::zCModelAniSample& x,const Ze
   return r;
   }
 
-Pose::Pose(const Skeleton &sk, const Animation::Sequence* sq0, const Animation::Sequence *sq1) {
-  setSkeleton(&sk);
-  addLayer(sq0,0);
-  addLayer(sq1,0);
-  }
-
 void Pose::save(Serialize &fout) {
   uint8_t sz=uint8_t(lay.size());
   fout.write(sz);
@@ -158,6 +152,8 @@ void Pose::setSkeleton(const Skeleton* sk) {
     base[i] = skeleton->nodes[i].tr;
   trY = skeleton->rootTr[1];
 
+  if(lay.size()>0) //TODO
+    Log::d("WARNING: ",__func__," animation adjustment not implemented");
   lay.clear();
   }
 
@@ -201,7 +197,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       i.bs    = bs;
       return true;
       }
-  addLayer(sq,tickCount);
+  addLayer(sq,bs,tickCount);
   return true;
   }
 
@@ -322,12 +318,13 @@ const Animation::Sequence* Pose::getNext(AnimationSolver &solver, const Animatio
   return solver.solveFrm(sq->next.c_str());
   }
 
-void Pose::addLayer(const Animation::Sequence *seq, uint64_t tickCount) {
+void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, uint64_t tickCount) {
   if(seq==nullptr)
     return;
   Layer l;
   l.seq   = seq;
   l.sAnim = tickCount;
+  l.bs    = bs;
   lay.push_back(l);
   std::sort(lay.begin(),lay.end(),[](const Layer& a,const Layer& b){
     return a.seq->layer<b.seq->layer;
@@ -354,8 +351,11 @@ void Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev
 
 ZMath::float3 Pose::animMoveSpeed(uint64_t tickCount,uint64_t dt) const {
   ZMath::float3 ret(0,0,0);
-  if(lay.size()>0)
-    ret = lay[0].seq->speed(tickCount-lay[0].sAnim,dt);
+  for(auto& i:lay) {
+    if(i.bs==BS_STAND)
+      continue;
+    return i.seq->speed(tickCount-i.sAnim,dt);
+    }
   return ret;
   }
 
@@ -398,7 +398,10 @@ bool Pose::isDefence(uint64_t tickCount) const {
 
 bool Pose::isJumpAnim() const {
   for(auto& i:lay)
-    if(i.seq->isFly() && i.seq->name!="S_JUMP" && i.seq->name!="S_FALL" && i.seq->name!="S_FALLDN")
+    if(i.seq->isFly() &&
+       i.seq->name!="S_JUMP"      && i.seq->name!="S_JUMPUP" &&
+       i.seq->name!="S_JUMPUPMID" && i.seq->name!="S_JUMPUPLOW" &&
+       i.seq->name!="S_FALL"      && i.seq->name!="S_FALLDN")
       return true;
   return false;
   }
