@@ -184,7 +184,7 @@ void MdlVisual::updateAnimation(Npc& npc) {
 void MdlVisual::stopAnim(Npc& npc,const char* ani) {
   skInst->stopAnim(ani);
   if(!skInst->hasAnim())
-    setAnim(npc,AnimationSolver::Idle,fightMode,npc.walkMode());
+    startAnim(npc,AnimationSolver::Idle,fightMode,npc.walkMode());
   }
 
 bool MdlVisual::isRunTo(const Npc& npc) const {
@@ -196,7 +196,7 @@ bool MdlVisual::isStanding() const {
   return skInst->isStanding();
   }
 
-bool MdlVisual::setAnim(Npc &npc, const char *name, BodyState bs) {
+bool MdlVisual::startAnim(Npc &npc, const char *name, BodyState bs) {
   bool forceAnim=true;
 
   const Animation::Sequence *sq = solver.solveFrm(name);
@@ -206,7 +206,7 @@ bool MdlVisual::setAnim(Npc &npc, const char *name, BodyState bs) {
   return false;
   }
 
-bool MdlVisual::setAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk) {
+bool MdlVisual::startAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk) {
   // for those use MdlVisual::setRotation
   assert(a!=AnimationSolver::Anim::RotL && a!=AnimationSolver::Anim::RotR);
 
@@ -307,13 +307,13 @@ bool MdlVisual::setAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkB
   return false;
   }
 
-bool MdlVisual::setAnim(Npc &npc, WeaponState st) {
+bool MdlVisual::startAnim(Npc &npc, WeaponState st) {
   const bool run = (skInst->bodyState()&BS_MAX)==BS_RUN;
 
   const Animation::Sequence *sq = solver.solveAnim(st,fightMode,run);
   if(sq==nullptr)
     return true;
-  if(skInst->startAnim(solver,sq,(run ? BS_RUN : BS_STAND),false,npc.world().tickCount())) {
+  if(skInst->startAnim(solver,sq,run ? BS_RUN : BS_NONE,false,npc.world().tickCount())) {
     return true;
     }
   return false;
@@ -323,11 +323,11 @@ void MdlVisual::setRotation(Npc &npc, int dir) {
   skInst->setRotation(solver,npc,fightMode,dir);
   }
 
-bool MdlVisual::setAnimItem(Npc &npc, const char *scheme) {
+bool MdlVisual::startAnimItem(Npc &npc, const char *scheme) {
   return skInst->setAnimItem(solver,npc,scheme);
   }
 
-bool MdlVisual::setAnimSpell(Npc &npc, const char *scheme) {
+bool MdlVisual::startAnimSpell(Npc &npc, const char *scheme) {
   char name[128]={};
   std::snprintf(name,sizeof(name),"S_%sSHOOT",scheme);
 
@@ -338,7 +338,7 @@ bool MdlVisual::setAnimSpell(Npc &npc, const char *scheme) {
   return false;
   }
 
-bool MdlVisual::setAnimDialog(Npc &npc) {
+bool MdlVisual::startAnimDialog(Npc &npc) {
   //const int countG1 = 21;
   const int countG2 = 11;
   const int id      = std::rand()%countG2 + 1;

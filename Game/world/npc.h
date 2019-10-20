@@ -145,6 +145,7 @@ class Npc final {
       };
 
     enum GoToHint : uint8_t {
+      GT_No,
       GT_Default,
       GT_NextFp
       };
@@ -603,7 +604,7 @@ class Npc final {
     AiOuputPipe*                   outputPipe     =nullptr;
 
     Npc*                           currentGoToNpc =nullptr;
-    GoToHint                       currentGoToFlag=GoToHint::GT_Default;
+    GoToHint                       currentGoToFlag=GoToHint::GT_No;
     const WayPoint*                currentGoTo    =nullptr;
     const WayPoint*                currentFp      =nullptr;
     FpLock                         currentFpLock;

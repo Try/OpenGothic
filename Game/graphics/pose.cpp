@@ -205,7 +205,7 @@ bool Pose::stopAnim(const char *name) {
   bool done=false;
   size_t ret=0;
   for(size_t i=0;i<lay.size();++i) {
-    if(lay[i].seq->name!=name) {
+    if(name!=nullptr && lay[i].seq->name!=name) {
       if(ret!=i)
         lay[ret] = lay[i];
       ret++;
@@ -414,7 +414,7 @@ bool Pose::isFlyAnim() const {
   }
 
 bool Pose::isStanding() const {
-  if(lay.size()!=1)
+  if(lay.size()!=1 || lay[0].seq->animCls==Animation::Transition)
     return false;
   auto& s = *lay[0].seq;
   if(s.isIdle())

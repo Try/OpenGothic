@@ -451,9 +451,13 @@ bool MoveAlgo::isClose(const std::array<float,3> &w, const WayPoint &p) {
   return isClose(w[0],w[1],w[2],p);
   }
 
-bool MoveAlgo::isClose(float x, float /*y*/, float z, const WayPoint &p) {
+bool MoveAlgo::isClose(float x, float y, float z, const WayPoint &p) {
+  return isClose(x,y,z,p,closeToPointThreshold);
+  }
+
+bool MoveAlgo::isClose(float x, float /*y*/, float z, const WayPoint &p, float dist) {
   float len = p.qDistTo(x,p.y,z);
-  return (len<closeToPointThreshold*closeToPointThreshold);
+  return (len<dist*dist);
   }
 
 bool MoveAlgo::aiGoTo(const WayPoint *p) {
@@ -462,7 +466,8 @@ bool MoveAlgo::aiGoTo(const WayPoint *p) {
   if(p==nullptr)
     return false;
 
-  if(isClose(npc.position()[0],npc.position()[1],npc.position()[2],*p)){
+  // use smaller threshold, to avoid edge-looping in script
+  if(isClose(npc.position()[0],npc.position()[1],npc.position()[2],*p,closeToPointThreshold*0.5f)){
     npc.attachToPoint(npc.currentGoTo);
     npc.currentGoTo = nullptr;
     return false;

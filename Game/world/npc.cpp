@@ -614,7 +614,7 @@ void Npc::setScale(float x, float y, float z) {
   }
 
 bool Npc::playAnimByName(const std::string &name,BodyState bs) {
-  return visual.setAnim(*this,name.c_str(),bs);
+  return visual.startAnim(*this,name.c_str(),bs);
   }
 
 bool Npc::setAnim(Npc::Anim a) {
@@ -624,7 +624,7 @@ bool Npc::setAnim(Npc::Anim a) {
     wlk = WalkBit::WM_Swim;
   else if(mvAlgo.isInWater())
     wlk = WalkBit::WM_Water;
-  return visual.setAnim(*this,a,st,wlk);
+  return visual.startAnim(*this,a,st,wlk);
   }
 
 void Npc::setAnimRotate(int rot) {
@@ -634,7 +634,7 @@ void Npc::setAnimRotate(int rot) {
 bool Npc::setAnimItem(const char *scheme) {
   if(scheme==nullptr || scheme[0]==0)
     return true;
-  return visual.setAnimItem(*this,scheme);
+  return visual.startAnimItem(*this,scheme);
   }
 
 void Npc::stopAnim(const std::string &ani) {
@@ -876,6 +876,8 @@ bool Npc::implLookAt(uint64_t dt) {
   }
 
 bool Npc::implLookAt(const Npc &oth, uint64_t dt) {
+  if(&oth==this)
+    return true;
   auto dx = oth.x-x;
   auto dz = oth.z-z;
   if(implLookAt(dx,dz,0,dt))
@@ -887,6 +889,9 @@ bool Npc::implLookAt(const Npc &oth, uint64_t dt) {
 bool Npc::implLookAt(float dx, float dz, int noAniAngle, uint64_t dt) {
   auto  gl   = std::min<uint32_t>(guild(),GIL_MAX);
   float step = owner.script().guildVal().turn_speed[gl]*(dt/1000.f)*60.f/100.f;
+
+  if(dx==0.f && dz==0.f)
+    return true;
 
   float a    = angleDir(dx,dz);
   float da   = a-angle;
@@ -912,10 +917,15 @@ bool Npc::implGoTo(uint64_t dt) {
     return false;
 
   if(currentGoTo){
-    float dx = currentGoTo->x-x;
-    float dz = currentGoTo->z-z;
+    float dx    = currentGoTo->x-x;
+    float dz    = currentGoTo->z-z;
+    float qDist = dx*dx + dz*dz;
+    auto  bs    = bodyState();
 
-    int needToRot = (walkMode()==WalkBit::WM_Run && !isStanding()) ? 45 : 0;
+    if(bs!=BS_RUN && bs!=BS_WALK)
+      visual.stopAnim(*this,nullptr);
+
+    int needToRot = (bs==BS_RUN && qDist<50*50) ? 45 : 0;
     if(implLookAt(dx,dz,needToRot,dt)){
       mvAlgo.tick(dt);
       return true;
@@ -925,10 +935,11 @@ bool Npc::implGoTo(uint64_t dt) {
       currentGoTo = wayPath.pop();
       if(currentGoTo!=nullptr) {
         attachToPoint(currentGoTo);
-        } else
-      if(!visual.isStanding()) {
+        } else {
         mvAlgo.aiGoTo(nullptr);
+        visual.stopAnim(*this,nullptr);
         setAnim(AnimationSolver::Idle);
+        currentGoToFlag = GoToHint::GT_No;
         }
       }
 
@@ -1351,12 +1362,21 @@ void Npc::nextAiAction(uint64_t dt) {
       }
     case AI_GoToPoint: {
       setInteraction(nullptr);
-      if(wayPath.last()!=act.point)
-        wayPath = owner.wayTo(*this,*act.point);
-      currentGoTo     = wayPath.pop();
-      currentGoToNpc  = nullptr;
-      currentGoToFlag = GoToHint::GT_Default;
-      attachToPoint(currentGoTo);
+      if(wayPath.last()!=act.point) {
+        wayPath     = owner.wayTo(*this,*act.point);
+        currentGoTo = wayPath.pop();
+
+        if(currentGoTo!=nullptr) {
+          currentGoToNpc  = nullptr;
+          currentGoToFlag = GoToHint::GT_Default;
+          attachToPoint(currentGoTo);
+          } else {
+          attachToPoint(act.point);
+          visual.stopAnim(*this,nullptr);
+          setAnim(Anim::Idle);
+          currentGoToFlag = GoToHint::GT_No;
+          }
+        }
       break;
       }
     case AI_StopLookAt:
@@ -1484,7 +1504,7 @@ void Npc::nextAiAction(uint64_t dt) {
       if(performOutput(act)) {
         if(act.act!=AI_OutputSvmOverlay)
           if(weaponState()==WeaponState::NoWeapon)
-            visual.setAnimDialog(*this);
+            visual.startAnimDialog(*this);
         } else {
         aiActions.push_front(std::move(act));
         }
@@ -1888,7 +1908,7 @@ bool Npc::closeWeapon(bool noAnim) {
   auto weaponSt=invent.weaponState();
   if(weaponSt==WeaponState::NoWeapon)
     return true;
-  if(!noAnim && !visual.setAnim(*this,WeaponState::NoWeapon))
+  if(!noAnim && !visual.startAnim(*this,WeaponState::NoWeapon))
     return false;
   invent.switchActiveWeapon(*this,Item::NSLOT);
   hnpc.weapon = 0;
@@ -1913,7 +1933,7 @@ bool Npc::drawWeaponFist() {
     closeWeapon(false);
     return false;
     }
-  if(!visual.setAnim(*this,WeaponState::Fist))
+  if(!visual.startAnim(*this,WeaponState::Fist))
     return false;
   invent.switchActiveWeaponFist();
   updateWeaponSkeleton();
@@ -1936,7 +1956,7 @@ bool Npc::drawWeaponMele() {
 
   auto& weapon = *invent.currentMeleWeapon();
   auto  st     = weapon.is2H() ? WeaponState::W2H : WeaponState::W1H;
-  if(!visual.setAnim(*this,st))
+  if(!visual.startAnim(*this,st))
     return false;
 
   invent.switchActiveWeapon(*this,1);
@@ -1963,7 +1983,7 @@ bool Npc::drawWeaponBow() {
 
   auto& weapon = *invent.currentRangeWeapon();
   auto  st     = weapon.isCrossbow() ? WeaponState::CBow : WeaponState::Bow;
-  if(!visual.setAnim(*this,st))
+  if(!visual.startAnim(*this,st))
     return false;
   invent.switchActiveWeapon(*this,2);
   hnpc.weapon = (st==WeaponState::W1H ? 5:6);
@@ -1993,7 +2013,7 @@ bool Npc::drawSpell(int32_t spell) {
     closeWeapon(false);
     return false;
     }
-  if(!visual.setAnim(*this,WeaponState::Mage))
+  if(!visual.startAnim(*this,WeaponState::Mage))
     return false;
 
   invent.switchActiveSpell(spell,*this);
@@ -2080,13 +2100,13 @@ bool Npc::castSpell() {
       break;
     case SpellCode::SPL_NEXTLEVEL:{
       auto& ani = owner.script().spellCastAnim(*this,*active);
-      if(!visual.setAnimSpell(*this,ani.c_str()))
+      if(!visual.startAnimSpell(*this,ani.c_str()))
         return false;
       }
       break;
     case SpellCode::SPL_SENDCAST: {
       auto& ani = owner.script().spellCastAnim(*this,*active);
-      if(!visual.setAnimSpell(*this,ani.c_str()))
+      if(!visual.startAnimSpell(*this,ani.c_str()))
         return false;
       owner.script().invokeSpell(*this,currentTarget,*active);
       if(currentTarget!=nullptr){
@@ -2700,7 +2720,7 @@ void Npc::clearAiQueue() {
   faiWaitTime     = 0;
   currentGoTo     = nullptr;
   currentGoToNpc  = nullptr;
-  currentGoToFlag = GoToHint::GT_Default;
+  currentGoToFlag = GoToHint::GT_No;
   wayPath.clear();
   fghAlgo.onClearTarget();
   }
@@ -2713,7 +2733,7 @@ void Npc::attachToPoint(const WayPoint *p) {
 void Npc::clearGoTo() {
   currentGoTo     = nullptr;
   currentGoToNpc  = nullptr;
-  currentGoToFlag = GoToHint::GT_Default;
+  currentGoToFlag = GoToHint::GT_No;
   wayPath.clear();
   mvAlgo.aiGoTo(nullptr);
   }
