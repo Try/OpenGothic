@@ -115,7 +115,7 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     if(a==Anim::AimBow) {
       if(pose.isInAnim("S_BOWRUN") || pose.isInAnim("S_CBOWRUN"))
         return solveFrm("T_%sRUN_2_%sAIM",st);
-      if(pose.isInAnim("T_BOWRUN_2_BOWAIM") || pose.isInAnim("T_CBOWRUN_2_CBOWAIM"))
+      if(!pose.hasAnim() || pose.isInAnim("T_BOWRUN_2_BOWAIM") || pose.isInAnim("T_CBOWRUN_2_CBOWAIM"))
         return solveFrm("S_%sSHOOT",st);
       }
     if(a==Anim::Atack) {
@@ -123,6 +123,8 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
         return solveFrm("T_%sRELOAD",st);
       }
     if(a==Anim::Idle) {
+      if(!pose.hasAnim())
+        return solveFrm("S_%sSHOOT",st);
       if(pose.isInAnim("S_BOWSHOOT") || pose.isInAnim("S_CBOWSHOOT"))
         return solveFrm("T_%sAIM_2_%sRUN",st);
       }

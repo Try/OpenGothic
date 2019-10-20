@@ -167,7 +167,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
 
   for(auto& i:lay)
     if(i.seq->layer==sq->layer) {
-      const bool hasNext   = (i.seq->next.empty() && i.seq->animCls!=Animation::Loop);
+      const bool hasNext   = (!i.seq->next.empty() && i.seq->animCls!=Animation::Loop);
       const bool finished  = i.seq->isFinished(tickCount-i.sAnim) && !hasNext;
       const bool interrupt = force || i.seq->canInterrupt();
       if(i.seq==sq && (interrupt || finished))

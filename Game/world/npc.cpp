@@ -1008,8 +1008,11 @@ bool Npc::implAtack(uint64_t dt) {
         fghAlgo.consumeAction();
       }
     else if(ws==WeaponState::Bow || ws==WeaponState::CBow){
-      if(shootBow())
+      if(shootBow()) {
         fghAlgo.consumeAction();
+        } else {
+        aimBow();
+        }
       }
     else if(ws==WeaponState::Fist){
       if(doAttack(Anim::Atack))
