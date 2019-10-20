@@ -247,7 +247,7 @@ void Pose::update(AnimationSolver& solver, uint64_t tickCount) {
       if(next!=nullptr) {
         doSort       = lay[i].seq->layer!=next->layer;
         lay[i].seq   = next;
-        lay[i].sAnim = 0;
+        lay[i].sAnim = tickCount;
         lay[i].frame = uint64_t(-1);
         ret++;
         }
