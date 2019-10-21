@@ -315,7 +315,7 @@ void Pose::updateFrame(const Animation::Sequence &s, uint64_t fr) {
 const Animation::Sequence* Pose::getNext(AnimationSolver &solver, const Animation::Sequence* sq) {
   if(sq->next.empty())
     return nullptr;
-  return solver.solveFrm(sq->next.c_str());
+  return solver.solveAsc(sq->next.c_str());
   }
 
 void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, uint64_t tickCount) {

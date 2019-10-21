@@ -32,6 +32,7 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
         auto& ani      = loadMAN(name+'-'+p.ani.m_Name+".MAN");
         current        = ani.data.get();
 
+        ani.askName    = p.ani.m_Name;
         ani.layer      = p.ani.m_Layer;
         ani.flags      = Flags(p.ani.m_Flags);
         ani.next       = p.ani.m_Next;
@@ -53,7 +54,7 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
         bool found=false;
         for(size_t r=0;r<sequences.size();++r) { // reverse search: expect to find animations right before aniComb
           auto& i = sequences[sequences.size()-r-1];
-          if(i.name==name) {
+          if(i.askName==name) {
             auto d = i.data;
             sequences.emplace_back();
             Animation::Sequence& ani = sequences.back();
@@ -146,6 +147,16 @@ const Animation::Sequence* Animation::sequence(const char *name) const {
   return nullptr;
   }
 
+const Animation::Sequence *Animation::sequenceAsc(const char *name) const {
+  auto it = std::lower_bound(sequences.begin(),sequences.end(),name,[](const Sequence& s,const char* n){
+    return s.askName<n;
+    });
+
+  if(it!=sequences.end() && it->askName==name)
+    return &(*it);
+  return nullptr;
+  }
+
 void Animation::debug() const {
   for(auto& i:sequences)
     Log::d(i.name);
@@ -163,7 +174,7 @@ void Animation::setupIndex() {
   for(auto& r:ref) {
     Sequence ani;
     for(auto& s:sequences)
-      if(s.name==r.m_Alias)
+      if(s.askName==r.m_Alias)
         ani.data = s.data;
 
     if(ani.data==nullptr) {
@@ -185,7 +196,7 @@ void Animation::setupIndex() {
     });
 
   for(auto& i:sequences) {
-    if(i.next==i.name)
+    if(i.next==i.askName)
       i.animCls = Loop;
     if(i.name.find("S_")==0)
       i.shortName = &i.name[2];

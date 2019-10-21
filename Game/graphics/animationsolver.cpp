@@ -300,6 +300,17 @@ const Animation::Sequence *AnimationSolver::solveFrm(const char *format, WeaponS
   return solveFrm(name);
   }
 
+const Animation::Sequence *AnimationSolver::solveAsc(const char *name) const {
+  if(name==nullptr || name[0]=='\0')
+    return nullptr;
+  for(size_t i=overlay.size();i>0;){
+    --i;
+    if(auto s = overlay[i].skeleton->sequenceAsc(name))
+      return s;
+    }
+  return baseSk ? baseSk->sequenceAsc(name) : nullptr;
+  }
+
 const Animation::Sequence *AnimationSolver::solveFrm(const char *name) const {
   if(name==nullptr || name[0]=='\0')
     return nullptr;

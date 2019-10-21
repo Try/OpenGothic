@@ -30,6 +30,7 @@ class Skeleton final {
 
     const std::string&              name() const { return meshLib; }
     const Animation::Sequence*      sequence(const char* name) const;
+    const Animation::Sequence*      sequenceAsc(const char* name) const;
     void                            debug() const;
 
     float                           colisionHeight() const;

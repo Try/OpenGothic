@@ -76,7 +76,7 @@ class Animation final {
       ZMath::float3                          speed(uint64_t at, uint64_t dt) const;
       ZMath::float3                          translateXZ(uint64_t at) const;
 
-      std::string                            name;
+      std::string                            name, askName;
       const char*                            shortName = nullptr;
       uint32_t                               layer  =0;
       Flags                                  flags  =Flags::None;
@@ -94,6 +94,7 @@ class Animation final {
     Animation(ZenLoad::MdsParser &p, const std::string &name, bool ignoreErrChunks);
 
     const Sequence *sequence(const char* name) const;
+    const Sequence *sequenceAsc(const char* name) const;
     void            debug() const;
 
   private:

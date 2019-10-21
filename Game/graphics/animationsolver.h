@@ -73,6 +73,7 @@ class AnimationSolver final {
     void                           delOverlay(const char *sk);
     void                           delOverlay(const Skeleton *sk);
 
+    const Animation::Sequence*     solveAsc (const char *format) const;
     const Animation::Sequence*     solveFrm (const char *format) const;
     const Animation::Sequence*     solveAnim(Anim a, WeaponState st, WalkBit wlk, const Pose &pose) const;
     const Animation::Sequence*     solveAnim(WeaponState st, WeaponState cur, bool run) const;

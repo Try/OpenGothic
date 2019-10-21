@@ -66,6 +66,12 @@ const Animation::Sequence* Skeleton::sequence(const char *name) const {
   return nullptr;
   }
 
+const Animation::Sequence *Skeleton::sequenceAsc(const char *name) const {
+  if(anim)
+    return anim->sequenceAsc(name);
+  return nullptr;
+  }
+
 void Skeleton::debug() const {
   if(anim)
     anim->debug();
