@@ -199,7 +199,7 @@ void Animation::setupIndex() {
     });
 
   for(auto& i:sequences) {
-    if(i.next==i.askName)
+    if(i.next==i.askName || i.next==i.name)
       i.animCls = Loop;
     if(i.name.find("S_")==0)
       i.shortName = &i.name[2];

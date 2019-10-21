@@ -43,7 +43,7 @@ class PfxObjects final {
 
         Bucket*         bucket  =nullptr;
         const Skeleton* skeleton=nullptr;
-        size_t          id      =0;
+        size_t          id      =size_t(-1);
         size_t          boneId  =size_t(-1);
 
       friend class PfxObjects;
@@ -79,16 +79,24 @@ class PfxObjects final {
       Tempest::VertexBufferDyn<Vertex> vbo;
       };
 
+    struct ImplEmitter;
+    struct Block final {
+      uint64_t     timeTotal=0;
+      uint64_t     emited=0;
+      size_t       owner=size_t(-1);
+
+      size_t       offset=0;
+      size_t       count=0;
+
+      float        pos[3]={};
+      bool         active=true;
+      bool         alive =true;
+      };
+
     struct ImplEmitter final {
-      float    pos[3]={};
-      bool     alive=true;
-      bool     active=true;
-
-      size_t   offset=0;
-      size_t   size=0;
-
-      uint64_t timeTotal=0;
-      uint64_t emited=0;
+      size_t       id    = size_t(-1);
+      float        pos[3]={};
+      bool         alive = true;
       };
 
     struct ParState final {
@@ -108,13 +116,22 @@ class PfxObjects final {
       std::vector<ParState>       particles;
 
       std::vector<ImplEmitter>    impl;
+      std::vector<Block>          block;
+
       const ParticleFx*           owner=nullptr;
       PfxObjects*                 parent=nullptr;
+      size_t                      blockSize=0;
 
-      size_t                      alloc(size_t size);
-      void                        init(size_t particle);
+      size_t                      allocBlock();
+      void                        freeBlock(size_t s);
+      Block&                      getBlock(ImplEmitter& emitter);
+      Block&                      getBlock(Emitter& emitter);
+
+      size_t                      alloc   ();
+      void                        shrink  ();
+
+      void                        init    (size_t particle);
       void                        finalize(size_t particle);
-      void                        shrink();
       };
 
     static float                  randf();

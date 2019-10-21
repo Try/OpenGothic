@@ -18,15 +18,10 @@ PfxObjects::Emitter::Emitter(PfxObjects::Bucket& b, size_t id)
 
 PfxObjects::Emitter::~Emitter() {
   if(bucket) {
-    auto& b = *bucket;
-    auto& p = b.impl[id];
-
-    Vertex* v = &b.vbo[p.offset*6];
-    std::memset(v,0,p.size*6*sizeof(Vertex));
-
-    bucket->impl[id].alive = false;
-    if(id+1==bucket->impl.size())
-      bucket->shrink();
+    auto& p = bucket->impl[id];
+    bucket->freeBlock(p.id);
+    p.id    = size_t(-1);
+    p.alive = false;
     }
   }
 
@@ -44,16 +39,24 @@ PfxObjects::Emitter &PfxObjects::Emitter::operator=(PfxObjects::Emitter &&b) {
 void PfxObjects::Emitter::setPosition(float x, float y, float z) {
   if(bucket==nullptr)
     return;
-  auto& v = bucket->impl[id];
+  auto& v = bucket->impl[id];//getBlock(*this);
   v.pos[0] = x;
   v.pos[1] = y;
   v.pos[2] = z;
+  if(bucket->impl[id].id==size_t(-1))
+    return; // no backup memory
+  auto& p = bucket->getBlock(*this);
+  p.pos[0] = x;
+  p.pos[1] = y;
+  p.pos[2] = z;
   }
 
 void PfxObjects::Emitter::setActive(bool act) {
   if(bucket==nullptr)
     return;
-  auto& v = bucket->impl[id];
+  if(bucket->impl[id].id==size_t(-1) && act==false)
+    return; // no backup memory
+  auto& v = bucket->getBlock(*this);
   v.active=act;
   }
 
@@ -93,24 +96,70 @@ PfxObjects::Bucket::Bucket(const RendererStorage &storage, const ParticleFx &ow,
   pf.reset(new PerFrame[cnt]);
   for(size_t i=0;i<cnt;++i)
     pf[i].ubo = storage.device.uniforms(storage.uboPfxLayout());
+
+  uint64_t lt      = ow.maxLifetime();
+  uint64_t pps     = uint64_t(std::ceil(ow.ppsValue));
+  uint64_t reserve = (lt*pps+1000-1)/1000;
+  blockSize        = size_t(reserve);
   }
 
-size_t PfxObjects::Bucket::alloc(size_t size) {
+size_t PfxObjects::Bucket::allocBlock() {
+  for(size_t i=0;i<block.size();++i) {
+    if(!block[i].alive) {
+      block[i].alive=true;
+      return i;
+      }
+    }
+
+  parent->updateCmd = true;
+  block.emplace_back();
+
+  Block& b = block.back();
+  b.offset = particles.size();
+
+  particles.resize(particles.size()+blockSize);
+  vbo.resize(particles.size()*6);
+
+  for(size_t i=0; i<blockSize; ++i)
+    particles[i].life = 0;
+  return block.size()-1;
+  }
+
+void PfxObjects::Bucket::freeBlock(size_t i) {
+  if(i==size_t(-1))
+    return;
+  auto& b = block[i];
+  b.active = false;
+  b.alive  = b.count==0; // wait until all particles are gone
+  }
+
+PfxObjects::Block &PfxObjects::Bucket::getBlock(PfxObjects::ImplEmitter &e) {
+  if(e.id==size_t(-1)) {
+    e.id = allocBlock();
+
+    auto& p  = block[e.id];
+
+    p.owner  = size_t(&e-impl.data());
+    p.pos[0] = e.pos[0];
+    p.pos[1] = e.pos[1];
+    p.pos[2] = e.pos[2];
+    }
+  return block[e.id];
+  }
+
+PfxObjects::Block &PfxObjects::Bucket::getBlock(PfxObjects::Emitter &e) {
+  return getBlock(impl[e.id]);
+  }
+
+size_t PfxObjects::Bucket::alloc() {
   for(size_t i=0; i<impl.size(); ++i)
-    if(!impl[i].alive && impl[i].size==size) {
+    if(!impl[i].alive) {
       impl[i].alive = true;
       return i;
       }
   impl.emplace_back();
-  auto& e  = impl.back();
-  e.size   = size;
-  e.offset = particles.size();
-
-  particles.resize(particles.size()+e.size);
-  vbo.resize(particles.size()*6);
-
-  for(size_t i=0; i<e.size; ++i)
-    particles[i].life = 0;
+  auto& e = impl.back();
+  e.id    = size_t(-1); // no backup memory
 
   return impl.size()-1;
   }
@@ -168,13 +217,19 @@ void PfxObjects::Bucket::shrink() {
     auto& b = impl.back();
     if(b.alive)
       break;
-    particles.resize(particles.size()-b.size);
+    if(b.id!=size_t(-1))
+      block[b.id].owner = size_t(-1);
     impl.pop_back();
     }
+  while(block.size()>0) {
+    auto& b = block.back();
+    if(b.alive || b.count>0)
+      break;
+    block.pop_back();
+    }
+  particles.resize(block.size()+blockSize);
   vbo.resize(particles.size()*6);
-  parent->updateCmd = true;
   }
-
 
 float PfxObjects::ParState::lifeTime() const {
   return 1.f-life/float(maxLife);
@@ -185,13 +240,8 @@ PfxObjects::PfxObjects(const RendererStorage& storage)
   }
 
 PfxObjects::Emitter PfxObjects::get(const ParticleFx &decl) {
-  uint64_t lt  = decl.maxLifetime();
-  uint64_t pps = uint64_t(std::ceil(decl.ppsValue));
-
-  uint64_t reserve = pps*lt;
-
   auto&  b = getBucket(decl);
-  size_t e = b.alloc(std::min<size_t>(size_t(reserve),1000));
+  size_t e = b.alloc();
   updateCmd = true;
   return Emitter(b,e);
   }
@@ -272,37 +322,47 @@ PfxObjects::Bucket &PfxObjects::getBucket(const ParticleFx &ow) {
 void PfxObjects::tickSys(PfxObjects::Bucket &b,uint64_t dt) {
   float k = float(dt)/1000.f;
 
-  for(auto& p:b.impl) {
-    if(!p.alive)
-      continue;
-
-    for(size_t i=0;i<p.size;++i) {
-      ParState& ps = b.particles[i+p.offset];
-      if(ps.life==0)
-        continue;
-      if(ps.life<=dt){
-        ps.life = 0;
-        b.finalize(i+p.offset);
-        } else {
-        ps.life-=dt;
-        ps.pos += ps.dir*k;
+  for(auto& p:b.block) {
+    if(p.count>0) {
+      for(size_t i=0;i<b.blockSize;++i) {
+        ParState& ps = b.particles[i+p.offset];
+        if(ps.life==0)
+          continue;
+        if(ps.life<=dt){
+          ps.life = 0;
+          p.count--;
+          b.finalize(i+p.offset);
+          } else {
+          // eval particle
+          ps.life -= dt;
+          ps.pos  += ps.dir*k;
+          }
         }
       }
 
     p.timeTotal+=dt;
-    uint64_t emited = (p.timeTotal*uint64_t(b.owner->ppsValue*100))/(1000*100);
+    uint64_t fltScale = 100;
+    uint64_t emited   = (p.timeTotal*uint64_t(b.owner->ppsValue*fltScale))/(1000*fltScale);
     if(!p.active) {
       p.emited = emited;
-      return;
-      }
-    while(p.emited<emited) {
-      p.emited++;
+      if(p.count==0) {
+        p.alive=false;
+        if(p.owner!=size_t(-1))
+          b.impl[p.owner].id=size_t(-1);
+        p.owner=size_t(-1);
+        b.shrink();
+        }
+      } else {
+      while(p.emited<emited) {
+        p.emited++;
 
-      for(size_t i=0;i<p.size;++i) {
-        ParState& ps = b.particles[i+p.offset];
-        if(ps.life==0) { // free slot
-          b.init(i+p.offset);
-          break;
+        for(size_t i=0;i<b.blockSize;++i) {
+          ParState& ps = b.particles[i+p.offset];
+          if(ps.life==0) { // free slot
+            p.count++;
+            b.init(i+p.offset);
+            break;
+            }
           }
         }
       }
@@ -344,11 +404,11 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b) {
   auto  visAlphaEnd     = ow.visAlphaEnd;
   auto  visAlphaFunc    = ow.visAlphaFunc_S;
 
-  for(auto& p:b.impl) {
-    if(!p.alive)
+  for(auto& p:b.block) {
+    if(p.count==0)
       continue;
 
-    for(size_t i=0;i<p.size;++i) {
+    for(size_t i=0;i<b.blockSize;++i) {
       ParState& ps = b.particles[i+p.offset];
       Vertex*   v  = &b.vbo[(p.offset+i)*6];
 

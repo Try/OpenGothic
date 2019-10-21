@@ -85,7 +85,7 @@ void RendererStorage::initPipeline() {
   statePfx.setZTestMode    (RenderState::ZTestMode::LEqual);
   statePfx.setZWriteEnabled(false);
   statePfx.setCullFaceMode (RenderState::CullMode::Front);
-  statePfx.setBlendSource  (RenderState::BlendMode::one);
+  statePfx.setBlendSource  (RenderState::BlendMode::src_alpha);
   statePfx.setBlendDest    (RenderState::BlendMode::one);
   
   pSky           = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutSky, vsSky,  fsSky );
