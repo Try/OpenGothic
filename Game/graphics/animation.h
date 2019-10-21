@@ -47,7 +47,8 @@ class Animation final {
       std::vector<ZenLoad::zCModelEvent>          events;
 
       std::vector<uint64_t>                       defHitEnd;   // hit-end time
-      std::vector<uint64_t>                       defParFrame; // block timings
+      std::vector<uint64_t>                       defParFrame;
+      std::vector<uint64_t>                       defWindow;
 
       void                                        setupMoveTr();
       void                                        setupEvents(float fpsRate);
@@ -57,11 +58,15 @@ class Animation final {
       Sequence()=default;
       Sequence(const std::string& name);
 
-      bool                                   isMove() const { return bool(flags&Flags::Move); }
-      bool                                   isFly()  const { return bool(flags&Flags::Fly);  }
+      bool                                   isRotate() const { return bool(flags&Flags::Rotate); }
+      bool                                   isMove()   const { return bool(flags&Flags::Move);   }
+      bool                                   isFly()    const { return bool(flags&Flags::Fly);    }
+      bool                                   isIdle()   const { return bool(flags&Flags::Idle);   }
       bool                                   isFinished(uint64_t t) const;
+      bool                                   canInterrupt() const;
       bool                                   isAtackFinished(uint64_t t) const;
       bool                                   isParWindow(uint64_t t) const;
+      bool                                   isWindow(uint64_t t) const;
       float                                  totalTime() const;
 
       void                                   processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const;
@@ -72,14 +77,14 @@ class Animation final {
       ZMath::float3                          translateXZ(uint64_t at) const;
 
       std::string                            name;
+      const char*                            shortName = nullptr;
       uint32_t                               layer  =0;
       Flags                                  flags  =Flags::None;
-      AnimClass                              animCls=UnknownAnim;
+      AnimClass                              animCls=Transition;
       bool                                   reverse=false;
-      std::string                            nextStr;
+      std::string                            next;
 
       std::shared_ptr<AnimData>              data;
-      const Sequence*                        next=nullptr;
 
       private:
         void setupMoveTr();

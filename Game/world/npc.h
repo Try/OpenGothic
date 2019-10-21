@@ -3,7 +3,7 @@
 #include "graphics/meshobjects.h"
 #include "graphics/pose.h"
 #include "graphics/animation.h"
-#include "graphics/animationsolver.h"
+#include "graphics/mdlvisual.h"
 #include "game/gametime.h"
 #include "game/movealgo.h"
 #include "game/inventory.h"
@@ -76,53 +76,6 @@ class Npc final {
       PERC_Count
       };
 
-    enum BodyState:uint32_t {
-      BS_RUN         = 3,
-      BS_SPRINT      = 4,
-      BS_SWIM        = 5,
-      BS_CRAWL       = 6,
-      BS_DIVE        = 7,
-      BS_JUMP        = 8,
-      BS_FALL        = 10,
-      BS_LIE         = 12,
-      BS_INVENTORY   = 13,
-      BS_MOBINTERACT = 15,
-      BS_TAKEITEM    = 17,
-      BS_DROPITEM    = 18,
-      BS_THROWITEM   = 19,
-      BS_STUMBLE     = 21,
-      BS_UNCONSCIOUS = 22,
-      BS_DEAD        = 23,
-      BS_AIMNEAR     = 24,
-      BS_AIMFAR      = 25,
-      BS_PARADE      = 27,
-      BS_CASTING     = 28,
-      BS_PETRIFIED   = 29,
-      BS_MAX         = 31,
-
-      BS_WALK                  = 32769,
-      BS_SNEAK                 = 32770,
-      BS_CLIMB                 = 32777,
-      BS_ITEMINTERACT          = 32782,
-      BS_MOBINTERACT_INTERRUPT = 32784,
-      BS_PICKPOCKET            = 32788,
-      BS_HIT                   = 32794,
-      BS_CONTROLLING           = 32798,
-      BS_SIT                   = 65547,
-      BS_STAND                 = 98304,
-
-      BS_MOD_HIDDEN         = 1 << 7,
-      BS_MOD_DRUNK          = 1 << 8,
-      BS_MOD_NUTS           = 1 << 9,
-      BS_MOD_BURNING        = 1 << 10,
-      BS_MOD_CONTROLLED     = 1 << 11,
-      BS_MOD_TRANSFORMED    = 1 << 12,
-      BS_FLAG_INTERRUPTABLE = 1 << 15,
-      BS_FLAG_FREEHANDS     = 1 << 16,
-
-      BS_MAX_FLAGS          = BS_FLAG_INTERRUPTABLE | BS_FLAG_FREEHANDS,
-      };
-
     enum Talent : uint8_t {
       TALENT_UNKNOWN            = 0,
       TALENT_1H                 = 1,
@@ -192,6 +145,7 @@ class Npc final {
       };
 
     enum GoToHint : uint8_t {
+      GT_No,
       GT_Default,
       GT_NextFp
       };
@@ -214,7 +168,6 @@ class Npc final {
     static float angleDir(float x,float z);
     bool resetPositionToTA();
 
-    void startDlgAnim();
     void stopDlgAnim();
 
     void setProcessPolicy(ProcessPolicy t);
@@ -261,17 +214,22 @@ class Npc final {
     void setPhysic     (DynamicWorld::Item&& item);
     void setFatness    (float f);
     void setScale      (float x,float y,float z);
+
     bool setAnim(Anim a);
+    void setAnimRotate(int rot);
+    bool setAnimItem(const char* scheme);
     void stopAnim(const std::string& ani);
-    Anim anim() const  { return animation.current; }
-    bool isStanding() const;
+    bool isFinishingMove() const;
 
     ZMath::float3 animMoveSpeed(uint64_t dt) const;
 
+    bool          isJumpAnim() const;
     bool          isFlyAnim() const;
     bool          isFaling() const;
     bool          isSlide() const;
     bool          isInAir() const;
+    bool          isRunTo() const;
+    bool          isStanding() const;
 
     void     setTalentSkill(Talent t,int32_t lvl);
     int32_t  talentSkill(Talent t) const;
@@ -396,7 +354,7 @@ class Npc final {
     Item*    currentRangeWeapon();
 
     bool     lookAt(float dx, float dz, bool anim, uint64_t dt);
-    bool     playAnimByName(const std::string& name);
+    bool     playAnimByName(const std::string& name, BodyState bs);
 
     bool     checkGoToNpcdistance(const Npc& other);
     void     aiLookAt(Npc* other);
@@ -407,6 +365,7 @@ class Npc final {
     void     aiGoToNextFp(std::string fp);
     void     aiStartState(uint32_t stateFn, int behavior, Npc *other, std::string wp);
     void     aiPlayAnim(const std::string &ani);
+    void     aiPlayAnimBs(const std::string &ani, BodyState bs);
     void     aiWait(uint64_t dt);
     void     aiStandup();
     void     aiStandupQuick();
@@ -487,7 +446,7 @@ class Npc final {
       AI_GoToPoint,
       AI_StartState,
       AI_PlayAnim,
-      AI_PlayAnimById,
+      AI_PlayAnimBs,
       AI_Wait,
       AI_StandUp,
       AI_StandUpQuick,
@@ -551,7 +510,6 @@ class Npc final {
 
     void                           updateWeaponSkeleton();
     void                           updatePos();
-    void                           setPos(const Tempest::Matrix4x4& m);
     bool                           setViewPosition(const std::array<float,3> &pos);
 
     int                            aiOutputOrderId() const;
@@ -570,7 +528,6 @@ class Npc final {
     void                           implFaiWait(uint64_t dt);
     void                           tickRoutine();
     void                           nextAiAction(uint64_t dt);
-    bool                           setAnim(Npc::Anim a, WeaponState st);
     void                           commitDamage();
     void                           takeDamage(Npc& other);
     std::tuple<int, bool>          damageValue(Npc &other, const Bullet *b) const;
@@ -602,7 +559,7 @@ class Npc final {
     std::string                    body,head;
     int32_t                        vHead=0, vTeeth=0, vColor =0;
     int32_t                        bdColor=0;
-    AnimationSolver                animation;
+    MdlVisual                      visual;
 
     DynamicWorld::Item             physic;
 
@@ -647,7 +604,7 @@ class Npc final {
     AiOuputPipe*                   outputPipe     =nullptr;
 
     Npc*                           currentGoToNpc =nullptr;
-    GoToHint                       currentGoToFlag=GoToHint::GT_Default;
+    GoToHint                       currentGoToFlag=GoToHint::GT_No;
     const WayPoint*                currentGoTo    =nullptr;
     const WayPoint*                currentFp      =nullptr;
     FpLock                         currentFpLock;

@@ -80,6 +80,55 @@ enum {
   MAX_AI_USE_DISTANCE=150
   };
 
+enum BodyState:uint32_t {
+  BS_NONE        = 0,
+
+  BS_RUN         = 3,
+  BS_SPRINT      = 4,
+  BS_SWIM        = 5,
+  BS_CRAWL       = 6,
+  BS_DIVE        = 7,
+  BS_JUMP        = 8,
+  BS_FALL        = 10,
+  BS_LIE         = 12,
+  BS_INVENTORY   = 13,
+  BS_MOBINTERACT = 15,
+  BS_TAKEITEM    = 17,
+  BS_DROPITEM    = 18,
+  BS_THROWITEM   = 19,
+  BS_STUMBLE     = 21,
+  BS_UNCONSCIOUS = 22,
+  BS_DEAD        = 23,
+  BS_AIMNEAR     = 24,
+  BS_AIMFAR      = 25,
+  BS_PARADE      = 27,
+  BS_CASTING     = 28,
+  BS_PETRIFIED   = 29,
+  BS_MAX         = 31,
+
+  BS_WALK                  = 32769,
+  BS_SNEAK                 = 32770,
+  BS_CLIMB                 = 32777,
+  BS_ITEMINTERACT          = 32782,
+  BS_MOBINTERACT_INTERRUPT = 32784,
+  BS_PICKPOCKET            = 32788,
+  BS_HIT                   = 32794,
+  BS_CONTROLLING           = 32798,
+  BS_SIT                   = 65547,
+  BS_STAND                 = 98304,
+
+  BS_MOD_HIDDEN         = 1 << 7,
+  BS_MOD_DRUNK          = 1 << 8,
+  BS_MOD_NUTS           = 1 << 9,
+  BS_MOD_BURNING        = 1 << 10,
+  BS_MOD_CONTROLLED     = 1 << 11,
+  BS_MOD_TRANSFORMED    = 1 << 12,
+  BS_FLAG_INTERRUPTABLE = 1 << 15,
+  BS_FLAG_FREEHANDS     = 1 << 16,
+
+  BS_MAX_FLAGS          = BS_FLAG_INTERRUPTABLE | BS_FLAG_FREEHANDS,
+  };
+
 enum class WeaponState : uint8_t {
   NoWeapon,
   Fist,

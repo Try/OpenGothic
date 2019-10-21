@@ -105,7 +105,7 @@ class GameScript final {
     int  invokeMana (Npc& npc, Npc* target, Item&  fn);
     int  invokeSpell(Npc& npc, Npc *target, Item&  fn);
 
-    int  spellCastAnim(Npc& npc, Item&  fn);
+    auto spellCastAnim(Npc& npc, Item&  fn) -> const std::string&;
 
     bool isDead       (const Npc &pl);
     bool isUnconscious(const Npc &pl);

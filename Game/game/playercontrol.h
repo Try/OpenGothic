@@ -40,6 +40,7 @@ class PlayerControl final {
     void moveBack();
     void moveLeft();
     void moveRight();
+    bool isInMove();
 
     void setTarget(Npc* other);
     void actionFocus(Npc& other);

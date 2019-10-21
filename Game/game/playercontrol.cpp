@@ -178,10 +178,14 @@ void PlayerControl::moveRight() {
   ctrl[Right]=true;
   }
 
+bool PlayerControl::isInMove() {
+  return ctrl[Forward] | ctrl[Left] | ctrl[Right]; // | ctrl[Back];
+  }
+
 void PlayerControl::setTarget(Npc *other) {
   auto w  = world();
   auto pl = w ? w->player() : nullptr;
-  if(pl==nullptr || pl->anim()==Npc::Anim::AtackFinish)
+  if(pl==nullptr || pl->isFinishingMove())
     return;
   auto ws = pl->weaponState();
   if(other!=nullptr || (ws!=WeaponState::W1H && ws!=WeaponState::W2H))
@@ -263,9 +267,9 @@ void PlayerControl::implMove(uint64_t dt) {
 
   Npc::Anim ani=Npc::Anim::Idle;
 
-  if((pl.bodyState()&Npc::BS_MAX)==Npc::BS_DEAD)
+  if((pl.bodyState()&BS_MAX)==BS_DEAD)
     return;
-  if((pl.bodyState()&Npc::BS_MAX)==Npc::BS_UNCONSCIOUS)
+  if((pl.bodyState()&BS_MAX)==BS_UNCONSCIOUS)
     return;
 
   if(!pl.isAiQueueEmpty()) {
@@ -273,25 +277,26 @@ void PlayerControl::implMove(uint64_t dt) {
     return;
     }
 
+  int rotation=0;
   if(pl.interactive()==nullptr) {
     if(ctrl[RotateL]) {
       rot += rspeed;
-      ani  = Npc::Anim::RotL;
+      rotation = -1;
       rotMouse=0;
       }
     if(ctrl[RotateR]) {
       rot -= rspeed;
-      ani  = Npc::Anim::RotR;
+      rotation = 1;
       rotMouse=0;
       }
 
     if(rotMouse>0) {
       if(rotMouseDir){
         rot += rspeed;
-        ani  = Npc::Anim::RotL;
+        rotation = -1;
         } else {
         rot -= rspeed;
-        ani  = Npc::Anim::RotR;
+        rotation = 1;
         }
       if(rotMouse<dt)
         rotMouse=0; else
@@ -346,23 +351,29 @@ void PlayerControl::implMove(uint64_t dt) {
 
     if((ws==WeaponState::Bow || ws==WeaponState::CBow) &&
        pl.hasAmunition()){
-      auto other = pl.target();
-      if(other!=nullptr && ctrl[ActionFocus]) {
-        float dx = other->position()[0]-pl.position()[0];
-        float dz = other->position()[2]-pl.position()[2];
-        pl.lookAt(dx,dz,false,dt);
-        pl.aimBow();
-        } else
+      if(ctrl[ActionFocus]) {
+        if(auto other = pl.target()) {
+          float dx = other->position()[0]-pl.position()[0];
+          float dz = other->position()[2]-pl.position()[2];
+          pl.lookAt(dx,dz,false,dt);
+          pl.aimBow();
+          if(!ctrl[ActForward])
+            return;
+          }
+        }
       if(ctrl[EmptyFocus]){
         pl.aimBow();
+        if(!ctrl[ActForward])
+          return;
         }
-      // no move
-      if(!ctrl[ActForward] && (ctrl[ActionFocus] || ctrl[EmptyFocus]))
-        return;
       }
 
     if(ctrl[ActForward]) {
       auto ws = pl.weaponState();
+      if(ws==WeaponState::NoWeapon) {
+        ctrl[ActForward]=true;
+        ctrl[Forward]   =true;
+        }
       if(ws==WeaponState::Fist) {
         pl.fistShoot();
         return;
@@ -381,7 +392,6 @@ void PlayerControl::implMove(uint64_t dt) {
         if(pl.castSpell())
           return;
         }
-      ctrl[Forward]=true;
       }
     if(ctrl[ActLeft] || ctrl[ActRight] || ctrl[ActBack]) {
       auto ws = pl.weaponState();
@@ -402,7 +412,7 @@ void PlayerControl::implMove(uint64_t dt) {
       }
 
     if(ctrl[Jump]) {
-      if(pl.anim()==AnimationSolver::Idle){
+      if(pl.isStanding()) {
         auto code = pl.tryJump(pl.position());
         if(!pl.isFaling() && !pl.isSlide() && code!=Npc::JumpCode::JM_OK){
           pl.startClimb(code);
@@ -430,9 +440,10 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   pl.setAnim(ani);
-  if(ctrl[ActionFocus] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.anim()==Npc::Anim::AtackFinish){
+  pl.setAnimRotate(ani==Npc::Anim::Idle ? rotation : 0);
+  if(ctrl[ActionFocus] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.isFinishingMove()) {
     if(auto other = pl.target()){
-      if((pl.weaponState()==WeaponState::NoWeapon || other->isDown()) && pl.anim()!=Npc::Anim::AtackFinish){
+      if(pl.weaponState()==WeaponState::NoWeapon || other->isDown() || pl.isFinishingMove()){
         pl.setOther(nullptr);
         } else {
         float dx = other->position()[0]-pl.position()[0];

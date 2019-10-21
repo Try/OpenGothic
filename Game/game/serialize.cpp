@@ -55,6 +55,14 @@ void Serialize::read(const WayPoint *&wptr) {
   wptr = ctx->findPoint(tmpStr);
   }
 
+void Serialize::write(WeaponState w) {
+  write(uint8_t(w));
+  }
+
+void Serialize::read(WeaponState &w) {
+  read(reinterpret_cast<uint8_t&>(w));
+  }
+
 void Serialize::write(const FpLock &fp) {
   fp.save(*this);
   }

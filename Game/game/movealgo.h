@@ -24,6 +24,7 @@ class MoveAlgo final {
 
     static bool isClose(const std::array<float,3>& w,const WayPoint& p);
     static bool isClose(float x,float y,float z,const WayPoint& p);
+    static bool isClose(float x,float y,float z,const WayPoint& p,float dist);
 
     void    load(Serialize& fin);
     void    save(Serialize& fout) const;

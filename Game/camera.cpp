@@ -214,7 +214,7 @@ void Camera::setPosition(float x, float y, float z) {
   camPos[2] = z;
   }
 
-void Camera::follow(const Npc &npc,uint64_t dt,bool includeRot) {
+void Camera::follow(const Npc &npc,uint64_t dt,bool inMove,bool includeRot) {
   const auto& def = cameraDef();
   const float dtF = dt/1000.f;
 
@@ -228,10 +228,12 @@ void Camera::follow(const Npc &npc,uint64_t dt,bool includeRot) {
     // inventory: 0/20/90
     pos[1] += tr + tr*(def.bestElevation-10)/20.f; // HACK
 
-    isInMove = (npc.anim()==AnimationSolver::Move  ||
-                npc.anim()==AnimationSolver::MoveL ||
-                npc.anim()==AnimationSolver::MoveR ||
-                npc.anim()==AnimationSolver::Jump);
+    /*
+    auto speed = npc.animMoveSpeed(dt);
+    if(std::sqrt(speed.x*speed.x+speed.y*speed.y+speed.z*speed.z)>30*float(dt)/1000)
+      isInMove = true; else
+      isInMove = false;*/
+    isInMove = inMove;
 
     auto dx  = (pos[0]-camPos[0]);
     auto dy  = (pos[1]-camPos[1]);

@@ -38,13 +38,14 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
     }
 
   if(tg.isPrehit()){
+    // TODO: FAI stormprehit
     //return fillQueue(owner,ai.enemy_stormprehit);
     return fillQueue(owner,ai.enemy_prehit);
     }
 
   if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H){
     if(isInAtackRange(npc,tg,owner)) {
-      if(npc.anim()==AnimationSolver::Move)
+      if(npc.isRunTo())
         return fillQueue(owner,ai.my_w_runto);
       if(isInFocusAngle(npc,tg))
         return fillQueue(owner,ai.my_w_focus);
@@ -52,12 +53,12 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
       }
 
     if(isInGRange(npc,tg,owner)){
-      if(npc.anim()==AnimationSolver::Move)
+      if(npc.isRunTo())
         return fillQueue(owner,ai.my_g_runto);
       return fillQueue(owner,ai.my_g_focus);
       }
 
-    if(npc.anim()==AnimationSolver::Move)
+    if(npc.isRunTo())
       return fillQueue(owner,ai.my_w_runto);
     return fillQueue(owner,ai.my_w_nofocus);
     }
@@ -291,3 +292,4 @@ float FightAlgo::weaponOnlyRange(GameScript &owner,const Npc &npc) {
     }
   return 0;
   }
+

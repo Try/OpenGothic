@@ -188,19 +188,6 @@ void WorldView::addStatic(const ZenLoad::zCVobData &vob) {
   objStatic.push_back(std::move(obj));
   }
 
-std::shared_ptr<Pose> WorldView::get(const Skeleton *s, const Animation::Sequence *sq, uint64_t sT,std::shared_ptr<Pose>& prev) {
-  return animPool.get(s,sq,sT,prev);
-  }
-
-std::shared_ptr<Pose> WorldView::get(const Skeleton *s, const Animation::Sequence *sq,
-                                     const Animation::Sequence *sq1, uint64_t sT,std::shared_ptr<Pose>& prev) {
-  return animPool.get(s,sq,sq1,sT,prev);
-  }
-
-void WorldView::updateAnimation(uint64_t tickCount) {
-  animPool.updateAnimation(tickCount);
-  }
-
 void WorldView::prebuiltCmdBuf(const World &world, const Texture2d& shadowMap,
                                const FrameBufferLayout& mainLay,const FrameBufferLayout& shadowLay) {
   auto&    device = storage.device;

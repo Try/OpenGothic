@@ -25,7 +25,7 @@ void MoveAlgo::save(Serialize &fout) const {
   }
 
 void MoveAlgo::tickMobsi(uint64_t dt) {
-  if(npc.anim()!=AnimationSolver::Interact || npc.interactive()->isLoopState())
+  if(npc.interactive()->isLoopState())
     return;
 
   auto dp  = animMoveSpeed(dt);
@@ -57,6 +57,8 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
   auto  ground = dropRay(pos[0], pos[1]+fallThreshold, pos[2], valid);
   float dY     = pY-ground;
 
+  //if(ground+chest<water)
+  //  ;
   if(dY>fallThreshold*2) {
     fallSpeed[0] *=2;
     fallSpeed[2] *=2;
@@ -144,8 +146,6 @@ void MoveAlgo::tickGravity(uint64_t dt) {
     if(fallSpeed[1]<-1500.f)
       npc.setAnim(AnimationSolver::FallDeep); else
     if(fallSpeed[1]<-300.f)
-      npc.setAnim(AnimationSolver::Fall); else
-    if(fallSpeed[1]<-100.f && npc.anim()==Npc::Anim::Jump)
       npc.setAnim(AnimationSolver::Fall);
     } else {
     if(ground+chest<water && !npc.isDead()) {
@@ -162,19 +162,6 @@ void MoveAlgo::tickGravity(uint64_t dt) {
       setInAir(false);
       }
     }
-  }
-
-
-bool MoveAlgo::testClimp(float scale) const {
-  float len=100;
-  std::array<float,3> ret = {}, v={0,0,len*scale};
-  applyRotation(ret,v.data());
-
-  ret[0]+=npc.x;
-  ret[1]+=npc.y+npc.translateY();
-  ret[2]+=npc.z;
-
-  return npc.testMove(ret,v,0.f);
   }
 
 void MoveAlgo::tickJumpup(uint64_t dt) {
@@ -212,7 +199,7 @@ void MoveAlgo::tickSwim(uint64_t dt) {
   if(ground+chest>=water){
     setAsSwim(false);
     tryMove(dp[0],ground-pY,dp[2]);
-    npc.setAnim(npc.anim());
+    //npc.setAnim(npc.anim()); // TODO: reset anim
     return;
     }
 
@@ -235,7 +222,7 @@ void MoveAlgo::tick(uint64_t dt, bool fai) {
   if(isSwim())
     return tickSwim(dt);
 
-  if(isInAir() && !npc.isFlyAnim()) {
+  if(isInAir() && !npc.isJumpAnim()) {
     return tickGravity(dt);
     }
 
@@ -260,7 +247,7 @@ void MoveAlgo::tick(uint64_t dt, bool fai) {
   if(!npc.isDead() && ground+waterDepthChest()<water){
     setInWater(true);
     setAsSwim(true);
-    npc.setAnim(npc.anim());
+    //npc.setAnim(npc.anim()); //TODO: reset anim
     return;
     }
   if(ground+waterDepthKnee()<water)
@@ -270,7 +257,6 @@ void MoveAlgo::tick(uint64_t dt, bool fai) {
   if(-fallThreshold<dY && npc.isFlyAnim()) {
     // jump animation
     tryMove(dp[0],dp[1],dp[2]);
-
     fallSpeed[0] += dp[0];
     fallSpeed[1] += dp[1];
     fallSpeed[2] += dp[2];
@@ -357,7 +343,7 @@ std::array<float,3> MoveAlgo::animMoveSpeed(uint64_t dt) const {
 
 std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt,bool fai) {
   std::array<float,3> dp = animMoveSpeed(dt);
-  if(!npc.isFlyAnim())
+  if(!npc.isJumpAnim())
     dp[1] = 0.f;
 
   if(fai) {
@@ -404,8 +390,20 @@ std::array<float,3> MoveAlgo::go2WpMoveSpeed(std::array<float,3> dp, float x, fl
   return dp;
   }
 
+bool MoveAlgo::testClimp(float scale) const {
+  float len=100;
+  std::array<float,3> ret = {}, v={0,0,len*scale};
+  applyRotation(ret,v.data());
+
+  ret[0]+=npc.x;
+  ret[1]+=npc.y+npc.translateY();
+  ret[2]+=npc.z;
+
+  return npc.testMove(ret,v,0.f);
+  }
+
 bool MoveAlgo::testSlide(float x,float y,float z) const {
-  if(isInAir() || npc.isFlyAnim())
+  if(isInAir() || npc.isJumpAnim())
     return false;
 
   auto  norm             = normalRay(x,y,z);
@@ -453,9 +451,13 @@ bool MoveAlgo::isClose(const std::array<float,3> &w, const WayPoint &p) {
   return isClose(w[0],w[1],w[2],p);
   }
 
-bool MoveAlgo::isClose(float x, float /*y*/, float z, const WayPoint &p) {
+bool MoveAlgo::isClose(float x, float y, float z, const WayPoint &p) {
+  return isClose(x,y,z,p,closeToPointThreshold);
+  }
+
+bool MoveAlgo::isClose(float x, float /*y*/, float z, const WayPoint &p, float dist) {
   float len = p.qDistTo(x,p.y,z);
-  return (len<closeToPointThreshold*closeToPointThreshold);
+  return (len<dist*dist);
   }
 
 bool MoveAlgo::aiGoTo(const WayPoint *p) {
@@ -464,7 +466,8 @@ bool MoveAlgo::aiGoTo(const WayPoint *p) {
   if(p==nullptr)
     return false;
 
-  if(isClose(npc.position()[0],npc.position()[1],npc.position()[2],*p)){
+  // use smaller threshold, to avoid edge-looping in script
+  if(isClose(npc.position()[0],npc.position()[1],npc.position()[2],*p,closeToPointThreshold*0.5f)){
     npc.attachToPoint(npc.currentGoTo);
     npc.currentGoTo = nullptr;
     return false;
@@ -509,17 +512,17 @@ bool MoveAlgo::startClimb(JumpCode ani) {
     setAsJumpup(true);
     setInAir(true);
     fallSpeed[0]=0.f;
-    fallSpeed[1]=0.75f*gravity;
+    fallSpeed[1]=0.55f*gravity;
     fallSpeed[2]=0.f;
-    fallCount   =-1.f;
+    fallCount   =1000.f;
     }
   else if(jmp==JM_UpMid){
-    setAsJumpup(true);
+    setAsJumpup(false);
     setInAir(true);
-    fallSpeed[0]=0.f;
-    fallSpeed[1]=0.4f*gravity;
-    fallSpeed[2]=0.f;
-    fallCount   =-1.f;
+    }
+  else if(jmp==JM_UpLow){
+    setAsJumpup(false);
+    setInAir(true);
     }
   return true;
   }
@@ -577,6 +580,8 @@ void MoveAlgo::setInWater(bool f) {
   }
 
 void MoveAlgo::setAsSwim(bool f) {
+  if(f)
+    npc.closeWeapon(true);
   if(f)
     flags=Flags(flags|Swim);  else
     flags=Flags(flags&(~Swim));

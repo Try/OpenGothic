@@ -191,12 +191,29 @@ Inventory &Interactive::inventory()  {
   }
 
 uint32_t Interactive::stateMask(uint32_t orig) const {
-  //orig |= Npc::BS_MOBINTERACT;
-
-  if(data.oCMOB.focusName=="MOBNAME_BENCH" ||
-     data.oCMOB.focusName=="MOBNAME_THRONE" ||
-     data.oCMOB.focusName=="MOBNAME_CHAIR")
-    orig = Npc::BS_SIT;
+  static const char* MOB_SIT[]   = {"BENCH","CHAIR","GROUND","THRONE"};
+  static const char* MOB_LIE[]   = {"BED","BEDHIGH","BEDLOW"};
+  static const char* MOB_CLIMB[] = {"CLIMB","LADDER","RANKE"};
+  static const char* MOB_NOTINTERRUPTABLE[] =
+     {"DOOR","LEVER","TOUCHPLATE","TURNSWITCH","VWHEEL","CHESTBIG","CHESTSMALL","HERB","IDOL","PAN","SMOKE","INNOS"};
+  // TODO: fetch MOB_* from script
+  const char* s = schemeName();
+  for(auto i:MOB_SIT){
+    if(std::strcmp(i,s)==0)
+      return BS_SIT;
+    }
+  for(auto i:MOB_LIE){
+    if(std::strcmp(i,s)==0)
+      return BS_LIE;
+    }
+  for(auto i:MOB_CLIMB){
+    if(std::strcmp(i,s)==0)
+      return BS_CLIMB;
+    }
+  for(auto i:MOB_NOTINTERRUPTABLE){
+    if(std::strcmp(i,s)==0)
+      ;//return BS_MOBINTERACT_INTERRUPT;
+    }
   return orig;
   }
 
@@ -299,7 +316,8 @@ bool Interactive::dettach(Npc &npc) {
     if(i.user==&npc) {
       i.user=nullptr;
       state=-1;
-      npc.setAnim(Npc::Anim::Idle);
+      if(!npc.isDown())
+        npc.setAnim(Npc::Anim::Idle);
       }
   return true;
   }
@@ -347,7 +365,10 @@ float Interactive::qDistanceTo(const Npc &npc, const Interactive::Pos &to) {
   }
 
 void Interactive::nextState() {
+  auto prev = state;
   state = std::min(data.oCMobInter.stateNum,state+1);
+  if(prev==state)
+    loopState = true;
   if(state==data.oCMobInter.stateNum){
     if(//data.vobType==ZenLoad::zCVobData::VT_oCMobDoor ||
        data.vobType==ZenLoad::zCVobData::VT_oCMobSwitch)
@@ -356,10 +377,11 @@ void Interactive::nextState() {
   }
 
 void Interactive::prevState() {
+  loopState = false;
   state = std::max(-1,state-1);
   }
 
-AnimationSolver::Sequence Interactive::anim(const AnimationSolver &solver, Anim t) {
+const Animation::Sequence* Interactive::anim(const AnimationSolver &solver, Anim t) {
   int         st[]     = {state,state+t};
   char        ss[2][8] = {};
   const char* tag      = schemeName();
@@ -380,11 +402,10 @@ AnimationSolver::Sequence Interactive::anim(const AnimationSolver &solver, Anim 
       std::snprintf(ss[i],sizeof(ss[i]),"S%d",st[i]);
     }
 
-  loopState = (st[0]==st[1]);
-  if(loopState)
+  if(st[0]==st[1])
     std::snprintf(buf,sizeof(buf),"S_%s%s_%s",tag,point,ss[0]); else
     std::snprintf(buf,sizeof(buf),"T_%s%s_%s_2_%s",tag,point,ss[0],ss[1]);
-  return solver.animSequence(buf);
+  return solver.solveFrm(buf);
   }
 
 void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const {

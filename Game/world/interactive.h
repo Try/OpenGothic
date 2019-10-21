@@ -50,7 +50,7 @@ class Interactive final {
 
     void                nextState();
     void                prevState();
-    auto                anim(const AnimationSolver &solver, Anim t) -> AnimationSolver::Sequence;
+    auto                anim(const AnimationSolver &solver, Anim t) -> const Animation::Sequence*;
     void                marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
     Tempest::Matrix4x4     objMat;

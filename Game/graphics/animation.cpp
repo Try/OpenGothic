@@ -34,20 +34,40 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
 
         ani.layer      = p.ani.m_Layer;
         ani.flags      = Flags(p.ani.m_Flags);
-        ani.nextStr    = p.ani.m_Next;
+        ani.next       = p.ani.m_Next;
         ani.reverse    = p.ani.m_Dir!=ZenLoad::MSB_FORWARD;
-        if(ani.nextStr==ani.name)
-          ani.animCls=Loop;
-
         current->firstFrame = uint32_t(p.ani.m_FirstFrame);
         current->lastFrame  = uint32_t(p.ani.m_LastFrame);
-        //if(ani.name=="S_2HATTACK")
-        //  Log::i("");
         break;
         }
       case ZenLoad::MdsParser::CHUNK_ANI_ALIAS:{
         ref.emplace_back(std::move(p.alias));
         current = nullptr;
+        break;
+        }
+      case ZenLoad::MdsParser::CHUNK_ANI_COMB:{
+        current = nullptr;
+        char name[256]={};
+        std::snprintf(name,sizeof(name),"%s%d",p.comb.m_Asc.c_str(),1);
+
+        bool found=false;
+        for(size_t r=0;r<sequences.size();++r) { // reverse search: expect to find animations right before aniComb
+          auto& i = sequences[sequences.size()-r-1];
+          if(i.name==name) {
+            auto d = i.data;
+            sequences.emplace_back();
+            Animation::Sequence& ani = sequences.back();
+            ani.name    = p.ani.m_Name;
+            ani.layer   = p.comb.m_Layer;
+            ani.flags   = Flags(p.comb.m_Flags);
+            ani.next    = p.comb.m_Next;
+            ani.data    = d; // set first as default
+            found=true;
+            break;
+            }
+          }
+        if(!found)
+          Log::d("comb not found: ",p.comb.m_Name," -> ",p.comb.m_Asc); // error
         break;
         }
 
@@ -137,8 +157,6 @@ Animation::Sequence& Animation::loadMAN(const std::string& name) {
   }
 
 void Animation::setupIndex() {
-  // for(auto& i:sequences)
-  //   Log::i(i.name);
   for(auto& sq:sequences)
     sq.data->setupEvents(sq.data->fpsRate);
 
@@ -148,39 +166,46 @@ void Animation::setupIndex() {
       if(s.name==r.m_Alias)
         ani.data = s.data;
 
-    if(ani.data==nullptr)
+    if(ani.data==nullptr) {
+      Log::d("alias not found: ",r.m_Name," -> ",r.m_Alias);
       continue;
+      }
 
     ani.name    = r.m_Name;
     ani.layer   = r.m_Layer;
     ani.flags   = Flags(r.m_Flags);
     ani.reverse = r.m_Dir!=ZenLoad::MSB_FORWARD;
-    ani.nextStr = r.m_Next;
-    if(ani.nextStr==ani.name)
-      ani.animCls=Loop;
+    ani.next    = r.m_Next;
     sequences.emplace_back(std::move(ani));
     }
+  ref.clear();
 
   std::sort(sequences.begin(),sequences.end(),[](const Sequence& a,const Sequence& b){
     return a.name<b.name;
     });
 
   for(auto& i:sequences) {
-    for(auto& r:sequences)
-      if(r.name==i.nextStr){
-        i.next = &r;
-        break;
-        }
+    if(i.next==i.name)
+      i.animCls = Loop;
+    if(i.name.find("S_")==0)
+      i.shortName = &i.name[2];
+    if(i.name=="T_1HRUN_2_1H"   || i.name=="T_BOWRUN_2_BOW" ||
+       i.name=="T_2HRUN_2_2H"   || i.name=="T_CBOWRUN_2_CBOW" ||
+       i.name=="T_MAGRUN_2_MAG" || i.name=="T_FISTRUN_2_FIST")
+      i.next = "";
     }
+
+  // for(auto& i:sequences)
+  //   Log::i(i.name);
   }
 
 
-Animation::Sequence::Sequence(const std::string &name) {
-  if(!Resources::hasFile(name))
+Animation::Sequence::Sequence(const std::string &fname) {
+  if(!Resources::hasFile(fname))
     return;
 
   const VDFS::FileIndex& idx = Resources::vdfsIndex();
-  ZenLoad::ZenParser            zen(name,idx);
+  ZenLoad::ZenParser            zen(fname,idx);
   ZenLoad::ModelAnimationParser p(zen);
 
   data = std::make_shared<AnimData>();
@@ -192,24 +217,10 @@ Animation::Sequence::Sequence(const std::string &name) {
         return;
         }
       case ZenLoad::ModelAnimationParser::CHUNK_HEADER: {
-        this->name            = p.getHeader().aniName;
-        this->layer           = p.getHeader().layer;
-        this->data->fpsRate   = p.getHeader().fpsRate;
-        this->data->numFrames = p.getHeader().numFrames;
-
-        if(this->name.size()>1){
-          if(this->name.find("_2_")!=std::string::npos)
-            animCls=Transition;
-          else if(this->name[0]=='T' && this->name[1]=='_')
-            animCls=Transition;
-          else if(this->name[0]=='R' && this->name[1]=='_')
-            animCls=Transition;
-          else if(this->name[0]=='S' && this->name[1]=='_')
-            animCls=Loop;
-
-          //if(this->name=="S_JUMP" || this->name=="S_JUMPUP")
-          //  animCls=Transition;
-          }
+        name            = p.getHeader().aniName;
+        layer           = p.getHeader().layer;
+        data->fpsRate   = p.getHeader().fpsRate;
+        data->numFrames = p.getHeader().numFrames;
         break;
         }
       case ZenLoad::ModelAnimationParser::CHUNK_RAWDATA:
@@ -223,20 +234,45 @@ Animation::Sequence::Sequence(const std::string &name) {
   }
 
 bool Animation::Sequence::isFinished(uint64_t t) const {
+  if(isRotate())
+    return true;// FIXME: proper rotate
+
+  if(!data->defHitEnd.empty()) {
+    for(auto& i:data->defHitEnd)
+      if(t>i)
+        return true;
+    }
   return t>totalTime();
+  }
+
+bool Animation::Sequence::canInterrupt() const {
+  if(animCls==Animation::Transition)
+    return false;
+  if(!data->defHitEnd.empty())
+    return false;
+  return true;
   }
 
 bool Animation::Sequence::isAtackFinished(uint64_t t) const {
   for(auto& i:data->defHitEnd)
     if(t>i)
       return true;
-  return t>totalTime();
+  // no atach
+  return true;//t>totalTime();
   }
 
 bool Animation::Sequence::isParWindow(uint64_t t) const {
   if(data->defParFrame.size()!=2)
     return false;
   return data->defParFrame[0]<=t && t<data->defParFrame[1];
+  }
+
+bool Animation::Sequence::isWindow(uint64_t t) const {
+  for(size_t i=0;i+1<data->defWindow.size();i+=2) {
+    if(data->defWindow[i+0]<=t && t<data->defWindow[i+1])
+      return true;
+    }
+  return false;
   }
 
 float Animation::Sequence::totalTime() const {
@@ -307,6 +343,8 @@ void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation
       ev.def_undraw++;
       break;
     case ZenLoad::DEF_PAR_FRAME:
+      break;
+    case ZenLoad::DEF_WINDOW:
       break;
     default:
       break; //TODO
@@ -450,5 +488,7 @@ void Animation::AnimData::setupEvents(float fpsRate) {
       setupTime(defHitEnd,r.m_Int,fpsRate);
     if(r.m_Def==ZenLoad::DEF_PAR_FRAME)
       setupTime(defParFrame,r.m_Int,fpsRate);
+    if(r.m_Def==ZenLoad::DEF_WINDOW)
+      setupTime(defWindow,r.m_Int,fpsRate);
     }
   }
