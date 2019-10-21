@@ -67,6 +67,7 @@ static void terminateHandler() {
       }
     }
   CrashLog::dumpStack(msg);
+  std::signal(SIGABRT, SIG_DFL); // avoid recursion
   std::abort();
   }
 
