@@ -148,6 +148,9 @@ const Animation::Sequence* Animation::sequence(const char *name) const {
   }
 
 const Animation::Sequence *Animation::sequenceAsc(const char *name) const {
+  if(auto s = sequence(name))
+    return s; //gothic2 format
+
   auto it = std::lower_bound(sequences.begin(),sequences.end(),name,[](const Sequence& s,const char* n){
     return s.askName<n;
     });
