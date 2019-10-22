@@ -42,6 +42,7 @@ class WorldView {
     PfxObjects::Emitter getView      (const ParticleFx* decl);
 
     void addStatic(const ZenLoad::zCVobData &vob);
+    void addPfx   (const ZenLoad::zCVobData &vob);
 
   private:
     const World&            owner;
@@ -66,6 +67,7 @@ class WorldView {
     struct StaticObj {
       MeshObjects::Mesh        mesh;
       DynamicWorld::StaticItem physic;
+      PfxObjects::Emitter      pfx;
       };
 
     std::vector<Tempest::CommandBuffer> cmdMain;

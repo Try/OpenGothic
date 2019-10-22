@@ -39,7 +39,7 @@ PfxObjects::Emitter &PfxObjects::Emitter::operator=(PfxObjects::Emitter &&b) {
 void PfxObjects::Emitter::setPosition(float x, float y, float z) {
   if(bucket==nullptr)
     return;
-  auto& v = bucket->impl[id];//getBlock(*this);
+  auto& v = bucket->impl[id];
   v.pos[0] = x;
   v.pos[1] = y;
   v.pos[2] = z;
@@ -336,6 +336,7 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b,uint64_t dt) {
           // eval particle
           ps.life -= dt;
           ps.pos  += ps.dir*k;
+          ps.pos  += b.owner->flyGravity_S;
           }
         }
       }
@@ -411,9 +412,6 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b) {
     for(size_t i=0;i<b.blockSize;++i) {
       ParState& ps = b.particles[i+p.offset];
       Vertex*   v  = &b.vbo[(p.offset+i)*6];
-
-      if(ps.life==0)
-        continue;
 
       const float a   = ps.lifeTime();
       const Vec3  cl  = colorS*(1.f-a)        + colorE*a;

@@ -170,6 +170,8 @@ PfxObjects::Emitter WorldView::getView(const ParticleFx *decl) {
   }
 
 void WorldView::addStatic(const ZenLoad::zCVobData &vob) {
+  if(vob.visual.rfind(".pfx")==vob.visual.size()-4)
+    return addPfx(vob);
   auto mesh = Resources::loadMesh(vob.visual);
   if(!mesh)
     return;
@@ -184,6 +186,26 @@ void WorldView::addStatic(const ZenLoad::zCVobData &vob) {
     obj.mesh = vobGroup.get(*mesh,0,0,0);
   obj.physic = owner.physic()->staticObj(physic,objMat);
   obj.mesh.setObjMatrix(objMat);
+
+  objStatic.push_back(std::move(obj));
+  }
+
+void WorldView::addPfx(const ZenLoad::zCVobData &vob) {
+  float v[16]={};
+  std::memcpy(v,vob.worldMatrix.m,sizeof(v));
+  auto objMat = Tempest::Matrix4x4(v);
+
+  StaticObj obj;
+  if(vob.showVisual) {
+    const ParticleFx* pfx = owner.script().getParticleFx(vob.visual.substr(0,vob.visual.size()-4).c_str());
+    if(pfx==nullptr)
+      return;
+    float x=0,y=0,z=0;
+    objMat.project(x,y,z);
+    obj.pfx = pfxGroup.get(*pfx);
+    //obj.pfx.setActive(true); // TODO
+    obj.pfx.setPosition(x,y,z);
+    }
 
   objStatic.push_back(std::move(obj));
   }

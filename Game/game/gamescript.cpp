@@ -682,8 +682,11 @@ const ParticleFx* GameScript::getSpellFx(int32_t splId) {
   if(vfx==nullptr)
     return nullptr;
 
-  const ParticleFx* pfx = owner.loadParticleFx(vfx->handle().visName_S.c_str());
-  return pfx;
+  return getParticleFx(vfx->handle().visName_S.c_str());
+  }
+
+const ParticleFx *GameScript::getParticleFx(const char *symbol) {
+  return owner.loadParticleFx(symbol);
   }
 
 std::vector<GameScript::DlgChoise> GameScript::dialogChoises(Daedalus::GEngineClasses::C_Npc* player,
