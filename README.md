@@ -42,10 +42,10 @@ Core gameplay is done, you can complete first chapter as paladin; mercenary/mage
 * Visual
     * Body animation - Done
     * Head/Morph animation - Not Implemented
-    * Shadows - in progress
+    * Shadows - Done
     * Mob-use animations(seat/cook/sleep) - Partial
 * UI
-    * Inventory - Partial (no item priviews)
+    * Inventory - Done
     * Game menu/menu script - Done, except scrollbars
     * Character info screen - Done
     * Quest log - Not Implemented 

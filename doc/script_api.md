@@ -648,9 +648,9 @@ Example:
 * `func void AI_Dodge(var C_Npc npc)`  
   'npc' make one step backward.
 
-* ![#](nu.png) `func void AI_PlayAniBS(var C_Npc npc, var string aniname, var int bodystate)`  
+* `func void AI_PlayAniBS(var C_Npc npc, var string aniname, var int bodystate)`  
   'npc' start a new animation sequence with name='aniname'.  
-  Bodystate is not handled for now - so it's same as AI_PlayAni(npc,aniname).  
+  `bodystate` is going to be preserved across whole animation chain; Use `Npc_GetBodyState` current `npc` body-state.
 
 * `func void AI_RemoveWeapon(var C_Npc npc)`  
   'npc' removes any active weapon.  
