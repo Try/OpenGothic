@@ -8,7 +8,7 @@
 using namespace Tempest;
 
 VisualFxDefinitions::VisualFxDefinitions(Gothic& gothic) {
-  vm = gothic.createVm(u"_work/Data/Scripts/_compiled/VisualFx.dat");
+  vm = gothic.createVm(u"VisualFx.dat");
   }
 
 VisualFxDefinitions::~VisualFxDefinitions() {

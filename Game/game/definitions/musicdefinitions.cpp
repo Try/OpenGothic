@@ -6,7 +6,7 @@
 using namespace Tempest;
 
 MusicDefinitions::MusicDefinitions(Gothic& gothic) {
-  vm = gothic.createVm(u"_work/Data/Scripts/_compiled/Music.dat");
+  vm = gothic.createVm(u"Music.dat");
   }
 
 MusicDefinitions::~MusicDefinitions() {

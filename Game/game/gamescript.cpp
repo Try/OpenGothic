@@ -443,26 +443,26 @@ void GameScript::initDialogs(Gothic& gothic) {
   }
 
 void GameScript::loadDialogOU(Gothic &gothic) {
-  const char16_t* names[]={u"OU.DAT",u"OU.BIN"};
-  const char16_t* dir  []={u"_work/data/Scripts/content/CUTSCENE/",u"_work/DATA/scripts/content/CUTSCENE/"};
+  static std::initializer_list<const char16_t*> names[] = {
+    {u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE",u"OU.DAT"},
+    {u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE",u"OU.BIN"},
+    };
+  for(auto n:names){
+    std::u16string full = gothic.nestedPath(n,Dir::FT_File);
+    try {
+      std::vector<uint8_t> data;
+      RFile f(full);
+      data.resize(f.size());
+      f.read(&data[0],data.size());
 
-  for(auto n:names)
-    for(auto d:dir){
-      std::u16string full = gothic.path()+u"/"+d+n;
-      try {
-        std::vector<uint8_t> data;
-        RFile f(full);
-        data.resize(f.size());
-        f.read(&data[0],data.size());
-
-        ZenLoad::ZenParser parser(data.data(),data.size());
-        dialogs.reset(new ZenLoad::zCCSLib(parser));
-        return;
-        }
-      catch(...){
-        // loop to next possible path
-        }
+      ZenLoad::ZenParser parser(data.data(),data.size());
+      dialogs.reset(new ZenLoad::zCCSLib(parser));
+      return;
       }
+    catch(...){
+      // loop to next possible path
+      }
+    }
   }
 
 void GameScript::initializeInstance(Daedalus::GEngineClasses::C_Npc &n, size_t instance) {

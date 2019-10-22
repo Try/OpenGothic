@@ -2,6 +2,7 @@
 
 #include <Tempest/Log>
 #include <Tempest/TextCodec>
+
 #include <zenload/zCMesh.h>
 #include <cstring>
 
@@ -58,6 +59,8 @@ Gothic::Gothic(const int argc, const char **argv) {
 
   if(gpath.size()>0 && gpath.back()!='/')
     gpath.push_back('/');
+
+  gscript = nestedPath({u"_work",u"Data",u"Scripts",u"_compiled"},Dir::FT_Dir);
 
   if(!validateGothicPath()) {
     Log::e("invalid gothic path: \"",TextCodec::toUtf8(gpath),"\"");
@@ -412,7 +415,9 @@ const std::string &Gothic::defaultSave() const {
   }
 
 std::unique_ptr<Daedalus::DaedalusVM> Gothic::createVm(const char16_t *datFile) {
-  Tempest::RFile dat(gpath+datFile);
+  auto path = caseInsensitiveSegment(gscript,datFile,Dir::FT_File);
+
+  Tempest::RFile dat(path);
   size_t all=dat.size();
 
   std::unique_ptr<uint8_t[]> byte(new uint8_t[all]);
@@ -479,9 +484,50 @@ void Gothic::debug(const ZenLoad::PackedSkeletalMesh &mesh, std::ostream &out) {
 bool Gothic::validateGothicPath() const {
   if(gpath.empty())
     return false;
-  if(!FileUtil::exists(gpath+u"Data"))
+  if(!FileUtil::exists(gscript))
     return false;
-  if(!FileUtil::exists(gpath+u"_work/Data"))
+  if(!FileUtil::exists(nestedPath({u"Data"},Dir::FT_Dir)))
+    return false;
+  if(!FileUtil::exists(nestedPath({u"_work",u"Data"},Dir::FT_Dir)))
     return false;
   return true;
+  }
+
+std::u16string Gothic::caseInsensitiveSegment(const std::u16string& path,const char16_t* segment,Dir::FileType type) {
+  std::u16string next=path+segment;
+  if(FileUtil::exists(next)) {
+    if(type==Dir::FT_File)
+      return next;
+    return next+u"/";
+    }
+
+  Tempest::Dir::scan(path,[&path,&next,&segment,type](const std::u16string& p, Dir::FileType t){
+    if(t!=type)
+      return;
+    for(size_t i=0;;++i) {
+      char16_t cs = segment[i];
+      char16_t cp = p[i];
+      if('A'<=cs && cs<='Z')
+        cs = cs-'A'+'a';
+      if('A'<=cp && cp<='Z')
+        cp = cp-'A'+'a';
+
+      if(cs!=cp)
+        return;
+      if(cs=='\0')
+        break;
+      }
+
+    next = path+p;
+    });
+  if(type==Dir::FT_File)
+    return next;
+  return next+u"/";
+  }
+
+std::u16string Gothic::nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const {
+  auto path = gpath;
+  for(auto& segment:name)
+    path = caseInsensitiveSegment(path,segment, (segment==*(name.end()-1)) ? type : Dir::FT_Dir);
+  return path;
   }

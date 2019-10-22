@@ -84,7 +84,7 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
 
   // TODO: priority for *.mod files
   std::vector<std::u16string> archives;
-  detectVdf(archives,gothic.path()+u"Data/");
+  detectVdf(archives,gothic.nestedPath({u"Data"},Dir::FT_Dir));
 
   // addon archives first!
   std::sort(archives.begin(),archives.end(),[](const std::u16string& a,const std::u16string& b){
@@ -339,6 +339,7 @@ Dx8::Segment *Resources::implLoadMusic(const std::string &name) {
   if(it!=musicCache.end())
     return it->second.get();
 
+  /* TODO
   try {
     std::u16string p = gothic.path();
     p.append(name.begin(),name.end());
@@ -358,7 +359,8 @@ Dx8::Segment *Resources::implLoadMusic(const std::string &name) {
     musicCache[name] = nullptr;
     Log::e("unable to load music \"",name,"\"");
     return nullptr;
-    }
+    }*/
+  return nullptr;
   }
 
 bool Resources::hasFile(const std::string &fname) {

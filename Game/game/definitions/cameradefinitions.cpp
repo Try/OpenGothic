@@ -3,7 +3,7 @@
 #include "gothic.h"
 
 CameraDefinitions::CameraDefinitions(Gothic &gothic) {
-  auto vm = gothic.createVm(u"_work/Data/Scripts/_compiled/Camera.dat");
+  auto vm = gothic.createVm(u"Camera.dat");
 
   camModDialog    = loadCam(*vm,"CamModDialog");
   camModInventory = loadCam(*vm,"CamModInventory");

@@ -5,6 +5,8 @@
 #include <thread>
 
 #include <Tempest/Signal>
+#include <Tempest/Dir>
+
 #include <daedalus/DaedalusVM.h>
 
 #include "game/definitions/visualfxdefinitions.h"
@@ -108,7 +110,7 @@ class Gothic final {
     const std::string&                    messageByName(const std::string &id) const;
     uint32_t                              messageTime(const std::string &id) const;
 
-    const std::u16string&                 path() const { return gpath; }
+    std::u16string                        nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const;
     const std::string&                    defaultWorld() const;
     const std::string&                    defaultSave() const;
     std::unique_ptr<Daedalus::DaedalusVM> createVm(const char16_t *datFile);
@@ -122,7 +124,7 @@ class Gothic final {
     static void debug(const ZenLoad::PackedSkeletalMesh& mesh, std::ostream& out);
 
   private:
-    std::u16string                          gpath;
+    std::u16string                          gpath, gscript;
     std::string                             wdef;
     std::string                             saveDef;
     bool                                    noMenu=false;
@@ -152,4 +154,5 @@ class Gothic final {
     std::vector<Tempest::SoundEffect>       sndStorage;
 
     bool                                    validateGothicPath() const;
+    static std::u16string                   caseInsensitiveSegment(const std::u16string& path, const char16_t* segment, Tempest::Dir::FileType type);
   };

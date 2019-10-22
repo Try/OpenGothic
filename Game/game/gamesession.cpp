@@ -147,7 +147,8 @@ WorldView *GameSession::view() const {
   }
 
 std::vector<uint8_t> GameSession::loadScriptCode() {
-  Tempest::RFile f(gothic.path()+u"/_work/data/Scripts/_compiled/GOTHIC.DAT");
+  auto path = gothic.nestedPath({u"_work",u"Data",u"Scripts",u"_compiled",u"GOTHIC.DAT"},Dir::FT_File);
+  Tempest::RFile f(path);
   std::vector<uint8_t> ret(f.size());
   f.read(ret.data(),ret.size());
   return ret;

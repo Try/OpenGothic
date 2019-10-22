@@ -8,7 +8,7 @@ using namespace Tempest;
 MenuRoot::MenuRoot(Gothic &gothic)
   :gothic(gothic){
   setFocus(true);
-  vm = gothic.createVm(u"_work/Data/Scripts/_compiled/MENU.DAT");
+  vm = gothic.createVm(u"MENU.DAT");
   vm->registerUnsatisfiedLink([](Daedalus::DaedalusVM&){});
   }
 
