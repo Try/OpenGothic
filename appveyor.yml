@@ -26,7 +26,7 @@ build_script:
   - cmake --version
   - gcc   --version
   - g++   --version
-  - cmd: cmake -H. -Bbuild -G "MinGW Makefiles" -DCMAKE_SH=CMAKE_SH-NOTFOUND -DBUILD_EXTRAS:BOOL=OFF -DBUILD_SHARED_MOLTEN_TEMPEST:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo "-DCMAKE_PREFIX_PATH:STRING=D:\Qt\Tools\mingw530_32\bin" "-DCMAKE_MAKE_PROGRAM:STRING=D:\Qt\Tools\mingw530_32\bin\mingw32-make.exe"
+  - cmd: cmake -H. -Bbuild -G "MinGW Makefiles" -DCMAKE_SH=CMAKE_SH-NOTFOUND -DBUILD_EXTRAS:BOOL=OFF -DBUILD_SHARED_MOLTEN_TEMPEST:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo "-DCMAKE_PREFIX_PATH:STRING=C:\Qt\Tools\mingw530_32\bin" "-DCMAKE_MAKE_PROGRAM:STRING=C:\Qt\Tools\mingw530_32\bin\mingw32-make.exe"
   - sh:  cmake -H. -Bbuild -DBUILD_EXTRAS:BOOL=OFF -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DBUILD_SHARED_MOLTEN_TEMPEST:BOOL=ON
   - cmake --build ./build --target all
 
