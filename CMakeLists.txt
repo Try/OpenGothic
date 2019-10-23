@@ -7,6 +7,7 @@ option(BUILD_SHARED_LIBS "Build shared libraries." OFF)
 option(BUILD_SHARED_MOLTEN_TEMPEST "Build shared MoltenTempest." ${BUILD_SHARED_LIBS})
 
 set(CMAKE_DEBUG_POSTFIX "")
+set(CMAKE_RELWITHDEBINFO_POSTFIX "")
 
 if(POLICY CMP0990)
   cmake_policy(SET CMP0990 OLD)
@@ -47,16 +48,6 @@ if(WIN32)
 elseif(UNIX)
   target_link_libraries(${PROJECT_NAME} -lpthread)
 endif()
-
-
-# Vulkan
-if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
-  link_directories(${PROJECT_NAME} "$ENV{VK_SDK_PATH}/lib")
-else()
-  link_directories(${PROJECT_NAME} "$ENV{VK_SDK_PATH}/Lib32")
-endif()
-
-link_directories(${PROJECT_NAME} "$ENV{VK_SDK_PATH}/lib")
 
 
 # ZenLib
