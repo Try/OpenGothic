@@ -35,11 +35,11 @@ after_build:
   - cmd: echo gothic-win32-v%appveyor_build_version% >> VERSION
   - sh:  echo gothic-linux-v%appveyor_build_version% >> VERSION
 
-  - cmd: copy /b/y "build\lib\MoltenTempest\bin\libMoltenTempest.dll" "bin\libMoltenTempest.dll"
+  - cmd: copy /b/y "build\bin\libMoltenTempest.dll" "bin\libMoltenTempest.dll"
   - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libgcc_s_dw2-1.dll"   "bin\libgcc_s_dw2-1.dll"
   - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libstdc++-6.dll"      "bin\libstdc++-6.dll"
   - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libwinpthread-1.dll"  "bin\libwinpthread-1.dll"
-  - sh:  cp        "build/lib/MoltenTempest/lib/libMoltenTempest.so"  "bin/libMoltenTempest.so"
+  - sh:  cp        "build/bin/libMoltenTempest.so"  "bin/libMoltenTempest.so"
   # zip the results
   - cmd: set name="bin/open_gothic.zip"
   - cmd: 7z a %name%    VERSION
