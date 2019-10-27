@@ -175,7 +175,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       if(i.seq==itemUse) {
         if(i.seq->shortName==nullptr)
           return false;
-        std::snprintf(tansition,sizeof(tansition),"T_%s_2_STAND",i.seq->shortName,sq->shortName);
+        std::snprintf(tansition,sizeof(tansition),"T_%s_2_STAND",i.seq->shortName);
         tr = solver.solveFrm(tansition);
         }
       if(i.seq->shortName!=nullptr && sq->shortName!=nullptr) {
