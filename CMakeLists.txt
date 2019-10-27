@@ -20,6 +20,7 @@ endif()
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
+set(CMAKE_SKIP_RPATH ON)
 
 
 # OpenGothic
@@ -34,7 +35,7 @@ file(GLOB SOURCES
     "Game/**/**/**/*.cpp"
   )
 
-add_executable(${PROJECT_NAME} ${SOURCES} icon.rc )
+add_executable(${PROJECT_NAME} ${SOURCES} icon.rc)
 
 include_directories("Game")
 
