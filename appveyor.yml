@@ -7,7 +7,7 @@ configuration:
 
 before_build:
   # - sh: sudo apt-get install libvulkan-dev
-  - sh:  sudo apt-get --yes install libgl-dev
+  - sh:  sudo apt-get --yes install libgl-dev libvulkan-dev
   # Prepare the out-of-source build directory.
   - mkdir build
   - git submodule update --init --recursive
@@ -17,10 +17,22 @@ before_build:
   - cmd: curl -L --silent --show-error --output VulkanSDK.exe https://vulkan.lunarg.com/sdk/download/1.1.121.1/windows/VulkanSDK-1.1.121.1-Installer.exe?Human=true
   - cmd: VulkanSDK.exe /S
   - cmd: set VK_SDK_PATH=C:/VulkanSDK/1.1.121.1
+  - cmd: mkdir glslang
+  - cmd: cd glslang
+  - cmd: curl -fsSL -o glslang-master-windows-x64-Release.zip https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-windows-x64-Release.zip
+  - cmd: 7z x glslang-master-windows-x64-Release.zip
+  - cmd: cd ..
+  - cmd: "SET PATH=%APPVEYOR_BUILD_FOLDER%\\glslang\\bin;%PATH%"
   - sh:  wget -O vulkansdk-linux-x86_64-1.1.121.1.tar.gz https://vulkan.lunarg.com/sdk/download/1.1.121.1/linux/vulkansdk-linux-x86_64-1.1.121.1.tar.gz?Human=true
   - sh:  mkdir VulkanSDK
   - sh:  tar -xzf vulkansdk-linux-x86_64-1.1.121.1.tar.gz -C ./VulkanSDK
   - sh:  export VK_SDK_PATH=$APPVEYOR_BUILD_FOLDER/VulkanSDK/1.1.121.1/x86_64
+  - sh: mkdir glslang
+  - sh: cd glslang
+  - sh: curl -fsSL -o glslang-master-linux-Release.zip https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-linux-Release.zip
+  - sh: 7z x glslang-master-linux-Release.zip
+  - sh: cd ..
+  - sh: export PATH="$PATH:$APPVEYOR_BUILD_FOLDER/glslang/bin"
 
 build_script:
   - cmake --version
@@ -32,29 +44,31 @@ build_script:
 
 after_build:
   # generate version string
+  - cd build
+  - cd opengothic
   - cmd: echo gothic-win32-v%appveyor_build_version% >> VERSION
   - sh:  echo gothic-linux-v%appveyor_build_version% >> VERSION
-
-  - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libgcc_s_dw2-1.dll"   "bin\libgcc_s_dw2-1.dll"
-  - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libstdc++-6.dll"      "bin\libstdc++-6.dll"
-  - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libwinpthread-1.dll"  "bin\libwinpthread-1.dll"
-  - sh:  cp        "build/bin/libMoltenTempest.so"  "bin/libMoltenTempest.so"
+  - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libgcc_s_dw2-1.dll"   "libgcc_s_dw2-1.dll"
+  - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libstdc++-6.dll"      "libstdc++-6.dll"
+  - cmd: copy /b/y "C:\Qt\Tools\mingw530_32\bin\libwinpthread-1.dll"  "libwinpthread-1.dll"
   # zip the results
-  - cmd: set name="bin/open_gothic.zip"
+  - cmd: set name="opengothic_win.zip"
   - cmd: 7z a %name%    VERSION
-  - cmd: 7z a %name%    "bin/shader/*.sprv"
-  - cmd: 7z a %name%    "bin/data/*"
-  - cmd: 7z a %name% -r "bin/*.exe"
-  - cmd: 7z a %name% -r "bin/*.dll"
-  - sh:  export name="bin/open_gothic.zip"
+  - cmd: 7z a %name%    "shader/*.sprv"
+  - cmd: 7z a %name%    "data/*"
+  - cmd: 7z a %name% -r "*.exe"
+  - cmd: 7z a %name% -r "*.dll"
+  - cmd: 7z a %name% -r "*.bat"
+  - sh:  export name="opengothic_linux.zip"
   - sh:  7z a $name     VERSION
-  - sh:  7z a $name     "bin/shader/*.sprv"
-  - sh:  7z a $name     "bin/data/*"
-  - sh:  7z a $name  -r "bin/*.exe"
-  - sh:  7z a $name  -r "bin/*.dll"
+  - sh:  7z a $name     "shader/*.sprv"
+  - sh:  7z a $name     "data/*"
+  - sh:  7z a $name     "bin/*"
+  - sh:  7z a $name     "lib/*"
+  - sh:  7z a $name     "Gothic2Notr.sh"
 
 artifacts:
-  - path: bin/open_gothic.zip
+  - path: build/opengothic/open_gothic.zip
     name: archive
 
 deploy:

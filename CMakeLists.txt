@@ -18,45 +18,43 @@ if(POLICY CMP0015)
   cmake_policy(SET CMP0015 OLD)
 endif()
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
+if(WIN32)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/opengothic)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/opengothic)
+elseif(UNIX)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/opengothic/lib)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/opengothic/bin)
+endif()
 set(CMAKE_SKIP_RPATH ON)
 
 
-# OpenGothic
-file(GLOB SOURCES
-    "Game/*.h"
-    "Game/*.cpp"
-    "Game/**/*.h"
-    "Game/**/*.cpp"
-    "Game/**/**/*.h"
-    "Game/**/**/*.cpp"
-    "Game/**/**/**/*.h"
-    "Game/**/**/**/*.cpp"
-  )
+## system dependencies
 
-add_executable(${PROJECT_NAME} ${SOURCES} icon.rc)
+# GLSL to SPIRV compiler
+find_program(GLSLANGVALIDATOR glslangValidator)
+if(NOT GLSLANGVALIDATOR)
+	message(FATAL_ERROR "glslangValidator required")
+endif()
 
-include_directories("Game")
+function(compile_shader OUTPUT SOURCE VARS)
+    set(OUTPUT_FILE "${CMAKE_BINARY_DIR}/opengothic/shader/${OUTPUT}.sprv")
+    set(SOURCE_FILE "${CMAKE_SOURCE_DIR}/shader/${SOURCE}")
+	add_custom_command(
+		OUTPUT ${OUTPUT_FILE}
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/opengothic/shader/"
+		COMMAND ${GLSLANGVALIDATOR} -V ${VARS} ${SOURCE_FILE} -o ${OUTPUT_FILE}
+		DEPENDS ${SOURCE_FILE})
+    set(OPENGOTHIC_SHADERS ${OPENGOTHIC_SHADERS} ${OUTPUT_FILE} PARENT_SCOPE)
+endfunction(compile_shader)
 
+
+## submodule dependencies
+
+# edd-dbg
 add_subdirectory(lib/edd-dbg)
-include_directories(lib/edd-dbg/include)
-if(WIN32)
-  target_link_libraries(${PROJECT_NAME} edd_dbg)
-endif()
-
-if(WIN32)
-  target_link_libraries(${PROJECT_NAME} shlwapi DbgHelp)
-elseif(UNIX)
-  target_link_libraries(${PROJECT_NAME} -lpthread)
-endif()
-
 
 # ZenLib
 add_subdirectory(lib/ZenLib)
-include_directories(lib/ZenLib)
-target_link_libraries(${PROJECT_NAME} zenload daedalus)
-
 
 # bullet physics
 set(BULLET2_MULTITHREADING ON)
@@ -70,33 +68,110 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE STRING "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE STRING "" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE STRING "" FORCE)
 set(BUILD_BULLET3 OFF CACHE STRING "" FORCE) # Can use bullet2, bullet3 wants to build examples...
-
 add_subdirectory(lib/bullet3)
-
-include_directories(lib/bullet3/src)
-target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath)
-
 
 # MoltenTempest
 set(BUILD_SHARED_LIBS ${BUILD_SHARED_MOLTEN_TEMPEST})
 add_subdirectory(lib/MoltenTempest/Engine)
 
+
+## OpenGothic
+
+# sources
+# OpenGothic
+file(GLOB OPENGOTHIC_SOURCES
+    "Game/*.h"
+    "Game/*.cpp"
+    "Game/**/*.h"
+    "Game/**/*.cpp"
+    "Game/**/**/*.h"
+    "Game/**/**/*.cpp"
+    "Game/**/**/**/*.h"
+    "Game/**/**/**/*.cpp")
+
+# shaders
+# Ubershader flags:
+#   OBJ        - enable object matrix
+#   SKINING    - animation skeleton
+#   SHADOW_MAP - output is shadowmap
+#   ATEST      - use alpha test
+#   PFX        - use color modulation
+compile_shader(land.vert            main.vert -DATEST)
+compile_shader(land.frag            main.frag -DATEST)
+compile_shader(object.vert          main.vert -DATEST -DOBJ)
+compile_shader(object.frag          main.frag -DATEST -DOBJ)
+compile_shader(anim.vert            main.vert -DATEST -DOBJ -DSKINING)
+compile_shader(anim.frag            main.frag -DATEST -DOBJ -DSKINING)
+compile_shader(pfx.vert             main.vert -DPFX)
+compile_shader(pfx.frag             main.frag -DPFX)
+compile_shader(land_shadow.vert     main.vert -DATEST -DSHADOW_MAP)
+compile_shader(land_shadow.frag     main.frag -DATEST -DSHADOW_MAP)
+compile_shader(object_shadow.vert   main.vert -DATEST -DOBJ -DSHADOW_MAP)
+compile_shader(object_shadow.frag   main.frag -DATEST -DOBJ -DSHADOW_MAP)
+compile_shader(anim_shadow.vert     main.vert -DOBJ -DSKINING -DSHADOW_MAP)
+compile_shader(anim_shadow.frag     main.frag -DOBJ -DSKINING -DSHADOW_MAP)
+compile_shader(pfx_shadow.vert      main.vert -DSHADOW_MAP)
+compile_shader(pfx_shadow.frag      main.frag -DSHADOW_MAP)
+compile_shader(sky.vert             sky.vert "")
+compile_shader(sky.frag             sky.frag "")
+compile_shader(shadow_compose.vert  shadow_compose.vert "")
+compile_shader(shadow_compose.frag  shadow_compose.frag "")
+
+# executable
+add_executable(${PROJECT_NAME}
+    ${OPENGOTHIC_SOURCES}
+    ${OPENGOTHIC_SHADERS}
+    icon.rc)
+
+include_directories("Game")
+
+# edd-dbg
+include_directories(lib/edd-dbg/include)
+if(WIN32)
+  target_link_libraries(${PROJECT_NAME} edd_dbg)
+endif()
+
+if(WIN32)
+  target_link_libraries(${PROJECT_NAME} shlwapi DbgHelp)
+elseif(UNIX)
+  target_link_libraries(${PROJECT_NAME} -lpthread)
+endif()
+
+# ZenLib
+include_directories(lib/ZenLib)
+target_link_libraries(${PROJECT_NAME} zenload daedalus)
+
+# bullet physics
+include_directories(lib/bullet3/src)
+target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath)
+
+# MoltenTempest
 include_directories(lib/MoltenTempest/Engine/include)
 target_link_libraries(${PROJECT_NAME} MoltenTempest)
 
+# copy data to binary directory
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/data/
+    ${CMAKE_CURRENT_BINARY_DIR}/opengothic/data/)
 
-# script for launching in build directory
-if(UNIX)
+# script for launching in binary directory
+if(WIN32)
+    add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/scripts/Gothic2Notr.bat
+        ${CMAKE_CURRENT_BINARY_DIR}/opengothic/Gothic2Notr.bat)
+elseif(UNIX)
     add_custom_command(
         TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/scripts/Gothic2Notr.sh
-        ${CMAKE_CURRENT_BINARY_DIR}/bin/Gothic2Notr.sh)
+        ${CMAKE_CURRENT_BINARY_DIR}/opengothic/Gothic2Notr.sh)
 endif()
-
 
 # installation
 install(
-    TARGETS ${PROJECT_NAME}
-    RUNTIME DESTINATION bin
-    )
+    TARGETS ${PROJECT_NAME})
+# FIXME: install data and shaders
