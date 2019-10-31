@@ -36,15 +36,17 @@ if(NOT GLSLANGVALIDATOR)
 	message(FATAL_ERROR "glslangValidator required")
 endif()
 
-function(compile_shader OUTPUT SOURCE VARS)
-    set(OUTPUT_FILE "${CMAKE_BINARY_DIR}/opengothic/shader/${OUTPUT}.sprv")
-    set(SOURCE_FILE "${CMAKE_SOURCE_DIR}/shader/${SOURCE}")
-	add_custom_command(
-		OUTPUT ${OUTPUT_FILE}
-		COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/opengothic/shader/"
-		COMMAND ${GLSLANGVALIDATOR} -V ${VARS} ${SOURCE_FILE} -o ${OUTPUT_FILE}
-		DEPENDS ${SOURCE_FILE})
-    set(OPENGOTHIC_SHADERS ${OPENGOTHIC_SHADERS} ${OUTPUT_FILE} PARENT_SCOPE)
+function(compile_shader OUTPUT SOURCE)
+  set(OUTPUT_FILE "${CMAKE_BINARY_DIR}/opengothic/shader/${OUTPUT}.sprv")
+  set(SOURCE_FILE "${CMAKE_SOURCE_DIR}/shader/${SOURCE}")
+  list(SUBLIST ARGV 2 -1 VARS)
+
+  add_custom_command(
+    OUTPUT ${OUTPUT_FILE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/opengothic/shader/"
+    COMMAND ${GLSLANGVALIDATOR} -V ${VARS} ${SOURCE_FILE} -o ${OUTPUT_FILE}
+    DEPENDS ${SOURCE_FILE})
+  set(OPENGOTHIC_SHADERS ${OPENGOTHIC_SHADERS} ${OUTPUT_FILE} PARENT_SCOPE)
 endfunction(compile_shader)
 
 
@@ -173,5 +175,7 @@ endif()
 
 # installation
 install(
-    TARGETS ${PROJECT_NAME})
+    TARGETS ${PROJECT_NAME}
+    DESTINATION bin
+    )
 # FIXME: install data and shaders
