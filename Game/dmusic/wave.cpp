@@ -1,3 +1,4 @@
+#include "soundfont.h"
 #include "wave.h"
 
 #include <Tempest/File>
@@ -145,10 +146,18 @@ Wave::Wave(const char *dbg) {
     wfmt.wBlockAlign      = 2;
     wfmt.wBitsPerSample   = 16;
     }
+  }
 
-  int16_t buf[16]={};
-  std::memcpy(buf,&wavedata[0],sizeof(buf));
-  Tempest::Log::i(buf[0]);
+Wave::Wave(const int16_t *pcm, size_t count) {
+  wavedata.resize(count*sizeof(int16_t));
+  std::memcpy(&wavedata[0],pcm,wavedata.size());
+
+  wfmt.wFormatTag       = Dx8::Wave::PCM;
+  wfmt.wChannels        = 2;
+  wfmt.dwSamplesPerSec  = SoundFont::SampleRate;
+  wfmt.dwAvgBytesPerSec = wfmt.dwSamplesPerSec * wfmt.wChannels * sizeof(int16_t);
+  wfmt.wBlockAlign      = 2;
+  wfmt.wBitsPerSample   = 16;
   }
 
 void Wave::save(const char *path) const {
@@ -156,7 +165,7 @@ void Wave::save(const char *path) const {
   f.write("RIFF",4);
 
   uint32_t fmtSize = sizeof(wfmt) + (extra.size()>0 ? (2+extra.size()) : 0);
-  uint32_t sz=  8+fmtSize + 8+wavedata.size();
+  uint32_t sz      = 8 + fmtSize + 8 + wavedata.size();
   f.write(reinterpret_cast<const char*>(&sz),4);
   f.write("WAVE",4);
 
@@ -246,6 +255,14 @@ void Wave::implRead(Riff &input) {
       extra.resize(cbSize);
       if(cbSize>0)
         input.read(&extra[0],extra.size());
+      }
+    }
+  if(input.is("wsmp")){
+    input.read(&waveSample,sizeof(waveSample));
+    loop.resize(waveSample.cSampleLoops);
+    for(auto& i:loop){
+      input.read(&i,sizeof(i));
+      input.skip(i.cbSize-sizeof(i));
       }
     }
   if(input.is("LIST") && input.isListId("INFO")) {

@@ -143,6 +143,10 @@ endif()
 include_directories(lib/ZenLib)
 target_link_libraries(${PROJECT_NAME} zenload daedalus)
 
+# TinySoundFont
+add_definitions(-DTSF_NO_STDIO)
+include_directories(lib/TinySoundFont)
+
 # bullet physics
 include_directories(lib/bullet3/src)
 target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath)

@@ -54,22 +54,18 @@ static bool musicValueToMIDI(const DMUS_IO_STYLENOTE&             note,
   uint8_t chordTone = ((note.wMusicValue & 0x0F00) >> 8);
   uint8_t scaleTone = ((note.wMusicValue & 0x00F0) >> 4);
 
-  // Explanation: the accidentals are represented as a two's complement 4bit value.
-  // We first take only the last four bits from the word, then we shift it left
-  // while keeping it unsigned, so that when we convert it into a signed byte
-  // it has the correct sign. Then we divide by 16 to simulate an arithmetic
-  // right shift of 4, to bring the value back into the correct range
   int accidentals = int8_t(note.wMusicValue & 0x000F);
   if(accidentals>7)
     accidentals = (accidentals - 16);
 
   int noteValue = ((chord & 0xFF000000) >> 24) + 12 * octave;
-  std::uint8_t chordOffset = 0;
-  std::uint8_t scaleOffset = 0;
+  uint8_t chordOffset = 0;
+  uint8_t scaleOffset = 0;
   if(offsetFromScale(chordTone, dwChordPattern, chordOffset)) {
     noteValue += chordOffset;
     } else {
-    return false;
+    noteValue += chordOffset+4; //FIXME
+    //return false;
     }
 
   if(scaleTone && offsetFromScale(scaleTone, dwScalePattern >> chordOffset, scaleOffset)) {
@@ -100,8 +96,15 @@ Music::Music(const Segment &s, DirectMusic &owner)
             auto& dls = owner.dlsCollection(r.reference);
             Instrument ins;
             ins.dls    = &dls;
-            ins.volume = r.header.bVolume/128.f;
-            ins.pan    = (r.header.bPan/255.f)*2.f-1.f;
+            ins.volume = r.header.bVolume/127.f;
+            ins.pan    = r.header.bPan/127.f;
+            ins.font   = dls.toSoundfont(r.header.dwPatch);
+
+            if(ins.volume<0.f)
+              ins.volume=0;
+
+            ins.font.setVolume(ins.volume);
+            ins.font.setPan(ins.pan);
 
             instruments[r.header.dwPChannel] = ins;
             }
@@ -120,68 +123,93 @@ void Music::index() {
   if(!style)
     return;
   const Style& stl = *style;
-
-  auto& idxWaves = intern->idxWaves;
-  idxWaves.clear();
-  uint64_t timeOffset=0;
-  for(auto& p:stl.patterns) {
-    //Log::i("pattern: ",p.timeLength());
-    for(size_t i=0;i<p.partref.size();++i) {
-      auto& pref = p.partref[i];
-      auto  part = stl.findPart(pref.io.guidPartID);
-      if(part==nullptr)
-        continue;
-
-      if(part->notes.size()>0 || part->curves.size()>0) {
-        //std::string st(pref.unfo.unam.begin(),pref.unfo.unam.end());
-        //Log::i("part: ",i," ",st," partid=",pref.io.wLogicalPartID);
-        //if(pref.io.wLogicalPartID==12)
-          index(pref,*part,timeOffset);
-        }
-      }
-    timeOffset += p.timeLength();
+  intern->pptn.resize(stl.patterns.size());
+  intern->timeTotal = 0;
+  for(size_t i=0;i<stl.patterns.size();++i){
+    index(stl,intern->pptn[i],stl.patterns[i]);
+    intern->timeTotal += intern->pptn[i].timeTotal;
     }
-
-  idxWaves.shrink_to_fit();
-  if(idxWaves.size()==0)
-    return;
-  std::sort(idxWaves.begin(),idxWaves.end(),[](const Record& a,const Record& b){
-    return a.at<b.at;
-    });
-  uint64_t t0=idxWaves[0].at;
-  for(auto& i:idxWaves)
-    i.at-=t0;
-  intern->timeTotal = timeOffset-t0;
   }
 
-void Music::index(const Pattern::PartRef& pref,const Style::Part &part,uint64_t timeOffset) {
+void Music::index(const Style& stl,Music::PatternInternal &inst, const Pattern &pattern) {
+  auto& instument = inst.instruments;
+  inst.waves.clear();
+  inst.volume.clear();
+  inst.dbgName.assign(pattern.info.unam.begin(),pattern.info.unam.end());
+
+  // fill instruments upfront
+  for(const auto& pref:pattern.partref) {
+    auto pinst = instruments.find(pref.io.wLogicalPartID);
+    if(pinst==instruments.end())
+      continue;
+    if(pref.io.wLogicalPartID!=12)
+      ;//continue;
+    //if(pref.io.wLogicalPartID==1 || pref.io.wLogicalPartID==0)
+    //  continue;
+    const Instrument& ins = ((*pinst).second);
+    InsInternal& pr=instument[pref.io.wLogicalPartID];
+    pr.key    = pref.io.wLogicalPartID;
+    pr.font   = ins.font;
+    pr.volume = ins.volume;
+    pr.pan    = ins.pan;
+    }
+
+  for(auto& pref:pattern.partref) {
+    auto part = stl.findPart(pref.io.guidPartID);
+    if(part==nullptr)
+      continue;
+    auto i = instument.find(pref.io.wLogicalPartID);
+    if(i!=instument.end())
+      index(inst,&i->second,*part,0);
+    }
+
+  std::sort(inst.waves.begin(),inst.waves.end(),[](const Note& a,const Note& b){
+    return a.at<b.at;
+    });
+  std::sort(inst.volume.begin(),inst.volume.end(),[](const Curve& a,const Curve& b){
+    return a.at<b.at;
+    });
+
+  inst.timeTotal = inst.waves.size()>0 ? pattern.timeLength() : 0;
+  }
+
+void Music::index(Music::PatternInternal &idx, InsInternal* inst, const Style::Part &part,uint64_t timeOffset) {
   for(auto& i:part.notes) {
     uint32_t time = musicOffset(i.mtGridStart, i.nTimeOffset, part.header.timeSig);
+    uint32_t dur  = i.mtDuration;
     uint8_t  note = 0;
     if(!musicValueToMIDI(i,cordHeader,subchord,note))
       continue;
 
-    auto inst = instruments.find(pref.io.wLogicalPartID);
-    if(inst!=instruments.end()) {
-      const Instrument& ins = ((*inst).second);
-      auto              w   = ins.dls->findWave(note);
-      if(w!=nullptr) {
-        Record rec;
-        rec.at       = timeOffset+time;
-        rec.duration = i.mtDuration;
-        rec.wave     = w;
-        rec.volume   = ins.volume;
-        rec.pan      = ins.pan;
-        rec.pitch    = i.bVelocity/100.f;
+    Note rec;
+    rec.at       = timeOffset+time;
+    rec.duration = dur;
+    rec.note     = note;
+    rec.velosity = i.bVelocity;
+    rec.inst     = inst;
 
-        intern->idxWaves.push_back(rec);
-        }
-      }
+    idx.waves.push_back(rec);
+    }
+
+  for(auto& i:part.curves) {
+    uint32_t time = musicOffset(i.mtGridStart, i.nTimeOffset, part.header.timeSig);
+    uint32_t dur  = i.mtDuration;
+
+    Curve c;
+    c.at       = time;
+    c.duration = dur;
+    c.shape    = i.bCurveShape;
+    c.ctrl     = i.bCCData;
+    c.startV   = (i.nStartValue&0x7F)/127.f;
+    c.endV     = (i.nEndValue  &0x7F)/127.f;
+    c.inst     = inst;
+    if(i.bEventType==DMUS_CURVET_CCCURVE)
+      idx.volume.push_back(c);
     }
   }
 
 void Music::exec(const size_t patternId) const {
-  if(!style)
+  if(!style || patternId>=style->patterns.size())
     return;
   const Style&   stl = *style;
   const Pattern& p   = stl.patterns[patternId];
@@ -211,8 +239,19 @@ void Music::exec(const Style&,const Pattern::PartRef& pref,const Style::Part &pa
     auto inst = instruments.find(pref.io.wLogicalPartID);
     if(inst!=instruments.end()) {
       auto w = (*inst).second.dls->findWave(note);
-      //const char* n = w ? w->info.inam.c_str() : "";
-      //Log::i("  note:[", note, " ", n ,"] ",time," - ",time+i.mtDuration," var=",i.dwVariation);
+      Log::i("  note:[", note, "] ",time," - ",time+i.mtDuration," var=",i.dwVariation," ",w->info.inam);
       }
+    }
+
+  for(auto& i:part.curves) {
+    const char* name = "";
+    switch(i.bCCData) {
+      case Dx8::ExpressionCtl: name = "ExpressionCtl"; break;
+      case Dx8::ChannelVolume: name = "ChannelVolume"; break;
+      default: name = "?";
+      }
+    uint32_t time = musicOffset(i.mtGridStart, i.nTimeOffset, part.header.timeSig);
+
+    Log::i("  curve:[", name, "] ",time," - ",time+i.mtDuration," var=",i.dwVariation);
     }
   }

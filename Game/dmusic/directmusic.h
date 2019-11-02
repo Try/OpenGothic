@@ -19,9 +19,11 @@ class DirectMusic final {
     using DlsList   = std::vector<std::unique_ptr<std::pair<std::u16string,DlsCollection>>>;
 
     Music                load(const Segment& s);
+    Music                load(const char*    fsgt);
 
     const Style&         style        (const Reference &id);
     const DlsCollection& dlsCollection(const Reference &id);
+    const DlsCollection& dlsCollection(const std::u16string &file);
 
     const StyleList&     stlList() const { return styles; }
     const DlsList&       dlsCollection() { return dls;    }

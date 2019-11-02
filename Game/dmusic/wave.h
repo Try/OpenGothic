@@ -14,6 +14,7 @@ class Wave final {
   public:
     Wave(Riff &input);
     Wave(const char* dbg);
+    Wave(const int16_t* pcm,size_t count);
 
     enum WaveFormatTag : uint16_t {
       UNKNOWN = 0x0000,
@@ -30,15 +31,33 @@ class Wave final {
       uint16_t      wBitsPerSample   = 0;
       };
 
+    struct WaveSample final {
+      uint32_t cbSize      =0;
+      uint16_t usUnityNote =0;
+      int16_t  sFineTune   =0;
+      int32_t  lAttenuation=0;
+      uint32_t fulOptions  =0;
+      uint32_t cSampleLoops=0;
+      };
+
+    struct WaveSampleLoop final {
+      uint32_t cbSize      =0;
+      uint32_t ulLoopType  =0;
+      uint32_t ulLoopStart =0;
+      uint32_t ulLoopLength=0;
+      };
+
     struct PoolTable final {
       uint32_t cbSize=0;
       uint32_t cCues =0;
       };
 
-    WaveFormat           wfmt;
-    std::vector<uint8_t> extra;
-    std::vector<uint8_t> wavedata;
-    Info                 info;
+    WaveFormat                  wfmt;
+    std::vector<uint8_t>        extra;
+    std::vector<uint8_t>        wavedata;
+    WaveSample                  waveSample;
+    std::vector<WaveSampleLoop> loop;
+    Info                        info;
 
     void save(const char* path) const;
     Tempest::Sound toSound() const;

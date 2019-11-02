@@ -143,18 +143,55 @@ struct DMUS_IO_STYLENOTE final {
   DMUS_NOTEF_FLAGS    bNoteFlags     = DMUS_NOTEF_FLAGS(0);
   };
 
+enum Control : uint8_t {
+  BankSelect      = 0x00,
+  ModWheel        = 0x01,
+  BreathCtl       = 0x02,
+  FootCtl         = 0x04,
+  Portamento      = 0x05,
+  DataMsb         = 0x06,
+  ChannelVolume   = 0x07,
+  Balance         = 0x08,
+  Pan             = 0x0A,
+  ExpressionCtl   = 0x0B,
+  Effect1Ctl      = 0x0C,
+  Effect2Ctl      = 0x0D,
+  GeneralPurpose1 = 0x10,
+  GeneralPurpose2 = 0x11,
+  GeneralPurpose3 = 0x12,
+  GeneralPurpose4 = 0x13
+  };
+
+enum Shape : uint8_t {
+  DMUS_CURVES_LINEAR = 0,
+  DMUS_CURVES_INSTANT = 1,
+  DMUS_CURVES_EXP = 2,
+  DMUS_CURVES_LOG = 3,
+  DMUS_CURVES_SINE = 4
+  };
+
+enum DMUS_CURVE_TYPE : uint8_t {
+  DMUS_CURVET_NULL      = 0x0,
+  DMUS_CURVET_PBCURVE   = 0x03, // Pitch bend curve.
+  DMUS_CURVET_CCCURVE   = 0x04, // Control change curve.
+  DMUS_CURVET_MATCURVE  = 0x05,
+  DMUS_CURVET_PATCURVE  = 0x06,
+  DMUS_CURVET_RPNCURVE  = 0x07,
+  DMUS_CURVET_NRPNCURVE = 0x08
+  };
+
 struct DMUS_IO_STYLECURVE final {
   uint32_t mtGridStart     = 0;
   uint32_t dwVariation     = 0;
   uint32_t mtDuration      = 0;
   uint32_t mtResetDuration = 0;
-  uint16_t nTimeOffset     = 0;
+  int16_t  nTimeOffset     = 0;
   uint16_t nStartValue     = 0;
   uint16_t nEndValue       = 0;
   uint16_t nResetValue     = 0;
-  uint8_t  bEventType      = 0;
-  uint8_t  bCurveShape     = 0;
-  uint8_t  bCCData         = 0;
+  DMUS_CURVE_TYPE  bEventType = DMUS_CURVET_NULL;
+  Shape    bCurveShape     = DMUS_CURVES_LINEAR;
+  Control  bCCData         = BankSelect;
   uint8_t  bFlags          = 0;
   uint16_t wParamType      = 0;
   uint16_t wMergeIndex     = 0;
