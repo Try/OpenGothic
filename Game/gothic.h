@@ -91,6 +91,7 @@ class Gothic final {
     auto      getSoundScheme(const char* name) -> const Daedalus::GEngineClasses::C_SFX&;
     auto      getCameraDef() const -> const CameraDefinitions&;
     void      setMusic(const char* clsTheme);
+    void      stopMusic();
 
     void      printScreen(const char* msg, int x, int y, int time, const Tempest::Font &font);
     void      print      (const char* msg);

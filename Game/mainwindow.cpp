@@ -64,6 +64,7 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   }
 
 MainWindow::~MainWindow() {
+  gothic.stopMusic();
   gothic.cancelLoading();
   device.waitIdle();
   takeWidget(&dialogs);

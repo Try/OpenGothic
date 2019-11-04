@@ -40,6 +40,12 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
     pendingMusic = &theme;
     }
 
+  void stopMusic() {
+    std::lock_guard<std::mutex> guard(pendingSync);
+    pendingMusic = nullptr;
+    mix.setMusic(Dx8::Music());
+    }
+
   void setVolume(float v){
     mix.setVolume(v);
     }
@@ -67,6 +73,10 @@ struct GameMusic::Impl final {
     sound.play();
     }
 
+  void stopMusic() {
+    dxMixer->stopMusic();
+    }
+
   Tempest::SoundDevice                          device;
   Tempest::SoundEffect                          sound;
 
@@ -83,8 +93,12 @@ GameMusic::~GameMusic() {
   }
 
 void GameMusic::setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme) {
-  static bool enableMusic = false;
+  static bool enableMusic = true;
   if(!enableMusic)
     return;
   impl->setMusic(theme);
+  }
+
+void GameMusic::stopMusic() {
+  impl->stopMusic();
   }

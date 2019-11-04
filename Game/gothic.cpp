@@ -364,6 +364,10 @@ void Gothic::setMusic(const char *clsTheme) {
   globalMusic.setMusic(theme);
   }
 
+void Gothic::stopMusic() {
+  globalMusic.stopMusic();
+  }
+
 const CameraDefinitions& Gothic::getCameraDef() const {
   return *camera;
   }

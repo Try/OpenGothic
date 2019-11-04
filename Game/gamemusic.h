@@ -15,6 +15,7 @@ class GameMusic final {
     ~GameMusic();
 
     void      setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme);
+    void      stopMusic();
 
   private:
     struct Impl;
