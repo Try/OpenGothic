@@ -11,19 +11,14 @@
 using namespace Dx8;
 
 struct SoundFont::Data {
-  Data(const DlsCollection &dls){
-    Dx8::Hydra dxhydra(dls);
-
-    fnt   = dxhydra.toTsf();
-    wdata = std::move(dxhydra.wdata);
+  Data(const DlsCollection &dls)
+    :hydra(dls) {
     }
 
   ~Data() {
-    Hydra::finalize(fnt);
     }
 
-  tsf*                     fnt=nullptr; //FIXME: has to implement separated fonts
-  std::unique_ptr<float[]> wdata;
+  Dx8::Hydra hydra;
   };
 
 struct SoundFont::Impl {
@@ -34,11 +29,14 @@ struct SoundFont::Impl {
     uint8_t patch  = (dwPatch & 0x000000FF);
     int32_t bank   = (bankHi << 16) + bankLo;
 
-    preset = tsf_get_presetindex(data.fnt, bank, patch);
-    tsf_set_output(data.fnt,TSF_STEREO_INTERLEAVED,44100,0);
+    fnt    = shData->hydra.toTsf();
+    preset = tsf_get_presetindex(fnt, bank, patch);
+    tsf_set_output(fnt,TSF_STEREO_INTERLEAVED,44100,0);
     }
 
-  ~Impl(){}
+  ~Impl() {
+    Hydra::finalize(fnt);
+    }
 
   void setVolume(float v) {
     (void)v; // handled in mixer
@@ -46,12 +44,14 @@ struct SoundFont::Impl {
     }
 
   void setPan(float p){
-    tsf_channel_set_pan(data.fnt,0,p);
-    tsf_channel_set_pan(data.fnt,1,p);
+    tsf_channel_set_pan(fnt,0,p);
+    tsf_channel_set_pan(fnt,1,p);
     }
 
   std::shared_ptr<Data> shData;
   SoundFont::Data&      data;
+
+  tsf*                  fnt=nullptr; //FIXME: has to implement separated fonts
   int                   preset=0;
   int                   count=0;
   };
@@ -83,15 +83,15 @@ void SoundFont::setPan(float p) {
   }
 
 void SoundFont::mix(float *samples, size_t count) {
-  tsf_render_float(impl->data.fnt,samples,int(count),true);
+  tsf_render_float(impl->fnt,samples,int(count),true);
   }
 
 void SoundFont::setNote(uint8_t note, bool e, uint8_t velosity) {
   if( e ) {
     impl->count++;
-    tsf_note_on (impl->data.fnt,impl->preset,note,velosity/127.f);
+    tsf_note_on (impl->fnt,impl->preset,note,velosity/127.f);
     } else {
     impl->count--;
-    tsf_note_off(impl->data.fnt,impl->preset,note);
+    tsf_note_off(impl->fnt,impl->preset,note);
     }
   }
