@@ -164,9 +164,6 @@ class World final {
     std::unique_ptr<Npc>                  lvlInspector;
 
     void         loadVob(ZenLoad::zCVobData &vob, bool startup);
-    void         addStatic(const ZenLoad::zCVobData &vob);
-    void         addInteractive(const ZenLoad::zCVobData &vob);
-    void         addItem(const ZenLoad::zCVobData &vob);
     auto         roomAt(const ZenLoad::zCBspNode &node) -> const std::string &;
     auto         portalAt(const std::string& tag) -> BspSector*;
 

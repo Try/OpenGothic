@@ -700,7 +700,7 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
   vob.childVobs.clear(); // because of move
 
   if(vob.vobType==ZenLoad::zCVobData::VT_zCVob) {
-    addStatic(vob);
+    wview->addStatic(vob);
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCMOB) {
     // Irdotar bow-triggers
@@ -710,18 +710,18 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
     // see focusName
     // Tempest::Log::d("unexpected vob class ",vob.objectClass);
     if(vob.oCMOB.focusName.size()>0)
-      addInteractive(vob); else
-      addStatic(vob);
+      wobj.addInteractive(vob); else
+      wview->addStatic(vob);
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCMobFire){
-    addStatic(vob);
+    wview->addStatic(vob);
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCMobBed ||
           vob.vobType==ZenLoad::zCVobData::VT_oCMobDoor ||
           vob.vobType==ZenLoad::zCVobData::VT_oCMobInter ||
           vob.vobType==ZenLoad::zCVobData::VT_oCMobContainer ||
           vob.vobType==ZenLoad::zCVobData::VT_oCMobSwitch){
-    addInteractive(vob);
+    wobj.addInteractive(vob);
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobLevelCompo){
     return;
@@ -754,7 +754,7 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCItem) {
     if(startup)
-      addItem(vob);
+      wobj.addItem(vob);
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobSound ||
           vob.vobType==ZenLoad::zCVobData::VT_zCVobSoundDaytime) {
@@ -768,7 +768,7 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
     }
   else if(vob.objectClass=="zCVobAnimate:zCVob" || // ork flags
           vob.objectClass=="zCPFXControler:zCVob"){
-    addStatic(vob); //TODO: morph animation
+    wview->addStatic(vob); //TODO: morph animation
     }
   else if(vob.objectClass=="oCTouchDamage:zCTouchDamage:zCVob" ||
           vob.objectClass=="oCMobLadder:oCMobInter:oCMOB:zCVob"){
@@ -789,16 +789,4 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
       Tempest::Log::d("unknown vob class ",vob.objectClass);
       }
     }
-  }
-
-void World::addStatic(const ZenLoad::zCVobData &vob) {
-  wview->addStatic(vob);
-  }
-
-void World::addInteractive(const ZenLoad::zCVobData &vob) {
-  wobj.addInteractive(vob);
-  }
-
-void World::addItem(const ZenLoad::zCVobData &vob) {
-  wobj.addItem(vob);
   }
