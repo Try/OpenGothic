@@ -7,6 +7,7 @@
 #include <Tempest/Application>
 #include <Tempest/Sound>
 #include <Tempest/SoundEffect>
+#include <Tempest/TextCodec>
 #include <Tempest/Log>
 
 #include <zenload/modelScriptParser.h>
@@ -25,7 +26,8 @@
 #include "graphics/animation.h"
 #include "graphics/attachbinder.h"
 #include "physics/physicmeshshape.h"
-#include "dmusic/riff.h"
+#include "dmusic/music.h"
+#include "dmusic/directmusic.h"
 
 #include "gothic.h"
 
@@ -62,6 +64,15 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
       {-1,-1},{-1,1},{1, 1}
    }};
   fsq = Resources::loadVbo(fsqBuf.data(),fsqBuf.size());
+
+  dxMusic.reset(new Dx8::DirectMusic());
+  // G2
+  dxMusic->addPath(gothic.nestedPath({u"_work",u"Data",u"Music",u"newworld"},  Dir::FT_Dir));
+  dxMusic->addPath(gothic.nestedPath({u"_work",u"Data",u"Music",u"AddonWorld"},Dir::FT_Dir));
+  // G1
+  dxMusic->addPath(gothic.nestedPath({u"_work",u"Data",u"Music",u"dungeon"},  Dir::FT_Dir));
+  dxMusic->addPath(gothic.nestedPath({u"_work",u"Data",u"Music",u"menu_men"}, Dir::FT_Dir));
+  dxMusic->addPath(gothic.nestedPath({u"_work",u"Data",u"Music",u"orchestra"},Dir::FT_Dir));
 
   const float mult=0.75f;
 
@@ -318,6 +329,11 @@ SoundEffect *Resources::implLoadSound(const char* name) {
     }
   }
 
+Dx8::Music Resources::implLoadDxMusic(const char* name) {
+  auto u = Tempest::TextCodec::toUtf16(name);
+  return dxMusic->load(u.c_str());
+  }
+
 Sound Resources::implLoadSoundBuffer(const char *name) {
   if(!getFileData(name,fBuff))
     return Sound();
@@ -329,38 +345,6 @@ Sound Resources::implLoadSoundBuffer(const char *name) {
     Log::e("unable to load sound \"",name,"\"");
     return Sound();
     }
-  }
-
-Dx8::Segment *Resources::implLoadMusic(const std::string &name) {
-  if(name.size()==0)
-    return nullptr;
-
-  auto it=musicCache.find(name);
-  if(it!=musicCache.end())
-    return it->second.get();
-
-  /* TODO
-  try {
-    std::u16string p = gothic.path();
-    p.append(name.begin(),name.end());
-    Tempest::RFile fin(p);
-
-    std::vector<uint8_t> data(fin.size());
-    fin.read(reinterpret_cast<char*>(&data[0]),data.size());
-
-    Dx8::Riff riff{data.data(),data.size()};
-
-    std::unique_ptr<Dx8::Segment> t{new Dx8::Segment(riff)};
-    Dx8::Segment* ret=t.get();
-    musicCache[name] = std::move(t);
-    return ret;
-    }
-  catch(...){
-    musicCache[name] = nullptr;
-    Log::e("unable to load music \"",name,"\"");
-    return nullptr;
-    }*/
-  return nullptr;
   }
 
 bool Resources::hasFile(const std::string &fname) {
@@ -445,9 +429,9 @@ Sound Resources::loadSoundBuffer(const char *name) {
   return inst->implLoadSoundBuffer(name);
   }
 
-Dx8::Segment *Resources::loadMusic(const std::string &name) {
+Dx8::Music Resources::loadDxMusic(const char* name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implLoadMusic(name);
+  return inst->implLoadDxMusic(name);
   }
 
 bool Resources::getFileData(const char *name, std::vector<uint8_t> &dat) {

@@ -2,6 +2,7 @@
 
 #include <Tempest/Sound>
 #include <unordered_map>
+#include <atomic>
 
 #include "segment.h"
 #include "soundfont.h"
@@ -20,6 +21,7 @@ class Music final {
     Music(Music&&)=default;
 
     Music& operator = (Music&&)=default;
+    void setVolume(float v);
 
     void exec(const size_t patternId) const;
 
@@ -70,6 +72,7 @@ class Music final {
     struct Internal final {
       std::vector<PatternInternal> pptn;
       uint64_t                     timeTotal=0;
+      std::atomic<float>           volume{1.f};
       };
 
     void index();

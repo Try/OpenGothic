@@ -21,6 +21,7 @@
 #include "utils/inifile.h"
 #include "ui/documentmenu.h"
 #include "ui/chapterscreen.h"
+#include "gamemusic.h"
 
 class Gothic final {
   public:
@@ -87,9 +88,9 @@ class Gothic final {
     bool      aiIsDlgFinished();
 
     auto      getFightAi(size_t i) const -> const FightAi::FA&;
-    auto      getMusicTheme(const char* name) -> const Daedalus::GEngineClasses::C_MusicTheme&;
     auto      getSoundScheme(const char* name) -> const Daedalus::GEngineClasses::C_SFX&;
     auto      getCameraDef() const -> const CameraDefinitions&;
+    void      setMusic(const char* clsTheme);
 
     void      printScreen(const char* msg, int x, int y, int time, const Tempest::Font &font);
     void      print      (const char* msg);
@@ -152,6 +153,8 @@ class Gothic final {
     std::unordered_map<std::string,SoundFx> sndFxCache;
     std::unordered_map<std::string,SoundFx> sndWavCache;
     std::vector<Tempest::SoundEffect>       sndStorage;
+
+    GameMusic                               globalMusic;
 
     bool                                    validateGothicPath() const;
     static std::u16string                   caseInsensitiveSegment(const std::u16string& path, const char16_t* segment, Tempest::Dir::FileType type);

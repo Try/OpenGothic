@@ -93,6 +93,8 @@ DlsCollection::DlsCollection(Riff& input) {
   input.read([this](Riff& c){
     implRead(c);
     });
+
+  shData = SoundFont::shared(*this);
   }
 
 void DlsCollection::implRead(Riff &input) {
@@ -142,5 +144,5 @@ const Wave* DlsCollection::findWave(uint8_t note) const {
   }
 
 SoundFont DlsCollection::toSoundfont(uint32_t dwPatch) const {
-  return SoundFont(*this,dwPatch);
+  return SoundFont(shData,dwPatch);
   }

@@ -93,6 +93,8 @@ Music::Music(const Segment &s, DirectMusic &owner)
         this->style = &stl;
         for(auto& band:stl.band) {
           for(auto& r:band.intrument){
+            if(r.reference.file.empty())
+              continue;
             auto& dls = owner.dlsCollection(r.reference);
             Instrument ins;
             ins.dls    = &dls;
@@ -206,6 +208,10 @@ void Music::index(Music::PatternInternal &idx, InsInternal* inst, const Style::P
     if(i.bEventType==DMUS_CURVET_CCCURVE)
       idx.volume.push_back(c);
     }
+  }
+
+void Music::setVolume(float v) {
+  intern->volume.store(v);
   }
 
 void Music::exec(const size_t patternId) const {

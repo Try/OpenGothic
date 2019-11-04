@@ -14,8 +14,8 @@ Music DirectMusic::load(const Segment &s) {
   return Music(s,*this);
   }
 
-Music DirectMusic::load(const char *fsgt) {
-  Tempest::RFile fin(fsgt);
+Music DirectMusic::load(const char16_t *fsgt) {
+  Tempest::RFile fin = implOpen(fsgt);
   std::vector<uint8_t> v(size_t(fin.size()));
   fin.read(&v[0],v.size());
 
@@ -24,13 +24,17 @@ Music DirectMusic::load(const char *fsgt) {
   return load(sgt);
   }
 
+void DirectMusic::addPath(std::u16string p) {
+  path.emplace_back(std::move(p));
+  }
+
 const Style &DirectMusic::style(const Reference &id) {
   for(auto& i:styles){
     if(i.first==id.file)
       return i.second;
     }
 
-  Tempest::RFile fin(id.file);
+  Tempest::RFile fin = implOpen(id.file.c_str());
   const size_t length = fin.size();
 
   std::vector<uint8_t> data(length);
@@ -52,8 +56,8 @@ const DlsCollection &DirectMusic::dlsCollection(const std::u16string &file) {
     if(i->first==file)
       return i->second;
     }
-  Tempest::RFile fin(file);
-  const size_t length = fin.size();
+  Tempest::RFile fin    = implOpen(file.c_str());
+  const size_t   length = fin.size();
 
   std::vector<uint8_t> data(length);
   fin.read(reinterpret_cast<char*>(&data[0]),data.size());
@@ -63,4 +67,16 @@ const DlsCollection &DirectMusic::dlsCollection(const std::u16string &file) {
 
   dls.emplace_back(new std::pair<std::u16string,DlsCollection>(file,std::move(stl)));
   return dls.back()->second;
+  }
+
+Tempest::RFile DirectMusic::implOpen(const char16_t *file) {
+  for(auto& pt:path) {
+    try {
+      Tempest::RFile fin(pt + file);
+      return fin;
+      }
+    catch(std::system_error&){
+      }
+    }
+  throw std::runtime_error("file not found");
   }

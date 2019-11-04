@@ -13,7 +13,6 @@
 
 #include <tuple>
 
-#include "dmusic/segment.h"
 #include "world/soundfx.h"
 
 class Gothic;
@@ -24,6 +23,11 @@ class Animation;
 class AttachBinder;
 class PhysicMeshShape;
 class SoundFx;
+
+namespace Dx8 {
+class DirectMusic;
+class Music;
+}
 
 class Resources {
   public:
@@ -83,13 +87,13 @@ class Resources {
     static Tempest::Sound            loadSoundBuffer(const std::string& name);
     static Tempest::Sound            loadSoundBuffer(const char*        name);
 
-    static Dx8::Segment*             loadMusic(const std::string& name);
+    static Dx8::Music                loadDxMusic(const char *name);
 
     template<class V>
-    static Tempest::VertexBuffer<V> loadVbo(const V* data,size_t sz){ return inst->device.loadVbo(data,sz,Tempest::BufferFlags::Static); }
+    static Tempest::VertexBuffer<V>  loadVbo(const V* data,size_t sz){ return inst->device.loadVbo(data,sz,Tempest::BufferFlags::Static); }
 
     template<class V>
-    static Tempest::IndexBuffer<V>  loadIbo(const V* data,size_t sz){ return inst->device.loadIbo(data,sz,Tempest::BufferFlags::Static); }
+    static Tempest::IndexBuffer<V>   loadIbo(const V* data,size_t sz){ return inst->device.loadIbo(data,sz,Tempest::BufferFlags::Static); }
 
     static std::vector<uint8_t> getFileData(const char*        name);
     static bool                 getFileData(const char*        name,std::vector<uint8_t>& dat);
@@ -117,8 +121,8 @@ class Resources {
     Skeleton*             implLoadSkeleton(std::string name);
     Animation*            implLoadAnimation(std::string name);
     Tempest::Sound        implLoadSoundBuffer(const char* name);
-    Dx8::Segment*         implLoadMusic(const std::string& name);
     Tempest::SoundEffect* implLoadSound(const char *name);
+    Dx8::Music            implLoadDxMusic(const char *name);
 
     MeshLoadCode          loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
     ZenLoad::zCModelMeshLib loadMDS (std::string& name);
@@ -137,6 +141,7 @@ class Resources {
     std::recursive_mutex  sync;
     Tempest::Font         menuFnt, mainFnt, dlgFnt;
     Tempest::Assets       asset;
+    std::unique_ptr<Dx8::DirectMusic> dxMusic;
     Gothic&               gothic;
     VDFS::FileIndex       gothicAssets;
 
@@ -149,7 +154,6 @@ class Resources {
     std::unordered_map<std::string,std::unique_ptr<Animation>>            animCache;
     std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>          bindCache;
     std::unordered_map<const ProtoMesh*,std::unique_ptr<PhysicMeshShape>> phyMeshCache;
-    std::unordered_map<std::string,std::unique_ptr<Dx8::Segment>>         musicCache;
 
     std::unordered_map<std::string,std::unique_ptr<Tempest::SoundEffect>> sndCache;
   };

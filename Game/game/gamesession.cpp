@@ -186,6 +186,10 @@ void GameSession::emitGlobalSound(const std::string &sfx) {
   gothic.emitGlobalSound(sfx);
   }
 
+void GameSession::setMusic(const char* clsTheme) {
+  gothic.setMusic(clsTheme);
+  }
+
 Npc* GameSession::player() {
   if(wrld)
     return wrld->player();
@@ -396,10 +400,6 @@ bool GameSession::isWorldKnown(const std::string &name) const {
 
 const FightAi::FA &GameSession::getFightAi(size_t i) const {
   return gothic.getFightAi(i);
-  }
-
-const Daedalus::GEngineClasses::C_MusicTheme &GameSession::getMusicTheme(const char *name) const {
-  return gothic.getMusicTheme(name);
   }
 
 void GameSession::initScripts(bool firstTime) {

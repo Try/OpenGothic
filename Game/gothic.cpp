@@ -359,16 +359,17 @@ bool Gothic::aiIsDlgFinished() {
   return v;
   }
 
+void Gothic::setMusic(const char *clsTheme) {
+  auto& theme = music->get(clsTheme);
+  globalMusic.setMusic(theme);
+  }
+
 const CameraDefinitions& Gothic::getCameraDef() const {
   return *camera;
   }
 
 const Daedalus::GEngineClasses::C_SFX& Gothic::getSoundScheme(const char *name) {
   return soundDef->getSfx(name);
-  }
-
-const Daedalus::GEngineClasses::C_MusicTheme& Gothic::getMusicTheme(const char *name) {
-  return music->get(name);
   }
 
 const FightAi::FA &Gothic::getFightAi(size_t i) const {

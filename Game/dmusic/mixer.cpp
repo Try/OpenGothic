@@ -31,23 +31,14 @@ Mixer::~Mixer() {
   for(auto& i:active){
     setNote(*i.ptr,false);
     }
-  // mixTh.join();
   }
 
 void Mixer::setMusic(const Music &m) {
   current = m.intern;
-  if(pattern==nullptr)
-    nextPattern();
   }
 
 int64_t Mixer::currentPlayTime() const {
   return (sampleCursor*1000/SoundFont::SampleRate);
-  }
-
-void Mixer::thFunc() {
-  Log::d("start mixer thread");
-
-  Log::d("shutdown mixer thread");
   }
 
 int64_t Mixer::nextNoteOn(Music::PatternInternal& part,int64_t b,int64_t e) {
@@ -84,7 +75,7 @@ int64_t Mixer::nextNoteOff(int64_t b, int64_t /*e*/) {
   return actT;
   }
 
-void Mixer::noteOn(Music::Note *r) {
+void Mixer::noteOn(std::shared_ptr<Music::PatternInternal>& pattern, Music::Note *r) {
   for(auto& i:active) {
     if(i.ptr==r) {
       return;
@@ -94,19 +85,20 @@ void Mixer::noteOn(Music::Note *r) {
   setNote(*r,true);
 
   Active a;
-  a.ptr = r;
-  a.at  = sampleCursor + toSamples(r->duration);
+  a.ptr     = r;
+  a.at      = sampleCursor + toSamples(r->duration);
+  a.pattern = pattern;
   active.push_back(a);
   }
 
-void Mixer::noteOn(Music::PatternInternal &part, int64_t time) {
+void Mixer::noteOn(std::shared_ptr<Music::PatternInternal>& pattern, int64_t time) {
   time-=patStart;
 
   size_t n=0;
-  for(auto& i:part.waves) {
+  for(auto& i:pattern->waves) {
     int64_t at = toSamples(i.at);
     if(at==time) {
-      noteOn(&i);
+      noteOn(pattern,&i);
       ++n;
       }
     }
@@ -154,13 +146,13 @@ void Mixer::nextPattern() {
   patEnd   = patStart+toSamples(pattern->timeTotal);
   for(auto& i:pattern->waves)
     if(i.at==0) {
-      noteOn(&i);
+      noteOn(pattern,&i);
       }
   volPerInst.resize(pattern->instruments.size(),1.f);
   }
 
-Mixer::Step Mixer::stepInc(Music::PatternInternal& part, int64_t b, int64_t e, int64_t samplesRemain) {
-  int64_t nextT   = nextNoteOn (part,b,e);
+Mixer::Step Mixer::stepInc(Music::PatternInternal& pptn, int64_t b, int64_t e, int64_t samplesRemain) {
+  int64_t nextT   = nextNoteOn (pptn,b,e);
   int64_t offT    = nextNoteOff(b,e);
   int64_t samples = std::min(offT,nextT);
 
@@ -170,47 +162,68 @@ Mixer::Step Mixer::stepInc(Music::PatternInternal& part, int64_t b, int64_t e, i
     return s;
     }
 
-  s.nextOn  = nextNoteOn (part,b,e);
+  s.nextOn  = nextNoteOn (pptn,b,e);
   s.nextOff = nextNoteOff(b,e);
   s.samples = std::min(offT,nextT);
   return s;
   }
 
-void Mixer::stepApply(Music::PatternInternal& part,const Mixer::Step &s,int64_t b) {
+void Mixer::stepApply(std::shared_ptr<Music::PatternInternal> &pptn, const Mixer::Step &s,int64_t b) {
   if(s.nextOff<s.nextOn) {
     noteOff(s.nextOff+b);
     } else
   if(s.nextOff>s.nextOn) {
-    noteOn (part,s.nextOn+b);
+    noteOn (pptn,s.nextOn+b);
     } else
   if(s.nextOff==s.nextOn) {
     noteOff(s.nextOff+b);
-    noteOn (part,s.nextOn+b);
+    noteOn (pptn,s.nextOn+b);
     }
+  }
+
+std::shared_ptr<Music::PatternInternal> Mixer::checkPattern(std::shared_ptr<Music::PatternInternal> p) {
+  auto cur = current;
+  if(cur==nullptr)
+    return nullptr;
+
+  for(auto& i:cur->pptn)
+    if(&i==p.get()) {
+      return p;
+      }
+  // null or foreign
+  nextPattern();
+  return pattern;
   }
 
 void Mixer::mix(int16_t *out, size_t samples) {
   std::memset(out,0,2*samples*sizeof(int16_t));
 
   auto cur = current;
+  if(cur==nullptr)
+    return;
+
+  auto pat = checkPattern(pattern);
+
   const int64_t samplesTotal = toSamples(cur->timeTotal);
   if(samplesTotal==0)
     return;
 
   size_t samplesRemain = samples;
   while(samplesRemain>0) {
-    if(pattern==nullptr)
+    if(pat==nullptr)
       return;
     const int64_t remain = std::min(patEnd-sampleCursor,int64_t(samplesRemain));
     const int64_t b      = (sampleCursor       );
     const int64_t e      = (sampleCursor+remain);
 
-    auto& part        = *pattern;
-    const Step    stp = stepInc(part,b,e,remain);
-    implMix(part,out,size_t(stp.samples));
+    auto& pptn         = *pat;
+    const float volume = cur->volume.load()*this->volume.load();
+
+    const Step    stp = stepInc(pptn,b,e,remain);
+    implMix(pptn,volume,out,size_t(stp.samples));
 
     if(remain!=stp.samples)
-      stepApply(part,stp,sampleCursor);
+      stepApply(pat,stp,sampleCursor);
 
     sampleCursor += stp.samples;
     out          += stp.samples*2;
@@ -221,7 +234,11 @@ void Mixer::mix(int16_t *out, size_t samples) {
     }
   }
 
-void Mixer::implMix(Music::PatternInternal &part, int16_t *out, size_t cnt) {
+void Mixer::setVolume(float v) {
+  volume.store(v);
+  }
+
+void Mixer::implMix(Music::PatternInternal &pptn, float volume, int16_t *out, size_t cnt) {
   const size_t cnt2=cnt*2;
   pcm   .resize(cnt2);
   pcmMix.resize(cnt2);
@@ -229,8 +246,8 @@ void Mixer::implMix(Music::PatternInternal &part, int16_t *out, size_t cnt) {
 
   std::memset(pcmMix.data(),0,cnt2*sizeof(pcmMix[0]));
 
-  for(auto& i:part.instruments){
-    volFromCurve(part,i.first,&i.second,vol);
+  for(auto& i:pptn.instruments){
+    volFromCurve(pptn,i.first,&i.second,vol);
     //if(!i.second.font.hasNotes())
     //  continue; // DONT!
     std::memset(pcm.data(),0,cnt2*sizeof(pcm[0]));

@@ -55,6 +55,7 @@ class GameSession final {
     auto         loadSound(const SoundFx&        fx)  -> GSoundEffect;
     void         emitGlobalSound(const Tempest::Sound& sfx);
     void         emitGlobalSound(const std::string& sfx);
+    void         setMusic(const char* clsTheme);
 
     Npc*         player();
     void         updateListenerPos(Npc& npc);
@@ -82,7 +83,6 @@ class GameSession final {
     void         showDocument(const DocumentMenu::Show& s);
 
     auto         getFightAi(size_t i) const -> const FightAi::FA&;
-    auto         getMusicTheme(const char* name) const ->  const Daedalus::GEngineClasses::C_MusicTheme&;
 
   private:
     struct ChWorld {

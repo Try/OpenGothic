@@ -112,7 +112,7 @@ class DlsCollection final {
 
   private:
     void implRead(Riff &input);
-
+    mutable std::shared_ptr<SoundFont::Data> shData; //FIXME: mutable
   };
 
 }

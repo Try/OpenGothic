@@ -7,6 +7,15 @@ using namespace Tempest;
 
 MusicDefinitions::MusicDefinitions(Gothic& gothic) {
   vm = gothic.createVm(u"Music.dat");
+  vm->getDATFile().iterateSymbolsOfClass("C_MusicTheme",[this](size_t i,Daedalus::PARSymbol& /*s*/){
+    Theme theme={};
+
+    vm->initializeInstance(theme, i, Daedalus::IC_MusicTheme);
+    vm->clearReferences(Daedalus::IC_MusicTheme);
+
+    theme.symId = i;
+    themes.push_back(theme);
+    });
   }
 
 MusicDefinitions::~MusicDefinitions() {
@@ -22,7 +31,9 @@ const Daedalus::GEngineClasses::C_MusicTheme &MusicDefinitions::get(const char *
     Log::e("invalid music theme: \"",name,"\"");
     return ret;
     }
-
-  vm->initializeInstance(mm, id, Daedalus::IC_MusicTheme);
-  return mm;
+  for(auto& i:themes) {
+    if(i.symId==id)
+      return i;
+    }
+  return ret;
   }

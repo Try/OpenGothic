@@ -1,6 +1,7 @@
 #include "worldsound.h"
 
 #include <Tempest/SoundEffect>
+
 #include "game/gamesession.h"
 #include "world.h"
 #include "resources.h"
@@ -12,15 +13,12 @@ const float WorldSound::talkRange = 800;
 
 WorldSound::WorldSound(GameSession &game, World& owner):game(game),owner(owner) {
   plPos = {{-1000000,-1000000,-1000000}};
-  auto snd = Resources::loadMusic("_work/Data/Music/newworld/Gamestart.sgt");
-  //auto snd = Resources::loadMusic("_work/Data/Music/newworld/owd_daystd.sgt");
   }
 
 void WorldSound::setDefaultZone(const ZenLoad::zCVobData &vob) {
   def.bbox[0] = vob.bbox[0];
   def.bbox[1] = vob.bbox[1];
   def.name    = vob.vobName;
-  // def.prefix = vob.vobName.substr(vob.vobName.find('_') + 1);
   }
 
 void WorldSound::addZone(const ZenLoad::zCVobData &vob) {
@@ -192,16 +190,23 @@ void WorldSound::tick(Npc &player) {
       }
     }
 
-  const size_t sep = def.name.find('_');
-  const char*  tag = def.name.c_str();
+  Zone* zone=&def;
+  for(auto& z:zones) {
+    if(z.bbox[0].x <= plPos[0] && plPos[0]<z.bbox[1].x &&
+       z.bbox[0].y <= plPos[1] && plPos[1]<z.bbox[1].y &&
+       z.bbox[0].z <= plPos[2] && plPos[2]<z.bbox[1].z) {
+      zone = &z;
+      }
+    }
+
+  const size_t sep = zone->name.find('_');
+  const char*  tag = zone->name.c_str();
   if(sep!=std::string::npos)
     tag = tag+sep+1;
 
   char name[64]={};
   std::snprintf(name,sizeof(name),"%s_%s_%s",tag,"DAY","STD");
-  auto& theme = game.getMusicTheme(name);
-
-  auto snd = Resources::loadMusic("_work/Data/Music/newworld/"+theme.file);
+  game.setMusic(name);
   }
 
 void WorldSound::tickSlot(GSoundEffect& slot) {

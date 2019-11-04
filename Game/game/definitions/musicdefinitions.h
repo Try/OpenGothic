@@ -14,5 +14,8 @@ class MusicDefinitions final {
 
   private:
     std::unique_ptr<Daedalus::DaedalusVM>  vm;
-    Daedalus::GEngineClasses::C_MusicTheme mm;
+    struct Theme : Daedalus::GEngineClasses::C_MusicTheme {
+      size_t symId=0;
+      };
+    std::vector<Theme> themes;
   };
