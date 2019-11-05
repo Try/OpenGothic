@@ -135,10 +135,10 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
     mat.translate(-mv.x,-mv.y,-mv.z);
 
     for(int i=0;i<3;++i){
-      auto x = mat.at(i,0);
-      auto y = mat.at(i,2);
-      mat.set(i,0,y);
-      mat.set(i,2,x);
+      auto trX = mat.at(i,0);
+      auto trY = mat.at(i,2);
+      mat.set(i,0,trY);
+      mat.set(i,2,trX);
       }
 
     for(int i=0;i<3;++i){
