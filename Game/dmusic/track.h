@@ -39,6 +39,7 @@ class Track final {
     DMUS_IO_TRACK_HEADER        head;
     std::shared_ptr<StyleTrack> sttr;
     std::shared_ptr<Chord>      cord;
+    std::shared_ptr<Chord>      tetr;
 
   private:
     void implReadList(Riff &input);

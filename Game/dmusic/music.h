@@ -23,7 +23,7 @@ class Music final {
     Music& operator = (Music&&)=default;
     void setVolume(float v);
 
-    void exec(const size_t patternId) const;
+    void dbgDump(const size_t patternId) const;
 
   private:
     Music(const Segment& s,DirectMusic& owner);
@@ -63,6 +63,7 @@ class Music final {
     struct PatternInternal final {
       std::unordered_map<uint32_t,InsInternal> instruments;
 
+      DMUS_IO_STYLE      styh;
       uint64_t           timeTotal=0;
       std::vector<Note>  waves;
       std::vector<Curve> volume;
@@ -77,9 +78,9 @@ class Music final {
 
     void index();
     void index(const Style &stl, PatternInternal& inst, const Pattern &pattern);
-    void index(Music::PatternInternal &idx, InsInternal *inst, const Style::Part &part, uint64_t timeOffset);
+    void index(Music::PatternInternal &idx, InsInternal *inst, const Style &stl, const Style::Part &part, uint64_t timeOffset);
 
-    void exec(const Style &stl, const Pattern::PartRef &pref, const Style::Part &part) const;
+    void dbgDump(const Style &stl, const Pattern::PartRef &pref, const Style::Part &part) const;
 
     DirectMusic*                  owner=nullptr;
 

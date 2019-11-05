@@ -104,7 +104,7 @@ class DlsCollection final {
     std::vector<Wave>           wave;
     std::vector<Instrument>     instrument;
 
-    void      exec() const;
+    void      dbgDump() const;
     SoundFont toSoundfont(uint32_t dwPatch) const;
     void      save(std::ostream& fout) const;
 

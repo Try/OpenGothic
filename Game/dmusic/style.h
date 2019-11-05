@@ -25,6 +25,7 @@ class Style final {
       };
 
     GUID                 guid;
+    DMUS_IO_STYLE        styh;
     std::vector<Band>    band;
     std::vector<Part>    parts;
     std::vector<Pattern> patterns;

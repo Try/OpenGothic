@@ -35,6 +35,9 @@ void Style::implRead(Riff &input) {
   else if(input.is("guid")){
     input.read(&guid,sizeof(guid));
     }
+  else if(input.is("styh")){
+    input.read(&styh,sizeof(styh));
+    }
   else if(input.is("LIST")){
     if(input.isListId("pttn"))
       patterns.emplace_back(input);

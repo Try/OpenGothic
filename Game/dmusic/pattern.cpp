@@ -21,8 +21,8 @@ Pattern::Pattern(Riff& input) {
     });
   }
 
-uint32_t Pattern::timeLength() const {
-  static const std::uint32_t PulsesPerQuarterNote = 768;
+uint32_t Pattern::timeLength(double tempo) const {
+  const uint32_t PulsesPerQuarterNote  = uint32_t(600*(100.0/tempo));
   uint32_t mul = (header.timeSig.bBeatsPerMeasure*PulsesPerQuarterNote*4)/header.timeSig.bBeat;
   return header.wNbrMeasures * mul;
   }

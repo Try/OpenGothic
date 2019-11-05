@@ -11,9 +11,15 @@
 using namespace Dx8;
 using namespace Tempest;
 
-// from DX8 SDK docs
-static uint32_t musicOffset(uint32_t mtGridStart, int16_t nTimeOffset, const DMUS_IO_TIMESIG& timeSig) {
-  const uint32_t ppq  = 768;
+// from DX8 SDK docs: https://docs.microsoft.com/en-us/previous-versions/ms808181(v%3Dmsdn.10)
+static uint32_t musicOffset(uint32_t mtGridStart, int16_t nTimeOffset, const DMUS_IO_TIMESIG& timeSig, double tempo) {
+  // const uint32_t ppq  = 768;
+
+  // t=100 ->  600ms per grid
+  // t=85  ->  705ms per grid
+  // t=50  -> 1200ms per grid
+  // t=25  -> 2400ms per grid
+  const uint32_t ppq  = uint32_t(600*(100.0/tempo));
   const uint32_t mult = (ppq*4)/timeSig.bBeat;
   return uint32_t(nTimeOffset) +
          (mtGridStart / timeSig.wGridsPerBeat) * (mult) +
@@ -85,8 +91,7 @@ static bool musicValueToMIDI(const DMUS_IO_STYLENOTE&             note,
 Music::Music(const Segment &s, DirectMusic &owner)
   :owner(&owner), intern(std::make_shared<Internal>()) {
   for(const auto& track : s.track) {
-    auto& head = track.head;
-    if(head.ckid[0]==0 && std::memcmp(head.fccType,"sttr",4)==0) {
+    if(track.sttr!=nullptr) {
       auto& sttr = *track.sttr;
       for(const auto& style : sttr.styles){
         auto& stl = owner.style(style.reference);
@@ -113,7 +118,7 @@ Music::Music(const Segment &s, DirectMusic &owner)
           }
         }
       }
-    else if(head.ckid[0]==0 && std::memcmp(head.fccType,"cord",4)==0) {
+    else if(track.cord!=nullptr) {
       cordHeader = track.cord->header;
       subchord   = track.cord->subchord;
       }
@@ -129,7 +134,8 @@ void Music::index() {
   intern->timeTotal = 0;
   for(size_t i=0;i<stl.patterns.size();++i){
     index(stl,intern->pptn[i],stl.patterns[i]);
-    intern->timeTotal += intern->pptn[i].timeTotal;
+    intern->pptn[i].styh = stl.styh;
+    intern->timeTotal    += intern->pptn[i].timeTotal;
     }
   }
 
@@ -162,7 +168,7 @@ void Music::index(const Style& stl,Music::PatternInternal &inst, const Pattern &
       continue;
     auto i = instument.find(pref.io.wLogicalPartID);
     if(i!=instument.end())
-      index(inst,&i->second,*part,0);
+      index(inst,&i->second,stl,*part,0);
     }
 
   std::sort(inst.waves.begin(),inst.waves.end(),[](const Note& a,const Note& b){
@@ -172,16 +178,18 @@ void Music::index(const Style& stl,Music::PatternInternal &inst, const Pattern &
     return a.at<b.at;
     });
 
-  inst.timeTotal = inst.waves.size()>0 ? pattern.timeLength() : 0;
+  inst.timeTotal = inst.waves.size()>0 ? pattern.timeLength(stl.styh.dblTempo) : 0;
   }
 
-void Music::index(Music::PatternInternal &idx, InsInternal* inst, const Style::Part &part,uint64_t timeOffset) {
+void Music::index(Music::PatternInternal &idx, InsInternal* inst, const Style& stl,
+                  const Style::Part &part,uint64_t timeOffset) {
   for(auto& i:part.notes) {
-    uint32_t time = musicOffset(i.mtGridStart, i.nTimeOffset, part.header.timeSig);
-    uint32_t dur  = i.mtDuration;
     uint8_t  note = 0;
     if(!musicValueToMIDI(i,cordHeader,subchord,note))
       continue;
+
+    uint32_t time = musicOffset(i.mtGridStart, i.nTimeOffset, part.header.timeSig, stl.styh.dblTempo);
+    uint32_t dur  = i.mtDuration;
 
     Note rec;
     rec.at       = timeOffset+time;
@@ -194,7 +202,7 @@ void Music::index(Music::PatternInternal &idx, InsInternal* inst, const Style::P
     }
 
   for(auto& i:part.curves) {
-    uint32_t time = musicOffset(i.mtGridStart, i.nTimeOffset, part.header.timeSig);
+    uint32_t time = musicOffset(i.mtGridStart, i.nTimeOffset, part.header.timeSig, stl.styh.dblTempo);
     uint32_t dur  = i.mtDuration;
 
     Curve c;
@@ -214,13 +222,13 @@ void Music::setVolume(float v) {
   intern->volume.store(v);
   }
 
-void Music::exec(const size_t patternId) const {
+void Music::dbgDump(const size_t patternId) const {
   if(!style || patternId>=style->patterns.size())
     return;
   const Style&   stl = *style;
   const Pattern& p   = stl.patterns[patternId];
 
-  Log::i("pattern: ",p.timeLength());
+  Log::i("pattern: ",p.timeLength(stl.styh.dblTempo));
   for(size_t i=0;i<p.partref.size();++i) {
     auto& pref = p.partref[i];
     auto  part = stl.findPart(pref.io.guidPartID);
@@ -230,14 +238,14 @@ void Music::exec(const size_t patternId) const {
     if(part->notes.size()>0 || part->curves.size()>0) {
       std::string st(pref.unfo.unam.begin(),pref.unfo.unam.end());
       Log::i("part: ",i," ",st," partid=",pref.io.wLogicalPartID);
-      exec(stl,pref,*part);
+      dbgDump(stl,pref,*part);
       }
     }
   }
 
-void Music::exec(const Style&,const Pattern::PartRef& pref,const Style::Part &part) const {
+void Music::dbgDump(const Style& stl,const Pattern::PartRef& pref,const Style::Part &part) const {
   for(auto& i:part.notes) {
-    uint32_t time = musicOffset(i.mtGridStart, i.nTimeOffset, part.header.timeSig);
+    uint32_t time = musicOffset(i.mtGridStart, i.nTimeOffset, part.header.timeSig, stl.styh.dblTempo);
     uint8_t  note = 0;
     if(!musicValueToMIDI(i,cordHeader,subchord,note))
       continue;
@@ -256,7 +264,7 @@ void Music::exec(const Style&,const Pattern::PartRef& pref,const Style::Part &pa
       case Dx8::ChannelVolume: name = "ChannelVolume"; break;
       default: name = "?";
       }
-    uint32_t time = musicOffset(i.mtGridStart, i.nTimeOffset, part.header.timeSig);
+    uint32_t time = musicOffset(i.mtGridStart, i.nTimeOffset, part.header.timeSig, stl.styh.dblTempo);
 
     Log::i("  curve:[", name, "] ",time," - ",time+i.mtDuration," var=",i.dwVariation);
     }

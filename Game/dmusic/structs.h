@@ -19,6 +19,8 @@ struct GUID final {
     }
   };
 
+using MUSIC_TIME=uint32_t;
+
 struct DMUS_IO_TRACK_HEADER final {
   GUID     guidClassID;
   uint32_t dwPosition = 0;
@@ -62,6 +64,11 @@ struct DMUS_IO_TIMESIG final {
   uint8_t  bBeatsPerMeasure = 0;
   uint8_t  bBeat            = 0;
   uint16_t wGridsPerBeat    = 0;
+  };
+
+struct DMUS_IO_STYLE final {
+  DMUS_IO_TIMESIG timeSig;
+  double          dblTempo=0.0;
   };
 
 struct DMUS_IO_PATTERN final {
@@ -129,9 +136,9 @@ struct DMUS_IO_PARTREF final {
   };
 
 struct DMUS_IO_STYLENOTE final {
-  uint32_t            mtGridStart    = 0;
+  MUSIC_TIME          mtGridStart    = 0;
   uint32_t            dwVariation    = 0;
-  uint32_t            mtDuration     = 0;
+  MUSIC_TIME          mtDuration     = 0;
   int16_t             nTimeOffset    = 0;
   uint16_t            wMusicValue    = 0;
   uint8_t             bVelocity      = 0;

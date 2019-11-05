@@ -228,7 +228,7 @@ Hydra::Hydra(const DlsCollection &dls) {
       tsf_hydra_shdr sample={};
       if(wavesample.cSampleLoops == 0) {
         sample = samples[wavelink.ulTableIndex];
-        sample.startLoop = sample.end;
+        sample.startLoop = sample.start;
         sample.endLoop   = sample.end;
         igen.push_back(mkIgen(kSampleModes,0));
         } else {

@@ -20,7 +20,7 @@ class Pattern final {
     Unfo                 info;
     std::vector<PartRef> partref;
 
-    uint32_t             timeLength() const;
+    uint32_t             timeLength(double tempo) const;
 
   private:
     void                 implRead(Riff &riff);

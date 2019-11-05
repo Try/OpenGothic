@@ -117,7 +117,7 @@ void DlsCollection::implRead(Riff &input) {
     }
   }
 
-void DlsCollection::exec() const {
+void DlsCollection::dbgDump() const {
   Log::i("__DLS__");
 
   for(auto& i:instrument){

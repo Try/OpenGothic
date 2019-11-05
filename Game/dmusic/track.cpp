@@ -75,12 +75,10 @@ Track::Track(Riff &input) {
   }
 
 void Track::implReadList(Riff& input) {
-  char listId[5]={};
-  input.read(&listId,4);
-  if(std::strcmp(listId,"sttr")==0){
+  if(input.isListId("sttr")){
     sttr = std::make_shared<StyleTrack>(input);
     }
-  else if(std::strcmp(listId,"cord")==0){
+  else if(input.isListId("cord")){
     cord = std::make_shared<Chord>(input);
     }
   }
