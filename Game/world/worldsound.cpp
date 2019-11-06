@@ -191,14 +191,22 @@ void WorldSound::tick(Npc &player) {
     }
 
   Zone* zone=&def;
-  for(auto& z:zones) {
-    if(z.bbox[0].x <= plPos[0] && plPos[0]<z.bbox[1].x &&
-       z.bbox[0].y <= plPos[1] && plPos[1]<z.bbox[1].y &&
-       z.bbox[0].z <= plPos[2] && plPos[2]<z.bbox[1].z) {
-      zone = &z;
+  if(currentZone!=nullptr &&
+     currentZone->bbox[0].x <= plPos[0] && plPos[0]<currentZone->bbox[1].x &&
+     currentZone->bbox[0].y <= plPos[1] && plPos[1]<currentZone->bbox[1].y &&
+     currentZone->bbox[0].z <= plPos[2] && plPos[2]<currentZone->bbox[1].z){
+    zone = currentZone;
+    } else {
+    for(auto& z:zones) {
+      if(z.bbox[0].x <= plPos[0] && plPos[0]<z.bbox[1].x &&
+         z.bbox[0].y <= plPos[1] && plPos[1]<z.bbox[1].y &&
+         z.bbox[0].z <= plPos[2] && plPos[2]<z.bbox[1].z) {
+        zone = &z;
+        }
       }
     }
 
+  currentZone = zone;
   const size_t sep = zone->name.find('_');
   const char*  tag = zone->name.c_str();
   if(sep!=std::string::npos)

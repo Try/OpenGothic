@@ -26,6 +26,10 @@ static uint32_t musicOffset(uint32_t mtGridStart, int16_t nTimeOffset, const DMU
          (mtGridStart % timeSig.wGridsPerBeat) * (mult/timeSig.wGridsPerBeat);
   }
 
+static uint32_t musicDuration(uint32_t duration, double tempo) {
+  return uint32_t(duration*100.0/tempo);
+  }
+
 static bool offsetFromScale(const uint8_t degree, const uint32_t scale, uint8_t& offset) {
   uint8_t cnt=0;
   for(uint8_t i=0; i<24; i++) {
@@ -169,7 +173,7 @@ void Music::index(const Style& stl,Music::PatternInternal &inst, const Pattern &
     auto        part = stl.findPart(pref.io.guidPartID);
     if(part==nullptr)
       continue;
-    index(inst,&instument[i],stl,*part,0);
+    index(inst,&instument[i],stl,*part);
     }
 
   std::sort(inst.waves.begin(),inst.waves.end(),[](const Note& a,const Note& b){
@@ -182,18 +186,17 @@ void Music::index(const Style& stl,Music::PatternInternal &inst, const Pattern &
   inst.timeTotal = inst.waves.size()>0 ? pattern.timeLength(stl.styh.dblTempo) : 0;
   }
 
-void Music::index(Music::PatternInternal &idx, InsInternal* inst, const Style& stl,
-                  const Style::Part &part,uint64_t timeOffset) {
+void Music::index(Music::PatternInternal &idx, InsInternal* inst, const Style& stl, const Style::Part &part) {
   for(auto& i:part.notes) {
     uint8_t  note = 0;
     if(!musicValueToMIDI(i,cordHeader,subchord,note))
       continue;
 
     uint32_t time = musicOffset(i.mtGridStart, i.nTimeOffset, part.header.timeSig, stl.styh.dblTempo);
-    uint32_t dur  = uint32_t(i.mtDuration*(100.0/stl.styh.dblTempo));
+    uint32_t dur  = musicDuration(i.mtDuration, stl.styh.dblTempo);
 
     Note rec;
-    rec.at       = timeOffset+time;
+    rec.at       = time;
     rec.duration = dur;
     rec.note     = note;
     rec.velosity = i.bVelocity;
@@ -204,7 +207,7 @@ void Music::index(Music::PatternInternal &idx, InsInternal* inst, const Style& s
 
   for(auto& i:part.curves) {
     uint32_t time = musicOffset(i.mtGridStart, i.nTimeOffset, part.header.timeSig, stl.styh.dblTempo);
-    uint32_t dur  = uint32_t(i.mtDuration*(100.0/stl.styh.dblTempo));
+    uint32_t dur  = musicDuration(i.mtDuration, stl.styh.dblTempo);
     if(i.nStartValue>127 || i.nEndValue>127)
       continue;
 

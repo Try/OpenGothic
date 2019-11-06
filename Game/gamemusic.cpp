@@ -10,7 +10,6 @@ using namespace Tempest;
 
 struct GameMusic::MusicProducer : Tempest::SoundProducer {
   MusicProducer():SoundProducer(44100,2){
-    mix.setVolume(0.6f);
     }
 
   void renderSound(int16_t* out,size_t n) override {
@@ -82,7 +81,7 @@ struct GameMusic::Impl final {
 
   MusicProducer*                                dxMixer=nullptr;
   Daedalus::GEngineClasses::C_MusicTheme        currentMusic;
-  float                                         masterVolume=0.5f;
+  float                                         masterVolume=0.3f;
   };
 
 GameMusic::GameMusic() {

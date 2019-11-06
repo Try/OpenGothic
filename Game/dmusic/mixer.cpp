@@ -74,9 +74,16 @@ int64_t Mixer::nextNoteOff(int64_t b, int64_t /*e*/) {
   }
 
 void Mixer::noteOn(std::shared_ptr<Music::PatternInternal>& pattern, Music::Note *r) {
-  for(auto& i:active) {
-    if(i.ptr==r) {
+  for(auto& a:active) {
+    if(a.ptr->inst==r->inst &&
+       a.ptr->note==r->note) {
       // TODO: note overlap
+      // Log::d("WARN: note overlap");
+      /*
+      a.ptr     = r;
+      a.at      = sampleCursor + toSamples(r->duration);
+      a.pattern = pattern;
+      setNote(*r,true);*/
       return;
       }
     }

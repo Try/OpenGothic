@@ -80,7 +80,7 @@ class Music final {
 
     void index();
     void index(const Style &stl, PatternInternal& inst, const Pattern &pattern);
-    void index(Music::PatternInternal &idx, InsInternal *inst, const Style &stl, const Style::Part &part, uint64_t timeOffset);
+    void index(Music::PatternInternal &idx, InsInternal *inst, const Style &stl, const Style::Part &part);
 
     void dbgDump(const Style &stl, const Pattern::PartRef &pref, const Style::Part &part) const;
 

@@ -63,6 +63,7 @@ class WorldSound final {
     World&                                  owner;
     std::vector<Zone>                       zones;
     Zone                                    def;
+    Zone*                                   currentZone=nullptr;
 
     std::array<float,3>                     plPos;
 
