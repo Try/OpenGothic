@@ -102,16 +102,13 @@ Music::Music(const Segment &s, DirectMusic &owner)
               continue;
             auto& dls = owner.dlsCollection(r.reference);
             Instrument ins;
-            ins.dls    = &dls;
-            ins.volume = r.header.bVolume/127.f;
-            ins.pan    = r.header.bPan/127.f;
-            ins.font   = dls.toSoundfont(r.header.dwPatch);
+            ins.dls     = &dls;
+            ins.volume  = r.header.bVolume/127.f;
+            ins.pan     = r.header.bPan/127.f;
+            ins.dwPatch = r.header.dwPatch;
 
             if(ins.volume<0.f)
               ins.volume=0;
-
-            ins.font.setVolume(ins.volume);
-            ins.font.setPan(ins.pan);
 
             instruments[r.header.dwPChannel] = ins;
             }
@@ -140,35 +137,39 @@ void Music::index() {
   }
 
 void Music::index(const Style& stl,Music::PatternInternal &inst, const Pattern &pattern) {
-  auto& instument = inst.instruments;
   inst.waves.clear();
   inst.volume.clear();
   inst.dbgName.assign(pattern.info.unam.begin(),pattern.info.unam.end());
 
+  auto& instument = inst.instruments;
+  instument.resize(pattern.partref.size());
+
   // fill instruments upfront
-  for(const auto& pref:pattern.partref) {
+  for(size_t i=0;i<pattern.partref.size();++i) {
+    const auto& pref = pattern.partref[i];
     auto pinst = instruments.find(pref.io.wLogicalPartID);
     if(pinst==instruments.end())
       continue;
-    if(pref.io.wLogicalPartID!=12)
+    if(pref.io.wLogicalPartID>9)
       ;//continue;
-    //if(pref.io.wLogicalPartID==1 || pref.io.wLogicalPartID==0)
-    //  continue;
+    auto& pr = instument[i];
     const Instrument& ins = ((*pinst).second);
-    InsInternal& pr=instument[pref.io.wLogicalPartID];
     pr.key    = pref.io.wLogicalPartID;
-    pr.font   = ins.font;
+    pr.font   = ins.dls->toSoundfont(ins.dwPatch);
+
+    pr.font.setVolume(ins.volume);
+    pr.font.setPan(ins.pan);
+
     pr.volume = ins.volume;
     pr.pan    = ins.pan;
     }
 
-  for(auto& pref:pattern.partref) {
-    auto part = stl.findPart(pref.io.guidPartID);
+  for(size_t i=0;i<pattern.partref.size();++i) {
+    const auto& pref = pattern.partref[i];
+    auto        part = stl.findPart(pref.io.guidPartID);
     if(part==nullptr)
       continue;
-    auto i = instument.find(pref.io.wLogicalPartID);
-    if(i!=instument.end())
-      index(inst,&i->second,stl,*part,0);
+    index(inst,&instument[i],stl,*part,0);
     }
 
   std::sort(inst.waves.begin(),inst.waves.end(),[](const Note& a,const Note& b){
@@ -189,7 +190,7 @@ void Music::index(Music::PatternInternal &idx, InsInternal* inst, const Style& s
       continue;
 
     uint32_t time = musicOffset(i.mtGridStart, i.nTimeOffset, part.header.timeSig, stl.styh.dblTempo);
-    uint32_t dur  = i.mtDuration;
+    uint32_t dur  = uint32_t(i.mtDuration*(100.0/stl.styh.dblTempo));
 
     Note rec;
     rec.at       = timeOffset+time;
@@ -203,7 +204,9 @@ void Music::index(Music::PatternInternal &idx, InsInternal* inst, const Style& s
 
   for(auto& i:part.curves) {
     uint32_t time = musicOffset(i.mtGridStart, i.nTimeOffset, part.header.timeSig, stl.styh.dblTempo);
-    uint32_t dur  = i.mtDuration;
+    uint32_t dur  = uint32_t(i.mtDuration*(100.0/stl.styh.dblTempo));
+    if(i.nStartValue>127 || i.nEndValue>127)
+      continue;
 
     Curve c;
     c.at       = time;

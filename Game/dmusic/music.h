@@ -32,7 +32,7 @@ class Music final {
       const DlsCollection*  dls=nullptr;
       float                 volume=0.f;
       float                 pan=0.f;
-      Dx8::SoundFont        font;
+      uint32_t              dwPatch=0;
       };
 
     struct InsInternal final {
@@ -40,6 +40,8 @@ class Music final {
       Dx8::SoundFont        font;
       float                 volume  =0.f;
       float                 pan     =0.f;
+
+      mutable float         volumeLast=1.f;
       };
 
     struct Note final {
@@ -61,7 +63,7 @@ class Music final {
       };
 
     struct PatternInternal final {
-      std::unordered_map<uint32_t,InsInternal> instruments;
+      std::vector<InsInternal> instruments;
 
       DMUS_IO_STYLE      styh;
       uint64_t           timeTotal=0;

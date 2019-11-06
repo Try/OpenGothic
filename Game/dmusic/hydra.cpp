@@ -276,6 +276,10 @@ void Hydra::finalize(tsf *tsf) {
   tsf_close(tsf);
   }
 
+bool Hydra::hasNotes(tsf *tsf) {
+  return tsf->voiceNum>0;
+  }
+
 tsf *Hydra::toTsf() {
   tsf_hydra hydra={};
   toTsf(hydra);

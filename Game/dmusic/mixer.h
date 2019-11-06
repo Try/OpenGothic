@@ -37,6 +37,12 @@ class Mixer final {
       int64_t samples=0;
       };
 
+    struct Instr {
+      Music::InsInternal* ptr=nullptr;
+      float               volLast=1.f;
+      std::shared_ptr<Music::PatternInternal> pattern; //prevent pattern from deleting
+      };
+
     Step     stepInc  (Music::PatternInternal &pptn, int64_t b, int64_t e, int64_t samplesRemain);
     void     stepApply(std::shared_ptr<Music::PatternInternal> &pptn, const Step& s, int64_t b);
     void     implMix  (Music::PatternInternal &pptn, float volume, int16_t *out, size_t cnt);
@@ -51,10 +57,7 @@ class Mixer final {
     std::shared_ptr<Music::PatternInternal> checkPattern(std::shared_ptr<Music::PatternInternal> p);
 
     void     nextPattern();
-    void     volFromCurve(Music::PatternInternal &part, size_t instId, const Music::InsInternal *ins, std::vector<float> &v);
-
-    std::atomic<bool>  exitFlg;
-    std::thread        mixTh;
+    void     volFromCurve(Music::PatternInternal &part, Instr &ins, std::vector<float> &v);
 
     std::shared_ptr<Music::Internal> current=nullptr;
     int64_t                          sampleCursor=0;
@@ -65,8 +68,8 @@ class Mixer final {
 
     std::atomic<float>               volume={1.f};
     std::vector<Active>              active;
+    std::vector<Instr>               uniqInstr;
     std::vector<float>               pcm, vol, pcmMix;
-    std::vector<float>               volPerInst;
   };
 
 }

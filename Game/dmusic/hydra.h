@@ -61,6 +61,7 @@ class Hydra {
     ~Hydra();
 
     static void finalize(tsf* tsf);
+    static bool hasNotes(tsf* tsf);
 
     tsf* toTsf   ();
     void toTsf   (tsf_hydra& out);

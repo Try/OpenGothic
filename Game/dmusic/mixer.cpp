@@ -5,6 +5,7 @@
 #include <Tempest/Sound>
 #include <Tempest/Log>
 #include <cmath>
+#include <set>
 
 #include "soundfont.h"
 #include "wave.h"
@@ -21,13 +22,10 @@ Mixer::Mixer() {
   pcm.reserve(reserve*2);
   pcmMix.reserve(reserve*2);
   vol.reserve(reserve);
-
-  exitFlg.store(false);
-  // mixTh = std::thread(&Mixer::thFunc,this);
+  uniqInstr.reserve(32);
   }
 
 Mixer::~Mixer() {
-  exitFlg.store(true);
   for(auto& i:active){
     setNote(*i.ptr,false);
     }
@@ -78,10 +76,10 @@ int64_t Mixer::nextNoteOff(int64_t b, int64_t /*e*/) {
 void Mixer::noteOn(std::shared_ptr<Music::PatternInternal>& pattern, Music::Note *r) {
   for(auto& i:active) {
     if(i.ptr==r) {
+      // TODO: note overlap
       return;
       }
     }
-
   setNote(*r,true);
 
   Active a;
@@ -89,6 +87,15 @@ void Mixer::noteOn(std::shared_ptr<Music::PatternInternal>& pattern, Music::Note
   a.at      = sampleCursor + toSamples(r->duration);
   a.pattern = pattern;
   active.push_back(a);
+
+  for(auto& i:uniqInstr)
+    if(i.ptr==r->inst){
+      return;
+      }
+  Instr u;
+  u.ptr     = r->inst;
+  u.pattern = pattern;
+  uniqInstr.push_back(u);
   }
 
 void Mixer::noteOn(std::shared_ptr<Music::PatternInternal>& pattern, int64_t time) {
@@ -148,7 +155,6 @@ void Mixer::nextPattern() {
     if(i.at==0) {
       noteOn(pattern,&i);
       }
-  volPerInst.resize(pattern->instruments.size(),1.f);
   }
 
 Mixer::Step Mixer::stepInc(Music::PatternInternal& pptn, int64_t b, int64_t e, int64_t samplesRemain) {
@@ -246,14 +252,15 @@ void Mixer::implMix(Music::PatternInternal &pptn, float volume, int16_t *out, si
 
   std::memset(pcmMix.data(),0,cnt2*sizeof(pcmMix[0]));
 
-  for(auto& i:pptn.instruments){
-    volFromCurve(pptn,i.first,&i.second,vol);
-    //if(!i.second.font.hasNotes())
-    //  continue; // DONT!
+  for(auto& i:uniqInstr) {
+    auto& ins = *i.ptr;
+    if(!ins.font.hasNotes())
+      continue;
+    volFromCurve(pptn,i,vol);
     std::memset(pcm.data(),0,cnt2*sizeof(pcm[0]));
-    i.second.font.mix(pcm.data(),cnt);
+    ins.font.mix(pcm.data(),cnt);
 
-    float volume = i.second.volume;
+    float volume = ins.volume;
     for(size_t i=0;i<cnt2;++i) {
       float v = volume*vol[i/2];
       pcmMix[i] += pcm[i]*(v*v);
@@ -266,8 +273,8 @@ void Mixer::implMix(Music::PatternInternal &pptn, float volume, int16_t *out, si
     }
   }
 
-void Mixer::volFromCurve(Music::PatternInternal &part,size_t instId,const Music::InsInternal* inst,std::vector<float> &v) {
-  float& base = volPerInst[instId];
+void Mixer::volFromCurve(Music::PatternInternal &part,Instr& inst,std::vector<float> &v) {
+  float& base = inst.volLast;
   for(auto& i:v)
     i=base;
 
@@ -275,7 +282,7 @@ void Mixer::volFromCurve(Music::PatternInternal &part,size_t instId,const Music:
   //const int64_t e = s+v.size();
 
   for(auto& i:part.volume) {
-    if(i.inst!=inst)
+    if(i.inst!=inst.ptr)
       continue;
     int64_t s = toSamples(i.at)-shift;
     int64_t e = toSamples(i.at+i.duration)-shift;
