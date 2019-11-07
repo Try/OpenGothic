@@ -54,12 +54,6 @@ Core gameplay is done, you can complete first chapter as paladin; mercenary/mage
     * sound blockers - Done(but implementation is very simple)
     * music - in progress
 
-##### Scripting
-Mostly done: [list of scripts api functions](doc/script_api.md)
-
-##### Trigger and MOBSI
-Work in progress.
-[list of mobsi](doc/vob.md)
 
 ##### Mods compatibility
 Mods delivered as *.mod files shoud work, since *.mod contains visual content and scripts.  
