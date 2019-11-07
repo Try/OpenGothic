@@ -5,7 +5,7 @@ The goal of this project is to make feature complete Gothic client-app compatibl
 
 ----
 [![version](https://img.shields.io/github/release-pre/Try/opengothic?style=for-the-badge)](https://github.com/Try/opengothic/releases/latest)
-![Screenshoot](doc/scr0.png)
+![Screenshoot](scr0.png)
 ##### Work in progress
 [![Build status](https://ci.appveyor.com/api/projects/status/github/Try/opengothic?svg=true)](https://ci.appveyor.com/project/Try/opengothic)  
 Core gameplay is done, you can complete first chapter as paladin; mercenary/mage are not tested yet.  
