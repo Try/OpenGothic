@@ -226,7 +226,7 @@ Hydra::Hydra(const DlsCollection &dls) {
         throw std::runtime_error("Invalid key range in instrument");
 
       tsf_hydra_shdr sample={};
-      if(wavesample.cSampleLoops == 0) {
+      if(reg.loop.size()==0) {
         sample = samples[wavelink.ulTableIndex];
         sample.startLoop = sample.start;
         sample.endLoop   = sample.end;

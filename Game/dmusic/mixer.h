@@ -25,10 +25,8 @@ class Mixer final {
 
   private:
     struct Active {
-      Music::Note* ptr=nullptr;
-      int64_t      at=0;
-
-      std::shared_ptr<Music::PatternInternal> pattern; //prevent pattern from deleting
+      int64_t           at=0;
+      SoundFont::Ticket ticket;
       };
 
     struct Step final {
@@ -53,7 +51,6 @@ class Mixer final {
     void     noteOn (std::shared_ptr<Music::PatternInternal> &pattern, Music::Note *r);
     void     noteOn (std::shared_ptr<Music::PatternInternal> &pattern, int64_t time);
     void     noteOff(int64_t time);
-    void     setNote(Music::Note& rec, bool on);
     std::shared_ptr<Music::PatternInternal> checkPattern(std::shared_ptr<Music::PatternInternal> p);
 
     void     nextPattern();

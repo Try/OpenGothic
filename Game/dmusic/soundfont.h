@@ -7,12 +7,29 @@ namespace Dx8 {
 class DlsCollection;
 
 class SoundFont final {
+  private:
+    struct Impl;
+    struct Instance;
+
   public:
     enum  {
       SampleRate = 44100,
       BitsPerSec = SampleRate*2*16
       };
     struct Data;
+
+    class Ticket final {
+      private:
+        std::shared_ptr<Instance> impl;
+        uint8_t                   note=0;
+
+      public:
+        bool operator==(const std::nullptr_t&) const {
+          return impl==nullptr;
+          }
+
+      friend class SoundFont;
+      };
 
     SoundFont();
     SoundFont(std::shared_ptr<Data> &sh, uint32_t dwPatch);
@@ -24,10 +41,11 @@ class SoundFont final {
     void setVolume(float v);
     void setPan(float p);
     void mix(float* samples,size_t count);
-    void setNote(uint8_t note, bool e, uint8_t velosity);
+
+    Ticket      noteOn(uint8_t note, uint8_t velosity);
+    static void noteOff(Ticket& t);
 
   private:
-    struct Impl;
     std::shared_ptr<Impl> impl;
   };
 

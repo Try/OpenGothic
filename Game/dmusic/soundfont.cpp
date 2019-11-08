@@ -1,12 +1,14 @@
 #include "soundfont.h"
 
 #include <Tempest/Log>
+#include <bitset>
 
 #include "dlscollection.h"
 #include "hydra.h"
 #include "tsf.h"
 
 using namespace Dx8;
+using namespace Tempest;
 
 #ifdef TSF_IMPLEMENTATION
 // For testing
@@ -137,9 +139,8 @@ struct SoundFont::Data {
   Dx8::Hydra hydra;
   };
 
-struct SoundFont::Impl {
-  Impl(std::shared_ptr<Data> &shData,uint32_t dwPatch)
-    :shData(shData), data(*shData) {
+struct SoundFont::Instance {
+  Instance(std::shared_ptr<Data> &shData,uint32_t dwPatch){
     uint8_t bankHi = (dwPatch & 0x00FF0000) >> 0x10;
     uint8_t bankLo = (dwPatch & 0x0000FF00) >> 0x8;
     uint8_t patch  = (dwPatch & 0x000000FF);
@@ -150,13 +151,12 @@ struct SoundFont::Impl {
     tsf_set_output(fnt,TSF_STEREO_INTERLEAVED,44100,0);
     }
 
-  ~Impl() {
+  ~Instance(){
     Hydra::finalize(fnt);
     }
 
-  void setVolume(float v) {
-    (void)v; // handled in mixer
-    //tsf_set_output(fnt,TSF_STEREO_INTERLEAVED,44100,v);
+  bool hasNotes() {
+    return Hydra::hasNotes(fnt);
     }
 
   void setPan(float p){
@@ -164,18 +164,85 @@ struct SoundFont::Impl {
     tsf_channel_set_pan(fnt,1,p);
     }
 
-  std::shared_ptr<Data> shData;
-  SoundFont::Data&      data;
+  bool noteOn(uint8_t note, uint8_t velosity){
+    if(alloc[note]) {
+      return false;
+      }
+    alloc[note]=true;
+    tsf_note_on(fnt,preset,note,velosity/127.f);
+    return true;
+    }
 
-  tsf*                  fnt=nullptr; //FIXME: has to implement separated fonts
-  int                   preset=0;
+  bool noteOff(uint8_t note){
+    if(!alloc[note])
+      return false;
+    alloc[note]=false;
+    tsf_note_off(fnt,preset,note);
+    return true;
+    }
+
+  std::bitset<256> alloc;
+  tsf*             fnt=nullptr;
+  int              preset=0;
+  };
+
+struct SoundFont::Impl {
+  Impl(std::shared_ptr<Data> &shData,uint32_t dwPatch)
+    :shData(shData), dwPatch(dwPatch) {
+    }
+
+  ~Impl() {
+    }
+
+  void setPan(float p){
+    for(auto& i:inst)
+      i->setPan(p);
+    pan = p;
+    }
+
+  std::shared_ptr<Instance> noteOn(uint8_t note, uint8_t velosity){
+    for(auto& i:inst){
+      if(i->noteOn(note,velosity))
+        return i;
+      }
+    auto fnt = std::make_shared<Instance>(shData,dwPatch);
+    fnt->setPan(pan);
+    fnt->noteOn(note,velosity);
+    inst.emplace_back(fnt);
+    return inst.back();
+    }
+
+  /*
+  void noteOff(uint8_t note){
+    for(auto& i:inst){
+      if(i->noteOff(note))
+        return;
+      }
+    }*/
+
+  bool hasNotes() {
+    for(auto& i:inst)
+      if(i->hasNotes())
+        return true;
+    return false;
+    }
+
+  void mix(float *samples, size_t count) {
+    for(auto& i:inst)
+      tsf_render_float(i->fnt,samples,int(count),true);
+    }
+
+  std::shared_ptr<Data>                  shData;
+  uint32_t                               dwPatch=0;
+  float                                  pan=0.5f;
+  std::vector<std::shared_ptr<Instance>> inst;
   };
 
 SoundFont::SoundFont() {
   }
 
 SoundFont::SoundFont(std::shared_ptr<Data> &sh, uint32_t dwPatch) {
-  impl   = std::shared_ptr<Impl>(new Impl(sh,dwPatch));
+  impl = std::shared_ptr<Impl>(new Impl(sh,dwPatch));
   }
 
 SoundFont::~SoundFont() {
@@ -186,25 +253,40 @@ std::shared_ptr<SoundFont::Data> SoundFont::shared(const DlsCollection &dls) {
   }
 
 bool SoundFont::hasNotes() const {
-  return Hydra::hasNotes(impl->fnt);
+  if(impl==nullptr)
+    return false;
+  return impl->hasNotes();
   }
 
-void SoundFont::setVolume(float v) {
-  impl->setVolume(v);
+void SoundFont::setVolume(float /*v*/) {
+   // handled in mixer
   }
 
 void SoundFont::setPan(float p) {
+  if(impl==nullptr)
+    return;
   impl->setPan(p);
   }
 
 void SoundFont::mix(float *samples, size_t count) {
-  tsf_render_float(impl->fnt,samples,int(count),true);
+  if(impl==nullptr)
+    return;
+  impl->mix(samples,count);
   }
 
-void SoundFont::setNote(uint8_t note, bool e, uint8_t velosity) {
-  if( e ) {
-    tsf_note_on(impl->fnt,impl->preset,note,velosity/127.f);
-    } else {
-    tsf_note_off(impl->fnt,impl->preset,note);
-    }
+SoundFont::Ticket SoundFont::noteOn(uint8_t note, uint8_t velosity) {
+  Ticket t;
+  if(impl==nullptr)
+    return t;
+  t.impl = impl->noteOn(note,velosity);
+  t.note = note;
+  return t;
   }
+
+void SoundFont::noteOff(SoundFont::Ticket &t) {
+  if(t.impl==nullptr)
+    return;
+  auto& i = *t.impl;
+  i.noteOff(t.note);
+  }
+

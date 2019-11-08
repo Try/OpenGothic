@@ -154,7 +154,7 @@ void Music::index(const Style& stl,Music::PatternInternal &inst, const Pattern &
     auto pinst = instruments.find(pref.io.wLogicalPartID);
     if(pinst==instruments.end())
       continue;
-    if(pref.io.wLogicalPartID>9)
+    if(pref.io.wLogicalPartID!=26)
       ;//continue;
     auto& pr = instument[i];
     const Instrument& ins = ((*pinst).second);

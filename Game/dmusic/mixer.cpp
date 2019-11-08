@@ -26,9 +26,8 @@ Mixer::Mixer() {
   }
 
 Mixer::~Mixer() {
-  for(auto& i:active){
-    setNote(*i.ptr,false);
-    }
+  for(auto& i:active)
+    SoundFont::noteOff(i.ticket);
   }
 
 void Mixer::setMusic(const Music &m) {
@@ -74,25 +73,13 @@ int64_t Mixer::nextNoteOff(int64_t b, int64_t /*e*/) {
   }
 
 void Mixer::noteOn(std::shared_ptr<Music::PatternInternal>& pattern, Music::Note *r) {
-  for(auto& a:active) {
-    if(a.ptr->inst==r->inst &&
-       a.ptr->note==r->note) {
-      // TODO: note overlap
-      // Log::d("WARN: note overlap");
-      /*
-      a.ptr     = r;
-      a.at      = sampleCursor + toSamples(r->duration);
-      a.pattern = pattern;
-      setNote(*r,true);*/
-      return;
-      }
-    }
-  setNote(*r,true);
-
   Active a;
-  a.ptr     = r;
   a.at      = sampleCursor + toSamples(r->duration);
-  a.pattern = pattern;
+  //a.ticket  = r->inst->font.noteOn(r->note,uint8_t(r->velosity*100.0/pattern->styh.dblTempo));
+  a.ticket  = r->inst->font.noteOn(r->note,r->velosity*pattern->styh.dblTempo/100.0);
+  //a.ticket  = r->inst->font.noteOn(r->note,r->velosity);
+  if(a.ticket==nullptr)
+    return;
   active.push_back(a);
 
   for(auto& i:uniqInstr)
@@ -127,15 +114,10 @@ void Mixer::noteOff(int64_t time) {
       active[sz]=active[i];
       sz++;
       } else {
-      setNote(*active[i].ptr,false);
+      SoundFont::noteOff(active[i].ticket);
       }
     }
   active.resize(sz);
-  }
-
-void Mixer::setNote(Music::Note &rec, bool on) {
-  auto i = *rec.inst;
-  i.font.setNote(rec.note,on,rec.velosity);
   }
 
 void Mixer::nextPattern() {
