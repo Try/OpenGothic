@@ -216,6 +216,11 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
   if(name=="Hum_Head_Pony.MMB")//"Sna_Body.MDM"
     Log::d("");
 
+  if(name.rfind(".TGA")==name.size()-4){
+    Log::e("decas are not implemented yet \"",name,"\"");
+    return nullptr;
+    }
+
   try {
     ZenLoad::PackedMesh        sPacked;
     ZenLoad::zCModelMeshLib    library;

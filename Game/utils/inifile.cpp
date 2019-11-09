@@ -4,9 +4,16 @@
 #include <cstring>
 #include <sstream>
 
+#include "utils/fileutil.h"
+
 using namespace Tempest;
 
 IniFile::IniFile(std::u16string file) {
+  if(!FileUtil::exists(file)) {
+    Log::e("no *.ini file in path - using default settnigs");
+    return;
+    }
+
   try {
     RFile f(file);
     implRead(f);
