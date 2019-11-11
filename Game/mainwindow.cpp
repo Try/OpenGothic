@@ -23,15 +23,15 @@ using namespace Tempest;
 
 MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),
-    draw(device,gothic),gothic(gothic),inventory(gothic,draw.storage()),
-    dialogs(gothic,inventory),document(gothic),chapter(gothic),camera(gothic),player(gothic,dialogs,inventory) {
+    renderer(device,gothic),gothic(gothic),inventory(gothic,renderer.storage()),
+    dialogs(gothic,inventory),document(gothic),chapter(gothic),
+    camera(gothic),player(gothic,dialogs,inventory) {
   CrashLog::setGpu(device.renderer());
   if(!gothic.isWindowMode())
     setFullscreen(true);
 
   for(uint8_t i=0;i<device.maxFramesInFlight();++i){
     fLocal.emplace_back(device);
-    commandBuffersSemaphores.emplace_back(device);
     }
 
   initSwapchain();
@@ -278,6 +278,8 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
     }
   uiKeyUp=nullptr;
   pressed[event.key]=true;
+  if(event.key==Event::K_F11)
+    renderer.takeScreenshoot();
   }
 
 void MainWindow::keyUpEvent(KeyEvent &event) {
@@ -571,7 +573,7 @@ void MainWindow::loadGame(const std::string &name) {
     game = nullptr; // clear world-memory now
     Tempest::RFile file(name);
     Serialize      s(file);
-    std::unique_ptr<GameSession> w(new GameSession(gothic,draw.storage(),s));
+    std::unique_ptr<GameSession> w(new GameSession(gothic,renderer.storage(),s));
     return w;
     });
 
@@ -588,7 +590,7 @@ void MainWindow::startGame(const std::string &name) {
 
   gothic.startLoading("LOADING.TGA",[this,name](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
-    std::unique_ptr<GameSession> w(new GameSession(gothic,draw.storage(),name));
+    std::unique_ptr<GameSession> w(new GameSession(gothic,renderer.storage(),name));
     return w;
     });
   update();
@@ -602,7 +604,7 @@ void MainWindow::onWorldLoaded() {
 
   spin = camera.getSpin();
   mpos = Point(w()/2,h()/2);
-  draw.onWorldChanged();
+  renderer.onWorldChanged();
 
   device.waitIdle();
   for(auto& c:commandDynamic)
@@ -638,16 +640,13 @@ void MainWindow::setFullscreen(bool fs) {
 void MainWindow::initSwapchain(){
   const uint32_t imgC=device.swapchainImageCount();
   commandDynamic.clear();
-  fboUi.clear();
 
   for(uint32_t i=0;i<imgC;++i) {
     Tempest::Frame frame=device.frame(i);
-    fboUi.emplace_back(device.frameBuffer(frame));
     commandDynamic.emplace_back(device.commandBuffer());
     }
 
-  uiPass = device.pass(FboMode::Preserve);
-  draw.initSwapchain(uint32_t(w()),uint32_t(h()));
+  renderer.initSwapchain(uint32_t(w()),uint32_t(h()));
   }
 
 void MainWindow::render(){
@@ -655,12 +654,11 @@ void MainWindow::render(){
     static uint64_t time=Application::tickCount();
 
     auto&                 context    = fLocal[device.frameId()];
-    Semaphore&            renderDone = commandBuffersSemaphores[device.frameId()];
     PrimaryCommandBuffer& cmd        = commandDynamic[device.frameId()];
 
     if(dialogs.isActive())
-      draw.setCameraView(dialogs.dialogCamera()); else
-      draw.setCameraView(camera);
+      renderer.setCameraView(dialogs.dialogCamera()); else
+      renderer.setCameraView(camera);
 
     if(!gothic.isPause())
       gothic.updateAnimation();
@@ -672,7 +670,7 @@ void MainWindow::render(){
     if(needToUpdate())
       dispatchPaintEvent(surface,atlas);
 
-    if(draw.needToUpdateCmd()){
+    if(renderer.needToUpdateCmd()){
       device.waitIdle();
       for(size_t i=0;i<fLocal.size();++i){
         fLocal[i].gpuLock.wait();
@@ -681,18 +679,11 @@ void MainWindow::render(){
       }
 
     cmd.begin();
-
-    draw.draw(cmd,imgId,gothic);
-    if(1) {
-      cmd.setPass(fboUi[imgId],uiPass);
-      surface.draw(device,cmd);
-      draw.draw(cmd,imgId,inventory);
-      }
-
+    renderer.draw(cmd,imgId,surface,inventory,gothic);
     cmd.end();
 
-    device.draw(cmd,context.imageAvailable,renderDone,context.gpuLock);
-    device.present(imgId,renderDone);
+    device.draw(cmd,context.imageAvailable,context.renderDone,context.gpuLock);
+    device.present(imgId,context.renderDone);
 
     auto t = Application::tickCount();
     if(t-time<16 && !gothic.isInGame()){

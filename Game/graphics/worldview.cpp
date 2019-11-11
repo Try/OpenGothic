@@ -93,8 +93,11 @@ bool WorldView::needToUpdateCmd() const {
 
 void WorldView::updateCmd(const World &world,const Tempest::Texture2d& shadow,
                           const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay) {
-  if(!needToUpdateCmd())
+  if(!needToUpdateCmd() && this->mainLay==&mainLay && this->shadowLay==&shadowLay)
     return;
+  this->mainLay   = &mainLay;
+  this->shadowLay = &shadowLay;
+
   prebuiltCmdBuf(world,shadow,mainLay,shadowLay);
 
   vobGroup.setAsUpdated();

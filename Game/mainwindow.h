@@ -83,27 +83,23 @@ class MainWindow : public Tempest::Window {
     Resources             resources;
 
     Tempest::Font         font;
+    Tempest::VectorImage  surface;
 
-    Tempest::RenderPass  uiPass;
-    Tempest::VectorImage surface;
+    Renderer              renderer;
 
-    Renderer             draw;
-
-    MenuRoot*            rootMenu=nullptr;
-    Tempest::Timer       timer;
+    MenuRoot*             rootMenu=nullptr;
+    Tempest::Timer        timer;
 
     struct FrameLocal {
-      explicit FrameLocal(Tempest::Device& dev):imageAvailable(dev),gpuLock(dev){}
+      explicit FrameLocal(Tempest::Device& dev):imageAvailable(dev),renderDone(dev),gpuLock(dev){}
       Tempest::Semaphore imageAvailable;
+      Tempest::Semaphore renderDone;
       Tempest::Fence     gpuLock;
       };
 
     std::vector<FrameLocal>             fLocal;
 
     std::vector<Tempest::PrimaryCommandBuffer> commandDynamic;
-    std::vector<Tempest::Semaphore>            commandBuffersSemaphores;
-
-    std::vector<Tempest::FrameBuffer>   fboUi;
 
     Gothic&                             gothic;
 

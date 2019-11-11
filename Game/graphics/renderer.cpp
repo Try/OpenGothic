@@ -1,6 +1,8 @@
 #include "renderer.h"
 
 #include <Tempest/Color>
+#include <Tempest/Fence>
+#include <Tempest/Semaphore>
 
 #include "graphics/submesh/staticmesh.h"
 #include "ui/inventorymenu.h"
@@ -48,11 +50,10 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
     return;
 
   const uint32_t imgC=device.swapchainImageCount();
-  fbo3d.clear();
 
-  zbuffer        = device.createTexture(zBufferFormat,w,h,false);
+  zbuffer        = device.texture(zBufferFormat,w,h,false);
   mainPass       = device.pass(Attachment(FboMode::PreserveOut,Color(0.0)), Attachment(FboMode::Discard,1.f));
-  shadowMapFinal = device.createTexture(shadowFormat,smSize,smSize,false);
+  shadowMapFinal = device.texture(shadowFormat,smSize,smSize,false);
 
   Sampler2d smp;
   smp.setClamping(ClampMode::ClampToBorder);
@@ -60,15 +61,18 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
 
   shadowPass = device.pass(Attachment(FboMode::PreserveOut,Color(1.0)), Attachment(FboMode::Discard,1.f));
   for(int i=0;i<2;++i){
-    shadowMap[i] = device.createTexture(shadowFormat, smSize,smSize,false);
-    shadowZ[i]   = device.createTexture(zBufferFormat,smSize,smSize,false);
+    shadowMap[i] = device.texture(shadowFormat, smSize,smSize,false);
+    shadowZ[i]   = device.texture(zBufferFormat,smSize,smSize,false);
     fboShadow[i] = device.frameBuffer(shadowMap[i],shadowZ[i]);
     shadowMap[i].setSampler(smp);
     }
 
+  fboUi.clear();
+  fbo3d.clear();
   for(uint32_t i=0;i<imgC;++i) {
     Tempest::Frame frame=device.frame(i);
     fbo3d.emplace_back(device.frameBuffer(frame,zbuffer));
+    fboUi.emplace_back(device.frameBuffer(frame));
     }
 
   composePass = device.pass(FboMode::PreserveOut);
@@ -81,6 +85,7 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
   uboShadowComp.set(0,shadowMap[0]);
   uboShadowComp.set(1,shadowMap[1]);
 
+  uiPass        = device.pass(FboMode::Preserve);
   inventoryPass = device.pass(FboMode::Submit|FboMode::PreserveIn, Attachment(FboMode::Discard,1.f));
   }
 
@@ -106,24 +111,26 @@ bool Renderer::needToUpdateCmd() {
   return false;
   }
 
-void Renderer::updateCmd() {
-  if(auto wview=gothic.worldView()) {
-    //wview->updateCmd(*gothic.world(),Resources::fallbackTexture());
-    wview->updateCmd(*gothic.world(),shadowMapFinal,fbo3d[0].layout(),fboShadow[0].layout());
-    }
+void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, VectorImage &surface, InventoryMenu &inventory,
+                    const Gothic &gothic) {
+  FrameBuffer& fbo3d = this->fbo3d[imgId];
+  FrameBuffer& fboUi = this->fboUi[imgId];
+
+  draw(cmd,fbo3d,gothic);
+  cmd.setPass(fboUi,uiPass);
+  surface.draw(device,cmd);
+  draw(cmd,fbo3d,inventory);
   }
 
-void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, const Gothic &gothic) {
-  FrameBuffer& fboFr = fbo3d[imgId];
-
+void Renderer::draw(PrimaryCommandBuffer &cmd, FrameBuffer& fbo, const Gothic &gothic) {
   auto wview = gothic.worldView();
   if(wview==nullptr) {
     // just clear
-    cmd.setPass(fboFr,mainPass);
+    cmd.setPass(fbo,mainPass);
     return;
     }
 
-  wview->updateCmd(*gothic.world(),shadowMapFinal,fboFr.layout(),fboShadow->layout());
+  wview->updateCmd(*gothic.world(),shadowMapFinal,fbo.layout(),fboShadow->layout());
   wview->updateUbo(view,shadow,2,device.frameId());
 
   cmd.exchangeLayout(shadowMap[0],TextureLayout::Undefined,TextureLayout::ColorAttach);
@@ -135,21 +142,48 @@ void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, const Gothic &got
     }
 
   composeShadow(cmd,fboCompose);
-  wview->drawMain(fboFr,mainPass,cmd);
+  wview->drawMain(fbo,mainPass,cmd);
   }
 
-void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, InventoryMenu &inventory) {
-  FrameBuffer& fbo = fbo3d[imgId];
-
+void Renderer::draw(PrimaryCommandBuffer &cmd, FrameBuffer& fbo, InventoryMenu &inventory) {
   cmd.setPass(fbo,inventoryPass);
   inventory.draw(cmd,device.frameId());
   }
 
 void Renderer::composeShadow(PrimaryCommandBuffer &cmd, FrameBuffer &fbo) {
-  cmd.exchangeLayout(shadowMap[0],TextureLayout::ColorAttach,TextureLayout::Sampler);
-  cmd.exchangeLayout(shadowMap[1],TextureLayout::ColorAttach,TextureLayout::Sampler);
+  cmd.exchangeLayout(shadowMap[0],  TextureLayout::ColorAttach,TextureLayout::Sampler);
+  cmd.exchangeLayout(shadowMap[1],  TextureLayout::ColorAttach,TextureLayout::Sampler);
+  cmd.exchangeLayout(shadowMapFinal,TextureLayout::Undefined,  TextureLayout::ColorAttach);
 
   cmd.setPass(fbo,composePass);
   cmd.setUniforms(stor.pComposeShadow,uboShadowComp);
   cmd.draw(Resources::fsqVbo());
+  cmd.exchangeLayout(shadowMapFinal,TextureLayout::ColorAttach,TextureLayout::Sampler);
+  }
+
+void Renderer::takeScreenshoot() {
+  device.waitIdle();
+
+  uint32_t w    = uint32_t(zbuffer.w());
+  uint32_t h    = uint32_t(zbuffer.h());
+
+  auto        zbuf = device.texture(zBufferFormat,w,h,false);
+  auto        img  = device.texture(Tempest::TextureFormat::RGBA8,w,h,false);
+  FrameBuffer fbo  = device.frameBuffer(img,zbuffer);
+
+  auto cmd = device.commandBuffer();
+  cmd.begin();
+  draw(cmd,fbo,gothic);
+  cmd.end();
+
+  Fence sync(device);
+
+  const CommandBuffer* submit[1]={&cmd};
+  device.draw(submit,1,nullptr,0,nullptr,0,&sync);
+  sync.wait();
+
+  Tempest::Pixmap pm = device.readPixels(img);
+  pm.save("dbg.png");
+
+  device.waitIdle();
   }

@@ -7,6 +7,7 @@
 #include <Tempest/Widget>
 #include <Tempest/Device>
 #include <Tempest/UniformBuffer>
+#include <Tempest/VectorImage>
 
 #include "worldview.h"
 #include "rendererstorage.h"
@@ -24,9 +25,9 @@ class Renderer final {
 
     void setCameraView(const Camera &camera);
     bool needToUpdateCmd();
-    void updateCmd();
-    void draw(Tempest::PrimaryCommandBuffer &cmd, uint32_t imgId, const Gothic& gothic);
-    void draw(Tempest::PrimaryCommandBuffer &cmd, uint32_t imgId, InventoryMenu& inv);
+
+    void draw(Tempest::PrimaryCommandBuffer &cmd, uint32_t imgId, Tempest::VectorImage& img, InventoryMenu &inventory, const Gothic& gothic);
+    void takeScreenshoot();
 
     const RendererStorage&            storage() const { return stor; }
 
@@ -41,13 +42,17 @@ class Renderer final {
     Tempest::TextureFormat            shadowFormat =Tempest::TextureFormat::RGBA8;
     Tempest::TextureFormat            zBufferFormat=Tempest::TextureFormat::Depth16;
     std::vector<Tempest::FrameBuffer> fbo3d;
+    std::vector<Tempest::FrameBuffer> fboUi;
     Tempest::FrameBuffer              fboShadow[2], fboCompose;
 
     Tempest::RenderPass               mainPass, shadowPass, composePass;
     Tempest::RenderPass               inventoryPass;
+    Tempest::RenderPass               uiPass;
 
     Tempest::Uniforms                 uboShadowComp;
     RendererStorage                   stor;
 
+    void draw(Tempest::PrimaryCommandBuffer &cmd, Tempest::FrameBuffer& fbo, const Gothic& gothic);
+    void draw(Tempest::PrimaryCommandBuffer &cmd, Tempest::FrameBuffer& fbo, InventoryMenu& inv);
     void composeShadow(Tempest::PrimaryCommandBuffer &cmd, Tempest::FrameBuffer &fbo);
   };

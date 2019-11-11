@@ -59,6 +59,8 @@ class WorldView {
     PfxObjects              pfxGroup;
 
     bool                    nToUpdateCmd=true;
+    const Tempest::FrameBufferLayout* mainLay   = nullptr;
+    const Tempest::FrameBufferLayout* shadowLay = nullptr;
 
     Tempest::Matrix4x4      proj;
     uint32_t                vpWidth=0;
