@@ -40,6 +40,7 @@ Renderer::Renderer(Tempest::Device &device,Gothic& gothic)
       }
     }
 
+  Log::i("GPU = ",device.renderer());
   Log::i("Depth format = ",int(zBufferFormat)," Shadow format = ",int(shadowFormat));
   uboShadowComp = stor.device.uniforms(stor.uboComposeLayout());
   }

@@ -93,8 +93,11 @@ bool WorldView::needToUpdateCmd() const {
 
 void WorldView::updateCmd(const World &world,const Tempest::Texture2d& shadow,
                           const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay) {
-  if(!needToUpdateCmd() && this->mainLay==&mainLay && this->shadowLay==&shadowLay)
+  if(this->mainLay  !=nullptr && mainLay  ==*this->mainLay &&
+     this->shadowLay!=nullptr && shadowLay==*this->shadowLay &&
+     !needToUpdateCmd()) {
     return;
+    }
   this->mainLay   = &mainLay;
   this->shadowLay = &shadowLay;
 
