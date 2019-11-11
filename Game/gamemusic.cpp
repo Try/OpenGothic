@@ -45,7 +45,7 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
     mix.setMusic(Dx8::Music());
     }
 
-  void setVolume(float v){
+  void setVolume(float v) {
     mix.setVolume(v);
     }
 

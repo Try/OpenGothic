@@ -14,6 +14,11 @@ class GameMusic final {
     GameMusic(const GameMusic&)=delete;
     ~GameMusic();
 
+    enum Music : uint8_t {
+      SysMenu,
+      SysLoading
+      };
+
     void      setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme);
     void      stopMusic();
 

@@ -180,6 +180,7 @@ void GameMenu::onSelect() {
 
 void GameMenu::onTick() {
   update();
+  gothic.setMusic(GameMusic::SysMenu);
 
   const float fx = 640.0f;
   const float fy = 480.0f;

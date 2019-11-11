@@ -364,6 +364,19 @@ void Gothic::setMusic(const char *clsTheme) {
   globalMusic.setMusic(theme);
   }
 
+void Gothic::setMusic(const GameMusic::Music m) {
+  const char* clsTheme="";
+  switch(m) {
+    case GameMusic::SysMenu:
+      clsTheme = "SYS_Menu";
+      break;
+    case GameMusic::SysLoading:
+      clsTheme = "SYS_Loading";
+      break;
+    }
+  setMusic(clsTheme);
+  }
+
 void Gothic::stopMusic() {
   globalMusic.stopMusic();
   }
