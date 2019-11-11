@@ -217,7 +217,11 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
     Log::d("");
 
   if(name.rfind(".TGA")==name.size()-4){
-    Log::e("decas are not implemented yet \"",name,"\"");
+    static std::unordered_set<std::string> dec;
+    if(dec.find(name)==dec.end()) {
+      Log::e("decals are not implemented yet \"",name,"\"");
+      dec.insert(name);
+      }
     return nullptr;
     }
 
