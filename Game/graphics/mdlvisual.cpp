@@ -13,7 +13,7 @@ MdlVisual::MdlVisual()
   }
 
 void MdlVisual::save(Serialize &fout) {
-  fout.write(fightMode);
+  fout.write(fgtMode);
   if(skeleton!=nullptr)
     fout.write(skeleton->name()); else
     fout.write(std::string(""));
@@ -24,7 +24,7 @@ void MdlVisual::save(Serialize &fout) {
 void MdlVisual::load(Serialize &fin,Npc& npc) {
   std::string s;
 
-  fin.read(fightMode);
+  fin.read(fgtMode);
   fin.read(s);
   npc.setVisual(s.c_str());
   solver.load(fin);
@@ -136,14 +136,14 @@ bool MdlVisual::setFightMode(const ZenLoad::EFightMode mode) {
   }
 
 bool MdlVisual::setToFightMode(const WeaponState f) {
-  if(f==fightMode)
+  if(f==fgtMode)
     return false;
-  fightMode = f;
+  fgtMode = f;
   return true;
   }
 
 void MdlVisual::updateWeaponSkeleton(const Item* weapon,const Item* range) {
-  auto st = fightMode;
+  auto st = fgtMode;
   if(st==WeaponState::W1H || st==WeaponState::W2H){
     sword.setAttachPoint(skeleton,"ZS_RIGHTHAND");
     } else {
@@ -184,11 +184,16 @@ void MdlVisual::updateAnimation(Npc& npc) {
 void MdlVisual::stopAnim(Npc& npc,const char* ani) {
   skInst->stopAnim(ani);
   if(!skInst->hasAnim())
-    startAnim(npc,AnimationSolver::Idle,fightMode,npc.walkMode());
+    startAnim(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
+  }
+
+void MdlVisual::stopWalkAnim(Npc &npc) {
+  skInst->stopAnim(nullptr);
+  startAnim(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
   }
 
 bool MdlVisual::isRunTo(const Npc& npc) const {
-  const Animation::Sequence *sq = solver.solveAnim(AnimationSolver::Anim::Move,fightMode,npc.walkMode(),*skInst);
+  const Animation::Sequence *sq = solver.solveAnim(AnimationSolver::Anim::Move,fgtMode,npc.walkMode(),*skInst);
   return skInst->isInAnim(sq);
   }
 
@@ -310,7 +315,7 @@ bool MdlVisual::startAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, Wal
 bool MdlVisual::startAnim(Npc &npc, WeaponState st) {
   const bool run = (skInst->bodyState()&BS_MAX)==BS_RUN;
 
-  const Animation::Sequence *sq = solver.solveAnim(st,fightMode,run);
+  const Animation::Sequence *sq = solver.solveAnim(st,fgtMode,run);
   if(sq==nullptr)
     return true;
   if(skInst->startAnim(solver,sq,run ? BS_RUN : BS_NONE,false,npc.world().tickCount())) {
@@ -320,7 +325,13 @@ bool MdlVisual::startAnim(Npc &npc, WeaponState st) {
   }
 
 void MdlVisual::setRotation(Npc &npc, int dir) {
-  skInst->setRotation(solver,npc,fightMode,dir);
+  skInst->setRotation(solver,npc,fgtMode,dir);
+  }
+
+std::array<float,3> MdlVisual::displayPosition() const {
+  if(skeleton!=nullptr)
+    return {0,skeleton->colisionHeight()*1.5f,0};
+  return {0.f,0.f,0.f};
   }
 
 bool MdlVisual::startAnimItem(Npc &npc, const char *scheme) {

@@ -52,18 +52,22 @@ class MdlVisual final {
     bool                           startAnimDialog(Npc &npc);
     void                           stopDlgAnim();
     void                           stopAnim(Npc &npc, const char *ani);
+    void                           stopWalkAnim(Npc &npc);
     void                           setRotation(Npc &npc, int dir);
-
-    const Skeleton*                skeleton=nullptr;
-    Tempest::Matrix4x4             pos;
+    WeaponState                    fightMode() const { return fgtMode; }
+    std::array<float,3>            displayPosition() const;
+    const Tempest::Matrix4x4&      position() const { return pos; }
 
   private:
+    Tempest::Matrix4x4             pos;
     MeshObjects::Mesh              head;
     MeshObjects::Mesh              view;
     MeshObjects::Mesh              sword, bow;
     PfxObjects::Emitter            pfx;
 
-    WeaponState                    fightMode=WeaponState::NoWeapon;
+    const Skeleton*                skeleton=nullptr;
+
+    WeaponState                    fgtMode=WeaponState::NoWeapon;
     AnimationSolver                solver;
     std::unique_ptr<Pose>          skInst;
   };

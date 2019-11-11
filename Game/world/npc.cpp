@@ -432,7 +432,7 @@ std::array<float,3> Npc::cameraBone() const {
   auto bone=visual.pose().cameraBone();
   std::array<float,3> r={{}};
   bone.project(r[0],r[1],r[2]);
-  visual.pos.project (r[0],r[1],r[2]);
+  visual.position().project (r[0],r[1],r[2]);
   return r;
   }
 
@@ -493,10 +493,8 @@ const char *Npc::displayName() const {
   }
 
 std::array<float,3> Npc::displayPosition() const {
-  float h = 0;
-  if(visual.skeleton)
-    h = visual.skeleton->colisionHeight()*1.5f;
-  return {{x,y+h,z}};
+  auto p = visual.displayPosition();
+  return {{x+p[0],y+p[1],z+p[2]}};
   }
 
 void Npc::setVisual(const char* visual) {
@@ -923,7 +921,7 @@ bool Npc::implGoTo(uint64_t dt) {
     auto  bs    = bodyState();
 
     if(bs!=BS_RUN && bs!=BS_WALK)
-      visual.stopAnim(*this,nullptr);
+      visual.stopWalkAnim(*this);
 
     int needToRot = (bs==BS_RUN && qDist<50*50) ? 45 : 0;
     if(implLookAt(dx,dz,needToRot,dt)){
@@ -937,7 +935,7 @@ bool Npc::implGoTo(uint64_t dt) {
         attachToPoint(currentGoTo);
         } else {
         mvAlgo.aiGoTo(nullptr);
-        visual.stopAnim(*this,nullptr);
+        visual.stopWalkAnim(*this);
         setAnim(AnimationSolver::Idle);
         currentGoToFlag = GoToHint::GT_No;
         }
@@ -1372,7 +1370,7 @@ void Npc::nextAiAction(uint64_t dt) {
           attachToPoint(currentGoTo);
           } else {
           attachToPoint(act.point);
-          visual.stopAnim(*this,nullptr);
+          visual.stopWalkAnim(*this);
           setAnim(Anim::Idle);
           currentGoToFlag = GoToHint::GT_No;
           }
@@ -1385,7 +1383,8 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_RemoveWeapon:
       if(closeWeapon(false)) {
         setAnim(Anim::Idle);
-        } else {
+        }
+      if(weaponState()!=WeaponState::NoWeapon || visual.fightMode()!=WeaponState::NoWeapon){
         aiActions.push_front(std::move(act));
         }
       break;
