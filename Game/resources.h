@@ -74,6 +74,7 @@ class Resources {
     static const Tempest::Texture2d* loadTexture(const char* name);
     static const Tempest::Texture2d* loadTexture(const std::string& name);
     static const Tempest::Texture2d* loadTexture(const std::string& name,int32_t v,int32_t c);
+    static       Tempest::Texture2d  loadTexture(const Tempest::Pixmap& pm);
 
     static const AttachBinder*       bindMesh     (const ProtoMesh& anim,const Skeleton& s,const char* defBone);
     static const ProtoMesh*          loadMesh     (const std::string& name);

@@ -63,6 +63,8 @@ class MainWindow : public Tempest::Window {
 
     void loadGame (const std::string& name);
     void startGame(const std::string& name);
+    void onScreenshoot(Tempest::Pixmap&);
+
     void onWorldLoaded();
     void onSessionExit();
     void setGameImpl(std::unique_ptr<GameSession>&& w);

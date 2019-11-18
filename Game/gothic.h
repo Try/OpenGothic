@@ -80,6 +80,7 @@ class Gothic final {
 
     void      updateAnimation();
     void      quickSave();
+    void      save(const std::string& slot);
 
     auto      updateDialog(const GameScript::DlgChoise& dlg, Npc& player, Npc& npc) -> std::vector<GameScript::DlgChoise>;
     void      dialogExec  (const GameScript::DlgChoise& dlg, Npc& player, Npc& npc);
@@ -108,6 +109,7 @@ class Gothic final {
     Tempest::Signal<void(const DocumentMenu::Show&)>                    onShowDocument;
     Tempest::Signal<void()>                                             onWorldLoaded;
     Tempest::Signal<void()>                                             onSessionExit;
+    Tempest::Signal<void(Tempest::Pixmap&)>                             takeScreenshoot;
 
     const std::string&                    messageFromSvm(const std::string &id,int voice) const;
     const std::string&                    messageByName(const std::string &id) const;

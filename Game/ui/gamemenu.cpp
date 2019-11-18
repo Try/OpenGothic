@@ -2,10 +2,14 @@
 
 #include <Tempest/Painter>
 #include <Tempest/Log>
+#include <Tempest/TextCodec>
 
 #include "utils/cp1251.h"
 #include "world/world.h"
 #include "ui/menuroot.h"
+#include "utils/fileutil.h"
+#include "game/serialize.h"
+#include "game/savegameheader.h"
 #include "gothic.h"
 #include "resources.h"
 
@@ -168,6 +172,8 @@ void GameMenu::resizeEvent(SizeEvent &) {
 void GameMenu::onMove(int dy) {
   gothic.emitGlobalSound(gothic.loadSoundFx("MENU_BROWSE"));
   setSelection(int(curItem)+dy, dy>0 ? 1 : -1);
+  if(auto s = selectedItem())
+    updateSavThumb(*s);
   update();
   }
 
@@ -299,7 +305,10 @@ void GameMenu::execSingle(Item &it) {
           owner.pushMenu(new GameMenu(owner,vm,gothic,onSelAction_S[i].c_str()));
         break;
       case SEL_ACTION_STARTITEM:
-        Log::d("TODO: save/load at", onSelAction_S[i]);
+        if(onSelAction_S[1]=="SAVEGAME_SAVE")
+          execSaveGame(it);
+        else if(onSelAction_S[1]=="SAVEGAME_LOAD")
+          execSaveGame(it);
         break;
       case SEL_ACTION_CLOSE:
         gothic.emitGlobalSound(gothic.loadSoundFx("MENU_ESC"));
@@ -347,9 +356,97 @@ void GameMenu::execChgOption(Item &item) {
   gothic.settingsSetI(sec.c_str(), opt.c_str(), item.value);
   }
 
+void GameMenu::execSaveGame(GameMenu::Item &item) {
+  const size_t id = saveSlotId(item);
+  if(id==size_t(-1))
+    return;
+
+  char fname[64]={};
+  std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",id);
+  gothic.save(fname);
+  }
+
+void GameMenu::execLoadGame(GameMenu::Item &item) {
+  Log::d("TODO: save/load at", item.handle.onSelAction_S[1]);
+  }
+
 void GameMenu::updateItem(GameMenu::Item &item) {
   auto& it   = item.handle;
   item.value = gothic.settingsGetI(it.onChgSetOptionSection.c_str(), it.onChgSetOption.c_str());
+  }
+
+void GameMenu::updateSavThumb(GameMenu::Item &sel) {
+  if(sel.handle.onSelAction_S[0]!="SAVEGAME_LOAD" &&
+     sel.handle.onSelAction_S[1]!="SAVEGAME_SAVE")
+    return;
+
+  if(!implUpdateSavThumb(sel)) {
+    set("MENUITEM_LOADSAVE_THUMBPIC",static_cast<Texture2d*>(nullptr));
+    set("MENUITEM_LOADSAVE_LEVELNAME_VALUE","");
+    set("MENUITEM_LOADSAVE_DATETIME_VALUE", "");
+    set("MENUITEM_LOADSAVE_GAMETIME_VALUE", "");
+    set("MENUITEM_LOADSAVE_PLAYTIME_VALUE", "");
+    }
+  }
+
+bool GameMenu::implUpdateSavThumb(GameMenu::Item& sel) {
+  const size_t id = saveSlotId(sel);
+  if(id==size_t(-1))
+    return false;
+
+  char fname[64]={};
+  std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",id);
+
+  if(!FileUtil::exists(TextCodec::toUtf16(fname)))
+    return false;
+
+  SaveGameHeader hdr;
+  try {
+    RFile     fin(fname);
+    Serialize reader(fin);
+    reader.read(hdr);
+    }
+  catch(std::bad_alloc&) {
+    return false;
+    }
+  catch(std::system_error& e) {
+    Log::d(e.what());
+    return false;
+    }
+
+  char form[64]={};
+  savThumb = Resources::loadTexture(hdr.priview);
+
+  set("MENUITEM_LOADSAVE_THUMBPIC",       &savThumb);
+  set("MENUITEM_LOADSAVE_LEVELNAME_VALUE",hdr.world.c_str());
+
+  std::snprintf(form,sizeof(form),"%d:%02d",int(hdr.pcTime.hour()),int(hdr.pcTime.minute()));
+  set("MENUITEM_LOADSAVE_DATETIME_VALUE", form);
+
+  std::snprintf(form,sizeof(form),"%d - %d:%02d",int(hdr.wrldTime.day()),int(hdr.wrldTime.hour()),int(hdr.wrldTime.minute()));
+  set("MENUITEM_LOADSAVE_GAMETIME_VALUE", form);
+
+  set("MENUITEM_LOADSAVE_PLAYTIME_VALUE", "");
+  return true;
+  }
+
+size_t GameMenu::saveSlotId(const GameMenu::Item &sel) {
+  const char* prefix[2] = {"MENUITEM_LOAD_SLOT", "MENUITEM_SAVE_SLOT"};
+  for(auto p:prefix) {
+    if(sel.name.find(p)==0){
+      size_t off=std::strlen(p);
+      size_t id=0;
+      for(size_t i=off;i<sel.name.size();++i){
+        if('0'<=sel.name[i] && sel.name[i]<='9') {
+          id=id*10+size_t(sel.name[i]-'0');
+          } else {
+          return size_t(-1);
+          }
+        }
+      return id;
+      }
+    }
+  return size_t(-1);
   }
 
 const char *GameMenu::strEnum(const char *en, int id, std::vector<char> &out) {
@@ -405,6 +502,14 @@ size_t GameMenu::strEnumSize(const char *en) {
   return cnt;
   }
 
+void GameMenu::set(const char *item, const Texture2d *value) {
+  for(auto& i:hItems)
+    if(i.name==item) {
+      i.img = value;
+      return;
+      }
+  }
+
 void GameMenu::set(const char *item, const uint32_t value) {
   char buf[16]={};
   std::snprintf(buf,sizeof(buf),"%u",value);
@@ -457,6 +562,9 @@ void GameMenu::initValues() {
       i.handle.text[0] = form;
       }
     }
+
+  if(auto s = selectedItem())
+    updateSavThumb(*s);
   }
 
 void GameMenu::setPlayer(const Npc &pl) {

@@ -1,7 +1,8 @@
 #pragma once
 
-#include <Tempest/IDevice>
+#include <Tempest/Pixmap>
 #include <Tempest/Matrix4x4>
+#include <Tempest/IDevice>
 #include <Tempest/ODevice>
 
 #include <stdexcept>
@@ -14,6 +15,7 @@
 class WayPoint;
 class World;
 class FpLock;
+class SaveGameHeader;
 
 class Serialize final {
   public:
@@ -83,6 +85,12 @@ class Serialize final {
 
     void write(const std::string&              s);
     void read (std::string&                    s);
+
+    void write(const SaveGameHeader&           p);
+    void read (SaveGameHeader&                 p);
+
+    void write(const Tempest::Pixmap&          p);
+    void read (Tempest::Pixmap&                p);
 
     void write(const WayPoint*  wptr);
     void read (const WayPoint*& wptr);

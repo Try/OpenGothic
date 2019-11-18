@@ -60,7 +60,6 @@ class Wave final {
     Info                        info;
 
     void save(const char* path) const;
-    Tempest::Sound toSound() const;
 
   private:
     struct MsState final {

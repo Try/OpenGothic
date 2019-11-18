@@ -228,14 +228,17 @@ Hydra::Hydra(const DlsCollection &dls) {
       tsf_hydra_shdr sample={};
       if(reg.loop.size()==0) {
         sample = samples[wavelink.ulTableIndex];
-        sample.startLoop = sample.start;
-        sample.endLoop   = sample.end;
+        sample.startLoop = 0;
+        sample.endLoop   = 0;
         igen.push_back(mkIgen(kSampleModes,0));
         } else {
         auto loop = reg.loop[0];
         sample = samples[wavelink.ulTableIndex];
-        sample.startLoop = sample.start+loop.ulLoopStart;
-        sample.endLoop   = sample.start+loop.ulLoopStart + loop.ulLoopLength;
+        sample.startLoop = loop.ulLoopStart;
+        sample.endLoop   = loop.ulLoopStart + loop.ulLoopLength;
+
+        sample.startLoop += sample.start;
+        sample.endLoop   += sample.start;
         igen.push_back(mkIgen(kSampleModes,1));
         }
 

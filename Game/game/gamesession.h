@@ -29,7 +29,7 @@ class GameSession final {
     GameSession(Gothic &gothic, const RendererStorage& storage, Serialize&  fin);
     ~GameSession();
 
-    void         save(Serialize& fout);
+    void         save(Serialize& fout, const Tempest::Pixmap &screen);
 
     void         setWorld(std::unique_ptr<World> &&w);
     auto         clearWorld() -> std::unique_ptr<World>;

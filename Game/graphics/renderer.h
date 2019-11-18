@@ -27,7 +27,7 @@ class Renderer final {
     bool needToUpdateCmd();
 
     void draw(Tempest::PrimaryCommandBuffer &cmd, uint32_t imgId, Tempest::VectorImage& img, InventoryMenu &inventory, const Gothic& gothic);
-    void takeScreenshoot();
+    Tempest::Pixmap screenshoot();
 
     const RendererStorage&            storage() const { return stor; }
 

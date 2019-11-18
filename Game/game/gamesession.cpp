@@ -1,4 +1,5 @@
 #include "gamesession.h"
+#include "savegameheader.h"
 
 #include <Tempest/Log>
 #include <Tempest/MemReader>
@@ -69,17 +70,18 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
 GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Serialize &fin)
   :gothic(gothic), storage(storage) {
   gothic.setLoadingProgress(0);
-  bool     isG2=false;
   uint16_t wssSize=0;
-  fin.read(ticks,wrldTimePart,wrldTime,isG2);
+
+  SaveGameHeader hdr;
+  fin.read(hdr,ticks,wrldTimePart);
+  wrldTime = hdr.wrldTime;
+
   fin.read(wssSize);
   for(size_t i=0;i<wssSize;++i)
     visitedWorlds.emplace_back(fin);
 
-  const uint8_t ver = isG2 ? 2 : 1;
-
   vm.reset(new GameScript(*this,fin));
-  setWorld(std::unique_ptr<World>(new World(*this,storage,fin,ver,[&](int v){
+  setWorld(std::unique_ptr<World>(new World(*this,storage,fin,hdr.isGothic2,[&](int v){
     gothic.setLoadingProgress(int(v*0.55));
     })));
 
@@ -93,8 +95,15 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Seriali
 GameSession::~GameSession() {
   }
 
-void GameSession::save(Serialize &fout) {
-  fout.write(ticks,wrldTimePart,wrldTime,bool(gothic.isGothic2()));
+void GameSession::save(Serialize &fout, const Pixmap& screen) {
+  SaveGameHeader hdr;
+  hdr.priview   = screen;
+  hdr.world     = wrld->name();
+  hdr.pcTime    = gtime(std::chrono::system_clock::now()); //FIXME: localtime
+  hdr.wrldTime  = wrldTime;
+  hdr.isGothic2 = gothic.isGothic2() ? 2 : 1;
+
+  fout.write(hdr,ticks,wrldTimePart);
   fout.write(uint16_t(visitedWorlds.size()));
   for(auto& i:visitedWorlds)
     i.save(fout);

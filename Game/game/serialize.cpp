@@ -2,6 +2,7 @@
 
 #include <cstring>
 
+#include "savegameheader.h"
 #include "world/world.h"
 #include "world/waypoint.h"
 
@@ -44,6 +45,22 @@ void Serialize::read(std::string &s) {
   s.resize(sz);
   if(sz>0)
     readBytes(&s[0],sz);
+  }
+
+void Serialize::write(const SaveGameHeader &p) {
+  p.save(*this);
+  }
+
+void Serialize::read(SaveGameHeader &p) {
+  p = SaveGameHeader(*this);
+  }
+
+void Serialize::write(const Tempest::Pixmap &p) {
+  p.save(*out);
+  }
+
+void Serialize::read(Tempest::Pixmap &p) {
+  p = Tempest::Pixmap(*in);
   }
 
 void Serialize::write(const WayPoint *wptr) {

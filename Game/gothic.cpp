@@ -331,12 +331,19 @@ void Gothic::updateAnimation() {
   }
 
 void Gothic::quickSave() {
+  save("qsave.sav");
+  }
+
+void Gothic::save(const std::string &slot) {
   if(!game)
     return;
 
-  Tempest::WFile f("qsave.sav");
+  Pixmap pm;
+  takeScreenshoot(pm);
+
+  Tempest::WFile f(slot);
   Serialize      s(f);
-  game->save(s);
+  game->save(s,pm);
 
   print("Game saved"); //TODO: translation
   }

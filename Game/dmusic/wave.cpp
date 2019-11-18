@@ -185,65 +185,6 @@ void Wave::save(const char *path) const {
   f.write(wavedata.data(),sz);
   }
 
-Tempest::Sound Wave::toSound() const {
-  struct IoHlp:Tempest::IDevice {
-    size_t               pos=0;
-    std::vector<uint8_t> buf;
-
-    size_t  read(void* dest,size_t count){
-      size_t c = std::min(count, buf.size()-pos);
-
-      std::memcpy(dest, buf.data()+pos, c);
-      pos+=c;
-
-      return c;
-      }
-
-    size_t  size() const {
-      return buf.size();
-      }
-
-    uint8_t peek() {
-      if(pos==buf.size())
-        return 0;
-      return buf[pos];
-      }
-
-    size_t  seek(size_t advance) {
-      size_t c = std::min(advance, buf.size()-pos);
-      pos += c;
-      return c;
-      }
-    };
-
-  IoHlp h;
-
-  Tempest::MemWriter f(h.buf);
-  f.write("RIFF",4);
-
-  uint32_t fmtSize = sizeof(wfmt) + (extra.size()>0 ? (2+extra.size()) : 0);
-  uint32_t sz=  8+fmtSize + 8+wavedata.size();
-  f.write(reinterpret_cast<const char*>(&sz),4);
-  f.write("WAVE",4);
-
-  f.write("fmt ",4);
-  sz=fmtSize;
-  f.write(&sz,4);
-  f.write(&wfmt,sizeof(wfmt));
-  if(extra.size()>0){
-    uint16_t sz=uint16_t(extra.size());
-    f.write(&sz,2);
-    f.write(&extra[0],extra.size());
-    }
-
-  f.write("data",4);
-  sz=wavedata.size();
-  f.write(&sz,4);
-  f.write(wavedata.data(),sz);
-
-  return Tempest::Sound(h);
-  }
-
 void Wave::implRead(Riff &input) {
   if(input.is("data"))
     input.read(wavedata);

@@ -393,6 +393,11 @@ const Texture2d *Resources::loadTexture(const std::string &name, int32_t iv, int
   return loadTexture(buf1);
   }
 
+Texture2d Resources::loadTexture(const Pixmap &pm) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  return inst->device.loadTexture(pm);
+  }
+
 const ProtoMesh *Resources::loadMesh(const std::string &name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadMesh(name);

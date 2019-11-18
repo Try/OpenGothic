@@ -47,9 +47,10 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
 
   timer.timeout.bind(this,&MainWindow::tick);
 
-  gothic.onStartGame  .bind(this,&MainWindow::startGame);
-  gothic.onWorldLoaded.bind(this,&MainWindow::onWorldLoaded);
-  gothic.onSessionExit.bind(this,&MainWindow::onSessionExit);
+  gothic.onStartGame    .bind(this,&MainWindow::startGame);
+  gothic.onWorldLoaded  .bind(this,&MainWindow::onWorldLoaded);
+  gothic.onSessionExit  .bind(this,&MainWindow::onSessionExit);
+  gothic.takeScreenshoot.bind(this,&MainWindow::onScreenshoot);
 
   if(!gothic.defaultSave().empty()){
     loadGame(gothic.defaultSave());
@@ -278,8 +279,10 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
     }
   uiKeyUp=nullptr;
   pressed[event.key]=true;
-  if(event.key==Event::K_F11)
-    renderer.takeScreenshoot();
+  if(event.key==Event::K_F11) {
+    auto pm = renderer.screenshoot();
+    pm.save("dbg.png");
+    }
   }
 
 void MainWindow::keyUpEvent(KeyEvent &event) {
@@ -594,6 +597,10 @@ void MainWindow::startGame(const std::string &name) {
     return w;
     });
   update();
+  }
+
+void MainWindow::onScreenshoot(Pixmap &pm) {
+  pm = renderer.screenshoot();
   }
 
 void MainWindow::onWorldLoaded() {

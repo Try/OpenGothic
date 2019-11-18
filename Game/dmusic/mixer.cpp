@@ -76,8 +76,8 @@ void Mixer::noteOn(std::shared_ptr<Music::PatternInternal>& pattern, Music::Note
   Active a;
   a.at      = sampleCursor + toSamples(r->duration);
   //a.ticket  = r->inst->font.noteOn(r->note,uint8_t(r->velosity*100.0/pattern->styh.dblTempo));
-  a.ticket  = r->inst->font.noteOn(r->note,r->velosity*pattern->styh.dblTempo/100.0);
-  //a.ticket  = r->inst->font.noteOn(r->note,r->velosity);
+  //a.ticket  = r->inst->font.noteOn(r->note,r->velosity*pattern->styh.dblTempo/100.0);
+  a.ticket  = r->inst->font.noteOn(r->note,r->velosity);
   if(a.ticket==nullptr)
     return;
   active.push_back(a);

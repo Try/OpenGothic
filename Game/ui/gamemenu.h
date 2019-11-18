@@ -34,6 +34,7 @@ class GameMenu : public Tempest::Widget {
 
     Daedalus::GEngineClasses::C_Menu      menu={};
     const Tempest::Texture2d*             back=nullptr;
+    Tempest::Texture2d                    savThumb;
 
     Tempest::Color                        clNormal  ={1.f,0.87f,0.67f,1.f};
     Tempest::Color                        clDisabled={1.f,0.87f,0.67f,0.6f};
@@ -65,11 +66,18 @@ class GameMenu : public Tempest::Widget {
     void                                  exec         (Item &item);
     void                                  execSingle   (Item &it);
     void                                  execChgOption(Item &item);
+    void                                  execSaveGame (Item &item);
+    void                                  execLoadGame (Item &item);
     void                                  updateItem   (Item &item);
+
+    void                                  updateSavThumb(Item& sel);
+    bool                                  implUpdateSavThumb(Item& sel);
+    size_t                                saveSlotId(const Item& sel);
 
     const char*                           strEnum(const char* en, int id, std::vector<char> &out);
     size_t                                strEnumSize(const char* en);
 
+    void                                  set(const char* item,const Tempest::Texture2d* value);
     void                                  set(const char* item,const uint32_t value);
     void                                  set(const char* item,const int32_t  value);
     void                                  set(const char* item,const int32_t  value,const char* post);

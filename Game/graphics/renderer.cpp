@@ -162,7 +162,7 @@ void Renderer::composeShadow(PrimaryCommandBuffer &cmd, FrameBuffer &fbo) {
   cmd.exchangeLayout(shadowMapFinal,TextureLayout::ColorAttach,TextureLayout::Sampler);
   }
 
-void Renderer::takeScreenshoot() {
+Tempest::Pixmap Renderer::screenshoot() {
   device.waitIdle();
 
   uint32_t w    = uint32_t(zbuffer.w());
@@ -183,8 +183,5 @@ void Renderer::takeScreenshoot() {
   device.draw(submit,1,nullptr,0,nullptr,0,&sync);
   sync.wait();
 
-  Tempest::Pixmap pm = device.readPixels(img);
-  pm.save("dbg.png");
-
-  device.waitIdle();
+  return device.readPixels(img);
   }
