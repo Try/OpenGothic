@@ -3,6 +3,7 @@
 #include <Tempest/AlignedArray>
 #include <Tempest/UniformBuffer>
 #include <Tempest/Uniforms>
+#include <Tempest/Device>
 
 #include <cassert>
 

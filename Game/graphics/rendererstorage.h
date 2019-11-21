@@ -4,6 +4,7 @@
 #include <Tempest/RenderPipeline>
 #include <Tempest/Shader>
 #include <Tempest/UniformsLayout>
+#include <Tempest/Device>
 
 class RendererStorage {
   public:

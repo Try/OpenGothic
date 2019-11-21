@@ -6,7 +6,7 @@
 
 using namespace Tempest;
 
-void RendererStorage::Material::load(Tempest::Device &device,const char *f) {
+void RendererStorage::Material::load(Device &device, const char *f) {
   char buf[256]={};
 
   std::snprintf(buf,sizeof(buf),"shader/%s.%s.sprv",f,"vert");
@@ -22,7 +22,7 @@ void RendererStorage::Material::load(Tempest::Device &device,const char *f) {
   fsShadow = device.loadShader(buf);
   }
 
-RendererStorage::RendererStorage(Tempest::Device &device)
+RendererStorage::RendererStorage(Device &device)
   :device(device) {
   land  .load(device,"land");
   object.load(device,"object");
