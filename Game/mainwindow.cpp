@@ -48,12 +48,14 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   timer.timeout.bind(this,&MainWindow::tick);
 
   gothic.onStartGame    .bind(this,&MainWindow::startGame);
+  gothic.onLoadGame     .bind(this,&MainWindow::loadGame);
+  gothic.onSaveGame     .bind(this,&MainWindow::saveGame);
+
   gothic.onWorldLoaded  .bind(this,&MainWindow::onWorldLoaded);
   gothic.onSessionExit  .bind(this,&MainWindow::onSessionExit);
-  gothic.takeScreenshoot.bind(this,&MainWindow::onScreenshoot);
 
   if(!gothic.defaultSave().empty()){
-    loadGame(gothic.defaultSave());
+    gothic.load(gothic.defaultSave());
     rootMenu->popMenu();
     }
   else if(!gothic.doStartMenu()) {
@@ -114,7 +116,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
       }
     }
 
-  if(st!=Gothic::LoadState::Idle){
+  if(st!=Gothic::LoadState::Idle) {
     if(loadBox)
       drawLoading(p,int(w()*0.92)-loadBox->w(), int(h()*0.12), loadBox->w(),loadBox->h());
     } else {
@@ -318,7 +320,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     gothic.quickSave();
     }
   else if(event.key==KeyEvent::K_F6){
-    loadGame("qsave.sav");
+    gothic.quickLoad();
     }
 
   if(event.key==KeyEvent::K_ESCAPE)
@@ -566,13 +568,29 @@ Camera::Mode MainWindow::solveCameraMode() const {
   return Camera::Normal;
   }
 
+void MainWindow::startGame(const std::string &name) {
+  gothic.emitGlobalSound(gothic.loadSoundFx("NEWGAME"));
+
+  if(gothic.checkLoading()==Gothic::LoadState::Idle){
+    setGameImpl(nullptr);
+    onWorldLoaded();
+    }
+
+  gothic.startLoadSave("LOADING.TGA",[this,name](std::unique_ptr<GameSession>&& game){
+    game = nullptr; // clear world-memory now
+    std::unique_ptr<GameSession> w(new GameSession(gothic,renderer.storage(),name));
+    return w;
+    });
+  update();
+  }
+
 void MainWindow::loadGame(const std::string &name) {
   if(gothic.checkLoading()==Gothic::LoadState::Idle){
     setGameImpl(nullptr);
     onWorldLoaded();
     }
 
-  gothic.startLoading("LOADING.TGA",[this,name](std::unique_ptr<GameSession>&& game){
+  gothic.startLoadSave("LOADING.TGA",[this,name](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
     Tempest::RFile file(name);
     Serialize      s(file);
@@ -583,19 +601,21 @@ void MainWindow::loadGame(const std::string &name) {
   update();
   }
 
-void MainWindow::startGame(const std::string &name) {
-  gothic.emitGlobalSound(gothic.loadSoundFx("NEWGAME"));
+void MainWindow::saveGame(const std::string &name) {
+  Pixmap pm = renderer.screenshoot();
+  gothic.startLoadSave(nullptr,[name,pm](std::unique_ptr<GameSession>&& game){
+    if(!game)
+      return std::move(game);
 
-  if(gothic.checkLoading()==Gothic::LoadState::Idle){
-    setGameImpl(nullptr);
-    onWorldLoaded();
-    }
+    Tempest::WFile f(name);
+    Serialize      s(f);
+    game->save(s,pm);
 
-  gothic.startLoading("LOADING.TGA",[this,name](std::unique_ptr<GameSession>&& game){
-    game = nullptr; // clear world-memory now
-    std::unique_ptr<GameSession> w(new GameSession(gothic,renderer.storage(),name));
-    return w;
+    // no print, because threading
+    //gothic.print("Game saved"); //TODO: translation
+    return std::move(game);
     });
+
   update();
   }
 

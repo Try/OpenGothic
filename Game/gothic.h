@@ -73,14 +73,16 @@ class Gothic final {
 
     LoadState checkLoading() const;
     bool      finishLoading();
-    void      startLoading(const char *banner, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
+    void      startLoadSave(const char *banner, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
     void      cancelLoading();
 
     void      tick(uint64_t dt);
 
     void      updateAnimation();
     void      quickSave();
+    void      quickLoad();
     void      save(const std::string& slot);
+    void      load(const std::string& slot);
 
     auto      updateDialog(const GameScript::DlgChoise& dlg, Npc& player, Npc& npc) -> std::vector<GameScript::DlgChoise>;
     void      dialogExec  (const GameScript::DlgChoise& dlg, Npc& player, Npc& npc);
@@ -99,6 +101,9 @@ class Gothic final {
     void      print      (const char* msg);
 
     Tempest::Signal<void(const std::string&)>              onStartGame;
+    Tempest::Signal<void(const std::string&)>              onLoadGame;
+    Tempest::Signal<void(const std::string&)>              onSaveGame;
+
     Tempest::Signal<void(Npc&,Npc&,AiOuputPipe*&)>         onDialogPipe;
     Tempest::Signal<void(bool&)>                           isDialogClose;
 
@@ -109,7 +114,6 @@ class Gothic final {
     Tempest::Signal<void(const DocumentMenu::Show&)>                    onShowDocument;
     Tempest::Signal<void()>                                             onWorldLoaded;
     Tempest::Signal<void()>                                             onSessionExit;
-    Tempest::Signal<void(Tempest::Pixmap&)>                             takeScreenshoot;
 
     const std::string&                    messageFromSvm(const std::string &id,int voice) const;
     const std::string&                    messageByName(const std::string &id) const;

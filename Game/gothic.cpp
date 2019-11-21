@@ -276,8 +276,8 @@ bool Gothic::finishLoading() {
   return false;
   }
 
-void Gothic::startLoading(const char* banner, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f) {
-  loadTex = Resources::loadTexture(banner);
+void Gothic::startLoadSave(const char* banner, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f) {
+  loadTex = banner==nullptr ? nullptr : Resources::loadTexture(banner);
   loadProgress.store(0);
 
   auto zero=LoadState::Idle;
@@ -334,18 +334,16 @@ void Gothic::quickSave() {
   save("qsave.sav");
   }
 
+void Gothic::quickLoad() {
+  load("qsave.sav");
+  }
+
 void Gothic::save(const std::string &slot) {
-  if(!game)
-    return;
+  onSaveGame(slot);
+  }
 
-  Pixmap pm;
-  takeScreenshoot(pm);
-
-  Tempest::WFile f(slot);
-  Serialize      s(f);
-  game->save(s,pm);
-
-  print("Game saved"); //TODO: translation
+void Gothic::load(const std::string &slot) {
+  onLoadGame(slot);
   }
 
 std::vector<GameScript::DlgChoise> Gothic::updateDialog(const GameScript::DlgChoise &dlg, Npc& player, Npc& npc) {

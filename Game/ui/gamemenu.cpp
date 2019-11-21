@@ -305,10 +305,6 @@ void GameMenu::execSingle(Item &it) {
           owner.pushMenu(new GameMenu(owner,vm,gothic,onSelAction_S[i].c_str()));
         break;
       case SEL_ACTION_STARTITEM:
-        if(onSelAction_S[1]=="SAVEGAME_SAVE")
-          execSaveGame(it);
-        else if(onSelAction_S[1]=="SAVEGAME_LOAD")
-          execSaveGame(it);
         break;
       case SEL_ACTION_CLOSE:
         gothic.emitGlobalSound(gothic.loadSoundFx("MENU_ESC"));
@@ -318,9 +314,9 @@ void GameMenu::execSingle(Item &it) {
         else if(onSelAction_S[i]=="LEAVE_GAME")
           Tempest::SystemApi::exit();
         else if(onSelAction_S[i]=="SAVEGAME_SAVE")
-          ;
+          execSaveGame(it);
         else if(onSelAction_S[i]=="SAVEGAME_LOAD")
-          ;
+          execLoadGame(it);
         break;
       case SEL_ACTION_CONCOMMANDS:
         // unknown
@@ -367,7 +363,13 @@ void GameMenu::execSaveGame(GameMenu::Item &item) {
   }
 
 void GameMenu::execLoadGame(GameMenu::Item &item) {
-  Log::d("TODO: save/load at", item.handle.onSelAction_S[1]);
+  const size_t id = saveSlotId(item);
+  if(id==size_t(-1))
+    return;
+
+  char fname[64]={};
+  std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",id);
+  gothic.load(fname);
   }
 
 void GameMenu::updateItem(GameMenu::Item &item) {

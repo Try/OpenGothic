@@ -61,8 +61,10 @@ class MainWindow : public Tempest::Window {
     void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, float v, Tempest::AlignFlag flg);
     void drawLoading(Tempest::Painter& p,int x,int y,int w,int h);
 
-    void loadGame (const std::string& name);
     void startGame(const std::string& name);
+    void loadGame (const std::string& name);
+    void saveGame (const std::string& name);
+
     void onScreenshoot(Tempest::Pixmap&);
 
     void onWorldLoaded();

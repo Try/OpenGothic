@@ -262,7 +262,7 @@ void GameSession::tick(uint64_t dt) {
     if(Resources::vdfsIndex().hasFile(w)) {
       std::snprintf(buf,sizeof(buf),"LOADING_%s.TGA",wname.c_str());  // format load-screen name, like "LOADING_OLDWORLD.TGA"
 
-      gothic.startLoading(buf,[this](std::unique_ptr<GameSession>&& game){
+      gothic.startLoadSave(buf,[this](std::unique_ptr<GameSession>&& game){
         auto ret = implChangeWorld(std::move(game),chWorld.zen,chWorld.wp);
         chWorld.zen.clear();
         return ret;
