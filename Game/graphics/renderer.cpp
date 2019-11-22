@@ -132,7 +132,7 @@ void Renderer::draw(PrimaryCommandBuffer &cmd, FrameBuffer& fbo, const Gothic &g
     }
 
   wview->updateCmd(*gothic.world(),shadowMapFinal,fbo.layout(),fboShadow->layout());
-  wview->updateUbo(view,shadow,2,device.frameId());
+  wview->updateUbo(view,shadow,2);
 
   cmd.exchangeLayout(shadowMap[0],TextureLayout::Undefined,TextureLayout::ColorAttach);
   cmd.exchangeLayout(shadowMap[1],TextureLayout::Undefined,TextureLayout::ColorAttach);

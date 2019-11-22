@@ -697,14 +697,6 @@ void MainWindow::render(){
     if(needToUpdate())
       dispatchPaintEvent(surface,atlas);
 
-    if(renderer.needToUpdateCmd()){
-      device.waitIdle();
-      for(size_t i=0;i<fLocal.size();++i){
-        fLocal[i].gpuLock.wait();
-        commandDynamic[i] = device.commandBuffer();
-        }
-      }
-
     cmd.begin();
     renderer.draw(cmd,imgId,surface,inventory,gothic);
     cmd.end();

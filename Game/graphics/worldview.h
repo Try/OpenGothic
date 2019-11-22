@@ -32,7 +32,7 @@ class WorldView {
     bool needToUpdateCmd() const;
     void updateCmd (const World &world, const Tempest::Texture2d &shadow,
                     const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay);
-    void updateUbo (const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4 *shadow, size_t shCount, uint32_t imgId);
+    void updateUbo (const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4 *shadow, size_t shCount);
     void drawShadow(const Tempest::FrameBuffer &fbo, const Tempest::RenderPass &p, Tempest::PrimaryCommandBuffer &cmd, uint8_t layer);
     void drawMain  (const Tempest::FrameBuffer &fbo, const Tempest::RenderPass &p, Tempest::PrimaryCommandBuffer &cmd);
     void resetCmd  ();
@@ -72,12 +72,17 @@ class WorldView {
       PfxObjects::Emitter      pfx;
       };
 
-    std::vector<Tempest::CommandBuffer> cmdMain;
-    std::vector<Tempest::CommandBuffer> cmdShadow[2];
-    std::vector<StaticObj>              objStatic;
+    struct PerFrame {
+      Tempest::CommandBuffer cmdMain;
+      Tempest::CommandBuffer cmdShadow[2];
+      bool                   actual     =true;
+      bool                   hasBuffers=false;
+      };
+    std::unique_ptr<PerFrame[]> frame;
+    std::vector<StaticObj>      objStatic;
 
     void setupSunDir(float pulse,float ang);
-    void prebuiltCmdBuf(const World &world, const Tempest::Texture2d &shadowMap,
-                        const Tempest::FrameBufferLayout &mainLay,
-                        const Tempest::FrameBufferLayout &shadowLay);
+    void builtCmdBuf(const World &world, const Tempest::Texture2d &shadowMap,
+                     const Tempest::FrameBufferLayout &mainLay,
+                     const Tempest::FrameBufferLayout &shadowLay);
   };

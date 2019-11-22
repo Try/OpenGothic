@@ -45,7 +45,7 @@ InventoryMenu::InventoryMenu(Gothic &gothic, const RendererStorage &storage)
   slot = Resources::loadTexture("INV_SLOT.TGA");
   selT = Resources::loadTexture("INV_SLOT_HIGHLIGHTED.TGA");
   selU = Resources::loadTexture("INV_SLOT_EQUIPPED.TGA");
-  tex  = Resources::loadTexture("INV_BACK.TGA");
+  tex  = Resources::loadTexture("INV_BACK.TGA"); // INV_TITEL.TGA
 
   int invMaxColumns = gothic.settingsGetI("GAME","invMaxColumns");
   if(invMaxColumns>0)
