@@ -134,13 +134,14 @@ void Renderer::draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, FrameB
   wview->updateCmd(*gothic.world(),shadowMapFinal,fbo.layout(),fboShadow->layout());
   wview->updateUbo(view,shadow,2);
 
-  cmd.setLayout(shadowMap[0],TextureLayout::ColorAttach);
-  cmd.setLayout(shadowMap[1],TextureLayout::ColorAttach);
-
   for(uint8_t i=0;i<2;++i) {
+    cmd.setLayout(shadowMap[i],TextureLayout::ColorAttach);
     cmd.setPass(fboShadow[i],shadowPass);
     wview->drawShadow(fboShadow[i],shadowPass,cmd,i);
     }
+
+  for(uint8_t i=0;i<2;++i)
+    cmd.setLayout(shadowMap[i],TextureLayout::Sampler);
 
   composeShadow(cmd,fboCompose);
   wview->drawMain(fbo,mainPass,cmd);
@@ -152,10 +153,7 @@ void Renderer::draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, FrameB
   }
 
 void Renderer::composeShadow(Tempest::Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer &fbo) {
-  cmd.setLayout(shadowMap[0],  TextureLayout::Sampler);
-  cmd.setLayout(shadowMap[1],  TextureLayout::Sampler);
   cmd.setLayout(shadowMapFinal,TextureLayout::ColorAttach);
-
   cmd.setPass(fbo,composePass);
   cmd.setUniforms(stor.pComposeShadow,uboShadowComp);
   cmd.draw(Resources::fsqVbo());
