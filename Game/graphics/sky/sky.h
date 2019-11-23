@@ -20,8 +20,9 @@ class Sky final {
 
     void setMatrix(uint32_t frameId,const Tempest::Matrix4x4& mat);
     void commitUbo(uint32_t frameId);
-    void draw(Tempest::CommandBuffer &cmd, uint32_t frameId, const World &world);
-    void setLight(const std::array<float,3>& l);
+
+    void draw       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t frameId, const World &world);
+    void setLight   (const std::array<float,3>& l);
     void setDayNight(float dayF);
 
     struct Layer final {

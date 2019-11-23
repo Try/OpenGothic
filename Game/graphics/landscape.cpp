@@ -110,11 +110,11 @@ void Landscape::commitUbo(uint32_t frameId,const Tempest::Texture2d& shadowMap) 
     }
   }
 
-void Landscape::draw(Tempest::CommandBuffer &cmd, uint32_t frameId) {
+void Landscape::draw(Tempest::Encoder<CommandBuffer> &cmd, uint32_t frameId) {
   implDraw(cmd,storage.pLand,  storage.pLandAlpha,0,frameId);
   }
 
-void Landscape::drawShadow(CommandBuffer &cmd, uint32_t frameId, int layer) {
+void Landscape::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t frameId, int layer) {
   PerFrame& pf      = this->pf[frameId];
   auto&     uboLand = pf.ubo[1+layer];
 
@@ -136,7 +136,7 @@ void Landscape::drawShadow(CommandBuffer &cmd, uint32_t frameId, int layer) {
     }
   }
 
-void Landscape::implDraw(CommandBuffer &cmd,const RenderPipeline &p,const RenderPipeline &alpha,uint8_t uboId,uint32_t frameId) {
+void Landscape::implDraw(Tempest::Encoder<Tempest::CommandBuffer> &cmd,const RenderPipeline &p,const RenderPipeline &alpha,uint8_t uboId,uint32_t frameId) {
   PerFrame& pf      = this->pf[frameId];
   auto&     uboLand = pf.ubo[uboId];
 

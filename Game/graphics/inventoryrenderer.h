@@ -11,7 +11,7 @@ class InventoryRenderer {
   public:
     InventoryRenderer(const RendererStorage& storage);
 
-    void draw(Tempest::CommandBuffer& cmd, uint32_t imgId);
+    void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t imgId);
 
     void reset();
     void drawItem(int x, int y, int w, int h, const Item &item);
@@ -26,8 +26,8 @@ class InventoryRenderer {
       int x=0,y=0,w=0,h=0;
       };
 
-    const RendererStorage&              storage;
-    MeshObjects                       itmGroup;
-    std::vector<Itm>                    items;
+    const RendererStorage& storage;
+    MeshObjects            itmGroup;
+    std::vector<Itm>       items;
   };
 

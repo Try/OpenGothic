@@ -17,11 +17,11 @@ class Landscape final {
     Landscape(const RendererStorage& storage,const ZenLoad::PackedMesh& wmesh);
 
     void setMatrix(uint32_t frameId, const Tempest::Matrix4x4& mat, const Tempest::Matrix4x4 *sh, size_t shCount);
-    void setLight(const Light& l,const Tempest::Vec3& ambient);
+    void setLight (const Light& l,const Tempest::Vec3& ambient);
 
-    void commitUbo(uint32_t frameId, const Tempest::Texture2d &shadowMap);
-    void draw(Tempest::CommandBuffer &cmd, uint32_t frameId);
-    void drawShadow(Tempest::CommandBuffer &cmd, uint32_t frameId, int layer);
+    void commitUbo (uint32_t frameId, const Tempest::Texture2d &shadowMap);
+    void draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t frameId);
+    void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t frameId, int layer);
 
   private:
     struct UboLand {
@@ -44,7 +44,7 @@ class Landscape final {
       bool                           alpha=false;
       };
 
-    void implDraw(Tempest::CommandBuffer &cmd, const Tempest::RenderPipeline &p, const Tempest::RenderPipeline &alpha, uint8_t uboId, uint32_t frameId);
+    void implDraw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, const Tempest::RenderPipeline &p, const Tempest::RenderPipeline &alpha, uint8_t uboId, uint32_t frameId);
 
     Tempest::VertexBuffer<Resources::Vertex> vbo;
     std::vector<Block>                       blocks;

@@ -58,7 +58,7 @@ void Sky::commitUbo(uint32_t frameId) {
   uboGpu.desc(frameId).set(4,*night.lay[1].texture);
   }
 
-void Sky::draw(Tempest::CommandBuffer &cmd, uint32_t frameId, const World&) {
+void Sky::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t frameId, const World&) {
   uint32_t offset=0;
   cmd.setUniforms(storage.pSky,uboGpu.desc(frameId),1,&offset);
   cmd.draw(Resources::fsqVbo());

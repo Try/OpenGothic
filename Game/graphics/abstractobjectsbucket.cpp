@@ -19,7 +19,7 @@ const Tempest::Texture2d &AbstractObjectsBucket::Item::texture() const {
   return owner->texture();
   }
 
-void AbstractObjectsBucket::Item::draw(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) const {
+void AbstractObjectsBucket::Item::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) const {
   owner->draw(id,cmd,pipeline,imgId);
   }
 

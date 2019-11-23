@@ -39,10 +39,10 @@ class ObjectsBucket : public AbstractObjectsBucket {
     size_t                      alloc(const Tempest::VertexBuffer<Vertex> &vbo, const Tempest::IndexBuffer<uint32_t> &ibo);
     void                        free(size_t i) override;
 
-    void                        draw      (Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId);
-    void                        drawShadow(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId, int layer);
+    void                        draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId);
+    void                        drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId, int layer);
 
-    void                        draw(size_t id,Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) override;
+    void                        draw(size_t id,Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) override;
 
     bool                        needToUpdateCommands() const;
     void                        setAsUpdated();
@@ -135,7 +135,7 @@ void ObjectsBucket<Ubo,Vertex>::markAsChanged() {
   }
 
 template<class Ubo,class Vertex>
-void ObjectsBucket<Ubo,Vertex>::draw(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) {
+void ObjectsBucket<Ubo,Vertex>::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) {
   auto& frame = pf[imgId];
   index.resize(data.size());
   for(size_t i=0;i<index.size();++i)
@@ -157,7 +157,7 @@ void ObjectsBucket<Ubo,Vertex>::draw(Tempest::CommandBuffer &cmd,const Tempest::
   }
 
 template<class Ubo,class Vertex>
-void ObjectsBucket<Ubo,Vertex>::drawShadow(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId, int layer) {
+void ObjectsBucket<Ubo,Vertex>::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId, int layer) {
   auto& frame = pf[imgId];
   index.resize(data.size());
   for(size_t i=0;i<index.size();++i)
@@ -179,7 +179,7 @@ void ObjectsBucket<Ubo,Vertex>::drawShadow(Tempest::CommandBuffer &cmd,const Tem
   }
 
 template<class Ubo,class Vertex>
-void ObjectsBucket<Ubo,Vertex>::draw(size_t id,Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) {
+void ObjectsBucket<Ubo,Vertex>::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer> &cmd, const Tempest::RenderPipeline &pipeline, uint32_t imgId) {
   auto& frame = pf[imgId];
   auto& di    = data[id];
   if(di.vbo==nullptr)

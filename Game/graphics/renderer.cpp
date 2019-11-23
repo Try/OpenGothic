@@ -112,8 +112,8 @@ bool Renderer::needToUpdateCmd() {
   return false;
   }
 
-void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, VectorImage &surface, InventoryMenu &inventory,
-                    const Gothic &gothic) {
+void Renderer::draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, uint32_t imgId,
+                    VectorImage &surface, InventoryMenu &inventory, const Gothic &gothic) {
   FrameBuffer& fbo3d = this->fbo3d[imgId];
   FrameBuffer& fboUi = this->fboUi[imgId];
 
@@ -123,7 +123,7 @@ void Renderer::draw(PrimaryCommandBuffer &cmd, uint32_t imgId, VectorImage &surf
   draw(cmd,fbo3d,inventory);
   }
 
-void Renderer::draw(PrimaryCommandBuffer &cmd, FrameBuffer& fbo, const Gothic &gothic) {
+void Renderer::draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const Gothic &gothic) {
   auto wview = gothic.worldView();
   if(wview==nullptr) {
     // just clear
@@ -146,12 +146,12 @@ void Renderer::draw(PrimaryCommandBuffer &cmd, FrameBuffer& fbo, const Gothic &g
   wview->drawMain(fbo,mainPass,cmd);
   }
 
-void Renderer::draw(PrimaryCommandBuffer &cmd, FrameBuffer& fbo, InventoryMenu &inventory) {
+void Renderer::draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, InventoryMenu &inventory) {
   cmd.setPass(fbo,inventoryPass);
   inventory.draw(cmd,device.frameId());
   }
 
-void Renderer::composeShadow(PrimaryCommandBuffer &cmd, FrameBuffer &fbo) {
+void Renderer::composeShadow(Tempest::Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer &fbo) {
   cmd.exchangeLayout(shadowMap[0],  TextureLayout::ColorAttach,TextureLayout::Sampler);
   cmd.exchangeLayout(shadowMap[1],  TextureLayout::ColorAttach,TextureLayout::Sampler);
   cmd.exchangeLayout(shadowMapFinal,TextureLayout::Undefined,  TextureLayout::ColorAttach);
@@ -173,13 +173,14 @@ Tempest::Pixmap Renderer::screenshoot() {
   FrameBuffer fbo  = device.frameBuffer(img,zbuffer);
 
   auto cmd = device.commandBuffer();
-  cmd.begin();
-  draw(cmd,fbo,gothic);
-  cmd.end();
+  {
+  auto enc = cmd.startEncoding(device);
+  draw(enc,fbo,gothic);
+  }
 
   Fence sync(device);
 
-  const CommandBuffer* submit[1]={&cmd};
+  const Tempest::PrimaryCommandBuffer* submit[1]={&cmd};
   device.draw(submit,1,nullptr,0,nullptr,0,&sync);
   sync.wait();
 

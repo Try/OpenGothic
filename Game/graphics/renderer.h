@@ -26,7 +26,7 @@ class Renderer final {
     void setCameraView(const Camera &camera);
     bool needToUpdateCmd();
 
-    void draw(Tempest::PrimaryCommandBuffer &cmd, uint32_t imgId, Tempest::VectorImage& img, InventoryMenu &inventory, const Gothic& gothic);
+    void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, uint32_t imgId, Tempest::VectorImage& img, InventoryMenu &inventory, const Gothic& gothic);
     Tempest::Pixmap screenshoot();
 
     const RendererStorage&            storage() const { return stor; }
@@ -52,7 +52,7 @@ class Renderer final {
     Tempest::Uniforms                 uboShadowComp;
     RendererStorage                   stor;
 
-    void draw(Tempest::PrimaryCommandBuffer &cmd, Tempest::FrameBuffer& fbo, const Gothic& gothic);
-    void draw(Tempest::PrimaryCommandBuffer &cmd, Tempest::FrameBuffer& fbo, InventoryMenu& inv);
-    void composeShadow(Tempest::PrimaryCommandBuffer &cmd, Tempest::FrameBuffer &fbo);
+    void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Tempest::FrameBuffer& fbo, const Gothic& gothic);
+    void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Tempest::FrameBuffer& fbo, InventoryMenu& inv);
+    void composeShadow(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Tempest::FrameBuffer &fbo);
   };

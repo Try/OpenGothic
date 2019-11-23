@@ -205,14 +205,14 @@ void MeshObjects::reserve(size_t stat, size_t dyn) {
   storageDn.reserve(dyn);
   }
 
-void MeshObjects::draw(Tempest::CommandBuffer &cmd, uint32_t imgId) {
+void MeshObjects::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId) {
   for(auto& c:chunksSt)
     c.draw(cmd,storage.pObject,imgId);
   for(auto& c:chunksDn)
     c.draw(cmd,storage.pAnim,imgId);
   }
 
-void MeshObjects::drawShadow(Tempest::CommandBuffer &cmd, uint32_t imgId, int layer) {
+void MeshObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId, int layer) {
   for(auto& c:chunksSt)
     c.drawShadow(cmd,storage.pObjectSh,imgId,layer);
   for(auto& c:chunksDn)
@@ -300,6 +300,6 @@ const Tempest::Texture2d& MeshObjects::Node::texture() const {
   return it->texture();
   }
 
-void MeshObjects::Node::draw(Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) const {
+void MeshObjects::Node::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) const {
   it->draw(cmd,pipeline,imgId);
   }

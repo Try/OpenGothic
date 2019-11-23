@@ -43,7 +43,7 @@ class AbstractObjectsBucket {
         void   setSkeleton (const Pose&                p);
 
         const Tempest::Texture2d &texture() const;
-        void  draw(Tempest::CommandBuffer &cmd, const Tempest::RenderPipeline &pipeline, uint32_t imgId) const;
+        void  draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, const Tempest::RenderPipeline &pipeline, uint32_t imgId) const;
 
       private:
         AbstractObjectsBucket* owner=nullptr;
@@ -58,7 +58,7 @@ class AbstractObjectsBucket {
     virtual void   setSkeleton(size_t i,const Pose& sk)=0;
 
     virtual const Tempest::Texture2d& texture() const = 0;
-    virtual void draw(size_t id,Tempest::CommandBuffer &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) = 0;
+    virtual void draw(size_t id,Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) = 0;
 
   protected:
     virtual void markAsChanged()=0;

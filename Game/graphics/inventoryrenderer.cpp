@@ -5,6 +5,7 @@
 #include "light.h"
 
 #include <Tempest/Application>
+#include <Tempest/Encoder>
 
 #include <game/inventory.h>
 
@@ -19,7 +20,7 @@ InventoryRenderer::InventoryRenderer(const RendererStorage &storage)
   itmGroup.setLight(light,Vec3(1.f,1.f,1.f));
   }
 
-void InventoryRenderer::draw(Tempest::CommandBuffer &cmd, uint32_t imgId) {
+void InventoryRenderer::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId) {
   Tempest::Matrix4x4 mv;
   mv.identity();
   if(items.size()){

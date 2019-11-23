@@ -296,7 +296,7 @@ void PfxObjects::commitUbo(uint32_t imgId, const Tempest::Texture2d& shadowMap) 
     }
   }
 
-void PfxObjects::draw(Tempest::CommandBuffer &cmd, uint32_t imgId) {
+void PfxObjects::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId) {
   for(auto& i:bucket) {
     auto& pf = i.pf[imgId];
     pf.vbo = storage.device.loadVboDyn(i.vbo);

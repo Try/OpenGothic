@@ -86,14 +86,14 @@ void WorldView::setupSunDir(float pulse,float ang) {
   sun.setDir(std::cos(a),std::min(0.9f,-1.0f*pulse),std::sin(a));
   }
 
-void WorldView::drawShadow(const FrameBuffer &fbo, const RenderPass &p, PrimaryCommandBuffer &cmd, uint8_t layer) {
+void WorldView::drawShadow(const FrameBuffer &fbo, const RenderPass &p, Tempest::Encoder<PrimaryCommandBuffer> &cmd, uint8_t layer) {
   uint32_t fId = storage.device.frameId();
   if(!frame[fId].actual)
     return;
   cmd.exec(fbo,p,frame[fId].cmdShadow[layer]);
   }
 
-void WorldView::drawMain(const FrameBuffer &fbo, const RenderPass &p, PrimaryCommandBuffer &cmd) {
+void WorldView::drawMain(const FrameBuffer &fbo, const RenderPass &p, Encoder<PrimaryCommandBuffer> &cmd) {
   uint32_t fId = storage.device.frameId();
   if(!frame[fId].actual)
     return;
@@ -177,10 +177,6 @@ void WorldView::updateCmd(const World &world,const Tempest::Texture2d& shadow,
                           const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay) {
   if(this->mainLay  ==nullptr || mainLay  !=*this->mainLay ||
      this->shadowLay==nullptr || shadowLay!=*this->shadowLay) {
-    uint32_t count = storage.device.maxFramesInFlight();
-    for(uint32_t i=0;i<count;++i) {
-      frame[i].hasBuffers = false;
-      }
     this->mainLay   = &mainLay;
     this->shadowLay = &shadowLay;
     nToUpdateCmd    = true;
@@ -236,13 +232,6 @@ void WorldView::builtCmdBuf(const World &world, const Texture2d& shadowMap,
     return;
   pf.actual=true;
 
-  if(!pf.hasBuffers) {
-    pf.cmdShadow[0] = device.commandSecondaryBuffer(shadowLay);
-    pf.cmdShadow[1] = device.commandSecondaryBuffer(shadowLay);
-    pf.cmdMain      = device.commandSecondaryBuffer(mainLay);
-    pf.hasBuffers   = true;
-    }
-
   sky     .commitUbo(frameId);
   land    .commitUbo(frameId,shadowMap);
   vobGroup.commitUbo(frameId,shadowMap);
@@ -252,34 +241,28 @@ void WorldView::builtCmdBuf(const World &world, const Texture2d& shadowMap,
 
   // cascade#0 detail shadow
   {
-  auto& cmd = pf.cmdShadow[0];
-  cmd.begin();
+  auto cmd = pf.cmdShadow[0].startEncoding(device,shadowLay);
   land    .drawShadow(cmd,frameId,0);
   vobGroup.drawShadow(cmd,frameId);
   objGroup.drawShadow(cmd,frameId);
   itmGroup.drawShadow(cmd,frameId);
-  cmd.end();
   }
 
   // cascade#1 shadow
   {
-  auto& cmd = pf.cmdShadow[1];
-  cmd.begin();
+  auto cmd = pf.cmdShadow[1].startEncoding(device,shadowLay);
   land.drawShadow(cmd,frameId,1);
   vobGroup.drawShadow(cmd,frameId,1);
-  cmd.end();
   }
 
   // main draw
   {
-  auto& cmd = pf.cmdMain;
-  cmd.begin();
+  auto cmd = pf.cmdMain.startEncoding(device,mainLay);
   land    .draw(cmd,frameId);
   vobGroup.draw(cmd,frameId);
   objGroup.draw(cmd,frameId);
   itmGroup.draw(cmd,frameId);
   sky     .draw(cmd,frameId,world);
   pfxGroup.draw(cmd,frameId);
-  cmd.end();
   }
   }

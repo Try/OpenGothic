@@ -681,7 +681,6 @@ void MainWindow::render(){
     static uint64_t time=Application::tickCount();
 
     auto&                 context    = fLocal[device.frameId()];
-    PrimaryCommandBuffer& cmd        = commandDynamic[device.frameId()];
 
     if(dialogs.isActive())
       renderer.setCameraView(dialogs.dialogCamera()); else
@@ -697,9 +696,11 @@ void MainWindow::render(){
     if(needToUpdate())
       dispatchPaintEvent(surface,atlas);
 
-    cmd.begin();
-    renderer.draw(cmd,imgId,surface,inventory,gothic);
-    cmd.end();
+    PrimaryCommandBuffer& cmd = commandDynamic[device.frameId()];
+    {
+    auto enc = cmd.startEncoding(device);
+    renderer.draw(enc,imgId,surface,inventory,gothic);
+    }
 
     device.draw(cmd,context.imageAvailable,context.renderDone,context.gpuLock);
     device.present(imgId,context.renderDone);

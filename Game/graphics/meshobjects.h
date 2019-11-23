@@ -35,7 +35,7 @@ class MeshObjects final {
         Node(Node&&)=default;
 
         const Tempest::Texture2d &texture() const;
-        void                      draw(Tempest::CommandBuffer &cmd, const Tempest::RenderPipeline &pipeline, uint32_t imgId) const;
+        void                      draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, const Tempest::RenderPipeline &pipeline, uint32_t imgId) const;
 
       private:
         Node(const Item* it):it(it){}
@@ -75,8 +75,8 @@ class MeshObjects final {
 
     void reserve(size_t stat,size_t dyn);
 
-    void draw      (Tempest::CommandBuffer &cmd, uint32_t imgId);
-    void drawShadow(Tempest::CommandBuffer &cmd, uint32_t imgId, int layer=0);
+    void draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId);
+    void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId, int layer=0);
 
     bool needToUpdateCommands() const;
     void setAsUpdated();

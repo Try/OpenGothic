@@ -59,7 +59,7 @@ class PfxObjects final {
 
     void    updateUbo(uint32_t imgId, uint64_t ticks);
     void    commitUbo(uint32_t imgId, const Tempest::Texture2d &shadowMap);
-    void    draw     (Tempest::CommandBuffer &cmd, uint32_t imgId);
+    void    draw     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId);
 
   private:
     using Vertex = Resources::Vertex;
