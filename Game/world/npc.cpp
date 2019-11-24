@@ -260,7 +260,8 @@ bool Npc::resetPositionToTA() {
   attachToPoint(nullptr);
   setInteraction(nullptr);
   clearAiQueue();
-  clearState(true);
+  if(!isDead())
+    clearState(true);
 
   auto& rot = currentRoutine();
   auto  at  = rot.point;
