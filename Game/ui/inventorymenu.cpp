@@ -78,6 +78,8 @@ void InventoryMenu::close() {
   }
 
 void InventoryMenu::open(Npc &pl) {
+  if(pl.isDown())
+    return;
   state  = State::Equip;
   player = &pl;
   trader = nullptr;
@@ -93,6 +95,8 @@ void InventoryMenu::open(Npc &pl) {
   }
 
 void InventoryMenu::trade(Npc &pl, Npc &tr) {
+  if(pl.isDown())
+    return;
   state  = State::Trade;
   player = &pl;
   trader = &tr;
@@ -106,7 +110,7 @@ void InventoryMenu::trade(Npc &pl, Npc &tr) {
   }
 
 bool InventoryMenu::ransack(Npc &pl, Npc &tr) {
-  if(tr.inventory().ransackCount()==0)
+  if(tr.inventory().ransackCount()==0 || pl.isDown())
     return false;
   state  = State::Ransack;
   player = &pl;
@@ -122,6 +126,8 @@ bool InventoryMenu::ransack(Npc &pl, Npc &tr) {
   }
 
 void InventoryMenu::open(Npc &pl, Interactive &ch) {
+  if(pl.isDown())
+    return;
   state  = State::Chest;
   player = &pl;
   trader = nullptr;
@@ -143,6 +149,9 @@ bool InventoryMenu::isActive() const {
   }
 
 void InventoryMenu::tick(uint64_t /*dt*/) {
+  if(player==nullptr || player->isDown())
+    close();
+
   if(state==State::Ransack){
     if(trader==nullptr){
       close();
@@ -151,7 +160,7 @@ void InventoryMenu::tick(uint64_t /*dt*/) {
 
     if(!trader->isDown())
       close();
-    if(trader->inventory().ransackCount()==0)
+    else if(trader->inventory().ransackCount()==0)
       close();
     }
   }
