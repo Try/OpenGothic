@@ -50,12 +50,12 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
   : device(device), asset("data",device), gothic(gothic) {
   inst=this;
 
-  const char* menu = "data/font/menu.ttf";
-  const char* main = "data/font/main.ttf";
+  const char* menu = "font/menu.ttf";
+  const char* main = "font/main.ttf";
 
   if(/* DISABLES CODE */ (true)) { // international chasters
-    menu = "data/font/Kelvinch-Roman.otf";
-    main = "data/font/Kelvinch-Roman.otf";
+    menu = "font/Kelvinch-Roman.otf";
+    main = "font/Kelvinch-Roman.otf";
     }
 
   static std::array<VertexFsq,6> fsqBuf =
@@ -79,19 +79,27 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
   fBuff .reserve(8*1024*1024);
   ddsBuf.reserve(8*1024*1024);
 
-  menuFnt = Font(menu);
+  menuFnt = asset[menu].get<Font>();
   menuFnt.setPixelSize(44*mult);
 
-  mainFnt = Font(main);
+  mainFnt = asset[main].get<Font>();
   mainFnt.setPixelSize(24*mult);
 
-  dlgFnt  = Font(main);
+  dlgFnt  = asset[main].get<Font>();
   dlgFnt.setPixelSize(32*mult);
 
-  fallback = device.loadTexture("data/fallback.png");
+  {
+  Pixmap pm(1,1,Pixmap::Format::RGBA);
+  uint8_t* pix = reinterpret_cast<uint8_t*>(pm.data());
+  pix[0]=255;
+  pix[3]=255;
+  fallback = device.loadTexture(pm);
+  }
 
+  {
   Pixmap pm(1,1,Pixmap::Format::RGBA);
   fbZero = device.loadTexture(pm);
+  }
 
   // TODO: priority for *.mod files
   std::vector<std::u16string> archives;
