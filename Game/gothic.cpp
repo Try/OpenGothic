@@ -6,9 +6,17 @@
 #include <zenload/zCMesh.h>
 #include <cstring>
 
+#include "game/definitions/visualfxdefinitions.h"
+#include "game/definitions/sounddefinitions.h"
+#include "game/definitions/cameradefinitions.h"
+#include "game/definitions/musicdefinitions.h"
+#include "game/definitions/fightaidefinitions.h"
+#include "game/definitions/particlesdefinitions.h"
+
 #include "game/serialize.h"
 #include "utils/installdetect.h"
 #include "utils/fileutil.h"
+#include "utils/inifile.h"
 
 using namespace Tempest;
 
@@ -67,24 +75,35 @@ Gothic::Gothic(const int argc, const char **argv) {
     throw std::logic_error("gothic not found!"); //TODO: user-friendly message-box
     }
 
-  if(wdef.empty()){
-    if(isGothic2())
-      wdef = "newworld.zen"; else
-      wdef = "world.zen";
+  baseIniFile.reset(new IniFile(gpath+u"system/Gothic.ini"));
+  iniFile    .reset(new IniFile(u"Gothic.ini"));
+
+  // check actually for gothic-1, any questionable case is g2notr
+  if(gpath.find(u"Gothic/")==std::string::npos && gpath.find(u"gothic/")==std::string::npos)
+    vinfo.game = 2; else
+    vinfo.game = 1;
+  if(vinfo.game==2) {
+    vinfo.patch = baseIniFile->getI("GAME","PATCHVERSION");
     }
 
-  iniFile    .reset(new IniFile(u"Gothic.ini"));
   fight      .reset(new FightAi(*this));
   camera     .reset(new CameraDefinitions(*this));
   soundDef   .reset(new SoundDefinitions(*this));
   particleDef.reset(new ParticlesDefinitions(*this));
   vfxDef     .reset(new VisualFxDefinitions(*this));
   music      .reset(new MusicDefinitions(*this));
+  if(wdef.empty()){
+    if(version().game==2)
+      wdef = "newworld.zen"; else
+      wdef = "world.zen";
+    }
   }
 
-bool Gothic::isGothic2() const {
-  // check actually for gothic-1, any questionable case is g2notr
-  return gpath.find(u"Gothic/")==std::string::npos && gpath.find(u"gothic/")==std::string::npos;
+Gothic::~Gothic() {
+  }
+
+const VersionInfo& Gothic::version() const {
+  return vinfo;
   }
 
 bool Gothic::isInGame() const {
@@ -452,7 +471,9 @@ std::unique_ptr<Daedalus::DaedalusVM> Gothic::createVm(const char16_t *datFile) 
   }
 
 int Gothic::settingsGetI(const char *sec, const char *name) const {
-  return iniFile->getI(sec,name);
+  if(iniFile->has(sec,name))
+    return iniFile->getI(sec,name);
+  return baseIniFile->getI(sec,name);
   }
 
 void Gothic::settingsSetI(const char *sec, const char *name, int val) {

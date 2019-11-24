@@ -10,6 +10,7 @@
 #include "game/gamescript.h"
 #include "world/triggers/trigger.h"
 #include "world.h"
+#include "utils/versioninfo.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -1655,7 +1656,7 @@ void Npc::tickRoutine() {
         } else {
         // ZS_DEATH   have no looping, in G1, G2 classic
         // ZS_GETMEAT have no looping, at all
-        loop = aiState.funcIni==owner.script().getSymbolIndex("ZS_GETMEAT") ? 1 : 0;
+        loop = owner.version().hasZSStateLoop() ? 1 : 0;
         }
 
       if(aiState.eTime<=owner.time()) {

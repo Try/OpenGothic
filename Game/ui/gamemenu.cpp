@@ -595,7 +595,7 @@ void GameMenu::setPlayer(const Npc &pl) {
   set("MENU_ITEM_ARMOR_3", pl.protection(Npc::PROT_FIRE));
   set("MENU_ITEM_ARMOR_4", pl.protection(Npc::PROT_MAGIC));
 
-  const int talentMax = gothic.isGothic2() ? Npc::TALENT_MAX_G2 : Npc::TALENT_MAX_G1;
+  const int talentMax = gothic.version().game==2 ? Npc::TALENT_MAX_G2 : Npc::TALENT_MAX_G1;
   for(int i=0;i<talentMax;++i){
     auto& str = tal.getString(size_t(i));
     if(str.empty())

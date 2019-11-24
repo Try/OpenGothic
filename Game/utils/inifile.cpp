@@ -49,7 +49,14 @@ void IniFile::flush() {
     }
   catch (...) {
     Log::e("unable to read .ini file");
+  }
+  }
+
+bool IniFile::has(const char *s, const char *name) {
+  if(auto* val = find(s,name,false)) {
+    return true;
     }
+  return false;
   }
 
 int IniFile::getI(const char *s, const char *name) {

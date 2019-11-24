@@ -289,7 +289,7 @@ Animation *Resources::implLoadAnimation(std::string name) {
 
   try {
     Animation* ret=nullptr;
-    if(gothic.isGothic2()){
+    if(gothic.version().game==2){
       if(name.rfind(".MDS")==name.size()-4 ||
          name.rfind(".mds")==name.size()-4 ||
          name.rfind(".MDH")==name.size()-4)

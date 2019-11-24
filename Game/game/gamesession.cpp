@@ -38,7 +38,7 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
   :gothic(gothic), storage(storage) {
   gothic.setLoadingProgress(0);
   setTime(gtime(8,0));
-  uint8_t ver = gothic.isGothic2() ? 2 : 1;
+  uint8_t ver = gothic.version().game;
 
   vm.reset(new GameScript(*this));
   setWorld(std::unique_ptr<World>(new World(*this,storage,file,ver,[&](int v){
@@ -101,7 +101,7 @@ void GameSession::save(Serialize &fout, const Pixmap& screen) {
   hdr.world     = wrld->name();
   hdr.pcTime    = gtime(std::chrono::system_clock::now()); //FIXME: localtime
   hdr.wrldTime  = wrldTime;
-  hdr.isGothic2 = gothic.isGothic2() ? 2 : 1;
+  hdr.isGothic2 = gothic.version().game;
 
   fout.write(hdr,ticks,wrldTimePart);
   fout.write(uint16_t(visitedWorlds.size()));
@@ -145,8 +145,8 @@ bool GameSession::isRamboMode() const {
   return gothic.isRamboMode();
   }
 
-bool GameSession::isGothic2() const {
-  return gothic.isGothic2();
+const VersionInfo& GameSession::version() const {
+  return gothic.version();
   }
 
 WorldView *GameSession::view() const {
@@ -292,7 +292,7 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
 
   vm->resetVarPointers();
 
-  const uint8_t            ver = gothic.isGothic2() ? 2 : 1;
+  const uint8_t            ver = gothic.version().game;
   const WorldStateStorage& wss = findStorage(w);
 
   auto loadProgress = [this](int v){

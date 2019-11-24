@@ -9,23 +9,25 @@
 
 #include <daedalus/DaedalusVM.h>
 
-#include "game/definitions/visualfxdefinitions.h"
-#include "game/definitions/sounddefinitions.h"
-#include "game/definitions/cameradefinitions.h"
-#include "game/definitions/musicdefinitions.h"
-#include "game/definitions/fightaidefinitions.h"
-#include "game/definitions/particlesdefinitions.h"
-
 #include "game/gamesession.h"
 #include "world/world.h"
-#include "utils/inifile.h"
 #include "ui/documentmenu.h"
 #include "ui/chapterscreen.h"
+#include "utils/versioninfo.h"
 #include "gamemusic.h"
+
+class VersionInfo;
+class CameraDefinitions;
+class SoundDefinitions;
+class VisualFxDefinitions;
+class ParticlesDefinitions;
+class MusicDefinitions;
+class IniFile;
 
 class Gothic final {
   public:
     Gothic(int argc,const char** argv);
+    ~Gothic();
 
     enum class LoadState:int {
       Idle    =0,
@@ -34,7 +36,7 @@ class Gothic final {
       Failed  =3
       };
 
-    bool isGothic2() const;
+    auto version() const -> const VersionInfo&;
 
     bool isInGame() const;
     bool doStartMenu() const { return !noMenu; }
@@ -141,6 +143,7 @@ class Gothic final {
     uint16_t                                pauseSum=0;
     bool                                    isDebug=false;
     bool                                    isRambo=false;
+    VersionInfo                             vinfo;
 
     const Tempest::Texture2d*               loadTex=nullptr;
     std::atomic_int                         loadProgress{0};
@@ -154,6 +157,8 @@ class Gothic final {
     std::unique_ptr<VisualFxDefinitions>    vfxDef;
     std::unique_ptr<ParticlesDefinitions>   particleDef;
     std::unique_ptr<MusicDefinitions>       music;
+
+    std::unique_ptr<IniFile>                baseIniFile;
     std::unique_ptr<IniFile>                iniFile;
 
     std::mutex                              syncSnd;

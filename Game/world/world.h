@@ -29,6 +29,7 @@ class Focus;
 class WayMatrix;
 class VisualFx;
 class ParticleFx;
+class VersionInfo;
 
 class World final {
   public:
@@ -76,6 +77,7 @@ class World final {
     WorldView*      view()   const { return wview.get();    }
     DynamicWorld*   physic() const { return wdynamic.get(); }
     GameScript&     script() const;
+    auto            version() const -> const VersionInfo&;
 
     void            assignRoomToGuild(const std::string& room,int32_t guildId);
     int32_t         guildOfRoom(const std::array<float,3>& pos);

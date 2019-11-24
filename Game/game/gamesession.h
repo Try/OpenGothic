@@ -20,6 +20,7 @@ class SoundFx;
 class ParticleFx;
 class VisualFx;
 class WorldStateStorage;
+class VersionInfo;
 
 class GameSession final {
   public:
@@ -38,7 +39,7 @@ class GameSession final {
     void         exitSession();
 
     bool         isRamboMode() const;
-    bool         isGothic2() const;
+    auto         version() const -> const VersionInfo&;
 
     const World* world() const { return wrld.get(); }
     World*       world()       { return wrld.get(); }

@@ -1,6 +1,8 @@
 #include "camera.h"
 
 #include "game/playercontrol.h"
+#include "game/definitions/cameradefinitions.h"
+
 #include "gothic.h"
 #include "world/world.h"
 

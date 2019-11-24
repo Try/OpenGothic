@@ -337,7 +337,7 @@ void GameScript::initCommon() {
 
   auto& dat = vm.getDATFile();
 
-  if(owner.isGothic2()){
+  if(owner.version().game==2){
     auto& currency = dat.getSymbolByName("TRADE_CURRENCY_INSTANCE");
     itMi_Gold      = dat.getSymbolIndexByName(currency.getString(0).c_str());
     if(itMi_Gold!=size_t(-1)){ // FIXME
@@ -2972,27 +2972,27 @@ void GameScript::perc_setrange(Daedalus::DaedalusVM &) {
 
 void GameScript::printdebug(Daedalus::DaedalusVM &vm) {
   const std::string& msg = vm.popString();
-  if(owner.isGothic2())
+  if(owner.version().game==2)
     Log::d("[zspy]: ",msg);
   }
 
 void GameScript::printdebugch(Daedalus::DaedalusVM &vm) {
   const std::string& msg = vm.popString();
   int                ch  = vm.popInt();
-  if(owner.isGothic2())
+  if(owner.version().game==2)
     Log::d("[zspy,",ch,"]: ",msg);
   }
 
 void GameScript::printdebuginst(Daedalus::DaedalusVM &vm) {
   const std::string& msg = vm.popString();
-  if(owner.isGothic2())
+  if(owner.version().game==2)
     Log::d("[zspy]: ",msg);
   }
 
 void GameScript::printdebuginstch(Daedalus::DaedalusVM &vm) {
   const std::string& msg = vm.popString();
   int                ch  = vm.popInt();
-  if(owner.isGothic2())
+  if(owner.version().game==2)
     Log::d("[zspy,",ch,"]: ",msg);
   }
 

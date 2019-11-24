@@ -672,6 +672,10 @@ GameScript &World::script() const {
   return *game.script();
   }
 
+const VersionInfo& World::version() const {
+  return game.version();
+  }
+
 void World::assignRoomToGuild(const std::string &r, int32_t guildId) {
   std::string room = r;
   for(auto& i:room)
