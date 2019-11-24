@@ -571,7 +571,11 @@ static bool canSee(const Npc& pl,const Interactive& n){
   }
 
 static bool canSee(const Npc& pl,const Item& n){
-  return pl.canSeeNpc(n.position()[0],n.position()[1]+20,n.position()[2],true);
+  const float plY = pl.position()[1];
+  const float itY = n .position()[1];
+  if(plY<=itY && itY<=plY+180)
+    return pl.canSeeNpc(n.position()[0],plY+180,n.position()[2],true);
+  return pl.canSeeNpc(n.position()[0],itY+20,n.position()[2],true);
   }
 
 template<class T>
