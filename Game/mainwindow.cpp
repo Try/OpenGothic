@@ -32,9 +32,10 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
 
   for(uint8_t i=0;i<device.maxFramesInFlight();++i){
     fLocal.emplace_back(device);
+    commandDynamic.emplace_back(device.commandBuffer());
     }
 
-  initSwapchain();
+  renderer.initSwapchain(uint32_t(w()),uint32_t(h()));
   setupUi();
 
   barBack    = Resources::loadTexture("BAR_BACK.TGA");
@@ -179,7 +180,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
 
 void MainWindow::resizeEvent(SizeEvent&) {
   device.reset();
-  initSwapchain();
+  renderer.initSwapchain(uint32_t(w()),uint32_t(h()));
   }
 
 void MainWindow::mouseDownEvent(MouseEvent &event) {
@@ -664,23 +665,9 @@ void MainWindow::setFullscreen(bool fs) {
   SystemApi::showCursor(!fs);
   }
 
-void MainWindow::initSwapchain(){
-  const uint32_t imgC=device.swapchainImageCount();
-  commandDynamic.clear();
-
-  for(uint32_t i=0;i<imgC;++i) {
-    Tempest::Frame frame=device.frame(i);
-    commandDynamic.emplace_back(device.commandBuffer());
-    }
-
-  renderer.initSwapchain(uint32_t(w()),uint32_t(h()));
-  }
-
 void MainWindow::render(){
   try {
     static uint64_t time=Application::tickCount();
-
-    auto&                 context    = fLocal[device.frameId()];
 
     if(dialogs.isActive())
       renderer.setCameraView(dialogs.dialogCamera()); else
@@ -689,21 +676,18 @@ void MainWindow::render(){
     if(!gothic.isPause())
       gothic.updateAnimation();
 
+    auto& context = fLocal[device.frameId()];
+
     context.gpuLock.wait();
-
-    const uint32_t imgId=device.nextImage(context.imageAvailable);
-
     if(needToUpdate())
       dispatchPaintEvent(surface,atlas);
 
-    PrimaryCommandBuffer& cmd = commandDynamic[device.frameId()];
-    {
-    auto enc = cmd.startEncoding(device);
-    renderer.draw(enc,imgId,surface,inventory,gothic);
-    }
+    const uint32_t imgId = device.nextImage(context.imageAvailable);
 
-    device.draw(cmd,context.imageAvailable,context.renderDone,context.gpuLock);
-    device.present(imgId,context.renderDone);
+    PrimaryCommandBuffer& cmd = commandDynamic[device.frameId()];
+    renderer.draw(cmd.startEncoding(device),imgId,surface,inventory,gothic);
+    device  .draw(cmd,context.imageAvailable,context.renderDone,context.gpuLock);
+    device  .present(imgId,context.renderDone);
 
     auto t = Application::tickCount();
     if(t-time<16 && !gothic.isInGame()){
@@ -716,7 +700,7 @@ void MainWindow::render(){
   catch(const Tempest::DeviceLostException&) {
     Log::e("lost device!");
     device.reset();
-    initSwapchain();
+    renderer.initSwapchain(uint32_t(w()),uint32_t(h()));
     }
   }
 

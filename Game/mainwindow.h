@@ -77,7 +77,6 @@ class MainWindow : public Tempest::Window {
     void setupUi();
 
     void render() override;
-    void initSwapchain();
 
     void tick();
     Camera::Mode solveCameraMode() const;

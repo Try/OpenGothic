@@ -112,7 +112,7 @@ bool Renderer::needToUpdateCmd() {
   return false;
   }
 
-void Renderer::draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, uint32_t imgId,
+void Renderer::draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &&cmd, uint32_t imgId,
                     VectorImage &surface, InventoryMenu &inventory, const Gothic &gothic) {
   FrameBuffer& fbo3d = this->fbo3d[imgId];
   FrameBuffer& fboUi = this->fboUi[imgId];
@@ -136,6 +136,7 @@ void Renderer::draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, FrameB
 
   for(uint8_t i=0;i<2;++i) {
     cmd.setLayout(shadowMap[i],TextureLayout::ColorAttach);
+    cmd.setLayout(shadowZ[i],  TextureLayout::DepthAttach);
     cmd.setPass(fboShadow[i],shadowPass);
     wview->drawShadow(fboShadow[i],shadowPass,cmd,i);
     }
@@ -144,6 +145,7 @@ void Renderer::draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, FrameB
     cmd.setLayout(shadowMap[i],TextureLayout::Sampler);
 
   composeShadow(cmd,fboCompose);
+  cmd.setLayout(zbuffer,TextureLayout::DepthAttach);
   wview->drawMain(fbo,mainPass,cmd);
   }
 
