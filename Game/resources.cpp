@@ -28,6 +28,7 @@
 #include "physics/physicmeshshape.h"
 #include "dmusic/music.h"
 #include "dmusic/directmusic.h"
+#include "utils/fileext.h"
 
 #include "gothic.h"
 
@@ -183,7 +184,7 @@ Tempest::Texture2d* Resources::implLoadTexture(std::string name) {
   if(getFileData(name.c_str(),fBuff))
     return implLoadTexture(std::move(name),fBuff);
 
-  if(name.rfind(".TGA")==name.size()-4){
+  if(FileExt::hasExt(name,"TGA")){
     auto n = name;
     n.resize(n.size()+2);
     std::memcpy(&n[0]+n.size()-6,"-C.TEX",6);
@@ -221,10 +222,10 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
   if(it!=aniMeshCache.end())
     return it->second.get();
 
-  if(name=="Hum_Head_Pony.MMB")//"Sna_Body.MDM"
+  if(name=="BSSHARP_OC.MDS")//"Sna_Body.MDM"
     Log::d("");
 
-  if(name.rfind(".TGA")==name.size()-4){
+  if(FileExt::hasExt(name,"TGA")){
     static std::unordered_set<std::string> dec;
     if(dec.find(name)==dec.end()) {
       Log::e("decals are not implemented yet \"",name,"\"");
@@ -256,9 +257,8 @@ Skeleton* Resources::implLoadSkeleton(std::string name) {
   if(name.size()==0)
     return nullptr;
 
-  if(name.rfind(".MDS")==name.size()-4 ||
-     name.rfind(".mds")==name.size()-4)
-    std::memcpy(&name[name.size()-3],"MDH",3);
+  FileExt::exchangeExt(name,"MDS","MDH") ||
+  FileExt::exchangeExt(name,"ASC","MDL");
 
   auto it=skeletonCache.find(name);
   if(it!=skeletonCache.end())
@@ -290,10 +290,9 @@ Animation *Resources::implLoadAnimation(std::string name) {
   try {
     Animation* ret=nullptr;
     if(gothic.version().game==2){
-      if(name.rfind(".MDS")==name.size()-4 ||
-         name.rfind(".mds")==name.size()-4 ||
-         name.rfind(".MDH")==name.size()-4)
-        std::memcpy(&name[name.size()-3],"MSB",3);
+      FileExt::exchangeExt(name,"MDS","MSB") ||
+      FileExt::exchangeExt(name,"MDH","MSB");
+
       ZenLoad::ZenParser            zen(name,gothicAssets);
       ZenLoad::MdsParserBin         p(zen);
 
@@ -301,8 +300,7 @@ Animation *Resources::implLoadAnimation(std::string name) {
       ret=t.get();
       animCache[name] = std::move(t);
       } else {
-      if(name.rfind(".MDH")==name.size()-4)
-        std::memcpy(&name[name.size()-3],"MDS",3);
+      FileExt::exchangeExt(name,"MDH","MDS");
       ZenLoad::ZenParser zen(name,gothicAssets);
       ZenLoad::MdsParserTxt p(zen);
 
@@ -474,28 +472,16 @@ std::vector<uint8_t> Resources::getFileData(const std::string &name) {
   }
 
 Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoad::zCModelMeshLib& library, std::string name) {
-  std::vector<uint8_t> data;
-  std::vector<uint8_t> dds;
-
   // Check if this isn't the compiled version
   if(name.rfind("-C")==std::string::npos) {
     // Strip the extension ".***"
     // Add "compiled"-extension
-    if(name.rfind(".3DS")==name.size()-4)
-      std::memcpy(&name[name.size()-3],"MRM",3); else
-    if(name.rfind(".3ds")==name.size()-4)
-      std::memcpy(&name[name.size()-3],"MRM",3); else
-    if(name.rfind(".mms")==name.size()-4)
-      std::memcpy(&name[name.size()-3],"MMB",3); else
-    if(name.rfind(".MMS")==name.size()-4)
-      std::memcpy(&name[name.size()-3],"MMB",3); else
-    if(name.rfind(".ASC")==name.size()-4)
-      std::memcpy(&name[name.size()-3],"MDL",3); else
-    if(name.rfind(".asc")==name.size()-4)
-      std::memcpy(&name[name.size()-3],"MDL",3);
+    FileExt::exchangeExt(name,"3DS","MRM") ||
+    FileExt::exchangeExt(name,"MMS","MMB") ||
+    FileExt::exchangeExt(name,"ASC","MDL");
     }
 
-  if(name.rfind(".MRM")==name.size()-4) {
+  if(FileExt::hasExt(name,"MRM")) {
     ZenLoad::zCProgMeshProto zmsh(name,gothicAssets);
     if(zmsh.getNumSubmeshes()==0)
       return MeshLoadCode::Error;
@@ -503,7 +489,7 @@ Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoa
     return MeshLoadCode::Static;
     }
 
-  if(name.rfind(".MMB")==name.size()-4) {
+  if(FileExt::hasExt(name,"MMB")) {
     ZenLoad::zCMorphMesh zmm(name,gothicAssets);
     if(zmm.getMesh().getNumSubmeshes()==0)
       return MeshLoadCode::Error;
@@ -516,11 +502,10 @@ Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoa
     return MeshLoadCode::Static;
     }
 
-  if(name.rfind(".MDMS")==name.size()-5 ||
-     name.rfind(".MDS") ==name.size()-4 ||
-     name.rfind(".MDL") ==name.size()-4 ||
-     name.rfind(".MDM") ==name.size()-4 ||
-     name.rfind(".mds") ==name.size()-4){
+  if(FileExt::hasExt(name,"MDMS") ||
+     FileExt::hasExt(name,"MDS")  ||
+     FileExt::hasExt(name,"MDL")  ||
+     FileExt::hasExt(name,"MDM")){
     library = loadMDS(name);
     return MeshLoadCode::Dynamic;
     }
@@ -529,10 +514,8 @@ Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoa
   }
 
 ZenLoad::zCModelMeshLib Resources::loadMDS(std::string &name) {
-  if(name.rfind(".MDMS")==name.size()-5){
-    name.resize(name.size()-1);
+  if(FileExt::exchangeExt(name,"MDMS","MDM"))
     return ZenLoad::zCModelMeshLib(name,gothicAssets,1.f);
-    }
   if(hasFile(name))
     return ZenLoad::zCModelMeshLib(name,gothicAssets,1.f);
   std::memcpy(&name[name.size()-3],"MDL",3);

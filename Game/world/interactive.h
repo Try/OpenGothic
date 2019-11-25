@@ -22,6 +22,8 @@ class Interactive final {
     Interactive(World& owner,const ZenLoad::zCVobData &vob);
     Interactive(Interactive&&)=default;
 
+    void                updateAnimation();
+
     const std::string&  tag() const;
     const std::string&  focusName() const;
     bool                checkMobName(const std::string& dest) const;
@@ -30,6 +32,7 @@ class Interactive final {
     std::array<float,3> position() const;
     std::array<float,3> displayPosition() const;
     const char*         displayName() const;
+    auto                transform() const -> const Tempest::Matrix4x4& { return pos; }
 
     std::string         stateFunc() const;
     int32_t             stateId() const { return state; }
@@ -50,10 +53,9 @@ class Interactive final {
 
     void                nextState();
     void                prevState();
+    void                setAnim(Anim t);
     auto                anim(const AnimationSolver &solver, Anim t) -> const Animation::Sequence*;
     void                marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
-
-    Tempest::Matrix4x4     objMat;
 
   private:
     struct Pos final {
@@ -83,8 +85,13 @@ class Interactive final {
     int                state=0;
     bool               loopState=false;
 
-    std::vector<Pos>         pos;
+    std::vector<Pos>         attPos;
     const ProtoMesh*         mesh = nullptr;
-    MeshObjects::Mesh        view;
     DynamicWorld::StaticItem physic;
+
+    Tempest::Matrix4x4       pos;
+    const Skeleton*          skeleton=nullptr;
+    MeshObjects::Mesh        view;
+    AnimationSolver          solver;
+    std::unique_ptr<Pose>    skInst;
   };

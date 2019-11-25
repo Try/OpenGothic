@@ -220,6 +220,7 @@ bool MdlVisual::startAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, Wal
     const Animation::Sequence *sq = solver.solveAnim(inter,a,*skInst);
     if(sq!=nullptr && inter!=nullptr){
       if(skInst->startAnim(solver,sq,BS_MOBINTERACT,false,npc.world().tickCount())) {
+        inter->setAnim(a==AnimationSolver::InteractOut ? Interactive::Out : Interactive::In);
         if(a==AnimationSolver::Anim::Interact)
           inter->nextState(); else
           inter->prevState();

@@ -1,36 +1,58 @@
 #include "interactive.h"
 #include "npc.h"
 #include "world.h"
+#include "utils/fileext.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Log>
 
 Interactive::Interactive(World &owner, const ZenLoad::zCVobData &vob)
-  :world(&owner),data(vob) {
-  mesh = Resources::loadMesh(vob.visual);
+  :world(&owner),data(vob),skInst(std::make_unique<Pose>()) {
+  if(!FileExt::hasExt(vob.visual,"3ds"))
+    skeleton = Resources::loadSkeleton(vob.visual);
+  mesh     = Resources::loadMesh(vob.visual);
+
   if(mesh) {
     float v[16]={};
     std::memcpy(v,vob.worldMatrix.m,sizeof(v));
-    objMat = Tempest::Matrix4x4(v);
+    pos = Tempest::Matrix4x4(v);
 
     auto physicMesh = Resources::physicMesh(mesh); //FIXME: build physic model in Resources.cpp
 
-    view   = owner.getStaticView(vob.visual,0);
-    physic = owner.physic()->staticObj(physicMesh,objMat);
+    // view   = owner.getStaticView(vob.visual,0);
+    view   = owner.getView(vob.visual);
+    physic = owner.physic()->staticObj(physicMesh,pos);
 
-    view  .setObjMatrix(objMat);
-    physic.setObjMatrix(objMat);
+    view  .setObjMatrix(pos);
+    physic.setObjMatrix(pos);
+    view  .setAttachPoint(skeleton);
 
-    pos.resize(mesh->pos.size());
-    for(size_t i=0;i<pos.size();++i){
-      pos[i].name = mesh->pos[i].name;
-      pos[i].pos  = mesh->pos[i].transform;
-      pos[i].node = mesh->pos[i].node;
+    attPos.resize(mesh->pos.size());
+    for(size_t i=0;i<attPos.size();++i){
+      attPos[i].name = mesh->pos[i].name;
+      attPos[i].pos  = mesh->pos[i].transform;
+      attPos[i].node = mesh->pos[i].node;
       }
+    }
+
+  if(mesh!=nullptr && skeleton!=nullptr) {
+    solver.setSkeleton (skeleton);
+    skInst->setFlags(Pose::NoTranslation);
+    skInst->setSkeleton(skeleton);
+    setAnim(Interactive::Active); // setup default anim
     }
 
   for(auto& i:data.oCMOB.owner)
     i = char(std::toupper(i));
+  }
+
+void Interactive::updateAnimation() {
+  Pose&    pose      = *skInst;
+  uint64_t tickCount = world->tickCount();
+
+  solver.update(tickCount);
+  pose.update(solver,tickCount);
+  view .setSkeleton(pose,pos);
   }
 
 const std::string &Interactive::tag() const {
@@ -218,8 +240,8 @@ uint32_t Interactive::stateMask(uint32_t orig) const {
   }
 
 bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
-  for(auto& i:pos){
-    auto mat = objMat;
+  for(auto& i:attPos){
+    auto mat = pos;
     auto pos = mesh->mapToRoot(i.node);
     mat.mul(pos);
 
@@ -231,8 +253,8 @@ bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
     }
 
   // graves
-  if(pos.size()==0){
-    auto mat = objMat;
+  if(attPos.size()==0){
+    auto mat = pos;
 
     float x = mat.at(3,0);
     float y = mat.at(3,1);
@@ -256,14 +278,14 @@ void Interactive::implAddItem(char *name) {
   }
 
 void Interactive::autoDettachNpc() {
-  for(auto& i:pos)
+  for(auto& i:attPos)
     if(i.user!=nullptr) {
       i.user->setInteraction(nullptr);
       }
   }
 
 const Interactive::Pos *Interactive::findFreePos() const {
-  for(auto& i:pos)
+  for(auto& i:attPos)
     if(i.user==nullptr && i.isAttachPoint()) {
       return &i;
       }
@@ -271,7 +293,7 @@ const Interactive::Pos *Interactive::findFreePos() const {
   }
 
 Interactive::Pos *Interactive::findFreePos() {
-  for(auto& i:pos)
+  for(auto& i:attPos)
     if(i.user==nullptr && i.isAttachPoint()) {
       return &i;
       }
@@ -279,7 +301,7 @@ Interactive::Pos *Interactive::findFreePos() {
   }
 
 std::array<float,3> Interactive::worldPos(const Interactive::Pos &to) const {
-  auto mat = objMat;
+  auto mat = pos;
   auto pos = mesh->mapToRoot(to.node);
   mat.mul(pos);
 
@@ -296,7 +318,7 @@ bool Interactive::isAvailable() const {
 bool Interactive::attach(Npc &npc) {
   float dist = 0;
   Pos*  p    = nullptr;
-  for(auto& i:pos){
+  for(auto& i:attPos){
     if(i.user || !i.isAttachPoint())
       continue;
     float d = qDistanceTo(npc,i);
@@ -312,7 +334,7 @@ bool Interactive::attach(Npc &npc) {
   }
 
 bool Interactive::dettach(Npc &npc) {
-  for(auto& i:pos)
+  for(auto& i:attPos)
     if(i.user==&npc) {
       i.user=nullptr;
       state=-1;
@@ -339,7 +361,7 @@ void Interactive::setDir(Npc &npc, const Tempest::Matrix4x4 &mat) {
 bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
   assert(to.user==nullptr);
 
-  auto mat = objMat;
+  auto mat = pos;
   auto pos = mesh->mapToRoot(to.node);
   mat.mul(pos);
 
@@ -381,13 +403,37 @@ void Interactive::prevState() {
   state = std::max(-1,state-1);
   }
 
+void Interactive::setAnim(Interactive::Anim t) {
+  int  st[]     = {state,state+t};
+  char ss[2][8] = {};
+
+  st[1] = std::max(-1,std::min(st[1],data.oCMobInter.stateNum));
+
+  char buf[256]={};
+  for(int i=0;i<2;++i){
+    if(st[i]<0)
+      std::snprintf(ss[i],sizeof(ss[i]),"S0"); else
+      std::snprintf(ss[i],sizeof(ss[i]),"S%d",st[i]);
+    }
+
+  if(st[0]<0 || st[1]<0)
+    std::snprintf(buf,sizeof(buf),"S_S0",ss[0]); else
+  if(st[0]==st[1])
+    std::snprintf(buf,sizeof(buf),"S_%s",ss[0]); else
+    std::snprintf(buf,sizeof(buf),"T_%s_2_%s",ss[0],ss[1]);
+
+  auto sq = solver.solveFrm(buf);
+  if(sq)
+    skInst->startAnim(solver,sq,BS_NONE,true,world->tickCount());
+  }
+
 const Animation::Sequence* Interactive::anim(const AnimationSolver &solver, Anim t) {
+  const char* tag      = schemeName();
   int         st[]     = {state,state+t};
   char        ss[2][8] = {};
-  const char* tag      = schemeName();
   const char* point    = "";
 
-  for(auto& i:pos)
+  for(auto& i:attPos)
     if(i.user!=nullptr) {
       point = i.posTag();
       }
@@ -395,7 +441,6 @@ const Animation::Sequence* Interactive::anim(const AnimationSolver &solver, Anim
   st[1] = std::max(-1,std::min(st[1],data.oCMobInter.stateNum));
 
   char buf[256]={};
-
   for(int i=0;i<2;++i){
     if(st[i]<0)
       std::snprintf(ss[i],sizeof(ss[i]),"STAND"); else
@@ -411,8 +456,8 @@ const Animation::Sequence* Interactive::anim(const AnimationSolver &solver, Anim
 void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const {
   p.setBrush(Tempest::Color(1.0,0,0,1));
 
-  for(auto& m:pos){
-    auto mat = objMat;
+  for(auto& m:attPos){
+    auto mat = pos;
     auto pos = mesh->mapToRoot(m.node);
     mat.mul(pos);
 

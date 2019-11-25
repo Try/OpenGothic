@@ -229,6 +229,8 @@ void WorldObjects::updateAnimation() {
     i->updateTransform();
     i->updateAnimation();
     });
+  for(auto& i:interactiveObj)
+    i.updateAnimation();
   }
 
 Npc *WorldObjects::findHero() {
@@ -456,7 +458,7 @@ void WorldObjects::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x
                                      int w,int h) const {
   for(auto& i:interactiveObj){
     auto m = mvp;
-    m.mul(i.objMat);
+    m.mul(i.transform());
 
     float x=0,y=0,z=0;
     m.project(x,y,z);

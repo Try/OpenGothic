@@ -17,9 +17,15 @@ class Pose final {
   public:
     Pose()=default;
 
+    enum Flags {
+      NoFlags       = 0,
+      NoTranslation = 1, // usefull for mobsi
+      };
+
     void               save(Serialize& fout);
     void               load(Serialize& fin, const AnimationSolver &solver);
 
+    void               setFlags(Flags f);
     BodyState          bodyState() const;
     void               setSkeleton(const Skeleton *sk);
     bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq, BodyState bs,
@@ -82,4 +88,5 @@ class Pose final {
     const Animation::Sequence* rotation=nullptr;
     const Animation::Sequence* itemUse=nullptr;
     float                      trY=0;
+    Flags                      flag=NoFlags;
   };

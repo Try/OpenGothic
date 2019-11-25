@@ -133,6 +133,10 @@ void Pose::load(Serialize &fin,const AnimationSolver& solver) {
     }
   }
 
+void Pose::setFlags(Pose::Flags f) {
+  flag = f;
+  }
+
 BodyState Pose::bodyState() const {
   uint32_t b = BS_NONE;
   for(auto& i:lay)
@@ -150,6 +154,7 @@ void Pose::setSkeleton(const Skeleton* sk) {
   base = tr;
   for(size_t i=0;i<base.size() && i<skeleton->nodes.size();++i)
     base[i] = skeleton->nodes[i].tr;
+
   trY = skeleton->rootTr[1];
 
   if(lay.size()>0) //TODO
@@ -551,10 +556,13 @@ void Pose::mkSkeleton(const Animation::Sequence &s) {
     if(skeleton->rootNodes.size())
       id = skeleton->rootNodes[0];
     auto& b0=base[id];
-    float dx=b0.at(3,0);//-s.translate.x;
+    float dx=b0.at(3,0);
     float dy=b0.at(3,1)-s.data->translate.y;
-    float dz=b0.at(3,2);//-s.translate.z;
-    if(!s.isFly())
+    float dz=b0.at(3,2);
+
+    if((flag&NoTranslation)==NoTranslation)
+      dy=b0.at(3,1);
+    else if(!s.isFly())
       dy=0;
     m.translate(-dx,-dy,-dz);
     }

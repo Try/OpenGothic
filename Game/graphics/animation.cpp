@@ -30,6 +30,7 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
         }
       case ZenLoad::MdsParser::CHUNK_ANI: {
         auto& ani      = loadMAN(name+'-'+p.ani.m_Name+".MAN");
+        //auto& ani      = loadMAN(p.ani.m_Asc);
         current        = ani.data.get();
 
         ani.askName    = p.ani.m_Name;
@@ -167,7 +168,12 @@ void Animation::debug() const {
 
 Animation::Sequence& Animation::loadMAN(const std::string& name) {
   sequences.emplace_back(name);
-  return sequences.back();
+  auto& ret = sequences.back();
+  if(ret.data==nullptr) {
+    ret.data = std::make_shared<AnimData>();
+    Log::e("unable to load animation sequence: \"",name,"\"");
+    }
+  return ret;
   }
 
 void Animation::setupIndex() {
