@@ -6,6 +6,8 @@
 #include <array>
 #include <memory>
 
+#include "utils/workers.h"
+
 template<class T>
 class SpaceIndex final {
   public:
@@ -35,7 +37,7 @@ class SpaceIndex final {
 
     auto& back() { return arr.back(); }
 
-    void pop_back() { arr.pop_back(); index.clear(); }
+    void  pop_back() { arr.pop_back(); index.clear(); }
 
     void buildIndex() {
       index.resize(arr.size());
@@ -73,6 +75,11 @@ class SpaceIndex final {
             return;
           }
         }
+      }
+
+    template<class F>
+    void parallelFor(F func){
+      Workers::parallelFor(arr,std::forward(func));
       }
 
   private:

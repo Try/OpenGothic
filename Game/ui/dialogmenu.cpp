@@ -127,14 +127,21 @@ const Camera &DialogMenu::dialogCamera() {
     p0[1]-=p1[1];
     p0[2]-=p1[2];
 
-    float l = std::sqrt(p0[0]*p0[0]+p0[1]*p0[1]+p0[2]*p0[2]);
-    float a = (std::atan2(p0[2],p0[0])/float(M_PI))*180.f;
-    if(curentIsPl)
-      a+=45; else
-      a-=45;
+    if(pl==other) {
+      float a = pl->rotation()+45;
+      camera.setDistance(200); //TODO: proper mobsi camera mode
+      camera.setSpin(PointF(a,0));
+      } else {
+      float l = std::sqrt(p0[0]*p0[0]+p0[1]*p0[1]+p0[2]*p0[2]);
+      float a = (std::atan2(p0[2],p0[0])/float(M_PI))*180.f;
+      if(curentIsPl)
+        a+=45; else
+        a-=45;
 
-    camera.setDistance(l);
-    camera.setSpin(PointF(a,0));
+      camera.setDistance(l);
+      camera.setSpin(PointF(a,0));
+      }
+
     }
   return camera;
   }
@@ -254,8 +261,8 @@ void DialogMenu::onDoneText() {
   }
 
 void DialogMenu::close() {
-  auto prevPl   = pl;
-  auto proveNpc = other;
+  auto prevPl  = pl;
+  auto prevNpc = other;
 
   pl=nullptr;
   other=nullptr;
@@ -267,13 +274,16 @@ void DialogMenu::close() {
   currentSnd = SoundEffect();
   update();
 
+  if(prevPl!=nullptr && prevPl==prevNpc){
+    auto i = prevPl->interactive();
+    if(i!=nullptr)
+      prevPl->setInteraction(nullptr);
+    }
   if(prevPl){
-    prevPl->setInteraction(nullptr);
     prevPl->stopDlgAnim();
     }
-  if(proveNpc && proveNpc!=prevPl){
-    proveNpc->setInteraction(nullptr);
-    proveNpc->stopDlgAnim();
+  if(prevNpc && prevNpc!=prevPl){
+    prevNpc->stopDlgAnim();
     }
   }
 

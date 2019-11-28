@@ -16,15 +16,14 @@ bool PlayerControl::interact(Interactive &it) {
   auto w = world();
   if(w==nullptr || w->player()==nullptr)
     return false;
-  if(w->player()->weaponState()!=WeaponState::NoWeapon)
+  auto pl = w->player();
+  if(pl->weaponState()!=WeaponState::NoWeapon)
     return false;
   if(it.isContainer()){
-    inv.open(*w->player(),it);
+    inv.open(*pl,it);
     return true;
     }
-
-  if(!w->player()->setInteraction(&it)){
-
+  if(pl->setInteraction(&it)){
     }
   return true;
   }
@@ -60,6 +59,7 @@ bool PlayerControl::interact(Item &item) {
   }
 
 void PlayerControl::invokeMobsiState() {
+  /*
   auto w = world();
   if(w==nullptr || w->player()==nullptr)
     return;
@@ -75,7 +75,7 @@ void PlayerControl::invokeMobsiState() {
   if(!st.empty()) {
     auto& sc = pl->world().script();
     sc.useInteractive(pl->handle(),st);
-    }
+    }*/
   }
 
 void PlayerControl::toogleWalkMode() {
@@ -227,6 +227,7 @@ void PlayerControl::marvinF8() {
   pl.clearState(false);
   pl.setPosition(pos);
   pl.clearSpeed();
+  pl.quitIneraction();
   pl.setAnim(AnimationSolver::Idle);
   }
 
@@ -277,167 +278,166 @@ void PlayerControl::implMove(uint64_t dt) {
     return;
     }
 
+  if(pl.interactive()!=nullptr) {
+    if(ctrl[Back])
+      pl.setInteraction(nullptr);
+    // animation handled in MOBSI
+    return;
+    }
+
   int rotation=0;
-  if(pl.interactive()==nullptr) {
-    if(ctrl[RotateL]) {
+  if(ctrl[RotateL]) {
+    rot += rspeed;
+    rotation = -1;
+    rotMouse=0;
+    }
+  if(ctrl[RotateR]) {
+    rot -= rspeed;
+    rotation = 1;
+    rotMouse=0;
+    }
+
+  if(rotMouse>0) {
+    if(rotMouseDir){
       rot += rspeed;
       rotation = -1;
-      rotMouse=0;
-      }
-    if(ctrl[RotateR]) {
+      } else {
       rot -= rspeed;
       rotation = 1;
-      rotMouse=0;
       }
+    if(rotMouse<dt)
+      rotMouse=0; else
+      rotMouse-=dt;
+    }
 
-    if(rotMouse>0) {
-      if(rotMouseDir){
-        rot += rspeed;
-        rotation = -1;
-        } else {
-        rot -= rspeed;
-        rotation = 1;
-        }
-      if(rotMouse<dt)
-        rotMouse=0; else
-        rotMouse-=dt;
-      }
+  if(pl.isFaling() || pl.isSlide() || pl.isInAir()){
+    pl.setDirection(rot);
+    return;
+    }
 
-    if(pl.isFaling() || pl.isSlide() || pl.isInAir()){
-      pl.setDirection(rot);
-      return;
-      }
-
-    if(ctrl[CloseWeapon]){
-      pl.closeWeapon(false);
-      ctrl[CloseWeapon] = !(weaponState()==WeaponState::NoWeapon);
-      return;
-      }
-    if(ctrl[DrawWeaponMele]) {
-      if(pl.currentMeleWeapon()!=nullptr)
-        pl.drawWeaponMele(); else
-        pl.drawWeaponFist();
+  if(ctrl[CloseWeapon]){
+    pl.closeWeapon(false);
+    ctrl[CloseWeapon] = !(weaponState()==WeaponState::NoWeapon);
+    return;
+    }
+  if(ctrl[DrawWeaponMele]) {
+    if(pl.currentMeleWeapon()!=nullptr)
+      pl.drawWeaponMele(); else
+      pl.drawWeaponFist();
+    auto ws = weaponState();
+    ctrl[DrawWeaponMele] = !(ws==WeaponState::W1H || ws==WeaponState::W2H || ws==WeaponState::Fist);
+    return;
+    }
+  if(ctrl[DrawWeaponBow]){
+    if(pl.currentRangeWeapon()!=nullptr){
+      pl.drawWeaponBow();
       auto ws = weaponState();
-      ctrl[DrawWeaponMele] = !(ws==WeaponState::W1H || ws==WeaponState::W2H || ws==WeaponState::Fist);
-      return;
+      ctrl[DrawWeaponBow] = !(ws==WeaponState::Bow || ws==WeaponState::CBow);
+      } else {
+      ctrl[DrawWeaponBow] = false;
       }
-    if(ctrl[DrawWeaponBow]){
-      if(pl.currentRangeWeapon()!=nullptr){
-        pl.drawWeaponBow();
+    return;
+    }
+  for(uint8_t i=0;i<8;++i){
+    if(ctrl[DrawWeaponMage3+i]){
+      if(pl.inventory().currentSpell(i)!=nullptr){
+        pl.drawMage(uint8_t(3+i));
         auto ws = weaponState();
-        ctrl[DrawWeaponBow] = !(ws==WeaponState::Bow || ws==WeaponState::CBow);
+        ctrl[DrawWeaponMage3+i] = !(ws==WeaponState::Mage);
+        if(ws==WeaponState::Mage) {
+          if(auto spl = pl.inventory().currentSpell(i)) {
+            gothic.print(spl->description());
+            }
+          }
         } else {
-        ctrl[DrawWeaponBow] = false;
+        ctrl[DrawWeaponMage3+i] = false;
         }
       return;
       }
-    for(uint8_t i=0;i<8;++i){
-      if(ctrl[DrawWeaponMage3+i]){
-        if(pl.inventory().currentSpell(i)!=nullptr){
-          pl.drawMage(uint8_t(3+i));
-          auto ws = weaponState();
-          ctrl[DrawWeaponMage3+i] = !(ws==WeaponState::Mage);
-          if(ws==WeaponState::Mage) {
-            if(auto spl = pl.inventory().currentSpell(i)) {
-              gothic.print(spl->description());
-              }
-            }
-          } else {
-          ctrl[DrawWeaponMage3+i] = false;
-          }
-        return;
-        }
-      }
+    }
 
-    if((ws==WeaponState::Bow || ws==WeaponState::CBow) &&
-       pl.hasAmunition()){
-      if(ctrl[ActionFocus]) {
-        if(auto other = pl.target()) {
-          float dx = other->position()[0]-pl.position()[0];
-          float dz = other->position()[2]-pl.position()[2];
-          pl.lookAt(dx,dz,false,dt);
-          pl.aimBow();
-          if(!ctrl[ActForward])
-            return;
-          }
-        }
-      if(ctrl[EmptyFocus]){
+  if((ws==WeaponState::Bow || ws==WeaponState::CBow) &&
+     pl.hasAmunition()){
+    if(ctrl[ActionFocus]) {
+      if(auto other = pl.target()) {
+        float dx = other->position()[0]-pl.position()[0];
+        float dz = other->position()[2]-pl.position()[2];
+        pl.lookAt(dx,dz,false,dt);
         pl.aimBow();
         if(!ctrl[ActForward])
           return;
         }
       }
-
-    if(ctrl[ActForward]) {
-      auto ws = pl.weaponState();
-      if(ws==WeaponState::NoWeapon) {
-        ctrl[ActForward]=true;
-        ctrl[Forward]   =true;
-        }
-      if(ws==WeaponState::Fist) {
-        pl.fistShoot();
+    if(ctrl[EmptyFocus]){
+      pl.aimBow();
+      if(!ctrl[ActForward])
         return;
-        }
-      if(ws==WeaponState::W1H || ws==WeaponState::W2H) {
-        if(pl.target()!=nullptr && pl.canFinish(*pl.target()))
-          pl.finishingMove(); else
-          pl.swingSword();
-        return;
-        }
-      if(ws==WeaponState::Bow || ws==WeaponState::CBow) {
-        if(pl.shootBow())
-          return;
-        }
-      if(ws==WeaponState::Mage) {
-        if(pl.castSpell())
-          return;
-        }
       }
-    if(ctrl[ActLeft] || ctrl[ActRight] || ctrl[ActBack]) {
-      auto ws = pl.weaponState();
-      if(ws==WeaponState::Fist){
-        if(ctrl[ActBack])
-          pl.blockFist();
-        return;
-        }
-      else if(ws==WeaponState::W1H || ws==WeaponState::W2H){
-        if(ctrl[ActLeft])
-          pl.swingSwordL(); else
-        if(ctrl[ActRight])
-          pl.swingSwordR(); else
-        if(ctrl[ActBack])
-          pl.blockSword();
-        return;
-        }
-      }
-
-    if(ctrl[Jump]) {
-      if(pl.isStanding()) {
-        auto code = pl.tryJump(pl.position());
-        if(!pl.isFaling() && !pl.isSlide() && code!=Npc::JumpCode::JM_OK){
-          pl.startClimb(code);
-          return;
-          }
-        ani = Npc::Anim::Jump;
-        } else {
-        ani = Npc::Anim::Jump;
-        }
-      }
-    else if(ctrl[Forward])
-      ani = Npc::Anim::Move;
-    else if(ctrl[Back])
-      ani = Npc::Anim::MoveBack;
-    else if(ctrl[Left])
-      ani = Npc::Anim::MoveL;
-    else if(ctrl[Right])
-      ani = Npc::Anim::MoveR;
-    } else {
-    if(ctrl[Back]) {
-      ani = Npc::Anim::MoveBack;
-      pl.setInteraction(nullptr);
-      }
-    ani = Npc::Anim::Interact;
     }
+
+  if(ctrl[ActForward]) {
+    auto ws = pl.weaponState();
+    if(ws==WeaponState::NoWeapon) {
+      ctrl[ActForward]=true;
+      ctrl[Forward]   =true;
+      }
+    if(ws==WeaponState::Fist) {
+      pl.fistShoot();
+      return;
+      }
+    if(ws==WeaponState::W1H || ws==WeaponState::W2H) {
+      if(pl.target()!=nullptr && pl.canFinish(*pl.target()))
+        pl.finishingMove(); else
+        pl.swingSword();
+      return;
+      }
+    if(ws==WeaponState::Bow || ws==WeaponState::CBow) {
+      if(pl.shootBow())
+        return;
+      }
+    if(ws==WeaponState::Mage) {
+      if(pl.castSpell())
+        return;
+      }
+    }
+  if(ctrl[ActLeft] || ctrl[ActRight] || ctrl[ActBack]) {
+    auto ws = pl.weaponState();
+    if(ws==WeaponState::Fist){
+      if(ctrl[ActBack])
+        pl.blockFist();
+      return;
+      }
+    else if(ws==WeaponState::W1H || ws==WeaponState::W2H){
+      if(ctrl[ActLeft])
+        pl.swingSwordL(); else
+      if(ctrl[ActRight])
+        pl.swingSwordR(); else
+      if(ctrl[ActBack])
+        pl.blockSword();
+      return;
+      }
+    }
+
+  if(ctrl[Jump]) {
+    if(pl.isStanding()) {
+      auto code = pl.tryJump(pl.position());
+      if(!pl.isFaling() && !pl.isSlide() && code!=Npc::JumpCode::JM_OK){
+        pl.startClimb(code);
+        return;
+        }
+      ani = Npc::Anim::Jump;
+      } else {
+      ani = Npc::Anim::Jump;
+      }
+    }
+  else if(ctrl[Forward])
+    ani = Npc::Anim::Move;
+  else if(ctrl[Back])
+    ani = Npc::Anim::MoveBack;
+  else if(ctrl[Left])
+    ani = Npc::Anim::MoveL;
+  else if(ctrl[Right])
+    ani = Npc::Anim::MoveR;
 
   pl.setAnim(ani);
   pl.setAnimRotate(ani==Npc::Anim::Idle ? rotation : 0);

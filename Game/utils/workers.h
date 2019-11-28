@@ -15,6 +15,11 @@ class Workers final {
     static Workers& inst();
 
     template<class T,class F>
+    static void parallelFor(std::vector<T>& data,F func) {
+      inst().runParallelFor(data,std::thread::hardware_concurrency(),func);
+      }
+
+    template<class T,class F>
     static void parallelFor(std::vector<T>& data,size_t maxTh,F func) {
       inst().runParallelFor(data,maxTh,func);
       }

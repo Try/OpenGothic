@@ -432,12 +432,15 @@ ZMath::float3 Animation::Sequence::speed(uint64_t at,uint64_t dt) const {
   f.y = a.y-b.y;
   f.z = a.z-b.z;
 
+  if(reverse)
+    return ZMath::float3{-f.x,-f.y,-f.z};
   return f;
   }
 
 ZMath::float3 Animation::Sequence::translateXZ(uint64_t at) const {
-  auto& d = *data;
-  if(d.numFrames==0 || d.tr.size()==0) {
+  auto&    d         = *data;
+  uint32_t numFrames = d.numFrames;
+  if(numFrames==0 || d.tr.size()==0) {
     ZMath::float3 n={};
     return n;
     }

@@ -64,6 +64,9 @@ void WorldObjects::tick(uint64_t dt) {
   for(auto& i:npcArr)
     i->tick(dt);
 
+  for(auto& i:interactiveObj)
+    i.tick(dt);
+
   for(size_t i=0;i<bullets.size();){
     if(bullets[i].flags()&Bullet::Stopped) {
       ++i;
@@ -225,7 +228,7 @@ void WorldObjects::tickTriggers(uint64_t /*dt*/) {
   }
 
 void WorldObjects::updateAnimation() {
-  Workers::parallelFor(npcArr,8,[](std::unique_ptr<Npc>& i){
+  Workers::parallelFor(npcArr,[](std::unique_ptr<Npc>& i){
     i->updateTransform();
     i->updateAnimation();
     });

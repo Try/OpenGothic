@@ -314,7 +314,8 @@ class Npc final {
     uint64_t percNextTime() const;
 
     Interactive* interactive() const { return currentInteract; }
-    bool     setInteraction(Interactive* id);
+    bool     setInteraction(Interactive* id, bool quick=false);
+    void     quitIneraction();
     bool     isState(uint32_t stateFn) const;
     bool     wasInState(uint32_t stateFn) const;
     uint64_t stateTime() const;

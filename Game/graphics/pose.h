@@ -57,7 +57,6 @@ class Pose final {
     bool               setAnimItem(const AnimationSolver &solver, Npc &npc, const char* scheme);
 
     std::vector<Tempest::Matrix4x4> tr;
-    std::vector<Tempest::Matrix4x4> base;
 
   private:
     struct Layer final {
@@ -67,6 +66,7 @@ class Pose final {
       BodyState                  bs    = BS_NONE;
       };
 
+    auto mkBaseTranslation(const Animation::Sequence *s) -> Tempest::Matrix4x4;
     void mkSkeleton(const Animation::Sequence &s);
     void mkSkeleton(const Tempest::Matrix4x4 &mt);
     void mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent);
@@ -83,10 +83,12 @@ class Pose final {
     template<class T,class F>
     void removeIf(T& t,F f);
 
-    const Skeleton*            skeleton=nullptr;
-    std::vector<Layer>         lay;
-    const Animation::Sequence* rotation=nullptr;
-    const Animation::Sequence* itemUse=nullptr;
-    float                      trY=0;
-    Flags                      flag=NoFlags;
+    std::vector<Tempest::Matrix4x4> base;
+
+    const Skeleton*                 skeleton=nullptr;
+    std::vector<Layer>              lay;
+    const Animation::Sequence*      rotation=nullptr;
+    const Animation::Sequence*      itemUse=nullptr;
+    float                           trY=0;
+    Flags                           flag=NoFlags;
   };

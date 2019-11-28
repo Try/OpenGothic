@@ -57,24 +57,13 @@ InventoryMenu::InventoryMenu(Gothic &gothic, const RendererStorage &storage)
   }
 
 void InventoryMenu::close() {
-  renderer.reset();
-  if(player!=nullptr){
-    player->setInteraction(nullptr);
-    player = nullptr;
-    chest  = nullptr;
-    }
-
   if(state!=State::Closed) {
     if(state==State::Trade)
       gothic.emitGlobalSound("TRADE_CLOSE"); else
       gothic.emitGlobalSound("INV_CLOSE");
     }
-
-  page  = 0;
-  pagePl .reset();
-  pageOth.reset();
+  renderer.reset();
   state = State::Closed;
-  update();
   }
 
 void InventoryMenu::open(Npc &pl) {
@@ -128,6 +117,8 @@ bool InventoryMenu::ransack(Npc &pl, Npc &tr) {
 void InventoryMenu::open(Npc &pl, Interactive &ch) {
   if(pl.isDown())
     return;
+  if(!pl.setInteraction(&ch))
+    return;
   state  = State::Chest;
   player = &pl;
   trader = nullptr;
@@ -135,7 +126,6 @@ void InventoryMenu::open(Npc &pl, Interactive &ch) {
   page   = 0;
   pagePl .reset(new InvPage(pl.inventory()));
   pageOth.reset(new InvPage(ch.inventory()));
-  pl.setInteraction(chest);
   adjustScroll();
   update();
   }
@@ -152,7 +142,7 @@ void InventoryMenu::tick(uint64_t /*dt*/) {
   if(player==nullptr || player->isDown())
     close();
 
-  if(state==State::Ransack){
+  if(state==State::Ransack) {
     if(trader==nullptr){
       close();
       return;
@@ -162,6 +152,21 @@ void InventoryMenu::tick(uint64_t /*dt*/) {
       close();
     else if(trader->inventory().ransackCount()==0)
       close();
+    }
+
+  if(state==State::Closed) {
+    if(player!=nullptr){
+      if(!player->setInteraction(nullptr))
+         return;
+      player = nullptr;
+      chest  = nullptr;
+      }
+
+    page = 0;
+    renderer.reset();
+    pagePl .reset();
+    pageOth.reset();
+    update();
     }
   }
 

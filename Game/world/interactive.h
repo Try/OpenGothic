@@ -23,6 +23,7 @@ class Interactive final {
     Interactive(Interactive&&)=default;
 
     void                updateAnimation();
+    void                tick(uint64_t dt);
 
     const std::string&  tag() const;
     const std::string&  focusName() const;
@@ -34,7 +35,6 @@ class Interactive final {
     const char*         displayName() const;
     auto                transform() const -> const Tempest::Matrix4x4& { return pos; }
 
-    std::string         stateFunc() const;
     int32_t             stateId() const { return state; }
     void                emitTriggerEvent() const;
     const char*         schemeName() const;
@@ -51,39 +51,44 @@ class Interactive final {
     bool                attach (Npc& npc);
     bool                dettach(Npc& npc);
 
-    void                nextState();
-    void                prevState();
-    void                setAnim(Anim t);
+    bool                setAnim(Anim t);
     auto                anim(const AnimationSolver &solver, Anim t) -> const Animation::Sequence*;
     void                marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
   private:
     struct Pos final {
       Npc*               user=nullptr;
+      int                userState=0;
       std::string        name;
       size_t             node=0;
       Tempest::Matrix4x4 pos;
+      bool               attachMode=false;
 
       const char*        posTag() const;
       bool               isAttachPoint() const;
       };
 
-    void setPos(Npc& npc,std::array<float,3> pos);
-    void setDir(Npc& npc,const Tempest::Matrix4x4& mt);
-    bool attach(Npc& npc,Pos& to);
-    void implAddItem(char *name);
-    void autoDettachNpc();
+    void                invokeStateFunc(Npc &npc);
+    void                implTick(Pos &p, uint64_t dt);
+    void                implQuitInteract(Pos &p);
+    void                setPos(Npc& npc,std::array<float,3> pos);
+    void                setDir(Npc& npc,const Tempest::Matrix4x4& mt);
+    bool                attach(Npc& npc,Pos& to);
+    void                implAddItem(char *name);
+    void                autoDettachNpc();
+    void                implChState(bool next);
 
-    const Pos* findFreePos() const;
-    Pos*       findFreePos();
-    auto       worldPos(const Pos &to) const -> std::array<float,3>;
-    float      qDistanceTo(const Npc &npc, const Pos &to);
+    const Pos*          findFreePos() const;
+    Pos*                findFreePos();
+    auto                worldPos(const Pos &to) const -> std::array<float,3>;
+    float               qDistanceTo(const Npc &npc, const Pos &to);
 
-    World*             world = nullptr;
-    ZenLoad::zCVobData data;
-    Inventory          invent;
-    int                state=0;
-    bool               loopState=false;
+    World*              world = nullptr;
+    ZenLoad::zCVobData  data;
+    Inventory           invent;
+    int                 state=-1;
+    bool                reverseState=false;
+    bool                loopState=false;
 
     std::vector<Pos>         attPos;
     const ProtoMesh*         mesh = nullptr;

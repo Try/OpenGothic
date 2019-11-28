@@ -32,6 +32,7 @@ class DocumentMenu : public Tempest::Widget {
     void show(const Show& doc);
     bool isActive() const { return active; }
     void close();
+    void tick(uint64_t dt);
 
     void keyDownEvent(Tempest::KeyEvent &e);
     void keyUpEvent  (Tempest::KeyEvent &e);

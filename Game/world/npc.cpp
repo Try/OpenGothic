@@ -257,8 +257,9 @@ bool Npc::resetPositionToTA() {
     return isMainNpc || !isDead();
     }
 
+  visual.stopAnim(*this,nullptr);
   attachToPoint(nullptr);
-  setInteraction(nullptr);
+  setInteraction(nullptr,true);
   clearAiQueue();
   if(!isDead())
     clearState(true);
@@ -416,7 +417,7 @@ void Npc::onNoHealth(bool death) {
     emitSoundEffect(name,25,true);
     }
 
-  setInteraction(nullptr);
+  setInteraction(nullptr,true);
   if(death)
     setAnim(lastHitType=='A' ? Anim::DeadA        : Anim::DeadB); else
     setAnim(lastHitType=='A' ? Anim::UnconsciousA : Anim::UnconsciousB);
@@ -1315,8 +1316,8 @@ void Npc::tick(uint64_t dt) {
 
   mvAlgo.tick(dt);
 
-  if(interactive()!=nullptr)
-    setAnim(AnimationSolver::Interact);
+  // if(interactive()!=nullptr)
+  //   setAnim(AnimationSolver::Interact);
   implAiTick(dt);
   }
 
@@ -1339,7 +1340,10 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
       }
     case AI_GoToNpc:
-      setInteraction(nullptr);
+      if(!setInteraction(nullptr)) {
+        aiActions.push_front(std::move(act));
+        break;
+        }
       currentGoTo     = nullptr;
       currentGoToNpc  = act.target;
       currentFp       = nullptr;
@@ -1348,7 +1352,10 @@ void Npc::nextAiAction(uint64_t dt) {
       wayPath.clear();
       break;
     case AI_GoToNextFp: {
-      setInteraction(nullptr);
+      if(!setInteraction(nullptr)) {
+        aiActions.push_front(std::move(act));
+        break;
+        }
       auto fp = owner.findNextFreePoint(*this,act.s0.c_str());
       if(fp!=nullptr) {
         currentGoToNpc  = nullptr;
@@ -1361,7 +1368,10 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
       }
     case AI_GoToPoint: {
-      setInteraction(nullptr);
+      if(!setInteraction(nullptr)) {
+        aiActions.push_front(std::move(act));
+        break;
+        }
       if(wayPath.last()!=act.point) {
         wayPath     = owner.wayTo(*this,*act.point);
         currentGoTo = wayPath.pop();
@@ -1414,10 +1424,12 @@ void Npc::nextAiAction(uint64_t dt) {
       implAiWait(uint64_t(act.i0));
       break;
     case AI_StandUp:
-      setInteraction(nullptr);
+      if(!setInteraction(nullptr))
+        aiActions.push_front(std::move(act));
       setAnim(Anim::Idle);
       break;
     case AI_StandUpQuick:
+      // TODO: verify
       setInteraction(nullptr);
       break;
     case AI_EquipArmor:
@@ -1434,7 +1446,8 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
     case AI_UseMob: {
       if(act.i0<0){
-        setInteraction(nullptr);
+        if(!setInteraction(nullptr))
+          aiActions.push_front(std::move(act));
         break;
         }
       if(owner.script().isTalk(*this)) {
@@ -2297,22 +2310,31 @@ uint64_t Npc::percNextTime() const {
   return perceptionNextTime;
   }
 
-bool Npc::setInteraction(Interactive *id) {
+bool Npc::setInteraction(Interactive *id,bool quick) {
   if(currentInteract==id)
-    return false;
-  setAnim(Npc::Anim::InteractOut);
-  if(currentInteract)
-    currentInteract->dettach(*this);
-  currentInteract=nullptr;
+    return true;
 
-  if(id && id->attach(*this)) {
-    owner.sendPassivePerc(*this,*this,*this,PERC_ASSESSUSEMOB);
-    currentInteract=id;
-    currentInteract->emitTriggerEvent();
+  if(currentInteract!=nullptr) {
+    currentInteract->dettach(*this);
+    return false;
+    }
+
+  if(id==nullptr) {
+    if(quick)
+      quitIneraction();
+    return true;
+    }
+
+  if(id->attach(*this)) {
+    currentInteract = id;
     return true;
     }
 
   return false;
+  }
+
+void Npc::quitIneraction() {
+  currentInteract=nullptr;
   }
 
 bool Npc::isState(uint32_t stateFn) const {

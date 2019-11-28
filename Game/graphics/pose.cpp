@@ -519,6 +519,34 @@ bool Pose::setAnimItem(const AnimationSolver &solver, Npc &npc, const char *sche
   return false;
   }
 
+Matrix4x4 Pose::mkBaseTranslation(const Animation::Sequence *s) {
+  Matrix4x4 m;
+  m.identity();
+
+  if(base.size()==0)
+    return m;
+
+  size_t id=0;
+  if(skeleton->rootNodes.size())
+    id = skeleton->rootNodes[0];
+  auto& b0=base[id];
+  float dx=b0.at(3,0);
+  float dy=0;
+  float dz=b0.at(3,2);
+
+  if((flag&NoTranslation)==NoTranslation)
+    dy=b0.at(3,1);
+  else if(s==nullptr || !s->isFly())
+    dy=0;
+  else if(s!=nullptr)
+    dy=b0.at(3,1)-(s->data->translate.y);
+  else
+    dy=b0.at(3,1);
+
+  m.translate(-dx,-dy,-dz);
+  return m;
+  }
+
 void Pose::zeroSkeleton() {
   if(skeleton==nullptr)
     return;
@@ -526,20 +554,7 @@ void Pose::zeroSkeleton() {
   if(nodes.size()<tr.size())
     return;
 
-  Matrix4x4 m;
-  m.identity();
-  if(base.size()) {
-    size_t id=0;
-    if(skeleton->rootNodes.size())
-      id = skeleton->rootNodes[0];
-    auto& b0=base[id];
-    float dx=b0.at(3,0);//-s.translate.x;
-    float dy=b0.at(3,1);//-s.translate.y;
-    float dz=b0.at(3,2);//-s.translate.z;
-    //dy=0;
-    m.translate(-dx,-dy/2,-dz);
-    }
-
+  Matrix4x4 m = mkBaseTranslation(nullptr);
   for(size_t i=0;i<tr.size();++i){
     tr[i] = m;
     tr[i].mul(nodes[i]);
@@ -549,24 +564,7 @@ void Pose::zeroSkeleton() {
 void Pose::mkSkeleton(const Animation::Sequence &s) {
   if(skeleton==nullptr)
     return;
-  Matrix4x4 m;
-  m.identity();
-  if(base.size()) {
-    size_t id=0;
-    if(skeleton->rootNodes.size())
-      id = skeleton->rootNodes[0];
-    auto& b0=base[id];
-    float dx=b0.at(3,0);
-    float dy=b0.at(3,1)-s.data->translate.y;
-    float dz=b0.at(3,2);
-
-    if((flag&NoTranslation)==NoTranslation)
-      dy=b0.at(3,1);
-    else if(!s.isFly())
-      dy=0;
-    m.translate(-dx,-dy,-dz);
-    }
-
+  Matrix4x4 m = mkBaseTranslation(&s);
   if(skeleton->ordered)
     mkSkeleton(m); else
     mkSkeleton(m,size_t(-1));

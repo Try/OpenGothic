@@ -43,7 +43,7 @@ class AnimationSolver final {
       FallDeep,
       SlideA,
       SlideB,
-      Interact,
+      InteractIn,
       InteractOut,
 
       Atack,

@@ -215,15 +215,11 @@ bool MdlVisual::startAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, Wal
   // for those use MdlVisual::setRotation
   assert(a!=AnimationSolver::Anim::RotL && a!=AnimationSolver::Anim::RotR);
 
-  if(a==AnimationSolver::Interact || a==AnimationSolver::InteractOut) {
+  if(a==AnimationSolver::InteractIn || a==AnimationSolver::InteractOut) {
     auto inter = npc.interactive();
     const Animation::Sequence *sq = solver.solveAnim(inter,a,*skInst);
-    if(sq!=nullptr && inter!=nullptr){
+    if(sq!=nullptr){
       if(skInst->startAnim(solver,sq,BS_MOBINTERACT,false,npc.world().tickCount())) {
-        inter->setAnim(a==AnimationSolver::InteractOut ? Interactive::Out : Interactive::In);
-        if(a==AnimationSolver::Anim::Interact)
-          inter->nextState(); else
-          inter->prevState();
         return true;
         }
       }
@@ -282,7 +278,7 @@ bool MdlVisual::startAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, Wal
     case AnimationSolver::Anim::SlideB:
       bs = BS_NONE;
       break;
-    case AnimationSolver::Anim::Interact:
+    case AnimationSolver::Anim::InteractIn:
     case AnimationSolver::Anim::InteractOut:
       bs = BS_MOBINTERACT;
       break;

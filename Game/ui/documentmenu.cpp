@@ -19,9 +19,8 @@ void DocumentMenu::close() {
     return;
   active=false;
 
-  if(auto pl = gothic.player()) {
+  if(auto pl = gothic.player())
     pl->setInteraction(nullptr);
-    }
   }
 
 void DocumentMenu::keyDownEvent(KeyEvent &e) {
