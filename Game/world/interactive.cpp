@@ -139,8 +139,9 @@ void Interactive::implQuitInteract(Interactive::Pos &p) {
   Npc* npc = p.user;
   if(npc==nullptr || !npc->isPlayer() || npc->world().aiIsDlgFinished()) {
     if(npc!=nullptr) {
+      if(!npc->setAnim(Npc::Anim::Idle))
+        return;
       npc->quitIneraction();
-      npc->setAnim(Npc::Anim::Idle);
       }
     p.user      = nullptr;
     p.userState = -1;
@@ -258,7 +259,7 @@ const char *Interactive::schemeName() const {
     tag = "BAUMSAEGE";
   else if(data.oCMOB.focusName=="MOBNAME_PAN")
     tag = "PAN";
-  else if(data.oCMOB.focusName=="MOBNAME_DOOR")
+  else if(data.oCMOB.focusName=="MOBNAME_DOOR" || data.oCMOB.focusName=="MOBNAME_Door")
     tag = "DOOR";
   else if(data.oCMOB.focusName=="MOBNAME_WINEMAKER")
     tag = "HERB";
@@ -512,11 +513,6 @@ bool Interactive::setAnim(Interactive::Anim t) {
   }
 
 const Animation::Sequence* Interactive::anim(const AnimationSolver &solver, Anim t) {
-  int state = this->state;
-  for(auto& i:attPos)
-    if(i.user!=nullptr)
-      state = i.userState;
-
   const char* tag      = schemeName();
   int         st[]     = {state,state+(reverseState ? -t : t)};
   char        ss[2][8] = {};
