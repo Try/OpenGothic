@@ -94,7 +94,7 @@ class MainWindow : public Tempest::Window {
     Tempest::Timer        timer;
 
     struct FrameLocal {
-      explicit FrameLocal(Tempest::Device& dev):imageAvailable(dev),renderDone(dev),gpuLock(dev){}
+      explicit FrameLocal(Tempest::Device& dev):imageAvailable(dev.semaphore()),renderDone(dev.semaphore()),gpuLock(dev.fence()){}
       Tempest::Semaphore imageAvailable;
       Tempest::Semaphore renderDone;
       Tempest::Fence     gpuLock;

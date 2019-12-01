@@ -86,18 +86,18 @@ void WorldView::setupSunDir(float pulse,float ang) {
   sun.setDir(std::cos(a),std::min(0.9f,-1.0f*pulse),std::sin(a));
   }
 
-void WorldView::drawShadow(const FrameBuffer &fbo, const RenderPass &p, Tempest::Encoder<PrimaryCommandBuffer> &cmd, uint8_t layer) {
+void WorldView::drawShadow(Encoder<PrimaryCommandBuffer> &cmd, uint8_t layer) {
   uint32_t fId = storage.device.frameId();
   if(!frame[fId].actual)
     return;
-  cmd.exec(fbo,p,frame[fId].cmdShadow[layer]);
+  cmd.exec(frame[fId].cmdShadow[layer]);
   }
 
-void WorldView::drawMain(const FrameBuffer &fbo, const RenderPass &p, Encoder<PrimaryCommandBuffer> &cmd) {
+void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd) {
   uint32_t fId = storage.device.frameId();
   if(!frame[fId].actual)
     return;
-  cmd.exec(fbo,p,frame[fId].cmdMain);
+  cmd.exec(frame[fId].cmdMain);
   }
 
 MeshObjects::Mesh WorldView::getView(const std::string &visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {

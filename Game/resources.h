@@ -163,19 +163,19 @@ class Resources {
 namespace Tempest {
 
 template<>
-inline std::initializer_list<Decl::ComponentType> vertexBufferDecl<Resources::Vertex>() {
+inline VertexBufferDecl vertexBufferDecl<Resources::Vertex>() {
   return {Decl::float3,Decl::float3,Decl::float2,Decl::color};
   }
 
 template<>
-inline std::initializer_list<Decl::ComponentType> vertexBufferDecl<Resources::VertexA>() {
+inline VertexBufferDecl vertexBufferDecl<Resources::VertexA>() {
   return {Decl::float3,Decl::float2,Decl::color,
           Decl::float3,Decl::float3,Decl::float3,Decl::float3,
           Decl::color,Decl::float4};
   }
 
 template<>
-inline std::initializer_list<Decl::ComponentType> vertexBufferDecl<Resources::VertexFsq>() {
+inline VertexBufferDecl vertexBufferDecl<Resources::VertexFsq>() {
   return {Decl::float2};
   }
 

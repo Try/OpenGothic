@@ -38,12 +38,11 @@ class Renderer final {
     Tempest::Matrix4x4                view;
     Tempest::Matrix4x4                shadow[2];
 
-    Tempest::Texture2d                zbuffer;
+    Tempest::Texture2d                zbuffer, zbufferItem;
     Tempest::Texture2d                shadowMap[2], shadowZ[2], shadowMapFinal;
     Tempest::TextureFormat            shadowFormat =Tempest::TextureFormat::RGBA8;
     Tempest::TextureFormat            zBufferFormat=Tempest::TextureFormat::Depth16;
-    std::vector<Tempest::FrameBuffer> fbo3d;
-    std::vector<Tempest::FrameBuffer> fboUi;
+    std::vector<Tempest::FrameBuffer> fbo3d, fboUi, fboItem;
     Tempest::FrameBuffer              fboShadow[2], fboCompose;
 
     Tempest::RenderPass               mainPass, shadowPass, composePass;
@@ -55,5 +54,7 @@ class Renderer final {
 
     void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Tempest::FrameBuffer& fbo, const Gothic& gothic);
     void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Tempest::FrameBuffer& fbo, InventoryMenu& inv);
+    void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::VectorImage& surface);
+
     void composeShadow(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Tempest::FrameBuffer &fbo);
   };
