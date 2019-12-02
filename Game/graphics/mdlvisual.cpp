@@ -41,11 +41,12 @@ void MdlVisual::setPos(float x, float y, float z) {
 void MdlVisual::setPos(const Tempest::Matrix4x4 &m) {
   // TODO: deferred setObjMatrix
   pos = m;
-  head .setObjMatrix(pos);
-  sword.setObjMatrix(pos);
-  bow  .setObjMatrix(pos);
-  pfx  .setObjMatrix(pos);
-  view .setObjMatrix(pos);
+  head   .setObjMatrix(pos);
+  sword  .setObjMatrix(pos);
+  bow    .setObjMatrix(pos);
+  item[0].setObjMatrix(pos);
+  pfx    .setObjMatrix(pos);
+  view   .setObjMatrix(pos);
   }
 
 // mdl_setvisual
@@ -100,6 +101,12 @@ void MdlVisual::setRangeWeapon(MeshObjects::Mesh &&b) {
 
 void MdlVisual::setMagicWeapon(PfxObjects::Emitter &&spell) {
   pfx = std::move(spell);
+  setPos(pos);
+  }
+
+void MdlVisual::setItem(MeshObjects::Mesh &&itm, const char* bone) {
+  item[0] = std::move(itm);
+  item[0].setAttachPoint(skeleton,bone);
   setPos(pos);
   }
 
@@ -169,16 +176,17 @@ void MdlVisual::updateAnimation(Npc& npc) {
   uint64_t tickCount = npc.world().tickCount();
 
   if(npc.world().isInListenerRange(npc.position()))
-    pose.emitSfx(npc,tickCount);
+    pose.processSfx(npc,tickCount);
 
   solver.update(tickCount);
   pose.update(solver,tickCount);
 
-  head .setSkeleton(pose,pos);
-  sword.setSkeleton(pose,pos);
-  bow  .setSkeleton(pose,pos);
-  pfx  .setSkeleton(pose,pos);
-  view .setSkeleton(pose,pos);
+  head   .setSkeleton(pose,pos);
+  sword  .setSkeleton(pose,pos);
+  bow    .setSkeleton(pose,pos);
+  item[0].setSkeleton(pose,pos);
+  pfx    .setSkeleton(pose,pos);
+  view   .setSkeleton(pose,pos);
   }
 
 void MdlVisual::stopAnim(Npc& npc,const char* ani) {

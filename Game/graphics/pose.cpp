@@ -102,8 +102,9 @@ void Pose::save(Serialize &fout) {
   uint8_t sz=uint8_t(lay.size());
   fout.write(sz);
   for(auto& i:lay) {
-    fout.write(i.seq->name,i.frame,i.sAnim,i.bs);
+    fout.write(i.seq->name,i.sAnim,i.bs);
     }
+  fout.write(lastUpdate);
   fout.write(rotation ? rotation->name : "");
   fout.write(itemUse  ? itemUse->name  : "");
   }
@@ -115,9 +116,10 @@ void Pose::load(Serialize &fin,const AnimationSolver& solver) {
   fin.read(sz);
   lay.resize(sz);
   for(auto& i:lay) {
-    fin.read(name,i.frame,i.sAnim,i.bs);
+    fin.read(name,i.sAnim,i.bs);
     i.seq = solver.solveFrm(name.c_str());
     }
+  fin.read(lastUpdate);
   removeIf(lay,[](const Layer& l){
     return l.seq==nullptr;
     });
@@ -196,10 +198,9 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
         tr = solver.solveFrm(tansition);
         }
       onRemoveLayer(i);
-      i.seq   = tr ? tr : sq;
-      i.sAnim = tickCount;
-      i.frame = uint64_t(-1);
-      i.bs    = bs;
+      i.seq     = tr ? tr : sq;
+      i.sAnim   = tickCount;
+      i.bs      = bs;
       return true;
       }
   addLayer(sq,bs,tickCount);
@@ -246,10 +247,9 @@ void Pose::update(AnimationSolver& solver, uint64_t tickCount) {
       onRemoveLayer(lay[i]);
 
       if(next!=nullptr) {
-        doSort       = lay[i].seq->layer!=next->layer;
-        lay[i].seq   = next;
-        lay[i].sAnim = tickCount;
-        lay[i].frame = uint64_t(-1);
+        doSort         = lay[i].seq->layer!=next->layer;
+        lay[i].seq     = next;
+        lay[i].sAnim   = tickCount;
         ret++;
         }
       } else {
@@ -265,28 +265,31 @@ void Pose::update(AnimationSolver& solver, uint64_t tickCount) {
       });
     }
 
-  bool change=false;
-  for(auto& i:lay)
-    change |= update(*i.seq,tickCount-i.sAnim,i.frame);
-  if(!change)
+  if(lastUpdate!=tickCount) {
+    for(auto& i:lay)
+      updateFrame(*i.seq,lastUpdate,i.sAnim,tickCount);
+    lastUpdate = tickCount;
+    mkSkeleton(*lay[0].seq);
+    }
+  }
+
+void Pose::updateFrame(const Animation::Sequence &s,
+                       uint64_t barrier, uint64_t sTime, uint64_t now) {
+  auto&        d         = *s.data;
+  const size_t numFrames = d.numFrames;
+  const size_t idSize    = d.nodeIndex.size();
+  if(numFrames==0 || idSize==0 || d.samples.size()%idSize!=0)
     return;
-  mkSkeleton(*lay[0].seq);
-  }
 
-bool Pose::update(const Animation::Sequence &s, uint64_t dt, uint64_t& fr) {
-  uint64_t nfr = uint64_t(s.data->fpsRate*dt);
-  if(nfr==fr)
-    return false;
-  fr = nfr;
-  updateFrame(s,fr);
-  return true;
-  }
+  (void)barrier;
+  now = now-sTime;
 
-void Pose::updateFrame(const Animation::Sequence &s, uint64_t fr) {
-  float    a      = (fr%1000)/1000.f;
-  uint64_t frameA = (fr/1000  );
-  uint64_t frameB = (fr/1000+1);
-  auto& d = *s.data;
+  float    fpsRate = d.fpsRate;
+  uint64_t frame   = uint64_t(now*fpsRate);
+  uint64_t frameA  = frame/1000;
+  uint64_t frameB  = frame/1000+1; //next
+
+  float    a       = (frame%1000)/1000.f;
 
   if(s.animCls==Animation::Loop){
     frameA%=d.numFrames;
@@ -300,10 +303,6 @@ void Pose::updateFrame(const Animation::Sequence &s, uint64_t fr) {
     frameA = d.numFrames-1-frameA;
     frameB = d.numFrames-1-frameB;
     }
-
-  const size_t idSize=d.nodeIndex.size();
-  if(idSize==0 || d.samples.size()%idSize!=0)
-    return;
 
   auto* sampleA = &d.samples[size_t(frameA*idSize)];
   auto* sampleB = &d.samples[size_t(frameB*idSize)];
@@ -343,9 +342,9 @@ void Pose::onRemoveLayer(Pose::Layer &l) {
     itemUse=nullptr;
   }
 
-void Pose::emitSfx(Npc &npc, uint64_t tickCount) {
+void Pose::processSfx(Npc &npc, uint64_t tickCount) {
   for(auto& i:lay)
-    i.seq->emitSfx(npc,tickCount-i.sAnim,i.frame);
+    i.seq->processSfx(lastUpdate,i.sAnim,tickCount,npc);
   }
 
 void Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev) const {

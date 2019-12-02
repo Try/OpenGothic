@@ -299,108 +299,48 @@ float Animation::Sequence::totalTime() const {
   return data->numFrames*1000/data->fpsRate;
   }
 
-void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const {
+bool Animation::Sequence::extractFrames(uint64_t& frameA,uint64_t& frameB,bool& invert,uint64_t barrier, uint64_t sTime, uint64_t now) const {
   auto& d         = *data;
   auto  numFrames = d.numFrames;
   if(numFrames==0)
-    return;
+    return false;
 
-  float    fpsRate = data->fpsRate;
-  uint64_t frameA  = uint64_t((barrier-sTime)*fpsRate)/1000;
-  uint64_t frameB  = uint64_t((now    -sTime)*fpsRate)/1000;
+  float fpsRate = d.fpsRate;
+  frameA  = uint64_t((barrier-sTime)*fpsRate)/1000;
+  frameB  = uint64_t((now    -sTime)*fpsRate)/1000;
 
   if(frameA==frameB)
-    return;
+    return false;
 
   if(animCls==Animation::Loop){
     frameA%=numFrames;
     frameB%=numFrames;
     } else {
-    frameA = std::min<uint64_t>(frameA,numFrames-1);
-    frameB = std::min<uint64_t>(frameB,numFrames-1);
+    frameA = std::min<uint64_t>(frameA,numFrames);
+    frameB = std::min<uint64_t>(frameB,numFrames);
+    if(frameA<frameB && frameB==numFrames)
+      frameB = d.lastFrame; //HACK
     }
 
   if(reverse) {
-    frameA = numFrames-1-frameA;
-    frameB = numFrames-1-frameB;
+    frameA = numFrames-frameA;
+    frameB = numFrames-frameB;
     std::swap(frameA,frameB);
     }
 
-  const bool invert = (frameB<frameA);
+  invert = (frameB<frameA);
   if(invert)
     std::swap(frameA,frameB);
-
-  for(auto& e:d.events) {
-    if(e.m_Def==ZenLoad::DEF_OPT_FRAME) {
-      for(auto i:e.m_Int){
-        uint64_t fr = uint64_t(i-int(d.firstFrame));
-        if((frameA<=fr && fr<frameB) ^ invert)
-          processEvent(e,ev);
-        }
-      } else {
-      uint64_t fr = uint64_t(e.m_Frame-int(d.firstFrame));
-      if((frameA<=fr && fr<frameB) ^ invert)
-        processEvent(e,ev);
-      }
-    }
+  return true;
   }
 
-void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation::EvCount &ev) {
-  switch(e.m_Def) {
-    case ZenLoad::DEF_NULL:
-    case ZenLoad::DEF_LAST:
-      break;
-    case ZenLoad::DEF_OPT_FRAME:
-      ev.def_opt_frame++;
-      break;
-    case ZenLoad::DEF_FIGHTMODE:
-      ev.weaponCh = e.m_Fmode;
-      break;
-    case ZenLoad::DEF_DRAWSOUND:
-      ev.def_draw++;
-      break;
-    case ZenLoad::DEF_UNDRAWSOUND:
-      ev.def_undraw++;
-      break;
-    case ZenLoad::DEF_PAR_FRAME:
-      break;
-    case ZenLoad::DEF_WINDOW:
-      break;
-    default:
-      break; //TODO
-    }
-  }
-
-void Animation::Sequence::emitSfx(Npc &npc, uint64_t now, uint64_t fr) const {
-  auto& d         = *data;
-  auto  numFrames = d.numFrames;
-  if(numFrames==0 || (d.sfx.size()==0 && d.gfx.size()==0))
+void Animation::Sequence::processSfx(uint64_t barrier, uint64_t sTime, uint64_t now, Npc &npc) const {
+  uint64_t frameA=0,frameB=0;
+  bool     invert=false;
+  if(!extractFrames(frameA,frameB,invert,barrier,sTime,now))
     return;
 
-  uint64_t frameA = fr==uint64_t(-1) ? 0 : (fr/1000+1);
-  uint64_t frameB = (uint64_t(d.fpsRate*now)/1000+1);
-
-  if(frameA==frameB)
-    return;
-
-  if(animCls==Animation::Loop){
-    frameA%=numFrames;
-    frameB%=numFrames;
-    } else {
-    frameA = std::min<uint64_t>(frameA,numFrames-1);
-    frameB = std::min<uint64_t>(frameB,numFrames-1);
-    }
-
-  if(reverse) {
-    frameA = numFrames-1-frameA;
-    frameB = numFrames-1-frameB;
-    std::swap(frameA,frameB);
-    }
-
-  const bool invert = (frameB<frameA);
-  if(invert)
-    std::swap(frameA,frameB);
-
+  auto& d = *data;
   for(auto& i:d.sfx){
     uint64_t fr = uint64_t(i.m_Frame-int(d.firstFrame));
     if((frameA<=fr && fr<frameB) ^ invert)
@@ -412,6 +352,65 @@ void Animation::Sequence::emitSfx(Npc &npc, uint64_t now, uint64_t fr) const {
       if((frameA<=fr && fr<frameB) ^ invert)
         npc.emitSoundGround(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
       }
+    }
+  }
+
+void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const {
+  uint64_t frameA=0,frameB=0;
+  bool     invert=false;
+  if(!extractFrames(frameA,frameB,invert,barrier,sTime,now))
+    return;
+
+  auto& d       = *data;
+  float fpsRate = d.fpsRate;
+
+  for(auto& e:d.events) {
+    if(e.m_Def==ZenLoad::DEF_OPT_FRAME) {
+      for(auto i:e.m_Int){
+        uint64_t fr = uint64_t(i-int(d.firstFrame));
+        if((frameA<=fr && fr<frameB) ^ invert)
+          processEvent(e,ev,uint64_t((fr*1000)/fpsRate)+sTime);
+        }
+      } else {
+      uint64_t fr = uint64_t(e.m_Frame-int(d.firstFrame));
+      if((frameA<=fr && fr<frameB) ^ invert)
+        processEvent(e,ev,uint64_t((fr*1000)/fpsRate)+sTime);
+      }
+    }
+  }
+
+void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation::EvCount &ev, uint64_t time) {
+  switch(e.m_Def) {
+    case ZenLoad::DEF_NULL:
+    case ZenLoad::DEF_LAST:
+      break;
+    case ZenLoad::DEF_OPT_FRAME:
+      ev.def_opt_frame++;
+      break;
+    case ZenLoad::DEF_FIGHTMODE:
+      ev.weaponCh = e.m_Fmode;
+      break;
+    case ZenLoad::DEF_DRAWSOUND:
+    case ZenLoad::DEF_UNDRAWSOUND:
+      break;
+    case ZenLoad::DEF_PAR_FRAME:
+      break;
+    case ZenLoad::DEF_WINDOW:
+      break;
+    case ZenLoad::DEF_CREATE_ITEM:
+    case ZenLoad::DEF_INSERT_ITEM:
+    case ZenLoad::DEF_REMOVE_ITEM:
+    case ZenLoad::DEF_DESTROY_ITEM:
+    case ZenLoad::DEF_PLACE_ITEM: {
+      EvTimed ex;
+      ex.def  = e.m_Def;
+      ex.hint = e.m_Slot.c_str();
+      ex.time = time;
+      ev.timed.push_back(ex);
+      break;
+      }
+    default:
+      break; //TODO
     }
   }
 

@@ -103,6 +103,10 @@ class Inventory final {
     auto   weaponState() const -> WeaponState;
     uint8_t currentSpellSlot() const;
 
+    void   stashItem(Npc &owner);
+    void   unstash(Npc &owner, bool remove);
+    Item*  stashedItem() { return stashed.get(); }
+
   private:
     bool   setSlot     (Item*& slot, Item *next, Npc &owner, bool force);
     bool   equipNumSlot(Item *next, Npc &owner, bool force);
@@ -141,4 +145,7 @@ class Inventory final {
     Item*                              mele  =nullptr;
     Item*                              range =nullptr;
     Item*                              numslot[8]={};
+
+    std::unique_ptr<Item>              stashed;
+    size_t                             curItem=0;
   };

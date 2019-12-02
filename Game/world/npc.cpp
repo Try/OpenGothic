@@ -597,6 +597,37 @@ void Npc::updateWeaponSkeleton() {
   visual.updateWeaponSkeleton(invent.currentMeleWeapon(),invent.currentRangeWeapon());
   }
 
+void Npc::tickTimedEvt(Animation::EvCount& ev) {
+  std::sort(ev.timed.begin(),ev.timed.end(),[](const Animation::EvTimed& a,const Animation::EvTimed& b){
+    return a.time<b.time;
+    });
+
+  for(auto& i:ev.timed) {
+    switch(i.def) {
+      case ZenLoad::DEF_INSERT_ITEM: {
+        invent.stashItem(*this);
+        auto* it = invent.stashedItem();
+        if(it!=nullptr) {
+          auto& itData = *it->handle();
+          auto  vitm   = owner.getView(itData.visual,itData.material,0,itData.material);
+          visual.setItem(std::move(vitm),i.hint);
+          } else {
+          visual.setItem(MeshObjects::Mesh(),nullptr);
+          }
+        break;
+        }
+      case ZenLoad::DEF_REMOVE_ITEM:
+      case ZenLoad::DEF_DESTROY_ITEM: {
+        invent.unstash(*this,i.def!=ZenLoad::DEF_REMOVE_ITEM);
+        visual.setItem(MeshObjects::Mesh(),nullptr);
+        break;
+        }
+      default:
+        break;
+      }
+    }
+  }
+
 void Npc::setPhysic(DynamicWorld::Item &&item) {
   physic = std::move(item);
   physic.setUserPointer(this);
@@ -1288,6 +1319,8 @@ void Npc::tick(uint64_t dt) {
     commitDamage();
   if(visual.setFightMode(ev.weaponCh))
     updateWeaponSkeleton();
+  if(!ev.timed.empty())
+    tickTimedEvt(ev);
 
   if(!checkHealth(false,true)){
     mvAlgo.aiGoTo(nullptr);

@@ -23,6 +23,10 @@ void Inventory::load(Npc& owner, Serialize &s) {
   s.read(sz);
   for(size_t i=0;i<sz;++i)
     items.emplace_back(std::make_unique<Item>(owner.world(),s));
+  bool hasStash=false;
+  s.read(curItem,hasStash);
+  if(hasStash)
+    stashed = std::make_unique<Item>(owner.world(),s);
 
   armour = readPtr(s);
   belt   = readPtr(s);
@@ -53,6 +57,10 @@ void Inventory::save(Serialize &fout) {
   fout.write(sz);
   for(auto& i:items)
     i->save(fout);
+  fout.write(curItem,bool(stashed!=nullptr));
+  if(stashed!=nullptr)
+    stashed->save(fout);
+
   fout.write(indexOf(armour));
   fout.write(indexOf(belt)  );
   fout.write(indexOf(amulet));
@@ -211,7 +219,6 @@ void Inventory::delItem(size_t itemSymbol, uint32_t count, Npc& owner) {
   using namespace Daedalus::GEngineClasses;
   if(count<=0)
     return;
-  sorted=false;
   Item* it=findByClass(itemSymbol);
   return delItem(it,count,owner);
   }
@@ -530,6 +537,24 @@ uint8_t Inventory::currentSpellSlot() const {
   return Item::NSLOT;
   }
 
+void Inventory::stashItem(Npc& owner) {
+  unstash(owner,false);
+  Item* it=findByClass(curItem);
+  curItem=0;
+  if(it==nullptr)
+    return;
+  stashed.reset(new Item(owner.world(),it->clsId()));
+  delItem(it,1,owner);
+  }
+
+void Inventory::unstash(Npc&,bool remove) {
+  if(stashed!=nullptr){
+    if(remove)
+      stashed.reset(); else
+      addItem(std::move(stashed));
+    }
+  }
+
 bool Inventory::equipNumSlot(Item *next, Npc &owner,bool force) {
   for(auto& i:numslot){
     if(i==nullptr){
@@ -584,31 +609,13 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
     return false;
     }
 
+  curItem = it->handle()->instanceSymbol;
   if(!owner.setAnimItem(it->handle()->scemeName.c_str()))
     return false;
 
   if(itData.on_state[0]!=0){
     auto& vm = owner.world().script();
     vm.invokeItem(&owner,itData.on_state[0]);
-    }
-
-  // TODO: remove after implementation of DEF_REMOVE_ITEM & DEF_DESTROY_ITEM
-  if(it->handle()->scemeName=="FOOD" ||
-     it->handle()->scemeName=="FOODHUGE" ||
-     it->handle()->scemeName=="POTION" ||
-     it->handle()->scemeName=="POTIONFAST" ||
-     it->handle()->scemeName=="RICE" ||
-     it->handle()->scemeName=="MEAT" ||
-     it->handle()->scemeName=="JOINT" ||
-     it->handle()->scemeName=="MAPSEALED" ||
-     // it->handle()->scemeName=="MAP"||
-     // it->handle()->scemeName=="BROOM" ||
-     // it->handle()->scemeName=="LUTE" ||
-     // it->handle()->scemeName=="FIRESPIT"
-     false){
-    // eat item
-    delItem(cls,1,owner);
-    return true;
     }
 
   return true;

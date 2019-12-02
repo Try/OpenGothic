@@ -35,7 +35,7 @@ class Pose final {
     void               update(AnimationSolver &solver, uint64_t tickCount);
 
     ZMath::float3      animMoveSpeed(uint64_t tickCount, uint64_t dt) const;
-    void               emitSfx(Npc &npc, uint64_t tickCount);
+    void               processSfx(Npc &npc, uint64_t tickCount);
     void               processEvents(uint64_t& barrier, uint64_t now, Animation::EvCount &ev) const;
     bool               isParWindow(uint64_t tickCount) const;
     bool               isAtackFinished(uint64_t tickCount) const;
@@ -60,10 +60,9 @@ class Pose final {
 
   private:
     struct Layer final {
-      const Animation::Sequence* seq   = nullptr;
-      uint64_t                   frame = uint64_t(-1);
-      uint64_t                   sAnim = 0;
-      BodyState                  bs    = BS_NONE;
+      const Animation::Sequence* seq     = nullptr;
+      uint64_t                   sAnim   = 0;
+      BodyState                  bs      = BS_NONE;
       };
 
     auto mkBaseTranslation(const Animation::Sequence *s) -> Tempest::Matrix4x4;
@@ -72,8 +71,7 @@ class Pose final {
     void mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent);
     void zeroSkeleton();
 
-    bool update(const Animation::Sequence &s, uint64_t dt, uint64_t &fr);
-    void updateFrame(const Animation::Sequence &s,uint64_t fr);
+    void updateFrame(const Animation::Sequence &s, uint64_t barrier, uint64_t sTime, uint64_t now);
 
     auto getNext(AnimationSolver& solver, const Animation::Sequence* sq) -> const Animation::Sequence*;
 
@@ -91,4 +89,5 @@ class Pose final {
     const Animation::Sequence*      itemUse=nullptr;
     float                           trY=0;
     Flags                           flag=NoFlags;
+    uint64_t                        lastUpdate=0;
   };

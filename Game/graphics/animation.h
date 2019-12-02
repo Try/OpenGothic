@@ -22,11 +22,16 @@ class Animation final {
       Loop
       };
 
+    struct EvTimed final {
+      ZenLoad::EModelScriptAniDef def  = ZenLoad::DEF_NULL;
+      const char*                 hint = nullptr;
+      uint64_t                    time = 0;
+      };
+
     struct EvCount final {
       uint8_t              def_opt_frame=0;
-      uint8_t              def_draw=0;
-      uint8_t              def_undraw=0;
       ZenLoad::EFightMode  weaponCh=ZenLoad::FM_LAST;
+      std::vector<EvTimed> timed;
       };
 
     struct AnimData final {
@@ -70,7 +75,7 @@ class Animation final {
       float                                  totalTime() const;
 
       void                                   processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const;
-      void                                   emitSfx(Npc &npc, uint64_t now, uint64_t fr) const;
+      void                                   processSfx   (uint64_t barrier, uint64_t sTime, uint64_t now, Npc &npc) const;
 
       ZMath::float3                          translation(uint64_t dt) const;
       ZMath::float3                          speed(uint64_t at, uint64_t dt) const;
@@ -88,7 +93,8 @@ class Animation final {
 
       private:
         void setupMoveTr();
-        static void processEvent(const ZenLoad::zCModelEvent& e, EvCount& ev);
+        static void                          processEvent(const ZenLoad::zCModelEvent& e, EvCount& ev, uint64_t time);
+        bool                                 extractFrames(uint64_t &frameA, uint64_t &frameB, bool &invert, uint64_t barrier, uint64_t sTime, uint64_t now) const;
       };
 
     Animation(ZenLoad::MdsParser &p, const std::string &name, bool ignoreErrChunks);

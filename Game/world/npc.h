@@ -510,6 +510,7 @@ class Npc final {
       };
 
     void                           updateWeaponSkeleton();
+    void                           tickTimedEvt(Animation::EvCount &ev);
     void                           updatePos();
     bool                           setViewPosition(const std::array<float,3> &pos);
 
