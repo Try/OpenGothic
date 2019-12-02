@@ -10,6 +10,7 @@ class Item;
 class World;
 class GameScript;
 class Npc;
+class Interactive;
 class Serialize;
 
 class Inventory final {
@@ -18,8 +19,9 @@ class Inventory final {
     Inventory(Inventory&&)=default;
     ~Inventory();
 
-    void load(Npc &owner, Serialize& s);
-    void save(Serialize& s);
+    void load(Npc& owner, Serialize& s);
+    void load(Interactive& owner, World &w, Serialize& s);
+    void save(Serialize& s) const;
 
     enum Flags : uint32_t {
       ITM_CAT_NONE   = 1 << 0,
@@ -108,6 +110,8 @@ class Inventory final {
     Item*  stashedItem() { return stashed.get(); }
 
   private:
+    void   implLoad(Npc *owner, World &world, Serialize& s);
+
     bool   setSlot     (Item*& slot, Item *next, Npc &owner, bool force);
     bool   equipNumSlot(Item *next, Npc &owner, bool force);
     void   applyArmour (Item& it, Npc &owner, int32_t sgn);

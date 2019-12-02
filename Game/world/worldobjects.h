@@ -74,7 +74,7 @@ class WorldObjects final {
 
     Bullet&        shootBullet(size_t itmId,float x,float y,float z,float dx,float dy,float dz);
 
-    void           addInteractive(const ZenLoad::zCVobData &vob);
+    void           addInteractive(ZenLoad::zCVobData &&vob);
 
     Interactive*   validateInteractive(Interactive *def);
     Npc*           validateNpc        (Npc         *def);

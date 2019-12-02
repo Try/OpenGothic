@@ -19,8 +19,11 @@ class Interactive final {
       Out   =-1
       };
 
-    Interactive(World& owner,const ZenLoad::zCVobData &vob);
+    Interactive(World& owner, ZenLoad::zCVobData &&vob);
+    Interactive(World &world, Serialize &fin);
     Interactive(Interactive&&)=default;
+
+    void                save(Serialize& fout) const;
 
     void                updateAnimation();
     void                tick(uint64_t dt);
@@ -68,6 +71,7 @@ class Interactive final {
       bool               isAttachPoint() const;
       };
 
+    void                setVisual(const std::string& visual);
     void                invokeStateFunc(Npc &npc);
     void                implTick(Pos &p, uint64_t dt);
     void                implQuitInteract(Pos &p);
@@ -83,20 +87,29 @@ class Interactive final {
     auto                worldPos(const Pos &to) const -> std::array<float,3>;
     float               qDistanceTo(const Npc &npc, const Pos &to);
 
-    World*              world = nullptr;
-    ZenLoad::zCVobData  data;
-    Inventory           invent;
-    int                 state=-1;
-    bool                reverseState=false;
-    bool                loopState=false;
+    World*                       world = nullptr;
 
-    std::vector<Pos>         attPos;
-    const ProtoMesh*         mesh = nullptr;
-    DynamicWorld::StaticItem physic;
+    ZenLoad::zCVobData::EVobType vobType=ZenLoad::zCVobData::EVobType::VT_oCMOB;
+    std::string                  vobName;
+    std::string                  focName;
+    std::string                  mdlVisual;
+    ZMath::float3                bbox[2]={};
+    std::string                  owner;
+    int                          stateNum=0;
+    std::string                  triggerTarget;
+    std::string                  onStateFunc;
+    Tempest::Matrix4x4           pos;
+    Inventory                    invent;
+    int                          state=-1;
+    bool                         reverseState=false;
+    bool                         loopState=false;
 
-    Tempest::Matrix4x4       pos;
-    const Skeleton*          skeleton=nullptr;
-    MeshObjects::Mesh        view;
-    AnimationSolver          solver;
-    std::unique_ptr<Pose>    skInst;
+    std::vector<Pos>             attPos;
+    const ProtoMesh*             mesh = nullptr;
+    DynamicWorld::StaticItem     physic;
+
+    const Skeleton*              skeleton=nullptr;
+    MeshObjects::Mesh            view;
+    AnimationSolver              solver;
+    std::unique_ptr<Pose>        skInst;
   };

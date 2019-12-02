@@ -43,6 +43,12 @@ void WorldObjects::load(Serialize &fin) {
     it->setView(owner.getStaticView(h.visual,h.material));
     itemArr.emplace_back(std::move(it));
     }
+
+  fin.read(sz);
+  interactiveObj.clear();
+  for(size_t i=0;i<sz;++i){
+    interactiveObj.emplace_back(owner,fin);
+    }
   }
 
 void WorldObjects::save(Serialize &fout) {
@@ -55,6 +61,11 @@ void WorldObjects::save(Serialize &fout) {
   fout.write(sz);
   for(auto& i:itemArr)
     i->save(fout);
+
+  sz = interactiveObj.size();
+  fout.write(sz);
+  for(auto& i:interactiveObj)
+    i.save(fout);
   }
 
 void WorldObjects::tick(uint64_t dt) {
@@ -388,8 +399,8 @@ Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
   return it;
   }
 
-void WorldObjects::addInteractive(const ZenLoad::zCVobData &vob) {
-  interactiveObj.emplace_back(owner,vob);
+void WorldObjects::addInteractive(ZenLoad::zCVobData&& vob) {
+  interactiveObj.emplace_back(owner,std::move(vob));
   }
 
 Interactive* WorldObjects::validateInteractive(Interactive *def) {

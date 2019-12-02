@@ -713,9 +713,12 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
     // Graves/Pointers
     // see focusName
     // Tempest::Log::d("unexpected vob class ",vob.objectClass);
-    if(vob.oCMOB.focusName.size()>0)
-      wobj.addInteractive(vob); else
+    if(vob.oCMOB.focusName.size()>0) {
+      if(startup)
+        wobj.addInteractive(std::move(vob));
+      } else {
       wview->addStatic(vob);
+      }
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCMobFire){
     wview->addStatic(vob);
@@ -725,7 +728,8 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
           vob.vobType==ZenLoad::zCVobData::VT_oCMobInter ||
           vob.vobType==ZenLoad::zCVobData::VT_oCMobContainer ||
           vob.vobType==ZenLoad::zCVobData::VT_oCMobSwitch){
-    wobj.addInteractive(vob);
+    if(startup)
+      wobj.addInteractive(std::move(vob));
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobLevelCompo){
     return;

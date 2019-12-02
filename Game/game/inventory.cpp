@@ -17,16 +17,16 @@ Inventory::Inventory() {
 Inventory::~Inventory() {
   }
 
-void Inventory::load(Npc& owner, Serialize &s) {
+void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
   uint32_t sz=0;
   items.clear();
   s.read(sz);
   for(size_t i=0;i<sz;++i)
-    items.emplace_back(std::make_unique<Item>(owner.world(),s));
+    items.emplace_back(std::make_unique<Item>(world,s));
   bool hasStash=false;
   s.read(curItem,hasStash);
   if(hasStash)
-    stashed = std::make_unique<Item>(owner.world(),s);
+    stashed = std::make_unique<Item>(world,s);
 
   armour = readPtr(s);
   belt   = readPtr(s);
@@ -47,12 +47,22 @@ void Inventory::load(Npc& owner, Serialize &s) {
   else if(3<=id && id<10)
     active=&numslot[id-3];
 
-  updateArmourView(owner);
-  updateSwordView (owner);
-  updateBowView   (owner);
+  if(owner!=nullptr) {
+    updateArmourView(*owner);
+    updateSwordView (*owner);
+    updateBowView   (*owner);
+    }
   }
 
-void Inventory::save(Serialize &fout) {
+void Inventory::load(Npc &owner, Serialize &s) {
+  implLoad(&owner,owner.world(),s);
+  }
+
+void Inventory::load(Interactive&, World& w, Serialize &s) {
+  implLoad(nullptr,w,s);
+  }
+
+void Inventory::save(Serialize &fout) const {
   uint32_t sz=items.size();
   fout.write(sz);
   for(auto& i:items)

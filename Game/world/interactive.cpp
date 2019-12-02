@@ -2,26 +2,85 @@
 #include "npc.h"
 #include "world.h"
 #include "utils/fileext.h"
+#include "game/serialize.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Log>
 
-Interactive::Interactive(World &owner, const ZenLoad::zCVobData &vob)
-  :world(&owner),data(vob),skInst(std::make_unique<Pose>()) {
-  if(!FileExt::hasExt(vob.visual,"3ds"))
-    skeleton = Resources::loadSkeleton(vob.visual);
-  mesh = Resources::loadMesh(vob.visual);
+
+Interactive::Interactive(World &world, ZenLoad::zCVobData&& vob)
+  :world(&world),skInst(std::make_unique<Pose>()) {
+  float v[16]={};
+  std::memcpy(v,vob.worldMatrix.m,sizeof(v));
+
+  vobType       = vob.vobType;
+  vobName       = std::move(vob.vobName);
+  focName       = std::move(vob.oCMOB.focusName);
+  mdlVisual     = std::move(vob.visual);
+  bbox[0]       = vob.bbox[0];
+  bbox[1]       = vob.bbox[1];
+  owner         = std::move(vob.oCMOB.owner);
+  stateNum      = vob.oCMobInter.stateNum;
+  triggerTarget = std::move(vob.oCMobInter.triggerTarget);
+  onStateFunc   = std::move(vob.oCMobInter.onStateFunc);
+  pos           = Tempest::Matrix4x4(v);
+
+  for(auto& i:owner)
+    i = char(std::toupper(i));
+
+  if(isContainer()) {
+    auto items = std::move(vob.oCMobContainer.contains);
+    if(items.size()>0) {
+      char* it = &items[0];
+      for(auto i=it;;++i) {
+        if(*i==','){
+          *i='\0';
+          implAddItem(it);
+          it=i+1;
+          }
+        else if(*i=='\0'){
+          implAddItem(it);
+          it=i+1;
+          break;
+          }
+        }
+      }
+    }
+  setVisual(mdlVisual);
+  }
+
+Interactive::Interactive(World &world, Serialize& fin)
+  :world(&world),skInst(std::make_unique<Pose>()) {
+  uint8_t vt=0;
+  fin.read(vt,vobName,focName,mdlVisual);
+  vobType = ZenLoad::zCVobData::EVobType(vt);
+  fin.read(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z);
+  fin.read(owner,stateNum,triggerTarget,onStateFunc,pos);
+  invent.load(*this,world,fin);
+  fin.read(state,reverseState,loopState);
+
+  setVisual(mdlVisual);
+  }
+
+void Interactive::save(Serialize &fout) const {
+  fout.write(uint8_t(vobType),vobName,focName,mdlVisual);
+  fout.write(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z);
+  fout.write(owner,stateNum,triggerTarget,onStateFunc,pos);
+  invent.save(fout);
+  fout.write(state,reverseState,loopState);
+  }
+
+void Interactive::setVisual(const std::string &visual) {
+  if(!FileExt::hasExt(visual,"3ds"))
+    skeleton = Resources::loadSkeleton(visual);
+  mesh = Resources::loadMesh(visual);
 
   if(mesh) {
-    float v[16]={};
-    std::memcpy(v,vob.worldMatrix.m,sizeof(v));
-    pos = Tempest::Matrix4x4(v);
-
     auto physicMesh = Resources::physicMesh(mesh); //FIXME: build physic model in Resources.cpp
 
     // view   = owner.getStaticView(vob.visual,0);
-    view   = owner.getView(vob.visual);
-    physic = owner.physic()->staticObj(physicMesh,pos);
+    view   = world->getView(visual);
+    physic = world->physic()->staticObj(physicMesh,pos);
 
     view  .setObjMatrix(pos);
     physic.setObjMatrix(pos);
@@ -41,9 +100,6 @@ Interactive::Interactive(World &owner, const ZenLoad::zCVobData &vob)
     skInst->setSkeleton(skeleton);
     setAnim(Interactive::Active); // setup default anim
     }
-
-  for(auto& i:data.oCMOB.owner)
-    i = char(std::toupper(i));
   }
 
 void Interactive::updateAnimation() {
@@ -68,7 +124,7 @@ void Interactive::tick(uint64_t dt) {
 
   if(p->user==nullptr && (state==-1 && !p->attachMode))
     return;
-  if(p->user==nullptr && (state==data.oCMobInter.stateNum && p->attachMode))
+  if(p->user==nullptr && (state==stateNum && p->attachMode))
     return;
   implTick(*p,dt);
   }
@@ -107,8 +163,8 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
   bool finalState = false;
   int  prev       = state;
   if(p.attachMode^reverseState) {
-    state = std::min(data.oCMobInter.stateNum,state+1);
-    if(state==data.oCMobInter.stateNum)
+    state = std::min(stateNum,state+1);
+    if(state==stateNum)
       finalState = true;
     } else {
     state = std::max(-1,state-1);
@@ -125,10 +181,10 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     implQuitInteract(p);
     return;
     }
-  if(state==data.oCMobInter.stateNum) {
+  if(state==stateNum) {
     //HACK: some beds in game is VT_oCMobDoor
-    if((data.vobType==ZenLoad::zCVobData::VT_oCMobDoor && data.oCMobInter.onStateFunc.empty()) ||
-        data.vobType==ZenLoad::zCVobData::VT_oCMobSwitch){
+    if((vobType==ZenLoad::zCVobData::VT_oCMobDoor && onStateFunc.empty()) ||
+        vobType==ZenLoad::zCVobData::VT_oCMobSwitch){
       implQuitInteract(p);
       return;
       }
@@ -149,11 +205,11 @@ void Interactive::implQuitInteract(Interactive::Pos &p) {
   }
 
 const std::string &Interactive::tag() const {
-  return data.vobName;
+  return vobName;
   }
 
 const std::string& Interactive::focusName() const {
-  return data.oCMOB.focusName;
+  return focName;
   }
 
 bool Interactive::checkMobName(const std::string &dest) const {
@@ -164,28 +220,29 @@ bool Interactive::checkMobName(const std::string &dest) const {
   }
 
 const std::string &Interactive::ownerName() const {
-  return data.oCMOB.owner;
+  return owner;
   }
 
 std::array<float,3> Interactive::position() const {
-  float x=data.position.x,
-        y=data.position.y,
-        z=data.position.z;
+  float x=0,y=0,z=0;
+  pos.project(x,y,z);
   return {x,y,z};
   }
 
 std::array<float,3> Interactive::displayPosition() const {
   auto p = position();
-  p[1]+=(data.bbox[1].y-data.bbox[0].y)-mesh->rootTr[1];
+  return {p[0],bbox[1].y,p[2]};
+
+  p[1]+=(bbox[1].y-bbox[0].y);
   return p;
   }
 
 const char *Interactive::displayName() const {
-  if(data.oCMOB.focusName.empty())
+  if(focName.empty())
     return "";
-  const char* strId=data.oCMOB.focusName.c_str();
-  if(world->getSymbolIndex(strId)==size_t(-1)){
-    return data.vobName.c_str();
+  const char* strId=focName.c_str();
+  if(world->getSymbolIndex(strId)==size_t(-1)) {
+    return vobName.c_str();
     }
   auto& s=world->getSymbol(strId);
   const char* txt = s.getString(0).c_str();
@@ -195,115 +252,97 @@ const char *Interactive::displayName() const {
   }
 
 void Interactive::invokeStateFunc(Npc& npc) {
-  if(data.oCMobInter.onStateFunc.empty() || state<0)
+  if(onStateFunc.empty() || state<0)
     return;
   char func[256]={};
-  std::snprintf(func,sizeof(func),"%s_S%d",data.oCMobInter.onStateFunc.c_str(),state);
+  std::snprintf(func,sizeof(func),"%s_S%d",onStateFunc.c_str(),state);
 
   auto& sc = npc.world().script();
   sc.useInteractive(npc.handle(),func);
   }
 
 void Interactive::emitTriggerEvent() const {
-  if(data.oCMobInter.triggerTarget.empty())
+  if(triggerTarget.empty())
     return;
-  const TriggerEvent evt(data.oCMobInter.triggerTarget,data.vobName);
+  const TriggerEvent evt(triggerTarget,vobName);
   world->triggerEvent(evt);
   }
 
 const char *Interactive::schemeName() const {
   const char* tag = "";
-  if(data.oCMOB.focusName=="MOBNAME_BENCH")
+  if(focName=="MOBNAME_BENCH")
     tag = "BENCH";
-  else if(data.oCMOB.focusName=="MOBNAME_ANVIL")
+  else if(focName=="MOBNAME_ANVIL")
     tag = "BSANVIL";
-  else if(data.oCMOB.focusName=="MOBNAME_LAB")
+  else if(focName=="MOBNAME_LAB")
     tag = "LAB";
-  else if(data.oCMOB.focusName=="MOBNAME_CHEST" || data.oCMOB.focusName=="Chest")
+  else if(focName=="MOBNAME_CHEST" || focName=="Chest")
     tag = "CHESTSMALL";
-  else if(data.oCMOB.focusName=="MOBNAME_CHESTBIG")
+  else if(focName=="MOBNAME_CHESTBIG")
     tag = "CHESTBIG";
-  else if(data.oCMOB.focusName=="MOBNAME_FORGE")
+  else if(focName=="MOBNAME_FORGE")
     tag = "BSFIRE";
-  else if(data.oCMOB.focusName=="MOBNAME_BOOKSBOARD")
+  else if(focName=="MOBNAME_BOOKSBOARD")
     tag = "BOOK";
-  else if(data.oCMOB.focusName=="MOBNAME_BBQ_SCAV" || data.oCMOB.focusName=="MOBNAME_BARBQ_SCAV")
+  else if(focName=="MOBNAME_BBQ_SCAV" || focName=="MOBNAME_BARBQ_SCAV")
     tag = "BARBQ";
-  else if(data.oCMOB.focusName=="MOBNAME_SWITCH" || data.oCMOB.focusName=="MOBNAME_ADDON_ORNAMENTSWITCH")
+  else if(focName=="MOBNAME_SWITCH" || focName=="MOBNAME_ADDON_ORNAMENTSWITCH")
     tag = "TURNSWITCH";
-  else if(data.oCMOB.focusName=="MOBNAME_CHAIR")
+  else if(focName=="MOBNAME_CHAIR")
     tag = "CHAIR";
-  else if(data.oCMOB.focusName=="MOBNAME_THRONE" || data.oCMOB.focusName=="MOBNAME_SEAT" || data.oCMOB.focusName=="MOBNAME_ARMCHAIR")
+  else if(focName=="MOBNAME_THRONE" || focName=="MOBNAME_SEAT" || focName=="MOBNAME_ARMCHAIR")
     tag = "THRONE";
-  else if(data.oCMOB.focusName=="MOBNAME_CAULDRON")
+  else if(focName=="MOBNAME_CAULDRON")
     tag = "CAULDRON";
-  else if(data.oCMOB.focusName=="MOBNAME_ORE")
+  else if(focName=="MOBNAME_ORE")
     tag = "ORE";
-  else if(data.oCMOB.focusName=="MOBNAME_GRINDSTONE")
+  else if(focName=="MOBNAME_GRINDSTONE")
     tag = "BSSHARP";
-  else if(data.oCMOB.focusName=="MOBNAME_INNOS")
+  else if(focName=="MOBNAME_INNOS")
     tag = "INNOS";
-  else if(data.oCMOB.focusName=="MOBNAME_ADDON_IDOL")
+  else if(focName=="MOBNAME_ADDON_IDOL")
     tag = "INNOS";//"IDOL";
-  else if(data.oCMOB.focusName=="MOBNAME_STOVE")
+  else if(focName=="MOBNAME_STOVE")
     tag = "STOVE";
-  else if(data.oCMOB.focusName=="MOBNAME_BED")
+  else if(focName=="MOBNAME_BED")
     tag = "BEDHIGH";
-  else if(data.oCMOB.focusName=="MOBNAME_BUCKET")
+  else if(focName=="MOBNAME_BUCKET")
     tag = "BSCOOL";
-  else if(data.oCMOB.focusName=="MOBNAME_RUNEMAKER")
+  else if(focName=="MOBNAME_RUNEMAKER")
     tag = "RMAKER";
-  else if(data.oCMOB.focusName=="MOBNAME_WATERPIPE")
+  else if(focName=="MOBNAME_WATERPIPE")
     tag = "SMOKE";
-  else if(data.oCMOB.focusName=="MOBNAME_SAW")
+  else if(focName=="MOBNAME_SAW")
     tag = "BAUMSAEGE";
-  else if(data.oCMOB.focusName=="MOBNAME_PAN")
+  else if(focName=="MOBNAME_PAN")
     tag = "PAN";
-  else if(data.oCMOB.focusName=="MOBNAME_DOOR" || data.oCMOB.focusName=="MOBNAME_Door")
+  else if(focName=="MOBNAME_DOOR" || focName=="MOBNAME_Door")
     tag = "DOOR";
-  else if(data.oCMOB.focusName=="MOBNAME_WINEMAKER")
+  else if(focName=="MOBNAME_WINEMAKER")
     tag = "HERB";
-  else if(data.oCMOB.focusName=="MOBNAME_BOOKSTAND")
+  else if(focName=="MOBNAME_BOOKSTAND")
     tag = "BOOK";
-  else if(data.visual=="TREASURE_ADDON_01.ASC")
+  else if(mdlVisual=="TREASURE_ADDON_01.ASC")
     tag = "TREASURE";
-  else if(data.visual=="LEVER_1_OC.MDS")
+  else if(mdlVisual=="LEVER_1_OC.MDS")
     tag = "LEVER";
-  else if(data.visual=="REPAIR_PLANK.ASC")
+  else if(mdlVisual=="REPAIR_PLANK.ASC")
     tag = "REPAIR";
-  else if(data.visual=="BENCH_NW_CITY_02.ASC")
+  else if(mdlVisual=="BENCH_NW_CITY_02.ASC")
     tag = "BENCH";
-  else if(data.visual=="PAN_OC.MDS")
+  else if(mdlVisual=="PAN_OC.MDS")
     tag = "PAN";
   else {
-    // Tempest::Log::i("unable to recognize mobsi{",data.oCMOB.focusName,", ",data.visual,"}");
+    // Tempest::Log::i("unable to recognize mobsi{",focName,", ",mdlVisual,"}");
     }
   return tag;
   }
 
 bool Interactive::isContainer() const {
-  return data.vobType==ZenLoad::zCVobData::VT_oCMobContainer;
+  return vobType==ZenLoad::zCVobData::VT_oCMobContainer;
   }
 
 Inventory &Interactive::inventory()  {
-  if(!isContainer())
-    return invent;
-  auto  items = std::move(data.oCMobContainer.contains);
-  if(items.size()==0)
-    return invent;
-  char* it = &items[0];
-  for(auto i=it;;++i) {
-    if(*i==','){
-      *i='\0';
-      implAddItem(it);
-      it=i+1;
-      }
-    else if(*i=='\0'){
-      implAddItem(it);
-      it=i+1;
-      break;
-      }
-    }
   return invent;
   }
 
@@ -491,7 +530,7 @@ bool Interactive::setAnim(Interactive::Anim t) {
   int  st[]     = {state,state+(reverseState ? -t : t)};
   char ss[2][8] = {};
 
-  st[1] = std::max(-1,std::min(st[1],data.oCMobInter.stateNum));
+  st[1] = std::max(-1,std::min(st[1],stateNum));
 
   char buf[256]={};
   for(int i=0;i<2;++i){
@@ -523,7 +562,7 @@ const Animation::Sequence* Interactive::anim(const AnimationSolver &solver, Anim
       point = i.posTag();
       }
 
-  st[1] = std::max(-1,std::min(st[1],data.oCMobInter.stateNum));
+  st[1] = std::max(-1,std::min(st[1],stateNum));
 
   char buf[256]={};
   for(int i=0;i<2;++i){
