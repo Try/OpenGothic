@@ -593,6 +593,14 @@ void Npc::setMagicWeapon(PfxObjects::Emitter &&s) {
   updateWeaponSkeleton();
   }
 
+void Npc::setSlotItem(MeshObjects::Mesh &&itm, const char *slot) {
+  visual.setSlotItem(std::move(itm),slot);
+  }
+
+void Npc::clearSlotItem(const char *slot) {
+  visual.clearSlotItem(slot);
+  }
+
 void Npc::updateWeaponSkeleton() {
   visual.updateWeaponSkeleton(invent.currentMeleWeapon(),invent.currentRangeWeapon());
   }
@@ -604,22 +612,19 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
 
   for(auto& i:ev.timed) {
     switch(i.def) {
-      case ZenLoad::DEF_INSERT_ITEM: {
-        invent.stashItem(*this);
-        auto* it = invent.stashedItem();
-        if(it!=nullptr) {
-          auto& itData = *it->handle();
-          auto  vitm   = owner.getView(itData.visual,itData.material,0,itData.material);
-          visual.setItem(std::move(vitm),i.hint);
-          } else {
-          visual.setItem(MeshObjects::Mesh(),nullptr);
+      case ZenLoad::DEF_CREATE_ITEM: {
+        if(auto it = invent.addItem(i.item,1,world())) {
+          invent.putToSlot(*this,it->clsId(),i.slot[0]);
           }
+        break;
+        }
+      case ZenLoad::DEF_INSERT_ITEM: {
+        invent.putCurrentToSlot(*this,i.slot[0]);
         break;
         }
       case ZenLoad::DEF_REMOVE_ITEM:
       case ZenLoad::DEF_DESTROY_ITEM: {
-        invent.unstash(*this,i.def!=ZenLoad::DEF_REMOVE_ITEM);
-        visual.setItem(MeshObjects::Mesh(),nullptr);
+        invent.clearSlot(*this,nullptr,i.def!=ZenLoad::DEF_REMOVE_ITEM);
         break;
         }
       default:
@@ -923,7 +928,7 @@ bool Npc::implLookAt(float dx, float dz, int noAniAngle, uint64_t dt) {
   float step = owner.script().guildVal().turn_speed[gl]*(dt/1000.f)*60.f/100.f;
 
   if(dx==0.f && dz==0.f)
-    return true;
+    return false;
 
   float a    = angleDir(dx,dz);
   float da   = a-angle;
@@ -1504,6 +1509,10 @@ void Npc::nextAiAction(uint64_t dt) {
       if(act.i0!=0)
         useItem(uint32_t(act.i0));
       break;
+    case AI_UseItemToState:
+      if(act.i0!=0)
+        invent.setCurrentItem(uint32_t(act.i0)); // state?!
+      break;
     case AI_Teleport: {
       setPosition(act.point->x,act.point->y,act.point->z);
       }
@@ -1945,6 +1954,10 @@ void Npc::delItem(uint32_t item, uint32_t amount) {
 
 void Npc::useItem(uint32_t item,bool force) {
   invent.use(item,*this,force);
+  }
+
+void Npc::setCurrentItem(uint32_t item) {
+  invent.setCurrentItem(item);
   }
 
 void Npc::unequipItem(uint32_t item) {
@@ -2623,6 +2636,13 @@ void Npc::aiUseMob(const std::string &name, int st) {
 void Npc::aiUseItem(int32_t id) {
   AiAction a;
   a.act = AI_UseItem;
+  a.i0  = id;
+  aiActions.push_back(a);
+  }
+
+void Npc::aiUseItemToState(int32_t id, int32_t state) {
+  AiAction a;
+  a.act = AI_UseItemToState;
   a.i0  = id;
   aiActions.push_back(a);
   }

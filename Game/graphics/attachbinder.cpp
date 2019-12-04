@@ -3,7 +3,8 @@
 #include "protomesh.h"
 #include "skeleton.h"
 
-AttachBinder::AttachBinder(const Skeleton &s, const ProtoMesh &m, const char *defBone) {
+AttachBinder::AttachBinder(const Skeleton &s, const ProtoMesh &m, const char *defBone)
+  :defBone(defBone==nullptr ? "" : defBone) {
   bind.resize(m.submeshId.size());
   size_t id = s.findNode(defBone);
 

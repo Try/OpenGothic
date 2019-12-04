@@ -44,7 +44,8 @@ void MdlVisual::setPos(const Tempest::Matrix4x4 &m) {
   head   .setObjMatrix(pos);
   sword  .setObjMatrix(pos);
   bow    .setObjMatrix(pos);
-  item[0].setObjMatrix(pos);
+  for(auto& i:item)
+    i.setObjMatrix(pos);
   pfx    .setObjMatrix(pos);
   view   .setObjMatrix(pos);
   }
@@ -104,9 +105,31 @@ void MdlVisual::setMagicWeapon(PfxObjects::Emitter &&spell) {
   setPos(pos);
   }
 
-void MdlVisual::setItem(MeshObjects::Mesh &&itm, const char* bone) {
-  item[0] = std::move(itm);
-  item[0].setAttachPoint(skeleton,bone);
+void MdlVisual::setSlotItem(MeshObjects::Mesh &&itm, const char *bone) {
+  if(bone==nullptr)
+    return;
+
+  for(auto& i:item) {
+    const char* b = i.attachPoint();
+    if(b!=nullptr && std::strcmp(b,bone)==0) {
+      i = std::move(itm);
+      i.setAttachPoint(skeleton,bone);
+      break;
+      }
+    }
+  itm.setAttachPoint(skeleton,bone);
+  item.emplace_back(std::move(itm));
+  setPos(pos);
+  }
+
+void MdlVisual::clearSlotItem(const char *bone) {
+  for(size_t i=0;i<item.size();++i) {
+    const char* b = item[i].attachPoint();
+    if(bone==nullptr || (b!=nullptr && std::strcmp(b,bone)==0)) {
+      item[i] = std::move(item.back());
+      item.pop_back();
+      }
+    }
   setPos(pos);
   }
 
@@ -184,7 +207,8 @@ void MdlVisual::updateAnimation(Npc& npc) {
   head   .setSkeleton(pose,pos);
   sword  .setSkeleton(pose,pos);
   bow    .setSkeleton(pose,pos);
-  item[0].setSkeleton(pose,pos);
+  for(auto& i:item)
+    i.setSkeleton(pose,pos);
   pfx    .setSkeleton(pose,pos);
   view   .setSkeleton(pose,pos);
   }

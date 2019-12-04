@@ -48,11 +48,14 @@ class MeshObjects final {
       public:
         Mesh()=default;
         Mesh(const ProtoMesh* mesh,std::unique_ptr<Item[]>&& sub,size_t subCount):sub(std::move(sub)),subCount(subCount),ani(mesh){}
+        Mesh(Mesh&& other);
+        Mesh& operator = (Mesh&& other);
 
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setAttachPoint(const Skeleton* sk,const char* defBone=nullptr);
         void   setSkeleton   (const Pose&      p,const Tempest::Matrix4x4& obj);
 
+        auto   attachPoint() const -> const char*;
         bool   isEmpty()    const { return subCount==0; }
         size_t nodesCount() const { return subCount;    }
         Node   node(size_t i) const { return Node(&sub[i]); }

@@ -67,7 +67,7 @@ class Inventory final {
 
     Item*  getItem(size_t instance);
     Item*  addItem(std::unique_ptr<Item>&& p);
-    void   addItem(const char* name, uint32_t count, World &owner);
+    Item*  addItem(const char* name, uint32_t count, World &owner);
     Item*  addItem(size_t cls, uint32_t count, World &owner);
     void   delItem(size_t cls, uint32_t count, Npc &owner);
     bool   use    (size_t cls, Npc &owner, bool force);
@@ -105,11 +105,18 @@ class Inventory final {
     auto   weaponState() const -> WeaponState;
     uint8_t currentSpellSlot() const;
 
-    void   stashItem(Npc &owner);
-    void   unstash(Npc &owner, bool remove);
-    Item*  stashedItem() { return stashed.get(); }
+    void   putCurrentToSlot(Npc& owner, const char* slot);
+    void   putToSlot       (Npc& owner, size_t cls, const char* slot);
+    void   clearSlot       (Npc& owner, const char* slot, bool remove);
+
+    void   setCurrentItem(size_t cls);
 
   private:
+    struct MdlSlot final {
+      std::string slot;
+      Item*       item = nullptr;
+      };
+
     void   implLoad(Npc *owner, World &world, Serialize& s);
 
     bool   setSlot     (Item*& slot, Item *next, Npc &owner, bool force);
@@ -149,7 +156,6 @@ class Inventory final {
     Item*                              mele  =nullptr;
     Item*                              range =nullptr;
     Item*                              numslot[8]={};
-
-    std::unique_ptr<Item>              stashed;
+    std::vector<MdlSlot>               mdlSlots;
     size_t                             curItem=0;
   };

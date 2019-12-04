@@ -22,6 +22,8 @@ Interactive::Interactive(World &world, ZenLoad::zCVobData&& vob)
   owner         = std::move(vob.oCMOB.owner);
   stateNum      = vob.oCMobInter.stateNum;
   triggerTarget = std::move(vob.oCMobInter.triggerTarget);
+  useWithItem   = std::move(vob.oCMobInter.useWithItem);
+  conditionFunc = std::move(vob.oCMobInter.conditionFunc);
   onStateFunc   = std::move(vob.oCMobInter.onStateFunc);
   pos           = Tempest::Matrix4x4(v);
 
@@ -54,8 +56,8 @@ Interactive::Interactive(World &world, Serialize& fin)
   uint8_t vt=0;
   fin.read(vt,vobName,focName,mdlVisual);
   vobType = ZenLoad::zCVobData::EVobType(vt);
-  fin.read(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z);
-  fin.read(owner,stateNum,triggerTarget,onStateFunc,pos);
+  fin.read(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z,owner);
+  fin.read(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc,pos);
   invent.load(*this,world,fin);
   fin.read(state,reverseState,loopState);
 
@@ -65,7 +67,7 @@ Interactive::Interactive(World &world, Serialize& fin)
 void Interactive::save(Serialize &fout) const {
   fout.write(uint8_t(vobType),vobName,focName,mdlVisual);
   fout.write(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z);
-  fout.write(owner,stateNum,triggerTarget,onStateFunc,pos);
+  fout.write(owner,stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc,pos);
   invent.save(fout);
   fout.write(state,reverseState,loopState);
   }
@@ -232,9 +234,6 @@ std::array<float,3> Interactive::position() const {
 std::array<float,3> Interactive::displayPosition() const {
   auto p = position();
   return {p[0],bbox[1].y,p[2]};
-
-  p[1]+=(bbox[1].y-bbox[0].y);
-  return p;
   }
 
 const char *Interactive::displayName() const {
@@ -452,6 +451,12 @@ bool Interactive::isAvailable() const {
 
 bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
   assert(to.user==nullptr);
+
+  if(!useWithItem.empty()) {
+    size_t it = world->getSymbolIndex(useWithItem.c_str());
+    if(it!=size_t(-1))
+      npc.setCurrentItem(it);
+    }
 
   auto mat = pos;
   auto pos = mesh->mapToRoot(to.node);

@@ -33,7 +33,8 @@ class MdlVisual final {
     void                           setSword      (MeshObjects::Mesh&& sword);
     void                           setRangeWeapon(MeshObjects::Mesh&& bow);
     void                           setMagicWeapon(PfxObjects::Emitter&& spell);
-    void                           setItem       (MeshObjects::Mesh&& itm, const char *bone);
+    void                           setSlotItem   (MeshObjects::Mesh&& itm, const char *bone);
+    void                           clearSlotItem (const char *bone);
     bool                           setFightMode(const ZenLoad::EFightMode mode);
 
     bool                           setToFightMode(const WeaponState ws);
@@ -63,7 +64,8 @@ class MdlVisual final {
     Tempest::Matrix4x4             pos;
     MeshObjects::Mesh              head;
     MeshObjects::Mesh              view;
-    MeshObjects::Mesh              sword, bow, item[2];
+    MeshObjects::Mesh              sword, bow;
+    std::vector<MeshObjects::Mesh> item;
     PfxObjects::Emitter            pfx;
 
     const Skeleton*                skeleton=nullptr;

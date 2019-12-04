@@ -246,6 +246,25 @@ void MeshObjects::Mesh::setSkeleton(const Pose &p,const Tempest::Matrix4x4& obj)
     }
   }
 
+const char* MeshObjects::Mesh::attachPoint() const {
+  if(binder==nullptr)
+    return nullptr;
+  return binder->defBone.c_str();
+  }
+
+MeshObjects::Mesh::Mesh(MeshObjects::Mesh &&other) {
+  *this = std::move(other);
+  }
+
+MeshObjects::Mesh &MeshObjects::Mesh::operator =(MeshObjects::Mesh &&other) {
+  std::swap(sub,      other.sub);
+  std::swap(subCount, other.subCount);
+  std::swap(ani,      other.ani);
+  std::swap(skeleton, other.skeleton);
+  std::swap(binder,   other.binder);
+  return *this;
+  }
+
 void MeshObjects::Mesh::setObjMatrix(const Tempest::Matrix4x4 &mt) {
   if(ani!=nullptr){
     auto mat=mt;

@@ -211,6 +211,8 @@ class Npc final {
     void setSword      (MeshObjects::Mesh&& sword);
     void setRangeWeapon(MeshObjects::Mesh&& bow);
     void setMagicWeapon(PfxObjects::Emitter&& spell);
+    void setSlotItem   (MeshObjects::Mesh&& itm,const char* slot);
+    void clearSlotItem (const char* slot);
     void setPhysic     (DynamicWorld::Item&& item);
     void setFatness    (float f);
     void setScale      (float x,float y,float z);
@@ -343,6 +345,7 @@ class Npc final {
     Item*    addItem    (std::unique_ptr<Item>&& i);
     void     delItem    (uint32_t id, uint32_t amount);
     void     useItem    (uint32_t item, bool force=false);
+    void     setCurrentItem(uint32_t item);
     void     unequipItem(uint32_t item);
     void     addItem    (uint32_t id,Interactive& chest);
     void     addItem    (uint32_t id,Npc& from);
@@ -377,6 +380,7 @@ class Npc final {
     void     aiEquipBestRangeWeapon();
     void     aiUseMob(const std::string& name,int st);
     void     aiUseItem(int32_t id);
+    void     aiUseItemToState(int32_t id,int32_t state);
     void     aiTeleport(const WayPoint& to);
     void     aiReadyMeleWeapon();
     void     aiReadyRangeWeapon();
@@ -457,6 +461,7 @@ class Npc final {
       AI_EquipRange,
       AI_UseMob,
       AI_UseItem,
+      AI_UseItemToState,
       AI_Teleport,
       AI_DrawWeaponMele,
       AI_DrawWeaponRange,

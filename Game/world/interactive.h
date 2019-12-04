@@ -95,9 +95,13 @@ class Interactive final {
     std::string                  mdlVisual;
     ZMath::float3                bbox[2]={};
     std::string                  owner;
+    // oCMobInter
     int                          stateNum=0;
     std::string                  triggerTarget;
+    std::string                  useWithItem;
+    std::string                  conditionFunc;
     std::string                  onStateFunc;
+    //
     Tempest::Matrix4x4           pos;
     Inventory                    invent;
     int                          state=-1;

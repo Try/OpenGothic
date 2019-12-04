@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <vector>
+#include <string>
 
 class ProtoMesh;
 class Skeleton;
@@ -15,4 +16,5 @@ class AttachBinder final {
       size_t boneId  =0;
       };
     std::vector<Bind> bind;
+    std::string       defBone;
   };

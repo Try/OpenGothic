@@ -23,10 +23,20 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
   s.read(sz);
   for(size_t i=0;i<sz;++i)
     items.emplace_back(std::make_unique<Item>(world,s));
-  bool hasStash=false;
-  s.read(curItem,hasStash);
-  if(hasStash)
-    stashed = std::make_unique<Item>(world,s);
+
+  s.read(sz);
+  mdlSlots.resize(sz);
+  for(auto& i:mdlSlots) {
+    s.read(i.slot);
+    i.item = readPtr(s);
+    }
+  for(size_t i=0;i<mdlSlots.size();)
+    if(mdlSlots[i].item==nullptr) {
+      mdlSlots[i] = std::move(mdlSlots.back());
+      mdlSlots.pop_back();
+      } else {
+      ++i;
+      }
 
   armour = readPtr(s);
   belt   = readPtr(s);
@@ -51,6 +61,12 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
     updateArmourView(*owner);
     updateSwordView (*owner);
     updateBowView   (*owner);
+
+    for(auto& i:mdlSlots) {
+      auto& itData = *i.item->handle();
+      auto  vbody  = world.getView(itData.visual,itData.material,0,itData.material);
+      owner->setSlotItem(std::move(vbody),i.slot.c_str());
+      }
     }
   }
 
@@ -67,9 +83,12 @@ void Inventory::save(Serialize &fout) const {
   fout.write(sz);
   for(auto& i:items)
     i->save(fout);
-  fout.write(curItem,bool(stashed!=nullptr));
-  if(stashed!=nullptr)
-    stashed->save(fout);
+
+  sz=mdlSlots.size();
+  fout.write(sz);
+  for(auto& i:mdlSlots){
+    fout.write(i.slot,indexOf(i.item));
+    }
 
   fout.write(indexOf(armour));
   fout.write(indexOf(belt)  );
@@ -190,11 +209,12 @@ Item* Inventory::addItem(std::unique_ptr<Item> &&p) {
     }
   }
 
-void Inventory::addItem(const char *name, uint32_t count, World &owner) {
+Item* Inventory::addItem(const char *name, uint32_t count, World &owner) {
   auto&  vm = owner.script();
   size_t id = vm.getSymbolIndex(name);
   if(id!=size_t(-1))
-    addItem(id,count,owner);
+    return addItem(id,count,owner);
+  return nullptr;
   }
 
 Item* Inventory::addItem(size_t itemSymbol, uint32_t count, World &owner) {
@@ -246,6 +266,15 @@ void Inventory::delItem(Item *it, uint32_t count, Npc& owner) {
 
   // unequip, if have to
   unequip(it,owner);
+
+  // clear slots
+  for(size_t i=0;i<mdlSlots.size();)
+    if(mdlSlots[i].item==it) {
+      mdlSlots[i] = std::move(mdlSlots.back());
+      mdlSlots.pop_back();
+      } else {
+      ++i;
+      }
   sorted=false;
 
   for(size_t i=0;i<items.size();++i)
@@ -547,22 +576,54 @@ uint8_t Inventory::currentSpellSlot() const {
   return Item::NSLOT;
   }
 
-void Inventory::stashItem(Npc& owner) {
-  unstash(owner,false);
-  Item* it=findByClass(curItem);
-  curItem=0;
-  if(it==nullptr)
-    return;
-  stashed.reset(new Item(owner.world(),it->clsId()));
-  delItem(it,1,owner);
+void Inventory::putCurrentToSlot(Npc& owner, const char *slot) {
+  putToSlot(owner,curItem,slot);
+  curItem = 0;
   }
 
-void Inventory::unstash(Npc&,bool remove) {
-  if(stashed!=nullptr){
-    if(remove)
-      stashed.reset(); else
-      addItem(std::move(stashed));
+void Inventory::putToSlot(Npc& owner, size_t cls, const char *slot) {
+  clearSlot(owner,slot,false);
+
+  Item* it=findByClass(cls);
+  if(it==nullptr) {
+    it = addItem(cls,1,owner.world());
     }
+
+  for(auto& i:mdlSlots)
+    if(i.slot==slot) {
+      i.item = it;
+
+      auto& itData = *it->handle();
+      auto  vitm   = owner.world().getView(itData.visual,itData.material,0,itData.material);
+      owner.setSlotItem(std::move(vitm),slot);
+      return;
+      }
+  mdlSlots.emplace_back();
+  MdlSlot& sl = mdlSlots.back();
+  sl.slot = slot;
+  sl.item = it;
+  auto& itData = *it->handle();
+  auto  vitm   = owner.world().getView(itData.visual,itData.material,0,itData.material);
+  owner.setSlotItem(std::move(vitm),slot);
+  }
+
+void Inventory::clearSlot(Npc& owner,const char *slot,bool remove) {
+  const bool all = (slot==nullptr || slot[0]=='\0');
+  for(size_t i=0;i<mdlSlots.size();)
+    if(all || mdlSlots[i].slot==slot) {
+      owner.clearSlotItem(slot);
+      auto last = mdlSlots[i].item;
+      mdlSlots[i] = mdlSlots.back();
+      mdlSlots.pop_back();
+      if(remove)
+        delItem(last,1,owner);
+      } else {
+      ++i;
+      }
+  }
+
+void Inventory::setCurrentItem(size_t cls) {
+  curItem = cls;
   }
 
 bool Inventory::equipNumSlot(Item *next, Npc &owner,bool force) {
@@ -619,7 +680,7 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
     return false;
     }
 
-  curItem = it->handle()->instanceSymbol;
+  setCurrentItem(it->handle()->instanceSymbol);
   if(!owner.setAnimItem(it->handle()->scemeName.c_str()))
     return false;
 

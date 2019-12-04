@@ -397,15 +397,23 @@ void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation
       break;
     case ZenLoad::DEF_WINDOW:
       break;
-    case ZenLoad::DEF_CREATE_ITEM:
+    case ZenLoad::DEF_CREATE_ITEM:{
+      EvTimed ex;
+      ex.def     = e.m_Def;
+      ex.item    = e.m_Item.c_str();
+      ex.slot[0] = e.m_Slot.c_str();
+      ex.time    = time;
+      ev.timed.push_back(ex);
+      break;
+      }
     case ZenLoad::DEF_INSERT_ITEM:
     case ZenLoad::DEF_REMOVE_ITEM:
     case ZenLoad::DEF_DESTROY_ITEM:
     case ZenLoad::DEF_PLACE_ITEM: {
       EvTimed ex;
-      ex.def  = e.m_Def;
-      ex.hint = e.m_Slot.c_str();
-      ex.time = time;
+      ex.def     = e.m_Def;
+      ex.slot[0] = e.m_Slot.c_str();
+      ex.time    = time;
       ev.timed.push_back(ex);
       break;
       }

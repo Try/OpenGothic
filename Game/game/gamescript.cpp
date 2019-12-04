@@ -2628,7 +2628,8 @@ void GameScript::ai_useitemtostate(Daedalus::DaedalusVM &vm) {
   int32_t  state = vm.popInt();
   int32_t  item  = vm.popInt();
   auto     npc   = popInstance(vm);
-  notImplementedFn<&GameScript::ai_useitemtostate>("ai_useitemtostate");
+  if(npc)
+    npc->aiUseItemToState(item,state);
   }
 
 void GameScript::ai_setnpcstostate(Daedalus::DaedalusVM &vm) {
