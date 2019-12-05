@@ -1510,8 +1510,9 @@ void Npc::nextAiAction(uint64_t dt) {
         useItem(uint32_t(act.i0));
       break;
     case AI_UseItemToState:
-      if(act.i0!=0)
-        invent.setCurrentItem(uint32_t(act.i0)); // state?!
+      if(act.i0!=0) {
+        invent.setStateItem(uint32_t(act.i0)); // state?!
+        }
       break;
     case AI_Teleport: {
       setPosition(act.point->x,act.point->y,act.point->z);
@@ -1654,9 +1655,6 @@ bool Npc::startState(size_t id,const std::string &wp, gtime endTime,bool noFinal
   if(!wp.empty())
     hnpc.wp = wp;
 
-  if(aiState.funcIni!=0)
-    aiPrevState = aiState.funcIni;
-
   auto& st = owner.script().getAiState(id);
   aiState.started      = false;
   aiState.funcIni      = st.funcIni;
@@ -1670,13 +1668,15 @@ bool Npc::startState(size_t id,const std::string &wp, gtime endTime,bool noFinal
   }
 
 void Npc::clearState(bool noFinalize) {
-  if(aiState.funcIni!=0 && aiState.started){
+  if(aiState.funcIni!=0 && aiState.started) {
     if(owner.script().isTalk(*this)) {
       // avoid ZS_Talk bug
       owner.script().invokeState(this,currentOther,nullptr,aiState.funcLoop);
       }
     if(!noFinalize)
       owner.script().invokeState(this,currentOther,nullptr,aiState.funcEnd);  // cleanup
+    aiPrevState = aiState.funcIni;
+    invent.setStateItem(0);
     }
   aiState = AiState();
   aiState.funcIni = 0;
@@ -1721,10 +1721,8 @@ void Npc::tickRoutine() {
           }
         }
       if(loop!=0) {
-        owner.script().invokeState(this,currentOther,nullptr,aiState.funcEnd);
+        clearState(false);
         currentOther = nullptr;
-        aiPrevState  = aiState.funcIni;
-        aiState      = AiState();
         }
       }
     } else {

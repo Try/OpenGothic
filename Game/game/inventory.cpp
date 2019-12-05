@@ -68,6 +68,7 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
       owner->setSlotItem(std::move(vbody),i.slot.c_str());
       }
     }
+  s.read(curItem,stateItem);
   }
 
 void Inventory::load(Npc &owner, Serialize &s) {
@@ -109,6 +110,7 @@ void Inventory::save(Serialize &fout) const {
     if(active==&numslot[i])
       id = uint8_t(3+i);
   fout.write(id);
+  fout.write(curItem,stateItem);
   }
 
 int32_t Inventory::priceOf(size_t cls) const {
@@ -577,7 +579,9 @@ uint8_t Inventory::currentSpellSlot() const {
   }
 
 void Inventory::putCurrentToSlot(Npc& owner, const char *slot) {
-  putToSlot(owner,curItem,slot);
+  if(curItem!=0)
+    putToSlot(owner,size_t(curItem),slot); else
+    putToSlot(owner,size_t(stateItem),slot);
   curItem = 0;
   }
 
@@ -623,7 +627,11 @@ void Inventory::clearSlot(Npc& owner,const char *slot,bool remove) {
   }
 
 void Inventory::setCurrentItem(size_t cls) {
-  curItem = cls;
+  curItem = int32_t(cls);
+  }
+
+void Inventory::setStateItem(size_t cls) {
+  stateItem = int32_t(cls);
   }
 
 bool Inventory::equipNumSlot(Item *next, Npc &owner,bool force) {
@@ -680,7 +688,7 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
     return false;
     }
 
-  setCurrentItem(it->handle()->instanceSymbol);
+  setCurrentItem(it->clsId());
   if(!owner.setAnimItem(it->handle()->scemeName.c_str()))
     return false;
 

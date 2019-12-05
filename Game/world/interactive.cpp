@@ -7,7 +7,6 @@
 #include <Tempest/Painter>
 #include <Tempest/Log>
 
-
 Interactive::Interactive(World &world, ZenLoad::zCVobData&& vob)
   :world(&world),skInst(std::make_unique<Pose>()) {
   float v[16]={};

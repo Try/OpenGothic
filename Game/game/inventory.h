@@ -110,6 +110,7 @@ class Inventory final {
     void   clearSlot       (Npc& owner, const char* slot, bool remove);
 
     void   setCurrentItem(size_t cls);
+    void   setStateItem  (size_t cls);
 
   private:
     struct MdlSlot final {
@@ -157,5 +158,6 @@ class Inventory final {
     Item*                              range =nullptr;
     Item*                              numslot[8]={};
     std::vector<MdlSlot>               mdlSlots;
-    size_t                             curItem=0;
+    int32_t                            curItem=0;
+    int32_t                            stateItem=0;
   };
