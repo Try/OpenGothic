@@ -686,38 +686,44 @@ DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, f
   rayTest(s,e,callback);
 
   BulletMv ret;
-  if(callback.matId<ZenLoad::NUM_MAT_GROUPS){
-    if(callback.matId==ZenLoad::MaterialGroup::METAL ||
-       callback.matId==ZenLoad::MaterialGroup::STONE) {
-      auto d = b.direction();
-      btVector3 m = {d[0],d[1],d[2]};
-      btVector3 n = callback.m_hitNormalWorld;
-
-      n.normalize();
-      const float l = b.speed();
-      m/=l;
-
-      btVector3 dir = m - 2*m.dot(n)*n;
-      dir*=(l*0.5f); //slow-down
-
-      float a = callback.m_closestHitFraction;
-      b.setPosition(x0+(x1-x0)*a,y0+(y1-y0)*a,z0+(z1-z0)*a);
-      if(l*a>10.f) {
-        b.setDirection(dir.x(),dir.y(),dir.z());
-        b.addLen(l*a);
-        ret.mat = callback.matId;
-        } else {
-        b.setFlags(Bullet::Stopped);
-        }
+  const bool isSpell = (b.flags()&Bullet::Spell);
+  if(callback.matId<ZenLoad::NUM_MAT_GROUPS) {
+    if( isSpell ){
+      b.addFlags(Bullet::Stopped);
       } else {
-      float a = callback.m_closestHitFraction;
-      b.setPosition(x0+(x1-x0)*a,y0+(y1-y0)*a,z0+(z1-z0)*a);
-      b.setFlags(Bullet::Stopped);
+      if(callback.matId==ZenLoad::MaterialGroup::METAL ||
+         callback.matId==ZenLoad::MaterialGroup::STONE) {
+        auto d = b.direction();
+        btVector3 m = {d[0],d[1],d[2]};
+        btVector3 n = callback.m_hitNormalWorld;
+
+        n.normalize();
+        const float l = b.speed();
+        m/=l;
+
+        btVector3 dir = m - 2*m.dot(n)*n;
+        dir*=(l*0.5f); //slow-down
+
+        float a = callback.m_closestHitFraction;
+        b.setPosition(x0+(x1-x0)*a,y0+(y1-y0)*a,z0+(z1-z0)*a);
+        if(l*a>10.f) {
+          b.setDirection(dir.x(),dir.y(),dir.z());
+          b.addLen(l*a);
+          ret.mat = callback.matId;
+          } else {
+          b.addFlags(Bullet::Stopped);
+          }
+        } else {
+        float a = callback.m_closestHitFraction;
+        b.setPosition(x0+(x1-x0)*a,y0+(y1-y0)*a,z0+(z1-z0)*a);
+        b.addFlags(Bullet::Stopped);
+        }
       }
     } else {
     const float l = b.speed();
     auto d = b.direction();
-    d[1] -= gravity*k;
+    if(!isSpell)
+      d[1] -= gravity*k;
 
     b.setDirection(d[0],d[1],d[2]);
     b.setPosition(x1,y1,z1);

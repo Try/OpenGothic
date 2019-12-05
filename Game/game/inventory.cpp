@@ -450,7 +450,7 @@ void Inventory::updateRuneView(Npc &owner) {
   if(!sp->isSpellOrRune())
     return;
 
-  const ParticleFx* pfx      = owner.world().script().getSpellFx(sp->spellId());
+  const ParticleFx* pfx      = owner.world().script().getSpellFx(sp->spellId(),SpellFxType::Base);
   auto              vemitter = owner.world().getView(pfx);
   owner.setMagicWeapon(std::move(vemitter));
   }

@@ -72,7 +72,7 @@ class WorldObjects final {
     void           removeItem(Item& it);
     size_t         hasItems(const std::string& tag,size_t itemCls);
 
-    Bullet&        shootBullet(size_t itmId,float x,float y,float z,float dx,float dy,float dz);
+    Bullet&        shootBullet(const Item &itmId, float x, float y, float z, float dx, float dy, float dz, float speed);
 
     void           addInteractive(ZenLoad::zCVobData &&vob);
 

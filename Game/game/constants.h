@@ -190,6 +190,14 @@ enum SpellCategory:int32_t {
   SPELL_BAD    =2,
   };
 
+enum SpellFxType:uint8_t {
+  Base,
+  Invest,
+  Target,
+  Collide,
+  CollideDyn
+  };
+
 enum TargetCollect : int32_t {
   TARGET_COLLECT_NONE                  = 0, // target will be set by effect (range, azi, elev)
   TARGET_COLLECT_CASTER                = 1, // target is the caster

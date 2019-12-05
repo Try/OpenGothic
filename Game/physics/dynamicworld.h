@@ -36,6 +36,7 @@ class DynamicWorld final {
   public:
     static constexpr float gravity     = 100*9.8f;
     static constexpr float bulletSpeed = 3000; //per sec
+    static constexpr float spellSpeed  = 1000; //per sec
 
     DynamicWorld(World &world, const ZenLoad::PackedMesh &pkg);
     ~DynamicWorld();

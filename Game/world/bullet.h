@@ -3,26 +3,30 @@
 #include <cstdint>
 
 #include "graphics/meshobjects.h"
+#include "graphics/pfxobjects.h"
 
 class World;
+class Item;
 class Npc;
 
 class Bullet final {
   public:
-    Bullet(World& owner, size_t inst);
+    Bullet(World &owner, const Item &itm);
     Bullet(Bullet&&)=default;
     ~Bullet();
     Bullet& operator=(Bullet&&)=default;
 
     enum Flg:uint8_t {
       NoFlags = 0,
-      Stopped = 1
+      Stopped = 1,
+      Spell   = 1<<1,
       };
 
     void setPosition  (const std::array<float,3>& p);
     void setPosition  (float x,float y,float z);
     void setDirection (float x,float y,float z);
-    void setView      (MeshObjects::Mesh&& m);
+    void setView      (MeshObjects::Mesh&&   m);
+    void setView      (PfxObjects::Emitter&& p);
 
     void setOwner(Npc* n);
     Npc* owner() const;
@@ -33,6 +37,7 @@ class Bullet final {
 
     Flg                        flags()     const { return flg;  }
     void                       setFlags(Flg f) { flg=f; }
+    void                       addFlags(Flg f) { flg=Flg(flg|f); }
 
     auto                       damage() const -> const std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX>& { return dmg; }
     void                       setDamage(std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> d) { dmg=d; }
@@ -51,6 +56,8 @@ class Bullet final {
     std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> dmg={};
 
     MeshObjects::Mesh                 view;
+    PfxObjects::Emitter               pfx;
+
     std::array<float,3>               pos={};
     std::array<float,3>               dir={};
     float                             dirL=0.f;

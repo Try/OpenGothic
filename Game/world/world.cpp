@@ -466,8 +466,60 @@ size_t World::hasItems(const std::string &tag, size_t itemCls) {
   return wobj.hasItems(tag,itemCls);
   }
 
-Bullet& World::shootBullet(size_t itmId, float x, float y, float z, float dx, float dy, float dz) {
-  return wobj.shootBullet(itmId,x,y,z,dx,dy,dz);
+Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
+  float dx = 1.f, dy = 0.f, dz = 0.f;
+  auto  pos = npc.position();
+  pos[1]+=npc.translateY();
+
+  if(target!=nullptr) {
+    auto  tgPos = target->position();
+    float y1    = target->centerY();
+    float y0    = pos[1];
+
+    dx = tgPos[0]-pos[0];
+    dy = y1-y0;
+    dz = tgPos[2]-pos[2];
+    } else {
+    float a = npc.rotationRad()-float(M_PI/2);
+    float c = std::cos(a), s = std::sin(a);
+    dx = c;
+    dz = s;
+    }
+
+  auto& b = wobj.shootBullet(itm, pos[0],pos[1],pos[2], dx,dy,dz, DynamicWorld::spellSpeed);
+  b.addFlags(Bullet::Spell);
+  return b;
+  }
+
+Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target) {
+  float dx = 1.f, dy = 0.f, dz = 0.f;
+  auto  pos = npc.position();
+  pos[1]+=npc.translateY();
+
+  if(target!=nullptr) {
+    auto  tgPos = target->position();
+    float y1    = target->centerY();
+    float y0    = pos[1];
+
+    dx = tgPos[0]-pos[0];
+    dy = y1-y0;
+    dz = tgPos[2]-pos[2];
+
+    float lxz   = std::sqrt(dx*dx+0*0+dz*dz);
+    float speed = DynamicWorld::bulletSpeed;
+    float t     = lxz/speed;
+
+    dy = (y1-y0)/t + 0.5f*DynamicWorld::gravity*t;
+    dx/=t;
+    dz/=t;
+    } else {
+    float a = npc.rotationRad()-float(M_PI/2);
+    float c = std::cos(a), s = std::sin(a);
+    dx = c;
+    dz = s;
+    }
+
+  return wobj.shootBullet(itm, pos[0],pos[1],pos[2], dx,dy,dz, DynamicWorld::bulletSpeed);
   }
 
 void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {

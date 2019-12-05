@@ -455,6 +455,10 @@ float Npc::translateY() const {
   return visual.pose().translateY();
   }
 
+float Npc::centerY() const {
+  return physic.centerY();
+  }
+
 Npc *Npc::lookAtTarget() const {
   return currentLookAt;
   }
@@ -2171,6 +2175,20 @@ bool Npc::castSpell() {
         currentTarget->lastHitSpell = splId;
         currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
         }
+
+      auto& spl = owner.script().getSpell(splId);
+
+      std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> dmg={};
+      for(size_t i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i)
+        if((spl.damageType&(1<<i))!=0) {
+          dmg[i] = spl.damage_per_level;
+          }
+
+      auto& b = owner.shootSpell(*active, *this, currentTarget);
+      b.setOwner(this);
+      b.setDamage(dmg);
+      b.setHitChance(1.f);
+
       if(active->isSpell())
         invent.delItem(active->clsId(),1,*this);
       break;
@@ -2201,35 +2219,12 @@ bool Npc::shootBow() {
   if(!setAnim(Anim::Atack))
     return false;
 
-  float dx=1.f,dy=0.f,dz=0.f;
-  if(currentTarget!=nullptr) {
-    float y1 = currentTarget->physic.centerY();
-    float y0 = y+translateY();
-
-    dx = currentTarget->x-x;
-    dy = y1-y0;
-    dz = currentTarget->z-z;
-
-    float lxz   = std::sqrt(dx*dx+0*0+dz*dz);
-    float speed = DynamicWorld::bulletSpeed;
-    float t     = lxz/speed;
-
-    dy = (y1-y0)/t + 0.5f*DynamicWorld::gravity*t;
-    dx/=t;
-    dz/=t;
-
-    dx = dx/speed;
-    dy = dy/speed;
-    dz = dz/speed;
-    } else {
-    float a = rotationRad()-float(M_PI/2);
-    float c = std::cos(a), s = std::sin(a);
-    dx = c;
-    dz = s;
-    }
+  auto itm = invent.getItem(size_t(munition));
+  if(itm==nullptr)
+    return false;
+  auto& b = owner.shootBullet(*itm,*this,currentTarget);
 
   invent.delItem(size_t(munition),1,*this);
-  auto& b = owner.shootBullet(size_t(munition), x,y+translateY(),z,dx,dy,dz);
   b.setOwner(this);
   b.setDamage(rangeDamageValue());
 

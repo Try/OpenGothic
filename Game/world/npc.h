@@ -187,6 +187,7 @@ class Npc final {
     float               rotation() const;
     float               rotationRad() const;
     float               translateY() const;
+    float               centerY() const;
     Npc*                lookAtTarget() const;
 
     float               qDistTo(float x,float y,float z) const;

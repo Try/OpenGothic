@@ -369,13 +369,17 @@ size_t WorldObjects::hasItems(const std::string &tag, size_t itemCls) {
   return 0;
   }
 
-Bullet& WorldObjects::shootBullet(size_t itmId, float x, float y, float z, float dx, float dy, float dz) {
-  float speed=DynamicWorld::bulletSpeed;
+Bullet& WorldObjects::shootBullet(const Item& itmId,
+                                  float x, float y, float z,
+                                  float dx, float dy, float dz,
+                                  float speed) {
   bullets.emplace_back(owner,itmId);
   auto& b = bullets.back();
 
+  const float l = std::sqrt(dx*dx+dy*dy+dz*dz);
+
   b.setPosition(x,y,z);
-  b.setDirection(dx*speed,dy*speed,dz*speed);
+  b.setDirection(dx*speed/l,dy*speed/l,dz*speed/l);
   return b;
   }
 
