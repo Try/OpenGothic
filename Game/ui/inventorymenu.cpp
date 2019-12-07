@@ -3,7 +3,7 @@
 #include <Tempest/Painter>
 #include <Tempest/SoundEffect>
 
-#include "utils/cp1251.h"
+#include "utils/gthfont.h"
 #include "world/world.h"
 #include "gothic.h"
 #include "resources.h"
@@ -357,7 +357,6 @@ void InventoryMenu::adjustScroll() {
 
 void InventoryMenu::drawAll(Painter &p,Npc &player) {
   renderer.reset();
-  p.setFont(Resources::font());
   const int padd = 43;
 
   int iy=30+34+70;
@@ -366,12 +365,12 @@ void InventoryMenu::drawAll(Painter &p,Npc &player) {
   const int hcount = int(rowsCount());
 
   if(chest!=nullptr){
-    drawHeader(p,cp1251::toUtf8(chest->displayName()),padd,70);
+    drawHeader(p,chest->displayName(),padd,70);
     drawItems(p,*pageOth,pageLocal[0],padd,iy,wcount,hcount);
     }
 
   if(trader!=nullptr) {
-    drawHeader(p,cp1251::toUtf8(trader->displayName()),padd,70);
+    drawHeader(p,trader->displayName(),padd,70);
     drawItems(p,*pageOth,pageLocal[0],padd,iy,wcount,hcount);
     }
 
@@ -401,6 +400,7 @@ void InventoryMenu::drawItems(Painter &p, const Page &inv, const PageLocal& sel,
 void InventoryMenu::drawSlot(Painter &p, const Page &inv, const PageLocal &sel, int x, int y, size_t id) {
   if(!slot)
     return;
+
   p.setBrush(*slot);
   p.drawRect(x,y,slotSize().w,slotSize().h,
              0,0,slot->w(),slot->h());
@@ -422,21 +422,21 @@ void InventoryMenu::drawSlot(Painter &p, const Page &inv, const PageLocal &sel, 
                0,0,selU->w(),selU->h());
     }
 
+  auto& fnt = Resources::font();
   char  vint[32]={};
   std::snprintf(vint,sizeof(vint),"%d",int(r.count()));
-  auto sz = p.font().textSize(vint);
-  p.drawText(x+slotSize().w-sz.w-10,
-             y+slotSize().h-10,
-             vint);
-
-  if(r.slot()!=Item::NSLOT){
-    p.setBrush(Color(1,0,0,1));
-    std::snprintf(vint,sizeof(vint),"%d",int(r.slot()));
-    auto sz = p.font().textSize(vint);
-    p.drawText(x+10,
-               y+slotSize().h/2+sz.h/2,
+  auto sz = fnt.textSize(vint);
+  fnt.drawText(p,x+slotSize().w-sz.w-10,
+               y+slotSize().h-10,
                vint);
-    p.setBrush(Color(1,1,1,1));
+
+  if(r.slot()!=Item::NSLOT) {
+    auto& fnt = Resources::font(Resources::FontType::Red);
+    std::snprintf(vint,sizeof(vint),"%d",int(r.slot()));
+    auto sz = fnt.textSize(vint);
+    fnt.drawText(p,x+10,
+                 y+slotSize().h/2+sz.h/2,
+                 vint);
     }
 
   renderer.drawItem(x,y,slotSize().w,slotSize().h,r);
@@ -457,10 +457,12 @@ void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {
   }
 
 void InventoryMenu::drawHeader(Painter &p,const char* title, int x, int y) {
+  auto& fnt = Resources::font();
+
   const int dw = slotSize().w*2;
   const int dh = 34;
-  const int tw = p.font().textSize(title).w;
-  const int th = p.font().textSize(title).h;
+  const int tw = fnt.textSize(title).w;
+  const int th = fnt.textSize(title).h;
 
   if(tex) {
     p.setBrush(*tex);
@@ -470,11 +472,11 @@ void InventoryMenu::drawHeader(Painter &p,const char* title, int x, int y) {
     p.setBrush(*slot);
     p.drawRect(x,y,dw,dh, 0,0,slot->w(),slot->h());
     }
-  p.drawText(x+(dw-tw)/2,y+dh/2+th/2,title);
+
+  fnt.drawText(p,x+(dw-tw)/2,y+dh/2+th/2,title);
   }
 
 void InventoryMenu::drawInfo(Painter &p) {
-  p.setFont(Resources::font());
   const int dw   = std::min(w(),720);
   const int dh   = infoHeight();//int(choise.size()*p.font().pixelSize())+2*padd;
   const int x    = (w()-dw)/2;
@@ -493,12 +495,13 @@ void InventoryMenu::drawInfo(Painter &p) {
                0,0,tex->w(),tex->h());
     }
 
-  auto desc = cp1251::toUtf8(r.description());
-  int  tw   = p.font().textSize(desc).w;
-  p.drawText(x+(dw-tw)/2,y+int(p.font().pixelSize()),desc);
+  auto& fnt = Resources::font();
+  auto desc = r.description();
+  int  tw   = fnt.textSize(desc).w;
+  fnt.drawText(p,x+(dw-tw)/2,y+int(fnt.pixelSize()),desc);
 
   for(size_t i=0;i<Item::MAX_UI_ROWS;++i){
-    const char*   txt=cp1251::toUtf8(r.uiText(i));
+    const char*   txt=r.uiText(i);
     int32_t       val=r.uiValue(i);
     char          vint[32]={};
 
@@ -510,11 +513,11 @@ void InventoryMenu::drawInfo(Painter &p) {
       }
 
     std::snprintf(vint,sizeof(vint),"%d",val);
-    int tw = p.font().textSize(vint).w;
+    int tw = fnt.textSize(vint).w;
 
-    p.drawText(x+20,      y+int((i+2)*p.font().pixelSize()),txt);
+    fnt.drawText(p, x+20,  y+int(i+2)*fnt.pixelSize(), txt);
     if(val!=0)
-      p.drawText(x+dw-tw-20,y+int((i+2)*p.font().pixelSize()),vint);
+      fnt.drawText(p,x+dw-tw-20,y+int(i+2)*fnt.pixelSize(),vint);
     }
 
   const int sz=dh;

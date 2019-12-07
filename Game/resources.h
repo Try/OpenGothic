@@ -23,13 +23,14 @@ class Animation;
 class AttachBinder;
 class PhysicMeshShape;
 class SoundFx;
+class GthFont;
 
 namespace Dx8 {
 class DirectMusic;
 class Music;
 }
 
-class Resources {
+class Resources final {
   public:
     explicit Resources(Gothic& gothic, Tempest::Device& device);
     ~Resources();
@@ -40,6 +41,14 @@ class Resources {
       Transparent  =2,
       AdditiveLight=3,
       Last
+      };
+
+    enum class FontType : uint8_t {
+      Normal,
+      Hi,
+      Disabled,
+      Yellow,
+      Red
       };
 
     static const size_t MAX_NUM_SKELETAL_NODES = 96;
@@ -64,10 +73,10 @@ class Resources {
       float    pos[2];
       };
 
-    static Tempest::Font fontByName(const std::string& name);
-    static Tempest::Font menuFont()   { return inst->menuFnt; }
-    static Tempest::Font dialogFont() { return inst->dlgFnt;  }
-    static Tempest::Font font()       { return inst->mainFnt; }
+    static const GthFont& dialogFont();
+    static const GthFont& font();
+    static const GthFont& font(FontType type);
+    static const GthFont& font(const char *fname,FontType type = FontType::Normal);
 
     static const Tempest::Texture2d& fallbackTexture();
     static const Tempest::Texture2d& fallbackBlack();
@@ -96,12 +105,12 @@ class Resources {
     template<class V>
     static Tempest::IndexBuffer<V>   loadIbo(const V* data,size_t sz){ return inst->device.loadIbo(data,sz,Tempest::BufferFlags::Static); }
 
-    static std::vector<uint8_t> getFileData(const char*        name);
-    static bool                 getFileData(const char*        name,std::vector<uint8_t>& dat);
-    static std::vector<uint8_t> getFileData(const std::string& name);
+    static std::vector<uint8_t>      getFileData(const char*        name);
+    static bool                      getFileData(const char*        name,std::vector<uint8_t>& dat);
+    static std::vector<uint8_t>      getFileData(const std::string& name);
 
-    static bool                 hasFile(const std::string& fname);
-    static VDFS::FileIndex&     vdfsIndex();
+    static bool                      hasFile(const std::string& fname);
+    static VDFS::FileIndex&          vdfsIndex();
 
     static const Tempest::VertexBuffer<VertexFsq> &fsqVbo();
 
@@ -124,6 +133,7 @@ class Resources {
     Tempest::Sound        implLoadSoundBuffer(const char* name);
     Tempest::SoundEffect* implLoadSound(const char *name);
     Dx8::Music            implLoadDxMusic(const char *name);
+    GthFont&              implLoadFont(const char* fname, FontType type);
 
     MeshLoadCode          loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
     ZenLoad::zCModelMeshLib loadMDS (std::string& name);
@@ -131,17 +141,21 @@ class Resources {
     Tempest::Texture2d fallback, fbZero;
 
     using BindK = std::tuple<const Skeleton*,const ProtoMesh*,const std::string>;
+    using FontK = std::pair<const std::string,FontType>;
+
     struct Hash {
       size_t operator()(const BindK& b) const {
         return std::uintptr_t(std::get<0>(b));
+        }
+      size_t operator()(const FontK& b) const {
+        std::hash<std::string> h;
+        return h(std::get<0>(b));
         }
       };
 
     Tempest::Device&      device;
     Tempest::SoundDevice  sound;
     std::recursive_mutex  sync;
-    Tempest::Font         menuFnt, mainFnt, dlgFnt;
-    Tempest::Assets       asset;
     std::unique_ptr<Dx8::DirectMusic> dxMusic;
     Gothic&               gothic;
     VDFS::FileIndex       gothicAssets;
@@ -157,6 +171,7 @@ class Resources {
     std::unordered_map<const ProtoMesh*,std::unique_ptr<PhysicMeshShape>> phyMeshCache;
 
     std::unordered_map<std::string,std::unique_ptr<Tempest::SoundEffect>> sndCache;
+    std::unordered_map<FontK,std::unique_ptr<GthFont>,Hash>               gothicFnt;
   };
 
 

@@ -6,7 +6,6 @@
 #include "gothic.h"
 #include "world/npc.h"
 #include "world/item.h"
-#include "utils/cp1251.h"
 
 #include <fstream>
 #include <Tempest/Log>
@@ -297,6 +296,7 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("doc_setmargins",      [this](Daedalus::DaedalusVM& vm){ doc_setmargins(vm);       });
   vm.registerExternalFunction("doc_printline",       [this](Daedalus::DaedalusVM& vm){ doc_printline(vm);        });
   vm.registerExternalFunction("doc_printlines",      [this](Daedalus::DaedalusVM& vm){ doc_printlines(vm);       });
+  vm.registerExternalFunction("doc_setfont",         [this](Daedalus::DaedalusVM& vm){ doc_setfont(vm);          });
   vm.registerExternalFunction("doc_show",            [this](Daedalus::DaedalusVM& vm){ doc_show(vm);             });
 
   vm.registerExternalFunction("introducechapter",    [this](Daedalus::DaedalusVM& vm){ introducechapter(vm);     });
@@ -344,7 +344,7 @@ void GameScript::initCommon() {
       Daedalus::GEngineClasses::C_Item item={};
       vm.initializeInstance(item, itMi_Gold, Daedalus::IC_Item);
       clearReferences(item);
-      goldTxt = cp1251::toUtf8(item.name);
+      goldTxt = item.name;
       }
     auto& tradeMul = dat.getSymbolByName("TRADE_VALUE_MULTIPLIER");
     tradeValMult   = tradeMul.getFloat();
@@ -359,7 +359,7 @@ void GameScript::initCommon() {
       Daedalus::GEngineClasses::C_Item item={};
       vm.initializeInstance(item, itMi_Gold, Daedalus::IC_Item);
       clearReferences(item);
-      goldTxt = cp1251::toUtf8(item.name);
+      goldTxt = item.name;
       }
     //
     tradeValMult   = 1.f;
@@ -751,7 +751,7 @@ std::vector<GameScript::DlgChoise> GameScript::dialogChoises(Daedalus::GEngineCl
 
       if(valid) {
         DlgChoise ch;
-        ch.title    = cp1251::toUtf8(info.description);
+        ch.title    = info.description;
         ch.scriptFn = info.information;
         ch.handle   = i;
         ch.isTrade  = info.trade!=0;
@@ -785,7 +785,7 @@ std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::Dl
       valid = runFunction(info.condition)!=0;
 
     GameScript::DlgChoise ch;
-    ch.title    = cp1251::toUtf8(sub.text);
+    ch.title    = sub.text;
     ch.scriptFn = sub.functionSym;
     ch.handle   = dlg.handle;
     ch.isTrade  = false;
@@ -981,7 +981,7 @@ const std::string &GameScript::messageByName(const std::string& id) const {
     static std::string empty;
     return empty;
     }
-  return cp1251::toUtf8(dialogs->getMessageByName(id).text);
+  return dialogs->getMessageByName(id).text;
   }
 
 uint32_t GameScript::messageTime(const std::string &id) const {
@@ -2881,7 +2881,7 @@ void GameScript::doc_printline(Daedalus::DaedalusVM &vm) {
 
   auto& doc = getDocument(handle);
   if(doc!=nullptr && page>=0 && size_t(page)<doc->pages.size()){
-    doc->pages[size_t(page)].text += cp1251::toUtf8(text);
+    doc->pages[size_t(page)].text += text;
     doc->pages[size_t(page)].text += "\n";
     }
   }
@@ -2893,7 +2893,7 @@ void GameScript::doc_printlines(Daedalus::DaedalusVM &vm) {
 
   auto& doc = getDocument(handle);
   if(doc!=nullptr && page>=0 && size_t(page)<doc->pages.size()){
-    doc->pages[size_t(page)].text += cp1251::toUtf8(text);
+    doc->pages[size_t(page)].text += text;
     doc->pages[size_t(page)].text += "\n";
     }
   }
@@ -2920,6 +2920,24 @@ void GameScript::doc_setmargins(Daedalus::DaedalusVM &vm) {
     }
   }
 
+void GameScript::doc_setfont(Daedalus::DaedalusVM &vm) {
+  auto& font   = vm.popString();
+  int   page   = vm.popInt();
+  int   handle = vm.popInt();
+
+  auto& doc = getDocument(handle);
+  if(doc==nullptr)
+    return;
+
+  if(page>=0 && size_t(page)<doc->pages.size()){
+    auto& pg = doc->pages[size_t(page)];
+    pg.font = font;
+    pg.flg  = DocumentMenu::Flags(pg.flg | DocumentMenu::F_Font);
+    } else {
+    doc->font = font;
+    }
+  }
+
 void GameScript::doc_show(Daedalus::DaedalusVM &vm) {
   const int handle = vm.popInt();
 
@@ -2938,8 +2956,8 @@ void GameScript::introducechapter(Daedalus::DaedalusVM &vm) {
   s.time     = vm.popInt();
   s.sound    = vm.popString();
   s.img      = vm.popString();
-  s.subtitle = cp1251::toUtf8(vm.popString());
-  s.title    = cp1251::toUtf8(vm.popString());
+  s.subtitle = vm.popString();
+  s.title    = vm.popString();
   owner.introChapter(s);
   }
 
@@ -2963,7 +2981,7 @@ void GameScript::printscreen(Daedalus::DaedalusVM &vm) {
   int32_t            posy    = vm.popInt();
   int32_t            posx    = vm.popInt();
   const std::string& msg     = vm.popString();
-  owner.printScreen(cp1251::toUtf8(msg).c_str(),posx,posy,timesec,Resources::fontByName(font));
+  owner.printScreen(msg.c_str(),posx,posy,timesec,Resources::font(font.c_str()));
   vm.setReturn(0);
   }
 
@@ -2975,13 +2993,13 @@ void GameScript::printdialog(Daedalus::DaedalusVM &vm) {
   const std::string& msg      = vm.popString();
   int32_t            dialognr = vm.popInt();
   (void)dialognr;
-  owner.printScreen(cp1251::toUtf8(msg).c_str(),posx,posy,timesec,Resources::fontByName(font));
+  owner.printScreen(msg.c_str(),posx,posy,timesec,Resources::font(font.c_str()));
   vm.setReturn(0);
   }
 
 void GameScript::print(Daedalus::DaedalusVM &vm) {
   const std::string& msg = vm.popString();
-  owner.print(cp1251::toUtf8(msg).c_str());
+  owner.print(msg.c_str());
   }
 
 void GameScript::perc_setrange(Daedalus::DaedalusVM &) {

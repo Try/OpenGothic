@@ -417,7 +417,7 @@ const FightAi::FA &Gothic::getFightAi(size_t i) const {
   return fight->get(i);
   }
 
-void Gothic::printScreen(const char *msg, int x, int y, int time, const Tempest::Font &font) {
+void Gothic::printScreen(const char *msg, int x, int y, int time, const GthFont &font) {
   onPrintScreen(msg,x,y,time,font);
   }
 

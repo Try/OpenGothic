@@ -3,6 +3,7 @@
 #include <Tempest/Painter>
 #include <Tempest/SoundEffect>
 
+#include "utils/gthfont.h"
 #include "gothic.h"
 #include "resources.h"
 
@@ -37,15 +38,18 @@ void ChapterScreen::paintEvent(Tempest::PaintEvent &e) {
   p.drawRect(x,y,back->w(),back->h());
 
   Color clNormal = {1.f,0.87f,0.67f,1.f};
-  p.setFont(Resources::menuFont());
-  auto sz = p.font().textSize(title);
-  p.setBrush(clNormal);
-  p.drawText(x+(back->w()-sz.w)/2,y+50+int(p.font().pixelSize()),title);
 
-  p.setFont(Resources::dialogFont());
-  p.setBrush(Color(1.f));
-  sz = p.font().textSize(subTitle);
-  p.drawText(x+(back->w()-sz.w)/2,y+back->h()-50,subTitle);
+  {
+  auto& fnt = Resources::font();
+  auto  sz  = fnt.textSize(title);
+  fnt.drawText(p,x+(back->w()-sz.w)/2,y+50+int(fnt.pixelSize()),title);
+  }
+
+  {
+  auto& fnt = Resources::font();
+  auto  sz  = fnt.textSize(subTitle);
+  fnt.drawText(p,x+(back->w()-sz.w)/2,y+back->h()-50,subTitle);
+  }
   }
 
 void ChapterScreen::close() {

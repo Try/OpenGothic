@@ -431,7 +431,7 @@ bool World::aiIsDlgFinished() {
   return game.aiIsDlgFinished();
   }
 
-void World::printScreen(const char *msg, int x, int y, int time, const Font &font) {
+void World::printScreen(const char *msg, int x, int y, int time, const GthFont &font) {
   game.printScreen(msg,x,y,time,font);
   }
 

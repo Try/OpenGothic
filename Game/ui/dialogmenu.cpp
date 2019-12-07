@@ -3,7 +3,7 @@
 #include <Tempest/Painter>
 #include <algorithm>
 
-#include "utils/cp1251.h"
+#include "utils/gthfont.h"
 #include "gothic.h"
 #include "inventorymenu.h"
 #include "resources.h"
@@ -82,26 +82,29 @@ void DialogMenu::tick(uint64_t dt) {
 
 void DialogMenu::drawTextMultiline(Painter &p, int x, int y, int w, int h, const std::string &txt,bool isPl) {
   const int pdd=10;
-  y+=int(p.font().pixelSize());
 
-  p.setFont(Resources::dialogFont());
-  p.setBrush(Color(1,1,1));
+
   if(isPl){
-    p.drawText(x+pdd, y+pdd,
-               w-2*pdd, h-2*pdd, txt);
+    auto& fnt = Resources::font();
+    y+=fnt.pixelSize();
+    //p.setBrush(Color(1,1,1));
+    fnt.drawText(p,x+pdd, y+pdd,
+                 w-2*pdd, h-2*pdd, txt);
     } else {
     if(other!=nullptr){
-      auto txt = cp1251::toUtf8(other->displayName());
-      auto sz  = p.font().textSize(txt);
-      p.drawText(x+(w-sz.w)/2,y,txt);
-      y+=int(sz.h);
+      auto& fnt = Resources::font();
+      y+=fnt.pixelSize();
+      auto txt  = other->displayName();
+      auto sz   = fnt.textSize(txt);
+      fnt.drawText(p,x+(w-sz.w)/2,y,txt);
       h-=int(sz.h);
       }
-    p.setBrush(Color(0.81f,0.78f,0.01f));
-    p.drawText(x+pdd, y+pdd,
-               w-2*pdd, h-2*pdd, txt);
+    //p.setBrush(Color(0.81f,0.78f,0.01f));
+    auto& fnt = Resources::font(Resources::FontType::Yellow);
+    y+=fnt.pixelSize();
+    fnt.drawText(p,x+pdd, y+pdd,
+                 w-2*pdd, h-2*pdd, txt);
     }
-  p.setBrush(Color(1,1,1));
   }
 
 void DialogMenu::clear() {
@@ -220,10 +223,10 @@ bool DialogMenu::onStart(Npc &p, Npc &ot) {
   return true;
   }
 
-void DialogMenu::printScreen(const char *msg, int x, int y, int time, const Tempest::Font &font) {
+void DialogMenu::printScreen(const char *msg, int x, int y, int time, const GthFont &font) {
   PScreen e;
   e.txt  = msg;
-  e.font = font;
+  e.font = &font;
   e.time = uint32_t(time*1000)+1000;
   e.x    = x;
   e.y    = y;
@@ -241,7 +244,7 @@ void DialogMenu::print(const char *msg) {
   remPrint=1500;
   PScreen& e=printMsg[MAX_PRINT-1];
   e.txt  = msg;
-  e.font = Resources::font();
+  e.font = &Resources::font();
   e.time = remPrint;
   e.x    = -1;
   e.y    = -1;
@@ -332,17 +335,21 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
   paintChoise(e);
 
   for(size_t i=0;i<MAX_PRINT;++i){
-    auto& sc = printMsg[i];
-    p.setFont(sc.font);
-    auto  sz = p.font().textSize(sc.txt);
-    int x = (w()-sz.w)/2;
-    p.drawText(x, int(i*2+2)*sz.h, sc.txt);
+    auto& sc  = printMsg[i];
+    if(sc.font==nullptr)
+      continue;
+
+    auto& fnt = *sc.font;
+    auto  sz  = fnt.textSize(sc.txt);
+    int   x   = (w()-sz.w)/2;
+    fnt.drawText(p, x, int(i*2+2)*sz.h, sc.txt);
     }
 
   for(size_t i=0;i<pscreen.size();++i){
-    auto& sc = pscreen[i];
-    p.setFont(sc.font);
-    auto  sz = p.font().textSize(sc.txt);
+    auto& sc  = pscreen[i];
+    auto& fnt = *sc.font;
+    auto  sz  = fnt.textSize(sc.txt);
+
     int x = sc.x;
     int y = sc.y;
     if(x<0){
@@ -355,7 +362,7 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
       } else {
       y = int(h()*y/100.f);
       }
-    p.drawText(x,y,sc.txt);
+    fnt.drawText(p, x, y, sc.txt);
     }
   }
 
@@ -364,10 +371,10 @@ void DialogMenu::paintChoise(PaintEvent &e) {
     return;
 
   Painter p(e);
-  p.setFont(Resources::dialogFont());
+  auto& fnt = Resources::dialogFont();
   const int padd = 20;
   const int dw   = std::min(w(),600);
-  const int dh   = int(choise.size()*p.font().pixelSize())+2*padd;
+  const int dh   = int(choise.size())*fnt.pixelSize()+2*padd;
   const int y    = h()-dh-20;
 
   if(tex) {
@@ -377,11 +384,11 @@ void DialogMenu::paintChoise(PaintEvent &e) {
     }
 
   for(size_t i=0;i<choise.size();++i){
+    const GthFont* fnt = &Resources::font(Resources::FontType::Normal);
     int x = (w()-dw)/2;
     if(i==dlgSel)
-      p.setBrush(Color(1.f)); else
-      p.setBrush(Color(0.6f,0.6f,0.6f,1.f));
-    p.drawText(x+padd,y+padd+int((i+1)*p.font().pixelSize()),choise[i].title);
+      fnt = &Resources::font(Resources::FontType::Hi);
+    fnt->drawText(p,x+padd,y+padd+int(i+1)*fnt->pixelSize(),choise[i].title);
     }
   }
 

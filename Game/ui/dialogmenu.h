@@ -13,6 +13,7 @@
 class Npc;
 class Interactive;
 class InventoryMenu;
+class GthFont;
 
 class DialogMenu : public Tempest::Widget {
   public:
@@ -31,7 +32,7 @@ class DialogMenu : public Tempest::Widget {
     bool isActive() const;
 
     void print      (const char* msg);
-    void printScreen(const char* msg,int x,int y,int time,const Tempest::Font& font);
+    void printScreen(const char* msg, int x, int y, int time, const GthFont &font);
 
     void keyDownEvent   (Tempest::KeyEvent&   event) override;
     void keyUpEvent     (Tempest::KeyEvent&   event) override;
@@ -83,11 +84,11 @@ class DialogMenu : public Tempest::Widget {
       };
 
     struct PScreen {
-      std::string   txt;
-      Tempest::Font font;
-      uint32_t      time=0;
-      int           x=-1;
-      int           y=-1;
+      std::string    txt;
+      const GthFont* font=nullptr;
+      uint32_t       time=0;
+      int            x=-1;
+      int            y=-1;
       };
 
     bool onStart(Npc& pl,Npc& other);

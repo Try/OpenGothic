@@ -13,11 +13,11 @@
 #include "ui/gamemenu.h"
 #include "ui/menuroot.h"
 #include "ui/stacklayout.h"
-#include "utils/cp1251.h"
 
 #include "gothic.h"
 #include "game/serialize.h"
 #include "utils/crashlog.h"
+#include "utils/gthfont.h"
 
 using namespace Tempest;
 
@@ -132,17 +132,17 @@ void MainWindow::paintEvent(PaintEvent& event) {
         auto pos = focus.displayPosition();
         vp.project(pos[0],pos[1],pos[2]);
 
-        int ix = int((0.5f*pos[0]+0.5f)*w());
-        int iy = int((0.5f*pos[1]+0.5f)*h());
-        p.setFont(Resources::font());
-        const char* txt = cp1251::toUtf8(focus.displayName());
-        auto tsize = p.font().textSize(txt);
+        int   ix = int((0.5f*pos[0]+0.5f)*w());
+        int   iy = int((0.5f*pos[1]+0.5f)*h());
+        auto& fnt = Resources::font();
+
+        auto tsize = fnt.textSize(focus.displayName());
         ix-=tsize.w/2;
         if(iy<tsize.h)
           iy = tsize.h;
         if(iy>h())
           iy = h();
-        p.drawText(ix,iy,txt);
+        fnt.drawText(p, ix,iy,focus.displayName());
 
         if(auto pl = focus.npc){
           float hp = pl->attribute(Npc::ATR_HITPOINTS)/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
@@ -174,8 +174,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
   char fpsT[64]={};
   std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %s",fps.get(),info);
 
-  p.setFont(Resources::font());
-  p.drawText(5,30,fpsT);
+  auto& fnt = Resources::font();
+  fnt.drawText(p,5,30,fpsT);
   }
 
 void MainWindow::resizeEvent(SizeEvent&) {

@@ -355,6 +355,7 @@ class GameScript final {
     void doc_printline       (Daedalus::DaedalusVM &vm);
     void doc_printlines      (Daedalus::DaedalusVM &vm);
     void doc_setmargins      (Daedalus::DaedalusVM &vm);
+    void doc_setfont         (Daedalus::DaedalusVM &vm);
     void doc_show            (Daedalus::DaedalusVM &vm);
 
     void introducechapter    (Daedalus::DaedalusVM &vm);

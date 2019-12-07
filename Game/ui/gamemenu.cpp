@@ -4,7 +4,7 @@
 #include <Tempest/Log>
 #include <Tempest/TextCodec>
 
-#include "utils/cp1251.h"
+#include "utils/gthfont.h"
 #include "world/world.h"
 #include "ui/menuroot.h"
 #include "utils/fileutil.h"
@@ -83,27 +83,12 @@ void GameMenu::paintEvent(PaintEvent &e) {
                0,0,back->w(),back->h());
     }
 
-  for(auto& hItem:hItems){
+  for(auto& hItem:hItems) {
     if(!hItem.visible)
       continue;
     Daedalus::GEngineClasses::C_Menu_Item&        item = hItem.handle;
     Daedalus::GEngineClasses::C_Menu_Item::EFlags flags=Daedalus::GEngineClasses::C_Menu_Item::EFlags(item.flags);
     getText(hItem,textBuf);
-
-    Color clText = clNormal;
-    if(item.fontName=="font_old_10_white.tga"){
-      p.setFont(Resources::font());
-      clText = clNormal;
-      }
-    else if(item.fontName=="font_old_10_white_hi.tga"){
-      p.setFont(Resources::font());
-      clText = clWhite;
-      }
-    else if(item.fontName=="font_old_20_white.tga"){
-      p.setFont(Resources::menuFont());
-      } else {
-      p.setFont(Resources::menuFont());
-      }
 
     int x = int(w()*item.posx/scriptDiv);
     int y = int(h()*item.posy/scriptDiv);
@@ -126,19 +111,14 @@ void GameMenu::paintEvent(PaintEvent &e) {
       imgW = szX;
       }
 
-    if(!isEnabled(item))
-      clText = clDisabled;
-
-    if(&hItem==selectedItem())
-      p.setBrush(clSelected); else
-      p.setBrush(clText);
+    auto& fnt = getTextFont(hItem);
 
     if(flags & Daedalus::GEngineClasses::C_Menu_Item::IT_TXT_CENTER){
-      Size sz = p.font().textSize(textBuf.data());
+      Size sz = fnt.textSize(textBuf.data());
       if(hItem.img && !hItem.img->isEmpty()) {
         x = imgX+(imgW-sz.w)/2;
         }
-      else if(item.dimx!=-1 || item.dimy!=-1) {
+      else if(item.dimx!=-1) {
         const int szX = int(w()*item.dimx/scriptDiv);
         // const int szY = int(h()*item.dimy/scriptDiv);
         x = x+(szX-sz.w)/2;
@@ -148,19 +128,16 @@ void GameMenu::paintEvent(PaintEvent &e) {
       //y += sz.h/2;
       }
 
-    p.drawText(x,y+int(p.font().pixelSize()/2),textBuf.data());
+    fnt.drawText(p,x,y+fnt.pixelSize(),textBuf.data());
     }
 
-  if(auto sel=selectedItem()){
-    p.setFont(Resources::font());
+  if(auto sel=selectedItem()) {
+    auto& fnt = Resources::font();
     Daedalus::GEngineClasses::C_Menu_Item& item = sel->handle;
     if(item.text->size()>1) {
       const char* txt = item.text[1].c_str();
-      cp1251::toUtf8(textBuf,txt);
-      int tw = p.font().textSize(textBuf.data()).w;
-
-      p.setBrush(clSelected);
-      p.drawText((w()-tw)/2,h()-12,textBuf.data());
+      int tw = fnt.textSize(txt).w;
+      fnt.drawText(p,(w()-tw)/2,h()-12,txt);
       }
     }
   }
@@ -227,7 +204,7 @@ GameMenu::Item *GameMenu::selectedNextItem(Item *it) {
 
 void GameMenu::setSelection(int desired,int seek) {
   uint32_t cur=uint32_t(desired);
-  for(int i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;++i,cur+=uint32_t(seek)) {
+  for(int i=0; i<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS; ++i,cur+=uint32_t(seek)) {
     cur%=Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;
 
     auto& it=hItems[cur].handle;
@@ -246,7 +223,8 @@ void GameMenu::getText(const Item& it, std::vector<char> &out) {
 
   const std::string& src = it.handle.text[0];
   if(it.handle.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_TEXT) {
-    cp1251::toUtf8(out,src);
+    out.resize(src.size()+1);
+    std::memcpy(out.data(),src.data(),src.size()+1);
     return;
     }
 
@@ -254,6 +232,14 @@ void GameMenu::getText(const Item& it, std::vector<char> &out) {
     strEnum(src.c_str(),it.value,out);
     return;
     }
+  }
+
+const GthFont &GameMenu::getTextFont(const GameMenu::Item &it) {
+  if(!isEnabled(it.handle))
+    return Resources::font(it.handle.fontName.c_str(),Resources::FontType::Disabled);
+  if(&it==selectedItem())
+    return Resources::font(it.handle.fontName.c_str(),Resources::FontType::Hi);
+  return Resources::font(it.handle.fontName.c_str());
   }
 
 bool GameMenu::isEnabled(const Daedalus::GEngineClasses::C_Menu_Item &item) {

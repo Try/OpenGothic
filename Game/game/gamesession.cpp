@@ -383,7 +383,7 @@ bool GameSession::aiIsDlgFinished() {
   return gothic.aiIsDlgFinished();
   }
 
-void GameSession::printScreen(const char *msg, int x, int y, int time, const Tempest::Font &font) {
+void GameSession::printScreen(const char *msg, int x, int y, int time, const GthFont &font) {
   gothic.printScreen(msg,x,y,time,font);
   }
 

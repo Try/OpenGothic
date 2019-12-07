@@ -11,6 +11,7 @@
 class Gothic;
 class MenuRoot;
 class Npc;
+class GthFont;
 
 class GameMenu : public Tempest::Widget {
   public:
@@ -35,11 +36,6 @@ class GameMenu : public Tempest::Widget {
     Daedalus::GEngineClasses::C_Menu      menu={};
     const Tempest::Texture2d*             back=nullptr;
     Tempest::Texture2d                    savThumb;
-
-    Tempest::Color                        clNormal  ={1.f,0.87f,0.67f,1.f};
-    Tempest::Color                        clDisabled={1.f,0.87f,0.67f,0.6f};
-    Tempest::Color                        clSelected={1.f,1.f,1.f,1.f};
-    Tempest::Color                        clWhite   ={1.f,1.f,1.f,1.f};
     std::vector<char>                     textBuf;
 
     Tempest::Timer                        timer;
@@ -61,6 +57,7 @@ class GameMenu : public Tempest::Widget {
     void                                  initItems();
     void                                  initValues();
     void                                  getText(const Item &it, std::vector<char>& out);
+    const GthFont&                        getTextFont(const Item &it);
     bool                                  isEnabled(const Daedalus::GEngineClasses::C_Menu_Item& item);
 
     void                                  exec         (Item &item);

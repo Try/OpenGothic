@@ -21,6 +21,7 @@ class ParticleFx;
 class VisualFx;
 class WorldStateStorage;
 class VersionInfo;
+class GthFont;
 
 class GameSession final {
   public:
@@ -78,7 +79,7 @@ class GameSession final {
     AiOuputPipe* openDlgOuput(Npc &player, Npc &npc);
     bool         aiIsDlgFinished();
 
-    void         printScreen(const char *msg, int x, int y, int time, const Tempest::Font &font);
+    void         printScreen(const char *msg, int x, int y, int time, const GthFont &font);
     void         print(const char *msg);
     void         introChapter(const ChapterScreen::Show& s);
     void         showDocument(const DocumentMenu::Show& s);

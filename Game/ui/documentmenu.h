@@ -13,18 +13,21 @@ class DocumentMenu : public Tempest::Widget {
     enum Flags : uint8_t {
       F_None,
       F_Margin=1,
-      F_Backgr=2
+      F_Backgr=2,
+      F_Font  =4
       };
 
     struct Page {
       std::string     img;
       std::string     text;
+      std::string     font;
       Tempest::Margin margins;
       Flags           flg=F_None;
       };
 
     struct Show {
       std::vector<Page> pages;
+      std::string       font;
       Tempest::Margin   margins;
       std::string       img;
       };

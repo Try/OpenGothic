@@ -1,5 +1,6 @@
 #include "documentmenu.h"
 
+#include "utils/gthfont.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -57,8 +58,13 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
   int x=int(w()-k*mw)/2, y = (h()-mh)/2;
 
   Painter p(e);
-  p.setFont(Resources::dialogFont());
   for(auto& i:document.pages){
+    const GthFont* fnt = nullptr;
+    if(i.flg&F_Font)
+      fnt = &Resources::font(i.font.c_str()); else
+      fnt = &Resources::font(document.font.c_str());
+    if(fnt==nullptr)
+      fnt = &Resources::font();
     auto back = Resources::loadTexture((i.flg&F_Backgr) ? i.img : document.img);
     if(!back)
       continue;
@@ -72,11 +78,11 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
 
     p.setBrush(Color(0.04f,0.04f,0.04f,1));
 
-    p.drawText(x+mgr.left,
-               y+mgr.top,
-               w - mgr.xMargin(),
-               back->h() - mgr.yMargin(),
-               i.text);
+    fnt->drawText(p,x+mgr.left,
+                  y+mgr.top,
+                  w - mgr.xMargin(),
+                  back->h() - mgr.yMargin(),
+                  i.text);
     x+=w;
     }
   }

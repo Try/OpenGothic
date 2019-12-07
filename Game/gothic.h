@@ -99,7 +99,7 @@ class Gothic final {
     void      setMusic(const GameMusic::Music m);
     void      stopMusic();
 
-    void      printScreen(const char* msg, int x, int y, int time, const Tempest::Font &font);
+    void      printScreen(const char* msg, int x, int y, int time, const GthFont &font);
     void      print      (const char* msg);
 
     Tempest::Signal<void(const std::string&)>              onStartGame;
@@ -109,7 +109,7 @@ class Gothic final {
     Tempest::Signal<void(Npc&,Npc&,AiOuputPipe*&)>         onDialogPipe;
     Tempest::Signal<void(bool&)>                           isDialogClose;
 
-    Tempest::Signal<void(const char*,int,int,int,const Tempest::Font&)> onPrintScreen;
+    Tempest::Signal<void(const char*,int,int,int,const GthFont&)>       onPrintScreen;
     Tempest::Signal<void(const char*)>                                  onPrint;
 
     Tempest::Signal<void(const ChapterScreen::Show&)>                   onIntroChapter;

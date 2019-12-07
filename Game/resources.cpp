@@ -29,6 +29,7 @@
 #include "dmusic/music.h"
 #include "dmusic/directmusic.h"
 #include "utils/fileext.h"
+#include "utils/gthfont.h"
 
 #include "gothic.h"
 
@@ -48,16 +49,8 @@ static void emplaceTag(char* buf, char tag){
   }
 
 Resources::Resources(Gothic &gothic, Tempest::Device &device)
-  : device(device), asset("data",device), gothic(gothic) {
+  : device(device), gothic(gothic) {
   inst=this;
-
-  const char* menu = "font/menu.ttf";
-  const char* main = "font/main.ttf";
-
-  if(/* DISABLES CODE */ (true)) { // international chasters
-    menu = "font/Kelvinch-Roman.otf";
-    main = "font/Kelvinch-Roman.otf";
-    }
 
   static std::array<VertexFsq,6> fsqBuf =
    {{
@@ -75,19 +68,8 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
   dxMusic->addPath(gothic.nestedPath({u"_work",u"Data",u"Music",u"menu_men"}, Dir::FT_Dir));
   dxMusic->addPath(gothic.nestedPath({u"_work",u"Data",u"Music",u"orchestra"},Dir::FT_Dir));
 
-  const float mult=0.75f;
-
   fBuff .reserve(8*1024*1024);
   ddsBuf.reserve(8*1024*1024);
-
-  menuFnt = asset[menu].get<Font>();
-  menuFnt.setPixelSize(44*mult);
-
-  mainFnt = asset[main].get<Font>();
-  mainFnt.setPixelSize(24*mult);
-
-  dlgFnt  = asset[main].get<Font>();
-  dlgFnt.setPixelSize(32*mult);
 
   {
   Pixmap pm(1,1,Pixmap::Format::RGBA);
@@ -118,9 +100,9 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
     gothicAssets.loadVDF(i);
   gothicAssets.finalizeLoad();
 
-  // auto v = getFileData("BSANVIL_OC_USE.asc");
-  // Tempest::WFile f("../internal/BSANVIL_OC_USE.asc");
-  // f.write(v.data(),v.size());
+  auto v = getFileData("font_old_20_white.tga");
+  Tempest::WFile f("../../internal/font_old_20_white.tga");
+  f.write(v.data(),v.size());
   }
 
 Resources::~Resources() {
@@ -143,18 +125,21 @@ void Resources::detectVdf(std::vector<std::u16string> &ret, const std::u16string
     });
   }
 
-Font Resources::fontByName(const std::string &fontName) {
-  if(fontName=="FONT_OLD_10_WHITE.TGA" || fontName=="font_old_10_white.tga"){
-    return Resources::font();
-    }
-  else if(fontName=="FONT_OLD_10_WHITE_HI.TGA"){
-    return Resources::font();
-    }
-  else if(fontName=="FONT_OLD_20_WHITE.TGA" || fontName=="font_old_20_white.tga"){
-    return Resources::menuFont();
-    } else {
-    return Resources::menuFont();
-    }
+const GthFont& Resources::dialogFont() {
+  return font("font_old_10_white.tga",FontType::Normal);
+  }
+
+const GthFont& Resources::font() {
+  return font("font_old_10_white.tga",FontType::Normal);
+  }
+
+const GthFont &Resources::font(Resources::FontType type) {
+  return font("font_old_10_white.tga",type);
+  }
+
+const GthFont &Resources::font(const char* fname, FontType type) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  return inst->implLoadFont(fname,type);
   }
 
 const Texture2d& Resources::fallbackTexture() {
@@ -264,6 +249,9 @@ Skeleton* Resources::implLoadSkeleton(std::string name) {
   if(it!=skeletonCache.end())
     return it->second.get();
 
+  if(name=="BARBQ_SCAV.MDL")
+    Log::e("");
+
   try {
     ZenLoad::zCModelMeshLib library(name,gothicAssets,1.f);
     std::unique_ptr<Skeleton> t{new Skeleton(library,name)};
@@ -360,6 +348,58 @@ Sound Resources::implLoadSoundBuffer(const char *name) {
     Log::e("unable to load sound \"",name,"\"");
     return Sound();
     }
+  }
+
+GthFont &Resources::implLoadFont(const char* fname, FontType type) {
+  auto it = gothicFnt.find(std::make_pair(fname,type));
+  if(it!=gothicFnt.end())
+    return *(*it).second;
+
+  char file[256]={};
+  for(size_t i=0;i<256 && fname[i];++i) {
+    if(fname[i]=='.')
+      break;
+    file[i] = fname[i];
+    }
+
+  char tex[256]={};
+  char fnt[256]={};
+  switch(type) {
+    case FontType::Normal:
+    case FontType::Disabled:
+    case FontType::Yellow:
+    case FontType::Red:
+      std::snprintf(tex,sizeof(tex),"%s.tga",file);
+      std::snprintf(fnt,sizeof(fnt),"%s.fnt",file);
+      break;
+    case FontType::Hi:
+      std::snprintf(tex,sizeof(tex),"%s_hi.tga",file);
+      std::snprintf(fnt,sizeof(fnt),"%s_hi.fnt",file);
+      break;
+    }
+
+  auto color = Tempest::Color(1.f);
+  switch(type) {
+    case FontType::Normal:
+    case FontType::Hi:
+      color = Tempest::Color(1.f);
+      break;
+    case FontType::Disabled:
+      color = Tempest::Color(1.f,1.f,1.f,0.6f);
+      break;
+    case FontType::Yellow:
+      color = Tempest::Color(1.f,1.f,0.1f,1.f);
+      //color = Tempest::Color(0.81f,0.78f,0.01f,1.f);
+      break;
+    case FontType::Red:
+      color = Tempest::Color(1.f,0.f,0.f,1.f);
+      break;
+    }
+
+  auto ptr   = std::make_unique<GthFont>(fnt,tex,color,gothicAssets);
+  GthFont* f = ptr.get();
+  gothicFnt[std::make_pair(fname,type)] = std::move(ptr);
+  return *f;
   }
 
 bool Resources::hasFile(const std::string &fname) {
