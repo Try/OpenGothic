@@ -621,7 +621,7 @@ class Npc final {
 
     MoveAlgo                       mvAlgo;
     FightAlgo                      fghAlgo;
-    uint64_t                       fghLastEventTime=0;
+    uint64_t                       lastEventTime=0;
 
   friend class MoveAlgo;
   };

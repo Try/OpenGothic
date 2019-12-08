@@ -72,7 +72,7 @@ void Npc::save(Serialize &fout) {
 
   mvAlgo.save(fout);
   fghAlgo.save(fout);
-  fout.write(fghLastEventTime);
+  fout.write(lastEventTime);
   }
 
 void Npc::load(Serialize &fin) {
@@ -101,7 +101,7 @@ void Npc::load(Serialize &fin) {
 
   mvAlgo.load(fin);
   fghAlgo.load(fin);
-  fin.read(fghLastEventTime);
+  fin.read(lastEventTime);
   }
 
 void Npc::save(Serialize &fout, Daedalus::GEngineClasses::C_Npc &h) const {
@@ -634,6 +634,13 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
         }
       case ZenLoad::DEF_INSERT_ITEM: {
         invent.putCurrentToSlot(*this,i.slot[0]);
+        break;
+        }
+      case ZenLoad::DEF_EXCHANGE_ITEM: {
+        invent.clearSlot(*this,i.slot[0],true);
+        if(auto it = invent.addItem(i.item,1,world())) {
+          invent.putToSlot(*this,it->clsId(),i.slot[0]);
+          }
         break;
         }
       case ZenLoad::DEF_REMOVE_ITEM:
@@ -1332,7 +1339,7 @@ void Npc::tick(uint64_t dt) {
     setAnim(AnimationSolver::Idle);
 
   Animation::EvCount ev;
-  visual.pose().processEvents(fghLastEventTime,owner.tickCount(),ev);
+  visual.pose().processEvents(lastEventTime,owner.tickCount(),ev);
 
   if(ev.def_opt_frame>0)
     commitDamage();

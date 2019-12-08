@@ -323,8 +323,8 @@ bool Animation::Sequence::extractFrames(uint64_t& frameA,uint64_t& frameB,bool& 
     }
 
   if(reverse) {
-    frameA = numFrames-frameA;
-    frameB = numFrames-frameB;
+    frameA = numFrames-frameA-1;
+    frameB = numFrames-frameB-1;
     std::swap(frameA,frameB);
     }
 
@@ -383,6 +383,10 @@ void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation
   switch(e.m_Def) {
     case ZenLoad::DEF_NULL:
     case ZenLoad::DEF_LAST:
+    case ZenLoad::DEF_DAM_MULTIPLY:
+    case ZenLoad::DEF_HIT_LIMB:
+    case ZenLoad::DEF_HIT_DIR:
+    case ZenLoad::DEF_HIT_END:
       break;
     case ZenLoad::DEF_OPT_FRAME:
       ev.def_opt_frame++;
@@ -397,7 +401,8 @@ void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation
       break;
     case ZenLoad::DEF_WINDOW:
       break;
-    case ZenLoad::DEF_CREATE_ITEM:{
+    case ZenLoad::DEF_CREATE_ITEM:
+    case ZenLoad::DEF_EXCHANGE_ITEM:{
       EvTimed ex;
       ex.def     = e.m_Def;
       ex.item    = e.m_Item.c_str();
@@ -417,8 +422,14 @@ void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation
       ev.timed.push_back(ex);
       break;
       }
-    default:
-      break; //TODO
+    case ZenLoad::DEF_PLACE_MUNITION:
+    case ZenLoad::DEF_REMOVE_MUNITION:
+      break;
+    case ZenLoad::DEF_SWAPMESH:
+    case ZenLoad::DEF_DRAWTORCH:
+    case ZenLoad::DEF_INV_TORCH:
+    case ZenLoad::DEF_DROP_TORCH:
+      break;
     }
   }
 

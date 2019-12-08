@@ -480,8 +480,12 @@ bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
 
   if(!useWithItem.empty()) {
     size_t it = world->getSymbolIndex(useWithItem.c_str());
-    if(it!=size_t(-1))
+    if(it!=size_t(-1)) {
+      if(npc.hasItem(it)==0)
+        return false;
+      npc.delItem(it,1);
       npc.setCurrentItem(it);
+      }
     }
 
   auto mat = pos;
