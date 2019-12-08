@@ -97,8 +97,9 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Seriali
 GameSession::~GameSession() {
   }
 
-void GameSession::save(Serialize &fout, const Pixmap& screen) {
+void GameSession::save(Serialize &fout, const char* name, const Pixmap& screen) {
   SaveGameHeader hdr;
+  hdr.name      = name;
   hdr.priview   = screen;
   hdr.world     = wrld->name();
   hdr.pcTime    = gtime(std::chrono::system_clock::now()); //FIXME: localtime
@@ -107,12 +108,18 @@ void GameSession::save(Serialize &fout, const Pixmap& screen) {
 
   fout.write(hdr,ticks,wrldTimePart);
   fout.write(uint16_t(visitedWorlds.size()));
+
+  gothic.setLoadingProgress(5);
   for(auto& i:visitedWorlds)
     i.save(fout);
+  gothic.setLoadingProgress(25);
 
   vm->save(fout);
+  gothic.setLoadingProgress(60);
   if(wrld)
     wrld->save(fout);
+
+  gothic.setLoadingProgress(80);
   vm->saveVar(fout);
   }
 
@@ -264,7 +271,7 @@ void GameSession::tick(uint64_t dt) {
     if(Resources::vdfsIndex().hasFile(w)) {
       std::snprintf(buf,sizeof(buf),"LOADING_%s.TGA",wname.c_str());  // format load-screen name, like "LOADING_OLDWORLD.TGA"
 
-      gothic.startLoadSave(buf,[this](std::unique_ptr<GameSession>&& game){
+      gothic.startLoad(buf,[this](std::unique_ptr<GameSession>&& game){
         auto ret = implChangeWorld(std::move(game),chWorld.zen,chWorld.wp);
         chWorld.zen.clear();
         return ret;

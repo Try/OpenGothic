@@ -60,6 +60,15 @@ void MenuRoot::popMenu() {
   menuStack.pop_back();
   }
 
+void MenuRoot::closeAll() {
+  menuStack.clear();
+  if(gothic.isInGame() || gothic.checkLoading()!=Gothic::LoadState::Idle) {
+    current=nullptr;
+    removeAllWidgets();
+    owner()->setFocus(true);
+    }
+  }
+
 void MenuRoot::setPlayer(const Npc &pl) {
   if(current!=nullptr)
     current->setPlayer(pl);

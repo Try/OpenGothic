@@ -58,14 +58,14 @@ class MainWindow : public Tempest::Window {
     void keyDownEvent   (Tempest::KeyEvent&   event) override;
     void keyUpEvent     (Tempest::KeyEvent&   event) override;
 
-    void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, float v, Tempest::AlignFlag flg);
-    void drawLoading(Tempest::Painter& p,int x,int y,int w,int h);
+    void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, float v, Tempest::AlignFlag flg);   
+    void drawProgress(Tempest::Painter& p, int x, int y, int w, int h, float v);
+    void drawLoading (Tempest::Painter& p,int x,int y,int w,int h);
+    void drawSaving  (Tempest::Painter& p);
 
     void startGame(const std::string& name);
     void loadGame (const std::string& name);
     void saveGame (const std::string& name);
-
-    void onScreenshoot(Tempest::Pixmap&);
 
     void onWorldLoaded();
     void onSessionExit();
@@ -113,6 +113,8 @@ class MainWindow : public Tempest::Window {
     const Tempest::Texture2d*           barBack=nullptr;
     const Tempest::Texture2d*           barHp  =nullptr;
     const Tempest::Texture2d*           barMana=nullptr;
+
+    const Tempest::Texture2d*           saveback=nullptr;
 
     bool                                mouseP[Tempest::MouseEvent::ButtonBack]={};
     bool                                pressed[Tempest::KeyEvent::K_Last]={};

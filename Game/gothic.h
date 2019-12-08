@@ -32,8 +32,9 @@ class Gothic final {
     enum class LoadState:int {
       Idle    =0,
       Loading =1,
-      Finalize=2,
-      Failed  =3
+      Saving  =2,
+      Finalize=3,
+      Failed  =4
       };
 
     auto version() const -> const VersionInfo&;
@@ -75,7 +76,8 @@ class Gothic final {
 
     LoadState checkLoading() const;
     bool      finishLoading();
-    void      startLoadSave(const char *banner, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
+    void      startLoad(const char *banner, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
+    void      startSave(Tempest::Texture2d&& tex, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
     void      cancelLoading();
 
     void      tick(uint64_t dt);
@@ -146,6 +148,7 @@ class Gothic final {
     VersionInfo                             vinfo;
 
     const Tempest::Texture2d*               loadTex=nullptr;
+    Tempest::Texture2d                      saveTex;
     std::atomic_int                         loadProgress{0};
     std::thread                             loaderTh;
     std::atomic<LoadState>                  loadingFlag{LoadState::Idle};
@@ -168,6 +171,10 @@ class Gothic final {
     std::vector<Tempest::SoundEffect>       sndStorage;
 
     GameMusic                               globalMusic;
+
+    void                                    implStartLoadSave(const char *banner,
+                                                              bool load,
+                                                              const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
 
     bool                                    validateGothicPath() const;
     static std::u16string                   caseInsensitiveSegment(const std::u16string& path, const char16_t* segment, Tempest::Dir::FileType type);

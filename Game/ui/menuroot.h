@@ -16,6 +16,7 @@ class MenuRoot : public Tempest::Widget {
     void setMenu(GameMenu* w);
     void pushMenu(GameMenu* w);
     void popMenu();
+    void closeAll();
     void setPlayer(const Npc& pl);
 
     void mouseWheelEvent(Tempest::MouseEvent& event) override;

@@ -50,6 +50,7 @@ class GameMenu : public Tempest::Widget {
     Item                                  hItems[Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS];
     uint32_t                              curItem=0;
     bool                                  exitFlag=false;
+    bool                                  closeFlag=false;
 
     Item*                                 selectedItem();
     Item*                                 selectedNextItem(Item* cur);

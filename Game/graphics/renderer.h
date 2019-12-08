@@ -28,7 +28,7 @@ class Renderer final {
 
     void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &&cmd, uint32_t imgId,
               Tempest::VectorImage& img, InventoryMenu &inventory, const Gothic& gothic);
-    Tempest::Pixmap screenshoot();
+    Tempest::Texture2d screenshoot();
 
     const RendererStorage&            storage() const { return stor; }
 

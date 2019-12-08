@@ -172,7 +172,7 @@ void Renderer::composeShadow(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer &fb
   cmd.draw(Resources::fsqVbo());
   }
 
-Tempest::Pixmap Renderer::screenshoot() {
+Tempest::Texture2d Renderer::screenshoot() {
   device.waitIdle();
 
   uint32_t w    = uint32_t(zbuffer.w());
@@ -194,5 +194,5 @@ Tempest::Pixmap Renderer::screenshoot() {
   device.draw(submit,1,nullptr,0,nullptr,0,&sync);
   sync.wait();
 
-  return device.readPixels(img);
+  return img;
   }

@@ -265,7 +265,9 @@ void GameMenu::exec(Item &p) {
       }
     }
 
-  if(exitFlag)
+  if(closeFlag)
+    owner.closeAll();
+  else if(exitFlag)
     owner.popMenu();
   }
 
@@ -294,7 +296,7 @@ void GameMenu::execSingle(Item &it) {
         break;
       case SEL_ACTION_CLOSE:
         gothic.emitGlobalSound(gothic.loadSoundFx("MENU_ESC"));
-        exitFlag = true;
+        closeFlag = true;
         if(onSelAction_S[i]=="NEW_GAME")
           gothic.onStartGame(gothic.defaultWorld());
         else if(onSelAction_S[i]=="LEAVE_GAME")

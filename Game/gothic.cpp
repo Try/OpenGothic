@@ -289,38 +289,53 @@ bool Gothic::finishLoading() {
     loaderTh.join();
     if(pendingGame!=nullptr)
       game = std::move(pendingGame);
+    saveTex = Texture2d();
     onWorldLoaded();
     return true;
     }
   return false;
   }
 
-void Gothic::startLoadSave(const char* banner, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f) {
-  loadTex = banner==nullptr ? nullptr : Resources::loadTexture(banner);
+void Gothic::startSave(Tempest::Texture2d&& tex,
+                       const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f) {
+  saveTex = std::move(tex);
+  implStartLoadSave(nullptr,false,f);
+  }
+
+void Gothic::startLoad(const char* banner,
+                       const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f) {
+  implStartLoadSave(banner,true,f);
+  }
+
+void Gothic::implStartLoadSave(const char* banner,
+                               bool load,
+                               const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f) {
+  loadTex = banner==nullptr ? &saveTex : Resources::loadTexture(banner);
   loadProgress.store(0);
 
   auto zero=LoadState::Idle;
-  if(!loadingFlag.compare_exchange_strong(zero,LoadState::Loading)){
+  auto one =load ? LoadState::Loading : LoadState::Saving;
+  if(!loadingFlag.compare_exchange_strong(zero,one)){
     return; // loading already
     }
 
   auto g = clearGame().release();
   try{
-    auto l = std::thread([this,f,g](){
+    auto l = std::thread([this,f,g,one](){
       std::unique_ptr<GameSession> game(g);
-      auto one=LoadState::Loading;
+      auto curState = one;
       try {
         auto next   = f(std::move(game));
         pendingGame = std::move(next);
-        loadingFlag.compare_exchange_strong(one,LoadState::Finalize);
+        loadingFlag.compare_exchange_strong(curState,LoadState::Finalize);
         }
       catch(std::bad_alloc&){
         Tempest::Log::e("loading error: out of memory");
-        loadingFlag.compare_exchange_strong(one,LoadState::Failed);
+        loadingFlag.compare_exchange_strong(curState,LoadState::Failed);
         }
       catch(std::system_error&){
         Tempest::Log::e("loading error: unable to open file");
-        loadingFlag.compare_exchange_strong(one,LoadState::Failed);
+        loadingFlag.compare_exchange_strong(curState,LoadState::Failed);
         }
       });
     loaderTh=std::move(l);

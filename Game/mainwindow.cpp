@@ -118,8 +118,12 @@ void MainWindow::paintEvent(PaintEvent& event) {
     }
 
   if(st!=Gothic::LoadState::Idle) {
-    if(loadBox)
-      drawLoading(p,int(w()*0.92)-loadBox->w(), int(h()*0.12), loadBox->w(),loadBox->h());
+    if(st==Gothic::LoadState::Saving) {
+      drawSaving(p);
+      } else {
+      if(loadBox)
+        drawLoading(p,int(w()*0.92)-loadBox->w(), int(h()*0.12), loadBox->w(),loadBox->h());
+      }
     } else {
     if(world!=nullptr && world->view()){
       world->marchPoints(p,world->view()->viewProj(camera.view()),w(),h());
@@ -283,7 +287,8 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
   uiKeyUp=nullptr;
   pressed[event.key]=true;
   if(event.key==Event::K_F11) {
-    auto pm = renderer.screenshoot();
+    auto tex = renderer.screenshoot();
+    auto pm  = device.readPixels(tex);
     pm.save("dbg.png");
     }
   }
@@ -376,10 +381,32 @@ void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y
              0,0,bar->w(),bar->h());
   }
 
-void MainWindow::drawLoading(Painter &p, int x, int y, int w, int h) {
-  float v = gothic.loadingProgress()/100.f;
+void MainWindow::drawProgress(Painter &p, int x, int y, int w, int h, float v) {
   if(v<0.1f)
     v=0.1f;
+  p.setBrush(*loadBox);
+  p.drawRect(x,y,w,h, 0,0,loadBox->w(),loadBox->h());
+
+  p.setBrush(*loadVal);
+  p.drawRect(x+75,y+15,int((w-145)*v),35, 0,0,loadVal->w(),loadVal->h());
+  }
+
+void MainWindow::drawLoading(Painter &p, int x, int y, int w, int h) {
+  if(auto back = gothic.loadingBanner()) {
+    p.setBrush(*back);
+    p.drawRect(0,0,this->w(),this->h(),
+               0,0,back->w(),back->h());
+    }
+
+  float v = gothic.loadingProgress()/100.f;
+  drawProgress(p,x,y,w,h,v);
+  }
+
+void MainWindow::drawSaving(Painter &p) {
+  if(saveback==nullptr)
+    saveback = Resources::loadTexture("SAVING.TGA");
+  if(saveback==nullptr)
+    return;
 
   if(auto back = gothic.loadingBanner()) {
     p.setBrush(*back);
@@ -387,11 +414,16 @@ void MainWindow::drawLoading(Painter &p, int x, int y, int w, int h) {
                0,0,back->w(),back->h());
     }
 
-  p.setBrush(*loadBox);
-  p.drawRect(x,y,w,h, 0,0,loadBox->w(),loadBox->h());
+  float v = gothic.loadingProgress()/100.f;
+  const int x = (w()-saveback->w())/2, y = (h()-saveback->h())/2;
+  p.setBrush(*saveback);
 
-  p.setBrush(*loadVal);
-  p.drawRect(x+75,y+15,int((w-145)*v),35, 0,0,loadVal->w(),loadVal->h());
+  // SAVING.TGA is semi-transparent image with the idea to accomulate alpha over time
+  // ... for loop for now
+  for(int i=0;i<10;++i)
+    p.drawRect(x,y,saveback->w(),saveback->h());
+
+  drawProgress(p,x+30,y+330,saveback->w()-30*2,50,v);
   }
 
 void MainWindow::tick() {
@@ -577,7 +609,7 @@ void MainWindow::startGame(const std::string &name) {
     onWorldLoaded();
     }
 
-  gothic.startLoadSave("LOADING.TGA",[this,name](std::unique_ptr<GameSession>&& game){
+  gothic.startLoad("LOADING.TGA",[this,name](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
     std::unique_ptr<GameSession> w(new GameSession(gothic,renderer.storage(),name));
     return w;
@@ -591,7 +623,7 @@ void MainWindow::loadGame(const std::string &name) {
     onWorldLoaded();
     }
 
-  gothic.startLoadSave("LOADING.TGA",[this,name](std::unique_ptr<GameSession>&& game){
+  gothic.startLoad("LOADING.TGA",[this,name](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
     Tempest::RFile file(name);
     Serialize      s(file);
@@ -603,25 +635,23 @@ void MainWindow::loadGame(const std::string &name) {
   }
 
 void MainWindow::saveGame(const std::string &name) {
-  Pixmap pm = renderer.screenshoot();
-  gothic.startLoadSave(nullptr,[name,pm](std::unique_ptr<GameSession>&& game){
+  auto tex = renderer.screenshoot();
+  auto pm  = device.readPixels(tex);
+
+  gothic.startSave(std::move(tex),[name,pm](std::unique_ptr<GameSession>&& game){
     if(!game)
       return std::move(game);
 
     Tempest::WFile f(name);
     Serialize      s(f);
-    game->save(s,pm);
+    game->save(s,name.c_str(),pm);
 
-    // no print, because threading
-    //gothic.print("Game saved"); //TODO: translation
+    // no print yet, because threading
+    // gothic.print("Game saved");
     return std::move(game);
     });
 
   update();
-  }
-
-void MainWindow::onScreenshoot(Pixmap &pm) {
-  pm = renderer.screenshoot();
   }
 
 void MainWindow::onWorldLoaded() {
