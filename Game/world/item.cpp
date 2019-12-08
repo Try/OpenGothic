@@ -14,7 +14,7 @@ Item::Item(World &owner, size_t itemInstance)
   hitem.amount=1;
   }
 
-Item::Item(World &owner, Serialize &fin)
+Item::Item(World &owner, Serialize &fin, bool inWorld)
   :owner(owner) {
   auto& h = hitem;
   h.userPtr = this;
@@ -39,7 +39,8 @@ Item::Item(World &owner, Serialize &fin)
   auto& sym = owner.script().getSymbol(h.instanceSymbol);
   sym.instance.set(&h,Daedalus::IC_Item);
 
-  setView(owner.getStaticView(h.visual,h.material));
+  if(inWorld)
+    setView(owner.getStaticView(h.visual,h.material));
   }
 
 Item::Item(Item &&it)

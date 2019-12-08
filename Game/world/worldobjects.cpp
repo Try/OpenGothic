@@ -39,7 +39,7 @@ void WorldObjects::load(Serialize &fin) {
   fin.read(sz);
   itemArr.clear();
   for(size_t i=0;i<sz;++i){
-    auto it = std::make_unique<Item>(owner,fin);
+    auto it = std::make_unique<Item>(owner,fin,true);
     itemArr.emplace_back(std::move(it));
     }
 

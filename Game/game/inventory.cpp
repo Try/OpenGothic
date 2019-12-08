@@ -22,7 +22,7 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
   items.clear();
   s.read(sz);
   for(size_t i=0;i<sz;++i)
-    items.emplace_back(std::make_unique<Item>(world,s));
+    items.emplace_back(std::make_unique<Item>(world,s,false));
 
   s.read(sz);
   mdlSlots.resize(sz);

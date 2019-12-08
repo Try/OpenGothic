@@ -11,7 +11,7 @@ class Serialize;
 class Item final {
   public:
     Item(World& owner, size_t inst);
-    Item(World& owner, Serialize& fin);
+    Item(World& owner, Serialize& fin, bool inWorld);
     Item(Item&&);
     ~Item();
     Item& operator=(Item&&)=delete;
