@@ -411,6 +411,9 @@ void Npc::onNoHealth(bool death) {
   visual.setToFightMode(WeaponState::NoWeapon);
   updateWeaponSkeleton();
 
+  setOther(lastHit);
+  clearAiQueue();
+
   const char* svm   = death ? "SVM_%d_DEAD" : "SVM_%d_AARGH";
   const char* state = death ? "ZS_Dead"     : "ZS_Unconscious";
 
@@ -1349,11 +1352,8 @@ void Npc::tick(uint64_t dt) {
     tickTimedEvt(ev);
 
   if(!checkHealth(false,true)){
-    mvAlgo.aiGoTo(nullptr);
     mvAlgo.tick(dt);
-    setOther(lastHit);
-    aiActions.clear();
-    tickRoutine(); // tick for ZS_Death
+    implAiTick(dt); // tick for ZS_Death
     return;
     }
 
@@ -1374,9 +1374,6 @@ void Npc::tick(uint64_t dt) {
     return;
 
   mvAlgo.tick(dt);
-
-  // if(interactive()!=nullptr)
-  //   setAnim(AnimationSolver::Interact);
   implAiTick(dt);
   }
 
@@ -1483,7 +1480,7 @@ void Npc::nextAiAction(uint64_t dt) {
       implAiWait(uint64_t(act.i0));
       break;
     case AI_StandUp:
-      if(isDown()){
+      if(bodyState()==BS_UNCONSCIOUS || bodyState()==BS_DEAD) {
         setAnim(Anim::Idle);
         aiActions.push_front(std::move(act));
         }
@@ -1850,7 +1847,7 @@ BodyState Npc::bodyState() const {
 
   uint32_t s = visual.pose().bodyState();
   if(mvAlgo.isSwim())
-    s |= BS_SWIM;
+    s = BS_SWIM;
   if(auto i = interactive())
     s = i->stateMask(s);
   if(s!=0)
