@@ -38,6 +38,8 @@ Item::Item(World &owner, Serialize &fin)
 
   auto& sym = owner.script().getSymbol(h.instanceSymbol);
   sym.instance.set(&h,Daedalus::IC_Item);
+
+  setView(owner.getStaticView(h.visual,h.material));
   }
 
 Item::Item(Item &&it)

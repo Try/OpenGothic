@@ -50,9 +50,10 @@ class World final {
     void  load(Serialize& fin );
     void  save(Serialize& fout);
 
-    uint32_t        npcId(const void* ptr) const;
-    uint32_t        itmId(const void* ptr) const;
+    uint32_t        npcId(const Npc* ptr) const;
     Npc*            npcById(uint32_t id);
+
+    uint32_t        itmId(const void* ptr) const;
     Item*           itmById(uint32_t id);
 
     const WayPoint* findPoint(const std::string& s) const { return findPoint(s.c_str()); }

@@ -139,7 +139,7 @@ void World::save(Serialize &fout) {
     }
   }
 
-uint32_t World::npcId(const void *ptr) const {
+uint32_t World::npcId(const Npc *ptr) const {
   return wobj.npcId(ptr);
   }
 

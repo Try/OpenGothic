@@ -72,6 +72,28 @@ void Serialize::read(const WayPoint *&wptr) {
   wptr = ctx->findPoint(tmpStr);
   }
 
+void Serialize::write(const Npc* npc) {
+  uint32_t id = ctx->npcId(npc);
+  write(id);
+  }
+
+void Serialize::read(const Npc *&npc) {
+  uint32_t id=uint32_t(-1);
+  read(id);
+  npc = ctx->npcById(id);
+  }
+
+void Serialize::write(Npc *npc) {
+  uint32_t id = ctx->npcId(npc);
+  write(id);
+  }
+
+void Serialize::read(Npc *&npc) {
+  uint32_t id=uint32_t(-1);
+  read(id);
+  npc = ctx->npcById(id);
+  }
+
 void Serialize::write(WeaponState w) {
   write(uint8_t(w));
   }

@@ -50,17 +50,39 @@ Interactive::Interactive(World &world, ZenLoad::zCVobData&& vob)
   setVisual(mdlVisual);
   }
 
-Interactive::Interactive(World &world, Serialize& fin)
+Interactive::Interactive(World &world)
   :world(&world),skInst(std::make_unique<Pose>()) {
+  }
+
+void Interactive::load(Serialize &fin) {
   uint8_t vt=0;
   fin.read(vt,vobName,focName,mdlVisual);
   vobType = ZenLoad::zCVobData::EVobType(vt);
   fin.read(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z,owner);
   fin.read(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc,pos);
-  invent.load(*this,world,fin);
+  invent.load(*this,*world,fin);
   fin.read(state,reverseState,loopState);
 
   setVisual(mdlVisual);
+
+  uint32_t sz=0;
+  fin.read(sz);
+  for(size_t i=0;i<sz;++i){
+    std::string name;
+    Npc*        user=nullptr;
+    int32_t     userState=0;
+    bool        attachMode=false;
+
+    fin.read(name,user,userState,attachMode);
+    for(auto& i:attPos)
+      if(i.name==name) {
+        i.user       = user;
+        i.userState  = userState;
+        i.attachMode = attachMode;
+        if(i.user!=nullptr)
+          i.user->setInteraction(this,true);
+        }
+    }
   }
 
 void Interactive::save(Serialize &fout) const {
@@ -69,6 +91,11 @@ void Interactive::save(Serialize &fout) const {
   fout.write(owner,stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc,pos);
   invent.save(fout);
   fout.write(state,reverseState,loopState);
+
+  fout.write(uint32_t(attPos.size()));
+  for(auto& i:attPos) {
+    fout.write(i.name,i.user,i.userState,i.attachMode);
+    }
   }
 
 void Interactive::setVisual(const std::string &visual) {
@@ -185,7 +212,7 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
   if(state==stateNum) {
     //HACK: some beds in game is VT_oCMobDoor
     if((vobType==ZenLoad::zCVobData::VT_oCMobDoor && onStateFunc.empty()) ||
-        vobType==ZenLoad::zCVobData::VT_oCMobSwitch){
+        vobType==ZenLoad::zCVobData::VT_oCMobSwitch || reverseState){
       implQuitInteract(p);
       return;
       }
@@ -487,6 +514,11 @@ bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
 bool Interactive::attach(Npc &npc) {
   float dist = 0;
   Pos*  p    = nullptr;
+
+  for(auto& i:attPos)
+    if(i.user==&npc)
+      return true;
+
   for(auto& i:attPos) {
     if(i.user || !i.isAttachPoint())
       continue;

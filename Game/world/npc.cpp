@@ -16,12 +16,15 @@
 using namespace Tempest;
 
 Npc::Npc(World &owner, size_t instance, const char* waypoint)
-  :owner(owner),mvAlgo(*this){
+  :owner(owner),mvAlgo(*this) {
   outputPipe          = owner.script().openAiOuput();
+  hnpc.userPtr        = this;
+  hnpc.instanceSymbol = instance;
+
+  if(instance==size_t(-1))
+    return;
 
   hnpc.wp             = waypoint;
-  hnpc.instanceSymbol = instance;
-  hnpc.userPtr        = this;
   owner.script().initializeInstance(hnpc,instance);
   if(hnpc.attribute[ATR_HITPOINTS]<=1 && hnpc.attribute[ATR_HITPOINTSMAX]<=1) {
     size_t fdead=owner.getSymbolIndex("ZS_Dead");
@@ -31,35 +34,11 @@ Npc::Npc(World &owner, size_t instance, const char* waypoint)
   }
 
 Npc::Npc(World &owner, Serialize &fin)
-  :owner(owner),mvAlgo(*this){
-  outputPipe = owner.script().openAiOuput();
-
+  :owner(owner),mvAlgo(*this) {
+  outputPipe   = owner.script().openAiOuput();
   hnpc.userPtr = this;
 
-  load(fin,hnpc);
-
-  fin.read(x,y,z,angle,sz);
-  fin.read(body,head,vHead,vTeeth,bdColor,vColor);
-  fin.read(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
-  durtyTranform = TR_Pos|TR_Rot|TR_Scale;
-
-  visual.load(fin,*this);
-  setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
-
-  fin.read(reinterpret_cast<int32_t&>(permAttitude),reinterpret_cast<int32_t&>(tmpAttitude));
-  fin.read(perceptionTime,perceptionNextTime);
-  for(auto& i:perception)
-    fin.read(i.func);
-  invent.load(*this,fin);
-  fin.read(lastHitType,lastHitSpell);
-  loadAiState(fin);
-
-  fin.read(reinterpret_cast<uint8_t&>(currentGoToFlag),currentGoTo,currentFp,currentFpLock);
-  wayPath.load(fin);
-
-  mvAlgo.load(fin);
-  fghAlgo.load(fin);
-  fin.read(fghLastEventTime);
+  load(fin);
   }
 
 Npc::~Npc(){
@@ -86,12 +65,43 @@ void Npc::save(Serialize &fout) {
   fout.write(lastHitType,lastHitSpell);
   saveAiState(fout);
 
-  fout.write(uint8_t(currentGoToFlag),currentGoTo,currentFp,currentFpLock);
+  fout.write(currentOther,currentLookAt,currentTarget,nearestEnemy);
+
+  fout.write(currentGoToNpc, uint8_t(currentGoToFlag),currentGoTo,currentFp,currentFpLock);
   wayPath.save(fout);
 
   mvAlgo.save(fout);
   fghAlgo.save(fout);
   fout.write(fghLastEventTime);
+  }
+
+void Npc::load(Serialize &fin) {
+  load(fin,hnpc);
+
+  fin.read(x,y,z,angle,sz);
+  fin.read(body,head,vHead,vTeeth,bdColor,vColor);
+  fin.read(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
+  durtyTranform = TR_Pos|TR_Rot|TR_Scale;
+
+  visual.load(fin,*this);
+  setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
+
+  fin.read(reinterpret_cast<int32_t&>(permAttitude),reinterpret_cast<int32_t&>(tmpAttitude));
+  fin.read(perceptionTime,perceptionNextTime);
+  for(auto& i:perception)
+    fin.read(i.func);
+  invent.load(*this,fin);
+  fin.read(lastHitType,lastHitSpell);
+  loadAiState(fin);
+
+  fin.read(currentOther,currentLookAt,currentTarget,nearestEnemy);
+
+  fin.read(currentGoToNpc, reinterpret_cast<uint8_t&>(currentGoToFlag),currentGoTo,currentFp,currentFpLock);
+  wayPath.load(fin);
+
+  mvAlgo.load(fin);
+  fghAlgo.load(fin);
+  fin.read(fghLastEventTime);
   }
 
 void Npc::save(Serialize &fout, Daedalus::GEngineClasses::C_Npc &h) const {
@@ -1466,9 +1476,13 @@ void Npc::nextAiAction(uint64_t dt) {
       implAiWait(uint64_t(act.i0));
       break;
     case AI_StandUp:
-      if(!setInteraction(nullptr))
+      if(isDown()){
+        setAnim(Anim::Idle);
         aiActions.push_front(std::move(act));
-      setAnim(Anim::Idle);
+        }
+      else if(!setInteraction(nullptr)) {
+        aiActions.push_front(std::move(act));
+        }
       break;
     case AI_StandUpQuick:
       // TODO: verify

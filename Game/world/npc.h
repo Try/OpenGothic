@@ -158,6 +158,7 @@ class Npc final {
     ~Npc();
 
     void save(Serialize& fout);
+    void load(Serialize& fout);
 
     bool setPosition (float x,float y,float z);
     bool setPosition (const std::array<float,3>& pos);

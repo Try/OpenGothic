@@ -42,7 +42,7 @@ class WorldObjects final {
     void           save(Serialize& fout);
     void           tick(uint64_t dt);
 
-    uint32_t       npcId(const void* ptr) const;
+    uint32_t       npcId(const Npc *ptr) const;
     uint32_t       itmId(const void* ptr) const;
 
     Npc*           addNpc(size_t itemInstance, const char *at);

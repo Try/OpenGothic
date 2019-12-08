@@ -13,6 +13,7 @@
 #include "constants.h"
 
 class WayPoint;
+class Npc;
 class World;
 class FpLock;
 class SaveGameHeader;
@@ -94,6 +95,12 @@ class Serialize final {
 
     void write(const WayPoint*  wptr);
     void read (const WayPoint*& wptr);
+
+    void write(const Npc*  npc);
+    void read (const Npc*& npc);
+
+    void write(Npc*        npc);
+    void read (Npc*&       npc);
 
     void write(const FpLock& fp);
     void read (FpLock& fp);

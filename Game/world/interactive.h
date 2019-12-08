@@ -20,9 +20,10 @@ class Interactive final {
       };
 
     Interactive(World& owner, ZenLoad::zCVobData &&vob);
-    Interactive(World &world, Serialize &fin);
+    Interactive(World &world);
     Interactive(Interactive&&)=default;
 
+    void                load(Serialize& fin);
     void                save(Serialize& fout) const;
 
     void                updateAnimation();
@@ -60,12 +61,13 @@ class Interactive final {
 
   private:
     struct Pos final {
+      std::string        name;
       Npc*               user=nullptr;
       int                userState=0;
-      std::string        name;
+      bool               attachMode=false;
+
       size_t             node=0;
       Tempest::Matrix4x4 pos;
-      bool               attachMode=false;
 
       const char*        posTag() const;
       bool               isAttachPoint() const;

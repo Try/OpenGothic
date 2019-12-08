@@ -32,23 +32,23 @@ void WorldObjects::load(Serialize &fin) {
   fin.read(sz);
   npcArr.clear();
   for(size_t i=0;i<sz;++i)
-    npcArr.emplace_back(std::make_unique<Npc>(owner,fin));
+    npcArr.emplace_back(std::make_unique<Npc>(owner,size_t(-1),nullptr));
+  for(auto& i:npcArr)
+    i->load(fin);
 
   fin.read(sz);
   itemArr.clear();
   for(size_t i=0;i<sz;++i){
     auto it = std::make_unique<Item>(owner,fin);
-
-    auto& h = *it->handle();
-    it->setView(owner.getStaticView(h.visual,h.material));
     itemArr.emplace_back(std::move(it));
     }
 
   fin.read(sz);
   interactiveObj.clear();
-  for(size_t i=0;i<sz;++i){
-    interactiveObj.emplace_back(owner,fin);
-    }
+  for(size_t i=0;i<sz;++i)
+    interactiveObj.emplace_back(owner);
+  for(auto& i:interactiveObj)
+    i.load(fin);
   }
 
 void WorldObjects::save(Serialize &fout) {
@@ -141,9 +141,11 @@ void WorldObjects::tick(uint64_t dt) {
     }
   }
 
-uint32_t WorldObjects::npcId(const void *ptr) const {
+uint32_t WorldObjects::npcId(const Npc *ptr) const {
+  if(ptr==nullptr)
+    return uint32_t(-1);
   for(size_t i=0;i<npcArr.size();++i)
-    if(npcArr[i]->handle()==ptr)
+    if(npcArr[i].get()==ptr)
       return i;
   return uint32_t(-1);
   }

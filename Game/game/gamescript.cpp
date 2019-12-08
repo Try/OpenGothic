@@ -588,12 +588,14 @@ void GameScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
         fout.write(uint8_t(0));
         }
       else if(i.instance.instanceOf(Daedalus::IC_Npc)){
-        fout.write(uint8_t(1),i.name,world().npcId(i.instance.get()));
+        auto npc = reinterpret_cast<const Npc*>(i.instance.get()->userPtr);
+        fout.write(uint8_t(1),i.name,world().npcId(npc));
         }
       else if(i.instance.instanceOf(Daedalus::IC_Item)){
         fout.write(uint8_t(2),i.name,world().itmId(i.instance.get()));
         }
-      else if(i.instance.instanceOf(Daedalus::IC_Focus) || i.instance.instanceOf(Daedalus::IC_GilValues) ||
+      else if(i.instance.instanceOf(Daedalus::IC_Focus) ||
+              i.instance.instanceOf(Daedalus::IC_GilValues) ||
               i.instance.instanceOf(Daedalus::IC_Info)) {
         fout.write(uint8_t(0));
         }
