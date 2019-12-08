@@ -14,8 +14,8 @@ class ProtoMesh {
   public:
     using Vertex =Resources::VertexA;
 
-    ProtoMesh(const ZenLoad::zCModelMeshLib& lib);
-    ProtoMesh(const ZenLoad::PackedMesh&     pm);
+    ProtoMesh(const ZenLoad::zCModelMeshLib& lib,const std::string& fname);
+    ProtoMesh(const ZenLoad::PackedMesh&     pm,const std::string& fname);
 
     struct SubMesh final {
       Tempest::Texture2d*            texture=nullptr;
@@ -64,6 +64,11 @@ class ProtoMesh {
 
     Tempest::Vec3                  bbox[2];
 
+    std::string                    scheme;
+
     size_t                         skinedNodesCount() const;
     Tempest::Matrix4x4             mapToRoot(size_t node) const;
+
+  private:
+    void                           setupScheme(const std::string& s);
   };

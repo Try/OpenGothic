@@ -223,7 +223,7 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
     ZenLoad::PackedMesh        sPacked;
     ZenLoad::zCModelMeshLib    library;
     auto                       code=loadMesh(sPacked,library,name);
-    std::unique_ptr<ProtoMesh> t{code==MeshLoadCode::Static ? new ProtoMesh(sPacked) : new ProtoMesh(library)};
+    std::unique_ptr<ProtoMesh> t{code==MeshLoadCode::Static ? new ProtoMesh(sPacked,name) : new ProtoMesh(library,name)};
     ProtoMesh* ret=t.get();
     aniMeshCache[name] = std::move(t);
     if(code==MeshLoadCode::Static && sPacked.subMeshes.size()>0)

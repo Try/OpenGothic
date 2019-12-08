@@ -103,9 +103,13 @@ class Interactive final {
     std::string                  useWithItem;
     std::string                  conditionFunc;
     std::string                  onStateFunc;
-    //
-    Tempest::Matrix4x4           pos;
+    //  oCMobContainer
+    bool                         locked=false;
+    std::string                  keyInstance;
+    std::string                  pickLockStr;
     Inventory                    invent;
+
+    Tempest::Matrix4x4           pos;
     int                          state=-1;
     bool                         reverseState=false;
     bool                         loopState=false;

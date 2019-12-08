@@ -19,6 +19,7 @@ Interactive::Interactive(World &world, ZenLoad::zCVobData&& vob)
   bbox[0]       = vob.bbox[0];
   bbox[1]       = vob.bbox[1];
   owner         = std::move(vob.oCMOB.owner);
+
   stateNum      = vob.oCMobInter.stateNum;
   triggerTarget = std::move(vob.oCMobInter.triggerTarget);
   useWithItem   = std::move(vob.oCMobInter.useWithItem);
@@ -30,7 +31,10 @@ Interactive::Interactive(World &world, ZenLoad::zCVobData&& vob)
     i = char(std::toupper(i));
 
   if(isContainer()) {
-    auto items = std::move(vob.oCMobContainer.contains);
+    locked      = vob.oCMobContainer.locked;
+    keyInstance = std::move(vob.oCMobContainer.keyInstance);
+    pickLockStr = std::move(vob.oCMobContainer.pickLockStr);
+    auto items  = std::move(vob.oCMobContainer.contains);
     if(items.size()>0) {
       char* it = &items[0];
       for(auto i=it;;++i) {
@@ -59,9 +63,11 @@ void Interactive::load(Serialize &fin) {
   fin.read(vt,vobName,focName,mdlVisual);
   vobType = ZenLoad::zCVobData::EVobType(vt);
   fin.read(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z,owner);
-  fin.read(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc,pos);
+
+  fin.read(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
+  fin.read(locked,keyInstance,pickLockStr);
   invent.load(*this,*world,fin);
-  fin.read(state,reverseState,loopState);
+  fin.read(pos,state,reverseState,loopState);
 
   setVisual(mdlVisual);
 
@@ -88,9 +94,10 @@ void Interactive::load(Serialize &fin) {
 void Interactive::save(Serialize &fout) const {
   fout.write(uint8_t(vobType),vobName,focName,mdlVisual);
   fout.write(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z);
-  fout.write(owner,stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc,pos);
+  fout.write(owner,stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
+  fout.write(locked,keyInstance,pickLockStr);
   invent.save(fout);
-  fout.write(state,reverseState,loopState);
+  fout.write(pos,state,reverseState,loopState);
 
   fout.write(uint32_t(attPos.size()));
   for(auto& i:attPos) {
@@ -293,74 +300,11 @@ void Interactive::emitTriggerEvent() const {
   world->triggerEvent(evt);
   }
 
-const char *Interactive::schemeName() const {
-  const char* tag = "";
-  if(focName=="MOBNAME_BENCH")
-    tag = "BENCH";
-  else if(focName=="MOBNAME_ANVIL")
-    tag = "BSANVIL";
-  else if(focName=="MOBNAME_LAB")
-    tag = "LAB";
-  else if(focName=="MOBNAME_CHEST" || focName=="Chest")
-    tag = "CHESTSMALL";
-  else if(focName=="MOBNAME_CHESTBIG")
-    tag = "CHESTBIG";
-  else if(focName=="MOBNAME_FORGE")
-    tag = "BSFIRE";
-  else if(focName=="MOBNAME_BOOKSBOARD")
-    tag = "BOOK";
-  else if(focName=="MOBNAME_BBQ_SCAV" || focName=="MOBNAME_BARBQ_SCAV")
-    tag = "BARBQ";
-  else if(focName=="MOBNAME_SWITCH" || focName=="MOBNAME_ADDON_ORNAMENTSWITCH")
-    tag = "TURNSWITCH";
-  else if(focName=="MOBNAME_CHAIR")
-    tag = "CHAIR";
-  else if(focName=="MOBNAME_THRONE" || focName=="MOBNAME_SEAT" || focName=="MOBNAME_ARMCHAIR")
-    tag = "THRONE";
-  else if(focName=="MOBNAME_CAULDRON")
-    tag = "CAULDRON";
-  else if(focName=="MOBNAME_ORE")
-    tag = "ORE";
-  else if(focName=="MOBNAME_GRINDSTONE")
-    tag = "BSSHARP";
-  else if(focName=="MOBNAME_INNOS")
-    tag = "INNOS";
-  else if(focName=="MOBNAME_ADDON_IDOL")
-    tag = "INNOS";//"IDOL";
-  else if(focName=="MOBNAME_STOVE")
-    tag = "STOVE";
-  else if(focName=="MOBNAME_BED")
-    tag = "BEDHIGH";
-  else if(focName=="MOBNAME_BUCKET")
-    tag = "BSCOOL";
-  else if(focName=="MOBNAME_RUNEMAKER")
-    tag = "RMAKER";
-  else if(focName=="MOBNAME_WATERPIPE")
-    tag = "SMOKE";
-  else if(focName=="MOBNAME_SAW")
-    tag = "BAUMSAEGE";
-  else if(focName=="MOBNAME_PAN")
-    tag = "PAN";
-  else if(focName=="MOBNAME_DOOR" || focName=="MOBNAME_Door")
-    tag = "DOOR";
-  else if(focName=="MOBNAME_WINEMAKER")
-    tag = "HERB";
-  else if(focName=="MOBNAME_BOOKSTAND")
-    tag = "BOOK";
-  else if(mdlVisual=="TREASURE_ADDON_01.ASC")
-    tag = "TREASURE";
-  else if(mdlVisual=="LEVER_1_OC.MDS")
-    tag = "LEVER";
-  else if(mdlVisual=="REPAIR_PLANK.ASC")
-    tag = "REPAIR";
-  else if(mdlVisual=="BENCH_NW_CITY_02.ASC")
-    tag = "BENCH";
-  else if(mdlVisual=="PAN_OC.MDS")
-    tag = "PAN";
-  else {
-    // Tempest::Log::i("unable to recognize mobsi{",focName,", ",mdlVisual,"}");
-    }
-  return tag;
+const char* Interactive::schemeName() const {
+  if(mesh!=nullptr)
+    return mesh->scheme.c_str();
+  Tempest::Log::i("unable to recognize mobsi{",focName,", ",mdlVisual,"}");
+  return "";
   }
 
 bool Interactive::isContainer() const {
@@ -479,7 +423,7 @@ bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
   assert(to.user==nullptr);
 
   auto& sc = npc.world().script();
-  if(!conditionFunc.empty()) {
+  if(!conditionFunc.empty() && npc.isPlayer()) {
     const int check = sc.invokeCond(npc,conditionFunc.c_str());
     if(check==0) {
       // FIXME: proper message

@@ -2,7 +2,7 @@
 
 #include <Tempest/Log>
 
-ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library) {
+ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &fname) {
   for(auto& m:library.getAttachments()) {
     ZenLoad::PackedMesh stat;
     m.second.packMesh(stat, 1.f);
@@ -92,6 +92,7 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library) {
       pos.push_back(p);
       }
     }
+  setupScheme(fname);
 
   //auto tr = library.getRootNodeTranslation();
   //rootTr  = {{tr.x,tr.y,tr.z}};
@@ -100,7 +101,7 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library) {
   //bboxCol[1] = library.getBBoxCollisionMin();
   }
 
-ProtoMesh::ProtoMesh(const ZenLoad::PackedMesh &pm) {
+ProtoMesh::ProtoMesh(const ZenLoad::PackedMesh &pm, const std::string& fname) {
   attach.emplace_back(pm);
   submeshId.resize(attach[0].sub.size());
   auto&  att   = attach[0];
@@ -124,6 +125,7 @@ ProtoMesh::ProtoMesh(const ZenLoad::PackedMesh &pm) {
 
   bbox[0] = Tempest::Vec3(pm.bbox[0].x,pm.bbox[0].y,pm.bbox[0].z);
   bbox[1] = Tempest::Vec3(pm.bbox[1].x,pm.bbox[1].y,pm.bbox[1].z);
+  setupScheme(fname);
   }
 
 size_t ProtoMesh::skinedNodesCount() const {
@@ -146,4 +148,18 @@ Tempest::Matrix4x4 ProtoMesh::mapToRoot(size_t n) const {
       return m;
     n = nx.parentId;
     }
+  }
+
+void ProtoMesh::setupScheme(const std::string &s) {
+  auto sep = s.find("_");
+  if(sep!=std::string::npos) {
+    scheme = s.substr(0,sep);
+    return;
+    }
+  sep = s.rfind(".");
+  if(sep!=std::string::npos) {
+    scheme = s.substr(0,sep);
+    return;
+    }
+  scheme = s;
   }
