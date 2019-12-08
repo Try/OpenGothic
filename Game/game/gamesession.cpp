@@ -89,6 +89,8 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Seriali
   gothic.setLoadingProgress(70);
   wrld->load(fin);
   vm->loadVar(fin);
+  if(auto hero = wrld->player())
+    vm->setInstanceNPC("HERO",*hero);
   gothic.setLoadingProgress(96);
   }
 

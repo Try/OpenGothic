@@ -588,7 +588,7 @@ void GameScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
         fout.write(uint8_t(0));
         }
       else if(i.instance.instanceOf(Daedalus::IC_Npc)){
-        auto hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(vm.globalOther().instance.get());
+        auto hnpc = reinterpret_cast<const Daedalus::GEngineClasses::C_Npc*>(i.instance.get());
         auto npc  = reinterpret_cast<const Npc*>(hnpc==nullptr ? nullptr : hnpc->userPtr);
         fout.write(uint8_t(1),i.name,world().npcId(npc));
         }

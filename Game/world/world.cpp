@@ -124,8 +124,6 @@ void World::load(Serialize &fin) {
     }
 
   npcPlayer = wobj.findHero();
-  if(npcPlayer!=nullptr)
-    game.script()->setInstanceNPC("HERO",*npcPlayer);
   }
 
 void World::save(Serialize &fout) {
