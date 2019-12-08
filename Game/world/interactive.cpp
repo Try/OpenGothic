@@ -478,11 +478,22 @@ bool Interactive::isAvailable() const {
 bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
   assert(to.user==nullptr);
 
+  auto& sc = npc.world().script();
+  if(!conditionFunc.empty()) {
+    const int check = sc.invokeCond(npc,conditionFunc.c_str());
+    if(check==0) {
+      // FIXME: proper message
+      sc.printNothingToGet();
+      return false;
+      }
+    }
   if(!useWithItem.empty()) {
     size_t it = world->getSymbolIndex(useWithItem.c_str());
     if(it!=size_t(-1)) {
-      if(npc.hasItem(it)==0)
+      if(npc.isPlayer() && npc.hasItem(it)==0) {
+        sc.printMobMissingItem(npc);
         return false;
+        }
       npc.delItem(it,1);
       npc.setCurrentItem(it);
       }
@@ -533,8 +544,12 @@ bool Interactive::attach(Npc &npc) {
       }
     }
 
-  if(p!=nullptr)
+  if(p!=nullptr) {
     return attach(npc,*p);
+    } else {
+    if(npc.isPlayer())
+      world->script().printMobAnotherIsUsing(npc);
+    }
   return false;
   }
 

@@ -588,7 +588,8 @@ void GameScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
         fout.write(uint8_t(0));
         }
       else if(i.instance.instanceOf(Daedalus::IC_Npc)){
-        auto npc = reinterpret_cast<const Npc*>(i.instance.get()->userPtr);
+        auto hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(vm.globalOther().instance.get());
+        auto npc  = reinterpret_cast<const Npc*>(hnpc==nullptr ? nullptr : hnpc->userPtr);
         fout.write(uint8_t(1),i.name,world().npcId(npc));
         }
       else if(i.instance.instanceOf(Daedalus::IC_Item)){
@@ -850,6 +851,22 @@ int GameScript::printCannotBuyError(Npc &npc) {
   return runFunction(id,true);
   }
 
+int GameScript::printMobMissingItem(Npc &npc) {
+  auto id = vm.getDATFile().getSymbolIndexByName("player_mob_missing_item");
+  if(id==size_t(-1))
+    return 0;
+  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
+  return runFunction(id,true);
+  }
+
+int GameScript::printMobAnotherIsUsing(Npc &npc) {
+  auto id = vm.getDATFile().getSymbolIndexByName("player_mob_another_is_using");
+  if(id==size_t(-1))
+    return 0;
+  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
+  return runFunction(id,true);
+  }
+
 int GameScript::invokeState(Daedalus::GEngineClasses::C_Npc* hnpc, Daedalus::GEngineClasses::C_Npc* oth, const char *name) {
   auto& dat = vm.getDATFile();
   auto  id  = dat.getSymbolIndexByName(name);
@@ -928,6 +945,10 @@ int GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
     Log::d("unable to call spell-script: \"",str,"\'");
     return 0;
     }
+  }
+
+int GameScript::invokeCond(Npc &npc,const char* func) {
+
   }
 
 const std::string& GameScript::spellCastAnim(Npc&, Item &it) {
