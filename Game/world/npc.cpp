@@ -244,6 +244,7 @@ void Npc::setDirection(const std::array<float,3> &pos) {
   }
 
 void Npc::setDirection(float rotation) {
+  rotation = std::fmod(rotation,360.f);
   if(std::fabs(angle-rotation)<0.001f)
     return;
   angle = rotation;
@@ -941,35 +942,39 @@ bool Npc::implLookAt(const Npc &oth, uint64_t dt) {
     return true;
   auto dx = oth.x-x;
   auto dz = oth.z-z;
-  if(implLookAt(dx,dz,0,dt))
+  if(implLookAt(dx,dz,false,dt))
     return true;
   currentLookAt=nullptr;
   return false;
   }
 
-bool Npc::implLookAt(float dx, float dz, int noAniAngle, uint64_t dt) {
+bool Npc::implLookAt(float dx, float dz, bool noAnim, uint64_t dt) {
   auto  gl   = std::min<uint32_t>(guild(),GIL_MAX);
   float step = owner.script().guildVal().turn_speed[gl]*(dt/1000.f)*60.f/100.f;
 
-  if(dx==0.f && dz==0.f)
-    return false;
-
-  float a    = angleDir(dx,dz);
-  float da   = a-angle;
-
-  if(std::abs(int(da)%180)<=step && std::cos(double(da)*M_PI/180.0)>0){
-    setDirection(a);
+  if(dx==0.f && dz==0.f) {
     visual.setRotation(*this,0);
     return false;
     }
 
-  if(std::abs(int(da)%180)>noAniAngle)
-    visual.setRotation(*this,-int(da));
+  float a  = angleDir(dx,dz);
+  float da = a-angle;
+
+  if(noAnim || std::cos(double(da)*M_PI/180.0)>0) {
+    if(std::abs(int(da)%180)<=step) {
+      setDirection(a);
+      visual.setRotation(*this,0);
+      return false;
+      }
+    } else {
+    visual.stopWalkAnim(*this);
+    }
 
   const auto sgn = std::sin(double(da)*M_PI/180.0);
   if(sgn<0)
     setDirection(angle-step); else
     setDirection(angle+step);
+  setAnimRotate(-int(da));
   return true;
   }
 
@@ -980,14 +985,12 @@ bool Npc::implGoTo(uint64_t dt) {
   if(currentGoTo){
     float dx    = currentGoTo->x-x;
     float dz    = currentGoTo->z-z;
-    float qDist = dx*dx + dz*dz;
     auto  bs    = bodyState();
 
     if(bs!=BS_RUN && bs!=BS_WALK)
       visual.stopWalkAnim(*this);
 
-    int needToRot = (bs==BS_RUN && qDist<50*50) ? 45 : 0;
-    if(implLookAt(dx,dz,needToRot,dt)){
+    if(implLookAt(dx,dz,false,dt)){
       mvAlgo.tick(dt);
       return true;
       }
@@ -1014,7 +1017,7 @@ bool Npc::implGoTo(uint64_t dt) {
     float dx = currentGoToNpc->x-x;
     float dz = currentGoToNpc->z-z;
 
-    if(implLookAt(dx,dz,45,dt))
+    if(implLookAt(dx,dz,false,dt))
       return true;
     if(!mvAlgo.aiGoTo(currentGoToNpc,400)) {
       if(isStanding())
@@ -1487,6 +1490,9 @@ void Npc::nextAiAction(uint64_t dt) {
       else if(!setInteraction(nullptr)) {
         aiActions.push_front(std::move(act));
         }
+      else {
+        setAnim(Anim::Idle);
+        }
       break;
     case AI_StandUpQuick:
       // TODO: verify
@@ -1620,7 +1626,7 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_AlignToFp:{
       if(auto fp = currentFp){
         if(fp->dirX!=0.f || fp->dirZ!=0.f){
-          if(implLookAt(fp->dirX,fp->dirZ,0,dt))
+          if(implLookAt(fp->dirX,fp->dirZ,false,dt))
             aiActions.push_front(std::move(act));
           }
         }
@@ -1647,7 +1653,7 @@ void Npc::nextAiAction(uint64_t dt) {
 
         float dx = act.target->x-x;
         float dz = act.target->z-z;
-        if(implLookAt(dx,dz,180,dt))
+        if(implLookAt(dx,dz,false,dt))
           break;
         setAnim(Anim::Move);
         if(mvAlgo.aiGoTo(currentGoToNpc,fghAlgo.prefferedAtackDistance(*this,*act.target,owner.script())))
