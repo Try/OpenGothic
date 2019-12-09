@@ -80,6 +80,7 @@ class WorldView {
     std::unique_ptr<PerFrame[]> frame;
     std::vector<StaticObj>      objStatic;
 
+    void updateLight();
     void setupSunDir(float pulse,float ang);
     void builtCmdBuf(const World &world, const Tempest::Texture2d &shadowMap,
                      const Tempest::FrameBufferLayout &mainLay,

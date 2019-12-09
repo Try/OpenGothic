@@ -44,39 +44,6 @@ const Light &WorldView::mainLight() const {
   }
 
 void WorldView::tick(uint64_t /*dt*/) {
-  //float t     = float(double(owner.time().timeInDay().toInt())/double(gtime(1,0,0).toInt()));
-  //float t     = (Application::tickCount()%40000)/40000.f; // [0-1]
-  //float pulse = t*2.f-1.f;
-
-  const int64_t rise     = gtime(3,1).toInt();
-  const int64_t meridian = gtime(11,46).toInt();
-  const int64_t set      = gtime(20,32).toInt();
-  const int64_t midnight = gtime(1,0,0).toInt();
-  const int64_t now      = owner.time().timeInDay().toInt();
-
-  float pulse = 0.f;
-  if(rise<=now && now<meridian){
-    pulse =  0.f + float(now-rise)/float(meridian-rise);
-    }
-  else if(meridian<=now && now<set){
-    pulse =  1.f - float(now-meridian)/float(set-meridian);
-    }
-  else if(set<=now){
-    pulse =  0.f - float(now-set)/float(midnight-set);
-    }
-  else if(now<rise){
-    pulse = -1.f + (float(now)/float(rise));
-    }
-
-  float k = float(now)/float(midnight);
-
-  float a  = std::max(0.f,std::min(pulse*3.f,1.f));
-  auto clr = Vec3(0.75f,0.75f,0.75f)*a;
-  ambient  = Vec3(0.2f,0.2f,0.3f)*(1.f-a)+Vec3(0.25f,0.25f,0.25f)*a;
-
-  setupSunDir(pulse,std::fmod(k+0.25f,1.f));
-  sun.setColor(clr);
-  sky.setDayNight(std::min(std::max(pulse*3.f,0.f),1.f));
   }
 
 void WorldView::setupSunDir(float pulse,float ang) {
@@ -159,6 +126,38 @@ void WorldView::addPfx(const ZenLoad::zCVobData &vob) {
   objStatic.push_back(std::move(obj));
   }
 
+void WorldView::updateLight() {
+  const int64_t rise     = gtime(3,1).toInt();
+  const int64_t meridian = gtime(11,46).toInt();
+  const int64_t set      = gtime(20,32).toInt();
+  const int64_t midnight = gtime(1,0,0).toInt();
+  const int64_t now      = owner.time().timeInDay().toInt();
+
+  float pulse = 0.f;
+  if(rise<=now && now<meridian){
+    pulse =  0.f + float(now-rise)/float(meridian-rise);
+    }
+  else if(meridian<=now && now<set){
+    pulse =  1.f - float(now-meridian)/float(set-meridian);
+    }
+  else if(set<=now){
+    pulse =  0.f - float(now-set)/float(midnight-set);
+    }
+  else if(now<rise){
+    pulse = -1.f + (float(now)/float(rise));
+    }
+
+  float k = float(now)/float(midnight);
+
+  float a  = std::max(0.f,std::min(pulse*3.f,1.f));
+  auto clr = Vec3(0.75f,0.75f,0.75f)*a;
+  ambient  = Vec3(0.2f,0.2f,0.3f)*(1.f-a)+Vec3(0.25f,0.25f,0.25f)*a;
+
+  setupSunDir(pulse,std::fmod(k+0.25f,1.f));
+  sun.setColor(clr);
+  sky.setDayNight(std::min(std::max(pulse*3.f,0.f),1.f));
+  }
+
 void WorldView::resetCmd() {
   // cmd buffers must not be in use
   storage.device.waitIdle();
@@ -198,6 +197,8 @@ void WorldView::updateCmd(const World &world,const Tempest::Texture2d& shadow,
   }
 
 void WorldView::updateUbo(const Matrix4x4& view,const Tempest::Matrix4x4* shadow,size_t shCount) {
+  updateLight();
+
   uint32_t frameId = storage.device.frameId();
 
   auto viewProj=this->viewProj(view);
