@@ -92,8 +92,8 @@ class GameSession final {
       };
 
     struct HeroStorage {
-      void                 save(Npc& npc);
-      std::unique_ptr<Npc> load(World &owner) const;
+      void                 save(Npc& npc, World &owner);
+      void                 putToWorld(World &owner, const std::string &wayPoint) const;
 
       std::vector<uint8_t> storage;
       };

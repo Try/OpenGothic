@@ -16,21 +16,34 @@ using namespace Tempest;
 const uint64_t GameSession::multTime=29;
 const uint64_t GameSession::divTime =2;
 
-void GameSession::HeroStorage::save(Npc &npc) {
+void GameSession::HeroStorage::save(Npc &npc,World& owner) {
   storage.clear();
   Tempest::MemWriter wr{storage};
   Serialize          sr{wr};
+  sr.setContext(&owner);
 
   npc.save(sr);
   }
 
-std::unique_ptr<Npc> GameSession::HeroStorage::load(World& owner) const {
+void GameSession::HeroStorage::putToWorld(World& owner,const std::string& wayPoint) const {
   if(storage.size()==0)
-    return nullptr;
+    return;
   Tempest::MemReader rd{storage};
   Serialize          sr{rd};
   sr.setContext(&owner);
-  return std::make_unique<Npc>(owner,sr);
+
+  if(auto pl = owner.player()) {
+    pl->load(sr);
+    if(auto pos = owner.findPoint(wayPoint)) {
+      pl->setPosition  (pos->x,pos->y,pos->z);
+      pl->setDirection (pos->dirX,pos->dirY,pos->dirZ);
+      pl->attachToPoint(pos);
+      pl->updateTransform();
+      }
+    } else {
+    auto ptr = std::make_unique<Npc>(owner,sr);
+    owner.insertPlayer(std::move(ptr),wayPoint.c_str());
+    }
   }
 
 
@@ -292,11 +305,9 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
     return std::move(game);
     }
 
-  auto hero = wrld->takeHero();
   HeroStorage hdata;
-  if(hero)
-    hdata.save(*hero);
-  hero = nullptr;
+  if(auto hero = wrld->player())
+    hdata.save(*hero,*wrld);
   clearWorld();
 
   vm->resetVarPointers();
@@ -322,8 +333,7 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
 
   if(1){
     // put hero to world
-    auto ptr = hdata.load(*game->wrld);
-    game->wrld->insertPlayer(std::move(ptr),wayPoint.c_str());
+    hdata.putToWorld(*game->wrld,wayPoint);
     }
   initScripts(wss.isEmpty());
 
