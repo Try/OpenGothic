@@ -186,7 +186,7 @@ void MoveAlgo::tickJumpup(uint64_t dt) {
   }
 
 void MoveAlgo::tickSwim(uint64_t dt) {
-  auto  dp            = npcMoveSpeed(dt,false);
+  auto  dp            = npcMoveSpeed(dt,MvFlags::NoFlag);
   auto  pos           = npc.position();
   float pY            = pos[1];
   float fallThreshold = stepHeight();
@@ -212,7 +212,7 @@ void MoveAlgo::tickSwim(uint64_t dt) {
   tryMove(dp[0],water-pY,dp[2]);
   }
 
-void MoveAlgo::tick(uint64_t dt, bool fai) {
+void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
   if(npc.interactive()!=nullptr)
     return tickMobsi(dt);
 
@@ -233,7 +233,7 @@ void MoveAlgo::tick(uint64_t dt, bool fai) {
       return;
     }
 
-  auto  dp            = npcMoveSpeed(dt,fai);
+  auto  dp            = npcMoveSpeed(dt,moveFlg);
   auto  pos           = npc.position();
   float pY            = pos[1];
   float fallThreshold = stepHeight();
@@ -341,32 +341,29 @@ std::array<float,3> MoveAlgo::animMoveSpeed(uint64_t dt) const {
   return ret;
   }
 
-std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt,bool fai) {
+std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt,MvFlags moveFlg) {
   std::array<float,3> dp = animMoveSpeed(dt);
   if(!npc.isJumpAnim())
     dp[1] = 0.f;
 
-  if(fai) {
+  if(moveFlg&FaiMove) {
     if(npc.currentTarget!=nullptr && !npc.isPlayer() && !npc.currentTarget->isDown()) {
-      /* don't, controlled by FAI
-        if(npc.checkGoToNpcdistance(*npc.currentTarget))
-          return {};
-         npc.setAnim(AnimationSolver::Move);
-         */
       return go2NpcMoveSpeed(dp,*npc.currentTarget);
       }
     }
 
-  if(npc.currentGoToNpc) {
-    if(npc.checkGoToNpcdistance(*npc.currentGoToNpc)){
-      npc.currentGoToNpc=nullptr;
-      return {};
+  if(NoFlag==(moveFlg&WaitMove)) {
+    if(npc.currentGoToNpc) {
+      if(npc.checkGoToNpcdistance(*npc.currentGoToNpc)){
+        npc.currentGoToNpc=nullptr;
+        return {};
+        }
+      return go2NpcMoveSpeed(dp,*npc.currentGoToNpc);
       }
-    return go2NpcMoveSpeed(dp,*npc.currentGoToNpc);
-    }
 
-  if(npc.currentGoTo) {
-    return go2WpMoveSpeed(dp,npc.currentGoTo->x,npc.currentGoTo->z);
+    if(npc.currentGoTo) {
+      return go2WpMoveSpeed(dp,npc.currentGoTo->x,npc.currentGoTo->z);
+      }
     }
 
   return dp;

@@ -22,6 +22,12 @@ class MoveAlgo final {
       JM_Up,
       };
 
+    enum MvFlags {
+      NoFlag   = 0,
+      FaiMove  = 1,
+      WaitMove = 1<<1,
+      };
+
     static bool isClose(const std::array<float,3>& w,const WayPoint& p);
     static bool isClose(float x,float y,float z,const WayPoint& p);
     static bool isClose(float x,float y,float z,const WayPoint& p,float dist);
@@ -29,7 +35,7 @@ class MoveAlgo final {
     void    load(Serialize& fin);
     void    save(Serialize& fout) const;
 
-    void    tick(uint64_t dt,bool fai=false);
+    void    tick(uint64_t dt,MvFlags fai=NoFlag);
 
     void    multSpeed(float s){ mulSpeed=s; }
     void    clearSpeed();
@@ -79,7 +85,7 @@ class MoveAlgo final {
     void    onMoveFailed();
     void    applyRotation(std::array<float,3> &out, float *in) const;
     auto    animMoveSpeed(uint64_t dt) const -> std::array<float,3>;
-    auto    npcMoveSpeed (uint64_t dt,bool fai) -> std::array<float,3>;
+    auto    npcMoveSpeed (uint64_t dt, MvFlags moveFlg) -> std::array<float,3>;
     auto    go2NpcMoveSpeed (const std::array<float,3> &dp, const Npc &tg) -> std::array<float,3>;
     auto    go2WpMoveSpeed  (std::array<float,3> dp, float x, float z) -> std::array<float,3>;
     bool    testSlide(float x, float y, float z) const;

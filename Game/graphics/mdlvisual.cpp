@@ -233,14 +233,22 @@ bool MdlVisual::isStanding() const {
   return skInst->isStanding();
   }
 
-bool MdlVisual::startAnim(Npc &npc, const char *name, BodyState bs) {
+bool MdlVisual::isItem() const {
+  return skInst->isItem();
+  }
+
+const Animation::Sequence* MdlVisual::startAnimAndGet(Npc &npc, const char *name, BodyState bs) {
   bool forceAnim=true;
 
   const Animation::Sequence *sq = solver.solveFrm(name);
   if(skInst->startAnim(solver,sq,bs,forceAnim,npc.world().tickCount())) {
-    return true;
+    return sq;
     }
-  return false;
+  return nullptr;
+  }
+
+bool MdlVisual::startAnim(Npc &npc, const char *name, BodyState bs) {
+  return startAnimAndGet(npc,name,bs)!=nullptr;
   }
 
 bool MdlVisual::startAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk) {

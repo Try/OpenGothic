@@ -688,10 +688,10 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
     return false;
     }
 
-  setCurrentItem(it->clsId());
   if(!owner.setAnimItem(it->handle()->scemeName.c_str()))
     return false;
 
+  setCurrentItem(it->clsId());
   if(itData.on_state[0]!=0){
     auto& vm = owner.world().script();
     vm.invokeItem(&owner,itData.on_state[0]);

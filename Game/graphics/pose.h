@@ -43,6 +43,7 @@ class Pose final {
     bool               isJumpAnim() const;
     bool               isFlyAnim() const;
     bool               isStanding() const;
+    bool               isItem() const;
     bool               isPrehit() const;
     bool               isIdle() const;
     bool               isInAnim(const char *sq) const;

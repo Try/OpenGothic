@@ -268,6 +268,7 @@ bool Npc::resetPositionToTA() {
     return isMainNpc || !isDead();
     }
 
+  invent.clearSlot(*this,nullptr,false);
   visual.stopAnim(*this,nullptr);
   attachToPoint(nullptr);
   setInteraction(nullptr,true);
@@ -675,8 +676,8 @@ void Npc::setScale(float x, float y, float z) {
   durtyTranform |= TR_Scale;
   }
 
-bool Npc::playAnimByName(const std::string &name,BodyState bs) {
-  return visual.startAnim(*this,name.c_str(),bs);
+const Animation::Sequence* Npc::playAnimByName(const std::string &name,BodyState bs) {
+  return visual.startAnimAndGet(*this,name.c_str(),bs);
   }
 
 bool Npc::setAnim(Npc::Anim a) {
@@ -1183,7 +1184,9 @@ bool Npc::implAiTick(uint64_t dt) {
   }
 
 void Npc::implAiWait(uint64_t dt) {
-  waitTime = owner.tickCount()+dt;
+  auto w = owner.tickCount()+dt;
+  if(w>waitTime)
+    waitTime = w;
   }
 
 void Npc::implFaiWait(uint64_t dt) {
@@ -1344,6 +1347,11 @@ void Npc::tick(uint64_t dt) {
   if(!visual.pose().hasAnim())
     setAnim(AnimationSolver::Idle);
 
+  if(!isPlayer() && visual.isItem()) {
+    // forward from S_IITEMSCHEME to Idle
+    setAnim(AnimationSolver::Idle);
+    }
+
   Animation::EvCount ev;
   visual.pose().processEvents(lastEventTime,owner.tickCount(),ev);
 
@@ -1361,12 +1369,12 @@ void Npc::tick(uint64_t dt) {
     }
 
   if(waitTime>=owner.tickCount()) {
-    mvAlgo.tick(dt);
+    mvAlgo.tick(dt,MoveAlgo::WaitMove);
     return;
     }
 
   if(implAtack(dt)) {
-    mvAlgo.tick(dt,true);
+    mvAlgo.tick(dt,MoveAlgo::FaiMove);
     return;
     }
 
@@ -1464,16 +1472,16 @@ void Npc::nextAiAction(uint64_t dt) {
         setOther(act.target);
       break;
     case AI_PlayAnim:{
-      if(playAnimByName(act.s0,BS_NONE)) {
-        implAiWait(visual.pose().animationTotalTime());
+      if(auto sq = playAnimByName(act.s0,BS_NONE)) {
+        implAiWait(uint64_t(sq->totalTime()));
         } else {
         aiActions.push_front(std::move(act));
         }
       break;
       }
     case AI_PlayAnimBs:{
-      if(playAnimByName(act.s0,BodyState(act.i0))) {
-        implAiWait(visual.pose().animationTotalTime());
+      if(auto sq = playAnimByName(act.s0,BodyState(act.i0))) {
+        implAiWait(uint64_t(sq->totalTime()));
         } else {
         aiActions.push_front(std::move(act));
         }
@@ -2658,6 +2666,8 @@ void Npc::aiUseItem(int32_t id) {
   }
 
 void Npc::aiUseItemToState(int32_t id, int32_t state) {
+  // TODO
+  (void)state;
   AiAction a;
   a.act = AI_UseItemToState;
   a.i0  = id;

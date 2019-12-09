@@ -430,7 +430,11 @@ bool Pose::isStanding() const {
          s.name=="S_RUN"      || s.name=="S_WALK"    ||
          s.name=="S_FISTWALK" || s.name=="S_MAGWALK" ||
          s.name=="S_1HWALK"   || s.name=="S_BOWWALK" ||
-         s.name=="S_2HWALK"   || s.name=="S_CBOWWALK";
+      s.name=="S_2HWALK"   || s.name=="S_CBOWWALK";
+  }
+
+bool Pose::isItem() const {
+  return itemUse;
   }
 
 bool Pose::isPrehit() const {
