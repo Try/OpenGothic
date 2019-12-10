@@ -1491,12 +1491,13 @@ void Npc::nextAiAction(uint64_t dt) {
       implAiWait(uint64_t(act.i0));
       break;
     case AI_StandUp:
-      if(bodyState()==BS_UNCONSCIOUS || bodyState()==BS_DEAD) {
-        setAnim(Anim::Idle);
+      if(!setInteraction(nullptr)) {
         aiActions.push_front(std::move(act));
         }
-      else if(!setInteraction(nullptr)) {
-        aiActions.push_front(std::move(act));
+      else if(bodyState()==BS_UNCONSCIOUS || bodyState()==BS_DEAD) {
+        if(!setAnim(Anim::Idle))
+          aiActions.push_front(std::move(act)); else
+          implAiWait(visual.pose().animationTotalTime());
         }
       else {
         setAnim(Anim::Idle);
