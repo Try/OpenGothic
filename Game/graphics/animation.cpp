@@ -59,7 +59,8 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
             auto d = i.data;
             sequences.emplace_back();
             Animation::Sequence& ani = sequences.back();
-            ani.name    = p.ani.m_Name;
+            ani.name    = i.name;
+            ani.askName = name;
             ani.layer   = p.comb.m_Layer;
             ani.flags   = Flags(p.comb.m_Flags);
             ani.next    = p.comb.m_Next;
@@ -205,7 +206,7 @@ void Animation::setupIndex() {
     });
 
   for(auto& i:sequences) {
-    if(i.next==i.askName || i.next==i.name)
+    if((i.next==i.askName && !i.next.empty()) || i.next==i.name)
       i.animCls = Loop;
     if(i.name.find("S_")==0)
       i.shortName = &i.name[2];

@@ -27,8 +27,6 @@ Npc::Npc(World &owner, size_t instance, const char* waypoint)
   hnpc.wp             = waypoint;
   owner.script().initializeInstance(hnpc,instance);
   if(hnpc.attribute[ATR_HITPOINTS]<=1 && hnpc.attribute[ATR_HITPOINTSMAX]<=1) {
-    size_t fdead=owner.getSymbolIndex("ZS_Dead");
-    startState(fdead,"");
     onNoHealth(true);
     }
   }
@@ -263,19 +261,26 @@ bool Npc::resetPositionToTA() {
   const bool isMainNpc = (npcType==Daedalus::GEngineClasses::NPCTYPE_MAIN ||
                           npcType==Daedalus::GEngineClasses::NPCTYPE_OCMAIN ||
                           npcType==Daedalus::GEngineClasses::NPCTYPE_BL_MAIN);
-  if(routines.size()==0 || (isDead() && !isMainNpc)) {
-    // remove bodyes of dead, non-main npc
-    return isMainNpc || !isDead();
+  const bool isDead = this->isDead();
+  if(routines.size()==0)
+    return true;
+
+  if(isDead && !isMainNpc) {
+    // special case for oldworld
+    return hnpc.attribute[ATR_HITPOINTSMAX]>1;
     }
 
   invent.clearSlot(*this,nullptr,false);
-  visual.stopAnim(*this,nullptr);
+  if(!isDead)
+    visual.stopAnim(*this,nullptr);
   attachToPoint(nullptr);
   setInteraction(nullptr,true);
   clearAiQueue();
-  if(!isDead())
-    clearState(true);
+  if(isDead && hnpc.attribute[ATR_HITPOINTSMAX]>1)
+    return true;
 
+  if(!isDead)
+    clearState(true);
   auto& rot = currentRoutine();
   auto  at  = rot.point;
 
@@ -306,14 +311,15 @@ bool Npc::resetPositionToTA() {
       return false;
     }
 
-  if(at->isLocked()){
+  if(at->isLocked() && !isDead){
     auto p = owner.findNextPoint(*at);
     if(p!=nullptr)
       at=p;
     }
   setPosition (at->x, at->y, at->z);
   setDirection(at->dirX,at->dirY,at->dirZ);
-  attachToPoint(at);
+  if(!isDead)
+    attachToPoint(at);
   return true;
   }
 
@@ -378,7 +384,6 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
     return false;
     }
   if(isUnconscious() && allowUnconscious) {
-    closeWeapon(true);
     return false;
     }
 
@@ -387,6 +392,7 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
     if(hnpc.attribute[ATR_HITPOINTSMAX]<=1){
       size_t fdead=owner.getSymbolIndex("ZS_Dead");
       startState(fdead,"");
+      physic.setEnable(false);
       return false;
       }
 
@@ -423,7 +429,7 @@ void Npc::onNoHealth(bool death) {
     hnpc.attribute[ATR_HITPOINTS]=1;
 
   size_t fdead=owner.getSymbolIndex(state);
-  startState(fdead,"");
+  startState(fdead,"",gtime::endOfTime(),true);
   if(hnpc.voice>0 && currentOther!=nullptr){
     // in case of battle currentOther!=nullptr,
     // if else death is scripted
@@ -1362,27 +1368,23 @@ void Npc::tick(uint64_t dt) {
   if(!ev.timed.empty())
     tickTimedEvt(ev);
 
-  if(!checkHealth(false,true)){
-    mvAlgo.tick(dt);
-    implAiTick(dt); // tick for ZS_Death
-    return;
-    }
-
   if(waitTime>=owner.tickCount()) {
     mvAlgo.tick(dt,MoveAlgo::WaitMove);
     return;
     }
 
-  if(implAtack(dt)) {
-    mvAlgo.tick(dt,MoveAlgo::FaiMove);
-    return;
+  if(!isDown()) {
+    if(implAtack(dt)) {
+      mvAlgo.tick(dt,MoveAlgo::FaiMove);
+      return;
+      }
+
+    if(implLookAt(dt))
+      return;
+
+    if(implGoTo(dt))
+      return;
     }
-
-  if(implLookAt(dt))
-    return;
-
-  if(implGoTo(dt))
-    return;
 
   mvAlgo.tick(dt);
   implAiTick(dt);

@@ -118,7 +118,7 @@ void Landscape::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32
   PerFrame& pf      = this->pf[frameId];
   auto&     uboLand = pf.ubo[1+layer];
 
-  uint8_t tex=255;
+  //bool prevAlpha=false;
   for(size_t i=0;i<blocks.size();++i){
     auto& lnd=blocks [i];
     auto& ubo=uboLand[i];
@@ -126,12 +126,12 @@ void Landscape::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32
     if(ubo.isEmpty())
       continue;
 
-    uint8_t tx = (lnd.texture && Tempest::TextureFormat::DXT1==lnd.texture->format()) ? 1 : 0;
-    if(tx!=tex){
-      tex = tx;
+    // TODO: proper alpha detection
+    //if(lnd.alpha || lnd.alpha!=prevAlpha || i==0 || true){
+    //  prevAlpha = lnd.alpha;
       uint32_t offset=0;
       cmd.setUniforms(storage.pLandSh,ubo,1,&offset);
-      }
+    //  }
     cmd.draw(vbo,lnd.ibo);
     }
   }
@@ -144,12 +144,13 @@ void Landscape::implDraw(Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Ren
     auto& lnd=blocks [i];
     auto& ubo=uboLand[i];
 
-    if(!ubo.isEmpty()){
-      uint32_t offset=0;
-      if(lnd.alpha)
-        cmd.setUniforms(alpha,ubo,1,&offset); else
-        cmd.setUniforms(p,ubo,1,&offset);
-      }
+    if(ubo.isEmpty())
+      continue;
+
+    uint32_t offset=0;
+    if(lnd.alpha)
+      cmd.setUniforms(alpha,ubo,1,&offset); else
+      cmd.setUniforms(p,ubo,1,&offset);
     cmd.draw(vbo,lnd.ibo);
     }
   }
