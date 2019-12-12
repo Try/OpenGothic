@@ -437,11 +437,10 @@ bool Pose::isItem() const {
   return itemUse;
   }
 
-bool Pose::isPrehit() const {
+bool Pose::isPrehit(uint64_t now) const {
   for(auto& i:lay)
-    for(auto& e:i.seq->data->events)
-      if(e.m_Def==ZenLoad::DEF_OPT_FRAME)
-        return true;
+    if(i.seq->isPrehit(i.sAnim,now))
+      return true;
   return false;
   }
 

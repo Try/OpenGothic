@@ -19,6 +19,8 @@ class GameMusic final {
       SysLoading
       };
 
+    void      setEnabled(bool e);
+    bool      isEnabled() const;
     void      setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme);
     void      stopMusic();
 

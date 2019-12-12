@@ -44,7 +44,7 @@ class Pose final {
     bool               isFlyAnim() const;
     bool               isStanding() const;
     bool               isItem() const;
-    bool               isPrehit() const;
+    bool               isPrehit(uint64_t now) const;
     bool               isIdle() const;
     bool               isInAnim(const char *sq) const;
     bool               isInAnim(const Animation::Sequence* sq) const;

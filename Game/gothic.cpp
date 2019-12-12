@@ -426,6 +426,14 @@ void Gothic::stopMusic() {
   globalMusic.stopMusic();
   }
 
+void Gothic::enableMusic(bool e) {
+  globalMusic.setEnabled(e);
+  }
+
+bool Gothic::isMusicEnabled() const {
+  return globalMusic.isEnabled();
+  }
+
 const CameraDefinitions& Gothic::getCameraDef() const {
   return *camera;
   }

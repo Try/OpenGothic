@@ -101,6 +101,8 @@ class Gothic final {
     void      setMusic(const char* clsTheme);
     void      setMusic(const GameMusic::Music m);
     void      stopMusic();
+    void      enableMusic(bool e);
+    bool      isMusicEnabled() const;
 
     void      printScreen(const char* msg, int x, int y, int time, const GthFont &font);
     void      print      (const char* msg);

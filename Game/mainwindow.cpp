@@ -292,10 +292,13 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
     }
   uiKeyUp=nullptr;
   pressed[event.key]=true;
-  if(event.key==Event::K_F11) {
+  if(event.key==Event::K_F10) {
     auto tex = renderer.screenshoot();
     auto pm  = device.readPixels(tex);
     pm.save("dbg.png");
+    }
+  if(event.key==Event::K_F11) {
+    gothic.enableMusic(!gothic.isMusicEnabled());
     }
   }
 

@@ -82,6 +82,7 @@ struct GameMusic::Impl final {
   MusicProducer*                                dxMixer=nullptr;
   Daedalus::GEngineClasses::C_MusicTheme        currentMusic;
   float                                         masterVolume=0.3f;
+  bool                                          enableMusic=false;
   };
 
 GameMusic::GameMusic() {
@@ -91,9 +92,18 @@ GameMusic::GameMusic() {
 GameMusic::~GameMusic() {
   }
 
+void GameMusic::setEnabled(bool e) {
+  impl->enableMusic = e;
+  if(!e)
+    impl->stopMusic();
+  }
+
+bool GameMusic::isEnabled() const {
+  return impl->enableMusic;
+  }
+
 void GameMusic::setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme) {
-  static bool enableMusic = true;
-  if(!enableMusic)
+  if(!impl->enableMusic)
     return;
   impl->setMusic(theme);
   }
