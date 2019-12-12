@@ -127,7 +127,7 @@ class MainWindow : public Tempest::Window {
     Tempest::Widget*                    uiKeyUp=nullptr;
     Tempest::Point                      mpos;
     Tempest::PointF                     spin;
-    Camera                              camera;
+    // Camera                              camera;
     PlayerControl                       player;
     Focus                               currentFocus;
     uint64_t                            lastTick=0;

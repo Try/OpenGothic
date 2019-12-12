@@ -534,6 +534,7 @@ class Npc final {
     bool                           implAtack  (uint64_t dt);
     bool                           implAiTick (uint64_t dt);
     void                           implAiWait (uint64_t dt);
+    void                           implAniWait(uint64_t dt);
     void                           implFaiWait(uint64_t dt);
     void                           tickRoutine();
     void                           nextAiAction(uint64_t dt);
@@ -596,6 +597,7 @@ class Npc final {
     int32_t                        lastHitSpell = 0;
 
     // ai state
+    uint64_t                       aniWaitTime=0;
     uint64_t                       waitTime=0;
     uint64_t                       faiWaitTime=0;
     uint64_t                       aiOutputBarrier=0;

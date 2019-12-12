@@ -5,6 +5,7 @@
 
 #include "gothic.h"
 #include "world/world.h"
+#include "game/serialize.h"
 
 using namespace Tempest;
 
@@ -35,13 +36,29 @@ void Camera::reset() {
   if(pl==nullptr)
     return;
 
+  implReset(*pl);
+  }
+
+void Camera::implReset(const Npc &pl) {
   auto& def  = cameraDef();
-  float tr   = pl->translateY();
-  camPos     = pl->position();
-  camBone    = pl->cameraBone();
-  spin.x     = pl->rotation();
+  float tr   = pl.translateY();
+  camPos     = pl.position();
+  camBone    = pl.cameraBone();
+  spin.x     = pl.rotation();
   spin.y     = 0;
   camPos[1] += tr + tr*(def.bestElevation-10)/20.f;
+  }
+
+void Camera::save(Serialize &s) {
+  s.write(spin.x,spin.y,camPos,zoom,hasPos);
+  }
+
+void Camera::load(Serialize &s, Npc *pl) {
+  if(pl)
+    implReset(*pl);
+  if(s.version()<1)
+    return;
+  s.read(spin.x,spin.y,camPos,zoom,hasPos);
   }
 
 void Camera::changeZoom(int delta) {

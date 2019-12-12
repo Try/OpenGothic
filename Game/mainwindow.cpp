@@ -25,7 +25,7 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
   : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),
     renderer(device,gothic),gothic(gothic),inventory(gothic,renderer.storage()),
     dialogs(gothic,inventory),document(gothic),chapter(gothic),
-    camera(gothic),player(gothic,dialogs,inventory) {
+    player(gothic,dialogs,inventory) {
   CrashLog::setGpu(device.renderer());
   if(!gothic.isWindowMode())
     setFullscreen(true);
@@ -126,6 +126,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
       }
     } else {
     if(world!=nullptr && world->view()){
+      auto& camera = *gothic.gameCamera();
       world->marchPoints(p,world->view()->viewProj(camera.view()),w(),h());
 
       auto vp = world->view()->viewProj(camera.view());
@@ -195,7 +196,8 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
   if(event.button<sizeof(mouseP))
     mouseP[event.button]=true;
   mpos = event.pos();
-  spin = camera.getSpin();
+  if(auto camera = gothic.gameCamera())
+    spin = camera->getSpin();
   }
 
 void MainWindow::mouseUpEvent(MouseEvent &event) {
@@ -215,7 +217,8 @@ void MainWindow::mouseDragEvent(MouseEvent &event) {
 void MainWindow::mouseMoveEvent(MouseEvent &event) {
   const bool fs = SystemApi::isFullscreen(hwnd());
   if(fs) {
-    spin = camera.getSpin();
+    if(auto camera = gothic.gameCamera())
+      spin = camera->getSpin();
     processMouse(event,true);
     mpos = Point(w()/2,h()/2);
     SystemApi::setCursorPosition(mpos.x,mpos.y);
@@ -225,31 +228,34 @@ void MainWindow::mouseMoveEvent(MouseEvent &event) {
 void MainWindow::processMouse(MouseEvent &event,bool fs) {
   if(dialogs.isActive() || gothic.isPause())
     return;
-  auto dp = (event.pos()-mpos);
-  mpos = event.pos();
-  spin += PointF(-dp.x,dp.y);
-  if(spin.y>90)
-    spin.y=90;
-  if(spin.y<-90)
-    spin.y=-90;
+  if(auto camera = gothic.gameCamera()) {
+    auto dp = (event.pos()-mpos);
+    mpos = event.pos();
+    spin += PointF(-dp.x,dp.y);
+    if(spin.y>90)
+      spin.y=90;
+    if(spin.y<-90)
+      spin.y=-90;
 
-  if(inventory.isActive()){
-    camera.setSpin(spin);
-    return;
-    }
+    if(inventory.isActive()){
+      camera->setSpin(spin);
+      return;
+      }
 
-  if(fs) {
-    if(!(currentFocus.npc && player.weaponState()!=WeaponState::NoWeapon))
-      player.rotateMouse(-dp.x);
-    spin.x = camera.getSpin().x;
-    camera.setSpin(spin);
-    } else {
-    camera.setSpin(spin);
+    if(fs) {
+      if(!(currentFocus.npc && player.weaponState()!=WeaponState::NoWeapon))
+        player.rotateMouse(-dp.x);
+      spin.x = camera->getSpin().x;
+      camera->setSpin(spin);
+      } else {
+      camera->setSpin(spin);
+      }
     }
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
-  camera.changeZoom(event.delta);
+  if(auto camera = gothic.gameCamera())
+    camera->changeZoom(event.delta);
   }
 
 void MainWindow::keyDownEvent(KeyEvent &event) {
@@ -454,6 +460,7 @@ void MainWindow::tick() {
     clearInput();
     }
 
+  auto& camera = *gothic.gameCamera();
   currentFocus = player.findFocus(&currentFocus,camera,w(),h());
   player.setTarget(currentFocus.npc);
 
@@ -655,12 +662,14 @@ void MainWindow::saveGame(const std::string &name) {
   }
 
 void MainWindow::onWorldLoaded() {
-  camera   .reset();
   player   .clearInput();
   inventory.update();
   dialogs  .onWorldChanged();
 
-  spin = camera.getSpin();
+  if(auto camera = gothic.gameCamera()) {
+    //camera->reset();
+    spin = camera->getSpin();
+    }
   mpos = Point(w()/2,h()/2);
   renderer.onWorldChanged();
 
@@ -701,7 +710,8 @@ void MainWindow::render(){
 
     if(dialogs.isActive())
       renderer.setCameraView(dialogs.dialogCamera()); else
-      renderer.setCameraView(camera);
+    if(auto camera = gothic.gameCamera())
+      renderer.setCameraView(*camera);
 
     if(!gothic.isPause())
       gothic.updateAnimation();

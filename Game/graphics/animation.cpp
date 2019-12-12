@@ -18,6 +18,10 @@ static void setupTime(std::vector<uint64_t>& t0,const std::vector<int32_t>& inp,
     }
   }
 
+static uint64_t frameClamp(int32_t frame,uint32_t first,uint32_t last) {
+  return uint64_t(std::max(int(first),std::min(frame,int(last))) - int(first));
+  }
+
 Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ignoreErrChunks) {
   AnimData* current=nullptr;
 
@@ -343,13 +347,13 @@ void Animation::Sequence::processSfx(uint64_t barrier, uint64_t sTime, uint64_t 
 
   auto& d = *data;
   for(auto& i:d.sfx){
-    uint64_t fr = uint64_t(i.m_Frame-int(d.firstFrame));
+    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.lastFrame);
     if((frameA<=fr && fr<frameB) ^ invert)
       npc.emitSoundEffect(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
     }
   if(!npc.isInAir()) {
     for(auto& i:d.gfx){
-      uint64_t fr = uint64_t(i.m_Frame-int(d.firstFrame));
+      uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.lastFrame);
       if((frameA<=fr && fr<frameB) ^ invert)
         npc.emitSoundGround(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
       }
@@ -368,12 +372,12 @@ void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64
   for(auto& e:d.events) {
     if(e.m_Def==ZenLoad::DEF_OPT_FRAME) {
       for(auto i:e.m_Int){
-        uint64_t fr = uint64_t(i-int(d.firstFrame));
+        uint64_t fr = frameClamp(i,d.firstFrame,d.lastFrame);
         if((frameA<=fr && fr<frameB) ^ invert)
           processEvent(e,ev,uint64_t((fr*1000)/fpsRate)+sTime);
         }
       } else {
-      uint64_t fr = uint64_t(e.m_Frame-int(d.firstFrame));
+      uint64_t fr = frameClamp(e.m_Frame,d.firstFrame,d.lastFrame);
       if((frameA<=fr && fr<frameB) ^ invert)
         processEvent(e,ev,uint64_t((fr*1000)/fpsRate)+sTime);
       }

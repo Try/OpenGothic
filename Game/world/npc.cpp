@@ -145,6 +145,7 @@ void Npc::load(Serialize &fin, Daedalus::GEngineClasses::C_Npc::ENPCFlag &flg) {
   }
 
 void Npc::saveAiState(Serialize& fout) const {
+  fout.write(aniWaitTime);
   fout.write(waitTime,faiWaitTime,uint8_t(aiPolicy));
   fout.write(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
   fout.write(aiPrevState);
@@ -164,6 +165,8 @@ void Npc::saveAiState(Serialize& fout) const {
 void Npc::loadAiState(Serialize& fin) {
   uint32_t size=0;
 
+  if(fin.version()>=1)
+    fin.read(aniWaitTime);
   fin.read(waitTime,faiWaitTime,reinterpret_cast<uint8_t&>(aiPolicy));
   fin.read(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
   fin.read(aiPrevState);
@@ -439,6 +442,7 @@ void Npc::onNoHealth(bool death) {
     }
 
   setInteraction(nullptr,true);
+
   if(death)
     setAnim(lastHitType=='A' ? Anim::DeadA        : Anim::DeadB); else
     setAnim(lastHitType=='A' ? Anim::UnconsciousA : Anim::UnconsciousB);
@@ -1195,6 +1199,12 @@ void Npc::implAiWait(uint64_t dt) {
     waitTime = w;
   }
 
+void Npc::implAniWait(uint64_t dt) {
+  auto w = owner.tickCount()+dt;
+  if(w>aniWaitTime)
+    aniWaitTime = w;
+  }
+
 void Npc::implFaiWait(uint64_t dt) {
   faiWaitTime          = owner.tickCount()+dt;
   aiState.loopNextTime = faiWaitTime;
@@ -1241,10 +1251,12 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
 
     if(dmg<=0)
       return;
-    if(attribute(ATR_HITPOINTS)>0){
+    if(attribute(ATR_HITPOINTS)>0) {
+      visual.stopAnim(*this,nullptr);
       if(lastHitType=='A')
         setAnim(Anim::StumbleA); else
         setAnim(Anim::StumbleB);
+      implAniWait(visual.pose().animationTotalTime());
       }
     changeAttribute(ATR_HITPOINTS,-dmg,b==nullptr);
 
@@ -1368,7 +1380,7 @@ void Npc::tick(uint64_t dt) {
   if(!ev.timed.empty())
     tickTimedEvt(ev);
 
-  if(waitTime>=owner.tickCount()) {
+  if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount()) {
     mvAlgo.tick(dt,MoveAlgo::WaitMove);
     return;
     }
@@ -1475,7 +1487,7 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
     case AI_PlayAnim:{
       if(auto sq = playAnimByName(act.s0,BS_NONE)) {
-        implAiWait(uint64_t(sq->totalTime()));
+        implAniWait(uint64_t(sq->totalTime()));
         } else {
         aiActions.push_front(std::move(act));
         }
@@ -1483,7 +1495,7 @@ void Npc::nextAiAction(uint64_t dt) {
       }
     case AI_PlayAnimBs:{
       if(auto sq = playAnimByName(act.s0,BodyState(act.i0))) {
-        implAiWait(uint64_t(sq->totalTime()));
+        implAniWait(uint64_t(sq->totalTime()));
         } else {
         aiActions.push_front(std::move(act));
         }
@@ -1499,7 +1511,7 @@ void Npc::nextAiAction(uint64_t dt) {
       else if(bodyState()==BS_UNCONSCIOUS || bodyState()==BS_DEAD) {
         if(!setAnim(Anim::Idle))
           aiActions.push_front(std::move(act)); else
-          implAiWait(visual.pose().animationTotalTime());
+          implAniWait(visual.pose().animationTotalTime());
         }
       else {
         setAnim(Anim::Idle);

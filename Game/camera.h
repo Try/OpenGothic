@@ -9,6 +9,7 @@
 class World;
 class Npc;
 class Gothic;
+class Serialize;
 
 class Camera final {
   public:
@@ -24,6 +25,8 @@ class Camera final {
       };
 
     void reset();
+    void save(Serialize &s);
+    void load(Serialize &s,Npc* pl);
 
     void changeZoom(int delta);
     Tempest::PointF getSpin() const { return spin; }
@@ -58,6 +61,7 @@ class Camera final {
     bool                  hasPos=false;
     Mode                  camMod=Normal;
 
+    void implReset(const Npc& pl);
     void implMove(Tempest::KeyEvent::KeyType t);
     Tempest::Matrix4x4 mkView(float dist) const;
 

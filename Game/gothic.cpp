@@ -20,7 +20,7 @@
 
 using namespace Tempest;
 
-Gothic::Gothic(const int argc, const char **argv) {
+Gothic::Gothic(const int argc, const char **argv){
   if(argc<1)
     return;
 
@@ -142,6 +142,12 @@ WorldView *Gothic::worldView() const {
 Npc *Gothic::player() {
   if(game)
     return game->player();
+  return nullptr;
+  }
+
+Camera* Gothic::gameCamera() {
+  if(game)
+    return &game->camera();
   return nullptr;
   }
 

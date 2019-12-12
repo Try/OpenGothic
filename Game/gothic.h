@@ -48,6 +48,7 @@ class Gothic final {
     World*       world();
     WorldView*   worldView() const;
     Npc*         player();
+    Camera*      gameCamera();
 
     auto      loadingBanner() const -> const Tempest::Texture2d*;
     int       loadingProgress() const;

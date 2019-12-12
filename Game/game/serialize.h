@@ -20,7 +20,10 @@ class SaveGameHeader;
 
 class Serialize final {
   public:
-    enum { Version=0 };
+    enum {
+      MinVersion = 0,
+      Version    = 1
+      };
 
     Serialize(Tempest::ODevice& fout);
     Serialize(Tempest::IDevice&  fin);
@@ -28,6 +31,7 @@ class Serialize final {
 
     static Serialize empty();
 
+    uint16_t version() const { return ver; }
     void setContext(World* ctx) { this->ctx=ctx; }
 
     template<class T>

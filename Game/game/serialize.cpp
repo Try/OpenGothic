@@ -20,8 +20,10 @@ Serialize::Serialize(Tempest::IDevice &fin) : in(&fin){
   readBytes(buf,sizeof(buf));
   readBytes(&ver,2);
 
-  if(std::memcmp(tag,buf,sizeof(buf))!=0 || ver>Version)
+  if(std::memcmp(tag,buf,sizeof(buf))!=0)
     throw std::runtime_error("invalid file format");
+  if(ver<MinVersion || Version<ver)
+    throw std::runtime_error("unsupported save file version");
   }
 
 Serialize Serialize::empty() {

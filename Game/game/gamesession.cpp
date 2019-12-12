@@ -48,13 +48,13 @@ void GameSession::HeroStorage::putToWorld(World& owner,const std::string& wayPoi
 
 
 GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::string file)
-  :gothic(gothic), storage(storage) {
+  :gothic(gothic), storage(storage), cam(gothic) {
   gothic.setLoadingProgress(0);
   setTime(gtime(8,0));
   uint8_t ver = gothic.version().game;
 
   vm.reset(new GameScript(*this));
-  setWorld(std::unique_ptr<World>(new World(*this,storage,file,ver,[&](int v){
+  setWorld(std::unique_ptr<World>(new World(*this,storage,std::move(file),ver,[&](int v){
     gothic.setLoadingProgress(int(v*0.55));
     })));
 
@@ -77,11 +77,12 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
 
   if(!testMode)
     initScripts(true);
+  cam.reset();
   gothic.setLoadingProgress(96);
   }
 
 GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Serialize &fin)
-  :gothic(gothic), storage(storage) {
+  :gothic(gothic), storage(storage), cam(gothic) {
   gothic.setLoadingProgress(0);
   uint16_t wssSize=0;
 
@@ -104,6 +105,7 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Seriali
   vm->loadVar(fin);
   if(auto hero = wrld->player())
     vm->setInstanceNPC("HERO",*hero);
+  cam.load(fin,wrld->player());
   gothic.setLoadingProgress(96);
   }
 
@@ -134,6 +136,7 @@ void GameSession::save(Serialize &fout, const char* name, const Pixmap& screen) 
 
   gothic.setLoadingProgress(80);
   vm->saveVar(fout);
+  cam.save(fout);
   }
 
 void GameSession::setWorld(std::unique_ptr<World> &&w) {

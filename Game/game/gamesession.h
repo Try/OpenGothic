@@ -7,6 +7,7 @@
 #include "ui/documentmenu.h"
 #include "ui/chapterscreen.h"
 #include "game/gamescript.h"
+#include "camera.h"
 #include "gametime.h"
 
 class Gothic;
@@ -47,6 +48,7 @@ class GameSession final {
 
     WorldView*   view()   const;
     GameScript*  script() const { return vm.get(); }
+    Camera&      camera(){ return cam; }
 
     auto         loadScriptCode() -> std::vector<uint8_t>;
     SoundFx*     loadSoundFx(const char *name);
@@ -105,8 +107,9 @@ class GameSession final {
 
     Gothic&                        gothic;
     const RendererStorage&         storage;
-
     Tempest::SoundDevice           sound;
+
+    Camera                         cam;
     std::unique_ptr<GameScript>    vm;
     std::unique_ptr<World>         wrld;
 
