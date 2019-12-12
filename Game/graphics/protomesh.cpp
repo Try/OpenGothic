@@ -139,15 +139,14 @@ Tempest::Matrix4x4 ProtoMesh::mapToRoot(size_t n) const {
   Tempest::Matrix4x4 m;
   m.identity();
 
-  while(true){
+  while(n<nodes.size()){
     auto& nx = nodes[n];
-    auto mx = nx.transform;
+    auto  mx = nx.transform;
     mx.mul(m);
     m = mx;
-    if(nx.parentId>=nodes.size())
-      return m;
     n = nx.parentId;
     }
+  return m;
   }
 
 void ProtoMesh::setupScheme(const std::string &s) {

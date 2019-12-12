@@ -344,14 +344,8 @@ uint32_t Interactive::stateMask(uint32_t orig) const {
 
 bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
   for(auto& i:attPos){
-    auto mat = pos;
-    auto pos = mesh->mapToRoot(i.node);
-    mat.mul(pos);
-
-    float x = mat.at(3,0);
-    float y = mat.at(3,1);
-    float z = mat.at(3,2);
-    if(npc.canSeeNpc(x,y,z,freeLos))
+    auto pos = nodePosition(npc,i);
+    if(npc.canSeeNpc(pos[0],pos[1],pos[2],freeLos))
       return true;
     }
 
@@ -419,6 +413,16 @@ bool Interactive::isAvailable() const {
   return findFreePos()!=nullptr;
   }
 
+bool Interactive::isStaticState() const {
+  for(auto& i:attPos)
+    if(i.user!=nullptr) {
+      if(i.attachMode)
+        return loopState;
+      return false;
+      }
+  return loopState;
+  }
+
 bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
   assert(to.user==nullptr);
 
@@ -443,17 +447,16 @@ bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
       }
     }
 
-  auto mat = pos;
-  auto pos = mesh->mapToRoot(to.node);
-  mat.mul(pos);
+  auto mat = nodeTranform(npc,to);
 
   float x=0, y=0, z=0;
-
   mat.project(x,y,z);
 
   std::array<float,3> mv = {x,y-npc.translateY(),z}, fallback={};
-  if(!npc.testMove(mv,fallback,0))
-    return false;
+  if(!npc.testMove(mv,fallback,0)) {
+    // FIXME: switches on stone-arks
+    // return false;
+    }
 
   setPos(npc,mv);
   setDir(npc,mat);
@@ -525,6 +528,46 @@ float Interactive::qDistanceTo(const Npc &npc, const Interactive::Pos &to) {
   return npc.qDistTo(p[0],p[1]-npc.translateY(),p[2]);
   }
 
+Tempest::Matrix4x4 Interactive::nodeTranform(const Npc &npc, const Pos& p) const {
+  auto npos = mesh->mapToRoot(p.node);
+
+  if(p.isDistPos()) {
+    float nodeX = npos.at(3,0);
+    float nodeY = npos.at(3,1);
+    float nodeZ = npos.at(3,2);
+    float dist  = std::sqrt(nodeX*nodeX + nodeZ*nodeZ);
+
+    float npcX  = npc.position()[0] - pos.at(3,0);
+    float npcZ  = npc.position()[2] - pos.at(3,2);
+    float npcA  = 180.f*std::atan2(npcZ,npcX)/float(M_PI);
+
+    npos.identity();
+    npos.rotateOY(-npcA);
+    npos.translate(dist,nodeY,0);
+    npos.rotateOY(-90);
+
+    float x = pos.at(3,0)+npos.at(3,0);
+    float y = pos.at(3,1)+npos.at(3,1);
+    float z = pos.at(3,2)+npos.at(3,2);
+    npos.set(3,0,x);
+    npos.set(3,1,y);
+    npos.set(3,2,z);
+    return npos;
+    }
+
+  auto mat = pos;
+  mat.mul(npos);
+  return mat;
+  }
+
+std::array<float,3> Interactive::nodePosition(const Npc &npc, const Pos &p) const {
+  auto  mat = nodeTranform(npc,p);
+  float x   = mat.at(3,0);
+  float y   = mat.at(3,1);
+  float z   = mat.at(3,2);
+  return {{x,y,z}};
+  }
+
 bool Interactive::setAnim(Interactive::Anim t) {
   int  st[]     = {state,state+(reverseState ? -t : t)};
   char ss[2][8] = {};
@@ -580,13 +623,11 @@ void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x
   p.setBrush(Tempest::Color(1.0,0,0,1));
 
   for(auto& m:attPos){
-    auto mat = pos;
-    auto pos = mesh->mapToRoot(m.node);
-    mat.mul(pos);
+    auto pos = worldPos(m);
 
-    float x = mat.at(3,0);
-    float y = mat.at(3,1);
-    float z = mat.at(3,2);
+    float x = pos[0];
+    float y = pos[1];
+    float z = pos[2];
     mvp.project(x,y,z);
 
     x = (0.5f*x+0.5f)*w;
@@ -597,16 +638,22 @@ void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x
   }
 
 const char *Interactive::Pos::posTag() const {
-  if(name=="ZS_POS0_FRONT" || name=="ZS_POS1_FRONT")
+  if(name.rfind("_FRONT")==name.size()-6)
     return "_FRONT";
-  if(name=="ZS_POS0_BACK" || name=="ZS_POS1_BACK")
+  if(name.rfind("_BACK")==name.size()-5)
     return "_BACK";
   return "";
   }
 
 bool Interactive::Pos::isAttachPoint() const {
-  return name=="ZS_POS0" || name=="ZS_POS0_FRONT" || name=="ZS_POS0_BACK" || name=="ZS_POS0_DIST" ||
-         name=="ZS_POS1" || name=="ZS_POS1_FRONT" || name=="ZS_POS1_BACK" || name=="ZS_POS1_DIST" ||
-         name=="ZS_POS2" ||
-         name=="ZS_POS3";
+  /*
+    ZS_POS0, ZS_POS0_FRONT, ZS_POS0_BACK, ZS_POS0_DIST
+    ZS_POS1, ZS_POS1_FRONT, ZS_POS1_BACK,
+    ZS_POS2, ZS_POS3, ...
+  */
+  return name.find("ZS_POS")==0;
+  }
+
+bool Interactive::Pos::isDistPos() const {
+  return name.rfind("_DIST")==name.size()-5;
   }

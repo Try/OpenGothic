@@ -51,7 +51,7 @@ class Interactive final {
     bool                canSeeNpc(const Npc &npc, bool freeLos) const;
 
     bool                isAvailable() const;
-    bool                isLoopState() const { return loopState; }
+    bool                isStaticState() const;
     bool                attach (Npc& npc);
     bool                dettach(Npc& npc);
 
@@ -71,6 +71,7 @@ class Interactive final {
 
       const char*        posTag() const;
       bool               isAttachPoint() const;
+      bool               isDistPos() const;
       };
 
     void                setVisual(const std::string& visual);
@@ -88,6 +89,8 @@ class Interactive final {
     Pos*                findFreePos();
     auto                worldPos(const Pos &to) const -> std::array<float,3>;
     float               qDistanceTo(const Npc &npc, const Pos &to);
+    Tempest::Matrix4x4  nodeTranform(const Npc &npc, const Pos &p) const;
+    auto                nodePosition(const Npc &npc, const Pos &p) const -> std::array<float,3>;
 
     World*                       world = nullptr;
 
