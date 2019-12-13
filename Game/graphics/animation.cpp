@@ -63,7 +63,7 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
             auto d = i.data;
             sequences.emplace_back();
             Animation::Sequence& ani = sequences.back();
-            ani.name    = i.name;
+            ani.name    = sequences[sequences.size()-r-1].name;
             ani.askName = name;
             ani.layer   = p.comb.m_Layer;
             ani.flags   = Flags(p.comb.m_Flags);
@@ -302,6 +302,22 @@ bool Animation::Sequence::isWindow(uint64_t t) const {
 
 float Animation::Sequence::totalTime() const {
   return data->numFrames*1000/data->fpsRate;
+  }
+
+bool Animation::Sequence::isPrehit(uint64_t sTime, uint64_t now) const {
+  auto& d         = *data;
+  auto  numFrames = d.numFrames;
+  if(numFrames==0)
+    return false;
+
+  int64_t frame = int64_t((now-sTime)*d.fpsRate)/1000;
+
+  for(auto& e:data->events)
+    if(e.m_Def==ZenLoad::DEF_OPT_FRAME)
+      for(auto i:e.m_Int)
+        if(int64_t(i)>frame)
+          return true;
+  return false;
   }
 
 bool Animation::Sequence::extractFrames(uint64_t& frameA,uint64_t& frameB,bool& invert,uint64_t barrier, uint64_t sTime, uint64_t now) const {

@@ -281,6 +281,9 @@ Animation *Resources::implLoadAnimation(std::string name) {
       FileExt::exchangeExt(name,"MDS","MSB") ||
       FileExt::exchangeExt(name,"MDH","MSB");
 
+      if(name=="Orc.MSB")
+        Log::d("");
+
       ZenLoad::ZenParser            zen(name,gothicAssets);
       ZenLoad::MdsParserBin         p(zen);
 

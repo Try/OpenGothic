@@ -370,20 +370,7 @@ bool Npc::startClimb(JumpCode code) {
   }
 
 bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
-  if(onChange && lastHit!=nullptr) {
-    uint32_t g = guild();
-    if(g==GIL_SKELETON || g==GIL_SKELETON_MAGE || g==GIL_SUMMONED_SKELETON) {
-      lastHitType='A';
-      } else {
-      float da = rotationRad()-lastHit->rotationRad();
-      if(std::cos(da)>=0)
-        lastHitType='A'; else
-        lastHitType='B';
-      }
-    }
-
   if(isDead()) {
-    physic.setEnable(false);
     return false;
     }
   if(isUnconscious() && allowUnconscious) {
@@ -442,6 +429,9 @@ void Npc::onNoHealth(bool death) {
     }
 
   setInteraction(nullptr,true);
+
+  if(death)
+    physic.setEnable(false);
 
   if(death)
     setAnim(lastHitType=='A' ? Anim::DeadA        : Anim::DeadB); else
@@ -716,10 +706,6 @@ void Npc::stopAnim(const std::string &ani) {
 
 bool Npc::isFinishingMove() const {
   return visual.pose().isInAnim("T_1HSFINISH") || visual.pose().isInAnim("T_2HSFINISH");
-  }
-
-bool Npc::isRunTo() const {
-  return visual.isRunTo(*this);
   }
 
 bool Npc::isStanding() const {
@@ -1134,8 +1120,10 @@ bool Npc::implAtack(uint64_t dt) {
     }
 
   if(act==FightAlgo::MV_JUMPBACK) {
-    if(setAnim(Npc::Anim::MoveBack))
+    if(setAnim(Npc::Anim::MoveBack)) {
+      implFaiWait(visual.pose().animationTotalTime());
       fghAlgo.consumeAction();
+      }
     return true;
     }
 
@@ -1239,6 +1227,17 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
     lastHit = &other;
     fghAlgo.onTakeHit();
     implFaiWait(0);
+
+    uint32_t g = guild();
+    if(g==GIL_SKELETON || g==GIL_SKELETON_MAGE || g==GIL_SUMMONED_SKELETON) {
+      lastHitType='A';
+      } else {
+      float da = rotationRad()-lastHit->rotationRad();
+      if(std::cos(da)>=0)
+        lastHitType='A'; else
+        lastHitType='B';
+      }
+
     if(!isPlayer())
       setOther(lastHit);
     auto hitResult = other.damageValue(*this,b);
@@ -1879,6 +1878,8 @@ BodyState Npc::bodyState() const {
     s = BS_SWIM;
   if(auto i = interactive())
     s = i->stateMask(s);
+  return BodyState(s);
+  /*
   if(s!=0)
     return BodyState(s);
 
@@ -1893,7 +1894,7 @@ BodyState Npc::bodyState() const {
       s = BS_SNEAK;
     }
 
-  return BodyState(s);
+  return BodyState(s);*/
   }
 
 void Npc::setToFightMode(const uint32_t item) {
@@ -2314,7 +2315,7 @@ bool Npc::isTalk() const {
   }
 
 bool Npc::isPrehit() const {
-  return visual.pose().isPrehit();
+  return visual.pose().isPrehit(owner.tickCount());
   }
 
 bool Npc::isImmortal() const {

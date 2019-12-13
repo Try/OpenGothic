@@ -37,28 +37,28 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
       return;
     }
 
-  if(tg.isPrehit()){
-    // TODO: FAI stormprehit
-    //return fillQueue(owner,ai.enemy_stormprehit);
+  if(tg.isPrehit() && isInGRange(npc,tg,owner)){
+    if(tg.bodyState()==BS_RUN)
+      return fillQueue(owner,ai.enemy_stormprehit);
     return fillQueue(owner,ai.enemy_prehit);
     }
 
   if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H){
     if(isInAtackRange(npc,tg,owner)) {
-      if(npc.isRunTo())
+      if(npc.bodyState()==BS_RUN)
         return fillQueue(owner,ai.my_w_runto);
       if(isInFocusAngle(npc,tg))
         return fillQueue(owner,ai.my_w_focus);
       return fillQueue(owner,ai.my_w_nofocus);
       }
 
-    if(isInGRange(npc,tg,owner)){
-      if(npc.isRunTo())
+    if(isInGRange(npc,tg,owner)) {
+      if(npc.bodyState()==BS_RUN)
         return fillQueue(owner,ai.my_g_runto);
       return fillQueue(owner,ai.my_g_focus);
       }
 
-    if(npc.isRunTo())
+    if(npc.bodyState()==BS_RUN)
       return fillQueue(owner,ai.my_w_runto);
     return fillQueue(owner,ai.my_w_nofocus);
     }

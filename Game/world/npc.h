@@ -232,7 +232,6 @@ class Npc final {
     bool          isFaling() const;
     bool          isSlide() const;
     bool          isInAir() const;
-    bool          isRunTo() const;
     bool          isStanding() const;
 
     void     setTalentSkill(Talent t,int32_t lvl);

@@ -224,11 +224,6 @@ void MdlVisual::stopWalkAnim(Npc &npc) {
   startAnim(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
   }
 
-bool MdlVisual::isRunTo(const Npc& npc) const {
-  const Animation::Sequence *sq = solver.solveAnim(AnimationSolver::Anim::Move,fgtMode,npc.walkMode(),*skInst);
-  return skInst->isInAnim(sq);
-  }
-
 bool MdlVisual::isStanding() const {
   return skInst->isStanding();
   }

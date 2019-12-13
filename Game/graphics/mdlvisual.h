@@ -43,7 +43,6 @@ class MdlVisual final {
     const Pose&                    pose() const { return *skInst; }
     void                           updateAnimation(Npc &owner);
 
-    bool                           isRunTo(const Npc &npc) const;
     bool                           isStanding() const;
     bool                           isItem() const;
 
