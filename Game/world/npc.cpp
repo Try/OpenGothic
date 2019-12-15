@@ -100,6 +100,9 @@ void Npc::load(Serialize &fin) {
   mvAlgo.load(fin);
   fghAlgo.load(fin);
   fin.read(lastEventTime);
+
+  if(isDead())
+    physic.setEnable(false);
   }
 
 void Npc::save(Serialize &fout, Daedalus::GEngineClasses::C_Npc &h) const {
