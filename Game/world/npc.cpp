@@ -1280,6 +1280,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
 std::tuple<int,bool> Npc::damageValue(Npc &other, const Bullet* b) const {
   int value = 0;
 
+  bool invinsible = true;
   if(b!=nullptr) {
     // Bow/CBow
     const float maxRange = 3500; // from Focus_Ranged
@@ -1287,10 +1288,14 @@ std::tuple<int,bool> Npc::damageValue(Npc &other, const Bullet* b) const {
       return std::make_tuple(0,false);
 
     auto dmg = b->damage();
-    for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
+    for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i) {
+      if(dmg[size_t(i)]==0)
+        continue;
       int vd = std::max(dmg[size_t(i)] - other.hnpc.protection[i],0);
-      if(other.hnpc.protection[i]>=0) // Filter immune
+      if(other.hnpc.protection[i]>=0) { // Filter immune
         value += vd;
+        invinsible = false;
+        }
       }
     } else {
     // Swords/Fists
@@ -1302,8 +1307,8 @@ std::tuple<int,bool> Npc::damageValue(Npc &other, const Bullet* b) const {
         hitCh = TALENT_1H;
       }
 
-    int s          = attribute(Attribute::ATR_STRENGTH);
-    int critChance = int(owner.script().rand(100));
+    int  s          = attribute(Attribute::ATR_STRENGTH);
+    int  critChance = int(owner.script().rand(100));
 
     for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
       if((dtype & (1<<i))==0)
@@ -1311,12 +1316,14 @@ std::tuple<int,bool> Npc::damageValue(Npc &other, const Bullet* b) const {
       int vd = std::max(s + hnpc.damage[i] - other.hnpc.protection[i],0);
       if(hnpc.hitChance[hitCh]<critChance)
         vd = (vd-1)/10;
-      if(other.hnpc.protection[i]>=0) // Filter immune
+      if(other.hnpc.protection[i]>=0) { // Filter immune
         value += vd;
+        invinsible = false;
+        }
       }
     }
 
-  int damage = std::max(value,3);
+  int damage = invinsible ? value : std::max(value,3);
   return std::make_tuple(damage,true);
   }
 
