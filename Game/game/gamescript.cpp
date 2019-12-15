@@ -152,6 +152,7 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("npc_setrefusetalk",   [this](Daedalus::DaedalusVM& vm){ npc_setrefusetalk(vm);    });
   vm.registerExternalFunction("npc_refusetalk",      [this](Daedalus::DaedalusVM& vm){ npc_refusetalk(vm);       });
   vm.registerExternalFunction("npc_hasitems",        [this](Daedalus::DaedalusVM& vm){ npc_hasitems(vm);         });
+  vm.registerExternalFunction("npc_getinvitem",      [this](Daedalus::DaedalusVM& vm){ npc_getinvitem(vm);       });
   vm.registerExternalFunction("npc_removeinvitem",   [this](Daedalus::DaedalusVM& vm){ npc_removeinvitem(vm);    });
   vm.registerExternalFunction("npc_removeinvitems",  [this](Daedalus::DaedalusVM& vm){ npc_removeinvitems(vm);   });
   vm.registerExternalFunction("npc_getbodystate",    [this](Daedalus::DaedalusVM& vm){ npc_getbodystate(vm);     });
@@ -1743,6 +1744,18 @@ void GameScript::npc_hasitems(Daedalus::DaedalusVM &vm) {
   if(npc!=nullptr)
     vm.setReturn(int32_t(npc->hasItem(itemId))); else
     vm.setReturn(0);
+  }
+
+void GameScript::npc_getinvitem(Daedalus::DaedalusVM &vm) {
+  uint32_t itemId = uint32_t(vm.popInt());
+  auto     npc    = popInstance(vm);
+  auto     itm    = npc==nullptr ? nullptr : npc->getItem(itemId);
+  storeItem(itm);
+  if(itm!=nullptr) {
+    pushItem(vm,itm);
+    } else {
+    vm.setReturn(0);
+    }
   }
 
 void GameScript::npc_removeinvitem(Daedalus::DaedalusVM &vm) {

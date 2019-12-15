@@ -232,6 +232,7 @@ class GameScript final {
     void npc_setrefusetalk   (Daedalus::DaedalusVM &vm);
     void npc_refusetalk      (Daedalus::DaedalusVM &vm);
     void npc_hasitems        (Daedalus::DaedalusVM &vm);
+    void npc_getinvitem      (Daedalus::DaedalusVM &vm);
     void npc_removeinvitem   (Daedalus::DaedalusVM &vm);
     void npc_removeinvitems  (Daedalus::DaedalusVM &vm);
     void npc_getbodystate    (Daedalus::DaedalusVM &vm);
