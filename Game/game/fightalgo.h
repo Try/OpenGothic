@@ -25,7 +25,7 @@ class FightAlgo final {
       MV_ATACKR   = 6,
       MV_STRAFEL  = 7,
       MV_STRAFER  = 8,
-      MV_BLOCK    = 8,
+      MV_BLOCK    = 9,
       MV_WAIT     = 10,
       MV_WAITLONG = 11,
       MV_TURN2HIT = 12,
@@ -50,7 +50,7 @@ class FightAlgo final {
 
   private:
     void   fillQueue(Npc &npc, Npc &tg, GameScript& owner);
-    void   fillQueue(GameScript& owner,const Daedalus::GEngineClasses::C_FightAI& src);
+    bool   fillQueue(GameScript& owner,const Daedalus::GEngineClasses::C_FightAI& src);
 
     static float  gRange         (GameScript &owner,const Npc &npc);
     static float  weaponRange    (GameScript &owner,const Npc &npc);
