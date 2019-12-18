@@ -463,7 +463,11 @@ void MainWindow::tick() {
     clearInput();
     }
 
-  auto& camera = *gothic.gameCamera();
+  auto pcamera = gothic.gameCamera();
+  if(pcamera==nullptr)
+    return;
+
+  auto& camera = *pcamera;
   currentFocus = player.findFocus(&currentFocus,camera,w(),h());
   player.setTarget(currentFocus.npc);
 
