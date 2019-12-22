@@ -7,7 +7,7 @@ MoveTrigger::MoveTrigger(ZenLoad::zCVobData&& d,World& owner)
   float v[16]={};
   std::memcpy(v,data.worldMatrix.m,sizeof(v));
 
-  setView(owner.getView(data.visual));
+  setView(owner.getView(data.visual.c_str()));
   if(data.cdDyn || data.cdStatic) {
     auto mesh   = Resources::loadMesh(data.visual);
     auto physic = Resources::physicMesh(mesh);
