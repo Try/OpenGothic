@@ -830,7 +830,7 @@ bool Npc::isRefuseTalk() const {
   }
 
 int32_t Npc::mageCycle() const {
-  return talentSkill(TALENT_RUNES);
+  return talentSkill(TALENT_MAGE);
   }
 
 void Npc::setRefuseTalk(uint64_t milis) {
