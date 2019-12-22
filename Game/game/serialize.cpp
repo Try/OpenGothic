@@ -49,6 +49,18 @@ void Serialize::read(std::string &s) {
     readBytes(&s[0],sz);
   }
 
+void Serialize::write(const Daedalus::ZString& s) {
+  uint32_t sz=s.size();
+  write(sz);
+  writeBytes(s.c_str(),sz);
+  }
+
+void Serialize::read(Daedalus::ZString& s) {
+  std::string rs;
+  read(rs);
+  s = Daedalus::ZString(std::move(rs));
+  }
+
 void Serialize::write(const SaveGameHeader &p) {
   p.save(*this);
   }

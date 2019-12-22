@@ -103,10 +103,10 @@ class ParticleFx final {
 
   private:
     static auto          loadTexture(const std::string& src) -> const Tempest::Texture2d*;
-    static Tempest::Vec2 loadVec2(const std::string& src);
-    static Tempest::Vec3 loadVec3(const std::string& src);
-    static EmitterType   loadEmitType(const std::string& src);
-    static Dir           loadDirType(const std::string& src);
-    static AlphaFunc     loadAlphaFn(const std::string& src);
+    static Tempest::Vec2 loadVec2(const Daedalus::ZString& src);
+    static Tempest::Vec3 loadVec3(const Daedalus::ZString& src);
+    static EmitterType   loadEmitType(const Daedalus::ZString& src);
+    static Dir           loadDirType(const Daedalus::ZString&  src);
+    static AlphaFunc     loadAlphaFn(const Daedalus::ZString&  src);
   };
 

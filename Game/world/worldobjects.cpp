@@ -158,8 +158,8 @@ uint32_t WorldObjects::itmId(const void *ptr) const {
   return uint32_t(-1);
   }
 
-Npc *WorldObjects::addNpc(size_t npcInstance, const char *at) {
-  auto pos = owner.findPoint(at);
+Npc *WorldObjects::addNpc(size_t npcInstance, const Daedalus::ZString& at) {
+  auto pos = owner.findPoint(at.c_str());
   if(pos==nullptr){
     Log::e("inserNpc: invalid waypoint");
     return nullptr;
@@ -181,8 +181,8 @@ Npc *WorldObjects::addNpc(size_t npcInstance, const char *at) {
   return npc;
   }
 
-Npc* WorldObjects::insertPlayer(std::unique_ptr<Npc> &&npc,const char* at) {
-  auto pos = owner.findPoint(at);
+Npc* WorldObjects::insertPlayer(std::unique_ptr<Npc> &&npc, const Daedalus::ZString& at) {
+  auto pos = owner.findPoint(at.c_str());
   if(pos==nullptr){
     Log::e("insertPlayer: invalid waypoint");
     return nullptr;
@@ -364,7 +364,7 @@ void WorldObjects::removeItem(Item &it) {
     }
   }
 
-size_t WorldObjects::hasItems(const std::string &tag, size_t itemCls) {
+size_t WorldObjects::hasItems(const char* tag, size_t itemCls) {
   for(auto& i:interactiveObj)
     if(i.tag()==tag) {
       return i.inventory().itemCount(itemCls);
@@ -497,7 +497,7 @@ void WorldObjects::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x
     }
   }
 
-Interactive *WorldObjects::aviableMob(const Npc &pl, const std::string &dest) {
+Interactive *WorldObjects::aviableMob(const Npc &pl, const char* dest) {
   const float  dist=100*10.f;
   Interactive* ret =nullptr;
 

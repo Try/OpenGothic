@@ -87,7 +87,7 @@ class Resources final {
 
     static const AttachBinder*       bindMesh     (const ProtoMesh& anim,const Skeleton& s,const char* defBone);
     static const ProtoMesh*          loadMesh     (const std::string& name);
-    static const Skeleton*           loadSkeleton (const std::string& name);
+    static const Skeleton*           loadSkeleton (const char*        name);
     static const Animation*          loadAnimation(const std::string& name);
     static const PhysicMeshShape*    physicMesh   (const ProtoMesh*   view);
 

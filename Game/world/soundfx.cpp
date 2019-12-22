@@ -65,7 +65,7 @@ SoundEffect SoundFx::getGlobal(SoundDevice &dev) const {
 
 void SoundFx::implLoad(Gothic &gothic, const char *s) {
   auto& sfx = gothic.getSoundScheme(s);
-  auto  snd = Resources::loadSoundBuffer(sfx.file);
+  auto  snd = Resources::loadSoundBuffer(sfx.file.c_str());
 
   if(!snd.isEmpty())
     inst.emplace_back(sfx,std::move(snd));
@@ -78,7 +78,7 @@ void SoundFx::loadVariants(Gothic &gothic, const char *s) {
   for(int i=1;i<100;++i){
     std::snprintf(name,sizeof(name),"%s_A%02d",s,i);
     auto& sfx = gothic.getSoundScheme(name);
-    auto  snd = Resources::loadSoundBuffer(sfx.file);
+    auto  snd = Resources::loadSoundBuffer(sfx.file.c_str());
     if(snd.isEmpty())
       break;
     inst.emplace_back(sfx,std::move(snd));

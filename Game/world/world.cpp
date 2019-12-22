@@ -87,7 +87,7 @@ World::World(GameSession &game, const RendererStorage &storage,
   }
 
 void World::createPlayer(const char *cls) {
-  npcPlayer = addNpc(cls,wmatrix->startPoint().name.c_str());
+  npcPlayer = addNpc(cls,wmatrix->startPoint().name);
   if(npcPlayer!=nullptr) {
     npcPlayer->setProcessPolicy(Npc::ProcessPolicy::Player);
     game.script()->setInstanceNPC("HERO",*npcPlayer);
@@ -157,11 +157,15 @@ Item *World::itmById(uint32_t id) {
   return nullptr;
   }
 
-MeshObjects::Mesh World::getView(const std::string &visual) const {
+MeshObjects::Mesh World::getView(const char* visual) const {
   return getView(visual,0,0,0);
   }
 
-MeshObjects::Mesh World::getView(const std::string &visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const {
+MeshObjects::Mesh World::getView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const {
+  return getView(visual.c_str(),headTex,teetTex,bodyColor);
+  }
+
+MeshObjects::Mesh World::getView(const char* visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const {
   return view()->getView(visual,headTex,teetTex,bodyColor);
   }
 
@@ -169,11 +173,15 @@ PfxObjects::Emitter World::getView(const ParticleFx *decl) const {
   return view()->getView(decl);
   }
 
-MeshObjects::Mesh World::getStaticView(const std::string &visual, int32_t tex) const {
+MeshObjects::Mesh World::getStaticView(const Daedalus::ZString& visual, int32_t tex) const {
+  return getStaticView(visual.c_str(),tex);
+  }
+
+MeshObjects::Mesh World::getStaticView(const char* visual, int32_t tex) const {
   return view()->getStaticView(visual,tex);
   }
 
-DynamicWorld::Item World::getPhysic(const std::string& visual) {
+DynamicWorld::Item World::getPhysic(const char* visual) {
   if(auto sk=Resources::loadSkeleton(visual))
     return physic()->ghostObj(sk->bboxCol[0],sk->bboxCol[1]);
   ZMath::float3 zero={};
@@ -397,7 +405,7 @@ Focus World::findFocus(const Focus &def, const Tempest::Matrix4x4 &mvp, int w, i
   return findFocus(*npcPlayer,def,mvp,w,h);
   }
 
-Interactive *World::aviableMob(const Npc &pl, const std::string &name) {
+Interactive *World::aviableMob(const Npc &pl, const char* name) {
   return wobj.aviableMob(pl,name);
   }
 
@@ -437,14 +445,14 @@ void World::print(const char *msg) {
   game.print(msg);
   }
 
-Npc *World::addNpc(const char *name, const char *at) {
+Npc *World::addNpc(const char *name, const Daedalus::ZString& at) {
   size_t id = script().getSymbolIndex(name);
   if(id==size_t(-1))
     return nullptr;
   return wobj.addNpc(id,at);
   }
 
-Npc *World::addNpc(size_t npcInstance, const char *at) {
+Npc *World::addNpc(size_t npcInstance, const Daedalus::ZString& at) {
   return wobj.addNpc(npcInstance,at);
   }
 
@@ -460,7 +468,7 @@ void World::removeItem(Item& it) {
   wobj.removeItem(it);
   }
 
-size_t World::hasItems(const std::string &tag, size_t itemCls) {
+size_t World::hasItems(const char* tag, size_t itemCls) {
   return wobj.hasItems(tag,itemCls);
   }
 
@@ -726,7 +734,7 @@ const VersionInfo& World::version() const {
   return game.version();
   }
 
-void World::assignRoomToGuild(const std::string &r, int32_t guildId) {
+void World::assignRoomToGuild(const char* r, int32_t guildId) {
   std::string room = r;
   for(auto& i:room)
     i = char(std::toupper(i));
@@ -746,6 +754,10 @@ int32_t World::guildOfRoom(const std::array<float,3> &pos) {
       return room->guild;
     }
   return GIL_NONE;
+  }
+
+MeshObjects::Mesh World::getView(const Daedalus::ZString& visual) const {
+  return getView(visual.c_str());
   }
 
 void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {

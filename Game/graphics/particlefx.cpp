@@ -6,30 +6,30 @@ using namespace Tempest;
 
 ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src) {
   ppsValue            = src.ppsValue;
-  ppsScaleKeys_S      = src.ppsScaleKeys_S;
+  ppsScaleKeys_S      = src.ppsScaleKeys_S.c_str();
   ppsIsLooping        = src.ppsIsLooping!=0;
   ppsIsSmooth         = src.ppsIsSmooth!=0;
   ppsFPS              = src.ppsFPS;
-  ppsCreateEm_S       = src.ppsCreateEm_S;
+  ppsCreateEm_S       = src.ppsCreateEm_S.c_str();
   ppsCreateEmDelay    = src.ppsCreateEmDelay;
 
   shpType_S           = loadEmitType(src.shpType_S);
-  shpFOR_S            = src.shpFOR_S;
+  shpFOR_S            = src.shpFOR_S.c_str();
   shpOffsetVec_S      = loadVec3(src.shpOffsetVec_S);
-  shpDistribType_S    = src.shpDistribType_S;
+  shpDistribType_S    = src.shpDistribType_S.c_str();
   shpDistribWalkSpeed = src.shpDistribWalkSpeed;
   shpIsVolume         = src.shpIsVolume!=0;
   shpDim_S            = loadVec3(src.shpDim_S);
-  shpMesh_S           = src.shpMesh_S;
+  shpMesh_S           = src.shpMesh_S.c_str();
   shpMeshRender_B     = src.shpMeshRender_B!=0;
-  shpScaleKeys_S      = src.shpScaleKeys_S;
+  shpScaleKeys_S      = src.shpScaleKeys_S.c_str();
   shpScaleIsLooping   = src.shpScaleIsLooping!=0;
   shpScaleIsSmooth    = src.shpScaleIsSmooth!=0;
   shpScaleFPS         = src.shpScaleFPS;
 
   dirMode_S           = loadDirType(src.dirMode_S);
-  dirFOR_S            = src.dirFOR_S;
-  dirModeTargetFOR_S  = src.dirModeTargetFOR_S;
+  dirFOR_S            = src.dirFOR_S.c_str();
+  dirModeTargetFOR_S  = src.dirModeTargetFOR_S.c_str();
   dirModeTargetPos_S  = loadVec3(src.dirModeTargetPos_S);
   dirAngleHead        = src.dirAngleHead;
   dirAngleHeadVar     = src.dirAngleHeadVar;
@@ -44,8 +44,8 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src) {
   flyGravity_S        = loadVec3(src.flyGravity_S);
   flyCollDet_B        = src.flyCollDet_B!=0;
 
-  visName_S           = loadTexture(src.visName_S);
-  visOrientation_S    = src.visOrientation_S;
+  visName_S           = loadTexture(src.visName_S.c_str());
+  visOrientation_S    = src.visOrientation_S.c_str();
   visTexIsQuadPoly    = src.visTexIsQuadPoly;
   visTexAniFPS        = src.visTexAniFPS;
   visTexAniIsLooping  = src.visTexAniIsLooping;
@@ -58,19 +58,19 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src) {
   visAlphaEnd         = src.visAlphaEnd/255.f;
 
    trlFadeSpeed       = src.trlFadeSpeed;
-   trlTexture_S       = src.trlTexture_S;
+   trlTexture_S       = src.trlTexture_S.c_str();
    trlWidth           = src.trlWidth;
 
    mrkFadeSpeed       = src.mrkFadeSpeed;
-   mrkTexture_S       = src.mrkTexture_S;
+   mrkTexture_S       = src.mrkTexture_S.c_str();
    mrkSize            = src.mrkSize;
 
-  flockMode           = src.flockMode;
+  flockMode           = src.flockMode.c_str();
   flockStrength       = src.flockStrength;
 
   useEmittersFOR      = src.useEmittersFOR!=0;
 
-  timeStartEnd_S      = src.timeStartEnd_S;
+  timeStartEnd_S      = src.timeStartEnd_S.c_str();
   m_bIsAmbientPFX     = src.m_bIsAmbientPFX!=0;
   }
 
@@ -78,7 +78,7 @@ uint64_t ParticleFx::maxLifetime() const {
   return uint64_t(lspPartAvg+lspPartVar);
   }
 
-Vec2 ParticleFx::loadVec2(const std::string &src) {
+Vec2 ParticleFx::loadVec2(const Daedalus::ZString& src) {
   if(src=="=")
     return Vec2();
 
@@ -103,7 +103,7 @@ const Tempest::Texture2d* ParticleFx::loadTexture(const std::string &src) {
   return view;
   }
 
-Vec3 ParticleFx::loadVec3(const std::string &src) {
+Vec3 ParticleFx::loadVec3(const Daedalus::ZString& src) {
   if(src=="=")
     return Vec3();
 
@@ -123,7 +123,7 @@ Vec3 ParticleFx::loadVec3(const std::string &src) {
   return Vec3(v[0],v[1],v[2]);
   }
 
-ParticleFx::EmitterType ParticleFx::loadEmitType(const std::string &src) {
+ParticleFx::EmitterType ParticleFx::loadEmitType(const Daedalus::ZString& src) {
   if(src=="POINT")
     return EmitterType::Point;
   if(src=="LINE")
@@ -139,7 +139,7 @@ ParticleFx::EmitterType ParticleFx::loadEmitType(const std::string &src) {
   return EmitterType::Point;
   }
 
-ParticleFx::Dir ParticleFx::loadDirType(const std::string &src) {
+ParticleFx::Dir ParticleFx::loadDirType(const Daedalus::ZString& src) {
   if(src=="RAND")
     return Dir::Rand;
   if(src=="DIR")
@@ -149,7 +149,7 @@ ParticleFx::Dir ParticleFx::loadDirType(const std::string &src) {
   return Dir::Rand;
   }
 
-ParticleFx::AlphaFunc ParticleFx::loadAlphaFn(const std::string &src) {
+ParticleFx::AlphaFunc ParticleFx::loadAlphaFn(const Daedalus::ZString& src) {
   if(src=="NONE")
     return AlphaFunc::None;
   if(src=="BLEND")

@@ -10,16 +10,16 @@
 
 using namespace Tempest;
 
-bool DialogMenu::Pipe::output(Npc &npc, const std::string &text) {
-  return owner.aiOutput(npc,text.c_str());
+bool DialogMenu::Pipe::output(Npc &npc, const Daedalus::ZString& text) {
+  return owner.aiOutput(npc,text);
   }
 
-bool DialogMenu::Pipe::outputSvm(Npc &npc, const std::string &text, int voice) {
+bool DialogMenu::Pipe::outputSvm(Npc &npc, const Daedalus::ZString& text, int voice) {
   auto& svm = owner.gothic.messageFromSvm(text,voice);
-  return owner.aiOutput(npc,svm.c_str());
+  return owner.aiOutput(npc,svm);
   }
 
-bool DialogMenu::Pipe::outputOv(Npc &npc, const std::string &text, int voice) {
+bool DialogMenu::Pipe::outputOv(Npc &npc, const Daedalus::ZString& text, int voice) {
   return outputSvm(npc,text,voice);
   }
 
@@ -156,9 +156,9 @@ void DialogMenu::openPipe(Npc &player, Npc &npc, AiOuputPipe *&out) {
   state  = State::PreStart;
   }
 
-bool DialogMenu::aiOutput(Npc &npc, const char *msg) {
+bool DialogMenu::aiOutput(Npc &npc, const Daedalus::ZString& msg) {
   if(&npc!=pl && &npc!=other){
-    Log::e("unexpected aiOutput call: ",msg);
+    Log::e("unexpected aiOutput call: ",msg.c_str());
     return true;
     }
 
@@ -173,9 +173,9 @@ bool DialogMenu::aiOutput(Npc &npc, const char *msg) {
       pl->stopDlgAnim();
     }
 
-  current.txt  = gothic.messageByName(msg);
+  current.txt  = gothic.messageByName(msg).c_str();
   current.time = gothic.messageTime(msg);
-  currentSnd   = soundDevice.load(Resources::loadSoundBuffer(std::string(msg)+".wav"));
+  currentSnd   = soundDevice.load(Resources::loadSoundBuffer(std::string(msg.c_str())+".wav"));
   curentIsPl   = (pl==&npc);
 
   currentSnd.play();

@@ -45,8 +45,8 @@ class WorldObjects final {
     uint32_t       npcId(const Npc *ptr) const;
     uint32_t       itmId(const void* ptr) const;
 
-    Npc*           addNpc(size_t itemInstance, const char *at);
-    Npc*           insertPlayer(std::unique_ptr<Npc>&& npc, const char *waypoint);
+    Npc*           addNpc(size_t itemInstance, const Daedalus::ZString& at);
+    Npc*           insertPlayer(std::unique_ptr<Npc>&& npc, const Daedalus::ZString& waypoint);
     auto           takeNpc(const Npc* npc) -> std::unique_ptr<Npc>;
 
     void           updateAnimation();
@@ -70,7 +70,7 @@ class WorldObjects final {
     Item*          addItem(const ZenLoad::zCVobData &vob);
     Item*          takeItem(Item& it);
     void           removeItem(Item& it);
-    size_t         hasItems(const std::string& tag,size_t itemCls);
+    size_t         hasItems(const char* tag, size_t itemCls);
 
     Bullet&        shootBullet(const Item &itmId, float x, float y, float z, float dx, float dy, float dz, float speed);
 
@@ -86,7 +86,7 @@ class WorldObjects final {
 
     void           marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
-    Interactive*   aviableMob(const Npc& pl,const std::string& name);
+    Interactive*   aviableMob(const Npc& pl, const char* name);
 
     void           sendPassivePerc(Npc& self,Npc& other,Npc& victum,int32_t perc);
     void           sendPassivePerc(Npc& self,Npc& other,Npc& victum,Item& itm,int32_t perc);

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string>
+#include <daedalus/ZString.h>
 
 class Npc;
 
@@ -8,9 +8,9 @@ class AiOuputPipe {
   public:
     virtual ~AiOuputPipe()=default;
 
-    virtual bool output   (Npc& npc, const std::string& text)=0;
-    virtual bool outputSvm(Npc& npc, const std::string& text, int voice)=0;
-    virtual bool outputOv (Npc& npc, const std::string& text, int voice)=0;
+    virtual bool output   (Npc& npc, const Daedalus::ZString& text)=0;
+    virtual bool outputSvm(Npc& npc, const Daedalus::ZString& text, int voice)=0;
+    virtual bool outputOv (Npc& npc, const Daedalus::ZString& text, int voice)=0;
 
     virtual bool isFinished()=0;
     virtual bool close()=0;

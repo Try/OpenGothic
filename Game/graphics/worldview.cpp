@@ -67,13 +67,13 @@ void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd) {
   cmd.exec(frame[fId].cmdMain);
   }
 
-MeshObjects::Mesh WorldView::getView(const std::string &visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
+MeshObjects::Mesh WorldView::getView(const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
   if(auto mesh=Resources::loadMesh(visual))
     return objGroup.get(*mesh,headTex,teethTex,bodyColor);
   return MeshObjects::Mesh();
   }
 
-MeshObjects::Mesh WorldView::getStaticView(const std::string &visual,int32_t material) {
+MeshObjects::Mesh WorldView::getStaticView(const char* visual, int32_t material) {
   if(auto mesh=Resources::loadMesh(visual))
     return itmGroup.get(*mesh,material,0,material);
   return MeshObjects::Mesh();

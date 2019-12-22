@@ -63,8 +63,8 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
 
   const bool testMode=false;
 
-  const char* hero = testMode ? "PC_ROCKEFELLER" : "PC_HERO";
-  //const char* hero = "PC_ROCKEFELLER";
+  //const char* hero = testMode ? "PC_ROCKEFELLER" : "PC_HERO";
+  const char* hero = "PC_ROCKEFELLER";
   //const char* hero = "Giant_Bug";
   //const char* hero = "OrcWarrior_Rest";
   //const char* hero = "Snapper";
@@ -372,26 +372,25 @@ void GameSession::dialogExec(const GameScript::DlgChoise &dlg, Npc& player, Npc&
   return vm->exec(dlg,player,npc);
   }
 
-const std::string &GameSession::messageFromSvm(const std::string &id, int voice) const {
+const Daedalus::ZString& GameSession::messageFromSvm(const Daedalus::ZString& id, int voice) const {
   if(!wrld){
-    static std::string empty;
+    static Daedalus::ZString empty;
     return empty;
     }
   return vm->messageFromSvm(id,voice);
   }
 
-const std::string &GameSession::messageByName(const std::string &id) const {
+const Daedalus::ZString& GameSession::messageByName(const Daedalus::ZString& id) const {
   if(!wrld){
-    static std::string empty;
+    static Daedalus::ZString empty;
     return empty;
     }
   return vm->messageByName(id);
   }
 
-uint32_t GameSession::messageTime(const std::string &id) const {
-  if(!wrld){
+uint32_t GameSession::messageTime(const Daedalus::ZString& id) const {
+  if(!wrld)
     return 0;
-    }
   return vm->messageTime(id);
   }
 

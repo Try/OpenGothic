@@ -28,7 +28,7 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
         mix.setMusic(m);
         }
       catch(std::runtime_error&) {
-        Log::e("unable to load sound: ",theme->file);
+        Log::e("unable to load sound: ",theme->file.c_str());
         }
       }
     mix.mix(out,n);

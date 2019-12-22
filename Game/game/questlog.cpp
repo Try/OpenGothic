@@ -4,7 +4,7 @@
 QuestLog::QuestLog() {
   }
 
-QuestLog::Quest &QuestLog::add(const std::string &name, Section s) {
+QuestLog::Quest &QuestLog::add(const char* name, Section s) {
   if(auto m = find(name))
     return *m;
   Quest q;
@@ -14,7 +14,7 @@ QuestLog::Quest &QuestLog::add(const std::string &name, Section s) {
   return quests.back();
   }
 
-void QuestLog::setStatus(const std::string &name, QuestLog::Status s) {
+void QuestLog::setStatus(const char* name, QuestLog::Status s) {
   auto m = find(name);
   if(m==nullptr && s==Status::Obsolete)
     return;
@@ -22,12 +22,12 @@ void QuestLog::setStatus(const std::string &name, QuestLog::Status s) {
   q.status = s;
   }
 
-void QuestLog::addEntry(const std::string &name, const std::string &entry) {
+void QuestLog::addEntry(const char* name, const char* entry) {
   if(auto m = find(name))
     m->entry.emplace_back(entry);
   }
 
-QuestLog::Quest *QuestLog::find(const std::string &name) {
+QuestLog::Quest *QuestLog::find(const char* name) {
   for(auto& i:quests)
     if(i.name==name)
       return &i;

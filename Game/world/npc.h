@@ -152,7 +152,7 @@ class Npc final {
 
     using Anim = AnimationSolver::Anim;
 
-    Npc(World &owner, size_t instance, const char *waypoint);
+    Npc(World &owner, size_t instance, const Daedalus::ZString& waypoint);
     Npc(World &owner, Serialize& fin);
     Npc(const Npc&)=delete;
     ~Npc();
@@ -270,8 +270,8 @@ class Npc final {
     Attitude  tempAttitude() const { return tmpAttitude; }
 
     void      startDialog(Npc& other);
-    bool      startState(size_t id, const std::string &wp);
-    bool      startState(size_t id, const std::string &wp, gtime endTime, bool noFinalize);
+    bool      startState(size_t id, const Daedalus::ZString& wp);
+    bool      startState(size_t id, const Daedalus::ZString& wp, gtime endTime, bool noFinalize);
     void      clearState(bool noFinalize);
     BodyState bodyState() const;
 
@@ -359,7 +359,7 @@ class Npc final {
     Item*    currentRangeWeapon();
 
     bool     lookAt(float dx, float dz, bool anim, uint64_t dt);
-    auto     playAnimByName(const std::string& name, BodyState bs) -> const Animation::Sequence*;
+    auto     playAnimByName(const Daedalus::ZString& name, BodyState bs) -> const Animation::Sequence*;
 
     bool     checkGoToNpcdistance(const Npc& other);
     void     aiLookAt(Npc* other);
@@ -367,10 +367,10 @@ class Npc final {
     void     aiRemoveWeapon();
     void     aiTurnToNpc(Npc *other);
     void     aiGoToNpc  (Npc *other);
-    void     aiGoToNextFp(std::string fp);
-    void     aiStartState(uint32_t stateFn, int behavior, Npc *other, std::string wp);
-    void     aiPlayAnim(const std::string &ani);
-    void     aiPlayAnimBs(const std::string &ani, BodyState bs);
+    void     aiGoToNextFp(const Daedalus::ZString& fp);
+    void     aiStartState(uint32_t stateFn, int behavior, Npc *other, const Daedalus::ZString& wp);
+    void     aiPlayAnim(const Daedalus::ZString& ani);
+    void     aiPlayAnimBs(const Daedalus::ZString& ani, BodyState bs);
     void     aiWait(uint64_t dt);
     void     aiStandup();
     void     aiStandupQuick();
@@ -379,7 +379,7 @@ class Npc final {
     void     aiEquipBestArmor();
     void     aiEquipBestMeleWeapon();
     void     aiEquipBestRangeWeapon();
-    void     aiUseMob(const std::string& name,int st);
+    void     aiUseMob(const Daedalus::ZString& name,int st);
     void     aiUseItem(int32_t id);
     void     aiUseItemToState(int32_t id,int32_t state);
     void     aiTeleport(const WayPoint& to);
@@ -392,9 +392,9 @@ class Npc final {
     void     aiUnEquipWeapons();
     void     aiUnEquipArmor();
     void     aiProcessInfo(Npc& other);
-    void     aiOutput(Npc &to, std::string text, int order);
-    void     aiOutputSvm(Npc &to, std::string text, int order);
-    void     aiOutputSvmOverlay(Npc &to, std::string text, int order);
+    void     aiOutput(Npc &to, const Daedalus::ZString& text, int order);
+    void     aiOutputSvm(Npc &to, const Daedalus::ZString& text, int order);
+    void     aiOutputSvmOverlay(Npc &to, const Daedalus::ZString& text, int order);
     void     aiStopProcessInfo();
     void     aiContinueRoutine();
     void     aiAlignToFp();
@@ -492,12 +492,12 @@ class Npc final {
       };
 
     struct AiAction final {
-      Action          act   =AI_None;
-      Npc*            target=nullptr;
-      const WayPoint* point =nullptr;
-      size_t          func  =0;
-      int             i0    =0;
-      std::string     s0;
+      Action            act   =AI_None;
+      Npc*              target=nullptr;
+      const WayPoint*   point =nullptr;
+      size_t            func  =0;
+      int               i0    =0;
+      Daedalus::ZString s0;
       };
 
     struct AiState final {

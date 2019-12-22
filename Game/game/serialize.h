@@ -9,6 +9,8 @@
 #include <vector>
 #include <array>
 
+#include <daedalus/ZString.h>
+
 #include "gametime.h"
 #include "constants.h"
 
@@ -91,6 +93,9 @@ class Serialize final {
     void write(const std::string&              s);
     void read (std::string&                    s);
 
+    void write(const Daedalus::ZString&        s);
+    void read (Daedalus::ZString&              s);
+
     void write(const SaveGameHeader&           p);
     void read (SaveGameHeader&                 p);
 
@@ -125,6 +130,12 @@ class Serialize final {
       for(auto& i:s)
         read(i);
       }
+
+    template<size_t sz>
+    void write(const Daedalus::ZString (&s)[sz]) { writeArr(s); }
+
+    template<size_t sz>
+    void read (Daedalus::ZString (&s)[sz]) { readArr(s); }
 
     template<size_t sz>
     void write(const std::string (&s)[sz]) { writeArr(s); }

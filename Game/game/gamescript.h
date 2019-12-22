@@ -109,15 +109,15 @@ class GameScript final {
     int  invokeSpell(Npc& npc, Npc *target, Item&  fn);
     int  invokeCond (Npc& npc, const char *func);
 
-    auto spellCastAnim(Npc& npc, Item&  fn) -> const std::string&;
+    auto spellCastAnim(Npc& npc, Item&  fn) -> const Daedalus::ZString&;
 
     bool isDead       (const Npc &pl);
     bool isUnconscious(const Npc &pl);
     bool isTalk       (const Npc &pl);
 
-    const std::string& messageFromSvm(const std::string &id,int voice) const;
-    const std::string& messageByName(const std::string &id) const;
-    uint32_t           messageTime(const std::string &id) const;
+    const Daedalus::ZString& messageFromSvm(const Daedalus::ZString& id,int voice) const;
+    const Daedalus::ZString& messageByName (const Daedalus::ZString& id) const;
+    uint32_t                 messageTime   (const Daedalus::ZString& id) const;
 
     int      printNothingToGet();
     float    tradeValueMultiplier() const { return tradeValMult; }
@@ -131,9 +131,9 @@ class GameScript final {
     struct GlobalOutput : AiOuputPipe {
       GlobalOutput(GameScript& owner):owner(owner){}
 
-      bool output   (Npc &npc, const std::string& text) override;
-      bool outputSvm(Npc& npc, const std::string& text, int voice) override;
-      bool outputOv (Npc& npc, const std::string& text, int voice) override;
+      bool output   (Npc &npc, const Daedalus::ZString& text) override;
+      bool outputSvm(Npc& npc, const Daedalus::ZString& text, int voice) override;
+      bool outputOv (Npc& npc, const Daedalus::ZString& text, int voice) override;
       bool isFinished() override;
 
       bool close() override { return true; }
@@ -167,8 +167,8 @@ class GameScript final {
 
     void  storeItem(Item* it);
 
-    bool  aiOutput   (Npc &from, const std::string& name);
-    bool  aiOutputSvm(Npc &from, const std::string& name, int32_t voice, bool overlay);
+    bool  aiOutput   (Npc &from, const Daedalus::ZString& name);
+    bool  aiOutputSvm(Npc &from, const Daedalus::ZString& name, int32_t voice, bool overlay);
 
     static void concatstrings(Daedalus::DaedalusVM& vm);
     static void inttostring  (Daedalus::DaedalusVM& vm);

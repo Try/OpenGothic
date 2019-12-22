@@ -31,7 +31,7 @@ class Interactive final {
 
     const std::string&  tag() const;
     const std::string&  focusName() const;
-    bool                checkMobName(const std::string& dest) const;
+    bool                checkMobName(const char* dest) const;
     const std::string&  ownerName() const;
 
     std::array<float,3> position() const;

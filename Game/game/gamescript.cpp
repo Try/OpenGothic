@@ -44,15 +44,15 @@ struct GameScript::ScopeVar final {
   };
 
 
-bool GameScript::GlobalOutput::output(Npc& npc,const std::string &text) {
+bool GameScript::GlobalOutput::output(Npc& npc,const Daedalus::ZString& text) {
   return owner.aiOutput(npc,text);
   }
 
-bool GameScript::GlobalOutput::outputSvm(Npc &npc, const std::string &text, int voice) {
+bool GameScript::GlobalOutput::outputSvm(Npc &npc, const Daedalus::ZString& text, int voice) {
   return owner.aiOutputSvm(npc,text,voice,false);
   }
 
-bool GameScript::GlobalOutput::outputOv(Npc &npc, const std::string &text, int voice) {
+bool GameScript::GlobalOutput::outputOv(Npc &npc, const Daedalus::ZString& text, int voice) {
   return owner.aiOutputSvm(npc,text,voice,true);
   }
 
@@ -345,7 +345,7 @@ void GameScript::initCommon() {
       Daedalus::GEngineClasses::C_Item item={};
       vm.initializeInstance(item, itMi_Gold, Daedalus::IC_Item);
       clearReferences(item);
-      goldTxt = item.name;
+      goldTxt = item.name.c_str();
       }
     auto& tradeMul = dat.getSymbolByName("TRADE_VALUE_MULTIPLIER");
     tradeValMult   = tradeMul.getFloat();
@@ -360,7 +360,7 @@ void GameScript::initCommon() {
       Daedalus::GEngineClasses::C_Item item={};
       vm.initializeInstance(item, itMi_Gold, Daedalus::IC_Item);
       clearReferences(item);
-      goldTxt = item.name;
+      goldTxt = item.name.c_str();
       }
     //
     tradeValMult   = 1.f;
@@ -670,7 +670,7 @@ const AiState &GameScript::getAiState(size_t id) {
 const Daedalus::GEngineClasses::C_Spell &GameScript::getSpell(int32_t splId) {
   auto& spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
   auto& tag       = spellInst.getString(size_t(splId));
-  return spells->find(tag);
+  return spells->find(tag.c_str());
   }
 
 const ParticleFx* GameScript::getSpellFx(int32_t splId, SpellFxType type) {
@@ -755,7 +755,7 @@ std::vector<GameScript::DlgChoise> GameScript::dialogChoises(Daedalus::GEngineCl
 
       if(valid) {
         DlgChoise ch;
-        ch.title    = info.description;
+        ch.title    = info.description.c_str();
         ch.scriptFn = info.information;
         ch.handle   = i;
         ch.isTrade  = info.trade!=0;
@@ -789,7 +789,7 @@ std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::Dl
       valid = runFunction(info.condition)!=0;
 
     GameScript::DlgChoise ch;
-    ch.title    = sub.text;
+    ch.title    = sub.text.c_str();
     ch.scriptFn = sub.functionSym;
     ch.handle   = dlg.handle;
     ch.isTrade  = false;
@@ -930,10 +930,11 @@ int GameScript::invokeMana(Npc &npc, Npc* target, Item &) {
 int GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
   auto& spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
   auto& tag       = spellInst.getString(size_t(it.spellId()));
-  auto  str       = "Spell_Cast_" + tag;
+  char  str[256]={};
+  std::snprintf(str,sizeof(str),"Spell_Cast_",tag.c_str());
 
   auto& dat = vm.getDATFile();
-  auto  fn  = dat.getSymbolIndexByName(str.c_str());
+  auto  fn  = dat.getSymbolIndexByName(str);
   if(fn==size_t(-1))
     return 0;
 
@@ -949,12 +950,12 @@ int GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
   }
 
 int GameScript::invokeCond(Npc &npc,const char* func) {
-
+  //FIXME
   }
 
-const std::string& GameScript::spellCastAnim(Npc&, Item &it) {
+const Daedalus::ZString& GameScript::spellCastAnim(Npc&, Item &it) {
   if(spellFxAniLetters==size_t(-1)) {
-    static const std::string FIB = "FIB";
+    static const Daedalus::ZString FIB = "FIB";
     return FIB;
     }
   auto& spellAni = vm.getDATFile().getSymbolByIndex(spellFxAniLetters);
@@ -962,7 +963,7 @@ const std::string& GameScript::spellCastAnim(Npc&, Item &it) {
   return tag;
   }
 
-bool GameScript::aiOutput(Npc &npc, const std::string &outputname) {
+bool GameScript::aiOutput(Npc &npc, const Daedalus::ZString& outputname) {
   char buf[256]={};
   std::snprintf(buf,sizeof(buf),"%s.WAV",outputname.c_str());
   npc.setAiOutputBarrier(messageTime(outputname));
@@ -970,8 +971,8 @@ bool GameScript::aiOutput(Npc &npc, const std::string &outputname) {
   return true;
   }
 
-bool GameScript::aiOutputSvm(Npc &npc, const std::string &outputname, int32_t voice, bool overlay) {
-  auto& sv = svm->find(outputname.c_str(),voice);
+bool GameScript::aiOutputSvm(Npc &npc, const Daedalus::ZString& outputname, int32_t voice, bool overlay) {
+  const Daedalus::ZString& sv = svm->find(outputname.c_str(),voice);
   if(overlay) {
     if(tickCount()<svmBarrier)
       return true;
@@ -979,7 +980,7 @@ bool GameScript::aiOutputSvm(Npc &npc, const std::string &outputname, int32_t vo
     svmBarrier = tickCount()+messageTime(sv);
     }
 
-  if(sv.size()>0)
+  if(!sv.empty())
     return aiOutput(npc,sv);
   return true;
   }
@@ -996,24 +997,29 @@ bool GameScript::isTalk(const Npc &pl) {
   return pl.isState(ZS_Talk);
   }
 
-const std::string &GameScript::messageFromSvm(const std::string &id, int voice) const {
+const Daedalus::ZString& GameScript::messageFromSvm(const Daedalus::ZString& id, int voice) const {
   return svm->find(id.c_str(),voice);
   }
 
-const std::string &GameScript::messageByName(const std::string& id) const {
+const Daedalus::ZString& GameScript::messageByName(const Daedalus::ZString& id) const {
   if(!dialogs->messageExists(id)){
-    static std::string empty;
+    static Daedalus::ZString empty;
     return empty;
     }
   return dialogs->getMessageByName(id).text;
   }
 
-uint32_t GameScript::messageTime(const std::string &id) const {
-  auto  s   = Resources::loadSoundBuffer(id+".wav");
+uint32_t GameScript::messageTime(const Daedalus::ZString& id) const {
+  char buf[256]={};
+  std::snprintf(buf,sizeof(buf),"%s.wav",id.c_str());
+  auto  s   = Resources::loadSoundBuffer(buf);
   if(s.timeLength()>0)
     return uint32_t(s.timeLength());
-  auto& txt = messageByName(id);
-  return uint32_t(txt.size()*viewTimePerChar);
+
+  auto&  txt  = messageByName(id.c_str());
+  size_t size = std::strlen(txt.c_str());
+
+  return uint32_t(size*viewTimePerChar);
   }
 
 int GameScript::printNothingToGet() {
@@ -1241,20 +1247,20 @@ void GameScript::pushItem(Daedalus::DaedalusVM &vm, Item *it) {
 
 
 void GameScript::concatstrings(Daedalus::DaedalusVM &vm) {
-  const std::string& s2 = vm.popString();
-  const std::string& s1 = vm.popString();
+  Daedalus::ZString s2 = vm.popString();
+  Daedalus::ZString s1 = vm.popString();
 
   vm.setReturn(s1 + s2);
   }
 
 void GameScript::inttostring(Daedalus::DaedalusVM &vm){
   int32_t x = vm.popInt();
-  vm.setReturn(std::to_string(x));
+  vm.setReturn(Daedalus::ZString::toStr(x));
   }
 
 void GameScript::floattostring(Daedalus::DaedalusVM &vm) {
   auto x = vm.popFloat();
-  vm.setReturn(std::to_string(x));
+  vm.setReturn(Daedalus::ZString::toStr(x));
   }
 
 void GameScript::floattoint(Daedalus::DaedalusVM &vm) {
@@ -1279,8 +1285,8 @@ void GameScript::hlp_random(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::hlp_strcmp(Daedalus::DaedalusVM &vm) {
-  const std::string& s2 = vm.popString();
-  const std::string& s1 = vm.popString();
+  const Daedalus::ZString& s2 = vm.popString();
+  const Daedalus::ZString& s1 = vm.popString();
   vm.setReturn(s1 == s2 ? 1 : 0);
   }
 
@@ -1296,21 +1302,21 @@ void GameScript::wld_getday(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
-  int32_t            a        = vm.popInt();
-  int32_t            b        = vm.popInt();
-  int32_t            c        = vm.popInt();
-  int32_t            d        = vm.popInt();
-  auto               npc1     = popInstance(vm);
-  auto               npc0     = popInstance(vm);
-  const std::string& visual   = vm.popString();
+  int32_t                  a        = vm.popInt();
+  int32_t                  b        = vm.popInt();
+  int32_t                  c        = vm.popInt();
+  int32_t                  d        = vm.popInt();
+  auto                     npc1     = popInstance(vm);
+  auto                     npc0     = popInstance(vm);
+  const Daedalus::ZString& visual   = vm.popString();
 
   const VisualFx* vfx = owner.loadVisualFx(visual.c_str());
-  Log::i("effect not implemented [",visual," ",reinterpret_cast<const void*>(vfx),"]");
+  Log::i("effect not implemented [",visual.c_str()," ",reinterpret_cast<const void*>(vfx),"]");
   }
 
 void GameScript::wld_stopeffect(Daedalus::DaedalusVM &vm) {
-  const std::string& visual = vm.popString();
-  Log::i("effect not implemented [",visual,"]");
+  const Daedalus::ZString& visual = vm.popString();
+  Log::i("effect not implemented [",visual.c_str(),"]");
   }
 
 void GameScript::wld_getplayerportalguild(Daedalus::DaedalusVM &vm) {
@@ -1363,8 +1369,8 @@ void GameScript::wld_istime(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::wld_isfpavailable(Daedalus::DaedalusVM &vm) {
-  auto& name = vm.popString();
-  auto  self = popInstance(vm);
+  auto name = vm.popString();
+  auto self = popInstance(vm);
 
   if(self==nullptr){
     vm.setReturn(0);
@@ -1376,8 +1382,8 @@ void GameScript::wld_isfpavailable(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::wld_isnextfpavailable(Daedalus::DaedalusVM &vm) {
-  auto& name = vm.popString();
-  auto  self = popInstance(vm);
+  auto name = vm.popString();
+  auto self = popInstance(vm);
 
   if(self==nullptr){
     vm.setReturn(0);
@@ -1388,30 +1394,29 @@ void GameScript::wld_isnextfpavailable(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::wld_ismobavailable(Daedalus::DaedalusVM &vm) {
-  auto& name = vm.popString();
-  auto  self = popInstance(vm);
+  Daedalus::ZString name = vm.popString();
+  auto              self = popInstance(vm);
   if(self==nullptr){
     vm.setReturn(0);
     return;
     }
 
-  auto wp = world().aviableMob(*self,name);
+  auto wp = world().aviableMob(*self,name.c_str());
   vm.setReturn(wp ? 1 : 0);
   }
 
 void GameScript::wld_setmobroutine(Daedalus::DaedalusVM &vm) {
-  int   st   = vm.popInt();
-  auto& name = vm.popString();
-  int   mm   = vm.popInt();
-  int   hh   = vm.popInt();
+  int  st   = vm.popInt();
+  auto name = vm.popString();
+  int  mm   = vm.popInt();
+  int  hh   = vm.popInt();
   notImplementedFn<&GameScript::wld_setmobroutine>("wld_setmobroutine");
-  //Log::i("TODO: wld_setmobroutine(",hh,",",mm,",",name,",",st,")");
   }
 
 void GameScript::wld_assignroomtoguild(Daedalus::DaedalusVM &vm) {
-  int   g    = vm.popInt();
-  auto& name = vm.popString();
-  world().assignRoomToGuild(name,g);
+  int               g    = vm.popInt();
+  Daedalus::ZString name = vm.popString();
+  world().assignRoomToGuild(name.c_str(),g);
   }
 
 void GameScript::wld_detectnpc(Daedalus::DaedalusVM &vm) {
@@ -1486,26 +1491,26 @@ void GameScript::wld_detectitem(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::mdl_setvisual(Daedalus::DaedalusVM &vm) {
-  const std::string& visual = vm.popString();
-  auto               npc    = popInstance(vm);
+  const auto& visual = vm.popString();
+  auto        npc    = popInstance(vm);
   if(npc==nullptr)
     return;
   npc->setVisual(visual.c_str());
   }
 
 void GameScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
-  int32_t     armor        = vm.popInt();
-  int32_t     teethTexNr   = vm.popInt();
-  int32_t     headTexNr    = vm.popInt();
-  auto&       head         = vm.popString();
-  int32_t     bodyTexColor = vm.popInt();
-  int32_t     bodyTexNr    = vm.popInt();
-  auto&       body         = vm.popString();
-  auto        npc          = popInstance(vm);
+  int32_t armor        = vm.popInt();
+  int32_t teethTexNr   = vm.popInt();
+  int32_t headTexNr    = vm.popInt();
+  auto    head         = vm.popString();
+  int32_t bodyTexColor = vm.popInt();
+  int32_t bodyTexNr    = vm.popInt();
+  auto    body         = vm.popString();
+  auto    npc          = popInstance(vm);
 
   if(npc==nullptr)
     return;
-  npc->setVisualBody(headTexNr,teethTexNr,bodyTexNr,bodyTexColor,body,head);
+  npc->setVisualBody(headTexNr,teethTexNr,bodyTexNr,bodyTexColor,body.c_str(),head.c_str());
   if(armor>=0) {
     if(npc->hasItem(uint32_t(armor))==0)
       npc->addItem(uint32_t(armor),1);
@@ -1522,28 +1527,28 @@ void GameScript::mdl_setmodelfatness(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::mdl_applyoverlaymds(Daedalus::DaedalusVM &vm) {
-  auto&       overlayname = vm.popString();
-  auto        npc         = popInstance(vm);
-  auto        skelet      = Resources::loadSkeleton(overlayname);
+  auto overlayname = vm.popString();
+  auto npc         = popInstance(vm);
+  auto skelet      = Resources::loadSkeleton(overlayname.c_str());
 
   if(npc!=nullptr)
     npc->addOverlay(skelet,0);
   }
 
 void GameScript::mdl_applyoverlaymdstimed(Daedalus::DaedalusVM &vm) {
-  int32_t     ticks       = vm.popInt();
-  auto&       overlayname = vm.popString();
-  auto        npc         = popInstance(vm);
-  auto        skelet      = Resources::loadSkeleton(overlayname);
+  int32_t ticks       = vm.popInt();
+  auto    overlayname = vm.popString();
+  auto    npc         = popInstance(vm);
+  auto    skelet      = Resources::loadSkeleton(overlayname.c_str());
 
   if(npc!=nullptr && ticks>0)
     npc->addOverlay(skelet,uint64_t(ticks));
   }
 
 void GameScript::mdl_removeoverlaymds(Daedalus::DaedalusVM &vm) {
-  auto&       overlayname = vm.popString();
-  auto        npc         = popInstance(vm);
-  auto        skelet      = Resources::loadSkeleton(overlayname);
+  auto overlayname = vm.popString();
+  auto npc         = popInstance(vm);
+  auto skelet      = Resources::loadSkeleton(overlayname.c_str());
 
   if(npc!=nullptr)
     npc->delOverlay(skelet);
@@ -1562,43 +1567,43 @@ void GameScript::mdl_setmodelscale(Daedalus::DaedalusVM &vm) {
 void GameScript::mdl_startfaceani(Daedalus::DaedalusVM &vm) {
   float time      = vm.popFloat();
   float intensity = vm.popFloat();
-  auto& ani       = vm.popString();
+  auto  ani       = vm.popString();
   auto  npc       = popInstance(vm);
   notImplementedFn<&GameScript::mdl_startfaceani>("mdl_startfaceani");
   }
 
 void GameScript::mdl_applyrandomani(Daedalus::DaedalusVM &vm) {
-  auto& s0  = vm.popString();
-  auto& s1  = vm.popString();
-  auto  npc = popInstance(vm);
+  auto s0  = vm.popString();
+  auto s1  = vm.popString();
+  auto npc = popInstance(vm);
   notImplementedFn<&GameScript::mdl_applyrandomani>("mdl_applyrandomani");
   }
 
 void GameScript::mdl_applyrandomanifreq(Daedalus::DaedalusVM &vm) {
-  auto  f0  = vm.popFloat();
-  auto& s1  = vm.popString();
-  auto  npc = popInstance(vm);
+  auto f0  = vm.popFloat();
+  auto s1  = vm.popString();
+  auto npc = popInstance(vm);
   notImplementedFn<&GameScript::mdl_applyrandomanifreq>("mdl_applyrandomanifreq");
   }
 
 void GameScript::wld_insertnpc(Daedalus::DaedalusVM &vm) {
-  const std::string& spawnpoint = vm.popString();
-  int32_t npcInstance = vm.popInt();
+  Daedalus::ZString spawnpoint  = vm.popString();
+  int32_t           npcInstance = vm.popInt();
 
   if(spawnpoint.empty() || npcInstance<=0)
     return;
 
-  auto at=world().findPoint(spawnpoint);
+  auto at=world().findPoint(spawnpoint.c_str());
   if(at==nullptr){
-    Log::e("invalid waypoint \"",spawnpoint,"\"");
+    Log::e("invalid waypoint \"",spawnpoint.c_str(),"\"");
     return;
     }
-  world().addNpc(size_t(npcInstance),at->name.c_str());
+  world().addNpc(size_t(npcInstance),spawnpoint);
   }
 
 void GameScript::wld_insertitem(Daedalus::DaedalusVM &vm) {
-  const std::string& spawnpoint   = vm.popString();
-  int32_t            itemInstance = vm.popInt();
+  const Daedalus::ZString& spawnpoint   = vm.popString();
+  int32_t                  itemInstance = vm.popInt();
 
   if(spawnpoint.empty() || itemInstance<=0)
     return;
@@ -1644,10 +1649,10 @@ void GameScript::npc_wasinstate(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::npc_getdisttowp(Daedalus::DaedalusVM &vm) {
-  auto&    wpname = vm.popString();
-  auto     npc    = popInstance(vm);
+  auto  wpname = vm.popString();
+  auto  npc    = popInstance(vm);
 
-  auto*    wp     = world().findPoint(wpname);
+  auto* wp     = world().findPoint(wpname.c_str());
 
   if(npc!=nullptr && wp!=nullptr){
     float ret = std::sqrt(npc->qDistTo(wp));
@@ -1660,8 +1665,8 @@ void GameScript::npc_getdisttowp(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::npc_exchangeroutine(Daedalus::DaedalusVM &vm) {
-  auto&    rname  = vm.popString();
-  auto     npc    = popInstance(vm);
+  auto rname  = vm.popString();
+  auto npc    = popInstance(vm);
   if(npc!=nullptr) {
     auto& v = *npc->handle();
     char buf[256]={};
@@ -1877,15 +1882,15 @@ void GameScript::npc_changeattribute(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::npc_isonfp(Daedalus::DaedalusVM &vm) {
-  auto& val = vm.popString();
-  auto  npc = popInstance(vm);
+  auto val = vm.popString();
+  auto npc = popInstance(vm);
   if(npc==nullptr) {
     vm.setReturn(0);
     return;
     }
 
   auto w = npc->currentWayPoint();
-  if(w==nullptr || !MoveAlgo::isClose(npc->position(),*w) || !w->checkName(val)){
+  if(w==nullptr || !MoveAlgo::isClose(npc->position(),*w) || !w->checkName(val.c_str())){
     vm.setReturn(0);
     return;
     }
@@ -2212,10 +2217,10 @@ void GameScript::npc_perceiveall(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::npc_stopani(Daedalus::DaedalusVM &vm) {
-  auto& name = vm.popString();
-  auto  npc  = popInstance(vm);
+  auto name = vm.popString();
+  auto npc  = popInstance(vm);
   if(npc!=nullptr)
-    npc->stopAnim(name);
+    npc->stopAnim(name.c_str());
   }
 
 void GameScript::npc_settrueguild(Daedalus::DaedalusVM &vm) {
@@ -2309,10 +2314,10 @@ void GameScript::npc_getlasthitspellcat(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::npc_playani(Daedalus::DaedalusVM &vm) {
-  auto& name = vm.popString();
-  auto  npc  = popInstance(vm);
+  auto name = vm.popString();
+  auto npc  = popInstance(vm);
   if(npc!=nullptr)
-    npc->playAnimByName(name,BS_NONE);
+    npc->playAnimByName(name.c_str(),BS_NONE);
   }
 
 void GameScript::npc_isdetectedmobownedbynpc(Daedalus::DaedalusVM &vm) {
@@ -2388,9 +2393,9 @@ void GameScript::ai_processinfos(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::ai_output(Daedalus::DaedalusVM &vm) {
-  auto& outputname = vm.popString();
-  auto  target     = popInstance(vm);
-  auto  self       = popInstance(vm);
+  auto outputname = vm.popString();
+  auto target     = popInstance(vm);
+  auto self       = popInstance(vm);
 
   if(!self || !target)
     return;
@@ -2450,9 +2455,9 @@ void GameScript::ai_turntonpc(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::ai_outputsvm(Daedalus::DaedalusVM &vm) {
-  auto& name   = vm.popString();
-  auto  target = popInstance(vm);
-  auto  self   = popInstance(vm);
+  auto name   = vm.popString();
+  auto target = popInstance(vm);
+  auto self   = popInstance(vm);
   if(self!=nullptr && target!=nullptr) {
     self->aiOutputSvm(*target,name,aiOutOrderId);
     ++aiOutOrderId;
@@ -2460,9 +2465,9 @@ void GameScript::ai_outputsvm(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::ai_outputsvm_overlay(Daedalus::DaedalusVM &vm) {
-  auto& name   = vm.popString();
-  auto  target = popInstance(vm);
-  auto  self   = popInstance(vm);
+  auto name   = vm.popString();
+  auto target = popInstance(vm);
+  auto self   = popInstance(vm);
   if(self!=nullptr && target!=nullptr) {
     self->aiOutputSvmOverlay(*target,name,aiOutOrderId);
     ++aiOutOrderId;
@@ -2470,7 +2475,7 @@ void GameScript::ai_outputsvm_overlay(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::ai_startstate(Daedalus::DaedalusVM &vm) {
-  auto& wp    = vm.popString();
+  auto  wp    = vm.popString();
   auto  state = vm.popInt();
   auto  func  = vm.popInt();
   auto  self  = popInstance(vm);
@@ -2487,8 +2492,8 @@ void GameScript::ai_startstate(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::ai_playani(Daedalus::DaedalusVM &vm) {
-  auto& name = vm.popString();
-  auto  npc  = popInstance(vm);
+  auto name = vm.popString();
+  auto npc  = popInstance(vm);
   if(npc!=nullptr) {
     npc->aiPlayAnim(name);
     }
@@ -2526,17 +2531,17 @@ void GameScript::ai_aligntowp(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::ai_gotowp(Daedalus::DaedalusVM &vm) {
-  auto&  waypoint = vm.popString();
-  auto   npc      = popInstance(vm);
+  auto waypoint = vm.popString();
+  auto npc      = popInstance(vm);
 
-  auto to = world().findPoint(waypoint);
+  auto to = world().findPoint(waypoint.c_str());
   if(npc && to)
     npc->aiGoToPoint(*to);
   }
 
 void GameScript::ai_gotofp(Daedalus::DaedalusVM &vm) {
-  auto&  waypoint = vm.popString();
-  auto   npc      = popInstance(vm);
+  auto waypoint = vm.popString();
+  auto npc      = popInstance(vm);
 
   if(npc) {
     auto to = world().findFreePoint(*npc,waypoint.c_str());
@@ -2546,9 +2551,9 @@ void GameScript::ai_gotofp(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::ai_playanibs(Daedalus::DaedalusVM &vm) {
-  BodyState      bs  = BodyState(vm.popUInt());
-  auto&          ani = vm.popString();
-  auto           npc = popInstance(vm);
+  BodyState bs  = BodyState(vm.popUInt());
+  auto      ani = vm.popString();
+  auto      npc = popInstance(vm);
   if(npc!=nullptr)
     npc->aiPlayAnimBs(ani,bs);
   }
@@ -2580,16 +2585,16 @@ void GameScript::ai_equipbestrangedweapon(Daedalus::DaedalusVM &vm) {
 
 void GameScript::ai_usemob(Daedalus::DaedalusVM &vm) {
   int32_t  state = vm.popInt();
-  auto&    tg    = vm.popString();
+  auto     tg    = vm.popString();
   auto     npc   = popInstance(vm);
   if(npc!=nullptr)
     npc->aiUseMob(tg,state);
   }
 
 void GameScript::ai_teleport(Daedalus::DaedalusVM &vm) {
-  auto&    tg  = vm.popString();
+  auto     tg  = vm.popString();
   auto     npc = popInstance(vm);
-  auto     pt  = world().findPoint(tg);
+  auto     pt  = world().findPoint(tg.c_str());
   if(npc!=nullptr && pt!=nullptr)
     npc->aiTeleport(*pt);
   }
@@ -2658,8 +2663,8 @@ void GameScript::ai_gotonpc(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::ai_gotonextfp(Daedalus::DaedalusVM &vm) {
-  auto& to  = vm.popString();
-  auto  npc = popInstance(vm);
+  auto to  = vm.popString();
+  auto npc = popInstance(vm);
   if(npc!=nullptr)
     npc->aiGoToNextFp(to);
   }
@@ -2702,19 +2707,19 @@ void GameScript::ai_finishingmove(Daedalus::DaedalusVM &vm) {
 
 void GameScript::mob_hasitems(Daedalus::DaedalusVM &vm) {
   uint32_t item = vm.popUInt();
-  auto&    tag  = vm.popString();
-  vm.setReturn(int(world().hasItems(tag,item)));
+  auto     tag  = vm.popString();
+  vm.setReturn(int(world().hasItems(tag.c_str(),item)));
   }
 
 void GameScript::ta_min(Daedalus::DaedalusVM &vm) {
-  auto&    waypoint = vm.popString();
+  auto     waypoint = vm.popString();
   int32_t  action   = vm.popInt();
   int32_t  stop_m   = vm.popInt();
   int32_t  stop_h   = vm.popInt();
   int32_t  start_m  = vm.popInt();
   int32_t  start_h  = vm.popInt();
   auto     npc      = popInstance(vm);
-  auto     at       = world().findPoint(waypoint);
+  auto     at       = world().findPoint(waypoint.c_str());
 
   if(npc!=nullptr)
     npc->addRoutine(gtime(start_h,start_m),gtime(stop_h,stop_m),uint32_t(action),at);
@@ -2722,28 +2727,28 @@ void GameScript::ta_min(Daedalus::DaedalusVM &vm) {
 
 void GameScript::log_createtopic(Daedalus::DaedalusVM &vm) {
   int32_t section   = vm.popInt();
-  auto&   topicName = vm.popString();
+  auto    topicName = vm.popString();
 
   if(section==QuestLog::Mission || section==QuestLog::Note)
-    quests.add(topicName,QuestLog::Section(section));
+    quests.add(topicName.c_str(),QuestLog::Section(section));
   }
 
 void GameScript::log_settopicstatus(Daedalus::DaedalusVM &vm) {
   int32_t status    = vm.popInt();
-  auto&   topicName = vm.popString();
+  auto    topicName = vm.popString();
 
   if(status==int32_t(QuestLog::Status::Running) ||
      status==int32_t(QuestLog::Status::Success) ||
      status==int32_t(QuestLog::Status::Failed ) ||
      status==int32_t(QuestLog::Status::Obsolete))
-    quests.setStatus(topicName,QuestLog::Status(status));
+    quests.setStatus(topicName.c_str(),QuestLog::Status(status));
   }
 
 void GameScript::log_addentry(Daedalus::DaedalusVM &vm) {
-  auto&   entry     = vm.popString();
-  auto&   topicName = vm.popString();
+  auto  entry     = vm.popString();
+  auto  topicName = vm.popString();
 
-  quests.addEntry(topicName,entry);
+  quests.addEntry(topicName.c_str(),entry.c_str());
   }
 
 void GameScript::equipitem(Daedalus::DaedalusVM &vm) {
@@ -2831,13 +2836,13 @@ void GameScript::hlp_getnpc(Daedalus::DaedalusVM &vm) {
 
 void GameScript::info_addchoice(Daedalus::DaedalusVM &vm) {
   uint32_t func         = vm.popUInt();
-  auto&    text         = vm.popString();
+  auto     text         = vm.popString();
   uint32_t infoInstance = uint32_t(vm.popInt());
 
   auto info = getInfo(infoInstance);
   if(info==nullptr)
     return;
-  info->addChoice(Daedalus::GEngineClasses::SubChoice{text, func});
+  info->addChoice(Daedalus::GEngineClasses::SubChoice{text.c_str(), func});
   }
 
 void GameScript::info_clearchoices(Daedalus::DaedalusVM &vm) {
@@ -2854,7 +2859,7 @@ void GameScript::infomanager_hasfinished(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::snd_play(Daedalus::DaedalusVM &vm) {
-  auto file = vm.popString();
+  std::string file = vm.popString().c_str();
   for(auto& c:file)
     c = char(std::toupper(c));
   owner.emitGlobalSound(file);
@@ -2884,7 +2889,7 @@ void GameScript::doc_createmap(Daedalus::DaedalusVM &vm) {
 
 void GameScript::doc_setpage(Daedalus::DaedalusVM &vm) {
   int   scale  = vm.popInt();
-  auto& img    = vm.popString();
+  auto  img    = vm.popString();
   int   page   = vm.popInt();
   int   handle = vm.popInt();
 
@@ -2893,10 +2898,10 @@ void GameScript::doc_setpage(Daedalus::DaedalusVM &vm) {
     return;
   if(page>=0 && size_t(page)<doc->pages.size()){
     auto& pg = doc->pages[size_t(page)];
-    pg.img = img;
+    pg.img = img.c_str();
     pg.flg = DocumentMenu::Flags(pg.flg | DocumentMenu::F_Backgr);
     } else {
-    doc->img = img;
+    doc->img = img.c_str();
     }
   }
 
@@ -2911,25 +2916,25 @@ void GameScript::doc_setpages(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::doc_printline(Daedalus::DaedalusVM &vm) {
-  auto& text   = vm.popString();
-  int   page   = vm.popInt();
-  int   handle = vm.popInt();
+  auto text   = vm.popString();
+  int  page   = vm.popInt();
+  int  handle = vm.popInt();
 
   auto& doc = getDocument(handle);
   if(doc!=nullptr && page>=0 && size_t(page)<doc->pages.size()){
-    doc->pages[size_t(page)].text += text;
+    doc->pages[size_t(page)].text += text.c_str();
     doc->pages[size_t(page)].text += "\n";
     }
   }
 
 void GameScript::doc_printlines(Daedalus::DaedalusVM &vm) {
-  auto& text   = vm.popString();
-  int   page   = vm.popInt();
-  int   handle = vm.popInt();
+  auto text   = vm.popString();
+  int  page   = vm.popInt();
+  int  handle = vm.popInt();
 
   auto& doc = getDocument(handle);
   if(doc!=nullptr && page>=0 && size_t(page)<doc->pages.size()){
-    doc->pages[size_t(page)].text += text;
+    doc->pages[size_t(page)].text += text.c_str();
     doc->pages[size_t(page)].text += "\n";
     }
   }
@@ -2957,9 +2962,9 @@ void GameScript::doc_setmargins(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::doc_setfont(Daedalus::DaedalusVM &vm) {
-  auto& font   = vm.popString();
-  int   page   = vm.popInt();
-  int   handle = vm.popInt();
+  auto font   = vm.popString();
+  int  page   = vm.popInt();
+  int  handle = vm.popInt();
 
   auto& doc = getDocument(handle);
   if(doc==nullptr)
@@ -2967,10 +2972,10 @@ void GameScript::doc_setfont(Daedalus::DaedalusVM &vm) {
 
   if(page>=0 && size_t(page)<doc->pages.size()){
     auto& pg = doc->pages[size_t(page)];
-    pg.font = font;
+    pg.font = font.c_str();
     pg.flg  = DocumentMenu::Flags(pg.flg | DocumentMenu::F_Font);
     } else {
-    doc->font = font;
+    doc->font = font.c_str();
     }
   }
 
@@ -2990,51 +2995,51 @@ void GameScript::doc_show(Daedalus::DaedalusVM &vm) {
 void GameScript::introducechapter(Daedalus::DaedalusVM &vm) {
   ChapterScreen::Show s;
   s.time     = vm.popInt();
-  s.sound    = vm.popString();
-  s.img      = vm.popString();
-  s.subtitle = vm.popString();
-  s.title    = vm.popString();
+  s.sound    = vm.popString().c_str();
+  s.img      = vm.popString().c_str();
+  s.subtitle = vm.popString().c_str();
+  s.title    = vm.popString().c_str();
   owner.introChapter(s);
   }
 
 void GameScript::playvideo(Daedalus::DaedalusVM &vm) {
-  const std::string& filename = vm.popString();
-  Log::i("video not implemented [",filename,"]");
+  Daedalus::ZString filename = vm.popString();
+  Log::i("video not implemented [",filename.c_str(),"]");
   vm.setReturn(0);
   }
 
 void GameScript::playvideoex(Daedalus::DaedalusVM &vm) {
   int exitSession = vm.popInt();
   int screenBlend = vm.popInt();
-  const std::string& filename = vm.popString();
-  Log::i("video not implemented [",filename,"]");
+  Daedalus::ZString filename = vm.popString();
+  Log::i("video not implemented [",filename.c_str(),"]");
   vm.setReturn(0);
   }
 
 void GameScript::printscreen(Daedalus::DaedalusVM &vm) {
-  int32_t            timesec = vm.popInt();
-  const std::string& font    = vm.popString();
-  int32_t            posy    = vm.popInt();
-  int32_t            posx    = vm.popInt();
-  const std::string& msg     = vm.popString();
+  int32_t                  timesec = vm.popInt();
+  const Daedalus::ZString& font    = vm.popString();
+  int32_t                  posy    = vm.popInt();
+  int32_t                  posx    = vm.popInt();
+  const Daedalus::ZString& msg     = vm.popString();
   owner.printScreen(msg.c_str(),posx,posy,timesec,Resources::font(font.c_str()));
   vm.setReturn(0);
   }
 
 void GameScript::printdialog(Daedalus::DaedalusVM &vm) {
-  int32_t            timesec  = vm.popInt();
-  const std::string& font     = vm.popString();
-  int32_t            posy     = vm.popInt();
-  int32_t            posx     = vm.popInt();
-  const std::string& msg      = vm.popString();
-  int32_t            dialognr = vm.popInt();
+  int32_t     timesec  = vm.popInt();
+  const auto& font     = vm.popString();
+  int32_t     posy     = vm.popInt();
+  int32_t     posx     = vm.popInt();
+  const auto& msg      = vm.popString();
+  int32_t     dialognr = vm.popInt();
   (void)dialognr;
   owner.printScreen(msg.c_str(),posx,posy,timesec,Resources::font(font.c_str()));
   vm.setReturn(0);
   }
 
 void GameScript::print(Daedalus::DaedalusVM &vm) {
-  const std::string& msg = vm.popString();
+  const auto& msg = vm.popString();
   owner.print(msg.c_str());
   }
 
@@ -3043,29 +3048,29 @@ void GameScript::perc_setrange(Daedalus::DaedalusVM &) {
   }
 
 void GameScript::printdebug(Daedalus::DaedalusVM &vm) {
-  const std::string& msg = vm.popString();
+  const auto& msg = vm.popString();
   if(owner.version().game==2)
-    Log::d("[zspy]: ",msg);
+    Log::d("[zspy]: ",msg.c_str());
   }
 
 void GameScript::printdebugch(Daedalus::DaedalusVM &vm) {
-  const std::string& msg = vm.popString();
-  int                ch  = vm.popInt();
+  const auto& msg = vm.popString();
+  int         ch  = vm.popInt();
   if(owner.version().game==2)
-    Log::d("[zspy,",ch,"]: ",msg);
+    Log::d("[zspy,",ch,"]: ",msg.c_str());
   }
 
 void GameScript::printdebuginst(Daedalus::DaedalusVM &vm) {
-  const std::string& msg = vm.popString();
+  const auto& msg = vm.popString();
   if(owner.version().game==2)
-    Log::d("[zspy]: ",msg);
+    Log::d("[zspy]: ",msg.c_str());
   }
 
 void GameScript::printdebuginstch(Daedalus::DaedalusVM &vm) {
-  const std::string& msg = vm.popString();
-  int                ch  = vm.popInt();
+  auto msg = vm.popString();
+  int  ch  = vm.popInt();
   if(owner.version().game==2)
-    Log::d("[zspy,",ch,"]: ",msg);
+    Log::d("[zspy,",ch,"]: ",msg.c_str());
   }
 
 void GameScript::exitgame(Daedalus::DaedalusVM&) {

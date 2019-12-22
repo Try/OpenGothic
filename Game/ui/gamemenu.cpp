@@ -28,7 +28,7 @@ GameMenu::GameMenu(MenuRoot &owner, Daedalus::DaedalusVM &vm, Gothic &gothic, co
   vm.initializeInstance(menu,
                         dat.getSymbolIndexByName(menuSection),
                         Daedalus::IC_Menu);
-  back = Resources::loadTexture(menu.backPic);
+  back = Resources::loadTexture(menu.backPic.c_str());
 
   initItems();
   if(menu.flags & Daedalus::GEngineClasses::C_Menu::MENU_SHOW_INFO) {
@@ -66,11 +66,11 @@ void GameMenu::initItems() {
     if(menu.items[i].empty())
       continue;
 
-    hItems[i].name = menu.items[i];
+    hItems[i].name = menu.items[i].c_str();
     vm.initializeInstance(hItems[i].handle,
                           vm.getDATFile().getSymbolIndexByName(hItems[i].name.c_str()),
                           Daedalus::IC_MenuItem);
-    hItems[i].img = Resources::loadTexture(hItems[i].handle.backPic);
+    hItems[i].img = Resources::loadTexture(hItems[i].handle.backPic.c_str());
     updateItem(hItems[i]);
     }
   }
@@ -132,7 +132,7 @@ void GameMenu::paintEvent(PaintEvent &e) {
     }
 
   if(auto sel=selectedItem()) {
-    auto& fnt = Resources::font();
+    auto&                                  fnt  = Resources::font();
     Daedalus::GEngineClasses::C_Menu_Item& item = sel->handle;
     if(item.text->size()>1) {
       const char* txt = item.text[1].c_str();
@@ -221,10 +221,11 @@ void GameMenu::getText(const Item& it, std::vector<char> &out) {
     out.resize(1);
   out[0]='\0';
 
-  const std::string& src = it.handle.text[0];
+  const auto& src = it.handle.text[0];
   if(it.handle.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_TEXT) {
-    out.resize(src.size()+1);
-    std::memcpy(out.data(),src.data(),src.size()+1);
+    size_t size = std::strlen(src.c_str());
+    out.resize(size+1);
+    std::memcpy(out.data(),src.c_str(),size+1);
     return;
     }
 
@@ -544,7 +545,7 @@ void GameMenu::initValues() {
       i.visible=false;
       }
     if(i.name=="MENU_ITEM_DAY") {
-      i.handle.text[0] = std::to_string(time.day());
+      i.handle.text[0] = Daedalus::ZString::toStr(time.day());
       }
     if(i.name=="MENU_ITEM_TIME") {
       char form[64]={};

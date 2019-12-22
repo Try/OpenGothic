@@ -15,7 +15,7 @@
 
 using namespace Tempest;
 
-Npc::Npc(World &owner, size_t instance, const char* waypoint)
+Npc::Npc(World &owner, size_t instance, const Daedalus::ZString& waypoint)
   :owner(owner),mvAlgo(*this) {
   outputPipe          = owner.script().openAiOuput();
   hnpc.userPtr        = this;
@@ -24,7 +24,7 @@ Npc::Npc(World &owner, size_t instance, const char* waypoint)
   if(instance==size_t(-1))
     return;
 
-  hnpc.wp             = waypoint;
+  hnpc.wp = waypoint;
   owner.script().initializeInstance(hnpc,instance);
   if(hnpc.attribute[ATR_HITPOINTS]<=1 && hnpc.attribute[ATR_HITPOINTSMAX]<=1) {
     onNoHealth(true);
@@ -572,8 +572,8 @@ void Npc::setVisualBody(int32_t headTexNr, int32_t teethTexNr, int32_t bodyTexNr
   vColor  = bodyTexNr;
   bdColor = bodyTexColor;
 
-  auto  vhead = head.empty() ? MeshObjects::Mesh() : w.getView(addExt(head,".MMB"),vHead,vTeeth,bdColor);
-  auto  vbody = body.empty() ? MeshObjects::Mesh() : w.getView(addExt(body,".MDM"),vColor,0,bdColor);
+  auto  vhead = head.empty() ? MeshObjects::Mesh() : w.getView(addExt(head,".MMB").c_str(),vHead,vTeeth,bdColor);
+  auto  vbody = body.empty() ? MeshObjects::Mesh() : w.getView(addExt(body,".MDM").c_str(),vColor,0,bdColor);
   visual.setVisualBody(std::move(vhead),std::move(vbody));
   updateArmour();
 
@@ -585,16 +585,16 @@ void Npc::updateArmour() {
   auto& w  = owner;
 
   if(ar==nullptr) {
-    auto  vbody = body.empty() ? MeshObjects::Mesh() : w.getView(addExt(body,".MDM"),vColor,0,bdColor);
+    auto  vbody = body.empty() ? MeshObjects::Mesh() : w.getView(addExt(body,".MDM").c_str(),vColor,0,bdColor);
     visual.setArmour(std::move(vbody));
     } else {
     auto& itData = *ar->handle();
     auto  flag   = Inventory::Flags(itData.mainflag);
     if(flag & Inventory::ITM_CAT_ARMOR){
-      auto asc = itData.visual_change;
+      std::string asc = itData.visual_change.c_str();
       if(asc.rfind(".asc")==asc.size()-4)
         std::memcpy(&asc[asc.size()-3],"MDM",3);
-      auto vbody  = asc.empty() ? MeshObjects::Mesh() : w.getView(asc,vColor,0,bdColor);
+      auto vbody  = asc.empty() ? MeshObjects::Mesh() : w.getView(asc.c_str(),vColor,0,bdColor);
       visual.setArmour(std::move(vbody));
       }
     }
@@ -679,7 +679,7 @@ void Npc::setScale(float x, float y, float z) {
   durtyTranform |= TR_Scale;
   }
 
-const Animation::Sequence* Npc::playAnimByName(const std::string &name,BodyState bs) {
+const Animation::Sequence* Npc::playAnimByName(const Daedalus::ZString& name,BodyState bs) {
   return visual.startAnimAndGet(*this,name.c_str(),bs);
   }
 
@@ -1491,7 +1491,7 @@ void Npc::nextAiAction(uint64_t dt) {
         }
       break;
     case AI_StartState:
-      if(startState(act.func,act.s0,aiState.eTime,act.i0==0))
+      if(startState(act.func,act.s0.c_str(),aiState.eTime,act.i0==0))
         setOther(act.target);
       break;
     case AI_PlayAnim:{
@@ -1552,7 +1552,7 @@ void Npc::nextAiAction(uint64_t dt) {
         aiActions.push_front(std::move(act));
         break;
         }
-      auto inter = owner.aviableMob(*this,act.s0);
+      auto inter = owner.aviableMob(*this,act.s0.c_str());
       if(inter==nullptr) {
         aiActions.push_front(std::move(act));
         break;
@@ -1668,7 +1668,7 @@ void Npc::nextAiAction(uint64_t dt) {
       const int32_t r = act.i0*act.i0;
       owner.detectNpc(position(),hnpc.senses_range,[&act,this,r](Npc& other){
         if(&other!=this && qDistTo(other)<r)
-          other.aiStartState(uint32_t(act.func),1,other.currentOther,other.hnpc.wp);
+          other.aiStartState(uint32_t(act.func),1,other.currentOther,other.hnpc.wp.c_str());
         });
       break;
       }
@@ -1701,11 +1701,11 @@ void Npc::nextAiAction(uint64_t dt) {
     }
   }
 
-bool Npc::startState(size_t id,const std::string &wp) {
+bool Npc::startState(size_t id, const Daedalus::ZString& wp) {
   return startState(id,wp,gtime::endOfTime(),false);
   }
 
-bool Npc::startState(size_t id,const std::string &wp, gtime endTime,bool noFinalize) {
+bool Npc::startState(size_t id, const Daedalus::ZString& wp, gtime endTime,bool noFinalize) {
   if(id==0)
     return false;
   if(aiState.funcIni==id)
@@ -2591,33 +2591,33 @@ void Npc::aiGoToNpc(Npc *other) {
   aiActions.push_back(a);
   }
 
-void Npc::aiGoToNextFp(std::string fp) {
+void Npc::aiGoToNextFp(const Daedalus::ZString& fp) {
   AiAction a;
   a.act = AI_GoToNextFp;
   a.s0  = fp;
   aiActions.push_back(a);
   }
 
-void Npc::aiStartState(uint32_t stateFn, int behavior, Npc* other, std::string wp) {
+void Npc::aiStartState(uint32_t stateFn, int behavior, Npc* other, const Daedalus::ZString& wp) {
   auto& st = owner.script().getAiState(stateFn);(void)st;
 
   AiAction a;
   a.act    = AI_StartState;
   a.func   = stateFn;
   a.i0     = behavior;
-  a.s0     = std::move(wp);
+  a.s0     = wp;
   a.target = other;
   aiActions.push_back(a);
   }
 
-void Npc::aiPlayAnim(const std::string& ani) {
+void Npc::aiPlayAnim(const Daedalus::ZString& ani) {
   AiAction a;
   a.act  = AI_PlayAnim;
   a.s0   = ani; //TODO: COW-Strings
   aiActions.push_back(a);
   }
 
-void Npc::aiPlayAnimBs(const std::string &ani,BodyState bs) {
+void Npc::aiPlayAnimBs(const Daedalus::ZString& ani, BodyState bs) {
   AiAction a;
   a.act  = AI_PlayAnimBs;
   a.s0   = ani;
@@ -2676,7 +2676,7 @@ void Npc::aiEquipBestRangeWeapon() {
   aiActions.push_back(a);
   }
 
-void Npc::aiUseMob(const std::string &name, int st) {
+void Npc::aiUseMob(const Daedalus::ZString& name, int st) {
   AiAction a;
   a.act = AI_UseMob;
   a.s0  = name;
@@ -2763,28 +2763,28 @@ void Npc::aiProcessInfo(Npc &other) {
   aiActions.push_back(a);
   }
 
-void Npc::aiOutput(Npc& to, std::string text, int order) {
+void Npc::aiOutput(Npc& to, const Daedalus::ZString& text, int order) {
   AiAction a;
   a.act    = AI_Output;
-  a.s0     = std::move(text);
+  a.s0     = text;
   a.target = &to;
   a.i0     = order;
   aiActions.push_back(a);
   }
 
-void Npc::aiOutputSvm(Npc &to, std::string text, int order) {
+void Npc::aiOutputSvm(Npc &to, const Daedalus::ZString& text, int order) {
   AiAction a;
   a.act    = AI_OutputSvm;
-  a.s0     = std::move(text);
+  a.s0     = text;
   a.target = &to;
   a.i0     = order;
   aiActions.push_back(a);
   }
 
-void Npc::aiOutputSvmOverlay(Npc &to, std::string text, int order) {
+void Npc::aiOutputSvmOverlay(Npc &to, const Daedalus::ZString& text, int order) {
   AiAction a;
   a.act    = AI_OutputSvmOverlay;
-  a.s0     = std::move(text);
+  a.s0     = text;
   a.target = &to;
   a.i0     = order;
   aiActions.push_back(a);

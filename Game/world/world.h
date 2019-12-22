@@ -80,14 +80,17 @@ class World final {
     GameScript&     script() const;
     auto            version() const -> const VersionInfo&;
 
-    void            assignRoomToGuild(const std::string& room,int32_t guildId);
+    void            assignRoomToGuild(const char* room, int32_t guildId);
     int32_t         guildOfRoom(const std::array<float,3>& pos);
 
-    MeshObjects::Mesh getView(const std::string& visual) const;
-    MeshObjects::Mesh getView(const std::string& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
+    MeshObjects::Mesh   getView(const Daedalus::ZString& visual) const;
+    MeshObjects::Mesh   getView(const char*              visual) const;
+    MeshObjects::Mesh   getView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
+    MeshObjects::Mesh   getView(const char*              visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
     PfxObjects::Emitter getView(const ParticleFx* decl) const;
-    MeshObjects::Mesh getStaticView(const std::string &visual,int32_t tex) const;
-    DynamicWorld::Item  getPhysic(const std::string& visual);
+    MeshObjects::Mesh   getStaticView(const Daedalus::ZString& visual, int32_t tex) const;
+    MeshObjects::Mesh   getStaticView(const char*              visual, int32_t tex) const;
+    DynamicWorld::Item  getPhysic(const char* visual);
 
     const VisualFx*   loadVisualFx(const char* name);
     const ParticleFx* loadParticleFx(const char* name);
@@ -115,7 +118,7 @@ class World final {
     Focus findFocus(const Focus& def, const Tempest::Matrix4x4 &mvp, int w, int h);
 
     void           triggerEvent(const TriggerEvent& e);
-    Interactive*   aviableMob(const Npc &pl, const std::string& name);
+    Interactive*   aviableMob(const Npc &pl, const char* name);
     void           changeWorld(const std::string &world, const std::string &wayPoint);
 
     void   marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
@@ -129,12 +132,12 @@ class World final {
     void   printScreen(const char* msg, int x, int y, int time, const GthFont &font);
     void   print      (const char* msg);
 
-    Npc*   addNpc     (const char* name, const char *at);
-    Npc*   addNpc     (size_t itemInstance, const char *at);
+    Npc*   addNpc     (const char* name,    const Daedalus::ZString& at);
+    Npc*   addNpc     (size_t itemInstance, const Daedalus::ZString& at);
     Item*  addItem    (size_t itemInstance, const char *at);
     Item*  takeItem   (Item& it);
     void   removeItem (Item &it);
-    size_t hasItems(const std::string& tag,size_t itemCls);
+    size_t hasItems(const char* tag, size_t itemCls);
     Bullet&shootBullet(const Item &itmId, const Npc& npc, const Npc* target);
     Bullet&shootSpell(const Item &itm, const Npc &npc, const Npc *target);
 

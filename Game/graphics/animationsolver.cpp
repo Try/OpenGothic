@@ -28,7 +28,7 @@ void AnimationSolver::load(Serialize &fin) {
   overlay.resize(sz);
   for(auto& i:overlay){
     fin.read(s,i.time);
-    i.skeleton = Resources::loadSkeleton(s);
+    i.skeleton = Resources::loadSkeleton(s.c_str());
     }
 
   sz=0;

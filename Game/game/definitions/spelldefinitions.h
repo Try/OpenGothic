@@ -9,7 +9,7 @@ class SpellDefinitions final {
     SpellDefinitions(Daedalus::DaedalusVM &vm);
     ~SpellDefinitions();
 
-    const Daedalus::GEngineClasses::C_Spell &find(const std::string &instanceName) const;
+    const Daedalus::GEngineClasses::C_Spell &find(const char* instanceName) const;
 
   private:
     struct Spell:Daedalus::GEngineClasses::C_Spell {

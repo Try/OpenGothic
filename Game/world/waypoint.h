@@ -29,7 +29,7 @@ class WayPoint final {
     float dirY=0;
     float dirZ=0;
 
-    std::string name;
+    Daedalus::ZString name;
 
     struct Conn final {
       WayPoint* point=nullptr;

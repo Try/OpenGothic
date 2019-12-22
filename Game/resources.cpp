@@ -452,7 +452,7 @@ const ProtoMesh *Resources::loadMesh(const std::string &name) {
   return inst->implLoadMesh(name);
   }
 
-const Skeleton *Resources::loadSkeleton(const std::string &name) {
+const Skeleton *Resources::loadSkeleton(const char* name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadSkeleton(name);
   }

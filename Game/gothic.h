@@ -122,9 +122,9 @@ class Gothic final {
     Tempest::Signal<void()>                                             onWorldLoaded;
     Tempest::Signal<void()>                                             onSessionExit;
 
-    const std::string&                    messageFromSvm(const std::string &id,int voice) const;
-    const std::string&                    messageByName(const std::string &id) const;
-    uint32_t                              messageTime(const std::string &id) const;
+    const Daedalus::ZString&              messageFromSvm(const Daedalus::ZString& id, int voice) const;
+    const Daedalus::ZString&              messageByName(const Daedalus::ZString &id) const;
+    uint32_t                              messageTime(const Daedalus::ZString& id) const;
 
     std::u16string                        nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const;
     const std::string&                    defaultWorld() const;

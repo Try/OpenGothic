@@ -454,23 +454,23 @@ void Gothic::print(const char *msg) {
   onPrint(msg);
   }
 
-const std::string &Gothic::messageFromSvm(const std::string &id, int voice) const {
+const Daedalus::ZString &Gothic::messageFromSvm(const Daedalus::ZString &id, int voice) const {
   if(!game){
-    static std::string empty;
+    static Daedalus::ZString empty;
     return empty;
     }
   return game->messageFromSvm(id,voice);
   }
 
-const std::string &Gothic::messageByName(const std::string &id) const {
+const Daedalus::ZString &Gothic::messageByName(const Daedalus::ZString& id) const {
   if(!game){
-    static std::string empty;
+    static Daedalus::ZString empty;
     return empty;
     }
   return game->messageByName(id);
   }
 
-uint32_t Gothic::messageTime(const std::string &id) const {
+uint32_t Gothic::messageTime(const Daedalus::ZString& id) const {
   if(!game){
     return 0;
     }

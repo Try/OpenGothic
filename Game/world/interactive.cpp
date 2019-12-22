@@ -107,14 +107,14 @@ void Interactive::save(Serialize &fout) const {
 
 void Interactive::setVisual(const std::string &visual) {
   if(!FileExt::hasExt(visual,"3ds"))
-    skeleton = Resources::loadSkeleton(visual);
+    skeleton = Resources::loadSkeleton(visual.c_str());
   mesh = Resources::loadMesh(visual);
 
   if(mesh) {
     auto physicMesh = Resources::physicMesh(mesh); //FIXME: build physic model in Resources.cpp
 
     // view   = owner.getStaticView(vob.visual,0);
-    view   = world->getView(visual);
+    view   = world->getView(visual.c_str());
     physic = world->physic()->staticObj(physicMesh,pos);
 
     view  .setObjMatrix(pos);
@@ -247,9 +247,9 @@ const std::string& Interactive::focusName() const {
   return focName;
   }
 
-bool Interactive::checkMobName(const std::string &dest) const {
+bool Interactive::checkMobName(const char* dest) const {
   const char* scheme=schemeName();
-  if(scheme==dest)
+  if(strcmp(scheme,dest)==0)
     return true;
   return false;
   }

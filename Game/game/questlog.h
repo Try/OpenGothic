@@ -29,15 +29,15 @@ class QuestLog final {
       std::vector<std::string> entry;
       };
 
-    Quest& add      (const std::string& name,Section s);
-    void   setStatus(const std::string& name,Status  s);
-    void   addEntry (const std::string& name,const std::string& entry);
+    Quest& add      (const char* name, Section s);
+    void   setStatus(const char* name, Status  s);
+    void   addEntry (const char* name, const char* entry);
 
     void   save(Serialize &fout);
     void   load(Serialize &fin);
 
   private:
-    Quest* find(const std::string& name);
+    Quest* find(const char* name);
 
     std::vector<Quest> quests;
   };

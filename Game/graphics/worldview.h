@@ -37,8 +37,8 @@ class WorldView {
     void drawMain  (Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd);
     void resetCmd  ();
 
-    MeshObjects::Mesh   getView      (const std::string& visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
-    MeshObjects::Mesh   getStaticView(const std::string& visual, int32_t material);
+    MeshObjects::Mesh   getView      (const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
+    MeshObjects::Mesh   getStaticView(const char* visual, int32_t material);
     PfxObjects::Emitter getView      (const ParticleFx* decl);
 
     void addStatic(const ZenLoad::zCVobData &vob);
