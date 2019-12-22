@@ -377,6 +377,9 @@ void Animation::Sequence::processSfx(uint64_t barrier, uint64_t sTime, uint64_t 
   }
 
 void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const {
+  if(data->events.size()==0)
+    return;
+
   uint64_t frameA=0,frameB=0;
   bool     invert=false;
   if(!extractFrames(frameA,frameB,invert,barrier,sTime,now))
