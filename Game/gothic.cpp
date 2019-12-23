@@ -151,6 +151,12 @@ Camera* Gothic::gameCamera() {
   return nullptr;
   }
 
+const QuestLog* Gothic::questLog() const {
+  if(game)
+    return &game->script()->questLog();
+  return nullptr;
+  }
+
 int Gothic::loadingProgress() const {
   return loadProgress.load();
   }

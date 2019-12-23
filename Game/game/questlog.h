@@ -36,6 +36,10 @@ class QuestLog final {
     void   save(Serialize &fout);
     void   load(Serialize &fin);
 
+    size_t questCount() const { return quests.size(); }
+    auto   quest(size_t i) const -> const Quest& { return quests[i]; }
+
+
   private:
     Quest* find(const char* name);
 

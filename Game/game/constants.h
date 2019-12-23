@@ -224,3 +224,14 @@ inline SensesBit operator & (SensesBit a,const SensesBit& b){
 inline SensesBit operator | (SensesBit a,const SensesBit& b){
   return SensesBit(uint8_t(a)|uint8_t(b));
   }
+
+enum MenuItem : int32_t {
+  MENU_ITEM_UNDEF     = 0,
+  MENU_ITEM_TEXT      = 1,
+  MENU_ITEM_SLIDER    = 2,
+  MENU_ITEM_INPUT     = 3,
+  MENU_ITEM_CURSOR    = 4,
+  MENU_ITEM_CHOICEBOX = 5,
+  MENU_ITEM_BUTTON    = 6,
+  MENU_ITEM_LISTBOX   = 7,
+  };

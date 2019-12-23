@@ -14,11 +14,12 @@ int GthFont::pixelSize() const {
   return int(fnt.getFontInfo().fontHeight);
   }
 
-void GthFont::drawText(Painter &p, int bx, int by, int bw, int bh, const std::string& txtChar) const {
-  drawText(p,bx,by,bw,bh,txtChar.c_str());
+void GthFont::drawText(Painter &p, int bx, int by, int bw, int bh, const std::string& txtChar, AlignFlag align) const {
+  drawText(p,bx,by,bw,bh,txtChar.c_str(),align);
   }
 
-void GthFont::drawText(Painter &p, int bx, int by, int bw, int /*bh*/, const char *txtChar) const {
+void GthFont::drawText(Painter &p, int bx, int by, int bw, int /*bh*/,
+                       const char *txtChar, Tempest::AlignFlag align) const {
   if(tex==nullptr || txtChar==nullptr)
     return;
 
@@ -36,7 +37,10 @@ void GthFont::drawText(Painter &p, int bx, int by, int bw, int /*bh*/, const cha
 
   while(*txt) {
     auto t = getLine(txt,bw,lwidth);
-
+    if(align & AlignHCenter) {
+      int  w = textSize(txt,t).w;
+      x+=(bw-w)/2;
+      }
     for(auto i=txt;i!=t;++i) {
       uint8_t id  = *i;
       auto&   uv1 = fnt.getFontInfo().fontUV1[id];
@@ -47,6 +51,9 @@ void GthFont::drawText(Painter &p, int bx, int by, int bw, int /*bh*/, const cha
                  tw*uv1.x,th*uv1.y, tw*uv2.x,th*uv2.y);
       x += w;
       }
+
+    while(*t==' ')
+      ++t;
 
     txt = t;
     x = bx;
@@ -94,18 +101,41 @@ Size GthFont::textSize(const std::string &txt) const {
 Size GthFont::textSize(const char *txtChar) const {
   if(txtChar==nullptr)
     return Size();
-  const uint8_t* txt = reinterpret_cast<const uint8_t*>(txtChar);
+  return textSize(txtChar,txtChar+std::strlen(txtChar));
+  }
 
-  int   h  = pixelSize();
-  int   x  = 0, y=h;
+Size GthFont::textSize(const char* cb, const char* ce) const {
+  const uint8_t* b = reinterpret_cast<const uint8_t*>(cb);
+  const uint8_t* e = reinterpret_cast<const uint8_t*>(ce);
+  return textSize(b,e);
+  }
 
-  for(size_t i=0;txt[i];++i) {
-    uint8_t id  = txt[i];
-    int     w   = fnt.getFontInfo().glyphWidth[id];
-    x += w;
+Size GthFont::textSize(const uint8_t* b, const uint8_t* e) const {
+  int h  = pixelSize();
+  int x  = 0, y = h;
+  int totalW = 0;
+
+  for(size_t i=0;;) {
+    uint8_t id = b[i];
+    if(b+i==e) {
+      totalW = std::max(totalW,x);
+      break;
+      }
+    else if(id=='\n') {
+      totalW = std::max(totalW,x);
+      ++i;
+      while(b[i]==' ' && b+i!=e)
+        ++i;
+      y+=h;
+      x=0;
+      } else {
+      int w = fnt.getFontInfo().glyphWidth[id];
+      x += w;
+      ++i;
+      }
     }
 
-  return Size(x,y);
+  return Size(totalW,y);
   }
 
 const uint8_t* GthFont::getLine(const uint8_t *txt, int bw, int& width) const {

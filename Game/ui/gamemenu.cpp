@@ -71,6 +71,9 @@ void GameMenu::initItems() {
                           vm.getDATFile().getSymbolIndexByName(hItems[i].name.c_str()),
                           Daedalus::IC_MenuItem);
     hItems[i].img = Resources::loadTexture(hItems[i].handle.backPic.c_str());
+    if(hItems[i].handle.type==MENU_ITEM_LISTBOX) {
+      hItems[i].visible = false;
+      }
     updateItem(hItems[i]);
     }
   }
@@ -83,62 +86,110 @@ void GameMenu::paintEvent(PaintEvent &e) {
                0,0,back->w(),back->h());
     }
 
-  for(auto& hItem:hItems) {
-    if(!hItem.visible)
-      continue;
-    Daedalus::GEngineClasses::C_Menu_Item&        item = hItem.handle;
-    Daedalus::GEngineClasses::C_Menu_Item::EFlags flags=Daedalus::GEngineClasses::C_Menu_Item::EFlags(item.flags);
-    getText(hItem,textBuf);
+  for(auto& hItem:hItems)
+    drawItem(p,hItem);
 
-    int x = int(w()*item.posx/scriptDiv);
-    int y = int(h()*item.posy/scriptDiv);
-    int imgX = 0, imgW=0;
-
-    if(hItem.img && !hItem.img->isEmpty()) {
-      int32_t dimx = 8192;
-      int32_t dimy = 750;
-
-      if(item.dimx!=-1) dimx = item.dimx;
-      if(item.dimy!=-1) dimy = item.dimy;
-
-      const int szX = int(w()*dimx/scriptDiv);
-      const int szY = int(h()*dimy/scriptDiv);
-      p.setBrush(*hItem.img);
-      p.drawRect(/*(w()-szX)/2*/x,y,szX,szY,
-                 0,0,hItem.img->w(),hItem.img->h());
-
-      imgX = x;
-      imgW = szX;
-      }
-
-    auto& fnt = getTextFont(hItem);
-
-    if(flags & Daedalus::GEngineClasses::C_Menu_Item::IT_TXT_CENTER){
-      Size sz = fnt.textSize(textBuf.data());
-      if(hItem.img && !hItem.img->isEmpty()) {
-        x = imgX+(imgW-sz.w)/2;
+  if(menu.flags & Daedalus::GEngineClasses::C_Menu::MENU_SHOW_INFO) {
+    if(auto sel=selectedItem()) {
+      auto&                                  fnt  = Resources::font();
+      Daedalus::GEngineClasses::C_Menu_Item& item = sel->handle;
+      if(item.text->size()>1) {
+        const char* txt = item.text[1].c_str();
+        int tw = fnt.textSize(txt).w;
+        fnt.drawText(p,(w()-tw)/2,h()-7,txt);
         }
-      else if(item.dimx!=-1) {
-        const int szX = int(w()*item.dimx/scriptDiv);
-        // const int szY = int(h()*item.dimy/scriptDiv);
-        x = x+(szX-sz.w)/2;
-        } else {
-        x = (w()-sz.w)/2;
-        }
-      //y += sz.h/2;
       }
+    }
+  }
 
-    fnt.drawText(p,x,y+fnt.pixelSize(),textBuf.data());
+void GameMenu::drawItem(Painter& p, Item& hItem) {
+  if(!hItem.visible)
+    return;
+  Daedalus::GEngineClasses::C_Menu_Item&        item  = hItem.handle;
+  Daedalus::GEngineClasses::C_Menu_Item::EFlags flags = Daedalus::GEngineClasses::C_Menu_Item::EFlags(item.flags);
+  getText(hItem,textBuf);
+
+  const int32_t dimx = (item.dimx!=-1) ? item.dimx : 8192;
+  const int32_t dimy = (item.dimy!=-1) ? item.dimy : 750;
+
+  const int x   = int(w()*item.posx/scriptDiv);
+  const int y   = int(h()*item.posy/scriptDiv);
+  int szX = int(w()*dimx/scriptDiv);
+  int szY = int(h()*dimy/scriptDiv);
+
+  int imgX = 0, imgW=0;
+
+  if(hItem.img && !hItem.img->isEmpty()) {
+    p.setBrush(*hItem.img);
+    p.drawRect(/*(w()-szX)/2*/x,y,szX,szY,
+               0,0,hItem.img->w(),hItem.img->h());
+
+    imgX = x;
+    imgW = szX;
     }
 
-  if(auto sel=selectedItem()) {
-    auto&                                  fnt  = Resources::font();
-    Daedalus::GEngineClasses::C_Menu_Item& item = sel->handle;
-    if(item.text->size()>1) {
-      const char* txt = item.text[1].c_str();
-      int tw = fnt.textSize(txt).w;
-      fnt.drawText(p,(w()-tw)/2,h()-12,txt);
+  auto& fnt = getTextFont(hItem);
+
+  int tx = x;
+  int ty = y;
+  int tw = szX;
+  int th = szY;
+
+  AlignFlag txtAlign=NoAlign;
+  if(flags & Daedalus::GEngineClasses::C_Menu_Item::IT_TXT_CENTER) {
+    Size sz  = fnt.textSize(textBuf.data());
+    txtAlign = AlignHCenter | AlignVCenter;
+
+    if(hItem.img && !hItem.img->isEmpty()) {
+      tx = imgX+(imgW-sz.w)/2;
+      } else {
+      if(item.dimx!=-1) {
+        tx = (w()-sz.w)/2;
+        }
+      if(item.dimy!=-1) {
+        ty = (h()-sz.h)/2;
+        }
       }
+    }
+
+  //p.setBrush(Color(1,1,1,1));
+  //p.drawRect(x,y,szX,szY);
+  fnt.drawText(p,
+               x,y+fnt.pixelSize(),
+               tw, th,
+               textBuf.data(),
+               txtAlign);
+
+  if(item.type==MENU_ITEM_LISTBOX) {
+    if(auto ql = gothic.questLog()) {
+      const int px = int(w()*item.frameSizeX/scriptDiv);
+      const int py = int(h()*item.frameSizeY/scriptDiv);
+
+      if(item.userString[0]=="CURRENTMISSIONS")
+        drawQuestList(p, x+px,y+py, szX-2*px,szY-2*py, fnt,*ql,QuestLog::Status::Running,false);
+      else if(item.userString[0]=="OLDMISSIONS")
+        drawQuestList(p, x+px,y+py, szX-2*px,szY-2*py, fnt,*ql,QuestLog::Status::Failed,false);
+      else if(item.userString[0]=="FAILEDMISSIONS")
+        drawQuestList(p, x+px,y+py, szX-2*px,szY-2*py, fnt,*ql,QuestLog::Status::Success,false);
+      else if(item.userString[0]=="LOG")
+        drawQuestList(p, x+px,y+py, szX-2*px,szY-2*py, fnt,*ql,QuestLog::Status::Running,true);
+      }
+    }
+  }
+
+void GameMenu::drawQuestList(Painter& p, int x, int y, int w, int h, const GthFont& fnt,
+                             const QuestLog& log, QuestLog::Status st,bool isNote) {
+  int itY = y;
+  for(size_t i=0;i<log.questCount();i++) {
+    auto& quest = log.quest(i);
+    if(quest.status!=st || (quest.section==QuestLog::Section::Note)!=isNote)
+      continue;
+
+    itY+=fnt.pixelSize();
+    if(itY>h+y)
+      return;
+
+    fnt.drawText(p,x,itY,w,fnt.pixelSize(),quest.name.c_str(),Tempest::AlignLeft);
     }
   }
 
@@ -314,6 +365,7 @@ void GameMenu::execSingle(Item &it) {
         gothic.emitGlobalSound(gothic.loadSoundFx(onSelAction_S[i].c_str()));
         break;
       case SEL_ACTION_EXECCOMMANDS:
+        execCommands(it,onSelAction_S[i]);
         break;
       }
     }
@@ -359,6 +411,18 @@ void GameMenu::execLoadGame(GameMenu::Item &item) {
   char fname[64]={};
   std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",id);
   gothic.load(fname);
+  }
+
+void GameMenu::execCommands(GameMenu::Item& /*it*/,const Daedalus::ZString str) {
+  using namespace Daedalus::GEngineClasses::MenuConstants;
+
+  if(str.find("EFFECTS ")==0) {
+    const char* arg0 = str.c_str()+std::strlen("EFFECTS ");
+    for(auto& i:hItems) {
+      if(i.handle.type==MENU_ITEM_LISTBOX)
+        i.visible = (i.name==arg0);
+      }
+    }
   }
 
 void GameMenu::updateItem(GameMenu::Item &item) {

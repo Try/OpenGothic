@@ -89,7 +89,7 @@ void DialogMenu::drawTextMultiline(Painter &p, int x, int y, int w, int h, const
     y+=fnt.pixelSize();
     //p.setBrush(Color(1,1,1));
     fnt.drawText(p,x+pdd, y+pdd,
-                 w-2*pdd, h-2*pdd, txt);
+                 w-2*pdd, h-2*pdd, txt, Tempest::AlignHCenter);
     } else {
     if(other!=nullptr){
       auto& fnt = Resources::font();
@@ -103,7 +103,7 @@ void DialogMenu::drawTextMultiline(Painter &p, int x, int y, int w, int h, const
     auto& fnt = Resources::font(Resources::FontType::Yellow);
     y+=fnt.pixelSize();
     fnt.drawText(p,x+pdd, y+pdd,
-                 w-2*pdd, h-2*pdd, txt);
+                 w-2*pdd, h-2*pdd, txt, Tempest::AlignHCenter);
     }
   }
 

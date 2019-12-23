@@ -82,7 +82,7 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
                   y+mgr.top,
                   w - mgr.xMargin(),
                   back->h() - mgr.yMargin(),
-                  i.text);
+                  i.text, Tempest::AlignHCenter);
     x+=w;
     }
   }

@@ -59,6 +59,8 @@ class GameScript final {
 
     void         resetVarPointers();
 
+    auto         questLog() const -> const QuestLog&;
+
     const World& world() const;
     World&       world();
     uint64_t     tickCount() const;

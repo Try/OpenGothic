@@ -560,6 +560,10 @@ void GameScript::resetVarPointers() {
     }
   }
 
+const QuestLog& GameScript::questLog() const {
+  return quests;
+  }
+
 void GameScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
   switch(i.properties.elemProps.type) {
     case Daedalus::EParType::EParType_Int:

@@ -8,6 +8,8 @@
 #include <daedalus/DaedalusVM.h>
 #include <memory>
 
+#include "game/questlog.h"
+
 class Gothic;
 class MenuRoot;
 class Npc;
@@ -52,6 +54,9 @@ class GameMenu : public Tempest::Widget {
     bool                                  exitFlag=false;
     bool                                  closeFlag=false;
 
+    void                                  drawItem(Tempest::Painter& p, Item& it);
+    void                                  drawQuestList(Tempest::Painter& p, int x, int y, int w, int h, const GthFont& fnt, const QuestLog& log, QuestLog::Status st, bool isNote);
+
     Item*                                 selectedItem();
     Item*                                 selectedNextItem(Item* cur);
     void                                  setSelection(int cur, int seek=1);
@@ -66,6 +71,7 @@ class GameMenu : public Tempest::Widget {
     void                                  execChgOption(Item &item);
     void                                  execSaveGame (Item &item);
     void                                  execLoadGame (Item &item);
+    void                                  execCommands (Item &it, const Daedalus::ZString str);
     void                                  updateItem   (Item &item);
 
     void                                  updateSavThumb(Item& sel);

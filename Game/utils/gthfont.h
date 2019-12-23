@@ -10,13 +10,15 @@ class GthFont final {
 
     int  pixelSize() const;
 
-    void drawText(Tempest::Painter& p, int x, int y, int w, int h, const std::string& txt) const;
-    void drawText(Tempest::Painter& p, int x, int y, int w, int h, const char* txt) const;
+    void drawText(Tempest::Painter& p, int x, int y, int w, int h, const std::string& txt, Tempest::AlignFlag align) const;
+    void drawText(Tempest::Painter& p, int x, int y, int w, int h, const char* txt, Tempest::AlignFlag align) const;
     void drawText(Tempest::Painter& p, int x, int y, const std::string& txt) const;
     void drawText(Tempest::Painter& p, int x, int y, const char* txt) const;
 
     auto textSize(const std::string& txt) const -> Tempest::Size;
     auto textSize(const char*        txt) const -> Tempest::Size;
+    auto textSize(const char*    b, const char* e) const -> Tempest::Size;
+    auto textSize(const uint8_t* b, const uint8_t* e) const -> Tempest::Size;
 
   private:
     ZenLoad::zCFont           fnt;
