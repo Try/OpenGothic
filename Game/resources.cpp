@@ -89,7 +89,7 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
   detectVdf(archives,gothic.nestedPath({u"Data"},Dir::FT_Dir));
 
   // addon archives first!
-  std::sort(archives.begin(),archives.end(),[](const std::u16string& a,const std::u16string& b){
+  std::stable_sort(archives.begin(),archives.end(),[](const std::u16string& a,const std::u16string& b){
     int aIsMod = (a.rfind(u".mod")==a.size()-4) ? 1 : 0;
     int bIsMod = (b.rfind(u".mod")==b.size()-4) ? 1 : 0;
     return std::make_tuple(aIsMod,VDFS::FileIndex::getLastModTime(a)) >
@@ -100,9 +100,12 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
     gothicAssets.loadVDF(i);
   gothicAssets.finalizeLoad();
 
-  //auto v = getFileData("font_old_20_white.tga");
-  //Tempest::WFile f("../../internal/font_old_20_white.tga");
-  //f.write(v.data(),v.size());
+  // for(auto& i:gothicAssets.getKnownFiles())
+  //   Log::i(i);
+
+  auto v = getFileData("font_old_20_white.tga");
+  Tempest::WFile f("../../internal/font_old_20_white.tga");
+  f.write(v.data(),v.size());
   }
 
 Resources::~Resources() {
