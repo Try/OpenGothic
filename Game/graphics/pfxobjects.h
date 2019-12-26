@@ -127,8 +127,8 @@ class PfxObjects final {
       Block&                      getBlock(ImplEmitter& emitter);
       Block&                      getBlock(Emitter& emitter);
 
-      size_t                      alloc   ();
-      void                        shrink  ();
+      size_t                      alloc ();
+      bool                        shrink();
 
       void                        init    (size_t particle);
       void                        finalize(size_t particle);

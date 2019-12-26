@@ -212,7 +212,7 @@ void PfxObjects::Bucket::finalize(size_t particle) {
   std::memset(v,0,sizeof(*v)*6);
   }
 
-void PfxObjects::Bucket::shrink() {
+bool PfxObjects::Bucket::shrink() {
   while(impl.size()>0) {
     auto& b = impl.back();
     if(b.alive)
@@ -227,8 +227,12 @@ void PfxObjects::Bucket::shrink() {
       break;
     block.pop_back();
     }
-  particles.resize(block.size()+blockSize);
-  vbo.resize(particles.size()*6);
+  if(particles.size()!=block.size()*blockSize) {
+    particles.resize(block.size()*blockSize);
+    vbo.resize(particles.size()*6);
+    return true;
+    }
+  return false;
   }
 
 float PfxObjects::ParState::lifeTime() const {
@@ -273,8 +277,10 @@ void PfxObjects::updateUbo(uint32_t imgId, uint64_t ticks) {
   uint64_t dt = ticks-lastUpdate;
 
   for(auto& i:bucket) {
-    tickSys(i,dt);
-    buildVbo(i);
+    if(dt!=0) {
+      tickSys(i,dt);
+      buildVbo(i);
+      }
 
     auto& pf = i.pf[imgId];
     pf.vbo.update(i.vbo);
@@ -351,7 +357,7 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b,uint64_t dt) {
         if(p.owner!=size_t(-1))
           b.impl[p.owner].id=size_t(-1);
         p.owner=size_t(-1);
-        b.shrink();
+        updateCmd |= b.shrink();
         }
       } else {
       while(p.emited<emited) {
