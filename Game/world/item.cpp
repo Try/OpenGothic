@@ -123,6 +123,15 @@ int32_t Item::itemFlag() const {
   return hitem.flags;
   }
 
+bool Item::isSpellShoot() const {
+  if(!isSpellOrRune())
+    return false;
+  auto& spl = owner.script().getSpell(spellId());
+  return spl.targetCollectAlgo!=TargetCollect::TARGET_COLLECT_NONE &&
+         spl.targetCollectAlgo!=TargetCollect::TARGET_COLLECT_CASTER &&
+         spl.targetCollectAlgo!=TargetCollect::TARGET_COLLECT_FOCUS;
+  }
+
 bool Item::isSpellOrRune() const {
   return (uint32_t(mainFlag()) & Inventory::ITM_CAT_RUNE);
   }

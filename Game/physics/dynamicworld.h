@@ -6,9 +6,10 @@
 #include <zenload/zTypes.h>
 #include <zenload/zCMaterial.h>
 #include <LinearMath/btScalar.h>
-#include <memory>
 #include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
 #include <Tempest/Matrix4x4>
+#include <memory>
+#include <limits>
 
 class btConstraintSolver;
 class btCollisionConfiguration;
@@ -32,6 +33,7 @@ class DynamicWorld final {
     struct HumShape;
     struct NpcBody;
     struct NpcBodyList;
+    struct BulletsList;
 
   public:
     static constexpr float gravity     = 100*9.8f;
@@ -120,33 +122,74 @@ class DynamicWorld final {
       float               z() const { return v[2]; }
       };
 
-    struct BulletMv final {
-      Npc*                npc=nullptr;
-      uint8_t             mat = ZenLoad::NUM_MAT_GROUPS;
+    struct BulletCallback {
+      virtual ~BulletCallback()=default;
+      virtual void onStop(){}
+      virtual void onMove(){}
+      virtual void onCollide(uint8_t matId){(void)matId;}
+      virtual void onCollide(Npc& other){(void)other;}
       };
 
-    RayResult dropRay (float x, float y, float z) const;
-    RayResult waterRay(float x, float y, float z) const;
+    struct BulletBody final {
+      public:
+        BulletBody(DynamicWorld* wrld,BulletCallback* cb);
+        BulletBody(BulletBody&&);
 
-    RayResult ray          (float x0, float y0, float z0, float x1, float y1, float z1) const;
-    float     soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const;
+        void  setSpellId(int spl);
+
+        void  move(float x,float y,float z);
+        void  setPosition  (float x,float y,float z);
+        void  setDirection (float x,float y,float z);
+        float pathLength() const;
+        void  addPathLen(float v);
+
+        float               speed()     const { return dirL; }
+        std::array<float,3> position()  const { return pos; }
+        std::array<float,3> direction() const { return dir; }
+        Tempest::Matrix4x4  matrix()    const;
+        bool                isSpell()   const { return spl!=std::numeric_limits<int>::max(); }
+        int                 spellId()   const { return spl; }
+
+      private:
+        DynamicWorld*       owner = nullptr;
+        BulletCallback*     cb    = nullptr;
+
+        std::array<float,3> pos={};
+        std::array<float,3> lastPos={};
+
+        std::array<float,3> dir={};
+        float               dirL=0.f;
+        float               totalL=0.f;
+        int                 spl=std::numeric_limits<int>::max();
+
+      friend class DynamicWorld;
+      };
+
+    RayResult   dropRay (float x, float y, float z) const;
+    RayResult   waterRay(float x, float y, float z) const;
+
+    RayResult   ray          (float x0, float y0, float z0, float x1, float y1, float z1) const;
+    float       soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const;
 
     std::array<float,3> landNormal(float x, float y, float z) const;
 
-    Item       ghostObj (const ZMath::float3& min,const ZMath::float3& max);
-    StaticItem staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
+    Item        ghostObj (const ZMath::float3& min,const ZMath::float3& max);
+    StaticItem  staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
+    BulletBody* bulletObj(BulletCallback* cb);
 
-    BulletMv   moveBullet(Bullet& b, float dx, float dy, float dz, uint64_t dt);
+    void        tick(uint64_t dt);
 
-    void tick(uint64_t dt);
+    void        deleteObj(BulletBody* obj);
 
   private:
-    void deleteObj(NpcBody* obj);
-    void deleteObj(btCollisionObject* obj);
+    void        deleteObj(NpcBody*    obj);
+    void        deleteObj(btCollisionObject* obj);
 
-    RayResult implWaterRay (float x0, float y0, float z0, float x1, float y1, float z1) const;
-    bool hasCollision(const Item &it,std::array<float,3>& normal);
-    void rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, btCollisionWorld::RayResultCallback& resultCallback) const;    
+
+    void       moveBullet(BulletBody& b, float dx, float dy, float dz, uint64_t dt);
+    RayResult  implWaterRay (float x0, float y0, float z0, float x1, float y1, float z1) const;
+    bool       hasCollision(const Item &it,std::array<float,3>& normal);
+    void       rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, btCollisionWorld::RayResultCallback& resultCallback) const;
 
     std::unique_ptr<btRigidBody> landObj();
     std::unique_ptr<btRigidBody> waterObj();
@@ -167,6 +210,7 @@ class DynamicWorld final {
     std::unique_ptr<PhysicMesh>                 waterMesh;
 
     std::unique_ptr<NpcBodyList>                npcList;
+    std::unique_ptr<BulletsList>                bulletList;
 
     static const float                          ghostPadding;
     static const float                          ghostHeight;

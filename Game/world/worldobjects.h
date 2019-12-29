@@ -97,7 +97,7 @@ class WorldObjects final {
     SpaceIndex<Interactive>            interactiveObj;
     SpaceIndex<std::unique_ptr<Item>>  itemArr;
 
-    std::vector<Bullet>                bullets;
+    std::list<Bullet>                  bullets;
 
     std::vector<std::unique_ptr<Npc>>  npcArr;
     std::vector<std::unique_ptr<Npc>>  npcInvalid;

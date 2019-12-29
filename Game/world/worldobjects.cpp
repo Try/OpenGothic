@@ -78,19 +78,9 @@ void WorldObjects::tick(uint64_t dt) {
   for(auto& i:interactiveObj)
     i.tick(dt);
 
-  for(size_t i=0;i<bullets.size();){
-    if(bullets[i].flags()&Bullet::Stopped) {
-      ++i;
-      continue;
-      }
-
-    if(bullets[i].tick(dt)){
-      bullets[i]=std::move(bullets.back());
-      bullets.pop_back();
-      } else {
-      ++i;
-      }
-    }
+  bullets.remove_if([](Bullet& b){
+    return b.flags()&Bullet::Stopped;
+    });
 
   auto pl = owner.player();
   if(pl==nullptr)

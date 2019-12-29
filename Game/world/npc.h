@@ -116,10 +116,13 @@ class Npc final {
       };
 
     enum SpellCode : int32_t {
-      SPL_RECEIVEINVEST = 1,
-      SPL_SENDCAST      = 2,
-      SPL_SENDSTOP      = 3,
-      SPL_NEXTLEVEL     = 4
+      SPL_DONTINVEST                  = 0,
+      SPL_RECEIVEINVEST               = 1,
+      SPL_SENDCAST                    = 2,
+      SPL_SENDSTOP                    = 3,
+      SPL_NEXTLEVEL                   = 4,
+      SPL_STATUS_CANINVEST_NO_MANADEC = 8,
+      SPL_FORCEINVEST		              = 1 << 16
       };
 
     enum Protection : uint8_t {

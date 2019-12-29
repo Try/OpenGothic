@@ -41,6 +41,7 @@ class Item final {
     int32_t             mainFlag() const;
     int32_t             itemFlag() const;
 
+    bool                isSpellShoot() const;
     bool                isSpellOrRune() const;
     bool                isSpell() const;
     bool                is2H() const;

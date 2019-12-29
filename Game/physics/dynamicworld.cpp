@@ -97,6 +97,10 @@ struct DynamicWorld::NpcBody : btRigidBody {
   bool                frozen=false;
   uint64_t            lastMove=0;
 
+  Npc* getNpc() {
+    return reinterpret_cast<Npc*>(getUserPointer());
+    }
+
   bool setPosition(float x,float y,float z){
     return setPosition({x,y,z});
     }
@@ -201,7 +205,22 @@ struct DynamicWorld::NpcBodyList final {
     move(n,{x,y,z});
     }
 
-  NpcBody* rayTest(const btVector3& s, const btVector3& e){
+  bool rayTest(NpcBody& npc, const btVector3& s, const btVector3& e) {
+    struct CallBack:btCollisionWorld::ClosestRayResultCallback {
+      using ClosestRayResultCallback::ClosestRayResultCallback;
+      };
+    CallBack callback{s,e};
+
+    btTransform rayFromTrans,rayToTrans;
+    rayFromTrans.setIdentity();
+    rayFromTrans.setOrigin(s);
+    rayToTrans.setIdentity();
+    rayToTrans.setOrigin(e);
+
+    return rayTestSingle(rayFromTrans, rayToTrans, npc, callback);
+    }
+
+  NpcBody* rayTest(const btVector3& s, const btVector3& e) {
     struct CallBack:btCollisionWorld::ClosestRayResultCallback {
       using ClosestRayResultCallback::ClosestRayResultCallback;
       };
@@ -344,6 +363,47 @@ struct DynamicWorld::NpcBodyList final {
   float                 maxR=0;
   };
 
+struct DynamicWorld::BulletsList final {
+  BulletsList(DynamicWorld& wrld):wrld(wrld){
+    }
+
+  BulletBody* add(BulletCallback* cb) {
+    BulletBody b(&wrld,cb);
+    body.push_front(std::move(b));
+    return &body.front();
+    }
+
+  void del(BulletBody* b) {
+    for(auto i=body.begin(), e=body.end();i!=e;++i){
+      if(&(*i)==b) {
+        body.erase(i);
+        return;
+        }
+      }
+    }
+
+  void tick(uint64_t dt) {
+    for(auto& i:body) {
+      wrld.moveBullet(i,i.dir[0],i.dir[1],i.dir[2],dt);
+      if(i.cb!=nullptr)
+        i.cb->onMove();
+      }
+    }
+
+  void onMoveNpc(NpcBody& npc, NpcBodyList& list){
+    for(auto& i:body) {
+      btVector3 s = {i.lastPos[0],i.lastPos[1],i.lastPos[2]};
+      btVector3 e = {i.pos[0],i.pos[1],i.pos[2]};
+
+      if(i.cb!=nullptr && list.rayTest(npc,s,e))
+        i.cb->onCollide(*npc.getNpc());
+      }
+    }
+
+  std::list<BulletBody> body;
+  DynamicWorld&         wrld;
+  };
+
 DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
   // collision configuration contains default setup for memory, collision setup
   conf.reset(new btDefaultCollisionConfiguration());
@@ -381,6 +441,7 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
   world->setForceUpdateAllAabbs(false);
 
   npcList.reset(new NpcBodyList(*this));
+  bulletList.reset(new BulletsList(*this));
   }
 
 DynamicWorld::~DynamicWorld(){
@@ -639,15 +700,20 @@ DynamicWorld::StaticItem DynamicWorld::staticObj(const PhysicMeshShape *shape, c
   return StaticItem(this,obj.release());
   }
 
-DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, float dz, uint64_t dt) {
-  float k  = dt/1000.f;
+DynamicWorld::BulletBody* DynamicWorld::bulletObj(BulletCallback* cb) {
+  return bulletList->add(cb);
+  }
 
-  auto  p  = b.position();
+void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint64_t dt) {
+  float k  = dt/1000.f;
+  const bool isSpell = b.isSpell();
+
+  auto  p  = b.pos;
   float x0 = p[0];
   float y0 = p[1];
   float z0 = p[2];
   float x1 = x0+dx*k;
-  float y1 = y0+dy*k-gravity*k*k;
+  float y1 = y0+dy*k - (isSpell ? 0 : gravity*k*k);
   float z1 = z0+dz*k;
 
   struct CallBack:btCollisionWorld::ClosestRayResultCallback {
@@ -679,21 +745,22 @@ DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, f
   callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
 
   if(auto ptr = npcList->rayTest(s,e)) {
-    BulletMv ret;
-    ret.npc = reinterpret_cast<Npc*>(ptr->getUserPointer());
-    return ret;
+    if(b.cb!=nullptr) {
+      b.cb->onCollide(*ptr->getNpc());
+      b.cb->onStop();
+      }
+    return;
     }
   rayTest(s,e,callback);
 
-  BulletMv ret;
-  const bool isSpell = (b.flags()&Bullet::Spell);
   if(callback.matId<ZenLoad::NUM_MAT_GROUPS) {
     if( isSpell ){
-      b.addFlags(Bullet::Stopped);
+      if(b.cb!=nullptr)
+        b.cb->onStop();
       } else {
       if(callback.matId==ZenLoad::MaterialGroup::METAL ||
          callback.matId==ZenLoad::MaterialGroup::STONE) {
-        auto d = b.direction();
+        auto d = b.dir;
         btVector3 m = {d[0],d[1],d[2]};
         btVector3 n = callback.m_hitNormalWorld;
 
@@ -705,18 +772,24 @@ DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, f
         dir*=(l*0.5f); //slow-down
 
         float a = callback.m_closestHitFraction;
-        b.setPosition(x0+(x1-x0)*a,y0+(y1-y0)*a,z0+(z1-z0)*a);
+        b.move(x0+(x1-x0)*a,y0+(y1-y0)*a,z0+(z1-z0)*a);
         if(l*a>10.f) {
           b.setDirection(dir.x(),dir.y(),dir.z());
-          b.addLen(l*a);
-          ret.mat = callback.matId;
+          b.addPathLen(l*a);
+          if(b.cb!=nullptr) {
+            b.cb->onCollide(callback.matId);
+            b.cb->onStop();
+            }
+          return;
           } else {
-          b.addFlags(Bullet::Stopped);
+          if(b.cb!=nullptr)
+            b.cb->onStop();
           }
         } else {
         float a = callback.m_closestHitFraction;
-        b.setPosition(x0+(x1-x0)*a,y0+(y1-y0)*a,z0+(z1-z0)*a);
-        b.addFlags(Bullet::Stopped);
+        b.move(x0+(x1-x0)*a,y0+(y1-y0)*a,z0+(z1-z0)*a);
+        if(b.cb!=nullptr)
+          b.cb->onStop();
         }
       }
     } else {
@@ -725,29 +798,32 @@ DynamicWorld::BulletMv DynamicWorld::moveBullet(Bullet &b, float dx, float dy, f
     if(!isSpell)
       d[1] -= gravity*k;
 
+    b.move(x1,y1,z1);
     b.setDirection(d[0],d[1],d[2]);
-    b.setPosition(x1,y1,z1);
-    b.addLen(l*k);
+    b.addPathLen(l*k);
     }
-
-  return ret;
   }
 
-void DynamicWorld::tick(uint64_t /*dt*/) {
+void DynamicWorld::tick(uint64_t dt) {
   npcList->updateAabbs();
+  bulletList->tick(dt);
   }
 
 void DynamicWorld::updateSingleAabb(btCollisionObject *obj) {
   world->updateSingleAabb(obj);
   }
 
-void DynamicWorld::deleteObj(DynamicWorld::NpcBody *obj) {
+void DynamicWorld::deleteObj(NpcBody *obj) {
   if(!obj)
     return;
 
   if(!npcList->del(obj))
     world->removeCollisionObject(obj);
   delete obj;
+  }
+
+void DynamicWorld::deleteObj(BulletBody* obj) {
+  bulletList->del(obj);
   }
 
 void DynamicWorld::deleteObj(btCollisionObject *obj) {
@@ -847,8 +923,10 @@ void DynamicWorld::Item::implSetPosition(float x, float y, float z) {
   trans.setOrigin(btVector3(x,y+(height-r-ghostPadding)*0.5f+r+ghostPadding,z));
   obj->setWorldTransform(trans);
 
-  if(auto npc = dynamic_cast<NpcBody*>(obj))
+  if(auto npc = dynamic_cast<NpcBody*>(obj)) {
     owner->npcList->move(*npc,x,y,z);
+    owner->bulletList->onMoveNpc(*npc,*owner->npcList);
+    }
   }
 
 void DynamicWorld::Item::setEnable(bool e) {
@@ -967,4 +1045,58 @@ void DynamicWorld::StaticItem::setObjMatrix(const Tempest::Matrix4x4 &m) {
     obj->setWorldTransform(trans);
     owner->updateSingleAabb(obj);
     }
+  }
+
+DynamicWorld::BulletBody::BulletBody(DynamicWorld* wrld, DynamicWorld::BulletCallback* cb)
+  :owner(wrld), cb(cb) {
+  }
+
+DynamicWorld::BulletBody::BulletBody(DynamicWorld::BulletBody&& other)
+  : pos(other.pos), lastPos(other.lastPos),
+    dir(other.dir), dirL(other.dirL), totalL(other.totalL), spl(other.spl){
+  std::swap(owner,other.owner);
+  std::swap(cb,other.cb);
+  }
+
+void DynamicWorld::BulletBody::setSpellId(int s) {
+  spl = s;
+  }
+
+void DynamicWorld::BulletBody::move(float x, float y, float z) {
+  lastPos = pos;
+  pos     = {x,y,z};
+  }
+
+void DynamicWorld::BulletBody::setPosition(float x, float y, float z) {
+  lastPos = {x,y,z};
+  pos     = {x,y,z};
+  }
+
+void DynamicWorld::BulletBody::setDirection(float x, float y, float z) {
+  dir  = {x,y,z};
+  dirL = std::sqrt(x*x + y*y + z*z);
+  }
+
+float DynamicWorld::BulletBody::pathLength() const {
+  return totalL;
+  }
+
+void DynamicWorld::BulletBody::addPathLen(float v) {
+  totalL += v;
+  }
+
+Tempest::Matrix4x4 DynamicWorld::BulletBody::matrix() const {
+  const float dx = dir[0]/dirL;
+  const float dy = dir[1]/dirL;
+  const float dz = dir[2]/dirL;
+
+  float a2  = std::asin(dy)*float(180/M_PI);
+  float ang = std::atan2(dz,dx)*float(180/M_PI)+180.f;
+
+  Tempest::Matrix4x4 mat;
+  mat.identity();
+  mat.translate(pos[0],pos[1],pos[2]);
+  mat.rotateOY(-ang);
+  mat.rotateOZ(-a2);
+  return mat;
   }

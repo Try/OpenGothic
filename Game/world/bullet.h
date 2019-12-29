@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "physics/dynamicworld.h"
+
 #include "graphics/meshobjects.h"
 #include "graphics/pfxobjects.h"
 
@@ -9,31 +11,32 @@ class World;
 class Item;
 class Npc;
 
-class Bullet final {
+class Bullet final : public DynamicWorld::BulletCallback {
   public:
+    Bullet()=default;
     Bullet(World &owner, const Item &itm);
     Bullet(Bullet&&)=default;
-    ~Bullet();
+    ~Bullet() override;
     Bullet& operator=(Bullet&&)=default;
 
     enum Flg:uint8_t {
       NoFlags = 0,
       Stopped = 1,
-      Spell   = 1<<1,
       };
 
     void setPosition  (const std::array<float,3>& p);
     void setPosition  (float x,float y,float z);
+
     void setDirection (float x,float y,float z);
+
     void setView      (MeshObjects::Mesh&&   m);
     void setView      (PfxObjects::Emitter&& p);
 
+    bool    isSpell() const;
+    int32_t spellId() const;
+
     void setOwner(Npc* n);
     Npc* owner() const;
-
-    const std::array<float,3>& position()  const { return pos;  }
-    const std::array<float,3>& direction() const { return dir;  }
-    float                      speed()     const { return dirL; }
 
     Flg                        flags()     const { return flg;  }
     void                       setFlags(Flg f) { flg=f; }
@@ -45,25 +48,25 @@ class Bullet final {
     float                      hitChance() const { return hitCh; }
     void                       setHitChance(float h) { hitCh=h; }
 
-    void                       addLen(float l) { totalL+=l; }
-    float                      pathLength() const { return totalL; }
+    float                      pathLength() const;
 
-    bool                       tick(uint64_t dt);
+  protected:
+    void                       onStop() override;
+    void                       onMove() override;
+    void                       onCollide(uint8_t matId) override;
+    void                       onCollide(Npc& other) override;
 
   private:
+    DynamicWorld::BulletBody*         obj=nullptr;
     World*                            wrld=nullptr;
     Npc*                              ow=nullptr;
+
     std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> dmg={};
+    float                             hitCh=1.f;
 
     MeshObjects::Mesh                 view;
     PfxObjects::Emitter               pfx;
 
-    std::array<float,3>               pos={};
-    std::array<float,3>               dir={};
-    float                             dirL=0.f;
-    float                             totalL=0.f;
-    float                             hitCh=1.f;
-    Tempest::Matrix4x4                mat;
     uint8_t                           material=0;
     Flg                               flg=NoFlags;
 

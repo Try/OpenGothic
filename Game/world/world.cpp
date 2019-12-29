@@ -475,7 +475,7 @@ size_t World::hasItems(const char* tag, size_t itemCls) {
 Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
   float dx = 1.f, dy = 0.f, dz = 0.f;
   auto  pos = npc.position();
-  pos[1]+=npc.translateY();
+  pos[1] = npc.centerY();
 
   if(target!=nullptr) {
     auto  tgPos = target->position();
@@ -493,14 +493,13 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
     }
 
   auto& b = wobj.shootBullet(itm, pos[0],pos[1],pos[2], dx,dy,dz, DynamicWorld::spellSpeed);
-  b.addFlags(Bullet::Spell);
   return b;
   }
 
 Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target) {
   float dx = 1.f, dy = 0.f, dz = 0.f;
   auto  pos = npc.position();
-  pos[1]+=npc.translateY();
+  pos[1] = npc.centerY();
 
   if(target!=nullptr) {
     auto  tgPos = target->position();

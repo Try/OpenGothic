@@ -935,7 +935,7 @@ int GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
   auto& spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
   auto& tag       = spellInst.getString(size_t(it.spellId()));
   char  str[256]={};
-  std::snprintf(str,sizeof(str),"Spell_Cast_",tag.c_str());
+  std::snprintf(str,sizeof(str),"Spell_Cast_%s",tag.c_str());
 
   auto& dat = vm.getDATFile();
   auto  fn  = dat.getSymbolIndexByName(str);

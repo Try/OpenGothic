@@ -1219,11 +1219,18 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
   if(isDown())
     return;
 
-  setOther(&other);
-  owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
-
+  const bool isSpell = b!=nullptr && b->isSpell();
   const bool isBlock = visual.pose().isDefence(owner.tickCount());
+
+  setOther(&other);
+  if(!isSpell)
+    owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
+
   if(!isBlock || b!=nullptr) {
+    if(isSpell) {
+      lastHitSpell = b->spellId();
+      perceptionProcess(other,this,0,PERC_ASSESSMAGIC);
+      }
     perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
     owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
 
@@ -1251,22 +1258,22 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
     if(!isDown() && std::get<1>(hitResult)>0)
       owner.emitWeaponsSound(other,*this);
 
-    if(dmg<=0)
-      return;
-    if(attribute(ATR_HITPOINTS)>0) {
-      visual.stopAnim(*this,nullptr);
-      if(lastHitType=='A')
-        setAnim(Anim::StumbleA); else
-        setAnim(Anim::StumbleB);
-      implAniWait(visual.pose().animationTotalTime());
-      }
-    changeAttribute(ATR_HITPOINTS,-dmg,b==nullptr);
+    if(dmg>0) {
+      if(attribute(ATR_HITPOINTS)>0) {
+        visual.stopAnim(*this,nullptr);
+        if(lastHitType=='A')
+          setAnim(Anim::StumbleA); else
+          setAnim(Anim::StumbleB);
+        implAniWait(visual.pose().animationTotalTime());
+        }
+      changeAttribute(ATR_HITPOINTS,-dmg,b==nullptr);
 
-    if(isUnconscious()){
-      owner.sendPassivePerc(*this,other,*this,PERC_ASSESSDEFEAT);
-      }
-    else if(isDead()) {
-      owner.sendPassivePerc(*this,other,*this,PERC_ASSESSMURDER);
+      if(isUnconscious()){
+        owner.sendPassivePerc(*this,other,*this,PERC_ASSESSDEFEAT);
+        }
+      else if(isDead()) {
+        owner.sendPassivePerc(*this,other,*this,PERC_ASSESSMURDER);
+        }
       }
 
     if(other.damageTypeMask() & (1<<Daedalus::GEngineClasses::DAM_INDEX_FLY))
@@ -2218,34 +2225,36 @@ bool Npc::castSpell() {
     case SpellCode::SPL_SENDSTOP:
       setAnim(Anim::MagNoMana);
       break;
+    case SpellCode::SPL_STATUS_CANINVEST_NO_MANADEC:
     case SpellCode::SPL_NEXTLEVEL:{
       auto& ani = owner.script().spellCastAnim(*this,*active);
       if(!visual.startAnimSpell(*this,ani.c_str()))
         return false;
-      }
       break;
+      }
     case SpellCode::SPL_SENDCAST: {
       auto& ani = owner.script().spellCastAnim(*this,*active);
       if(!visual.startAnimSpell(*this,ani.c_str()))
         return false;
       owner.script().invokeSpell(*this,currentTarget,*active);
-      if(currentTarget!=nullptr){
-        currentTarget->lastHitSpell = splId;
-        currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
-        }
+      if(active->isSpellShoot()) {
+        auto& spl = owner.script().getSpell(splId);
+        std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> dmg={};
+        for(size_t i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i)
+          if((spl.damageType&(1<<i))!=0) {
+            dmg[i] = spl.damage_per_level;
+            }
 
-      auto& spl = owner.script().getSpell(splId);
-
-      std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> dmg={};
-      for(size_t i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i)
-        if((spl.damageType&(1<<i))!=0) {
-          dmg[i] = spl.damage_per_level;
+        auto& b = owner.shootSpell(*active, *this, currentTarget);
+        b.setOwner(this);
+        b.setDamage(dmg);
+        b.setHitChance(1.f);
+        } else {
+        if(currentTarget!=nullptr) {
+          currentTarget->lastHitSpell = splId;
+          currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
           }
-
-      auto& b = owner.shootSpell(*active, *this, currentTarget);
-      b.setOwner(this);
-      b.setDamage(dmg);
-      b.setHitChance(1.f);
+        }
 
       if(active->isSpell())
         invent.delItem(active->clsId(),1,*this);
