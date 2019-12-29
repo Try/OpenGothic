@@ -1,8 +1,9 @@
 #include "bullet.h"
 
+#include "graphics/visualfx.h"
 #include "world.h"
 
-Bullet::Bullet(World& owner,const Item& itm)
+Bullet::Bullet(World& owner,const Item& itm,float x,float y,float z)
   :wrld(&owner) {
   obj = wrld->physic()->bulletObj(this);
   if(itm.isSpellOrRune()) {
@@ -12,12 +13,18 @@ Bullet::Bullet(World& owner,const Item& itm)
   if(itm.isSpellOrRune()) {
     material = ZenLoad::NUM_MAT_GROUPS;
     int32_t id = itm.spellId();
-    const ParticleFx* pfx = owner.script().getSpellFx(id,SpellFxType::Base);
+    const VisualFx*   vfx = owner.script().getSpellVFx(id);
+    const ParticleFx* pfx = owner.script().getSpellFx (vfx);
+
     setView(owner.getView(pfx));
+    if(vfx!=nullptr)
+      owner.emitSoundEffect(vfx->handle().sfxID.c_str(),x,y,z,0,true);
     } else {
     material = uint8_t(itm.handle()->material);
     setView(owner.getStaticView(itm.handle()->visual,material));
     }
+
+  setPosition(x,y,z);
   }
 
 Bullet::~Bullet() {
@@ -86,17 +93,25 @@ void Bullet::onCollide(uint8_t matId) {
       wrld->emitLandHitSound(pos[0],pos[1],pos[2],material,matId);
       }
     }
+  collideCommon();
   }
 
 void Bullet::onCollide(Npc& npc) {
   if(ow!=nullptr)
     npc.takeDamage(*ow,this);
-  /*
-  if((flg&Flg::Spell) && (flg&Flg::Stopped)) {
-    //int32_t           id  = itm.spellId();
-    //const ParticleFx* pfx = wrld.script().getSpellFx(id,SpellFxType::Collide);
-    return true;
-    }*/
+  collideCommon();
+  }
+
+void Bullet::collideCommon() {
+  if(obj->isSpell()) {
+    const int32_t     id  = obj->spellId();
+    const VisualFx*   vfx = wrld->script().getSpellVFx(id);
+
+    if(vfx!=nullptr) {
+      auto pos = obj->position();
+      vfx->emitSound(*wrld,pos,SpellFxKey::Collide);
+      }
+    }
   }
 
 void Bullet::updateMatrix() {

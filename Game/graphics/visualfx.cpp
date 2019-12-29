@@ -1,17 +1,22 @@
 #include "visualfx.h"
 
-using namespace Tempest;
+#include "world/world.h"
 
 VisualFx::VisualFx(Daedalus::GEngineClasses::CFx_Base &&src):fx(std::move(src)) {
-  if(fx.visAlphaBlendFunc_S=="ADD") {
-    rs.setBlendSource(RenderState::BlendMode::one);
-    rs.setBlendDest  (RenderState::BlendMode::one);
-    }
-  else if(fx.visAlphaBlendFunc_S=="BLEND") {
-    rs.setBlendSource(RenderState::BlendMode::src_alpha);
-    rs.setBlendDest  (RenderState::BlendMode::one_minus_src_alpha);
-    }
-  else if(fx.visAlphaBlendFunc_S=="MUL") {
-    //TODO
-    }
+  }
+
+const Daedalus::GEngineClasses::C_ParticleFXEmitKey& VisualFx::key(SpellFxKey type) const {
+  return keys[int(type)];
+  }
+
+Daedalus::GEngineClasses::C_ParticleFXEmitKey& VisualFx::key(SpellFxKey type) {
+  return keys[int(type)];
+  }
+
+void VisualFx::emitSound(World& wrld, const std::array<float,3>& pos, SpellFxKey type) const {
+  auto& k   = key(type);
+  float x   = pos[0];
+  float y   = pos[1];
+  float z   = pos[2];
+  wrld.emitSoundEffect(k.sfxID.c_str(),x,y,z,0,true);
   }

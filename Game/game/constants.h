@@ -190,12 +190,13 @@ enum SpellCategory:int32_t {
   SPELL_BAD    =2,
   };
 
-enum SpellFxType:uint8_t {
-  Base,
+enum class SpellFxKey:uint8_t {
+  Open,
+  Init,
+  Cast,
   Invest,
-  Target,
   Collide,
-  CollideDyn
+  Count
   };
 
 enum TargetCollect : int32_t {

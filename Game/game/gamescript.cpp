@@ -677,36 +677,18 @@ const Daedalus::GEngineClasses::C_Spell &GameScript::getSpell(int32_t splId) {
   return spells->find(tag.c_str());
   }
 
-const ParticleFx* GameScript::getSpellFx(int32_t splId, SpellFxType type) {
+const VisualFx* GameScript::getSpellVFx(int32_t splId) {
   auto& spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
   auto& tag       = spellInst.getString(size_t(splId));
 
-  const char* postfix="";
-  switch(type) {
-    case SpellFxType::Base:
-      postfix="";
-      break;
-    case SpellFxType::Target:
-      postfix="_TARGET";
-      break;
-    case SpellFxType::Invest:
-      postfix="_INVEST";
-      break;
-    case SpellFxType::Collide:
-      postfix="_COLLIDEFX";
-      break;
-    case SpellFxType::CollideDyn:
-      postfix="_COLLIDEDYNFX";
-      break;
-    }
-
   char name[256]={};
-  std::snprintf(name,sizeof(name),"spellFX_%s%s",tag.c_str(),postfix);
+  std::snprintf(name,sizeof(name),"spellFX_%s",tag.c_str());
+  return owner.loadVisualFx(name);
+  }
 
-  const VisualFx* vfx = owner.loadVisualFx(name);
+const ParticleFx* GameScript::getSpellFx(const VisualFx* vfx) {
   if(vfx==nullptr)
     return nullptr;
-
   return getParticleFx(vfx->handle().visName_S.c_str());
   }
 

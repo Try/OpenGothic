@@ -25,6 +25,7 @@ class GameSession;
 class World;
 class Npc;
 class Item;
+class VisualFx;
 class ParticleFx;
 class Serialize;
 
@@ -91,7 +92,8 @@ class GameScript final {
     size_t                                            getSymbolIndex(const std::string& s);
     const AiState&                                    getAiState(size_t id);
     const Daedalus::GEngineClasses::C_Spell&          getSpell(int32_t splId);
-    const ParticleFx*                                 getSpellFx(int32_t splId, SpellFxType type);
+    const VisualFx*                                   getSpellVFx(int32_t splId);
+    const ParticleFx*                                 getSpellFx(const VisualFx* vfx);
     const ParticleFx*                                 getParticleFx(const char* symbol);
 
     auto dialogChoises(Daedalus::GEngineClasses::C_Npc *self, Daedalus::GEngineClasses::C_Npc *npc, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<DlgChoise>;

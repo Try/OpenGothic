@@ -366,12 +366,11 @@ Bullet& WorldObjects::shootBullet(const Item& itmId,
                                   float x, float y, float z,
                                   float dx, float dy, float dz,
                                   float speed) {
-  bullets.emplace_back(owner,itmId);
+  bullets.emplace_back(owner,itmId,x,y,z);
   auto& b = bullets.back();
 
   const float l = std::sqrt(dx*dx+dy*dy+dz*dz);
 
-  b.setPosition(x,y,z);
   b.setDirection(dx*speed/l,dy*speed/l,dz*speed/l);
   return b;
   }

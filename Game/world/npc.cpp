@@ -1255,7 +1255,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
     if(isPlayer() && owner.script().isRamboMode())
       dmg = std::min(1,dmg);
 
-    if(!isDown() && std::get<1>(hitResult)>0)
+    if(!isSpell && !isDown() && std::get<1>(hitResult)>0)
       owner.emitWeaponsSound(other,*this);
 
     if(dmg>0) {

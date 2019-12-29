@@ -11,6 +11,7 @@
 #include "focus.h"
 #include "resources.h"
 #include "game/serialize.h"
+#include "graphics/visualfx.h"
 #include "graphics/skeleton.h"
 
 using namespace Tempest;
@@ -491,6 +492,11 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
     dx = c;
     dz = s;
     }
+
+  const int32_t     id  = itm.spellId();
+  const VisualFx*   vfx = script().getSpellVFx(id);
+  if(vfx!=nullptr)
+    vfx->emitSound(*this,pos,SpellFxKey::Cast);
 
   auto& b = wobj.shootBullet(itm, pos[0],pos[1],pos[2], dx,dy,dz, DynamicWorld::spellSpeed);
   return b;

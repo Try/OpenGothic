@@ -395,8 +395,10 @@ struct DynamicWorld::BulletsList final {
       btVector3 s = {i.lastPos[0],i.lastPos[1],i.lastPos[2]};
       btVector3 e = {i.pos[0],i.pos[1],i.pos[2]};
 
-      if(i.cb!=nullptr && list.rayTest(npc,s,e))
+      if(i.cb!=nullptr && list.rayTest(npc,s,e)) {
         i.cb->onCollide(*npc.getNpc());
+        i.cb->onStop();
+        }
       }
     }
 
@@ -755,8 +757,10 @@ void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint6
 
   if(callback.matId<ZenLoad::NUM_MAT_GROUPS) {
     if( isSpell ){
-      if(b.cb!=nullptr)
+      if(b.cb!=nullptr) {
+        b.cb->onCollide(callback.matId);
         b.cb->onStop();
+        }
       } else {
       if(callback.matId==ZenLoad::MaterialGroup::METAL ||
          callback.matId==ZenLoad::MaterialGroup::STONE) {
@@ -776,20 +780,14 @@ void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint6
         if(l*a>10.f) {
           b.setDirection(dir.x(),dir.y(),dir.z());
           b.addPathLen(l*a);
-          if(b.cb!=nullptr) {
-            b.cb->onCollide(callback.matId);
-            b.cb->onStop();
-            }
-          return;
-          } else {
-          if(b.cb!=nullptr)
-            b.cb->onStop();
           }
         } else {
         float a = callback.m_closestHitFraction;
         b.move(x0+(x1-x0)*a,y0+(y1-y0)*a,z0+(z1-z0)*a);
-        if(b.cb!=nullptr)
-          b.cb->onStop();
+        }
+      if(b.cb!=nullptr) {
+        b.cb->onCollide(callback.matId);
+        b.cb->onStop();
         }
       }
     } else {

@@ -14,7 +14,7 @@ class Npc;
 class Bullet final : public DynamicWorld::BulletCallback {
   public:
     Bullet()=default;
-    Bullet(World &owner, const Item &itm);
+    Bullet(World &owner, const Item &itm, float x, float y, float z);
     Bullet(Bullet&&)=default;
     ~Bullet() override;
     Bullet& operator=(Bullet&&)=default;
@@ -55,6 +55,7 @@ class Bullet final : public DynamicWorld::BulletCallback {
     void                       onMove() override;
     void                       onCollide(uint8_t matId) override;
     void                       onCollide(Npc& other) override;
+    void                       collideCommon();
 
   private:
     DynamicWorld::BulletBody*         obj=nullptr;
