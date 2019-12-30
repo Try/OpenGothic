@@ -268,25 +268,25 @@ bool Npc::resetPositionToTA() {
                           npcType==Daedalus::GEngineClasses::NPCTYPE_OCMAIN ||
                           npcType==Daedalus::GEngineClasses::NPCTYPE_BL_MAIN);
   const bool isDead = this->isDead();
-  if(routines.size()==0)
-    return true;
 
   if(isDead && !isMainNpc) {
     // special case for oldworld
-    return hnpc.attribute[ATR_HITPOINTSMAX]>1;
+    if(hnpc.attribute[ATR_HITPOINTSMAX]>1)
+      return false;
     }
 
   invent.clearSlot(*this,nullptr,false);
-  if(!isDead)
-    visual.stopAnim(*this,nullptr);
   attachToPoint(nullptr);
   setInteraction(nullptr,true);
   clearAiQueue();
-  if(isDead && hnpc.attribute[ATR_HITPOINTSMAX]>1)
-    return true;
 
-  if(!isDead)
+  if(!isDead) {
+    visual.stopAnim(*this,nullptr);
     clearState(true);
+    }
+
+  if(routines.size()==0)
+    return true;
   auto& rot = currentRoutine();
   auto  at  = rot.point;
 
