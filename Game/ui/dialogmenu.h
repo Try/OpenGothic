@@ -108,8 +108,10 @@ class DialogMenu : public Tempest::Widget {
     InventoryMenu&                      trade;
     Pipe                                pipe;
 
-    std::vector<GameScript::DlgChoise> choise;
-    GameScript::DlgChoise              selected;
+    Tempest::SoundDevice                soundDevice;
+
+    std::vector<GameScript::DlgChoise>  choise;
+    GameScript::DlgChoise               selected;
     Npc*                                pl   =nullptr;
     Npc*                                other=nullptr;
     size_t                              dlgSel=0;
@@ -127,6 +129,4 @@ class DialogMenu : public Tempest::Widget {
     PScreen                             printMsg[MAX_PRINT];
     uint32_t                            remPrint=0;
     Camera                              camera;
-
-    Tempest::SoundDevice                soundDevice;
   };
