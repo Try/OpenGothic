@@ -123,7 +123,13 @@ class Resources final {
       Dynamic
       };
 
-    void                  detectVdf(std::vector<std::u16string>& ret,const std::u16string& root);
+    struct Archive {
+      std::u16string name;
+      int64_t        time=0;
+      bool           isMod=false;
+      };
+
+    void                  detectVdf(std::vector<Archive>& ret, const std::u16string& root);
 
     Tempest::Texture2d*   implLoadTexture(std::string name);
     Tempest::Texture2d*   implLoadTexture(std::string &&name, const std::vector<uint8_t> &data);

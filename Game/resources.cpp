@@ -84,20 +84,19 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
   fbZero = device.loadTexture(pm);
   }
 
-  // TODO: priority for *.mod files
-  std::vector<std::u16string> archives;
+  std::vector<Archive> archives;
   detectVdf(archives,gothic.nestedPath({u"Data"},Dir::FT_Dir));
 
   // addon archives first!
-  std::stable_sort(archives.begin(),archives.end(),[](const std::u16string& a,const std::u16string& b){
-    int aIsMod = (a.rfind(u".mod")==a.size()-4) ? 1 : 0;
-    int bIsMod = (b.rfind(u".mod")==b.size()-4) ? 1 : 0;
-    return std::make_tuple(aIsMod,VDFS::FileIndex::getLastModTime(a)) >
-           std::make_tuple(bIsMod,VDFS::FileIndex::getLastModTime(b));
+  std::stable_sort(archives.begin(),archives.end(),[](const Archive& a,const Archive& b){
+    int aIsMod = a.isMod ? 1 : -1;
+    int bIsMod = b.isMod ? 1 : -1;
+    return std::make_tuple(aIsMod,a.time) >=
+           std::make_tuple(bIsMod,b.time);
     });
 
   for(auto& i:archives)
-    gothicAssets.loadVDF(i);
+    gothicAssets.loadVDF(i.name);
   gothicAssets.finalizeLoad();
 
   // for(auto& i:gothicAssets.getKnownFiles())
@@ -112,12 +111,36 @@ Resources::~Resources() {
   inst=nullptr;
   }
 
-void Resources::detectVdf(std::vector<std::u16string> &ret, const std::u16string &root) {
+void Resources::detectVdf(std::vector<Archive>& ret, const std::u16string &root) {
   Dir::scan(root,[this,&root,&ret](const std::u16string& vdf,Dir::FileType t){
     if(t==Dir::FT_File) {
       auto file = root + vdf;
-      if(VDFS::FileIndex::getLastModTime(file)>0 || vdf.rfind(u".mod")==vdf.size()-4)
-        ret.emplace_back(std::move(file));
+      Archive ar;
+      ar.name  = root+vdf;
+#ifdef __WINDOWS__
+      {
+      FILETIME modTime={};
+      HANDLE hfn = CreateFileW(LPWSTR(ar.name.c_str()), GENERIC_READ, FILE_SHARE_READ,  nullptr,  OPEN_EXISTING,  FILE_ATTRIBUTE_NORMAL, nullptr);
+
+      if(hfn != INVALID_HANDLE_VALUE)
+      {
+        if(GetFileTime(hfn, nullptr, nullptr, &modTime))
+        {
+          ULARGE_INTEGER i64;
+          i64.LowPart  = modTime.dwLowDateTime;
+          i64.HighPart = modTime.dwHighDateTime;
+          ar.time = int64_t(i64.QuadPart);
+        }
+        CloseHandle(hfn);
+      }
+      }
+#else
+      ar.time  = VDFS::FileIndex::getLastModTime(file);
+#endif
+      ar.isMod = vdf.rfind(u".mod")==vdf.size()-4;
+
+      if(ar.time>0 || ar.isMod)
+        ret.emplace_back(std::move(ar));
       return;
       }
 
