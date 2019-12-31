@@ -103,9 +103,9 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
   // for(auto& i:gothicAssets.getKnownFiles())
   //   Log::i(i);
 
-  auto v = getFileData("font_old_20_white.tga");
-  Tempest::WFile f("../../internal/font_old_20_white.tga");
-  f.write(v.data(),v.size());
+  //auto v = getFileData("font_old_20_white.tga");
+  //Tempest::WFile f("../../internal/font_old_20_white.tga");
+  //f.write(v.data(),v.size());
   }
 
 Resources::~Resources() {
