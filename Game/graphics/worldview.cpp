@@ -53,15 +53,13 @@ void WorldView::setupSunDir(float pulse,float ang) {
   sun.setDir(std::cos(a),std::min(0.9f,-1.0f*pulse),std::sin(a));
   }
 
-void WorldView::drawShadow(Encoder<PrimaryCommandBuffer> &cmd, uint8_t layer) {
-  uint32_t fId = storage.device.frameId();
+void WorldView::drawShadow(Encoder<PrimaryCommandBuffer> &cmd, uint8_t fId, uint8_t layer) {
   if(!frame[fId].actual)
     return;
   cmd.exec(frame[fId].cmdShadow[layer]);
   }
 
-void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd) {
-  uint32_t fId = storage.device.frameId();
+void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd, uint8_t fId) {
   if(!frame[fId].actual)
     return;
   cmd.exec(frame[fId].cmdMain);
@@ -172,7 +170,7 @@ bool WorldView::needToUpdateCmd() const {
          pfxGroup.needToUpdateCommands();
   }
 
-void WorldView::updateCmd(const World &world,const Tempest::Texture2d& shadow,
+void WorldView::updateCmd(uint32_t frameId, const World &world, const Tempest::Texture2d& shadow,
                           const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay) {
   if(this->mainLay  ==nullptr || mainLay  !=*this->mainLay ||
      this->shadowLay==nullptr || shadowLay!=*this->shadowLay) {
@@ -193,13 +191,11 @@ void WorldView::updateCmd(const World &world,const Tempest::Texture2d& shadow,
     nToUpdateCmd=false;
     }
 
-  builtCmdBuf(world,shadow,mainLay,shadowLay);
+  builtCmdBuf(frameId,world,shadow,mainLay,shadowLay);
   }
 
-void WorldView::updateUbo(const Matrix4x4& view,const Tempest::Matrix4x4* shadow,size_t shCount) {
+void WorldView::updateUbo(uint32_t frameId, const Matrix4x4& view,const Tempest::Matrix4x4* shadow,size_t shCount) {
   updateLight();
-
-  uint32_t frameId = storage.device.frameId();
 
   auto viewProj=this->viewProj(view);
   sky .setMatrix(frameId,viewProj);
@@ -223,12 +219,11 @@ void WorldView::updateUbo(const Matrix4x4& view,const Tempest::Matrix4x4* shadow
   pfxGroup.updateUbo   (frameId,owner.tickCount());
   }
 
-void WorldView::builtCmdBuf(const World &world, const Texture2d& shadowMap,
+void WorldView::builtCmdBuf(uint32_t frameId, const World &world, const Texture2d& shadowMap,
                             const FrameBufferLayout& mainLay,const FrameBufferLayout& shadowLay) {
-  auto&    device  = storage.device;
-  uint32_t frameId = device.frameId();
+  auto& device = storage.device;
 
-  auto& pf = frame[device.frameId()];
+  auto& pf = frame[frameId];
   if(pf.actual)
     return;
   pf.actual=true;

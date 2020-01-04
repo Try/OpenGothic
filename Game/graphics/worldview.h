@@ -30,11 +30,11 @@ class WorldView {
     void tick(uint64_t dt);
 
     bool needToUpdateCmd() const;
-    void updateCmd (const World &world, const Tempest::Texture2d &shadow,
+    void updateCmd (uint32_t frameId, const World &world, const Tempest::Texture2d &shadow,
                     const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay);
-    void updateUbo (const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4 *shadow, size_t shCount);
-    void drawShadow(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, uint8_t layer);
-    void drawMain  (Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd);
+    void updateUbo (uint32_t frameId, const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4 *shadow, size_t shCount);
+    void drawShadow(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, uint8_t frameId, uint8_t layer);
+    void drawMain  (Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, uint8_t frameId);
     void resetCmd  ();
 
     MeshObjects::Mesh   getView      (const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
@@ -82,7 +82,7 @@ class WorldView {
 
     void updateLight();
     void setupSunDir(float pulse,float ang);
-    void builtCmdBuf(const World &world, const Tempest::Texture2d &shadowMap,
+    void builtCmdBuf(uint32_t frameId, const World &world, const Tempest::Texture2d &shadowMap,
                      const Tempest::FrameBufferLayout &mainLay,
                      const Tempest::FrameBufferLayout &shadowLay);
   };

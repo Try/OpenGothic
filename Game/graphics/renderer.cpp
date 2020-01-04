@@ -11,8 +11,8 @@
 
 using namespace Tempest;
 
-Renderer::Renderer(Tempest::Device &device,Gothic& gothic)
-  :device(device),gothic(gothic),stor(device) {
+Renderer::Renderer(Tempest::Device &device,Tempest::Swapchain& swapchain,Gothic& gothic)
+  :device(device),swapchain(swapchain),gothic(gothic),stor(device) {
   view.identity();
 
   static const TextureFormat shfrm[] = {
@@ -45,12 +45,15 @@ Renderer::Renderer(Tempest::Device &device,Gothic& gothic)
   uboShadowComp = stor.device.uniforms(stor.uboComposeLayout());
   }
 
-void Renderer::initSwapchain(uint32_t w,uint32_t h) {
+void Renderer::resetSwapchain() {
+  const uint32_t w      = swapchain.w();
+  const uint32_t h      = swapchain.h();
   const uint32_t smSize = 2048;
+
   if(zbuffer.w()==int(w) && zbuffer.h()==int(h))
     return;
 
-  const uint32_t imgC=device.swapchainImageCount();
+  const uint32_t imgC=swapchain.imageCount();
 
   zbuffer        = device.texture(zBufferFormat,w,h,false);
   zbufferItem    = device.texture(zBufferFormat,w,h,false);
@@ -72,7 +75,7 @@ void Renderer::initSwapchain(uint32_t w,uint32_t h) {
   fbo3d.clear();
   fboItem.clear();
   for(uint32_t i=0;i<imgC;++i) {
-    Tempest::Frame frame=device.frame(i);
+    Tempest::Frame frame=swapchain.frame(i);
     fbo3d  .emplace_back(device.frameBuffer(frame,zbuffer));
     fboItem.emplace_back(device.frameBuffer(frame,zbufferItem));
     fboUi  .emplace_back(device.frameBuffer(frame));
@@ -115,14 +118,14 @@ bool Renderer::needToUpdateCmd() {
   return false;
   }
 
-void Renderer::draw(Encoder<Tempest::PrimaryCommandBuffer> &&cmd, uint32_t imgId,
+void Renderer::draw(Encoder<Tempest::PrimaryCommandBuffer> &&cmd, uint32_t frameId, uint32_t imgId,
                     VectorImage &surface, InventoryMenu &inventory, const Gothic &gothic) {
-  draw(cmd, fbo3d  [imgId], gothic);
+  draw(cmd, fbo3d  [imgId], gothic, frameId);
   draw(cmd, fboUi  [imgId], surface);
   draw(cmd, fboItem[imgId], inventory);
   }
 
-void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const Gothic &gothic) {
+void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const Gothic &gothic, uint32_t frameId) {
   auto wview = gothic.worldView();
   if(wview==nullptr) {
     cmd.setLayout(zbuffer,TextureLayout::DepthAttach);
@@ -130,14 +133,14 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const 
     return;
     }
 
-  wview->updateCmd(*gothic.world(),shadowMapFinal,fbo.layout(),fboShadow->layout());
-  wview->updateUbo(view,shadow,2);
+  wview->updateCmd(frameId,*gothic.world(),shadowMapFinal,fbo.layout(),fboShadow->layout());
+  wview->updateUbo(frameId,view,shadow,2);
 
   for(uint8_t i=0;i<2;++i) {
     cmd.setLayout(shadowMap[i],TextureLayout::ColorAttach);
     cmd.setLayout(shadowZ[i],  TextureLayout::DepthAttach);
     cmd.setPass(fboShadow[i],shadowPass);
-    wview->drawShadow(cmd,i);
+    wview->drawShadow(cmd,swapchain.frameId(),i);
     }
 
   for(uint8_t i=0;i<2;++i)
@@ -148,7 +151,7 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const 
   cmd.setLayout(zbuffer,TextureLayout::DepthAttach);
   cmd.setLayout(shadowMapFinal,TextureLayout::Sampler);
   cmd.setPass(fbo,mainPass);
-  wview->drawMain(cmd);
+  wview->drawMain(cmd,swapchain.frameId());
   }
 
 void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, InventoryMenu &inventory) {
@@ -156,13 +159,13 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, Invent
   cmd.setPass(fbo,inventoryPass);
 
   if(inventory.isOpen()!=InventoryMenu::State::Closed) {
-    inventory.draw(cmd,device.frameId());
+    inventory.draw(cmd,swapchain.frameId());
     }
   }
 
 void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, VectorImage& surface) {
   cmd.setPass(fbo,uiPass);
-  surface.draw(device,cmd);
+  surface.draw(device,swapchain,cmd);
   }
 
 void Renderer::composeShadow(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer &fbo) {
@@ -185,7 +188,7 @@ Tempest::Texture2d Renderer::screenshoot() {
   PrimaryCommandBuffer cmd;
   {
   auto enc = cmd.startEncoding(device);
-  draw(enc,fbo,gothic);
+  draw(enc,fbo,gothic,0);
   }
 
   Fence sync = device.fence();

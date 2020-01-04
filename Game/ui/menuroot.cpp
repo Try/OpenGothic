@@ -84,9 +84,14 @@ void MenuRoot::mouseUpEvent(MouseEvent&) {
   }
 
 void MenuRoot::mouseWheelEvent(MouseEvent &event) {
-  if(current!=nullptr)
-    current->onMove(-event.delta/120); else
+  if(current!=nullptr) {
+    if(event.delta>0)
+      current->onMove(-1); else
+    if(event.delta<0)
+      current->onMove(1);
+    } else {
     event.ignore();
+    }
   }
 
 void MenuRoot::keyDownEvent(KeyEvent &e) {

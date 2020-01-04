@@ -22,8 +22,8 @@
 using namespace Tempest;
 
 MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
-  : Window(Maximized),device(api,hwnd()),atlas(device),resources(gothic,device),
-    renderer(device,gothic),gothic(gothic),inventory(gothic,renderer.storage()),
+  : Window(Maximized),device(api,hwnd()),swapchain(hwnd(),device),atlas(device),resources(gothic,device),
+    renderer(device,swapchain,gothic),gothic(gothic),inventory(gothic,renderer.storage()),
     dialogs(gothic,inventory),document(gothic),chapter(gothic),
     player(gothic,dialogs,inventory) {
   CrashLog::setGpu(device.renderer());
@@ -35,7 +35,7 @@ MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
     commandDynamic.emplace_back(device.commandBuffer());
     }
 
-  renderer.initSwapchain(uint32_t(w()),uint32_t(h()));
+  renderer.resetSwapchain();
   setupUi();
 
   barBack    = Resources::loadTexture("BAR_BACK.TGA");
@@ -184,8 +184,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
   }
 
 void MainWindow::resizeEvent(SizeEvent&) {
-  device.reset();
-  renderer.initSwapchain(uint32_t(w()),uint32_t(h()));
+  swapchain.reset();
+  renderer.resetSwapchain();
   }
 
 void MainWindow::mouseDownEvent(MouseEvent &event) {
@@ -724,18 +724,18 @@ void MainWindow::render(){
     if(!gothic.isPause())
       gothic.updateAnimation();
 
-    auto& context = fLocal[device.frameId()];
+    auto& context = fLocal[swapchain.frameId()];
 
     context.gpuLock.wait();
     if(needToUpdate())
       dispatchPaintEvent(surface,atlas);
 
-    const uint32_t imgId = device.nextImage(context.imageAvailable);
+    const uint32_t imgId = swapchain.nextImage(context.imageAvailable);
 
-    PrimaryCommandBuffer& cmd = commandDynamic[device.frameId()];
-    renderer.draw(cmd.startEncoding(device),imgId,surface,inventory,gothic);
+    PrimaryCommandBuffer& cmd = commandDynamic[swapchain.frameId()];
+    renderer.draw(cmd.startEncoding(device),swapchain.frameId(),imgId,surface,inventory,gothic);
     device  .draw(cmd,context.imageAvailable,context.renderDone,context.gpuLock);
-    device  .present(imgId,context.renderDone);
+    swapchain.present(imgId,context.renderDone);
 
     auto t = Application::tickCount();
     if(t-time<16 && !gothic.isInGame()){
@@ -747,8 +747,8 @@ void MainWindow::render(){
     }
   catch(const Tempest::DeviceLostException&) {
     Log::e("lost device!");
-    device.reset();
-    renderer.initSwapchain(uint32_t(w()),uint32_t(h()));
+    swapchain.reset();
+    renderer.resetSwapchain();
     }
   }
 

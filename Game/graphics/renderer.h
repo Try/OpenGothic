@@ -18,15 +18,15 @@ class InventoryMenu;
 
 class Renderer final {
   public:
-    Renderer(Tempest::Device& device, Gothic &gothic);
+    Renderer(Tempest::Device& device, Tempest::Swapchain& swapchain, Gothic &gothic);
 
-    void initSwapchain(uint32_t w,uint32_t h);
+    void resetSwapchain();
     void onWorldChanged();
 
     void setCameraView(const Camera &camera);
     bool needToUpdateCmd();
 
-    void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &&cmd, uint32_t imgId,
+    void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &&cmd, uint32_t frameId, uint32_t imgId,
               Tempest::VectorImage& img, InventoryMenu &inventory, const Gothic& gothic);
     Tempest::Texture2d screenshoot();
 
@@ -34,6 +34,7 @@ class Renderer final {
 
   private:
     Tempest::Device&                  device;
+    Tempest::Swapchain&               swapchain;
     Gothic&                           gothic;
     Tempest::Matrix4x4                view;
     Tempest::Matrix4x4                shadow[2];
@@ -52,7 +53,7 @@ class Renderer final {
     Tempest::Uniforms                 uboShadowComp;
     RendererStorage                   stor;
 
-    void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Tempest::FrameBuffer& fbo, const Gothic& gothic);
+    void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Tempest::FrameBuffer& fbo, const Gothic& gothic, uint32_t frameId);
     void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Tempest::FrameBuffer& fbo, InventoryMenu& inv);
     void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::VectorImage& surface);
 

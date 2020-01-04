@@ -19,6 +19,7 @@
 #include <Tempest/Font>
 #include <Tempest/TextureAtlas>
 #include <Tempest/Timer>
+#include <Tempest/Swapchain>
 
 #include <daedalus/DaedalusVM.h>
 
@@ -46,8 +47,8 @@ class MainWindow : public Tempest::Window {
     ~MainWindow() override;
 
   private:
-    void paintEvent    (Tempest::PaintEvent& event) override;
-    void resizeEvent   (Tempest::SizeEvent & event) override;
+    void paintEvent     (Tempest::PaintEvent& event) override;
+    void resizeEvent    (Tempest::SizeEvent & event) override;
 
     void mouseDownEvent (Tempest::MouseEvent& event) override;
     void mouseUpEvent   (Tempest::MouseEvent& event) override;
@@ -82,6 +83,7 @@ class MainWindow : public Tempest::Window {
     Camera::Mode solveCameraMode() const;
 
     Tempest::Device       device;
+    Tempest::Swapchain    swapchain;
     Tempest::TextureAtlas atlas;
     Resources             resources;
 
