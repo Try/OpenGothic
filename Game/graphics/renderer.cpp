@@ -48,12 +48,8 @@ Renderer::Renderer(Tempest::Device &device,Tempest::Swapchain& swapchain,Gothic&
 void Renderer::resetSwapchain() {
   const uint32_t w      = swapchain.w();
   const uint32_t h      = swapchain.h();
+  const uint32_t imgC   = swapchain.imageCount();
   const uint32_t smSize = 2048;
-
-  if(zbuffer.w()==int(w) && zbuffer.h()==int(h))
-    return;
-
-  const uint32_t imgC=swapchain.imageCount();
 
   zbuffer        = device.texture(zBufferFormat,w,h,false);
   zbufferItem    = device.texture(zBufferFormat,w,h,false);

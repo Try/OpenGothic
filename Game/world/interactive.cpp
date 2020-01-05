@@ -582,7 +582,7 @@ bool Interactive::setAnim(Interactive::Anim t) {
     }
 
   if(st[0]<0 || st[1]<0)
-    std::snprintf(buf,sizeof(buf),"S_S0",ss[0]); else
+    std::snprintf(buf,sizeof(buf),"S_S0"); else
   if(st[0]==st[1])
     std::snprintf(buf,sizeof(buf),"S_%s",ss[0]); else
     std::snprintf(buf,sizeof(buf),"T_%s_2_%s",ss[0],ss[1]);
