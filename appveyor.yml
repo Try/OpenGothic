@@ -60,9 +60,9 @@ after_build:
   - cmd: 7z a %name% -r "*.bat"
   - sh:  export name="opengothic_linux.zip"
   - sh:  7z a $name     VERSION
-  - sh:  7z a $name     "shader/*.sprv"
-  - sh:  7z a $name     "bin/*"
-  - sh:  7z a $name     "lib/*"
+  - sh:  7z a $name     "*.sprv"
+  - sh:  7z a $name     "*"
+  - sh:  7z a $name     "*"
   - sh:  7z a $name     "Gothic2Notr.sh"
 
 artifacts:
