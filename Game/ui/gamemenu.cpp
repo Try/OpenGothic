@@ -398,7 +398,7 @@ void GameMenu::execSaveGame(GameMenu::Item &item) {
     return;
 
   char fname[64]={};
-  std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",id);
+  std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",int(id));
   gothic.save(fname);
   }
 
@@ -408,7 +408,7 @@ void GameMenu::execLoadGame(GameMenu::Item &item) {
     return;
 
   char fname[64]={};
-  std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",id);
+  std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",int(id));
   gothic.load(fname);
   }
 
@@ -449,7 +449,7 @@ bool GameMenu::implUpdateSavThumb(GameMenu::Item& sel) {
     return false;
 
   char fname[64]={};
-  std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",id);
+  std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",int(id));
 
   if(!FileUtil::exists(TextCodec::toUtf16(fname)))
     return false;
