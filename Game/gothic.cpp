@@ -33,8 +33,11 @@ Gothic::Gothic(const int argc, const char **argv){
     else if(std::strcmp(argv[i],"-save")==0){
       ++i;
       if(i<argc){
-        if(std::strcmp(argv[i],"q")==0)
-          saveDef = "qsave.sav";
+        if(std::strcmp(argv[i],"q")==0) {
+          saveDef = "save_slot_0.sav";
+          } else {
+          saveDef = std::string("save_slot_")+argv[i]+".sav";
+          }
         }
       }
     else if(std::strcmp(argv[i],"-w")==0){
@@ -377,11 +380,11 @@ void Gothic::updateAnimation() {
   }
 
 void Gothic::quickSave() {
-  save("qsave.sav");
+  save("save_slot_0.sav");
   }
 
 void Gothic::quickLoad() {
-  load("qsave.sav");
+  load("save_slot_0.sav");
   }
 
 void Gothic::save(const std::string &slot) {
