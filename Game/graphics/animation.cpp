@@ -19,7 +19,11 @@ static void setupTime(std::vector<uint64_t>& t0,const std::vector<int32_t>& inp,
   }
 
 static uint64_t frameClamp(int32_t frame,uint32_t first,uint32_t last) {
-  return uint64_t(std::max(int(first),std::min(frame,int(last))) - int(first));
+  if(frame<int(first))
+    return 0;
+  if(frame>int(last))
+    return last-first;
+  return uint64_t(frame)-first;
   }
 
 Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ignoreErrChunks) {

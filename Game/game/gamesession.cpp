@@ -72,6 +72,7 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
   //const char* hero = "Scavenger";
   //const char* hero = "StoneGolem";
   //const char* hero = "Waran";
+  //const char* hero = "Bloodfly";
   wrld->createPlayer(hero);
   wrld->postInit();
 

@@ -4,9 +4,10 @@
 #include "world/world.h"
 #include "world/npc.h"
 
-const float MoveAlgo::closeToPointThreshold = 50;
-const float MoveAlgo::gravity               = DynamicWorld::gravity;
-const float MoveAlgo::eps                   = 1.f; // 1-milimeter
+const float   MoveAlgo::closeToPointThreshold = 50;
+const float   MoveAlgo::gravity               = DynamicWorld::gravity;
+const float   MoveAlgo::eps                   = 1.f; // 1-milimeter
+const int32_t MoveAlgo::flyOverWaterHint      = 999999;
 
 MoveAlgo::MoveAlgo(Npc& unit)
   :npc(unit) {
@@ -120,7 +121,7 @@ void MoveAlgo::tickGravity(uint64_t dt) {
   // check ground
   auto  pos      = npc.position();
   float pY       = pos[1];
-  float chest    = waterDepthChest();
+  float chest    = canFlyOverWater() ? 0 : waterDepthChest();
   bool  valid    = false;
   auto  ground   = dropRay(pos[0], pos[1]+fallThreshold, pos[2], valid);
   auto  water    = waterRay(pos[0], pos[1], pos[2]);
@@ -153,8 +154,10 @@ void MoveAlgo::tickGravity(uint64_t dt) {
       tryMove(0.f,water-pY,0.f);
       clearSpeed();
       setInAir(false);
-      setInWater(true);
-      setAsSwim(true);
+      if(!canFlyOverWater()) {
+        setInWater(true);
+        setAsSwim(true);
+        }
       } else {
       // attach to ground
       tryMove(0.f,ground-pY,0.f);
@@ -239,10 +242,11 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
   float fallThreshold = stepHeight();
 
   // moving NPC, by animation
-  bool  valid  = false;
-  auto  ground = dropRay (pos[0]+dp[0], pos[1]+dp[1]+fallThreshold, pos[2]+dp[2], valid);
-  auto  water  = waterRay(pos[0]+dp[0], pos[1]+dp[1], pos[2]+dp[2]);
-  float dY     = pY-ground;
+  bool  valid   = false;
+  auto  ground  = dropRay (pos[0]+dp[0], pos[1]+dp[1]+fallThreshold, pos[2]+dp[2], valid);
+  auto  water   = waterRay(pos[0]+dp[0], pos[1]+dp[1], pos[2]+dp[2]);
+  float dY      = pY-ground;
+  bool  onGound = true;
 
   if(!npc.isDead() && ground+waterDepthChest()<water){
     setInWater(true);
@@ -250,9 +254,15 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
     //npc.setAnim(npc.anim()); //TODO: reset anim
     return;
     }
-  if(ground+waterDepthKnee()<water)
-    setInWater(true); else
-    setInWater(false);
+
+  if(canFlyOverWater() && ground<water) {
+    dY      = 0;
+    onGound = false;
+    } else {
+    if(ground+waterDepthKnee()<water)
+      setInWater(true); else
+      setInWater(false);
+    }
 
   if(-fallThreshold<dY && npc.isFlyAnim()) {
     // jump animation
@@ -265,7 +275,7 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
     setAsSlide(false);
     }
   else if(0.f<=dY && dY<fallThreshold) {
-    if(testSlide(pos[0]+dp[0], pos[1]+dp[1]+fallThreshold, pos[2]+dp[2])) {
+    if(onGound && testSlide(pos[0]+dp[0], pos[1]+dp[1]+fallThreshold, pos[2]+dp[2])) {
       tryMove(dp[0],-dY,dp[2]);
       setAsSlide(true);
       return;
@@ -279,7 +289,7 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
     setAsSlide(false);
     }
   else if(-fallThreshold<dY && dY<0.f) {
-    if(testSlide(pos[0]+dp[0], pos[1]+dp[1]+fallThreshold, pos[2]+dp[2])) {
+    if(onGound && testSlide(pos[0]+dp[0], pos[1]+dp[1]+fallThreshold, pos[2]+dp[2])) {
       return;
       }
     // move up the ramp
@@ -442,6 +452,13 @@ float MoveAlgo::waterDepthKnee() const {
 float MoveAlgo::waterDepthChest() const {
   auto gl = npc.guild();
   return npc.world().script().guildVal().water_depth_chest[gl];
+  }
+
+bool MoveAlgo::canFlyOverWater() const {
+  auto  gl = npc.guild();
+  auto& g  = npc.world().script().guildVal();
+  return g.water_depth_chest[gl]==flyOverWaterHint &&
+         g.water_depth_knee [gl]==flyOverWaterHint;
   }
 
 bool MoveAlgo::isClose(const std::array<float,3> &w, const WayPoint &p) {

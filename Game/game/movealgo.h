@@ -96,6 +96,7 @@ class MoveAlgo final {
     float   slideAngle2() const;
     float   waterDepthKnee() const;
     float   waterDepthChest() const;
+    bool    canFlyOverWater() const;
 
     float   dropRay  (float x, float y, float z, bool &hasCol) const;
     float   waterRay (float x, float y, float z) const;
@@ -128,7 +129,8 @@ class MoveAlgo final {
     float               climbHeight=0.f;
     JumpCode            jmp=JumpCode::JM_OK;
 
-    static const float closeToPointThreshold;
-    static const float gravity;
-    static const float eps;
+    static const float   closeToPointThreshold;
+    static const float   gravity;
+    static const float   eps;
+    static const int32_t flyOverWaterHint;
   };
