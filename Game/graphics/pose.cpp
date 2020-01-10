@@ -173,7 +173,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       const bool hasNext   = (!i.seq->next.empty() && i.seq->animCls!=Animation::Loop);
       const bool finished  = i.seq->isFinished(tickCount-i.sAnim) && !hasNext;
       const bool interrupt = force || i.seq->canInterrupt();
-      if(i.seq==sq && (interrupt || finished))
+      if(i.seq==sq && i.bs==bs && (interrupt || finished))
         return true;
       if(!interrupt && !finished)
         return false;
@@ -370,13 +370,6 @@ bool Pose::isParWindow(uint64_t tickCount) const {
   return false;
   }
 
-bool Pose::isAtackFinished(uint64_t tickCount) const {
-  for(auto& i:lay)
-    if(i.seq->isAtackFinished(tickCount-i.sAnim))
-      return true;
-  return false;
-  }
-
 bool Pose::isDefence(uint64_t tickCount) const {
   char buf[32]={};
   static const char* alt[3]={"","_A2","_A3"};
@@ -430,7 +423,7 @@ bool Pose::isStanding() const {
          s.name=="S_RUN"      || s.name=="S_WALK"    ||
          s.name=="S_FISTWALK" || s.name=="S_MAGWALK" ||
          s.name=="S_1HWALK"   || s.name=="S_BOWWALK" ||
-      s.name=="S_2HWALK"   || s.name=="S_CBOWWALK";
+         s.name=="S_2HWALK"   || s.name=="S_CBOWWALK";
   }
 
 bool Pose::isItem() const {
@@ -492,12 +485,16 @@ void Pose::setRotation(const AnimationSolver &solver, Npc &npc, WeaponState figh
       }
     return;
     }
-  if(!isIdle() || rotation!=nullptr)
+  if(bodyState()!=BS_STAND)
     return;
   if(dir<0) {
     sq = solver.solveAnim(AnimationSolver::Anim::RotL,fightMode,npc.walkMode(),*this);
     } else {
     sq = solver.solveAnim(AnimationSolver::Anim::RotR,fightMode,npc.walkMode(),*this);
+    }
+  if(rotation!=nullptr) {
+    if(rotation->name==sq->name)
+      return;
     }
   if(sq==nullptr)
     return;

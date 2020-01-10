@@ -60,8 +60,9 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
       if(npc.bodyState()==BS_RUN)
         if(fillQueue(owner,ai.my_g_runto))
           return;
-      if(fillQueue(owner,ai.my_g_focus))
-        return;
+      if(isInFocusAngle(npc,tg))
+        if(fillQueue(owner,ai.my_g_focus))
+          return;
       }
 
     if(npc.bodyState()==BS_RUN)
@@ -180,17 +181,13 @@ FightAlgo::Action FightAlgo::nextFromQueue(Npc& npc, Npc& tg, GameScript& owner)
         }
       case Daedalus::GEngineClasses::MOVE_WAIT:
       case Daedalus::GEngineClasses::MOVE_WAIT_EXT:{
-        //waitT = 200;
         tr[0] = MV_WAIT;
         break;
         }
       case Daedalus::GEngineClasses::MOVE_WAIT_LONGER:{
-        //waitT = 300;
         tr[0] = MV_WAITLONG;
         break;
         }
-      case 0:
-        break;
       default: {
         static std::unordered_set<int32_t> inst;
         if(inst.find(queueId)==inst.end()) {
@@ -245,19 +242,19 @@ float FightAlgo::prefferedGDistance(const Npc &npc, const Npc &tg, GameScript &o
   return baseTg+gRange(owner,npc);
   }
 
-bool FightAlgo::isInAtackRange(const Npc &npc,const Npc &tg, GameScript &owner) {
+bool FightAlgo::isInAtackRange(const Npc &npc,const Npc &tg, GameScript &owner) const {
   auto dist = npc.qDistTo(tg);
   auto pd   = prefferedAtackDistance(npc,tg,owner);
   return (dist<pd*pd);
   }
 
-bool FightAlgo::isInGRange(const Npc &npc, const Npc &tg, GameScript &owner) {
+bool FightAlgo::isInGRange(const Npc &npc, const Npc &tg, GameScript &owner) const {
   auto dist = npc.qDistTo(tg);
   auto pd   = prefferedGDistance(npc,tg,owner);
   return (dist<pd*pd);
   }
 
-bool FightAlgo::isInFocusAngle(const Npc &npc, const Npc &tg) {
+bool FightAlgo::isInFocusAngle(const Npc &npc, const Npc &tg) const {
   static const float maxAngle = std::cos(float(M_PI/12));
 
   const float dx    = npc.position()[0]-tg.position()[0];
@@ -267,7 +264,7 @@ bool FightAlgo::isInFocusAngle(const Npc &npc, const Npc &tg) {
   const float da = plAng-std::atan2(dz,dx);
   const float c  = std::cos(da);
 
-  if(c<maxAngle && dx*dx+dz*dz>20*20)
+  if(c<maxAngle)
     return false;
   return true;
   }

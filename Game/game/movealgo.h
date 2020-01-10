@@ -13,6 +13,8 @@ class Serialize;
 
 class MoveAlgo final {
   public:
+    static const float closeToPointThreshold;
+
     MoveAlgo(Npc& unit);
 
     enum JumpCode : uint8_t {
@@ -41,12 +43,11 @@ class MoveAlgo final {
     void    clearSpeed();
     void    accessDamFly(float dx,float dz);
 
-    bool    aiGoTo(const WayPoint* p);
-    bool    aiGoTo(Npc *p, float destDist);
+    bool    aiGoTo      (const WayPoint* p, float destDist);
+    bool    aiGoTo      (Npc *p, float destDist);
     bool    aiGoToTarget(float destDist);
 
     bool    startClimb(JumpCode ani);
-    bool    hasGoTo() const;
 
     bool    isFaling()  const;
     bool    isSlide()   const;
@@ -129,7 +130,6 @@ class MoveAlgo final {
     float               climbHeight=0.f;
     JumpCode            jmp=JumpCode::JM_OK;
 
-    static const float   closeToPointThreshold;
     static const float   gravity;
     static const float   eps;
     static const int32_t flyOverWaterHint;

@@ -70,7 +70,6 @@ class Animation final {
       bool                                   isIdle()   const { return bool(flags&Flags::Idle);   }
       bool                                   isFinished(uint64_t t) const;
       bool                                   canInterrupt() const;
-      bool                                   isAtackFinished(uint64_t t) const;
       bool                                   isParWindow(uint64_t t) const;
       bool                                   isWindow(uint64_t t) const;
       float                                  totalTime() const;

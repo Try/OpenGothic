@@ -15,6 +15,36 @@
 
 using namespace Tempest;
 
+void Npc::GoTo::save(Serialize& fout) const {
+  fout.write(npc, uint8_t(flag), wp);
+  }
+
+void Npc::GoTo::load(Serialize& fin) {
+  fin.read(npc, reinterpret_cast<uint8_t&>(flag), wp);
+  }
+
+bool Npc::GoTo::empty() const {
+  return npc==nullptr && wp==nullptr;
+  }
+
+void Npc::GoTo::clear() {
+  npc  = nullptr;
+  wp   = nullptr;
+  flag = Npc::GT_No;
+  }
+
+void Npc::GoTo::set(Npc* to, Npc::GoToHint hnt) {
+  npc  = to;
+  wp   = nullptr;
+  flag = hnt;
+  }
+
+void Npc::GoTo::set(const WayPoint* to, GoToHint hnt) {
+  npc  = nullptr;
+  wp   = to;
+  flag = hnt;
+  }
+
 Npc::Npc(World &owner, size_t instance, const Daedalus::ZString& waypoint)
   :owner(owner),mvAlgo(*this) {
   outputPipe          = owner.script().openAiOuput();
@@ -65,7 +95,8 @@ void Npc::save(Serialize &fout) {
 
   fout.write(currentOther,currentLookAt,currentTarget,nearestEnemy);
 
-  fout.write(currentGoToNpc, uint8_t(currentGoToFlag),currentGoTo,currentFp,currentFpLock);
+  go2.save(fout);
+  fout.write(currentFp,currentFpLock);
   wayPath.save(fout);
 
   mvAlgo.save(fout);
@@ -94,7 +125,8 @@ void Npc::load(Serialize &fin) {
 
   fin.read(currentOther,currentLookAt,currentTarget,nearestEnemy);
 
-  fin.read(currentGoToNpc, reinterpret_cast<uint8_t&>(currentGoToFlag),currentGoTo,currentFp,currentFpLock);
+  go2.load(fin);
+  fin.read(currentFp,currentFpLock);
   wayPath.load(fin);
 
   mvAlgo.load(fin);
@@ -439,6 +471,11 @@ void Npc::onNoHealth(bool death) {
   if(death)
     setAnim(lastHitType=='A' ? Anim::DeadA        : Anim::DeadB); else
     setAnim(lastHitType=='A' ? Anim::UnconsciousA : Anim::UnconsciousB);
+  }
+
+bool Npc::hasAutoroll() const {
+  auto gl = std::min<uint32_t>(guild(),GIL_MAX);
+  return owner.script().guildVal().disable_autoroll[gl]==0;
   }
 
 World& Npc::world() {
@@ -942,10 +979,15 @@ bool Npc::implLookAt(const Npc &oth, uint64_t dt) {
     return true;
   auto dx = oth.x-x;
   auto dz = oth.z-z;
-  if(implLookAt(dx,dz,false,dt))
+  return implLookAt(dx,dz,false,dt);
+  }
+
+bool Npc::implLookAt(const Npc& oth, bool noAnim, uint64_t dt) {
+  if(&oth==this)
     return true;
-  currentLookAt=nullptr;
-  return false;
+  auto dx = oth.x-x;
+  auto dz = oth.z-z;
+  return implLookAt(dx,dz,noAnim,dt);
   }
 
 bool Npc::implLookAt(float dx, float dz, bool noAnim, uint64_t dt) {
@@ -953,7 +995,7 @@ bool Npc::implLookAt(float dx, float dz, bool noAnim, uint64_t dt) {
   float step = owner.script().guildVal().turn_speed[gl]*(dt/1000.f)*60.f/100.f;
 
   if(dx==0.f && dz==0.f) {
-    visual.setRotation(*this,0);
+    setAnimRotate(0);
     return false;
     }
 
@@ -962,8 +1004,8 @@ bool Npc::implLookAt(float dx, float dz, bool noAnim, uint64_t dt) {
 
   if(noAnim || std::cos(double(da)*M_PI/180.0)>0) {
     if(std::abs(int(da)%180)<=step) {
+      setAnimRotate(0);
       setDirection(a);
-      visual.setRotation(*this,0);
       return false;
       }
     } else {
@@ -971,66 +1013,79 @@ bool Npc::implLookAt(float dx, float dz, bool noAnim, uint64_t dt) {
     }
 
   const auto sgn = std::sin(double(da)*M_PI/180.0);
-  if(sgn<0)
-    setDirection(angle-step); else
+  if(sgn<0) {
+    setAnimRotate( 1);
+    setDirection(angle-step);
+    } else
+  if(sgn>0) {
+    setAnimRotate(-1);
     setDirection(angle+step);
-  setAnimRotate(-int(da));
+    } else {
+    setAnimRotate(0);
+    }
   return true;
   }
 
 bool Npc::implGoTo(uint64_t dt) {
-  if(!currentGoTo && !currentGoToNpc)
+  float dist = 0;
+  if(go2.npc) {
+    dist = 400;
+    } else {
+    // use smaller threshold, to avoid edge-looping in script
+    dist = MoveAlgo::closeToPointThreshold*0.5f;
+    }
+  return implGoTo(dt,dist);
+  }
+
+bool Npc::implGoTo(uint64_t dt,float destDist) {
+  if(go2.wp==nullptr && go2.npc==nullptr)
     return false;
 
-  if(currentGoTo){
-    float dx    = currentGoTo->x-x;
-    float dz    = currentGoTo->z-z;
-    auto  bs    = bodyState();
+  float dx = 0.f;
+  float dz = 0.f;
+  if(go2.npc){
+    dx = go2.npc->x-x;
+    dz = go2.npc->z-z;
+    } else {
+    dx = go2.wp->x-x;
+    dz = go2.wp->z-z;
+    }
 
-    if(bs!=BS_RUN && bs!=BS_WALK)
-      visual.stopWalkAnim(*this);
+  /*
+  auto bs = bodyState();
+  if(bs!=BS_RUN && bs!=BS_WALK)
+    visual.stopWalkAnim(*this);
+    */
 
-    if(implLookAt(dx,dz,false,dt)){
-      mvAlgo.tick(dt);
-      return true;
-      }
+  if(implLookAt(dx,dz,false,dt)){
+    mvAlgo.tick(dt);
+    return true;
+    }
 
-    if(!mvAlgo.aiGoTo(currentGoTo)) {
-      currentGoTo = wayPath.pop();
-      if(currentGoTo!=nullptr) {
-        attachToPoint(currentGoTo);
+  if(go2.wp!=nullptr) {
+    if(!mvAlgo.aiGoTo(go2.wp,destDist)) {
+      go2.wp = wayPath.pop();
+      if(go2.wp!=nullptr) {
+        attachToPoint(go2.wp);
         } else {
-        mvAlgo.aiGoTo(nullptr);
         visual.stopWalkAnim(*this);
         setAnim(AnimationSolver::Idle);
-        currentGoToFlag = GoToHint::GT_No;
+        go2.clear();
         }
       }
-
-    if(mvAlgo.hasGoTo()) {
-      setAnim(AnimationSolver::Move);
-      mvAlgo.tick(dt);
-      return true;
-      }
-    return false;
     } else {
-    float dx = currentGoToNpc->x-x;
-    float dz = currentGoToNpc->z-z;
-
-    if(implLookAt(dx,dz,false,dt))
-      return true;
-    if(!mvAlgo.aiGoTo(currentGoToNpc,400)) {
-      if(isStanding())
-        setAnim(AnimationSolver::Idle);
+    if(!mvAlgo.aiGoTo(go2.npc,destDist)) {
+      setAnim(AnimationSolver::Idle);
+      go2.clear();
       }
-
-    if(mvAlgo.hasGoTo()) {
-      setAnim(AnimationSolver::Move);
-      mvAlgo.tick(dt);
-      return true;
-      }
-    return false;
     }
+
+  if(!go2.empty()) {
+    setAnim(AnimationSolver::Move);
+    mvAlgo.tick(dt);
+    return true;
+    }
+  return false;
   }
 
 bool Npc::implAtack(uint64_t dt) {
@@ -1039,28 +1094,24 @@ bool Npc::implAtack(uint64_t dt) {
 
   if(currentTarget->isDown()){
     // NOTE: don't clear internal target, to make scripts happy
-    //currentTarget=nullptr;
+    // currentTarget=nullptr;
     return false;
     }
 
-  if(weaponState()==WeaponState::NoWeapon)
+  auto ws = weaponState();
+  if(ws==WeaponState::NoWeapon)
     return false;
 
-  if(!visual.pose().isAtackFinished(owner.tickCount()))
-    return true;
-
   if(faiWaitTime>=owner.tickCount()) {
-    implLookAt(*currentTarget,dt);
+    auto bs = bodyState();
+    if(bs==BS_STAND || bs==BS_NONE)
+      implLookAt(*currentTarget,!hasAutoroll(),dt);
+    mvAlgo.tick(dt,MoveAlgo::FaiMove);
     return true;
     }
 
   if(!fghAlgo.hasInstructions())
     return false;
-
-  if(implLookAt(*currentTarget,dt)) {
-    setAnim(AnimationSolver::Idle);
-    return true;
-    }
 
   FightAlgo::Action act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
 
@@ -1071,8 +1122,9 @@ bool Npc::implAtack(uint64_t dt) {
     }
 
   if(act==FightAlgo::MV_ATACK || act==FightAlgo::MV_ATACKL || act==FightAlgo::MV_ATACKR) {
-    static const Anim ani[3]={Anim::Atack,Anim::AtackL,Anim::AtackR};
-    if(act!=FightAlgo::MV_ATACK && !fghAlgo.isInAtackRange(*this,*currentTarget,owner.script())){
+    static const Anim ani[4]={Anim::Atack,Anim::AtackL,Anim::AtackR};
+    if((act!=FightAlgo::MV_ATACK && bodyState()!=BS_RUN) &&
+       !fghAlgo.isInAtackRange(*this,*currentTarget,owner.script())){
       fghAlgo.consumeAction();
       return true;
       }
@@ -1097,6 +1149,7 @@ bool Npc::implAtack(uint64_t dt) {
       if(doAttack(ani[act-FightAlgo::MV_ATACK]))
         fghAlgo.consumeAction();
       }
+    implFaiWait(visual.pose().animationTotalTime());
     return true;
     }
 
@@ -1131,18 +1184,24 @@ bool Npc::implAtack(uint64_t dt) {
     }
 
   if(act==FightAlgo::MV_MOVEA || act==FightAlgo::MV_MOVEG) {
-    const float d = act==FightAlgo::MV_MOVEG ?
-          fghAlgo.prefferedGDistance(*this,*currentTarget,owner.script()) :
-          fghAlgo.prefferedAtackDistance(*this,*currentTarget,owner.script());
-    if(!mvAlgo.aiGoToTarget(d)) {
-      fghAlgo.consumeAction();
-      aiState.loopNextTime=owner.tickCount(); //force ZS_MM_Attack_Loop call
-      if(act==FightAlgo::MV_MOVEA)
-        setAnim(AnimationSolver::Idle);
+    const float dx = currentTarget->x-x;
+    const float dz = currentTarget->z-z;
+
+    const float arange = fghAlgo.prefferedAtackDistance(*this,*currentTarget,owner.script());
+    const float grange = fghAlgo.prefferedGDistance    (*this,*currentTarget,owner.script());
+
+    const float d      = (act==FightAlgo::MV_MOVEG) ? grange : arange;
+
+    go2.set(currentTarget,GoToHint::GT_Enemy);
+    if(implGoTo(dt,arange*0.9f) && (d*d)<(dx*dx+dz*dz)) {
       implAiTick(dt);
       return true;
       }
 
+    if(ws!=WeaponState::Fist && ws!=WeaponState::W1H && ws!=WeaponState::W2H)
+      setAnim(AnimationSolver::Idle);
+    fghAlgo.consumeAction();
+    aiState.loopNextTime=owner.tickCount(); //force ZS_MM_Attack_Loop call
     implAiTick(dt);
     return true;
     }
@@ -1402,12 +1461,7 @@ void Npc::tick(uint64_t dt) {
     }
 
   if(!isDown()) {
-    if(implAtack(dt)) {
-      mvAlgo.tick(dt,MoveAlgo::FaiMove);
-      return;
-      }
-
-    if(implLookAt(dt))
+    if(implAtack(dt))
       return;
 
     if(implGoTo(dt))
@@ -1441,11 +1495,9 @@ void Npc::nextAiAction(uint64_t dt) {
         aiActions.push_front(std::move(act));
         break;
         }
-      currentGoTo     = nullptr;
-      currentGoToNpc  = act.target;
       currentFp       = nullptr;
       currentFpLock   = FpLock();
-      currentGoToFlag = GoToHint::GT_Default;
+      go2.set(act.target);
       wayPath.clear();
       break;
     case AI_GoToNextFp: {
@@ -1455,11 +1507,9 @@ void Npc::nextAiAction(uint64_t dt) {
         }
       auto fp = owner.findNextFreePoint(*this,act.s0.c_str());
       if(fp!=nullptr) {
-        currentGoToNpc  = nullptr;
         currentFp       = nullptr;
         currentFpLock   = FpLock(*fp);
-        currentGoTo     = fp;
-        currentGoToFlag = GoToHint::GT_NextFp;
+        go2.set(fp,GoToHint::GT_NextFp);
         wayPath.clear();
         }
       break;
@@ -1471,17 +1521,16 @@ void Npc::nextAiAction(uint64_t dt) {
         }
       if(wayPath.last()!=act.point) {
         wayPath     = owner.wayTo(*this,*act.point);
-        currentGoTo = wayPath.pop();
+        auto wpoint = wayPath.pop();
 
-        if(currentGoTo!=nullptr) {
-          currentGoToNpc  = nullptr;
-          currentGoToFlag = GoToHint::GT_Default;
-          attachToPoint(currentGoTo);
+        if(wpoint!=nullptr) {
+          go2.set(wpoint);
+          attachToPoint(wpoint);
           } else {
           attachToPoint(act.point);
           visual.stopWalkAnim(*this);
           setAnim(Anim::Idle);
-          currentGoToFlag = GoToHint::GT_No;
+          go2.clear();
           }
         }
       break;
@@ -1604,7 +1653,6 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
       }
     case AI_Atack:
-      //atackMode=true;
       if(currentTarget!=nullptr){
         if(!fghAlgo.fetchInstructions(*this,*currentTarget,owner.script()))
           aiActions.push_front(std::move(act));
@@ -1689,14 +1737,7 @@ void Npc::nextAiAction(uint64_t dt) {
 
       if(!fghAlgo.isInAtackRange(*this,*act.target,owner.script())){
         aiActions.push_front(std::move(act));
-
-        float dx = act.target->x-x;
-        float dz = act.target->z-z;
-        if(implLookAt(dx,dz,false,dt))
-          break;
-        setAnim(Anim::Move);
-        if(mvAlgo.aiGoTo(currentGoToNpc,fghAlgo.prefferedAtackDistance(*this,*act.target,owner.script())))
-          break;
+        implGoTo(dt,fghAlgo.prefferedAtackDistance(*this,*act.target,owner.script()));
         }
       else if(canFinish(*act.target)){
         setTarget(act.target);
@@ -1800,7 +1841,10 @@ void Npc::tickRoutine() {
 
 void Npc::setTarget(Npc *t) {
   currentTarget=t;
-  mvAlgo.aiGoTo(nullptr);
+  if(!go2.empty()) {
+    setAnim(Anim::Idle);
+    go2.clear();
+    }
   }
 
 Npc *Npc::target() {
@@ -2848,19 +2892,19 @@ void Npc::aiFinishingMove(Npc &other) {
 bool Npc::isAiQueueEmpty() const {
   return aiActions.size()==0 &&
          waitTime<owner.tickCount() &&
-         currentGoTo==nullptr &&
-         currentGoToNpc==nullptr;
+         go2.empty();
   }
 
 void Npc::clearAiQueue() {
   aiActions.clear();
   waitTime        = 0;
   faiWaitTime     = 0;
-  currentGoTo     = nullptr;
-  currentGoToNpc  = nullptr;
-  currentGoToFlag = GoToHint::GT_No;
   wayPath.clear();
   fghAlgo.onClearTarget();
+  if(!go2.empty()) {
+    setAnim(Anim::Idle);
+    go2.clear();
+    }
   }
 
 void Npc::attachToPoint(const WayPoint *p) {
@@ -2869,11 +2913,11 @@ void Npc::attachToPoint(const WayPoint *p) {
   }
 
 void Npc::clearGoTo() {
-  currentGoTo     = nullptr;
-  currentGoToNpc  = nullptr;
-  currentGoToFlag = GoToHint::GT_No;
   wayPath.clear();
-  mvAlgo.aiGoTo(nullptr);
+  if(!go2.empty()) {
+    setAnim(Anim::Idle);
+    go2.clear();
+    }
   }
 
 bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {

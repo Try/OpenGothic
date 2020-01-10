@@ -78,17 +78,16 @@ void AnimationSolver::update(uint64_t tickCount) {
 const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, WeaponState st, WalkBit wlkMode, const Pose& pose) const {
   // Atack
   if(st==WeaponState::Fist) {
-    if(a==Anim::Atack && pose.isInAnim("S_FISTRUNL")) {
-      if(auto s=solveFrm("T_FISTATTACKMOVE"))
-        return s;
-      }
-    if(a==Anim::Atack)
+    if(a==Anim::Atack) {
+      if(pose.bodyState()==BS_RUN)
+        return solveFrm("T_FISTATTACKMOVE");
       return solveFrm("S_FISTATTACK");
+      }
     if(a==Anim::AtackBlock)
       return solveFrm("T_FISTPARADE_0");
     }
   else if(st==WeaponState::W1H || st==WeaponState::W2H) {
-    if(a==Anim::Atack && (pose.isInAnim("S_1HRUNL") || pose.isInAnim("S_2HRUNL")))
+    if(a==Atack && pose.bodyState()==BS_RUN)
       return solveFrm("T_%sATTACKMOVE",st);
     if(a==Anim::AtackL)
       return solveFrm("T_%sATTACKL",st);

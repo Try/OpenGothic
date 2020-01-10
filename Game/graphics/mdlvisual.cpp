@@ -220,8 +220,10 @@ void MdlVisual::stopAnim(Npc& npc,const char* ani) {
   }
 
 void MdlVisual::stopWalkAnim(Npc &npc) {
-  skInst->stopAnim(nullptr);
-  startAnim(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
+  if(pose().bodyState()!=BS_STAND) {
+    skInst->stopAnim(nullptr);
+    startAnim(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
+    }
   }
 
 bool MdlVisual::isStanding() const {
@@ -321,7 +323,7 @@ bool MdlVisual::startAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, Wal
     case AnimationSolver::Anim::AtackL:
     case AnimationSolver::Anim::AtackR:
     case AnimationSolver::Anim::AtackFinish:
-      bs = BS_NONE;
+      bs = pose().bodyState()==BS_RUN ? BS_RUN : BS_NONE;
       break;
     case AnimationSolver::Anim::AtackBlock:
       bs = BS_PARADE;

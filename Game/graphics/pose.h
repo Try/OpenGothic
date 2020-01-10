@@ -38,7 +38,6 @@ class Pose final {
     void               processSfx(Npc &npc, uint64_t tickCount);
     void               processEvents(uint64_t& barrier, uint64_t now, Animation::EvCount &ev) const;
     bool               isParWindow(uint64_t tickCount) const;
-    bool               isAtackFinished(uint64_t tickCount) const;
     bool               isDefence(uint64_t tickCount) const;
     bool               isJumpAnim() const;
     bool               isFlyAnim() const;

@@ -282,14 +282,6 @@ bool Animation::Sequence::canInterrupt() const {
   return true;
   }
 
-bool Animation::Sequence::isAtackFinished(uint64_t t) const {
-  for(auto& i:data->defHitEnd)
-    if(t>i)
-      return true;
-  // no atach
-  return true;//t>totalTime();
-  }
-
 bool Animation::Sequence::isParWindow(uint64_t t) const {
   if(data->defParFrame.size()!=2)
     return false;

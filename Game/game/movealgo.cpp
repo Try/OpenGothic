@@ -363,17 +363,11 @@ std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt,MvFlags moveFlg) {
     }
 
   if(NoFlag==(moveFlg&WaitMove)) {
-    if(npc.currentGoToNpc) {
-      if(npc.checkGoToNpcdistance(*npc.currentGoToNpc)){
-        npc.currentGoToNpc=nullptr;
-        return {};
-        }
-      return go2NpcMoveSpeed(dp,*npc.currentGoToNpc);
-      }
+    if(npc.go2.npc)
+      return go2NpcMoveSpeed(dp,*npc.go2.npc);
 
-    if(npc.currentGoTo) {
-      return go2WpMoveSpeed(dp,npc.currentGoTo->x,npc.currentGoTo->z);
-      }
+    if(npc.go2.wp)
+      return go2WpMoveSpeed(dp,npc.go2.wp->x,npc.go2.wp->z);
     }
 
   return dp;
@@ -474,37 +468,33 @@ bool MoveAlgo::isClose(float x, float /*y*/, float z, const WayPoint &p, float d
   return (len<dist*dist);
   }
 
-bool MoveAlgo::aiGoTo(const WayPoint *p) {
-  npc.currentGoTo    = p;
-  npc.currentGoToNpc = nullptr;
+bool MoveAlgo::aiGoTo(const WayPoint *p,float destDist) {
   if(p==nullptr)
     return false;
 
   // use smaller threshold, to avoid edge-looping in script
-  if(isClose(npc.position()[0],npc.position()[1],npc.position()[2],*p,closeToPointThreshold*0.5f)){
-    npc.attachToPoint(npc.currentGoTo);
-    npc.currentGoTo = nullptr;
+  if(isClose(npc.position()[0],npc.position()[1],npc.position()[2],*p,destDist))
     return false;
-    }
+
+  npc.go2.set(p);
   return true;
   }
 
 bool MoveAlgo::aiGoTo(Npc *p,float destDist) {
-  npc.currentGoToNpc = p;
-  npc.currentGoTo    = nullptr;
   if(p==nullptr)
     return false;
+
   float len = npc.qDistTo(*p);
-  if(len<destDist*destDist){
-    npc.currentGoToNpc = nullptr;
+  if(len<destDist*destDist)
     return false;
-    }
+
+  npc.go2.set(p);
   return true;
   }
 
 bool MoveAlgo::aiGoToTarget(float destDist) {
-  npc.currentGoToNpc = nullptr;
-  npc.currentGoTo    = nullptr;
+  //npc.currentGoToNpc = nullptr;
+  //npc.currentGoTo    = nullptr;
 
   auto p = npc.currentTarget;
   if(p==nullptr)
@@ -513,7 +503,7 @@ bool MoveAlgo::aiGoToTarget(float destDist) {
   if(len<destDist*destDist){
     return false;
     }
-  npc.setAnim(Npc::Anim::Move);
+  //npc.setAnim(Npc::Anim::Move);
   return true;
   }
 
@@ -539,10 +529,6 @@ bool MoveAlgo::startClimb(JumpCode ani) {
     setInAir(true);
     }
   return true;
-  }
-
-bool MoveAlgo::hasGoTo() const {
-  return npc.currentGoTo!=nullptr || npc.currentGoToNpc!=nullptr;
   }
 
 bool MoveAlgo::isFaling() const {

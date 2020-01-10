@@ -149,8 +149,9 @@ class Npc final {
 
     enum GoToHint : uint8_t {
       GT_No,
-      GT_Default,
-      GT_NextFp
+      GT_Way,
+      GT_NextFp,
+      GT_Enemy,
       };
 
     using Anim = AnimationSolver::Anim;
@@ -411,7 +412,7 @@ class Npc final {
 
     auto     currentWayPoint() const -> const WayPoint* { return currentFp; }
     void     attachToPoint(const WayPoint* p);
-    GoToHint moveHint() const { return currentGoToFlag; }
+    GoToHint moveHint() const { return go2.flag; }
     void     clearGoTo();
 
     bool     canSeeNpc(const Npc& oth,bool freeLos) const;
@@ -518,6 +519,20 @@ class Npc final {
       size_t func = size_t(-1);
       };
 
+    struct GoTo final {
+      GoToHint         flag = GoToHint::GT_No;
+      Npc*             npc  = nullptr;
+      const WayPoint*  wp   = nullptr;
+
+      void                         save(Serialize& fout) const;
+      void                         load(Serialize&  fin);
+
+      bool                         empty() const;
+      void                         clear();
+      void                         set(Npc* to, GoToHint hnt = GoToHint::GT_Way);
+      void                         set(const WayPoint* to, GoToHint hnt = GoToHint::GT_Way);
+      };
+
     void                           updateWeaponSkeleton();
     void                           tickTimedEvt(Animation::EvCount &ev);
     void                           updatePos();
@@ -530,9 +545,11 @@ class Npc final {
     gtime                          endTime(const Routine& r) const;
 
     bool                           implLookAt (uint64_t dt);
-    bool                           implLookAt (const Npc& oth,uint64_t dt);
+    bool                           implLookAt (const Npc& oth, uint64_t dt);
+    bool                           implLookAt (const Npc& oth, bool noAnim, uint64_t dt);
     bool                           implLookAt (float dx, float dz, bool noAnim, uint64_t dt);
     bool                           implGoTo   (uint64_t dt);
+    bool                           implGoTo   (uint64_t dt, float destDist);
     bool                           implAtack  (uint64_t dt);
     bool                           implAiTick (uint64_t dt);
     void                           implAiWait (uint64_t dt);
@@ -548,6 +565,7 @@ class Npc final {
     Npc*                           updateNearestEnemy();
     bool                           checkHealth(bool onChange, bool forceKill);
     void                           onNoHealth(bool death);
+    bool                           hasAutoroll() const;
 
     void                           save(Serialize& fout,Daedalus::GEngineClasses::C_Npc& hnpc) const;
     void                           load(Serialize& fin, Daedalus::GEngineClasses::C_Npc& hnpc);
@@ -616,9 +634,7 @@ class Npc final {
     Npc*                           nearestEnemy   =nullptr;
     AiOuputPipe*                   outputPipe     =nullptr;
 
-    Npc*                           currentGoToNpc =nullptr;
-    GoToHint                       currentGoToFlag=GoToHint::GT_No;
-    const WayPoint*                currentGoTo    =nullptr;
+    GoTo                           go2;
     const WayPoint*                currentFp      =nullptr;
     FpLock                         currentFpLock;
     WayPath                        wayPath;
