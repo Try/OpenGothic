@@ -65,6 +65,8 @@ class WorldObjects final {
     void           addTrigger(ZenLoad::zCVobData&& vob);
     void           triggerEvent(const TriggerEvent& e);
     void           triggerOnStart(bool wrldStartup);
+    void           enableTicks (AbstractTrigger& t);
+    void           disableTicks(AbstractTrigger& t);
 
     Item*          addItem(size_t itemInstance, const char *at);
     Item*          addItem(const ZenLoad::zCVobData &vob);
@@ -104,8 +106,9 @@ class WorldObjects final {
     std::vector<Npc*>                  npcNear;
 
     std::vector<std::unique_ptr<AbstractTrigger>> triggers;
-    std::vector<AbstractTrigger*>                 triggersMv;
+    //std::vector<AbstractTrigger*>                 triggersMv;
     std::vector<AbstractTrigger*>                 triggersZn;
+    std::vector<AbstractTrigger*>                 triggersTk;
 
     std::vector<PerceptionMsg>         sndPerc;
     std::vector<TriggerEvent>          triggerEvents;

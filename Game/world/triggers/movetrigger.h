@@ -10,14 +10,26 @@ class MoveTrigger : public AbstractTrigger {
 
     void onTrigger(const TriggerEvent& evt) override;
     bool hasVolume() const override;
+    void tick(uint64_t dt) override;
 
   private:
     void setView     (MeshObjects::Mesh&& m);
     void setPhysic   (DynamicWorld::StaticItem&&  p);
     void setObjMatrix(const Tempest::Matrix4x4 &m);
+    void emitSound   (const char* snd, bool freeSlot=true);
+
+    enum Anim {
+      IdleClosed,
+      IdleOpenned,
+      Close,
+      Open,
+      };
 
     MeshObjects::Mesh        view;
     DynamicWorld::StaticItem physic;
-    uint32_t                 frame=0;
     Tempest::Matrix4x4       pos;
+
+    Anim                     anim  = IdleClosed;
+    uint32_t                 frame = 0;
+    uint64_t                 sAnim = 0;
   };

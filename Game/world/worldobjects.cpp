@@ -78,6 +78,9 @@ void WorldObjects::tick(uint64_t dt) {
   for(auto& i:interactiveObj)
     i.tick(dt);
 
+  for(auto i:triggersTk)
+    i->tick(dt);
+
   bullets.remove_if([](Bullet& b){
     return b.flags()&Bullet::Stopped;
     });
@@ -220,12 +223,19 @@ void WorldObjects::tickTriggers(uint64_t /*dt*/) {
   triggerEvents.clear();
 
   for(auto& e:evt) {
+    if(e.timeBarrier>owner.tickCount()) {
+      triggerEvents.emplace_back(std::move(e));
+      continue;
+      }
+
     bool emitted=false;
-    for(auto& i:triggers)
-      if(i->name()==e.target) {
-        i->onTrigger(e);
+    for(auto& i:triggers) {
+      auto& t = *i;
+      if(t.name()==e.target) {
+        t.onTrigger(e);
         emitted=true;
         }
+      }
     if(!emitted)
       Log::d("unable to process trigger: \"",e.target,"\"");
     }
@@ -279,7 +289,7 @@ void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {
   switch(vob.vobType) {
     case ZenLoad::zCVobData::VT_zCMover:
       tg.reset(new MoveTrigger(std::move(vob),owner));
-      triggersMv.emplace_back(tg.get());
+      //triggersMv.emplace_back(tg.get());
       break;
 
     case ZenLoad::zCVobData::VT_oCTriggerChangeLevel:
@@ -323,6 +333,22 @@ void WorldObjects::triggerOnStart(bool wrldStartup) {
     if(i->vobType()==ZenLoad::zCVobData::VT_oCTriggerWorldStart) {
       TriggerEvent evt(wrldStartup);
       i->onTrigger(evt);
+      }
+  }
+
+void WorldObjects::enableTicks(AbstractTrigger& t) {
+  for(auto& i:triggersTk)
+    if(i==&t)
+      return;
+  triggersTk.push_back(&t);
+  }
+
+void WorldObjects::disableTicks(AbstractTrigger& t) {
+  for(auto& i:triggersTk)
+    if(i==&t) {
+      i = triggersTk.back();
+      triggersTk.pop_back();
+      return;
       }
   }
 

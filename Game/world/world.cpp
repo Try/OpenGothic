@@ -414,6 +414,14 @@ void World::triggerEvent(const TriggerEvent &e) {
   wobj.triggerEvent(e);
   }
 
+void World::enableTicks(AbstractTrigger& t) {
+  wobj.enableTicks(t);
+  }
+
+void World::disableTicks(AbstractTrigger& t) {
+  wobj.disableTicks(t);
+  }
+
 void World::changeWorld(const std::string& world, const std::string& wayPoint) {
   game.changeWorld(world,wayPoint);
   }

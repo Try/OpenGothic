@@ -118,6 +118,8 @@ class World final {
     Focus findFocus(const Focus& def, const Tempest::Matrix4x4 &mvp, int w, int h);
 
     void           triggerEvent(const TriggerEvent& e);
+    void           enableTicks (AbstractTrigger& t);
+    void           disableTicks(AbstractTrigger& t);
     Interactive*   aviableMob(const Npc &pl, const char* name);
     void           changeWorld(const std::string &world, const std::string &wayPoint);
 

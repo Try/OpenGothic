@@ -1,6 +1,7 @@
 #include "abstracttrigger.h"
 
 #include <Tempest/Log>
+#include "world/world.h"
 
 using namespace Tempest;
 
@@ -25,6 +26,9 @@ void AbstractTrigger::onIntersect(Npc &) {
   onTrigger(e);
   }
 
+void AbstractTrigger::tick(uint64_t) {
+  }
+
 bool AbstractTrigger::hasVolume() const {
   auto& b = data.bbox;
   if( b[0].x < b[1].x &&
@@ -41,4 +45,12 @@ bool AbstractTrigger::checkPos(float x,float y,float z) const{
       b[0].z < z && z < b[1].z)
     return true;
   return false;
+  }
+
+void AbstractTrigger::enableTicks() {
+  owner.enableTicks(*this);
+  }
+
+void AbstractTrigger::disableTicks() {
+  owner.disableTicks(*this);
   }

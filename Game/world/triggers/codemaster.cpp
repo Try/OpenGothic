@@ -2,8 +2,8 @@
 
 #include "world/world.h"
 
-CodeMaster::CodeMaster(ZenLoad::zCVobData&& data, World &owner)
-  :AbstractTrigger(std::move(data),owner), keys(this->data.zCCodeMaster.slaveVobName.size()) {
+CodeMaster::CodeMaster(ZenLoad::zCVobData&& d, World &w)
+  :AbstractTrigger(std::move(d),w), keys(data.zCCodeMaster.slaveVobName.size()) {
   }
 
 void CodeMaster::onTrigger(const TriggerEvent &evt) {
