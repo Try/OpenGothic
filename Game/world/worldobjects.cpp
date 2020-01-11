@@ -110,11 +110,11 @@ void WorldObjects::tick(uint64_t dt) {
   tickNear(dt);
   tickTriggers(dt);
 
-  for(auto& i:npcArr) {
+  for(auto& i:npcNear) {
     if(i->isPlayer())
       continue;
     for(auto& r:passive) {
-      if(r.self==i.get())
+      if(r.self==i)
         continue;
       float l = i->qDistTo(r.x,r.y,r.z);
       if(r.item!=size_t(-1) && r.other!=nullptr)
@@ -122,8 +122,8 @@ void WorldObjects::tick(uint64_t dt) {
       if(l<i->handle()->senses_range*i->handle()->senses_range) {
         // aproximation of behavior of original G2
         if(!i->isDown() &&
-           i->canSenseNpc(*r.other, true)!=SensesBit::SENSE_NONE &&
-           i->canSenseNpc(*r.victum,true)!=SensesBit::SENSE_NONE)
+           i->canSenseNpc(*r.other, true)!=SensesBit::SENSE_NONE)// &&
+           //i->canSenseNpc(*r.victum,true)!=SensesBit::SENSE_NONE)
           i->perceptionProcess(*r.other,r.victum,l,Npc::PercType(r.what));
         }
       }
@@ -289,7 +289,6 @@ void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {
   switch(vob.vobType) {
     case ZenLoad::zCVobData::VT_zCMover:
       tg.reset(new MoveTrigger(std::move(vob),owner));
-      //triggersMv.emplace_back(tg.get());
       break;
 
     case ZenLoad::zCVobData::VT_oCTriggerChangeLevel:
@@ -417,12 +416,16 @@ Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
     }
 
   auto& itData = *it->handle();
-  it->setView(owner.getStaticView(itData.visual,itData.material));
+  it->setView(owner.getItmView(itData.visual,itData.material));
   return it;
   }
 
 void WorldObjects::addInteractive(ZenLoad::zCVobData&& vob) {
   interactiveObj.emplace_back(owner,std::move(vob));
+  }
+
+void WorldObjects::addStatic(const ZenLoad::zCVobData &vob) {
+  objStatic.emplace_back(vob,owner);
   }
 
 Interactive* WorldObjects::validateInteractive(Interactive *def) {
@@ -437,10 +440,9 @@ Item *WorldObjects::validateItem(Item *def) {
   return validateObj(itemArr,def);
   }
 
-Interactive* WorldObjects::findInteractive(const Npc &pl, Interactive* def, const Matrix4x4 &mvp,
-                                           int w, int h, const SearchOpt& opt) {
+Interactive* WorldObjects::findInteractive(const Npc &pl, Interactive* def, const SearchOpt& opt) {
   def = validateInteractive(def);
-  if(def && testObjRange(*def,pl,opt))
+  if(def && testObj(*def,pl,opt))
     return def;
   if(owner.view()==nullptr)
     return nullptr;
@@ -449,7 +451,7 @@ Interactive* WorldObjects::findInteractive(const Npc &pl, Interactive* def, cons
   float rlen = opt.rangeMax*opt.rangeMax;
   interactiveObj.find(pl.position(),opt.rangeMax,[&](Interactive& n){
     float nlen = rlen;
-    if(testObj(n,pl,mvp,w,h,opt,nlen)){
+    if(testObj(n,pl,opt,nlen)){
       rlen = nlen;
       ret  = &n;
       }
@@ -458,21 +460,21 @@ Interactive* WorldObjects::findInteractive(const Npc &pl, Interactive* def, cons
   return ret;
   }
 
-Npc* WorldObjects::findNpc(const Npc &pl, Npc *def, const Matrix4x4 &v, int w, int h, const SearchOpt& opt) {
+Npc* WorldObjects::findNpc(const Npc &pl, Npc *def, const SearchOpt& opt) {
   def = validateNpc(def);
   if(def) {
     auto xopt  = opt;
     xopt.flags = SearchFlg(xopt.flags | SearchFlg::NoAngle | SearchFlg::NoRay);
-    if(def && testObjRange(*def,pl,xopt))
+    if(def && testObj(*def,pl,xopt))
       return def;
     }
-  auto r = findObj(npcArr,pl,v,w,h,opt);
+  auto r = findObj(npcArr,pl,opt);
   return r ? r->get() : nullptr;
   }
 
-Item *WorldObjects::findItem(const Npc &pl, Item *def, const Matrix4x4 &mvp, int w, int h, const SearchOpt& opt) {
+Item *WorldObjects::findItem(const Npc &pl, Item *def, const SearchOpt& opt) {
   def = validateObj(itemArr,def);
-  if(def && testObjRange(*def,pl,opt))
+  if(def && testObj(*def,pl,opt))
     return def;
   if(owner.view()==nullptr)
     return nullptr;
@@ -481,7 +483,7 @@ Item *WorldObjects::findItem(const Npc &pl, Item *def, const Matrix4x4 &mvp, int
   float rlen = opt.rangeMax*opt.rangeMax;
   itemArr.find(pl.position(),opt.rangeMax,[&](std::unique_ptr<Item>& n){
     float nlen = rlen;
-    if(testObj(n,pl,mvp,w,h,opt,nlen)){
+    if(testObj(n,pl,opt,nlen)){
       rlen = nlen;
       ret  = n.get();
       }
@@ -597,6 +599,12 @@ static bool checkFlag(Npc& n,WorldObjects::SearchFlg f){
   return true;
   }
 
+static bool checkFlag(Interactive& i,WorldObjects::SearchFlg f){
+  if(bool(f&WorldObjects::FcOverride)!=i.overrideFocus())
+    return false;
+  return true;
+  }
+
 template<class T>
 bool canSee(const Npc&,const T&){ return true; }
 
@@ -617,8 +625,7 @@ static bool canSee(const Npc& pl,const Item& n){
   }
 
 template<class T>
-auto WorldObjects::findObj(T &src,const Npc &pl, const Matrix4x4 &mvp,
-                           int w, int h,const SearchOpt& opt) -> typename std::remove_reference<decltype(src[0])>::type* {
+auto WorldObjects::findObj(T &src,const Npc &pl, const SearchOpt& opt) -> typename std::remove_reference<decltype(src[0])>::type* {
   typename std::remove_reference<decltype(src[0])>::type* ret=nullptr;
   float rlen = opt.rangeMax*opt.rangeMax;
   if(owner.view()==nullptr)
@@ -629,7 +636,7 @@ auto WorldObjects::findObj(T &src,const Npc &pl, const Matrix4x4 &mvp,
 
   for(auto& n:src){
     float nlen = rlen;
-    if(testObj(n,pl,mvp,w,h,opt,nlen)){
+    if(testObj(n,pl,opt,nlen)){
       rlen = nlen;
       ret=&n;
       }
@@ -638,13 +645,13 @@ auto WorldObjects::findObj(T &src,const Npc &pl, const Matrix4x4 &mvp,
   }
 
 template<class T>
-bool WorldObjects::testObjRange(T &src, const Npc &pl, const WorldObjects::SearchOpt &opt) {
+bool WorldObjects::testObj(T &src, const Npc &pl, const WorldObjects::SearchOpt &opt) {
   float rlen = opt.rangeMax*opt.rangeMax;
-  return testObjRange(src,pl,opt,rlen);
+  return testObj(src,pl,opt,rlen);
   }
 
 template<class T>
-bool WorldObjects::testObjRange(T &src, const Npc &pl, const WorldObjects::SearchOpt &opt,float& rlen){
+bool WorldObjects::testObj(T &src, const Npc &pl, const WorldObjects::SearchOpt &opt,float& rlen){
   const float qmax  = opt.rangeMax*opt.rangeMax;
   const float qmin  = opt.rangeMin*opt.rangeMin;
   const float plAng = pl.rotationRad()+float(M_PI/2);
@@ -678,30 +685,6 @@ bool WorldObjects::testObjRange(T &src, const Npc &pl, const WorldObjects::Searc
   return false;
   }
 
-template<class T>
-bool WorldObjects::testObj(T &src, const Npc &pl, const Matrix4x4 &mvp,
-                           int w, int h, const WorldObjects::SearchOpt &opt,float& rlen) {
-  float l=rlen;
-  if(!testObjRange(src,pl,opt,l))
-    return false;
-
-  auto& npc = deref(src);
-  auto  pos = npc.position();
-  float x   = pos[0],y=pos[1],z=pos[2];
-  mvp.project(x,y,z);
-
-  if(z<0.f)
-    return false;
-
-  x = 0.5f*x*w;
-  y = 0.5f*y*h;
-
-  if(l<rlen && canSee(pl,npc)){
-    rlen=l;
-    return true;
-    }
-  return false;
-  }
 
 template<class T, class E>
 E *WorldObjects::validateObj(T &src, E *e) {

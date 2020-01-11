@@ -21,7 +21,7 @@ Bullet::Bullet(World& owner,const Item& itm,float x,float y,float z)
       owner.emitSoundEffect(vfx->handle().sfxID.c_str(),x,y,z,0,true);
     } else {
     material = uint8_t(itm.handle()->material);
-    setView(owner.getStaticView(itm.handle()->visual,material));
+    setView(owner.getItmView(itm.handle()->visual,material));
     }
 
   setPosition(x,y,z);

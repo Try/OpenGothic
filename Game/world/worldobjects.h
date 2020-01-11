@@ -8,6 +8,7 @@
 #include "bullet.h"
 #include "interactive.h"
 #include "spaceindex.h"
+#include "staticobj.h"
 #include "game/perceptionmsg.h"
 #include "triggers/movetrigger.h"
 #include "triggers/trigger.h"
@@ -24,10 +25,11 @@ class WorldObjects final {
     ~WorldObjects();
 
     enum SearchFlg : uint8_t {
-      NoFlg  =0,
-      NoDeath=1,
-      NoAngle=2,
-      NoRay  =4
+      NoFlg     =0,
+      NoDeath   =1,
+      NoAngle   =2,
+      NoRay     =4,
+      FcOverride=8,
       };
 
     struct SearchOpt final {
@@ -77,14 +79,15 @@ class WorldObjects final {
     Bullet&        shootBullet(const Item &itmId, float x, float y, float z, float dx, float dy, float dz, float speed);
 
     void           addInteractive(ZenLoad::zCVobData &&vob);
+    void           addStatic(const ZenLoad::zCVobData &vob);
 
     Interactive*   validateInteractive(Interactive *def);
     Npc*           validateNpc        (Npc         *def);
     Item*          validateItem       (Item        *def);
 
-    Interactive*   findInteractive(const Npc& pl, Interactive *def, const Tempest::Matrix4x4 &v, int w, int h, const SearchOpt& opt);
-    Npc*           findNpc        (const Npc& pl, Npc* def, const Tempest::Matrix4x4 &v, int w, int h, const SearchOpt& opt);
-    Item*          findItem       (const Npc& pl, Item* def, const Tempest::Matrix4x4 &v, int w, int h, const SearchOpt& opt);
+    Interactive*   findInteractive(const Npc& pl, Interactive *def, const SearchOpt& opt);
+    Npc*           findNpc        (const Npc& pl, Npc* def, const SearchOpt& opt);
+    Item*          findItem       (const Npc& pl, Item* def, const SearchOpt& opt);
 
     void           marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
@@ -97,6 +100,7 @@ class WorldObjects final {
   private:
     World&                             owner;
     SpaceIndex<Interactive>            interactiveObj;
+    std::vector<StaticObj>             objStatic;
     SpaceIndex<std::unique_ptr<Item>>  itemArr;
 
     std::list<Bullet>                  bullets;
@@ -106,7 +110,6 @@ class WorldObjects final {
     std::vector<Npc*>                  npcNear;
 
     std::vector<std::unique_ptr<AbstractTrigger>> triggers;
-    //std::vector<AbstractTrigger*>                 triggersMv;
     std::vector<AbstractTrigger*>                 triggersZn;
     std::vector<AbstractTrigger*>                 triggersTk;
 
@@ -117,15 +120,12 @@ class WorldObjects final {
     E*   validateObj(T &src,E* e);
 
     template<class T>
-    auto findObj(T &src,const Npc &pl, const Tempest::Matrix4x4 &mvp,
-                 int w, int h,const SearchOpt& opt) -> typename std::remove_reference<decltype(src[0])>::type*;
+    auto findObj(T &src, const Npc &pl, const SearchOpt& opt) -> typename std::remove_reference<decltype(src[0])>::type*;
+
     template<class T>
-    bool testObj(T &src,const Npc &pl, const Tempest::Matrix4x4 &mvp,
-                 int w, int h,const SearchOpt& opt,float& rlen);
+    bool testObj(T &src, const Npc &pl, const SearchOpt& opt);
     template<class T>
-    bool testObjRange(T &src,const Npc &pl, const SearchOpt& opt);
-    template<class T>
-    bool testObjRange(T &src,const Npc &pl, const SearchOpt& opt,float& rlen);
+    bool testObj(T &src, const Npc &pl, const SearchOpt& opt, float& rlen);
 
     void           tickNear(uint64_t dt);
     void           tickTriggers(uint64_t dt);

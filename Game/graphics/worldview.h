@@ -38,11 +38,9 @@ class WorldView {
     void resetCmd  ();
 
     MeshObjects::Mesh   getView      (const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
-    MeshObjects::Mesh   getStaticView(const char* visual, int32_t material);
+    MeshObjects::Mesh   getItmView   (const char* visual, int32_t material);
+    MeshObjects::Mesh   getStaticView(const char* visual);
     PfxObjects::Emitter getView      (const ParticleFx* decl);
-
-    void addStatic(const ZenLoad::zCVobData &vob);
-    void addPfx   (const ZenLoad::zCVobData &vob);
 
   private:
     const World&            owner;
@@ -66,19 +64,12 @@ class WorldView {
     uint32_t                vpWidth=0;
     uint32_t                vpHeight=0;
 
-    struct StaticObj {
-      MeshObjects::Mesh        mesh;
-      DynamicWorld::StaticItem physic;
-      PfxObjects::Emitter      pfx;
-      };
-
     struct PerFrame {
       Tempest::CommandBuffer cmdMain;
       Tempest::CommandBuffer cmdShadow[2];
       bool                   actual     =true;
       };
     std::unique_ptr<PerFrame[]> frame;
-    std::vector<StaticObj>      objStatic;
 
     void updateLight();
     void setupSunDir(float pulse,float ang);

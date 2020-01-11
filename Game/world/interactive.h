@@ -34,6 +34,8 @@ class Interactive final {
     bool                checkMobName(const char* dest) const;
     const std::string&  ownerName() const;
 
+    bool                overrideFocus() const;
+
     std::array<float,3> position() const;
     std::array<float,3> displayPosition() const;
     const char*         displayName() const;
@@ -100,6 +102,7 @@ class Interactive final {
     std::string                  mdlVisual;
     ZMath::float3                bbox[2]={};
     std::string                  owner;
+    bool                         focOver=false;
     // oCMobInter
     int                          stateNum=0;
     std::string                  triggerTarget;

@@ -239,8 +239,8 @@ Focus PlayerControl::findFocus(Focus* prev,const Camera& camera,int wx, int hx) 
     prev = nullptr;
 
   if(prev)
-    return w->findFocus(*prev,camera.view(),wx,hx);
-  return w->findFocus(Focus(),camera.view(),wx,hx);
+    return w->findFocus(*prev);
+  return w->findFocus(Focus());
   }
 
 World *PlayerControl::world() const {

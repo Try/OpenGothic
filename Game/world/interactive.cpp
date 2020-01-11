@@ -19,6 +19,7 @@ Interactive::Interactive(World &world, ZenLoad::zCVobData&& vob)
   bbox[0]       = vob.bbox[0];
   bbox[1]       = vob.bbox[1];
   owner         = std::move(vob.oCMOB.owner);
+  focOver       = vob.oCMOB.focusOverride;
 
   stateNum      = vob.oCMobInter.stateNum;
   triggerTarget = std::move(vob.oCMobInter.triggerTarget);
@@ -63,6 +64,8 @@ void Interactive::load(Serialize &fin) {
   fin.read(vt,vobName,focName,mdlVisual);
   vobType = ZenLoad::zCVobData::EVobType(vt);
   fin.read(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z,owner);
+  if(fin.version()>=2)
+    fin.read(focOver);
 
   fin.read(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
   fin.read(locked,keyInstance,pickLockStr);
@@ -94,7 +97,8 @@ void Interactive::load(Serialize &fin) {
 void Interactive::save(Serialize &fout) const {
   fout.write(uint8_t(vobType),vobName,focName,mdlVisual);
   fout.write(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z);
-  fout.write(owner,stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
+  fout.write(owner,focOver);
+  fout.write(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
   fout.write(locked,keyInstance,pickLockStr);
   invent.save(fout);
   fout.write(pos,state,reverseState,loopState);
@@ -256,6 +260,10 @@ bool Interactive::checkMobName(const char* dest) const {
 
 const std::string &Interactive::ownerName() const {
   return owner;
+  }
+
+bool Interactive::overrideFocus() const {
+  return focOver;
   }
 
 std::array<float,3> Interactive::position() const {

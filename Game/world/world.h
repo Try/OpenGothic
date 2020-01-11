@@ -88,9 +88,10 @@ class World final {
     MeshObjects::Mesh   getView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
     MeshObjects::Mesh   getView(const char*              visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
     PfxObjects::Emitter getView(const ParticleFx* decl) const;
-    MeshObjects::Mesh   getStaticView(const Daedalus::ZString& visual, int32_t tex) const;
-    MeshObjects::Mesh   getStaticView(const char*              visual, int32_t tex) const;
-    DynamicWorld::Item  getPhysic(const char* visual);
+    MeshObjects::Mesh   getItmView   (const Daedalus::ZString& visual, int32_t tex) const;
+    MeshObjects::Mesh   getItmView   (const char*              visual, int32_t tex) const;
+    MeshObjects::Mesh   getStaticView(const char* visual) const;
+    DynamicWorld::Item  getPhysic    (const char* visual);
 
     const VisualFx*   loadVisualFx(const char* name);
     const ParticleFx* loadParticleFx(const char* name);
@@ -114,8 +115,8 @@ class World final {
 
     Focus validateFocus(const Focus& def);
 
-    Focus findFocus(const Npc& pl, const Focus &def, const Tempest::Matrix4x4 &mvp, int w, int h);
-    Focus findFocus(const Focus& def, const Tempest::Matrix4x4 &mvp, int w, int h);
+    Focus findFocus(const Npc& pl, const Focus &def);
+    Focus findFocus(const Focus& def);
 
     void           triggerEvent(const TriggerEvent& e);
     void           enableTicks (AbstractTrigger& t);

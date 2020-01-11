@@ -174,12 +174,16 @@ PfxObjects::Emitter World::getView(const ParticleFx *decl) const {
   return view()->getView(decl);
   }
 
-MeshObjects::Mesh World::getStaticView(const Daedalus::ZString& visual, int32_t tex) const {
-  return getStaticView(visual.c_str(),tex);
+MeshObjects::Mesh World::getItmView(const Daedalus::ZString& visual, int32_t tex) const {
+  return getItmView(visual.c_str(),tex);
   }
 
-MeshObjects::Mesh World::getStaticView(const char* visual, int32_t tex) const {
-  return view()->getStaticView(visual,tex);
+MeshObjects::Mesh World::getItmView(const char* visual, int32_t tex) const {
+  return view()->getItmView(visual,tex);
+  }
+
+MeshObjects::Mesh World::getStaticView(const char* visual) const {
+  return view()->getStaticView(visual);
   }
 
 DynamicWorld::Item World::getPhysic(const char* visual) {
@@ -330,7 +334,7 @@ Focus World::validateFocus(const Focus &def) {
   return ret;
   }
 
-Focus World::findFocus(const Npc &pl, const Focus& def, const Tempest::Matrix4x4 &v, int w, int h) {
+Focus World::findFocus(const Npc &pl, const Focus& def) {
   const Daedalus::GEngineClasses::C_Focus* fptr=&game.script()->focusNorm();
   auto opt  = WorldObjects::NoFlg;
   auto coll = TARGET_COLLECT_FOCUS;
@@ -366,9 +370,13 @@ Focus World::findFocus(const Npc &pl, const Focus& def, const Tempest::Matrix4x4
   WorldObjects::SearchOpt optMob {policy.mob_range1,  policy.mob_range2,  policy.mob_azi,  coll };
   WorldObjects::SearchOpt optItm {policy.item_range1, policy.item_range2, policy.item_azi, coll };
 
-  auto n     = policy.npc_prio <0 ? nullptr : wobj.findNpc        (pl,def.npc,        v,w,h, optNpc);
-  auto inter = policy.mob_prio <0 ? nullptr : wobj.findInteractive(pl,def.interactive,v,w,h, optMob);
-  auto it    = policy.item_prio<0 ? nullptr : wobj.findItem       (pl,def.item,       v,w,h, optItm);
+  auto n     = policy.npc_prio <0 ? nullptr : wobj.findNpc        (pl,def.npc,        optNpc);
+  auto it    = policy.item_prio<0 ? nullptr : wobj.findItem       (pl,def.item,       optItm);
+  auto inter = policy.mob_prio <0 ? nullptr : wobj.findInteractive(pl,def.interactive,optMob);
+  if(pl.weaponState()!=WeaponState::NoWeapon) {
+    optMob.flags = WorldObjects::SearchFlg(WorldObjects::FcOverride | WorldObjects::NoRay);
+    inter = wobj.findInteractive(pl,def.interactive,optMob);
+    }
 
   if(policy.npc_prio>=policy.item_prio &&
      policy.npc_prio>=policy.mob_prio) {
@@ -400,10 +408,10 @@ Focus World::findFocus(const Npc &pl, const Focus& def, const Tempest::Matrix4x4
   return Focus();
   }
 
-Focus World::findFocus(const Focus &def, const Tempest::Matrix4x4 &mvp, int w, int h) {
+Focus World::findFocus(const Focus &def) {
   if(npcPlayer==nullptr)
     return Focus();
-  return findFocus(*npcPlayer,def,mvp,w,h);
+  return findFocus(*npcPlayer,def);
   }
 
 Interactive *World::aviableMob(const Npc &pl, const char* name) {
@@ -778,25 +786,23 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
     loadVob(i,startup);
   vob.childVobs.clear(); // because of move
 
+  if(vob.vobType==ZenLoad::zCVobData::VT_zCVobLevelCompo)
+    return;
+
   if(vob.vobType==ZenLoad::zCVobData::VT_zCVob) {
-    wview->addStatic(vob);
+    wobj.addStatic(vob);
+    }
+  else if(vob.vobType==ZenLoad::zCVobData::VT_oCMobFire){
+    wobj.addStatic(vob);
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCMOB) {
     // Irdotar bow-triggers
     // focusOverride=true
 
     // Graves/Pointers
-    // see focusName
-    // Tempest::Log::d("unexpected vob class ",vob.objectClass);
-    if(vob.oCMOB.focusName.size()>0) {
-      if(startup)
-        wobj.addInteractive(std::move(vob));
-      } else {
-      wview->addStatic(vob);
-      }
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_oCMobFire){
-    wview->addStatic(vob);
+    // see focusNam
+    if(startup)
+      wobj.addInteractive(std::move(vob));
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCMobBed ||
           vob.vobType==ZenLoad::zCVobData::VT_oCMobDoor ||
@@ -805,9 +811,6 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
           vob.vobType==ZenLoad::zCVobData::VT_oCMobSwitch){
     if(startup)
       wobj.addInteractive(std::move(vob));
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobLevelCompo){
-    return;
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_zCMover){
     wobj.addTrigger(std::move(vob));
@@ -851,7 +854,7 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
     }
   else if(vob.objectClass=="zCVobAnimate:zCVob" || // ork flags
           vob.objectClass=="zCPFXControler:zCVob"){
-    wview->addStatic(vob); //TODO: morph animation
+    wobj.addStatic(vob); //TODO: morph animation
     }
   else if(vob.objectClass=="oCTouchDamage:zCTouchDamage:zCVob" ||
           vob.objectClass=="oCMobLadder:oCMobInter:oCMOB:zCVob"){
