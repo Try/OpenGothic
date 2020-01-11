@@ -81,7 +81,7 @@ struct GameMusic::Impl final {
 
   MusicProducer*                                dxMixer=nullptr;
   Daedalus::GEngineClasses::C_MusicTheme        currentMusic;
-  float                                         masterVolume=0.3f;
+  float                                         masterVolume=0.1f;
   bool                                          enableMusic=false;
   };
 

@@ -79,7 +79,7 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
   // Atack
   if(st==WeaponState::Fist) {
     if(a==Anim::Atack) {
-      if(pose.bodyState()==BS_RUN)
+      if(pose.isInAnim("S_FISTRUNL"))
         return solveFrm("T_FISTATTACKMOVE");
       return solveFrm("S_FISTATTACK");
       }
@@ -87,7 +87,7 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
       return solveFrm("T_FISTPARADE_0");
     }
   else if(st==WeaponState::W1H || st==WeaponState::W2H) {
-    if(a==Atack && pose.bodyState()==BS_RUN)
+    if(a==Anim::Atack && (pose.isInAnim("S_1HRUNL") || pose.isInAnim("S_2HRUNL")))
       return solveFrm("T_%sATTACKMOVE",st);
     if(a==Anim::AtackL)
       return solveFrm("T_%sATTACKL",st);
