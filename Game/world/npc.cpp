@@ -2929,15 +2929,16 @@ bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
   return int32_t(s&SensesBit::SENSE_SEE)!=0;
   }
 
-SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos) const {
-  return canSenseNpc(oth.x,oth.y+180,oth.z,freeLos);
+SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
+  return canSenseNpc(oth.x,oth.y+180,oth.z,freeLos,extRange);
   }
 
-SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos) const {
+SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, float extRange) const {
   DynamicWorld* w = owner.physic();
   static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
 
-  if(qDistTo(tx,ty,tz)>hnpc.senses_range*hnpc.senses_range)
+  const float range = hnpc.senses_range+extRange;
+  if(qDistTo(tx,ty,tz)>range*range)
     return SensesBit::SENSE_NONE;
 
   SensesBit ret=SensesBit::SENSE_NONE;

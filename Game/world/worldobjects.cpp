@@ -122,9 +122,11 @@ void WorldObjects::tick(uint64_t dt) {
       if(l<i->handle()->senses_range*i->handle()->senses_range) {
         // aproximation of behavior of original G2
         if(!i->isDown() &&
-           i->canSenseNpc(*r.other, true)!=SensesBit::SENSE_NONE)// &&
-           //i->canSenseNpc(*r.victum,true)!=SensesBit::SENSE_NONE)
+           i->canSenseNpc(*r.other, true)!=SensesBit::SENSE_NONE &&
+           i->canSenseNpc(*r.victum,true,r.other->handle()->senses_range)!=SensesBit::SENSE_NONE
+          ) {
           i->perceptionProcess(*r.other,r.victum,l,Npc::PercType(r.what));
+          }
         }
       }
 
