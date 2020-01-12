@@ -1103,7 +1103,10 @@ bool Npc::implAtack(uint64_t dt) {
     return false;
 
   if(faiWaitTime>=owner.tickCount()) {
-    implLookAt(*currentTarget,!hasAutoroll(),dt);
+    if(!visual.pose().isInAnim("T_FISTATTACKMOVE") &&
+       !visual.pose().isInAnim("T_1HATTACKMOVE") &&
+       !visual.pose().isInAnim("T_2HATTACKMOVE"))
+      implLookAt(*currentTarget,!hasAutoroll(),dt);
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
     return true;
     }
