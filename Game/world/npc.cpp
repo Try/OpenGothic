@@ -1103,9 +1103,7 @@ bool Npc::implAtack(uint64_t dt) {
     return false;
 
   if(faiWaitTime>=owner.tickCount()) {
-    auto bs = bodyState();
-    if(bs==BS_STAND || bs==BS_NONE)
-      implLookAt(*currentTarget,!hasAutoroll(),dt);
+    implLookAt(*currentTarget,!hasAutoroll(),dt);
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
     return true;
     }
