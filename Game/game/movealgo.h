@@ -98,6 +98,7 @@ class MoveAlgo final {
     float   waterDepthKnee() const;
     float   waterDepthChest() const;
     bool    canFlyOverWater() const;
+    void    takeFallDamage() const;
 
     float   dropRay  (float x, float y, float z, bool &hasCol) const;
     float   waterRay (float x, float y, float z) const;

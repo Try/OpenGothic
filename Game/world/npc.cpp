@@ -57,7 +57,7 @@ Npc::Npc(World &owner, size_t instance, const Daedalus::ZString& waypoint)
   hnpc.wp = waypoint;
   owner.script().initializeInstance(hnpc,instance);
   if(hnpc.attribute[ATR_HITPOINTS]<=1 && hnpc.attribute[ATR_HITPOINTSMAX]<=1) {
-    onNoHealth(true);
+    onNoHealth(true,HS_NoSound);
     }
   }
 
@@ -414,7 +414,7 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
 
   const int minHp = isMonster() ? 0 : 1;
   if(hnpc.attribute[ATR_HITPOINTS]<=minHp) {
-    if(hnpc.attribute[ATR_HITPOINTSMAX]<=1){
+    if(hnpc.attribute[ATR_HITPOINTSMAX]<=1) {
       size_t fdead=owner.getSymbolIndex("ZS_Dead");
       startState(fdead,"");
       physic.setEnable(false);
@@ -426,12 +426,12 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
        owner.script().personAttitude(*this,*currentOther)==ATT_HOSTILE ||
        guild()>GIL_SEPERATOR_HUM){
       if(hnpc.attribute[ATR_HITPOINTS]<=0)
-        onNoHealth(true);
+        onNoHealth(true,HS_Dead);
       return false;
       }
 
     if(onChange) {
-      onNoHealth(false);
+      onNoHealth(false,HS_Dead);
       return false;
       }
     }
@@ -439,7 +439,7 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
   return true;
   }
 
-void Npc::onNoHealth(bool death) {
+void Npc::onNoHealth(bool death,HitSound sndMask) {
   // TODO: drop the weapon instead
   visual.setToFightMode(WeaponState::NoWeapon);
   updateWeaponSkeleton();
@@ -455,9 +455,7 @@ void Npc::onNoHealth(bool death) {
 
   size_t fdead=owner.getSymbolIndex(state);
   startState(fdead,"",gtime::endOfTime(),true);
-  if(hnpc.voice>0 && currentOther!=nullptr){
-    // in case of battle currentOther!=nullptr,
-    // if else death is scripted
+  if(hnpc.voice>0 && sndMask!=HS_NoSound) {
     char name[32]={};
     std::snprintf(name,sizeof(name),svm,int(hnpc.voice));
     emitSoundEffect(name,25,true);

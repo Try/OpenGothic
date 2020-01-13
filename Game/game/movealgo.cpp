@@ -161,6 +161,7 @@ void MoveAlgo::tickGravity(uint64_t dt) {
       } else {
       // attach to ground
       tryMove(0.f,ground-pY,0.f);
+      takeFallDamage();
       clearSpeed();
       setInAir(false);
       }
@@ -453,6 +454,32 @@ bool MoveAlgo::canFlyOverWater() const {
   auto& g  = npc.world().script().guildVal();
   return g.water_depth_chest[gl]==flyOverWaterHint &&
          g.water_depth_knee [gl]==flyOverWaterHint;
+  }
+
+void MoveAlgo::takeFallDamage() const {
+  auto  gl = npc.guild();
+  auto& g  = npc.world().script().guildVal();
+
+  float speed       = fallSpeed[1];
+  float fallTime    = speed/gravity;
+  float height      = 0.5f*std::abs(gravity)*fallTime*fallTime;
+  float h0          = g.falldown_height[gl];
+  float dmgPerMeter = g.falldown_damage[gl];
+
+  int32_t hp   = npc.attribute(Npc::ATR_HITPOINTS);
+  int32_t prot = npc.protection(Npc::PROT_FALL);
+
+  int32_t damage = int32_t(dmgPerMeter*(height-h0)/100.f - prot);
+  if(damage<=0)
+    return;
+
+  if(hp>damage) {
+    char name[32]={};
+    std::snprintf(name,sizeof(name),"SVM_%d_AARGH",int(npc.handle()->voice));
+    npc.emitSoundEffect(name,25,true);
+    npc.setAnim(Npc::Anim::Fallen);
+    }
+  npc.changeAttribute(Npc::ATR_HITPOINTS,-damage,false);
   }
 
 bool MoveAlgo::isClose(const std::array<float,3> &w, const WayPoint &p) {

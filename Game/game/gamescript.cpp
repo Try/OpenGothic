@@ -869,7 +869,7 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, size_t fn) {
   if(fn==size_t(-1))
     return 0;
   if(oth==nullptr){
-    oth=npc; //FIXME: PC_Levelinspektor?
+    //oth=npc; //FIXME: PC_Levelinspektor?
     }
   if(vic==nullptr)
     vic=owner.player();

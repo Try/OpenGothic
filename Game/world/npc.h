@@ -154,6 +154,11 @@ class Npc final {
       GT_Enemy,
       };
 
+    enum HitSound : uint8_t {
+      HS_NoSound = 0,
+      HS_Dead    = 1
+      };
+
     using Anim = AnimationSolver::Anim;
 
     Npc(World &owner, size_t instance, const Daedalus::ZString& waypoint);
@@ -564,7 +569,7 @@ class Npc final {
     int32_t                        damageTypeMask() const;
     Npc*                           updateNearestEnemy();
     bool                           checkHealth(bool onChange, bool forceKill);
-    void                           onNoHealth(bool death);
+    void                           onNoHealth(bool death, HitSound sndMask);
     bool                           hasAutoroll() const;
 
     void                           save(Serialize& fout,Daedalus::GEngineClasses::C_Npc& hnpc) const;

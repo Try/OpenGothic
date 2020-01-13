@@ -41,6 +41,7 @@ class AnimationSolver final {
       JumpUp,
       Fall,
       FallDeep,
+      Fallen,
       SlideA,
       SlideB,
       InteractIn,

@@ -276,6 +276,7 @@ bool MdlVisual::startAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, Wal
   BodyState bs = BS_NONE;
   switch(a) {
     case AnimationSolver::Anim::NoAnim:
+    case AnimationSolver::Anim::Fallen:
       bs = BS_NONE;
       break;
     case AnimationSolver::Anim::Idle:
