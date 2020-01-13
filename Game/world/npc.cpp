@@ -1364,16 +1364,21 @@ std::tuple<int,bool> Npc::damageValue(Npc &other, const Bullet* b) const {
       }
     } else {
     // Swords/Fists
-    const int dtype = damageTypeMask();
-    uint8_t   hitCh = TALENT_UNKNOWN;
+    const int dtype      = damageTypeMask();
+    uint8_t   hitCh      = TALENT_UNKNOWN;
+    int       s          = attribute(Attribute::ATR_STRENGTH);
+    int       critChance = int(owner.script().rand(100));
+
     if(auto w = invent.activeWeapon()){
       if(w->is2H())
         hitCh = TALENT_2H; else
         hitCh = TALENT_1H;
       }
 
-    int  s          = attribute(Attribute::ATR_STRENGTH);
-    int  critChance = int(owner.script().rand(100));
+    if(isMonster() && hitCh==TALENT_UNKNOWN) {
+      // regular monsters always do critical damage
+      critChance = 0;
+      }
 
     for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
       if((dtype & (1<<i))==0)
