@@ -39,6 +39,7 @@ class Pose final {
     void               processEvents(uint64_t& barrier, uint64_t now, Animation::EvCount &ev) const;
     bool               isParWindow(uint64_t tickCount) const;
     bool               isDefence(uint64_t tickCount) const;
+    bool               isJumpBack() const;
     bool               isJumpAnim() const;
     bool               isFlyAnim() const;
     bool               isStanding() const;

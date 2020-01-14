@@ -1278,13 +1278,16 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
     return;
 
   const bool isSpell = b!=nullptr && b->isSpell();
-  const bool isBlock = visual.pose().isDefence(owner.tickCount());
+  const bool isJumpb = visual.pose().isJumpBack();
+  const bool isBlock = !other.isMonster() &&
+                       fghAlgo.isInAtackRange(*this,other,owner.script()) &&
+                       visual.pose().isDefence(owner.tickCount());
 
   setOther(&other);
   if(!isSpell)
     owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
 
-  if(!isBlock || b!=nullptr) {
+  if(!(isBlock || isJumpb) || b!=nullptr) {
     if(isSpell) {
       lastHitSpell = b->spellId();
       perceptionProcess(other,this,0,PERC_ASSESSMAGIC);

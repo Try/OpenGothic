@@ -285,6 +285,7 @@ bool Pose::isDefence(uint64_t tickCount) const {
 
   for(auto& i:lay) {
     if(i.seq->isWindow(tickCount-i.sAnim)) {
+      // FIXME: seems like name check is not needed
       for(int h=1;h<=2;++h) {
         for(int v=0;v<3;++v) {
           std::snprintf(buf,sizeof(buf),"T_%dHPARADE_0%s",h,alt[v]);
@@ -293,6 +294,13 @@ bool Pose::isDefence(uint64_t tickCount) const {
           }
         }
       }
+    }
+  return false;
+  }
+
+bool Pose::isJumpBack() const {
+  char buf[32]={};
+  for(auto& i:lay) {
     for(int h=1;h<=2;++h) {
       std::snprintf(buf,sizeof(buf),"T_%dHJUMPB",h);
       if(i.seq->name==buf)
