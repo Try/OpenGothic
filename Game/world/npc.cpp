@@ -1430,7 +1430,7 @@ Npc *Npc::updateNearestEnemy() {
     }
 
   owner.detectNpcNear([this,&ret,&dist](Npc& n){
-    if(!isEnemy(n))
+    if(!isEnemy(n) || n.isDown())
       return;
 
     float d = qDistTo(n);
@@ -1441,6 +1441,26 @@ Npc *Npc::updateNearestEnemy() {
     });
   nearestEnemy = ret;
   return nearestEnemy;
+  }
+
+Npc* Npc::updateNearestBody() {
+  if(aiPolicy!=ProcessPolicy::AiNormal)
+    return nullptr;
+
+  Npc*  ret  = nullptr;
+  float dist = std::numeric_limits<float>::max();
+
+  owner.detectNpcNear([this,&ret,&dist](Npc& n){
+    if(!n.isDead())
+      return;
+
+    float d = qDistTo(n);
+    if(d<dist && canSenseNpc(n,true)!=SensesBit::SENSE_NONE) {
+      ret  = &n;
+      dist = d;
+      }
+    });
+  return ret;
   }
 
 void Npc::tick(uint64_t dt) {
@@ -2439,6 +2459,14 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
       ret          = true;
       } else {
       nearestEnemy = nullptr;
+      }
+    }
+
+  Npc* body=hasPerc(PERC_ASSESSBODY) ? updateNearestBody() : nullptr;
+  if(body!=nullptr){
+    float dist=qDistTo(*body);
+    if(perceptionProcess(*body,nullptr,dist,PERC_ASSESSBODY)) {
+      ret = true;
       }
     }
   return ret;

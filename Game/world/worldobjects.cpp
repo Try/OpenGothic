@@ -96,8 +96,7 @@ void WorldObjects::tick(uint64_t dt) {
   for(auto& i:npcArr) {
     float dist = pl->qDistTo(*i);
     if(dist<nearDist){
-      if(!i->isDown())
-        npcNear.push_back(i.get());
+      npcNear.push_back(i.get());
       if(i.get()!=pl)
         i->setProcessPolicy(Npc::ProcessPolicy::AiNormal);
       } else

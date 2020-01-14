@@ -568,6 +568,7 @@ class Npc final {
     auto                           rangeDamageValue() const -> std::array<int32_t, Daedalus::GEngineClasses::DAM_INDEX_MAX>;
     int32_t                        damageTypeMask() const;
     Npc*                           updateNearestEnemy();
+    Npc*                           updateNearestBody();
     bool                           checkHealth(bool onChange, bool forceKill);
     void                           onNoHealth(bool death, HitSound sndMask);
     bool                           hasAutoroll() const;
