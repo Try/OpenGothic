@@ -37,10 +37,17 @@ void GthFont::drawText(Painter &p, int bx, int by, int bw, int /*bh*/,
 
   while(*txt) {
     auto t = getLine(txt,bw,lwidth);
-    if(align & AlignHCenter) {
-      int  w = textSize(txt,t).w;
-      x+=(bw-w)/2;
+
+    if(align!=NoAlign && align!=AlignLeft) {
+      auto sz = textSize(txt,t);
+      int x1 = x;
+      if(align & AlignHCenter)
+        x1 = x + (bw-sz.w)/2;
+      if(align & AlignRight)
+        x1 = x + (bw-sz.w);
+      x = x1;
       }
+
     for(auto i=txt;i!=t;++i) {
       uint8_t id  = *i;
       auto&   uv1 = fnt.getFontInfo().fontUV1[id];

@@ -518,6 +518,12 @@ void Gothic::settingsSetI(const char *sec, const char *name, int val) {
   iniFile->set(sec,name,val);
   }
 
+const std::string& Gothic::settingsGetS(const char* sec, const char* name) const {
+  if(iniFile->has(sec,name))
+    return iniFile->getS(sec,name);
+  return baseIniFile->getS(sec,name);
+  }
+
 void Gothic::flushSettings() const {
   iniFile->flush();
   }

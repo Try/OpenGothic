@@ -8,6 +8,7 @@
 #include "world/world.h"
 #include "ui/menuroot.h"
 #include "utils/fileutil.h"
+#include "utils/keycodec.h"
 #include "game/serialize.h"
 #include "game/savegameheader.h"
 #include "gothic.h"
@@ -114,14 +115,14 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
 
   const int x   = int(w()*item.posx/scriptDiv);
   const int y   = int(h()*item.posy/scriptDiv);
-  int szX = int(w()*dimx/scriptDiv);
-  int szY = int(h()*dimy/scriptDiv);
+  int       szX = int(w()*dimx/scriptDiv);
+  int       szY = int(h()*dimy/scriptDiv);
 
   int imgX = 0, imgW=0;
 
   if(hItem.img && !hItem.img->isEmpty()) {
     p.setBrush(*hItem.img);
-    p.drawRect(/*(w()-szX)/2*/x,y,szX,szY,
+    p.drawRect(x,y,szX,szY,
                0,0,hItem.img->w(),hItem.img->h());
 
     imgX = x;
@@ -173,6 +174,22 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
         drawQuestList(p, x+px,y+py, szX-2*px,szY-2*py, fnt,*ql,QuestLog::Status::Success,false);
       else if(item.userString[0]=="LOG")
         drawQuestList(p, x+px,y+py, szX-2*px,szY-2*py, fnt,*ql,QuestLog::Status::Running,true);
+      }
+    }
+  if(item.type==MENU_ITEM_INPUT) {
+    using namespace Daedalus::GEngineClasses::MenuConstants;
+    if(item.onChgSetOptionSection=="KEYS") {
+      auto& keys = gothic.settingsGetS(item.onChgSetOptionSection.c_str(),
+                                       item.onChgSetOption.c_str());
+
+      char textBuf[256]={};
+      KeyCodec::getKeysStr(keys,textBuf,sizeof(textBuf));
+
+      fnt.drawText(p,
+                   x,y+fnt.pixelSize(),
+                   szX, szY,
+                   textBuf,
+                   txtAlign);
       }
     }
   }
@@ -415,6 +432,9 @@ void GameMenu::execLoadGame(GameMenu::Item &item) {
 void GameMenu::execCommands(GameMenu::Item& /*it*/,const Daedalus::ZString str) {
   using namespace Daedalus::GEngineClasses::MenuConstants;
 
+  if(str.find("RUN ")==0) {
+    // keys-define
+    }
   if(str.find("EFFECTS ")==0) {
     const char* arg0 = str.c_str()+std::strlen("EFFECTS ");
     for(auto& i:hItems) {

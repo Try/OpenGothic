@@ -60,9 +60,8 @@ bool IniFile::has(const char *s, const char *name) {
   }
 
 int IniFile::getI(const char *s, const char *name) {
-  if(auto* val = find(s,name,false)) {
+  if(auto* val = find(s,name,false))
     return getI(*val);
-    }
   return 0;
   }
 
@@ -72,6 +71,13 @@ void IniFile::set(const char *sec, const char *name, int ival) {
   auto& v = find(sec,name);
   v.val = std::to_string(ival);
   changeFlag = true;
+  }
+
+const std::string& IniFile::getS(const char* s, const char* name) {
+  if(auto* val = find(s,name,false))
+    return val->val;
+  static std::string empty;
+  return empty;
   }
 
 void IniFile::implRead(RFile &fin) {
