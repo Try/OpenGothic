@@ -211,7 +211,7 @@ std::unique_ptr<Npc> WorldObjects::takeNpc(const Npc* ptr) {
   }
 
 void WorldObjects::tickNear(uint64_t /*dt*/) {
-  for(Npc* i:npcNear){
+  for(Npc* i:npcNear) {
     auto pos=i->position();
     for(AbstractTrigger* t:triggersZn)
       if(t->checkPos(pos[0],pos[1]+i->translateY(),pos[2]))
@@ -233,7 +233,7 @@ void WorldObjects::tickTriggers(uint64_t /*dt*/) {
     for(auto& i:triggers) {
       auto& t = *i;
       if(t.name()==e.target) {
-        t.onTrigger(e);
+        t.processEvent(e);
         emitted=true;
         }
       }
@@ -332,7 +332,7 @@ void WorldObjects::triggerOnStart(bool wrldStartup) {
   for(auto& i:triggers)
     if(i->vobType()==ZenLoad::zCVobData::VT_oCTriggerWorldStart) {
       TriggerEvent evt(wrldStartup);
-      i->onTrigger(evt);
+      i->processEvent(evt);
       }
   }
 

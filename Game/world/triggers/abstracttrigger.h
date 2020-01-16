@@ -27,7 +27,8 @@ class AbstractTrigger {
 
     ZenLoad::zCVobData::EVobType vobType() const;
     const std::string&           name() const;
-    virtual void                 onTrigger(const TriggerEvent& evt);
+
+    void                         processEvent(const TriggerEvent& evt);
     virtual void                 onIntersect(Npc& n);
     virtual void                 tick(uint64_t dt);
 
@@ -35,8 +36,13 @@ class AbstractTrigger {
     virtual bool                 checkPos(float x,float y,float z) const;
 
   protected:
-    ZenLoad::zCVobData data;
-    World&             owner;
+    ZenLoad::zCVobData           data;
+    World&                       owner;
+    std::vector<Npc*>            intersect;
+    uint32_t                     emitCount=0;
+
+    virtual void                 onTrigger(const TriggerEvent& evt);
+    virtual void                 onUntrigger(const TriggerEvent& evt);
 
     void                         enableTicks();
     void                         disableTicks();

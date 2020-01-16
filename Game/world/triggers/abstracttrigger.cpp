@@ -17,16 +17,50 @@ const std::string &AbstractTrigger::name() const {
   return data.vobName;
   }
 
+void AbstractTrigger::processEvent(const TriggerEvent& evt) {
+  if(data.zCTrigger.numCanBeActivated>0 &&
+     uint32_t(data.zCTrigger.numCanBeActivated)<=emitCount) {
+    return;
+    }
+  ++emitCount;
+  onTrigger(evt);
+  }
+
 void AbstractTrigger::onTrigger(const TriggerEvent&) {
   Log::d("TODO: trigger[",name(),";",data.objectClass,"]");
   }
 
-void AbstractTrigger::onIntersect(Npc &) {
+void AbstractTrigger::onUntrigger(const TriggerEvent&) {
+  }
+
+void AbstractTrigger::onIntersect(Npc &n) {
+  for(auto i:intersect)
+    if(i==&n)
+      return;
+  intersect.push_back(&n);
+  if(intersect.size()==1)
+    enableTicks();
+
   TriggerEvent e(false);
   onTrigger(e);
   }
 
 void AbstractTrigger::tick(uint64_t) {
+  for(size_t i=0;i<intersect.size();) {
+    Npc& npc = *intersect[i];
+    auto pos = npc.position();
+    if(!checkPos(pos[0],pos[1]+npc.translateY(),pos[2])) {
+      intersect[i] = intersect.back();
+      intersect.pop_back();
+
+      TriggerEvent e(false);
+      onUntrigger(e);
+      } else {
+      ++i;
+      }
+    }
+  if(intersect.size()==0)
+    disableTicks();
   }
 
 bool AbstractTrigger::hasVolume() const {

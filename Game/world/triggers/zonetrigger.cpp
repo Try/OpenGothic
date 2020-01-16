@@ -2,8 +2,8 @@
 
 #include "world/world.h"
 
-ZoneTrigger::ZoneTrigger(ZenLoad::zCVobData &&data, World &owner)
-  :AbstractTrigger(std::move(data),owner){
+ZoneTrigger::ZoneTrigger(ZenLoad::zCVobData &&d, World &w)
+  :AbstractTrigger(std::move(d),w){
   }
 
 void ZoneTrigger::onIntersect(Npc &n) {
