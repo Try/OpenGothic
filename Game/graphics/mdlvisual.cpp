@@ -244,11 +244,8 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc &npc, const char *name
   return nullptr;
   }
 
-bool MdlVisual::startAnim(Npc &npc, const char *name, BodyState bs) {
-  return startAnimAndGet(npc,name,bs)!=nullptr;
-  }
-
-bool MdlVisual::startAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk) {
+const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver::Anim a,
+                                                      WeaponState st, WalkBit wlk) {
   // for those use MdlVisual::setRotation
   assert(a!=AnimationSolver::Anim::RotL && a!=AnimationSolver::Anim::RotR);
 
@@ -257,10 +254,10 @@ bool MdlVisual::startAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, Wal
     const Animation::Sequence *sq = solver.solveAnim(inter,a,*skInst);
     if(sq!=nullptr){
       if(skInst->startAnim(solver,sq,BS_MOBINTERACT,false,npc.world().tickCount())) {
-        return true;
+        return sq;
         }
       }
-    return false;
+    return nullptr;
     }
 
   const Animation::Sequence *sq = solver.solveAnim(a,st,wlk,*skInst);
@@ -342,9 +339,17 @@ bool MdlVisual::startAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, Wal
     bs = BS_SWIM;
 
   if(skInst->startAnim(solver,sq,bs,forceAnim,npc.world().tickCount())) {
-    return true;
+    return sq;
     }
-  return false;
+  return nullptr;
+  }
+
+bool MdlVisual::startAnim(Npc &npc, const char *name, BodyState bs) {
+  return startAnimAndGet(npc,name,bs)!=nullptr;
+  }
+
+bool MdlVisual::startAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk) {
+  return startAnimAndGet(npc,a,st,wlk)!=nullptr;
   }
 
 bool MdlVisual::startAnim(Npc &npc, WeaponState st) {
@@ -367,6 +372,20 @@ std::array<float,3> MdlVisual::displayPosition() const {
   if(skeleton!=nullptr)
     return {0,skeleton->colisionHeight()*1.5f,0};
   return {0.f,0.f,0.f};
+  }
+
+const Animation::Sequence* MdlVisual::continueCombo(Npc& npc, AnimationSolver::Anim a,
+                                                    WeaponState st, WalkBit wlk)  {
+  if(st==WeaponState::Fist || st==WeaponState::W1H || st==WeaponState::W2H) {
+    const Animation::Sequence *sq = solver.solveAnim(a,st,wlk,*skInst);
+    if(auto ret = skInst->continueCombo(solver,sq,npc.world().tickCount()))
+      return ret;
+    }
+  return startAnimAndGet(npc,a,st,wlk);
+  }
+
+uint32_t MdlVisual::comboLength() const {
+  return skInst->comboLength();
   }
 
 bool MdlVisual::startAnimItem(Npc &npc, const char *scheme) {

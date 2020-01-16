@@ -223,7 +223,6 @@ void Animation::setupIndex() {
        i.name=="T_MAGRUN_2_MAG" || i.name=="T_FISTRUN_2_FIST")
       i.next = "";
     }
-
   // for(auto& i:sequences)
   //   Log::i(i.name);
   }
@@ -262,16 +261,28 @@ Animation::Sequence::Sequence(const std::string &fname) {
     }
   }
 
-bool Animation::Sequence::isFinished(uint64_t t) const {
+bool Animation::Sequence::isFinished(uint64_t t,uint16_t comboLen) const {
   if(isRotate())
     return true;// FIXME: proper rotate
 
-  if(!data->defHitEnd.empty()) {
-    for(auto& i:data->defHitEnd)
-      if(t>i)
-        return true;
+  if(comboLen<data->defHitEnd.size()) {
+    if(t>data->defHitEnd[comboLen])
+      return true;
     }
   return t>totalTime();
+  }
+
+float Animation::Sequence::totalTime() const {
+  return data->numFrames*1000/data->fpsRate;
+  }
+
+
+float Animation::Sequence::atkTotalTime(uint32_t comboLvl) const {
+  if(comboLvl<data->defHitEnd.size()) {
+    uint64_t time = data->defHitEnd[comboLvl];
+    return time;
+    }
+  return totalTime();
   }
 
 bool Animation::Sequence::canInterrupt() const {
@@ -282,22 +293,18 @@ bool Animation::Sequence::canInterrupt() const {
   return true;
   }
 
-bool Animation::Sequence::isParWindow(uint64_t t) const {
+bool Animation::Sequence::isDefParWindow(uint64_t t) const {
   if(data->defParFrame.size()!=2)
     return false;
   return data->defParFrame[0]<=t && t<data->defParFrame[1];
   }
 
-bool Animation::Sequence::isWindow(uint64_t t) const {
+bool Animation::Sequence::isDefWindow(uint64_t t) const {
   for(size_t i=0;i+1<data->defWindow.size();i+=2) {
     if(data->defWindow[i+0]<=t && t<data->defWindow[i+1])
       return true;
     }
   return false;
-  }
-
-float Animation::Sequence::totalTime() const {
-  return data->numFrames*1000/data->fpsRate;
   }
 
 bool Animation::Sequence::isPrehit(uint64_t sTime, uint64_t now) const {

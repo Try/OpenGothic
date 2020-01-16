@@ -37,7 +37,8 @@ class Pose final {
     ZMath::float3      animMoveSpeed(uint64_t tickCount, uint64_t dt) const;
     void               processSfx(Npc &npc, uint64_t tickCount);
     void               processEvents(uint64_t& barrier, uint64_t now, Animation::EvCount &ev) const;
-    bool               isParWindow(uint64_t tickCount) const;
+    bool               isDefParWindow(uint64_t tickCount) const;
+    bool               isDefWindow(uint64_t tickCount) const;
     bool               isDefence(uint64_t tickCount) const;
     bool               isJumpBack() const;
     bool               isJumpAnim() const;
@@ -50,6 +51,9 @@ class Pose final {
     bool               isInAnim(const Animation::Sequence* sq) const;
     bool               hasAnim() const;
     uint64_t           animationTotalTime() const;
+
+    auto               continueCombo(const AnimationSolver &solver,const Animation::Sequence *sq,uint64_t tickCount) -> const Animation::Sequence*;
+    uint32_t           comboLength() const;
 
     float              translateY() const { return trY; }
     Tempest::Matrix4x4 cameraBone() const;
@@ -91,4 +95,5 @@ class Pose final {
     float                           trY=0;
     Flags                           flag=NoFlags;
     uint64_t                        lastUpdate=0;
+    uint16_t                        comboLen=0;
   };

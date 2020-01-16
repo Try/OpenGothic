@@ -17,6 +17,7 @@ void Pose::save(Serialize &fout) {
     fout.write(i.seq->name,i.sAnim,i.bs);
     }
   fout.write(lastUpdate);
+  fout.write(comboLen);
   fout.write(rotation ? rotation->name : "");
   fout.write(itemUse  ? itemUse->name  : "");
   }
@@ -32,6 +33,8 @@ void Pose::load(Serialize &fin,const AnimationSolver& solver) {
     i.seq = solver.solveFrm(name.c_str());
     }
   fin.read(lastUpdate);
+  if(fin.version()>=3)
+    fin.read(comboLen);
   removeIf(lay,[](const Layer& l){
     return l.seq==nullptr;
     });
@@ -83,7 +86,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
   for(auto& i:lay)
     if(i.seq->layer==sq->layer) {
       const bool hasNext   = (!i.seq->next.empty() && i.seq->animCls!=Animation::Loop);
-      const bool finished  = i.seq->isFinished(tickCount-i.sAnim) && !hasNext;
+      const bool finished  = i.seq->isFinished(tickCount-i.sAnim,comboLen) && !hasNext;
       const bool interrupt = force || i.seq->canInterrupt();
       if(i.seq==sq && i.bs==bs && (interrupt || finished))
         return true;
@@ -152,7 +155,7 @@ void Pose::update(AnimationSolver& solver, uint64_t tickCount) {
   bool   doSort=false;
   for(size_t i=0;i<lay.size();++i) {
     const auto& l = lay[i];
-    if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount-l.sAnim)) {
+    if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount-l.sAnim,comboLen)) {
       auto next=getNext(solver,lay[i].seq);
       if(lay[i].seq==itemUse)
         itemUse=next;
@@ -272,9 +275,16 @@ ZMath::float3 Pose::animMoveSpeed(uint64_t tickCount,uint64_t dt) const {
   return ret;
   }
 
-bool Pose::isParWindow(uint64_t tickCount) const {
+bool Pose::isDefParWindow(uint64_t tickCount) const {
   for(auto& i:lay)
-    if(i.seq->isParWindow(tickCount-i.sAnim))
+    if(i.seq->isDefParWindow(tickCount-i.sAnim))
+      return true;
+  return false;
+  }
+
+bool Pose::isDefWindow(uint64_t tickCount) const {
+  for(auto& i:lay)
+    if(i.seq->isDefWindow(tickCount-i.sAnim))
       return true;
   return false;
   }
@@ -284,7 +294,7 @@ bool Pose::isDefence(uint64_t tickCount) const {
   static const char* alt[3]={"","_A2","_A3"};
 
   for(auto& i:lay) {
-    if(i.seq->isWindow(tickCount-i.sAnim)) {
+    if(i.seq->isDefWindow(tickCount-i.sAnim)) {
       // FIXME: seems like name check is not needed
       for(int h=1;h<=2;++h) {
         for(int v=0;v<3;++v) {
@@ -384,6 +394,40 @@ uint64_t Pose::animationTotalTime() const {
   for(auto& i:lay)
     ret = std::max(ret,uint64_t(i.seq->totalTime()));
   return ret;
+  }
+
+const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, const Animation::Sequence *sq, uint64_t tickCount) {
+  if(sq==nullptr)
+    return nullptr;
+
+  bool breakCombo = true;
+  for(auto& i:lay) {
+    if(i.seq->name==sq->name)
+      breakCombo = false;
+
+    auto&    d = *i.seq->data;
+    uint64_t t = tickCount-i.sAnim;
+    for(size_t id=0;id+1<d.defWindow.size();id+=2) {
+      if(d.defWindow[id+0]<=t && t<d.defWindow[id+1]) {
+        if(i.seq->name==sq->name) {
+          comboLen = uint16_t(id/2+1);
+          return i.seq;
+          } else {
+          comboLen = 0;
+          startAnim(solver,sq,i.bs,true,tickCount);
+          return sq;
+          }
+        }
+      }
+    }
+
+  if(breakCombo)
+    comboLen = 0;
+  return nullptr;
+  }
+
+uint32_t Pose::comboLength() const {
+  return comboLen;
   }
 
 Matrix4x4 Pose::cameraBone() const {

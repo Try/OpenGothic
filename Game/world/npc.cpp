@@ -1090,7 +1090,7 @@ bool Npc::implAtack(uint64_t dt) {
   if(currentTarget==nullptr || isPlayer() || isTalk())
     return false;
 
-  if(currentTarget->isDown()){
+  if(currentTarget->isDown() && !fghAlgo.hasInstructions()){
     // NOTE: don't clear internal target, to make scripts happy
     // currentTarget=nullptr;
     return false;
@@ -1131,13 +1131,15 @@ bool Npc::implAtack(uint64_t dt) {
     auto ws = weaponState();
     if(ws==WeaponState::Mage){
       if(castSpell())
-        fghAlgo.consumeAction();
+        fghAlgo.consumeAction(); else
+        setAnim(Anim::Idle);
       }
     else if(ws==WeaponState::Bow || ws==WeaponState::CBow){
       if(shootBow()) {
         fghAlgo.consumeAction();
         } else {
-        aimBow();
+        if(!aimBow())
+          setAnim(Anim::Idle);
         }
       }
     else if(ws==WeaponState::Fist){
@@ -1148,7 +1150,6 @@ bool Npc::implAtack(uint64_t dt) {
       if(doAttack(ani[act-FightAlgo::MV_ATACK]))
         fghAlgo.consumeAction();
       }
-    implFaiWait(visual.pose().animationTotalTime());
     return true;
     }
 
@@ -1900,7 +1901,18 @@ bool Npc::doAttack(Anim anim) {
   auto weaponSt=invent.weaponState();
   if(weaponSt==WeaponState::NoWeapon || weaponSt==WeaponState::Mage)
     return false;
-  return setAnim(anim);
+
+  auto wlk = walkMode();
+  if(mvAlgo.isSwim())
+    wlk = WalkBit::WM_Swim;
+  else if(mvAlgo.isInWater())
+    wlk = WalkBit::WM_Water;
+
+  if(auto sq = visual.continueCombo(*this,anim,weaponSt,wlk)) {
+    implAniWait(uint64_t(sq->atkTotalTime(visual.comboLength())+1));
+    return true;
+    }
+  return false;
   }
 
 void Npc::emitDlgSound(const char *sound) {

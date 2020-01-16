@@ -47,6 +47,7 @@ class MdlVisual final {
     bool                           isItem() const;
 
     const Animation::Sequence*     startAnimAndGet(Npc &npc, const char* name, BodyState bs);
+    const Animation::Sequence*     startAnimAndGet(Npc &npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk);
     bool                           startAnim(Npc &npc, const char* name, BodyState bs);
     bool                           startAnim(Npc &npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk);
     bool                           startAnim(Npc &npc, WeaponState st);
@@ -60,6 +61,9 @@ class MdlVisual final {
     WeaponState                    fightMode() const { return fgtMode; }
     std::array<float,3>            displayPosition() const;
     const Tempest::Matrix4x4&      position() const { return pos; }
+
+    const Animation::Sequence*     continueCombo(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk);
+    uint32_t                       comboLength() const;
 
   private:
     Tempest::Matrix4x4             pos;
