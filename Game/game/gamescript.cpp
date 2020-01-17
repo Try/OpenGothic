@@ -935,8 +935,10 @@ int GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
     }
   }
 
-int GameScript::invokeCond(Npc &npc,const char* func) {
+int GameScript::invokeCond(Npc &,const char* func) {
   //FIXME
+  Log::d("not implemented: \"",__func__,"\' '",func,"'");
+  return 0;
   }
 
 const Daedalus::ZString& GameScript::spellCastAnim(Npc&, Item &it) {

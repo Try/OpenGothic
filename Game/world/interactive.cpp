@@ -502,7 +502,7 @@ bool Interactive::attach(Npc &npc) {
   if(p!=nullptr) {
     return attach(npc,*p);
     } else {
-    if(npc.isPlayer())
+    if(npc.isPlayer() && attPos.size()>0)
       world->script().printMobAnotherIsUsing(npc);
     }
   return false;
