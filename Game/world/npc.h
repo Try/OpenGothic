@@ -564,9 +564,6 @@ class Npc final {
     void                           nextAiAction(uint64_t dt);
     void                           commitDamage();
     void                           takeDamage(Npc& other);
-    std::tuple<int, bool>          damageValue(Npc &other, const Bullet *b) const;
-    auto                           rangeDamageValue() const -> std::array<int32_t, Daedalus::GEngineClasses::DAM_INDEX_MAX>;
-    int32_t                        damageTypeMask() const;
     Npc*                           updateNearestEnemy();
     Npc*                           updateNearestBody();
     bool                           checkHealth(bool onChange, bool forceKill);

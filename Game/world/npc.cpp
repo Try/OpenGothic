@@ -6,6 +6,7 @@
 #include "interactive.h"
 #include "graphics/visualfx.h"
 #include "graphics/skeleton.h"
+#include "game/damagecalculator.h"
 #include "game/serialize.h"
 #include "game/gamescript.h"
 #include "world/triggers/trigger.h"
@@ -1312,15 +1313,12 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
 
     if(!isPlayer())
       setOther(lastHit);
-    auto hitResult = other.damageValue(*this,b);
-    int dmg = isImmortal() ? 0 : std::get<0>(hitResult);
-    if(isPlayer() && owner.script().isRamboMode())
-      dmg = std::min(1,dmg);
 
-    if(!isSpell && !isDown() && std::get<1>(hitResult)>0)
+    auto hitResult = DamageCalculator::damageValue(other,*this,b);
+    if(!isSpell && !isDown() && hitResult.hasHit)
       owner.emitWeaponsSound(other,*this);
 
-    if(dmg>0) {
+    if(hitResult.value>0) {
       if(attribute(ATR_HITPOINTS)>0) {
         visual.stopAnim(*this,nullptr);
         if(lastHitType=='A')
@@ -1328,7 +1326,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
           setAnim(Anim::StumbleB);
         implAniWait(visual.pose().animationTotalTime());
         }
-      changeAttribute(ATR_HITPOINTS,-dmg,b==nullptr);
+      changeAttribute(ATR_HITPOINTS,-hitResult.value,b==nullptr);
 
       if(isUnconscious()){
         owner.sendPassivePerc(*this,other,*this,PERC_ASSESSDEFEAT);
@@ -1338,85 +1336,12 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
         }
       }
 
-    if(other.damageTypeMask() & (1<<Daedalus::GEngineClasses::DAM_INDEX_FLY))
+    if(DamageCalculator::damageTypeMask(other) & (1<<Daedalus::GEngineClasses::DAM_INDEX_FLY))
       mvAlgo.accessDamFly(x-other.x,z-other.z); // throw enemy
     } else {
     if(invent.activeWeapon()!=nullptr)
       owner.emitBlockSound(other,*this);
     }
-  }
-
-std::tuple<int,bool> Npc::damageValue(Npc &other, const Bullet* b) const {
-  int value = 0;
-
-  bool invinsible = true;
-  if(b!=nullptr) {
-    // Bow/CBow
-    const float maxRange = 3500; // from Focus_Ranged
-    if(b->pathLength()>maxRange*b->hitChance() && b->hitChance()<1.f)
-      return std::make_tuple(0,false);
-
-    auto dmg = b->damage();
-    for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i) {
-      if(dmg[size_t(i)]==0)
-        continue;
-      int vd = std::max(dmg[size_t(i)] - other.hnpc.protection[i],0);
-      if(other.hnpc.protection[i]>=0) { // Filter immune
-        value += vd;
-        invinsible = false;
-        }
-      }
-    } else {
-    // Swords/Fists
-    const int dtype      = damageTypeMask();
-    uint8_t   hitCh      = TALENT_UNKNOWN;
-    int       s          = attribute(Attribute::ATR_STRENGTH);
-    int       critChance = int(owner.script().rand(100));
-
-    if(auto w = invent.activeWeapon()){
-      if(w->is2H())
-        hitCh = TALENT_2H; else
-        hitCh = TALENT_1H;
-      }
-
-    if(isMonster() && hitCh==TALENT_UNKNOWN) {
-      // regular monsters always do critical damage
-      critChance = 0;
-      }
-
-    for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
-      if((dtype & (1<<i))==0)
-        continue;
-      int vd = std::max(s + hnpc.damage[i] - other.hnpc.protection[i],0);
-      if(hnpc.hitChance[hitCh]<critChance)
-        vd = (vd-1)/10;
-      if(other.hnpc.protection[i]>=0) { // Filter immune
-        value += vd;
-        invinsible = false;
-        }
-      }
-    }
-
-  int damage = invinsible ? value : std::max(value,3);
-  return std::make_tuple(damage,true);
-  }
-
-std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> Npc::rangeDamageValue() const {
-  const int dtype = damageTypeMask();
-  int d = attribute(Attribute::ATR_DEXTERITY);
-  std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> ret={};
-  for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
-    if((dtype & (1<<i))==0)
-      continue;
-    ret[size_t(i)] = d + hnpc.damage[i];
-    }
-  return ret;
-  }
-
-int32_t Npc::damageTypeMask() const {
-  if(auto w = invent.activeWeapon())
-    return w->handle()->damageType;
-  return hnpc.damagetype;
   }
 
 Npc *Npc::updateNearestEnemy() {
@@ -2376,7 +2301,7 @@ bool Npc::shootBow() {
 
   invent.delItem(size_t(munition),1,*this);
   b.setOwner(this);
-  b.setDamage(rangeDamageValue());
+  b.setDamage(DamageCalculator::rangeDamageValue(*this));
 
   auto rgn = currentRangeWeapon();
   if(rgn!=nullptr && rgn->isCrossbow())
