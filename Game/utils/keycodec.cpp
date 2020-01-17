@@ -2,9 +2,6 @@
 
 #include <cstring>
 
-KeyCodec::KeyCodec() {  
-  }
-
 void KeyCodec::getKeysStr(const std::string& keys, char buf[], size_t bufSz) {
   int32_t k0 = fetch(keys,0,4);
   int32_t k1 = fetch(keys,4,8);
