@@ -25,6 +25,7 @@ class MdlVisual final {
     void                           setVisual(const Skeleton *visual);
     void                           setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body);
 
+    bool                           hasOverlay(const Skeleton *sk) const;
     void                           addOverlay(const Skeleton *sk, uint64_t time);
     void                           delOverlay(const char*     sk);
     void                           delOverlay(const Skeleton *sk);

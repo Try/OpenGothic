@@ -44,6 +44,13 @@ void AnimationSolver::setSkeleton(const Skeleton *sk) {
   baseSk = sk;
   }
 
+bool AnimationSolver::hasOverlay(const Skeleton* sk) const {
+  for(auto& i:overlay)
+    if(i.skeleton==sk)
+      return true;
+  return false;
+  }
+
 void AnimationSolver::addOverlay(const Skeleton* sk,uint64_t time) {
   if(sk==nullptr)
     return;

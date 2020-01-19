@@ -69,6 +69,10 @@ void MdlVisual::setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body) {
   view.setAttachPoint(skeleton);
   }
 
+bool MdlVisual::hasOverlay(const Skeleton* sk) const {
+  return solver.hasOverlay(sk);
+  }
+
 // Mdl_ApplyOverlayMdsTimed, Mdl_ApplyOverlayMds
 void MdlVisual::addOverlay(const Skeleton *sk, uint64_t time) {
   solver.addOverlay(sk,time);
@@ -267,8 +271,10 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
      a==AnimationSolver::Anim::DeadB || a==AnimationSolver::Anim::UnconsciousB) {
     if(sq!=nullptr)
       skInst->stopAllAnim();
-    forceAnim=true;
+    forceAnim = true;
     }
+  if(a==AnimationSolver::Anim::StumbleA || a==AnimationSolver::Anim::StumbleB)
+    forceAnim = true;
 
   BodyState bs = BS_NONE;
   switch(a) {

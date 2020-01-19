@@ -564,6 +564,15 @@ void Npc::setVisual(const char* visual) {
   setPhysic(owner.getPhysic(visual));
   }
 
+bool Npc::hasOverlay(const char* sk) const {
+  auto skelet = Resources::loadSkeleton(sk);
+  return hasOverlay(skelet);
+  }
+
+bool Npc::hasOverlay(const Skeleton* sk) const {
+  return visual.hasOverlay(sk);
+  }
+
 void Npc::addOverlay(const char *sk, uint64_t time) {
   auto skelet = Resources::loadSkeleton(sk);
   addOverlay(skelet,time);
@@ -1320,7 +1329,6 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
 
     if(hitResult.value>0) {
       if(attribute(ATR_HITPOINTS)>0) {
-        visual.stopAnim(*this,nullptr);
         if(lastHitType=='A')
           setAnim(Anim::StumbleA); else
           setAnim(Anim::StumbleB);

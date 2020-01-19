@@ -70,6 +70,7 @@ class AnimationSolver final {
     void                           setSkeleton(const Skeleton* sk);
     void                           update(uint64_t tickCount);
 
+    bool                           hasOverlay(const Skeleton *sk) const;
     void                           addOverlay(const Skeleton *sk, uint64_t time);
     void                           delOverlay(const char *sk);
     void                           delOverlay(const Skeleton *sk);

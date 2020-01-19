@@ -688,6 +688,15 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
       return setSlot(ringR,it,owner,force);
     return false;
     }
+  if(flag & ITM_TORCH) {
+    const char* overlay = "HUMANS_TORCH.MDS";
+    if(owner.hasOverlay(overlay)) {
+      owner.delOverlay(overlay);
+      owner.delItem(cls,1);
+      } else {
+      owner.addOverlay(overlay,0);
+      }
+    }
 
   if(!owner.setAnimItem(it->handle()->scemeName.c_str()))
     return false;
