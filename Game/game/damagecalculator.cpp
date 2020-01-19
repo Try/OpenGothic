@@ -13,7 +13,7 @@ DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const 
     ret = bowDamage(src,other,*b); else
     ret = swordDamage(src,other);
 
-  if(ret.hasHit)
+  if(ret.hasHit && !ret.invinsible)
     ret.value = std::max<int32_t>(ret.value,MinDamage);
   if(other.isImmortal())
     ret.value = 0;
@@ -26,11 +26,12 @@ DamageCalculator::Val DamageCalculator::bowDamage(Npc& nsrc, Npc& nother, const 
   C_Npc& other = *nother.handle();
 
   const float maxRange = 3500; // from Focus_Ranged
+  bool invinsible = !checkDamageMask(nsrc,nother,&b);
   if(b.pathLength()>maxRange*b.hitChance() && b.hitChance()<1.f)
-    return Val(0,false);
+    return Val(0,false,invinsible);
 
-  if(!checkDamageMask(nsrc,nother,&b))
-    return Val(0,true);
+  if(invinsible)
+    return Val(0,true,true);
 
   int  value = 0;
   auto dmg   = b.damage();
@@ -47,7 +48,7 @@ DamageCalculator::Val DamageCalculator::bowDamage(Npc& nsrc, Npc& nother, const 
 
 DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
   if(!checkDamageMask(nsrc,nother,nullptr))
-    return Val(0,true);
+    return Val(0,true,true);
 
   auto&  script = nsrc.world().script();
   C_Npc& src    = *nsrc.handle();

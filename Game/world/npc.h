@@ -212,6 +212,8 @@ class Npc final {
     std::array<float,3> displayPosition() const;
     void setVisual    (const char *visual);
     void setVisual    (const Skeleton *visual);
+    bool hasOverlay   (const char*     sk) const;
+    bool hasOverlay   (const Skeleton* sk) const;
     void addOverlay   (const char*     sk, uint64_t time);
     void addOverlay   (const Skeleton *sk, uint64_t time);
     void delOverlay   (const char*     sk);
