@@ -12,6 +12,7 @@
 #include "world/triggers/trigger.h"
 #include "world.h"
 #include "utils/versioninfo.h"
+#include "graphics/animmath.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -999,7 +1000,7 @@ bool Npc::implLookAt(const Npc& oth, bool noAnim, uint64_t dt) {
   }
 
 bool Npc::implLookAt(float dx, float dz, bool noAnim, uint64_t dt) {
-  auto  gl   = std::min<uint32_t>(guild(),GIL_MAX);
+  auto  gl   = guild();
   float step = owner.script().guildVal().turn_speed[gl]*(dt/1000.f)*60.f/100.f;
 
   if(dx==0.f && dz==0.f) {
@@ -2943,12 +2944,48 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, float ext
   }
 
 void Npc::updatePos() {
+  auto gl    = guild();
+  bool align = (world().script().guildVal().surface_align[gl]!=0) || isDead();
+
+  auto ground = mvAlgo.groundNormal();
+  if(align && !isInAir()) {
+    if(groundNormal!=ground) {
+      durtyTranform |= TR_Rot;
+      groundNormal = ground;
+      }
+    } else {
+    ground = {0,1,0};
+    if(groundNormal!=ground) {
+      durtyTranform |= TR_Rot;
+      groundNormal = ground;
+      }
+    }
+
   if(durtyTranform==TR_Pos){
     visual.setPos(x,y,z);
     } else {
     Matrix4x4 mt;
-    mt.identity();
-    mt.translate(x,y,z);
+    if(align) {
+      auto oy = ground;
+      auto ox = crossVec3(oy,{0,0,1});
+      auto oz = crossVec3(oy,ox);
+      float v[16] = {
+         ox[0], ox[1], ox[2], 0,
+         oy[0], oy[1], oy[2], 0,
+        -oz[0],-oz[1],-oz[2], 0,
+             x,     y,     z, 1
+      };
+      mt = Matrix4x4(v);
+      } else {
+      float v[16] = {
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        x, y, z, 1
+      };
+      mt = Matrix4x4(v);
+      }
+
     mt.rotateOY(180-angle);
     mt.scale(sz[0],sz[1],sz[2]);
     visual.setPos(mt);

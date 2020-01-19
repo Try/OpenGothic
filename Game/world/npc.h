@@ -589,8 +589,11 @@ class Npc final {
     float                          angle=0.f;
     float                          sz[3]={1.f,1.f,1.f};
 
-    // visual props
+    // visual props (cache)
     uint8_t                        durtyTranform=0;
+    std::array<float,3>            groundNormal;
+
+    // visual props
     std::string                    body,head;
     int32_t                        vHead=0, vTeeth=0, vColor =0;
     int32_t                        bdColor=0;

@@ -57,6 +57,7 @@ class MoveAlgo final {
     bool    isSwim()    const;
 
     uint8_t groundMaterial() const;
+    auto    groundNormal() const -> std::array<float,3>;
 
   private:
     void    tickMobsi  (uint64_t dt);

@@ -229,14 +229,14 @@ void FightAlgo::onTakeHit() {
   }
 
 float FightAlgo::prefferedAtackDistance(const Npc &npc, const Npc &tg,  GameScript &owner) const {
-  auto  gl     = std::min<uint32_t>(tg.guild(), GIL_MAX);
+  auto  gl     = tg.guild();
   float baseTg = owner.guildVal().fight_range_base[gl];
 
   return baseTg+weaponRange(owner,npc);
   }
 
 float FightAlgo::prefferedGDistance(const Npc &npc, const Npc &tg, GameScript &owner) const {
-  auto  gl     = std::min<uint32_t>(tg.guild(), GIL_MAX);
+  auto  gl     = tg.guild();
   float baseTg = owner.guildVal().fight_range_base[gl];
 
   return baseTg+gRange(owner,npc);
@@ -270,19 +270,19 @@ bool FightAlgo::isInFocusAngle(const Npc &npc, const Npc &tg) const {
   }
 
 float FightAlgo::gRange(GameScript &owner, const Npc &npc) {
-  auto  gl = std::min<uint32_t>(npc.guild(),GIL_MAX);
+  auto  gl = npc.guild();
   auto& gv = owner.guildVal();
   return gv.fight_range_g[gl]+gv.fight_range_base[gl]+weaponOnlyRange(owner,npc);
   }
 
 float FightAlgo::weaponRange(GameScript &owner, const Npc &npc) {
-  auto  gl = std::min<uint32_t>(npc.guild(),GIL_MAX);
+  auto  gl = npc.guild();
   auto& gv = owner.guildVal();
   return gv.fight_range_base[gl]+weaponOnlyRange(owner,npc);
   }
 
 float FightAlgo::weaponOnlyRange(GameScript &owner,const Npc &npc) {
-  auto  gl  = std::min<uint32_t>(npc.guild(),GIL_MAX);
+  auto  gl  = npc.guild();
   auto& gv  = owner.guildVal();
   auto  w   = npc.inventory().activeWeapon();
   int   add = w ? w->swordLength() : 0;

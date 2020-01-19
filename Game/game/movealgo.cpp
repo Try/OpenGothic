@@ -692,3 +692,11 @@ uint8_t MoveAlgo::groundMaterial() const {
   return groundMaterial(p[0],p[1]+stp,p[2]);
   }
 
+std::array<float,3> MoveAlgo::groundNormal() const {
+  const float stp = stepHeight();
+
+  //make cache happy by addup fallThreshold
+  const std::array<float,3> &p = npc.position();
+  return normalRay(p[0],p[1]+stp,p[2]);
+  }
+
