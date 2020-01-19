@@ -35,10 +35,8 @@ void Workers::threadFunc(size_t id) {
     size_t b = ((id  )*workSize)/workTasks;
     size_t e = ((id+1)*workSize)/workTasks;
 
-    for(size_t i=b;i<e;++i){
-      void* d = &workSet[i*workEltSize];
-      workFunc(d);
-      }
+    void* d = &workSet[b*workEltSize];
+    workFunc(d,e-b);
 
     workDone.release(1);
     }

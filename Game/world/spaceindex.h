@@ -29,11 +29,11 @@ class SpaceIndex final {
 
     size_t size() const { return arr.size(); }
 
-    auto  begin()        { return arr.begin(); }
-    auto  end()          { return arr.end();   }
+    T*    begin()        { return arr.data();            }
+    T*    end()          { return arr.data()+arr.size(); }
 
-    auto  begin()  const { return arr.begin(); }
-    auto  end()    const { return arr.end();   }
+    auto  begin()  const { return arr.data();     }
+    auto  end()    const { return arr.data()+arr.size(); }
 
     auto& back() { return arr.back(); }
 

@@ -247,8 +247,11 @@ void WorldObjects::updateAnimation() {
     i->updateTransform();
     i->updateAnimation();
     });
-  for(auto& i:interactiveObj)
+  Workers::parallelFor(interactiveObj.begin(),interactiveObj.end(),[](Interactive& i){
     i.updateAnimation();
+    });
+  //for(auto& i:interactiveObj)
+  //  i.updateAnimation();
   }
 
 Npc *WorldObjects::findHero() {
