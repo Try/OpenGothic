@@ -129,14 +129,21 @@ float phase(float alpha, float g) {
 vec4 clounds(vec3 texc){
   vec4 cloudDL1 = texture(textureDayL1,texc.zx*0.3+ubo.dxy1);
   vec4 cloudDL0 = texture(textureDayL0,texc.zx*0.3+ubo.dxy0);
-  vec4 day      = (cloudDL0+cloudDL1);
-  return day;
+#ifdef G1
+  return mix(cloudDL0,cloudDL1,cloudDL1.a);
+#else
+  return (cloudDL0+cloudDL1);
+#endif
   }
 
 vec4 stars(vec3 texc){
   vec4 cloudNL1 = texture(textureNightL1,texc.zx*0.3+ubo.dxy1);
   vec4 cloudNL0 = texture(textureNightL0,texc.zx*0.6);
-  vec4 night    = (cloudNL0+cloudNL1);
+#ifdef G1
+  vec4 night    = mix(cloudNL0,cloudNL1,cloudNL1.a);
+#else
+  vec4 night    = cloudNL0+cloudNL0;
+#endif
   return vec4(night.rgb,ubo.night);
   }
 

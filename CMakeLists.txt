@@ -111,6 +111,8 @@ compile_shader(pfx_shadow.vert      main.vert -DSHADOW_MAP)
 compile_shader(pfx_shadow.frag      main.frag -DSHADOW_MAP)
 compile_shader(sky.vert             sky.vert "")
 compile_shader(sky.frag             sky.frag "")
+compile_shader(sky_g1.vert          sky.vert -DG1)
+compile_shader(sky_g1.frag          sky.frag -DG1)
 compile_shader(shadow_compose.vert  shadow_compose.vert "")
 compile_shader(shadow_compose.frag  shadow_compose.frag "")
 

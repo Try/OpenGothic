@@ -7,9 +7,11 @@
 #include <Tempest/Device>
 #include <Tempest/Assets>
 
+class Gothic;
+
 class RendererStorage {
   public:
-    RendererStorage(Tempest::Device& device);
+    RendererStorage(Tempest::Device& device, Gothic& gothic);
 
     Tempest::Device&        device;
     Tempest::RenderPipeline pLand, pLandAlpha, pObject, pAnim, pPfx, pSky;
@@ -37,11 +39,9 @@ class RendererStorage {
     Tempest::UniformsLayout layoutLnd, layoutObj, layoutAni, layoutSky, layoutComp;
 
     Tempest::Assets         shaders;
-    //Tempest::Shader         vsSky,fsSky;
-    //Tempest::Shader         vsComp,fsComp;
     Material                land, object, ani, pfx;
 
-    void initPipeline();
+    void initPipeline(Gothic& gothic);
     void initShadow();
     template<class Vertex>
     Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const Tempest::UniformsLayout& ulay,const ShaderPair &fs);
