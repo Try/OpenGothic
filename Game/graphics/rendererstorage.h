@@ -26,19 +26,17 @@ class RendererStorage {
 
   private:
     struct ShaderPair {
-      const Tempest::Shader* vs = nullptr;
-      const Tempest::Shader* fs = nullptr;
-      void load(Tempest::Assets &asset, const char* tag, const char* format);
+      Tempest::Shader vs;
+      Tempest::Shader fs;
+      void load(Tempest::Device &device, const char* tag, const char* format);
       };
 
     struct Material {
       ShaderPair main, shadow;
-      void load(Tempest::Assets &asset, const char* f);
+      void load(Tempest::Device& device, const char* f);
       };
 
     Tempest::UniformsLayout layoutLnd, layoutObj, layoutAni, layoutSky, layoutComp;
-
-    Tempest::Assets         shaders;
     Material                land, object, ani, pfx;
 
     void initPipeline(Gothic& gothic);
