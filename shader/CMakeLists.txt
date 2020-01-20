@@ -2,8 +2,12 @@ cmake_minimum_required(VERSION 3.12)
 
 project(GothicShaders)
 
-set(HEADER "${CMAKE_CURRENT_BINARY_DIR}/sprv/shader.h")
-set(CPP    "${CMAKE_CURRENT_BINARY_DIR}/sprv/shader.cpp")
+set(HEADER "${PROJECT_BINARY_DIR}/sprv/shader.h")
+set(CPP    "${PROJECT_BINARY_DIR}/sprv/shader.cpp")
+
+file(GLOB SOURCES
+  "${CMAKE_SOURCE_DIR}/shader/*.vert"
+  "${CMAKE_SOURCE_DIR}/shader/*.frag")
 
 # GLSL to SPIRV compiler
 find_program(GLSLANGVALIDATOR glslangValidator)
@@ -13,17 +17,18 @@ endif()
 
 function(add_shader OUTPUT SOURCE)
   set(OUTPUT_FILE "${PROJECT_BINARY_DIR}/sprv/${OUTPUT}.sprv")
-  set(SOURCE_FILE "${SOURCE}")
+  set(SOURCE_FILE "${CMAKE_SOURCE_DIR}/shader/${SOURCE}")
+  set(OPENGOTHIC_SHADERS      ${OPENGOTHIC_SHADERS}      ${SOURCE_FILE} PARENT_SCOPE)
+  set(OPENGOTHIC_SHADERS_SPRV ${OPENGOTHIC_SHADERS_SPRV} ${OUTPUT_FILE} PARENT_SCOPE)
 
   list(SUBLIST ARGV 2 -1 VARS)
   add_custom_command(
-    OUTPUT ${OUTPUT_FILE}
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/sprv/"
-    COMMAND ${GLSLANGVALIDATOR} -V ${VARS} "${CMAKE_SOURCE_DIR}/shader/${SOURCE_FILE}" -o ${OUTPUT_FILE}
-    DEPENDS ${SOURCE_FILE})
-
-  set(OPENGOTHIC_SHADERS     ${OPENGOTHIC_SHADERS}     ${OUTPUT_FILE} PARENT_SCOPE)
-  set(OPENGOTHIC_SHADERS_SRC ${OPENGOTHIC_SHADERS_SRC} ${SOURCE_FILE} PARENT_SCOPE)
+    OUTPUT     ${OUTPUT_FILE}
+    BYPRODUCTS ${OUTPUT_FILE}
+    DEPENDS    ${SOURCE_FILE}
+    COMMAND    ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/sprv/"
+    COMMAND    ${GLSLANGVALIDATOR} -V ${VARS} "${SOURCE_FILE}" -o ${OUTPUT_FILE}
+    )
 endfunction(add_shader)
 
 # shaders
@@ -33,6 +38,7 @@ endfunction(add_shader)
 #   SHADOW_MAP - output is shadowmap
 #   ATEST      - use alpha test
 #   PFX        - use color modulation
+#   G1         - hint for gothic1 shader
 add_shader(land.vert            main.vert -DATEST)
 add_shader(land.frag            main.frag -DATEST)
 add_shader(object.vert          main.vert -DATEST -DOBJ)
@@ -56,16 +62,21 @@ add_shader(sky_g1.frag          sky.frag -DG1)
 add_shader(shadow_compose.vert  shadow_compose.vert "")
 add_shader(shadow_compose.frag  shadow_compose.frag "")
 
-add_custom_target(build_shaders DEPENDS ${OPENGOTHIC_SHADERS})
-
-add_custom_target(link_shaders
+add_custom_command(
+  OUTPUT     ${HEADER} ${CPP}
   BYPRODUCTS ${HEADER} ${CPP}
-  COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/shader/link_shaders.cmake"
+  DEPENDS    ${OPENGOTHIC_SHADERS_SPRV}
+  COMMAND    ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/sprv/"
+  COMMAND    ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/shader/link_shaders.cmake"
   WORKING_DIRECTORY "${PROJECT_BINARY_DIR}"
-  DEPENDS build_shaders)
+  )
+
+add_custom_target(shader
+  DEPENDS ${HEADER} ${CPP}
+  SOURCES ${SOURCES} "${CMAKE_SOURCE_DIR}/shader/link_shaders.cmake")
 
 add_library(${PROJECT_NAME} STATIC ${HEADER} ${CPP})
-add_dependencies(${PROJECT_NAME} link_shaders)
+add_dependencies(${PROJECT_NAME} shader)
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/sprv")
 set_target_properties(
