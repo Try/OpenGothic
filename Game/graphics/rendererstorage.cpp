@@ -2,35 +2,36 @@
 
 #include <Tempest/Device>
 
+#include "gothic.h"
 #include "resources.h"
+
+#include "shader.h"
 
 using namespace Tempest;
 
-void RendererStorage::ShaderPair::load(Assets &asset, const char *tag, const char *format) {
+void RendererStorage::ShaderPair::load(Device &device, const char *tag, const char *format) {
   char buf[256]={};
 
   std::snprintf(buf,sizeof(buf),format,tag,"vert");
-  vs = &asset[buf].get<Shader>();
-  if(vs->isEmpty())
-    throw std::runtime_error(std::string("unable to load shader: \"")+buf+"\"");
+  auto sh = GothicShader::get(buf);
+  vs = device.loadShader(sh.data,sh.len);
 
   std::snprintf(buf,sizeof(buf),format,tag,"frag");
-  fs = &asset[buf].get<Shader>();
-  if(fs->isEmpty())
-    throw std::runtime_error(std::string("unable to load shader: \"")+buf+"\"");
+  sh = GothicShader::get(buf);
+  fs = device.loadShader(sh.data,sh.len);
   }
 
-void RendererStorage::Material::load(Assets &asset, const char *f) {
-  main.  load(asset,f,"%s.%s.sprv");
-  shadow.load(asset,f,"%s_shadow.%s.sprv");
+void RendererStorage::Material::load(Device &device, const char *f) {
+  main.  load(device,f,"%s.%s.sprv");
+  shadow.load(device,f,"%s_shadow.%s.sprv");
   }
 
-RendererStorage::RendererStorage(Device &device)
-  :device(device),shaders("shader",device) {
-  land  .load(shaders,"land");
-  object.load(shaders,"object");
-  ani   .load(shaders,"anim");
-  pfx   .load(shaders,"pfx");
+RendererStorage::RendererStorage(Device &device,Gothic& gothic)
+  :device(device) {
+  land  .load(device,"land");
+  object.load(device,"object");
+  ani   .load(device,"anim");
+  pfx   .load(device,"pfx");
 
   layoutLnd.add(0,UniformsLayout::UboDyn, UniformsLayout::Vertex);
   layoutLnd.add(2,UniformsLayout::Texture,UniformsLayout::Fragment);
@@ -55,16 +56,16 @@ RendererStorage::RendererStorage(Device &device)
   layoutComp.add(0,UniformsLayout::Texture,UniformsLayout::Fragment);
   layoutComp.add(1,UniformsLayout::Texture,UniformsLayout::Fragment);
 
-  initPipeline();
+  initPipeline(gothic);
   initShadow();
   }
 
 template<class Vertex>
 RenderPipeline RendererStorage::pipeline(RenderState& st, const UniformsLayout& ulay,const ShaderPair &sh) {
-  return device.pipeline<Vertex>(Triangles,st,ulay,*sh.vs,*sh.fs);
+  return device.pipeline<Vertex>(Triangles,st,ulay,sh.vs,sh.fs);
   }
 
-void RendererStorage::initPipeline() {
+void RendererStorage::initPipeline(Gothic& gothic) {
   RenderState stateAlpha;
   stateAlpha.setBlendSource (RenderState::BlendMode::src_alpha);
   stateAlpha.setBlendDest   (RenderState::BlendMode::one_minus_src_alpha);
@@ -90,13 +91,11 @@ void RendererStorage::initPipeline() {
   statePfx.setBlendSource  (RenderState::BlendMode::src_alpha);
   statePfx.setBlendDest    (RenderState::BlendMode::one);
 
-  auto& vsSky  = shaders["sky.vert.sprv"].get<Shader>();
-  auto& fsSky  = shaders["sky.frag.sprv"].get<Shader>();
+  auto sh     = GothicShader::get("shadow_compose.vert.sprv");
+  auto vsComp = device.loadShader(sh.data,sh.len);
+  sh          = GothicShader::get("shadow_compose.frag.sprv");
+  auto fsComp = device.loadShader(sh.data,sh.len);
 
-  auto& vsComp = shaders["shadow_compose.vert.sprv"].get<Shader>();
-  auto& fsComp = shaders["shadow_compose.frag.sprv"].get<Shader>();
-  
-  pSky           = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutSky, vsSky,  fsSky );
   pComposeShadow = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutComp,vsComp, fsComp);
   
   pLandAlpha     = pipeline<Resources::Vertex> (stateAlpha,layoutLnd,land.main);
@@ -106,6 +105,20 @@ void RendererStorage::initPipeline() {
   pAnim          = pipeline<Resources::VertexA>(stateObj,layoutAni,ani.main);
 
   pPfx           = pipeline<Resources::Vertex> (statePfx,layoutLnd,pfx.main);
+
+  if(gothic.version().game==1) {
+    auto sh    = GothicShader::get("sky_g1.vert.sprv");
+    auto vsSky = device.loadShader(sh.data,sh.len);
+    sh         = GothicShader::get("sky_g1.frag.sprv");
+    auto fsSky = device.loadShader(sh.data,sh.len);
+    pSky       = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutSky, vsSky,  fsSky );
+    } else {
+    auto sh    = GothicShader::get("sky.vert.sprv");
+    auto vsSky = device.loadShader(sh.data,sh.len);
+    sh         = GothicShader::get("sky.frag.sprv");
+    auto fsSky = device.loadShader(sh.data,sh.len);
+    pSky       = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutSky, vsSky,  fsSky );
+    }
   }
 
 void RendererStorage::initShadow() {

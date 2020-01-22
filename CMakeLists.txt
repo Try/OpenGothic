@@ -22,29 +22,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/opengothic)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/opengothic)
 set(CMAKE_SKIP_RPATH ON)
 
-
-## system dependencies
-
-# GLSL to SPIRV compiler
-find_program(GLSLANGVALIDATOR glslangValidator)
-if(NOT GLSLANGVALIDATOR)
-	message(FATAL_ERROR "glslangValidator required")
-endif()
-
-function(compile_shader OUTPUT SOURCE)
-  set(OUTPUT_FILE "${CMAKE_BINARY_DIR}/opengothic/shader/${OUTPUT}.sprv")
-  set(SOURCE_FILE "${CMAKE_SOURCE_DIR}/shader/${SOURCE}")
-  list(SUBLIST ARGV 2 -1 VARS)
-
-  add_custom_command(
-    OUTPUT ${OUTPUT_FILE}
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/opengothic/shader/"
-    COMMAND ${GLSLANGVALIDATOR} -V ${VARS} ${SOURCE_FILE} -o ${OUTPUT_FILE}
-    DEPENDS ${SOURCE_FILE})
-  set(OPENGOTHIC_SHADERS ${OPENGOTHIC_SHADERS} ${OUTPUT_FILE} PARENT_SCOPE)
-endfunction(compile_shader)
-
-
 ## submodule dependencies
 
 # edd-dbg
@@ -71,11 +48,9 @@ add_subdirectory(lib/bullet3)
 set(BUILD_SHARED_LIBS ${BUILD_SHARED_MOLTEN_TEMPEST})
 add_subdirectory(lib/MoltenTempest/Engine)
 
-
 ## OpenGothic
 
 # sources
-# OpenGothic
 file(GLOB OPENGOTHIC_SOURCES
     "Game/*.h"
     "Game/*.cpp"
@@ -87,37 +62,11 @@ file(GLOB OPENGOTHIC_SOURCES
     "Game/**/**/**/*.cpp")
 
 # shaders
-# Ubershader flags:
-#   OBJ        - enable object matrix
-#   SKINING    - animation skeleton
-#   SHADOW_MAP - output is shadowmap
-#   ATEST      - use alpha test
-#   PFX        - use color modulation
-compile_shader(land.vert            main.vert -DATEST)
-compile_shader(land.frag            main.frag -DATEST)
-compile_shader(object.vert          main.vert -DATEST -DOBJ)
-compile_shader(object.frag          main.frag -DATEST -DOBJ)
-compile_shader(anim.vert            main.vert -DATEST -DOBJ -DSKINING)
-compile_shader(anim.frag            main.frag -DATEST -DOBJ -DSKINING)
-compile_shader(pfx.vert             main.vert -DPFX)
-compile_shader(pfx.frag             main.frag -DPFX)
-compile_shader(land_shadow.vert     main.vert -DATEST -DSHADOW_MAP)
-compile_shader(land_shadow.frag     main.frag -DATEST -DSHADOW_MAP)
-compile_shader(object_shadow.vert   main.vert -DATEST -DOBJ -DSHADOW_MAP)
-compile_shader(object_shadow.frag   main.frag -DATEST -DOBJ -DSHADOW_MAP)
-compile_shader(anim_shadow.vert     main.vert -DOBJ -DSKINING -DSHADOW_MAP)
-compile_shader(anim_shadow.frag     main.frag -DOBJ -DSKINING -DSHADOW_MAP)
-compile_shader(pfx_shadow.vert      main.vert -DSHADOW_MAP)
-compile_shader(pfx_shadow.frag      main.frag -DSHADOW_MAP)
-compile_shader(sky.vert             sky.vert "")
-compile_shader(sky.frag             sky.frag "")
-compile_shader(shadow_compose.vert  shadow_compose.vert "")
-compile_shader(shadow_compose.frag  shadow_compose.frag "")
+add_subdirectory(shader)
 
 # executable
 add_executable(${PROJECT_NAME}
     ${OPENGOTHIC_SOURCES}
-    ${OPENGOTHIC_SHADERS}
     icon.rc)
 
 include_directories("Game")
@@ -150,12 +99,9 @@ target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath)
 include_directories(lib/MoltenTempest/Engine/include)
 target_link_libraries(${PROJECT_NAME} MoltenTempest)
 
-# copy data to binary directory
-#add_custom_command(
-#    TARGET ${PROJECT_NAME} POST_BUILD
-#    COMMAND ${CMAKE_COMMAND} -E copy_directory
-#    ${CMAKE_SOURCE_DIR}/data/
-#    ${CMAKE_CURRENT_BINARY_DIR}/opengothic/data/)
+# shaders
+#include_directories("${CMAKE_CURRENT_BINARY_DIR}/shader/sprv/")
+target_link_libraries(${PROJECT_NAME} GothicShaders)
 
 # script for launching in binary directory
 if(WIN32)

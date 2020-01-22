@@ -54,13 +54,11 @@ after_build:
   # zip the results
   - cmd: set name="opengothic_win.zip"
   - cmd: 7z a %name%    VERSION
-  - cmd: 7z a %name%    "shader/*.sprv"
   - cmd: 7z a %name% -r "*.exe"
   - cmd: 7z a %name% -r "*.dll"
   - cmd: 7z a %name% -r "*.bat"
   - sh:  export name="opengothic_linux.zip"
   - sh:  7z a $name     VERSION
-  - sh:  7z a $name     "*.sprv"
   - sh:  7z a $name     "*"
   - sh:  7z a $name     "*"
   - sh:  7z a $name     "Gothic2Notr.sh"

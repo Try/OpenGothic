@@ -12,7 +12,7 @@
 using namespace Tempest;
 
 Renderer::Renderer(Tempest::Device &device,Tempest::Swapchain& swapchain,Gothic& gothic)
-  :device(device),swapchain(swapchain),gothic(gothic),stor(device) {
+  :device(device),swapchain(swapchain),gothic(gothic),stor(device,gothic) {
   view.identity();
 
   static const TextureFormat shfrm[] = {
