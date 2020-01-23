@@ -289,14 +289,15 @@ void PfxObjects::updateUbo(uint32_t imgId, uint64_t ticks) {
   }
 
 void PfxObjects::commitUbo(uint32_t imgId, const Tempest::Texture2d& shadowMap) {
-  bucket.remove_if([](const Bucket& b){
-    return b.impl.size()==0;
+  bucket.remove_if([](const Bucket& ){
+    // FIXME: Cannot free VkNonDispatchableHandle that is in use by a command buffer.
+    return false;//b.impl.size()==0;
     });
 
   for(auto& i:bucket) {
     auto& pf = i.pf[imgId];
 
-    pf.ubo.set(0,uboGlobalPf[imgId],0,sizeof(UboGlobal));
+    pf.ubo.set(0,uboGlobalPf[imgId],0,1);
     pf.ubo.set(2,*i.owner->visName_S);
     pf.ubo.set(3,shadowMap);
     }

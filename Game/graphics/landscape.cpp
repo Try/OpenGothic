@@ -11,8 +11,8 @@ Landscape::Landscape(const RendererStorage &storage, const ZenLoad::PackedMesh &
 
   pf.reset(new PerFrame[device.maxFramesInFlight()]);
   for(size_t i=0;i<device.maxFramesInFlight();++i){
-    pf[i].uboGpu[0] = device.loadUbo(&uboCpu,sizeof(uboCpu));
-    pf[i].uboGpu[1] = device.loadUbo(&uboCpu,sizeof(uboCpu));
+    pf[i].uboGpu[0] = device.loadUbo(uboCpu);
+    pf[i].uboGpu[1] = device.loadUbo(uboCpu);
     }
 
   static_assert(sizeof(Resources::Vertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
@@ -50,11 +50,11 @@ void Landscape::setMatrix(uint32_t frameId, const Matrix4x4 &mat, const Matrix4x
 
   uboCpu.mvp    = mat;
   uboCpu.shadow = sh[1];
-  pf[frameId].uboGpu[1].update(&uboCpu,0,sizeof(uboCpu));
+  pf[frameId].uboGpu[1].update(&uboCpu,0,1);
 
   uboCpu.mvp    = mat;
   uboCpu.shadow = sh[0];
-  pf[frameId].uboGpu[0].update(&uboCpu,0,sizeof(uboCpu));
+  pf[frameId].uboGpu[0].update(&uboCpu,0,1);
   }
 
 void Landscape::setLight(const Light &l, const Vec3 &ambient) {
@@ -96,15 +96,15 @@ void Landscape::commitUbo(uint32_t frameId,const Tempest::Texture2d& shadowMap) 
     if(uboS1.isEmpty())
       uboS1 = storage.device.uniforms(storage.uboLndLayout());
 
-    uboL.set(0,pf.uboGpu[0],0,sizeof(uboCpu));
+    uboL.set(0,pf.uboGpu[0],0,1);
     uboL.set(2,*lnd.texture);
     uboL.set(3,shadowMap);
 
-    uboS0.set(0,pf.uboGpu[0],0,sizeof(uboCpu));
+    uboS0.set(0,pf.uboGpu[0],0,1);
     uboS0.set(2,*lnd.texture);
     uboS0.set(3,Resources::fallbackTexture());
 
-    uboS1.set(0,pf.uboGpu[1],0,sizeof(uboCpu));
+    uboS1.set(0,pf.uboGpu[1],0,1);
     uboS1.set(2,*lnd.texture);
     uboS1.set(3,Resources::fallbackTexture());
     }

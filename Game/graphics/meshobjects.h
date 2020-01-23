@@ -4,7 +4,6 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Uniforms>
 #include <Tempest/UniformBuffer>
-#include <Tempest/AlignedArray>
 
 #include <vector>
 #include <list>

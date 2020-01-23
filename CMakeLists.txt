@@ -123,4 +123,3 @@ install(
     TARGETS ${PROJECT_NAME}
     DESTINATION bin
     )
-# FIXME: install data and shaders

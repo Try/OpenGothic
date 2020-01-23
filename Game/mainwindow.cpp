@@ -22,7 +22,7 @@
 using namespace Tempest;
 
 MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
-  : Window(Maximized),device(api,hwnd()),swapchain(hwnd(),device),atlas(device),resources(gothic,device),
+  : Window(Maximized),device(api),swapchain(device,hwnd()),atlas(device),resources(gothic,device),
     renderer(device,swapchain,gothic),gothic(gothic),inventory(gothic,renderer.storage()),
     dialogs(gothic,inventory),document(gothic),chapter(gothic),
     player(gothic,dialogs,inventory) {

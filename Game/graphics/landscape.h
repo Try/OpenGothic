@@ -34,8 +34,8 @@ class Landscape final {
       };
 
     struct PerFrame {
-      std::vector<Tempest::Uniforms> ubo[3];
-      Tempest::UniformBuffer         uboGpu[2];
+      std::vector<Tempest::Uniforms>  ubo[3];
+      Tempest::UniformBuffer<UboLand> uboGpu[2];
       };
 
     struct Block {

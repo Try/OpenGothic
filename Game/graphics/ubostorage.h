@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Tempest/AlignedArray>
 #include <Tempest/UniformBuffer>
 #include <Tempest/Uniforms>
 #include <Tempest/Device>
@@ -16,10 +15,8 @@ class UboStorage {
     void                     updateUbo(uint32_t imgId);
     size_t                   alloc();
     void                     free(const size_t objId);
-
-    size_t                   elementSize() const { return obj.elementSize(); }
     const
-    Tempest::UniformBuffer&  operator[](size_t i) const { return pf[i].uboData; }
+    Tempest::UniformBuffer<Ubo>& operator[](size_t i) const { return pf[i].uboData; }
 
     void                     markAsChanged();
     Ubo&                     element(size_t i){ return obj[i]; }
@@ -28,20 +25,20 @@ class UboStorage {
 
   private:
     struct PerFrame final {
-      Tempest::UniformBuffer uboData;
-      std::atomic_bool       uboChanged{false};  // invalidate ubo array
+      Tempest::UniformBuffer<Ubo> uboData;
+      std::atomic_bool            uboChanged{false};  // invalidate ubo array
       };
 
     std::unique_ptr<PerFrame[]> pf;
     size_t                      pfSize=0;
 
-    Tempest::AlignedArray<Ubo>  obj;
+    std::vector<Ubo>            obj;
     std::vector<size_t>         freeList;
   };
 
 template<class Ubo>
 UboStorage<Ubo>::UboStorage(Tempest::Device &device)
-  :pfSize(device.maxFramesInFlight()),obj(device.caps().minUboAligment) {
+  :pfSize(device.maxFramesInFlight()) {
   pf.reset(new PerFrame[pfSize]);
   }
 
@@ -72,19 +69,19 @@ void UboStorage<Ubo>::markAsChanged() {
 template<class Ubo>
 void UboStorage<Ubo>::commitUbo(Tempest::Device& device,uint32_t imgId) {
   auto& frame=pf[imgId];
-  size_t sz = obj.byteSize();
+  size_t sz = obj.size();
   if(frame.uboData.size()!=sz)
-    frame.uboData = device.loadUbo(obj.data(),sz); else
+    frame.uboData = device.loadUbo<Ubo>(obj.data(),obj.size()); else
     frame.uboData.update(obj.data(),0,sz);
   }
 
 template<class Ubo>
 void UboStorage<Ubo>::updateUbo(uint32_t imgId) {
   auto& frame=pf[imgId];
-  size_t sz = obj.byteSize();
+  size_t sz = obj.size();
   assert(sz==frame.uboData.size());
   if(frame.uboChanged) {
-    frame.uboData.update(obj.data(),0,sz);
+    frame.uboData.update(obj.data(),0,obj.size());
     frame.uboChanged = false;
     }
   }

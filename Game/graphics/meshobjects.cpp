@@ -169,15 +169,15 @@ void MeshObjects::commitUbo(uint32_t imgId,const Tempest::Texture2d& shadowMap) 
 
   for(auto& i:chunksSt){
     auto& ubo = i.uboMain(imgId);
-    ubo.set(0,uboGlobalPf[0][imgId],0,sizeof(UboGlobal));
-    ubo.set(1,storageSt[imgId],0,storageSt.elementSize());
+    ubo.set(0,uboGlobalPf[0][imgId],0,1);
+    ubo.set(1,storageSt[imgId],0,1);
     ubo.set(2,i.texture());
     ubo.set(3,shadowMap);
     }
   for(auto& i:chunksDn){
     auto& ubo = i.uboMain(imgId);
-    ubo.set(0,uboGlobalPf[0][imgId],0,sizeof(UboGlobal));
-    ubo.set(1,storageDn[imgId],0,storageDn.elementSize());
+    ubo.set(0,uboGlobalPf[0][imgId],0,1);
+    ubo.set(1,storageDn[imgId],0,1);
     ubo.set(2,i.texture());
     ubo.set(3,shadowMap);
     }
@@ -185,15 +185,15 @@ void MeshObjects::commitUbo(uint32_t imgId,const Tempest::Texture2d& shadowMap) 
   for(int layer=0;layer<2;++layer) {
     for(auto& i:chunksSt){
       auto& ubo = i.uboShadow(imgId,layer);
-      ubo.set(0,uboGlobalPf[layer][imgId],0,sizeof(UboGlobal));
-      ubo.set(1,storageSt[imgId],0,storageSt.elementSize());
+      ubo.set(0,uboGlobalPf[layer][imgId],0,1);
+      ubo.set(1,storageSt[imgId],0,1);
       ubo.set(2,i.texture());
       ubo.set(3,Resources::fallbackTexture());
       }
     for(auto& i:chunksDn){
       auto& ubo = i.uboShadow(imgId,layer);
-      ubo.set(0,uboGlobalPf[layer][imgId],0,sizeof(UboGlobal));
-      ubo.set(1,storageDn[imgId],0,storageDn.elementSize());
+      ubo.set(0,uboGlobalPf[layer][imgId],0,1);
+      ubo.set(1,storageDn[imgId],0,1);
       ubo.set(2,i.texture());
       ubo.set(3,Resources::fallbackTexture());
       }
