@@ -230,16 +230,17 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
     if(r.isEquiped())
       player->unequipItem(r.clsId()); else
       player->useItem    (r.clsId());
-    }
-  else if(state==State::Chest || state==State::Trade || state==State::Ransack) {
-    takeTimer.start(100);
-    onTakeStuff();
-    }
-  adjustScroll();
   }
+  else if(state==State::Chest || state==State::Trade || state==State::Ransack) {
+    takeTimer.start(200);
+    onTakeStuff();
+  }
+  adjustScroll();
+}
 
 void InventoryMenu::mouseUpEvent(MouseEvent&) {
   takeTimer.stop();
+  takeCount=0;
   }
 
 void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
@@ -309,33 +310,39 @@ InventoryMenu::PageLocal &InventoryMenu::activePageSel() {
   }
 
 void InventoryMenu::onTakeStuff() {
-  auto& page = activePage();
-  auto& sel  = activePageSel();
-  if(sel.sel>=page.size())
-    return;
-  auto& r = page[sel.sel];
+  ++takeCount;
+  for(int i = 0; i < pow(10,takeCount / 10); ++i) {
+    auto& page = activePage();
+    auto& sel = activePageSel();
+    if(sel.sel >= page.size())
+      return;
+    auto& r = page[sel.sel];
+    if(r.count() == 1) {
+      takeCount = 1;
+    }
 
-  if(state==State::Chest) {
-    if(page.is(&player->inventory())){
-      player->moveItem(r.clsId(),*chest);
+    if(state==State::Chest) {
+      if(page.is(&player->inventory())) {
+        player->moveItem(r.clsId(),*chest);
       } else {
-      player->addItem(r.clsId(),*chest);
+        player->addItem(r.clsId(),*chest);
       }
     }
-  else if(state==State::Trade) {
-    if(page.is(&player->inventory())){
-      player->sellItem(r.clsId(),*trader);
+    else if(state==State::Trade) {
+      if(page.is(&player->inventory())) {
+        player->sellItem(r.clsId(),*trader);
       } else {
-      player->buyItem(r.clsId(),*trader);
+        player->buyItem(r.clsId(),*trader);
       }
     }
-  else if(state==State::Ransack) {
-    if(page.is(&trader->inventory())){
-      player->addItem(r.clsId(),*trader);
+    else if(state==State::Ransack) {
+      if(page.is(&trader->inventory())) {
+        player->addItem(r.clsId(),*trader);
       }
     }
-  adjustScroll();
+    adjustScroll();
   }
+}
 
 void InventoryMenu::adjustScroll() {
   auto& page=activePage();

@@ -79,6 +79,7 @@ class InventoryMenu : public Tempest::Widget {
 
     uint8_t                   page       =0;
     Tempest::Timer            takeTimer;
+    size_t                    takeCount  =0;
     InventoryRenderer         renderer;
 
     size_t                    columsCount=5;
