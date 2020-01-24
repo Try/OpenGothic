@@ -3,7 +3,7 @@
 StaticMesh::StaticMesh(const ZenLoad::PackedMesh &mesh) {
   static_assert(sizeof(Vertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
   const Vertex* vert=reinterpret_cast<const Vertex*>(mesh.vertices.data());
-  vbo = Resources::loadVbo<Vertex>(vert,mesh.vertices.size());
+  vbo = Resources::vbo<Vertex>(vert,mesh.vertices.size());
 
   sub.resize(mesh.subMeshes.size());
   for(size_t i=0;i<mesh.subMeshes.size();++i){
@@ -11,7 +11,7 @@ StaticMesh::StaticMesh(const ZenLoad::PackedMesh &mesh) {
     sub[i].texture = Resources::loadTexture(sub[i].texName);
     if(sub[i].texture==nullptr)
       sub[i].texture = &Resources::fallbackTexture();
-    sub[i].ibo     = Resources::loadIbo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
+    sub[i].ibo     = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
     }
   }
 
@@ -31,12 +31,12 @@ StaticMesh::StaticMesh(const ZenLoad::PackedSkeletalMesh &mesh) {
     cvbo[i].pos[1]  = mesh.vertices[i].LocalPositions[0].y;
     cvbo[i].pos[2]  = mesh.vertices[i].LocalPositions[0].z;
     }
-  vbo = Resources::loadVbo<Vertex>(cvbo.data(),cvbo.size());
+  vbo = Resources::vbo<Vertex>(cvbo.data(),cvbo.size());
 
   sub.resize(mesh.subMeshes.size());
   for(size_t i=0;i<mesh.subMeshes.size();++i){
     sub[i].texName = mesh.subMeshes[i].material.texture;
     sub[i].texture = Resources::loadTexture(sub[i].texName);
-    sub[i].ibo     = Resources::loadIbo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
+    sub[i].ibo     = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
     }
   }

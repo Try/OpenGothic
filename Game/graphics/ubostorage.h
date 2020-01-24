@@ -71,7 +71,7 @@ void UboStorage<Ubo>::commitUbo(Tempest::Device& device,uint32_t imgId) {
   auto& frame=pf[imgId];
   size_t sz = obj.size();
   if(frame.uboData.size()!=sz)
-    frame.uboData = device.loadUbo<Ubo>(obj.data(),obj.size()); else
+    frame.uboData = device.ubo<Ubo>(obj.data(),obj.size()); else
     frame.uboData.update(obj.data(),0,sz);
   }
 

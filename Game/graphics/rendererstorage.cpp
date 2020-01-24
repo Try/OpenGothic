@@ -14,11 +14,11 @@ void RendererStorage::ShaderPair::load(Device &device, const char *tag, const ch
 
   std::snprintf(buf,sizeof(buf),format,tag,"vert");
   auto sh = GothicShader::get(buf);
-  vs = device.loadShader(sh.data,sh.len);
+  vs = device.shader(sh.data,sh.len);
 
   std::snprintf(buf,sizeof(buf),format,tag,"frag");
   sh = GothicShader::get(buf);
-  fs = device.loadShader(sh.data,sh.len);
+  fs = device.shader(sh.data,sh.len);
   }
 
 void RendererStorage::Material::load(Device &device, const char *f) {
@@ -92,9 +92,9 @@ void RendererStorage::initPipeline(Gothic& gothic) {
   statePfx.setBlendDest    (RenderState::BlendMode::one);
 
   auto sh     = GothicShader::get("shadow_compose.vert.sprv");
-  auto vsComp = device.loadShader(sh.data,sh.len);
+  auto vsComp = device.shader(sh.data,sh.len);
   sh          = GothicShader::get("shadow_compose.frag.sprv");
-  auto fsComp = device.loadShader(sh.data,sh.len);
+  auto fsComp = device.shader(sh.data,sh.len);
 
   pComposeShadow = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutComp,vsComp, fsComp);
   
@@ -108,15 +108,15 @@ void RendererStorage::initPipeline(Gothic& gothic) {
 
   if(gothic.version().game==1) {
     auto sh    = GothicShader::get("sky_g1.vert.sprv");
-    auto vsSky = device.loadShader(sh.data,sh.len);
+    auto vsSky = device.shader(sh.data,sh.len);
     sh         = GothicShader::get("sky_g1.frag.sprv");
-    auto fsSky = device.loadShader(sh.data,sh.len);
+    auto fsSky = device.shader(sh.data,sh.len);
     pSky       = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutSky, vsSky,  fsSky );
     } else {
     auto sh    = GothicShader::get("sky.vert.sprv");
-    auto vsSky = device.loadShader(sh.data,sh.len);
+    auto vsSky = device.shader(sh.data,sh.len);
     sh         = GothicShader::get("sky.frag.sprv");
-    auto fsSky = device.loadShader(sh.data,sh.len);
+    auto fsSky = device.shader(sh.data,sh.len);
     pSky       = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutSky, vsSky,  fsSky );
     }
   }

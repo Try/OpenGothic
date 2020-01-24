@@ -11,20 +11,20 @@ Landscape::Landscape(const RendererStorage &storage, const ZenLoad::PackedMesh &
 
   pf.reset(new PerFrame[device.maxFramesInFlight()]);
   for(size_t i=0;i<device.maxFramesInFlight();++i){
-    pf[i].uboGpu[0] = device.loadUbo(uboCpu);
-    pf[i].uboGpu[1] = device.loadUbo(uboCpu);
+    pf[i].uboGpu[0] = device.ubo(uboCpu);
+    pf[i].uboGpu[1] = device.ubo(uboCpu);
     }
 
   static_assert(sizeof(Resources::Vertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
   const Resources::Vertex* vert=reinterpret_cast<const Resources::Vertex*>(mesh.vertices.data());
-  vbo = Resources::loadVbo<Resources::Vertex>(vert,mesh.vertices.size());
+  vbo = Resources::vbo<Resources::Vertex>(vert,mesh.vertices.size());
 
   for(auto& i:mesh.subMeshes){
     if(i.material.alphaFunc==Resources::AdditiveLight)
       continue;
 
     Block b={};
-    b.ibo     = Resources::loadIbo(i.indices.data(),i.indices.size());
+    b.ibo     = Resources::ibo(i.indices.data(),i.indices.size());
     b.texture = Resources::loadTexture(i.material.texture);
 
     if(i.material.alphaFunc==Resources::Transparent)

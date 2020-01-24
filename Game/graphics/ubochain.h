@@ -21,7 +21,7 @@ class UboChain final {
       pf.reset(new PerFrame[maxFrames]);
 
       for(size_t i=0;i<maxFrames;++i) {
-        pf[i].uboData = device.loadUbo<T>(nullptr,1);
+        pf[i].uboData = device.ubo<T>(nullptr,1);
         }
       }
 

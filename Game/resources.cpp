@@ -57,7 +57,7 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
       {-1,-1},{ 1,1},{1,-1},
       {-1,-1},{-1,1},{1, 1}
    }};
-  fsq = Resources::loadVbo(fsqBuf.data(),fsqBuf.size());
+  fsq = Resources::vbo(fsqBuf.data(),fsqBuf.size());
 
   dxMusic.reset(new Dx8::DirectMusic());
   // G2

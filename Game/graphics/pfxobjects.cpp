@@ -306,7 +306,7 @@ void PfxObjects::commitUbo(uint32_t imgId, const Tempest::Texture2d& shadowMap) 
 void PfxObjects::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId) {
   for(auto& i:bucket) {
     auto& pf = i.pf[imgId];
-    pf.vbo = storage.device.loadVboDyn(i.vbo);
+    pf.vbo = storage.device.vboDyn(i.vbo);
 
     uint32_t offset=0;
     cmd.setUniforms(storage.pPfx,pf.ubo,1,&offset);
