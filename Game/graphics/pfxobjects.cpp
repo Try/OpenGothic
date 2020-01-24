@@ -288,7 +288,7 @@ void PfxObjects::updateUbo(uint32_t imgId, uint64_t ticks) {
   lastUpdate = ticks;
   }
 
-void PfxObjects::commitUbo(uint32_t imgId, const Tempest::Texture2d& shadowMap) {
+void PfxObjects::commitUbo(uint32_t imgId, const Texture2d& shadowMap) {
   bucket.remove_if([](const Bucket& ){
     // FIXME: Cannot free VkNonDispatchableHandle that is in use by a command buffer.
     return false;//b.impl.size()==0;

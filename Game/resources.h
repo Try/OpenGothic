@@ -100,10 +100,10 @@ class Resources final {
     static Dx8::Music                loadDxMusic(const char *name);
 
     template<class V>
-    static Tempest::VertexBuffer<V>  vbo(const V* data,size_t sz){ return inst->device.vbo(data,sz,Tempest::BufferFlags::Static); }
+    static Tempest::VertexBuffer<V>  vbo(const V* data,size_t sz){ return inst->device.vbo(data,sz); }
 
     template<class V>
-    static Tempest::IndexBuffer<V>   ibo(const V* data,size_t sz){ return inst->device.ibo(data,sz,Tempest::BufferFlags::Static); }
+    static Tempest::IndexBuffer<V>   ibo(const V* data,size_t sz){ return inst->device.ibo(data,sz); }
 
     static std::vector<uint8_t>      getFileData(const char*        name);
     static bool                      getFileData(const char*        name,std::vector<uint8_t>& dat);

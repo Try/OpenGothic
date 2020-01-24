@@ -292,9 +292,9 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
     }
   uiKeyUp=nullptr;
   pressed[event.key]=true;
-  if(event.key==Event::K_F10) {
-    auto tex = renderer.screenshoot();
-    auto pm  = device.readPixels(tex);
+  if(event.key==Event::K_F9) {
+    auto tex = renderer.screenshoot(swapchain.frameId());
+    auto pm  = device.readPixels(textureCast(tex));
     pm.save("dbg.png");
     }
   if(event.key==Event::K_F11) {
@@ -650,10 +650,10 @@ void MainWindow::loadGame(const std::string &name) {
   }
 
 void MainWindow::saveGame(const std::string &name) {
-  auto tex = renderer.screenshoot();
-  auto pm  = device.readPixels(tex);
+  auto tex = renderer.screenshoot(swapchain.frameId());
+  auto pm  = device.readPixels(textureCast(tex));
 
-  gothic.startSave(std::move(tex),[name,pm](std::unique_ptr<GameSession>&& game){
+  gothic.startSave(std::move(textureCast(tex)),[name,pm](std::unique_ptr<GameSession>&& game){
     if(!game)
       return std::move(game);
 

@@ -65,7 +65,7 @@ void Landscape::setLight(const Light &l, const Vec3 &ambient) {
   uboCpu.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
   }
 
-void Landscape::commitUbo(uint32_t frameId,const Tempest::Texture2d& shadowMap) {
+void Landscape::commitUbo(uint32_t frameId, const Tempest::Texture2d& shadowMap) {
   PerFrame& pf      = this->pf[frameId];
   auto&     uboLand = pf.ubo[0];
   auto&     uboSm0  = pf.ubo[1];

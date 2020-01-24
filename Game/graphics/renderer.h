@@ -28,8 +28,8 @@ class Renderer final {
 
     void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &&cmd, uint32_t frameId, uint32_t imgId,
               Tempest::VectorImage& img, InventoryMenu &inventory, const Gothic& gothic);
-    Tempest::Texture2d screenshoot();
 
+    Tempest::Attachment               screenshoot(uint8_t frameId);
     const RendererStorage&            storage() const { return stor; }
 
   private:
@@ -39,8 +39,8 @@ class Renderer final {
     Tempest::Matrix4x4                view;
     Tempest::Matrix4x4                shadow[2];
 
-    Tempest::Texture2d                zbuffer, zbufferItem;
-    Tempest::Texture2d                shadowMap[2], shadowZ[2], shadowMapFinal;
+    Tempest::Attachment               zbuffer, zbufferItem;
+    Tempest::Attachment               shadowMap[2], shadowZ[2], shadowMapFinal;
     Tempest::TextureFormat            shadowFormat =Tempest::TextureFormat::RGBA8;
     Tempest::TextureFormat            zBufferFormat=Tempest::TextureFormat::Depth16;
     std::vector<Tempest::FrameBuffer> fbo3d, fboUi, fboItem;

@@ -73,7 +73,7 @@ class MeshObjects final {
     Mesh get(const ProtoMesh&  mesh,int32_t headTexVar,int32_t teethTex,int32_t bodyColor);
 
     void updateUbo(uint32_t imgId);
-    void commitUbo(uint32_t imgId, const Tempest::Texture2d &shadowMap);
+    void commitUbo(uint32_t imgId, const Tempest::Texture2d& shadowMap);
 
     void reserve(size_t stat,size_t dyn);
 

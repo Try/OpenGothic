@@ -51,27 +51,27 @@ void Renderer::resetSwapchain() {
   const uint32_t imgC   = swapchain.imageCount();
   const uint32_t smSize = 2048;
 
-  zbuffer        = device.texture(zBufferFormat,w,h,false);
-  zbufferItem    = device.texture(zBufferFormat,w,h,false);
-  shadowMapFinal = device.texture(shadowFormat,smSize,smSize,false);
+  zbuffer        = device.attachment(zBufferFormat,w,h);
+  zbufferItem    = device.attachment(zBufferFormat,w,h);
+  shadowMapFinal = device.attachment(shadowFormat,smSize,smSize);
 
   Sampler2d smp;
   smp.setClamping(ClampMode::ClampToBorder);
   smp.anisotropic = false;
 
-  shadowPass = device.pass(Attachment(FboMode::PreserveOut,Color(1.0)), Attachment(FboMode::Discard,1.f));
+  shadowPass = device.pass(FboMode(FboMode::PreserveOut,Color(1.0)), FboMode(FboMode::Discard,1.f));
   for(int i=0;i<2;++i){
-    shadowMap[i] = device.texture(shadowFormat, smSize,smSize,false);
-    shadowZ[i]   = device.texture(zBufferFormat,smSize,smSize,false);
+    shadowMap[i] = device.attachment(shadowFormat, smSize,smSize);
+    shadowZ[i]   = device.attachment(zBufferFormat,smSize,smSize);
     fboShadow[i] = device.frameBuffer(shadowMap[i],shadowZ[i]);
-    shadowMap[i].setSampler(smp);
+    textureCast(shadowMap[i]).setSampler(smp);
     }
 
   fboUi.clear();
   fbo3d.clear();
   fboItem.clear();
   for(uint32_t i=0;i<imgC;++i) {
-    Tempest::Frame frame=swapchain.frame(i);
+    Tempest::Attachment frame=swapchain.frame(i);
     fbo3d  .emplace_back(device.frameBuffer(frame,zbuffer));
     fboItem.emplace_back(device.frameBuffer(frame,zbufferItem));
     fboUi  .emplace_back(device.frameBuffer(frame));
@@ -79,7 +79,7 @@ void Renderer::resetSwapchain() {
 
   composePass = device.pass(FboMode::PreserveOut);
   fboCompose  = device.frameBuffer(shadowMapFinal);
-  shadowMapFinal.setSampler(smp);
+  textureCast(shadowMapFinal).setSampler(smp);
 
   if(auto wview=gothic.worldView())
     wview->initPipeline(w,h);
@@ -87,9 +87,9 @@ void Renderer::resetSwapchain() {
   uboShadowComp.set(0,shadowMap[0]);
   uboShadowComp.set(1,shadowMap[1]);
 
-  mainPass      = device.pass(Attachment(FboMode::PreserveOut,Color(0.0)), Attachment(FboMode::Discard,1.f));
+  mainPass      = device.pass(FboMode(FboMode::PreserveOut,Color(0.0)), FboMode(FboMode::Discard,1.f));
   uiPass        = device.pass(FboMode::Preserve);
-  inventoryPass = device.pass(FboMode::Submit|FboMode::PreserveIn, Attachment(FboMode::Discard,1.f));
+  inventoryPass = device.pass(FboMode::Submit|FboMode::PreserveIn, FboMode(FboMode::Discard,1.f));
   }
 
 void Renderer::onWorldChanged() {
@@ -171,20 +171,20 @@ void Renderer::composeShadow(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer &fb
   cmd.draw(Resources::fsqVbo());
   }
 
-Tempest::Texture2d Renderer::screenshoot() {
+Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   device.waitIdle();
 
   uint32_t w    = uint32_t(zbuffer.w());
   uint32_t h    = uint32_t(zbuffer.h());
 
-  auto        zbuf = device.texture(zBufferFormat,w,h,false);
-  auto        img  = device.texture(Tempest::TextureFormat::RGBA8,w,h,false);
+  auto        zbuf = device.attachment(zBufferFormat,w,h);
+  auto        img  = device.attachment(Tempest::TextureFormat::RGBA8,w,h);
   FrameBuffer fbo  = device.frameBuffer(img,zbuf);
 
   PrimaryCommandBuffer cmd;
   {
   auto enc = cmd.startEncoding(device);
-  draw(enc,fbo,gothic,0);
+  draw(enc,fbo,gothic,frameId);
   }
 
   Fence sync = device.fence();

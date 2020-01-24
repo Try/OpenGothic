@@ -135,7 +135,7 @@ bool WorldView::needToUpdateCmd() const {
          pfxGroup.needToUpdateCommands();
   }
 
-void WorldView::updateCmd(uint32_t frameId, const World &world, const Tempest::Texture2d& shadow,
+void WorldView::updateCmd(uint32_t frameId, const World &world, const Tempest::Attachment& shadow,
                           const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay) {
   if(this->mainLay  ==nullptr || mainLay  !=*this->mainLay ||
      this->shadowLay==nullptr || shadowLay!=*this->shadowLay) {
@@ -184,7 +184,7 @@ void WorldView::updateUbo(uint32_t frameId, const Matrix4x4& view,const Tempest:
   pfxGroup.updateUbo   (frameId,owner.tickCount());
   }
 
-void WorldView::builtCmdBuf(uint32_t frameId, const World &world, const Texture2d& shadowMap,
+void WorldView::builtCmdBuf(uint32_t frameId, const World &world, const Attachment& shadowMap,
                             const FrameBufferLayout& mainLay,const FrameBufferLayout& shadowLay) {
   auto& device = storage.device;
 
@@ -193,12 +193,13 @@ void WorldView::builtCmdBuf(uint32_t frameId, const World &world, const Texture2
     return;
   pf.actual=true;
 
+  auto& smTexture = textureCast(shadowMap);
   sky     .commitUbo(frameId);
-  land    .commitUbo(frameId,shadowMap);
-  vobGroup.commitUbo(frameId,shadowMap);
-  objGroup.commitUbo(frameId,shadowMap);
-  itmGroup.commitUbo(frameId,shadowMap);
-  pfxGroup.commitUbo(frameId,shadowMap);
+  land    .commitUbo(frameId,smTexture);
+  vobGroup.commitUbo(frameId,smTexture);
+  objGroup.commitUbo(frameId,smTexture);
+  itmGroup.commitUbo(frameId,smTexture);
+  pfxGroup.commitUbo(frameId,smTexture);
 
   // cascade#0 detail shadow
   {
