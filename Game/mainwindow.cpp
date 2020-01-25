@@ -734,7 +734,8 @@ void MainWindow::render(){
 
     PrimaryCommandBuffer& cmd = commandDynamic[swapchain.frameId()];
     renderer.draw(cmd.startEncoding(device),swapchain.frameId(),imgId,surface,inventory,gothic);
-    device  .draw(cmd,context.imageAvailable,context.renderDone,context.gpuLock);
+    device.submit(cmd,context.imageAvailable,context.renderDone,context.gpuLock);
+
     swapchain.present(imgId,context.renderDone);
 
     auto t = Application::tickCount();

@@ -71,7 +71,7 @@ void Renderer::resetSwapchain() {
   fbo3d.clear();
   fboItem.clear();
   for(uint32_t i=0;i<imgC;++i) {
-    Tempest::Attachment frame=swapchain.frame(i);
+    Tempest::Attachment& frame=swapchain.frame(i);
     fbo3d  .emplace_back(device.frameBuffer(frame,zbuffer));
     fboItem.emplace_back(device.frameBuffer(frame,zbufferItem));
     fboUi  .emplace_back(device.frameBuffer(frame));
@@ -119,6 +119,9 @@ void Renderer::draw(Encoder<Tempest::PrimaryCommandBuffer> &&cmd, uint32_t frame
   draw(cmd, fbo3d  [imgId], gothic, frameId);
   draw(cmd, fboUi  [imgId], surface);
   draw(cmd, fboItem[imgId], inventory);
+
+  auto& fr = swapchain.frame(imgId);
+  cmd.setLayout(fr,TextureLayout::Present);
   }
 
 void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const Gothic &gothic, uint32_t frameId) {
@@ -184,13 +187,16 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   PrimaryCommandBuffer cmd;
   {
   auto enc = cmd.startEncoding(device);
+
+  enc.setLayout(img,TextureLayout::ColorAttach);
   draw(enc,fbo,gothic,frameId);
+  enc.setLayout(img,TextureLayout::Sampler);
   }
 
   Fence sync = device.fence();
 
   const Tempest::PrimaryCommandBuffer* submit[1]={&cmd};
-  device.draw(submit,1,nullptr,0,nullptr,0,&sync);
+  device.submit(submit,1,nullptr,0,nullptr,0,&sync);
   sync.wait();
 
   return img;
