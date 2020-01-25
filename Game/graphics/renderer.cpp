@@ -89,7 +89,7 @@ void Renderer::resetSwapchain() {
 
   mainPass      = device.pass(FboMode(FboMode::PreserveOut,Color(0.0)), FboMode(FboMode::Discard,1.f));
   uiPass        = device.pass(FboMode::Preserve);
-  inventoryPass = device.pass(FboMode::Submit|FboMode::PreserveIn, FboMode(FboMode::Discard,1.f));
+  inventoryPass = device.pass(FboMode::Preserve, FboMode(FboMode::Discard,1.f));
   }
 
 void Renderer::onWorldChanged() {
@@ -116,11 +116,13 @@ bool Renderer::needToUpdateCmd() {
 
 void Renderer::draw(Encoder<Tempest::PrimaryCommandBuffer> &&cmd, uint32_t frameId, uint32_t imgId,
                     VectorImage &surface, InventoryMenu &inventory, const Gothic &gothic) {
+  auto& fr = swapchain.frame(imgId);
+  cmd.setLayout(fr,TextureLayout::ColorAttach);
+
   draw(cmd, fbo3d  [imgId], gothic, frameId);
   draw(cmd, fboUi  [imgId], surface);
   draw(cmd, fboItem[imgId], inventory);
 
-  auto& fr = swapchain.frame(imgId);
   cmd.setLayout(fr,TextureLayout::Present);
   }
 
