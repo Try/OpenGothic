@@ -390,6 +390,40 @@ void Interactive::autoDettachNpc() {
       }
   }
 
+bool Interactive::checkUseConditions(Npc& npc) {
+  if(!npc.isPlayer())
+    return true;
+
+  auto& sc = npc.world().script();
+  if(!conditionFunc.empty()) {
+    const int check = sc.invokeCond(npc,conditionFunc.c_str());
+    if(check==0) {
+      // FIXME: proper message
+      sc.printNothingToGet();
+      return false;
+      }
+    }
+  if(!useWithItem.empty()) {
+    size_t it = world->getSymbolIndex(useWithItem.c_str());
+    if(it!=size_t(-1)) {
+      if(npc.hasItem(it)==0) {
+        sc.printMobMissingItem(npc);
+        return false;
+        }
+      npc.delItem(it,1);
+      npc.setCurrentItem(it);
+      }
+    }
+  if(!keyInstance.empty()) {
+    size_t it = world->getSymbolIndex(keyInstance.c_str());
+    if(it!=size_t(-1) && npc.hasItem(it)==0) {
+      sc.printMobMissingKey(npc);
+      return false;
+      }
+    }
+  return true;
+  }
+
 const Interactive::Pos *Interactive::findFreePos() const {
   for(auto& i:attPos)
     if(i.user==nullptr && i.isAttachPoint()) {
@@ -434,35 +468,8 @@ bool Interactive::isStaticState() const {
 bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
   assert(to.user==nullptr);
 
-  auto& sc = npc.world().script();
-  if(!conditionFunc.empty() && npc.isPlayer()) {
-    const int check = sc.invokeCond(npc,conditionFunc.c_str());
-    if(check==0) {
-      // FIXME: proper message
-      sc.printNothingToGet();
-      return false;
-      }
-    }
-  if(!useWithItem.empty()) {
-    size_t it = world->getSymbolIndex(useWithItem.c_str());
-    if(it!=size_t(-1)) {
-      if(npc.isPlayer() && npc.hasItem(it)==0) {
-        sc.printMobMissingItem(npc);
-        return false;
-        }
-      npc.delItem(it,1);
-      npc.setCurrentItem(it);
-      }
-    }
-  if(!keyInstance.empty()) {
-    size_t it = world->getSymbolIndex(keyInstance.c_str());
-    if(it!=size_t(-1)) {
-      if(npc.isPlayer() && npc.hasItem(it)==0) {
-        sc.printMobMissingKey(npc);
-        return false;
-        }
-      }
-    }
+  if(!checkUseConditions(npc))
+    return false;
 
   auto mat = nodeTranform(npc,to);
 

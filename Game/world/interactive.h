@@ -86,6 +86,7 @@ class Interactive final {
     void                implAddItem(char *name);
     void                autoDettachNpc();
     void                implChState(bool next);
+    bool                checkUseConditions(Npc& npc);
 
     const Pos*          findFreePos() const;
     Pos*                findFreePos();
