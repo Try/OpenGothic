@@ -450,8 +450,14 @@ void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation
       break;
       }
     case ZenLoad::DEF_PLACE_MUNITION:
-    case ZenLoad::DEF_REMOVE_MUNITION:
+    case ZenLoad::DEF_REMOVE_MUNITION: {
+      EvTimed ex;
+      ex.def     = e.m_Def;
+      ex.slot[0] = e.m_Slot.c_str();
+      ex.time    = time;
+      ev.timed.push_back(ex);
       break;
+      }
     case ZenLoad::DEF_SWAPMESH:
     case ZenLoad::DEF_DRAWTORCH:
     case ZenLoad::DEF_INV_TORCH:

@@ -190,7 +190,7 @@ void Npc::saveAiState(Serialize& fout) const {
   fout.write(uint32_t(aiActions.size()));
   for(auto& i:aiActions){
     fout.write(uint32_t(i.act));
-    fout.write(i.point,i.func,i.i0,i.s0);
+    fout.write(i.point,i.func,i.i0,i.i1,i.s0);
     }
 
   fout.write(uint32_t(routines.size()));
@@ -212,7 +212,10 @@ void Npc::loadAiState(Serialize& fin) {
   aiActions.resize(size);
   for(auto& i:aiActions){
     fin.read(reinterpret_cast<uint32_t&>(i.act));
-    fin.read(i.point,i.func,i.i0,i.s0);
+    fin.read(i.point,i.func,i.i0);
+    if(fin.version()>=4)
+      fin.read(i.i1);
+    fin.read(i.s0);
     }
 
   fin.read(size);
@@ -686,10 +689,6 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
           }
         break;
         }
-      case ZenLoad::DEF_INSERT_ITEM: {
-        invent.putCurrentToSlot(*this,i.slot[0]);
-        break;
-        }
       case ZenLoad::DEF_EXCHANGE_ITEM: {
         invent.clearSlot(*this,i.slot[0],true);
         if(auto it = invent.addItem(i.item,1,world())) {
@@ -697,9 +696,26 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
           }
         break;
         }
+      case ZenLoad::DEF_INSERT_ITEM: {
+        invent.putCurrentToSlot(*this,i.slot[0]);
+        break;
+        }
       case ZenLoad::DEF_REMOVE_ITEM:
       case ZenLoad::DEF_DESTROY_ITEM: {
         invent.clearSlot(*this,nullptr,i.def!=ZenLoad::DEF_REMOVE_ITEM);
+        break;
+        }
+      case ZenLoad::DEF_PLACE_MUNITION: {
+        auto active=invent.activeWeapon();
+        if(active!=nullptr) {
+          const int32_t munition = active->handle()->munition;
+          invent.putToSlot(*this,uint32_t(munition),i.slot[0]);
+          }
+        break;
+        }
+      case ZenLoad::DEF_REMOVE_MUNITION: {
+        // TODO: track amunition slots separatly
+        invent.clearSlot(*this,nullptr,false);
         break;
         }
       default:
@@ -1590,7 +1606,11 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
     case AI_UseItemToState:
       if(act.i0!=0) {
-        invent.setStateItem(uint32_t(act.i0)); // state?!
+        uint32_t itm   = uint32_t(act.i0);
+        int      state = act.i1;
+        if(state>=0)
+          invent.putToSlot(*this,itm,"ZS_LEFTHAND"); else
+          invent.clearSlot(*this,"ZS_LEFTHAND",false);
         }
       break;
     case AI_Teleport: {
@@ -2727,11 +2747,10 @@ void Npc::aiUseItem(int32_t id) {
   }
 
 void Npc::aiUseItemToState(int32_t id, int32_t state) {
-  // TODO
-  (void)state;
   AiAction a;
-  a.act = AI_UseItemToState;
-  a.i0  = id;
+  a.act  = AI_UseItemToState;
+  a.i0   = id;
+  a.i1   = state;
   aiActions.push_back(a);
   }
 

@@ -79,7 +79,8 @@ void Pose::setSkeleton(const Skeleton* sk) {
   lay.clear();
   }
 
-bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, BodyState bs, bool force, uint64_t tickCount) {
+bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, BodyState bs,
+                     bool force, uint64_t tickCount) {
   if(sq==nullptr)
     return false;
 

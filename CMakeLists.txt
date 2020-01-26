@@ -100,7 +100,6 @@ include_directories(lib/MoltenTempest/Engine/include)
 target_link_libraries(${PROJECT_NAME} MoltenTempest)
 
 # shaders
-#include_directories("${CMAKE_CURRENT_BINARY_DIR}/shader/sprv/")
 target_link_libraries(${PROJECT_NAME} GothicShaders)
 
 # script for launching in binary directory

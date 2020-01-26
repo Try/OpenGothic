@@ -508,6 +508,7 @@ class Npc final {
       const WayPoint*   point =nullptr;
       size_t            func  =0;
       int               i0    =0;
+      int               i1    =0;
       Daedalus::ZString s0;
       };
 
