@@ -13,35 +13,59 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
     }
 
   void renderSound(int16_t* out,size_t n) override {
-    const Daedalus::GEngineClasses::C_MusicTheme* theme=nullptr;
-    {
-      std::lock_guard<std::mutex> guard(pendingSync);
-      theme = pendingMusic;
-      pendingMusic = nullptr;
-    }
-
-    if(theme!=nullptr) {
-      try {
-        //Dx8::Music m = Resources::loadDxMusic("OWD_DayStd.sgt");
-        Dx8::Music m = Resources::loadDxMusic(theme->file.c_str());
-        m.setVolume(theme->vol);
-        mix.setMusic(m);
-        }
-      catch(std::runtime_error&) {
-        Log::e("unable to load sound: ",theme->file.c_str());
-        }
-      }
+    updateTheme();
     mix.mix(out,n);
     }
 
-  void setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme){
+  void updateTheme() {
+    Daedalus::GEngineClasses::C_MusicTheme theme;
+    bool                                   updateTheme=false;
+
+    {
+      std::lock_guard<std::mutex> guard(pendingSync);
+      if(hasPending) {
+        hasPending  = false;
+        updateTheme = true;
+        theme       = pendingMusic;
+        }
+    }
+
+    if(!updateTheme)
+      return;
+    updateTheme = false;
+
+    try {
+      //Dx8::PatternList m = Resources::loadDxMusic("OWD_DayStd.sgt");
+      Dx8::PatternList p = Resources::loadDxMusic(theme.file.c_str());
+
+      Dx8::Music m;
+      for(size_t i=0;i<p.size();++i) {
+        auto& pat = p[i];
+        if(pat.name.find("Std")!=std::string::npos)
+          m.addPattern(p,i);
+        }
+      if(m.size()==0)
+        m.addPattern(p);
+
+      m.setVolume(theme.vol);
+      mix.setMusic(m);
+      }
+    catch(std::runtime_error&) {
+      Log::e("unable to load sound: ",theme.file.c_str());
+      }
+    }
+
+  bool setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme){
     std::lock_guard<std::mutex> guard(pendingSync);
-    pendingMusic = &theme;
+    if(pendingMusic.file==theme.file)
+      return false;
+    pendingMusic = theme;
+    hasPending   = true;
+    return true;
     }
 
   void stopMusic() {
     std::lock_guard<std::mutex> guard(pendingSync);
-    pendingMusic = nullptr;
     mix.setMusic(Dx8::Music());
     }
 
@@ -52,7 +76,8 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
   Dx8::Mixer                                    mix;
 
   std::mutex                                    pendingSync;
-  const Daedalus::GEngineClasses::C_MusicTheme* pendingMusic=nullptr;
+  bool                                          hasPending=false;
+  Daedalus::GEngineClasses::C_MusicTheme        pendingMusic;
   };
 
 struct GameMusic::Impl final {
@@ -65,10 +90,8 @@ struct GameMusic::Impl final {
     }
 
   void setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme) {
-    if(currentMusic.file==theme.file)
+    if(!dxMixer->setMusic(theme))
       return;
-    currentMusic = theme;
-    dxMixer->setMusic(theme);
     sound.play();
     }
 
@@ -80,9 +103,8 @@ struct GameMusic::Impl final {
   Tempest::SoundEffect                          sound;
 
   MusicProducer*                                dxMixer=nullptr;
-  Daedalus::GEngineClasses::C_MusicTheme        currentMusic;
-  float                                         masterVolume=0.1f;
-  bool                                          enableMusic=false;
+  float                                         masterVolume=0.5f;
+  bool                                          enableMusic=true;
   };
 
 GameMusic::GameMusic() {
@@ -102,7 +124,7 @@ bool GameMusic::isEnabled() const {
   return impl->enableMusic;
   }
 
-void GameMusic::setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme) {
+void GameMusic::setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme,const char*) {
   if(!impl->enableMusic)
     return;
   impl->setMusic(theme);

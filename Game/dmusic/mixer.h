@@ -8,6 +8,7 @@
 #include <thread>
 #include <atomic>
 
+#include "patternlist.h"
 #include "music.h"
 
 namespace Dx8 {
@@ -36,30 +37,32 @@ class Mixer final {
       };
 
     struct Instr {
-      Music::InsInternal* ptr=nullptr;
-      float               volLast=1.f;
-      std::shared_ptr<Music::PatternInternal> pattern; //prevent pattern from deleting
+      PatternList::InsInternal* ptr=nullptr;
+      float                     volLast=1.f;
+      std::shared_ptr<PatternList::PatternInternal> pattern; //prevent pattern from deleting
       };
 
-    Step     stepInc  (Music::PatternInternal &pptn, int64_t b, int64_t e, int64_t samplesRemain);
-    void     stepApply(std::shared_ptr<Music::PatternInternal> &pptn, const Step& s, int64_t b);
-    void     implMix  (Music::PatternInternal &pptn, float volume, int16_t *out, size_t cnt);
+    using PatternInternal = PatternList::PatternInternal;
 
-    int64_t  nextNoteOn (Music::PatternInternal &part, int64_t b, int64_t e);
+    Step     stepInc  (PatternInternal &pptn, int64_t b, int64_t e, int64_t samplesRemain);
+    void     stepApply(std::shared_ptr<PatternList::PatternInternal> &pptn, const Step& s, int64_t b);
+    void     implMix  (PatternList::PatternInternal &pptn, float volume, int16_t *out, size_t cnt);
+
+    int64_t  nextNoteOn (PatternInternal &part, int64_t b, int64_t e);
     int64_t  nextNoteOff(int64_t b, int64_t e);
 
-    void     noteOn (std::shared_ptr<Music::PatternInternal> &pattern, Music::Note *r);
-    void     noteOn (std::shared_ptr<Music::PatternInternal> &pattern, int64_t time);
+    void     noteOn (std::shared_ptr<PatternInternal> &pattern, PatternList::Note *r);
+    void     noteOn (std::shared_ptr<PatternInternal> &pattern, int64_t time);
     void     noteOff(int64_t time);
-    std::shared_ptr<Music::PatternInternal> checkPattern(std::shared_ptr<Music::PatternInternal> p);
+    std::shared_ptr<PatternInternal> checkPattern(std::shared_ptr<PatternInternal> p);
 
     void     nextPattern();
-    void     volFromCurve(Music::PatternInternal &part, Instr &ins, std::vector<float> &v);
+    void     volFromCurve(PatternInternal &part, Instr &ins, std::vector<float> &v);
 
     std::shared_ptr<Music::Internal> current=nullptr;
     int64_t                          sampleCursor=0;
 
-    std::shared_ptr<Music::PatternInternal> pattern=nullptr;
+    std::shared_ptr<PatternInternal> pattern=nullptr;
     int64_t                          patStart=0;
     int64_t                          patEnd  =0;
 

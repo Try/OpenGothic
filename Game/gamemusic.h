@@ -21,7 +21,7 @@ class GameMusic final {
 
     void      setEnabled(bool e);
     bool      isEnabled() const;
-    void      setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme);
+    void      setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme, const char* themeName);
     void      stopMusic();
 
   private:

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dlscollection.h"
-#include "music.h"
+#include "patternlist.h"
 #include "segment.h"
 #include "style.h"
 
@@ -20,8 +20,8 @@ class DirectMusic final {
     using StyleList = std::vector<std::pair<std::u16string,Style>>;
     using DlsList   = std::vector<std::unique_ptr<std::pair<std::u16string,DlsCollection>>>;
 
-    Music                load(const Segment& s);
-    Music                load(const char16_t* fsgt);
+    PatternList          load(const Segment& s);
+    PatternList          load(const char16_t* fsgt);
 
     void addPath(std::u16string path);
 

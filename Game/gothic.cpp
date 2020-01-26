@@ -415,7 +415,7 @@ bool Gothic::aiIsDlgFinished() {
 
 void Gothic::setMusic(const char *clsTheme) {
   auto& theme = music->get(clsTheme);
-  globalMusic.setMusic(theme);
+  globalMusic.setMusic(theme,clsTheme);
   }
 
 void Gothic::setMusic(const GameMusic::Music m) {

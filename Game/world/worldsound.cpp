@@ -11,6 +11,13 @@ using namespace Tempest;
 const float WorldSound::maxDist   = 3500; // 35 meters
 const float WorldSound::talkRange = 800;
 
+bool WorldSound::Zone::checkPos(float x, float y, float z) const {
+  return
+      bbox[0].x <= x && x<bbox[1].x &&
+      bbox[0].y <= y && y<bbox[1].y &&
+      bbox[0].z <= z && z<bbox[1].z;
+  }
+
 WorldSound::WorldSound(GameSession &game, World& owner):game(game),owner(owner) {
   plPos = {{-1000000,-1000000,-1000000}};
   }
@@ -192,15 +199,11 @@ void WorldSound::tick(Npc &player) {
 
   Zone* zone=&def;
   if(currentZone!=nullptr &&
-     currentZone->bbox[0].x <= plPos[0] && plPos[0]<currentZone->bbox[1].x &&
-     currentZone->bbox[0].y <= plPos[1] && plPos[1]<currentZone->bbox[1].y &&
-     currentZone->bbox[0].z <= plPos[2] && plPos[2]<currentZone->bbox[1].z){
+     currentZone->checkPos(plPos[0],plPos[1]+player.translateY(),plPos[2])){
     zone = currentZone;
     } else {
     for(auto& z:zones) {
-      if(z.bbox[0].x <= plPos[0] && plPos[0]<z.bbox[1].x &&
-         z.bbox[0].y <= plPos[1] && plPos[1]<z.bbox[1].y &&
-         z.bbox[0].z <= plPos[2] && plPos[2]<z.bbox[1].z) {
+      if(z.checkPos(plPos[0],plPos[1]+player.translateY(),plPos[2])) {
         zone = &z;
         }
       }

@@ -10,11 +10,11 @@ using namespace Dx8;
 DirectMusic::DirectMusic() {
   }
 
-Music DirectMusic::load(const Segment &s) {
-  return Music(s,*this);
+PatternList DirectMusic::load(const Segment &s) {
+  return PatternList(s,*this);
   }
 
-Music DirectMusic::load(const char16_t *fsgt) {
+PatternList DirectMusic::load(const char16_t *fsgt) {
   Tempest::RFile fin = implOpen(fsgt);
   std::vector<uint8_t> v(size_t(fin.size()));
   fin.read(&v[0],v.size());

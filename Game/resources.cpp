@@ -361,7 +361,7 @@ SoundEffect *Resources::implLoadSound(const char* name) {
     }
   }
 
-Dx8::Music Resources::implLoadDxMusic(const char* name) {
+Dx8::PatternList Resources::implLoadDxMusic(const char* name) {
   auto u = Tempest::TextCodec::toUtf16(name);
   return dxMusic->load(u.c_str());
   }
@@ -518,7 +518,7 @@ Sound Resources::loadSoundBuffer(const char *name) {
   return inst->implLoadSoundBuffer(name);
   }
 
-Dx8::Music Resources::loadDxMusic(const char* name) {
+Dx8::PatternList Resources::loadDxMusic(const char* name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadDxMusic(name);
   }

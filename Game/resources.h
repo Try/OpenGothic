@@ -27,7 +27,7 @@ class GthFont;
 
 namespace Dx8 {
 class DirectMusic;
-class Music;
+class PatternList;
 }
 
 class Resources final {
@@ -97,7 +97,7 @@ class Resources final {
     static Tempest::Sound            loadSoundBuffer(const std::string& name);
     static Tempest::Sound            loadSoundBuffer(const char*        name);
 
-    static Dx8::Music                loadDxMusic(const char *name);
+    static Dx8::PatternList          loadDxMusic(const char *name);
 
     template<class V>
     static Tempest::VertexBuffer<V>  vbo(const V* data,size_t sz){ return inst->device.vbo(data,sz); }
@@ -138,7 +138,7 @@ class Resources final {
     Animation*            implLoadAnimation(std::string name);
     Tempest::Sound        implLoadSoundBuffer(const char* name);
     Tempest::SoundEffect* implLoadSound(const char *name);
-    Dx8::Music            implLoadDxMusic(const char *name);
+    Dx8::PatternList      implLoadDxMusic(const char *name);
     GthFont&              implLoadFont(const char* fname, FontType type);
 
     MeshLoadCode          loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);

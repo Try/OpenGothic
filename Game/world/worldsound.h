@@ -38,6 +38,7 @@ class WorldSound final {
     struct Zone final {
       ZMath::float3 bbox[2]={};
       std::string   name;
+      bool          checkPos(float x,float y,float z) const;
       };
 
     struct WSound final {
