@@ -104,6 +104,7 @@ class GameScript final {
     int  printCannotCastError  (Npc &npc, int32_t plM, int32_t itM);
     int  printCannotBuyError   (Npc &npc);
     int  printMobMissingItem   (Npc &npc);
+    int  printMobMissingKey    (Npc &npc);
     int  printMobAnotherIsUsing(Npc &npc);
 
     int  invokeState(Daedalus::GEngineClasses::C_Npc *hnpc, Daedalus::GEngineClasses::C_Npc *hother, const char* name);

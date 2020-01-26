@@ -454,6 +454,15 @@ bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
       npc.setCurrentItem(it);
       }
     }
+  if(!keyInstance.empty()) {
+    size_t it = world->getSymbolIndex(keyInstance.c_str());
+    if(it!=size_t(-1)) {
+      if(npc.isPlayer() && npc.hasItem(it)==0) {
+        sc.printMobMissingKey(npc);
+        return false;
+        }
+      }
+    }
 
   auto mat = nodeTranform(npc,to);
 

@@ -846,6 +846,14 @@ int GameScript::printMobMissingItem(Npc &npc) {
   return runFunction(id,true);
   }
 
+int GameScript::printMobMissingKey(Npc& npc) {
+  auto id = vm.getDATFile().getSymbolIndexByName("player_mob_missing_key");
+  if(id==size_t(-1))
+    return 0;
+  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
+  return runFunction(id,true);
+  }
+
 int GameScript::printMobAnotherIsUsing(Npc &npc) {
   auto id = vm.getDATFile().getSymbolIndexByName("player_mob_another_is_using");
   if(id==size_t(-1))
