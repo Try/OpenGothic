@@ -104,7 +104,7 @@ struct GameMusic::Impl final {
 
   MusicProducer*                                dxMixer=nullptr;
   float                                         masterVolume=0.5f;
-  bool                                          enableMusic=true;
+  bool                                          enableMusic=false;
   };
 
 GameMusic::GameMusic() {

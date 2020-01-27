@@ -21,10 +21,11 @@
 
 using namespace Tempest;
 
-MainWindow::MainWindow(Gothic &gothic, Tempest::VulkanApi& api)
-  : Window(Maximized),device(api),swapchain(device,hwnd()),atlas(device),resources(gothic,device),
-    renderer(device,swapchain,gothic),gothic(gothic),inventory(gothic,renderer.storage()),
-    dialogs(gothic,inventory),document(gothic),chapter(gothic),
+MainWindow::MainWindow(Gothic &gothic, Device& device)
+  : Window(Maximized),device(device),swapchain(device,hwnd()),
+    atlas(device),renderer(device,swapchain,gothic),
+    gothic(gothic),
+    inventory(gothic,renderer.storage()),dialogs(gothic,inventory),document(gothic),chapter(gothic),
     player(gothic,dialogs,inventory) {
   CrashLog::setGpu(device.renderer());
   if(!gothic.isWindowMode())

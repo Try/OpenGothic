@@ -43,7 +43,7 @@ class Interactive;
 
 class MainWindow : public Tempest::Window {
   public:
-    explicit MainWindow(Gothic& gothic, Tempest::VulkanApi& api);
+    explicit MainWindow(Gothic& gothic, Tempest::Device& device);
     ~MainWindow() override;
 
   private:
@@ -82,10 +82,9 @@ class MainWindow : public Tempest::Window {
     void tick();
     Camera::Mode solveCameraMode() const;
 
-    Tempest::Device       device;
+    Tempest::Device&      device;
     Tempest::Swapchain    swapchain;
     Tempest::TextureAtlas atlas;
-    Resources             resources;
 
     Tempest::Font         font;
     Tempest::VectorImage  surface;
@@ -129,7 +128,6 @@ class MainWindow : public Tempest::Window {
     Tempest::Widget*                    uiKeyUp=nullptr;
     Tempest::Point                      mpos;
     Tempest::PointF                     spin;
-    // Camera                              camera;
     PlayerControl                       player;
     Focus                               currentFocus;
     uint64_t                            lastTick=0;
