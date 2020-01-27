@@ -116,20 +116,14 @@ bool Renderer::needToUpdateCmd() {
 
 void Renderer::draw(Encoder<Tempest::PrimaryCommandBuffer> &&cmd, uint32_t frameId, uint32_t imgId,
                     VectorImage &surface, InventoryMenu &inventory, const Gothic &gothic) {
-  auto& fr = swapchain.frame(imgId);
-  cmd.setLayout(fr,TextureLayout::ColorAttach);
-
   draw(cmd, fbo3d  [imgId], gothic, frameId);
   draw(cmd, fboUi  [imgId], surface);
   draw(cmd, fboItem[imgId], inventory);
-
-  cmd.setLayout(fr,TextureLayout::Present);
   }
 
 void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const Gothic &gothic, uint32_t frameId) {
   auto wview = gothic.worldView();
   if(wview==nullptr) {
-    cmd.setLayout(zbuffer,TextureLayout::DepthAttach);
     cmd.setPass(fbo,mainPass);
     return;
     }
@@ -138,30 +132,21 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const 
   wview->updateUbo(frameId,view,shadow,2);
 
   for(uint8_t i=0;i<2;++i) {
-    cmd.setLayout(shadowMap[i],TextureLayout::ColorAttach);
-    cmd.setLayout(shadowZ[i],  TextureLayout::DepthAttach);
     cmd.setPass(fboShadow[i],shadowPass);
     wview->drawShadow(cmd,swapchain.frameId(),i);
     }
 
-  for(uint8_t i=0;i<2;++i)
-    cmd.setLayout(shadowMap[i],TextureLayout::Sampler);
-
   composeShadow(cmd,fboCompose);
 
-  cmd.setLayout(zbuffer,TextureLayout::DepthAttach);
-  cmd.setLayout(shadowMapFinal,TextureLayout::Sampler);
   cmd.setPass(fbo,mainPass);
   wview->drawMain(cmd,swapchain.frameId());
   }
 
 void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, InventoryMenu &inventory) {
-  cmd.setLayout(zbufferItem,TextureLayout::DepthAttach);
+  if(inventory.isOpen()==InventoryMenu::State::Closed)
+    return;
   cmd.setPass(fbo,inventoryPass);
-
-  if(inventory.isOpen()!=InventoryMenu::State::Closed) {
-    inventory.draw(cmd,swapchain.frameId());
-    }
+  inventory.draw(cmd,swapchain.frameId());
   }
 
 void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, VectorImage& surface) {
@@ -170,7 +155,6 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, Vector
   }
 
 void Renderer::composeShadow(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer &fbo) {
-  cmd.setLayout(shadowMapFinal,TextureLayout::ColorAttach);
   cmd.setPass(fbo,composePass);
   cmd.setUniforms(stor.pComposeShadow,uboShadowComp);
   cmd.draw(Resources::fsqVbo());
@@ -190,9 +174,7 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   {
   auto enc = cmd.startEncoding(device);
 
-  enc.setLayout(img,TextureLayout::ColorAttach);
   draw(enc,fbo,gothic,frameId);
-  enc.setLayout(img,TextureLayout::Sampler);
   }
 
   Fence sync = device.fence();
