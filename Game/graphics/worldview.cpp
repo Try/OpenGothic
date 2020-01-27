@@ -135,7 +135,8 @@ bool WorldView::needToUpdateCmd() const {
          pfxGroup.needToUpdateCommands();
   }
 
-void WorldView::updateCmd(uint32_t frameId, const World &world, const Tempest::Attachment& shadow,
+void WorldView::updateCmd(uint32_t frameId, const World &world,
+                          const Attachment& main, const Tempest::Attachment& shadow,
                           const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay) {
   if(this->mainLay  ==nullptr || mainLay  !=*this->mainLay ||
      this->shadowLay==nullptr || shadowLay!=*this->shadowLay) {
@@ -156,7 +157,7 @@ void WorldView::updateCmd(uint32_t frameId, const World &world, const Tempest::A
     nToUpdateCmd=false;
     }
 
-  builtCmdBuf(frameId,world,shadow,mainLay,shadowLay);
+  builtCmdBuf(frameId,world,main,shadow,mainLay,shadowLay);
   }
 
 void WorldView::updateUbo(uint32_t frameId, const Matrix4x4& view,const Tempest::Matrix4x4* shadow,size_t shCount) {
@@ -184,7 +185,8 @@ void WorldView::updateUbo(uint32_t frameId, const Matrix4x4& view,const Tempest:
   pfxGroup.updateUbo   (frameId,owner.tickCount());
   }
 
-void WorldView::builtCmdBuf(uint32_t frameId, const World &world, const Attachment& shadowMap,
+void WorldView::builtCmdBuf(uint32_t frameId, const World &world,
+                            const Attachment& main, const Attachment& shadowMap,
                             const FrameBufferLayout& mainLay,const FrameBufferLayout& shadowLay) {
   auto& device = storage.device;
 
@@ -203,7 +205,7 @@ void WorldView::builtCmdBuf(uint32_t frameId, const World &world, const Attachme
 
   // cascade#0 detail shadow
   {
-  auto cmd = pf.cmdShadow[0].startEncoding(device,shadowLay);
+  auto cmd = pf.cmdShadow[0].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
   land    .drawShadow(cmd,frameId,0);
   vobGroup.drawShadow(cmd,frameId);
   objGroup.drawShadow(cmd,frameId);
@@ -212,14 +214,14 @@ void WorldView::builtCmdBuf(uint32_t frameId, const World &world, const Attachme
 
   // cascade#1 shadow
   {
-  auto cmd = pf.cmdShadow[1].startEncoding(device,shadowLay);
+  auto cmd = pf.cmdShadow[1].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
   land.drawShadow(cmd,frameId,1);
   vobGroup.drawShadow(cmd,frameId,1);
   }
 
   // main draw
   {
-  auto cmd = pf.cmdMain.startEncoding(device,mainLay);
+  auto cmd = pf.cmdMain.startEncoding(device,mainLay,main.w(),main.h());
   land    .draw(cmd,frameId);
   vobGroup.draw(cmd,frameId);
   objGroup.draw(cmd,frameId);

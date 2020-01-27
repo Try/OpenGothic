@@ -114,7 +114,7 @@ bool Renderer::needToUpdateCmd() {
   return false;
   }
 
-void Renderer::draw(Encoder<Tempest::PrimaryCommandBuffer> &&cmd, uint32_t frameId, uint32_t imgId,
+void Renderer::draw(Encoder<PrimaryCommandBuffer> &&cmd, uint32_t frameId, uint32_t imgId,
                     VectorImage &surface, InventoryMenu &inventory, const Gothic &gothic) {
   draw(cmd, fbo3d  [imgId], gothic, frameId);
   draw(cmd, fboUi  [imgId], surface);
@@ -128,7 +128,7 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const 
     return;
     }
 
-  wview->updateCmd(frameId,*gothic.world(),shadowMapFinal,fbo.layout(),fboShadow->layout());
+  wview->updateCmd(frameId,*gothic.world(),swapchain.frame(frameId),shadowMapFinal,fbo.layout(),fboShadow->layout());
   wview->updateUbo(frameId,view,shadow,2);
 
   for(uint8_t i=0;i<2;++i) {

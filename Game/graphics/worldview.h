@@ -30,7 +30,8 @@ class WorldView {
     void tick(uint64_t dt);
 
     bool needToUpdateCmd() const;
-    void updateCmd (uint32_t frameId, const World &world, const Tempest::Attachment& shadow,
+    void updateCmd (uint32_t frameId, const World &world,
+                    const Tempest::Attachment& main, const Tempest::Attachment& shadow,
                     const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay);
     void updateUbo (uint32_t frameId, const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4* shadow, size_t shCount);
     void drawShadow(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, uint8_t frameId, uint8_t layer);
@@ -74,6 +75,7 @@ class WorldView {
     void updateLight();
     void setupSunDir(float pulse,float ang);
     void builtCmdBuf(uint32_t frameId, const World &world,
+                     const Tempest::Attachment& main,
                      const Tempest::Attachment& shadowMap,
                      const Tempest::FrameBufferLayout &mainLay,
                      const Tempest::FrameBufferLayout &shadowLay);
