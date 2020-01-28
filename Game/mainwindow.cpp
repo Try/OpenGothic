@@ -24,7 +24,7 @@ using namespace Tempest;
 MainWindow::MainWindow(Gothic &gothic, Device& device)
   : Window(Maximized),device(device),swapchain(device,hwnd()),
     atlas(device),renderer(device,swapchain,gothic),
-    gothic(gothic),
+    gothic(gothic),keycodec(gothic),
     inventory(gothic,renderer.storage()),dialogs(gothic,inventory),document(gothic),chapter(gothic),
     player(gothic,dialogs,inventory) {
   CrashLog::setGpu(device.renderer());
@@ -199,9 +199,11 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
   mpos = event.pos();
   if(auto camera = gothic.gameCamera())
     spin = camera->getSpin();
+  player.onKeyPressed(keycodec.tr(event));
   }
 
 void MainWindow::mouseUpEvent(MouseEvent &event) {
+  player.onKeyReleased(keycodec.tr(event));
   if(event.button<sizeof(mouseP))
     mouseP[event.button]=false;
   }
@@ -245,7 +247,7 @@ void MainWindow::processMouse(MouseEvent &event,bool fs) {
 
     if(fs) {
       if(!(currentFocus.npc && player.weaponState()!=WeaponState::NoWeapon))
-        player.rotateMouse(-dp.x);
+        player.onRotateMouse(-dp.x);
       spin.x = camera->getSpin().x;
       camera->setSpin(spin);
       } else {
@@ -292,7 +294,10 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
       }
     }
   uiKeyUp=nullptr;
-  pressed[event.key]=true;
+
+  auto act = keycodec.tr(event);
+  player.onKeyPressed(act);
+
   if(event.key==Event::K_F9) {
     auto tex = renderer.screenshoot(swapchain.frameId());
     auto pm  = device.readPixels(textureCast(tex));
@@ -325,25 +330,21 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
       return;
     }
 
-  pressed[event.key]=false;
-
-  const char* menuEv=nullptr;
-
   if(event.key==KeyEvent::K_F3) {
     setFullscreen(!SystemApi::isFullscreen(hwnd()));
     }
   else if(event.key==KeyEvent::K_F5){
     gothic.quickSave();
     }
-  else if(event.key==KeyEvent::K_F6){
-    gothic.quickLoad();
-    }
 
-  if(event.key==KeyEvent::K_ESCAPE)
+  const char* menuEv=nullptr;
+
+  auto act = keycodec.tr(event);
+  if(act==KeyCodec::Escape)
     menuEv="MENU_MAIN";
-  else if(event.key==KeyEvent::K_Back)
+  else if(act==KeyCodec::Log)
     menuEv="MENU_LOG";
-  else if(event.key==KeyEvent::K_B)
+  else if(act==KeyCodec::Status)
     menuEv="MENU_STATUS";
 
   if(menuEv!=nullptr) {
@@ -352,8 +353,8 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     if(auto pl = gothic.player())
       rootMenu->setPlayer(*pl);
     clearInput();
-    }  
-  else if(event.key==KeyEvent::K_Tab){
+    }
+  else if(act==KeyCodec::Inventory){
     if(inventory.isActive()) {
       inventory.close();
       } else {
@@ -363,6 +364,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
       }
     clearInput();
     }
+  player.onKeyReleased(act);
   }
 
 void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y, float v, AlignFlag flg) {
@@ -469,127 +471,18 @@ void MainWindow::tick() {
   if(pcamera==nullptr)
     return;
 
-  auto& camera = *pcamera;
-  currentFocus = player.findFocus(&currentFocus,camera,w(),h());
-  player.setTarget(currentFocus.npc);
-
-  if(mouseP[Event::ButtonLeft]){
-    auto focus = currentFocus;
-    if(focus.interactive!=nullptr && player.interact(*focus.interactive)) {
-      clearInput();
-      }
-    else if(focus.npc!=nullptr && player.interact(*focus.npc)) {
-      clearInput();
-      }
-    else if(focus.item!=nullptr && player.interact(*focus.item)) {
-      clearInput();
-      }
-
-    if(focus.npc)
-      player.actionFocus(*focus.npc); else
-      player.emptyFocus();
-    }
+  player.tickFocus(currentFocus);
   if(document.isActive())
     clearInput();
 
-  if(pressed[KeyEvent::K_F8])
-    player.marvinF8();
-  if(pressed[KeyEvent::K_Shift]){
-    player.toogleWalkMode();
-    pressed[KeyEvent::K_Shift]=false;
-    }
-
-  if(pressed[KeyEvent::K_1]){
-    player.drawWeaponMele();
-    pressed[KeyEvent::K_1]=false;
-    }
-  if(pressed[KeyEvent::K_2]){
-    player.drawWeaponBow();
-    pressed[KeyEvent::K_2]=false;
-    }
-
-  if(pressed[KeyEvent::K_3]){
-    player.drawWeaponMage(3);
-    pressed[KeyEvent::K_3]=false;
-    }
-  if(pressed[KeyEvent::K_4]){
-    player.drawWeaponMage(4);
-    pressed[KeyEvent::K_4]=false;
-    }
-  if(pressed[KeyEvent::K_5]){
-    player.drawWeaponMage(5);
-    pressed[KeyEvent::K_5]=false;
-    }
-  if(pressed[KeyEvent::K_6]){
-    player.drawWeaponMage(6);
-    pressed[KeyEvent::K_6]=false;
-    }
-  if(pressed[KeyEvent::K_7]){
-    player.drawWeaponMage(7);
-    pressed[KeyEvent::K_7]=false;
-    }
-  if(pressed[KeyEvent::K_8]){
-    player.drawWeaponMage(8);
-    pressed[KeyEvent::K_8]=false;
-    }
-  if(pressed[KeyEvent::K_9]){
-    player.drawWeaponMage(9);
-    pressed[KeyEvent::K_9]=false;
-    }
-  if(pressed[KeyEvent::K_0]){
-    player.drawWeaponMage(10);
-    pressed[KeyEvent::K_0]=false;
-    }
-
-  if(pressed[KeyEvent::K_Space]){
-    player.jump();
-    pressed[KeyEvent::K_Space]=false;
-    }
-  if(pressed[KeyEvent::K_Q])
-    player.rotateLeft();
-  if(pressed[KeyEvent::K_E])
-    player.rotateRight();
-
-  if(mouseP[Event::ButtonLeft]) {
-    if(pressed[KeyEvent::K_W])
-      player.actionForward();
-    if(pressed[KeyEvent::K_A])
-      player.actionLeft();
-    if(pressed[KeyEvent::K_D])
-      player.actionRight();
-    if(pressed[KeyEvent::K_S])
-      player.actionBack();
-    } else {
-    if(pressed[KeyEvent::K_W])
-      player.moveForward();
-    if(pressed[KeyEvent::K_A])
-      player.moveLeft();
-    if(pressed[KeyEvent::K_D])
-      player.moveRight();
-    if(pressed[KeyEvent::K_S])
-      player.moveBack();
-    }
-
   const bool followCamera=player.isInMove();
   if(player.tickMove(dt)) {
+    auto& camera = *pcamera;
     if(auto pl=gothic.player()) {
       camera.setMode(solveCameraMode());
       camera.follow(*pl,dt,followCamera,
                     (!mouseP[Event::ButtonLeft] || currentFocus || SystemApi::isFullscreen(hwnd())) && !inventory.isActive());
       }
-    } else {
-    if(pressed[KeyEvent::K_Q])
-      camera.rotateLeft();
-    if(pressed[KeyEvent::K_E])
-      camera.rotateRight();
-    if(pressed[KeyEvent::K_A])
-      camera.moveLeft();
-    if(pressed[KeyEvent::K_D])
-      camera.moveRight();
-    if(pressed[KeyEvent::K_W])
-      camera.moveForward();
-    if(pressed[KeyEvent::K_S])
-      camera.moveBack();
     }
   }
 
@@ -702,7 +595,6 @@ void MainWindow::setGameImpl(std::unique_ptr<GameSession> &&w) {
 
 void MainWindow::clearInput() {
   player.clearInput();
-  std::memset(pressed,0,sizeof(pressed));
   std::memset(mouseP,0,sizeof(mouseP));
   }
 

@@ -2,6 +2,7 @@
 
 #include "world/focus.h"
 #include "inventory.h"
+#include "utils/keycodec.h"
 
 #include <array>
 
@@ -18,82 +19,58 @@ class PlayerControl final {
   public:
     PlayerControl(Gothic& gothic,DialogMenu& dlg,InventoryMenu& inv);
 
+    void onKeyPressed (KeyCodec::Action a);
+    void onKeyReleased(KeyCodec::Action a);
+    void onRotateMouse(int dAngle);
+
     void changeZoom(int delta);
+    void tickFocus(Focus& focus);
 
     bool interact(Interactive& it);
     bool interact(Npc&         other);
     bool interact(Item&        item);
 
-    void toogleWalkMode();
-
     void clearInput();
-    void drawWeaponMele();
-    void drawWeaponBow();
-    void drawWeaponMage(uint8_t s);
-    void jump();
-
-    void rotateLeft ();
-    void rotateRight();
-    void rotateMouse(int dAngle);
-
-    void moveForward();
-    void moveBack();
-    void moveLeft();
-    void moveRight();
     bool isInMove();
 
     void setTarget(Npc* other);
     void actionFocus(Npc& other);
     void emptyFocus();
-    void actionForward();
-    void actionLeft();
-    void actionRight();
-    void actionBack();
-
-    void marvinF8();
 
     bool tickMove(uint64_t dt);
-
-    Focus findFocus(Focus *prev, const Camera &camera, int w, int h);
     auto  weaponState() const -> WeaponState;
 
   private:
-    enum Control : uint8_t {
-      Idle,
-      Forward,
-      Back,
-      Left,
-      Right,
-      RotateL,
-      RotateR,
-      Jump,
+    enum WeponAction : uint8_t {
+      WeaponClose,
+      WeaponMele,
+      WeaponBow,
+      Weapon3,
+      Weapon4,
+      Weapon5,
+      Weapon6,
+      Weapon7,
+      Weapon8,
+      Weapon9,
+      Weapon10,
 
-      EmptyFocus,
-      ActionFocus,
-      ActForward,
-      ActLeft,
-      ActRight,
-      ActBack,
-
-      Walk,
-
-      CloseWeapon,
-      DrawWeaponMele,
-      DrawWeaponBow,
-
-      DrawWeaponMage3,
-      DrawWeaponMage4,
-      DrawWeaponMage5,
-      DrawWeaponMage6,
-      DrawWeaponMage7,
-      DrawWeaponMage8,
-      DrawWeaponMage9,
-      DrawWeaponMage10,
-
-      Last
+      Last,
       };
 
-    bool           ctrl[Control::Last]={};
+    enum FocusAction : uint8_t {
+      ActForward=0,
+      ActBack   =1,
+      ActLeft   =2,
+      ActRight  =3,
+      ActGeneric=4,
+      };
+
+    using Action=KeyCodec::Action;
+
+    bool           ctrl[Action::Last]={};
+    bool           wctrl[WeponAction::Last]={};
+    bool           actrl[5]={};
+
     bool           cacheFocus=false;
     uint64_t       rotMouse=0;
     bool           rotMouseDir=false;
@@ -103,9 +80,12 @@ class PlayerControl final {
     DialogMenu&    dlg;
     InventoryMenu& inv;
 
+    void           marvinF8();
+    void           toogleWalkMode();
+    Focus          findFocus(Focus *prev);
+
     World*         world() const;
     void           clrDraw();
     void           implMove(uint64_t dt);
     void           setPos(std::array<float,3> a, uint64_t dt, float speed);
-    void           invokeMobsiState();
   };

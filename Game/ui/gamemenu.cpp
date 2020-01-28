@@ -183,7 +183,7 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
                                        item.onChgSetOption.c_str());
 
       char textBuf[256]={};
-      KeyCodec::getKeysStr(keys,textBuf,sizeof(textBuf));
+      KeyCodec::keysStr(keys,textBuf,sizeof(textBuf));
 
       fnt.drawText(p,
                    x,y+fnt.pixelSize(),

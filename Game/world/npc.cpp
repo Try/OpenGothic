@@ -2075,6 +2075,8 @@ bool Npc::closeWeapon(bool noAnim) {
     return true;
   if(!noAnim && !visual.startAnim(*this,WeaponState::NoWeapon))
     return false;
+  if(isPlayer())
+    setTarget(nullptr);
   invent.switchActiveWeapon(*this,Item::NSLOT);
   hnpc.weapon = 0;
   updateWeaponSkeleton();

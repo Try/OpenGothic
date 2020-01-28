@@ -1,8 +1,145 @@
 #include "keycodec.h"
 
+#include "gothic.h"
 #include <cstring>
 
-void KeyCodec::getKeysStr(const std::string& keys, char buf[], size_t bufSz) {
+std::initializer_list<KeyCodec::K_Key> KeyCodec::keys = {
+  {Tempest::Event::K_A,       0x1e00},
+  {Tempest::Event::K_B,       0x3000},
+  {Tempest::Event::K_C,       0x2e00},
+  {Tempest::Event::K_D,       0x2000},
+  {Tempest::Event::K_E,       0x1200},
+  {Tempest::Event::K_F,       0x2100},
+  {Tempest::Event::K_G,       0x2200},
+  {Tempest::Event::K_H,       0x2300},
+  {Tempest::Event::K_I,       0x1700},
+  {Tempest::Event::K_J,       0x2400},
+  {Tempest::Event::K_K,       0x2500},
+  {Tempest::Event::K_L,       0x2600},
+  {Tempest::Event::K_M,       0x3200},
+  {Tempest::Event::K_N,       0x3100},
+  {Tempest::Event::K_O,       0x1800},
+  {Tempest::Event::K_P,       0x1900},
+  {Tempest::Event::K_Q,       0x1000},
+  {Tempest::Event::K_R,       0x1300},
+  {Tempest::Event::K_S,       0x1f00},
+  {Tempest::Event::K_T,       0x1400},
+  {Tempest::Event::K_U,       0x1600},
+  {Tempest::Event::K_V,       0x2f00},
+  {Tempest::Event::K_W,       0x1100},
+  {Tempest::Event::K_X,       0x2d00},
+  {Tempest::Event::K_Y,       0x1500},
+  {Tempest::Event::K_Z,       0x2c00},
+
+  {Tempest::Event::K_0,       0x8100},
+  {Tempest::Event::K_1,       0x7800},
+  {Tempest::Event::K_2,       0x7900},
+  {Tempest::Event::K_3,       0x7a00},
+  {Tempest::Event::K_4,       0x7b00},
+  {Tempest::Event::K_5,       0x7c00},
+  {Tempest::Event::K_6,       0x7d00},
+  {Tempest::Event::K_7,       0x7e00},
+  {Tempest::Event::K_8,       0x7f00},
+  {Tempest::Event::K_9,       0x8000},
+
+  {Tempest::Event::K_Up,      0xc800},
+  {Tempest::Event::K_Down,    0xd000},
+  {Tempest::Event::K_Left,    0xcb00},
+  {Tempest::Event::K_Right,   0xcd00},
+
+  {Tempest::Event::K_Back,    0x0e00},
+  {Tempest::Event::K_Tab,     0x0f00},
+  {Tempest::Event::K_Delete,  0xd300},
+  {Tempest::Event::K_Space,   0x3900},
+
+  // Left
+  {Tempest::Event::K_Control, 0x1d00},
+  {Tempest::Event::K_Shift,   0x2a00},
+  // Right
+  {Tempest::Event::K_Control, 0x9d00},
+  {Tempest::Event::K_Shift,   0x3600},
+  };
+
+std::initializer_list<KeyCodec::M_Key> KeyCodec::mkeys = {
+  {Tempest::Event::ButtonLeft,  0x0c02},
+  {Tempest::Event::ButtonMid,   0x0e02},
+  {Tempest::Event::ButtonRight, 0x0d02},
+  };
+
+KeyCodec::KeyCodec(Gothic& gothic)
+  :gothic(gothic) {
+  gothic.onSettingsChanged.bind(this,&KeyCodec::setupSettings);
+  setupSettings();
+  }
+
+KeyCodec::Action KeyCodec::tr(Tempest::KeyEvent& e) {
+  int32_t code = keyToCode(e.key);
+  if(e.key==Tempest::KeyEvent::K_ESCAPE)
+    return Escape;
+  auto act = implTr(code);
+  if(act!=KeyCodec::Idle)
+    return act;
+  if(Tempest::Event::K_0<=e.key && e.key<=Tempest::Event::K_9)
+    return Action(Weapon+int(e.key-Tempest::Event::K_0));
+  if(e.key==Tempest::Event::K_F8)
+    return K_F8;
+  return Idle;
+  }
+
+KeyCodec::Action KeyCodec::tr(Tempest::MouseEvent& e) {
+  int32_t code = keyToCode(e.button);
+  auto act = implTr(code);
+  if(act!=KeyCodec::Idle)
+    return act;
+  return Idle;
+  }
+
+KeyCodec::Action KeyCodec::implTr(int32_t code) {
+  if(keyEnd.is(code))
+    return Idle;
+  if(keyUp.is(code))
+    return Forward;
+  if(keyDown.is(code))
+    return Back;
+  if(keyLeft.is(code))
+    return RotateL;
+  if(keyRight.is(code))
+    return RotateR;
+  if(keyStrafeLeft.is(code))
+    return Left;
+  if(keyStrafeRight.is(code))
+    return Right;
+
+  if(keyAction.is(code))
+    return ActionGeneric;
+  if(keySlow.is(code))
+    return Walk;
+  if(keySMove.is(code))
+    return Jump;
+
+  if(keyWeapon.is(code))
+    return Weapon;
+  if(keySneak.is(code))
+    return Idle; //TODO
+
+  if(keyLook.is(code))
+    return Idle; // ?
+  if(keyLookFP.is(code))
+    return Idle; // ?
+
+  if(keyInventory.is(code))
+    return Inventory;
+  if(keyShowStatus.is(code))
+    return Status;
+  if(keyShowLog.is(code))
+    return Log;
+  if(keyShowMap.is(code))
+    return Map;
+
+  return Idle;
+  }
+
+void KeyCodec::keysStr(const std::string& keys, char buf[], size_t bufSz) {
   int32_t k0 = fetch(keys,0,4);
   int32_t k1 = fetch(keys,4,8);
 
@@ -27,68 +164,6 @@ void KeyCodec::getKeysStr(const std::string& keys, char buf[], size_t bufSz) {
 
 bool KeyCodec::keyToStr(int32_t k, char* buf, size_t bufSz) {
   using namespace Tempest;
-  static std::initializer_list<K_Key> keys={
-    {Tempest::Event::K_A,       0x1e00},
-    {Tempest::Event::K_B,       0x3000},
-    {Tempest::Event::K_C,       0x2e00},
-    {Tempest::Event::K_D,       0x2000},
-    {Tempest::Event::K_E,       0x1200},
-    {Tempest::Event::K_F,       0x2100},
-    {Tempest::Event::K_G,       0x2200},
-    {Tempest::Event::K_H,       0x2300},
-    {Tempest::Event::K_I,       0x1700},
-    {Tempest::Event::K_J,       0x2400},
-    {Tempest::Event::K_K,       0x2500},
-    {Tempest::Event::K_L,       0x2600},
-    {Tempest::Event::K_M,       0x3200},
-    {Tempest::Event::K_N,       0x3100},
-    {Tempest::Event::K_O,       0x1800},
-    {Tempest::Event::K_P,       0x1900},
-    {Tempest::Event::K_Q,       0x1000},
-    {Tempest::Event::K_R,       0x1300},
-    {Tempest::Event::K_S,       0x1f00},
-    {Tempest::Event::K_T,       0x1400},
-    {Tempest::Event::K_U,       0x1600},
-    {Tempest::Event::K_V,       0x2f00},
-    {Tempest::Event::K_W,       0x1100},
-    {Tempest::Event::K_X,       0x2d00},
-    {Tempest::Event::K_Y,       0x1500},
-    {Tempest::Event::K_Z,       0x2c00},
-
-    {Tempest::Event::K_0,       0x8100},
-    {Tempest::Event::K_1,       0x7800},
-    {Tempest::Event::K_2,       0x7900},
-    {Tempest::Event::K_3,       0x7a00},
-    {Tempest::Event::K_4,       0x7b00},
-    {Tempest::Event::K_5,       0x7c00},
-    {Tempest::Event::K_6,       0x7d00},
-    {Tempest::Event::K_7,       0x7e00},
-    {Tempest::Event::K_8,       0x7f00},
-    {Tempest::Event::K_9,       0x8000},
-
-    {Tempest::Event::K_Up,      0xc800},
-    {Tempest::Event::K_Down,    0xd000},
-    {Tempest::Event::K_Left,    0xcb00},
-    {Tempest::Event::K_Right,   0xcd00},
-
-    {Tempest::Event::K_Back,    0x0e00},
-    {Tempest::Event::K_Tab,     0x0f00},
-    {Tempest::Event::K_Delete,  0xd300},
-    {Tempest::Event::K_Space,   0x3900},
-
-    // Left
-    {Tempest::Event::K_Control, 0x1d00},
-    {Tempest::Event::K_Shift,   0x2a00},
-    // Right
-    {Tempest::Event::K_Control, 0x9d00},
-    {Tempest::Event::K_Shift,   0x3600},
-    };
-
-  static std::initializer_list<M_Key> mkeys={
-    {Tempest::Event::ButtonLeft,  0x0c02},
-    {Tempest::Event::ButtonMid,   0x0e02},
-    {Tempest::Event::ButtonRight, 0x0d02},
-    };
 
   for(auto& i:keys)
     if(k==i.code) {
@@ -172,6 +247,54 @@ void KeyCodec::keyToStr(Tempest::Event::MouseButton k, char* buf, size_t bufSz) 
     }
 
   buf[0] = '?';
+  }
+
+int32_t KeyCodec::keyToCode(Tempest::Event::KeyType t) {
+  for(auto& i:keys)
+    if(i.k==t)
+      return i.code;
+  return 0;
+  }
+
+int32_t KeyCodec::keyToCode(Tempest::Event::MouseButton t) {
+  for(auto& i:mkeys)
+    if(i.k==t)
+      return i.code;
+  return 0;
+  }
+
+void KeyCodec::setupSettings() {
+  keyEnd         = parse(gothic.settingsGetS("KEYS","keyEnd"));
+  keyHeal        = parse(gothic.settingsGetS("KEYS","keyHeal"));
+  keyPotion      = parse(gothic.settingsGetS("KEYS","keyPotion"));
+  keyLockTarget  = parse(gothic.settingsGetS("KEYS","keyLockTarget"));
+  keyParade      = parse(gothic.settingsGetS("KEYS","keyParade"));
+  keyActionRight = parse(gothic.settingsGetS("KEYS","keyActionRight"));
+  keyActionLeft  = parse(gothic.settingsGetS("KEYS","keyActionLeft"));
+  keyUp          = parse(gothic.settingsGetS("KEYS","keyUp"));
+  keyDown        = parse(gothic.settingsGetS("KEYS","keyDown"));
+  keyLeft        = parse(gothic.settingsGetS("KEYS","keyLeft"));
+  keyRight       = parse(gothic.settingsGetS("KEYS","keyRight"));
+  keyStrafeLeft  = parse(gothic.settingsGetS("KEYS","keyStrafeLeft"));
+  keyStrafeRight = parse(gothic.settingsGetS("KEYS","keyStrafeRight"));
+  keyAction      = parse(gothic.settingsGetS("KEYS","keyAction"));
+  keySlow        = parse(gothic.settingsGetS("KEYS","keySlow"));
+  keySMove       = parse(gothic.settingsGetS("KEYS","keySMove"));
+  keyWeapon      = parse(gothic.settingsGetS("KEYS","keyWeapon"));
+  keySneak       = parse(gothic.settingsGetS("KEYS","keySneak"));
+  keyLook        = parse(gothic.settingsGetS("KEYS","keyLook"));
+  keyLookFP      = parse(gothic.settingsGetS("KEYS","keyLookFP"));
+  keyInventory   = parse(gothic.settingsGetS("KEYS","keyInventory"));
+  keyShowStatus  = parse(gothic.settingsGetS("KEYS","keyShowStatus"));
+  keyShowLog     = parse(gothic.settingsGetS("KEYS","keyShowLog"));
+  keyShowMap     = parse(gothic.settingsGetS("KEYS","keyShowMap"));
+  }
+
+KeyCodec::KeyPair KeyCodec::parse(const std::string& kp) {
+  KeyPair p;
+  p.k[0] = fetch(kp,0,4);
+  p.k[1] = fetch(kp,4,8);
+  return p;
   }
 
 int KeyCodec::fetch(const std::string& keys, size_t s, size_t e) {

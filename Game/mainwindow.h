@@ -30,11 +30,12 @@
 #include "world/focus.h"
 #include "game/playercontrol.h"
 #include "graphics/renderer.h"
-#include "resources.h"
 #include "ui/dialogmenu.h"
 #include "ui/inventorymenu.h"
 #include "ui/chapterscreen.h"
 #include "ui/documentmenu.h"
+#include "utils/keycodec.h"
+#include "resources.h"
 
 class MenuRoot;
 class Gothic;
@@ -105,7 +106,6 @@ class MainWindow : public Tempest::Window {
 
     std::vector<Tempest::PrimaryCommandBuffer> commandDynamic;
 
-    Gothic&                             gothic;
 
     const Tempest::Texture2d*           background=nullptr;
     const Tempest::Texture2d*           loadBox=nullptr;
@@ -118,8 +118,9 @@ class MainWindow : public Tempest::Window {
     const Tempest::Texture2d*           saveback=nullptr;
 
     bool                                mouseP[Tempest::MouseEvent::ButtonBack]={};
-    bool                                pressed[Tempest::KeyEvent::K_Last]={};
 
+    Gothic&                             gothic;
+    KeyCodec                            keycodec;
     InventoryMenu                       inventory;
     DialogMenu                          dialogs;
     DocumentMenu                        document;

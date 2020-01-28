@@ -524,6 +524,6 @@ void InventoryMenu::drawInfo(Painter &p) {
   renderer.drawItem(x+dw-sz-sz/2,y,sz,sz,r);
   }
 
-void InventoryMenu::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId) {
+void InventoryMenu::draw(Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId) {
   renderer.draw(cmd,imgId);
   }

@@ -122,6 +122,7 @@ class Gothic final {
     Tempest::Signal<void(const DocumentMenu::Show&)>                    onShowDocument;
     Tempest::Signal<void()>                                             onWorldLoaded;
     Tempest::Signal<void()>                                             onSessionExit;
+    Tempest::Signal<void()>                                             onSettingsChanged;
 
     const Daedalus::ZString&              messageFromSvm(const Daedalus::ZString& id, int voice) const;
     const Daedalus::ZString&              messageByName(const Daedalus::ZString &id) const;

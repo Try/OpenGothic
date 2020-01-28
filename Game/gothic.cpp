@@ -516,6 +516,7 @@ int Gothic::settingsGetI(const char *sec, const char *name) const {
 
 void Gothic::settingsSetI(const char *sec, const char *name, int val) {
   iniFile->set(sec,name,val);
+  onSettingsChanged();
   }
 
 const std::string& Gothic::settingsGetS(const char* sec, const char* name) const {

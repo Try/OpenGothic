@@ -3,18 +3,56 @@
 #include <Tempest/Event>
 #include <string>
 
+class Gothic;
+
 class KeyCodec final {
   public:
-    KeyCodec()=delete;
+    KeyCodec(Gothic& gothic);
 
-    static void getKeysStr(const std::string& keys, char buf[], size_t bufSz);
+    enum Action : uint8_t {
+      Idle,
+
+      Escape,
+
+      Inventory,
+      Status,
+      Log,
+      Map,
+
+      Forward,
+      Back,
+      Left,
+      Right,
+      RotateL,
+      RotateR,
+      Jump,
+
+      ActionGeneric,
+      Walk,
+
+      Weapon,
+      WeaponMele,
+      WeaponBow,
+
+      WeaponMage3,
+      WeaponMage4,
+      WeaponMage5,
+      WeaponMage6,
+      WeaponMage7,
+      WeaponMage8,
+      WeaponMage9,
+      WeaponMage10,
+
+      K_F8,
+
+      Last
+      };
+
+    static void   keysStr(const std::string& keys, char buf[], size_t bufSz);
+    Action        tr(Tempest::KeyEvent&   e);
+    Action        tr(Tempest::MouseEvent& e);
 
   private:
-    static int  fetch(const std::string& keys,size_t s,size_t e);
-    static bool keyToStr(int32_t k, char* buf, size_t bufSz);
-    static void keyToStr(Tempest::Event::KeyType k, char* buf, size_t bufSz);
-    static void keyToStr(Tempest::Event::MouseButton k, char* buf, size_t bufSz);
-
     struct K_Key {
       Tempest::Event::KeyType k=Tempest::Event::K_NoKey;
       int32_t                 code=0;
@@ -23,5 +61,52 @@ class KeyCodec final {
       Tempest::Event::MouseButton k=Tempest::Event::ButtonNone;
       int32_t                     code=0;
       };
+
+    struct KeyPair {
+      int32_t k[2]={};
+      bool is(int32_t i) { return k[0]==i || k[1]==i; }
+      };
+
+    Action      implTr(int32_t code);
+    static int  fetch(const std::string& keys,size_t s,size_t e);
+    static bool keyToStr(int32_t k, char* buf, size_t bufSz);
+    static void keyToStr(Tempest::Event::KeyType k, char* buf, size_t bufSz);
+    static void keyToStr(Tempest::Event::MouseButton k, char* buf, size_t bufSz);
+
+    static int32_t keyToCode(Tempest::Event::KeyType     t);
+    static int32_t keyToCode(Tempest::Event::MouseButton t);
+
+    void        setupSettings();
+    static auto parse(const std::string& kp) -> KeyPair;
+
+    Gothic&     gothic;
+
+    KeyPair     keyEnd;
+    KeyPair     keyHeal;
+    KeyPair     keyPotion;
+    KeyPair     keyLockTarget;
+    KeyPair     keyParade;
+    KeyPair     keyActionRight;
+    KeyPair     keyActionLeft;
+    KeyPair     keyUp;
+    KeyPair     keyDown;
+    KeyPair     keyLeft;
+    KeyPair     keyRight;
+    KeyPair     keyStrafeLeft;
+    KeyPair     keyStrafeRight;
+    KeyPair     keyAction;
+    KeyPair     keySlow;
+    KeyPair     keySMove;
+    KeyPair     keyWeapon;
+    KeyPair     keySneak;
+    KeyPair     keyLook;
+    KeyPair     keyLookFP;
+    KeyPair     keyInventory;
+    KeyPair     keyShowStatus;
+    KeyPair     keyShowLog;
+    KeyPair     keyShowMap;
+
+    static std::initializer_list<K_Key> keys;
+    static std::initializer_list<M_Key> mkeys;
   };
 
