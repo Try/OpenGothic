@@ -103,8 +103,7 @@ void PlayerControl::onKeyReleased(KeyCodec::Action a) {
   }
 
 void PlayerControl::onRotateMouse(int dAngle) {
-  rotMouse    = std::abs(dAngle)>3 ? 40u : rotMouse;
-  rotMouseDir = dAngle>0;
+  rotMouse = float(dAngle)*0.4f;
   }
 
 void PlayerControl::tickFocus(Focus& curFocus) {
@@ -316,19 +315,13 @@ void PlayerControl::implMove(uint64_t dt) {
     rotation = 1;
     rotMouse=0;
     }
-
-  if(rotMouse>0) {
-    if(rotMouseDir){
-      rot += rspeed;
-      rotation = -1;
-      } else {
-      rot -= rspeed;
-      rotation = 1;
-      }
-    if(rotMouse<dt)
-      rotMouse=0; else
-      rotMouse-=dt;
+  if(std::fabs(rotMouse)>5) {
+    /* TODO: proper anim
+    if(rotMouse>0)
+      rotation = -1; else
+      rotation = 1; */
     }
+  rot+=rotMouse;
 
   if(pl.isFaling() || pl.isSlide() || pl.isInAir()){
     pl.setDirection(rot);

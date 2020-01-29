@@ -72,8 +72,7 @@ class PlayerControl final {
     bool           actrl[5]={};
 
     bool           cacheFocus=false;
-    uint64_t       rotMouse=0;
-    bool           rotMouseDir=false;
+    float          rotMouse=0;
     int32_t        mobsiState=-1;
 
     Gothic&        gothic;

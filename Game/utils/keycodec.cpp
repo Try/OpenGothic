@@ -53,11 +53,11 @@ std::initializer_list<KeyCodec::K_Key> KeyCodec::keys = {
   {Tempest::Event::K_Space,   0x3900},
 
   // Left
-  {Tempest::Event::K_Control, 0x1d00},
-  {Tempest::Event::K_Shift,   0x2a00},
+  {Tempest::Event::K_LControl, 0x1d00},
+  {Tempest::Event::K_LShift,   0x2a00},
   // Right
-  {Tempest::Event::K_Control, 0x9d00},
-  {Tempest::Event::K_Shift,   0x3600},
+  {Tempest::Event::K_RControl, 0x9d00},
+  {Tempest::Event::K_RShift,   0x3600},
   };
 
 std::initializer_list<KeyCodec::M_Key> KeyCodec::mkeys = {
@@ -216,16 +216,24 @@ void KeyCodec::keyToStr(Tempest::Event::KeyType k, char* buf, size_t bufSz) {
     std::strncpy(buf,"SPACE",bufSz);
     return;
     }
-  if(k==Tempest::Event::K_Control) {
-    std::strncpy(buf,"CONTROL",bufSz);
+  if(k==Tempest::Event::K_LControl) {
+    std::strncpy(buf,"LEFT CONTROL",bufSz);
+    return;
+    }
+  if(k==Tempest::Event::K_RControl) {
+    std::strncpy(buf,"RIGHT CONTROL",bufSz);
     return;
     }
   if(k==Tempest::Event::K_Delete) {
     std::strncpy(buf,"DELETE",bufSz);
     return;
     }
-  if(k==Tempest::Event::K_Shift) {
-    std::strncpy(buf,"SHIFT",bufSz);
+  if(k==Tempest::Event::K_LShift) {
+    std::strncpy(buf,"LEFT SHIFT",bufSz);
+    return;
+    }
+  if(k==Tempest::Event::K_RShift) {
+    std::strncpy(buf,"RIGHT SHIFT",bufSz);
     return;
     }
 
