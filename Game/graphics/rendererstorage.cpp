@@ -29,6 +29,7 @@ void RendererStorage::Material::load(Device &device, const char *f) {
 RendererStorage::RendererStorage(Device &device,Gothic& gothic)
   :device(device) {
   land  .load(device,"land");
+  landAt.load(device,"land_at");
   object.load(device,"object");
   ani   .load(device,"anim");
   pfx   .load(device,"pfx");
@@ -97,9 +98,10 @@ void RendererStorage::initPipeline(Gothic& gothic) {
   auto fsComp = device.shader(sh.data,sh.len);
 
   pComposeShadow = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutComp,vsComp, fsComp);
-  
-  pLandAlpha     = pipeline<Resources::Vertex> (stateAlpha,layoutLnd,land.main);
+
   pLand          = pipeline<Resources::Vertex> (stateLnd,  layoutLnd,land.main);
+  pLandAt        = pipeline<Resources::Vertex> (stateLnd,  layoutLnd,landAt.main);
+  pLandAlpha     = pipeline<Resources::Vertex> (stateAlpha,layoutLnd,land.main);
 
   pObject        = pipeline<Resources::Vertex> (stateObj,layoutObj,object.main);
   pAnim          = pipeline<Resources::VertexA>(stateObj,layoutAni,ani.main);
@@ -124,10 +126,13 @@ void RendererStorage::initPipeline(Gothic& gothic) {
 void RendererStorage::initShadow() {
   RenderState state;
   state.setZTestMode   (RenderState::ZTestMode::Less);
-  state.setCullFaceMode(RenderState::CullMode::Back);
-  //state.setCullFaceMode(RenderState::CullMode::Front);
+  //state.setCullFaceMode(RenderState::CullMode::Back);
+  state.setCullFaceMode(RenderState::CullMode::Front);
 
   pLandSh   = pipeline<Resources::Vertex> (state,layoutLnd,land.shadow);
+  pLandAtSh = pipeline<Resources::Vertex> (state,layoutLnd,landAt.shadow);
+
+  state.setCullFaceMode(RenderState::CullMode::Back);
   pObjectSh = pipeline<Resources::Vertex> (state,layoutObj,object.shadow);
   pAnimSh   = pipeline<Resources::VertexA>(state,layoutAni,ani.shadow);
   }

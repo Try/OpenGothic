@@ -6,6 +6,7 @@
 
 #include <zenload/zTypes.h>
 
+#include "material.h"
 #include "resources.h"
 
 class World;
@@ -39,12 +40,12 @@ class Landscape final {
       };
 
     struct Block {
-      const Tempest::Texture2d*      texture = nullptr;
+      Material                       material;
       Tempest::IndexBuffer<uint32_t> ibo;
-      bool                           alpha=false;
       };
 
-    void implDraw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, const Tempest::RenderPipeline &p, const Tempest::RenderPipeline &alpha, uint8_t uboId, uint32_t frameId);
+    void implDraw(Tempest::Encoder<Tempest::CommandBuffer> &cmd,
+                  const Tempest::RenderPipeline* p[], uint8_t uboId, uint32_t frameId);
 
     Tempest::VertexBuffer<Resources::Vertex> vbo;
     std::vector<Block>                       blocks;

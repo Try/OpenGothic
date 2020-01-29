@@ -24,6 +24,7 @@ class AttachBinder;
 class PhysicMeshShape;
 class SoundFx;
 class GthFont;
+class Material;
 
 namespace Dx8 {
 class DirectMusic;
@@ -34,14 +35,6 @@ class Resources final {
   public:
     explicit Resources(Gothic& gothic, Tempest::Device& device);
     ~Resources();
-
-    enum ApphaFunc:uint8_t {
-      InvalidAlpha =0,
-      NoAlpha      =1,
-      Transparent  =2,
-      AdditiveLight=3,
-      Last
-      };
 
     enum class FontType : uint8_t {
       Normal,
@@ -73,6 +66,8 @@ class Resources final {
       float    pos[2];
       };
 
+    static const char* renderer();
+
     static const GthFont& dialogFont();
     static const GthFont& font();
     static const GthFont& font(FontType type);
@@ -84,6 +79,7 @@ class Resources final {
     static const Tempest::Texture2d* loadTexture(const std::string& name);
     static const Tempest::Texture2d* loadTexture(const std::string& name,int32_t v,int32_t c);
     static       Tempest::Texture2d  loadTexture(const Tempest::Pixmap& pm);
+    static       Material            loadMaterial(const ZenLoad::zCMaterialData& src);
 
     static const AttachBinder*       bindMesh     (const ProtoMesh& anim,const Skeleton& s,const char* defBone);
     static const ProtoMesh*          loadMesh     (const std::string& name);

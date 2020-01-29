@@ -20,28 +20,27 @@ Landscape::Landscape(const RendererStorage &storage, const ZenLoad::PackedMesh &
   vbo = Resources::vbo<Resources::Vertex>(vert,mesh.vertices.size());
 
   for(auto& i:mesh.subMeshes){
-    if(i.material.alphaFunc==Resources::AdditiveLight)
+    if(i.material.alphaFunc==Material::AdditiveLight)
       continue;
+    if(i.material.alphaFunc==Material::NoAlpha)
+      ;//continue;
 
     Block b={};
-    b.ibo     = Resources::ibo(i.indices.data(),i.indices.size());
-    b.texture = Resources::loadTexture(i.material.texture);
+    b.ibo      = Resources::ibo(i.indices.data(),i.indices.size());
+    b.material = Resources::loadMaterial(i.material);
 
-    if(i.material.alphaFunc==Resources::Transparent)
-      b.alpha=true;
-    if(i.material.alphaFunc!=Resources::NoAlpha &&
-       i.material.alphaFunc!=Resources::Transparent)
+    if(i.material.alphaFunc>=Material::Last) {
       Log::i("unrecognized alpha func: ",i.material.alphaFunc);
+      continue;
+      }
 
-    if(b.texture==nullptr || b.texture->isEmpty())
+    if(b.material.tex==nullptr || b.material.tex->isEmpty())
       continue;
     blocks.emplace_back(std::move(b));
     }
 
   std::sort(blocks.begin(),blocks.end(),[](const Block& a,const Block& b){
-    auto fa = a.texture->format();
-    auto fb = b.texture->format();
-    return std::tie(a.alpha,a.texture,fa)<std::tie(b.alpha,b.texture,fb);
+    return a.material<b.material;
     });
   }
 
@@ -72,7 +71,6 @@ void Landscape::commitUbo(uint32_t frameId, const Tempest::Texture2d& shadowMap)
   auto&     uboSm1  = pf.ubo[2];
 
   const Texture2d* prev =nullptr;
-  bool             alpha=false;
 
   uboLand.resize(blocks.size());
   uboSm0 .resize(blocks.size());
@@ -84,59 +82,54 @@ void Landscape::commitUbo(uint32_t frameId, const Tempest::Texture2d& shadowMap)
     auto& uboS0=uboSm0 [i];
     auto& uboS1=uboSm1 [i];
 
-    if(prev==lnd.texture && alpha==lnd.alpha)
+    if(prev==lnd.material.tex)
       continue; //HINT: usless :(
-    prev  = lnd.texture;
-    alpha = lnd.alpha;
+    prev  = lnd.material.tex;
 
     if(uboL.isEmpty())
-      uboL = storage.device.uniforms(storage.uboLndLayout());
+      uboL  = storage.device.uniforms(storage.uboLndLayout());
     if(uboS0.isEmpty())
       uboS0 = storage.device.uniforms(storage.uboLndLayout());
     if(uboS1.isEmpty())
       uboS1 = storage.device.uniforms(storage.uboLndLayout());
 
     uboL.set(0,pf.uboGpu[0],0,1);
-    uboL.set(2,*lnd.texture);
+    uboL.set(2,*lnd.material.tex);
     uboL.set(3,shadowMap);
 
     uboS0.set(0,pf.uboGpu[0],0,1);
-    uboS0.set(2,*lnd.texture);
+    uboS0.set(2,*lnd.material.tex);
     uboS0.set(3,Resources::fallbackTexture());
 
     uboS1.set(0,pf.uboGpu[1],0,1);
-    uboS1.set(2,*lnd.texture);
+    uboS1.set(2,*lnd.material.tex);
     uboS1.set(3,Resources::fallbackTexture());
     }
   }
 
 void Landscape::draw(Tempest::Encoder<CommandBuffer> &cmd, uint32_t frameId) {
-  implDraw(cmd,storage.pLand,  storage.pLandAlpha,0,frameId);
+  const RenderPipeline* ptable[Material::ApphaFunc::Last] = {
+    nullptr,
+    &storage.pLandAt,
+    &storage.pLandAlpha,
+    nullptr,
+    };
+  implDraw(cmd,ptable,0,frameId);
   }
 
 void Landscape::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t frameId, int layer) {
-  PerFrame& pf      = this->pf[frameId];
-  auto&     uboLand = pf.ubo[1+layer];
-
-  //bool prevAlpha=false;
-  for(size_t i=0;i<blocks.size();++i){
-    auto& lnd=blocks [i];
-    auto& ubo=uboLand[i];
-
-    if(ubo.isEmpty())
-      continue;
-
-    // TODO: proper alpha detection
-    //if(lnd.alpha || lnd.alpha!=prevAlpha || i==0 || true){
-    //  prevAlpha = lnd.alpha;
-      uint32_t offset=0;
-      cmd.setUniforms(storage.pLandSh,ubo,1,&offset);
-    //  }
-    cmd.draw(vbo,lnd.ibo);
-    }
+  const RenderPipeline* ptable[Material::ApphaFunc::Last] = {
+    nullptr,
+    &storage.pLandAtSh,
+    &storage.pLandSh,
+    nullptr,
+    };
+  implDraw(cmd,ptable,uint8_t(1+layer),frameId);
   }
 
-void Landscape::implDraw(Tempest::Encoder<Tempest::CommandBuffer> &cmd,const RenderPipeline &p,const RenderPipeline &alpha,uint8_t uboId,uint32_t frameId) {
+void Landscape::implDraw(Tempest::Encoder<Tempest::CommandBuffer> &cmd,
+                         const RenderPipeline* p[],
+                         uint8_t uboId,uint32_t frameId) {
   PerFrame& pf      = this->pf[frameId];
   auto&     uboLand = pf.ubo[uboId];
 
@@ -147,10 +140,12 @@ void Landscape::implDraw(Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Ren
     if(ubo.isEmpty())
       continue;
 
+    auto pso = p[lnd.material.alpha];
+    if(pso==nullptr)
+      continue;
+
     uint32_t offset=0;
-    if(lnd.alpha)
-      cmd.setUniforms(alpha,ubo,1,&offset); else
-      cmd.setUniforms(p,ubo,1,&offset);
+    cmd.setUniforms(*pso,ubo,1,&offset);
     cmd.draw(vbo,lnd.ibo);
     }
   }

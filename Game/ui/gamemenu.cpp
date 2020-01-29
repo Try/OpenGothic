@@ -48,7 +48,7 @@ GameMenu::GameMenu(MenuRoot &owner, Daedalus::DaedalusVM &vm, Gothic &gothic, co
     }
 
   setSelection(gothic.isInGame() ? menu.defaultInGame : menu.defaultOutGame);
-  initValues();
+  updateValues();
 
   gothic.pushPause();
   }
@@ -463,6 +463,11 @@ void GameMenu::updateSavThumb(GameMenu::Item &sel) {
     }
   }
 
+void GameMenu::updateVideo() {
+  set("MENUITEM_VID_DEVICE_CHOICE",     Resources::renderer());
+  set("MENUITEM_VID_RESOLUTION_CHOICE", "");
+  }
+
 bool GameMenu::implUpdateSavThumb(GameMenu::Item& sel) {
   const size_t id = saveSlotId(sel);
   if(id==size_t(-1))
@@ -616,7 +621,7 @@ void GameMenu::set(const char *item, const char *value) {
       }
   }
 
-void GameMenu::initValues() {
+void GameMenu::updateValues() {
   gtime time;
   if(auto w = gothic.world())
     time = w->time();
@@ -639,6 +644,8 @@ void GameMenu::initValues() {
 
   if(auto s = selectedItem())
     updateSavThumb(*s);
+
+  updateVideo();
   }
 
 void GameMenu::setPlayer(const Npc &pl) {

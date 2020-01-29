@@ -61,7 +61,6 @@ class GameMenu : public Tempest::Widget {
     Item*                                 selectedNextItem(Item* cur);
     void                                  setSelection(int cur, int seek=1);
     void                                  initItems();
-    void                                  initValues();
     void                                  getText(const Item &it, std::vector<char>& out);
     const GthFont&                        getTextFont(const Item &it);
     bool                                  isEnabled(const Daedalus::GEngineClasses::C_Menu_Item& item);
@@ -72,14 +71,17 @@ class GameMenu : public Tempest::Widget {
     void                                  execSaveGame (Item &item);
     void                                  execLoadGame (Item &item);
     void                                  execCommands (Item &it, const Daedalus::ZString str);
-    void                                  updateItem   (Item &item);
 
-    void                                  updateSavThumb(Item& sel);
     bool                                  implUpdateSavThumb(Item& sel);
     size_t                                saveSlotId(const Item& sel);
 
     const char*                           strEnum(const char* en, int id, std::vector<char> &out);
     size_t                                strEnumSize(const char* en);
+
+    void                                  updateValues();
+    void                                  updateItem   (Item &item);
+    void                                  updateSavThumb(Item& sel);
+    void                                  updateVideo();
 
     void                                  set(const char* item,const Tempest::Texture2d* value);
     void                                  set(const char* item,const uint32_t value);

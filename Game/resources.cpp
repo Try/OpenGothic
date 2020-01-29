@@ -25,6 +25,7 @@
 #include "graphics/protomesh.h"
 #include "graphics/animation.h"
 #include "graphics/attachbinder.h"
+#include "graphics/material.h"
 #include "physics/physicmeshshape.h"
 #include "dmusic/music.h"
 #include "dmusic/directmusic.h"
@@ -109,6 +110,10 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
 
 Resources::~Resources() {
   inst=nullptr;
+  }
+
+const char* Resources::renderer() {
+  return inst->device.renderer();
   }
 
 void Resources::detectVdf(std::vector<Archive>& ret, const std::u16string &root) {
@@ -471,6 +476,11 @@ const Texture2d *Resources::loadTexture(const std::string &name, int32_t iv, int
 Texture2d Resources::loadTexture(const Pixmap &pm) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->device.loadTexture(pm);
+  }
+
+Material Resources::loadMaterial(const ZenLoad::zCMaterialData& src) {
+  Material mt(src);
+  return src;
   }
 
 const ProtoMesh *Resources::loadMesh(const std::string &name) {
