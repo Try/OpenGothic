@@ -713,7 +713,7 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
         auto active=invent.activeWeapon();
         if(active!=nullptr) {
           const int32_t munition = active->handle()->munition;
-          invent.putAmunition(*this,uint32_t(munition),i.slot[0]);
+          invent.putAmmunition(*this,uint32_t(munition),i.slot[0]);
           }
         break;
         }
