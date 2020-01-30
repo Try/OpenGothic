@@ -637,7 +637,7 @@ void Inventory::clearSlot(Npc& owner,const char *slot,bool remove) {
       }
   }
 
-void Inventory::putAmunition(Npc& owner, size_t cls, const char* slot) {
+void Inventory::putAmmunition(Npc& owner, size_t cls, const char* slot) {
   Item* it = (cls==0 ? nullptr : findByClass(cls));
   if(it==nullptr) {
     ammotSlot.slot.clear();

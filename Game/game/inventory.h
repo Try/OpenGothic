@@ -108,7 +108,7 @@ class Inventory final {
     void   putCurrentToSlot(Npc& owner, const char* slot);
     void   putToSlot       (Npc& owner, size_t cls, const char* slot);
     void   clearSlot       (Npc& owner, const char* slot, bool remove);
-    void   putAmunition    (Npc& owner, size_t cls, const char* slot);
+    void   putAmmunition   (Npc& owner, size_t cls, const char* slot);
 
     void   setCurrentItem(size_t cls);
     void   setStateItem  (size_t cls);

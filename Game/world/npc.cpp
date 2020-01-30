@@ -718,7 +718,7 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
         break;
         }
       case ZenLoad::DEF_REMOVE_MUNITION: {
-        invent.putAmunition(*this,0,nullptr);
+        invent.putAmmunition(*this,0,nullptr);
         break;
         }
       default:
