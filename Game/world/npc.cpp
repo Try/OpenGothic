@@ -2081,7 +2081,7 @@ bool Npc::closeWeapon(bool noAnim) {
   if(isPlayer())
     setTarget(nullptr);
   invent.switchActiveWeapon(*this,Item::NSLOT);
-  invent.putAmunition(*this,0,nullptr);
+  invent.putAmmunition(*this,0,nullptr);
   hnpc.weapon = 0;
   updateWeaponSkeleton();
 
