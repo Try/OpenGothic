@@ -37,7 +37,7 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
     }
 
   if(tg.isPrehit() && isInGRange(npc,tg,owner)){
-    if(tg.bodyState()==BS_RUN)
+    if(tg.bodyStateMasked()==BS_RUN)
       if(fillQueue(owner,ai.enemy_stormprehit))
         return;
     if(fillQueue(owner,ai.enemy_prehit))
@@ -46,7 +46,7 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
 
   if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H){
     if(isInAtackRange(npc,tg,owner)) {
-      if(npc.bodyState()==BS_RUN)
+      if(npc.bodyStateMasked()==BS_RUN)
         if(fillQueue(owner,ai.my_w_runto))
           return;
       if(isInFocusAngle(npc,tg))
@@ -57,7 +57,7 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
       }
 
     if(isInGRange(npc,tg,owner)) {
-      if(npc.bodyState()==BS_RUN)
+      if(npc.bodyStateMasked()==BS_RUN)
         if(fillQueue(owner,ai.my_g_runto))
           return;
       if(isInFocusAngle(npc,tg))
@@ -65,7 +65,7 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
           return;
       }
 
-    if(npc.bodyState()==BS_RUN)
+    if(npc.bodyStateMasked()==BS_RUN)
       if(fillQueue(owner,ai.my_w_runto))
         return;
     if(fillQueue(owner,ai.my_w_nofocus))

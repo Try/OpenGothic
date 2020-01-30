@@ -1062,6 +1062,33 @@ Attitude GameScript::personAttitude(const Npc &p0, const Npc &p1) const {
   return att;
   }
 
+BodyState GameScript::schemeToBodystate(const char* sc) {
+  if(searchScheme(sc,"MOB_SIT"))
+    return BS_SIT;
+  if(searchScheme(sc,"MOB_LIE"))
+    return BS_LIE;
+  if(searchScheme(sc,"MOB_CLIMB"))
+    return BS_CLIMB;
+  if(searchScheme(sc,"MOB_NOTINTERRUPTABLE"))
+    return BS_MOBINTERACT;
+  return BS_MOBINTERACT_INTERRUPT;
+  }
+
+bool GameScript::searchScheme(const char* sc, const char* listName) {
+  auto& list = vm.getDATFile().getSymbolByName(listName).getString();
+  const char* l = list.c_str();
+  for(const char* e = l;;++e) {
+    if(*e=='\0' || *e==',') {
+      size_t len = size_t(std::distance(l,e));
+      if(std::strncmp(sc,l,len)==0)
+        return true;
+      }
+    if(*e=='\0')
+      break;
+    }
+  return false;
+  }
+
 bool GameScript::hasSymbolName(const char* fn) {
   return vm.getDATFile().hasSymbolName(fn);
   }

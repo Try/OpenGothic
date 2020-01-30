@@ -130,6 +130,8 @@ class GameScript final {
     Attitude guildAttitude(const Npc& p0,const Npc& p1) const;
     Attitude personAttitude(const Npc& p0,const Npc& p1) const;
 
+    BodyState schemeToBodystate(const char* sc);
+
   private:
     void               initCommon();
 
@@ -148,19 +150,18 @@ class GameScript final {
 
     struct ScopeVar;
 
-    Npc*                      popInstance(Daedalus::DaedalusVM &vm);
-    Item*                     popItem    (Daedalus::DaedalusVM &vm);
+    Npc*  popInstance(Daedalus::DaedalusVM &vm);
+    Item* popItem    (Daedalus::DaedalusVM &vm);
 
-    void                      pushInstance(Daedalus::DaedalusVM &vm,Npc*  npc);
-    void                      pushItem    (Daedalus::DaedalusVM &vm,Item* it);
+    void  pushInstance(Daedalus::DaedalusVM &vm,Npc*  npc);
+    void  pushItem    (Daedalus::DaedalusVM &vm,Item* it);
 
     template<class Ret,class ... Args>
     std::function<Ret(Args...)> notImplementedFn();
 
     template<void(GameScript::*)(Daedalus::DaedalusVM &vm)>
-    void notImplementedFn(const char* name);
-
-    void notImplementedRoutine(Daedalus::DaedalusVM&);
+    void  notImplementedFn(const char* name);
+    void  notImplementedRoutine(Daedalus::DaedalusVM&);
 
     Item* getItem(Daedalus::GEngineClasses::C_Item* handle);
     Item* getItemById(size_t id);
@@ -174,6 +175,8 @@ class GameScript final {
 
     bool  aiOutput   (Npc &from, const Daedalus::ZString& name);
     bool  aiOutputSvm(Npc &from, const Daedalus::ZString& name, int32_t voice, bool overlay);
+
+    bool  searchScheme(const char* sc,const char* listName);
 
     static void concatstrings(Daedalus::DaedalusVM& vm);
     static void inttostring  (Daedalus::DaedalusVM& vm);

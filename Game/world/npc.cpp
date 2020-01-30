@@ -1555,7 +1555,7 @@ void Npc::nextAiAction(uint64_t dt) {
       if(!setInteraction(nullptr)) {
         aiActions.push_front(std::move(act));
         }
-      else if(bodyState()==BS_UNCONSCIOUS || bodyState()==BS_DEAD) {
+      else if(bodyStateMasked()==BS_UNCONSCIOUS || bodyStateMasked()==BS_DEAD) {
         if(!setAnim(Anim::Idle))
           aiActions.push_front(std::move(act)); else
           implAniWait(visual.pose().animationTotalTime());
@@ -1935,24 +1935,13 @@ BodyState Npc::bodyState() const {
   if(mvAlgo.isSwim())
     s = BS_SWIM;
   if(auto i = interactive())
-    s = i->stateMask(s);
+    s = i->stateMask();
   return BodyState(s);
-  /*
-  if(s!=0)
-    return BodyState(s);
+  }
 
-  if(isStanding()) {
-    s |= BS_STAND;
-    } else {
-    if(wlkMode==WalkBit::WM_Run)
-      s = BS_RUN;
-    else if(wlkMode==WalkBit::WM_Walk)
-      s = BS_WALK;
-    else if(wlkMode==WalkBit::WM_Sneak)
-      s = BS_SNEAK;
-    }
-
-  return BodyState(s);*/
+BodyState Npc::bodyStateMasked() const {
+  BodyState bs = bodyState();
+  return BodyState(bs & (BS_MAX | BS_FLAG_MASK));
   }
 
 void Npc::setToFightMode(const uint32_t item) {

@@ -286,6 +286,7 @@ class Npc final {
     bool      startState(size_t id, const Daedalus::ZString& wp, gtime endTime, bool noFinalize);
     void      clearState(bool noFinalize);
     BodyState bodyState() const;
+    BodyState bodyStateMasked() const;
 
     void setToFightMode(const uint32_t item);
     void setToFistMode();

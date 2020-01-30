@@ -323,31 +323,9 @@ Inventory &Interactive::inventory()  {
   return invent;
   }
 
-uint32_t Interactive::stateMask(uint32_t orig) const {
-  static const char* MOB_SIT[]   = {"BENCH","CHAIR","GROUND","THRONE"};
-  static const char* MOB_LIE[]   = {"BED","BEDHIGH","BEDLOW"};
-  static const char* MOB_CLIMB[] = {"CLIMB","LADDER","RANKE"};
-  static const char* MOB_NOTINTERRUPTABLE[] =
-     {"DOOR","LEVER","TOUCHPLATE","TURNSWITCH","VWHEEL","CHESTBIG","CHESTSMALL","HERB","IDOL","PAN","SMOKE","INNOS"};
-  // TODO: fetch MOB_* from script
+uint32_t Interactive::stateMask() const {
   const char* s = schemeName();
-  for(auto i:MOB_SIT){
-    if(std::strcmp(i,s)==0)
-      return BS_SIT;
-    }
-  for(auto i:MOB_LIE){
-    if(std::strcmp(i,s)==0)
-      return BS_LIE;
-    }
-  for(auto i:MOB_CLIMB){
-    if(std::strcmp(i,s)==0)
-      return BS_CLIMB;
-    }
-  for(auto i:MOB_NOTINTERRUPTABLE){
-    if(std::strcmp(i,s)==0)
-      ;//return BS_MOBINTERACT_INTERRUPT;
-    }
-  return orig;
+  return world->script().schemeToBodystate(s);
   }
 
 bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {

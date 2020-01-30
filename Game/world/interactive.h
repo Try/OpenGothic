@@ -48,7 +48,7 @@ class Interactive final {
     bool                isContainer() const;
     Inventory&          inventory();
 
-    uint32_t            stateMask(uint32_t orig) const;
+    uint32_t            stateMask() const;
 
     bool                canSeeNpc(const Npc &npc, bool freeLos) const;
 
