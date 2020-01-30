@@ -104,6 +104,12 @@ void MdlVisual::setRangeWeapon(MeshObjects::Mesh &&b) {
   setPos(pos);
   }
 
+void MdlVisual::setAmmoItem(MeshObjects::Mesh&& a, const char *bone) {
+  ammunition = std::move(a);
+  ammunition.setAttachPoint(skeleton,bone);
+  setPos(pos);
+  }
+
 void MdlVisual::setMagicWeapon(PfxObjects::Emitter &&spell) {
   pfx = std::move(spell);
   setPos(pos);
@@ -208,13 +214,14 @@ void MdlVisual::updateAnimation(Npc& npc) {
   solver.update(tickCount);
   pose.update(solver,tickCount);
 
-  head   .setSkeleton(pose,pos);
-  sword  .setSkeleton(pose,pos);
-  bow    .setSkeleton(pose,pos);
+  head      .setSkeleton(pose,pos);
+  sword     .setSkeleton(pose,pos);
+  bow       .setSkeleton(pose,pos);
+  ammunition.setSkeleton(pose,pos);
   for(auto& i:item)
     i.setSkeleton(pose,pos);
-  pfx    .setSkeleton(pose,pos);
-  view   .setSkeleton(pose,pos);
+  pfx .setSkeleton(pose,pos);
+  view.setSkeleton(pose,pos);
   }
 
 void MdlVisual::stopAnim(Npc& npc,const char* ani) {

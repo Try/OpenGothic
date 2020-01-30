@@ -33,6 +33,7 @@ class MdlVisual final {
     void                           setArmour     (MeshObjects::Mesh&& body);
     void                           setSword      (MeshObjects::Mesh&& sword);
     void                           setRangeWeapon(MeshObjects::Mesh&& bow);
+    void                           setAmmoItem   (MeshObjects::Mesh&& ammo, const char* bone);
     void                           setMagicWeapon(PfxObjects::Emitter&& spell);
     void                           setSlotItem   (MeshObjects::Mesh&& itm, const char *bone);
     void                           clearSlotItem (const char *bone);
@@ -73,6 +74,8 @@ class MdlVisual final {
     MeshObjects::Mesh              sword, bow;
     std::vector<MeshObjects::Mesh> item;
     PfxObjects::Emitter            pfx;
+
+    MeshObjects::Mesh              ammunition;
 
     const Skeleton*                skeleton=nullptr;
 

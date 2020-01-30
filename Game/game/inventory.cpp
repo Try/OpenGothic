@@ -37,6 +37,10 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
       } else {
       ++i;
       }
+  if(s.version()>=5) {
+    s.read(ammotSlot.slot);
+    ammotSlot.item = readPtr(s);
+    }
 
   armour = readPtr(s);
   belt   = readPtr(s);
@@ -67,6 +71,11 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
       auto  vbody  = world.getView(itData.visual,itData.material,0,itData.material);
       owner->setSlotItem(std::move(vbody),i.slot.c_str());
       }
+    if(ammotSlot.item!=nullptr) {
+      auto& itData = *ammotSlot.item->handle();
+      auto  vbody  = world.getView(itData.visual,itData.material,0,itData.material);
+      owner->setAmmoItem(std::move(vbody),ammotSlot.slot.c_str());
+      }
     }
   s.read(curItem,stateItem);
   }
@@ -90,6 +99,7 @@ void Inventory::save(Serialize &fout) const {
   for(auto& i:mdlSlots){
     fout.write(i.slot,indexOf(i.item));
     }
+  fout.write(ammotSlot.slot,indexOf(ammotSlot.item));
 
   fout.write(indexOf(armour));
   fout.write(indexOf(belt)  );
@@ -625,6 +635,22 @@ void Inventory::clearSlot(Npc& owner,const char *slot,bool remove) {
       } else {
       ++i;
       }
+  }
+
+void Inventory::putAmunition(Npc& owner, size_t cls, const char* slot) {
+  Item* it = (cls==0 ? nullptr : findByClass(cls));
+  if(it==nullptr) {
+    ammotSlot.slot.clear();
+    ammotSlot.item = nullptr;
+    owner.setAmmoItem(MeshObjects::Mesh(),nullptr);
+    return;
+    }
+
+  ammotSlot.slot = slot;
+  ammotSlot.item = it;
+  auto& itData = *it->handle();
+  auto  vitm   = owner.world().getView(itData.visual,itData.material,0,itData.material);
+  owner.setAmmoItem(std::move(vitm),slot);
   }
 
 void Inventory::setCurrentItem(size_t cls) {

@@ -668,6 +668,10 @@ void Npc::setSlotItem(MeshObjects::Mesh &&itm, const char *slot) {
   visual.setSlotItem(std::move(itm),slot);
   }
 
+void Npc::setAmmoItem(MeshObjects::Mesh&& itm, const char* slot) {
+  visual.setAmmoItem(std::move(itm),slot);
+  }
+
 void Npc::clearSlotItem(const char *slot) {
   visual.clearSlotItem(slot);
   }
@@ -709,13 +713,12 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
         auto active=invent.activeWeapon();
         if(active!=nullptr) {
           const int32_t munition = active->handle()->munition;
-          invent.putToSlot(*this,uint32_t(munition),i.slot[0]);
+          invent.putAmunition(*this,uint32_t(munition),i.slot[0]);
           }
         break;
         }
       case ZenLoad::DEF_REMOVE_MUNITION: {
-        // TODO: track amunition slots separatly
-        invent.clearSlot(*this,nullptr,false);
+        invent.putAmunition(*this,0,nullptr);
         break;
         }
       default:
@@ -2078,6 +2081,7 @@ bool Npc::closeWeapon(bool noAnim) {
   if(isPlayer())
     setTarget(nullptr);
   invent.switchActiveWeapon(*this,Item::NSLOT);
+  invent.putAmunition(*this,0,nullptr);
   hnpc.weapon = 0;
   updateWeaponSkeleton();
 
