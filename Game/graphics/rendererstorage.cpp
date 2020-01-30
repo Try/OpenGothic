@@ -126,13 +126,11 @@ void RendererStorage::initPipeline(Gothic& gothic) {
 void RendererStorage::initShadow() {
   RenderState state;
   state.setZTestMode   (RenderState::ZTestMode::Less);
-  //state.setCullFaceMode(RenderState::CullMode::Back);
-  state.setCullFaceMode(RenderState::CullMode::Front);
+  state.setCullFaceMode(RenderState::CullMode::Back);
+  //state.setCullFaceMode(RenderState::CullMode::Front);
 
   pLandSh   = pipeline<Resources::Vertex> (state,layoutLnd,land.shadow);
   pLandAtSh = pipeline<Resources::Vertex> (state,layoutLnd,landAt.shadow);
-
-  state.setCullFaceMode(RenderState::CullMode::Back);
   pObjectSh = pipeline<Resources::Vertex> (state,layoutObj,object.shadow);
   pAnimSh   = pipeline<Resources::VertexA>(state,layoutAni,ani.shadow);
   }
