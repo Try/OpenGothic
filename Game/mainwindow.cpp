@@ -628,8 +628,7 @@ void MainWindow::render(){
     PrimaryCommandBuffer& cmd = commandDynamic[swapchain.frameId()];
     renderer.draw(cmd.startEncoding(device),swapchain.frameId(),imgId,surface,inventory,gothic);
     device.submit(cmd,context.imageAvailable,context.renderDone,context.gpuLock);
-
-    swapchain.present(imgId,context.renderDone);
+    device.present(swapchain,imgId,context.renderDone);
 
     auto t = Application::tickCount();
     if(t-time<16 && !gothic.isInGame()){
