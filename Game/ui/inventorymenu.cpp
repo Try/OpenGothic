@@ -225,10 +225,8 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
   }
 
 void InventoryMenu::keyUpEvent(KeyEvent &e) {
-  if(e.key==KeyEvent::K_Space || e.key==KeyEvent::K_Z || e.key==KeyEvent::K_X){
-    takeTimer.stop();
-    lootMode = LootMode::Normal;
-    }
+  takeTimer.stop();
+  lootMode = LootMode::Normal;
   if(e.key==KeyEvent::K_ESCAPE || (e.key==KeyEvent::K_Tab && state!=State::Trade)){
     close();
     }
