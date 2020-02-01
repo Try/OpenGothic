@@ -132,6 +132,12 @@ void MdlVisual::setSlotItem(MeshObjects::Mesh &&itm, const char *bone) {
   setPos(pos);
   }
 
+void MdlVisual::setStateItem(MeshObjects::Mesh&& a, const char* bone) {
+  stateItm = std::move(a);
+  stateItm.setAttachPoint(skeleton,bone);
+  setPos(pos);
+  }
+
 void MdlVisual::clearSlotItem(const char *bone) {
   for(size_t i=0;i<item.size();++i) {
     const char* b = item[i].attachPoint();
@@ -218,6 +224,7 @@ void MdlVisual::updateAnimation(Npc& npc) {
   sword     .setSkeleton(pose,pos);
   bow       .setSkeleton(pose,pos);
   ammunition.setSkeleton(pose,pos);
+  stateItm  .setSkeleton(pose,pos);
   for(auto& i:item)
     i.setSkeleton(pose,pos);
   pfx .setSkeleton(pose,pos);
@@ -368,6 +375,8 @@ bool MdlVisual::startAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, Wal
 bool MdlVisual::startAnim(Npc &npc, WeaponState st) {
   const bool run = (skInst->bodyState()&BS_MAX)==BS_RUN;
 
+  if(st==fgtMode)
+    return true;
   const Animation::Sequence *sq = solver.solveAnim(st,fgtMode,run);
   if(sq==nullptr)
     return false;
@@ -378,6 +387,10 @@ bool MdlVisual::startAnim(Npc &npc, WeaponState st) {
 
 void MdlVisual::setRotation(Npc &npc, int dir) {
   skInst->setRotation(solver,npc,fgtMode,dir);
+  }
+
+void MdlVisual::interrupt() {
+  skInst->interrupt();
   }
 
 std::array<float,3> MdlVisual::displayPosition() const {
@@ -416,6 +429,9 @@ bool MdlVisual::startAnimSpell(Npc &npc, const char *scheme) {
   }
 
 bool MdlVisual::startAnimDialog(Npc &npc) {
+  if((npc.bodyState()&BS_FLAG_FREEHANDS)==0 || fgtMode!=WeaponState::NoWeapon)
+    return true;
+
   //const int countG1 = 21;
   const int countG2 = 11;
   const int id      = std::rand()%countG2 + 1;
@@ -424,7 +440,7 @@ bool MdlVisual::startAnimDialog(Npc &npc) {
   std::snprintf(name,sizeof(name),"T_DIALOGGESTURE_%02d",id);
 
   const Animation::Sequence *sq = solver.solveFrm(name);
-  if(skInst->startAnim(solver,sq,BS_NONE,false,npc.world().tickCount())) {
+  if(skInst->startAnim(solver,sq,BS_STAND,false,npc.world().tickCount())) {
     return true;
     }
   return false;

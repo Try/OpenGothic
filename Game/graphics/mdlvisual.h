@@ -36,6 +36,7 @@ class MdlVisual final {
     void                           setAmmoItem   (MeshObjects::Mesh&& ammo, const char* bone);
     void                           setMagicWeapon(PfxObjects::Emitter&& spell);
     void                           setSlotItem   (MeshObjects::Mesh&& itm, const char *bone);
+    void                           setStateItem  (MeshObjects::Mesh&& itm, const char *bone);
     void                           clearSlotItem (const char *bone);
     bool                           setFightMode(const ZenLoad::EFightMode mode);
 
@@ -60,6 +61,7 @@ class MdlVisual final {
     void                           stopAnim(Npc &npc, const char *ani);
     void                           stopWalkAnim(Npc &npc);
     void                           setRotation(Npc &npc, int dir);
+    void                           interrupt();
     WeaponState                    fightMode() const { return fgtMode; }
     std::array<float,3>            displayPosition() const;
     const Tempest::Matrix4x4&      position() const { return pos; }
@@ -75,7 +77,7 @@ class MdlVisual final {
     std::vector<MeshObjects::Mesh> item;
     PfxObjects::Emitter            pfx;
 
-    MeshObjects::Mesh              ammunition;
+    MeshObjects::Mesh              ammunition, stateItm;
 
     const Skeleton*                skeleton=nullptr;
 

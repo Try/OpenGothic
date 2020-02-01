@@ -109,6 +109,7 @@ class Inventory final {
     void   putToSlot       (Npc& owner, size_t cls, const char* slot);
     void   clearSlot       (Npc& owner, const char* slot, bool remove);
     void   putAmmunition   (Npc& owner, size_t cls, const char* slot);
+    bool   putState        (Npc& owner, size_t cls, int mode);
 
     void   setCurrentItem(size_t cls);
     void   setStateItem  (size_t cls);
@@ -120,6 +121,7 @@ class Inventory final {
       };
 
     void   implLoad(Npc *owner, World &world, Serialize& s);
+    void   implPutState(Npc& owner, size_t cls, const char* slot);
 
     bool   setSlot     (Item*& slot, Item *next, Npc &owner, bool force);
     bool   equipNumSlot(Item *next, Npc &owner, bool force);
@@ -159,7 +161,7 @@ class Inventory final {
     Item*                              range =nullptr;
     Item*                              numslot[8]={};
     std::vector<MdlSlot>               mdlSlots;
-    MdlSlot                            ammotSlot;
+    MdlSlot                            ammotSlot, stateSlot;
     int32_t                            curItem=0;
     int32_t                            stateItem=0;
   };

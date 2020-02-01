@@ -668,6 +668,10 @@ void Npc::setSlotItem(MeshObjects::Mesh &&itm, const char *slot) {
   visual.setSlotItem(std::move(itm),slot);
   }
 
+void Npc::setStateItem(MeshObjects::Mesh&& itm, const char* slot) {
+  visual.setStateItem(std::move(itm),slot);
+  }
+
 void Npc::setAmmoItem(MeshObjects::Mesh&& itm, const char* slot) {
   visual.setAmmoItem(std::move(itm),slot);
   }
@@ -1349,7 +1353,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
 
     if(hitResult.value>0) {
       if(attribute(ATR_HITPOINTS)>0) {
-        visual.setRotation(*this,0);
+        visual.interrupt();
         if(lastHitType=='A')
           setAnim(Anim::StumbleA); else
           setAnim(Anim::StumbleB);
@@ -1611,9 +1615,10 @@ void Npc::nextAiAction(uint64_t dt) {
       if(act.i0!=0) {
         uint32_t itm   = uint32_t(act.i0);
         int      state = act.i1;
-        if(state>=0)
-          invent.putToSlot(*this,itm,"ZS_LEFTHAND"); else
-          invent.clearSlot(*this,"ZS_LEFTHAND",false);
+        if(state>0)
+          visual.stopDlgAnim();
+        if(!invent.putState(*this,state>=0 ? itm : 0,state))
+          aiActions.push_front(std::move(act));
         }
       break;
     case AI_Teleport: {
@@ -1661,8 +1666,7 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_OutputSvmOverlay:{
       if(performOutput(act)) {
         if(act.act!=AI_OutputSvmOverlay)
-          if(weaponState()==WeaponState::NoWeapon)
-            visual.startAnimDialog(*this);
+          visual.startAnimDialog(*this);
         } else {
         aiActions.push_front(std::move(act));
         }
@@ -1770,7 +1774,7 @@ void Npc::clearState(bool noFinalize) {
     if(!noFinalize)
       owner.script().invokeState(this,currentOther,nullptr,aiState.funcEnd);  // cleanup
     aiPrevState = aiState.funcIni;
-    invent.setStateItem(0);
+    invent.putState(*this,0,0);
     }
   aiState = AiState();
   aiState.funcIni = 0;

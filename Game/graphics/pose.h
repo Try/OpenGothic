@@ -31,6 +31,7 @@ class Pose final {
     bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq, BodyState bs,
                                  bool force, uint64_t tickCount);
     bool               stopAnim(const char* name);
+    void               interrupt();
     void               stopAllAnim();
     void               update(AnimationSolver &solver, uint64_t tickCount);
 

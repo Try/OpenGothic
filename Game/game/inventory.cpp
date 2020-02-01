@@ -40,6 +40,8 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
   if(s.version()>=5) {
     s.read(ammotSlot.slot);
     ammotSlot.item = readPtr(s);
+    s.read(stateSlot.slot);
+    stateSlot.item = readPtr(s);
     }
 
   armour = readPtr(s);
@@ -100,6 +102,7 @@ void Inventory::save(Serialize &fout) const {
     fout.write(i.slot,indexOf(i.item));
     }
   fout.write(ammotSlot.slot,indexOf(ammotSlot.item));
+  fout.write(stateSlot.slot,indexOf(stateSlot.item));
 
   fout.write(indexOf(armour));
   fout.write(indexOf(belt)  );
@@ -590,19 +593,21 @@ uint8_t Inventory::currentSpellSlot() const {
   }
 
 void Inventory::putCurrentToSlot(Npc& owner, const char *slot) {
-  if(curItem!=0)
-    putToSlot(owner,size_t(curItem),slot); else
-    putToSlot(owner,size_t(stateItem),slot);
-  curItem = 0;
+  if(curItem!=0) {
+    putToSlot(owner,size_t(curItem),slot);
+    curItem = 0;
+    return;
+    }
+  if(stateItem!=0)
+    implPutState(owner,size_t(stateItem),slot);
   }
 
 void Inventory::putToSlot(Npc& owner, size_t cls, const char *slot) {
   clearSlot(owner,slot,false);
 
   Item* it=findByClass(cls);
-  if(it==nullptr) {
+  if(it==nullptr)
     it = addItem(cls,1,owner.world());
-    }
 
   for(auto& i:mdlSlots)
     if(i.slot==slot) {
@@ -651,6 +656,41 @@ void Inventory::putAmmunition(Npc& owner, size_t cls, const char* slot) {
   auto& itData = *it->handle();
   auto  vitm   = owner.world().getView(itData.visual,itData.material,0,itData.material);
   owner.setAmmoItem(std::move(vitm),slot);
+  }
+
+void Inventory::implPutState(Npc& owner, size_t cls, const char* slot) {
+  Item* it = (cls==0 ? nullptr : findByClass(cls));
+  if(it==nullptr) {
+    stateSlot.slot.clear();
+    stateSlot.item = nullptr;
+    owner.setStateItem(MeshObjects::Mesh(),nullptr);
+    return;
+    }
+
+  stateSlot.slot = slot;
+  stateSlot.item = it;
+  auto& itData = *it->handle();
+  auto  vitm   = owner.world().getView(itData.visual,itData.material,0,itData.material);
+  owner.setStateItem(std::move(vitm),slot);
+  }
+
+bool Inventory::putState(Npc& owner, size_t cls, int mode) {
+  Item* it = (cls==0 ? nullptr : findByClass(cls));
+  if(it==nullptr) {
+    implPutState(owner,0,stateSlot.slot.c_str());
+    setStateItem(0);
+    return true;
+    }
+
+  if(mode>0 && !owner.setAnimItem(it->handle()->scemeName.c_str()))
+    return false;
+
+  if(mode==0)
+    implPutState(owner,cls,"ZS_LEFTHAND");
+
+  setCurrentItem(0);
+  setStateItem(cls);
+  return true;
   }
 
 void Inventory::setCurrentItem(size_t cls) {

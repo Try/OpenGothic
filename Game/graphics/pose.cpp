@@ -57,7 +57,7 @@ void Pose::setFlags(Pose::Flags f) {
 BodyState Pose::bodyState() const {
   uint32_t b = BS_NONE;
   for(auto& i:lay)
-    b = std::max(b,uint32_t(i.bs));
+    b = std::max(b,uint32_t(i.bs&(BS_MAX | BS_FLAG_MASK)));
   return BodyState(b);
   }
 
@@ -82,6 +82,9 @@ void Pose::setSkeleton(const Skeleton* sk) {
 bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, BodyState bs,
                      bool force, uint64_t tickCount) {
   if(sq==nullptr)
+    return false;
+
+  if(bs==BS_ITEMINTERACT && itemUse!=nullptr)
     return false;
 
   for(auto& i:lay)
@@ -117,6 +120,8 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       i.seq     = tr ? tr : sq;
       i.sAnim   = tickCount;
       i.bs      = bs;
+      if(bs==BS_ITEMINTERACT)
+        itemUse = i.seq;
       return true;
       }
   addLayer(sq,bs,tickCount);
@@ -140,6 +145,20 @@ bool Pose::stopAnim(const char *name) {
   return done;
   }
 
+void Pose::interrupt() {
+  size_t ret=0;
+  for(size_t i=0;i<lay.size();++i) {
+    if(BS_FLAG_INTERRUPTABLE & lay[i].bs) {
+      if(ret!=i)
+        lay[ret] = lay[i];
+      ret++;
+      } else {
+      onRemoveLayer(lay[i]);
+      }
+    }
+  lay.resize(ret);
+  }
+
 void Pose::stopAllAnim() {
   for(auto& i:lay)
     onRemoveLayer(i);
@@ -158,8 +177,9 @@ void Pose::update(AnimationSolver& solver, uint64_t tickCount) {
     const auto& l = lay[i];
     if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount-l.sAnim,comboLen)) {
       auto next=getNext(solver,lay[i].seq);
-      if(lay[i].seq==itemUse)
+      if(lay[i].seq==itemUse) {
         itemUse=next;
+        }
       onRemoveLayer(lay[i]);
 
       if(next!=nullptr) {
@@ -242,6 +262,8 @@ void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, uint64_t tickC
   l.seq   = seq;
   l.sAnim = tickCount;
   l.bs    = bs;
+  if(bs==BS_ITEMINTERACT)
+    itemUse = seq;
   lay.push_back(l);
   std::sort(lay.begin(),lay.end(),[](const Layer& a,const Layer& b){
     return a.seq->layer<b.seq->layer;
@@ -460,7 +482,7 @@ void Pose::setRotation(const AnimationSolver &solver, Npc &npc, WeaponState figh
     }
   if(sq==nullptr)
     return;
-  if(startAnim(solver,sq,BS_NONE,false,npc.world().tickCount())) {
+  if(startAnim(solver,sq,BS_FLAG_FREEHANDS,false,npc.world().tickCount())) {
     rotation = sq;
     return;
     }
@@ -473,7 +495,7 @@ bool Pose::setAnimItem(const AnimationSolver &solver, Npc &npc, const char *sche
   std::snprintf(T_ID_STAND_2_S0,sizeof(T_ID_STAND_2_S0),"T_%s_STAND_2_S0",scheme);
 
   const Animation::Sequence *sq = solver.solveFrm(T_ID_STAND_2_S0);
-  if(startAnim(solver,sq,BS_NONE,false,npc.world().tickCount())) {
+  if(startAnim(solver,sq,BS_ITEMINTERACT,false,npc.world().tickCount())) {
     itemUse = sq;
     return true;
     }

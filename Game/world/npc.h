@@ -225,6 +225,7 @@ class Npc final {
     void setRangeWeapon(MeshObjects::Mesh&& bow);
     void setMagicWeapon(PfxObjects::Emitter&& spell);
     void setSlotItem   (MeshObjects::Mesh&& itm,const char* slot);
+    void setStateItem  (MeshObjects::Mesh&& itm,const char* slot);
     void setAmmoItem   (MeshObjects::Mesh&& itm,const char* slot);
     void clearSlotItem (const char* slot);
     void setPhysic     (DynamicWorld::Item&& item);
