@@ -1983,9 +1983,9 @@ void Npc::moveItem(uint32_t id, Interactive &to, uint32_t count) {
   }
 
 void Npc::sellItem(uint32_t id, Npc &to, uint32_t count) {
-  int32_t price = invent.sellPriceOf(id);
   if(id==owner.script().goldId())
     return;
+  int32_t price = invent.sellPriceOf(id);
   Inventory::trasfer(to.invent,invent,this,id,count,owner);
   invent.addItem(owner.script().goldId(),uint32_t(price),owner);
   }
