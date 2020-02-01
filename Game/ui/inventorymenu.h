@@ -24,6 +24,13 @@ class InventoryMenu : public Tempest::Widget {
       Ransack
       };
 
+    enum class LootMode:uint8_t {
+      Normal=0,
+      Stack,
+      Ten,
+      Hundred
+      };
+
     void  close();
     void  open(Npc& pl);
     void  trade(Npc& pl,Npc& tr);
@@ -80,6 +87,7 @@ class InventoryMenu : public Tempest::Widget {
     uint8_t                   page       =0;
     Tempest::Timer            takeTimer;
     size_t                    takeCount  =0;
+    LootMode                  lootMode   =LootMode::Normal;
     InventoryRenderer         renderer;
 
     size_t                    columsCount=5;

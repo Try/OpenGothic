@@ -1987,34 +1987,39 @@ Item* Npc::addItem(std::unique_ptr<Item>&& i) {
   return invent.addItem(std::move(i));
   }
 
-void Npc::addItem(uint32_t id, Interactive &chest) {
-  Inventory::trasfer(invent,chest.inventory(),nullptr,id,1,owner);
+void Npc::addItem(uint32_t id, Interactive &chest, uint32_t count) {
+  Inventory::trasfer(invent,chest.inventory(),nullptr,id,count,owner);
   }
 
-void Npc::addItem(uint32_t id, Npc &from) {
-  Inventory::trasfer(invent,from.invent,&from,id,1,owner);
+void Npc::addItem(uint32_t id, Npc &from, uint32_t count) {
+  Inventory::trasfer(invent,from.invent,&from,id,count,owner);
   }
 
-void Npc::moveItem(uint32_t id, Interactive &to) {
-  Inventory::trasfer(to.inventory(),invent,this,id,1,owner);
+void Npc::moveItem(uint32_t id, Interactive &to, uint32_t count) {
+  Inventory::trasfer(to.inventory(),invent,this,id,count,owner);
   }
 
-void Npc::sellItem(uint32_t id, Npc &to) {
+void Npc::sellItem(uint32_t id, Npc &to, uint32_t count) {
   int32_t price = invent.sellPriceOf(id);
-  Inventory::trasfer(to.invent,invent,this,id,1,owner);
+  if(id==owner.script().goldId())
+    return;
+  Inventory::trasfer(to.invent,invent,this,id,count,owner);
   invent.addItem(owner.script().goldId(),uint32_t(price),owner);
   }
 
-void Npc::buyItem(uint32_t id, Npc &from) {
+void Npc::buyItem(uint32_t id, Npc &from, uint32_t count) {
   if(id==owner.script().goldId())
     return;
   int32_t price = from.invent.priceOf(id);
-  if(price>int32_t(invent.goldCount())) {
+  if(price*count>int32_t(invent.goldCount())) {
     owner.script().printCannotBuyError(*this);
+    if(int32_t(invent.goldCount())/price >= 1){
+      buyItem(id,from,int32_t(invent.goldCount())/price);
+      }
     return;
     }
-  Inventory::trasfer(invent,from.invent,nullptr,id,1,owner);
-  invent.delItem(owner.script().goldId(),uint32_t(price),*this);
+  Inventory::trasfer(invent,from.invent,nullptr,id,count,owner);
+  invent.delItem(owner.script().goldId(),uint32_t(price)*count,*this);
   }
 
 void Npc::clearInventory() {
