@@ -175,6 +175,7 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     e.ignore();
     return;
     }
+  e.accept();
 
   auto&        pg     = activePage();
   auto&        sel    = activePageSel();
@@ -204,11 +205,30 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     else if(sel.sel+1<pg.size())
       sel.sel++;
     }
+  else if(e.key==KeyEvent::K_Z) {
+    lootMode = LootMode::Ten;
+    takeTimer.start(200);
+    onTakeStuff();
+    }
+  else if(e.key==KeyEvent::K_X) {
+    lootMode = LootMode::Hundred;
+    takeTimer.start(200);
+    onTakeStuff();
+    }
+  else if(e.key==KeyEvent::K_Space) {
+    lootMode = LootMode::Stack;
+    takeTimer.start(200);
+    onTakeStuff();
+    }
   adjustScroll();
   update();
   }
 
 void InventoryMenu::keyUpEvent(KeyEvent &e) {
+  if(e.key==KeyEvent::K_Space || e.key==KeyEvent::K_Z || e.key==KeyEvent::K_X){
+    takeTimer.stop();
+    lootMode = LootMode::Normal;
+    }
   if(e.key==KeyEvent::K_ESCAPE || (e.key==KeyEvent::K_Tab && state!=State::Trade)){
     close();
     }
@@ -232,6 +252,7 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
       player->useItem    (r.clsId());
   }
   else if(state==State::Chest || state==State::Trade || state==State::Ransack) {
+    lootMode = LootMode::Normal;
     takeTimer.start(200);
     onTakeStuff();
   }
@@ -309,39 +330,58 @@ InventoryMenu::PageLocal &InventoryMenu::activePageSel() {
   return pageLocal[1];
   }
 
-void InventoryMenu::onTakeStuff() {
-  ++takeCount;
-  for(int i = 0; i < pow(10,takeCount / 10); ++i) {
-    auto& page = activePage();
-    auto& sel = activePageSel();
-    if(sel.sel >= page.size())
-      return;
-    auto& r = page[sel.sel];
-    if(r.count() == 1) {
-      takeCount = 1;
-    }
-
-    if(state==State::Chest) {
-      if(page.is(&player->inventory())) {
-        player->moveItem(r.clsId(),*chest);
-      } else {
-        player->addItem(r.clsId(),*chest);
-      }
-    }
-    else if(state==State::Trade) {
-      if(page.is(&player->inventory())) {
-        player->sellItem(r.clsId(),*trader);
-      } else {
-        player->buyItem(r.clsId(),*trader);
-      }
-    }
-    else if(state==State::Ransack) {
-      if(page.is(&trader->inventory())) {
-        player->addItem(r.clsId(),*trader);
-      }
-    }
-    adjustScroll();
+void InventoryMenu::onTakeStuff() { 
+  uint8_t itemCount = 0;
+  auto& page = activePage();
+  auto& sel = activePageSel();
+  if(sel.sel >= page.size())
+    return;
+  auto& r = page[sel.sel];
+  if(r.isEquiped()) {
+    return;
   }
+
+  if(lootMode==LootMode::Normal) {
+    ++takeCount;
+    itemCount = pow(10,takeCount / 10);
+    if(r.count() <= itemCount) {
+      itemCount = r.count();
+      takeCount = 0;
+    }
+  }
+  else if(lootMode==LootMode::Stack) {
+    itemCount = r.count();
+  }
+  else if(lootMode==LootMode::Ten) {
+    itemCount = 10;
+  }
+  else if(lootMode==LootMode::Hundred) {
+    itemCount = 100;
+  }
+  if(r.count() < itemCount) {
+    itemCount = r.count();
+  }
+
+  if(state==State::Chest) {
+    if(page.is(&player->inventory())) {
+      player->moveItem(r.clsId(),*chest,itemCount);
+    } else {
+      player->addItem(r.clsId(),*chest,itemCount);
+    }
+  }
+  else if(state==State::Trade) {
+    if(page.is(&player->inventory())) {
+      player->sellItem(r.clsId(),*trader,itemCount);
+    } else {
+      player->buyItem(r.clsId(),*trader,itemCount);
+    }
+  }
+  else if(state==State::Ransack) {
+    if(page.is(&trader->inventory())) {
+      player->addItem(r.clsId(),*trader,itemCount);
+    }
+  }
+  adjustScroll();
 }
 
 void InventoryMenu::adjustScroll() {

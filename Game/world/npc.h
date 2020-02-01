@@ -359,11 +359,11 @@ class Npc final {
     void     useItem    (uint32_t item, bool force=false);
     void     setCurrentItem(uint32_t item);
     void     unequipItem(uint32_t item);
-    void     addItem    (uint32_t id,Interactive& chest);
-    void     addItem    (uint32_t id,Npc& from);
-    void     moveItem   (uint32_t id,Interactive& to);
-    void     sellItem   (uint32_t id,Npc& to);
-    void     buyItem    (uint32_t id,Npc& from);
+    void     addItem    (uint32_t id,Interactive& chest,uint32_t count=1);
+    void     addItem    (uint32_t id,Npc& from,uint32_t count=1);
+    void     moveItem   (uint32_t id,Interactive& to,uint32_t count=1);
+    void     sellItem   (uint32_t id,Npc& to,uint32_t count=1);
+    void     buyItem    (uint32_t id,Npc& from,uint32_t count=1);
     void     clearInventory();
     Item*    currentArmour();
     Item*    currentMeleWeapon();
