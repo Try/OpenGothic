@@ -73,7 +73,6 @@ class PlayerControl final {
 
     bool           cacheFocus=false;
     float          rotMouse=0;
-    int32_t        mobsiState=-1;
 
     Gothic&        gothic;
     DialogMenu&    dlg;

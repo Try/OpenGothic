@@ -271,6 +271,14 @@ bool PlayerControl::tickMove(uint64_t dt) {
   if(ctrl[Action::K_F8])
     marvinF8();
   cacheFocus = ctrl[Action::ActionGeneric];
+
+  if(ctrl[Action::ActionGeneric] && ctrl[Action::Forward]) {
+    actrl[ActForward] = true;
+    }
+  if(ctrl[Action::ActionGeneric] && ctrl[Action::Back]) {
+    actrl[ActBack] = true;
+    }
+
   implMove(dt);
   return true;
   }
@@ -284,8 +292,6 @@ void PlayerControl::implMove(uint64_t dt) {
   auto  ws       = pl.weaponState();
 
   Npc::Anim ani=Npc::Anim::Idle;
-
-  pl.inventory().activeWeapon();
 
   if((pl.bodyState()&BS_MAX)==BS_DEAD)
     return;
