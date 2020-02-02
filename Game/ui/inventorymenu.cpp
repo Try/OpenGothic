@@ -335,10 +335,6 @@ void InventoryMenu::onTakeStuff() {
   if(sel.sel >= page.size())
     return;
   auto& r = page[sel.sel];
-  if(r.isEquiped()) {
-    return;
-  }
-
   if(lootMode==LootMode::Normal) {
     ++takeCount;
     itemCount = pow(10,takeCount / 10);
