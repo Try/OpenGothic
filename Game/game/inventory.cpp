@@ -558,32 +558,6 @@ void Inventory::switchActiveSpell(int32_t spell, Npc& owner) {
       }
   }
 
-WeaponState Inventory::weaponState() const {
-  if(active==nullptr)
-    return WeaponState::NoWeapon;
-  if(*active==nullptr){
-    if(active==&mele)
-      return WeaponState::Fist;
-    return WeaponState::NoWeapon;
-    }
-  if(active==&mele) {
-    if(mele->is2H())
-      return WeaponState::W2H;
-    return WeaponState::W1H;
-    }
-  if(active==&range) {
-    auto itFlag = Flags(range->itemFlag());
-    if(itFlag&ITM_CROSSBOW)
-      return WeaponState::CBow;
-    return WeaponState::Bow;
-    }
-  for(auto& i:numslot){
-    if(active==&i)
-      return WeaponState::Mage;
-    }
-  return WeaponState::NoWeapon;
-  }
-
 uint8_t Inventory::currentSpellSlot() const {
   for(uint8_t i=0;i<8;++i){
     if(active==&numslot[i])

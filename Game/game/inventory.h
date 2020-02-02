@@ -102,7 +102,6 @@ class Inventory final {
     Item*  currentSpell(uint8_t s) { return numslot[s]; }
     const Item*  currentSpell(uint8_t s) const { return numslot[s]; }
 
-    auto   weaponState() const -> WeaponState;
     uint8_t currentSpellSlot() const;
 
     void   putCurrentToSlot(Npc& owner, const char* slot);

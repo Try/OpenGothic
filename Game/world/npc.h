@@ -298,7 +298,7 @@ class Npc final {
     bool drawWeaponBow();
     bool drawMage(uint8_t slot);
     bool drawSpell(int32_t spell);
-    auto weaponState() const -> WeaponState { return invent.weaponState(); }
+    auto weaponState() const -> WeaponState;
 
     bool canFinish(Npc &oth);
     void fistShoot();

@@ -753,7 +753,7 @@ const Animation::Sequence* Npc::playAnimByName(const Daedalus::ZString& name,Bod
   }
 
 bool Npc::setAnim(Npc::Anim a) {
-  auto st  = invent.weaponState();
+  auto st  = weaponState();
   auto wlk = walkMode();
   if(mvAlgo.isSwim())
     wlk = WalkBit::WM_Swim;
@@ -1860,7 +1860,7 @@ void Npc::setAiOutputBarrier(uint64_t dt) {
   }
 
 bool Npc::doAttack(Anim anim) {
-  auto weaponSt=invent.weaponState();
+  auto weaponSt=weaponState();
   if(weaponSt==WeaponState::NoWeapon || weaponSt==WeaponState::Mage)
     return false;
 
@@ -1952,7 +1952,7 @@ void Npc::setToFightMode(const uint32_t item) {
   if(invent.itemCount(item)==0)
     addItem(item,1);
 
-  auto weaponSt=invent.weaponState();
+  auto weaponSt=weaponState();
 
   invent.equip(item,*this,true);
   invent.switchActiveWeapon(*this,1);
@@ -1960,7 +1960,7 @@ void Npc::setToFightMode(const uint32_t item) {
   if(weaponSt==WeaponState::W1H || weaponSt==WeaponState::W2H)
     return;
 
-  weaponSt=invent.weaponState();
+  weaponSt=weaponState();
   if(visual.setToFightMode(weaponSt))
     updateWeaponSkeleton();
 
@@ -1970,7 +1970,7 @@ void Npc::setToFightMode(const uint32_t item) {
   }
 
 void Npc::setToFistMode() {
-  auto weaponSt=invent.weaponState();
+  auto weaponSt=weaponState();
   if(weaponSt==WeaponState::Fist)
     return;
   invent.switchActiveWeaponFist();
@@ -2071,7 +2071,7 @@ void Npc::unequipItem(uint32_t item) {
   }
 
 bool Npc::closeWeapon(bool noAnim) {
-  auto weaponSt=invent.weaponState();
+  auto weaponSt=weaponState();
   if(weaponSt==WeaponState::NoWeapon)
     return true;
   if(!noAnim && !visual.startAnim(*this,WeaponState::NoWeapon))
@@ -2095,7 +2095,7 @@ bool Npc::closeWeapon(bool noAnim) {
   }
 
 bool Npc::drawWeaponFist() {
-  auto weaponSt=invent.weaponState();
+  auto weaponSt=weaponState();
   if(weaponSt==WeaponState::Fist)
     return true;
   if(weaponSt!=WeaponState::NoWeapon) {
@@ -2113,7 +2113,7 @@ bool Npc::drawWeaponFist() {
 bool Npc::drawWeaponMele() {
   if(isFaling() || mvAlgo.isSwim())
     return false;
-  auto weaponSt=invent.weaponState();
+  auto weaponSt=weaponState();
   if(weaponSt==WeaponState::Fist || weaponSt==WeaponState::W1H || weaponSt==WeaponState::W2H)
     return true;
   if(invent.currentMeleWeapon()==nullptr)
@@ -2142,7 +2142,7 @@ bool Npc::drawWeaponMele() {
 bool Npc::drawWeaponBow() {
   if(isFaling() || mvAlgo.isSwim())
     return false;
-  auto weaponSt=invent.weaponState();
+  auto weaponSt=weaponState();
   if(weaponSt==WeaponState::Bow || weaponSt==WeaponState::CBow || invent.currentRangeWeapon()==nullptr)
     return true;
   if(weaponSt!=WeaponState::NoWeapon) {
@@ -2177,7 +2177,7 @@ bool Npc::drawMage(uint8_t slot) {
 bool Npc::drawSpell(int32_t spell) {
   if(isFaling() || mvAlgo.isSwim())
     return false;
-  auto weaponSt=invent.weaponState();
+  auto weaponSt=weaponState();
   if(weaponSt!=WeaponState::NoWeapon && weaponSt!=WeaponState::Mage) {
     closeWeapon(false);
     return false;
@@ -2190,6 +2190,10 @@ bool Npc::drawSpell(int32_t spell) {
 
   updateWeaponSkeleton();
   return true;
+  }
+
+WeaponState Npc::weaponState() const {
+  return visual.fightMode();
   }
 
 bool Npc::canFinish(Npc& oth) {
@@ -2206,7 +2210,7 @@ void Npc::fistShoot() {
   }
 
 void Npc::blockFist() {
-  auto weaponSt=invent.weaponState();
+  auto weaponSt=weaponState();
   if(weaponSt!=WeaponState::Fist)
     return;
   setAnim(Anim::AtackBlock);
