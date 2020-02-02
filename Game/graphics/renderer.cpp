@@ -27,14 +27,14 @@ Renderer::Renderer(Tempest::Device &device,Tempest::Swapchain& swapchain,Gothic&
     };
 
   for(auto& i:shfrm) {
-    if(device.caps().hasAttachFormat(i) && device.caps().hasSamplerFormat(i)){
+    if(device.properties().hasAttachFormat(i) && device.properties().hasSamplerFormat(i)){
       shadowFormat = i;
       break;
       }
     }
 
   for(auto& i:zfrm) {
-    if(device.caps().hasDepthFormat(i)){
+    if(device.properties().hasDepthFormat(i)){
       zBufferFormat = i;
       break;
       }
