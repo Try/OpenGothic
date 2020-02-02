@@ -292,9 +292,18 @@ size_t InventoryMenu::rowsCount() const {
 void InventoryMenu::paintEvent(PaintEvent &e) {
   if(player==nullptr || state==State::Closed)
     return;
+  renderer.reset();
 
   Painter p(e);
-  drawAll(p,*player);
+  drawAll(p,*player,DrawPass::Back);
+  }
+
+void InventoryMenu::paintNumOverlay(PaintEvent& e) {
+  if(player==nullptr || state==State::Closed)
+    return;
+
+  Painter p(e);
+  drawAll(p,*player,DrawPass::Front);
   }
 
 Size InventoryMenu::slotSize() const {
@@ -395,8 +404,7 @@ void InventoryMenu::adjustScroll() {
     }
   }
 
-void InventoryMenu::drawAll(Painter &p,Npc &player) {
-  renderer.reset();
+void InventoryMenu::drawAll(Painter &p,Npc &player,DrawPass pass) {
   const int padd = 43;
 
   int iy=30+34+70;
@@ -405,24 +413,30 @@ void InventoryMenu::drawAll(Painter &p,Npc &player) {
   const int hcount = int(rowsCount());
 
   if(chest!=nullptr){
-    drawHeader(p,chest->displayName(),padd,70);
-    drawItems(p,*pageOth,pageLocal[0],padd,iy,wcount,hcount);
+    if(pass==DrawPass::Back)
+      drawHeader(p,chest->displayName(),padd,70);
+    drawItems(p,pass,*pageOth,pageLocal[0],padd,iy,wcount,hcount);
     }
 
   if(trader!=nullptr) {
-    drawHeader(p,trader->displayName(),padd,70);
-    drawItems(p,*pageOth,pageLocal[0],padd,iy,wcount,hcount);
+    if(pass==DrawPass::Back)
+      drawHeader(p,trader->displayName(),padd,70);
+    drawItems(p,pass,*pageOth,pageLocal[0],padd,iy,wcount,hcount);
     }
 
   if(state!=State::Ransack) {
-    drawGold (p,player,w()-padd-2*slotSize().w,70);
-    drawItems(p,*pagePl,pageLocal[1],w()-padd-wcount*slotSize().w,iy,wcount,hcount);
+    if(pass==DrawPass::Back)
+      drawGold (p,player,w()-padd-2*slotSize().w,70);
+    drawItems(p,pass,*pagePl,pageLocal[1],w()-padd-wcount*slotSize().w,iy,wcount,hcount);
     }
-  drawInfo(p);
+
+  if(pass==DrawPass::Back)
+    drawInfo(p);
   }
 
-void InventoryMenu::drawItems(Painter &p, const Page &inv, const PageLocal& sel, int x, int y, int wcount, int hcount) {
-  if(tex) {
+void InventoryMenu::drawItems(Painter &p, DrawPass pass,
+                              const Page &inv, const PageLocal& sel, int x, int y, int wcount, int hcount) {
+  if(tex && pass==DrawPass::Back) {
     p.setBrush(*tex);
     p.drawRect(x,y,slotSize().w*wcount,slotSize().h*hcount,
                0,0,tex->w(),tex->h());
@@ -431,13 +445,13 @@ void InventoryMenu::drawItems(Painter &p, const Page &inv, const PageLocal& sel,
   for(int i=0;i<hcount;++i){
     for(int r=0;r<wcount;++r){
       int sx = x + r*slotSize().w;
-      drawSlot(p,inv,sel, sx,y, size_t((int(sel.scroll)+i)*wcount+r));
+      drawSlot(p,pass, inv,sel, sx,y, size_t((int(sel.scroll)+i)*wcount+r));
       }
     y+=slotSize().h;
     }
   }
 
-void InventoryMenu::drawSlot(Painter &p, const Page &inv, const PageLocal &sel, int x, int y, size_t id) {
+void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Page &inv, const PageLocal &sel, int x, int y, size_t id) {
   if(!slot)
     return;
 
@@ -450,36 +464,40 @@ void InventoryMenu::drawSlot(Painter &p, const Page &inv, const PageLocal &sel, 
   auto& r    = inv[id];
   auto& page = activePage();
 
-  if(id==sel.sel && &page==&inv && selT!=nullptr){
-    p.setBrush(*selT);
-    p.drawRect(x,y,slotSize().w,slotSize().h,
-               0,0,selT->w(),selT->h());
+  if(pass==DrawPass::Back) {
+    if(id==sel.sel && &page==&inv && selT!=nullptr){
+      p.setBrush(*selT);
+      p.drawRect(x,y,slotSize().w,slotSize().h,
+                 0,0,selT->w(),selT->h());
+      }
+
+    if(r.isEquiped() && selU!=nullptr){
+      p.setBrush(*selU);
+      p.drawRect(x,y,slotSize().w,slotSize().h,
+                 0,0,selU->w(),selU->h());
+      }
+    renderer.drawItem(x,y,slotSize().w,slotSize().h,r);
+    } else {
+    auto& fnt = Resources::font();
+    char  vint[32]={};
+
+    if(r.count()>1) {
+      std::snprintf(vint,sizeof(vint),"%d",int(r.count()));
+      auto sz = fnt.textSize(vint);
+      fnt.drawText(p,x+slotSize().w-sz.w-10,
+                   y+slotSize().h-10,
+                   vint);
+      }
+
+    if(r.slot()!=Item::NSLOT) {
+      auto& fnt = Resources::font(Resources::FontType::Red);
+      std::snprintf(vint,sizeof(vint),"%d",int(r.slot()));
+      auto sz = fnt.textSize(vint);
+      fnt.drawText(p,x+10,
+                   y+slotSize().h/2+sz.h/2,
+                   vint);
+      }
     }
-
-  if(r.isEquiped() && selU!=nullptr){
-    p.setBrush(*selU);
-    p.drawRect(x,y,slotSize().w,slotSize().h,
-               0,0,selU->w(),selU->h());
-    }
-
-  auto& fnt = Resources::font();
-  char  vint[32]={};
-  std::snprintf(vint,sizeof(vint),"%d",int(r.count()));
-  auto sz = fnt.textSize(vint);
-  fnt.drawText(p,x+slotSize().w-sz.w-10,
-               y+slotSize().h-10,
-               vint);
-
-  if(r.slot()!=Item::NSLOT) {
-    auto& fnt = Resources::font(Resources::FontType::Red);
-    std::snprintf(vint,sizeof(vint),"%d",int(r.slot()));
-    auto sz = fnt.textSize(vint);
-    fnt.drawText(p,x+10,
-                 y+slotSize().h/2+sz.h/2,
-                 vint);
-    }
-
-  renderer.drawItem(x,y,slotSize().w,slotSize().h,r);
   }
 
 void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {

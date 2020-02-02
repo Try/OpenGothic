@@ -88,7 +88,7 @@ class MainWindow : public Tempest::Window {
     Tempest::TextureAtlas atlas;
 
     Tempest::Font         font;
-    Tempest::VectorImage  surface;
+    Tempest::VectorImage  uiLayer, numOverlay;
 
     Renderer              renderer;
 

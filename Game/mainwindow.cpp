@@ -624,13 +624,18 @@ void MainWindow::render(){
     auto& context = fLocal[swapchain.frameId()];
 
     context.gpuLock.wait();
-    if(needToUpdate())
-      dispatchPaintEvent(surface,atlas);
+    if(needToUpdate()) {
+      dispatchPaintEvent(uiLayer,atlas);
+
+      numOverlay.clear();
+      PaintEvent p(numOverlay,atlas,this->w(),this->h());
+      inventory.paintNumOverlay(p);
+      }
 
     const uint32_t imgId = swapchain.nextImage(context.imageAvailable);
 
     PrimaryCommandBuffer& cmd = commandDynamic[swapchain.frameId()];
-    renderer.draw(cmd.startEncoding(device),swapchain.frameId(),imgId,surface,inventory,gothic);
+    renderer.draw(cmd.startEncoding(device),swapchain.frameId(),imgId,uiLayer,numOverlay,inventory,gothic);
     device.submit(cmd,context.imageAvailable,context.renderDone,context.gpuLock);
     device.present(swapchain,imgId,context.renderDone);
 

@@ -31,6 +31,11 @@ class InventoryMenu : public Tempest::Widget {
       Hundred
       };
 
+    enum class DrawPass:uint8_t {
+      Back,
+      Front
+      };
+
     void  close();
     void  open(Npc& pl);
     void  trade(Npc& pl,Npc& tr);
@@ -41,6 +46,7 @@ class InventoryMenu : public Tempest::Widget {
 
     void  tick(uint64_t dt);
     void  draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId);
+    void  paintNumOverlay(Tempest::PaintEvent& e);
 
     void  keyDownEvent  (Tempest::KeyEvent&   e) override;
     void  keyUpEvent    (Tempest::KeyEvent&   e) override;
@@ -103,9 +109,9 @@ class InventoryMenu : public Tempest::Widget {
 
     void          onTakeStuff();
     void          adjustScroll();
-    void          drawAll   (Tempest::Painter& p, Npc& player);
-    void          drawItems (Tempest::Painter& p, const Page &inv, const PageLocal &sel, int x, int y, int wcount, int hcount);
-    void          drawSlot  (Tempest::Painter& p, const Page &inv, const PageLocal &sel, int x, int y, size_t id);
+    void          drawAll   (Tempest::Painter& p, Npc& player, DrawPass pass);
+    void          drawItems (Tempest::Painter& p, DrawPass pass, const Page &inv, const PageLocal &sel, int x, int y, int wcount, int hcount);
+    void          drawSlot  (Tempest::Painter& p, DrawPass pass, const Page &inv, const PageLocal &sel, int x, int y, size_t id);
     void          drawGold  (Tempest::Painter& p, Npc &player, int x, int y);
     void          drawHeader(Tempest::Painter& p, const char *title, int x, int y);
     void          drawInfo  (Tempest::Painter& p);

@@ -27,7 +27,8 @@ class Renderer final {
     bool needToUpdateCmd();
 
     void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &&cmd, uint32_t frameId, uint32_t imgId,
-              Tempest::VectorImage& img, InventoryMenu &inventory, const Gothic& gothic);
+              Tempest::VectorImage& uiLayer, Tempest::VectorImage& numOverlay,
+              InventoryMenu &inventory, const Gothic& gothic);
 
     Tempest::Attachment               screenshoot(uint8_t frameId);
     const RendererStorage&            storage() const { return stor; }
