@@ -175,7 +175,6 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     e.ignore();
     return;
     }
-  e.accept();
 
   auto&        pg     = activePage();
   auto&        sel    = activePageSel();

@@ -263,6 +263,7 @@ void MainWindow::mouseWheelEvent(MouseEvent &event) {
 
 void MainWindow::keyDownEvent(KeyEvent &event) {
   if(chapter.isActive()){
+    event.accept();
     chapter.keyDownEvent(event);
     if(event.isAccepted()){
       uiKeyUp=&chapter;
@@ -271,6 +272,7 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
     }
 
   if(document.isActive()){
+    event.accept();
     document.keyDownEvent(event);
     if(event.isAccepted()){
       uiKeyUp=&document;
@@ -279,6 +281,7 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
     }
 
   if(dialogs.isActive()){
+    event.accept();
     dialogs.keyDownEvent(event);
     if(event.isAccepted()){
       uiKeyUp=&dialogs;
@@ -287,6 +290,7 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
     }
 
   if(inventory.isActive()){
+    event.accept();
     inventory.keyDownEvent(event);
     if(event.isAccepted()){
       uiKeyUp=&inventory;
