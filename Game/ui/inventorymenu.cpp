@@ -337,7 +337,7 @@ InventoryMenu::PageLocal &InventoryMenu::activePageSel() {
   }
 
 void InventoryMenu::onTakeStuff() { 
-  uint8_t itemCount = 0;
+  uint32_t itemCount = 0;
   auto& page = activePage();
   auto& sel = activePageSel();
   if(sel.sel >= page.size())

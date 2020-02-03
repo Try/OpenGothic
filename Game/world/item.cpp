@@ -172,7 +172,7 @@ int32_t Item::uiValue(size_t id) const {
   return hitem.count[id];
   }
 
-size_t Item::count() const {
+uint32_t Item::count() const {
   return hitem.amount;
   }
 
