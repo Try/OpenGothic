@@ -44,18 +44,18 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
   if(!active)
     return;
 
-  int mw = 0, mh = 0;
+  float mw = 0, mh = 0;
   for(auto& i:document.pages){
     auto back = Resources::loadTexture((i.flg&F_Backgr) ? i.img : document.img);
     if(!back)
       continue;
-    mw += back->w();
-    mh = std::max(mh,back->h());
+    mw += float(back->w());
+    mh = std::max(mh,float(back->h()));
     }
 
-  float k = std::min(1.f,(800.f+document.margins.xMargin())/std::max(mw,1));
+  float k = std::min(1.f,float(800+document.margins.xMargin())/std::max(mw,1.f));
 
-  int x=int(w()-k*mw)/2, y = (h()-mh)/2;
+  int x=(w()-int(k*mw))/2, y = (h()-int(mh))/2;
 
   Painter p(e);
   for(auto& i:document.pages){
@@ -70,7 +70,7 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
       continue;
     auto& mgr = (i.flg&F_Margin) ? i.margins : document.margins;
 
-    const int w = int(k*back->w());
+    const int w = int(k*float(back->w()));
 
     p.setBrush(*back);
     p.drawRect(x,y,w,back->h(),

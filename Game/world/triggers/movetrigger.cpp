@@ -66,7 +66,7 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
     frameTicks=1;
 
   uint64_t dt = owner.tickCount()-sAnim;
-  float    a  = (dt%frameTicks)/float(frameTicks);
+  float    a  = float(dt%frameTicks)/float(frameTicks);
   uint32_t f0 = 0, f1 = 0;
 
   if(anim==Open) {

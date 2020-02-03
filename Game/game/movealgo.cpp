@@ -271,7 +271,7 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
     fallSpeed[0] += dp[0];
     fallSpeed[1] += dp[1];
     fallSpeed[2] += dp[2];
-    fallCount    += dt;
+    fallCount    += float(dt);
     setInAir  (true);
     setAsSlide(false);
     }
@@ -309,7 +309,7 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
         fallSpeed[0] = 0.3f*dp[0];
         fallSpeed[1] = 0.f;
         fallSpeed[2] = 0.3f*dp[2];
-        fallCount    = dt;
+        fallCount    = float(dt);
         setInAir  (true);
         setAsSlide(false);
         } else {
@@ -421,7 +421,7 @@ bool MoveAlgo::testSlide(float x,float y,float z) const {
 
 float MoveAlgo::stepHeight() const {
   auto gl = npc.guild();
-  auto v  = npc.world().script().guildVal().step_height[gl];
+  auto v  = float(npc.world().script().guildVal().step_height[gl]);
   if(v>0.f)
     return v;
   return 50;
@@ -430,23 +430,23 @@ float MoveAlgo::stepHeight() const {
 float MoveAlgo::slideAngle() const {
   auto  gl = npc.guild();
   float k  = float(M_PI)/180.f;
-  return std::sin((90-npc.world().script().guildVal().slide_angle[gl])*k);
+  return std::sin((90.f-float(npc.world().script().guildVal().slide_angle[gl]))*k);
   }
 
 float MoveAlgo::slideAngle2() const {
   auto  gl = npc.guild();
   float k  = float(M_PI)/180.f;
-  return std::sin(npc.world().script().guildVal().slide_angle2[gl]*k);
+  return std::sin(float(npc.world().script().guildVal().slide_angle2[gl])*k);
   }
 
 float MoveAlgo::waterDepthKnee() const {
   auto gl = npc.guild();
-  return npc.world().script().guildVal().water_depth_knee[gl];
+  return float(npc.world().script().guildVal().water_depth_knee[gl]);
   }
 
 float MoveAlgo::waterDepthChest() const {
   auto gl = npc.guild();
-  return npc.world().script().guildVal().water_depth_chest[gl];
+  return float(npc.world().script().guildVal().water_depth_chest[gl]);
   }
 
 bool MoveAlgo::canFlyOverWater() const {
@@ -463,13 +463,13 @@ void MoveAlgo::takeFallDamage() const {
   float speed       = fallSpeed[1];
   float fallTime    = speed/gravity;
   float height      = 0.5f*std::abs(gravity)*fallTime*fallTime;
-  float h0          = g.falldown_height[gl];
-  float dmgPerMeter = g.falldown_damage[gl];
+  float h0          = float(g.falldown_height[gl]);
+  float dmgPerMeter = float(g.falldown_damage[gl]);
 
   int32_t hp   = npc.attribute(Npc::ATR_HITPOINTS);
   int32_t prot = npc.protection(Npc::PROT_FALL);
 
-  int32_t damage = int32_t(dmgPerMeter*(height-h0)/100.f - prot);
+  int32_t damage = int32_t(dmgPerMeter*(height-h0)/100.f - float(prot));
   if(damage<=0)
     return;
 

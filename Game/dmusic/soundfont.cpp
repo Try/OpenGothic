@@ -141,9 +141,9 @@ struct SoundFont::Data {
 
 struct SoundFont::Instance {
   Instance(std::shared_ptr<Data> &shData,uint32_t dwPatch){
-    uint8_t bankHi = (dwPatch & 0x00FF0000) >> 0x10;
-    uint8_t bankLo = (dwPatch & 0x0000FF00) >> 0x8;
-    uint8_t patch  = (dwPatch & 0x000000FF);
+    uint8_t bankHi = uint8_t((dwPatch & 0x00FF0000) >> 0x10);
+    uint8_t bankLo = uint8_t((dwPatch & 0x0000FF00) >> 0x8);
+    uint8_t patch  = uint8_t(dwPatch & 0x000000FF);
     int32_t bank   = (bankHi << 16) + bankLo;
 
     fnt    = shData->hydra.toTsf();

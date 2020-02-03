@@ -288,7 +288,7 @@ void PlayerControl::implMove(uint64_t dt) {
   Npc&  pl       = *w->player();
   float rot      = pl.rotation();
   auto  gl       = pl.guild();
-  float rspeed   = w->script().guildVal().turn_speed[gl]*(dt/1000.f)*60.f/100.f;
+  float rspeed   = float(w->script().guildVal().turn_speed[gl])*(float(dt)/1000.f)*60.f/100.f;
   auto  ws       = pl.weaponState();
 
   Npc::Anim ani=Npc::Anim::Idle;

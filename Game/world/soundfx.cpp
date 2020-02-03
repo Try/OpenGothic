@@ -9,7 +9,7 @@
 using namespace Tempest;
 
 SoundFx::SoundVar::SoundVar(const Daedalus::GEngineClasses::C_SFX &sfx, Sound &&snd)
-  :snd(std::move(snd)),vol(sfx.vol/127.f){
+  :snd(std::move(snd)),vol(float(sfx.vol)/127.f){
   }
 
 SoundFx::SoundVar::SoundVar(const float vol, Sound &&snd)

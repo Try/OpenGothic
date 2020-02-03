@@ -543,7 +543,7 @@ void Inventory::switchActiveSpell(int32_t spell, Npc& owner) {
   for(uint8_t i=0;i<8;++i) {
     auto s = numslot[i];
     if(s!=nullptr && s->isSpellOrRune() && s->spellId()==spell){
-      switchActiveWeapon(owner,i+3);
+      switchActiveWeapon(owner,uint8_t(i+3));
       updateRuneView(owner);
       return;
       }
@@ -561,7 +561,7 @@ void Inventory::switchActiveSpell(int32_t spell, Npc& owner) {
 uint8_t Inventory::currentSpellSlot() const {
   for(uint8_t i=0;i<8;++i){
     if(active==&numslot[i])
-      return i+3;
+      return uint8_t(i+3);
     }
   return Item::NSLOT;
   }

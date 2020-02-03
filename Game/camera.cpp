@@ -235,7 +235,7 @@ void Camera::setPosition(float x, float y, float z) {
 
 void Camera::follow(const Npc &npc,uint64_t dt,bool inMove,bool includeRot) {
   const auto& def = cameraDef();
-  const float dtF = dt/1000.f;
+  const float dtF = float(dt)/1000.f;
 
   clampZoom(dist);
 
@@ -317,7 +317,7 @@ Matrix4x4 Camera::view() const {
   static int n = 1, nn=1;
   for(int i=-n;i<=n;++i)
     for(int r=-n;r<=n;++r) {
-      float u = i/float(nn),v = r/float(nn);
+      float u = float(i)/float(nn),v = float(r)/float(nn);
       std::array<float,3> r0=camPos;
       std::array<float,3> r1={u,v,0};
 

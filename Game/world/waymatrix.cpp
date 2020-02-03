@@ -155,8 +155,8 @@ void WayMatrix::marchPoints(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, 
     if(z<0.f || z>1.f)
       continue;
 
-    x = (0.5f*x+0.5f)*w;
-    y = (0.5f*y+0.5f)*h;
+    x = (0.5f*x+0.5f)*float(w);
+    y = (0.5f*y+0.5f)*float(h);
 
     p.setBrush(Tempest::Color(1,0,0,1));
     p.drawRect(int(x),int(y),4,4);

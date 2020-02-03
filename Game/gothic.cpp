@@ -597,9 +597,9 @@ std::u16string Gothic::caseInsensitiveSegment(const std::u16string& path,const c
       char16_t cs = segment[i];
       char16_t cp = p[i];
       if('A'<=cs && cs<='Z')
-        cs = cs-'A'+'a';
+        cs = char16_t(cs-'A'+'a');
       if('A'<=cp && cp<='Z')
-        cp = cp-'A'+'a';
+        cp = char16_t(cp-'A'+'a');
 
       if(cs!=cp)
         return;

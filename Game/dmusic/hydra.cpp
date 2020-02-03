@@ -4,7 +4,15 @@
 
 #define TSF_IMPLEMENTATION
 // #define TSF_STATIC
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include "tsf.h"
+#pragma GCC diagnostic pop
+#else
+#include "tsf.h"
+#endif
 
 using namespace Dx8;
 
@@ -187,7 +195,8 @@ Hydra::Hydra(const DlsCollection &dls) {
 
     pgen.push_back(mkPgen(41,uint16_t(idInstr)));
     inst.push_back(mkInst(instr.info.inam.c_str(),instBagIndex));
-    instBagIndex+=instr.regions.size();
+
+    instBagIndex = uint16_t(instBagIndex+instr.regions.size());
 
     for(const auto& reg : instr.regions) {
       const auto& hdr        = reg.head;

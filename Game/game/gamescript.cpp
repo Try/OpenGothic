@@ -773,6 +773,8 @@ std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::Dl
     bool valid=false;
     if(info.condition)
       valid = runFunction(info.condition)!=0;
+    //FIXME: use info.condition return value
+    (void)valid;
 
     GameScript::DlgChoise ch;
     ch.title    = sub.text.c_str();
@@ -1015,7 +1017,7 @@ uint32_t GameScript::messageTime(const Daedalus::ZString& id) const {
   auto&  txt  = messageByName(id.c_str());
   size_t size = std::strlen(txt.c_str());
 
-  return uint32_t(size*viewTimePerChar);
+  return uint32_t(float(size)*viewTimePerChar);
   }
 
 int GameScript::printNothingToGet() {
@@ -1333,6 +1335,13 @@ void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
   auto                     npc0     = popInstance(vm);
   const Daedalus::ZString& visual   = vm.popString();
 
+  (void)a;
+  (void)b;
+  (void)c;
+  (void)d;
+  (void)npc0;
+  (void)npc1;
+
   const VisualFx* vfx = owner.loadVisualFx(visual.c_str());
   Log::i("effect not implemented [",visual.c_str()," ",reinterpret_cast<const void*>(vfx),"]");
   }
@@ -1433,6 +1442,12 @@ void GameScript::wld_setmobroutine(Daedalus::DaedalusVM &vm) {
   auto name = vm.popString();
   int  mm   = vm.popInt();
   int  hh   = vm.popInt();
+
+  (void)st;
+  (void)name;
+  (void)mm;
+  (void)hh;
+
   notImplementedFn<&GameScript::wld_setmobroutine>("wld_setmobroutine");
   }
 
@@ -1454,7 +1469,7 @@ void GameScript::wld_detectnpc(Daedalus::DaedalusVM &vm) {
   Npc*  ret =nullptr;
   float dist=std::numeric_limits<float>::max();
 
-  world().detectNpc(npc->position(), npc->handle()->senses_range, [inst,state,guild,&ret,&dist,npc](Npc& n){
+  world().detectNpc(npc->position(), float(npc->handle()->senses_range), [inst,state,guild,&ret,&dist,npc](Npc& n){
     if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
        (state==-1 || n.isState(uint32_t(state))) &&
        (guild==-1 || int32_t(n.guild())==guild) &&
@@ -1484,7 +1499,7 @@ void GameScript::wld_detectnpcex(Daedalus::DaedalusVM &vm) {
   Npc*  ret =nullptr;
   float dist=std::numeric_limits<float>::max();
 
-  world().detectNpc(npc->position(), npc->handle()->senses_range, [inst,state,guild,&ret,&dist,npc,player](Npc& n){
+  world().detectNpc(npc->position(), float(npc->handle()->senses_range), [inst,state,guild,&ret,&dist,npc,player](Npc& n){
     if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
        (state==-1 || n.isState(uint32_t(state))) &&
        (guild==-1 || int32_t(n.guild())==guild) &&
@@ -1592,6 +1607,12 @@ void GameScript::mdl_startfaceani(Daedalus::DaedalusVM &vm) {
   float intensity = vm.popFloat();
   auto  ani       = vm.popString();
   auto  npc       = popInstance(vm);
+
+  (void)time;
+  (void)intensity;
+  (void)ani;
+  (void)npc;
+
   notImplementedFn<&GameScript::mdl_startfaceani>("mdl_startfaceani");
   }
 
@@ -1599,6 +1620,9 @@ void GameScript::mdl_applyrandomani(Daedalus::DaedalusVM &vm) {
   auto s0  = vm.popString();
   auto s1  = vm.popString();
   auto npc = popInstance(vm);
+
+  (void)npc;
+
   notImplementedFn<&GameScript::mdl_applyrandomani>("mdl_applyrandomani");
   }
 
@@ -1606,6 +1630,11 @@ void GameScript::mdl_applyrandomanifreq(Daedalus::DaedalusVM &vm) {
   auto f0  = vm.popFloat();
   auto s1  = vm.popString();
   auto npc = popInstance(vm);
+
+  (void)f0;
+  (void)s1;
+  (void)npc;
+
   notImplementedFn<&GameScript::mdl_applyrandomanifreq>("mdl_applyrandomanifreq");
   }
 
@@ -2099,10 +2128,10 @@ void GameScript::npc_getnexttarget(Daedalus::DaedalusVM &vm) {
   Npc* ret = nullptr;
 
   if(npc!=nullptr){
-    float dist = npc->handle()->senses_range;
+    float dist = float(npc->handle()->senses_range);
     dist*=dist;
 
-    world().detectNpc(npc->position(),npc->handle()->senses_range,[&,npc](Npc& oth){
+    world().detectNpc(npc->position(),float(npc->handle()->senses_range),[&,npc](Npc& oth){
       if(!oth.isDown() && oth.isEnemy(*npc) && npc->canSeeNpc(oth,true)){
         float qd = oth.qDistTo(*npc);
         if(qd<dist){
@@ -2401,6 +2430,9 @@ void GameScript::npc_getactivespellcat(Daedalus::DaedalusVM &vm) {
 void GameScript::npc_setactivespellinfo(Daedalus::DaedalusVM &vm) {
   int32_t v   = vm.popInt();
   auto    npc = popInstance(vm);
+
+  (void)v;
+  (void)npc;
 
   notImplementedFn<&GameScript::npc_setactivespellinfo>("npc_setactivespellinfo");
   vm.setReturn(0);
@@ -2852,7 +2884,7 @@ void GameScript::hlp_getnpc(Daedalus::DaedalusVM &vm) {
   uint32_t instanceSymbol = vm.popUInt();
   auto&    handle         = vm.getDATFile().getSymbolByIndex(instanceSymbol);(void)handle;
 
-  if(auto npc = getNpcById(instanceSymbol))
+  if(nullptr != getNpcById(instanceSymbol))
     vm.setReturn(int32_t(instanceSymbol)); else
     vm.setReturn(-1);
   }
@@ -2915,6 +2947,9 @@ void GameScript::doc_setpage(Daedalus::DaedalusVM &vm) {
   auto  img    = vm.popString();
   int   page   = vm.popInt();
   int   handle = vm.popInt();
+
+  //TODO: scale
+  (void)scale;
 
   auto& doc = getDocument(handle);
   if(doc==nullptr)
@@ -3034,6 +3069,10 @@ void GameScript::playvideo(Daedalus::DaedalusVM &vm) {
 void GameScript::playvideoex(Daedalus::DaedalusVM &vm) {
   int exitSession = vm.popInt();
   int screenBlend = vm.popInt();
+
+  (void)exitSession;
+  (void)screenBlend;
+
   Daedalus::ZString filename = vm.popString();
   Log::i("video not implemented [",filename.c_str(),"]");
   vm.setReturn(0);

@@ -36,8 +36,8 @@ void Sky::setMatrix(uint32_t frameId, const Tempest::Matrix4x4 &mat) {
   uboCpu.mvp.inverse();
 
   auto ticks = world==nullptr ? Application::tickCount() : world->tickCount();
-  auto t0 = (ticks%90000)/90000.f;
-  auto t1 = (ticks%270000)/270000.f;
+  auto t0 = float(ticks%90000)/90000.f;
+  auto t1 = float(ticks%270000)/270000.f;
   uboCpu.dxy0[0] = t0;
   uboCpu.dxy1[0] = t1;
 

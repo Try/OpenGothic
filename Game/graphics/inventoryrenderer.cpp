@@ -62,53 +62,57 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
     mat.identity();
     mat.scale(sz);
 
+    float rotx = float(itData.inv_rotx);
+    float roty = float(itData.inv_roty);
+    float rotz = float(itData.inv_rotz);
+
     if(flg&(Inventory::ITM_CAT_NF | Inventory::ITM_CAT_FF | Inventory::ITM_CAT_MUN)) {
       static const float invX = -45;
       static const float invY = 0;
       static const float invZ = 90;
-      mat.rotateOX(invX+itData.inv_rotx);
-      mat.rotateOZ(invZ+itData.inv_rotz);
-      mat.rotateOY(invY+itData.inv_roty);
+      mat.rotateOX(invX+rotx);
+      mat.rotateOZ(invZ+rotz);
+      mat.rotateOY(invY+roty);
       }
     else if(flg&Inventory::ITM_CAT_ARMOR) {
       static const float invX = 0;
       static const float invY = -90;
       static const float invZ = 180;
-      mat.rotateOX(invX+itData.inv_rotx);
-      mat.rotateOZ(invZ+itData.inv_rotz);
-      mat.rotateOY(invY+itData.inv_roty);
+      mat.rotateOX(invX+rotx);
+      mat.rotateOZ(invZ+rotz);
+      mat.rotateOY(invY+roty);
       }
     else if(flg&Inventory::ITM_CAT_RUNE) {
       static const float invX = 90;
       static const float invY = 0;
       static const float invZ = 90;
-      mat.rotateOX(invX+itData.inv_rotx);
-      mat.rotateOZ(invZ+itData.inv_rotz);
-      mat.rotateOY(invY+itData.inv_roty);
+      mat.rotateOX(invX+rotx);
+      mat.rotateOZ(invZ+rotz);
+      mat.rotateOY(invY+roty);
       }
     else if((flg&Inventory::ITM_CAT_MAGIC) || (Inventory::Flags(itData.flags)&Inventory::ITM_RING)) {
       static const float invX = 200;
       static const float invY = 0;
       static const float invZ = 90;
-      mat.rotateOX(invX+itData.inv_rotx);
-      mat.rotateOZ(invZ+itData.inv_rotz);
-      mat.rotateOY(invY+itData.inv_roty);
+      mat.rotateOX(invX+rotx);
+      mat.rotateOZ(invZ+rotz);
+      mat.rotateOY(invY+roty);
       }
     else if(flg&Inventory::ITM_CAT_POTION) {
       static const float invX = 180;
       static const float invY = 0;
       static const float invZ = 0;
-      mat.rotateOX(invX+itData.inv_rotx);
-      mat.rotateOZ(invZ+itData.inv_rotz);
-      mat.rotateOY(invY+itData.inv_roty);
+      mat.rotateOX(invX+rotx);
+      mat.rotateOZ(invZ+rotz);
+      mat.rotateOY(invY+roty);
       }
     else if(flg&Inventory::ITM_CAT_FOOD) {
       static const float invX = 180;
       static const float invY = 0;
       static const float invZ = 45;
-      mat.rotateOX(invX+itData.inv_rotx);
-      mat.rotateOZ(invZ+itData.inv_rotz);
-      mat.rotateOY(invY+itData.inv_roty);
+      mat.rotateOX(invX+rotx);
+      mat.rotateOZ(invZ+rotz);
+      mat.rotateOY(invY+roty);
       }
     else if(flg&Inventory::ITM_CAT_DOCS) {
       static const float invX = 180;
@@ -122,16 +126,16 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
       static const float invX = 135;
       static const float invY = 90;
       static const float invZ = 45;
-      mat.rotateOX(invX-itData.inv_rotx);
-      mat.rotateOZ(invZ-itData.inv_rotz);
-      mat.rotateOY(invY-itData.inv_roty);
+      mat.rotateOX(invX-rotx);
+      mat.rotateOZ(invZ-rotz);
+      mat.rotateOY(invY-roty);
       } else {
       static const float invX = 180;
       static const float invY = -90;
       static const float invZ = -90;
-      mat.rotateOX(invX+itData.inv_rotx);
-      mat.rotateOZ(invZ+itData.inv_rotz);
-      mat.rotateOY(invY+itData.inv_roty);
+      mat.rotateOX(invX+rotx);
+      mat.rotateOZ(invZ+rotz);
+      mat.rotateOY(invY+roty);
       }
     mat.translate(-mv.x,-mv.y,-mv.z);
 

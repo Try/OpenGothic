@@ -355,12 +355,12 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
     if(x<0){
       x = (w()-sz.w)/2;
       } else {
-      x = int(w()*x/100.f);
+      x = (w()*x)/100;
       }
     if(y<0){
       y = (h()-sz.h)/2;
       } else {
-      y = int(h()*y/100.f);
+      y = (h()*y)/100;
       }
     fnt.drawText(p, x, y, sc.txt);
     }

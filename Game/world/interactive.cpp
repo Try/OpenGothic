@@ -221,7 +221,6 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     return;
     }
   if(state==stateNum) {
-    //HACK: some beds in game is VT_oCMobDoor
     if((vobType==ZenLoad::zCVobData::VT_oCMobDoor && onStateFunc.empty()) ||
         vobType==ZenLoad::zCVobData::VT_oCMobSwitch || reverseState){
       implQuitInteract(p);
@@ -632,8 +631,8 @@ void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x
     float z = pos[2];
     mvp.project(x,y,z);
 
-    x = (0.5f*x+0.5f)*w;
-    y = (0.5f*y+0.5f)*h;
+    x = (0.5f*x+0.5f)*float(w);
+    y = (0.5f*y+0.5f)*float(h);
 
     p.drawRect(int(x),int(y),1,1);
     }

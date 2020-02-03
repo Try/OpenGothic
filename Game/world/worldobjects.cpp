@@ -122,7 +122,7 @@ void WorldObjects::tick(uint64_t dt) {
         // aproximation of behavior of original G2
         if(!i->isDown() &&
            i->canSenseNpc(*r.other, true)!=SensesBit::SENSE_NONE &&
-           i->canSenseNpc(*r.victum,true,r.other->handle()->senses_range)!=SensesBit::SENSE_NONE
+           i->canSenseNpc(*r.victum,true,float(r.other->handle()->senses_range))!=SensesBit::SENSE_NONE
           ) {
           i->perceptionProcess(*r.other,r.victum,l,Npc::PercType(r.what));
           }
@@ -508,8 +508,8 @@ void WorldObjects::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x
     if(z<0.f || z>1.f)
       continue;
 
-    x = (0.5f*x+0.5f)*w;
-    y = (0.5f*y+0.5f)*h;
+    x = (0.5f*x+0.5f)*float(w);
+    y = (0.5f*y+0.5f)*float(h);
 
     p.setBrush(Tempest::Color(1,1,1,1));
     p.drawRect(int(x),int(y),1,1);

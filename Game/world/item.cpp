@@ -181,7 +181,7 @@ int32_t Item::cost() const {
   }
 
 int32_t Item::sellCost() const {
-  return int32_t(std::ceil(owner.script().tradeValueMultiplier()*cost()));
+  return int32_t(std::ceil(owner.script().tradeValueMultiplier()*float(cost())));
   }
 
 bool Item::checkCond(const Npc &other) const {

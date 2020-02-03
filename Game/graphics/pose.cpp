@@ -221,11 +221,11 @@ void Pose::updateFrame(const Animation::Sequence &s,
   now = now-sTime;
 
   float    fpsRate = d.fpsRate;
-  uint64_t frame   = uint64_t(now*fpsRate);
+  uint64_t frame   = uint64_t(float(now)*fpsRate);
   uint64_t frameA  = frame/1000;
   uint64_t frameB  = frame/1000+1; //next
 
-  float    a       = (frame%1000)/1000.f;
+  float    a       = float(frame%1000)/1000.f;
 
   if(s.animCls==Animation::Loop){
     frameA%=d.numFrames;

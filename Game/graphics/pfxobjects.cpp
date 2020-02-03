@@ -315,7 +315,7 @@ void PfxObjects::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t im
   }
 
 float PfxObjects::randf() {
-  return (rndEngine()%10000)/10000.f;
+  return float(rndEngine()%10000)/10000.f;
   }
 
 PfxObjects::Bucket &PfxObjects::getBucket(const ParticleFx &ow) {
@@ -341,7 +341,7 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b,uint64_t dt) {
           b.finalize(i+p.offset);
           } else {
           // eval particle
-          ps.life -= dt;
+          ps.life  = uint16_t(ps.life-dt);
           ps.pos  += ps.dir*k;
           ps.pos  += b.owner->flyGravity_S;
           }
@@ -350,7 +350,7 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b,uint64_t dt) {
 
     p.timeTotal+=dt;
     uint64_t fltScale = 100;
-    uint64_t emited   = (p.timeTotal*uint64_t(b.owner->ppsValue*fltScale))/(1000*fltScale);
+    uint64_t emited   = uint64_t(p.timeTotal*uint64_t(b.owner->ppsValue*float(fltScale)))/uint64_t(1000u*fltScale);
     if(!p.active) {
       p.emited = emited;
       if(p.count==0) {

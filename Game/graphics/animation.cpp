@@ -14,7 +14,7 @@ using namespace Tempest;
 static void setupTime(std::vector<uint64_t>& t0,const std::vector<int32_t>& inp,float fps){
   t0.resize(inp.size());
   for(size_t i=0;i<inp.size();++i){
-    t0[i] = uint64_t(inp[i]*1000/fps);
+    t0[i] = uint64_t(float(inp[i])*1000.f/fps);
     }
   }
 
@@ -273,14 +273,14 @@ bool Animation::Sequence::isFinished(uint64_t t,uint16_t comboLen) const {
   }
 
 float Animation::Sequence::totalTime() const {
-  return data->numFrames*1000/data->fpsRate;
+  return float(data->numFrames)*1000.f/data->fpsRate;
   }
 
 
 float Animation::Sequence::atkTotalTime(uint32_t comboLvl) const {
   if(comboLvl<data->defHitEnd.size()) {
     uint64_t time = data->defHitEnd[comboLvl];
-    return time;
+    return float(time);
     }
   return totalTime();
   }
@@ -313,7 +313,7 @@ bool Animation::Sequence::isPrehit(uint64_t sTime, uint64_t now) const {
   if(numFrames==0)
     return false;
 
-  int64_t frame = int64_t((now-sTime)*d.fpsRate)/1000;
+  int64_t frame = int64_t(float(now-sTime)*d.fpsRate/1000.f);
 
   for(auto& e:data->events)
     if(e.m_Def==ZenLoad::DEF_OPT_FRAME)
@@ -330,8 +330,8 @@ bool Animation::Sequence::extractFrames(uint64_t& frameA,uint64_t& frameB,bool& 
     return false;
 
   float fpsRate = d.fpsRate;
-  frameA  = uint64_t((barrier-sTime)*fpsRate)/1000;
-  frameB  = uint64_t((now    -sTime)*fpsRate)/1000;
+  frameA  = uint64_t(float(barrier-sTime)*fpsRate/1000.f);
+  frameB  = uint64_t(float(now    -sTime)*fpsRate/1000.f);
 
   if(frameA==frameB)
     return false;
@@ -396,12 +396,12 @@ void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64
       for(auto i:e.m_Int){
         uint64_t fr = frameClamp(i,d.firstFrame,d.lastFrame);
         if((frameA<=fr && fr<frameB) ^ invert)
-          processEvent(e,ev,uint64_t((fr*1000)/fpsRate)+sTime);
+          processEvent(e,ev,uint64_t(float(fr)*1000.f/fpsRate)+sTime);
         }
       } else {
       uint64_t fr = frameClamp(e.m_Frame,d.firstFrame,d.lastFrame);
       if((frameA<=fr && fr<frameB) ^ invert)
-        processEvent(e,ev,uint64_t((fr*1000)/fpsRate)+sTime);
+        processEvent(e,ev,uint64_t(float(fr)*1000.f/fpsRate)+sTime);
       }
     }
   }
@@ -501,18 +501,18 @@ ZMath::float3 Animation::Sequence::translateXZ(uint64_t at) const {
       at = all;
     }
 
-  uint64_t fr     = uint64_t(data->fpsRate*at);
-  float    a      = (fr%1000)/1000.f;
+  uint64_t fr     = uint64_t(data->fpsRate*float(at));
+  float    a      = float(fr%1000)/1000.f;
   uint64_t frameA = fr/1000;
   uint64_t frameB = frameA+1;
 
   auto  mA = frameA/d.tr.size();
-  auto  pA = d.tr[frameA%d.tr.size()];
+  auto  pA = d.tr[size_t(frameA%d.tr.size())];
 
   auto  mB = frameB/d.tr.size();
-  auto  pB = d.tr[frameB%d.tr.size()];
+  auto  pB = d.tr[size_t(frameB%d.tr.size())];
 
-  float m = mA+(mB-mA)*a;
+  float m = float(mA)+float(mB-mA)*a;
   ZMath::float3 p=pA;
   p.x += (pB.x-pA.x)*a;
   p.y += (pB.y-pA.y)*a;

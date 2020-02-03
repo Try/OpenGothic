@@ -30,8 +30,8 @@ void GthFont::drawText(Painter &p, int bx, int by, int bw, int /*bh*/,
 
   int   h  = pixelSize();
   int   x  = bx, y=by-h;
-  float tw = tex->w();
-  float th = tex->h();
+  float tw = float(tex->w());
+  float th = float(tex->h());
 
   int   lwidth = 0;
 
@@ -85,8 +85,8 @@ void GthFont::drawText(Tempest::Painter &p, int bx, int by, const char *txtChar)
 
   int   h  = pixelSize();
   int   x  = bx, y=by-h;
-  float tw = tex->w();
-  float th = tex->h();
+  float tw = float(tex->w());
+  float th = float(tex->h());
 
   for(size_t i=0;txt[i];++i) {
     uint8_t id  = txt[i];

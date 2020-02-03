@@ -75,7 +75,7 @@ class DialogMenu : public Tempest::Widget {
 
     struct Entry {
       std::string txt;
-      uint32_t    time=0;
+      uint64_t    time=0;
       };
 
     struct Forward {
@@ -86,7 +86,7 @@ class DialogMenu : public Tempest::Widget {
     struct PScreen {
       std::string    txt;
       const GthFont* font=nullptr;
-      uint32_t       time=0;
+      uint64_t       time=0;
       int            x=-1;
       int            y=-1;
       };
@@ -127,6 +127,6 @@ class DialogMenu : public Tempest::Widget {
 
     std::vector<PScreen>                pscreen;
     PScreen                             printMsg[MAX_PRINT];
-    uint32_t                            remPrint=0;
+    uint64_t                            remPrint=0;
     Camera                              camera;
   };

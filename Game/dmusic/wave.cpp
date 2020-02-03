@@ -237,9 +237,9 @@ bool Wave::decodeAdpcm(const uint8_t* adpcm,size_t dataLen,uint16_t samplesPerBl
       ct = smpRemaining*wfmt.wChannels;
 
     done += ct;
-    smpRemaining -= (ct/wfmt.wChannels);
-    int16_t* cur  = samplePtr;
-    int16_t* top  = samplePtr+ct;
+    smpRemaining = uint16_t(smpRemaining - ct/wfmt.wChannels);
+    int16_t* cur = samplePtr;
+    int16_t* top = samplePtr+ct;
 
     while(cur<top) {
       int16_t v = *cur;
@@ -328,7 +328,7 @@ const char* Wave::adpcmBlockExpand(
 
     for(uint32_t i=0;i<2;++i){
       op[i] = adpcmDecode(b[i], state+ch2, prev[channels], prev[0]);
-      ch2 = (ch2+1)%channels;
+      ch2 = uint16_t(ch2+1)%channels;
       prev+=channels;
       }
     op +=2;

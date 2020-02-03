@@ -41,10 +41,10 @@ GameMenu::GameMenu(MenuRoot &owner, Daedalus::DaedalusVM &vm, Gothic &gothic, co
       Daedalus::PARSymbol& symX = dat.getSymbolByName("MENU_INFO_X");
       Daedalus::PARSymbol& symY = dat.getSymbolByName("MENU_INFO_Y");
 
-      infoX = symX.getInt()/scriptDiv;
-      infoY = symY.getInt()/scriptDiv;
+      infoX = float(symX.getInt())/scriptDiv;
+      infoY = float(symY.getInt())/scriptDiv;
       }
-    setPosition(int(infoX*w()),int(infoY*h()));
+    setPosition(int(infoX*float(w())),int(infoY*float(h())));
     }
 
   setSelection(gothic.isInGame() ? menu.defaultInGame : menu.defaultOutGame);
@@ -113,44 +113,25 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
   const int32_t dimx = (item.dimx!=-1) ? item.dimx : 8192;
   const int32_t dimy = (item.dimy!=-1) ? item.dimy : 750;
 
-  const int x   = int(w()*item.posx/scriptDiv);
-  const int y   = int(h()*item.posy/scriptDiv);
-  int       szX = int(w()*dimx/scriptDiv);
-  int       szY = int(h()*dimy/scriptDiv);
-
-  int imgX = 0, imgW=0;
+  const int x   = int(float(w()*item.posx)/scriptDiv);
+  const int y   = int(float(h()*item.posy)/scriptDiv);
+  int       szX = int(float(w()*dimx     )/scriptDiv);
+  int       szY = int(float(h()*dimy     )/scriptDiv);
 
   if(hItem.img && !hItem.img->isEmpty()) {
     p.setBrush(*hItem.img);
     p.drawRect(x,y,szX,szY,
                0,0,hItem.img->w(),hItem.img->h());
-
-    imgX = x;
-    imgW = szX;
     }
 
   auto& fnt = getTextFont(hItem);
 
-  int tx = x;
-  int ty = y;
   int tw = szX;
   int th = szY;
 
   AlignFlag txtAlign=NoAlign;
   if(flags & Daedalus::GEngineClasses::C_Menu_Item::IT_TXT_CENTER) {
-    Size sz  = fnt.textSize(textBuf.data());
     txtAlign = AlignHCenter | AlignVCenter;
-
-    if(hItem.img && !hItem.img->isEmpty()) {
-      tx = imgX+(imgW-sz.w)/2;
-      } else {
-      if(item.dimx!=-1) {
-        tx = (w()-sz.w)/2;
-        }
-      if(item.dimy!=-1) {
-        ty = (h()-sz.h)/2;
-        }
-      }
     }
 
   //p.setBrush(Color(1,1,1,1));
@@ -163,8 +144,8 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
 
   if(item.type==MENU_ITEM_LISTBOX) {
     if(auto ql = gothic.questLog()) {
-      const int px = int(w()*item.frameSizeX/scriptDiv);
-      const int py = int(h()*item.frameSizeY/scriptDiv);
+      const int px = int(float(w()*item.frameSizeX)/scriptDiv);
+      const int py = int(float(h()*item.frameSizeY)/scriptDiv);
 
       if(item.userString[0]=="CURRENTMISSIONS")
         drawQuestList(p, x+px,y+py, szX-2*px,szY-2*py, fnt,*ql,QuestLog::Status::Running,false);
@@ -236,13 +217,13 @@ void GameMenu::onTick() {
   const float fy = 480.0f;
 
   if(menu.flags & Daedalus::GEngineClasses::C_Menu::MENU_DONTSCALE_DIM)
-    resize(int(menu.dimx/scriptDiv*fx),int(menu.dimy/scriptDiv*fy));
+    resize(int(float(menu.dimx)/scriptDiv*fx),int(float(menu.dimy)/scriptDiv*fy));
 
   if(menu.flags & Daedalus::GEngineClasses::C_Menu::MENU_ALIGN_CENTER) {
     setPosition((owner.w()-w())/2, (owner.h()-h())/2);
     }
   else if(menu.flags & Daedalus::GEngineClasses::C_Menu::MENU_DONTSCALE_DIM)
-    setPosition(int(menu.posx/scriptDiv*fx), int(menu.posy/scriptDiv*fy));
+    setPosition(int(float(menu.posx)/scriptDiv*fx), int(float(menu.posy)/scriptDiv*fy));
   }
 
 GameMenu::Item *GameMenu::selectedItem() {

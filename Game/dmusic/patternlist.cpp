@@ -60,9 +60,9 @@ static bool musicValueToMIDI(const DMUS_IO_STYLENOTE&             note,
     dwScalePattern = subchords[0].dwScalePattern;
     }
 
-  uint8_t octave    = ((note.wMusicValue & 0xF000) >> 12);
-  uint8_t chordTone = ((note.wMusicValue & 0x0F00) >> 8);
-  uint8_t scaleTone = ((note.wMusicValue & 0x00F0) >> 4);
+  uint8_t octave    = uint8_t((note.wMusicValue & 0xF000) >> 12);
+  uint8_t chordTone = uint8_t((note.wMusicValue & 0x0F00) >>  8);
+  uint8_t scaleTone = uint8_t((note.wMusicValue & 0x00F0) >>  4);
 
   int accidentals = int8_t(note.wMusicValue & 0x000F);
   if(accidentals>7)
@@ -215,8 +215,8 @@ void PatternList::index(PatternInternal &idx, InsInternal* inst,
     c.duration = dur;
     c.shape    = i.bCurveShape;
     c.ctrl     = i.bCCData;
-    c.startV   = (i.nStartValue&0x7F)/127.f;
-    c.endV     = (i.nEndValue  &0x7F)/127.f;
+    c.startV   = float(i.nStartValue&0x7F)/127.f;
+    c.endV     = float(i.nEndValue  &0x7F)/127.f;
     c.inst     = inst;
     if(i.bEventType==DMUS_CURVET_CCCURVE)
       idx.volume.push_back(c);

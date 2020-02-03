@@ -53,10 +53,7 @@ void IniFile::flush() {
   }
 
 bool IniFile::has(const char *s, const char *name) {
-  if(auto* val = find(s,name,false)) {
-    return true;
-    }
-  return false;
+  return (nullptr != find(s,name,false));
   }
 
 int IniFile::getI(const char *s, const char *name) {

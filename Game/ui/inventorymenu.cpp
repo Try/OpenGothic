@@ -197,7 +197,7 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
       sel.sel--;
     }
   else if(e.key==KeyEvent::K_D) {
-    if(((sel.sel+1)%columsCount==0 || sel.sel+1==pg.size() || pg.size()==0) && page+1<pCount) {
+    if(((sel.sel+1u)%columsCount==0 || sel.sel+1u==pg.size() || pg.size()==0) && page+1u<pCount) {
       page++;
       sel.sel -= sel.sel%columsCount;
       }
@@ -336,6 +336,11 @@ InventoryMenu::PageLocal &InventoryMenu::activePageSel() {
   return pageLocal[1];
   }
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#pragma GCC diagnostic ignored "-Wfloat-conversion"
+#endif
 void InventoryMenu::onTakeStuff() { 
   uint8_t itemCount = 0;
   auto& page = activePage();
@@ -385,6 +390,9 @@ void InventoryMenu::onTakeStuff() {
   }
   adjustScroll();
 }
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 void InventoryMenu::adjustScroll() {
   auto& page=activePage();

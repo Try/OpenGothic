@@ -37,8 +37,6 @@ void ChapterScreen::paintEvent(Tempest::PaintEvent &e) {
   p.setBrush(*back);
   p.drawRect(x,y,back->w(),back->h());
 
-  Color clNormal = {1.f,0.87f,0.67f,1.f};
-
   {
   auto& fnt = Resources::font();
   auto  sz  = fnt.textSize(title);

@@ -1024,7 +1024,7 @@ bool Npc::implLookAt(const Npc& oth, bool noAnim, uint64_t dt) {
 
 bool Npc::implLookAt(float dx, float dz, bool noAnim, uint64_t dt) {
   auto  gl   = guild();
-  float step = owner.script().guildVal().turn_speed[gl]*(dt/1000.f)*60.f/100.f;
+  float step = float(owner.script().guildVal().turn_speed[gl])*(float(dt)/1000.f)*60.f/100.f;
 
   if(dx==0.f && dz==0.f) {
     setAnimRotate(0);
@@ -1711,7 +1711,7 @@ void Npc::nextAiAction(uint64_t dt) {
       }
     case AI_SetNpcsToState:{
       const int32_t r = act.i0*act.i0;
-      owner.detectNpc(position(),hnpc.senses_range,[&act,this,r](Npc& other){
+      owner.detectNpc(position(),float(hnpc.senses_range),[&act,this,r](Npc& other){
         if(&other!=this && qDistTo(other)<r)
           other.aiStartState(uint32_t(act.func),1,other.currentOther,other.hnpc.wp.c_str());
         });
@@ -2010,14 +2010,16 @@ void Npc::sellItem(uint32_t id, Npc &to, uint32_t count) {
 void Npc::buyItem(uint32_t id, Npc &from, uint32_t count) {
   if(id==owner.script().goldId())
     return;
+
   int32_t price = from.invent.priceOf(id);
-  if(price*count>int32_t(invent.goldCount())) {
+  if(price>0 && uint32_t(price)*count>invent.goldCount()) {
+    count = invent.goldCount()/uint32_t(price);
+    }
+  if(count==0) {
     owner.script().printCannotBuyError(*this);
-    if(int32_t(invent.goldCount())/price >= 1){
-      buyItem(id,from,int32_t(invent.goldCount())/price);
-      }
     return;
     }
+
   Inventory::trasfer(invent,from.invent,nullptr,id,count,owner);
   invent.delItem(owner.script().goldId(),uint32_t(price)*count,*this);
   }
@@ -2166,7 +2168,7 @@ bool Npc::drawWeaponBow() {
 bool Npc::drawMage(uint8_t slot) {
   if(isFaling() || mvAlgo.isSwim())
     return false;
-  Item* it = invent.currentSpell(slot-3);
+  Item* it = invent.currentSpell(uint8_t(slot-3));
   if(it==nullptr) {
     closeWeapon(false);
     return true;
@@ -2343,8 +2345,8 @@ bool Npc::shootBow() {
 
   auto rgn = currentRangeWeapon();
   if(rgn!=nullptr && rgn->isCrossbow())
-    b.setHitChance(hnpc.hitChance[TALENT_CROSSBOW]/100.f); else
-    b.setHitChance(hnpc.hitChance[TALENT_BOW]/100.f);
+    b.setHitChance(float(hnpc.hitChance[TALENT_CROSSBOW])/100.f); else
+    b.setHitChance(float(hnpc.hitChance[TALENT_BOW]     )/100.f);
 
   return true;
   }
@@ -2448,7 +2450,7 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
   }
 
 bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType perc) {
-  float r = hnpc.senses_range;
+  float r = float(hnpc.senses_range);
   r = r*r;
   if(quadDist>r || isPlayer())
     return false;
@@ -2565,8 +2567,8 @@ bool Npc::tryMove(const std::array<float,3> &dp) {
   float scale=speed*0.25f;
   for(int i=1;i<4+3;++i){
     std::array<float,3> p=pos;
-    p[0]+=norm[0]*scale*i;
-    p[2]+=norm[2]*scale*i;
+    p[0]+=norm[0]*scale*float(i);
+    p[2]+=norm[2]*scale*float(i);
 
     std::array<float,3> nn={};
     if(physic.tryMoveN(p,nn)) {
@@ -2607,9 +2609,9 @@ float Npc::clampHeight(Npc::Anim a) const {
 
   switch(a) {
     case AnimationSolver::JumpUpLow:
-      return g.jumplow_height[i];
+      return float(g.jumplow_height[i]);
     case AnimationSolver::JumpUpMid:
-      return g.jumpmid_height[i];
+      return float(g.jumpmid_height[i]);
     default:
       return 0;
     }
@@ -2946,7 +2948,7 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, float ext
   DynamicWorld* w = owner.physic();
   static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
 
-  const float range = hnpc.senses_range+extRange;
+  const float range = float(hnpc.senses_range)+extRange;
   if(qDistTo(tx,ty,tz)>range*range)
     return SensesBit::SENSE_NONE;
 

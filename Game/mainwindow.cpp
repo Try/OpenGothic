@@ -138,8 +138,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
         auto pos = focus.displayPosition();
         vp.project(pos[0],pos[1],pos[2]);
 
-        int   ix = int((0.5f*pos[0]+0.5f)*w());
-        int   iy = int((0.5f*pos[1]+0.5f)*h());
+        int   ix = int((0.5f*pos[0]+0.5f)*float(w()));
+        int   iy = int((0.5f*pos[1]+0.5f)*float(h()));
         auto& fnt = Resources::font();
 
         auto tsize = fnt.textSize(focus.displayName());
@@ -151,7 +151,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
         fnt.drawText(p, ix,iy,focus.displayName());
 
         if(auto pl = focus.npc){
-          float hp = pl->attribute(Npc::ATR_HITPOINTS)/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
+          float hp = float(pl->attribute(Npc::ATR_HITPOINTS))/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
           drawBar(p,barHp, w()/2,10, hp, AlignHCenter|AlignTop);
           }
 
@@ -162,8 +162,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
         }
 
       if(auto pl=gothic.player()){
-        float hp = pl->attribute(Npc::ATR_HITPOINTS)/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
-        float mp = pl->attribute(Npc::ATR_MANA)/float(pl->attribute(Npc::ATR_MANAMAX));
+        float hp = float(pl->attribute(Npc::ATR_HITPOINTS))/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
+        float mp = float(pl->attribute(Npc::ATR_MANA))     /float(pl->attribute(Npc::ATR_MANAMAX));
         drawBar(p,barHp,  10,    h()-10, hp, AlignLeft |AlignBottom);
         drawBar(p,barMana,w()-10,h()-10, mp, AlignRight|AlignBottom);
         }
@@ -234,7 +234,7 @@ void MainWindow::processMouse(MouseEvent &event,bool fs) {
   if(auto camera = gothic.gameCamera()) {
     auto dp = (event.pos()-mpos);
     mpos = event.pos();
-    spin += PointF(-dp.x,dp.y);
+    spin += PointF(-float(dp.x),float(dp.y));
     if(spin.y>90)
       spin.y=90;
     if(spin.y<-90)
@@ -374,26 +374,26 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
 void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y, float v, AlignFlag flg) {
   if(barBack==nullptr || bar==nullptr)
     return;
-  const int   destW   = int(180*(std::min(w(),800)/800.f));
-  const float k       = destW/float(std::max(barBack->w(),1));
-  const int   destH   = int(barBack->h()*k);
-  const int   destHin = int(destH*0.95f);
+  const float destW   = 180.f*float(std::min(w(),800))/800.f;
+  const float k       = float(destW)/float(std::max(barBack->w(),1));
+  const float destH   = float(barBack->h())*k;
+  const float destHin = float(destH)*0.95f;
 
   v = std::max(0.f,std::min(v,1.f));
   if(flg & AlignRight)
-    x-=destW;
+    x-=int(destW);
   else if(flg & AlignHCenter)
-    x-=destW/2;
+    x-=int(destW)/2;
   if(flg & AlignBottom)
-    y-=destH;
+    y-=int(destH);
 
   p.setBrush(*barBack);
-  p.drawRect(x,y,destW,destH, 0,0,barBack->w(),barBack->h());
+  p.drawRect(x,y,int(destW),int(destH), 0,0,barBack->w(),barBack->h());
 
-  int dy = int(0.5f*k*(barBack->h()-destHin));
-  int pd = int(9*k);
+  int   dy = int(0.5f*k*(float(barBack->h())-destHin));
+  float pd = 9.f*k;
   p.setBrush(*bar);
-  p.drawRect(x+pd,y+dy,int((destW-pd*2)*v),int(k*destHin),
+  p.drawRect(x+int(pd),y+dy,int(float(destW-pd*2)*v),int(k*destHin),
              0,0,bar->w(),bar->h());
   }
 
@@ -404,7 +404,7 @@ void MainWindow::drawProgress(Painter &p, int x, int y, int w, int h, float v) {
   p.drawRect(x,y,w,h, 0,0,loadBox->w(),loadBox->h());
 
   p.setBrush(*loadVal);
-  p.drawRect(x+75,y+15,int((w-145)*v),35, 0,0,loadVal->w(),loadVal->h());
+  p.drawRect(x+75,y+15,int(float(w-145)*v),35, 0,0,loadVal->w(),loadVal->h());
   }
 
 void MainWindow::drawLoading(Painter &p, int x, int y, int w, int h) {
@@ -414,7 +414,7 @@ void MainWindow::drawLoading(Painter &p, int x, int y, int w, int h) {
                0,0,back->w(),back->h());
     }
 
-  float v = gothic.loadingProgress()/100.f;
+  float v = float(gothic.loadingProgress())/100.f;
   drawProgress(p,x,y,w,h,v);
   }
 
@@ -430,7 +430,7 @@ void MainWindow::drawSaving(Painter &p) {
                0,0,back->w(),back->h());
     }
 
-  float v = gothic.loadingProgress()/100.f;
+  float v = float(gothic.loadingProgress())/100.f;
   const int x = (w()-saveback->w())/2, y = (h()-saveback->h())/2;
   p.setBrush(*saveback);
 

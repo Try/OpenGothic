@@ -1,12 +1,8 @@
 #pragma once
 
-#include "physicmesh.h"
-
 #include <zenload/zCMesh.h>
 #include <zenload/zTypes.h>
 #include <zenload/zCMaterial.h>
-#include <LinearMath/btScalar.h>
-#include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
 #include <Tempest/Matrix4x4>
 #include <memory>
 #include <limits>
@@ -22,8 +18,11 @@ class btRigidBody;
 class btGhostObject;
 class btCollisionObject;
 class btTriangleMesh;
+class btCollisionWorld;
+class btVector3;
 
 class PhysicMeshShape;
+class PhysicMesh;
 class World;
 class Bullet;
 class Npc;
@@ -189,7 +188,9 @@ class DynamicWorld final {
     void       moveBullet(BulletBody& b, float dx, float dy, float dz, uint64_t dt);
     RayResult  implWaterRay (float x0, float y0, float z0, float x1, float y1, float z1) const;
     bool       hasCollision(const Item &it,std::array<float,3>& normal);
-    void       rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, btCollisionWorld::RayResultCallback& resultCallback) const;
+
+    template<class RayResultCallback>
+    void       rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, RayResultCallback& resultCallback) const;
 
     std::unique_ptr<btRigidBody> landObj();
     std::unique_ptr<btRigidBody> waterObj();
