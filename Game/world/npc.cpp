@@ -2021,7 +2021,9 @@ void Npc::buyItem(uint32_t id, Npc &from, uint32_t count) {
     }
 
   Inventory::trasfer(invent,from.invent,nullptr,id,count,owner);
-  invent.delItem(owner.script().goldId(),uint32_t(price)*count,*this);
+  if(price>=0)
+    invent.delItem(owner.script().goldId(),uint32_t(price)*count,*this); else
+    invent.addItem(owner.script().goldId(),uint32_t(-price)*count,owner);
   }
 
 void Npc::clearInventory() {
