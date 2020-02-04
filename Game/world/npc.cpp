@@ -1035,7 +1035,7 @@ bool Npc::implLookAt(float dx, float dz, bool noAnim, uint64_t dt) {
   float da = a-angle;
 
   if(noAnim || std::cos(double(da)*M_PI/180.0)>0) {
-    if(std::abs(int(da)%180)<=step) {
+    if(float(std::abs(int(da)%180))<=step) {
       setAnimRotate(0);
       setDirection(a);
       return false;
@@ -1712,7 +1712,7 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_SetNpcsToState:{
       const int32_t r = act.i0*act.i0;
       owner.detectNpc(position(),float(hnpc.senses_range),[&act,this,r](Npc& other){
-        if(&other!=this && qDistTo(other)<r)
+        if(&other!=this && qDistTo(other)<float(r))
           other.aiStartState(uint32_t(act.func),1,other.currentOther,other.hnpc.wp.c_str());
         });
       break;
@@ -1979,7 +1979,7 @@ void Npc::setToFistMode() {
   hnpc.weapon  = 1;
   }
 
-Item* Npc::addItem(const uint32_t item, uint32_t count) {
+Item* Npc::addItem(const size_t item, uint32_t count) {
   return invent.addItem(item,count,owner);
   }
 
@@ -1987,19 +1987,19 @@ Item* Npc::addItem(std::unique_ptr<Item>&& i) {
   return invent.addItem(std::move(i));
   }
 
-void Npc::addItem(uint32_t id, Interactive &chest, uint32_t count) {
+void Npc::addItem(size_t id, Interactive &chest, uint32_t count) {
   Inventory::trasfer(invent,chest.inventory(),nullptr,id,count,owner);
   }
 
-void Npc::addItem(uint32_t id, Npc &from, uint32_t count) {
+void Npc::addItem(size_t id, Npc &from, uint32_t count) {
   Inventory::trasfer(invent,from.invent,&from,id,count,owner);
   }
 
-void Npc::moveItem(uint32_t id, Interactive &to, uint32_t count) {
+void Npc::moveItem(size_t id, Interactive &to, uint32_t count) {
   Inventory::trasfer(to.inventory(),invent,this,id,count,owner);
   }
 
-void Npc::sellItem(uint32_t id, Npc &to, uint32_t count) {
+void Npc::sellItem(size_t id, Npc &to, uint32_t count) {
   if(id==owner.script().goldId())
     return;
   int32_t price = invent.sellPriceOf(id);
@@ -2007,13 +2007,13 @@ void Npc::sellItem(uint32_t id, Npc &to, uint32_t count) {
   invent.addItem(owner.script().goldId(),uint32_t(price),owner);
   }
 
-void Npc::buyItem(uint32_t id, Npc &from, uint32_t count) {
+void Npc::buyItem(size_t id, Npc &from, uint32_t count) {
   if(id==owner.script().goldId())
     return;
 
   int32_t price = from.invent.priceOf(id);
   if(price>0 && uint32_t(price)*count>invent.goldCount()) {
-    count = invent.goldCount()/uint32_t(price);
+    count = uint32_t(invent.goldCount())/uint32_t(price);
     }
   if(count==0) {
     owner.script().printCannotBuyError(*this);
@@ -2043,34 +2043,34 @@ Item *Npc::currentRangeWeapon() {
   }
 
 bool Npc::lookAt(float dx, float dz, bool anim, uint64_t dt) {
-  return implLookAt(dx,dz,anim ? 0 : 180,dt);
+  return implLookAt(dx,dz,anim,dt);
   }
 
 bool Npc::checkGoToNpcdistance(const Npc &other) {
   return fghAlgo.isInAtackRange(*this,other,owner.script());
   }
 
-size_t Npc::hasItem(uint32_t id) const {
+size_t Npc::hasItem(size_t id) const {
   return invent.itemCount(id);
   }
 
-Item *Npc::getItem(uint32_t id) {
+Item *Npc::getItem(size_t id) {
   return invent.getItem(id);
   }
 
-void Npc::delItem(uint32_t item, uint32_t amount) {
+void Npc::delItem(size_t item, uint32_t amount) {
   invent.delItem(item,amount,*this);
   }
 
-void Npc::useItem(uint32_t item,bool force) {
+void Npc::useItem(size_t item,bool force) {
   invent.use(item,*this,force);
   }
 
-void Npc::setCurrentItem(uint32_t item) {
+void Npc::setCurrentItem(size_t item) {
   invent.setCurrentItem(item);
   }
 
-void Npc::unequipItem(uint32_t item) {
+void Npc::unequipItem(size_t item) {
   invent.unequip(item,*this);
   }
 
@@ -2501,11 +2501,11 @@ void Npc::quitIneraction() {
   currentInteract=nullptr;
   }
 
-bool Npc::isState(uint32_t stateFn) const {
+bool Npc::isState(size_t stateFn) const {
   return aiState.funcIni==stateFn;
   }
 
-bool Npc::wasInState(uint32_t stateFn) const {
+bool Npc::wasInState(size_t stateFn) const {
   return aiPrevState==stateFn;
   }
 
@@ -2526,14 +2526,10 @@ void Npc::addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint *point)
   routines.push_back(r);
   }
 
-void Npc::excRoutine(uint32_t callback) {
-  //aiState.funcEnd=0; // no cleanup
-
+void Npc::excRoutine(size_t callback) {
   routines.clear();
   owner.script().invokeState(this,currentOther,nullptr,callback);
   aiState.eTime = gtime();
-  //setInteraction(nullptr);
-  //aiContinueRoutine();
   }
 
 void Npc::multSpeed(float s) {

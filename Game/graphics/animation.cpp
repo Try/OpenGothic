@@ -269,7 +269,7 @@ bool Animation::Sequence::isFinished(uint64_t t,uint16_t comboLen) const {
     if(t>data->defHitEnd[comboLen])
       return true;
     }
-  return t>totalTime();
+  return float(t)>totalTime();
   }
 
 float Animation::Sequence::totalTime() const {

@@ -383,7 +383,7 @@ void GameMenu::execChgOption(Item &item) {
   updateItem(item);
   item.value += 1; // next value
 
-  size_t cnt = strEnumSize(item.handle.text[0].c_str());
+  int cnt = int(strEnumSize(item.handle.text[0].c_str()));
   if(cnt>0)
     item.value%=cnt; else
     item.value =0;

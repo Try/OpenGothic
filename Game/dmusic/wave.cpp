@@ -155,7 +155,7 @@ Wave::Wave(const int16_t *pcm, size_t count) {
   wfmt.wFormatTag       = Dx8::Wave::PCM;
   wfmt.wChannels        = 2;
   wfmt.dwSamplesPerSec  = SoundFont::SampleRate;
-  wfmt.dwAvgBytesPerSec = wfmt.dwSamplesPerSec * wfmt.wChannels * sizeof(int16_t);
+  wfmt.dwAvgBytesPerSec = wfmt.dwSamplesPerSec * uint32_t(wfmt.wChannels * sizeof(int16_t));
   wfmt.wBlockAlign      = 2;
   wfmt.wBitsPerSample   = 16;
   }
@@ -164,8 +164,8 @@ void Wave::save(const char *path) const {
   Tempest::WFile f(path);
   f.write("RIFF",4);
 
-  uint32_t fmtSize = sizeof(wfmt) + (extra.size()>0 ? (2+extra.size()) : 0);
-  uint32_t sz      = 8 + fmtSize + 8 + wavedata.size();
+  uint32_t fmtSize = uint32_t(sizeof(wfmt)) + uint32_t(extra.size()>0 ? (2+extra.size()) : 0);
+  uint32_t sz      = 8u + fmtSize + 8u + uint32_t(wavedata.size());
   f.write(reinterpret_cast<const char*>(&sz),4);
   f.write("WAVE",4);
 
@@ -180,7 +180,7 @@ void Wave::save(const char *path) const {
     }
 
   f.write("data",4);
-  sz=wavedata.size();
+  sz=uint32_t(wavedata.size());
   f.write(&sz,4);
   f.write(wavedata.data(),sz);
   }

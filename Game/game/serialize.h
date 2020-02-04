@@ -116,7 +116,7 @@ class Serialize final {
 
     template<class T>
     void write(const std::vector<T>& s) {
-      uint32_t sz=s.size();
+      uint32_t sz=uint32_t(s.size());
       write(sz);
       for(auto& i:s)
         write(i);

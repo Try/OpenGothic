@@ -1124,7 +1124,7 @@ uint64_t GameScript::tickCount() const {
   }
 
 uint32_t GameScript::rand(uint32_t max) {
-  return randGen()%max;
+  return uint32_t(randGen())%max;
   }
 
 template<class Ret,class ... Args>
@@ -1723,7 +1723,7 @@ void GameScript::npc_exchangeroutine(Daedalus::DaedalusVM &vm) {
     auto& v = *npc->handle();
     char buf[256]={};
     std::snprintf(buf,sizeof(buf),"Rtn_%s_%d",rname.c_str(),v.id);
-    auto d = vm.getDATFile().getSymbolIndexByName(buf);
+    size_t d = vm.getDATFile().getSymbolIndexByName(buf);
     if(d>0)
       npc->excRoutine(d);
     }

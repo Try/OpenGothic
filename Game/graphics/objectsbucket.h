@@ -148,7 +148,7 @@ void ObjectsBucket<Ubo,Vertex>::draw(Tempest::Encoder<Tempest::CommandBuffer> &c
     auto& di = *index[i];
     if(di.vbo==nullptr)
       continue;
-    uint32_t offset = di.ubo;//*uStorage.elementSize();
+    uint32_t offset = uint32_t(di.ubo);
 
     cmd.setUniforms(pipeline,frame.ubo,1,&offset);
     cmd.draw(*di.vbo,*di.ibo);
@@ -170,7 +170,7 @@ void ObjectsBucket<Ubo,Vertex>::drawShadow(Tempest::Encoder<Tempest::CommandBuff
     auto& di = *index[i];
     if(di.vbo==nullptr)
       continue;
-    uint32_t offset = di.ubo;//*uStorage.elementSize();
+    uint32_t offset = uint32_t(di.ubo);
 
     cmd.setUniforms(pipeline,frame.uboSh[layer],1,&offset);
     cmd.draw(*di.vbo,*di.ibo);
@@ -183,7 +183,7 @@ void ObjectsBucket<Ubo,Vertex>::draw(size_t id, Tempest::Encoder<Tempest::Comman
   auto& di    = data[id];
   if(di.vbo==nullptr)
     return;
-  uint32_t offset = di.ubo;//*uStorage.elementSize();
+  uint32_t offset = uint32_t(di.ubo);
 
   cmd.setUniforms(pipeline,frame.ubo,1,&offset);
   cmd.draw(*di.vbo,*di.ibo);

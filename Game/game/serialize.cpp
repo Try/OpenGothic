@@ -36,7 +36,7 @@ Serialize::Serialize()
   }
 
 void Serialize::write(const std::string &s) {
-  uint32_t sz=s.size();
+  uint32_t sz=uint32_t(s.size());
   write(sz);
   writeBytes(s.data(),sz);
   }
@@ -50,7 +50,7 @@ void Serialize::read(std::string &s) {
   }
 
 void Serialize::write(const Daedalus::ZString& s) {
-  uint32_t sz=s.size();
+  uint32_t sz=uint32_t(s.size());
   write(sz);
   writeBytes(s.c_str(),sz);
   }

@@ -275,7 +275,7 @@ void Mixer::volFromCurve(PatternInternal &part,Instr& inst,std::vector<float> &v
       continue;
     int64_t s = toSamples(i.at)-shift;
     int64_t e = toSamples(i.at+i.duration)-shift;
-    if(s>v.size() || e<0)
+    if((s>=0 && size_t(s)>v.size()) || e<0)
       continue;
 
     const size_t begin = size_t(std::max<int64_t>(s,0));

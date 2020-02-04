@@ -513,12 +513,12 @@ void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {
     return;
   auto           w    = world();
   auto*          txt  = w ? w->script().currencyName() : nullptr;
-  const uint32_t gold = player.inventory().goldCount();
+  const size_t   gold = player.inventory().goldCount();
   char           vint[64]={};
   if(txt==nullptr)
     txt="Gold";
 
-  std::snprintf(vint,sizeof(vint),"%s : %d",txt,gold);
+  std::snprintf(vint,sizeof(vint),"%s : %u",txt,uint32_t(gold));
   drawHeader(p,vint,x,y);
   }
 

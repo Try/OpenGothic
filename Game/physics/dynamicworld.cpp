@@ -298,7 +298,7 @@ struct DynamicWorld::NpcBodyList final {
       r = std::upper_bound(arr.begin(),arr.end(),n.pos[0]+dX,[](float x,const Record& b){ return x<b.x; });
       }
 
-    const int dist = std::distance(l,r); (void)dist;
+    const auto dist = std::distance(l,r);
     if(dist<=1)
       return false;
 

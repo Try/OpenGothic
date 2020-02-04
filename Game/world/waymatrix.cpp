@@ -204,8 +204,8 @@ const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpInde
     });
 
   const WayPoint *ret=nullptr;
-  int32_t count = std::distance(b,e);(void) count;
-  float dist = R*R;
+  auto  count = std::distance(b,e);(void) count;
+  float dist  = R*R;
   for(auto i=b;i!=e;++i){
     auto& w  = **i;
     if(w.isLocked() || &w==ex)

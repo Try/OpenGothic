@@ -48,7 +48,7 @@ class Workers final {
 
       for(size_t i=0;i<workTasks;++i)
         workInc[i].release(1);
-      workDone.acquire(workTasks);
+      workDone.acquire(uint32_t(workTasks));
       }
 
   private:

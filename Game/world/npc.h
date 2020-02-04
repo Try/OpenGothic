@@ -333,13 +333,13 @@ class Npc final {
     Interactive* interactive() const { return currentInteract; }
     bool     setInteraction(Interactive* id, bool quick=false);
     void     quitIneraction();
-    bool     isState(uint32_t stateFn) const;
-    bool     wasInState(uint32_t stateFn) const;
+    bool     isState(size_t stateFn) const;
+    bool     wasInState(size_t stateFn) const;
     uint64_t stateTime() const;
     void     setStateTime(int64_t time);
 
     void     addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint* point);
-    void     excRoutine(uint32_t callback);
+    void     excRoutine(size_t callback);
     void     multSpeed(float s);
 
     MoveCode testMove  (const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
@@ -354,19 +354,19 @@ class Npc final {
     Daedalus::GEngineClasses::C_Npc* handle(){ return  &hnpc; }
 
     auto     inventory() const -> const Inventory& { return invent; }
-    size_t   hasItem    (uint32_t id) const;
-    Item*    getItem    (uint32_t id);
-    Item*    addItem    (uint32_t id, uint32_t amount);
+    size_t   hasItem    (size_t id) const;
+    Item*    getItem    (size_t id);
+    Item*    addItem    (size_t id, uint32_t amount);
     Item*    addItem    (std::unique_ptr<Item>&& i);
-    void     delItem    (uint32_t id, uint32_t amount);
-    void     useItem    (uint32_t item, bool force=false);
-    void     setCurrentItem(uint32_t item);
-    void     unequipItem(uint32_t item);
-    void     addItem    (uint32_t id,Interactive& chest,uint32_t count=1);
-    void     addItem    (uint32_t id,Npc& from,uint32_t count=1);
-    void     moveItem   (uint32_t id,Interactive& to,uint32_t count=1);
-    void     sellItem   (uint32_t id,Npc& to,uint32_t count=1);
-    void     buyItem    (uint32_t id,Npc& from,uint32_t count=1);
+    void     delItem    (size_t id, uint32_t amount);
+    void     useItem    (size_t item, bool force=false);
+    void     setCurrentItem(size_t item);
+    void     unequipItem(size_t item);
+    void     addItem    (size_t id, Interactive& chest,uint32_t count=1);
+    void     addItem    (size_t id, Npc& from, uint32_t count=1);
+    void     moveItem   (size_t id, Interactive& to,uint32_t count=1);
+    void     sellItem   (size_t id, Npc& to,uint32_t count=1);
+    void     buyItem    (size_t id, Npc& from,uint32_t count=1);
     void     clearInventory();
     Item*    currentArmour();
     Item*    currentMeleWeapon();

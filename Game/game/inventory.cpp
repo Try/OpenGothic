@@ -91,12 +91,12 @@ void Inventory::load(Interactive&, World& w, Serialize &s) {
   }
 
 void Inventory::save(Serialize &fout) const {
-  uint32_t sz=items.size();
+  uint32_t sz=uint32_t(items.size());
   fout.write(sz);
   for(auto& i:items)
     i->save(fout);
 
-  sz=mdlSlots.size();
+  sz=uint32_t(mdlSlots.size());
   fout.write(sz);
   for(auto& i:mdlSlots){
     fout.write(i.slot,indexOf(i.item));
@@ -943,7 +943,7 @@ uint32_t Inventory::indexOf(const Item *it) const {
     return uint32_t(-1);
   for(size_t i=0;i<items.size();++i)
     if(items[i].get()==it)
-      return i;
+      return uint32_t(i);
   return uint32_t(-1);
   }
 

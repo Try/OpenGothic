@@ -92,7 +92,7 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
   }
 
 bool FightAlgo::fillQueue(GameScript& owner,const Daedalus::GEngineClasses::C_FightAI &src) {
-  size_t sz=0;
+  uint32_t sz=0;
   for(size_t i=0;i<Daedalus::GEngineClasses::MAX_MOVE;++i){
     if(src.move[i]==0)
       break;
