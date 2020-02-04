@@ -78,8 +78,7 @@ void UboStorage<Ubo>::commitUbo(Tempest::Device& device,uint32_t imgId) {
 template<class Ubo>
 void UboStorage<Ubo>::updateUbo(uint32_t imgId) {
   auto& frame=pf[imgId];
-  size_t sz = obj.size();
-  assert(sz==frame.uboData.size());
+  assert(obj.size()==frame.uboData.size());
   if(frame.uboChanged) {
     frame.uboData.update(obj.data(),0,obj.size());
     frame.uboChanged = false;

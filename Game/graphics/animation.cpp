@@ -492,7 +492,7 @@ ZMath::float3 Animation::Sequence::translateXZ(uint64_t at) const {
   auto&    d         = *data;
   uint32_t numFrames = d.numFrames;
   if(numFrames==0 || d.tr.size()==0) {
-    ZMath::float3 n={};
+    ZMath::float3 n={0,0,0};
     return n;
     }
   if(animCls==Transition && !isFly()){
