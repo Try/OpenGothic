@@ -50,7 +50,7 @@ class Item final {
     int32_t             swordLength() const;
 
     void                setCount(size_t cnt);
-    uint32_t            count() const;
+    size_t              count() const;
 
     const char*         uiText (size_t id) const;
     int32_t             uiValue(size_t id) const;

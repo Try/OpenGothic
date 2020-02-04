@@ -2014,7 +2014,7 @@ void Npc::buyItem(uint32_t id, Npc &from, uint32_t count) {
   if(price*count>int32_t(invent.goldCount())) {
     owner.script().printCannotBuyError(*this);
     if(int32_t(invent.goldCount())/price >= 1){
-      buyItem(id,from,uint32_t(invent.goldCount())/price);
+      buyItem(id,from,int32_t(invent.goldCount())/price);
       }
     return;
     }
