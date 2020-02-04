@@ -103,7 +103,7 @@ target_link_libraries(${PROJECT_NAME} MoltenTempest)
 target_link_libraries(${PROJECT_NAME} GothicShaders)
 
 if(NOT MSVC)
-  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wconversion -Werror)
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wconversion -Wno-strict-aliasing -Werror)
 endif()
 
 # script for launching in binary directory
