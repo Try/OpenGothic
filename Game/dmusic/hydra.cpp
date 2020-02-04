@@ -303,7 +303,7 @@ tsf *Hydra::toTsf() {
   res->presets       = reinterpret_cast<tsf_preset*>(TSF_MALLOC(size_t(res->presetNum)*sizeof(tsf_preset)));
 
   res->fontSamples   = wdata.get();
-  tsf_load_presets(res, &hydra, wdataSize);
+  tsf_load_presets(res, &hydra, unsigned(wdataSize));
   return res;
   }
 
@@ -345,8 +345,8 @@ std::unique_ptr<float[]> Hydra::allocSamples(const DlsCollection &dls,std::vecto
 
     tsf_hydra_shdr sx={};
     std::strncpy(sx.sampleName,wav.info.inam.c_str(),19);
-    sx.start           = wavStart;
-    sx.end             = wavStart+wavSize;
+    sx.start           = tsf_u32(wavStart);
+    sx.end             = tsf_u32(wavStart+wavSize);
     sx.startLoop       = 0; // will be overriden, later
     sx.endLoop         = 0;
     sx.sampleRate      = wav.wfmt.dwSamplesPerSec;
