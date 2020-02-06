@@ -58,6 +58,39 @@ void Wave::implRead(Riff &input) {
     });
 
   if(wfmt.wFormatTag==Dx8::Wave::ADPCM) {
+    uint16_t                   samplesPerBlock=0;
+    std::unique_ptr<int16_t[]> coeffTable;
+    uint16_t                   nCoefs=0;
+    int                        errct=0;
+
+    {
+    static const int16_t msAdpcmIcoef[7][2] = {
+      { 256,   0},
+      { 512,-256},
+      {   0,   0},
+      { 192,  64},
+      { 240,   0},
+      { 460,-208},
+      { 392,-232}
+      };
+
+    Tempest::MemReader f(extra.data(),extra.size());
+    f.read(&samplesPerBlock,sizeof(samplesPerBlock));
+    f.read(&nCoefs,sizeof(nCoefs));
+    if(nCoefs<7 || nCoefs>0x100)
+      throw std::runtime_error("invalid MS ADPCM sound");
+    if(extra.size()<size_t(4+4*nCoefs))
+      throw std::runtime_error("invalid MS ADPCM sound");
+    coeffTable.reset(new int16_t[nCoefs*2]);
+    for(size_t i=0; i<2*nCoefs; i++) {
+      f.read(&coeffTable[i],2);
+      if(i<14)
+        errct += (coeffTable[i] != msAdpcmIcoef[i/2][i%2]);
+      }
+    }
+    if(errct>0)
+      Tempest::Log::i("");
+
     size_t blockCount = (wavedata.size()+wfmt.wBlockAlign-1) / wfmt.wBlockAlign;
 
     /* We decode two samples per byte. There will be blockCount headers in the data chunk.
