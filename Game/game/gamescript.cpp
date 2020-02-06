@@ -1667,7 +1667,7 @@ void GameScript::npc_settofightmode(Daedalus::DaedalusVM &vm) {
   int32_t weaponSymbol = vm.popInt();
   auto    npc          = popInstance(vm);
   if(npc!=nullptr && weaponSymbol>=0)
-    npc->setToFightMode(uint32_t(weaponSymbol));
+    npc->setToFightMode(size_t(weaponSymbol));
   }
 
 void GameScript::npc_settofistmode(Daedalus::DaedalusVM &vm) {

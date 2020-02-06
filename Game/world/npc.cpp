@@ -1948,7 +1948,7 @@ BodyState Npc::bodyStateMasked() const {
   return BodyState(bs & (BS_MAX | BS_FLAG_MASK));
   }
 
-void Npc::setToFightMode(const uint32_t item) {
+void Npc::setToFightMode(const size_t item) {
   if(invent.itemCount(item)==0)
     addItem(item,1);
 
@@ -1957,10 +1957,16 @@ void Npc::setToFightMode(const uint32_t item) {
   invent.equip(item,*this,true);
   invent.switchActiveWeapon(*this,1);
 
-  if(weaponSt==WeaponState::W1H || weaponSt==WeaponState::W2H)
+  auto w = invent.currentMeleWeapon();
+  if(w==nullptr || w->clsId()!=item)
     return;
 
-  weaponSt=weaponState();
+  if(w->is2H()) {
+    weaponSt = WeaponState::W2H;
+    } else {
+    weaponSt = WeaponState::W1H;
+    }
+
   if(visual.setToFightMode(weaponSt))
     updateWeaponSkeleton();
 
