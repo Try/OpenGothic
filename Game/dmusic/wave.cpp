@@ -183,6 +183,7 @@ size_t Wave::decodeAdpcmBlock(Tempest::MemReader& rd, const size_t framesToRead,
                               uint16_t blockAlign, uint16_t channels, int16_t* pBufferOut) {
   size_t    totalFramesRead = 0;
   AdpcState msadpcm         = {};
+  size_t    bytesRemaining  = 0;
 
   if(channels == 1) {
     /* Mono. */
@@ -191,7 +192,7 @@ size_t Wave::decodeAdpcmBlock(Tempest::MemReader& rd, const size_t framesToRead,
     if(rd.read(&predictor,1)!=1 ||
        rd.read(&header,sizeof(header))!=sizeof(header))
       return totalFramesRead;
-    msadpcm.bytesRemainingInBlock = blockAlign - sizeof(header) -1;
+    bytesRemaining = blockAlign-sizeof(header)-1;
 
     AdpcChannel& c = msadpcm.channel[0];
     c.predictor     = predictor;
@@ -210,7 +211,7 @@ size_t Wave::decodeAdpcmBlock(Tempest::MemReader& rd, const size_t framesToRead,
        rd.read(&header,sizeof(header))!=sizeof(header))
       return totalFramesRead;
 
-    msadpcm.bytesRemainingInBlock = blockAlign - sizeof(header);
+    bytesRemaining = blockAlign-sizeof(header)-2;
 
     AdpcChannel& c0 = msadpcm.channel[0];
     AdpcChannel& c1 = msadpcm.channel[0];
@@ -246,7 +247,7 @@ size_t Wave::decodeAdpcmBlock(Tempest::MemReader& rd, const size_t framesToRead,
     if(totalFramesRead>=framesToRead)
       return totalFramesRead;
 
-    if(msadpcm.bytesRemainingInBlock==0)
+    if(bytesRemaining==0)
       return totalFramesRead;
 
     // fill cache
@@ -254,7 +255,7 @@ size_t Wave::decodeAdpcmBlock(Tempest::MemReader& rd, const size_t framesToRead,
     if(rd.read(&nibbles,1)!=1)
       return totalFramesRead;
 
-    msadpcm.bytesRemainingInBlock--;
+    bytesRemaining--;
     int32_t nibble0 = ((nibbles & 0xF0) >> 4);
     int32_t nibble1 = ((nibbles & 0x0F) >> 0);
 

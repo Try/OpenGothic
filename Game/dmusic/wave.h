@@ -87,7 +87,6 @@ class Wave final {
       };
 
     struct AdpcState final {
-      uint32_t    bytesRemainingInBlock;
       int32_t     cachedFrames[MAX_CACHED_FRAMES];  // samples are stored in this cache during decoding.
       uint32_t    cachedFrameCount;
       AdpcChannel channel[2];
