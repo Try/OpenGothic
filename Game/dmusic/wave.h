@@ -60,9 +60,14 @@ class Wave final {
     std::vector<WaveSampleLoop> loop;
     Info                        info;
 
+    void toFloatSamples(float* out) const;
+
     void save(const char* path) const;
 
   private:
+    enum {
+      MAX_CACHED_FRAMES=4
+      };
     struct AdpcHdrMono final {
       int16_t delta;
       int16_t prevFrames1;
@@ -83,7 +88,7 @@ class Wave final {
 
     struct AdpcState final {
       uint32_t    bytesRemainingInBlock;
-      int32_t     cachedFrames[4];  /* Samples are stored in this cache during decoding. */
+      int32_t     cachedFrames[MAX_CACHED_FRAMES];  // samples are stored in this cache during decoding.
       uint32_t    cachedFrameCount;
       AdpcChannel channel[2];
       };

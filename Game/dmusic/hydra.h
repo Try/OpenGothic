@@ -19,6 +19,7 @@ struct tsf;
 namespace Dx8 {
 
 class DlsCollection;
+class Wave;
 
 class Hydra {
   public:
@@ -57,7 +58,7 @@ class Hydra {
       EG2SustainLevel = 0x030e
       };
 
-    Hydra(const DlsCollection& dls);
+    Hydra(const DlsCollection& dls, const std::vector<Wave>& wave);
     ~Hydra();
 
     static void finalize(tsf* tsf);
@@ -82,7 +83,7 @@ class Hydra {
 
   private:
     static uint16_t          mkGeneratorOp(uint16_t usDestination);
-    std::unique_ptr<float[]> allocSamples(const DlsCollection &dls, std::vector<tsf_hydra_shdr> &samples, size_t &count);
+    std::unique_ptr<float[]> allocSamples(const std::vector<Dx8::Wave>& wave, std::vector<tsf_hydra_shdr> &samples, size_t &count);
   };
 
 }

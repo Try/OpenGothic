@@ -94,7 +94,8 @@ DlsCollection::DlsCollection(Riff& input) {
     implRead(c);
     });
 
-  shData = SoundFont::shared(*this);
+  shData = SoundFont::shared(*this,wave);
+  wave.clear();
   }
 
 void DlsCollection::implRead(Riff &input) {
@@ -115,6 +116,10 @@ void DlsCollection::implRead(Riff &input) {
         });
       }
     }
+  }
+
+SoundFont DlsCollection::toSoundfont(uint32_t dwPatch) const {
+  return SoundFont(shData,dwPatch);
   }
 
 void DlsCollection::dbgDump() const {
@@ -141,8 +146,4 @@ const Wave* DlsCollection::findWave(uint8_t note) const {
       }
     }
   return nullptr;
-  }
-
-SoundFont DlsCollection::toSoundfont(uint32_t dwPatch) const {
-  return SoundFont(shData,dwPatch);
   }

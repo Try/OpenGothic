@@ -234,7 +234,7 @@ size_t Wave::decodeAdpcmBlock(Tempest::MemReader& rd, const size_t framesToRead,
   while(true) {
     // flush cache
     while(msadpcm.cachedFrameCount>0 && totalFramesRead<framesToRead) {
-      const int32_t* cache = msadpcm.cachedFrames+_countof(msadpcm.cachedFrames)-(msadpcm.cachedFrameCount*channels);
+      const int32_t* cache = msadpcm.cachedFrames+MAX_CACHED_FRAMES-(msadpcm.cachedFrameCount*channels);
       for(uint16_t i=0; i<channels; i++)
         pBufferOut[i] = int16_t(cache[i]);
 
@@ -269,6 +269,14 @@ size_t Wave::decodeAdpcmBlock(Tempest::MemReader& rd, const size_t framesToRead,
       msadpcm.cachedFrames[3]  = decodeADPCMFrame(msadpcm.channel[1],nibble1);
       msadpcm.cachedFrameCount = 1;
       }
+    }
+  }
+
+void Wave::toFloatSamples(float* out) const {
+  const int16_t* smp = reinterpret_cast<const int16_t*>(wavedata.data());
+  for(size_t i=0;i<wavedata.size();i+=sizeof(int16_t), ++smp) {
+    *out = (*smp)/32767.f;
+    ++out;
     }
   }
 

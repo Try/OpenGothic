@@ -1,10 +1,12 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 namespace Dx8 {
 
 class DlsCollection;
+class Wave;
 
 class SoundFont final {
   private:
@@ -35,7 +37,7 @@ class SoundFont final {
     SoundFont(std::shared_ptr<Data> &sh, uint32_t dwPatch);
     ~SoundFont();
 
-    static std::shared_ptr<Data> shared(const DlsCollection& dls);
+    static std::shared_ptr<Data> shared(const DlsCollection& dls, const std::vector<Wave>& wave);
 
     bool hasNotes() const;
     void setVolume(float v);

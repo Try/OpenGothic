@@ -101,7 +101,6 @@ class DlsCollection final {
 
     uint64_t                    version=0;
     GUID                        dlid;
-    std::vector<Wave>           wave;
     std::vector<Instrument>     instrument;
 
     void      dbgDump() const;
@@ -112,6 +111,8 @@ class DlsCollection final {
 
   private:
     void implRead(Riff &input);
+
+    std::vector<Wave>                        wave;
     mutable std::shared_ptr<SoundFont::Data> shData; //FIXME: mutable
   };
 

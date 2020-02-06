@@ -179,9 +179,9 @@ uint16_t Hydra::mkGeneratorOp(uint16_t usDestination) {
     }
   }
 
-Hydra::Hydra(const DlsCollection &dls) {
+Hydra::Hydra(const DlsCollection &dls,const std::vector<Wave>& wave) {
   std::vector<tsf_hydra_shdr> samples;
-  wdata = allocSamples(dls,samples,wdataSize);
+  wdata = allocSamples(wave,samples,wdataSize);
 
   const uint16_t modIndex     = 0;
   const uint16_t instModNdx   = 0;
@@ -336,9 +336,9 @@ void Hydra::toTsf(tsf_hydra &out) {
   out.shdrs   = shdr.data();
   }
 
-std::unique_ptr<float[]> Hydra::allocSamples(const DlsCollection &dls,std::vector<tsf_hydra_shdr>& smp,size_t& count) {
+std::unique_ptr<float[]> Hydra::allocSamples(const std::vector<Wave>& wave,std::vector<tsf_hydra_shdr>& smp,size_t& count) {
   size_t wavStart=0;
-  for(const auto& wav : dls.wave) {
+  for(const auto& wav : wave) {
     if(wav.wfmt.wBitsPerSample!=16)
       throw std::runtime_error("Unexpected DLS sample format");
     const size_t wavSize = wav.wavedata.size()/(sizeof(int16_t));
@@ -364,12 +364,9 @@ std::unique_ptr<float[]> Hydra::allocSamples(const DlsCollection &dls,std::vecto
   float* wr = samples.get();
 
   // exception safe
-  for(const auto & wav : dls.wave) {
-    const int16_t* smp = reinterpret_cast<const int16_t*>(wav.wavedata.data());
-    for(size_t i=0;i<wav.wavedata.size();i+=sizeof(int16_t), ++smp) {
-      *wr = (*smp)/32767.f;
-      ++wr;
-      }
+  for(const auto& wav : wave) {
+    wav.toFloatSamples(wr);
+    wr+=wav.wavedata.size()/sizeof(int16_t);
 
     // terminator samples.
     for(size_t i=0; i<kTerminatorSampleLength; i++) {

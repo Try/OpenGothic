@@ -129,11 +129,8 @@ TSFDEF void __render_float(tsf* f, float* buffer, int samples, int flag_mixing)
 #endif
 
 struct SoundFont::Data {
-  Data(const DlsCollection &dls)
-    :hydra(dls) {
-    }
-
-  ~Data() {
+  Data(const DlsCollection &dls,const std::vector<Wave>& wave)
+    :hydra(dls,wave) {
     }
 
   Dx8::Hydra hydra;
@@ -248,8 +245,8 @@ SoundFont::SoundFont(std::shared_ptr<Data> &sh, uint32_t dwPatch) {
 SoundFont::~SoundFont() {
   }
 
-std::shared_ptr<SoundFont::Data> SoundFont::shared(const DlsCollection &dls) {
-  return std::shared_ptr<Data>(new Data(dls));
+std::shared_ptr<SoundFont::Data> SoundFont::shared(const DlsCollection &dls,const std::vector<Wave>& wave) {
+  return std::shared_ptr<Data>(new Data(dls,wave));
   }
 
 bool SoundFont::hasNotes() const {
