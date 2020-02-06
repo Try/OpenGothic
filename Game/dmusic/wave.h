@@ -6,6 +6,7 @@
 #include <vector>
 #include <cstdint>
 
+#include <Tempest/MemReader>
 #include <Tempest/Sound>
 
 namespace Dx8 {
@@ -62,16 +63,39 @@ class Wave final {
     void save(const char* path) const;
 
   private:
-    struct MsState final {
-      int32_t step;
-      int16_t coef[2];
+    struct AdpcHdrMono final {
+      int16_t delta;
+      int16_t prevFrames1;
+      int16_t prevFrames0;
+      };
+
+    struct AdpcHdrStereo final {
+      int16_t delta[2];
+      int16_t prevFrames1[2];
+      int16_t prevFrames0[2];
+      };
+
+    struct AdpcChannel final {
+      uint16_t predictor;
+      int32_t  delta;
+      int32_t  prevFrames[2];
+      };
+
+    struct AdpcState final {
+      uint32_t    bytesRemainingInBlock;
+      int32_t     cachedFrames[4];  /* Samples are stored in this cache during decoding. */
+      uint32_t    cachedFrameCount;
+      AdpcChannel channel[2];
       };
 
     void        implRead(Riff &input);
-    bool        decodeAdpcm(const uint8_t *adpcm, size_t dataLen, uint16_t samplesPerBlock, uint16_t nCoefs, const int16_t *adpcm_i_coefs);
-    uint16_t    adpcmReadBlock(const uint8_t*& adpcm, size_t& dataLen, uint16_t samplesPerBlock, uint16_t nCoefs, const int16_t *adpcm_i_coefs, int16_t *samples);
-    const char* adpcmBlockExpand(uint16_t chans, int nCoef, const int16_t* coef, const uint8_t* ibuff, int16_t *obuff, int n);
-    int16_t     adpcmDecode(int32_t c, MsState *state, int32_t sample1, int32_t sample2);
+    void        implParse(Riff &input);
+
+    size_t      decodeAdpcm(Tempest::MemReader& rd, const size_t framesToRead,
+                            uint16_t blockAlign, uint16_t channels, int16_t* pBufferOut);
+    size_t      decodeAdpcmBlock(Tempest::MemReader& rd, const size_t framesToRead,
+                                 uint16_t blockAlign, uint16_t channels, int16_t* pBufferOut);
+    int32_t     decodeADPCMFrame(AdpcChannel& msadpcm, int32_t nibble);
   };
 
 }
