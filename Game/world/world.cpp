@@ -339,8 +339,9 @@ Focus World::validateFocus(const Focus &def) {
 
 Focus World::findFocus(const Npc &pl, const Focus& def) {
   const Daedalus::GEngineClasses::C_Focus* fptr=&game.script()->focusNorm();
-  auto opt  = WorldObjects::NoFlg;
-  auto coll = TARGET_COLLECT_FOCUS;
+  auto opt    = WorldObjects::NoFlg;
+  auto coll   = TARGET_COLLECT_FOCUS;
+  auto weapon = pl.inventory().activeWeapon();
 
   switch(pl.weaponState()) {
     case WeaponState::Fist:
@@ -356,10 +357,11 @@ Focus World::findFocus(const Npc &pl, const Focus& def) {
       break;
     case WeaponState::Mage:{
       fptr = &game.script()->focusMage();
-      int32_t id  = player()->inventory().activeWeapon()->spellId();
-      auto&   spl = script().getSpell(id);
-
-      coll = TargetCollect(spl.targetCollectAlgo);
+      if(weapon!=nullptr) {
+        int32_t id  = weapon->spellId();
+        auto&   spl = script().getSpell(id);
+        coll = TargetCollect(spl.targetCollectAlgo);
+        }
       opt  = WorldObjects::NoDeath;
       break;
       }
