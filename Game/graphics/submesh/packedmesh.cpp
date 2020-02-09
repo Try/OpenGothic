@@ -42,7 +42,7 @@ void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
     std::pair<uint32_t,uint32_t> index={ibo[i], (type==PK_Physic ? 0 : uv[i])};
     auto r = icache.find(index);
     if(r!=icache.end()) {
-      s.indices.push_back(r->second);
+      s.indices.push_back(uint32_t(r->second));
       } else {
       auto&       v  = mesh.getFeatures()[index.second];
       WorldVertex vx = {};
@@ -55,7 +55,7 @@ void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
       size_t val = vertices.size();
       vertices.emplace_back(vx);
       s.indices.push_back(val);
-      icache[index] = val;
+      icache[index] = uint32_t(val);
       }
     }
   }
