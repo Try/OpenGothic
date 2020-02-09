@@ -1,11 +1,12 @@
 #include "landscape.h"
 
 #include "rendererstorage.h"
+#include "graphics/submesh/packedmesh.h"
 #include "gothic.h"
 
 using namespace Tempest;
 
-Landscape::Landscape(const RendererStorage &storage, const ZenLoad::PackedMesh &mesh)
+Landscape::Landscape(const RendererStorage &storage, const PackedMesh &mesh)
   :storage(storage) {
   auto& device=storage.device;
 
@@ -20,7 +21,7 @@ Landscape::Landscape(const RendererStorage &storage, const ZenLoad::PackedMesh &
   vbo = Resources::vbo<Resources::Vertex>(vert,mesh.vertices.size());
 
   for(auto& i:mesh.subMeshes){
-    if(i.material.alphaFunc==Material::AdditiveLight)
+    if(i.material.alphaFunc==Material::AdditiveLight || i.indices.size()==0)
       continue;
     if(i.material.alphaFunc==Material::NoAlpha)
       ;//continue;
@@ -70,8 +71,6 @@ void Landscape::commitUbo(uint32_t frameId, const Tempest::Texture2d& shadowMap)
   auto&     uboSm0  = pf.ubo[1];
   auto&     uboSm1  = pf.ubo[2];
 
-  const Texture2d* prev =nullptr;
-
   uboLand.resize(blocks.size());
   uboSm0 .resize(blocks.size());
   uboSm1 .resize(blocks.size());
@@ -81,10 +80,6 @@ void Landscape::commitUbo(uint32_t frameId, const Tempest::Texture2d& shadowMap)
     auto& uboL =uboLand[i];
     auto& uboS0=uboSm0 [i];
     auto& uboS1=uboSm1 [i];
-
-    if(prev==lnd.material.tex)
-      continue; //HINT: usless :(
-    prev  = lnd.material.tex;
 
     if(uboL.isEmpty())
       uboL  = storage.device.uniforms(storage.uboLndLayout());

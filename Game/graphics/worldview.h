@@ -15,10 +15,11 @@
 class World;
 class RendererStorage;
 class ParticleFx;
+class PackedMesh;
 
 class WorldView {
   public:
-    WorldView(const World &world, const ZenLoad::PackedMesh& wmesh, const RendererStorage& storage);
+    WorldView(const World &world, const PackedMesh& wmesh, const RendererStorage& storage);
     ~WorldView();
 
     void initPipeline(uint32_t w, uint32_t h);

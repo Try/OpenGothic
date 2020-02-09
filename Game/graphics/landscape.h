@@ -12,10 +12,11 @@
 class World;
 class RendererStorage;
 class Light;
+class PackedMesh;
 
 class Landscape final {
   public:
-    Landscape(const RendererStorage& storage,const ZenLoad::PackedMesh& wmesh);
+    Landscape(const RendererStorage& storage,const PackedMesh& wmesh);
 
     void setMatrix(uint32_t frameId, const Tempest::Matrix4x4& mat, const Tempest::Matrix4x4 *sh, size_t shCount);
     void setLight (const Light& l, const Tempest::Vec3& ambient);

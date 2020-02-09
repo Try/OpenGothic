@@ -23,6 +23,7 @@ class btVector3;
 
 class PhysicMeshShape;
 class PhysicMesh;
+class PackedMesh;
 class World;
 class Bullet;
 class Npc;
@@ -39,7 +40,7 @@ class DynamicWorld final {
     static constexpr float bulletSpeed = 3000; //per sec
     static constexpr float spellSpeed  = 1000; //per sec
 
-    DynamicWorld(World &world, const ZenLoad::PackedMesh &pkg);
+    DynamicWorld(World &world, const PackedMesh &pkg);
     ~DynamicWorld();
 
     enum Category {

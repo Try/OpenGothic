@@ -26,6 +26,7 @@
 #include <LinearMath/btDefaultMotionState.h>
 #include <LinearMath/btScalar.h>
 
+#include "graphics/submesh/packedmesh.h"
 #include "physicmeshshape.h"
 #include "physicmesh.h"
 
@@ -420,7 +421,7 @@ struct DynamicWorld::BulletsList final {
   DynamicWorld&         wrld;
   };
 
-DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
+DynamicWorld::DynamicWorld(World&,const PackedMesh& pkg) {
   // collision configuration contains default setup for memory, collision setup
   conf.reset(new btDefaultCollisionConfiguration());
 
@@ -445,10 +446,10 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::PackedMesh& pkg) {
         landMesh ->addIndex(i.indices,i.material.matGroup);
       }
 
-  landShape.reset(new btMultimaterialTriangleMeshShape(landMesh.get(),true,true));
+  landShape.reset(new btMultimaterialTriangleMeshShape(landMesh.get(),landMesh->useQuantization(),true));
   landBody = landObj();
 
-  waterShape.reset(new btMultimaterialTriangleMeshShape(waterMesh.get(),false,true));
+  waterShape.reset(new btMultimaterialTriangleMeshShape(waterMesh.get(),waterMesh->useQuantization(),true));
   waterBody = waterObj();
 
   world->addCollisionObject(landBody.get());

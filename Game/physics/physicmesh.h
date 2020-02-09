@@ -18,6 +18,7 @@ class PhysicMesh:public btTriangleIndexVertexArray {
 
     void addIndex(const std::vector<uint32_t>& index, uint8_t material);
     uint8_t getMaterialId(size_t segment) const;
+    bool    useQuantization() const;
 
   private:
     struct Segment {

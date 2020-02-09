@@ -33,6 +33,9 @@ PhysicMesh::PhysicMesh(const std::vector<ZenLoad::WorldVertex> &v)
   }
 
 void PhysicMesh::addIndex(const std::vector<uint32_t> &index, uint8_t material) {
+  if(index.size()==0)
+    return;
+
   size_t off=id.size();
   id.resize(off+index.size());
   for(size_t i=0;i<index.size();i+=3){
@@ -61,6 +64,10 @@ uint8_t PhysicMesh::getMaterialId(size_t segment) const {
   if(segment<segments.size())
     return segments[segment].mat;
   return 0;
+  }
+
+bool PhysicMesh::useQuantization() const {
+  return segments.size()<1024;
   }
 
 void PhysicMesh::adjustMesh(){

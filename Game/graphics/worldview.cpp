@@ -4,10 +4,11 @@
 
 #include "world/world.h"
 #include "rendererstorage.h"
+#include "graphics/submesh/packedmesh.h"
 
 using namespace Tempest;
 
-WorldView::WorldView(const World &world, const ZenLoad::PackedMesh &wmesh, const RendererStorage &storage)
+WorldView::WorldView(const World &world, const PackedMesh &wmesh, const RendererStorage &storage)
   :owner(world),storage(storage),sky(storage),land(storage,wmesh),
     vobGroup(storage),objGroup(storage),itmGroup(storage),pfxGroup(storage) {
   sky.setWorld(owner);
