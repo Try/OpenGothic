@@ -3,6 +3,7 @@
 #include <zenload/zCMaterial.h>
 
 PackedMesh::PackedMesh(ZenLoad::zCMesh& mesh, PkgType type) {
+  mesh.getBoundingBox(bbox[0],bbox[1]);
   if(type==PK_Visual) {
     subMeshes.resize(mesh.getMaterials().size());
     for(size_t i=0;i<subMeshes.size();++i)
@@ -16,7 +17,6 @@ PackedMesh::PackedMesh(ZenLoad::zCMesh& mesh, PkgType type) {
     }
 
   pack(mesh,type);
-  mesh.getBoundingBox(bbox[0],bbox[1]);
   }
 
 void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {

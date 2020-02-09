@@ -5,6 +5,8 @@
 Material::Material(const ZenLoad::zCMaterialData& m) {
   tex   = Resources::loadTexture(m.texture);
   alpha = ApphaFunc(m.alphaFunc);
+  if(alpha==InvalidAlpha) //Gothic1
+    alpha = NoAlpha;
   //m.texAniMapDir;
   }
 
