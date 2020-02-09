@@ -54,7 +54,7 @@ void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
 
       size_t val = vertices.size();
       vertices.emplace_back(vx);
-      s.indices.push_back(val);
+      s.indices.push_back(uint32_t(val));
       icache[index] = uint32_t(val);
       }
     }
