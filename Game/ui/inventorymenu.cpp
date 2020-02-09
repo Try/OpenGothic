@@ -342,7 +342,7 @@ InventoryMenu::PageLocal &InventoryMenu::activePageSel() {
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
 #endif
 void InventoryMenu::onTakeStuff() { 
-  uint8_t itemCount = 0;
+  uint32_t itemCount = 0;
   auto& page = activePage();
   auto& sel = activePageSel();
   if(sel.sel >= page.size())
@@ -352,7 +352,7 @@ void InventoryMenu::onTakeStuff() {
     ++takeCount;
     itemCount = pow(10,takeCount / 10);
     if(r.count() <= itemCount) {
-      itemCount = r.count();
+      itemCount = uint32_t(r.count());
       takeCount = 0;
     }
   }
