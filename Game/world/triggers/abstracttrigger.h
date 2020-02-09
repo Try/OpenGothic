@@ -28,6 +28,7 @@ class AbstractTrigger {
     ZenLoad::zCVobData::EVobType vobType() const;
     const std::string&           name() const;
 
+    void                         processOnStart(const TriggerEvent& evt);
     void                         processEvent(const TriggerEvent& evt);
     virtual void                 onIntersect(Npc& n);
     virtual void                 tick(uint64_t dt);

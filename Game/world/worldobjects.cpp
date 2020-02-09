@@ -333,11 +333,9 @@ void WorldObjects::triggerEvent(const TriggerEvent &e) {
   }
 
 void WorldObjects::triggerOnStart(bool wrldStartup) {
+  TriggerEvent evt(wrldStartup);
   for(auto& i:triggers)
-    if(i->vobType()==ZenLoad::zCVobData::VT_oCTriggerWorldStart) {
-      TriggerEvent evt(wrldStartup);
-      i->processEvent(evt);
-      }
+    i->processOnStart(evt);
   }
 
 void WorldObjects::enableTicks(AbstractTrigger& t) {

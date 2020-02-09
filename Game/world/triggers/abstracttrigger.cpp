@@ -17,6 +17,30 @@ const std::string &AbstractTrigger::name() const {
   return data.vobName;
   }
 
+void AbstractTrigger::processOnStart(const TriggerEvent& evt) {
+  if(vobType()==ZenLoad::zCVobData::VT_oCTriggerWorldStart) {
+    processEvent(evt);
+    return;
+    }
+
+  enum ReactFlg:uint8_t {
+    reactToOnTrigger = 1,
+    reactToOnTouch   = 1<<1,
+    reactToOnDamage  = 1<<2,
+    respondToObject  = 1<<3,
+    respondToPC      = 1<<4,
+    respondToNPC     = 1<<5,
+    startEnabled     = 1<<6,
+    respondToVobName = 1<<7,
+    };
+  ReactFlg flags       = ReactFlg(data.zCTrigger.flags);
+  ReactFlg filterFlags = ReactFlg(data.zCTrigger.filterFlags);
+  if((flags&startEnabled) && (filterFlags&startEnabled)) {
+    processEvent(evt);
+    return;
+    }
+  }
+
 void AbstractTrigger::processEvent(const TriggerEvent& evt) {
   if(data.zCTrigger.numCanBeActivated>0 &&
      uint32_t(data.zCTrigger.numCanBeActivated)<=emitCount) {
