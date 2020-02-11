@@ -164,6 +164,14 @@ void PatternList::index(const Style& stl,PatternInternal &inst, const Dx8::Patte
 
     pr.volume = ins.volume;
     pr.pan    = ins.pan;
+
+    auto part = stl.findPart(pref.io.guidPartID);
+    if(part!=nullptr) {
+      std::memcpy(pr.dwVariationChoices,part->header.dwVariationChoices,sizeof(pr.dwVariationChoices));
+      for(auto& i:pr.dwVariationChoices)
+        if(i&0x0FFFFFFF)
+          pr.dwVarCount++;
+      }
     }
 
   for(size_t i=0;i<pattern.partref.size();++i) {
@@ -195,11 +203,12 @@ void PatternList::index(PatternInternal &idx, InsInternal* inst,
     uint32_t dur  = musicDuration(i.mtDuration, stl.styh.dblTempo);
 
     Note rec;
-    rec.at       = time;
-    rec.duration = dur;
-    rec.note     = note;
-    rec.velosity = i.bVelocity;
-    rec.inst     = inst;
+    rec.at          = time;
+    rec.duration    = dur;
+    rec.note        = note;
+    rec.velosity    = i.bVelocity;
+    rec.inst        = inst;
+    rec.dwVariation = i.dwVariation;
 
     idx.waves.push_back(rec);
     }
@@ -211,13 +220,14 @@ void PatternList::index(PatternInternal &idx, InsInternal* inst,
       continue;
 
     Curve c;
-    c.at       = time;
-    c.duration = dur;
-    c.shape    = i.bCurveShape;
-    c.ctrl     = i.bCCData;
-    c.startV   = float(i.nStartValue&0x7F)/127.f;
-    c.endV     = float(i.nEndValue  &0x7F)/127.f;
-    c.inst     = inst;
+    c.at          = time;
+    c.duration    = dur;
+    c.shape       = i.bCurveShape;
+    c.ctrl        = i.bCCData;
+    c.startV      = float(i.nStartValue&0x7F)/127.f;
+    c.endV        = float(i.nEndValue  &0x7F)/127.f;
+    c.dwVariation = i.dwVariation;
+    c.inst        = inst;
     if(i.bEventType==DMUS_CURVET_CCCURVE)
       idx.volume.push_back(c);
     }
@@ -251,6 +261,11 @@ void PatternList::dbgDump(const size_t patternId) const {
     if(part->notes.size()>0 || part->curves.size()>0) {
       std::string st(pref.unfo.unam.begin(),pref.unfo.unam.end());
       Log::i("part: ",i," ",st," partid=",pref.io.wLogicalPartID);
+      for(auto& i:part->header.dwVariationChoices) {
+        char buf[16]={};
+        std::snprintf(buf,sizeof(buf),"%#010x",i);
+        Log::i("  var: ",buf);
+        }
       dbgDump(stl,pref,*part);
       }
     }
@@ -266,7 +281,8 @@ void PatternList::dbgDump(const Style& stl,const Dx8::Pattern::PartRef& pref,con
     auto inst = instruments.find(pref.io.wLogicalPartID);
     if(inst!=instruments.end()) {
       auto w = (*inst).second.dls->findWave(note);
-      Log::i("  note:[", note, "] ",time," - ",time+i.mtDuration," var=",i.dwVariation," ",w->info.inam);
+      const char* name = w==nullptr ? "" : w->info.inam.c_str();
+      Log::i("  note:[", note, "] ",time," - ",time+i.mtDuration," var=",i.dwVariation," ",name);
       }
     }
 

@@ -59,12 +59,16 @@ class Mixer final {
     void     nextPattern();
     void     volFromCurve(PatternInternal &part, Instr &ins, std::vector<float> &v);
 
+    template<class T>
+    bool     checkVariation(const T& item) const;
+
     std::shared_ptr<Music::Internal> current=nullptr;
     int64_t                          sampleCursor=0;
 
     std::shared_ptr<PatternInternal> pattern=nullptr;
     int64_t                          patStart=0;
     int64_t                          patEnd  =0;
+    std::atomic<uint32_t>            variationCounter={};
 
     std::atomic<float>               volume={1.f};
     std::vector<Active>              active;

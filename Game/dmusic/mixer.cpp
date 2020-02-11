@@ -32,6 +32,7 @@ Mixer::~Mixer() {
 
 void Mixer::setMusic(const Music& m) {
   current = m.impl;
+  variationCounter.store(0);
   }
 
 int64_t Mixer::currentPlayTime() const {
@@ -73,10 +74,11 @@ int64_t Mixer::nextNoteOff(int64_t b, int64_t /*e*/) {
   }
 
 void Mixer::noteOn(std::shared_ptr<PatternInternal>& pattern, PatternList::Note *r) {
+  if(!checkVariation(*r))
+    return;
+
   Active a;
   a.at      = sampleCursor + toSamples(r->duration);
-  //a.ticket  = r->inst->font.noteOn(r->note,uint8_t(r->velosity*100.0/pattern->styh.dblTempo));
-  //a.ticket  = r->inst->font.noteOn(r->note,r->velosity*pattern->styh.dblTempo/100.0);
   a.ticket  = r->inst->font.noteOn(r->note,r->velosity);
   if(a.ticket==nullptr)
     return;
@@ -144,6 +146,7 @@ void Mixer::nextPattern() {
     if(i.at==0) {
       noteOn(pattern,&i);
       }
+  variationCounter.fetch_add(1);
   }
 
 Mixer::Step Mixer::stepInc(PatternInternal& pptn, int64_t b, int64_t e, int64_t samplesRemain) {
@@ -273,6 +276,9 @@ void Mixer::volFromCurve(PatternInternal &part,Instr& inst,std::vector<float> &v
   for(auto& i:part.volume) {
     if(i.inst!=inst.ptr)
       continue;
+    if(!checkVariation(i))
+      continue;
+
     int64_t s = toSamples(i.at)-shift;
     int64_t e = toSamples(i.at+i.duration)-shift;
     if((s>=0 && size_t(s)>v.size()) || e<0)
@@ -325,4 +331,14 @@ void Mixer::volFromCurve(PatternInternal &part,Instr& inst,std::vector<float> &v
     if(size>begin)
       base = v[size-1];
     }
+  }
+
+template<class T>
+bool Mixer::checkVariation(const T& item) const {
+  if(item.inst->dwVarCount==0)
+    return false;
+  uint32_t vbit = variationCounter.load()%item.inst->dwVarCount;
+  if((item.dwVariation & (1<<vbit))==0)
+    return false;
+  return true;
   }

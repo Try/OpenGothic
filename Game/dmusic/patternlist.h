@@ -48,25 +48,30 @@ class PatternList final {
       float                 volume  =0.f;
       float                 pan     =0.f;
 
+      uint32_t              dwVariationChoices[32]={};
+      uint8_t               dwVarCount=0;
+
       mutable float         volumeLast=1.f;
       };
 
     struct Note final {
-      uint64_t              at      =0;
-      uint64_t              duration=0;
-      uint8_t               note    =0;
-      uint8_t               velosity=127;
-      InsInternal*          inst=nullptr;
+      uint64_t              at         =0;
+      uint64_t              duration   =0;
+      uint8_t               note       =0;
+      uint8_t               velosity   =127;
+      uint32_t              dwVariation=0;
+      InsInternal*          inst       =nullptr;
       };
 
     struct Curve final {
-      uint64_t              at      =0;
-      uint64_t              duration=0;
-      Shape                 shape   =DMUS_CURVES_LINEAR;
-      float                 startV   =0.f;
-      float                 endV     =0.f;
-      Control               ctrl    =BankSelect;
-      InsInternal*          inst=nullptr;
+      uint64_t              at         =0;
+      uint64_t              duration   =0;
+      Shape                 shape      =DMUS_CURVES_LINEAR;
+      float                 startV     =0.f;
+      float                 endV       =0.f;
+      Control               ctrl       =BankSelect;
+      uint32_t              dwVariation=0;
+      InsInternal*          inst       =nullptr;
       };
 
     struct PatternInternal final : Pattern {
