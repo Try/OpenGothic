@@ -737,19 +737,19 @@ std::vector<GameScript::DlgChoise> GameScript::dialogChoises(Daedalus::GEngineCl
           continue;
         }
 
-      bool valid=false;
+      bool valid=true;
       if(info.condition)
         valid = runFunction(info.condition)!=0;
+      if(!valid)
+        continue;
 
-      if(valid) {
-        DlgChoise ch;
-        ch.title    = info.description.c_str();
-        ch.scriptFn = info.information;
-        ch.handle   = i;
-        ch.isTrade  = info.trade!=0;
-        ch.sort     = info.nr;
-        choise.emplace_back(std::move(ch));
-        }
+      DlgChoise ch;
+      ch.title    = info.description.c_str();
+      ch.scriptFn = info.information;
+      ch.handle   = i;
+      ch.isTrade  = info.trade!=0;
+      ch.sort     = info.nr;
+      choise.emplace_back(std::move(ch));
       }
     if(!choise.empty()){
       sort(choise);
@@ -760,11 +760,14 @@ std::vector<GameScript::DlgChoise> GameScript::dialogChoises(Daedalus::GEngineCl
   return choise;
   }
 
-std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::DlgChoise &dlg, Npc& /*pl*/,Npc&) {
+std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::DlgChoise &dlg, Npc& player,Npc& npc) {
   if(dlg.handle==nullptr)
     return {};
   const Daedalus::GEngineClasses::C_Info& info = *dlg.handle;
   std::vector<GameScript::DlgChoise>     ret;
+
+  ScopeVar self (vm, vm.globalSelf(),  npc.handle(),    Daedalus::IC_Npc);
+  ScopeVar other(vm, vm.globalOther(), player.handle(), Daedalus::IC_Npc);
 
   for(size_t i=0;i<info.subChoices.size();++i){
     auto& sub = info.subChoices[i];
@@ -772,11 +775,11 @@ std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::Dl
     //if(npcKnowsInfo)
     //  continue;
 
-    bool valid=false;
+    bool valid=true;
     if(info.condition)
       valid = runFunction(info.condition)!=0;
-    //FIXME: use info.condition return value
-    (void)valid;
+    if(!valid)
+      continue;
 
     GameScript::DlgChoise ch;
     ch.title    = sub.text.c_str();
