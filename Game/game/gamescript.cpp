@@ -335,6 +335,8 @@ void GameScript::initCommon() {
   ZS_Dead              = getAiState(getSymbolIndex("ZS_Dead")).funcIni;
   ZS_Unconscious       = getAiState(getSymbolIndex("ZS_Unconscious")).funcIni;
   ZS_Talk              = getAiState(getSymbolIndex("ZS_Talk")).funcIni;
+  ZS_Attack            = getAiState(getSymbolIndex("ZS_Attack")).funcIni;
+  ZS_MM_Attack         = getAiState(getSymbolIndex("ZS_MM_Attack")).funcIni;
 
   auto& dat = vm.getDATFile();
 
@@ -993,6 +995,10 @@ bool GameScript::isUnconscious(const Npc &pl) {
 
 bool GameScript::isTalk(const Npc &pl) {
   return pl.isState(ZS_Talk);
+  }
+
+bool GameScript::isAtack(const Npc& pl) const {
+  return pl.isState(ZS_Attack) || pl.isState(ZS_MM_Attack);
   }
 
 const Daedalus::ZString& GameScript::messageFromSvm(const Daedalus::ZString& id, int voice) const {

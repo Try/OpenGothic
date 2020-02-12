@@ -7,8 +7,9 @@
 #include "ui/documentmenu.h"
 #include "ui/chapterscreen.h"
 #include "game/gamescript.h"
-#include "camera.h"
+#include "gamemusic.h"
 #include "gametime.h"
+#include "camera.h"
 
 class Gothic;
 class World;
@@ -59,7 +60,7 @@ class GameSession final {
     auto         loadSound(const SoundFx&        fx)  -> GSoundEffect;
     void         emitGlobalSound(const Tempest::Sound& sfx);
     void         emitGlobalSound(const std::string& sfx);
-    void         setMusic(const char* clsTheme);
+    void         setMusic(GameMusic::Tags tags, const char* clsTheme);
 
     Npc*         player();
     void         updateListenerPos(Npc& npc);

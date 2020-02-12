@@ -251,8 +251,25 @@ void WorldObjects::updateAnimation() {
   Workers::parallelFor(interactiveObj.begin(),interactiveObj.end(),[](Interactive& i){
     i.updateAnimation();
     });
-  //for(auto& i:interactiveObj)
-  //  i.updateAnimation();
+  }
+
+bool WorldObjects::isTargeted(Npc& dst) {
+  std::atomic_flag flg = ATOMIC_FLAG_INIT;
+  Workers::parallelFor(npcArr,[&dst,&flg](std::unique_ptr<Npc>& i) {
+    if(isTargetedBy(*i,dst))
+      flg.test_and_set();
+    });
+  return flg.test_and_set();
+  }
+
+bool WorldObjects::isTargetedBy(Npc& npc, Npc& dst) {
+  if(npc.target()!=&dst)
+    return false;
+  if(npc.processPolicy()!=Npc::AiNormal || npc.weaponState()==WeaponState::NoWeapon)
+    return false;
+  if(!npc.isAtack())
+    return false;
+  return true;
   }
 
 Npc *WorldObjects::findHero() {

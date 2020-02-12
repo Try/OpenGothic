@@ -3,6 +3,7 @@
 #include <Tempest/SoundEffect>
 
 #include "game/gamesession.h"
+#include "gamemusic.h"
 #include "world.h"
 #include "resources.h"
 
@@ -197,6 +198,10 @@ void WorldSound::tick(Npc &player) {
       }
     }
 
+  tickSoundZone(player);
+  }
+
+void WorldSound::tickSoundZone(Npc& player) {
   Zone* zone=&def;
   if(currentZone!=nullptr &&
      currentZone->checkPos(plPos[0],plPos[1]+player.translateY(),plPos[2])){
@@ -215,9 +220,27 @@ void WorldSound::tick(Npc &player) {
   if(sep!=std::string::npos)
     tag = tag+sep+1;
 
+  gtime           time  = owner.time().timeInDay();
+  bool            isDay = (gtime(4,0)<=time && time<=gtime(21,0));
+  bool            isFgt = owner.isTargeted(player);
+
+  GameMusic::Tags mode  = GameMusic::Std;
+  const char*     smode = "STD";
+  if(isFgt) {
+    if(player.weaponState()==WeaponState::NoWeapon) {
+      mode  = GameMusic::Thr;
+      smode = "THR";
+      } else {
+      mode = GameMusic::Fgt;
+      smode = "FGT";
+      }
+    }
+
   char name[64]={};
-  std::snprintf(name,sizeof(name),"%s_%s_%s",tag,"DAY","STD");
-  game.setMusic(name);
+  std::snprintf(name,sizeof(name),"%s_%s_%s",tag,(isDay ? "DAY" : "NGT"),smode);
+
+  GameMusic::Tags tags = GameMusic::mkTags(GameMusic::Day,mode);
+  game.setMusic(tags,name);
   }
 
 void WorldSound::tickSlot(GSoundEffect& slot) {

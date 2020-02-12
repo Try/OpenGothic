@@ -53,6 +53,7 @@ class WorldObjects final {
 
     void           updateAnimation();
 
+    bool           isTargeted(Npc& npc);
     Npc*           findHero();
     Npc*           findNpcByInstance(size_t instance);
     size_t         npcCount()    const { return npcArr.size(); }
@@ -129,4 +130,5 @@ class WorldObjects final {
 
     void           tickNear(uint64_t dt);
     void           tickTriggers(uint64_t dt);
+    static bool    isTargetedBy(Npc& npc,Npc& by);
   };

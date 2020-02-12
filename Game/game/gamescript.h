@@ -119,6 +119,7 @@ class GameScript final {
     bool isDead       (const Npc &pl);
     bool isUnconscious(const Npc &pl);
     bool isTalk       (const Npc &pl);
+    bool isAtack      (const Npc &pl) const;
 
     const Daedalus::ZString& messageFromSvm(const Daedalus::ZString& id,int voice) const;
     const Daedalus::ZString& messageByName (const Daedalus::ZString& id) const;
@@ -421,6 +422,8 @@ class GameScript final {
     size_t                                                      ZS_Dead=0;
     size_t                                                      ZS_Unconscious=0;
     size_t                                                      ZS_Talk=0;
+    size_t                                                      ZS_Attack=0;
+    size_t                                                      ZS_MM_Attack=0;
 
     Daedalus::GEngineClasses::C_Focus                           cFocusNorm,cFocusMele,cFocusRange,cFocusMage;
     Daedalus::GEngineClasses::C_GilValues                       cGuildVal;

@@ -317,6 +317,7 @@ class Npc final {
     bool isDead() const;
     bool isUnconscious() const;
     bool isDown() const;
+    bool isAtack() const;
     bool isTalk() const;
     bool isPrehit() const;
     bool isImmortal() const;

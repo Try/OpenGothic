@@ -467,6 +467,10 @@ void World::print(const char *msg) {
   game.print(msg);
   }
 
+bool World::isTargeted(Npc& npc) {
+  return wobj.isTargeted(npc);
+  }
+
 Npc *World::addNpc(const char *name, const Daedalus::ZString& at) {
   size_t id = script().getSymbolIndex(name);
   if(id==size_t(-1))

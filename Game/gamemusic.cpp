@@ -35,13 +35,18 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
     updateTheme = false;
 
     try {
-      //Dx8::PatternList m = Resources::loadDxMusic("OWD_DayStd.sgt");
       Dx8::PatternList p = Resources::loadDxMusic(theme.file.c_str());
+
+      const char* tagsStr="Std";
+      if(pendingTags&Tags::Fgt)
+        tagsStr="Fgt";
+      else if(pendingTags&Tags::Thr)
+        tagsStr="Thr";
 
       Dx8::Music m;
       for(size_t i=0;i<p.size();++i) {
         auto& pat = p[i];
-        if(pat.name.find("Std")!=std::string::npos)
+        if(pat.name.find(tagsStr)!=std::string::npos)
           m.addPattern(p,i);
         }
       if(m.size()==0)
@@ -55,11 +60,12 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
       }
     }
 
-  bool setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme){
+  bool setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme, Tags tags){
     std::lock_guard<std::mutex> guard(pendingSync);
     if(pendingMusic.file==theme.file)
       return false;
     pendingMusic = theme;
+    pendingTags  = tags;
     hasPending   = true;
     return true;
     }
@@ -78,6 +84,7 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
   std::mutex                                    pendingSync;
   bool                                          hasPending=false;
   Daedalus::GEngineClasses::C_MusicTheme        pendingMusic;
+  Tags                                          pendingTags=Tags::Day;
   };
 
 struct GameMusic::Impl final {
@@ -89,8 +96,8 @@ struct GameMusic::Impl final {
     dxMixer->setVolume(masterVolume);
     }
 
-  void setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme) {
-    if(!dxMixer->setMusic(theme))
+  void setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme, Tags tags) {
+    if(!dxMixer->setMusic(theme,tags))
       return;
     sound.play();
     }
@@ -104,7 +111,7 @@ struct GameMusic::Impl final {
 
   MusicProducer*                                dxMixer=nullptr;
   float                                         masterVolume=0.5f;
-  bool                                          enableMusic=false;
+  bool                                          enableMusic=true;
   };
 
 GameMusic::GameMusic() {
@@ -112,6 +119,10 @@ GameMusic::GameMusic() {
   }
 
 GameMusic::~GameMusic() {
+  }
+
+GameMusic::Tags GameMusic::mkTags(GameMusic::Tags daytime, GameMusic::Tags mode) {
+  return Tags(daytime|mode);
   }
 
 void GameMusic::setEnabled(bool e) {
@@ -124,10 +135,10 @@ bool GameMusic::isEnabled() const {
   return impl->enableMusic;
   }
 
-void GameMusic::setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme,const char*) {
+void GameMusic::setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme, Tags tags) {
   if(!impl->enableMusic)
     return;
-  impl->setMusic(theme);
+  impl->setMusic(theme,tags);
   }
 
 void GameMusic::stopMusic() {

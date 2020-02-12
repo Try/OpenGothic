@@ -221,8 +221,8 @@ void GameSession::emitGlobalSound(const std::string &sfx) {
   gothic.emitGlobalSound(sfx);
   }
 
-void GameSession::setMusic(const char* clsTheme) {
-  gothic.setMusic(clsTheme);
+void GameSession::setMusic(GameMusic::Tags tags, const char* clsTheme) {
+  gothic.setMusic(tags,clsTheme);
   }
 
 Npc* GameSession::player() {

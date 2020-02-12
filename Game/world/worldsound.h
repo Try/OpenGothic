@@ -58,6 +58,8 @@ class WorldSound final {
       GSoundEffect eff2;
       };
 
+    void tickSoundZone(Npc& player);
+
     static float qDist(const std::array<float,3>& a,const std::array<float,3>& b);
 
     GameSession&                            game;

@@ -1830,6 +1830,9 @@ void Npc::tickRoutine() {
   }
 
 void Npc::setTarget(Npc *t) {
+  if(currentTarget==t)
+    return;
+
   currentTarget=t;
   if(!go2.empty()) {
     setAnim(Anim::Idle);
@@ -2383,6 +2386,10 @@ bool Npc::isUnconscious() const {
 
 bool Npc::isDown() const {
   return isUnconscious() || isDead();
+  }
+
+bool Npc::isAtack() const {
+  return owner.script().isAtack(*this);
   }
 
 bool Npc::isTalk() const {
