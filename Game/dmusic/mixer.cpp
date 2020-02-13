@@ -22,7 +22,7 @@ Mixer::Mixer() {
   pcm.reserve(reserve*2);
   pcmMix.reserve(reserve*2);
   vol.reserve(reserve);
-  uniqInstr.reserve(32);
+  // uniqInstr.reserve(32);
   }
 
 Mixer::~Mixer() {
@@ -82,16 +82,23 @@ void Mixer::noteOn(std::shared_ptr<PatternInternal>& pattern, PatternList::Note 
   a.ticket  = r->inst->font.noteOn(r->note,r->velosity);
   if(a.ticket==nullptr)
     return;
-  active.push_back(a);
 
   for(auto& i:uniqInstr)
-    if(i.ptr==r->inst){
+    if(i.ptr==r->inst) {
+      a.parent = &i;
+      a.parent->counter++;
+      active.push_back(a);
       return;
       }
   Instr u;
   u.ptr     = r->inst;
   u.pattern = pattern;
   uniqInstr.push_back(u);
+
+  a.parent = &uniqInstr.back();
+  a.parent->counter++;
+
+  active.push_back(a);
   }
 
 void Mixer::noteOn(std::shared_ptr<PatternInternal>& pattern, int64_t time) {
@@ -117,6 +124,7 @@ void Mixer::noteOff(int64_t time) {
       sz++;
       } else {
       SoundFont::noteOff(active[i].ticket);
+      active[i].parent->counter--;
       }
     }
   active.resize(sz);
@@ -230,6 +238,10 @@ void Mixer::mix(int16_t *out, size_t samples) {
     if(sampleCursor==patEnd)
       nextPattern();
     }
+
+  uniqInstr.remove_if([](Instr& i){
+    return i.counter==0 && !i.ptr->font.hasNotes();
+    });
   }
 
 void Mixer::setVolume(float v) {
@@ -248,14 +260,23 @@ void Mixer::implMix(PatternInternal &pptn, float volume, int16_t *out, size_t cn
     auto& ins = *i.ptr;
     if(!ins.font.hasNotes())
       continue;
-    volFromCurve(pptn,i,vol);
+
     std::memset(pcm.data(),0,cnt2*sizeof(pcm[0]));
     ins.font.mix(pcm.data(),cnt);
 
     float volume = ins.volume;
-    for(size_t i=0;i<cnt2;++i) {
-      float v = volume*vol[i/2];
-      pcmMix[i] += pcm[i]*(v*v);
+    const bool hasVol = hasVolumeCurves(pptn,i);
+    if(hasVol) {
+      volFromCurve(pptn,i,vol);
+      for(size_t r=0;r<cnt2;++r) {
+        float v = volume*vol[r/2];
+        pcmMix[r] += pcm[r]*(v*v);
+        }
+      } else {
+      for(size_t r=0;r<cnt2;++r) {
+        float v = volume*i.volLast;
+        pcmMix[r] += pcm[r]*(v*v);
+        }
       }
     }
 
@@ -331,6 +352,17 @@ void Mixer::volFromCurve(PatternInternal &part,Instr& inst,std::vector<float> &v
     if(size>begin)
       base = v[size-1];
     }
+  }
+
+bool Mixer::hasVolumeCurves(Mixer::PatternInternal& part, Mixer::Instr& inst) const {
+  for(auto& i:part.volume) {
+    if(i.inst!=inst.ptr)
+      continue;
+    if(!checkVariation(i))
+      continue;
+    return true;
+    }
+  return false;
   }
 
 template<class T>

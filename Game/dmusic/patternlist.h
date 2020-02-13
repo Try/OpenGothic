@@ -50,8 +50,6 @@ class PatternList final {
 
       uint32_t              dwVariationChoices[32]={};
       uint8_t               dwVarCount=0;
-
-      mutable float         volumeLast=1.f;
       };
 
     struct Note final {

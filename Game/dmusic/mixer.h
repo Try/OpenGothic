@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <thread>
 #include <atomic>
+#include <list>
 
 #include "patternlist.h"
 #include "music.h"
@@ -25,9 +26,12 @@ class Mixer final {
     int64_t  currentPlayTime() const;
 
   private:
+    struct Instr;
+
     struct Active {
       int64_t           at=0;
       SoundFont::Ticket ticket;
+      Instr*            parent=nullptr;
       };
 
     struct Step final {
@@ -39,6 +43,7 @@ class Mixer final {
     struct Instr {
       PatternList::InsInternal* ptr=nullptr;
       float                     volLast=1.f;
+      size_t                    counter=0;
       std::shared_ptr<PatternList::PatternInternal> pattern; //prevent pattern from deleting
       };
 
@@ -57,6 +62,8 @@ class Mixer final {
     std::shared_ptr<PatternInternal> checkPattern(std::shared_ptr<PatternInternal> p);
 
     void     nextPattern();
+
+    bool     hasVolumeCurves(PatternInternal &part, Instr &ins) const;
     void     volFromCurve(PatternInternal &part, Instr &ins, std::vector<float> &v);
 
     template<class T>
@@ -72,7 +79,7 @@ class Mixer final {
 
     std::atomic<float>               volume={1.f};
     std::vector<Active>              active;
-    std::vector<Instr>               uniqInstr;
+    std::list<Instr>                 uniqInstr;
     std::vector<float>               pcm, vol, pcmMix;
   };
 
