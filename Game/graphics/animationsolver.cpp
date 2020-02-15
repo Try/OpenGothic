@@ -119,7 +119,8 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
   else if(st==WeaponState::Bow || st==WeaponState::CBow) {
     // S_BOWAIM -> S_BOWSHOOT+T_BOWRELOAD -> S_BOWAIM
     if(a==Anim::AimBow) {
-      if(pose.isInAnim("S_BOWRUN") || pose.isInAnim("S_CBOWRUN"))
+      if(pose.isInAnim("S_BOWRUN")  || pose.isInAnim("S_CBOWRUN") ||
+         pose.isInAnim("S_BOWWALK") || pose.isInAnim("S_CBOWWALK"))
         return solveFrm("T_%sRUN_2_%sAIM",st);
       if(!pose.hasAnim() || pose.isInAnim("T_BOWRUN_2_BOWAIM") || pose.isInAnim("T_CBOWRUN_2_CBOWAIM"))
         return solveFrm("S_%sSHOOT",st);
