@@ -1195,6 +1195,7 @@ bool Npc::implAtack(uint64_t dt) {
 
   if(act==FightAlgo::MV_STRAFEL) {
     if(setAnim(Npc::Anim::MoveL)){
+      visual.setRotation(*this,0);
       implFaiWait(visual.pose().animationTotalTime());
       fghAlgo.consumeAction();
       }
@@ -1203,6 +1204,7 @@ bool Npc::implAtack(uint64_t dt) {
 
   if(act==FightAlgo::MV_STRAFER) {
     if(setAnim(Npc::Anim::MoveR)){
+      visual.setRotation(*this,0);
       implFaiWait(visual.pose().animationTotalTime());
       fghAlgo.consumeAction();
       }
