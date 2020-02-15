@@ -771,16 +771,6 @@ std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::Dl
 
   for(size_t i=0;i<info.subChoices.size();++i){
     auto& sub = info.subChoices[i];
-    //bool npcKnowsInfo = doesNpcKnowInfo(pl.instanceSymbol(),info.instanceSymbol);
-    //if(npcKnowsInfo)
-    //  continue;
-
-    bool valid=true;
-    if(info.condition)
-      valid = runFunction(info.condition)!=0;
-    if(!valid)
-      continue;
-
     GameScript::DlgChoise ch;
     ch.title    = sub.text.c_str();
     ch.scriptFn = sub.functionSym;
