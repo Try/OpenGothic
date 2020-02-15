@@ -327,6 +327,7 @@ class GameScript final {
     void ai_usemob           (Daedalus::DaedalusVM &vm);
     void ai_teleport         (Daedalus::DaedalusVM &vm);
     void ai_stoppointat      (Daedalus::DaedalusVM &vm);
+    void ai_drawweapon       (Daedalus::DaedalusVM &vm);
     void ai_readymeleeweapon (Daedalus::DaedalusVM &vm);
     void ai_readyrangedweapon(Daedalus::DaedalusVM &vm);
     void ai_readyspell       (Daedalus::DaedalusVM &vm);

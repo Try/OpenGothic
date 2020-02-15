@@ -255,6 +255,7 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("ai_usemob",           [this](Daedalus::DaedalusVM& vm){ ai_usemob(vm);            });
   vm.registerExternalFunction("ai_teleport",         [this](Daedalus::DaedalusVM& vm){ ai_teleport(vm);          });
   vm.registerExternalFunction("ai_stoppointat",      [this](Daedalus::DaedalusVM& vm){ ai_stoppointat(vm);       });
+  vm.registerExternalFunction("ai_drawweapon",       [this](Daedalus::DaedalusVM& vm){ ai_drawweapon(vm);  });
   vm.registerExternalFunction("ai_readymeleeweapon", [this](Daedalus::DaedalusVM& vm){ ai_readymeleeweapon(vm);  });
   vm.registerExternalFunction("ai_readyrangedweapon",[this](Daedalus::DaedalusVM& vm){ ai_readyrangedweapon(vm); });
   vm.registerExternalFunction("ai_readyspell",       [this](Daedalus::DaedalusVM& vm){ ai_readyspell(vm);        });
@@ -2657,6 +2658,12 @@ void GameScript::ai_stoppointat(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   (void)npc;
   // TODO: stub
+  }
+
+void GameScript::ai_drawweapon(Daedalus::DaedalusVM& vm) {
+  auto npc = popInstance(vm);
+  if(npc!=nullptr)
+    npc->aiDrawWeapon();
   }
 
 void GameScript::ai_readymeleeweapon(Daedalus::DaedalusVM &vm) {

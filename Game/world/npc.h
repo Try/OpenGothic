@@ -398,6 +398,7 @@ class Npc final {
     void     aiUseItem(int32_t id);
     void     aiUseItemToState(int32_t id,int32_t state);
     void     aiTeleport(const WayPoint& to);
+    void     aiDrawWeapon();
     void     aiReadyMeleWeapon();
     void     aiReadyRangeWeapon();
     void     aiReadySpell(int32_t spell, int32_t mana);
@@ -498,6 +499,7 @@ class Npc final {
       AI_SetNpcsToState,
       AI_SetWalkMode,
       AI_FinishingMove,
+      AI_DrawWeapon,
       };
 
     enum TransformBit : uint8_t {

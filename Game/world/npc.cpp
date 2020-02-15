@@ -1438,8 +1438,10 @@ void Npc::tick(uint64_t dt) {
 
   if(ev.def_opt_frame>0)
     commitDamage();
-  if(visual.setFightMode(ev.weaponCh))
+  if(visual.setFightMode(ev.weaponCh)) {
+    visual.stopDlgAnim();
     updateWeaponSkeleton();
+    }
   if(!ev.timed.empty())
     tickTimedEvt(ev);
 
@@ -1627,6 +1629,12 @@ void Npc::nextAiAction(uint64_t dt) {
       setPosition(act.point->x,act.point->y,act.point->z);
       }
       break;
+    case AI_DrawWeapon:
+      fghAlgo.onClearTarget();
+      if(!drawWeaponMele() &&
+         !drawWeaponBow())
+        aiActions.push_front(std::move(act));
+      break;
     case AI_DrawWeaponMele:
       fghAlgo.onClearTarget();
       if(!drawWeaponMele())
@@ -1640,7 +1648,6 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_DrawSpell: {
       const int32_t spell = act.i0;
       fghAlgo.onClearTarget();
-      // invent.switchActiveSpell(spell,*this);
       if(!drawSpell(spell))
         aiActions.push_front(std::move(act));
       break;
@@ -2782,6 +2789,12 @@ void Npc::aiTeleport(const WayPoint &to) {
   AiAction a;
   a.act   = AI_Teleport;
   a.point = &to;
+  aiActions.push_back(a);
+  }
+
+void Npc::aiDrawWeapon() {
+  AiAction a;
+  a.act = AI_DrawWeapon;
   aiActions.push_back(a);
   }
 
