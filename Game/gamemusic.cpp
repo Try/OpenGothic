@@ -44,20 +44,24 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
         tagsStr="Thr";
 
       Dx8::Music m;
-      for(size_t i=0;i<p.size();++i) {
-        auto& pat = p[i];
-        if(pat.name.find(tagsStr)!=std::string::npos)
-          m.addPattern(p,i);
-        }
-      if(m.size()==0)
+      if(!fillPattern(m,p,tagsStr))
         m.addPattern(p);
 
       m.setVolume(theme.vol);
       mix.setMusic(m);
       }
     catch(std::runtime_error&) {
-      Log::e("unable to load sound: ",theme.file.c_str());
+      Log::e("unable to load sound: \"",theme.file.c_str(),"\"");
       }
+    }
+
+  bool fillPattern(Dx8::Music& m,const Dx8::PatternList& p,const char* tag){
+    for(size_t i=0;i<p.size();++i) {
+      auto& pat = p[i];
+      if(pat.name.find(tag)!=std::string::npos)
+        m.addPattern(p,i);
+      }
+    return m.size()!=0;
     }
 
   bool setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme, Tags tags){

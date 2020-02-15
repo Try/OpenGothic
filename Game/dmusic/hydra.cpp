@@ -289,7 +289,11 @@ void Hydra::finalize(tsf *tsf) {
   }
 
 bool Hydra::hasNotes(tsf *tsf) {
-  return tsf->voiceNum>0;
+  tsf_voice *v = tsf->voices, *vEnd = v + tsf->voiceNum;
+  for(; v!=vEnd; v++)
+    if(v->playingPreset != -1)
+      return true;
+  return false;
   }
 
 tsf *Hydra::toTsf() {
