@@ -711,7 +711,9 @@ const WayPoint *World::findFreePoint(const Npc &npc, const char *name) const {
       return p;
       }
     }
-  return findFreePoint(npc.position(),name);
+  auto pos = npc.position();
+  pos[1]+=npc.translateY();
+  return findFreePoint(pos,name);
   }
 
 const WayPoint *World::findFreePoint(const std::array<float,3> &pos,const char* name) const {
@@ -722,9 +724,10 @@ const WayPoint *World::findFreePoint(float x, float y, float z, const char *name
   return wmatrix->findFreePoint(x,y,z,name);
   }
 
-const WayPoint *World::findNextFreePoint(const Npc &n, const char *name) const {
-  auto pos = n.position();
-  return wmatrix->findNextFreePoint(pos[0],pos[1],pos[2],name,n.currentWayPoint());
+const WayPoint *World::findNextFreePoint(const Npc &npc, const char *name) const {
+  auto pos = npc.position();
+  pos[1]+=npc.translateY();
+  return wmatrix->findNextFreePoint(pos[0],pos[1],pos[2],name,npc.currentWayPoint());
   }
 
 const WayPoint *World::findNextPoint(const WayPoint &pos) const {

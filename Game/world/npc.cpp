@@ -523,7 +523,7 @@ Npc *Npc::lookAtTarget() const {
 
 float Npc::qDistTo(float x1, float y1, float z1) const {
   float dx=x-x1;
-  float dy=y-y1;
+  float dy=y+translateY()-y1;
   float dz=z-z1;
   return dx*dx+dy*dy+dz*dz;
   }
@@ -535,7 +535,7 @@ float Npc::qDistTo(const WayPoint *f) const {
   }
 
 float Npc::qDistTo(const Npc &p) const {
-  return qDistTo(p.x,p.y,p.z);
+  return qDistTo(p.x,p.y+p.translateY(),p.z);
   }
 
 float Npc::qDistTo(const Interactive &p) const {
@@ -1873,6 +1873,7 @@ bool Npc::doAttack(Anim anim) {
   else if(mvAlgo.isInWater())
     wlk = WalkBit::WM_Water;
 
+  visual.setRotation(*this,0);
   if(auto sq = visual.continueCombo(*this,anim,weaponSt,wlk)) {
     implAniWait(uint64_t(sq->atkTotalTime(visual.comboLength())+1));
     return true;
