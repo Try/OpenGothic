@@ -19,7 +19,7 @@ Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src, std::string meshLib)
 
     n.name   = s.name;
     n.parent = s.parentIndex==uint16_t(-1) ? size_t(-1) : s.parentIndex;
-    std::memcpy(&n.tr,&s.transformLocal,sizeof(n.tr));
+    std::memcpy(reinterpret_cast<void*>(&n.tr),reinterpret_cast<const void*>(&s.transformLocal),sizeof(n.tr));
     }
   assert(nodes.size()<=Resources::MAX_NUM_SKELETAL_NODES);
   for(auto& i:tr)

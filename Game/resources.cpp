@@ -396,8 +396,8 @@ GthFont &Resources::implLoadFont(const char* fname, FontType type) {
     file[i] = fname[i];
     }
 
-  char tex[256]={};
-  char fnt[256]={};
+  char tex[300]={};
+  char fnt[300]={};
   switch(type) {
     case FontType::Normal:
     case FontType::Disabled:

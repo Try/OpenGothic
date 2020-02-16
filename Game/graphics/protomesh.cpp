@@ -20,7 +20,7 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &
         break;
         }
     n.parentId = (src.parentIndex==uint16_t(-1) ? size_t(-1) : src.parentIndex);
-    std::memcpy(&n.transform,&src.transformLocal,sizeof(n.transform));
+    std::memcpy(reinterpret_cast<void*>(&n.transform),reinterpret_cast<const void*>(&src.transformLocal),sizeof(n.transform));
     }
 
   for(auto& i:nodes)
@@ -88,7 +88,7 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &
       Pos p;
       p.name = n.name;
       p.node = i;
-      std::memcpy(&p.transform,&n.transformLocal,sizeof(p.transform));
+      std::memcpy(reinterpret_cast<void*>(&p.transform),reinterpret_cast<const void*>(&n.transformLocal),sizeof(p.transform));
       pos.push_back(p);
       }
     }
