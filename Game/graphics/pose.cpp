@@ -92,7 +92,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       const bool hasNext   = (!i.seq->next.empty() && i.seq->animCls!=Animation::Loop);
       const bool finished  = i.seq->isFinished(tickCount-i.sAnim,comboLen) && !hasNext;
       const bool interrupt = force || i.seq->canInterrupt();
-      if(i.seq==sq && i.bs==bs && (interrupt || finished))
+      if(i.seq==sq && i.bs==bs && !finished)
         return true;
       if(!interrupt && !finished)
         return false;
@@ -145,6 +145,20 @@ bool Pose::stopAnim(const char *name) {
   return done;
   }
 
+void Pose::stopItemStateAnim() {
+  size_t ret=0;
+  for(size_t i=0;i<lay.size();++i) {
+    if((lay[i].bs & BS_FLAG_OGT_STATEITEM)==0) {
+      if(ret!=i)
+        lay[ret] = lay[i];
+      ret++;
+      } else {
+      onRemoveLayer(lay[i]);
+      }
+    }
+  lay.resize(ret);
+  }
+
 void Pose::interrupt() {
   size_t ret=0;
   for(size_t i=0;i<lay.size();++i) {
@@ -177,22 +191,24 @@ void Pose::update(AnimationSolver& solver, uint64_t tickCount) {
     const auto& l = lay[i];
     if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount-l.sAnim,comboLen)) {
       auto next=getNext(solver,lay[i].seq);
-      if(lay[i].seq==itemUse) {
-        itemUse=next;
-        }
-      onRemoveLayer(lay[i]);
+      if((l.bs&BS_FLAG_OGT_STATEITEM)==0 || next!=nullptr) {
+        if(lay[i].seq==itemUse) {
+          itemUse=next;
+          }
+        onRemoveLayer(lay[i]);
 
-      if(next!=nullptr) {
-        doSort         = lay[i].seq->layer!=next->layer;
-        lay[i].seq     = next;
-        lay[i].sAnim   = tickCount;
-        ret++;
+        if(next!=nullptr) {
+          doSort         = lay[i].seq->layer!=next->layer;
+          lay[i].seq     = next;
+          lay[i].sAnim   = tickCount;
+          ret++;
+          }
+        continue;
         }
-      } else {
-      if(ret!=i)
-        lay[ret] = lay[i];
-      ret++;
       }
+    if(ret!=i)
+      lay[ret] = lay[i];
+    ret++;
     }
   lay.resize(ret);
   if(doSort) {

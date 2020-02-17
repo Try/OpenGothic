@@ -564,6 +564,10 @@ uint8_t Inventory::currentSpellSlot() const {
   return Item::NSLOT;
   }
 
+bool Inventory::hasStateItem() const {
+  return stateSlot.item!=nullptr || stateItem!=0;
+  }
+
 void Inventory::putCurrentToSlot(Npc& owner, const char *slot) {
   if(curItem!=0) {
     putToSlot(owner,size_t(curItem),slot);
@@ -649,6 +653,8 @@ void Inventory::implPutState(Npc& owner, size_t cls, const char* slot) {
 bool Inventory::putState(Npc& owner, size_t cls, int mode) {
   Item* it = (cls==0 ? nullptr : findByClass(cls));
   if(it==nullptr) {
+    if(stateSlot.item)
+      owner.setAnim(Npc::Anim::Idle);
     implPutState(owner,0,stateSlot.slot.c_str());
     setStateItem(0);
     return true;
@@ -657,12 +663,22 @@ bool Inventory::putState(Npc& owner, size_t cls, int mode) {
   if(mode>0 && !owner.setAnimItem(it->handle()->scemeName.c_str()))
     return false;
 
-  if(mode==0)
-    implPutState(owner,cls,"ZS_LEFTHAND");
+  if(mode==0) {
+    // for mode==0, item is going to be instanciated later in AI_PlayAniBS
+    setCurrentItem(0);
+    setStateItem(cls);
+    return true;
+    }
 
+  // implPutState(owner,cls,"ZS_LEFTHAND");
   setCurrentItem(0);
   setStateItem(cls);
   return true;
+  }
+
+void Inventory::commitPutToState(Npc& owner) {
+  implPutState(owner,size_t(stateItem),"ZS_LEFTHAND");
+  setCurrentItem(0);
   }
 
 void Inventory::setCurrentItem(size_t cls) {

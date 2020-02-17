@@ -748,8 +748,8 @@ void Npc::setScale(float x, float y, float z) {
   durtyTranform |= TR_Scale;
   }
 
-const Animation::Sequence* Npc::playAnimByName(const Daedalus::ZString& name,BodyState bs) {
-  return visual.startAnimAndGet(*this,name.c_str(),bs);
+const Animation::Sequence* Npc::playAnimByName(const Daedalus::ZString& name,bool forceAnim,BodyState bs) {
+  return visual.startAnimAndGet(*this,name.c_str(),forceAnim,bs);
   }
 
 bool Npc::setAnim(Npc::Anim a) {
@@ -1296,6 +1296,32 @@ void Npc::implFaiWait(uint64_t dt) {
   aiState.loopNextTime = faiWaitTime;
   }
 
+void Npc::implSetFightMode(const Animation::EvCount& ev) {
+  auto ws = visual.fightMode();
+  if(!visual.setFightMode(ev.weaponCh))
+    return;
+
+  if(ev.weaponCh==ZenLoad::FM_NONE && (ws==WeaponState::W1H || ws==WeaponState::W2H)){
+    if(auto melee = invent.currentMeleWeapon()) {
+      if(melee->handle()->material==ItemMaterial::MAT_METAL)
+        owner.emitSoundRaw("UNDRAWSOUND_ME.WAV",x,y+translateY(),z,500,false); else
+        owner.emitSoundRaw("UNDRAWSOUND_WO.WAV",x,y+translateY(),z,500,false);
+      }
+    }
+  else if(ev.weaponCh==ZenLoad::FM_1H || ev.weaponCh==ZenLoad::FM_2H) {
+    if(auto melee = invent.currentMeleWeapon()) {
+      if(melee->handle()->material==ItemMaterial::MAT_METAL)
+        owner.emitSoundRaw("DRAWSOUND_ME.WAV",x,y+translateY(),z,500,false); else
+        owner.emitSoundRaw("DRAWSOUND_WO.WAV",x,y+translateY(),z,500,false);
+      }
+    }
+  else if(ev.weaponCh==ZenLoad::FM_BOW || ev.weaponCh==ZenLoad::FM_CBOW) {
+    emitSoundEffect("DRAWSOUND_BOW",25,true);
+    }
+  visual.stopDlgAnim();
+  updateWeaponSkeleton();
+  }
+
 void Npc::commitDamage() {
   if(currentTarget==nullptr)
     return;
@@ -1428,7 +1454,7 @@ void Npc::tick(uint64_t dt) {
   if(!visual.pose().hasAnim())
     setAnim(AnimationSolver::Idle);
 
-  if(!isPlayer() && visual.isItem()) {
+  if(!isPlayer() && visual.isItem() && !invent.hasStateItem()) {
     // forward from S_IITEMSCHEME to Idle
     setAnim(AnimationSolver::Idle);
     }
@@ -1438,10 +1464,7 @@ void Npc::tick(uint64_t dt) {
 
   if(ev.def_opt_frame>0)
     commitDamage();
-  if(visual.setFightMode(ev.weaponCh)) {
-    visual.stopDlgAnim();
-    updateWeaponSkeleton();
-    }
+  implSetFightMode(ev);
   if(!ev.timed.empty())
     tickTimedEvt(ev);
 
@@ -1532,7 +1555,7 @@ void Npc::nextAiAction(uint64_t dt) {
       if(closeWeapon(false)) {
         setAnim(Anim::Idle);
         }
-      if(weaponState()!=WeaponState::NoWeapon || visual.fightMode()!=WeaponState::NoWeapon){
+      if(weaponState()!=WeaponState::NoWeapon){
         aiActions.push_front(std::move(act));
         }
       break;
@@ -1541,7 +1564,7 @@ void Npc::nextAiAction(uint64_t dt) {
         setOther(act.target);
       break;
     case AI_PlayAnim:{
-      if(auto sq = playAnimByName(act.s0,BS_NONE)) {
+      if(auto sq = playAnimByName(act.s0,false,BS_NONE)) {
         implAniWait(uint64_t(sq->totalTime()));
         } else {
         aiActions.push_front(std::move(act));
@@ -1549,7 +1572,12 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
       }
     case AI_PlayAnimBs:{
-      if(auto sq = playAnimByName(act.s0,BodyState(act.i0))) {
+      BodyState bs = BodyState(act.i0);
+      if(invent.hasStateItem())
+        bs = BodyState(BodyState(act.i0) | BS_FLAG_OGT_STATEITEM);
+
+      if(auto sq = playAnimByName(act.s0,false,bs)) {
+        invent.commitPutToState(*this);
         implAniWait(uint64_t(sq->totalTime()));
         } else {
         aiActions.push_front(std::move(act));
@@ -1784,6 +1812,7 @@ void Npc::clearState(bool noFinalize) {
       owner.script().invokeState(this,currentOther,nullptr,aiState.funcEnd);  // cleanup
     aiPrevState = aiState.funcIni;
     invent.putState(*this,0,0);
+    visual.stopItemStateAnim(*this);
     }
   aiState = AiState();
   aiState.funcIni = 0;
@@ -2104,16 +2133,6 @@ bool Npc::closeWeapon(bool noAnim) {
   invent.switchActiveWeapon(*this,Item::NSLOT);
   invent.putAmmunition(*this,0,nullptr);
   hnpc.weapon = 0;
-  updateWeaponSkeleton();
-
-  if(weaponSt!=WeaponState::W1H && weaponSt!=WeaponState::W2H)
-    return true;
-
-  if(auto w = invent.currentMeleWeapon()){
-    if(w->handle()->material==ItemMaterial::MAT_METAL)
-      owner.emitSoundRaw("UNDRAWSOUND_ME.WAV",x,y+translateY(),z,500,false); else
-      owner.emitSoundRaw("UNDRAWSOUND_WO.WAV",x,y+translateY(),z,500,false);
-    }
   return true;
   }
 
@@ -2128,7 +2147,6 @@ bool Npc::drawWeaponFist() {
   if(!visual.startAnim(*this,WeaponState::Fist))
     return false;
   invent.switchActiveWeaponFist();
-  updateWeaponSkeleton();
   hnpc.weapon = 1;
   return true;
   }
@@ -2153,12 +2171,6 @@ bool Npc::drawWeaponMele() {
 
   invent.switchActiveWeapon(*this,1);
   hnpc.weapon = (st==WeaponState::W1H ? 3:4);
-
-  updateWeaponSkeleton();
-
-  if(invent.currentMeleWeapon()->handle()->material==ItemMaterial::MAT_METAL)
-    owner.emitSoundRaw("DRAWSOUND_ME.WAV",x,y+translateY(),z,500,false); else
-    owner.emitSoundRaw("DRAWSOUND_WO.WAV",x,y+translateY(),z,500,false);
   return true;
   }
 
@@ -2179,10 +2191,6 @@ bool Npc::drawWeaponBow() {
     return false;
   invent.switchActiveWeapon(*this,2);
   hnpc.weapon = (st==WeaponState::W1H ? 5:6);
-
-  updateWeaponSkeleton();
-
-  emitSoundEffect("DRAWSOUND_BOW",25,true);
   return true;
   }
 

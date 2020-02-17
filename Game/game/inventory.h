@@ -103,12 +103,14 @@ class Inventory final {
     const Item*  currentSpell(uint8_t s) const { return numslot[s]; }
 
     uint8_t currentSpellSlot() const;
+    bool    hasStateItem() const;
 
     void   putCurrentToSlot(Npc& owner, const char* slot);
     void   putToSlot       (Npc& owner, size_t cls, const char* slot);
     void   clearSlot       (Npc& owner, const char* slot, bool remove);
     void   putAmmunition   (Npc& owner, size_t cls, const char* slot);
     bool   putState        (Npc& owner, size_t cls, int mode);
+    void   commitPutToState(Npc& owner);
 
     void   setCurrentItem(size_t cls);
     void   setStateItem  (size_t cls);

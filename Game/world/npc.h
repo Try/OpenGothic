@@ -374,7 +374,7 @@ class Npc final {
     Item*    currentRangeWeapon();
 
     bool     lookAt(float dx, float dz, bool anim, uint64_t dt);
-    auto     playAnimByName(const Daedalus::ZString& name, BodyState bs) -> const Animation::Sequence*;
+    auto     playAnimByName(const Daedalus::ZString& name, bool forceAnim, BodyState bs) -> const Animation::Sequence*;
 
     bool     checkGoToNpcdistance(const Npc& other);
     void     aiLookAt(Npc* other);
@@ -569,6 +569,7 @@ class Npc final {
     void                           implAiWait (uint64_t dt);
     void                           implAniWait(uint64_t dt);
     void                           implFaiWait(uint64_t dt);
+    void                           implSetFightMode(const Animation::EvCount& ev);
     void                           tickRoutine();
     void                           nextAiAction(uint64_t dt);
     void                           commitDamage();

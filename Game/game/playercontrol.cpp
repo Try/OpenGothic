@@ -335,23 +335,20 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   if(wctrl[WeaponClose]) {
-    pl.closeWeapon(false);
-    wctrl[WeaponClose] = !(weaponState()==WeaponState::NoWeapon);
+    wctrl[WeaponClose] = !pl.closeWeapon(false);
     return;
     }
   if(wctrl[WeaponMele]) {
+    bool ret=false;
     if(pl.currentMeleWeapon()!=nullptr)
-      pl.drawWeaponMele(); else
-      pl.drawWeaponFist();
-    auto ws = weaponState();
-    wctrl[WeaponMele] = !(ws==WeaponState::W1H || ws==WeaponState::W2H || ws==WeaponState::Fist);
+      ret = pl.drawWeaponMele(); else
+      ret = pl.drawWeaponFist();
+    wctrl[WeaponMele] = !ret;
     return;
     }
   if(wctrl[WeaponBow]) {
     if(pl.currentRangeWeapon()!=nullptr){
-      pl.drawWeaponBow();
-      auto ws = weaponState();
-      wctrl[WeaponBow] = !(ws==WeaponState::Bow || ws==WeaponState::CBow);
+      wctrl[WeaponBow] = !pl.drawWeaponBow();
       } else {
       wctrl[WeaponBow] = false;
       }
@@ -360,10 +357,9 @@ void PlayerControl::implMove(uint64_t dt) {
   for(uint8_t i=0;i<8;++i) {
     if(wctrl[Weapon3+i]){
       if(pl.inventory().currentSpell(i)!=nullptr){
-        pl.drawMage(uint8_t(3+i));
-        auto ws = weaponState();
-        wctrl[Weapon3+i] = !(ws==WeaponState::Mage);
-        if(ws==WeaponState::Mage) {
+        bool ret = pl.drawMage(uint8_t(3+i));
+        wctrl[Weapon3+i] = !ret;
+        if(ret) {
           if(auto spl = pl.inventory().currentSpell(i)) {
             gothic.print(spl->description());
             }

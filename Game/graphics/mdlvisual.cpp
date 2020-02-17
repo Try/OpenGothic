@@ -237,6 +237,12 @@ void MdlVisual::stopAnim(Npc& npc,const char* ani) {
     startAnim(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
   }
 
+void MdlVisual::stopItemStateAnim(Npc& npc) {
+  skInst->stopItemStateAnim();
+  if(!skInst->hasAnim())
+    startAnim(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
+  }
+
 void MdlVisual::stopWalkAnim(Npc &npc) {
   if(pose().bodyState()!=BS_STAND) {
     skInst->stopAnim(nullptr);
@@ -252,9 +258,8 @@ bool MdlVisual::isItem() const {
   return skInst->isItem();
   }
 
-const Animation::Sequence* MdlVisual::startAnimAndGet(Npc &npc, const char *name, BodyState bs) {
-  bool forceAnim=true;
-
+const Animation::Sequence* MdlVisual::startAnimAndGet(Npc &npc, const char *name,
+                                                      bool forceAnim, BodyState bs) {
   const Animation::Sequence *sq = solver.solveFrm(name);
   if(skInst->startAnim(solver,sq,bs,forceAnim,npc.world().tickCount())) {
     return sq;
@@ -362,10 +367,6 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     return sq;
     }
   return nullptr;
-  }
-
-bool MdlVisual::startAnim(Npc &npc, const char *name, BodyState bs) {
-  return startAnimAndGet(npc,name,bs)!=nullptr;
   }
 
 bool MdlVisual::startAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk) {

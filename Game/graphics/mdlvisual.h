@@ -49,9 +49,8 @@ class MdlVisual final {
     bool                           isStanding() const;
     bool                           isItem() const;
 
-    const Animation::Sequence*     startAnimAndGet(Npc &npc, const char* name, BodyState bs);
+    const Animation::Sequence*     startAnimAndGet(Npc &npc, const char* name, bool forceAnim, BodyState bs);
     const Animation::Sequence*     startAnimAndGet(Npc &npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk);
-    bool                           startAnim(Npc &npc, const char* name, BodyState bs);
     bool                           startAnim(Npc &npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk);
     bool                           startAnim(Npc &npc, WeaponState st);
     bool                           startAnimItem(Npc &npc, const char* scheme);
@@ -59,6 +58,7 @@ class MdlVisual final {
     bool                           startAnimDialog(Npc &npc);
     void                           stopDlgAnim();
     void                           stopAnim(Npc &npc, const char *ani);
+    void                           stopItemStateAnim(Npc &npc);
     void                           stopWalkAnim(Npc &npc);
     void                           setRotation(Npc &npc, int dir);
     void                           interrupt();
