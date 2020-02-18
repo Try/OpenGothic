@@ -64,6 +64,9 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
     startGame(gothic.defaultWorld());
     rootMenu->popMenu();
     }
+  else {
+    gothic.setMusic(GameMusic::SysMenu);
+    }
 
   timer.start(10);
   }
@@ -443,6 +446,12 @@ void MainWindow::drawSaving(Painter &p) {
   }
 
 void MainWindow::tick() {
+  static bool once=true;
+  if(once) {
+    gothic.emitGlobalSoundWav("GAMESTART.WAV");
+    once=false;
+    }
+
   auto st = gothic.checkLoading();
   if(st==Gothic::LoadState::Finalize || st==Gothic::LoadState::Failed) {
     gothic.finishLoading();
