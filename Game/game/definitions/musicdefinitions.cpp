@@ -22,10 +22,9 @@ MusicDefinitions::~MusicDefinitions() {
   vm->clearReferences(Daedalus::IC_MusicTheme);
   }
 
-const Daedalus::GEngineClasses::C_MusicTheme &MusicDefinitions::get(const char *name) {
-  static Daedalus::GEngineClasses::C_MusicTheme ret={};
+const Daedalus::GEngineClasses::C_MusicTheme* MusicDefinitions::get(const char *name) {
   if(!vm)
-    return ret;
+    return nullptr;
   auto id = vm->getDATFile().getSymbolIndexByName(name);
   if(id==size_t(-1)) {
     static std::unordered_set<size_t> s;
@@ -33,11 +32,11 @@ const Daedalus::GEngineClasses::C_MusicTheme &MusicDefinitions::get(const char *
       s.insert(id);
       Log::e("invalid music theme: \"",name,"\"");
       }
-    return ret;
+    return nullptr;
     }
   for(auto& i:themes) {
     if(i.symId==id)
-      return i;
+      return &i;
     }
-  return ret;
+  return nullptr;
   }

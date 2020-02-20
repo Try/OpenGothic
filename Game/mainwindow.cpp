@@ -459,7 +459,9 @@ void MainWindow::tick() {
       rootMenu->setMenu("MENU_MAIN");
     }
   else if(st!=Gothic::LoadState::Idle) {
-    gothic.setMusic(GameMusic::SysMenu);
+    if(st==Gothic::LoadState::Loading)
+      gothic.setMusic(GameMusic::SysLoading); else
+      gothic.setMusic(GameMusic::SysMenu);
     return;
     }
 

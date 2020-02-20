@@ -35,8 +35,8 @@ class World final {
   public:
     World()=delete;
     World(const World&)=delete;
-    World(GameSession &gothic, const RendererStorage& storage, std::string file, uint8_t isG2, std::function<void(int)> loadProgress);
-    World(GameSession &gothic, const RendererStorage& storage, Serialize& fin, uint8_t isG2, std::function<void(int)> loadProgress);
+    World(Gothic& gothic, GameSession &game, const RendererStorage& storage, std::string file, uint8_t isG2, std::function<void(int)> loadProgress);
+    World(Gothic& gothic, GameSession &game, const RendererStorage& storage, Serialize& fin, uint8_t isG2, std::function<void(int)> loadProgress);
 
     struct BspSector final {
       int32_t guild=GIL_NONE;

@@ -23,6 +23,7 @@ class Mixer final {
     void     setVolume(float v);
 
     void     setMusic(const Music& m);
+    void     setMusicVolume(float v);
     int64_t  currentPlayTime() const;
 
   private:

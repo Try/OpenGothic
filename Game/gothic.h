@@ -99,7 +99,8 @@ class Gothic final {
     auto      getFightAi(size_t i) const -> const FightAi::FA&;
     auto      getSoundScheme(const char* name) -> const Daedalus::GEngineClasses::C_SFX&;
     auto      getCameraDef() const -> const CameraDefinitions&;
-    void      setMusic(GameMusic::Tags t, const char* clsTheme);
+    auto      getMusicDef(const char *clsTheme) const -> const Daedalus::GEngineClasses::C_MusicTheme*;
+    void      setMusic(const Daedalus::GEngineClasses::C_MusicTheme& theme, GameMusic::Tags tags);
     void      setMusic(const GameMusic::Music m);
     void      stopMusic();
     void      enableMusic(bool e);

@@ -54,7 +54,7 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
   uint8_t ver = gothic.version().game;
 
   vm.reset(new GameScript(*this));
-  setWorld(std::unique_ptr<World>(new World(*this,storage,std::move(file),ver,[&](int v){
+  setWorld(std::unique_ptr<World>(new World(gothic,*this,storage,std::move(file),ver,[&](int v){
     gothic.setLoadingProgress(int(v*0.55));
     })));
 
@@ -96,7 +96,7 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Seriali
     visitedWorlds.emplace_back(fin);
 
   vm.reset(new GameScript(*this,fin));
-  setWorld(std::unique_ptr<World>(new World(*this,storage,fin,hdr.isGothic2,[&](int v){
+  setWorld(std::unique_ptr<World>(new World(gothic,*this,storage,fin,hdr.isGothic2,[&](int v){
     gothic.setLoadingProgress(int(v*0.55));
     })));
 
@@ -221,10 +221,6 @@ void GameSession::emitGlobalSound(const std::string &sfx) {
   gothic.emitGlobalSound(sfx);
   }
 
-void GameSession::setMusic(GameMusic::Tags tags, const char* clsTheme) {
-  gothic.setMusic(tags,clsTheme);
-  }
-
 Npc* GameSession::player() {
   if(wrld)
     return wrld->player();
@@ -328,8 +324,8 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
 
   std::unique_ptr<World> ret;
   if(wss.isEmpty())
-    ret = std::unique_ptr<World>(new World(*this,storage,w,  ver,loadProgress)); else
-    ret = std::unique_ptr<World>(new World(*this,storage,fin,ver,loadProgress));
+    ret = std::unique_ptr<World>(new World(gothic,*this,storage,w,  ver,loadProgress)); else
+    ret = std::unique_ptr<World>(new World(gothic,*this,storage,fin,ver,loadProgress));
   setWorld(std::move(ret));
 
   if(!wss.isEmpty())

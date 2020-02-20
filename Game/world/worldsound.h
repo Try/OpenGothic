@@ -8,6 +8,7 @@
 #include <mutex>
 
 #include "game/gametime.h"
+#include "gamemusic.h"
 
 class GameSession;
 class World;
@@ -16,7 +17,7 @@ class GSoundEffect;
 
 class WorldSound final {
   public:
-    WorldSound(GameSession& game,World& world);
+    WorldSound(Gothic &gothic, GameSession& game,World& world);
 
     void setDefaultZone(const ZenLoad::zCVobData &vob);
     void addZone       (const ZenLoad::zCVobData &vob);
@@ -59,14 +60,18 @@ class WorldSound final {
       };
 
     void tickSoundZone(Npc& player);
+    bool setMusic(const char* zone, GameMusic::Tags tags);
 
     static float qDist(const std::array<float,3>& a,const std::array<float,3>& b);
 
+    Gothic&                                 gothic;
     GameSession&                            game;
     World&                                  owner;
     std::vector<Zone>                       zones;
     Zone                                    def;
-    Zone*                                   currentZone=nullptr;
+
+    Zone*                                   currentZone = nullptr;
+    GameMusic::Tags                         currentTags = GameMusic::Tags::Std;
 
     std::array<float,3>                     plPos;
 

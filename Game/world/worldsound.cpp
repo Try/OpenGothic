@@ -5,6 +5,7 @@
 #include "game/gamesession.h"
 #include "gamemusic.h"
 #include "world.h"
+#include "gothic.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -19,7 +20,8 @@ bool WorldSound::Zone::checkPos(float x, float y, float z) const {
       bbox[0].z <= z && z<bbox[1].z;
   }
 
-WorldSound::WorldSound(GameSession &game, World& owner):game(game),owner(owner) {
+WorldSound::WorldSound(Gothic& gothic, GameSession &game, World& owner)
+  :gothic(gothic),game(game),owner(owner) {
   plPos = {{-1000000,-1000000,-1000000}};
   }
 
@@ -214,33 +216,61 @@ void WorldSound::tickSoundZone(Npc& player) {
       }
     }
 
-  currentZone = zone;
-  const size_t sep = zone->name.find('_');
-  const char*  tag = zone->name.c_str();
-  if(sep!=std::string::npos)
-    tag = tag+sep+1;
-
   gtime           time  = owner.time().timeInDay();
   bool            isDay = (gtime(4,0)<=time && time<=gtime(21,0));
   bool            isFgt = owner.isTargeted(player);
 
   GameMusic::Tags mode  = GameMusic::Std;
-  const char*     smode = "STD";
   if(isFgt) {
     if(player.weaponState()==WeaponState::NoWeapon) {
       mode  = GameMusic::Thr;
-      smode = "THR";
       } else {
       mode = GameMusic::Fgt;
-      smode = "FGT";
       }
     }
+  GameMusic::Tags tags = GameMusic::mkTags(isDay ? GameMusic::Day : GameMusic::Ngt,mode);
+
+  if(currentZone==zone && currentTags==tags)
+    return;
+
+  currentZone = zone;
+  currentTags = tags;
+
+  Zone*           zTry[]    = {zone, &def};
+  GameMusic::Tags dayTry[]  = {isDay ? GameMusic::Day : GameMusic::Ngt, GameMusic::Day};
+  GameMusic::Tags modeTry[] = {mode, GameMusic::Std};
+
+  // multi-fallback strategy
+  for(auto zone:zTry)
+    for(auto day:dayTry)
+      for(auto mode:modeTry) {
+        const size_t sep = zone->name.find('_');
+        const char*  tag = zone->name.c_str();
+        if(sep!=std::string::npos)
+          tag = tag+sep+1;
+
+        tags = GameMusic::mkTags(day,mode);
+        if(setMusic(tag,tags))
+          return;
+        }
+  }
+
+bool WorldSound::setMusic(const char* zone, GameMusic::Tags tags) {
+  bool            isDay = (tags&GameMusic::Ngt)==0;
+  const char*     smode = "STD";
+  if(tags&GameMusic::Thr)
+    smode = "THR";
+  if(tags&GameMusic::Fgt)
+    smode = "FGT";
 
   char name[64]={};
-  std::snprintf(name,sizeof(name),"%s_%s_%s",tag,(isDay ? "DAY" : "NGT"),smode);
+  std::snprintf(name,sizeof(name),"%s_%s_%s",zone,(isDay ? "DAY" : "NGT"),smode);
 
-  GameMusic::Tags tags = GameMusic::mkTags(GameMusic::Day,mode);
-  game.setMusic(tags,name);
+  if(auto* theme = gothic.getMusicDef(name)) {
+    gothic.setMusic(*theme,tags);
+    return true;
+    }
+  return false;
   }
 
 void WorldSound::tickSlot(GSoundEffect& slot) {

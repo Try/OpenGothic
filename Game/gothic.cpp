@@ -413,8 +413,11 @@ bool Gothic::aiIsDlgFinished() {
   return v;
   }
 
-void Gothic::setMusic(GameMusic::Tags tags, const char *clsTheme) {
-  auto& theme = music->get(clsTheme);
+const Daedalus::GEngineClasses::C_MusicTheme* Gothic::getMusicDef(const char *clsTheme) const {
+  return music->get(clsTheme);
+  }
+
+void Gothic::setMusic(const Daedalus::GEngineClasses::C_MusicTheme& theme, GameMusic::Tags tags) {
   globalMusic.setMusic(theme,tags);
   }
 
@@ -428,7 +431,8 @@ void Gothic::setMusic(const GameMusic::Music m) {
       clsTheme = "SYS_Loading";
       break;
     }
-  setMusic(GameMusic::mkTags(GameMusic::Std,GameMusic::Day),clsTheme);
+  if(auto theme = getMusicDef(clsTheme))
+    globalMusic.setMusic(*theme,GameMusic::mkTags(GameMusic::Std,GameMusic::Day));
   }
 
 void Gothic::stopMusic() {

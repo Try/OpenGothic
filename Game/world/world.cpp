@@ -17,8 +17,8 @@
 
 using namespace Tempest;
 
-World::World(GameSession& game,const RendererStorage &storage, std::string file, uint8_t isG2, std::function<void(int)> loadProgress)
-  :wname(std::move(file)),game(game),wsound(game,*this),wobj(*this) {
+World::World(Gothic& gothic, GameSession& game,const RendererStorage &storage, std::string file, uint8_t isG2, std::function<void(int)> loadProgress)
+  :wname(std::move(file)),game(game),wsound(gothic,game,*this),wobj(*this) {
   using namespace Daedalus::GameState;
 
   ZenLoad::ZenParser parser(wname,Resources::vdfsIndex());
@@ -54,9 +54,9 @@ World::World(GameSession& game,const RendererStorage &storage, std::string file,
   loadProgress(100);
   }
 
-World::World(GameSession &game, const RendererStorage &storage,
+World::World(Gothic& gothic, GameSession &game, const RendererStorage &storage,
              Serialize &fin, uint8_t isG2, std::function<void(int)> loadProgress)
-  :wname(fin.read<std::string>()),game(game),wsound(game,*this),wobj(*this) {
+  :wname(fin.read<std::string>()),game(game),wsound(gothic,game,*this),wobj(*this) {
   using namespace Daedalus::GameState;
 
   ZenLoad::ZenParser parser(wname,Resources::vdfsIndex());

@@ -60,7 +60,6 @@ class GameSession final {
     auto         loadSound(const SoundFx&        fx)  -> GSoundEffect;
     void         emitGlobalSound(const Tempest::Sound& sfx);
     void         emitGlobalSound(const std::string& sfx);
-    void         setMusic(GameMusic::Tags tags, const char* clsTheme);
 
     Npc*         player();
     void         updateListenerPos(Npc& npc);

@@ -20,12 +20,14 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
   void updateTheme() {
     Daedalus::GEngineClasses::C_MusicTheme theme;
     bool                                   updateTheme=false;
+    bool                                   reloadTheme=false;
 
     {
       std::lock_guard<std::mutex> guard(pendingSync);
       if(hasPending) {
         hasPending  = false;
         updateTheme = true;
+        reloadTheme = this->reloadTheme;
         theme       = pendingMusic;
         }
     }
@@ -35,20 +37,23 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
     updateTheme = false;
 
     try {
-      Dx8::PatternList p = Resources::loadDxMusic(theme.file.c_str());
+      if(reloadTheme) {
+        Dx8::PatternList p = Resources::loadDxMusic(theme.file.c_str());
 
-      const char* tagsStr="Std";
-      if(pendingTags&Tags::Fgt)
-        tagsStr="Fgt";
-      else if(pendingTags&Tags::Thr)
-        tagsStr="Thr";
+        const char* tagsStr="Std";
+        if(pendingTags&Tags::Fgt)
+          tagsStr="Fgt";
+        else if(pendingTags&Tags::Thr)
+          tagsStr="Thr";
 
-      Dx8::Music m;
-      if(!fillPattern(m,p,tagsStr))
-        m.addPattern(p);
+        Dx8::Music m;
+        if(!fillPattern(m,p,tagsStr))
+          m.addPattern(p);
 
-      m.setVolume(theme.vol);
-      mix.setMusic(m);
+        // m.setVolume(theme.vol);
+        mix.setMusic(m);
+        }
+      mix.setMusicVolume(theme.vol);
       }
     catch(std::runtime_error&) {
       Log::e("unable to load sound: \"",theme.file.c_str(),"\"");
@@ -66,8 +71,7 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
 
   bool setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme, Tags tags){
     std::lock_guard<std::mutex> guard(pendingSync);
-    if(pendingMusic.file==theme.file)
-      return false;
+    reloadTheme  = pendingMusic.file!=theme.file;
     pendingMusic = theme;
     pendingTags  = tags;
     hasPending   = true;
@@ -87,6 +91,7 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
 
   std::mutex                                    pendingSync;
   bool                                          hasPending=false;
+  bool                                          reloadTheme=false;
   Daedalus::GEngineClasses::C_MusicTheme        pendingMusic;
   Tags                                          pendingTags=Tags::Day;
   };

@@ -10,7 +10,7 @@ class MusicDefinitions final {
     MusicDefinitions(Gothic &gothic);
     ~MusicDefinitions();
 
-    const Daedalus::GEngineClasses::C_MusicTheme& get(const char* name);
+    const Daedalus::GEngineClasses::C_MusicTheme* get(const char* name);
 
   private:
     std::unique_ptr<Daedalus::DaedalusVM>  vm;

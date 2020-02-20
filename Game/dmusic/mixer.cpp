@@ -35,6 +35,11 @@ void Mixer::setMusic(const Music& m) {
   variationCounter.store(0);
   }
 
+void Mixer::setMusicVolume(float v) {
+  if(current)
+    current->volume.store(v);
+  }
+
 int64_t Mixer::currentPlayTime() const {
   return (sampleCursor*1000/SoundFont::SampleRate);
   }
