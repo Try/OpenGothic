@@ -21,6 +21,7 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
     Daedalus::GEngineClasses::C_MusicTheme theme;
     bool                                   updateTheme=false;
     bool                                   reloadTheme=false;
+    Tags                                   tags=Tags::Day;
 
     {
       std::lock_guard<std::mutex> guard(pendingSync);
@@ -29,6 +30,7 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
         updateTheme = true;
         reloadTheme = this->reloadTheme;
         theme       = pendingMusic;
+        tags        = pendingTags;
         }
     }
 
@@ -41,9 +43,9 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
         Dx8::PatternList p = Resources::loadDxMusic(theme.file.c_str());
 
         const char* tagsStr="Std";
-        if(pendingTags&Tags::Fgt)
+        if(tags&Tags::Fgt)
           tagsStr="Fgt";
-        else if(pendingTags&Tags::Thr)
+        else if(tags&Tags::Thr)
           tagsStr="Thr";
 
         Dx8::Music m;
@@ -78,6 +80,12 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
     return true;
     }
 
+  void restartMusic(){
+    std::lock_guard<std::mutex> guard(pendingSync);
+    hasPending  = true;
+    reloadTheme = true;
+    }
+
   void stopMusic() {
     std::lock_guard<std::mutex> guard(pendingSync);
     mix.setMusic(Dx8::Music());
@@ -87,13 +95,13 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
     mix.setVolume(v);
     }
 
-  Dx8::Mixer                                    mix;
+  Dx8::Mixer                             mix;
 
-  std::mutex                                    pendingSync;
-  bool                                          hasPending=false;
-  bool                                          reloadTheme=false;
-  Daedalus::GEngineClasses::C_MusicTheme        pendingMusic;
-  Tags                                          pendingTags=Tags::Day;
+  std::mutex                             pendingSync;
+  bool                                   hasPending=false;
+  bool                                   reloadTheme=false;
+  Daedalus::GEngineClasses::C_MusicTheme pendingMusic;
+  Tags                                   pendingTags=Tags::Day;
   };
 
 struct GameMusic::Impl final {
@@ -106,9 +114,12 @@ struct GameMusic::Impl final {
     }
 
   void setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme, Tags tags) {
-    if(!dxMixer->setMusic(theme,tags))
-      return;
+    dxMixer->setMusic(theme,tags);
+    }
+
+  void startMusic() {
     sound.play();
+    dxMixer->restartMusic();
     }
 
   void stopMusic() {
@@ -137,7 +148,8 @@ GameMusic::Tags GameMusic::mkTags(GameMusic::Tags daytime, GameMusic::Tags mode)
 void GameMusic::setEnabled(bool e) {
   impl->enableMusic = e;
   if(!e)
-    impl->stopMusic();
+    impl->stopMusic(); else
+    impl->startMusic();
   }
 
 bool GameMusic::isEnabled() const {
