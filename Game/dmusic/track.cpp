@@ -61,6 +61,24 @@ void Track::Chord::implReadList(Riff &ch) {
     }
   }
 
+Track::CommandTrack::CommandTrack(Riff& input) {
+  uint32_t sz32=0;
+  input.read(&sz32,4);
+
+  size_t sz = sz32;
+
+  size_t count = input.remaning()/sz;
+  commands.resize(count);
+
+  for(uint32_t i=0;i<count;++i) {
+    DMUS_IO_COMMAND& io=commands[i];
+    input.read(&io,std::min(sz,sizeof(io)));
+    if(sz>sizeof(io))
+      input.skip(sz-sizeof(io));
+    }
+  }
+
+
 Track::Track(Riff &input) {
   if(!input.is("RIFF"))
     throw std::runtime_error("not a riff");
@@ -69,6 +87,8 @@ Track::Track(Riff &input) {
   input.read([this](Riff& ch) {
     if(ch.is("trkh"))
       ch.read(&head,sizeof(head));
+    else if(ch.is("cmnd"))
+      cmnd = std::make_shared<CommandTrack>(ch);
     else if(ch.is("LIST"))
       implReadList(ch);
     });

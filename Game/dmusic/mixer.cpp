@@ -143,12 +143,27 @@ void Mixer::nextPattern() {
     return;
     }
 
+  size_t nextOff=0;
   auto prev = pattern;
   pattern   = std::shared_ptr<PatternInternal>(mus,mus->pptn[0].get());
   for(size_t i=0;i<mus->pptn.size();++i){
     if(mus->pptn[i].get()==prev.get()) {
-      size_t next = (i+1)%mus->pptn.size();
-      pattern  = std::shared_ptr<PatternList::PatternInternal>(mus,mus->pptn[next].get());
+      nextOff = (i+1)%mus->pptn.size();
+      break;
+      }
+    }
+
+  for(size_t i=0;i<mus->pptn.size();++i){
+    auto& ptr = mus->pptn[(i+nextOff)%mus->pptn.size()];
+    bool skip=false;
+    if(ptr->groove.size()>0) {
+      //TODO: groove rnadmization
+      uint8_t lvl = pattern->groove[0].bGrooveLevel;
+      if(!(ptr->ptnh.bGrooveBottom<=lvl && lvl<=ptr->ptnh.bGrooveTop))
+        skip = true;
+      }
+    if(!skip) {
+      pattern = std::shared_ptr<PatternList::PatternInternal>(mus,ptr.get());
       break;
       }
     }

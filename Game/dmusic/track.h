@@ -36,10 +36,17 @@ class Track final {
         void implReadList(Riff &input);
       };
 
-    DMUS_IO_TRACK_HEADER        head;
-    std::shared_ptr<StyleTrack> sttr;
-    std::shared_ptr<Chord>      cord;
-    std::shared_ptr<Chord>      tetr;
+    class CommandTrack {
+      public:
+        CommandTrack(Riff &chunk);
+
+        std::vector<DMUS_IO_COMMAND> commands;
+      };
+
+    DMUS_IO_TRACK_HEADER          head;
+    std::shared_ptr<StyleTrack>   sttr;
+    std::shared_ptr<Chord>        cord;
+    std::shared_ptr<CommandTrack> cmnd;
 
   private:
     void implReadList(Riff &input);

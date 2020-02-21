@@ -26,14 +26,8 @@ const Daedalus::GEngineClasses::C_MusicTheme* MusicDefinitions::get(const char *
   if(!vm)
     return nullptr;
   auto id = vm->getDATFile().getSymbolIndexByName(name);
-  if(id==size_t(-1)) {
-    static std::unordered_set<size_t> s;
-    if(s.find(id)==s.end()) {
-      s.insert(id);
-      Log::e("invalid music theme: \"",name,"\"");
-      }
+  if(id==size_t(-1))
     return nullptr;
-    }
   for(auto& i:themes) {
     if(i.symId==id)
       return &i;

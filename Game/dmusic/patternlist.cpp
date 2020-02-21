@@ -123,6 +123,9 @@ PatternList::PatternList(const Segment &s, DirectMusic &owner)
       cordHeader = track.cord->header;
       subchord   = track.cord->subchord;
       }
+    else if(track.cmnd!=nullptr) {
+      commands = track.cmnd->commands;
+      }
     }
   index();
   }
@@ -142,6 +145,8 @@ void PatternList::index(const Style& stl,PatternInternal &inst, const Dx8::Patte
   inst.waves.clear();
   inst.volume.clear();
   inst.name.assign(pattern.info.unam.begin(),pattern.info.unam.end());
+
+  inst.ptnh = pattern.header;
 
   auto& instument = inst.instruments;
   instument.resize(pattern.partref.size());
@@ -180,6 +185,16 @@ void PatternList::index(const Style& stl,PatternInternal &inst, const Dx8::Patte
     if(part==nullptr)
       continue;
     index(inst,&instument[i],stl,*part);
+    }
+
+  for(auto& i:commands) {
+    if(i.bCommand==DMUS_COMMANDT_GROOVE) {
+      Groove gr;
+      gr.at           = i.mtTime;
+      gr.bGrooveLevel = i.bGrooveLevel;
+      gr.bGrooveRange = i.bGrooveRange;
+      inst.groove.push_back(gr);
+      }
     }
 
   std::sort(inst.waves.begin(),inst.waves.end(),[](const Note& a,const Note& b){

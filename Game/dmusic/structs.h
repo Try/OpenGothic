@@ -50,6 +50,25 @@ struct DMUS_IO_SUBCHORD final {
   uint8_t  bScaleRoot        = 0;
   };
 
+enum DMUS_COMMANDT_TYPES : uint8_t {
+  DMUS_COMMANDT_GROOVE      = 0,
+  DMUS_COMMANDT_FILL        = 1,
+  DMUS_COMMANDT_INTRO       = 2,
+  DMUS_COMMANDT_BREAK       = 3,
+  DMUS_COMMANDT_END         = 4,
+  DMUS_COMMANDT_ENDANDINTRO = 5
+  };
+
+struct DMUS_IO_COMMAND final {
+  uint32_t            mtTime       = 0;
+  uint16_t            wMeasure     = 0;
+  uint8_t             bBeat        = 0;
+  DMUS_COMMANDT_TYPES bCommand     = DMUS_COMMANDT_GROOVE;
+  uint8_t             bGrooveLevel = 0;
+  uint8_t             bGrooveRange = 0;
+  uint8_t             bRepeatMode  = 0;
+  };
+
 struct DMUS_IO_REFERENCE final {
   GUID          guidClassID;
   //uint32_t dwValidData = 0;

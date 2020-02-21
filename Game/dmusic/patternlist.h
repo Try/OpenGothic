@@ -72,13 +72,22 @@ class PatternList final {
       InsInternal*          inst       =nullptr;
       };
 
+    struct Groove final {
+      uint64_t at           = 0;
+      uint8_t  bGrooveLevel = 0;
+      uint8_t  bGrooveRange = 0;
+      };
+
     struct PatternInternal final : Pattern {
+      DMUS_IO_PATTERN    ptnh;
       DMUS_IO_STYLE      styh;
+
       uint64_t           timeTotal=0;
 
       std::vector<InsInternal> instruments;
-      std::vector<Note>  waves;
-      std::vector<Curve> volume;
+      std::vector<Note>   waves;
+      std::vector<Curve>  volume;
+      std::vector<Groove> groove;
       };
 
     struct Internal final {
@@ -96,6 +105,7 @@ class PatternList final {
     uint32_t                      cordHeader=0;
     std::vector<DMUS_IO_SUBCHORD> subchord;
     const Style*                  style=nullptr;
+    std::vector<DMUS_IO_COMMAND>  commands;
 
     std::unordered_map<uint32_t,Instrument> instruments;
     std::shared_ptr<Internal>     intern;
