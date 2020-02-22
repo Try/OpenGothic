@@ -38,7 +38,7 @@ class PlayerControl final {
     void emptyFocus();
 
     bool tickMove(uint64_t dt);
-    auto  weaponState() const -> WeaponState;
+    auto weaponState() const -> WeaponState;
 
   private:
     enum WeponAction : uint8_t {

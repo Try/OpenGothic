@@ -103,7 +103,7 @@ void PlayerControl::onKeyReleased(KeyCodec::Action a) {
   }
 
 void PlayerControl::onRotateMouse(int dAngle) {
-  rotMouse = float(dAngle)*0.4f;
+  rotMouse += float(dAngle)*0.4f;
   }
 
 void PlayerControl::tickFocus(Focus& curFocus) {
@@ -280,6 +280,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
     }
 
   implMove(dt);
+  rotMouse=0;
   return true;
   }
 
