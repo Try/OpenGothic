@@ -258,6 +258,11 @@ bool MdlVisual::isItem() const {
   return skInst->isItem();
   }
 
+bool MdlVisual::isAnimExist(const char* name) const {
+  const Animation::Sequence *sq = solver.solveFrm(name);
+  return sq!=nullptr;
+  }
+
 const Animation::Sequence* MdlVisual::startAnimAndGet(Npc &npc, const char *name,
                                                       bool forceAnim, BodyState bs) {
   const Animation::Sequence *sq = solver.solveFrm(name);

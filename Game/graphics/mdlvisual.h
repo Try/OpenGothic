@@ -49,6 +49,7 @@ class MdlVisual final {
     bool                           isStanding() const;
     bool                           isItem() const;
 
+    bool                           isAnimExist(const char* name) const;
     const Animation::Sequence*     startAnimAndGet(Npc &npc, const char* name, bool forceAnim, BodyState bs);
     const Animation::Sequence*     startAnimAndGet(Npc &npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk);
     bool                           startAnim(Npc &npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk);

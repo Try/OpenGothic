@@ -1567,7 +1567,8 @@ void Npc::nextAiAction(uint64_t dt) {
       if(auto sq = playAnimByName(act.s0,false,BS_NONE)) {
         implAniWait(uint64_t(sq->totalTime()));
         } else {
-        aiActions.push_front(std::move(act));
+        if(visual.isAnimExist(act.s0.c_str()))
+          aiActions.push_front(std::move(act));
         }
       break;
       }
@@ -1580,7 +1581,8 @@ void Npc::nextAiAction(uint64_t dt) {
         invent.commitPutToState(*this);
         implAniWait(uint64_t(sq->totalTime()));
         } else {
-        aiActions.push_front(std::move(act));
+        if(visual.isAnimExist(act.s0.c_str()))
+          aiActions.push_front(std::move(act));
         }
       break;
       }
