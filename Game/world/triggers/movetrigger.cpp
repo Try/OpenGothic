@@ -48,8 +48,8 @@ void MoveTrigger::onTrigger(const TriggerEvent&) {
   if(anim==IdleClosed)
     anim = Open; else
     anim = Close;
-
   sAnim = owner.tickCount();
+
   enableTicks();
 
   const char* snd = data.zCMover.sfxOpenStart.c_str();
@@ -69,10 +69,18 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
   float    a  = float(dt%frameTicks)/float(frameTicks);
   uint32_t f0 = 0, f1 = 0;
 
+  if(data.zCMover.moverBehavior==ZenLoad::MoverBehavior::NSTATE_LOOP) {
+    size_t keySz = data.zCMover.keyframes.size();
+    if(keySz>0) {
+      f0 = uint32_t(dt/frameTicks)%keySz;
+      f1 = uint32_t(f0+1         )%keySz;
+      }
+    } else
   if(anim==Open) {
-    f0 = uint32_t(dt/frameTicks);
+    f0 = std::min(uint32_t(dt/frameTicks),maxFr);
     f1 = std::min(f0+1,maxFr);
-    } else {
+    } else
+  if(anim==Close) {
     f0 = maxFr - std::min(maxFr,uint32_t(dt/frameTicks));
     f1 = f0>0 ? f0-1 : 0;
     }
@@ -84,8 +92,8 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
     if(anim==Close)
       anim = IdleClosed; else
       anim = IdleOpenned;
-    disableTicks();
 
+    disableTicks();
     const char* snd = data.zCMover.sfxOpenEnd.c_str();
     if(anim==Close)
       snd = data.zCMover.sfxCloseEnd.c_str();
