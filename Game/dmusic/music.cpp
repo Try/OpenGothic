@@ -3,7 +3,7 @@
 using namespace Dx8;
 
 Music::Internal::Internal(const Music::Internal& other)
-  :pptn(other.pptn) {
+  :pptn(other.pptn), groove(other.groove) {
   volume = other.volume.load();
   }
 
@@ -18,6 +18,7 @@ void Music::addPattern(const PatternList& list, size_t id) {
     impl = std::make_shared<Internal>(*impl);
     }
   impl->pptn.push_back(ptr);
+  impl->groove = list.intern->groove;
 
   impl->timeTotal += ptr->timeTotal;
   }

@@ -69,6 +69,7 @@ class Mixer final {
 
     template<class T>
     bool     checkVariation(const T& item) const;
+    int      getGroove() const;
 
     std::shared_ptr<Music::Internal> current=nullptr;
     int64_t                          sampleCursor=0;
@@ -77,6 +78,7 @@ class Mixer final {
     int64_t                          patStart=0;
     int64_t                          patEnd  =0;
     std::atomic<uint32_t>            variationCounter={};
+    std::atomic<size_t>              grooveCounter={};
 
     std::atomic<float>               volume={1.f};
     std::vector<Active>              active;

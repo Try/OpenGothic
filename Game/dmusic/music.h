@@ -23,12 +23,15 @@ class Music final {
 
   private:
     using Pattern = std::shared_ptr<PatternList::PatternInternal>;
+    using Groove  = PatternList::Groove;
 
     struct Internal {
       Internal()=default;
       Internal(const Internal& other);
 
       std::vector<Pattern> pptn;
+      std::vector<Groove>  groove;
+
       std::atomic<float>   volume{1.f};
       uint64_t             timeTotal=0;
       };

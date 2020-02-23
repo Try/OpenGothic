@@ -32,6 +32,7 @@ Mixer::~Mixer() {
 
 void Mixer::setMusic(const Music& m) {
   current = m.impl;
+  grooveCounter.store(0);
   variationCounter.store(0);
   }
 
@@ -45,9 +46,9 @@ int64_t Mixer::currentPlayTime() const {
   }
 
 int64_t Mixer::nextNoteOn(PatternList::PatternInternal& part,int64_t b,int64_t e) {
-  int64_t  nextDt    = std::numeric_limits<int64_t>::max();
-  int64_t  timeTotal = toSamples(part.timeTotal);
-  bool     inv       = (e<b);
+  int64_t nextDt    = std::numeric_limits<int64_t>::max();
+  int64_t timeTotal = toSamples(part.timeTotal);
+  bool    inv       = (e<b);
 
   b-=patStart;
   e-=patStart;
@@ -71,7 +72,7 @@ int64_t Mixer::nextNoteOff(int64_t b, int64_t /*e*/) {
 
   for(auto& i:active) {
     int64_t at = i.at;
-    int64_t dt = at>=b ? i.at-b : 0;
+    int64_t dt = at>b ? at-b : 0;
     if(dt<actT)
       actT = dt;
     }
@@ -153,16 +154,12 @@ void Mixer::nextPattern() {
       }
     }
 
+  const int groove = getGroove();
   for(size_t i=0;i<mus->pptn.size();++i){
     auto& ptr = mus->pptn[(i+nextOff)%mus->pptn.size()];
-    bool skip=false;
-    if(ptr->groove.size()>0) {
-      //TODO: groove rnadmization
-      uint8_t lvl = pattern->groove[0].bGrooveLevel;
-      if(!(ptr->ptnh.bGrooveBottom<=lvl && lvl<=ptr->ptnh.bGrooveTop))
-        skip = true;
-      }
-    if(!skip) {
+    if(ptr->timeTotal==0)
+      continue;
+    if(mus->groove.size()==0 || (ptr->ptnh.bGrooveBottom<=groove && groove<=ptr->ptnh.bGrooveTop)) {
       pattern = std::shared_ptr<PatternList::PatternInternal>(mus,ptr.get());
       break;
       }
@@ -183,14 +180,14 @@ Mixer::Step Mixer::stepInc(PatternInternal& pptn, int64_t b, int64_t e, int64_t 
   int64_t samples = std::min(offT,nextT);
 
   Step s;
-  if(samples>samplesRemain)  {
+  if(samples>samplesRemain) {
     s.samples=samplesRemain;
     return s;
     }
 
-  s.nextOn  = nextNoteOn (pptn,b,e);
-  s.nextOff = nextNoteOff(b,e);
-  s.samples = std::min(offT,nextT);
+  s.nextOn  = nextT;//nextNoteOn (pptn,b,e);
+  s.nextOff = offT;//nextNoteOff(b,e);
+  s.samples = samples;
   return s;
   }
 
@@ -212,10 +209,14 @@ std::shared_ptr<Mixer::PatternInternal> Mixer::checkPattern(std::shared_ptr<Patt
   if(cur==nullptr)
     return nullptr;
 
-  for(auto& i:cur->pptn)
-    if(i.get()==p.get()) {
-      return p;
-      }
+  if(p==nullptr) {
+    grooveCounter.store(0);
+    } else {
+    for(auto& i:cur->pptn)
+      if(i.get()==p.get()) {
+        return p;
+        }
+    }
   // null or foreign
   nextPattern();
   return pattern;
@@ -245,7 +246,7 @@ void Mixer::mix(int16_t *out, size_t samples) {
     auto& pptn         = *pat;
     const float volume = cur->volume.load()*this->volume.load();
 
-    const Step    stp = stepInc(pptn,b,e,remain);
+    const Step stp = stepInc(pptn,b,e,remain);
     implMix(pptn,volume,out,size_t(stp.samples));
 
     if(remain!=stp.samples)
@@ -255,8 +256,10 @@ void Mixer::mix(int16_t *out, size_t samples) {
     out          += stp.samples*2;
     samplesRemain-= size_t(stp.samples);
 
-    if(sampleCursor==patEnd)
+    if(sampleCursor==patEnd) {
+      grooveCounter.fetch_add(1);
       nextPattern();
+      }
     }
 
   uniqInstr.remove_if([](Instr& i){
@@ -372,6 +375,29 @@ void Mixer::volFromCurve(PatternInternal &part,Instr& inst,std::vector<float> &v
     if(size>begin)
       base = v[size-1];
     }
+  }
+
+int Mixer::getGroove() const {
+  auto  pmus = current;
+  auto& mus  = *pmus;
+  if(mus.groove.size()==0)
+    return 0;
+  auto& g = mus.groove[grooveCounter.load()%mus.groove.size()];
+  return g.bGrooveLevel;
+
+  /*
+  int64_t total = toSamples(mus.timeTotal);
+  int64_t at    = (sampleCursor-musStart)%std::max<int64_t>(total,1);
+
+  for(size_t i=mus.groove.size();i>0;) {
+    --i;
+    auto&   g    = mus.groove[i];
+    int64_t time = toSamples(g.at);
+    if(time<=at)
+      return g.bGrooveLevel;
+    }
+  return 0;
+  */
   }
 
 bool Mixer::hasVolumeCurves(Mixer::PatternInternal& part, Mixer::Instr& inst) const {

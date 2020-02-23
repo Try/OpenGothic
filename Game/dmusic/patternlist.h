@@ -87,11 +87,11 @@ class PatternList final {
       std::vector<InsInternal> instruments;
       std::vector<Note>   waves;
       std::vector<Curve>  volume;
-      std::vector<Groove> groove;
       };
 
     struct Internal final {
       std::vector<PatternInternal> pptn;
+      std::vector<Groove>          groove;
       };
 
     void index();

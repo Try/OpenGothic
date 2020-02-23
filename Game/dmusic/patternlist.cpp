@@ -139,6 +139,16 @@ void PatternList::index() {
     index(stl,intern->pptn[i],stl.patterns[i]);
     intern->pptn[i].styh = stl.styh;
     }
+
+  for(auto& i:commands) {
+    if(i.bCommand==DMUS_COMMANDT_GROOVE) {
+      Groove gr;
+      gr.at           = i.mtTime;
+      gr.bGrooveLevel = i.bGrooveLevel;
+      gr.bGrooveRange = i.bGrooveRange;
+      intern->groove.push_back(gr);
+      }
+    }
   }
 
 void PatternList::index(const Style& stl,PatternInternal &inst, const Dx8::Pattern &pattern) {
@@ -185,16 +195,6 @@ void PatternList::index(const Style& stl,PatternInternal &inst, const Dx8::Patte
     if(part==nullptr)
       continue;
     index(inst,&instument[i],stl,*part);
-    }
-
-  for(auto& i:commands) {
-    if(i.bCommand==DMUS_COMMANDT_GROOVE) {
-      Groove gr;
-      gr.at           = i.mtTime;
-      gr.bGrooveLevel = i.bGrooveLevel;
-      gr.bGrooveRange = i.bGrooveRange;
-      inst.groove.push_back(gr);
-      }
     }
 
   std::sort(inst.waves.begin(),inst.waves.end(),[](const Note& a,const Note& b){
