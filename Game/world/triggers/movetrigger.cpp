@@ -72,8 +72,8 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
   if(data.zCMover.moverBehavior==ZenLoad::MoverBehavior::NSTATE_LOOP) {
     size_t keySz = data.zCMover.keyframes.size();
     if(keySz>0) {
-      f0 = uint32_t(dt/frameTicks)%keySz;
-      f1 = uint32_t(f0+1         )%keySz;
+      f0 = uint32_t(dt/frameTicks)%uint32_t(keySz);
+      f1 = uint32_t(f0+1         )%uint32_t(keySz);
       }
     } else
   if(anim==Open) {
