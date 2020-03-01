@@ -122,12 +122,14 @@ class Resources final {
     struct Archive {
       std::u16string name;
       int64_t        time=0;
+      uint16_t       ord=0;
       bool           isMod=false;
       };
 
+    int64_t               vdfTimestamp(const std::u16string& name);
     void                  detectVdf(std::vector<Archive>& ret, const std::u16string& root);
 
-    Tempest::Texture2d*   implLoadTexture(std::string name);
+    Tempest::Texture2d*   implLoadTexture(const char* cname);
     Tempest::Texture2d*   implLoadTexture(std::string &&name, const std::vector<uint8_t> &data);
     ProtoMesh*            implLoadMesh(const std::string &name);
     Skeleton*             implLoadSkeleton(std::string name);

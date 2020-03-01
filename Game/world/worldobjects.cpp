@@ -436,7 +436,7 @@ Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
     }
 
   auto& itData = *it->handle();
-  it->setView(owner.getItmView(itData.visual,itData.material));
+  it->setView(owner.getItmView(itData.visual,0));
   return it;
   }
 

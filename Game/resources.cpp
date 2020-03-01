@@ -92,20 +92,20 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
   std::stable_sort(archives.begin(),archives.end(),[](const Archive& a,const Archive& b){
     int aIsMod = a.isMod ? 1 : -1;
     int bIsMod = b.isMod ? 1 : -1;
-    return std::make_tuple(aIsMod,a.time) >=
-           std::make_tuple(bIsMod,b.time);
+    return std::make_tuple(aIsMod,a.time,int(a.ord)) >=
+           std::make_tuple(bIsMod,b.time,int(b.ord));
     });
 
   for(auto& i:archives)
     gothicAssets.loadVDF(i.name);
   gothicAssets.finalizeLoad();
 
-  // for(auto& i:gothicAssets.getKnownFiles())
-  //   Log::i(i);
+  //for(auto& i:gothicAssets.getKnownFiles())
+  //  Log::i(i);
 
-  //auto v = getFileData("font_old_20_white.tga");
-  //Tempest::WFile f("../../internal/font_old_20_white.tga");
-  //f.write(v.data(),v.size());
+  // auto v = getFileData("TREASURE_ADDON_01.MDL");
+  // Tempest::WFile f("../../internal/TREASURE_ADDON_01.MDL");
+  // f.write(v.data(),v.size());
   }
 
 Resources::~Resources() {
@@ -122,29 +122,12 @@ void Resources::detectVdf(std::vector<Archive>& ret, const std::u16string &root)
       auto file = root + vdf;
       Archive ar;
       ar.name  = root+vdf;
-#ifdef __WINDOWS__
-      {
-      FILETIME modTime={};
-      HANDLE hfn = CreateFileW(LPWSTR(ar.name.c_str()), GENERIC_READ, FILE_SHARE_READ,  nullptr,  OPEN_EXISTING,  FILE_ATTRIBUTE_NORMAL, nullptr);
-
-      if(hfn != INVALID_HANDLE_VALUE)
-      {
-        if(GetFileTime(hfn, nullptr, nullptr, &modTime))
-        {
-          ULARGE_INTEGER i64;
-          i64.LowPart  = modTime.dwLowDateTime;
-          i64.HighPart = modTime.dwHighDateTime;
-          ar.time = int64_t(i64.QuadPart);
-        }
-        CloseHandle(hfn);
-      }
-      }
-#else
-      ar.time  = VDFS::FileIndex::getLastModTime(file);
-#endif
+      ar.time  = vdfTimestamp(ar.name);
+      ar.ord   = uint16_t(ret.size());
       ar.isMod = vdf.rfind(u".mod")==vdf.size()-4;
 
-      if(ar.time>0 || ar.isMod)
+      //if(ar.time>0 || ar.isMod)
+      //if(ar.isMod)
         ret.emplace_back(std::move(ar));
       return;
       }
@@ -189,7 +172,31 @@ const Tempest::VertexBuffer<Resources::VertexFsq> &Resources::fsqVbo() {
   return inst->fsq;
   }
 
-Tempest::Texture2d* Resources::implLoadTexture(std::string name) {
+int64_t Resources::vdfTimestamp(const std::u16string& name) {
+  enum {
+    VDF_COMMENT_LENGTH   = 256,
+    VDF_SIGNATURE_LENGTH = 16,
+    };
+  uint32_t count=0, timestamp=0;
+  char sign[VDF_SIGNATURE_LENGTH]={};
+
+  try {
+    RFile fin(name);
+    fin.seek(VDF_COMMENT_LENGTH);
+    fin.read(sign,VDF_SIGNATURE_LENGTH);
+    fin.read(&count,sizeof(count));
+    fin.seek(4);
+    fin.read(&timestamp,sizeof(timestamp));
+
+    return int64_t(timestamp);
+    }
+  catch(...) {
+    return -1;
+    }
+  }
+
+Tempest::Texture2d* Resources::implLoadTexture(const char* cname) {
+  std::string name = cname;
   if(name.size()==0)
     return nullptr;
 
@@ -197,20 +204,28 @@ Tempest::Texture2d* Resources::implLoadTexture(std::string name) {
   if(it!=texCache.end())
     return it->second.get();
 
-  if(getFileData(name.c_str(),fBuff))
-    return implLoadTexture(std::move(name),fBuff);
-
   if(FileExt::hasExt(name,"TGA")){
-    auto n = name;
-    n.resize(n.size()+2);
-    std::memcpy(&n[0]+n.size()-6,"-C.TEX",6);
-    if(!getFileData(n.c_str(),fBuff))
-      return nullptr;
-    ddsBuf.clear();
-    ZenLoad::convertZTEX2DDS(fBuff,ddsBuf);
-    return implLoadTexture(std::move(name),ddsBuf);
+    name.resize(name.size()+2);
+    std::memcpy(&name[0]+name.size()-6,"-C.TEX",6);
+    if(hasFile(name)) {
+      if(!getFileData(name.c_str(),fBuff)) {
+        Log::e("unable to load texture \"",name,"\"");
+        return nullptr;
+        }
+      ddsBuf.clear();
+      ZenLoad::convertZTEX2DDS(fBuff,ddsBuf);
+      auto t = implLoadTexture(cname,ddsBuf);
+      if(t!=nullptr) {
+        return t;
+        }
+      }
     }
 
+  if(getFileData(cname,fBuff))
+    return implLoadTexture(cname,fBuff);
+
+  texCache[name]=nullptr;
+  //Log::e("unable to load texture \"",name,"\"");
   return nullptr;
   }
 
@@ -225,8 +240,7 @@ Texture2d *Resources::implLoadTexture(std::string&& name,const std::vector<uint8
     return ret;
     }
   catch(...){
-    Log::e("unable to load texture \"",name,"\"");
-    return &fallback;
+    return nullptr;
     }
   }
 
@@ -237,9 +251,6 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
   auto it=aniMeshCache.find(name);
   if(it!=aniMeshCache.end())
     return it->second.get();
-
-  if(name=="BSSHARP_OC.MDS")//"Sna_Body.MDM"
-    Log::d("");
 
   if(FileExt::hasExt(name,"TGA")){
     static std::unordered_set<std::string> dec;
@@ -279,9 +290,6 @@ Skeleton* Resources::implLoadSkeleton(std::string name) {
   auto it=skeletonCache.find(name);
   if(it!=skeletonCache.end())
     return it->second.get();
-
-  if(name=="BARBQ_SCAV.MDL")
-    Log::e("");
 
   try {
     ZenLoad::zCModelMeshLib library(name,gothicAssets,1.f);
@@ -372,6 +380,9 @@ Dx8::PatternList Resources::implLoadDxMusic(const char* name) {
   }
 
 Sound Resources::implLoadSoundBuffer(const char *name) {
+  if(name[0]=='\0')
+    return Sound();
+
   if(!getFileData(name,fBuff))
     return Sound();
   try {
@@ -448,7 +459,7 @@ const Texture2d *Resources::loadTexture(const char *name) {
 
 const Tempest::Texture2d* Resources::loadTexture(const std::string &name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implLoadTexture(name);
+  return inst->implLoadTexture(name.c_str());
   }
 
 const Texture2d *Resources::loadTexture(const std::string &name, int32_t iv, int32_t ic) {
@@ -550,7 +561,12 @@ std::vector<uint8_t> Resources::getFileData(const std::string &name) {
   return data;
   }
 
-Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoad::zCModelMeshLib& library, std::string name) {
+Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoad::zCModelMeshLib& library,
+                                            std::string name) {
+  if(name=="TREASURE_ADDON_01.ASC") {
+    // name = "TREASURE.MRM";
+    Log::d("");
+    }
   // Check if this isn't the compiled version
   if(name.rfind("-C")==std::string::npos) {
     // Strip the extension ".***"

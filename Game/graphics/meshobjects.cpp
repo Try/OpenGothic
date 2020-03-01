@@ -123,6 +123,9 @@ MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_
       if(s.texName=="HUM_TEETH_V0.TGA"){
         tex=solveTex(s.texture,s.texName,teethTex,bodyColor);
         }
+      else if(s.texName=="HUM_MOUTH_V0.TGA"){
+        tex=solveTex(s.texture,s.texName,teethTex,bodyColor);
+        }
       else if(s.texName.find_first_of("VC")!=std::string::npos){
         tex=solveTex(s.texture,s.texName,texVar,bodyColor);
         }

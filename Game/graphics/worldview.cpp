@@ -74,7 +74,7 @@ MeshObjects::Mesh WorldView::getView(const char* visual, int32_t headTex, int32_
 
 MeshObjects::Mesh WorldView::getItmView(const char* visual, int32_t material) {
   if(auto mesh=Resources::loadMesh(visual))
-    return itmGroup.get(*mesh,material,0,material);
+    return itmGroup.get(*mesh,material,0,0);
   return MeshObjects::Mesh();
   }
 
