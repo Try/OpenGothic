@@ -16,10 +16,10 @@ class PhysicMeshShape final {
   public:
     PhysicMeshShape(const PhysicMeshShape&)=delete;
 
-    static PhysicMeshShape* load(const ZenLoad::PackedMesh& sPacked);
+    static PhysicMeshShape* load(ZenLoad::PackedMesh&& sPacked);
 
   private:
-    PhysicMeshShape(const ZenLoad::PackedMesh& sPacked);
+    PhysicMeshShape(ZenLoad::PackedMesh&& sPacked);
     PhysicMesh             mesh;
     mutable btBvhTriangleMeshShape shape;
 

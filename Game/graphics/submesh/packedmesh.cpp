@@ -2,7 +2,7 @@
 
 #include <zenload/zCMaterial.h>
 
-PackedMesh::PackedMesh(ZenLoad::zCMesh& mesh, PkgType type) {
+PackedMesh::PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type) {
   mesh.getBoundingBox(bbox[0],bbox[1]);
   if(type==PK_Visual) {
     subMeshes.resize(mesh.getMaterials().size());

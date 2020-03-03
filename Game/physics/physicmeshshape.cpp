@@ -1,6 +1,6 @@
 #include "physicmeshshape.h"
 
-PhysicMeshShape *PhysicMeshShape::load(const ZenLoad::PackedMesh &sPacked) {
+PhysicMeshShape *PhysicMeshShape::load(ZenLoad::PackedMesh&& sPacked) {
   uint32_t count=0;
   for(auto& i:sPacked.subMeshes)
     if(!i.material.noCollDet && i.indices.size()>0){
@@ -8,9 +8,9 @@ PhysicMeshShape *PhysicMeshShape::load(const ZenLoad::PackedMesh &sPacked) {
       }
   if(count==0)
     return nullptr;
-  return new PhysicMeshShape(sPacked);
+  return new PhysicMeshShape(std::move(sPacked));
   }
 
-PhysicMeshShape::PhysicMeshShape(const ZenLoad::PackedMesh& sPacked)
-  :mesh(sPacked), shape(&mesh,true,true){
+PhysicMeshShape::PhysicMeshShape(ZenLoad::PackedMesh&& sPacked)
+  :mesh(std::move(sPacked)), shape(&mesh,true,true){
   }

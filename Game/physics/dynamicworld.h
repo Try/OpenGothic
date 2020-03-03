@@ -42,7 +42,8 @@ class DynamicWorld final {
     static constexpr float bulletSpeed = 3000; //per sec
     static constexpr float spellSpeed  = 1000; //per sec
 
-    DynamicWorld(World &world, const PackedMesh &pkg);
+    DynamicWorld(World &world, const ZenLoad::zCMesh& mesh);
+    DynamicWorld(const DynamicWorld&)=delete;
     ~DynamicWorld();
 
     enum Category {
@@ -207,6 +208,7 @@ class DynamicWorld final {
     std::unique_ptr<btBroadphaseInterface>      broadphase;
     std::unique_ptr<btCollisionWorld>           world;
 
+    std::vector<btVector3>                      landVbo;
     std::unique_ptr<PhysicMesh>                 landMesh;
     std::unique_ptr<btCollisionShape>           landShape;
     std::unique_ptr<btRigidBody>                landBody;

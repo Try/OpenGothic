@@ -38,6 +38,7 @@
 #include <cmath>
 
 #include "world/bullet.h"
+#include "graphics/submesh/packedmesh.h"
 
 const float DynamicWorld::ghostPadding=50-22.5f;
 const float DynamicWorld::ghostHeight =140;
@@ -421,7 +422,7 @@ struct DynamicWorld::BulletsList final {
   DynamicWorld&         wrld;
   };
 
-DynamicWorld::DynamicWorld(World&,const PackedMesh& pkg) {
+DynamicWorld::DynamicWorld(World&,const ZenLoad::zCMesh& worldMesh) {
   // collision configuration contains default setup for memory, collision setup
   conf.reset(new btDefaultCollisionConfiguration());
 
@@ -436,14 +437,21 @@ DynamicWorld::DynamicWorld(World&,const PackedMesh& pkg) {
   // the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
   world.reset(new btCollisionWorld(dispatcher.get(),broadphase.get(),conf.get()));
 
-  landMesh .reset(new PhysicMesh(pkg.vertices));
-  waterMesh.reset(new PhysicMesh(pkg.vertices)); //TODO: remove extra vector-copy
+  PackedMesh pkg(worldMesh,PackedMesh::PK_Physic);
+  landVbo.resize(pkg.vertices.size());
+  for(size_t i=0;i<pkg.vertices.size();++i) {
+    auto& p = pkg.vertices[i].Position;
+    landVbo[i].setValue(p.x,p.y,p.z);
+    }
+
+  landMesh .reset(new PhysicMesh(&landVbo));
+  waterMesh.reset(new PhysicMesh(&landVbo));
 
   for(auto& i:pkg.subMeshes)
     if(!i.material.noCollDet && i.indices.size()>0) {
       if(i.material.matGroup==ZenLoad::MaterialGroup::WATER)
-        waterMesh->addIndex(i.indices,i.material.matGroup); else
-        landMesh ->addIndex(i.indices,i.material.matGroup);
+        waterMesh->addIndex(std::move(i.indices),i.material.matGroup); else
+        landMesh ->addIndex(std::move(i.indices),i.material.matGroup);
       }
 
   landShape.reset(new btMultimaterialTriangleMeshShape(landMesh.get(),landMesh->useQuantization(),true));

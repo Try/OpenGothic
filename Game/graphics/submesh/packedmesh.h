@@ -23,7 +23,7 @@ class PackedMesh {
     std::vector<SubMesh>       subMeshes;
     ZMath::float3              bbox[2] = {};
 
-    PackedMesh(ZenLoad::zCMesh& mesh,PkgType type);
+    PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type);
 
   private:
     void   pack(const ZenLoad::zCMesh& mesh,PkgType type);
