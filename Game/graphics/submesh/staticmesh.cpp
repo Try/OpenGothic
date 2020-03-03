@@ -38,3 +38,14 @@ StaticMesh::StaticMesh(const ZenLoad::PackedSkeletalMesh &mesh) {
     sub[i].ibo     = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
     }
   }
+
+StaticMesh::StaticMesh(const std::string& fname, std::vector<Resources::Vertex> cvbo, std::vector<uint32_t> ibo) {
+  vbo = Resources::vbo<Vertex>(cvbo.data(),cvbo.size());
+  sub.resize(1);
+  for(size_t i=0;i<1;++i){
+    sub[i].texName = fname;
+    //sub[i].texture = &Resources::fallbackTexture();
+    sub[i].texture = Resources::loadTexture(sub[i].texName);
+    sub[i].ibo     = Resources::ibo(ibo.data(),ibo.size());
+    }
+  }

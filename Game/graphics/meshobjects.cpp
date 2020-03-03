@@ -215,6 +215,11 @@ void MeshObjects::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t i
     c.draw(cmd,storage.pAnim,imgId);
   }
 
+void MeshObjects::drawDecals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t imgId) {
+  for(auto& c:chunksSt)
+    c.draw(cmd,storage.pObjectDecal,imgId);
+  }
+
 void MeshObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId, int layer) {
   for(auto& c:chunksSt)
     c.drawShadow(cmd,storage.pObjectSh,imgId,layer);

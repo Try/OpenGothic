@@ -14,7 +14,7 @@ class RendererStorage {
     RendererStorage(Tempest::Device& device, Gothic& gothic);
 
     Tempest::Device&        device;
-    Tempest::RenderPipeline pLand, pLandAt, pLandAlpha, pObject, pAnim, pPfx, pSky;
+    Tempest::RenderPipeline pLand, pLandAt, pLandAlpha, pObject, pObjectDecal, pAnim, pPfx, pSky;
     Tempest::RenderPipeline pLandSh, pLandAtSh, pObjectSh, pAnimSh;
     Tempest::RenderPipeline pComposeShadow;
 

@@ -91,6 +91,7 @@ class World final {
     MeshObjects::Mesh   getItmView   (const Daedalus::ZString& visual, int32_t tex) const;
     MeshObjects::Mesh   getItmView   (const char*              visual, int32_t tex) const;
     MeshObjects::Mesh   getStaticView(const char* visual) const;
+    MeshObjects::Mesh   getDecalView (const char* visual, float x, float y, float z, ProtoMesh& out) const;
     DynamicWorld::Item  getPhysic    (const char* visual);
 
     const VisualFx*   loadVisualFx(const char* name);

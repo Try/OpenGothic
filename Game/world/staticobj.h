@@ -9,8 +9,9 @@ class StaticObj final {
     StaticObj(const ZenLoad::zCVobData &vob, World& owner);
 
   private:
-    MeshObjects::Mesh        mesh;
-    DynamicWorld::StaticItem physic;
-    PfxObjects::Emitter      pfx;
+    MeshObjects::Mesh          mesh;
+    DynamicWorld::StaticItem   physic;
+    PfxObjects::Emitter        pfx;
+    std::unique_ptr<ProtoMesh> decalMesh;
   };
 

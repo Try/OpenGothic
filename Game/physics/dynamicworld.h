@@ -7,6 +7,8 @@
 #include <memory>
 #include <limits>
 
+#include "graphics/protomesh.h"
+
 class btConstraintSolver;
 class btCollisionConfiguration;
 class btBroadphaseInterface;
@@ -176,6 +178,8 @@ class DynamicWorld final {
     Item        ghostObj (const ZMath::float3& min,const ZMath::float3& max);
     StaticItem  staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
     BulletBody* bulletObj(BulletCallback* cb);
+
+    ProtoMesh   decalMesh(const std::string& tex, float x, float y, float z, float sX, float sY, float sZ) const;
 
     void        tick(uint64_t dt);
 

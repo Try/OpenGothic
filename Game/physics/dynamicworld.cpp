@@ -437,7 +437,7 @@ DynamicWorld::DynamicWorld(World&,const PackedMesh& pkg) {
   world.reset(new btCollisionWorld(dispatcher.get(),broadphase.get(),conf.get()));
 
   landMesh .reset(new PhysicMesh(pkg.vertices));
-  waterMesh.reset(new PhysicMesh(pkg.vertices));
+  waterMesh.reset(new PhysicMesh(pkg.vertices)); //TODO: remove extra vector-copy
 
   for(auto& i:pkg.subMeshes)
     if(!i.material.noCollDet && i.indices.size()>0) {
@@ -719,6 +719,12 @@ DynamicWorld::StaticItem DynamicWorld::staticObj(const PhysicMeshShape *shape, c
 
 DynamicWorld::BulletBody* DynamicWorld::bulletObj(BulletCallback* cb) {
   return bulletList->add(cb);
+  }
+
+ProtoMesh DynamicWorld::decalMesh(const std::string& tex,
+                                  float x, float y, float z,
+                                  float sX, float sY, float sZ) const {
+  return landMesh->decalMesh(tex, x,y,z, sX,sY,sZ);
   }
 
 void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint64_t dt) {

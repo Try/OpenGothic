@@ -129,6 +129,34 @@ ProtoMesh::ProtoMesh(const ZenLoad::PackedMesh &pm, const std::string& fname) {
   setupScheme(fname);
   }
 
+ProtoMesh::ProtoMesh(const std::string& fname, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo) {
+  attach.emplace_back(fname,std::move(vbo),std::move(ibo));
+  submeshId.resize(attach[0].sub.size());
+  auto&  att   = attach[0];
+  size_t count = 0;
+  for(size_t r=0;r<att.sub.size();++r) {
+    if(att.sub[r].texture==nullptr) {
+      if(!att.sub[r].texName.empty())
+        Tempest::Log::e("no texture?!");
+      continue;
+      }
+    submeshId[count].id    = 0;
+    submeshId[count].subId = r;
+    count++;
+    }
+  submeshId.resize(count);
+
+  nodes.emplace_back();
+  nodes.back().attachId   = 0;
+  nodes.back().submeshIdB = 0;
+  nodes.back().submeshIdE = submeshId.size();
+  nodes.back().transform.identity();
+
+  //bbox[0] = Tempest::Vec3(pm.bbox[0].x,pm.bbox[0].y,pm.bbox[0].z);
+  //bbox[1] = Tempest::Vec3(pm.bbox[1].x,pm.bbox[1].y,pm.bbox[1].z);
+  setupScheme("");
+  }
+
 size_t ProtoMesh::skinedNodesCount() const {
   size_t ret=0;
   for(auto& i:skined)

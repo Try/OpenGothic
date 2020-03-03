@@ -16,6 +16,7 @@ class ProtoMesh {
 
     ProtoMesh(const ZenLoad::zCModelMeshLib& lib,const std::string& fname);
     ProtoMesh(const ZenLoad::PackedMesh&     pm,const std::string& fname);
+    ProtoMesh(const std::string& fname, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo);
 
     struct SubMesh final {
       Tempest::Texture2d*            texture=nullptr;

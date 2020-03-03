@@ -5,6 +5,8 @@
 #include <vector>
 #include <cstdint>
 
+#include "graphics/protomesh.h"
+
 class PhysicMesh:public btTriangleIndexVertexArray {
   public:
     PhysicMesh(const ZenLoad::PackedMesh& sPacked);
@@ -16,9 +18,11 @@ class PhysicMesh:public btTriangleIndexVertexArray {
     PhysicMesh(const PhysicMesh&)=delete;
     PhysicMesh(PhysicMesh&&)=delete;
 
-    void addIndex(const std::vector<uint32_t>& index, uint8_t material);
+    void    addIndex(const std::vector<uint32_t>& index, uint8_t material);
     uint8_t getMaterialId(size_t segment) const;
     bool    useQuantization() const;
+
+    ProtoMesh decalMesh(const std::string& tex, float x, float y, float z, float sX, float sY, float sZ) const;
 
   private:
     struct Segment {
@@ -32,4 +36,7 @@ class PhysicMesh:public btTriangleIndexVertexArray {
     std::vector<Segment>   segments;
 
     void adjustMesh();
+
+    static bool intersects(btVector3 a, btVector3 b, btVector3 c,
+                           float x, float y, float z, float sX, float sY, float sZ);
   };

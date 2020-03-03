@@ -189,6 +189,10 @@ MeshObjects::Mesh World::getStaticView(const char* visual) const {
   return view()->getStaticView(visual);
   }
 
+MeshObjects::Mesh World::getDecalView(const char* visual, float x, float y, float z, ProtoMesh& out) const {
+  return view()->getDecalView(visual,x,y,z,out);
+  }
+
 DynamicWorld::Item World::getPhysic(const char* visual) {
   if(auto sk=Resources::loadSkeleton(visual))
     return physic()->ghostObj(sk->bboxCol[0],sk->bboxCol[1]);

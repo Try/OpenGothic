@@ -77,6 +77,9 @@ void RendererStorage::initPipeline(Gothic& gothic) {
   stateObj.setZTestMode   (RenderState::ZTestMode::Less);
   stateObj.setCullFaceMode(RenderState::CullMode::Front);
 
+  RenderState stateObjDec = stateObj;
+  stateObjDec.setZTestMode(RenderState::ZTestMode::LEqual);
+
   RenderState stateLnd;
   stateLnd.setZTestMode   (RenderState::ZTestMode::Less);
   stateLnd.setCullFaceMode(RenderState::CullMode::Front);
@@ -103,8 +106,9 @@ void RendererStorage::initPipeline(Gothic& gothic) {
   pLandAt        = pipeline<Resources::Vertex> (stateLnd,  layoutLnd,landAt.main);
   pLandAlpha     = pipeline<Resources::Vertex> (stateAlpha,layoutLnd,land.main);
 
-  pObject        = pipeline<Resources::Vertex> (stateObj,layoutObj,object.main);
-  pAnim          = pipeline<Resources::VertexA>(stateObj,layoutAni,ani.main);
+  pObject        = pipeline<Resources::Vertex> (stateObj,   layoutObj,object.main);
+  pObjectDecal   = pipeline<Resources::Vertex> (stateObjDec,layoutObj,object.main);
+  pAnim          = pipeline<Resources::VertexA>(stateObj,   layoutAni,ani.main);
 
   pPfx           = pipeline<Resources::Vertex> (statePfx,layoutLnd,pfx.main);
 

@@ -78,6 +78,7 @@ class MeshObjects final {
     void reserve(size_t stat,size_t dyn);
 
     void draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId);
+    void drawDecals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId);
     void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId, int layer=0);
 
     bool needToUpdateCommands() const;

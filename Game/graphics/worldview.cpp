@@ -10,7 +10,7 @@ using namespace Tempest;
 
 WorldView::WorldView(const World &world, const PackedMesh &wmesh, const RendererStorage &storage)
   :owner(world),storage(storage),sky(storage),land(storage,wmesh),
-    vobGroup(storage),objGroup(storage),itmGroup(storage),pfxGroup(storage) {
+    vobGroup(storage),objGroup(storage),itmGroup(storage),decGroup(storage),pfxGroup(storage) {
   sky.setWorld(owner);
   vobGroup.reserve(8192,0);
   objGroup.reserve(8192,2048);
@@ -84,6 +84,11 @@ MeshObjects::Mesh WorldView::getStaticView(const char* visual) {
   return MeshObjects::Mesh();
   }
 
+MeshObjects::Mesh WorldView::getDecalView(const char* visual,float x,float y,float z,ProtoMesh& out) {
+  out = owner.physic()->decalMesh(visual,x,y,z,100,100,100);
+  return decGroup.get(out,0,0,0);
+  }
+
 PfxObjects::Emitter WorldView::getView(const ParticleFx *decl) {
   if(decl!=nullptr)
     return pfxGroup.get(*decl);
@@ -133,6 +138,7 @@ bool WorldView::needToUpdateCmd() const {
          vobGroup.needToUpdateCommands() ||
          objGroup.needToUpdateCommands() ||
          itmGroup.needToUpdateCommands() ||
+         decGroup.needToUpdateCommands() ||
          pfxGroup.needToUpdateCommands();
   }
 
@@ -154,6 +160,7 @@ void WorldView::updateCmd(uint32_t frameId, const World &world,
     vobGroup.setAsUpdated();
     objGroup.setAsUpdated();
     itmGroup.setAsUpdated();
+    decGroup.setAsUpdated();
     pfxGroup.setAsUpdated();
     nToUpdateCmd=false;
     }
@@ -180,6 +187,9 @@ void WorldView::updateUbo(uint32_t frameId, const Matrix4x4& view,const Tempest:
   itmGroup.setModelView(viewProj,shadow,shCount);
   itmGroup.setLight    (sun,ambient);
   itmGroup.updateUbo   (frameId);
+  decGroup.setModelView(viewProj,shadow,shCount);
+  decGroup.setLight    (sun,ambient);
+  decGroup.updateUbo   (frameId);
 
   pfxGroup.setModelView(viewProj,shadow[0]);
   pfxGroup.setLight    (sun,ambient);
@@ -202,6 +212,7 @@ void WorldView::builtCmdBuf(uint32_t frameId, const World &world,
   vobGroup.commitUbo(frameId,smTexture);
   objGroup.commitUbo(frameId,smTexture);
   itmGroup.commitUbo(frameId,smTexture);
+  decGroup.commitUbo(frameId,smTexture);
   pfxGroup.commitUbo(frameId,smTexture);
 
   // cascade#0 detail shadow
@@ -227,6 +238,7 @@ void WorldView::builtCmdBuf(uint32_t frameId, const World &world,
   vobGroup.draw(cmd,frameId);
   objGroup.draw(cmd,frameId);
   itmGroup.draw(cmd,frameId);
+  decGroup.drawDecals(cmd,frameId);
   sky     .draw(cmd,frameId,world);
   pfxGroup.draw(cmd,frameId);
   }
