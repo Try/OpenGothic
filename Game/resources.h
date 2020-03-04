@@ -75,6 +75,7 @@ class Resources final {
 
     static const Tempest::Texture2d& fallbackTexture();
     static const Tempest::Texture2d& fallbackBlack();
+    static const Tempest::Texture2d* loadDecal(const char* name);
     static const Tempest::Texture2d* loadTexture(const char* name);
     static const Tempest::Texture2d* loadTexture(const std::string& name);
     static const Tempest::Texture2d* loadTexture(const std::string& name,int32_t v,int32_t c);
@@ -126,11 +127,13 @@ class Resources final {
       bool           isMod=false;
       };
 
+    using TextureCache = std::unordered_map<std::string,std::unique_ptr<Tempest::Texture2d>>;
+
     int64_t               vdfTimestamp(const std::u16string& name);
     void                  detectVdf(std::vector<Archive>& ret, const std::u16string& root);
 
-    Tempest::Texture2d*   implLoadTexture(const char* cname);
-    Tempest::Texture2d*   implLoadTexture(std::string &&name, const std::vector<uint8_t> &data);
+    Tempest::Texture2d*   implLoadTexture(TextureCache& cache, const char* cname);
+    Tempest::Texture2d*   implLoadTexture(TextureCache& cache, std::string &&name, const std::vector<uint8_t> &data);
     ProtoMesh*            implLoadMesh(const std::string &name);
     Skeleton*             implLoadSkeleton(std::string name);
     Animation*            implLoadAnimation(std::string name);
@@ -167,7 +170,9 @@ class Resources final {
     std::vector<uint8_t>  fBuff, ddsBuf;
     Tempest::VertexBuffer<VertexFsq> fsq;
 
-    std::unordered_map<std::string,std::unique_ptr<Tempest::Texture2d>>   texCache;
+    TextureCache                                                          texCache;
+    TextureCache                                                          decalCache;
+
     std::unordered_map<std::string,std::unique_ptr<ProtoMesh>>            aniMeshCache;
     std::unordered_map<std::string,std::unique_ptr<Skeleton>>             skeletonCache;
     std::unordered_map<std::string,std::unique_ptr<Animation>>            animCache;

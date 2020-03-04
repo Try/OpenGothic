@@ -16,6 +16,7 @@ class btDispatcher;
 class btDynamicsWorld;
 class btTriangleIndexVertexArray;
 class btCollisionShape;
+class btConcaveShape;
 class btRigidBody;
 class btGhostObject;
 class btCollisionObject;
@@ -210,7 +211,7 @@ class DynamicWorld final {
 
     std::vector<btVector3>                      landVbo;
     std::unique_ptr<PhysicMesh>                 landMesh;
-    std::unique_ptr<btCollisionShape>           landShape;
+    std::unique_ptr<btConcaveShape>             landShape;
     std::unique_ptr<btRigidBody>                landBody;
 
     std::unique_ptr<btCollisionShape>           waterShape;

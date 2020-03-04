@@ -195,13 +195,13 @@ int64_t Resources::vdfTimestamp(const std::u16string& name) {
     }
   }
 
-Tempest::Texture2d* Resources::implLoadTexture(const char* cname) {
+Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache,const char* cname) {
   std::string name = cname;
   if(name.size()==0)
     return nullptr;
 
-  auto it=texCache.find(name);
-  if(it!=texCache.end())
+  auto it=cache.find(name);
+  if(it!=cache.end())
     return it->second.get();
 
   if(FileExt::hasExt(name,"TGA")){
@@ -214,7 +214,7 @@ Tempest::Texture2d* Resources::implLoadTexture(const char* cname) {
         }
       ddsBuf.clear();
       ZenLoad::convertZTEX2DDS(fBuff,ddsBuf);
-      auto t = implLoadTexture(cname,ddsBuf);
+      auto t = implLoadTexture(cache,cname,ddsBuf);
       if(t!=nullptr) {
         return t;
         }
@@ -222,21 +222,20 @@ Tempest::Texture2d* Resources::implLoadTexture(const char* cname) {
     }
 
   if(getFileData(cname,fBuff))
-    return implLoadTexture(cname,fBuff);
+    return implLoadTexture(cache,cname,fBuff);
 
-  texCache[name]=nullptr;
-  //Log::e("unable to load texture \"",name,"\"");
+  cache[name]=nullptr;
   return nullptr;
   }
 
-Texture2d *Resources::implLoadTexture(std::string&& name,const std::vector<uint8_t> &data) {
+Texture2d *Resources::implLoadTexture(TextureCache& cache,std::string&& name,const std::vector<uint8_t> &data) {
   try {
     Tempest::MemReader rd(data.data(),data.size());
     Tempest::Pixmap    pm(rd);
 
     std::unique_ptr<Texture2d> t{new Texture2d(device.loadTexture(pm))};
     Texture2d* ret=t.get();
-    texCache[std::move(name)] = std::move(t);
+    cache[std::move(name)] = std::move(t);
     return ret;
     }
   catch(...){
@@ -306,7 +305,7 @@ Skeleton* Resources::implLoadSkeleton(std::string name) {
     }
   }
 
-Animation *Resources::implLoadAnimation(std::string name) {
+Animation* Resources::implLoadAnimation(std::string name) {
   if(name.size()<4)
     return nullptr;
 
@@ -452,14 +451,25 @@ bool Resources::hasFile(const std::string &fname) {
   return inst->gothicAssets.hasFile(fname);
   }
 
+const Texture2d* Resources::loadDecal(const char* name) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  if(auto t = inst->implLoadTexture(inst->decalCache,name)){
+    Tempest::Sampler2d smp;
+    smp.setClamping(Tempest::ClampMode::ClampToEdge);
+    t->setSampler(smp);
+    return t;
+    }
+  return nullptr;
+  }
+
 const Texture2d *Resources::loadTexture(const char *name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implLoadTexture(name);
+  return inst->implLoadTexture(inst->texCache,name);
   }
 
 const Tempest::Texture2d* Resources::loadTexture(const std::string &name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implLoadTexture(name.c_str());
+  return inst->implLoadTexture(inst->texCache,name.c_str());
   }
 
 const Texture2d *Resources::loadTexture(const std::string &name, int32_t iv, int32_t ic) {

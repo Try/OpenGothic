@@ -732,7 +732,55 @@ DynamicWorld::BulletBody* DynamicWorld::bulletObj(BulletCallback* cb) {
 ProtoMesh DynamicWorld::decalMesh(const std::string& tex,
                                   float x, float y, float z,
                                   float sX, float sY, float sZ) const {
-  return landMesh->decalMesh(tex, x,y,z, sX,sY,sZ);
+  btVector3 min={x-sX,y-sY,z-sZ};
+  btVector3 max={x+sX,y+sY,z+sZ};
+
+  struct Callback:btTriangleCallback {
+    Callback(float x,float z,float sX,float sZ):x(x),z(z),sX(sX),sZ(sZ) {}
+
+    float x =0;
+    float z =0;
+    float sX=0;
+    float sZ=0;
+
+    std::vector<Resources::Vertex> vbo;
+    std::vector<uint32_t>          ibo;
+
+    void processTriangle(btVector3* triangle, int /*partId*/, int /*triangleIndex*/) override {
+      add(triangle[0]);
+      add(triangle[2]);
+      add(triangle[1]);
+      }
+
+    void add(const btVector3& vx) {
+      Resources::Vertex v={};
+      v.pos[0]  = vx.x();
+      v.pos[1]  = vx.y();
+      v.pos[2]  = vx.z();
+
+      v.norm[0] = 0.f;
+      v.norm[1] = 1.f;
+      v.norm[2] = 0.f;
+
+      v.uv[0]   = 0.5f+0.5f*(v.pos[0]-x)/sX;
+      v.uv[1]   = 0.5f+0.5f*(v.pos[2]-z)/sZ;
+
+      v.color   = 0xFFFFFFFF;
+      vbo.push_back(v);
+      }
+
+    void adjustIbo() {
+      ibo.resize(vbo.size());
+      for(size_t i=0;i<ibo.size();++i)
+        ibo[i] = i;
+      }
+    };
+
+  Callback callbak {x,z,sX,sZ};
+  landShape->processAllTriangles(&callbak,min,max);
+
+  callbak.adjustIbo();
+  return ProtoMesh(tex, std::move(callbak.vbo), std::move(callbak.ibo));
   }
 
 void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint64_t dt) {

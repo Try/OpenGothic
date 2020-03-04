@@ -20,8 +20,6 @@ class PhysicMesh:public btTriangleIndexVertexArray {
     uint8_t getMaterialId(size_t segment) const;
     bool    useQuantization() const;
 
-    ProtoMesh decalMesh(const std::string& tex, float x, float y, float z, float sX, float sY, float sZ) const;
-
   private:
     struct Segment {
       size_t  off;
@@ -35,7 +33,4 @@ class PhysicMesh:public btTriangleIndexVertexArray {
     std::vector<Segment>          segments;
 
     void adjustMesh();
-
-    static bool intersects(btVector3 a, btVector3 b, btVector3 c,
-                           float x, float y, float z, float sX, float sY, float sZ);
   };

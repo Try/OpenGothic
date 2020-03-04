@@ -45,7 +45,7 @@ StaticMesh::StaticMesh(const std::string& fname, std::vector<Resources::Vertex> 
   for(size_t i=0;i<1;++i){
     sub[i].texName = fname;
     //sub[i].texture = &Resources::fallbackTexture();
-    sub[i].texture = Resources::loadTexture(sub[i].texName);
+    sub[i].texture = Resources::loadDecal(sub[i].texName.c_str());
     sub[i].ibo     = Resources::ibo(ibo.data(),ibo.size());
     }
   }
