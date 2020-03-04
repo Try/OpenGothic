@@ -8,9 +8,34 @@
 
 PhysicMesh::PhysicMesh(ZenLoad::PackedMesh&& sPacked)
   :PhysicMesh(sPacked.vertices) {
+  size_t idSize=0;
+  size_t cnt=0;
   for(auto& i:sPacked.subMeshes)
-    if(!i.material.noCollDet && i.indices.size()>0)
-      addIndex(std::move(i.indices),i.material.matGroup);
+    if(!i.material.noCollDet && i.indices.size()>0) {
+      idSize+=i.indices.size();
+      cnt++;
+      }
+
+  if(cnt==1) {
+    for(auto& i:sPacked.subMeshes)
+      if(!i.material.noCollDet && i.indices.size()>0) {
+        addIndex(std::move(i.indices),i.material.matGroup);
+        return;
+        }
+    }
+
+  id.resize(idSize);
+  size_t off=0;
+  for(auto& i:sPacked.subMeshes)
+    if(!i.material.noCollDet && i.indices.size()>0) {
+      std::memcpy(&id[off],i.indices.data(),i.indices.size()*sizeof(i.indices[0]));
+      addSegment(i.indices.size(),off,i.material.matGroup);
+      off+=i.indices.size();
+      }
+  for(size_t i=0;i<id.size();i+=3){
+    std::swap(id[i+1],id[i+2]);
+    }
+  adjustMesh();
   }
 
 PhysicMesh::PhysicMesh(const std::vector<ZenLoad::WorldVertex>& v)
@@ -24,7 +49,7 @@ PhysicMesh::PhysicMesh(const std::vector<btVector3>* v)
   :vert(*v) {
   }
 
-void PhysicMesh::addIndex(std::vector<uint32_t> index, uint8_t material) {
+void PhysicMesh::addIndex(std::vector<uint32_t>&& index, uint8_t material) {
   if(index.size()==0)
     return;
 
@@ -32,6 +57,9 @@ void PhysicMesh::addIndex(std::vector<uint32_t> index, uint8_t material) {
   size_t idSize = index.size();
   if(id.size()==0) {
     id=std::move(index);
+    for(size_t i=0;i<id.size();i+=3){
+      std::swap(id[i+1],id[i+2]);
+      }
     } else {
     id.resize(off+index.size());
     for(size_t i=0;i<index.size();i+=3){
@@ -41,8 +69,13 @@ void PhysicMesh::addIndex(std::vector<uint32_t> index, uint8_t material) {
       }
     }
 
+  addSegment(idSize,off,material);
+  adjustMesh();
+  }
+
+void PhysicMesh::addSegment(size_t indexSize,size_t offset,uint8_t material) {
   btIndexedMesh meshIndex={};
-  meshIndex.m_numTriangles = id.size()/3;
+  meshIndex.m_numTriangles = indexSize/3;
   meshIndex.m_numVertices  = int32_t(vert.size());
 
   meshIndex.m_indexType           = PHY_INTEGER;
@@ -53,8 +86,7 @@ void PhysicMesh::addIndex(std::vector<uint32_t> index, uint8_t material) {
   meshIndex.m_vertexStride        = sizeof(btVector3);
 
   m_indexedMeshes.push_back(meshIndex);
-  segments.push_back(Segment{off,int(idSize/3),material});
-  adjustMesh();
+  segments.push_back(Segment{offset,int(indexSize/3),material});
   }
 
 uint8_t PhysicMesh::getMaterialId(size_t segment) const {

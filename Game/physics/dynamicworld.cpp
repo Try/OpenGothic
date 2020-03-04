@@ -772,7 +772,7 @@ ProtoMesh DynamicWorld::decalMesh(const std::string& tex,
     void adjustIbo() {
       ibo.resize(vbo.size());
       for(size_t i=0;i<ibo.size();++i)
-        ibo[i] = i;
+        ibo[i] = uint32_t(i);
       }
     };
 
