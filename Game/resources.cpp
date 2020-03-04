@@ -269,7 +269,7 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
     ProtoMesh* ret=t.get();
     aniMeshCache[name] = std::move(t);
     if(code==MeshLoadCode::Static && sPacked.subMeshes.size()>0)
-      phyMeshCache[ret].reset(PhysicMeshShape::load(sPacked));
+      phyMeshCache[ret].reset(PhysicMeshShape::load(std::move(sPacked)));
     if(code==MeshLoadCode::Error)
       throw std::runtime_error("load failed");
     return ret;
