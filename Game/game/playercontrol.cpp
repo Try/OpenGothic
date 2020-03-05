@@ -98,6 +98,12 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a) {
 
 void PlayerControl::onKeyReleased(KeyCodec::Action a) {
   ctrl[a] = false;
+
+  auto w  = world();
+  auto pl = w ? w->player() : nullptr;
+  if(a==KeyCodec::Map && pl!=nullptr) {
+    w->script().playerHotKeyScreenMap(*pl);
+    }
   if(a==KeyCodec::ActionGeneric)
     std::memset(actrl,0,sizeof(actrl));
   }

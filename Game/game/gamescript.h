@@ -114,6 +114,8 @@ class GameScript final {
     int  invokeSpell(Npc& npc, Npc *target, Item&  fn);
     int  invokeCond (Npc& npc, const char *func);
 
+    int  playerHotKeyScreenMap(Npc& pl);
+
     auto spellCastAnim(Npc& npc, Item&  fn) -> const Daedalus::ZString&;
 
     bool isDead       (const Npc &pl);

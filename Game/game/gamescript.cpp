@@ -947,6 +947,19 @@ int GameScript::invokeCond(Npc &,const char* func) {
   return 0;
   }
 
+int GameScript::playerHotKeyScreenMap(Npc& pl) {
+  auto& dat = vm.getDATFile();
+  auto fn   = dat.getSymbolIndexByName("player_hotkey_screen_map");
+  if(fn==size_t(-1))
+    return -1;
+
+  ScopeVar self(vm, vm.globalSelf(), pl);
+  int map = runFunction(fn,false);
+  if(map>=0)
+    pl.useItem(size_t(map));
+  return map;
+  }
+
 const Daedalus::ZString& GameScript::spellCastAnim(Npc&, Item &it) {
   if(spellFxAniLetters==size_t(-1)) {
     static const Daedalus::ZString FIB = "FIB";
