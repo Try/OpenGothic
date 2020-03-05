@@ -7,6 +7,7 @@ using namespace Tempest;
 
 DocumentMenu::DocumentMenu(Gothic& gothic)
   :gothic(gothic) {
+  cursor = Resources::loadTexture("U.TGA");
   }
 
 void DocumentMenu::show(const DocumentMenu::Show &doc) {
@@ -56,6 +57,8 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
   float k = std::min(1.f,float(800+document.margins.xMargin())/std::max(mw,1.f));
 
   int x=(w()-int(k*mw))/2, y = (h()-int(mh))/2;
+  auto wrld = gothic.world();
+  auto pl   = wrld ? wrld->player() : nullptr;
 
   Painter p(e);
   for(auto& i:document.pages){
@@ -83,6 +86,17 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
                   w - mgr.xMargin(),
                   back->h() - mgr.yMargin(),
                   i.text, Tempest::AlignLeft);
+
+    if(document.showPlayer && cursor!=nullptr && pl!=nullptr) {
+      auto  pos = pl->position();
+      float wx  = (pos[0]-float(document.wbounds.x))/float(document.wbounds.w);
+      float wy  = (pos[2]-float(document.wbounds.y))/float(document.wbounds.h);
+
+      p.setBrush(*cursor);
+      int cx = x+int(wx*float(w));
+      int cy = y+int(wy*float(back->h()));
+      p.drawRect(cx-cursor->w()/2, cy-cursor->h()/2, cursor->w(), cursor->h());
+      }
     x+=w;
     }
   }

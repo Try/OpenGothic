@@ -299,6 +299,8 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("doc_printline",       [this](Daedalus::DaedalusVM& vm){ doc_printline(vm);        });
   vm.registerExternalFunction("doc_printlines",      [this](Daedalus::DaedalusVM& vm){ doc_printlines(vm);       });
   vm.registerExternalFunction("doc_setfont",         [this](Daedalus::DaedalusVM& vm){ doc_setfont(vm);          });
+  vm.registerExternalFunction("doc_setlevel",        [this](Daedalus::DaedalusVM& vm){ doc_setlevel(vm);         });
+  vm.registerExternalFunction("doc_setlevelcoords",  [this](Daedalus::DaedalusVM& vm){ doc_setlevelcoords(vm);   });
   vm.registerExternalFunction("doc_show",            [this](Daedalus::DaedalusVM& vm){ doc_show(vm);             });
 
   vm.registerExternalFunction("introducechapter",    [this](Daedalus::DaedalusVM& vm){ introducechapter(vm);     });
@@ -3067,6 +3069,40 @@ void GameScript::doc_show(Daedalus::DaedalusVM &vm) {
 
   while(documents.size()>0 && documents.back()==nullptr)
     documents.pop_back();
+  }
+
+void GameScript::doc_setlevel(Daedalus::DaedalusVM& vm) {
+  const auto level  = vm.popString();
+  const int  handle = vm.popInt();
+
+  auto& doc = getDocument(handle);
+  if(doc==nullptr)
+    return;
+
+  std::string str = level.c_str();
+  size_t bg = str.rfind('\\');
+  if(bg!=std::string::npos)
+    str = str.substr(bg+1);
+
+  for(auto& i:str)
+    i = char(std::tolower(i));
+
+  auto& wname = world().name();
+  doc->showPlayer = wname==str;
+  }
+
+void GameScript::doc_setlevelcoords(Daedalus::DaedalusVM& vm) {
+  int   bottom = vm.popInt();
+  int   right  = vm.popInt();
+  int   top    = vm.popInt();
+  int   left   = vm.popInt();
+
+  int   handle = vm.popInt();
+
+  auto& doc = getDocument(handle);
+  if(doc==nullptr)
+    return;
+  doc->wbounds = Rect(left,top,right-left,bottom-top);
   }
 
 void GameScript::introducechapter(Daedalus::DaedalusVM &vm) {

@@ -30,6 +30,9 @@ class DocumentMenu : public Tempest::Widget {
       std::string       font;
       Tempest::Margin   margins;
       std::string       img;
+      // map
+      bool              showPlayer=false;
+      Tempest::Rect     wbounds;
       };
 
     void show(const Show& doc);
@@ -44,8 +47,9 @@ class DocumentMenu : public Tempest::Widget {
     void paintEvent(Tempest::PaintEvent& e);
 
   private:
-    Gothic&            gothic;
-    DocumentMenu::Show document;
-    bool               active=false;
+    Gothic&                   gothic;
+    DocumentMenu::Show        document;
+    const Tempest::Texture2d* cursor = nullptr;
+    bool                      active = false;
   };
 
