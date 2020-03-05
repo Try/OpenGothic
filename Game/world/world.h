@@ -94,57 +94,55 @@ class World final {
     MeshObjects::Mesh   getDecalView (const char* visual, float x, float y, float z, ProtoMesh& out) const;
     DynamicWorld::Item  getPhysic    (const char* visual);
 
-    const VisualFx*   loadVisualFx(const char* name);
-    const ParticleFx* loadParticleFx(const char* name);
+    const VisualFx*      loadVisualFx(const char* name);
+    const ParticleFx*    loadParticleFx(const char* name);
 
-    void     updateAnimation();
+    void                 updateAnimation();
+    void                 resetPositionToTA();
 
-    void     resetPositionToTA();
+    auto                 takeHero() -> std::unique_ptr<Npc>;
+    Npc*                 player() const { return npcPlayer; }
+    Npc*                 findNpcByInstance(size_t instance);
+    auto                 roomAt(const std::array<float,3>& arr) -> const std::string&;
 
-    auto     takeHero() -> std::unique_ptr<Npc>;
-    Npc*     player() const { return npcPlayer; }
-    Npc*     findNpcByInstance(size_t instance);
-    auto     roomAt(const std::array<float,3>& arr) -> const std::string&;
-
-    void     tick(uint64_t dt);
-    uint64_t tickCount() const;
-    void     setDayTime(int32_t h,int32_t min);
-    gtime    time() const;
+    void                 tick(uint64_t dt);
+    uint64_t             tickCount() const;
+    void                 setDayTime(int32_t h,int32_t min);
+    gtime                time() const;
 
     Daedalus::PARSymbol& getSymbol(const char* s) const;
     size_t               getSymbolIndex(const char* s) const;
 
-    Focus validateFocus(const Focus& def);
+    Focus                validateFocus(const Focus& def);
+    Focus                findFocus(const Npc& pl, const Focus &def);
+    Focus                findFocus(const Focus& def);
 
-    Focus findFocus(const Npc& pl, const Focus &def);
-    Focus findFocus(const Focus& def);
+    void                 triggerEvent(const TriggerEvent& e);
+    void                 enableTicks (AbstractTrigger& t);
+    void                 disableTicks(AbstractTrigger& t);
+    Interactive*         aviableMob(const Npc &pl, const char* name);
+    void                 changeWorld(const std::string &world, const std::string &wayPoint);
 
-    void           triggerEvent(const TriggerEvent& e);
-    void           enableTicks (AbstractTrigger& t);
-    void           disableTicks(AbstractTrigger& t);
-    Interactive*   aviableMob(const Npc &pl, const char* name);
-    void           changeWorld(const std::string &world, const std::string &wayPoint);
+    void                 marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
+    void                 marchPoints      (Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
-    void   marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
-    void   marchPoints      (Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
+    AiOuputPipe*         openDlgOuput(Npc &player, Npc &npc);
 
-    AiOuputPipe* openDlgOuput(Npc &player, Npc &npc);
+    void                 aiOutputSound(Npc &player, const std::string& msg);
+    bool                 aiIsDlgFinished();
 
-    void   aiOutputSound(Npc &player, const std::string& msg);
-    bool   aiIsDlgFinished();
+    void                 printScreen(const char* msg, int x, int y, int time, const GthFont &font);
+    void                 print      (const char* msg);
 
-    void   printScreen(const char* msg, int x, int y, int time, const GthFont &font);
-    void   print      (const char* msg);
-
-    bool   isTargeted (Npc& npc);
-    Npc*   addNpc     (const char* name,    const Daedalus::ZString& at);
-    Npc*   addNpc     (size_t itemInstance, const Daedalus::ZString& at);
-    Item*  addItem    (size_t itemInstance, const char *at);
-    Item*  takeItem   (Item& it);
-    void   removeItem (Item &it);
-    size_t hasItems(const char* tag, size_t itemCls);
-    Bullet&shootBullet(const Item &itmId, const Npc& npc, const Npc* target);
-    Bullet&shootSpell(const Item &itm, const Npc &npc, const Npc *target);
+    bool                 isTargeted (Npc& npc);
+    Npc*                 addNpc     (const char* name,    const Daedalus::ZString& at);
+    Npc*                 addNpc     (size_t itemInstance, const Daedalus::ZString& at);
+    Item*                addItem    (size_t itemInstance, const char *at);
+    Item*                takeItem   (Item& it);
+    void                 removeItem (Item &it);
+    size_t               hasItems(const char* tag, size_t itemCls);
+    Bullet&              shootBullet(const Item &itmId, const Npc& npc, const Npc* target);
+    Bullet&              shootSpell(const Item &itm, const Npc &npc, const Npc *target);
 
     void   sendPassivePerc (Npc& self,Npc& other,Npc& victum,int32_t perc);
     void   sendPassivePerc (Npc& self,Npc& other,Npc& victum, Item& item,int32_t perc);

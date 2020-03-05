@@ -856,6 +856,9 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
     if(startup)
       wobj.addItem(vob);
     }
+  else if(vob.vobType==ZenLoad::zCVobData::VT_oCMobLadder) {
+    wobj.addStatic(vob);
+    }
   else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobSound ||
           vob.vobType==ZenLoad::zCVobData::VT_zCVobSoundDaytime) {
     wsound.addSound(vob);
@@ -870,8 +873,7 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
           vob.objectClass=="zCPFXControler:zCVob"){
     wobj.addStatic(vob); //TODO: morph animation
     }
-  else if(vob.objectClass=="oCTouchDamage:zCTouchDamage:zCVob" ||
-          vob.objectClass=="oCMobLadder:oCMobInter:oCMOB:zCVob"){
+  else if(vob.objectClass=="oCTouchDamage:zCTouchDamage:zCVob"){
     // NOT IMPLEMENTED
     }
   else if(vob.objectClass=="zCVobLight:zCVob" ||
