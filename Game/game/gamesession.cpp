@@ -344,6 +344,9 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
       break;
       }
 
+  if(auto hero = wrld->player())
+    vm->setInstanceNPC("HERO",*hero);
+
   Log::i("Done loading world[",world,"]");
   return std::move(game);
   }
