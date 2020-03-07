@@ -20,6 +20,7 @@ Interactive::Interactive(World &world, ZenLoad::zCVobData&& vob)
   bbox[1]       = vob.bbox[1];
   owner         = std::move(vob.oCMOB.owner);
   focOver       = vob.oCMOB.focusOverride;
+  showVisual    = vob.showVisual;
 
   stateNum      = vob.oCMobInter.stateNum;
   triggerTarget = std::move(vob.oCMobInter.triggerTarget);
@@ -66,6 +67,8 @@ void Interactive::load(Serialize &fin) {
   fin.read(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z,owner);
   if(fin.version()>=2)
     fin.read(focOver);
+  if(fin.version()>=6)
+    fin.read(showVisual);
 
   fin.read(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
   fin.read(locked,keyInstance,pickLockStr);
@@ -97,7 +100,7 @@ void Interactive::load(Serialize &fin) {
 void Interactive::save(Serialize &fout) const {
   fout.write(uint8_t(vobType),vobName,focName,mdlVisual);
   fout.write(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z);
-  fout.write(owner,focOver);
+  fout.write(owner,focOver,showVisual);
   fout.write(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
   fout.write(locked,keyInstance,pickLockStr);
   invent.save(fout);
@@ -115,11 +118,11 @@ void Interactive::setVisual(const std::string &visual) {
   mesh = Resources::loadMesh(visual);
 
   if(mesh) {
-    auto physicMesh = Resources::physicMesh(mesh); //FIXME: build physic model in Resources.cpp
-
-    // view   = owner.getStaticView(vob.visual,0);
-    view   = world->getView(visual.c_str());
-    physic = world->physic()->staticObj(physicMesh,pos);
+    if(showVisual) {
+      auto physicMesh = Resources::physicMesh(mesh); //FIXME: build physic model in Resources.cpp
+      view   = world->getView(visual.c_str());
+      physic = world->physic()->staticObj(physicMesh,pos);
+      }
 
     view  .setObjMatrix(pos);
     physic.setObjMatrix(pos);
@@ -221,6 +224,9 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     return;
     }
   if(state==stateNum) {
+    //HACK: some beds in game are VT_oCMobDoor
+    //implQuitInteract(p);
+
     if((vobType==ZenLoad::zCVobData::VT_oCMobDoor && onStateFunc.empty()) ||
         vobType==ZenLoad::zCVobData::VT_oCMobSwitch || reverseState){
       implQuitInteract(p);
@@ -368,11 +374,10 @@ void Interactive::autoDettachNpc() {
   }
 
 bool Interactive::checkUseConditions(Npc& npc) {
-  if(!npc.isPlayer())
-    return true;
+  const bool isPlayer = npc.isPlayer();
 
   auto& sc = npc.world().script();
-  if(!conditionFunc.empty()) {
+  if(isPlayer && !conditionFunc.empty()) {
     const int check = sc.invokeCond(npc,conditionFunc.c_str());
     if(check==0) {
       // FIXME: proper message
@@ -383,15 +388,16 @@ bool Interactive::checkUseConditions(Npc& npc) {
   if(!useWithItem.empty()) {
     size_t it = world->getSymbolIndex(useWithItem.c_str());
     if(it!=size_t(-1)) {
-      if(npc.hasItem(it)==0) {
+      if(isPlayer && npc.hasItem(it)==0) {
         sc.printMobMissingItem(npc);
         return false;
         }
+      // forward here, if this is not a player
       npc.delItem(it,1);
       npc.setCurrentItem(it);
       }
     }
-  if(!keyInstance.empty()) {
+  if(isPlayer && !keyInstance.empty()) {
     size_t it = world->getSymbolIndex(keyInstance.c_str());
     if(it!=size_t(-1) && npc.hasItem(it)==0) {
       sc.printMobMissingKey(npc);

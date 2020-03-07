@@ -104,6 +104,7 @@ class Interactive final {
     ZMath::float3                bbox[2]={};
     std::string                  owner;
     bool                         focOver=false;
+    bool                         showVisual=true;
     // oCMobInter
     int                          stateNum=0;
     std::string                  triggerTarget;
