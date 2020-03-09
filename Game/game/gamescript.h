@@ -212,6 +212,7 @@ class GameScript final {
     void wld_isnextfpavailable(Daedalus::DaedalusVM& vm);
     void wld_ismobavailable   (Daedalus::DaedalusVM& vm);
     void wld_setmobroutine    (Daedalus::DaedalusVM& vm);
+    void wld_getmobstate      (Daedalus::DaedalusVM& vm);
     void wld_assignroomtoguild(Daedalus::DaedalusVM& vm);
     void wld_detectnpc        (Daedalus::DaedalusVM& vm);
     void wld_detectnpcex      (Daedalus::DaedalusVM& vm);

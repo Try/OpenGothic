@@ -425,6 +425,14 @@ Interactive *World::aviableMob(const Npc &pl, const char* name) {
   return wobj.aviableMob(pl,name);
   }
 
+Interactive* World::findInteractive(const Npc& pl) {
+  WorldObjects::SearchOpt optMvMob;
+  optMvMob.rangeMax = 100;
+  optMvMob.flags    = WorldObjects::SearchFlg::NoAngle;
+
+  return wobj.findInteractive(pl,nullptr,optMvMob);
+  }
+
 void World::triggerEvent(const TriggerEvent &e) {
   wobj.triggerEvent(e);
   }

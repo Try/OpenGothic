@@ -328,12 +328,15 @@ class Npc final {
 
     bool     perceptionProcess(Npc& pl, float quadDist);
     bool     perceptionProcess(Npc& pl, Npc *victum, float quadDist, PercType perc);
+    bool     perceptionMoveMob();
     bool     hasPerc(PercType perc) const;
     uint64_t percNextTime() const;
 
     Interactive* interactive() const { return currentInteract; }
-    bool     setInteraction(Interactive* id, bool quick=false);
-    void     quitIneraction();
+    Interactive* detectedMob() const;
+    bool         setInteraction(Interactive* id, bool quick=false);
+    void         quitIneraction();
+
     bool     isState(size_t stateFn) const;
     bool     wasInState(size_t stateFn) const;
     uint64_t stateTime() const;
@@ -649,6 +652,9 @@ class Npc final {
     Npc*                           currentTarget  =nullptr;
     Npc*                           nearestEnemy   =nullptr;
     AiOuputPipe*                   outputPipe     =nullptr;
+
+    std::array<float,3>            moveMobCacheKey={{std::numeric_limits<float>::infinity(),0,0}};
+    Interactive*                   moveMob        =nullptr;
 
     GoTo                           go2;
     const WayPoint*                currentFp      =nullptr;

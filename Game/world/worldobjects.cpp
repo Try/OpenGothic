@@ -105,6 +105,8 @@ void WorldObjects::tick(uint64_t dt) {
       } else {
       i->setProcessPolicy(Npc::ProcessPolicy::AiFar2);
       }
+
+    i->perceptionMoveMob();
     }
   tickNear(dt);
   tickTriggers(dt);

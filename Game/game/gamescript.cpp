@@ -118,6 +118,7 @@ void GameScript::initCommon() {
                                                      [this](Daedalus::DaedalusVM& vm){ wld_isnextfpavailable(vm);    });
   vm.registerExternalFunction("wld_ismobavailable",  [this](Daedalus::DaedalusVM& vm){ wld_ismobavailable(vm);       });
   vm.registerExternalFunction("wld_setmobroutine",   [this](Daedalus::DaedalusVM& vm){ wld_setmobroutine(vm);        });
+  vm.registerExternalFunction("wld_getmobstate",     [this](Daedalus::DaedalusVM& vm){ wld_getmobstate(vm);          });
   vm.registerExternalFunction("wld_assignroomtoguild",
                                                      [this](Daedalus::DaedalusVM& vm){ wld_assignroomtoguild(vm);    });
   vm.registerExternalFunction("wld_detectnpc",       [this](Daedalus::DaedalusVM& vm){ wld_detectnpc(vm);            });
@@ -1466,6 +1467,24 @@ void GameScript::wld_setmobroutine(Daedalus::DaedalusVM &vm) {
   notImplementedFn<&GameScript::wld_setmobroutine>("wld_setmobroutine");
   }
 
+void GameScript::wld_getmobstate(Daedalus::DaedalusVM& vm) {
+  auto scheme = vm.popString();
+  auto npc    = popInstance(vm);
+
+  if(npc==nullptr) {
+    vm.setReturn(-1);
+    return;
+    }
+
+  auto mob = npc->detectedMob();
+  if(mob==nullptr || scheme!=mob->schemeName()) {
+    vm.setReturn(-1);
+    return;
+    }
+
+  vm.setReturn(std::max(0,mob->stateId()));
+  }
+
 void GameScript::wld_assignroomtoguild(Daedalus::DaedalusVM &vm) {
   int               g    = vm.popInt();
   Daedalus::ZString name = vm.popString();
@@ -2402,8 +2421,8 @@ void GameScript::npc_isdetectedmobownedbynpc(Daedalus::DaedalusVM &vm) {
 
 void GameScript::npc_getdetectedmob(Daedalus::DaedalusVM &vm) {
   auto usr = popInstance(vm);
-  if(usr!=nullptr && usr->interactive()!=nullptr){
-    auto i = usr->interactive();
+  if(usr!=nullptr && usr->detectedMob()!=nullptr){
+    auto i = usr->detectedMob();
     vm.setReturn(i->schemeName());
     return;
     }

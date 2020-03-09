@@ -2502,12 +2502,33 @@ bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType 
   return false;
   }
 
+bool Npc::perceptionMoveMob() {
+  if(!hasPerc(Npc::PERC_MOVEMOB) || interactive()!=nullptr)
+    return false;
+
+  if(moveMobCacheKey!=position()) {
+    moveMob         = owner.findInteractive(*this);
+    moveMobCacheKey = position();
+    }
+
+  if(moveMob==nullptr)
+    return false;
+
+  return perceptionProcess(*this,nullptr,0,PERC_MOVEMOB);
+  }
+
 bool Npc::hasPerc(Npc::PercType perc) const {
   return perception[perc].func!=size_t(-1);
   }
 
 uint64_t Npc::percNextTime() const {
   return perceptionNextTime;
+  }
+
+Interactive* Npc::detectedMob() const {
+  if(currentInteract!=nullptr)
+    return currentInteract;
+  return moveMob;
   }
 
 bool Npc::setInteraction(Interactive *id,bool quick) {

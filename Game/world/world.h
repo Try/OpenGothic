@@ -121,6 +121,7 @@ class World final {
     void                 enableTicks (AbstractTrigger& t);
     void                 disableTicks(AbstractTrigger& t);
     Interactive*         aviableMob(const Npc &pl, const char* name);
+    Interactive*         findInteractive(const Npc& pl);
     void                 changeWorld(const std::string &world, const std::string &wayPoint);
 
     void                 marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
