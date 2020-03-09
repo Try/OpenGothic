@@ -166,7 +166,7 @@ struct SoundFont::Instance {
       return false;
       }
     alloc[note]=true;
-    tsf_note_on(fnt,preset,note,velosity/127.f);
+    tsf_note_on(fnt,preset,note,(velosity+0.5f)/127.f);
     return true;
     }
 
