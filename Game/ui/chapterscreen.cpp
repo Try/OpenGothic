@@ -31,22 +31,28 @@ void ChapterScreen::paintEvent(Tempest::PaintEvent &e) {
   if(!active || !back)
     return;
 
+  enum {
+    width  = 800,
+    height = 600
+    };
+
   Painter p(e);
-  int x = (w()-back->w())/2;
-  int y = (h()-back->h())/2;
+  int x = (w()-width )/2;
+  int y = (h()-height)/2;
   p.setBrush(*back);
-  p.drawRect(x,y,back->w(),back->h());
+  p.drawRect(x,y,width,height,
+             0,0,back->w(),back->h());
 
   {
-  auto& fnt = Resources::font();
+  auto& fnt = Resources::font("font_old_20_white.tga",Resources::FontType::Normal);
   auto  sz  = fnt.textSize(title);
-  fnt.drawText(p,x+(back->w()-sz.w)/2,y+50+int(fnt.pixelSize()),title);
+  fnt.drawText(p,x+(width-sz.w)/2,y+50+int(fnt.pixelSize()),title);
   }
 
   {
   auto& fnt = Resources::font();
   auto  sz  = fnt.textSize(subTitle);
-  fnt.drawText(p,x+(back->w()-sz.w)/2,y+back->h()-50,subTitle);
+  fnt.drawText(p,x+(width-sz.w)/2,y+height-50,subTitle);
   }
   }
 
