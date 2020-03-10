@@ -406,8 +406,12 @@ void MainWindow::drawProgress(Painter &p, int x, int y, int w, int h, float v) {
   p.setBrush(*loadBox);
   p.drawRect(x,y,w,h, 0,0,loadBox->w(),loadBox->h());
 
+  const int paddL = int((float(w)*75.f)/float(loadBox->w()));
+  const int paddT = int((float(h)*10.f)/float(loadBox->h()));
+
   p.setBrush(*loadVal);
-  p.drawRect(x+75,y+15,int(float(w-145)*v),35, 0,0,loadVal->w(),loadVal->h());
+  p.drawRect(x+paddL,y+paddT,int(float(w-2*paddL)*v),h-2*paddT,
+             0,0,loadVal->w(),loadVal->h());
   }
 
 void MainWindow::drawLoading(Painter &p, int x, int y, int w, int h) {
@@ -422,33 +426,40 @@ void MainWindow::drawLoading(Painter &p, int x, int y, int w, int h) {
   }
 
 void MainWindow::drawSaving(Painter &p) {
-  if(saveback==nullptr)
-    saveback = Resources::loadTexture("SAVING.TGA");
-  if(saveback==nullptr)
-    return;
-
   if(auto back = gothic.loadingBanner()) {
     p.setBrush(*back);
     p.drawRect(0,0,this->w(),this->h(),
                0,0,back->w(),back->h());
     }
 
-  float v = float(gothic.loadingProgress())/100.f;
-  const int x = (w()-saveback->w())/2, y = (h()-saveback->h())/2;
-  p.setBrush(*saveback);
+  float k = 1.0f;//std::max(1.f,float(w())/800.f);
+  drawSaving(p,int(460.f*k),int(300.f*k),k);
+  }
+
+void MainWindow::drawSaving(Painter& p, int sw, int sh, float scale) {
+  const int x = (w()-sw)/2, y = (h()-sh)/2;
+
+  if(saveback==nullptr)
+    saveback = Resources::loadTexture("SAVING.TGA");
+  if(saveback==nullptr)
+    return;
 
   // SAVING.TGA is semi-transparent image with the idea to accomulate alpha over time
   // ... for loop for now
-  for(int i=0;i<10;++i)
-    p.drawRect(x,y,saveback->w(),saveback->h());
+  p.setBrush(*saveback);
+  for(int i=0;i<10;++i) {
+    p.drawRect(x,y,sw,sh,
+               0,0,saveback->w(),saveback->h());
+    }
 
-  drawProgress(p,x+30,y+330,saveback->w()-30*2,50,v);
+  float v = float(gothic.loadingProgress())/100.f;
+  drawProgress(p, x+int(100.f*scale), y+sh-int(75.f*scale), sw-2*int(100.f*scale), int(40.f*scale), v);
   }
 
 void MainWindow::tick() {
   static bool once=true;
   if(once) {
-    gothic.emitGlobalSoundWav("GAMESTART.WAV");
+    // gothic.emitGlobalSoundWav("GAMESTART.WAV");
     once=false;
     }
 
