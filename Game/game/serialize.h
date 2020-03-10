@@ -171,7 +171,7 @@ class Serialize final {
 
     template<class T>
     void implWriteVec(const std::vector<T>& s,std::false_type) {
-      uint32_t sz=s.size();
+      uint32_t sz=uint32_t(s.size());
       write(sz);
       for(auto& i:s)
         write(i);
@@ -179,7 +179,7 @@ class Serialize final {
 
     template<class T>
     void implWriteVec(const std::vector<T>& s,std::true_type) {
-      uint32_t sz=s.size();
+      uint32_t sz=uint32_t(s.size());
       write(sz);
       writeBytes(s.data(),sz*sizeof(T));
       }
