@@ -30,10 +30,16 @@ Mixer::~Mixer() {
     SoundFont::noteOff(i.ticket);
   }
 
-void Mixer::setMusic(const Music& m) {
-  current = m.impl;
-  grooveCounter.store(0);
-  variationCounter.store(0);
+void Mixer::setMusic(const Music& m,DMUS_EMBELLISHT_TYPES e) {
+  if(current==m.impl)
+    return;
+
+  nextMus = m.impl;
+  patEnd  = sampleCursor;
+  embellishment.store(e);
+  //current = m.impl;
+  //grooveCounter.store(0);
+  //variationCounter.store(0);
   }
 
 void Mixer::setMusicVolume(float v) {
@@ -144,9 +150,9 @@ void Mixer::nextPattern() {
     return;
     }
 
-  size_t nextOff=0;
   auto prev = pattern;
   pattern   = std::shared_ptr<PatternInternal>(mus,mus->pptn[0].get());
+  size_t nextOff=0;
   for(size_t i=0;i<mus->pptn.size();++i){
     if(mus->pptn[i].get()==prev.get()) {
       nextOff = (i+1)%mus->pptn.size();
@@ -154,15 +160,36 @@ void Mixer::nextPattern() {
       }
     }
 
+  const DMUS_EMBELLISHT_TYPES em = embellishment.exchange(DMUS_EMBELLISHT_NORMAL);
   const int groove = getGroove();
+  if(nextMus!=nullptr) {
+    current = nextMus;
+    nextMus = nullptr;
+    grooveCounter.store(0);
+    //variationCounter.store(0);
+    nextOff=0;
+    }
+
   for(size_t i=0;i<mus->pptn.size();++i){
     auto& ptr = mus->pptn[(i+nextOff)%mus->pptn.size()];
     if(ptr->timeTotal==0)
       continue;
+    if(ptr->ptnh.wEmbellishment!=em)
+      continue;
+
     if(mus->groove.size()==0 || (ptr->ptnh.bGrooveBottom<=groove && groove<=ptr->ptnh.bGrooveTop)) {
       pattern = std::shared_ptr<PatternList::PatternInternal>(mus,ptr.get());
       break;
       }
+    }
+
+  if(pattern->timeTotal>0) {
+    grooveCounter.fetch_add(1);
+    }
+
+  if(em!=DMUS_EMBELLISHT_NORMAL) {
+    while(active.size()>0)
+      noteOff(active[0].at);
     }
 
   patStart = sampleCursor;
@@ -226,8 +253,10 @@ void Mixer::mix(int16_t *out, size_t samples) {
   std::memset(out,0,2*samples*sizeof(int16_t));
 
   auto cur = current;
-  if(cur==nullptr)
+  if(cur==nullptr) {
+    current = nextMus;
     return;
+    }
 
   auto pat = checkPattern(pattern);
 
@@ -257,7 +286,6 @@ void Mixer::mix(int16_t *out, size_t samples) {
     samplesRemain-= size_t(stp.samples);
 
     if(sampleCursor==patEnd) {
-      grooveCounter.fetch_add(1);
       nextPattern();
       }
     }
@@ -287,18 +315,18 @@ void Mixer::implMix(PatternInternal &pptn, float volume, int16_t *out, size_t cn
     std::memset(pcm.data(),0,cnt2*sizeof(pcm[0]));
     ins.font.mix(pcm.data(),cnt);
 
-    float volume = ins.volume;
+    float insVolume = ins.volume;
     const bool hasVol = hasVolumeCurves(pptn,i);
     if(hasVol) {
       volFromCurve(pptn,i,vol);
       for(size_t r=0;r<cnt2;++r) {
-        float v = volume*vol[r/2];
-        pcmMix[r] += pcm[r]*(v*v);
+        float v = vol[r/2];
+        pcmMix[r] += pcm[r]*insVolume*(v*v);
         }
       } else {
       for(size_t r=0;r<cnt2;++r) {
-        float v = volume*i.volLast;
-        pcmMix[r] += pcm[r]*(v*v);
+        float v = i.volLast;
+        pcmMix[r] += pcm[r]*insVolume*(v*v);
         }
       }
     }
@@ -384,20 +412,6 @@ int Mixer::getGroove() const {
     return 0;
   auto& g = mus.groove[grooveCounter.load()%mus.groove.size()];
   return g.bGrooveLevel;
-
-  /*
-  int64_t total = toSamples(mus.timeTotal);
-  int64_t at    = (sampleCursor-musStart)%std::max<int64_t>(total,1);
-
-  for(size_t i=mus.groove.size();i>0;) {
-    --i;
-    auto&   g    = mus.groove[i];
-    int64_t time = toSamples(g.at);
-    if(time<=at)
-      return g.bGrooveLevel;
-    }
-  return 0;
-  */
   }
 
 bool Mixer::hasVolumeCurves(Mixer::PatternInternal& part, Mixer::Instr& inst) const {

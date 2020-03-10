@@ -238,7 +238,7 @@ void WorldSound::tickSoundZone(Npc& player) {
 
   Zone*           zTry[]    = {zone, &def};
   GameMusic::Tags dayTry[]  = {isDay ? GameMusic::Day : GameMusic::Ngt, GameMusic::Day};
-  GameMusic::Tags modeTry[] = {mode, GameMusic::Std};
+  GameMusic::Tags modeTry[] = {mode, mode==GameMusic::Thr ? GameMusic::Fgt : GameMusic::Std, GameMusic::Std};
 
   // multi-fallback strategy
   for(auto zone:zTry)

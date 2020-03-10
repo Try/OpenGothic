@@ -42,33 +42,30 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
       if(reloadTheme) {
         Dx8::PatternList p = Resources::loadDxMusic(theme.file.c_str());
 
-        const char* tagsStr="Std";
-        if(tags&Tags::Fgt)
-          tagsStr="Fgt";
-        else if(tags&Tags::Thr)
-          tagsStr="Thr";
-
         Dx8::Music m;
-        if(!fillPattern(m,p,tagsStr))
-          m.addPattern(p);
+        m.addPattern(p);
 
+        const int cur  = currentTags&(Tags::Std|Tags::Fgt|Tags::Thr);
+        const int next = tags&(Tags::Std|Tags::Fgt|Tags::Thr);
+
+        Dx8::DMUS_EMBELLISHT_TYPES em = Dx8::DMUS_EMBELLISHT_END;
+        if(next==Tags::Std) {
+          if(cur!=Tags::Std)
+            em = Dx8::DMUS_EMBELLISHT_BREAK;
+          } else
+        if(next==Tags::Fgt){
+          if(cur==Tags::Thr)
+            em = Dx8::DMUS_EMBELLISHT_FILL;
+          }
         // m.setVolume(theme.vol);
-        mix.setMusic(m);
+        mix.setMusic(m,em);
+        currentTags=tags;
         }
       mix.setMusicVolume(theme.vol);
       }
     catch(std::runtime_error&) {
       Log::e("unable to load sound: \"",theme.file.c_str(),"\"");
       }
-    }
-
-  bool fillPattern(Dx8::Music& m,const Dx8::PatternList& p,const char* tag){
-    for(size_t i=0;i<p.size();++i) {
-      auto& pat = p[i];
-      if(pat.name.find(tag)!=std::string::npos)
-        m.addPattern(p,i);
-      }
-    return m.size()!=0;
     }
 
   bool setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme, Tags tags){
@@ -102,6 +99,7 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
   bool                                   reloadTheme=false;
   Daedalus::GEngineClasses::C_MusicTheme pendingMusic;
   Tags                                   pendingTags=Tags::Day;
+  Tags                                   currentTags=Tags::Day;
   };
 
 struct GameMusic::Impl final {

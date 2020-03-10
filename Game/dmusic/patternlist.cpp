@@ -107,8 +107,13 @@ PatternList::PatternList(const Segment &s, DirectMusic &owner)
             auto& dls = owner.dlsCollection(r.reference);
             Instrument ins;
             ins.dls     = &dls;
-            ins.volume  = r.header.bVolume/127.f;
-            ins.pan     = r.header.bPan/127.f;
+            if((r.header.dwFlags&DMUS_IO_INST_VOLUME)!=0)
+              ins.volume = r.header.bVolume/127.f; else
+              ins.volume = 1.f;
+            if((r.header.dwFlags&DMUS_IO_INST_PAN)!=0)
+              ins.pan = r.header.bPan/127.f; else
+              ins.pan = 0.5f;
+
             ins.dwPatch = r.header.dwPatch;
 
             if(ins.volume<0.f)
@@ -167,7 +172,7 @@ void PatternList::index(const Style& stl,PatternInternal &inst, const Dx8::Patte
     auto pinst = instruments.find(pref.io.wLogicalPartID);
     if(pinst==instruments.end())
       continue;
-    if(pref.io.wLogicalPartID!=26)
+    if(pref.io.wLogicalPartID!=22)
       ;//continue;
     auto& pr = instument[i];
     const Instrument& ins = ((*pinst).second);
@@ -266,7 +271,8 @@ void PatternList::dbgDump(const size_t patternId) const {
   const Style&        stl = *style;
   const Dx8::Pattern& p   = stl.patterns[patternId];
 
-  Log::i("pattern: ",p.timeLength(stl.styh.dblTempo));
+  std::string str(p.info.unam.begin(),p.info.unam.end());
+  Log::i("pattern: ",str," ",p.timeLength(stl.styh.dblTempo));
   for(size_t i=0;i<p.partref.size();++i) {
     auto& pref = p.partref[i];
     auto  part = stl.findPart(pref.io.guidPartID);
@@ -276,10 +282,12 @@ void PatternList::dbgDump(const size_t patternId) const {
     if(part->notes.size()>0 || part->curves.size()>0) {
       std::string st(pref.unfo.unam.begin(),pref.unfo.unam.end());
       Log::i("part: ",i," ",st," partid=",pref.io.wLogicalPartID);
-      for(auto& i:part->header.dwVariationChoices) {
-        char buf[16]={};
-        std::snprintf(buf,sizeof(buf),"%#010x",i);
-        Log::i("  var: ",buf);
+      if(/* DISABLES CODE */ (false)) {
+        for(auto& i:part->header.dwVariationChoices) {
+          char buf[16]={};
+          std::snprintf(buf,sizeof(buf),"%#010x",i);
+          Log::i("  var: ",buf);
+          }
         }
       dbgDump(stl,pref,*part);
       }
@@ -293,11 +301,14 @@ void PatternList::dbgDump(const Style& stl,const Dx8::Pattern::PartRef& pref,con
     if(!musicValueToMIDI(i,cordHeader,subchord,note))
       continue;
 
+    int cId = note/12;
     auto inst = instruments.find(pref.io.wLogicalPartID);
     if(inst!=instruments.end()) {
+      float vol = inst->second.volume;
       auto w = (*inst).second.dls->findWave(note);
       const char* name = w==nullptr ? "" : w->info.inam.c_str();
-      Log::i("  note:[", note, "] ",time," - ",time+i.mtDuration," var=",i.dwVariation," ",name);
+      Log::i("  note:[C",cId," ", note, "] {",
+             time," - ",time+i.mtDuration,"} ","vol = ",vol," var=",i.dwVariation," ",name);
       }
     }
 

@@ -90,25 +90,53 @@ struct DMUS_IO_STYLE final {
   double          dblTempo=0.0;
   };
 
+enum DMUS_EMBELLISHT_TYPES : uint16_t {
+  DMUS_EMBELLISHT_NORMAL = 0,
+  DMUS_EMBELLISHT_FILL   = 1,
+  DMUS_EMBELLISHT_BREAK  = 2,
+  DMUS_EMBELLISHT_INTRO  = 4,
+  DMUS_EMBELLISHT_END    = 8,
+  DMUS_EMBELLISHT_MOTIF  = 16,
+  DMUS_EMBELLISHT_ALL    = 0xFFFF
+  };
+
+
 struct DMUS_IO_PATTERN final {
-  DMUS_IO_TIMESIG timeSig;
-  uint8_t         bGrooveBottom  = 0;
-  uint8_t         bGrooveTop     = 0;
-  uint16_t        wEmbellishment = 0;
-  uint16_t        wNbrMeasures   = 0;
+  DMUS_IO_TIMESIG       timeSig;
+  uint8_t               bGrooveBottom  = 0;
+  uint8_t               bGrooveTop     = 0;
+  DMUS_EMBELLISHT_TYPES wEmbellishment = DMUS_EMBELLISHT_NORMAL;
+  uint16_t              wNbrMeasures   = 0;
   // uint8_t  bDestGrooveBottom = 0;
   // uint8_t  bDestGrooveTop    = 0;
   // uint32_t dwFlags           = 0;
   };
 
+enum DMUS_IO_INST_FLSGS : uint32_t {
+  DMUS_IO_INST_NONE               = 0,
+  DMUS_IO_INST_PATCH              = 0x0001,
+  DMUS_IO_INST_BANKSELECT         = 0x0002,
+  DMUS_IO_INST_ASSIGN_PATCH       = 0x0008,
+  DMUS_IO_INST_NOTERANGES         = 0x0010,
+  DMUS_IO_INST_PAN                = 0x0020,
+  DMUS_IO_INST_VOLUME             = 0x0040,
+  DMUS_IO_INST_TRANSPOSE          = 0x0080,
+  DMUS_IO_INST_GM                 = 0x0100,
+  DMUS_IO_INST_GS                 = 0x0200,
+  DMUS_IO_INST_XG                 = 0x0400,
+  DMUS_IO_INST_CHANNEL_PRIORITY   = 0x0800,
+  DMUS_IO_INST_USE_DEFAULT_GM_SET = 0x1000,
+  DMUS_IO_INST_PITCHBENDRANGE     = 0x2000,
+  };
+
 struct DMUS_IO_INSTRUMENT final {
-  uint32_t dwPatch           = 0;
-  uint32_t dwAssignPatch     = 0;
-  uint32_t dwNoteRanges[4]   = {};
-  uint32_t dwPChannel        = 0;
-  uint32_t dwFlags           = 0;
-  uint8_t  bPan              = 0;
-  uint8_t  bVolume           = 0;
+  uint32_t           dwPatch         = 0;
+  uint32_t           dwAssignPatch   = 0;
+  uint32_t           dwNoteRanges[4] = {};
+  uint32_t           dwPChannel      = 0;
+  DMUS_IO_INST_FLSGS dwFlags         = DMUS_IO_INST_NONE;
+  uint8_t            bPan            = 0;
+  uint8_t            bVolume         = 0;
   //uint16_t nTranspose        = 0;
   //uint32_t dwChannelPriority = 0;
   //uint16_t nPitchBendRange   = 0;

@@ -22,7 +22,7 @@ class Mixer final {
     void     mix(int16_t *out, size_t samples);
     void     setVolume(float v);
 
-    void     setMusic(const Music& m);
+    void     setMusic(const Music& m,DMUS_EMBELLISHT_TYPES embellishment=DMUS_EMBELLISHT_NORMAL);
     void     setMusicVolume(float v);
     int64_t  currentPlayTime() const;
 
@@ -71,19 +71,21 @@ class Mixer final {
     bool     checkVariation(const T& item) const;
     int      getGroove() const;
 
-    std::shared_ptr<Music::Internal> current=nullptr;
-    int64_t                          sampleCursor=0;
+    std::shared_ptr<Music::Internal>   current=nullptr;
+    std::shared_ptr<Music::Internal>   nextMus=nullptr;
+    std::atomic<DMUS_EMBELLISHT_TYPES> embellishment = {DMUS_EMBELLISHT_NORMAL};
+    int64_t                            sampleCursor=0;
 
-    std::shared_ptr<PatternInternal> pattern=nullptr;
-    int64_t                          patStart=0;
-    int64_t                          patEnd  =0;
-    std::atomic<uint32_t>            variationCounter={};
-    std::atomic<size_t>              grooveCounter={};
+    std::shared_ptr<PatternInternal>   pattern=nullptr;
+    int64_t                            patStart=0;
+    int64_t                            patEnd  =0;
+    std::atomic<uint32_t>              variationCounter={};
+    std::atomic<size_t>                grooveCounter={};
 
-    std::atomic<float>               volume={1.f};
-    std::vector<Active>              active;
-    std::list<Instr>                 uniqInstr;
-    std::vector<float>               pcm, vol, pcmMix;
+    std::atomic<float>                 volume={1.f};
+    std::vector<Active>                active;
+    std::list<Instr>                   uniqInstr;
+    std::vector<float>                 pcm, vol, pcmMix;
   };
 
 }

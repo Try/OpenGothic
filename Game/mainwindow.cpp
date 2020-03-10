@@ -459,7 +459,7 @@ void MainWindow::drawSaving(Painter& p, int sw, int sh, float scale) {
 void MainWindow::tick() {
   static bool once=true;
   if(once) {
-    // gothic.emitGlobalSoundWav("GAMESTART.WAV");
+    gothic.emitGlobalSoundWav("GAMESTART.WAV");
     once=false;
     }
 
