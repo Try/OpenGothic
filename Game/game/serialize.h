@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <vector>
 #include <array>
+#include <type_traits>
 
 #include <daedalus/ZString.h>
 
@@ -116,19 +117,12 @@ class Serialize final {
 
     template<class T>
     void write(const std::vector<T>& s) {
-      uint32_t sz=uint32_t(s.size());
-      write(sz);
-      for(auto& i:s)
-        write(i);
+      implWriteVec(s,std::is_trivial<T>());
       }
 
     template<class T>
     void read (std::vector<T>& s){
-      uint32_t sz=0;
-      read(sz);
-      s.resize(sz);
-      for(auto& i:s)
-        read(i);
+      implReadVec(s,std::is_trivial<T>());
       }
 
     template<size_t sz>
@@ -175,12 +169,44 @@ class Serialize final {
   private:
     Serialize();
 
-    void readBytes(void* v,size_t sz){
+    template<class T>
+    void implWriteVec(const std::vector<T>& s,std::false_type) {
+      uint32_t sz=s.size();
+      write(sz);
+      for(auto& i:s)
+        write(i);
+      }
+
+    template<class T>
+    void implWriteVec(const std::vector<T>& s,std::true_type) {
+      uint32_t sz=s.size();
+      write(sz);
+      writeBytes(s.data(),sz*sizeof(T));
+      }
+
+    template<class T>
+    void implReadVec(std::vector<T>& s,std::false_type) {
+      uint32_t sz=0;
+      read(sz);
+      s.resize(sz);
+      for(auto& i:s)
+        read(i);
+      }
+
+    template<class T>
+    void implReadVec(std::vector<T>& s,std::true_type) {
+      uint32_t sz=0;
+      read(sz);
+      s.resize(sz);
+      readBytes(s.data(),sz*sizeof(T));
+      }
+
+    void readBytes(void* v,size_t sz) {
       if(in->read(v,sz)!=sz)
         throw std::runtime_error("unable to read save-game file");
       }
 
-    void writeBytes(const void* v,size_t sz){
+    void writeBytes(const void* v,size_t sz) {
       if(out->write(v,sz)!=sz)
         throw std::runtime_error("unable to write save-game file");
       }
