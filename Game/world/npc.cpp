@@ -1414,7 +1414,8 @@ Npc *Npc::updateNearestEnemy() {
 
   Npc*  ret  = nullptr;
   float dist = std::numeric_limits<float>::max();
-  if(nearestEnemy!=nullptr && (!nearestEnemy->isDown() && canSenseNpc(*nearestEnemy,true)!=SensesBit::SENSE_NONE)) {
+  if(nearestEnemy!=nullptr &&
+     (!nearestEnemy->isDown() && (canSenseNpc(*nearestEnemy,true)&SensesBit::SENSE_SEE)!=SensesBit::SENSE_NONE)) {
     ret  = nearestEnemy;
     dist = qDistTo(*ret);
     }
@@ -1424,7 +1425,7 @@ Npc *Npc::updateNearestEnemy() {
       return;
 
     float d = qDistTo(n);
-    if(d<dist && canSenseNpc(n,true)!=SensesBit::SENSE_NONE) {
+    if(d<dist && (canSenseNpc(n,true)&SensesBit::SENSE_SEE)!=SensesBit::SENSE_NONE) {
       ret  = &n;
       dist = d;
       }
@@ -2448,7 +2449,7 @@ void Npc::startDialog(Npc& pl) {
     setOther(&pl);
   }
 
-bool Npc::perceptionProcess(Npc &pl,float quadDist) {
+bool Npc::perceptionProcess(Npc &pl) {
   static bool disable=false;
   if(disable)
     return false;
@@ -2457,20 +2458,30 @@ bool Npc::perceptionProcess(Npc &pl,float quadDist) {
     return true;
 
   bool ret=false;
-  if(hasPerc(PERC_ASSESSPLAYER) && canSenseNpc(pl,true)!=SensesBit::SENSE_NONE){
+  if(hasPerc(PERC_MOVEMOB) && interactive()==nullptr) {
+    if(moveMobCacheKey!=position()) {
+      moveMob         = owner.findInteractive(*this);
+      moveMobCacheKey = position();
+      }
+    if(moveMob!=nullptr && perceptionProcess(*this,nullptr,0,PERC_MOVEMOB)) {
+      ret = true;
+      }
+    }
+
+  if(processPolicy()!=Npc::AiNormal)
+    return ret;
+
+  const float quadDist = pl.qDistTo(*this);
+
+  if(hasPerc(PERC_ASSESSPLAYER) && canSenseNpc(pl,true)!=SensesBit::SENSE_NONE) {
     if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER)) {
-      //currentOther = &pl;
-      ret          = true;
+      ret = true;
       }
     }
   Npc* enem=hasPerc(PERC_ASSESSENEMY) ? updateNearestEnemy() : nullptr;
   if(enem!=nullptr){
     float dist=qDistTo(*enem);
     if(perceptionProcess(*enem,nullptr,dist,PERC_ASSESSENEMY)){
-      /*
-      if(isTalk())
-        Log::e("unxepected perc acton"); else
-        setOther(nearestEnemy);*/
       ret          = true;
       } else {
       nearestEnemy = nullptr;
@@ -2500,21 +2511,6 @@ bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType 
     }
   perceptionNextTime=owner.tickCount()+perceptionTime;
   return false;
-  }
-
-bool Npc::perceptionMoveMob() {
-  if(!hasPerc(Npc::PERC_MOVEMOB) || interactive()!=nullptr)
-    return false;
-
-  if(moveMobCacheKey!=position()) {
-    moveMob         = owner.findInteractive(*this);
-    moveMobCacheKey = position();
-    }
-
-  if(moveMob==nullptr)
-    return false;
-
-  return perceptionProcess(*this,nullptr,0,PERC_MOVEMOB);
   }
 
 bool Npc::hasPerc(Npc::PercType perc) const {

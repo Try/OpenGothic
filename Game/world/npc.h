@@ -326,9 +326,8 @@ class Npc final {
     void setPerceptionEnable (PercType t, size_t fn);
     void setPerceptionDisable(PercType t);
 
-    bool     perceptionProcess(Npc& pl, float quadDist);
+    bool     perceptionProcess(Npc& pl);
     bool     perceptionProcess(Npc& pl, Npc *victum, float quadDist, PercType perc);
-    bool     perceptionMoveMob();
     bool     hasPerc(PercType perc) const;
     uint64_t percNextTime() const;
 

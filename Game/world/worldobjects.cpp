@@ -105,37 +105,38 @@ void WorldObjects::tick(uint64_t dt) {
       } else {
       i->setProcessPolicy(Npc::ProcessPolicy::AiFar2);
       }
-
-    i->perceptionMoveMob();
     }
   tickNear(dt);
   tickTriggers(dt);
 
-  for(auto& i:npcNear) {
-    if(i->isPlayer())
+  for(auto& ptr:npcArr) {
+    Npc& i = *ptr;
+    if(i.isPlayer())
       continue;
-    for(auto& r:passive) {
-      if(r.self==i)
-        continue;
-      float l = i->qDistTo(r.x,r.y,r.z);
-      if(r.item!=size_t(-1) && r.other!=nullptr)
-        owner.script().setInstanceItem(*r.other,r.item);
-      const float range = float(i->handle()->senses_range);
-      if(l<range*range) {
-        // aproximation of behavior of original G2
-        if(!i->isDown() &&
-           i->canSenseNpc(*r.other, true)!=SensesBit::SENSE_NONE &&
-           i->canSenseNpc(*r.victum,true,float(r.other->handle()->senses_range))!=SensesBit::SENSE_NONE
-          ) {
-          i->perceptionProcess(*r.other,r.victum,l,Npc::PercType(r.what));
+
+    if(i.processPolicy()==Npc::AiNormal) {
+      for(auto& r:passive) {
+        if(r.self==&i)
+          continue;
+        float l = i.qDistTo(r.x,r.y,r.z);
+        if(r.item!=size_t(-1) && r.other!=nullptr)
+          owner.script().setInstanceItem(*r.other,r.item);
+        const float range = float(i.handle()->senses_range);
+        if(l<range*range) {
+          // aproximation of behavior of original G2
+          if(!i.isDown() &&
+             i.canSenseNpc(*r.other, true)!=SensesBit::SENSE_NONE &&
+             i.canSenseNpc(*r.victum,true,float(r.other->handle()->senses_range))!=SensesBit::SENSE_NONE
+            ) {
+            i.perceptionProcess(*r.other,r.victum,l,Npc::PercType(r.what));
+            }
           }
         }
       }
 
-    if(i->percNextTime()>owner.tickCount())
+    if(i.percNextTime()>owner.tickCount())
       continue;
-    float dist = pl->qDistTo(*i);
-    i->perceptionProcess(*pl,dist);
+    i.perceptionProcess(*pl);
     }
   }
 
