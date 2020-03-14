@@ -56,8 +56,12 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
         if(next==Tags::Fgt){
           if(cur==Tags::Thr)
             em = Dx8::DMUS_EMBELLISHT_FILL;
+          } else
+        if(next==Tags::Thr){
+          if(cur==Tags::Fgt)
+            em = Dx8::DMUS_EMBELLISHT_NORMAL;
           }
-        // m.setVolume(theme.vol);
+
         mix.setMusic(m,em);
         currentTags=tags;
         }

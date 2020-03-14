@@ -315,7 +315,11 @@ void Mixer::implMix(PatternInternal &pptn, float volume, int16_t *out, size_t cn
     std::memset(pcm.data(),0,cnt2*sizeof(pcm[0]));
     ins.font.mix(pcm.data(),cnt);
 
-    float insVolume = ins.volume;
+    float insVolume = std::pow(ins.volume,2.f);
+    if(ins.key==5 || ins.key==6) {
+      // HACK
+      insVolume*=0.10f;
+      }
     const bool hasVol = hasVolumeCurves(pptn,i);
     if(hasVol) {
       volFromCurve(pptn,i,vol);

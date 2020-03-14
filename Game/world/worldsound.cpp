@@ -204,6 +204,10 @@ void WorldSound::tick(Npc &player) {
   }
 
 void WorldSound::tickSoundZone(Npc& player) {
+  if(owner.tickCount()<nextSoundUpdate)
+    return;
+  nextSoundUpdate = owner.tickCount()+5*1000;
+
   Zone* zone=&def;
   if(currentZone!=nullptr &&
      currentZone->checkPos(plPos[0],plPos[1]+player.translateY(),plPos[2])){

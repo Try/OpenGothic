@@ -70,6 +70,7 @@ class WorldSound final {
     std::vector<Zone>                       zones;
     Zone                                    def;
 
+    uint64_t                                nextSoundUpdate=0;
     Zone*                                   currentZone = nullptr;
     GameMusic::Tags                         currentTags = GameMusic::Tags::Std;
 

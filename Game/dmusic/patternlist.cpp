@@ -305,10 +305,11 @@ void PatternList::dbgDump(const Style& stl,const Dx8::Pattern::PartRef& pref,con
     auto inst = instruments.find(pref.io.wLogicalPartID);
     if(inst!=instruments.end()) {
       float vol = inst->second.volume;
+      float vel = i.bVelocity;
       auto w = (*inst).second.dls->findWave(note);
       const char* name = w==nullptr ? "" : w->info.inam.c_str();
       Log::i("  note:[C",cId," ", note, "] {",
-             time," - ",time+i.mtDuration,"} ","vol = ",vol," var=",i.dwVariation," ",name);
+             time," - ",time+i.mtDuration,"} ","vol = ",vol," var=",i.dwVariation," vel=",vel," ",name);
       }
     }
 
