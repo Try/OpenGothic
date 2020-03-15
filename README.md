@@ -4,7 +4,7 @@ Motivation: Original Gothic 1 and Gothic 2 is still great games to play, but it 
 The goal of this project is to make feature complete Gothic client-app compatible with game itself and regular mods for it.
 
 ----
-[![version](https://img.shields.io/github/release-pre/Try/opengothic?style=for-the-badge)](https://github.com/Try/opengothic/releases/latest)
+[![Latest build](https://img.shields.io/github/release-pre/Try/opengothic?style=for-the-badge)](https://github.com/Try/opengothic/releases/latest)
 ![Screenshoot](scr0.png)
 ##### Work in progress
 [![Build status](https://ci.appveyor.com/api/projects/status/github/Try/opengothic?svg=true)](https://ci.appveyor.com/project/Try/opengothic)  
@@ -15,6 +15,9 @@ Core gameplay is done, you can complete first chapter as paladin; mercenary/mage
 *you have to install original game, since OpenGothic does not have any game assets or game scripts as built-in*
 2. [Download latest stable build](https://github.com/Try/opengothic/releases/latest)
 3. run '/OpenGothic/bin/Gothic2Notr.exe -g "C:\Program Files (x86)\Path\To\Gothic II"'
+
+#### Game play video
+[![Video](https://img.youtube.com/vi/21OTvuMdwb4/0.jpg)](https://www.youtube.com/watch?v=21OTvuMdwb4)
 
 ##### Features
 * General
