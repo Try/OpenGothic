@@ -318,7 +318,7 @@ void Mixer::implMix(PatternInternal &pptn, float volume, int16_t *out, size_t cn
     float insVolume = std::pow(ins.volume,2.f);
     if(ins.key==5 || ins.key==6) {
       // HACK
-      insVolume*=0.10f;
+      // insVolume*=0.10f;
       }
     const bool hasVol = hasVolumeCurves(pptn,i);
     if(hasVol) {
