@@ -207,6 +207,8 @@ bool FightAlgo::hasInstructions() const {
 
 bool FightAlgo::fetchInstructions(Npc &npc, Npc &tg, GameScript& owner) {
   fillQueue(npc,tg,owner);
+  if(queueId==0)
+    return false;
   nextFromQueue(npc,tg,owner);
   return true;
   }
@@ -298,7 +300,7 @@ float FightAlgo::weaponOnlyRange(GameScript &owner,const Npc &npc) {
     case WeaponState::Bow:
     case WeaponState::CBow:
     case WeaponState::Mage:
-      return 800;
+      return 3000;
     }
   return 0;
   }

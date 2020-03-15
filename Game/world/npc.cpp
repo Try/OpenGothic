@@ -1140,8 +1140,13 @@ bool Npc::implAtack(uint64_t dt) {
   if(faiWaitTime>=owner.tickCount()) {
     if(!visual.pose().isInAnim("T_FISTATTACKMOVE") &&
        !visual.pose().isInAnim("T_1HATTACKMOVE") &&
-       !visual.pose().isInAnim("T_2HATTACKMOVE"))
-      implLookAt(*currentTarget,!hasAutoroll(),dt);
+       !visual.pose().isInAnim("T_2HATTACKMOVE")) {
+      bool noAnim = !hasAutoroll();
+      if(ws==WeaponState::Bow || ws==WeaponState::CBow ||
+         ws==WeaponState::Mage)
+         noAnim = true;
+      implLookAt(*currentTarget,noAnim,dt);
+      }
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
     return true;
     }
@@ -1167,9 +1172,11 @@ bool Npc::implAtack(uint64_t dt) {
 
     auto ws = weaponState();
     if(ws==WeaponState::Mage){
-      if(castSpell())
-        fghAlgo.consumeAction(); else
-        setAnim(Anim::Idle);
+      if(castSpell()) {
+        fghAlgo.consumeAction();
+        } else {
+        visual.stopAnim(*this,nullptr);
+        }
       }
     else if(ws==WeaponState::Bow || ws==WeaponState::CBow){
       if(shootBow()) {
