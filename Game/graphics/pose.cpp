@@ -476,6 +476,10 @@ Matrix4x4 Pose::cameraBone() const {
   return id<tr.size() ? tr[id] : Matrix4x4();
   }
 
+const Tempest::Matrix4x4& Pose::bone(size_t id) const {
+  return tr[id];
+  }
+
 void Pose::setRotation(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir) {
   const Animation::Sequence *sq = nullptr;
   if(dir==0) {

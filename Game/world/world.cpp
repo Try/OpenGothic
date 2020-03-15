@@ -509,9 +509,12 @@ size_t World::hasItems(const char* tag, size_t itemCls) {
   }
 
 Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
-  float dx = 1.f, dy = 0.f, dz = 0.f;
+  float dx  = 1.f, dy = 0.f, dz = 0.f;
   auto  pos = npc.position();
-  pos[1] = npc.centerY();
+  auto  bn  = npc.mapWeaponBone();
+  pos[0]+=bn[0];
+  pos[1]+=bn[1];
+  pos[2]+=bn[2];
 
   if(target!=nullptr) {
     auto  tgPos = target->position();
@@ -538,9 +541,12 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
   }
 
 Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target) {
-  float dx = 1.f, dy = 0.f, dz = 0.f;
+  float dx  = 1.f, dy = 0.f, dz = 0.f;
   auto  pos = npc.position();
-  pos[1] = npc.centerY();
+  auto  bn  = npc.mapWeaponBone();
+  pos[0]+=bn[0];
+  pos[1]+=bn[1];
+  pos[2]+=bn[2];
 
   if(target!=nullptr) {
     auto  tgPos = target->position();

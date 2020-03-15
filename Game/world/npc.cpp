@@ -2103,6 +2103,14 @@ Item *Npc::currentRangeWeapon() {
   return invent.currentRangeWeapon();
   }
 
+std::array<float,3> Npc::mapBone(const char* b) const {
+  return visual.mapBone(b);
+  }
+
+std::array<float,3> Npc::mapWeaponBone() const {
+  return visual.mapWeaponBone();
+  }
+
 bool Npc::lookAt(float dx, float dz, bool anim, uint64_t dt) {
   return implLookAt(dx,dz,anim,dt);
   }

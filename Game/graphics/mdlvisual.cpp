@@ -231,6 +231,28 @@ void MdlVisual::updateAnimation(Npc& npc) {
   view.setSkeleton(pose,pos);
   }
 
+std::array<float,3> MdlVisual::mapBone(const char* b) const {
+  Pose&  pose = *skInst;
+  size_t id   = skeleton->findNode(b);
+  if(id==size_t(-1))
+    return {0,0,0};
+
+  auto mat = pos;
+  mat.mul(pose.bone(id));
+
+  return {mat.at(3,0) - pos.at(3,0),
+          mat.at(3,1) - pos.at(3,1),
+          mat.at(3,2) - pos.at(3,2)};
+  }
+
+std::array<float,3> MdlVisual::mapWeaponBone() const {
+  if(fgtMode==WeaponState::Bow || fgtMode==WeaponState::CBow)
+    return mapBone(ammunition.attachPoint());
+  if(fgtMode==WeaponState::Mage)
+    return mapBone("ZS_RIGHTHAND");
+  return {0,0,0};
+  }
+
 void MdlVisual::stopAnim(Npc& npc,const char* ani) {
   skInst->stopAnim(ani);
   if(!skInst->hasAnim())

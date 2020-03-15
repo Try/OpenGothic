@@ -166,113 +166,114 @@ class Npc final {
     Npc(const Npc&)=delete;
     ~Npc();
 
-    void save(Serialize& fout);
-    void load(Serialize& fout);
+    void       save(Serialize& fout);
+    void       load(Serialize& fout);
 
-    bool setPosition (float x,float y,float z);
-    bool setPosition (const std::array<float,3>& pos);
-    void setDirection(float x,float y,float z);
-    void setDirection(const std::array<float,3>& pos);
-    void setDirection(float rotation);
-    void clearSpeed();
-    static float angleDir(float x,float z);
-    bool resetPositionToTA();
+    bool       setPosition (float x,float y,float z);
+    bool       setPosition (const std::array<float,3>& pos);
+    void       setDirection(float x,float y,float z);
+    void       setDirection(const std::array<float,3>& pos);
+    void       setDirection(float rotation);
+    void       clearSpeed();
+    bool       resetPositionToTA();
 
-    void stopDlgAnim();
+    void       stopDlgAnim();
 
-    void setProcessPolicy(ProcessPolicy t);
-    auto processPolicy() const -> ProcessPolicy { return aiPolicy; }
+    void       setProcessPolicy(ProcessPolicy t);
+    auto       processPolicy() const -> ProcessPolicy { return aiPolicy; }
 
-    bool isPlayer() const;
-    void setWalkMode(WalkBit m);
-    auto walkMode() const { return wlkMode; }
-    void tick(uint64_t dt);
-    bool startClimb(JumpCode code);
+    bool       isPlayer() const;
+    void       setWalkMode(WalkBit m);
+    auto       walkMode() const { return wlkMode; }
+    void       tick(uint64_t dt);
+    bool       startClimb(JumpCode code);
 
-    auto world() -> World&;
+    auto       world() -> World&;
 
-    std::array<float,3> position() const;
-    std::array<float,3> cameraBone() const;
-    float               collisionRadius() const;
-    float               rotation() const;
-    float               rotationRad() const;
-    float               translateY() const;
-    float               centerY() const;
-    Npc*                lookAtTarget() const;
+    auto       position() const -> std::array<float,3>;
+    auto       cameraBone() const -> std::array<float,3>;
+    float      collisionRadius() const;
+    float      rotation() const;
+    float      rotationRad() const;
+    float      translateY() const;
+    float      centerY() const;
+    Npc*       lookAtTarget() const;
 
-    float               qDistTo(float x,float y,float z) const;
-    float               qDistTo(const WayPoint* p) const;
-    float               qDistTo(const Npc& p) const;
-    float               qDistTo(const Interactive& p) const;
+    float      qDistTo(float x,float y,float z) const;
+    float      qDistTo(const WayPoint* p) const;
+    float      qDistTo(const Npc& p) const;
+    float      qDistTo(const Interactive& p) const;
 
-    void updateAnimation();
-    void updateTransform();
+    void       updateAnimation();
+    void       updateTransform();
 
-    const char*         displayName() const;
-    std::array<float,3> displayPosition() const;
-    void setVisual    (const char *visual);
-    void setVisual    (const Skeleton *visual);
-    bool hasOverlay   (const char*     sk) const;
-    bool hasOverlay   (const Skeleton* sk) const;
-    void addOverlay   (const char*     sk, uint64_t time);
-    void addOverlay   (const Skeleton *sk, uint64_t time);
-    void delOverlay   (const char*     sk);
-    void delOverlay   (const Skeleton *sk);
+    const char*displayName() const;
+    auto       displayPosition() const -> std::array<float,3>;
+    void       setVisual    (const char *visual);
+    void       setVisual    (const Skeleton *visual);
+    bool       hasOverlay   (const char*     sk) const;
+    bool       hasOverlay   (const Skeleton* sk) const;
+    void       addOverlay   (const char*     sk, uint64_t time);
+    void       addOverlay   (const Skeleton *sk, uint64_t time);
+    void       delOverlay   (const char*     sk);
+    void       delOverlay   (const Skeleton *sk);
 
-    void setVisualBody (int32_t headTexNr,int32_t teethTexNr,int32_t bodyVer,int32_t bodyColor,const std::string& body,const std::string& head);
-    void updateArmour  ();
-    void setSword      (MeshObjects::Mesh&& sword);
-    void setRangeWeapon(MeshObjects::Mesh&& bow);
-    void setMagicWeapon(PfxObjects::Emitter&& spell);
-    void setSlotItem   (MeshObjects::Mesh&& itm,const char* slot);
-    void setStateItem  (MeshObjects::Mesh&& itm,const char* slot);
-    void setAmmoItem   (MeshObjects::Mesh&& itm,const char* slot);
-    void clearSlotItem (const char* slot);
-    void setPhysic     (DynamicWorld::Item&& item);
-    void setFatness    (float f);
-    void setScale      (float x,float y,float z);
+    void       setVisualBody (int32_t headTexNr,int32_t teethTexNr,
+                              int32_t bodyVer,int32_t bodyColor,
+                              const std::string& body,const std::string& head);
+    void       updateArmour  ();
+    void       setSword      (MeshObjects::Mesh&& sword);
+    void       setRangeWeapon(MeshObjects::Mesh&& bow);
+    void       setMagicWeapon(PfxObjects::Emitter&& spell);
+    void       setSlotItem   (MeshObjects::Mesh&& itm,const char* slot);
+    void       setStateItem  (MeshObjects::Mesh&& itm,const char* slot);
+    void       setAmmoItem   (MeshObjects::Mesh&& itm,const char* slot);
+    void       clearSlotItem (const char* slot);
+    void       setPhysic     (DynamicWorld::Item&& item);
+    void       setFatness    (float f);
+    void       setScale      (float x,float y,float z);
 
-    bool setAnim(Anim a);
-    void setAnimRotate(int rot);
-    bool setAnimItem(const char* scheme);
-    void stopAnim(const std::string& ani);
-    bool isFinishingMove() const;
+    bool       setAnim(Anim a);
+    void       setAnimRotate(int rot);
+    bool       setAnimItem(const char* scheme);
+    void       stopAnim(const std::string& ani);
+    bool       isFinishingMove() const;
 
-    ZMath::float3 animMoveSpeed(uint64_t dt) const;
+    auto       animMoveSpeed(uint64_t dt) const -> ZMath::float3;
 
-    bool          isJumpAnim() const;
-    bool          isFlyAnim() const;
-    bool          isFaling() const;
-    bool          isSlide() const;
-    bool          isInAir() const;
-    bool          isStanding() const;
+    bool       isJumpAnim() const;
+    bool       isFlyAnim() const;
+    bool       isFaling() const;
+    bool       isSlide() const;
+    bool       isInAir() const;
+    bool       isStanding() const;
 
-    void     setTalentSkill(Talent t,int32_t lvl);
-    int32_t  talentSkill(Talent t) const;
+    void       setTalentSkill(Talent t,int32_t lvl);
+    int32_t    talentSkill(Talent t) const;
 
-    void     setTalentValue(Talent t,int32_t lvl);
-    int32_t  talentValue(Talent t) const;
-    int32_t  hitChanse(Talent t) const;
+    void       setTalentValue(Talent t,int32_t lvl);
+    int32_t    talentValue(Talent t) const;
+    int32_t    hitChanse(Talent t) const;
 
-    void     setRefuseTalk(uint64_t milis);
-    bool     isRefuseTalk() const;
+    void       setRefuseTalk(uint64_t milis);
+    bool       isRefuseTalk() const;
 
-    int32_t  mageCycle() const;
-    int32_t  attribute (Attribute a) const;
-    void     changeAttribute(Attribute a, int32_t val, bool allowUnconscious);
-    int32_t  protection(Protection p) const;
-    void     changeProtection(Protection p,int32_t val);
+    int32_t    mageCycle() const;
+    int32_t    attribute (Attribute a) const;
+    void       changeAttribute(Attribute a, int32_t val, bool allowUnconscious);
+    int32_t    protection(Protection p) const;
+    void       changeProtection(Protection p,int32_t val);
 
-    uint32_t instanceSymbol() const;
-    uint32_t guild() const;
-    bool     isMonster() const;
-    void     setTrueGuild(int32_t g);
-    int32_t  trueGuild() const;
-    int32_t  magicCyrcle() const;
-    int32_t  level() const;
-    int32_t  experience() const;
-    int32_t  experienceNext() const;
-    int32_t  learningPoints() const;
+    uint32_t   instanceSymbol() const;
+    uint32_t   guild() const;
+    bool       isMonster() const;
+    void       setTrueGuild(int32_t g);
+    int32_t    trueGuild() const;
+    int32_t    magicCyrcle() const;
+    int32_t    level() const;
+    int32_t    experience() const;
+    int32_t    experienceNext() const;
+    int32_t    learningPoints() const;
 
     void      setAttitude(Attitude att);
     Attitude  attitude() const { return permAttitude; }
@@ -289,167 +290,169 @@ class Npc final {
     BodyState bodyState() const;
     BodyState bodyStateMasked() const;
 
-    void setToFightMode(const size_t item);
-    void setToFistMode();
+    void      setToFightMode(const size_t item);
+    void      setToFistMode();
 
-    bool closeWeapon(bool noAnim);
-    bool drawWeaponFist();
-    bool drawWeaponMele();
-    bool drawWeaponBow();
-    bool drawMage(uint8_t slot);
-    bool drawSpell(int32_t spell);
-    auto weaponState() const -> WeaponState;
+    bool      closeWeapon(bool noAnim);
+    bool      drawWeaponFist();
+    bool      drawWeaponMele();
+    bool      drawWeaponBow();
+    bool      drawMage(uint8_t slot);
+    bool      drawSpell(int32_t spell);
+    auto      weaponState() const -> WeaponState;
 
-    bool canFinish(Npc &oth);
-    void fistShoot();
-    void blockFist();
-    bool finishingMove();
-    void swingSword();
-    void swingSwordL();
-    void swingSwordR();
-    void blockSword();
-    bool castSpell();
-    bool aimBow();
-    bool shootBow();
-    bool hasAmunition() const;
+    bool      canFinish(Npc &oth);
+    void      fistShoot();
+    void      blockFist();
+    bool      finishingMove();
+    void      swingSword();
+    void      swingSwordL();
+    void      swingSwordR();
+    void      blockSword();
+    bool      castSpell();
+    bool      aimBow();
+    bool      shootBow();
+    bool      hasAmunition() const;
 
-    bool isEnemy(const Npc& other) const;
-    bool isDead() const;
-    bool isUnconscious() const;
-    bool isDown() const;
-    bool isAtack() const;
-    bool isTalk() const;
-    bool isPrehit() const;
-    bool isImmortal() const;
+    bool      isEnemy(const Npc& other) const;
+    bool      isDead() const;
+    bool      isUnconscious() const;
+    bool      isDown() const;
+    bool      isAtack() const;
+    bool      isTalk() const;
+    bool      isPrehit() const;
+    bool      isImmortal() const;
 
-    void setPerceptionTime   (uint64_t time);
-    void setPerceptionEnable (PercType t, size_t fn);
-    void setPerceptionDisable(PercType t);
+    void      setPerceptionTime   (uint64_t time);
+    void      setPerceptionEnable (PercType t, size_t fn);
+    void      setPerceptionDisable(PercType t);
 
-    bool     perceptionProcess(Npc& pl);
-    bool     perceptionProcess(Npc& pl, Npc *victum, float quadDist, PercType perc);
-    bool     hasPerc(PercType perc) const;
-    uint64_t percNextTime() const;
+    bool      perceptionProcess(Npc& pl);
+    bool      perceptionProcess(Npc& pl, Npc *victum, float quadDist, PercType perc);
+    bool      hasPerc(PercType perc) const;
+    uint64_t  percNextTime() const;
 
-    Interactive* interactive() const { return currentInteract; }
-    Interactive* detectedMob() const;
-    bool         setInteraction(Interactive* id, bool quick=false);
-    void         quitIneraction();
+    auto      interactive() const -> Interactive* { return currentInteract; }
+    auto      detectedMob() const -> Interactive*;
+    bool      setInteraction(Interactive* id, bool quick=false);
+    void      quitIneraction();
 
-    bool     isState(size_t stateFn) const;
-    bool     wasInState(size_t stateFn) const;
-    uint64_t stateTime() const;
-    void     setStateTime(int64_t time);
+    bool      isState(size_t stateFn) const;
+    bool      wasInState(size_t stateFn) const;
+    uint64_t  stateTime() const;
+    void      setStateTime(int64_t time);
 
-    void     addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint* point);
-    void     excRoutine(size_t callback);
-    void     multSpeed(float s);
+    void      addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint* point);
+    void      excRoutine(size_t callback);
+    void      multSpeed(float s);
 
-    MoveCode testMove  (const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
-    bool     tryMove   (const std::array<float,3> &dp);
+    MoveCode  testMove  (const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
+    bool      tryMove   (const std::array<float,3> &dp);
 
-    JumpCode tryJump(const std::array<float,3>& pos);
-    float    clampHeight(Anim a) const;
-    bool     hasCollision() const { return physic.hasCollision(); }
+    JumpCode  tryJump(const std::array<float,3>& pos);
+    float     clampHeight(Anim a) const;
+    bool      hasCollision() const { return physic.hasCollision(); }
 
-    std::vector<GameScript::DlgChoise> dialogChoises(Npc &player, const std::vector<uint32_t> &except, bool includeImp);
+    auto      dialogChoises(Npc &player, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<GameScript::DlgChoise>;
 
-    Daedalus::GEngineClasses::C_Npc* handle(){ return  &hnpc; }
+    auto      handle() -> Daedalus::GEngineClasses::C_Npc* { return  &hnpc; }
 
-    auto     inventory() const -> const Inventory& { return invent; }
-    size_t   hasItem    (size_t id) const;
-    Item*    getItem    (size_t id);
-    Item*    addItem    (size_t id, uint32_t amount);
-    Item*    addItem    (std::unique_ptr<Item>&& i);
-    void     delItem    (size_t id, uint32_t amount);
-    void     useItem    (size_t item, bool force=false);
-    void     setCurrentItem(size_t item);
-    void     unequipItem(size_t item);
-    void     addItem    (size_t id, Interactive& chest,uint32_t count=1);
-    void     addItem    (size_t id, Npc& from, uint32_t count=1);
-    void     moveItem   (size_t id, Interactive& to,uint32_t count=1);
-    void     sellItem   (size_t id, Npc& to,uint32_t count=1);
-    void     buyItem    (size_t id, Npc& from,uint32_t count=1);
-    void     clearInventory();
-    Item*    currentArmour();
-    Item*    currentMeleWeapon();
-    Item*    currentRangeWeapon();
+    auto      inventory() const -> const Inventory& { return invent; }
+    size_t    hasItem    (size_t id) const;
+    Item*     getItem    (size_t id);
+    Item*     addItem    (size_t id, uint32_t amount);
+    Item*     addItem    (std::unique_ptr<Item>&& i);
+    void      delItem    (size_t id, uint32_t amount);
+    void      useItem    (size_t item, bool force=false);
+    void      setCurrentItem(size_t item);
+    void      unequipItem(size_t item);
+    void      addItem    (size_t id, Interactive& chest,uint32_t count=1);
+    void      addItem    (size_t id, Npc& from, uint32_t count=1);
+    void      moveItem   (size_t id, Interactive& to,uint32_t count=1);
+    void      sellItem   (size_t id, Npc& to,uint32_t count=1);
+    void      buyItem    (size_t id, Npc& from,uint32_t count=1);
+    void      clearInventory();
+    Item*     currentArmour();
+    Item*     currentMeleWeapon();
+    Item*     currentRangeWeapon();
+    auto      mapBone(const char* b) const -> std::array<float,3>;
+    auto      mapWeaponBone() const -> std::array<float,3>;
 
-    bool     lookAt(float dx, float dz, bool anim, uint64_t dt);
-    auto     playAnimByName(const Daedalus::ZString& name, bool forceAnim, BodyState bs) -> const Animation::Sequence*;
+    bool      lookAt(float dx, float dz, bool anim, uint64_t dt);
+    auto      playAnimByName(const Daedalus::ZString& name, bool forceAnim, BodyState bs) -> const Animation::Sequence*;
 
-    bool     checkGoToNpcdistance(const Npc& other);
-    void     aiLookAt(Npc* other);
-    void     aiStopLookAt();
-    void     aiRemoveWeapon();
-    void     aiTurnToNpc(Npc *other);
-    void     aiGoToNpc  (Npc *other);
-    void     aiGoToNextFp(const Daedalus::ZString& fp);
-    void     aiStartState(uint32_t stateFn, int behavior, Npc *other, const Daedalus::ZString& wp);
-    void     aiPlayAnim(const Daedalus::ZString& ani);
-    void     aiPlayAnimBs(const Daedalus::ZString& ani, BodyState bs);
-    void     aiWait(uint64_t dt);
-    void     aiStandup();
-    void     aiStandupQuick();
-    void     aiGoToPoint(const WayPoint &to);
-    void     aiEquipArmor(int32_t id);
-    void     aiEquipBestArmor();
-    void     aiEquipBestMeleWeapon();
-    void     aiEquipBestRangeWeapon();
-    void     aiUseMob(const Daedalus::ZString& name,int st);
-    void     aiUseItem(int32_t id);
-    void     aiUseItemToState(int32_t id,int32_t state);
-    void     aiTeleport(const WayPoint& to);
-    void     aiDrawWeapon();
-    void     aiReadyMeleWeapon();
-    void     aiReadyRangeWeapon();
-    void     aiReadySpell(int32_t spell, int32_t mana);
-    void     aiAtack();
-    void     aiFlee();
-    void     aiDodge();
-    void     aiUnEquipWeapons();
-    void     aiUnEquipArmor();
-    void     aiProcessInfo(Npc& other);
-    void     aiOutput(Npc &to, const Daedalus::ZString& text, int order);
-    void     aiOutputSvm(Npc &to, const Daedalus::ZString& text, int order);
-    void     aiOutputSvmOverlay(Npc &to, const Daedalus::ZString& text, int order);
-    void     aiStopProcessInfo();
-    void     aiContinueRoutine();
-    void     aiAlignToFp();
-    void     aiAlignToWp();
-    void     aiSetNpcsToState(size_t func, int32_t radius);
-    void     aiSetWalkMode(WalkBit w);
-    void     aiFinishingMove(Npc& other);
+    bool      checkGoToNpcdistance(const Npc& other);
+    void      aiLookAt(Npc* other);
+    void      aiStopLookAt();
+    void      aiRemoveWeapon();
+    void      aiTurnToNpc(Npc *other);
+    void      aiGoToNpc  (Npc *other);
+    void      aiGoToNextFp(const Daedalus::ZString& fp);
+    void      aiStartState(uint32_t stateFn, int behavior, Npc *other, const Daedalus::ZString& wp);
+    void      aiPlayAnim(const Daedalus::ZString& ani);
+    void      aiPlayAnimBs(const Daedalus::ZString& ani, BodyState bs);
+    void      aiWait(uint64_t dt);
+    void      aiStandup();
+    void      aiStandupQuick();
+    void      aiGoToPoint(const WayPoint &to);
+    void      aiEquipArmor(int32_t id);
+    void      aiEquipBestArmor();
+    void      aiEquipBestMeleWeapon();
+    void      aiEquipBestRangeWeapon();
+    void      aiUseMob(const Daedalus::ZString& name,int st);
+    void      aiUseItem(int32_t id);
+    void      aiUseItemToState(int32_t id,int32_t state);
+    void      aiTeleport(const WayPoint& to);
+    void      aiDrawWeapon();
+    void      aiReadyMeleWeapon();
+    void      aiReadyRangeWeapon();
+    void      aiReadySpell(int32_t spell, int32_t mana);
+    void      aiAtack();
+    void      aiFlee();
+    void      aiDodge();
+    void      aiUnEquipWeapons();
+    void      aiUnEquipArmor();
+    void      aiProcessInfo(Npc& other);
+    void      aiOutput(Npc &to, const Daedalus::ZString& text, int order);
+    void      aiOutputSvm(Npc &to, const Daedalus::ZString& text, int order);
+    void      aiOutputSvmOverlay(Npc &to, const Daedalus::ZString& text, int order);
+    void      aiStopProcessInfo();
+    void      aiContinueRoutine();
+    void      aiAlignToFp();
+    void      aiAlignToWp();
+    void      aiSetNpcsToState(size_t func, int32_t radius);
+    void      aiSetWalkMode(WalkBit w);
+    void      aiFinishingMove(Npc& other);
 
-    bool     isAiQueueEmpty() const;
-    void     clearAiQueue();
+    bool      isAiQueueEmpty() const;
+    void      clearAiQueue();
 
-    auto     currentWayPoint() const -> const WayPoint* { return currentFp; }
-    void     attachToPoint(const WayPoint* p);
-    GoToHint moveHint() const { return go2.flag; }
-    void     clearGoTo();
+    auto      currentWayPoint() const -> const WayPoint* { return currentFp; }
+    void      attachToPoint(const WayPoint* p);
+    GoToHint  moveHint() const { return go2.flag; }
+    void      clearGoTo();
 
-    bool     canSeeNpc(const Npc& oth,bool freeLos) const;
-    bool     canSeeNpc(float x,float y,float z,bool freeLos) const;
-    auto     canSenseNpc(const Npc& oth,bool freeLos, float extRange=0.f) const -> SensesBit;
-    auto     canSenseNpc(float x,float y,float z,bool freeLos, float extRange=0.f) const -> SensesBit;
+    bool      canSeeNpc(const Npc& oth,bool freeLos) const;
+    bool      canSeeNpc(float x,float y,float z,bool freeLos) const;
+    auto      canSenseNpc(const Npc& oth,bool freeLos, float extRange=0.f) const -> SensesBit;
+    auto      canSenseNpc(float x,float y,float z,bool freeLos, float extRange=0.f) const -> SensesBit;
 
-    void     setTarget(Npc* t);
-    Npc*     target();
+    void      setTarget(Npc* t);
+    Npc*      target();
 
-    void     clearNearestEnemy();
-    int32_t  lastHitSpellId() const { return lastHitSpell; }
+    void      clearNearestEnemy();
+    int32_t   lastHitSpellId() const { return lastHitSpell; }
 
-    void     setOther(Npc* ot);
+    void      setOther(Npc* ot);
 
-    bool     haveOutput() const;
-    void     setAiOutputBarrier(uint64_t dt);
+    bool      haveOutput() const;
+    void      setAiOutputBarrier(uint64_t dt);
 
-    bool     doAttack(Anim anim);
-    void     takeDamage(Npc& other,const Bullet* b);
-    void     emitDlgSound(const char* sound);
-    void     emitSoundEffect(const char* sound, float range, bool freeSlot);
-    void     emitSoundGround(const char* sound, float range, bool freeSlot);
+    bool      doAttack(Anim anim);
+    void      takeDamage(Npc& other,const Bullet* b);
+    void      emitDlgSound(const char* sound);
+    void      emitSoundEffect(const char* sound, float range, bool freeSlot);
+    void      emitSoundGround(const char* sound, float range, bool freeSlot);
 
   private:
     struct Routine final {
@@ -549,47 +552,48 @@ class Npc final {
       void                         set(const WayPoint* to, GoToHint hnt = GoToHint::GT_Way);
       };
 
-    void                           updateWeaponSkeleton();
-    void                           tickTimedEvt(Animation::EvCount &ev);
-    void                           updatePos();
-    bool                           setViewPosition(const std::array<float,3> &pos);
+    void      updateWeaponSkeleton();
+    void      tickTimedEvt(Animation::EvCount &ev);
+    void      updatePos();
+    bool      setViewPosition(const std::array<float,3> &pos);
 
-    int                            aiOutputOrderId() const;
-    bool                           performOutput(const AiAction &ai);
+    int       aiOutputOrderId() const;
+    bool      performOutput(const AiAction &ai);
 
-    const Routine&                 currentRoutine() const;
-    gtime                          endTime(const Routine& r) const;
+    auto      currentRoutine() const -> const Routine&;
+    gtime     endTime(const Routine& r) const;
 
-    bool                           implLookAt (uint64_t dt);
-    bool                           implLookAt (const Npc& oth, uint64_t dt);
-    bool                           implLookAt (const Npc& oth, bool noAnim, uint64_t dt);
-    bool                           implLookAt (float dx, float dz, bool noAnim, uint64_t dt);
-    bool                           implGoTo   (uint64_t dt);
-    bool                           implGoTo   (uint64_t dt, float destDist);
-    bool                           implAtack  (uint64_t dt);
-    bool                           implAiTick (uint64_t dt);
-    void                           implAiWait (uint64_t dt);
-    void                           implAniWait(uint64_t dt);
-    void                           implFaiWait(uint64_t dt);
-    void                           implSetFightMode(const Animation::EvCount& ev);
-    void                           tickRoutine();
-    void                           nextAiAction(uint64_t dt);
-    void                           commitDamage();
-    void                           takeDamage(Npc& other);
-    Npc*                           updateNearestEnemy();
-    Npc*                           updateNearestBody();
-    bool                           checkHealth(bool onChange, bool forceKill);
-    void                           onNoHealth(bool death, HitSound sndMask);
-    bool                           hasAutoroll() const;
+    bool      implLookAt (uint64_t dt);
+    bool      implLookAt (const Npc& oth, uint64_t dt);
+    bool      implLookAt (const Npc& oth, bool noAnim, uint64_t dt);
+    bool      implLookAt (float dx, float dz, bool noAnim, uint64_t dt);
+    bool      implGoTo   (uint64_t dt);
+    bool      implGoTo   (uint64_t dt, float destDist);
+    bool      implAtack  (uint64_t dt);
+    bool      implAiTick (uint64_t dt);
+    void      implAiWait (uint64_t dt);
+    void      implAniWait(uint64_t dt);
+    void      implFaiWait(uint64_t dt);
+    void      implSetFightMode(const Animation::EvCount& ev);
+    void      tickRoutine();
+    void      nextAiAction(uint64_t dt);
+    void      commitDamage();
+    void      takeDamage(Npc& other);
+    Npc*      updateNearestEnemy();
+    Npc*      updateNearestBody();
+    bool      checkHealth(bool onChange, bool forceKill);
+    void      onNoHealth(bool death, HitSound sndMask);
+    bool      hasAutoroll() const;
 
-    void                           save(Serialize& fout,Daedalus::GEngineClasses::C_Npc& hnpc) const;
-    void                           load(Serialize& fin, Daedalus::GEngineClasses::C_Npc& hnpc);
+    void      save(Serialize& fout,Daedalus::GEngineClasses::C_Npc& hnpc) const;
+    void      load(Serialize& fin, Daedalus::GEngineClasses::C_Npc& hnpc);
 
-    void                           save(Serialize& fout,const Daedalus::GEngineClasses::C_Npc::ENPCFlag& flg) const;
-    void                           load(Serialize& fin, Daedalus::GEngineClasses::C_Npc::ENPCFlag&       flg);
+    void      save(Serialize& fout,const Daedalus::GEngineClasses::C_Npc::ENPCFlag& flg) const;
+    void      load(Serialize& fin, Daedalus::GEngineClasses::C_Npc::ENPCFlag&       flg);
 
-    void                           saveAiState(Serialize& fout) const;
-    void                           loadAiState(Serialize& fin);
+    void      saveAiState(Serialize& fout) const;
+    void      loadAiState(Serialize& fin);
+    static float angleDir(float x,float z);
 
     World&                         owner;
     Daedalus::GEngineClasses::C_Npc hnpc={};
