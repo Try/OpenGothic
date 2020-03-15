@@ -8,7 +8,7 @@ The goal of this project is to make feature complete Gothic client-app compatibl
 ![Screenshoot](scr0.png)
 ##### Work in progress
 [![Build status](https://ci.appveyor.com/api/projects/status/github/Try/opengothic?svg=true)](https://ci.appveyor.com/project/Try/opengothic)  
-Core gameplay is done, you can complete first chapter as paladin; mercenary/mage are not tested yet.  
+Core gameplay is done, you can complete first chapter, as well as all addon content for any guild. 
 
 ##### How to play
 1. Install original gothic game from CD/Steam/GOG/etc  
@@ -16,8 +16,8 @@ Core gameplay is done, you can complete first chapter as paladin; mercenary/mage
 2. [Download latest stable build](https://github.com/Try/opengothic/releases/latest)
 3. run '/OpenGothic/bin/Gothic2Notr.exe -g "C:\Program Files (x86)\Path\To\Gothic II"'
 
-#### Game play video
-[![Video](https://img.youtube.com/vi/21OTvuMdwb4/0.jpg)](https://www.youtube.com/watch?v=21OTvuMdwb4)
+#### Gameplay video
+[![Video](https://img.youtube.com/vi/21OTvuMdwb4/0.jpg)](https://www.youtube.com/watch?v=21OTvuMdwb4) [![Video](https://img.youtube.com/vi/MUVd-ZWliKY/0.jpg)](https://www.youtube.com/watch?v=MUVd-ZWliKY)
 
 ##### Features
 * General
