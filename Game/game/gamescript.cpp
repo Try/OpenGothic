@@ -2220,7 +2220,7 @@ void GameScript::npc_checkinfo(Daedalus::DaedalusVM &vm) {
     if(info.npc!=int32_t(npc.instanceSymbol) || info.important!=imp)
       continue;
     bool npcKnowsInfo = doesNpcKnowInfo(pl,info.instanceSymbol);
-    if(npcKnowsInfo)
+    if(npcKnowsInfo && !info.permanent)
       continue;
     bool valid=false;
     if(info.condition)
