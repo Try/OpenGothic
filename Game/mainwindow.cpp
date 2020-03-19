@@ -646,7 +646,7 @@ void MainWindow::render(){
     auto& context = fLocal[swapchain.frameId()];
 
     context.gpuLock.wait();
-    if(needToUpdate()) {
+    if(needToUpdate() || gothic.checkLoading()!=Gothic::LoadState::Idle) {
       dispatchPaintEvent(uiLayer,atlas);
 
       numOverlay.clear();
