@@ -256,19 +256,19 @@ std::array<float,3> MdlVisual::mapWeaponBone() const {
 void MdlVisual::stopAnim(Npc& npc,const char* ani) {
   skInst->stopAnim(ani);
   if(!skInst->hasAnim())
-    startAnim(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
+    startAnimAndGet(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
   }
 
 void MdlVisual::stopItemStateAnim(Npc& npc) {
   skInst->stopItemStateAnim();
   if(!skInst->hasAnim())
-    startAnim(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
+    startAnimAndGet(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
   }
 
 void MdlVisual::stopWalkAnim(Npc &npc) {
   if(pose().bodyState()!=BS_STAND) {
     skInst->stopAnim(nullptr);
-    startAnim(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
+    startAnimAndGet(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
     }
   }
 
@@ -299,7 +299,10 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
   // for those use MdlVisual::setRotation
   assert(a!=AnimationSolver::Anim::RotL && a!=AnimationSolver::Anim::RotR);
 
-  if(a==AnimationSolver::InteractIn || a==AnimationSolver::InteractOut) {
+  if(a==AnimationSolver::InteractIn ||
+     a==AnimationSolver::InteractOut ||
+     a==AnimationSolver::InteractToStand ||
+     a==AnimationSolver::InteractFromStand) {
     auto inter = npc.interactive();
     const Animation::Sequence *sq = solver.solveAnim(inter,a,*skInst);
     if(sq!=nullptr){
@@ -367,6 +370,8 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
       break;
     case AnimationSolver::Anim::InteractIn:
     case AnimationSolver::Anim::InteractOut:
+    case AnimationSolver::Anim::InteractToStand:
+    case AnimationSolver::Anim::InteractFromStand:
       bs = BS_MOBINTERACT;
       break;
     case AnimationSolver::Anim::Atack:
@@ -394,10 +399,6 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     return sq;
     }
   return nullptr;
-  }
-
-bool MdlVisual::startAnim(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk) {
-  return startAnimAndGet(npc,a,st,wlk)!=nullptr;
   }
 
 bool MdlVisual::startAnim(Npc &npc, WeaponState st) {

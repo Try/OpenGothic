@@ -756,13 +756,17 @@ const Animation::Sequence* Npc::playAnimByName(const Daedalus::ZString& name,boo
   }
 
 bool Npc::setAnim(Npc::Anim a) {
+  return setAnimAngGet(a)!=nullptr;
+  }
+
+const Animation::Sequence* Npc::setAnimAngGet(Npc::Anim a) {
   auto st  = weaponState();
   auto wlk = walkMode();
   if(mvAlgo.isSwim())
     wlk = WalkBit::WM_Swim;
   else if(mvAlgo.isInWater())
     wlk = WalkBit::WM_Water;
-  return visual.startAnim(*this,a,st,wlk);
+  return visual.startAnimAndGet(*this,a,st,wlk);
   }
 
 void Npc::setAnimRotate(int rot) {

@@ -27,6 +27,8 @@ Interactive::Interactive(World &world, ZenLoad::zCVobData&& vob)
   useWithItem   = std::move(vob.oCMobInter.useWithItem);
   conditionFunc = std::move(vob.oCMobInter.conditionFunc);
   onStateFunc   = std::move(vob.oCMobInter.onStateFunc);
+  rewind        = std::move(vob.oCMobInter.rewind);
+
   pos           = Tempest::Matrix4x4(v);
 
   for(auto& i:owner)
@@ -82,14 +84,13 @@ void Interactive::load(Serialize &fin) {
   for(size_t i=0;i<sz;++i){
     std::string name;
     Npc*        user=nullptr;
-    int32_t     userState=0;
+    int32_t     userState=0; // unused
     bool        attachMode=false;
 
     fin.read(name,user,userState,attachMode);
     for(auto& i:attPos)
       if(i.name==name) {
         i.user       = user;
-        i.userState  = userState;
         i.attachMode = attachMode;
         if(i.user!=nullptr)
           i.user->setInteraction(this,true);
@@ -108,7 +109,8 @@ void Interactive::save(Serialize &fout) const {
 
   fout.write(uint32_t(attPos.size()));
   for(auto& i:attPos) {
-    fout.write(i.name,i.user,i.userState,i.attachMode);
+    int32_t userState=0; // unused
+    fout.write(i.name,i.user,userState,i.attachMode);
     }
   }
 
@@ -164,6 +166,9 @@ void Interactive::tick(uint64_t dt) {
   if(p==nullptr)
     return;
 
+  if(world->tickCount()<waitAnim)
+    return;
+
   if(p->user==nullptr && (state==-1 && !p->attachMode))
     return;
   if(p->user==nullptr && (state==stateNum && p->attachMode))
@@ -173,27 +178,48 @@ void Interactive::tick(uint64_t dt) {
 
 void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
   Npc* npc = p.user;
-  if(p.attachMode && loopState){
-    if(!setAnim(Anim::Active))
+
+  if(!p.started) {
+    // STAND -> S0
+    if(npc!=nullptr) {
+      auto sq = npc->setAnimAngGet(Npc::Anim::InteractFromStand);
+      uint64_t t = sq==nullptr ? 0 : uint64_t(sq->totalTime());
+      waitAnim = world->tickCount()+t;
+      }
+    p.started = true;
+    return;
+    }
+
+  if(p.attachMode^reverseState) {
+    if(state==stateNum) {
+      //HACK: some beds in game are VT_oCMobDoor
+      if(canQuitAtLastState()) {
+        implQuitInteract(p);
+        return;
+        }
+      }
+    } else {
+    if(state==0) {
+      implQuitInteract(p);
       return;
-    if(npc!=nullptr)
-      npc->setAnim(Npc::Anim::InteractIn);
+      }
+    }
+
+  if((p.attachMode^reverseState) && state==stateNum){
+    if(!setAnim(npc,Anim::Active))
+      return;
     }
   else if(p.attachMode) {
-    if(!loopState && npc!=nullptr && !npc->setAnim(Npc::Anim::InteractIn))
+    if(!setAnim(npc,Anim::In))
       return;
-    if(!setAnim(Anim::In))
-      return;
-    } else {
-    if(npc!=nullptr)
-      npc->setAnim(Npc::Anim::InteractOut);
-    if(!setAnim(Anim::Out))
+    }
+  else {
+    if(!setAnim(npc,Anim::Out))
       return;
     }
 
-  if(p.userState==-1 && p.attachMode) {
-    p.userState=0;
-    if(npc!=nullptr)
+  if(state==0 && p.attachMode) {
+    if(npc!=nullptr) // player only emitter?
       npc->world().sendPassivePerc(*npc,*npc,*npc,Npc::PERC_ASSESSUSEMOB);
     emitTriggerEvent();
     }
@@ -202,49 +228,30 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     invokeStateFunc(*npc);
     }
 
-  bool finalState = false;
-  int  prev       = state;
+  int  prev = state;
   if(p.attachMode^reverseState) {
     state = std::min(stateNum,state+1);
-    if(state==stateNum)
-      finalState = true;
     } else {
-    state = std::max(-1,state-1);
-    if(state==-1)
-      finalState = true;
+    state = std::max(0,state-1);
     }
-  p.userState = state;
-  loopState   = (prev==state);
-
-  if(!finalState && prev==state)
-    return;
-
-  if(state==-1) {
-    implQuitInteract(p);
-    return;
-    }
-  if(state==stateNum) {
-    //HACK: some beds in game are VT_oCMobDoor
-    //implQuitInteract(p);
-
-    if((vobType==ZenLoad::zCVobData::VT_oCMobDoor && onStateFunc.empty()) ||
-        vobType==ZenLoad::zCVobData::VT_oCMobSwitch || reverseState){
-      implQuitInteract(p);
-      return;
-      }
-    }
+  loopState = (prev==state);
   }
 
 void Interactive::implQuitInteract(Interactive::Pos &p) {
   Npc* npc = p.user;
   if(npc==nullptr || !npc->isPlayer() || npc->world().aiIsDlgFinished()) {
     if(npc!=nullptr) {
-      if(!npc->setAnim(Npc::Anim::Idle))
+      const Animation::Sequence* sq = nullptr;
+      if(state==0) {
+        // S0 -> STAND
+        sq = npc->setAnimAngGet(Npc::Anim::InteractToStand);
+        }
+      if(sq==nullptr && !npc->setAnim(Npc::Anim::Idle))
         return;
       npc->quitIneraction();
       }
     p.user      = nullptr;
-    p.userState = -1;
+    loopState   = false;
     }
   }
 
@@ -448,6 +455,12 @@ bool Interactive::isStaticState() const {
   return loopState;
   }
 
+bool Interactive::canQuitAtLastState() const {
+  return (vobType==ZenLoad::zCVobData::VT_oCMobDoor && onStateFunc.empty()) ||
+          vobType==ZenLoad::zCVobData::VT_oCMobSwitch ||
+          reverseState;
+  }
+
 bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
   assert(to.user==nullptr);
 
@@ -472,11 +485,12 @@ bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
     reverseState = (state>0);
     } else {
     reverseState = false;
-    state = -1;
+    state = 0;
     }
-  to.userState  = state;
+
   to.user       = &npc;
   to.attachMode = true;
+  to.started    = false;
   return true;
   }
 
@@ -510,6 +524,8 @@ bool Interactive::attach(Npc &npc) {
 bool Interactive::dettach(Npc &npc) {
   for(auto& i:attPos)
     if(i.user==&npc) {
+      if(i.attachMode && canQuitAtLastState())
+        return false;
       i.attachMode = false;
       return true;
       }
@@ -575,11 +591,11 @@ std::array<float,3> Interactive::nodePosition(const Npc &npc, const Pos &p) cons
   return {{x,y,z}};
   }
 
-bool Interactive::setAnim(Interactive::Anim t) {
+const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {
   int  st[]     = {state,state+(reverseState ? -t : t)};
   char ss[2][8] = {};
 
-  st[1] = std::max(-1,std::min(st[1],stateNum));
+  st[1] = std::max(0,std::min(st[1],stateNum));
 
   char buf[256]={};
   for(int i=0;i<2;++i){
@@ -595,16 +611,47 @@ bool Interactive::setAnim(Interactive::Anim t) {
     std::snprintf(buf,sizeof(buf),"T_%s_2_%s",ss[0],ss[1]);
 
   auto sq = solver.solveFrm(buf);
-  if(sq)
-    return skInst->startAnim(solver,sq,BS_NONE,false,world->tickCount());
+  if(sq) {
+    if(skInst->startAnim(solver,sq,BS_NONE,false,world->tickCount()))
+      return sq;
+    }
+  return nullptr;
+  }
+
+bool Interactive::setAnim(Npc* npc,Anim dir) {
+  Npc::Anim                  dest = dir==Anim::Out ? Npc::Anim::InteractOut : Npc::Anim::InteractIn;
+  const Animation::Sequence* sqNpc=nullptr;
+  const Animation::Sequence* sqMob=nullptr;
+  if(npc!=nullptr) {
+    sqNpc = npc->setAnimAngGet(dest);
+    if(sqNpc==nullptr && dir!=Anim::Out)
+      return false;
+    }
+  sqMob = setAnim(dir);
+  if(sqMob==nullptr && sqNpc==nullptr && dir!=Anim::Out)
+    return false;
+
+  uint64_t t0 = sqNpc==nullptr ? 0 : uint64_t(sqNpc->totalTime());
+  uint64_t t1 = sqMob==nullptr ? 0 : uint64_t(sqMob->totalTime());
+  if(dir!=Anim::Active)
+    waitAnim = world->tickCount()+std::max(t0,t1);
   return true;
   }
 
-const Animation::Sequence* Interactive::anim(const AnimationSolver &solver, Anim t) {
+const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, Anim t) {
   const char* tag      = schemeName();
   int         st[]     = {state,state+(reverseState ? -t : t)};
   char        ss[2][8] = {};
   const char* point    = "";
+
+  if(t==Anim::FromStand) {
+    st[0] = -1;
+    st[1] = 0;
+    }
+  else if(t==Anim::ToStand) {
+    st[0] = 0;
+    st[1] = -1;
+    }
 
   for(auto& i:attPos)
     if(i.user!=nullptr) {

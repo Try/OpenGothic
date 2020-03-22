@@ -305,15 +305,15 @@ void PlayerControl::implMove(uint64_t dt) {
   if((pl.bodyState()&BS_MAX)==BS_UNCONSCIOUS)
     return;
 
-  if(!pl.isAiQueueEmpty()) {
-    pl.setAnim(Npc::Anim::Idle);
-    return;
-    }
-
   if(pl.interactive()!=nullptr) {
     if(ctrl[KeyCodec::Back])
       pl.setInteraction(nullptr);
     // animation handled in MOBSI
+    return;
+    }
+
+  if(!pl.isAiQueueEmpty()) {
+    pl.setAnim(Npc::Anim::Idle);
     return;
     }
 

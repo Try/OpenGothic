@@ -14,9 +14,12 @@ class Trigger;
 class Interactive final {
   public:
     enum Anim : int8_t {
-      In    = 1,
-      Active= 0,
-      Out   =-1
+      In        =  1,
+      Active    =  0,
+      Out       = -1,
+
+      ToStand   = 10,
+      FromStand = 11,
       };
 
     Interactive(World& owner, ZenLoad::zCVobData &&vob);
@@ -54,18 +57,18 @@ class Interactive final {
 
     bool                isAvailable() const;
     bool                isStaticState() const;
+    bool                canQuitAtLastState() const;
     bool                attach (Npc& npc);
     bool                dettach(Npc& npc);
 
-    bool                setAnim(Anim t);
-    auto                anim(const AnimationSolver &solver, Anim t) -> const Animation::Sequence*;
+    auto                animNpc(const AnimationSolver &solver, Anim t) -> const Animation::Sequence*;
     void                marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
   private:
     struct Pos final {
       std::string        name;
       Npc*               user=nullptr;
-      int                userState=0;
+      bool               started=false;
       bool               attachMode=false;
 
       size_t             node=0;
@@ -87,6 +90,9 @@ class Interactive final {
     void                autoDettachNpc();
     void                implChState(bool next);
     bool                checkUseConditions(Npc& npc);
+
+    auto                setAnim(Anim t) -> const Animation::Sequence*;
+    bool                setAnim(Npc* npc, Anim dir);
 
     const Pos*          findFreePos() const;
     Pos*                findFreePos();
@@ -111,6 +117,7 @@ class Interactive final {
     std::string                  useWithItem;
     std::string                  conditionFunc;
     std::string                  onStateFunc;
+    bool                         rewind = false;
     //  oCMobContainer
     bool                         locked=false;
     std::string                  keyInstance;
@@ -118,9 +125,10 @@ class Interactive final {
     Inventory                    invent;
 
     Tempest::Matrix4x4           pos;
-    int                          state=-1;
+    int                          state=0;
     bool                         reverseState=false;
     bool                         loopState=false;
+    uint64_t                     waitAnim = 0;
 
     std::vector<Pos>             attPos;
     const ProtoMesh*             mesh = nullptr;

@@ -44,8 +44,11 @@ class AnimationSolver final {
       Fallen,
       SlideA,
       SlideB,
+
       InteractIn,
       InteractOut,
+      InteractToStand,
+      InteractFromStand,
 
       Atack,
       AtackL,

@@ -283,10 +283,17 @@ const Animation::Sequence *AnimationSolver::solveAnim(WeaponState st, WeaponStat
 const Animation::Sequence *AnimationSolver::solveAnim(Interactive *inter, AnimationSolver::Anim a, const Pose &) const {
   if(inter==nullptr)
     return nullptr;
-  if(a==AnimationSolver::InteractOut) {
-    return inter->anim(*this,Interactive::Out);
-    } else {
-    return inter->anim(*this,Interactive::In);
+  switch(a) {
+    case AnimationSolver::InteractIn:
+      return inter->animNpc(*this,Interactive::In);
+    case AnimationSolver::InteractOut:
+      return inter->animNpc(*this,Interactive::Out);
+    case AnimationSolver::InteractToStand:
+      return inter->animNpc(*this,Interactive::ToStand);
+    case AnimationSolver::InteractFromStand:
+      return inter->animNpc(*this,Interactive::FromStand);
+    default:
+      return nullptr;
     }
   }
 
