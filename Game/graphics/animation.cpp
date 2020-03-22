@@ -67,7 +67,8 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
             auto d = i.data;
             sequences.emplace_back();
             Animation::Sequence& ani = sequences.back();
-            ani.name    = sequences[sequences.size()-r-1].name;
+            ani.name    = p.comb.m_Name;
+            //ani.name    = sequences[sequences.size()-r-1].name;
             ani.askName = name;
             ani.layer   = p.comb.m_Layer;
             ani.flags   = Flags(p.comb.m_Flags);
