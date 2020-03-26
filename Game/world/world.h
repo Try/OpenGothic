@@ -82,6 +82,7 @@ class World final {
 
     void            assignRoomToGuild(const char* room, int32_t guildId);
     int32_t         guildOfRoom(const std::array<float,3>& pos);
+    int32_t         guildOfRoom(const char* portalName);
 
     MeshObjects::Mesh   getView(const Daedalus::ZString& visual) const;
     MeshObjects::Mesh   getView(const char*              visual) const;

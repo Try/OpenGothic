@@ -29,7 +29,7 @@ PhysicMesh::PhysicMesh(ZenLoad::PackedMesh&& sPacked)
   for(auto& i:sPacked.subMeshes)
     if(!i.material.noCollDet && i.indices.size()>0) {
       std::memcpy(&id[off],i.indices.data(),i.indices.size()*sizeof(i.indices[0]));
-      addSegment(i.indices.size(),off,i.material.matGroup);
+      addSegment(i.indices.size(),off,i.material.matGroup,nullptr);
       off+=i.indices.size();
       }
   for(size_t i=0;i<id.size();i+=3){
@@ -50,6 +50,10 @@ PhysicMesh::PhysicMesh(const std::vector<btVector3>* v)
   }
 
 void PhysicMesh::addIndex(std::vector<uint32_t>&& index, uint8_t material) {
+  addIndex(std::move(index),material,nullptr);
+  }
+
+void PhysicMesh::addIndex(std::vector<uint32_t>&& index, uint8_t material, const char* sector) {
   if(index.size()==0)
     return;
 
@@ -69,11 +73,11 @@ void PhysicMesh::addIndex(std::vector<uint32_t>&& index, uint8_t material) {
       }
     }
 
-  addSegment(idSize,off,material);
+  addSegment(idSize,off,material,sector);
   adjustMesh();
   }
 
-void PhysicMesh::addSegment(size_t indexSize,size_t offset,uint8_t material) {
+void PhysicMesh::addSegment(size_t indexSize, size_t offset, uint8_t material, const char* sector) {
   btIndexedMesh meshIndex={};
   meshIndex.m_numTriangles = indexSize/3;
   meshIndex.m_numVertices  = int32_t(vert.size());
@@ -86,7 +90,7 @@ void PhysicMesh::addSegment(size_t indexSize,size_t offset,uint8_t material) {
   meshIndex.m_vertexStride        = sizeof(btVector3);
 
   m_indexedMeshes.push_back(meshIndex);
-  segments.push_back(Segment{offset,int(indexSize/3),material});
+  segments.push_back(Segment{offset,int(indexSize/3),material,sector});
   }
 
 uint8_t PhysicMesh::getMaterialId(size_t segment) const {
@@ -95,8 +99,18 @@ uint8_t PhysicMesh::getMaterialId(size_t segment) const {
   return 0;
   }
 
+const char* PhysicMesh::getSectorName(size_t segment) const {
+  if(segment<segments.size())
+    return segments[segment].sector;
+  return nullptr;
+  }
+
 bool PhysicMesh::useQuantization() const {
   return segments.size()<1024;
+  }
+
+bool PhysicMesh::isEmpty() const {
+  return segments.size()==0;
   }
 
 void PhysicMesh::adjustMesh(){

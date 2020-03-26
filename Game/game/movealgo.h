@@ -59,6 +59,8 @@ class MoveAlgo final {
     uint8_t groundMaterial() const;
     auto    groundNormal() const -> std::array<float,3>;
 
+    auto    portalName() -> const char*;
+
   private:
     void    tickMobsi  (uint64_t dt);
     bool    tickSlide  (uint64_t dt);
@@ -107,12 +109,13 @@ class MoveAlgo final {
     uint8_t groundMaterial(float x, float y, float z) const;
 
     struct Cache {
-      float   x=0,y=0,z=std::numeric_limits<float>::infinity();
-      float   rayCastRet=0;
-      uint8_t mat=0;
-      bool    hasCol=false;
+      float       x=0,y=0,z=std::numeric_limits<float>::infinity();
+      float       rayCastRet = 0;
+      uint8_t     mat        = 0;
+      const char* portalName = nullptr;
+      bool        hasCol     = false;
 
-      float nx=0,ny=0,nz=std::numeric_limits<float>::infinity();
+      float       nx=0,ny=0,nz=std::numeric_limits<float>::infinity();
       std::array<float,3> norm={};
 
       float wx=0,wy=0,wz=std::numeric_limits<float>::infinity();

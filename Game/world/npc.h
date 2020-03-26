@@ -198,6 +198,7 @@ class Npc final {
     float      translateY() const;
     float      centerY() const;
     Npc*       lookAtTarget() const;
+    auto       portalName() -> const char*;
 
     float      qDistTo(float x,float y,float z) const;
     float      qDistTo(const WayPoint* p) const;

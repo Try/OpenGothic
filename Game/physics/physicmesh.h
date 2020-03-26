@@ -16,20 +16,24 @@ class PhysicMesh:public btTriangleIndexVertexArray {
     PhysicMesh(PhysicMesh&&)=delete;
 
     void    addIndex(std::vector<uint32_t>&& index, uint8_t material);
+    void    addIndex(std::vector<uint32_t>&& index, uint8_t material, const char* sector);
     uint8_t getMaterialId(size_t segment) const;
+    auto    getSectorName(size_t segment) const -> const char*;
     bool    useQuantization() const;
+    bool    isEmpty() const;
 
     void    adjustMesh();
 
   private:
     PhysicMesh(const std::vector<ZenLoad::WorldVertex>& v);
 
-    void addSegment(size_t indexSize,size_t offset,uint8_t material);
+    void addSegment(size_t indexSize,size_t offset,uint8_t material,const char* sector);
 
     struct Segment {
-      size_t  off;
-      int     size;
-      uint8_t mat;
+      size_t      off;
+      int         size;
+      uint8_t     mat;
+      const char* sector=nullptr;
       };
 
     std::vector<btVector3>        vStorage;

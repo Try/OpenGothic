@@ -1370,7 +1370,7 @@ void GameScript::wld_stopeffect(Daedalus::DaedalusVM &vm) {
 void GameScript::wld_getplayerportalguild(Daedalus::DaedalusVM &vm) {
   int32_t g = GIL_NONE;
   if(auto p = world().player())
-    g = world().guildOfRoom(p->position());
+    g = world().guildOfRoom(p->portalName());
   vm.setReturn(g);
   }
 
@@ -2237,7 +2237,7 @@ void GameScript::npc_getportalguild(Daedalus::DaedalusVM &vm) {
   int32_t g  = GIL_NONE;
   auto   npc = popInstance(vm);
   if(npc!=nullptr)
-    g = world().guildOfRoom(npc->position());
+    g = world().guildOfRoom(npc->portalName());
   vm.setReturn(g);
   }
 
@@ -2246,8 +2246,8 @@ void GameScript::npc_isinplayersroom(Daedalus::DaedalusVM &vm) {
   auto    pl  = world().player();
 
   if(npc!=nullptr && pl!=nullptr) {
-    int32_t g1 = world().guildOfRoom(pl->position());
-    int32_t g2 = world().guildOfRoom(npc->position());
+    int32_t g1 = world().guildOfRoom(pl->portalName());
+    int32_t g2 = world().guildOfRoom(npc->portalName());
     if(g1==g2) {
       vm.setReturn(1);
       return;

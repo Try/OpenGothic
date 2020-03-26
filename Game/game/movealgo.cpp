@@ -636,6 +636,7 @@ float MoveAlgo::dropRay(float x, float y, float z, bool &hasCol) const {
     cache.z          = z;
     cache.rayCastRet = ret.y();
     cache.mat        = ret.mat;
+    cache.portalName = ret.sector;
     cache.hasCol     = ret.hasCol;
     if(ret.hasCol) {
       // store also normal
@@ -698,5 +699,9 @@ std::array<float,3> MoveAlgo::groundNormal() const {
   //make cache happy by addup fallThreshold
   const std::array<float,3> &p = npc.position();
   return normalRay(p[0],p[1]+stp,p[2]);
+  }
+
+const char* MoveAlgo::portalName() {
+  return cache.portalName;
   }
 

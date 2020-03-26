@@ -120,6 +120,7 @@ class DynamicWorld final {
       uint8_t             mat    = 0;
       Category            colCat = C_Null;
       bool                hasCol = 0;
+      const char*         sector = nullptr;
 
       float               x() const { return v[0]; }
       float               y() const { return v[1]; }
@@ -208,6 +209,8 @@ class DynamicWorld final {
     std::unique_ptr<btDispatcher>               dispatcher;
     std::unique_ptr<btBroadphaseInterface>      broadphase;
     std::unique_ptr<btCollisionWorld>           world;
+
+    std::vector<std::string>                    sectors;
 
     std::vector<btVector3>                      landVbo;
     std::unique_ptr<PhysicMesh>                 landMesh;

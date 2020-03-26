@@ -30,8 +30,6 @@ World::World(Gothic& gothic, GameSession& game,const RendererStorage &storage, s
   ZenLoad::oCWorldData world;
   parser.readWorld(world,isG2==2);
 
-  // ZenLoad::PackedMesh mesh;
-  //worldMesh->packMesh(mesh, 1.f, false);
   ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
   PackedMesh vmesh(*worldMesh,PackedMesh::PK_Visual);
 
@@ -801,6 +799,32 @@ int32_t World::guildOfRoom(const std::array<float,3> &pos) {
   if(auto room=portalAt(tg)) {
     if(room->guild==GIL_PUBLIC) //FIXME: proper portal implementation
       return room->guild;
+    }
+  return GIL_NONE;
+  }
+
+int32_t World::guildOfRoom(const char* portalName) {
+  if(portalName==nullptr)
+    return -1;
+
+  const char* b=std::strchr(portalName,':');
+  if(b==nullptr)
+    return -1;
+  b++;
+
+  const char* e=std::strchr(b,'_');
+  size_t      size=0;
+  if(e==nullptr)
+    size = std::strlen(b); else
+    size = size_t(std::distance(b,e));
+
+  for(size_t i=0;i<bsp.sectors.size();++i) {
+    auto& s = bsp.sectors[i].name;
+    if(s.size()!=size)
+      continue;
+
+    if(std::memcmp(s.c_str(),b,size)==0)
+      return bspSectors[i].guild;
     }
   return GIL_NONE;
   }

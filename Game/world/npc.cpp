@@ -524,6 +524,10 @@ Npc *Npc::lookAtTarget() const {
   return currentLookAt;
   }
 
+const char* Npc::portalName() {
+  return mvAlgo.portalName();
+  }
+
 float Npc::qDistTo(float x1, float y1, float z1) const {
   float dx=x-x1;
   float dy=y+translateY()-y1;

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <zenload/zCMesh.h>
+#include <zenload/zCMaterial.h>
+
 #include <unordered_map>
 #include <map>
 
@@ -11,7 +13,8 @@ class PackedMesh {
 
     enum PkgType {
       PK_Visual,
-      PK_Physic
+      PK_Physic,
+      PK_PhysicZoned
       };
 
     struct SubMesh final {
@@ -27,6 +30,8 @@ class PackedMesh {
 
   private:
     void   pack(const ZenLoad::zCMesh& mesh,PkgType type);
-    size_t submeshIndex(const ZenLoad::zCMesh& mesh,size_t vertexId,PkgType type) const;
+    size_t submeshIndex(const ZenLoad::zCMesh& mesh, std::vector<SubMesh*>& index, size_t triangleId, PkgType type) const;
+    void   addSector(const std::string& s, uint8_t group);
+    static bool compare(const ZenLoad::zCMaterialData& l, const ZenLoad::zCMaterialData& r);
   };
 
