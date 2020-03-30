@@ -95,7 +95,12 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
       p.setBrush(*cursor);
       int cx = x+int(wx*float(w));
       int cy = y+int(wy*float(back->h()));
-      p.drawRect(cx-cursor->w()/2, cy-cursor->h()/2, cursor->w(),cursor->h());
+
+      p.pushState();
+      p.translate(cx,cy);
+      p.rotate(-pl->rotation());
+      p.drawRect(-cursor->w()/2,-cursor->h()/2, cursor->w(),cursor->h());
+      p.popState();
       }
     x+=w;
     }
