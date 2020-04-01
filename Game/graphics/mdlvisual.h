@@ -44,7 +44,7 @@ class MdlVisual final {
     void                           updateWeaponSkeleton(const Item *sword, const Item *bow);
 
     const Pose&                    pose() const { return *skInst; }
-    void                           updateAnimation(Npc &owner);
+    void                           updateAnimation(Npc &owner, int comb);
     auto                           mapBone(const char* b) const -> std::array<float,3>;
     auto                           mapWeaponBone() const -> std::array<float,3>;
 

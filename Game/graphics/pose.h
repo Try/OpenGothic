@@ -34,7 +34,7 @@ class Pose final {
     void               stopItemStateAnim();
     void               interrupt();
     void               stopAllAnim();
-    void               update(AnimationSolver &solver, uint64_t tickCount);
+    void               update(AnimationSolver &solver, int comb, uint64_t tickCount);
 
     ZMath::float3      animMoveSpeed(uint64_t tickCount, uint64_t dt) const;
     void               processSfx(Npc &npc, uint64_t tickCount);
@@ -70,6 +70,7 @@ class Pose final {
     struct Layer final {
       const Animation::Sequence* seq     = nullptr;
       uint64_t                   sAnim   = 0;
+      int32_t                    comb    = 0;
       BodyState                  bs      = BS_NONE;
       };
 

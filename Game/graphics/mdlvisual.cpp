@@ -210,7 +210,7 @@ void MdlVisual::updateWeaponSkeleton(const Item* weapon,const Item* range) {
   pfx.setActive(st==WeaponState::Mage);
   }
 
-void MdlVisual::updateAnimation(Npc& npc) {
+void MdlVisual::updateAnimation(Npc& npc,int comb) {
   Pose&    pose      = *skInst;
   uint64_t tickCount = npc.world().tickCount();
 
@@ -218,7 +218,7 @@ void MdlVisual::updateAnimation(Npc& npc) {
     pose.processSfx(npc,tickCount);
 
   solver.update(tickCount);
-  pose.update(solver,tickCount);
+  pose.update(solver,comb,tickCount);
 
   head      .setSkeleton(pose,pos);
   sword     .setSkeleton(pose,pos);

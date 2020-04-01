@@ -58,7 +58,7 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
       case ZenLoad::MdsParser::CHUNK_ANI_COMB:{
         current = nullptr;
         char name[256]={};
-        std::snprintf(name,sizeof(name),"%s%d",p.comb.m_Asc.c_str(),1);
+        std::snprintf(name,sizeof(name),"%s%d",p.comb.m_Asc.c_str(),1+(p.comb.m_LastFrame-1)/2);
 
         bool found=false;
         for(size_t r=0;r<sequences.size();++r) { // reverse search: expect to find animations right before aniComb
@@ -69,11 +69,12 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
             Animation::Sequence& ani = sequences.back();
             ani.name    = p.comb.m_Name;
             //ani.name    = sequences[sequences.size()-r-1].name;
-            ani.askName = name;
+            ani.askName = p.comb.m_Asc;
             ani.layer   = p.comb.m_Layer;
             ani.flags   = Flags(p.comb.m_Flags);
             ani.next    = p.comb.m_Next;
             ani.data    = d; // set first as default
+            ani.comb.resize(p.comb.m_LastFrame);
             found=true;
             break;
             }
@@ -213,6 +214,16 @@ void Animation::setupIndex() {
   std::sort(sequences.begin(),sequences.end(),[](const Sequence& a,const Sequence& b){
     return a.name<b.name;
     });
+
+  for(auto& s:sequences) {
+    if(s.comb.size()==0)
+      continue;
+    for(size_t i=0;i<s.comb.size();++i) {
+      char name[256]={};
+      std::snprintf(name,sizeof(name),"%s%d",s.askName.c_str(),i+1);
+      s.comb[i] = sequenceAsc(name);
+      }
+    }
 
   for(auto& i:sequences) {
     if((i.next==i.askName && !i.next.empty()) || i.next==i.name)

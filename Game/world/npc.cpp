@@ -550,7 +550,26 @@ float Npc::qDistTo(const Interactive &p) const {
   }
 
 void Npc::updateAnimation() {
-  visual.updateAnimation(*this);
+  float aXZ  = 0;
+  float aY   = 0;
+  int   comb = 0;
+  if(currentTarget!=nullptr) {
+    float dx = currentTarget->x-x;
+    float dy = currentTarget->y-y;
+    float dz = currentTarget->z-z;
+    float l  = std::sqrt(dx*dx+dz*dz);
+
+    float dir = angleDir(dx,dz);
+    aXZ       = (angle-dir);
+    aY        = -std::atan2(dy,l)*180.f/float(M_PI);
+
+    int cx = (aXZ<-30.f) ? 0 : (aXZ<=30.f ? 1 : 2);
+    int cy = (aY <-45.f) ? 0 : (aY <=45.f ? 1 : 2);
+
+    // sides angle: +/- 30 height angle: +/- 45
+    comb   = 1+cy*3+cx;
+    }
+  visual.updateAnimation(*this,comb);
   }
 
 void Npc::updateTransform() {

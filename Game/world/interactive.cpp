@@ -151,7 +151,7 @@ void Interactive::updateAnimation() {
   uint64_t tickCount = world->tickCount();
 
   solver.update(tickCount);
-  pose.update(solver,tickCount);
+  pose.update(solver,0,tickCount);
   view .setSkeleton(pose,pos);
   }
 

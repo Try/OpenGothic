@@ -91,6 +91,7 @@ class Animation final {
       bool                                   reverse=false;
       std::string                            next;
 
+      std::vector<const Sequence*>           comb;
       std::shared_ptr<AnimData>              data;
 
       private:

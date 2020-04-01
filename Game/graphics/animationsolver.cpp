@@ -126,6 +126,8 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
         return solveFrm("S_%sSHOOT",st);
       }
     if(a==Anim::Atack) {
+      if(pose.isInAnim("S_BOWAIM") || pose.isInAnim("S_CBOWAIM"))
+        return solveFrm("S_%sSHOOT",st);
       if(pose.isInAnim("S_BOWSHOOT") || pose.isInAnim("S_CBOWSHOOT"))
         return solveFrm("T_%sRELOAD",st);
       }

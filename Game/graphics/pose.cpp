@@ -179,7 +179,7 @@ void Pose::stopAllAnim() {
   lay.clear();
   }
 
-void Pose::update(AnimationSolver& solver, uint64_t tickCount) {
+void Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
   if(lay.size()==0){
     zeroSkeleton();
     return;
@@ -217,9 +217,21 @@ void Pose::update(AnimationSolver& solver, uint64_t tickCount) {
       });
     }
 
+  for(auto& i:lay) {
+    if(i.seq->comb.size()==0)
+      continue;
+    i.comb = comb;
+    }
+
   if(lastUpdate!=tickCount) {
-    for(auto& i:lay)
-      updateFrame(*i.seq,lastUpdate,i.sAnim,tickCount);
+    for(auto& i:lay) {
+      const Animation::Sequence* seq = i.seq;
+      if(0<i.comb && size_t(i.comb)<=i.seq->comb.size()) {
+        if(auto sx = i.seq->comb[size_t(i.comb-1)])
+          seq = sx;
+        }
+      updateFrame(*seq,lastUpdate,i.sAnim,tickCount);
+      }
     lastUpdate = tickCount;
     mkSkeleton(*lay[0].seq);
     }
