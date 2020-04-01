@@ -266,7 +266,8 @@ void MdlVisual::stopItemStateAnim(Npc& npc) {
   }
 
 void MdlVisual::stopWalkAnim(Npc &npc) {
-  if(pose().bodyState()!=BS_STAND) {
+  auto state = pose().bodyState();
+  if(state!=BS_STAND && state!=BS_MOBINTERACT) {
     skInst->stopAnim(nullptr);
     startAnimAndGet(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
     }
