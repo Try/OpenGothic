@@ -521,14 +521,21 @@ bool Interactive::attach(Npc &npc) {
   return false;
   }
 
-bool Interactive::dettach(Npc &npc) {
-  for(auto& i:attPos)
+bool Interactive::dettach(Npc &npc, bool quick) {
+  for(auto& i:attPos) {
     if(i.user==&npc) {
-      if(i.attachMode && canQuitAtLastState())
-        return false;
-      i.attachMode = false;
-      return true;
+      if(quick) {
+        i.user = nullptr;
+        i.attachMode = false;
+        npc.quitIneraction();
+        } else {
+        if(i.attachMode && canQuitAtLastState())
+          return false;
+        i.attachMode = false;
+        return true;
+        }
       }
+    }
   return true;
   }
 
@@ -667,10 +674,14 @@ const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, A
       std::snprintf(ss[i],sizeof(ss[i]),"S%d",st[i]);
     }
 
-  if(st[0]==st[1])
-    std::snprintf(buf,sizeof(buf),"S_%s%s_%s",tag,point,ss[0]); else
-    std::snprintf(buf,sizeof(buf),"T_%s%s_%s_2_%s",tag,point,ss[0],ss[1]);
-  return solver.solveFrm(buf);
+  for(auto pt:{point,""}) {
+    if(st[0]==st[1])
+      std::snprintf(buf,sizeof(buf),"S_%s%s_%s",tag,pt,ss[0]); else
+      std::snprintf(buf,sizeof(buf),"T_%s%s_%s_2_%s",tag,pt,ss[0],ss[1]);
+    if(auto ret = solver.solveFrm(buf))
+      return ret;
+    }
+  return nullptr;
   }
 
 void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const {

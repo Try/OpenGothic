@@ -73,7 +73,7 @@ Npc::Npc(World &owner, Serialize &fin)
 
 Npc::~Npc(){
   if(currentInteract)
-    currentInteract->dettach(*this);
+    currentInteract->dettach(*this,true);
   owner.script().clearReferences(hnpc);
   assert(hnpc.useCount==0);
   }
@@ -467,6 +467,7 @@ void Npc::onNoHealth(bool death,HitSound sndMask) {
     }
 
   setInteraction(nullptr,true);
+  invent.clearSlot(*this,nullptr,false);
 
   if(death)
     physic.setEnable(false);
@@ -2574,14 +2575,8 @@ bool Npc::setInteraction(Interactive *id,bool quick) {
     return true;
 
   if(currentInteract!=nullptr) {
-    currentInteract->dettach(*this);
+    currentInteract->dettach(*this,quick);
     return false;
-    }
-
-  if(id==nullptr) {
-    if(quick)
-      quitIneraction();
-    return true;
     }
 
   if(id->attach(*this)) {
