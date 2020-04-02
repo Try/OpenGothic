@@ -2671,7 +2671,15 @@ Npc::JumpCode Npc::tryJump(const std::array<float,3> &p0) {
   float rot = rotationRad();
   float s   = std::sin(rot), c = std::cos(rot);
   float dx  = len*s, dz = -len*c;
-  float trY = -translateY();
+  float trY = translateY();
+
+  auto& g = owner.script().guildVal();
+  auto  i = guild();
+
+  const float jumpLow = float(g.jumplow_height[i]);
+  const float jumpMid = float(g.jumpmid_height[i]);
+  const float jumpUp  = float(g.jumpup_height[i]);
+  (void)jumpUp;
 
   auto pos = p0;
   pos[0]+=dx;
@@ -2680,29 +2688,19 @@ Npc::JumpCode Npc::tryJump(const std::array<float,3> &p0) {
   if(physic.testMove(pos))
     return JumpCode::JM_OK;
 
-  pos[1] = p0[1]+clampHeight(Anim::JumpUpLow)+trY;
-  if(physic.testMove(pos))
+  pos[1] = p0[1]+jumpLow;
+  if(physic.testMove(pos)) {
+    // Without using the hands, just big footstep. Height: 50-100cm
     return JumpCode::JM_UpLow;
-
-  pos[1] = p0[1]+clampHeight(Anim::JumpUpMid)+trY;
-  if(physic.testMove(pos))
-    return JumpCode::JM_UpMid;
-
-  return JumpCode::JM_Up;
-  }
-
-float Npc::clampHeight(Npc::Anim a) const {
-  auto& g = owner.script().guildVal();
-  auto  i = guild();
-
-  switch(a) {
-    case AnimationSolver::JumpUpLow:
-      return float(g.jumplow_height[i]);
-    case AnimationSolver::JumpUpMid:
-      return float(g.jumpmid_height[i]);
-    default:
-      return 0;
     }
+
+  pos[1] = p0[1]+jumpMid-trY;
+  if(physic.testMove(pos)) {
+    // Supported on the hands in one sentence. Height: 100-200cm
+    return JumpCode::JM_UpMid;
+    }
+  // Jump to the edge, and then pull up. Height: 200-350cm
+  return JumpCode::JM_Up;
   }
 
 std::vector<GameScript::DlgChoise> Npc::dialogChoises(Npc& player,const std::vector<uint32_t> &except,bool includeImp) {

@@ -39,6 +39,7 @@ class AnimationSolver final {
       JumpUpLow,
       JumpUpMid,
       JumpUp,
+      JumpHang,
       Fall,
       FallDeep,
       Fallen,

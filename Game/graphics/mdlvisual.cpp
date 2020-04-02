@@ -323,7 +323,8 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
       skInst->stopAllAnim();
     forceAnim = true;
     }
-  if(a==AnimationSolver::Anim::StumbleA || a==AnimationSolver::Anim::StumbleB)
+  if(a==AnimationSolver::Anim::StumbleA || a==AnimationSolver::Anim::StumbleB ||
+     a==AnimationSolver::Anim::JumpHang)
     forceAnim = true;
 
   BodyState bs = BS_NONE;
@@ -356,10 +357,13 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     case AnimationSolver::Anim::RotR:
       break;
     case AnimationSolver::Anim::Jump:
-    case AnimationSolver::Anim::JumpUpLow:
-    case AnimationSolver::Anim::JumpUpMid:
     case AnimationSolver::Anim::JumpUp:
       bs = BS_JUMP;
+      break;
+    case AnimationSolver::Anim::JumpUpLow:
+    case AnimationSolver::Anim::JumpUpMid:
+    case AnimationSolver::Anim::JumpHang:
+      bs = BS_CLIMB;
       break;
     case AnimationSolver::Anim::Fall:
     case AnimationSolver::Anim::FallDeep:

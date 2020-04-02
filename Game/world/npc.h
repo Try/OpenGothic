@@ -352,7 +352,6 @@ class Npc final {
     bool      tryMove   (const std::array<float,3> &dp);
 
     JumpCode  tryJump(const std::array<float,3>& pos);
-    float     clampHeight(Anim a) const;
     bool      hasCollision() const { return physic.hasCollision(); }
 
     auto      dialogChoises(Npc &player, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<GameScript::DlgChoise>;

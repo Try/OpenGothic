@@ -53,6 +53,7 @@ class MoveAlgo final {
     bool    isSlide()   const;
     bool    isInAir()   const;
     bool    isJumpup()  const;
+    bool    isClimb()   const;
     bool    isInWater() const;
     bool    isSwim()    const;
 
@@ -66,21 +67,24 @@ class MoveAlgo final {
     bool    tickSlide  (uint64_t dt);
     void    tickGravity(uint64_t dt);
     void    tickSwim   (uint64_t dt);
+    void    tickClimb  (uint64_t dt);
     void    tickJumpup (uint64_t dt);
     bool    tryMove    (float x, float y, float z);
 
     enum Flags : uint32_t {
-      NoFlags=0,
-      InAir  =1<<1,
-      Faling =1<<2,
-      Slide  =1<<3,
-      JumpUp =1<<4,
-      InWater=1<<5,
-      Swim   =1<<6
+      NoFlags = 0,
+      InAir   = 1<<1,
+      Faling  = 1<<2,
+      Slide   = 1<<3,
+      JumpUp  = 1<<4,
+      ClimbUp = 1<<5,
+      InWater = 1<<6,
+      Swim    = 1<<7
       };
 
     void    setInAir   (bool f);
     void    setAsJumpup(bool f);
+    void    setAsClimb (bool f);
     void    setAsSlide (bool f);
     void    setInWater (bool f);
     void    setAsSwim  (bool f);

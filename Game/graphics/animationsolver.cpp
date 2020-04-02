@@ -220,6 +220,14 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
       return solveFrm("T_STAND_2_JUMPUP");
     return solveFrm("S_JUMPUP");
     }
+  if(a==JumpHang) {
+    if(pose.bodyState()==BS_JUMP)  {
+      if(auto ret = solveFrm("T_JUMPUP_2_HANG"))
+        return ret;
+      }
+    //return solveFrm("S_HANG");
+    return solveFrm("T_HANG_2_STAND");
+    }
 
   if(a==Anim::Fallen)
     return solveFrm("S_FALLEN"); //TODO: S_FALLENB
