@@ -220,7 +220,7 @@ void Animation::setupIndex() {
       continue;
     for(size_t i=0;i<s.comb.size();++i) {
       char name[256]={};
-      std::snprintf(name,sizeof(name),"%s%d",s.askName.c_str(),i+1);
+      std::snprintf(name,sizeof(name),"%s%d",s.askName.c_str(),int(i+1));
       s.comb[i] = sequenceAsc(name);
       }
     }
