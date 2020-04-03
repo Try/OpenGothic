@@ -2405,6 +2405,12 @@ bool Npc::shootBow() {
   if(active==nullptr)
     return false;
 
+  auto bs = bodyStateMasked();
+  if(bs==BS_RUN) {
+    setAnim(Anim::Idle);
+    return true;
+    }
+
   const int32_t munition = active->handle()->munition;
   if(!hasAmunition())
     return false;

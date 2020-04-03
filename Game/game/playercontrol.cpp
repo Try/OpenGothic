@@ -109,6 +109,7 @@ void PlayerControl::onKeyReleased(KeyCodec::Action a) {
   }
 
 void PlayerControl::onRotateMouse(int dAngle) {
+  dAngle = std::max(-100,std::min(dAngle,100));
   rotMouse += float(dAngle)*0.4f;
   }
 
@@ -379,7 +380,7 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   if((ws==WeaponState::Bow || ws==WeaponState::CBow) && pl.hasAmunition()) {
-    if(actrl[ActGeneric]) {
+    if(actrl[ActGeneric] || actrl[ActForward]) {
       if(auto other = pl.target()) {
         float dx = other->position()[0]-pl.position()[0];
         float dz = other->position()[2]-pl.position()[2];
@@ -410,14 +411,12 @@ void PlayerControl::implMove(uint64_t dt) {
         }
       case WeaponState::Bow:
       case WeaponState::CBow: {
-        if(pl.shootBow())
-          return;
-        break;
+        pl.shootBow();
+        return;
         }
       case WeaponState::Mage: {
-        if(pl.castSpell())
-          return;
-        break;
+        pl.castSpell();
+        return;
         }
       }
     }

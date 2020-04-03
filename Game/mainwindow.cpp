@@ -249,7 +249,8 @@ void MainWindow::processMouse(MouseEvent &event,bool fs) {
       }
 
     if(fs) {
-      if(!(currentFocus.npc && player.weaponState()!=WeaponState::NoWeapon))
+      if(!(currentFocus.npc!=nullptr &&
+           (player.weaponState()==WeaponState::Fist || player.weaponState()==WeaponState::W1H || player.weaponState()==WeaponState::W2H)))
         player.onRotateMouse(-dp.x);
       spin.x = camera->getSpin().x;
       camera->setSpin(spin);
