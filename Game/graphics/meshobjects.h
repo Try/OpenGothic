@@ -72,17 +72,17 @@ class MeshObjects final {
     Mesh get(const StaticMesh& mesh);
     Mesh get(const ProtoMesh&  mesh,int32_t headTexVar,int32_t teethTex,int32_t bodyColor);
 
-    void updateUbo(uint32_t imgId);
-    void commitUbo(uint32_t imgId, const Tempest::Texture2d& shadowMap);
+    void updateUbo(uint32_t fId);
+    void commitUbo(uint32_t fId, const Tempest::Texture2d& shadowMap);
 
     void reserve(size_t stat,size_t dyn);
 
-    void draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId);
-    void drawDecals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId);
-    void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId, int layer=0);
+    void draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId);
+    void drawDecals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId);
+    void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId, int layer=0);
 
-    bool needToUpdateCommands() const;
-    void setAsUpdated();
+    bool needToUpdateCommands(size_t imgId) const;
+    void setAsUpdated(size_t imgId);
 
     void setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4 *sh, size_t shCount);
     void setLight(const Light &l, const Tempest::Vec3 &ambient);

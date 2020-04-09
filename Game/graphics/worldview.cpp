@@ -31,7 +31,7 @@ void WorldView::initPipeline(uint32_t w, uint32_t h) {
   proj.perspective(45.0f, float(w)/float(h), 0.05f, 100.0f);
   vpWidth  = w;
   vpHeight = h;
-  nToUpdateCmd=true;
+  invalidateCmd();
   }
 
 Matrix4x4 WorldView::viewProj(const Matrix4x4 &view) const {
@@ -57,13 +57,15 @@ void WorldView::setupSunDir(float pulse,float ang) {
 void WorldView::drawShadow(Encoder<PrimaryCommandBuffer> &cmd, uint8_t fId, uint8_t layer) {
   if(!frame[fId].actual)
     return;
-  cmd.exec(frame[fId].cmdShadow[layer]);
+  cmd.exec(frame[fId].cmdShadow   [layer]);
+  cmd.exec(frame[fId].cmdShadowDyn[layer]);
   }
 
 void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd, uint8_t fId) {
   if(!frame[fId].actual)
     return;
   cmd.exec(frame[fId].cmdMain);
+  cmd.exec(frame[fId].cmdMainDyn);
   }
 
 MeshObjects::Mesh WorldView::getView(const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
@@ -130,16 +132,27 @@ void WorldView::updateLight() {
 void WorldView::resetCmd() {
   // cmd buffers must not be in use
   storage.device.waitIdle();
-  nToUpdateCmd=true;
+  uint32_t count = storage.device.maxFramesInFlight();
+  for(uint32_t i=0;i<count;++i) {
+    frame[i].actual=false;
+    }
   }
 
-bool WorldView::needToUpdateCmd() const {
-  return nToUpdateCmd ||
-         vobGroup.needToUpdateCommands() ||
-         objGroup.needToUpdateCommands() ||
-         itmGroup.needToUpdateCommands() ||
-         decGroup.needToUpdateCommands() ||
-         pfxGroup.needToUpdateCommands();
+bool WorldView::needToUpdateCmd(uint32_t frameId) const {
+  return land    .needToUpdateCommands(frameId) ||
+         vobGroup.needToUpdateCommands(frameId) ||
+         objGroup.needToUpdateCommands(frameId) ||
+         itmGroup.needToUpdateCommands(frameId) ||
+         decGroup.needToUpdateCommands(frameId) ||
+         pfxGroup.needToUpdateCommands(frameId) ||
+         sky     .needToUpdateCommands(frameId);
+  }
+
+void WorldView::invalidateCmd() {
+  uint32_t count = storage.device.maxFramesInFlight();
+  for(uint32_t i=0;i<count;++i) {
+    frame[i].actual=false;
+    }
   }
 
 void WorldView::updateCmd(uint32_t frameId, const World &world,
@@ -149,20 +162,7 @@ void WorldView::updateCmd(uint32_t frameId, const World &world,
      this->shadowLay==nullptr || shadowLay!=*this->shadowLay) {
     this->mainLay   = &mainLay;
     this->shadowLay = &shadowLay;
-    nToUpdateCmd    = true;
-    }
-
-  if(needToUpdateCmd()) {
-    uint32_t count = storage.device.maxFramesInFlight();
-    for(uint32_t i=0;i<count;++i) {
-      frame[i].actual=false;
-      }
-    vobGroup.setAsUpdated();
-    objGroup.setAsUpdated();
-    itmGroup.setAsUpdated();
-    decGroup.setAsUpdated();
-    pfxGroup.setAsUpdated();
-    nToUpdateCmd=false;
+    invalidateCmd();
     }
 
   builtCmdBuf(frameId,world,main,shadow,mainLay,shadowLay);
@@ -199,47 +199,60 @@ void WorldView::updateUbo(uint32_t frameId, const Matrix4x4& view,const Tempest:
 void WorldView::builtCmdBuf(uint32_t frameId, const World &world,
                             const Attachment& main, const Attachment& shadowMap,
                             const FrameBufferLayout& mainLay,const FrameBufferLayout& shadowLay) {
-  auto& device = storage.device;
+  auto&      device    = storage.device;
+  auto&      pf        = frame[frameId];
+  const bool nToUpdate = needToUpdateCmd(frameId);
+  auto&      smTexture = textureCast(shadowMap);
 
-  auto& pf = frame[frameId];
-  if(pf.actual)
-    return;
-  pf.actual=true;
-
-  auto& smTexture = textureCast(shadowMap);
   sky     .commitUbo(frameId);
   land    .commitUbo(frameId,smTexture);
+
   vobGroup.commitUbo(frameId,smTexture);
   objGroup.commitUbo(frameId,smTexture);
   itmGroup.commitUbo(frameId,smTexture);
   decGroup.commitUbo(frameId,smTexture);
   pfxGroup.commitUbo(frameId,smTexture);
 
-  // cascade#0 detail shadow
-  {
-  auto cmd = pf.cmdShadow[0].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
-  land    .drawShadow(cmd,frameId,0);
-  vobGroup.drawShadow(cmd,frameId);
-  objGroup.drawShadow(cmd,frameId);
-  itmGroup.drawShadow(cmd,frameId);
-  }
+  if(!pf.actual || nToUpdate) {
+    pf.actual=true;
 
-  // cascade#1 shadow
-  {
-  auto cmd = pf.cmdShadow[1].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
-  land.drawShadow(cmd,frameId,1);
-  vobGroup.drawShadow(cmd,frameId,1);
-  }
+    // cascade#0 detail shadow
+    {
+    auto cmd    = pf.cmdShadow[0]   .startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
+    auto cmdDyn = pf.cmdShadowDyn[0].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
+    land    .drawShadow(cmd,   frameId,0);
+    vobGroup.drawShadow(cmdDyn,frameId);
+    objGroup.drawShadow(cmd,   frameId);
+    itmGroup.drawShadow(cmd,   frameId);
+    }
 
-  // main draw
-  {
-  auto cmd = pf.cmdMain.startEncoding(device,mainLay,main.w(),main.h());
-  land    .draw(cmd,frameId);
-  vobGroup.draw(cmd,frameId);
-  objGroup.draw(cmd,frameId);
-  itmGroup.draw(cmd,frameId);
-  decGroup.drawDecals(cmd,frameId);
-  sky     .draw(cmd,frameId,world);
-  pfxGroup.draw(cmd,frameId);
-  }
+    // cascade#1 shadow
+    {
+    auto cmd = pf.cmdShadow[1].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
+    land.drawShadow(cmd,frameId,1);
+    vobGroup.drawShadow(cmd,frameId,1);
+    }
+
+    // main draw
+    {
+    auto cmd    = pf.cmdMain   .startEncoding(device,mainLay,main.w(),main.h());
+    auto cmdDyn = pf.cmdMainDyn.startEncoding(device,mainLay,main.w(),main.h());
+    land    .draw(cmd,   frameId);
+    vobGroup.draw(cmd,   frameId);
+    objGroup.draw(cmdDyn,frameId);
+    itmGroup.draw(cmd,   frameId);
+    decGroup.drawDecals(cmd,frameId);
+
+    sky     .draw(cmd,frameId,world);
+    pfxGroup.draw(cmd,frameId);
+    }
+    }
+
+  sky     .setAsUpdated(frameId);
+  land    .setAsUpdated(frameId);
+  vobGroup.setAsUpdated(frameId);
+  objGroup.setAsUpdated(frameId);
+  itmGroup.setAsUpdated(frameId);
+  decGroup.setAsUpdated(frameId);
+  pfxGroup.setAsUpdated(frameId);
   }

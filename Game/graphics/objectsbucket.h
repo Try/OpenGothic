@@ -16,7 +16,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
     ObjectsBucket(const Tempest::Texture2d* tex, const Tempest::UniformsLayout &layout,
                   Tempest::Device &device, UboStorage<Ubo>& uStorage)
       : tex(tex),uStorage(uStorage) {
-      size_t pfSize=device.maxFramesInFlight();
+      pfSize=device.maxFramesInFlight();
       pf.reset(new PerFrame[pfSize]);
       for(size_t i=0;i<pfSize;++i) {
         pf[i].ubo      = device.uniforms(layout);
@@ -43,8 +43,9 @@ class ObjectsBucket : public AbstractObjectsBucket {
 
     void                        draw(size_t id,Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) override;
 
-    bool                        needToUpdateCommands() const;
-    void                        setAsUpdated();
+    bool                        needToUpdateCommands(size_t fId) const;
+    void                        setAsUpdated(size_t fId);
+    void                        invalidate();
 
   private:
     struct NonUbo final {
@@ -55,16 +56,18 @@ class ObjectsBucket : public AbstractObjectsBucket {
 
     struct PerFrame final {
       Tempest::Uniforms ubo, uboSh[2];
+      bool              nToUpdate=true; //invalidate cmd buffers
       };
 
     const Tempest::Texture2d*   tex=nullptr;
     UboStorage<Ubo>&            uStorage;
+
     std::unique_ptr<PerFrame[]> pf;
+    size_t                      pfSize=0;
 
     std::vector<NonUbo>         data;
     std::vector<NonUbo*>        index;
     std::vector<size_t>         freeList;
-    bool                        nToUpdate=true; //invalidate cmd buffers
 
     Ubo&                        element(size_t i);
     void                        markAsChanged() override;
@@ -104,7 +107,7 @@ void ObjectsBucket<Ubo,Vertex>::setSkeleton(size_t i, const Pose& p) {
 template<class Ubo,class Vertex>
 size_t ObjectsBucket<Ubo,Vertex>::alloc(const Tempest::VertexBuffer<Vertex>  &vbo,
                                         const Tempest::IndexBuffer<uint32_t> &ibo) {
-  nToUpdate=true;
+  invalidate();
   const size_t id=getNextId();
   data[id].vbo = &vbo;
   data[id].ibo = &ibo;
@@ -114,7 +117,7 @@ size_t ObjectsBucket<Ubo,Vertex>::alloc(const Tempest::VertexBuffer<Vertex>  &vb
 
 template<class Ubo, class Vertex>
 void ObjectsBucket<Ubo,Vertex>::free(size_t i) {
-  nToUpdate=true;
+  invalidate();
   auto id = data[i].ubo;
   if(id==size_t(-1))
     assert(0 && "double free!");
@@ -190,11 +193,17 @@ void ObjectsBucket<Ubo,Vertex>::draw(size_t id, Tempest::Encoder<Tempest::Comman
   }
 
 template<class Ubo, class Vertex>
-bool ObjectsBucket<Ubo,Vertex>::needToUpdateCommands() const {
-  return nToUpdate;
+bool ObjectsBucket<Ubo,Vertex>::needToUpdateCommands(size_t fId) const {
+  return pf[fId].nToUpdate;
   }
 
 template<class Ubo, class Vertex>
-void ObjectsBucket<Ubo,Vertex>::setAsUpdated() {
-  nToUpdate=false;
+void ObjectsBucket<Ubo,Vertex>::setAsUpdated(size_t fId) {
+  pf[fId].nToUpdate=false;
+  }
+
+template<class Ubo, class Vertex>
+void ObjectsBucket<Ubo,Vertex>::invalidate() {
+  for(size_t i=0;i<pfSize;++i)
+    pf[i].nToUpdate=true;
   }

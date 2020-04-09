@@ -111,7 +111,7 @@ size_t PfxObjects::Bucket::allocBlock() {
       }
     }
 
-  parent->updateCmd = true;
+  parent->invalidateCmd();
   block.emplace_back();
 
   Block& b = block.back();
@@ -241,12 +241,13 @@ float PfxObjects::ParState::lifeTime() const {
 
 PfxObjects::PfxObjects(const RendererStorage& storage)
   :storage(storage),uboGlobalPf(storage.device) {
+  updateCmd.resize(storage.device.maxFramesInFlight());
   }
 
 PfxObjects::Emitter PfxObjects::get(const ParticleFx &decl) {
   auto&  b = getBucket(decl);
   size_t e = b.alloc();
-  updateCmd = true;
+  invalidateCmd();
   return Emitter(b,e);
   }
 
@@ -264,12 +265,12 @@ void PfxObjects::setLight(const Light &l, const Vec3 &ambient) {
   uboGlobal.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
   }
 
-bool PfxObjects::needToUpdateCommands() const {
-  return updateCmd;
+bool PfxObjects::needToUpdateCommands(uint32_t fId) const {
+  return updateCmd[fId];
   }
 
-void PfxObjects::setAsUpdated() {
-  updateCmd=false;
+void PfxObjects::setAsUpdated(uint32_t fId) {
+  updateCmd[fId]=false;
   }
 
 void PfxObjects::updateUbo(uint32_t imgId, uint64_t ticks) {
@@ -293,6 +294,9 @@ void PfxObjects::commitUbo(uint32_t imgId, const Texture2d& shadowMap) {
     // FIXME: Cannot free VkNonDispatchableHandle that is in use by a command buffer.
     return false;//b.impl.size()==0;
     });
+
+  if(!updateCmd[imgId])
+    return;
 
   for(auto& i:bucket) {
     auto& pf = i.pf[imgId];
@@ -358,7 +362,8 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b,uint64_t dt) {
         if(p.owner!=size_t(-1))
           b.impl[p.owner].id=size_t(-1);
         p.owner=size_t(-1);
-        updateCmd |= b.shrink();
+        if(b.shrink())
+          invalidateCmd();
         }
       } else {
       while(p.emited<emited) {
@@ -467,4 +472,9 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b) {
         }
       }
     }
+  }
+
+void PfxObjects::invalidateCmd() {
+  for(size_t i=0;i<updateCmd.size();++i)
+    updateCmd[i]=true;
   }

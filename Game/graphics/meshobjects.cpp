@@ -22,21 +22,24 @@ MeshObjects::MeshObjects(const RendererStorage &storage)
   uboGlobal.shadowView.identity();
   }
 
-bool MeshObjects::needToUpdateCommands() const {
+bool MeshObjects::needToUpdateCommands(size_t fId) const {
+  if(storageSt.needToRealloc(fId) || storageDn.needToRealloc(fId))
+    return true;
+
   for(auto& i:chunksSt)
-    if(i.needToUpdateCommands())
+    if(i.needToUpdateCommands(fId))
       return true;
   for(auto& i:chunksDn)
-    if(i.needToUpdateCommands())
+    if(i.needToUpdateCommands(fId))
       return true;
   return false;
   }
 
-void MeshObjects::setAsUpdated() {
+void MeshObjects::setAsUpdated(size_t fId) {
   for(auto& i:chunksSt)
-    i.setAsUpdated();
+    i.setAsUpdated(fId);
   for(auto& i:chunksDn)
-    i.setAsUpdated();
+    i.setAsUpdated(fId);
   }
 
 void MeshObjects::setModelView(const Tempest::Matrix4x4 &m, const Tempest::Matrix4x4 *sh, size_t shCount) {
@@ -153,50 +156,58 @@ MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_
   return Mesh(&mesh,std::move(dat),count);
   }
 
-void MeshObjects::updateUbo(uint32_t imgId) {
-  storageSt.updateUbo(imgId);
-  storageDn.updateUbo(imgId);
+void MeshObjects::updateUbo(uint32_t fId) {
+  storageSt.updateUbo(fId);
+  storageDn.updateUbo(fId);
 
-  uboGlobalPf[0].update(uboGlobal,imgId);
+  uboGlobalPf[0].update(uboGlobal,fId);
 
   auto ubo2 = uboGlobal;
   ubo2.shadowView = shadowView1;
-  uboGlobalPf[1].update(ubo2,imgId);
+  uboGlobalPf[1].update(ubo2,fId);
   }
 
-void MeshObjects::commitUbo(uint32_t imgId,const Tempest::Texture2d& shadowMap) {
+void MeshObjects::commitUbo(uint32_t fId,const Tempest::Texture2d& shadowMap) {
   auto& device=storage.device;
 
-  storageSt.commitUbo(device,imgId);
-  storageDn.commitUbo(device,imgId);
+  const bool reallocSt = storageSt.commitUbo(device,fId);
+  const bool reallocDn = storageDn.commitUbo(device,fId);
 
   for(auto& i:chunksSt){
-    auto& ubo = i.uboMain(imgId);
-    ubo.set(0,uboGlobalPf[0][imgId],0,1);
-    ubo.set(1,storageSt[imgId],0,1);
+    if(!reallocSt && !i.needToUpdateCommands(fId))
+      continue;
+    auto& ubo = i.uboMain(fId);
+    ubo.set(0,uboGlobalPf[0][fId],0,1);
+    ubo.set(1,storageSt[fId],0,1);
     ubo.set(2,i.texture());
     ubo.set(3,shadowMap);
     }
   for(auto& i:chunksDn){
-    auto& ubo = i.uboMain(imgId);
-    ubo.set(0,uboGlobalPf[0][imgId],0,1);
-    ubo.set(1,storageDn[imgId],0,1);
+    if(!reallocDn && !i.needToUpdateCommands(fId))
+      continue;
+    auto& ubo = i.uboMain(fId);
+    ubo.set(0,uboGlobalPf[0][fId],0,1);
+    ubo.set(1,storageDn[fId],0,1);
     ubo.set(2,i.texture());
     ubo.set(3,shadowMap);
     }
 
   for(int layer=0;layer<2;++layer) {
     for(auto& i:chunksSt){
-      auto& ubo = i.uboShadow(imgId,layer);
-      ubo.set(0,uboGlobalPf[layer][imgId],0,1);
-      ubo.set(1,storageSt[imgId],0,1);
+      if(!reallocSt && !i.needToUpdateCommands(fId))
+        continue;
+      auto& ubo = i.uboShadow(fId,layer);
+      ubo.set(0,uboGlobalPf[layer][fId],0,1);
+      ubo.set(1,storageSt[fId],0,1);
       ubo.set(2,i.texture());
       ubo.set(3,Resources::fallbackTexture());
       }
     for(auto& i:chunksDn){
-      auto& ubo = i.uboShadow(imgId,layer);
-      ubo.set(0,uboGlobalPf[layer][imgId],0,1);
-      ubo.set(1,storageDn[imgId],0,1);
+      if(!reallocDn && !i.needToUpdateCommands(fId))
+        continue;
+      auto& ubo = i.uboShadow(fId,layer);
+      ubo.set(0,uboGlobalPf[layer][fId],0,1);
+      ubo.set(1,storageDn[fId],0,1);
       ubo.set(2,i.texture());
       ubo.set(3,Resources::fallbackTexture());
       }
@@ -208,23 +219,23 @@ void MeshObjects::reserve(size_t stat, size_t dyn) {
   storageDn.reserve(dyn);
   }
 
-void MeshObjects::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId) {
+void MeshObjects::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId) {
   for(auto& c:chunksSt)
-    c.draw(cmd,storage.pObject,imgId);
+    c.draw(cmd,storage.pObject,fId);
   for(auto& c:chunksDn)
-    c.draw(cmd,storage.pAnim,imgId);
+    c.draw(cmd,storage.pAnim,fId);
   }
 
-void MeshObjects::drawDecals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t imgId) {
+void MeshObjects::drawDecals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fId) {
   for(auto& c:chunksSt)
-    c.draw(cmd,storage.pObjectDecal,imgId);
+    c.draw(cmd,storage.pObjectDecal,fId);
   }
 
-void MeshObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId, int layer) {
+void MeshObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId, int layer) {
   for(auto& c:chunksSt)
-    c.drawShadow(cmd,storage.pObjectSh,imgId,layer);
+    c.drawShadow(cmd,storage.pObjectSh,fId,layer);
   for(auto& c:chunksDn)
-    c.drawShadow(cmd,storage.pAnimSh,imgId,layer);
+    c.drawShadow(cmd,storage.pAnimSh,fId,layer);
   }
 
 void MeshObjects::Mesh::setAttachPoint(const Skeleton *sk, const char *defBone) {

@@ -538,7 +538,7 @@ Camera::Mode MainWindow::solveCameraMode() const {
   }
 
 void MainWindow::startGame(const std::string &name) {
-  gothic.emitGlobalSound(gothic.loadSoundFx("NEWGAME"));
+  // gothic.emitGlobalSound(gothic.loadSoundFx("NEWGAME"));
 
   if(gothic.checkLoading()==Gothic::LoadState::Idle){
     setGameImpl(nullptr);

@@ -30,7 +30,6 @@ class WorldView {
 
     void tick(uint64_t dt);
 
-    bool needToUpdateCmd() const;
     void updateCmd (uint32_t frameId, const World &world,
                     const Tempest::Attachment& main, const Tempest::Attachment& shadow,
                     const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay);
@@ -60,7 +59,6 @@ class WorldView {
     MeshObjects             decGroup;
     PfxObjects              pfxGroup;
 
-    bool                    nToUpdateCmd=true;
     const Tempest::FrameBufferLayout* mainLay   = nullptr;
     const Tempest::FrameBufferLayout* shadowLay = nullptr;
 
@@ -70,10 +68,15 @@ class WorldView {
 
     struct PerFrame {
       Tempest::CommandBuffer cmdMain;
+      Tempest::CommandBuffer cmdMainDyn;
       Tempest::CommandBuffer cmdShadow[2];
+      Tempest::CommandBuffer cmdShadowDyn[2];
       bool                   actual     =true;
       };
     std::unique_ptr<PerFrame[]> frame;
+
+    bool needToUpdateCmd(uint32_t frameId) const;
+    void invalidateCmd();
 
     void updateLight();
     void setupSunDir(float pulse,float ang);

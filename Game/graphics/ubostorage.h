@@ -11,10 +11,11 @@ class UboStorage {
   public:
     UboStorage(Tempest::Device &device);
 
-    void                     commitUbo(Tempest::Device &device, uint32_t imgId);
+    bool                     commitUbo(Tempest::Device &device, uint32_t imgId);
     void                     updateUbo(uint32_t imgId);
     size_t                   alloc();
     void                     free(const size_t objId);
+    bool                     needToRealloc(uint32_t imgId) const;
     const
     Tempest::UniformBuffer<Ubo>& operator[](size_t i) const { return pf[i].uboData; }
 
@@ -61,18 +62,25 @@ void UboStorage<Ubo>::free(const size_t objId) {
   }
 
 template<class Ubo>
+bool UboStorage<Ubo>::needToRealloc(uint32_t imgId) const {
+  auto& frame=pf[imgId];
+  return obj.size()!=frame.uboData.size();
+  }
+
+template<class Ubo>
 void UboStorage<Ubo>::markAsChanged() {
   for(uint32_t i=0;i<pfSize;++i)
     pf[i].uboChanged=true;
   }
 
 template<class Ubo>
-void UboStorage<Ubo>::commitUbo(Tempest::Device& device,uint32_t imgId) {
-  auto& frame=pf[imgId];
-  size_t sz = obj.size();
-  if(frame.uboData.size()!=sz)
+bool UboStorage<Ubo>::commitUbo(Tempest::Device& device,uint32_t imgId) {
+  auto&        frame   = pf[imgId];
+  const bool   realloc = frame.uboData.size()!=obj.size();
+  if(realloc)
     frame.uboData = device.ubo<Ubo>(obj.data(),obj.size()); else
-    frame.uboData.update(obj.data(),0,sz);
+    frame.uboData.update(obj.data(),0,obj.size());
+  return realloc;
   }
 
 template<class Ubo>

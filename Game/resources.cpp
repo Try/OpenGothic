@@ -60,6 +60,8 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
    }};
   fsq = Resources::vbo(fsqBuf.data(),fsqBuf.size());
 
+  //sp = sphere(3,1.f);
+
   dxMusic.reset(new Dx8::DirectMusic());
   // G2
   dxMusic->addPath(gothic.nestedPath({u"_work",u"Data",u"Music",u"newworld"},  Dir::FT_Dir));
@@ -662,4 +664,122 @@ const AttachBinder *Resources::bindMesh(const ProtoMesh &anim, const Skeleton &s
   auto p = ret.get();
   inst->bindCache[k] = std::move(ret);
   return p;
+  }
+
+Tempest::VertexBuffer<Resources::Vertex> Resources::sphere(int passCount, float R){
+  std::vector<Resources::Vertex> r;
+  r.reserve( size_t(4*pow(3, passCount+1)) );
+
+  static const double pi = 3.141592654;
+
+  Resources::Vertex v1 = {
+    {1, 0, -0.5},
+    {0,0,0},{0,0},0
+    };
+  Resources::Vertex v2 = {
+    {float(cos(2*pi/3)), float(sin(2*pi/3)), -0.5},
+    {0,0,0},{0,0},0
+    };
+  Resources::Vertex v3 = {
+    {float(cos(2*pi/3)), -float(sin(2*pi/3)), -0.5},
+    {0,0,0},{0,0},0
+    };
+
+  Resources::Vertex v4 = {
+    {0, 0, 0.5},
+    {0,0,0},{0,0},0
+    };
+
+  r.push_back(v1);
+  r.push_back(v3);
+  r.push_back(v2);
+
+  r.push_back(v1);
+  r.push_back(v2);
+  r.push_back(v4);
+
+  r.push_back(v2);
+  r.push_back(v3);
+  r.push_back(v4);
+
+  r.push_back(v1);
+  r.push_back(v4);
+  r.push_back(v3);
+
+  for(size_t i=0; i<r.size(); ++i){
+    Resources::Vertex& v = r[i];
+    float l = std::sqrt(v.pos[0]*v.pos[0] + v.pos[1]*v.pos[1] + v.pos[2]*v.pos[2]);
+
+    v.pos[0] /= l;
+    v.pos[1] /= l;
+    v.pos[2] /= l;
+    }
+
+  for(int c=0; c<passCount; ++c){
+    size_t maxI = r.size();
+    for( size_t i=0; i<maxI; i+=3 ){
+      Resources::Vertex x = {
+        {
+          0.5f*(r[i].pos[0]+r[i+1].pos[0]),
+          0.5f*(r[i].pos[1]+r[i+1].pos[1]),
+          0.5f*(r[i].pos[2]+r[i+1].pos[2])
+        },
+        {0,0,0},{0,0},0
+      };
+      Resources::Vertex y = {
+        {
+          0.5f*(r[i+2].pos[0]+r[i+1].pos[0]),
+          0.5f*(r[i+2].pos[1]+r[i+1].pos[1]),
+          0.5f*(r[i+2].pos[2]+r[i+1].pos[2])
+        },
+        {0,0,0},{0,0},0
+      };
+      Resources::Vertex z = {
+        {
+          0.5f*(r[i].pos[0]+r[i+2].pos[0]),
+          0.5f*(r[i].pos[1]+r[i+2].pos[1]),
+          0.5f*(r[i].pos[2]+r[i+2].pos[2])
+        },
+        {0,0,0},{0,0},0
+      };
+
+      r.push_back( r[i] );
+      r.push_back( x );
+      r.push_back( z );
+
+      r.push_back( x );
+      r.push_back( r[i+1] );
+      r.push_back( y );
+
+      r.push_back( y );
+      r.push_back( r[i+2] );
+      r.push_back( z );
+
+      r[i]   = x;
+      r[i+1] = y;
+      r[i+2] = z;
+      }
+
+    for(size_t i=0; i<r.size(); ++i){
+      Resources::Vertex & v = r[i];
+      float l = std::sqrt(v.pos[0]*v.pos[0] + v.pos[1]*v.pos[1] + v.pos[2]*v.pos[2]);
+
+      v.pos[0] /= l;
+      v.pos[1] /= l;
+      v.pos[2] /= l;
+      }
+    }
+
+  for(size_t i=0; i<r.size(); ++i){
+    Resources::Vertex & v = r[i];
+    v.norm[0] = v.pos[0];
+    v.norm[1] = v.pos[1];
+    v.norm[2] = v.pos[2];
+
+    v.pos[0] *= R;
+    v.pos[1] *= R;
+    v.pos[2] *= R;
+    }
+
+  return device.vbo(r);
   }

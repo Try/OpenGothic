@@ -54,8 +54,8 @@ class PfxObjects final {
     void    setModelView(const Tempest::Matrix4x4 &m, const Tempest::Matrix4x4 &shadow);
     void    setLight(const Light &l, const Tempest::Vec3 &ambient);
 
-    bool    needToUpdateCommands() const;
-    void    setAsUpdated();
+    bool    needToUpdateCommands(uint32_t fId) const;
+    void    setAsUpdated(uint32_t fId);
 
     void    updateUbo(uint32_t imgId, uint64_t ticks);
     void    commitUbo(uint32_t imgId, const Tempest::Texture2d& shadowMap);
@@ -139,6 +139,8 @@ class PfxObjects final {
     void                          tickSys (Bucket& b, uint64_t dt);
     void                          buildVbo(Bucket& b);
 
+    void                          invalidateCmd();
+
     const RendererStorage&        storage;
     std::list<Bucket>             bucket;
 
@@ -146,5 +148,5 @@ class PfxObjects final {
     UboChain<UboGlobal,void>      uboGlobalPf;
     UboGlobal                     uboGlobal;
     uint64_t                      lastUpdate=0;
-    bool                          updateCmd=false;
+    std::vector<bool>             updateCmd;
   };

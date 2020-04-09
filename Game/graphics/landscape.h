@@ -21,6 +21,9 @@ class Landscape final {
     void setMatrix(uint32_t frameId, const Tempest::Matrix4x4& mat, const Tempest::Matrix4x4 *sh, size_t shCount);
     void setLight (const Light& l, const Tempest::Vec3& ambient);
 
+    bool needToUpdateCommands(uint32_t frameId) const;
+    void setAsUpdated        (uint32_t frameId) const;
+
     void commitUbo (uint32_t frameId, const Tempest::Texture2d& shadowMap);
     void draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t frameId);
     void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t frameId, int layer);
@@ -38,6 +41,7 @@ class Landscape final {
     struct PerFrame {
       std::vector<Tempest::Uniforms>  ubo[3];
       Tempest::UniformBuffer<UboLand> uboGpu[2];
+      bool                            nToUpdate=true;
       };
 
     struct Block {

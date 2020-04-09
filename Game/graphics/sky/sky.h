@@ -4,6 +4,7 @@
 #include <Tempest/Texture2d>
 #include <array>
 
+#include "graphics/meshobjects.h"
 #include "graphics/ubochain.h"
 #include "resources.h"
 
@@ -17,6 +18,9 @@ class Sky final {
     Sky(const RendererStorage &storage);
 
     void setWorld(const World &world);
+
+    bool needToUpdateCommands(uint32_t frameId) const;
+    void setAsUpdated        (uint32_t frameId);
 
     void setMatrix(uint32_t frameId,const Tempest::Matrix4x4& mat);
     void commitUbo(uint32_t frameId);
@@ -51,9 +55,12 @@ class Sky final {
     UboGlobal                     uboCpu;
     UboChain<UboGlobal>           uboGpu;
     Tempest::VertexBuffer<Vertex> vbo;
+    std::vector<bool>             nToUpdate;
 
     State                         day, night;
     const World*                  world=nullptr;
+
+    MeshObjects::Mesh             skymesh;
 
     static std::array<float,3>    color;
   };

@@ -5,6 +5,7 @@
 
 #include "graphics/rendererstorage.h"
 #include "world/world.h"
+#include "utils/versioninfo.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -14,8 +15,10 @@ std::array<float,3> Sky::color = {{0.2f, 0.5f, 0.66f}};
 
 Sky::Sky(const RendererStorage &storage)
   :storage(storage),uboGpu(storage.device) {
-  for(uint32_t i=0;i<storage.device.maxFramesInFlight();++i)
+  uint32_t sz = storage.device.maxFramesInFlight();
+  for(uint32_t i=0;i<sz;++i)
     uboGpu.desc(i) = storage.device.uniforms(storage.uboSkyLayout());
+  nToUpdate.resize(sz,true);
   }
 
 void Sky::setWorld(const World &world) {
@@ -29,6 +32,18 @@ void Sky::setWorld(const World &world) {
     day  .lay[i].texture = skyTexture(name.c_str(),true, i);
     night.lay[i].texture = skyTexture(name.c_str(),false,i);
     }
+
+  if(world.version().game==2) {
+    //skymesh = world.getStaticView("SKYDOME_COLORLAYER.MRM");
+    }
+  }
+
+bool Sky::needToUpdateCommands(uint32_t frameId) const {
+  return nToUpdate[frameId];
+  }
+
+void Sky::setAsUpdated(uint32_t frameId) {
+  nToUpdate[frameId] = false;
   }
 
 void Sky::setMatrix(uint32_t frameId, const Tempest::Matrix4x4 &mat) {
@@ -36,7 +51,7 @@ void Sky::setMatrix(uint32_t frameId, const Tempest::Matrix4x4 &mat) {
   uboCpu.mvp.inverse();
 
   auto ticks = world==nullptr ? Application::tickCount() : world->tickCount();
-  auto t0 = float(ticks%90000)/90000.f;
+  auto t0 = float(ticks%90000 )/90000.f;
   auto t1 = float(ticks%270000)/270000.f;
   uboCpu.dxy0[0] = t0;
   uboCpu.dxy1[0] = t1;
@@ -50,6 +65,8 @@ void Sky::setMatrix(uint32_t frameId, const Tempest::Matrix4x4 &mat) {
   }
 
 void Sky::commitUbo(uint32_t frameId) {
+  if(!nToUpdate[frameId])
+    return;
   uboGpu.desc(frameId).set(0,uboGpu[frameId]);
   uboGpu.desc(frameId).set(1,*day.lay[0].texture);
   uboGpu.desc(frameId).set(2,*day.lay[1].texture);
@@ -78,7 +95,7 @@ std::array<float,3> Sky::mkColor(uint8_t r, uint8_t g, uint8_t b) {
   return {{r/255.f,g/255.f,b/255.f}};
   }
 
-const Texture2d *Sky::skyTexture(const char *name,bool day,size_t id) {
+const Texture2d* Sky::skyTexture(const char *name,bool day,size_t id) {
   if(auto t = implSkyTexture(name,day,id))
     return t;
   if(auto t = implSkyTexture(nullptr,day,id))
@@ -86,7 +103,7 @@ const Texture2d *Sky::skyTexture(const char *name,bool day,size_t id) {
   return &Resources::fallbackBlack();
   }
 
-const Texture2d *Sky::implSkyTexture(const char *name,bool day,size_t id) {
+const Texture2d* Sky::implSkyTexture(const char *name,bool day,size_t id) {
   char tex[256]={};
   if(name && name[0]!='\0'){
     const char* format=day ? "SKYDAY_%s_LAYER%d_A0.TGA" : "SKYNIGHT_%s_LAYER%d_A0.TGA";

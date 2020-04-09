@@ -107,13 +107,6 @@ void Renderer::setCameraView(const Camera& camera) {
     }
   }
 
-bool Renderer::needToUpdateCmd() {
-  if(auto wview=gothic.worldView()) {
-    return wview->needToUpdateCmd();
-    }
-  return false;
-  }
-
 void Renderer::draw(Encoder<PrimaryCommandBuffer> &&cmd, uint32_t frameId, uint32_t imgId,
                     VectorImage&   uiLayer,   VectorImage& numOverlay,
                     InventoryMenu& inventory, const Gothic& gothic) {

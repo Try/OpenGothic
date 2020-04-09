@@ -109,7 +109,7 @@ class Resources final {
     static bool                      hasFile(const std::string& fname);
     static VDFS::FileIndex&          vdfsIndex();
 
-    static const Tempest::VertexBuffer<VertexFsq> &fsqVbo();
+    static const Tempest::VertexBuffer<VertexFsq>& fsqVbo();
 
   private:
     static Resources* inst;
@@ -144,6 +144,7 @@ class Resources final {
 
     MeshLoadCode          loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
     ZenLoad::zCModelMeshLib loadMDS (std::string& name);
+    Tempest::VertexBuffer<Vertex> sphere(int passCount, float R);
 
     Tempest::Texture2d fallback, fbZero;
 
@@ -168,7 +169,7 @@ class Resources final {
     VDFS::FileIndex       gothicAssets;
 
     std::vector<uint8_t>  fBuff, ddsBuf;
-    Tempest::VertexBuffer<VertexFsq> fsq;
+    Tempest::VertexBuffer<VertexFsq>         fsq;
 
     TextureCache                                                          texCache;
     TextureCache                                                          decalCache;

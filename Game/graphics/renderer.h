@@ -24,7 +24,6 @@ class Renderer final {
     void onWorldChanged();
 
     void setCameraView(const Camera &camera);
-    bool needToUpdateCmd();
 
     void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &&cmd, uint32_t frameId, uint32_t imgId,
               Tempest::VectorImage& uiLayer, Tempest::VectorImage& numOverlay,

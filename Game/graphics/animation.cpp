@@ -82,6 +82,9 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
         if(!found)
           Log::d("comb not found: ",p.comb.m_Name," -> ",p.comb.m_Asc); // error
         break;
+        }        
+      case ZenLoad::MdsParser::CHUNK_ANI_BLEND:{
+        break;
         }
 
       case ZenLoad::MdsParser::CHUNK_EVENT_SFX: {
@@ -379,7 +382,8 @@ void Animation::Sequence::processSfx(uint64_t barrier, uint64_t sTime, uint64_t 
   auto& d = *data;
   for(auto& i:d.sfx){
     uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.lastFrame);
-    if((frameA<=fr && fr<frameB) ^ invert)
+    if(((frameA<=fr && fr<frameB) ^ invert) ||
+       i.m_Frame==int32_t(d.lastFrame))
       npc.emitSoundEffect(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
     }
   if(!npc.isInAir()) {
