@@ -204,6 +204,7 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("npc_hasreadiedmeleeweapon",
                                                      [this](Daedalus::DaedalusVM& vm){ npc_hasreadiedmeleeweapon(vm); });
   vm.registerExternalFunction("npc_isdrawingspell",  [this](Daedalus::DaedalusVM& vm){ npc_isdrawingspell(vm);   });
+  vm.registerExternalFunction("npc_isdrawingweapon", [this](Daedalus::DaedalusVM& vm){ npc_isdrawingweapon(vm);  });
   vm.registerExternalFunction("npc_perceiveall",     [this](Daedalus::DaedalusVM& vm){ npc_perceiveall(vm);      });
   vm.registerExternalFunction("npc_stopani",         [this](Daedalus::DaedalusVM& vm){ npc_stopani(vm);          });
   vm.registerExternalFunction("npc_settrueguild",    [this](Daedalus::DaedalusVM& vm){ npc_settrueguild(vm);     });
@@ -2289,6 +2290,21 @@ void GameScript::npc_isdrawingspell(Daedalus::DaedalusVM &vm) {
     vm.setReturn(0);
     return;
     }
+  auto it = npc->inventory().activeWeapon();
+  if(it==nullptr || !it->isSpell()){
+    vm.setReturn(0);
+    return;
+    }
+  vm.setReturn(int32_t(it->clsId()));
+  }
+
+void GameScript::npc_isdrawingweapon(Daedalus::DaedalusVM& vm) {
+  auto npc = popInstance(vm);
+  if(npc==nullptr){
+    vm.setReturn(0);
+    return;
+    }
+  npc->weaponState();
   auto it = npc->inventory().activeWeapon();
   if(it==nullptr || !it->isSpell()){
     vm.setReturn(0);

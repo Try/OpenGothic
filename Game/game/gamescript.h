@@ -285,6 +285,7 @@ class GameScript final {
     void npc_getreadiedweapon(Daedalus::DaedalusVM &vm);
     void npc_hasreadiedmeleeweapon(Daedalus::DaedalusVM &vm);
     void npc_isdrawingspell  (Daedalus::DaedalusVM &vm);
+    void npc_isdrawingweapon (Daedalus::DaedalusVM &vm);
     void npc_perceiveall     (Daedalus::DaedalusVM &vm);
     void npc_stopani         (Daedalus::DaedalusVM &vm);
     void npc_settrueguild    (Daedalus::DaedalusVM &vm);
