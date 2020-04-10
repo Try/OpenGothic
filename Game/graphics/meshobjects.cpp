@@ -22,7 +22,7 @@ MeshObjects::MeshObjects(const RendererStorage &storage)
   uboGlobal.shadowView.identity();
   }
 
-bool MeshObjects::needToUpdateCommands(size_t fId) const {
+bool MeshObjects::needToUpdateCommands(uint8_t fId) const {
   if(storageSt.needToRealloc(fId) || storageDn.needToRealloc(fId))
     return true;
 
@@ -35,7 +35,7 @@ bool MeshObjects::needToUpdateCommands(size_t fId) const {
   return false;
   }
 
-void MeshObjects::setAsUpdated(size_t fId) {
+void MeshObjects::setAsUpdated(uint8_t fId) {
   for(auto& i:chunksSt)
     i.setAsUpdated(fId);
   for(auto& i:chunksDn)
@@ -156,7 +156,7 @@ MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_
   return Mesh(&mesh,std::move(dat),count);
   }
 
-void MeshObjects::updateUbo(uint32_t fId) {
+void MeshObjects::updateUbo(uint8_t fId) {
   storageSt.updateUbo(fId);
   storageDn.updateUbo(fId);
 
@@ -167,7 +167,7 @@ void MeshObjects::updateUbo(uint32_t fId) {
   uboGlobalPf[1].update(ubo2,fId);
   }
 
-void MeshObjects::commitUbo(uint32_t fId,const Tempest::Texture2d& shadowMap) {
+void MeshObjects::commitUbo(uint8_t fId,const Tempest::Texture2d& shadowMap) {
   auto& device=storage.device;
 
   const bool reallocSt = storageSt.commitUbo(device,fId);

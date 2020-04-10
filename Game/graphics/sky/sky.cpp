@@ -38,15 +38,15 @@ void Sky::setWorld(const World &world) {
     }
   }
 
-bool Sky::needToUpdateCommands(uint32_t frameId) const {
+bool Sky::needToUpdateCommands(uint8_t frameId) const {
   return nToUpdate[frameId];
   }
 
-void Sky::setAsUpdated(uint32_t frameId) {
+void Sky::setAsUpdated(uint8_t frameId) {
   nToUpdate[frameId] = false;
   }
 
-void Sky::setMatrix(uint32_t frameId, const Tempest::Matrix4x4 &mat) {
+void Sky::setMatrix(uint8_t frameId, const Tempest::Matrix4x4 &mat) {
   uboCpu.mvp = mat;
   uboCpu.mvp.inverse();
 
@@ -64,7 +64,7 @@ void Sky::setMatrix(uint32_t frameId, const Tempest::Matrix4x4 &mat) {
   uboGpu.update(uboCpu,frameId);
   }
 
-void Sky::commitUbo(uint32_t frameId) {
+void Sky::commitUbo(uint8_t frameId) {
   if(!nToUpdate[frameId])
     return;
   uboGpu.desc(frameId).set(0,uboGpu[frameId]);

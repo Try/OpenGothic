@@ -19,11 +19,11 @@ class Sky final {
 
     void setWorld(const World &world);
 
-    bool needToUpdateCommands(uint32_t frameId) const;
-    void setAsUpdated        (uint32_t frameId);
+    bool needToUpdateCommands(uint8_t frameId) const;
+    void setAsUpdated        (uint8_t frameId);
 
-    void setMatrix(uint32_t frameId,const Tempest::Matrix4x4& mat);
-    void commitUbo(uint32_t frameId);
+    void setMatrix(uint8_t frameId,const Tempest::Matrix4x4& mat);
+    void commitUbo(uint8_t frameId);
 
     void draw       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t frameId, const World &world);
     void setLight   (const std::array<float,3>& l);

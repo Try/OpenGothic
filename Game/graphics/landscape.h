@@ -21,12 +21,12 @@ class Landscape final {
     void setMatrix(uint32_t frameId, const Tempest::Matrix4x4& mat, const Tempest::Matrix4x4 *sh, size_t shCount);
     void setLight (const Light& l, const Tempest::Vec3& ambient);
 
-    bool needToUpdateCommands(uint32_t frameId) const;
-    void setAsUpdated        (uint32_t frameId) const;
+    bool needToUpdateCommands(uint8_t frameId) const;
+    void setAsUpdated        (uint8_t frameId) const;
 
-    void commitUbo (uint32_t frameId, const Tempest::Texture2d& shadowMap);
-    void draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t frameId);
-    void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t frameId, int layer);
+    void commitUbo (uint8_t frameId, const Tempest::Texture2d& shadowMap);
+    void draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, int layer);
 
   private:
     struct UboLand {

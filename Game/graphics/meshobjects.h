@@ -72,8 +72,8 @@ class MeshObjects final {
     Mesh get(const StaticMesh& mesh);
     Mesh get(const ProtoMesh&  mesh,int32_t headTexVar,int32_t teethTex,int32_t bodyColor);
 
-    void updateUbo(uint32_t fId);
-    void commitUbo(uint32_t fId, const Tempest::Texture2d& shadowMap);
+    void updateUbo(uint8_t fId);
+    void commitUbo(uint8_t fId, const Tempest::Texture2d& shadowMap);
 
     void reserve(size_t stat,size_t dyn);
 
@@ -81,8 +81,8 @@ class MeshObjects final {
     void drawDecals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId);
     void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId, int layer=0);
 
-    bool needToUpdateCommands(size_t imgId) const;
-    void setAsUpdated(size_t imgId);
+    bool needToUpdateCommands(uint8_t imgId) const;
+    void setAsUpdated(uint8_t imgId);
 
     void setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4 *sh, size_t shCount);
     void setLight(const Light &l, const Tempest::Vec3 &ambient);

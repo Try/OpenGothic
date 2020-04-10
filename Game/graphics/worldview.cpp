@@ -138,7 +138,7 @@ void WorldView::resetCmd() {
     }
   }
 
-bool WorldView::needToUpdateCmd(uint32_t frameId) const {
+bool WorldView::needToUpdateCmd(uint8_t frameId) const {
   return land    .needToUpdateCommands(frameId) ||
          vobGroup.needToUpdateCommands(frameId) ||
          objGroup.needToUpdateCommands(frameId) ||
@@ -155,7 +155,7 @@ void WorldView::invalidateCmd() {
     }
   }
 
-void WorldView::updateCmd(uint32_t frameId, const World &world,
+void WorldView::updateCmd(uint8_t frameId, const World &world,
                           const Attachment& main, const Tempest::Attachment& shadow,
                           const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay) {
   if(this->mainLay  ==nullptr || mainLay  !=*this->mainLay ||
@@ -168,7 +168,7 @@ void WorldView::updateCmd(uint32_t frameId, const World &world,
   builtCmdBuf(frameId,world,main,shadow,mainLay,shadowLay);
   }
 
-void WorldView::updateUbo(uint32_t frameId, const Matrix4x4& view,const Tempest::Matrix4x4* shadow,size_t shCount) {
+void WorldView::updateUbo(uint8_t frameId, const Matrix4x4& view, const Tempest::Matrix4x4* shadow, size_t shCount) {
   updateLight();
 
   auto viewProj=this->viewProj(view);
@@ -196,7 +196,7 @@ void WorldView::updateUbo(uint32_t frameId, const Matrix4x4& view,const Tempest:
   pfxGroup.updateUbo   (frameId,owner.tickCount());
   }
 
-void WorldView::builtCmdBuf(uint32_t frameId, const World &world,
+void WorldView::builtCmdBuf(uint8_t frameId, const World &world,
                             const Attachment& main, const Attachment& shadowMap,
                             const FrameBufferLayout& mainLay,const FrameBufferLayout& shadowLay) {
   auto&      device    = storage.device;

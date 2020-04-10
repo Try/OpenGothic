@@ -43,8 +43,8 @@ class ObjectsBucket : public AbstractObjectsBucket {
 
     void                        draw(size_t id,Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) override;
 
-    bool                        needToUpdateCommands(size_t fId) const;
-    void                        setAsUpdated(size_t fId);
+    bool                        needToUpdateCommands(uint8_t fId) const;
+    void                        setAsUpdated(uint8_t fId);
     void                        invalidate();
 
   private:
@@ -193,12 +193,12 @@ void ObjectsBucket<Ubo,Vertex>::draw(size_t id, Tempest::Encoder<Tempest::Comman
   }
 
 template<class Ubo, class Vertex>
-bool ObjectsBucket<Ubo,Vertex>::needToUpdateCommands(size_t fId) const {
+bool ObjectsBucket<Ubo,Vertex>::needToUpdateCommands(uint8_t fId) const {
   return pf[fId].nToUpdate;
   }
 
 template<class Ubo, class Vertex>
-void ObjectsBucket<Ubo,Vertex>::setAsUpdated(size_t fId) {
+void ObjectsBucket<Ubo,Vertex>::setAsUpdated(uint8_t fId) {
   pf[fId].nToUpdate=false;
   }
 

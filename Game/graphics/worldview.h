@@ -30,10 +30,10 @@ class WorldView {
 
     void tick(uint64_t dt);
 
-    void updateCmd (uint32_t frameId, const World &world,
+    void updateCmd (uint8_t frameId, const World &world,
                     const Tempest::Attachment& main, const Tempest::Attachment& shadow,
                     const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay);
-    void updateUbo (uint32_t frameId, const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4* shadow, size_t shCount);
+    void updateUbo (uint8_t frameId, const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4* shadow, size_t shCount);
     void drawShadow(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, uint8_t frameId, uint8_t layer);
     void drawMain  (Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, uint8_t frameId);
     void resetCmd  ();
@@ -75,12 +75,12 @@ class WorldView {
       };
     std::unique_ptr<PerFrame[]> frame;
 
-    bool needToUpdateCmd(uint32_t frameId) const;
+    bool needToUpdateCmd(uint8_t frameId) const;
     void invalidateCmd();
 
     void updateLight();
     void setupSunDir(float pulse,float ang);
-    void builtCmdBuf(uint32_t frameId, const World &world,
+    void builtCmdBuf(uint8_t frameId, const World &world,
                      const Tempest::Attachment& main,
                      const Tempest::Attachment& shadowMap,
                      const Tempest::FrameBufferLayout &mainLay,

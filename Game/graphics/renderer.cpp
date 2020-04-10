@@ -107,7 +107,7 @@ void Renderer::setCameraView(const Camera& camera) {
     }
   }
 
-void Renderer::draw(Encoder<PrimaryCommandBuffer> &&cmd, uint32_t frameId, uint32_t imgId,
+void Renderer::draw(Encoder<PrimaryCommandBuffer> &&cmd, uint8_t frameId, uint8_t imgId,
                     VectorImage&   uiLayer,   VectorImage& numOverlay,
                     InventoryMenu& inventory, const Gothic& gothic) {
   draw(cmd, fbo3d  [imgId], gothic, frameId);
@@ -116,7 +116,7 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &&cmd, uint32_t frameId, uint3
   draw(cmd, fboUi  [imgId], numOverlay);
   }
 
-void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const Gothic &gothic, uint32_t frameId) {
+void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const Gothic &gothic, uint8_t frameId) {
   auto wview = gothic.worldView();
   if(wview==nullptr) {
     cmd.setPass(fbo,mainPass);

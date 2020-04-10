@@ -20,7 +20,7 @@ InventoryRenderer::InventoryRenderer(const RendererStorage &storage)
   itmGroup.setLight(light,Vec3(1.f,1.f,1.f));
   }
 
-void InventoryRenderer::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId) {
+void InventoryRenderer::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId) {
   Tempest::Matrix4x4 mv;
   mv.identity();
   if(items.size()){
@@ -31,14 +31,14 @@ void InventoryRenderer::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint
     }
   Tempest::Matrix4x4 shMv[2];
   itmGroup.setModelView(mv,shMv,2);
-  itmGroup.commitUbo(imgId,Resources::fallbackTexture());
-  itmGroup.updateUbo(imgId);
+  itmGroup.commitUbo(frameId,Resources::fallbackTexture());
+  itmGroup.updateUbo(frameId);
 
   for(auto& i:items){
     cmd.setViewport(i.x,i.y,i.w,i.h);
     for(size_t r=0;r<i.mesh.nodesCount();++r){
       auto n = i.mesh.node(r);
-      n.draw(cmd,storage.pObject,imgId);
+      n.draw(cmd,storage.pObject,frameId);
       }
     }
   }

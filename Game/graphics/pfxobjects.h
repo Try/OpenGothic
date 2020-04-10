@@ -54,11 +54,11 @@ class PfxObjects final {
     void    setModelView(const Tempest::Matrix4x4 &m, const Tempest::Matrix4x4 &shadow);
     void    setLight(const Light &l, const Tempest::Vec3 &ambient);
 
-    bool    needToUpdateCommands(uint32_t fId) const;
-    void    setAsUpdated(uint32_t fId);
+    bool    needToUpdateCommands(uint8_t fId) const;
+    void    setAsUpdated(uint8_t fId);
 
-    void    updateUbo(uint32_t imgId, uint64_t ticks);
-    void    commitUbo(uint32_t imgId, const Tempest::Texture2d& shadowMap);
+    void    updateUbo(uint8_t frameId, uint64_t ticks);
+    void    commitUbo(uint8_t frameId, const Tempest::Texture2d& shadowMap);
     void    draw     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId);
 
   private:

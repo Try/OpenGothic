@@ -265,16 +265,16 @@ void PfxObjects::setLight(const Light &l, const Vec3 &ambient) {
   uboGlobal.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
   }
 
-bool PfxObjects::needToUpdateCommands(uint32_t fId) const {
+bool PfxObjects::needToUpdateCommands(uint8_t fId) const {
   return updateCmd[fId];
   }
 
-void PfxObjects::setAsUpdated(uint32_t fId) {
+void PfxObjects::setAsUpdated(uint8_t fId) {
   updateCmd[fId]=false;
   }
 
-void PfxObjects::updateUbo(uint32_t imgId, uint64_t ticks) {
-  uboGlobalPf.update(uboGlobal,imgId);
+void PfxObjects::updateUbo(uint8_t frameId, uint64_t ticks) {
+  uboGlobalPf.update(uboGlobal,frameId);
   uint64_t dt = ticks-lastUpdate;
 
   for(auto& i:bucket) {
@@ -283,25 +283,25 @@ void PfxObjects::updateUbo(uint32_t imgId, uint64_t ticks) {
       buildVbo(i);
       }
 
-    auto& pf = i.pf[imgId];
+    auto& pf = i.pf[frameId];
     pf.vbo.update(i.vbo);
     }
   lastUpdate = ticks;
   }
 
-void PfxObjects::commitUbo(uint32_t imgId, const Texture2d& shadowMap) {
+void PfxObjects::commitUbo(uint8_t frameId, const Texture2d& shadowMap) {
   bucket.remove_if([](const Bucket& ){
     // FIXME: Cannot free VkNonDispatchableHandle that is in use by a command buffer.
     return false;//b.impl.size()==0;
     });
 
-  if(!updateCmd[imgId])
+  if(!updateCmd[frameId])
     return;
 
   for(auto& i:bucket) {
-    auto& pf = i.pf[imgId];
+    auto& pf = i.pf[frameId];
 
-    pf.ubo.set(0,uboGlobalPf[imgId],0,1);
+    pf.ubo.set(0,uboGlobalPf[frameId],0,1);
     pf.ubo.set(2,*i.owner->visName_S);
     pf.ubo.set(3,shadowMap);
     }

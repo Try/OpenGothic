@@ -65,15 +65,15 @@ void Landscape::setLight(const Light &l, const Vec3 &ambient) {
   uboCpu.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
   }
 
-bool Landscape::needToUpdateCommands(uint32_t frameId) const {
+bool Landscape::needToUpdateCommands(uint8_t frameId) const {
   return pf[frameId].nToUpdate;
   }
 
-void Landscape::setAsUpdated(uint32_t frameId) const {
+void Landscape::setAsUpdated(uint8_t frameId) const {
   pf[frameId].nToUpdate = false;
   }
 
-void Landscape::commitUbo(uint32_t frameId, const Tempest::Texture2d& shadowMap) {
+void Landscape::commitUbo(uint8_t frameId, const Tempest::Texture2d& shadowMap) {
   PerFrame& pf      = this->pf[frameId];
   if(!pf.nToUpdate)
     return;
@@ -113,7 +113,7 @@ void Landscape::commitUbo(uint32_t frameId, const Tempest::Texture2d& shadowMap)
     }
   }
 
-void Landscape::draw(Tempest::Encoder<CommandBuffer> &cmd, uint32_t frameId) {
+void Landscape::draw(Tempest::Encoder<CommandBuffer> &cmd, uint8_t frameId) {
   const RenderPipeline* ptable[Material::ApphaFunc::Last] = {
     nullptr,
     &storage.pLandAt,
@@ -123,7 +123,7 @@ void Landscape::draw(Tempest::Encoder<CommandBuffer> &cmd, uint32_t frameId) {
   implDraw(cmd,ptable,0,frameId);
   }
 
-void Landscape::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t frameId, int layer) {
+void Landscape::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, int layer) {
   const RenderPipeline* ptable[Material::ApphaFunc::Last] = {
     nullptr,
     &storage.pLandAtSh,

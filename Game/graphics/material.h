@@ -13,6 +13,8 @@ class Material final {
       NoAlpha      =1,
       Transparent  =2,
       AdditiveLight=3,
+      Multiply     =4,
+      Multiply2    =5,
       Last
       };
 
