@@ -58,18 +58,18 @@ class World final {
 
     const WayPoint* findPoint(const std::string& s) const { return findPoint(s.c_str()); }
     const WayPoint* findPoint(const char* name) const;
-    const WayPoint* findWayPoint(const std::array<float,3>& pos) const;
+    const WayPoint* findWayPoint(const Tempest::Vec3& pos) const;
     const WayPoint* findWayPoint(float x,float y,float z) const;
 
     const WayPoint* findFreePoint(const Npc& pos,const char* name) const;
-    const WayPoint* findFreePoint(const std::array<float,3>& pos,const char* name) const;
+    const WayPoint* findFreePoint(const Tempest::Vec3& pos, const char* name) const;
     const WayPoint* findFreePoint(float x,float y,float z,const char* name) const;
 
     const WayPoint* findNextFreePoint(const Npc& pos,const char* name) const;
     const WayPoint* findNextPoint(const WayPoint& pos) const;
 
     void            detectNpcNear(std::function<void(Npc&)> f);
-    void            detectNpc(const std::array<float,3> p, const float r, std::function<void(Npc&)> f);
+    void            detectNpc(const Tempest::Vec3& p, const float r, std::function<void(Npc&)> f);
     void            detectNpc(const float x, const float y, const float z, const float r, std::function<void(Npc&)> f);
 
     WayPath         wayTo(const Npc& pos,const WayPoint& end) const;
@@ -81,7 +81,7 @@ class World final {
     auto            version() const -> const VersionInfo&;
 
     void            assignRoomToGuild(const char* room, int32_t guildId);
-    int32_t         guildOfRoom(const std::array<float,3>& pos);
+    int32_t         guildOfRoom(const Tempest::Vec3& pos);
     int32_t         guildOfRoom(const char* portalName);
 
     MeshObjects::Mesh   getView(const Daedalus::ZString& visual) const;
@@ -104,7 +104,7 @@ class World final {
     auto                 takeHero() -> std::unique_ptr<Npc>;
     Npc*                 player() const { return npcPlayer; }
     Npc*                 findNpcByInstance(size_t instance);
-    auto                 roomAt(const std::array<float,3>& arr) -> const std::string&;
+    auto                 roomAt(const Tempest::Vec3& arr) -> const std::string&;
 
     void                 tick(uint64_t dt);
     uint64_t             tickCount() const;
@@ -152,7 +152,7 @@ class World final {
     void   emitLandHitSound(float x, float y, float z, uint8_t m0, uint8_t m1);
     void   emitBlockSound  (Npc& self,Npc& other);
 
-    bool   isInListenerRange(const std::array<float,3> &pos) const;
+    bool   isInListenerRange(const Tempest::Vec3& pos) const;
     void   emitDlgSound   (const char *s, float x, float y, float z, float range, uint64_t &timeLen);
     void   emitSoundEffect(const char *s, float x, float y, float z, float range, bool freeSlot);
     void   emitSoundRaw   (const char *s, float x, float y, float z, float range, bool freeSlot);

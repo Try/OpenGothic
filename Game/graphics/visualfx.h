@@ -1,6 +1,7 @@
 #pragma once
 
 #include <daedalus/DaedalusStdlib.h>
+#include <Tempest/Point>
 
 #include "game/constants.h"
 
@@ -14,7 +15,7 @@ class VisualFx final {
     const Daedalus::GEngineClasses::C_ParticleFXEmitKey& key(SpellFxKey type) const;
     Daedalus::GEngineClasses::C_ParticleFXEmitKey&       key(SpellFxKey type);
 
-    void emitSound(World& wrld, const std::array<float,3>& pos, SpellFxKey type) const;
+    void emitSound(World& wrld, const Tempest::Vec3& pos, SpellFxKey type) const;
 
   private:
     const Daedalus::GEngineClasses::CFx_Base      fx;

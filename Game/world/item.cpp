@@ -31,7 +31,7 @@ Item::Item(World &owner, Serialize &fin, bool inWorld)
   fin.read(h.description,h.text,h.count);
   fin.read(h.inv_zbias,h.inv_rotx,h.inv_roty,h.inv_rotz,h.inv_animate);
   fin.read(h.amount);
-  fin.read(pos[0],pos[1],pos[2],equiped,itSlot);
+  fin.read(pos,equiped,itSlot);
   fin.read(mat);
 
   view.setObjMatrix(mat);
@@ -66,7 +66,7 @@ void Item::save(Serialize &fout) {
   fout.write(h.description,h.text,h.count);
   fout.write(h.inv_zbias,h.inv_rotx,h.inv_roty,h.inv_rotz,h.inv_animate);
   fout.write(h.amount);
-  fout.write(pos[0],pos[1],pos[2],equiped,itSlot);
+  fout.write(pos,equiped,itSlot);
   fout.write(mat);
   }
 
@@ -80,7 +80,7 @@ void Item::clearView() {
   }
 
 void Item::setPosition(float x, float y, float z) {
-  pos={{x,y,z}};
+  pos={x,y,z};
   updateMatrix();
   }
 
@@ -88,10 +88,10 @@ void Item::setDirection(float, float, float) {
   }
 
 void Item::setMatrix(const Tempest::Matrix4x4 &m) {
-  mat    = m;
-  pos[0] = m.at(3,0);
-  pos[1] = m.at(3,1);
-  pos[2] = m.at(3,2);
+  mat   = m;
+  pos.x = m.at(3,0);
+  pos.y = m.at(3,1);
+  pos.z = m.at(3,2);
   view.setObjMatrix(m);
   }
 
@@ -107,7 +107,7 @@ const char *Item::description() const {
   return hitem.description.c_str();
   }
 
-std::array<float,3> Item::position() const {
+Tempest::Vec3 Item::position() const {
   return pos;
   }
 
@@ -213,6 +213,6 @@ size_t Item::clsId() const {
 
 void Item::updateMatrix() {
   mat.identity();
-  mat.translate(pos[0],pos[1],pos[2]);
+  mat.translate(pos.x,pos.y,pos.z);
   view.setObjMatrix(mat);
   }

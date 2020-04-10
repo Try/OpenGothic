@@ -14,6 +14,13 @@ MoveAlgo::MoveAlgo(Npc& unit)
   }
 
 void MoveAlgo::load(Serialize &fin) {
+  if(fin.version()<7){
+    uint8_t bug[3];
+    fin.read(reinterpret_cast<uint32_t&>(flags));
+    fin.read(mulSpeed,bug,fallCount,climbStart,bug,climbHeight);
+    fin.read(reinterpret_cast<uint8_t&>(jmp));
+    return;
+    }
   fin.read(reinterpret_cast<uint32_t&>(flags));
   fin.read(mulSpeed,fallSpeed,fallCount,climbStart,climbPos0,climbHeight);
   fin.read(reinterpret_cast<uint8_t&>(jmp));
@@ -31,9 +38,9 @@ void MoveAlgo::tickMobsi(uint64_t dt) {
 
   auto dp  = animMoveSpeed(dt);
   auto pos = npc.position();
-  pos[0]+=dp[0];
-  //pos[1]+=dp[1];
-  pos[2]+=dp[2];
+  pos.x+=dp.x;
+  //pos.x+=dp.y;
+  pos.z+=dp.z;
   npc.setPosition(pos);
   setAsSlide(false);
   setInAir  (false);
@@ -51,31 +58,31 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
   float fallThreshold = stepHeight();
   auto  pos           = npc.position();
 
-  auto  norm   = normalRay(pos[0],pos[1]+fallThreshold,pos[2]);
+  auto  norm   = normalRay(pos.x,pos.y+fallThreshold,pos.z);
   // check ground
-  float pY     = pos[1];
+  float pY     = pos.y;
   bool  valid  = false;
-  auto  ground = dropRay(pos[0], pos[1]+fallThreshold, pos[2], valid);
+  auto  ground = dropRay(pos.x, pos.y+fallThreshold, pos.z, valid);
   float dY     = pY-ground;
 
   //if(ground+chest<water)
   //  ;
   if(dY>fallThreshold*2) {
-    fallSpeed[0] *=2;
-    fallSpeed[2] *=2;
+    fallSpeed.x *=2;
+    fallSpeed.z *=2;
     setInAir  (true);
     setAsSlide(false);
     return false;
     }
 
   if(!isSlide()) {
-    fallSpeed[0] = 0.f;
-    fallSpeed[1] = 0.f;
-    fallSpeed[2] = 0.f;
+    fallSpeed.x = 0.f;
+    fallSpeed.y = 0.f;
+    fallSpeed.z = 0.f;
     fallCount=-1.f;
     }
 
-  if(!testSlide(pos[0],pos[1]+fallThreshold,pos[2])) {
+  if(!testSlide(pos.x,pos.y+fallThreshold,pos.z)) {
     setAsSlide(false);
     return false;
     }
@@ -83,18 +90,15 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
   const float timeK = float(dt)/100.f;
   const float speed = 0.02f*timeK*gravity;
 
-  float k = std::fabs(norm[1])/std::sqrt(norm[0]*norm[0]+norm[2]*norm[2]);
-  fallSpeed[0] += +speed*norm[0]*k;
-  fallSpeed[1] += -speed*std::sqrt(1.f - norm[1]*norm[1]);
-  fallSpeed[2] += +speed*norm[2]*k;
+  float k = std::fabs(norm.y)/std::sqrt(norm.x*norm.x+norm.z*norm.z);
+  fallSpeed.x += +speed*norm.x*k;
+  fallSpeed.y += -speed*std::sqrt(1.f - norm.y*norm.y);
+  fallSpeed.z += +speed*norm.z*k;
 
-  auto dp = fallSpeed;
-  dp[0]*=timeK;
-  dp[1]*=timeK;
-  dp[2]*=timeK;
+  auto dp = fallSpeed*timeK;
 
-  if(!tryMove(dp[0],dp[1],dp[2]))
-    tryMove(dp[0],0.f,dp[2]);
+  if(!tryMove(dp.x,dp.y,dp.z))
+    tryMove(dp.x,0.f,dp.z);
 
   if(slideDir())
     npc.setAnim(AnimationSolver::SlideA); else
@@ -111,32 +115,27 @@ void MoveAlgo::tickGravity(uint64_t dt) {
   float timeK         = float(dt)/1000.f;
   float aceleration   = -gravity*timeK;
   if(0.f<fallCount) {
-    fallSpeed[0]/=(fallCount/1000.f);
-    fallSpeed[1]/=(fallCount/1000.f);
-    fallSpeed[2]/=(fallCount/1000.f);
+    fallSpeed/=(fallCount/1000.f);
     fallCount=-1.f;
     }
-  fallSpeed[1]+=aceleration;
+  fallSpeed.y+=aceleration;
 
   // check ground
   auto  pos      = npc.position();
-  float pY       = pos[1];
+  float pY       = pos.y;
   float chest    = canFlyOverWater() ? 0 : waterDepthChest();
   bool  valid    = false;
-  auto  ground   = dropRay(pos[0], pos[1]+fallThreshold, pos[2], valid);
-  auto  water    = waterRay(pos[0], pos[1], pos[2]);
+  auto  ground   = dropRay (pos.x, pos.y+fallThreshold, pos.z, valid);
+  auto  water    = waterRay(pos.x, pos.y, pos.z);
   float fallStop = std::max(water-chest,ground);
 
-  auto dp = fallSpeed;
-  dp[0]*=timeK;
-  dp[1]*=timeK;
-  dp[2]*=timeK;
+  auto dp = fallSpeed*timeK;
 
-  if(pY+dp[1]>fallStop) {
+  if(pY+dp.y>fallStop) {
     // continue falling
-    if(!tryMove(dp[0],dp[1],dp[2])) {
-      fallSpeed[1]=0.f;
-      if((std::fabs(dp[0])<0.001f && std::fabs(dp[2])<0.001f) || !tryMove(dp[0],0.f,dp[2])) {
+    if(!tryMove(dp.x,dp.y,dp.z)) {
+      fallSpeed.y=0.f;
+      if((std::fabs(dp.x)<0.001f && std::fabs(dp.z)<0.001f) || !tryMove(dp.x,0.f,dp.z)) {
         // attach to ground
         setInAir(false);
         npc.setAnim(AnimationSolver::Idle);
@@ -144,9 +143,9 @@ void MoveAlgo::tickGravity(uint64_t dt) {
         }
       setInAir(false);
       }
-    if(fallSpeed[1]<-1500.f)
+    if(fallSpeed.y<-1500.f)
       npc.setAnim(AnimationSolver::FallDeep); else
-    if(fallSpeed[1]<-300.f)
+    if(fallSpeed.y<-300.f)
       npc.setAnim(AnimationSolver::Fall);
     } else {
     if(ground+chest<water && !npc.isDead()) {
@@ -170,14 +169,14 @@ void MoveAlgo::tickGravity(uint64_t dt) {
 
 void MoveAlgo::tickJumpup(uint64_t dt) {
   tickGravity(dt);
-  if(fallSpeed[1]<=0.f || !isInAir()) {
+  if(fallSpeed.y<=0.f || !isInAir()) {
     setAsJumpup(false);
     //return;
     }
 
   float len=50;
-  std::array<float,3> ret = {}, v={0,npc.translateY(),len};
-  applyRotation(ret,v.data());
+  Tempest::Vec3 ret = {}, v={0,npc.translateY(),len};
+  applyRotation(ret,v);
 
   if(testClimp(0.15f) &&
      testClimp(0.25f) &&
@@ -197,30 +196,30 @@ void MoveAlgo::tickClimb(uint64_t dt) {
   if(npc.bodyStateMasked()!=BS_CLIMB){
     setAsClimb(false);
 
-    std::array<float,3> p={}, v={0,0,50};
+    Tempest::Vec3 p={}, v={0,0,50};
     auto pos = npc.position();
-    applyRotation(p,v.data());
-    pos[0]+=p[0];
-    pos[2]+=p[2];
+    applyRotation(p,v);
+    pos.x+=p.x;
+    pos.z+=p.z;
     if(npc.testMove(pos,v,0))
       npc.setPosition(pos);
     clearSpeed();
     return;
     }
-  std::array<float,3> v={};
+  Tempest::Vec3 v={};
   float k=1.5f;
 
   auto dp  = animMoveSpeed(dt);
   auto pos = npc.position();
-  pos[0]+=dp[0]*k;
+  pos.x+=dp.x*k;
   //pos[1]+=dp[1];
-  pos[2]+=dp[2]*k;
+  pos.z+=dp.z*k;
 
   if(npc.testMove(pos,v,0))
     npc.setPosition(pos);
 
   pos = npc.position();
-  pos[1]+=dp[1];
+  pos.y+=dp.y;
   if(npc.testMove(pos,v,0))
     npc.setPosition(pos);
 
@@ -231,17 +230,17 @@ void MoveAlgo::tickClimb(uint64_t dt) {
 void MoveAlgo::tickSwim(uint64_t dt) {
   auto  dp            = npcMoveSpeed(dt,MvFlags::NoFlag);
   auto  pos           = npc.position();
-  float pY            = pos[1];
+  float pY            = pos.y;
   float fallThreshold = stepHeight();
   auto  chest         = waterDepthChest();
 
   bool  valid  = false;
-  auto  ground = dropRay (pos[0]+dp[0], pos[1]+dp[1]+fallThreshold, pos[2]+dp[2], valid);
-  auto  water  = waterRay(pos[0]+dp[0], pos[1]+dp[1]-chest, pos[2]+dp[2]);
+  auto  ground = dropRay (pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z, valid);
+  auto  water  = waterRay(pos.x+dp.x, pos.y+dp.y-chest,         pos.z+dp.z);
 
   if(ground+chest>=water){
     setAsSwim(false);
-    tryMove(dp[0],ground-pY,dp[2]);
+    tryMove(dp.x,ground-pY,dp.z);
     return;
     }
 
@@ -251,7 +250,7 @@ void MoveAlgo::tickSwim(uint64_t dt) {
     }
 
   // swim on top of water
-  tryMove(dp[0],water-pY,dp[2]);
+  tryMove(dp.x,water-pY,dp.z);
   }
 
 void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
@@ -280,13 +279,13 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
 
   auto  dp            = npcMoveSpeed(dt,moveFlg);
   auto  pos           = npc.position();
-  float pY            = pos[1];
+  float pY            = pos.y;
   float fallThreshold = stepHeight();
 
   // moving NPC, by animation
   bool  valid   = false;
-  auto  ground  = dropRay (pos[0]+dp[0], pos[1]+dp[1]+fallThreshold, pos[2]+dp[2], valid);
-  auto  water   = waterRay(pos[0]+dp[0], pos[1]+dp[1], pos[2]+dp[2]);
+  auto  ground  = dropRay (pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z, valid);
+  auto  water   = waterRay(pos.x+dp.x, pos.y+dp.y,               pos.z+dp.z);
   float dY      = pY-ground;
   bool  onGound = true;
 
@@ -308,34 +307,32 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
 
   if(-fallThreshold<dY && npc.isFlyAnim()) {
     // jump animation
-    tryMove(dp[0],dp[1],dp[2]);
-    fallSpeed[0] += dp[0];
-    fallSpeed[1] += dp[1];
-    fallSpeed[2] += dp[2];
-    fallCount    += float(dt);
+    tryMove(dp.x,dp.y,dp.z);
+    fallSpeed += dp;
+    fallCount += float(dt);
     setInAir  (true);
     setAsSlide(false);
     }
   else if(0.f<=dY && dY<fallThreshold) {
-    if(onGound && testSlide(pos[0]+dp[0], pos[1]+dp[1]+fallThreshold, pos[2]+dp[2])) {
-      tryMove(dp[0],-dY,dp[2]);
+    if(onGound && testSlide(pos.x+dp.x, pos.x+dp.y+fallThreshold, pos.z+dp.z)) {
+      tryMove(dp.x,-dY,dp.z);
       setAsSlide(true);
       return;
       }
     // move down the ramp
-    if(!tryMove(dp[0],-dY,dp[2])){
-      if(!tryMove(dp[0],dp[1],dp[2]))
+    if(!tryMove(dp.x,-dY,dp.z)){
+      if(!tryMove(dp.x,dp.y,dp.z))
         onMoveFailed();
       }
     setInAir  (false);
     setAsSlide(false);
     }
   else if(-fallThreshold<dY && dY<0.f) {
-    if(onGound && testSlide(pos[0]+dp[0], pos[1]+dp[1]+fallThreshold, pos[2]+dp[2])) {
+    if(onGound && testSlide(pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z)) {
       return;
       }
     // move up the ramp
-    if(!tryMove(dp[0],-dY,dp[2]))
+    if(!tryMove(dp.x,-dY,dp.z))
       onMoveFailed();
     setInAir  (false);
     setAsSlide(false);
@@ -346,57 +343,57 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
        (dY<300.f && !npc.isPlayer()) ||
        isSlide()) {
       // start to fall of cliff
-      if(tryMove(dp[0],dp[1],dp[2])){
-        fallSpeed[0] = 0.3f*dp[0];
-        fallSpeed[1] = 0.f;
-        fallSpeed[2] = 0.3f*dp[2];
+      if(tryMove(dp.x,dp.y,dp.z)){
+        fallSpeed.x = 0.3f*dp.x;
+        fallSpeed.y = 0.f;
+        fallSpeed.z = 0.3f*dp.z;
         fallCount    = float(dt);
         setInAir  (true);
         setAsSlide(false);
         } else {
-        tryMove(dp[0],0,dp[2]);
+        tryMove(dp.x,0,dp.z);
         }
       }
     }
   }
 
 void MoveAlgo::clearSpeed() {
-  fallSpeed[0]=0;
-  fallSpeed[1]=0;
-  fallSpeed[2]=0;
+  fallSpeed.x = 0;
+  fallSpeed.y = 0;
+  fallSpeed.z = 0;
   fallCount   =-1.f;
   }
 
 void MoveAlgo::accessDamFly(float dx, float dz) {
   if(flags==0) {
     float len = std::sqrt(dx*dx+dz*dz);
-    fallSpeed[0]=gravity*dx/len;
-    fallSpeed[1]=0.4f*gravity;
-    fallSpeed[2]=gravity*dz/len;
+    fallSpeed.x = gravity*dx/len;
+    fallSpeed.y = 0.4f*gravity;
+    fallSpeed.z = gravity*dz/len;
     fallCount   =-1.f;
     setInAir(true);
     }
   }
 
-void MoveAlgo::applyRotation(std::array<float,3> &out, float* dpos) const {
+void MoveAlgo::applyRotation(Tempest::Vec3& out, const Tempest::Vec3& dpos) const {
   float rot = npc.rotationRad();
   float s   = std::sin(rot), c = std::cos(rot);
-  out[0] = -mulSpeed*(dpos[0]*c-dpos[2]*s);
-  out[2] = -mulSpeed*(dpos[0]*s+dpos[2]*c);
-  out[1] = dpos[1];
+  out.x = -mulSpeed*(dpos.x*c-dpos.z*s);
+  out.z = -mulSpeed*(dpos.x*s+dpos.z*c);
+  out.y = dpos.y;
   }
 
-std::array<float,3> MoveAlgo::animMoveSpeed(uint64_t dt) const {
+Tempest::Vec3 MoveAlgo::animMoveSpeed(uint64_t dt) const {
   auto dp = npc.animMoveSpeed(dt);
-  std::array<float,3> ret;
-  applyRotation(ret,dp.v);
+  Tempest::Vec3 ret, d={dp.x,dp.y,dp.z};
+  applyRotation(ret,d);
   return ret;
   }
 
-std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt,MvFlags moveFlg) {
-  std::array<float,3> dp = animMoveSpeed(dt);
+Tempest::Vec3 MoveAlgo::npcMoveSpeed(uint64_t dt,MvFlags moveFlg) {
+  Tempest::Vec3 dp = animMoveSpeed(dt);
   if(!npc.isJumpAnim())
-    dp[1] = 0.f;
+    dp.y = 0.f;
 
   if(moveFlg&FaiMove) {
     if(npc.currentTarget!=nullptr && !npc.isPlayer() && !npc.currentTarget->isDown()) {
@@ -415,32 +412,32 @@ std::array<float,3> MoveAlgo::npcMoveSpeed(uint64_t dt,MvFlags moveFlg) {
   return dp;
   }
 
-std::array<float,3> MoveAlgo::go2NpcMoveSpeed(const std::array<float,3>& dp,const Npc& tg) {
-  return go2WpMoveSpeed(dp,tg.position()[0],tg.position()[2]);
+Tempest::Vec3 MoveAlgo::go2NpcMoveSpeed(const Tempest::Vec3& dp,const Npc& tg) {
+  return go2WpMoveSpeed(dp,tg.position().x,tg.position().z);
   }
 
-std::array<float,3> MoveAlgo::go2WpMoveSpeed(std::array<float,3> dp, float x, float z) {
-  float dx   = x-npc.position()[0];
-  float dz   = z-npc.position()[2];
+Tempest::Vec3 MoveAlgo::go2WpMoveSpeed(Tempest::Vec3 dp, float x, float z) {
+  float dx   = x-npc.position().x;
+  float dz   = z-npc.position().z;
   float qLen = (dx*dx+dz*dz);
 
-  const float qSpeed = dp[0]*dp[0]+dp[2]*dp[2];
+  const float qSpeed = dp.x*dp.x+dp.z*dp.z;
   if(qSpeed>0.01f){
     float k = std::sqrt(std::min(qLen,qSpeed)/qSpeed);
-    dp[0]*=k;
-    dp[2]*=k;
+    dp.x*=k;
+    dp.z*=k;
     }
   return dp;
   }
 
 bool MoveAlgo::testClimp(float scale) const {
   float len=100;
-  std::array<float,3> ret = {}, orig = {0,0,len*scale}, v={};
-  applyRotation(ret,orig.data());
+  Tempest::Vec3 ret = {}, orig = {0,0,len*scale}, v={};
+  applyRotation(ret,orig);
 
-  ret[0]+=npc.x;
-  ret[1]+=npc.y + 150;//npc.translateY();
-  ret[2]+=npc.z;
+  ret.x+=npc.x;
+  ret.y+=npc.y + 150;//npc.translateY();
+  ret.z+=npc.z;
 
   return npc.testMove(ret,v,0.f);
   }
@@ -454,7 +451,7 @@ bool MoveAlgo::testSlide(float x,float y,float z) const {
   const float slideBegin = slideAngle();
   const float slideEnd   = slideAngle2();
 
-  if(!(slideEnd<norm[1] && norm[1]<slideBegin)) {
+  if(!(slideEnd<norm.y && norm.y<slideBegin)) {
     return false;
     }
   return true;
@@ -501,7 +498,7 @@ void MoveAlgo::takeFallDamage() const {
   auto  gl = npc.guild();
   auto& g  = npc.world().script().guildVal();
 
-  float speed       = fallSpeed[1];
+  float speed       = fallSpeed.y;
   float fallTime    = speed/gravity;
   float height      = 0.5f*std::abs(gravity)*fallTime*fallTime;
   float h0          = float(g.falldown_height[gl]);
@@ -523,8 +520,8 @@ void MoveAlgo::takeFallDamage() const {
   npc.changeAttribute(Npc::ATR_HITPOINTS,-damage,false);
   }
 
-bool MoveAlgo::isClose(const std::array<float,3> &w, const WayPoint &p) {
-  return isClose(w[0],w[1],w[2],p);
+bool MoveAlgo::isClose(const Tempest::Vec3& w, const WayPoint &p) {
+  return isClose(w.x,w.y,w.z,p);
   }
 
 bool MoveAlgo::isClose(float x, float y, float z, const WayPoint &p) {
@@ -541,7 +538,7 @@ bool MoveAlgo::aiGoTo(const WayPoint *p,float destDist) {
     return false;
 
   // use smaller threshold, to avoid edge-looping in script
-  if(isClose(npc.position()[0],npc.position()[1],npc.position()[2],*p,destDist))
+  if(isClose(npc.position().x,npc.position().y,npc.position().z,*p,destDist))
     return false;
 
   npc.go2.set(p);
@@ -579,9 +576,9 @@ bool MoveAlgo::startClimb(JumpCode ani) {
   if(jmp==JM_Up){
     setAsJumpup(true);
     setInAir(true);
-    fallSpeed[0]=0.f;
-    fallSpeed[1]=0.55f*gravity;
-    fallSpeed[2]=0.f;
+    fallSpeed.x=0.f;
+    fallSpeed.y=0.55f*gravity;
+    fallSpeed.z=0.f;
     fallCount   =1000.f;
     }
   else if(jmp==JM_UpMid){
@@ -664,7 +661,7 @@ void MoveAlgo::setAsSwim(bool f) {
   }
 
 bool MoveAlgo::slideDir() const {
-  float a = std::atan2(fallSpeed[0],fallSpeed[2])+float(M_PI/2);
+  float a = std::atan2(fallSpeed.x,fallSpeed.z)+float(M_PI/2);
   float b = npc.rotationRad();
 
   auto s = std::sin(a-b);
@@ -712,7 +709,7 @@ float MoveAlgo::waterRay(float x, float y, float z) const {
   return cache.wdepth;
   }
 
-std::array<float,3> MoveAlgo::normalRay(float x, float y, float z) const {
+Tempest::Vec3 MoveAlgo::normalRay(float x, float y, float z) const {
   if(std::fabs(cache.nx-x)>eps || std::fabs(cache.ny-y)>eps || std::fabs(cache.nz-z)>eps){
     cache.nx   = x;
     cache.ny   = y;
@@ -738,16 +735,16 @@ uint8_t MoveAlgo::groundMaterial() const {
     return ZenLoad::MaterialGroup::WATER;
 
   //make cache happy by addup fallThreshold
-  const std::array<float,3> &p = npc.position();
-  return groundMaterial(p[0],p[1]+stp,p[2]);
+  const Tempest::Vec3 &p = npc.position();
+  return groundMaterial(p.x,p.y+stp,p.z);
   }
 
-std::array<float,3> MoveAlgo::groundNormal() const {
+Tempest::Vec3 MoveAlgo::groundNormal() const {
   const float stp = stepHeight();
 
   //make cache happy by addup fallThreshold
-  const std::array<float,3> &p = npc.position();
-  return normalRay(p[0],p[1]+stp,p[2]);
+  const Tempest::Vec3 &p = npc.position();
+  return normalRay(p.x,p.y+stp,p.z);
   }
 
 const char* MoveAlgo::portalName() {

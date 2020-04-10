@@ -222,10 +222,10 @@ void PlayerControl::marvinF8() {
   float rot = pl.rotationRad();
   float s   = std::sin(rot), c = std::cos(rot);
 
-  pos[1]+=50;
+  pos.y+=50;
 
-  pos[0]+=60*s;
-  pos[2]+=-60*c;
+  pos.x+=60*s;
+  pos.z+=-60*c;
 
   pl.changeAttribute(Npc::ATR_HITPOINTS,pl.attribute(Npc::ATR_HITPOINTSMAX),false);
   pl.clearState(false);
@@ -382,8 +382,8 @@ void PlayerControl::implMove(uint64_t dt) {
   if((ws==WeaponState::Bow || ws==WeaponState::CBow) && pl.hasAmunition()) {
     if(actrl[ActGeneric] || actrl[ActForward]) {
       if(auto other = pl.target()) {
-        float dx = other->position()[0]-pl.position()[0];
-        float dz = other->position()[2]-pl.position()[2];
+        float dx = other->position().x-pl.position().x;
+        float dz = other->position().z-pl.position().z;
         pl.lookAt(dx,dz,false,dt);
         pl.aimBow();
         } else {
@@ -470,8 +470,8 @@ void PlayerControl::implMove(uint64_t dt) {
       if(pl.weaponState()==WeaponState::NoWeapon || other->isDown() || pl.isFinishingMove()){
         pl.setOther(nullptr);
         } else {
-        float dx = other->position()[0]-pl.position()[0];
-        float dz = other->position()[2]-pl.position()[2];
+        float dx = other->position().x-pl.position().x;
+        float dz = other->position().z-pl.position().z;
         pl.lookAt(dx,dz,false,dt);
         rot = pl.rotation();
         }

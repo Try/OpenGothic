@@ -17,14 +17,14 @@ Focus::operator bool() const {
   return interactive || npc || item;
   }
 
-std::array<float,3> Focus::displayPosition() const {
+Tempest::Vec3 Focus::displayPosition() const {
   if(interactive)
     return interactive->displayPosition();
   if(npc)
     return npc->displayPosition();
   if(item)
     return item->position();
-  return {{}};
+  return {};
   }
 
 const char *Focus::displayName() const {

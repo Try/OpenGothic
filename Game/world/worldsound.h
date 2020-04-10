@@ -4,6 +4,8 @@
 
 #include <Tempest/SoundDevice>
 #include <Tempest/SoundEffect>
+#include <Tempest/Point>
+
 #include <zenload/zTypes.h>
 #include <mutex>
 
@@ -27,11 +29,11 @@ class WorldSound final {
     void emitSoundRaw(const char *s, float x, float y, float z, float range, bool freeSlot);
     void emitDlgSound(const char *s, float x, float y, float z, float range, uint64_t &timeLen);
     void takeSoundSlot(GSoundEffect &&eff);
-    void aiOutput(const std::array<float,3> &pos, const std::string& outputname);
+    void aiOutput(const Tempest::Vec3& pos, const std::string& outputname);
 
     void tick(Npc& player);
     void tickSlot(GSoundEffect &slot);
-    bool isInListenerRange(const std::array<float,3> &pos) const;
+    bool isInListenerRange(const Tempest::Vec3& pos) const;
 
     static const float talkRange;
 
@@ -62,8 +64,6 @@ class WorldSound final {
     void tickSoundZone(Npc& player);
     bool setMusic(const char* zone, GameMusic::Tags tags);
 
-    static float qDist(const std::array<float,3>& a,const std::array<float,3>& b);
-
     Gothic&                                 gothic;
     GameSession&                            game;
     World&                                  owner;
@@ -74,7 +74,7 @@ class WorldSound final {
     Zone*                                   currentZone = nullptr;
     GameMusic::Tags                         currentTags = GameMusic::Tags::Std;
 
-    std::array<float,3>                     plPos;
+    Tempest::Vec3                           plPos;
 
     std::unordered_map<std::string,GSoundEffect> freeSlot;
     std::vector<GSoundEffect>               effect;

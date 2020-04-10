@@ -223,19 +223,17 @@ Npc *World::findNpcByInstance(size_t instance) {
   return wobj.findNpcByInstance(instance);
   }
 
-const std::string& World::roomAt(const std::array<float,3> &arr) {
+const std::string& World::roomAt(const Tempest::Vec3& p) {
   static std::string empty;
 
   if(bsp.nodes.empty())
     return empty;
 
-  const float x=arr[0], y=arr[1], z=arr[2];
-
   const ZenLoad::zCBspNode* node=&bsp.nodes[0];
 
   while(true) {
     const float* v    = node->plane.v;
-    float        sgn  = v[0]*x + v[1]*y + v[2]*z - v[3];
+    float        sgn  = v[0]*p.x + v[1]*p.y + v[2]*p.z - v[3];
     uint32_t     next = (sgn>0) ? node->front : node->back;
     if(next>=bsp.nodes.size())
       break;
@@ -243,9 +241,9 @@ const std::string& World::roomAt(const std::array<float,3> &arr) {
     node = &bsp.nodes[next];
     }
 
-  if(node->bbox3dMin.x <= x && x <node->bbox3dMax.x &&
-     node->bbox3dMin.y <= y && y <node->bbox3dMax.y &&
-     node->bbox3dMin.z <= z && z <node->bbox3dMax.z) {
+  if(node->bbox3dMin.x <= p.x && p.x <node->bbox3dMax.x &&
+     node->bbox3dMin.y <= p.y && p.y <node->bbox3dMax.y &&
+     node->bbox3dMin.z <= p.z && p.z <node->bbox3dMax.z) {
     return roomAt(*node);
     }
 
@@ -510,18 +508,16 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
   float dx  = 1.f, dy = 0.f, dz = 0.f;
   auto  pos = npc.position();
   auto  bn  = npc.mapWeaponBone();
-  pos[0]+=bn[0];
-  pos[1]+=bn[1];
-  pos[2]+=bn[2];
+  pos+=bn;
 
   if(target!=nullptr) {
     auto  tgPos = target->position();
     float y1    = target->centerY();
-    float y0    = pos[1];
+    float y0    = pos.y;
 
-    dx = tgPos[0]-pos[0];
+    dx = tgPos.x-pos.x;
     dy = y1-y0;
-    dz = tgPos[2]-pos[2];
+    dz = tgPos.z-pos.z;
     } else {
     float a = npc.rotationRad()-float(M_PI/2);
     float c = std::cos(a), s = std::sin(a);
@@ -534,7 +530,7 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
   if(vfx!=nullptr)
     vfx->emitSound(*this,pos,SpellFxKey::Cast);
 
-  auto& b = wobj.shootBullet(itm, pos[0],pos[1],pos[2], dx,dy,dz, DynamicWorld::spellSpeed);
+  auto& b = wobj.shootBullet(itm, pos.x,pos.y,pos.z, dx,dy,dz, DynamicWorld::spellSpeed);
   return b;
   }
 
@@ -542,18 +538,16 @@ Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target) {
   float dx  = 1.f, dy = 0.f, dz = 0.f;
   auto  pos = npc.position();
   auto  bn  = npc.mapWeaponBone();
-  pos[0]+=bn[0];
-  pos[1]+=bn[1];
-  pos[2]+=bn[2];
+  pos+=bn;
 
   if(target!=nullptr) {
     auto  tgPos = target->position();
     float y1    = target->centerY();
-    float y0    = pos[1];
+    float y0    = pos.y;
 
-    dx = tgPos[0]-pos[0];
+    dx = tgPos.x-pos.x;
     dy = y1-y0;
-    dz = tgPos[2]-pos[2];
+    dz = tgPos.z-pos.z;
 
     float lxz   = std::sqrt(dx*dx+0*0+dz*dz);
     float speed = DynamicWorld::bulletSpeed;
@@ -569,7 +563,7 @@ Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target) {
     dz = s;
     }
 
-  return wobj.shootBullet(itm, pos[0],pos[1],pos[2], dx,dy,dz, DynamicWorld::bulletSpeed);
+  return wobj.shootBullet(itm, pos.x,pos.y,pos.z, dx,dy,dz, DynamicWorld::bulletSpeed);
   }
 
 void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {
@@ -627,7 +621,8 @@ void World::emitWeaponsSound(Npc &self, Npc &other) {
   if(self.isMonster() || self.inventory().activeWeapon()==nullptr)
     std::snprintf(buf,sizeof(buf),"CS_MAM_%s_%s",selfMt,othMt); else
     std::snprintf(buf,sizeof(buf),"CS_IAM_%s_%s",selfMt,othMt);
-  wsound.emitSound(buf, 0.5f*(p0[0]+p1[0]), 0.5f*(p0[1]+p1[1]), 0.5f*(p0[2]+p1[2]),2500.f,false);
+  auto mid = (p0+p1)*0.5f;
+  wsound.emitSound(buf, mid.x, mid.y, mid.z,2500.f,false);
   }
 
 void World::emitLandHitSound(float x,float y,float z,uint8_t m0, uint8_t m1) {
@@ -680,10 +675,11 @@ void World::emitBlockSound(Npc &self, Npc &other) {
 
   char buf[128]={};
   std::snprintf(buf,sizeof(buf),"CS_IAI_%s_%s",selfMt,othMt);
-  wsound.emitSound(buf, 0.5f*(p0[0]+p1[0]), 0.5f*(p0[1]+p1[1]), 0.5f*(p0[2]+p1[2]),2500.f,false);
+  auto mid = (p0+p1)*0.5f;
+  wsound.emitSound(buf, mid.x, mid.y, mid.z,2500.f,false);
   }
 
-bool World::isInListenerRange(const std::array<float,3> &pos) const {
+bool World::isInListenerRange(const Vec3& pos) const {
   return wsound.isInListenerRange(pos);
   }
 
@@ -711,8 +707,8 @@ const WayPoint *World::findPoint(const char *name) const {
   return wmatrix->findPoint(name);
   }
 
-const WayPoint* World::findWayPoint(const std::array<float,3> &pos) const {
-  return findWayPoint(pos[0],pos[1],pos[2]);
+const WayPoint* World::findWayPoint(const Tempest::Vec3& pos) const {
+  return findWayPoint(pos.x,pos.y,pos.z);
   }
 
 const WayPoint* World::findWayPoint(float x, float y, float z) const {
@@ -726,12 +722,12 @@ const WayPoint *World::findFreePoint(const Npc &npc, const char *name) const {
       }
     }
   auto pos = npc.position();
-  pos[1]+=npc.translateY();
+  pos.y+=npc.translateY();
   return findFreePoint(pos,name);
   }
 
-const WayPoint *World::findFreePoint(const std::array<float,3> &pos,const char* name) const {
-  return findFreePoint(pos[0],pos[1],pos[2],name);
+const WayPoint *World::findFreePoint(const Tempest::Vec3& pos,const char* name) const {
+  return findFreePoint(pos.x,pos.y,pos.z,name);
   }
 
 const WayPoint *World::findFreePoint(float x, float y, float z, const char *name) const {
@@ -740,8 +736,8 @@ const WayPoint *World::findFreePoint(float x, float y, float z, const char *name
 
 const WayPoint *World::findNextFreePoint(const Npc &npc, const char *name) const {
   auto pos = npc.position();
-  pos[1]+=npc.translateY();
-  return wmatrix->findNextFreePoint(pos[0],pos[1],pos[2],name,npc.currentWayPoint());
+  pos.y+=npc.translateY();
+  return wmatrix->findNextFreePoint(pos.x,pos.y,pos.z,name,npc.currentWayPoint());
   }
 
 const WayPoint *World::findNextPoint(const WayPoint &pos) const {
@@ -752,8 +748,8 @@ void World::detectNpcNear(std::function<void (Npc &)> f) {
   wobj.detectNpcNear(f);
   }
 
-void World::detectNpc(const std::array<float,3> p, const float r, std::function<void (Npc &)> f) {
-  wobj.detectNpc(p[0],p[1],p[2],r,f);
+void World::detectNpc(const Tempest::Vec3& p, const float r, std::function<void (Npc &)> f) {
+  wobj.detectNpc(p.x,p.y,p.z,r,f);
   }
 
 void World::detectNpc(const float x, const float y, const float z, const float r, std::function<void(Npc&)> f) {
@@ -766,7 +762,7 @@ WayPath World::wayTo(const Npc &pos, const WayPoint &end) const {
   if(point && !point->isFreePoint() && MoveAlgo::isClose(pos.position(),*point)){
     return wmatrix->wayTo(*point,end);
     }
-  return wmatrix->wayTo(p[0],p[1],p[2],end);
+  return wmatrix->wayTo(p.x,p.y,p.z,end);
   }
 
 WayPath World::wayTo(float npcX, float npcY, float npcZ, const WayPoint &end) const {
@@ -794,7 +790,7 @@ void World::assignRoomToGuild(const char* r, int32_t guildId) {
   Log::d("room not found: ",room);
   }
 
-int32_t World::guildOfRoom(const std::array<float,3> &pos) {
+int32_t World::guildOfRoom(const Tempest::Vec3& pos) {
   const std::string& tg = roomAt(pos);
   if(auto room=portalAt(tg)) {
     if(room->guild==GIL_PUBLIC) //FIXME: proper portal implementation

@@ -1,15 +1,16 @@
 #pragma once
 
+#include <Tempest/Point>
 #include <cstdint>
 
 class Npc;
 
 class PerceptionMsg final {
   public:
-    int32_t what=0;
-    float   x=0,y=0,z=0;
-    Npc*    self  =nullptr;
-    Npc*    other =nullptr;
-    Npc*    victum=nullptr;
-    size_t  item  =size_t(-1);
+    int32_t       what=0;
+    Tempest::Vec3 pos;
+    Npc*          self  =nullptr;
+    Npc*          other =nullptr;
+    Npc*          victum=nullptr;
+    size_t        item  =size_t(-1);
   };

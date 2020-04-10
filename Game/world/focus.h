@@ -1,6 +1,6 @@
 #pragma once
 
-#include <array>
+#include <Tempest/Point>
 
 class Interactive;
 class Npc;
@@ -14,7 +14,7 @@ class Focus final {
     Focus(Item& i);
 
     operator bool() const;
-    std::array<float,3> displayPosition() const;
+    Tempest::Vec3       displayPosition() const;
     const char*         displayName() const;
 
     Interactive* interactive=nullptr;

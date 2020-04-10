@@ -283,15 +283,15 @@ bool Interactive::overrideFocus() const {
   return focOver;
   }
 
-std::array<float,3> Interactive::position() const {
+Tempest::Vec3 Interactive::position() const {
   float x=0,y=0,z=0;
   pos.project(x,y,z);
   return {x,y,z};
   }
 
-std::array<float,3> Interactive::displayPosition() const {
+Tempest::Vec3 Interactive::displayPosition() const {
   auto p = position();
-  return {p[0],bbox[1].y,p[2]};
+  return {p.x,bbox[1].y,p.z};
   }
 
 const char *Interactive::displayName() const {
@@ -477,7 +477,7 @@ bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
   float x=0, y=0, z=0;
   mat.project(x,y,z);
 
-  std::array<float,3> mv = {x,y-npc.translateY(),z}, fallback={};
+  Tempest::Vec3 mv = {x,y-npc.translateY(),z}, fallback={};
   if(!npc.testMove(mv,fallback,0)) {
     // FIXME: switches on stone-arks
     // return false;
@@ -544,7 +544,7 @@ bool Interactive::dettach(Npc &npc, bool quick) {
   return true;
   }
 
-void Interactive::setPos(Npc &npc,std::array<float,3> pos) {
+void Interactive::setPos(Npc &npc,const Tempest::Vec3& pos) {
   npc.setPosition(pos);
   }
 
@@ -572,8 +572,8 @@ Tempest::Matrix4x4 Interactive::nodeTranform(const Npc &npc, const Pos& p) const
     float nodeZ = npos.at(3,2);
     float dist  = std::sqrt(nodeX*nodeX + nodeZ*nodeZ);
 
-    float npcX  = npc.position()[0] - pos.at(3,0);
-    float npcZ  = npc.position()[2] - pos.at(3,2);
+    float npcX  = npc.position().x - pos.at(3,0);
+    float npcZ  = npc.position().z - pos.at(3,2);
     float npcA  = 180.f*std::atan2(npcZ,npcX)/float(M_PI);
 
     npos.identity();

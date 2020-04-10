@@ -45,8 +45,8 @@ class MdlVisual final {
 
     const Pose&                    pose() const { return *skInst; }
     void                           updateAnimation(Npc &owner, int comb);
-    auto                           mapBone(const char* b) const -> std::array<float,3>;
-    auto                           mapWeaponBone() const -> std::array<float,3>;
+    auto                           mapBone(const char* b) const -> Tempest::Vec3;
+    auto                           mapWeaponBone() const -> Tempest::Vec3;
 
     bool                           isStanding() const;
     bool                           isItem() const;
@@ -65,7 +65,7 @@ class MdlVisual final {
     void                           setRotation(Npc &npc, int dir);
     void                           interrupt();
     WeaponState                    fightMode() const { return fgtMode; }
-    std::array<float,3>            displayPosition() const;
+    Tempest::Vec3                  displayPosition() const;
     const Tempest::Matrix4x4&      position() const { return pos; }
 
     const Animation::Sequence*     continueCombo(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk);

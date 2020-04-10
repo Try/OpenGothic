@@ -89,8 +89,8 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
 
     if(document.showPlayer && cursor!=nullptr && pl!=nullptr) {
       auto  pos = pl->position();
-      float wx  = (pos[0]-float(document.wbounds.x))/float(document.wbounds.w);
-      float wy  = (pos[2]-float(document.wbounds.y))/float(document.wbounds.h);
+      float wx  = (pos.x-float(document.wbounds.x))/float(document.wbounds.w);
+      float wy  = (pos.z-float(document.wbounds.y))/float(document.wbounds.h);
 
       p.setBrush(*cursor);
       int cx = x+int(wx*float(w));

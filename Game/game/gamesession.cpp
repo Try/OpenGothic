@@ -232,7 +232,7 @@ void GameSession::updateListenerPos(Npc &npc) {
   float rot = npc.rotationRad()+float(M_PI/2.0);
   float s   = std::sin(rot);
   float c   = std::cos(rot);
-  sound.setListenerPosition(plPos[0],plPos[1]+180/*head pos*/,plPos[2]);
+  sound.setListenerPosition(plPos.x,plPos.y+180/*head pos*/,plPos.z);
   sound.setListenerDirection(c,0,s, 0,1,0);
   }
 

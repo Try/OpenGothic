@@ -231,7 +231,7 @@ void MdlVisual::updateAnimation(Npc& npc,int comb) {
   view.setSkeleton(pose,pos);
   }
 
-std::array<float,3> MdlVisual::mapBone(const char* b) const {
+Vec3 MdlVisual::mapBone(const char* b) const {
   Pose&  pose = *skInst;
   size_t id   = skeleton->findNode(b);
   if(id==size_t(-1))
@@ -245,7 +245,7 @@ std::array<float,3> MdlVisual::mapBone(const char* b) const {
           mat.at(3,2) - pos.at(3,2)};
   }
 
-std::array<float,3> MdlVisual::mapWeaponBone() const {
+Vec3 MdlVisual::mapWeaponBone() const {
   if(fgtMode==WeaponState::Bow || fgtMode==WeaponState::CBow)
     return mapBone(ammunition.attachPoint());
   if(fgtMode==WeaponState::Mage)
@@ -427,7 +427,7 @@ void MdlVisual::interrupt() {
   skInst->interrupt();
   }
 
-std::array<float,3> MdlVisual::displayPosition() const {
+Tempest::Vec3 MdlVisual::displayPosition() const {
   if(skeleton!=nullptr)
     return {0,skeleton->colisionHeight()*1.5f,0};
   return {0.f,0.f,0.f};

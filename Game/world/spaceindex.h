@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <memory>
+#include <Tempest/Point>
 
 #include "utils/workers.h"
 
@@ -50,8 +51,8 @@ class SpaceIndex final {
       }
 
     template<class Func>
-    void find(const std::array<float,3>& p,float R,const Func& f) {
-      return find(p[0],p[1],p[2],R,f);
+    void find(const Tempest::Vec3& p,float R,const Func& f) {
+      return find(p.x,p.y,p.z,R,f);
       }
 
     template<class Func>
@@ -98,15 +99,11 @@ class SpaceIndex final {
 
     template<class U>
     static float X(const U* t) {
-      return t->position()[0];
+      return t->position().x;
       }
 
     template<class U>
     static float qDist(float x,float y,float z,const U* t) {
-      x -= t->position()[0];
-      y -= t->position()[1];
-      z -= t->position()[2];
-
-      return x*x + y*y + z*z;
+      return (Tempest::Vec3(x,y,z)-t->position()).quadLength();
       }
   };

@@ -1996,7 +1996,7 @@ void GameScript::npc_getheighttonpc(Daedalus::DaedalusVM &vm) {
   auto  b   = popInstance(vm);
   float ret = 0;
   if(a!=nullptr && b!=nullptr)
-    ret = std::abs(a->position()[1] - b->position()[1]);
+    ret = std::abs(a->position().y - b->position().y);
   vm.setReturn(int32_t(ret));
   }
 

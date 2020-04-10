@@ -77,10 +77,10 @@ class DynamicWorld final {
 
         float centerY() const;
 
-        bool  testMove(const std::array<float,3>& pos);
-        bool  testMove(const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
-        bool  tryMoveN(const std::array<float,3>& pos, std::array<float,3> &norm);
-        bool  tryMove (const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
+        bool  testMove(const Tempest::Vec3& pos);
+        bool  testMove(const Tempest::Vec3& pos, Tempest::Vec3& fallback, float speed);
+        bool  tryMoveN(const Tempest::Vec3& pos, Tempest::Vec3& norm);
+        bool  tryMove (const Tempest::Vec3& pos, Tempest::Vec3& fallback, float speed);
 
         bool  hasCollision() const;
         float radius() const { return r; }
@@ -116,16 +116,16 @@ class DynamicWorld final {
       };
 
     struct RayResult final {
-      std::array<float,3> v={};
-      std::array<float,3> n={};
+      Tempest::Vec3       v={};
+      Tempest::Vec3       n={};
       uint8_t             mat    = 0;
       Category            colCat = C_Null;
       bool                hasCol = 0;
       const char*         sector = nullptr;
 
-      float               x() const { return v[0]; }
-      float               y() const { return v[1]; }
-      float               z() const { return v[2]; }
+      float               x() const { return v.x; }
+      float               y() const { return v.y; }
+      float               z() const { return v.z; }
       };
 
     struct BulletCallback {
@@ -150,8 +150,8 @@ class DynamicWorld final {
         void  addPathLen(float v);
 
         float               speed()     const { return dirL; }
-        std::array<float,3> position()  const { return pos; }
-        std::array<float,3> direction() const { return dir; }
+        Tempest::Vec3       position()  const { return pos; }
+        Tempest::Vec3       direction() const { return dir; }
         Tempest::Matrix4x4  matrix()    const;
         bool                isSpell()   const { return spl!=std::numeric_limits<int>::max(); }
         int                 spellId()   const { return spl; }
@@ -160,10 +160,10 @@ class DynamicWorld final {
         DynamicWorld*       owner = nullptr;
         BulletCallback*     cb    = nullptr;
 
-        std::array<float,3> pos={};
-        std::array<float,3> lastPos={};
+        Tempest::Vec3       pos={};
+        Tempest::Vec3       lastPos={};
 
-        std::array<float,3> dir={};
+        Tempest::Vec3       dir={};
         float               dirL=0.f;
         float               totalL=0.f;
         int                 spl=std::numeric_limits<int>::max();
@@ -177,7 +177,7 @@ class DynamicWorld final {
     RayResult   ray          (float x0, float y0, float z0, float x1, float y1, float z1) const;
     float       soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const;
 
-    std::array<float,3> landNormal(float x, float y, float z) const;
+    Tempest::Vec3 landNormal(float x, float y, float z) const;
 
     Item        ghostObj (const ZMath::float3& min,const ZMath::float3& max);
     StaticItem  staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
@@ -196,7 +196,7 @@ class DynamicWorld final {
 
     void       moveBullet(BulletBody& b, float dx, float dy, float dz, uint64_t dt);
     RayResult  implWaterRay (float x0, float y0, float z0, float x1, float y1, float z1) const;
-    bool       hasCollision(const Item &it,std::array<float,3>& normal);
+    bool       hasCollision(const Item &it, Tempest::Vec3& normal);
 
     template<class RayResultCallback>
     void       rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, RayResultCallback& resultCallback) const;

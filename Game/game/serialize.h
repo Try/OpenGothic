@@ -4,6 +4,7 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/IDevice>
 #include <Tempest/ODevice>
+#include <Tempest/Point>
 
 #include <stdexcept>
 #include <vector>
@@ -25,7 +26,7 @@ class Serialize final {
   public:
     enum {
       MinVersion = 0,
-      Version    = 6
+      Version    = 7
       };
 
     Serialize(Tempest::ODevice& fout);
@@ -138,6 +139,12 @@ class Serialize final {
     void read (std::string (&s)[sz]) { readArr(s); }
 
     template<size_t sz>
+    void write(const uint8_t (&s)[sz]) { writeBytes(s,sz); }
+
+    template<size_t sz>
+    void read (uint8_t (&s)[sz]) { readBytes(s,sz); }
+
+    template<size_t sz>
     void write(const int32_t (&s)[sz]) { writeArr(s); }
 
     template<size_t sz>
@@ -155,15 +162,17 @@ class Serialize final {
     template<size_t sz>
     void read (float (&s)[sz]) { readArr(s); }
 
+    void write(const Tempest::Vec3& s) { writeBytes(&s,sizeof(s)); }
+    void read (Tempest::Vec3& s)       { readBytes (&s,sizeof(s)); }
 
     template<size_t sz>
     void write(const std::array<float,sz>& v) {
-      writeBytes(&v[0],sz);
+      writeBytes(&v[0],sz*sizeof(float));
       }
 
     template<size_t sz>
     void read (std::array<float,sz>& v) {
-      readBytes(&v[0],sz);
+      readBytes(&v[0],sz*sizeof(float));
       }
 
   private:

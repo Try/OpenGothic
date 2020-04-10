@@ -123,20 +123,18 @@ const Camera &DialogMenu::dialogCamera() {
     camera.reset();
     auto p0 = pl->position();
     auto p1 = other->position();
-    camera.setPosition(0.5f*(p0[0]+p1[0]),
-                       0.5f*(p0[1]+p1[1])+1.5f*pl->translateY(),
-                       0.5f*(p0[2]+p1[2]));
-    p0[0]-=p1[0];
-    p0[1]-=p1[1];
-    p0[2]-=p1[2];
+    camera.setPosition(0.5f*(p0.x+p1.x),
+                       0.5f*(p0.y+p1.y)+1.5f*pl->translateY(),
+                       0.5f*(p0.z+p1.z));
+    p0 -= p1;
 
     if(pl==other) {
       float a = pl->rotation()+45;
       camera.setDistance(200); //TODO: proper mobsi camera mode
       camera.setSpin(PointF(a,0));
       } else {
-      float l = std::sqrt(p0[0]*p0[0]+p0[1]*p0[1]+p0[2]*p0[2]);
-      float a = (std::atan2(p0[2],p0[0])/float(M_PI))*180.f;
+      float l = p0.manhattanLength();
+      float a = (std::atan2(p0.z,p0.x)/float(M_PI))*180.f;
       if(curentIsPl)
         a+=45; else
         a-=45;

@@ -5,6 +5,7 @@
 #include <limits>
 
 #include <zenload/zTypes.h>
+#include <Tempest/Point>
 
 class Npc;
 class World;
@@ -30,7 +31,7 @@ class MoveAlgo final {
       WaitMove = 1<<1,
       };
 
-    static bool isClose(const std::array<float,3>& w,const WayPoint& p);
+    static bool isClose(const Tempest::Vec3& w, const WayPoint& p);
     static bool isClose(float x,float y,float z,const WayPoint& p);
     static bool isClose(float x,float y,float z,const WayPoint& p,float dist);
 
@@ -58,7 +59,7 @@ class MoveAlgo final {
     bool    isSwim()    const;
 
     uint8_t groundMaterial() const;
-    auto    groundNormal() const -> std::array<float,3>;
+    auto    groundNormal() const -> Tempest::Vec3;
 
     auto    portalName() -> const char*;
 
@@ -91,11 +92,11 @@ class MoveAlgo final {
 
     bool    slideDir() const;
     void    onMoveFailed();
-    void    applyRotation(std::array<float,3> &out, float *in) const;
-    auto    animMoveSpeed(uint64_t dt) const -> std::array<float,3>;
-    auto    npcMoveSpeed (uint64_t dt, MvFlags moveFlg) -> std::array<float,3>;
-    auto    go2NpcMoveSpeed (const std::array<float,3> &dp, const Npc &tg) -> std::array<float,3>;
-    auto    go2WpMoveSpeed  (std::array<float,3> dp, float x, float z) -> std::array<float,3>;
+    void    applyRotation(Tempest::Vec3& out, const Tempest::Vec3& in) const;
+    auto    animMoveSpeed(uint64_t dt) const -> Tempest::Vec3;
+    auto    npcMoveSpeed (uint64_t dt, MvFlags moveFlg) -> Tempest::Vec3;
+    auto    go2NpcMoveSpeed (const Tempest::Vec3& dp, const Npc &tg) -> Tempest::Vec3;
+    auto    go2WpMoveSpeed  (Tempest::Vec3 dp, float x, float z) -> Tempest::Vec3;
     bool    testSlide(float x, float y, float z) const;
     bool    testClimp(float scale) const;
 
@@ -109,7 +110,7 @@ class MoveAlgo final {
 
     float   dropRay  (float x, float y, float z, bool &hasCol) const;
     float   waterRay (float x, float y, float z) const;
-    auto    normalRay(float x, float y, float z) const -> std::array<float,3>;
+    auto    normalRay(float x, float y, float z) const -> Tempest::Vec3;
     uint8_t groundMaterial(float x, float y, float z) const;
 
     struct Cache {
@@ -120,7 +121,7 @@ class MoveAlgo final {
       bool        hasCol     = false;
 
       float       nx=0,ny=0,nz=std::numeric_limits<float>::infinity();
-      std::array<float,3> norm={};
+      Tempest::Vec3 norm={};
 
       float wx=0,wy=0,wz=std::numeric_limits<float>::infinity();
       float wdepth=0.f;
@@ -131,11 +132,11 @@ class MoveAlgo final {
     Flags               flags=NoFlags;
 
     float               mulSpeed  =1.f;
-    std::array<float,3> fallSpeed ={};
+    Tempest::Vec3       fallSpeed ={};
     float               fallCount=0.f;
 
     uint64_t            climbStart=0;
-    std::array<float,3> climbPos0={};
+    Tempest::Vec3       climbPos0={};
     float               climbHeight=0.f;
     JumpCode            jmp=JumpCode::JM_OK;
 

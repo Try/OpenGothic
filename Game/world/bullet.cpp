@@ -90,7 +90,7 @@ void Bullet::onCollide(uint8_t matId) {
   if(matId<ZenLoad::NUM_MAT_GROUPS) {
     if(material<ZenLoad::NUM_MAT_GROUPS) {
       auto pos = obj->position();
-      wrld->emitLandHitSound(pos[0],pos[1],pos[2],material,matId);
+      wrld->emitLandHitSound(pos.x,pos.y,pos.z,material,matId);
       }
     }
   collideCommon();

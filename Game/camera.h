@@ -51,9 +51,9 @@ class Camera final {
 
   private:
     Gothic&               gothic;
-    std::array<float,3>   camPos={};
+    Tempest::Vec3         camPos={};
     bool                  isInMove=false;
-    std::array<float,3>   camBone={};
+    Tempest::Vec3         camBone={};
     Tempest::PointF       spin;
     float                 zoom=1.f;
     float                 dist=3.f;

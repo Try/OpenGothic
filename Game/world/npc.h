@@ -170,7 +170,7 @@ class Npc final {
     void       load(Serialize& fout);
 
     bool       setPosition (float x,float y,float z);
-    bool       setPosition (const std::array<float,3>& pos);
+    bool       setPosition (const Tempest::Vec3& pos);
     void       setDirection(float x,float y,float z);
     void       setDirection(const std::array<float,3>& pos);
     void       setDirection(float rotation);
@@ -190,8 +190,8 @@ class Npc final {
 
     auto       world() -> World&;
 
-    auto       position() const -> std::array<float,3>;
-    auto       cameraBone() const -> std::array<float,3>;
+    auto       position()   const -> Tempest::Vec3;
+    auto       cameraBone() const -> Tempest::Vec3;
     float      collisionRadius() const;
     float      rotation() const;
     float      rotationRad() const;
@@ -209,7 +209,7 @@ class Npc final {
     void       updateTransform();
 
     const char*displayName() const;
-    auto       displayPosition() const -> std::array<float,3>;
+    auto       displayPosition() const -> Tempest::Vec3;
     void       setVisual    (const char *visual);
     void       setVisual    (const Skeleton *visual);
     bool       hasOverlay   (const char*     sk) const;
@@ -348,10 +348,10 @@ class Npc final {
     void      excRoutine(size_t callback);
     void      multSpeed(float s);
 
-    MoveCode  testMove  (const std::array<float,3>& pos, std::array<float,3> &fallback, float speed);
+    MoveCode  testMove  (const Tempest::Vec3& pos, Tempest::Vec3& fallback, float speed);
     bool      tryMove   (const std::array<float,3> &dp);
 
-    JumpCode  tryJump(const std::array<float,3>& pos);
+    JumpCode  tryJump(const Tempest::Vec3& pos);
     bool      hasCollision() const { return physic.hasCollision(); }
 
     auto      dialogChoises(Npc &player, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<GameScript::DlgChoise>;
@@ -376,8 +376,8 @@ class Npc final {
     Item*     currentArmour();
     Item*     currentMeleWeapon();
     Item*     currentRangeWeapon();
-    auto      mapBone(const char* b) const -> std::array<float,3>;
-    auto      mapWeaponBone() const -> std::array<float,3>;
+    auto      mapBone(const char* b) const -> Tempest::Vec3;
+    auto      mapWeaponBone() const -> Tempest::Vec3;
 
     bool      lookAt(float dx, float dz, bool anim, uint64_t dt);
     auto      playAnimByName(const Daedalus::ZString& name, bool forceAnim, BodyState bs) -> const Animation::Sequence*;
@@ -556,7 +556,7 @@ class Npc final {
     void      updateWeaponSkeleton();
     void      tickTimedEvt(Animation::EvCount &ev);
     void      updatePos();
-    bool      setViewPosition(const std::array<float,3> &pos);
+    bool      setViewPosition(const Tempest::Vec3& pos);
 
     int       aiOutputOrderId() const;
     bool      performOutput(const AiAction &ai);
@@ -606,7 +606,7 @@ class Npc final {
 
     // visual props (cache)
     uint8_t                        durtyTranform=0;
-    std::array<float,3>            groundNormal;
+    Tempest::Vec3                  groundNormal;
 
     // visual props
     std::string                    body,head;
@@ -657,7 +657,7 @@ class Npc final {
     Npc*                           nearestEnemy   =nullptr;
     AiOuputPipe*                   outputPipe     =nullptr;
 
-    std::array<float,3>            moveMobCacheKey={{std::numeric_limits<float>::infinity(),0,0}};
+    Tempest::Vec3                  moveMobCacheKey={std::numeric_limits<float>::infinity(),0.f,0.f};
     Interactive*                   moveMob        =nullptr;
 
     GoTo                           go2;

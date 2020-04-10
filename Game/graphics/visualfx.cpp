@@ -13,10 +13,7 @@ Daedalus::GEngineClasses::C_ParticleFXEmitKey& VisualFx::key(SpellFxKey type) {
   return keys[int(type)];
   }
 
-void VisualFx::emitSound(World& wrld, const std::array<float,3>& pos, SpellFxKey type) const {
+void VisualFx::emitSound(World& wrld, const Tempest::Vec3& p, SpellFxKey type) const {
   auto& k   = key(type);
-  float x   = pos[0];
-  float y   = pos[1];
-  float z   = pos[2];
-  wrld.emitSoundEffect(k.sfxID.c_str(),x,y,z,0,true);
+  wrld.emitSoundEffect(k.sfxID.c_str(),p.x,p.y,p.z,0,true);
   }

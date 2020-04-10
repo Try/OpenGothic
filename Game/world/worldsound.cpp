@@ -22,7 +22,7 @@ bool WorldSound::Zone::checkPos(float x, float y, float z) const {
 
 WorldSound::WorldSound(Gothic& gothic, GameSession &game, World& owner)
   :gothic(gothic),game(game),owner(owner) {
-  plPos = {{-1000000,-1000000,-1000000}};
+  plPos = {-1000000,-1000000,-1000000};
   }
 
 void WorldSound::setDefaultZone(const ZenLoad::zCVobData &vob) {
@@ -210,11 +210,11 @@ void WorldSound::tickSoundZone(Npc& player) {
 
   Zone* zone=&def;
   if(currentZone!=nullptr &&
-     currentZone->checkPos(plPos[0],plPos[1]+player.translateY(),plPos[2])){
+     currentZone->checkPos(plPos.x,plPos.y+player.translateY(),plPos.z)){
     zone = currentZone;
     } else {
     for(auto& z:zones) {
-      if(z.checkPos(plPos[0],plPos[1]+player.translateY(),plPos[2])) {
+      if(z.checkPos(plPos.x,plPos.y+player.translateY(),plPos.z)) {
         zone = &z;
         }
       }
@@ -282,23 +282,16 @@ void WorldSound::tickSlot(GSoundEffect& slot) {
     return;
   auto  dyn = owner.physic();
   auto  pos = slot.position();
-  float occ = dyn->soundOclusion(plPos[0],plPos[1]+180/*head pos*/,plPos[2], pos[0],pos[1],pos[2]);
+  float occ = dyn->soundOclusion(plPos.x,plPos.y+180/*head pos*/,plPos.z, pos[0],pos[1],pos[2]);
 
   slot.setOcclusion(std::max(0.f,1.f-occ));
   }
 
-bool WorldSound::isInListenerRange(const std::array<float,3> &pos) const {
-  return qDist(pos,plPos)<4*maxDist*maxDist;
+bool WorldSound::isInListenerRange(const Tempest::Vec3& pos) const {
+  return (pos-plPos).quadLength()<4*maxDist*maxDist;
   }
 
-float WorldSound::qDist(const std::array<float,3> &a, const std::array<float,3> &b) {
-  float dx=a[0]-b[0];
-  float dy=a[1]-b[1];
-  float dz=a[2]-b[2];
-  return dx*dx+dy*dy+dz*dz;
-  }
-
-void WorldSound::aiOutput(const std::array<float,3>& pos,const std::string &outputname) {
+void WorldSound::aiOutput(const Tempest::Vec3& pos,const std::string &outputname) {
   std::lock_guard<std::mutex> guard(sync);
   if(isInListenerRange(pos)){
     game.emitGlobalSound(Resources::loadSoundBuffer(outputname+".wav"));

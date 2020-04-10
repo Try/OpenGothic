@@ -73,7 +73,7 @@ void AbstractTrigger::tick(uint64_t) {
   for(size_t i=0;i<intersect.size();) {
     Npc& npc = *intersect[i];
     auto pos = npc.position();
-    if(!checkPos(pos[0],pos[1]+npc.translateY(),pos[2])) {
+    if(!checkPos(pos.x,pos.y+npc.translateY(),pos.z)) {
       intersect[i] = intersect.back();
       intersect.pop_back();
 

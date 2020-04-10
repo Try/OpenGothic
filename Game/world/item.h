@@ -36,7 +36,7 @@ class Item final {
 
     const char*         displayName() const;
     const char*         description() const;
-    std::array<float,3> position() const;
+    Tempest::Vec3       position() const;
     bool                isGold() const;
     int32_t             mainFlag() const;
     int32_t             itemFlag() const;
@@ -71,7 +71,7 @@ class Item final {
     Daedalus::GEngineClasses::C_Item  hitem={};
     World&                            owner;
     MeshObjects::Mesh                 view;
-    std::array<float,3>               pos={};
+    Tempest::Vec3                     pos={};
     Tempest::Matrix4x4                mat;
     bool                              equiped=false;
     uint8_t                           itSlot=NSLOT;

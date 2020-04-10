@@ -236,14 +236,14 @@ bool Npc::setPosition(float ix, float iy, float iz) {
   return true;
   }
 
-bool Npc::setPosition(const std::array<float,3> &pos) {
-  return setPosition(pos[0],pos[1],pos[2]);
+bool Npc::setPosition(const Tempest::Vec3& pos) {
+  return setPosition(pos.x,pos.y,pos.z);
   }
 
-bool Npc::setViewPosition(const std::array<float,3> &pos) {
-  x = pos[0];
-  y = pos[1];
-  z = pos[2];
+bool Npc::setViewPosition(const Tempest::Vec3& pos) {
+  x = pos.x;
+  y = pos.y;
+  z = pos.z;
   durtyTranform |= TR_Pos;
   return true;
   }
@@ -489,15 +489,15 @@ World& Npc::world() {
   return owner;
   }
 
-std::array<float,3> Npc::position() const {
-  return {{x,y,z}};
+Vec3 Npc::position() const {
+  return {x,y,z};
   }
 
-std::array<float,3> Npc::cameraBone() const {
+Vec3 Npc::cameraBone() const {
   auto bone=visual.pose().cameraBone();
-  std::array<float,3> r={{}};
-  bone.project(r[0],r[1],r[2]);
-  visual.position().project (r[0],r[1],r[2]);
+  Tempest::Vec3 r={};
+  bone.project(r.x,r.y,r.z);
+  visual.position().project (r.x,r.y,r.z);
   return r;
   }
 
@@ -547,7 +547,8 @@ float Npc::qDistTo(const Npc &p) const {
   }
 
 float Npc::qDistTo(const Interactive &p) const {
-  return qDistTo(p.position()[0],p.position()[1],p.position()[2]);
+  auto pos = p.position();
+  return qDistTo(pos.x,pos.y,pos.z);
   }
 
 void Npc::updateAnimation() {
@@ -584,9 +585,9 @@ const char *Npc::displayName() const {
   return hnpc.name[0].c_str();
   }
 
-std::array<float,3> Npc::displayPosition() const {
+Tempest::Vec3 Npc::displayPosition() const {
   auto p = visual.displayPosition();
-  return {{x+p[0],y+p[1],z+p[2]}};
+  return p+position();
   }
 
 void Npc::setVisual(const char* visual) {
@@ -2131,11 +2132,11 @@ Item *Npc::currentRangeWeapon() {
   return invent.currentRangeWeapon();
   }
 
-std::array<float,3> Npc::mapBone(const char* b) const {
+Vec3 Npc::mapBone(const char* b) const {
   return visual.mapBone(b);
   }
 
-std::array<float,3> Npc::mapWeaponBone() const {
+Vec3 Npc::mapWeaponBone() const {
   return visual.mapWeaponBone();
   }
 
@@ -2632,12 +2633,12 @@ void Npc::multSpeed(float s) {
   mvAlgo.multSpeed(s);
   }
 
-Npc::MoveCode Npc::testMove(const std::array<float,3> &pos,
-                           std::array<float,3> &fallback,
-                           float speed) {
+Npc::MoveCode Npc::testMove(const Tempest::Vec3& pos,
+                            Tempest::Vec3& fallback,
+                            float speed) {
   if(physic.testMove(pos,fallback,speed))
     return MV_OK;
-  std::array<float,3> tmp;
+  Vec3 tmp;
   if(physic.testMove(fallback,tmp,0))
     return MV_CORRECT;
   return MV_FAILED;
@@ -2647,8 +2648,8 @@ bool Npc::tryMove(const std::array<float,3> &dp) {
   if(dp[0]==0.f && dp[1]==0.f && dp[2]==0.f)
     return true;
 
-  std::array<float,3> pos  = {x+dp[0],y+dp[1],z+dp[2]};
-  std::array<float,3> norm = {};
+  Vec3 pos  = {x+dp[0],y+dp[1],z+dp[2]};
+  Vec3 norm = {};
 
   if(physic.tryMoveN(pos,norm)){
     return setViewPosition(pos);
@@ -2660,11 +2661,11 @@ bool Npc::tryMove(const std::array<float,3> &dp) {
 
   float scale=speed*0.25f;
   for(int i=1;i<4+3;++i){
-    std::array<float,3> p=pos;
-    p[0]+=norm[0]*scale*float(i);
-    p[2]+=norm[2]*scale*float(i);
+    Vec3 p=pos;
+    p.x+=norm.x*scale*float(i);
+    p.z+=norm.z*scale*float(i);
 
-    std::array<float,3> nn={};
+    Vec3 nn={};
     if(physic.tryMoveN(p,nn)) {
       return setViewPosition(p);
       }
@@ -2672,7 +2673,7 @@ bool Npc::tryMove(const std::array<float,3> &dp) {
   return false;
   }
 
-Npc::JumpCode Npc::tryJump(const std::array<float,3> &p0) {
+Npc::JumpCode Npc::tryJump(const Tempest::Vec3& p0) {
   float len = 40.f;
   float rot = rotationRad();
   float s   = std::sin(rot), c = std::cos(rot);
@@ -2688,19 +2689,19 @@ Npc::JumpCode Npc::tryJump(const std::array<float,3> &p0) {
   (void)jumpUp;
 
   auto pos = p0;
-  pos[0]+=dx;
-  pos[2]+=dz;
+  pos.x+=dx;
+  pos.z+=dz;
 
   if(physic.testMove(pos))
     return JumpCode::JM_OK;
 
-  pos[1] = p0[1]+jumpLow;
+  pos.y = p0.y+jumpLow;
   if(physic.testMove(pos)) {
     // Without using the hands, just big footstep. Height: 50-100cm
     return JumpCode::JM_UpLow;
     }
 
-  pos[1] = p0[1]+jumpMid-trY;
+  pos.y = p0.y+jumpMid-trY;
   if(physic.testMove(pos)) {
     // Supported on the hands in one sentence. Height: 100-200cm
     return JumpCode::JM_UpMid;
@@ -3098,10 +3099,10 @@ void Npc::updatePos() {
       auto ox = crossVec3(oy,{0,0,1});
       auto oz = crossVec3(oy,ox);
       float v[16] = {
-         ox[0], ox[1], ox[2], 0,
-         oy[0], oy[1], oy[2], 0,
-        -oz[0],-oz[1],-oz[2], 0,
-             x,     y,     z, 1
+         ox.x, ox.y, ox.z, 0,
+         oy.x, oy.y, oy.z, 0,
+        -oz.x,-oz.y,-oz.z, 0,
+            x,    y,    z, 1
       };
       mt = Matrix4x4(v);
       } else {

@@ -277,7 +277,7 @@ struct DynamicWorld::NpcBodyList final {
     return callback.hasHit();
     }
 
-  bool hasCollision(const DynamicWorld::Item& obj,std::array<float,3>& normal){
+  bool hasCollision(const DynamicWorld::Item& obj,Tempest::Vec3& normal){
     static bool disable=false;
     if(disable)
       return false;
@@ -299,7 +299,7 @@ struct DynamicWorld::NpcBodyList final {
       }
     }
 
-  bool hasCollision(const NpcBody& n,const std::vector<Record>& arr,std::array<float,3>& normal, bool sorted) {
+  bool hasCollision(const NpcBody& n,const std::vector<Record>& arr,Tempest::Vec3& normal, bool sorted) {
     auto l = arr.begin();
     auto r = arr.end();
 
@@ -322,7 +322,7 @@ struct DynamicWorld::NpcBodyList final {
     return ret;
     }
 
-  bool hasCollision(const NpcBody& a,const NpcBody& b,std::array<float,3>& normal){
+  bool hasCollision(const NpcBody& a,const NpcBody& b,Tempest::Vec3& normal){
     if(&a==&b)
       return false;
     auto dx = a.pos[0]-b.pos[0], dy = a.pos[1]-b.pos[1], dz = a.pos[2]-b.pos[2];
@@ -333,9 +333,9 @@ struct DynamicWorld::NpcBodyList final {
     if(dy>b.h || dy<-a.h)
       return false;
 
-    normal[0] += dx;
-    normal[1] += dy;
-    normal[2] += dz;
+    normal.x += dx;
+    normal.y += dy;
+    normal.z += dz;
     return true;
     }
 
@@ -409,7 +409,7 @@ struct DynamicWorld::BulletsList final {
 
   void tick(uint64_t dt) {
     for(auto& i:body) {
-      wrld.moveBullet(i,i.dir[0],i.dir[1],i.dir[2],dt);
+      wrld.moveBullet(i,i.dir.x,i.dir.y,i.dir.z,dt);
       if(i.cb!=nullptr)
         i.cb->onMove();
       }
@@ -417,8 +417,8 @@ struct DynamicWorld::BulletsList final {
 
   void onMoveNpc(NpcBody& npc, NpcBodyList& list){
     for(auto& i:body) {
-      btVector3 s = {i.lastPos[0],i.lastPos[1],i.lastPos[2]};
-      btVector3 e = {i.pos[0],i.pos[1],i.pos[2]};
+      btVector3 s = {i.lastPos.x,i.lastPos.y,i.lastPos.z};
+      btVector3 e = {i.pos.x,i.pos.y,i.pos.z};
 
       if(i.cb!=nullptr && list.rayTest(npc,s,e)) {
         i.cb->onCollide(*npc.getNpc());
@@ -499,7 +499,7 @@ DynamicWorld::~DynamicWorld(){
     world->removeCollisionObject(landBody .get());
   }
 
-std::array<float,3> DynamicWorld::landNormal(float x, float y, float z) const {
+Tempest::Vec3 DynamicWorld::landNormal(float x, float y, float z) const {
   struct rCallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;
 
@@ -530,7 +530,7 @@ std::array<float,3> DynamicWorld::landNormal(float x, float y, float z) const {
   rayTest(s,e,callback);
 
   if(callback.hasHit() && callback.colCat==DynamicWorld::C_Landscape)
-    return {{callback.m_hitNormalWorld.x(),callback.m_hitNormalWorld.y(),callback.m_hitNormalWorld.z()}};
+    return Tempest::Vec3{callback.m_hitNormalWorld.x(),callback.m_hitNormalWorld.y(),callback.m_hitNormalWorld.z()};
   return {0,1,0};
   }
 
@@ -817,9 +817,9 @@ void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint6
   const bool isSpell = b.isSpell();
 
   auto  p  = b.pos;
-  float x0 = p[0];
-  float y0 = p[1];
-  float z0 = p[2];
+  float x0 = p.x;
+  float y0 = p.y;
+  float z0 = p.z;
   float x1 = x0+dx*k;
   float y1 = y0+dy*k - (isSpell ? 0 : gravity*k*k);
   float z1 = z0+dz*k;
@@ -871,7 +871,7 @@ void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint6
       if(callback.matId==ZenLoad::MaterialGroup::METAL ||
          callback.matId==ZenLoad::MaterialGroup::STONE) {
         auto d = b.dir;
-        btVector3 m = {d[0],d[1],d[2]};
+        btVector3 m = {d.x,d.y,d.z};
         btVector3 n = callback.m_hitNormalWorld;
 
         n.normalize();
@@ -900,10 +900,10 @@ void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint6
     const float l = b.speed();
     auto d = b.direction();
     if(!isSpell)
-      d[1] -= gravity*k;
+      d.y -= gravity*k;
 
     b.move(x1,y1,z1);
-    b.setDirection(d[0],d[1],d[2]);
+    b.setDirection(d.x,d.y,d.z);
     b.addPathLen(l*k);
     }
   }
@@ -939,18 +939,15 @@ void DynamicWorld::deleteObj(btCollisionObject *obj) {
   delete obj;
   }
 
-bool DynamicWorld::hasCollision(const Item& it,std::array<float,3>& normal) {
+bool DynamicWorld::hasCollision(const Item& it,Tempest::Vec3& normal) {
   if(npcList->hasCollision(it,normal)){
-    float l = std::sqrt(normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2]);
-    normal[0]/=l;
-    normal[1]/=l;
-    normal[2]/=l;
+    normal /= normal.manhattanLength();
     return true;
     }
 
   struct rCallBack : public btCollisionWorld::ContactResultCallback {
     int                 count=0;
-    std::array<float,3> norm={};
+    Tempest::Vec3       norm={};
     btCollisionObject*  src=nullptr;
 
     explicit rCallBack(btCollisionObject* src):src(src){
@@ -967,18 +964,15 @@ bool DynamicWorld::hasCollision(const Item& it,std::array<float,3>& normal) {
     btScalar addSingleResult(btManifoldPoint& p,
                              const btCollisionObjectWrapper*, int, int,
                              const btCollisionObjectWrapper*, int, int) override {
-      norm[0]+=p.m_normalWorldOnB.x();
-      norm[1]+=p.m_normalWorldOnB.y();
-      norm[2]+=p.m_normalWorldOnB.z();
+      norm.x+=p.m_normalWorldOnB.x();
+      norm.y+=p.m_normalWorldOnB.y();
+      norm.z+=p.m_normalWorldOnB.z();
       ++count;
       return 0;
       }
 
     void normalize() {
-      float l = std::sqrt(norm[0]*norm[0]+norm[1]*norm[1]+norm[2]*norm[2]);
-      norm[0]/=l;
-      norm[1]/=l;
-      norm[2]/=l;
+      norm /= norm.manhattanLength();
       }
     };
 
@@ -1051,57 +1045,57 @@ float DynamicWorld::Item::centerY() const {
   return 0;
   }
 
-bool DynamicWorld::Item::testMove(const std::array<float,3> &pos) {
+bool DynamicWorld::Item::testMove(const Tempest::Vec3& pos) {
   if(!obj)
     return false;
-  std::array<float,3> tmp={};
+  Tempest::Vec3 tmp={};
   if(owner->hasCollision(*this,tmp))
     return true;
   auto tr = obj->pos;
-  implSetPosition(pos[0],pos[1],pos[2]);
+  implSetPosition(pos.x,pos.y,pos.z);
   const bool ret=owner->hasCollision(*this,tmp);
   owner->npcList->move(*obj,tr);
   return !ret;
   }
 
-bool DynamicWorld::Item::testMove(const std::array<float,3> &pos,
-                                  std::array<float,3>       &fallback,
+bool DynamicWorld::Item::testMove(const Tempest::Vec3 &pos,
+                                  Tempest::Vec3       &fallback,
                                   float speed) {
   fallback=pos;
   if(!obj)
     return false;
 
-  std::array<float,3> norm={};
-  auto                tr = obj->pos;
+  Tempest::Vec3 norm={};
+  auto          tr = obj->pos;
   if(owner->hasCollision(*this,norm))
     return true;
   //auto ground = dropRay(pos[0],pos[1],pos[2]);
-  setPosition(pos[0],pos[1],pos[2]);
+  setPosition(pos.x,pos.y,pos.z);
   const bool ret=owner->hasCollision(*this,norm);
   if(ret && speed!=0.f){
-    fallback[0] = pos[0] + norm[0]*speed;
-    fallback[1] = pos[1];// - norm[1]*speed;
-    fallback[2] = pos[2] + norm[2]*speed;
+    fallback.x = pos.x + norm.x*speed;
+    fallback.y = pos.y;// - norm[1]*speed;
+    fallback.z = pos.z + norm.z*speed;
     }
   owner->npcList->move(*obj,tr);
   return !ret;
   }
 
-bool DynamicWorld::Item::tryMoveN(const std::array<float,3> &pos, std::array<float,3> &norm) {
+bool DynamicWorld::Item::tryMoveN(const Tempest::Vec3& pos, Tempest::Vec3& norm) {
   norm = {};
 
   if(!obj)
     return false;
   auto tr = obj->pos;
   if(owner->hasCollision(*this,norm)){
-    setPosition(pos[0],pos[1],pos[2]);
+    setPosition(pos.x,pos.y,pos.z);
     return true;
     }
 
-  implSetPosition(pos[0],pos[1],pos[2]);
+  implSetPosition(pos.x,pos.y,pos.z);
   const bool ret=owner->hasCollision(*this,norm);
   if(!ret) {
-    owner->npcList->move(*obj,pos[0],pos[1],pos[2]);
+    owner->npcList->move(*obj,pos.x,pos.y,pos.z);
     return true;
     }
 
@@ -1109,28 +1103,28 @@ bool DynamicWorld::Item::tryMoveN(const std::array<float,3> &pos, std::array<flo
   return false;
   }
 
-bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos, std::array<float,3> &fallback, float speed) {
+bool DynamicWorld::Item::tryMove(const Tempest::Vec3& pos, Tempest::Vec3& fallback, float speed) {
   fallback=pos;
   if(!obj)
     return false;
 
-  std::array<float,3> norm={};
-  auto                tr = obj->pos;
+  Tempest::Vec3 norm={};
+  auto          tr = obj->pos;
   if(owner->hasCollision(*this,norm)){
-    setPosition(pos[0],pos[1],pos[2]);
+    setPosition(pos.x,pos.y,pos.z);
     return true;
     }
 
-  implSetPosition(pos[0],pos[1],pos[2]);
+  implSetPosition(pos.x,pos.y,pos.z);
   const bool ret=owner->hasCollision(*this,norm);
   if(!ret) {
-    owner->npcList->move(*obj,pos[0],pos[1],pos[2]);
+    owner->npcList->move(*obj,pos.x,pos.y,pos.z);
     return true;
     }
   if(speed!=0.f){
-    fallback[0] = pos[0] + norm[0]*speed;
-    fallback[1] = pos[1];// - norm[1]*speed;
-    fallback[2] = pos[2] + norm[2]*speed;
+    fallback.x = pos.x + norm.x*speed;
+    fallback.y = pos.y;// - norm[1]*speed;
+    fallback.z = pos.z + norm.z*speed;
     }
   owner->npcList->move(*obj,tr);
   return false;
@@ -1139,7 +1133,7 @@ bool DynamicWorld::Item::tryMove(const std::array<float,3> &pos, std::array<floa
 bool DynamicWorld::Item::hasCollision() const {
   if(!obj)
     return false;
-  std::array<float,3> tmp;
+  Tempest::Vec3 tmp;
   return owner->hasCollision(*this,tmp);
   }
 
@@ -1191,16 +1185,16 @@ void DynamicWorld::BulletBody::addPathLen(float v) {
   }
 
 Tempest::Matrix4x4 DynamicWorld::BulletBody::matrix() const {
-  const float dx = dir[0]/dirL;
-  const float dy = dir[1]/dirL;
-  const float dz = dir[2]/dirL;
+  const float dx = dir.x/dirL;
+  const float dy = dir.y/dirL;
+  const float dz = dir.z/dirL;
 
   float a2  = std::asin(dy)*float(180/M_PI);
   float ang = std::atan2(dz,dx)*float(180/M_PI)+180.f;
 
   Tempest::Matrix4x4 mat;
   mat.identity();
-  mat.translate(pos[0],pos[1],pos[2]);
+  mat.translate(pos.x,pos.y,pos.z);
   mat.rotateOY(-ang);
   mat.rotateOZ(-a2);
   return mat;

@@ -39,8 +39,8 @@ class Interactive final {
 
     bool                overrideFocus() const;
 
-    std::array<float,3> position() const;
-    std::array<float,3> displayPosition() const;
+    Tempest::Vec3       position() const;
+    Tempest::Vec3       displayPosition() const;
     const char*         displayName() const;
     auto                transform() const -> const Tempest::Matrix4x4& { return pos; }
 
@@ -83,7 +83,7 @@ class Interactive final {
     void                invokeStateFunc(Npc &npc);
     void                implTick(Pos &p, uint64_t dt);
     void                implQuitInteract(Pos &p);
-    void                setPos(Npc& npc,std::array<float,3> pos);
+    void                setPos(Npc& npc, const Tempest::Vec3& pos);
     void                setDir(Npc& npc,const Tempest::Matrix4x4& mt);
     bool                attach(Npc& npc,Pos& to);
     void                implAddItem(char *name);

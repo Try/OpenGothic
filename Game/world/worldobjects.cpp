@@ -118,7 +118,7 @@ void WorldObjects::tick(uint64_t dt) {
       for(auto& r:passive) {
         if(r.self==&i)
           continue;
-        float l = i.qDistTo(r.x,r.y,r.z);
+        float l = i.qDistTo(r.pos.x,r.pos.y,r.pos.z);
         if(r.item!=size_t(-1) && r.other!=nullptr)
           owner.script().setInstanceItem(*r.other,r.item);
         const float range = float(i.handle()->senses_range);
@@ -218,7 +218,7 @@ void WorldObjects::tickNear(uint64_t /*dt*/) {
   for(Npc* i:npcNear) {
     auto pos=i->position();
     for(AbstractTrigger* t:triggersZn)
-      if(t->checkPos(pos[0],pos[1]+i->translateY(),pos[2]))
+      if(t->checkPos(pos.x,pos.y+i->translateY(),pos.z))
         t->onIntersect(*i);
     }
   }
@@ -299,11 +299,7 @@ void WorldObjects::detectNpc(const float x, const float y, const float z,
                              const float r, std::function<void (Npc &)> f) {
   float maxDist=r*r;
   for(auto& i:npcArr) {
-    float dx=i->position()[0]-x;
-    float dy=i->position()[1]-y;
-    float dz=i->position()[2]-z;
-
-    float qDist = dx*dx+dy*dy+dz*dz;
+    auto qDist = (i->position()-Vec3(x,y,z)).quadLength();
     if(qDist<maxDist)
       f(*i);
     }
@@ -566,9 +562,7 @@ Interactive *WorldObjects::aviableMob(const Npc &pl, const char* dest) {
 void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {
   PerceptionMsg m;
   m.what   = perc;
-  m.x      = self.position()[0];
-  m.y      = self.position()[1];
-  m.z      = self.position()[2];
+  m.pos    = self.position();
   m.self   = &self;
   m.other  = &other;
   m.victum = &victum;
@@ -579,9 +573,7 @@ void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t p
 void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &itm, int32_t perc) {
   PerceptionMsg m;
   m.what   = perc;
-  m.x      = self.position()[0];
-  m.y      = self.position()[1];
-  m.z      = self.position()[2];
+  m.pos    = self.position();
   m.self   = &self;
   m.other  = &other;
   m.victum = &victum;
@@ -640,11 +632,13 @@ static bool canSee(const Npc& pl,const Interactive& n){
   }
 
 static bool canSee(const Npc& pl,const Item& n){
-  const float plY = pl.position()[1];
-  const float itY = n .position()[1];
+  auto p0 = pl.position();
+  auto p1 = n.position();
+  const float plY = p0.y;
+  const float itY = p1.y;
   if(plY<=itY && itY<=plY+180)
-    return pl.canSeeNpc(n.position()[0],plY+180,n.position()[2],true);
-  return pl.canSeeNpc(n.position()[0],itY+20,n.position()[2],true);
+    return pl.canSeeNpc(p1.x,plY+180,p1.z,true);
+  return pl.canSeeNpc(p1.x,itY+20,p1.z,true);
   }
 
 template<class T>
@@ -687,20 +681,21 @@ bool WorldObjects::testObj(T &src, const Npc &pl, const WorldObjects::SearchOpt 
   if(!checkFlag(npc,opt.flags))
     return false;
 
-  auto pos = npc.position();
-  float dx=pl.position()[0]-pos[0];
-  float dy=pl.position()[1]-pos[1];
-  float dz=pl.position()[2]-pos[2];
+  auto pos  = npc.position();
+  auto dpos = pl.position()-pos;
+  //float dx=pl.position()[0]-pos[0];
+  //float dy=pl.position()[1]-pos[1];
+  //float dz=pl.position()[2]-pos[2];
 
-  float l = (dx*dx+dy*dy+dz*dz);
+  float l = dpos.quadLength();
   if(l>qmax || l<qmin)
     return false;
 
-  auto angle=std::atan2(dz,dx);
+  auto angle=std::atan2(dpos.z,dpos.x);
   if(std::cos(plAng-angle)<ang && !bool(opt.flags&SearchFlg::NoAngle))
     return false;
 
-  l = std::sqrt(dx*dx+dy*dy+dz*dz);
+  l = std::sqrt(l);
   if(l<rlen && (bool(opt.flags&SearchFlg::NoRay) || canSee(pl,npc))){
     rlen=l;
     return true;

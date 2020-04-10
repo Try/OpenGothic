@@ -139,10 +139,10 @@ void MainWindow::paintEvent(PaintEvent& event) {
       auto focus = world->validateFocus(currentFocus);
       if(focus && !dialogs.isActive()) {
         auto pos = focus.displayPosition();
-        vp.project(pos[0],pos[1],pos[2]);
+        vp.project(pos.x,pos.y,pos.z);
 
-        int   ix = int((0.5f*pos[0]+0.5f)*float(w()));
-        int   iy = int((0.5f*pos[1]+0.5f)*float(h()));
+        int   ix = int((0.5f*pos.x+0.5f)*float(w()));
+        int   iy = int((0.5f*pos.y+0.5f)*float(h()));
         auto& fnt = Resources::font();
 
         auto tsize = fnt.textSize(focus.displayName());
