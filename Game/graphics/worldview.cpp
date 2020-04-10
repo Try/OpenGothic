@@ -57,15 +57,15 @@ void WorldView::setupSunDir(float pulse,float ang) {
 void WorldView::drawShadow(Encoder<PrimaryCommandBuffer> &cmd, uint8_t fId, uint8_t layer) {
   if(!frame[fId].actual)
     return;
-  cmd.exec(frame[fId].cmdShadow   [layer]);
   cmd.exec(frame[fId].cmdShadowDyn[layer]);
+  cmd.exec(frame[fId].cmdShadow   [layer]);
   }
 
 void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd, uint8_t fId) {
   if(!frame[fId].actual)
     return;
-  cmd.exec(frame[fId].cmdMain);
   cmd.exec(frame[fId].cmdMainDyn);
+  cmd.exec(frame[fId].cmdMain);
   }
 
 MeshObjects::Mesh WorldView::getView(const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {

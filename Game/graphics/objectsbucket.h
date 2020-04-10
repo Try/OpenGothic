@@ -207,14 +207,8 @@ void ObjectsBucket<Ubo,Vertex>::mkIndex() {
   indexed = true;
 
   index.resize(data.size());
-  size_t sz=0;
-  for(size_t i=0;i<index.size();++i) {
-    if(data[i].vbo==nullptr)
-      continue;
-    index[sz]=&data[i];
-    ++sz;
-    }
-  index.resize(sz);
+  for(size_t i=0;i<index.size();++i)
+    index[i]=&data[i];
 
   std::sort(index.begin(),index.end(),idxCmp);
   }
