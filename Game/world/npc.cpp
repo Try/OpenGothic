@@ -280,10 +280,6 @@ void Npc::setDirection(float x, float /*y*/, float z) {
   setDirection(a);
   }
 
-void Npc::setDirection(const std::array<float,3> &pos) {
-  setDirection(pos[0],pos[1],pos[2]);
-  }
-
 void Npc::setDirection(float rotation) {
   rotation = std::fmod(rotation,360.f);
   if(std::fabs(angle-rotation)<0.001f)
@@ -2644,18 +2640,18 @@ Npc::MoveCode Npc::testMove(const Tempest::Vec3& pos,
   return MV_FAILED;
   }
 
-bool Npc::tryMove(const std::array<float,3> &dp) {
-  if(dp[0]==0.f && dp[1]==0.f && dp[2]==0.f)
+bool Npc::tryMove(const Vec3& dp) {
+  if(dp.x==0.f && dp.y==0.f && dp.z==0.f)
     return true;
 
-  Vec3 pos  = {x+dp[0],y+dp[1],z+dp[2]};
+  Vec3 pos  = Vec3{x,y,z}+dp;
   Vec3 norm = {};
 
   if(physic.tryMoveN(pos,norm)){
     return setViewPosition(pos);
     }
 
-  const float speed = std::sqrt(dp[0]*dp[0]+dp[1]*dp[1]+dp[2]*dp[2]);
+  const float speed = dp.manhattanLength();
   if(speed>=physic.radius() || speed==0.f)
     return false;
 

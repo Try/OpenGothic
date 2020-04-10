@@ -116,11 +116,11 @@ struct DynamicWorld::Broadphase : btDbvtBroadphase {
 struct DynamicWorld::NpcBody : btRigidBody {
   NpcBody(btCollisionShape* shape):btRigidBody(0,nullptr,shape){}
 
-  std::array<float,3> pos={};
-  float               r=0, h=0, rX=0, rZ=0;
-  bool                enable=true;
-  bool                frozen=false;
-  uint64_t            lastMove=0;
+  Tempest::Vec3 pos={};
+  float         r=0, h=0, rX=0, rZ=0;
+  bool          enable=true;
+  bool          frozen=false;
+  uint64_t      lastMove=0;
 
   Npc* getNpc() {
     return reinterpret_cast<Npc*>(getUserPointer());
@@ -130,7 +130,7 @@ struct DynamicWorld::NpcBody : btRigidBody {
     return setPosition({x,y,z});
     }
 
-  bool setPosition(const std::array<float,3>& p){
+  bool setPosition(const Tempest::Vec3& p){
     if(p==pos)
       return false;
     pos = p;
@@ -138,7 +138,7 @@ struct DynamicWorld::NpcBody : btRigidBody {
 
     btTransform trans;
     trans.setIdentity();
-    trans.setOrigin(btVector3(pos[0],pos[1]+(h-r-ghostPadding)*0.5f+r+ghostPadding,pos[2]));
+    trans.setOrigin(btVector3(pos.x,pos.y+(h-r-ghostPadding)*0.5f+r+ghostPadding,pos.z));
     setWorldTransform(trans);
     return true;
     }
@@ -158,7 +158,7 @@ struct DynamicWorld::NpcBodyList final {
   void add(NpcBody* b){
     Record r;
     r.body = b;
-    r.x    = b->pos[0];
+    r.x    = b->pos.x;
     body.push_back(r);
     }
 
@@ -190,7 +190,7 @@ struct DynamicWorld::NpcBodyList final {
       const float x = arr[i].x;
       if((i==0 || arr[i-1].x<x) &&
          (i+1==arr.size() || x<arr[i+1].x)) {
-        arr[i].x = arr[i].body->pos[0];
+        arr[i].x = arr[i].body->pos.x;
         return false;
         }
       arr[i].body = nullptr;
@@ -210,7 +210,7 @@ struct DynamicWorld::NpcBodyList final {
     maxR = std::max(maxR,n.r);
     }
 
-  void move(NpcBody& n, const std::array<float,3>& pos){
+  void move(NpcBody& n, const Tempest::Vec3& pos){
     const bool move = n.setPosition(pos);
     if(move)
       n.lastMove=tick;
@@ -305,8 +305,8 @@ struct DynamicWorld::NpcBodyList final {
 
     if(sorted) {
       const float dX = maxR+n.r;
-      l = std::lower_bound(arr.begin(),arr.end(),n.pos[0]-dX,[](const Record& b,float x){ return b.x<x; });
-      r = std::upper_bound(arr.begin(),arr.end(),n.pos[0]+dX,[](float x,const Record& b){ return x<b.x; });
+      l = std::lower_bound(arr.begin(),arr.end(),n.pos.x-dX,[](const Record& b,float x){ return b.x<x; });
+      r = std::upper_bound(arr.begin(),arr.end(),n.pos.x+dX,[](float x,const Record& b){ return x<b.x; });
       }
 
     const auto dist = std::distance(l,r);
@@ -325,7 +325,7 @@ struct DynamicWorld::NpcBodyList final {
   bool hasCollision(const NpcBody& a,const NpcBody& b,Tempest::Vec3& normal){
     if(&a==&b)
       return false;
-    auto dx = a.pos[0]-b.pos[0], dy = a.pos[1]-b.pos[1], dz = a.pos[2]-b.pos[2];
+    auto dx = a.pos.x-b.pos.x, dy = a.pos.y-b.pos.y, dz = a.pos.z-b.pos.z;
     auto r  = a.r+b.r;
 
     if(dx*dx+dz*dz>r*r)
@@ -354,7 +354,7 @@ struct DynamicWorld::NpcBodyList final {
         body.pop_back();
 
         b.body->frozen=true;
-        b.x = b.body->pos[0];
+        b.x = b.body->pos.x;
         frozen.push_back(b);
         } else {
         ++i;

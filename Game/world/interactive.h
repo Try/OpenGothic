@@ -96,10 +96,10 @@ class Interactive final {
 
     const Pos*          findFreePos() const;
     Pos*                findFreePos();
-    auto                worldPos(const Pos &to) const -> std::array<float,3>;
+    auto                worldPos(const Pos &to) const -> Tempest::Vec3;
     float               qDistanceTo(const Npc &npc, const Pos &to);
     Tempest::Matrix4x4  nodeTranform(const Npc &npc, const Pos &p) const;
-    auto                nodePosition(const Npc &npc, const Pos &p) const -> std::array<float,3>;
+    auto                nodePosition(const Npc &npc, const Pos &p) const -> Tempest::Vec3;
 
     World*                       world = nullptr;
 

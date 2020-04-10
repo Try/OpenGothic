@@ -172,7 +172,6 @@ class Npc final {
     bool       setPosition (float x,float y,float z);
     bool       setPosition (const Tempest::Vec3& pos);
     void       setDirection(float x,float y,float z);
-    void       setDirection(const std::array<float,3>& pos);
     void       setDirection(float rotation);
     void       clearSpeed();
     bool       resetPositionToTA();
@@ -349,7 +348,7 @@ class Npc final {
     void      multSpeed(float s);
 
     MoveCode  testMove  (const Tempest::Vec3& pos, Tempest::Vec3& fallback, float speed);
-    bool      tryMove   (const std::array<float,3> &dp);
+    bool      tryMove   (const Tempest::Vec3 &dp);
 
     JumpCode  tryJump(const Tempest::Vec3& pos);
     bool      hasCollision() const { return physic.hasCollision(); }

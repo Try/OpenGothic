@@ -31,8 +31,8 @@ Bullet::~Bullet() {
   wrld->physic()->deleteObj(obj);
   }
 
-void Bullet::setPosition(const std::array<float,3> &p) {
-  obj->setPosition(p[0],p[1],p[2]);
+void Bullet::setPosition(const Tempest::Vec3& p) {
+  obj->setPosition(p.x,p.y,p.z);
   updateMatrix();
   }
 

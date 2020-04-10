@@ -24,7 +24,7 @@ class Bullet final : public DynamicWorld::BulletCallback {
       Stopped = 1,
       };
 
-    void setPosition  (const std::array<float,3>& p);
+    void setPosition  (const Tempest::Vec3& p);
     void setPosition  (float x,float y,float z);
 
     void setDirection (float x,float y,float z);

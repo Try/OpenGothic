@@ -348,7 +348,7 @@ uint32_t Interactive::stateMask() const {
 bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
   for(auto& i:attPos){
     auto pos = nodePosition(npc,i);
-    if(npc.canSeeNpc(pos[0],pos[1],pos[2],freeLos))
+    if(npc.canSeeNpc(pos.x,pos.y,pos.z,freeLos))
       return true;
     }
 
@@ -435,7 +435,7 @@ Interactive::Pos *Interactive::findFreePos() {
   return nullptr;
   }
 
-std::array<float,3> Interactive::worldPos(const Interactive::Pos &to) const {
+Tempest::Vec3 Interactive::worldPos(const Interactive::Pos &to) const {
   auto mat = pos;
   auto pos = mesh->mapToRoot(to.node);
   mat.mul(pos);
@@ -560,7 +560,7 @@ void Interactive::setDir(Npc &npc, const Tempest::Matrix4x4 &mat) {
 
 float Interactive::qDistanceTo(const Npc &npc, const Interactive::Pos &to) {
   auto p = worldPos(to);
-  return npc.qDistTo(p[0],p[1]-npc.translateY(),p[2]);
+  return npc.qDistTo(p.x,p.y-npc.translateY(),p.z);
   }
 
 Tempest::Matrix4x4 Interactive::nodeTranform(const Npc &npc, const Pos& p) const {
@@ -595,12 +595,12 @@ Tempest::Matrix4x4 Interactive::nodeTranform(const Npc &npc, const Pos& p) const
   return mat;
   }
 
-std::array<float,3> Interactive::nodePosition(const Npc &npc, const Pos &p) const {
+Tempest::Vec3 Interactive::nodePosition(const Npc &npc, const Pos &p) const {
   auto  mat = nodeTranform(npc,p);
   float x   = mat.at(3,0);
   float y   = mat.at(3,1);
   float z   = mat.at(3,2);
-  return {{x,y,z}};
+  return {x,y,z};
   }
 
 const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {
@@ -695,9 +695,9 @@ void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x
   for(auto& m:attPos){
     auto pos = worldPos(m);
 
-    float x = pos[0];
-    float y = pos[1];
-    float z = pos[2];
+    float x = pos.x;
+    float y = pos.y;
+    float z = pos.z;
     mvp.project(x,y,z);
 
     x = (0.5f*x+0.5f)*float(w);
