@@ -45,7 +45,6 @@ class ObjectsBucket : public AbstractObjectsBucket {
 
     bool                        needToUpdateCommands(uint8_t fId) const;
     void                        setAsUpdated(uint8_t fId);
-    void                        invalidate();
 
   private:
     struct NonUbo final {
@@ -68,10 +67,14 @@ class ObjectsBucket : public AbstractObjectsBucket {
     std::vector<NonUbo>         data;
     std::vector<NonUbo*>        index;
     std::vector<size_t>         freeList;
+    bool                        indexed=false;
 
     Ubo&                        element(size_t i);
     void                        markAsChanged() override;
-    size_t                      getNextId() override;
+    size_t                      getNextId() override final;
+    void                        invalidate();
+    static bool                 idxCmp(const NonUbo* a,const NonUbo* b);
+    void                        mkIndex();
 
     void                        setObjMatrix(size_t i,const Tempest::Matrix4x4& m) override;
     void                        setSkeleton(size_t i,const Skeleton* sk) override;
@@ -85,6 +88,7 @@ size_t ObjectsBucket<Ubo,Vertex>::getNextId(){
     freeList.pop_back();
     return id;
     }
+  indexed = false;
   data.emplace_back();
   return data.size()-1;
   }
@@ -138,15 +142,9 @@ void ObjectsBucket<Ubo,Vertex>::markAsChanged() {
 
 template<class Ubo,class Vertex>
 void ObjectsBucket<Ubo,Vertex>::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) {
+  mkIndex();
+
   auto& frame = pf[imgId];
-  index.resize(data.size());
-  for(size_t i=0;i<index.size();++i)
-    index[i]=&data[i];
-
-  std::sort(index.begin(),index.end(),[](const NonUbo* a,const NonUbo* b){
-    return a->ibo<b->ibo;
-    });
-
   for(size_t i=0;i<index.size();++i){
     auto& di = *index[i];
     if(di.vbo==nullptr)
@@ -160,15 +158,9 @@ void ObjectsBucket<Ubo,Vertex>::draw(Tempest::Encoder<Tempest::CommandBuffer> &c
 
 template<class Ubo,class Vertex>
 void ObjectsBucket<Ubo,Vertex>::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId, int layer) {
+  mkIndex();
+
   auto& frame = pf[imgId];
-  index.resize(data.size());
-  for(size_t i=0;i<index.size();++i)
-    index[i]=&data[i];
-
-  std::sort(index.begin(),index.end(),[](const NonUbo* a,const NonUbo* b){
-    return a->ibo<b->ibo;
-    });
-
   for(size_t i=0;i<index.size();++i){
     auto& di = *index[i];
     if(di.vbo==nullptr)
@@ -206,4 +198,28 @@ template<class Ubo, class Vertex>
 void ObjectsBucket<Ubo,Vertex>::invalidate() {
   for(size_t i=0;i<pfSize;++i)
     pf[i].nToUpdate=true;
+  }
+
+template<class Ubo, class Vertex>
+void ObjectsBucket<Ubo,Vertex>::mkIndex() {
+  if(indexed)
+    return;
+  indexed = true;
+
+  index.resize(data.size());
+  size_t sz=0;
+  for(size_t i=0;i<index.size();++i) {
+    if(data[i].vbo==nullptr)
+      continue;
+    index[sz]=&data[i];
+    ++sz;
+    }
+  index.resize(sz);
+
+  std::sort(index.begin(),index.end(),idxCmp);
+  }
+
+template<class Ubo, class Vertex>
+bool ObjectsBucket<Ubo,Vertex>::idxCmp(const NonUbo* a,const NonUbo* b) {
+  return a->ibo<b->ibo;
   }

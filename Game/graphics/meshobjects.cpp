@@ -82,7 +82,7 @@ ObjectsBucket<MeshObjects::UboDn,Resources::VertexA> &MeshObjects::getBucketDn(c
   }
 
 MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const Tempest::Texture2d *mat,
-                                           const Tempest::IndexBuffer<uint32_t>& ibo) {
+                                       const Tempest::IndexBuffer<uint32_t>& ibo) {
   auto&        bucket = getBucketSt(mat);
   const size_t id     = bucket.alloc(mesh.vbo,ibo);
   return Item(bucket,id);
