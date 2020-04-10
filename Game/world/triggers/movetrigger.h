@@ -1,7 +1,7 @@
 #pragma once
 
 #include "graphics/meshobjects.h"
-#include "physics/dynamicworld.h"
+#include "physics/physicmesh.h"
 #include "abstracttrigger.h"
 
 class MoveTrigger : public AbstractTrigger {
@@ -14,7 +14,6 @@ class MoveTrigger : public AbstractTrigger {
 
   private:
     void setView     (MeshObjects::Mesh&& m);
-    void setPhysic   (DynamicWorld::StaticItem&&  p);
     void setObjMatrix(const Tempest::Matrix4x4 &m);
     void emitSound   (const char* snd, bool freeSlot=true);
 
@@ -26,7 +25,7 @@ class MoveTrigger : public AbstractTrigger {
       };
 
     MeshObjects::Mesh        view;
-    DynamicWorld::StaticItem physic;
+    PhysicMesh               physic;
     Tempest::Matrix4x4       pos;
 
     Anim                     anim  = IdleClosed;

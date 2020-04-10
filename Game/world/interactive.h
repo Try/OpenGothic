@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Tempest/Matrix4x4>
-#include "physics/dynamicworld.h"
+#include "physics/physicmesh.h"
 #include "graphics/animationsolver.h"
 #include "graphics/meshobjects.h"
 #include "graphics/protomesh.h"
@@ -132,7 +132,7 @@ class Interactive final {
 
     std::vector<Pos>             attPos;
     const ProtoMesh*             mesh = nullptr;
-    DynamicWorld::StaticItem     physic;
+    PhysicMesh                   physic;
 
     const Skeleton*              skeleton=nullptr;
     MeshObjects::Mesh            view;

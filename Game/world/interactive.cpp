@@ -121,14 +121,15 @@ void Interactive::setVisual(const std::string &visual) {
 
   if(mesh) {
     if(showVisual) {
-      auto physicMesh = Resources::physicMesh(mesh); //FIXME: build physic model in Resources.cpp
       view   = world->getView(visual.c_str());
-      physic = world->physic()->staticObj(physicMesh,pos);
+      physic = PhysicMesh(*mesh,*world->physic());
       }
 
-    view  .setObjMatrix(pos);
-    physic.setObjMatrix(pos);
     view  .setAttachPoint(skeleton);
+    view  .setObjMatrix(pos);
+
+    physic.setAttachPoint(skeleton);
+    physic.setObjMatrix(pos);
 
     attPos.resize(mesh->pos.size());
     for(size_t i=0;i<attPos.size();++i){
@@ -152,10 +153,14 @@ void Interactive::updateAnimation() {
 
   solver.update(tickCount);
   pose.update(solver,0,tickCount);
-  view .setSkeleton(pose,pos);
+
+  view.setSkeleton(pose,pos);
   }
 
 void Interactive::tick(uint64_t dt) {
+  if(skInst->hasAnim())
+    physic.setSkeleton(*skInst,pos);
+
   Pos* p = nullptr;
   for(auto& i:attPos) {
     if(i.user!=nullptr) {

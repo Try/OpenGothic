@@ -10,7 +10,7 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "physicmesh.h"
+#include "physicvbo.h"
 
 class PhysicMeshShape final {
   public:
@@ -20,7 +20,7 @@ class PhysicMeshShape final {
 
   private:
     PhysicMeshShape(ZenLoad::PackedMesh&& sPacked);
-    PhysicMesh             mesh;
+    PhysicVbo                      mesh;
     mutable btBvhTriangleMeshShape shape;
 
   friend class DynamicWorld;

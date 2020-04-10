@@ -25,7 +25,7 @@ class btCollisionWorld;
 class btVector3;
 
 class PhysicMeshShape;
-class PhysicMesh;
+class PhysicVbo;
 class PackedMesh;
 class World;
 class Bullet;
@@ -37,6 +37,7 @@ class DynamicWorld final {
     struct NpcBody;
     struct NpcBodyList;
     struct BulletsList;
+    struct Broadphase;
 
   public:
     static constexpr float gravity     = 100*9.8f;
@@ -213,13 +214,13 @@ class DynamicWorld final {
     std::vector<std::string>                    sectors;
 
     std::vector<btVector3>                      landVbo;
-    std::unique_ptr<PhysicMesh>                 landMesh;
+    std::unique_ptr<PhysicVbo>                  landMesh;
     std::unique_ptr<btConcaveShape>             landShape;
     std::unique_ptr<btRigidBody>                landBody;
 
     std::unique_ptr<btCollisionShape>           waterShape;
     std::unique_ptr<btRigidBody>                waterBody;
-    std::unique_ptr<PhysicMesh>                 waterMesh;
+    std::unique_ptr<PhysicVbo>                  waterMesh;
 
     std::unique_ptr<NpcBodyList>                npcList;
     std::unique_ptr<BulletsList>                bulletList;

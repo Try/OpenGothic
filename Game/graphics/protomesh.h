@@ -15,12 +15,16 @@ class ProtoMesh {
     using Vertex =Resources::VertexA;
 
     ProtoMesh(const ZenLoad::zCModelMeshLib& lib,const std::string& fname);
-    ProtoMesh(const ZenLoad::PackedMesh&     pm,const std::string& fname);
+    ProtoMesh(ZenLoad::PackedMesh&&     pm, const std::string& fname);
     ProtoMesh(const std::string& fname, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo);
+    ProtoMesh(ProtoMesh&&)=default;
+    ProtoMesh& operator=(ProtoMesh&&)=default;
+    ~ProtoMesh();
 
     struct SubMesh final {
-      Tempest::Texture2d*            texture=nullptr;
-      Tempest::IndexBuffer<uint32_t> ibo;
+      Tempest::Texture2d*              texture=nullptr;
+      Tempest::IndexBuffer<uint32_t>   ibo;
+      std::unique_ptr<PhysicMeshShape> shape;
       };
 
     struct SubMeshId final {
@@ -40,9 +44,13 @@ class ProtoMesh {
 
     struct Attach : StaticMesh {
       using StaticMesh::StaticMesh;
+      Attach(Attach&&)=default;
+      Attach& operator=(Attach&&)=default;
+      ~Attach();
 
-      std::string name;
-      bool        hasNode=false;
+      std::string                      name;
+      bool                             hasNode=false;
+      std::unique_ptr<PhysicMeshShape> shape;
       };
 
     struct Pos {

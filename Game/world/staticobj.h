@@ -2,7 +2,7 @@
 
 #include "graphics/meshobjects.h"
 #include "graphics/pfxobjects.h"
-#include "physics/dynamicworld.h"
+#include "physics/physicmesh.h"
 
 class StaticObj final {
   public:
@@ -10,7 +10,7 @@ class StaticObj final {
 
   private:
     MeshObjects::Mesh          mesh;
-    DynamicWorld::StaticItem   physic;
+    PhysicMesh                 physic;
     PfxObjects::Emitter        pfx;
     std::unique_ptr<ProtoMesh> decalMesh;
   };

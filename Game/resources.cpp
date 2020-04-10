@@ -249,6 +249,9 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
   if(name.size()==0)
     return nullptr;
 
+  if(name=="DOOR_NW_RICH_01.MDS")
+    Log::d("");
+
   auto it=aniMeshCache.find(name);
   if(it!=aniMeshCache.end())
     return it->second.get();
@@ -266,11 +269,9 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
     ZenLoad::PackedMesh        sPacked;
     ZenLoad::zCModelMeshLib    library;
     auto                       code=loadMesh(sPacked,library,name);
-    std::unique_ptr<ProtoMesh> t{code==MeshLoadCode::Static ? new ProtoMesh(sPacked,name) : new ProtoMesh(library,name)};
+    std::unique_ptr<ProtoMesh> t{code==MeshLoadCode::Static ? new ProtoMesh(std::move(sPacked),name) : new ProtoMesh(library,name)};
     ProtoMesh* ret=t.get();
     aniMeshCache[name] = std::move(t);
-    if(code==MeshLoadCode::Static && sPacked.subMeshes.size()>0)
-      phyMeshCache[ret].reset(PhysicMeshShape::load(std::move(sPacked)));
     if(code==MeshLoadCode::Error)
       throw std::runtime_error("load failed");
     return ret;
@@ -519,16 +520,6 @@ const Skeleton *Resources::loadSkeleton(const char* name) {
 const Animation *Resources::loadAnimation(const std::string &name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadAnimation(name);
-  }
-
-const PhysicMeshShape *Resources::physicMesh(const ProtoMesh *view) {
-  std::lock_guard<std::recursive_mutex> g(inst->sync);
-  if(view==nullptr)
-    return nullptr;
-  auto it = inst->phyMeshCache.find(view);
-  if(it!=inst->phyMeshCache.end())
-    return it->second.get();
-  return nullptr;
   }
 
 SoundEffect *Resources::loadSound(const char *name) {

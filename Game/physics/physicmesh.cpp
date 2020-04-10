@@ -5,120 +5,57 @@
 #endif
 
 #include "physicmesh.h"
+#include "graphics/attachbinder.h"
+#include "graphics/skeleton.h"
+#include "graphics/pose.h"
 
-PhysicMesh::PhysicMesh(ZenLoad::PackedMesh&& sPacked)
-  :PhysicMesh(sPacked.vertices) {
-  size_t idSize=0;
-  size_t cnt=0;
-  for(auto& i:sPacked.subMeshes)
-    if(!i.material.noCollDet && i.indices.size()>0) {
-      idSize+=i.indices.size();
-      cnt++;
-      }
+PhysicMesh::PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner)
+  :ani(&proto) {
+  Tempest::Matrix4x4 pos;
+  pos.identity();
 
-  if(cnt==1) {
-    for(auto& i:sPacked.subMeshes)
-      if(!i.material.noCollDet && i.indices.size()>0) {
-        addIndex(std::move(i.indices),i.material.matGroup);
-        return;
-        }
-    }
-
-  id.resize(idSize);
-  size_t off=0;
-  for(auto& i:sPacked.subMeshes)
-    if(!i.material.noCollDet && i.indices.size()>0) {
-      std::memcpy(&id[off],i.indices.data(),i.indices.size()*sizeof(i.indices[0]));
-      addSegment(i.indices.size(),off,i.material.matGroup,nullptr);
-      off+=i.indices.size();
-      }
-  for(size_t i=0;i<id.size();i+=3){
-    std::swap(id[i+1],id[i+2]);
-    }
-  adjustMesh();
-  }
-
-PhysicMesh::PhysicMesh(const std::vector<ZenLoad::WorldVertex>& v)
-  :vStorage(v.size()), vert(vStorage) {
-  for(size_t i=0;i<v.size();++i){
-    vStorage[i].setValue(v[i].Position.x,v[i].Position.y,v[i].Position.z);
+  for(auto& i:proto.attach) {
+    auto physic = owner.staticObj(i.shape.get(),pos);
+    sub.emplace_back(std::move(physic));
     }
   }
 
-PhysicMesh::PhysicMesh(const std::vector<btVector3>* v)
-  :vert(*v) {
-  }
-
-void PhysicMesh::addIndex(std::vector<uint32_t>&& index, uint8_t material) {
-  addIndex(std::move(index),material,nullptr);
-  }
-
-void PhysicMesh::addIndex(std::vector<uint32_t>&& index, uint8_t material, const char* sector) {
-  if(index.size()==0)
-    return;
-
-  size_t off    = id.size();
-  size_t idSize = index.size();
-  if(id.size()==0) {
-    id=std::move(index);
-    for(size_t i=0;i<id.size();i+=3){
-      std::swap(id[i+1],id[i+2]);
+void PhysicMesh::setObjMatrix(const Tempest::Matrix4x4& mt) {
+  if(binder!=nullptr){
+    for(size_t i=0;i<binder->bind.size();++i){
+      auto id=binder->bind[i].boneId;
+      if(id>=skeleton->tr.size())
+        continue;
+      auto subI = ani->submeshId[i].id;
+      auto mat=mt;
+      mat.translate(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
+      mat.mul(skeleton->tr[id]);
+      sub[subI].setObjMatrix(mat);
       }
     } else {
-    id.resize(off+index.size());
-    for(size_t i=0;i<index.size();i+=3){
-      id[off+i+0] = index[i+0];
-      id[off+i+1] = index[i+2];
-      id[off+i+2] = index[i+1];
-      }
+    for(auto& i:sub)
+      i.setObjMatrix(mt);
     }
-
-  addSegment(idSize,off,material,sector);
-  adjustMesh();
   }
 
-void PhysicMesh::addSegment(size_t indexSize, size_t offset, uint8_t material, const char* sector) {
-  btIndexedMesh meshIndex={};
-  meshIndex.m_numTriangles = indexSize/3;
-  meshIndex.m_numVertices  = int32_t(vert.size());
-
-  meshIndex.m_indexType           = PHY_INTEGER;
-  meshIndex.m_triangleIndexBase   = reinterpret_cast<const uint8_t*>(&id[0]);
-  meshIndex.m_triangleIndexStride = 3 * sizeof(id[0]);
-
-  meshIndex.m_vertexBase          = reinterpret_cast<const uint8_t*>(&vert[0]);
-  meshIndex.m_vertexStride        = sizeof(btVector3);
-
-  m_indexedMeshes.push_back(meshIndex);
-  segments.push_back(Segment{offset,int(indexSize/3),material,sector});
+void PhysicMesh::setAttachPoint(const Skeleton* sk, const char* defBone) {
+  skeleton = sk;
+  if(ani!=nullptr && skeleton!=nullptr)
+    binder=Resources::bindMesh(*ani,*skeleton,defBone);
   }
 
-uint8_t PhysicMesh::getMaterialId(size_t segment) const {
-  if(segment<segments.size())
-    return segments[segment].mat;
-  return 0;
-  }
+void PhysicMesh::setSkeleton(const Pose& p, const Tempest::Matrix4x4& obj) {
+  if(binder!=nullptr){
+    for(size_t i=0;i<binder->bind.size();++i){
+      auto id=binder->bind[i].boneId;
+      if(id>=p.tr.size())
+        continue;
+      auto mat=obj;
+      mat.translate(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
+      mat.mul(p.tr[id]);
 
-const char* PhysicMesh::getSectorName(size_t segment) const {
-  if(segment<segments.size())
-    return segments[segment].sector;
-  return nullptr;
-  }
-
-bool PhysicMesh::useQuantization() const {
-  return segments.size()<1024;
-  }
-
-bool PhysicMesh::isEmpty() const {
-  return segments.size()==0;
-  }
-
-void PhysicMesh::adjustMesh(){
-  for(int i=0;i<m_indexedMeshes.size();++i){
-    btIndexedMesh& meshIndex=m_indexedMeshes[i];
-    Segment&       sg       =segments[size_t(i)];
-
-    meshIndex.m_triangleIndexBase = reinterpret_cast<const uint8_t*>(&id[sg.off]);
-    meshIndex.m_numTriangles      = sg.size;
+      auto subI = ani->submeshId[i].id;
+      sub[subI].setObjMatrix(mat);
+      }
     }
   }

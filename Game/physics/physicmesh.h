@@ -1,43 +1,21 @@
 #pragma once
 
-#include <BulletCollision/CollisionShapes/btTriangleIndexVertexArray.h>
-#include <zenload/zTypes.h>
-#include <vector>
-#include <cstdint>
+#include "dynamicworld.h"
 
-#include "graphics/protomesh.h"
+class Pose;
 
-class PhysicMesh:public btTriangleIndexVertexArray {
+class PhysicMesh final {
   public:
-    PhysicMesh(ZenLoad::PackedMesh&& sPacked);
-    PhysicMesh(const std::vector<btVector3>* v);
+    PhysicMesh()=default;
+    PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner);
 
-    PhysicMesh(const PhysicMesh&)=delete;
-    PhysicMesh(PhysicMesh&&)=delete;
-
-    void    addIndex(std::vector<uint32_t>&& index, uint8_t material);
-    void    addIndex(std::vector<uint32_t>&& index, uint8_t material, const char* sector);
-    uint8_t getMaterialId(size_t segment) const;
-    auto    getSectorName(size_t segment) const -> const char*;
-    bool    useQuantization() const;
-    bool    isEmpty() const;
-
-    void    adjustMesh();
+    void   setObjMatrix  (const Tempest::Matrix4x4& m);
+    void   setAttachPoint(const Skeleton* sk,const char* defBone=nullptr);
+    void   setSkeleton   (const Pose&      p,const Tempest::Matrix4x4& obj);
 
   private:
-    PhysicMesh(const std::vector<ZenLoad::WorldVertex>& v);
-
-    void addSegment(size_t indexSize,size_t offset,uint8_t material,const char* sector);
-
-    struct Segment {
-      size_t      off;
-      int         size;
-      uint8_t     mat;
-      const char* sector=nullptr;
-      };
-
-    std::vector<btVector3>        vStorage;
-    const std::vector<btVector3>& vert;
-    std::vector<uint32_t>         id;
-    std::vector<Segment>          segments;
+    std::vector<DynamicWorld::StaticItem> sub;
+    const ProtoMesh*                      ani=nullptr;
+    const Skeleton*                       skeleton=nullptr;
+    const AttachBinder*                   binder=nullptr;
   };

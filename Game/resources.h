@@ -86,7 +86,6 @@ class Resources final {
     static const ProtoMesh*          loadMesh     (const std::string& name);
     static const Skeleton*           loadSkeleton (const char*        name);
     static const Animation*          loadAnimation(const std::string& name);
-    static const PhysicMeshShape*    physicMesh   (const ProtoMesh*   view);
 
     static Tempest::SoundEffect*     loadSound(const char* name);
     static Tempest::SoundEffect*     loadSound(const std::string& name);
@@ -178,7 +177,6 @@ class Resources final {
     std::unordered_map<std::string,std::unique_ptr<Skeleton>>             skeletonCache;
     std::unordered_map<std::string,std::unique_ptr<Animation>>            animCache;
     std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>          bindCache;
-    std::unordered_map<const ProtoMesh*,std::unique_ptr<PhysicMeshShape>> phyMeshCache;
 
     std::unordered_map<std::string,std::unique_ptr<Tempest::SoundEffect>> sndCache;
     std::unordered_map<FontK,std::unique_ptr<GthFont>,Hash>               gothicFnt;

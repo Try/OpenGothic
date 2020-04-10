@@ -2,12 +2,19 @@
 
 #include <Tempest/Log>
 
+#include "physics/physicmeshshape.h"
+
+ProtoMesh::Attach::~Attach() {
+  }
+
 ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &fname) {
   for(auto& m:library.getAttachments()) {
     ZenLoad::PackedMesh stat;
     m.second.packMesh(stat, 1.f);
     attach.emplace_back(stat);
-    attach.back().name = m.first;
+    auto& att = attach.back();
+    att.name = m.first;
+    att.shape.reset(PhysicMeshShape::load(std::move(stat)));
     }
 
   nodes.resize(library.getNodes().size());
@@ -101,10 +108,12 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &
   //bboxCol[1] = library.getBBoxCollisionMin();
   }
 
-ProtoMesh::ProtoMesh(const ZenLoad::PackedMesh &pm, const std::string& fname) {
+ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm, const std::string& fname) {
   attach.emplace_back(pm);
   submeshId.resize(attach[0].sub.size());
   auto&  att   = attach[0];
+  att.shape.reset(PhysicMeshShape::load(std::move(pm)));
+
   size_t count = 0;
   for(size_t r=0;r<att.sub.size();++r) {
     if(att.sub[r].texture==nullptr) {
@@ -155,6 +164,9 @@ ProtoMesh::ProtoMesh(const std::string& fname, std::vector<Resources::Vertex> vb
   //bbox[0] = Tempest::Vec3(pm.bbox[0].x,pm.bbox[0].y,pm.bbox[0].z);
   //bbox[1] = Tempest::Vec3(pm.bbox[1].x,pm.bbox[1].y,pm.bbox[1].z);
   setupScheme("");
+  }
+
+ProtoMesh::~ProtoMesh() {
   }
 
 size_t ProtoMesh::skinedNodesCount() const {

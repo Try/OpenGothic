@@ -11,8 +11,7 @@ MoveTrigger::MoveTrigger(ZenLoad::zCVobData&& d,World& w)
   setView(owner.getView(data.visual.c_str()));
   if(data.cdDyn || data.cdStatic) {
     auto mesh   = Resources::loadMesh(data.visual);
-    auto physic = Resources::physicMesh(mesh);
-    setPhysic(owner.physic()->staticObj(physic,Tempest::Matrix4x4(v)));
+    physic = PhysicMesh(*mesh,*owner.physic());
     }
   pos = Tempest::Matrix4x4(v);
   setObjMatrix(pos);
@@ -24,10 +23,6 @@ bool MoveTrigger::hasVolume() const {
 
 void MoveTrigger::setView(MeshObjects::Mesh &&m) {
   view = std::move(m);
-  }
-
-void MoveTrigger::setPhysic(DynamicWorld::StaticItem &&p) {
-  physic = std::move(p);
   }
 
 void MoveTrigger::setObjMatrix(const Tempest::Matrix4x4 &m) {

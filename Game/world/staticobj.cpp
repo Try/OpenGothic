@@ -45,8 +45,8 @@ StaticObj::StaticObj(const ZenLoad::zCVobData& vob,World& owner) {
     mesh.setObjMatrix(objMat);
 
     if(vob.cdDyn || vob.cdStatic) {
-      auto physicMesh = Resources::physicMesh(view);
-      physic = owner.physic()->staticObj(physicMesh,objMat);
+      physic = PhysicMesh(*view,*owner.physic());
+      physic.setObjMatrix(objMat);
       }
     }
   }

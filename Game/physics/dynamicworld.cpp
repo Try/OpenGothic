@@ -28,7 +28,7 @@
 
 #include "graphics/submesh/packedmesh.h"
 #include "physicmeshshape.h"
-#include "physicmesh.h"
+#include "physicvbo.h"
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -59,9 +59,7 @@ struct DynamicWorld::HumShape:btCapsuleShape {
     }
   };
 
-struct Broadphase : btDbvtBroadphase {
-  btAlignedObjectArray<const btDbvtNode*> rayTestStk;
-
+struct DynamicWorld::Broadphase : btDbvtBroadphase {
   struct BroadphaseRayTester : btDbvt::ICollide {
     btBroadphaseRayCallback& m_rayCallback;
     BroadphaseRayTester(btBroadphaseRayCallback& orgCallback) : m_rayCallback(orgCallback) {}
@@ -71,8 +69,16 @@ struct Broadphase : btDbvtBroadphase {
       }
     };
 
+  struct OverlapFilter:btOverlapFilterCallback {
+    bool needBroadphaseCollision(btBroadphaseProxy*, btBroadphaseProxy*) const override {
+      // hard disable
+      return false;
+      }
+    };
+
   Broadphase() {
     rayTestStk.reserve(btDbvt::DOUBLE_STACKSIZE);
+    m_paircache->setOverlapFilterCallback(&overlapFilter);
     }
 
   void rayTest(const btVector3& rayFrom, const btVector3& rayTo, btBroadphaseRayCallback& rayCallback,
@@ -102,6 +108,9 @@ struct Broadphase : btDbvtBroadphase {
         *stack,
         callback);
     }
+
+  btAlignedObjectArray<const btDbvtNode*> rayTestStk;
+  OverlapFilter                           overlapFilter;
   };
 
 struct DynamicWorld::NpcBody : btRigidBody {
@@ -448,8 +457,8 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::zCMesh& worldMesh) {
     landVbo[i].setValue(p.x,p.y,p.z);
     }
 
-  landMesh .reset(new PhysicMesh(&landVbo));
-  waterMesh.reset(new PhysicMesh(&landVbo));
+  landMesh .reset(new PhysicVbo(&landVbo));
+  waterMesh.reset(new PhysicVbo(&landVbo));
 
   for(size_t i=0;i<pkg.subMeshes.size();++i) {
     auto& sm = pkg.subMeshes[i];
@@ -590,7 +599,7 @@ DynamicWorld::RayResult DynamicWorld::ray(float x0, float y0, float z0, float x1
       auto shape = rayResult.m_collisionObject->getCollisionShape();
       if(shape) {
         auto s  = reinterpret_cast<const btMultimaterialTriangleMeshShape*>(shape);
-        auto mt = reinterpret_cast<const PhysicMesh*>(s->getMeshInterface());
+        auto mt = reinterpret_cast<const PhysicVbo*>(s->getMeshInterface());
 
         size_t id = size_t(rayResult.m_localShapeInfo->m_shapePart);
         matId  = mt->getMaterialId(id);
@@ -830,7 +839,7 @@ void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint6
       auto shape = rayResult.m_collisionObject->getCollisionShape();
       if(shape) {
         auto s  = reinterpret_cast<const btMultimaterialTriangleMeshShape*>(shape);
-        auto mt = reinterpret_cast<const PhysicMesh*>(s->getMeshInterface());
+        auto mt = reinterpret_cast<const PhysicVbo*>(s->getMeshInterface());
 
         size_t id = size_t(rayResult.m_localShapeInfo->m_shapePart);
         matId  = mt->getMaterialId(id);

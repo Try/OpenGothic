@@ -12,6 +12,8 @@ class StaticMesh {
     StaticMesh(const ZenLoad::PackedMesh& data);
     StaticMesh(const ZenLoad::PackedSkeletalMesh& data);
     StaticMesh(const std::string& fname, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo);
+    StaticMesh(StaticMesh&&)=default;
+    StaticMesh& operator=(StaticMesh&&)=default;
 
     struct SubMesh {
       const Tempest::Texture2d*      texture=nullptr;
