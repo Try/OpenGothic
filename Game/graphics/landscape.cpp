@@ -20,25 +20,29 @@ Landscape::Landscape(const RendererStorage &storage, const PackedMesh &mesh)
   const Resources::Vertex* vert=reinterpret_cast<const Resources::Vertex*>(mesh.vertices.data());
   vbo = Resources::vbo<Resources::Vertex>(vert,mesh.vertices.size());
 
+  std::vector<uint32_t> solids;
+
   for(auto& i:mesh.subMeshes){
-    if(i.material.alphaFunc==Material::AdditiveLight || i.indices.size()==0)
-      continue;
-    if(i.material.alphaFunc==Material::NoAlpha)
-      ;//continue;
-
     Block b={};
-    b.ibo      = Resources::ibo(i.indices.data(),i.indices.size());
     b.material = Resources::loadMaterial(i.material);
-
-    if(i.material.alphaFunc>=Material::Last) {
+    if(b.material.alpha==Material::AdditiveLight || i.indices.size()==0)
+      continue;
+    if(b.material.alpha==Material::InvalidAlpha) {
       Log::i("unrecognized alpha func: ",i.material.alphaFunc);
       continue;
       }
 
+    if(b.material.alpha==Material::Solid) {
+      solids.insert(solids.end(), i.indices.begin(),i.indices.end());
+      }
+
     if(b.material.tex==nullptr || b.material.tex->isEmpty())
       continue;
+    b.ibo = Resources::ibo(i.indices.data(),i.indices.size());
     blocks.emplace_back(std::move(b));
     }
+
+  iboSolid = Resources::ibo(solids.data(),solids.size());
 
   std::sort(blocks.begin(),blocks.end(),[](const Block& a,const Block& b){
     return a.material<b.material;
@@ -110,32 +114,42 @@ void Landscape::commitUbo(uint8_t frameId, const Tempest::Texture2d& shadowMap) 
     uboS1.set(0,pf.uboGpu[1],0,1);
     uboS1.set(2,*lnd.material.tex);
     uboS1.set(3,Resources::fallbackTexture());
+
+    for(int r=0;r<2;++r) {
+      if(pf.solidSh[r].isEmpty())
+        pf.solidSh[r] = storage.device.uniforms(storage.uboLndLayout());
+      pf.solidSh[r].set(0,pf.uboGpu[r],0,1);
+      pf.solidSh[r].set(2,Resources::fallbackBlack());
+      pf.solidSh[r].set(3,Resources::fallbackTexture());
+      }
     }
   }
 
 void Landscape::draw(Tempest::Encoder<CommandBuffer> &cmd, uint8_t frameId) {
-  const RenderPipeline* ptable[Material::ApphaFunc::Last] = {
-    nullptr,
-    &storage.pLandAt,
-    &storage.pLandAlpha,
-    nullptr,
-    };
+  const RenderPipeline* ptable[Material::ApphaFunc::Last] = {};
+  ptable[Material::ApphaFunc::AlphaTest  ] = &storage.pLandAt;
+  ptable[Material::ApphaFunc::Transparent] = &storage.pLandAlpha;
+  ptable[Material::ApphaFunc::Solid      ] = &storage.pLand;
+
   implDraw(cmd,ptable,0,frameId);
   }
 
 void Landscape::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, int layer) {
-  const RenderPipeline* ptable[Material::ApphaFunc::Last] = {
-    nullptr,
-    &storage.pLandAtSh,
-    &storage.pLandSh,
-    nullptr,
-    };
+  const RenderPipeline* ptable[Material::ApphaFunc::Last] = {};
+  ptable[Material::ApphaFunc::AlphaTest  ] = &storage.pLandAtSh;
+  ptable[Material::ApphaFunc::Transparent] = &storage.pLandSh;
+  // ptable[Material::ApphaFunc::Solid      ] = &storage.pLandSh;
+
+  uint32_t offset=0;
+  cmd.setUniforms(storage.pLandSh,pf[frameId].solidSh[layer],1,&offset);
+  cmd.draw(vbo,iboSolid);
+
   implDraw(cmd,ptable,uint8_t(1+layer),frameId);
   }
 
 void Landscape::implDraw(Tempest::Encoder<Tempest::CommandBuffer> &cmd,
                          const RenderPipeline* p[],
-                         uint8_t uboId,uint32_t frameId) {
+                         uint8_t uboId, uint8_t frameId) {
   PerFrame& pf      = this->pf[frameId];
   auto&     uboLand = pf.ubo[uboId];
 

@@ -41,6 +41,7 @@ class Landscape final {
     struct PerFrame {
       std::vector<Tempest::Uniforms>  ubo[3];
       Tempest::UniformBuffer<UboLand> uboGpu[2];
+      Tempest::Uniforms               solidSh[2];
       bool                            nToUpdate=true;
       };
 
@@ -50,10 +51,13 @@ class Landscape final {
       };
 
     void implDraw(Tempest::Encoder<Tempest::CommandBuffer> &cmd,
-                  const Tempest::RenderPipeline* p[], uint8_t uboId, uint32_t frameId);
+                  const Tempest::RenderPipeline* p[],
+                  uint8_t uboId, uint8_t frameId);
 
     Tempest::VertexBuffer<Resources::Vertex> vbo;
     std::vector<Block>                       blocks;
+
+    Tempest::IndexBuffer<uint32_t>           iboSolid;
 
     const RendererStorage&         storage;
     UboLand                        uboCpu;
