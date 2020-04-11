@@ -3,7 +3,7 @@
 Workers::Workers() {
   size_t id=0;
   for(auto& i:th) {
-    i = std::thread([this,id](){
+    i = std::thread([this,id]() noexcept {
       threadFunc(id);
       });
     ++id;

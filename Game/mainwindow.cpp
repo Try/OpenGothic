@@ -465,10 +465,12 @@ void MainWindow::tick() {
     }
 
   auto st = gothic.checkLoading();
-  if(st==Gothic::LoadState::Finalize || st==Gothic::LoadState::Failed) {
+  if(st==Gothic::LoadState::Finalize || st==Gothic::LoadState::FailedLoad || st==Gothic::LoadState::FailedSave) {
     gothic.finishLoading();
-    if(st==Gothic::LoadState::Failed)
+    if(st==Gothic::LoadState::FailedLoad)
       rootMenu->setMenu("MENU_MAIN");
+    if(st==Gothic::LoadState::FailedSave)
+      gothic.print("unable to write savegame file");
     }
   else if(st!=Gothic::LoadState::Idle) {
     if(st==Gothic::LoadState::Loading)

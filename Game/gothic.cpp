@@ -298,7 +298,7 @@ Gothic::LoadState Gothic::checkLoading() const {
 
 bool Gothic::finishLoading() {
   auto state = checkLoading();
-  if(state!=LoadState::Finalize && state!=LoadState::Failed)
+  if(state!=LoadState::Finalize && state!=LoadState::FailedLoad && state!=LoadState::FailedSave)
     return false;
   if(loadingFlag.compare_exchange_strong(state,LoadState::Idle)){
     loaderTh.join();
@@ -336,21 +336,35 @@ void Gothic::implStartLoadSave(const char* banner,
 
   auto g = clearGame().release();
   try{
-    auto l = std::thread([this,f,g,one](){
+    auto l = std::thread([this,f,g,one]() noexcept {
       std::unique_ptr<GameSession> game(g);
+      std::unique_ptr<GameSession> next;
       auto curState = one;
+      auto err = (curState==LoadState::Loading) ? LoadState::FailedLoad : LoadState::FailedSave;
       try {
-        auto next   = f(std::move(game));
+        next        = f(std::move(game));
         pendingGame = std::move(next);
         loadingFlag.compare_exchange_strong(curState,LoadState::Finalize);
         }
       catch(std::bad_alloc&){
         Tempest::Log::e("loading error: out of memory");
-        loadingFlag.compare_exchange_strong(curState,LoadState::Failed);
+        loadingFlag.compare_exchange_strong(curState,err);
         }
       catch(std::system_error&){
         Tempest::Log::e("loading error: unable to open file");
-        loadingFlag.compare_exchange_strong(curState,LoadState::Failed);
+        loadingFlag.compare_exchange_strong(curState,err);
+        }
+      catch(std::runtime_error& e){
+        Tempest::Log::e("loading error: ",e.what());
+        loadingFlag.compare_exchange_strong(curState,err);
+        }
+      catch(...) {
+        Tempest::Log::e("loading error");
+        loadingFlag.compare_exchange_strong(curState,err);
+        }
+      if(curState==LoadState::Saving) {
+        if(game!=nullptr)
+          pendingGame = std::move(game);
         }
       });
     loaderTh=std::move(l);

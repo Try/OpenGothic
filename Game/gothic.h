@@ -30,11 +30,12 @@ class Gothic final {
     ~Gothic();
 
     enum class LoadState:int {
-      Idle    =0,
-      Loading =1,
-      Saving  =2,
-      Finalize=3,
-      Failed  =4
+      Idle       = 0,
+      Loading    = 1,
+      Saving     = 2,
+      Finalize   = 3,
+      FailedLoad = 4,
+      FailedSave = 5
       };
 
     auto version() const -> const VersionInfo&;
