@@ -473,6 +473,9 @@ bool GameMenu::implUpdateSavThumb(GameMenu::Item& sel) {
     Log::d(e.what());
     return false;
     }
+  catch(std::runtime_error&) {
+    return false;
+    }
 
   char form[64]={};
   savThumb = Resources::loadTexture(hdr.priview);
