@@ -129,6 +129,7 @@ class Interactive final {
     bool                         reverseState=false;
     bool                         loopState=false;
     uint64_t                     waitAnim = 0;
+    bool                         animChanged=false;
 
     std::vector<Pos>             attPos;
     const ProtoMesh*             mesh = nullptr;

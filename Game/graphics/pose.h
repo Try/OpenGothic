@@ -34,7 +34,7 @@ class Pose final {
     void               stopItemStateAnim();
     void               interrupt();
     void               stopAllAnim();
-    void               update(AnimationSolver &solver, int comb, uint64_t tickCount);
+    bool               update(AnimationSolver &solver, int comb, uint64_t tickCount);
 
     ZMath::float3      animMoveSpeed(uint64_t tickCount, uint64_t dt) const;
     void               processSfx(Npc &npc, uint64_t tickCount);
@@ -80,7 +80,7 @@ class Pose final {
     void mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent);
     void zeroSkeleton();
 
-    void updateFrame(const Animation::Sequence &s, uint64_t barrier, uint64_t sTime, uint64_t now);
+    bool updateFrame(const Animation::Sequence &s, uint64_t barrier, uint64_t sTime, uint64_t now);
 
     auto getNext(AnimationSolver& solver, const Animation::Sequence* sq) -> const Animation::Sequence*;
 

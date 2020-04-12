@@ -179,10 +179,10 @@ void Pose::stopAllAnim() {
   lay.clear();
   }
 
-void Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
+bool Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
   if(lay.size()==0){
     zeroSkeleton();
-    return;
+    return true;
     }
 
   size_t ret=0;
@@ -224,26 +224,32 @@ void Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
     }
 
   if(lastUpdate!=tickCount) {
+    bool changed = false;
     for(auto& i:lay) {
       const Animation::Sequence* seq = i.seq;
       if(0<i.comb && size_t(i.comb)<=i.seq->comb.size()) {
         if(auto sx = i.seq->comb[size_t(i.comb-1)])
           seq = sx;
         }
-      updateFrame(*seq,lastUpdate,i.sAnim,tickCount);
+      changed |= updateFrame(*seq,lastUpdate,i.sAnim,tickCount);
       }
     lastUpdate = tickCount;
-    mkSkeleton(*lay[0].seq);
+    if(changed) {
+      mkSkeleton(*lay[0].seq);
+      return true;
+      }
     }
+  // no changes to skeleton
+  return false;
   }
 
-void Pose::updateFrame(const Animation::Sequence &s,
+bool Pose::updateFrame(const Animation::Sequence &s,
                        uint64_t barrier, uint64_t sTime, uint64_t now) {
   auto&        d         = *s.data;
   const size_t numFrames = d.numFrames;
   const size_t idSize    = d.nodeIndex.size();
   if(numFrames==0 || idSize==0 || d.samples.size()%idSize!=0)
-    return;
+    return false;
 
   (void)barrier;
   now = now-sTime;
@@ -275,6 +281,7 @@ void Pose::updateFrame(const Animation::Sequence &s,
     auto smp = mix(sampleA[i],sampleB[i],a);
     base[d.nodeIndex[i]] = mkMatrix(smp);
     }
+  return true;
   }
 
 const Animation::Sequence* Pose::getNext(AnimationSolver &solver, const Animation::Sequence* sq) {

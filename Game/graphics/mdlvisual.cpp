@@ -218,7 +218,9 @@ void MdlVisual::updateAnimation(Npc& npc,int comb) {
     pose.processSfx(npc,tickCount);
 
   solver.update(tickCount);
-  pose.update(solver,comb,tickCount);
+  const bool changed = pose.update(solver,comb,tickCount);
+  if(!changed)
+    return;
 
   head      .setSkeleton(pose,pos);
   sword     .setSkeleton(pose,pos);

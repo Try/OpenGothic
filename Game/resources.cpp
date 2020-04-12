@@ -249,9 +249,6 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
   if(name.size()==0)
     return nullptr;
 
-  if(name=="DOOR_NW_RICH_01.MDS")
-    Log::d("");
-
   auto it=aniMeshCache.find(name);
   if(it!=aniMeshCache.end())
     return it->second.get();

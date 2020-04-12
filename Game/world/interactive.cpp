@@ -121,6 +121,7 @@ void Interactive::setVisual(const std::string &visual) {
 
   if(mesh) {
     if(showVisual) {
+      animChanged = true;
       view   = world->getView(visual.c_str());
       physic = PhysicMesh(*mesh,*world->physic());
       }
@@ -152,14 +153,16 @@ void Interactive::updateAnimation() {
   uint64_t tickCount = world->tickCount();
 
   solver.update(tickCount);
-  pose.update(solver,0,tickCount);
+  animChanged = pose.update(solver,0,tickCount);
 
   view.setSkeleton(pose,pos);
   }
 
 void Interactive::tick(uint64_t dt) {
-  if(skInst->hasAnim())
+  if(animChanged) {
     physic.setSkeleton(*skInst,pos);
+    animChanged = false;
+    }
 
   Pos* p = nullptr;
   for(auto& i:attPos) {
