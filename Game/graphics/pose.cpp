@@ -186,7 +186,8 @@ bool Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
     }
 
   size_t ret=0;
-  bool   doSort=false;
+  bool   doSort  = false;
+  bool   changed = false;
   for(size_t i=0;i<lay.size();++i) {
     const auto& l = lay[i];
     if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount-l.sAnim,comboLen)) {
@@ -195,6 +196,7 @@ bool Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
         if(lay[i].seq==itemUse) {
           itemUse=next;
           }
+        changed = true;
         onRemoveLayer(lay[i]);
 
         if(next!=nullptr) {
@@ -224,7 +226,6 @@ bool Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
     }
 
   if(lastUpdate!=tickCount) {
-    bool changed = false;
     for(auto& i:lay) {
       const Animation::Sequence* seq = i.seq;
       if(0<i.comb && size_t(i.comb)<=i.seq->comb.size()) {
@@ -234,10 +235,8 @@ bool Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
       changed |= updateFrame(*seq,lastUpdate,i.sAnim,tickCount);
       }
     lastUpdate = tickCount;
-    if(changed) {
-      mkSkeleton(*lay[0].seq);
-      return true;
-      }
+    mkSkeleton(*lay[0].seq);
+    return true;
     }
   // no changes to skeleton
   return false;
@@ -303,6 +302,7 @@ void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, uint64_t tickC
   std::sort(lay.begin(),lay.end(),[](const Layer& a,const Layer& b){
     return a.seq->layer<b.seq->layer;
     });
+  lastUpdate = 0;
   }
 
 void Pose::onRemoveLayer(Pose::Layer &l) {
@@ -310,6 +310,7 @@ void Pose::onRemoveLayer(Pose::Layer &l) {
     rotation=nullptr;
   if(l.seq==itemUse)
     itemUse=nullptr;
+  lastUpdate = 0;
   }
 
 void Pose::processSfx(Npc &npc, uint64_t tickCount) {
