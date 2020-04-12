@@ -75,13 +75,6 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
     return false;
     }
 
-  if(!isSlide()) {
-    fallSpeed.x = 0.f;
-    fallSpeed.y = 0.f;
-    fallSpeed.z = 0.f;
-    fallCount=-1.f;
-    }
-
   if(!testSlide(pos.x,pos.y+fallThreshold,pos.z)) {
     setAsSlide(false);
     return false;
@@ -314,7 +307,7 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
     setAsSlide(false);
     }
   else if(0.f<=dY && dY<fallThreshold) {
-    if(onGound && testSlide(pos.x+dp.x, pos.x+dp.y+fallThreshold, pos.z+dp.z)) {
+    if(onGound && testSlide(pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z)) {
       tryMove(dp.x,-dY,dp.z);
       setAsSlide(true);
       return;
