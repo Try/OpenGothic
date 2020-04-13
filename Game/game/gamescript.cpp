@@ -885,8 +885,10 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, size_t fn) {
     vic=owner.player();
 
   if(fn==ZS_Talk){
-    if(!oth->isPlayer())
+    if(oth==nullptr || !oth->isPlayer()) {
       Log::e("unxepected perc acton");
+      return 0;
+      }
     }
 
   ScopeVar self  (vm, vm.globalSelf(),   npc);

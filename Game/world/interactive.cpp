@@ -535,10 +535,11 @@ bool Interactive::dettach(Npc &npc, bool quick) {
       if(quick) {
         i.user = nullptr;
         i.attachMode = false;
+        if(reverseState)
+          state = stateNum; else
+          state = 0;
         npc.quitIneraction();
         } else {
-        if(i.attachMode && canQuitAtLastState())
-          return false;
         i.attachMode = false;
         return true;
         }
