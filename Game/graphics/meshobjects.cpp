@@ -277,18 +277,18 @@ void MeshObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint
 void MeshObjects::Mesh::setSkeleton(const Skeleton *sk) {
   skeleton = sk;
   if(ani!=nullptr && skeleton!=nullptr)
-    binder=Resources::bindMesh(*ani,*skeleton,nullptr);
+    binder=Resources::bindMesh(*ani,*skeleton);
   for(size_t i=0;i<subCount;++i)
     sub[i].setSkeleton(sk);
   }
 
 void MeshObjects::Mesh::setPose(const Pose &p,const Tempest::Matrix4x4& obj) {
   for(size_t i=0;i<subCount;++i)
-    sub[i].setSkeleton(p);
+    sub[i].setPose(p);
 
   if(binder!=nullptr){
     for(size_t i=0;i<binder->bind.size();++i){
-      auto id=binder->bind[i].boneId;
+      auto id=binder->bind[i];
       if(id>=p.tr.size())
         continue;
       auto mat=obj;
@@ -303,12 +303,6 @@ Tempest::Vec3 MeshObjects::Mesh::translate() const {
   if(ani==nullptr)
     return Tempest::Vec3();
   return Tempest::Vec3(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
-  }
-
-const char* MeshObjects::Mesh::attachPoint() const {
-  if(binder==nullptr)
-    return nullptr;
-  return binder->defBone.c_str();
   }
 
 MeshObjects::Mesh::Mesh(MeshObjects::Mesh &&other) {
@@ -337,7 +331,7 @@ void MeshObjects::Mesh::setObjMatrix(const Tempest::Matrix4x4 &mt) {
     }
   if(binder!=nullptr){
     for(size_t i=0;i<binder->bind.size();++i){
-      auto id=binder->bind[i].boneId;
+      auto id=binder->bind[i];
       if(id>=skeleton->tr.size())
         continue;
       auto mat=mt;

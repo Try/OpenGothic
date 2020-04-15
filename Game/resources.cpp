@@ -635,20 +635,20 @@ ZenLoad::zCModelMeshLib Resources::loadMDS(std::string &name) {
   return ZenLoad::zCModelMeshLib();
   }
 
-const AttachBinder *Resources::bindMesh(const ProtoMesh &anim, const Skeleton &s, const char *defBone) {
+const AttachBinder *Resources::bindMesh(const ProtoMesh &anim, const Skeleton &s) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
 
   if(anim.submeshId.size()==0){
     static AttachBinder empty;
     return &empty;
     }
-  BindK k = BindK(&s,&anim,defBone ? defBone : "");
+  BindK k = BindK(&s,&anim);
 
   auto it = inst->bindCache.find(k);
   if(it!=inst->bindCache.end())
     return it->second.get();
 
-  std::unique_ptr<AttachBinder> ret(new AttachBinder(s,anim,defBone));
+  std::unique_ptr<AttachBinder> ret(new AttachBinder(s,anim));
   auto p = ret.get();
   inst->bindCache[k] = std::move(ret);
   return p;

@@ -10,8 +10,8 @@ class PhysicMesh final {
     PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner);
 
     void   setObjMatrix  (const Tempest::Matrix4x4& m);
-    void   setAttachPoint(const Skeleton* sk,const char* defBone=nullptr);
-    void   setSkeleton   (const Pose&      p,const Tempest::Matrix4x4& obj);
+    void   setSkeleton   (const Skeleton* sk);
+    void   setPose       (const Pose&      p,const Tempest::Matrix4x4& obj);
 
   private:
     std::vector<DynamicWorld::StaticItem> sub;

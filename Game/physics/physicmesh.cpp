@@ -23,7 +23,7 @@ PhysicMesh::PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner)
 void PhysicMesh::setObjMatrix(const Tempest::Matrix4x4& mt) {
   if(binder!=nullptr){
     for(size_t i=0;i<binder->bind.size();++i){
-      auto id=binder->bind[i].boneId;
+      auto id=binder->bind[i];
       if(id>=skeleton->tr.size())
         continue;
       auto subI = ani->submeshId[i].id;
@@ -38,20 +38,19 @@ void PhysicMesh::setObjMatrix(const Tempest::Matrix4x4& mt) {
     }
   }
 
-void PhysicMesh::setAttachPoint(const Skeleton* sk, const char* defBone) {
+void PhysicMesh::setSkeleton(const Skeleton* sk) {
   skeleton = sk;
   if(ani!=nullptr && skeleton!=nullptr)
-    binder=Resources::bindMesh(*ani,*skeleton,defBone);
+    binder=Resources::bindMesh(*ani,*skeleton);
   }
 
-void PhysicMesh::setSkeleton(const Pose& p, const Tempest::Matrix4x4& obj) {
+void PhysicMesh::setPose(const Pose& p, const Tempest::Matrix4x4& obj) {
   if(binder!=nullptr){
     for(size_t i=0;i<binder->bind.size();++i){
-      auto id=binder->bind[i].boneId;
+      auto id=binder->bind[i];
       if(id>=p.tr.size())
         continue;
       auto mat=obj;
-      mat.translate(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
       mat.mul(p.tr[id]);
 
       auto subI = ani->submeshId[i].id;

@@ -82,7 +82,7 @@ class Resources final {
     static       Tempest::Texture2d  loadTexture(const Tempest::Pixmap& pm);
     static       Material            loadMaterial(const ZenLoad::zCMaterialData& src);
 
-    static const AttachBinder*       bindMesh     (const ProtoMesh& anim,const Skeleton& s,const char* defBone);
+    static const AttachBinder*       bindMesh     (const ProtoMesh& anim,const Skeleton& s);
     static const ProtoMesh*          loadMesh     (const std::string& name);
     static const Skeleton*           loadSkeleton (const char*        name);
     static const Animation*          loadAnimation(const std::string& name);
@@ -147,7 +147,7 @@ class Resources final {
 
     Tempest::Texture2d fallback, fbZero;
 
-    using BindK = std::tuple<const Skeleton*,const ProtoMesh*,const std::string>;
+    using BindK = std::tuple<const Skeleton*,const ProtoMesh*>;
     using FontK = std::pair<const std::string,FontType>;
 
     struct Hash {

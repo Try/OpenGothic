@@ -56,7 +56,6 @@ class MeshObjects final {
         void   setSkeleton (const Skeleton* sk);
         void   setPose     (const Pose&      p,const Tempest::Matrix4x4& obj);
 
-        auto   attachPoint() const -> const char*;
         bool   isEmpty()    const { return subCount==0; }
         size_t nodesCount() const { return subCount;    }
         Node   node(size_t i) const { return Node(&sub[i]); }

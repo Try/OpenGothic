@@ -157,7 +157,7 @@ Tempest::Matrix4x4 ProtoMesh::mapToRoot(size_t n) const {
   Tempest::Matrix4x4 m;
   m.identity();
 
-  while(n<nodes.size()){
+  while(n<nodes.size()) {
     auto& nx = nodes[n];
     auto  mx = nx.transform;
     mx.mul(m);

@@ -42,7 +42,7 @@ class AbstractObjectsBucket {
 
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setSkeleton (const Skeleton*           sk);
-        void   setSkeleton (const Pose&                p);
+        void   setPose     (const Pose&                p);
 
         const Tempest::Texture2d &texture() const;
         void  draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, const Tempest::RenderPipeline &pipeline, uint32_t imgId) const;

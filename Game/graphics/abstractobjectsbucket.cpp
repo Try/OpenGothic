@@ -10,7 +10,7 @@ void AbstractObjectsBucket::Item::setSkeleton(const Skeleton *sk) {
   owner->setSkeleton(id,sk);
   }
 
-void AbstractObjectsBucket::Item::setSkeleton(const Pose &p) {
+void AbstractObjectsBucket::Item::setPose(const Pose &p) {
   owner->markAsChanged();
   owner->setSkeleton(id,p);
   }
