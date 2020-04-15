@@ -274,7 +274,7 @@ void MeshObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint
     c.drawShadow(cmd,storage.pAnimSh,fId,layer);
   }
 
-void MeshObjects::Mesh::setAttachPoint(const Skeleton *sk) {
+void MeshObjects::Mesh::setSkeleton(const Skeleton *sk) {
   skeleton = sk;
   if(ani!=nullptr && skeleton!=nullptr)
     binder=Resources::bindMesh(*ani,*skeleton,nullptr);
@@ -282,7 +282,7 @@ void MeshObjects::Mesh::setAttachPoint(const Skeleton *sk) {
     sub[i].setSkeleton(sk);
   }
 
-void MeshObjects::Mesh::setSkeleton(const Pose &p,const Tempest::Matrix4x4& obj) {
+void MeshObjects::Mesh::setPose(const Pose &p,const Tempest::Matrix4x4& obj) {
   for(size_t i=0;i<subCount;++i)
     sub[i].setSkeleton(p);
 

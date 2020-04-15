@@ -37,7 +37,7 @@ void MdlVisual::setVisual(const Skeleton *v) {
     rebindAttaches(*skeleton,*v);
   solver.setSkeleton(v);
   skInst->setSkeleton(v);
-  view  .setAttachPoint(v);
+  view.setSkeleton(v);
 
   skeleton = v;
   setPos(pos); // update obj matrix
@@ -54,7 +54,7 @@ void MdlVisual::setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, W
       }
     }
   view = std::move(body);
-  view.setAttachPoint(skeleton);
+  view.setSkeleton(skeleton);
   }
 
 bool MdlVisual::hasOverlay(const Skeleton* sk) const {
@@ -78,7 +78,7 @@ void MdlVisual::delOverlay(const Skeleton *sk) {
 
 void MdlVisual::setArmour(MeshObjects::Mesh &&a) {
   view = std::move(a);
-  view.setAttachPoint(skeleton);
+  view.setSkeleton(skeleton);
   setPos(pos);
   }
 
@@ -92,12 +92,10 @@ void MdlVisual::setRangeWeapon(MeshObjects::Mesh &&b) {
 
 void MdlVisual::setAmmoItem(MeshObjects::Mesh&& a, const char *bone) {
   bind(ammunition,std::move(a),bone);
-  setPos(pos);
   }
 
 void MdlVisual::setMagicWeapon(PfxObjects::Emitter &&spell) {
-  pfx = std::move(spell);
-  setPos(pos);
+  bind(pfx,std::move(spell),"ZS_RIGHTHAND");
   }
 
 void MdlVisual::setSlotItem(MeshObjects::Mesh &&itm, const char *bone) {
@@ -188,11 +186,9 @@ void MdlVisual::setPos(float x, float y, float z) {
   }
 
 void MdlVisual::setPos(const Tempest::Matrix4x4 &m) {
-  // TODO: deferred setObjMatrix
   pos = m;
+  view.setObjMatrix(pos);
   syncAttaches();
-  pfx    .setObjMatrix(pos);
-  view   .setObjMatrix(pos);
   }
 
 void MdlVisual::updateWeaponSkeleton(const Item* weapon,const Item* range) {
@@ -213,8 +209,8 @@ void MdlVisual::updateWeaponSkeleton(const Item* weapon,const Item* range) {
     bind(bow,cbow ? "ZS_CROSSBOW" : "ZS_BOW");
     }
   if(st==WeaponState::Mage)
-    pfx.setAttachPoint(skeleton,"ZS_RIGHTHAND");
-  pfx.setActive(st==WeaponState::Mage);
+    bind(pfx,"ZS_RIGHTHAND");
+  pfx.view.setActive(st==WeaponState::Mage);
   syncAttaches();
   }
 
@@ -231,8 +227,7 @@ void MdlVisual::updateAnimation(Npc& npc,int comb) {
     return;
   syncAttaches();
 
-  pfx .setSkeleton(pose,pos);
-  view.setSkeleton(pose,pos);
+  view.setPose(pose,pos);
   }
 
 Vec3 MdlVisual::mapBone(const size_t boneId) const {
@@ -457,7 +452,15 @@ void MdlVisual::bind(MeshAttach& slot, MeshObjects::Mesh&& itm, const char* bone
   // sync?
   }
 
-void MdlVisual::bind(MdlVisual::MeshAttach& slot, const char* bone) {
+void MdlVisual::bind(MdlVisual::PfxAttach& slot, PfxObjects::Emitter&& itm, const char* bone) {
+  slot.boneId = skeleton==nullptr ? size_t(-1) : skeleton->findNode(bone);
+  slot.view   = std::move(itm);
+  slot.bone   = bone;
+  // sync?
+  }
+
+template<class View>
+void MdlVisual::bind(Attach<View>& slot, const char* bone) {
   slot.boneId = skeleton==nullptr ? size_t(-1) : skeleton->findNode(bone);
   slot.bone   = bone;
   // sync?
@@ -469,9 +472,11 @@ void MdlVisual::rebindAttaches(const Skeleton& from, const Skeleton& to) {
     rebindAttaches(*i,from,to);
   for(auto& i:item)
     rebindAttaches(i,from,to);
+  rebindAttaches(pfx,from,to);
   }
 
-void MdlVisual::rebindAttaches(MdlVisual::MeshAttach& mesh, const Skeleton& from, const Skeleton& to) {
+template<class View>
+void MdlVisual::rebindAttaches(Attach<View>& mesh, const Skeleton& from, const Skeleton& to) {
   if(mesh.boneId<from.nodes.size()) {
     size_t nid = 0;
     if(mesh.bone==nullptr)
@@ -487,15 +492,15 @@ void MdlVisual::syncAttaches() {
     syncAttaches(*i);
   for(auto& i:item)
     syncAttaches(i);
+  syncAttaches(pfx);
   }
 
-void MdlVisual::syncAttaches(MdlVisual::MeshAttach& att) {
+template<class View>
+void MdlVisual::syncAttaches(Attach<View>& att) {
   auto& pose = *skInst;
   if(att.view.isEmpty())
     return;
-  auto tr = att.view.translate();
-  auto p  = pos;
-  p.translate(tr.x,tr.y,tr.z);
+  auto p = pos;
   if(att.boneId<pose.tr.size())
     p.mul(pose.tr[att.boneId]);
   att.view.setObjMatrix(p);

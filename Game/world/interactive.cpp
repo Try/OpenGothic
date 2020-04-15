@@ -126,10 +126,10 @@ void Interactive::setVisual(const std::string &visual) {
       physic = PhysicMesh(*mesh,*world->physic());
       }
 
-    view  .setAttachPoint(skeleton);
+    view  .setSkeleton (skeleton);
     view  .setObjMatrix(pos);
 
-    physic.setAttachPoint(skeleton);
+    physic.setSkeleton (skeleton);
     physic.setObjMatrix(pos);
 
     attPos.resize(mesh->pos.size());
@@ -155,12 +155,12 @@ void Interactive::updateAnimation() {
   solver.update(tickCount);
   animChanged = pose.update(solver,0,tickCount);
 
-  view.setSkeleton(pose,pos);
+  view.setPose(pose,pos);
   }
 
 void Interactive::tick(uint64_t dt) {
   if(animChanged) {
-    physic.setSkeleton(*skInst,pos);
+    physic.setPose(*skInst,pos);
     animChanged = false;
     }
 

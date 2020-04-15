@@ -31,20 +31,16 @@ class PfxObjects final {
 
         Emitter(const Emitter&)=delete;
 
-        void   setPosition(float x,float y,float z);
+        bool   isEmpty() const { return bucket==nullptr; }
+        void   setPosition (float x,float y,float z);
+        void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setActive(bool act);
-
-        void   setAttachPoint(const Skeleton* skeleton,const char* defBone=nullptr);
-        void   setSkeleton   (const Pose& p,const Tempest::Matrix4x4& obj);
-        void   setObjMatrix  (const Tempest::Matrix4x4& mt);
 
       private:
         Emitter(Bucket &b,size_t id);
 
-        Bucket*         bucket  =nullptr;
-        const Skeleton* skeleton=nullptr;
-        size_t          id      =size_t(-1);
-        size_t          boneId  =size_t(-1);
+        Bucket*         bucket = nullptr;
+        size_t          id     = size_t(-1);
 
       friend class PfxObjects;
       };

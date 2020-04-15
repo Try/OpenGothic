@@ -79,13 +79,20 @@ class MdlVisual final {
       const char* bone=nullptr;
       };
     using MeshAttach = Attach<MeshObjects::Mesh>;
+    using PfxAttach  = Attach<PfxObjects::Emitter>;
 
-    void bind(MeshAttach& slot, MeshObjects::Mesh&& itm, const char *bone);
-    void bind(MeshAttach& slot, const char *bone);
+    void bind(MeshAttach& slot, MeshObjects::Mesh&&   itm, const char *bone);
+    void bind(PfxAttach&  slot, PfxObjects::Emitter&& itm, const char *bone);
+
+    template<class View>
+    void bind(Attach<View>& slot, const char *bone);
+    template<class View>
+    void rebindAttaches(Attach<View>& mesh,const Skeleton& from,const Skeleton& to);
+    template<class View>
+    void syncAttaches(Attach<View>& mesh);
+
     void rebindAttaches(const Skeleton& from,const Skeleton& to);
-    void rebindAttaches(MeshAttach& mesh,const Skeleton& from,const Skeleton& to);
     void syncAttaches();
-    void syncAttaches(MeshAttach& mesh);
 
     Tempest::Matrix4x4             pos;
     MeshObjects::Mesh              view;
@@ -94,7 +101,7 @@ class MdlVisual final {
     MeshAttach                     ammunition, stateItm;
     std::vector<MeshAttach>        item;
 
-    PfxObjects::Emitter            pfx;
+    PfxAttach                      pfx;
 
     const Skeleton*                skeleton=nullptr;
 

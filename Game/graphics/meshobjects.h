@@ -52,9 +52,9 @@ class MeshObjects final {
         Mesh(Mesh&& other);
         Mesh& operator = (Mesh&& other);
 
-        void   setObjMatrix  (const Tempest::Matrix4x4& mt);
-        void   setAttachPoint(const Skeleton* sk);
-        void   setSkeleton   (const Pose&      p,const Tempest::Matrix4x4& obj);
+        void   setObjMatrix(const Tempest::Matrix4x4& mt);
+        void   setSkeleton (const Skeleton* sk);
+        void   setPose     (const Pose&      p,const Tempest::Matrix4x4& obj);
 
         auto   attachPoint() const -> const char*;
         bool   isEmpty()    const { return subCount==0; }

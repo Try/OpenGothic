@@ -60,33 +60,8 @@ void PfxObjects::Emitter::setActive(bool act) {
   v.active=act;
   }
 
-void PfxObjects::Emitter::setAttachPoint(const Skeleton *sk, const char *defBone) {
-  skeleton = sk;
-  if(skeleton!=nullptr)
-    boneId = skeleton->findNode(defBone); else
-    boneId = size_t(-1);
-  }
-
-void PfxObjects::Emitter::setSkeleton(const Pose &p, const Matrix4x4 &mt) {
-  auto id=boneId;
-  if(id>=p.tr.size()) {
-    setPosition(mt.at(3,0),mt.at(3,1),mt.at(3,2));
-    return;
-    }
-  auto mat=mt;
-  mat.mul(p.tr[id]);
-  setPosition(mat.at(3,0),mat.at(3,1),mat.at(3,2));
-  }
-
 void PfxObjects::Emitter::setObjMatrix(const Matrix4x4 &mt) { //fixme: usless for Npc
-  auto id=boneId;
-  if(skeleton==nullptr || id>=skeleton->tr.size()) {
-    setPosition(mt.at(3,0),mt.at(3,1),mt.at(3,2));
-    return;
-    }
-  auto mat=mt;
-  mat.mul(skeleton->tr[id]);
-  setPosition(mat.at(3,0),mat.at(3,1),mat.at(3,2));
+  setPosition(mt.at(3,0),mt.at(3,1),mt.at(3,2));
   }
 
 PfxObjects::Bucket::Bucket(const RendererStorage &storage, const ParticleFx &ow, PfxObjects *parent)
