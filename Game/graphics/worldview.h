@@ -40,6 +40,7 @@ class WorldView {
 
     MeshObjects::Mesh   getView      (const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
     MeshObjects::Mesh   getItmView   (const char* visual, int32_t material);
+    MeshObjects::Mesh   getAtachView (const ProtoMesh::Attach& visual);
     MeshObjects::Mesh   getStaticView(const char* visual);
     MeshObjects::Mesh   getDecalView (const char* visual, float x, float y, float z, ProtoMesh& out);
     PfxObjects::Emitter getView      (const ParticleFx* decl);

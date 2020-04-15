@@ -46,12 +46,14 @@ class MeshObjects final {
     class Mesh final {
       public:
         Mesh()=default;
-        Mesh(const ProtoMesh* mesh,std::unique_ptr<Item[]>&& sub,size_t subCount):sub(std::move(sub)),subCount(subCount),ani(mesh){}
+        Mesh(const ProtoMesh* mesh,
+             std::unique_ptr<Item[]>&& sub,size_t subCount)
+          :sub(std::move(sub)),subCount(subCount),ani(mesh){}
         Mesh(Mesh&& other);
         Mesh& operator = (Mesh&& other);
 
-        void   setObjMatrix(const Tempest::Matrix4x4& mt);
-        void   setAttachPoint(const Skeleton* sk,const char* defBone=nullptr);
+        void   setObjMatrix  (const Tempest::Matrix4x4& mt);
+        void   setAttachPoint(const Skeleton* sk);
         void   setSkeleton   (const Pose&      p,const Tempest::Matrix4x4& obj);
 
         auto   attachPoint() const -> const char*;
@@ -59,9 +61,13 @@ class MeshObjects final {
         size_t nodesCount() const { return subCount;    }
         Node   node(size_t i) const { return Node(&sub[i]); }
 
+        Tempest::Vec3    translate() const;
+        const ProtoMesh* protoMesh() const { return ani; }
+
       private:
         std::unique_ptr<Item[]> sub;
         size_t                  subCount=0;
+
         const ProtoMesh*        ani=nullptr;
         const Skeleton*         skeleton=nullptr;
         const AttachBinder*     binder=nullptr;
@@ -70,6 +76,7 @@ class MeshObjects final {
       };
 
     Mesh get(const StaticMesh& mesh);
+    Mesh get(const StaticMesh& mesh,int32_t headTexVar,int32_t teethTex,int32_t bodyColor);
     Mesh get(const ProtoMesh&  mesh,int32_t headTexVar,int32_t teethTex,int32_t bodyColor);
 
     void updateUbo(uint8_t fId);
@@ -132,6 +139,8 @@ class MeshObjects final {
     ObjectsBucket<UboSt,Vertex>&    getBucketAt(const Tempest::Texture2d* mat);
     ObjectsBucket<UboDn,VertexA>&   getBucketDn(const Tempest::Texture2d* mat);
 
+    Item                            implGet(const StaticMesh& mesh, const StaticMesh::SubMesh& smesh,
+                                            int32_t texVar, int32_t teethTex, int32_t bodyColor);
     Item                            implGet(const StaticMesh& mesh,
                                             const Tempest::Texture2d* mat,
                                             const Tempest::IndexBuffer<uint32_t> &ibo);

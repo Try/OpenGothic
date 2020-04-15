@@ -31,41 +31,29 @@ void MdlVisual::load(Serialize &fin,Npc& npc) {
   skInst->load(fin,solver);
   }
 
-void MdlVisual::setPos(float x, float y, float z) {
-  pos.set(3,0,x);
-  pos.set(3,1,y);
-  pos.set(3,2,z);
-  setPos(pos);
-  }
-
-void MdlVisual::setPos(const Tempest::Matrix4x4 &m) {
-  // TODO: deferred setObjMatrix
-  pos = m;
-  head   .setObjMatrix(pos);
-  sword  .setObjMatrix(pos);
-  bow    .setObjMatrix(pos);
-  for(auto& i:item)
-    i.setObjMatrix(pos);
-  pfx    .setObjMatrix(pos);
-  view   .setObjMatrix(pos);
-  }
-
-// mdl_setvisual
+// Mdl_SetVisual
 void MdlVisual::setVisual(const Skeleton *v) {
-  skeleton = v;
-  solver.setSkeleton(skeleton);
+  if(skeleton!=nullptr && v!=nullptr)
+    rebindAttaches(*skeleton,*v);
+  solver.setSkeleton(v);
   skInst->setSkeleton(v);
-  head  .setAttachPoint(skeleton);
-  view  .setAttachPoint(skeleton);
+  view  .setAttachPoint(v);
+
+  skeleton = v;
   setPos(pos); // update obj matrix
   }
 
 // Mdl_SetVisualBody
-void MdlVisual::setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body) {
-  head    = std::move(h);
-  view    = std::move(body);
+void MdlVisual::setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner) {
+  bind(head,std::move(h),"BIP01 HEAD");
 
-  head.setAttachPoint(skeleton,"BIP01 HEAD");
+  if(auto p = body.protoMesh()) {
+    for(auto& att:p->attach) {
+      auto view = owner.getAtachView(att);
+      setSlotItem(std::move(view),att.name.c_str());
+      }
+    }
+  view = std::move(body);
   view.setAttachPoint(skeleton);
   }
 
@@ -95,18 +83,15 @@ void MdlVisual::setArmour(MeshObjects::Mesh &&a) {
   }
 
 void MdlVisual::setSword(MeshObjects::Mesh &&s) {
-  sword = std::move(s);
-  setPos(pos);
+  bind(sword,std::move(s),"ZS_RIGHTHAND");
   }
 
 void MdlVisual::setRangeWeapon(MeshObjects::Mesh &&b) {
-  bow = std::move(b);
-  setPos(pos);
+  bind(bow,std::move(b),"ZS_BOW");
   }
 
 void MdlVisual::setAmmoItem(MeshObjects::Mesh&& a, const char *bone) {
-  ammunition = std::move(a);
-  ammunition.setAttachPoint(skeleton,bone);
+  bind(ammunition,std::move(a),bone);
   setPos(pos);
   }
 
@@ -116,37 +101,44 @@ void MdlVisual::setMagicWeapon(PfxObjects::Emitter &&spell) {
   }
 
 void MdlVisual::setSlotItem(MeshObjects::Mesh &&itm, const char *bone) {
-  if(bone==nullptr)
+  if(bone==nullptr || skeleton==nullptr)
+    return;
+
+  size_t id = skeleton->findNode(bone);
+  if(id==size_t(-1))
     return;
 
   for(auto& i:item) {
-    const char* b = i.attachPoint();
-    if(b!=nullptr && std::strcmp(b,bone)==0) {
-      i = std::move(itm);
-      i.setAttachPoint(skeleton,bone);
-      break;
+    if(i.boneId==id) {
+      i.view=std::move(itm);
+      syncAttaches();
+      return;
       }
     }
-  itm.setAttachPoint(skeleton,bone);
-  item.emplace_back(std::move(itm));
-  setPos(pos);
+
+  MeshAttach slt;
+  slt.bone = skeleton->nodes[id].name.c_str();
+  bind(slt,std::move(itm),bone);
+  item.push_back(std::move(slt));
+  syncAttaches();
   }
 
 void MdlVisual::setStateItem(MeshObjects::Mesh&& a, const char* bone) {
-  stateItm = std::move(a);
-  stateItm.setAttachPoint(skeleton,bone);
-  setPos(pos);
+  bind(stateItm,std::move(a),bone);
+  syncAttaches();
   }
 
 void MdlVisual::clearSlotItem(const char *bone) {
+  size_t id = skeleton==nullptr ? size_t(-1) : skeleton->findNode(bone);
+
   for(size_t i=0;i<item.size();++i) {
-    const char* b = item[i].attachPoint();
-    if(bone==nullptr || (b!=nullptr && std::strcmp(b,bone)==0)) {
+    if(id==size_t(-1) || item[i].boneId==id) {
       item[i] = std::move(item.back());
       item.pop_back();
+      syncAttaches();
+      return;
       }
     }
-  setPos(pos);
   }
 
 bool MdlVisual::setFightMode(const ZenLoad::EFightMode mode) {
@@ -188,26 +180,42 @@ bool MdlVisual::setToFightMode(const WeaponState f) {
   return true;
   }
 
+void MdlVisual::setPos(float x, float y, float z) {
+  pos.set(3,0,x);
+  pos.set(3,1,y);
+  pos.set(3,2,z);
+  setPos(pos);
+  }
+
+void MdlVisual::setPos(const Tempest::Matrix4x4 &m) {
+  // TODO: deferred setObjMatrix
+  pos = m;
+  syncAttaches();
+  pfx    .setObjMatrix(pos);
+  view   .setObjMatrix(pos);
+  }
+
 void MdlVisual::updateWeaponSkeleton(const Item* weapon,const Item* range) {
   auto st = fgtMode;
   if(st==WeaponState::W1H || st==WeaponState::W2H){
-    sword.setAttachPoint(skeleton,"ZS_RIGHTHAND");
+    bind(sword,"ZS_RIGHTHAND");
     } else {
     bool twoHands = weapon!=nullptr && weapon->is2H();
-    sword.setAttachPoint(skeleton,twoHands ? "ZS_LONGSWORD" : "ZS_SWORD");
+    bind(sword,twoHands ? "ZS_LONGSWORD" : "ZS_SWORD");
     }
 
   if(st==WeaponState::Bow || st==WeaponState::CBow){
     if(st==WeaponState::Bow)
-      bow.setAttachPoint(skeleton,"ZS_LEFTHAND"); else
-      bow.setAttachPoint(skeleton,"ZS_RIGHTHAND");
+      bind(bow,"ZS_LEFTHAND"); else
+      bind(bow,"ZS_RIGHTHAND");
     } else {
     bool cbow  = range!=nullptr && range->isCrossbow();
-    bow.setAttachPoint(skeleton,cbow ? "ZS_CROSSBOW" : "ZS_BOW");
+    bind(bow,cbow ? "ZS_CROSSBOW" : "ZS_BOW");
     }
   if(st==WeaponState::Mage)
     pfx.setAttachPoint(skeleton,"ZS_RIGHTHAND");
   pfx.setActive(st==WeaponState::Mage);
+  syncAttaches();
   }
 
 void MdlVisual::updateAnimation(Npc& npc,int comb) {
@@ -221,26 +229,19 @@ void MdlVisual::updateAnimation(Npc& npc,int comb) {
   const bool changed = pose.update(solver,comb,tickCount);
   if(!changed)
     return;
+  syncAttaches();
 
-  head      .setSkeleton(pose,pos);
-  sword     .setSkeleton(pose,pos);
-  bow       .setSkeleton(pose,pos);
-  ammunition.setSkeleton(pose,pos);
-  stateItm  .setSkeleton(pose,pos);
-  for(auto& i:item)
-    i.setSkeleton(pose,pos);
   pfx .setSkeleton(pose,pos);
   view.setSkeleton(pose,pos);
   }
 
-Vec3 MdlVisual::mapBone(const char* b) const {
+Vec3 MdlVisual::mapBone(const size_t boneId) const {
   Pose&  pose = *skInst;
-  size_t id   = skeleton->findNode(b);
-  if(id==size_t(-1))
+  if(boneId==size_t(-1))
     return {0,0,0};
 
   auto mat = pos;
-  mat.mul(pose.bone(id));
+  mat.mul(pose.bone(boneId));
 
   return {mat.at(3,0) - pos.at(3,0),
           mat.at(3,1) - pos.at(3,1),
@@ -249,9 +250,9 @@ Vec3 MdlVisual::mapBone(const char* b) const {
 
 Vec3 MdlVisual::mapWeaponBone() const {
   if(fgtMode==WeaponState::Bow || fgtMode==WeaponState::CBow)
-    return mapBone(ammunition.attachPoint());
-  if(fgtMode==WeaponState::Mage)
-    return mapBone("ZS_RIGHTHAND");
+    return mapBone(ammunition.boneId);
+  if(fgtMode==WeaponState::Mage && skeleton!=nullptr)
+    return mapBone(skeleton->findNode("ZS_RIGHTHAND"));
   return {0,0,0};
   }
 
@@ -447,6 +448,57 @@ const Animation::Sequence* MdlVisual::continueCombo(Npc& npc, AnimationSolver::A
 
 uint32_t MdlVisual::comboLength() const {
   return skInst->comboLength();
+  }
+
+void MdlVisual::bind(MeshAttach& slot, MeshObjects::Mesh&& itm, const char* bone) {
+  slot.boneId = skeleton==nullptr ? size_t(-1) : skeleton->findNode(bone);
+  slot.view   = std::move(itm);
+  slot.bone   = bone;
+  // sync?
+  }
+
+void MdlVisual::bind(MdlVisual::MeshAttach& slot, const char* bone) {
+  slot.boneId = skeleton==nullptr ? size_t(-1) : skeleton->findNode(bone);
+  slot.bone   = bone;
+  // sync?
+  }
+
+void MdlVisual::rebindAttaches(const Skeleton& from, const Skeleton& to) {
+  auto  mesh = {&head,&sword,&bow,&ammunition,&stateItm};
+  for(auto i:mesh)
+    rebindAttaches(*i,from,to);
+  for(auto& i:item)
+    rebindAttaches(i,from,to);
+  }
+
+void MdlVisual::rebindAttaches(MdlVisual::MeshAttach& mesh, const Skeleton& from, const Skeleton& to) {
+  if(mesh.boneId<from.nodes.size()) {
+    size_t nid = 0;
+    if(mesh.bone==nullptr)
+      nid = to.findNode(from.nodes[mesh.boneId].name); else
+      nid = to.findNode(mesh.bone);
+    mesh.boneId = nid;
+    }
+  }
+
+void MdlVisual::syncAttaches() {
+  MdlVisual::MeshAttach* mesh[] = {&head,&sword,&bow,&ammunition,&stateItm};
+  for(auto i:mesh)
+    syncAttaches(*i);
+  for(auto& i:item)
+    syncAttaches(i);
+  }
+
+void MdlVisual::syncAttaches(MdlVisual::MeshAttach& att) {
+  auto& pose = *skInst;
+  if(att.view.isEmpty())
+    return;
+  auto tr = att.view.translate();
+  auto p  = pos;
+  p.translate(tr.x,tr.y,tr.z);
+  if(att.boneId<pose.tr.size())
+    p.mul(pose.tr[att.boneId]);
+  att.view.setObjMatrix(p);
   }
 
 bool MdlVisual::startAnimItem(Npc &npc, const char *scheme) {

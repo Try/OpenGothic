@@ -23,7 +23,7 @@ class MdlVisual final {
     void                           setPos(float x,float y,float z);
     void                           setPos(const Tempest::Matrix4x4 &m);
     void                           setVisual(const Skeleton *visual);
-    void                           setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body);
+    void                           setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner);
 
     bool                           hasOverlay(const Skeleton *sk) const;
     void                           addOverlay(const Skeleton *sk, uint64_t time);
@@ -45,7 +45,7 @@ class MdlVisual final {
 
     const Pose&                    pose() const { return *skInst; }
     void                           updateAnimation(Npc &owner, int comb);
-    auto                           mapBone(const char* b) const -> Tempest::Vec3;
+    auto                           mapBone(const size_t boneId) const -> Tempest::Vec3;
     auto                           mapWeaponBone() const -> Tempest::Vec3;
 
     bool                           isStanding() const;
@@ -72,14 +72,29 @@ class MdlVisual final {
     uint32_t                       comboLength() const;
 
   private:
-    Tempest::Matrix4x4             pos;
-    MeshObjects::Mesh              head;
-    MeshObjects::Mesh              view;
-    MeshObjects::Mesh              sword, bow;
-    std::vector<MeshObjects::Mesh> item;
-    PfxObjects::Emitter            pfx;
+    template<class View>
+    struct Attach {
+      size_t      boneId=size_t(-1);
+      View        view;
+      const char* bone=nullptr;
+      };
+    using MeshAttach = Attach<MeshObjects::Mesh>;
 
-    MeshObjects::Mesh              ammunition, stateItm;
+    void bind(MeshAttach& slot, MeshObjects::Mesh&& itm, const char *bone);
+    void bind(MeshAttach& slot, const char *bone);
+    void rebindAttaches(const Skeleton& from,const Skeleton& to);
+    void rebindAttaches(MeshAttach& mesh,const Skeleton& from,const Skeleton& to);
+    void syncAttaches();
+    void syncAttaches(MeshAttach& mesh);
+
+    Tempest::Matrix4x4             pos;
+    MeshObjects::Mesh              view;
+
+    MeshAttach                     head, sword, bow;
+    MeshAttach                     ammunition, stateItm;
+    std::vector<MeshAttach>        item;
+
+    PfxObjects::Emitter            pfx;
 
     const Skeleton*                skeleton=nullptr;
 

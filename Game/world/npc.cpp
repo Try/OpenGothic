@@ -647,7 +647,7 @@ void Npc::setVisualBody(int32_t headTexNr, int32_t teethTexNr, int32_t bodyTexNr
 
   auto  vhead = head.empty() ? MeshObjects::Mesh() : w.getView(addExt(head,".MMB").c_str(),vHead,vTeeth,bdColor);
   auto  vbody = body.empty() ? MeshObjects::Mesh() : w.getView(addExt(body,".MDM").c_str(),vColor,0,bdColor);
-  visual.setVisualBody(std::move(vhead),std::move(vbody));
+  visual.setVisualBody(std::move(vhead),std::move(vbody),owner);
   updateArmour();
 
   durtyTranform|=TR_Pos; // update obj matrix
@@ -2126,10 +2126,6 @@ Item *Npc::currentMeleWeapon() {
 
 Item *Npc::currentRangeWeapon() {
   return invent.currentRangeWeapon();
-  }
-
-Vec3 Npc::mapBone(const char* b) const {
-  return visual.mapBone(b);
   }
 
 Vec3 Npc::mapWeaponBone() const {

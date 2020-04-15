@@ -63,23 +63,6 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &
       }
     i.submeshIdE = subCount;
     }
-  firstFreeAttach=subCount;
-  for(size_t i=0;i<attach.size();++i){
-    auto& att = attach[i];
-    if(att.hasNode)
-      continue;
-
-    for(size_t r=0;r<att.sub.size();++r){
-      if(att.sub[r].texture==nullptr) {
-        if(!att.sub[r].texName.empty())
-          Tempest::Log::e("no texture?!");
-        continue;
-        }
-      submeshId[subCount].id    = i;
-      submeshId[subCount].subId = r;
-      subCount++;
-      }
-    }
   submeshId.resize(subCount);
 
   for(size_t i=0;i<library.getMeshes().size();++i){
@@ -100,12 +83,6 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &
       }
     }
   setupScheme(fname);
-
-  //auto tr = library.getRootNodeTranslation();
-  //rootTr  = {{tr.x,tr.y,tr.z}};
-
-  //bboxCol[0] = library.getBBoxCollisionMax();
-  //bboxCol[1] = library.getBBoxCollisionMin();
   }
 
 ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm, const std::string& fname) {

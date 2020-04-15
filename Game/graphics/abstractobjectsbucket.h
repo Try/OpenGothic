@@ -38,6 +38,8 @@ class AbstractObjectsBucket {
             owner->free(this->id);
           }
 
+        bool   isEmpty() const { return owner==nullptr; }
+
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setSkeleton (const Skeleton*           sk);
         void   setSkeleton (const Pose&                p);

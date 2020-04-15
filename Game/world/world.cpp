@@ -173,6 +173,10 @@ PfxObjects::Emitter World::getView(const ParticleFx *decl) const {
   return view()->getView(decl);
   }
 
+MeshObjects::Mesh World::getAtachView(const ProtoMesh::Attach& visual) {
+  return view()->getAtachView(visual);
+  }
+
 MeshObjects::Mesh World::getItmView(const Daedalus::ZString& visual, int32_t tex) const {
   return getItmView(visual.c_str(),tex);
   }

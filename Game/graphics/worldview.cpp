@@ -80,6 +80,10 @@ MeshObjects::Mesh WorldView::getItmView(const char* visual, int32_t material) {
   return MeshObjects::Mesh();
   }
 
+MeshObjects::Mesh WorldView::getAtachView(const ProtoMesh::Attach& visual) {
+  return objGroup.get(visual);
+  }
+
 MeshObjects::Mesh WorldView::getStaticView(const char* visual) {
   if(auto mesh=Resources::loadMesh(visual))
     return vobGroup.get(*mesh,0,0,0);

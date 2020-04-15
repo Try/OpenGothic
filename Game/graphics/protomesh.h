@@ -62,11 +62,9 @@ class ProtoMesh {
     // skinned
     std::vector<AnimMesh>          skined;
 
-    // offset matrix or static
     std::vector<Attach>            attach;
     std::vector<Node>              nodes;
     std::vector<SubMeshId>         submeshId;
-    size_t                         firstFreeAttach=0;
 
     std::vector<Pos>               pos;
     std::array<float,3>            rootTr={};

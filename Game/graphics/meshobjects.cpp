@@ -81,15 +81,46 @@ ObjectsBucket<MeshObjects::UboDn,Resources::VertexA> &MeshObjects::getBucketDn(c
   return chunksDn.back();
   }
 
+MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const StaticMesh::SubMesh& s,
+                                       int32_t texVar, int32_t teethTex, int32_t bodyColor) {
+  const Tempest::Texture2d* tex=s.texture;
+  if(teethTex!=0 || bodyColor!=0 || texVar!=0){
+    if(s.texName=="HUM_TEETH_V0.TGA"){
+      tex=solveTex(s.texture,s.texName,teethTex,bodyColor);
+      }
+    else if(s.texName=="HUM_MOUTH_V0.TGA"){
+      tex=solveTex(s.texture,s.texName,teethTex,bodyColor);
+      }
+    else if(s.texName.find_first_of("VC")!=std::string::npos){
+      tex=solveTex(s.texture,s.texName,texVar,bodyColor);
+      }
+    }
+
+  if(tex==nullptr) {
+    if(!s.texName.empty())
+      Tempest::Log::e("texture not found: \"",s.texName,"\"");
+    return MeshObjects::Item();
+    }
+  return implGet(mesh,tex,s.ibo);
+  }
+
 MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const Tempest::Texture2d *mat,
                                        const Tempest::IndexBuffer<uint32_t>& ibo) {
+  if(mat==nullptr) {
+    Tempest::Log::e("no texture?!");
+    return MeshObjects::Item();
+    }
   auto&        bucket = getBucketSt(mat);
   const size_t id     = bucket.alloc(mesh.vbo,ibo);
   return Item(bucket,id);
   }
 
 MeshObjects::Item MeshObjects::implGet(const AnimMesh &mesh, const Tempest::Texture2d *mat,
-                                           const Tempest::IndexBuffer<uint32_t> &ibo) {
+                                       const Tempest::IndexBuffer<uint32_t> &ibo) {
+  if(mat==nullptr) {
+    Tempest::Log::e("no texture?!");
+    return MeshObjects::Item();
+    }
   auto&        bucket = getBucketDn(mat);
   const size_t id     = bucket.alloc(mesh.vbo,ibo);
   return Item(bucket,id);
@@ -106,10 +137,29 @@ const Tempest::Texture2d *MeshObjects::solveTex(const Tempest::Texture2d *def, c
 
 MeshObjects::Mesh MeshObjects::get(const StaticMesh &mesh) {
   std::unique_ptr<Item[]> dat(new Item[mesh.sub.size()]);
+  size_t count=0;
   for(size_t i=0;i<mesh.sub.size();++i){
-    dat[i] = implGet(mesh,mesh.sub[i].texture,mesh.sub[i].ibo);
+    Item it = implGet(mesh,mesh.sub[i].texture,mesh.sub[i].ibo);
+    if(it.isEmpty())
+      continue;
+    dat[count] = std::move(it);
+    ++count;
     }
-  return Mesh(nullptr,std::move(dat),mesh.sub.size());
+  return Mesh(nullptr,std::move(dat),count);
+  }
+
+MeshObjects::Mesh MeshObjects::get(const StaticMesh& mesh,
+                                   int32_t headTexVar, int32_t teethTex, int32_t bodyColor) {
+  std::unique_ptr<Item[]> dat(new Item[mesh.sub.size()]);
+  size_t count=0;
+  for(size_t i=0;i<mesh.sub.size();++i){
+    Item it = implGet(mesh,mesh.sub[i],headTexVar,teethTex,bodyColor);
+    if(it.isEmpty())
+      continue;
+    dat[count] = std::move(it);
+    ++count;
+    }
+  return Mesh(nullptr,std::move(dat),count);
   }
 
 MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_t teethTex, int32_t bodyColor) {
@@ -120,26 +170,11 @@ MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_
   for(auto& m:mesh.submeshId) {
     auto& att = mesh.attach[m.id];
     auto& s   = att.sub[m.subId];
-
-    const Tempest::Texture2d* tex=s.texture;
-    if(teethTex!=0 || bodyColor!=0 || texVar!=0){
-      if(s.texName=="HUM_TEETH_V0.TGA"){
-        tex=solveTex(s.texture,s.texName,teethTex,bodyColor);
-        }
-      else if(s.texName=="HUM_MOUTH_V0.TGA"){
-        tex=solveTex(s.texture,s.texName,teethTex,bodyColor);
-        }
-      else if(s.texName.find_first_of("VC")!=std::string::npos){
-        tex=solveTex(s.texture,s.texName,texVar,bodyColor);
-        }
-      }
-
-    if(tex!=nullptr) {
-      dat[count] = implGet(att,tex,s.ibo);
-      ++count;
-      } else {
-      Tempest::Log::e("no texture?!");
-      }
+    Item  it  = implGet(att,s,texVar,teethTex,bodyColor);
+    if(it.isEmpty())
+      continue;
+    dat[count] = std::move(it);
+    count++;
     }
 
   for(auto& skin:mesh.skined){
@@ -149,7 +184,8 @@ MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_
         dat[count] = implGet(skin,tex,m.ibo);
         ++count;
         } else {
-        Tempest::Log::e("no texture?!");
+        if(!m.texName.empty())
+          Tempest::Log::e("texture not found: \"",m.texName,"\"");
         }
       }
     }
@@ -238,12 +274,10 @@ void MeshObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint
     c.drawShadow(cmd,storage.pAnimSh,fId,layer);
   }
 
-void MeshObjects::Mesh::setAttachPoint(const Skeleton *sk, const char *defBone) {
+void MeshObjects::Mesh::setAttachPoint(const Skeleton *sk) {
   skeleton = sk;
-
   if(ani!=nullptr && skeleton!=nullptr)
-    binder=Resources::bindMesh(*ani,*skeleton,defBone);
-
+    binder=Resources::bindMesh(*ani,*skeleton,nullptr);
   for(size_t i=0;i<subCount;++i)
     sub[i].setSkeleton(sk);
   }
@@ -263,6 +297,12 @@ void MeshObjects::Mesh::setSkeleton(const Pose &p,const Tempest::Matrix4x4& obj)
       sub[i].setObjMatrix(mat);
       }
     }
+  }
+
+Tempest::Vec3 MeshObjects::Mesh::translate() const {
+  if(ani==nullptr)
+    return Tempest::Vec3();
+  return Tempest::Vec3(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
   }
 
 const char* MeshObjects::Mesh::attachPoint() const {
