@@ -478,7 +478,7 @@ void GameScript::initializeInstance(Daedalus::GEngineClasses::C_Npc &n, size_t i
 
   if(n.daily_routine!=0) {
     ScopeVar self(vm,vm.globalSelf(),&n,Daedalus::IC_Npc);
-    vm.runFunctionBySymIndex(n.daily_routine,false);
+    vm.runFunctionBySymIndex(n.daily_routine);
     }
   }
 
@@ -818,7 +818,7 @@ int GameScript::printCannotUseError(Npc& npc, int32_t atr, int32_t nValue) {
   vm.pushInt(atr);
   vm.pushInt(nValue);
   ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
-  return runFunction(id,false);
+  return runFunction(id);
   }
 
 int GameScript::printCannotCastError(Npc &npc, int32_t plM, int32_t itM) {
@@ -829,7 +829,7 @@ int GameScript::printCannotCastError(Npc &npc, int32_t plM, int32_t itM) {
   vm.pushInt(itM);
   vm.pushInt(plM);
   ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
-  return runFunction(id,false);
+  return runFunction(id);
   }
 
 int GameScript::printCannotBuyError(Npc &npc) {
@@ -837,7 +837,7 @@ int GameScript::printCannotBuyError(Npc &npc) {
   if(id==size_t(-1))
     return 0;
   ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
-  return runFunction(id,true);
+  return runFunction(id);
   }
 
 int GameScript::printMobMissingItem(Npc &npc) {
@@ -845,7 +845,7 @@ int GameScript::printMobMissingItem(Npc &npc) {
   if(id==size_t(-1))
     return 0;
   ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
-  return runFunction(id,true);
+  return runFunction(id);
   }
 
 int GameScript::printMobMissingKey(Npc& npc) {
@@ -853,7 +853,7 @@ int GameScript::printMobMissingKey(Npc& npc) {
   if(id==size_t(-1))
     return 0;
   ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
-  return runFunction(id,true);
+  return runFunction(id);
   }
 
 int GameScript::printMobAnotherIsUsing(Npc &npc) {
@@ -861,7 +861,7 @@ int GameScript::printMobAnotherIsUsing(Npc &npc) {
   if(id==size_t(-1))
     return 0;
   ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
-  return runFunction(id,true);
+  return runFunction(id);
   }
 
 int GameScript::invokeState(Daedalus::GEngineClasses::C_Npc* hnpc, Daedalus::GEngineClasses::C_Npc* oth, const char *name) {
@@ -922,7 +922,7 @@ int GameScript::invokeMana(Npc &npc, Npc* target, Item &) {
   ScopeVar other(vm, vm.globalOther(), target);
 
   vm.pushInt(npc.attribute(Npc::ATR_MANA));
-  return runFunction(fn,false);
+  return runFunction(fn);
   }
 
 int GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
@@ -960,7 +960,7 @@ int GameScript::playerHotKeyScreenMap(Npc& pl) {
     return -1;
 
   ScopeVar self(vm, vm.globalSelf(), pl);
-  int map = runFunction(fn,false);
+  int map = runFunction(fn);
   if(map>=0)
     pl.useItem(size_t(map));
   return map;
@@ -1044,7 +1044,7 @@ int GameScript::printNothingToGet() {
   if(id==size_t(-1))
     return 0;
   ScopeVar self(vm, vm.globalSelf(), owner.player());
-  return runFunction(id,false);
+  return runFunction(id);
   }
 
 void GameScript::useInteractive(Daedalus::GEngineClasses::C_Npc* hnpc,const std::string& func) {
@@ -1118,23 +1118,15 @@ int32_t GameScript::runFunction(const char *fname) {
   auto id = vm.getDATFile().getSymbolIndexByName(fname);
   if(id==size_t(-1))
     throw std::runtime_error("script bad call");
-  return runFunction(id,true);
+  return runFunction(id);
   }
 
-int32_t GameScript::runFunction(const size_t fid,bool clearStk) {
-  if(invokeRecursive) {
-    //Log::d("WorldScript: invokeRecursive");
-    clearStk=false;
-    //return 0;
-    }
-  invokeRecursive++;
-
+int32_t GameScript::runFunction(const size_t fid) {
   auto&       dat  = vm.getDATFile();
   auto&       sym  = dat.getSymbolByIndex(fid);
   const char* call = sym.name.c_str();(void)call; //for debuging
 
-  int32_t ret = vm.runFunctionBySymIndex(fid,clearStk);
-  invokeRecursive--;
+  int32_t ret = vm.runFunctionBySymIndex(fid);
   return ret;
   }
 
@@ -2696,6 +2688,7 @@ void GameScript::ai_usemob(Daedalus::DaedalusVM &vm) {
   auto     npc   = popInstance(vm);
   if(npc!=nullptr)
     npc->aiUseMob(tg,state);
+  vm.pushInt(0);
   }
 
 void GameScript::ai_teleport(Daedalus::DaedalusVM &vm) {

@@ -368,7 +368,7 @@ void GameMenu::execSingle(Item &it) {
     }
 
   if(onEventAction[SEL_EVENT_EXECUTE]>0){
-    vm.runFunctionBySymIndex(size_t(onEventAction[SEL_EVENT_EXECUTE]),true);
+    vm.runFunctionBySymIndex(size_t(onEventAction[SEL_EVENT_EXECUTE]));
     }
 
   execChgOption(it);

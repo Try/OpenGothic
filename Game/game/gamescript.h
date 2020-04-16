@@ -43,9 +43,9 @@ class GameScript final {
       Daedalus::GEngineClasses::C_Info* handle=nullptr;
       };
 
-    bool         hasSymbolName(const char *fn);
-    int32_t      runFunction  (const char* fname);
-    int32_t      runFunction  (const size_t       fid, bool clearStk=true);
+    bool         hasSymbolName(const char*  fn);
+    int32_t      runFunction  (const char*  fname);
+    int32_t      runFunction  (const size_t fid);
 
     void         initDialogs (Gothic &gothic);
     void         loadDialogOU(Gothic &gothic);
@@ -401,7 +401,6 @@ class GameScript final {
     void saveSym(Serialize& fout,const Daedalus::PARSymbol& s);
 
     Daedalus::DaedalusVM                                        vm;
-    uint8_t                                                     invokeRecursive=0;
     GameSession&                                                owner;
     std::mt19937                                                randGen;
 
