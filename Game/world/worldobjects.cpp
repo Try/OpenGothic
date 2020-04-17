@@ -609,7 +609,9 @@ template<class T>
 bool checkFlag(T&,WorldObjects::SearchFlg){ return true; }
 
 static bool checkFlag(Npc& n,WorldObjects::SearchFlg f){
-  if( bool(f&WorldObjects::NoDeath) && n.isDead())
+  if(n.handle()->noFocus)
+    return false;
+  if(bool(f&WorldObjects::NoDeath) && n.isDead())
     return false;
   return true;
   }
