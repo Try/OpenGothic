@@ -2763,7 +2763,7 @@ void Npc::aiStartState(uint32_t stateFn, int behavior, Npc* other, const Daedalu
 void Npc::aiPlayAnim(const Daedalus::ZString& ani) {
   AiAction a;
   a.act  = AI_PlayAnim;
-  a.s0   = ani; //TODO: COW-Strings
+  a.s0   = ani;
   aiActions.push_back(a);
   }
 

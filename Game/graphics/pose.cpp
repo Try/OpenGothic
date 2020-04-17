@@ -190,7 +190,8 @@ bool Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
   bool   changed = false;
   for(size_t i=0;i<lay.size();++i) {
     const auto& l = lay[i];
-    if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount-l.sAnim,comboLen)) {
+    if(l.seq->animCls==Animation::Transition &&
+       (l.seq==rotation || l.seq->isFinished(tickCount-l.sAnim,comboLen))) {
       auto next=getNext(solver,lay[i].seq);
       if((l.bs&BS_FLAG_OGT_STATEITEM)==0 || next!=nullptr) {
         if(lay[i].seq==itemUse) {

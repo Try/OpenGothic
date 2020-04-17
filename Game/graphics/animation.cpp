@@ -277,9 +277,6 @@ Animation::Sequence::Sequence(const std::string &fname) {
   }
 
 bool Animation::Sequence::isFinished(uint64_t t,uint16_t comboLen) const {
-  if(isRotate())
-    return true;// FIXME: proper rotate
-
   if(comboLen<data->defHitEnd.size()) {
     if(t>data->defHitEnd[comboLen])
       return true;
