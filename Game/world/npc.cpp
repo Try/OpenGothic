@@ -468,9 +468,6 @@ void Npc::onNoHealth(bool death,HitSound sndMask) {
   if(death)
     physic.setEnable(false);
 
-  for(size_t i=0;i<PERC_Count;++i)
-    setPerceptionDisable(PercType(i));
-
   if(death)
     setAnim(lastHitType=='A' ? Anim::DeadA        : Anim::DeadB); else
     setAnim(lastHitType=='A' ? Anim::UnconsciousA : Anim::UnconsciousB);
@@ -1827,6 +1824,9 @@ bool Npc::startState(size_t id, const Daedalus::ZString& wp, gtime endTime,bool 
   clearState(noFinalize);
   if(!wp.empty())
     hnpc.wp = wp;
+
+  for(size_t i=0;i<PERC_Count;++i)
+    setPerceptionDisable(PercType(i));
 
   auto& st = owner.script().getAiState(id);
   aiState.started      = false;
