@@ -16,6 +16,8 @@ ParticlesDefinitions::~ParticlesDefinitions() {
   }
 
 const ParticleFx* ParticlesDefinitions::get(const char *name) {
+  std::lock_guard<std::mutex> guard(sync);
+
   auto it = pfx.find(name);
   if(it!=pfx.end())
     return it->second.get();

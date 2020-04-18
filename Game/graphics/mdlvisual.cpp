@@ -116,7 +116,7 @@ void MdlVisual::setSlotItem(MeshObjects::Mesh &&itm, const char *bone) {
 
   MeshAttach slt;
   slt.bone = skeleton->nodes[id].name.c_str();
-  bind(slt,std::move(itm),bone);
+  bind(slt,std::move(itm),slt.bone);
   item.push_back(std::move(slt));
   syncAttaches();
   }
@@ -181,7 +181,8 @@ void MdlVisual::startParticleEffect(PfxObjects::Emitter&& pfx, int32_t slot, con
 
   for(auto& i:effects) {
     if(i.id==slot) {
-      bind(i,std::move(pfx),bone);
+      i.bone = skeleton->nodes[id].name.c_str();
+      bind(i,std::move(pfx),i.bone);
       syncAttaches();
       return;
       }
@@ -190,7 +191,7 @@ void MdlVisual::startParticleEffect(PfxObjects::Emitter&& pfx, int32_t slot, con
   PfxSlot slt;
   slt.bone = skeleton->nodes[id].name.c_str();
   slt.id   = slot;
-  bind(slt,std::move(pfx),bone);
+  bind(slt,std::move(pfx),slt.bone);
   effects.push_back(std::move(slt));
   syncAttaches();
   }

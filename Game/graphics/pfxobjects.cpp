@@ -19,6 +19,7 @@ PfxObjects::Emitter::Emitter(PfxObjects::Bucket& b, size_t id)
 
 PfxObjects::Emitter::~Emitter() {
   if(bucket) {
+    std::lock_guard<std::mutex> guard(bucket->parent->sync);
     auto& p  = bucket->impl[id];
     p.alive  = false;
     p.active = false;
@@ -39,6 +40,7 @@ PfxObjects::Emitter &PfxObjects::Emitter::operator=(PfxObjects::Emitter &&b) {
 void PfxObjects::Emitter::setPosition(float x, float y, float z) {
   if(bucket==nullptr)
     return;
+  std::lock_guard<std::mutex> guard(bucket->parent->sync);
   auto& v = bucket->impl[id];
   v.pos = Vec3(x,y,z);
   if(bucket->impl[id].block==size_t(-1))
@@ -50,6 +52,7 @@ void PfxObjects::Emitter::setPosition(float x, float y, float z) {
 void PfxObjects::Emitter::setActive(bool act) {
   if(bucket==nullptr)
     return;
+  std::lock_guard<std::mutex> guard(bucket->parent->sync);
   bucket->impl[id].active = act;
   }
 
@@ -224,6 +227,7 @@ PfxObjects::PfxObjects(const RendererStorage& storage)
   }
 
 PfxObjects::Emitter PfxObjects::get(const ParticleFx &decl) {
+  std::lock_guard<std::mutex> guard(sync);
   auto&  b = getBucket(decl);
   size_t e = b.allocEmitter();
   return Emitter(b,e);
@@ -443,6 +447,11 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b) {
     for(size_t i=0;i<b.blockSize;++i) {
       ParState& ps = b.particles[i+p.offset];
       Vertex*   v  = &b.vbo[(p.offset+i)*6];
+
+      if(ps.life==0) {
+        std::memset(v,0,6*sizeof(*v));
+        continue;
+        }
 
       const float a   = ps.lifeTime();
       const Vec3  cl  = colorS*(1.f-a)        + colorE*a;

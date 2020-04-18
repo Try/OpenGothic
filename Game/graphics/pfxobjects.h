@@ -143,6 +143,7 @@ class PfxObjects final {
     void                          invalidateCmd();
 
     const RendererStorage&        storage;
+    std::mutex                    sync;
     std::list<Bucket>             bucket;
 
     Tempest::Vec3                 viewePos={};
