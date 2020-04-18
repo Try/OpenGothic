@@ -171,7 +171,7 @@ bool MdlVisual::setFightMode(const ZenLoad::EFightMode mode) {
   return setToFightMode(f);
   }
 
-void MdlVisual::startParticleEffect(PfxObjects::Emitter&& pfx, int32_t slot, const char* bone) {
+void MdlVisual::startParticleEffect(PfxObjects::Emitter&& pfx, int32_t slot, const char* bone, uint64_t timeUntil) {
   if(bone==nullptr || skeleton==nullptr)
     return;
 
@@ -181,7 +181,8 @@ void MdlVisual::startParticleEffect(PfxObjects::Emitter&& pfx, int32_t slot, con
 
   for(auto& i:effects) {
     if(i.id==slot) {
-      i.bone = skeleton->nodes[id].name.c_str();
+      i.bone      = skeleton->nodes[id].name.c_str();
+      i.timeUntil = timeUntil;
       bind(i,std::move(pfx),i.bone);
       syncAttaches();
       return;
@@ -189,8 +190,9 @@ void MdlVisual::startParticleEffect(PfxObjects::Emitter&& pfx, int32_t slot, con
     }
 
   PfxSlot slt;
-  slt.bone = skeleton->nodes[id].name.c_str();
-  slt.id   = slot;
+  slt.bone      = skeleton->nodes[id].name.c_str();
+  slt.id        = slot;
+  slt.timeUntil = timeUntil;
   bind(slt,std::move(pfx),slt.bone);
   effects.push_back(std::move(slt));
   syncAttaches();
@@ -256,7 +258,17 @@ void MdlVisual::updateAnimation(Npc& npc,int comb) {
 
   if(npc.world().isInListenerRange(npc.position()))
     pose.processSfx(npc,tickCount);
+
   pose.processPfx(npc,tickCount);
+
+  for(size_t i=0;i<effects.size();) {
+    if(effects[i].timeUntil<tickCount) {
+      effects[i] = std::move(effects.back());
+      effects.pop_back();
+      } else {
+      ++i;
+      }
+    }
 
   solver.update(tickCount);
   const bool changed = pose.update(solver,comb,tickCount);

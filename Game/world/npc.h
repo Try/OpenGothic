@@ -456,6 +456,8 @@ class Npc final {
     void      startParticleEffect(const char* pfx, int32_t slot, const char* bone);
     void      stopParticleEffect(int32_t slot);
 
+    void      playEffect(Npc& to, const VisualFx& vfx);
+
   private:
     struct Routine final {
       gtime           start;

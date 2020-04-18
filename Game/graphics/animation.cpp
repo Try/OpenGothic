@@ -371,8 +371,6 @@ bool Animation::Sequence::extractFrames(uint64_t& frameA,uint64_t& frameB,bool& 
     } else {
     frameA = std::min<uint64_t>(frameA,numFrames);
     frameB = std::min<uint64_t>(frameB,numFrames);
-    if(frameA<frameB && frameB==numFrames)
-      frameB = d.lastFrame; //HACK
     }
 
   if(reverse) {

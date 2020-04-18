@@ -6,8 +6,8 @@ using namespace Tempest;
 
 ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const char* name)
   :dbgName(name) {
-  ppsValue            = src.ppsValue;
-  ppsScaleKeys_S      = src.ppsScaleKeys_S.c_str();
+  ppsValue            = std::max(0.f,src.ppsValue);
+  ppsScaleKeys_S      = loadArr(src.ppsScaleKeys_S);
   ppsIsLooping        = src.ppsIsLooping!=0;
   ppsIsSmooth         = src.ppsIsSmooth!=0;
   ppsFPS              = src.ppsFPS;
@@ -23,7 +23,7 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
   shpDim_S            = loadVec3(src.shpDim_S);
   shpMesh_S           = src.shpMesh_S.c_str();
   shpMeshRender_B     = src.shpMeshRender_B!=0;
-  shpScaleKeys_S      = src.shpScaleKeys_S.c_str();
+  shpScaleKeys_S      = loadArr(src.shpScaleKeys_S);
   shpScaleIsLooping   = src.shpScaleIsLooping!=0;
   shpScaleIsSmooth    = src.shpScaleIsSmooth!=0;
   shpScaleFPS         = src.shpScaleFPS;
@@ -58,13 +58,13 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
   visAlphaStart       = src.visAlphaStart/255.f;
   visAlphaEnd         = src.visAlphaEnd/255.f;
 
-   trlFadeSpeed       = src.trlFadeSpeed;
-   trlTexture_S       = src.trlTexture_S.c_str();
-   trlWidth           = src.trlWidth;
+  trlFadeSpeed       = src.trlFadeSpeed;
+  trlTexture_S       = src.trlTexture_S.c_str();
+  trlWidth           = src.trlWidth;
 
-   mrkFadeSpeed       = src.mrkFadeSpeed;
-   mrkTexture_S       = src.mrkTexture_S.c_str();
-   mrkSize            = src.mrkSize;
+  mrkFadeSpeed       = src.mrkFadeSpeed;
+  mrkTexture_S       = src.mrkTexture_S.c_str();
+  mrkSize            = src.mrkSize;
 
   flockMode           = src.flockMode.c_str();
   flockStrength       = src.flockStrength;
@@ -77,6 +77,36 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
 
 uint64_t ParticleFx::maxLifetime() const {
   return uint64_t(lspPartAvg+lspPartVar);
+  }
+
+uint64_t ParticleFx::effectPrefferedTime() const {
+  if(ppsScaleKeys_S.size()==0)
+    return 5000;
+
+  auto sec = ppsScaleKeys_S.size()/std::max<size_t>(1,size_t(std::ceil(ppsFPS)));
+  return sec*1000;
+  }
+
+float ParticleFx::maxPps() const {
+  if(ppsScaleKeys_S.size()==0)
+    return ppsValue;
+
+  float v = 0;
+  for(auto i:ppsScaleKeys_S)
+    v = std::max(i,v);
+  return v*ppsValue;
+  }
+
+float ParticleFx::shpScale(uint64_t time) const {
+  return fetchScaleKey(time,shpScaleKeys_S,shpScaleFPS,
+                       shpScaleIsSmooth!=0,shpScaleIsLooping!=0);
+  }
+
+float ParticleFx::ppsScale(uint64_t time) const {
+  float v = fetchScaleKey(time,ppsScaleKeys_S,ppsFPS,ppsIsSmooth!=0,ppsIsLooping!=0);
+  if(v<0)
+    return 0.f;
+  return v;
   }
 
 Vec2 ParticleFx::loadVec2(const Daedalus::ZString& src) {
@@ -124,6 +154,20 @@ Vec3 ParticleFx::loadVec3(const Daedalus::ZString& src) {
   return Vec3(v[0],v[1],v[2]);
   }
 
+ParticleFx::KeyList ParticleFx::loadArr(const Daedalus::ZString& src) {
+  std::vector<float> v;
+  const char* str  = src.c_str();
+  for(int i=0;;++i) {
+    char* next=nullptr;
+    float f = std::strtof(str,&next);
+    if(str==next) {
+      return v;
+      }
+    v.push_back(f);
+    str = next;
+    }
+  }
+
 ParticleFx::EmitterType ParticleFx::loadEmitType(const Daedalus::ZString& src) {
   if(src=="POINT")
     return EmitterType::Point;
@@ -131,7 +175,7 @@ ParticleFx::EmitterType ParticleFx::loadEmitType(const Daedalus::ZString& src) {
     return EmitterType::Line;
   if(src=="BOX")
     return EmitterType::Box;
-  if(src=="CYRCLE")
+  if(src=="CIRCLE")
     return EmitterType::Circle;
   if(src=="SPHERE")
     return EmitterType::Sphere;
@@ -160,4 +204,27 @@ ParticleFx::AlphaFunc ParticleFx::loadAlphaFn(const Daedalus::ZString& src) {
   if(src=="MUL")
     return AlphaFunc::Mul;
   return AlphaFunc::None;
+  }
+
+float ParticleFx::fetchScaleKey(uint64_t time, const KeyList& keys, float fps, bool smooth, bool loop) const {
+  if(keys.size()==0)
+    return 1.f;
+
+  uint64_t timeScaled = uint64_t(fps*float(time));
+  size_t   at         = size_t(timeScaled/1000);
+  float    alpha      = float(timeScaled%1000)/1000.f;
+  if(smooth)
+    alpha = alpha<0.5f ? 0.f : 1.f;
+
+  size_t frameA = 0, frameB = 0;
+  if(loop) {
+    frameA = (at  )%keys.size();
+    frameB = (at+1)%keys.size();
+    } else {
+    frameA = std::min(at,  keys.size()-1);
+    frameB = std::min(at+1,keys.size()-1);
+    }
+  float k0 = keys[frameA];
+  float k1 = keys[frameB];
+  return k0+alpha*(k1-k0);
   }

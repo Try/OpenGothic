@@ -129,7 +129,7 @@ class PfxObjects final {
       size_t                      allocEmitter();
       bool                        shrink();
 
-      void                        init    (size_t particle);
+      void                        init    (Block& emitter, size_t particle);
       void                        finalize(size_t particle);
       };
 

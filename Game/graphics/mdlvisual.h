@@ -40,7 +40,7 @@ class MdlVisual final {
     void                           clearSlotItem (const char *bone);
     bool                           setFightMode(const ZenLoad::EFightMode mode);
 
-    void                           startParticleEffect(PfxObjects::Emitter&& pfx, int32_t slot, const char* bone);
+    void                           startParticleEffect(PfxObjects::Emitter&& pfx, int32_t slot, const char* bone, uint64_t timeUntil);
     void                           stopParticleEffect(int32_t slot);
 
     bool                           setToFightMode(const WeaponState ws);
@@ -84,8 +84,9 @@ class MdlVisual final {
     using MeshAttach = Attach<MeshObjects::Mesh>;
     using PfxAttach  = Attach<PfxObjects::Emitter>;
 
-    struct PfxSlot : PfxAttach{
-      int id=0;
+    struct PfxSlot : PfxAttach {
+      uint64_t timeUntil=0;
+      int      id=0;
       };
 
     void bind(MeshAttach& slot, MeshObjects::Mesh&&   itm, const char *bone);

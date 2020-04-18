@@ -69,7 +69,7 @@ PfxObjects::Bucket::Bucket(const RendererStorage &storage, const ParticleFx &ow,
     pf[i].ubo = storage.device.uniforms(storage.uboPfxLayout());
 
   uint64_t lt      = ow.maxLifetime();
-  uint64_t pps     = uint64_t(std::ceil(ow.ppsValue));
+  uint64_t pps     = uint64_t(std::ceil(ow.maxPps()));
   uint64_t reserve = (lt*pps+1000-1)/1000;
   blockSize        = size_t(reserve);
   }
@@ -156,16 +156,16 @@ bool PfxObjects::Bucket::shrink() {
   return false;
   }
 
-void PfxObjects::Bucket::init(size_t particle) {
+void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
   auto& p = particles[particle];
 
   float dx=0,dy=0,dz=0;
 
   switch (owner->shpType_S){
     case ParticleFx::EmitterType::Point:{
-      dx  = randf()*2.f-1.f;
-      dy  = randf()*2.f-1.f;
-      dz  = randf()*2.f-1.f;
+      dx  = 0.f;
+      dy  = 0.f;
+      dz  = 0.f;
       break;
       }
     case ParticleFx::EmitterType::Box:{
@@ -182,8 +182,14 @@ void PfxObjects::Bucket::init(size_t particle) {
       dz    = std::cos(phi);
       break;
       }
+    case ParticleFx::EmitterType::Circle:{
+      float a = float(2.0*M_PI)*randf();
+      dx    = std::sin(a);
+      dy    = 0;
+      dz    = std::cos(a);
+      break;
+      }
     case ParticleFx::EmitterType::Line:
-    case ParticleFx::EmitterType::Circle:
     case ParticleFx::EmitterType::Mesh:{
       // TODO
       break;
@@ -191,12 +197,21 @@ void PfxObjects::Bucket::init(size_t particle) {
     }
 
   Vec3 dim = owner->shpDim_S*0.5f;
-  p.pos = Vec3(dx*dim.x,dy*dim.y,dz*dim.z)+owner->shpOffsetVec_S;
+  p.pos = Vec3(dx*dim.x,dy*dim.y,dz*dim.z)*owner->shpScale(emitter.timeTotal) + owner->shpOffsetVec_S;
 
+  float vel = (owner->velAvg+(2.f*randf()-1.f)*owner->velVar);
   if(owner->dirMode_S==ParticleFx::Dir::Rand) {
+    float theta = float(2.0*M_PI)*randf();
+    float phi   = std::acos(1.f - 2.f * randf());
+    dx    = std::sin(phi) * std::cos(theta);
+    dy    = std::sin(phi) * std::sin(theta);
+    dz    = std::cos(phi);
+    p.dir       = Vec3(dx,dy,dz)*vel;
+
     p.rotation  = randf()*float(2.0*M_PI);
     }
   else if(owner->dirMode_S==ParticleFx::Dir::Dir) {
+    p.dir       = Vec3(0,vel,0);
     p.rotation  = (owner->dirAngleHead+(2.f*randf()-1.f)*owner->dirAngleHeadVar)*float(M_PI)/180.f;
     p.drotation = (owner->dirAngleElev+(2.f*randf()-1.f)*owner->dirAngleElevVar)*float(M_PI)/180.f;
     }
@@ -205,8 +220,6 @@ void PfxObjects::Bucket::init(size_t particle) {
     p.rotation  = randf()*float(2.0*M_PI); //FIXME
     }
 
-  float vel = (owner->velAvg+(2.f*randf()-1.f)*owner->velVar);
-  p.dir     = Vec3(0,vel,0);
 
   p.life    = uint16_t(owner->lspPartAvg+owner->lspPartVar*(2.f*randf()-1.f));
   p.maxLife = p.life;
@@ -356,8 +369,9 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
       }
 
     p.timeTotal+=dt;
-    uint64_t fltScale = 100;
-    uint64_t emited   = uint64_t(p.timeTotal*uint64_t(b.owner->ppsValue*float(fltScale)))/uint64_t(1000u*fltScale);
+    float       fltScale = 100;
+    const float pps      = b.owner->ppsValue*b.owner->ppsScale(p.timeTotal)*fltScale;
+    uint64_t    emited   = uint64_t(p.timeTotal*uint64_t(pps))/uint64_t(1000.f*fltScale);
 
     if(!nearby) {
       p.emited = emited;
@@ -385,7 +399,7 @@ void PfxObjects::tickSys(Bucket& b, Block& p, uint64_t dt) {
       // eval particle
       ps.life  = uint16_t(ps.life-dt);
       ps.pos  += ps.dir*dtF;
-      ps.dir  += b.owner->flyGravity_S*dtF;
+      //ps.dir  += b.owner->flyGravity_S*dtF;
       }
     }
   }
@@ -398,7 +412,7 @@ void PfxObjects::tickSysEmit(PfxObjects::Bucket& b, PfxObjects::Block& p, uint64
       ParState& ps = b.particles[i+p.offset];
       if(ps.life==0) { // free slot
         p.count++;
-        b.init(i+p.offset);
+        b.init(p,i+p.offset);
         break;
         }
       }

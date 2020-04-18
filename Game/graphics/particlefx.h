@@ -31,10 +31,12 @@ class ParticleFx final {
       Mul
       };
 
+    using KeyList = std::vector<float>;
+
     std::string   dbgName;
 
     float         ppsValue=0;
-    std::string   ppsScaleKeys_S;
+    KeyList       ppsScaleKeys_S;
     bool          ppsIsLooping=0;
     bool          ppsIsSmooth=0;
     float         ppsFPS=0;
@@ -50,7 +52,7 @@ class ParticleFx final {
     Tempest::Vec3 shpDim_S;
     std::string   shpMesh_S;
     bool          shpMeshRender_B=false;
-    std::string   shpScaleKeys_S;
+    KeyList       shpScaleKeys_S;
     bool          shpScaleIsLooping=false;
     bool          shpScaleIsSmooth=false;
     float         shpScaleFPS=0.f;
@@ -102,13 +104,20 @@ class ParticleFx final {
     bool          m_bIsAmbientPFX=false;
 
     uint64_t      maxLifetime() const;
+    uint64_t      effectPrefferedTime() const;
+    float         maxPps() const;
+    float         shpScale(uint64_t time) const;
+    float         ppsScale(uint64_t time) const;
 
   private:
     static auto          loadTexture(const std::string& src) -> const Tempest::Texture2d*;
     static Tempest::Vec2 loadVec2(const Daedalus::ZString& src);
     static Tempest::Vec3 loadVec3(const Daedalus::ZString& src);
+    static KeyList       loadArr(const Daedalus::ZString& src);
     static EmitterType   loadEmitType(const Daedalus::ZString& src);
     static Dir           loadDirType(const Daedalus::ZString&  src);
     static AlphaFunc     loadAlphaFn(const Daedalus::ZString&  src);
+
+    float                fetchScaleKey(uint64_t time, const KeyList& k, float fps, bool smooth, bool loop) const;
   };
 

@@ -1338,23 +1338,23 @@ void GameScript::wld_getday(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
-  int32_t                  a        = vm.popInt();
-  int32_t                  b        = vm.popInt();
-  int32_t                  c        = vm.popInt();
-  int32_t                  d        = vm.popInt();
-  auto                     npc1     = popInstance(vm);
-  auto                     npc0     = popInstance(vm);
-  const Daedalus::ZString& visual   = vm.popString();
+  int32_t                  isProjectile = vm.popInt();
+  int32_t                  damageType   = vm.popInt();
+  int32_t                  damage       = vm.popInt();
+  int32_t                  effectLevel  = vm.popInt();
+  auto                     target       = popInstance(vm);
+  auto                     source       = popInstance(vm);
+  const Daedalus::ZString& visual       = vm.popString();
 
-  (void)a;
-  (void)b;
-  (void)c;
-  (void)d;
-  (void)npc0;
-  (void)npc1;
+  if(isProjectile!=0 || damageType!=0 || damage!=0 || effectLevel!=0) {
+    // TODO
+    Log::i("effect not implemented [",visual.c_str(),"]");
+    return;
+    }
 
   const VisualFx* vfx = owner.loadVisualFx(visual.c_str());
-  Log::i("effect not implemented [",visual.c_str()," ",reinterpret_cast<const void*>(vfx),"]");
+  if(vfx!=nullptr && source!=nullptr && target!=nullptr)
+    source->playEffect(*target,*vfx);
   }
 
 void GameScript::wld_stopeffect(Daedalus::DaedalusVM &vm) {
