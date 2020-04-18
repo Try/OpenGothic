@@ -6,8 +6,8 @@ configuration:
   - release
 
 before_build:
-  # - sh: sudo apt-get install libvulkan-dev
-  - sh:  sudo apt-get --yes install libvulkan-dev libasound2-dev
+  - sh: sudo apt-get update
+  - sh: sudo apt-get --yes install libvulkan-dev libasound2-dev
   # Prepare the out-of-source build directory.
   - mkdir build
   - git submodule update --init --recursive
