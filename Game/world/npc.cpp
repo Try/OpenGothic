@@ -1413,11 +1413,10 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
 
     if(hitResult.value>0) {
       if(attribute(ATR_HITPOINTS)>0) {
-        visual.interrupt();
-        if(lastHitType=='A')
-          setAnim(Anim::StumbleA); else
-          setAnim(Anim::StumbleB);
-        implAniWait(visual.pose().animationTotalTime());
+        if(hnpc.bodyStateInterruptableOverride==0)
+          visual.interrupt();
+        if(setAnim(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB))
+          implAniWait(visual.pose().animationTotalTime());
         }
       changeAttribute(ATR_HITPOINTS,-hitResult.value,b==nullptr);
 
