@@ -18,7 +18,7 @@ StaticObj::StaticObj(const ZenLoad::zCVobData& vob,World& owner) {
     float x=0,y=0,z=0;
     objMat.project(x,y,z);
     pfx = owner.getView(view);
-    //pfx.setActive(true); // TODO
+    pfx.setActive(true);
     pfx.setPosition(x,y,z);
     } else
   if(FileExt::hasExt(vob.visual,"TGA")){

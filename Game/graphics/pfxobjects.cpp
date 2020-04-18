@@ -1,6 +1,7 @@
 #include "pfxobjects.h"
 
 #include <cstring>
+#include <cassert>
 
 #include "light.h"
 #include "particlefx.h"
@@ -18,10 +19,9 @@ PfxObjects::Emitter::Emitter(PfxObjects::Bucket& b, size_t id)
 
 PfxObjects::Emitter::~Emitter() {
   if(bucket) {
-    auto& p = bucket->impl[id];
-    bucket->freeBlock(p.id);
-    p.id    = size_t(-1);
-    p.alive = false;
+    auto& p  = bucket->impl[id];
+    p.alive  = false;
+    p.active = false;
     }
   }
 
@@ -40,24 +40,17 @@ void PfxObjects::Emitter::setPosition(float x, float y, float z) {
   if(bucket==nullptr)
     return;
   auto& v = bucket->impl[id];
-  v.pos[0] = x;
-  v.pos[1] = y;
-  v.pos[2] = z;
-  if(bucket->impl[id].id==size_t(-1))
+  v.pos = Vec3(x,y,z);
+  if(bucket->impl[id].block==size_t(-1))
     return; // no backup memory
   auto& p = bucket->getBlock(*this);
-  p.pos[0] = x;
-  p.pos[1] = y;
-  p.pos[2] = z;
+  p.pos = Vec3(x,y,z);
   }
 
 void PfxObjects::Emitter::setActive(bool act) {
   if(bucket==nullptr)
     return;
-  if(bucket->impl[id].id==size_t(-1) && act==false)
-    return; // no backup memory
-  auto& v = bucket->getBlock(*this);
-  v.active=act;
+  bucket->impl[id].active = act;
   }
 
 void PfxObjects::Emitter::setObjMatrix(const Matrix4x4 &mt) { //fixme: usless for Npc
@@ -86,7 +79,6 @@ size_t PfxObjects::Bucket::allocBlock() {
       }
     }
 
-  parent->invalidateCmd();
   block.emplace_back();
 
   Block& b = block.back();
@@ -94,49 +86,71 @@ size_t PfxObjects::Bucket::allocBlock() {
 
   particles.resize(particles.size()+blockSize);
   vbo.resize(particles.size()*6);
+  parent->invalidateCmd();
 
   for(size_t i=0; i<blockSize; ++i)
     particles[i].life = 0;
   return block.size()-1;
   }
 
-void PfxObjects::Bucket::freeBlock(size_t i) {
+void PfxObjects::Bucket::freeBlock(size_t& i) {
   if(i==size_t(-1))
     return;
   auto& b = block[i];
-  b.active = false;
-  b.alive  = b.count==0; // wait until all particles are gone
+  assert(b.count==0);
+  b.alive = false;
+  b.alive = false;
+  i = size_t(-1);
   }
 
 PfxObjects::Block &PfxObjects::Bucket::getBlock(PfxObjects::ImplEmitter &e) {
-  if(e.id==size_t(-1)) {
-    e.id = allocBlock();
-
-    auto& p  = block[e.id];
-
-    p.owner  = size_t(&e-impl.data());
-    p.pos[0] = e.pos[0];
-    p.pos[1] = e.pos[1];
-    p.pos[2] = e.pos[2];
+  if(e.block==size_t(-1)) {
+    e.block = allocBlock();
+    auto& p = block[e.block];
+    p.pos   = e.pos;
     }
-  return block[e.id];
+  return block[e.block];
   }
 
 PfxObjects::Block &PfxObjects::Bucket::getBlock(PfxObjects::Emitter &e) {
   return getBlock(impl[e.id]);
   }
 
-size_t PfxObjects::Bucket::alloc() {
-  for(size_t i=0; i<impl.size(); ++i)
-    if(!impl[i].alive) {
-      impl[i].alive = true;
+size_t PfxObjects::Bucket::allocEmitter() {
+  for(size_t i=0; i<impl.size(); ++i) {
+    auto& b = impl[i];
+    if(!b.alive && b.block==size_t(-1)) {
+      b.alive = true;
       return i;
       }
+    }
   impl.emplace_back();
   auto& e = impl.back();
-  e.id    = size_t(-1); // no backup memory
+  e.block = size_t(-1); // no backup memory
 
   return impl.size()-1;
+  }
+
+bool PfxObjects::Bucket::shrink() {
+  while(impl.size()>0) {
+    auto& b = impl.back();
+    if(b.alive || b.block!=size_t(-1))
+      break;
+    impl.pop_back();
+    }
+  while(block.size()>0) {
+    auto& b = block.back();
+    if(b.alive || b.count>0)
+      break;
+    block.pop_back();
+    }
+  if(particles.size()!=block.size()*blockSize) {
+    particles.resize(block.size()*blockSize);
+    vbo.resize(particles.size()*6);
+    parent->invalidateCmd();
+    return true;
+    }
+  return false;
   }
 
 void PfxObjects::Bucket::init(size_t particle) {
@@ -187,29 +201,6 @@ void PfxObjects::Bucket::finalize(size_t particle) {
   std::memset(v,0,sizeof(*v)*6);
   }
 
-bool PfxObjects::Bucket::shrink() {
-  while(impl.size()>0) {
-    auto& b = impl.back();
-    if(b.alive)
-      break;
-    if(b.id!=size_t(-1))
-      block[b.id].owner = size_t(-1);
-    impl.pop_back();
-    }
-  while(block.size()>0) {
-    auto& b = block.back();
-    if(b.alive || b.count>0)
-      break;
-    block.pop_back();
-    }
-  if(particles.size()!=block.size()*blockSize) {
-    particles.resize(block.size()*blockSize);
-    vbo.resize(particles.size()*6);
-    return true;
-    }
-  return false;
-  }
-
 float PfxObjects::ParState::lifeTime() const {
   return 1.f-life/float(maxLife);
   }
@@ -221,8 +212,7 @@ PfxObjects::PfxObjects(const RendererStorage& storage)
 
 PfxObjects::Emitter PfxObjects::get(const ParticleFx &decl) {
   auto&  b = getBucket(decl);
-  size_t e = b.alloc();
-  invalidateCmd();
+  size_t e = b.allocEmitter();
   return Emitter(b,e);
   }
 
@@ -240,6 +230,10 @@ void PfxObjects::setLight(const Light &l, const Vec3 &ambient) {
   uboGlobal.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
   }
 
+void PfxObjects::setViewerPos(const Vec3& pos) {
+  viewePos = pos;
+  }
+
 bool PfxObjects::needToUpdateCommands(uint8_t fId) const {
   return updateCmd[fId];
   }
@@ -248,26 +242,45 @@ void PfxObjects::setAsUpdated(uint8_t fId) {
   updateCmd[fId]=false;
   }
 
-void PfxObjects::updateUbo(uint8_t frameId, uint64_t ticks) {
-  uboGlobalPf.update(uboGlobal,frameId);
-  uint64_t dt = ticks-lastUpdate;
+void PfxObjects::resetTicks() {
+  lastUpdate = size_t(-1);
+  }
+
+void PfxObjects::tick(uint64_t ticks) {
+  if(lastUpdate>ticks) {
+    lastUpdate = ticks;
+    return;
+    }
+
+  uint64_t dt    = ticks-lastUpdate;
+  float    dtFlt = float(dt)/1000.f;
+
+  if(dt==0)
+    return;
 
   for(auto& i:bucket) {
-    if(dt!=0) {
-      tickSys(i,dt);
-      buildVbo(i);
-      }
-
-    auto& pf = i.pf[frameId];
-    pf.vbo.update(i.vbo);
+    tickSys(i,dt,dtFlt);
+    buildVbo(i);
     }
   lastUpdate = ticks;
   }
 
+void PfxObjects::updateUbo(uint8_t frameId) {
+  uboGlobalPf.update(uboGlobal,frameId);
+  for(auto& i:bucket) {
+    auto& pf = i.pf[frameId];
+    pf.vbo.update(i.vbo);
+    }
+  }
+
 void PfxObjects::commitUbo(uint8_t frameId, const Texture2d& shadowMap) {
-  bucket.remove_if([](const Bucket& ){
-    // FIXME: Cannot free VkNonDispatchableHandle that is in use by a command buffer.
-    return false;//b.impl.size()==0;
+  size_t pfCount = storage.device.maxFramesInFlight();
+  bucket.remove_if([pfCount](const Bucket& b) {
+    for(size_t i=0;i<pfCount;++i) {
+      if(b.pf[i].vbo.size()>0)
+        return false;
+      }
+    return b.impl.size()==0;
     });
 
   if(!updateCmd[frameId])
@@ -275,7 +288,8 @@ void PfxObjects::commitUbo(uint8_t frameId, const Texture2d& shadowMap) {
 
   for(auto& i:bucket) {
     auto& pf = i.pf[frameId];
-
+    if(i.vbo.size()!=pf.vbo.size())
+      pf.vbo = storage.device.vboDyn(i.vbo);
     pf.ubo.set(0,uboGlobalPf[frameId],0,1);
     pf.ubo.set(2,*i.owner->visName_S);
     pf.ubo.set(3,shadowMap);
@@ -285,8 +299,6 @@ void PfxObjects::commitUbo(uint8_t frameId, const Texture2d& shadowMap) {
 void PfxObjects::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId) {
   for(auto& i:bucket) {
     auto& pf = i.pf[imgId];
-    pf.vbo = storage.device.vboDyn(i.vbo);
-
     uint32_t offset=0;
     cmd.setUniforms(storage.pPfx,pf.ubo,1,&offset);
     cmd.draw(pf.vbo);
@@ -305,53 +317,73 @@ PfxObjects::Bucket &PfxObjects::getBucket(const ParticleFx &ow) {
   return *bucket.begin();
   }
 
-void PfxObjects::tickSys(PfxObjects::Bucket &b,uint64_t dt) {
-  float k = float(dt)/1000.f;
+void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dtMilis, float dt) {
+  bool doShrink = false;
+  for(auto& emitter:b.impl) {
+    const auto dp      = emitter.pos-viewePos;
+    const bool active  = emitter.active;
+    const bool nearby  = (dp.quadLength()<4000*4000);
+    const bool process = active && nearby;
 
-  for(auto& p:b.block) {
+    if(!process && emitter.block==size_t(-1)) {
+      continue;
+      }
+
+    auto& p = b.getBlock(emitter);
     if(p.count>0) {
-      for(size_t i=0;i<b.blockSize;++i) {
-        ParState& ps = b.particles[i+p.offset];
-        if(ps.life==0)
-          continue;
-        if(ps.life<=dt){
-          ps.life = 0;
-          p.count--;
-          b.finalize(i+p.offset);
-          } else {
-          // eval particle
-          ps.life  = uint16_t(ps.life-dt);
-          ps.pos  += ps.dir*k;
-          ps.pos  += b.owner->flyGravity_S;
-          }
+      tickSys(b,p,dtMilis,dt);
+      if(p.count==0 && !process){
+        // free mem
+        b.freeBlock(emitter.block);
+        doShrink = true;
+        continue;
         }
       }
 
-    p.timeTotal+=dt;
+    p.timeTotal+=dtMilis;
     uint64_t fltScale = 100;
     uint64_t emited   = uint64_t(p.timeTotal*uint64_t(b.owner->ppsValue*float(fltScale)))/uint64_t(1000u*fltScale);
-    if(!p.active) {
-      p.emited = emited;
-      if(p.count==0) {
-        p.alive=false;
-        if(p.owner!=size_t(-1))
-          b.impl[p.owner].id=size_t(-1);
-        p.owner=size_t(-1);
-        if(b.shrink())
-          invalidateCmd();
-        }
-      } else {
-      while(p.emited<emited) {
-        p.emited++;
 
-        for(size_t i=0;i<b.blockSize;++i) {
-          ParState& ps = b.particles[i+p.offset];
-          if(ps.life==0) { // free slot
-            p.count++;
-            b.init(i+p.offset);
-            break;
-            }
-          }
+    if(!nearby) {
+      p.emited = emited;
+      }
+    else if(active) {
+      tickSysEmit(b,p,emited);
+      }
+    }
+
+  if(doShrink)
+    b.shrink();
+  }
+
+void PfxObjects::tickSys(Bucket& b, Block& p, uint64_t dtMilis, float dt) {
+  for(size_t i=0;i<b.blockSize;++i) {
+    ParState& ps = b.particles[i+p.offset];
+    if(ps.life==0)
+      continue;
+    if(ps.life<=dtMilis){
+      ps.life = 0;
+      p.count--;
+      b.finalize(i+p.offset);
+      } else {
+      // eval particle
+      ps.life  = uint16_t(ps.life-dtMilis);
+      ps.pos  += ps.dir*dt;
+      ps.pos  += b.owner->flyGravity_S;
+      }
+    }
+  }
+
+void PfxObjects::tickSysEmit(PfxObjects::Bucket& b, PfxObjects::Block& p, uint64_t emited) {
+  while(p.emited<emited) {
+    p.emited++;
+
+    for(size_t i=0;i<b.blockSize;++i) {
+      ParState& ps = b.particles[i+p.offset];
+      if(ps.life==0) { // free slot
+        p.count++;
+        b.init(i+p.offset);
+        break;
         }
       }
     }
@@ -436,9 +468,9 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b) {
         float sy = l[1]*dx[i]*szX + t[1]*dy[i]*szY;
         float sz = l[2]*dx[i]*szX + t[2]*dy[i]*szY;
 
-        v[i].pos[0] = ps.pos.x + p.pos[0] + sx;
-        v[i].pos[1] = ps.pos.y + p.pos[1] + sy;
-        v[i].pos[2] = ps.pos.z + p.pos[2] + sz;
+        v[i].pos[0] = ps.pos.x + p.pos.x + sx;
+        v[i].pos[1] = ps.pos.y + p.pos.y + sy;
+        v[i].pos[2] = ps.pos.z + p.pos.z + sz;
 
         v[i].uv[0]  = (dx[i]+0.5f);//float(ow.frameCount);
         v[i].uv[1]  = (dy[i]+0.5f);

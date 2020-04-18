@@ -15,6 +15,7 @@ WorldView::WorldView(const World &world, const PackedMesh &wmesh, const Renderer
   vobGroup.reserve(8192,0);
   objGroup.reserve(8192,2048);
   itmGroup.reserve(8192,0);
+  pfxGroup.resetTicks();
 
   sun.setDir(1,-1,1);
 
@@ -45,6 +46,10 @@ const Light &WorldView::mainLight() const {
   }
 
 void WorldView::tick(uint64_t /*dt*/) {
+  auto pl = owner.player();
+  if(pl!=nullptr) {
+    pfxGroup.setViewerPos(pl->position());
+    }
   }
 
 void WorldView::setupSunDir(float pulse,float ang) {
@@ -169,6 +174,7 @@ void WorldView::updateCmd(uint8_t frameId, const World &world,
     invalidateCmd();
     }
 
+  pfxGroup.tick(world.tickCount());
   builtCmdBuf(frameId,world,main,shadow,mainLay,shadowLay);
   }
 
@@ -197,7 +203,7 @@ void WorldView::updateUbo(uint8_t frameId, const Matrix4x4& view, const Tempest:
 
   pfxGroup.setModelView(viewProj,shadow[0]);
   pfxGroup.setLight    (sun,ambient);
-  pfxGroup.updateUbo   (frameId,owner.tickCount());
+  pfxGroup.updateUbo   (frameId);
   }
 
 void WorldView::builtCmdBuf(uint8_t frameId, const World &world,

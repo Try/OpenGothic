@@ -49,11 +49,15 @@ class PfxObjects final {
 
     void    setModelView(const Tempest::Matrix4x4 &m, const Tempest::Matrix4x4 &shadow);
     void    setLight(const Light &l, const Tempest::Vec3 &ambient);
+    void    setViewerPos(const Tempest::Vec3& pos);
 
     bool    needToUpdateCommands(uint8_t fId) const;
     void    setAsUpdated(uint8_t fId);
 
-    void    updateUbo(uint8_t frameId, uint64_t ticks);
+    void    resetTicks();
+    void    tick(uint64_t ticks);
+
+    void    updateUbo(uint8_t frameId);
     void    commitUbo(uint8_t frameId, const Tempest::Texture2d& shadowMap);
     void    draw     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId);
 
@@ -77,22 +81,21 @@ class PfxObjects final {
 
     struct ImplEmitter;
     struct Block final {
-      uint64_t     timeTotal=0;
-      uint64_t     emited=0;
-      size_t       owner=size_t(-1);
+      uint64_t      timeTotal=0;
+      uint64_t      emited=0;
 
-      size_t       offset=0;
-      size_t       count=0;
+      size_t        offset=0;
+      size_t        count=0;
 
-      float        pos[3]={};
-      bool         active=true;
-      bool         alive =true;
+      Tempest::Vec3 pos={};
+      bool          alive  = true;
       };
 
     struct ImplEmitter final {
-      size_t       id    = size_t(-1);
-      float        pos[3]={};
-      bool         alive = true;
+      size_t        block  = size_t(-1);
+      Tempest::Vec3 pos    = {};
+      bool          alive  = true;
+      bool          active = true;
       };
 
     struct ParState final {
@@ -119,11 +122,11 @@ class PfxObjects final {
       size_t                      blockSize=0;
 
       size_t                      allocBlock();
-      void                        freeBlock(size_t s);
+      void                        freeBlock(size_t& s);
       Block&                      getBlock(ImplEmitter& emitter);
       Block&                      getBlock(Emitter& emitter);
 
-      size_t                      alloc ();
+      size_t                      allocEmitter();
       bool                        shrink();
 
       void                        init    (size_t particle);
@@ -132,13 +135,17 @@ class PfxObjects final {
 
     static float                  randf();
     Bucket&                       getBucket(const ParticleFx& decl);
-    void                          tickSys (Bucket& b, uint64_t dt);
+    void                          tickSys    (Bucket& b, uint64_t dtMilis, float dt);
+    void                          tickSys    (Bucket& b, Block&  p, uint64_t dtMilis, float dt);
+    void                          tickSysEmit(Bucket& b, Block&  p, uint64_t emited);
     void                          buildVbo(Bucket& b);
 
     void                          invalidateCmd();
 
     const RendererStorage&        storage;
     std::list<Bucket>             bucket;
+
+    Tempest::Vec3                 viewePos={};
 
     static std::mt19937           rndEngine;
     UboChain<UboGlobal,void>      uboGlobalPf;
