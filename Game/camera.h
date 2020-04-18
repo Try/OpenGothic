@@ -44,6 +44,7 @@ class Camera final {
 
     void setPosition(float x,float y,float z);
     void setSpin(const Tempest::PointF& p);
+    void setDestSpin(const Tempest::PointF& p);
     void setDistance(float d);
 
     Tempest::Matrix4x4 view() const;
@@ -54,7 +55,7 @@ class Camera final {
     Tempest::Vec3         camPos={};
     bool                  isInMove=false;
     Tempest::Vec3         camBone={};
-    Tempest::PointF       spin;
+    Tempest::PointF       spin, destSpin;
     float                 zoom=1.f;
     float                 dist=3.f;
 

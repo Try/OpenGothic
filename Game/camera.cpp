@@ -100,7 +100,12 @@ void Camera::setMode(Camera::Mode m) {
   }
 
 void Camera::setSpin(const PointF &p) {
-  spin = p;
+  spin     = p;
+  destSpin = p;
+  }
+
+void Camera::setDestSpin(const PointF& p) {
+  destSpin = p;
   }
 
 void Camera::setDistance(float d) {
@@ -273,12 +278,13 @@ void Camera::follow(const Npc &npc,uint64_t dt,bool inMove,bool includeRot) {
     }
 
   if(includeRot && def.rotate!=0) {
-    float angle = npc.rotation();
-    float da    = angleMod(spin.x-angle);
-    float min   = def.minAzimuth+180;
-    float max   = def.maxAzimuth-180;
+    float angle  = npc.rotation();
+    float da     = angleMod(spin.x-angle);
+    float min    = def.minAzimuth+180;
+    float max    = def.maxAzimuth-180;
+    float shift0 = def.veloRot*dtF;
 
-    float shift = def.veloRot*dtF*60.f; // my guess: speed is angle per frame
+    float shift = shift0;
     if(da<min)
       shift = std::max(shift,+(min-da));
     if(da>max)
@@ -290,6 +296,20 @@ void Camera::follow(const Npc &npc,uint64_t dt,bool inMove,bool includeRot) {
       shift = +std::min(-da,shift);
       }
     spin.x += shift;
+
+    da    = angleMod(spin.y-destSpin.y);
+    shift = shift0;
+    if(da<min)
+      shift = std::max(shift,+(min-da));
+    if(da>max)
+      shift = std::max(shift,-(max-da));
+
+    if(da>0){
+      shift = -std::min(+da,shift);
+      } else {
+      shift = +std::min(-da,shift);
+      }
+    spin.y += shift;
     }
   }
 

@@ -253,9 +253,9 @@ void MainWindow::processMouse(MouseEvent &event,bool fs) {
            (player.weaponState()==WeaponState::Fist || player.weaponState()==WeaponState::W1H || player.weaponState()==WeaponState::W2H)))
         player.onRotateMouse(-dp.x);
       spin.x = camera->getSpin().x;
-      camera->setSpin(spin);
+      camera->setDestSpin(spin);
       } else {
-      camera->setSpin(spin);
+      camera->setDestSpin(spin);
       }
     }
   }
