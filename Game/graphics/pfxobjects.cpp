@@ -158,25 +158,35 @@ void PfxObjects::Bucket::init(size_t particle) {
 
   float dx=0,dy=0,dz=0;
 
-  if(owner->shpType_S==ParticleFx::EmitterType::Point) {
-    dx = 0;
-    dy = 0;
-    dz = 0;
+  switch (owner->shpType_S){
+    case ParticleFx::EmitterType::Point:{
+      dx  = randf()*2.f-1.f;
+      dy  = randf()*2.f-1.f;
+      dz  = randf()*2.f-1.f;
+      break;
+      }
+    case ParticleFx::EmitterType::Box:{
+      dx  = randf()*2.f-1.f;
+      dy  = randf()*2.f-1.f;
+      dz  = randf()*2.f-1.f;
+      break;
+      }
+    case ParticleFx::EmitterType::Sphere:{
+      float theta = float(2.0*M_PI)*randf();
+      float phi   = std::acos(1.f - 2.f * randf());
+      dx    = std::sin(phi) * std::cos(theta);
+      dy    = std::sin(phi) * std::sin(theta);
+      dz    = std::cos(phi);
+      break;
+      }
+    case ParticleFx::EmitterType::Line:
+    case ParticleFx::EmitterType::Circle:
+    case ParticleFx::EmitterType::Mesh:{
+      // TODO
+      break;
+      }
     }
-  else if(owner->shpType_S==ParticleFx::EmitterType::Sphere) {
-    float theta = float(2.0*M_PI)*randf();
-    float phi   = std::acos(1.f - 2.f * randf());
-    dx    = std::sin(phi) * std::cos(theta);
-    dy    = std::sin(phi) * std::sin(theta);
-    dz    = std::cos(phi);
-    }
-  else if(owner->shpType_S==ParticleFx::EmitterType::Box) {
-    dx  = randf()*2.f-1.f;
-    dy  = randf()*2.f-1.f;
-    dz  = randf()*2.f-1.f;
-    } else {
-    p.pos = Vec3();
-    }
+
   Vec3 dim = owner->shpDim_S*0.5f;
   p.pos = Vec3(dx*dim.x,dy*dim.y,dz*dim.z)+owner->shpOffsetVec_S;
 
@@ -191,6 +201,9 @@ void PfxObjects::Bucket::init(size_t particle) {
     // p.rotation  = std::atan2(p.pos.y,p.pos.x);
     p.rotation  = randf()*float(2.0*M_PI); //FIXME
     }
+
+  float vel = (owner->velAvg+(2.f*randf()-1.f)*owner->velVar);
+  p.dir     = Vec3(0,vel,0);
 
   p.life    = uint16_t(owner->lspPartAvg+owner->lspPartVar*(2.f*randf()-1.f));
   p.maxLife = p.life;
@@ -252,14 +265,12 @@ void PfxObjects::tick(uint64_t ticks) {
     return;
     }
 
-  uint64_t dt    = ticks-lastUpdate;
-  float    dtFlt = float(dt)/1000.f;
-
+  uint64_t dt = ticks-lastUpdate;
   if(dt==0)
     return;
 
   for(auto& i:bucket) {
-    tickSys(i,dt,dtFlt);
+    tickSys(i,dt);
     buildVbo(i);
     }
   lastUpdate = ticks;
@@ -317,7 +328,7 @@ PfxObjects::Bucket &PfxObjects::getBucket(const ParticleFx &ow) {
   return *bucket.begin();
   }
 
-void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dtMilis, float dt) {
+void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
   bool doShrink = false;
   for(auto& emitter:b.impl) {
     const auto dp      = emitter.pos-viewePos;
@@ -331,7 +342,7 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dtMilis, float dt) {
 
     auto& p = b.getBlock(emitter);
     if(p.count>0) {
-      tickSys(b,p,dtMilis,dt);
+      tickSys(b,p,dt);
       if(p.count==0 && !process){
         // free mem
         b.freeBlock(emitter.block);
@@ -340,7 +351,7 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dtMilis, float dt) {
         }
       }
 
-    p.timeTotal+=dtMilis;
+    p.timeTotal+=dt;
     uint64_t fltScale = 100;
     uint64_t emited   = uint64_t(p.timeTotal*uint64_t(b.owner->ppsValue*float(fltScale)))/uint64_t(1000u*fltScale);
 
@@ -356,20 +367,21 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dtMilis, float dt) {
     b.shrink();
   }
 
-void PfxObjects::tickSys(Bucket& b, Block& p, uint64_t dtMilis, float dt) {
+void PfxObjects::tickSys(Bucket& b, Block& p, uint64_t dt) {
   for(size_t i=0;i<b.blockSize;++i) {
     ParState& ps = b.particles[i+p.offset];
     if(ps.life==0)
       continue;
-    if(ps.life<=dtMilis){
+    if(ps.life<=dt){
       ps.life = 0;
       p.count--;
       b.finalize(i+p.offset);
       } else {
+      const float dtF = float(dt);
       // eval particle
-      ps.life  = uint16_t(ps.life-dtMilis);
-      ps.pos  += ps.dir*dt;
-      ps.pos  += b.owner->flyGravity_S;
+      ps.life  = uint16_t(ps.life-dt);
+      ps.pos  += ps.dir*dtF;
+      ps.dir  += b.owner->flyGravity_S*dtF;
       }
     }
   }

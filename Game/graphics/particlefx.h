@@ -7,7 +7,7 @@
 
 class ParticleFx final {
   public:
-    ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX & src);
+    ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX & src, const char* name);
 
     enum class EmitterType:uint8_t {
       Point,
@@ -30,6 +30,8 @@ class ParticleFx final {
       Add,
       Mul
       };
+
+    std::string   dbgName;
 
     float         ppsValue=0;
     std::string   ppsScaleKeys_S;

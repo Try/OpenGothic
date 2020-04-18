@@ -38,6 +38,7 @@ class Pose final {
 
     ZMath::float3      animMoveSpeed(uint64_t tickCount, uint64_t dt) const;
     void               processSfx(Npc &npc, uint64_t tickCount);
+    void               processPfx(Npc &npc, uint64_t tickCount);
     void               processEvents(uint64_t& barrier, uint64_t now, Animation::EvCount &ev) const;
     bool               isDefParWindow(uint64_t tickCount) const;
     bool               isDefWindow(uint64_t tickCount) const;

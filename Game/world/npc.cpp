@@ -1974,6 +1974,18 @@ void Npc::emitSoundGround(const char* sound, float range, bool freeSlot) {
   owner.emitSoundEffect(buf,x,y,z,range,freeSlot);
   }
 
+void Npc::startParticleEffect(const char* pfxName, int32_t slot, const char* bone) {
+  const ParticleFx* pfx      = owner.script().getParticleFx(pfxName);
+  auto              vemitter = owner.getView(pfx);
+
+  vemitter.setActive(true);
+  visual.startParticleEffect(std::move(vemitter),slot,bone);
+  }
+
+void Npc::stopParticleEffect(int32_t slot) {
+  visual.stopParticleEffect(slot);
+  }
+
 const Npc::Routine& Npc::currentRoutine() const {
   auto time = owner.time();
   time = gtime(int32_t(time.hour()),int32_t(time.minute()));

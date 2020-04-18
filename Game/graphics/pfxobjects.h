@@ -135,8 +135,8 @@ class PfxObjects final {
 
     static float                  randf();
     Bucket&                       getBucket(const ParticleFx& decl);
-    void                          tickSys    (Bucket& b, uint64_t dtMilis, float dt);
-    void                          tickSys    (Bucket& b, Block&  p, uint64_t dtMilis, float dt);
+    void                          tickSys    (Bucket& b, uint64_t dt);
+    void                          tickSys    (Bucket& b, Block&  p, uint64_t dt);
     void                          tickSysEmit(Bucket& b, Block&  p, uint64_t emited);
     void                          buildVbo(Bucket& b);
 

@@ -171,6 +171,41 @@ bool MdlVisual::setFightMode(const ZenLoad::EFightMode mode) {
   return setToFightMode(f);
   }
 
+void MdlVisual::startParticleEffect(PfxObjects::Emitter&& pfx, int32_t slot, const char* bone) {
+  if(bone==nullptr || skeleton==nullptr)
+    return;
+
+  size_t id = skeleton->findNode(bone);
+  if(id==size_t(-1))
+    return;
+
+  for(auto& i:effects) {
+    if(i.id==slot) {
+      bind(i,std::move(pfx),bone);
+      syncAttaches();
+      return;
+      }
+    }
+
+  PfxSlot slt;
+  slt.bone = skeleton->nodes[id].name.c_str();
+  slt.id   = slot;
+  bind(slt,std::move(pfx),bone);
+  effects.push_back(std::move(slt));
+  syncAttaches();
+  }
+
+void MdlVisual::stopParticleEffect(int32_t slot) {
+  for(size_t i=0;i<effects.size();++i) {
+    if(effects[i].id==slot) {
+      effects[i] = std::move(effects.back());
+      effects.pop_back();
+      syncAttaches();
+      return;
+      }
+    }
+  }
+
 bool MdlVisual::setToFightMode(const WeaponState f) {
   if(f==fgtMode)
     return false;
@@ -220,6 +255,7 @@ void MdlVisual::updateAnimation(Npc& npc,int comb) {
 
   if(npc.world().isInListenerRange(npc.position()))
     pose.processSfx(npc,tickCount);
+  pose.processPfx(npc,tickCount);
 
   solver.update(tickCount);
   const bool changed = pose.update(solver,comb,tickCount);
@@ -491,6 +527,8 @@ void MdlVisual::syncAttaches() {
   for(auto i:mesh)
     syncAttaches(*i);
   for(auto& i:item)
+    syncAttaches(i);
+  for(auto& i:effects)
     syncAttaches(i);
   syncAttaches(pfx);
   }

@@ -49,6 +49,8 @@ class Animation final {
       uint32_t                                    numFrames =0;
 
       std::vector<ZenLoad::zCModelScriptEventSfx> sfx, gfx;
+      std::vector<ZenLoad::zCModelScriptEventPfx> pfx;
+      std::vector<ZenLoad::zCModelScriptEventPfxStop> pfxStop;
       std::vector<ZenLoad::zCModelEvent>          tag;
       std::vector<ZenLoad::zCModelEvent>          events;
 
@@ -78,6 +80,7 @@ class Animation final {
       bool                                   isPrehit(uint64_t sTime, uint64_t now) const;
       void                                   processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const;
       void                                   processSfx   (uint64_t barrier, uint64_t sTime, uint64_t now, Npc &npc) const;
+      void                                   processPfx   (uint64_t barrier, uint64_t sTime, uint64_t now, Npc &npc) const;
 
       ZMath::float3                          translation(uint64_t dt) const;
       ZMath::float3                          speed(uint64_t at, uint64_t dt) const;

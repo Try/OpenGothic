@@ -4,7 +4,8 @@
 
 using namespace Tempest;
 
-ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src) {
+ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const char* name)
+  :dbgName(name) {
   ppsValue            = src.ppsValue;
   ppsScaleKeys_S      = src.ppsScaleKeys_S.c_str();
   ppsIsLooping        = src.ppsIsLooping!=0;

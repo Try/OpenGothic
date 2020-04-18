@@ -109,19 +109,30 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
           }
         break;
         }
-      case ZenLoad::MdsParser::CHUNK_MODEL_TAG: {
-        if(current)
-          current->tag = std::move(p.modelTag);
-        break;
-        }
+
       case ZenLoad::MdsParser::CHUNK_EVENT_PFX: {
-        p.pfx.clear();
+        if(current) {
+          if(current->pfx.size()==0) {
+            current->pfx = std::move(p.pfx);
+            } else {
+            current->pfx.insert(current->pfx.end(), p.pfx.begin(), p.pfx.end());
+            p.pfx.clear();
+            }
+          }
         break;
         }
       case ZenLoad::MdsParser::CHUNK_EVENT_PFX_STOP: {
-        p.pfxStop.clear();
+        if(current) {
+          if(current->pfxStop.size()==0) {
+            current->pfxStop = std::move(p.pfxStop);
+            } else {
+            current->pfxStop.insert(current->pfxStop.end(), p.pfxStop.begin(), p.pfxStop.end());
+            p.pfxStop.clear();
+            }
+          }
         break;
         }
+
       case ZenLoad::MdsParser::CHUNK_EVENT_TAG: {
         if(current){
           if(current->events.size()==0) {
@@ -131,6 +142,12 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
             p.eventTag.clear();
             }
           }
+        break;
+        }
+
+      case ZenLoad::MdsParser::CHUNK_MODEL_TAG: {
+        if(current)
+          current->tag = std::move(p.modelTag);
         break;
         }
       case ZenLoad::MdsParser::CHUNK_MESH_AND_TREE:
@@ -388,6 +405,29 @@ void Animation::Sequence::processSfx(uint64_t barrier, uint64_t sTime, uint64_t 
       uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.lastFrame);
       if((frameA<=fr && fr<frameB) ^ invert)
         npc.emitSoundGround(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
+      }
+    }
+  }
+
+void Animation::Sequence::processPfx(uint64_t barrier, uint64_t sTime, uint64_t now, Npc& npc) const {
+  uint64_t frameA=0,frameB=0;
+  bool     invert=false;
+  if(!extractFrames(frameA,frameB,invert,barrier,sTime,now))
+    return;
+
+  auto& d = *data;
+  for(auto& i:d.pfx){
+    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.lastFrame);
+    if(((frameA<=fr && fr<frameB) ^ invert) ||
+       i.m_Frame==int32_t(d.lastFrame)) {
+      npc.startParticleEffect(i.m_Name.c_str(),i.m_Num,i.m_Pos.c_str());
+      }
+    }
+  for(auto& i:d.pfxStop){
+    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.lastFrame);
+    if(((frameA<=fr && fr<frameB) ^ invert) ||
+       i.m_Frame==int32_t(d.lastFrame)) {
+      npc.stopParticleEffect(i.m_Num);
       }
     }
   }

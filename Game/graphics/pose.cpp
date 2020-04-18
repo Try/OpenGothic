@@ -319,6 +319,11 @@ void Pose::processSfx(Npc &npc, uint64_t tickCount) {
     i.seq->processSfx(lastUpdate,i.sAnim,tickCount,npc);
   }
 
+void Pose::processPfx(Npc& npc, uint64_t tickCount) {
+  for(auto& i:lay)
+    i.seq->processPfx(lastUpdate,i.sAnim,tickCount,npc);
+  }
+
 void Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev) const {
   for(auto& i:lay)
     i.seq->processEvents(barrier,i.sAnim,now,ev);

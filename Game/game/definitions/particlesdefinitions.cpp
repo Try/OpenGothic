@@ -22,7 +22,7 @@ const ParticleFx* ParticlesDefinitions::get(const char *name) {
   Daedalus::GEngineClasses::C_ParticleFX decl={};
   if(!implGet(name,decl))
     return nullptr;
-  std::unique_ptr<ParticleFx> p{new ParticleFx(decl)};
+  std::unique_ptr<ParticleFx> p{new ParticleFx(decl,name)};
   auto ret = pfx.insert(std::make_pair<std::string,std::unique_ptr<ParticleFx>>(name,std::move(p)));
   return ret.first->second.get();
   }
