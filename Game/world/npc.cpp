@@ -775,17 +775,17 @@ const Animation::Sequence* Npc::playAnimByName(const Daedalus::ZString& name,boo
   }
 
 bool Npc::setAnim(Npc::Anim a) {
-  return setAnimAngGet(a)!=nullptr;
+  return setAnimAngGet(a,false)!=nullptr;
   }
 
-const Animation::Sequence* Npc::setAnimAngGet(Npc::Anim a) {
+const Animation::Sequence* Npc::setAnimAngGet(Npc::Anim a,bool noInterupt) {
   auto st  = weaponState();
   auto wlk = walkMode();
   if(mvAlgo.isSwim())
     wlk = WalkBit::WM_Swim;
   else if(mvAlgo.isInWater())
     wlk = WalkBit::WM_Water;
-  return visual.startAnimAndGet(*this,a,st,wlk);
+  return visual.startAnimAndGet(*this,a,st,wlk,noInterupt);
   }
 
 void Npc::setAnimRotate(int rot) {
@@ -1414,10 +1414,11 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
 
     if(hitResult.value>0) {
       if(attribute(ATR_HITPOINTS)>0) {
-        if(hnpc.bodyStateInterruptableOverride==0)
+        const bool noInter = (hnpc.bodyStateInterruptableOverride!=0);
+        if(!noInter)
           visual.interrupt();
-        if(setAnim(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB))
-          implAniWait(visual.pose().animationTotalTime());
+        if(auto ani = setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB,noInter))
+          implAniWait(uint64_t(ani->totalTime()));
         }
       changeAttribute(ATR_HITPOINTS,-hitResult.value,b==nullptr);
 

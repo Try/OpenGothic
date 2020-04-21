@@ -22,6 +22,12 @@ class Pose final {
       NoTranslation = 1, // usefull for mobsi
       };
 
+    enum StartHint {
+      NoHint     = 0x0,
+      Force      = 0x1,
+      NoInterupt = 0x2,
+      };
+
     void               save(Serialize& fout);
     void               load(Serialize& fin, const AnimationSolver &solver);
 
@@ -29,7 +35,7 @@ class Pose final {
     BodyState          bodyState() const;
     void               setSkeleton(const Skeleton *sk);
     bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq, BodyState bs,
-                                 bool force, uint64_t tickCount);
+                                 StartHint hint, uint64_t tickCount);
     bool               stopAnim(const char* name);
     void               stopItemStateAnim();
     void               interrupt();

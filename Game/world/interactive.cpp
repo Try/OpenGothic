@@ -3,9 +3,11 @@
 #include "world.h"
 #include "utils/fileext.h"
 #include "game/serialize.h"
+#include "graphics/pose.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Log>
+
 
 Interactive::Interactive(World &world, ZenLoad::zCVobData&& vob)
   :world(&world),skInst(std::make_unique<Pose>()) {
@@ -190,7 +192,7 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
   if(!p.started) {
     // STAND -> S0
     if(npc!=nullptr) {
-      auto sq = npc->setAnimAngGet(Npc::Anim::InteractFromStand);
+      auto sq = npc->setAnimAngGet(Npc::Anim::InteractFromStand,false);
       uint64_t t = sq==nullptr ? 0 : uint64_t(sq->totalTime());
       waitAnim = world->tickCount()+t;
       }
@@ -252,7 +254,7 @@ void Interactive::implQuitInteract(Interactive::Pos &p) {
       const Animation::Sequence* sq = nullptr;
       if(state==0) {
         // S0 -> STAND
-        sq = npc->setAnimAngGet(Npc::Anim::InteractToStand);
+        sq = npc->setAnimAngGet(Npc::Anim::InteractToStand,false);
         }
       if(sq==nullptr && !npc->setAnim(Npc::Anim::Idle))
         return;
@@ -628,7 +630,7 @@ const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {
 
   auto sq = solver.solveFrm(buf);
   if(sq) {
-    if(skInst->startAnim(solver,sq,BS_NONE,false,world->tickCount()))
+    if(skInst->startAnim(solver,sq,BS_NONE,Pose::NoHint,world->tickCount()))
       return sq;
     }
   return nullptr;
@@ -639,7 +641,7 @@ bool Interactive::setAnim(Npc* npc,Anim dir) {
   const Animation::Sequence* sqNpc=nullptr;
   const Animation::Sequence* sqMob=nullptr;
   if(npc!=nullptr) {
-    sqNpc = npc->setAnimAngGet(dest);
+    sqNpc = npc->setAnimAngGet(dest,false);
     if(sqNpc==nullptr && dir!=Anim::Out)
       return false;
     }

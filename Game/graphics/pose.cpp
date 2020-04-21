@@ -80,18 +80,21 @@ void Pose::setSkeleton(const Skeleton* sk) {
   }
 
 bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, BodyState bs,
-                     bool force, uint64_t tickCount) {
+                     StartHint hint, uint64_t tickCount) {
   if(sq==nullptr)
     return false;
 
   if(bs==BS_ITEMINTERACT && itemUse!=nullptr)
     return false;
 
+  const bool force   = (hint&Force);
+  const bool noInter = (hint&NoInterupt);
+
   for(auto& i:lay)
     if(i.seq->layer==sq->layer) {
       const bool hasNext   = (!i.seq->next.empty() && i.seq->animCls!=Animation::Loop);
       const bool finished  = i.seq->isFinished(tickCount-i.sAnim,comboLen) && !hasNext;
-      const bool interrupt = force || i.seq->canInterrupt();
+      const bool interrupt = force || (!noInter && i.seq->canInterrupt());
       if(i.seq==sq && i.bs==bs && !finished)
         return true;
       if(!interrupt && !finished)
@@ -479,7 +482,7 @@ const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, co
           return i.seq;
           } else {
           comboLen = 0;
-          startAnim(solver,sq,i.bs,true,tickCount);
+          startAnim(solver,sq,i.bs,Pose::Force,tickCount);
           return sq;
           }
         }
@@ -528,7 +531,7 @@ void Pose::setRotation(const AnimationSolver &solver, Npc &npc, WeaponState figh
     }
   if(sq==nullptr)
     return;
-  if(startAnim(solver,sq,BS_FLAG_FREEHANDS,false,npc.world().tickCount())) {
+  if(startAnim(solver,sq,BS_FLAG_FREEHANDS,Pose::NoHint,npc.world().tickCount())) {
     rotation = sq;
     return;
     }
@@ -541,7 +544,7 @@ bool Pose::setAnimItem(const AnimationSolver &solver, Npc &npc, const char *sche
   std::snprintf(T_ID_STAND_2_S0,sizeof(T_ID_STAND_2_S0),"T_%s_STAND_2_S0",scheme);
 
   const Animation::Sequence *sq = solver.solveFrm(T_ID_STAND_2_S0);
-  if(startAnim(solver,sq,BS_ITEMINTERACT,false,npc.world().tickCount())) {
+  if(startAnim(solver,sq,BS_ITEMINTERACT,Pose::NoHint,npc.world().tickCount())) {
     itemUse = sq;
     return true;
     }

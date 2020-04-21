@@ -303,20 +303,20 @@ Vec3 MdlVisual::mapWeaponBone() const {
 void MdlVisual::stopAnim(Npc& npc,const char* ani) {
   skInst->stopAnim(ani);
   if(!skInst->hasAnim())
-    startAnimAndGet(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
+    startAnimAndGet(npc,AnimationSolver::Idle,fgtMode,npc.walkMode(),false);
   }
 
 void MdlVisual::stopItemStateAnim(Npc& npc) {
   skInst->stopItemStateAnim();
   if(!skInst->hasAnim())
-    startAnimAndGet(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
+    startAnimAndGet(npc,AnimationSolver::Idle,fgtMode,npc.walkMode(),false);
   }
 
 void MdlVisual::stopWalkAnim(Npc &npc) {
   auto state = pose().bodyState();
   if(state!=BS_STAND && state!=BS_MOBINTERACT) {
     skInst->stopAnim(nullptr);
-    startAnimAndGet(npc,AnimationSolver::Idle,fgtMode,npc.walkMode());
+    startAnimAndGet(npc,AnimationSolver::Idle,fgtMode,npc.walkMode(),false);
     }
   }
 
@@ -336,14 +336,16 @@ bool MdlVisual::isAnimExist(const char* name) const {
 const Animation::Sequence* MdlVisual::startAnimAndGet(Npc &npc, const char *name,
                                                       bool forceAnim, BodyState bs) {
   const Animation::Sequence *sq = solver.solveFrm(name);
-  if(skInst->startAnim(solver,sq,bs,forceAnim,npc.world().tickCount())) {
+  Pose::StartHint hint = Pose::StartHint(forceAnim  ? Pose::Force : Pose::NoHint);
+  if(skInst->startAnim(solver,sq,bs,hint,npc.world().tickCount())) {
     return sq;
     }
   return nullptr;
   }
 
 const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver::Anim a,
-                                                      WeaponState st, WalkBit wlk) {
+                                                      WeaponState st, WalkBit wlk,
+                                                      bool noInterupt) {
   // for those use MdlVisual::setRotation
   assert(a!=AnimationSolver::Anim::RotL && a!=AnimationSolver::Anim::RotR);
 
@@ -354,7 +356,7 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     auto inter = npc.interactive();
     const Animation::Sequence *sq = solver.solveAnim(inter,a,*skInst);
     if(sq!=nullptr){
-      if(skInst->startAnim(solver,sq,BS_MOBINTERACT,false,npc.world().tickCount())) {
+      if(skInst->startAnim(solver,sq,BS_MOBINTERACT,Pose::NoHint,npc.world().tickCount())) {
         return sq;
         }
       }
@@ -370,9 +372,11 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
       skInst->stopAllAnim();
     forceAnim = true;
     }
-  if(a==AnimationSolver::Anim::StumbleA || a==AnimationSolver::Anim::StumbleB ||
-     a==AnimationSolver::Anim::JumpHang)
-    forceAnim = true;
+  if(!noInterupt) {
+    if(a==AnimationSolver::Anim::StumbleA || a==AnimationSolver::Anim::StumbleB ||
+       a==AnimationSolver::Anim::JumpHang)
+      forceAnim = true;
+    }
 
   BodyState bs = BS_NONE;
   switch(a) {
@@ -447,7 +451,10 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
   if(bool(wlk & WalkBit::WM_Swim))
     bs = BS_SWIM;
 
-  if(skInst->startAnim(solver,sq,bs,forceAnim,npc.world().tickCount())) {
+  Pose::StartHint hint = Pose::StartHint((forceAnim  ? Pose::Force : Pose::NoHint) |
+                                         (noInterupt ? Pose::NoInterupt : Pose::NoHint));
+
+  if(skInst->startAnim(solver,sq,bs,hint,npc.world().tickCount())) {
     return sq;
     }
   return nullptr;
@@ -461,7 +468,7 @@ bool MdlVisual::startAnim(Npc &npc, WeaponState st) {
   const Animation::Sequence *sq = solver.solveAnim(st,fgtMode,run);
   if(sq==nullptr)
     return false;
-  if(skInst->startAnim(solver,sq,run ? BS_RUN : BS_NONE,false,npc.world().tickCount()))
+  if(skInst->startAnim(solver,sq,run ? BS_RUN : BS_NONE,Pose::NoHint,npc.world().tickCount()))
     return true;
   return false;
   }
@@ -487,7 +494,7 @@ const Animation::Sequence* MdlVisual::continueCombo(Npc& npc, AnimationSolver::A
     if(auto ret = skInst->continueCombo(solver,sq,npc.world().tickCount()))
       return ret;
     }
-  return startAnimAndGet(npc,a,st,wlk);
+  return startAnimAndGet(npc,a,st,wlk,false);
   }
 
 uint32_t MdlVisual::comboLength() const {
@@ -566,7 +573,7 @@ bool MdlVisual::startAnimSpell(Npc &npc, const char *scheme) {
   std::snprintf(name,sizeof(name),"S_%sSHOOT",scheme);
 
   const Animation::Sequence *sq = solver.solveFrm(name);
-  if(skInst->startAnim(solver,sq,BS_CASTING,true,npc.world().tickCount())) {
+  if(skInst->startAnim(solver,sq,BS_CASTING,Pose::Force,npc.world().tickCount())) {
     return true;
     }
   return false;
@@ -584,7 +591,7 @@ bool MdlVisual::startAnimDialog(Npc &npc) {
   std::snprintf(name,sizeof(name),"T_DIALOGGESTURE_%02d",id);
 
   const Animation::Sequence *sq = solver.solveFrm(name);
-  if(skInst->startAnim(solver,sq,BS_STAND,false,npc.world().tickCount())) {
+  if(skInst->startAnim(solver,sq,BS_STAND,Pose::NoHint,npc.world().tickCount())) {
     return true;
     }
   return false;

@@ -234,7 +234,7 @@ class Npc final {
     void       setScale      (float x,float y,float z);
 
     bool       setAnim(Anim a);
-    auto       setAnimAngGet(Anim a) -> const Animation::Sequence*;
+    auto       setAnimAngGet(Anim a,bool noInterupt) -> const Animation::Sequence*;
     void       setAnimRotate(int rot);
     bool       setAnimItem(const char* scheme);
     void       stopAnim(const std::string& ani);
