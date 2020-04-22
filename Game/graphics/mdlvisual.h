@@ -22,6 +22,7 @@ class MdlVisual final {
 
     void                           setPos(float x,float y,float z);
     void                           setPos(const Tempest::Matrix4x4 &m);
+    void                           setTarget(const Tempest::Vec3& p);
     void                           setVisual(const Skeleton *visual);
     void                           setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner);
 
@@ -103,6 +104,7 @@ class MdlVisual final {
     void syncAttaches();
 
     Tempest::Matrix4x4             pos;
+    Tempest::Vec3                  targetPos;
     MeshObjects::Mesh              view;
 
     MeshAttach                     head, sword, bow;

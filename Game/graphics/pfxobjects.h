@@ -33,6 +33,8 @@ class PfxObjects final {
 
         bool   isEmpty() const { return bucket==nullptr; }
         void   setPosition (float x,float y,float z);
+        void   setTarget   (const Tempest::Vec3& pos);
+        void   setDirection(const Tempest::Matrix4x4& pos);
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setActive(bool act);
 
@@ -87,21 +89,25 @@ class PfxObjects final {
       size_t        offset=0;
       size_t        count=0;
 
-      Tempest::Vec3 pos={};
-      bool          alive  = true;
+      Tempest::Vec3 pos          = {};
+      Tempest::Vec3 target       = {};
+      Tempest::Vec3 direction[3] = {};
+      bool          alive        = true;
       };
 
     struct ImplEmitter final {
-      size_t        block  = size_t(-1);
-      Tempest::Vec3 pos    = {};
-      bool          alive  = true;
-      bool          active = true;
+      size_t        block        = size_t(-1);
+      Tempest::Vec3 pos          = {};
+      Tempest::Vec3 direction[3] = {};
+      bool          alive        = true;
+      bool          active       = true;
       };
 
     struct ParState final {
       uint16_t      life=0,maxLife=1;
       Tempest::Vec3 pos, dir;
 
+      float         velocity=0;
       float         rotation=0.f, drotation=0.f;
 
       float         lifeTime() const;
@@ -131,12 +137,13 @@ class PfxObjects final {
 
       void                        init    (Block& emitter, size_t particle);
       void                        finalize(size_t particle);
+      void                        tick    (Block& sys, size_t particle, uint64_t dt);
       };
 
     static float                  randf();
+    static float                  randf(float base, float var);
     Bucket&                       getBucket(const ParticleFx& decl);
     void                          tickSys    (Bucket& b, uint64_t dt);
-    void                          tickSys    (Bucket& b, Block&  p, uint64_t dt);
     void                          tickSysEmit(Bucket& b, Block&  p, uint64_t emited);
     void                          buildVbo(Bucket& b);
 

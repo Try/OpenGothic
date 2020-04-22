@@ -229,6 +229,10 @@ void MdlVisual::setPos(const Tempest::Matrix4x4 &m) {
   syncAttaches();
   }
 
+void MdlVisual::setTarget(const Tempest::Vec3& p) {
+  targetPos = p;
+  }
+
 void MdlVisual::updateWeaponSkeleton(const Item* weapon,const Item* range) {
   auto st = fgtMode;
   if(st==WeaponState::W1H || st==WeaponState::W2H){
@@ -548,8 +552,10 @@ void MdlVisual::syncAttaches() {
     syncAttaches(*i);
   for(auto& i:item)
     syncAttaches(i);
-  for(auto& i:effects)
+  for(auto& i:effects) {
     syncAttaches(i);
+    i.view.setTarget(targetPos);
+    }
   syncAttaches(pfx);
   }
 

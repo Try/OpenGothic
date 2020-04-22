@@ -87,6 +87,7 @@ void RendererStorage::initPipeline(Gothic& gothic) {
   RenderState stateFsq;
   stateFsq.setZTestMode   (RenderState::ZTestMode::LEqual);
   stateFsq.setCullFaceMode(RenderState::CullMode::Front);
+  stateFsq.setZWriteEnabled(false);
 
   RenderState statePfx;
   statePfx.setZTestMode    (RenderState::ZTestMode::LEqual);

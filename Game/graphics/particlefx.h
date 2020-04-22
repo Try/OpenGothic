@@ -24,6 +24,28 @@ class ParticleFx final {
       Target
       };
 
+    enum class Frame:uint8_t {
+      Object,
+      World
+      };
+
+    enum class Distribution:uint8_t {
+      Rand,
+      Dir,
+      Uniform,
+      Walk
+      };
+
+    enum class TargetFor:uint8_t {
+      Object
+      };
+
+    enum class Orientation:uint8_t {
+      None,
+      Velocity,
+      Velocity3d,
+      };
+
     enum class AlphaFunc:uint8_t {
       None,
       Blend,
@@ -35,65 +57,65 @@ class ParticleFx final {
 
     std::string   dbgName;
 
-    float         ppsValue=0;
-    KeyList       ppsScaleKeys_S;
-    bool          ppsIsLooping=0;
-    bool          ppsIsSmooth=0;
-    float         ppsFPS=0;
+    float         ppsValue            = 0;
+    KeyList       ppsScaleKeys;
+    bool          ppsIsLooping        = false;
+    bool          ppsIsSmooth         = false;
+    float         ppsFPS              = 0;
     std::string   ppsCreateEm_S;
-    float         ppsCreateEmDelay=0;
+    float         ppsCreateEmDelay    = 0;
 
-    EmitterType   shpType_S=EmitterType::Point;
-    std::string   shpFOR_S;
-    Tempest::Vec3 shpOffsetVec_S;
-    std::string   shpDistribType_S;
-    float         shpDistribWalkSpeed=0.f;
-    bool          shpIsVolume=false;
-    Tempest::Vec3 shpDim_S;
+    EmitterType   shpType             = EmitterType::Point;
+    Frame         shpFOR              = Frame::Object;
+    Tempest::Vec3 shpOffsetVec;
+    Distribution  shpDistribType      = Distribution::Rand;
+    float         shpDistribWalkSpeed = 0.f;
+    bool          shpIsVolume         = false;
+    Tempest::Vec3 shpDim;
     std::string   shpMesh_S;
-    bool          shpMeshRender_B=false;
-    KeyList       shpScaleKeys_S;
-    bool          shpScaleIsLooping=false;
-    bool          shpScaleIsSmooth=false;
-    float         shpScaleFPS=0.f;
+    bool          shpMeshRender       = false;
+    KeyList       shpScaleKeys;
+    bool          shpScaleIsLooping   = false;
+    bool          shpScaleIsSmooth    = false;
+    float         shpScaleFPS         = 0.f;
 
-    Dir           dirMode_S=Dir::Rand;
-    std::string   dirFOR_S;
-    std::string   dirModeTargetFOR_S;
-    Tempest::Vec3 dirModeTargetPos_S;
-    float         dirAngleHead=0.f;
-    float         dirAngleHeadVar=0.f;
-    float         dirAngleElev=0.f;
-    float         dirAngleElevVar=0.f;
+    Dir           dirMode             = Dir::Rand;
+    Frame         dirFOR              = Frame::Object;
+    TargetFor     dirModeTargetFOR    = TargetFor::Object;
+    Tempest::Vec3 dirModeTargetPos;
+    float         dirAngleHead        = 0.f;
+    float         dirAngleHeadVar     = 0.f;
+    float         dirAngleElev        = 0.f;
+    float         dirAngleElevVar     = 0.f;
 
-    float         velAvg=0.f;
-    float         velVar=0.f;
-    float         lspPartAvg=0.f;
-    float         lspPartVar=0.f;
+    float         velAvg              = 0.f;
+    float         velVar              = 0.f;
+    float         lspPartAvg          = 0.f;
+    float         lspPartVar          = 0.f;
 
     Tempest::Vec3 flyGravity_S;
-    bool          flyCollDet_B=false;
+    bool          flyCollDet_B = false;
 
-    const Tempest::Texture2d* visName_S=nullptr;
-    std::string   visOrientation_S;
-    bool          visTexIsQuadPoly=true;
+    const Tempest::Texture2d* visName_S = nullptr;
+    Orientation   visOrientation;
+    bool          visTexIsQuadPoly      = true;
     float         visTexAniFPS=0.f;
-    bool          visTexAniIsLooping=false;
-    Tempest::Vec3 visTexColorStart_S;
-    Tempest::Vec3 visTexColorEnd_S;
-    Tempest::Vec2 visSizeStart_S;
-    float         visSizeEndScale=0.f;
-    AlphaFunc     visAlphaFunc_S=AlphaFunc::None;
-    float         visAlphaStart=0.f;
-    float         visAlphaEnd=0.f;
+    bool          visTexAniIsLooping    = false;
+    Tempest::Vec3 visTexColorStart;
+    Tempest::Vec3 visTexColorEnd;
+    Tempest::Vec2 visSizeStart;
+    float         visSizeEndScale      = 0.f;
+    AlphaFunc     visAlphaFunc         = AlphaFunc::None;
+    float         visAlphaStart        = 0.f;
+    float         visAlphaEnd          = 0.f;
 
-    float         trlFadeSpeed=0.f;
-    std::string   trlTexture_S;
-    float         trlWidth=0.f;
+    const Tempest::Texture2d* trlTexture = nullptr;
+    float         trlFadeSpeed         = 0.f;
+    float         trlWidth             = 0.f;
 
-    float         mrkFadeSpeed=0.f;
-    std::string   mrkTexture_S;
-    float         mrkSize=0.f;
+    const Tempest::Texture2d* mrkTexture = nullptr;
+    float         mrkFadeSpeed         = 0.f;
+    float         mrkSize              = 0.f;
 
     std::string   flockMode;
     float         flockStrength;
@@ -110,13 +132,17 @@ class ParticleFx final {
     float         ppsScale(uint64_t time) const;
 
   private:
-    static auto          loadTexture(const std::string& src) -> const Tempest::Texture2d*;
+    static auto          loadTexture(const char* src) -> const Tempest::Texture2d*;
     static Tempest::Vec2 loadVec2(const Daedalus::ZString& src);
     static Tempest::Vec3 loadVec3(const Daedalus::ZString& src);
     static KeyList       loadArr(const Daedalus::ZString& src);
     static EmitterType   loadEmitType(const Daedalus::ZString& src);
-    static Dir           loadDirType(const Daedalus::ZString&  src);
-    static AlphaFunc     loadAlphaFn(const Daedalus::ZString&  src);
+    static TargetFor     loadTargetType(const Daedalus::ZString& src);
+    static Frame         loadFrameType(const Daedalus::ZString& src);
+    static Distribution  loadDistribType(const Daedalus::ZString& src);
+    static Dir           loadDirType(const Daedalus::ZString& src);
+    static Orientation   loadOrientation(const Daedalus::ZString& src);
+    static AlphaFunc     loadAlphaFn(const Daedalus::ZString& src);
 
     float                fetchScaleKey(uint64_t time, const KeyList& k, float fps, bool smooth, bool loop) const;
   };

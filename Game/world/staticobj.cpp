@@ -15,11 +15,9 @@ StaticObj::StaticObj(const ZenLoad::zCVobData& vob,World& owner) {
     const ParticleFx* view = owner.script().getParticleFx(vob.visual.substr(0,vob.visual.size()-4).c_str());
     if(view==nullptr)
       return;
-    float x=0,y=0,z=0;
-    objMat.project(x,y,z);
     pfx = owner.getView(view);
     pfx.setActive(true);
-    pfx.setPosition(x,y,z);
+    pfx.setObjMatrix(objMat);
     } else
   if(FileExt::hasExt(vob.visual,"TGA")){
     if(vob.visualCamAlign==0) {

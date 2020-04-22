@@ -124,7 +124,7 @@ void WorldObjects::tick(uint64_t dt) {
         const float range = float(i.handle()->senses_range);
         if(l<range*range) {
           // aproximation of behavior of original G2
-          if(!i.isDown() &&
+          if(!i.isDown() && !i.isPlayer() &&
              i.canSenseNpc(*r.other, true)!=SensesBit::SENSE_NONE &&
              i.canSenseNpc(*r.victum,true,float(r.other->handle()->senses_range))!=SensesBit::SENSE_NONE
             ) {

@@ -331,11 +331,15 @@ bool Npc::resetPositionToTA() {
 
     // closest point
     for(auto& i:routines){
-      int64_t ndelta=delta;
-      if(i.end<i.start)
+      int64_t ndelta=0;
+      if(i.end<i.start) {
         ndelta = i.start.toInt()-time.toInt();
-      else
+        } else {
         ndelta = i.end.toInt()-time.toInt();
+        }
+
+      if(ndelta>0)
+        continue;
 
       if(i.point && ndelta<delta)
         at = i.point;
@@ -565,6 +569,9 @@ void Npc::updateAnimation() {
     // sides angle: +/- 30 height angle: +/- 45
     comb   = 1+cy*3+cx;
     }
+  if(currentTarget!=nullptr)
+    visual.setTarget(currentTarget->position()); else
+    visual.setTarget(position());
   visual.updateAnimation(*this,comb);
   }
 
@@ -2512,7 +2519,7 @@ void Npc::setPerceptionDisable(Npc::PercType t) {
   }
 
 void Npc::startDialog(Npc& pl) {
-  if(pl.isDown())
+  if(pl.isDown() || pl.isPlayer())
     return;
   if(perceptionProcess(pl,nullptr,0,PERC_ASSESSTALK))
     setOther(&pl);
@@ -2570,7 +2577,7 @@ bool Npc::perceptionProcess(Npc &pl) {
 bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType perc) {
   float r = float(hnpc.senses_range);
   r = r*r;
-  if(quadDist>r || isPlayer())
+  if(quadDist>r)
     return false;
   if(hasPerc(perc)){
     owner.script().invokeState(this,&pl,victum,perception[perc].func);
