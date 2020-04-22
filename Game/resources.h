@@ -22,6 +22,7 @@ class Skeleton;
 class Animation;
 class AttachBinder;
 class PhysicMeshShape;
+class PfxEmitterMesh;
 class SoundFx;
 class GthFont;
 class Material;
@@ -82,10 +83,11 @@ class Resources final {
     static       Tempest::Texture2d  loadTexture(const Tempest::Pixmap& pm);
     static       Material            loadMaterial(const ZenLoad::zCMaterialData& src);
 
-    static const AttachBinder*       bindMesh     (const ProtoMesh& anim,const Skeleton& s);
-    static const ProtoMesh*          loadMesh     (const std::string& name);
-    static const Skeleton*           loadSkeleton (const char*        name);
-    static const Animation*          loadAnimation(const std::string& name);
+    static const AttachBinder*       bindMesh      (const ProtoMesh& anim,const Skeleton& s);
+    static const ProtoMesh*          loadMesh      (const std::string& name);
+    static const PfxEmitterMesh*     loadEmiterMesh(const char*        name);
+    static const Skeleton*           loadSkeleton  (const char*        name);
+    static const Animation*          loadAnimation (const std::string& name);
 
     static Tempest::SoundEffect*     loadSound(const char* name);
     static Tempest::SoundEffect*     loadSound(const std::string& name);
@@ -140,6 +142,7 @@ class Resources final {
     Tempest::SoundEffect* implLoadSound(const char *name);
     Dx8::PatternList      implLoadDxMusic(const char *name);
     GthFont&              implLoadFont(const char* fname, FontType type);
+    PfxEmitterMesh*       implLoadEmiterMesh(const char* name);
 
     MeshLoadCode          loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
     ZenLoad::zCModelMeshLib loadMDS (std::string& name);
@@ -177,6 +180,7 @@ class Resources final {
     std::unordered_map<std::string,std::unique_ptr<Skeleton>>             skeletonCache;
     std::unordered_map<std::string,std::unique_ptr<Animation>>            animCache;
     std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>          bindCache;
+    std::unordered_map<std::string,std::unique_ptr<PfxEmitterMesh>>       emiMeshCache;
 
     std::unordered_map<std::string,std::unique_ptr<Tempest::SoundEffect>> sndCache;
     std::unordered_map<FontK,std::unique_ptr<GthFont>,Hash>               gothicFnt;

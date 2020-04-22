@@ -93,6 +93,7 @@ class PfxObjects final {
       Tempest::Vec3 target       = {};
       Tempest::Vec3 direction[3] = {};
       bool          alive        = true;
+      bool          hasTarget    = false;
       };
 
     struct ImplEmitter final {

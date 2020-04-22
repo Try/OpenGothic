@@ -21,6 +21,7 @@
 
 #include "graphics/submesh/staticmesh.h"
 #include "graphics/submesh/animmesh.h"
+#include "graphics/submesh/pfxemittermesh.h"
 #include "graphics/skeleton.h"
 #include "graphics/protomesh.h"
 #include "graphics/animation.h"
@@ -446,6 +447,23 @@ GthFont &Resources::implLoadFont(const char* fname, FontType type) {
   return *f;
   }
 
+PfxEmitterMesh* Resources::implLoadEmiterMesh(const char* name) {
+  auto it = emiMeshCache.find(name);
+  if(it!=emiMeshCache.end())
+    return it->second.get();
+
+  ZenLoad::PackedMesh        packed;
+  ZenLoad::zCModelMeshLib    library;
+  auto                       code=loadMesh(packed,library,name);
+  (void)code;
+  std::unique_ptr<PfxEmitterMesh> ptr{new PfxEmitterMesh(packed)};
+  // std::unique_ptr<PfxEmitterMesh> ptr{code==MeshLoadCode::Static ? new PfxEmitterMesh(std::move(sPacked)) :
+  //                                                                  new PfxEmitterMesh(library)};
+  auto ret = ptr.get();
+  emiMeshCache[name] = std::move(ptr);
+  return ret;
+  }
+
 bool Resources::hasFile(const std::string &fname) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->gothicAssets.hasFile(fname);
@@ -507,6 +525,13 @@ Material Resources::loadMaterial(const ZenLoad::zCMaterialData& src) {
 const ProtoMesh *Resources::loadMesh(const std::string &name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadMesh(name);
+  }
+
+const PfxEmitterMesh* Resources::loadEmiterMesh(const char* name) {
+  if(name==nullptr || name[0]=='\0')
+    return nullptr;
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  return inst->implLoadEmiterMesh(name);
   }
 
 const Skeleton *Resources::loadSkeleton(const char* name) {

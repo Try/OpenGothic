@@ -5,6 +5,8 @@
 
 #include <Tempest/Texture2d>
 
+class PfxEmitterMesh;
+
 class ParticleFx final {
   public:
     ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX & src, const char* name);
@@ -72,7 +74,7 @@ class ParticleFx final {
     float         shpDistribWalkSpeed = 0.f;
     bool          shpIsVolume         = false;
     Tempest::Vec3 shpDim;
-    std::string   shpMesh_S;
+    const PfxEmitterMesh* shpMesh     = nullptr;
     bool          shpMeshRender       = false;
     KeyList       shpScaleKeys;
     bool          shpScaleIsLooping   = false;

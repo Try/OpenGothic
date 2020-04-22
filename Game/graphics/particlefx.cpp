@@ -21,7 +21,7 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
   shpDistribWalkSpeed = src.shpDistribWalkSpeed;
   shpIsVolume         = src.shpIsVolume!=0;
   shpDim              = loadVec3(src.shpDim_S);
-  shpMesh_S           = src.shpMesh_S.c_str();
+  shpMesh             = Resources::loadEmiterMesh(src.shpMesh_S.c_str());
   shpMeshRender       = src.shpMeshRender_B!=0;
   shpScaleKeys        = loadArr(src.shpScaleKeys_S);
   shpScaleIsLooping   = src.shpScaleIsLooping!=0;

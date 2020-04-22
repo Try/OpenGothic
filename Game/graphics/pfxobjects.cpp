@@ -3,6 +3,7 @@
 #include <cstring>
 #include <cassert>
 
+#include "graphics/submesh/pfxemittermesh.h"
 #include "light.h"
 #include "particlefx.h"
 #include "pose.h"
@@ -56,7 +57,8 @@ void PfxObjects::Emitter::setTarget(const Vec3& pos) {
   if(bucket->impl[id].block==size_t(-1))
     return; // no backup memory
   auto& p = bucket->getBlock(*this);
-  p.target = pos;
+  p.target    = pos;
+  p.hasTarget = true;
   }
 
 void PfxObjects::Emitter::setDirection(const Matrix4x4& d) {
@@ -236,8 +238,13 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
       break;
       }
     case ParticleFx::EmitterType::Mesh:{
-      // TODO
       p.pos = Vec3();
+      if(pfx.shpMesh!=nullptr) {
+        auto pos = pfx.shpMesh->randCoord(randf());
+        p.pos = emitter.direction[0]*pos.x +
+                emitter.direction[1]*pos.y +
+                emitter.direction[2]*pos.z;
+        }
       break;
       }
     }
@@ -267,11 +274,10 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
       float theta = float(2.0*M_PI)*randf();
       float phi   = std::acos(1.f - 2.f * randf());
 
-      float dx    = std::cos(phi) * std::cos(theta);
-      float dy    = std::sin(phi);
-      float dz    = std::cos(phi) * std::sin(theta);
+      float dx    = std::sin(phi) * std::cos(theta);
+      float dy    = std::cos(phi);
+      float dz    = std::sin(phi) * std::sin(theta);
       p.dir = Vec3(dx,dy,dz);
-      p.rotation = randf()*float(2.0*M_PI);
       break;
       }
     case ParticleFx::Dir::Dir: {
@@ -297,19 +303,20 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
           break;
           }
         }
-
-      if(pfx.visOrientation==ParticleFx::Orientation::Velocity) {
-        p.rotation = std::acos(p.dir.y);
-        } else {
-        p.rotation = randf()*float(2.0*M_PI);
-        }
       break;
       }
     case ParticleFx::Dir::Target: {
       // p.rotation  = std::atan2(p.pos.y,p.pos.x);
-      p.rotation  = randf()*float(2.0*M_PI); //FIXME
+      // p.rotation  = randf()*float(2.0*M_PI); //FIXME
       break;
       }
+    }
+
+  if(pfx.visOrientation==ParticleFx::Orientation::Velocity) {
+    p.rotation = std::acos(p.dir.y);
+    } else {
+    if(pfx.dirMode==ParticleFx::Dir::Target)
+      p.rotation = randf()*float(2.0*M_PI);
     }
   }
 
@@ -338,24 +345,29 @@ void PfxObjects::Bucket::tick(Block& sys, size_t particle, uint64_t dt) {
 
   switch(pfx.dirMode) {
     case ParticleFx::Dir::Dir:
-      dpos = ps.dir;
+      dpos = ps.dir*ps.velocity;
       break;
     case ParticleFx::Dir::Target: {
-      auto dx = sys.target-(ps.pos+sys.pos);
+      Vec3 dx, to;
+      if(sys.hasTarget)
+        to = sys.target; else
+        to = sys.pos;
+
+      dx = to - (ps.pos+sys.pos);
       const float dplen = dx.manhattanLength();
-      if(dplen>0.f) {
-        dpos = dx/dplen;
-        }
+      if(ps.velocity*dtF>dplen)
+        dpos = dx/dtF; else
+        dpos = dx*ps.velocity/dplen;
       break;
       }
     case ParticleFx::Dir::Rand:
-      dpos = ps.dir;
+      dpos = ps.dir*ps.velocity;
       break;
     }
 
   // eval particle
   ps.life  = uint16_t(ps.life-dt);
-  ps.pos  += dpos*ps.velocity*dtF;
+  ps.pos  += dpos*dtF;
   ps.dir  += pfx.flyGravity_S*dtF;
   }
 
@@ -586,8 +598,9 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b) {
       const Vec3  cl  = colorS*(1.f-a)        + colorE*a;
       const float clA = visAlphaStart*(1.f-a) + visAlphaEnd*a;
 
-      const float szX = visSizeStart.x*(1.f + a*(visSizeEndScale-1.f));
-      const float szY = visSizeStart.y*(1.f + a*(visSizeEndScale-1.f));
+      const float scale = 1.f*(1.f-a) + a*visSizeEndScale;
+      const float szX   = visSizeStart.x*scale;
+      const float szY   = visSizeStart.y*scale;
 
       float l[3]={};
       float t[3]={};
