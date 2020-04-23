@@ -285,8 +285,8 @@ class Npc final {
     Attitude  tempAttitude() const { return tmpAttitude; }
 
     void      startDialog(Npc& other);
-    bool      startState(size_t id, const Daedalus::ZString& wp);
-    bool      startState(size_t id, const Daedalus::ZString& wp, gtime endTime, bool noFinalize);
+    bool      startState(ScriptFn id, const Daedalus::ZString& wp);
+    bool      startState(ScriptFn id, const Daedalus::ZString& wp, gtime endTime, bool noFinalize);
     void      clearState(bool noFinalize);
     BodyState bodyState() const;
     BodyState bodyStateMasked() const;
@@ -387,7 +387,7 @@ class Npc final {
     void      aiTurnToNpc(Npc *other);
     void      aiGoToNpc  (Npc *other);
     void      aiGoToNextFp(const Daedalus::ZString& fp);
-    void      aiStartState(uint32_t stateFn, int behavior, Npc *other, const Daedalus::ZString& wp);
+    void      aiStartState(ScriptFn stateFn, int behavior, Npc *other, const Daedalus::ZString& wp);
     void      aiPlayAnim(const Daedalus::ZString& ani);
     void      aiPlayAnimBs(const Daedalus::ZString& ani, BodyState bs);
     void      aiWait(uint64_t dt);
@@ -400,7 +400,7 @@ class Npc final {
     void      aiEquipBestRangeWeapon();
     void      aiUseMob(const Daedalus::ZString& name,int st);
     void      aiUseItem(int32_t id);
-    void      aiUseItemToState(int32_t id,int32_t state);
+    void      aiUseItemToState(int32_t id, int32_t state);
     void      aiTeleport(const WayPoint& to);
     void      aiDrawWeapon();
     void      aiReadyMeleWeapon();
@@ -419,7 +419,7 @@ class Npc final {
     void      aiContinueRoutine();
     void      aiAlignToFp();
     void      aiAlignToWp();
-    void      aiSetNpcsToState(size_t func, int32_t radius);
+    void      aiSetNpcsToState(ScriptFn func, int32_t radius);
     void      aiSetWalkMode(WalkBit w);
     void      aiFinishingMove(Npc& other);
 
@@ -521,16 +521,16 @@ class Npc final {
       Action            act   =AI_None;
       Npc*              target=nullptr;
       const WayPoint*   point =nullptr;
-      size_t            func  =0;
+      ScriptFn          func  =0;
       int               i0    =0;
       int               i1    =0;
       Daedalus::ZString s0;
       };
 
     struct AiState final {
-      size_t   funcIni =0;
-      size_t   funcLoop=0;
-      size_t   funcEnd =0;
+      ScriptFn funcIni;
+      ScriptFn funcLoop;
+      ScriptFn funcEnd;
       uint64_t sTime   =0;
       gtime    eTime   =gtime::endOfTime();
       bool     started =false;
@@ -539,7 +539,7 @@ class Npc final {
       };
 
     struct Perc final {
-      size_t func = size_t(-1);
+      ScriptFn func;
       };
 
     struct GoTo final {
@@ -649,7 +649,7 @@ class Npc final {
     uint64_t                       aiOutputBarrier=0;
     ProcessPolicy                  aiPolicy=ProcessPolicy::AiNormal;
     AiState                        aiState;
-    size_t                         aiPrevState=0;
+    ScriptFn                       aiPrevState;
     std::deque<AiAction>           aiActions;
     std::vector<Routine>           routines;
 

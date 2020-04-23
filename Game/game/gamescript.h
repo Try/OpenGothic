@@ -29,6 +29,21 @@ class VisualFx;
 class ParticleFx;
 class Serialize;
 
+class ScriptFn final {
+  public:
+    ScriptFn()=default;
+    ScriptFn(size_t v):ptr(v){}
+
+    size_t ptr=size_t(-1);
+
+    bool isValid() const { return ptr!=size_t(-1); }
+
+  friend bool operator == (const ScriptFn& a,const ScriptFn& b) {
+    return a.ptr==b.ptr;
+    }
+  };
+
+
 class GameScript final {
   public:
     GameScript(GameSession &gothic);
@@ -90,7 +105,7 @@ class GameScript final {
     Daedalus::PARSymbol&                              getSymbol(const size_t s);
     size_t                                            getSymbolIndex(const char* s);
     size_t                                            getSymbolIndex(const std::string& s);
-    const AiState&                                    getAiState(size_t id);
+    const AiState&                                    getAiState(ScriptFn id);
     const Daedalus::GEngineClasses::C_Spell&          getSpell(int32_t splId);
     const VisualFx*                                   getSpellVFx(int32_t splId);
     const ParticleFx*                                 getSpellFx(const VisualFx* vfx);
@@ -108,8 +123,8 @@ class GameScript final {
     int  printMobAnotherIsUsing(Npc &npc);
 
     int  invokeState(Daedalus::GEngineClasses::C_Npc *hnpc, Daedalus::GEngineClasses::C_Npc *hother, const char* name);
-    int  invokeState(Npc* npc, Npc* other, Npc *victum, size_t fn);
-    int  invokeItem (Npc* npc, size_t fn);
+    int  invokeState(Npc* npc, Npc* other, Npc *victum, ScriptFn fn);
+    int  invokeItem (Npc* npc, ScriptFn fn);
     int  invokeMana (Npc& npc, Npc* target, Item&  fn);
     int  invokeSpell(Npc& npc, Npc *target, Item&  fn);
     int  invokeCond (Npc& npc, const char *func);

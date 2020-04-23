@@ -20,6 +20,7 @@ class WayPoint;
 class Npc;
 class World;
 class FpLock;
+class ScriptFn;
 class SaveGameHeader;
 
 class Serialize final {
@@ -106,6 +107,9 @@ class Serialize final {
 
     void write(const WayPoint*  wptr);
     void read (const WayPoint*& wptr);
+
+    void write(const ScriptFn& fn);
+    void read (ScriptFn&       fn);
 
     void write(const Npc*  npc);
     void read (const Npc*& npc);

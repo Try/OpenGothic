@@ -670,11 +670,11 @@ size_t GameScript::getSymbolIndex(const std::string &s) {
   return vm.getDATFile().getSymbolIndexByName(s.c_str());
   }
 
-const AiState &GameScript::getAiState(size_t id) {
-  auto it = aiStates.find(id);
+const AiState &GameScript::getAiState(ScriptFn id) {
+  auto it = aiStates.find(id.ptr);
   if(it!=aiStates.end())
     return it->second;
-  auto ins = aiStates.emplace(id,AiState(*this,id));
+  auto ins = aiStates.emplace(id.ptr,AiState(*this,id.ptr));
   return ins.first->second;
   }
 
@@ -875,8 +875,8 @@ int GameScript::invokeState(Daedalus::GEngineClasses::C_Npc* hnpc, Daedalus::GEn
   return runFunction(id);
   }
 
-int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, size_t fn) {
-  if(fn==size_t(-1))
+int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
+  if(!fn.isValid())
     return 0;
   if(oth==nullptr){
     //oth=npc; //FIXME: PC_Levelinspektor?
@@ -894,7 +894,7 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, size_t fn) {
   ScopeVar self  (vm, vm.globalSelf(),   npc);
   ScopeVar other (vm, vm.globalOther(),  oth);
   ScopeVar victum(vm, vm.globalVictim(), vic);
-  const int ret = runFunction(fn);
+  const int ret = runFunction(fn.ptr);
   if(vm.globalOther().instance.instanceOf(Daedalus::IC_Npc)){
     auto oth2 = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(vm.globalOther().instance.get());
     if(oth2!=oth->handle()) {
@@ -905,11 +905,11 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, size_t fn) {
   return ret;
   }
 
-int GameScript::invokeItem(Npc *npc,size_t fn) {
+int GameScript::invokeItem(Npc *npc, ScriptFn fn) {
   if(fn==size_t(-1))
     return 1;
   ScopeVar self(vm, vm.globalSelf(), npc);
-  return runFunction(fn);
+  return runFunction(fn.ptr);
   }
 
 int GameScript::invokeMana(Npc &npc, Npc* target, Item &) {

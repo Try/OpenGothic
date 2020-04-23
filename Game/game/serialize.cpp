@@ -86,6 +86,21 @@ void Serialize::read(const WayPoint *&wptr) {
   wptr = ctx->findPoint(tmpStr);
   }
 
+void Serialize::write(const ScriptFn& fn) {
+  uint32_t v = uint32_t(-1);
+  if(fn.ptr<uint64_t(std::numeric_limits<uint32_t>::max()))
+    v = uint32_t(fn.ptr);
+  write(v);
+  }
+
+void Serialize::read(ScriptFn& fn) {
+  uint32_t v=0;
+  read(v);
+  if(v==std::numeric_limits<uint32_t>::max())
+    fn.ptr = size_t(-1); else
+    fn.ptr = v;
+  }
+
 void Serialize::write(const Npc* npc) {
   uint32_t id = ctx->npcId(npc);
   write(id);

@@ -1306,7 +1306,7 @@ bool Npc::implAtack(uint64_t dt) {
   }
 
 bool Npc::implAiTick(uint64_t dt) {
-  if(!aiState.started && aiState.funcIni!=0) {
+  if(!aiState.started && aiState.funcIni.isValid()) {
     tickRoutine();
     }
   else if(aiActions.size()==0) {
@@ -1793,7 +1793,7 @@ void Npc::nextAiAction(uint64_t dt) {
       const int32_t r = act.i0*act.i0;
       owner.detectNpc(position(),float(hnpc.senses_range),[&act,this,r](Npc& other){
         if(&other!=this && qDistTo(other)<float(r))
-          other.aiStartState(uint32_t(act.func),1,other.currentOther,other.hnpc.wp.c_str());
+          other.aiStartState(act.func,1,other.currentOther,other.hnpc.wp.c_str());
         });
       break;
       }
@@ -1819,11 +1819,11 @@ void Npc::nextAiAction(uint64_t dt) {
     }
   }
 
-bool Npc::startState(size_t id, const Daedalus::ZString& wp) {
+bool Npc::startState(ScriptFn id, const Daedalus::ZString& wp) {
   return startState(id,wp,gtime::endOfTime(),false);
   }
 
-bool Npc::startState(size_t id, const Daedalus::ZString& wp, gtime endTime,bool noFinalize) {
+bool Npc::startState(ScriptFn id, const Daedalus::ZString& wp, gtime endTime, bool noFinalize) {
   if(id==0)
     return false;
   if(aiState.funcIni==id)
@@ -1849,7 +1849,7 @@ bool Npc::startState(size_t id, const Daedalus::ZString& wp, gtime endTime,bool 
   }
 
 void Npc::clearState(bool noFinalize) {
-  if(aiState.funcIni!=0 && aiState.started) {
+  if(aiState.funcIni.isValid() && aiState.started) {
     if(owner.script().isTalk(*this)) {
       // avoid ZS_Talk bug
       owner.script().invokeState(this,currentOther,nullptr,aiState.funcLoop);
@@ -1861,7 +1861,7 @@ void Npc::clearState(bool noFinalize) {
     visual.stopItemStateAnim(*this);
     }
   aiState = AiState();
-  aiState.funcIni = 0;
+  aiState.funcIni = ScriptFn();
   }
 
 void Npc::tickRoutine() {
@@ -1889,7 +1889,7 @@ void Npc::tickRoutine() {
     if(aiState.loopNextTime<=owner.tickCount()){
       aiState.loopNextTime+=1000; // one tick per second?
       int loop = 0;
-      if(aiState.funcLoop!=size_t(-1)) {
+      if(aiState.funcLoop.isValid()) {
         loop = owner.script().invokeState(this,currentOther,nullptr,aiState.funcLoop);
         } else {
         // ZS_DEATH   have no looping, in G1, G2 classic
@@ -2590,7 +2590,7 @@ bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType 
   }
 
 bool Npc::hasPerc(Npc::PercType perc) const {
-  return perception[perc].func!=size_t(-1);
+  return perception[perc].func.isValid();
   }
 
 uint64_t Npc::percNextTime() const {
@@ -2782,7 +2782,7 @@ void Npc::aiGoToNextFp(const Daedalus::ZString& fp) {
   aiActions.push_back(a);
   }
 
-void Npc::aiStartState(uint32_t stateFn, int behavior, Npc* other, const Daedalus::ZString& wp) {
+void Npc::aiStartState(ScriptFn stateFn, int behavior, Npc* other, const Daedalus::ZString& wp) {
   auto& st = owner.script().getAiState(stateFn);(void)st;
 
   AiAction a;
@@ -3003,7 +3003,7 @@ void Npc::aiAlignToWp() {
   aiActions.push_back(a);
   }
 
-void Npc::aiSetNpcsToState(size_t func, int32_t radius) {
+void Npc::aiSetNpcsToState(ScriptFn func, int32_t radius) {
   AiAction a;
   a.act  = AI_SetNpcsToState;
   a.func = func;
