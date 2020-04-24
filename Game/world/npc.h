@@ -462,7 +462,7 @@ class Npc final {
     struct Routine final {
       gtime           start;
       gtime           end;
-      uint32_t        callback=0;
+      ScriptFn        callback;
       const WayPoint* point=nullptr;
       };
 
