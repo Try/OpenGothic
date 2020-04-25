@@ -151,6 +151,8 @@ void WorldView::resetCmd() {
   for(uint32_t i=0;i<count;++i) {
     frame[i].actual=false;
     }
+  mainLay   = nullptr;
+  shadowLay = nullptr;
   }
 
 bool WorldView::needToUpdateCmd(uint8_t frameId) const {

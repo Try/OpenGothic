@@ -178,5 +178,8 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   device.submit(submit,1,nullptr,0,nullptr,0,&sync);
   sync.wait();
 
+  if(auto wview = gothic.worldView())
+    wview->resetCmd();
+
   return img;
   }
