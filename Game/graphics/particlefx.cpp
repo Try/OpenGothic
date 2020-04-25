@@ -4,6 +4,22 @@
 
 using namespace Tempest;
 
+ParticleFx::ParticleFx(const Texture2d* decl, bool align, bool zbias) {
+  ppsValue         = -1;
+  lspPartAvg       = 1000;
+  dirMode          = ParticleFx::Dir::Dir;
+  visName_S        = decl;
+  visAlphaFunc     = ParticleFx::AlphaFunc::Add;
+  visTexColorStart = Vec3(255,255,255);
+  visTexColorEnd   = Vec3(255,255,255);
+  visSizeStart     = Vec2(100,100);
+  visSizeEndScale  = 1;
+  visAlphaStart    = 1;
+  visAlphaEnd      = 1;
+  visYawAlign      = align;
+  visZBias         = zbias;
+  }
+
 ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const char* name)
   :dbgName(name) {
   ppsValue            = std::max(0.f,src.ppsValue);
@@ -42,8 +58,8 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
   lspPartAvg          = src.lspPartAvg;
   lspPartVar          = src.lspPartVar;
 
-  flyGravity_S        = loadVec3(src.flyGravity_S);
-  flyCollDet_B        = src.flyCollDet_B!=0;
+  flyGravity          = loadVec3(src.flyGravity_S);
+  flyCollDet          = src.flyCollDet_B!=0;
 
   visName_S           = loadTexture(src.visName_S.c_str());
   visOrientation      = loadOrientation(src.visOrientation_S);
@@ -88,6 +104,9 @@ uint64_t ParticleFx::effectPrefferedTime() const {
   }
 
 float ParticleFx::maxPps() const {
+  if(ppsValue<0)
+    return 1; // permanent particles
+
   if(ppsScaleKeys.size()==0)
     return ppsValue;
 

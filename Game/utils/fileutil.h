@@ -4,5 +4,5 @@
 
 namespace FileUtil {
   bool exists(const std::u16string& path);
-  };
+  }
 
