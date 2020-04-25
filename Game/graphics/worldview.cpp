@@ -106,6 +106,12 @@ PfxObjects::Emitter WorldView::getView(const ParticleFx *decl) {
   return PfxObjects::Emitter();
   }
 
+PfxObjects::Emitter WorldView::getView(const Texture2d* spr,bool align,bool zbias) {
+  if(spr!=nullptr)
+    return pfxGroup.get(spr,align,zbias);
+  return PfxObjects::Emitter();
+  }
+
 void WorldView::updateLight() {
   const int64_t rise     = gtime(3,1).toInt();
   const int64_t meridian = gtime(11,46).toInt();

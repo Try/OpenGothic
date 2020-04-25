@@ -32,14 +32,21 @@ StaticObj::StaticObj(const ZenLoad::zCVobData& vob,World& owner) {
       m.identity();
       mesh.setObjMatrix(m);
       } else {
-      // single particle
+      const Tempest::Texture2d* view = Resources::loadTexture(vob.visual);
+      if(view==nullptr)
+        return;
+      /* TODO: decals size
+      pfx = owner.getView(view,vob.visualCamAlign==1,vob.zBias!=0);
+      pfx.setActive(true);
+      pfx.setObjMatrix(objMat);
+      */
       }
     } else {
     auto view = Resources::loadMesh(vob.visual);
     if(!view)
       return;
 
-    mesh   = owner.getStaticView(vob.visual.c_str());
+    mesh = owner.getStaticView(vob.visual.c_str());
     mesh.setObjMatrix(objMat);
 
     if(vob.cdDyn || vob.cdStatic) {

@@ -9,6 +9,7 @@ class PfxEmitterMesh;
 
 class ParticleFx final {
   public:
+    ParticleFx(const Tempest::Texture2d* decl, bool align, bool zbias);
     ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX & src, const char* name);
 
     enum class EmitterType:uint8_t {
@@ -95,13 +96,13 @@ class ParticleFx final {
     float         lspPartAvg          = 0.f;
     float         lspPartVar          = 0.f;
 
-    Tempest::Vec3 flyGravity_S;
-    bool          flyCollDet_B = false;
+    Tempest::Vec3 flyGravity;
+    bool          flyCollDet = false;
 
     const Tempest::Texture2d* visName_S = nullptr;
-    Orientation   visOrientation;
+    Orientation   visOrientation        = Orientation::None;
     bool          visTexIsQuadPoly      = true;
-    float         visTexAniFPS=0.f;
+    float         visTexAniFPS          = 0.f;
     bool          visTexAniIsLooping    = false;
     Tempest::Vec3 visTexColorStart;
     Tempest::Vec3 visTexColorEnd;
@@ -110,6 +111,8 @@ class ParticleFx final {
     AlphaFunc     visAlphaFunc         = AlphaFunc::None;
     float         visAlphaStart        = 0.f;
     float         visAlphaEnd          = 0.f;
+    bool          visYawAlign          = false;
+    bool          visZBias             = false;
 
     const Tempest::Texture2d* trlTexture = nullptr;
     float         trlFadeSpeed         = 0.f;
@@ -120,9 +123,9 @@ class ParticleFx final {
     float         mrkSize              = 0.f;
 
     std::string   flockMode;
-    float         flockStrength;
+    float         flockStrength = 0;
 
-    bool          useEmittersFOR=true;
+    bool          useEmittersFOR = true;
 
     std::string   timeStartEnd_S;
     bool          m_bIsAmbientPFX=false;

@@ -21,6 +21,7 @@ class PfxObjects final {
 
   public:
     PfxObjects(const RendererStorage& storage);
+    ~PfxObjects();
 
     class Emitter final {
       public:
@@ -48,6 +49,7 @@ class PfxObjects final {
       };
 
     Emitter get(const ParticleFx& decl);
+    Emitter get(const Tempest::Texture2d* tex, bool align, bool zbias);
 
     void    setModelView(const Tempest::Matrix4x4 &m, const Tempest::Matrix4x4 &shadow);
     void    setLight(const Light &l, const Tempest::Vec3 &ambient);
@@ -83,11 +85,11 @@ class PfxObjects final {
 
     struct ImplEmitter;
     struct Block final {
-      uint64_t      timeTotal=0;
-      uint64_t      emited=0;
+      uint64_t      timeTotal    = 0;
+      uint64_t      emited       = 0;
 
-      size_t        offset=0;
-      size_t        count=0;
+      size_t        offset       = 0;
+      size_t        count        = 0;
 
       Tempest::Vec3 pos          = {};
       Tempest::Vec3 target       = {};
@@ -109,7 +111,7 @@ class PfxObjects final {
       Tempest::Vec3 pos, dir;
 
       float         velocity=0;
-      float         rotation=0.f, drotation=0.f;
+      float         rotation=0;
 
       float         lifeTime() const;
       };
@@ -141,18 +143,34 @@ class PfxObjects final {
       void                        tick    (Block& sys, size_t particle, uint64_t dt);
       };
 
+    struct SpriteEmitter {
+      bool                        align = false;
+      std::unique_ptr<ParticleFx> pfx;
+      };
+
+    struct VboContext {
+      float left[4] = {};
+      float top [4] = {};
+      float z   [4] = {};
+
+      float leftA[4] = {};
+      float topA [4] = {0,1,0};
+      };
+
     static float                  randf();
     static float                  randf(float base, float var);
     Bucket&                       getBucket(const ParticleFx& decl);
+    Bucket&                       getBucket(const Tempest::Texture2d* decl, bool align, bool zbias);
     void                          tickSys    (Bucket& b, uint64_t dt);
     void                          tickSysEmit(Bucket& b, Block&  p, uint64_t emited);
-    void                          buildVbo(Bucket& b);
+    void                          buildVbo(Bucket& b, const VboContext& ctx);
 
     void                          invalidateCmd();
 
     const RendererStorage&        storage;
     std::mutex                    sync;
     std::list<Bucket>             bucket;
+    std::vector<SpriteEmitter>    spriteEmit;
 
     Tempest::Vec3                 viewePos={};
 
