@@ -78,7 +78,7 @@ Gothic::Gothic(const int argc, const char **argv){
     throw std::logic_error("gothic not found!"); //TODO: user-friendly message-box
     }
 
-  baseIniFile.reset(new IniFile(gpath+u"system/Gothic.ini"));
+  baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));
   iniFile    .reset(new IniFile(u"Gothic.ini"));
 
   // check actually for gothic-1, any questionable case is g2notr
