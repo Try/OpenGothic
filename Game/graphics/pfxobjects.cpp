@@ -324,7 +324,7 @@ void PfxObjects::Bucket::finalize(size_t particle) {
   Vertex* v = &vbo[particle*6];
   std::memset(v,0,sizeof(*v)*6);
   auto& p = particles[particle];
-  std::memset(&p,0,sizeof(p));
+  p = {};
   }
 
 void PfxObjects::Bucket::tick(Block& sys, size_t particle, uint64_t dt) {

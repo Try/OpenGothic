@@ -611,7 +611,7 @@ Tempest::Vec3 Interactive::nodePosition(const Npc &npc, const Pos &p) const {
 
 const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {
   int  st[]     = {state,state+(reverseState ? -t : t)};
-  char ss[2][8] = {};
+  char ss[2][12] = {};
 
   st[1] = std::max(0,std::min(st[1],stateNum));
 
@@ -659,7 +659,7 @@ bool Interactive::setAnim(Npc* npc,Anim dir) {
 const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, Anim t) {
   const char* tag      = schemeName();
   int         st[]     = {state,state+(reverseState ? -t : t)};
-  char        ss[2][8] = {};
+  char        ss[2][12] = {};
   const char* point    = "";
 
   if(t==Anim::FromStand) {
