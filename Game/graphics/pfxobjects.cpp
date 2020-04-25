@@ -222,7 +222,6 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
       p.pos = Vec3(std::sin(phi) * std::cos(theta),
                    std::sin(phi) * std::sin(theta),
                    std::cos(phi));
-      p.pos*=0.5;
       if(pfx.shpIsVolume)
         p.pos*=randf();
       break;
@@ -269,20 +268,22 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
 
   p.velocity = randf(pfx.velAvg,pfx.velVar);
 
+  float dirRotation = 0;
   switch(pfx.dirMode) {
     case ParticleFx::Dir::Rand: {
+      float dy    = 1.f - 2.f * randf();
+      float sn    = std::sqrt(1-dy*dy);
       float theta = float(2.0*M_PI)*randf();
-      float phi   = std::acos(1.f - 2.f * randf());
+      float dx    = sn * std::cos(theta);
+      float dz    = sn * std::sin(theta);
 
-      float dx    = std::sin(phi) * std::cos(theta);
-      float dy    = std::cos(phi);
-      float dz    = std::sin(phi) * std::sin(theta);
+      dirRotation = std::atan2(dy,(dx>0 ? sn : -sn));
       p.dir = Vec3(dx,dy,dz);
       break;
       }
     case ParticleFx::Dir::Dir: {
       float theta = (90+randf(pfx.dirAngleHead,pfx.dirAngleHeadVar))*float(M_PI)/180.f;
-      float phi   = (randf(pfx.dirAngleElev,pfx.dirAngleElevVar))*float(M_PI)/180.f;
+      float phi   = (   randf(pfx.dirAngleElev,pfx.dirAngleElevVar))*float(M_PI)/180.f;
 
       float dx = std::cos(phi) * std::cos(theta);
       float dy = std::sin(phi);
@@ -303,20 +304,24 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
           break;
           }
         }
+      dirRotation = std::atan2(p.dir.x,p.dir.y);
       break;
       }
-    case ParticleFx::Dir::Target: {
-      // p.rotation  = std::atan2(p.pos.y,p.pos.x);
-      // p.rotation  = randf()*float(2.0*M_PI); //FIXME
+    case ParticleFx::Dir::Target:
+      dirRotation = randf()*float(2.0*M_PI);
       break;
-      }
     }
 
-  if(pfx.visOrientation==ParticleFx::Orientation::Velocity) {
-    p.rotation = std::acos(p.dir.y);
-    } else {
-    if(pfx.dirMode==ParticleFx::Dir::Target)
+  switch(pfx.visOrientation){
+    case ParticleFx::Orientation::None:
       p.rotation = randf()*float(2.0*M_PI);
+      break;
+    case ParticleFx::Orientation::Velocity:
+      p.rotation = dirRotation;
+      break;
+    case ParticleFx::Orientation::Velocity3d:
+      p.rotation = dirRotation;
+      break;
     }
   }
 
@@ -368,7 +373,7 @@ void PfxObjects::Bucket::tick(Block& sys, size_t particle, uint64_t dt) {
   // eval particle
   ps.life  = uint16_t(ps.life-dt);
   ps.pos  += dpos*dtF;
-  ps.dir  += pfx.flyGravity_S*dtF;
+  ps.dir  += pfx.flyGravity*dtF;
   }
 
 float PfxObjects::ParState::lifeTime() const {
@@ -380,9 +385,19 @@ PfxObjects::PfxObjects(const RendererStorage& storage)
   updateCmd.resize(storage.device.maxFramesInFlight());
   }
 
+PfxObjects::~PfxObjects() {
+  }
+
 PfxObjects::Emitter PfxObjects::get(const ParticleFx &decl) {
   std::lock_guard<std::mutex> guard(sync);
   auto&  b = getBucket(decl);
+  size_t e = b.allocEmitter();
+  return Emitter(b,e);
+  }
+
+PfxObjects::Emitter PfxObjects::get(const Texture2d* tex, bool align, bool zbias) {
+  std::lock_guard<std::mutex> guard(sync);
+  auto&  b = getBucket(tex,align,zbias);
   size_t e = b.allocEmitter();
   return Emitter(b,e);
   }
@@ -427,9 +442,35 @@ void PfxObjects::tick(uint64_t ticks) {
   if(dt==0)
     return;
 
+  VboContext ctx;
+  const auto& m = uboGlobal.modelView;
+  for(int i=0;i<3;++i) {
+    ctx.left[i] = m.at(i,0);
+    ctx.top [i] = m.at(i,1);
+    ctx.z   [i] = m.at(i,2);
+
+    ctx.left[3] += (ctx.left[i]*ctx.left[i]);
+    ctx.top [3] += (ctx.top [i]*ctx.top [i]);
+    ctx.z   [3] += (ctx.z   [i]*ctx.z   [i]);
+    }
+
+  ctx.left[3] = std::sqrt(ctx.left[3]);
+  ctx.top [3] = std::sqrt(ctx.top[3]);
+  ctx.z   [3] = std::sqrt(ctx.z[3]);
+
+  for(int i=0;i<3;++i) {
+    ctx.left[i] /= ctx.left[3];
+    ctx.top [i] /= ctx.top [3];
+    ctx.z   [i] /= ctx.z[3];
+    }
+
+  ctx.leftA[0] = ctx.left[0];
+  ctx.leftA[2] = ctx.left[2];
+  ctx.topA[1]  = -1;
+
   for(auto& i:bucket) {
     tickSys(i,dt);
-    buildVbo(i);
+    buildVbo(i,ctx);
     }
   lastUpdate = ticks;
   }
@@ -490,6 +531,17 @@ PfxObjects::Bucket &PfxObjects::getBucket(const ParticleFx &ow) {
   return *bucket.begin();
   }
 
+PfxObjects::Bucket& PfxObjects::getBucket(const Texture2d* decl, bool align, bool zbias) {
+  for(auto& i:spriteEmit)
+    if(i.pfx->visName_S==decl && i.align==align)
+      return getBucket(*i.pfx);
+  spriteEmit.emplace_back();
+  auto& e = spriteEmit.back();
+  e.align = align;
+  e.pfx.reset(new ParticleFx(decl,align,zbias));
+  return getBucket(*e.pfx);
+  }
+
 void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
   bool doShrink = false;
   for(auto& emitter:b.impl) {
@@ -515,11 +567,15 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
       }
 
     p.timeTotal+=dt;
-    float       fltScale = 100;
-    const float pps      = b.owner->ppsValue*b.owner->ppsScale(p.timeTotal)*fltScale;
-    uint64_t    emited   = uint64_t(p.timeTotal*uint64_t(pps))/uint64_t(1000.f*fltScale);
-
-    if(!nearby) {
+    float          fltScale = 100;
+    const float    pps      = b.owner->ppsValue*b.owner->ppsScale(p.timeTotal)*fltScale;
+    uint64_t       emited   = uint64_t(p.timeTotal*uint64_t(pps))/uint64_t(1000.f*fltScale);
+    if(b.owner->ppsValue<0){
+      p.emited = p.count;
+      emited   = 1;
+      tickSysEmit(b,p,emited);
+      }
+    else if(!nearby) {
       p.emited = emited;
       }
     else if(active) {
@@ -556,21 +612,9 @@ static void rotate(float* rx,float* ry,float a,const float* x, const float* y){
     }
   }
 
-void PfxObjects::buildVbo(PfxObjects::Bucket &b) {
+void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
   static const float dx[6] = {-0.5f, 0.5f, -0.5f,  0.5f,  0.5f, -0.5f};
   static const float dy[6] = { 0.5f, 0.5f, -0.5f,  0.5f, -0.5f, -0.5f};
-
-  const auto& m = uboGlobal.modelView;
-  float left[4] = {m.at(0,0),m.at(1,0),m.at(2,0)};
-  float top [4] = {m.at(0,1),m.at(1,1),m.at(2,1)};
-
-  left[3] = std::sqrt(left[0]*left[0]+left[1]*left[1]+left[2]*left[2]);
-  top [3] = std::sqrt( top[0]* top[0]+ top[1]* top[1]+ top[2]* top[2]);
-
-  for(int i=0;i<3;++i) {
-    left[i] /= left[3];
-    top [i] /= top [3];
-    }
 
   auto& ow              = *b.owner;
   auto  colorS          = ow.visTexColorStart;
@@ -580,6 +624,13 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b) {
   auto  visAlphaStart   = ow.visAlphaStart;
   auto  visAlphaEnd     = ow.visAlphaEnd;
   auto  visAlphaFunc    = ow.visAlphaFunc;
+
+  const float* left = ctx.left;
+  const float* top  = ctx.top;
+  if(b.owner->visYawAlign) {
+    left = ctx.leftA;
+    top  = ctx.topA;
+    }
 
   for(auto& p:b.block) {
     if(p.count==0)
@@ -601,16 +652,17 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b) {
       const float scale = 1.f*(1.f-a) + a*visSizeEndScale;
       const float szX   = visSizeStart.x*scale;
       const float szY   = visSizeStart.y*scale;
+      const float szZ   = 0.1f*((szX+szY)*0.5f);
 
       float l[3]={};
       float t[3]={};
       rotate(l,t,ps.rotation,left,top);
 
       struct Color {
-        uint8_t r=0;
-        uint8_t g=0;
-        uint8_t b=0;
-        uint8_t a=0;
+        uint8_t r=255;
+        uint8_t g=255;
+        uint8_t b=255;
+        uint8_t a=255;
         } color;
 
       if(visAlphaFunc==ParticleFx::AlphaFunc::Add) {
@@ -634,6 +686,12 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b) {
         v[i].pos[0] = ps.pos.x + p.pos.x + sx;
         v[i].pos[1] = ps.pos.y + p.pos.y + sy;
         v[i].pos[2] = ps.pos.z + p.pos.z + sz;
+
+        if(ow.visZBias) {
+          v[i].pos[0] -= szZ*ctx.z[0];
+          v[i].pos[1] -= szZ*ctx.z[1];
+          v[i].pos[2] -= szZ*ctx.z[2];
+          }
 
         v[i].uv[0]  = (dx[i]+0.5f);//float(ow.frameCount);
         v[i].uv[1]  = (dy[i]+0.5f);
