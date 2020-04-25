@@ -10,7 +10,7 @@ using namespace Tempest;
 
 IniFile::IniFile(std::u16string file) {
   if(!FileUtil::exists(file)) {
-    Log::e("no *.ini file in path - using default settnigs");
+    Log::e("no *.ini file in path - using default settings");
     return;
     }
 
