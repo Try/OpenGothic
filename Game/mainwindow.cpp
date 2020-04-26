@@ -180,11 +180,13 @@ void MainWindow::paintEvent(PaintEvent& event) {
       }
     }
 
-  char fpsT[64]={};
-  std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %s",fps.get(),info);
+    if(gothic.doFrate()) {
+      char fpsT[64]={};
+      std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %s",fps.get(),info);
 
-  auto& fnt = Resources::font();
-  fnt.drawText(p,5,30,fpsT);
+      auto& fnt = Resources::font();
+      fnt.drawText(p,5,30,fpsT);
+    }
   }
 
 void MainWindow::resizeEvent(SizeEvent&) {
