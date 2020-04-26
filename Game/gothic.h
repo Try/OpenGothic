@@ -185,5 +185,4 @@ class Gothic final {
                                                               const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
 
     bool                                    validateGothicPath() const;
-    static std::u16string                   caseInsensitiveSegment(const std::u16string& path, const char16_t* segment, Tempest::Dir::FileType type);
   };
