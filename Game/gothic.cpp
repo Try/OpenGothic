@@ -19,6 +19,7 @@
 #include "utils/inifile.h"
 
 using namespace Tempest;
+using namespace FileUtil;
 
 Gothic::Gothic(const int argc, const char **argv){
   if(argc<1)
@@ -600,41 +601,6 @@ bool Gothic::validateGothicPath() const {
   return true;
   }
 
-std::u16string Gothic::caseInsensitiveSegment(const std::u16string& path,const char16_t* segment,Dir::FileType type) {
-  std::u16string next=path+segment;
-  if(FileUtil::exists(next)) {
-    if(type==Dir::FT_File)
-      return next;
-    return next+u"/";
-    }
-
-  Tempest::Dir::scan(path,[&path,&next,&segment,type](const std::u16string& p, Dir::FileType t){
-    if(t!=type)
-      return;
-    for(size_t i=0;;++i) {
-      char16_t cs = segment[i];
-      char16_t cp = p[i];
-      if('A'<=cs && cs<='Z')
-        cs = char16_t(cs-'A'+'a');
-      if('A'<=cp && cp<='Z')
-        cp = char16_t(cp-'A'+'a');
-
-      if(cs!=cp)
-        return;
-      if(cs=='\0')
-        break;
-      }
-
-    next = path+p;
-    });
-  if(type==Dir::FT_File)
-    return next;
-  return next+u"/";
-  }
-
 std::u16string Gothic::nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const {
-  auto path = gpath;
-  for(auto& segment:name)
-    path = caseInsensitiveSegment(path,segment, (segment==*(name.end()-1)) ? type : Dir::FT_Dir);
-  return path;
+  return FileUtil::nestedPath(gpath, name, type);
   }

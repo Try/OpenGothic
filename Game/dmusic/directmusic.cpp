@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include <Tempest/File>
+#include <utils/fileutil.h>
 
 using namespace Dx8;
 
@@ -72,7 +73,8 @@ const DlsCollection &DirectMusic::dlsCollection(const std::u16string &file) {
 Tempest::RFile DirectMusic::implOpen(const char16_t *file) {
   for(auto& pt:path) {
     try {
-      Tempest::RFile fin(pt + file);
+      std::u16string filepath = FileUtil::nestedPath(pt, {file}, Tempest::Dir::FT_File);
+      Tempest::RFile fin(filepath);
       return fin;
       }
     catch(std::system_error&){
