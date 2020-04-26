@@ -67,6 +67,7 @@ Don't expect DirectX11 mod to work, since technicaly it's not a mod. But Project
 ##### Command line arguments
 * -g specify gothic game catalog
 * -nomenu - skip main menu
+* -nodebug - Disable FPS debug metrics
 * -w <worldname.zen> - startup world; newworld.zen is default
 * -save \<q> - startup with quick save
 * -save \<number> - startup with specified save-game slot
