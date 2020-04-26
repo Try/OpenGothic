@@ -51,8 +51,8 @@ Gothic::Gothic(const int argc, const char **argv){
     else if(std::strcmp(argv[i],"-nomenu")==0){
       noMenu=true;
       }
-    else if(std::strcmp(argv[i],"-nodebug")==0){
-      noDebug=true;
+    else if(std::strcmp(argv[i],"-nofrate")==0){
+      noFrate=true;
       }
     else if(std::strcmp(argv[i],"-rambo")==0){
       isRambo=true;

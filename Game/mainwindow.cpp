@@ -180,7 +180,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
       }
     }
 
-    if(gothic.doDebug()) {
+    if(gothic.doFrate()) {
       char fpsT[64]={};
       std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %s",fps.get(),info);
 

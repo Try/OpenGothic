@@ -42,7 +42,7 @@ class Gothic final {
 
     bool isInGame() const;
     bool doStartMenu() const { return !noMenu; }
-    bool doDebug() const { return !noDebug; }
+    bool doFrate() const { return !noFrate; }
 
     void         setGame(std::unique_ptr<GameSession> &&w);
     auto         clearGame() -> std::unique_ptr<GameSession>;
@@ -150,7 +150,7 @@ class Gothic final {
     std::string                             wdef;
     std::string                             saveDef;
     bool                                    noMenu=false;
-    bool                                    noDebug=false;
+    bool                                    noFrate=false;
     bool                                    isWindow=false;
     uint16_t                                pauseSum=0;
     bool                                    isDebug=false;
