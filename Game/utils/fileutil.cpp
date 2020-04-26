@@ -55,8 +55,8 @@ std::u16string FileUtil::caseInsensitiveSegment(const std::u16string& path,const
   }
 
 std::u16string FileUtil::nestedPath(const std::u16string& gpath, const std::initializer_list<const char16_t*> &name, Dir::FileType type) {
-    std::u16string path = gpath;
-    for(auto& segment:name)
+  std::u16string path = gpath;
+  for(auto& segment:name)
     path = caseInsensitiveSegment(path,segment, (segment==*(name.end()-1)) ? type : Dir::FT_Dir);
   return path;
   }
