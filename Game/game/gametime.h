@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <limits>
-#include <chrono>
+#include <time.h>
 
 class gtime final {
   public:
@@ -10,7 +10,6 @@ class gtime final {
     gtime(int32_t hour,int32_t min):time(hour*hourMilis+min*minMilis){}
     gtime(int64_t day,int32_t hour,int32_t min):time(day*dayMilis+hour*hourMilis+min*minMilis){}
     gtime(int64_t day,int64_t hour,int64_t min):time(day*dayMilis+hour*hourMilis+min*minMilis){}
-    inline gtime(std::chrono::time_point<std::chrono::system_clock> t);
 
     int64_t toInt() const { return time; }
     void    addMilis(uint64_t t){ time+=t; }
@@ -22,6 +21,11 @@ class gtime final {
     int64_t minute()    const { return (time/minMilis )%60; }
 
     static const gtime endOfTime() { return gtime(std::numeric_limits<int64_t>::max()); }
+    static gtime localtime() {
+      time_t now = ::time(nullptr);
+      tm* tp = ::localtime(&now);
+      return gtime(tp->tm_hour, tp->tm_min);
+      }
 
   private:
     explicit gtime(int64_t milis):time(milis){}
@@ -36,14 +40,6 @@ class gtime final {
   friend bool operator <  (gtime a,gtime b);
   friend bool operator <= (gtime a,gtime b);
   };
-
-
-gtime::gtime(std::chrono::time_point<std::chrono::system_clock> t) {
-  auto dt = t.time_since_epoch();
-  auto h  = std::chrono::duration_cast<std::chrono::hours>  (dt).count();
-  auto m  = std::chrono::duration_cast<std::chrono::minutes>(dt).count();
-  *this   = gtime(int32_t(h),int32_t(m));
-  }
 
 inline bool operator == (gtime a,gtime b){
   return a.time==b.time;
