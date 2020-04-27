@@ -21,7 +21,7 @@ class gtime final {
     int64_t minute()    const { return (time/minMilis )%60; }
 
     static const gtime endOfTime() { return gtime(std::numeric_limits<int64_t>::max()); }
-    static gtime getLocaltime() {
+    static gtime localtime() {
       time_t now = ::time(nullptr);
       tm* tp = ::localtime(&now);
       return gtime(tp->tm_hour, tp->tm_min);
