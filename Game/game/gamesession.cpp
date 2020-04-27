@@ -118,7 +118,7 @@ void GameSession::save(Serialize &fout, const char* name, const Pixmap& screen) 
   hdr.name      = name;
   hdr.priview   = screen;
   hdr.world     = wrld->name();
-  hdr.pcTime    = gtime::getLocaltime();
+  hdr.pcTime    = gtime::localtime();
   hdr.wrldTime  = wrldTime;
   hdr.isGothic2 = gothic.version().game;
 
