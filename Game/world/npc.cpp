@@ -833,6 +833,10 @@ bool Npc::isInAir() const {
   return mvAlgo.isInAir();
   }
 
+bool Npc::isSwim() const {
+  return mvAlgo.isSwim();
+}
+
 void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {
   if(t<TALENT_MAX_G2) {
     talentsSk[t] = lvl;

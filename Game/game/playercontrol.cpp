@@ -32,29 +32,44 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a) {
   auto    ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
   uint8_t slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
 
-  if(a==Action::WeaponMele) {
-    if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H)
-      wctrl[WeaponClose] = true; else
-      wctrl[WeaponMele ] = true;
-    return;
-    }
-
-  if(a==Action::WeaponBow) {
-    if(ws==WeaponState::Bow || ws==WeaponState::CBow)
-      wctrl[WeaponClose] = true; else
-      wctrl[WeaponBow  ] = true;
-    return;
-    }
-
-  for(int i=Action::WeaponMage3;i<=Action::WeaponMage10;++i){
-    if(a==i) {
-      int id = (i-Action::WeaponMage3+3);
-      if(ws==WeaponState::Mage && slot==id)
-        wctrl[WeaponClose] = true; else
-        wctrl[id]          = true;
+  if(!pl->isSwim()) { //FIXME: Shouldn't be necessary - Handled in movealgo.cpp. But without this, the hero gets uncontrollable if he's swimming and any draw weapon is called.
+    if(a==Action::Weapon) {
+      if(ws!=WeaponState::NoWeapon) //Currently a weapon is active
+        wctrl[WeaponClose] = true;
+      else {
+        if(wctrl_last>=WeponAction::Weapon3 && pl->inventory().currentSpell(static_cast<uint8_t>(wctrl_last-3))==nullptr)
+          wctrl_last=WeponAction::WeaponBow;  //Spell no longer available -> fallback to Bow.
+        if(wctrl_last==WeponAction::WeaponBow && pl->currentRangeWeapon()==nullptr)
+          wctrl_last=WeponAction::WeaponMele; //Bow no longer available -> fallback to Mele.
+        wctrl[wctrl_last] = true;
+        }
       return;
       }
-    }
+
+    if(a==Action::WeaponMele) {
+      if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H)
+        wctrl[WeaponClose] = true; else
+        wctrl[WeaponMele ] = true;
+      return;
+      }
+
+    if(a==Action::WeaponBow) {
+      if(ws==WeaponState::Bow || ws==WeaponState::CBow)
+        wctrl[WeaponClose] = true; else
+        wctrl[WeaponBow  ] = true;
+      return;
+      }
+
+    for(int i=Action::WeaponMage3;i<=Action::WeaponMage10;++i) {
+      if(a==i) {
+        int id = (i-Action::WeaponMage3+3);
+        if(ws==WeaponState::Mage && slot==id)
+          wctrl[WeaponClose] = true; else
+          wctrl[id         ] = true;
+        return;
+        }
+      }
+    } // if(!pl->isSwim()) - only deal with weapon controls, if there hero isn't swimming!
 
   if(ctrl[KeyCodec::ActionGeneric]) {
     int fk = -1;
@@ -352,11 +367,13 @@ void PlayerControl::implMove(uint64_t dt) {
       ret = pl.drawWeaponMele(); else
       ret = pl.drawWeaponFist();
     wctrl[WeaponMele] = !ret;
+    wctrl_last = WeaponMele;
     return;
     }
   if(wctrl[WeaponBow]) {
     if(pl.currentRangeWeapon()!=nullptr){
       wctrl[WeaponBow] = !pl.drawWeaponBow();
+      wctrl_last = WeaponBow;
       } else {
       wctrl[WeaponBow] = false;
       }
@@ -367,6 +384,7 @@ void PlayerControl::implMove(uint64_t dt) {
       if(pl.inventory().currentSpell(i)!=nullptr){
         bool ret = pl.drawMage(uint8_t(3+i));
         wctrl[Weapon3+i] = !ret;
+        wctrl_last = static_cast<WeponAction>(Weapon3+i);
         if(ret) {
           if(auto spl = pl.inventory().currentSpell(i)) {
             gothic.print(spl->description());
