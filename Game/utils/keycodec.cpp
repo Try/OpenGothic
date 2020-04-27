@@ -55,6 +55,7 @@ std::initializer_list<KeyCodec::K_Key> KeyCodec::keys = {
   // Left
   {Tempest::Event::K_LControl, 0x1d00},
   {Tempest::Event::K_LShift,   0x2a00},
+  {Tempest::Event::K_LAlt,     0x3800},
   // Right
   {Tempest::Event::K_RControl, 0x9d00},
   {Tempest::Event::K_RShift,   0x3600},
@@ -236,6 +237,11 @@ void KeyCodec::keyToStr(Tempest::Event::KeyType k, char* buf, size_t bufSz) {
     std::strncpy(buf,"RIGHT SHIFT",bufSz);
     return;
     }
+  if(k==Tempest::Event::K_LAlt) {
+    std::strncpy(buf,"LEFT ALT", bufSz);
+    return;
+    }
+
 
   buf[0] = '?';
   }
