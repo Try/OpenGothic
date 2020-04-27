@@ -4,53 +4,54 @@
 #include <cstring>
 
 std::initializer_list<KeyCodec::K_Key> KeyCodec::keys = {
-  {Tempest::Event::K_A,       0x1e00},
-  {Tempest::Event::K_B,       0x3000},
-  {Tempest::Event::K_C,       0x2e00},
-  {Tempest::Event::K_D,       0x2000},
-  {Tempest::Event::K_E,       0x1200},
-  {Tempest::Event::K_F,       0x2100},
-  {Tempest::Event::K_G,       0x2200},
-  {Tempest::Event::K_H,       0x2300},
-  {Tempest::Event::K_I,       0x1700},
-  {Tempest::Event::K_J,       0x2400},
-  {Tempest::Event::K_K,       0x2500},
-  {Tempest::Event::K_L,       0x2600},
-  {Tempest::Event::K_M,       0x3200},
-  {Tempest::Event::K_N,       0x3100},
-  {Tempest::Event::K_O,       0x1800},
-  {Tempest::Event::K_P,       0x1900},
-  {Tempest::Event::K_Q,       0x1000},
-  {Tempest::Event::K_R,       0x1300},
-  {Tempest::Event::K_S,       0x1f00},
-  {Tempest::Event::K_T,       0x1400},
-  {Tempest::Event::K_U,       0x1600},
-  {Tempest::Event::K_V,       0x2f00},
-  {Tempest::Event::K_W,       0x1100},
-  {Tempest::Event::K_X,       0x2d00},
-  {Tempest::Event::K_Y,       0x1500},
-  {Tempest::Event::K_Z,       0x2c00},
+  {Tempest::Event::K_A,        0x1e00},
+  {Tempest::Event::K_B,        0x3000},
+  {Tempest::Event::K_C,        0x2e00},
+  {Tempest::Event::K_D,        0x2000},
+  {Tempest::Event::K_E,        0x1200},
+  {Tempest::Event::K_F,        0x2100},
+  {Tempest::Event::K_G,        0x2200},
+  {Tempest::Event::K_H,        0x2300},
+  {Tempest::Event::K_I,        0x1700},
+  {Tempest::Event::K_J,        0x2400},
+  {Tempest::Event::K_K,        0x2500},
+  {Tempest::Event::K_L,        0x2600},
+  {Tempest::Event::K_M,        0x3200},
+  {Tempest::Event::K_N,        0x3100},
+  {Tempest::Event::K_O,        0x1800},
+  {Tempest::Event::K_P,        0x1900},
+  {Tempest::Event::K_Q,        0x1000},
+  {Tempest::Event::K_R,        0x1300},
+  {Tempest::Event::K_S,        0x1f00},
+  {Tempest::Event::K_T,        0x1400},
+  {Tempest::Event::K_U,        0x1600},
+  {Tempest::Event::K_V,        0x2f00},
+  {Tempest::Event::K_W,        0x1100},
+  {Tempest::Event::K_X,        0x2d00},
+  {Tempest::Event::K_Y,        0x1500},
+  {Tempest::Event::K_Z,        0x2c00},
 
-  {Tempest::Event::K_0,       0x8100},
-  {Tempest::Event::K_1,       0x7800},
-  {Tempest::Event::K_2,       0x7900},
-  {Tempest::Event::K_3,       0x7a00},
-  {Tempest::Event::K_4,       0x7b00},
-  {Tempest::Event::K_5,       0x7c00},
-  {Tempest::Event::K_6,       0x7d00},
-  {Tempest::Event::K_7,       0x7e00},
-  {Tempest::Event::K_8,       0x7f00},
-  {Tempest::Event::K_9,       0x8000},
+  {Tempest::Event::K_0,        0x8100},
+  {Tempest::Event::K_1,        0x7800},
+  {Tempest::Event::K_2,        0x7900},
+  {Tempest::Event::K_3,        0x7a00},
+  {Tempest::Event::K_4,        0x7b00},
+  {Tempest::Event::K_5,        0x7c00},
+  {Tempest::Event::K_6,        0x7d00},
+  {Tempest::Event::K_7,        0x7e00},
+  {Tempest::Event::K_8,        0x7f00},
+  {Tempest::Event::K_9,        0x8000},
 
-  {Tempest::Event::K_Up,      0xc800},
-  {Tempest::Event::K_Down,    0xd000},
-  {Tempest::Event::K_Left,    0xcb00},
-  {Tempest::Event::K_Right,   0xcd00},
+  {Tempest::Event::K_Up,       0xc800},
+  {Tempest::Event::K_Down,     0xd000},
+  {Tempest::Event::K_Left,     0xcb00},
+  {Tempest::Event::K_Right,    0xcd00},
 
-  {Tempest::Event::K_Back,    0x0e00},
-  {Tempest::Event::K_Tab,     0x0f00},
-  {Tempest::Event::K_Delete,  0xd300},
-  {Tempest::Event::K_Space,   0x3900},
+  {Tempest::Event::K_Back,     0x0e00},
+  {Tempest::Event::K_Tab,      0x0f00},
+  {Tempest::Event::K_Delete,   0xd300},
+  {Tempest::Event::K_Space,    0x3900},
+  {Tempest::Event::K_CapsLock, 0x3A00},
 
   // Left
   {Tempest::Event::K_LControl, 0x1d00},
@@ -237,11 +238,14 @@ void KeyCodec::keyToStr(Tempest::Event::KeyType k, char* buf, size_t bufSz) {
     std::strncpy(buf,"RIGHT SHIFT",bufSz);
     return;
     }
+  if(k==Tempest::Event::K_CapsLock) {
+    std::strncpy(buf,"CAPS LOCK",bufSz);
+    return;
+    }
   if(k==Tempest::Event::K_LAlt) {
     std::strncpy(buf,"LEFT ALT", bufSz);
     return;
     }
-
 
   buf[0] = '?';
   }

@@ -42,6 +42,7 @@ class Gothic final {
 
     bool isInGame() const;
     bool doStartMenu() const { return !noMenu; }
+    bool doFrate() const { return !noFrate; }
 
     void         setGame(std::unique_ptr<GameSession> &&w);
     auto         clearGame() -> std::unique_ptr<GameSession>;
@@ -149,6 +150,7 @@ class Gothic final {
     std::string                             wdef;
     std::string                             saveDef;
     bool                                    noMenu=false;
+    bool                                    noFrate=false;
     bool                                    isWindow=false;
     uint16_t                                pauseSum=0;
     bool                                    isDebug=false;
@@ -185,5 +187,4 @@ class Gothic final {
                                                               const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
 
     bool                                    validateGothicPath() const;
-    static std::u16string                   caseInsensitiveSegment(const std::u16string& path, const char16_t* segment, Tempest::Dir::FileType type);
   };

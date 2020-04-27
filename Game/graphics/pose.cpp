@@ -306,7 +306,6 @@ void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, uint64_t tickC
   std::sort(lay.begin(),lay.end(),[](const Layer& a,const Layer& b){
     return a.seq->layer<b.seq->layer;
     });
-  lastUpdate = 0;
   }
 
 void Pose::onRemoveLayer(Pose::Layer &l) {
@@ -314,7 +313,6 @@ void Pose::onRemoveLayer(Pose::Layer &l) {
     rotation=nullptr;
   if(l.seq==itemUse)
     itemUse=nullptr;
-  lastUpdate = 0;
   }
 
 void Pose::processSfx(Npc &npc, uint64_t tickCount) {
