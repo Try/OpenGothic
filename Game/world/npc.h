@@ -294,6 +294,7 @@ class Npc final {
     void      setToFightMode(const size_t item);
     void      setToFistMode();
 
+    bool      canSwitchWeapon() const;
     bool      closeWeapon(bool noAnim);
     bool      drawWeaponFist();
     bool      drawWeaponMele();

@@ -32,27 +32,42 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a) {
   auto    ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
   uint8_t slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
 
-  if(a==Action::WeaponMele) {
-    if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H)
-      wctrl[WeaponClose] = true; else
-      wctrl[WeaponMele ] = true;
-    return;
-    }
-
-  if(a==Action::WeaponBow) {
-    if(ws==WeaponState::Bow || ws==WeaponState::CBow)
-      wctrl[WeaponClose] = true; else
-      wctrl[WeaponBow  ] = true;
-    return;
-    }
-
-  for(int i=Action::WeaponMage3;i<=Action::WeaponMage10;++i){
-    if(a==i) {
-      int id = (i-Action::WeaponMage3+3);
-      if(ws==WeaponState::Mage && slot==id)
-        wctrl[WeaponClose] = true; else
-        wctrl[id]          = true;
+  if(pl!=nullptr) {
+    if(a==Action::Weapon) {
+      if(ws!=WeaponState::NoWeapon) //Currently a weapon is active
+        wctrl[WeaponClose] = true;
+      else {
+        if(wctrl_last>=WeponAction::Weapon3 && pl->inventory().currentSpell(static_cast<uint8_t>(wctrl_last-3))==nullptr)
+          wctrl_last=WeponAction::WeaponBow;  //Spell no longer available -> fallback to Bow.
+        if(wctrl_last==WeponAction::WeaponBow && pl->currentRangeWeapon()==nullptr)
+          wctrl_last=WeponAction::WeaponMele; //Bow no longer available -> fallback to Mele.
+        wctrl[wctrl_last] = true;
+        }
       return;
+      }
+
+    if(a==Action::WeaponMele) {
+      if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H)
+        wctrl[WeaponClose] = true; else
+        wctrl[WeaponMele ] = true;
+      return;
+      }
+
+    if(a==Action::WeaponBow) {
+      if(ws==WeaponState::Bow || ws==WeaponState::CBow)
+        wctrl[WeaponClose] = true; else
+        wctrl[WeaponBow  ] = true;
+      return;
+      }
+
+    for(int i=Action::WeaponMage3;i<=Action::WeaponMage10;++i) {
+      if(a==i) {
+        int id = (i-Action::WeaponMage3+3);
+        if(ws==WeaponState::Mage && slot==id)
+          wctrl[WeaponClose] = true; else
+          wctrl[id         ] = true;
+        return;
+        }
       }
     }
 
@@ -342,40 +357,45 @@ void PlayerControl::implMove(uint64_t dt) {
     return;
     }
 
-  if(wctrl[WeaponClose]) {
-    wctrl[WeaponClose] = !pl.closeWeapon(false);
-    return;
-    }
-  if(wctrl[WeaponMele]) {
-    bool ret=false;
-    if(pl.currentMeleWeapon()!=nullptr)
-      ret = pl.drawWeaponMele(); else
-      ret = pl.drawWeaponFist();
-    wctrl[WeaponMele] = !ret;
-    return;
-    }
-  if(wctrl[WeaponBow]) {
-    if(pl.currentRangeWeapon()!=nullptr){
-      wctrl[WeaponBow] = !pl.drawWeaponBow();
-      } else {
-      wctrl[WeaponBow] = false;
+  if(pl.canSwitchWeapon()) {
+    if(wctrl[WeaponClose]) {
+      wctrl[WeaponClose] = !pl.closeWeapon(false);
+      return;
       }
-    return;
-    }
-  for(uint8_t i=0;i<8;++i) {
-    if(wctrl[Weapon3+i]){
-      if(pl.inventory().currentSpell(i)!=nullptr){
-        bool ret = pl.drawMage(uint8_t(3+i));
-        wctrl[Weapon3+i] = !ret;
-        if(ret) {
-          if(auto spl = pl.inventory().currentSpell(i)) {
-            gothic.print(spl->description());
-            }
-          }
+    if(wctrl[WeaponMele]) {
+      bool ret=false;
+      if(pl.currentMeleWeapon()!=nullptr)
+        ret = pl.drawWeaponMele(); else
+        ret = pl.drawWeaponFist();
+      wctrl[WeaponMele] = !ret;
+      wctrl_last = WeaponMele;
+      return;
+      }
+    if(wctrl[WeaponBow]) {
+      if(pl.currentRangeWeapon()!=nullptr){
+        wctrl[WeaponBow] = !pl.drawWeaponBow();
+        wctrl_last = WeaponBow;
         } else {
-        wctrl[Weapon3+i] = false;
+        wctrl[WeaponBow] = false;
         }
       return;
+      }
+    for(uint8_t i=0;i<8;++i) {
+      if(wctrl[Weapon3+i]){
+        if(pl.inventory().currentSpell(i)!=nullptr){
+          bool ret = pl.drawMage(uint8_t(3+i));
+          wctrl[Weapon3+i] = !ret;
+          wctrl_last = static_cast<WeponAction>(Weapon3+i);
+          if(ret) {
+            if(auto spl = pl.inventory().currentSpell(i)) {
+              gothic.print(spl->description());
+              }
+            }
+          } else {
+          wctrl[Weapon3+i] = false;
+          }
+        return;
+        }
       }
     }
 

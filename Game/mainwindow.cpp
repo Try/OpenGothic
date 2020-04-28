@@ -195,10 +195,6 @@ void MainWindow::resizeEvent(SizeEvent&) {
   }
 
 void MainWindow::mouseDownEvent(MouseEvent &event) {
-  if(event.button!=Event::ButtonLeft) {
-    event.accept();
-    return;
-    }
   if(event.button<sizeof(mouseP))
     mouseP[event.button]=true;
   mpos = event.pos();

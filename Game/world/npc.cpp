@@ -2194,6 +2194,10 @@ void Npc::unequipItem(size_t item) {
   invent.unequip(item,*this);
   }
 
+bool Npc::canSwitchWeapon() const {
+  return !(isFaling() || mvAlgo.isSlide() || mvAlgo.isSwim());
+  }
+
 bool Npc::closeWeapon(bool noAnim) {
   auto weaponSt=weaponState();
   if(weaponSt==WeaponState::NoWeapon)
@@ -2209,6 +2213,8 @@ bool Npc::closeWeapon(bool noAnim) {
   }
 
 bool Npc::drawWeaponFist() {
+  if(!canSwitchWeapon())
+    return false;
   auto weaponSt=weaponState();
   if(weaponSt==WeaponState::Fist)
     return true;
@@ -2224,7 +2230,7 @@ bool Npc::drawWeaponFist() {
   }
 
 bool Npc::drawWeaponMele() {
-  if(isFaling() || mvAlgo.isSwim())
+  if(!canSwitchWeapon())
     return false;
   auto weaponSt=weaponState();
   if(weaponSt==WeaponState::Fist || weaponSt==WeaponState::W1H || weaponSt==WeaponState::W2H)
@@ -2247,7 +2253,7 @@ bool Npc::drawWeaponMele() {
   }
 
 bool Npc::drawWeaponBow() {
-  if(isFaling() || mvAlgo.isSwim())
+  if(!canSwitchWeapon())
     return false;
   auto weaponSt=weaponState();
   if(weaponSt==WeaponState::Bow || weaponSt==WeaponState::CBow || invent.currentRangeWeapon()==nullptr)
@@ -2267,7 +2273,7 @@ bool Npc::drawWeaponBow() {
   }
 
 bool Npc::drawMage(uint8_t slot) {
-  if(isFaling() || mvAlgo.isSwim())
+  if(!canSwitchWeapon())
     return false;
   Item* it = invent.currentSpell(uint8_t(slot-3));
   if(it==nullptr) {
