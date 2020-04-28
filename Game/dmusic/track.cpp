@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <iostream>
+#include <algorithm>
 
 using namespace Dx8;
 

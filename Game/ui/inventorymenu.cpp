@@ -336,11 +336,6 @@ InventoryMenu::PageLocal &InventoryMenu::activePageSel() {
   return pageLocal[1];
   }
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#pragma GCC diagnostic ignored "-Wfloat-conversion"
-#endif
 void InventoryMenu::onTakeStuff() { 
   uint32_t itemCount = 0;
   auto& page = activePage();
@@ -350,49 +345,47 @@ void InventoryMenu::onTakeStuff() {
   auto& r = page[sel.sel];
   if(lootMode==LootMode::Normal) {
     ++takeCount;
-    itemCount = pow(10,takeCount / 10);
+    itemCount = uint32_t(std::pow(10,takeCount / 10));
     if(r.count() <= itemCount) {
       itemCount = uint32_t(r.count());
       takeCount = 0;
+      }
     }
-  }
   else if(lootMode==LootMode::Stack) {
-    itemCount = r.count();
-  }
+    itemCount = uint32_t(r.count());
+    }
   else if(lootMode==LootMode::Ten) {
     itemCount = 10;
-  }
+    }
   else if(lootMode==LootMode::Hundred) {
     itemCount = 100;
-  }
+    }
+
   if(r.count() < itemCount) {
-    itemCount = r.count();
-  }
+    itemCount = uint32_t(r.count());
+    }
 
   if(state==State::Chest) {
     if(page.is(&player->inventory())) {
       player->moveItem(r.clsId(),*chest,itemCount);
-    } else {
+      } else {
       player->addItem(r.clsId(),*chest,itemCount);
+      }
     }
-  }
   else if(state==State::Trade) {
     if(page.is(&player->inventory())) {
       player->sellItem(r.clsId(),*trader,itemCount);
-    } else {
+      } else {
       player->buyItem(r.clsId(),*trader,itemCount);
+      }
     }
-  }
   else if(state==State::Ransack) {
     if(page.is(&trader->inventory())) {
       player->addItem(r.clsId(),*trader,itemCount);
+      }
     }
-  }
   adjustScroll();
-}
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+  }
 
 void InventoryMenu::adjustScroll() {
   auto& page=activePage();

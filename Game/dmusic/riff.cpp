@@ -1,5 +1,7 @@
 #include "riff.h"
 
+#include <algorithm>
+
 using namespace Dx8;
 
 Riff::Riff(const uint8_t *data, size_t size)

@@ -2,6 +2,7 @@
 
 #include <daedalus/DaedalusVM.h>
 #include <Tempest/Log>
+#include <cctype>
 
 using namespace Tempest;
 

@@ -14,7 +14,7 @@
 static char gpuName[64]="?";
 
 #ifdef __WINDOWS__
-#include <errhandlingapi.h>
+#include <windows.h>
 
 static LONG WINAPI exceptionHandler(PEXCEPTION_POINTERS) {
   CrashLog::dumpStack("ExceptionFilter");

@@ -3,6 +3,7 @@
 #include <Tempest/Log>
 #include <cstring>
 #include <sstream>
+#include <cctype>
 
 #include "utils/fileutil.h"
 

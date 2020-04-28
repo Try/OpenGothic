@@ -2,6 +2,7 @@
 
 #include <string>
 #include <cstring>
+#include <cctype>
 
 namespace FileExt {
   inline bool hasExt(const std::string& s,const char* extIn) {

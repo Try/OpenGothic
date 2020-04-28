@@ -3,6 +3,7 @@
 #include <zenload/zCMesh.h>
 #include <fstream>
 #include <functional>
+#include <cctype>
 
 #include <Tempest/Log>
 #include <Tempest/Painter>

@@ -1,6 +1,7 @@
 #include "soundfx.h"
 
 #include <Tempest/Log>
+#include <cctype>
 
 #include "game/gamesession.h"
 #include "gothic.h"

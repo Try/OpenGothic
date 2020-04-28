@@ -4,6 +4,7 @@
 #include <Tempest/Log>
 #include <Tempest/MemReader>
 #include <Tempest/MemWriter>
+#include <cctype>
 
 #include "worldstatestorage.h"
 #include "serialize.h"

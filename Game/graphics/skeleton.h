@@ -4,6 +4,7 @@
 #include <zenload/zCModelMeshLib.h>
 
 #include <vector>
+#include <array>
 
 #include "animation.h"
 

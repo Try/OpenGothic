@@ -8,6 +8,8 @@
 #include "world/item.h"
 
 #include <fstream>
+#include <cctype>
+
 #include <Tempest/Log>
 #include <Tempest/SoundEffect>
 

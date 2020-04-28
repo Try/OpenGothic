@@ -3,6 +3,8 @@
 #include <Tempest/Application>
 #include <Tempest/CommandBuffer>
 
+#include <cctype>
+
 #include "graphics/rendererstorage.h"
 #include "world/world.h"
 #include "utils/versioninfo.h"
