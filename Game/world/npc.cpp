@@ -1979,7 +1979,9 @@ void Npc::emitSoundGround(const char* sound, float range, bool freeSlot) {
   }
 
 void Npc::startParticleEffect(const char* pfxName, int32_t slot, const char* bone) {
-  const ParticleFx* pfx      = owner.script().getParticleFx(pfxName);
+  if(pfxName==nullptr || pfxName[0]=='\0')
+    return;
+  const ParticleFx* pfx = owner.script().getParticleFx(pfxName);
   if(pfx==nullptr)
     return;
   auto vemitter = owner.getView(pfx);
@@ -2208,6 +2210,10 @@ bool Npc::closeWeapon(bool noAnim) {
     setTarget(nullptr);
   invent.switchActiveWeapon(*this,Item::NSLOT);
   invent.putAmmunition(*this,0,nullptr);
+  if(noAnim) {
+    visual.setToFightMode(WeaponState::NoWeapon);
+    updateWeaponSkeleton();
+    }
   hnpc.weapon = 0;
   return true;
   }
