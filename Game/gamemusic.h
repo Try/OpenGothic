@@ -4,7 +4,7 @@
 
 namespace Daedalus {
 namespace GEngineClasses {
-class C_MusicTheme;
+struct C_MusicTheme;
 }
 }
 
