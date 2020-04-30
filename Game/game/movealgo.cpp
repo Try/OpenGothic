@@ -647,7 +647,7 @@ void MoveAlgo::setInWater(bool f) {
 
 void MoveAlgo::setAsSwim(bool f) {
   if(f)
-    npc.closeWeapon(true);
+    npc.closeWeapon(false);
   if(f)
     flags=Flags(flags|Swim);  else
     flags=Flags(flags&(~Swim));
