@@ -435,7 +435,7 @@ class Npc final {
     bool      canSeeNpc(const Npc& oth,bool freeLos) const;
     bool      canSeeNpc(float x,float y,float z,bool freeLos) const;
     auto      canSenseNpc(const Npc& oth,bool freeLos, float extRange=0.f) const -> SensesBit;
-    auto      canSenseNpc(float x,float y,float z,bool freeLos, float extRange=0.f) const -> SensesBit;
+    auto      canSenseNpc(float x,float y,float z,bool freeLos,bool isNoisy,float extRange=0.f) const -> SensesBit;
 
     void      setTarget(Npc* t);
     Npc*      target();
