@@ -40,6 +40,11 @@ void Sky::setWorld(const World &world) {
     }
   }
 
+void Sky::invalidateCmd() {
+  for(size_t i=0;i<storage.device.maxFramesInFlight();++i)
+    nToUpdate[i] = true;
+  }
+
 bool Sky::needToUpdateCommands(uint8_t frameId) const {
   return nToUpdate[frameId];
   }

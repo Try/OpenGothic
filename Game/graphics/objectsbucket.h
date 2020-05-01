@@ -43,6 +43,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
 
     void                        draw(size_t id,Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) override;
 
+    void                        invalidateCmd();
     bool                        needToUpdateCommands(uint8_t fId) const;
     void                        setAsUpdated(uint8_t fId);
 
@@ -72,7 +73,6 @@ class ObjectsBucket : public AbstractObjectsBucket {
     Ubo&                        element(size_t i);
     void                        markAsChanged() override;
     size_t                      getNextId() override final;
-    void                        invalidate();
     static bool                 idxCmp(const NonUbo* a,const NonUbo* b);
     void                        mkIndex();
 
@@ -111,7 +111,7 @@ void ObjectsBucket<Ubo,Vertex>::setSkeleton(size_t i, const Pose& p) {
 template<class Ubo,class Vertex>
 size_t ObjectsBucket<Ubo,Vertex>::alloc(const Tempest::VertexBuffer<Vertex>  &vbo,
                                         const Tempest::IndexBuffer<uint32_t> &ibo) {
-  invalidate();
+  invalidateCmd();
   const size_t id=getNextId();
   data[id].vbo = &vbo;
   data[id].ibo = &ibo;
@@ -121,7 +121,7 @@ size_t ObjectsBucket<Ubo,Vertex>::alloc(const Tempest::VertexBuffer<Vertex>  &vb
 
 template<class Ubo, class Vertex>
 void ObjectsBucket<Ubo,Vertex>::free(size_t i) {
-  invalidate();
+  invalidateCmd();
   auto id = data[i].ubo;
   if(id==size_t(-1))
     assert(0 && "double free!");
@@ -195,7 +195,7 @@ void ObjectsBucket<Ubo,Vertex>::setAsUpdated(uint8_t fId) {
   }
 
 template<class Ubo, class Vertex>
-void ObjectsBucket<Ubo,Vertex>::invalidate() {
+void ObjectsBucket<Ubo,Vertex>::invalidateCmd() {
   for(size_t i=0;i<pfSize;++i)
     pf[i].nToUpdate=true;
   }

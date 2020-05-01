@@ -151,6 +151,14 @@ void WorldView::resetCmd() {
   for(uint32_t i=0;i<count;++i) {
     frame[i].actual=false;
     }
+  land    .invalidateCmd();
+  vobGroup.invalidateCmd();
+  objGroup.invalidateCmd();
+  itmGroup.invalidateCmd();
+  decGroup.invalidateCmd();
+  pfxGroup.invalidateCmd();
+  sky     .invalidateCmd();
+
   mainLay   = nullptr;
   shadowLay = nullptr;
   }

@@ -81,8 +81,10 @@ void Renderer::resetSwapchain() {
   fboCompose  = device.frameBuffer(shadowMapFinal);
   textureCast(shadowMapFinal).setSampler(smp);
 
-  if(auto wview=gothic.worldView())
+  if(auto wview=gothic.worldView()) {
     wview->initPipeline(w,h);
+    wview->resetCmd();
+    }
 
   uboShadowComp.set(0,shadowMap[0]);
   uboShadowComp.set(1,shadowMap[1]);

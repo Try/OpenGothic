@@ -190,6 +190,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
   }
 
 void MainWindow::resizeEvent(SizeEvent&) {
+  for(auto& i:fLocal)
+    i.gpuLock.wait();
   swapchain.reset();
   renderer.resetSwapchain();
   }

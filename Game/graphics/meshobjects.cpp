@@ -274,6 +274,13 @@ void MeshObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint
     c.drawShadow(cmd,storage.pAnimSh,fId,layer);
   }
 
+void MeshObjects::invalidateCmd() {
+  for(auto& c:chunksSt)
+    c.invalidateCmd();
+  for(auto& c:chunksDn)
+    c.invalidateCmd();
+  }
+
 void MeshObjects::Mesh::setSkeleton(const Skeleton *sk) {
   skeleton = sk;
   if(ani!=nullptr && skeleton!=nullptr)

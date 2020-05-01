@@ -69,6 +69,11 @@ void Landscape::setLight(const Light &l, const Vec3 &ambient) {
   uboCpu.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
   }
 
+void Landscape::invalidateCmd() {
+  for(size_t i=0;i<storage.device.maxFramesInFlight();++i)
+    pf[i].nToUpdate = true;
+  }
+
 bool Landscape::needToUpdateCommands(uint8_t frameId) const {
   return pf[frameId].nToUpdate;
   }

@@ -21,6 +21,7 @@ class Landscape final {
     void setMatrix(uint32_t frameId, const Tempest::Matrix4x4& mat, const Tempest::Matrix4x4 *sh, size_t shCount);
     void setLight (const Light& l, const Tempest::Vec3& ambient);
 
+    void invalidateCmd();
     bool needToUpdateCommands(uint8_t frameId) const;
     void setAsUpdated        (uint8_t frameId) const;
 

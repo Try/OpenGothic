@@ -55,6 +55,7 @@ class PfxObjects final {
     void    setLight(const Light &l, const Tempest::Vec3 &ambient);
     void    setViewerPos(const Tempest::Vec3& pos);
 
+    void    invalidateCmd();
     bool    needToUpdateCommands(uint8_t fId) const;
     void    setAsUpdated(uint8_t fId);
 
@@ -164,8 +165,6 @@ class PfxObjects final {
     void                          tickSys    (Bucket& b, uint64_t dt);
     void                          tickSysEmit(Bucket& b, Block&  p, uint64_t emited);
     void                          buildVbo(Bucket& b, const VboContext& ctx);
-
-    void                          invalidateCmd();
 
     const RendererStorage&        storage;
     std::mutex                    sync;
