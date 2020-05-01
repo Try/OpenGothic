@@ -367,6 +367,11 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     return nullptr;
     }
 
+  if(a==AnimationSolver::Anim::NoAnim){
+    skInst->stopAllAnim();
+    return nullptr;
+    }
+
   const Animation::Sequence *sq = solver.solveAnim(a,st,wlk,*skInst);
 
   bool forceAnim=false;

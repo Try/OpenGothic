@@ -149,6 +149,7 @@ void MoveAlgo::tickGravity(uint64_t dt) {
       if(!canFlyOverWater()) {
         setInWater(true);
         setAsSwim(true);
+        npc.setAnim(AnimationSolver::Idle);
         }
       } else {
       // attach to ground
@@ -282,10 +283,10 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
   float dY      = pY-ground;
   bool  onGound = true;
 
-  if(!npc.isDead() && ground+waterDepthChest()<water){
+  if(!npc.isDead() && !npc.isJumpAnim() && ground+waterDepthChest()<water) {
+    setInAir(false);
     setInWater(true);
     setAsSwim(true);
-    //npc.setAnim(npc.anim()); //TODO: reset anim
     return;
     }
 
@@ -646,8 +647,11 @@ void MoveAlgo::setInWater(bool f) {
   }
 
 void MoveAlgo::setAsSwim(bool f) {
-  if(f)
+  if(f) {
+    npc.setAnim(Npc::Anim::NoAnim);
     npc.closeWeapon(true);
+    }
+
   if(f)
     flags=Flags(flags|Swim);  else
     flags=Flags(flags&(~Swim));
