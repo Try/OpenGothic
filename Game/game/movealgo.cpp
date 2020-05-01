@@ -63,10 +63,14 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
   float pY     = pos.y;
   bool  valid  = false;
   auto  ground = dropRay(pos.x, pos.y+fallThreshold, pos.z, valid);
+  auto  water  = waterRay(pos.x, pos.y, pos.z);
   float dY     = pY-ground;
 
-  //if(ground+chest<water)
-  //  ;
+  if(ground+waterDepthChest()<water) {
+    setInAir(true);
+    setAsSlide(false);
+    return true;
+    }
   if(dY>fallThreshold*2) {
     fallSpeed.x *=2;
     fallSpeed.z *=2;
@@ -232,7 +236,9 @@ void MoveAlgo::tickSwim(uint64_t dt) {
   auto  ground = dropRay (pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z, valid);
   auto  water  = waterRay(pos.x+dp.x, pos.y+dp.y-chest,         pos.z+dp.z);
 
-  if(ground+chest>=water){
+  if(ground+chest>=water) {
+    if(testSlide(pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z))
+      return;
     setAsSwim(false);
     tryMove(dp.x,ground-pY,dp.z);
     return;
