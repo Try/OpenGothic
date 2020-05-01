@@ -931,9 +931,9 @@ int32_t Npc::mageCycle() const {
   return talentSkill(TALENT_MAGE);
   }
 
-int32_t Npc::canSneak() const {
+bool Npc::canSneak() const {
   return talentSkill(TALENT_SNEAK);
-}
+  }
 
 void Npc::setRefuseTalk(uint64_t milis) {
   refuseTalkMilis = owner.tickCount()+milis;
