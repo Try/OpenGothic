@@ -260,6 +260,7 @@ class Npc final {
     bool       isRefuseTalk() const;
 
     int32_t    mageCycle() const;
+    int32_t    canSneak() const;
     int32_t    attribute (Attribute a) const;
     void       changeAttribute(Attribute a, int32_t val, bool allowUnconscious);
     int32_t    protection(Protection p) const;

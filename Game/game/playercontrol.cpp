@@ -223,7 +223,8 @@ void PlayerControl::toggleSneakMode() {
   if(w==nullptr || w->player()==nullptr)
     return;
   auto pl = w->player();
-  pl->setWalkMode(WalkBit(pl->walkMode()^WalkBit::WM_Sneak));
+  if(0<pl->canSneak())
+    pl->setWalkMode(WalkBit(pl->walkMode()^WalkBit::WM_Sneak));
   }
 
 WeaponState PlayerControl::weaponState() const {
