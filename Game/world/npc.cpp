@@ -932,7 +932,7 @@ int32_t Npc::mageCycle() const {
   }
 
 bool Npc::canSneak() const {
-  return talentSkill(TALENT_SNEAK);
+  return talentSkill(TALENT_SNEAK)!=0;
   }
 
 void Npc::setRefuseTalk(uint64_t milis) {
