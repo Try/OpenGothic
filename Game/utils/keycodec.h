@@ -29,6 +29,7 @@ class KeyCodec final {
 
       ActionGeneric,
       Walk,
+      Sneak,
 
       Weapon,
       WeaponMele,

@@ -103,8 +103,13 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a) {
     return;
     }
 
-  if(a==Action::Walk){
+  if(a==Action::Walk) {
     toogleWalkMode();
+    return;
+    }
+
+  if(a==Action::Sneak) {
+    toggleSneakMode();
     return;
     }
 
@@ -211,6 +216,15 @@ void PlayerControl::toogleWalkMode() {
     return;
   auto pl = w->player();
   pl->setWalkMode(WalkBit(pl->walkMode()^WalkBit::WM_Walk));
+  }
+
+void PlayerControl::toggleSneakMode() {
+  auto w = world();
+  if(w==nullptr || w->player()==nullptr)
+    return;
+  auto pl = w->player();
+  if(pl->canSneak())
+    pl->setWalkMode(WalkBit(pl->walkMode()^WalkBit::WM_Sneak));
   }
 
 WeaponState PlayerControl::weaponState() const {

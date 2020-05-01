@@ -122,7 +122,7 @@ KeyCodec::Action KeyCodec::implTr(int32_t code) {
   if(keyWeapon.is(code))
     return Weapon;
   if(keySneak.is(code))
-    return Idle; //TODO
+    return Sneak;
 
   if(keyLook.is(code))
     return Idle; // ?

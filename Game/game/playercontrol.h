@@ -81,6 +81,7 @@ class PlayerControl final {
 
     void           marvinF8();
     void           toogleWalkMode();
+    void           toggleSneakMode();
     Focus          findFocus(Focus *prev);
 
     World*         world() const;

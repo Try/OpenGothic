@@ -931,6 +931,10 @@ int32_t Npc::mageCycle() const {
   return talentSkill(TALENT_MAGE);
   }
 
+bool Npc::canSneak() const {
+  return talentSkill(TALENT_SNEAK)!=0;
+  }
+
 void Npc::setRefuseTalk(uint64_t milis) {
   refuseTalkMilis = owner.tickCount()+milis;
   }
@@ -2557,7 +2561,7 @@ bool Npc::perceptionProcess(Npc &pl) {
 
   const float quadDist = pl.qDistTo(*this);
 
-  if(hasPerc(PERC_ASSESSPLAYER) && canSenseNpc(pl,true)!=SensesBit::SENSE_NONE) {
+  if(hasPerc(PERC_ASSESSPLAYER) && canSenseNpc(pl,false)!=SensesBit::SENSE_NONE) {
     if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER)) {
       ret = true;
       }
@@ -3069,15 +3073,16 @@ bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
   }
 
 bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
-  SensesBit s = canSenseNpc(tx,ty,tz,freeLos);
+  SensesBit s = canSenseNpc(tx,ty,tz,freeLos,false);
   return int32_t(s&SensesBit::SENSE_SEE)!=0;
   }
 
 SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
-  return canSenseNpc(oth.x,oth.y+180,oth.z,freeLos,extRange);
+  const bool isNoisy = (oth.bodyState()&BodyState::BS_SNEAK)==0;
+  return canSenseNpc(oth.x,oth.y+180,oth.z,freeLos,isNoisy,extRange);
   }
 
-SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, float extRange) const {
+SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, bool isNoisy, float extRange) const {
   DynamicWorld* w = owner.physic();
   static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
 
@@ -3088,7 +3093,8 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, float ext
   SensesBit ret=SensesBit::SENSE_NONE;
   if(owner.roomAt({tx,ty,tz})==owner.roomAt({x,y,z})) {
     ret = ret | SensesBit::SENSE_SMELL;
-    ret = ret | SensesBit::SENSE_HEAR; // TODO:sneaking
+    if(isNoisy)
+      ret = ret | SensesBit::SENSE_HEAR;
     }
 
   if(!freeLos){
