@@ -395,9 +395,9 @@ PfxObjects::Emitter PfxObjects::get(const ParticleFx &decl) {
   return Emitter(b,e);
   }
 
-PfxObjects::Emitter PfxObjects::get(const Texture2d* tex, bool align, bool zbias) {
+PfxObjects::Emitter PfxObjects::get(const Texture2d* spr, const ZenLoad::zCVobData& vob) {
   std::lock_guard<std::mutex> guard(sync);
-  auto&  b = getBucket(tex,align,zbias);
+  auto&  b = getBucket(spr,vob);
   size_t e = b.allocEmitter();
   return Emitter(b,e);
   }
@@ -531,14 +531,21 @@ PfxObjects::Bucket &PfxObjects::getBucket(const ParticleFx &ow) {
   return *bucket.begin();
   }
 
-PfxObjects::Bucket& PfxObjects::getBucket(const Texture2d* decl, bool align, bool zbias) {
+PfxObjects::Bucket& PfxObjects::getBucket(const Texture2d* spr, const ZenLoad::zCVobData& vob) {
   for(auto& i:spriteEmit)
-    if(i.pfx->visName_S==decl && i.align==align)
+    if(i.pfx->visName_S==spr &&
+       i.visualCamAlign==vob.visualCamAlign &&
+       i.zBias==vob.zBias &&
+       i.decalDim==vob.visualChunk.zCDecal.decalDim) {
       return getBucket(*i.pfx);
+      }
   spriteEmit.emplace_back();
   auto& e = spriteEmit.back();
-  e.align = align;
-  e.pfx.reset(new ParticleFx(decl,align,zbias));
+
+  e.visualCamAlign = vob.visualCamAlign;
+  e.zBias          = vob.zBias;
+  e.decalDim       = vob.visualChunk.zCDecal.decalDim;
+  e.pfx.reset(new ParticleFx(spr,vob));
   return getBucket(*e.pfx);
   }
 

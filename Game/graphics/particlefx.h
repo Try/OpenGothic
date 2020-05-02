@@ -2,6 +2,7 @@
 
 #include <daedalus/DaedalusStdlib.h>
 #include <Tempest/RenderState>
+#include <zenload/zTypes.h>
 
 #include <Tempest/Texture2d>
 
@@ -9,7 +10,7 @@ class PfxEmitterMesh;
 
 class ParticleFx final {
   public:
-    ParticleFx(const Tempest::Texture2d* decl, bool align, bool zbias);
+    ParticleFx(const Tempest::Texture2d* spr, const ZenLoad::zCVobData& vob);
     ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX & src, const char* name);
 
     enum class EmitterType:uint8_t {

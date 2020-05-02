@@ -44,7 +44,7 @@ class WorldView {
     MeshObjects::Mesh   getStaticView(const char* visual);
     MeshObjects::Mesh   getDecalView (const char* visual, float x, float y, float z, ProtoMesh& out);
     PfxObjects::Emitter getView      (const ParticleFx* decl);
-    PfxObjects::Emitter getView      (const Tempest::Texture2d* spr, bool align, bool zbias);
+    PfxObjects::Emitter getView      (const Tempest::Texture2d* spr, const ZenLoad::zCVobData& vob);
 
   private:
     const World&            owner;

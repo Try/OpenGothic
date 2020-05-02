@@ -174,8 +174,8 @@ PfxObjects::Emitter World::getView(const ParticleFx *decl) const {
   return view()->getView(decl);
   }
 
-PfxObjects::Emitter World::getView(const Texture2d* spr, bool align, bool zbias) const {
-  return view()->getView(spr,align,zbias);
+PfxObjects::Emitter World::getView(const Texture2d* spr, const ZenLoad::zCVobData& vob) const {
+  return view()->getView(spr,vob);
   }
 
 MeshObjects::Mesh World::getAtachView(const ProtoMesh::Attach& visual) {

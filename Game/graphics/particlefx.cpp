@@ -4,20 +4,24 @@
 
 using namespace Tempest;
 
-ParticleFx::ParticleFx(const Texture2d* decl, bool align, bool zbias) {
+ParticleFx::ParticleFx(const Texture2d* spr, const ZenLoad::zCVobData& vob) {
   ppsValue         = -1;
   lspPartAvg       = 1000;
   dirMode          = ParticleFx::Dir::Dir;
-  visName_S        = decl;
+  visName_S        = spr;
   visAlphaFunc     = ParticleFx::AlphaFunc::Add;
   visTexColorStart = Vec3(255,255,255);
   visTexColorEnd   = Vec3(255,255,255);
-  visSizeStart     = Vec2(100,100);
+  visSizeStart     = Vec2(2.f*vob.visualChunk.zCDecal.decalDim.x,
+                          2.f*vob.visualChunk.zCDecal.decalDim.y);
+  visOrientation   = Orientation::Velocity;
+  dirFOR           = Frame::World;
+  dirAngleElev     = 90;
   visSizeEndScale  = 1;
   visAlphaStart    = 1;
   visAlphaEnd      = 1;
-  visYawAlign      = align;
-  visZBias         = zbias;
+  visYawAlign      = vob.visualCamAlign==1;
+  visZBias         = vob.zBias!=0;
   }
 
 ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const char* name)

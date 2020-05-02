@@ -35,11 +35,9 @@ StaticObj::StaticObj(const ZenLoad::zCVobData& vob,World& owner) {
       const Tempest::Texture2d* view = Resources::loadTexture(vob.visual);
       if(view==nullptr)
         return;
-      /* TODO: decals size
-      pfx = owner.getView(view,vob.visualCamAlign==1,vob.zBias!=0);
+      pfx = owner.getView(view,vob);
       pfx.setActive(true);
       pfx.setObjMatrix(objMat);
-      */
       }
     } else {
     auto view = Resources::loadMesh(vob.visual);

@@ -49,7 +49,7 @@ class PfxObjects final {
       };
 
     Emitter get(const ParticleFx& decl);
-    Emitter get(const Tempest::Texture2d* tex, bool align, bool zbias);
+    Emitter get(const Tempest::Texture2d* spr, const ZenLoad::zCVobData& vob);
 
     void    setModelView(const Tempest::Matrix4x4 &m, const Tempest::Matrix4x4 &shadow);
     void    setLight(const Light &l, const Tempest::Vec3 &ambient);
@@ -145,7 +145,9 @@ class PfxObjects final {
       };
 
     struct SpriteEmitter {
-      bool                        align = false;
+      uint8_t                     visualCamAlign = 0;
+      int32_t                     zBias          = 0;
+      ZMath::float2               decalDim = {};
       std::unique_ptr<ParticleFx> pfx;
       };
 
@@ -161,7 +163,7 @@ class PfxObjects final {
     static float                  randf();
     static float                  randf(float base, float var);
     Bucket&                       getBucket(const ParticleFx& decl);
-    Bucket&                       getBucket(const Tempest::Texture2d* decl, bool align, bool zbias);
+    Bucket&                       getBucket(const Tempest::Texture2d* spr, const ZenLoad::zCVobData& vob);
     void                          tickSys    (Bucket& b, uint64_t dt);
     void                          tickSysEmit(Bucket& b, Block&  p, uint64_t emited);
     void                          buildVbo(Bucket& b, const VboContext& ctx);
