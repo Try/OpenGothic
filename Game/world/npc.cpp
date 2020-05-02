@@ -3088,6 +3088,10 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, float ext
   if(!freeLos){
     float dx  = x-tx, dz=z-tz;
     float dir = angleDir(dx,dz);
+    if((bodyState()&BodyState::BS_SIT)!=0 &&    //If we are sitting with
+       (visual.pose().isInAnim("S_BENCH_S1") || //this ani on a bench or
+        visual.pose().isInAnim("S_THRONE_S1"))) //that ani on a throne,
+       dir+=180.f; //the atVector of the animations points in the opposite direction.
     float da  = float(M_PI)*(angle-dir)/180.f;
     if(double(std::cos(da))<=ref)
       if(!w->ray(x,y+180,z, tx,ty,tz).hasCol)
