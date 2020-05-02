@@ -491,6 +491,17 @@ Tempest::Vec3 MdlVisual::displayPosition() const {
   return {0.f,0.f,0.f};
   }
 
+Vec3 MdlVisual::lookAtVector(const char *nodeName) const
+{
+  if(nullptr==skeleton) {
+    return Vec3(0.f, 0.f, 0.f);
+  }
+  size_t nodeId = skeleton->findNode(nodeName);
+  Matrix4x4 trafo = skInst->tr[nodeId];
+  Vec3 atVector = Vec3(trafo.at(0,0),trafo.at(0,1),trafo.at(0,2));
+  return atVector;
+}
+
 const Animation::Sequence* MdlVisual::continueCombo(Npc& npc, AnimationSolver::Anim a,
                                                     WeaponState st, WalkBit wlk)  {
   if(st==WeaponState::Fist || st==WeaponState::W1H || st==WeaponState::W2H) {

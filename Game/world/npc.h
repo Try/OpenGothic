@@ -194,6 +194,7 @@ class Npc final {
     float      collisionRadius() const;
     float      rotation() const;
     float      rotationRad() const;
+    float      rotationLook() const;
     float      translateY() const;
     float      centerY() const;
     Npc*       lookAtTarget() const;
