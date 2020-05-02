@@ -187,4 +187,5 @@ class Gothic final {
                                                               const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
 
     bool                                    validateGothicPath() const;
+    void                                    detectGothicVersion();
   };
