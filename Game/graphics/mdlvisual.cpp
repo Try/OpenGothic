@@ -491,15 +491,24 @@ Tempest::Vec3 MdlVisual::displayPosition() const {
   return {0.f,0.f,0.f};
   }
 
-Vec3 MdlVisual::lookAtVector(const char *nodeName) const
+bool MdlVisual::boneRotationY(const char *nodeName, float& deg) const
 {
-  if(nullptr==skeleton) {
-    return Vec3(0.f, 0.f, 0.f);
-  }
-  size_t nodeId = skeleton->findNode(nodeName);
-  Matrix4x4 trafo = skInst->tr[nodeId];
-  Vec3 atVector = Vec3(trafo.at(0,0),trafo.at(0,1),trafo.at(0,2));
-  return atVector;
+  size_t nodeId = size_t(-1);
+
+  if(nullptr!=skeleton)
+    nodeId = skeleton->findNode(nodeName);
+
+  if(size_t(-1)!=nodeId) {
+    auto p = pos;
+    p.mul(pose().tr[nodeId]);
+    float atVecX = p.at(2,0);
+    float atVecZ = p.at(2,2);
+    if(0.f!=atVecX) {
+      deg = static_cast<float>(atan(atVecZ / atVecX)) * 180.f / static_cast<float>(M_PI);
+      return true;
+      }
+    }
+  return false;
 }
 
 const Animation::Sequence* MdlVisual::continueCombo(Npc& npc, AnimationSolver::Anim a,
