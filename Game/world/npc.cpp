@@ -1409,9 +1409,16 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
   if(!isSpell)
     owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
 
+  CollideMask bMask    = COLL_DOEVERYTHING;
+  bool        dontKill = (b==nullptr);
+
   if(!(isBlock || isJumpb) || b!=nullptr) {
     if(isSpell) {
-      lastHitSpell = b->spellId();
+      int32_t splId = b->spellId();
+      bMask   = owner.script().canNpcCollideWithSpell(*this,b->owner(),splId);
+      if(bMask & COLL_DONTKILL)
+        dontKill = true;
+      lastHitSpell = splId;
       perceptionProcess(other,this,0,PERC_ASSESSMAGIC);
       }
     perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
@@ -1434,7 +1441,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
     if(!isPlayer())
       setOther(lastHit);
 
-    auto hitResult = DamageCalculator::damageValue(other,*this,b);
+    auto hitResult = DamageCalculator::damageValue(other,*this,b,bMask);
     if(!isSpell && !isDown() && hitResult.hasHit)
       owner.emitWeaponsSound(other,*this);
 
@@ -1446,7 +1453,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
         if(auto ani = setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB,noInter))
           implAniWait(uint64_t(ani->totalTime()));
         }
-      changeAttribute(ATR_HITPOINTS,-hitResult.value,b==nullptr);
+      changeAttribute(ATR_HITPOINTS,-hitResult.value,dontKill);
 
       if(isUnconscious()){
         owner.sendPassivePerc(*this,other,*this,PERC_ASSESSDEFEAT);

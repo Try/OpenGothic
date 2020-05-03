@@ -955,6 +955,19 @@ int GameScript::invokeCond(Npc &,const char* func) {
   return 0;
   }
 
+CollideMask GameScript::canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t spellId) {
+  auto& dat = vm.getDATFile();
+  auto fn   = dat.getSymbolIndexByName("C_CanNpcCollideWithSpell");
+  if(fn==size_t(-1))
+    return COLL_DOEVERYTHING;
+
+  ScopeVar self (vm, vm.globalSelf(),  npc);
+  ScopeVar other(vm, vm.globalOther(), shooter);
+  vm.pushInt(spellId);
+  int v = runFunction(fn);
+  return CollideMask(v);
+  }
+
 int GameScript::playerHotKeyScreenMap(Npc& pl) {
   auto& dat = vm.getDATFile();
   auto fn   = dat.getSymbolIndexByName("player_hotkey_screen_map");
