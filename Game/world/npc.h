@@ -560,6 +560,7 @@ class Npc final {
 
     void      updateWeaponSkeleton();
     void      tickTimedEvt(Animation::EvCount &ev);
+    void      tickRegen(int32_t& v,const int32_t max,const int32_t chg, const uint64_t dt);
     void      updatePos();
     bool      setViewPosition(const Tempest::Vec3& pos);
 

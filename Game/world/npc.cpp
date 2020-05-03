@@ -757,6 +757,24 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
     }
   }
 
+void Npc::tickRegen(int32_t& v, const int32_t max, const int32_t chg, const uint64_t dt) {
+  uint64_t tick = owner.tickCount();
+  if(tick<dt || chg==0)
+    return;
+  int32_t time0 = int32_t(tick%1000);
+  int32_t time1 = time0+int32_t(dt);
+
+  int32_t val0 = (time0*chg)/1000;
+  int32_t val1 = (time1*chg)/1000;
+
+  int32_t nextV = std::max(0,std::min(v+val1-val0,max));
+  if(v!=nextV) {
+    v = nextV;
+    // check health, in case of negative chg
+    checkHealth(true,false);
+    }
+  }
+
 void Npc::setPhysic(DynamicWorld::Item &&item) {
   physic = std::move(item);
   physic.setUserPointer(this);
@@ -1499,6 +1517,13 @@ void Npc::tick(uint64_t dt) {
   if(!isPlayer() && visual.isItem() && !invent.hasStateItem()) {
     // forward from S_IITEMSCHEME to Idle
     setAnim(AnimationSolver::Idle);
+    }
+
+  if(!isDead()) {
+    tickRegen(hnpc.attribute[ATR_HITPOINTS],hnpc.attribute[ATR_HITPOINTSMAX],
+              hnpc.attribute[ATR_REGENERATEHP],dt);
+    tickRegen(hnpc.attribute[ATR_MANA],hnpc.attribute[ATR_MANAMAX],
+              hnpc.attribute[ATR_REGENERATEMANA],dt);
     }
 
   Animation::EvCount ev;
