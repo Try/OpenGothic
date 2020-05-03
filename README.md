@@ -16,6 +16,13 @@ Core gameplay is done, you can complete first chapter, as well as all addon cont
 2. [Download latest stable build](https://github.com/Try/opengothic/releases/latest)
 3. run '/OpenGothic/bin/Gothic2Notr.exe -g "C:\Program Files (x86)\Path\To\Gothic II"'
 
+Common Gothic installation paths:
+
+- "C:\Program Files (x86)\JoWooD\Gothic II"
+- "C:\Gothic II"
+- "C:\Program Files (x86)\Steam\steamapps\common\Gothic II"
+- "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"
+
 #### Gameplay video
 [![Video](https://img.youtube.com/vi/21OTvuMdwb4/0.jpg)](https://www.youtube.com/watch?v=21OTvuMdwb4) [![Video](https://img.youtube.com/vi/MUVd-ZWliKY/0.jpg)](https://www.youtube.com/watch?v=MUVd-ZWliKY)
 
@@ -24,7 +31,7 @@ Core gameplay is done, you can complete first chapter, as well as all addon cont
     * Walk - Done
     * Walk(in water) - Done
     * Run - Done
-    * Sneak - Not Implemented
+    * Sneak - Done
     * Jump - Done
     * Jump(pull-up) - Not Implemented
     * Swimming - Partial

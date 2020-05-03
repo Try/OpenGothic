@@ -3096,7 +3096,7 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, bool isNo
   if(!freeLos){
     float dx  = x-tx, dz=z-tz;
     float dir = angleDir(dx,dz);
-    float da  = float(M_PI)*(angle-dir)/180.f;
+    float da  = float(M_PI)*(visual.viewDirection()-dir)/180.f;
     if(double(std::cos(da))<=ref)
       if(!w->ray(x,y+180,z, tx,ty,tz).hasCol)
         ret = ret | SensesBit::SENSE_SEE;
