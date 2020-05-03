@@ -71,7 +71,7 @@ class MdlVisual final {
     WeaponState                    fightMode() const { return fgtMode; }
     Tempest::Vec3                  displayPosition() const;
     const Tempest::Matrix4x4&      position() const { return pos; }
-    bool                           boneRotationY(const char* nodeName, float& deg) const;
+    float                          viewDirection() const;
 
     const Animation::Sequence*     continueCombo(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk);
     uint32_t                       comboLength() const;
