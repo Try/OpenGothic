@@ -497,6 +497,13 @@ void Inventory::clear(GameScript&, Npc&) {
   items = std::move(used); // Gothic don't clear items, which are in use
   }
 
+bool Inventory::hasMissionItems() const {
+  for(auto& i:items)
+    if(i->isMission())
+      return true;
+  return false;
+  }
+
 const Item *Inventory::activeWeapon() const {
   if(active!=nullptr)
     return *active;

@@ -84,6 +84,7 @@ class Inventory final {
     void   unequipWeapons(GameScript &vm, Npc &owner);
     void   unequipArmour(GameScript &vm, Npc &owner);
     void   clear(GameScript &vm, Npc &owner);
+    bool   hasMissionItems() const;
 
     void   updateArmourView(Npc& owner);
     void   updateSwordView (Npc& owner);

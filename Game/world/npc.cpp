@@ -303,9 +303,10 @@ bool Npc::resetPositionToTA() {
                           npcType==Daedalus::GEngineClasses::NPCTYPE_BL_MAIN);
   const bool isDead = this->isDead();
 
-  if(isDead && !isMainNpc) {
-    // special case for oldworld
-    if(hnpc.attribute[ATR_HITPOINTSMAX]>1)
+  if(isDead && !isMainNpc && !invent.hasMissionItems()) {
+    const bool isDragon         = (owner.version().game==2 && guild()==GIL_DRAGON);
+    const bool isBackgroundBody = (hnpc.attribute[ATR_HITPOINTSMAX]==1);
+    if(!isBackgroundBody && !isDragon)
       return false;
     }
 
