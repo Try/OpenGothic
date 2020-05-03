@@ -501,12 +501,12 @@ bool MdlVisual::boneRotationY(const char *nodeName, float& deg) const
   if(size_t(-1)!=nodeId) {
     auto p = pos;
     p.mul(pose().tr[nodeId]);
-    float atVecX = p.at(2,0);
-    float atVecZ = p.at(2,2);
-    if(0.f!=atVecX) {
-      deg = static_cast<float>(atan(atVecZ / atVecX)) * 180.f / static_cast<float>(M_PI);
-      return true;
-      }
+
+    float rx = p.at(2,0);
+    float rz = p.at(2,2);
+
+    deg = static_cast<float>(atan2(rz,rx)) * 180.f / static_cast<float>(M_PI);
+    return true;
     }
   return false;
 }

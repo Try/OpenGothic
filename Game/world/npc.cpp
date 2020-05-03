@@ -3088,11 +3088,8 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, float ext
   if(!freeLos){
     float dx  = x-tx, dz=z-tz;
     float dir = angleDir(dx,dz);
-    float boneRotation = 0.f;
-    if(visual.boneRotationY("BIP01", boneRotation))
-      LogInfo() << "Bone rotation diff: " << std::fabs(boneRotation-rotation());
-    else
-      LogInfo() << "Bone rotation: FAIL.";
+    float boneRotation = rotation(); //Fallback is NPC rotation.
+    (void)visual.boneRotationY("BIP01", boneRotation);
     float da  = float(M_PI)*(boneRotation-dir)/180.f;
     if(double(std::cos(da))<=ref)
       if(!w->ray(x,y+180,z, tx,ty,tz).hasCol)
