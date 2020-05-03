@@ -1850,10 +1850,6 @@ bool Npc::startState(ScriptFn id, const Daedalus::ZString& wp, gtime endTime, bo
 
 void Npc::clearState(bool noFinalize) {
   if(aiState.funcIni.isValid() && aiState.started) {
-    if(owner.script().isTalk(*this)) {
-      // avoid ZS_Talk bug
-      owner.script().invokeState(this,currentOther,nullptr,aiState.funcLoop);
-      }
     if(!noFinalize)
       owner.script().invokeState(this,currentOther,nullptr,aiState.funcEnd);  // cleanup
     aiPrevState = aiState.funcIni;
