@@ -1206,7 +1206,7 @@ bool Npc::implAtack(uint64_t dt) {
   FightAlgo::Action act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
 
   if(act==FightAlgo::MV_BLOCK) {
-    if(setAnim(Anim::AtackBlock))
+    if(setAnim(Anim::AtackBlock) || ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage)
       fghAlgo.consumeAction();
     return true;
     }
