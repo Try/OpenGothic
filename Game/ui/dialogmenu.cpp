@@ -34,11 +34,10 @@ bool DialogMenu::Pipe::isFinished() {
   }
 
 DialogMenu::DialogMenu(Gothic &gothic, InventoryMenu &trade)
-  :gothic(gothic), trade(trade), pipe(*this) , camera(gothic) {
+  :gothic(gothic), trade(trade), pipe(*this) {
   tex     = Resources::loadTexture("DLG_CHOICE.TGA");
   ambient = Resources::loadTexture("DLG_AMBIENT.TGA");
   setFocusPolicy(NoFocus);
-  camera.setMode(Camera::Dialog);
   }
 
 void DialogMenu::tick(uint64_t dt) {
@@ -118,33 +117,32 @@ void DialogMenu::onWorldChanged() {
   close();
   }
 
-const Camera &DialogMenu::dialogCamera() {
+void DialogMenu::dialogCamera(Camera& camera) {
   if(pl && other){
-    camera.reset();
-    auto p0 = pl->position();
-    auto p1 = other->position();
+    auto p0 = pl   ->cameraBone();
+    auto p1 = other->cameraBone();
     camera.setPosition(0.5f*(p0.x+p1.x),
-                       0.5f*(p0.y+p1.y)+1.5f*pl->translateY(),
+                       0.5f*(p0.y+p1.y),
                        0.5f*(p0.z+p1.z));
     p0 -= p1;
 
     if(pl==other) {
-      float a = pl->rotation()+45;
-      camera.setDistance(200); //TODO: proper mobsi camera mode
+      float a = pl->rotation();
       camera.setSpin(PointF(a,0));
       } else {
       float l = p0.manhattanLength();
-      float a = (std::atan2(p0.z,p0.x)/float(M_PI))*180.f;
-      if(curentIsPl)
-        a+=45; else
-        a-=45;
+      float a = 0;
+      if(curentIsPl) {
+        a = pl->rotation()+90;
+        } else {
+        a = other->rotation()+180;
+        }
 
-      camera.setDistance(l);
+      camera.setDialogDistance(l+100);
       camera.setSpin(PointF(a,0));
       }
 
     }
-  return camera;
   }
 
 void DialogMenu::openPipe(Npc &player, Npc &npc, AiOuputPipe *&out) {
@@ -202,9 +200,10 @@ bool DialogMenu::isActive() const {
   }
 
 bool DialogMenu::onStart(Npc &p, Npc &ot) {
-  choise   = ot.dialogChoises(p,except,state==State::PreStart);
-  state    = State::Active;
-  depth    = 0;
+  choise     = ot.dialogChoises(p,except,state==State::PreStart);
+  state      = State::Active;
+  depth      = 0;
+  curentIsPl = true;
 
   if(choise.size()==0){
     close();

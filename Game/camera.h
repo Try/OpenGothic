@@ -21,7 +21,8 @@ class Camera final {
       Inventory,
       Melee,
       Ranged,
-      Magic
+      Magic,
+      Mobsi
       };
 
     void reset();
@@ -29,7 +30,6 @@ class Camera final {
     void load(Serialize &s,Npc* pl);
 
     void changeZoom(int delta);
-    Tempest::PointF getSpin() const { return spin; }
 
     void rotateLeft ();
     void rotateRight();
@@ -42,28 +42,42 @@ class Camera final {
     void setMode(Mode m);
     void follow(const Npc& npc, uint64_t dt, bool inMove, bool includeRot);
 
-    void setPosition(float x,float y,float z);
-    void setSpin(const Tempest::PointF& p);
-    void setDestSpin(const Tempest::PointF& p);
-    void setDistance(float d);
+    Tempest::PointF spin()     const;
+    Tempest::PointF destSpin() const;
+
+    void            setSpin(const Tempest::PointF& p);
+    void            setDestSpin(const Tempest::PointF& p);
+
+    void            setPosition(float x,float y,float z);
+    void            setDestPosition(float x,float y,float z);
+
+    void            setDialogDistance(float d);
+
+    void            onRotateMouse(const Tempest::PointF& dpos);
 
     Tempest::Matrix4x4 view() const;
     Tempest::Matrix4x4 viewShadow(const std::array<float,3> &ldir,int layer) const;
 
   private:
+    struct State {
+      Tempest::Vec3 pos={};
+      Tempest::Vec3 spin={};
+      };
+
     Gothic&               gothic;
-    Tempest::Vec3         camPos={};
-    bool                  isInMove=false;
-    Tempest::Vec3         camBone={};
-    Tempest::PointF       spin, destSpin;
-    float                 zoom=1.f;
-    float                 dist=3.f;
+    State                 state, dest;
+    float                 zoom=0.3f;
+    float                 dlgDist = 0;
 
-    bool                  hasPos=false;
-    Mode                  camMod=Normal;
+    bool                  isInMove = false;
+    bool                  hasPos   = false;
+    Mode                  camMod   = Normal;
 
-    void implReset(const Npc& pl);
-    void implMove(Tempest::KeyEvent::KeyType t);
+    void               applyModPosition(Tempest::Vec3& pos);
+    void               applyModRotation(Tempest::Vec3& spin);
+
+    void               implReset(const Npc& pl);
+    void               implMove(Tempest::KeyEvent::KeyType t);
     Tempest::Matrix4x4 mkView(float dist) const;
 
     const Daedalus::GEngineClasses::CCamSys& cameraDef() const;

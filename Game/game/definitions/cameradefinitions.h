@@ -14,9 +14,16 @@ class CameraDefinitions final {
     const Daedalus::GEngineClasses::CCamSys& meleeCam()     const { return camModMelee;  }
     const Daedalus::GEngineClasses::CCamSys& rangeCam()     const { return camModRange;  }
     const Daedalus::GEngineClasses::CCamSys& mageCam()      const { return camModMage;   }
+    const Daedalus::GEngineClasses::CCamSys& mobsiCam(const char* tag,const char* pos) const;
 
   private:
-    Daedalus::GEngineClasses::CCamSys loadCam(Daedalus::DaedalusVM &vm, const char *name);
+    Daedalus::GEngineClasses::CCamSys loadCam(const char *name);
+
+    struct Camera:Daedalus::GEngineClasses::CCamSys{
+      std::string name;
+      };
+    std::vector<Camera> cameras;
+    const Camera* find(const char* name) const;
 
     Daedalus::GEngineClasses::CCamSys camModDialog, camModInventory, camModNormal;
     Daedalus::GEngineClasses::CCamSys camModMelee, camModRange, camModMage;

@@ -24,7 +24,7 @@ class DialogMenu : public Tempest::Widget {
 
     void onWorldChanged();
 
-    const Camera& dialogCamera();
+    void dialogCamera(Camera& camera);
 
     void openPipe(Npc &player, Npc& npc, AiOuputPipe*& out);
 
@@ -128,5 +128,4 @@ class DialogMenu : public Tempest::Widget {
     std::vector<PScreen>                pscreen;
     PScreen                             printMsg[MAX_PRINT];
     uint64_t                            remPrint=0;
-    Camera                              camera;
   };

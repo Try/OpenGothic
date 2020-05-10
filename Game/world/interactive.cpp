@@ -1,4 +1,5 @@
 #include "interactive.h"
+
 #include "npc.h"
 #include "world.h"
 #include "utils/fileext.h"
@@ -335,6 +336,14 @@ const char* Interactive::schemeName() const {
     return mesh->scheme.c_str();
   Tempest::Log::i("unable to recognize mobsi{",focName,", ",mdlVisual,"}");
   return "";
+  }
+
+const char* Interactive::posSchemeName() const {
+  for(auto& i:attPos)
+    if(i.user!=nullptr) {
+      return i.posTag();
+      }
+  return nullptr;
   }
 
 bool Interactive::isContainer() const {

@@ -200,8 +200,6 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
   if(event.button<sizeof(mouseP))
     mouseP[event.button]=true;
   mpos = event.pos();
-  if(auto camera = gothic.gameCamera())
-    spin = camera->getSpin();
   player.onKeyPressed(keycodec.tr(event));
   }
 
@@ -223,41 +221,20 @@ void MainWindow::mouseDragEvent(MouseEvent &event) {
 void MainWindow::mouseMoveEvent(MouseEvent &event) {
   const bool fs = SystemApi::isFullscreen(hwnd());
   if(fs) {
-    if(auto camera = gothic.gameCamera())
-      spin = camera->getSpin();
     processMouse(event,true);
     mpos = Point(w()/2,h()/2);
     SystemApi::setCursorPosition(mpos.x,mpos.y);
     }
   }
 
-void MainWindow::processMouse(MouseEvent &event,bool fs) {
+void MainWindow::processMouse(MouseEvent &event,bool /*fs*/) {
   if(dialogs.isActive() || gothic.isPause())
     return;
-  if(auto camera = gothic.gameCamera()) {
-    auto dp = (event.pos()-mpos);
-    mpos = event.pos();
-    spin += PointF(-float(dp.x),float(dp.y));
-    if(spin.y>90)
-      spin.y=90;
-    if(spin.y<-90)
-      spin.y=-90;
-
-    if(inventory.isActive()){
-      camera->setSpin(spin);
-      return;
-      }
-
-    if(fs) {
-      if(!(currentFocus.npc!=nullptr &&
-           (player.weaponState()==WeaponState::Fist || player.weaponState()==WeaponState::W1H || player.weaponState()==WeaponState::W2H)))
-        player.onRotateMouse(-dp.x);
-      spin.x = camera->getSpin().x;
-      camera->setDestSpin(spin);
-      } else {
-      camera->setDestSpin(spin);
-      }
-    }
+  auto dp = (event.pos()-mpos);
+  mpos = event.pos();
+  if(auto camera = gothic.gameCamera())
+    camera->onRotateMouse(PointF(-float(dp.x),float(dp.y)));
+  player.onRotateMouse(-dp.x);
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
@@ -492,27 +469,63 @@ void MainWindow::tick() {
   inventory.tick(dt);
   gothic.tick(dt);
 
-  if(dialogs.isActive()){
+  if(dialogs.isActive())
     clearInput();
-    }
-
-  auto pcamera = gothic.gameCamera();
-  if(pcamera==nullptr)
-    return;
 
   player.tickFocus(currentFocus);
   if(document.isActive())
     clearInput();
+  player.tickMove(dt);
+  }
 
-  const bool followCamera=player.isInMove();
-  if(player.tickMove(dt)) {
-    auto& camera = *pcamera;
-    if(auto pl=gothic.player()) {
-      camera.setMode(solveCameraMode());
-      camera.follow(*pl,dt,followCamera,
-                    (!mouseP[Event::ButtonLeft] || currentFocus || SystemApi::isFullscreen(hwnd())) && !inventory.isActive());
-      }
+void MainWindow::followCamera() {
+  auto pcamera = gothic.gameCamera();
+  auto pl      = gothic.player();
+  if(pcamera==nullptr || pl==nullptr || gothic.isPause())
+    return;
+
+  auto&      camera       = *pcamera;
+  const auto ws           = player.weaponState();
+  const bool followCamera = player.isInMove();
+  const bool meleeFocus   = (ws==WeaponState::Fist ||
+                             ws==WeaponState::W1H  ||
+                             ws==WeaponState::W2H);
+  auto       pos = pl->cameraBone();
+
+  const bool fs = SystemApi::isFullscreen(hwnd());
+  if(!fs && mouseP[Event::ButtonLeft]) {
+    camera.setSpin(camera.destSpin());
+    camera.setDestPosition(pos.x,pos.y,pos.z);
     }
+  else if(dialogs.isActive()) {
+    dialogs.dialogCamera(camera);
+    }
+  else if(inventory.isActive()) {
+    camera.setSpin(camera.destSpin());
+    camera.setDestPosition(pos.x,pos.y,pos.z);
+    }
+  else if(currentFocus.npc!=nullptr && meleeFocus) {
+    auto spin = camera.destSpin();
+    spin.x = pl->rotation();
+    camera.setSpin(spin);
+    camera.setDestPosition(pos.x,pos.y,pos.z);
+    }
+  else {
+    auto spin = camera.destSpin();
+    spin.x = pl->rotation();
+    camera.setDestSpin(spin);
+    camera.setDestPosition(pos.x,pos.y,pos.z);
+    }
+
+  static uint64_t tick = Application::tickCount();
+  uint64_t now = Application::tickCount();
+  uint64_t dt  = now - tick;
+  tick = now;
+
+  camera.setMode(solveCameraMode());
+  camera.follow(*pl,dt,followCamera,
+                (!mouseP[Event::ButtonLeft] || currentFocus || fs) && !inventory.isActive());
+  renderer.setCameraView(camera);
   }
 
 Camera::Mode MainWindow::solveCameraMode() const {
@@ -520,7 +533,15 @@ Camera::Mode MainWindow::solveCameraMode() const {
      inventory.isOpen()==InventoryMenu::State::Ransack)
     return Camera::Inventory;
 
-  if(auto pl=gothic.player()){
+  if(auto pl=gothic.player()) {
+    if(pl->interactive()!=nullptr)
+      return Camera::Mobsi;
+    }
+
+  if(dialogs.isActive())
+    return Camera::Dialog;
+
+  if(auto pl=gothic.player()) {
     switch(pl->weaponState()){
       case WeaponState::Fist:
       case WeaponState::W1H:
@@ -597,10 +618,6 @@ void MainWindow::onWorldLoaded() {
   inventory.update();
   dialogs  .onWorldChanged();
 
-  if(auto camera = gothic.gameCamera()) {
-    //camera->reset();
-    spin = camera->getSpin();
-    }
   mpos = Point(w()/2,h()/2);
   renderer.onWorldChanged();
 
@@ -638,10 +655,7 @@ void MainWindow::render(){
   try {
     static uint64_t time=Application::tickCount();
 
-    if(dialogs.isActive())
-      renderer.setCameraView(dialogs.dialogCamera()); else
-    if(auto camera = gothic.gameCamera())
-      renderer.setCameraView(*camera);
+    followCamera();
 
     if(!gothic.isPause())
       gothic.updateAnimation();
