@@ -208,12 +208,18 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
       break;
       }
     case ParticleFx::EmitterType::Box:{
-      p.pos = Vec3(randf()*2.f-1.f,
-                   randf()*2.f-1.f,
-                   randf()*2.f-1.f);
-      p.pos*=0.5;
-      if(pfx.shpIsVolume)
-        p.pos*=randf();
+      if(pfx.shpIsVolume) {
+        p.pos = Vec3(randf()*2.f-1.f,
+                     randf()*2.f-1.f,
+                     randf()*2.f-1.f);
+        p.pos*=0.5;
+        } else {
+        // TODO
+        p.pos = Vec3(randf()*2.f-1.f,
+                     randf()*2.f-1.f,
+                     randf()*2.f-1.f);
+        p.pos*=0.5;
+        }
       break;
       }
     case ParticleFx::EmitterType::Sphere:{
@@ -233,7 +239,7 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
                    std::cos(a));
       p.pos*=0.5;
       if(pfx.shpIsVolume)
-        p.pos*=randf();
+        p.pos = p.pos*std::sqrt(randf());
       break;
       }
     case ParticleFx::EmitterType::Mesh:{
@@ -288,6 +294,15 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
       float dx = std::cos(phi) * std::cos(theta);
       float dy = std::sin(phi);
       float dz = std::cos(phi) * std::sin(theta);
+
+      if(pfx.dirModeTargetFOR==ParticleFx::Frame::Object &&
+         pfx.shpType         ==ParticleFx::EmitterType::Sphere &&
+         pfx.dirAngleHeadVar>=180 &&
+         pfx.dirAngleElevVar>=180 ) {
+        dx = p.pos.x;
+        dy = p.pos.y;
+        dz = p.pos.z;
+        }
 
       switch(pfx.dirFOR) {
         case ParticleFx::Frame::Object: {
@@ -565,7 +580,7 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
     if(p.count>0) {
       for(size_t i=0;i<b.blockSize;++i)
         b.tick(p,i,dt);
-      if(p.count==0 && !process){
+      if(p.count==0 && !process) {
         // free mem
         b.freeBlock(emitter.block);
         doShrink = true;
@@ -619,22 +634,28 @@ static void rotate(float* rx,float* ry,float a,const float* x, const float* y){
     }
   }
 
+static void cross(float* out,const float* u,const float* v) {
+  out[0] = (u[1]*v[2] - u[2]*v[1]);
+  out[1] = (u[2]*v[0] - u[0]*v[2]);
+  out[2] = (u[0]*v[1] - u[1]*v[0]);
+  }
+
 void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
   static const float dx[6] = {-0.5f, 0.5f, -0.5f,  0.5f,  0.5f, -0.5f};
   static const float dy[6] = { 0.5f, 0.5f, -0.5f,  0.5f, -0.5f, -0.5f};
 
-  auto& ow              = *b.owner;
-  auto  colorS          = ow.visTexColorStart;
-  auto  colorE          = ow.visTexColorEnd;
-  auto  visSizeStart    = ow.visSizeStart;
-  auto  visSizeEndScale = ow.visSizeEndScale;
-  auto  visAlphaStart   = ow.visAlphaStart;
-  auto  visAlphaEnd     = ow.visAlphaEnd;
-  auto  visAlphaFunc    = ow.visAlphaFunc;
+  auto& pfx             = *b.owner;
+  auto  colorS          = pfx.visTexColorStart;
+  auto  colorE          = pfx.visTexColorEnd;
+  auto  visSizeStart    = pfx.visSizeStart;
+  auto  visSizeEndScale = pfx.visSizeEndScale;
+  auto  visAlphaStart   = pfx.visAlphaStart;
+  auto  visAlphaEnd     = pfx.visAlphaEnd;
+  auto  visAlphaFunc    = pfx.visAlphaFunc;
 
   const float* left = ctx.left;
   const float* top  = ctx.top;
-  if(b.owner->visYawAlign) {
+  if(pfx.visYawAlign) {
     left = ctx.leftA;
     top  = ctx.topA;
     }
@@ -663,7 +684,19 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
 
       float l[3]={};
       float t[3]={};
-      rotate(l,t,ps.rotation,left,top);
+
+      if(pfx.visOrientation==ParticleFx::Orientation::Velocity3d) {
+        static float k1 = 1, k2 = -1;
+        t[0] = k1* ps.dir.x;
+        t[1] = k1* ps.dir.y;
+        t[2] = k1* ps.dir.z;
+        cross(l, t,ctx.z);
+        l[0]*=k2;
+        l[1]*=k2;
+        l[2]*=k2;
+        } else {
+        rotate(l,t,ps.rotation,left,top);
+        }
 
       struct Color {
         uint8_t r=255;
@@ -694,7 +727,7 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
         v[i].pos[1] = ps.pos.y + p.pos.y + sy;
         v[i].pos[2] = ps.pos.z + p.pos.z + sz;
 
-        if(ow.visZBias) {
+        if(pfx.visZBias) {
           v[i].pos[0] -= szZ*ctx.z[0];
           v[i].pos[1] -= szZ*ctx.z[1];
           v[i].pos[2] -= szZ*ctx.z[2];

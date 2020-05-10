@@ -50,7 +50,7 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
 
   dirMode             = loadDirType(src.dirMode_S);
   dirFOR              = loadFrameType(src.dirFOR_S);
-  dirModeTargetFOR    = loadTargetType(src.dirModeTargetFOR_S);
+  dirModeTargetFOR    = loadFrameType(src.dirModeTargetFOR_S);
   dirModeTargetPos    = loadVec3(src.dirModeTargetPos_S);
   dirAngleHead        = src.dirAngleHead;
   dirAngleHeadVar     = src.dirAngleHeadVar;
@@ -205,12 +205,6 @@ ParticleFx::EmitterType ParticleFx::loadEmitType(const Daedalus::ZString& src) {
   if(src=="MESH")
     return EmitterType::Mesh;
   return EmitterType::Point;
-  }
-
-ParticleFx::TargetFor ParticleFx::loadTargetType(const Daedalus::ZString& src) {
-  if(src=="OBJECT")
-    return TargetFor::Object;
-  return TargetFor::Object;
   }
 
 ParticleFx::Frame ParticleFx::loadFrameType(const Daedalus::ZString& src) {
