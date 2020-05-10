@@ -312,7 +312,8 @@ bool Npc::resetPositionToTA() {
 
   invent.clearSlot(*this,nullptr,false);
   attachToPoint(nullptr);
-  setInteraction(nullptr,true);
+  if(!isPlayer())
+    setInteraction(nullptr,true);
   clearAiQueue();
 
   if(!isDead) {
@@ -326,28 +327,27 @@ bool Npc::resetPositionToTA() {
   auto  at  = rot.point;
 
   if(at==nullptr) {
-    auto time = owner.time();
-    time = gtime(int32_t(time.hour()),int32_t(time.minute()));
-    int64_t delta=std::numeric_limits<int64_t>::max();
+    const auto time  = owner.time().timeInDay();
+    const auto day   = gtime(24,0).toInt();
+    int64_t    delta = std::numeric_limits<int64_t>::max();
 
-    // closest point
-    for(auto& i:routines){
-      int64_t ndelta=delta;
-      if(i.end<i.start)
-        ndelta = i.start.toInt()-time.toInt();
-      else
-        ndelta = i.end.toInt()-time.toInt();
+    // closest time-point
+    for(auto& i:routines) {
+      int64_t d=0;
+      if(i.start<i.end) {
+        d = i.end.toInt()-time.toInt();
+        } else {
+        d = i.start.toInt()-time.toInt();
+        }
+      if(d<=0)
+        d+=day;
 
-      if(i.point && ndelta<delta)
-        at = i.point;
-      }
-    // any point
-    if(at==nullptr){
-      for(auto& i:routines){
-        if(i.point)
-          at=i.point;
+      if(i.point && d<delta) {
+        at    = i.point;
+        delta = d;
         }
       }
+
     if(at==nullptr)
       return false;
     }
