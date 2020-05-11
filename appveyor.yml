@@ -14,19 +14,19 @@ before_build:
   - cmd: set Path=C:/Qt/Tools/mingw530_32/bin;%Path%
   - cmd: set CC=C:/Qt/Tools/mingw530_32/bin/gcc.exe
   - cmd: set CXX=C:/Qt/Tools/mingw530_32/bin/g++.exe
-  - cmd: curl -L --silent --show-error --output VulkanSDK.exe https://vulkan.lunarg.com/sdk/download/1.1.135.0/windows/VulkanSDK-1.1.135.0-Installer.exe?Human=true
+  - cmd: curl -L --silent --show-error --output VulkanSDK.exe https://vulkan.lunarg.com/sdk/download/1.2.135.0/windows/VulkanSDK-1.2.135.0-Installer.exe?Human=true
   - cmd: VulkanSDK.exe /S
-  - cmd: set VK_SDK_PATH=C:/VulkanSDK/1.1.135.0
+  - cmd: set VK_SDK_PATH=C:/VulkanSDK/1.2.135.0
   - cmd: mkdir glslang
   - cmd: cd glslang
   - cmd: curl -fsSL -o glslang-master-windows-x64-Release.zip https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-windows-x64-Release.zip
   - cmd: 7z x glslang-master-windows-x64-Release.zip
   - cmd: cd ..
   - cmd: "SET PATH=%APPVEYOR_BUILD_FOLDER%\\glslang\\bin;%PATH%"
-  - sh:  wget -O vulkansdk-linux-x86_64-1.1.135.0.tar.gz https://vulkan.lunarg.com/sdk/download/1.1.135.0/linux/vulkansdk-linux-x86_64-1.1.135.0.tar.gz?Human=true
+  - sh:  wget -O vulkansdk-linux-x86_64-1.2.135.0.tar.gz https://vulkan.lunarg.com/sdk/download/1.2.135.0/linux/vulkansdk-linux-x86_64-1.2.135.0.tar.gz?Human=true
   - sh:  mkdir VulkanSDK
-  - sh:  tar -xzf vulkansdk-linux-x86_64-1.1.135.0.tar.gz -C ./VulkanSDK
-  - sh:  export VK_SDK_PATH=$APPVEYOR_BUILD_FOLDER/VulkanSDK/1.1.135.0/x86_64
+  - sh:  tar -xzf vulkansdk-linux-x86_64-1.2.135.0.tar.gz -C ./VulkanSDK
+  - sh:  export VK_SDK_PATH=$APPVEYOR_BUILD_FOLDER/VulkanSDK/1.2.135.0/x86_64
   - sh: mkdir glslang
   - sh: cd glslang
   - sh: curl -fsSL -o glslang-master-linux-Release.zip https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-linux-Release.zip
