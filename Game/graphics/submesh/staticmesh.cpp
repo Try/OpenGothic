@@ -11,6 +11,7 @@ StaticMesh::StaticMesh(const ZenLoad::PackedMesh &mesh) {
     sub[i].texture = Resources::loadTexture(sub[i].texName);
     sub[i].ibo     = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
     }
+  bbox.assign(mesh.bbox);
   }
 
 StaticMesh::StaticMesh(const ZenLoad::PackedSkeletalMesh &mesh) {
@@ -37,6 +38,7 @@ StaticMesh::StaticMesh(const ZenLoad::PackedSkeletalMesh &mesh) {
     sub[i].texture = Resources::loadTexture(sub[i].texName);
     sub[i].ibo     = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
     }
+  bbox.assign(mesh.bbox);
   }
 
 StaticMesh::StaticMesh(const std::string& fname, std::vector<Resources::Vertex> cvbo, std::vector<uint32_t> ibo) {
@@ -48,4 +50,5 @@ StaticMesh::StaticMesh(const std::string& fname, std::vector<Resources::Vertex> 
     sub[i].texture = Resources::loadDecal(sub[i].texName.c_str());
     sub[i].ibo     = Resources::ibo(ibo.data(),ibo.size());
     }
+  bbox.assign(cvbo);
   }

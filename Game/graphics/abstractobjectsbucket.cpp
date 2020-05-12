@@ -15,6 +15,11 @@ void AbstractObjectsBucket::Item::setPose(const Pose &p) {
   owner->setSkeleton(id,p);
   }
 
+void AbstractObjectsBucket::Item::setBounds(const Bounds& bbox) {
+  owner->markAsChanged();
+  owner->setBounds(id,bbox);
+  }
+
 const Tempest::Texture2d &AbstractObjectsBucket::Item::texture() const {
   return owner->texture();
   }

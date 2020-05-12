@@ -1,6 +1,7 @@
 #include "dialogmenu.h"
 
 #include <Tempest/Painter>
+#include <Tempest/Log>
 #include <algorithm>
 
 #include "utils/gthfont.h"

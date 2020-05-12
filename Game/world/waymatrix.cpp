@@ -2,6 +2,7 @@
 
 #include "world.h"
 
+#include <Tempest/Log>
 #include <algorithm>
 #include <limits>
 

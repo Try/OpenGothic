@@ -1,5 +1,7 @@
 #include "pose.h"
 
+#include <Tempest/Log>
+
 #include "skeleton.h"
 #include "game/serialize.h"
 #include "world/npc.h"

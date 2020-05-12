@@ -1,6 +1,8 @@
 #include "npc.h"
 
 #include <Tempest/Matrix4x4>
+#include <Tempest/Log>
+
 #include <zenload/zCMaterial.h>
 
 #include "interactive.h"

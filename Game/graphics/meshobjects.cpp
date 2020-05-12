@@ -6,7 +6,9 @@
 #include "pose.h"
 #include "attachbinder.h"
 #include "light.h"
+#include "objectsbucket.h"
 #include "rendererstorage.h"
+#include "bounds.h"
 
 MeshObjects::MeshObjects(const RendererStorage &storage)
   :storage(storage),storageSt(storage.device),storageDn(storage.device),uboGlobalPf{storage.device,storage.device} {
@@ -20,6 +22,9 @@ MeshObjects::MeshObjects(const RendererStorage &storage)
 
   uboGlobal.modelView.identity();
   uboGlobal.shadowView.identity();
+  }
+
+MeshObjects::~MeshObjects() {
   }
 
 bool MeshObjects::needToUpdateCommands(uint8_t fId) const {
@@ -111,7 +116,7 @@ MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const Tempest::Te
     return MeshObjects::Item();
     }
   auto&        bucket = getBucketSt(mat);
-  const size_t id     = bucket.alloc(mesh.vbo,ibo);
+  const size_t id     = bucket.alloc(mesh.vbo,ibo,mesh.bbox);
   return Item(bucket,id);
   }
 
@@ -122,7 +127,7 @@ MeshObjects::Item MeshObjects::implGet(const AnimMesh &mesh, const Tempest::Text
     return MeshObjects::Item();
     }
   auto&        bucket = getBucketDn(mat);
-  const size_t id     = bucket.alloc(mesh.vbo,ibo);
+  const size_t id     = bucket.alloc(mesh.vbo,ibo,mesh.bbox);
   return Item(bucket,id);
   }
 
@@ -272,6 +277,20 @@ void MeshObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint
     c.drawShadow(cmd,storage.pObjectSh,fId,layer);
   for(auto& c:chunksDn)
     c.drawShadow(cmd,storage.pAnimSh,fId,layer);
+  }
+
+void MeshObjects::draw(Painter3d& painter, uint32_t fId) {
+  for(auto& c:chunksSt)
+    c.draw(painter,storage.pObject,fId);
+  for(auto& c:chunksDn)
+    c.draw(painter,storage.pAnim,fId);
+  }
+
+void MeshObjects::drawShadow(Painter3d& painter, uint32_t fId, int layer) {
+  for(auto& c:chunksSt)
+    c.drawShadow(painter,storage.pObjectSh,fId,layer);
+  for(auto& c:chunksDn)
+    c.drawShadow(painter,storage.pAnimSh,fId,layer);
   }
 
 void MeshObjects::invalidateCmd() {

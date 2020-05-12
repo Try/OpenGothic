@@ -5,6 +5,7 @@
 #include "world/world.h"
 #include "rendererstorage.h"
 #include "graphics/submesh/packedmesh.h"
+#include "graphics/dynamic/painter3d.h"
 
 using namespace Tempest;
 
@@ -59,18 +60,27 @@ void WorldView::setupSunDir(float pulse,float ang) {
   sun.setDir(std::cos(a),std::min(0.9f,-1.0f*pulse),std::sin(a));
   }
 
-void WorldView::drawShadow(Encoder<PrimaryCommandBuffer> &cmd, uint8_t fId, uint8_t layer) {
+void WorldView::drawShadow(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId, uint8_t layer) {
   if(!frame[fId].actual)
     return;
   cmd.exec(frame[fId].cmdShadowDyn[layer]);
   cmd.exec(frame[fId].cmdShadow   [layer]);
+
+  vobGroup.drawShadow(painter,fId,layer);
+  objGroup.drawShadow(painter,fId,layer);
+  if(layer==0)
+    itmGroup.drawShadow(painter,fId,layer);
   }
 
-void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd, uint8_t fId) {
+void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId) {
   if(!frame[fId].actual)
     return;
   cmd.exec(frame[fId].cmdMainDyn);
   cmd.exec(frame[fId].cmdMain);
+
+  vobGroup.draw(painter,fId);
+  objGroup.draw(painter,fId);
+  itmGroup.draw(painter,fId);
   }
 
 MeshObjects::Mesh WorldView::getView(const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
@@ -247,16 +257,16 @@ void WorldView::builtCmdBuf(uint8_t frameId, const World &world,
     auto cmd    = pf.cmdShadow[0]   .startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
     auto cmdDyn = pf.cmdShadowDyn[0].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
     land    .drawShadow(cmd,   frameId,0);
-    vobGroup.drawShadow(cmdDyn,frameId);
-    objGroup.drawShadow(cmd,   frameId);
-    itmGroup.drawShadow(cmd,   frameId);
+    // vobGroup.drawShadow(cmdDyn,frameId);
+    // objGroup.drawShadow(cmd,   frameId);
+    // itmGroup.drawShadow(cmd,   frameId);
     }
 
     // cascade#1 shadow
     {
     auto cmd = pf.cmdShadow[1].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
     land.drawShadow(cmd,frameId,1);
-    vobGroup.drawShadow(cmd,frameId,1);
+    // vobGroup.drawShadow(cmd,frameId,1);
     }
 
     // main draw
@@ -264,9 +274,9 @@ void WorldView::builtCmdBuf(uint8_t frameId, const World &world,
     auto cmd    = pf.cmdMain   .startEncoding(device,mainLay,main.w(),main.h());
     auto cmdDyn = pf.cmdMainDyn.startEncoding(device,mainLay,main.w(),main.h());
     land    .draw(cmd,   frameId);
-    vobGroup.draw(cmd,   frameId);
-    objGroup.draw(cmdDyn,frameId);
-    itmGroup.draw(cmd,   frameId);
+    // vobGroup.draw(cmd,   frameId);
+    // objGroup.draw(cmdDyn,frameId);
+    // itmGroup.draw(cmd,   frameId);
     decGroup.drawDecals(cmd,frameId);
 
     sky     .draw(cmd,frameId,world);

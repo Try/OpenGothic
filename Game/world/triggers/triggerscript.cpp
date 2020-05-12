@@ -1,5 +1,6 @@
 #include "triggerscript.h"
 
+#include <Tempest/Log>
 #include "world/world.h"
 
 TriggerScript::TriggerScript(ZenLoad::zCVobData&& data, World &owner)

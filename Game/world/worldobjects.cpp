@@ -15,6 +15,7 @@
 
 #include <Tempest/Painter>
 #include <Tempest/Application>
+#include <Tempest/Log>
 
 using namespace Tempest;
 using namespace Daedalus::GameState;

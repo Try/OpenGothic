@@ -3,6 +3,7 @@
 #include <Tempest/Color>
 #include <Tempest/Fence>
 #include <Tempest/Semaphore>
+#include <Tempest/Log>
 
 #include "graphics/submesh/staticmesh.h"
 #include "ui/inventorymenu.h"
@@ -12,7 +13,7 @@
 using namespace Tempest;
 
 Renderer::Renderer(Tempest::Device &device,Tempest::Swapchain& swapchain,Gothic& gothic)
-  :device(device),swapchain(swapchain),gothic(gothic),stor(device,gothic) {
+  :device(device),swapchain(swapchain),gothic(gothic),stor(device,gothic),painter(device) {
   view.identity();
 
   static const TextureFormat shfrm[] = {
@@ -125,18 +126,25 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const 
     return;
     }
 
+  painter.reset();
   wview->updateCmd(frameId,*gothic.world(),swapchain.frame(frameId),shadowMapFinal,fbo.layout(),fboShadow->layout());
   wview->updateUbo(frameId,view,shadow,2);
 
   for(uint8_t i=0;i<2;++i) {
     cmd.setPass(fboShadow[i],shadowPass);
-    wview->drawShadow(cmd,swapchain.frameId(),i);
+    painter.setPass(fboShadow[i],frameId);
+    painter.setFrustrum(shadow[i]);
+    wview->drawShadow(cmd,painter,frameId,i);
+    painter.commit(cmd);
     }
 
   composeShadow(cmd,fboCompose);
 
   cmd.setPass(fbo,mainPass);
-  wview->drawMain(cmd,swapchain.frameId());
+  painter.setPass(fbo,frameId);
+  painter.setFrustrum(wview->viewProj(view));
+  wview->drawMain(cmd,painter,frameId);
+  painter.commit(cmd);
   }
 
 void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, InventoryMenu &inventory) {

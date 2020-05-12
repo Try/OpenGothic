@@ -1,5 +1,7 @@
 #include "landscape.h"
 
+#include <Tempest/Log>
+
 #include "rendererstorage.h"
 #include "graphics/submesh/packedmesh.h"
 #include "gothic.h"

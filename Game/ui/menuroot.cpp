@@ -1,5 +1,7 @@
 #include "menuroot.h"
 
+#include <Tempest/Log>
+
 #include "ui/gamemenu.h"
 #include "gothic.h"
 

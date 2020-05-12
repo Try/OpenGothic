@@ -8,6 +8,8 @@
 
 #include "abstractobjectsbucket.h"
 #include "ubostorage.h"
+#include "graphics/dynamic/painter3d.h"
+#include "bounds.h"
 #include "resources.h"
 
 template<class Ubo,class Vertex>
@@ -35,11 +37,16 @@ class ObjectsBucket : public AbstractObjectsBucket {
     Tempest::Uniforms&          uboMain  (size_t imgId) { return pf[imgId].ubo;   }
     Tempest::Uniforms&          uboShadow(size_t imgId,int layer) { return pf[imgId].uboSh[layer]; }
 
-    size_t                      alloc(const Tempest::VertexBuffer<Vertex> &vbo, const Tempest::IndexBuffer<uint32_t> &ibo);
+    size_t                      alloc(const Tempest::VertexBuffer<Vertex> &vbo,
+                                      const Tempest::IndexBuffer<uint32_t> &ibo,
+                                      const Bounds& bounds);
     void                        free(size_t i) override;
 
     void                        draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId);
     void                        drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId, int layer);
+
+    void                        draw      (Painter3d& painter,const Tempest::RenderPipeline &pipeline, uint32_t imgId);
+    void                        drawShadow(Painter3d& painter,const Tempest::RenderPipeline &pipeline, uint32_t imgId, int layer);
 
     void                        draw(size_t id,Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) override;
 
@@ -52,6 +59,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
       const Tempest::VertexBuffer<Vertex>*  vbo=nullptr;
       const Tempest::IndexBuffer<uint32_t>* ibo=nullptr;
       size_t                                ubo=size_t(-1);
+      Bounds                                bbox;
       };
 
     struct PerFrame final {
@@ -79,6 +87,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
     void                        setObjMatrix(size_t i,const Tempest::Matrix4x4& m) override;
     void                        setSkeleton(size_t i,const Skeleton* sk) override;
     void                        setSkeleton(size_t i,const Pose& sk) override;
+    void                        setBounds  (size_t i,const Bounds& b) override;
   };
 
 template<class Ubo,class Vertex>
@@ -96,6 +105,7 @@ size_t ObjectsBucket<Ubo,Vertex>::getNextId(){
 template<class Ubo, class Vertex>
 void ObjectsBucket<Ubo,Vertex>::setObjMatrix(size_t i, const Tempest::Matrix4x4 &m) {
   element(i).setObjMatrix(m);
+  data[i].bbox.setObjMatrix(m);
   }
 
 template<class Ubo, class Vertex>
@@ -108,14 +118,21 @@ void ObjectsBucket<Ubo,Vertex>::setSkeleton(size_t i, const Pose& p) {
   element(i).setSkeleton(p);
   }
 
+template<class Ubo, class Vertex>
+void ObjectsBucket<Ubo,Vertex>::setBounds(size_t i, const Bounds& b) {
+  data[i].bbox = b;
+  }
+
 template<class Ubo,class Vertex>
 size_t ObjectsBucket<Ubo,Vertex>::alloc(const Tempest::VertexBuffer<Vertex>  &vbo,
-                                        const Tempest::IndexBuffer<uint32_t> &ibo) {
+                                        const Tempest::IndexBuffer<uint32_t> &ibo,
+                                        const Bounds& bounds) {
   invalidateCmd();
   const size_t id=getNextId();
-  data[id].vbo = &vbo;
-  data[id].ibo = &ibo;
-  data[id].ubo = uStorage.alloc();
+  data[id].vbo  = &vbo;
+  data[id].ibo  = &ibo;
+  data[id].ubo  = uStorage.alloc();
+  data[id].bbox = bounds;
   return id;
   }
 
@@ -169,6 +186,34 @@ void ObjectsBucket<Ubo,Vertex>::drawShadow(Tempest::Encoder<Tempest::CommandBuff
 
     cmd.setUniforms(pipeline,frame.uboSh[layer],1,&offset);
     cmd.draw(*di.vbo,*di.ibo);
+    }
+  }
+
+template<class Ubo,class Vertex>
+void ObjectsBucket<Ubo,Vertex>::draw(Painter3d& painter,const Tempest::RenderPipeline &pipeline, uint32_t imgId) {
+  mkIndex();
+
+  auto& frame = pf[imgId];
+  for(size_t i=0;i<index.size();++i){
+    auto& di = *index[i];
+    if(di.vbo==nullptr)
+      continue;
+    uint32_t offset = uint32_t(di.ubo);
+    painter.draw(pipeline,di.bbox,frame.ubo,offset,*di.vbo,*di.ibo);
+    }
+  }
+
+template<class Ubo,class Vertex>
+void ObjectsBucket<Ubo,Vertex>::drawShadow(Painter3d& painter,const Tempest::RenderPipeline &pipeline, uint32_t imgId, int layer) {
+  mkIndex();
+
+  auto& frame = pf[imgId];
+  for(size_t i=0;i<index.size();++i){
+    auto& di = *index[i];
+    if(di.vbo==nullptr)
+      continue;
+    uint32_t offset = uint32_t(di.ubo);
+    painter.draw(pipeline,di.bbox,frame.uboSh[layer],offset,*di.vbo,*di.ibo);
     }
   }
 
