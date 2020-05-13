@@ -1982,10 +1982,11 @@ bool Npc::doAttack(Anim anim) {
   if(weaponSt==WeaponState::NoWeapon || weaponSt==WeaponState::Mage)
     return false;
 
-  auto wlk = walkMode();
   if(mvAlgo.isSwim())
-    wlk = WalkBit::WM_Swim;
-  else if(mvAlgo.isInWater())
+    return false;
+
+  auto wlk = walkMode();
+  if(mvAlgo.isInWater())
     wlk = WalkBit::WM_Water;
 
   visual.setRotation(*this,0);
@@ -3148,7 +3149,7 @@ void Npc::updatePos() {
   bool align = (world().script().guildVal().surface_align[gl]!=0) || isDead();
 
   auto ground = mvAlgo.groundNormal();
-  if(align && !isInAir()) {
+  if(align && !mvAlgo.isInAir() && !mvAlgo.isSwim()) {
     if(groundNormal!=ground) {
       durtyTranform |= TR_Rot;
       groundNormal = ground;
