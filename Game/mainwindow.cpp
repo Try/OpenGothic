@@ -234,7 +234,8 @@ void MainWindow::processMouse(MouseEvent &event,bool /*fs*/) {
   mpos = event.pos();
   if(auto camera = gothic.gameCamera())
     camera->onRotateMouse(PointF(-float(dp.x),float(dp.y)));
-  player.onRotateMouse(-dp.x);
+  if(!inventory.isActive())
+    player.onRotateMouse(-dp.x);
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
@@ -501,7 +502,8 @@ void MainWindow::followCamera() {
     dialogs.dialogCamera(camera);
     }
   else if(inventory.isActive()) {
-    camera.setSpin(camera.destSpin());
+    //camera.setSpin(camera.destSpin());
+    //camera.setDestSpin(spin);
     camera.setDestPosition(pos.x,pos.y,pos.z);
     }
   else if(currentFocus.npc!=nullptr && meleeFocus) {
@@ -524,7 +526,7 @@ void MainWindow::followCamera() {
 
   camera.setMode(solveCameraMode());
   camera.follow(*pl,dt,followCamera,
-                (!mouseP[Event::ButtonLeft] || currentFocus || fs) && !inventory.isActive());
+                (!mouseP[Event::ButtonLeft] || currentFocus || fs));
   renderer.setCameraView(camera);
   }
 
