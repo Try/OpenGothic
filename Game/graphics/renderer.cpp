@@ -135,7 +135,6 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const 
     painter.setPass(fboShadow[i],frameId);
     painter.setFrustrum(shadow[i]);
     wview->drawShadow(cmd,painter,frameId,i);
-    painter.commit(cmd);
     }
 
   composeShadow(cmd,fboCompose);
@@ -144,7 +143,6 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const 
   painter.setPass(fbo,frameId);
   painter.setFrustrum(wview->viewProj(view));
   wview->drawMain(cmd,painter,frameId);
-  painter.commit(cmd);
   }
 
 void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, InventoryMenu &inventory) {

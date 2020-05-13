@@ -71,9 +71,7 @@ class WorldView {
 
     struct PerFrame {
       Tempest::CommandBuffer cmdMain;
-      Tempest::CommandBuffer cmdMainDyn;
       Tempest::CommandBuffer cmdShadow[2];
-      Tempest::CommandBuffer cmdShadowDyn[2];
       bool                   actual     =true;
       };
     std::unique_ptr<PerFrame[]> frame;

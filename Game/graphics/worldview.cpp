@@ -63,24 +63,25 @@ void WorldView::setupSunDir(float pulse,float ang) {
 void WorldView::drawShadow(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId, uint8_t layer) {
   if(!frame[fId].actual)
     return;
-  cmd.exec(frame[fId].cmdShadowDyn[layer]);
   cmd.exec(frame[fId].cmdShadow   [layer]);
 
   vobGroup.drawShadow(painter,fId,layer);
   objGroup.drawShadow(painter,fId,layer);
   if(layer==0)
     itmGroup.drawShadow(painter,fId,layer);
+  painter.commit(cmd);
   }
 
 void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId) {
   if(!frame[fId].actual)
     return;
-  cmd.exec(frame[fId].cmdMainDyn);
-  cmd.exec(frame[fId].cmdMain);
 
   vobGroup.draw(painter,fId);
   objGroup.draw(painter,fId);
   itmGroup.draw(painter,fId);
+  painter.commit(cmd);
+
+  cmd.exec(frame[fId].cmdMain);
   }
 
 MeshObjects::Mesh WorldView::getView(const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
@@ -254,8 +255,7 @@ void WorldView::builtCmdBuf(uint8_t frameId, const World &world,
 
     // cascade#0 detail shadow
     {
-    auto cmd    = pf.cmdShadow[0]   .startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
-    auto cmdDyn = pf.cmdShadowDyn[0].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
+    auto cmd = pf.cmdShadow[0].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
     land    .drawShadow(cmd,   frameId,0);
     // vobGroup.drawShadow(cmdDyn,frameId);
     // objGroup.drawShadow(cmd,   frameId);
@@ -271,8 +271,7 @@ void WorldView::builtCmdBuf(uint8_t frameId, const World &world,
 
     // main draw
     {
-    auto cmd    = pf.cmdMain   .startEncoding(device,mainLay,main.w(),main.h());
-    auto cmdDyn = pf.cmdMainDyn.startEncoding(device,mainLay,main.w(),main.h());
+    auto cmd    = pf.cmdMain.startEncoding(device,mainLay,main.w(),main.h());
     land    .draw(cmd,   frameId);
     // vobGroup.draw(cmd,   frameId);
     // objGroup.draw(cmdDyn,frameId);

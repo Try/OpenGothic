@@ -73,8 +73,15 @@ void Bounds::transformBbox(const Matrix4x4& m) {
   }
 
 void Bounds::calcR() {
-  float x = bboxTr[1].x-bboxTr[0].x;
-  float y = bboxTr[1].y-bboxTr[0].y;
-  float z = bboxTr[1].z-bboxTr[0].z;
-  r = std::sqrt(x*x+y*y+z*z)*0.5f;
+  float x0 = std::fabs(bboxTr[0].x-at.x);
+  float y0 = std::fabs(bboxTr[0].y-at.y);
+  float z0 = std::fabs(bboxTr[0].z-at.z);
+  float x1 = std::fabs(bboxTr[1].x-at.x);
+  float y1 = std::fabs(bboxTr[1].y-at.y);
+  float z1 = std::fabs(bboxTr[1].z-at.z);
+
+  float x = std::max(x1,x0),
+        y = std::max(y1,y0),
+        z = std::max(z1,z0);
+  r = std::sqrt(x*x+y*y+z*z);
   }
