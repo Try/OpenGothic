@@ -38,10 +38,12 @@ class Painter3d final {
   private:
     struct Frustrum {
       void make(const Tempest::Matrix4x4& m);
+      void clear();
+
       bool testPoint(float x, float y, float z) const;
       bool testPoint(float x, float y, float z, float R) const;
 
-      float f[6][4];
+      float f[6][4] = {};
       };
 
     struct PerFrame {
