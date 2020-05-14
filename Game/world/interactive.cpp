@@ -205,6 +205,8 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     if(state==stateNum) {
       //HACK: some beds in game are VT_oCMobDoor
       if(canQuitAtLastState()) {
+        if(!loopState)
+          invokeStateFunc(*npc);
         implQuitInteract(p);
         return;
         }
