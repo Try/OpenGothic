@@ -14,6 +14,7 @@ class CameraDefinitions final {
     const Daedalus::GEngineClasses::CCamSys& meleeCam()     const { return camModMelee;  }
     const Daedalus::GEngineClasses::CCamSys& rangeCam()     const { return camModRange;  }
     const Daedalus::GEngineClasses::CCamSys& mageCam()      const { return camModMage;   }
+    const Daedalus::GEngineClasses::CCamSys& deathCam()     const { return camModDeath;  }
     const Daedalus::GEngineClasses::CCamSys& mobsiCam(const char* tag,const char* pos) const;
 
   private:
@@ -25,6 +26,6 @@ class CameraDefinitions final {
     std::vector<Camera> cameras;
     const Camera* find(const char* name) const;
 
-    Daedalus::GEngineClasses::CCamSys camModDialog, camModInventory, camModNormal;
+    Daedalus::GEngineClasses::CCamSys camModDialog, camModInventory, camModNormal, camModDeath;
     Daedalus::GEngineClasses::CCamSys camModMelee, camModRange, camModMage;
   };

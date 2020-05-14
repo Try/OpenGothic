@@ -17,6 +17,7 @@ CameraDefinitions::CameraDefinitions(Gothic &gothic) {
   camModDialog    = loadCam("CAMMODDIALOG");
   camModInventory = loadCam("CAMMODINVENTORY");
   camModNormal    = loadCam("CAMMODNORMAL");
+  camModDeath     = loadCam("CAMMODDEATH");
   camModMelee     = loadCam("CAMMODMELEE");
   camModRange     = loadCam("CAMMODRANGED");
   camModMage      = loadCam("CAMMODMAGIC");

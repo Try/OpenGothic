@@ -544,6 +544,8 @@ Camera::Mode MainWindow::solveCameraMode() const {
     return Camera::Dialog;
 
   if(auto pl=gothic.player()) {
+    if(pl->isDead())
+      return Camera::Death;
     switch(pl->weaponState()){
       case WeaponState::Fist:
       case WeaponState::W1H:

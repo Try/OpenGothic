@@ -96,7 +96,21 @@ void Camera::moveRight() {
   }
 
 void Camera::setMode(Camera::Mode m) {
+  if(camMod==m)
+    return;
+
   camMod = m;
+  if(camMod==Mode::Inventory ||
+     camMod==Mode::Dialog ||
+     camMod==Mode::Death) {
+    const auto& def = cameraDef();
+    dest.spin.x = def.bestAzimuth;
+    if(auto pl=gothic.player())
+      dest.spin.x+=pl->rotation();
+
+    if(camMod!=Dialog)
+      dest.spin.y = def.bestElevation;
+    }
   }
 
 void Camera::setSpin(const PointF &p) {
@@ -190,9 +204,9 @@ void Camera::applyModPosition(Vec3& pos) {
 
 void Camera::applyModRotation(Vec3& spin) {
   const auto& def = cameraDef();
-  spin.x += def.bestAzimuth;
-  if(camMod!=Dialog)
-    spin.y += def.bestElevation;
+  // spin.x += def.bestAzimuth;
+  // if(camMod!=Dialog)
+  //   spin.y += def.bestElevation;
 
   if(camMod!=Dialog) {
     spin.y += def.rotOffsetX; //NOTE: rotOffsetX is upside-down rotation
@@ -238,6 +252,8 @@ const Daedalus::GEngineClasses::CCamSys &Camera::cameraDef() const {
         }
     return camd.mobsiCam(tag,pos);
     }
+  if(camMod==Death)
+    return camd.deathCam();
   return camd.stdCam();
   }
 

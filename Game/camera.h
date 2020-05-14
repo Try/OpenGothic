@@ -22,7 +22,8 @@ class Camera final {
       Melee,
       Ranged,
       Magic,
-      Mobsi
+      Mobsi,
+      Death
       };
 
     void reset();

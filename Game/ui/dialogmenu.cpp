@@ -134,9 +134,9 @@ void DialogMenu::dialogCamera(Camera& camera) {
       float l = p0.manhattanLength();
       float a = 0;
       if(curentIsPl) {
-        a = pl->rotation()+90;
+        a = pl->rotation()+45-270;
         } else {
-        a = other->rotation()+180;
+        a = other->rotation()-45+270;
         }
 
       camera.setDialogDistance(l+100);
