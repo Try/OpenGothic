@@ -3168,8 +3168,8 @@ void Npc::updatePos() {
     Matrix4x4 mt;
     if(align) {
       auto oy = ground;
-      auto ox = crossVec3(oy,{0,0,1});
-      auto oz = crossVec3(oy,ox);
+      auto ox = Vec3::crossProduct(oy,{0,0,1});
+      auto oz = Vec3::crossProduct(oy,ox);
       float v[16] = {
          ox.x, ox.y, ox.z, 0,
          oy.x, oy.y, oy.z, 0,
