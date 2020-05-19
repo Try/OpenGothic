@@ -118,7 +118,6 @@ Painter3d::PerFrame::PerFrame() {
 
 Painter3d::Painter3d(Device& device)
   :device(device) {
-  pf.resize(device.maxFramesInFlight());
   }
 
 Painter3d::~Painter3d() {

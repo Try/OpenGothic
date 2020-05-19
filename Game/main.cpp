@@ -40,7 +40,7 @@ int main(int argc,const char** argv) {
   Gothic               gothic{argc,argv};
   Tempest::VulkanApi   api   {gothic.isDebugMode() ? Tempest::ApiFlags::Validation : Tempest::ApiFlags::NoFlags};
 
-  Tempest::Device      device{api,selectDevice(api)};
+  Tempest::Device      device{api,selectDevice(api),Resources::MaxFramesInFlight};
   Resources            resources{gothic,device};
 
   MainWindow           wx(gothic,device);

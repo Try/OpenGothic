@@ -106,8 +106,7 @@ class MainWindow : public Tempest::Window {
       };
 
     std::vector<FrameLocal>             fLocal;
-
-    std::vector<Tempest::PrimaryCommandBuffer> commandDynamic;
+    Tempest::PrimaryCommandBuffer       commandDynamic[Resources::MaxFramesInFlight];
 
 
     const Tempest::Texture2d*           background=nullptr;

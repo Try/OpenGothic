@@ -19,9 +19,6 @@ WorldView::WorldView(const World &world, const PackedMesh &wmesh, const Renderer
   pfxGroup.resetTicks();
 
   sun.setDir(1,-1,1);
-
-  const size_t count = storage.device.maxFramesInFlight();
-  frame.reset(new PerFrame[count]);
   }
 
 WorldView::~WorldView() {
@@ -158,10 +155,8 @@ void WorldView::updateLight() {
 void WorldView::resetCmd() {
   // cmd buffers must not be in use
   storage.device.waitIdle();
-  uint32_t count = storage.device.maxFramesInFlight();
-  for(uint32_t i=0;i<count;++i) {
-    frame[i].actual=false;
-    }
+  for(auto& i:frame)
+    i.actual=false;
   land    .invalidateCmd();
   vobGroup.invalidateCmd();
   objGroup.invalidateCmd();
@@ -185,10 +180,8 @@ bool WorldView::needToUpdateCmd(uint8_t frameId) const {
   }
 
 void WorldView::invalidateCmd() {
-  uint32_t count = storage.device.maxFramesInFlight();
-  for(uint32_t i=0;i<count;++i) {
-    frame[i].actual=false;
-    }
+  for(auto& i:frame)
+    i.actual=false;
   }
 
 void WorldView::updateCmd(uint8_t frameId, const World &world,

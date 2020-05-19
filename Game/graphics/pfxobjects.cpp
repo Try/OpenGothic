@@ -92,11 +92,8 @@ void PfxObjects::Emitter::setObjMatrix(const Matrix4x4 &mt) {
 
 PfxObjects::Bucket::Bucket(const RendererStorage &storage, const ParticleFx &ow, PfxObjects *parent)
   :owner(&ow), parent(parent) {
-  auto cnt = storage.device.maxFramesInFlight();
-
-  pf.reset(new PerFrame[cnt]);
-  for(size_t i=0;i<cnt;++i)
-    pf[i].ubo = storage.device.uniforms(storage.uboPfxLayout());
+  for(auto& i:pf)
+    i.ubo = storage.device.uniforms(storage.uboPfxLayout());
 
   uint64_t lt      = ow.maxLifetime();
   uint64_t pps     = uint64_t(std::ceil(ow.maxPps()));
@@ -397,7 +394,6 @@ float PfxObjects::ParState::lifeTime() const {
 
 PfxObjects::PfxObjects(const RendererStorage& storage)
   :storage(storage),uboGlobalPf(storage.device) {
-  updateCmd.resize(storage.device.maxFramesInFlight());
   }
 
 PfxObjects::~PfxObjects() {
@@ -743,6 +739,6 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
   }
 
 void PfxObjects::invalidateCmd() {
-  for(size_t i=0;i<updateCmd.size();++i)
-    updateCmd[i]=true;
+  for(auto& i:updateCmd)
+    i=true;
   }

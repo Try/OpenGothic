@@ -18,12 +18,10 @@ class ObjectsBucket : public AbstractObjectsBucket {
     ObjectsBucket(const Tempest::Texture2d* tex, const Tempest::UniformsLayout &layout,
                   Tempest::Device &device, UboStorage<Ubo>& uStorage)
       : tex(tex),uStorage(uStorage) {
-      pfSize=device.maxFramesInFlight();
-      pf.reset(new PerFrame[pfSize]);
-      for(size_t i=0;i<pfSize;++i) {
-        pf[i].ubo      = device.uniforms(layout);
-        pf[i].uboSh[0] = device.uniforms(layout);
-        pf[i].uboSh[1] = device.uniforms(layout);
+      for(auto& i:pf) {
+        i.ubo      = device.uniforms(layout);
+        i.uboSh[0] = device.uniforms(layout);
+        i.uboSh[1] = device.uniforms(layout);
         }
       }
 
@@ -70,8 +68,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
     const Tempest::Texture2d*   tex=nullptr;
     UboStorage<Ubo>&            uStorage;
 
-    std::unique_ptr<PerFrame[]> pf;
-    size_t                      pfSize=0;
+    PerFrame                    pf[Resources::MaxFramesInFlight];
 
     std::vector<NonUbo>         data;
     std::vector<NonUbo*>        index;
@@ -241,8 +238,8 @@ void ObjectsBucket<Ubo,Vertex>::setAsUpdated(uint8_t fId) {
 
 template<class Ubo, class Vertex>
 void ObjectsBucket<Ubo,Vertex>::invalidateCmd() {
-  for(size_t i=0;i<pfSize;++i)
-    pf[i].nToUpdate=true;
+  for(auto& i:pf)
+    i.nToUpdate=true;
   }
 
 template<class Ubo, class Vertex>

@@ -11,7 +11,7 @@
 #include "bounds.h"
 
 MeshObjects::MeshObjects(const RendererStorage &storage)
-  :storage(storage),storageSt(storage.device),storageDn(storage.device),uboGlobalPf{storage.device,storage.device} {
+  :storage(storage),uboGlobalPf{storage.device,storage.device} {
   uboGlobal.lightDir={{1,1,-1}};
   float l=0;
   for(auto i:uboGlobal.lightDir)

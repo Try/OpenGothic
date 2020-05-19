@@ -6,10 +6,12 @@
 
 #include <cassert>
 
+#include "resources.h"
+
 template<class Ubo>
 class UboStorage {
   public:
-    UboStorage(Tempest::Device &device);
+    UboStorage();
 
     bool                     commitUbo(Tempest::Device &device, uint8_t imgId);
     void                     updateUbo(uint8_t imgId);
@@ -30,17 +32,13 @@ class UboStorage {
       std::atomic_bool            uboChanged{false};  // invalidate ubo array
       };
 
-    std::unique_ptr<PerFrame[]> pf;
-    size_t                      pfSize=0;
-
+    PerFrame                    pf[Resources::MaxFramesInFlight];
     std::vector<Ubo>            obj;
     std::vector<size_t>         freeList;
   };
 
 template<class Ubo>
-UboStorage<Ubo>::UboStorage(Tempest::Device &device)
-  :pfSize(device.maxFramesInFlight()) {
-  pf.reset(new PerFrame[pfSize]);
+UboStorage<Ubo>::UboStorage() {
   }
 
 template<class Ubo>
@@ -69,8 +67,8 @@ bool UboStorage<Ubo>::needToRealloc(uint32_t imgId) const {
 
 template<class Ubo>
 void UboStorage<Ubo>::markAsChanged() {
-  for(uint32_t i=0;i<pfSize;++i)
-    pf[i].uboChanged=true;
+  for(auto& i:pf)
+    i.uboChanged=true;
   }
 
 template<class Ubo>

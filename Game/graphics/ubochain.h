@@ -4,6 +4,8 @@
 #include <Tempest/Uniforms>
 #include <Tempest/UniformBuffer>
 
+#include "resources.h"
+
 namespace Detail {
   template<class F>
   struct H { using type = F; };
@@ -17,12 +19,8 @@ class UboChain final {
     using DescType = typename Detail::H<Desc>::type;
 
     UboChain(Tempest::Device& device) {
-      const uint32_t maxFrames=device.maxFramesInFlight();
-      pf.reset(new PerFrame[maxFrames]);
-
-      for(size_t i=0;i<maxFrames;++i) {
-        pf[i].uboData = device.ubo<T>(nullptr,1);
-        }
+      for(auto& i:pf)
+        i.uboData = device.ubo<T>(nullptr,1);
       }
 
     void update(const T& val,uint32_t frameId) {
@@ -43,5 +41,5 @@ class UboChain final {
       DescType                  desc;
       bool                      uboChanged=false; // invalidate ubo array
       };
-    std::unique_ptr<PerFrame[]> pf;
+    PerFrame pf[Resources::MaxFramesInFlight];
   };

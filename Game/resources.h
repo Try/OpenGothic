@@ -45,6 +45,10 @@ class Resources final {
       Red
       };
 
+    enum {
+      MaxFramesInFlight = 2
+      };
+
     static const size_t MAX_NUM_SKELETAL_NODES = 96;
 
     struct Vertex {

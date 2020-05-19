@@ -119,7 +119,7 @@ class PfxObjects final {
 
     struct Bucket final {
       Bucket(const RendererStorage& storage,const ParticleFx &ow,PfxObjects* parent);
-      std::unique_ptr<PerFrame[]> pf;
+      PerFrame                    pf[Resources::MaxFramesInFlight];
 
       std::vector<Vertex>         vbo;
       std::vector<ParState>       particles;
@@ -179,5 +179,5 @@ class PfxObjects final {
     UboChain<UboGlobal,void>      uboGlobalPf;
     UboGlobal                     uboGlobal;
     uint64_t                      lastUpdate=0;
-    std::vector<bool>             updateCmd;
+    bool                          updateCmd[Resources::MaxFramesInFlight]={};
   };

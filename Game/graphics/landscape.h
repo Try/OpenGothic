@@ -23,7 +23,7 @@ class Landscape final {
 
     void invalidateCmd();
     bool needToUpdateCommands(uint8_t frameId) const;
-    void setAsUpdated        (uint8_t frameId) const;
+    void setAsUpdated        (uint8_t frameId);
 
     void commitUbo (uint8_t frameId, const Tempest::Texture2d& shadowMap);
     void draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
@@ -62,5 +62,5 @@ class Landscape final {
 
     const RendererStorage&         storage;
     UboLand                        uboCpu;
-    std::unique_ptr<PerFrame[]>    pf;
+    PerFrame                       pf[Resources::MaxFramesInFlight];
   };

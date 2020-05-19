@@ -59,7 +59,7 @@ class Painter3d final {
     char                  encBuf[sizeof(Recorder)];
     Recorder*             enc = nullptr;
 
-    std::vector<PerFrame> pf;
+    PerFrame              pf[Resources::MaxFramesInFlight];
     PerFrame*             current = nullptr;
 
     Frustrum              frustrum;

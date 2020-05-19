@@ -74,7 +74,7 @@ class WorldView {
       Tempest::CommandBuffer cmdShadow[2];
       bool                   actual     =true;
       };
-    std::unique_ptr<PerFrame[]> frame;
+    PerFrame                 frame[Resources::MaxFramesInFlight];
 
     bool needToUpdateCmd(uint8_t frameId) const;
     void invalidateCmd();

@@ -31,10 +31,8 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
   if(!gothic.isWindowMode())
     setFullscreen(true);
 
-  for(uint8_t i=0;i<device.maxFramesInFlight();++i){
+  for(uint8_t i=0;i<device.maxFramesInFlight();++i)
     fLocal.emplace_back(device);
-    commandDynamic.emplace_back(device.commandBuffer());
-    }
 
   renderer.resetSwapchain();
   setupUi();

@@ -12,10 +12,9 @@ Landscape::Landscape(const RendererStorage &storage, const PackedMesh &mesh)
   :storage(storage) {
   auto& device=storage.device;
 
-  pf.reset(new PerFrame[device.maxFramesInFlight()]);
-  for(size_t i=0;i<device.maxFramesInFlight();++i){
-    pf[i].uboGpu[0] = device.ubo(uboCpu);
-    pf[i].uboGpu[1] = device.ubo(uboCpu);
+  for(auto& i:pf){
+    i.uboGpu[0] = device.ubo(uboCpu);
+    i.uboGpu[1] = device.ubo(uboCpu);
     }
 
   static_assert(sizeof(Resources::Vertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
@@ -72,15 +71,15 @@ void Landscape::setLight(const Light &l, const Vec3 &ambient) {
   }
 
 void Landscape::invalidateCmd() {
-  for(size_t i=0;i<storage.device.maxFramesInFlight();++i)
-    pf[i].nToUpdate = true;
+  for(auto& i:pf)
+    i.nToUpdate = true;
   }
 
 bool Landscape::needToUpdateCommands(uint8_t frameId) const {
   return pf[frameId].nToUpdate;
   }
 
-void Landscape::setAsUpdated(uint8_t frameId) const {
+void Landscape::setAsUpdated(uint8_t frameId) {
   pf[frameId].nToUpdate = false;
   }
 
