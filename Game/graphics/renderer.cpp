@@ -52,8 +52,8 @@ void Renderer::resetSwapchain() {
   const uint32_t imgC   = swapchain.imageCount();
   const uint32_t smSize = 2048;
 
-  zbuffer        = device.attachment(zBufferFormat,w,h);
-  zbufferItem    = device.attachment(zBufferFormat,w,h);
+  zbuffer        = device.zbuffer   (zBufferFormat,w,h);
+  zbufferItem    = device.zbuffer   (zBufferFormat,w,h);
   shadowMapFinal = device.attachment(shadowFormat,smSize,smSize);
 
   Sampler2d smp;
@@ -63,7 +63,7 @@ void Renderer::resetSwapchain() {
   shadowPass = device.pass(FboMode(FboMode::PreserveOut,Color(1.0)), FboMode(FboMode::Discard,1.f));
   for(int i=0;i<2;++i){
     shadowMap[i] = device.attachment(shadowFormat, smSize,smSize);
-    shadowZ[i]   = device.attachment(zBufferFormat,smSize,smSize);
+    shadowZ[i]   = device.zbuffer   (zBufferFormat,smSize,smSize);
     fboShadow[i] = device.frameBuffer(shadowMap[i],shadowZ[i]);
     textureCast(shadowMap[i]).setSampler(smp);
     }
@@ -166,10 +166,10 @@ void Renderer::composeShadow(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer &fb
 Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   device.waitIdle();
 
-  uint32_t w    = uint32_t(zbuffer.w());
-  uint32_t h    = uint32_t(zbuffer.h());
+  uint32_t w = uint32_t(zbuffer.w());
+  uint32_t h = uint32_t(zbuffer.h());
 
-  auto        zbuf = device.attachment(zBufferFormat,w,h);
+  auto        zbuf = device.zbuffer   (zBufferFormat,w,h);
   auto        img  = device.attachment(Tempest::TextureFormat::RGBA8,w,h);
   FrameBuffer fbo  = device.frameBuffer(img,zbuf);
 

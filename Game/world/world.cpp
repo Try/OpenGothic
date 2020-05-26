@@ -194,8 +194,8 @@ MeshObjects::Mesh World::getStaticView(const char* visual) const {
   return view()->getStaticView(visual);
   }
 
-MeshObjects::Mesh World::getDecalView(const char* visual, float x, float y, float z, ProtoMesh& out) const {
-  return view()->getDecalView(visual,x,y,z,out);
+MeshObjects::Mesh World::getDecalView(const ZenLoad::zCVobData& vob, const Tempest::Matrix4x4& obj, ProtoMesh& out) const {
+  return view()->getDecalView(vob,obj,out);
   }
 
 DynamicWorld::Item World::getPhysic(const char* visual) {

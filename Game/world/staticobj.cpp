@@ -21,12 +21,8 @@ StaticObj::StaticObj(const ZenLoad::zCVobData& vob,World& owner) {
     } else
   if(FileExt::hasExt(vob.visual,"TGA")){
     if(vob.visualCamAlign==0) {
-      float x = objMat.at(3,0);
-      float y = objMat.at(3,1);
-      float z = objMat.at(3,2);
-
       decalMesh = std::make_unique<ProtoMesh>(ZenLoad::PackedMesh(),"");
-      mesh = owner.getDecalView(vob.visual.c_str(), x,y,z, *decalMesh);
+      mesh = owner.getDecalView(vob, objMat, *decalMesh);
 
       Tempest::Matrix4x4 m;
       m.identity();

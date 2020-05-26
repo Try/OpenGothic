@@ -35,6 +35,32 @@ void Bounds::assign(const std::vector<Resources::Vertex>& vbo) {
   calcR();
   }
 
+void Bounds::assign(const std::vector<ZenLoad::WorldVertex>& vbo, const std::vector<uint32_t>& ibo) {
+  if(ibo.size()==0){
+    std::memset(bbox,   0, 2*sizeof(Vec3));
+    std::memset(bboxTr, 0, 2*sizeof(Vec3));
+    r = 0;
+    return;
+    }
+
+  bbox[0].x = vbo[ibo[0]].Position.x;
+  bbox[0].y = vbo[ibo[0]].Position.y;
+  bbox[0].z = vbo[ibo[0]].Position.z;
+  bbox[1] = bbox[0];
+  for(auto id:ibo) {
+    auto& i = vbo[id];
+    bbox[0].x = std::min(bbox[0].x,i.Position.x);
+    bbox[0].y = std::min(bbox[0].y,i.Position.y);
+    bbox[0].z = std::min(bbox[0].z,i.Position.z);
+    bbox[1].x = std::max(bbox[1].x,i.Position.x);
+    bbox[1].y = std::max(bbox[1].y,i.Position.y);
+    bbox[1].z = std::max(bbox[1].z,i.Position.z);
+    }
+  bboxTr[0] = bbox[0];
+  bboxTr[1] = bbox[1];
+  calcR();
+  }
+
 void Bounds::setObjMatrix(const Matrix4x4& m) {
   at = Vec3(m.at(3,0),m.at(3,1),m.at(3,2));
   transformBbox(m);

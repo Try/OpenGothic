@@ -40,10 +40,12 @@ class Renderer final {
     Tempest::Matrix4x4                view;
     Tempest::Matrix4x4                shadow[2];
 
-    Tempest::Attachment               zbuffer, zbufferItem;
-    Tempest::Attachment               shadowMap[2], shadowZ[2], shadowMapFinal;
+    Tempest::Attachment               shadowMap[2], shadowMapFinal;
+    Tempest::ZBuffer                  zbuffer, zbufferItem, shadowZ[2];
+
     Tempest::TextureFormat            shadowFormat =Tempest::TextureFormat::RGBA8;
     Tempest::TextureFormat            zBufferFormat=Tempest::TextureFormat::Depth16;
+
     std::vector<Tempest::FrameBuffer> fbo3d, fboUi, fboItem;
     Tempest::FrameBuffer              fboShadow[2], fboCompose;
 

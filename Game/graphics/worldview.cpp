@@ -62,10 +62,13 @@ void WorldView::drawShadow(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painte
     return;
   cmd.exec(frame[fId].cmdShadow   [layer]);
 
+  land    .drawShadow(painter,fId,layer);
   vobGroup.drawShadow(painter,fId,layer);
   objGroup.drawShadow(painter,fId,layer);
-  if(layer==0)
+  if(layer==0) {
     itmGroup.drawShadow(painter,fId,layer);
+    decGroup.drawShadow(painter,fId,layer);
+    }
   painter.commit(cmd);
   }
 
@@ -73,9 +76,11 @@ void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter,
   if(!frame[fId].actual)
     return;
 
+  land    .draw(painter,fId);
   vobGroup.draw(painter,fId);
   objGroup.draw(painter,fId);
   itmGroup.draw(painter,fId);
+  decGroup.draw(painter,fId);
   painter.commit(cmd);
 
   cmd.exec(frame[fId].cmdMain);
@@ -103,8 +108,9 @@ MeshObjects::Mesh WorldView::getStaticView(const char* visual) {
   return MeshObjects::Mesh();
   }
 
-MeshObjects::Mesh WorldView::getDecalView(const char* visual,float x,float y,float z,ProtoMesh& out) {
-  out = owner.physic()->decalMesh(visual,x,y,z,100,100,100);
+MeshObjects::Mesh WorldView::getDecalView(const ZenLoad::zCVobData& vob,
+                                          const Tempest::Matrix4x4& obj, ProtoMesh& out) {
+  out = owner.physic()->decalMesh(vob,obj);
   return decGroup.get(out,0,0,0);
   }
 
@@ -248,8 +254,8 @@ void WorldView::builtCmdBuf(uint8_t frameId, const World &world,
 
     // cascade#0 detail shadow
     {
-    auto cmd = pf.cmdShadow[0].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
-    land    .drawShadow(cmd,   frameId,0);
+    //auto cmd = pf.cmdShadow[0].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
+    //land    .drawShadow(cmd,   frameId,0);
     // vobGroup.drawShadow(cmdDyn,frameId);
     // objGroup.drawShadow(cmd,   frameId);
     // itmGroup.drawShadow(cmd,   frameId);
@@ -257,19 +263,19 @@ void WorldView::builtCmdBuf(uint8_t frameId, const World &world,
 
     // cascade#1 shadow
     {
-    auto cmd = pf.cmdShadow[1].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
-    land.drawShadow(cmd,frameId,1);
+    //auto cmd = pf.cmdShadow[1].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
+    //land.drawShadow(cmd,frameId,1);
     // vobGroup.drawShadow(cmd,frameId,1);
     }
 
     // main draw
     {
     auto cmd    = pf.cmdMain.startEncoding(device,mainLay,main.w(),main.h());
-    land    .draw(cmd,   frameId);
+    //land    .draw(cmd,   frameId);
     // vobGroup.draw(cmd,   frameId);
     // objGroup.draw(cmdDyn,frameId);
     // itmGroup.draw(cmd,   frameId);
-    decGroup.drawDecals(cmd,frameId);
+    // decGroup.drawDecals(cmd,frameId);
 
     sky     .draw(cmd,frameId,world);
     pfxGroup.draw(cmd,frameId);
