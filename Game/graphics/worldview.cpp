@@ -216,25 +216,21 @@ void WorldView::updateUbo(uint8_t frameId, const Matrix4x4& view, const Tempest:
 
   vobGroup.setModelView(viewProj,shadow,shCount);
   vobGroup.setLight    (sun,ambient);
-  vobGroup.updateUbo   (frameId);
   objGroup.setModelView(viewProj,shadow,shCount);
   objGroup.setLight    (sun,ambient);
-  objGroup.updateUbo   (frameId);
   itmGroup.setModelView(viewProj,shadow,shCount);
   itmGroup.setLight    (sun,ambient);
-  itmGroup.updateUbo   (frameId);
   decGroup.setModelView(viewProj,shadow,shCount);
   decGroup.setLight    (sun,ambient);
-  decGroup.updateUbo   (frameId);
-
   pfxGroup.setModelView(viewProj,shadow[0]);
   pfxGroup.setLight    (sun,ambient);
-  pfxGroup.updateUbo   (frameId);
   }
 
 void WorldView::builtCmdBuf(uint8_t frameId, const World &world,
                             const Attachment& main, const Attachment& shadowMap,
                             const FrameBufferLayout& mainLay,const FrameBufferLayout& shadowLay) {
+  (void)shadowLay;
+
   auto&      device    = storage.device;
   auto&      pf        = frame[frameId];
   const bool nToUpdate = needToUpdateCmd(frameId);
@@ -252,31 +248,9 @@ void WorldView::builtCmdBuf(uint8_t frameId, const World &world,
   if(!pf.actual || nToUpdate) {
     pf.actual=true;
 
-    // cascade#0 detail shadow
-    {
-    //auto cmd = pf.cmdShadow[0].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
-    //land    .drawShadow(cmd,   frameId,0);
-    // vobGroup.drawShadow(cmdDyn,frameId);
-    // objGroup.drawShadow(cmd,   frameId);
-    // itmGroup.drawShadow(cmd,   frameId);
-    }
-
-    // cascade#1 shadow
-    {
-    //auto cmd = pf.cmdShadow[1].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
-    //land.drawShadow(cmd,frameId,1);
-    // vobGroup.drawShadow(cmd,frameId,1);
-    }
-
     // main draw
     {
     auto cmd    = pf.cmdMain.startEncoding(device,mainLay,main.w(),main.h());
-    //land    .draw(cmd,   frameId);
-    // vobGroup.draw(cmd,   frameId);
-    // objGroup.draw(cmdDyn,frameId);
-    // itmGroup.draw(cmd,   frameId);
-    // decGroup.drawDecals(cmd,frameId);
-
     sky     .draw(cmd,frameId,world);
     pfxGroup.draw(cmd,frameId);
     }

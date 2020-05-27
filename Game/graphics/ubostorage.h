@@ -14,7 +14,6 @@ class UboStorage {
     UboStorage();
 
     bool                     commitUbo(Tempest::Device &device, uint8_t imgId);
-    void                     updateUbo(uint8_t imgId);
     size_t                   alloc();
     void                     free(const size_t objId);
     bool                     needToRealloc(uint32_t imgId) const;
@@ -75,20 +74,13 @@ template<class Ubo>
 bool UboStorage<Ubo>::commitUbo(Tempest::Device& device,uint8_t imgId) {
   auto&        frame   = pf[imgId];
   const bool   realloc = frame.uboData.size()!=obj.size();
+  if(!frame.uboChanged)
+    return false;
   if(realloc)
     frame.uboData = device.ubo<Ubo>(obj.data(),obj.size()); else
     frame.uboData.update(obj.data(),0,obj.size());
+  frame.uboChanged = false;
   return realloc;
-  }
-
-template<class Ubo>
-void UboStorage<Ubo>::updateUbo(uint8_t imgId) {
-  auto& frame=pf[imgId];
-  assert(obj.size()==frame.uboData.size());
-  if(frame.uboChanged) {
-    frame.uboData.update(obj.data(),0,obj.size());
-    frame.uboChanged = false;
-    }
   }
 
 template<class Ubo>

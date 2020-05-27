@@ -197,22 +197,16 @@ MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_
   return Mesh(&mesh,std::move(dat),count);
   }
 
-void MeshObjects::updateUbo(uint8_t fId) {
-  storageSt.updateUbo(fId);
-  storageDn.updateUbo(fId);
-
-  uboGlobalPf[0].update(uboGlobal,fId);
-
-  auto ubo2 = uboGlobal;
-  ubo2.shadowView = shadowView1;
-  uboGlobalPf[1].update(ubo2,fId);
-  }
-
 void MeshObjects::commitUbo(uint8_t fId,const Tempest::Texture2d& shadowMap) {
   auto& device=storage.device;
 
   const bool reallocSt = storageSt.commitUbo(device,fId);
   const bool reallocDn = storageDn.commitUbo(device,fId);
+
+  uboGlobalPf[0].update(uboGlobal,fId);
+  auto ubo2 = uboGlobal;
+  ubo2.shadowView = shadowView1;
+  uboGlobalPf[1].update(ubo2,fId);
 
   for(auto& i:chunksSt){
     if(!reallocSt && !i.needToUpdateCommands(fId))

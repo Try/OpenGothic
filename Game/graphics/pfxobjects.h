@@ -62,7 +62,6 @@ class PfxObjects final {
     void    resetTicks();
     void    tick(uint64_t ticks);
 
-    void    updateUbo(uint8_t frameId);
     void    commitUbo(uint8_t frameId, const Tempest::Texture2d& shadowMap);
     void    draw     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId);
 

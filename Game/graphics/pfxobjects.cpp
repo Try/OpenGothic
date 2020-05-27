@@ -486,14 +486,6 @@ void PfxObjects::tick(uint64_t ticks) {
   lastUpdate = ticks;
   }
 
-void PfxObjects::updateUbo(uint8_t frameId) {
-  uboGlobalPf.update(uboGlobal,frameId);
-  for(auto& i:bucket) {
-    auto& pf = i.pf[frameId];
-    pf.vbo.update(i.vbo);
-    }
-  }
-
 void PfxObjects::commitUbo(uint8_t frameId, const Texture2d& shadowMap) {
   size_t pfCount = storage.device.maxFramesInFlight();
   bucket.remove_if([pfCount](const Bucket& b) {
@@ -504,13 +496,19 @@ void PfxObjects::commitUbo(uint8_t frameId, const Texture2d& shadowMap) {
     return b.impl.size()==0;
     });
 
+  uboGlobalPf.update(uboGlobal,frameId);
+  for(auto& i:bucket) {
+    auto& pf = i.pf[frameId];
+    if(i.vbo.size()!=pf.vbo.size())
+      pf.vbo = storage.device.vboDyn(i.vbo); else
+      pf.vbo.update(i.vbo);
+    }
+
   if(!updateCmd[frameId])
     return;
 
   for(auto& i:bucket) {
     auto& pf = i.pf[frameId];
-    if(i.vbo.size()!=pf.vbo.size())
-      pf.vbo = storage.device.vboDyn(i.vbo);
     pf.ubo.set(0,uboGlobalPf[frameId],0,1);
     pf.ubo.set(2,*i.owner->visName_S);
     pf.ubo.set(3,shadowMap);

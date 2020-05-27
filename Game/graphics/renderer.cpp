@@ -127,8 +127,9 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const 
     }
 
   painter.reset();
-  wview->updateCmd(frameId,*gothic.world(),swapchain.frame(frameId),shadowMapFinal,fbo.layout(),fboShadow->layout());
   wview->updateUbo(frameId,view,shadow,2);
+
+  wview->updateCmd(frameId,*gothic.world(),swapchain.frame(frameId),shadowMapFinal,fbo.layout(),fboShadow->layout());
 
   for(uint8_t i=0;i<2;++i) {
     cmd.setPass(fboShadow[i],shadowPass);
