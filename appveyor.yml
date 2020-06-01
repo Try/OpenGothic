@@ -1,46 +1,61 @@
-image:
-  - Visual Studio 2017
-  - Ubuntu1804
-
 configuration:
   - release
 
+environment:
+  matrix:
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015  # used as mingw
+      GENERATOR: "MinGW Makefiles"
+      CC:        C:/Qt/Tools/mingw530_32/bin/gcc.exe
+      CXX:       C:/Qt/Tools/mingw530_32/bin/g++.exe
+
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      GENERATOR: "NMake Makefiles JOM"
+      VCVARSALL: "%VS140COMNTOOLS%/../../VC/vcvarsall.bat"
+      PLATFORM:  x64
+
+    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu1804
+      GENERATOR: ""
+
+install:
+- git submodule -q update --init --recursive
+# Vulkan SDK and thirdparty
+- cmd: curl -L --silent --show-error --output VulkanSDK.exe https://vulkan.lunarg.com/sdk/download/1.2.135.0/windows/VulkanSDK-1.2.135.0-Installer.exe?Human=true
+- cmd: VulkanSDK.exe /S
+- cmd: set VK_SDK_PATH=C:/VulkanSDK/1.2.135.0
+
+- sh:  sudo apt-get update
+- sh:  sudo apt-get --yes install libvulkan-dev libasound2-dev
+- sh:  wget -O vulkansdk-linux-x86_64-1.2.135.0.tar.gz https://vulkan.lunarg.com/sdk/download/1.2.135.0/linux/vulkansdk-linux-x86_64-1.2.135.0.tar.gz?Human=true
+- sh:  mkdir VulkanSDK
+- sh:  tar -xzf vulkansdk-linux-x86_64-1.2.135.0.tar.gz -C ./VulkanSDK
+- sh:  export VK_SDK_PATH=$APPVEYOR_BUILD_FOLDER/VulkanSDK/1.2.135.0/x86_64
+
+# GLSL compiller
+- mkdir glslang
+- cd glslang
+- cmd: curl -fsSL -o glslang-master-windows-x64-Release.zip https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-windows-x64-Release.zip
+- sh:  curl -fsSL -o glslang-master-linux-Release.zip https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-linux-Release.zip
+- cmd: 7z x glslang-master-windows-x64-Release.zip
+- sh:  7z x glslang-master-linux-Release.zip
+- cd ..
+- cmd: "SET PATH=%APPVEYOR_BUILD_FOLDER%\\glslang\\bin;%PATH%"
+- sh: export PATH="$PATH:$APPVEYOR_BUILD_FOLDER/glslang/bin"
+
 before_build:
-  - sh: sudo apt-get update
-  - sh: sudo apt-get --yes install libvulkan-dev libasound2-dev
   # Prepare the out-of-source build directory.
   - mkdir build
-  - git submodule update --init --recursive
-  - cmd: set Path=C:/Qt/Tools/mingw530_32/bin;%Path%
-  - cmd: set CC=C:/Qt/Tools/mingw530_32/bin/gcc.exe
-  - cmd: set CXX=C:/Qt/Tools/mingw530_32/bin/g++.exe
-  - cmd: curl -L --silent --show-error --output VulkanSDK.exe https://vulkan.lunarg.com/sdk/download/1.2.135.0/windows/VulkanSDK-1.2.135.0-Installer.exe?Human=true
-  - cmd: VulkanSDK.exe /S
-  - cmd: set VK_SDK_PATH=C:/VulkanSDK/1.2.135.0
-  - cmd: mkdir glslang
-  - cmd: cd glslang
-  - cmd: curl -fsSL -o glslang-master-windows-x64-Release.zip https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-windows-x64-Release.zip
-  - cmd: 7z x glslang-master-windows-x64-Release.zip
-  - cmd: cd ..
-  - cmd: "SET PATH=%APPVEYOR_BUILD_FOLDER%\\glslang\\bin;%PATH%"
-  - sh:  wget -O vulkansdk-linux-x86_64-1.2.135.0.tar.gz https://vulkan.lunarg.com/sdk/download/1.2.135.0/linux/vulkansdk-linux-x86_64-1.2.135.0.tar.gz?Human=true
-  - sh:  mkdir VulkanSDK
-  - sh:  tar -xzf vulkansdk-linux-x86_64-1.2.135.0.tar.gz -C ./VulkanSDK
-  - sh:  export VK_SDK_PATH=$APPVEYOR_BUILD_FOLDER/VulkanSDK/1.2.135.0/x86_64
-  - sh: mkdir glslang
-  - sh: cd glslang
-  - sh: curl -fsSL -o glslang-master-linux-Release.zip https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-linux-Release.zip
-  - sh: 7z x glslang-master-linux-Release.zip
-  - sh: cd ..
-  - sh: export PATH="$PATH:$APPVEYOR_BUILD_FOLDER/glslang/bin"
+  - cmd: if "%GENERATOR%" == "MinGW Makefiles"     set Path=C:/Qt/Tools/mingw530_32/bin;%Path%
+  - cmd: if "%GENERATOR%" == "NMake Makefiles JOM" set PATH=C:\Qt\Tools\QtCreator\bin;%PATH%
 
 build_script:
   - cmake --version
-  - gcc   --version
-  - g++   --version
-  - cmd: cmake -H. -Bbuild -G "MinGW Makefiles" -DCMAKE_SH=CMAKE_SH-NOTFOUND -DBUILD_EXTRAS:BOOL=OFF -DBUILD_SHARED_MOLTEN_TEMPEST:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo "-DCMAKE_PREFIX_PATH:STRING=C:\Qt\Tools\mingw530_32\bin" "-DCMAKE_MAKE_PROGRAM:STRING=C:\Qt\Tools\mingw530_32\bin\mingw32-make.exe"
-  - sh:  cmake -H. -Bbuild -DBUILD_EXTRAS:BOOL=OFF -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DBUILD_SHARED_MOLTEN_TEMPEST:BOOL=ON
-  - cmake --build ./build --target all
+  - cmd: if "%GENERATOR%" == "MinGW Makefiles" gcc --version
+  - cmd: if "%GENERATOR%" == "MinGW Makefiles" g++ --version
+
+  - cmd: if NOT "%VCVARSALL%" == "" call "%VCVARSALL%" %PLATFORM%
+  - cmd: cmake -H. -Bbuild -G "%GENERATOR%" -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DCMAKE_SH=CMAKE_SH-NOTFOUND
+  - sh:  cmake -H. -Bbuild                  -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
+  - cmake --build ./build
 
 after_build:
   # generate version string
@@ -79,5 +94,5 @@ deploy:
   prerelease: true
   on:
     branch: master                # release from master branch only
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015 # mingw is default for now
     appveyor_repo_tag: true       # deploy on tag push only
