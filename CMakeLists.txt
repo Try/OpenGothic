@@ -20,7 +20,12 @@ set(CMAKE_RELWITHDEBINFO_POSTFIX "")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_SKIP_RPATH ON)
 
-add_definitions(-D_USE_MATH_DEFINES)
+if(MSVC)
+  add_definitions(-D_USE_MATH_DEFINES)
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+  add_definitions(-D_CRT_NONSTDC_NO_DEPRECATE)
+  add_definitions(-DNOMINMAX)
+endif()
 
 ## submodule dependencies
 
@@ -46,7 +51,7 @@ set(BUILD_BULLET3 OFF CACHE STRING "" FORCE) # Can use bullet2, bullet3 wants to
 add_subdirectory(lib/bullet3)
 
 # MoltenTempest
-set(BUILD_SHARED_LIBS ${BUILD_SHARED_MOLTEN_TEMPEST})
+set(TEMPEST_BUILD_SHARED OFF)
 add_subdirectory(lib/MoltenTempest/Engine)
 
 ## OpenGothic

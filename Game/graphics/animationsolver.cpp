@@ -54,7 +54,9 @@ bool AnimationSolver::hasOverlay(const Skeleton* sk) const {
 void AnimationSolver::addOverlay(const Skeleton* sk,uint64_t time) {
   if(sk==nullptr)
     return;
-  Overlay ov = {sk,time};
+  Overlay ov;
+  ov.skeleton = sk;
+  ov.time     = time;
   overlay.push_back(ov);
   }
 
