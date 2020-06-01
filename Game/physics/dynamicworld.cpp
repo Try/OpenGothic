@@ -578,7 +578,14 @@ DynamicWorld::RayResult DynamicWorld::implWaterRay(float x0, float y0, float z0,
     } else {
     y1 = y0-worldHeight;
     }
-  return RayResult{{x1,y1,z1},{0,1,0},callback.matId,callback.colCat,callback.hasHit()};
+
+  RayResult ret;
+  ret.v      = Tempest::Vec3(x1,y1,z1);
+  ret.n      = Tempest::Vec3(0,1,0);
+  ret.mat    = callback.matId;
+  ret.colCat = callback.colCat;
+  ret.hasCol = callback.hasHit();
+  return ret;
   }
 
 DynamicWorld::RayResult DynamicWorld::ray(float x0, float y0, float z0, float x1, float y1, float z1) const {
@@ -627,8 +634,15 @@ DynamicWorld::RayResult DynamicWorld::ray(float x0, float y0, float z0, float x1
       nz = callback.m_hitNormalWorld.z();
       }
     }
-  return RayResult{{x1,y1,z1},{nx,ny,nz},
-                   callback.matId,callback.colCat,callback.hasHit(),callback.sector};
+
+  RayResult ret;
+  ret.v      = Tempest::Vec3(x1,y1,z1);
+  ret.n      = Tempest::Vec3(nx,ny,nz);
+  ret.mat    = callback.matId;
+  ret.colCat = callback.colCat;
+  ret.hasCol = callback.hasHit();
+  ret.sector = callback.sector;
+  return ret;
   }
 
 float DynamicWorld::soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const {

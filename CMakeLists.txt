@@ -25,6 +25,7 @@ if(MSVC)
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
   add_definitions(-D_CRT_NONSTDC_NO_DEPRECATE)
   add_definitions(-DNOMINMAX)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4800")
 endif()
 
 ## submodule dependencies
@@ -51,7 +52,7 @@ set(BUILD_BULLET3 OFF CACHE STRING "" FORCE) # Can use bullet2, bullet3 wants to
 add_subdirectory(lib/bullet3)
 
 # MoltenTempest
-set(TEMPEST_BUILD_SHARED OFF)
+set(TEMPEST_BUILD_SHARED ON)
 add_subdirectory(lib/MoltenTempest/Engine)
 
 ## OpenGothic
