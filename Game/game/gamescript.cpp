@@ -2963,7 +2963,10 @@ void GameScript::info_addchoice(Daedalus::DaedalusVM &vm) {
   auto info = getInfo(infoInstance);
   if(info==nullptr)
     return;
-  info->addChoice(Daedalus::GEngineClasses::SubChoice{text.c_str(), func});
+  Daedalus::GEngineClasses::SubChoice choise;
+  choise.text        = text;
+  choise.functionSym = func;
+  info->addChoice(choise);
   }
 
 void GameScript::info_clearchoices(Daedalus::DaedalusVM &vm) {
