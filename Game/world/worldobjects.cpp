@@ -20,6 +20,10 @@
 using namespace Tempest;
 using namespace Daedalus::GameState;
 
+WorldObjects::SearchOpt::SearchOpt(float rangeMin, float rangeMax, float azi, TargetCollect collectAlgo, WorldObjects::SearchFlg flags)
+  :rangeMin(rangeMin),rangeMax(rangeMax),azi(azi),collectAlgo(collectAlgo),flags(flags) {
+  }
+
 WorldObjects::WorldObjects(World& owner):owner(owner){
   npcNear.reserve(512);
   }
@@ -718,3 +722,4 @@ E *WorldObjects::validateObj(T &src, E *e) {
     }
   return nullptr;
   }
+
