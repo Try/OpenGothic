@@ -96,3 +96,6 @@ deploy:
     branch: master                # release from master branch only
     APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015 # mingw is default for now
     appveyor_repo_tag: true       # deploy on tag push only
+
+on_finish:
+  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
