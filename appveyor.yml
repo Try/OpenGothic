@@ -3,15 +3,15 @@ configuration:
 
 environment:
   matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015  # used as mingw
-      GENERATOR: "MinGW Makefiles"
-      CC:        C:/Qt/Tools/mingw530_32/bin/gcc.exe
-      CXX:       C:/Qt/Tools/mingw530_32/bin/g++.exe
-
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       GENERATOR: "NMake Makefiles JOM"
       VCVARSALL: "%VS140COMNTOOLS%/../../VC/vcvarsall.bat"
       PLATFORM:  x64
+
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015  # used as mingw
+      GENERATOR: "MinGW Makefiles"
+      CC:        C:/Qt/Tools/mingw530_32/bin/gcc.exe
+      CXX:       C:/Qt/Tools/mingw530_32/bin/g++.exe
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu1804
       GENERATOR: ""
