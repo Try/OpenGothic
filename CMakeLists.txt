@@ -1,17 +1,8 @@
 cmake_minimum_required(VERSION 3.12)
 
 project(Gothic2Notr LANGUAGES C CXX)
-set (CMAKE_CXX_STANDARD 14)
-
-option(BUILD_SHARED_LIBS "Build shared libraries." OFF)
-
-if(POLICY CMP0990)
-  cmake_policy(SET CMP0990 OLD)
-endif()
-
-if(POLICY CMP0015)
-  cmake_policy(SET CMP0015 OLD)
-endif()
+set(CMAKE_CXX_STANDARD 14)
+set(BUILD_SHARED_LIBS OFF)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/opengothic)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/opengothic)
@@ -30,33 +21,29 @@ endif()
 
 ## submodule dependencies
 
+# bullet physics
+set(BULLET2_MULTITHREADING       ON  CACHE INTERNAL "")
+set(USE_MSVC_RUNTIME_LIBRARY_DLL ON  CACHE INTERNAL "")
+set(USE_GRAPHICAL_BENCHMARK      OFF CACHE INTERNAL "")
+set(BUILD_BULLET2_DEMOS          OFF CACHE INTERNAL "") # No samples
+set(BUILD_OPENGL3_DEMOS          OFF CACHE INTERNAL "") # No samples
+set(BUILD_UNIT_TESTS             OFF CACHE INTERNAL "") # No tests
+set(BUILD_CPU_DEMOS              OFF CACHE INTERNAL "") # No samples
+set(BUILD_EXTRAS                 OFF CACHE INTERNAL "") # No bugs
+set(GLFW_BUILD_EXAMPLES          OFF CACHE INTERNAL "")
+set(GLFW_BUILD_TESTS             OFF CACHE INTERNAL "")
+set(GLFW_BUILD_DOCS              OFF CACHE INTERNAL "")
+set(BUILD_BULLET3                OFF CACHE INTERNAL "") # Can use bullet2, bullet3 wants to build examples...
+add_subdirectory(lib/bullet3)
+
 # edd-dbg
 add_subdirectory(lib/edd-dbg)
 
 # ZenLib
 add_subdirectory(lib/ZenLib)
 
-# bullet physics
-set(BULLET2_MULTITHREADING ON)
-set(USE_GRAPHICAL_BENCHMARK OFF CACHE STRING "" FORCE)
-set(USE_MSVC_RUNTIME_LIBRARY_DLL ON)
-set(BUILD_BULLET2_DEMOS OFF CACHE STRING "" FORCE) # No samples
-set(BUILD_OPENGL3_DEMOS OFF CACHE STRING "" FORCE) # No samples
-set(BUILD_UNIT_TESTS OFF CACHE STRING "" FORCE) # No tests
-set(BUILD_CPU_DEMOS OFF CACHE STRING "" FORCE) # No samples
-set(BUILD_EXTRAS OFF CACHE STRING "" FORCE) # No bugs
-set(GLFW_BUILD_EXAMPLES OFF CACHE STRING "" FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE STRING "" FORCE)
-set(GLFW_BUILD_DOCS OFF CACHE STRING "" FORCE)
-set(BUILD_BULLET3 OFF CACHE STRING "" FORCE) # Can use bullet2, bullet3 wants to build examples...
-set(BULLET2_USE_OPEN_MP_MULTITHREADING OFF CACHE STRING "" FORCE)
-set(BULLET2_USE_PPL_MULTITHREADING OFF CACHE STRING "" FORCE)
-set(BULLET2_USE_TBB_MULTITHREADING OFF CACHE STRING "" FORCE)
-
-add_subdirectory(lib/bullet3)
-
 # MoltenTempest
-set(TEMPEST_BUILD_SHARED ON)
+set(TEMPEST_BUILD_SHARED ON  CACHE INTERNAL "")
 add_subdirectory(lib/MoltenTempest/Engine)
 
 ## OpenGothic
