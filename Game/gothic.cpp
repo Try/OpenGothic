@@ -58,6 +58,9 @@ Gothic::Gothic(const int argc, const char **argv){
     else if(std::strcmp(argv[i],"-rambo")==0){
       isRambo=true;
       }
+    else if(std::strcmp(argv[i],"-dx12")==0){
+      graphics = GraphicBackend::DirectX12;
+      }
     else if(std::strcmp(argv[i],"-validation")==0 || std::strcmp(argv[i],"-v")==0){
       isDebug=true;
       }
@@ -101,6 +104,10 @@ Gothic::Gothic(const int argc, const char **argv){
   }
 
 Gothic::~Gothic() {
+  }
+
+Gothic::GraphicBackend Gothic::graphicsApi() const {
+  return graphics;
   }
 
 const VersionInfo& Gothic::version() const {

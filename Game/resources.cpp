@@ -119,6 +119,18 @@ const char* Resources::renderer() {
   return inst->device.renderer();
   }
 
+static Sampler2d implShadowSampler() {
+  Tempest::Sampler2d smp;
+  smp.setClamping(Tempest::ClampMode::ClampToBorder);
+  smp.anisotropic = false;
+  return smp;
+  }
+
+const Sampler2d& Resources::shadowSampler() {
+  static Tempest::Sampler2d smp = implShadowSampler();
+  return smp;
+  }
+
 void Resources::detectVdf(std::vector<Archive>& ret, const std::u16string &root) {
   Dir::scan(root,[this,&root,&ret](const std::u16string& vdf,Dir::FileType t){
     if(t==Dir::FT_File) {
@@ -467,17 +479,6 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(const char* name) {
 bool Resources::hasFile(const std::string &fname) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->gothicAssets.hasFile(fname);
-  }
-
-const Texture2d* Resources::loadDecal(const char* name) {
-  std::lock_guard<std::recursive_mutex> g(inst->sync);
-  if(auto t = inst->implLoadTexture(inst->decalCache,name)){
-    Tempest::Sampler2d smp;
-    smp.setClamping(Tempest::ClampMode::ClampToEdge);
-    t->setSampler(smp);
-    return t;
-    }
-  return nullptr;
   }
 
 const Texture2d *Resources::loadTexture(const char *name) {

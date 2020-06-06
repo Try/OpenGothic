@@ -511,7 +511,7 @@ void PfxObjects::commitUbo(uint8_t frameId, const Texture2d& shadowMap) {
     auto& pf = i.pf[frameId];
     pf.ubo.set(0,uboGlobalPf[frameId],0,1);
     pf.ubo.set(2,*i.owner->visName_S);
-    pf.ubo.set(3,shadowMap);
+    pf.ubo.set(3,shadowMap,Resources::shadowSampler());
     }
   }
 

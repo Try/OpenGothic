@@ -208,6 +208,7 @@ void MeshObjects::commitUbo(uint8_t fId,const Tempest::Texture2d& shadowMap) {
   ubo2.shadowView = shadowView1;
   uboGlobalPf[1].update(ubo2,fId);
 
+
   for(auto& i:chunksSt){
     if(!reallocSt && !i.needToUpdateCommands(fId))
       continue;
@@ -215,7 +216,7 @@ void MeshObjects::commitUbo(uint8_t fId,const Tempest::Texture2d& shadowMap) {
     ubo.set(0,uboGlobalPf[0][fId],0,1);
     ubo.set(1,storageSt[fId],0,1);
     ubo.set(2,i.texture());
-    ubo.set(3,shadowMap);
+    ubo.set(3,shadowMap,Resources::shadowSampler());
     }
   for(auto& i:chunksDn){
     if(!reallocDn && !i.needToUpdateCommands(fId))
@@ -224,7 +225,7 @@ void MeshObjects::commitUbo(uint8_t fId,const Tempest::Texture2d& shadowMap) {
     ubo.set(0,uboGlobalPf[0][fId],0,1);
     ubo.set(1,storageDn[fId],0,1);
     ubo.set(2,i.texture());
-    ubo.set(3,shadowMap);
+    ubo.set(3,shadowMap,Resources::shadowSampler());
     }
 
   for(int layer=0;layer<2;++layer) {
@@ -235,7 +236,7 @@ void MeshObjects::commitUbo(uint8_t fId,const Tempest::Texture2d& shadowMap) {
       ubo.set(0,uboGlobalPf[layer][fId],0,1);
       ubo.set(1,storageSt[fId],0,1);
       ubo.set(2,i.texture());
-      ubo.set(3,Resources::fallbackTexture());
+      ubo.set(3,Resources::fallbackTexture(),Tempest::Sampler2d::nearest());
       }
     for(auto& i:chunksDn){
       if(!reallocDn && !i.needToUpdateCommands(fId))
@@ -243,8 +244,8 @@ void MeshObjects::commitUbo(uint8_t fId,const Tempest::Texture2d& shadowMap) {
       auto& ubo = i.uboShadow(fId,layer);
       ubo.set(0,uboGlobalPf[layer][fId],0,1);
       ubo.set(1,storageDn[fId],0,1);
-      ubo.set(2,i.texture());
-      ubo.set(3,Resources::fallbackTexture());
+      ubo.set(2,i.texture(),Tempest::Sampler2d::nearest());
+      ubo.set(3,Resources::fallbackTexture(),Tempest::Sampler2d::nearest());
       }
     }
   }

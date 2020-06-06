@@ -923,7 +923,7 @@ std::pair<int, int> Inventory::orderId(Item &i) {
   if(mflg&ITM_CAT_MUN)
     return std::make_pair(2,i.clsId());
   if(mflg&ITM_CAT_POTION)
-    return std::make_pair(3,-i.clsId());
+    return std::make_pair(3,-int(i.clsId()));
   if(mflg&ITM_CAT_FOOD)
     return std::make_pair(4,-i.cost());
   if(mflg&ITM_CAT_ARMOR)
@@ -933,7 +933,7 @@ std::pair<int, int> Inventory::orderId(Item &i) {
   if(mflg&ITM_CAT_RUNE)
     return std::make_pair(i.isSpell() ? 8 : 7,-i.cost());
   if(mflg&ITM_CAT_DOCS)
-    return std::make_pair(9,-i.clsId());
+    return std::make_pair(9,-int(i.clsId()));
   if(mflg&ITM_CAT_LIGHT)
     return std::make_pair(10,-i.cost());
   if(mflg&ITM_CAT_NONE)

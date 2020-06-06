@@ -56,16 +56,11 @@ void Renderer::resetSwapchain() {
   zbufferItem    = device.zbuffer   (zBufferFormat,w,h);
   shadowMapFinal = device.attachment(shadowFormat,smSize,smSize);
 
-  Sampler2d smp;
-  smp.setClamping(ClampMode::ClampToBorder);
-  smp.anisotropic = false;
-
   shadowPass = device.pass(FboMode(FboMode::PreserveOut,Color(1.0)), FboMode(FboMode::Discard,1.f));
   for(int i=0;i<2;++i){
     shadowMap[i] = device.attachment(shadowFormat, smSize,smSize);
     shadowZ[i]   = device.zbuffer   (zBufferFormat,smSize,smSize);
     fboShadow[i] = device.frameBuffer(shadowMap[i],shadowZ[i]);
-    textureCast(shadowMap[i]).setSampler(smp);
     }
 
   fboUi.clear();
@@ -80,15 +75,16 @@ void Renderer::resetSwapchain() {
 
   composePass = device.pass(FboMode::PreserveOut);
   fboCompose  = device.frameBuffer(shadowMapFinal);
-  textureCast(shadowMapFinal).setSampler(smp);
 
   if(auto wview=gothic.worldView()) {
     wview->initPipeline(w,h);
     wview->resetCmd();
     }
 
-  uboShadowComp.set(0,shadowMap[0]);
-  uboShadowComp.set(1,shadowMap[1]);
+  Sampler2d smp = Sampler2d::nearest();
+  smp.setClamping(ClampMode::ClampToBorder);
+  uboShadowComp.set(0,shadowMap[0],smp);
+  uboShadowComp.set(1,shadowMap[1],smp);
 
   mainPass      = device.pass(FboMode(FboMode::PreserveOut,Color(0.0)), FboMode(FboMode::Discard,1.f));
   uiPass        = device.pass(FboMode::Preserve);

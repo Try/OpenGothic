@@ -114,22 +114,22 @@ void Landscape::commitUbo(uint8_t frameId, const Tempest::Texture2d& shadowMap) 
 
     uboL.set(0,pf.uboGpu[0],0,1);
     uboL.set(2,*lnd.material.tex);
-    uboL.set(3,shadowMap);
+    uboL.set(3,shadowMap,Resources::shadowSampler());
 
     uboS0.set(0,pf.uboGpu[0],0,1);
     uboS0.set(2,*lnd.material.tex);
-    uboS0.set(3,Resources::fallbackTexture());
+    uboS0.set(3,Resources::fallbackTexture(),Sampler2d::nearest());
 
     uboS1.set(0,pf.uboGpu[1],0,1);
     uboS1.set(2,*lnd.material.tex);
-    uboS1.set(3,Resources::fallbackTexture());
+    uboS1.set(3,Resources::fallbackTexture(),Sampler2d::nearest());
 
     for(int r=0;r<2;++r) {
       if(pf.solidSh[r].isEmpty())
         pf.solidSh[r] = storage.device.uniforms(storage.uboLndLayout());
       pf.solidSh[r].set(0,pf.uboGpu[r],0,1);
       pf.solidSh[r].set(2,Resources::fallbackBlack());
-      pf.solidSh[r].set(3,Resources::fallbackTexture());
+      pf.solidSh[r].set(3,Resources::fallbackTexture(),Sampler2d::nearest());
       }
     }
   }
