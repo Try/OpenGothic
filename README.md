@@ -17,13 +17,8 @@ Core gameplay is done, you can complete first chapter, as well as all addon cont
 3. run '/OpenGothic/bin/Gothic2Notr.exe -g "C:\Program Files (x86)\Path\To\Gothic II"'
 
 ##### Build it for Linux
-1. Install dependencies:
-
-* for Ubuntu:
-`sudo apt install cmake g++ doxygen glslang-tools libgl-dev`
-
-* for openSUSE:
-`sudo zypper in git cmake gcc-c++ glslang-devel doxygen Mesa-devel`
+1. Install dependencies for Ubuntu 20.04:
+`sudo apt install git cmake g++ glslang-tools libvulkan-dev libasound2-dev libx11-dev`
 
 2. Clone this repo, including submodules:
 
