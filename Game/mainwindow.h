@@ -58,6 +58,7 @@ class MainWindow : public Tempest::Window {
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
 
     void keyDownEvent   (Tempest::KeyEvent&   event) override;
+    void keyRepeatEvent (Tempest::KeyEvent&   event) override;
     void keyUpEvent     (Tempest::KeyEvent&   event) override;
 
     void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, float v, Tempest::AlignFlag flg);   

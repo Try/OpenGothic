@@ -170,12 +170,7 @@ void InventoryMenu::tick(uint64_t /*dt*/) {
     }
   }
 
-void InventoryMenu::keyDownEvent(KeyEvent &e) {
-  if(state==State::Closed){
-    e.ignore();
-    return;
-    }
-
+void InventoryMenu::processMove(KeyEvent& e) {
   auto&        pg     = activePage();
   auto&        sel    = activePageSel();
   const size_t pCount = pagesCount();
@@ -204,7 +199,17 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     else if(sel.sel+1<pg.size())
       sel.sel++;
     }
-  else if(e.key==KeyEvent::K_Z) {
+  }
+
+void InventoryMenu::keyDownEvent(KeyEvent &e) {
+  if(state==State::Closed){
+    e.ignore();
+    return;
+    }
+
+  processMove(e);
+
+  if(e.key==KeyEvent::K_Z) {
     lootMode = LootMode::Ten;
     takeTimer.start(200);
     onTakeStuff();
@@ -219,6 +224,12 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     takeTimer.start(200);
     onTakeStuff();
     }
+  adjustScroll();
+  update();
+  }
+
+void InventoryMenu::keyRepeatEvent(KeyEvent& e) {
+  processMove(e);
   adjustScroll();
   update();
   }

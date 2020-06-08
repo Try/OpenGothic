@@ -292,6 +292,29 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
     }
   }
 
+void MainWindow::keyRepeatEvent(KeyEvent& event) {
+  if(uiKeyUp==&chapter){
+    //chapter.keyRepeatEvent(event);
+    if(event.isAccepted())
+      return;
+    }
+  if(uiKeyUp==&document){
+    //document.keyRepeatEvent(event);
+    if(event.isAccepted())
+      return;
+    }
+  if(uiKeyUp==&dialogs){
+    //dialogs.keyRepeatEvent(event);
+    if(event.isAccepted())
+      return;
+    }
+  if(uiKeyUp==&inventory){
+    inventory.keyRepeatEvent(event);
+    if(event.isAccepted())
+      return;
+    }
+  }
+
 void MainWindow::keyUpEvent(KeyEvent &event) {
   if(uiKeyUp==&chapter){
     chapter.keyUpEvent(event);

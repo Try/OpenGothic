@@ -49,6 +49,7 @@ class InventoryMenu : public Tempest::Widget {
     void  paintNumOverlay(Tempest::PaintEvent& e);
 
     void  keyDownEvent  (Tempest::KeyEvent&   e) override;
+    void  keyRepeatEvent(Tempest::KeyEvent&   e) override;
     void  keyUpEvent    (Tempest::KeyEvent&   e) override;
 
   protected:
@@ -106,6 +107,8 @@ class InventoryMenu : public Tempest::Widget {
     const Page&               activePage();
     PageLocal&                activePageSel();
     const World*              world() const;
+
+    void          processMove(Tempest::KeyEvent& e);
 
     void          onTakeStuff();
     void          adjustScroll();
