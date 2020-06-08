@@ -174,8 +174,8 @@ PfxObjects::Emitter World::getView(const ParticleFx *decl) const {
   return view()->getView(decl);
   }
 
-PfxObjects::Emitter World::getView(const Texture2d* spr, bool align, bool zbias) const {
-  return view()->getView(spr,align,zbias);
+PfxObjects::Emitter World::getView(const Texture2d* spr, const ZenLoad::zCVobData& vob) const {
+  return view()->getView(spr,vob);
   }
 
 MeshObjects::Mesh World::getAtachView(const ProtoMesh::Attach& visual) {
@@ -194,8 +194,8 @@ MeshObjects::Mesh World::getStaticView(const char* visual) const {
   return view()->getStaticView(visual);
   }
 
-MeshObjects::Mesh World::getDecalView(const char* visual, float x, float y, float z, ProtoMesh& out) const {
-  return view()->getDecalView(visual,x,y,z,out);
+MeshObjects::Mesh World::getDecalView(const ZenLoad::zCVobData& vob, const Tempest::Matrix4x4& obj, ProtoMesh& out) const {
+  return view()->getDecalView(vob,obj,out);
   }
 
 DynamicWorld::Item World::getPhysic(const char* visual) {

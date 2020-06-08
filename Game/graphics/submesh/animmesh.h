@@ -21,4 +21,5 @@ class AnimMesh {
 
     Tempest::VertexBuffer<VertexA> vbo;
     std::vector<SubMesh>           sub;
+    Bounds                         bbox;
   };

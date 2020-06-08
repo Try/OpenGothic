@@ -2,6 +2,7 @@
 
 #include <daedalus/DaedalusStdlib.h>
 #include <Tempest/RenderState>
+#include <zenload/zTypes.h>
 
 #include <Tempest/Texture2d>
 
@@ -9,7 +10,7 @@ class PfxEmitterMesh;
 
 class ParticleFx final {
   public:
-    ParticleFx(const Tempest::Texture2d* decl, bool align, bool zbias);
+    ParticleFx(const Tempest::Texture2d* spr, const ZenLoad::zCVobData& vob);
     ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX & src, const char* name);
 
     enum class EmitterType:uint8_t {
@@ -37,10 +38,6 @@ class ParticleFx final {
       Dir,
       Uniform,
       Walk
-      };
-
-    enum class TargetFor:uint8_t {
-      Object
       };
 
     enum class Orientation:uint8_t {
@@ -84,7 +81,7 @@ class ParticleFx final {
 
     Dir           dirMode             = Dir::Rand;
     Frame         dirFOR              = Frame::Object;
-    TargetFor     dirModeTargetFOR    = TargetFor::Object;
+    Frame         dirModeTargetFOR    = Frame::Object;
     Tempest::Vec3 dirModeTargetPos;
     float         dirAngleHead        = 0.f;
     float         dirAngleHeadVar     = 0.f;
@@ -142,7 +139,6 @@ class ParticleFx final {
     static Tempest::Vec3 loadVec3(const Daedalus::ZString& src);
     static KeyList       loadArr(const Daedalus::ZString& src);
     static EmitterType   loadEmitType(const Daedalus::ZString& src);
-    static TargetFor     loadTargetType(const Daedalus::ZString& src);
     static Frame         loadFrameType(const Daedalus::ZString& src);
     static Distribution  loadDistribType(const Daedalus::ZString& src);
     static Dir           loadDirType(const Daedalus::ZString& src);

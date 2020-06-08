@@ -4,20 +4,24 @@
 
 using namespace Tempest;
 
-ParticleFx::ParticleFx(const Texture2d* decl, bool align, bool zbias) {
+ParticleFx::ParticleFx(const Texture2d* spr, const ZenLoad::zCVobData& vob) {
   ppsValue         = -1;
   lspPartAvg       = 1000;
   dirMode          = ParticleFx::Dir::Dir;
-  visName_S        = decl;
+  visName_S        = spr;
   visAlphaFunc     = ParticleFx::AlphaFunc::Add;
   visTexColorStart = Vec3(255,255,255);
   visTexColorEnd   = Vec3(255,255,255);
-  visSizeStart     = Vec2(100,100);
+  visSizeStart     = Vec2(2.f*vob.visualChunk.zCDecal.decalDim.x,
+                          2.f*vob.visualChunk.zCDecal.decalDim.y);
+  visOrientation   = Orientation::Velocity;
+  dirFOR           = Frame::World;
+  dirAngleElev     = 90;
   visSizeEndScale  = 1;
   visAlphaStart    = 1;
   visAlphaEnd      = 1;
-  visYawAlign      = align;
-  visZBias         = zbias;
+  visYawAlign      = vob.visualCamAlign==1;
+  visZBias         = vob.zBias!=0;
   }
 
 ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const char* name)
@@ -46,7 +50,7 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
 
   dirMode             = loadDirType(src.dirMode_S);
   dirFOR              = loadFrameType(src.dirFOR_S);
-  dirModeTargetFOR    = loadTargetType(src.dirModeTargetFOR_S);
+  dirModeTargetFOR    = loadFrameType(src.dirModeTargetFOR_S);
   dirModeTargetPos    = loadVec3(src.dirModeTargetPos_S);
   dirAngleHead        = src.dirAngleHead;
   dirAngleHeadVar     = src.dirAngleHeadVar;
@@ -201,12 +205,6 @@ ParticleFx::EmitterType ParticleFx::loadEmitType(const Daedalus::ZString& src) {
   if(src=="MESH")
     return EmitterType::Mesh;
   return EmitterType::Point;
-  }
-
-ParticleFx::TargetFor ParticleFx::loadTargetType(const Daedalus::ZString& src) {
-  if(src=="OBJECT")
-    return TargetFor::Object;
-  return TargetFor::Object;
   }
 
 ParticleFx::Frame ParticleFx::loadFrameType(const Daedalus::ZString& src) {

@@ -35,7 +35,6 @@ void Mixer::setMusic(const Music& m,DMUS_EMBELLISHT_TYPES e) {
     return;
 
   nextMus = m.impl;
-  patEnd  = sampleCursor;
   embellishment.store(e);
   //current = m.impl;
   //grooveCounter.store(0);
@@ -285,7 +284,7 @@ void Mixer::mix(int16_t *out, size_t samples) {
     out          += stp.samples*2;
     samplesRemain-= size_t(stp.samples);
 
-    if(sampleCursor==patEnd) {
+    if(sampleCursor==patEnd || nextMus!=nullptr) {
       nextPattern();
       }
     }

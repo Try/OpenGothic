@@ -16,6 +16,7 @@ class World;
 class RendererStorage;
 class ParticleFx;
 class PackedMesh;
+class Painter3d;
 
 class WorldView {
   public:
@@ -34,17 +35,17 @@ class WorldView {
                     const Tempest::Attachment& main, const Tempest::Attachment& shadow,
                     const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay);
     void updateUbo (uint8_t frameId, const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4* shadow, size_t shCount);
-    void drawShadow(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, uint8_t frameId, uint8_t layer);
-    void drawMain  (Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, uint8_t frameId);
+    void drawShadow(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t frameId, uint8_t layer);
+    void drawMain  (Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
     void resetCmd  ();
 
     MeshObjects::Mesh   getView      (const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
     MeshObjects::Mesh   getItmView   (const char* visual, int32_t material);
     MeshObjects::Mesh   getAtachView (const ProtoMesh::Attach& visual);
     MeshObjects::Mesh   getStaticView(const char* visual);
-    MeshObjects::Mesh   getDecalView (const char* visual, float x, float y, float z, ProtoMesh& out);
+    MeshObjects::Mesh   getDecalView (const ZenLoad::zCVobData& vob, const Tempest::Matrix4x4& obj, ProtoMesh& out);
     PfxObjects::Emitter getView      (const ParticleFx* decl);
-    PfxObjects::Emitter getView      (const Tempest::Texture2d* spr, bool align, bool zbias);
+    PfxObjects::Emitter getView      (const Tempest::Texture2d* spr, const ZenLoad::zCVobData& vob);
 
   private:
     const World&            owner;
@@ -70,12 +71,10 @@ class WorldView {
 
     struct PerFrame {
       Tempest::CommandBuffer cmdMain;
-      Tempest::CommandBuffer cmdMainDyn;
       Tempest::CommandBuffer cmdShadow[2];
-      Tempest::CommandBuffer cmdShadowDyn[2];
       bool                   actual     =true;
       };
-    std::unique_ptr<PerFrame[]> frame;
+    PerFrame                 frame[Resources::MaxFramesInFlight];
 
     bool needToUpdateCmd(uint8_t frameId) const;
     void invalidateCmd();

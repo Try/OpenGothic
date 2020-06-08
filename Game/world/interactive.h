@@ -47,6 +47,7 @@ class Interactive final {
     int32_t             stateId() const { return state; }
     void                emitTriggerEvent() const;
     const char*         schemeName() const;
+    const char*         posSchemeName() const;
 
     bool                isContainer() const;
     Inventory&          inventory();

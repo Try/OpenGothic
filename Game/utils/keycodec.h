@@ -29,6 +29,7 @@ class KeyCodec final {
 
       ActionGeneric,
       Walk,
+      Sneak,
 
       Weapon,
       WeaponMele,
@@ -54,10 +55,12 @@ class KeyCodec final {
 
   private:
     struct K_Key {
+      K_Key(Tempest::Event::KeyType k, int32_t code):k(k),code(code){}
       Tempest::Event::KeyType k=Tempest::Event::K_NoKey;
       int32_t                 code=0;
       };
     struct M_Key {
+      M_Key(Tempest::Event::MouseButton k, int32_t code):k(k),code(code){}
       Tempest::Event::MouseButton k=Tempest::Event::ButtonNone;
       int32_t                     code=0;
       };

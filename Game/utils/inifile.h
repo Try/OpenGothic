@@ -10,6 +10,7 @@ class IniFile final {
 
     void flush();
 
+    bool               has (const char* sec);
     bool               has (const char* sec,const char* name);
     int                getI(const char* sec,const char* name);
     void               set (const char* sec,const char* name,int ival);

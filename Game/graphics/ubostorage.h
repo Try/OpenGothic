@@ -6,13 +6,14 @@
 
 #include <cassert>
 
+#include "resources.h"
+
 template<class Ubo>
 class UboStorage {
   public:
-    UboStorage(Tempest::Device &device);
+    UboStorage();
 
     bool                     commitUbo(Tempest::Device &device, uint8_t imgId);
-    void                     updateUbo(uint8_t imgId);
     size_t                   alloc();
     void                     free(const size_t objId);
     bool                     needToRealloc(uint32_t imgId) const;
@@ -30,17 +31,13 @@ class UboStorage {
       std::atomic_bool            uboChanged{false};  // invalidate ubo array
       };
 
-    std::unique_ptr<PerFrame[]> pf;
-    size_t                      pfSize=0;
-
+    PerFrame                    pf[Resources::MaxFramesInFlight];
     std::vector<Ubo>            obj;
     std::vector<size_t>         freeList;
   };
 
 template<class Ubo>
-UboStorage<Ubo>::UboStorage(Tempest::Device &device)
-  :pfSize(device.maxFramesInFlight()) {
-  pf.reset(new PerFrame[pfSize]);
+UboStorage<Ubo>::UboStorage() {
   }
 
 template<class Ubo>
@@ -69,28 +66,21 @@ bool UboStorage<Ubo>::needToRealloc(uint32_t imgId) const {
 
 template<class Ubo>
 void UboStorage<Ubo>::markAsChanged() {
-  for(uint32_t i=0;i<pfSize;++i)
-    pf[i].uboChanged=true;
+  for(auto& i:pf)
+    i.uboChanged=true;
   }
 
 template<class Ubo>
 bool UboStorage<Ubo>::commitUbo(Tempest::Device& device,uint8_t imgId) {
   auto&        frame   = pf[imgId];
   const bool   realloc = frame.uboData.size()!=obj.size();
+  if(!frame.uboChanged)
+    return false;
   if(realloc)
     frame.uboData = device.ubo<Ubo>(obj.data(),obj.size()); else
     frame.uboData.update(obj.data(),0,obj.size());
+  frame.uboChanged = false;
   return realloc;
-  }
-
-template<class Ubo>
-void UboStorage<Ubo>::updateUbo(uint8_t imgId) {
-  auto& frame=pf[imgId];
-  assert(obj.size()==frame.uboData.size());
-  if(frame.uboChanged) {
-    frame.uboData.update(obj.data(),0,obj.size());
-    frame.uboChanged = false;
-    }
   }
 
 template<class Ubo>

@@ -1,15 +1,18 @@
-#include <Tempest/VulkanApi>
 
 #include <Tempest/Window>
 #include <Tempest/Application>
 
-#include <vector>
+#include <Tempest/VulkanApi>
+
+#if defined(_MSC_VER)
+#include <Tempest/DirectX12Api>
+#endif
 
 #include "utils/crashlog.h"
 #include "gothic.h"
 #include "mainwindow.h"
 
-const char* selectDevice(const Tempest::VulkanApi& api) {
+const char* selectDevice(const Tempest::AbstractGraphicsApi& api) {
   auto d = api.devices();
 
   static Tempest::Device::Props p;
@@ -30,6 +33,21 @@ const char* selectDevice(const Tempest::VulkanApi& api) {
   return nullptr;
   }
 
+std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(Gothic& g) {
+  Tempest::ApiFlags flg = g.isDebugMode() ? Tempest::ApiFlags::Validation : Tempest::ApiFlags::NoFlags;
+  switch(g.graphicsApi()) {
+    case Gothic::DirectX12:
+#if defined(_MSC_VER)
+      return std::make_unique<Tempest::DirectX12Api>(flg);
+#else
+      break;
+#endif
+    case Gothic::Vulkan:
+      return std::make_unique<Tempest::VulkanApi>(flg);
+    }
+  return std::make_unique<Tempest::VulkanApi>(flg);
+  }
+
 int main(int argc,const char** argv) {
   CrashLog::setup();
 #if defined(__WINDOWS__)
@@ -38,9 +56,9 @@ int main(int argc,const char** argv) {
   VDFS::FileIndex::initVDFS(argv[0]);
 
   Gothic               gothic{argc,argv};
-  Tempest::VulkanApi   api   {gothic.isDebugMode() ? Tempest::ApiFlags::Validation : Tempest::ApiFlags::NoFlags};
+  auto                 api = mkApi(gothic);
 
-  Tempest::Device      device{api,selectDevice(api)};
+  Tempest::Device      device{*api,selectDevice(*api),Resources::MaxFramesInFlight};
   Resources            resources{gothic,device};
 
   MainWindow           wx(gothic,device);

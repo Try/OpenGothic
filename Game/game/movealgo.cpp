@@ -654,8 +654,10 @@ void MoveAlgo::setInWater(bool f) {
 
 void MoveAlgo::setAsSwim(bool f) {
   if(f) {
+    auto ws = npc.weaponState();
     npc.setAnim(Npc::Anim::NoAnim);
-    npc.closeWeapon(true);
+    if(ws!=WeaponState::NoWeapon && ws!=WeaponState::Fist)
+      npc.closeWeapon(true);
     }
 
   if(f)

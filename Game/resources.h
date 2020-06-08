@@ -45,6 +45,10 @@ class Resources final {
       Red
       };
 
+    enum {
+      MaxFramesInFlight = 2
+      };
+
     static const size_t MAX_NUM_SKELETAL_NODES = 96;
 
     struct Vertex {
@@ -69,6 +73,8 @@ class Resources final {
 
     static const char* renderer();
 
+    static const Tempest::Sampler2d& shadowSampler();
+
     static const GthFont& dialogFont();
     static const GthFont& font();
     static const GthFont& font(FontType type);
@@ -76,7 +82,6 @@ class Resources final {
 
     static const Tempest::Texture2d& fallbackTexture();
     static const Tempest::Texture2d& fallbackBlack();
-    static const Tempest::Texture2d* loadDecal(const char* name);
     static const Tempest::Texture2d* loadTexture(const char* name);
     static const Tempest::Texture2d* loadTexture(const std::string& name);
     static const Tempest::Texture2d* loadTexture(const std::string& name,int32_t v,int32_t c);
@@ -174,7 +179,6 @@ class Resources final {
     Tempest::VertexBuffer<VertexFsq>         fsq;
 
     TextureCache                                                          texCache;
-    TextureCache                                                          decalCache;
 
     std::unordered_map<std::string,std::unique_ptr<ProtoMesh>>            aniMeshCache;
     std::unordered_map<std::string,std::unique_ptr<Skeleton>>             skeletonCache;

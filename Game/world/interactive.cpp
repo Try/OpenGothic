@@ -1,4 +1,5 @@
 #include "interactive.h"
+
 #include "npc.h"
 #include "world.h"
 #include "utils/fileext.h"
@@ -204,6 +205,8 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     if(state==stateNum) {
       //HACK: some beds in game are VT_oCMobDoor
       if(canQuitAtLastState()) {
+        if(!loopState)
+          invokeStateFunc(*npc);
         implQuitInteract(p);
         return;
         }
@@ -335,6 +338,14 @@ const char* Interactive::schemeName() const {
     return mesh->scheme.c_str();
   Tempest::Log::i("unable to recognize mobsi{",focName,", ",mdlVisual,"}");
   return "";
+  }
+
+const char* Interactive::posSchemeName() const {
+  for(auto& i:attPos)
+    if(i.user!=nullptr) {
+      return i.posTag();
+      }
+  return nullptr;
   }
 
 bool Interactive::isContainer() const {

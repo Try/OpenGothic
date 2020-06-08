@@ -7,10 +7,10 @@
 
 using namespace Daedalus::GEngineClasses;
 
-DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const Bullet* b) {
+DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const Bullet* b, const CollideMask bMsk) {
   DamageCalculator::Val ret;
   if(b!=nullptr)
-    ret = bowDamage(src,other,*b); else
+    ret = rangeDamage(src,other,*b,bMsk); else
     ret = swordDamage(src,other);
 
   if(ret.hasHit && !ret.invinsible)
@@ -22,7 +22,7 @@ DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const 
   return ret;
   }
 
-DamageCalculator::Val DamageCalculator::bowDamage(Npc& nsrc, Npc& nother, const Bullet& b) {
+DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, const Bullet& b, const CollideMask bMsk) {
   C_Npc& other = *nother.handle();
 
   const float maxRange = 3500; // from Focus_Ranged
@@ -33,8 +33,21 @@ DamageCalculator::Val DamageCalculator::bowDamage(Npc& nsrc, Npc& nother, const 
   if(invinsible)
     return Val(0,true,true);
 
+  if((bMsk & (COLL_APPLYDAMAGE | COLL_APPLYDOUBLEDAMAGE | COLL_APPLYHALVEDAMAGE | COLL_DOEVERYTHING))==0) {
+    return Val(0,true,true);
+    }
+
+  auto dmg = b.damage();
+  if(bMsk & COLL_APPLYDOUBLEDAMAGE) {
+    for(auto& i:dmg)
+      i*=2;
+    }
+  if(bMsk & COLL_APPLYHALVEDAMAGE) {
+    for(auto& i:dmg)
+      i/=2;
+    }
+
   int  value = 0;
-  auto dmg   = b.damage();
   for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i) {
     if(dmg[size_t(i)]==0)
       continue;

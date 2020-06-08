@@ -2,6 +2,7 @@
 
 #include "rendererstorage.h"
 #include "world/item.h"
+#include "objectsbucket.h"
 #include "light.h"
 
 #include <Tempest/Application>
@@ -32,7 +33,6 @@ void InventoryRenderer::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint
   Tempest::Matrix4x4 shMv[2];
   itmGroup.setModelView(mv,shMv,2);
   itmGroup.commitUbo(frameId,Resources::fallbackTexture());
-  itmGroup.updateUbo(frameId);
 
   for(auto& i:items){
     cmd.setViewport(i.x,i.y,i.w,i.h);

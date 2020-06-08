@@ -79,7 +79,7 @@ void PhysicVbo::addIndex(std::vector<uint32_t>&& index, uint8_t material, const 
 
 void PhysicVbo::addSegment(size_t indexSize, size_t offset, uint8_t material, const char* sector) {
   btIndexedMesh meshIndex={};
-  meshIndex.m_numTriangles = indexSize/3;
+  meshIndex.m_numTriangles = int(indexSize/3);
   meshIndex.m_numVertices  = int32_t(vert.size());
 
   meshIndex.m_indexType           = PHY_INTEGER;
@@ -90,7 +90,13 @@ void PhysicVbo::addSegment(size_t indexSize, size_t offset, uint8_t material, co
   meshIndex.m_vertexStride        = sizeof(btVector3);
 
   m_indexedMeshes.push_back(meshIndex);
-  segments.push_back(Segment{offset,int(indexSize/3),material,sector});
+
+  Segment sgm;
+  sgm.off    = offset;
+  sgm.size   = int(indexSize/3);
+  sgm.mat    = material;
+  sgm.sector = sector;
+  segments.push_back(sgm);
   }
 
 uint8_t PhysicVbo::getMaterialId(size_t segment) const {

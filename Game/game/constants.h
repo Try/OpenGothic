@@ -187,6 +187,16 @@ enum ItemMaterial : uint8_t {
   MAT_GLAS    = 5
   };
 
+enum CollideMask : uint32_t {
+  COLL_DONOTHING         = 0,
+  COLL_DOEVERYTHING      = 1,
+  COLL_APPLYDAMAGE       = 2,
+  COLL_APPLYHALVEDAMAGE  = 4,
+  COLL_APPLYDOUBLEDAMAGE = 8,
+  COLL_APPLYVICTIMSTATE  = 16,
+  COLL_DONTKILL          = 32,
+  };
+
 enum SpellCategory:int32_t {
   SPELL_GOOD   =0,
   SPELL_NEUTRAL=1,

@@ -4,6 +4,8 @@
 #include <Tempest/IndexBuffer>
 #include <Tempest/Device>
 
+#include "graphics/bounds.h"
+
 #include "resources.h"
 
 class StaticMesh {
@@ -23,4 +25,5 @@ class StaticMesh {
 
     Tempest::VertexBuffer<Vertex>  vbo;
     std::vector<SubMesh>           sub;
+    Bounds                         bbox;
   };

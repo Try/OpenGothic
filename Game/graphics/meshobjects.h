@@ -10,14 +10,18 @@
 
 #include "graphics/submesh/staticmesh.h"
 #include "graphics/submesh/animmesh.h"
+#include "abstractobjectsbucket.h"
 #include "protomesh.h"
-#include "objectsbucket.h"
 #include "ubochain.h"
 #include "ubostorage.h"
 
 class RendererStorage;
 class Pose;
 class Light;
+class Painter3d;
+
+template<class Ubo,class Vertex>
+class ObjectsBucket;
 
 class MeshObjects final {
   private:
@@ -25,6 +29,7 @@ class MeshObjects final {
 
   public:
     MeshObjects(const RendererStorage& storage);
+    ~MeshObjects();
 
     class Mesh;
     class Node;
@@ -78,15 +83,17 @@ class MeshObjects final {
     Mesh get(const StaticMesh& mesh,int32_t headTexVar,int32_t teethTex,int32_t bodyColor);
     Mesh get(const ProtoMesh&  mesh,int32_t headTexVar,int32_t teethTex,int32_t bodyColor);
 
-    void updateUbo(uint8_t fId);
     void commitUbo(uint8_t fId, const Tempest::Texture2d& shadowMap);
 
     void reserve(size_t stat,size_t dyn);
 
-    void draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId);
-    void drawDecals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId);
-    void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId, int layer=0);
+    //void draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId);
+    //void drawDecals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId);
+    //void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId, int layer=0);
+    void draw      (Painter3d& painter, uint32_t fId);
+    void drawShadow(Painter3d& painter, uint32_t fId, int layer=0);
 
+    void invalidateCmd();
     bool needToUpdateCommands(uint8_t imgId) const;
     void setAsUpdated(uint8_t imgId);
 

@@ -19,6 +19,7 @@ class Sky final {
 
     void setWorld(const World &world);
 
+    void invalidateCmd();
     bool needToUpdateCommands(uint8_t frameId) const;
     void setAsUpdated        (uint8_t frameId);
 

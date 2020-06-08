@@ -49,7 +49,10 @@ void WayPoint::connect(WayPoint &w) {
   int32_t l = int32_t(std::sqrt(qDistTo(w.x,w.y,w.z)));
   if(l<=0)
     return;
-  conn.push_back({&w,l});
+  Conn c;
+  c.point = &w;
+  c.len   = l;
+  conn.push_back(c);
   }
 
 std::string WayPoint::upcaseof(const std::string &src) {

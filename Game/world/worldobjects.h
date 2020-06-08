@@ -33,6 +33,8 @@ class WorldObjects final {
       };
 
     struct SearchOpt final {
+      SearchOpt()=default;
+      SearchOpt(float rangeMin, float rangeMax, float azi, TargetCollect collectAlgo=TARGET_COLLECT_CASTER, SearchFlg flags=NoFlg);
       float         rangeMin    = 0;
       float         rangeMax    = 0;
       float         azi         = 0;

@@ -9,6 +9,7 @@
 #include <Tempest/UniformBuffer>
 #include <Tempest/VectorImage>
 
+#include "graphics/dynamic/painter3d.h"
 #include "worldview.h"
 #include "rendererstorage.h"
 
@@ -39,10 +40,12 @@ class Renderer final {
     Tempest::Matrix4x4                view;
     Tempest::Matrix4x4                shadow[2];
 
-    Tempest::Attachment               zbuffer, zbufferItem;
-    Tempest::Attachment               shadowMap[2], shadowZ[2], shadowMapFinal;
+    Tempest::Attachment               shadowMap[2], shadowMapFinal;
+    Tempest::ZBuffer                  zbuffer, zbufferItem, shadowZ[2];
+
     Tempest::TextureFormat            shadowFormat =Tempest::TextureFormat::RGBA8;
     Tempest::TextureFormat            zBufferFormat=Tempest::TextureFormat::Depth16;
+
     std::vector<Tempest::FrameBuffer> fbo3d, fboUi, fboItem;
     Tempest::FrameBuffer              fboShadow[2], fboCompose;
 
@@ -52,6 +55,7 @@ class Renderer final {
 
     Tempest::Uniforms                 uboShadowComp;
     RendererStorage                   stor;
+    Painter3d                         painter;
 
     void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Tempest::FrameBuffer& fbo, const Gothic& gothic, uint8_t frameId);
     void draw(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Tempest::FrameBuffer& fbo, InventoryMenu& inv);

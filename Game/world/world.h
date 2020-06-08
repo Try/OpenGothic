@@ -89,12 +89,12 @@ class World final {
     MeshObjects::Mesh   getView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
     MeshObjects::Mesh   getView(const char*              visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
     PfxObjects::Emitter getView(const ParticleFx* decl) const;
-    PfxObjects::Emitter getView(const Tempest::Texture2d* spr, bool align, bool zbias) const;
+    PfxObjects::Emitter getView(const Tempest::Texture2d* spr, const ZenLoad::zCVobData& vob) const;
     MeshObjects::Mesh   getAtachView (const ProtoMesh::Attach& visual);
     MeshObjects::Mesh   getItmView   (const Daedalus::ZString& visual, int32_t tex) const;
     MeshObjects::Mesh   getItmView   (const char*              visual, int32_t tex) const;
     MeshObjects::Mesh   getStaticView(const char* visual) const;
-    MeshObjects::Mesh   getDecalView (const char* visual, float x, float y, float z, ProtoMesh& out) const;
+    MeshObjects::Mesh   getDecalView (const ZenLoad::zCVobData& vob, const Tempest::Matrix4x4& obj, ProtoMesh& out) const;
     DynamicWorld::Item  getPhysic    (const char* visual);
 
     const VisualFx*      loadVisualFx(const char* name);

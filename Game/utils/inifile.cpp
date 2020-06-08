@@ -50,7 +50,14 @@ void IniFile::flush() {
     }
   catch (...) {
     Log::e("unable to read .ini file");
+    }
   }
+
+bool IniFile::has(const char* secName) {
+  for(auto& i:sec)
+    if(i.name==secName)
+      return true;
+  return false;
   }
 
 bool IniFile::has(const char *s, const char *name) {

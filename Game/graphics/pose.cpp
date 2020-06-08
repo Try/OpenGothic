@@ -1,5 +1,7 @@
 #include "pose.h"
 
+#include <Tempest/Log>
+
 #include "skeleton.h"
 #include "game/serialize.h"
 #include "world/npc.h"
@@ -497,10 +499,8 @@ uint32_t Pose::comboLength() const {
   }
 
 Matrix4x4 Pose::cameraBone() const {
-  size_t id=4;
-  if(skeleton!=nullptr && skeleton->rootNodes.size())
-    id = skeleton->rootNodes[0];
-  return id<tr.size() ? tr[id] : Matrix4x4();
+  size_t id=skeleton->findNode("BIP01 HEAD");
+  return id<skeleton->tr.size() ? skeleton->tr[id] : Matrix4x4();
   }
 
 const Tempest::Matrix4x4& Pose::bone(size_t id) const {

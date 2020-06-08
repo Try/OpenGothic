@@ -5,6 +5,7 @@
 #include "world/world.h"
 #include "rendererstorage.h"
 #include "graphics/submesh/packedmesh.h"
+#include "graphics/dynamic/painter3d.h"
 
 using namespace Tempest;
 
@@ -18,9 +19,6 @@ WorldView::WorldView(const World &world, const PackedMesh &wmesh, const Renderer
   pfxGroup.resetTicks();
 
   sun.setDir(1,-1,1);
-
-  const size_t count = storage.device.maxFramesInFlight();
-  frame.reset(new PerFrame[count]);
   }
 
 WorldView::~WorldView() {
@@ -59,17 +57,32 @@ void WorldView::setupSunDir(float pulse,float ang) {
   sun.setDir(std::cos(a),std::min(0.9f,-1.0f*pulse),std::sin(a));
   }
 
-void WorldView::drawShadow(Encoder<PrimaryCommandBuffer> &cmd, uint8_t fId, uint8_t layer) {
+void WorldView::drawShadow(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId, uint8_t layer) {
   if(!frame[fId].actual)
     return;
-  cmd.exec(frame[fId].cmdShadowDyn[layer]);
   cmd.exec(frame[fId].cmdShadow   [layer]);
+
+  land    .drawShadow(painter,fId,layer);
+  vobGroup.drawShadow(painter,fId,layer);
+  objGroup.drawShadow(painter,fId,layer);
+  if(layer==0) {
+    itmGroup.drawShadow(painter,fId,layer);
+    decGroup.drawShadow(painter,fId,layer);
+    }
+  painter.commit(cmd);
   }
 
-void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd, uint8_t fId) {
+void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId) {
   if(!frame[fId].actual)
     return;
-  cmd.exec(frame[fId].cmdMainDyn);
+
+  land    .draw(painter,fId);
+  vobGroup.draw(painter,fId);
+  objGroup.draw(painter,fId);
+  itmGroup.draw(painter,fId);
+  decGroup.draw(painter,fId);
+  painter.commit(cmd);
+
   cmd.exec(frame[fId].cmdMain);
   }
 
@@ -95,8 +108,9 @@ MeshObjects::Mesh WorldView::getStaticView(const char* visual) {
   return MeshObjects::Mesh();
   }
 
-MeshObjects::Mesh WorldView::getDecalView(const char* visual,float x,float y,float z,ProtoMesh& out) {
-  out = owner.physic()->decalMesh(visual,x,y,z,100,100,100);
+MeshObjects::Mesh WorldView::getDecalView(const ZenLoad::zCVobData& vob,
+                                          const Tempest::Matrix4x4& obj, ProtoMesh& out) {
+  out = owner.physic()->decalMesh(vob,obj);
   return decGroup.get(out,0,0,0);
   }
 
@@ -106,9 +120,9 @@ PfxObjects::Emitter WorldView::getView(const ParticleFx *decl) {
   return PfxObjects::Emitter();
   }
 
-PfxObjects::Emitter WorldView::getView(const Texture2d* spr,bool align,bool zbias) {
+PfxObjects::Emitter WorldView::getView(const Texture2d* spr,const ZenLoad::zCVobData& vob) {
   if(spr!=nullptr)
-    return pfxGroup.get(spr,align,zbias);
+    return pfxGroup.get(spr,vob);
   return PfxObjects::Emitter();
   }
 
@@ -147,10 +161,16 @@ void WorldView::updateLight() {
 void WorldView::resetCmd() {
   // cmd buffers must not be in use
   storage.device.waitIdle();
-  uint32_t count = storage.device.maxFramesInFlight();
-  for(uint32_t i=0;i<count;++i) {
-    frame[i].actual=false;
-    }
+  for(auto& i:frame)
+    i.actual=false;
+  land    .invalidateCmd();
+  vobGroup.invalidateCmd();
+  objGroup.invalidateCmd();
+  itmGroup.invalidateCmd();
+  decGroup.invalidateCmd();
+  pfxGroup.invalidateCmd();
+  sky     .invalidateCmd();
+
   mainLay   = nullptr;
   shadowLay = nullptr;
   }
@@ -166,10 +186,8 @@ bool WorldView::needToUpdateCmd(uint8_t frameId) const {
   }
 
 void WorldView::invalidateCmd() {
-  uint32_t count = storage.device.maxFramesInFlight();
-  for(uint32_t i=0;i<count;++i) {
-    frame[i].actual=false;
-    }
+  for(auto& i:frame)
+    i.actual=false;
   }
 
 void WorldView::updateCmd(uint8_t frameId, const World &world,
@@ -198,25 +216,21 @@ void WorldView::updateUbo(uint8_t frameId, const Matrix4x4& view, const Tempest:
 
   vobGroup.setModelView(viewProj,shadow,shCount);
   vobGroup.setLight    (sun,ambient);
-  vobGroup.updateUbo   (frameId);
   objGroup.setModelView(viewProj,shadow,shCount);
   objGroup.setLight    (sun,ambient);
-  objGroup.updateUbo   (frameId);
   itmGroup.setModelView(viewProj,shadow,shCount);
   itmGroup.setLight    (sun,ambient);
-  itmGroup.updateUbo   (frameId);
   decGroup.setModelView(viewProj,shadow,shCount);
   decGroup.setLight    (sun,ambient);
-  decGroup.updateUbo   (frameId);
-
   pfxGroup.setModelView(viewProj,shadow[0]);
   pfxGroup.setLight    (sun,ambient);
-  pfxGroup.updateUbo   (frameId);
   }
 
 void WorldView::builtCmdBuf(uint8_t frameId, const World &world,
                             const Attachment& main, const Attachment& shadowMap,
                             const FrameBufferLayout& mainLay,const FrameBufferLayout& shadowLay) {
+  (void)shadowLay;
+
   auto&      device    = storage.device;
   auto&      pf        = frame[frameId];
   const bool nToUpdate = needToUpdateCmd(frameId);
@@ -234,33 +248,9 @@ void WorldView::builtCmdBuf(uint8_t frameId, const World &world,
   if(!pf.actual || nToUpdate) {
     pf.actual=true;
 
-    // cascade#0 detail shadow
-    {
-    auto cmd    = pf.cmdShadow[0]   .startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
-    auto cmdDyn = pf.cmdShadowDyn[0].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
-    land    .drawShadow(cmd,   frameId,0);
-    vobGroup.drawShadow(cmdDyn,frameId);
-    objGroup.drawShadow(cmd,   frameId);
-    itmGroup.drawShadow(cmd,   frameId);
-    }
-
-    // cascade#1 shadow
-    {
-    auto cmd = pf.cmdShadow[1].startEncoding(device,shadowLay,smTexture.w(),smTexture.h());
-    land.drawShadow(cmd,frameId,1);
-    vobGroup.drawShadow(cmd,frameId,1);
-    }
-
     // main draw
     {
-    auto cmd    = pf.cmdMain   .startEncoding(device,mainLay,main.w(),main.h());
-    auto cmdDyn = pf.cmdMainDyn.startEncoding(device,mainLay,main.w(),main.h());
-    land    .draw(cmd,   frameId);
-    vobGroup.draw(cmd,   frameId);
-    objGroup.draw(cmdDyn,frameId);
-    itmGroup.draw(cmd,   frameId);
-    decGroup.drawDecals(cmd,frameId);
-
+    auto cmd    = pf.cmdMain.startEncoding(device,mainLay,main.w(),main.h());
     sky     .draw(cmd,frameId,world);
     pfxGroup.draw(cmd,frameId);
     }

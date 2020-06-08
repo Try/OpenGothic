@@ -183,7 +183,7 @@ class DynamicWorld final {
     StaticItem  staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
     BulletBody* bulletObj(BulletCallback* cb);
 
-    ProtoMesh   decalMesh(const std::string& tex, float x, float y, float z, float sX, float sY, float sZ) const;
+    ProtoMesh   decalMesh(const ZenLoad::zCVobData& vob, const Tempest::Matrix4x4& obj) const;
 
     void        tick(uint64_t dt);
 

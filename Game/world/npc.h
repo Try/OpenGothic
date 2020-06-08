@@ -260,6 +260,7 @@ class Npc final {
     bool       isRefuseTalk() const;
 
     int32_t    mageCycle() const;
+    bool       canSneak() const;
     int32_t    attribute (Attribute a) const;
     void       changeAttribute(Attribute a, int32_t val, bool allowUnconscious);
     int32_t    protection(Protection p) const;
@@ -435,7 +436,7 @@ class Npc final {
     bool      canSeeNpc(const Npc& oth,bool freeLos) const;
     bool      canSeeNpc(float x,float y,float z,bool freeLos) const;
     auto      canSenseNpc(const Npc& oth,bool freeLos, float extRange=0.f) const -> SensesBit;
-    auto      canSenseNpc(float x,float y,float z,bool freeLos, float extRange=0.f) const -> SensesBit;
+    auto      canSenseNpc(float x,float y,float z,bool freeLos,bool isNoisy,float extRange=0.f) const -> SensesBit;
 
     void      setTarget(Npc* t);
     Npc*      target();
@@ -559,6 +560,7 @@ class Npc final {
 
     void      updateWeaponSkeleton();
     void      tickTimedEvt(Animation::EvCount &ev);
+    void      tickRegen(int32_t& v,const int32_t max,const int32_t chg, const uint64_t dt);
     void      updatePos();
     bool      setViewPosition(const Tempest::Vec3& pos);
 

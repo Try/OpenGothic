@@ -6,6 +6,7 @@
 
 #include <zenload/zTypes.h>
 
+#include "bounds.h"
 #include "material.h"
 #include "resources.h"
 
@@ -13,6 +14,7 @@ class World;
 class RendererStorage;
 class Light;
 class PackedMesh;
+class Painter3d;
 
 class Landscape final {
   public:
@@ -21,12 +23,13 @@ class Landscape final {
     void setMatrix(uint32_t frameId, const Tempest::Matrix4x4& mat, const Tempest::Matrix4x4 *sh, size_t shCount);
     void setLight (const Light& l, const Tempest::Vec3& ambient);
 
+    void invalidateCmd();
     bool needToUpdateCommands(uint8_t frameId) const;
-    void setAsUpdated        (uint8_t frameId) const;
+    void setAsUpdated        (uint8_t frameId);
 
     void commitUbo (uint8_t frameId, const Tempest::Texture2d& shadowMap);
-    void draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, int layer);
+    void draw      (Painter3d& painter, uint8_t frameId);
+    void drawShadow(Painter3d& painter, uint8_t frameId, int layer);
 
   private:
     struct UboLand {
@@ -47,10 +50,11 @@ class Landscape final {
 
     struct Block {
       Material                       material;
+      Bounds                         bbox;
       Tempest::IndexBuffer<uint32_t> ibo;
       };
 
-    void implDraw(Tempest::Encoder<Tempest::CommandBuffer> &cmd,
+    void implDraw(Painter3d& painter,
                   const Tempest::RenderPipeline* p[],
                   uint8_t uboId, uint8_t frameId);
 
@@ -58,8 +62,9 @@ class Landscape final {
     std::vector<Block>                       blocks;
 
     Tempest::IndexBuffer<uint32_t>           iboSolid;
+    Bounds                                   solidsBBox;
 
     const RendererStorage&         storage;
     UboLand                        uboCpu;
-    std::unique_ptr<PerFrame[]>    pf;
+    PerFrame                       pf[Resources::MaxFramesInFlight];
   };

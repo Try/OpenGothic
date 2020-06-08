@@ -82,6 +82,8 @@ class MainWindow : public Tempest::Window {
     void render() override;
 
     void tick();
+    void followCamera();
+
     Camera::Mode solveCameraMode() const;
 
     Tempest::Device&      device;
@@ -104,8 +106,7 @@ class MainWindow : public Tempest::Window {
       };
 
     std::vector<FrameLocal>             fLocal;
-
-    std::vector<Tempest::PrimaryCommandBuffer> commandDynamic;
+    Tempest::PrimaryCommandBuffer       commandDynamic[Resources::MaxFramesInFlight];
 
 
     const Tempest::Texture2d*           background=nullptr;
@@ -129,7 +130,6 @@ class MainWindow : public Tempest::Window {
 
     Tempest::Widget*                    uiKeyUp=nullptr;
     Tempest::Point                      mpos;
-    Tempest::PointF                     spin;
     PlayerControl                       player;
     Focus                               currentFocus;
     uint64_t                            lastTick=0;

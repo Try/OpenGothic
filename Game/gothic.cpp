@@ -58,6 +58,9 @@ Gothic::Gothic(const int argc, const char **argv){
     else if(std::strcmp(argv[i],"-rambo")==0){
       isRambo=true;
       }
+    else if(std::strcmp(argv[i],"-dx12")==0){
+      graphics = GraphicBackend::DirectX12;
+      }
     else if(std::strcmp(argv[i],"-validation")==0 || std::strcmp(argv[i],"-v")==0){
       isDebug=true;
       }
@@ -85,13 +88,7 @@ Gothic::Gothic(const int argc, const char **argv){
   baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));
   iniFile    .reset(new IniFile(u"Gothic.ini"));
 
-  // check actually for gothic-1, any questionable case is g2notr
-  if(gpath.find(u"Gothic/")==std::string::npos && gpath.find(u"gothic/")==std::string::npos)
-    vinfo.game = 2; else
-    vinfo.game = 1;
-  if(vinfo.game==2) {
-    vinfo.patch = baseIniFile->getI("GAME","PATCHVERSION");
-    }
+  detectGothicVersion();
 
   fight      .reset(new FightAi(*this));
   camera     .reset(new CameraDefinitions(*this));
@@ -107,6 +104,10 @@ Gothic::Gothic(const int argc, const char **argv){
   }
 
 Gothic::~Gothic() {
+  }
+
+Gothic::GraphicBackend Gothic::graphicsApi() const {
+  return graphics;
   }
 
 const VersionInfo& Gothic::version() const {
@@ -602,6 +603,32 @@ bool Gothic::validateGothicPath() const {
   if(!FileUtil::exists(nestedPath({u"_work",u"Data"},Dir::FT_Dir)))
     return false;
   return true;
+  }
+
+void Gothic::detectGothicVersion() {
+  int score[3]={};
+
+  if(gpath.find(u"Gothic/")!=std::string::npos || gpath.find(u"gothic/")!=std::string::npos)
+    score[1]++;
+  if(FileUtil::exists(nestedPath({u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE",u"OU.BIN"},Dir::FT_File)))
+    score[1]++;
+
+  if(FileUtil::exists(nestedPath({u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE",u"OU.DAT"},Dir::FT_File)))
+    score[2]++;
+  if(baseIniFile->has("KEYSDEFAULT1"))
+    score[2]++;
+  if(baseIniFile->has("GAME","PATCHVERSION"))
+    score[2]++;
+  if(baseIniFile->has("GAME","useGothic1Controls"))
+    score[2]++;
+
+  if(score[1]>score[2])
+    vinfo.game = 1; else
+    vinfo.game = 2;
+
+  if(vinfo.game==2) {
+    vinfo.patch = baseIniFile->getI("GAME","PATCHVERSION");
+    }
   }
 
 std::u16string Gothic::nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const {

@@ -13,4 +13,5 @@ AnimMesh::AnimMesh(const ZenLoad::PackedSkeletalMesh &mesh) {
     sub[i].texture = Resources::loadTexture(sub[i].texName);
     sub[i].ibo     = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
     }
+  bbox.assign(mesh.bbox);
   }

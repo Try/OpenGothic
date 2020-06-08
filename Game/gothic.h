@@ -38,11 +38,17 @@ class Gothic final {
       FailedSave = 5
       };
 
-    auto version() const -> const VersionInfo&;
+    enum GraphicBackend : uint8_t {
+      Vulkan,
+      DirectX12
+      };
 
-    bool isInGame() const;
-    bool doStartMenu() const { return !noMenu; }
-    bool doFrate() const { return !noFrate; }
+    auto         version() const -> const VersionInfo&;
+    auto         graphicsApi() const -> GraphicBackend;
+
+    bool         isInGame() const;
+    bool         doStartMenu() const { return !noMenu; }
+    bool         doFrate() const { return !noFrate; }
 
     void         setGame(std::unique_ptr<GameSession> &&w);
     auto         clearGame() -> std::unique_ptr<GameSession>;
@@ -152,6 +158,7 @@ class Gothic final {
     bool                                    noMenu=false;
     bool                                    noFrate=false;
     bool                                    isWindow=false;
+    GraphicBackend                          graphics = GraphicBackend::Vulkan;
     uint16_t                                pauseSum=0;
     bool                                    isDebug=false;
     bool                                    isRambo=false;
@@ -187,4 +194,5 @@ class Gothic final {
                                                               const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
 
     bool                                    validateGothicPath() const;
+    void                                    detectGothicVersion();
   };

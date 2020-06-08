@@ -15,6 +15,11 @@ Core gameplay is done, you can complete first chapter, as well as all addon cont
 *you have to install original game, since OpenGothic does not have any game assets or game scripts as built-in*
 2. [Download latest stable build](https://github.com/Try/opengothic/releases/latest)
 3. run '/OpenGothic/bin/Gothic2Notr.exe -g "C:\Program Files (x86)\Path\To\Gothic II"'
+Common Gothic installation paths:  
+- "C:\Program Files (x86)\JoWooD\Gothic II"
+- "C:\Gothic II"
+- "C:\Program Files (x86)\Steam\steamapps\common\Gothic II"
+- "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"
 
 ##### Build it for Linux
 1. Install dependencies for Ubuntu 20.04:
@@ -37,7 +42,7 @@ Core gameplay is done, you can complete first chapter, as well as all addon cont
     * Walk - Done
     * Walk(in water) - Done
     * Run - Done
-    * Sneak - Not Implemented
+    * Sneak - Done
     * Jump - Done
     * Jump(pull-up) - Not Implemented
     * Swimming - Partial

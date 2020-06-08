@@ -49,19 +49,19 @@ class PfxObjects final {
       };
 
     Emitter get(const ParticleFx& decl);
-    Emitter get(const Tempest::Texture2d* tex, bool align, bool zbias);
+    Emitter get(const Tempest::Texture2d* spr, const ZenLoad::zCVobData& vob);
 
     void    setModelView(const Tempest::Matrix4x4 &m, const Tempest::Matrix4x4 &shadow);
     void    setLight(const Light &l, const Tempest::Vec3 &ambient);
     void    setViewerPos(const Tempest::Vec3& pos);
 
+    void    invalidateCmd();
     bool    needToUpdateCommands(uint8_t fId) const;
     void    setAsUpdated(uint8_t fId);
 
     void    resetTicks();
     void    tick(uint64_t ticks);
 
-    void    updateUbo(uint8_t frameId);
     void    commitUbo(uint8_t frameId, const Tempest::Texture2d& shadowMap);
     void    draw     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId);
 
@@ -118,7 +118,7 @@ class PfxObjects final {
 
     struct Bucket final {
       Bucket(const RendererStorage& storage,const ParticleFx &ow,PfxObjects* parent);
-      std::unique_ptr<PerFrame[]> pf;
+      PerFrame                    pf[Resources::MaxFramesInFlight];
 
       std::vector<Vertex>         vbo;
       std::vector<ParState>       particles;
@@ -144,7 +144,9 @@ class PfxObjects final {
       };
 
     struct SpriteEmitter {
-      bool                        align = false;
+      uint8_t                     visualCamAlign = 0;
+      int32_t                     zBias          = 0;
+      ZMath::float2               decalDim = {};
       std::unique_ptr<ParticleFx> pfx;
       };
 
@@ -160,12 +162,10 @@ class PfxObjects final {
     static float                  randf();
     static float                  randf(float base, float var);
     Bucket&                       getBucket(const ParticleFx& decl);
-    Bucket&                       getBucket(const Tempest::Texture2d* decl, bool align, bool zbias);
+    Bucket&                       getBucket(const Tempest::Texture2d* spr, const ZenLoad::zCVobData& vob);
     void                          tickSys    (Bucket& b, uint64_t dt);
     void                          tickSysEmit(Bucket& b, Block&  p, uint64_t emited);
     void                          buildVbo(Bucket& b, const VboContext& ctx);
-
-    void                          invalidateCmd();
 
     const RendererStorage&        storage;
     std::mutex                    sync;
@@ -178,5 +178,5 @@ class PfxObjects final {
     UboChain<UboGlobal,void>      uboGlobalPf;
     UboGlobal                     uboGlobal;
     uint64_t                      lastUpdate=0;
-    std::vector<bool>             updateCmd;
+    bool                          updateCmd[Resources::MaxFramesInFlight]={};
   };

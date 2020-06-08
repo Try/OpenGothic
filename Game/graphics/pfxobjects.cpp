@@ -92,11 +92,8 @@ void PfxObjects::Emitter::setObjMatrix(const Matrix4x4 &mt) {
 
 PfxObjects::Bucket::Bucket(const RendererStorage &storage, const ParticleFx &ow, PfxObjects *parent)
   :owner(&ow), parent(parent) {
-  auto cnt = storage.device.maxFramesInFlight();
-
-  pf.reset(new PerFrame[cnt]);
-  for(size_t i=0;i<cnt;++i)
-    pf[i].ubo = storage.device.uniforms(storage.uboPfxLayout());
+  for(auto& i:pf)
+    i.ubo = storage.device.uniforms(storage.uboPfxLayout());
 
   uint64_t lt      = ow.maxLifetime();
   uint64_t pps     = uint64_t(std::ceil(ow.maxPps()));
@@ -208,12 +205,18 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
       break;
       }
     case ParticleFx::EmitterType::Box:{
-      p.pos = Vec3(randf()*2.f-1.f,
-                   randf()*2.f-1.f,
-                   randf()*2.f-1.f);
-      p.pos*=0.5;
-      if(pfx.shpIsVolume)
-        p.pos*=randf();
+      if(pfx.shpIsVolume) {
+        p.pos = Vec3(randf()*2.f-1.f,
+                     randf()*2.f-1.f,
+                     randf()*2.f-1.f);
+        p.pos*=0.5;
+        } else {
+        // TODO
+        p.pos = Vec3(randf()*2.f-1.f,
+                     randf()*2.f-1.f,
+                     randf()*2.f-1.f);
+        p.pos*=0.5;
+        }
       break;
       }
     case ParticleFx::EmitterType::Sphere:{
@@ -233,7 +236,7 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
                    std::cos(a));
       p.pos*=0.5;
       if(pfx.shpIsVolume)
-        p.pos*=randf();
+        p.pos = p.pos*std::sqrt(randf());
       break;
       }
     case ParticleFx::EmitterType::Mesh:{
@@ -288,6 +291,15 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
       float dx = std::cos(phi) * std::cos(theta);
       float dy = std::sin(phi);
       float dz = std::cos(phi) * std::sin(theta);
+
+      if(pfx.dirModeTargetFOR==ParticleFx::Frame::Object &&
+         pfx.shpType         ==ParticleFx::EmitterType::Sphere &&
+         pfx.dirAngleHeadVar>=180 &&
+         pfx.dirAngleElevVar>=180 ) {
+        dx = p.pos.x;
+        dy = p.pos.y;
+        dz = p.pos.z;
+        }
 
       switch(pfx.dirFOR) {
         case ParticleFx::Frame::Object: {
@@ -382,7 +394,6 @@ float PfxObjects::ParState::lifeTime() const {
 
 PfxObjects::PfxObjects(const RendererStorage& storage)
   :storage(storage),uboGlobalPf(storage.device) {
-  updateCmd.resize(storage.device.maxFramesInFlight());
   }
 
 PfxObjects::~PfxObjects() {
@@ -395,9 +406,9 @@ PfxObjects::Emitter PfxObjects::get(const ParticleFx &decl) {
   return Emitter(b,e);
   }
 
-PfxObjects::Emitter PfxObjects::get(const Texture2d* tex, bool align, bool zbias) {
+PfxObjects::Emitter PfxObjects::get(const Texture2d* spr, const ZenLoad::zCVobData& vob) {
   std::lock_guard<std::mutex> guard(sync);
-  auto&  b = getBucket(tex,align,zbias);
+  auto&  b = getBucket(spr,vob);
   size_t e = b.allocEmitter();
   return Emitter(b,e);
   }
@@ -475,14 +486,6 @@ void PfxObjects::tick(uint64_t ticks) {
   lastUpdate = ticks;
   }
 
-void PfxObjects::updateUbo(uint8_t frameId) {
-  uboGlobalPf.update(uboGlobal,frameId);
-  for(auto& i:bucket) {
-    auto& pf = i.pf[frameId];
-    pf.vbo.update(i.vbo);
-    }
-  }
-
 void PfxObjects::commitUbo(uint8_t frameId, const Texture2d& shadowMap) {
   size_t pfCount = storage.device.maxFramesInFlight();
   bucket.remove_if([pfCount](const Bucket& b) {
@@ -493,16 +496,22 @@ void PfxObjects::commitUbo(uint8_t frameId, const Texture2d& shadowMap) {
     return b.impl.size()==0;
     });
 
+  uboGlobalPf.update(uboGlobal,frameId);
+  for(auto& i:bucket) {
+    auto& pf = i.pf[frameId];
+    if(i.vbo.size()!=pf.vbo.size())
+      pf.vbo = storage.device.vboDyn(i.vbo); else
+      pf.vbo.update(i.vbo);
+    }
+
   if(!updateCmd[frameId])
     return;
 
   for(auto& i:bucket) {
     auto& pf = i.pf[frameId];
-    if(i.vbo.size()!=pf.vbo.size())
-      pf.vbo = storage.device.vboDyn(i.vbo);
     pf.ubo.set(0,uboGlobalPf[frameId],0,1);
     pf.ubo.set(2,*i.owner->visName_S);
-    pf.ubo.set(3,shadowMap);
+    pf.ubo.set(3,shadowMap,Resources::shadowSampler());
     }
   }
 
@@ -531,14 +540,21 @@ PfxObjects::Bucket &PfxObjects::getBucket(const ParticleFx &ow) {
   return *bucket.begin();
   }
 
-PfxObjects::Bucket& PfxObjects::getBucket(const Texture2d* decl, bool align, bool zbias) {
+PfxObjects::Bucket& PfxObjects::getBucket(const Texture2d* spr, const ZenLoad::zCVobData& vob) {
   for(auto& i:spriteEmit)
-    if(i.pfx->visName_S==decl && i.align==align)
+    if(i.pfx->visName_S==spr &&
+       i.visualCamAlign==vob.visualCamAlign &&
+       i.zBias==vob.zBias &&
+       i.decalDim==vob.visualChunk.zCDecal.decalDim) {
       return getBucket(*i.pfx);
+      }
   spriteEmit.emplace_back();
   auto& e = spriteEmit.back();
-  e.align = align;
-  e.pfx.reset(new ParticleFx(decl,align,zbias));
+
+  e.visualCamAlign = vob.visualCamAlign;
+  e.zBias          = vob.zBias;
+  e.decalDim       = vob.visualChunk.zCDecal.decalDim;
+  e.pfx.reset(new ParticleFx(spr,vob));
   return getBucket(*e.pfx);
   }
 
@@ -558,7 +574,7 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
     if(p.count>0) {
       for(size_t i=0;i<b.blockSize;++i)
         b.tick(p,i,dt);
-      if(p.count==0 && !process){
+      if(p.count==0 && !process) {
         // free mem
         b.freeBlock(emitter.block);
         doShrink = true;
@@ -612,22 +628,28 @@ static void rotate(float* rx,float* ry,float a,const float* x, const float* y){
     }
   }
 
+static void cross(float* out,const float* u,const float* v) {
+  out[0] = (u[1]*v[2] - u[2]*v[1]);
+  out[1] = (u[2]*v[0] - u[0]*v[2]);
+  out[2] = (u[0]*v[1] - u[1]*v[0]);
+  }
+
 void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
   static const float dx[6] = {-0.5f, 0.5f, -0.5f,  0.5f,  0.5f, -0.5f};
   static const float dy[6] = { 0.5f, 0.5f, -0.5f,  0.5f, -0.5f, -0.5f};
 
-  auto& ow              = *b.owner;
-  auto  colorS          = ow.visTexColorStart;
-  auto  colorE          = ow.visTexColorEnd;
-  auto  visSizeStart    = ow.visSizeStart;
-  auto  visSizeEndScale = ow.visSizeEndScale;
-  auto  visAlphaStart   = ow.visAlphaStart;
-  auto  visAlphaEnd     = ow.visAlphaEnd;
-  auto  visAlphaFunc    = ow.visAlphaFunc;
+  auto& pfx             = *b.owner;
+  auto  colorS          = pfx.visTexColorStart;
+  auto  colorE          = pfx.visTexColorEnd;
+  auto  visSizeStart    = pfx.visSizeStart;
+  auto  visSizeEndScale = pfx.visSizeEndScale;
+  auto  visAlphaStart   = pfx.visAlphaStart;
+  auto  visAlphaEnd     = pfx.visAlphaEnd;
+  auto  visAlphaFunc    = pfx.visAlphaFunc;
 
   const float* left = ctx.left;
   const float* top  = ctx.top;
-  if(b.owner->visYawAlign) {
+  if(pfx.visYawAlign) {
     left = ctx.leftA;
     top  = ctx.topA;
     }
@@ -656,7 +678,19 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
 
       float l[3]={};
       float t[3]={};
-      rotate(l,t,ps.rotation,left,top);
+
+      if(pfx.visOrientation==ParticleFx::Orientation::Velocity3d) {
+        static float k1 = 1, k2 = -1;
+        t[0] = k1* ps.dir.x;
+        t[1] = k1* ps.dir.y;
+        t[2] = k1* ps.dir.z;
+        cross(l, t,ctx.z);
+        l[0]*=k2;
+        l[1]*=k2;
+        l[2]*=k2;
+        } else {
+        rotate(l,t,ps.rotation,left,top);
+        }
 
       struct Color {
         uint8_t r=255;
@@ -687,7 +721,7 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
         v[i].pos[1] = ps.pos.y + p.pos.y + sy;
         v[i].pos[2] = ps.pos.z + p.pos.z + sz;
 
-        if(ow.visZBias) {
+        if(pfx.visZBias) {
           v[i].pos[0] -= szZ*ctx.z[0];
           v[i].pos[1] -= szZ*ctx.z[1];
           v[i].pos[2] -= szZ*ctx.z[2];
@@ -703,6 +737,6 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
   }
 
 void PfxObjects::invalidateCmd() {
-  for(size_t i=0;i<updateCmd.size();++i)
-    updateCmd[i]=true;
+  for(auto& i:updateCmd)
+    i=true;
   }

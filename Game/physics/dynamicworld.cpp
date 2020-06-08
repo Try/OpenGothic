@@ -578,7 +578,14 @@ DynamicWorld::RayResult DynamicWorld::implWaterRay(float x0, float y0, float z0,
     } else {
     y1 = y0-worldHeight;
     }
-  return RayResult{{x1,y1,z1},{0,1,0},callback.matId,callback.colCat,callback.hasHit()};
+
+  RayResult ret;
+  ret.v      = Tempest::Vec3(x1,y1,z1);
+  ret.n      = Tempest::Vec3(0,1,0);
+  ret.mat    = callback.matId;
+  ret.colCat = callback.colCat;
+  ret.hasCol = callback.hasHit();
+  return ret;
   }
 
 DynamicWorld::RayResult DynamicWorld::ray(float x0, float y0, float z0, float x1, float y1, float z1) const {
@@ -627,8 +634,15 @@ DynamicWorld::RayResult DynamicWorld::ray(float x0, float y0, float z0, float x1
       nz = callback.m_hitNormalWorld.z();
       }
     }
-  return RayResult{{x1,y1,z1},{nx,ny,nz},
-                   callback.matId,callback.colCat,callback.hasHit(),callback.sector};
+
+  RayResult ret;
+  ret.v      = Tempest::Vec3(x1,y1,z1);
+  ret.n      = Tempest::Vec3(nx,ny,nz);
+  ret.mat    = callback.matId;
+  ret.colCat = callback.colCat;
+  ret.hasCol = callback.hasHit();
+  ret.sector = callback.sector;
+  return ret;
   }
 
 float DynamicWorld::soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const {
@@ -758,58 +772,34 @@ DynamicWorld::BulletBody* DynamicWorld::bulletObj(BulletCallback* cb) {
   return bulletList->add(cb);
   }
 
-ProtoMesh DynamicWorld::decalMesh(const std::string& tex,
-                                  float x, float y, float z,
-                                  float sX, float sY, float sZ) const {
-  btVector3 min={x-sX,y-sY,z-sZ};
-  btVector3 max={x+sX,y+sY,z+sZ};
+ProtoMesh DynamicWorld::decalMesh(const ZenLoad::zCVobData& vob, const Tempest::Matrix4x4& objMat) const {
+  float sX = vob.visualChunk.zCDecal.decalDim.x;
+  float sY = vob.visualChunk.zCDecal.decalDim.y;
 
-  struct Callback:btTriangleCallback {
-    Callback(float x,float z,float sX,float sZ):x(x),z(z),sX(sX),sZ(sZ) {}
-
-    float x =0;
-    float z =0;
-    float sX=0;
-    float sZ=0;
-
-    std::vector<Resources::Vertex> vbo;
-    std::vector<uint32_t>          ibo;
-
-    void processTriangle(btVector3* triangle, int /*partId*/, int /*triangleIndex*/) override {
-      add(triangle[0]);
-      add(triangle[2]);
-      add(triangle[1]);
-      }
-
-    void add(const btVector3& vx) {
-      Resources::Vertex v={};
-      v.pos[0]  = vx.x();
-      v.pos[1]  = vx.y();
-      v.pos[2]  = vx.z();
-
-      v.norm[0] = 0.f;
-      v.norm[1] = 1.f;
-      v.norm[2] = 0.f;
-
-      v.uv[0]   = 0.5f+0.5f*(v.pos[0]-x)/sX;
-      v.uv[1]   = 0.5f+0.5f*(v.pos[2]-z)/sZ;
-
-      v.color   = 0xFFFFFFFF;
-      vbo.push_back(v);
-      }
-
-    void adjustIbo() {
-      ibo.resize(vbo.size());
-      for(size_t i=0;i<ibo.size();++i)
-        ibo[i] = uint32_t(i);
-      }
+  Resources::Vertex vbo[4] = {
+    {{-1.f, -1.f, 0.f},{0,0,-1},{0,0},0},
+    {{ 1.f, -1.f, 0.f},{0,0,-1},{1,0},0},
+    {{ 1.f,  1.f, 0.f},{0,0,-1},{1,1},0},
+    {{-1.f,  1.f, 0.f},{0,0,-1},{0,1},0},
     };
 
-  Callback callbak {x,z,sX,sZ};
-  landShape->processAllTriangles(&callbak,min,max);
+  for(auto& i:vbo) {
+    i.pos[0]*=sX;
+    i.pos[1]*=sY;
 
-  callbak.adjustIbo();
-  return ProtoMesh(tex, std::move(callbak.vbo), std::move(callbak.ibo));
+    float w=0;
+    objMat.project(i.pos[0], i.pos[1], i.pos[2]);
+    objMat.project(i.norm[0],i.norm[1],i.norm[2],0.f,
+                   i.norm[0],i.norm[1],i.norm[2],w);
+    i.norm[0]/=w;
+    i.norm[1]/=w;
+    i.norm[2]/=w;
+    }
+
+  std::vector<Resources::Vertex> cvbo(vbo,vbo+4);
+  std::vector<uint32_t>          cibo = { 0,1,2, 0,2,3 };
+
+  return ProtoMesh(vob.visual, std::move(cvbo), std::move(cibo));
   }
 
 void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint64_t dt) {

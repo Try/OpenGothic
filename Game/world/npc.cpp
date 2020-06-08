@@ -1,6 +1,8 @@
 #include "npc.h"
 
 #include <Tempest/Matrix4x4>
+#include <Tempest/Log>
+
 #include <zenload/zCMaterial.h>
 
 #include "interactive.h"
@@ -303,15 +305,17 @@ bool Npc::resetPositionToTA() {
                           npcType==Daedalus::GEngineClasses::NPCTYPE_BL_MAIN);
   const bool isDead = this->isDead();
 
-  if(isDead && !isMainNpc) {
-    // special case for oldworld
-    if(hnpc.attribute[ATR_HITPOINTSMAX]>1)
+  if(isDead && !isMainNpc && !invent.hasMissionItems()) {
+    const bool isDragon         = (owner.version().game==2 && guild()==GIL_DRAGON);
+    const bool isBackgroundBody = (hnpc.attribute[ATR_HITPOINTSMAX]==1);
+    if(!isBackgroundBody && !isDragon)
       return false;
     }
 
   invent.clearSlot(*this,nullptr,false);
   attachToPoint(nullptr);
-  setInteraction(nullptr,true);
+  if(!isPlayer())
+    setInteraction(nullptr,true);
   clearAiQueue();
 
   if(!isDead) {
@@ -325,28 +329,27 @@ bool Npc::resetPositionToTA() {
   auto  at  = rot.point;
 
   if(at==nullptr) {
-    auto time = owner.time();
-    time = gtime(int32_t(time.hour()),int32_t(time.minute()));
-    int64_t delta=std::numeric_limits<int64_t>::max();
+    const auto time  = owner.time().timeInDay();
+    const auto day   = gtime(24,0).toInt();
+    int64_t    delta = std::numeric_limits<int64_t>::max();
 
-    // closest point
-    for(auto& i:routines){
-      int64_t ndelta=delta;
-      if(i.end<i.start)
-        ndelta = i.start.toInt()-time.toInt();
-      else
-        ndelta = i.end.toInt()-time.toInt();
+    // closest time-point
+    for(auto& i:routines) {
+      int64_t d=0;
+      if(i.start<i.end) {
+        d = i.end.toInt()-time.toInt();
+        } else {
+        d = i.start.toInt()-time.toInt();
+        }
+      if(d<=0)
+        d+=day;
 
-      if(i.point && ndelta<delta)
-        at = i.point;
-      }
-    // any point
-    if(at==nullptr){
-      for(auto& i:routines){
-        if(i.point)
-          at=i.point;
+      if(i.point && d<delta) {
+        at    = i.point;
+        delta = d;
         }
       }
+
     if(at==nullptr)
       return false;
     }
@@ -756,6 +759,24 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
     }
   }
 
+void Npc::tickRegen(int32_t& v, const int32_t max, const int32_t chg, const uint64_t dt) {
+  uint64_t tick = owner.tickCount();
+  if(tick<dt || chg==0)
+    return;
+  int32_t time0 = int32_t(tick%1000);
+  int32_t time1 = time0+int32_t(dt);
+
+  int32_t val0 = (time0*chg)/1000;
+  int32_t val1 = (time1*chg)/1000;
+
+  int32_t nextV = std::max(0,std::min(v+val1-val0,max));
+  if(v!=nextV) {
+    v = nextV;
+    // check health, in case of negative chg
+    checkHealth(true,false);
+    }
+  }
+
 void Npc::setPhysic(DynamicWorld::Item &&item) {
   physic = std::move(item);
   physic.setUserPointer(this);
@@ -929,6 +950,10 @@ bool Npc::isRefuseTalk() const {
 
 int32_t Npc::mageCycle() const {
   return talentSkill(TALENT_MAGE);
+  }
+
+bool Npc::canSneak() const {
+  return talentSkill(TALENT_SNEAK)!=0;
   }
 
 void Npc::setRefuseTalk(uint64_t milis) {
@@ -1183,7 +1208,7 @@ bool Npc::implAtack(uint64_t dt) {
   FightAlgo::Action act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
 
   if(act==FightAlgo::MV_BLOCK) {
-    if(setAnim(Anim::AtackBlock))
+    if(setAnim(Anim::AtackBlock) || ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage)
       fghAlgo.consumeAction();
     return true;
     }
@@ -1386,9 +1411,16 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
   if(!isSpell)
     owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
 
+  CollideMask bMask    = COLL_DOEVERYTHING;
+  bool        dontKill = (b==nullptr);
+
   if(!(isBlock || isJumpb) || b!=nullptr) {
     if(isSpell) {
-      lastHitSpell = b->spellId();
+      int32_t splId = b->spellId();
+      bMask   = owner.script().canNpcCollideWithSpell(*this,b->owner(),splId);
+      if(bMask & COLL_DONTKILL)
+        dontKill = true;
+      lastHitSpell = splId;
       perceptionProcess(other,this,0,PERC_ASSESSMAGIC);
       }
     perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
@@ -1411,7 +1443,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
     if(!isPlayer())
       setOther(lastHit);
 
-    auto hitResult = DamageCalculator::damageValue(other,*this,b);
+    auto hitResult = DamageCalculator::damageValue(other,*this,b,bMask);
     if(!isSpell && !isDown() && hitResult.hasHit)
       owner.emitWeaponsSound(other,*this);
 
@@ -1423,7 +1455,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
         if(auto ani = setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB,noInter))
           implAniWait(uint64_t(ani->totalTime()));
         }
-      changeAttribute(ATR_HITPOINTS,-hitResult.value,b==nullptr);
+      changeAttribute(ATR_HITPOINTS,-hitResult.value,dontKill);
 
       if(isUnconscious()){
         owner.sendPassivePerc(*this,other,*this,PERC_ASSESSDEFEAT);
@@ -1494,6 +1526,13 @@ void Npc::tick(uint64_t dt) {
   if(!isPlayer() && visual.isItem() && !invent.hasStateItem()) {
     // forward from S_IITEMSCHEME to Idle
     setAnim(AnimationSolver::Idle);
+    }
+
+  if(!isDead()) {
+    tickRegen(hnpc.attribute[ATR_HITPOINTS],hnpc.attribute[ATR_HITPOINTSMAX],
+              hnpc.attribute[ATR_REGENERATEHP],dt);
+    tickRegen(hnpc.attribute[ATR_MANA],hnpc.attribute[ATR_MANAMAX],
+              hnpc.attribute[ATR_REGENERATEMANA],dt);
     }
 
   Animation::EvCount ev;
@@ -1846,10 +1885,6 @@ bool Npc::startState(ScriptFn id, const Daedalus::ZString& wp, gtime endTime, bo
 
 void Npc::clearState(bool noFinalize) {
   if(aiState.funcIni.isValid() && aiState.started) {
-    if(owner.script().isTalk(*this)) {
-      // avoid ZS_Talk bug
-      owner.script().invokeState(this,currentOther,nullptr,aiState.funcLoop);
-      }
     if(!noFinalize)
       owner.script().invokeState(this,currentOther,nullptr,aiState.funcEnd);  // cleanup
     aiPrevState = aiState.funcIni;
@@ -1947,10 +1982,11 @@ bool Npc::doAttack(Anim anim) {
   if(weaponSt==WeaponState::NoWeapon || weaponSt==WeaponState::Mage)
     return false;
 
-  auto wlk = walkMode();
   if(mvAlgo.isSwim())
-    wlk = WalkBit::WM_Swim;
-  else if(mvAlgo.isInWater())
+    return false;
+
+  auto wlk = walkMode();
+  if(mvAlgo.isInWater())
     wlk = WalkBit::WM_Water;
 
   visual.setRotation(*this,0);
@@ -2527,7 +2563,7 @@ void Npc::setPerceptionDisable(Npc::PercType t) {
   }
 
 void Npc::startDialog(Npc& pl) {
-  if(pl.isDown() || isPlayer())
+  if(pl.isDown() || pl.isInAir() || isPlayer())
     return;
   if(perceptionProcess(pl,nullptr,0,PERC_ASSESSTALK))
     setOther(&pl);
@@ -2557,7 +2593,7 @@ bool Npc::perceptionProcess(Npc &pl) {
 
   const float quadDist = pl.qDistTo(*this);
 
-  if(hasPerc(PERC_ASSESSPLAYER) && canSenseNpc(pl,true)!=SensesBit::SENSE_NONE) {
+  if(hasPerc(PERC_ASSESSPLAYER) && canSenseNpc(pl,false)!=SensesBit::SENSE_NONE) {
     if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER)) {
       ret = true;
       }
@@ -3069,15 +3105,16 @@ bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
   }
 
 bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
-  SensesBit s = canSenseNpc(tx,ty,tz,freeLos);
+  SensesBit s = canSenseNpc(tx,ty,tz,freeLos,false);
   return int32_t(s&SensesBit::SENSE_SEE)!=0;
   }
 
 SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
-  return canSenseNpc(oth.x,oth.y+180,oth.z,freeLos,extRange);
+  const bool isNoisy = (oth.bodyState()&BodyState::BS_SNEAK)==0;
+  return canSenseNpc(oth.x,oth.y+180,oth.z,freeLos,isNoisy,extRange);
   }
 
-SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, float extRange) const {
+SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, bool isNoisy, float extRange) const {
   DynamicWorld* w = owner.physic();
   static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
 
@@ -3088,13 +3125,14 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, float ext
   SensesBit ret=SensesBit::SENSE_NONE;
   if(owner.roomAt({tx,ty,tz})==owner.roomAt({x,y,z})) {
     ret = ret | SensesBit::SENSE_SMELL;
-    ret = ret | SensesBit::SENSE_HEAR; // TODO:sneaking
+    if(isNoisy)
+      ret = ret | SensesBit::SENSE_HEAR;
     }
 
   if(!freeLos){
     float dx  = x-tx, dz=z-tz;
     float dir = angleDir(dx,dz);
-    float da  = float(M_PI)*(angle-dir)/180.f;
+    float da  = float(M_PI)*(visual.viewDirection()-dir)/180.f;
     if(double(std::cos(da))<=ref)
       if(!w->ray(x,y+180,z, tx,ty,tz).hasCol)
         ret = ret | SensesBit::SENSE_SEE;
@@ -3111,7 +3149,7 @@ void Npc::updatePos() {
   bool align = (world().script().guildVal().surface_align[gl]!=0) || isDead();
 
   auto ground = mvAlgo.groundNormal();
-  if(align && !isInAir()) {
+  if(align && !mvAlgo.isInAir() && !mvAlgo.isSwim()) {
     if(groundNormal!=ground) {
       durtyTranform |= TR_Rot;
       groundNormal = ground;
@@ -3130,8 +3168,8 @@ void Npc::updatePos() {
     Matrix4x4 mt;
     if(align) {
       auto oy = ground;
-      auto ox = crossVec3(oy,{0,0,1});
-      auto oz = crossVec3(oy,ox);
+      auto ox = Vec3::crossProduct(oy,{0,0,1});
+      auto oz = Vec3::crossProduct(oy,ox);
       float v[16] = {
          ox.x, ox.y, ox.z, 0,
          oy.x, oy.y, oy.z, 0,

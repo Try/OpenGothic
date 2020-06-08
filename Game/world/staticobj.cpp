@@ -21,12 +21,8 @@ StaticObj::StaticObj(const ZenLoad::zCVobData& vob,World& owner) {
     } else
   if(FileExt::hasExt(vob.visual,"TGA")){
     if(vob.visualCamAlign==0) {
-      float x = objMat.at(3,0);
-      float y = objMat.at(3,1);
-      float z = objMat.at(3,2);
-
       decalMesh = std::make_unique<ProtoMesh>(ZenLoad::PackedMesh(),"");
-      mesh = owner.getDecalView(vob.visual.c_str(), x,y,z, *decalMesh);
+      mesh = owner.getDecalView(vob, objMat, *decalMesh);
 
       Tempest::Matrix4x4 m;
       m.identity();
@@ -35,11 +31,9 @@ StaticObj::StaticObj(const ZenLoad::zCVobData& vob,World& owner) {
       const Tempest::Texture2d* view = Resources::loadTexture(vob.visual);
       if(view==nullptr)
         return;
-      /* TODO: decals size
-      pfx = owner.getView(view,vob.visualCamAlign==1,vob.zBias!=0);
+      pfx = owner.getView(view,vob);
       pfx.setActive(true);
       pfx.setObjMatrix(objMat);
-      */
       }
     } else {
     auto view = Resources::loadMesh(vob.visual);
