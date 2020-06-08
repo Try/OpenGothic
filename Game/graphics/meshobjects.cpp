@@ -255,25 +255,6 @@ void MeshObjects::reserve(size_t stat, size_t dyn) {
   storageDn.reserve(dyn);
   }
 
-void MeshObjects::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId) {
-  for(auto& c:chunksSt)
-    c.draw(cmd,storage.pObject,fId);
-  for(auto& c:chunksDn)
-    c.draw(cmd,storage.pAnim,fId);
-  }
-
-void MeshObjects::drawDecals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fId) {
-  for(auto& c:chunksSt)
-    c.draw(cmd,storage.pObjectDecal,fId);
-  }
-
-void MeshObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId, int layer) {
-  for(auto& c:chunksSt)
-    c.drawShadow(cmd,storage.pObjectSh,fId,layer);
-  for(auto& c:chunksDn)
-    c.drawShadow(cmd,storage.pAnimSh,fId,layer);
-  }
-
 void MeshObjects::draw(Painter3d& painter, uint32_t fId) {
   for(auto& c:chunksSt)
     c.draw(painter,storage.pObject,fId);

@@ -87,9 +87,9 @@ class MeshObjects final {
 
     void reserve(size_t stat,size_t dyn);
 
-    void draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId);
-    void drawDecals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId);
-    void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId, int layer=0);
+    //void draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId);
+    //void drawDecals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId);
+    //void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId, int layer=0);
     void draw      (Painter3d& painter, uint32_t fId);
     void drawShadow(Painter3d& painter, uint32_t fId, int layer=0);
 
