@@ -10,18 +10,29 @@ The goal of this project is to make feature complete Gothic client-app compatibl
 [![Build status](https://ci.appveyor.com/api/projects/status/github/Try/opengothic?svg=true)](https://ci.appveyor.com/project/Try/opengothic)  
 Core gameplay is done, you can complete first chapter, as well as all addon content for any guild. 
 
-##### How to play
+##### Install on Windows
 1. Install original gothic game from CD/Steam/GOG/etc  
 *you have to install original game, since OpenGothic does not have any game assets or game scripts as built-in*
 2. [Download latest stable build](https://github.com/Try/opengothic/releases/latest)
 3. run '/OpenGothic/bin/Gothic2Notr.exe -g "C:\Program Files (x86)\Path\To\Gothic II"'
-
-Common Gothic installation paths:
-
+Common Gothic installation paths:  
 - "C:\Program Files (x86)\JoWooD\Gothic II"
 - "C:\Gothic II"
 - "C:\Program Files (x86)\Steam\steamapps\common\Gothic II"
 - "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"
+
+##### Build it for Linux
+1. Install dependencies for Ubuntu 20.04:
+
+`sudo apt install git cmake g++ glslang-tools libvulkan-dev libasound2-dev libx11-dev`
+
+2. Clone this repo, including submodules:
+
+`git clone --recurse-submodules https://github.com/Try/OpenGothic.git`
+
+3. Create build dir and build as usual:
+
+`mkdir OpenGothic/build` --> `cd OpenGothic/build` --> `cmake ..` --> `make`
 
 #### Gameplay video
 [![Video](https://img.youtube.com/vi/21OTvuMdwb4/0.jpg)](https://www.youtube.com/watch?v=21OTvuMdwb4) [![Video](https://img.youtube.com/vi/MUVd-ZWliKY/0.jpg)](https://www.youtube.com/watch?v=MUVd-ZWliKY)
