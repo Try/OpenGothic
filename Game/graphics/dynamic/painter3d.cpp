@@ -161,21 +161,3 @@ void Painter3d::draw(const RenderPipeline& pipeline, const Uniforms& ubo,
   enc->setUniforms(pipeline,ubo);
   enc->draw(vbo,ibo);
   }
-
-void Painter3d::draw(const RenderPipeline& pipeline, const Bounds& bbox,
-                     const Uniforms& ubo, uint32_t offset,
-                     const VertexBuffer<Vertex>& vbo, const IndexBuffer<uint32_t>& ibo) {
-  if(!isVisible(bbox))
-    return;
-  enc->setUniforms(pipeline,ubo,1,&offset);
-  enc->draw(vbo,ibo);
-  }
-
-void Painter3d::draw(const RenderPipeline& pipeline, const Bounds& bbox,
-                     const Uniforms& ubo, uint32_t offset,
-                     const VertexBuffer<Painter3d::VertexA>& vbo, const IndexBuffer<uint32_t>& ibo) {
-  if(!isVisible(bbox))
-    return;
-  enc->setUniforms(pipeline,ubo,1,&offset);
-  enc->draw(vbo,ibo);
-  }

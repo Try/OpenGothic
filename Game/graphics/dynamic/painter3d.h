@@ -37,15 +37,6 @@ class Painter3d final {
               const Tempest::VertexBuffer<VertexA>& vbo,
               const Tempest::IndexBuffer<uint32_t>& ibo);
 
-    void draw(const Tempest::RenderPipeline& pipeline, const Bounds& bbox,
-              const Tempest::Uniforms& ubo, uint32_t offset,
-              const Tempest::VertexBuffer<Vertex>& vbo,
-              const Tempest::IndexBuffer<uint32_t>& ibo);
-    void draw(const Tempest::RenderPipeline& pipeline, const Bounds& bbox,
-              const Tempest::Uniforms& ubo, uint32_t offset,
-              const Tempest::VertexBuffer<VertexA>& vbo,
-              const Tempest::IndexBuffer<uint32_t>& ibo);
-
   private:
     struct Frustrum {
       void make(const Tempest::Matrix4x4& m);

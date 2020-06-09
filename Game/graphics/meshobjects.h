@@ -21,9 +21,6 @@ class Light;
 class Painter3d;
 class ObjectsBucket;
 
-template<class Ubo,class Vertex>
-class ObjectsBucket;
-
 class MeshObjects final {
   private:
     using Item = AbstractObjectsBucket::Item;
