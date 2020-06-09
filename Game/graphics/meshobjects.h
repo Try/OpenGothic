@@ -19,6 +19,7 @@ class RendererStorage;
 class Pose;
 class Light;
 class Painter3d;
+class ObjectsBucket;
 
 template<class Ubo,class Vertex>
 class ObjectsBucket;
@@ -87,22 +88,11 @@ class MeshObjects final {
 
     void reserve(size_t stat,size_t dyn);
 
-    //void draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId);
-    //void drawDecals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId);
-    //void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId, int layer=0);
-    void draw      (Painter3d& painter, uint32_t fId);
-    void drawShadow(Painter3d& painter, uint32_t fId, int layer=0);
-
-    void invalidateCmd();
-    bool needToUpdateCommands(uint8_t imgId) const;
-    void setAsUpdated(uint8_t imgId);
+    void draw      (Painter3d& painter, uint8_t fId, const Tempest::Texture2d& shadowMap);
+    void drawShadow(Painter3d& painter, uint8_t fId, int layer=0);
 
     void setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4 *sh, size_t shCount);
     void setLight(const Light &l, const Tempest::Vec3 &ambient);
-
-  private:
-    using Vertex  = Resources::Vertex;
-    using VertexA = Resources::VertexA;
 
     struct UboGlobal final {
       std::array<float,3>           lightDir={{0,0,1}};
@@ -112,6 +102,10 @@ class MeshObjects final {
       std::array<float,4>           lightAmb={{0,0,0}};
       std::array<float,4>           lightCl ={{1,1,1}};
       };
+
+  private:
+    using Vertex  = Resources::Vertex;
+    using VertexA = Resources::VertexA;
 
     struct UboSt final {
       Tempest::Matrix4x4 obj;
@@ -131,19 +125,21 @@ class MeshObjects final {
 
     const RendererStorage&                  storage;
 
-    UboStorage<UboSt>                       storageSt;
-    UboStorage<UboDn>                       storageDn;
-
-    std::list<ObjectsBucket<UboSt,Vertex >> chunksSt;
-    std::list<ObjectsBucket<UboDn,VertexA>> chunksDn;
+    // UboStorage<UboSt>                       storageSt;
+    // UboStorage<UboDn>                       storageDn;
+    //
+    // std::list<ObjectsBucket<UboSt,Vertex >> chunksSt;
+    // std::list<ObjectsBucket<UboDn,VertexA>> chunksDn;
+    std::list<ObjectsBucket>        chunksSt;
+    std::list<ObjectsBucket>        chunksDn;
 
     UboChain<UboGlobal,void>        uboGlobalPf[2];
     UboGlobal                       uboGlobal;
     Tempest::Matrix4x4              shadowView1;
 
-    ObjectsBucket<UboSt,Vertex>&    getBucketSt(const Tempest::Texture2d* mat);
-    ObjectsBucket<UboSt,Vertex>&    getBucketAt(const Tempest::Texture2d* mat);
-    ObjectsBucket<UboDn,VertexA>&   getBucketDn(const Tempest::Texture2d* mat);
+    ObjectsBucket&                 getBucketSt(const Tempest::Texture2d* mat);
+    ObjectsBucket&                 getBucketAt(const Tempest::Texture2d* mat);
+    ObjectsBucket&                 getBucketDn(const Tempest::Texture2d* mat);
 
     Item                            implGet(const StaticMesh& mesh, const StaticMesh::SubMesh& smesh,
                                             int32_t texVar, int32_t teethTex, int32_t bodyColor);

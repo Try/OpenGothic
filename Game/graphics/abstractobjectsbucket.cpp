@@ -1,22 +1,18 @@
 #include "abstractobjectsbucket.h"
 
 void AbstractObjectsBucket::Item::setObjMatrix(const Tempest::Matrix4x4 &mt) {
-  owner->markAsChanged();
   owner->setObjMatrix(id,mt);
   }
 
 void AbstractObjectsBucket::Item::setSkeleton(const Skeleton *sk) {
-  owner->markAsChanged();
   owner->setSkeleton(id,sk);
   }
 
 void AbstractObjectsBucket::Item::setPose(const Pose &p) {
-  owner->markAsChanged();
   owner->setSkeleton(id,p);
   }
 
 void AbstractObjectsBucket::Item::setBounds(const Bounds& bbox) {
-  owner->markAsChanged();
   owner->setBounds(id,bbox);
   }
 

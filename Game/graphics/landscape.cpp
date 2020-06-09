@@ -112,24 +112,24 @@ void Landscape::commitUbo(uint8_t frameId, const Tempest::Texture2d& shadowMap) 
     if(uboS1.isEmpty())
       uboS1 = storage.device.uniforms(storage.uboLndLayout());
 
-    uboL.set(0,pf.uboGpu[0],0,1);
-    uboL.set(2,*lnd.material.tex);
-    uboL.set(3,shadowMap,Resources::shadowSampler());
+    uboL.set(0,*lnd.material.tex);
+    uboL.set(1,shadowMap,Resources::shadowSampler());
+    uboL.set(2,pf.uboGpu[0],0,1);
 
-    uboS0.set(0,pf.uboGpu[0],0,1);
-    uboS0.set(2,*lnd.material.tex);
-    uboS0.set(3,Resources::fallbackTexture(),Sampler2d::nearest());
+    uboS0.set(0,*lnd.material.tex);
+    uboS0.set(1,Resources::fallbackTexture(),Sampler2d::nearest());
+    uboS0.set(2,pf.uboGpu[0],0,1);
 
-    uboS1.set(0,pf.uboGpu[1],0,1);
-    uboS1.set(2,*lnd.material.tex);
-    uboS1.set(3,Resources::fallbackTexture(),Sampler2d::nearest());
+    uboS1.set(0,*lnd.material.tex);
+    uboS1.set(1,Resources::fallbackTexture(),Sampler2d::nearest());
+    uboS1.set(2,pf.uboGpu[1],0,1);
 
     for(int r=0;r<2;++r) {
       if(pf.solidSh[r].isEmpty())
         pf.solidSh[r] = storage.device.uniforms(storage.uboLndLayout());
-      pf.solidSh[r].set(0,pf.uboGpu[r],0,1);
-      pf.solidSh[r].set(2,Resources::fallbackBlack());
-      pf.solidSh[r].set(3,Resources::fallbackTexture(),Sampler2d::nearest());
+      pf.solidSh[r].set(0,Resources::fallbackBlack(),  Sampler2d::nearest());
+      pf.solidSh[r].set(1,Resources::fallbackTexture(),Sampler2d::nearest());
+      pf.solidSh[r].set(2,pf.uboGpu[r],0,1);
       }
     }
   }
@@ -149,7 +149,8 @@ void Landscape::drawShadow(Painter3d& painter, uint8_t frameId, int layer) {
   ptable[Material::ApphaFunc::Transparent] = &storage.pLandSh;
   //ptable[Material::ApphaFunc::Solid      ] = &storage.pLandSh;
 
-  painter.draw(storage.pLandSh,solidsBBox,pf[frameId].solidSh[layer],0,vbo,iboSolid);
+  if(painter.isVisible(solidsBBox))
+    painter.draw(storage.pLandSh,pf[frameId].solidSh[layer],vbo,iboSolid);
 
   implDraw(painter,ptable,uint8_t(1+layer),frameId);
   }
@@ -165,10 +166,12 @@ void Landscape::implDraw(Painter3d& painter,
     auto pso = p[lnd.material.alpha];
     if(pso==nullptr)
       continue;
+    if(!painter.isVisible(lnd.bbox))
+      continue;
 
     auto& ubo=uboLand[i];
     if(ubo.isEmpty())
       continue;
-    painter.draw(*pso,lnd.bbox,ubo,0,vbo,lnd.ibo);
+    painter.draw(*pso,ubo,vbo,lnd.ibo);
     }
   }

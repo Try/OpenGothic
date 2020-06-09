@@ -36,7 +36,7 @@ class WorldView {
                     const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay);
     void updateUbo (uint8_t frameId, const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4* shadow, size_t shCount);
     void drawShadow(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t frameId, uint8_t layer);
-    void drawMain  (Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
+    void drawMain  (Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t frameId, const Tempest::Texture2d& shadow);
     void resetCmd  ();
 
     MeshObjects::Mesh   getView      (const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
@@ -56,10 +56,7 @@ class WorldView {
 
     Sky                     sky;
     Landscape               land;
-    MeshObjects             vobGroup;
     MeshObjects             objGroup;
-    MeshObjects             itmGroup;
-    MeshObjects             decGroup;
     PfxObjects              pfxGroup;
 
     const Tempest::FrameBufferLayout* mainLay   = nullptr;

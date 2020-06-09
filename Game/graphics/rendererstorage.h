@@ -19,6 +19,7 @@ class RendererStorage {
     Tempest::RenderPipeline pComposeShadow;
 
     const Tempest::UniformsLayout& uboObjLayout() const { return layoutObj; }
+    const Tempest::UniformsLayout& uboAniLayout() const { return layoutAni; }
     const Tempest::UniformsLayout& uboLndLayout() const { return layoutLnd; }
     const Tempest::UniformsLayout& uboPfxLayout() const { return layoutLnd; }
     const Tempest::UniformsLayout& uboSkyLayout() const { return layoutSky; }

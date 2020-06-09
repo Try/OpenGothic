@@ -34,21 +34,22 @@ RendererStorage::RendererStorage(Device &device,Gothic& gothic)
   ani   .load(device,"anim");
   pfx   .load(device,"pfx");
 
-  layoutLnd.add(0,UniformsLayout::UboDyn, UniformsLayout::Vertex);
-  layoutLnd.add(2,UniformsLayout::Texture,UniformsLayout::Fragment);
-  layoutLnd.add(3,UniformsLayout::Texture,UniformsLayout::Fragment);
+  layoutLnd.add(0,UniformsLayout::Texture,UniformsLayout::Fragment);
+  layoutLnd.add(1,UniformsLayout::Texture,UniformsLayout::Fragment);
+  layoutLnd.add(2,UniformsLayout::Ubo,    UniformsLayout::Vertex);
 
-  layoutObj.add(0,UniformsLayout::Ubo,    UniformsLayout::Vertex);
-  layoutObj.add(1,UniformsLayout::UboDyn, UniformsLayout::Vertex);
-  layoutObj.add(2,UniformsLayout::Texture,UniformsLayout::Fragment);
-  layoutObj.add(3,UniformsLayout::Texture,UniformsLayout::Fragment);
+  layoutObj.add(0,UniformsLayout::Texture,UniformsLayout::Fragment);
+  layoutObj.add(1,UniformsLayout::Texture,UniformsLayout::Fragment);
+  layoutObj.add(2,UniformsLayout::Ubo,    UniformsLayout::Vertex);
+  layoutObj.add(3,UniformsLayout::Ubo,    UniformsLayout::Vertex);
 
-  layoutAni.add(0,UniformsLayout::Ubo,    UniformsLayout::Vertex);
-  layoutAni.add(1,UniformsLayout::UboDyn, UniformsLayout::Vertex);
-  layoutAni.add(2,UniformsLayout::Texture,UniformsLayout::Fragment);
-  layoutAni.add(3,UniformsLayout::Texture,UniformsLayout::Fragment);
+  layoutAni.add(0,UniformsLayout::Texture,UniformsLayout::Fragment);
+  layoutAni.add(1,UniformsLayout::Texture,UniformsLayout::Fragment);
+  layoutAni.add(2,UniformsLayout::Ubo,    UniformsLayout::Vertex);
+  layoutAni.add(3,UniformsLayout::Ubo,    UniformsLayout::Vertex);
+  layoutAni.add(4,UniformsLayout::Ubo,    UniformsLayout::Vertex);
 
-  layoutSky.add(0,UniformsLayout::UboDyn, UniformsLayout::Fragment);
+  layoutSky.add(0,UniformsLayout::Ubo,    UniformsLayout::Fragment);
   layoutSky.add(1,UniformsLayout::Texture,UniformsLayout::Fragment);
   layoutSky.add(2,UniformsLayout::Texture,UniformsLayout::Fragment);
   layoutSky.add(3,UniformsLayout::Texture,UniformsLayout::Fragment);

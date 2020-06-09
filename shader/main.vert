@@ -5,7 +5,7 @@ out gl_PerVertex {
   vec4 gl_Position;
   };
 
-layout(std140,binding = 0) uniform UboScene {
+layout(std140,binding = 2) uniform UboScene {
   vec3 ldir;
   mat4 mv;
   mat4 shadow;
@@ -13,15 +13,16 @@ layout(std140,binding = 0) uniform UboScene {
   vec4 sunCl;
   } scene;
 
-#if defined(OBJ) || defined(SKINING)
-layout(std140,binding = 1) uniform UboObject {
-#ifdef OBJ
+#if defined(OBJ)
+layout(std140,binding = 3) uniform UboObject {
   mat4 obj;
-#endif
-#ifdef SKINING
-  mat4 skel[96];
-#endif
   } ubo;
+#endif
+
+#if defined(SKINING)
+layout(std140,binding = 4) uniform UboAnim {
+  mat4 skel[96];
+  } anim;
 #endif
 
 #ifdef SKINING
@@ -60,10 +61,10 @@ vec4 vertexPos() {
   vec4 pos1 = vec4(inPos1,1.0);
   vec4 pos2 = vec4(inPos2,1.0);
   vec4 pos3 = vec4(inPos3,1.0);
-  vec4 t0   = ubo.skel[int(inId.x*255.0)]*pos0;
-  vec4 t1   = ubo.skel[int(inId.y*255.0)]*pos1;
-  vec4 t2   = ubo.skel[int(inId.z*255.0)]*pos2;
-  vec4 t3   = ubo.skel[int(inId.w*255.0)]*pos3;
+  vec4 t0   = anim.skel[int(inId.x*255.0)]*pos0;
+  vec4 t1   = anim.skel[int(inId.y*255.0)]*pos1;
+  vec4 t2   = anim.skel[int(inId.z*255.0)]*pos2;
+  vec4 t3   = anim.skel[int(inId.w*255.0)]*pos3;
   return t0*inWeight.x + t1*inWeight.y + t2*inWeight.z + t3*inWeight.w;
 #else
   return vec4(inPos,1.0);
@@ -74,10 +75,10 @@ vec4 normal(){
 #ifdef SKINING
   //vec4 norm = vec4(inNormal.z,inNormal.y,inNormal.x,0.0);
   vec4 norm = vec4(inNormal,0.0);
-  vec4 n0   = ubo.skel[int(inId.x)]*norm;
-  vec4 n1   = ubo.skel[int(inId.y)]*norm;
-  vec4 n2   = ubo.skel[int(inId.z)]*norm;
-  vec4 n3   = ubo.skel[int(inId.w)]*norm;
+  vec4 n0   = anim.skel[int(inId.x)]*norm;
+  vec4 n1   = anim.skel[int(inId.y)]*norm;
+  vec4 n2   = anim.skel[int(inId.z)]*norm;
+  vec4 n3   = anim.skel[int(inId.w)]*norm;
   vec4 n    = (n0*inWeight.x + n1*inWeight.y + n2*inWeight.z + n3*inWeight.w);
   return vec4(n.xyz,0.0);
 #endif

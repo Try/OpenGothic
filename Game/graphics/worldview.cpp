@@ -10,14 +10,10 @@
 using namespace Tempest;
 
 WorldView::WorldView(const World &world, const PackedMesh &wmesh, const RendererStorage &storage)
-  :owner(world),storage(storage),sky(storage),land(storage,wmesh),
-    vobGroup(storage),objGroup(storage),itmGroup(storage),decGroup(storage),pfxGroup(storage) {
+  : owner(world),storage(storage),sky(storage),land(storage,wmesh),
+    objGroup(storage),pfxGroup(storage) {
   sky.setWorld(owner);
-  vobGroup.reserve(8192,0);
-  objGroup.reserve(8192,2048);
-  itmGroup.reserve(8192,0);
   pfxGroup.resetTicks();
-
   sun.setDir(1,-1,1);
   }
 
@@ -63,24 +59,16 @@ void WorldView::drawShadow(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painte
   cmd.exec(frame[fId].cmdShadow   [layer]);
 
   land    .drawShadow(painter,fId,layer);
-  vobGroup.drawShadow(painter,fId,layer);
   objGroup.drawShadow(painter,fId,layer);
-  if(layer==0) {
-    itmGroup.drawShadow(painter,fId,layer);
-    decGroup.drawShadow(painter,fId,layer);
-    }
   painter.commit(cmd);
   }
 
-void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId) {
+void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId, const Tempest::Texture2d& shadow) {
   if(!frame[fId].actual)
     return;
 
   land    .draw(painter,fId);
-  vobGroup.draw(painter,fId);
-  objGroup.draw(painter,fId);
-  itmGroup.draw(painter,fId);
-  decGroup.draw(painter,fId);
+  objGroup.draw(painter,fId,shadow);
   painter.commit(cmd);
 
   cmd.exec(frame[fId].cmdMain);
@@ -94,7 +82,7 @@ MeshObjects::Mesh WorldView::getView(const char* visual, int32_t headTex, int32_
 
 MeshObjects::Mesh WorldView::getItmView(const char* visual, int32_t material) {
   if(auto mesh=Resources::loadMesh(visual))
-    return itmGroup.get(*mesh,material,0,0);
+    return objGroup.get(*mesh,material,0,0);
   return MeshObjects::Mesh();
   }
 
@@ -104,14 +92,14 @@ MeshObjects::Mesh WorldView::getAtachView(const ProtoMesh::Attach& visual) {
 
 MeshObjects::Mesh WorldView::getStaticView(const char* visual) {
   if(auto mesh=Resources::loadMesh(visual))
-    return vobGroup.get(*mesh,0,0,0);
+    return objGroup.get(*mesh,0,0,0);
   return MeshObjects::Mesh();
   }
 
 MeshObjects::Mesh WorldView::getDecalView(const ZenLoad::zCVobData& vob,
                                           const Tempest::Matrix4x4& obj, ProtoMesh& out) {
   out = owner.physic()->decalMesh(vob,obj);
-  return decGroup.get(out,0,0,0);
+  return objGroup.get(out,0,0,0);
   }
 
 PfxObjects::Emitter WorldView::getView(const ParticleFx *decl) {
@@ -164,10 +152,6 @@ void WorldView::resetCmd() {
   for(auto& i:frame)
     i.actual=false;
   land    .invalidateCmd();
-  vobGroup.invalidateCmd();
-  objGroup.invalidateCmd();
-  itmGroup.invalidateCmd();
-  decGroup.invalidateCmd();
   pfxGroup.invalidateCmd();
   sky     .invalidateCmd();
 
@@ -176,12 +160,7 @@ void WorldView::resetCmd() {
   }
 
 bool WorldView::needToUpdateCmd(uint8_t frameId) const {
-  return land    .needToUpdateCommands(frameId) ||
-         vobGroup.needToUpdateCommands(frameId) ||
-         objGroup.needToUpdateCommands(frameId) ||
-         itmGroup.needToUpdateCommands(frameId) ||
-         decGroup.needToUpdateCommands(frameId) ||
-         pfxGroup.needToUpdateCommands(frameId) ||
+  return pfxGroup.needToUpdateCommands(frameId) ||
          sky     .needToUpdateCommands(frameId);
   }
 
@@ -214,14 +193,8 @@ void WorldView::updateUbo(uint8_t frameId, const Matrix4x4& view, const Tempest:
   land.setMatrix(frameId,viewProj,shadow,shCount);
   land.setLight (sun,ambient);
 
-  vobGroup.setModelView(viewProj,shadow,shCount);
-  vobGroup.setLight    (sun,ambient);
   objGroup.setModelView(viewProj,shadow,shCount);
   objGroup.setLight    (sun,ambient);
-  itmGroup.setModelView(viewProj,shadow,shCount);
-  itmGroup.setLight    (sun,ambient);
-  decGroup.setModelView(viewProj,shadow,shCount);
-  decGroup.setLight    (sun,ambient);
   pfxGroup.setModelView(viewProj,shadow[0]);
   pfxGroup.setLight    (sun,ambient);
   }
@@ -239,10 +212,7 @@ void WorldView::builtCmdBuf(uint8_t frameId, const World &world,
   sky     .commitUbo(frameId);
   land    .commitUbo(frameId,smTexture);
 
-  vobGroup.commitUbo(frameId,smTexture);
   objGroup.commitUbo(frameId,smTexture);
-  itmGroup.commitUbo(frameId,smTexture);
-  decGroup.commitUbo(frameId,smTexture);
   pfxGroup.commitUbo(frameId,smTexture);
 
   if(!pf.actual || nToUpdate) {
@@ -258,9 +228,5 @@ void WorldView::builtCmdBuf(uint8_t frameId, const World &world,
 
   sky     .setAsUpdated(frameId);
   land    .setAsUpdated(frameId);
-  vobGroup.setAsUpdated(frameId);
-  objGroup.setAsUpdated(frameId);
-  itmGroup.setAsUpdated(frameId);
-  decGroup.setAsUpdated(frameId);
   pfxGroup.setAsUpdated(frameId);
   }

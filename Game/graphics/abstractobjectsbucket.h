@@ -54,7 +54,6 @@ class AbstractObjectsBucket {
         size_t                 id=0;
       };
 
-    virtual size_t getNextId()=0;
     virtual void   free(const size_t objId)=0;
 
     virtual void   setObjMatrix(size_t i,const Tempest::Matrix4x4& m)=0;
@@ -64,7 +63,4 @@ class AbstractObjectsBucket {
 
     virtual const Tempest::Texture2d& texture() const = 0;
     virtual void draw(size_t id,Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) = 0;
-
-  protected:
-    virtual void markAsChanged()=0;
   };

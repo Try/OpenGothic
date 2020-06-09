@@ -1,8 +1,8 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(binding = 2) uniform sampler2D textureD;
-layout(binding = 3) uniform sampler2D textureSm;
+layout(binding = 0) uniform sampler2D textureD;
+layout(binding = 1) uniform sampler2D textureSm;
 
 #ifdef SHADOW_MAP
 layout(location = 0) in vec2 inUV;

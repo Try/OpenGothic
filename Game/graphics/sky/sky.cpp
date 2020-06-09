@@ -83,8 +83,7 @@ void Sky::commitUbo(uint8_t frameId) {
   }
 
 void Sky::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t frameId, const World&) {
-  uint32_t offset=0;
-  cmd.setUniforms(storage.pSky,uboGpu.desc(frameId),1,&offset);
+  cmd.setUniforms(storage.pSky,uboGpu.desc(frameId));
   cmd.draw(Resources::fsqVbo());
   }
 

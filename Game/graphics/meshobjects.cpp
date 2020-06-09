@@ -27,26 +27,6 @@ MeshObjects::MeshObjects(const RendererStorage &storage)
 MeshObjects::~MeshObjects() {
   }
 
-bool MeshObjects::needToUpdateCommands(uint8_t fId) const {
-  if(storageSt.needToRealloc(fId) || storageDn.needToRealloc(fId))
-    return true;
-
-  for(auto& i:chunksSt)
-    if(i.needToUpdateCommands(fId))
-      return true;
-  for(auto& i:chunksDn)
-    if(i.needToUpdateCommands(fId))
-      return true;
-  return false;
-  }
-
-void MeshObjects::setAsUpdated(uint8_t fId) {
-  for(auto& i:chunksSt)
-    i.setAsUpdated(fId);
-  for(auto& i:chunksDn)
-    i.setAsUpdated(fId);
-  }
-
 void MeshObjects::setModelView(const Tempest::Matrix4x4 &m, const Tempest::Matrix4x4 *sh, size_t shCount) {
   assert(shCount==2);
 
@@ -64,25 +44,21 @@ void MeshObjects::setLight(const Light &l,const Tempest::Vec3& ambient) {
   uboGlobal.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
   }
 
-ObjectsBucket<MeshObjects::UboSt,Resources::Vertex> &MeshObjects::getBucketSt(const Tempest::Texture2d *mat) {
-  auto& device=storage.device;
-
+ObjectsBucket& MeshObjects::getBucketSt(const Tempest::Texture2d *mat) {
   for(auto& i:chunksSt)
     if(&i.texture()==mat)
       return i;
 
-  chunksSt.emplace_back(mat,storage.uboObjLayout(),device,storageSt);
+  chunksSt.emplace_back(mat,storage,ObjectsBucket::Static);
   return chunksSt.back();
   }
 
-ObjectsBucket<MeshObjects::UboDn,Resources::VertexA> &MeshObjects::getBucketDn(const Tempest::Texture2d *mat) {
-  auto& device=storage.device;
-
+ObjectsBucket& MeshObjects::getBucketDn(const Tempest::Texture2d *mat) {
   for(auto& i:chunksDn)
     if(&i.texture()==mat)
       return i;
 
-  chunksDn.emplace_back(mat,storage.uboObjLayout(),device,storageDn);
+  chunksDn.emplace_back(mat,storage,ObjectsBucket::Animated);
   return chunksDn.back();
   }
 
@@ -198,16 +174,16 @@ MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_
   }
 
 void MeshObjects::commitUbo(uint8_t fId,const Tempest::Texture2d& shadowMap) {
-  auto& device=storage.device;
+  //auto& device=storage.device;
 
-  const bool reallocSt = storageSt.commitUbo(device,fId);
-  const bool reallocDn = storageDn.commitUbo(device,fId);
+  //const bool reallocSt = storageSt.commitUbo(device,fId);
+  //const bool reallocDn = storageDn.commitUbo(device,fId);
 
   uboGlobalPf[0].update(uboGlobal,fId);
   auto ubo2 = uboGlobal;
   ubo2.shadowView = shadowView1;
   uboGlobalPf[1].update(ubo2,fId);
-
+/*
 
   for(auto& i:chunksSt){
     if(!reallocSt && !i.needToUpdateCommands(fId))
@@ -248,32 +224,26 @@ void MeshObjects::commitUbo(uint8_t fId,const Tempest::Texture2d& shadowMap) {
       ubo.set(3,Resources::fallbackTexture(),Tempest::Sampler2d::nearest());
       }
     }
+  */
   }
 
 void MeshObjects::reserve(size_t stat, size_t dyn) {
-  storageSt.reserve(stat);
-  storageDn.reserve(dyn);
+  // storageSt.reserve(stat);
+  // storageDn.reserve(dyn);
   }
 
-void MeshObjects::draw(Painter3d& painter, uint32_t fId) {
+void MeshObjects::draw(Painter3d& painter, uint8_t fId, const Tempest::Texture2d& shadowMap) {
   for(auto& c:chunksSt)
-    c.draw(painter,storage.pObject,fId);
+    c.draw(painter,fId,uboGlobalPf[0][fId],shadowMap);
   for(auto& c:chunksDn)
-    c.draw(painter,storage.pAnim,fId);
+    c.draw(painter,fId,uboGlobalPf[0][fId],shadowMap);
   }
 
-void MeshObjects::drawShadow(Painter3d& painter, uint32_t fId, int layer) {
+void MeshObjects::drawShadow(Painter3d& painter, uint8_t fId, int layer) {
   for(auto& c:chunksSt)
-    c.drawShadow(painter,storage.pObjectSh,fId,layer);
+    c.drawShadow(painter,fId,uboGlobalPf[layer][fId],layer);
   for(auto& c:chunksDn)
-    c.drawShadow(painter,storage.pAnimSh,fId,layer);
-  }
-
-void MeshObjects::invalidateCmd() {
-  for(auto& c:chunksSt)
-    c.invalidateCmd();
-  for(auto& c:chunksDn)
-    c.invalidateCmd();
+    c.drawShadow(painter,fId,uboGlobalPf[layer][fId],layer);
   }
 
 void MeshObjects::Mesh::setSkeleton(const Skeleton *sk) {

@@ -2,7 +2,6 @@
 
 #include "rendererstorage.h"
 #include "world/item.h"
-#include "objectsbucket.h"
 #include "light.h"
 
 #include <Tempest/Application>

@@ -139,7 +139,7 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const 
   cmd.setPass(fbo,mainPass);
   painter.setPass(fbo,frameId);
   painter.setFrustrum(wview->viewProj(view));
-  wview->drawMain(cmd,painter,frameId);
+  wview->drawMain(cmd,painter,frameId,textureCast(shadowMapFinal));
   }
 
 void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, InventoryMenu &inventory) {

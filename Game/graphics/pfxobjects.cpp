@@ -509,17 +509,16 @@ void PfxObjects::commitUbo(uint8_t frameId, const Texture2d& shadowMap) {
 
   for(auto& i:bucket) {
     auto& pf = i.pf[frameId];
-    pf.ubo.set(0,uboGlobalPf[frameId],0,1);
-    pf.ubo.set(2,*i.owner->visName_S);
-    pf.ubo.set(3,shadowMap,Resources::shadowSampler());
+    pf.ubo.set(0,*i.owner->visName_S);
+    pf.ubo.set(1,shadowMap,Resources::shadowSampler());
+    pf.ubo.set(2,uboGlobalPf[frameId],0,1);
     }
   }
 
 void PfxObjects::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId) {
   for(auto& i:bucket) {
     auto& pf = i.pf[imgId];
-    uint32_t offset=0;
-    cmd.setUniforms(storage.pPfx,pf.ubo,1,&offset);
+    cmd.setUniforms(storage.pPfx,pf.ubo);
     cmd.draw(pf.vbo);
     }
   }
