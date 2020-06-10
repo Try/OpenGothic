@@ -25,9 +25,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
       Animated,
       };
 
-    using UboGlobal = MeshObjects::UboGlobal;
-
-    ObjectsBucket(const Tempest::Texture2d* tex, const RendererStorage& storage, const Type type);
+    ObjectsBucket(const Tempest::Texture2d* tex, const SceneGlobals& scene, const Type type);
     ~ObjectsBucket();
 
     const Tempest::Texture2d& texture() const;
@@ -41,10 +39,10 @@ class ObjectsBucket : public AbstractObjectsBucket {
                                     const Bounds& bounds);
     void                      free(const size_t objId);
 
-    void                      draw      (Painter3d& painter, uint8_t fId, const Tempest::UniformBuffer<UboGlobal>& uboGlobal, const Tempest::Texture2d& shadowMap);
-    void                      drawShadow(Painter3d& painter, uint8_t fId, const Tempest::UniformBuffer<UboGlobal>& uboGlobal, int layer=0);
-    void                      draw      (size_t id, Tempest::Encoder<Tempest::CommandBuffer> &cmd,
-                                         const Tempest::RenderPipeline &pipeline, uint32_t fId);
+    void                      setupUbo();
+    void                      draw      (Painter3d& painter, uint8_t fId);
+    void                      drawShadow(Painter3d& painter, uint8_t fId, int layer=0);
+    void                      draw      (size_t id, Painter3d& p, uint32_t fId);
 
   private:
     struct Object {
@@ -52,10 +50,10 @@ class ObjectsBucket : public AbstractObjectsBucket {
       const Tempest::VertexBuffer<VertexA>* vboA = nullptr;
       const Tempest::IndexBuffer<uint32_t>* ibo  = nullptr;
       Bounds                                bounds;
-      size_t                                storageSt = 0;
-      size_t                                storageSk = 0;
+      size_t                                storageSt = size_t(-1);
+      size_t                                storageSk = size_t(-1);
       Tempest::Uniforms                     ubo  [Resources::MaxFramesInFlight];
-      Tempest::Uniforms                     uboSh[Resources::MaxFramesInFlight];
+      Tempest::Uniforms                     uboSh[Resources::MaxFramesInFlight][Resources::ShadowLayers];
       };
 
     struct SkMatrix final {
@@ -68,7 +66,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
     UboStorage<Tempest::Matrix4x4> storageSt;
     UboStorage<SkMatrix>           storageSk;
 
-    const RendererStorage&    storage;
+    const SceneGlobals&       scene;
     const Tempest::Texture2d* tex = nullptr;
     const Type                shaderType;
 

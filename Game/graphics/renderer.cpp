@@ -123,9 +123,8 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const 
     }
 
   painter.reset();
-  wview->updateUbo(frameId,view,shadow,2);
-
-  wview->updateCmd(frameId,*gothic.world(),swapchain.frame(frameId),shadowMapFinal,fbo.layout(),fboShadow->layout());
+  wview->setModelView(view,shadow,2);
+  wview->setFrameGlobals(textureCast(shadowMapFinal),gothic.world()->tickCount(),frameId);
 
   for(uint8_t i=0;i<2;++i) {
     cmd.setPass(fboShadow[i],shadowPass);
@@ -139,14 +138,14 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const 
   cmd.setPass(fbo,mainPass);
   painter.setPass(fbo,frameId);
   painter.setFrustrum(wview->viewProj(view));
-  wview->drawMain(cmd,painter,frameId,textureCast(shadowMapFinal));
+  wview->drawMain(cmd,painter,frameId);
   }
 
 void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, InventoryMenu &inventory) {
   if(inventory.isOpen()==InventoryMenu::State::Closed)
     return;
   cmd.setPass(fbo,inventoryPass);
-  inventory.draw(cmd,swapchain.frameId());
+  inventory.draw(fbo,cmd,swapchain.frameId());
   }
 
 void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, VectorImage& surface) {
@@ -173,7 +172,6 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   PrimaryCommandBuffer cmd;
   {
   auto enc = cmd.startEncoding(device);
-
   draw(enc,fbo,gothic,frameId);
   }
 

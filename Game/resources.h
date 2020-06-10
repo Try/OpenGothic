@@ -46,7 +46,8 @@ class Resources final {
       };
 
     enum {
-      MaxFramesInFlight = 2
+      MaxFramesInFlight = 2,
+      ShadowLayers      = 2
       };
 
     static const size_t MAX_NUM_SKELETAL_NODES = 96;

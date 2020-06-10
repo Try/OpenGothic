@@ -10,11 +10,10 @@
 using namespace Tempest;
 
 WorldView::WorldView(const World &world, const PackedMesh &wmesh, const RendererStorage &storage)
-  : owner(world),storage(storage),sky(storage),land(storage,wmesh),
-    objGroup(storage),pfxGroup(storage) {
+  : owner(world),storage(storage),sGlobal(storage),
+    sky(sGlobal),land(sGlobal,wmesh),objGroup(sGlobal),pfxGroup(sGlobal) {
   sky.setWorld(owner);
   pfxGroup.resetTicks();
-  sun.setDir(1,-1,1);
   }
 
 WorldView::~WorldView() {
@@ -26,7 +25,6 @@ void WorldView::initPipeline(uint32_t w, uint32_t h) {
   proj.perspective(45.0f, float(w)/float(h), 0.05f, 100.0f);
   vpWidth  = w;
   vpHeight = h;
-  invalidateCmd();
   }
 
 Matrix4x4 WorldView::viewProj(const Matrix4x4 &view) const {
@@ -36,7 +34,7 @@ Matrix4x4 WorldView::viewProj(const Matrix4x4 &view) const {
   }
 
 const Light &WorldView::mainLight() const {
-  return sun;
+  return sGlobal.sun;
   }
 
 void WorldView::tick(uint64_t /*dt*/) {
@@ -50,28 +48,41 @@ void WorldView::setupSunDir(float pulse,float ang) {
   float a  = 360-360*ang;
   a = a*float(M_PI/180.0);
 
-  sun.setDir(std::cos(a),std::min(0.9f,-1.0f*pulse),std::sin(a));
+  sGlobal.sun.setDir(std::cos(a),std::min(0.9f,-1.0f*pulse),std::sin(a));
+  }
+
+void WorldView::setModelView(const Matrix4x4& view, const Tempest::Matrix4x4* shadow, size_t shCount) {
+  updateLight();
+  sGlobal.setModelView(viewProj(view),shadow,shCount);
+  }
+
+void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uint8_t fId) {
+  if(&shadow!=sGlobal.shadowMap) {
+    // wait before update all descriptors
+    sGlobal.storage.device.waitIdle();
+    sGlobal.shadowMap = &shadow;
+    land    .setupUbo();
+    objGroup.setupUbo();
+    pfxGroup.setupUbo();
+    }
+  sGlobal.tickCount = tickCount;
+  pfxGroup.tick(tickCount);
+  sGlobal.commitUbo(fId);
   }
 
 void WorldView::drawShadow(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId, uint8_t layer) {
-  if(!frame[fId].actual)
-    return;
-  cmd.exec(frame[fId].cmdShadow   [layer]);
-
   land    .drawShadow(painter,fId,layer);
   objGroup.drawShadow(painter,fId,layer);
   painter.commit(cmd);
   }
 
-void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId, const Tempest::Texture2d& shadow) {
-  if(!frame[fId].actual)
-    return;
-
+void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId) {
   land    .draw(painter,fId);
-  objGroup.draw(painter,fId,shadow);
-  painter.commit(cmd);
+  objGroup.draw(painter,fId);
+  sky     .draw(painter,fId);
+  pfxGroup.draw(painter,fId);
 
-  cmd.exec(frame[fId].cmdMain);
+  painter.commit(cmd);
   }
 
 MeshObjects::Mesh WorldView::getView(const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
@@ -139,94 +150,16 @@ void WorldView::updateLight() {
 
   float a  = std::max(0.f,std::min(pulse*3.f,1.f));
   auto clr = Vec3(0.75f,0.75f,0.75f)*a;
-  ambient  = Vec3(0.2f,0.2f,0.3f)*(1.f-a)+Vec3(0.25f,0.25f,0.25f)*a;
+  sGlobal.ambient  = Vec3(0.2f,0.2f,0.3f)*(1.f-a)+Vec3(0.25f,0.25f,0.25f)*a;
 
   setupSunDir(pulse,std::fmod(k+0.25f,1.f));
-  sun.setColor(clr);
+  sGlobal.sun.setColor(clr);
   sky.setDayNight(std::min(std::max(pulse*3.f,0.f),1.f));
   }
 
 void WorldView::resetCmd() {
   // cmd buffers must not be in use
   storage.device.waitIdle();
-  for(auto& i:frame)
-    i.actual=false;
-  land    .invalidateCmd();
-  pfxGroup.invalidateCmd();
-  sky     .invalidateCmd();
-
   mainLay   = nullptr;
   shadowLay = nullptr;
-  }
-
-bool WorldView::needToUpdateCmd(uint8_t frameId) const {
-  return pfxGroup.needToUpdateCommands(frameId) ||
-         sky     .needToUpdateCommands(frameId);
-  }
-
-void WorldView::invalidateCmd() {
-  for(auto& i:frame)
-    i.actual=false;
-  }
-
-void WorldView::updateCmd(uint8_t frameId, const World &world,
-                          const Attachment& main, const Tempest::Attachment& shadow,
-                          const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay) {
-  if(this->mainLay  ==nullptr || mainLay  !=*this->mainLay ||
-     this->shadowLay==nullptr || shadowLay!=*this->shadowLay) {
-    this->mainLay   = &mainLay;
-    this->shadowLay = &shadowLay;
-    invalidateCmd();
-    }
-
-  pfxGroup.tick(world.tickCount());
-  builtCmdBuf(frameId,world,main,shadow,mainLay,shadowLay);
-  }
-
-void WorldView::updateUbo(uint8_t frameId, const Matrix4x4& view, const Tempest::Matrix4x4* shadow, size_t shCount) {
-  updateLight();
-
-  auto viewProj=this->viewProj(view);
-  sky .setMatrix(frameId,viewProj);
-  sky .setLight (sun.dir());
-
-  land.setMatrix(frameId,viewProj,shadow,shCount);
-  land.setLight (sun,ambient);
-
-  objGroup.setModelView(viewProj,shadow,shCount);
-  objGroup.setLight    (sun,ambient);
-  pfxGroup.setModelView(viewProj,shadow[0]);
-  pfxGroup.setLight    (sun,ambient);
-  }
-
-void WorldView::builtCmdBuf(uint8_t frameId, const World &world,
-                            const Attachment& main, const Attachment& shadowMap,
-                            const FrameBufferLayout& mainLay,const FrameBufferLayout& shadowLay) {
-  (void)shadowLay;
-
-  auto&      device    = storage.device;
-  auto&      pf        = frame[frameId];
-  const bool nToUpdate = needToUpdateCmd(frameId);
-  auto&      smTexture = textureCast(shadowMap);
-
-  sky     .commitUbo(frameId);
-  land    .commitUbo(frameId,smTexture);
-
-  objGroup.commitUbo(frameId,smTexture);
-  pfxGroup.commitUbo(frameId,smTexture);
-
-  if(!pf.actual || nToUpdate) {
-    pf.actual=true;
-
-    // main draw
-    {
-    auto cmd    = pf.cmdMain.startEncoding(device,mainLay,main.w(),main.h());
-    sky     .draw(cmd,frameId,world);
-    pfxGroup.draw(cmd,frameId);
-    }
-    }
-
-  sky     .setAsUpdated(frameId);
-  land    .setAsUpdated(frameId);
-  pfxGroup.setAsUpdated(frameId);
   }

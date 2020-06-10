@@ -10,8 +10,10 @@
 #include "resources.h"
 #include "ubochain.h"
 
+class SceneGlobals;
 class RendererStorage;
 class ParticleFx;
+class Painter3d;
 class Light;
 class Pose;
 
@@ -20,7 +22,7 @@ class PfxObjects final {
     struct Bucket;
 
   public:
-    PfxObjects(const RendererStorage& storage);
+    PfxObjects(const SceneGlobals& scene);
     ~PfxObjects();
 
     class Emitter final {
@@ -51,32 +53,16 @@ class PfxObjects final {
     Emitter get(const ParticleFx& decl);
     Emitter get(const Tempest::Texture2d* spr, const ZenLoad::zCVobData& vob);
 
-    void    setModelView(const Tempest::Matrix4x4 &m, const Tempest::Matrix4x4 &shadow);
-    void    setLight(const Light &l, const Tempest::Vec3 &ambient);
     void    setViewerPos(const Tempest::Vec3& pos);
-
-    void    invalidateCmd();
-    bool    needToUpdateCommands(uint8_t fId) const;
-    void    setAsUpdated(uint8_t fId);
 
     void    resetTicks();
     void    tick(uint64_t ticks);
 
-    void    commitUbo(uint8_t frameId, const Tempest::Texture2d& shadowMap);
-    void    draw     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId);
+    void    setupUbo();
+    void    draw     (Painter3d& p, uint32_t fId);
 
   private:
     using Vertex = Resources::Vertex;
-
-    //FIXME: copypaste
-    struct UboGlobal final {
-      std::array<float,3>           lightDir={{0,0,1}};
-      float                         padding=0;
-      Tempest::Matrix4x4            modelView;
-      Tempest::Matrix4x4            shadowView;
-      std::array<float,4>           lightAmb={{0,0,0}};
-      std::array<float,4>           lightCl ={{1,1,1}};
-      };
 
     struct PerFrame final {
       Tempest::Uniforms                ubo;
@@ -167,7 +153,7 @@ class PfxObjects final {
     void                          tickSysEmit(Bucket& b, Block&  p, uint64_t emited);
     void                          buildVbo(Bucket& b, const VboContext& ctx);
 
-    const RendererStorage&        storage;
+    const SceneGlobals&           scene;
     std::mutex                    sync;
     std::list<Bucket>             bucket;
     std::vector<SpriteEmitter>    spriteEmit;
@@ -175,8 +161,5 @@ class PfxObjects final {
     Tempest::Vec3                 viewePos={};
 
     static std::mt19937           rndEngine;
-    UboChain<UboGlobal,void>      uboGlobalPf;
-    UboGlobal                     uboGlobal;
     uint64_t                      lastUpdate=0;
-    bool                          updateCmd[Resources::MaxFramesInFlight]={};
   };

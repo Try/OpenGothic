@@ -1,9 +1,11 @@
 #include "pfxobjects.h"
+#include "sceneglobals.h"
 
 #include <cstring>
 #include <cassert>
 
 #include "graphics/submesh/pfxemittermesh.h"
+#include "graphics/dynamic/painter3d.h"
 #include "light.h"
 #include "particlefx.h"
 #include "pose.h"
@@ -92,8 +94,14 @@ void PfxObjects::Emitter::setObjMatrix(const Matrix4x4 &mt) {
 
 PfxObjects::Bucket::Bucket(const RendererStorage &storage, const ParticleFx &ow, PfxObjects *parent)
   :owner(&ow), parent(parent) {
-  for(auto& i:pf)
+  auto& scene = parent->scene;
+  for(size_t fId=0;fId<Resources::MaxFramesInFlight;++fId) {
+    auto& i = pf[fId];
     i.ubo = storage.device.uniforms(storage.uboPfxLayout());
+    i.ubo.set(0,*owner->visName_S);
+    i.ubo.set(1,*scene.shadowMap,Resources::shadowSampler());
+    i.ubo.set(2,scene.uboGlobalPf[fId][0],0,1);
+    }
 
   uint64_t lt      = ow.maxLifetime();
   uint64_t pps     = uint64_t(std::ceil(ow.maxPps()));
@@ -116,7 +124,6 @@ size_t PfxObjects::Bucket::allocBlock() {
 
   particles.resize(particles.size()+blockSize);
   vbo.resize(particles.size()*6);
-  parent->invalidateCmd();
 
   for(size_t i=0; i<blockSize; ++i)
     particles[i].life = 0;
@@ -180,7 +187,6 @@ bool PfxObjects::Bucket::shrink() {
   if(particles.size()!=block.size()*blockSize) {
     particles.resize(block.size()*blockSize);
     vbo.resize(particles.size()*6);
-    parent->invalidateCmd();
     return true;
     }
   return false;
@@ -392,8 +398,8 @@ float PfxObjects::ParState::lifeTime() const {
   return 1.f-life/float(maxLife);
   }
 
-PfxObjects::PfxObjects(const RendererStorage& storage)
-  :storage(storage),uboGlobalPf(storage.device) {
+PfxObjects::PfxObjects(const SceneGlobals& scene)
+  :scene(scene) {
   }
 
 PfxObjects::~PfxObjects() {
@@ -413,30 +419,8 @@ PfxObjects::Emitter PfxObjects::get(const Texture2d* spr, const ZenLoad::zCVobDa
   return Emitter(b,e);
   }
 
-void PfxObjects::setModelView(const Tempest::Matrix4x4 &m,const Tempest::Matrix4x4 &shadow) {
-  uboGlobal.modelView  = m;
-  uboGlobal.shadowView = shadow;
-  }
-
-void PfxObjects::setLight(const Light &l, const Vec3 &ambient) {
-  auto  d = l.dir();
-  auto& c = l.color();
-
-  uboGlobal.lightDir = {-d[0],-d[1],-d[2]};
-  uboGlobal.lightCl  = {c.x,c.y,c.z,0.f};
-  uboGlobal.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
-  }
-
 void PfxObjects::setViewerPos(const Vec3& pos) {
   viewePos = pos;
-  }
-
-bool PfxObjects::needToUpdateCommands(uint8_t fId) const {
-  return updateCmd[fId];
-  }
-
-void PfxObjects::setAsUpdated(uint8_t fId) {
-  updateCmd[fId]=false;
   }
 
 void PfxObjects::resetTicks() {
@@ -454,7 +438,7 @@ void PfxObjects::tick(uint64_t ticks) {
     return;
 
   VboContext ctx;
-  const auto& m = uboGlobal.modelView;
+  const auto& m = scene.uboGlobal.modelView;
   for(int i=0;i<3;++i) {
     ctx.left[i] = m.at(i,0);
     ctx.top [i] = m.at(i,1);
@@ -486,40 +470,34 @@ void PfxObjects::tick(uint64_t ticks) {
   lastUpdate = ticks;
   }
 
-void PfxObjects::commitUbo(uint8_t frameId, const Texture2d& shadowMap) {
-  size_t pfCount = storage.device.maxFramesInFlight();
-  bucket.remove_if([pfCount](const Bucket& b) {
-    for(size_t i=0;i<pfCount;++i) {
+void PfxObjects::setupUbo() {
+  for(auto& i:bucket) {
+    for(size_t fId=0;fId<Resources::MaxFramesInFlight;++fId) {
+      auto& pf = i.pf[fId];
+      pf.ubo.set(0,*i.owner->visName_S);
+      pf.ubo.set(1,*scene.shadowMap,Resources::shadowSampler());
+      pf.ubo.set(2,scene.uboGlobalPf[fId][0],0,1);
+      }
+    }
+  }
+
+void PfxObjects::draw(Painter3d& p, uint32_t fId) {
+  bucket.remove_if([](const Bucket& b) {
+    for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
       if(b.pf[i].vbo.size()>0)
         return false;
       }
     return b.impl.size()==0;
     });
 
-  uboGlobalPf.update(uboGlobal,frameId);
+  auto& device = scene.storage.device;
   for(auto& i:bucket) {
-    auto& pf = i.pf[frameId];
+    auto& pf = i.pf[fId];
+
     if(i.vbo.size()!=pf.vbo.size())
-      pf.vbo = storage.device.vboDyn(i.vbo); else
+      pf.vbo = device.vboDyn(i.vbo); else
       pf.vbo.update(i.vbo);
-    }
-
-  if(!updateCmd[frameId])
-    return;
-
-  for(auto& i:bucket) {
-    auto& pf = i.pf[frameId];
-    pf.ubo.set(0,*i.owner->visName_S);
-    pf.ubo.set(1,shadowMap,Resources::shadowSampler());
-    pf.ubo.set(2,uboGlobalPf[frameId],0,1);
-    }
-  }
-
-void PfxObjects::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId) {
-  for(auto& i:bucket) {
-    auto& pf = i.pf[imgId];
-    cmd.setUniforms(storage.pPfx,pf.ubo);
-    cmd.draw(pf.vbo);
+    p.draw(scene.storage.pPfx,pf.ubo,pf.vbo);
     }
   }
 
@@ -535,7 +513,7 @@ PfxObjects::Bucket &PfxObjects::getBucket(const ParticleFx &ow) {
   for(auto& i:bucket)
     if(i.owner==&ow)
       return i;
-  bucket.push_front(Bucket(storage,ow,this));
+  bucket.push_front(Bucket(scene.storage,ow,this));
   return *bucket.begin();
   }
 
@@ -733,9 +711,4 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
         }
       }
     }
-  }
-
-void PfxObjects::invalidateCmd() {
-  for(auto& i:updateCmd)
-    i=true;
   }

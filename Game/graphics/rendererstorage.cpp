@@ -26,7 +26,7 @@ void RendererStorage::Material::load(Device &device, const char *f) {
   shadow.load(device,f,"%s_shadow.%s.sprv");
   }
 
-RendererStorage::RendererStorage(Device &device,Gothic& gothic)
+RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   :device(device) {
   land  .load(device,"land");
   landAt.load(device,"land_at");

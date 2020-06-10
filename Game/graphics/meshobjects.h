@@ -15,7 +15,7 @@
 #include "ubochain.h"
 #include "ubostorage.h"
 
-class RendererStorage;
+class SceneGlobals;
 class Pose;
 class Light;
 class Painter3d;
@@ -26,7 +26,7 @@ class MeshObjects final {
     using Item = AbstractObjectsBucket::Item;
 
   public:
-    MeshObjects(const RendererStorage& storage);
+    MeshObjects(const SceneGlobals& globals);
     ~MeshObjects();
 
     class Mesh;
@@ -37,7 +37,7 @@ class MeshObjects final {
         Node(Node&&)=default;
 
         const Tempest::Texture2d &texture() const;
-        void                      draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, const Tempest::RenderPipeline &pipeline, uint32_t imgId) const;
+        void                      draw(Painter3d &p, uint32_t imgId) const;
 
       private:
         Node(const Item* it):it(it){}
@@ -81,62 +81,18 @@ class MeshObjects final {
     Mesh get(const StaticMesh& mesh,int32_t headTexVar,int32_t teethTex,int32_t bodyColor);
     Mesh get(const ProtoMesh&  mesh,int32_t headTexVar,int32_t teethTex,int32_t bodyColor);
 
-    void commitUbo(uint8_t fId, const Tempest::Texture2d& shadowMap);
-
-    void reserve(size_t stat,size_t dyn);
-
-    void draw      (Painter3d& painter, uint8_t fId, const Tempest::Texture2d& shadowMap);
+    void setupUbo();
+    void draw      (Painter3d& painter, uint8_t fId);
     void drawShadow(Painter3d& painter, uint8_t fId, int layer=0);
 
-    void setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4 *sh, size_t shCount);
-    void setLight(const Light &l, const Tempest::Vec3 &ambient);
-
-    struct UboGlobal final {
-      std::array<float,3>           lightDir={{0,0,1}};
-      float                         padding=0;
-      Tempest::Matrix4x4            modelView;
-      Tempest::Matrix4x4            shadowView;
-      std::array<float,4>           lightAmb={{0,0,0}};
-      std::array<float,4>           lightCl ={{1,1,1}};
-      };
-
   private:
-    using Vertex  = Resources::Vertex;
-    using VertexA = Resources::VertexA;
-
-    struct UboSt final {
-      Tempest::Matrix4x4 obj;
-      void setObjMatrix(const Tempest::Matrix4x4& ob) { obj=ob; }
-      void setSkeleton (const Skeleton*){}
-      void setSkeleton (const Pose&    ){}
-      };
-
-    struct UboDn final {
-      Tempest::Matrix4x4 obj;
-      Tempest::Matrix4x4 skel[Resources::MAX_NUM_SKELETAL_NODES];
-
-      void setObjMatrix(const Tempest::Matrix4x4& ob) { obj=ob; }
-      void setSkeleton (const Skeleton* sk);
-      void setSkeleton (const Pose&      p);
-      };
-
-    const RendererStorage&                  storage;
-
-    // UboStorage<UboSt>                       storageSt;
-    // UboStorage<UboDn>                       storageDn;
-    //
-    // std::list<ObjectsBucket<UboSt,Vertex >> chunksSt;
-    // std::list<ObjectsBucket<UboDn,VertexA>> chunksDn;
+    const SceneGlobals&             globals;
     std::list<ObjectsBucket>        chunksSt;
     std::list<ObjectsBucket>        chunksDn;
 
-    UboChain<UboGlobal,void>        uboGlobalPf[2];
-    UboGlobal                       uboGlobal;
-    Tempest::Matrix4x4              shadowView1;
-
-    ObjectsBucket&                 getBucketSt(const Tempest::Texture2d* mat);
-    ObjectsBucket&                 getBucketAt(const Tempest::Texture2d* mat);
-    ObjectsBucket&                 getBucketDn(const Tempest::Texture2d* mat);
+    ObjectsBucket&                  getBucketSt(const Tempest::Texture2d* mat);
+    ObjectsBucket&                  getBucketAt(const Tempest::Texture2d* mat);
+    ObjectsBucket&                  getBucketDn(const Tempest::Texture2d* mat);
 
     Item                            implGet(const StaticMesh& mesh, const StaticMesh::SubMesh& smesh,
                                             int32_t texVar, int32_t teethTex, int32_t bodyColor);

@@ -9,15 +9,8 @@
 
 using namespace Tempest;
 
-Landscape::Landscape(const RendererStorage &storage, const PackedMesh &mesh)
-  :storage(storage) {
-  auto& device=storage.device;
-
-  for(auto& i:pf){
-    i.uboGpu[0] = device.ubo(uboCpu);
-    i.uboGpu[1] = device.ubo(uboCpu);
-    }
-
+Landscape::Landscape(const SceneGlobals &scene, const PackedMesh &mesh)
+  :scene(scene) {
   static_assert(sizeof(Resources::Vertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
   const Resources::Vertex* vert=reinterpret_cast<const Resources::Vertex*>(mesh.vertices.data());
   vbo = Resources::vbo<Resources::Vertex>(vert,mesh.vertices.size());
@@ -53,88 +46,58 @@ Landscape::Landscape(const RendererStorage &storage, const PackedMesh &mesh)
     });
   }
 
-void Landscape::setMatrix(uint32_t frameId, const Matrix4x4 &mat, const Matrix4x4 *sh, size_t shCount) {
-  assert(shCount==2);
+void Landscape::setupUbo() {
+  auto& storage = scene.storage;
 
-  uboCpu.mvp    = mat;
-  uboCpu.shadow = sh[1];
-  pf[frameId].uboGpu[1].update(&uboCpu,0,1);
+  for(size_t fId=0;fId<Resources::MaxFramesInFlight;++fId) {
+    auto&     pf      = perFrame[fId];
+    auto&     uboLand = pf.ubo[0];
+    auto&     uboSm0  = pf.ubo[1];
+    auto&     uboSm1  = pf.ubo[2];
 
-  uboCpu.mvp    = mat;
-  uboCpu.shadow = sh[0];
-  pf[frameId].uboGpu[0].update(&uboCpu,0,1);
-  }
+    uboLand.resize(blocks.size());
+    uboSm0 .resize(blocks.size());
+    uboSm1 .resize(blocks.size());
 
-void Landscape::setLight(const Light &l, const Vec3 &ambient) {
-  auto  d = l.dir();
-  auto& c = l.color();
-  uboCpu.lightDir = {-d[0],-d[1],-d[2]};
-  uboCpu.lightCl  = {c.x,c.y,c.z,0.f};
-  uboCpu.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
-  }
+    for(size_t i=0;i<blocks.size();++i){
+      auto& lnd  =blocks [i];
+      auto& uboL =uboLand[i];
+      auto& uboS0=uboSm0 [i];
+      auto& uboS1=uboSm1 [i];
 
-void Landscape::invalidateCmd() {
-  for(auto& i:pf)
-    i.nToUpdate = true;
-  }
+      if(uboL.isEmpty())
+        uboL  = storage.device.uniforms(storage.uboLndLayout());
+      if(uboS0.isEmpty())
+        uboS0 = storage.device.uniforms(storage.uboLndLayout());
+      if(uboS1.isEmpty())
+        uboS1 = storage.device.uniforms(storage.uboLndLayout());
 
-bool Landscape::needToUpdateCommands(uint8_t frameId) const {
-  return pf[frameId].nToUpdate;
-  }
+      uboL.set(0,*lnd.material.tex);
+      uboL.set(1,*scene.shadowMap,Resources::shadowSampler());
+      uboL.set(2,scene.uboGlobalPf[fId][0],0,1);
 
-void Landscape::setAsUpdated(uint8_t frameId) {
-  pf[frameId].nToUpdate = false;
-  }
+      uboS0.set(0,*lnd.material.tex);
+      uboS0.set(1,Resources::fallbackTexture(),Sampler2d::nearest());
+      uboS0.set(2,scene.uboGlobalPf[fId][0],0,1);
 
-void Landscape::commitUbo(uint8_t frameId, const Tempest::Texture2d& shadowMap) {
-  PerFrame& pf      = this->pf[frameId];
-  if(!pf.nToUpdate)
-    return;
+      uboS1.set(0,*lnd.material.tex);
+      uboS1.set(1,Resources::fallbackTexture(),Sampler2d::nearest());
+      uboS1.set(2,scene.uboGlobalPf[fId][1],0,1);
+      }
 
-  auto&     uboLand = pf.ubo[0];
-  auto&     uboSm0  = pf.ubo[1];
-  auto&     uboSm1  = pf.ubo[2];
-
-  uboLand.resize(blocks.size());
-  uboSm0 .resize(blocks.size());
-  uboSm1 .resize(blocks.size());
-
-  for(size_t i=0;i<blocks.size();++i){
-    auto& lnd  =blocks [i];
-    auto& uboL =uboLand[i];
-    auto& uboS0=uboSm0 [i];
-    auto& uboS1=uboSm1 [i];
-
-    if(uboL.isEmpty())
-      uboL  = storage.device.uniforms(storage.uboLndLayout());
-    if(uboS0.isEmpty())
-      uboS0 = storage.device.uniforms(storage.uboLndLayout());
-    if(uboS1.isEmpty())
-      uboS1 = storage.device.uniforms(storage.uboLndLayout());
-
-    uboL.set(0,*lnd.material.tex);
-    uboL.set(1,shadowMap,Resources::shadowSampler());
-    uboL.set(2,pf.uboGpu[0],0,1);
-
-    uboS0.set(0,*lnd.material.tex);
-    uboS0.set(1,Resources::fallbackTexture(),Sampler2d::nearest());
-    uboS0.set(2,pf.uboGpu[0],0,1);
-
-    uboS1.set(0,*lnd.material.tex);
-    uboS1.set(1,Resources::fallbackTexture(),Sampler2d::nearest());
-    uboS1.set(2,pf.uboGpu[1],0,1);
-
-    for(int r=0;r<2;++r) {
-      if(pf.solidSh[r].isEmpty())
-        pf.solidSh[r] = storage.device.uniforms(storage.uboLndLayout());
-      pf.solidSh[r].set(0,Resources::fallbackBlack(),  Sampler2d::nearest());
-      pf.solidSh[r].set(1,Resources::fallbackTexture(),Sampler2d::nearest());
-      pf.solidSh[r].set(2,pf.uboGpu[r],0,1);
+    for(int i=0;i<2;++i) {
+      if(pf.solidSh[i].isEmpty())
+        pf.solidSh[i] = storage.device.uniforms(storage.uboLndLayout());
+      pf.solidSh[i].set(0,Resources::fallbackBlack(),  Sampler2d::nearest());
+      pf.solidSh[i].set(1,Resources::fallbackTexture(),Sampler2d::nearest());
+      pf.solidSh[i].set(2,scene.uboGlobalPf[fId][i],0,1);
       }
     }
   }
 
 void Landscape::draw(Painter3d& painter, uint8_t frameId) {
+  auto& storage = scene.storage;
+
   const RenderPipeline* ptable[Material::ApphaFunc::Last] = {};
   ptable[Material::ApphaFunc::AlphaTest  ] = &storage.pLandAt;
   ptable[Material::ApphaFunc::Transparent] = &storage.pLandAlpha;
@@ -144,13 +107,15 @@ void Landscape::draw(Painter3d& painter, uint8_t frameId) {
   }
 
 void Landscape::drawShadow(Painter3d& painter, uint8_t frameId, int layer) {
+  auto& storage = scene.storage;
+
   const RenderPipeline* ptable[Material::ApphaFunc::Last] = {};
   ptable[Material::ApphaFunc::AlphaTest  ] = &storage.pLandAtSh;
   ptable[Material::ApphaFunc::Transparent] = &storage.pLandSh;
   //ptable[Material::ApphaFunc::Solid      ] = &storage.pLandSh;
 
   if(painter.isVisible(solidsBBox))
-    painter.draw(storage.pLandSh,pf[frameId].solidSh[layer],vbo,iboSolid);
+    painter.draw(storage.pLandSh,perFrame[frameId].solidSh[layer],vbo,iboSolid);
 
   implDraw(painter,ptable,uint8_t(1+layer),frameId);
   }
@@ -158,7 +123,7 @@ void Landscape::drawShadow(Painter3d& painter, uint8_t frameId, int layer) {
 void Landscape::implDraw(Painter3d& painter,
                          const RenderPipeline* p[],
                          uint8_t uboId, uint8_t frameId) {
-  PerFrame& pf      = this->pf[frameId];
+  PerFrame& pf      = perFrame[frameId];
   auto&     uboLand = pf.ubo[uboId];
 
   for(size_t i=0;i<blocks.size();++i){

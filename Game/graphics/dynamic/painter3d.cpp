@@ -150,6 +150,10 @@ bool Painter3d::isVisible(const Bounds& b) const {
   return frustrum.testPoint(b.at.x,b.at.y,b.at.z, b.r);
   }
 
+void Painter3d::setViewport(int x, int y, int w, int h) {
+  enc->setViewport(x,y,w,h);
+  }
+
 void Painter3d::draw(const RenderPipeline& pipeline, const Uniforms& ubo,
                      const Tempest::VertexBuffer<Painter3d::Vertex>& vbo, const Tempest::IndexBuffer<uint32_t>& ibo) {
   enc->setUniforms(pipeline,ubo);
@@ -160,4 +164,14 @@ void Painter3d::draw(const RenderPipeline& pipeline, const Uniforms& ubo,
                      const Tempest::VertexBuffer<Painter3d::VertexA>& vbo, const Tempest::IndexBuffer<uint32_t>& ibo) {
   enc->setUniforms(pipeline,ubo);
   enc->draw(vbo,ibo);
+  }
+
+void Painter3d::draw(const RenderPipeline& pipeline, const Uniforms& ubo, const Tempest::VertexBuffer<VertexFsq>& vbo) {
+  enc->setUniforms(pipeline,ubo);
+  enc->draw(vbo);
+  }
+
+void Painter3d::draw(const RenderPipeline& pipeline, const Uniforms& ubo, const Tempest::VertexBuffer<Painter3d::Vertex>& vbo) {
+  enc->setUniforms(pipeline,ubo);
+  enc->draw(vbo);
   }

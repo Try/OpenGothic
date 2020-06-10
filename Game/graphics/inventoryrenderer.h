@@ -3,15 +3,19 @@
 #include <Tempest/Device>
 #include <Tempest/Matrix4x4>
 
-#include "meshobjects.h"
+#include "graphics/dynamic/painter3d.h"
 
+#include "meshobjects.h"
+#include "sceneglobals.h"
+
+class RendererStorage;
 class Item;
 
 class InventoryRenderer {
   public:
     InventoryRenderer(const RendererStorage& storage);
 
-    void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);
+    void draw(Tempest::FrameBuffer& fbo, Tempest::Encoder<Tempest::PrimaryCommandBuffer>& cmd, uint8_t fId);
 
     void reset();
     void drawItem(int x, int y, int w, int h, const Item &item);
@@ -26,8 +30,9 @@ class InventoryRenderer {
       int x=0,y=0,w=0,h=0;
       };
 
-    const RendererStorage& storage;
+    SceneGlobals           scene;
     MeshObjects            itmGroup;
+    Painter3d              painter;
     std::vector<Itm>       items;
   };
 

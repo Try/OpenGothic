@@ -1,45 +1,40 @@
 #include "inventoryrenderer.h"
 
 #include "rendererstorage.h"
+#include "game/inventory.h"
 #include "world/item.h"
 #include "light.h"
-
-#include <Tempest/Application>
-#include <Tempest/Encoder>
-
-#include <game/inventory.h>
 
 using namespace Tempest;
 
 InventoryRenderer::InventoryRenderer(const RendererStorage &storage)
-  :storage(storage),itmGroup(storage) {
-  itmGroup.reserve(512,0);
-
+  :scene(storage),itmGroup(scene),painter(storage.device) {
   Light light;
   light.setColor(Vec3(0.f,0.f,0.f));
-  itmGroup.setLight(light,Vec3(1.f,1.f,1.f));
+  scene.ambient = Vec3(1.f,1.f,1.f);
+  scene.sun     = light;
+
+  Tempest::Matrix4x4 mv, shMv[2];
+  mv.identity();
+  mv.scale(0.8f,1.f,1.f);
+  scene.setModelView(mv,shMv,2);
   }
 
-void InventoryRenderer::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId) {
-  Tempest::Matrix4x4 mv;
-  mv.identity();
-  if(items.size()){
-    // int w = items[0].w;
-    // int h = items[0].h;
-    // mv.perspective(45.0f, float(w)/float(h), 0.001f, 100.0f);
-    mv.scale(0.8f,1.f,1.f);
-    }
-  Tempest::Matrix4x4 shMv[2];
-  itmGroup.setModelView(mv,shMv,2);
-  itmGroup.commitUbo(frameId,Resources::fallbackTexture());
+void InventoryRenderer::draw(Tempest::FrameBuffer& fbo, Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, uint8_t fId) {
+  painter.reset();
+  painter.setPass(fbo,fId);
 
-  for(auto& i:items){
-    cmd.setViewport(i.x,i.y,i.w,i.h);
-    for(size_t r=0;r<i.mesh.nodesCount();++r){
+  scene.commitUbo(fId);
+
+  for(auto& i:items) {
+    painter.setViewport(i.x,i.y,i.w,i.h);
+    for(size_t r=0;r<i.mesh.nodesCount();++r) {
       auto n = i.mesh.node(r);
-      n.draw(cmd,storage.pObject,frameId);
+      n.draw(painter,fId);
       }
     }
+
+  painter.commit(cmd);
   }
 
 void InventoryRenderer::reset() {

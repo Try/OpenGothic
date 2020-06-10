@@ -11,6 +11,7 @@
 #include "graphics/meshobjects.h"
 #include "graphics/pfxobjects.h"
 #include "light.h"
+#include "sceneglobals.h"
 
 class World;
 class RendererStorage;
@@ -34,9 +35,11 @@ class WorldView {
     void updateCmd (uint8_t frameId, const World &world,
                     const Tempest::Attachment& main, const Tempest::Attachment& shadow,
                     const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay);
-    void updateUbo (uint8_t frameId, const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4* shadow, size_t shCount);
+    void setModelView   (const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4* shadow, size_t shCount);
+    void setFrameGlobals(const Tempest::Texture2d& shadow, uint64_t tickCount, uint8_t fId);
+
     void drawShadow(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t frameId, uint8_t layer);
-    void drawMain  (Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t frameId, const Tempest::Texture2d& shadow);
+    void drawMain  (Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
     void resetCmd  ();
 
     MeshObjects::Mesh   getView      (const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
@@ -51,9 +54,7 @@ class WorldView {
     const World&            owner;
     const RendererStorage&  storage;
 
-    Light                   sun;
-    Tempest::Vec3           ambient;
-
+    SceneGlobals            sGlobal;
     Sky                     sky;
     Landscape               land;
     MeshObjects             objGroup;
@@ -66,21 +67,9 @@ class WorldView {
     uint32_t                vpWidth=0;
     uint32_t                vpHeight=0;
 
-    struct PerFrame {
-      Tempest::CommandBuffer cmdMain;
-      Tempest::CommandBuffer cmdShadow[2];
-      bool                   actual     =true;
-      };
-    PerFrame                 frame[Resources::MaxFramesInFlight];
-
     bool needToUpdateCmd(uint8_t frameId) const;
     void invalidateCmd();
 
     void updateLight();
     void setupSunDir(float pulse,float ang);
-    void builtCmdBuf(uint8_t frameId, const World &world,
-                     const Tempest::Attachment& main,
-                     const Tempest::Attachment& shadowMap,
-                     const Tempest::FrameBufferLayout &mainLay,
-                     const Tempest::FrameBufferLayout &shadowLay);
   };

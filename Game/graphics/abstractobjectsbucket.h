@@ -13,6 +13,7 @@
 
 class Pose;
 class Bounds;
+class Painter3d;
 
 class AbstractObjectsBucket {
   public:
@@ -47,7 +48,7 @@ class AbstractObjectsBucket {
         void   setBounds   (const Bounds&           bbox);
 
         const Tempest::Texture2d &texture() const;
-        void  draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, const Tempest::RenderPipeline &pipeline, uint32_t imgId) const;
+        void  draw(Painter3d& p, uint32_t imgId) const;
 
       private:
         AbstractObjectsBucket* owner=nullptr;
@@ -62,5 +63,5 @@ class AbstractObjectsBucket {
     virtual void   setBounds   (size_t i,const Bounds& b)=0;
 
     virtual const Tempest::Texture2d& texture() const = 0;
-    virtual void draw(size_t id,Tempest::Encoder<Tempest::CommandBuffer> &cmd,const Tempest::RenderPipeline &pipeline, uint32_t imgId) = 0;
+    virtual void draw(size_t id, Painter3d& p, uint32_t imgId) = 0;
   };
