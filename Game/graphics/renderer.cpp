@@ -118,7 +118,7 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &&cmd, uint8_t frameId, uint8_
 void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const Gothic &gothic, uint8_t frameId) {
   auto wview = gothic.worldView();
   if(wview==nullptr) {
-    cmd.setPass(fbo,mainPass);
+    cmd.setFramebuffer(fbo,mainPass);
     return;
     }
 
@@ -127,7 +127,7 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const 
   wview->setFrameGlobals(textureCast(shadowMapFinal),gothic.world()->tickCount(),frameId);
 
   for(uint8_t i=0;i<2;++i) {
-    cmd.setPass(fboShadow[i],shadowPass);
+    cmd.setFramebuffer(fboShadow[i],shadowPass);
     painter.setPass(fboShadow[i],frameId);
     painter.setFrustrum(shadow[i]);
     wview->drawShadow(cmd,painter,frameId,i);
@@ -135,7 +135,7 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const 
 
   composeShadow(cmd,fboCompose);
 
-  cmd.setPass(fbo,mainPass);
+  cmd.setFramebuffer(fbo,mainPass);
   painter.setPass(fbo,frameId);
   painter.setFrustrum(wview->viewProj(view));
   wview->drawMain(cmd,painter,frameId);
@@ -144,17 +144,17 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const 
 void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, InventoryMenu &inventory) {
   if(inventory.isOpen()==InventoryMenu::State::Closed)
     return;
-  cmd.setPass(fbo,inventoryPass);
+  cmd.setFramebuffer(fbo,inventoryPass);
   inventory.draw(fbo,cmd,swapchain.frameId());
   }
 
 void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, VectorImage& surface) {
-  cmd.setPass(fbo,uiPass);
+  cmd.setFramebuffer(fbo,uiPass);
   surface.draw(device,swapchain,cmd);
   }
 
 void Renderer::composeShadow(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer &fbo) {
-  cmd.setPass(fbo,composePass);
+  cmd.setFramebuffer(fbo,composePass);
   cmd.setUniforms(stor.pComposeShadow,uboShadowComp);
   cmd.draw(Resources::fsqVbo());
   }
