@@ -18,12 +18,12 @@ class RendererStorage {
     Tempest::RenderPipeline pLandSh, pLandAtSh, pObjectSh, pAnimSh;
     Tempest::RenderPipeline pComposeShadow;
 
-    const Tempest::UniformsLayout& uboObjLayout() const { return layoutObj; }
-    const Tempest::UniformsLayout& uboAniLayout() const { return layoutAni; }
-    const Tempest::UniformsLayout& uboLndLayout() const { return layoutLnd; }
-    const Tempest::UniformsLayout& uboPfxLayout() const { return layoutLnd; }
-    const Tempest::UniformsLayout& uboSkyLayout() const { return layoutSky; }
-    const Tempest::UniformsLayout& uboComposeLayout() const { return layoutComp; }
+    const Tempest::UniformsLayout& uboObjLayout() const { return pObject.layout(); }
+    const Tempest::UniformsLayout& uboAniLayout() const { return pAnim.layout(); }
+    const Tempest::UniformsLayout& uboLndLayout() const { return pLand.layout(); }
+    const Tempest::UniformsLayout& uboPfxLayout() const { return pPfx.layout(); }
+    const Tempest::UniformsLayout& uboSkyLayout() const { return pSky.layout(); }
+    const Tempest::UniformsLayout& uboComposeLayout() const { return pComposeShadow.layout(); }
 
   private:
     struct ShaderPair {
@@ -37,11 +37,10 @@ class RendererStorage {
       void load(Tempest::Device& device, const char* f);
       };
 
-    Tempest::UniformsLayout layoutLnd, layoutObj, layoutAni, layoutSky, layoutComp;
     Material                land, landAt, object, ani, pfx;
 
     void initPipeline(Gothic& gothic);
     void initShadow();
     template<class Vertex>
-    Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const Tempest::UniformsLayout& ulay,const ShaderPair &fs);
+    Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const ShaderPair &fs);
   };

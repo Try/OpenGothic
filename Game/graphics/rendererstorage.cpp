@@ -33,7 +33,7 @@ RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   object.load(device,"object");
   ani   .load(device,"anim");
   pfx   .load(device,"pfx");
-
+/*
   layoutLnd.add(0,UniformsLayout::Texture,UniformsLayout::Fragment);
   layoutLnd.add(1,UniformsLayout::Texture,UniformsLayout::Fragment);
   layoutLnd.add(2,UniformsLayout::Ubo,    UniformsLayout::Vertex);
@@ -57,14 +57,14 @@ RendererStorage::RendererStorage(Device& device, Gothic& gothic)
 
   layoutComp.add(0,UniformsLayout::Texture,UniformsLayout::Fragment);
   layoutComp.add(1,UniformsLayout::Texture,UniformsLayout::Fragment);
-
+*/
   initPipeline(gothic);
   initShadow();
   }
 
 template<class Vertex>
-RenderPipeline RendererStorage::pipeline(RenderState& st, const UniformsLayout& ulay,const ShaderPair &sh) {
-  return device.pipeline<Vertex>(Triangles,st,ulay,sh.vs,sh.fs);
+RenderPipeline RendererStorage::pipeline(RenderState& st, const ShaderPair &sh) {
+  return device.pipeline<Vertex>(Triangles,st,sh.vs,sh.fs);
   }
 
 void RendererStorage::initPipeline(Gothic& gothic) {
@@ -102,30 +102,30 @@ void RendererStorage::initPipeline(Gothic& gothic) {
   sh          = GothicShader::get("shadow_compose.frag.sprv");
   auto fsComp = device.shader(sh.data,sh.len);
 
-  pComposeShadow = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutComp,vsComp, fsComp);
+  pComposeShadow = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vsComp, fsComp);
 
-  pLand          = pipeline<Resources::Vertex> (stateLnd,  layoutLnd,land.main);
-  pLandAt        = pipeline<Resources::Vertex> (stateLnd,  layoutLnd,landAt.main);
-  pLandAlpha     = pipeline<Resources::Vertex> (stateAlpha,layoutLnd,land.main);
+  pLand          = pipeline<Resources::Vertex> (stateLnd,  land.main);
+  pLandAt        = pipeline<Resources::Vertex> (stateLnd,  landAt.main);
+  pLandAlpha     = pipeline<Resources::Vertex> (stateAlpha,land.main);
 
-  pObject        = pipeline<Resources::Vertex> (stateObj,   layoutObj,object.main);
-  pObjectDecal   = pipeline<Resources::Vertex> (stateObjDec,layoutObj,object.main);
-  pAnim          = pipeline<Resources::VertexA>(stateObj,   layoutAni,ani.main);
+  pObject        = pipeline<Resources::Vertex> (stateObj,   object.main);
+  pObjectDecal   = pipeline<Resources::Vertex> (stateObjDec,object.main);
+  pAnim          = pipeline<Resources::VertexA>(stateObj,   ani.main);
 
-  pPfx           = pipeline<Resources::Vertex> (statePfx,layoutLnd,pfx.main);
+  pPfx           = pipeline<Resources::Vertex> (statePfx,pfx.main);
 
   if(gothic.version().game==1) {
     auto sh    = GothicShader::get("sky_g1.vert.sprv");
     auto vsSky = device.shader(sh.data,sh.len);
     sh         = GothicShader::get("sky_g1.frag.sprv");
     auto fsSky = device.shader(sh.data,sh.len);
-    pSky       = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutSky, vsSky,  fsSky );
+    pSky       = device.pipeline<Resources::VertexFsq>(Triangles, stateFsq, vsSky,  fsSky );
     } else {
     auto sh    = GothicShader::get("sky.vert.sprv");
     auto vsSky = device.shader(sh.data,sh.len);
     sh         = GothicShader::get("sky.frag.sprv");
     auto fsSky = device.shader(sh.data,sh.len);
-    pSky       = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,layoutSky, vsSky,  fsSky );
+    pSky       = device.pipeline<Resources::VertexFsq>(Triangles, stateFsq, vsSky,  fsSky );
     }
   }
 
@@ -135,8 +135,8 @@ void RendererStorage::initShadow() {
   state.setCullFaceMode(RenderState::CullMode::Back);
   //state.setCullFaceMode(RenderState::CullMode::Front);
 
-  pLandSh   = pipeline<Resources::Vertex> (state,layoutLnd,land.shadow);
-  pLandAtSh = pipeline<Resources::Vertex> (state,layoutLnd,landAt.shadow);
-  pObjectSh = pipeline<Resources::Vertex> (state,layoutObj,object.shadow);
-  pAnimSh   = pipeline<Resources::VertexA>(state,layoutAni,ani.shadow);
+  pLandSh   = pipeline<Resources::Vertex> (state,land.shadow);
+  pLandAtSh = pipeline<Resources::Vertex> (state,landAt.shadow);
+  pObjectSh = pipeline<Resources::Vertex> (state,object.shadow);
+  pAnimSh   = pipeline<Resources::VertexA>(state,ani.shadow);
   }
