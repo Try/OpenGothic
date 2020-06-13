@@ -18,65 +18,57 @@ MeshObjects::MeshObjects(const SceneGlobals& globals)
 MeshObjects::~MeshObjects() {
   }
 
-ObjectsBucket& MeshObjects::getBucketSt(const Tempest::Texture2d *mat) {
-  for(auto& i:chunksSt)
-    if(&i.texture()==mat)
+ObjectsBucket& MeshObjects::getBucket(const Material& mat, ObjectsBucket::Type type) {
+  for(auto& i:buckets)
+    if(i.material()==mat && i.type()==type)
       return i;
 
-  chunksSt.emplace_back(mat,globals,ObjectsBucket::Static);
-  return chunksSt.back();
-  }
-
-ObjectsBucket& MeshObjects::getBucketDn(const Tempest::Texture2d *mat) {
-  for(auto& i:chunksDn)
-    if(&i.texture()==mat)
-      return i;
-
-  chunksDn.emplace_back(mat,globals,ObjectsBucket::Animated);
-  return chunksDn.back();
+  index.clear();
+  buckets.emplace_back(mat,globals,type);
+  return buckets.back();
   }
 
 MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const StaticMesh::SubMesh& s,
                                        int32_t texVar, int32_t teethTex, int32_t bodyColor) {
-  const Tempest::Texture2d* tex=s.texture;
+  Material mat = s.material;
   if(teethTex!=0 || bodyColor!=0 || texVar!=0){
     if(s.texName=="HUM_TEETH_V0.TGA"){
-      tex=solveTex(s.texture,s.texName,teethTex,bodyColor);
+      mat.tex=solveTex(s.material.tex,s.texName,teethTex,bodyColor);
       }
     else if(s.texName=="HUM_MOUTH_V0.TGA"){
-      tex=solveTex(s.texture,s.texName,teethTex,bodyColor);
+      mat.tex=solveTex(s.material.tex,s.texName,teethTex,bodyColor);
       }
     else if(s.texName.find_first_of("VC")!=std::string::npos){
-      tex=solveTex(s.texture,s.texName,texVar,bodyColor);
+      mat.tex=solveTex(s.material.tex,s.texName,texVar,bodyColor);
       }
     }
 
-  if(tex==nullptr) {
+  if(mat.tex==nullptr) {
     if(!s.texName.empty())
       Tempest::Log::e("texture not found: \"",s.texName,"\"");
     return MeshObjects::Item();
     }
-  return implGet(mesh,tex,s.ibo);
+  return implGet(mesh,mat,s.ibo);
   }
 
-MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const Tempest::Texture2d *mat,
+MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const Material& mat,
                                        const Tempest::IndexBuffer<uint32_t>& ibo) {
-  if(mat==nullptr) {
+  if(mat.tex==nullptr) {
     Tempest::Log::e("no texture?!");
     return MeshObjects::Item();
     }
-  auto&        bucket = getBucketSt(mat);
+  auto&        bucket = getBucket(mat,ObjectsBucket::Static);
   const size_t id     = bucket.alloc(mesh.vbo,ibo,mesh.bbox);
   return Item(bucket,id);
   }
 
-MeshObjects::Item MeshObjects::implGet(const AnimMesh &mesh, const Tempest::Texture2d *mat,
+MeshObjects::Item MeshObjects::implGet(const AnimMesh &mesh, const Material& mat,
                                        const Tempest::IndexBuffer<uint32_t> &ibo) {
-  if(mat==nullptr) {
+  if(mat.tex==nullptr) {
     Tempest::Log::e("no texture?!");
     return MeshObjects::Item();
     }
-  auto&        bucket = getBucketDn(mat);
+  auto&        bucket = getBucket(mat,ObjectsBucket::Animated);
   const size_t id     = bucket.alloc(mesh.vbo,ibo,mesh.bbox);
   return Item(bucket,id);
   }
@@ -94,7 +86,7 @@ MeshObjects::Mesh MeshObjects::get(const StaticMesh &mesh) {
   std::unique_ptr<Item[]> dat(new Item[mesh.sub.size()]);
   size_t count=0;
   for(size_t i=0;i<mesh.sub.size();++i){
-    Item it = implGet(mesh,mesh.sub[i].texture,mesh.sub[i].ibo);
+    Item it = implGet(mesh,mesh.sub[i].material,mesh.sub[i].ibo);
     if(it.isEmpty())
       continue;
     dat[count] = std::move(it);
@@ -132,11 +124,12 @@ MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_
     count++;
     }
 
-  for(auto& skin:mesh.skined){
+  for(auto& skin:mesh.skined) {
     for(auto& m:skin.sub){
-      const Tempest::Texture2d* tex=solveTex(m.texture,m.texName,texVar,bodyColor);
-      if(tex!=nullptr) {
-        dat[count] = implGet(skin,tex,m.ibo);
+      Material mat = m.material;
+      mat.tex=solveTex(mat.tex,m.texName,texVar,bodyColor);
+      if(mat.tex!=nullptr) {
+        dat[count] = implGet(skin,mat,m.ibo);
         ++count;
         } else {
         if(!m.texName.empty())
@@ -147,25 +140,47 @@ MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_
   return Mesh(&mesh,std::move(dat),count);
   }
 
+MeshObjects::Mesh MeshObjects::get(Tempest::VertexBuffer<Resources::Vertex>& vbo,
+                                   Tempest::IndexBuffer<uint32_t>&           ibo,
+                                   const Material& mat, const Bounds& bbox) {
+  auto&        bucket = getBucket(mat,ObjectsBucket::Static);
+  const size_t id     = bucket.alloc(vbo,ibo,bbox);
+
+  std::unique_ptr<Item[]> dat(new Item[1]);
+  dat[0] = Item(bucket,id);
+
+  return Mesh(nullptr,std::move(dat),1);
+  }
+
 void MeshObjects::setupUbo() {
-  for(auto& c:chunksSt)
-    c.setupUbo();
-  for(auto& c:chunksDn)
+  for(auto& c:buckets)
     c.setupUbo();
   }
 
 void MeshObjects::draw(Painter3d& painter, uint8_t fId) {
-  for(auto& c:chunksSt)
-    c.draw(painter,fId);
-  for(auto& c:chunksDn)
-    c.draw(painter,fId);
+  mkIndex();
+  for(auto c:index)
+    c->draw(painter,fId);
   }
 
 void MeshObjects::drawShadow(Painter3d& painter, uint8_t fId, int layer) {
-  for(auto& c:chunksSt)
-    c.drawShadow(painter,fId,layer);
-  for(auto& c:chunksDn)
-    c.drawShadow(painter,fId,layer);
+  mkIndex();
+  for(auto c:index)
+    c->drawShadow(painter,fId,layer);
+  }
+
+void MeshObjects::mkIndex() {
+  if(index.size()!=0)
+    return;
+  index.resize(buckets.size());
+  size_t id=0;
+  for(auto& i:buckets) {
+    index[id] = &i;
+    ++id;
+    }
+  std::sort(index.begin(),index.end(),[](const ObjectsBucket* l,const ObjectsBucket* r){
+    return l->material()<r->material();
+    });
   }
 
 void MeshObjects::Mesh::setSkeleton(const Skeleton *sk) {
@@ -249,10 +264,6 @@ void MeshObjects::Mesh::setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix
       if(ani.nodes[i].hasChild)
         setObjMatrix(ani,mat,i);
       }
-  }
-
-const Tempest::Texture2d& MeshObjects::Node::texture() const {
-  return it->texture();
   }
 
 void MeshObjects::Node::draw(Painter3d& p, uint32_t imgId) const {

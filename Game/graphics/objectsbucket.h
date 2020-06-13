@@ -8,8 +8,9 @@
 
 #include "abstractobjectsbucket.h"
 #include "bounds.h"
-#include "meshobjects.h"
+#include "material.h"
 #include "resources.h"
+#include "sceneglobals.h"
 #include "ubostorage.h"
 
 class RendererStorage;
@@ -25,11 +26,11 @@ class ObjectsBucket : public AbstractObjectsBucket {
       Animated,
       };
 
-    ObjectsBucket(const Tempest::Texture2d* tex, const SceneGlobals& scene, const Type type);
+    ObjectsBucket(const Material& mat, const SceneGlobals& scene, const Type type);
     ~ObjectsBucket();
 
-    const Tempest::Texture2d& texture() const;
-    Type                      type()    const { return shaderType; }
+    const Material&           material() const;
+    Type                      type()     const { return shaderType; }
 
     size_t                    alloc(const Tempest::VertexBuffer<Vertex> &vbo,
                                     const Tempest::IndexBuffer<uint32_t> &ibo,
@@ -45,7 +46,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
     void                      draw      (size_t id, Painter3d& p, uint32_t fId);
 
   private:
-    struct Object {
+    struct Object final {
       const Tempest::VertexBuffer<Vertex>*  vbo  = nullptr;
       const Tempest::VertexBuffer<VertexA>* vboA = nullptr;
       const Tempest::IndexBuffer<uint32_t>* ibo  = nullptr;
@@ -56,7 +57,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
       Tempest::Uniforms                     uboSh[Resources::MaxFramesInFlight][Resources::ShadowLayers];
       };
 
-    struct ShLight {
+    struct ShLight final {
       Tempest::Vec3 pos;
       float         padding=0;
       Tempest::Vec3 color;
@@ -79,10 +80,13 @@ class ObjectsBucket : public AbstractObjectsBucket {
     UboStorage<UboAnim>       storageSk;
 
     const SceneGlobals&       scene;
-    const Tempest::Texture2d* tex = nullptr;
+    Material                  mat;
     const Type                shaderType;
 
-    Object& implAlloc(const Tempest::IndexBuffer<uint32_t> &ibo, const Bounds& bounds, const Tempest::UniformsLayout& layout, const Tempest::UniformsLayout& layoutSh);
+    const Tempest::RenderPipeline* pMain   = nullptr;
+    const Tempest::RenderPipeline* pShadow = nullptr;
+
+    Object& implAlloc(const Tempest::IndexBuffer<uint32_t> &ibo, const Bounds& bounds);
     void    uboSetCommon(Object& v);
 
     void   setObjMatrix(size_t i,const Tempest::Matrix4x4& m);
@@ -90,6 +94,6 @@ class ObjectsBucket : public AbstractObjectsBucket {
     void   setSkeleton (size_t i,const Pose& sk);
     void   setBounds   (size_t i,const Bounds& b);
 
-    void   setupLights(UboObject& ubo, const Tempest::Vec3& pos);
+    void   setupLights (UboObject& ubo);
   };
 

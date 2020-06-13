@@ -44,6 +44,10 @@ class WorldView {
     void drawMain  (Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
     void resetCmd  ();
 
+    MeshObjects::Mesh   getLand(Tempest::VertexBuffer<Resources::Vertex>& vbo,
+                                Tempest::IndexBuffer<uint32_t>&           ibo,
+                                const Material&                           mat,
+                                const Bounds&                             bbox);
     MeshObjects::Mesh   getView      (const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
     MeshObjects::Mesh   getItmView   (const char* visual, int32_t material);
     MeshObjects::Mesh   getAtachView (const ProtoMesh::Attach& visual);
@@ -58,9 +62,9 @@ class WorldView {
 
     SceneGlobals            sGlobal;
     Sky                     sky;
-    Landscape               land;
     MeshObjects             objGroup;
     PfxObjects              pfxGroup;
+    Landscape               land;
 
     std::vector<Light>      pendingLights;
 

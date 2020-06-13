@@ -16,10 +16,6 @@ void AbstractObjectsBucket::Item::setBounds(const Bounds& bbox) {
   owner->setBounds(id,bbox);
   }
 
-const Tempest::Texture2d &AbstractObjectsBucket::Item::texture() const {
-  return owner->texture();
-  }
-
 void AbstractObjectsBucket::Item::draw(Painter3d& p, uint32_t imgId) const {
   owner->draw(id,p,imgId);
   }

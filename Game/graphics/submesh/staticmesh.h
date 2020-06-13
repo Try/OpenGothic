@@ -4,6 +4,7 @@
 #include <Tempest/IndexBuffer>
 #include <Tempest/Device>
 
+#include "graphics/material.h"
 #include "graphics/bounds.h"
 
 #include "resources.h"
@@ -18,7 +19,7 @@ class StaticMesh {
     StaticMesh& operator=(StaticMesh&&)=default;
 
     struct SubMesh {
-      const Tempest::Texture2d*      texture=nullptr;
+      Material                       material;
       Tempest::IndexBuffer<uint32_t> ibo;
       std::string                    texName;
       };

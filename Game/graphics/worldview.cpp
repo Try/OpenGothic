@@ -11,7 +11,7 @@ using namespace Tempest;
 
 WorldView::WorldView(const World &world, const PackedMesh &wmesh, const RendererStorage &storage)
   : owner(world),storage(storage),sGlobal(storage),
-    sky(sGlobal),land(sGlobal,wmesh),objGroup(sGlobal),pfxGroup(sGlobal) {
+    sky(sGlobal),objGroup(sGlobal),pfxGroup(sGlobal),land(*this,sGlobal,wmesh) {
   sky.setWorld(owner);
   pfxGroup.resetTicks();
   }
@@ -81,7 +81,7 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
     sGlobal.shadowMap            = &shadow;
     sGlobal.uboGlobal.shadowSize = float(shadow.w());
 
-    land    .setupUbo();
+    //land    .setupUbo();
     objGroup.setupUbo();
     pfxGroup.setupUbo();
     }
@@ -91,18 +91,25 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
   }
 
 void WorldView::drawShadow(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId, uint8_t layer) {
-  land    .drawShadow(painter,fId,layer);
+  //land    .drawShadow(painter,fId,layer);
   objGroup.drawShadow(painter,fId,layer);
   painter.commit(cmd);
   }
 
 void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId) {
-  land    .draw(painter,fId);
+  //land    .draw(painter,fId);
   objGroup.draw(painter,fId);
   sky     .draw(painter,fId);
   pfxGroup.draw(painter,fId);
 
   painter.commit(cmd);
+  }
+
+MeshObjects::Mesh WorldView::getLand(Tempest::VertexBuffer<Resources::Vertex>& vbo,
+                                     Tempest::IndexBuffer<uint32_t>& ibo,
+                                     const Material& mat,
+                                     const Bounds& bbox) {
+  return objGroup.get(vbo,ibo,mat,bbox);
   }
 
 MeshObjects::Mesh WorldView::getView(const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
@@ -183,3 +190,4 @@ void WorldView::resetCmd() {
   mainLay   = nullptr;
   shadowLay = nullptr;
   }
+

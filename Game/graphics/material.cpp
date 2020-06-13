@@ -32,6 +32,11 @@ bool Material::operator < (const Material& other) const {
   return tex<other.tex;
   }
 
+bool Material::operator ==(const Material& other) const {
+  return tex==other.tex &&
+         alpha==other.alpha;
+  }
+
 int Material::alphaOrder(Material::ApphaFunc a) {
   if(a==Solid)
     return -1;

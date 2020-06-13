@@ -101,7 +101,7 @@ vec3 calcLight() {
     // return vec3(lambert);
     // return vec3(length(ldir/rgn));
 
-    float light = length(ldir/rgn)*lambert;
+    float light = (1.0-length(ldir/rgn))*lambert;
 
     color += ubo.light[i].color * clamp(light,0.0,1.0);
     }

@@ -11,6 +11,7 @@
 #include "graphics/submesh/staticmesh.h"
 #include "graphics/submesh/animmesh.h"
 #include "abstractobjectsbucket.h"
+#include "objectsbucket.h"
 #include "protomesh.h"
 #include "ubochain.h"
 #include "ubostorage.h"
@@ -36,8 +37,7 @@ class MeshObjects final {
       public:
         Node(Node&&)=default;
 
-        const Tempest::Texture2d &texture() const;
-        void                      draw(Painter3d &p, uint32_t imgId) const;
+        void draw(Painter3d &p, uint32_t imgId) const;
 
       private:
         Node(const Item* it):it(it){}
@@ -80,27 +80,31 @@ class MeshObjects final {
     Mesh get(const StaticMesh& mesh);
     Mesh get(const StaticMesh& mesh,int32_t headTexVar,int32_t teethTex,int32_t bodyColor);
     Mesh get(const ProtoMesh&  mesh,int32_t headTexVar,int32_t teethTex,int32_t bodyColor);
+    Mesh get(Tempest::VertexBuffer<Resources::Vertex>& vbo,
+             Tempest::IndexBuffer<uint32_t>& ibo,
+             const Material& mat, const Bounds& bbox);
 
     void setupUbo();
+
     void draw      (Painter3d& painter, uint8_t fId);
     void drawShadow(Painter3d& painter, uint8_t fId, int layer=0);
 
   private:
     const SceneGlobals&             globals;
-    std::list<ObjectsBucket>        chunksSt;
-    std::list<ObjectsBucket>        chunksDn;
+    std::list<ObjectsBucket>        buckets;
+    std::vector<ObjectsBucket*>     index;
 
-    ObjectsBucket&                  getBucketSt(const Tempest::Texture2d* mat);
-    ObjectsBucket&                  getBucketAt(const Tempest::Texture2d* mat);
-    ObjectsBucket&                  getBucketDn(const Tempest::Texture2d* mat);
+    void                            mkIndex();
+
+    ObjectsBucket&                  getBucket(const Material& mat, ObjectsBucket::Type type);
 
     Item                            implGet(const StaticMesh& mesh, const StaticMesh::SubMesh& smesh,
                                             int32_t texVar, int32_t teethTex, int32_t bodyColor);
     Item                            implGet(const StaticMesh& mesh,
-                                            const Tempest::Texture2d* mat,
+                                            const Material& mat,
                                             const Tempest::IndexBuffer<uint32_t> &ibo);
     Item                            implGet(const AnimMesh& mesh,
-                                            const Tempest::Texture2d* mat,
+                                            const Material& mat,
                                             const Tempest::IndexBuffer<uint32_t> &ibo);
     const Tempest::Texture2d*       solveTex(const Tempest::Texture2d* def,const std::string& format,int32_t v,int32_t c);
   };

@@ -8,21 +8,45 @@
 
 using namespace Tempest;
 
-ObjectsBucket::ObjectsBucket(const Texture2d* tex, const SceneGlobals& scene, const Type type)
-  :scene(scene), tex(tex), shaderType(type) {
+ObjectsBucket::ObjectsBucket(const Material& mat, const SceneGlobals& scene, const Type type)
+  :scene(scene), mat(mat), shaderType(type) {
+  if(shaderType==Animated) {
+    pMain   = &scene.storage.pAnim;
+    pShadow = &scene.storage.pAnimSh;
+    } else {
+    switch(mat.alpha) {
+      case Material::AlphaTest:
+        pMain   = &scene.storage.pObjectAt;
+        pShadow = &scene.storage.pObjectAtSh;
+        break;
+      case Material::Transparent:
+        pMain   = &scene.storage.pObjectAlpha;
+        pShadow = nullptr;
+        break;
+      case Material::AdditiveLight:
+      case Material::Multiply:
+      case Material::Multiply2:
+      case Material::Solid:
+        pMain   = &scene.storage.pObject;
+        pShadow = &scene.storage.pObjectSh;
+        break;
+      case Material::InvalidAlpha:
+      case Material::LastGothic:
+      case Material::FirstOpenGothic:
+      case Material::Last:
+        break;
+      }
+    }
   }
 
 ObjectsBucket::~ObjectsBucket() {
   }
 
-const Texture2d& ObjectsBucket::texture() const {
-  return *tex;
+const Material& ObjectsBucket::material() const {
+  return mat;
   }
 
-ObjectsBucket::Object& ObjectsBucket::implAlloc(const Tempest::IndexBuffer<uint32_t>& ibo,
-                                                const Bounds& bounds,
-                                                const UniformsLayout& layout,
-                                                const UniformsLayout& layoutSh) {
+ObjectsBucket::Object& ObjectsBucket::implAlloc(const Tempest::IndexBuffer<uint32_t>& ibo, const Bounds& bounds) {
   Object* v = nullptr;
   if(freeList.size()>0) {
     v = &val[freeList.back()];
@@ -40,9 +64,12 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const Tempest::IndexBuffer<uint3
 
   if(v->ubo[0].isEmpty()) {
     for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
-      v->ubo[i]   = scene.storage.device.uniforms(layout);
-      for(size_t lay=0;lay<Resources::ShadowLayers;++lay)
-        v->uboSh[i][lay] = scene.storage.device.uniforms(layoutSh);
+      if(pMain!=nullptr)
+        v->ubo[i] = scene.storage.device.uniforms(pMain->layout());
+      if(pShadow!=nullptr) {
+        for(size_t lay=0;lay<Resources::ShadowLayers;++lay)
+          v->uboSh[i][lay] = scene.storage.device.uniforms(pShadow->layout());
+        }
       }
     uboSetCommon(*v);
     }
@@ -51,19 +78,52 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const Tempest::IndexBuffer<uint3
 
 void ObjectsBucket::uboSetCommon(ObjectsBucket::Object& v) {
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
-    auto& t   = texture();
+    auto& t   = *mat.tex;
     auto& ubo = v.ubo[i];
-    ubo.set(0,t);
-    ubo.set(1,*scene.shadowMap,Resources::shadowSampler());
-    ubo.set(2,scene.uboGlobalPf[i][0],0,1);
-    for(size_t lay=0;lay<Resources::ShadowLayers;++lay) {
-      auto& uboSh = v.uboSh[i][lay];
 
-      if(t.format()==TextureFormat::DXT1)
-        uboSh.set(0,Resources::fallbackBlack(),Sampler2d::nearest()); else
-        uboSh.set(0,t);
-      uboSh.set(1,Resources::fallbackTexture(),Tempest::Sampler2d::nearest());
-      uboSh.set(2,scene.uboGlobalPf[i][lay],0,1);
+    if(pMain!=nullptr) {
+      ubo.set(0,t);
+      ubo.set(1,*scene.shadowMap,Resources::shadowSampler());
+      ubo.set(2,scene.uboGlobalPf[i][0],0,1);
+      }
+
+    if(pShadow!=nullptr) {
+      for(size_t lay=0;lay<Resources::ShadowLayers;++lay) {
+        auto& uboSh = v.uboSh[i][lay];
+
+        if(material().alpha==Material::ApphaFunc::Solid)
+          uboSh.set(0,Resources::fallbackBlack(),Sampler2d::nearest()); else
+          uboSh.set(0,t);
+        uboSh.set(1,Resources::fallbackTexture(),Tempest::Sampler2d::nearest());
+        uboSh.set(2,scene.uboGlobalPf[i][lay],0,1);
+        }
+      }
+    }
+  }
+
+void ObjectsBucket::setupUbo() {
+  for(auto& v:val) {
+    if(v.storageSt==size_t(-1))
+      continue;
+    auto& u = storageSt.element(v.storageSt);
+    setupLights(u);
+    }
+
+  for(size_t fId=0;fId<Resources::MaxFramesInFlight;++fId) {
+    for(auto& i:val) {
+      auto& ubo = i.ubo[fId];
+      if(pMain!=nullptr) {
+        ubo.set(1,*scene.shadowMap,Resources::shadowSampler());
+        ubo.set(2,scene.uboGlobalPf[fId][0],0,1);
+        }
+
+      if(pShadow!=nullptr) {
+        for(size_t lay=0;lay<Resources::ShadowLayers;++lay) {
+          auto& uboSh = i.uboSh[fId][lay];
+          uboSh.set(1,Resources::fallbackTexture(),Tempest::Sampler2d::nearest());
+          uboSh.set(2,scene.uboGlobalPf[fId][lay],0,1);
+          }
+        }
       }
     }
   }
@@ -71,7 +131,7 @@ void ObjectsBucket::uboSetCommon(ObjectsBucket::Object& v) {
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
                             const Tempest::IndexBuffer<uint32_t>& ibo,
                             const Bounds& bounds) {
-  Object* v = &implAlloc(ibo,bounds,scene.storage.uboObjLayout(),scene.storage.uboObjLayout());
+  Object* v = &implAlloc(ibo,bounds);
   v->vbo = &vbo;
   return std::distance(val.data(),v);
   }
@@ -79,7 +139,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
                             const Tempest::IndexBuffer<uint32_t>& ibo,
                             const Bounds& bounds) {
-  Object* v = &implAlloc(ibo,bounds,scene.storage.uboAniLayout(),scene.storage.uboAniLayout());
+  Object* v = &implAlloc(ibo,bounds);
   v->vboA = &vbo;
   v->storageSk = storageSk.alloc();
   return std::distance(val.data(),v);
@@ -97,25 +157,12 @@ void ObjectsBucket::free(const size_t objId) {
   v.ibo  = nullptr;
   }
 
-void ObjectsBucket::setupUbo() {
-  for(size_t fId=0;fId<Resources::MaxFramesInFlight;++fId) {
-    for(auto& i:val) {
-      auto& ubo = i.ubo[fId];
-      ubo.set(1,*scene.shadowMap,Resources::shadowSampler());
-      ubo.set(2,scene.uboGlobalPf[fId][0],0,1);
-
-      for(size_t lay=0;lay<Resources::ShadowLayers;++lay) {
-        auto& uboSh = i.uboSh[fId][lay];
-        uboSh.set(1,Resources::fallbackTexture(),Tempest::Sampler2d::nearest());
-        uboSh.set(2,scene.uboGlobalPf[fId][lay],0,1);
-        }
-      }
-    }
-  }
-
 void ObjectsBucket::draw(Painter3d& p, uint8_t fId) {
-  storageSt.commitUbo(scene.storage.device,uint8_t(fId));
-  storageSk.commitUbo(scene.storage.device,uint8_t(fId));
+  if(pMain==nullptr)
+    return;
+
+  storageSt.commitUbo(scene.storage.device,fId);
+  storageSk.commitUbo(scene.storage.device,fId);
 
   for(auto& i:val) {
     if(i.ibo==nullptr)
@@ -127,12 +174,15 @@ void ObjectsBucket::draw(Painter3d& p, uint8_t fId) {
     if(i.storageSk!=size_t(-1))
       ubo.set(4,storageSk[fId],i.storageSk,1);
     if(shaderType==Static)
-      p.draw(scene.storage.pObject,ubo,*i.vbo, *i.ibo); else
-      p.draw(scene.storage.pAnim,  ubo,*i.vboA,*i.ibo);
+      p.draw(*pMain,ubo,*i.vbo, *i.ibo); else
+      p.draw(*pMain,ubo,*i.vboA,*i.ibo);
     }
   }
 
 void ObjectsBucket::drawShadow(Painter3d& p, uint8_t fId, int layer) {
+  if(pShadow==nullptr)
+    return;
+
   storageSt.commitUbo(scene.storage.device,fId);
   storageSk.commitUbo(scene.storage.device,fId);
 
@@ -146,20 +196,20 @@ void ObjectsBucket::drawShadow(Painter3d& p, uint8_t fId, int layer) {
     if(i.storageSk!=size_t(-1))
       ubo.set(4,storageSk[fId],i.storageSk,1);
     if(shaderType==Static)
-      p.draw(scene.storage.pObjectSh,ubo,*i.vbo, *i.ibo); else
-      p.draw(scene.storage.pAnimSh,  ubo,*i.vboA,*i.ibo);
+      p.draw(*pShadow,ubo,*i.vbo, *i.ibo); else
+      p.draw(*pShadow,ubo,*i.vboA,*i.ibo);
     }
   }
 
 void ObjectsBucket::draw(size_t id, Painter3d& p, uint32_t fId) {
   auto& v = val[id];
-  if(v.vbo==nullptr)
+  if(v.vbo==nullptr || pMain==nullptr)
     return;
   storageSt.commitUbo(scene.storage.device,uint8_t(fId));
   storageSk.commitUbo(scene.storage.device,uint8_t(fId));
 
   auto& ubo = v.ubo[fId];
-  ubo.set(0,texture());
+  ubo.set(0,*mat.tex);
   ubo.set(1,Resources::fallbackTexture(),Sampler2d::nearest());
   ubo.set(2,scene.uboGlobalPf[fId][0],0,1);
   ubo.set(3,storageSt[fId],v.storageSt,1);
@@ -172,9 +222,7 @@ void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
   auto& ubo = storageSt.element(v.storageSt);
   ubo.pos = m;
 
-  Vec3 pos = Vec3(m.at(3,0),m.at(3,1),m.at(3,2));
-  setupLights(ubo,pos);
-
+  setupLights(ubo);
   storageSt.markAsChanged();
   }
 
@@ -206,7 +254,11 @@ void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
   val[i].bounds = b;
   }
 
-void ObjectsBucket::setupLights(UboObject& ubo, const Vec3& pos) {
+void ObjectsBucket::setupLights(UboObject& ubo) {
+  //TODO: cpu perfomance
+  auto& m = ubo.pos;
+  Vec3 pos = Vec3(m.at(3,0),m.at(3,1),m.at(3,2));
+
   float R = 600;
   auto b = std::lower_bound(scene.lights.begin(),scene.lights.end(), pos.x-R ,[](const Light& a, float b){
     return a.position().x<b;

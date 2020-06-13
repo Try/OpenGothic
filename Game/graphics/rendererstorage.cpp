@@ -28,11 +28,10 @@ void RendererStorage::Material::load(Device &device, const char *f) {
 
 RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   :device(device) {
-  land  .load(device,"land");
-  landAt.load(device,"land_at");
-  object.load(device,"object");
-  ani   .load(device,"anim");
-  pfx   .load(device,"pfx");
+  object  .load(device,"object");
+  objectAt.load(device,"object_at");
+  ani     .load(device,"anim");
+  pfx     .load(device,"pfx");
   initPipeline(gothic);
   initShadow();
   }
@@ -48,6 +47,7 @@ void RendererStorage::initPipeline(Gothic& gothic) {
   stateAlpha.setBlendDest   (RenderState::BlendMode::one_minus_src_alpha);
   stateAlpha.setZTestMode   (RenderState::ZTestMode::Less);
   stateAlpha.setCullFaceMode(RenderState::CullMode::Front);
+  stateAlpha.setZWriteEnabled(false);
 
   RenderState stateObj;
   stateObj.setZTestMode   (RenderState::ZTestMode::Less);
@@ -79,12 +79,9 @@ void RendererStorage::initPipeline(Gothic& gothic) {
 
   pComposeShadow = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vsComp, fsComp);
 
-  pLand          = pipeline<Resources::Vertex> (stateLnd,  land.main);
-  pLandAt        = pipeline<Resources::Vertex> (stateLnd,  landAt.main);
-  pLandAlpha     = pipeline<Resources::Vertex> (stateAlpha,land.main);
-
   pObject        = pipeline<Resources::Vertex> (stateObj,   object.main);
-  pObjectDecal   = pipeline<Resources::Vertex> (stateObjDec,object.main);
+  pObjectAt      = pipeline<Resources::Vertex> (stateObj,   objectAt.main);
+  pObjectAlpha   = pipeline<Resources::Vertex> (stateAlpha, object.main);
   pAnim          = pipeline<Resources::VertexA>(stateObj,   ani.main);
 
   pPfx           = pipeline<Resources::Vertex> (statePfx,pfx.main);
@@ -110,8 +107,7 @@ void RendererStorage::initShadow() {
   state.setCullFaceMode(RenderState::CullMode::Back);
   //state.setCullFaceMode(RenderState::CullMode::Front);
 
-  pLandSh   = pipeline<Resources::Vertex> (state,land.shadow);
-  pLandAtSh = pipeline<Resources::Vertex> (state,landAt.shadow);
-  pObjectSh = pipeline<Resources::Vertex> (state,object.shadow);
-  pAnimSh   = pipeline<Resources::VertexA>(state,ani.shadow);
+  pObjectSh   = pipeline<Resources::Vertex> (state,object.shadow);
+  pObjectAtSh = pipeline<Resources::Vertex> (state,objectAt.shadow);
+  pAnimSh     = pipeline<Resources::VertexA>(state,ani.shadow);
   }

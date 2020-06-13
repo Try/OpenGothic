@@ -36,7 +36,7 @@ void Sky::setWorld(const World &world) {
     }
 
   for(auto& i:perFrame){
-    i.ubo    = device.uniforms(scene.storage.uboSkyLayout());
+    i.ubo    = device.uniforms(scene.storage.pSky.layout());
     i.uboGpu = device.ubo<UboGlobal>(nullptr,1);
 
     i.ubo.set(0,i.uboGpu);

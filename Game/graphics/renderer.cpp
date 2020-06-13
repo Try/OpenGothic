@@ -43,7 +43,7 @@ Renderer::Renderer(Tempest::Device &device,Tempest::Swapchain& swapchain,Gothic&
 
   Log::i("GPU = ",device.renderer());
   Log::i("Depth format = ",int(zBufferFormat)," Shadow format = ",int(shadowFormat));
-  uboShadowComp = stor.device.uniforms(stor.uboComposeLayout());
+  uboShadowComp = stor.device.uniforms(stor.pComposeShadow.layout());
   }
 
 void Renderer::resetSwapchain() {

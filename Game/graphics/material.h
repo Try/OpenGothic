@@ -25,7 +25,8 @@ class Material final {
     const Tempest::Texture2d* tex=nullptr;
     ApphaFunc                 alpha=AlphaTest;
 
-    bool operator <(const Material& other) const;
+    bool operator <  (const Material& other) const;
+    bool operator == (const Material& other) const;
 
   private:
     static int alphaOrder(ApphaFunc a);
