@@ -57,7 +57,7 @@ class Camera final {
     void            onRotateMouse(const Tempest::PointF& dpos);
 
     Tempest::Matrix4x4 view() const;
-    Tempest::Matrix4x4 viewShadow(const std::array<float,3> &ldir,int layer) const;
+    Tempest::Matrix4x4 viewShadow(const Tempest::Vec3& ldir, int layer) const;
 
   private:
     struct State {

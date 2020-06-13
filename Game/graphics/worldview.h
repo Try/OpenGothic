@@ -32,6 +32,8 @@ class WorldView {
 
     void tick(uint64_t dt);
 
+    void addLight(const ZenLoad::zCVobData &vob);
+
     void updateCmd (uint8_t frameId, const World &world,
                     const Tempest::Attachment& main, const Tempest::Attachment& shadow,
                     const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay);
@@ -59,6 +61,8 @@ class WorldView {
     Landscape               land;
     MeshObjects             objGroup;
     PfxObjects              pfxGroup;
+
+    std::vector<Light>      pendingLights;
 
     const Tempest::FrameBufferLayout* mainLay   = nullptr;
     const Tempest::FrameBufferLayout* shadowLay = nullptr;

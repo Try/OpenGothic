@@ -56,15 +56,27 @@ class ObjectsBucket : public AbstractObjectsBucket {
       Tempest::Uniforms                     uboSh[Resources::MaxFramesInFlight][Resources::ShadowLayers];
       };
 
-    struct SkMatrix final {
+    struct ShLight {
+      Tempest::Vec3 pos;
+      float         padding=0;
+      Tempest::Vec3 color;
+      float         range=0;
+      };
+
+    struct UboObject final {
+      Tempest::Matrix4x4 pos;
+      ShLight            light[1];
+      };
+
+    struct UboAnim final {
       Tempest::Matrix4x4 skel[Resources::MAX_NUM_SKELETAL_NODES];
       };
 
     std::vector<Object>       val;
     std::vector<size_t>       freeList;
 
-    UboStorage<Tempest::Matrix4x4> storageSt;
-    UboStorage<SkMatrix>           storageSk;
+    UboStorage<UboObject>     storageSt;
+    UboStorage<UboAnim>       storageSk;
 
     const SceneGlobals&       scene;
     const Tempest::Texture2d* tex = nullptr;
@@ -77,5 +89,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
     void   setSkeleton (size_t i,const Skeleton* sk);
     void   setSkeleton (size_t i,const Pose& sk);
     void   setBounds   (size_t i,const Bounds& b);
+
+    void   setupLights(UboObject& ubo, const Tempest::Vec3& pos);
   };
 

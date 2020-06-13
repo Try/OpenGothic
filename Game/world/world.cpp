@@ -912,6 +912,9 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusicDefault) {
     wsound.setDefaultZone(vob);
     }
+  else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobLight) {
+    wview->addLight(vob);
+    }
   else if(vob.objectClass=="zCVobAnimate:zCVob" || // ork flags
           vob.objectClass=="zCPFXControler:zCVob"){
     wobj.addStatic(vob); //TODO: morph animation
@@ -919,8 +922,7 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
   else if(vob.objectClass=="oCTouchDamage:zCTouchDamage:zCVob"){
     // NOT IMPLEMENTED
     }
-  else if(vob.objectClass=="zCVobLight:zCVob" ||
-          vob.objectClass=="zCVobLensFlare:zCVob" ||
+  else if(vob.objectClass=="zCVobLensFlare:zCVob" ||
           vob.objectClass=="zCZoneVobFarPlane:zCVob" ||
           vob.objectClass=="zCZoneVobFarPlaneDefault:zCZoneVobFarPlane:zCVob" ||
           vob.objectClass=="zCZoneZFog:zCVob" ||

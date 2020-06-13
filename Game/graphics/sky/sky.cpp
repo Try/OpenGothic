@@ -52,9 +52,9 @@ void Sky::calcUboParams() {
   uboCpu.mvp.inverse();
 
   auto l = scene.sun.dir();
-  uboCpu.sky[0] = -l[2];
-  uboCpu.sky[1] = -l[1];
-  uboCpu.sky[2] =  l[0];
+  uboCpu.sky[0] = -l.z;
+  uboCpu.sky[1] = -l.y;
+  uboCpu.sky[2] =  l.x;
 
   auto ticks = scene.tickCount;
   auto t0 = float(ticks%90000 )/90000.f;

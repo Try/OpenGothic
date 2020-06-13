@@ -33,31 +33,6 @@ RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   object.load(device,"object");
   ani   .load(device,"anim");
   pfx   .load(device,"pfx");
-/*
-  layoutLnd.add(0,UniformsLayout::Texture,UniformsLayout::Fragment);
-  layoutLnd.add(1,UniformsLayout::Texture,UniformsLayout::Fragment);
-  layoutLnd.add(2,UniformsLayout::Ubo,    UniformsLayout::Vertex);
-
-  layoutObj.add(0,UniformsLayout::Texture,UniformsLayout::Fragment);
-  layoutObj.add(1,UniformsLayout::Texture,UniformsLayout::Fragment);
-  layoutObj.add(2,UniformsLayout::Ubo,    UniformsLayout::Vertex);
-  layoutObj.add(3,UniformsLayout::Ubo,    UniformsLayout::Vertex);
-
-  layoutAni.add(0,UniformsLayout::Texture,UniformsLayout::Fragment);
-  layoutAni.add(1,UniformsLayout::Texture,UniformsLayout::Fragment);
-  layoutAni.add(2,UniformsLayout::Ubo,    UniformsLayout::Vertex);
-  layoutAni.add(3,UniformsLayout::Ubo,    UniformsLayout::Vertex);
-  layoutAni.add(4,UniformsLayout::Ubo,    UniformsLayout::Vertex);
-
-  layoutSky.add(0,UniformsLayout::Ubo,    UniformsLayout::Fragment);
-  layoutSky.add(1,UniformsLayout::Texture,UniformsLayout::Fragment);
-  layoutSky.add(2,UniformsLayout::Texture,UniformsLayout::Fragment);
-  layoutSky.add(3,UniformsLayout::Texture,UniformsLayout::Fragment);
-  layoutSky.add(4,UniformsLayout::Texture,UniformsLayout::Fragment);
-
-  layoutComp.add(0,UniformsLayout::Texture,UniformsLayout::Fragment);
-  layoutComp.add(1,UniformsLayout::Texture,UniformsLayout::Fragment);
-*/
   initPipeline(gothic);
   initShadow();
   }
@@ -119,13 +94,13 @@ void RendererStorage::initPipeline(Gothic& gothic) {
     auto vsSky = device.shader(sh.data,sh.len);
     sh         = GothicShader::get("sky_g1.frag.sprv");
     auto fsSky = device.shader(sh.data,sh.len);
-    pSky       = device.pipeline<Resources::VertexFsq>(Triangles, stateFsq, vsSky,  fsSky );
+    pSky       = device.pipeline<Resources::VertexFsq>(Triangles, stateFsq, vsSky,  fsSky);
     } else {
     auto sh    = GothicShader::get("sky.vert.sprv");
     auto vsSky = device.shader(sh.data,sh.len);
     sh         = GothicShader::get("sky.frag.sprv");
     auto fsSky = device.shader(sh.data,sh.len);
-    pSky       = device.pipeline<Resources::VertexFsq>(Triangles, stateFsq, vsSky,  fsSky );
+    pSky       = device.pipeline<Resources::VertexFsq>(Triangles, stateFsq, vsSky,  fsSky);
     }
   }
 

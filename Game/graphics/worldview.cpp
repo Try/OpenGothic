@@ -44,6 +44,18 @@ void WorldView::tick(uint64_t /*dt*/) {
     }
   }
 
+void WorldView::addLight(const ZenLoad::zCVobData& vob) {
+  uint8_t cl[4];
+  std::memcpy(cl,&vob.zCVobLight.color,4);
+
+  Light l;
+  l.setPosition(Vec3(vob.position.x,vob.position.y,vob.position.z));
+  l.setColor   (Vec3(cl[2]/255.f,cl[1]/255.f,cl[1]/255.f));
+  l.setRange   (vob.zCVobLight.range);
+
+  pendingLights.push_back(l);
+  }
+
 void WorldView::setupSunDir(float pulse,float ang) {
   float a  = 360-360*ang;
   a = a*float(M_PI/180.0);
@@ -57,10 +69,18 @@ void WorldView::setModelView(const Matrix4x4& view, const Tempest::Matrix4x4* sh
   }
 
 void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uint8_t fId) {
+  if(pendingLights.size()!=sGlobal.lights.size()) {
+    sGlobal.lights = pendingLights;
+    std::sort(sGlobal.lights.begin(),sGlobal.lights.end(),[](const Light& a,const Light& b){
+      return a.position().x<b.position().x;
+      });
+    }
   if(&shadow!=sGlobal.shadowMap) {
     // wait before update all descriptors
     sGlobal.storage.device.waitIdle();
-    sGlobal.shadowMap = &shadow;
+    sGlobal.shadowMap            = &shadow;
+    sGlobal.uboGlobal.shadowSize = float(shadow.w());
+
     land    .setupUbo();
     objGroup.setupUbo();
     pfxGroup.setupUbo();

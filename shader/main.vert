@@ -5,6 +5,12 @@ out gl_PerVertex {
   vec4 gl_Position;
   };
 
+struct Light {
+  vec4  at;
+  vec3  color;
+  float range;
+  };
+
 layout(std140,binding = 2) uniform UboScene {
   vec3 ldir;
   mat4 mv;
@@ -15,7 +21,8 @@ layout(std140,binding = 2) uniform UboScene {
 
 #if defined(OBJ)
 layout(std140,binding = 3) uniform UboObject {
-  mat4 obj;
+  mat4  obj;
+  Light light[1];
   } ubo;
 #endif
 
@@ -50,9 +57,7 @@ layout(location = 0) out vec2 outUV;
 layout(location = 1) out vec4 outShadowPos;
 layout(location = 2) out vec3 outNormal;
 layout(location = 3) out vec4 outColor;
-layout(location = 4) out vec3 outLight;
-layout(location = 5) out vec3 outAmbient;
-layout(location = 6) out vec3 outSun;
+layout(location = 4) out vec4 outPos;
 #endif
 
 vec4 vertexPos() {
@@ -105,14 +110,13 @@ void main() {
   vec4 norm = normal();
   outShadowPos = shPos;
   outColor     = inColor;
-  outLight     = scene.ldir;
-  outAmbient   = scene.ambient.rgb;
-  outSun       = scene.sunCl.rgb;
 #  ifdef OBJ
   outNormal    = (ubo.obj*norm).xyz;
-  gl_Position  = scene.mv*ubo.obj*pos;
+  outPos       = (ubo.obj*pos);
+  gl_Position  = scene.mv*outPos;
 #  else
   outNormal    = norm.xyz;
+  outPos       = pos;
   gl_Position  = scene.mv*pos;
 #  endif
 #endif

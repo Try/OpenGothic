@@ -168,8 +168,13 @@ void ObjectsBucket::draw(size_t id, Painter3d& p, uint32_t fId) {
 
 void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
   auto& v = val[i];
-  storageSt.element(v.storageSt) = m;
   v.bounds.setObjMatrix(m);
+  auto& ubo = storageSt.element(v.storageSt);
+  ubo.pos = m;
+
+  Vec3 pos = Vec3(m.at(3,0),m.at(3,1),m.at(3,2));
+  setupLights(ubo,pos);
+
   storageSt.markAsChanged();
   }
 
@@ -199,4 +204,33 @@ void ObjectsBucket::setSkeleton(size_t i, const Pose& p) {
 
 void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
   val[i].bounds = b;
+  }
+
+void ObjectsBucket::setupLights(UboObject& ubo, const Vec3& pos) {
+  float R = 600;
+  auto b = std::lower_bound(scene.lights.begin(),scene.lights.end(), pos.x-R ,[](const Light& a, float b){
+    return a.position().x<b;
+    });
+  auto e = std::upper_bound(scene.lights.begin(),scene.lights.end(), pos.x+R ,[](float a,const Light& b){
+    return a<b.position().x;
+    });
+
+  auto dist = std::distance(b,e);(void)dist;
+
+  const Light* light   = nullptr;
+  float        curDist = R*R;
+
+  for(auto i=b;i!=e;++i) {
+    auto& l = *i;
+    float dist = (l.position()-pos).quadLength();
+    if(dist<curDist) {
+      light   = &l;
+      curDist = dist;
+      }
+    }
+  if(light!=nullptr) {
+    ubo.light[0].pos   = light->position();
+    ubo.light[0].color = light->color();
+    ubo.light[0].range = light->range();
+    }
   }
