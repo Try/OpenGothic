@@ -78,7 +78,8 @@ class ObjectsBucket : public AbstractObjectsBucket {
       size_t                                storageSk = size_t(-1);
       Tempest::Uniforms                     ubo  [Resources::MaxFramesInFlight];
       Tempest::Uniforms                     uboSh[Resources::MaxFramesInFlight][Resources::ShadowLayers];
-      bool                                  visible = false;
+
+      int                                   lightCacheKey[3]={};
       };
 
     std::vector<Object>       val;
@@ -100,6 +101,6 @@ class ObjectsBucket : public AbstractObjectsBucket {
     void   setSkeleton (size_t i,const Pose& sk);
     void   setBounds   (size_t i,const Bounds& b);
 
-    void   setupLights (Object& val, UboObject& ubo);
+    void   setupLights (Object& val, UboObject& ubo, bool noCache);
   };
 

@@ -16,11 +16,11 @@ void LightGroup::set(const std::vector<Light>& l) {
   mkIndex(index,light.data(),light.size(),0);
   }
 
-size_t LightGroup::get(const Bounds& area, Light* out, size_t maxOut) const {
+size_t LightGroup::get(const Bounds& area, const Light** out, size_t maxOut) const {
   return implGet(index,area,out,maxOut);
   }
 
-size_t LightGroup::implGet(const LightGroup::Bvh& index, const Bounds& area, Light* out, size_t maxOut) const {
+size_t LightGroup::implGet(const LightGroup::Bvh& index, const Bounds& area, const Light** out, size_t maxOut) const {
   const Bvh* cur = &index;
   if(maxOut==0)
     return 0;
@@ -28,7 +28,7 @@ size_t LightGroup::implGet(const LightGroup::Bvh& index, const Bounds& area, Lig
     if(cur->next[0]==nullptr && cur->next[1]==nullptr) {
       size_t cnt = std::min(cur->count,maxOut);
       for(size_t i=0; i<cnt; ++i) {
-        out[i] = cur->b[i];
+        out[i] = &cur->b[i];
         }
       return cnt;
       }

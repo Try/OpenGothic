@@ -109,7 +109,7 @@ void ObjectsBucket::setupUbo() {
     if(v.storageSt==size_t(-1))
       continue;
     auto& u = storage.st.element(v.storageSt);
-    setupLights(v,u);
+    setupLights(v,u,true);
     }
 
   for(size_t fId=0;fId<Resources::MaxFramesInFlight;++fId) {
@@ -164,15 +164,12 @@ void ObjectsBucket::draw(Painter3d& p, uint8_t fId) {
   if(pMain==nullptr)
     return;
 
-  // Workers::parallelFor(val,[&p](Object& obj){
-  //   obj.visible = obj.ibo!=nullptr && p.isVisible(obj.bounds);
-  //   });
-
   for(auto& i:val) {
     if(i.ibo==nullptr)
       continue;
     if(!p.isVisible(i.bounds))
       continue;
+
     auto& ubo = i.ubo[fId];
     ubo.set(3,storage.st[fId],i.storageSt,1);
     if(i.storageSk!=size_t(-1))
@@ -187,16 +184,12 @@ void ObjectsBucket::drawShadow(Painter3d& p, uint8_t fId, int layer) {
   if(pShadow==nullptr)
     return;
 
-  //Workers::parallelFor(val,[&p](Object& obj){
-  //  obj.visible = obj.ibo!=nullptr && p.isVisible(obj.bounds);
-  //  });
-
   for(auto& i:val) {
-    //if(!i.visible)
     if(i.ibo==nullptr)
       continue;
     if(!p.isVisible(i.bounds))
       continue;
+
     auto& ubo = i.uboSh[fId][layer];
     ubo.set(3,storage.st[fId],i.storageSt,1);
     if(i.storageSk!=size_t(-1))
@@ -220,7 +213,7 @@ void ObjectsBucket::draw(size_t id, Painter3d& p, uint8_t fId) {
   ubo.set(1,Resources::fallbackTexture(),Sampler2d::nearest());
   ubo.set(2,scene.uboGlobalPf[fId][0],0,1);
   ubo.set(3,storage.st[fId],v.storageSt,1);
-  p.draw(scene.storage.pObject, ubo, *v.vbo, *v.ibo);
+  p.draw(*pMain, ubo, *v.vbo, *v.ibo);
   }
 
 void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
@@ -229,11 +222,13 @@ void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
   auto& ubo = storage.st.element(v.storageSt);
   ubo.pos = m;
 
-  setupLights(v,ubo);
+  setupLights(v,ubo,false);
   storage.st.markAsChanged();
   }
 
 void ObjectsBucket::setSkeleton(size_t i, const Skeleton* sk) {
+  return;
+
   if(shaderType!=Animated)
     return;
   if(sk==nullptr)
@@ -261,14 +256,31 @@ void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
   val[i].bounds = b;
   }
 
-void ObjectsBucket::setupLights(Object& val, UboObject& ubo) {
-  Light l[6] = {};
+void ObjectsBucket::setupLights(Object& val, UboObject& ubo, bool noCache) {
+  int cx = int(val.bounds.midTr.x/10.f);
+  int cy = int(val.bounds.midTr.y/10.f);
+  int cz = int(val.bounds.midTr.z/10.f);
+
+  if(cx==val.lightCacheKey[0] &&
+     cy==val.lightCacheKey[1] &&
+     cz==val.lightCacheKey[2] &&
+     !noCache)
+    return;
+
+  val.lightCacheKey[0] = cx;
+  val.lightCacheKey[1] = cy;
+  val.lightCacheKey[2] = cz;
+
+  const Light* l[6] = {};
   const size_t cnt = scene.lights.get(val.bounds,l,6);
 
   for(size_t i=0;i<cnt;++i) {
-    ubo.light[i].pos   = l[i].position();
-    ubo.light[i].color = l[i].color();
-    ubo.light[i].range = l[i].range();
+    ubo.light[i].pos   = l[i]->position();
+    ubo.light[i].color = l[i]->color();
+    ubo.light[i].range = l[i]->range();
+    }
+  for(size_t i=cnt;i<6;++i) {
+    ubo.light[i].range = 0;
     }
   }
 
