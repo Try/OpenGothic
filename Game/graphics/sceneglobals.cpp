@@ -46,3 +46,12 @@ void SceneGlobals::commitUbo(uint8_t fId) {
   uboGlobalPf[fId][0].update(&uboGlobal,0,1);
   uboGlobalPf[fId][1].update(&ubo2,     0,1);
   }
+
+void SceneGlobals::setShadowmMap(const Tempest::Texture2d& tex) {
+  shadowMap            = &tex;
+  uboGlobal.shadowSize = float(tex.w());
+  }
+
+const Tempest::Matrix4x4& SceneGlobals::modelView() const {
+  return uboGlobal.modelView;
+  }

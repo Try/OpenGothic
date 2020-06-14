@@ -8,7 +8,6 @@
 #include "ubochain.h"
 
 class RendererStorage;
-class ObjectsBucket;
 
 class SceneGlobals final {
   public:
@@ -17,6 +16,10 @@ class SceneGlobals final {
 
     void setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4 *sh, size_t shCount);
     void commitUbo(uint8_t fId);
+
+    void setShadowmMap(const Tempest::Texture2d& tex);
+
+    const Tempest::Matrix4x4& modelView() const;
 
     const RendererStorage&            storage;
     uint64_t                          tickCount = 0;
@@ -32,12 +35,13 @@ class SceneGlobals final {
       };
 
     Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][Resources::ShadowLayers];
-    UboGlobal                         uboGlobal;
-
-    Tempest::Matrix4x4                shadowView1;
 
     Light                             sun;
     Tempest::Vec3                     ambient;
     std::vector<Light>                lights;
+
+  private:
+    UboGlobal                         uboGlobal;
+    Tempest::Matrix4x4                shadowView1;
   };
 

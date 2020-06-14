@@ -16,8 +16,8 @@ void AbstractObjectsBucket::Item::setBounds(const Bounds& bbox) {
   owner->setBounds(id,bbox);
   }
 
-void AbstractObjectsBucket::Item::draw(Painter3d& p, uint32_t imgId) const {
-  owner->draw(id,p,imgId);
+void AbstractObjectsBucket::Item::draw(Painter3d& p, uint8_t fId) const {
+  owner->draw(id,p,fId);
   }
 
 AbstractObjectsBucket::AbstractObjectsBucket() {

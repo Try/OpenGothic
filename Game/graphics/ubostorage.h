@@ -13,7 +13,7 @@ class UboStorage {
   public:
     UboStorage();
 
-    bool                     commitUbo(Tempest::Device &device, uint8_t imgId);
+    bool                     commitUbo(Tempest::Device &device, uint8_t fId);
     size_t                   alloc();
     void                     free(const size_t objId);
     bool                     needToRealloc(uint32_t imgId) const;
@@ -34,6 +34,7 @@ class UboStorage {
     PerFrame                    pf[Resources::MaxFramesInFlight];
     std::vector<Ubo>            obj;
     std::vector<size_t>         freeList;
+    size_t                      updatesTotal=0; // perf statistic
   };
 
 template<class Ubo>
@@ -71,11 +72,12 @@ void UboStorage<Ubo>::markAsChanged() {
   }
 
 template<class Ubo>
-bool UboStorage<Ubo>::commitUbo(Tempest::Device& device,uint8_t imgId) {
-  auto&        frame   = pf[imgId];
+bool UboStorage<Ubo>::commitUbo(Tempest::Device& device,uint8_t fId) {
+  auto&        frame   = pf[fId];
   const bool   realloc = frame.uboData.size()!=obj.size();
   if(!frame.uboChanged)
     return false;
+  updatesTotal++;
   if(realloc)
     frame.uboData = device.ubo<Ubo>(obj.data(),obj.size()); else
     frame.uboData.update(obj.data(),0,obj.size());

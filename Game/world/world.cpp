@@ -32,7 +32,7 @@ World::World(Gothic& gothic, GameSession& game,const RendererStorage &storage, s
   parser.readWorld(world,isG2==2);
 
   ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
-  PackedMesh vmesh(*worldMesh,PackedMesh::PK_Visual);
+  PackedMesh vmesh(*worldMesh,PackedMesh::PK_VisualLnd);
 
   loadProgress(50);
   wdynamic.reset(new DynamicWorld(*this,*worldMesh));
@@ -67,7 +67,7 @@ World::World(Gothic& gothic, GameSession &game, const RendererStorage &storage,
   parser.readWorld(world,isG2==2);
 
   ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
-  PackedMesh vmesh(*worldMesh,PackedMesh::PK_Visual);
+  PackedMesh vmesh(*worldMesh,PackedMesh::PK_VisualLnd);
 
   loadProgress(50);
   wdynamic.reset(new DynamicWorld(*this,*worldMesh));

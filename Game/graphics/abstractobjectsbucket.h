@@ -47,7 +47,7 @@ class AbstractObjectsBucket {
         void   setPose     (const Pose&                p);
         void   setBounds   (const Bounds&           bbox);
 
-        void   draw(Painter3d& p, uint32_t imgId) const;
+        void   draw(Painter3d& p, uint8_t fId) const;
 
       private:
         AbstractObjectsBucket* owner=nullptr;
@@ -61,5 +61,5 @@ class AbstractObjectsBucket {
     virtual void   setSkeleton (size_t i,const Pose& sk)=0;
     virtual void   setBounds   (size_t i,const Bounds& b)=0;
 
-    virtual void   draw(size_t id, Painter3d& p, uint32_t imgId) = 0;
+    virtual void   draw(size_t id, Painter3d& p, uint8_t fId) = 0;
   };

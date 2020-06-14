@@ -23,10 +23,33 @@ class ObjectsBucket : public AbstractObjectsBucket {
 
     enum Type : uint8_t {
       Static,
+      Movable,
       Animated,
       };
 
-    ObjectsBucket(const Material& mat, const SceneGlobals& scene, const Type type);
+    struct ShLight final {
+      Tempest::Vec3 pos;
+      float         padding=0;
+      Tempest::Vec3 color;
+      float         range=0;
+      };
+
+    struct UboObject final {
+      Tempest::Matrix4x4 pos;
+      ShLight            light[4];
+      };
+
+    struct UboAnim final {
+      Tempest::Matrix4x4 skel[Resources::MAX_NUM_SKELETAL_NODES];
+      };
+
+    struct Storage final {
+      UboStorage<UboObject> st;
+      UboStorage<UboAnim>   sk;
+      bool                  commitUbo(Tempest::Device &device, uint8_t fId);
+      };
+
+    ObjectsBucket(const Material& mat, const SceneGlobals& scene, Storage& storage, const Type type);
     ~ObjectsBucket();
 
     const Material&           material() const;
@@ -43,7 +66,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
     void                      setupUbo();
     void                      draw      (Painter3d& painter, uint8_t fId);
     void                      drawShadow(Painter3d& painter, uint8_t fId, int layer=0);
-    void                      draw      (size_t id, Painter3d& p, uint32_t fId);
+    void                      draw      (size_t id, Painter3d& p, uint8_t fId);
 
   private:
     struct Object final {
@@ -57,29 +80,11 @@ class ObjectsBucket : public AbstractObjectsBucket {
       Tempest::Uniforms                     uboSh[Resources::MaxFramesInFlight][Resources::ShadowLayers];
       };
 
-    struct ShLight final {
-      Tempest::Vec3 pos;
-      float         padding=0;
-      Tempest::Vec3 color;
-      float         range=0;
-      };
-
-    struct UboObject final {
-      Tempest::Matrix4x4 pos;
-      ShLight            light[1];
-      };
-
-    struct UboAnim final {
-      Tempest::Matrix4x4 skel[Resources::MAX_NUM_SKELETAL_NODES];
-      };
-
     std::vector<Object>       val;
     std::vector<size_t>       freeList;
 
-    UboStorage<UboObject>     storageSt;
-    UboStorage<UboAnim>       storageSk;
-
     const SceneGlobals&       scene;
+    Storage&                  storage;
     Material                  mat;
     const Type                shaderType;
 
@@ -94,6 +99,6 @@ class ObjectsBucket : public AbstractObjectsBucket {
     void   setSkeleton (size_t i,const Pose& sk);
     void   setBounds   (size_t i,const Bounds& b);
 
-    void   setupLights (UboObject& ubo);
+    void   setupLights (Object& val, UboObject& ubo);
   };
 

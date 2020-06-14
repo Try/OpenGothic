@@ -78,8 +78,7 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
   if(&shadow!=sGlobal.shadowMap) {
     // wait before update all descriptors
     sGlobal.storage.device.waitIdle();
-    sGlobal.shadowMap            = &shadow;
-    sGlobal.uboGlobal.shadowSize = float(shadow.w());
+    sGlobal.setShadowmMap(shadow);
 
     //land    .setupUbo();
     objGroup.setupUbo();
@@ -91,13 +90,11 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
   }
 
 void WorldView::drawShadow(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId, uint8_t layer) {
-  //land    .drawShadow(painter,fId,layer);
   objGroup.drawShadow(painter,fId,layer);
   painter.commit(cmd);
   }
 
 void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId) {
-  //land    .draw(painter,fId);
   objGroup.draw(painter,fId);
   sky     .draw(painter,fId);
   pfxGroup.draw(painter,fId);
@@ -114,30 +111,30 @@ MeshObjects::Mesh WorldView::getLand(Tempest::VertexBuffer<Resources::Vertex>& v
 
 MeshObjects::Mesh WorldView::getView(const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
   if(auto mesh=Resources::loadMesh(visual))
-    return objGroup.get(*mesh,headTex,teethTex,bodyColor);
+    return objGroup.get(*mesh,headTex,teethTex,bodyColor,false);
   return MeshObjects::Mesh();
   }
 
 MeshObjects::Mesh WorldView::getItmView(const char* visual, int32_t material) {
   if(auto mesh=Resources::loadMesh(visual))
-    return objGroup.get(*mesh,material,0,0);
+    return objGroup.get(*mesh,material,0,0,true);
   return MeshObjects::Mesh();
   }
 
 MeshObjects::Mesh WorldView::getAtachView(const ProtoMesh::Attach& visual) {
-  return objGroup.get(visual);
+  return objGroup.get(visual,false);
   }
 
 MeshObjects::Mesh WorldView::getStaticView(const char* visual) {
   if(auto mesh=Resources::loadMesh(visual))
-    return objGroup.get(*mesh,0,0,0);
+    return objGroup.get(*mesh,0,0,0,true);
   return MeshObjects::Mesh();
   }
 
 MeshObjects::Mesh WorldView::getDecalView(const ZenLoad::zCVobData& vob,
                                           const Tempest::Matrix4x4& obj, ProtoMesh& out) {
   out = owner.physic()->decalMesh(vob,obj);
-  return objGroup.get(out,0,0,0);
+  return objGroup.get(out,0,0,0,true);
   }
 
 PfxObjects::Emitter WorldView::getView(const ParticleFx *decl) {

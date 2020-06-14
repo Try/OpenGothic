@@ -24,12 +24,15 @@ ObjectsBucket& MeshObjects::getBucket(const Material& mat, ObjectsBucket::Type t
       return i;
 
   index.clear();
-  buckets.emplace_back(mat,globals,type);
+  if(type==ObjectsBucket::Type::Static)
+    buckets.emplace_back(mat,globals,uboStatic,type); else
+    buckets.emplace_back(mat,globals,uboDyn,   type);
   return buckets.back();
   }
 
 MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const StaticMesh::SubMesh& s,
-                                       int32_t texVar, int32_t teethTex, int32_t bodyColor) {
+                                       int32_t texVar, int32_t teethTex, int32_t bodyColor,
+                                       bool staticDraw) {
   Material mat = s.material;
   if(teethTex!=0 || bodyColor!=0 || texVar!=0){
     if(s.texName=="HUM_TEETH_V0.TGA"){
@@ -48,16 +51,17 @@ MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const StaticMesh:
       Tempest::Log::e("texture not found: \"",s.texName,"\"");
     return MeshObjects::Item();
     }
-  return implGet(mesh,mat,s.ibo);
+  return implGet(mesh,mat,s.ibo,staticDraw);
   }
 
 MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const Material& mat,
-                                       const Tempest::IndexBuffer<uint32_t>& ibo) {
+                                       const Tempest::IndexBuffer<uint32_t>& ibo,
+                                       bool staticDraw) {
   if(mat.tex==nullptr) {
     Tempest::Log::e("no texture?!");
     return MeshObjects::Item();
     }
-  auto&        bucket = getBucket(mat,ObjectsBucket::Static);
+  auto&        bucket = getBucket(mat,staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
   const size_t id     = bucket.alloc(mesh.vbo,ibo,mesh.bbox);
   return Item(bucket,id);
   }
@@ -82,11 +86,11 @@ const Tempest::Texture2d *MeshObjects::solveTex(const Tempest::Texture2d *def, c
   return def;
   }
 
-MeshObjects::Mesh MeshObjects::get(const StaticMesh &mesh) {
+MeshObjects::Mesh MeshObjects::get(const StaticMesh &mesh, bool staticDraw) {
   std::unique_ptr<Item[]> dat(new Item[mesh.sub.size()]);
   size_t count=0;
   for(size_t i=0;i<mesh.sub.size();++i){
-    Item it = implGet(mesh,mesh.sub[i].material,mesh.sub[i].ibo);
+    Item it = implGet(mesh,mesh.sub[i].material,mesh.sub[i].ibo,staticDraw);
     if(it.isEmpty())
       continue;
     dat[count] = std::move(it);
@@ -100,7 +104,7 @@ MeshObjects::Mesh MeshObjects::get(const StaticMesh& mesh,
   std::unique_ptr<Item[]> dat(new Item[mesh.sub.size()]);
   size_t count=0;
   for(size_t i=0;i<mesh.sub.size();++i){
-    Item it = implGet(mesh,mesh.sub[i],headTexVar,teethTex,bodyColor);
+    Item it = implGet(mesh,mesh.sub[i],headTexVar,teethTex,bodyColor,false);
     if(it.isEmpty())
       continue;
     dat[count] = std::move(it);
@@ -109,7 +113,8 @@ MeshObjects::Mesh MeshObjects::get(const StaticMesh& mesh,
   return Mesh(nullptr,std::move(dat),count);
   }
 
-MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_t teethTex, int32_t bodyColor) {
+MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_t teethTex, int32_t bodyColor,
+                                   bool staticDraw) {
   const size_t skinnedCount=mesh.skinedNodesCount();
   std::unique_ptr<Item[]> dat(new Item[mesh.submeshId.size()+skinnedCount]);
 
@@ -117,7 +122,7 @@ MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_
   for(auto& m:mesh.submeshId) {
     auto& att = mesh.attach[m.id];
     auto& s   = att.sub[m.subId];
-    Item  it  = implGet(att,s,texVar,teethTex,bodyColor);
+    Item  it  = implGet(att,s,texVar,teethTex,bodyColor,staticDraw);
     if(it.isEmpty())
       continue;
     dat[count] = std::move(it);
@@ -158,12 +163,18 @@ void MeshObjects::setupUbo() {
   }
 
 void MeshObjects::draw(Painter3d& painter, uint8_t fId) {
+  uboStatic.commitUbo(globals.storage.device,fId);
+  uboDyn   .commitUbo(globals.storage.device,fId);
+
   mkIndex();
   for(auto c:index)
     c->draw(painter,fId);
   }
 
 void MeshObjects::drawShadow(Painter3d& painter, uint8_t fId, int layer) {
+  uboStatic.commitUbo(globals.storage.device,fId);
+  uboDyn   .commitUbo(globals.storage.device,fId);
+
   mkIndex();
   for(auto c:index)
     c->drawShadow(painter,fId,layer);
@@ -266,6 +277,6 @@ void MeshObjects::Mesh::setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix
       }
   }
 
-void MeshObjects::Node::draw(Painter3d& p, uint32_t imgId) const {
-  it->draw(p,imgId);
+void MeshObjects::Node::draw(Painter3d& p, uint8_t fId) const {
+  it->draw(p,fId);
   }

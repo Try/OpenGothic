@@ -48,7 +48,7 @@ void Sky::setWorld(const World &world) {
   }
 
 void Sky::calcUboParams() {
-  uboCpu.mvp = scene.uboGlobal.modelView;
+  uboCpu.mvp = scene.modelView();
   uboCpu.mvp.inverse();
 
   auto l = scene.sun.dir();

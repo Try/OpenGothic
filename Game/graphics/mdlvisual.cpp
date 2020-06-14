@@ -10,6 +10,7 @@ using namespace Tempest;
 
 MdlVisual::MdlVisual()
   :skInst(std::make_unique<Pose>()) {
+  pos.identity();
   }
 
 void MdlVisual::save(Serialize &fout) {

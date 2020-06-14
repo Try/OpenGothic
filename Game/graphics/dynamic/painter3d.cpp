@@ -103,6 +103,9 @@ bool Painter3d::Frustrum::testPoint(float x, float y, float z) const {
   }
 
 bool Painter3d::Frustrum::testPoint(float x, float y, float z, float R) const {
+  if(std::isnan(R))
+    return false;
+
   for(size_t i=0; i<6; i++) {
     if(f[i][0]*x+f[i][1]*y+f[i][2]*z+f[i][3]<=-R)
       return false;
@@ -147,7 +150,7 @@ void Painter3d::setFrustrum(const Matrix4x4& m) {
   }
 
 bool Painter3d::isVisible(const Bounds& b) const {
-  return frustrum.testPoint(b.at.x,b.at.y,b.at.z, b.r);
+  return frustrum.testPoint(b.midTr.x,b.midTr.y,b.midTr.z, b.r);
   }
 
 void Painter3d::setViewport(int x, int y, int w, int h) {

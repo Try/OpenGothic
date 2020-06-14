@@ -21,6 +21,7 @@ class Bounds final {
     Tempest::Vec3 bbox[2];
     Tempest::Vec3 bboxTr[2];
     Tempest::Vec3 at;
+    Tempest::Vec3 midTr;
     float         r = 0;
 
   private:

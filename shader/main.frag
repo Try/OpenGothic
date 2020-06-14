@@ -35,7 +35,7 @@ layout(std140,binding = 2) uniform UboScene {
 #if defined(OBJ)
 layout(std140,binding = 3) uniform UboObject {
   mat4  obj;
-  Light light[1];
+  Light light[4];
   } ubo;
 #endif
 
@@ -92,7 +92,7 @@ vec3 calcLight() {
   vec3  color   = scene.sunCl.rgb*clamp(light,0.0,1.0);
 
 #if defined(OBJ)
-  for(int i=0; i<1; ++i) {
+  for(int i=0; i<4; ++i) {
     vec3  ldir    = ubo.light[i].pos.xyz - inPos.xyz;
     float rgn     = ubo.light[i].range;
     float qDist   = dot(ldir,ldir);

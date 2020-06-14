@@ -13,6 +13,7 @@ class PackedMesh {
 
     enum PkgType {
       PK_Visual,
+      PK_VisualLnd,
       PK_Physic,
       PK_PhysicZoned
       };
@@ -29,8 +30,30 @@ class PackedMesh {
     PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type);
 
   private:
+    struct NodeId {
+      size_t mat=0;
+      int    sx=0;
+      int    sy=0;
+      int    sz=0;
+
+      bool operator == (const NodeId& other) const {
+        return mat==other.mat && sx==other.sx && sy==other.sy && sz==other.sz;
+        }
+      };
+    struct Hash final {
+      size_t operator() (const NodeId& v) const noexcept {
+        return v.mat^size_t(v.sx)^size_t(v.sz);
+        }
+      };
+
+    std::unordered_map<NodeId,size_t,Hash> nodeCache;
+
     void   pack(const ZenLoad::zCMesh& mesh,PkgType type);
-    size_t submeshIndex(const ZenLoad::zCMesh& mesh, std::vector<SubMesh*>& index, size_t triangleId, PkgType type) const;
+
+    size_t submeshIndex(const ZenLoad::zCMesh& mesh, std::vector<SubMesh*>& index,
+                        size_t vindex, size_t mat, PkgType type);
+    size_t landIndex(const ZenLoad::zCMesh& mesh, size_t vindex, size_t matId);
+
     void   addSector(const std::string& s, uint8_t group);
     static bool compare(const ZenLoad::zCMaterialData& l, const ZenLoad::zCMaterialData& r);
   };

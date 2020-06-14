@@ -8,8 +8,8 @@
 
 using namespace Tempest;
 
-ObjectsBucket::ObjectsBucket(const Material& mat, const SceneGlobals& scene, const Type type)
-  :scene(scene), mat(mat), shaderType(type) {
+ObjectsBucket::ObjectsBucket(const Material& mat, const SceneGlobals& scene, Storage& storage, const Type type)
+  :scene(scene), storage(storage), mat(mat), shaderType(type) {
   if(shaderType==Animated) {
     pMain   = &scene.storage.pAnim;
     pShadow = &scene.storage.pAnimSh;
@@ -60,7 +60,7 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const Tempest::IndexBuffer<uint3
   v->vboA      = nullptr;
   v->ibo       = &ibo;
   v->bounds    = bounds;
-  v->storageSt = storageSt.alloc();
+  v->storageSt = storage.st.alloc();
 
   if(v->ubo[0].isEmpty()) {
     for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
@@ -105,8 +105,8 @@ void ObjectsBucket::setupUbo() {
   for(auto& v:val) {
     if(v.storageSt==size_t(-1))
       continue;
-    auto& u = storageSt.element(v.storageSt);
-    setupLights(u);
+    auto& u = storage.st.element(v.storageSt);
+    setupLights(v,u);
     }
 
   for(size_t fId=0;fId<Resources::MaxFramesInFlight;++fId) {
@@ -141,7 +141,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
                             const Bounds& bounds) {
   Object* v = &implAlloc(ibo,bounds);
   v->vboA = &vbo;
-  v->storageSk = storageSk.alloc();
+  v->storageSk = storage.sk.alloc();
   return std::distance(val.data(),v);
   }
 
@@ -149,9 +149,9 @@ void ObjectsBucket::free(const size_t objId) {
   freeList.push_back(objId);
   auto& v = val[objId];
   if(v.storageSt!=size_t(-1))
-    storageSt.free(v.storageSt);
+    storage.st.free(v.storageSt);
   if(v.storageSk!=size_t(-1))
-    storageSk.free(v.storageSk);
+    storage.sk.free(v.storageSk);
   v.vbo  = nullptr;
   v.vboA = nullptr;
   v.ibo  = nullptr;
@@ -161,8 +161,8 @@ void ObjectsBucket::draw(Painter3d& p, uint8_t fId) {
   if(pMain==nullptr)
     return;
 
-  storageSt.commitUbo(scene.storage.device,fId);
-  storageSk.commitUbo(scene.storage.device,fId);
+  storage.st.commitUbo(scene.storage.device,fId);
+  storage.sk.commitUbo(scene.storage.device,fId);
 
   for(auto& i:val) {
     if(i.ibo==nullptr)
@@ -170,12 +170,12 @@ void ObjectsBucket::draw(Painter3d& p, uint8_t fId) {
     if(!p.isVisible(i.bounds))
       continue;
     auto& ubo = i.ubo[fId];
-    ubo.set(3,storageSt[fId],i.storageSt,1);
+    ubo.set(3,storage.st[fId],i.storageSt,1);
     if(i.storageSk!=size_t(-1))
-      ubo.set(4,storageSk[fId],i.storageSk,1);
-    if(shaderType==Static)
-      p.draw(*pMain,ubo,*i.vbo, *i.ibo); else
-      p.draw(*pMain,ubo,*i.vboA,*i.ibo);
+      ubo.set(4,storage.sk[fId],i.storageSk,1);
+    if(shaderType==Animated)
+      p.draw(*pMain,ubo,*i.vboA,*i.ibo); else
+      p.draw(*pMain,ubo,*i.vbo, *i.ibo);
     }
   }
 
@@ -183,47 +183,45 @@ void ObjectsBucket::drawShadow(Painter3d& p, uint8_t fId, int layer) {
   if(pShadow==nullptr)
     return;
 
-  storageSt.commitUbo(scene.storage.device,fId);
-  storageSk.commitUbo(scene.storage.device,fId);
-
   for(auto& i:val) {
     if(i.ibo==nullptr)
       continue;
     if(!p.isVisible(i.bounds))
       continue;
     auto& ubo = i.uboSh[fId][layer];
-    ubo.set(3,storageSt[fId],i.storageSt,1);
+    ubo.set(3,storage.st[fId],i.storageSt,1);
     if(i.storageSk!=size_t(-1))
-      ubo.set(4,storageSk[fId],i.storageSk,1);
-    if(shaderType==Static)
-      p.draw(*pShadow,ubo,*i.vbo, *i.ibo); else
-      p.draw(*pShadow,ubo,*i.vboA,*i.ibo);
+      ubo.set(4,storage.sk[fId],i.storageSk,1);
+    if(shaderType==Animated)
+      p.draw(*pShadow,ubo,*i.vboA,*i.ibo); else
+      p.draw(*pShadow,ubo,*i.vbo, *i.ibo);
     }
   }
 
-void ObjectsBucket::draw(size_t id, Painter3d& p, uint32_t fId) {
+void ObjectsBucket::draw(size_t id, Painter3d& p, uint8_t fId) {
   auto& v = val[id];
   if(v.vbo==nullptr || pMain==nullptr)
     return;
-  storageSt.commitUbo(scene.storage.device,uint8_t(fId));
-  storageSk.commitUbo(scene.storage.device,uint8_t(fId));
+
+  storage.st.commitUbo(scene.storage.device,fId);
+  storage.sk.commitUbo(scene.storage.device,fId);
 
   auto& ubo = v.ubo[fId];
   ubo.set(0,*mat.tex);
   ubo.set(1,Resources::fallbackTexture(),Sampler2d::nearest());
   ubo.set(2,scene.uboGlobalPf[fId][0],0,1);
-  ubo.set(3,storageSt[fId],v.storageSt,1);
+  ubo.set(3,storage.st[fId],v.storageSt,1);
   p.draw(scene.storage.pObject, ubo, *v.vbo, *v.ibo);
   }
 
 void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
   auto& v = val[i];
   v.bounds.setObjMatrix(m);
-  auto& ubo = storageSt.element(v.storageSt);
+  auto& ubo = storage.st.element(v.storageSt);
   ubo.pos = m;
 
-  setupLights(ubo);
-  storageSt.markAsChanged();
+  setupLights(v,ubo);
+  storage.st.markAsChanged();
   }
 
 void ObjectsBucket::setSkeleton(size_t i, const Skeleton* sk) {
@@ -232,32 +230,31 @@ void ObjectsBucket::setSkeleton(size_t i, const Skeleton* sk) {
   if(sk==nullptr)
     return;
   auto& v    = val[i];
-  auto& skel = storageSk.element(v.storageSk);
+  auto& skel = storage.sk.element(v.storageSk);
 
   for(size_t i=0;i<sk->tr.size();++i)
     skel.skel[i] = sk->tr[i];
 
-  storageSk.markAsChanged();
+  storage.sk.markAsChanged();
   }
 
 void ObjectsBucket::setSkeleton(size_t i, const Pose& p) {
   if(shaderType!=Animated)
     return;
   auto& v    = val[i];
-  auto& skel = storageSk.element(v.storageSk);
+  auto& skel = storage.sk.element(v.storageSk);
 
   std::memcpy(&skel.skel[0],p.tr.data(),p.tr.size()*sizeof(p.tr[0]));
-  storageSk.markAsChanged();
+  storage.sk.markAsChanged();
   }
 
 void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
   val[i].bounds = b;
   }
 
-void ObjectsBucket::setupLights(UboObject& ubo) {
+void ObjectsBucket::setupLights(Object& val, UboObject& ubo) {
   //TODO: cpu perfomance
-  auto& m = ubo.pos;
-  Vec3 pos = Vec3(m.at(3,0),m.at(3,1),m.at(3,2));
+  Vec3  pos = val.bounds.midTr;
 
   float R = 600;
   auto b = std::lower_bound(scene.lights.begin(),scene.lights.end(), pos.x-R ,[](const Light& a, float b){
@@ -269,20 +266,34 @@ void ObjectsBucket::setupLights(UboObject& ubo) {
 
   auto dist = std::distance(b,e);(void)dist;
 
-  const Light* light   = nullptr;
-  float        curDist = R*R;
+  if(dist<=4){
+    for(int i=0;i<dist;++i) {
+      auto& l = *(b+i);
+      ubo.light[i].pos   = l.position();
+      ubo.light[i].color = l.color();
+      ubo.light[i].range = l.range();
+      }
+    } else {
+    const Light* light   = nullptr;
+    float        curDist = R*R;
 
-  for(auto i=b;i!=e;++i) {
-    auto& l = *i;
-    float dist = (l.position()-pos).quadLength();
-    if(dist<curDist) {
-      light   = &l;
-      curDist = dist;
+    for(auto i=b;i!=e;++i) {
+      auto& l = *i;
+      float dist = (l.position()-pos).quadLength();
+      if(dist<curDist) {
+        light   = &l;
+        curDist = dist;
+        }
+      }
+    if(light!=nullptr) {
+      ubo.light[0].pos   = light->position();
+      ubo.light[0].color = light->color();
+      ubo.light[0].range = light->range();
       }
     }
-  if(light!=nullptr) {
-    ubo.light[0].pos   = light->position();
-    ubo.light[0].color = light->color();
-    ubo.light[0].range = light->range();
-    }
+  }
+
+bool ObjectsBucket::Storage::commitUbo(Device& device, uint8_t fId) {
+  return st.commitUbo(device,fId) |
+         sk.commitUbo(device,fId);
   }

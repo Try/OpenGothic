@@ -43,12 +43,6 @@ void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
   auto& uv  = mesh.getFeatureIndices();
   auto& ibo = mesh.getIndices();
 
-  struct Hash final {
-    size_t operator() (const std::pair<uint32_t,uint32_t>& v) const noexcept {
-      return v.first^v.second;
-      }
-    };
-
   vertices.reserve(vbo.size());
 
   size_t prevTriId = size_t(-1);
@@ -63,6 +57,11 @@ void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
       });
     }
 
+  struct Hash final {
+    size_t operator() (const std::pair<uint32_t,uint32_t>& v) const noexcept {
+      return v.first^v.second;
+      }
+    };
   std::unordered_map<std::pair<uint32_t,uint32_t>,size_t,Hash> icache;
   auto& mid = mesh.getTriangleMaterialIndices();
 
@@ -70,7 +69,7 @@ void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
     size_t id    = size_t(mid[i/3]);
 
     if(id!=prevTriId) {
-      matId     = submeshIndex(mesh,index,id,type);
+      matId     = submeshIndex(mesh,index,ibo[i],id,type);
       prevTriId = id;
       }
 
@@ -100,11 +99,13 @@ void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
   }
 
 size_t PackedMesh::submeshIndex(const ZenLoad::zCMesh& mesh,std::vector<SubMesh*>& index,
-                                size_t triangleId,PkgType type) const {
-  size_t id  = triangleId;
+                                size_t vindex, size_t mat, PkgType type) {
+  size_t id = mat;
   switch(type) {
     case PK_Visual:
       return id;
+    case PK_VisualLnd:
+      return landIndex(mesh,vindex,mat);
     case PK_Physic: {
       const auto&  mat = mesh.getMaterials()[id];
       if(mat.noCollDet)
@@ -122,7 +123,7 @@ size_t PackedMesh::submeshIndex(const ZenLoad::zCMesh& mesh,std::vector<SubMesh*
       for(auto i=l;i!=u;++i) {
         const auto& mesh = **i;
         if(mesh.material.matGroup==mat.matGroup && mesh.material.matName==mat.matName) {
-          return size_t(std::distance(&subMeshes.front(),&mesh));
+          return size_t(std::distance<const SubMesh*>(&subMeshes.front(),&mesh));
           }
         }
       if(mat.noCollDet)
@@ -131,6 +132,26 @@ size_t PackedMesh::submeshIndex(const ZenLoad::zCMesh& mesh,std::vector<SubMesh*
       }
     }
   return 0;
+  }
+
+size_t PackedMesh::landIndex(const ZenLoad::zCMesh& mesh, size_t vindex, size_t matId) {
+  auto& pos = mesh.getVertices()[vindex];
+
+  static const float sectorSz = 150*100;
+  NodeId n;
+  n.mat = matId;
+  n.sx  = int(pos.x/sectorSz);
+  n.sy  = int(pos.y/sectorSz);
+  n.sz  = int(pos.z/sectorSz);
+
+  auto c = nodeCache.find(n);
+  if(c==nodeCache.end()) {
+    nodeCache[n] = subMeshes.size();
+    subMeshes.emplace_back();
+    subMeshes.back().material = mesh.getMaterials()[matId];
+    return subMeshes.size()-1;
+    }
+  return c->second;
   }
 
 void PackedMesh::addSector(const std::string& s, uint8_t group) {
