@@ -7,6 +7,30 @@ using namespace Tempest;
 Bounds::Bounds(){
   }
 
+void Bounds::assign(const Vec3& cen, float sizeSz) {
+  bbox[0]   = cen-Vec3(sizeSz,sizeSz,sizeSz);
+  bbox[1]   = cen+Vec3(sizeSz,sizeSz,sizeSz);
+  bboxTr[0] = bbox[0];
+  bboxTr[1] = bbox[1];
+  midTr     = cen;
+  calcR();
+  }
+
+void Bounds::assign(const Bounds& a, const Bounds& b) {
+  bbox[0].x = std::min(a.bbox[0].x,b.bbox[0].x);
+  bbox[0].y = std::min(a.bbox[0].y,b.bbox[0].y);
+  bbox[0].z = std::min(a.bbox[0].z,b.bbox[0].z);
+
+  bbox[1].x = std::max(a.bbox[1].x,b.bbox[1].x);
+  bbox[1].y = std::max(a.bbox[1].y,b.bbox[1].y);
+  bbox[1].z = std::max(a.bbox[1].z,b.bbox[1].z);
+
+  bboxTr[0] = bbox[0];
+  bboxTr[1] = bbox[1];
+  midTr     = (bboxTr[0]+bboxTr[1])/2;
+  calcR();
+  }
+
 void Bounds::assign(const ZMath::float3* src) {
   std::memcpy(bbox,   src, 2*sizeof(Vec3));
   std::memcpy(bboxTr, src, 2*sizeof(Vec3));

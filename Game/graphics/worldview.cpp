@@ -70,17 +70,15 @@ void WorldView::setModelView(const Matrix4x4& view, const Tempest::Matrix4x4* sh
 
 void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uint8_t fId) {
   if(pendingLights.size()!=sGlobal.lights.size()) {
-    sGlobal.lights = pendingLights;
-    std::sort(sGlobal.lights.begin(),sGlobal.lights.end(),[](const Light& a,const Light& b){
-      return a.position().x<b.position().x;
-      });
+    sGlobal.lights.set(pendingLights);
+    objGroup.setupUbo();
+    pfxGroup.setupUbo();
     }
   if(&shadow!=sGlobal.shadowMap) {
     // wait before update all descriptors
     sGlobal.storage.device.waitIdle();
     sGlobal.setShadowmMap(shadow);
 
-    //land    .setupUbo();
     objGroup.setupUbo();
     pfxGroup.setupUbo();
     }

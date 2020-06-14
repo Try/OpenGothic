@@ -5,6 +5,7 @@
 #include <list>
 
 #include "light.h"
+#include "lightgroup.h"
 #include "ubochain.h"
 
 class RendererStorage;
@@ -38,7 +39,7 @@ class SceneGlobals final {
 
     Light                             sun;
     Tempest::Vec3                     ambient;
-    std::vector<Light>                lights;
+    LightGroup                        lights;
 
   private:
     UboGlobal                         uboGlobal;

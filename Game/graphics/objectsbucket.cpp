@@ -4,12 +4,15 @@
 #include "skeleton.h"
 
 #include "graphics/dynamic/painter3d.h"
+#include "utils/workers.h"
 #include "rendererstorage.h"
 
 using namespace Tempest;
 
 ObjectsBucket::ObjectsBucket(const Material& mat, const SceneGlobals& scene, Storage& storage, const Type type)
   :scene(scene), storage(storage), mat(mat), shaderType(type) {
+  static_assert(sizeof(UboObject)<=256, "UboObject is way too big");
+
   if(shaderType==Animated) {
     pMain   = &scene.storage.pAnim;
     pShadow = &scene.storage.pAnimSh;
@@ -161,8 +164,9 @@ void ObjectsBucket::draw(Painter3d& p, uint8_t fId) {
   if(pMain==nullptr)
     return;
 
-  storage.st.commitUbo(scene.storage.device,fId);
-  storage.sk.commitUbo(scene.storage.device,fId);
+  // Workers::parallelFor(val,[&p](Object& obj){
+  //   obj.visible = obj.ibo!=nullptr && p.isVisible(obj.bounds);
+  //   });
 
   for(auto& i:val) {
     if(i.ibo==nullptr)
@@ -183,7 +187,12 @@ void ObjectsBucket::drawShadow(Painter3d& p, uint8_t fId, int layer) {
   if(pShadow==nullptr)
     return;
 
+  //Workers::parallelFor(val,[&p](Object& obj){
+  //  obj.visible = obj.ibo!=nullptr && p.isVisible(obj.bounds);
+  //  });
+
   for(auto& i:val) {
+    //if(!i.visible)
     if(i.ibo==nullptr)
       continue;
     if(!p.isVisible(i.bounds))
@@ -253,43 +262,13 @@ void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
   }
 
 void ObjectsBucket::setupLights(Object& val, UboObject& ubo) {
-  //TODO: cpu perfomance
-  Vec3  pos = val.bounds.midTr;
+  Light l[6] = {};
+  const size_t cnt = scene.lights.get(val.bounds,l,6);
 
-  float R = 600;
-  auto b = std::lower_bound(scene.lights.begin(),scene.lights.end(), pos.x-R ,[](const Light& a, float b){
-    return a.position().x<b;
-    });
-  auto e = std::upper_bound(scene.lights.begin(),scene.lights.end(), pos.x+R ,[](float a,const Light& b){
-    return a<b.position().x;
-    });
-
-  auto dist = std::distance(b,e);(void)dist;
-
-  if(dist<=4){
-    for(int i=0;i<dist;++i) {
-      auto& l = *(b+i);
-      ubo.light[i].pos   = l.position();
-      ubo.light[i].color = l.color();
-      ubo.light[i].range = l.range();
-      }
-    } else {
-    const Light* light   = nullptr;
-    float        curDist = R*R;
-
-    for(auto i=b;i!=e;++i) {
-      auto& l = *i;
-      float dist = (l.position()-pos).quadLength();
-      if(dist<curDist) {
-        light   = &l;
-        curDist = dist;
-        }
-      }
-    if(light!=nullptr) {
-      ubo.light[0].pos   = light->position();
-      ubo.light[0].color = light->color();
-      ubo.light[0].range = light->range();
-      }
+  for(size_t i=0;i<cnt;++i) {
+    ubo.light[i].pos   = l[i].position();
+    ubo.light[i].color = l[i].color();
+    ubo.light[i].range = l[i].range();
     }
   }
 

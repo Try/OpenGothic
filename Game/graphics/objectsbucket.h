@@ -36,7 +36,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
 
     struct UboObject final {
       Tempest::Matrix4x4 pos;
-      ShLight            light[4];
+      ShLight            light[6];
       };
 
     struct UboAnim final {
@@ -78,6 +78,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
       size_t                                storageSk = size_t(-1);
       Tempest::Uniforms                     ubo  [Resources::MaxFramesInFlight];
       Tempest::Uniforms                     uboSh[Resources::MaxFramesInFlight][Resources::ShadowLayers];
+      bool                                  visible = false;
       };
 
     std::vector<Object>       val;

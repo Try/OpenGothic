@@ -13,6 +13,8 @@ class Bounds final {
   public:
     Bounds();
 
+    void assign(const Tempest::Vec3& cen, float sizeSz);
+    void assign(const Bounds& a, const Bounds& b);
     void assign(const ZMath::float3* bbox);
     void assign(const std::vector<Resources::Vertex>& vbo);
     void assign(const std::vector<ZenLoad::WorldVertex>& vbo,const std::vector<uint32_t>& ibo);
