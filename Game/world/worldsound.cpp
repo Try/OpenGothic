@@ -282,7 +282,7 @@ void WorldSound::tickSlot(GSoundEffect& slot) {
     return;
   auto  dyn = owner.physic();
   auto  pos = slot.position();
-  float occ = dyn->soundOclusion(plPos.x,plPos.y+180/*head pos*/,plPos.z, pos[0],pos[1],pos[2]);
+  float occ = dyn->soundOclusion(plPos.x,plPos.y+180/*head pos*/,plPos.z, pos.x,pos.y,pos.z);
 
   slot.setOcclusion(std::max(0.f,1.f-occ));
   }

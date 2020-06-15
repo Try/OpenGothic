@@ -13,8 +13,6 @@
 #include "abstractobjectsbucket.h"
 #include "objectsbucket.h"
 #include "protomesh.h"
-#include "ubochain.h"
-#include "ubostorage.h"
 
 class SceneGlobals;
 class Pose;
@@ -57,7 +55,7 @@ class MeshObjects final {
 
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setSkeleton (const Skeleton* sk);
-        void   setPose     (const Pose&      p,const Tempest::Matrix4x4& obj);
+        void   setPose     (const Pose&     p,const Tempest::Matrix4x4& obj);
 
         bool   isEmpty()    const { return subCount==0; }
         size_t nodesCount() const { return subCount;    }

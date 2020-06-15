@@ -38,6 +38,16 @@ void Bounds::assign(const ZMath::float3* src) {
   calcR();
   }
 
+void Bounds::assign(const Vec3* src) {
+  bbox[0]   = src[0];
+  bbox[1]   = src[1];
+  bboxTr[0] = src[0];
+  bboxTr[1] = src[1];
+
+  midTr = (bboxTr[0]+bboxTr[1])/2;
+  calcR();
+  }
+
 void Bounds::assign(const std::vector<Resources::Vertex>& vbo) {
   if(vbo.size()==0){
     std::memset(bbox,   0, 2*sizeof(Vec3));

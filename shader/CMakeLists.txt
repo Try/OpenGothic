@@ -7,7 +7,8 @@ set(CPP    "${PROJECT_BINARY_DIR}/sprv/shader.cpp")
 
 file(GLOB SOURCES
   "${CMAKE_SOURCE_DIR}/shader/*.vert"
-  "${CMAKE_SOURCE_DIR}/shader/*.frag")
+  "${CMAKE_SOURCE_DIR}/shader/*.frag"
+  "${CMAKE_SOURCE_DIR}/shader/*.glsl")
 
 # GLSL to SPIRV compiler
 find_program(GLSLANGVALIDATOR glslangValidator)

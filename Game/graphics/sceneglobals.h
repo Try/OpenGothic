@@ -6,7 +6,6 @@
 
 #include "light.h"
 #include "lightgroup.h"
-#include "ubochain.h"
 
 class RendererStorage;
 

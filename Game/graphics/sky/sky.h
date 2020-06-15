@@ -5,7 +5,6 @@
 #include <array>
 
 #include "graphics/meshobjects.h"
-#include "graphics/ubochain.h"
 #include "resources.h"
 
 class RendererStorage;

@@ -1,10 +1,9 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive : enable
 
-#define LIGHT_CNT 6
-
-layout(binding = 0) uniform sampler2D textureD;
-layout(binding = 1) uniform sampler2D textureSm;
+#define FRAGMENT
+#include "shader_common.glsl"
 
 #ifdef SHADOW_MAP
 layout(location = 0) in vec2 inUV;
@@ -18,28 +17,6 @@ layout(location = 4) in vec4 inPos;
 #endif
 
 layout(location = 0) out vec4 outColor;
-
-struct Light {
-  vec4  pos;
-  vec3  color;
-  float range;
-  };
-
-layout(std140,binding = 2) uniform UboScene {
-  vec3  ldir;
-  float shadowSize;
-  mat4  mv;
-  mat4  shadow;
-  vec3  ambient;
-  vec4  sunCl;
-  } scene;
-
-#if defined(OBJ)
-layout(std140,binding = 3) uniform UboObject {
-  mat4  obj;
-  Light light[LIGHT_CNT];
-  } ubo;
-#endif
 
 float implShadowVal(in vec2 uv, in float shPosZ, in int layer) {
   float shMap = texture(textureSm,uv)[layer];
@@ -91,25 +68,27 @@ vec3 calcLight() {
   vec3  normal  = normalize(inNormal);
   float lambert = max(0.0,dot(scene.ldir,normal));
   float light   = lambert*calcShadow();
-  vec3  color   = scene.sunCl.rgb*clamp(light,0.0,1.0);
+  vec3  color   = inColor.rgb*scene.sunCl.rgb*clamp(light,0.0,1.0);
 
 #if defined(OBJ)
   for(int i=0; i<LIGHT_CNT; ++i) {
-    vec3  ldir    = ubo.light[i].pos.xyz - inPos.xyz;
     float rgn     = ubo.light[i].range;
+    if(rgn<=0.0)
+      continue;
+    vec3  ldir    = ubo.light[i].pos.xyz - inPos.xyz;
     float qDist   = dot(ldir,ldir);
     float lambert = max(0.0,dot(normalize(ldir),normal));
 
     // return vec3(lambert);
     // return vec3(length(ldir/rgn));
 
-    float light = (1.0-length(ldir/rgn))*lambert;
+    float light = (1.0-(qDist/(rgn*rgn)))*lambert;
 
     color += ubo.light[i].color * clamp(light,0.0,1.0);
     }
 #endif
 
-  return inColor.rgb * color;
+  return color;
   }
 #endif
 
@@ -124,8 +103,10 @@ void main() {
 #ifdef SHADOW_MAP
   outColor = vec4(inShadowPos.zzz,0.0);
 #else
+  //outColor = t;
+  //return;
 
-#ifndef PFX
+#if !defined(PFX)
   vec3  color   = scene.ambient + calcLight();
 #else
   vec3  color   = inColor.rgb;

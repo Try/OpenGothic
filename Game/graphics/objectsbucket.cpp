@@ -104,6 +104,35 @@ void ObjectsBucket::uboSetCommon(ObjectsBucket::Object& v) {
     }
   }
 
+bool ObjectsBucket::groupVisibility(Painter3d& p) {
+  if(shaderType!=Static)
+    return true;
+
+  if(allBounds.r<=0) {
+    Tempest::Vec3 bbox[2] = {};
+    bool          fisrt=true;
+    for(size_t i=0;i<val.size();++i) {
+      if(val[i].ibo==nullptr)
+        continue;
+      auto& b = val[i].bounds;
+      if(fisrt) {
+        bbox[0] = b.bboxTr[0];
+        bbox[1] = b.bboxTr[1];
+        fisrt = false;
+        }
+      bbox[0].x = std::min(bbox[0].x,b.bboxTr[0].x);
+      bbox[0].y = std::min(bbox[0].y,b.bboxTr[0].y);
+      bbox[0].z = std::min(bbox[0].z,b.bboxTr[0].z);
+
+      bbox[1].x = std::max(bbox[1].x,b.bboxTr[1].x);
+      bbox[1].y = std::max(bbox[1].y,b.bboxTr[1].y);
+      bbox[1].z = std::max(bbox[1].z,b.bboxTr[1].z);
+      }
+    allBounds.assign(bbox);
+    }
+  return p.isVisible(allBounds);
+  }
+
 void ObjectsBucket::setupUbo() {
   for(auto& v:val) {
     if(v.storageSt==size_t(-1))
@@ -164,6 +193,9 @@ void ObjectsBucket::draw(Painter3d& p, uint8_t fId) {
   if(pMain==nullptr)
     return;
 
+  if(!groupVisibility(p))
+    return;
+
   for(auto& i:val) {
     if(i.ibo==nullptr)
       continue;
@@ -171,6 +203,7 @@ void ObjectsBucket::draw(Painter3d& p, uint8_t fId) {
       continue;
 
     auto& ubo = i.ubo[fId];
+
     ubo.set(3,storage.st[fId],i.storageSt,1);
     if(i.storageSk!=size_t(-1))
       ubo.set(4,storage.sk[fId],i.storageSk,1);
@@ -182,6 +215,9 @@ void ObjectsBucket::draw(Painter3d& p, uint8_t fId) {
 
 void ObjectsBucket::drawShadow(Painter3d& p, uint8_t fId, int layer) {
   if(pShadow==nullptr)
+    return;
+
+  if(!groupVisibility(p))
     return;
 
   for(auto& i:val) {
@@ -222,24 +258,12 @@ void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
   auto& ubo = storage.st.element(v.storageSt);
   ubo.pos = m;
 
+  if(shaderType==Static) {
+    allBounds.r = 0;
+    }
+
   setupLights(v,ubo,false);
-  storage.st.markAsChanged();
-  }
-
-void ObjectsBucket::setSkeleton(size_t i, const Skeleton* sk) {
-  return;
-
-  if(shaderType!=Animated)
-    return;
-  if(sk==nullptr)
-    return;
-  auto& v    = val[i];
-  auto& skel = storage.sk.element(v.storageSk);
-
-  for(size_t i=0;i<sk->tr.size();++i)
-    skel.skel[i] = sk->tr[i];
-
-  storage.sk.markAsChanged();
+  storage.st.markAsChanged(v.storageSt);
   }
 
 void ObjectsBucket::setSkeleton(size_t i, const Pose& p) {
@@ -249,7 +273,7 @@ void ObjectsBucket::setSkeleton(size_t i, const Pose& p) {
   auto& skel = storage.sk.element(v.storageSk);
 
   std::memcpy(&skel.skel[0],p.tr.data(),p.tr.size()*sizeof(p.tr[0]));
-  storage.sk.markAsChanged();
+  storage.sk.markAsChanged(v.storageSk);
   }
 
 void ObjectsBucket::setBounds(size_t i, const Bounds& b) {

@@ -43,7 +43,6 @@ class AbstractObjectsBucket {
         bool   isEmpty() const { return owner==nullptr; }
 
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
-        void   setSkeleton (const Skeleton*           sk);
         void   setPose     (const Pose&                p);
         void   setBounds   (const Bounds&           bbox);
 
@@ -57,7 +56,6 @@ class AbstractObjectsBucket {
     virtual void   free(const size_t objId)=0;
 
     virtual void   setObjMatrix(size_t i,const Tempest::Matrix4x4& m)=0;
-    virtual void   setSkeleton (size_t i,const Skeleton* sk)=0;
     virtual void   setSkeleton (size_t i,const Pose& sk)=0;
     virtual void   setBounds   (size_t i,const Bounds& b)=0;
 

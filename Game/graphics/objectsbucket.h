@@ -90,14 +90,16 @@ class ObjectsBucket : public AbstractObjectsBucket {
     Material                  mat;
     const Type                shaderType;
 
+    Bounds                    allBounds;
+
     const Tempest::RenderPipeline* pMain   = nullptr;
     const Tempest::RenderPipeline* pShadow = nullptr;
 
     Object& implAlloc(const Tempest::IndexBuffer<uint32_t> &ibo, const Bounds& bounds);
     void    uboSetCommon(Object& v);
+    bool    groupVisibility(Painter3d& p);
 
     void   setObjMatrix(size_t i,const Tempest::Matrix4x4& m);
-    void   setSkeleton (size_t i,const Skeleton* sk);
     void   setSkeleton (size_t i,const Pose& sk);
     void   setBounds   (size_t i,const Bounds& b);
 

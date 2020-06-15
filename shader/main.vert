@@ -1,36 +1,13 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive : enable
+
+#define VERTEX
+#include "shader_common.glsl"
 
 out gl_PerVertex {
   vec4 gl_Position;
   };
-
-struct Light {
-  vec4  at;
-  vec3  color;
-  float range;
-  };
-
-layout(std140,binding = 2) uniform UboScene {
-  vec3 ldir;
-  mat4 mv;
-  mat4 shadow;
-  vec3 ambient;
-  vec4 sunCl;
-  } scene;
-
-#if defined(OBJ)
-layout(std140,binding = 3) uniform UboObject {
-  mat4  obj;
-  Light light[1];
-  } ubo;
-#endif
-
-#if defined(SKINING)
-layout(std140,binding = 4) uniform UboAnim {
-  mat4 skel[96];
-  } anim;
-#endif
 
 #ifdef SKINING
 layout(location = 0) in vec3 inNormal;

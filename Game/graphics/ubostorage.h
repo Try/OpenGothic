@@ -16,19 +16,18 @@ class UboStorage {
     bool                     commitUbo(Tempest::Device &device, uint8_t fId);
     size_t                   alloc();
     void                     free(const size_t objId);
-    bool                     needToRealloc(uint32_t imgId) const;
     const
     Tempest::UniformBuffer<Ubo>& operator[](size_t i) const { return pf[i].uboData; }
 
-    void                     markAsChanged();
+    void                     markAsChanged(size_t elt);
     Ubo&                     element(size_t i){ return obj[i]; }
 
     void                     reserve(size_t sz);
 
   private:
     struct PerFrame final {
-      Tempest::UniformBuffer<Ubo> uboData;
-      std::atomic_bool            uboChanged{false};  // invalidate ubo array
+      Tempest::UniformBuffer<Ubo>  uboData;
+      std::atomic_bool             uboChanged{false};  // invalidate ubo array
       };
 
     PerFrame                    pf[Resources::MaxFramesInFlight];
@@ -43,13 +42,13 @@ UboStorage<Ubo>::UboStorage() {
 
 template<class Ubo>
 size_t UboStorage<Ubo>::alloc() {
-  markAsChanged();
   if(freeList.size()>0){
     size_t id=freeList.back();
     freeList.pop_back();
     return id;
     }
   obj.resize(obj.size()+1);
+  markAsChanged(obj.size()-1);
   return obj.size()-1;
   }
 
@@ -60,13 +59,7 @@ void UboStorage<Ubo>::free(const size_t objId) {
   }
 
 template<class Ubo>
-bool UboStorage<Ubo>::needToRealloc(uint32_t imgId) const {
-  auto& frame=pf[imgId];
-  return obj.size()!=frame.uboData.size();
-  }
-
-template<class Ubo>
-void UboStorage<Ubo>::markAsChanged() {
+void UboStorage<Ubo>::markAsChanged(size_t /*elt*/) {
   for(auto& i:pf)
     i.uboChanged=true;
   }

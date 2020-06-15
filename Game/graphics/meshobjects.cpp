@@ -183,6 +183,7 @@ void MeshObjects::drawShadow(Painter3d& painter, uint8_t fId, int layer) {
 void MeshObjects::mkIndex() {
   if(index.size()!=0)
     return;
+  index.reserve(buckets.size());
   index.resize(buckets.size());
   size_t id=0;
   for(auto& i:buckets) {
@@ -198,8 +199,6 @@ void MeshObjects::Mesh::setSkeleton(const Skeleton *sk) {
   skeleton = sk;
   if(ani!=nullptr && skeleton!=nullptr)
     binder=Resources::bindMesh(*ani,*skeleton);
-  for(size_t i=0;i<subCount;++i)
-    sub[i].setSkeleton(sk);
   }
 
 void MeshObjects::Mesh::setPose(const Pose &p,const Tempest::Matrix4x4& obj) {
