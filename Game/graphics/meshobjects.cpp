@@ -163,8 +163,7 @@ void MeshObjects::setupUbo() {
   }
 
 void MeshObjects::draw(Painter3d& painter, uint8_t fId) {
-  uboStatic.commitUbo(globals.storage.device,fId);
-  uboDyn   .commitUbo(globals.storage.device,fId);
+  commitUbo(fId);
 
   mkIndex();
   for(auto c:index)
@@ -172,8 +171,7 @@ void MeshObjects::draw(Painter3d& painter, uint8_t fId) {
   }
 
 void MeshObjects::drawShadow(Painter3d& painter, uint8_t fId, int layer) {
-  uboStatic.commitUbo(globals.storage.device,fId);
-  uboDyn   .commitUbo(globals.storage.device,fId);
+  commitUbo(fId);
 
   mkIndex();
   for(auto c:index)
@@ -193,6 +191,16 @@ void MeshObjects::mkIndex() {
   std::sort(index.begin(),index.end(),[](const ObjectsBucket* l,const ObjectsBucket* r){
     return l->material()<r->material();
     });
+  }
+
+void MeshObjects::commitUbo(uint8_t fId) {
+  bool st = uboStatic.commitUbo(globals.storage.device,fId);
+  bool dn = uboDyn   .commitUbo(globals.storage.device,fId);
+
+  if(!st && !dn)
+    return;
+  for(auto& c:buckets)
+    c.setupPerFrameUbo();
   }
 
 void MeshObjects::Mesh::setSkeleton(const Skeleton *sk) {

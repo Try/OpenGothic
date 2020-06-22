@@ -15,7 +15,7 @@ class InventoryRenderer {
   public:
     InventoryRenderer(const RendererStorage& storage);
 
-    void draw(Tempest::FrameBuffer& fbo, Tempest::Encoder<Tempest::PrimaryCommandBuffer>& cmd, uint8_t fId);
+    void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     void reset();
     void drawItem(int x, int y, int w, int h, const Item &item);
@@ -32,7 +32,6 @@ class InventoryRenderer {
 
     SceneGlobals           scene;
     MeshObjects            itmGroup;
-    Painter3d              painter;
     std::vector<Itm>       items;
   };
 

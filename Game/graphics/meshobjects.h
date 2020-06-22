@@ -97,6 +97,7 @@ class MeshObjects final {
     std::vector<ObjectsBucket*>     index;
 
     void                            mkIndex();
+    void                            commitUbo(uint8_t fId);
 
     ObjectsBucket&                  getBucket(const Material& mat, ObjectsBucket::Type type);
 

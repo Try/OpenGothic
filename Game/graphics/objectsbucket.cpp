@@ -65,6 +65,12 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const Tempest::IndexBuffer<uint3
   v->bounds    = bounds;
   v->storageSt = storage.st.alloc();
 
+  for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
+    v->uboBit[i] = 0;
+    for(auto& b:v->uboBitSh[i])
+      b = 0;
+    }
+
   if(v->ubo[0].isEmpty()) {
     for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
       if(pMain!=nullptr)
@@ -83,6 +89,7 @@ void ObjectsBucket::uboSetCommon(ObjectsBucket::Object& v) {
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
     auto& t   = *mat.tex;
     auto& ubo = v.ubo[i];
+
 
     if(pMain!=nullptr) {
       ubo.set(0,t);
@@ -141,7 +148,7 @@ void ObjectsBucket::setupUbo() {
     setupLights(v,u,true);
     }
 
-  for(size_t fId=0;fId<Resources::MaxFramesInFlight;++fId) {
+  for(uint8_t fId=0;fId<Resources::MaxFramesInFlight;++fId) {
     for(auto& i:val) {
       auto& ubo = i.ubo[fId];
       if(pMain!=nullptr) {
@@ -156,6 +163,18 @@ void ObjectsBucket::setupUbo() {
           uboSh.set(2,scene.uboGlobalPf[fId][lay],0,1);
           }
         }
+      }
+    }
+
+  setupPerFrameUbo();
+  }
+
+void ObjectsBucket::setupPerFrameUbo() {
+  for(uint8_t fId=0;fId<Resources::MaxFramesInFlight;++fId) {
+    for(auto& i:val) {
+      i.uboBit[fId] = 0;
+      for(auto& b:i.uboBitSh[fId])
+        b = 0;
       }
     }
   }
@@ -203,10 +222,10 @@ void ObjectsBucket::draw(Painter3d& p, uint8_t fId) {
       continue;
 
     auto& ubo = i.ubo[fId];
-
-    ubo.set(3,storage.st[fId],i.storageSt,1);
+    setUbo(i.uboBit[fId],ubo,3,storage.st[fId],i.storageSt,1);
     if(i.storageSk!=size_t(-1))
-      ubo.set(4,storage.sk[fId],i.storageSk,1);
+      setUbo(i.uboBit[fId],ubo,4,storage.sk[fId],i.storageSk,1);
+
     if(shaderType==Animated)
       p.draw(*pMain,ubo,*i.vboA,*i.ibo); else
       p.draw(*pMain,ubo,*i.vbo, *i.ibo);
@@ -227,9 +246,10 @@ void ObjectsBucket::drawShadow(Painter3d& p, uint8_t fId, int layer) {
       continue;
 
     auto& ubo = i.uboSh[fId][layer];
-    ubo.set(3,storage.st[fId],i.storageSt,1);
+    setUbo(i.uboBitSh[fId][layer],ubo,3,storage.st[fId],i.storageSt,1);
     if(i.storageSk!=size_t(-1))
-      ubo.set(4,storage.sk[fId],i.storageSk,1);
+      setUbo(i.uboBitSh[fId][layer],ubo,4,storage.sk[fId],i.storageSk,1);
+
     if(shaderType==Animated)
       p.draw(*pShadow,ubo,*i.vboA,*i.ibo); else
       p.draw(*pShadow,ubo,*i.vbo, *i.ibo);
@@ -306,6 +326,25 @@ void ObjectsBucket::setupLights(Object& val, UboObject& ubo, bool noCache) {
   for(size_t i=cnt;i<6;++i) {
     ubo.light[i].range = 0;
     }
+  }
+
+template<class T>
+void ObjectsBucket::setUbo(uint8_t& bit, Tempest::Uniforms& ubo, uint8_t layoutBind,
+                           const Tempest::UniformBuffer<T>& vbuf, size_t offset, size_t size) {
+  const uint8_t flg = uint8_t(uint8_t(1)<<layoutBind);
+  if(bit & flg)
+    return;
+  bit = uint8_t(bit | flg);
+  ubo.set(layoutBind,vbuf,offset,size);
+  }
+
+void ObjectsBucket::setUbo(uint8_t& bit, Uniforms& ubo, uint8_t layoutBind,
+                           const Texture2d& tex, const Sampler2d& smp) {
+  const uint8_t flg = uint8_t(uint8_t(1)<<layoutBind);
+  if(bit & flg)
+    return;
+  bit = uint8_t(bit | flg);
+  ubo.set(layoutBind,tex,smp);
   }
 
 bool ObjectsBucket::Storage::commitUbo(Device& device, uint8_t fId) {

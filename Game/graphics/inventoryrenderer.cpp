@@ -8,7 +8,7 @@
 using namespace Tempest;
 
 InventoryRenderer::InventoryRenderer(const RendererStorage &storage)
-  :scene(storage),itmGroup(scene),painter(storage.device) {
+  :scene(storage),itmGroup(scene) {
   Light light;
   light.setColor(Vec3(0.f,0.f,0.f));
   scene.ambient = Vec3(1.f,1.f,1.f);
@@ -20,10 +20,8 @@ InventoryRenderer::InventoryRenderer(const RendererStorage &storage)
   scene.setModelView(mv,shMv,2);
   }
 
-void InventoryRenderer::draw(Tempest::FrameBuffer& fbo, Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, uint8_t fId) {
-  painter.reset();
-  painter.setPass(fbo,fId);
-
+void InventoryRenderer::draw(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
+  Painter3d painter(cmd);
   scene.commitUbo(fId);
 
   for(auto& i:items) {
@@ -33,8 +31,6 @@ void InventoryRenderer::draw(Tempest::FrameBuffer& fbo, Tempest::Encoder<Tempest
       n.draw(painter,fId);
       }
     }
-
-  painter.commit(cmd);
   }
 
 void InventoryRenderer::reset() {

@@ -103,8 +103,8 @@ bool Painter3d::Frustrum::testPoint(float x, float y, float z) const {
   }
 
 bool Painter3d::Frustrum::testPoint(float x, float y, float z, float R) const {
-  if(std::isnan(R))
-    return false;
+  // if(std::isnan(R))
+  //   return false;
 
   for(size_t i=0; i<6; i++) {
     if(f[i][0]*x+f[i][1]*y+f[i][2]*z+f[i][3]<=-R)
@@ -114,35 +114,11 @@ bool Painter3d::Frustrum::testPoint(float x, float y, float z, float R) const {
   }
 
 
-Painter3d::PerFrame::PerFrame() {
-  cmd.reserve(3);
-  }
-
-
-Painter3d::Painter3d(Device& device)
-  :device(device) {
+Painter3d::Painter3d(Tempest::Encoder<CommandBuffer>& enc)
+  :enc(enc) {
   }
 
 Painter3d::~Painter3d() {
-  }
-
-void Painter3d::reset() {
-  passId = 0;
-  }
-
-void Painter3d::setPass(const Tempest::FrameBuffer& fbo, uint8_t frameId) {
-  current = &pf[frameId];
-  current->cmd.resize(passId+1);
-  auto rec = current->cmd[passId].startEncoding(device,fbo.layout(),fbo.w(),fbo.h());
-  new(encBuf) Encoder<Tempest::CommandBuffer>(std::move(rec));
-  enc = reinterpret_cast<Recorder*>(encBuf);
-  }
-
-void Painter3d::commit(Encoder<PrimaryCommandBuffer> &cmd) {
-  enc->~Recorder();
-  enc = nullptr;
-  cmd.exec(current->cmd[passId]);
-  passId++;
   }
 
 void Painter3d::setFrustrum(const Matrix4x4& m) {
@@ -154,27 +130,27 @@ bool Painter3d::isVisible(const Bounds& b) const {
   }
 
 void Painter3d::setViewport(int x, int y, int w, int h) {
-  enc->setViewport(x,y,w,h);
+  enc.setViewport(x,y,w,h);
   }
 
 void Painter3d::draw(const RenderPipeline& pipeline, const Uniforms& ubo,
                      const Tempest::VertexBuffer<Painter3d::Vertex>& vbo, const Tempest::IndexBuffer<uint32_t>& ibo) {
-  enc->setUniforms(pipeline,ubo);
-  enc->draw(vbo,ibo);
+  enc.setUniforms(pipeline,ubo);
+  enc.draw(vbo,ibo);
   }
 
 void Painter3d::draw(const RenderPipeline& pipeline, const Uniforms& ubo,
                      const Tempest::VertexBuffer<Painter3d::VertexA>& vbo, const Tempest::IndexBuffer<uint32_t>& ibo) {
-  enc->setUniforms(pipeline,ubo);
-  enc->draw(vbo,ibo);
+  enc.setUniforms(pipeline,ubo);
+  enc.draw(vbo,ibo);
   }
 
 void Painter3d::draw(const RenderPipeline& pipeline, const Uniforms& ubo, const Tempest::VertexBuffer<VertexFsq>& vbo) {
-  enc->setUniforms(pipeline,ubo);
-  enc->draw(vbo);
+  enc.setUniforms(pipeline,ubo);
+  enc.draw(vbo);
   }
 
 void Painter3d::draw(const RenderPipeline& pipeline, const Uniforms& ubo, const Tempest::VertexBuffer<Painter3d::Vertex>& vbo) {
-  enc->setUniforms(pipeline,ubo);
-  enc->draw(vbo);
+  enc.setUniforms(pipeline,ubo);
+  enc.draw(vbo);
   }

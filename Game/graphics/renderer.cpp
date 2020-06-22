@@ -13,7 +13,7 @@
 using namespace Tempest;
 
 Renderer::Renderer(Tempest::Device &device,Tempest::Swapchain& swapchain,Gothic& gothic)
-  :device(device),swapchain(swapchain),gothic(gothic),stor(device,gothic),painter(device) {
+  :device(device),swapchain(swapchain),gothic(gothic),stor(device,gothic) {
   view.identity();
 
   static const TextureFormat shfrm[] = {
@@ -106,7 +106,7 @@ void Renderer::setCameraView(const Camera& camera) {
     }
   }
 
-void Renderer::draw(Encoder<PrimaryCommandBuffer> &&cmd, uint8_t frameId, uint8_t imgId,
+void Renderer::draw(Encoder<CommandBuffer>&& cmd, uint8_t frameId, uint8_t imgId,
                     VectorImage&   uiLayer,   VectorImage& numOverlay,
                     InventoryMenu& inventory, const Gothic& gothic) {
   draw(cmd, fbo3d  [imgId], gothic, frameId);
@@ -115,20 +115,19 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &&cmd, uint8_t frameId, uint8_
   draw(cmd, fboUi  [imgId], numOverlay);
   }
 
-void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const Gothic &gothic, uint8_t frameId) {
+void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, const Gothic &gothic, uint8_t frameId) {
   auto wview = gothic.worldView();
   if(wview==nullptr) {
     cmd.setFramebuffer(fbo,mainPass);
     return;
     }
 
-  painter.reset();
+  Painter3d painter(cmd);
   wview->setModelView(view,shadow,2);
   wview->setFrameGlobals(textureCast(shadowMapFinal),gothic.world()->tickCount(),frameId);
 
   for(uint8_t i=0;i<2;++i) {
     cmd.setFramebuffer(fboShadow[i],shadowPass);
-    painter.setPass(fboShadow[i],frameId);
     painter.setFrustrum(shadow[i]);
     wview->drawShadow(cmd,painter,frameId,i);
     }
@@ -136,24 +135,23 @@ void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, const 
   composeShadow(cmd,fboCompose);
 
   cmd.setFramebuffer(fbo,mainPass);
-  painter.setPass(fbo,frameId);
   painter.setFrustrum(wview->viewProj(view));
   wview->drawMain(cmd,painter,frameId);
   }
 
-void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, InventoryMenu &inventory) {
+void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, InventoryMenu &inventory) {
   if(inventory.isOpen()==InventoryMenu::State::Closed)
     return;
   cmd.setFramebuffer(fbo,inventoryPass);
   inventory.draw(fbo,cmd,swapchain.frameId());
   }
 
-void Renderer::draw(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer& fbo, VectorImage& surface) {
+void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, VectorImage& surface) {
   cmd.setFramebuffer(fbo,uiPass);
   surface.draw(device,swapchain,cmd);
   }
 
-void Renderer::composeShadow(Encoder<PrimaryCommandBuffer> &cmd, FrameBuffer &fbo) {
+void Renderer::composeShadow(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer &fbo) {
   cmd.setFramebuffer(fbo,composePass);
   cmd.setUniforms(stor.pComposeShadow,uboShadowComp);
   cmd.draw(Resources::fsqVbo());
@@ -169,7 +167,7 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   auto        img  = device.attachment(Tempest::TextureFormat::RGBA8,w,h);
   FrameBuffer fbo  = device.frameBuffer(img,zbuf);
 
-  PrimaryCommandBuffer cmd;
+  CommandBuffer cmd;
   {
   auto enc = cmd.startEncoding(device);
   draw(enc,fbo,gothic,frameId);
@@ -177,7 +175,7 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
 
   Fence sync = device.fence();
 
-  const Tempest::PrimaryCommandBuffer* submit[1]={&cmd};
+  const Tempest::CommandBuffer* submit[1]={&cmd};
   device.submit(submit,1,nullptr,0,nullptr,0,&sync);
   sync.wait();
 

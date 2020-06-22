@@ -87,17 +87,14 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
   sGlobal.commitUbo(fId);
   }
 
-void WorldView::drawShadow(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId, uint8_t layer) {
+void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId, uint8_t layer) {
   objGroup.drawShadow(painter,fId,layer);
-  painter.commit(cmd);
   }
 
-void WorldView::drawMain(Encoder<PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t fId) {
+void WorldView::drawMain(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId) {
   objGroup.draw(painter,fId);
   sky     .draw(painter,fId);
   pfxGroup.draw(painter,fId);
-
-  painter.commit(cmd);
   }
 
 MeshObjects::Mesh WorldView::getLand(Tempest::VertexBuffer<Resources::Vertex>& vbo,

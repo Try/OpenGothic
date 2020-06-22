@@ -18,12 +18,8 @@ class Painter3d final {
     using VertexA   = Resources::VertexA;
     using VertexFsq = Resources::VertexFsq;
 
-    Painter3d(Tempest::Device& device);
+    Painter3d(Tempest::Encoder<Tempest::CommandBuffer>& enc);
     ~Painter3d();
-
-    void reset();
-    void setPass(const Tempest::FrameBuffer& fbo, uint8_t frameId);
-    void commit(Tempest::Encoder<Tempest::PrimaryCommandBuffer>& cmd);
 
     void setFrustrum(const Tempest::Matrix4x4& m);
 
@@ -57,21 +53,8 @@ class Painter3d final {
       float f[6][4] = {};
       };
 
-    struct PerFrame {
-      PerFrame();
-      std::vector<Tempest::CommandBuffer> cmd;
-      };
-
-    using Recorder = Tempest::Encoder<Tempest::CommandBuffer>;
-
-    Tempest::Device&      device;
-    char                  encBuf[sizeof(Recorder)];
-    Recorder*             enc = nullptr;
-
-    PerFrame              pf[Resources::MaxFramesInFlight];
-    PerFrame*             current = nullptr;
+    Tempest::Encoder<Tempest::CommandBuffer>& enc;
 
     Frustrum              frustrum;
-    size_t                passId = 0;
   };
 

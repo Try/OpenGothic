@@ -27,6 +27,10 @@ class ObjectsBucket : public AbstractObjectsBucket {
       Animated,
       };
 
+    enum UboStateBit : uint8_t {
+
+      };
+
     struct ShLight final {
       Tempest::Vec3 pos;
       float         padding=0;
@@ -64,6 +68,8 @@ class ObjectsBucket : public AbstractObjectsBucket {
     void                      free(const size_t objId);
 
     void                      setupUbo();
+    void                      setupPerFrameUbo();
+
     void                      draw      (Painter3d& painter, uint8_t fId);
     void                      drawShadow(Painter3d& painter, uint8_t fId, int layer=0);
     void                      draw      (size_t id, Painter3d& p, uint8_t fId);
@@ -78,6 +84,9 @@ class ObjectsBucket : public AbstractObjectsBucket {
       size_t                                storageSk = size_t(-1);
       Tempest::Uniforms                     ubo  [Resources::MaxFramesInFlight];
       Tempest::Uniforms                     uboSh[Resources::MaxFramesInFlight][Resources::ShadowLayers];
+
+      uint8_t                               uboBit[Resources::MaxFramesInFlight]={};
+      uint8_t                               uboBitSh[Resources::MaxFramesInFlight][Resources::ShadowLayers]={};
 
       int                                   lightCacheKey[3]={};
       };
@@ -104,5 +113,11 @@ class ObjectsBucket : public AbstractObjectsBucket {
     void   setBounds   (size_t i,const Bounds& b);
 
     void   setupLights (Object& val, UboObject& ubo, bool noCache);
+
+    template<class T>
+    void   setUbo(uint8_t& bit, Tempest::Uniforms& ubo, uint8_t layoutBind,
+                  const Tempest::UniformBuffer<T>& vbuf,size_t offset,size_t size);
+    void   setUbo(uint8_t& bit, Tempest::Uniforms& ubo, uint8_t layoutBind,
+                  const Tempest::Texture2d&  tex, const Tempest::Sampler2d& smp = Tempest::Sampler2d::anisotrophy());
   };
 
