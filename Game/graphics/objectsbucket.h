@@ -21,14 +21,15 @@ class ObjectsBucket : public AbstractObjectsBucket {
     using Vertex  = Resources::Vertex;
     using VertexA = Resources::VertexA;
 
+    enum {
+      LIGHT_BLOCK = 4,
+      MAX_LIGHT   = 128
+      };
+
     enum Type : uint8_t {
       Static,
       Movable,
       Animated,
-      };
-
-    enum UboStateBit : uint8_t {
-
       };
 
     struct ShLight final {
@@ -38,9 +39,12 @@ class ObjectsBucket : public AbstractObjectsBucket {
       float         range=0;
       };
 
+    struct UboPush final {
+      ShLight       light[LIGHT_BLOCK];
+      };
+
     struct UboObject final {
       Tempest::Matrix4x4 pos;
-      ShLight            light[6];
       };
 
     struct UboAnim final {
@@ -70,7 +74,9 @@ class ObjectsBucket : public AbstractObjectsBucket {
     void                      setupUbo();
     void                      setupPerFrameUbo();
 
+    void                      visibilityPass(Painter3d& p);
     void                      draw      (Painter3d& painter, uint8_t fId);
+    void                      drawLight (Painter3d& painter, uint8_t fId);
     void                      drawShadow(Painter3d& painter, uint8_t fId, int layer=0);
     void                      draw      (size_t id, Painter3d& p, uint8_t fId);
 
@@ -80,14 +86,18 @@ class ObjectsBucket : public AbstractObjectsBucket {
       const Tempest::VertexBuffer<VertexA>* vboA = nullptr;
       const Tempest::IndexBuffer<uint32_t>* ibo  = nullptr;
       Bounds                                bounds;
+      bool                                  visible = true;
+
       size_t                                storageSt = size_t(-1);
       size_t                                storageSk = size_t(-1);
       Tempest::Uniforms                     ubo  [Resources::MaxFramesInFlight];
       Tempest::Uniforms                     uboSh[Resources::MaxFramesInFlight][Resources::ShadowLayers];
 
-      uint8_t                               uboBit[Resources::MaxFramesInFlight]={};
+      uint8_t                               uboBit  [Resources::MaxFramesInFlight]={};
       uint8_t                               uboBitSh[Resources::MaxFramesInFlight][Resources::ShadowLayers]={};
 
+      const Light*                          light[MAX_LIGHT] = {};
+      size_t                                lightCnt=0;
       int                                   lightCacheKey[3]={};
       };
 
@@ -102,6 +112,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
     Bounds                    allBounds;
 
     const Tempest::RenderPipeline* pMain   = nullptr;
+    const Tempest::RenderPipeline* pLight  = nullptr;
     const Tempest::RenderPipeline* pShadow = nullptr;
 
     Object& implAlloc(const Tempest::IndexBuffer<uint32_t> &ibo, const Bounds& bounds);
@@ -112,7 +123,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
     void   setSkeleton (size_t i,const Pose& sk);
     void   setBounds   (size_t i,const Bounds& b);
 
-    void   setupLights (Object& val, UboObject& ubo, bool noCache);
+    void   setupLights (Object& val, bool noCache);
 
     template<class T>
     void   setUbo(uint8_t& bit, Tempest::Uniforms& ubo, uint8_t layoutBind,

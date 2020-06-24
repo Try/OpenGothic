@@ -26,6 +26,8 @@ class Painter3d final {
     bool isVisible(const Bounds& b) const;
 
     void setViewport(int x,int y,int w,int h);
+
+    void setUniforms(const Tempest::RenderPipeline& pipeline, const void* b, size_t sz);
     void draw(const Tempest::RenderPipeline& pipeline,
               const Tempest::Uniforms& ubo,
               const Tempest::VertexBuffer<Vertex>& vbo,

@@ -14,13 +14,16 @@ class RendererStorage {
     RendererStorage(Tempest::Device& device, Gothic& gothic);
 
     Tempest::Device&        device;
-    Tempest::RenderPipeline pAnimSh,   pAnim;
-    Tempest::RenderPipeline pObjectSh, pObjectAtSh, pObject, pObjectAt, pObjectAlpha;
+
+    Tempest::RenderPipeline pAnim,    pAnimAt,   pAnimLt,   pAnimAtLt;
+    Tempest::RenderPipeline pObject,  pObjectAt, pObjectLt, pObjectAtLt;
+    Tempest::RenderPipeline pObjectAlpha, pAnimAlpha;
+
+    Tempest::RenderPipeline pObjectSh, pObjectAtSh;
+    Tempest::RenderPipeline pAnimSh,   pAnimAtSh;
 
     Tempest::RenderPipeline pPfx, pSky;
     Tempest::RenderPipeline pComposeShadow;
-
-    const Tempest::UniformsLayout& uboPfxLayout() const { return pPfx.layout(); }
 
   private:
     struct ShaderPair {
@@ -30,11 +33,13 @@ class RendererStorage {
       };
 
     struct Material {
-      ShaderPair main, shadow;
+      ShaderPair main, shadow, light;
       void load(Tempest::Device& device, const char* f);
       };
 
-    Material                object, objectAt, ani, pfx;
+    Material obj, objAt;
+    Material ani, aniAt;
+    Material pfx;
 
     void initPipeline(Gothic& gothic);
     void initShadow();

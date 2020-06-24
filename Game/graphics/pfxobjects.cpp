@@ -97,7 +97,7 @@ PfxObjects::Bucket::Bucket(const RendererStorage &storage, const ParticleFx &ow,
   auto& scene = parent->scene;
   for(size_t fId=0;fId<Resources::MaxFramesInFlight;++fId) {
     auto& i = pf[fId];
-    i.ubo = storage.device.uniforms(storage.uboPfxLayout());
+    i.ubo = storage.device.uniforms(storage.pPfx.layout());
     i.ubo.set(0,*owner->visName_S);
     i.ubo.set(1,*scene.shadowMap,Resources::shadowSampler());
     i.ubo.set(2,scene.uboGlobalPf[fId][0],0,1);

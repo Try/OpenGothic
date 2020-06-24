@@ -164,16 +164,22 @@ void MeshObjects::setupUbo() {
 
 void MeshObjects::draw(Painter3d& painter, uint8_t fId) {
   commitUbo(fId);
-
   mkIndex();
+
+  for(auto c:index)
+    c->visibilityPass(painter);
   for(auto c:index)
     c->draw(painter,fId);
+  for(auto c:index)
+    c->drawLight(painter,fId);
   }
 
 void MeshObjects::drawShadow(Painter3d& painter, uint8_t fId, int layer) {
   commitUbo(fId);
-
   mkIndex();
+
+  for(auto c:index)
+    c->visibilityPass(painter);
   for(auto c:index)
     c->drawShadow(painter,fId,layer);
   }

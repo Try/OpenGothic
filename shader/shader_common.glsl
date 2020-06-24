@@ -1,4 +1,4 @@
-#define LIGHT_CNT              6
+#define LIGHT_CNT              4
 #define MAX_NUM_SKELETAL_NODES 96
 
 struct Light {
@@ -7,8 +7,16 @@ struct Light {
   float range;
   };
 
+#if defined(OBJ) && defined(FRAGMENT) && !defined(SHADOW_MAP)
+layout(std140,push_constant) uniform UboObject {
+  Light light[LIGHT_CNT];
+  } push;
+#endif
+
 #if defined(FRAGMENT)
 layout(binding = 0) uniform sampler2D textureD;
+#endif
+#if defined(FRAGMENT)
 layout(binding = 1) uniform sampler2D textureSm;
 #endif
 
@@ -21,10 +29,9 @@ layout(std140,binding = 2) uniform UboScene {
   vec4  sunCl;
   } scene;
 
-#if defined(OBJ)
+#if defined(OBJ) && defined(VERTEX)
 layout(std140,binding = 3) uniform UboObject {
   mat4  obj;
-  Light light[LIGHT_CNT];
   } ubo;
 #endif
 

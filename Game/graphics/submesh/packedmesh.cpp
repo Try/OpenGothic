@@ -4,11 +4,13 @@
 
 #include <algorithm>
 
+#include "graphics/bounds.h"
+
 using namespace Tempest;
 
 PackedMesh::PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type) {
   mesh.getBoundingBox(bbox[0],bbox[1]);
-  if(type==PK_Visual) {
+  if(type==PK_Visual || type==PK_VisualLnd) {
     subMeshes.resize(mesh.getMaterials().size());
     for(size_t i=0;i<subMeshes.size();++i)
       subMeshes[i].material = mesh.getMaterials()[i];
@@ -36,6 +38,8 @@ PackedMesh::PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type) {
     }
 
   pack(mesh,type);
+  if(type==PK_VisualLnd)
+    landRepack();
   }
 
 void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
@@ -99,13 +103,12 @@ void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
   }
 
 size_t PackedMesh::submeshIndex(const ZenLoad::zCMesh& mesh,std::vector<SubMesh*>& index,
-                                size_t vindex, size_t mat, PkgType type) {
+                                size_t /*vindex*/, size_t mat, PkgType type) {
   size_t id = mat;
   switch(type) {
     case PK_Visual:
-      return id;
     case PK_VisualLnd:
-      return landIndex(mesh,vindex,mat);
+      return id;
     case PK_Physic: {
       const auto&  mat = mesh.getMaterials()[id];
       if(mat.noCollDet)
@@ -134,26 +137,6 @@ size_t PackedMesh::submeshIndex(const ZenLoad::zCMesh& mesh,std::vector<SubMesh*
   return 0;
   }
 
-size_t PackedMesh::landIndex(const ZenLoad::zCMesh& mesh, size_t vindex, size_t matId) {
-  auto& pos = mesh.getVertices()[vindex];
-
-  static const float sectorSz = 150*100;
-  NodeId n;
-  n.mat = matId;
-  n.sx  = int(pos.x/sectorSz);
-  n.sy  = int(pos.y/sectorSz);
-  n.sz  = int(pos.z/sectorSz);
-
-  auto c = nodeCache.find(n);
-  if(c==nodeCache.end()) {
-    nodeCache[n] = subMeshes.size();
-    subMeshes.emplace_back();
-    subMeshes.back().material = mesh.getMaterials()[matId];
-    return subMeshes.size()-1;
-    }
-  return c->second;
-  }
-
 void PackedMesh::addSector(const std::string& s, uint8_t group) {
   for(auto& i:subMeshes)
     if(i.material.matName==s && i.material.matGroup==group)
@@ -172,5 +155,88 @@ bool PackedMesh::compare(const ZenLoad::zCMaterialData& l, const ZenLoad::zCMate
   if(l.matGroup>r.matGroup)
     return false;
   return l.matName<r.matName;
+  }
+
+void PackedMesh::landRepack() {
+  std::vector<SubMesh> m;
+
+  for(auto& i:subMeshes) {
+    if(i.indices.size()==0)
+      continue;
+    split(m,i);
+    }
+
+  subMeshes = std::move(m);
+  }
+
+void PackedMesh::split(std::vector<SubMesh>& out, SubMesh& src) {
+  if(src.indices.size()<64*3) { // avoid micro-meshes
+    if(src.indices.size()>0)
+      out.push_back(std::move(src));
+    return;
+    }
+
+  Bounds bbox;
+  bbox.assign(vertices,src.indices);
+  Vec3 sz = bbox.bboxTr[1]-bbox.bboxTr[0];
+
+  static const float blockSz = 40*100;
+  if(sz.x*sz.y*sz.z<blockSz*blockSz*blockSz) {
+    out.push_back(std::move(src));
+    return;
+    }
+
+  int axis = 0;
+  if(sz.y>sz.x && sz.y>sz.z)
+    axis = 1;
+  if(sz.z>sz.x && sz.z>sz.y)
+    axis = 2;
+
+  for(int pass=0; pass<3; ++pass) {
+    SubMesh left, right;
+    left .material = src.material;
+    right.material = src.material;
+
+    for(size_t i=0; i<src.indices.size(); i+=3) {
+      auto& a = vertices[src.indices[i+0]].Position;
+      auto& b = vertices[src.indices[i+1]].Position;
+      auto& c = vertices[src.indices[i+2]].Position;
+
+      Vec3 at = {a.x+b.x+c.x, a.y+b.y+c.y, a.z+b.z+c.z};
+      at/=3;
+
+      bool  cond = false;
+      switch(axis) {
+        case 0:
+          cond = at.x < bbox.midTr.x;
+          break;
+        case 1:
+          cond = at.y < bbox.midTr.y;
+          break;
+        case 2:
+          cond = at.z < bbox.midTr.z;
+          break;
+        }
+      SubMesh& dest = cond ? left : right;
+      size_t i0 = dest.indices.size();
+      dest.indices.resize(dest.indices.size()+3);
+
+      for(int r=0;r<3;++r)
+        dest.indices[i0+r] = src.indices[i+r];
+      }
+    if((left.indices.size()==0 || right.indices.size()==0) && pass!=2) {
+      axis = (axis+1)%3;
+      continue;
+      }
+
+    if(left.indices.size()==0 || right.indices.size()==0) {
+      out.push_back(std::move(src));
+      return;
+      }
+    src.indices.clear();
+    split(out,left);
+    split(out,right);
+    return;
+    }
   }
 

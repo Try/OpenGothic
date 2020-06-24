@@ -26,7 +26,6 @@ float implShadowVal(in vec2 uv, in float shPosZ, in int layer) {
   }
 
 float shadowVal(in vec2 uv, in float shPosZ, in int layer) {
-  // TODO: uniform shadowmap resolution
   vec2 offset = fract(uv.xy * scene.shadowSize * 0.5);  // mod
   offset = vec2(offset.x>0.25,offset.y>0.25);
   // y ^= x in floating point
@@ -66,16 +65,20 @@ float calcShadow() {
 #if !defined(SHADOW_MAP)
 vec3 calcLight() {
   vec3  normal  = normalize(inNormal);
+#if defined(LIGHT_EXT)
+  vec3  color   = vec3(0.0);
+#else
   float lambert = max(0.0,dot(scene.ldir,normal));
   float light   = lambert*calcShadow();
   vec3  color   = inColor.rgb*scene.sunCl.rgb*clamp(light,0.0,1.0);
+#endif
 
 #if defined(OBJ)
   for(int i=0; i<LIGHT_CNT; ++i) {
-    float rgn     = ubo.light[i].range;
+    float rgn     = push.light[i].range;
     if(rgn<=0.0)
       continue;
-    vec3  ldir    = ubo.light[i].pos.xyz - inPos.xyz;
+    vec3  ldir    = push.light[i].pos.xyz - inPos.xyz;
     float qDist   = dot(ldir,ldir);
     float lambert = max(0.0,dot(normalize(ldir),normal));
 
@@ -84,11 +87,15 @@ vec3 calcLight() {
 
     float light = (1.0-(qDist/(rgn*rgn)))*lambert;
 
-    color += ubo.light[i].color * clamp(light,0.0,1.0);
+    color += push.light[i].color * clamp(light,0.0,1.0);
     }
 #endif
 
+#if defined(LIGHT_EXT)
   return color;
+#else
+  return color + scene.ambient;
+#endif
   }
 #endif
 
@@ -106,10 +113,10 @@ void main() {
   //outColor = t;
   //return;
 
-#if !defined(PFX)
-  vec3  color   = scene.ambient + calcLight();
-#else
+#if defined(PFX)
   vec3  color   = inColor.rgb;
+#else
+  vec3  color   = calcLight();
 #endif
   outColor      = vec4(t.rgb*color,t.a*inColor.a);
 

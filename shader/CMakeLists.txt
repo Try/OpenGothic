@@ -35,28 +35,44 @@ endfunction(add_shader)
 # shaders
 # Ubershader flags:
 #   OBJ        - enable object matrix
+#   LIGHT_EXT  - shader for extra lights
 #   SKINING    - animation skeleton
 #   SHADOW_MAP - output is shadowmap
 #   ATEST      - use alpha test
 #   PFX        - use color modulation
 #   G1         - hint for gothic1 shader
-add_shader(object.vert           main.vert -DOBJ)
-add_shader(object.frag           main.frag -DOBJ)
-add_shader(object_at.vert        main.vert -DATEST -DOBJ)
-add_shader(object_at.frag        main.frag -DATEST -DOBJ)
-add_shader(anim.vert             main.vert -DATEST -DOBJ -DSKINING)
-add_shader(anim.frag             main.frag -DATEST -DOBJ -DSKINING)
-add_shader(pfx.vert              main.vert -DPFX)
-add_shader(pfx.frag              main.frag -DPFX)
+add_shader(obj.vert             main.vert -DOBJ)
+add_shader(obj.frag             main.frag -DOBJ)
+add_shader(obj_at.vert          main.vert -DOBJ -DATEST)
+add_shader(obj_at.frag          main.frag -DOBJ -DATEST)
+add_shader(ani.vert             main.vert -DOBJ -DSKINING)
+add_shader(ani.frag             main.frag -DOBJ -DSKINING)
+add_shader(ani_at.vert          main.vert -DOBJ -DSKINING -DATEST)
+add_shader(ani_at.frag          main.frag -DOBJ -DSKINING -DATEST)
+add_shader(pfx.vert             main.vert -DPFX)
+add_shader(pfx.frag             main.frag -DPFX)
 
-add_shader(object_shadow.vert    main.vert -DOBJ -DSHADOW_MAP)
-add_shader(object_shadow.frag    main.frag -DOBJ -DSHADOW_MAP)
-add_shader(object_at_shadow.vert main.vert -DATEST -DOBJ -DSHADOW_MAP)
-add_shader(object_at_shadow.frag main.frag -DATEST -DOBJ -DSHADOW_MAP)
-add_shader(anim_shadow.vert      main.vert -DOBJ -DSKINING -DSHADOW_MAP)
-add_shader(anim_shadow.frag      main.frag -DOBJ -DSKINING -DSHADOW_MAP)
-add_shader(pfx_shadow.vert       main.vert -DSHADOW_MAP)
-add_shader(pfx_shadow.frag       main.frag -DSHADOW_MAP)
+add_shader(obj_shadow.vert      main.vert -DSHADOW_MAP -DOBJ)
+add_shader(obj_shadow.frag      main.frag -DSHADOW_MAP -DOBJ)
+add_shader(obj_at_shadow.vert   main.vert -DSHADOW_MAP -DOBJ -DATEST)
+add_shader(obj_at_shadow.frag   main.frag -DSHADOW_MAP -DOBJ -DATEST)
+add_shader(ani_shadow.vert      main.vert -DSHADOW_MAP -DOBJ -DSKINING)
+add_shader(ani_shadow.frag      main.frag -DSHADOW_MAP -DOBJ -DSKINING)
+add_shader(ani_at_shadow.vert   main.vert -DSHADOW_MAP -DOBJ -DSKINING -DATEST)
+add_shader(ani_at_shadow.frag   main.frag -DSHADOW_MAP -DOBJ -DSKINING -DATEST)
+add_shader(pfx_shadow.vert      main.vert -DSHADOW_MAP)
+add_shader(pfx_shadow.frag      main.frag -DSHADOW_MAP)
+
+add_shader(obj_light.vert       main.vert -DLIGHT_EXT -DOBJ)
+add_shader(obj_light.frag       main.frag -DLIGHT_EXT -DOBJ)
+add_shader(obj_at_light.vert    main.vert -DLIGHT_EXT -DOBJ -DATEST)
+add_shader(obj_at_light.frag    main.frag -DLIGHT_EXT -DOBJ -DATEST)
+add_shader(ani_light.vert       main.vert -DLIGHT_EXT -DOBJ -DSKINING)
+add_shader(ani_light.frag       main.frag -DLIGHT_EXT -DOBJ -DSKINING)
+add_shader(ani_at_light.vert    main.vert -DLIGHT_EXT -DOBJ -DSKINING -DATEST)
+add_shader(ani_at_light.frag    main.frag -DLIGHT_EXT -DOBJ -DSKINING -DATEST)
+add_shader(pfx_light.vert       main.vert -DOBJ -DLIGHT_EXT)
+add_shader(pfx_light.frag       main.frag -DOBJ -DLIGHT_EXT)
 
 add_shader(sky.vert              sky.vert "")
 add_shader(sky.frag              sky.frag "")

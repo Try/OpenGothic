@@ -1,4 +1,7 @@
 #include "objectsbucket.h"
+
+#include <Tempest/Log>
+
 #include "pose.h"
 #include "sceneglobals.h"
 #include "skeleton.h"
@@ -12,33 +15,50 @@ using namespace Tempest;
 ObjectsBucket::ObjectsBucket(const Material& mat, const SceneGlobals& scene, Storage& storage, const Type type)
   :scene(scene), storage(storage), mat(mat), shaderType(type) {
   static_assert(sizeof(UboObject)<=256, "UboObject is way too big");
+  static_assert(sizeof(UboPush)  <=128, "UboPush is way too big");
 
-  if(shaderType==Animated) {
-    pMain   = &scene.storage.pAnim;
-    pShadow = &scene.storage.pAnimSh;
-    } else {
-    switch(mat.alpha) {
-      case Material::AlphaTest:
+  switch(mat.alpha) {
+    case Material::AlphaTest:
+      if(shaderType==Animated) {
+        pMain   = &scene.storage.pAnimAt;
+        pLight  = &scene.storage.pAnimAtLt;
+        pShadow = &scene.storage.pAnimAtSh;
+        } else {
         pMain   = &scene.storage.pObjectAt;
+        pLight  = &scene.storage.pObjectAtLt;
         pShadow = &scene.storage.pObjectAtSh;
-        break;
-      case Material::Transparent:
-        pMain   = &scene.storage.pObjectAlpha;
+        }
+      break;
+    case Material::Transparent:
+      if(shaderType==Animated) {
+        pMain   = &scene.storage.pAnimAlpha;
+        pLight  = nullptr;
         pShadow = nullptr;
-        break;
-      case Material::AdditiveLight:
-      case Material::Multiply:
-      case Material::Multiply2:
-      case Material::Solid:
+        } else {
+        pMain   = &scene.storage.pObjectAlpha;
+        //pLight  = &scene.storage.pObjectLt;
+        pShadow = &scene.storage.pObjectAtSh;
+        }
+      break;
+    case Material::AdditiveLight:
+    case Material::Multiply:
+    case Material::Multiply2:
+    case Material::Solid:
+      if(shaderType==Animated) {
+        pMain   = &scene.storage.pAnim;
+        pLight  = &scene.storage.pAnimLt;
+        pShadow = &scene.storage.pAnimSh;
+        } else {
         pMain   = &scene.storage.pObject;
+        pLight  = &scene.storage.pObjectLt;
         pShadow = &scene.storage.pObjectSh;
-        break;
-      case Material::InvalidAlpha:
-      case Material::LastGothic:
-      case Material::FirstOpenGothic:
-      case Material::Last:
-        break;
-      }
+        }
+      break;
+    case Material::InvalidAlpha:
+    case Material::LastGothic:
+    case Material::FirstOpenGothic:
+    case Material::Last:
+      break;
     }
   }
 
@@ -89,7 +109,6 @@ void ObjectsBucket::uboSetCommon(ObjectsBucket::Object& v) {
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
     auto& t   = *mat.tex;
     auto& ubo = v.ubo[i];
-
 
     if(pMain!=nullptr) {
       ubo.set(0,t);
@@ -144,8 +163,7 @@ void ObjectsBucket::setupUbo() {
   for(auto& v:val) {
     if(v.storageSt==size_t(-1))
       continue;
-    auto& u = storage.st.element(v.storageSt);
-    setupLights(v,u,true);
+    setupLights(v,true);
     }
 
   for(uint8_t fId=0;fId<Resources::MaxFramesInFlight;++fId) {
@@ -176,6 +194,20 @@ void ObjectsBucket::setupPerFrameUbo() {
       for(auto& b:i.uboBitSh[fId])
         b = 0;
       }
+    }
+  }
+
+void ObjectsBucket::visibilityPass(Painter3d& p) {
+  if(!groupVisibility(p))
+    return;
+
+  for(auto& v:val) {
+    v.visible = false;
+    if(v.ibo==nullptr)
+      continue;
+    if(!p.isVisible(v.bounds))
+      continue;
+    v.visible = true;
     }
   }
 
@@ -215,20 +247,60 @@ void ObjectsBucket::draw(Painter3d& p, uint8_t fId) {
   if(!groupVisibility(p))
     return;
 
-  for(auto& i:val) {
-    if(i.ibo==nullptr)
-      continue;
-    if(!p.isVisible(i.bounds))
+  UboPush pushBlock;
+  for(auto& v:val) {
+    if(!v.visible)
       continue;
 
-    auto& ubo = i.ubo[fId];
-    setUbo(i.uboBit[fId],ubo,3,storage.st[fId],i.storageSt,1);
-    if(i.storageSk!=size_t(-1))
-      setUbo(i.uboBit[fId],ubo,4,storage.sk[fId],i.storageSk,1);
+    auto& ubo = v.ubo[fId];
+    setUbo(v.uboBit[fId],ubo,3,storage.st[fId],v.storageSt,1);
+    if(v.storageSk!=size_t(-1))
+      setUbo(v.uboBit[fId],ubo,4,storage.sk[fId],v.storageSk,1);
 
+    const size_t cnt = v.lightCnt;
+    for(size_t r=0; r<cnt && r<LIGHT_BLOCK; ++r) {
+      pushBlock.light[r].pos   = v.light[r]->position();
+      pushBlock.light[r].color = v.light[r]->color();
+      pushBlock.light[r].range = v.light[r]->range();
+      }
+    for(size_t r=cnt;r<LIGHT_BLOCK;++r) {
+      pushBlock.light[r].range = 0;
+      }
+    p.setUniforms(*pMain,&pushBlock,sizeof(pushBlock));
     if(shaderType==Animated)
-      p.draw(*pMain,ubo,*i.vboA,*i.ibo); else
-      p.draw(*pMain,ubo,*i.vbo, *i.ibo);
+      p.draw(*pMain,ubo,*v.vboA,*v.ibo); else
+      p.draw(*pMain,ubo,*v.vbo, *v.ibo);
+    }
+  }
+
+void ObjectsBucket::drawLight(Painter3d& p, uint8_t fId) {
+  if(pLight==nullptr)
+    return;
+
+  if(!groupVisibility(p))
+    return;
+
+  UboPush pushBlock;
+  for(auto& v:val) {
+    if(!v.visible || v.lightCnt<=LIGHT_BLOCK)
+      continue;
+
+    auto& ubo = v.ubo[fId];
+    for(size_t i=LIGHT_BLOCK; i<v.lightCnt; i+=LIGHT_BLOCK) {
+      const size_t cnt = v.lightCnt-i;
+      for(size_t r=0; r<cnt && r<LIGHT_BLOCK; ++r) {
+        pushBlock.light[r].pos   = v.light[i+r]->position();
+        pushBlock.light[r].color = v.light[i+r]->color();
+        pushBlock.light[r].range = v.light[i+r]->range();
+        }
+      for(size_t r=cnt;r<LIGHT_BLOCK;++r) {
+        pushBlock.light[r].range = 0;
+        }
+      p.setUniforms(*pLight,&pushBlock,sizeof(pushBlock));
+      if(shaderType==Animated)
+        p.draw(*pLight,ubo,*v.vboA,*v.ibo); else
+        p.draw(*pLight,ubo,*v.vbo, *v.ibo);
+      }
     }
   }
 
@@ -239,20 +311,18 @@ void ObjectsBucket::drawShadow(Painter3d& p, uint8_t fId, int layer) {
   if(!groupVisibility(p))
     return;
 
-  for(auto& i:val) {
-    if(i.ibo==nullptr)
-      continue;
-    if(!p.isVisible(i.bounds))
+  for(auto& v:val) {
+    if(!v.visible)
       continue;
 
-    auto& ubo = i.uboSh[fId][layer];
-    setUbo(i.uboBitSh[fId][layer],ubo,3,storage.st[fId],i.storageSt,1);
-    if(i.storageSk!=size_t(-1))
-      setUbo(i.uboBitSh[fId][layer],ubo,4,storage.sk[fId],i.storageSk,1);
+    auto& ubo = v.uboSh[fId][layer];
+    setUbo(v.uboBitSh[fId][layer],ubo,3,storage.st[fId],v.storageSt,1);
+    if(v.storageSk!=size_t(-1))
+      setUbo(v.uboBitSh[fId][layer],ubo,4,storage.sk[fId],v.storageSk,1);
 
     if(shaderType==Animated)
-      p.draw(*pShadow,ubo,*i.vboA,*i.ibo); else
-      p.draw(*pShadow,ubo,*i.vbo, *i.ibo);
+      p.draw(*pShadow,ubo,*v.vboA,*v.ibo); else
+      p.draw(*pShadow,ubo,*v.vbo, *v.ibo);
     }
   }
 
@@ -282,7 +352,7 @@ void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
     allBounds.r = 0;
     }
 
-  setupLights(v,ubo,false);
+  setupLights(v,false);
   storage.st.markAsChanged(v.storageSt);
   }
 
@@ -300,7 +370,7 @@ void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
   val[i].bounds = b;
   }
 
-void ObjectsBucket::setupLights(Object& val, UboObject& ubo, bool noCache) {
+void ObjectsBucket::setupLights(Object& val, bool noCache) {
   int cx = int(val.bounds.midTr.x/10.f);
   int cy = int(val.bounds.midTr.y/10.f);
   int cz = int(val.bounds.midTr.z/10.f);
@@ -315,17 +385,9 @@ void ObjectsBucket::setupLights(Object& val, UboObject& ubo, bool noCache) {
   val.lightCacheKey[1] = cy;
   val.lightCacheKey[2] = cz;
 
-  const Light* l[6] = {};
-  const size_t cnt = scene.lights.get(val.bounds,l,6);
-
-  for(size_t i=0;i<cnt;++i) {
-    ubo.light[i].pos   = l[i]->position();
-    ubo.light[i].color = l[i]->color();
-    ubo.light[i].range = l[i]->range();
-    }
-  for(size_t i=cnt;i<6;++i) {
-    ubo.light[i].range = 0;
-    }
+  val.lightCnt = scene.lights.get(val.bounds,val.light,64);
+  if(val.lightCnt==64)
+    val.lightCnt = scene.lights.get(val.bounds,val.light,MAX_LIGHT);
   }
 
 template<class T>

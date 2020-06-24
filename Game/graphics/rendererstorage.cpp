@@ -24,14 +24,17 @@ void RendererStorage::ShaderPair::load(Device &device, const char *tag, const ch
 void RendererStorage::Material::load(Device &device, const char *f) {
   main.  load(device,f,"%s.%s.sprv");
   shadow.load(device,f,"%s_shadow.%s.sprv");
+  light .load(device,f,"%s_light.%s.sprv");
   }
 
 RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   :device(device) {
-  object  .load(device,"object");
-  objectAt.load(device,"object_at");
-  ani     .load(device,"anim");
-  pfx     .load(device,"pfx");
+  obj      .load(device,"obj");
+  objAt    .load(device,"obj_at");
+  ani      .load(device,"ani");
+  aniAt    .load(device,"ani_at");
+
+  pfx.load(device,"pfx");
   initPipeline(gothic);
   initShadow();
   }
@@ -48,6 +51,13 @@ void RendererStorage::initPipeline(Gothic& gothic) {
   stateAlpha.setZTestMode   (RenderState::ZTestMode::Less);
   stateAlpha.setCullFaceMode(RenderState::CullMode::Front);
   stateAlpha.setZWriteEnabled(false);
+
+  RenderState stateAdd;
+  stateAdd.setBlendSource (RenderState::BlendMode::one);
+  stateAdd.setBlendDest   (RenderState::BlendMode::one);
+  stateAdd.setZTestMode   (RenderState::ZTestMode::Equal);
+  stateAdd.setCullFaceMode(RenderState::CullMode::Front);
+  stateAdd.setZWriteEnabled(false);
 
   RenderState stateObj;
   stateObj.setZTestMode   (RenderState::ZTestMode::Less);
@@ -79,12 +89,20 @@ void RendererStorage::initPipeline(Gothic& gothic) {
 
   pComposeShadow = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vsComp, fsComp);
 
-  pObject        = pipeline<Resources::Vertex> (stateObj,   object.main);
-  pObjectAt      = pipeline<Resources::Vertex> (stateObj,   objectAt.main);
-  pObjectAlpha   = pipeline<Resources::Vertex> (stateAlpha, object.main);
   pAnim          = pipeline<Resources::VertexA>(stateObj,   ani.main);
+  pAnimAt        = pipeline<Resources::VertexA>(stateObj,   aniAt.main);
+  pAnimLt        = pipeline<Resources::VertexA>(stateAdd,   ani.light);
+  pAnimAtLt      = pipeline<Resources::VertexA>(stateAdd,   aniAt.light);
 
-  pPfx           = pipeline<Resources::Vertex> (statePfx,pfx.main);
+  pObject        = pipeline<Resources::Vertex> (stateObj,   obj.main);
+  pObjectAt      = pipeline<Resources::Vertex> (stateObj,   objAt.main);
+  pObjectLt      = pipeline<Resources::Vertex> (stateAdd,   obj.light);
+  pObjectAtLt    = pipeline<Resources::Vertex> (stateAdd,   objAt.light);
+
+  pObjectAlpha   = pipeline<Resources::Vertex> (stateAlpha, obj.main);
+  pAnimAlpha     = pipeline<Resources::VertexA>(stateAlpha, ani.main);
+
+  pPfx           = pipeline<Resources::Vertex> (statePfx,   pfx.main);
 
   if(gothic.version().game==1) {
     auto sh    = GothicShader::get("sky_g1.vert.sprv");
@@ -107,7 +125,8 @@ void RendererStorage::initShadow() {
   state.setCullFaceMode(RenderState::CullMode::Back);
   //state.setCullFaceMode(RenderState::CullMode::Front);
 
-  pObjectSh   = pipeline<Resources::Vertex> (state,object.shadow);
-  pObjectAtSh = pipeline<Resources::Vertex> (state,objectAt.shadow);
+  pObjectSh   = pipeline<Resources::Vertex> (state,obj.shadow);
+  pObjectAtSh = pipeline<Resources::Vertex> (state,objAt.shadow);
   pAnimSh     = pipeline<Resources::VertexA>(state,ani.shadow);
+  pAnimAtSh   = pipeline<Resources::VertexA>(state,aniAt.shadow);
   }
