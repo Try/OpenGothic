@@ -136,10 +136,8 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
       for(size_t lay=0;lay<Resources::ShadowLayers;++lay) {
         auto& uboSh = v.uboSh[i][lay];
 
-        if(material().alpha==Material::ApphaFunc::Solid)
-          uboSh.set(0,Resources::fallbackBlack(),Sampler2d::nearest()); else
+        if(material().alpha==Material::ApphaFunc::AlphaTest)
           uboSh.set(0,t);
-        uboSh.set(1,Resources::fallbackTexture(),Tempest::Sampler2d::nearest());
         uboSh.set(2,scene.uboGlobalPf[i][lay],0,1);
         }
       }

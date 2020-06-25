@@ -18,6 +18,7 @@ layout(location = 4) in vec4 inPos;
 
 layout(location = 0) out vec4 outColor;
 
+#if !defined(SHADOW_MAP)
 float implShadowVal(in vec2 uv, in float shPosZ, in int layer) {
   float shMap = texture(textureSm,uv)[layer];
   float shZ   = min(0.99,shPosZ);
@@ -54,7 +55,6 @@ float calcShadow(vec3 shPos0, vec3 shPos1) {
   return 1.0;
   }
 
-#if !defined(SHADOW_MAP)
 float calcShadow() {
   vec3 shPos0  = (inShadowPos.xyz)/inShadowPos.w;
   vec3 shPos1  = shPos0*0.2;
@@ -100,11 +100,12 @@ vec3 calcLight() {
 #endif
 
 void main() {
+#if !defined(SHADOW_MAP) || defined(ATEST)
   vec4 t = texture(textureD,inUV);
-
-#ifdef ATEST
+#  ifdef ATEST
   if(t.a<0.5)
     discard;
+#  endif
 #endif
 
 #ifdef SHADOW_MAP

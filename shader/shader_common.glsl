@@ -14,10 +14,10 @@ layout(std140,push_constant) uniform UboPush {
   } push;
 #endif
 
-#if defined(FRAGMENT)
+#if defined(FRAGMENT) && !(defined(SHADOW_MAP) && !defined(ATEST))
 layout(binding = 0) uniform sampler2D textureD;
 #endif
-#if defined(FRAGMENT)
+#if defined(FRAGMENT) && !defined(SHADOW_MAP)
 layout(binding = 1) uniform sampler2D textureSm;
 #endif
 
