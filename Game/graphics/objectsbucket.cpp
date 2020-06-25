@@ -16,6 +16,7 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const SceneGlobals& scene, Sto
   :scene(scene), storage(storage), mat(mat), shaderType(type) {
   static_assert(sizeof(UboObject)<=256, "UboObject is way too big");
   static_assert(sizeof(UboPush)  <=128, "UboPush is way too big");
+  static_assert(sizeof(UboPushLt)<=128, "UboPushLt is way too big");
 
   switch(mat.alpha) {
     case Material::AlphaTest:
@@ -77,6 +78,7 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const Tempest::IndexBuffer<uint3
     } else {
     val.emplace_back();
     v = &val.back();
+    index.resize(val.size());
     }
 
   v->vbo       = nullptr;
@@ -198,16 +200,16 @@ void ObjectsBucket::setupPerFrameUbo() {
   }
 
 void ObjectsBucket::visibilityPass(Painter3d& p) {
+  index.clear();
   if(!groupVisibility(p))
     return;
 
   for(auto& v:val) {
-    v.visible = false;
     if(v.ibo==nullptr)
       continue;
     if(!p.isVisible(v.bounds))
       continue;
-    v.visible = true;
+    index.push_back(&v);
     }
   }
 
@@ -240,17 +242,13 @@ void ObjectsBucket::free(const size_t objId) {
   v.ibo  = nullptr;
   }
 
-void ObjectsBucket::draw(Painter3d& p, uint8_t fId) {
+void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) {
   if(pMain==nullptr)
     return;
 
-  if(!groupVisibility(p))
-    return;
-
   UboPush pushBlock;
-  for(auto& v:val) {
-    if(!v.visible)
-      continue;
+  for(auto pv:index) {
+    auto& v = *pv;
 
     auto& ubo = v.ubo[fId];
     setUbo(v.uboBit[fId],ubo,3,storage.st[fId],v.storageSt,1);
@@ -258,35 +256,35 @@ void ObjectsBucket::draw(Painter3d& p, uint8_t fId) {
       setUbo(v.uboBit[fId],ubo,4,storage.sk[fId],v.storageSk,1);
 
     const size_t cnt = v.lightCnt;
-    for(size_t r=0; r<cnt && r<LIGHT_BLOCK; ++r) {
+    for(size_t r=0; r<cnt && r<LIGHT_INLINE; ++r) {
       pushBlock.light[r].pos   = v.light[r]->position();
       pushBlock.light[r].color = v.light[r]->color();
       pushBlock.light[r].range = v.light[r]->range();
       }
-    for(size_t r=cnt;r<LIGHT_BLOCK;++r) {
+    for(size_t r=cnt;r<LIGHT_INLINE;++r) {
       pushBlock.light[r].range = 0;
       }
     p.setUniforms(*pMain,&pushBlock,sizeof(pushBlock));
+    p.setUniforms(*pMain,ubo);
     if(shaderType==Animated)
-      p.draw(*pMain,ubo,*v.vboA,*v.ibo); else
-      p.draw(*pMain,ubo,*v.vbo, *v.ibo);
+      p.draw(*v.vboA,*v.ibo); else
+      p.draw(*v.vbo, *v.ibo);
     }
   }
 
-void ObjectsBucket::drawLight(Painter3d& p, uint8_t fId) {
+void ObjectsBucket::drawLight(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) {
   if(pLight==nullptr)
     return;
 
-  if(!groupVisibility(p))
-    return;
-
-  UboPush pushBlock;
-  for(auto& v:val) {
-    if(!v.visible || v.lightCnt<=LIGHT_BLOCK)
+  UboPushLt pushBlock;
+  for(auto pv:index) {
+    auto& v = *pv;
+    if(v.lightCnt<=LIGHT_INLINE)
       continue;
 
     auto& ubo = v.ubo[fId];
-    for(size_t i=LIGHT_BLOCK; i<v.lightCnt; i+=LIGHT_BLOCK) {
+    p.setUniforms(*pLight,ubo);
+    for(size_t i=LIGHT_INLINE; i<v.lightCnt; i+=LIGHT_BLOCK) {
       const size_t cnt = v.lightCnt-i;
       for(size_t r=0; r<cnt && r<LIGHT_BLOCK; ++r) {
         pushBlock.light[r].pos   = v.light[i+r]->position();
@@ -298,31 +296,28 @@ void ObjectsBucket::drawLight(Painter3d& p, uint8_t fId) {
         }
       p.setUniforms(*pLight,&pushBlock,sizeof(pushBlock));
       if(shaderType==Animated)
-        p.draw(*pLight,ubo,*v.vboA,*v.ibo); else
-        p.draw(*pLight,ubo,*v.vbo, *v.ibo);
+        p.draw(*v.vboA,*v.ibo); else
+        p.draw(*v.vbo, *v.ibo);
       }
     }
   }
 
-void ObjectsBucket::drawShadow(Painter3d& p, uint8_t fId, int layer) {
+void ObjectsBucket::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId, int layer) {
   if(pShadow==nullptr)
     return;
 
-  if(!groupVisibility(p))
-    return;
-
-  for(auto& v:val) {
-    if(!v.visible)
-      continue;
+  for(auto pv:index) {
+    auto& v = *pv;
 
     auto& ubo = v.uboSh[fId][layer];
     setUbo(v.uboBitSh[fId][layer],ubo,3,storage.st[fId],v.storageSt,1);
     if(v.storageSk!=size_t(-1))
       setUbo(v.uboBitSh[fId][layer],ubo,4,storage.sk[fId],v.storageSk,1);
 
+    p.setUniforms(*pShadow,ubo);
     if(shaderType==Animated)
-      p.draw(*pShadow,ubo,*v.vboA,*v.ibo); else
-      p.draw(*pShadow,ubo,*v.vbo, *v.ibo);
+      p.draw(*v.vboA,*v.ibo); else
+      p.draw(*v.vbo, *v.ibo);
     }
   }
 
@@ -371,9 +366,9 @@ void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
   }
 
 void ObjectsBucket::setupLights(Object& val, bool noCache) {
-  int cx = int(val.bounds.midTr.x/10.f);
-  int cy = int(val.bounds.midTr.y/10.f);
-  int cz = int(val.bounds.midTr.z/10.f);
+  int cx = int(val.bounds.midTr.x/20.f);
+  int cy = int(val.bounds.midTr.y/20.f);
+  int cz = int(val.bounds.midTr.z/20.f);
 
   if(cx==val.lightCacheKey[0] &&
      cy==val.lightCacheKey[1] &&
@@ -385,9 +380,7 @@ void ObjectsBucket::setupLights(Object& val, bool noCache) {
   val.lightCacheKey[1] = cy;
   val.lightCacheKey[2] = cz;
 
-  val.lightCnt = scene.lights.get(val.bounds,val.light,64);
-  if(val.lightCnt==64)
-    val.lightCnt = scene.lights.get(val.bounds,val.light,MAX_LIGHT);
+  val.lightCnt = scene.lights.get(val.bounds,val.light,MAX_LIGHT);
   }
 
 template<class T>

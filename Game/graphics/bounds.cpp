@@ -125,9 +125,6 @@ void Bounds::transformBbox(const Matrix4x4& m) {
   for(auto& i:pt)
     m.project(i.x,i.y,i.z);
 
-  if(std::isnan(pt[0].x))
-    Log::d("");
-
   bboxTr[0].x = pt[0].x;
   bboxTr[0].y = pt[0].y;
   bboxTr[0].z = pt[0].z;

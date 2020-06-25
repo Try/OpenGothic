@@ -11,6 +11,8 @@
 #include "bounds.h"
 #include "sceneglobals.h"
 
+#include "utils/workers.h"
+
 MeshObjects::MeshObjects(const SceneGlobals& globals)
   :globals(globals) {
   }
@@ -162,26 +164,30 @@ void MeshObjects::setupUbo() {
     c.setupUbo();
   }
 
-void MeshObjects::draw(Painter3d& painter, uint8_t fId) {
+void MeshObjects::draw(Painter3d& painter, Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
   commitUbo(fId);
   mkIndex();
 
-  for(auto c:index)
+  Workers::parallelFor(index,[&painter](ObjectsBucket* c){
     c->visibilityPass(painter);
+    });
+
   for(auto c:index)
-    c->draw(painter,fId);
+    c->draw(enc,fId);
   for(auto c:index)
-    c->drawLight(painter,fId);
+    c->drawLight(enc,fId);
   }
 
-void MeshObjects::drawShadow(Painter3d& painter, uint8_t fId, int layer) {
+void MeshObjects::drawShadow(Painter3d& painter, Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer) {
   commitUbo(fId);
   mkIndex();
 
-  for(auto c:index)
+  Workers::parallelFor(index,[&painter](ObjectsBucket* c){
     c->visibilityPass(painter);
+    });
+
   for(auto c:index)
-    c->drawShadow(painter,fId,layer);
+    c->drawShadow(enc,fId,layer);
   }
 
 void MeshObjects::mkIndex() {

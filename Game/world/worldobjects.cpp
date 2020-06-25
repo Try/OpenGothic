@@ -437,6 +437,8 @@ Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
   if(pos!=nullptr) {
     it->setPosition (pos->x,pos->y,pos->z);
     it->setDirection(pos->dirX,pos->dirY,pos->dirZ);
+    } else {
+    it->setPosition(0,0,0);
     }
 
   auto& itData = *it->handle();

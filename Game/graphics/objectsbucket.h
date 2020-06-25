@@ -22,8 +22,9 @@ class ObjectsBucket : public AbstractObjectsBucket {
     using VertexA = Resources::VertexA;
 
     enum {
-      LIGHT_BLOCK = 4,
-      MAX_LIGHT   = 128
+      LIGHT_INLINE = 2,
+      LIGHT_BLOCK  = 4,
+      MAX_LIGHT    = 64
       };
 
     enum Type : uint8_t {
@@ -40,6 +41,10 @@ class ObjectsBucket : public AbstractObjectsBucket {
       };
 
     struct UboPush final {
+      ShLight       light[LIGHT_INLINE];
+      };
+
+    struct UboPushLt final {
       ShLight       light[LIGHT_BLOCK];
       };
 
@@ -75,9 +80,9 @@ class ObjectsBucket : public AbstractObjectsBucket {
     void                      setupPerFrameUbo();
 
     void                      visibilityPass(Painter3d& p);
-    void                      draw      (Painter3d& painter, uint8_t fId);
-    void                      drawLight (Painter3d& painter, uint8_t fId);
-    void                      drawShadow(Painter3d& painter, uint8_t fId, int layer=0);
+    void                      draw      (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
+    void                      drawLight (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
+    void                      drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId, int layer=0);
     void                      draw      (size_t id, Painter3d& p, uint8_t fId);
 
   private:
@@ -86,7 +91,6 @@ class ObjectsBucket : public AbstractObjectsBucket {
       const Tempest::VertexBuffer<VertexA>* vboA = nullptr;
       const Tempest::IndexBuffer<uint32_t>* ibo  = nullptr;
       Bounds                                bounds;
-      bool                                  visible = true;
 
       size_t                                storageSt = size_t(-1);
       size_t                                storageSk = size_t(-1);
@@ -103,6 +107,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
 
     std::vector<Object>       val;
     std::vector<size_t>       freeList;
+    std::vector<Object*>      index;
 
     const SceneGlobals&       scene;
     Storage&                  storage;

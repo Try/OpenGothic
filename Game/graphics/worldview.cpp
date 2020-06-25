@@ -88,11 +88,11 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
   }
 
 void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId, uint8_t layer) {
-  objGroup.drawShadow(painter,fId,layer);
+  objGroup.drawShadow(painter,cmd,fId,layer);
   }
 
 void WorldView::drawMain(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId) {
-  objGroup.draw(painter,fId);
+  objGroup.draw(painter,cmd,fId);
   sky     .draw(painter,fId);
   pfxGroup.draw(painter,fId);
   }

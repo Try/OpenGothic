@@ -170,7 +170,7 @@ void PackedMesh::landRepack() {
   }
 
 void PackedMesh::split(std::vector<SubMesh>& out, SubMesh& src) {
-  if(src.indices.size()<64*3) { // avoid micro-meshes
+  if(src.indices.size()<512*3 && false) { // avoid micro-meshes
     if(src.indices.size()>0)
       out.push_back(std::move(src));
     return;

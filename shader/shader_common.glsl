@@ -1,5 +1,12 @@
-#define LIGHT_CNT              4
+#define LIGHT_INLINE           2
+#define LIGHT_BLOCK            4
 #define MAX_NUM_SKELETAL_NODES 96
+
+#if defined(LIGHT_EXT)
+#define LIGHT_CNT LIGHT_BLOCK
+#else
+#define LIGHT_CNT LIGHT_INLINE
+#endif
 
 struct Light {
   vec4  pos;
@@ -7,9 +14,13 @@ struct Light {
   float range;
   };
 
-#if defined(OBJ) && defined(FRAGMENT) && !defined(SHADOW_MAP)
+#if defined(OBJ) && defined(FRAGMENT)
 layout(std140,push_constant) uniform UboObject {
-  Light light[LIGHT_CNT];
+#if defined(LIGHT_EXT)
+  Light light[LIGHT_BLOCK];
+#else
+  Light light[LIGHT_INLINE];
+#endif
   } push;
 #endif
 
