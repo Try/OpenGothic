@@ -74,7 +74,7 @@ vec3 calcLight() {
 #endif
 
 #if defined(OBJ)
-  for(int i=0; i<LIGHT_CNT; ++i) {
+  for(int i=0; i<LIGHT_BLOCK; ++i) {
     float rgn     = push.light[i].range;
     if(rgn<=0.0)
       continue;

@@ -212,7 +212,7 @@ void MeshObjects::commitUbo(uint8_t fId) {
   if(!st && !dn)
     return;
   for(auto& c:buckets)
-    c.setupPerFrameUbo();
+    c.invalidateUbo();
   }
 
 void MeshObjects::Mesh::setSkeleton(const Skeleton *sk) {
@@ -296,6 +296,6 @@ void MeshObjects::Mesh::setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix
       }
   }
 
-void MeshObjects::Node::draw(Painter3d& p, uint8_t fId) const {
+void MeshObjects::Node::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) const {
   it->draw(p,fId);
   }

@@ -12,7 +12,7 @@ void AbstractObjectsBucket::Item::setBounds(const Bounds& bbox) {
   owner->setBounds(id,bbox);
   }
 
-void AbstractObjectsBucket::Item::draw(Painter3d& p, uint8_t fId) const {
+void AbstractObjectsBucket::Item::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) const {
   owner->draw(id,p,fId);
   }
 

@@ -12,11 +12,33 @@
 
 using namespace Tempest;
 
+void ObjectsBucket::Descriptors::invalidate() {
+  for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
+    uboBit[i] = 0;
+    for(auto& b:uboBitSh[i])
+      b = 0;
+    }
+  }
+
+void ObjectsBucket::Descriptors::alloc(ObjectsBucket& owner) {
+  if(!ubo[0].isEmpty())
+    return;
+
+  for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
+    if(owner.pMain!=nullptr)
+      ubo[i] = owner.scene.storage.device.uniforms(owner.pMain->layout());
+    if(owner.pShadow!=nullptr) {
+      for(size_t lay=0;lay<Resources::ShadowLayers;++lay)
+        uboSh[i][lay] = owner.scene.storage.device.uniforms(owner.pShadow->layout());
+      }
+    }
+
+  owner.uboSetCommon(*this);
+  }
+
 ObjectsBucket::ObjectsBucket(const Material& mat, const SceneGlobals& scene, Storage& storage, const Type type)
-  :scene(scene), storage(storage), mat(mat), shaderType(type) {
-  static_assert(sizeof(UboObject)<=256, "UboObject is way too big");
-  static_assert(sizeof(UboPush)  <=128, "UboPush is way too big");
-  static_assert(sizeof(UboPushLt)<=128, "UboPushLt is way too big");
+  :scene(scene), storage(storage), mat(mat), shaderType(type), useSharedUbo(type!=Animated) {
+  static_assert(sizeof(UboPush)<=128, "UboPush is way too big");
 
   switch(mat.alpha) {
     case Material::AlphaTest:
@@ -61,6 +83,11 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const SceneGlobals& scene, Sto
     case Material::Last:
       break;
     }
+
+  if(useSharedUbo) {
+    uboShared.invalidate();
+    uboShared.alloc(*this);
+    }
   }
 
 ObjectsBucket::~ObjectsBucket() {
@@ -85,34 +112,21 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const Tempest::IndexBuffer<uint3
   v->vboA      = nullptr;
   v->ibo       = &ibo;
   v->bounds    = bounds;
-  v->storageSt = storage.st.alloc();
 
-  for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
-    v->uboBit[i] = 0;
-    for(auto& b:v->uboBitSh[i])
-      b = 0;
-    }
-
-  if(v->ubo[0].isEmpty()) {
-    for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
-      if(pMain!=nullptr)
-        v->ubo[i] = scene.storage.device.uniforms(pMain->layout());
-      if(pShadow!=nullptr) {
-        for(size_t lay=0;lay<Resources::ShadowLayers;++lay)
-          v->uboSh[i][lay] = scene.storage.device.uniforms(pShadow->layout());
-        }
-      }
-    uboSetCommon(*v);
+  if(!useSharedUbo) {
+    v->ubo.invalidate();
+    if(v->ubo.ubo[0].isEmpty())
+      v->ubo.alloc(*this);
     }
   return *v;
   }
 
-void ObjectsBucket::uboSetCommon(ObjectsBucket::Object& v) {
+void ObjectsBucket::uboSetCommon(Descriptors& v) {
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
     auto& t   = *mat.tex;
     auto& ubo = v.ubo[i];
 
-    if(pMain!=nullptr) {
+    if(!ubo.isEmpty()) {
       ubo.set(0,t);
       ubo.set(1,*scene.shadowMap,Resources::shadowSampler());
       ubo.set(2,scene.uboGlobalPf[i][0],0,1);
@@ -129,6 +143,31 @@ void ObjectsBucket::uboSetCommon(ObjectsBucket::Object& v) {
         uboSh.set(2,scene.uboGlobalPf[i][lay],0,1);
         }
       }
+    }
+  }
+
+void ObjectsBucket::setupUbo() {
+  for(auto& v:val) {
+    setupLights(v,true);
+    }
+
+  if(useSharedUbo) {
+    uboShared.invalidate();
+    uboSetCommon(uboShared);
+    } else {
+    for(auto& i:val) {
+      i.ubo.invalidate();
+      uboSetCommon(i.ubo);
+      }
+    }
+  }
+
+void ObjectsBucket::invalidateUbo() {
+  if(useSharedUbo) {
+    uboShared.invalidate();
+    } else {
+    for(auto& i:val)
+      i.ubo.invalidate();
     }
   }
 
@@ -159,44 +198,6 @@ bool ObjectsBucket::groupVisibility(Painter3d& p) {
     allBounds.assign(bbox);
     }
   return p.isVisible(allBounds);
-  }
-
-void ObjectsBucket::setupUbo() {
-  for(auto& v:val) {
-    if(v.storageSt==size_t(-1))
-      continue;
-    setupLights(v,true);
-    }
-
-  for(uint8_t fId=0;fId<Resources::MaxFramesInFlight;++fId) {
-    for(auto& i:val) {
-      auto& ubo = i.ubo[fId];
-      if(pMain!=nullptr) {
-        ubo.set(1,*scene.shadowMap,Resources::shadowSampler());
-        ubo.set(2,scene.uboGlobalPf[fId][0],0,1);
-        }
-
-      if(pShadow!=nullptr) {
-        for(size_t lay=0;lay<Resources::ShadowLayers;++lay) {
-          auto& uboSh = i.uboSh[fId][lay];
-          uboSh.set(1,Resources::fallbackTexture(),Tempest::Sampler2d::nearest());
-          uboSh.set(2,scene.uboGlobalPf[fId][lay],0,1);
-          }
-        }
-      }
-    }
-
-  setupPerFrameUbo();
-  }
-
-void ObjectsBucket::setupPerFrameUbo() {
-  for(uint8_t fId=0;fId<Resources::MaxFramesInFlight;++fId) {
-    for(auto& i:val) {
-      i.uboBit[fId] = 0;
-      for(auto& b:i.uboBitSh[fId])
-        b = 0;
-      }
-    }
   }
 
 void ObjectsBucket::visibilityPass(Painter3d& p) {
@@ -233,8 +234,6 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
 void ObjectsBucket::free(const size_t objId) {
   freeList.push_back(objId);
   auto& v = val[objId];
-  if(v.storageSt!=size_t(-1))
-    storage.st.free(v.storageSt);
   if(v.storageSk!=size_t(-1))
     storage.sk.free(v.storageSk);
   v.vbo  = nullptr;
@@ -243,29 +242,35 @@ void ObjectsBucket::free(const size_t objId) {
   }
 
 void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) {
-  if(pMain==nullptr)
+  if(pMain==nullptr || index.size()==0)
     return;
+
+  if(useSharedUbo)
+    p.setUniforms(*pMain,uboShared.ubo[fId]);
 
   UboPush pushBlock;
   for(auto pv:index) {
     auto& v = *pv;
 
-    auto& ubo = v.ubo[fId];
-    setUbo(v.uboBit[fId],ubo,3,storage.st[fId],v.storageSt,1);
-    if(v.storageSk!=size_t(-1))
-      setUbo(v.uboBit[fId],ubo,4,storage.sk[fId],v.storageSk,1);
-
+    pushBlock.pos = v.pos;
     const size_t cnt = v.lightCnt;
-    for(size_t r=0; r<cnt && r<LIGHT_INLINE; ++r) {
+    for(size_t r=0; r<cnt && r<LIGHT_BLOCK; ++r) {
       pushBlock.light[r].pos   = v.light[r]->position();
       pushBlock.light[r].color = v.light[r]->color();
       pushBlock.light[r].range = v.light[r]->range();
       }
-    for(size_t r=cnt;r<LIGHT_INLINE;++r) {
+    for(size_t r=cnt;r<LIGHT_BLOCK;++r) {
       pushBlock.light[r].range = 0;
       }
+
     p.setUniforms(*pMain,&pushBlock,sizeof(pushBlock));
-    p.setUniforms(*pMain,ubo);
+    if(!useSharedUbo) {
+      auto& ubo = v.ubo.ubo[fId];
+      if(v.storageSk!=size_t(-1))
+        setUbo(v.ubo.uboBit[fId],ubo,3,storage.sk[fId],v.storageSk,1);
+      p.setUniforms(*pMain,ubo);
+      }
+
     if(shaderType==Animated)
       p.draw(*v.vboA,*v.ibo); else
       p.draw(*v.vbo, *v.ibo);
@@ -273,18 +278,24 @@ void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fI
   }
 
 void ObjectsBucket::drawLight(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) {
-  if(pLight==nullptr)
+  if(pLight==nullptr || index.size()==0)
     return;
 
-  UboPushLt pushBlock;
+  if(useSharedUbo)
+    p.setUniforms(*pLight,uboShared.ubo[fId]);
+
+  UboPush pushBlock;
   for(auto pv:index) {
     auto& v = *pv;
-    if(v.lightCnt<=LIGHT_INLINE)
+    if(v.lightCnt<=LIGHT_BLOCK)
       continue;
 
-    auto& ubo = v.ubo[fId];
-    p.setUniforms(*pLight,ubo);
-    for(size_t i=LIGHT_INLINE; i<v.lightCnt; i+=LIGHT_BLOCK) {
+    if(!useSharedUbo) {
+      p.setUniforms(*pLight,v.ubo.ubo[fId]);
+      }
+    pushBlock.pos = v.pos;
+
+    for(size_t i=LIGHT_BLOCK; i<v.lightCnt; i+=LIGHT_BLOCK) {
       const size_t cnt = v.lightCnt-i;
       for(size_t r=0; r<cnt && r<LIGHT_BLOCK; ++r) {
         pushBlock.light[r].pos   = v.light[i+r]->position();
@@ -303,52 +314,60 @@ void ObjectsBucket::drawLight(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8
   }
 
 void ObjectsBucket::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId, int layer) {
-  if(pShadow==nullptr)
+  if(pShadow==nullptr || index.size()==0)
     return;
+
+  UboPush pushBlock = {};
+  if(useSharedUbo)
+    p.setUniforms(*pShadow,uboShared.uboSh[fId][layer]);
 
   for(auto pv:index) {
     auto& v = *pv;
 
-    auto& ubo = v.uboSh[fId][layer];
-    setUbo(v.uboBitSh[fId][layer],ubo,3,storage.st[fId],v.storageSt,1);
-    if(v.storageSk!=size_t(-1))
-      setUbo(v.uboBitSh[fId][layer],ubo,4,storage.sk[fId],v.storageSk,1);
+    if(!useSharedUbo) {
+      auto& ubo = v.ubo.uboSh[fId][layer];
+      if(v.storageSk!=size_t(-1))
+        setUbo(v.ubo.uboBitSh[fId][layer],ubo,3,storage.sk[fId],v.storageSk,1);
+      p.setUniforms(*pShadow,ubo);
+      }
 
-    p.setUniforms(*pShadow,ubo);
+    pushBlock.pos = v.pos;
+    p.setUniforms(*pShadow,&pushBlock,sizeof(pushBlock));
     if(shaderType==Animated)
       p.draw(*v.vboA,*v.ibo); else
       p.draw(*v.vbo, *v.ibo);
     }
   }
 
-void ObjectsBucket::draw(size_t id, Painter3d& p, uint8_t fId) {
+void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) {
   auto& v = val[id];
   if(v.vbo==nullptr || pMain==nullptr)
     return;
 
-  storage.st.commitUbo(scene.storage.device,fId);
   storage.sk.commitUbo(scene.storage.device,fId);
 
-  auto& ubo = v.ubo[fId];
+  UboPush pushBlock = {};
+  pushBlock.pos = v.pos;
+
+  auto& ubo = useSharedUbo ? uboShared.ubo[fId] : v.ubo.ubo[fId];
   ubo.set(0,*mat.tex);
   ubo.set(1,Resources::fallbackTexture(),Sampler2d::nearest());
   ubo.set(2,scene.uboGlobalPf[fId][0],0,1);
-  ubo.set(3,storage.st[fId],v.storageSt,1);
-  p.draw(*pMain, ubo, *v.vbo, *v.ibo);
+
+  p.setUniforms(*pMain,ubo);
+  p.setUniforms(*pMain,&pushBlock,sizeof(pushBlock));
+  p.draw(*v.vbo, *v.ibo);
   }
 
 void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
   auto& v = val[i];
   v.bounds.setObjMatrix(m);
-  auto& ubo = storage.st.element(v.storageSt);
-  ubo.pos = m;
+  v.pos = m;
 
-  if(shaderType==Static) {
+  if(shaderType==Static)
     allBounds.r = 0;
-    }
 
   setupLights(v,false);
-  storage.st.markAsChanged(v.storageSt);
   }
 
 void ObjectsBucket::setSkeleton(size_t i, const Pose& p) {
@@ -403,6 +422,5 @@ void ObjectsBucket::setUbo(uint8_t& bit, Uniforms& ubo, uint8_t layoutBind,
   }
 
 bool ObjectsBucket::Storage::commitUbo(Device& device, uint8_t fId) {
-  return st.commitUbo(device,fId) |
-         sk.commitUbo(device,fId);
+  return sk.commitUbo(device,fId);
   }

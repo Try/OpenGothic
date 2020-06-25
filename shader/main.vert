@@ -75,7 +75,7 @@ void main() {
 
   vec4 pos   = vertexPos();
 #ifdef OBJ
-  vec4 shPos = scene.shadow*ubo.obj*pos;
+  vec4 shPos = scene.shadow*push.obj*pos;
 #else
   vec4 shPos = scene.shadow*pos;
 #endif
@@ -88,8 +88,8 @@ void main() {
   outShadowPos = shPos;
   outColor     = inColor;
 #  ifdef OBJ
-  outNormal    = (ubo.obj*norm).xyz;
-  outPos       = (ubo.obj*pos);
+  outNormal    = (push.obj*norm).xyz;
+  outPos       = (push.obj*pos);
   gl_Position  = scene.mv*outPos;
 #  else
   outNormal    = norm.xyz;

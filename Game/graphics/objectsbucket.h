@@ -22,8 +22,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
     using VertexA = Resources::VertexA;
 
     enum {
-      LIGHT_INLINE = 2,
-      LIGHT_BLOCK  = 4,
+      LIGHT_BLOCK  = 2,
       MAX_LIGHT    = 64
       };
 
@@ -41,15 +40,8 @@ class ObjectsBucket : public AbstractObjectsBucket {
       };
 
     struct UboPush final {
-      ShLight       light[LIGHT_INLINE];
-      };
-
-    struct UboPushLt final {
-      ShLight       light[LIGHT_BLOCK];
-      };
-
-    struct UboObject final {
       Tempest::Matrix4x4 pos;
+      ShLight            light[LIGHT_BLOCK];
       };
 
     struct UboAnim final {
@@ -57,7 +49,6 @@ class ObjectsBucket : public AbstractObjectsBucket {
       };
 
     struct Storage final {
-      UboStorage<UboObject> st;
       UboStorage<UboAnim>   sk;
       bool                  commitUbo(Tempest::Device &device, uint8_t fId);
       };
@@ -77,33 +68,42 @@ class ObjectsBucket : public AbstractObjectsBucket {
     void                      free(const size_t objId);
 
     void                      setupUbo();
-    void                      setupPerFrameUbo();
+    void                      invalidateUbo();
 
     void                      visibilityPass(Painter3d& p);
     void                      draw      (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
     void                      drawLight (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
     void                      drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId, int layer=0);
-    void                      draw      (size_t id, Painter3d& p, uint8_t fId);
+    void                      draw      (size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId);
 
   private:
+    struct Descriptors final {
+      Tempest::Uniforms       ubo  [Resources::MaxFramesInFlight];
+      Tempest::Uniforms       uboSh[Resources::MaxFramesInFlight][Resources::ShadowLayers];
+
+      uint8_t                 uboBit  [Resources::MaxFramesInFlight]={};
+      uint8_t                 uboBitSh[Resources::MaxFramesInFlight][Resources::ShadowLayers]={};
+
+      void                    invalidate();
+      void                    alloc(ObjectsBucket& owner);
+      };
+
     struct Object final {
       const Tempest::VertexBuffer<Vertex>*  vbo  = nullptr;
       const Tempest::VertexBuffer<VertexA>* vboA = nullptr;
       const Tempest::IndexBuffer<uint32_t>* ibo  = nullptr;
       Bounds                                bounds;
+      Tempest::Matrix4x4                    pos;
 
-      size_t                                storageSt = size_t(-1);
+      Descriptors                           ubo;
       size_t                                storageSk = size_t(-1);
-      Tempest::Uniforms                     ubo  [Resources::MaxFramesInFlight];
-      Tempest::Uniforms                     uboSh[Resources::MaxFramesInFlight][Resources::ShadowLayers];
-
-      uint8_t                               uboBit  [Resources::MaxFramesInFlight]={};
-      uint8_t                               uboBitSh[Resources::MaxFramesInFlight][Resources::ShadowLayers]={};
 
       const Light*                          light[MAX_LIGHT] = {};
       size_t                                lightCnt=0;
       int                                   lightCacheKey[3]={};
       };
+
+    Descriptors               uboShared;
 
     std::vector<Object>       val;
     std::vector<size_t>       freeList;
@@ -113,6 +113,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
     Storage&                  storage;
     Material                  mat;
     const Type                shaderType;
+    const bool                useSharedUbo;
 
     Bounds                    allBounds;
 
@@ -121,7 +122,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
     const Tempest::RenderPipeline* pShadow = nullptr;
 
     Object& implAlloc(const Tempest::IndexBuffer<uint32_t> &ibo, const Bounds& bounds);
-    void    uboSetCommon(Object& v);
+    void    uboSetCommon(Descriptors& v);
     bool    groupVisibility(Painter3d& p);
 
     void   setObjMatrix(size_t i,const Tempest::Matrix4x4& m);

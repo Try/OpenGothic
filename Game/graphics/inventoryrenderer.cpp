@@ -21,14 +21,13 @@ InventoryRenderer::InventoryRenderer(const RendererStorage &storage)
   }
 
 void InventoryRenderer::draw(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  Painter3d painter(cmd);
   scene.commitUbo(fId);
 
   for(auto& i:items) {
-    painter.setViewport(i.x,i.y,i.w,i.h);
+    cmd.setViewport(i.x,i.y,i.w,i.h);
     for(size_t r=0;r<i.mesh.nodesCount();++r) {
       auto n = i.mesh.node(r);
-      n.draw(painter,fId);
+      n.draw(cmd,fId);
       }
     }
   }

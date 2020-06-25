@@ -35,7 +35,7 @@ class MeshObjects final {
       public:
         Node(Node&&)=default;
 
-        void draw(Painter3d &p, uint8_t fId) const;
+        void draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) const;
 
       private:
         Node(const Item* it):it(it){}

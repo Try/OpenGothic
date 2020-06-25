@@ -71,6 +71,8 @@ void WorldView::setModelView(const Matrix4x4& view, const Tempest::Matrix4x4* sh
 void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uint8_t fId) {
   if(pendingLights.size()!=sGlobal.lights.size()) {
     sGlobal.lights.set(pendingLights);
+    // wait before update all descriptors
+    sGlobal.storage.device.waitIdle();
     objGroup.setupUbo();
     pfxGroup.setupUbo();
     }
