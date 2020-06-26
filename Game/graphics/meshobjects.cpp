@@ -164,6 +164,11 @@ void MeshObjects::setupUbo() {
     c.setupUbo();
   }
 
+void MeshObjects::preFrameUpdate(uint8_t fId) {
+  for(auto& c:buckets)
+    c.preFrameUpdate(fId);
+  }
+
 void MeshObjects::draw(Painter3d& painter, Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
   commitUbo(fId);
   mkIndex();

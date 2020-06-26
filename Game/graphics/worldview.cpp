@@ -84,9 +84,10 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
     objGroup.setupUbo();
     pfxGroup.setupUbo();
     }
-  sGlobal.tickCount = tickCount;
+  sGlobal .setTime(tickCount);
   pfxGroup.tick(tickCount);
-  sGlobal.commitUbo(fId);
+  sGlobal .commitUbo(fId);
+  objGroup.preFrameUpdate(fId);
   }
 
 void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId, uint8_t layer) {

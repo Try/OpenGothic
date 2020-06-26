@@ -29,7 +29,12 @@ void SceneGlobals::setModelView(const Tempest::Matrix4x4& m, const Tempest::Matr
 
   uboGlobal.modelView  = m;
   uboGlobal.shadowView = sh[0];
-  shadowView1          = sh[1];
+  shadowView1          = sh[1];  
+  }
+
+void SceneGlobals::setTime(uint64_t time) {
+  uboGlobal.secondFrac = float(time%1000)/1000.f;
+  tickCount            = time;
   }
 
 void SceneGlobals::commitUbo(uint8_t fId) {

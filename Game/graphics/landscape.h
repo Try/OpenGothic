@@ -15,7 +15,6 @@ class World;
 class SceneGlobals;
 class Light;
 class PackedMesh;
-class Painter3d;
 class WorldView;
 
 class Landscape final {
@@ -27,10 +26,6 @@ class Landscape final {
       Tempest::IndexBuffer<uint32_t> ibo;
       MeshObjects::Mesh              mesh;
       };
-
-    void implDraw(Painter3d& painter,
-                  const Tempest::RenderPipeline* p[],
-                  uint8_t uboId, uint8_t frameId);
 
     WorldView&                               owner;
     const SceneGlobals&                      scene;

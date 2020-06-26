@@ -48,9 +48,14 @@ class ObjectsBucket : public AbstractObjectsBucket {
       Tempest::Matrix4x4 skel[Resources::MAX_NUM_SKELETAL_NODES];
       };
 
+    struct UboMaterial final {
+      Tempest::Vec2 texAniMapDir;
+      };
+
     struct Storage final {
-      UboStorage<UboAnim>   sk;
-      bool                  commitUbo(Tempest::Device &device, uint8_t fId);
+      UboStorage<UboAnim>     ani;
+      UboStorage<UboMaterial> mat;
+      bool                    commitUbo(Tempest::Device &device, uint8_t fId);
       };
 
     ObjectsBucket(const Material& mat, const SceneGlobals& scene, Storage& storage, const Type type);
@@ -70,6 +75,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
     void                      setupUbo();
     void                      invalidateUbo();
 
+    void                      preFrameUpdate(uint8_t fId);
     void                      visibilityPass(Painter3d& p);
     void                      draw      (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
     void                      drawLight (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
@@ -96,7 +102,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
       Tempest::Matrix4x4                    pos;
 
       Descriptors                           ubo;
-      size_t                                storageSk = size_t(-1);
+      size_t                                storageAni = size_t(-1);
 
       const Light*                          light[MAX_LIGHT] = {};
       size_t                                lightCnt=0;
@@ -112,6 +118,9 @@ class ObjectsBucket : public AbstractObjectsBucket {
     const SceneGlobals&       scene;
     Storage&                  storage;
     Material                  mat;
+
+    Tempest::UniformBuffer<UboMaterial> uboMat[Resources::MaxFramesInFlight];
+
     const Type                shaderType;
     const bool                useSharedUbo;
 

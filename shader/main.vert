@@ -71,7 +71,11 @@ vec4 normal(){
   }
 
 void main() {
+#if defined(OBJ)
+  outUV      = inUV + material.texAnim;
+#else
   outUV      = inUV;
+#endif
 
   vec4 pos   = vertexPos();
 #ifdef OBJ

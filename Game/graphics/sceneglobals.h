@@ -15,6 +15,7 @@ class SceneGlobals final {
     ~SceneGlobals();
 
     void setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4 *sh, size_t shCount);
+    void setTime(uint64_t time);
     void commitUbo(uint8_t fId);
 
     void setShadowmMap(const Tempest::Texture2d& tex);
@@ -32,6 +33,7 @@ class SceneGlobals final {
       Tempest::Matrix4x4              shadowView;
       Tempest::Vec4                   lightAmb={0,0,0,0};
       Tempest::Vec4                   lightCl ={1,1,1,0};
+      float                           secondFrac;
       };
 
     Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][Resources::ShadowLayers];

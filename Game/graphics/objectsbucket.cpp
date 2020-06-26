@@ -84,6 +84,9 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const SceneGlobals& scene, Sto
       break;
     }
 
+  for(auto& i:uboMat)
+    i = scene.storage.device.ubo<UboMaterial>(nullptr,1);
+
   if(useSharedUbo) {
     uboShared.invalidate();
     uboShared.alloc(*this);
@@ -129,7 +132,8 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
     if(!ubo.isEmpty()) {
       ubo.set(0,t);
       ubo.set(1,*scene.shadowMap,Resources::shadowSampler());
-      ubo.set(2,scene.uboGlobalPf[i][0],0,1);
+      ubo.set(2,scene.uboGlobalPf[i][0]);
+      ubo.set(4,uboMat[i]);
       }
 
     if(pShadow!=nullptr) {
@@ -138,7 +142,8 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
 
         if(material().alpha==Material::ApphaFunc::AlphaTest)
           uboSh.set(0,t);
-        uboSh.set(2,scene.uboGlobalPf[i][lay],0,1);
+        uboSh.set(2,scene.uboGlobalPf[i][lay]);
+        uboSh.set(4,uboMat[i]);
         }
       }
     }
@@ -167,6 +172,16 @@ void ObjectsBucket::invalidateUbo() {
     for(auto& i:val)
       i.ubo.invalidate();
     }
+  }
+
+void ObjectsBucket::preFrameUpdate(uint8_t fId) {
+  UboMaterial ubo;
+  if(mat.texAniMapDirPeriod.x!=0)
+    ubo.texAniMapDir.x = float(scene.tickCount%std::abs(mat.texAniMapDirPeriod.x))/float(mat.texAniMapDirPeriod.x);
+  if(mat.texAniMapDirPeriod.y!=0)
+    ubo.texAniMapDir.y = float(scene.tickCount%std::abs(mat.texAniMapDirPeriod.y))/float(mat.texAniMapDirPeriod.y);
+
+  uboMat[fId].update(&ubo,0,1);
   }
 
 bool ObjectsBucket::groupVisibility(Painter3d& p) {
@@ -224,16 +239,16 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
                             const Tempest::IndexBuffer<uint32_t>& ibo,
                             const Bounds& bounds) {
   Object* v = &implAlloc(ibo,bounds);
-  v->vboA = &vbo;
-  v->storageSk = storage.sk.alloc();
+  v->vboA   = &vbo;
+  v->storageAni = storage.ani.alloc();
   return std::distance(val.data(),v);
   }
 
 void ObjectsBucket::free(const size_t objId) {
   freeList.push_back(objId);
   auto& v = val[objId];
-  if(v.storageSk!=size_t(-1))
-    storage.sk.free(v.storageSk);
+  if(v.storageAni!=size_t(-1))
+    storage.ani.free(v.storageAni);
   v.vbo  = nullptr;
   v.vboA = nullptr;
   v.ibo  = nullptr;
@@ -264,8 +279,8 @@ void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fI
     p.setUniforms(*pMain,&pushBlock,sizeof(pushBlock));
     if(!useSharedUbo) {
       auto& ubo = v.ubo.ubo[fId];
-      if(v.storageSk!=size_t(-1))
-        setUbo(v.ubo.uboBit[fId],ubo,3,storage.sk[fId],v.storageSk,1);
+      if(v.storageAni!=size_t(-1))
+        setUbo(v.ubo.uboBit[fId],ubo,3,storage.ani[fId],v.storageAni,1);
       p.setUniforms(*pMain,ubo);
       }
 
@@ -324,8 +339,8 @@ void ObjectsBucket::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& p, uint
 
     if(!useSharedUbo) {
       auto& ubo = v.ubo.uboSh[fId][layer];
-      if(v.storageSk!=size_t(-1))
-        setUbo(v.ubo.uboBitSh[fId][layer],ubo,3,storage.sk[fId],v.storageSk,1);
+      if(v.storageAni!=size_t(-1))
+        setUbo(v.ubo.uboBitSh[fId][layer],ubo,3,storage.ani[fId],v.storageAni,1);
       p.setUniforms(*pShadow,ubo);
       }
 
@@ -342,7 +357,7 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p,
   if(v.vbo==nullptr || pMain==nullptr)
     return;
 
-  storage.sk.commitUbo(scene.storage.device,fId);
+  storage.ani.commitUbo(scene.storage.device,fId);
 
   UboPush pushBlock = {};
   pushBlock.pos = v.pos;
@@ -372,10 +387,10 @@ void ObjectsBucket::setSkeleton(size_t i, const Pose& p) {
   if(shaderType!=Animated)
     return;
   auto& v    = val[i];
-  auto& skel = storage.sk.element(v.storageSk);
+  auto& skel = storage.ani.element(v.storageAni);
 
   std::memcpy(&skel.skel[0],p.tr.data(),p.tr.size()*sizeof(p.tr[0]));
-  storage.sk.markAsChanged(v.storageSk);
+  storage.ani.markAsChanged(v.storageAni);
   }
 
 void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
@@ -420,5 +435,5 @@ void ObjectsBucket::setUbo(uint8_t& bit, Uniforms& ubo, uint8_t layoutBind,
   }
 
 bool ObjectsBucket::Storage::commitUbo(Device& device, uint8_t fId) {
-  return sk.commitUbo(device,fId);
+  return ani.commitUbo(device,fId) | mat.commitUbo(device,fId);
   }

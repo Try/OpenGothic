@@ -84,8 +84,9 @@ class MeshObjects final {
 
     void setupUbo();
 
-    void draw      (Painter3d& painter, Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
-    void drawShadow(Painter3d& painter, Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer=0);
+    void preFrameUpdate(uint8_t fId);
+    void draw          (Painter3d& painter, Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
+    void drawShadow    (Painter3d& painter, Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer=0);
 
   private:
     const SceneGlobals&             globals;

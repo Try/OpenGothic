@@ -35,3 +35,9 @@ layout(std140,binding = 3) uniform UboAnim {
   mat4 skel[MAX_NUM_SKELETAL_NODES];
   } anim;
 #endif
+
+#if defined(VERTEX) && defined(OBJ)
+layout(std140,binding = 4) uniform UboMaterial {
+  vec2 texAnim;
+  } material;
+#endif

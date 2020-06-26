@@ -24,11 +24,14 @@ class Material final {
 
     const Tempest::Texture2d* tex=nullptr;
     ApphaFunc                 alpha=AlphaTest;
+    Tempest::Point            texAniMapDirPeriod;
 
     bool operator <  (const Material& other) const;
     bool operator == (const Material& other) const;
 
   private:
     static int alphaOrder(ApphaFunc a);
+
+    Tempest::Vec2 loadVec2(const std::string& src);
   };
 
