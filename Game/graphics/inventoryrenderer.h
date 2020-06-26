@@ -7,6 +7,7 @@
 
 #include "meshobjects.h"
 #include "sceneglobals.h"
+#include "visualobjects.h"
 
 class RendererStorage;
 class Item;
@@ -31,6 +32,7 @@ class InventoryRenderer {
       };
 
     SceneGlobals           scene;
+    VisualObjects          visual;
     MeshObjects            itmGroup;
     std::vector<Itm>       items;
   };

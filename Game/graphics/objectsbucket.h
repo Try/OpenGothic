@@ -6,7 +6,6 @@
 #include <Tempest/UniformBuffer>
 #include <Tempest/UniformsLayout>
 
-#include "abstractobjectsbucket.h"
 #include "bounds.h"
 #include "material.h"
 #include "resources.h"
@@ -14,10 +13,13 @@
 #include "ubostorage.h"
 
 class RendererStorage;
+class Pose;
 class Painter3d;
 
-class ObjectsBucket : public AbstractObjectsBucket {
-  public:
+class ObjectsBucket final {
+  private:
+    struct UboAnim;
+    struct UboMaterial;
     using Vertex  = Resources::Vertex;
     using VertexA = Resources::VertexA;
 
@@ -26,36 +28,50 @@ class ObjectsBucket : public AbstractObjectsBucket {
       MAX_LIGHT    = 64
       };
 
+  public:
     enum Type : uint8_t {
       Static,
       Movable,
       Animated,
       };
 
-    struct ShLight final {
-      Tempest::Vec3 pos;
-      float         padding=0;
-      Tempest::Vec3 color;
-      float         range=0;
+    class Item final {
+      public:
+        Item()=default;
+        Item(ObjectsBucket& owner,size_t id)
+          :owner(&owner),id(id){}
+        Item(Item&& obj):owner(obj.owner),id(obj.id){
+          obj.owner=nullptr;
+          obj.id   =0;
+          }
+        Item& operator=(Item&& obj) {
+          std::swap(obj.owner,owner);
+          std::swap(obj.id,   id);
+          return *this;
+          }
+        ~Item() {
+          if(owner)
+            owner->free(this->id);
+          }
+
+        bool   isEmpty() const { return owner==nullptr; }
+
+        void   setObjMatrix(const Tempest::Matrix4x4& mt);
+        void   setPose     (const Pose&                p);
+        void   setBounds   (const Bounds&           bbox);
+
+        void   draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) const;
+
+      private:
+        ObjectsBucket* owner=nullptr;
+        size_t         id=0;
       };
 
-    struct UboPush final {
-      Tempest::Matrix4x4 pos;
-      ShLight            light[LIGHT_BLOCK];
-      };
-
-    struct UboAnim final {
-      Tempest::Matrix4x4 skel[Resources::MAX_NUM_SKELETAL_NODES];
-      };
-
-    struct UboMaterial final {
-      Tempest::Vec2 texAniMapDir;
-      };
-
-    struct Storage final {
-      UboStorage<UboAnim>     ani;
-      UboStorage<UboMaterial> mat;
-      bool                    commitUbo(Tempest::Device &device, uint8_t fId);
+    class Storage final {
+      public:
+        UboStorage<UboAnim>     ani;
+        UboStorage<UboMaterial> mat;
+        bool                    commitUbo(Tempest::Device &device, uint8_t fId);
       };
 
     ObjectsBucket(const Material& mat, const SceneGlobals& scene, Storage& storage, const Type type);
@@ -83,6 +99,26 @@ class ObjectsBucket : public AbstractObjectsBucket {
     void                      draw      (size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId);
 
   private:
+    struct ShLight final {
+      Tempest::Vec3 pos;
+      float         padding=0;
+      Tempest::Vec3 color;
+      float         range=0;
+      };
+
+    struct UboPush final {
+      Tempest::Matrix4x4 pos;
+      ShLight            light[LIGHT_BLOCK];
+      };
+
+    struct UboAnim final {
+      Tempest::Matrix4x4 skel[Resources::MAX_NUM_SKELETAL_NODES];
+      };
+
+    struct UboMaterial final {
+      Tempest::Vec2 texAniMapDir;
+      };
+
     struct Descriptors final {
       Tempest::Uniforms       ubo  [Resources::MaxFramesInFlight];
       Tempest::Uniforms       uboSh[Resources::MaxFramesInFlight][Resources::ShadowLayers];
@@ -135,7 +171,7 @@ class ObjectsBucket : public AbstractObjectsBucket {
     bool    groupVisibility(Painter3d& p);
 
     void   setObjMatrix(size_t i,const Tempest::Matrix4x4& m);
-    void   setSkeleton (size_t i,const Pose& sk);
+    void   setPose     (size_t i,const Pose& sk);
     void   setBounds   (size_t i,const Bounds& b);
 
     void   setupLights (Object& val, bool noCache);

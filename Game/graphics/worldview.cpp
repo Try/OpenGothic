@@ -10,8 +10,8 @@
 using namespace Tempest;
 
 WorldView::WorldView(const World &world, const PackedMesh &wmesh, const RendererStorage &storage)
-  : owner(world),storage(storage),sGlobal(storage),
-    sky(sGlobal),objGroup(sGlobal),pfxGroup(sGlobal),land(*this,sGlobal,wmesh) {
+  : owner(world),storage(storage),sGlobal(storage),visuals(sGlobal),
+    sky(sGlobal),objGroup(visuals),pfxGroup(sGlobal),land(*this,visuals,wmesh) {
   sky.setWorld(owner);
   pfxGroup.resetTicks();
   }
@@ -73,7 +73,7 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
     sGlobal.lights.set(pendingLights);
     // wait before update all descriptors
     sGlobal.storage.device.waitIdle();
-    objGroup.setupUbo();
+    visuals.setupUbo();
     pfxGroup.setupUbo();
     }
   if(&shadow!=sGlobal.shadowMap) {
@@ -81,30 +81,23 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
     sGlobal.storage.device.waitIdle();
     sGlobal.setShadowmMap(shadow);
 
-    objGroup.setupUbo();
+    visuals.setupUbo();
     pfxGroup.setupUbo();
     }
   sGlobal .setTime(tickCount);
   pfxGroup.tick(tickCount);
   sGlobal .commitUbo(fId);
-  objGroup.preFrameUpdate(fId);
+  visuals .preFrameUpdate(fId);
   }
 
 void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId, uint8_t layer) {
-  objGroup.drawShadow(painter,cmd,fId,layer);
+  visuals.drawShadow(painter,cmd,fId,layer);
   }
 
 void WorldView::drawMain(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId) {
-  objGroup.draw(painter,cmd,fId);
+  visuals.draw(painter,cmd,fId);
   sky     .draw(painter,fId);
   pfxGroup.draw(painter,fId);
-  }
-
-MeshObjects::Mesh WorldView::getLand(Tempest::VertexBuffer<Resources::Vertex>& vbo,
-                                     Tempest::IndexBuffer<uint32_t>& ibo,
-                                     const Material& mat,
-                                     const Bounds& bbox) {
-  return objGroup.get(vbo,ibo,mat,bbox);
   }
 
 MeshObjects::Mesh WorldView::getView(const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {

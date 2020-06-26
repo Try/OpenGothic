@@ -5,31 +5,13 @@
 #include "skeleton.h"
 #include "pose.h"
 #include "attachbinder.h"
-#include "light.h"
-#include "objectsbucket.h"
-#include "rendererstorage.h"
-#include "bounds.h"
-#include "sceneglobals.h"
+#include "visualobjects.h"
 
-#include "utils/workers.h"
-
-MeshObjects::MeshObjects(const SceneGlobals& globals)
-  :globals(globals) {
+MeshObjects::MeshObjects(VisualObjects& parent)
+  :parent(parent) {
   }
 
 MeshObjects::~MeshObjects() {
-  }
-
-ObjectsBucket& MeshObjects::getBucket(const Material& mat, ObjectsBucket::Type type) {
-  for(auto& i:buckets)
-    if(i.material()==mat && i.type()==type)
-      return i;
-
-  index.clear();
-  if(type==ObjectsBucket::Type::Static)
-    buckets.emplace_back(mat,globals,uboStatic,type); else
-    buckets.emplace_back(mat,globals,uboDyn,   type);
-  return buckets.back();
   }
 
 MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const StaticMesh::SubMesh& s,
@@ -53,30 +35,7 @@ MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const StaticMesh:
       Tempest::Log::e("texture not found: \"",s.texName,"\"");
     return MeshObjects::Item();
     }
-  return implGet(mesh,mat,s.ibo,staticDraw);
-  }
-
-MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const Material& mat,
-                                       const Tempest::IndexBuffer<uint32_t>& ibo,
-                                       bool staticDraw) {
-  if(mat.tex==nullptr) {
-    Tempest::Log::e("no texture?!");
-    return MeshObjects::Item();
-    }
-  auto&        bucket = getBucket(mat,staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
-  const size_t id     = bucket.alloc(mesh.vbo,ibo,mesh.bbox);
-  return Item(bucket,id);
-  }
-
-MeshObjects::Item MeshObjects::implGet(const AnimMesh &mesh, const Material& mat,
-                                       const Tempest::IndexBuffer<uint32_t> &ibo) {
-  if(mat.tex==nullptr) {
-    Tempest::Log::e("no texture?!");
-    return MeshObjects::Item();
-    }
-  auto&        bucket = getBucket(mat,ObjectsBucket::Animated);
-  const size_t id     = bucket.alloc(mesh.vbo,ibo,mesh.bbox);
-  return Item(bucket,id);
+  return parent.get(mesh,mat,s.ibo,staticDraw);
   }
 
 const Tempest::Texture2d *MeshObjects::solveTex(const Tempest::Texture2d *def, const std::string &format, int32_t v, int32_t c) {
@@ -92,7 +51,7 @@ MeshObjects::Mesh MeshObjects::get(const StaticMesh &mesh, bool staticDraw) {
   std::unique_ptr<Item[]> dat(new Item[mesh.sub.size()]);
   size_t count=0;
   for(size_t i=0;i<mesh.sub.size();++i){
-    Item it = implGet(mesh,mesh.sub[i].material,mesh.sub[i].ibo,staticDraw);
+    Item it = parent.get(mesh,mesh.sub[i].material,mesh.sub[i].ibo,staticDraw);
     if(it.isEmpty())
       continue;
     dat[count] = std::move(it);
@@ -136,7 +95,7 @@ MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_
       Material mat = m.material;
       mat.tex=solveTex(mat.tex,m.texName,texVar,bodyColor);
       if(mat.tex!=nullptr) {
-        dat[count] = implGet(skin,mat,m.ibo);
+        dat[count] = parent.get(skin,mat,m.ibo);
         ++count;
         } else {
         if(!m.texName.empty())
@@ -145,79 +104,6 @@ MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_
       }
     }
   return Mesh(&mesh,std::move(dat),count);
-  }
-
-MeshObjects::Mesh MeshObjects::get(Tempest::VertexBuffer<Resources::Vertex>& vbo,
-                                   Tempest::IndexBuffer<uint32_t>&           ibo,
-                                   const Material& mat, const Bounds& bbox) {
-  auto&        bucket = getBucket(mat,ObjectsBucket::Static);
-  const size_t id     = bucket.alloc(vbo,ibo,bbox);
-
-  std::unique_ptr<Item[]> dat(new Item[1]);
-  dat[0] = Item(bucket,id);
-
-  return Mesh(nullptr,std::move(dat),1);
-  }
-
-void MeshObjects::setupUbo() {
-  for(auto& c:buckets)
-    c.setupUbo();
-  }
-
-void MeshObjects::preFrameUpdate(uint8_t fId) {
-  for(auto& c:buckets)
-    c.preFrameUpdate(fId);
-  }
-
-void MeshObjects::draw(Painter3d& painter, Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
-  commitUbo(fId);
-  mkIndex();
-
-  Workers::parallelFor(index,[&painter](ObjectsBucket* c){
-    c->visibilityPass(painter);
-    });
-
-  for(auto c:index)
-    c->draw(enc,fId);
-  for(auto c:index)
-    c->drawLight(enc,fId);
-  }
-
-void MeshObjects::drawShadow(Painter3d& painter, Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer) {
-  commitUbo(fId);
-  mkIndex();
-
-  Workers::parallelFor(index,[&painter](ObjectsBucket* c){
-    c->visibilityPass(painter);
-    });
-
-  for(auto c:index)
-    c->drawShadow(enc,fId,layer);
-  }
-
-void MeshObjects::mkIndex() {
-  if(index.size()!=0)
-    return;
-  index.reserve(buckets.size());
-  index.resize(buckets.size());
-  size_t id=0;
-  for(auto& i:buckets) {
-    index[id] = &i;
-    ++id;
-    }
-  std::sort(index.begin(),index.end(),[](const ObjectsBucket* l,const ObjectsBucket* r){
-    return l->material()<r->material();
-    });
-  }
-
-void MeshObjects::commitUbo(uint8_t fId) {
-  bool st = uboStatic.commitUbo(globals.storage.device,fId);
-  bool dn = uboDyn   .commitUbo(globals.storage.device,fId);
-
-  if(!st && !dn)
-    return;
-  for(auto& c:buckets)
-    c.invalidateUbo();
   }
 
 void MeshObjects::Mesh::setSkeleton(const Skeleton *sk) {

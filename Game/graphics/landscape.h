@@ -19,16 +19,18 @@ class WorldView;
 
 class Landscape final {
   public:
-    Landscape(WorldView& owner, const SceneGlobals& scene, const PackedMesh& wmesh);
+    Landscape(WorldView& owner, VisualObjects& visual, const PackedMesh& wmesh);
 
   private:
+    using Item = ObjectsBucket::Item;
+
     struct Block {
       Tempest::IndexBuffer<uint32_t> ibo;
-      MeshObjects::Mesh              mesh;
+      Item                           mesh;
       };
 
     WorldView&                               owner;
-    const SceneGlobals&                      scene;
+    VisualObjects&                           visual;
 
     Tempest::VertexBuffer<Resources::Vertex> vbo;
     std::list<Block>                         blocks;

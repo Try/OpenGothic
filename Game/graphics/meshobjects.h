@@ -10,22 +10,19 @@
 
 #include "graphics/submesh/staticmesh.h"
 #include "graphics/submesh/animmesh.h"
-#include "abstractobjectsbucket.h"
 #include "objectsbucket.h"
 #include "protomesh.h"
 
-class SceneGlobals;
+class VisualObjects;
 class Pose;
 class Light;
-class Painter3d;
-class ObjectsBucket;
 
 class MeshObjects final {
   private:
-    using Item = AbstractObjectsBucket::Item;
+    using Item = ObjectsBucket::Item;
 
   public:
-    MeshObjects(const SceneGlobals& globals);
+    MeshObjects(VisualObjects& parent);
     ~MeshObjects();
 
     class Mesh;
@@ -78,40 +75,13 @@ class MeshObjects final {
     Mesh get(const StaticMesh& mesh, bool staticDraw);
     Mesh get(const StaticMesh& mesh, int32_t headTexVar, int32_t teethTex, int32_t bodyColor);
     Mesh get(const ProtoMesh&  mesh, int32_t headTexVar, int32_t teethTex, int32_t bodyColor, bool staticDraw);
-    Mesh get(Tempest::VertexBuffer<Resources::Vertex>& vbo,
-             Tempest::IndexBuffer<uint32_t>& ibo,
-             const Material& mat, const Bounds& bbox);
-
-    void setupUbo();
-
-    void preFrameUpdate(uint8_t fId);
-    void draw          (Painter3d& painter, Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
-    void drawShadow    (Painter3d& painter, Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer=0);
 
   private:
-    const SceneGlobals&             globals;
-
-    ObjectsBucket::Storage          uboStatic;
-    ObjectsBucket::Storage          uboDyn;
-
-    std::list<ObjectsBucket>        buckets;
-    std::vector<ObjectsBucket*>     index;
-
-    void                            mkIndex();
-    void                            commitUbo(uint8_t fId);
-
-    ObjectsBucket&                  getBucket(const Material& mat, ObjectsBucket::Type type);
+    VisualObjects&                  parent;
 
     Item                            implGet(const StaticMesh& mesh, const StaticMesh::SubMesh& smesh,
                                             int32_t texVar, int32_t teethTex, int32_t bodyColor,
                                             bool staticDraw);
-    Item                            implGet(const StaticMesh& mesh,
-                                            const Material& mat,
-                                            const Tempest::IndexBuffer<uint32_t> &ibo,
-                                            bool staticDraw);
-    Item                            implGet(const AnimMesh& mesh,
-                                            const Material& mat,
-                                            const Tempest::IndexBuffer<uint32_t> &ibo);
 
     const Tempest::Texture2d*       solveTex(const Tempest::Texture2d* def,const std::string& format,
                                              int32_t v,int32_t c);

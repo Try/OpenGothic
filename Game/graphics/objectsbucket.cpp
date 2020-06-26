@@ -12,6 +12,23 @@
 
 using namespace Tempest;
 
+void ObjectsBucket::Item::setObjMatrix(const Tempest::Matrix4x4 &mt) {
+  owner->setObjMatrix(id,mt);
+  }
+
+void ObjectsBucket::Item::setPose(const Pose &p) {
+  owner->setPose(id,p);
+  }
+
+void ObjectsBucket::Item::setBounds(const Bounds& bbox) {
+  owner->setBounds(id,bbox);
+  }
+
+void ObjectsBucket::Item::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) const {
+  owner->draw(id,p,fId);
+  }
+
+
 void ObjectsBucket::Descriptors::invalidate() {
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
     uboBit[i] = 0;
@@ -383,7 +400,7 @@ void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
   setupLights(v,false);
   }
 
-void ObjectsBucket::setSkeleton(size_t i, const Pose& p) {
+void ObjectsBucket::setPose(size_t i, const Pose& p) {
   if(shaderType!=Animated)
     return;
   auto& v    = val[i];

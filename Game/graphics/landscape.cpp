@@ -9,8 +9,8 @@
 
 using namespace Tempest;
 
-Landscape::Landscape(WorldView& owner, const SceneGlobals &scene, const PackedMesh &mesh)
-  :owner(owner), scene(scene) {
+Landscape::Landscape(WorldView& owner, VisualObjects& visual, const PackedMesh &mesh)
+  :owner(owner), visual(visual) {
   static_assert(sizeof(Resources::Vertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
   const Resources::Vertex* vert=reinterpret_cast<const Resources::Vertex*>(mesh.vertices.data());
   vbo = Resources::vbo<Resources::Vertex>(vert,mesh.vertices.size());
@@ -35,7 +35,7 @@ Landscape::Landscape(WorldView& owner, const SceneGlobals &scene, const PackedMe
     blocks.emplace_back();
     auto& b = blocks.back();
     b.ibo  = Resources::ibo(i.indices.data(),i.indices.size());
-    b.mesh = owner.getLand(vbo,b.ibo,material,bbox);
+    b.mesh = visual.get(vbo,b.ibo,material,bbox);
     b.mesh.setObjMatrix(ident);
     }
   }
