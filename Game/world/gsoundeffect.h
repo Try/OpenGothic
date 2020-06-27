@@ -6,7 +6,7 @@
 class GSoundEffect final {
   public:
     GSoundEffect()=default;
-    GSoundEffect(Tempest::SoundEffect&& eff):eff(std::move(eff)){}
+    GSoundEffect(Tempest::SoundEffect&& eff);
 
     Tempest::Vec3 position() const { return pos; }
 
