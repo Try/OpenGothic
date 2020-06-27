@@ -112,6 +112,11 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const SceneGlobals& scene, Sto
       break;
     }
 
+  if(mat.frames.size()>0)
+    useSharedUbo = false;
+
+  textureInShadowPass = (pShadow==&scene.storage.pObjectAtSh || pShadow==&scene.storage.pAnimAtSh);
+
   for(auto& i:uboMat)
     i = scene.storage.device.ubo<UboMaterial>(nullptr,1);
 
@@ -144,6 +149,7 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
   v->vboA      = nullptr;
   v->ibo       = nullptr;
   v->bounds    = bounds;
+  v->timeShift = uint64_t(-scene.tickCount);
 
   if(!useSharedUbo) {
     v->ubo.invalidate();
@@ -169,7 +175,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
       for(size_t lay=0;lay<Resources::ShadowLayers;++lay) {
         auto& uboSh = v.uboSh[i][lay];
 
-        if(pShadow==&scene.storage.pObjectAtSh || pShadow==&scene.storage.pAnimAtSh)
+        if(textureInShadowPass)
           uboSh.set(0,t);
         uboSh.set(2,scene.uboGlobalPf[i][lay]);
         uboSh.set(4,uboMat[i]);
@@ -211,6 +217,9 @@ void ObjectsBucket::preFrameUpdate(uint8_t fId) {
     ubo.texAniMapDir.y = float(scene.tickCount%std::abs(mat.texAniMapDirPeriod.y))/float(mat.texAniMapDirPeriod.y);
 
   uboMat[fId].update(&ubo,0,1);
+  if(mat.frames.size()>0) {
+    //texAnim;
+    }
   }
 
 bool ObjectsBucket::groupVisibility(Painter3d& p) {
@@ -320,6 +329,7 @@ void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fI
     p.setUniforms(*pMain,&pushBlock,sizeof(pushBlock));
     if(!useSharedUbo) {
       auto& ubo = v.ubo.ubo[fId];
+      setAnim(v,ubo);
       if(v.storageAni!=size_t(-1))
         setUbo(v.ubo.uboBit[fId],ubo,3,storage.ani[fId],v.storageAni,1);
       p.setUniforms(*pMain,ubo);
@@ -400,6 +410,8 @@ void ObjectsBucket::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& p, uint
 
     if(!useSharedUbo) {
       auto& ubo = v.ubo.uboSh[fId][layer];
+      if(textureInShadowPass)
+        setAnim(v,ubo);
       if(v.storageAni!=size_t(-1))
         setUbo(v.ubo.uboBitSh[fId][layer],ubo,3,storage.ani[fId],v.storageAni,1);
       p.setUniforms(*pShadow,ubo);
@@ -487,6 +499,14 @@ void ObjectsBucket::setupLights(Object& val, bool noCache) {
   val.lightCacheKey[2] = cz;
 
   val.lightCnt = scene.lights.get(val.bounds,val.light,MAX_LIGHT);
+  }
+
+void ObjectsBucket::setAnim(ObjectsBucket::Object& v, Tempest::Uniforms& ubo) {
+  if(mat.frames.size()==0)
+    return;
+  auto frame = size_t((v.timeShift+scene.tickCount)/mat.texAniFPSInv);
+  auto t = mat.frames[frame%mat.frames.size()];
+  ubo.set(0,*t);
   }
 
 template<class T>

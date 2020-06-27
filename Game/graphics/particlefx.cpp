@@ -4,7 +4,7 @@
 
 using namespace Tempest;
 
-ParticleFx::ParticleFx(const Texture2d* spr, const ZenLoad::zCVobData& vob) {
+ParticleFx::ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob) {
   ppsValue         = -1;
   lspPartAvg       = 1000;
   dirMode          = ParticleFx::Dir::Dir;
@@ -14,8 +14,7 @@ ParticleFx::ParticleFx(const Texture2d* spr, const ZenLoad::zCVobData& vob) {
                           2.f*vob.visualChunk.zCDecal.decalDim.y);
   visOrientation   = Orientation::Velocity;
 
-  visMaterial.tex   = spr;
-  visMaterial.alpha = Material::ApphaFunc::AdditiveLight;
+  visMaterial      = mat;
 
   dirFOR           = Frame::World;
   dirAngleElev     = 90;

@@ -7,6 +7,7 @@ using namespace Tempest;
 Material::Material(const ZenLoad::zCMaterialData& m) {
   tex   = Resources::loadTexture(m.texture);
   alpha = ApphaFunc(m.alphaFunc);
+  loadFrames(m);
 
   if(m.alphaFunc==0) //Gothic1
     alpha = AlphaTest;
@@ -30,8 +31,21 @@ Material::Material(const ZenLoad::zCMaterialData& m) {
     }
   }
 
+Material::Material(const ZenLoad::zCVobData& vob) {
+  tex          = Resources::loadTexture(vob.visual);
+  frames       = Resources::loadTextureAnim(vob.visual);
+  texAniFPSInv = 1000/std::max<size_t>(frames.size(),1);
+  alpha        = ApphaFunc::AdditiveLight;
+  }
+
 Material::Material(const Daedalus::GEngineClasses::C_ParticleFX& src) {
-  tex = Resources::loadTexture(src.visName_S.c_str());
+  tex    = Resources::loadTexture(src.visName_S.c_str());
+  frames = Resources::loadTextureAnim(src.visName_S.c_str());
+  if(src.visTexAniFPS>0)
+    texAniFPSInv = uint64_t(1000.f/src.visTexAniFPS); else
+    texAniFPSInv = 1;
+  //TODO: visTexAniIsLooping
+
   if(src.visAlphaFunc_S=="NONE")
     alpha = AlphaTest;
   if(src.visAlphaFunc_S=="BLEND")
@@ -81,4 +95,11 @@ int Material::alphaOrder(Material::ApphaFunc a) {
   if(a==Solid)
     return -1;
   return a;
+  }
+
+void Material::loadFrames(const ZenLoad::zCMaterialData& m) {
+  frames       = Resources::loadTextureAnim(m.texture);
+  if(m.texAniFPS>0)
+    texAniFPSInv = uint64_t(1000.f/m.texAniFPS); else
+    texAniFPSInv = 1;
   }

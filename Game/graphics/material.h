@@ -8,6 +8,7 @@ class Material final {
   public:
     Material()=default;
     Material(const ZenLoad::zCMaterialData& m);
+    Material(const ZenLoad::zCVobData& vob);
     Material(const Daedalus::GEngineClasses::C_ParticleFX &src);
 
     enum ApphaFunc:uint8_t {
@@ -25,8 +26,10 @@ class Material final {
       };
 
     const Tempest::Texture2d* tex=nullptr;
+    std::vector<const Tempest::Texture2d*> frames;
     ApphaFunc                 alpha=AlphaTest;
     Tempest::Point            texAniMapDirPeriod;
+    uint64_t                  texAniFPSInv=1;
 
     bool operator <  (const Material& other) const;
     bool operator == (const Material& other) const;
@@ -34,6 +37,7 @@ class Material final {
   private:
     static int alphaOrder(ApphaFunc a);
 
+    void          loadFrames(const ZenLoad::zCMaterialData& m);
     Tempest::Vec2 loadVec2(const std::string& src);
   };
 

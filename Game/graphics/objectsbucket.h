@@ -154,6 +154,9 @@ class ObjectsBucket final {
       const Light*                          light[MAX_LIGHT] = {};
       size_t                                lightCnt=0;
       int                                   lightCacheKey[3]={};
+
+      size_t                                texAnim=0;
+      uint64_t                              timeShift=0;
       };
 
     Descriptors               uboShared;
@@ -169,7 +172,8 @@ class ObjectsBucket final {
     Tempest::UniformBuffer<UboMaterial> uboMat[Resources::MaxFramesInFlight];
 
     const Type                shaderType;
-    const bool                useSharedUbo;
+    bool                      useSharedUbo=false;
+    bool                      textureInShadowPass=false;
 
     Bounds                    allBounds;
 
@@ -181,16 +185,17 @@ class ObjectsBucket final {
     void    uboSetCommon(Descriptors& v);
     bool    groupVisibility(Painter3d& p);
 
-    void   setObjMatrix(size_t i,const Tempest::Matrix4x4& m);
-    void   setPose     (size_t i,const Pose& sk);
-    void   setBounds   (size_t i,const Bounds& b);
+    void    setObjMatrix(size_t i,const Tempest::Matrix4x4& m);
+    void    setPose     (size_t i,const Pose& sk);
+    void    setBounds   (size_t i,const Bounds& b);
 
-    void   setupLights (Object& val, bool noCache);
+    void    setupLights (Object& val, bool noCache);
 
+    void    setAnim(Object& val, Tempest::Uniforms& ubo);
     template<class T>
-    void   setUbo(uint8_t& bit, Tempest::Uniforms& ubo, uint8_t layoutBind,
-                  const Tempest::UniformBuffer<T>& vbuf,size_t offset,size_t size);
-    void   setUbo(uint8_t& bit, Tempest::Uniforms& ubo, uint8_t layoutBind,
-                  const Tempest::Texture2d&  tex, const Tempest::Sampler2d& smp = Tempest::Sampler2d::anisotrophy());
+    void    setUbo(uint8_t& bit, Tempest::Uniforms& ubo, uint8_t layoutBind,
+                   const Tempest::UniformBuffer<T>& vbuf,size_t offset,size_t size);
+    void    setUbo(uint8_t& bit, Tempest::Uniforms& ubo, uint8_t layoutBind,
+                   const Tempest::Texture2d&  tex, const Tempest::Sampler2d& smp = Tempest::Sampler2d::anisotrophy());
   };
 

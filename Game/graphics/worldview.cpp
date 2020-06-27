@@ -132,10 +132,8 @@ PfxObjects::Emitter WorldView::getView(const ParticleFx *decl) {
   return PfxObjects::Emitter();
   }
 
-PfxObjects::Emitter WorldView::getView(const Texture2d* spr,const ZenLoad::zCVobData& vob) {
-  if(spr!=nullptr)
-    return pfxGroup.get(spr,vob);
-  return PfxObjects::Emitter();
+PfxObjects::Emitter WorldView::getView(const ZenLoad::zCVobData& vob) {
+  return pfxGroup.get(vob);
   }
 
 void WorldView::updateLight() {

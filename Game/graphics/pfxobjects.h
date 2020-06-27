@@ -49,7 +49,7 @@ class PfxObjects final {
       };
 
     Emitter get(const ParticleFx& decl);
-    Emitter get(const Tempest::Texture2d* spr, const ZenLoad::zCVobData& vob);
+    Emitter get(const ZenLoad::zCVobData& vob);
 
     void    setViewerPos(const Tempest::Vec3& pos);
 
@@ -144,7 +144,7 @@ class PfxObjects final {
     static float                  randf();
     static float                  randf(float base, float var);
     Bucket&                       getBucket(const ParticleFx& decl);
-    Bucket&                       getBucket(const Tempest::Texture2d* spr, const ZenLoad::zCVobData& vob);
+    Bucket&                       getBucket(const Material& mat, const ZenLoad::zCVobData& vob);
     void                          tickSys    (Bucket& b, uint64_t dt);
     void                          tickSysEmit(Bucket& b, Block&  p, uint64_t emited);
     void                          buildVbo(Bucket& b, const VboContext& ctx);
