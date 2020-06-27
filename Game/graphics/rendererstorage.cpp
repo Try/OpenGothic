@@ -31,10 +31,11 @@ RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   :device(device) {
   obj      .load(device,"obj");
   objAt    .load(device,"obj_at");
+  objEmi   .load(device,"obj_emi");
   ani      .load(device,"ani");
   aniAt    .load(device,"ani_at");
+  aniEmi   .load(device,"ani_emi");
 
-  pfx.load(device,"pfx");
   initPipeline(gothic);
   initShadow();
   }
@@ -46,41 +47,34 @@ RenderPipeline RendererStorage::pipeline(RenderState& st, const ShaderPair &sh) 
 
 void RendererStorage::initPipeline(Gothic& gothic) {
   RenderState stateAlpha;
+  stateAlpha.setCullFaceMode(RenderState::CullMode::Front);
   stateAlpha.setBlendSource (RenderState::BlendMode::src_alpha);
   stateAlpha.setBlendDest   (RenderState::BlendMode::one_minus_src_alpha);
   stateAlpha.setZTestMode   (RenderState::ZTestMode::Less);
-  stateAlpha.setCullFaceMode(RenderState::CullMode::Front);
   stateAlpha.setZWriteEnabled(false);
 
   RenderState stateAdd;
+  stateAdd.setCullFaceMode(RenderState::CullMode::Front);
   stateAdd.setBlendSource (RenderState::BlendMode::one);
   stateAdd.setBlendDest   (RenderState::BlendMode::one);
   stateAdd.setZTestMode   (RenderState::ZTestMode::Equal);
-  stateAdd.setCullFaceMode(RenderState::CullMode::Front);
   stateAdd.setZWriteEnabled(false);
 
   RenderState stateObj;
-  stateObj.setZTestMode   (RenderState::ZTestMode::Less);
   stateObj.setCullFaceMode(RenderState::CullMode::Front);
-
-  RenderState stateObjDec = stateObj;
-  stateObjDec.setZTestMode(RenderState::ZTestMode::LEqual);
-
-  RenderState stateLnd;
-  stateLnd.setZTestMode   (RenderState::ZTestMode::Less);
-  stateLnd.setCullFaceMode(RenderState::CullMode::Front);
+  stateObj.setZTestMode   (RenderState::ZTestMode::Less);
 
   RenderState stateFsq;
-  stateFsq.setZTestMode   (RenderState::ZTestMode::LEqual);
   stateFsq.setCullFaceMode(RenderState::CullMode::Front);
+  stateFsq.setZTestMode   (RenderState::ZTestMode::LEqual);
   stateFsq.setZWriteEnabled(false);
 
-  RenderState statePfx;
-  statePfx.setZTestMode    (RenderState::ZTestMode::LEqual);
-  statePfx.setZWriteEnabled(false);
-  statePfx.setCullFaceMode (RenderState::CullMode::Front);
-  statePfx.setBlendSource  (RenderState::BlendMode::src_alpha);
-  statePfx.setBlendDest    (RenderState::BlendMode::one);
+  RenderState stateMAdd;
+  stateMAdd.setCullFaceMode (RenderState::CullMode::Front);
+  stateMAdd.setBlendSource  (RenderState::BlendMode::src_alpha);
+  stateMAdd.setBlendDest    (RenderState::BlendMode::one);
+  stateMAdd.setZTestMode    (RenderState::ZTestMode::Less);
+  stateMAdd.setZWriteEnabled(false);
 
   auto sh     = GothicShader::get("shadow_compose.vert.sprv");
   auto vsComp = device.shader(sh.data,sh.len);
@@ -102,7 +96,8 @@ void RendererStorage::initPipeline(Gothic& gothic) {
   pObjectAlpha   = pipeline<Resources::Vertex> (stateAlpha, obj.main);
   pAnimAlpha     = pipeline<Resources::VertexA>(stateAlpha, ani.main);
 
-  pPfx           = pipeline<Resources::Vertex> (statePfx,   pfx.main);
+  pObjectMAdd    = pipeline<Resources::Vertex> (stateMAdd,  objEmi.main);
+  pAnimMAdd      = pipeline<Resources::VertexA>(stateMAdd,  aniEmi.main);
 
   if(gothic.version().game==1) {
     auto sh    = GothicShader::get("sky_g1.vert.sprv");

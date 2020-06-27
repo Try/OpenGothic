@@ -114,7 +114,7 @@ void main() {
   //outColor = t;
   //return;
 
-#if defined(PFX)
+#if defined(EMMISSIVE)
   vec3  color   = inColor.rgb;
 #else
   vec3  color   = calcLight();

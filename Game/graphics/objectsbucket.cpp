@@ -80,7 +80,18 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const SceneGlobals& scene, Sto
         pShadow = &scene.storage.pObjectAtSh;
         }
       break;
-    case Material::AdditiveLight:
+    case Material::AdditiveLight: {
+      if(shaderType==Animated) {
+        pMain   = &scene.storage.pAnimMAdd;
+        pLight  = nullptr;
+        pShadow = nullptr;
+        } else {
+        pMain   = &scene.storage.pObjectMAdd;
+        pLight  = nullptr;
+        pShadow = nullptr;
+        }
+      break;
+      }
     case Material::Multiply:
     case Material::Multiply2:
     case Material::Solid:
@@ -158,7 +169,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
       for(size_t lay=0;lay<Resources::ShadowLayers;++lay) {
         auto& uboSh = v.uboSh[i][lay];
 
-        if(material().alpha==Material::ApphaFunc::AlphaTest)
+        if(pShadow==&scene.storage.pObjectAtSh || pShadow==&scene.storage.pAnimAtSh)
           uboSh.set(0,t);
         uboSh.set(2,scene.uboGlobalPf[i][lay]);
         uboSh.set(4,uboMat[i]);

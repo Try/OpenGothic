@@ -18,11 +18,12 @@ class RendererStorage {
     Tempest::RenderPipeline pAnim,    pAnimAt,   pAnimLt,   pAnimAtLt;
     Tempest::RenderPipeline pObject,  pObjectAt, pObjectLt, pObjectAtLt;
     Tempest::RenderPipeline pObjectAlpha, pAnimAlpha;
+    Tempest::RenderPipeline pObjectMAdd,  pAnimMAdd;
 
     Tempest::RenderPipeline pObjectSh, pObjectAtSh;
     Tempest::RenderPipeline pAnimSh,   pAnimAtSh;
 
-    Tempest::RenderPipeline pPfx, pSky;
+    Tempest::RenderPipeline pSky;
     Tempest::RenderPipeline pComposeShadow;
 
   private:
@@ -37,9 +38,8 @@ class RendererStorage {
       void load(Tempest::Device& device, const char* f);
       };
 
-    Material obj, objAt;
-    Material ani, aniAt;
-    Material pfx;
+    Material obj, objAt, objEmi;
+    Material ani, aniAt, aniEmi;
 
     void initPipeline(Gothic& gothic);
     void initShadow();
