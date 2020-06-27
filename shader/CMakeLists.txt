@@ -7,7 +7,8 @@ set(CPP    "${PROJECT_BINARY_DIR}/sprv/shader.cpp")
 
 file(GLOB SOURCES
   "${CMAKE_SOURCE_DIR}/shader/*.vert"
-  "${CMAKE_SOURCE_DIR}/shader/*.frag")
+  "${CMAKE_SOURCE_DIR}/shader/*.frag"
+  "${CMAKE_SOURCE_DIR}/shader/*.glsl")
 
 # GLSL to SPIRV compiler
 find_program(GLSLANGVALIDATOR glslangValidator)
@@ -34,37 +35,57 @@ endfunction(add_shader)
 # shaders
 # Ubershader flags:
 #   OBJ        - enable object matrix
+#   LIGHT_EXT  - shader for extra lights
 #   SKINING    - animation skeleton
 #   SHADOW_MAP - output is shadowmap
 #   ATEST      - use alpha test
 #   PFX        - use color modulation
 #   G1         - hint for gothic1 shader
-add_shader(land.vert            main.vert "")
-add_shader(land.frag            main.frag "")
-add_shader(land_at.vert         main.vert -DATEST)
-add_shader(land_at.frag         main.frag -DATEST)
-add_shader(object.vert          main.vert -DATEST -DOBJ)
-add_shader(object.frag          main.frag -DATEST -DOBJ)
-add_shader(anim.vert            main.vert -DATEST -DOBJ -DSKINING)
-add_shader(anim.frag            main.frag -DATEST -DOBJ -DSKINING)
-add_shader(pfx.vert             main.vert -DPFX)
-add_shader(pfx.frag             main.frag -DPFX)
-add_shader(land_shadow.vert     main.vert -DSHADOW_MAP)
-add_shader(land_shadow.frag     main.frag -DSHADOW_MAP)
-add_shader(land_at_shadow.vert  main.vert -DATEST -DSHADOW_MAP)
-add_shader(land_at_shadow.frag  main.frag -DATEST -DSHADOW_MAP)
-add_shader(object_shadow.vert   main.vert -DATEST -DOBJ -DSHADOW_MAP)
-add_shader(object_shadow.frag   main.frag -DATEST -DOBJ -DSHADOW_MAP)
-add_shader(anim_shadow.vert     main.vert -DOBJ -DSKINING -DSHADOW_MAP)
-add_shader(anim_shadow.frag     main.frag -DOBJ -DSKINING -DSHADOW_MAP)
-add_shader(pfx_shadow.vert      main.vert -DSHADOW_MAP)
-add_shader(pfx_shadow.frag      main.frag -DSHADOW_MAP)
-add_shader(sky.vert             sky.vert "")
-add_shader(sky.frag             sky.frag "")
-add_shader(sky_g1.vert          sky.vert -DG1)
-add_shader(sky_g1.frag          sky.frag -DG1)
-add_shader(shadow_compose.vert  shadow_compose.vert "")
-add_shader(shadow_compose.frag  shadow_compose.frag "")
+add_shader(obj.vert             main.vert -DOBJ)
+add_shader(obj.frag             main.frag -DOBJ)
+add_shader(obj_at.vert          main.vert -DOBJ -DATEST)
+add_shader(obj_at.frag          main.frag -DOBJ -DATEST)
+add_shader(obj_emi.vert         main.vert -DOBJ -DEMMISSIVE)
+add_shader(obj_emi.frag         main.frag -DOBJ -DEMMISSIVE)
+add_shader(ani.vert             main.vert -DOBJ -DSKINING)
+add_shader(ani.frag             main.frag -DOBJ -DSKINING)
+add_shader(ani_at.vert          main.vert -DOBJ -DSKINING -DATEST)
+add_shader(ani_at.frag          main.frag -DOBJ -DSKINING -DATEST)
+add_shader(ani_emi.vert         main.vert -DOBJ -DSKINING -DEMMISSIVE)
+add_shader(ani_emi.frag         main.frag -DOBJ -DSKINING -DEMMISSIVE)
+
+add_shader(obj_shadow.vert      main.vert -DSHADOW_MAP -DOBJ)
+add_shader(obj_shadow.frag      main.frag -DSHADOW_MAP -DOBJ)
+add_shader(obj_at_shadow.vert   main.vert -DSHADOW_MAP -DOBJ -DATEST)
+add_shader(obj_at_shadow.frag   main.frag -DSHADOW_MAP -DOBJ -DATEST)
+add_shader(obj_emi_shadow.vert  main.vert -DSHADOW_MAP -DOBJ -DEMMISSIVE)
+add_shader(obj_emi_shadow.frag  main.frag -DSHADOW_MAP -DOBJ -DEMMISSIVE)
+add_shader(ani_shadow.vert      main.vert -DSHADOW_MAP -DOBJ -DSKINING)
+add_shader(ani_shadow.frag      main.frag -DSHADOW_MAP -DOBJ -DSKINING)
+add_shader(ani_at_shadow.vert   main.vert -DSHADOW_MAP -DOBJ -DSKINING -DATEST)
+add_shader(ani_at_shadow.frag   main.frag -DSHADOW_MAP -DOBJ -DSKINING -DATEST)
+add_shader(ani_emi_shadow.vert  main.vert -DSHADOW_MAP -DOBJ -DSKINING -DEMMISSIVE)
+add_shader(ani_emi_shadow.frag  main.frag -DSHADOW_MAP -DOBJ -DSKINING -DEMMISSIVE)
+
+add_shader(obj_light.vert       main.vert -DLIGHT_EXT -DOBJ)
+add_shader(obj_light.frag       main.frag -DLIGHT_EXT -DOBJ)
+add_shader(obj_at_light.vert    main.vert -DLIGHT_EXT -DOBJ -DATEST)
+add_shader(obj_at_light.frag    main.frag -DLIGHT_EXT -DOBJ -DATEST)
+add_shader(obj_emi_light.vert   main.vert -DLIGHT_EXT -DOBJ -DEMMISSIVE)
+add_shader(obj_emi_light.frag   main.frag -DLIGHT_EXT -DOBJ -DEMMISSIVE)
+add_shader(ani_light.vert       main.vert -DLIGHT_EXT -DOBJ -DSKINING)
+add_shader(ani_light.frag       main.frag -DLIGHT_EXT -DOBJ -DSKINING)
+add_shader(ani_at_light.vert    main.vert -DLIGHT_EXT -DOBJ -DSKINING -DATEST)
+add_shader(ani_at_light.frag    main.frag -DLIGHT_EXT -DOBJ -DSKINING -DATEST)
+add_shader(ani_emi_light.vert   main.vert -DLIGHT_EXT -DOBJ -DSKINING -DEMMISSIVE)
+add_shader(ani_emi_light.frag   main.frag -DLIGHT_EXT -DOBJ -DSKINING -DEMMISSIVE)
+
+add_shader(sky.vert              sky.vert "")
+add_shader(sky.frag              sky.frag "")
+add_shader(sky_g1.vert           sky.vert -DG1)
+add_shader(sky_g1.frag           sky.frag -DG1)
+add_shader(shadow_compose.vert   shadow_compose.vert "")
+add_shader(shadow_compose.frag   shadow_compose.frag "")
 
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}

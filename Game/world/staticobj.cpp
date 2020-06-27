@@ -28,10 +28,7 @@ StaticObj::StaticObj(const ZenLoad::zCVobData& vob,World& owner) {
       m.identity();
       mesh.setObjMatrix(m);
       } else {
-      const Tempest::Texture2d* view = Resources::loadTexture(vob.visual);
-      if(view==nullptr)
-        return;
-      pfx = owner.getView(view,vob);
+      pfx = owner.getView(vob);
       pfx.setActive(true);
       pfx.setObjMatrix(objMat);
       }

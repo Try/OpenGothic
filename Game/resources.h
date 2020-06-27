@@ -46,7 +46,8 @@ class Resources final {
       };
 
     enum {
-      MaxFramesInFlight = 2
+      MaxFramesInFlight = 2,
+      ShadowLayers      = 2
       };
 
     static const size_t MAX_NUM_SKELETAL_NODES = 96;
@@ -85,6 +86,7 @@ class Resources final {
     static const Tempest::Texture2d* loadTexture(const char* name);
     static const Tempest::Texture2d* loadTexture(const std::string& name);
     static const Tempest::Texture2d* loadTexture(const std::string& name,int32_t v,int32_t c);
+    static auto                      loadTextureAnim(const std::string& name) -> std::vector<const Tempest::Texture2d*>;
     static       Tempest::Texture2d  loadTexture(const Tempest::Pixmap& pm);
     static       Material            loadMaterial(const ZenLoad::zCMaterialData& src);
 

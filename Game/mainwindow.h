@@ -106,34 +106,34 @@ class MainWindow : public Tempest::Window {
       Tempest::Fence     gpuLock;
       };
 
-    std::vector<FrameLocal>             fLocal;
-    Tempest::PrimaryCommandBuffer       commandDynamic[Resources::MaxFramesInFlight];
+    std::vector<FrameLocal>   fLocal;
+    Tempest::CommandBuffer    commandDynamic[Resources::MaxFramesInFlight];
 
 
-    const Tempest::Texture2d*           background=nullptr;
-    const Tempest::Texture2d*           loadBox=nullptr;
-    const Tempest::Texture2d*           loadVal=nullptr;
+    const Tempest::Texture2d* background=nullptr;
+    const Tempest::Texture2d* loadBox=nullptr;
+    const Tempest::Texture2d* loadVal=nullptr;
 
-    const Tempest::Texture2d*           barBack=nullptr;
-    const Tempest::Texture2d*           barHp  =nullptr;
-    const Tempest::Texture2d*           barMana=nullptr;
+    const Tempest::Texture2d* barBack=nullptr;
+    const Tempest::Texture2d* barHp  =nullptr;
+    const Tempest::Texture2d* barMana=nullptr;
 
-    const Tempest::Texture2d*           saveback=nullptr;
+    const Tempest::Texture2d* saveback=nullptr;
 
-    bool                                mouseP[Tempest::MouseEvent::ButtonBack]={};
+    bool                      mouseP[Tempest::MouseEvent::ButtonBack]={};
 
-    Gothic&                             gothic;
-    KeyCodec                            keycodec;
-    InventoryMenu                       inventory;
-    DialogMenu                          dialogs;
-    DocumentMenu                        document;
-    ChapterScreen                       chapter;
+    Gothic&                   gothic;
+    KeyCodec                  keycodec;
+    InventoryMenu             inventory;
+    DialogMenu                dialogs;
+    DocumentMenu              document;
+    ChapterScreen             chapter;
 
-    Tempest::Widget*                    uiKeyUp=nullptr;
-    Tempest::Point                      mpos;
-    PlayerControl                       player;
-    Focus                               currentFocus;
-    uint64_t                            lastTick=0;
+    Tempest::Widget*          uiKeyUp=nullptr;
+    Tempest::Point            mpos;
+    PlayerControl             player;
+    Focus                     currentFocus;
+    uint64_t                  lastTick=0;
 
     struct Fps {
       uint64_t dt[10]={};

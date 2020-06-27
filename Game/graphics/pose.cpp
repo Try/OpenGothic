@@ -605,16 +605,13 @@ void Pose::mkSkeleton(const Matrix4x4 &mt) {
     return;
   auto& nodes=skeleton->nodes;
   for(size_t i=0;i<nodes.size();++i){
-    if(nodes[i].parent!=size_t(-1))
-      continue;
-    tr[i] = mt;
-    tr[i].mul(base[i]);
-    }
-  for(size_t i=0;i<nodes.size();++i){
-    if(nodes[i].parent==size_t(-1))
-      continue;
-    tr[i] = tr[nodes[i].parent];
-    tr[i].mul(base[i]);
+    if(nodes[i].parent==size_t(-1)) {
+      tr[i] = mt;
+      tr[i].mul(base[i]);
+      } else {
+      tr[i] = tr[nodes[i].parent];
+      tr[i].mul(base[i]);
+      }
     }
   }
 

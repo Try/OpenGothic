@@ -6,6 +6,7 @@
 #include <cctype>
 
 #include "graphics/rendererstorage.h"
+#include "graphics/dynamic/painter3d.h"
 #include "world/world.h"
 #include "utils/versioninfo.h"
 #include "resources.h"
@@ -15,20 +16,15 @@ using namespace Tempest;
 //std::array<float,3> Sky::color = {{0.47f,0.55f,0.70f}};
 std::array<float,3> Sky::color = {{0.2f, 0.5f, 0.66f}};
 
-Sky::Sky(const RendererStorage &storage)
-  :storage(storage),uboGpu(storage.device) {
-  uint32_t sz = storage.device.maxFramesInFlight();
-  for(uint32_t i=0;i<sz;++i)
-    uboGpu.desc(i) = storage.device.uniforms(storage.uboSkyLayout());
-  nToUpdate.resize(sz,true);
+Sky::Sky(const SceneGlobals& scene)
+  :scene(scene) {
   }
 
 void Sky::setWorld(const World &world) {
-  this->world = &world;
-
-  auto& wname = world.name();
-  auto dot    = wname.rfind('.');
-  auto name   = dot==std::string::npos ? wname : wname.substr(0,dot);
+  auto& device = scene.storage.device;
+  auto& wname  = world.name();
+  auto  dot    = wname.rfind('.');
+  auto  name   = dot==std::string::npos ? wname : wname.substr(0,dot);
 
   for(size_t i=0;i<2;++i) {
     day  .lay[i].texture = skyTexture(name.c_str(),true, i);
@@ -38,26 +34,29 @@ void Sky::setWorld(const World &world) {
   if(world.version().game==2) {
     //skymesh = world.getStaticView("SKYDOME_COLORLAYER.MRM");
     }
+
+  for(auto& i:perFrame){
+    i.ubo    = device.uniforms(scene.storage.pSky.layout());
+    i.uboGpu = device.ubo<UboGlobal>(nullptr,1);
+
+    i.ubo.set(0,i.uboGpu);
+    i.ubo.set(1,*day.lay[0].texture);
+    i.ubo.set(2,*day.lay[1].texture);
+    i.ubo.set(3,*night.lay[0].texture);
+    i.ubo.set(4,*night.lay[1].texture);
+    }
   }
 
-void Sky::invalidateCmd() {
-  for(size_t i=0;i<storage.device.maxFramesInFlight();++i)
-    nToUpdate[i] = true;
-  }
-
-bool Sky::needToUpdateCommands(uint8_t frameId) const {
-  return nToUpdate[frameId];
-  }
-
-void Sky::setAsUpdated(uint8_t frameId) {
-  nToUpdate[frameId] = false;
-  }
-
-void Sky::setMatrix(uint8_t frameId, const Tempest::Matrix4x4 &mat) {
-  uboCpu.mvp = mat;
+void Sky::calcUboParams() {
+  uboCpu.mvp = scene.modelView();
   uboCpu.mvp.inverse();
 
-  auto ticks = world==nullptr ? Application::tickCount() : world->tickCount();
+  auto l = scene.sun.dir();
+  uboCpu.sky[0] = -l.z;
+  uboCpu.sky[1] = -l.y;
+  uboCpu.sky[2] =  l.x;
+
+  auto ticks = scene.tickCount;
   auto t0 = float(ticks%90000 )/90000.f;
   auto t1 = float(ticks%270000)/270000.f;
   uboCpu.dxy0[0] = t0;
@@ -67,31 +66,16 @@ void Sky::setMatrix(uint8_t frameId, const Tempest::Matrix4x4 &mat) {
   uboCpu.color[1]=Sky::color[1];
   uboCpu.color[2]=Sky::color[2];
   uboCpu.color[3]=1.f;
-
-  uboGpu.update(uboCpu,frameId);
   }
 
-void Sky::commitUbo(uint8_t frameId) {
-  if(!nToUpdate[frameId])
-    return;
-  uboGpu.desc(frameId).set(0,uboGpu[frameId]);
-  uboGpu.desc(frameId).set(1,*day.lay[0].texture);
-  uboGpu.desc(frameId).set(2,*day.lay[1].texture);
+void Sky::draw(Tempest::Encoder<CommandBuffer>& p, uint32_t fId) {
+  calcUboParams();
 
-  uboGpu.desc(frameId).set(3,*night.lay[0].texture);
-  uboGpu.desc(frameId).set(4,*night.lay[1].texture);
-  }
+  auto& pf = perFrame[fId];
+  pf.uboGpu.update(&uboCpu,0,1);
 
-void Sky::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t frameId, const World&) {
-  uint32_t offset=0;
-  cmd.setUniforms(storage.pSky,uboGpu.desc(frameId),1,&offset);
-  cmd.draw(Resources::fsqVbo());
-  }
-
-void Sky::setLight(const std::array<float,3> &l) {
-  uboCpu.sky[0] = -l[2];
-  uboCpu.sky[1] = -l[1];
-  uboCpu.sky[2] =  l[0];
+  p.setUniforms(scene.storage.pSky, pf.ubo);
+  p.draw(Resources::fsqVbo());
   }
 
 void Sky::setDayNight(float dayF) {

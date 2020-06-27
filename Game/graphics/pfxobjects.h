@@ -7,20 +7,20 @@
 #include <list>
 #include <random>
 
+#include "visualobjects.h"
 #include "resources.h"
-#include "ubochain.h"
 
+class SceneGlobals;
 class RendererStorage;
 class ParticleFx;
-class Light;
-class Pose;
+class Painter3d;
 
 class PfxObjects final {
   private:
     struct Bucket;
 
   public:
-    PfxObjects(const RendererStorage& storage);
+    PfxObjects(const SceneGlobals& scene, VisualObjects& visual);
     ~PfxObjects();
 
     class Emitter final {
@@ -49,39 +49,17 @@ class PfxObjects final {
       };
 
     Emitter get(const ParticleFx& decl);
-    Emitter get(const Tempest::Texture2d* spr, const ZenLoad::zCVobData& vob);
+    Emitter get(const ZenLoad::zCVobData& vob);
 
-    void    setModelView(const Tempest::Matrix4x4 &m, const Tempest::Matrix4x4 &shadow);
-    void    setLight(const Light &l, const Tempest::Vec3 &ambient);
     void    setViewerPos(const Tempest::Vec3& pos);
-
-    void    invalidateCmd();
-    bool    needToUpdateCommands(uint8_t fId) const;
-    void    setAsUpdated(uint8_t fId);
 
     void    resetTicks();
     void    tick(uint64_t ticks);
 
-    void    commitUbo(uint8_t frameId, const Tempest::Texture2d& shadowMap);
-    void    draw     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId);
+    void    preFrameUpdate(uint8_t fId);
 
   private:
     using Vertex = Resources::Vertex;
-
-    //FIXME: copypaste
-    struct UboGlobal final {
-      std::array<float,3>           lightDir={{0,0,1}};
-      float                         padding=0;
-      Tempest::Matrix4x4            modelView;
-      Tempest::Matrix4x4            shadowView;
-      std::array<float,4>           lightAmb={{0,0,0}};
-      std::array<float,4>           lightCl ={{1,1,1}};
-      };
-
-    struct PerFrame final {
-      Tempest::Uniforms                ubo;
-      Tempest::VertexBufferDyn<Vertex> vbo;
-      };
 
     struct ImplEmitter;
     struct Block final {
@@ -117,10 +95,12 @@ class PfxObjects final {
       };
 
     struct Bucket final {
-      Bucket(const RendererStorage& storage,const ParticleFx &ow,PfxObjects* parent);
-      PerFrame                    pf[Resources::MaxFramesInFlight];
+      Bucket(const ParticleFx &ow, PfxObjects* parent);
 
-      std::vector<Vertex>         vbo;
+      ObjectsBucket::Item         item;
+      Tempest::VertexBufferDyn<Vertex> vboGpu[Resources::MaxFramesInFlight];
+      std::vector<Vertex>         vboCpu;
+
       std::vector<ParState>       particles;
 
       std::vector<ImplEmitter>    impl;
@@ -129,6 +109,8 @@ class PfxObjects final {
       const ParticleFx*           owner=nullptr;
       PfxObjects*                 parent=nullptr;
       size_t                      blockSize=0;
+
+      bool                        isEmpty() const;
 
       size_t                      allocBlock();
       void                        freeBlock(size_t& s);
@@ -162,21 +144,20 @@ class PfxObjects final {
     static float                  randf();
     static float                  randf(float base, float var);
     Bucket&                       getBucket(const ParticleFx& decl);
-    Bucket&                       getBucket(const Tempest::Texture2d* spr, const ZenLoad::zCVobData& vob);
+    Bucket&                       getBucket(const Material& mat, const ZenLoad::zCVobData& vob);
     void                          tickSys    (Bucket& b, uint64_t dt);
     void                          tickSysEmit(Bucket& b, Block&  p, uint64_t emited);
     void                          buildVbo(Bucket& b, const VboContext& ctx);
 
-    const RendererStorage&        storage;
+    const SceneGlobals&           scene;
+    VisualObjects&                visual;
     std::mutex                    sync;
-    std::list<Bucket>             bucket;
-    std::vector<SpriteEmitter>    spriteEmit;
+
+    std::vector<std::unique_ptr<Bucket>> bucket;
+    std::vector<SpriteEmitter>           spriteEmit;
 
     Tempest::Vec3                 viewePos={};
 
     static std::mt19937           rndEngine;
-    UboChain<UboGlobal,void>      uboGlobalPf;
-    UboGlobal                     uboGlobal;
     uint64_t                      lastUpdate=0;
-    bool                          updateCmd[Resources::MaxFramesInFlight]={};
   };

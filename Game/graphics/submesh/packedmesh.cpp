@@ -4,11 +4,13 @@
 
 #include <algorithm>
 
+#include "graphics/bounds.h"
+
 using namespace Tempest;
 
 PackedMesh::PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type) {
   mesh.getBoundingBox(bbox[0],bbox[1]);
-  if(type==PK_Visual) {
+  if(type==PK_Visual || type==PK_VisualLnd) {
     subMeshes.resize(mesh.getMaterials().size());
     for(size_t i=0;i<subMeshes.size();++i)
       subMeshes[i].material = mesh.getMaterials()[i];
@@ -36,18 +38,14 @@ PackedMesh::PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type) {
     }
 
   pack(mesh,type);
+  if(type==PK_VisualLnd)
+    landRepack();
   }
 
 void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
   auto& vbo = mesh.getVertices();
   auto& uv  = mesh.getFeatureIndices();
   auto& ibo = mesh.getIndices();
-
-  struct Hash final {
-    size_t operator() (const std::pair<uint32_t,uint32_t>& v) const noexcept {
-      return v.first^v.second;
-      }
-    };
 
   vertices.reserve(vbo.size());
 
@@ -63,6 +61,11 @@ void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
       });
     }
 
+  struct Hash final {
+    size_t operator() (const std::pair<uint32_t,uint32_t>& v) const noexcept {
+      return v.first^v.second;
+      }
+    };
   std::unordered_map<std::pair<uint32_t,uint32_t>,size_t,Hash> icache;
   auto& mid = mesh.getTriangleMaterialIndices();
 
@@ -70,7 +73,7 @@ void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
     size_t id    = size_t(mid[i/3]);
 
     if(id!=prevTriId) {
-      matId     = submeshIndex(mesh,index,id,type);
+      matId     = submeshIndex(mesh,index,ibo[i],id,type);
       prevTriId = id;
       }
 
@@ -100,10 +103,11 @@ void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
   }
 
 size_t PackedMesh::submeshIndex(const ZenLoad::zCMesh& mesh,std::vector<SubMesh*>& index,
-                                size_t triangleId,PkgType type) const {
-  size_t id  = triangleId;
+                                size_t /*vindex*/, size_t mat, PkgType type) {
+  size_t id = mat;
   switch(type) {
     case PK_Visual:
+    case PK_VisualLnd:
       return id;
     case PK_Physic: {
       const auto&  mat = mesh.getMaterials()[id];
@@ -122,7 +126,7 @@ size_t PackedMesh::submeshIndex(const ZenLoad::zCMesh& mesh,std::vector<SubMesh*
       for(auto i=l;i!=u;++i) {
         const auto& mesh = **i;
         if(mesh.material.matGroup==mat.matGroup && mesh.material.matName==mat.matName) {
-          return size_t(std::distance(&subMeshes.front(),&mesh));
+          return size_t(std::distance<const SubMesh*>(&subMeshes.front(),&mesh));
           }
         }
       if(mat.noCollDet)
@@ -151,5 +155,88 @@ bool PackedMesh::compare(const ZenLoad::zCMaterialData& l, const ZenLoad::zCMate
   if(l.matGroup>r.matGroup)
     return false;
   return l.matName<r.matName;
+  }
+
+void PackedMesh::landRepack() {
+  std::vector<SubMesh> m;
+
+  for(auto& i:subMeshes) {
+    if(i.indices.size()==0)
+      continue;
+    split(m,i);
+    }
+
+  subMeshes = std::move(m);
+  }
+
+void PackedMesh::split(std::vector<SubMesh>& out, SubMesh& src) {
+  if(src.indices.size()<512*3 && false) { // avoid micro-meshes
+    if(src.indices.size()>0)
+      out.push_back(std::move(src));
+    return;
+    }
+
+  Bounds bbox;
+  bbox.assign(vertices,src.indices);
+  Vec3 sz = bbox.bboxTr[1]-bbox.bboxTr[0];
+
+  static const float blockSz = 40*100;
+  if(sz.x*sz.y*sz.z<blockSz*blockSz*blockSz) {
+    out.push_back(std::move(src));
+    return;
+    }
+
+  int axis = 0;
+  if(sz.y>sz.x && sz.y>sz.z)
+    axis = 1;
+  if(sz.z>sz.x && sz.z>sz.y)
+    axis = 2;
+
+  for(int pass=0; pass<3; ++pass) {
+    SubMesh left, right;
+    left .material = src.material;
+    right.material = src.material;
+
+    for(size_t i=0; i<src.indices.size(); i+=3) {
+      auto& a = vertices[src.indices[i+0]].Position;
+      auto& b = vertices[src.indices[i+1]].Position;
+      auto& c = vertices[src.indices[i+2]].Position;
+
+      Vec3 at = {a.x+b.x+c.x, a.y+b.y+c.y, a.z+b.z+c.z};
+      at/=3;
+
+      bool  cond = false;
+      switch(axis) {
+        case 0:
+          cond = at.x < bbox.midTr.x;
+          break;
+        case 1:
+          cond = at.y < bbox.midTr.y;
+          break;
+        case 2:
+          cond = at.z < bbox.midTr.z;
+          break;
+        }
+      SubMesh& dest = cond ? left : right;
+      size_t i0 = dest.indices.size();
+      dest.indices.resize(dest.indices.size()+3);
+
+      for(int r=0;r<3;++r)
+        dest.indices[i0+r] = src.indices[i+r];
+      }
+    if((left.indices.size()==0 || right.indices.size()==0) && pass!=2) {
+      axis = (axis+1)%3;
+      continue;
+      }
+
+    if(left.indices.size()==0 || right.indices.size()==0) {
+      out.push_back(std::move(src));
+      return;
+      }
+    src.indices.clear();
+    split(out,left);
+    split(out,right);
+    return;
+    }
   }
 

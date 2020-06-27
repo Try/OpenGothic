@@ -32,7 +32,7 @@ World::World(Gothic& gothic, GameSession& game,const RendererStorage &storage, s
   parser.readWorld(world,isG2==2);
 
   ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
-  PackedMesh vmesh(*worldMesh,PackedMesh::PK_Visual);
+  PackedMesh vmesh(*worldMesh,PackedMesh::PK_VisualLnd);
 
   loadProgress(50);
   wdynamic.reset(new DynamicWorld(*this,*worldMesh));
@@ -67,7 +67,7 @@ World::World(Gothic& gothic, GameSession &game, const RendererStorage &storage,
   parser.readWorld(world,isG2==2);
 
   ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
-  PackedMesh vmesh(*worldMesh,PackedMesh::PK_Visual);
+  PackedMesh vmesh(*worldMesh,PackedMesh::PK_VisualLnd);
 
   loadProgress(50);
   wdynamic.reset(new DynamicWorld(*this,*worldMesh));
@@ -174,8 +174,8 @@ PfxObjects::Emitter World::getView(const ParticleFx *decl) const {
   return view()->getView(decl);
   }
 
-PfxObjects::Emitter World::getView(const Texture2d* spr, const ZenLoad::zCVobData& vob) const {
-  return view()->getView(spr,vob);
+PfxObjects::Emitter World::getView(const ZenLoad::zCVobData& vob) const {
+  return view()->getView(vob);
   }
 
 MeshObjects::Mesh World::getAtachView(const ProtoMesh::Attach& visual) {
@@ -912,6 +912,9 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusicDefault) {
     wsound.setDefaultZone(vob);
     }
+  else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobLight) {
+    wview->addLight(vob);
+    }
   else if(vob.objectClass=="zCVobAnimate:zCVob" || // ork flags
           vob.objectClass=="zCPFXControler:zCVob"){
     wobj.addStatic(vob); //TODO: morph animation
@@ -919,8 +922,7 @@ void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
   else if(vob.objectClass=="oCTouchDamage:zCTouchDamage:zCVob"){
     // NOT IMPLEMENTED
     }
-  else if(vob.objectClass=="zCVobLight:zCVob" ||
-          vob.objectClass=="zCVobLensFlare:zCVob" ||
+  else if(vob.objectClass=="zCVobLensFlare:zCVob" ||
           vob.objectClass=="zCZoneVobFarPlane:zCVob" ||
           vob.objectClass=="zCZoneVobFarPlaneDefault:zCZoneVobFarPlane:zCVob" ||
           vob.objectClass=="zCZoneZFog:zCVob" ||

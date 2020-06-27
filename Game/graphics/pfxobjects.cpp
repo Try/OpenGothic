@@ -1,9 +1,11 @@
 #include "pfxobjects.h"
+#include "sceneglobals.h"
 
 #include <cstring>
 #include <cassert>
 
 #include "graphics/submesh/pfxemittermesh.h"
+#include "graphics/dynamic/painter3d.h"
 #include "light.h"
 #include "particlefx.h"
 #include "pose.h"
@@ -56,7 +58,7 @@ void PfxObjects::Emitter::setTarget(const Vec3& pos) {
   std::lock_guard<std::mutex> guard(bucket->parent->sync);
   if(bucket->impl[id].block==size_t(-1))
     return; // no backup memory
-  auto& p = bucket->getBlock(*this);
+  auto& p     = bucket->getBlock(*this);
   p.target    = pos;
   p.hasTarget = true;
   }
@@ -90,15 +92,32 @@ void PfxObjects::Emitter::setObjMatrix(const Matrix4x4 &mt) {
   setDirection(mt);
   }
 
-PfxObjects::Bucket::Bucket(const RendererStorage &storage, const ParticleFx &ow, PfxObjects *parent)
+PfxObjects::Bucket::Bucket(const ParticleFx &ow, PfxObjects *parent)
   :owner(&ow), parent(parent) {
-  for(auto& i:pf)
-    i.ubo = storage.device.uniforms(storage.uboPfxLayout());
+  Bounds bbox;
+  bbox.assign(Vec3(0,0,0),1000000); //TODO
+
+  const Tempest::VertexBuffer<Resources::Vertex>* vbo[Resources::MaxFramesInFlight] = {};
+  for(size_t i=0;i<Resources::MaxFramesInFlight;++i)
+    vbo[i] = &vboGpu[i];
+  item = parent->visual.get(vbo,owner->visMaterial,bbox);
+
+  Matrix4x4 ident;
+  ident.identity();
+  item.setObjMatrix(ident);
 
   uint64_t lt      = ow.maxLifetime();
   uint64_t pps     = uint64_t(std::ceil(ow.maxPps()));
   uint64_t reserve = (lt*pps+1000-1)/1000;
   blockSize        = size_t(reserve);
+  }
+
+bool PfxObjects::Bucket::isEmpty() const {
+  for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
+    if(vboGpu[i].size()>0)
+      return false;
+    }
+  return impl.size()==0;
   }
 
 size_t PfxObjects::Bucket::allocBlock() {
@@ -115,8 +134,7 @@ size_t PfxObjects::Bucket::allocBlock() {
   b.offset = particles.size();
 
   particles.resize(particles.size()+blockSize);
-  vbo.resize(particles.size()*6);
-  parent->invalidateCmd();
+  vboCpu.resize(particles.size()*6);
 
   for(size_t i=0; i<blockSize; ++i)
     particles[i].life = 0;
@@ -179,8 +197,7 @@ bool PfxObjects::Bucket::shrink() {
     }
   if(particles.size()!=block.size()*blockSize) {
     particles.resize(block.size()*blockSize);
-    vbo.resize(particles.size()*6);
-    parent->invalidateCmd();
+    vboCpu.resize(particles.size()*6);
     return true;
     }
   return false;
@@ -338,7 +355,7 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
   }
 
 void PfxObjects::Bucket::finalize(size_t particle) {
-  Vertex* v = &vbo[particle*6];
+  Vertex* v = &vboCpu[particle*6];
   std::memset(v,0,sizeof(*v)*6);
   auto& p = particles[particle];
   p = {};
@@ -392,51 +409,34 @@ float PfxObjects::ParState::lifeTime() const {
   return 1.f-life/float(maxLife);
   }
 
-PfxObjects::PfxObjects(const RendererStorage& storage)
-  :storage(storage),uboGlobalPf(storage.device) {
+
+PfxObjects::PfxObjects(const SceneGlobals& scene, VisualObjects& visual)
+  :scene(scene), visual(visual) {
   }
 
 PfxObjects::~PfxObjects() {
   }
 
 PfxObjects::Emitter PfxObjects::get(const ParticleFx &decl) {
+  if(decl.visMaterial.tex==nullptr)
+    return Emitter();
   std::lock_guard<std::mutex> guard(sync);
   auto&  b = getBucket(decl);
   size_t e = b.allocEmitter();
   return Emitter(b,e);
   }
 
-PfxObjects::Emitter PfxObjects::get(const Texture2d* spr, const ZenLoad::zCVobData& vob) {
+PfxObjects::Emitter PfxObjects::get(const ZenLoad::zCVobData& vob) {
+  Material mat(vob);
+
   std::lock_guard<std::mutex> guard(sync);
-  auto&  b = getBucket(spr,vob);
+  auto&  b = getBucket(mat,vob);
   size_t e = b.allocEmitter();
   return Emitter(b,e);
   }
 
-void PfxObjects::setModelView(const Tempest::Matrix4x4 &m,const Tempest::Matrix4x4 &shadow) {
-  uboGlobal.modelView  = m;
-  uboGlobal.shadowView = shadow;
-  }
-
-void PfxObjects::setLight(const Light &l, const Vec3 &ambient) {
-  auto  d = l.dir();
-  auto& c = l.color();
-
-  uboGlobal.lightDir = {-d[0],-d[1],-d[2]};
-  uboGlobal.lightCl  = {c.x,c.y,c.z,0.f};
-  uboGlobal.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
-  }
-
 void PfxObjects::setViewerPos(const Vec3& pos) {
   viewePos = pos;
-  }
-
-bool PfxObjects::needToUpdateCommands(uint8_t fId) const {
-  return updateCmd[fId];
-  }
-
-void PfxObjects::setAsUpdated(uint8_t fId) {
-  updateCmd[fId]=false;
   }
 
 void PfxObjects::resetTicks() {
@@ -454,7 +454,7 @@ void PfxObjects::tick(uint64_t ticks) {
     return;
 
   VboContext ctx;
-  const auto& m = uboGlobal.modelView;
+  const auto& m = scene.modelView();
   for(int i=0;i<3;++i) {
     ctx.left[i] = m.at(i,0);
     ctx.top [i] = m.at(i,1);
@@ -480,47 +480,29 @@ void PfxObjects::tick(uint64_t ticks) {
   ctx.topA[1]  = -1;
 
   for(auto& i:bucket) {
-    tickSys(i,dt);
-    buildVbo(i,ctx);
+    tickSys(*i,dt);
+    buildVbo(*i,ctx);
     }
   lastUpdate = ticks;
   }
 
-void PfxObjects::commitUbo(uint8_t frameId, const Texture2d& shadowMap) {
-  size_t pfCount = storage.device.maxFramesInFlight();
-  bucket.remove_if([pfCount](const Bucket& b) {
-    for(size_t i=0;i<pfCount;++i) {
-      if(b.pf[i].vbo.size()>0)
-        return false;
+void PfxObjects::preFrameUpdate(uint8_t fId) {
+  for(size_t i=0; i<bucket.size(); ) {
+    if(bucket[i]->isEmpty()) {
+      bucket[i] = std::move(bucket.back());
+      bucket.pop_back();
+      } else {
+      ++i;
       }
-    return b.impl.size()==0;
-    });
-
-  uboGlobalPf.update(uboGlobal,frameId);
-  for(auto& i:bucket) {
-    auto& pf = i.pf[frameId];
-    if(i.vbo.size()!=pf.vbo.size())
-      pf.vbo = storage.device.vboDyn(i.vbo); else
-      pf.vbo.update(i.vbo);
     }
 
-  if(!updateCmd[frameId])
-    return;
-
-  for(auto& i:bucket) {
-    auto& pf = i.pf[frameId];
-    pf.ubo.set(0,uboGlobalPf[frameId],0,1);
-    pf.ubo.set(2,*i.owner->visName_S);
-    pf.ubo.set(3,shadowMap,Resources::shadowSampler());
-    }
-  }
-
-void PfxObjects::draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t imgId) {
-  for(auto& i:bucket) {
-    auto& pf = i.pf[imgId];
-    uint32_t offset=0;
-    cmd.setUniforms(storage.pPfx,pf.ubo,1,&offset);
-    cmd.draw(pf.vbo);
+  auto& device = scene.storage.device;
+  for(auto& pi:bucket) {
+    auto& i=*pi;
+    auto& vbo = i.vboGpu[fId];
+    if(i.vboCpu.size()!=vbo.size())
+      vbo = device.vboDyn(i.vboCpu); else
+      vbo.update(i.vboCpu);
     }
   }
 
@@ -534,15 +516,15 @@ float PfxObjects::randf(float base, float var) {
 
 PfxObjects::Bucket &PfxObjects::getBucket(const ParticleFx &ow) {
   for(auto& i:bucket)
-    if(i.owner==&ow)
-      return i;
-  bucket.push_front(Bucket(storage,ow,this));
-  return *bucket.begin();
+    if(i->owner==&ow)
+      return *i;
+  bucket.emplace_back(new Bucket(ow,this));
+  return *bucket.back();
   }
 
-PfxObjects::Bucket& PfxObjects::getBucket(const Texture2d* spr, const ZenLoad::zCVobData& vob) {
+PfxObjects::Bucket& PfxObjects::getBucket(const Material& mat, const ZenLoad::zCVobData& vob) {
   for(auto& i:spriteEmit)
-    if(i.pfx->visName_S==spr &&
+    if(i.pfx->visMaterial==mat &&
        i.visualCamAlign==vob.visualCamAlign &&
        i.zBias==vob.zBias &&
        i.decalDim==vob.visualChunk.zCDecal.decalDim) {
@@ -554,7 +536,7 @@ PfxObjects::Bucket& PfxObjects::getBucket(const Texture2d* spr, const ZenLoad::z
   e.visualCamAlign = vob.visualCamAlign;
   e.zBias          = vob.zBias;
   e.decalDim       = vob.visualChunk.zCDecal.decalDim;
-  e.pfx.reset(new ParticleFx(spr,vob));
+  e.pfx.reset(new ParticleFx(mat,vob));
   return getBucket(*e.pfx);
   }
 
@@ -645,7 +627,7 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
   auto  visSizeEndScale = pfx.visSizeEndScale;
   auto  visAlphaStart   = pfx.visAlphaStart;
   auto  visAlphaEnd     = pfx.visAlphaEnd;
-  auto  visAlphaFunc    = pfx.visAlphaFunc;
+  auto  visAlphaFunc    = pfx.visMaterial.alpha;
 
   const float* left = ctx.left;
   const float* top  = ctx.top;
@@ -660,7 +642,7 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
 
     for(size_t i=0;i<b.blockSize;++i) {
       ParState& ps = b.particles[i+p.offset];
-      Vertex*   v  = &b.vbo[(p.offset+i)*6];
+      Vertex*   v  = &b.vboCpu[(p.offset+i)*6];
 
       if(ps.life==0) {
         std::memset(v,0,6*sizeof(*v));
@@ -699,13 +681,13 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
         uint8_t a=255;
         } color;
 
-      if(visAlphaFunc==ParticleFx::AlphaFunc::Add) {
+      if(visAlphaFunc==Material::ApphaFunc::AdditiveLight) {
         color.r = uint8_t(cl.x*clA);
         color.g = uint8_t(cl.y*clA);
         color.b = uint8_t(cl.z*clA);
         color.a = uint8_t(255);
         }
-      else if(visAlphaFunc==ParticleFx::AlphaFunc::Blend) {
+      else if(visAlphaFunc==Material::ApphaFunc::Transparent) {
         color.r = uint8_t(cl.x);
         color.g = uint8_t(cl.y);
         color.b = uint8_t(cl.z);
@@ -734,9 +716,4 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
         }
       }
     }
-  }
-
-void PfxObjects::invalidateCmd() {
-  for(auto& i:updateCmd)
-    i=true;
   }

@@ -492,7 +492,7 @@ const Tempest::Texture2d* Resources::loadTexture(const std::string &name) {
   }
 
 const Texture2d *Resources::loadTexture(const std::string &name, int32_t iv, int32_t ic) {
-  if(name.size()>=128)// || (iv==0 && ic==0))
+  if(name.size()>=128)
     return loadTexture(name);
 
   char v[16]={};
@@ -511,6 +511,32 @@ const Texture2d *Resources::loadTexture(const std::string &name, int32_t iv, int
   std::snprintf(buf1,sizeof(buf1),buf2,c);
 
   return loadTexture(buf1);
+  }
+
+std::vector<const Texture2d*> Resources::loadTextureAnim(const std::string& name) {
+  std::vector<const Texture2d*> ret;
+  if(name.find("_A0")==std::string::npos)
+    return ret;
+
+  for(int id=0; ; ++id) {
+    size_t at = 0;
+    char   buf[128]={};
+    for(size_t i=0;i<name.size();++i) {
+      if(i+2<name.size() && name[i]=='_' && name[i+1]=='A' && name[i+2]=='0'){
+        at += std::snprintf(buf+at,sizeof(buf)-at,"_A%d",id);
+        i+=2;
+        } else {
+        buf[at] = name[i];
+        at++;
+        }
+      if(at>sizeof(buf))
+        return ret;
+      }
+    auto t = loadTexture(buf);
+    if(t==nullptr)
+      return ret;
+    ret.push_back(t);
+    }
   }
 
 Texture2d Resources::loadTexture(const Pixmap &pm) {

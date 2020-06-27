@@ -1,5 +1,7 @@
 #pragma once
 
+#include "material.h"
+
 #include <daedalus/DaedalusStdlib.h>
 #include <Tempest/RenderState>
 #include <zenload/zTypes.h>
@@ -10,7 +12,7 @@ class PfxEmitterMesh;
 
 class ParticleFx final {
   public:
-    ParticleFx(const Tempest::Texture2d* spr, const ZenLoad::zCVobData& vob);
+    ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob);
     ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX & src, const char* name);
 
     enum class EmitterType:uint8_t {
@@ -44,13 +46,6 @@ class ParticleFx final {
       None,
       Velocity,
       Velocity3d,
-      };
-
-    enum class AlphaFunc:uint8_t {
-      None,
-      Blend,
-      Add,
-      Mul
       };
 
     using KeyList = std::vector<float>;
@@ -96,7 +91,7 @@ class ParticleFx final {
     Tempest::Vec3 flyGravity;
     bool          flyCollDet = false;
 
-    const Tempest::Texture2d* visName_S = nullptr;
+    Material      visMaterial;
     Orientation   visOrientation        = Orientation::None;
     bool          visTexIsQuadPoly      = true;
     float         visTexAniFPS          = 0.f;
@@ -105,7 +100,6 @@ class ParticleFx final {
     Tempest::Vec3 visTexColorEnd;
     Tempest::Vec2 visSizeStart;
     float         visSizeEndScale      = 0.f;
-    AlphaFunc     visAlphaFunc         = AlphaFunc::None;
     float         visAlphaStart        = 0.f;
     float         visAlphaEnd          = 0.f;
     bool          visYawAlign          = false;
@@ -143,7 +137,6 @@ class ParticleFx final {
     static Distribution  loadDistribType(const Daedalus::ZString& src);
     static Dir           loadDirType(const Daedalus::ZString& src);
     static Orientation   loadOrientation(const Daedalus::ZString& src);
-    static AlphaFunc     loadAlphaFn(const Daedalus::ZString& src);
 
     float                fetchScaleKey(uint64_t time, const KeyList& k, float fps, bool smooth, bool loop) const;
   };

@@ -51,7 +51,7 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &
     if(i.attachId<attach.size()) {
       auto& att = attach[i.attachId];
       for(size_t r=0;r<att.sub.size();++r){
-        if(att.sub[r].texture==nullptr) {
+        if(att.sub[r].material.tex==nullptr) {
           if(!att.sub[r].texName.empty())
             Tempest::Log::e("no texture?!");
           continue;
@@ -93,7 +93,7 @@ ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm, const std::string& fname) {
 
   size_t count = 0;
   for(size_t r=0;r<att.sub.size();++r) {
-    if(att.sub[r].texture==nullptr) {
+    if(att.sub[r].material.tex==nullptr) {
       if(!att.sub[r].texName.empty())
         Tempest::Log::e("no texture?!");
       continue;
@@ -121,7 +121,7 @@ ProtoMesh::ProtoMesh(const std::string& fname, std::vector<Resources::Vertex> vb
   auto&  att   = attach[0];
   size_t count = 0;
   for(size_t r=0;r<att.sub.size();++r) {
-    if(att.sub[r].texture==nullptr) {
+    if(att.sub[r].material.tex==nullptr) {
       if(!att.sub[r].texName.empty())
         Tempest::Log::e("no texture?!");
       continue;

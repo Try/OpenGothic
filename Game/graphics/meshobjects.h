@@ -10,25 +10,19 @@
 
 #include "graphics/submesh/staticmesh.h"
 #include "graphics/submesh/animmesh.h"
-#include "abstractobjectsbucket.h"
+#include "objectsbucket.h"
 #include "protomesh.h"
-#include "ubochain.h"
-#include "ubostorage.h"
 
-class RendererStorage;
+class VisualObjects;
 class Pose;
 class Light;
-class Painter3d;
-
-template<class Ubo,class Vertex>
-class ObjectsBucket;
 
 class MeshObjects final {
   private:
-    using Item = AbstractObjectsBucket::Item;
+    using Item = ObjectsBucket::Item;
 
   public:
-    MeshObjects(const RendererStorage& storage);
+    MeshObjects(VisualObjects& parent);
     ~MeshObjects();
 
     class Mesh;
@@ -38,8 +32,7 @@ class MeshObjects final {
       public:
         Node(Node&&)=default;
 
-        const Tempest::Texture2d &texture() const;
-        void                      draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, const Tempest::RenderPipeline &pipeline, uint32_t imgId) const;
+        void draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) const;
 
       private:
         Node(const Item* it):it(it){}
@@ -59,7 +52,7 @@ class MeshObjects final {
 
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setSkeleton (const Skeleton* sk);
-        void   setPose     (const Pose&      p,const Tempest::Matrix4x4& obj);
+        void   setPose     (const Pose&     p,const Tempest::Matrix4x4& obj);
 
         bool   isEmpty()    const { return subCount==0; }
         size_t nodesCount() const { return subCount;    }
@@ -79,79 +72,17 @@ class MeshObjects final {
         void setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix4x4& mt, size_t parent);
       };
 
-    Mesh get(const StaticMesh& mesh);
-    Mesh get(const StaticMesh& mesh,int32_t headTexVar,int32_t teethTex,int32_t bodyColor);
-    Mesh get(const ProtoMesh&  mesh,int32_t headTexVar,int32_t teethTex,int32_t bodyColor);
-
-    void commitUbo(uint8_t fId, const Tempest::Texture2d& shadowMap);
-
-    void reserve(size_t stat,size_t dyn);
-
-    //void draw      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId);
-    //void drawDecals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId);
-    //void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t fId, int layer=0);
-    void draw      (Painter3d& painter, uint32_t fId);
-    void drawShadow(Painter3d& painter, uint32_t fId, int layer=0);
-
-    void invalidateCmd();
-    bool needToUpdateCommands(uint8_t imgId) const;
-    void setAsUpdated(uint8_t imgId);
-
-    void setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4 *sh, size_t shCount);
-    void setLight(const Light &l, const Tempest::Vec3 &ambient);
+    Mesh get(const StaticMesh& mesh, bool staticDraw);
+    Mesh get(const StaticMesh& mesh, int32_t headTexVar, int32_t teethTex, int32_t bodyColor);
+    Mesh get(const ProtoMesh&  mesh, int32_t headTexVar, int32_t teethTex, int32_t bodyColor, bool staticDraw);
 
   private:
-    using Vertex  = Resources::Vertex;
-    using VertexA = Resources::VertexA;
-
-    struct UboGlobal final {
-      std::array<float,3>           lightDir={{0,0,1}};
-      float                         padding=0;
-      Tempest::Matrix4x4            modelView;
-      Tempest::Matrix4x4            shadowView;
-      std::array<float,4>           lightAmb={{0,0,0}};
-      std::array<float,4>           lightCl ={{1,1,1}};
-      };
-
-    struct UboSt final {
-      Tempest::Matrix4x4 obj;
-      void setObjMatrix(const Tempest::Matrix4x4& ob) { obj=ob; }
-      void setSkeleton (const Skeleton*){}
-      void setSkeleton (const Pose&    ){}
-      };
-
-    struct UboDn final {
-      Tempest::Matrix4x4 obj;
-      Tempest::Matrix4x4 skel[Resources::MAX_NUM_SKELETAL_NODES];
-
-      void setObjMatrix(const Tempest::Matrix4x4& ob) { obj=ob; }
-      void setSkeleton (const Skeleton* sk);
-      void setSkeleton (const Pose&      p);
-      };
-
-    const RendererStorage&                  storage;
-
-    UboStorage<UboSt>                       storageSt;
-    UboStorage<UboDn>                       storageDn;
-
-    std::list<ObjectsBucket<UboSt,Vertex >> chunksSt;
-    std::list<ObjectsBucket<UboDn,VertexA>> chunksDn;
-
-    UboChain<UboGlobal,void>        uboGlobalPf[2];
-    UboGlobal                       uboGlobal;
-    Tempest::Matrix4x4              shadowView1;
-
-    ObjectsBucket<UboSt,Vertex>&    getBucketSt(const Tempest::Texture2d* mat);
-    ObjectsBucket<UboSt,Vertex>&    getBucketAt(const Tempest::Texture2d* mat);
-    ObjectsBucket<UboDn,VertexA>&   getBucketDn(const Tempest::Texture2d* mat);
+    VisualObjects&                  parent;
 
     Item                            implGet(const StaticMesh& mesh, const StaticMesh::SubMesh& smesh,
-                                            int32_t texVar, int32_t teethTex, int32_t bodyColor);
-    Item                            implGet(const StaticMesh& mesh,
-                                            const Tempest::Texture2d* mat,
-                                            const Tempest::IndexBuffer<uint32_t> &ibo);
-    Item                            implGet(const AnimMesh& mesh,
-                                            const Tempest::Texture2d* mat,
-                                            const Tempest::IndexBuffer<uint32_t> &ibo);
-    const Tempest::Texture2d*       solveTex(const Tempest::Texture2d* def,const std::string& format,int32_t v,int32_t c);
+                                            int32_t texVar, int32_t teethTex, int32_t bodyColor,
+                                            bool staticDraw);
+
+    const Tempest::Texture2d*       solveTex(const Tempest::Texture2d* def,const std::string& format,
+                                             int32_t v,int32_t c);
   };

@@ -11,6 +11,8 @@
 #include "graphics/meshobjects.h"
 #include "graphics/pfxobjects.h"
 #include "light.h"
+#include "sceneglobals.h"
+#include "visualobjects.h"
 
 class World;
 class RendererStorage;
@@ -31,12 +33,16 @@ class WorldView {
 
     void tick(uint64_t dt);
 
+    void addLight(const ZenLoad::zCVobData &vob);
+
     void updateCmd (uint8_t frameId, const World &world,
                     const Tempest::Attachment& main, const Tempest::Attachment& shadow,
                     const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay);
-    void updateUbo (uint8_t frameId, const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4* shadow, size_t shCount);
-    void drawShadow(Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t frameId, uint8_t layer);
-    void drawMain  (Tempest::Encoder<Tempest::PrimaryCommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
+    void setModelView   (const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4* shadow, size_t shCount);
+    void setFrameGlobals(const Tempest::Texture2d& shadow, uint64_t tickCount, uint8_t fId);
+
+    void drawShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t frameId, uint8_t layer);
+    void drawMain  (Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
     void resetCmd  ();
 
     MeshObjects::Mesh   getView      (const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
@@ -45,22 +51,20 @@ class WorldView {
     MeshObjects::Mesh   getStaticView(const char* visual);
     MeshObjects::Mesh   getDecalView (const ZenLoad::zCVobData& vob, const Tempest::Matrix4x4& obj, ProtoMesh& out);
     PfxObjects::Emitter getView      (const ParticleFx* decl);
-    PfxObjects::Emitter getView      (const Tempest::Texture2d* spr, const ZenLoad::zCVobData& vob);
+    PfxObjects::Emitter getView      (const ZenLoad::zCVobData& vob);
 
   private:
     const World&            owner;
     const RendererStorage&  storage;
 
-    Light                   sun;
-    Tempest::Vec3           ambient;
+    SceneGlobals            sGlobal;
+    VisualObjects           visuals;
 
-    Sky                     sky;
-    Landscape               land;
-    MeshObjects             vobGroup;
     MeshObjects             objGroup;
-    MeshObjects             itmGroup;
-    MeshObjects             decGroup;
     PfxObjects              pfxGroup;
+    Landscape               land;
+
+    std::vector<Light>      pendingLights;
 
     const Tempest::FrameBufferLayout* mainLay   = nullptr;
     const Tempest::FrameBufferLayout* shadowLay = nullptr;
@@ -69,21 +73,9 @@ class WorldView {
     uint32_t                vpWidth=0;
     uint32_t                vpHeight=0;
 
-    struct PerFrame {
-      Tempest::CommandBuffer cmdMain;
-      Tempest::CommandBuffer cmdShadow[2];
-      bool                   actual     =true;
-      };
-    PerFrame                 frame[Resources::MaxFramesInFlight];
-
     bool needToUpdateCmd(uint8_t frameId) const;
     void invalidateCmd();
 
     void updateLight();
     void setupSunDir(float pulse,float ang);
-    void builtCmdBuf(uint8_t frameId, const World &world,
-                     const Tempest::Attachment& main,
-                     const Tempest::Attachment& shadowMap,
-                     const Tempest::FrameBufferLayout &mainLay,
-                     const Tempest::FrameBufferLayout &shadowLay);
   };

@@ -7,9 +7,9 @@ StaticMesh::StaticMesh(const ZenLoad::PackedMesh &mesh) {
 
   sub.resize(mesh.subMeshes.size());
   for(size_t i=0;i<mesh.subMeshes.size();++i){
-    sub[i].texName = mesh.subMeshes[i].material.texture;
-    sub[i].texture = Resources::loadTexture(sub[i].texName);
-    sub[i].ibo     = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
+    sub[i].texName  = mesh.subMeshes[i].material.texture;
+    sub[i].material = Resources::loadMaterial(mesh.subMeshes[i].material);
+    sub[i].ibo      = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
     }
   bbox.assign(mesh.bbox);
   }
@@ -34,9 +34,9 @@ StaticMesh::StaticMesh(const ZenLoad::PackedSkeletalMesh &mesh) {
 
   sub.resize(mesh.subMeshes.size());
   for(size_t i=0;i<mesh.subMeshes.size();++i){
-    sub[i].texName = mesh.subMeshes[i].material.texture;
-    sub[i].texture = Resources::loadTexture(sub[i].texName);
-    sub[i].ibo     = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
+    sub[i].texName  = mesh.subMeshes[i].material.texture;
+    sub[i].material = Resources::loadMaterial(mesh.subMeshes[i].material);
+    sub[i].ibo      = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
     }
   bbox.assign(mesh.bbox);
   }
@@ -45,10 +45,9 @@ StaticMesh::StaticMesh(const std::string& fname, std::vector<Resources::Vertex> 
   vbo = Resources::vbo<Vertex>(cvbo.data(),cvbo.size());
   sub.resize(1);
   for(size_t i=0;i<1;++i){
-    sub[i].texName = fname;
-    //sub[i].texture = &Resources::fallbackTexture();
-    sub[i].texture = Resources::loadTexture(sub[i].texName.c_str());
-    sub[i].ibo     = Resources::ibo(ibo.data(),ibo.size());
+    sub[i].texName      = fname;
+    sub[i].material.tex = Resources::loadTexture(sub[i].texName.c_str());
+    sub[i].ibo          = Resources::ibo(ibo.data(),ibo.size());
     }
   bbox.assign(cvbo);
   }

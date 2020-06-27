@@ -133,12 +133,12 @@ void Camera::onRotateMouse(const PointF& dpos) {
   dest.spin.y += dpos.y;
   }
 
-Matrix4x4 Camera::viewShadow(const std::array<float,3>& ldir, int layer) const {
+Matrix4x4 Camera::viewShadow(const Vec3& ldir, int layer) const {
   const float scale = 0.0008f;
   const float c = std::cos(state.spin.x*float(M_PI)/180.f), s = std::sin(state.spin.x*float(M_PI)/180.f);
 
   Matrix4x4 view;
-  if(ldir[1]>=0.f)
+  if(ldir.y>=0.f)
     return view;
 
   view.identity();
@@ -163,12 +163,12 @@ Matrix4x4 Camera::viewShadow(const std::array<float,3>& ldir, int layer) const {
   float lx  = view.at(1,0);
   float ly  = view.at(1,1);
   float lz  = view.at(1,2);
-  float k   = ldir[1]!=0.f ? lz/ldir[1] : 0.f;
+  float k   = ldir.y!=0.f ? lz/ldir.y : 0.f;
 
-  lx = -ldir[2]*k;
-  ly = -ldir[0]*k;
+  lx = -ldir.z*k;
+  ly = -ldir.x*k;
 
-  lz =  ldir[1]*k;
+  lz =  ldir.y*k;
 
   float dx = lx*c-ly*s;
   float dy = lx*s+ly*c;

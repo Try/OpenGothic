@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <map>
 
+class Bounds;
+
 class PackedMesh {
   public:
     using WorldTriangle = ZenLoad::WorldTriangle;
@@ -13,6 +15,7 @@ class PackedMesh {
 
     enum PkgType {
       PK_Visual,
+      PK_VisualLnd,
       PK_Physic,
       PK_PhysicZoned
       };
@@ -30,8 +33,14 @@ class PackedMesh {
 
   private:
     void   pack(const ZenLoad::zCMesh& mesh,PkgType type);
-    size_t submeshIndex(const ZenLoad::zCMesh& mesh, std::vector<SubMesh*>& index, size_t triangleId, PkgType type) const;
+
+    size_t submeshIndex(const ZenLoad::zCMesh& mesh, std::vector<SubMesh*>& index,
+                        size_t vindex, size_t mat, PkgType type);
+
     void   addSector(const std::string& s, uint8_t group);
     static bool compare(const ZenLoad::zCMaterialData& l, const ZenLoad::zCMaterialData& r);
+
+    void   landRepack();
+    void   split(std::vector<SubMesh>& out, SubMesh& src);
   };
 

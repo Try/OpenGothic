@@ -14,15 +14,17 @@ class RendererStorage {
     RendererStorage(Tempest::Device& device, Gothic& gothic);
 
     Tempest::Device&        device;
-    Tempest::RenderPipeline pLand, pLandAt, pLandAlpha, pObject, pObjectDecal, pAnim, pPfx, pSky;
-    Tempest::RenderPipeline pLandSh, pLandAtSh, pObjectSh, pAnimSh;
-    Tempest::RenderPipeline pComposeShadow;
 
-    const Tempest::UniformsLayout& uboObjLayout() const { return layoutObj; }
-    const Tempest::UniformsLayout& uboLndLayout() const { return layoutLnd; }
-    const Tempest::UniformsLayout& uboPfxLayout() const { return layoutLnd; }
-    const Tempest::UniformsLayout& uboSkyLayout() const { return layoutSky; }
-    const Tempest::UniformsLayout& uboComposeLayout() const { return layoutComp; }
+    Tempest::RenderPipeline pAnim,    pAnimAt,   pAnimLt,   pAnimAtLt;
+    Tempest::RenderPipeline pObject,  pObjectAt, pObjectLt, pObjectAtLt;
+    Tempest::RenderPipeline pObjectAlpha, pAnimAlpha;
+    Tempest::RenderPipeline pObjectMAdd,  pAnimMAdd;
+
+    Tempest::RenderPipeline pObjectSh, pObjectAtSh;
+    Tempest::RenderPipeline pAnimSh,   pAnimAtSh;
+
+    Tempest::RenderPipeline pSky;
+    Tempest::RenderPipeline pComposeShadow;
 
   private:
     struct ShaderPair {
@@ -32,15 +34,15 @@ class RendererStorage {
       };
 
     struct Material {
-      ShaderPair main, shadow;
+      ShaderPair main, shadow, light;
       void load(Tempest::Device& device, const char* f);
       };
 
-    Tempest::UniformsLayout layoutLnd, layoutObj, layoutAni, layoutSky, layoutComp;
-    Material                land, landAt, object, ani, pfx;
+    Material obj, objAt, objEmi;
+    Material ani, aniAt, aniEmi;
 
     void initPipeline(Gothic& gothic);
     void initShadow();
     template<class Vertex>
-    Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const Tempest::UniformsLayout& ulay,const ShaderPair &fs);
+    Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const ShaderPair &fs);
   };

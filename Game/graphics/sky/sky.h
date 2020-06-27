@@ -5,7 +5,6 @@
 #include <array>
 
 #include "graphics/meshobjects.h"
-#include "graphics/ubochain.h"
 #include "resources.h"
 
 class RendererStorage;
@@ -15,21 +14,13 @@ class Sky final {
   public:
     using Vertex=Resources::VertexFsq;
 
-    Sky(const RendererStorage &storage);
+    Sky(const SceneGlobals& scene);
 
-    void setWorld(const World &world);
-
-    void invalidateCmd();
-    bool needToUpdateCommands(uint8_t frameId) const;
-    void setAsUpdated        (uint8_t frameId);
-
-    void setMatrix(uint8_t frameId,const Tempest::Matrix4x4& mat);
-    void commitUbo(uint8_t frameId);
-
-    void draw       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint32_t frameId, const World &world);
-    void setLight   (const std::array<float,3>& l);
+    void setWorld   (const World& world);
     void setDayNight(float dayF);
+    void draw       (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
 
+  private:
     struct Layer final {
       const Tempest::Texture2d* texture=nullptr;
       };
@@ -38,7 +29,6 @@ class Sky final {
       Layer lay[2];
       };
 
-  private:
     struct UboGlobal {
       Tempest::Matrix4x4 mvp;
       float              color[4]={};
@@ -48,20 +38,22 @@ class Sky final {
       float              night  =1.0;
       };
 
+    struct PerFrame {
+      Tempest::UniformBuffer<UboGlobal> uboGpu;
+      Tempest::Uniforms                 ubo;
+      };
+
+    void                          calcUboParams();
     static std::array<float,3>    mkColor(uint8_t r,uint8_t g,uint8_t b);
     const Tempest::Texture2d*     skyTexture(const char* name, bool day, size_t id);
     const Tempest::Texture2d*     implSkyTexture(const char* name, bool day, size_t id);
 
-    const RendererStorage&        storage;
+    const SceneGlobals&           scene;
     UboGlobal                     uboCpu;
-    UboChain<UboGlobal>           uboGpu;
+    PerFrame                      perFrame[Resources::MaxFramesInFlight];
     Tempest::VertexBuffer<Vertex> vbo;
-    std::vector<bool>             nToUpdate;
 
     State                         day, night;
-    const World*                  world=nullptr;
-
-    MeshObjects::Mesh             skymesh;
 
     static std::array<float,3>    color;
   };
