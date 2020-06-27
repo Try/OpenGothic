@@ -1,12 +1,14 @@
 #pragma once
 
 #include <Tempest/Texture2d>
+#include <daedalus/DaedalusStdlib.h>
 #include <zenload/zTypes.h>
 
 class Material final {
   public:
     Material()=default;
     Material(const ZenLoad::zCMaterialData& m);
+    Material(const Daedalus::GEngineClasses::C_ParticleFX &src);
 
     enum ApphaFunc:uint8_t {
       InvalidAlpha    = 0,

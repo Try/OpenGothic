@@ -8,13 +8,15 @@ ParticleFx::ParticleFx(const Texture2d* spr, const ZenLoad::zCVobData& vob) {
   ppsValue         = -1;
   lspPartAvg       = 1000;
   dirMode          = ParticleFx::Dir::Dir;
-  visName_S        = spr;
-  visAlphaFunc     = ParticleFx::AlphaFunc::Add;
   visTexColorStart = Vec3(255,255,255);
   visTexColorEnd   = Vec3(255,255,255);
   visSizeStart     = Vec2(2.f*vob.visualChunk.zCDecal.decalDim.x,
                           2.f*vob.visualChunk.zCDecal.decalDim.y);
   visOrientation   = Orientation::Velocity;
+
+  visMaterial.tex   = spr;
+  visMaterial.alpha = Material::ApphaFunc::AdditiveLight;
+
   dirFOR           = Frame::World;
   dirAngleElev     = 90;
   visSizeEndScale  = 1;
@@ -65,7 +67,7 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
   flyGravity          = loadVec3(src.flyGravity_S);
   flyCollDet          = src.flyCollDet_B!=0;
 
-  visName_S           = loadTexture(src.visName_S.c_str());
+  visMaterial         = Material(src);
   visOrientation      = loadOrientation(src.visOrientation_S);
   visTexIsQuadPoly    = src.visTexIsQuadPoly;
   visTexAniFPS        = src.visTexAniFPS;
@@ -74,7 +76,6 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
   visTexColorEnd      = loadVec3(src.visTexColorEnd_S);
   visSizeStart        = loadVec2(src.visSizeStart_S);
   visSizeEndScale     = src.visSizeEndScale;
-  visAlphaFunc        = loadAlphaFn(src.visAlphaFunc_S);
   visAlphaStart       = src.visAlphaStart/255.f;
   visAlphaEnd         = src.visAlphaEnd/255.f;
 
@@ -245,18 +246,6 @@ ParticleFx::Orientation ParticleFx::loadOrientation(const Daedalus::ZString& src
   if(src=="VELO3D")
     return Orientation::Velocity3d;
   return Orientation::None;
-  }
-
-ParticleFx::AlphaFunc ParticleFx::loadAlphaFn(const Daedalus::ZString& src) {
-  if(src=="NONE")
-    return AlphaFunc::None;
-  if(src=="BLEND")
-    return AlphaFunc::Blend;
-  if(src=="ADD")
-    return AlphaFunc::Add;
-  if(src=="MUL")
-    return AlphaFunc::Mul;
-  return AlphaFunc::None;
   }
 
 float ParticleFx::fetchScaleKey(uint64_t time, const KeyList& keys, float fps, bool smooth, bool loop) const {

@@ -22,6 +22,7 @@ InventoryRenderer::InventoryRenderer(const RendererStorage &storage)
 
 void InventoryRenderer::draw(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   scene.commitUbo(fId);
+  visual.preFrameUpdate(fId);
 
   for(auto& i:items) {
     cmd.setViewport(i.x,i.y,i.w,i.h);

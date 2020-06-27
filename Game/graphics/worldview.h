@@ -60,7 +60,6 @@ class WorldView {
     SceneGlobals            sGlobal;
     VisualObjects           visuals;
 
-    Sky                     sky;
     MeshObjects             objGroup;
     PfxObjects              pfxGroup;
     Landscape               land;

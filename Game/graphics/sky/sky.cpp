@@ -68,13 +68,14 @@ void Sky::calcUboParams() {
   uboCpu.color[3]=1.f;
   }
 
-void Sky::draw(Painter3d& p, uint32_t fId) {
+void Sky::draw(Tempest::Encoder<CommandBuffer>& p, uint32_t fId) {
   calcUboParams();
 
   auto& pf = perFrame[fId];
   pf.uboGpu.update(&uboCpu,0,1);
 
-  p.draw(scene.storage.pSky, pf.ubo, Resources::fsqVbo());
+  p.setUniforms(scene.storage.pSky, pf.ubo);
+  p.draw(Resources::fsqVbo());
   }
 
 void Sky::setDayNight(float dayF) {

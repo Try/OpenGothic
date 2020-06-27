@@ -117,7 +117,7 @@ const Material& ObjectsBucket::material() const {
   return mat;
   }
 
-ObjectsBucket::Object& ObjectsBucket::implAlloc(const Tempest::IndexBuffer<uint32_t>& ibo, const Bounds& bounds) {
+ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds& bounds) {
   Object* v = nullptr;
   if(freeList.size()>0) {
     v = &val[freeList.back()];
@@ -128,9 +128,10 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const Tempest::IndexBuffer<uint3
     index.resize(val.size());
     }
 
+  v->vboType   = type;
   v->vbo       = nullptr;
   v->vboA      = nullptr;
-  v->ibo       = &ibo;
+  v->ibo       = nullptr;
   v->bounds    = bounds;
 
   if(!useSharedUbo) {
@@ -236,9 +237,9 @@ void ObjectsBucket::visibilityPass(Painter3d& p) {
     return;
 
   for(auto& v:val) {
-    if(v.ibo==nullptr)
+    if(v.vboType==VboType::NoVbo)
       continue;
-    if(!p.isVisible(v.bounds))
+    if(!p.isVisible(v.bounds) && v.vboType!=VboType::VboMorph)
       continue;
     index.push_back(&v);
     }
@@ -247,17 +248,26 @@ void ObjectsBucket::visibilityPass(Painter3d& p) {
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
                             const Tempest::IndexBuffer<uint32_t>& ibo,
                             const Bounds& bounds) {
-  Object* v = &implAlloc(ibo,bounds);
+  Object* v = &implAlloc(VboType::VboVertex,bounds);
   v->vbo = &vbo;
+  v->ibo = &ibo;
   return std::distance(val.data(),v);
   }
 
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
                             const Tempest::IndexBuffer<uint32_t>& ibo,
                             const Bounds& bounds) {
-  Object* v = &implAlloc(ibo,bounds);
+  Object* v = &implAlloc(VboType::VboVertexA,bounds);
   v->vboA   = &vbo;
+  v->ibo    = &ibo;
   v->storageAni = storage.ani.alloc();
+  return std::distance(val.data(),v);
+  }
+
+size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* vbo[], const Bounds& bounds) {
+  Object* v = &implAlloc(VboType::VboMorph,bounds);
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
+    v->vboM[i] = vbo[i];
   return std::distance(val.data(),v);
   }
 
@@ -266,9 +276,12 @@ void ObjectsBucket::free(const size_t objId) {
   auto& v = val[objId];
   if(v.storageAni!=size_t(-1))
     storage.ani.free(v.storageAni);
-  v.vbo  = nullptr;
-  v.vboA = nullptr;
-  v.ibo  = nullptr;
+  v.vboType = VboType::NoVbo;
+  v.vbo     = nullptr;
+  for(size_t i=0;i<Resources::MaxFramesInFlight;++i)
+    v.vboM[i] = nullptr;
+  v.vboA    = nullptr;
+  v.ibo     = nullptr;
   }
 
 void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) {
@@ -301,9 +314,19 @@ void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fI
       p.setUniforms(*pMain,ubo);
       }
 
-    if(shaderType==Animated)
-      p.draw(*v.vboA,*v.ibo); else
-      p.draw(*v.vbo, *v.ibo);
+    switch(v.vboType) {
+      case VboType::NoVbo:
+        break;
+      case VboType::VboVertex:
+        p.draw(*v.vbo, *v.ibo);
+        break;
+      case VboType::VboVertexA:
+        p.draw(*v.vboA,*v.ibo);
+        break;
+      case VboType::VboMorph:
+        p.draw(*v.vboM[fId]);
+        break;
+      }
     }
   }
 
@@ -336,9 +359,19 @@ void ObjectsBucket::drawLight(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8
         pushBlock.light[r].range = 0;
         }
       p.setUniforms(*pLight,&pushBlock,sizeof(pushBlock));
-      if(shaderType==Animated)
-        p.draw(*v.vboA,*v.ibo); else
-        p.draw(*v.vbo, *v.ibo);
+      switch(v.vboType) {
+        case VboType::NoVbo:
+          break;
+        case VboType::VboVertex:
+          p.draw(*v.vbo, *v.ibo);
+          break;
+        case VboType::VboVertexA:
+          p.draw(*v.vboA,*v.ibo);
+          break;
+        case VboType::VboMorph:
+          p.draw(*v.vboM[fId]);
+          break;
+        }
       }
     }
   }
@@ -363,9 +396,19 @@ void ObjectsBucket::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& p, uint
 
     pushBlock.pos = v.pos;
     p.setUniforms(*pShadow,&pushBlock,sizeof(pushBlock));
-    if(shaderType==Animated)
-      p.draw(*v.vboA,*v.ibo); else
-      p.draw(*v.vbo, *v.ibo);
+    switch(v.vboType) {
+      case VboType::NoVbo:
+        break;
+      case VboType::VboVertex:
+        p.draw(*v.vbo, *v.ibo);
+        break;
+      case VboType::VboVertexA:
+        p.draw(*v.vboA,*v.ibo);
+        break;
+      case VboType::VboMorph:
+        p.draw(*v.vboM[fId]);
+        break;
+      }
     }
   }
 
@@ -380,9 +423,12 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p,
   pushBlock.pos = v.pos;
 
   auto& ubo = useSharedUbo ? uboShared.ubo[fId] : v.ubo.ubo[fId];
-  ubo.set(0,*mat.tex);
-  ubo.set(1,Resources::fallbackTexture(),Sampler2d::nearest());
-  ubo.set(2,scene.uboGlobalPf[fId][0],0,1);
+  if(!useSharedUbo) {
+    ubo.set(0,*mat.tex);
+    ubo.set(1,Resources::fallbackTexture(),Sampler2d::nearest());
+    ubo.set(2,scene.uboGlobalPf[fId][0],0,1);
+    ubo.set(4,uboMat[fId]);
+    }
 
   p.setUniforms(*pMain,ubo);
   p.setUniforms(*pMain,&pushBlock,sizeof(pushBlock));

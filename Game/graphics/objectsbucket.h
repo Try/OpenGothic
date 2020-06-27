@@ -35,6 +35,13 @@ class ObjectsBucket final {
       Animated,
       };
 
+    enum VboType : uint8_t {
+      NoVbo,
+      VboVertex,
+      VboVertexA,
+      VboMorph,
+      };
+
     class Item final {
       public:
         Item()=default;
@@ -80,11 +87,13 @@ class ObjectsBucket final {
     const Material&           material() const;
     Type                      type()     const { return shaderType; }
 
-    size_t                    alloc(const Tempest::VertexBuffer<Vertex> &vbo,
+    size_t                    alloc(const Tempest::VertexBuffer<Vertex>  &vbo,
                                     const Tempest::IndexBuffer<uint32_t> &ibo,
                                     const Bounds& bounds);
     size_t                    alloc(const Tempest::VertexBuffer<VertexA> &vbo,
                                     const Tempest::IndexBuffer<uint32_t> &ibo,
+                                    const Bounds& bounds);
+    size_t                    alloc(const Tempest::VertexBuffer<Vertex>* vbo[],
                                     const Bounds& bounds);
     void                      free(const size_t objId);
 
@@ -131,9 +140,11 @@ class ObjectsBucket final {
       };
 
     struct Object final {
-      const Tempest::VertexBuffer<Vertex>*  vbo  = nullptr;
-      const Tempest::VertexBuffer<VertexA>* vboA = nullptr;
-      const Tempest::IndexBuffer<uint32_t>* ibo  = nullptr;
+      VboType                               vboType = VboType::NoVbo;
+      const Tempest::VertexBuffer<Vertex>*  vbo     = nullptr;
+      const Tempest::VertexBuffer<Vertex>*  vboM[Resources::MaxFramesInFlight] = {};
+      const Tempest::VertexBuffer<VertexA>* vboA    = nullptr;
+      const Tempest::IndexBuffer<uint32_t>* ibo     = nullptr;
       Bounds                                bounds;
       Tempest::Matrix4x4                    pos;
 
@@ -166,7 +177,7 @@ class ObjectsBucket final {
     const Tempest::RenderPipeline* pLight  = nullptr;
     const Tempest::RenderPipeline* pShadow = nullptr;
 
-    Object& implAlloc(const Tempest::IndexBuffer<uint32_t> &ibo, const Bounds& bounds);
+    Object& implAlloc(const VboType type, const Bounds& bounds);
     void    uboSetCommon(Descriptors& v);
     bool    groupVisibility(Painter3d& p);
 

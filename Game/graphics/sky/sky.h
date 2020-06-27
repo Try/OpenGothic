@@ -17,8 +17,8 @@ class Sky final {
     Sky(const SceneGlobals& scene);
 
     void setWorld   (const World& world);
-    void draw       (Painter3d& p, uint32_t frameId);
     void setDayNight(float dayF);
+    void draw       (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
 
   private:
     struct Layer final {

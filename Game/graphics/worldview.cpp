@@ -11,8 +11,8 @@ using namespace Tempest;
 
 WorldView::WorldView(const World &world, const PackedMesh &wmesh, const RendererStorage &storage)
   : owner(world),storage(storage),sGlobal(storage),visuals(sGlobal),
-    sky(sGlobal),objGroup(visuals),pfxGroup(sGlobal),land(*this,visuals,wmesh) {
-  sky.setWorld(owner);
+    objGroup(visuals),pfxGroup(sGlobal,visuals),land(*this,visuals,wmesh) {
+  visuals.setWorld(owner);
   pfxGroup.resetTicks();
   }
 
@@ -74,7 +74,6 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
     // wait before update all descriptors
     sGlobal.storage.device.waitIdle();
     visuals.setupUbo();
-    pfxGroup.setupUbo();
     }
   if(&shadow!=sGlobal.shadowMap) {
     // wait before update all descriptors
@@ -82,12 +81,13 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
     sGlobal.setShadowmMap(shadow);
 
     visuals.setupUbo();
-    pfxGroup.setupUbo();
     }
   sGlobal .setTime(tickCount);
   pfxGroup.tick(tickCount);
   sGlobal .commitUbo(fId);
+
   visuals .preFrameUpdate(fId);
+  pfxGroup.preFrameUpdate(fId);
   }
 
 void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId, uint8_t layer) {
@@ -96,8 +96,6 @@ void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& pain
 
 void WorldView::drawMain(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId) {
   visuals.draw(painter,cmd,fId);
-  sky     .draw(painter,fId);
-  pfxGroup.draw(painter,fId);
   }
 
 MeshObjects::Mesh WorldView::getView(const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
@@ -169,7 +167,7 @@ void WorldView::updateLight() {
 
   setupSunDir(pulse,std::fmod(k+0.25f,1.f));
   sGlobal.sun.setColor(clr);
-  sky.setDayNight(std::min(std::max(pulse*3.f,0.f),1.f));
+  visuals.setDayNight(std::min(std::max(pulse*3.f,0.f),1.f));
   }
 
 void WorldView::resetCmd() {

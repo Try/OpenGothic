@@ -7,21 +7,20 @@
 #include <list>
 #include <random>
 
+#include "visualobjects.h"
 #include "resources.h"
 
 class SceneGlobals;
 class RendererStorage;
 class ParticleFx;
 class Painter3d;
-class Light;
-class Pose;
 
 class PfxObjects final {
   private:
     struct Bucket;
 
   public:
-    PfxObjects(const SceneGlobals& scene);
+    PfxObjects(const SceneGlobals& scene, VisualObjects& visual);
     ~PfxObjects();
 
     class Emitter final {
@@ -57,16 +56,10 @@ class PfxObjects final {
     void    resetTicks();
     void    tick(uint64_t ticks);
 
-    void    setupUbo();
-    void    draw     (Painter3d& p, uint32_t fId);
+    void    preFrameUpdate(uint8_t fId);
 
   private:
     using Vertex = Resources::Vertex;
-
-    struct PerFrame final {
-      Tempest::Uniforms                ubo;
-      Tempest::VertexBufferDyn<Vertex> vbo;
-      };
 
     struct ImplEmitter;
     struct Block final {
@@ -102,10 +95,12 @@ class PfxObjects final {
       };
 
     struct Bucket final {
-      Bucket(const RendererStorage& storage,const ParticleFx &ow,PfxObjects* parent);
-      PerFrame                    pf[Resources::MaxFramesInFlight];
+      Bucket(const ParticleFx &ow, PfxObjects* parent);
 
-      std::vector<Vertex>         vbo;
+      ObjectsBucket::Item         item;
+      Tempest::VertexBufferDyn<Vertex> vboGpu[Resources::MaxFramesInFlight];
+      std::vector<Vertex>         vboCpu;
+
       std::vector<ParState>       particles;
 
       std::vector<ImplEmitter>    impl;
@@ -114,6 +109,8 @@ class PfxObjects final {
       const ParticleFx*           owner=nullptr;
       PfxObjects*                 parent=nullptr;
       size_t                      blockSize=0;
+
+      bool                        isEmpty() const;
 
       size_t                      allocBlock();
       void                        freeBlock(size_t& s);
@@ -153,9 +150,11 @@ class PfxObjects final {
     void                          buildVbo(Bucket& b, const VboContext& ctx);
 
     const SceneGlobals&           scene;
+    VisualObjects&                visual;
     std::mutex                    sync;
-    std::list<Bucket>             bucket;
-    std::vector<SpriteEmitter>    spriteEmit;
+
+    std::vector<std::unique_ptr<Bucket>> bucket;
+    std::vector<SpriteEmitter>           spriteEmit;
 
     Tempest::Vec3                 viewePos={};
 

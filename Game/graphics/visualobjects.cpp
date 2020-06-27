@@ -9,7 +9,7 @@
 using namespace Tempest;
 
 VisualObjects::VisualObjects(const SceneGlobals& globals)
-  :globals(globals) {
+  :globals(globals), sky(globals) {
   }
 
 ObjectsBucket& VisualObjects::getBucket(const Material& mat, ObjectsBucket::Type type) {
@@ -58,6 +58,16 @@ ObjectsBucket::Item VisualObjects::get(Tempest::VertexBuffer<Resources::Vertex>&
   return ObjectsBucket::Item(bucket,id);
   }
 
+ObjectsBucket::Item VisualObjects::get(const Tempest::VertexBuffer<Resources::Vertex>* vbo[], const Material& mat, const Bounds& bbox) {
+  if(mat.tex==nullptr) {
+    Tempest::Log::e("no texture?!");
+    return ObjectsBucket::Item();
+    }
+  auto&        bucket = getBucket(mat,ObjectsBucket::Movable);
+  const size_t id     = bucket.alloc(vbo,bbox);
+  return ObjectsBucket::Item(bucket,id);
+  }
+
 void VisualObjects::setupUbo() {
   for(auto& c:buckets)
     c.setupUbo();
@@ -76,8 +86,19 @@ void VisualObjects::draw(Painter3d& painter, Tempest::Encoder<Tempest::CommandBu
     c->visibilityPass(painter);
     });
 
-  for(auto c:index)
+  size_t i=0;
+  for(;i<index.size();++i) {
+    auto c = index[i];
+    if(c->material().alpha!=Material::Solid && c->material().alpha!=Material::AlphaTest)
+      break;
     c->draw(enc,fId);
+    }
+  sky.draw(enc,fId);
+  for(;i<index.size();++i) {
+    auto c = index[i];
+    c->draw(enc,fId);
+    }
+
   for(auto c:index)
     c->drawLight(enc,fId);
   }
@@ -92,6 +113,14 @@ void VisualObjects::drawShadow(Painter3d& painter, Tempest::Encoder<Tempest::Com
 
   for(auto c:index)
     c->drawShadow(enc,fId,layer);
+  }
+
+void VisualObjects::setWorld(const World& world) {
+  sky.setWorld(world);
+  }
+
+void VisualObjects::setDayNight(float dayF) {
+  sky.setDayNight(dayF);
   }
 
 void VisualObjects::mkIndex() {

@@ -30,6 +30,18 @@ Material::Material(const ZenLoad::zCMaterialData& m) {
     }
   }
 
+Material::Material(const Daedalus::GEngineClasses::C_ParticleFX& src) {
+  tex = Resources::loadTexture(src.visName_S.c_str());
+  if(src.visAlphaFunc_S=="NONE")
+    alpha = AlphaTest;
+  if(src.visAlphaFunc_S=="BLEND")
+    alpha = Transparent;
+  if(src.visAlphaFunc_S=="ADD")
+    alpha = AdditiveLight;
+  if(src.visAlphaFunc_S=="MUL")
+    alpha = Multiply;
+  }
+
 Vec2 Material::loadVec2(const std::string& src) {
   if(src=="=")
     return Vec2();
@@ -61,7 +73,8 @@ bool Material::operator < (const Material& other) const {
 
 bool Material::operator ==(const Material& other) const {
   return tex==other.tex &&
-         alpha==other.alpha;
+         alpha==other.alpha &&
+         texAniMapDirPeriod==other.texAniMapDirPeriod;
   }
 
 int Material::alphaOrder(Material::ApphaFunc a) {
