@@ -45,8 +45,6 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
   loadBox    = Resources::loadTexture("PROGRESS.TGA");
   loadVal    = Resources::loadTexture("PROGRESS_BAR.TGA");
 
-  timer.timeout.bind(this,&MainWindow::tick);
-
   gothic.onStartGame    .bind(this,&MainWindow::startGame);
   gothic.onLoadGame     .bind(this,&MainWindow::loadGame);
   gothic.onSaveGame     .bind(this,&MainWindow::saveGame);
@@ -65,8 +63,6 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
   else {
     gothic.setMusic(GameMusic::SysMenu);
     }
-
-  timer.start(10);
   }
 
 MainWindow::~MainWindow() {
@@ -682,8 +678,10 @@ void MainWindow::render(){
 
     followCamera();
 
-    if(!gothic.isPause())
+    if(!gothic.isPause()) {
+      tick();
       gothic.updateAnimation();
+      }
 
     auto& context = fLocal[swapchain.frameId()];
 

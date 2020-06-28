@@ -41,13 +41,14 @@ StaticMesh::StaticMesh(const ZenLoad::PackedSkeletalMesh &mesh) {
   bbox.assign(mesh.bbox);
   }
 
-StaticMesh::StaticMesh(const std::string& fname, std::vector<Resources::Vertex> cvbo, std::vector<uint32_t> ibo) {
+StaticMesh::StaticMesh(const ZenLoad::zCVobData& vob, std::vector<Resources::Vertex> cvbo, std::vector<uint32_t> ibo) {
   vbo = Resources::vbo<Vertex>(cvbo.data(),cvbo.size());
   sub.resize(1);
   for(size_t i=0;i<1;++i){
-    sub[i].texName      = fname;
-    sub[i].material.tex = Resources::loadTexture(sub[i].texName.c_str());
-    sub[i].ibo          = Resources::ibo(ibo.data(),ibo.size());
+    sub[i].texName        = vob.visual;
+    sub[i].material       = Material(vob); // Resources::loadTexture(sub[i].texName.c_str());
+    sub[i].material.alpha = Material::Transparent;
+    sub[i].ibo            = Resources::ibo(ibo.data(),ibo.size());
     }
   bbox.assign(cvbo);
   }

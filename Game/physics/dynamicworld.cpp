@@ -777,10 +777,10 @@ ProtoMesh DynamicWorld::decalMesh(const ZenLoad::zCVobData& vob, const Tempest::
   float sY = vob.visualChunk.zCDecal.decalDim.y;
 
   Resources::Vertex vbo[4] = {
-    {{-1.f, -1.f, 0.f},{0,0,-1},{0,0},0},
-    {{ 1.f, -1.f, 0.f},{0,0,-1},{1,0},0},
-    {{ 1.f,  1.f, 0.f},{0,0,-1},{1,1},0},
-    {{-1.f,  1.f, 0.f},{0,0,-1},{0,1},0},
+    {{-1.f, -1.f, 0.f},{0,0,-1},{0,1},0},
+    {{ 1.f, -1.f, 0.f},{0,0,-1},{1,1},0},
+    {{ 1.f,  1.f, 0.f},{0,0,-1},{1,0},0},
+    {{-1.f,  1.f, 0.f},{0,0,-1},{0,0},0},
     };
 
   for(auto& i:vbo) {
@@ -794,12 +794,14 @@ ProtoMesh DynamicWorld::decalMesh(const ZenLoad::zCVobData& vob, const Tempest::
     i.norm[0]/=w;
     i.norm[1]/=w;
     i.norm[2]/=w;
+
+    i.color = 0xFFFFFFFF;
     }
 
   std::vector<Resources::Vertex> cvbo(vbo,vbo+4);
   std::vector<uint32_t>          cibo = { 0,1,2, 0,2,3 };
 
-  return ProtoMesh(vob.visual, std::move(cvbo), std::move(cibo));
+  return ProtoMesh(vob, std::move(cvbo), std::move(cibo));
   }
 
 void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint64_t dt) {

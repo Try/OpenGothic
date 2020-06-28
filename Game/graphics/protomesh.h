@@ -16,13 +16,13 @@ class ProtoMesh {
 
     ProtoMesh(const ZenLoad::zCModelMeshLib& lib,const std::string& fname);
     ProtoMesh(ZenLoad::PackedMesh&&     pm, const std::string& fname);
-    ProtoMesh(const std::string& fname, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo);
+    ProtoMesh(const ZenLoad::zCVobData& vob, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo);
     ProtoMesh(ProtoMesh&&)=default;
     ProtoMesh& operator=(ProtoMesh&&)=default;
     ~ProtoMesh();
 
     struct SubMesh final {
-      Tempest::Texture2d*              texture=nullptr;
+      Material                         material;
       Tempest::IndexBuffer<uint32_t>   ibo;
       std::unique_ptr<PhysicMeshShape> shape;
       };

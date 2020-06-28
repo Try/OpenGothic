@@ -15,8 +15,8 @@ Landscape::Landscape(WorldView& owner, VisualObjects& visual, const PackedMesh &
   const Resources::Vertex* vert=reinterpret_cast<const Resources::Vertex*>(mesh.vertices.data());
   vbo = Resources::vbo<Resources::Vertex>(vert,mesh.vertices.size());
 
-  Bounds                bbox;
-  Matrix4x4             ident;
+  Bounds    bbox;
+  Matrix4x4 ident;
   ident.identity();
 
   for(auto& i:mesh.subMeshes) {

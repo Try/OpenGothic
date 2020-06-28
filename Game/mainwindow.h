@@ -97,7 +97,6 @@ class MainWindow : public Tempest::Window {
     Renderer              renderer;
 
     MenuRoot*             rootMenu=nullptr;
-    Tempest::Timer        timer;
 
     struct FrameLocal {
       explicit FrameLocal(Tempest::Device& dev):imageAvailable(dev.semaphore()),renderDone(dev.semaphore()),gpuLock(dev.fence()){}
