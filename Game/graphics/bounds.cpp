@@ -32,8 +32,13 @@ void Bounds::assign(const Bounds& a, const Bounds& b) {
   }
 
 void Bounds::assign(const ZMath::float3* src) {
-  std::memcpy(bbox,   src, 2*sizeof(Vec3));
-  std::memcpy(bboxTr, src, 2*sizeof(Vec3));
+  for(size_t i=0; i<2; ++i) {
+    bbox[i].x = src[i].x;
+    bbox[i].y = src[i].y;
+    bbox[i].z = src[i].z;
+    }
+  bboxTr[0] = bbox[0];
+  bboxTr[1] = bbox[1];
   midTr = (bboxTr[0]+bboxTr[1])/2;
   calcR();
   }
@@ -49,9 +54,11 @@ void Bounds::assign(const Vec3* src) {
   }
 
 void Bounds::assign(const std::vector<Resources::Vertex>& vbo) {
-  if(vbo.size()==0){
-    std::memset(bbox,   0, 2*sizeof(Vec3));
-    std::memset(bboxTr, 0, 2*sizeof(Vec3));
+  if(vbo.size()==0) {
+    bbox[0]   = Vec3();
+    bbox[1]   = Vec3();
+    bboxTr[0] = bbox[0];
+    bboxTr[1] = bbox[1];
     midTr = Vec3();
     r     = 0;
     return;
@@ -76,10 +83,12 @@ void Bounds::assign(const std::vector<Resources::Vertex>& vbo) {
 
 void Bounds::assign(const std::vector<ZenLoad::WorldVertex>& vbo, const std::vector<uint32_t>& ibo) {
   if(ibo.size()==0){
-    std::memset(bbox,   0, 2*sizeof(Vec3));
-    std::memset(bboxTr, 0, 2*sizeof(Vec3));
-    midTr = Vec3();
-    r     = 0;
+    bbox[0]   = Vec3();
+    bbox[1]   = Vec3();
+    bboxTr[0] = bbox[0];
+    bboxTr[1] = bbox[1];
+    midTr     = Vec3();
+    r         = 0;
     return;
     }
 
