@@ -497,6 +497,10 @@ Npc *World::addNpc(size_t npcInstance, const Daedalus::ZString& at) {
   return wobj.addNpc(npcInstance,at);
   }
 
+Npc* World::addNpc(size_t itemInstance, const Vec3& at) {
+  return wobj.addNpc(itemInstance,at);
+  }
+
 Item *World::addItem(size_t itemInstance, const char *at) {
   return wobj.addItem(itemInstance,at);
   }

@@ -1486,7 +1486,7 @@ Npc *Npc::updateNearestEnemy() {
     }
 
   owner.detectNpcNear([this,&ret,&dist](Npc& n){
-    if(!isEnemy(n) || n.isDown())
+    if(!isEnemy(n) || n.isDown() || &n==this)
       return;
 
     float d = qDistTo(n);

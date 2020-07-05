@@ -50,6 +50,7 @@ class WorldObjects final {
     uint32_t       itmId(const void* ptr) const;
 
     Npc*           addNpc(size_t itemInstance, const Daedalus::ZString& at);
+    Npc*           addNpc(size_t itemInstance, const Tempest::Vec3&     at);
     Npc*           insertPlayer(std::unique_ptr<Npc>&& npc, const Daedalus::ZString& waypoint);
     auto           takeNpc(const Npc* npc) -> std::unique_ptr<Npc>;
 

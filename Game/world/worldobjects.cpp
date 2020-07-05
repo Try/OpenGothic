@@ -184,6 +184,16 @@ Npc *WorldObjects::addNpc(size_t npcInstance, const Daedalus::ZString& at) {
   return npc;
   }
 
+Npc* WorldObjects::addNpc(size_t npcInstance, const Vec3& pos) {
+  Npc* npc = new Npc(owner,npcInstance,"");
+  npc->setPosition  (pos.x,pos.y,pos.z);
+  //npc->setDirection (pos->dirX,pos->dirY,pos->dirZ);
+  npc->updateTransform();
+
+  npcArr.emplace_back(npc);
+  return npc;
+  }
+
 Npc* WorldObjects::insertPlayer(std::unique_ptr<Npc> &&npc, const Daedalus::ZString& at) {
   auto pos = owner.findPoint(at.c_str());
   if(pos==nullptr){

@@ -141,6 +141,7 @@ class World final {
     bool                 isTargeted (Npc& npc);
     Npc*                 addNpc     (const char* name,    const Daedalus::ZString& at);
     Npc*                 addNpc     (size_t itemInstance, const Daedalus::ZString& at);
+    Npc*                 addNpc     (size_t itemInstance, const Tempest::Vec3&     at);
     Item*                addItem    (size_t itemInstance, const char *at);
     Item*                takeItem   (Item& it);
     void                 removeItem (Item &it);

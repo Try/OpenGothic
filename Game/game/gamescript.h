@@ -233,6 +233,7 @@ class GameScript final {
     void wld_detectnpc        (Daedalus::DaedalusVM& vm);
     void wld_detectnpcex      (Daedalus::DaedalusVM& vm);
     void wld_detectitem       (Daedalus::DaedalusVM& vm);
+    void wld_spawnnpcrange    (Daedalus::DaedalusVM& vm);
 
     void mdl_setvisual       (Daedalus::DaedalusVM& vm);
     void mdl_setvisualbody   (Daedalus::DaedalusVM& vm);
@@ -415,6 +416,8 @@ class GameScript final {
     bool doesNpcKnowInfo(const Daedalus::GEngineClasses::C_Npc& npc, size_t infoInstance) const;
 
     void saveSym(Serialize& fout,const Daedalus::PARSymbol& s);
+
+    void fixNpcPosition(Npc& npc, float angle0, float distBias);
 
     Daedalus::DaedalusVM                                        vm;
     GameSession&                                                owner;

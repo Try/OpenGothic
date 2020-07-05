@@ -126,6 +126,7 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("wld_detectnpc",       [this](Daedalus::DaedalusVM& vm){ wld_detectnpc(vm);            });
   vm.registerExternalFunction("wld_detectnpcex",     [this](Daedalus::DaedalusVM& vm){ wld_detectnpcex(vm);          });
   vm.registerExternalFunction("wld_detectitem",      [this](Daedalus::DaedalusVM& vm){ wld_detectitem(vm);           });
+  vm.registerExternalFunction("wld_spawnnpcrange",   [this](Daedalus::DaedalusVM& vm){ wld_spawnnpcrange(vm);        });
 
   vm.registerExternalFunction("mdl_setvisual",       [this](Daedalus::DaedalusVM& vm){ mdl_setvisual(vm);        });
   vm.registerExternalFunction("mdl_setvisualbody",   [this](Daedalus::DaedalusVM& vm){ mdl_setvisualbody(vm);    });
@@ -620,6 +621,28 @@ void GameScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
       return;
     }
   fout.write(uint32_t(Daedalus::EParType::EParType_Void));
+  }
+
+void GameScript::fixNpcPosition(Npc& npc, float angle0, float distBias) {
+  auto& dyn  = *world().physic();
+  auto  pos0 = npc.position();
+
+  for(int r = 0; r<=800; r+=20) {
+    for(float ang = 0; ang<360; ang+=30) {
+      float a = float((ang+angle0)*M_PI/180.0);
+      float d = float(r)+distBias;
+      auto  p = pos0+Vec3(std::cos(a)*d, 0, std::sin(a)*d);
+
+      auto ray = dyn.ray(p.x,p.y+100,p.z, p.x,p.y-1000,p.z);
+      if(!ray.hasCol)
+        continue;
+      p.y = ray.v.y;
+      npc.setPosition(p);
+      if(!npc.hasCollision())
+        return;
+      }
+    }
+  npc.setPosition(pos0);
   }
 
 const World &GameScript::world() const {
@@ -1572,6 +1595,22 @@ void GameScript::wld_detectitem(Daedalus::DaedalusVM &vm) {
   vm.setReturn(0);
   }
 
+void GameScript::wld_spawnnpcrange(Daedalus::DaedalusVM& vm) {
+  int32_t lifeTime = vm.popInt();
+  int32_t count    = vm.popInt();
+  int32_t clsId    = vm.popInt();
+  auto    at       = popInstance(vm);
+
+  if(at==nullptr || clsId<=0)
+    return;
+
+  (void)lifeTime;
+  for(int32_t i=0;i<count;++i) {
+    auto* npc = world().addNpc(size_t(clsId),at->position());
+    fixNpcPosition(*npc,at->rotation()-90,100);
+    }
+  }
+
 void GameScript::mdl_setvisual(Daedalus::DaedalusVM &vm) {
   const auto& visual = vm.popString();
   auto        npc    = popInstance(vm);
@@ -1694,7 +1733,8 @@ void GameScript::wld_insertnpc(Daedalus::DaedalusVM &vm) {
     Log::e("invalid waypoint \"",spawnpoint.c_str(),"\"");
     return;
     }
-  world().addNpc(size_t(npcInstance),spawnpoint);
+  auto npc = world().addNpc(size_t(npcInstance),spawnpoint);
+  fixNpcPosition(*npc,0,0);
   }
 
 void GameScript::wld_insertitem(Daedalus::DaedalusVM &vm) {
