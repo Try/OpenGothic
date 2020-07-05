@@ -1403,7 +1403,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
 
   const bool isSpell = b!=nullptr && b->isSpell();
   const bool isJumpb = visual.pose().isJumpBack();
-  const bool isBlock = !other.isMonster() &&
+  const bool isBlock = (!other.isMonster() || other.inventory().activeWeapon()!=nullptr) &&
                        fghAlgo.isInAtackRange(*this,other,owner.script()) &&
                        visual.pose().isDefence(owner.tickCount());
 
