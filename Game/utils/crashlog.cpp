@@ -17,6 +17,7 @@ static char gpuName[64]="?";
 #include <windows.h>
 
 static LONG WINAPI exceptionHandler(PEXCEPTION_POINTERS) {
+  SetUnhandledExceptionFilter(nullptr);
   CrashLog::dumpStack("ExceptionFilter");
   return EXCEPTION_EXECUTE_HANDLER;
   }
@@ -95,6 +96,7 @@ void CrashLog::dumpStack(const char *sig) {
   if(sig==nullptr)
     sig = "SIGSEGV";
 
+  std::cout.setf(std::ios::unitbuf);
   std::cout << std::endl << "---crashlog(" <<  sig   << ")---" << std::endl;
   writeSysInfo(std::cout);
   traceback.collect(0);
@@ -102,6 +104,7 @@ void CrashLog::dumpStack(const char *sig) {
   std::cout << std::endl;
 
   std::ofstream fout("crash.log");
+  fout.setf(std::ios::unitbuf);
   fout << "---crashlog(" <<  sig << ")---" << std::endl;
   writeSysInfo(fout);
   traceback.log(db, fout);

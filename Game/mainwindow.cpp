@@ -711,6 +711,7 @@ void MainWindow::render(){
     }
   catch(const Tempest::DeviceLostException&) {
     Log::e("lost device!");
+    device.waitIdle();
     swapchain.reset();
     renderer.resetSwapchain();
     }
