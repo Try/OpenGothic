@@ -724,6 +724,10 @@ const ParticleFx* GameScript::getSpellFx(const VisualFx* vfx) {
   return getParticleFx(vfx->handle().visName_S.c_str());
   }
 
+const VisualFx* GameScript::getVisualFx(const char* name) {
+  return owner.loadVisualFx(name);
+  }
+
 const ParticleFx *GameScript::getParticleFx(const char *symbol) {
   return owner.loadParticleFx(symbol);
   }

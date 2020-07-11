@@ -11,7 +11,8 @@ class VisualFx final {
   public:
     VisualFx(Daedalus::GEngineClasses::CFx_Base&& src);
 
-    const Daedalus::GEngineClasses::CFx_Base& handle() const { return fx; }
+    const Daedalus::GEngineClasses::CFx_Base&            handle() const { return fx; }
+
     const Daedalus::GEngineClasses::C_ParticleFXEmitKey& key(SpellFxKey type) const;
     Daedalus::GEngineClasses::C_ParticleFXEmitKey&       key(SpellFxKey type);
 

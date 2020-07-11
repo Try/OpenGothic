@@ -538,11 +538,6 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
     dz = s;
     }
 
-  const int32_t     id  = itm.spellId();
-  const VisualFx*   vfx = script().getSpellVFx(id);
-  if(vfx!=nullptr)
-    vfx->emitSound(*this,pos,SpellFxKey::Cast);
-
   auto& b = wobj.shootBullet(itm, pos.x,pos.y,pos.z, dx,dy,dz, DynamicWorld::spellSpeed);
   return b;
   }

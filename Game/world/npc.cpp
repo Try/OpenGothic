@@ -2053,6 +2053,12 @@ void Npc::commitSpell() {
   const int32_t   splId = active->spellId();
   owner.script().invokeSpell(*this,currentTarget,*active);
 
+  const VisualFx* vfx = owner.script().getSpellVFx(splId);
+  if(vfx!=nullptr) {
+    vfx->emitSound(owner,position(),SpellFxKey::Cast);
+    visual.startParticleEffect(owner,*vfx,SpellFxKey::Cast);
+    }
+
   if(active->isSpellShoot()) {
     auto& spl = owner.script().getSpell(splId);
     std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> dmg={};
@@ -2375,7 +2381,7 @@ bool Npc::drawMage(uint8_t slot) {
   }
 
 bool Npc::drawSpell(int32_t spell) {
-  if(isFaling() || mvAlgo.isSwim())
+  if(isFaling() || mvAlgo.isSwim() || bodyStateMasked()==BS_CASTING)
     return false;
   auto weaponSt=weaponState();
   if(weaponSt!=WeaponState::NoWeapon && weaponSt!=WeaponState::Mage) {

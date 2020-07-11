@@ -1,4 +1,5 @@
 #include "mdlvisual.h"
+#include "particlefx.h"
 
 #include "graphics/skeleton.h"
 #include "game/serialize.h"
@@ -170,6 +171,22 @@ bool MdlVisual::setFightMode(const ZenLoad::EFightMode mode) {
     }
 
   return setToFightMode(f);
+  }
+
+void MdlVisual::startParticleEffect(World& owner, const VisualFx& src, SpellFxKey key) {
+  auto& k = src.key(key);
+  const VisualFx*   vfx = owner.script().getVisualFx(k.emCreateFXID.c_str());
+  if(vfx==nullptr)
+    return;
+  //vfx->handle().sfxID;
+  const ParticleFx* pfx = owner.script().getParticleFx(vfx->handle().visName_S.c_str());
+  if(pfx==nullptr)
+    return;
+
+  auto vemitter = owner.getView(pfx);
+  startParticleEffect(std::move(vemitter),-1,
+                      vfx->handle().emTrjOriginNode.c_str(),
+                      owner.tickCount()+pfx->effectPrefferedTime());
   }
 
 void MdlVisual::startParticleEffect(PfxObjects::Emitter&& pfx, int32_t slot, const char* bone, uint64_t timeUntil) {

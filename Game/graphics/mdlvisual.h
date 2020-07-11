@@ -7,6 +7,7 @@
 #include "pfxobjects.h"
 #include "meshobjects.h"
 #include "animationsolver.h"
+#include "visualfx.h"
 
 class Serialize;
 class Npc;
@@ -41,6 +42,7 @@ class MdlVisual final {
     void                           clearSlotItem (const char *bone);
     bool                           setFightMode(const ZenLoad::EFightMode mode);
 
+    void                           startParticleEffect(World& owner, const VisualFx& vfx, SpellFxKey key);
     void                           startParticleEffect(PfxObjects::Emitter&& pfx, int32_t slot, const char* bone, uint64_t timeUntil);
     void                           stopParticleEffect(int32_t slot);
 
