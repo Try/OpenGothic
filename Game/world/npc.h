@@ -459,6 +459,7 @@ class Npc final {
     void      stopParticleEffect(int32_t slot);
 
     void      playEffect(Npc& to, const VisualFx& vfx);
+    void      commitSpell();
 
   private:
     struct Routine final {

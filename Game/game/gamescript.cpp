@@ -961,9 +961,12 @@ int GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
   if(fn==size_t(-1))
     return 0;
 
+  int32_t splLevel = 0;
+
   ScopeVar self (vm, vm.globalSelf(),  npc);
   ScopeVar other(vm, vm.globalOther(), target);
   try {
+    vm.pushInt(splLevel);
     return runFunction(fn);
     }
   catch(...){

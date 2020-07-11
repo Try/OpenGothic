@@ -77,8 +77,8 @@ void WorldObjects::tick(uint64_t dt) {
   auto passive=std::move(sndPerc);
   sndPerc.clear();
 
-  for(auto& i:npcArr)
-    i->tick(dt);
+  for(size_t i=0; i<npcArr.size(); ++i)
+    npcArr[i]->tick(dt);
 
   for(auto& i:interactiveObj)
     i.tick(dt);

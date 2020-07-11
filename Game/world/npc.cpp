@@ -1225,8 +1225,6 @@ bool Npc::implAtack(uint64_t dt) {
     if(ws==WeaponState::Mage){
       if(castSpell()) {
         fghAlgo.consumeAction();
-        } else {
-        visual.stopAnim(*this,nullptr);
         }
       }
     else if(ws==WeaponState::Bow || ws==WeaponState::CBow){
@@ -1526,6 +1524,11 @@ void Npc::tick(uint64_t dt) {
   if(!isPlayer() && visual.isItem() && !invent.hasStateItem()) {
     // forward from S_IITEMSCHEME to Idle
     setAnim(AnimationSolver::Idle);
+    }
+
+  if(bodyStateMasked()==BodyState::BS_CASTING) {
+    if(setAnim(Npc::Anim::Idle))
+      commitSpell();
     }
 
   if(!isDead()) {
@@ -2042,6 +2045,52 @@ void Npc::playEffect(Npc& /*to*/, const VisualFx& vfx) {
     }
   }
 
+void Npc::commitSpell() {
+  auto active=invent.activeWeapon();
+  if(active==nullptr || !active->isSpellOrRune())
+    return;
+
+  const int32_t   splId = active->spellId();
+  owner.script().invokeSpell(*this,currentTarget,*active);
+
+  if(active->isSpellShoot()) {
+    auto& spl = owner.script().getSpell(splId);
+    std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> dmg={};
+    for(size_t i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i)
+      if((spl.damageType&(1<<i))!=0) {
+        dmg[i] = spl.damage_per_level;
+        }
+
+    auto& b = owner.shootSpell(*active, *this, currentTarget);
+    b.setOwner(this);
+    b.setDamage(dmg);
+    b.setHitChance(1.f);
+    } else {
+    if(currentTarget!=nullptr) {
+      currentTarget->lastHitSpell = splId;
+      currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
+      }
+    }
+  if(active->isSpell()) {
+    size_t cnt = active->count();
+    invent.delItem(active->clsId(),1,*this);
+    if(cnt<=1) {
+      Item* spl = nullptr;
+      for(uint8_t i=0;i<8;++i) {
+        if(auto s = invent.currentSpell(i)) {
+          spl = s;
+          break;
+          }
+        }
+      if(spl==nullptr) {
+        aiRemoveWeapon();
+        } else {
+        drawSpell(spl->spellId());
+        }
+      }
+    }
+  }
+
 const Npc::Routine& Npc::currentRoutine() const {
   auto time = owner.time();
   time = gtime(int32_t(time.hour()),int32_t(time.minute()));
@@ -2413,8 +2462,10 @@ bool Npc::castSpell() {
   if(active==nullptr)
     return false;
 
-  if(!isStanding())
+  if(!isStanding()) {
+    setAnim(Anim::Idle);
     return false;
+    }
 
   const int32_t   splId = active->spellId();
   const SpellCode code  = SpellCode(owner.script().invokeMana(*this,currentTarget,*active));
@@ -2429,32 +2480,11 @@ bool Npc::castSpell() {
         return false;
       break;
       }
+    case SpellCode::SPL_DONTINVEST:
     case SpellCode::SPL_SENDCAST: {
       auto& ani = owner.script().spellCastAnim(*this,*active);
       if(!visual.startAnimSpell(*this,ani.c_str()))
         return false;
-      owner.script().invokeSpell(*this,currentTarget,*active);
-      if(active->isSpellShoot()) {
-        auto& spl = owner.script().getSpell(splId);
-        std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> dmg={};
-        for(size_t i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i)
-          if((spl.damageType&(1<<i))!=0) {
-            dmg[i] = spl.damage_per_level;
-            }
-
-        auto& b = owner.shootSpell(*active, *this, currentTarget);
-        b.setOwner(this);
-        b.setDamage(dmg);
-        b.setHitChance(1.f);
-        } else {
-        if(currentTarget!=nullptr) {
-          currentTarget->lastHitSpell = splId;
-          currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
-          }
-        }
-
-      if(active->isSpell())
-        invent.delItem(active->clsId(),1,*this);
       break;
       }
     default:
