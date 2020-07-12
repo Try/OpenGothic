@@ -106,12 +106,12 @@ const WayPoint *WayMatrix::findNextPoint(float x, float y, float z) const {
   return ret;
   }
 
-void WayMatrix::addFreePoint(float x, float y, float z, float dx, float dy, float dz, const char *name) {
-  freePoints.emplace_back(x,y,z,dx,dy,dz,name);
+void WayMatrix::addFreePoint(const Vec3& pos, const Vec3& dir, const char *name) {
+  freePoints.emplace_back(pos,dir,name);
   }
 
-void WayMatrix::addStartPoint(float x, float y, float z, float dx, float dy, float dz, const char *name) {
-  startPoints.emplace_back(x,y,z,dx,dy,dz,name);
+void WayMatrix::addStartPoint(const Vec3& pos, const Vec3& dir, const char *name) {
+  startPoints.emplace_back(pos,dir,name);
   }
 
 const WayPoint &WayMatrix::startPoint() const {
@@ -125,7 +125,7 @@ const WayPoint &WayMatrix::startPoint() const {
 
   if(startPoints.size()>0)
     return startPoints.back();
-  static WayPoint p(0,0,0,"START");
+  static WayPoint p(Vec3(),"START");
   return p;
   }
 

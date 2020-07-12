@@ -10,11 +10,8 @@
 #include <Tempest/Log>
 
 
-Interactive::Interactive(World &world, ZenLoad::zCVobData&& vob)
-  :world(&world),skInst(std::make_unique<Pose>()) {
-  float v[16]={};
-  std::memcpy(v,vob.worldMatrix.m,sizeof(v));
-
+Interactive::Interactive(World &world, ZenLoad::zCVobData&& vob, bool startup)
+  : Vob(world,vob,startup), world(&world),skInst(std::make_unique<Pose>()) {
   vobType       = vob.vobType;
   vobName       = std::move(vob.vobName);
   focName       = std::move(vob.oCMOB.focusName);
@@ -31,8 +28,6 @@ Interactive::Interactive(World &world, ZenLoad::zCVobData&& vob)
   conditionFunc = std::move(vob.oCMobInter.conditionFunc);
   onStateFunc   = std::move(vob.oCMobInter.onStateFunc);
   rewind        = std::move(vob.oCMobInter.rewind);
-
-  pos           = Tempest::Matrix4x4(v);
 
   for(auto& i:owner)
     i = char(std::toupper(i));
@@ -59,6 +54,7 @@ Interactive::Interactive(World &world, ZenLoad::zCVobData&& vob)
       }
     }
   setVisual(mdlVisual);
+  world.addInteractive(this);
   }
 
 Interactive::Interactive(World &world)
@@ -66,6 +62,7 @@ Interactive::Interactive(World &world)
   }
 
 void Interactive::load(Serialize &fin) {
+  Tempest::Matrix4x4 pos;
   uint8_t vt=0;
   fin.read(vt,vobName,focName,mdlVisual);
   vobType = ZenLoad::zCVobData::EVobType(vt);
@@ -80,6 +77,7 @@ void Interactive::load(Serialize &fin) {
   invent.load(*this,*world,fin);
   fin.read(pos,state,reverseState,loopState);
 
+  setTransform(pos);
   setVisual(mdlVisual);
 
   uint32_t sz=0;
@@ -108,7 +106,7 @@ void Interactive::save(Serialize &fout) const {
   fout.write(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
   fout.write(locked,keyInstance,pickLockStr);
   invent.save(fout);
-  fout.write(pos,state,reverseState,loopState);
+  fout.write(transform(),state,reverseState,loopState);
 
   fout.write(uint32_t(attPos.size()));
   for(auto& i:attPos) {
@@ -130,10 +128,10 @@ void Interactive::setVisual(const std::string &visual) {
       }
 
     view  .setSkeleton (skeleton);
-    view  .setObjMatrix(pos);
+    view  .setObjMatrix(transform());
 
     physic.setSkeleton (skeleton);
-    physic.setObjMatrix(pos);
+    physic.setObjMatrix(transform());
 
     attPos.resize(mesh->pos.size());
     for(size_t i=0;i<attPos.size();++i){
@@ -158,12 +156,12 @@ void Interactive::updateAnimation() {
   solver.update(tickCount);
   animChanged = pose.update(solver,0,tickCount);
 
-  view.setPose(pose,pos);
+  view.setPose(pose,transform());
   }
 
 void Interactive::tick(uint64_t dt) {
   if(animChanged) {
-    physic.setPose(*skInst,pos);
+    physic.setPose(*skInst,transform());
     animChanged = false;
     }
 
@@ -291,12 +289,6 @@ bool Interactive::overrideFocus() const {
   return focOver;
   }
 
-Tempest::Vec3 Interactive::position() const {
-  float x=0,y=0,z=0;
-  pos.project(x,y,z);
-  return {x,y,z};
-  }
-
 Tempest::Vec3 Interactive::displayPosition() const {
   auto p = position();
   return {p.x,bbox[1].y,p.z};
@@ -370,11 +362,11 @@ bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
 
   // graves
   if(attPos.size()==0){
-    auto mat = pos;
+    auto pos = position();
 
-    float x = mat.at(3,0);
-    float y = mat.at(3,1);
-    float z = mat.at(3,2);
+    float x = pos.x;
+    float y = pos.y;
+    float z = pos.z;
     if(npc.canSeeNpc(x,y,z,freeLos))
       return true;
     }
@@ -452,7 +444,7 @@ Interactive::Pos *Interactive::findFreePos() {
   }
 
 Tempest::Vec3 Interactive::worldPos(const Interactive::Pos &to) const {
-  auto mat = pos;
+  auto mat = transform();
   auto pos = mesh->mapToRoot(to.node);
   mat.mul(pos);
 
@@ -589,8 +581,8 @@ Tempest::Matrix4x4 Interactive::nodeTranform(const Npc &npc, const Pos& p) const
     float nodeZ = npos.at(3,2);
     float dist  = std::sqrt(nodeX*nodeX + nodeZ*nodeZ);
 
-    float npcX  = npc.position().x - pos.at(3,0);
-    float npcZ  = npc.position().z - pos.at(3,2);
+    float npcX  = npc.position().x - position().x;
+    float npcZ  = npc.position().z - position().z;
     float npcA  = 180.f*std::atan2(npcZ,npcX)/float(M_PI);
 
     npos.identity();
@@ -598,16 +590,16 @@ Tempest::Matrix4x4 Interactive::nodeTranform(const Npc &npc, const Pos& p) const
     npos.translate(dist,nodeY,0);
     npos.rotateOY(-90);
 
-    float x = pos.at(3,0)+npos.at(3,0);
-    float y = pos.at(3,1)+npos.at(3,1);
-    float z = pos.at(3,2)+npos.at(3,2);
+    float x = position().x+npos.at(3,0);
+    float y = position().y+npos.at(3,1);
+    float z = position().z+npos.at(3,2);
     npos.set(3,0,x);
     npos.set(3,1,y);
     npos.set(3,2,z);
     return npos;
     }
 
-  auto mat = pos;
+  auto mat = transform();
   mat.mul(npos);
   return mat;
   }

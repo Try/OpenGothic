@@ -6,8 +6,8 @@
 
 using namespace Tempest;
 
-Trigger::Trigger(ZenLoad::zCVobData &&d, World &w)
-  :AbstractTrigger(std::move(d),w) {
+Trigger::Trigger(World &w, ZenLoad::zCVobData &&d, bool startup)
+  :AbstractTrigger(w,std::move(d),startup) {
   }
 
 void Trigger::onTrigger(const TriggerEvent&) {

@@ -4,7 +4,7 @@
 
 class Trigger : public AbstractTrigger {
   public:
-    Trigger(ZenLoad::zCVobData&& data,World& owner);
+    Trigger(World& owner, ZenLoad::zCVobData&& data, bool startup);
 
     void onTrigger(const TriggerEvent& evt) override;
   };

@@ -6,7 +6,7 @@ class World;
 
 class TriggerScript : public AbstractTrigger {
   public:
-    TriggerScript(ZenLoad::zCVobData&& data, World &owner);
+    TriggerScript(World &owner, ZenLoad::zCVobData&& data, bool startup);
 
     void onTrigger(const TriggerEvent& evt) override;
   };

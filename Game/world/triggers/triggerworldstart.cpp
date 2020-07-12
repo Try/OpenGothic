@@ -2,8 +2,8 @@
 
 #include "world/world.h"
 
-TriggerWorldStart::TriggerWorldStart(ZenLoad::zCVobData&& data, World &owner)
-  :AbstractTrigger(std::move(data),owner){
+TriggerWorldStart::TriggerWorldStart(World &owner, ZenLoad::zCVobData&& data, bool startup)
+  :AbstractTrigger(owner,std::move(data),startup){
   }
 
 void TriggerWorldStart::onTrigger(const TriggerEvent &ev) {

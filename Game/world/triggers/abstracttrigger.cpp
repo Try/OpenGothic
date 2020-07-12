@@ -5,8 +5,9 @@
 
 using namespace Tempest;
 
-AbstractTrigger::AbstractTrigger(ZenLoad::zCVobData &&data, World &owner)
-  :data(std::move(data)), owner(owner) {
+AbstractTrigger::AbstractTrigger(World &owner, ZenLoad::zCVobData &&data, bool startup)
+  :Vob(owner,data,startup), data(std::move(data)), owner(owner) {
+  owner.addTrigger(this);
   }
 
 ZenLoad::zCVobData::EVobType AbstractTrigger::vobType() const {

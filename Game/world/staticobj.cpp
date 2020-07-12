@@ -3,13 +3,10 @@
 #include "world.h"
 #include "utils/fileext.h"
 
-StaticObj::StaticObj(const ZenLoad::zCVobData& vob,World& owner) {
+StaticObj::StaticObj(World& owner, ZenLoad::zCVobData&& vob, bool startup)
+  : Vob(owner, vob, startup) {
   if(!vob.showVisual)
     return;
-
-  float v[16]={};
-  std::memcpy(v,vob.worldMatrix.m,sizeof(v));
-  auto objMat = Tempest::Matrix4x4(v);
 
   if(FileExt::hasExt(vob.visual,"PFX")) {
     const ParticleFx* view = owner.script().getParticleFx(vob.visual.substr(0,vob.visual.size()-4).c_str());
@@ -17,12 +14,12 @@ StaticObj::StaticObj(const ZenLoad::zCVobData& vob,World& owner) {
       return;
     pfx = owner.getView(view);
     pfx.setActive(true);
-    pfx.setObjMatrix(objMat);
+    pfx.setObjMatrix(transform());
     } else
   if(FileExt::hasExt(vob.visual,"TGA")){
     if(vob.visualCamAlign==0) {
       decalMesh = std::make_unique<ProtoMesh>(ZenLoad::PackedMesh(),"");
-      mesh = owner.getDecalView(vob, objMat, *decalMesh);
+      mesh = owner.getDecalView(vob, transform(), *decalMesh);
 
       Tempest::Matrix4x4 m;
       m.identity();
@@ -30,7 +27,7 @@ StaticObj::StaticObj(const ZenLoad::zCVobData& vob,World& owner) {
       } else {
       pfx = owner.getView(vob);
       pfx.setActive(true);
-      pfx.setObjMatrix(objMat);
+      pfx.setObjMatrix(transform());
       }
     } else {
     auto view = Resources::loadMesh(vob.visual);
@@ -38,11 +35,11 @@ StaticObj::StaticObj(const ZenLoad::zCVobData& vob,World& owner) {
       return;
 
     mesh = owner.getStaticView(vob.visual.c_str());
-    mesh.setObjMatrix(objMat);
+    mesh.setObjMatrix(transform());
 
     if(vob.cdDyn || vob.cdStatic) {
       physic = PhysicMesh(*view,*owner.physic());
-      physic.setObjMatrix(objMat);
+      physic.setObjMatrix(transform());
       }
     }
   }

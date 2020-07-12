@@ -42,7 +42,7 @@ World::World(Gothic& gothic, GameSession& game,const RendererStorage &storage, s
   wmatrix.reset(new WayMatrix(*this,world.waynet));
   if(1){
     for(auto& vob:world.rootVobs)
-      loadVob(vob,true);
+      wobj.addRoot(std::move(vob),true);
     }
   wmatrix->buildIndex();
   bsp = std::move(world.bspTree);
@@ -77,7 +77,7 @@ World::World(Gothic& gothic, GameSession &game, const RendererStorage &storage,
   wmatrix.reset(new WayMatrix(*this,world.waynet));
   if(1){
     for(auto& vob:world.rootVobs)
-      loadVob(vob,false);
+      wobj.addRoot(std::move(vob),false);
     }
   wmatrix->buildIndex();
   bsp = std::move(world.bspTree);
@@ -505,6 +505,10 @@ Item *World::addItem(size_t itemInstance, const char *at) {
   return wobj.addItem(itemInstance,at);
   }
 
+Item* World::addItem(const ZenLoad::zCVobData& vob) {
+  return wobj.addItem(vob);
+  }
+
 Item *World::takeItem(Item &it) {
   return wobj.takeItem(it);
   }
@@ -711,6 +715,39 @@ void World::tickSlot(GSoundEffect &slot) {
   wsound.tickSlot(slot);
   }
 
+void World::addTrigger(AbstractTrigger* trigger) {
+  wobj.addTrigger(trigger);
+  }
+
+void World::addInteractive(Interactive* inter) {
+  wobj.addInteractive(inter);
+  }
+
+void World::addStartPoint(const Vec3& pos, const Vec3& dir, const char* name) {
+  wmatrix->addStartPoint(pos,dir,name);
+  }
+
+void World::addFreePoint(const Vec3& pos, const Vec3& dir, const char* name) {
+  wmatrix->addFreePoint(pos,dir,name);
+  }
+
+void World::addSound(const ZenLoad::zCVobData& vob) {
+  if(vob.vobType==ZenLoad::zCVobData::VT_zCVobSound ||
+          vob.vobType==ZenLoad::zCVobData::VT_zCVobSoundDaytime) {
+    wsound.addSound(vob);
+    }
+  else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusic) {
+    wsound.addZone(vob);
+    }
+  else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusicDefault) {
+    wsound.setDefaultZone(vob);
+    }
+  }
+
+void World::addLight(const ZenLoad::zCVobData& vob) {
+  wview->addLight(vob);
+  }
+
 const WayPoint *World::findPoint(const char *name) const {
   return wmatrix->findPoint(name);
   }
@@ -835,104 +872,4 @@ int32_t World::guildOfRoom(const char* portalName) {
 
 MeshObjects::Mesh World::getView(const Daedalus::ZString& visual) const {
   return getView(visual.c_str());
-  }
-
-void World::loadVob(ZenLoad::zCVobData &vob,bool startup) {
-  for(auto& i:vob.childVobs)
-    loadVob(i,startup);
-  vob.childVobs.clear(); // because of move
-
-  if(vob.vobType==ZenLoad::zCVobData::VT_zCVobLevelCompo)
-    return;
-
-  if(vob.vobType==ZenLoad::zCVobData::VT_zCVob) {
-    wobj.addStatic(vob);
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_oCMobFire){
-    wobj.addStatic(vob);
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_oCMOB) {
-    // Irdotar bow-triggers
-    // focusOverride=true
-
-    // Graves/Pointers
-    // see focusNam
-    if(startup)
-      wobj.addInteractive(std::move(vob));
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_oCMobBed ||
-          vob.vobType==ZenLoad::zCVobData::VT_oCMobDoor ||
-          vob.vobType==ZenLoad::zCVobData::VT_oCMobInter ||
-          vob.vobType==ZenLoad::zCVobData::VT_oCMobContainer ||
-          vob.vobType==ZenLoad::zCVobData::VT_oCMobSwitch){
-    if(startup)
-      wobj.addInteractive(std::move(vob));
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_zCMover){
-    wobj.addTrigger(std::move(vob));
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_zCCodeMaster ||
-          vob.vobType==ZenLoad::zCVobData::VT_zCTrigger ||
-          vob.vobType==ZenLoad::zCVobData::VT_zCTriggerList ||
-          vob.vobType==ZenLoad::zCVobData::VT_zCTriggerScript ||
-          vob.vobType==ZenLoad::zCVobData::VT_oCTriggerWorldStart ||
-          vob.vobType==ZenLoad::zCVobData::VT_oCTriggerChangeLevel){
-    wobj.addTrigger(std::move(vob));
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_zCMessageFilter) {
-    wobj.addTrigger(std::move(vob));
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobStartpoint) {
-    float dx = vob.rotationMatrix.v[2].x;
-    float dy = vob.rotationMatrix.v[2].y;
-    float dz = vob.rotationMatrix.v[2].z;
-    wmatrix->addStartPoint(vob.position.x,vob.position.y,vob.position.z,dx,dy,dz,vob.vobName.c_str());
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobSpot) {
-    float dx = vob.rotationMatrix.v[2].x;
-    float dy = vob.rotationMatrix.v[2].y;
-    float dz = vob.rotationMatrix.v[2].z;
-    wmatrix->addFreePoint(vob.position.x,vob.position.y,vob.position.z,dx,dy,dz,vob.vobName.c_str());
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_oCItem) {
-    if(startup)
-      wobj.addItem(vob);
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_oCMobLadder) {
-    wobj.addStatic(vob);
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobSound ||
-          vob.vobType==ZenLoad::zCVobData::VT_zCVobSoundDaytime) {
-    wsound.addSound(vob);
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusic) {
-    wsound.addZone(vob);
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusicDefault) {
-    wsound.setDefaultZone(vob);
-    }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_zCVobLight) {
-    wview->addLight(vob);
-    }
-  else if(vob.objectClass=="zCVobAnimate:zCVob" || // ork flags
-          vob.objectClass=="zCPFXControler:zCVob"){
-    wobj.addStatic(vob); //TODO: morph animation
-    }
-  else if(vob.objectClass=="oCTouchDamage:zCTouchDamage:zCVob"){
-    // NOT IMPLEMENTED
-    }
-  else if(vob.objectClass=="zCVobLensFlare:zCVob" ||
-          vob.objectClass=="zCZoneVobFarPlane:zCVob" ||
-          vob.objectClass=="zCZoneVobFarPlaneDefault:zCZoneVobFarPlane:zCVob" ||
-          vob.objectClass=="zCZoneZFog:zCVob" ||
-          vob.objectClass=="zCZoneZFogDefault:zCZoneZFog:zCVob") {
-    // WONT-IMPLEMENT
-    }
-  else {
-    static std::unordered_set<std::string> cls;
-    if(cls.find(vob.objectClass)==cls.end()){
-      cls.insert(vob.objectClass);
-      Tempest::Log::d("unknown vob class ",vob.objectClass);
-      }
-    }
   }

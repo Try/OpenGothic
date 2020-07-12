@@ -6,7 +6,7 @@
 
 class MoveTrigger : public AbstractTrigger {
   public:
-    MoveTrigger(ZenLoad::zCVobData&& data, World &owner);
+    MoveTrigger(World &owner, ZenLoad::zCVobData&& data, bool startup);
 
     void onTrigger(const TriggerEvent& evt) override;
     bool hasVolume() const override;

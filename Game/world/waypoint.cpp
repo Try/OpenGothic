@@ -4,6 +4,8 @@
 #include <cstring>
 #include <cctype>
 
+using namespace Tempest;
+
 WayPoint::WayPoint() {
   }
 
@@ -13,12 +15,12 @@ WayPoint::WayPoint(const ZenLoad::zCWaypointData &dat)
     name(upcaseof(dat.wpName)){
   }
 
-WayPoint::WayPoint(float x, float y, float z, const char *name)
-  :x(x),y(y),z(z),name(upcaseof(name)){
+WayPoint::WayPoint(const Vec3& pos, const char *name)
+  :x(pos.x),y(pos.y),z(pos.z),name(upcaseof(name)){
   }
 
-WayPoint::WayPoint(float x, float y, float z, float dx, float dy, float dz, const char *name)
-  :x(x),y(y),z(z),dirX(dx),dirY(dy),dirZ(dz),name(upcaseof(name)){
+WayPoint::WayPoint(const Vec3& pos, const Vec3& dir, const char *name)
+  :x(pos.x),y(pos.y),z(pos.z),dirX(dir.x),dirY(dir.y),dirZ(dir.z),name(upcaseof(name)){
   }
 
 bool WayPoint::isFreePoint() const {

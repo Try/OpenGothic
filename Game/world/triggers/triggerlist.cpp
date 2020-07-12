@@ -2,8 +2,8 @@
 
 #include "world/world.h"
 
-TriggerList::TriggerList(ZenLoad::zCVobData &&d, World &w)
-  :AbstractTrigger(std::move(d),w) {
+TriggerList::TriggerList(World &w, ZenLoad::zCVobData &&d, bool startup)
+  :AbstractTrigger(w,std::move(d),startup) {
   }
 
 void TriggerList::onTrigger(const TriggerEvent&) {

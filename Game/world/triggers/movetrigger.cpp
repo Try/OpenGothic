@@ -3,8 +3,8 @@
 #include "world/world.h"
 #include "graphics/animmath.h"
 
-MoveTrigger::MoveTrigger(ZenLoad::zCVobData&& d,World& w)
-  :AbstractTrigger(std::move(d),w) {
+MoveTrigger::MoveTrigger(World& w, ZenLoad::zCVobData&& d, bool startup)
+  :AbstractTrigger(w,std::move(d),startup) {
   float v[16]={};
   std::memcpy(v,data.worldMatrix.m,sizeof(v));
 

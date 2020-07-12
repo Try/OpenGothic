@@ -19,6 +19,8 @@ Item::Item(World &owner, Serialize &fin, bool inWorld)
   auto& h = hitem;
   h.userPtr = this;
 
+  Tempest::Matrix4x4 mat;
+
   uint32_t instanceSymbol=0;
   fin.read(instanceSymbol); h.instanceSymbol = instanceSymbol;
   fin.read(h.id,h.name,h.nameID,h.hp,h.hp_max,h.mainflag);
@@ -34,6 +36,7 @@ Item::Item(World &owner, Serialize &fin, bool inWorld)
   fin.read(pos,equiped,itSlot);
   fin.read(mat);
 
+  setTransform(mat);
   view.setObjMatrix(mat);
 
   auto& sym = owner.script().getSymbol(h.instanceSymbol);
@@ -45,7 +48,8 @@ Item::Item(World &owner, Serialize &fin, bool inWorld)
 
 Item::Item(Item &&it)
   : hitem(it.hitem),owner(it.owner),view(std::move(it.view)),
-    pos(it.pos),mat(it.mat),equiped(it.equiped),itSlot(it.itSlot){
+    pos(it.pos),equiped(it.equiped),itSlot(it.itSlot) {
+  setTransform(it.transform());
   }
 
 Item::~Item() {
@@ -67,12 +71,12 @@ void Item::save(Serialize &fout) {
   fout.write(h.inv_zbias,h.inv_rotx,h.inv_roty,h.inv_rotz,h.inv_animate);
   fout.write(h.amount);
   fout.write(pos,equiped,itSlot);
-  fout.write(mat);
+  fout.write(transform());
   }
 
 void Item::setView(MeshObjects::Mesh &&m) {
   view = std::move(m);
-  view.setObjMatrix(mat);
+  view.setObjMatrix(transform());
   }
 
 void Item::clearView() {
@@ -88,7 +92,7 @@ void Item::setDirection(float, float, float) {
   }
 
 void Item::setMatrix(const Tempest::Matrix4x4 &m) {
-  mat   = m;
+  setTransform(m);
   pos.x = m.at(3,0);
   pos.y = m.at(3,1);
   pos.z = m.at(3,2);
@@ -212,7 +216,9 @@ size_t Item::clsId() const {
   }
 
 void Item::updateMatrix() {
+  Tempest::Matrix4x4 mat;
   mat.identity();
   mat.translate(pos.x,pos.y,pos.z);
+  setTransform(mat);
   view.setObjMatrix(mat);
   }

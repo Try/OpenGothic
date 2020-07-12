@@ -3,10 +3,11 @@
 #include "graphics/meshobjects.h"
 #include "graphics/pfxobjects.h"
 #include "physics/physicmesh.h"
+#include "vob.h"
 
-class StaticObj final {
+class StaticObj : public Vob {
   public:
-    StaticObj(const ZenLoad::zCVobData &vob, World& owner);
+    StaticObj(World& owner, ZenLoad::zCVobData&& vob, bool startup);
 
   private:
     MeshObjects::Mesh          mesh;

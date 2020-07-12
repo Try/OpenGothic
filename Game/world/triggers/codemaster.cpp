@@ -2,12 +2,12 @@
 
 #include "world/world.h"
 
-CodeMaster::CodeMaster(ZenLoad::zCVobData&& d, World &w)
-  :AbstractTrigger(std::move(d),w), keys(data.zCCodeMaster.slaveVobName.size()) {
+CodeMaster::CodeMaster(World &w, ZenLoad::zCVobData&& d, bool startup)
+  :AbstractTrigger(w,std::move(d),startup), keys(data.zCCodeMaster.slaveVobName.size()) {
   }
 
 void CodeMaster::onTrigger(const TriggerEvent &evt) {
-  for(size_t i=0;i<keys.size();++i){
+  for(size_t i=0;i<keys.size();++i) {
     if(data.zCCodeMaster.slaveVobName[i]==evt.emitter)
       keys[i] = true;
     }

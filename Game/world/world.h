@@ -143,24 +143,32 @@ class World final {
     Npc*                 addNpc     (size_t itemInstance, const Daedalus::ZString& at);
     Npc*                 addNpc     (size_t itemInstance, const Tempest::Vec3&     at);
     Item*                addItem    (size_t itemInstance, const char *at);
+    Item*                addItem    (const ZenLoad::zCVobData& vob);
     Item*                takeItem   (Item& it);
     void                 removeItem (Item &it);
     size_t               hasItems(const char* tag, size_t itemCls);
     Bullet&              shootBullet(const Item &itmId, const Npc& npc, const Npc* target);
     Bullet&              shootSpell(const Item &itm, const Npc &npc, const Npc *target);
 
-    void   sendPassivePerc (Npc& self,Npc& other,Npc& victum,int32_t perc);
-    void   sendPassivePerc (Npc& self,Npc& other,Npc& victum, Item& item,int32_t perc);
-    void   emitWeaponsSound(Npc& self,Npc& other);
-    void   emitLandHitSound(float x, float y, float z, uint8_t m0, uint8_t m1);
-    void   emitBlockSound  (Npc& self,Npc& other);
+    void                 sendPassivePerc (Npc& self,Npc& other,Npc& victum,int32_t perc);
+    void                 sendPassivePerc (Npc& self,Npc& other,Npc& victum, Item& item,int32_t perc);
+    void                 emitWeaponsSound(Npc& self,Npc& other);
+    void                 emitLandHitSound(float x, float y, float z, uint8_t m0, uint8_t m1);
+    void                 emitBlockSound  (Npc& self,Npc& other);
 
-    bool   isInListenerRange(const Tempest::Vec3& pos) const;
-    void   emitDlgSound   (const char *s, float x, float y, float z, float range, uint64_t &timeLen);
-    void   emitSoundEffect(const char *s, float x, float y, float z, float range, bool freeSlot);
-    void   emitSoundRaw   (const char *s, float x, float y, float z, float range, bool freeSlot);
-    void   takeSoundSlot(GSoundEffect &&eff);
-    void   tickSlot(GSoundEffect &slot);
+    bool                 isInListenerRange(const Tempest::Vec3& pos) const;
+    void                 emitDlgSound   (const char *s, float x, float y, float z, float range, uint64_t &timeLen);
+    void                 emitSoundEffect(const char *s, float x, float y, float z, float range, bool freeSlot);
+    void                 emitSoundRaw   (const char *s, float x, float y, float z, float range, bool freeSlot);
+    void                 takeSoundSlot(GSoundEffect &&eff);
+    void                 tickSlot(GSoundEffect &slot);
+
+    void                 addTrigger    (AbstractTrigger* trigger);
+    void                 addInteractive(Interactive* inter);
+    void                 addStartPoint (const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
+    void                 addFreePoint  (const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
+    void                 addSound      (const ZenLoad::zCVobData& vob);
+    void                 addLight      (const ZenLoad::zCVobData& vob);
 
   private:
     std::string                           wname;
@@ -178,7 +186,6 @@ class World final {
     WorldObjects                          wobj;
     std::unique_ptr<Npc>                  lvlInspector;
 
-    void         loadVob(ZenLoad::zCVobData &vob, bool startup);
     auto         roomAt(const ZenLoad::zCBspNode &node) -> const std::string &;
     auto         portalAt(const std::string& tag) -> BspSector*;
 

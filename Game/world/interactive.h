@@ -6,12 +6,13 @@
 #include "graphics/meshobjects.h"
 #include "graphics/protomesh.h"
 #include "game/inventory.h"
+#include "vob.h"
 
 class Npc;
 class World;
 class Trigger;
 
-class Interactive final {
+class Interactive : public Vob {
   public:
     enum Anim : int8_t {
       In        =  1,
@@ -22,8 +23,8 @@ class Interactive final {
       FromStand = 11,
       };
 
-    Interactive(World& owner, ZenLoad::zCVobData &&vob);
-    Interactive(World &world);
+    Interactive(World& owner, ZenLoad::zCVobData &&vob, bool startup);
+    Interactive(World& world);
     Interactive(Interactive&&)=default;
 
     void                load(Serialize& fin);
@@ -39,10 +40,8 @@ class Interactive final {
 
     bool                overrideFocus() const;
 
-    Tempest::Vec3       position() const;
     Tempest::Vec3       displayPosition() const;
     const char*         displayName() const;
-    auto                transform() const -> const Tempest::Matrix4x4& { return pos; }
 
     int32_t             stateId() const { return state; }
     void                emitTriggerEvent() const;
@@ -125,7 +124,6 @@ class Interactive final {
     std::string                  pickLockStr;
     Inventory                    invent;
 
-    Tempest::Matrix4x4           pos;
     int                          state=0;
     bool                         reverseState=false;
     bool                         loopState=false;

@@ -12,6 +12,7 @@
 #include "world/triggers/triggerlist.h"
 #include "world/triggers/triggerworldstart.h"
 #include "world/triggers/messagefilter.h"
+#include "world/vob.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Application>
@@ -46,14 +47,15 @@ void WorldObjects::load(Serialize &fin) {
   for(size_t i=0;i<sz;++i){
     auto it = std::make_unique<Item>(owner,fin,true);
     itemArr.emplace_back(std::move(it));
+    items.add(itemArr.back().get());
     }
 
   fin.read(sz);
-  interactiveObj.clear();
-  for(size_t i=0;i<sz;++i)
-    interactiveObj.emplace_back(owner);
-  for(auto& i:interactiveObj)
-    i.load(fin);
+  if(interactiveObj.size()!=sz)
+    throw std::logic_error("inconsistent *.sav vs world");
+  for(auto& i:interactiveObj) {
+    i->load(fin);
+    }
   }
 
 void WorldObjects::save(Serialize &fout) {
@@ -70,7 +72,7 @@ void WorldObjects::save(Serialize &fout) {
   sz = uint32_t(interactiveObj.size());
   fout.write(sz);
   for(auto& i:interactiveObj)
-    i.save(fout);
+    i->save(fout);
   }
 
 void WorldObjects::tick(uint64_t dt) {
@@ -81,7 +83,7 @@ void WorldObjects::tick(uint64_t dt) {
     npcArr[i]->tick(dt);
 
   for(auto& i:interactiveObj)
-    i.tick(dt);
+    i->tick(dt);
 
   for(auto i:triggersTk)
     i->tick(dt);
@@ -266,7 +268,7 @@ void WorldObjects::updateAnimation() {
     i->updateTransform();
     i->updateAnimation();
     });
-  Workers::parallelFor(interactiveObj.begin(),interactiveObj.end(),[](Interactive& i){
+  interactiveObj.parallelFor([](Interactive& i){
     i.updateAnimation();
     });
   }
@@ -320,43 +322,10 @@ void WorldObjects::detectNpc(const float x, const float y, const float z,
     }
   }
 
-void WorldObjects::addTrigger(ZenLoad::zCVobData&& vob) {
-  std::unique_ptr<AbstractTrigger> tg;
-  switch(vob.vobType) {
-    case ZenLoad::zCVobData::VT_zCMover:
-      tg.reset(new MoveTrigger(std::move(vob),owner));
-      break;
-
-    case ZenLoad::zCVobData::VT_oCTriggerChangeLevel:
-      tg.reset(new ZoneTrigger(std::move(vob),owner));
-      break;
-
-    case ZenLoad::zCVobData::VT_zCCodeMaster:
-      tg.reset(new CodeMaster(std::move(vob),owner));
-      break;
-
-    case ZenLoad::zCVobData::VT_zCTriggerScript:
-      tg.reset(new TriggerScript(std::move(vob),owner));
-      break;
-
-    case ZenLoad::zCVobData::VT_oCTriggerWorldStart:
-      tg.reset(new TriggerWorldStart(std::move(vob),owner));
-      break;
-
-    case ZenLoad::zCVobData::VT_zCTriggerList:
-      tg.reset(new TriggerList(std::move(vob),owner));
-      break;
-
-    case ZenLoad::zCVobData::VT_zCMessageFilter:
-      tg.reset(new MessageFilter(std::move(vob),owner));
-      break;
-
-    default:
-      tg.reset(new Trigger(std::move(vob),owner));
-    }
+void WorldObjects::addTrigger(AbstractTrigger* tg) {
   if(tg->hasVolume())
-    triggersZn.emplace_back(tg.get());
-  triggers.emplace_back(std::move(tg));
+    triggersZn.emplace_back(tg);
+  triggers.emplace_back(tg);
   }
 
 void WorldObjects::triggerEvent(const TriggerEvent &e) {
@@ -402,6 +371,7 @@ Item *WorldObjects::takeItem(Item &it) {
       auto ret=i.release();
       i = std::move(itemArr.back());
       itemArr.pop_back();
+      items.del(ret);
       return ret;
       }
   return nullptr;
@@ -415,8 +385,8 @@ void WorldObjects::removeItem(Item &it) {
 
 size_t WorldObjects::hasItems(const char* tag, size_t itemCls) {
   for(auto& i:interactiveObj)
-    if(i.tag()==tag) {
-      return i.inventory().itemCount(itemCls);
+    if(i->tag()==tag) {
+      return i->inventory().itemCount(itemCls);
       }
   return 0;
   }
@@ -443,6 +413,7 @@ Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
   std::unique_ptr<Item> ptr{new Item(owner,itemInstance)};
   auto* it=ptr.get();
   itemArr.emplace_back(std::move(ptr));
+  items.add(itemArr.back().get());
 
   if(pos!=nullptr) {
     it->setPosition (pos->x,pos->y,pos->z);
@@ -456,24 +427,31 @@ Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
   return it;
   }
 
-void WorldObjects::addInteractive(ZenLoad::zCVobData&& vob) {
-  interactiveObj.emplace_back(owner,std::move(vob));
+void WorldObjects::addInteractive(Interactive* obj) {
+  interactiveObj.add(obj);
   }
 
-void WorldObjects::addStatic(const ZenLoad::zCVobData &vob) {
-  objStatic.emplace_back(vob,owner);
+void WorldObjects::addStatic(StaticObj* obj) {
+  objStatic.push_back(obj);
+  }
+
+void WorldObjects::addRoot(ZenLoad::zCVobData&& vob, bool startup) {
+  rootVobs.emplace_back(Vob::load(owner,std::move(vob),startup));
   }
 
 Interactive* WorldObjects::validateInteractive(Interactive *def) {
-  return validateObj(interactiveObj,def);
+  return interactiveObj.hasObject(def) ? def : nullptr;
   }
 
 Npc *WorldObjects::validateNpc(Npc *def) {
-  return validateObj(npcArr,def);
+  for(auto& i:npcArr)
+    if(i.get()==def)
+      return def;
+  return nullptr;
   }
 
 Item *WorldObjects::validateItem(Item *def) {
-  return validateObj(itemArr,def);
+  return items.hasObject(def) ? def : nullptr;
   }
 
 Interactive* WorldObjects::findInteractive(const Npc &pl, Interactive* def, const SearchOpt& opt) {
@@ -509,7 +487,7 @@ Npc* WorldObjects::findNpc(const Npc &pl, Npc *def, const SearchOpt& opt) {
   }
 
 Item *WorldObjects::findItem(const Npc &pl, Item *def, const SearchOpt& opt) {
-  def = validateObj(itemArr,def);
+  def = validateItem(def);
   if(def && testObj(*def,pl,opt))
     return def;
   if(owner.view()==nullptr)
@@ -517,11 +495,11 @@ Item *WorldObjects::findItem(const Npc &pl, Item *def, const SearchOpt& opt) {
 
   Item* ret  = nullptr;
   float rlen = opt.rangeMax*opt.rangeMax;
-  itemArr.find(pl.position(),opt.rangeMax,[&](std::unique_ptr<Item>& n){
+  items.find(pl.position(),opt.rangeMax,[&](Item& n){
     float nlen = rlen;
     if(testObj(n,pl,opt,nlen)){
       rlen = nlen;
-      ret  = n.get();
+      ret  = &n;
       }
     return false;
     });
@@ -532,7 +510,7 @@ void WorldObjects::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x
                                      int w,int h) const {
   for(auto& i:interactiveObj){
     auto m = mvp;
-    m.mul(i.transform());
+    m.mul(i->transform());
 
     float x=0,y=0,z=0;
     m.project(x,y,z);
@@ -546,7 +524,7 @@ void WorldObjects::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x
     p.setBrush(Tempest::Color(1,1,1,1));
     p.drawRect(int(x),int(y),1,1);
 
-    i.marchInteractives(p,mvp,w,h);
+    i->marchInteractives(p,mvp,w,h);
     }
   }
 
@@ -721,17 +699,3 @@ bool WorldObjects::testObj(T &src, const Npc &pl, const WorldObjects::SearchOpt 
     }
   return false;
   }
-
-
-template<class T, class E>
-E *WorldObjects::validateObj(T &src, E *e) {
-  if(e==nullptr)
-    return e;
-  for(auto& i:src){
-    auto& npc=deref(i);
-    if(reinterpret_cast<void*>(&npc)==reinterpret_cast<const void*>(e))
-      return e;
-    }
-  return nullptr;
-  }
-

@@ -3,6 +3,8 @@
 #include <string>
 #include <zenload/zTypes.h>
 
+#include "world/vob.h"
+
 class Npc;
 class World;
 
@@ -20,9 +22,9 @@ class TriggerEvent final {
     uint64_t          timeBarrier = 0;
   };
 
-class AbstractTrigger {
+class AbstractTrigger : public Vob {
   public:
-    AbstractTrigger(ZenLoad::zCVobData&& data,World& owner);
+    AbstractTrigger(World& owner, ZenLoad::zCVobData&& data, bool startup);
     virtual ~AbstractTrigger()=default;
 
     ZenLoad::zCVobData::EVobType vobType() const;

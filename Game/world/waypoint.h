@@ -2,6 +2,7 @@
 
 #include <zenload/zTypes.h>
 #include <limits>
+#include <Tempest/Vec>
 
 class FpLock;
 
@@ -9,8 +10,8 @@ class WayPoint final {
   public:
     WayPoint();
     WayPoint(const ZenLoad::zCWaypointData& dat);
-    WayPoint(float x,float y,float z,const char* name);
-    WayPoint(float x,float y,float z,float dx,float dy,float dz,const char* name);
+    WayPoint(const Tempest::Vec3& pos, const char* name);
+    WayPoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir,const char* name);
     WayPoint(const WayPoint&)=default;
     WayPoint(WayPoint&&)=default;
 

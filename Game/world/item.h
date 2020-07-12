@@ -3,12 +3,13 @@
 #include <daedalus/DaedalusVM.h>
 
 #include "graphics/meshobjects.h"
+#include "vob.h"
 
 class World;
 class Npc;
 class Serialize;
 
-class Item final {
+class Item final : public Vob {
   public:
     Item(World& owner, size_t inst);
     Item(World& owner, Serialize& fin, bool inWorld);
@@ -72,7 +73,6 @@ class Item final {
     World&                            owner;
     MeshObjects::Mesh                 view;
     Tempest::Vec3                     pos={};
-    Tempest::Matrix4x4                mat;
     bool                              equiped=false;
     uint8_t                           itSlot=NSLOT;
   };

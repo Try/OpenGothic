@@ -16,6 +16,7 @@
 
 class Npc;
 class Item;
+class Vob;
 class World;
 class Serialize;
 
@@ -68,7 +69,7 @@ class WorldObjects final {
     size_t         itmCount()    const { return itemArr.size(); }
     Item&          itm(size_t i)       { return *itemArr[i];    }
 
-    void           addTrigger(ZenLoad::zCVobData&& vob);
+    void           addTrigger(AbstractTrigger* trigger);
     void           triggerEvent(const TriggerEvent& e);
     void           triggerOnStart(bool wrldStartup);
     void           enableTicks (AbstractTrigger& t);
@@ -82,8 +83,9 @@ class WorldObjects final {
 
     Bullet&        shootBullet(const Item &itmId, float x, float y, float z, float dx, float dy, float dz, float speed);
 
-    void           addInteractive(ZenLoad::zCVobData &&vob);
-    void           addStatic(const ZenLoad::zCVobData &vob);
+    void           addInteractive(Interactive*         obj);
+    void           addStatic     (StaticObj*           obj);
+    void           addRoot       (ZenLoad::zCVobData&& vob, bool startup);
 
     Interactive*   validateInteractive(Interactive *def);
     Npc*           validateNpc        (Npc         *def);
@@ -103,9 +105,13 @@ class WorldObjects final {
 
   private:
     World&                             owner;
+    std::vector<std::unique_ptr<Vob>>  rootVobs;
+
     SpaceIndex<Interactive>            interactiveObj;
-    std::vector<StaticObj>             objStatic;
-    SpaceIndex<std::unique_ptr<Item>>  itemArr;
+    SpaceIndex<Item>                   items;
+
+    std::vector<StaticObj*>            objStatic;
+    std::vector<std::unique_ptr<Item>> itemArr;
 
     std::list<Bullet>                  bullets;
 
@@ -113,15 +119,12 @@ class WorldObjects final {
     std::vector<std::unique_ptr<Npc>>  npcInvalid;
     std::vector<Npc*>                  npcNear;
 
-    std::vector<std::unique_ptr<AbstractTrigger>> triggers;
-    std::vector<AbstractTrigger*>                 triggersZn;
-    std::vector<AbstractTrigger*>                 triggersTk;
+    std::vector<AbstractTrigger*>      triggers;
+    std::vector<AbstractTrigger*>      triggersZn;
+    std::vector<AbstractTrigger*>      triggersTk;
 
     std::vector<PerceptionMsg>         sndPerc;
     std::vector<TriggerEvent>          triggerEvents;
-
-    template<class T,class E>
-    E*   validateObj(T &src,E* e);
 
     template<class T>
     auto findObj(T &src, const Npc &pl, const SearchOpt& opt) -> typename std::remove_reference<decltype(src[0])>::type*;
