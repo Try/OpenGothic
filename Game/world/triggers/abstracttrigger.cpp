@@ -5,9 +5,9 @@
 
 using namespace Tempest;
 
-AbstractTrigger::AbstractTrigger(World &owner, ZenLoad::zCVobData &&data, bool startup)
-  :Vob(owner,data,startup), data(std::move(data)), owner(owner) {
-  owner.addTrigger(this);
+AbstractTrigger::AbstractTrigger(Vob* parent, World &world, ZenLoad::zCVobData &&data, bool startup)
+  :Vob(parent,world,data,startup), data(std::move(data)) {
+  world.addTrigger(this);
   }
 
 ZenLoad::zCVobData::EVobType AbstractTrigger::vobType() const {
@@ -107,9 +107,9 @@ bool AbstractTrigger::checkPos(float x,float y,float z) const{
   }
 
 void AbstractTrigger::enableTicks() {
-  owner.enableTicks(*this);
+  world.enableTicks(*this);
   }
 
 void AbstractTrigger::disableTicks() {
-  owner.disableTicks(*this);
+  world.disableTicks(*this);
   }

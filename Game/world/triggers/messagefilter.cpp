@@ -2,8 +2,8 @@
 
 #include "world/world.h"
 
-MessageFilter::MessageFilter(World &w, ZenLoad::zCVobData &&d, bool startup)
-  :AbstractTrigger(w,std::move(d),startup) {
+MessageFilter::MessageFilter(Vob* parent, World &world, ZenLoad::zCVobData &&d, bool startup)
+  :AbstractTrigger(parent,world,std::move(d),startup) {
   }
 
 void MessageFilter::onTrigger(const TriggerEvent&) {
@@ -11,7 +11,7 @@ void MessageFilter::onTrigger(const TriggerEvent&) {
 
   if(eval==ZenLoad::MutateType::MT_TRIGGER) {
     TriggerEvent e(data.zCMessageFilter.triggerTarget,data.vobName);
-    owner.triggerEvent(e);
+    world.triggerEvent(e);
     return;
     }
 

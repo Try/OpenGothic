@@ -7,6 +7,10 @@ void BaseSpaceIndex::clear() {
   index.clear();
   }
 
+void BaseSpaceIndex::invalidate() {
+  index.clear();
+  }
+
 void BaseSpaceIndex::add(Vob* v) {
   arr.push_back(v);
   index.reserve(arr.size());

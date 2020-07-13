@@ -24,7 +24,7 @@ class TriggerEvent final {
 
 class AbstractTrigger : public Vob {
   public:
-    AbstractTrigger(World& owner, ZenLoad::zCVobData&& data, bool startup);
+    AbstractTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& data, bool startup);
     virtual ~AbstractTrigger()=default;
 
     ZenLoad::zCVobData::EVobType vobType() const;
@@ -40,7 +40,6 @@ class AbstractTrigger : public Vob {
 
   protected:
     ZenLoad::zCVobData           data;
-    World&                       owner;
     std::vector<Npc*>            intersect;
     uint32_t                     emitCount=0;
 

@@ -10,8 +10,8 @@
 #include <Tempest/Log>
 
 
-Interactive::Interactive(World &world, ZenLoad::zCVobData&& vob, bool startup)
-  : Vob(world,vob,startup), world(&world),skInst(std::make_unique<Pose>()) {
+Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData&& vob, bool startup)
+  : Vob(parent,world,vob,startup), skInst(std::make_unique<Pose>()) {
   vobType       = vob.vobType;
   vobName       = std::move(vob.vobName);
   focName       = std::move(vob.oCMOB.focusName);
@@ -57,10 +57,6 @@ Interactive::Interactive(World &world, ZenLoad::zCVobData&& vob, bool startup)
   world.addInteractive(this);
   }
 
-Interactive::Interactive(World &world)
-  :world(&world),skInst(std::make_unique<Pose>()) {
-  }
-
 void Interactive::load(Serialize &fin) {
   Tempest::Matrix4x4 pos;
   uint8_t vt=0;
@@ -74,10 +70,10 @@ void Interactive::load(Serialize &fin) {
 
   fin.read(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
   fin.read(locked,keyInstance,pickLockStr);
-  invent.load(*this,*world,fin);
+  invent.load(*this,world,fin);
   fin.read(pos,state,reverseState,loopState);
 
-  setTransform(pos);
+  setGlobalTransform(pos);
   setVisual(mdlVisual);
 
   uint32_t sz=0;
@@ -123,8 +119,8 @@ void Interactive::setVisual(const std::string &visual) {
   if(mesh) {
     if(showVisual) {
       animChanged = true;
-      view   = world->getView(visual.c_str());
-      physic = PhysicMesh(*mesh,*world->physic());
+      view   = world.getView(visual.c_str());
+      physic = PhysicMesh(*mesh,*world.physic());
       }
 
     view  .setSkeleton (skeleton);
@@ -151,7 +147,7 @@ void Interactive::setVisual(const std::string &visual) {
 
 void Interactive::updateAnimation() {
   Pose&    pose      = *skInst;
-  uint64_t tickCount = world->tickCount();
+  uint64_t tickCount = world.tickCount();
 
   solver.update(tickCount);
   animChanged = pose.update(solver,0,tickCount);
@@ -175,7 +171,7 @@ void Interactive::tick(uint64_t dt) {
   if(p==nullptr)
     return;
 
-  if(world->tickCount()<waitAnim)
+  if(world.tickCount()<waitAnim)
     return;
 
   if(p->user==nullptr && (state==-1 && !p->attachMode))
@@ -193,7 +189,7 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     if(npc!=nullptr) {
       auto sq = npc->setAnimAngGet(Npc::Anim::InteractFromStand,false);
       uint64_t t = sq==nullptr ? 0 : uint64_t(sq->totalTime());
-      waitAnim = world->tickCount()+t;
+      waitAnim = world.tickCount()+t;
       }
     p.started = true;
     return;
@@ -298,10 +294,10 @@ const char *Interactive::displayName() const {
   if(focName.empty())
     return "";
   const char* strId=focName.c_str();
-  if(world->getSymbolIndex(strId)==size_t(-1)) {
+  if(world.getSymbolIndex(strId)==size_t(-1)) {
     return vobName.c_str();
     }
-  auto& s=world->getSymbol(strId);
+  auto& s=world.getSymbol(strId);
   const char* txt = s.getString(0).c_str();
   if(std::strlen(txt)==0)
     txt="";
@@ -322,7 +318,7 @@ void Interactive::emitTriggerEvent() const {
   if(triggerTarget.empty())
     return;
   const TriggerEvent evt(triggerTarget,vobName);
-  world->triggerEvent(evt);
+  world.triggerEvent(evt);
   }
 
 const char* Interactive::schemeName() const {
@@ -350,7 +346,7 @@ Inventory &Interactive::inventory()  {
 
 uint32_t Interactive::stateMask() const {
   const char* s = schemeName();
-  return world->script().schemeToBodystate(s);
+  return world.script().schemeToBodystate(s);
   }
 
 bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
@@ -379,9 +375,9 @@ void Interactive::implAddItem(char *name) {
     *sep='\0';++sep;
     long count = std::strtol(sep,nullptr,10);
     if(count>0)
-      invent.addItem(name,uint32_t(count),*world);
+      invent.addItem(name,uint32_t(count),world);
     } else {
-    invent.addItem(name,1,*world);
+    invent.addItem(name,1,world);
     }
   }
 
@@ -406,7 +402,7 @@ bool Interactive::checkUseConditions(Npc& npc) {
       }
     }
   if(!useWithItem.empty()) {
-    size_t it = world->getSymbolIndex(useWithItem.c_str());
+    size_t it = world.getSymbolIndex(useWithItem.c_str());
     if(it!=size_t(-1)) {
       if(isPlayer && npc.hasItem(it)==0) {
         sc.printMobMissingItem(npc);
@@ -417,8 +413,8 @@ bool Interactive::checkUseConditions(Npc& npc) {
       npc.setCurrentItem(it);
       }
     }
-  if(isPlayer && !keyInstance.empty()) {
-    size_t it = world->getSymbolIndex(keyInstance.c_str());
+  if(isPlayer && !keyInstance.empty() && false) {
+    size_t it = world.getSymbolIndex(keyInstance.c_str());
     if(it!=size_t(-1) && npc.hasItem(it)==0) {
       sc.printMobMissingKey(npc);
       return false;
@@ -529,7 +525,7 @@ bool Interactive::attach(Npc &npc) {
     return attach(npc,*p);
     } else {
     if(npc.isPlayer() && attPos.size()>0)
-      world->script().printMobAnotherIsUsing(npc);
+      world.script().printMobAnotherIsUsing(npc);
     }
   return false;
   }
@@ -633,7 +629,7 @@ const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {
 
   auto sq = solver.solveFrm(buf);
   if(sq) {
-    if(skInst->startAnim(solver,sq,BS_NONE,Pose::NoHint,world->tickCount()))
+    if(skInst->startAnim(solver,sq,BS_NONE,Pose::NoHint,world.tickCount()))
       return sq;
     }
   return nullptr;
@@ -655,7 +651,7 @@ bool Interactive::setAnim(Npc* npc,Anim dir) {
   uint64_t t0 = sqNpc==nullptr ? 0 : uint64_t(sqNpc->totalTime());
   uint64_t t1 = sqMob==nullptr ? 0 : uint64_t(sqMob->totalTime());
   if(dir!=Anim::Active)
-    waitAnim = world->tickCount()+std::max(t0,t1);
+    waitAnim = world.tickCount()+std::max(t0,t1);
   return true;
   }
 
@@ -714,6 +710,11 @@ void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x
 
     p.drawRect(int(x),int(y),1,1);
     }
+  }
+
+void Interactive::moveEvent() {
+  Pose& pose = *skInst;
+  view.setPose(pose,transform());
   }
 
 const char *Interactive::Pos::posTag() const {

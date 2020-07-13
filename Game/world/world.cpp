@@ -748,6 +748,10 @@ void World::addLight(const ZenLoad::zCVobData& vob) {
   wview->addLight(vob);
   }
 
+void World::invalidateVobIndex() {
+  wobj.invalidateVobIndex();
+  }
+
 const WayPoint *World::findPoint(const char *name) const {
   return wmatrix->findPoint(name);
   }

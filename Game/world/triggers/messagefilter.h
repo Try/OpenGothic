@@ -4,7 +4,7 @@
 
 class MessageFilter : public AbstractTrigger {
   public:
-    MessageFilter(World &owner, ZenLoad::zCVobData&& data, bool startup);
+    MessageFilter(Vob* parent, World& world, ZenLoad::zCVobData&& data, bool startup);
 
     void onTrigger(const TriggerEvent& evt) override;
   };

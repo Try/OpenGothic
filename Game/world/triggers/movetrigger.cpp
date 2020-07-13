@@ -3,18 +3,18 @@
 #include "world/world.h"
 #include "graphics/animmath.h"
 
-MoveTrigger::MoveTrigger(World& w, ZenLoad::zCVobData&& d, bool startup)
-  :AbstractTrigger(w,std::move(d),startup) {
-  float v[16]={};
-  std::memcpy(v,data.worldMatrix.m,sizeof(v));
-
-  setView(owner.getView(data.visual.c_str()));
+MoveTrigger::MoveTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& d, bool startup)
+  :AbstractTrigger(parent,world,std::move(d),startup) {
+  setView(world.getView(data.visual.c_str()));
   if(data.cdDyn || data.cdStatic) {
-    auto mesh   = Resources::loadMesh(data.visual);
-    physic = PhysicMesh(*mesh,*owner.physic());
+    auto mesh = Resources::loadMesh(data.visual);
+    physic    = PhysicMesh(*mesh,*world.physic());
     }
-  pos = Tempest::Matrix4x4(v);
-  setObjMatrix(pos);
+  auto tr = transform();
+  tr.inverse();
+  pos0 = tr;
+  pos0.mul(localTransform());
+  moveEvent();
   }
 
 bool MoveTrigger::hasVolume() const {
@@ -25,13 +25,14 @@ void MoveTrigger::setView(MeshObjects::Mesh &&m) {
   view = std::move(m);
   }
 
-void MoveTrigger::setObjMatrix(const Tempest::Matrix4x4 &m) {
-  view  .setObjMatrix(m);
-  physic.setObjMatrix(m);
+void MoveTrigger::emitSound(const char* snd,bool freeSlot) {
+  auto p = position();
+  world.emitSoundEffect(snd,p.x,p.y,p.z,0,freeSlot);
   }
 
-void MoveTrigger::emitSound(const char* snd,bool freeSlot) {
-  owner.emitSoundEffect(snd,pos.at(3,0),pos.at(3,1),pos.at(3,2),0,freeSlot);
+void MoveTrigger::moveEvent() {
+  view  .setObjMatrix(transform());
+  physic.setObjMatrix(transform());
   }
 
 void MoveTrigger::onTrigger(const TriggerEvent&) {
@@ -43,7 +44,7 @@ void MoveTrigger::onTrigger(const TriggerEvent&) {
   if(anim==IdleClosed)
     anim = Open; else
     anim = Close;
-  sAnim = owner.tickCount();
+  sAnim = world.tickCount();
 
   enableTicks();
 
@@ -60,7 +61,7 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
   if(frameTicks==0)
     frameTicks=1;
 
-  uint64_t dt = owner.tickCount()-sAnim;
+  uint64_t dt = world.tickCount()-sAnim;
   float    a  = float(dt%frameTicks)/float(frameTicks);
   uint32_t f0 = 0, f1 = 0;
 
@@ -80,8 +81,10 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
     f1 = f0>0 ? f0-1 : 0;
     }
 
-  auto fr = mix(data.zCMover.keyframes[f0],data.zCMover.keyframes[f1],a);
-  setObjMatrix(mkMatrix(fr));
+  auto fr  = mix(data.zCMover.keyframes[f0],data.zCMover.keyframes[f1],a);
+  auto mat = pos0;
+  mat.mul(mkMatrix(fr));
+  setLocalTransform(mat);
 
   if(f0==f1) {
     if(anim==Close)

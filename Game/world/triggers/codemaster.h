@@ -6,7 +6,7 @@ class World;
 
 class CodeMaster : public AbstractTrigger {
   public:
-    CodeMaster(World &owner, ZenLoad::zCVobData&& data, bool startup);
+    CodeMaster(Vob* parent, World &world, ZenLoad::zCVobData&& data, bool startup);
 
     void onTrigger(const TriggerEvent& evt) override;
 

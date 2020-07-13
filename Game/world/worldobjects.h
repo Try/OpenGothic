@@ -86,6 +86,7 @@ class WorldObjects final {
     void           addInteractive(Interactive*         obj);
     void           addStatic     (StaticObj*           obj);
     void           addRoot       (ZenLoad::zCVobData&& vob, bool startup);
+    void           invalidateVobIndex();
 
     Interactive*   validateInteractive(Interactive *def);
     Npc*           validateNpc        (Npc         *def);

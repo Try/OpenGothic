@@ -7,9 +7,11 @@
 
 class StaticObj : public Vob {
   public:
-    StaticObj(World& owner, ZenLoad::zCVobData&& vob, bool startup);
+    StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool startup);
 
   private:
+    void  moveEvent() override;
+
     MeshObjects::Mesh          mesh;
     PhysicMesh                 physic;
     PfxObjects::Emitter        pfx;

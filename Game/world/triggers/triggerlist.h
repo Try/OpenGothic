@@ -6,7 +6,7 @@ class World;
 
 class TriggerList : public AbstractTrigger {
   public:
-    TriggerList(World &owner, ZenLoad::zCVobData&& data, bool startup);
+    TriggerList(Vob* parent, World &world, ZenLoad::zCVobData&& data, bool startup);
 
     void onTrigger(const TriggerEvent& evt) override;
   };

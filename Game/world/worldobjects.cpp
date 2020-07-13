@@ -436,7 +436,12 @@ void WorldObjects::addStatic(StaticObj* obj) {
   }
 
 void WorldObjects::addRoot(ZenLoad::zCVobData&& vob, bool startup) {
-  rootVobs.emplace_back(Vob::load(owner,std::move(vob),startup));
+  rootVobs.emplace_back(Vob::load(nullptr,owner,std::move(vob),startup));
+  }
+
+void WorldObjects::invalidateVobIndex() {
+  items.invalidate();
+  interactiveObj.invalidate();
   }
 
 Interactive* WorldObjects::validateInteractive(Interactive *def) {

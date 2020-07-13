@@ -23,9 +23,7 @@ class Interactive : public Vob {
       FromStand = 11,
       };
 
-    Interactive(World& owner, ZenLoad::zCVobData &&vob, bool startup);
-    Interactive(World& world);
-    Interactive(Interactive&&)=default;
+    Interactive(Vob* parent, World& world, ZenLoad::zCVobData &&vob, bool startup);
 
     void                load(Serialize& fin);
     void                save(Serialize& fout) const;
@@ -79,6 +77,7 @@ class Interactive : public Vob {
       bool               isDistPos() const;
       };
 
+    void                moveEvent() override;
     void                setVisual(const std::string& visual);
     void                invokeStateFunc(Npc &npc);
     void                implTick(Pos &p, uint64_t dt);
@@ -100,8 +99,6 @@ class Interactive : public Vob {
     float               qDistanceTo(const Npc &npc, const Pos &to);
     Tempest::Matrix4x4  nodeTranform(const Npc &npc, const Pos &p) const;
     auto                nodePosition(const Npc &npc, const Pos &p) const -> Tempest::Vec3;
-
-    World*                       world = nullptr;
 
     ZenLoad::zCVobData::EVobType vobType=ZenLoad::zCVobData::EVobType::VT_oCMOB;
     std::string                  vobName;

@@ -70,7 +70,6 @@ class Item final : public Vob {
     void updateMatrix();
 
     Daedalus::GEngineClasses::C_Item  hitem={};
-    World&                            owner;
     MeshObjects::Mesh                 view;
     Tempest::Vec3                     pos={};
     bool                              equiped=false;

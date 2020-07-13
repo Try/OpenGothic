@@ -5,7 +5,7 @@
 #include "world.h"
 
 Item::Item(World &owner, size_t itemInstance)
-  :owner(owner) {
+  :Vob(owner) {
   assert(itemInstance!=size_t(-1));
   hitem.instanceSymbol = itemInstance;
   hitem.userPtr=this;
@@ -15,7 +15,7 @@ Item::Item(World &owner, size_t itemInstance)
   }
 
 Item::Item(World &owner, Serialize &fin, bool inWorld)
-  :owner(owner) {
+  :Vob(owner) {
   auto& h = hitem;
   h.userPtr = this;
 
@@ -36,7 +36,7 @@ Item::Item(World &owner, Serialize &fin, bool inWorld)
   fin.read(pos,equiped,itSlot);
   fin.read(mat);
 
-  setTransform(mat);
+  setLocalTransform(mat);
   view.setObjMatrix(mat);
 
   auto& sym = owner.script().getSymbol(h.instanceSymbol);
@@ -47,13 +47,13 @@ Item::Item(World &owner, Serialize &fin, bool inWorld)
   }
 
 Item::Item(Item &&it)
-  : hitem(it.hitem),owner(it.owner),view(std::move(it.view)),
+  : Vob(it.world), hitem(it.hitem),view(std::move(it.view)),
     pos(it.pos),equiped(it.equiped),itSlot(it.itSlot) {
-  setTransform(it.transform());
+  setLocalTransform(it.localTransform());
   }
 
 Item::~Item() {
-  owner.script().clearReferences(hitem);
+  world.script().clearReferences(hitem);
   assert(hitem.useCount==0);
   }
 
@@ -71,7 +71,7 @@ void Item::save(Serialize &fout) {
   fout.write(h.inv_zbias,h.inv_rotx,h.inv_roty,h.inv_rotz,h.inv_animate);
   fout.write(h.amount);
   fout.write(pos,equiped,itSlot);
-  fout.write(transform());
+  fout.write(localTransform());
   }
 
 void Item::setView(MeshObjects::Mesh &&m) {
@@ -92,7 +92,7 @@ void Item::setDirection(float, float, float) {
   }
 
 void Item::setMatrix(const Tempest::Matrix4x4 &m) {
-  setTransform(m);
+  setLocalTransform(m);
   pos.x = m.at(3,0);
   pos.y = m.at(3,1);
   pos.z = m.at(3,2);
@@ -116,7 +116,7 @@ Tempest::Vec3 Item::position() const {
   }
 
 bool Item::isGold() const {
-  return hitem.instanceSymbol==owner.script().goldId();
+  return hitem.instanceSymbol==world.script().goldId();
   }
 
 int32_t Item::mainFlag() const {
@@ -130,7 +130,7 @@ int32_t Item::itemFlag() const {
 bool Item::isSpellShoot() const {
   if(!isSpellOrRune())
     return false;
-  auto& spl = owner.script().getSpell(spellId());
+  auto& spl = world.script().getSpell(spellId());
   return spl.targetCollectAlgo!=TargetCollect::TARGET_COLLECT_NONE &&
          spl.targetCollectAlgo!=TargetCollect::TARGET_COLLECT_CASTER &&
          spl.targetCollectAlgo!=TargetCollect::TARGET_COLLECT_FOCUS;
@@ -185,7 +185,7 @@ int32_t Item::cost() const {
   }
 
 int32_t Item::sellCost() const {
-  return int32_t(std::ceil(owner.script().tradeValueMultiplier()*float(cost())));
+  return int32_t(std::ceil(world.script().tradeValueMultiplier()*float(cost())));
   }
 
 bool Item::checkCond(const Npc &other) const {
@@ -219,6 +219,6 @@ void Item::updateMatrix() {
   Tempest::Matrix4x4 mat;
   mat.identity();
   mat.translate(pos.x,pos.y,pos.z);
-  setTransform(mat);
+  setLocalTransform(mat);
   view.setObjMatrix(mat);
   }

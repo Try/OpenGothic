@@ -170,6 +170,8 @@ class World final {
     void                 addSound      (const ZenLoad::zCVobData& vob);
     void                 addLight      (const ZenLoad::zCVobData& vob);
 
+    void                 invalidateVobIndex();
+
   private:
     std::string                           wname;
     GameSession&                          game;
