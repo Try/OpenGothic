@@ -32,10 +32,14 @@ Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData&& vob, bo
   for(auto& i:owner)
     i = char(std::toupper(i));
 
+  if(vobType==ZenLoad::zCVobData::VT_oCMobContainer ||
+     vobType==ZenLoad::zCVobData::VT_oCMobDoor) {
+    locked      = vob.oCMobLockable.locked;
+    keyInstance = std::move(vob.oCMobLockable.keyInstance);
+    pickLockStr = std::move(vob.oCMobLockable.pickLockStr);
+    }
+
   if(isContainer()) {
-    locked      = vob.oCMobContainer.locked;
-    keyInstance = std::move(vob.oCMobContainer.keyInstance);
-    pickLockStr = std::move(vob.oCMobContainer.pickLockStr);
     auto items  = std::move(vob.oCMobContainer.contains);
     if(items.size()>0) {
       char* it = &items[0];
@@ -317,7 +321,7 @@ void Interactive::invokeStateFunc(Npc& npc) {
 void Interactive::emitTriggerEvent() const {
   if(triggerTarget.empty())
     return;
-  const TriggerEvent evt(triggerTarget,vobName);
+  const TriggerEvent evt(triggerTarget,vobName,TriggerEvent::T_Trigger);
   world.triggerEvent(evt);
   }
 
@@ -413,7 +417,7 @@ bool Interactive::checkUseConditions(Npc& npc) {
       npc.setCurrentItem(it);
       }
     }
-  if(isPlayer && !keyInstance.empty() && false) {
+  if(isPlayer && !keyInstance.empty()) {
     size_t it = world.getSymbolIndex(keyInstance.c_str());
     if(it!=size_t(-1) && npc.hasItem(it)==0) {
       sc.printMobMissingKey(npc);
