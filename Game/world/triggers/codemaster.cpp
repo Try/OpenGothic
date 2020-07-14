@@ -16,6 +16,6 @@ void CodeMaster::onTrigger(const TriggerEvent &evt) {
     if(!i)
       return;
 
-  TriggerEvent e(data.zCCodeMaster.triggerTarget,data.vobName);
+  TriggerEvent e(data.zCCodeMaster.triggerTarget,data.vobName,TriggerEvent::T_Trigger);
   world.triggerEvent(e);
   }

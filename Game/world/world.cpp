@@ -83,7 +83,7 @@ World::World(Gothic& gothic, GameSession &game, const RendererStorage &storage,
   bsp = std::move(world.bspTree);
   bspSectors.resize(bsp.sectors.size());
 
-  wobj.triggerOnStart(false);
+  wobj.triggerOnStart(false); //FIXME: savegame
   loadProgress(100);
   }
 

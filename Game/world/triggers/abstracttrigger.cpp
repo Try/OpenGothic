@@ -7,6 +7,8 @@ using namespace Tempest;
 
 AbstractTrigger::AbstractTrigger(Vob* parent, World &world, ZenLoad::zCVobData &&data, bool startup)
   :Vob(parent,world,data,startup), data(std::move(data)) {
+  if(!hasFlag(StartEnabled))
+    ;//disabled = true;
   world.addTrigger(this);
   }
 
@@ -23,32 +25,36 @@ void AbstractTrigger::processOnStart(const TriggerEvent& evt) {
     processEvent(evt);
     return;
     }
-
-  enum ReactFlg:uint8_t {
-    reactToOnTrigger = 1,
-    reactToOnTouch   = 1<<1,
-    reactToOnDamage  = 1<<2,
-    respondToObject  = 1<<3,
-    respondToPC      = 1<<4,
-    respondToNPC     = 1<<5,
-    startEnabled     = 1<<6,
-    respondToVobName = 1<<7,
-    };
-  ReactFlg flags       = ReactFlg(data.zCTrigger.flags);
-  ReactFlg filterFlags = ReactFlg(data.zCTrigger.filterFlags);
-  if((flags&startEnabled) && (filterFlags&startEnabled)) {
-    processEvent(evt);
-    return;
-    }
   }
 
 void AbstractTrigger::processEvent(const TriggerEvent& evt) {
-  if(data.zCTrigger.numCanBeActivated>0 &&
-     uint32_t(data.zCTrigger.numCanBeActivated)<=emitCount) {
-    return;
+  const bool canActivate = (data.zCTrigger.numCanBeActivated<=0 ||
+                            emitCount<uint32_t(data.zCTrigger.numCanBeActivated));
+  //if(!hasFlag(ReactToOnTrigger))
+  //  return;
+  switch(evt.type) {
+    case TriggerEvent::T_Trigger:
+      if(canActivate && !disabled) {
+        ++emitCount;
+        onTrigger(evt);
+        }
+      break;
+    case TriggerEvent::T_Untrigger:
+      if(canActivate && !disabled) {
+        ++emitCount;
+        onUntrigger(evt);
+        }
+      break;
+    case TriggerEvent::T_Enable:
+      disabled = false;
+      break;
+    case TriggerEvent::T_Disable:
+      disabled = true;
+      break;
+    case TriggerEvent::T_ToogleEnable:
+      disabled = !disabled;
+      break;
     }
-  ++emitCount;
-  onTrigger(evt);
   }
 
 void AbstractTrigger::onTrigger(const TriggerEvent&) {
@@ -58,16 +64,25 @@ void AbstractTrigger::onTrigger(const TriggerEvent&) {
 void AbstractTrigger::onUntrigger(const TriggerEvent&) {
   }
 
+bool AbstractTrigger::hasFlag(ReactFlg flg) const {
+  ReactFlg filter = ReactFlg(data.zCTrigger.flags & data.zCTrigger.filterFlags);
+  return (filter&flg)==flg;
+  }
+
 void AbstractTrigger::onIntersect(Npc &n) {
+  if(!hasFlag(n.isPlayer() ? RespondToPC : RespondToNPC) &&
+     !hasFlag(ReactToOnTouch))
+    return;
+
   for(auto i:intersect)
     if(i==&n)
       return;
   intersect.push_back(&n);
-  if(intersect.size()==1)
+  if(intersect.size()==1) {
     enableTicks();
-
-  TriggerEvent e(false);
-  onTrigger(e);
+    TriggerEvent e("","",TriggerEvent::T_Trigger);
+    processEvent(e);
+    }
   }
 
 void AbstractTrigger::tick(uint64_t) {
@@ -77,15 +92,15 @@ void AbstractTrigger::tick(uint64_t) {
     if(!checkPos(pos.x,pos.y+npc.translateY(),pos.z)) {
       intersect[i] = intersect.back();
       intersect.pop_back();
-
-      TriggerEvent e(false);
-      onUntrigger(e);
       } else {
       ++i;
       }
     }
-  if(intersect.size()==0)
+  if(intersect.size()==0) {
     disableTicks();
+    TriggerEvent e("","",TriggerEvent::T_Untrigger);
+    processEvent(e);
+    }
   }
 
 bool AbstractTrigger::hasVolume() const {

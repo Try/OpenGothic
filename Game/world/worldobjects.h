@@ -10,15 +10,14 @@
 #include "spaceindex.h"
 #include "staticobj.h"
 #include "game/perceptionmsg.h"
-#include "triggers/movetrigger.h"
-#include "triggers/trigger.h"
-#include "triggers/zonetrigger.h"
 
 class Npc;
 class Item;
 class Vob;
 class World;
 class Serialize;
+class TriggerEvent;
+class AbstractTrigger;
 
 class WorldObjects final {
   public:

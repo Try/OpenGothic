@@ -11,6 +11,6 @@ Trigger::Trigger(Vob* parent, World &world, ZenLoad::zCVobData &&d, bool startup
   }
 
 void Trigger::onTrigger(const TriggerEvent&) {
-  TriggerEvent e(data.zCTrigger.triggerTarget,data.vobName);
+  TriggerEvent e(data.zCTrigger.triggerTarget,data.vobName,TriggerEvent::T_Trigger);
   world.triggerEvent(e);
   }

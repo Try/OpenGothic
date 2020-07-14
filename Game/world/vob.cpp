@@ -67,20 +67,22 @@ void Vob::setGlobalTransform(const Matrix4x4& p) {
 void Vob::setLocalTransform(const Matrix4x4& p) {
   local = p;
   recalculateTransform();
-  world.invalidateVobIndex();
   }
 
 void Vob::moveEvent() {
   }
 
 void Vob::recalculateTransform() {
+  auto old = position();
   if(parent!=nullptr) {
     pos = parent->transform();
     pos.mul(local);
     } else {
     pos = local;
     }
-
+  if(old != position()) {
+    world.invalidateVobIndex();
+    }
   moveEvent();
   for(auto& i:child) {
     i->recalculateTransform();

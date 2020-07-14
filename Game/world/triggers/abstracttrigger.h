@@ -10,14 +10,23 @@ class World;
 
 class TriggerEvent final {
   public:
+    enum Type : uint8_t {
+      T_Trigger,
+      T_Untrigger,
+      T_Enable,
+      T_Disable,
+      T_ToogleEnable
+      };
+
     TriggerEvent()=default;
-    TriggerEvent(std::string target,std::string emitter):target(std::move(target)), emitter(std::move(emitter)){}
-    TriggerEvent(std::string target,std::string emitter,uint64_t t)
+    TriggerEvent(std::string target, std::string emitter, Type type):target(std::move(target)), emitter(std::move(emitter)), type(type){}
+    TriggerEvent(std::string target, std::string emitter, uint64_t t)
       :target(std::move(target)), emitter(std::move(emitter)),timeBarrier(t){}
     TriggerEvent(bool startup):wrldStartup(startup){}
 
     const std::string target;
     const std::string emitter;
+    const Type        type        = T_Trigger;
     bool              wrldStartup = false;
     uint64_t          timeBarrier = 0;
   };
@@ -39,12 +48,25 @@ class AbstractTrigger : public Vob {
     virtual bool                 checkPos(float x,float y,float z) const;
 
   protected:
+    enum ReactFlg:uint8_t {
+      ReactToOnTrigger = 1,
+      ReactToOnTouch   = 1<<1,
+      ReactToOnDamage  = 1<<2,
+      RespondToObject  = 1<<3,
+      RespondToPC      = 1<<4,
+      RespondToNPC     = 1<<5,
+      StartEnabled     = 1<<6,
+      };
+
     ZenLoad::zCVobData           data;
     std::vector<Npc*>            intersect;
     uint32_t                     emitCount=0;
+    bool                         disabled=false;
 
     virtual void                 onTrigger(const TriggerEvent& evt);
     virtual void                 onUntrigger(const TriggerEvent& evt);
+
+    bool                         hasFlag(ReactFlg flg) const;
 
     void                         enableTicks();
     void                         disableTicks();

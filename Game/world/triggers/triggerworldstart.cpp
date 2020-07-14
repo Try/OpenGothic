@@ -10,6 +10,6 @@ void TriggerWorldStart::onTrigger(const TriggerEvent &ev) {
   if(data.oCTriggerWorldStart.fireOnlyFirstTime && !ev.wrldStartup)
     return;
 
-  TriggerEvent e(data.oCTriggerWorldStart.triggerTarget,data.vobName);
+  TriggerEvent e(data.oCTriggerWorldStart.triggerTarget,data.vobName,TriggerEvent::T_Trigger);
   world.triggerEvent(e);
   }
