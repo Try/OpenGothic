@@ -11,5 +11,5 @@ void TriggerWorldStart::onTrigger(const TriggerEvent &ev) {
     return;
 
   TriggerEvent e(data.oCTriggerWorldStart.triggerTarget,data.vobName,TriggerEvent::T_Trigger);
-  world.triggerEvent(e);
+  world.execTriggerEvent(e);
   }

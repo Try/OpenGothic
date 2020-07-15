@@ -442,6 +442,10 @@ void World::triggerEvent(const TriggerEvent &e) {
   wobj.triggerEvent(e);
   }
 
+void World::execTriggerEvent(const TriggerEvent& e) {
+  wobj.execTriggerEvent(e);
+  }
+
 void World::enableTicks(AbstractTrigger& t) {
   wobj.enableTicks(t);
   }

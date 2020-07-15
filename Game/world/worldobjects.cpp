@@ -245,22 +245,40 @@ void WorldObjects::tickTriggers(uint64_t /*dt*/) {
   triggerEvents.clear();
 
   for(auto& e:evt) {
-    if(e.timeBarrier>owner.tickCount()) {
-      triggerEvents.emplace_back(std::move(e));
-      continue;
-      }
+    execTriggerEvent(e);
+    }
+  }
 
-    bool emitted=false;
+void WorldObjects::triggerEvent(const TriggerEvent &e) {
+  if(e.type==TriggerEvent::T_Trigger || e.type==TriggerEvent::T_Untrigger) {
     for(auto& i:triggers) {
       auto& t = *i;
       if(t.name()==e.target) {
-        t.processEvent(e);
-        emitted=true;
+        if(!t.isEnabled())
+          return;
+        break;
         }
       }
-    if(!emitted)
-      Log::d("unable to process trigger: \"",e.target,"\"");
     }
+  triggerEvents.push_back(e);
+  }
+
+void WorldObjects::execTriggerEvent(const TriggerEvent& e) {
+  if(e.timeBarrier>owner.tickCount()) {
+    triggerEvents.emplace_back(std::move(e));
+    return;
+    }
+
+  bool emitted=false;
+  for(auto& i:triggers) {
+    auto& t = *i;
+    if(t.name()==e.target) {
+      t.processEvent(e);
+      emitted=true;
+      }
+    }
+  if(!emitted)
+    Log::d("unable to process trigger: \"",e.target,"\"");
   }
 
 void WorldObjects::updateAnimation() {
@@ -326,10 +344,6 @@ void WorldObjects::addTrigger(AbstractTrigger* tg) {
   if(tg->hasVolume())
     triggersZn.emplace_back(tg);
   triggers.emplace_back(tg);
-  }
-
-void WorldObjects::triggerEvent(const TriggerEvent &e) {
-  triggerEvents.push_back(e);
   }
 
 void WorldObjects::triggerOnStart(bool wrldStartup) {

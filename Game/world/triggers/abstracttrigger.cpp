@@ -20,6 +20,10 @@ const std::string &AbstractTrigger::name() const {
   return data.vobName;
   }
 
+bool AbstractTrigger::isEnabled() const {
+  return !disabled;
+  }
+
 void AbstractTrigger::processOnStart(const TriggerEvent& evt) {
   if(vobType()==ZenLoad::zCVobData::VT_oCTriggerWorldStart) {
     processEvent(evt);
@@ -34,13 +38,13 @@ void AbstractTrigger::processEvent(const TriggerEvent& evt) {
   //  return;
   switch(evt.type) {
     case TriggerEvent::T_Trigger:
-      if(canActivate && !disabled) {
+      if(canActivate) {
         ++emitCount;
         onTrigger(evt);
         }
       break;
     case TriggerEvent::T_Untrigger:
-      if(canActivate && !disabled) {
+      if(canActivate) {
         ++emitCount;
         onUntrigger(evt);
         }
@@ -72,6 +76,9 @@ bool AbstractTrigger::hasFlag(ReactFlg flg) const {
 void AbstractTrigger::onIntersect(Npc &n) {
   if(!hasFlag(n.isPlayer() ? RespondToPC : RespondToNPC) &&
      !hasFlag(ReactToOnTouch))
+    return;
+
+  if(!isEnabled())
     return;
 
   for(auto i:intersect)

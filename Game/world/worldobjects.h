@@ -70,6 +70,7 @@ class WorldObjects final {
 
     void           addTrigger(AbstractTrigger* trigger);
     void           triggerEvent(const TriggerEvent& e);
+    void           execTriggerEvent(const TriggerEvent& e);
     void           triggerOnStart(bool wrldStartup);
     void           enableTicks (AbstractTrigger& t);
     void           disableTicks(AbstractTrigger& t);

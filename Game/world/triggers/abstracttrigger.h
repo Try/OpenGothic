@@ -38,6 +38,7 @@ class AbstractTrigger : public Vob {
 
     ZenLoad::zCVobData::EVobType vobType() const;
     const std::string&           name() const;
+    bool                         isEnabled() const;
 
     void                         processOnStart(const TriggerEvent& evt);
     void                         processEvent(const TriggerEvent& evt);

@@ -27,7 +27,14 @@ class Vob {
     virtual void  moveEvent();
 
   private:
+    enum ContentBit : uint8_t {
+      cbNone    = 0,
+      cbMobsi   = 1 << 0,
+      cbTrigger = 1 << 1,
+      };
     std::vector<std::unique_ptr<Vob>> child;
+    ContentBit                        childContent=cbNone;
+
     Tempest::Matrix4x4                pos, local;
     Vob*                              parent = nullptr;
 

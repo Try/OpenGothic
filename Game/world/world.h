@@ -121,6 +121,7 @@ class World final {
     Focus                findFocus(const Focus& def);
 
     void                 triggerEvent(const TriggerEvent& e);
+    void                 execTriggerEvent(const TriggerEvent& e);
     void                 enableTicks (AbstractTrigger& t);
     void                 disableTicks(AbstractTrigger& t);
     Interactive*         aviableMob(const Npc &pl, const char* name);

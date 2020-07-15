@@ -18,9 +18,12 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& d, bool
     frame = data.zCMover.keyframes.size()-1;
     }
   auto tr = transform();
+  if(frame<data.zCMover.keyframes.size())
+    tr = mkMatrix(data.zCMover.keyframes[frame]);
   tr.inverse();
-  pos0 = tr;
-  pos0.mul(localTransform());
+  pos0 = localTransform();
+  pos0.mul(tr);
+
   moveEvent();
   }
 
@@ -103,11 +106,13 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
 
   auto&    mover      = data.zCMover; //ring =  0.001, stone = 0.04, stone2 = 0.05
   uint32_t maxFr      = uint32_t(mover.keyframes.size()-1);
-  uint64_t frameTicks = uint64_t(1000);//*mover.moveSpeed);
+  uint64_t frameTicks = uint64_t(60.f/mover.moveSpeed);
   if(mover.keyframes.size()>0)
     ;//frameTicks/=mover.keyframes.size();
   if(frameTicks==0)
     frameTicks=1;
+  if(frameTicks>1000)
+    frameTicks=1000;
 
   uint64_t dt = world.tickCount()-sAnim;
   float    a  = float(dt%frameTicks)/float(frameTicks);
