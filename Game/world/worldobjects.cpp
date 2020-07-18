@@ -265,7 +265,7 @@ void WorldObjects::triggerEvent(const TriggerEvent &e) {
 
 void WorldObjects::execTriggerEvent(const TriggerEvent& e) {
   if(e.timeBarrier>owner.tickCount()) {
-    triggerEvents.emplace_back(std::move(e));
+    triggerEvent(std::move(e));
     return;
     }
 

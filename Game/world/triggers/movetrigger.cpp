@@ -41,6 +41,7 @@ void MoveTrigger::emitSound(const char* snd,bool freeSlot) {
   }
 
 void MoveTrigger::advanceAnim(uint32_t f0, uint32_t f1, float alpha) {
+  alpha    = std::max(0.f,std::min(alpha,1.f));
   auto fr  = mix(data.zCMover.keyframes[f0],data.zCMover.keyframes[f1],alpha);
   auto mat = pos0;
   mat.mul(mkMatrix(fr));
@@ -61,9 +62,11 @@ void MoveTrigger::onUntrigger(const TriggerEvent& e) {
      processTrigger(e,false);
   }
 
-void MoveTrigger::processTrigger(const TriggerEvent&, bool onTrigger) {
-  if(data.zCMover.keyframes.size()==0 || state!=Idle)
+void MoveTrigger::processTrigger(const TriggerEvent& e, bool onTrigger) {
+  if(data.zCMover.keyframes.size()==0 || state!=Idle) {
+    world.triggerEvent(e);
     return;
+    }
 
   const char* snd = data.zCMover.sfxOpenStart.c_str();
   switch(data.zCMover.moverBehavior) {
@@ -108,7 +111,7 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
   uint32_t maxFr      = uint32_t(mover.keyframes.size()-1);
   uint64_t frameTicks = uint64_t(60.f/mover.moveSpeed);
   if(mover.keyframes.size()>0)
-    ;//frameTicks/=mover.keyframes.size();
+    frameTicks/=mover.keyframes.size();
   if(frameTicks==0)
     frameTicks=1;
   if(frameTicks>1000)
@@ -131,23 +134,26 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
     case Open:{
       f0 = std::min(uint32_t(dt/frameTicks),maxFr);
       f1 = std::min(f0+1,maxFr);
+      a  = float(dt-f0*frameTicks)/float(frameTicks);
       break;
       }
     case Close: {
-      f0 = maxFr-std::min(uint32_t(dt/frameTicks),maxFr);
+      uint32_t offset = std::min(uint32_t(dt/frameTicks),maxFr);
+      f0 = maxFr-offset;
       f1 = f0>0 ? f0-1 : 0;
+      a  = float(dt-offset*frameTicks)/float(frameTicks);
       break;
       }
     case Loop: {
-      size_t keySz = mover.keyframes.size();
+      uint32_t keySz = uint32_t(mover.keyframes.size());
       f0 = uint32_t(dt/frameTicks)%keySz;
       f1 = uint32_t(f0+1)%keySz;
+      a  = float(dt%frameTicks)/float(frameTicks);
       break;
       }
     case NextKey: {
-      size_t keySz = mover.keyframes.size();
       f0 = frame;
-      f1 = uint32_t(f0+1)%keySz;
+      f1 = uint32_t(f0+1)%uint32_t(mover.keyframes.size());
       a  = std::min(1.f,float(dt)/float(frameTicks));
       break;
       }

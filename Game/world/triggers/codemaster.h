@@ -11,6 +11,9 @@ class CodeMaster : public AbstractTrigger {
     void onTrigger(const TriggerEvent& evt) override;
 
   private:
+    void onFailure();
+    void zeroState();
+
     std::vector<bool> keys;
   };
 
