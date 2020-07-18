@@ -15,7 +15,7 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& d, bool
     physic    = PhysicMesh(*mesh,*world.physic());
     }
   if(data.zCMover.moverLocked && data.zCMover.keyframes.size()>0) {
-    frame = data.zCMover.keyframes.size()-1;
+    frame = uint32_t(data.zCMover.keyframes.size()-1);
     }
   auto tr = transform();
   if(frame<data.zCMover.keyframes.size())
