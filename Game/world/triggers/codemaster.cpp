@@ -26,7 +26,6 @@ void CodeMaster::onTrigger(const TriggerEvent &evt) {
 
   for(auto i:keys)
     if(!i) {
-      onFailure();
       return;
       }
 

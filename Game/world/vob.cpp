@@ -13,6 +13,7 @@
 #include "world/triggers/triggerworldstart.h"
 #include "world/triggers/zonetrigger.h"
 #include "world/triggers/messagefilter.h"
+#include "world/triggers/pfxcontroller.h"
 #include "world/triggers/trigger.h"
 
 #include "world.h"
@@ -150,6 +151,11 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
       if(parent!=nullptr)
         parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new MessageFilter(parent,world,std::move(vob),startup));
+    case ZenLoad::zCVobData::VT_zCPFXControler:
+      if(parent!=nullptr)
+        parent->childContent = ContentBit(parent->childContent|cbTrigger);
+      return std::unique_ptr<Vob>(new PfxController(parent,world,std::move(vob),startup));
+
     case ZenLoad::zCVobData::VT_zCVobStartpoint: {
       float dx = vob.rotationMatrix.v[2].x;
       float dy = vob.rotationMatrix.v[2].y;
@@ -182,8 +188,7 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
       }
     }
 
-  if(vob.objectClass=="zCVobAnimate:zCVob" || // ork flags
-     vob.objectClass=="zCPFXControler:zCVob") {
+  if(vob.objectClass=="zCVobAnimate:zCVob") { // ork flags
     //TODO: morph animation
     return std::unique_ptr<Vob>(new StaticObj(parent,world,std::move(vob),startup));
     }

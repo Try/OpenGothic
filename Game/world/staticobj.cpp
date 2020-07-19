@@ -9,7 +9,7 @@ StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool s
     return;
 
   if(FileExt::hasExt(vob.visual,"PFX")) {
-    const ParticleFx* view = world.script().getParticleFx(vob.visual.substr(0,vob.visual.size()-4).c_str());
+    const ParticleFx* view = world.script().getParticleFx(vob.visual.c_str());
     if(view==nullptr)
       return;
     pfx = world.getView(view);

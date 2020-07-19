@@ -3,6 +3,7 @@
 #include <Tempest/Log>
 
 #include "graphics/particlefx.h"
+#include "utils/fileext.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -15,17 +16,20 @@ ParticlesDefinitions::~ParticlesDefinitions() {
   vm->clearReferences(Daedalus::IC_Pfx);
   }
 
-const ParticleFx* ParticlesDefinitions::get(const char *name) {
-  std::lock_guard<std::mutex> guard(sync);
+const ParticleFx* ParticlesDefinitions::get(const char *n) {
+  std::string name = n;
+  while(FileExt::hasExt(name,"PFX"))
+    name.resize(name.size()-4);
 
+  std::lock_guard<std::mutex> guard(sync);
   auto it = pfx.find(name);
   if(it!=pfx.end())
     return it->second.get();
   Daedalus::GEngineClasses::C_ParticleFX decl={};
-  if(!implGet(name,decl))
+  if(!implGet(name.c_str(),decl))
     return nullptr;
-  std::unique_ptr<ParticleFx> p{new ParticleFx(decl,name)};
-  auto ret = pfx.insert(std::make_pair<std::string,std::unique_ptr<ParticleFx>>(name,std::move(p)));
+  std::unique_ptr<ParticleFx> p{new ParticleFx(decl,name.c_str())};
+  auto ret = pfx.insert(std::make_pair<std::string,std::unique_ptr<ParticleFx>>(name.c_str(),std::move(p)));
   return ret.first->second.get();
   }
 
