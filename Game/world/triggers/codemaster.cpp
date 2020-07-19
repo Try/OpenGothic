@@ -31,7 +31,7 @@ void CodeMaster::onTrigger(const TriggerEvent &evt) {
       }
 
   zeroState();
-  TriggerEvent e(data.zCCodeMaster.triggerTarget,data.vobName,TriggerEvent::T_Trigger);
+  TriggerEvent e(data.zCCodeMaster.triggerTarget,data.vobName,TriggerEvent::T_Activate);
   world.triggerEvent(e);
   }
 

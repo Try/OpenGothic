@@ -107,11 +107,11 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
   if(state==Idle)
     return;
 
-  auto&    mover      = data.zCMover; //ring =  0.001, stone = 0.04, stone2 = 0.05
+  auto&    mover      = data.zCMover;
   uint32_t maxFr      = uint32_t(mover.keyframes.size()-1);
   uint64_t frameTicks = uint64_t(60.f/mover.moveSpeed);
-  if(mover.keyframes.size()>0)
-    frameTicks/=mover.keyframes.size();
+  //if(mover.keyframes.size()>0)
+  //  frameTicks/=mover.keyframes.size();
   if(frameTicks==0)
     frameTicks=1;
   if(frameTicks>1000)

@@ -15,13 +15,14 @@ class TriggerEvent final {
       T_Untrigger,
       T_Enable,
       T_Disable,
-      T_ToogleEnable
+      T_ToogleEnable,
+      T_Activate
       };
 
     TriggerEvent()=default;
     TriggerEvent(std::string target, std::string emitter, Type type):target(std::move(target)), emitter(std::move(emitter)), type(type){}
-    TriggerEvent(std::string target, std::string emitter, uint64_t t)
-      :target(std::move(target)), emitter(std::move(emitter)),timeBarrier(t){}
+    TriggerEvent(std::string target, std::string emitter, uint64_t t, Type type)
+      :target(std::move(target)), emitter(std::move(emitter)),type(type),timeBarrier(t){}
     TriggerEvent(bool startup):wrldStartup(startup){}
 
     const std::string target;

@@ -250,16 +250,6 @@ void WorldObjects::tickTriggers(uint64_t /*dt*/) {
   }
 
 void WorldObjects::triggerEvent(const TriggerEvent &e) {
-  if(e.type==TriggerEvent::T_Trigger || e.type==TriggerEvent::T_Untrigger) {
-    for(auto& i:triggers) {
-      auto& t = *i;
-      if(t.name()==e.target) {
-        if(!t.isEnabled())
-          return;
-        break;
-        }
-      }
-    }
   triggerEvents.push_back(e);
   }
 
@@ -272,7 +262,7 @@ void WorldObjects::execTriggerEvent(const TriggerEvent& e) {
   bool emitted=false;
   for(auto& i:triggers) {
     auto& t = *i;
-    if(t.name()==e.target) {
+    if(t.name()==e.target) { // NOTE: trigger name is not unique - more then one trigger can be activated
       t.processEvent(e);
       emitted=true;
       }

@@ -32,32 +32,49 @@ void AbstractTrigger::processOnStart(const TriggerEvent& evt) {
   }
 
 void AbstractTrigger::processEvent(const TriggerEvent& evt) {
-  const bool canActivate = (data.zCTrigger.numCanBeActivated<=0 ||
-                            emitCount<uint32_t(data.zCTrigger.numCanBeActivated));
   //if(!hasFlag(ReactToOnTrigger))
   //  return;
   switch(evt.type) {
     case TriggerEvent::T_Trigger:
-      if(canActivate) {
-        ++emitCount;
-        onTrigger(evt);
+      if(disabled) {
+        //Log::d("skip trigger: ",evt.target," [disabled]");
+        return;
         }
+      onTrigger(evt);
       break;
     case TriggerEvent::T_Untrigger:
-      if(canActivate) {
-        ++emitCount;
-        onUntrigger(evt);
+      if(disabled) {
+        //Log::d("skip trigger: ",evt.target," [disabled]");
+        return;
         }
+      onUntrigger(evt);
       break;
     case TriggerEvent::T_Enable:
+      //Log::d("enable  trigger: ",evt.target);
       disabled = false;
       break;
     case TriggerEvent::T_Disable:
       disabled = true;
+      //Log::d("disable trigger: ",evt.target);
       break;
     case TriggerEvent::T_ToogleEnable:
       disabled = !disabled;
+      // if(disabled)
+      //   Log::d("disable trigger: ",evt.target); else
+      //   Log::d("enable  trigger: ",evt.target);
       break;
+    case TriggerEvent::T_Activate: {
+      const bool canActivate = (data.zCTrigger.numCanBeActivated<=0 ||
+                                emitCount<uint32_t(data.zCTrigger.numCanBeActivated));
+      if(canActivate) {
+        ++emitCount;
+        //Log::d("exec trigger: ",evt.target);
+        onTrigger(evt);
+        } else {
+        //Log::d("skip trigger: ",evt.target," [emitCount]");
+        }
+      break;
+      }
     }
   }
 
@@ -87,7 +104,7 @@ void AbstractTrigger::onIntersect(Npc &n) {
   intersect.push_back(&n);
   if(intersect.size()==1) {
     enableTicks();
-    TriggerEvent e("","",TriggerEvent::T_Trigger);
+    TriggerEvent e("","",TriggerEvent::T_Activate);
     processEvent(e);
     }
   }
@@ -105,8 +122,8 @@ void AbstractTrigger::tick(uint64_t) {
     }
   if(intersect.size()==0) {
     disableTicks();
-    TriggerEvent e("","",TriggerEvent::T_Untrigger);
-    processEvent(e);
+    //TriggerEvent e("","",TriggerEvent::T_Untrigger);
+    //processEvent(e);
     }
   }
 

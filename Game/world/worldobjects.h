@@ -135,7 +135,7 @@ class WorldObjects final {
     template<class T>
     bool testObj(T &src, const Npc &pl, const SearchOpt& opt, float& rlen);
 
-    void           tickNear(uint64_t dt);
-    void           tickTriggers(uint64_t dt);
-    static bool    isTargetedBy(Npc& npc,Npc& by);
+    void             tickNear(uint64_t dt);
+    void             tickTriggers(uint64_t dt);
+    static bool      isTargetedBy(Npc& npc,Npc& by);
   };

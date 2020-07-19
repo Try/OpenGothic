@@ -321,7 +321,7 @@ void Interactive::invokeStateFunc(Npc& npc) {
 void Interactive::emitTriggerEvent() const {
   if(triggerTarget.empty())
     return;
-  const TriggerEvent evt(triggerTarget,vobName,TriggerEvent::T_Trigger);
+  const TriggerEvent evt(triggerTarget,vobName,TriggerEvent::T_Activate);
   world.triggerEvent(evt);
   }
 
