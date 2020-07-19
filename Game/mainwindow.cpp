@@ -130,7 +130,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
       auto vp = world->view()->viewProj(camera.view());
       p.setBrush(Color(1.0));
 
-      auto focus = world->validateFocus(currentFocus);
+      auto focus = world->validateFocus(player.focus());
       if(focus && !dialogs.isActive()) {
         auto pos = focus.displayPosition();
         vp.project(pos.x,pos.y,pos.z);
@@ -207,7 +207,7 @@ void MainWindow::mouseDragEvent(MouseEvent &event) {
   const bool fs = SystemApi::isFullscreen(hwnd());
   if(!mouseP[Event::ButtonLeft] && !fs)
     return;
-  if(currentFocus.npc && !fs)
+  if(player.focus().npc && !fs)
     return;
   processMouse(event,fs);
   }
@@ -490,7 +490,7 @@ void MainWindow::tick() {
   if(dialogs.isActive())
     clearInput();
 
-  player.tickFocus(currentFocus);
+  player.tickFocus();
   if(document.isActive())
     clearInput();
   player.tickMove(dt);
@@ -523,7 +523,7 @@ void MainWindow::followCamera() {
     //camera.setDestSpin(spin);
     camera.setDestPosition(pos.x,pos.y,pos.z);
     }
-  else if(currentFocus.npc!=nullptr && meleeFocus) {
+  else if(player.focus().npc!=nullptr && meleeFocus) {
     auto spin = camera.destSpin();
     spin.x = pl->rotation();
     camera.setSpin(spin);
@@ -543,7 +543,7 @@ void MainWindow::followCamera() {
 
   camera.setMode(solveCameraMode());
   camera.follow(*pl,dt,followCamera,
-                (!mouseP[Event::ButtonLeft] || currentFocus || fs));
+                (!mouseP[Event::ButtonLeft] || player.focus() || fs));
   renderer.setCameraView(camera);
   }
 
@@ -648,8 +648,8 @@ void MainWindow::onWorldLoaded() {
 
   if(auto pl = gothic.player())
     pl->multSpeed(1.f);
-  lastTick     = Application::tickCount();
-  currentFocus = Focus();
+  lastTick = Application::tickCount();
+  player.clearFocus();
   }
 
 void MainWindow::onSessionExit() {

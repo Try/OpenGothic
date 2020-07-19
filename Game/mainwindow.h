@@ -131,7 +131,6 @@ class MainWindow : public Tempest::Window {
     Tempest::Widget*          uiKeyUp=nullptr;
     Tempest::Point            mpos;
     PlayerControl             player;
-    Focus                     currentFocus;
     uint64_t                  lastTick=0;
 
     struct Fps {

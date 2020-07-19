@@ -314,7 +314,7 @@ class Npc final {
     void      blockSword();
     bool      castSpell();
     bool      aimBow();
-    bool      shootBow();
+    bool      shootBow(Interactive* focOverride = nullptr);
     bool      hasAmunition() const;
 
     bool      isEnemy(const Npc& other) const;

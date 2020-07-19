@@ -6,10 +6,16 @@
 using namespace Tempest;
 
 AbstractTrigger::AbstractTrigger(Vob* parent, World &world, ZenLoad::zCVobData &&data, bool startup)
-  :Vob(parent,world,data,startup), data(std::move(data)) {
+  :Vob(parent,world,data,startup), data(std::move(data)), callback(this) {
   if(!hasFlag(StartEnabled))
     ;//disabled = true;
   world.addTrigger(this);
+  box = world.physic()->bboxObj(&callback,data.bbox);
+  }
+
+AbstractTrigger::~AbstractTrigger() {
+  if(box!=nullptr)
+    world.physic()->deleteObj(box);
   }
 
 ZenLoad::zCVobData::EVobType AbstractTrigger::vobType() const {
@@ -151,4 +157,9 @@ void AbstractTrigger::enableTicks() {
 
 void AbstractTrigger::disableTicks() {
   world.disableTicks(*this);
+  }
+
+void AbstractTrigger::Cb::onCollide(DynamicWorld::BulletBody&) {
+  TriggerEvent ex(tg->data.vobName,tg->data.vobName,tg->world.tickCount(),TriggerEvent::T_Activate);
+  tg->onTrigger(ex);
   }

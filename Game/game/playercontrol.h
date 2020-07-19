@@ -24,7 +24,8 @@ class PlayerControl final {
     void onRotateMouse(int dAngle);
 
     void changeZoom(int delta);
-    void tickFocus(Focus& focus);
+    void tickFocus();
+    void clearFocus();
 
     bool interact(Interactive& it);
     bool interact(Npc&         other);
@@ -36,6 +37,8 @@ class PlayerControl final {
     void setTarget(Npc* other);
     void actionFocus(Npc& other);
     void emptyFocus();
+
+    Focus focus() const;
 
     bool tickMove(uint64_t dt);
     auto weaponState() const -> WeaponState;
@@ -73,6 +76,7 @@ class PlayerControl final {
     bool           actrl[5]={};
 
     bool           cacheFocus=false;
+    Focus          currentFocus;
     float          rotMouse=0;
 
     Gothic&        gothic;

@@ -133,14 +133,14 @@ void PlayerControl::onRotateMouse(int dAngle) {
   rotMouse += float(dAngle)*0.4f;
   }
 
-void PlayerControl::tickFocus(Focus& curFocus) {
-  curFocus = findFocus(&curFocus);
-  setTarget(curFocus.npc);
+void PlayerControl::tickFocus() {
+  currentFocus = findFocus(&currentFocus);
+  setTarget(currentFocus.npc);
 
   if(!ctrl[Action::ActionGeneric])
     return;
 
-  auto focus = curFocus;
+  auto focus = currentFocus;
   if(focus.interactive!=nullptr && interact(*focus.interactive)) {
     clearInput();
     }
@@ -156,12 +156,20 @@ void PlayerControl::tickFocus(Focus& curFocus) {
     emptyFocus();
   }
 
+void PlayerControl::clearFocus() {
+  currentFocus = Focus();
+  }
+
 void PlayerControl::actionFocus(Npc& other) {
   setTarget(&other);
   }
 
 void PlayerControl::emptyFocus() {
   setTarget(nullptr);
+  }
+
+Focus PlayerControl::focus() const {
+  return currentFocus;
   }
 
 bool PlayerControl::interact(Interactive &it) {
@@ -416,9 +424,13 @@ void PlayerControl::implMove(uint64_t dt) {
   if((ws==WeaponState::Bow || ws==WeaponState::CBow) && pl.hasAmunition()) {
     if(actrl[ActGeneric] || actrl[ActForward]) {
       if(auto other = pl.target()) {
-        float dx = other->position().x-pl.position().x;
-        float dz = other->position().z-pl.position().z;
-        pl.lookAt(dx,dz,false,dt);
+        auto dp = other->position()-pl.position();
+        pl.lookAt(dp.x,dp.z,false,dt);
+        pl.aimBow();
+        } else
+      if(currentFocus.interactive!=nullptr) {
+        auto dp = currentFocus.interactive->position()-pl.position();
+        pl.lookAt(dp.x,dp.z,false,dt);
         pl.aimBow();
         } else {
         pl.aimBow();
@@ -445,7 +457,7 @@ void PlayerControl::implMove(uint64_t dt) {
         }
       case WeaponState::Bow:
       case WeaponState::CBow: {
-        pl.shootBow();
+        pl.shootBow(currentFocus.interactive);
         return;
         }
       case WeaponState::Mage: {

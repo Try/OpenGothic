@@ -37,6 +37,7 @@ class DynamicWorld final {
     struct NpcBody;
     struct NpcBodyList;
     struct BulletsList;
+    struct BBoxList;
     struct Broadphase;
 
   public:
@@ -171,6 +172,27 @@ class DynamicWorld final {
       friend class DynamicWorld;
       };
 
+    struct BBoxCallback {
+      virtual ~BBoxCallback()=default;
+      virtual void onCollide(BulletBody& other){(void)other;}
+      };
+
+    struct BBoxBody final {
+      public:
+        BBoxBody(DynamicWorld* wrld, BBoxCallback* cb, const ZMath::float3* bbox);
+        BBoxBody(const BBoxBody& other) = delete;
+        ~BBoxBody();
+
+      private:
+        DynamicWorld*       owner = nullptr;
+        BBoxCallback*       cb    = nullptr;
+
+        btCollisionShape*   shape = nullptr;
+        btRigidBody*        obj   = nullptr;
+
+      friend class DynamicWorld;
+      };
+
     RayResult   dropRay (float x, float y, float z) const;
     RayResult   waterRay(float x, float y, float z) const;
 
@@ -182,12 +204,14 @@ class DynamicWorld final {
     Item        ghostObj (const ZMath::float3& min,const ZMath::float3& max);
     StaticItem  staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
     BulletBody* bulletObj(BulletCallback* cb);
+    BBoxBody*   bboxObj(BBoxCallback* cb, const ZMath::float3* bbox);
 
     ProtoMesh   decalMesh(const ZenLoad::zCVobData& vob, const Tempest::Matrix4x4& obj) const;
 
     void        tick(uint64_t dt);
 
     void        deleteObj(BulletBody* obj);
+    void        deleteObj(BBoxBody*   obj);
 
   private:
     void        deleteObj(NpcBody*    obj);
@@ -204,7 +228,7 @@ class DynamicWorld final {
     std::unique_ptr<btRigidBody> landObj();
     std::unique_ptr<btRigidBody> waterObj();
 
-    void updateSingleAabb(btCollisionObject* obj);
+    void       updateSingleAabb(btCollisionObject* obj);
 
     std::unique_ptr<btCollisionConfiguration>   conf;
     std::unique_ptr<btDispatcher>               dispatcher;
@@ -224,6 +248,7 @@ class DynamicWorld final {
 
     std::unique_ptr<NpcBodyList>                npcList;
     std::unique_ptr<BulletsList>                bulletList;
+    std::unique_ptr<BBoxList>                   bboxList;
 
     static const float                          ghostPadding;
     static const float                          ghostHeight;

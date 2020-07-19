@@ -4,6 +4,7 @@
 #include <zenload/zTypes.h>
 
 #include "world/vob.h"
+#include "physics/dynamicworld.h"
 
 class Npc;
 class World;
@@ -35,7 +36,7 @@ class TriggerEvent final {
 class AbstractTrigger : public Vob {
   public:
     AbstractTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& data, bool startup);
-    virtual ~AbstractTrigger()=default;
+    virtual ~AbstractTrigger();
 
     ZenLoad::zCVobData::EVobType vobType() const;
     const std::string&           name() const;
@@ -60,10 +61,18 @@ class AbstractTrigger : public Vob {
       StartEnabled     = 1<<6,
       };
 
+    struct Cb : DynamicWorld::BBoxCallback {
+      Cb(AbstractTrigger* tg):tg(tg) {}
+      void onCollide(DynamicWorld::BulletBody &other) override;
+      AbstractTrigger* tg;
+      };
+
     ZenLoad::zCVobData           data;
+    Cb                           callback;
+    DynamicWorld::BBoxBody*      box = nullptr;
     std::vector<Npc*>            intersect;
-    uint32_t                     emitCount=0;
-    bool                         disabled=false;
+    uint32_t                     emitCount = 0;
+    bool                         disabled  = false;
 
     virtual void                 onTrigger(const TriggerEvent& evt);
     virtual void                 onUntrigger(const TriggerEvent& evt);

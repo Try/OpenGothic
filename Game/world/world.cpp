@@ -550,7 +550,7 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
   return b;
   }
 
-Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target) {
+Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, const Interactive* inter) {
   float dx  = 1.f, dy = 0.f, dz = 0.f;
   auto  pos = npc.position();
   auto  bn  = npc.mapWeaponBone();
@@ -559,6 +559,23 @@ Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target) {
   if(target!=nullptr) {
     auto  tgPos = target->position();
     float y1    = target->centerY();
+    float y0    = pos.y;
+
+    dx = tgPos.x-pos.x;
+    dy = y1-y0;
+    dz = tgPos.z-pos.z;
+
+    float lxz   = std::sqrt(dx*dx+0*0+dz*dz);
+    float speed = DynamicWorld::bulletSpeed;
+    float t     = lxz/speed;
+
+    dy = (y1-y0)/t + 0.5f*DynamicWorld::gravity*t;
+    dx/=t;
+    dz/=t;
+    } else
+  if(inter!=nullptr) {
+    auto  tgPos = inter->position();
+    float y1    = tgPos.y;
     float y0    = pos.y;
 
     dx = tgPos.x-pos.x;

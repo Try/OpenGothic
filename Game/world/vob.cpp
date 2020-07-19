@@ -189,7 +189,7 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
     }
 
   if(vob.objectClass=="zCVobAnimate:zCVob") { // ork flags
-    //TODO: morph animation
+    // TODO: morph animation
     return std::unique_ptr<Vob>(new StaticObj(parent,world,std::move(vob),startup));
     }
   else if(vob.objectClass=="oCTouchDamage:zCTouchDamage:zCVob") {

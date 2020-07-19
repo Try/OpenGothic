@@ -431,6 +431,55 @@ struct DynamicWorld::BulletsList final {
   DynamicWorld&         wrld;
   };
 
+struct DynamicWorld::BBoxList final {
+  BBoxList(DynamicWorld& wrld):wrld(wrld){
+    }
+
+  BBoxBody* add(BBoxCallback* cb, const ZMath::float3* bbox) {
+    body.emplace_back(&wrld,cb,bbox);
+    return &body.front();
+    }
+
+  void del(BBoxBody* b) {
+    for(auto i=body.begin(), e=body.end();i!=e;++i){
+      if(&(*i)==b) {
+        body.erase(i);
+        return;
+        }
+      }
+    }
+
+  BBoxBody* rayTest(const btVector3& s, const btVector3& e) {
+    struct CallBack:btCollisionWorld::ClosestRayResultCallback {
+      using ClosestRayResultCallback::ClosestRayResultCallback;
+      };
+    CallBack callback{s,e};
+
+    btTransform rayFromTrans,rayToTrans;
+    rayFromTrans.setIdentity();
+    rayFromTrans.setOrigin(s);
+    rayToTrans.setIdentity();
+    rayToTrans.setOrigin(e);
+    for(auto& i:body)
+      if(rayTestSingle(rayFromTrans, rayToTrans, i, callback))
+        return &i;
+    return nullptr;
+    }
+
+  bool rayTestSingle(const btTransform& s,
+                     const btTransform& e, BBoxBody& npc,
+                     btCollisionWorld::RayResultCallback& callback){
+    wrld.world->rayTestSingle(s, e, npc.obj,
+                              npc.shape,
+                              npc.obj->getWorldTransform(),
+                              callback);
+    return callback.hasHit();
+    }
+
+  std::list<BBoxBody>  body;
+  DynamicWorld&        wrld;
+  };
+
 DynamicWorld::DynamicWorld(World&,const ZenLoad::zCMesh& worldMesh) {
   // collision configuration contains default setup for memory, collision setup
   conf.reset(new btDefaultCollisionConfiguration());
@@ -488,8 +537,9 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::zCMesh& worldMesh) {
 
   world->setForceUpdateAllAabbs(false);
 
-  npcList.reset(new NpcBodyList(*this));
+  npcList   .reset(new NpcBodyList(*this));
   bulletList.reset(new BulletsList(*this));
+  bboxList  .reset(new BBoxList   (*this));
   }
 
 DynamicWorld::~DynamicWorld(){
@@ -772,6 +822,10 @@ DynamicWorld::BulletBody* DynamicWorld::bulletObj(BulletCallback* cb) {
   return bulletList->add(cb);
   }
 
+DynamicWorld::BBoxBody* DynamicWorld::bboxObj(BBoxCallback* cb, const ZMath::float3* bbox) {
+  return bboxList->add(cb,bbox);
+  }
+
 ProtoMesh DynamicWorld::decalMesh(const ZenLoad::zCVobData& vob, const Tempest::Matrix4x4& objMat) const {
   float sX = vob.visualChunk.zCDecal.decalDim.x;
   float sY = vob.visualChunk.zCDecal.decalDim.y;
@@ -843,6 +897,12 @@ void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint6
   btVector3 s(x0,y0,z0), e(x1,y1,z1);
   CallBack callback{s,e};
   callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
+
+  if(auto ptr = bboxList->rayTest(s,e)) {
+    if(ptr->cb!=nullptr) {
+      ptr->cb->onCollide(b);
+      }
+    }
 
   if(auto ptr = npcList->rayTest(s,e)) {
     if(b.cb!=nullptr) {
@@ -920,6 +980,10 @@ void DynamicWorld::deleteObj(NpcBody *obj) {
 
 void DynamicWorld::deleteObj(BulletBody* obj) {
   bulletList->del(obj);
+  }
+
+void DynamicWorld::deleteObj(DynamicWorld::BBoxBody* obj) {
+  bboxList->del(obj);
   }
 
 void DynamicWorld::deleteObj(btCollisionObject *obj) {
@@ -1190,4 +1254,30 @@ Tempest::Matrix4x4 DynamicWorld::BulletBody::matrix() const {
   mat.rotateOY(-ang);
   mat.rotateOZ(-a2);
   return mat;
+  }
+
+DynamicWorld::BBoxBody::BBoxBody(DynamicWorld* wrld, DynamicWorld::BBoxCallback* cb, const ZMath::float3* bbox)
+  :owner(wrld), cb(cb) {
+  btVector3 hExt = {bbox[1].x-bbox[0].x, bbox[1].y-bbox[0].y, bbox[1].z-bbox[0].z};
+  btVector3 pos  = btVector3{bbox[1].x+bbox[0].x, bbox[1].y+bbox[0].y, bbox[1].z+bbox[0].z}*0.5f;
+
+  shape = new btBoxShape(hExt*0.5f);
+  obj   = new btRigidBody(btRigidBody::btRigidBodyConstructionInfo(0,nullptr,shape));
+
+  btTransform trans;
+  trans.setIdentity();
+  trans.setOrigin(pos);
+
+  obj->setWorldTransform(trans);
+  obj->setUserIndex(C_Ghost);
+  obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+  obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
+
+  owner->world->addCollisionObject(obj);
+  }
+
+DynamicWorld::BBoxBody::~BBoxBody() {
+  owner->world->removeCollisionObject(obj);
+  delete obj;
+  delete shape;
   }

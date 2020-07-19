@@ -2507,7 +2507,7 @@ bool Npc::aimBow() {
   return setAnim(Anim::AimBow);
   }
 
-bool Npc::shootBow() {
+bool Npc::shootBow(Interactive* focOverride) {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
@@ -2528,7 +2528,7 @@ bool Npc::shootBow() {
   auto itm = invent.getItem(size_t(munition));
   if(itm==nullptr)
     return false;
-  auto& b = owner.shootBullet(*itm,*this,currentTarget);
+  auto& b = owner.shootBullet(*itm,*this,currentTarget,focOverride);
 
   invent.delItem(size_t(munition),1,*this);
   b.setOwner(this);

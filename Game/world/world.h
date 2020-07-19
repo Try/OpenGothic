@@ -148,7 +148,7 @@ class World final {
     Item*                takeItem   (Item& it);
     void                 removeItem (Item &it);
     size_t               hasItems(const char* tag, size_t itemCls);
-    Bullet&              shootBullet(const Item &itmId, const Npc& npc, const Npc* target);
+    Bullet&              shootBullet(const Item &itmId, const Npc& npc, const Npc* target, const Interactive* inter);
     Bullet&              shootSpell(const Item &itm, const Npc &npc, const Npc *target);
 
     void                 sendPassivePerc (Npc& self,Npc& other,Npc& victum,int32_t perc);
