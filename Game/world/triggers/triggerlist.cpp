@@ -11,8 +11,8 @@ TriggerList::TriggerList(Vob* parent, World &world, ZenLoad::zCVobData &&d, bool
   }
 
 void TriggerList::onTrigger(const TriggerEvent& e) {
-  Log::d("{");
-  Log::d("trigger list: ",e.target);
+  //Log::d("{");
+  //Log::d("trigger list: ",e.target);
   uint64_t offset = 0;
   for(auto& i:data.zCTriggerList.list) {
     offset += uint64_t(i.fireDelay*1000);
@@ -20,5 +20,5 @@ void TriggerList::onTrigger(const TriggerEvent& e) {
     TriggerEvent ex(i.triggerTarget,data.vobName,time,TriggerEvent::T_Trigger);
     world.execTriggerEvent(ex);
     }
-  Log::d("}");
+  //Log::d("}");
   }
