@@ -27,7 +27,7 @@ void TriggerList::onTrigger(const TriggerEvent&) {
       }
     case LP_NEXT: {
       auto& i = data.zCTriggerList.list[next];
-      next = (next+1)%data.zCTriggerList.list.size();
+      next = (next+1)%uint32_t(data.zCTriggerList.list.size());
 
       uint64_t time = world.tickCount()+uint64_t(i.fireDelay*1000);
       TriggerEvent ex(i.triggerTarget,data.vobName,time,TriggerEvent::T_Trigger);
