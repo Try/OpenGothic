@@ -9,8 +9,9 @@ AbstractTrigger::AbstractTrigger(Vob* parent, World &world, ZenLoad::zCVobData &
   :Vob(parent,world,data,startup), data(std::move(data)), callback(this) {
   if(!hasFlag(StartEnabled))
     ;//disabled = true;
+  bboxSize = Vec3(data.bbox[1].x-data.bbox[0].x,data.bbox[1].y-data.bbox[0].y,data.bbox[1].z-data.bbox[0].z)*0.5f;
+  box      = world.physic()->bboxObj(&callback,data.bbox);
   world.addTrigger(this);
-  box = world.physic()->bboxObj(&callback,data.bbox);
   }
 
 AbstractTrigger::~AbstractTrigger() {
@@ -91,6 +92,9 @@ void AbstractTrigger::onTrigger(const TriggerEvent&) {
 void AbstractTrigger::onUntrigger(const TriggerEvent&) {
   }
 
+void AbstractTrigger::moveEvent() {
+  }
+
 bool AbstractTrigger::hasFlag(ReactFlg flg) const {
   ReactFlg filter = ReactFlg(data.zCTrigger.flags & data.zCTrigger.filterFlags);
   return (filter&flg)==flg;
@@ -134,19 +138,18 @@ void AbstractTrigger::tick(uint64_t) {
   }
 
 bool AbstractTrigger::hasVolume() const {
-  auto& b = data.bbox;
-  if( b[0].x < b[1].x &&
-      b[0].y < b[1].y &&
-      b[0].z < b[1].z)
+  if( bboxSize.x>0 &&
+      bboxSize.y>0 &&
+      bboxSize.z>0 )
     return true;
   return false;
   }
 
-bool AbstractTrigger::checkPos(float x,float y,float z) const{
-  auto& b = data.bbox;
-  if( b[0].x < x && x < b[1].x &&
-      b[0].y < y && y < b[1].y &&
-      b[0].z < z && z < b[1].z)
+bool AbstractTrigger::checkPos(float x,float y,float z) const {
+  auto dp = Vec3(x,y,z) - position();
+  if(std::fabs(dp.x)<bboxSize.x &&
+     std::fabs(dp.y)<bboxSize.y &&
+     std::fabs(dp.z)<bboxSize.z)
     return true;
   return false;
   }
@@ -160,6 +163,8 @@ void AbstractTrigger::disableTicks() {
   }
 
 void AbstractTrigger::Cb::onCollide(DynamicWorld::BulletBody&) {
+  if(!tg->hasFlag(ReactToOnTouch))
+    return;
   TriggerEvent ex(tg->data.vobName,tg->data.vobName,tg->world.tickCount(),TriggerEvent::T_Activate);
-  tg->onTrigger(ex);
+  tg->processEvent(ex);
   }

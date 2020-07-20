@@ -754,7 +754,7 @@ void World::addFreePoint(const Vec3& pos, const Vec3& dir, const char* name) {
 
 void World::addSound(const ZenLoad::zCVobData& vob) {
   if(vob.vobType==ZenLoad::zCVobData::VT_zCVobSound ||
-          vob.vobType==ZenLoad::zCVobData::VT_zCVobSoundDaytime) {
+     vob.vobType==ZenLoad::zCVobData::VT_zCVobSoundDaytime) {
     wsound.addSound(vob);
     }
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusic) {

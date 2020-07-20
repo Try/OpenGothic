@@ -1273,11 +1273,11 @@ DynamicWorld::BBoxBody::BBoxBody(DynamicWorld* wrld, DynamicWorld::BBoxCallback*
   obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
   obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
 
-  owner->world->addCollisionObject(obj);
+  //owner->world->addCollisionObject(obj);
   }
 
 DynamicWorld::BBoxBody::~BBoxBody() {
-  owner->world->removeCollisionObject(obj);
+  //owner->world->removeCollisionObject(obj);
   delete obj;
   delete shape;
   }

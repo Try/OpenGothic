@@ -49,6 +49,7 @@ void MoveTrigger::advanceAnim(uint32_t f0, uint32_t f1, float alpha) {
   }
 
 void MoveTrigger::moveEvent() {
+  Vob::moveEvent();
   view  .setObjMatrix(transform());
   physic.setObjMatrix(transform());
   }

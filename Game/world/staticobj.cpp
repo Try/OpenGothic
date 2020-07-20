@@ -45,6 +45,7 @@ StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool s
   }
 
 void StaticObj::moveEvent() {
+  Vob::moveEvent();
   pfx   .setObjMatrix(transform());
   mesh  .setObjMatrix(transform());
   physic.setObjMatrix(transform());

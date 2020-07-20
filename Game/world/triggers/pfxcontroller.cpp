@@ -8,6 +8,8 @@ PfxController::PfxController(Vob* parent, World& world, ZenLoad::zCVobData&& d, 
   auto& name = data.zCPFXControler.pfxName;
   const ParticleFx* view = world.script().getParticleFx(name.c_str());
   if(view==nullptr)
+    view = world.script().getParticleFx(data.visual.c_str());
+  if(view==nullptr)
     return;
   lifeTime = view->maxLifetime();
   pfx = world.getView(view);
@@ -30,6 +32,7 @@ void PfxController::onUntrigger(const TriggerEvent&) {
   }
 
 void PfxController::moveEvent() {
+  Vob::moveEvent();
   pfx.setObjMatrix(transform());
   }
 

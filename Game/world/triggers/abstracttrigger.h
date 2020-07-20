@@ -74,8 +74,11 @@ class AbstractTrigger : public Vob {
     uint32_t                     emitCount = 0;
     bool                         disabled  = false;
 
+    Tempest::Vec3                bboxSize;
+
     virtual void                 onTrigger(const TriggerEvent& evt);
     virtual void                 onUntrigger(const TriggerEvent& evt);
+    void                         moveEvent() override;
 
     bool                         hasFlag(ReactFlg flg) const;
 

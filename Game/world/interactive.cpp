@@ -717,6 +717,7 @@ void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x
   }
 
 void Interactive::moveEvent() {
+  Vob::moveEvent();
   Pose& pose = *skInst;
   view.setPose(pose,transform());
   }

@@ -17,7 +17,9 @@ void CodeMaster::onTrigger(const TriggerEvent &evt) {
   for(size_t i=0;i<keys.size();++i) {
     if(data.zCCodeMaster.slaveVobName[i]==evt.emitter) {
       if(data.zCCodeMaster.orderRelevant && (count!=i)) {
-        onFailure();
+        if(data.zCCodeMaster.firstFalseIsFailure)
+          onFailure();
+        zeroState();
         return;
         }
       keys[i] = true;
@@ -35,8 +37,10 @@ void CodeMaster::onTrigger(const TriggerEvent &evt) {
   }
 
 void CodeMaster::onFailure() {
-  if(data.zCCodeMaster.firstFalseIsFailure)
-    zeroState();
+  if(!data.zCCodeMaster.triggerTargetFailure.empty()) {
+    TriggerEvent e(data.zCCodeMaster.triggerTargetFailure,data.vobName,TriggerEvent::T_Activate);
+    world.triggerEvent(e);
+    }
   }
 
 void CodeMaster::zeroState() {
