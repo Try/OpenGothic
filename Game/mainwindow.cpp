@@ -217,7 +217,7 @@ void MainWindow::mouseMoveEvent(MouseEvent &event) {
   if(fs) {
     processMouse(event,true);
     mpos = Point(w()/2,h()/2);
-    SystemApi::setCursorPosition(mpos.x,mpos.y);
+    SystemApi::setCursorPosition(hwnd(),mpos.x,mpos.y);
     }
   }
 
@@ -668,7 +668,7 @@ void MainWindow::clearInput() {
 void MainWindow::setFullscreen(bool fs) {
   SystemApi::setAsFullscreen(hwnd(),fs);
   mpos = Point(w()/2,h()/2);
-  SystemApi::setCursorPosition(mpos.x,mpos.y);
+  SystemApi::setCursorPosition(hwnd(),mpos.x,mpos.y);
   SystemApi::showCursor(!fs);
   }
 
