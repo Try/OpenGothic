@@ -47,8 +47,6 @@ World::World(Gothic& gothic, GameSession& game,const RendererStorage &storage, s
   wmatrix->buildIndex();
   bsp = std::move(world.bspTree);
   bspSectors.resize(bsp.sectors.size());
-
-  wobj.triggerOnStart(true);
   loadProgress(100);
   }
 
@@ -83,7 +81,6 @@ World::World(Gothic& gothic, GameSession &game, const RendererStorage &storage,
   bsp = std::move(world.bspTree);
   bspSectors.resize(bsp.sectors.size());
 
-  wobj.triggerOnStart(false); //FIXME: savegame
   loadProgress(100);
   }
 
@@ -771,6 +768,10 @@ void World::addLight(const ZenLoad::zCVobData& vob) {
 
 void World::invalidateVobIndex() {
   wobj.invalidateVobIndex();
+  }
+
+void World::triggerOnStart(bool firstTime) {
+  wobj.triggerOnStart(firstTime);
   }
 
 const WayPoint *World::findPoint(const char *name) const {

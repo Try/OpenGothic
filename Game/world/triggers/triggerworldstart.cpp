@@ -7,7 +7,7 @@ TriggerWorldStart::TriggerWorldStart(Vob* parent, World &world, ZenLoad::zCVobDa
   }
 
 void TriggerWorldStart::onTrigger(const TriggerEvent &ev) {
-  if(data.oCTriggerWorldStart.fireOnlyFirstTime && !ev.wrldStartup)
+  if(data.oCTriggerWorldStart.fireOnlyFirstTime && ev.type!=TriggerEvent::T_StartupFirstTime)
     return;
 
   TriggerEvent e(data.oCTriggerWorldStart.triggerTarget,data.vobName,TriggerEvent::T_Trigger);

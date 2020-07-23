@@ -9,6 +9,9 @@ class PfxController : public AbstractTrigger {
   public:
     PfxController(Vob* parent, World& world, ZenLoad::zCVobData&& data, bool startup);
 
+    void save(Serialize &fout) const override;
+    void load(Serialize &fin) override;
+
   private:
     void onTrigger(const TriggerEvent& evt) override;
     void onUntrigger(const TriggerEvent& evt) override;

@@ -1,6 +1,7 @@
 #include "codemaster.h"
 
 #include "world/world.h"
+#include "game/serialize.h"
 
 CodeMaster::CodeMaster(Vob* parent, World &world, ZenLoad::zCVobData&& d, bool startup)
   :AbstractTrigger(parent,world,std::move(d),startup), keys(data.zCCodeMaster.slaveVobName.size()) {
@@ -34,6 +35,18 @@ void CodeMaster::onTrigger(const TriggerEvent &evt) {
   zeroState();
   TriggerEvent e(data.zCCodeMaster.triggerTarget,data.vobName,TriggerEvent::T_Activate);
   world.triggerEvent(e);
+  }
+
+void CodeMaster::save(Serialize& fout) const {
+  AbstractTrigger::save(fout);
+  fout.write(keys);
+  }
+
+void CodeMaster::load(Serialize& fin) {
+  if(fin.version()<10)
+    return;
+  AbstractTrigger::load(fin);
+  fin.read(keys);
   }
 
 void CodeMaster::onFailure() {

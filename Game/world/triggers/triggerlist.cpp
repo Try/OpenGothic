@@ -3,6 +3,7 @@
 #include <Tempest/Log>
 
 #include "world/world.h"
+#include "game/serialize.h"
 
 using namespace Tempest;
 
@@ -43,4 +44,16 @@ void TriggerList::onTrigger(const TriggerEvent&) {
       break;
       }
     }
+  }
+
+void TriggerList::save(Serialize& fout) const {
+  AbstractTrigger::save(fout);
+  fout.write(next);
+  }
+
+void TriggerList::load(Serialize& fin) {
+  if(fin.version()<10)
+    return;
+  AbstractTrigger::load(fin);
+  fin.read(next);
   }

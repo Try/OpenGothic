@@ -95,7 +95,7 @@ void Npc::save(Serialize &fout) {
     fout.write(i.func);
 
   invent.save(fout);
-  fout.write(lastHitType,lastHitSpell);
+  fout.write(lastHitType,lastHitSpell,currentSpellCast);
   saveAiState(fout);
 
   fout.write(currentOther,currentLookAt,currentTarget,nearestEnemy);
@@ -126,6 +126,8 @@ void Npc::load(Serialize &fin) {
     fin.read(i.func);
   invent.load(*this,fin);
   fin.read(lastHitType,lastHitSpell);
+  if(fin.version()>=9)
+    fin.read(currentSpellCast);
   loadAiState(fin);
 
   fin.read(currentOther,currentLookAt,currentTarget,nearestEnemy);
@@ -1225,6 +1227,11 @@ bool Npc::implAtack(uint64_t dt) {
     if(ws==WeaponState::Mage){
       if(castSpell()) {
         fghAlgo.consumeAction();
+        } else {
+        setAnimRotate(0);
+        setDirection(currentTarget->x-x,
+                     currentTarget->y-y,
+                     currentTarget->z-z);
         }
       }
     else if(ws==WeaponState::Bow || ws==WeaponState::CBow){
@@ -1526,7 +1533,7 @@ void Npc::tick(uint64_t dt) {
     setAnim(AnimationSolver::Idle);
     }
 
-  if(bodyStateMasked()==BodyState::BS_CASTING) {
+  if(currentSpellCast!=0) {
     if(setAnim(Npc::Anim::Idle))
       commitSpell();
     }
@@ -2046,11 +2053,13 @@ void Npc::playEffect(Npc& /*to*/, const VisualFx& vfx) {
   }
 
 void Npc::commitSpell() {
-  auto active=invent.activeWeapon();
+  const int32_t   splId = currentSpellCast;
+  currentSpellCast = 0;
+
+  auto active=invent.spellById(splId);
   if(active==nullptr || !active->isSpellOrRune())
     return;
 
-  const int32_t   splId = active->spellId();
   owner.script().invokeSpell(*this,currentTarget,*active);
 
   const VisualFx* vfx = owner.script().getSpellVFx(splId);
@@ -2469,15 +2478,15 @@ bool Npc::castSpell() {
     return false;
 
   if(!isStanding()) {
-    setAnim(Anim::Idle);
     return false;
     }
 
-  const int32_t   splId = active->spellId();
+  currentSpellCast      = active->spellId();
   const SpellCode code  = SpellCode(owner.script().invokeMana(*this,currentTarget,*active));
   switch(code) {
     case SpellCode::SPL_SENDSTOP:
       setAnim(Anim::MagNoMana);
+      currentSpellCast = 0;
       break;
     case SpellCode::SPL_STATUS_CANINVEST_NO_MANADEC:
     case SpellCode::SPL_NEXTLEVEL:{
@@ -2494,7 +2503,7 @@ bool Npc::castSpell() {
       break;
       }
     default:
-      Log::d("unexpected Spell_ProcessMana result: '",int(code),"' for spell '",splId,"'");
+      Log::d("unexpected Spell_ProcessMana result: '",int(code),"' for spell '",currentSpellCast,"'");
       return false;
     }
   return true;

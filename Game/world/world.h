@@ -172,6 +172,7 @@ class World final {
     void                 addLight      (const ZenLoad::zCVobData& vob);
 
     void                 invalidateVobIndex();
+    void                 triggerOnStart(bool firstTime);
 
   private:
     std::string                           wname;

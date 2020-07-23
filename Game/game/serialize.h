@@ -27,7 +27,7 @@ class Serialize final {
   public:
     enum {
       MinVersion = 0,
-      Version    = 8
+      Version    = 10
       };
 
     Serialize(Tempest::ODevice& fout);
@@ -128,6 +128,24 @@ class Serialize final {
     template<class T>
     void read (std::vector<T>& s){
       implReadVec(s,std::is_trivial<T>());
+      }
+
+    void write(const std::vector<bool>& s) {
+      uint32_t sz=uint32_t(s.size());
+      write(sz);
+      for(size_t i=0; i<s.size(); ++i)
+        write(s[i]);
+      }
+
+    void read (std::vector<bool>& s) {
+      uint32_t sz=0;
+      read(sz);
+      s.resize(sz);
+      for(size_t i=0; i<s.size(); ++i) {
+        bool b=false;
+        read(b);
+        s[i] = b;
+        }
       }
 
     template<size_t sz>

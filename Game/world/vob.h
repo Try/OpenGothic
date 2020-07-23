@@ -6,6 +6,7 @@
 #include <zenload/zTypes.h>
 
 class World;
+class Serialize;
 
 class Vob {
   public:
@@ -13,6 +14,12 @@ class Vob {
     Vob(Vob* parent, World& owner, ZenLoad::zCVobData& vob, bool startup);
     virtual ~Vob();
     static std::unique_ptr<Vob> load(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool startup);
+
+    void          saveVobTree(Serialize& fin) const;
+    virtual void  save(Serialize& fin) const;
+
+    void          loadVobTree(Serialize& fin);
+    virtual void  load(Serialize& fin);
 
     Tempest::Vec3 position() const;
     auto          transform() const -> const Tempest::Matrix4x4& { return pos; }
@@ -35,6 +42,7 @@ class Vob {
     std::vector<std::unique_ptr<Vob>> child;
     ContentBit                        childContent=cbNone;
 
+    uint8_t                           vobType = 0;
     Tempest::Matrix4x4                pos, local;
     Vob*                              parent = nullptr;
 

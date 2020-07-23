@@ -1,7 +1,9 @@
 #include "abstracttrigger.h"
 
 #include <Tempest/Log>
+
 #include "world/world.h"
+#include "game/serialize.h"
 
 using namespace Tempest;
 
@@ -39,43 +41,35 @@ void AbstractTrigger::processOnStart(const TriggerEvent& evt) {
   }
 
 void AbstractTrigger::processEvent(const TriggerEvent& evt) {
-  //if(!hasFlag(ReactToOnTrigger))
-  //  return;
   switch(evt.type) {
+    case TriggerEvent::T_Startup:
+    case TriggerEvent::T_StartupFirstTime:
     case TriggerEvent::T_Trigger:
       if(disabled) {
-        //Log::d("skip trigger: ",evt.target," [disabled]");
         return;
         }
       onTrigger(evt);
       break;
     case TriggerEvent::T_Untrigger:
       if(disabled) {
-        //Log::d("skip trigger: ",evt.target," [disabled]");
         return;
         }
       onUntrigger(evt);
       break;
     case TriggerEvent::T_Enable:
-      //Log::d("enable  trigger: ",evt.target);
       disabled = false;
       break;
     case TriggerEvent::T_Disable:
       disabled = true;
-      //Log::d("disable trigger: ",evt.target);
       break;
     case TriggerEvent::T_ToogleEnable:
       disabled = !disabled;
-      // if(disabled)
-      //   Log::d("disable trigger: ",evt.target); else
-      //   Log::d("enable  trigger: ",evt.target);
       break;
     case TriggerEvent::T_Activate: {
       const bool canActivate = (data.zCTrigger.numCanBeActivated<=0 ||
                                 emitCount<uint32_t(data.zCTrigger.numCanBeActivated));
       if(canActivate) {
         ++emitCount;
-        //Log::d("exec trigger: ",evt.target);
         onTrigger(evt);
         } else {
         //Log::d("skip trigger: ",evt.target," [emitCount]");
@@ -154,6 +148,37 @@ bool AbstractTrigger::checkPos(float x,float y,float z) const {
   return false;
   }
 
+void AbstractTrigger::save(Serialize& fout) const {
+  Vob::save(fout);
+  fout.write(uint32_t(intersect.size()));
+  for(auto i:intersect)
+    fout.write(i);
+  fout.write(emitCount,disabled);
+  }
+
+void AbstractTrigger::load(Serialize& fin) {
+  if(fin.version()<10)
+    return;
+
+  Vob::load(fin);
+  uint32_t size=0;
+  fin.read(size);
+  intersect.resize(size);
+  for(auto& i:intersect)
+    fin.read(i);
+  for(size_t i=0;i<intersect.size();)
+    if(intersect[i]==nullptr) {
+      intersect[i] = intersect.back();
+      intersect.pop_back();
+      } else {
+      ++i;
+      }
+  fin.read(emitCount,disabled);
+
+  if(intersect.size()>0)
+    enableTicks();
+  }
+
 void AbstractTrigger::enableTicks() {
   world.enableTicks(*this);
   }
@@ -167,4 +192,12 @@ void AbstractTrigger::Cb::onCollide(DynamicWorld::BulletBody&) {
     return;
   TriggerEvent ex(tg->data.vobName,tg->data.vobName,tg->world.tickCount(),TriggerEvent::T_Activate);
   tg->processEvent(ex);
+  }
+
+void TriggerEvent::save(Serialize& fout) const {
+  fout.write(target,emitter,uint8_t(type),timeBarrier);
+  }
+
+void TriggerEvent::load(Serialize& fin) {
+  fin.read(target,emitter,reinterpret_cast<uint8_t&>(type),timeBarrier);
   }

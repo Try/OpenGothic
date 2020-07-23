@@ -87,6 +87,13 @@ void PfxObjects::Emitter::setActive(bool act) {
   bucket->impl[id].active = act;
   }
 
+bool PfxObjects::Emitter::isActive() const {
+  if(bucket==nullptr)
+    return false;
+  std::lock_guard<std::mutex> guard(bucket->parent->sync);
+  return bucket->impl[id].active;
+  }
+
 void PfxObjects::Emitter::setObjMatrix(const Matrix4x4 &mt) {
   setPosition (mt.at(3,0),mt.at(3,1),mt.at(3,2));
   setDirection(mt);

@@ -38,6 +38,7 @@ class PfxObjects final {
         void   setDirection(const Tempest::Matrix4x4& pos);
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setActive(bool act);
+        bool   isActive() const;
 
       private:
         Emitter(Bucket &b,size_t id);

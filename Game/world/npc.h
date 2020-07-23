@@ -645,6 +645,7 @@ class Npc final {
     Npc*                           lastHit      = nullptr;
     char                           lastHitType  = 'A';
     int32_t                        lastHitSpell = 0;
+    int32_t                        currentSpellCast = 0;
 
     // ai state
     uint64_t                       aniWaitTime=0;

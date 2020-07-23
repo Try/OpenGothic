@@ -53,8 +53,14 @@ void WorldObjects::load(Serialize &fin) {
   fin.read(sz);
   if(interactiveObj.size()!=sz)
     throw std::logic_error("inconsistent *.sav vs world");
-  for(auto& i:interactiveObj) {
-    i->load(fin);
+  for(auto& i:rootVobs)
+    i->loadVobTree(fin);
+  if(fin.version()>=10) {
+    uint32_t sz = 0;
+    fin.read(sz);
+    triggerEvents.resize(sz);
+    for(auto& i:triggerEvents)
+      i.load(fin);
     }
   }
 
@@ -71,8 +77,11 @@ void WorldObjects::save(Serialize &fout) {
 
   sz = uint32_t(interactiveObj.size());
   fout.write(sz);
-  for(auto& i:interactiveObj)
-    i->save(fout);
+  for(auto& i:rootVobs)
+    i->saveVobTree(fout);
+  fout.write(uint32_t(triggerEvents.size()));
+  for(auto& i:triggerEvents)
+    i.save(fout);
   }
 
 void WorldObjects::tick(uint64_t dt) {
@@ -336,8 +345,8 @@ void WorldObjects::addTrigger(AbstractTrigger* tg) {
   triggers.emplace_back(tg);
   }
 
-void WorldObjects::triggerOnStart(bool wrldStartup) {
-  TriggerEvent evt(wrldStartup);
+void WorldObjects::triggerOnStart(bool firstTime) {
+  TriggerEvent evt("","",firstTime ? TriggerEvent::T_StartupFirstTime : TriggerEvent::T_Startup);
   for(auto& i:triggers)
     i->processOnStart(evt);
   }

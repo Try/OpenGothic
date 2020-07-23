@@ -3,6 +3,8 @@
 #include "world/world.h"
 #include "graphics/particlefx.h"
 
+#include "game/serialize.h"
+
 PfxController::PfxController(Vob* parent, World& world, ZenLoad::zCVobData&& d, bool startup)
   :AbstractTrigger(parent,world,std::move(d),startup) {
   auto& name = data.zCPFXControler.pfxName;
@@ -15,6 +17,23 @@ PfxController::PfxController(Vob* parent, World& world, ZenLoad::zCVobData&& d, 
   pfx = world.getView(view);
   pfx.setActive(d.zCPFXControler.pfxStartOn);
   pfx.setObjMatrix(transform());
+  }
+
+void PfxController::save(Serialize& fout) const {
+  AbstractTrigger::save(fout);
+  fout.write(killed,lifeTime,pfx.isActive());
+  }
+
+void PfxController::load(Serialize& fin) {
+  if(fin.version()<10)
+    return;
+  AbstractTrigger::load(fin);
+  bool active = false;
+  fin.read(killed,lifeTime,active);
+  pfx.setActive(active);
+
+  if(killed!=std::numeric_limits<uint64_t>::max())
+    enableTicks();
   }
 
 void PfxController::onTrigger(const TriggerEvent&) {

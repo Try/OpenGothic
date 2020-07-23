@@ -96,6 +96,7 @@ class Inventory final {
     void   switchActiveWeaponFist();
     void   switchActiveWeapon(Npc &owner, uint8_t slot);
     void   switchActiveSpell (int32_t spell, Npc &owner);
+    Item*  spellById(int32_t splId);
 
     Item*  currentArmour()         { return armour;     }
     Item*  currentMeleWeapon()     { return mele;       }

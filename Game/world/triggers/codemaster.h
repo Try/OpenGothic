@@ -11,6 +11,9 @@ class CodeMaster : public AbstractTrigger {
     void onTrigger(const TriggerEvent& evt) override;
 
   private:
+    void save(Serialize& fout) const override;
+    void load(Serialize &fin) override;
+
     void onFailure();
     void zeroState();
 

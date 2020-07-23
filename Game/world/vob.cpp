@@ -15,8 +15,10 @@
 #include "world/triggers/messagefilter.h"
 #include "world/triggers/pfxcontroller.h"
 #include "world/triggers/trigger.h"
+#include "game/serialize.h"
 
 #include "world.h"
+
 
 using namespace Tempest;
 
@@ -25,7 +27,7 @@ Vob::Vob(World& owner)
   }
 
 Vob::Vob(Vob* parent, World& owner, ZenLoad::zCVobData& vob, bool startup)
-  : world(owner), parent(parent) {
+  : world(owner), vobType(vob.vobType), parent(parent) {
   float v[16]={};
   std::memcpy(v,vob.worldMatrix.m,sizeof(v));
   pos   = Tempest::Matrix4x4(v);
@@ -40,8 +42,10 @@ Vob::Vob(Vob* parent, World& owner, ZenLoad::zCVobData& vob, bool startup)
 
   for(auto& i:vob.childVobs) {
     auto p = Vob::load(this,owner,std::move(i),startup);
-    if(p!=nullptr)
+    if(p!=nullptr) {
+      childContent = ContentBit(p->childContent|childContent);
       child.emplace_back(std::move(p));
+      }
     }
   vob.childVobs.clear();
   }
@@ -161,6 +165,8 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
       float dy = vob.rotationMatrix.v[2].y;
       float dz = vob.rotationMatrix.v[2].z;
       world.addStartPoint(Vec3(vob.position.x,vob.position.y,vob.position.z),Vec3(dx,dy,dz),vob.vobName.c_str());
+      if(vob.childVobs.size()>0)
+        Log::d("skip ",vob.childVobs.size()," vobs");
       return nullptr;
       }
     case ZenLoad::zCVobData::VT_zCVobSpot: {
@@ -168,11 +174,15 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
       float dy = vob.rotationMatrix.v[2].y;
       float dz = vob.rotationMatrix.v[2].z;
       world.addFreePoint(Vec3(vob.position.x,vob.position.y,vob.position.z),Vec3(dx,dy,dz),vob.vobName.c_str());
+      if(vob.childVobs.size()>0)
+        Log::d("skip ",vob.childVobs.size()," vobs");
       return nullptr;
       }
     case ZenLoad::zCVobData::VT_oCItem: {
       if(startup)
         world.addItem(vob);
+      if(vob.childVobs.size()>0)
+        Log::d("skip ",vob.childVobs.size()," vobs");
       return nullptr;
       }
     case ZenLoad::zCVobData::VT_zCVobSound:
@@ -180,11 +190,13 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
     case ZenLoad::zCVobData::VT_oCZoneMusic:
     case ZenLoad::zCVobData::VT_oCZoneMusicDefault: {
       world.addSound(vob);
-      return nullptr;
+      // FIXME
+      return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));
       }
     case ZenLoad::zCVobData::VT_zCVobLight: {
       world.addLight(vob);
-      return nullptr;
+      // FIXME
+      return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));
       }
     }
 
@@ -210,4 +222,29 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
       }
     }
   return nullptr;
+  }
+
+void Vob::saveVobTree(Serialize& fin) const {
+  for(auto& i:child)
+    i->saveVobTree(fin);
+  save(fin);
+  }
+
+void Vob::loadVobTree(Serialize& fin) {
+  for(auto& i:child)
+    i->loadVobTree(fin);
+  load(fin);
+  }
+
+void Vob::save(Serialize& fin) const {
+  fin.write(vobType,pos,local);
+  }
+
+void Vob::load(Serialize& fin) {
+  if(fin.version()<10)
+    return;
+  uint8_t type = 0;
+  fin.read(type,pos,local);
+  if(vobType!=type)
+    throw std::logic_error("inconsistent *.sav vs world");
   }

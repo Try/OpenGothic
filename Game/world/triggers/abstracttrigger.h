@@ -17,19 +17,22 @@ class TriggerEvent final {
       T_Enable,
       T_Disable,
       T_ToogleEnable,
-      T_Activate
+      T_Activate,
+      T_StartupFirstTime,
+      T_Startup,
       };
 
     TriggerEvent()=default;
     TriggerEvent(std::string target, std::string emitter, Type type):target(std::move(target)), emitter(std::move(emitter)), type(type){}
     TriggerEvent(std::string target, std::string emitter, uint64_t t, Type type)
       :target(std::move(target)), emitter(std::move(emitter)),type(type),timeBarrier(t){}
-    TriggerEvent(bool startup):wrldStartup(startup){}
 
-    const std::string target;
-    const std::string emitter;
-    const Type        type        = T_Trigger;
-    bool              wrldStartup = false;
+    void              save(Serialize& fout) const;
+    void              load(Serialize &fin);
+
+    std::string       target;
+    std::string       emitter;
+    Type              type        = T_Trigger;
     uint64_t          timeBarrier = 0;
   };
 
@@ -49,6 +52,9 @@ class AbstractTrigger : public Vob {
 
     virtual bool                 hasVolume() const;
     virtual bool                 checkPos(float x,float y,float z) const;
+
+    void                         save(Serialize& fout) const override;
+    void                         load(Serialize &fin) override;
 
   protected:
     enum ReactFlg:uint8_t {
@@ -70,11 +76,11 @@ class AbstractTrigger : public Vob {
     ZenLoad::zCVobData           data;
     Cb                           callback;
     DynamicWorld::BBoxBody*      box = nullptr;
+    Tempest::Vec3                bboxSize;
+
     std::vector<Npc*>            intersect;
     uint32_t                     emitCount = 0;
     bool                         disabled  = false;
-
-    Tempest::Vec3                bboxSize;
 
     virtual void                 onTrigger(const TriggerEvent& evt);
     virtual void                 onUntrigger(const TriggerEvent& evt);

@@ -563,6 +563,14 @@ void Inventory::switchActiveSpell(int32_t spell, Npc& owner) {
       }
   }
 
+Item* Inventory::spellById(int32_t splId) {
+  for(auto& i:items)
+    if(i->spellId()==splId){
+      return i.get();
+      }
+  return nullptr;
+  }
+
 uint8_t Inventory::currentSpellSlot() const {
   for(uint8_t i=0;i<8;++i){
     if(active==&numslot[i])

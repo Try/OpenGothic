@@ -64,8 +64,8 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
 
   const bool testMode=false;
 
-  const char* hero = testMode ? "PC_ROCKEFELLER" : "PC_HERO";
-  //const char* hero = "PC_ROCKEFELLER";
+  //const char* hero = testMode ? "PC_ROCKEFELLER" : "PC_HERO";
+  const char* hero = "PC_ROCKEFELLER";
   //const char* hero = "Sheep";
   //const char* hero = "Giant_Bug";
   //const char* hero = "OrcWarrior_Rest";
@@ -80,6 +80,7 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
 
   if(!testMode)
     initScripts(true);
+  wrld->triggerOnStart(true);
   cam.reset();
   gothic.setLoadingProgress(96);
   }
@@ -338,6 +339,7 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
     hdata.putToWorld(*game->wrld,wayPoint);
     }
   initScripts(wss.isEmpty());
+  wrld->triggerOnStart(wss.isEmpty());
 
   for(auto& i:visitedWorlds)
     if(i.name()==wrld->name()){

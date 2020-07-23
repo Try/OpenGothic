@@ -25,8 +25,8 @@ class Interactive : public Vob {
 
     Interactive(Vob* parent, World& world, ZenLoad::zCVobData &&vob, bool startup);
 
-    void                load(Serialize& fin);
-    void                save(Serialize& fout) const;
+    void                load(Serialize& fin) override;
+    void                save(Serialize& fout) const override;
 
     void                updateAnimation();
     void                tick(uint64_t dt);

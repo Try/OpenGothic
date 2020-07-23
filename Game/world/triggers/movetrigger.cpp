@@ -1,9 +1,10 @@
 #include "movetrigger.h"
 
+#include <Tempest/Log>
+
 #include "world/world.h"
 #include "graphics/animmath.h"
-
-#include <Tempest/Log>
+#include "game/serialize.h"
 
 using namespace Tempest;
 
@@ -25,6 +26,21 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& d, bool
   pos0.mul(tr);
 
   moveEvent();
+  }
+
+void MoveTrigger::save(Serialize& fout) const {
+  AbstractTrigger::save(fout);
+  fout.write(pos0,uint8_t(state),sAnim,frame);
+  }
+
+void MoveTrigger::load(Serialize& fin) {
+  if(fin.version()<10)
+    return;
+  AbstractTrigger::load(fin);
+  fin.read(pos0,reinterpret_cast<uint8_t&>(state),sAnim,frame);
+  moveEvent();
+  if(state!=Idle)
+    enableTicks();
   }
 
 bool MoveTrigger::hasVolume() const {

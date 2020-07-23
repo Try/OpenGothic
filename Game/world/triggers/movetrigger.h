@@ -8,8 +8,12 @@ class MoveTrigger : public AbstractTrigger {
   public:
     MoveTrigger(Vob* parent, World &world, ZenLoad::zCVobData&& data, bool startup);
 
+    void save(Serialize& fout) const override;
+    void load(Serialize &fin) override;
+
     void onTrigger(const TriggerEvent& evt) override;
     void onUntrigger(const TriggerEvent& evt) override;
+
     bool hasVolume() const override;
     void tick(uint64_t dt) override;
 
