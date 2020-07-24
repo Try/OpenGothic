@@ -35,7 +35,7 @@ const ParticleFx* ParticlesDefinitions::get(const char *n) {
 
 bool ParticlesDefinitions::implGet(const char *name,
                                    Daedalus::GEngineClasses::C_ParticleFX& ret) {
-  if(!vm)
+  if(!vm || name==nullptr || name[0]=='\0')
     return false;
 
   auto id = vm->getDATFile().getSymbolIndexByName(name);

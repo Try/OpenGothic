@@ -50,7 +50,7 @@ const VisualFx *VisualFxDefinitions::get(const char *name) {
 
 Daedalus::GEngineClasses::CFx_Base *VisualFxDefinitions::implGet(const char *name) {
   static Daedalus::GEngineClasses::CFx_Base ret={};
-  if(!vm)
+  if(!vm || name==nullptr || name[0]=='\0')
     return nullptr;
 
   auto id = vm->getDATFile().getSymbolIndexByName(name);
