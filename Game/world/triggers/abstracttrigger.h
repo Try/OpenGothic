@@ -74,13 +74,6 @@ class AbstractTrigger : public Vob {
       };
 
     ZenLoad::zCVobData           data;
-    Cb                           callback;
-    DynamicWorld::BBoxBody*      box = nullptr;
-    Tempest::Vec3                bboxSize;
-
-    std::vector<Npc*>            intersect;
-    uint32_t                     emitCount = 0;
-    bool                         disabled  = false;
 
     virtual void                 onTrigger(const TriggerEvent& evt);
     virtual void                 onUntrigger(const TriggerEvent& evt);
@@ -90,4 +83,14 @@ class AbstractTrigger : public Vob {
 
     void                         enableTicks();
     void                         disableTicks();
+    const std::vector<Npc*>&     intersections() const;
+
+  private:
+    Cb                           callback;
+    DynamicWorld::BBoxBody*      box = nullptr;
+    Tempest::Vec3                bboxSize, bboxOrigin;
+
+    std::vector<Npc*>            intersect;
+    uint32_t                     emitCount = 0;
+    bool                         disabled  = false;
   };

@@ -15,10 +15,10 @@
 #include "world/triggers/messagefilter.h"
 #include "world/triggers/pfxcontroller.h"
 #include "world/triggers/trigger.h"
+#include "world/triggers/touchdamage.h"
 #include "game/serialize.h"
 
 #include "world.h"
-
 
 using namespace Tempest;
 
@@ -159,31 +159,32 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
       if(parent!=nullptr)
         parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new PfxController(parent,world,std::move(vob),startup));
+    case ZenLoad::zCVobData::VT_oCTouchDamage:
+      if(parent!=nullptr)
+        parent->childContent = ContentBit(parent->childContent|cbTrigger);
+      return std::unique_ptr<Vob>(new TouchDamage(parent,world,std::move(vob),startup));
 
     case ZenLoad::zCVobData::VT_zCVobStartpoint: {
       float dx = vob.rotationMatrix.v[2].x;
       float dy = vob.rotationMatrix.v[2].y;
       float dz = vob.rotationMatrix.v[2].z;
       world.addStartPoint(Vec3(vob.position.x,vob.position.y,vob.position.z),Vec3(dx,dy,dz),vob.vobName.c_str());
-      if(vob.childVobs.size()>0)
-        Log::d("skip ",vob.childVobs.size()," vobs");
-      return nullptr;
+      // FIXME
+      return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));
       }
     case ZenLoad::zCVobData::VT_zCVobSpot: {
       float dx = vob.rotationMatrix.v[2].x;
       float dy = vob.rotationMatrix.v[2].y;
       float dz = vob.rotationMatrix.v[2].z;
       world.addFreePoint(Vec3(vob.position.x,vob.position.y,vob.position.z),Vec3(dx,dy,dz),vob.vobName.c_str());
-      if(vob.childVobs.size()>0)
-        Log::d("skip ",vob.childVobs.size()," vobs");
-      return nullptr;
+      // FIXME
+      return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));
       }
     case ZenLoad::zCVobData::VT_oCItem: {
       if(startup)
         world.addItem(vob);
-      if(vob.childVobs.size()>0)
-        Log::d("skip ",vob.childVobs.size()," vobs");
-      return nullptr;
+      // FIXME
+      return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));
       }
     case ZenLoad::zCVobData::VT_zCVobSound:
     case ZenLoad::zCVobData::VT_zCVobSoundDaytime:
@@ -204,9 +205,6 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
     // TODO: morph animation
     return std::unique_ptr<Vob>(new StaticObj(parent,world,std::move(vob),startup));
     }
-  else if(vob.objectClass=="oCTouchDamage:zCTouchDamage:zCVob") {
-    // NOT IMPLEMENTED
-    }
   else if(vob.objectClass=="zCVobLensFlare:zCVob" ||
           vob.objectClass=="zCZoneVobFarPlane:zCVob" ||
           vob.objectClass=="zCZoneVobFarPlaneDefault:zCZoneVobFarPlane:zCVob" ||
@@ -221,7 +219,7 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
       Tempest::Log::d("unknown vob class ",vob.objectClass);
       }
     }
-  return nullptr;
+  return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));
   }
 
 void Vob::saveVobTree(Serialize& fin) const {

@@ -8,11 +8,14 @@
 using namespace Tempest;
 
 AbstractTrigger::AbstractTrigger(Vob* parent, World &world, ZenLoad::zCVobData &&data, bool startup)
-  :Vob(parent,world,data,startup), data(std::move(data)), callback(this) {
+  : Vob(parent,world,data,startup), data(std::move(data)), callback(this) {
   if(!hasFlag(StartEnabled))
     ;//disabled = true;
-  bboxSize = Vec3(data.bbox[1].x-data.bbox[0].x,data.bbox[1].y-data.bbox[0].y,data.bbox[1].z-data.bbox[0].z)*0.5f;
-  box      = world.physic()->bboxObj(&callback,data.bbox);
+  bboxSize   = Vec3(data.bbox[1].x-data.bbox[0].x,data.bbox[1].y-data.bbox[0].y,data.bbox[1].z-data.bbox[0].z)*0.5f;
+  bboxOrigin = Vec3(data.bbox[1].x+data.bbox[0].x,data.bbox[1].y+data.bbox[0].y,data.bbox[1].z+data.bbox[0].z)*0.5f;
+  bboxOrigin = bboxOrigin - position();
+
+  box        = world.physic()->bboxObj(&callback,data.bbox);
   world.addTrigger(this);
   }
 
@@ -96,7 +99,8 @@ bool AbstractTrigger::hasFlag(ReactFlg flg) const {
 
 void AbstractTrigger::onIntersect(Npc &n) {
   if(!hasFlag(n.isPlayer() ? RespondToPC : RespondToNPC) &&
-     !hasFlag(ReactToOnTouch))
+     !hasFlag(ReactToOnTouch) &&
+     data.vobType!=ZenLoad::zCVobData::VT_oCTouchDamage)
     return;
 
   if(!isEnabled())
@@ -140,7 +144,7 @@ bool AbstractTrigger::hasVolume() const {
   }
 
 bool AbstractTrigger::checkPos(float x,float y,float z) const {
-  auto dp = Vec3(x,y,z) - position();
+  auto dp = Vec3(x,y,z) - (position() + bboxOrigin);
   if(std::fabs(dp.x)<bboxSize.x &&
      std::fabs(dp.y)<bboxSize.y &&
      std::fabs(dp.z)<bboxSize.z)
@@ -185,6 +189,10 @@ void AbstractTrigger::enableTicks() {
 
 void AbstractTrigger::disableTicks() {
   world.disableTicks(*this);
+  }
+
+const std::vector<Npc*>& AbstractTrigger::intersections() const {
+  return intersect;
   }
 
 void AbstractTrigger::Cb::onCollide(DynamicWorld::BulletBody&) {
