@@ -83,7 +83,7 @@ void Serialize::write(const WayPoint *wptr) {
 
 void Serialize::read(const WayPoint *&wptr) {
   read(tmpStr);
-  wptr = ctx->findPoint(tmpStr);
+  wptr = ctx->findPoint(tmpStr,false);
   }
 
 void Serialize::write(const ScriptFn& fn) {

@@ -56,8 +56,8 @@ class World final {
     uint32_t        itmId(const void* ptr) const;
     Item*           itmById(uint32_t id);
 
-    const WayPoint* findPoint(const std::string& s) const { return findPoint(s.c_str()); }
-    const WayPoint* findPoint(const char* name) const;
+    const WayPoint* findPoint(const std::string& s, bool inexact=true) const { return findPoint(s.c_str(),inexact); }
+    const WayPoint* findPoint(const char* name, bool inexact=true) const;
     const WayPoint* findWayPoint(const Tempest::Vec3& pos) const;
     const WayPoint* findWayPoint(float x,float y,float z) const;
 

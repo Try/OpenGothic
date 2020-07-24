@@ -4,7 +4,7 @@
 #include "world/world.h"
 
 TriggerScript::TriggerScript(Vob* parent, World &world, ZenLoad::zCVobData&& data, bool startup)
-  :AbstractTrigger(parent,world,std::move(data),startup){
+  :AbstractTrigger(parent,world,std::move(data),startup) {
   }
 
 void TriggerScript::onTrigger(const TriggerEvent &) {

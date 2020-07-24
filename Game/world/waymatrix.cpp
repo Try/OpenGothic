@@ -129,11 +129,9 @@ const WayPoint &WayMatrix::startPoint() const {
   return p;
   }
 
-const WayPoint *WayMatrix::findPoint(const char *name) const {
-  if(name==nullptr)
+const WayPoint* WayMatrix::findPoint(const char *name, bool inexact) const {
+  if(name==nullptr || name[0]=='\0')
     return nullptr;
-  if(std::strcmp(name,"NW_FARM1_PATH_SPAWN_05")==0)
-    Log::d("");
   for(auto& i:startPoints)
     if(i.name==name)
       return &i;
@@ -142,6 +140,11 @@ const WayPoint *WayMatrix::findPoint(const char *name) const {
     });
   if(it!=indexPoints.end() && (*it)->name==name)
     return *it;
+  if(!inexact)
+    return nullptr;
+  for(auto i:indexPoints)
+    if(i->checkName(name))
+      return i;
   return nullptr;
   }
 

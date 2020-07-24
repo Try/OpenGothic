@@ -774,8 +774,8 @@ void World::triggerOnStart(bool firstTime) {
   wobj.triggerOnStart(firstTime);
   }
 
-const WayPoint *World::findPoint(const char *name) const {
-  return wmatrix->findPoint(name);
+const WayPoint *World::findPoint(const char *name, bool inexact) const {
+  return wmatrix->findPoint(name,inexact);
   }
 
 const WayPoint* World::findWayPoint(const Tempest::Vec3& pos) const {

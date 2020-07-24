@@ -183,6 +183,12 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
     state = Idle;
     frame = f0;
     disableTicks();
+
+    if(data.zCTrigger.triggerTarget.size()>0){
+      TriggerEvent e(data.zCTrigger.triggerTarget,data.vobName,TriggerEvent::T_Activate);
+      world.triggerEvent(e);
+      }
+
     const char* snd = data.zCMover.sfxOpenEnd.c_str();
     if(prev==Close)
       snd = data.zCMover.sfxCloseEnd.c_str();
