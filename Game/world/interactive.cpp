@@ -186,25 +186,36 @@ void Interactive::tick(uint64_t dt) {
   }
 
 void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
-  Npc* npc = p.user;
+  if(p.user==nullptr)
+    return;
 
+  Npc& npc = *p.user;
   if(!p.started) {
     // STAND -> S0
-    if(npc!=nullptr) {
-      auto sq = npc->setAnimAngGet(Npc::Anim::InteractFromStand,false);
-      uint64_t t = sq==nullptr ? 0 : uint64_t(sq->totalTime());
-      waitAnim = world.tickCount()+t;
-      }
-    p.started = true;
+    auto sq = npc.setAnimAngGet(Npc::Anim::InteractFromStand,false);
+    uint64_t t = sq==nullptr ? 0 : uint64_t(sq->totalTime());
+    waitAnim = world.tickCount()+t;
+    p.started         = true;
     return;
     }
 
-  if(p.attachMode^reverseState) {
+  const bool atach = (p.attachMode^reverseState);
+
+  if(!loopState) {
+    if(stateNum==state && atach) {
+      invokeStateFunc(npc);
+      loopState = true;
+      }
+    if(0==state && !p.attachMode) {
+      invokeStateFunc(npc);
+      loopState = true;
+      }
+    }
+
+  if(atach) {
     if(state==stateNum) {
-      //HACK: some beds in game are VT_oCMobDoor
-      if(canQuitAtLastState()) {
-        if(!loopState)
-          invokeStateFunc(*npc);
+      //NOTE: some beds in game are VT_oCMobDoor
+      if(canQuitAtLastState() && npc.isPlayer()) {
         implQuitInteract(p);
         return;
         }
@@ -217,30 +228,29 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     }
 
   if((p.attachMode^reverseState) && state==stateNum){
-    if(!setAnim(npc,Anim::Active))
+    if(!setAnim(&npc,Anim::Active))
       return;
     }
   else if(p.attachMode) {
-    if(!setAnim(npc,Anim::In))
+    if(!setAnim(&npc,Anim::In))
       return;
     }
   else {
-    if(!setAnim(npc,Anim::Out))
+    if(!setAnim(&npc,Anim::Out))
       return;
     }
 
   if(state==0 && p.attachMode) {
-    if(npc!=nullptr) // player only emitter?
-      npc->world().sendPassivePerc(*npc,*npc,*npc,Npc::PERC_ASSESSUSEMOB);
+    npc.world().sendPassivePerc(npc,npc,npc,Npc::PERC_ASSESSUSEMOB);
     emitTriggerEvent();
     }
 
-  if(npc!=nullptr && npc->isPlayer() && !loopState) {
-    invokeStateFunc(*npc);
+  if(npc.isPlayer() && !loopState) {
+    invokeStateFunc(npc);
     }
 
-  int  prev = state;
-  if(p.attachMode^reverseState) {
+  int prev = state;
+  if(atach) {
     state = std::min(stateNum,state+1);
     } else {
     state = std::max(0,state-1);
@@ -249,18 +259,18 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
   }
 
 void Interactive::implQuitInteract(Interactive::Pos &p) {
-  Npc* npc = p.user;
-  if(npc==nullptr || !npc->isPlayer() || npc->world().aiIsDlgFinished()) {
-    if(npc!=nullptr) {
-      const Animation::Sequence* sq = nullptr;
-      if(state==0) {
-        // S0 -> STAND
-        sq = npc->setAnimAngGet(Npc::Anim::InteractToStand,false);
-        }
-      if(sq==nullptr && !npc->setAnim(Npc::Anim::Idle))
-        return;
-      npc->quitIneraction();
+  if(p.user==nullptr)
+    return;
+  Npc& npc = *p.user;
+  if(!(npc.isPlayer() && !npc.world().aiIsDlgFinished())) {
+    const Animation::Sequence* sq = nullptr;
+    if(state==0) {
+      // S0 -> STAND
+      sq = npc.setAnimAngGet(Npc::Anim::InteractToStand,false);
       }
+    if(sq==nullptr && !npc.setAnim(Npc::Anim::Idle))
+      return;
+    npc.quitIneraction();
     p.user      = nullptr;
     loopState   = false;
     }
@@ -310,6 +320,8 @@ const char *Interactive::displayName() const {
 
 void Interactive::invokeStateFunc(Npc& npc) {
   if(onStateFunc.empty() || state<0)
+    return;
+  if(loopState)
     return;
   char func[256]={};
   std::snprintf(func,sizeof(func),"%s_S%d",onStateFunc.c_str(),state);
@@ -469,7 +481,7 @@ bool Interactive::isStaticState() const {
   }
 
 bool Interactive::canQuitAtLastState() const {
-  return (vobType==ZenLoad::zCVobData::VT_oCMobDoor && onStateFunc.empty()) ||
+  return (vobType==ZenLoad::zCVobData::VT_oCMobDoor/* && onStateFunc.empty()*/) ||
           vobType==ZenLoad::zCVobData::VT_oCMobSwitch ||
           reverseState;
   }
@@ -514,6 +526,10 @@ bool Interactive::attach(Npc &npc) {
   for(auto& i:attPos)
     if(i.user==&npc)
       return true;
+
+  for(auto& i:attPos)
+    if(i.user!=nullptr)
+      return false;
 
   for(auto& i:attPos) {
     if(i.user || !i.isAttachPoint())
