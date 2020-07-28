@@ -125,14 +125,18 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
     return;
 
   auto&    mover      = data.zCMover;
+  uint32_t keySz      = uint32_t(mover.keyframes.size());
   uint32_t maxFr      = uint32_t(mover.keyframes.size()-1);
   uint64_t frameTicks = uint64_t(60.f/mover.moveSpeed);
   //if(mover.keyframes.size()>0)
   //  frameTicks/=mover.keyframes.size();
   if(frameTicks==0)
     frameTicks=1;
-  if(frameTicks>1000)
-    frameTicks=1000;
+  if(data.zCMover.moverBehavior!=ZenLoad::MoverBehavior::NSTATE_LOOP) {
+    // NOTE: winmill seem to rellay on mover.moveSpeed, but irdorath - not exactly
+    if(frameTicks>1000)
+      frameTicks=1000;
+    }
 
   uint64_t dt = world.tickCount()-sAnim;
   float    a  = float(dt%frameTicks)/float(frameTicks);
@@ -162,7 +166,6 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
       break;
       }
     case Loop: {
-      uint32_t keySz = uint32_t(mover.keyframes.size());
       f0 = uint32_t(dt/frameTicks)%keySz;
       f1 = uint32_t(f0+1)%keySz;
       a  = float(dt%frameTicks)/float(frameTicks);
