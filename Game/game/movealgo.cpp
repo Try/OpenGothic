@@ -135,14 +135,15 @@ void MoveAlgo::tickGravity(uint64_t dt) {
       if((std::fabs(dp.x)<0.001f && std::fabs(dp.z)<0.001f) || !tryMove(dp.x,0.f,dp.z)) {
         // attach to ground
         setInAir(false);
-        npc.setAnim(AnimationSolver::Idle);
+        if(!npc.isDead())
+          npc.setAnim(AnimationSolver::Idle);
         return;
         }
       setInAir(false);
       }
-    if(fallSpeed.y<-1500.f)
+    if(fallSpeed.y<-1500.f && !npc.isDead())
       npc.setAnim(AnimationSolver::FallDeep); else
-    if(fallSpeed.y<-300.f)
+    if(fallSpeed.y<-300.f && !npc.isDead())
       npc.setAnim(AnimationSolver::Fall);
     } else {
     if(ground+chest<water && !npc.isDead()) {
