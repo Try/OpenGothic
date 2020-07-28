@@ -453,12 +453,6 @@ void MainWindow::drawSaving(Painter& p, int sw, int sh, float scale) {
   }
 
 void MainWindow::tick() {
-  static bool once=true;
-  if(once) {
-    gothic.emitGlobalSoundWav("GAMESTART.WAV");
-    once=false;
-    }
-
   auto st = gothic.checkLoading();
   if(st==Gothic::LoadState::Finalize || st==Gothic::LoadState::FailedLoad || st==Gothic::LoadState::FailedSave) {
     gothic.finishLoading();
@@ -677,6 +671,12 @@ void MainWindow::render(){
     static uint64_t time=Application::tickCount();
 
     followCamera();
+
+    static bool once=true;
+    if(once) {
+      gothic.emitGlobalSoundWav("GAMESTART.WAV");
+      once=false;
+      }
 
     if(!gothic.isPause()) {
       tick();
