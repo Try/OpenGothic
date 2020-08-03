@@ -37,6 +37,7 @@ class GameMenu : public Tempest::Widget {
 
     Daedalus::GEngineClasses::C_Menu      menu={};
     const Tempest::Texture2d*             back=nullptr;
+    const Tempest::Texture2d*             slider=nullptr;
     Tempest::Texture2d                    savThumb;
     std::vector<char>                     textBuf;
 
@@ -55,6 +56,7 @@ class GameMenu : public Tempest::Widget {
     bool                                  closeFlag=false;
 
     void                                  drawItem(Tempest::Painter& p, Item& it);
+    void                                  drawSlider(Tempest::Painter& p, Item& it, int x, int y, int w, int h);
     void                                  drawQuestList(Tempest::Painter& p, int x, int y, int w, int h, const GthFont& fnt, const QuestLog& log, QuestLog::Status st, bool isNote);
 
     Item*                                 selectedItem();

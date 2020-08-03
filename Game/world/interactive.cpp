@@ -481,9 +481,10 @@ bool Interactive::isStaticState() const {
   }
 
 bool Interactive::canQuitAtLastState() const {
-  return (vobType==ZenLoad::zCVobData::VT_oCMobDoor/* && onStateFunc.empty()*/) ||
-          vobType==ZenLoad::zCVobData::VT_oCMobSwitch ||
-          reverseState;
+  return vobType==ZenLoad::zCVobData::VT_oCMobDoor   ||
+         vobType==ZenLoad::zCVobData::VT_oCMobSwitch ||
+         vobType==ZenLoad::zCVobData::VT_oCMobInter  ||
+         reverseState;
   }
 
 bool Interactive::attach(Npc &npc, Interactive::Pos &to) {

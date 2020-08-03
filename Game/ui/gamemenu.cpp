@@ -49,6 +49,7 @@ GameMenu::GameMenu(MenuRoot &owner, Daedalus::DaedalusVM &vm, Gothic &gothic, co
 
   setSelection(gothic.isInGame() ? menu.defaultInGame : menu.defaultOutGame);
   updateValues();
+  slider = Resources::loadTexture("MENU_SLIDER_POS.TGA");
 
   gothic.pushPause();
   }
@@ -142,7 +143,10 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
                textBuf.data(),
                txtAlign);
 
-  if(item.type==MENU_ITEM_LISTBOX) {
+  if(item.type==MENU_ITEM_SLIDER && slider!=nullptr) {
+    drawSlider(p,hItem,x,y,szX,szY);
+    }
+  else if(item.type==MENU_ITEM_LISTBOX) {
     if(auto ql = gothic.questLog()) {
       const int px = int(float(w()*item.frameSizeX)/scriptDiv);
       const int py = int(float(h()*item.frameSizeY)/scriptDiv);
@@ -157,7 +161,7 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
         drawQuestList(p, x+px,y+py, szX-2*px,szY-2*py, fnt,*ql,QuestLog::Status::Running,true);
       }
     }
-  if(item.type==MENU_ITEM_INPUT) {
+  else if(item.type==MENU_ITEM_INPUT) {
     using namespace Daedalus::GEngineClasses::MenuConstants;
     if(item.onChgSetOptionSection=="KEYS") {
       auto& keys = gothic.settingsGetS(item.onChgSetOptionSection.c_str(),
@@ -173,6 +177,24 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
                    txtAlign);
       }
     }
+  }
+
+void GameMenu::drawSlider(Painter& p, Item& it, int x, int y, int sw, int sh) {
+  float k = float(sh/2)/float(slider->h());
+  int w = int(float(slider->w())*k);
+  int h = int(float(slider->h())*k);
+  p.setBrush(*slider);
+
+
+  auto& sec = it.handle.onChgSetOptionSection;
+  auto& opt = it.handle.onChgSetOption;
+  if(sec.empty() || opt.empty())
+    return;
+
+  float v  = gothic.settingsGetF(sec.c_str(),opt.c_str());
+  int   dx = int(float(sw-p.brush().w())*std::max(0.f,std::min(v,1.f)));
+  p.drawRect(x+dx,y+(sh-h)/2,w,h,
+             0,0,p.brush().w(),p.brush().h());
   }
 
 void GameMenu::drawQuestList(Painter& p, int x, int y, int w, int h, const GthFont& fnt,
@@ -371,6 +393,9 @@ void GameMenu::execSingle(Item &it) {
     vm.runFunctionBySymIndex(size_t(onEventAction[SEL_EVENT_EXECUTE]));
     }
 
+  if(it.handle.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_SLIDER) {
+    ;
+    }
   execChgOption(it);
   }
 

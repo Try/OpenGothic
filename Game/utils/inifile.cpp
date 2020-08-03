@@ -78,6 +78,20 @@ void IniFile::set(const char *sec, const char *name, int ival) {
   changeFlag = true;
   }
 
+float IniFile::getF(const char* s, const char* name) {
+  if(auto* val = find(s,name,false))
+    return getF(*val);
+  return 0;
+  }
+
+void IniFile::set(const char* sec, const char* name, float fval) {
+  if(sec==nullptr || std::strlen(sec)==0 || name==nullptr || std::strlen(name)==0)
+    return;
+  auto& v = find(sec,name);
+  v.val = std::to_string(fval);
+  changeFlag = true;
+  }
+
 const std::string& IniFile::getS(const char* s, const char* name) {
   if(auto* val = find(s,name,false))
     return val->val;
@@ -188,6 +202,15 @@ IniFile::Value* IniFile::find(const char *s, const char *name, bool autoCreate) 
 int IniFile::getI(const IniFile::Value &v) const {
   try {
     return std::stoi(v.val);
+    }
+  catch(...) {
+    return 0;
+    }
+  }
+
+float IniFile::getF(const IniFile::Value& v) const {
+  try {
+    return float(std::stod(v.val));
     }
   catch(...) {
     return 0;

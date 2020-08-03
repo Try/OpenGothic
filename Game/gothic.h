@@ -145,6 +145,7 @@ class Gothic final {
     int                                   settingsGetI(const char* sec, const char* name) const;
     void                                  settingsSetI(const char* sec, const char* name, int val);
     const std::string&                    settingsGetS(const char* sec, const char* name) const;
+    float                                 settingsGetF(const char* sec, const char* name) const;
     void                                  flushSettings() const;
 
     static void debug(const ZenLoad::zCMesh &mesh, std::ostream& out);
