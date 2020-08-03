@@ -192,7 +192,7 @@ void GameMenu::drawSlider(Painter& p, Item& it, int x, int y, int sw, int sh) {
     return;
 
   float v  = gothic.settingsGetF(sec.c_str(),opt.c_str());
-  int   dx = int(float(sw-p.brush().w())*std::max(0.f,std::min(v,1.f)));
+  int   dx = int(float(sw-w)*std::max(0.f,std::min(v,1.f)));
   p.drawRect(x+dx,y+(sh-h)/2,w,h,
              0,0,p.brush().w(),p.brush().h());
   }
@@ -228,7 +228,13 @@ void GameMenu::onMove(int dy) {
 void GameMenu::onSelect() {
   if(auto sel=selectedItem()){
     gothic.emitGlobalSound(gothic.loadSoundFx("MENU_SELECT"));
-    exec(*sel);
+    exec(*sel,0);
+    }
+  }
+
+void GameMenu::onSlide(int dx) {
+  if(auto sel=selectedItem()){
+    exec(*sel,dx);
     }
   }
 
@@ -321,12 +327,12 @@ bool GameMenu::isEnabled(const Daedalus::GEngineClasses::C_Menu_Item &item) {
   return true;
   }
 
-void GameMenu::exec(Item &p) {
+void GameMenu::exec(Item &p, int slideDx) {
   auto* it = &p;
   while(it!=nullptr){
     if(it==&p)
-      execSingle(*it); else
-      execChgOption(*it);
+      execSingle(*it,slideDx); else
+      execChgOption(*it,slideDx);
     if(it->handle.flags & Daedalus::GEngineClasses::C_Menu_Item::IT_EFFECTS_NEXT) {
       auto next=selectedNextItem(it);
       if(next!=&p)
@@ -342,7 +348,7 @@ void GameMenu::exec(Item &p) {
     owner.popMenu();
   }
 
-void GameMenu::execSingle(Item &it) {
+void GameMenu::execSingle(Item &it, int slideDx) {
   using namespace Daedalus::GEngineClasses::MenuConstants;
 
   auto& item          = it.handle;
@@ -393,26 +399,31 @@ void GameMenu::execSingle(Item &it) {
     vm.runFunctionBySymIndex(size_t(onEventAction[SEL_EVENT_EXECUTE]));
     }
 
-  if(it.handle.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_SLIDER) {
-    ;
-    }
-  execChgOption(it);
+  execChgOption(it,slideDx);
   }
 
-void GameMenu::execChgOption(Item &item) {
+void GameMenu::execChgOption(Item &item, int slideDx) {
   auto& sec = item.handle.onChgSetOptionSection;
   auto& opt = item.handle.onChgSetOption;
   if(sec.empty() || opt.empty())
     return;
 
-  updateItem(item);
-  item.value += 1; // next value
+  if(item.handle.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_SLIDER && slideDx!=0) {
+    updateItem(item);
+    float v = gothic.settingsGetF(sec.c_str(),opt.c_str());
+    v  = std::max(0.f,std::min(v+float(slideDx)*0.03f,1.f));
+    gothic.settingsSetF(sec.c_str(), opt.c_str(), v);
+    }
+  if(item.handle.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_CHOICEBOX && slideDx==0) {
+    updateItem(item);
+    item.value += 1; // next value
 
-  int cnt = int(strEnumSize(item.handle.text[0].c_str()));
-  if(cnt>0)
-    item.value%=cnt; else
-    item.value =0;
-  gothic.settingsSetI(sec.c_str(), opt.c_str(), item.value);
+    int cnt = int(strEnumSize(item.handle.text[0].c_str()));
+    if(cnt>0)
+      item.value%=cnt; else
+      item.value =0;
+    gothic.settingsSetI(sec.c_str(), opt.c_str(), item.value);
+    }
   }
 
 void GameMenu::execSaveGame(GameMenu::Item &item) {

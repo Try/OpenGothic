@@ -61,12 +61,12 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
     rootMenu->popMenu();
     }
   else {
-    gothic.setMusic(GameMusic::SysMenu);
+    GameMusic::inst().setMusic(GameMusic::SysMenu);
     }
   }
 
 MainWindow::~MainWindow() {
-  gothic.stopMusic();
+  GameMusic::inst().stopMusic();
   gothic.cancelLoading();
   device.waitIdle();
   takeWidget(&dialogs);
@@ -224,12 +224,18 @@ void MainWindow::mouseMoveEvent(MouseEvent &event) {
 void MainWindow::processMouse(MouseEvent &event,bool /*fs*/) {
   if(dialogs.isActive() || gothic.isPause())
     return;
-  auto dp = (event.pos()-mpos);
+  const bool enableMouse = gothic.settingsGetI("GAME","enableMouse");
+  if(enableMouse==0)
+    return;
+
+  const float mouseSensitivity = gothic.settingsGetF("GAME","mouseSensitivity");
+  auto   dp       = (event.pos()-mpos);
+  PointF dpScaled = PointF(float(dp.x)*mouseSensitivity,float(dp.y)*mouseSensitivity);
   mpos = event.pos();
   if(auto camera = gothic.gameCamera())
-    camera->onRotateMouse(PointF(-float(dp.x),float(dp.y)));
+    camera->onRotateMouse(dpScaled);
   if(!inventory.isActive())
-    player.onRotateMouse(-dp.x);
+    player.onRotateMouse(-dpScaled.x);
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
@@ -282,9 +288,6 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
     auto tex = renderer.screenshoot(swapchain.frameId());
     auto pm  = device.readPixels(textureCast(tex));
     pm.save("dbg.png");
-    }
-  if(event.key==Event::K_F11) {
-    gothic.enableMusic(!gothic.isMusicEnabled());
     }
   }
 
@@ -463,8 +466,8 @@ void MainWindow::tick() {
     }
   else if(st!=Gothic::LoadState::Idle) {
     if(st==Gothic::LoadState::Loading)
-      gothic.setMusic(GameMusic::SysLoading); else
-      gothic.setMusic(GameMusic::SysMenu);
+      GameMusic::inst().setMusic(GameMusic::SysLoading); else
+      GameMusic::inst().setMusic(GameMusic::SysMenu);
     return;
     }
 

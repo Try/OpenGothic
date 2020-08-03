@@ -1,4 +1,5 @@
 ﻿#include "gamemusic.h"
+#include "gothic.h"
 
 #include <Tempest/Sound>
 #include <Tempest/Log>
@@ -25,7 +26,7 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
 
     {
       std::lock_guard<std::mutex> guard(pendingSync);
-      if(hasPending) {
+      if(hasPending && enable.load()) {
         hasPending  = false;
         updateTheme = true;
         reloadTheme = this->reloadTheme;
@@ -85,9 +86,11 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
     std::lock_guard<std::mutex> guard(pendingSync);
     hasPending  = true;
     reloadTheme = true;
+    enable.store(true);
     }
 
   void stopMusic() {
+    enable.store(false);
     std::lock_guard<std::mutex> guard(pendingSync);
     mix.setMusic(Dx8::Music());
     }
@@ -96,9 +99,14 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
     mix.setVolume(v);
     }
 
+  bool isEnabled() const {
+    return enable.load();
+    }
+
   Dx8::Mixer                             mix;
 
   std::mutex                             pendingSync;
+  std::atomic_bool                       enable{true};
   bool                                   hasPending=false;
   bool                                   reloadTheme=false;
   Daedalus::GEngineClasses::C_MusicTheme pendingMusic;
@@ -111,36 +119,55 @@ struct GameMusic::Impl final {
     std::unique_ptr<MusicProducer> mix(new MusicProducer());
     dxMixer = mix.get();
     sound   = device.load(std::move(mix));
-
-    dxMixer->setVolume(masterVolume);
+    dxMixer->setVolume(0.5f);
     }
 
   void setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme, Tags tags) {
     dxMixer->setMusic(theme,tags);
     }
 
-  void startMusic() {
-    sound.play();
-    dxMixer->restartMusic();
+  void setVolume(float v) {
+    dxMixer->setVolume(v);
     }
 
-  void stopMusic() {
-    dxMixer->stopMusic();
+  void setEnabled(bool e) {
+    if(isEnabled()==e)
+      return;
+    if(e) {
+      sound.play();
+      dxMixer->restartMusic();
+      } else {
+      dxMixer->stopMusic();
+      }
     }
 
-  Tempest::SoundDevice                          device;
-  Tempest::SoundEffect                          sound;
+  bool isEnabled() const {
+    return dxMixer->isEnabled();
+    }
 
-  MusicProducer*                                dxMixer=nullptr;
-  float                                         masterVolume=0.5f;
-  bool                                          enableMusic=true;
+  Tempest::SoundDevice device;
+  Tempest::SoundEffect sound;
+
+  MusicProducer*       dxMixer=nullptr;
   };
 
-GameMusic::GameMusic() {
+GameMusic* GameMusic::instance = nullptr;
+
+GameMusic::GameMusic(Gothic& gothic)
+  :gothic(gothic) {
+  instance = this;
   impl.reset(new Impl());
+  gothic.onSettingsChanged.bind(this,&GameMusic::setupSettings);
+  setupSettings();
   }
 
 GameMusic::~GameMusic() {
+  instance = nullptr;
+  gothic.onSettingsChanged.ubind(this,&GameMusic::setupSettings);
+  }
+
+GameMusic& GameMusic::inst() {
+  return *instance;
   }
 
 GameMusic::Tags GameMusic::mkTags(GameMusic::Tags daytime, GameMusic::Tags mode) {
@@ -148,22 +175,39 @@ GameMusic::Tags GameMusic::mkTags(GameMusic::Tags daytime, GameMusic::Tags mode)
   }
 
 void GameMusic::setEnabled(bool e) {
-  impl->enableMusic = e;
-  if(!e)
-    impl->stopMusic(); else
-    impl->startMusic();
+  impl->setEnabled(e);
   }
 
 bool GameMusic::isEnabled() const {
-  return impl->enableMusic;
+  return impl->isEnabled();
+  }
+
+void GameMusic::setMusic(GameMusic::Music m) {
+  const char* clsTheme="";
+  switch(m) {
+    case GameMusic::SysMenu:
+      clsTheme = "SYS_Menu";
+      break;
+    case GameMusic::SysLoading:
+      clsTheme = "SYS_Loading";
+      break;
+    }
+  if(auto theme = gothic.getMusicDef(clsTheme))
+    setMusic(*theme,GameMusic::mkTags(GameMusic::Std,GameMusic::Day));
   }
 
 void GameMusic::setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme, Tags tags) {
-  if(!impl->enableMusic)
-    return;
   impl->setMusic(theme,tags);
   }
 
 void GameMusic::stopMusic() {
-  impl->stopMusic();
+  setEnabled(false);
+  }
+
+void GameMusic::setupSettings() {
+  const int   musicEnabled = gothic.settingsGetI("SOUND","musicEnabled");
+  const float musicVolume  = gothic.settingsGetF("SOUND","musicVolume");
+
+  setEnabled(musicEnabled!=0);
+  impl->setVolume(musicVolume);
   }

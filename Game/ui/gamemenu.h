@@ -22,7 +22,8 @@ class GameMenu : public Tempest::Widget {
 
     void setPlayer(const Npc& pl);
 
-    void onMove(int dy);
+    void onMove (int dy);
+    void onSlide(int dx);
     void onSelect();
     void onTick();
 
@@ -67,9 +68,9 @@ class GameMenu : public Tempest::Widget {
     const GthFont&                        getTextFont(const Item &it);
     bool                                  isEnabled(const Daedalus::GEngineClasses::C_Menu_Item& item);
 
-    void                                  exec         (Item &item);
-    void                                  execSingle   (Item &it);
-    void                                  execChgOption(Item &item);
+    void                                  exec         (Item &item, int slideDx);
+    void                                  execSingle   (Item &it,   int slideDx);
+    void                                  execChgOption(Item &item, int slideDx);
     void                                  execSaveGame (Item &item);
     void                                  execLoadGame (Item &item);
     void                                  execCommands (Item &it, const Daedalus::ZString str);

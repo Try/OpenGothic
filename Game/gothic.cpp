@@ -21,7 +21,7 @@
 using namespace Tempest;
 using namespace FileUtil;
 
-Gothic::Gothic(const int argc, const char **argv){
+Gothic::Gothic(const int argc, const char **argv) {
   if(argc<1)
     return;
 
@@ -101,6 +101,8 @@ Gothic::Gothic(const int argc, const char **argv){
       wdef = "newworld.zen"; else
       wdef = "world.zen";
     }
+  onSettingsChanged.bind(this,&Gothic::setupSettings);
+  setupSettings();
   }
 
 Gothic::~Gothic() {
@@ -436,36 +438,6 @@ const Daedalus::GEngineClasses::C_MusicTheme* Gothic::getMusicDef(const char *cl
   return music->get(clsTheme);
   }
 
-void Gothic::setMusic(const Daedalus::GEngineClasses::C_MusicTheme& theme, GameMusic::Tags tags) {
-  globalMusic.setMusic(theme,tags);
-  }
-
-void Gothic::setMusic(const GameMusic::Music m) {
-  const char* clsTheme="";
-  switch(m) {
-    case GameMusic::SysMenu:
-      clsTheme = "SYS_Menu";
-      break;
-    case GameMusic::SysLoading:
-      clsTheme = "SYS_Loading";
-      break;
-    }
-  if(auto theme = getMusicDef(clsTheme))
-    globalMusic.setMusic(*theme,GameMusic::mkTags(GameMusic::Std,GameMusic::Day));
-  }
-
-void Gothic::stopMusic() {
-  globalMusic.stopMusic();
-  }
-
-void Gothic::enableMusic(bool e) {
-  globalMusic.setEnabled(e);
-  }
-
-bool Gothic::isMusicEnabled() const {
-  return globalMusic.isEnabled();
-  }
-
 const CameraDefinitions& Gothic::getCameraDef() const {
   return *camera;
   }
@@ -554,6 +526,11 @@ float Gothic::settingsGetF(const char* sec, const char* name) const {
   return baseIniFile->getF(sec,name);
   }
 
+void Gothic::settingsSetF(const char* sec, const char* name, float val) {
+  iniFile->set(sec,name,val);
+  onSettingsChanged();
+  }
+
 void Gothic::flushSettings() const {
   iniFile->flush();
   }
@@ -635,6 +612,11 @@ void Gothic::detectGothicVersion() {
   if(vinfo.game==2) {
     vinfo.patch = baseIniFile->getI("GAME","PATCHVERSION");
     }
+  }
+
+void Gothic::setupSettings() {
+  const float soundVolume = settingsGetF("SOUND","soundVolume");
+  sndDev.setGlobalVolume(soundVolume);
   }
 
 std::u16string Gothic::nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const {

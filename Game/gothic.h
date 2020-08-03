@@ -108,11 +108,6 @@ class Gothic final {
     auto      getSoundScheme(const char* name) -> const Daedalus::GEngineClasses::C_SFX&;
     auto      getCameraDef() const -> const CameraDefinitions&;
     auto      getMusicDef(const char *clsTheme) const -> const Daedalus::GEngineClasses::C_MusicTheme*;
-    void      setMusic(const Daedalus::GEngineClasses::C_MusicTheme& theme, GameMusic::Tags tags);
-    void      setMusic(const GameMusic::Music m);
-    void      stopMusic();
-    void      enableMusic(bool e);
-    bool      isMusicEnabled() const;
 
     void      printScreen(const char* msg, int x, int y, int time, const GthFont &font);
     void      print      (const char* msg);
@@ -146,6 +141,7 @@ class Gothic final {
     void                                  settingsSetI(const char* sec, const char* name, int val);
     const std::string&                    settingsGetS(const char* sec, const char* name) const;
     float                                 settingsGetF(const char* sec, const char* name) const;
+    void                                  settingsSetF(const char* sec, const char* name, float val);
     void                                  flushSettings() const;
 
     static void debug(const ZenLoad::zCMesh &mesh, std::ostream& out);
@@ -165,6 +161,9 @@ class Gothic final {
     bool                                    isRambo=false;
     VersionInfo                             vinfo;
 
+    std::unique_ptr<IniFile>                baseIniFile;
+    std::unique_ptr<IniFile>                iniFile;
+
     const Tempest::Texture2d*               loadTex=nullptr;
     Tempest::Texture2d                      saveTex;
     std::atomic_int                         loadProgress{0};
@@ -179,16 +178,11 @@ class Gothic final {
     std::unique_ptr<ParticlesDefinitions>   particleDef;
     std::unique_ptr<MusicDefinitions>       music;
 
-    std::unique_ptr<IniFile>                baseIniFile;
-    std::unique_ptr<IniFile>                iniFile;
-
     std::mutex                              syncSnd;
     Tempest::SoundDevice                    sndDev;
     std::unordered_map<std::string,SoundFx> sndFxCache;
     std::unordered_map<std::string,SoundFx> sndWavCache;
     std::vector<Tempest::SoundEffect>       sndStorage;
-
-    GameMusic                               globalMusic;
 
     void                                    implStartLoadSave(const char *banner,
                                                               bool load,
@@ -196,4 +190,5 @@ class Gothic final {
 
     bool                                    validateGothicPath() const;
     void                                    detectGothicVersion();
+    void                                    setupSettings();
   };

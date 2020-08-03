@@ -21,7 +21,7 @@ class PlayerControl final {
 
     void onKeyPressed (KeyCodec::Action a);
     void onKeyReleased(KeyCodec::Action a);
-    void onRotateMouse(int dAngle);
+    void onRotateMouse(float dAngle);
 
     void changeZoom(int delta);
     void tickFocus();

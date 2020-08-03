@@ -257,11 +257,13 @@ void Mixer::mix(int16_t *out, size_t samples) {
     return;
     }
 
-  auto pat = checkPattern(pattern);
-
   const int64_t samplesTotal = toSamples(cur->timeTotal);
-  if(samplesTotal==0)
+  if(samplesTotal==0) {
+    current = nextMus;
     return;
+    }
+
+  auto pat = checkPattern(pattern);
 
   size_t samplesRemain = samples;
   while(samplesRemain>0) {

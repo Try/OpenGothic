@@ -106,6 +106,10 @@ void MenuRoot::keyUpEvent(KeyEvent &e) {
       current->onMove(-1);
     if(e.key==Event::K_S || e.key==Event::K_Down)
       current->onMove(1);
+    if(e.key==Event::K_A || e.key==Event::K_Left)
+      current->onSlide(-1);
+    if(e.key==Event::K_D || e.key==Event::K_Right)
+      current->onSlide(1);
     if(e.key==Event::K_Return)
       current->onSelect();
     if(e.key==Event::K_ESCAPE)

@@ -60,6 +60,7 @@ int main(int argc,const char** argv) {
 
   Tempest::Device      device{*api,selectDevice(*api),Resources::MaxFramesInFlight};
   Resources            resources{gothic,device};
+  GameMusic            music(gothic);
 
   MainWindow           wx(gothic,device);
   Tempest::Application app;

@@ -271,7 +271,7 @@ bool WorldSound::setMusic(const char* zone, GameMusic::Tags tags) {
   std::snprintf(name,sizeof(name),"%s_%s_%s",zone,(isDay ? "DAY" : "NGT"),smode);
 
   if(auto* theme = gothic.getMusicDef(name)) {
-    gothic.setMusic(*theme,tags);
+    GameMusic::inst().setMusic(*theme,tags);
     return true;
     }
   return false;

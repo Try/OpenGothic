@@ -128,9 +128,9 @@ void PlayerControl::onKeyReleased(KeyCodec::Action a) {
     std::memset(actrl,0,sizeof(actrl));
   }
 
-void PlayerControl::onRotateMouse(int dAngle) {
-  dAngle = std::max(-100,std::min(dAngle,100));
-  rotMouse += float(dAngle)*0.4f;
+void PlayerControl::onRotateMouse(float dAngle) {
+  dAngle = std::max(-100.f,std::min(dAngle,100.f));
+  rotMouse += dAngle*0.4f;
   }
 
 void PlayerControl::tickFocus() {

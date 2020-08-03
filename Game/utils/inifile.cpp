@@ -10,15 +10,15 @@
 using namespace Tempest;
 
 IniFile::IniFile(std::u16string file) {
-  if(!FileUtil::exists(file)) {
+  fileName = std::move(file);
+  if(!FileUtil::exists(fileName)) {
     Log::e("no *.ini file in path - using default settings");
     return;
     }
 
   try {
-    RFile f(file);
+    RFile f(fileName);
     implRead(f);
-    fileName = std::move(file);
     }
   catch (...) {
     Log::e("unable to read .ini file");
@@ -49,7 +49,7 @@ void IniFile::flush() {
     f.flush();
     }
   catch (...) {
-    Log::e("unable to read .ini file");
+    Log::e("unable to update .ini file");
     }
   }
 

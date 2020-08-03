@@ -8,11 +8,15 @@ struct C_MusicTheme;
 }
 }
 
+class Gothic;
+
 class GameMusic final {
   public:
-    GameMusic();
+    GameMusic(Gothic& gothic);
     GameMusic(const GameMusic&)=delete;
     ~GameMusic();
+
+    static GameMusic& inst();
 
     enum Music : uint8_t {
       SysMenu,
@@ -32,12 +36,18 @@ class GameMusic final {
 
     void      setEnabled(bool e);
     bool      isEnabled() const;
+    void      setMusic(Music m);
     void      setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme, Tags t);
     void      stopMusic();
 
   private:
     struct Impl;
     struct MusicProducer;
+
+    void      setupSettings();
+
+    static GameMusic* instance;
     std::unique_ptr<Impl> impl;
+    Gothic&               gothic;
   };
 
