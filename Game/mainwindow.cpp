@@ -493,6 +493,10 @@ void MainWindow::tick() {
   player.tickMove(dt);
   }
 
+void MainWindow::isDialogClosed(bool& ret) {
+  ret = !(dialogs.isActive() || document.isActive());
+  }
+
 void MainWindow::followCamera() {
   auto pcamera = gothic.gameCamera();
   auto pl      = gothic.player();

@@ -96,6 +96,23 @@ KeyCodec::Action KeyCodec::tr(Tempest::MouseEvent& e) {
   return Idle;
   }
 
+std::string KeyCodec::toCode(Tempest::Event::KeyType k) {
+  return toCode(keyToCode(k));
+  }
+
+std::string KeyCodec::toCode(Tempest::Event::MouseButton k) {
+  return toCode(keyToCode(k));
+  }
+
+std::string KeyCodec::toCode(int32_t code) {
+  char ret[5]={};
+  for(int i=0;i<4;++i) {
+    ret[3-i] = "0123456789abcdef"[code%16];
+    code/=16;
+    }
+  return ret;
+  }
+
 KeyCodec::Action KeyCodec::implTr(int32_t code) {
   if(keyEnd.is(code))
     return Idle;

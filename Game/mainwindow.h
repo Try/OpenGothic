@@ -83,6 +83,7 @@ class MainWindow : public Tempest::Window {
     void render() override;
 
     void tick();
+    void isDialogClosed(bool& ret);
     void followCamera();
 
     Camera::Mode solveCameraMode() const;

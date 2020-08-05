@@ -99,6 +99,14 @@ const std::string& IniFile::getS(const char* s, const char* name) {
   return empty;
   }
 
+void IniFile::set(const char* sec, const char* name, const char* sval) {
+  if(sec==nullptr || std::strlen(sec)==0 || name==nullptr || std::strlen(name)==0)
+    return;
+  auto& v = find(sec,name);
+  v.val = sval;
+  changeFlag = true;
+  }
+
 void IniFile::implRead(RFile &fin) {
   size_t sz = fin.size();
   std::string str(sz,'\0');

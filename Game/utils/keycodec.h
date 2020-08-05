@@ -53,6 +53,10 @@ class KeyCodec final {
     Action        tr(Tempest::KeyEvent&   e);
     Action        tr(Tempest::MouseEvent& e);
 
+    static std::string toCode(Tempest::Event::KeyType k);
+    static std::string toCode(Tempest::Event::MouseButton k);
+    static std::string toCode(int32_t scan);
+
   private:
     struct K_Key {
       K_Key(Tempest::Event::KeyType k, int32_t code):k(k),code(code){}

@@ -3,6 +3,7 @@
 #include <Tempest/Painter>
 #include <Tempest/Log>
 #include <Tempest/TextCodec>
+#include <Tempest/Dialog>
 
 #include "utils/gthfont.h"
 #include "world/world.h"
@@ -17,6 +18,30 @@
 using namespace Tempest;
 
 static const float scriptDiv=8192.0f;
+
+struct GameMenu::KeyEditDialog : Dialog {
+  KeyEditDialog(){
+    setFocusPolicy(ClickFocus);
+    setFocus(true);
+    }
+  void keyDownEvent(KeyEvent &e) override { e.accept(); }
+  void keyUpEvent  (KeyEvent &e) override {
+    close();
+    key = e.key;
+    }
+
+  void mouseDownEvent(MouseEvent& e) override { e.accept(); }
+  void mouseUpEvent  (MouseEvent& e) override {
+    close();
+    mkey = e.button;
+    }
+
+  void paintEvent (PaintEvent&) override {}
+  void paintShadow(PaintEvent&) override {}
+
+  Event::KeyType     key  = Event::K_ESCAPE;
+  Event::MouseButton mkey = Event::ButtonNone;
+  };
 
 GameMenu::GameMenu(MenuRoot &owner, Daedalus::DaedalusVM &vm, Gothic &gothic, const char* menuSection)
   :gothic(gothic), owner(owner), vm(vm) {
@@ -168,7 +193,9 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
                                        item.onChgSetOption.c_str());
 
       char textBuf[256]={};
-      KeyCodec::keysStr(keys,textBuf,sizeof(textBuf));
+      if(&hItem==ctrlInput)
+        std::snprintf(textBuf,sizeof(textBuf),"_"); else
+        KeyCodec::keysStr(keys,textBuf,sizeof(textBuf));
 
       fnt.drawText(p,
                    x,y+fnt.pixelSize(),
@@ -408,6 +435,25 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
   if(sec.empty() || opt.empty())
     return;
 
+  if(item.handle.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_INPUT && slideDx==0) {
+    // keys-define
+    exitFlag  = false; //HACK
+    ctrlInput = &item;
+    KeyEditDialog dlg;
+    dlg.resize(owner.size());
+    dlg.exec();
+    ctrlInput = nullptr;
+    if(dlg.key==Event::K_ESCAPE && dlg.mkey==Event::ButtonNone)
+      return;
+    std::string val = gothic.settingsGetS(sec.c_str(), opt.c_str());
+    if(val.size()>4)
+      val = val.substr(val.size()-4,4);
+    if(dlg.key==Event::K_ESCAPE)
+      val += KeyCodec::toCode(dlg.mkey); else
+      val += KeyCodec::toCode(dlg.key);
+    gothic.settingsSetS(sec.c_str(), opt.c_str(), val.c_str());
+    updateItem(item);
+    }
   if(item.handle.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_SLIDER && slideDx!=0) {
     updateItem(item);
     float v = gothic.settingsGetF(sec.c_str(),opt.c_str());
@@ -450,14 +496,26 @@ void GameMenu::execCommands(GameMenu::Item& /*it*/,const Daedalus::ZString str) 
   using namespace Daedalus::GEngineClasses::MenuConstants;
 
   if(str.find("RUN ")==0) {
-    // keys-define
+    const char* what = str.c_str()+4;
+    while(*what==' ')
+      ++what;
+    for(auto& i:hItems)
+      if(i.name==what)
+        execSingle(i,0);
     }
   if(str.find("EFFECTS ")==0) {
+    // menu log
     const char* arg0 = str.c_str()+std::strlen("EFFECTS ");
     for(auto& i:hItems) {
       if(i.handle.type==MENU_ITEM_LISTBOX)
         i.visible = (i.name==arg0);
       }
+    }
+  if(str=="SETDEFAULT") {
+
+    }
+  if(str=="SETALTERNATIVE") {
+
     }
   }
 

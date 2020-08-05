@@ -18,6 +18,7 @@ class IniFile final {
     void               set (const char* sec,const char* name,float fval);
 
     const std::string& getS(const char* sec,const char* name);
+    void               set (const char* sec,const char* name,const char* sval);
 
   private:
     struct Value final {

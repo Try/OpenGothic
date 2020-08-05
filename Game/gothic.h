@@ -140,6 +140,7 @@ class Gothic final {
     int                                   settingsGetI(const char* sec, const char* name) const;
     void                                  settingsSetI(const char* sec, const char* name, int val);
     const std::string&                    settingsGetS(const char* sec, const char* name) const;
+    void                                  settingsSetS(const char* sec, const char* name, const char* val) const;
     float                                 settingsGetF(const char* sec, const char* name) const;
     void                                  settingsSetF(const char* sec, const char* name, float val);
     void                                  flushSettings() const;

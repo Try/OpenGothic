@@ -32,6 +32,8 @@ class GameMenu : public Tempest::Widget {
     void resizeEvent(Tempest::SizeEvent&  event) override;
 
   private:
+    struct KeyEditDialog;
+
     Gothic&                               gothic;
     MenuRoot&                             owner;
     Daedalus::DaedalusVM&                 vm;
@@ -52,6 +54,7 @@ class GameMenu : public Tempest::Widget {
       int                                   value=0;
       };
     Item                                  hItems[Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS];
+    Item*                                 ctrlInput = nullptr;
     uint32_t                              curItem=0;
     bool                                  exitFlag=false;
     bool                                  closeFlag=false;

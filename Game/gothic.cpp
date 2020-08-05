@@ -520,6 +520,11 @@ const std::string& Gothic::settingsGetS(const char* sec, const char* name) const
   return baseIniFile->getS(sec,name);
   }
 
+void Gothic::settingsSetS(const char* sec, const char* name, const char* val) const {
+  iniFile->set(sec,name,val);
+  onSettingsChanged();
+  }
+
 float Gothic::settingsGetF(const char* sec, const char* name) const {
   if(iniFile->has(sec,name))
     return iniFile->getF(sec,name);

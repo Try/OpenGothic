@@ -79,6 +79,8 @@ void Interactive::load(Serialize &fin) {
 
   setGlobalTransform(pos);
   setVisual(mdlVisual);
+  if(fin.version()>=11)
+    skInst->load(fin,solver);
 
   uint32_t sz=0;
   fin.read(sz);
@@ -107,12 +109,14 @@ void Interactive::save(Serialize &fout) const {
   fout.write(locked,keyInstance,pickLockStr);
   invent.save(fout);
   fout.write(transform(),state,reverseState,loopState);
+  skInst->save(fout);
 
   fout.write(uint32_t(attPos.size()));
   for(auto& i:attPos) {
     int32_t userState=0; // unused
     fout.write(i.name,i.user,userState,i.attachMode);
     }
+
   }
 
 void Interactive::setVisual(const std::string &visual) {
@@ -215,7 +219,7 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
   if(atach) {
     if(state==stateNum) {
       //NOTE: some beds in game are VT_oCMobDoor
-      if(canQuitAtLastState() && npc.isPlayer()) {
+      if(npc.isPlayer() && canQuitAtLastState()) {
         implQuitInteract(p);
         return;
         }
@@ -483,7 +487,7 @@ bool Interactive::isStaticState() const {
 bool Interactive::canQuitAtLastState() const {
   return vobType==ZenLoad::zCVobData::VT_oCMobDoor   ||
          vobType==ZenLoad::zCVobData::VT_oCMobSwitch ||
-         vobType==ZenLoad::zCVobData::VT_oCMobInter  ||
+         // vobType==ZenLoad::zCVobData::VT_oCMobInter  ||
          reverseState;
   }
 
