@@ -88,6 +88,7 @@ class GameMenu : public Tempest::Widget {
     void                                  updateItem   (Item &item);
     void                                  updateSavThumb(Item& sel);
     void                                  updateVideo();
+    void                                  setDefaultKeys(const char* preset);
 
     void                                  set(const char* item,const Tempest::Texture2d* value);
     void                                  set(const char* item,const uint32_t value);

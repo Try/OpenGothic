@@ -512,10 +512,10 @@ void GameMenu::execCommands(GameMenu::Item& /*it*/,const Daedalus::ZString str) 
       }
     }
   if(str=="SETDEFAULT") {
-
+    setDefaultKeys("KEYSDEFAULT0");
     }
   if(str=="SETALTERNATIVE") {
-
+    setDefaultKeys("KEYSDEFAULT1");
     }
   }
 
@@ -541,6 +541,40 @@ void GameMenu::updateSavThumb(GameMenu::Item &sel) {
 void GameMenu::updateVideo() {
   set("MENUITEM_VID_DEVICE_CHOICE",     Resources::renderer());
   set("MENUITEM_VID_RESOLUTION_CHOICE", "");
+  }
+
+void GameMenu::setDefaultKeys(const char* preset) {
+  const char* keys[] = {
+    "keyEnd",
+    "keyHeal",
+    "keyPotion",
+    "keyLockTarget",
+    "keyParade",
+    "keyActionRight",
+    "keyActionLeft",
+    "keyUp",
+    "keyDown",
+    "keyLeft",
+    "keyRight",
+    "keyStrafeLeft",
+    "keyStrafeRight",
+    "keyAction",
+    "keySlow",
+    "keySMove",
+    "keyWeapon",
+    "keySneak",
+    "keyLook",
+    "keyLookFP",
+    "keyInventory",
+    "keyShowStatus",
+    "keyShowLog",
+    "keyShowMap",
+    };
+
+  for(auto i:keys) {
+    auto s = gothic.settingsGetS(preset,i);
+    gothic.settingsSetS("KEYS",i,s.c_str());
+    }
   }
 
 bool GameMenu::implUpdateSavThumb(GameMenu::Item& sel) {
