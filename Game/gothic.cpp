@@ -17,15 +17,76 @@
 #include "utils/installdetect.h"
 #include "utils/fileutil.h"
 #include "utils/inifile.h"
+#include <string>
+#include <fstream>
+#include <iostream>
+
 
 using namespace Tempest;
 using namespace FileUtil;
 
 Gothic::Gothic(const int argc, const char **argv) {
-  if(argc<1)
-    return;
 
-  for(int i=1;i<argc;++i){
+  std::ifstream runningConfig("gothic2.conf");
+
+  if (runningConfig.is_open() && runningConfig.good()) {
+    std::cout << "Config file found!" << std::endl;
+    std::string line;
+    while (std::getline(runningConfig,line)){
+      std::string option;
+      std::string value;
+      std::string delimiter = "=";
+
+      size_t pos = 0;
+      pos = line.find(delimiter);
+      option = line.substr(0,pos);
+      line.erase(0,pos + delimiter.length());
+      value = line;
+      
+      if (option == "gamePath"){
+        std::u16string gamePath(value.begin(),value.end());
+        gpath.assign(gamePath);
+        std::cout << "Configured Game Path: " << value << std::endl;
+      }
+      else if (option == "noMenu") {
+        if (value == "true") {
+          noMenu = true;
+          std::cout << "Skipping Main Menu enabled" << std::endl;
+        }
+      }
+      else if (option == "noFramerate") {
+        if (value == "true") {
+          noFrate = true;
+          std::cout << "Framerate Display disabled" << std::endl;
+        }
+        
+      }
+      else if (option == "windowMode") {
+        if (value == "true") {
+          isWindow = true;
+          std::cout << "Window Mode enabled" << std::endl;
+        }
+      }
+      else if (option == "ramboMode") {
+        if (value == "true") {
+          isRambo = true;
+          std::cout << "Rambo Mode enabled" << std::endl;
+        }
+      }
+      else if (option == "renderer") {
+        if (value == "vulkan") isDebug = true;
+        else if (value == "dx12")  graphics = GraphicBackend::DirectX12;
+        std::cout << "Configured Renderer:  " << value << std::endl;
+      }
+    }
+    runningConfig.close();
+  }
+  else {
+    std::cout << "No config file found!" << std::endl;
+  }
+
+  if(argc>=1){
+    for(int i=1;i<argc;++i){
     if(std::strcmp(argv[i],"-g")==0){
       ++i;
       if(i<argc)
@@ -65,6 +126,7 @@ Gothic::Gothic(const int argc, const char **argv) {
       isDebug=true;
       }
     }
+  }
 
   if(gpath.empty()){
     InstallDetect inst;
