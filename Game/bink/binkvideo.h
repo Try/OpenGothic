@@ -49,9 +49,9 @@ class BinkVideo {
       };
 
     struct Index {
-      size_t pos      = 0;
-      size_t size     = 0;
-      bool   keyFrame = false;
+      uint32_t pos      = 0;
+      uint32_t size     = 0;
+      bool     keyFrame = false;
       };
 
     struct Tree final {
