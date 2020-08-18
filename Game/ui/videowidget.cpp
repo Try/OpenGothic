@@ -6,6 +6,7 @@
 #include <Tempest/Application>
 
 #include "bink/video.h"
+#include "utils/fileutil.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -63,11 +64,9 @@ struct VideoWidget::Context {
 
 VideoWidget::VideoWidget(Gothic& gth)
   :gothic(gth) {
-  //gothic.pushPause();
   }
 
 VideoWidget::~VideoWidget() {
-  //gothic.popPause();
   }
 
 void VideoWidget::pushVideo(const Daedalus::ZString& filename) {
@@ -107,17 +106,23 @@ void VideoWidget::tick() {
   filename = std::move(pendingVideo);
   }
 
-  auto path = gothic.nestedPath({u"_work",u"Data",u"Video"},Dir::FT_Dir);
-  path.append(TextCodec::toUtf16(filename.c_str()));
+  auto path  = gothic.nestedPath({u"_work",u"Data",u"Video"},Dir::FT_Dir);
+  auto fname = TextCodec::toUtf16(filename.c_str());
+  auto f     = FileUtil::caseInsensitiveSegment(path,fname.c_str(),Dir::FT_File);
+  if(!FileUtil::exists(f)) {
+    // some api-calls are missing extension
+    f = FileUtil::caseInsensitiveSegment(f,u".bik",Dir::FT_File);
+    }
+
   try {
-    ctx.reset(new Context(path));
+    ctx.reset(new Context(f));
     }
   catch(...){
     Log::e("unable to play video: \"",filename.c_str(),"\"");
     }
   }
 
-void VideoWidget::paint(Tempest::Device& device, Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
+void VideoWidget::paint(Tempest::Device& device, Tempest::Encoder<CommandBuffer>& /*cmd*/, uint8_t fId) {
   if(ctx==nullptr)
     return;
   try {
