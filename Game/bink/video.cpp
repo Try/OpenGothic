@@ -633,8 +633,8 @@ struct Video::BitStream {
   uint32_t getBit() {
     if(at>=bitCount)
       throw std::runtime_error("io error");
-    uint8_t d    = data[at >> 3];
-    size_t  mask = 1 << (at & 7);
+    uint8_t  d    = data[at >> 3];
+    uint32_t mask = uint32_t(1) << (at & 7);
     at++;
     return (d & mask) ? 1 : 0;
     }

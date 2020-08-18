@@ -1,5 +1,7 @@
 #include "frame.h"
 
+#include <algorithm>
+
 using namespace Bink;
 
 void Frame::Plane::setSize(uint32_t iw, uint32_t ih) {
