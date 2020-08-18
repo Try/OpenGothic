@@ -648,7 +648,7 @@ struct Video::BitStream {
     }
 
   uint32_t showBits(int n) {
-    if(at+n>bitCount)
+    if(at>=bitCount)
       throw std::runtime_error("io error");
     uint32_t v = fetch32();
     return v & ((1<<n)-1);
