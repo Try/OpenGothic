@@ -45,10 +45,39 @@ struct VideoWidget::Context {
       }
 
     auto& f = vid.nextFrame();
-    if(pm.w()!=f.width() || pm.h()!=f.height()) {
-      pm = Pixmap(f.width(),f.height(),Pixmap::Format::R);
-      }
-    std::memcpy(pm.data(),f.plane(0).data(),pm.dataSize());
+    if(pm.w()!=f.width() || pm.h()!=f.height())
+      pm = Pixmap(f.width(),f.height(),Pixmap::Format::RGBA);
+
+    yuvToRgba(f,pm);
+    }
+
+  void yuvToRgba(const Bink::Frame& f,Pixmap& pm) {
+    auto planeY   = f.plane(0);
+    auto planeU   = f.plane(1);
+    auto planeV   = f.plane(2);
+    auto dst = reinterpret_cast<uint8_t*>(pm.data());
+
+    const uint32_t w = pm.w();
+    for(uint32_t y=0; y<pm.h(); ++y)
+      for(uint32_t x=0; x<w; ++x) {
+        uint8_t* rgb = &dst[(x+y*w)*4];
+        float Y = planeY.at(x,  y  );
+        float U = planeU.at(x/2,y/2);
+        float V = planeV.at(x/2,y/2);
+
+        float r = 1.164f * (Y - 16.f) + 1.596f * (V - 128.f);
+        float g = 1.164f * (Y - 16.f) - 0.813f * (V - 128.f) - 0.391f * (U - 128.f);
+        float b = 1.164f * (Y - 16.f) + 2.018f * (U - 128.f);
+
+        r = std::max(0.f,std::min(r,255.f));
+        g = std::max(0.f,std::min(g,255.f));
+        b = std::max(0.f,std::min(b,255.f));
+
+        rgb[0] = uint8_t(r);
+        rgb[1] = uint8_t(g);
+        rgb[2] = uint8_t(b);
+        rgb[3] = 255;
+        }
     }
 
   bool isEof() const {
@@ -146,8 +175,7 @@ void VideoWidget::keyDownEvent(KeyEvent& event) {
     }
   }
 
-void VideoWidget::keyUpEvent(KeyEvent& event) {
-
+void VideoWidget::keyUpEvent(KeyEvent&) {
   }
 
 void VideoWidget::paintEvent(PaintEvent& e) {
