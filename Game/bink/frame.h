@@ -21,12 +21,13 @@ class Frame final {
         void putBlock8x8   (uint32_t x, uint32_t y, const uint8_t* in);
         void putScaledBlock(uint32_t x, uint32_t y, const uint8_t* in);
 
-        uint8_t at(uint32_t x, uint32_t y) const;
+        uint8_t        at(uint32_t x, uint32_t y) const;
+        const uint8_t* data() const { return dat.data(); }
 
       private:
         void setSize(uint32_t w, uint32_t h);
 
-        std::vector<uint8_t> data;
+        std::vector<uint8_t> dat;
         uint32_t             w = 0;
         uint32_t             h = 0;
 

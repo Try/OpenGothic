@@ -84,6 +84,7 @@ class GameSession final {
     void         printScreen(const char *msg, int x, int y, int time, const GthFont &font);
     void         print(const char *msg);
     void         introChapter(const ChapterScreen::Show& s);
+    void         playVideo(const Daedalus::ZString& fname);
     void         showDocument(const DocumentMenu::Show& s);
 
     auto         getFightAi(size_t i) const -> const FightAi::FA&;

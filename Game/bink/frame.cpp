@@ -3,13 +3,13 @@
 using namespace Bink;
 
 void Frame::Plane::setSize(uint32_t iw, uint32_t ih) {
-  data.resize(iw*ih);
+  dat.resize(iw*ih);
   w = iw;
   h = ih;
   }
 
 void Frame::Plane::getPixels8x8(uint32_t rx, uint32_t ry, uint8_t* out) const {
-  const uint8_t* d = data.data();
+  const uint8_t* d = dat.data();
   uint32_t yMax = std::min<uint32_t>(8,h-ry);
   uint32_t xMax = std::min<uint32_t>(8,w-rx);
 
@@ -25,7 +25,7 @@ void Frame::Plane::getBlock8x8(uint32_t bx, uint32_t by, uint8_t* out) const {
   }
 
 void Frame::Plane::putBlock8x8(uint32_t bx, uint32_t by, const uint8_t* in) {
-  uint8_t* d    = data.data();
+  uint8_t* d    = dat.data();
   uint32_t yMax = std::min<uint32_t>(8,h-by*8);
   uint32_t xMax = std::min<uint32_t>(8,w-bx*8);
 
@@ -37,7 +37,7 @@ void Frame::Plane::putBlock8x8(uint32_t bx, uint32_t by, const uint8_t* in) {
   }
 
 void Frame::Plane::putScaledBlock(uint32_t bx, uint32_t by, const uint8_t* in) {
-  uint8_t* d    = data.data();
+  uint8_t* d    = dat.data();
   uint32_t yMax = std::min<uint32_t>(16,h-by*8);
   uint32_t xMax = std::min<uint32_t>(16,w-bx*8);
 
@@ -50,7 +50,7 @@ void Frame::Plane::putScaledBlock(uint32_t bx, uint32_t by, const uint8_t* in) {
   }
 
 uint8_t Frame::Plane::at(uint32_t x, uint32_t y) const {
-  return data[x + y*w];
+  return dat[x + y*w];
   }
 
 

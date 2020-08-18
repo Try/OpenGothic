@@ -421,6 +421,10 @@ void GameSession::introChapter(const ChapterScreen::Show &s) {
   chapter        = s;
   }
 
+void GameSession::playVideo(const Daedalus::ZString& fname) {
+  gothic.playVideo(fname);
+  }
+
 void GameSession::showDocument(const DocumentMenu::Show &s) {
   gothic.onShowDocument(s);
   }

@@ -32,6 +32,7 @@ class Video final {
 
     const Frame& nextFrame();
     size_t       frameCount() const;
+    size_t       currentFrame() const { return frameCounter; }
 
   private:
     enum BinkVidFlags : uint32_t {

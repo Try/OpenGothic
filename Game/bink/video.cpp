@@ -10,7 +10,7 @@
 using namespace Bink;
 
 // Bink DCT and residue 8x8 block scan order
-static const uint8_t bink_scan[64] = {
+static const uint8_t  bink_scan[64] = {
   0,  1,  8,  9,  2,  3, 10, 11,
   4,  5, 12, 13,  6,  7, 14, 15,
   20, 21, 28, 29, 22, 23, 30, 31,
@@ -558,42 +558,53 @@ static int av_log2(unsigned v) {
   return int(std::log2(v));
   }
 
-#define A1  2896 /* (1/sqrt(2))<<12 */
-#define A2  2217
-#define A3  3784
-#define A4 -5352
-#define MUL(X,Y) ((int)((unsigned)(X) * (Y)) >> 11)
+template<class T>
+static void idctTransform(T* dest, const int* src,
+                          int s0, int s1, int s2, int s3, int s4, int s5, int s6, int s7,
+                          int d0, int d1, int d2, int d3, int d4, int d5, int d6, int d7,
+                          T (*munge)(int)) {
+  enum {
+    A1 = 2896, /* (1/sqrt(2))<<12 */
+    A2 = 2217,
+    A3 = 3784,
+    A4 = -5352
+    };
+  static int (*mul)(int,int) = [](int x,int y) -> int { return int(uint32_t(x)*uint32_t(y)) >> 11; };
 
-#define IDCT_TRANSFORM(dest,s0,s1,s2,s3,s4,s5,s6,s7,d0,d1,d2,d3,d4,d5,d6,d7,munge,src) {\
-    const int a0 = (src)[s0] + (src)[s4]; \
-    const int a1 = (src)[s0] - (src)[s4]; \
-    const int a2 = (src)[s2] + (src)[s6]; \
-    const int a3 = MUL(A1, (src)[s2] - (src)[s6]); \
-    const int a4 = (src)[s5] + (src)[s3]; \
-    const int a5 = (src)[s5] - (src)[s3]; \
-    const int a6 = (src)[s1] + (src)[s7]; \
-    const int a7 = (src)[s1] - (src)[s7]; \
-    const int b0 = a4 + a6; \
-    const int b1 = MUL(A3, a5 + a7); \
-    const int b2 = MUL(A4, a5) - b0 + b1; \
-    const int b3 = MUL(A1, a6 - a4) - b2; \
-    const int b4 = MUL(A2, a7) + b3 - b1; \
-    (dest)[d0] = munge(a0+a2   +b0); \
-    (dest)[d1] = munge(a1+a3-a2+b2); \
-    (dest)[d2] = munge(a1-a3+a2+b3); \
-    (dest)[d3] = munge(a0-a2   -b4); \
-    (dest)[d4] = munge(a0-a2   +b4); \
-    (dest)[d5] = munge(a1-a3+a2-b3); \
-    (dest)[d6] = munge(a1+a3-a2-b2); \
-    (dest)[d7] = munge(a0+a2   -b0); \
-}
-/* end IDCT_TRANSFORM macro */
+  const int a0 = (src)[s0] + (src)[s4];
+  const int a1 = (src)[s0] - (src)[s4];
+  const int a2 = (src)[s2] + (src)[s6];
+  const int a3 = mul(A1, (src)[s2] - (src)[s6]);
+  const int a4 = (src)[s5] + (src)[s3];
+  const int a5 = (src)[s5] - (src)[s3];
+  const int a6 = (src)[s1] + (src)[s7];
+  const int a7 = (src)[s1] - (src)[s7];
+  const int b0 = a4 + a6;
+  const int b1 = mul(A3, a5 + a7);
+  const int b2 = mul(A4, a5) - b0 + b1;
+  const int b3 = mul(A1, a6 - a4) - b2;
+  const int b4 = mul(A2, a7) + b3 - b1;
+  dest[d0] = munge(a0+a2   +b0);
+  dest[d1] = munge(a1+a3-a2+b2);
+  dest[d2] = munge(a1-a3+a2+b3);
+  dest[d3] = munge(a0-a2   -b4);
+  dest[d4] = munge(a0-a2   +b4);
+  dest[d5] = munge(a1-a3+a2-b3);
+  dest[d6] = munge(a1+a3-a2-b2);
+  dest[d7] = munge(a0+a2   -b0);
+  }
 
-#define MUNGE_NONE(x) (x)
-#define IDCT_COL(dest,src) IDCT_TRANSFORM(dest,0,8,16,24,32,40,48,56,0,8,16,24,32,40,48,56,MUNGE_NONE,src)
+template<class T>
+static void idctCol(T* dest, const int* src) {
+  static T (*munge)(int) = [](int x) -> T { return T(x); };
+  idctTransform(dest,src,0,8,16,24,32,40,48,56,0,8,16,24,32,40,48,56,munge);
+  }
 
-#define MUNGE_ROW(x) (((x) + 0x7F)>>8)
-#define IDCT_ROW(dest,src) IDCT_TRANSFORM(dest,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,MUNGE_ROW,src)
+template<class T>
+static void idctRow(T* dest, const int* src) {
+  static T (*munge)(int) = [](int x) -> T { return T((x + 0x7F)>>8); };
+  idctTransform(dest,src,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,munge);
+  }
 
 static inline void bink_idct_col(int *dest, const int32_t *src) {
   if ((src[8]|src[16]|src[24]|src[32]|src[40]|src[48]|src[56])==0) {
@@ -606,7 +617,7 @@ static inline void bink_idct_col(int *dest, const int32_t *src) {
         dest[48] =
         dest[56] = src[0];
     } else {
-    IDCT_COL(dest, src);
+    idctCol(dest, src);
     }
   }
 
@@ -761,6 +772,8 @@ Video::~Video() {
   }
 
 const Frame& Video::nextFrame() {
+  if(frameCounter==index.size())
+    return frames[frameCounter%2];
   readPacket();
   auto& f = frames[frameCounter%2];
   frameCounter++;
@@ -1059,7 +1072,7 @@ void Video::decodePlane(BitStream& gb, int planeId, bool chroma) {
           last.getBlock8x8(bx,by,dst);
           break;
         case FILL_BLOCK:    {
-          const uint8_t v = getValue(BINK_SRC_COLORS);
+          const uint8_t v = uint8_t(getValue(BINK_SRC_COLORS));
           std::memset(dst,v,sizeof(dst));
           break;
           }
@@ -1073,7 +1086,7 @@ void Video::decodePlane(BitStream& gb, int planeId, bool chroma) {
           int v = gb.getBits(7);
           readResidue(gb,block,v);
           for(int i=0; i<64; ++i)
-            dst[i] = prev[i]+block[i];
+            dst[i] = uint8_t(prev[i]+block[i]);
           break;
           }
         case INTRA_BLOCK:   {
@@ -1085,9 +1098,8 @@ void Video::decodePlane(BitStream& gb, int planeId, bool chroma) {
           int temp[64]={};
           for(int i=0; i<8; i++)
             bink_idct_col(&temp[i], &dctblock[i]);
-          for(int i=0; i<8; i++) {
-            IDCT_ROW( (&dst[i*8]), (&temp[8*i]) );
-            }
+          for(int i=0; i<8; i++)
+            idctRow(&dst[i*8], &temp[8*i]);
           break;
           }
         case INTER_BLOCK:   {
@@ -1105,11 +1117,10 @@ void Video::decodePlane(BitStream& gb, int planeId, bool chroma) {
           int temp[64]={};
           for(int i=0; i<8; i++)
             bink_idct_col(&temp[i], &dctblock[i]);
-          for(int i = 0; i < 8; i++) {
-            IDCT_ROW( (&dctblock[i*8]), (&temp[8*i]) );
-            }
+          for(int i = 0; i < 8; i++)
+            idctRow(&dctblock[i*8], &temp[8*i]);
           for(int i=0; i<64; ++i)
-            dst[i] = prev[i]+dctblock[i];
+            dst[i] = uint8_t(prev[i]+dctblock[i]);
           break;
           }
         case RUN_BLOCK:     {
@@ -1123,14 +1134,14 @@ void Video::decodePlane(BitStream& gb, int planeId, bool chroma) {
             if(gb.getBit()) {
               int v = getValue(BINK_SRC_COLORS);
               for(int j = 0; j < run; j++)
-                dst[*scan++] = v;
+                dst[*scan++] = uint8_t(v);
               } else {
               for(int j = 0; j < run; j++)
-                dst[*scan++] = getValue(BINK_SRC_COLORS);
+                dst[*scan++] = uint8_t(getValue(BINK_SRC_COLORS));
               }
             } while (i < 63);
           if(i == 63)
-            dst[*scan++] = getValue(BINK_SRC_COLORS);
+            dst[*scan++] = uint8_t(getValue(BINK_SRC_COLORS));
           break;
           }
         case MOTION_BLOCK:  {
@@ -1142,9 +1153,9 @@ void Video::decodePlane(BitStream& gb, int planeId, bool chroma) {
           break;
           }
         case PATTERN_BLOCK: {
-          int col[2] = {};
+          uint8_t col[2] = {};
           for(int i=0; i<2; i++)
-            col[i] = getValue(BINK_SRC_COLORS);
+            col[i] = uint8_t(getValue(BINK_SRC_COLORS));
           for(int i=0; i<8; i++) {
             int v = getValue(BINK_SRC_PATTERN);
             for(int j=0; j<8; j++, v >>= 1)
@@ -1268,7 +1279,7 @@ void Video::readBlockTypes(BitStream& gb, Bundle& b) {
       v = getHuff(gb, b.tree);
       if(v < 12) {
         last = v;
-        *b.cur_dec++ = v;
+        *b.cur_dec++ = uint8_t(v);
         } else {
         int run = bink_rlelens[v - 12];
 
@@ -1313,7 +1324,7 @@ void Video::readColors(BitStream& gb, Bundle& b) {
         v = ((v & 0x7F) ^ sign) - sign;
         v += 0x80;
         }
-      *b.cur_dec++ = v;
+      *b.cur_dec++ = uint8_t(v);
       }
     }
   }
@@ -1331,7 +1342,7 @@ void Video::readPatterns(BitStream& gb, Bundle& b) { // note: not tested
   while(b.cur_dec < dec_end) {
     v  = getHuff(gb, b.tree);
     v |= getHuff(gb, b.tree) << 4;
-    *b.cur_dec++ = v;
+    *b.cur_dec++ = uint8_t(v);
     }
   }
 
@@ -1359,7 +1370,7 @@ void Video::readMotionValues(BitStream& gb, Bundle& b) { // note: not tested
         sign = -int(gb.getBit());
         v = (v ^ sign) - sign;
         }
-      *b.cur_dec++ = v;
+      *b.cur_dec++ = uint8_t(v);
       }
     }
   }
@@ -1378,7 +1389,7 @@ void Video::readDcs(BitStream& gb, Bundle& b, int start_bits, int has_sign) {
     }
   if(dst_end - dst < 1)
     throw std::runtime_error("io error");
-  *dst++ = v;
+  *dst++ = int16_t(v);
   len--;
   for(int i = 0; i < len; i += 8) {
     const int len2 = std::min(len - i, 8);
@@ -1393,7 +1404,7 @@ void Video::readDcs(BitStream& gb, Bundle& b, int start_bits, int has_sign) {
           v2 = (v2 ^ sign) - sign;
           }
         v += v2;
-        *dst++ = v;
+        *dst++ = int16_t(v);
         if(v < -32768 || v > 32767) {
           char buf[128]={};
           std::snprintf(buf,sizeof(buf),"DC value went out of bounds: %d", v);
@@ -1402,7 +1413,7 @@ void Video::readDcs(BitStream& gb, Bundle& b, int start_bits, int has_sign) {
         }
       } else {
       for(int j = 0; j < len2; j++)
-        *dst++ = v;
+        *dst++ = int16_t(v);
       }
     }
 
@@ -1558,10 +1569,10 @@ void Video::readResidue(BitStream& gb, int16_t block[64], int masks_count) {
     for(int i = 0; i<nz_coeff_count; i++) {
       if(!gb.getBit())
         continue;
-      if (block[nz_coeff[i]] < 0)
-        block[nz_coeff[i]] -= mask;
+      if(block[nz_coeff[i]] < 0)
+        block[nz_coeff[i]] = int16_t(block[nz_coeff[i]] - mask);
       else
-        block[nz_coeff[i]] += mask;
+        block[nz_coeff[i]] = int16_t(block[nz_coeff[i]] + mask);
       masks_count--;
       if(masks_count<0)
         return;
@@ -1590,7 +1601,7 @@ void Video::readResidue(BitStream& gb, int16_t block[64], int masks_count) {
               } else {
               nz_coeff[nz_coeff_count++] = bink_scan[ccoef];
               sign = -int(gb.getBit());
-              block[bink_scan[ccoef]] = (mask ^ sign) - sign;
+              block[bink_scan[ccoef]] = int16_t((mask ^ sign) - sign);
               masks_count--;
               if(masks_count<0)
                 return;
@@ -1608,7 +1619,7 @@ void Video::readResidue(BitStream& gb, int16_t block[64], int masks_count) {
         case 3:
           nz_coeff[nz_coeff_count++] = bink_scan[ccoef];
           sign = -int(gb.getBit());
-          block[bink_scan[ccoef]] = (mask ^ sign) - sign;
+          block[bink_scan[ccoef]] = int16_t((mask ^ sign) - sign);
           coef_list[list_pos]   = 0;
           mode_list[list_pos++] = 0;
           masks_count--;
