@@ -7,6 +7,7 @@
 
 #include "bink/video.h"
 #include "utils/fileutil.h"
+#include "gamemusic.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -42,10 +43,20 @@ struct VideoWidget::Sound : Tempest::SoundProducer {
   };
 
 struct VideoWidget::Context {
-  Context(const std::u16string& path) : fin(path), input(fin), vid(&input) {
+  Context(Gothic& gothic, const std::u16string& path) : fin(path), input(fin), vid(&input) {
     frameTime = Application::tickCount();
     snd = sndDev.load(std::unique_ptr<VideoWidget::Sound>(new VideoWidget::Sound(*this)));
-    snd.play();
+
+    const float volume = gothic.settingsGetF("SOUND","soundVolume");
+    sndDev.setGlobalVolume(volume);
+
+    restoreMusic = GameMusic::inst().isEnabled();
+    GameMusic::inst().setEnabled(false);
+    }
+
+  ~Context() {
+    if(restoreMusic && !GameMusic::inst().isEnabled())
+      GameMusic::inst().setEnabled(true);
     }
 
   void advance() {
@@ -103,17 +114,18 @@ struct VideoWidget::Context {
     return vid.currentFrame()>=vid.frameCount();
     }
 
-  Tempest::RFile fin;
-  Input          input;
-  Bink::Video    vid;
-  Pixmap         pm;
-  uint64_t       frameTime = 0;
+  Tempest::RFile       fin;
+  Input                input;
+  Bink::Video          vid;
+  Pixmap               pm;
+  uint64_t             frameTime = 0;
+  bool                 restoreMusic = false;
 
   Tempest::SoundDevice sndDev;
   Tempest::SoundEffect snd;
 
-  std::mutex         syncSamples;
-  std::vector<float> samples;
+  std::mutex           syncSamples;
+  std::vector<float>   samples;
   };
 
 void VideoWidget::Sound::renderSound(int16_t *out, size_t n) {
@@ -183,7 +195,7 @@ void VideoWidget::tick() {
     }
 
   try {
-    ctx.reset(new Context(f));
+    ctx.reset(new Context(gothic,f));
     }
   catch(...){
     Log::e("unable to play video: \"",filename.c_str(),"\"");
