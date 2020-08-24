@@ -1,6 +1,7 @@
 #include "frame.h"
 
 #include <algorithm>
+#include <cstring>
 
 using namespace Bink;
 
@@ -51,15 +52,38 @@ void Frame::Plane::putScaledBlock(uint32_t bx, uint32_t by, const uint8_t* in) {
     }
   }
 
+void Frame::Plane::fill(uint8_t v) {
+  std::memset(dat.data(),v,dat.size());
+  }
+
 uint8_t Frame::Plane::at(uint32_t x, uint32_t y) const {
   return dat[x + y*w];
   }
 
 
 Frame::Frame() {
+  aud.reserve(4096);
+  }
+
+const Frame::Audio& Frame::audio(uint8_t id) const {
+  return aud[id];
   }
 
 void Frame::setSize(uint32_t w, uint32_t h) {
-  for(auto& i:planes)
-    i.setSize(w,h);
+  planes[0].setSize(w,h);
+  planes[1].setSize(w/2,h/2);
+  planes[2].setSize(w/2,h/2);
+  planes[3].setSize(w,h);
+  }
+
+void Frame::setAudionChannels(uint8_t count, uint32_t blockSize) {
+  aud.resize(count);
+  for(auto& i:aud)
+    i.samples.reserve(blockSize);
+  }
+
+void Frame::setSamples(uint8_t id, const float* in, size_t cnt) {
+  auto& s = aud[id];
+  s.samples.resize(cnt);
+  std::memcpy(s.samples.data(),in,cnt*sizeof(float));
   }

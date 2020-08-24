@@ -23,7 +23,8 @@ class VideoWidget : public Tempest::Widget {
 
   private:
     struct Input;
-    class Context;
+    struct Sound;
+    class  Context;
 
     void paintEvent(Tempest::PaintEvent &event) override;
 

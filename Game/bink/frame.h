@@ -20,6 +20,7 @@ class Frame final {
         void getBlock8x8   (uint32_t x, uint32_t y, uint8_t* out) const;
         void putBlock8x8   (uint32_t x, uint32_t y, const uint8_t* in);
         void putScaledBlock(uint32_t x, uint32_t y, const uint8_t* in);
+        void fill          (uint8_t v);
 
         uint8_t        at(uint32_t x, uint32_t y) const;
         const uint8_t* data() const { return dat.data(); }
@@ -34,15 +35,25 @@ class Frame final {
       friend class Frame;
       };
 
+    class Audio final {
+      public:
+        std::vector<float> samples;
+      friend class Frame;
+      };
+
     uint32_t width()  const { return planes[0].w; }
     uint32_t height() const { return planes[0].h; }
 
     const Plane& plane(uint8_t id) const { return planes[id]; }
+    const Audio& audio(uint8_t id) const;
 
   private:
-    Plane planes[4];
+    Plane              planes[4];
+    std::vector<Audio> aud;
 
     void  setSize(uint32_t w, uint32_t h);
+    void  setAudionChannels(uint8_t count, uint32_t blockSize);
+    void  setSamples(uint8_t aud, const float* s, size_t cnt);
 
   friend class Video;
   };

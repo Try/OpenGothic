@@ -9,6 +9,15 @@
 
 using namespace Bink;
 
+static const float    sqrthalf = std::sqrt(0.5f);
+
+static const uint16_t ff_wma_critical_freqs[25] = {
+  100,   200,  300,  400,  510,  630,   770,   920,
+  1080,  1270, 1480, 1720, 2000, 2320,  2700,  3150,
+  3700,  4400, 5300, 6400, 7700, 9500, 12000, 15500,
+  24500,
+  };
+
 // Bink DCT and residue 8x8 block scan order
 static const uint8_t  bink_scan[64] = {
   0,  1,  8,  9,  2,  3, 10, 11,
@@ -20,7 +29,6 @@ static const uint8_t  bink_scan[64] = {
   36, 37, 44, 45, 38, 39, 46, 47,
   52, 53, 60, 61, 54, 55, 62, 63
   };
-
 static const uint8_t  bink_rlelens[4] = { 4, 8, 12, 32 };
 static const uint8_t  bink_tree_lens  [16][16] = {
   { 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4 },
@@ -526,6 +534,9 @@ static const uint32_t bink_inter_quant[16][64] = {
  0x282F0E, 0x1F927D, 0x16C2FF, 0x127AD9, 0x168D83, 0x0B7F50, 0x0CBAAA, 0x06E86E,
 },
 };
+static const uint8_t  rle_length_tab  [16]     = {
+  2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 32, 64
+  };
 
 struct VLCcode {
   uint8_t bits;
@@ -543,6 +554,8 @@ struct VLC {
   };
 
 static VLC bink_trees[16];
+
+static std::vector<float> ffCosTabs[18];
 
 static uint32_t AV_RL32(const char* v) {
   uint32_t ret=0;
@@ -606,8 +619,8 @@ static void idctRow(T* dest, const int* src) {
   idctTransform(dest,src,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,munge);
   }
 
-static inline void bink_idct_col(int *dest, const int32_t *src) {
-  if ((src[8]|src[16]|src[24]|src[32]|src[40]|src[48]|src[56])==0) {
+static void bink_idct_col(int *dest, const int32_t *src) {
+  if((src[8]|src[16]|src[24]|src[32]|src[40]|src[48]|src[56])==0) {
     dest[0]  =
         dest[8]  =
         dest[16] =
@@ -621,6 +634,115 @@ static inline void bink_idct_col(int *dest, const int32_t *src) {
     }
   }
 
+template<class T>
+static void BF(T& x, T& y, const T& a, const T& b) {
+  x = a-b;
+  y = a+b;
+  }
+
+template<class T>
+static void CMUL(T& dre, T& dim, const T& are, const T& aim, const T& bre, const T& bim) {
+  dre = are*bre - aim*bim;
+  dim = are*bim + aim*bre;
+  }
+
+static void BUTTERFLIES(Video::FFTComplex& a0, Video::FFTComplex& a1, Video::FFTComplex& a2, Video::FFTComplex& a3,
+                        float& t1, float& t2, float& t3, float& t4, float& t5, float& t6) {
+  BF(t3, t5, t5, t1);
+  BF(a2.re, a0.re, a0.re, t5);
+  BF(a3.im, a1.im, a1.im, t3);
+  BF(t4, t6, t2, t6);
+  BF(a3.re, a1.re, a1.re, t4);
+  BF(a2.im, a0.im, a0.im, t6);
+  }
+
+static void transform(Video::FFTComplex& a0, Video::FFTComplex& a1, Video::FFTComplex& a2, Video::FFTComplex& a3, const float wre, const float wim,
+                      float& t1, float& t2, float& t3, float& t4, float& t5, float& t6) {
+  CMUL(t1, t2, a2.re, a2.im, wre, -wim);
+  CMUL(t5, t6, a3.re, a3.im, wre,  wim);
+  BUTTERFLIES(a0,a1,a2,a3, t1,t2,t3,t4,t5,t6);
+  }
+
+static void transformZero(Video::FFTComplex& a0, Video::FFTComplex& a1, Video::FFTComplex& a2, Video::FFTComplex& a3,
+                          float& t1, float& t2, float& t3, float& t4, float& t5, float& t6) {
+  t1 = a2.re;
+  t2 = a2.im;
+  t5 = a3.re;
+  t6 = a3.im;
+  BUTTERFLIES(a0,a1,a2,a3, t1,t2,t3,t4,t5,t6);
+  }
+
+static void fftPass(Video::FFTComplex *z, const float *wre, unsigned int n) {
+  int o1 = 2*n;
+  int o2 = 4*n;
+  int o3 = 6*n;
+  const float *wim = wre+o1;
+  n--;
+
+  float t1, t2, t3, t4, t5, t6;
+  transformZero(z[0],z[o1],z[o2],z[o3], t1,t2,t3,t4,t5,t6);
+  transform(z[1],z[o1+1],z[o2+1],z[o3+1],wre[1],wim[-1], t1,t2,t3,t4,t5,t6);
+  do {
+    z += 2;
+    wre += 2;
+    wim -= 2;
+    transform(z[0],z[o1],z[o2],z[o3],wre[0],wim[0], t1,t2,t3,t4,t5,t6);
+    transform(z[1],z[o1+1],z[o2+1],z[o3+1],wre[1],wim[-1], t1,t2,t3,t4,t5,t6);
+    } while(--n);
+  }
+
+template<int n, int ord>
+static void fft(Video::FFTComplex *z) {
+  fft<n/2,ord-1>(z);
+  fft<n/4,ord-2>(z+(n/4)*2);
+  fft<n/4,ord-2>(z+(n/4)*3);
+  fftPass(z,ffCosTabs[ord].data(),(n/4)/2);
+  }
+
+template<>
+void fft<4,2>(Video::FFTComplex *z) {
+  float t1, t2, t3, t4, t5, t6, t7, t8;
+
+  BF(t3, t1, z[0].re, z[1].re);
+  BF(t8, t6, z[3].re, z[2].re);
+  BF(z[2].re, z[0].re, t1, t6);
+  BF(t4, t2, z[0].im, z[1].im);
+  BF(t7, t5, z[2].im, z[3].im);
+  BF(z[3].im, z[1].im, t4, t8);
+  BF(z[3].re, z[1].re, t3, t7);
+  BF(z[2].im, z[0].im, t2, t5);
+  }
+
+template<>
+void fft<8,3>(Video::FFTComplex *z) {
+  fft<4,2>(z);
+
+  float t1, t2, t3, t4, t5, t6;
+  BF(t1, z[5].re, z[4].re, -z[5].re);
+  BF(t2, z[5].im, z[4].im, -z[5].im);
+  BF(t5, z[7].re, z[6].re, -z[7].re);
+  BF(t6, z[7].im, z[6].im, -z[7].im);
+
+  BUTTERFLIES(z[0],z[2],z[4],z[6], t1,t2,t3,t4,t5,t6);
+  transform  (z[1],z[3],z[5],z[7],sqrthalf,sqrthalf, t1,t2,t3,t4,t5,t6);
+  }
+
+template<>
+void fft<16,4>(Video::FFTComplex *z) {
+  float cos_16_1 = ffCosTabs[4][1];
+  float cos_16_3 = ffCosTabs[4][3];
+
+  fft<8,3>(z);
+  fft<4,2>(z+8);
+  fft<4,2>(z+12);
+
+  float t1, t2, t3, t4, t5, t6;
+  transformZero(z[0],z[4],z[8],z[12], t1,t2,t3,t4,t5,t6);
+  transform    (z[2],z[6],z[10],z[14], sqrthalf,sqrthalf, t1,t2,t3,t4,t5,t6);
+  transform    (z[1],z[5],z[9],z[13],  cos_16_1,cos_16_3, t1,t2,t3,t4,t5,t6);
+  transform    (z[3],z[7],z[11],z[15], cos_16_3,cos_16_1, t1,t2,t3,t4,t5,t6);
+  }
+
 struct Video::BitStream {
   BitStream(const uint8_t* data, size_t bitCount):data(data),bitCount(bitCount),byteCount(bitCount >> 3){}
 
@@ -630,11 +752,23 @@ struct Video::BitStream {
     at+=n;
     }
 
+  float getFloat() {
+    int   power = int(getBits(5));
+    float f     = std::ldexp(float(getBits(23)), power - 23);
+    if(getBit())
+      return -f;
+    return f;
+    }
+
+  int getInt32(){
+    return int(getBits(32));
+    }
+
   uint32_t getBit() {
     if(at>=bitCount)
       throw std::runtime_error("io error");
-    uint8_t  d    = data[at >> 3];
-    uint32_t mask = uint32_t(1) << (at & 7);
+    uint8_t d    = data[at >> 3];
+    size_t  mask = 1 << (at & 7);
     at++;
     return (d & mask) ? 1 : 0;
     }
@@ -644,14 +778,14 @@ struct Video::BitStream {
       throw std::runtime_error("io error");
     uint32_t v = fetch32();
     at+=n;
-    return v & ((1<<n)-1);
+    return v & ((uint32_t(1)<<n)-1);
     }
 
   uint32_t showBits(int n) {
     if(at>=bitCount)
       throw std::runtime_error("io error");
     uint32_t v = fetch32();
-    return v & ((1<<n)-1);
+    return v & ((uint32_t(1)<<n)-1);
     }
 
   uint32_t fetch32() {
@@ -671,12 +805,20 @@ struct Video::BitStream {
 
   size_t position() const { return at; }
   size_t bitsLeft() const { return bitCount-at; };
+  void   align32 () {
+    if(position() & 0x1F)
+      skip(32 - (position()&0x1F));
+    }
 
   const uint8_t* data      = nullptr;
   size_t         at        = 0;
   size_t         bitCount  = 0;
   size_t         byteCount = 0;
   };
+
+Video::Audio::Audio(uint16_t sampleRate, uint8_t channels, bool isDct)
+  :sampleRate(sampleRate), channels(channels), isDct(isDct) {
+  }
 
 Video::Video(Input* file) : fin(file) {
   packet.reserve(4*1024*1024);
@@ -704,7 +846,7 @@ Video::Video(Input* file) : fin(file) {
 
   flags = BinkVidFlags(rl32());
 
-  uint32_t num_audio_tracks = rl32(); // 1
+  uint32_t num_audio_tracks = rl32();
 
   const uint32_t signature = (codec & 0xFFFFFF);
   revision = uint8_t((codec >> 24) % 0xFF);
@@ -714,21 +856,19 @@ Video::Video(Input* file) : fin(file) {
     (void)rl32(); // unknown new field
 
   if(num_audio_tracks>0) {
-    fin->skip(4*num_audio_tracks); /* max decoded size */
-    audio.resize(num_audio_tracks);
+    // max decoded size
+    fin->skip(4*num_audio_tracks);
 
     for(uint32_t i=0; i<num_audio_tracks; i++) {
-      audio[i].sample_rate = rl16();
-      //avpriv_set_pts_info(ast, 64, 1, ast->codecpar->sample_rate);
-      uint16_t flags = rl16();
-      //ast->codecpar->codec_id = flags & BINK_AUD_USEDCT ?  AV_CODEC_ID_BINKAUDIO_DCT : AV_CODEC_ID_BINKAUDIO_RDFT;
-      if(flags & BINK_AUD_STEREO)
-        audio[i].channels = 2; else
-        audio[i].channels = 1;
+      const uint16_t sampleRate = rl16();
+      const uint16_t flags      = rl16();
+      audio.emplace_back(sampleRate,(flags & BINK_AUD_STEREO) ? 2 : 1,(flags & BINK_AUD_USEDCT));
       }
 
-    for(uint32_t i=0; i<num_audio_tracks; i++)
-      audio[i].id = rl32();
+    for(uint32_t i=0; i<num_audio_tracks; i++) {
+      auto audio_i_id = rl32();
+      (void)audio_i_id;
+      }
     }
 
   // frame index table
@@ -766,6 +906,11 @@ Video::Video(Input* file) : fin(file) {
     fin->skip(4);
 
   decodeInit();
+
+  for(auto& i:audio)
+    decodeAudioInit(i);
+  for(auto& f:frames)
+    f.setAudionChannels(uint8_t(audio.size()),4096);
   }
 
 Video::~Video() {
@@ -810,9 +955,10 @@ void Video::readPacket() {
     if(audioSize >= 4) { // This doesn't look good
       packet.resize(audioSize);
       fin->read(packet.data(),packet.size());
-      //TODO: parse packet
+      parseAudio(packet,i,audio[i],audio[i].data);
       } else {
       fin->skip(audioSize);
+      frames[frameCounter%2].setSamples(uint8_t(i),nullptr,0);
       }
     videoSize -= (audioSize+4);
     }
@@ -905,14 +1051,6 @@ void Video::decodeInit() {
 
   for(auto& i:frames)
     i.setSize(width,height);
-/*
-  //avctx->pix_fmt = c->has_alpha ? AV_PIX_FMT_YUVA420P : AV_PIX_FMT_YUV420P;
-  //avctx->color_range = c->version == 'k' ? AVCOL_RANGE_JPEG : AVCOL_RANGE_MPEG;
-
-  ff_blockdsp_init(&bdsp, avctx);
-  ff_hpeldsp_init (&hdsp, avctx->flags);
-  ff_binkdsp_init (&binkdsp);
-*/
 
   const int bw     = (width  + 7) >> 3;
   const int bh     = (height + 7) >> 3;
@@ -1012,34 +1150,26 @@ void Video::parseFrame(const std::vector<uint8_t>& data) {
   }
 
 void Video::decodePlane(BitStream& gb, int planeId, bool chroma) {
-  int bw     = chroma ? (this->width  + 15) >> 4 : (this->width  + 7) >> 3;
-  int bh     = chroma ? (this->height + 15) >> 4 : (this->height + 7) >> 3;
-  int width  = this->width  >> (chroma ? 1 : 0);
-  //int height = this->height >> (chroma ? 1 : 0);
+  const int bw     = chroma ? (this->width  + 15) >> 4 : (this->width  + 7) >> 3;
+  const int bh     = chroma ? (this->height + 15) >> 4 : (this->height + 7) >> 3;
+  const int width  = this->width  >> (chroma ? 1 : 0);
+
+  auto& plane = frames[frameCounter%2]    .planes[planeId];
+  auto& last  = frames[(frameCounter+1)%2].planes[planeId];
 
   if(revision == 'k' && gb.getBit()) {
-    /*
-    int fill = get_bits(gb, 8);
-
-    dst = frame->data[plane_idx];
-
-    for (i = 0; i < height; i++)
-      memset(dst + i * stride, fill, width);
-    goto end;
-    */
+    uint8_t value = uint8_t(gb.getBits(8));
+    plane.fill(value);
+    //next plane data starts at 32-bit boundary
+    gb.align32();
+    return;
     }
 
   initLengths(std::max(width,8),bw);
   for(int i=0; i<BINK_NB_SRC; i++)
     readBundle(gb,i);
 
-  auto& plane = frames[frameCounter%2]    .planes[planeId];
-  auto& last  = frames[(frameCounter+1)%2].planes[planeId];
-
   uint8_t dst[8*8] = {};
-
-  if(frameCounter==165 && planeId==0)
-    fflush(stdout);
   for(int by = 0; by < bh; by++) {
     readBlockTypes  (gb,bundle[BINK_SRC_BLOCK_TYPES]);
     readBlockTypes  (gb,bundle[BINK_SRC_SUB_BLOCK_TYPES]);
@@ -1187,8 +1317,7 @@ void Video::decodePlane(BitStream& gb, int planeId, bool chroma) {
     }
 
   //next plane data starts at 32-bit boundary
-  if(gb.position() & 0x1F)
-    gb.skip(32 - (gb.position()&0x1F));
+  gb.align32();
   }
 
 void Video::readBundle(BitStream& gb, int bundle_num) {
@@ -1629,4 +1758,358 @@ void Video::readResidue(BitStream& gb, int16_t block[64], int masks_count) {
         }
       }
     }
+  }
+
+
+static int splitRadixPermutation(int i, int n, int inverse) {
+  if(n <= 2)
+    return i&1;
+  int m = n >> 1;
+  if(!(i&m))
+    return splitRadixPermutation(i, m, inverse)*2;
+  m >>= 1;
+  if(inverse == !(i&m))
+    return splitRadixPermutation(i, m, inverse)*4 + 1;
+  return splitRadixPermutation(i, m, inverse)*4 - 1;
+  }
+
+template<class T>
+static void processFftPerm(T* revtab, int n, bool inverse){
+  for(int i = 0; i < n; i++) {
+    int k = -splitRadixPermutation(i, n, inverse) & (n - 1);
+    revtab[k] = T(i);
+    }
+  }
+
+void Video::decodeAudioInit(Audio& aud) {
+  int frame_len_bits;
+  // determine frame length
+  if(aud.sampleRate < 22050)
+    frame_len_bits = 9;  else
+  if(aud.sampleRate < 44100)
+    frame_len_bits = 10;  else
+    frame_len_bits = 11;
+
+  if(aud.channels < 1 || aud.channels > 2) {
+    char buf[128] = {};
+    std::snprintf(buf,sizeof(buf),"invalid number of channels: %d\n", aud.channels);
+    throw std::runtime_error(buf);
+    }
+
+  if(!aud.isDct) {
+    // audio is already interleaved for the RDFT format variant
+    if(aud.sampleRate > INT_MAX/aud.channels)
+      throw std::runtime_error("too many audio samples");
+    aud.sampleRate *= aud.channels;
+    if(revision!='b')
+      frame_len_bits += av_log2(aud.channels);
+    aud.channels = 1;
+    } else {
+    // NOP
+    }
+
+  aud.frameLen   = 1 << frame_len_bits;
+  aud.overlapLen = aud.frameLen / 16;
+  aud.nbits      = frame_len_bits;
+  const uint32_t sample_rate_half = (aud.sampleRate + 1) / 2;
+
+  if(!aud.isDct)
+    aud.root = 2.f                /float(std::sqrt(aud.frameLen)*32768.0); else
+    aud.root = float(aud.frameLen)/float(std::sqrt(aud.frameLen)*32768.0);
+  for(int i=0; i<96; i++) {
+    // constant is result of 0.066399999/log10(M_E)
+    quantTable[i] = std::exp(float(i) * 0.15289164787221953823f)*aud.root;
+    }
+
+  // calculate number of bands
+  uint32_t numBands = 0;
+  for(numBands = 1; numBands < 25; numBands++)
+    if(sample_rate_half<=ff_wma_critical_freqs[numBands - 1])
+      break;
+  aud.numBands = numBands;
+
+  // populate bands data
+  aud.bands[0] = 2;
+  for(uint32_t i=1; i<numBands; i++)
+    aud.bands[i] = (ff_wma_critical_freqs[i-1] * aud.frameLen / sample_rate_half) & ~1;
+  aud.bands[numBands] = aud.frameLen;
+
+  initFfCosTabs(aud.nbits);
+  aud.tcos = ffCosTabs[aud.nbits].data();
+  aud.tsin = ffCosTabs[aud.nbits].data() + ((1<<aud.nbits) >> 2);
+
+  const int fftNBits = aud.nbits-1;
+  aud.data.tmpBuf.resize(1 << fftNBits);
+
+  aud.revtab  .resize(1<<fftNBits);
+  aud.revtab32.resize(1<<fftNBits);
+  processFftPerm(aud.revtab.data(),  1<<fftNBits, aud.isDct);
+  processFftPerm(aud.revtab32.data(),32,          aud.isDct);
+
+  int n = 1 << fftNBits;
+  initFfCosTabs(aud.nbits+2);
+  aud.csc2.resize(n);
+  for(int i = 0; i<n; i++)
+    aud.csc2[i] = 0.5f/std::sin((float(M_PI)/float(4*n) * float(2*i+1)));
+
+  for(int i=0; i<18; ++i)
+    initFfCosTabs(i);
+  }
+
+void Video::initFfCosTabs(size_t index) {
+  size_t m    = 1<<index;
+  double freq = 2*M_PI/double(m);
+  auto&  tab  = ffCosTabs[index];
+
+  if(tab.size()!=0)
+    return;
+  tab.resize(m);
+
+  for(size_t i=0; i<=m/4; i++)
+    tab[i] = std::cos(float(i*freq));
+  for(size_t i=1; i<m/4; i++)
+    tab[m/2-i] = tab[i];
+  }
+
+void Video::parseAudio(const std::vector<uint8_t>& data, size_t id, const Audio& aud, AudioData& out) {
+  BitStream gb(data.data(),data.size()*8);
+  gb.skip(32); // skip reported size
+
+  std::vector<float> ret; // NOTE: perfomance
+  out.channels.resize(aud.channels);
+
+  while(true) {
+    parseAudioBlock(gb,aud,out);
+
+    if(out.channels.size()==1) {
+      auto&  smp  = out.channels[0].samples;
+      size_t size = aud.frameLen - aud.overlapLen;
+      ret.resize(ret.size()+size);
+      std::memcpy(ret.data()+ret.size()-size,smp.data(),size*sizeof(smp[0]));
+      } else {
+      auto   smp0 = out.channels[0].samples.data();
+      auto   smp1 = out.channels[1].samples.data();
+
+      size_t size = aud.frameLen - aud.overlapLen;
+      ret.resize(ret.size()+2*size);
+
+      float* s = ret.data()+ret.size()-2*size;
+      for(size_t i=0; i<size; ++i) {
+        s[i*2+0] = smp0[i];
+        s[i*2+1] = smp1[i];
+        }
+      }
+
+    gb.align32();
+    if(gb.bitsLeft()==0)
+      break;
+    }
+
+  frames[frameCounter%2].setSamples(uint8_t(id),ret.data(),ret.size());
+  }
+
+void Video::parseAudioBlock(BitStream& gb, const Audio &aud, AudioData &out) {
+  float quant[25] = {};
+
+  if(aud.isDct)
+    gb.skip(2);
+
+  for(uint8_t ch=0; ch<aud.channels; ++ch) {
+    out.channels[ch].samples.resize(aud.frameLen);
+
+    float* coeffs = out.channels[ch].samples.data();
+    if(revision=='b') {
+      int32_t c0 = gb.getInt32();
+      int32_t c1 = gb.getInt32();
+
+      coeffs[0] = reinterpret_cast<float&>(c0)*aud.root;
+      coeffs[1] = reinterpret_cast<float&>(c1)*aud.root;
+      } else {
+      coeffs[0] = gb.getFloat()*aud.root;
+      coeffs[1] = gb.getFloat()*aud.root;
+      }
+
+    for(uint32_t i=0; i<aud.numBands; i++) {
+      uint32_t value = gb.getBits(8);
+      quant[i] = quantTable[std::min<uint32_t>(value, 95)];
+      }
+
+    int   k = 0;
+    float q = quant[0];
+
+    // parse coefficients
+    uint32_t i=2, j=0;
+    while(i<aud.frameLen) {
+      if(revision=='b') {
+        j = i + 16;
+        } else {
+        int v = gb.getBit();
+        if(v!=0) {
+          v = gb.getBits(4);
+          j = i + rle_length_tab[v] * 8;
+          } else {
+          j = i + 8;
+          }
+        }
+
+      j = std::min(j,aud.frameLen);
+
+      uint32_t width = gb.getBits(4);
+      if(width == 0) {
+        std::memset(coeffs + i, 0, (j - i) * sizeof(*coeffs));
+        i = j;
+        while(aud.bands[k] < i)
+          q = quant[k++];
+        } else {
+        while(i < j) {
+          if(aud.bands[k] == i)
+            q = quant[k++];
+          uint32_t coeff = gb.getBits(width);
+          if(coeff!=0) {
+            int v = gb.getBit();
+            if(v)
+              coeffs[i] = -q*float(coeff); else
+              coeffs[i] =  q*float(coeff);
+            } else {
+            coeffs[i] = 0.0f;
+            }
+          i++;
+          }
+        }
+      }
+
+    if(aud.isDct) {
+      coeffs[0] /= 0.5f;
+      dctCalc3C(aud,out,coeffs);
+      } else {
+      rdftCalcC(aud,out,coeffs,false);
+      }
+    }
+
+  for(uint8_t ch=0; ch<aud.channels; ++ch) {
+    uint32_t count = aud.overlapLen*aud.channels;
+
+    float* samples  = out.channels[ch].samples.data();
+    float* previous = out.previous[ch];
+
+    if(!out.first) {
+      uint32_t j = ch;
+      for(uint32_t i = 0; i<aud.overlapLen; i++, j += aud.channels)
+        samples[i] = (previous[i]*float(count-j) + samples[i]*float(j))/float(count);
+      }
+    std::memcpy(previous, &samples[aud.frameLen-aud.overlapLen], aud.overlapLen*sizeof(*previous));
+    }
+
+  out.first = false;
+  }
+
+void Video::dctCalc3C(const Audio& aud, AudioData& out, float *data) {
+  int n = 1 << (aud.nbits);
+
+  float  next   = data[n-1];
+  float  inv_n  = 1.0f / float(n);
+  float* costab = ffCosTabs[aud.nbits + 2].data();
+
+  for(int i = n-2; i>=2; i-=2) {
+    float val1 = data[i];
+    float val2 = data[i-1] - data[i+1];
+    float c    = costab[i];
+    float s    = costab[n-i];
+
+    data[i]     = c * val1 + s * val2;
+    data[i + 1] = s * val1 - c * val2;
+    }
+
+  data[1] = 2 * next;
+
+  rdftCalcC(aud, out, data, true);
+
+  for(int i=0; i<n/2; i++) {
+    float tmp1 = data[i]     * inv_n;
+    float tmp2 = data[n-i-1] * inv_n;
+    float csc  = aud.csc2[i] * (tmp1 - tmp2);
+
+    tmp1            += tmp2;
+    data[i]          = tmp1 + csc;
+    data[n - i - 1]  = tmp1 - csc;
+    }
+  }
+
+void Video::rdftCalcC(const Audio& aud, AudioData& out, float *data, bool negativeSign) {
+  FFTComplex ev, od, odsum;
+  const int n       = 1 << aud.nbits;
+  const float k1    = 0.5;
+  const float k2    = -0.5;
+  const float *tcos = aud.tcos;
+  const float *tsin = aud.tsin;
+
+  float signConvention    = negativeSign ? -1 :  1;
+  float signConventionInv = negativeSign ?  1 : -1;
+
+  // i=0 is a special case because of packing, the DC term is real, so we
+  // are going to throw the N/2 term (also real) in with it.
+
+  ev.re = data[0];
+  data[0] = ev.re+data[1];
+  data[1] = ev.re-data[1];
+
+  int i = 0;
+  for(i = 1; i < (n>>2); i++) {
+    int i1 = 2*i;
+    int i2 = n-i1;
+    ev.re      =  k1*(data[i1  ]+data[i2  ]);
+    od.im      =  k2*(data[i2  ]-data[i1  ]);
+    ev.im      =  k1*(data[i1+1]-data[i2+1]);
+    od.re      =  k2*(data[i1+1]+data[i2+1]);
+    odsum.re   = od.re*tcos[i] + signConvention   *od.im*tsin[i];
+    odsum.im   = od.im*tcos[i] + signConventionInv*od.re*tsin[i];
+    data[i1  ] =  ev.re + odsum.re;
+    data[i1+1] =  ev.im + odsum.im;
+    data[i2  ] =  ev.re - odsum.re;
+    data[i2+1] =  odsum.im - ev.im;
+    }
+
+  data[0] *= k1;
+  data[1] *= k1;
+
+  data[2*i+1]=signConvention*data[2*i+1];
+  fftPermute(aud, out, reinterpret_cast<FFTComplex*>(data));
+  fftCalc   (aud,      reinterpret_cast<FFTComplex*>(data));
+  }
+
+void Video::fftPermute(const Audio& aud, AudioData& data, FFTComplex *z) {
+  const uint16_t *revtab   = aud.revtab.data();
+  const uint32_t *revtab32 = aud.revtab32.data();
+  int np = 1 << (aud.nbits-1);
+  // TODO: handle split-radix permute in a more optimal way, probably in-place
+  if(revtab) {
+    for(int j=0; j<np; j++)
+      data.tmpBuf[revtab[j]] = z[j];
+    } else {
+    for(int j=0;j<np;j++)
+      data.tmpBuf[revtab32[j]] = z[j];
+    }
+  std::memcpy(z, data.tmpBuf.data(), np*sizeof(FFTComplex));
+  }
+
+void Video::fftCalc(const Audio& aud, FFTComplex* z) {
+  static void(*const dispatch[])(FFTComplex*) = {
+      fft<4,      2>,
+      fft<8,      3>,
+      fft<16,     4>,
+      fft<32,     5>,
+      fft<64,     6>,
+      fft<128,    7>,
+      fft<256,    8>,
+      fft<512,    9>,
+      fft<1024,   10>,
+      fft<2048,   11>,
+      fft<4096,   12>,
+      fft<8192,   13>,
+      fft<16384,  14>,
+      fft<32768,  15>,
+      fft<65536,  16>,
+      fft<131072, 17>
+      };
+  dispatch[aud.nbits-3](z);
   }

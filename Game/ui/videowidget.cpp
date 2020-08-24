@@ -33,9 +33,19 @@ struct VideoWidget::Input : Bink::Video::Input {
   size_t          at=0;
   };
 
+struct VideoWidget::Sound : Tempest::SoundProducer {
+  Sound(Context& c):Tempest::SoundProducer(44100,2), ctx(c) {
+    }
+  void renderSound(int16_t *out, size_t n) override;
+
+  Context& ctx;
+  };
+
 struct VideoWidget::Context {
   Context(const std::u16string& path) : fin(path), input(fin), vid(&input) {
     frameTime = Application::tickCount();
+    snd = sndDev.load(std::unique_ptr<VideoWidget::Sound>(new VideoWidget::Sound(*this)));
+    snd.play();
     }
 
   void advance() {
@@ -48,14 +58,23 @@ struct VideoWidget::Context {
     if(pm.w()!=f.width() || pm.h()!=f.height())
       pm = Pixmap(f.width(),f.height(),Pixmap::Format::RGBA);
 
-    yuvToRgba(f,pm);
+    yuvToRgba(f,pm);    
+    pushSamples(f.audio(0).samples);
+    //snd.play();
+    }
+
+  void pushSamples(const std::vector<float>& s) {
+    std::lock_guard<std::mutex> guard(syncSamples);
+    size_t sz = samples.size();
+    samples.resize(sz+s.size());
+    std::memcpy(samples.data()+sz, s.data(), s.size()*sizeof(s[0]));
     }
 
   void yuvToRgba(const Bink::Frame& f,Pixmap& pm) {
-    auto planeY   = f.plane(0);
-    auto planeU   = f.plane(1);
-    auto planeV   = f.plane(2);
-    auto dst = reinterpret_cast<uint8_t*>(pm.data());
+    auto planeY = f.plane(0);
+    auto planeU = f.plane(1);
+    auto planeV = f.plane(2);
+    auto dst    = reinterpret_cast<uint8_t*>(pm.data());
 
     const uint32_t w = pm.w();
     for(uint32_t y=0; y<pm.h(); ++y)
@@ -89,7 +108,27 @@ struct VideoWidget::Context {
   Bink::Video    vid;
   Pixmap         pm;
   uint64_t       frameTime = 0;
+
+  Tempest::SoundDevice sndDev;
+  Tempest::SoundEffect snd;
+
+  std::mutex         syncSamples;
+  std::vector<float> samples;
   };
+
+void VideoWidget::Sound::renderSound(int16_t *out, size_t n) {
+  n = n*2; // stereo
+
+  std::lock_guard<std::mutex> guard(ctx.syncSamples);
+  auto& s = ctx.samples;
+  if(s.size()<n)
+    return;
+  for(size_t i=0; i<n; ++i) {
+    float v = s[i];
+    out[i] = (v < -1.00004566f ? int16_t(-32768) : (v > 1.00001514f ? int16_t(32767) : int16_t(v * 32767.5f)));
+    }
+  ctx.samples.erase(ctx.samples.begin(),ctx.samples.begin()+n);
+  }
 
 VideoWidget::VideoWidget(Gothic& gth)
   :gothic(gth) {

@@ -34,6 +34,11 @@ class Video final {
     size_t       frameCount() const;
     size_t       currentFrame() const { return frameCounter; }
 
+
+    struct FFTComplex final {
+      float re, im;
+      };
+
   private:
     enum BinkVidFlags : uint32_t {
       BINK_FLAG_NONE  = 0,
@@ -74,13 +79,15 @@ class Video final {
       };
 
     enum {
-      DC_START_BITS = 11,
+      DC_START_BITS       = 11,
+      MAX_CHANNELS        = 2,
+      BINK_BLOCK_MAX_SIZE = (MAX_CHANNELS << 11)
       };
 
     struct AudioTrack {
-      uint32_t id         =0;
-      uint16_t sample_rate=0;
-      uint8_t  channels   =0;
+      uint32_t id        =0;
+      uint16_t sampleRate=0;
+      uint8_t  channels  =0;
       };
 
     struct Index {
@@ -103,6 +110,41 @@ class Video final {
       uint8_t*             cur_ptr  = nullptr; // pointer to the data that is not read from buffer yet
       };
 
+    struct Channel final {
+      std::vector<float> samples;
+      };
+
+    struct AudioData final {
+      std::vector<Channel>    channels;
+      std::vector<FFTComplex> tmpBuf;
+      bool                    first = true;
+      float                   previous[MAX_CHANNELS][BINK_BLOCK_MAX_SIZE/16];  // coeffs from previous audio block
+      };
+
+    struct Audio final {
+      Audio(uint16_t sampleRate, uint8_t channels, bool isDct);
+
+      uint32_t   sampleRate  = 0;
+      uint8_t    channels    = 1;
+      float      root        = 0.f;
+      uint32_t   frameLen    = 0;
+      uint32_t   overlapLen  = 0;
+      int        nbits       = 0;
+      const bool isDct       = false; // discrete cosine transforms
+
+      AudioData data;
+
+      uint32_t  bands[26]  = {};
+      uint32_t  numBands   = 0;
+
+      const float* tcos = nullptr;
+      const float* tsin = nullptr;
+
+      std::vector<uint16_t> revtab;
+      std::vector<uint32_t> revtab32;
+      std::vector<float>    csc2;
+      };
+
     struct BitStream;
 
     uint32_t rl32();
@@ -110,11 +152,15 @@ class Video final {
     void     merge(BitStream& gb, uint8_t *dst, uint8_t *src, int size);
 
     void     decodeInit();
+    void     decodeAudioInit(Audio& s);
+
     int      setIdx (BitStream& gb, int code, int& n, int& nb_bits, const int16_t (*table)[2]);
     uint8_t  getHuff(BitStream& gb, const Tree& tree);
     int      getVlc2(BitStream& gb, int16_t (*table)[2], int bits, int max_depth);
     void     readPacket();
     void     parseFrame(const std::vector<uint8_t>& data);
+    void     parseAudio(const std::vector<uint8_t>& data, size_t id, const Audio& track, AudioData& out);
+    void     parseAudioBlock(BitStream& gb, const Audio& track, AudioData& out);
     void     decodePlane(BitStream& gb, int planeId, bool chroma);
     void     initLengths(int width, int bw);
     void     readBundle(BitStream& gb, int bundle_num);
@@ -137,6 +183,13 @@ class Video final {
     template<class T>
     static bool checkReadVal(BitStream& gb, Bundle& b, T& t);
 
+    void     initFfCosTabs(size_t index);
+    void     dctCalc3C (const Audio& aud, AudioData& out, float* data);
+    void     rdftCalcC (const Audio& aud, AudioData& out, float* data, bool negativeSign);
+
+    void     fftPermute(const Audio& aud, AudioData& data, FFTComplex* z);
+    void     fftCalc   (const Audio& aud, FFTComplex* z);
+
     Input*       fin            = nullptr;
     uint8_t      revision       = 0;
     BinkVidFlags flags          = BINK_FLAG_NONE;
@@ -145,16 +198,21 @@ class Video final {
     uint32_t     smush_size     = 0;
     bool         swap_planes    = false;
 
-    std::vector<AudioTrack> audio;
+    std::vector<Audio>      audio;
     std::vector<Index>      index;
+
+    Frame                   frames[2] = {};
 
     std::vector<uint8_t>    packet;
     uint32_t                frameCounter = 0;
+
+    // video
     Bundle                  bundle[BINK_NB_SRC] = {};
     Tree                    col_high[16];         // trees for decoding high nibble in "colours" data type
     int                     col_lastval = 0;      // value of last decoded high nibble in "colours" data type
 
-    Frame                   frames[2] = {};
+    // sound
+    float                   quantTable[96] = {};
   };
 
 }
