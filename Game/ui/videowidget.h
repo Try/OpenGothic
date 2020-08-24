@@ -37,6 +37,7 @@ class VideoWidget : public Tempest::Widget {
     Tempest::Texture2d        tex[Resources::MaxFramesInFlight];
     Tempest::Texture2d*       last = nullptr;
 
+    std::atomic_bool              hasPendingVideo{false};
     std::mutex                    syncVideo;
     std::queue<Daedalus::ZString> pendingVideo;
   };

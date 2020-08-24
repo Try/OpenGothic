@@ -167,6 +167,7 @@ VideoWidget::~VideoWidget() {
 void VideoWidget::pushVideo(const Daedalus::ZString& filename) {
   std::lock_guard<std::mutex> guard(syncVideo);
   pendingVideo.push(filename);
+  hasPendingVideo.store(true);
   }
 
 bool VideoWidget::isActive() const {
@@ -184,6 +185,9 @@ void VideoWidget::tick() {
     return;
     }
 
+  if(!hasPendingVideo)
+    return;
+
   Daedalus::ZString filename;
   {
   std::lock_guard<std::mutex> guard(syncVideo);
@@ -191,6 +195,8 @@ void VideoWidget::tick() {
     return;
   filename = std::move(pendingVideo.front());
   pendingVideo.pop();
+  if(pendingVideo.size()==0)
+    hasPendingVideo.store(false);
   }
 
   auto path  = gothic.nestedPath({u"_work",u"Data",u"Video"},Dir::FT_Dir);
