@@ -106,7 +106,7 @@ void Renderer::setCameraView(const Camera& camera) {
     }
   }
 
-void Renderer::draw(Encoder<CommandBuffer>&& cmd, uint8_t frameId, uint8_t imgId,
+void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t frameId, uint8_t imgId,
                     VectorImage&   uiLayer,   VectorImage& numOverlay,
                     InventoryMenu& inventory, const Gothic& gothic) {
   draw(cmd, fbo3d  [imgId], gothic, frameId);

@@ -34,6 +34,8 @@
 #include "ui/inventorymenu.h"
 #include "ui/chapterscreen.h"
 #include "ui/documentmenu.h"
+#include "ui/videowidget.h"
+
 #include "utils/keycodec.h"
 #include "resources.h"
 
@@ -71,6 +73,7 @@ class MainWindow : public Tempest::Window {
     void loadGame (const std::string& name);
     void saveGame (const std::string& name);
 
+    void onVideo(const Daedalus::ZString& fname);
     void onWorldLoaded();
     void onSessionExit();
     void setGameImpl(std::unique_ptr<GameSession>&& w);
@@ -128,6 +131,7 @@ class MainWindow : public Tempest::Window {
     DialogMenu                dialogs;
     DocumentMenu              document;
     ChapterScreen             chapter;
+    VideoWidget               video;
 
     Tempest::Widget*          uiKeyUp=nullptr;
     Tempest::Point            mpos;

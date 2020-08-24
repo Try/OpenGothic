@@ -111,6 +111,7 @@ class Gothic final {
 
     void      printScreen(const char* msg, int x, int y, int time, const GthFont &font);
     void      print      (const char* msg);
+    void      playVideo  (const Daedalus::ZString& fname);
 
     Tempest::Signal<void(const std::string&)>              onStartGame;
     Tempest::Signal<void(const std::string&)>              onLoadGame;
@@ -121,6 +122,7 @@ class Gothic final {
 
     Tempest::Signal<void(const char*,int,int,int,const GthFont&)>       onPrintScreen;
     Tempest::Signal<void(const char*)>                                  onPrint;
+    Tempest::Signal<void(const Daedalus::ZString&)>                     onVideo;
 
     Tempest::Signal<void(const ChapterScreen::Show&)>                   onIntroChapter;
     Tempest::Signal<void(const DocumentMenu::Show&)>                    onShowDocument;

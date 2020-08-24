@@ -46,8 +46,8 @@ class ScriptFn final {
 
 class GameScript final {
   public:
-    GameScript(GameSession &gothic);
-    GameScript(GameSession &gothic,Serialize& fin);
+    GameScript(GameSession &owner);
+    GameScript(GameSession &owner, Serialize& fin);
     ~GameScript();
 
     struct DlgChoise final {

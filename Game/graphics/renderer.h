@@ -26,7 +26,7 @@ class Renderer final {
 
     void setCameraView(const Camera &camera);
 
-    void draw(Tempest::Encoder<Tempest::CommandBuffer>&& cmd, uint8_t frameId, uint8_t imgId,
+    void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId, uint8_t imgId,
               Tempest::VectorImage& uiLayer, Tempest::VectorImage& numOverlay,
               InventoryMenu &inventory, const Gothic& gothic);
 

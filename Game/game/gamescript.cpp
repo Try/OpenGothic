@@ -63,7 +63,7 @@ bool GameScript::GlobalOutput::isFinished() {
   }
 
 GameScript::GameScript(GameSession &owner)
-  :vm(owner.loadScriptCode()),owner(owner){
+  :vm(owner.loadScriptCode()),owner(owner) {
   Daedalus::registerGothicEngineClasses(vm);
   aiDefaultPipe.reset(new GlobalOutput(*this));
   initCommon();
@@ -3212,7 +3212,7 @@ void GameScript::introducechapter(Daedalus::DaedalusVM &vm) {
 
 void GameScript::playvideo(Daedalus::DaedalusVM &vm) {
   Daedalus::ZString filename = vm.popString();
-  Log::i("video not implemented [",filename.c_str(),"]");
+  owner.playVideo(filename);
   vm.setReturn(0);
   }
 
@@ -3220,11 +3220,11 @@ void GameScript::playvideoex(Daedalus::DaedalusVM &vm) {
   int exitSession = vm.popInt();
   int screenBlend = vm.popInt();
 
-  (void)exitSession;
+  (void)exitSession; // TODO: ex-fetures
   (void)screenBlend;
 
   Daedalus::ZString filename = vm.popString();
-  Log::i("video not implemented [",filename.c_str(),"]");
+  owner.playVideo(filename);
   vm.setReturn(0);
   }
 

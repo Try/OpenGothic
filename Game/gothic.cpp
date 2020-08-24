@@ -458,6 +458,10 @@ void Gothic::print(const char *msg) {
   onPrint(msg);
   }
 
+void Gothic::playVideo(const Daedalus::ZString& fname) {
+  onVideo(fname);
+  }
+
 const Daedalus::ZString &Gothic::messageFromSvm(const Daedalus::ZString &id, int voice) const {
   if(!game){
     static Daedalus::ZString empty;
