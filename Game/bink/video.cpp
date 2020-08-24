@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cstring>
 #include <algorithm>
-#include <cassert>
+#include <limits>
 
 using namespace Bink;
 
@@ -816,8 +816,8 @@ struct Video::BitStream {
   size_t         byteCount = 0;
   };
 
-Video::Audio::Audio(uint16_t sampleRate, uint8_t channels, bool isDct)
-  :sampleRate(sampleRate), channels(channels), isDct(isDct) {
+Video::AudioCtx::AudioCtx(uint16_t sampleRate, uint8_t channels, bool isDct)
+  :sampleRate(sampleRate), channelsCnt(channels), isDct(isDct) {
   }
 
 Video::Video(Input* file) : fin(file) {
@@ -836,11 +836,11 @@ Video::Video(Input* file) : fin(file) {
   width  = rl32();
   height = rl32();
 
-  uint32_t fps_num = rl32();
-  uint32_t fps_den = rl32();
-  if(fps_num == 0 || fps_den == 0) {
+  fRate.num = rl32();
+  fRate.den = rl32();
+  if(fRate.num==0 || fRate.den==0) {
     char buf[256]={};
-    std::snprintf(buf, sizeof(buf), "invalid header: invalid fps (%d / %d)", fps_num, fps_den);
+    std::snprintf(buf, sizeof(buf), "invalid header: invalid fps (%d / %d)", fRate.num, fRate.den);
     throw std::runtime_error(buf);
     }
 
@@ -859,10 +859,14 @@ Video::Video(Input* file) : fin(file) {
     // max decoded size
     fin->skip(4*num_audio_tracks);
 
+    audProp.resize(num_audio_tracks);
     for(uint32_t i=0; i<num_audio_tracks; i++) {
       const uint16_t sampleRate = rl16();
       const uint16_t flags      = rl16();
-      audio.emplace_back(sampleRate,(flags & BINK_AUD_STEREO) ? 2 : 1,(flags & BINK_AUD_USEDCT));
+      aud.emplace_back(sampleRate,(flags & BINK_AUD_STEREO) ? 2 : 1,(flags & BINK_AUD_USEDCT));
+
+      audProp[i].sampleRate = uint16_t(aud[i].sampleRate);
+      audProp[i].isMono     = (flags & BINK_AUD_STEREO)==0;
       }
 
     for(uint32_t i=0; i<num_audio_tracks; i++) {
@@ -882,7 +886,7 @@ Video::Video(Input* file) : fin(file) {
     pos      = next_pos;
     keyframe = nextKeyframe;
     if(i+1==duration) {
-      next_pos      = file_size;
+      next_pos     = file_size;
       nextKeyframe = false;
       } else {
       next_pos     = rl32();
@@ -907,10 +911,10 @@ Video::Video(Input* file) : fin(file) {
 
   decodeInit();
 
-  for(auto& i:audio)
+  for(auto& i:aud)
     decodeAudioInit(i);
   for(auto& f:frames)
-    f.setAudionChannels(uint8_t(audio.size()),4096);
+    f.setAudioChannels(uint8_t(aud.size()));
   }
 
 Video::~Video() {
@@ -945,7 +949,7 @@ void Video::readPacket() {
   const Index& id = index[frameCounter];
 
   uint32_t videoSize = id.size;
-  for(size_t i=0; i<audio.size(); ++i) {
+  for(size_t i=0; i<aud.size(); ++i) {
     uint32_t audioSize = rl32();
     if(audioSize+4 > videoSize) {
       char buf[256] = {};
@@ -955,10 +959,10 @@ void Video::readPacket() {
     if(audioSize >= 4) { // This doesn't look good
       packet.resize(audioSize);
       fin->read(packet.data(),packet.size());
-      parseAudio(packet,i,audio[i],audio[i].data);
+      parseAudio(packet,i);
       } else {
       fin->skip(audioSize);
-      frames[frameCounter%2].setSamples(uint8_t(i),nullptr,0);
+      frames[frameCounter%2].aud[i].samples.clear();
       }
     videoSize -= (audioSize+4);
     }
@@ -1781,7 +1785,7 @@ static void processFftPerm(T* revtab, int n, bool inverse){
     }
   }
 
-void Video::decodeAudioInit(Audio& aud) {
+void Video::decodeAudioInit(AudioCtx& aud) {
   int frame_len_bits;
   // determine frame length
   if(aud.sampleRate < 22050)
@@ -1790,20 +1794,20 @@ void Video::decodeAudioInit(Audio& aud) {
     frame_len_bits = 10;  else
     frame_len_bits = 11;
 
-  if(aud.channels < 1 || aud.channels > 2) {
+  if(aud.channelsCnt < 1 || aud.channelsCnt > 2) {
     char buf[128] = {};
-    std::snprintf(buf,sizeof(buf),"invalid number of channels: %d\n", aud.channels);
+    std::snprintf(buf,sizeof(buf),"invalid number of channels: %d\n", aud.channelsCnt);
     throw std::runtime_error(buf);
     }
 
   if(!aud.isDct) {
     // audio is already interleaved for the RDFT format variant
-    if(aud.sampleRate > INT_MAX/aud.channels)
+    if(aud.sampleRate > uint32_t(std::numeric_limits<int32_t>::max())/aud.channelsCnt)
       throw std::runtime_error("too many audio samples");
-    aud.sampleRate *= aud.channels;
+    aud.sampleRate *= aud.channelsCnt;
     if(revision!='b')
-      frame_len_bits += av_log2(aud.channels);
-    aud.channels = 1;
+      frame_len_bits += av_log2(aud.channelsCnt);
+    aud.channelsCnt = 1;
     } else {
     // NOP
     }
@@ -1839,7 +1843,7 @@ void Video::decodeAudioInit(Audio& aud) {
   aud.tsin = ffCosTabs[aud.nbits].data() + ((1<<aud.nbits) >> 2);
 
   const int fftNBits = aud.nbits-1;
-  aud.data.tmpBuf.resize(1 << fftNBits);
+  aud.tmpBuf.resize(1 << fftNBits);
 
   aud.revtab  .resize(1<<fftNBits);
   aud.revtab32.resize(1<<fftNBits);
@@ -1866,29 +1870,31 @@ void Video::initFfCosTabs(size_t index) {
   tab.resize(m);
 
   for(size_t i=0; i<=m/4; i++)
-    tab[i] = std::cos(float(i*freq));
+    tab[i] = std::cos(float(double(i)*freq));
   for(size_t i=1; i<m/4; i++)
     tab[m/2-i] = tab[i];
   }
 
-void Video::parseAudio(const std::vector<uint8_t>& data, size_t id, const Audio& aud, AudioData& out) {
+void Video::parseAudio(const std::vector<uint8_t>& data, size_t id) {
   BitStream gb(data.data(),data.size()*8);
   gb.skip(32); // skip reported size
 
-  std::vector<float> ret; // NOTE: perfomance
-  out.channels.resize(aud.channels);
+  auto& aud = this->aud[id];
+  auto& ret = frames[frameCounter%2].aud[id].samples;
+  ret.reserve(ret.capacity());
+  ret.clear();
 
   while(true) {
-    parseAudioBlock(gb,aud,out);
+    parseAudioBlock(gb,aud);
 
-    if(out.channels.size()==1) {
-      auto&  smp  = out.channels[0].samples;
+    if(aud.channelsCnt==1) {
+      auto&  smp  = aud.samples[0];
       size_t size = aud.frameLen - aud.overlapLen;
       ret.resize(ret.size()+size);
       std::memcpy(ret.data()+ret.size()-size,smp.data(),size*sizeof(smp[0]));
       } else {
-      auto   smp0 = out.channels[0].samples.data();
-      auto   smp1 = out.channels[1].samples.data();
+      auto   smp0 = aud.samples[0].data();
+      auto   smp1 = aud.samples[1].data();
 
       size_t size = aud.frameLen - aud.overlapLen;
       ret.resize(ret.size()+2*size);
@@ -1905,19 +1911,19 @@ void Video::parseAudio(const std::vector<uint8_t>& data, size_t id, const Audio&
       break;
     }
 
-  frames[frameCounter%2].setSamples(uint8_t(id),ret.data(),ret.size());
+  // frames[frameCounter%2].setSamples(uint8_t(id),ret.data(),ret.size());
   }
 
-void Video::parseAudioBlock(BitStream& gb, const Audio &aud, AudioData &out) {
+void Video::parseAudioBlock(BitStream& gb, AudioCtx& aud) {
   float quant[25] = {};
 
   if(aud.isDct)
     gb.skip(2);
 
-  for(uint8_t ch=0; ch<aud.channels; ++ch) {
-    out.channels[ch].samples.resize(aud.frameLen);
+  for(uint8_t ch=0; ch<aud.channelsCnt; ++ch) {
+    aud.samples[ch].resize(aud.frameLen);
 
-    float* coeffs = out.channels[ch].samples.data();
+    float* coeffs = aud.samples[ch].data();
     if(revision=='b') {
       int32_t c0 = gb.getInt32();
       int32_t c1 = gb.getInt32();
@@ -1980,30 +1986,30 @@ void Video::parseAudioBlock(BitStream& gb, const Audio &aud, AudioData &out) {
 
     if(aud.isDct) {
       coeffs[0] /= 0.5f;
-      dctCalc3C(aud,out,coeffs);
+      dctCalc3C(aud,coeffs);
       } else {
-      rdftCalcC(aud,out,coeffs,false);
+      rdftCalcC(aud,coeffs,false);
       }
     }
 
-  for(uint8_t ch=0; ch<aud.channels; ++ch) {
-    uint32_t count = aud.overlapLen*aud.channels;
+  for(uint8_t ch=0; ch<aud.channelsCnt; ++ch) {
+    uint32_t count = aud.overlapLen*aud.channelsCnt;
 
-    float* samples  = out.channels[ch].samples.data();
-    float* previous = out.previous[ch];
+    float* samples  = aud.samples[ch].data();
+    float* previous = aud.previous[ch];
 
-    if(!out.first) {
+    if(!aud.first) {
       uint32_t j = ch;
-      for(uint32_t i = 0; i<aud.overlapLen; i++, j += aud.channels)
+      for(uint32_t i = 0; i<aud.overlapLen; i++, j += aud.channelsCnt)
         samples[i] = (previous[i]*float(count-j) + samples[i]*float(j))/float(count);
       }
     std::memcpy(previous, &samples[aud.frameLen-aud.overlapLen], aud.overlapLen*sizeof(*previous));
     }
 
-  out.first = false;
+  aud.first = false;
   }
 
-void Video::dctCalc3C(const Audio& aud, AudioData& out, float *data) {
+void Video::dctCalc3C(AudioCtx& aud, float *data) {
   int n = 1 << (aud.nbits);
 
   float  next   = data[n-1];
@@ -2022,7 +2028,7 @@ void Video::dctCalc3C(const Audio& aud, AudioData& out, float *data) {
 
   data[1] = 2 * next;
 
-  rdftCalcC(aud, out, data, true);
+  rdftCalcC(aud, data, true);
 
   for(int i=0; i<n/2; i++) {
     float tmp1 = data[i]     * inv_n;
@@ -2035,7 +2041,7 @@ void Video::dctCalc3C(const Audio& aud, AudioData& out, float *data) {
     }
   }
 
-void Video::rdftCalcC(const Audio& aud, AudioData& out, float *data, bool negativeSign) {
+void Video::rdftCalcC(AudioCtx& aud, float *data, bool negativeSign) {
   FFTComplex ev, od, odsum;
   const int n       = 1 << aud.nbits;
   const float k1    = 0.5;
@@ -2073,26 +2079,26 @@ void Video::rdftCalcC(const Audio& aud, AudioData& out, float *data, bool negati
   data[1] *= k1;
 
   data[2*i+1]=signConvention*data[2*i+1];
-  fftPermute(aud, out, reinterpret_cast<FFTComplex*>(data));
-  fftCalc   (aud,      reinterpret_cast<FFTComplex*>(data));
+  fftPermute(aud, reinterpret_cast<FFTComplex*>(data));
+  fftCalc   (aud, reinterpret_cast<FFTComplex*>(data));
   }
 
-void Video::fftPermute(const Audio& aud, AudioData& data, FFTComplex *z) {
+void Video::fftPermute(AudioCtx& aud, FFTComplex *z) {
   const uint16_t *revtab   = aud.revtab.data();
   const uint32_t *revtab32 = aud.revtab32.data();
   int np = 1 << (aud.nbits-1);
   // TODO: handle split-radix permute in a more optimal way, probably in-place
   if(revtab) {
     for(int j=0; j<np; j++)
-      data.tmpBuf[revtab[j]] = z[j];
+      aud.tmpBuf[revtab[j]] = z[j];
     } else {
     for(int j=0;j<np;j++)
-      data.tmpBuf[revtab32[j]] = z[j];
+      aud.tmpBuf[revtab32[j]] = z[j];
     }
-  std::memcpy(z, data.tmpBuf.data(), np*sizeof(FFTComplex));
+  std::memcpy(z, aud.tmpBuf.data(), np*sizeof(FFTComplex));
   }
 
-void Video::fftCalc(const Audio& aud, FFTComplex* z) {
+void Video::fftCalc(const AudioCtx& aud, FFTComplex* z) {
   static void(*const dispatch[])(FFTComplex*) = {
       fft<4,      2>,
       fft<8,      3>,

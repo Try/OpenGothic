@@ -26,6 +26,16 @@ class Video final {
         virtual void skip(size_t count)             = 0;
       };
 
+    struct FrameRate final {
+      uint32_t num = 1;
+      uint32_t den = 1;
+      };
+
+    struct Audio {
+      uint16_t sampleRate = 44100;
+      bool     isMono     = false;
+      };
+
     explicit Video(Input* file);
     Video(const Video&) = delete;
     ~Video();
@@ -34,6 +44,10 @@ class Video final {
     size_t       frameCount() const;
     size_t       currentFrame() const { return frameCounter; }
 
+    const FrameRate& fps() const { return fRate; }
+
+    size_t       audioCount()     const { return aud.size(); }
+    const Audio& audio(uint8_t i) const { return audProp[i]; }
 
     struct FFTComplex final {
       float re, im;
@@ -110,32 +124,21 @@ class Video final {
       uint8_t*             cur_ptr  = nullptr; // pointer to the data that is not read from buffer yet
       };
 
-    struct Channel final {
-      std::vector<float> samples;
-      };
+    struct AudioCtx final {
+      AudioCtx(uint16_t sampleRate, uint8_t channelsCnt, bool isDct);
 
-    struct AudioData final {
-      std::vector<Channel>    channels;
-      std::vector<FFTComplex> tmpBuf;
-      bool                    first = true;
-      float                   previous[MAX_CHANNELS][BINK_BLOCK_MAX_SIZE/16];  // coeffs from previous audio block
-      };
+      std::vector<float> samples[MAX_CHANNELS];
 
-    struct Audio final {
-      Audio(uint16_t sampleRate, uint8_t channels, bool isDct);
-
-      uint32_t   sampleRate  = 0;
-      uint8_t    channels    = 1;
+      uint32_t   sampleRate = 44100;
+      uint8_t    channelsCnt = 1;
       float      root        = 0.f;
       uint32_t   frameLen    = 0;
       uint32_t   overlapLen  = 0;
       int        nbits       = 0;
       const bool isDct       = false; // discrete cosine transforms
 
-      AudioData data;
-
-      uint32_t  bands[26]  = {};
-      uint32_t  numBands   = 0;
+      uint32_t   bands[26]  = {};
+      uint32_t   numBands   = 0;
 
       const float* tcos = nullptr;
       const float* tsin = nullptr;
@@ -143,6 +146,11 @@ class Video final {
       std::vector<uint16_t> revtab;
       std::vector<uint32_t> revtab32;
       std::vector<float>    csc2;
+
+      std::vector<FFTComplex> tmpBuf;
+      float                   previous[MAX_CHANNELS][BINK_BLOCK_MAX_SIZE/16];  // coeffs from previous audio block
+
+      bool                    first = true;
       };
 
     struct BitStream;
@@ -152,15 +160,13 @@ class Video final {
     void     merge(BitStream& gb, uint8_t *dst, uint8_t *src, int size);
 
     void     decodeInit();
-    void     decodeAudioInit(Audio& s);
+    void     decodeAudioInit(AudioCtx& s);
 
     int      setIdx (BitStream& gb, int code, int& n, int& nb_bits, const int16_t (*table)[2]);
     uint8_t  getHuff(BitStream& gb, const Tree& tree);
     int      getVlc2(BitStream& gb, int16_t (*table)[2], int bits, int max_depth);
     void     readPacket();
     void     parseFrame(const std::vector<uint8_t>& data);
-    void     parseAudio(const std::vector<uint8_t>& data, size_t id, const Audio& track, AudioData& out);
-    void     parseAudioBlock(BitStream& gb, const Audio& track, AudioData& out);
     void     decodePlane(BitStream& gb, int planeId, bool chroma);
     void     initLengths(int width, int bw);
     void     readBundle(BitStream& gb, int bundle_num);
@@ -177,18 +183,18 @@ class Video final {
     void     unquantizeDctCoeffs(int32_t block[], const uint32_t quant[],
                                  int coef_count, int coef_idx[], const uint8_t* scan);
     void     readResidue     (BitStream& gb, int16_t block[], int masks_count);
-
     int      getValue(Sources bundle);
-
     template<class T>
     static bool checkReadVal(BitStream& gb, Bundle& b, T& t);
 
     void     initFfCosTabs(size_t index);
-    void     dctCalc3C (const Audio& aud, AudioData& out, float* data);
-    void     rdftCalcC (const Audio& aud, AudioData& out, float* data, bool negativeSign);
+    void     parseAudio(const std::vector<uint8_t>& data, size_t id);
+    void     parseAudioBlock(BitStream& gb, AudioCtx& track);
+    void     dctCalc3C (AudioCtx& aud, float* data);
+    void     rdftCalcC (AudioCtx& aud, float* data, bool negativeSign);
 
-    void     fftPermute(const Audio& aud, AudioData& data, FFTComplex* z);
-    void     fftCalc   (const Audio& aud, FFTComplex* z);
+    void     fftPermute(AudioCtx& aud, FFTComplex* z);
+    void     fftCalc   (const AudioCtx& aud, FFTComplex* z);
 
     Input*       fin            = nullptr;
     uint8_t      revision       = 0;
@@ -198,9 +204,11 @@ class Video final {
     uint32_t     smush_size     = 0;
     bool         swap_planes    = false;
 
-    std::vector<Audio>      audio;
+    std::vector<Audio>      audProp;
+    std::vector<AudioCtx>   aud;
     std::vector<Index>      index;
 
+    FrameRate               fRate;
     Frame                   frames[2] = {};
 
     std::vector<uint8_t>    packet;

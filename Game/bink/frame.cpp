@@ -73,14 +73,6 @@ void Frame::setSize(uint32_t w, uint32_t h) {
   planes[3].setSize(w,h);
   }
 
-void Frame::setAudionChannels(uint8_t count, uint32_t blockSize) {
+void Frame::setAudioChannels(uint8_t count) {
   aud.resize(count);
-  for(auto& i:aud)
-    i.samples.reserve(blockSize);
-  }
-
-void Frame::setSamples(uint8_t id, const float* in, size_t cnt) {
-  auto& s = aud[id];
-  s.samples.resize(cnt);
-  std::memcpy(s.samples.data(),in,cnt*sizeof(float));
   }

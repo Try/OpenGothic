@@ -39,7 +39,6 @@ class Frame final {
     class Audio final {
       public:
         std::vector<float> samples;
-      friend class Frame;
       };
 
     uint32_t width()  const { return planes[0].w;      }
@@ -48,14 +47,14 @@ class Frame final {
 
     const Plane& plane(uint8_t id) const { return planes[id]; }
     const Audio& audio(uint8_t id) const;
+    size_t       audioCount()      const { return aud.size(); }
 
   private:
     Plane              planes[4];
     std::vector<Audio> aud;
 
     void  setSize(uint32_t w, uint32_t h);
-    void  setAudionChannels(uint8_t count, uint32_t blockSize);
-    void  setSamples(uint8_t aud, const float* s, size_t cnt);
+    void  setAudioChannels(uint8_t count);
 
   friend class Video;
   };

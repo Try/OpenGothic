@@ -35,23 +35,62 @@ struct VideoWidget::Input : Bink::Video::Input {
   };
 
 struct VideoWidget::Sound : Tempest::SoundProducer {
-  Sound(Context& c):Tempest::SoundProducer(44100,2), ctx(c) {
+  Sound(SoundContext& c, uint16_t sampleRate, bool isMono)
+    :Tempest::SoundProducer(sampleRate, isMono ? 1 : 2), ctx(c), channels(isMono ? 1 : 2) {
     }
   void renderSound(int16_t *out, size_t n) override;
 
-  Context& ctx;
+  SoundContext& ctx;
+  size_t        channels = 2;
   };
+
+struct VideoWidget::SoundContext {
+  SoundContext(Context& ctx, SoundDevice& dev, uint16_t sampleRate, bool isMono):  ctx(ctx) {
+    snd = dev.load(std::unique_ptr<VideoWidget::Sound>(new VideoWidget::Sound(*this,sampleRate,isMono)));
+    }
+
+  void pushSamples(const std::vector<float>& s) {
+    std::lock_guard<std::mutex> guard(syncSamples);
+    size_t sz = samples.size();
+    samples.resize(sz+s.size());
+    std::memcpy(samples.data()+sz, s.data(), s.size()*sizeof(s[0]));
+    }
+
+  Context&             ctx;
+  Tempest::SoundEffect snd;
+  std::mutex           syncSamples;
+  std::vector<float>   samples;
+  };
+
+void VideoWidget::Sound::renderSound(int16_t *out, size_t n) {
+  n = n*channels; // stereo
+
+  std::lock_guard<std::mutex> guard(ctx.syncSamples);
+  auto& s = ctx.samples;
+  if(s.size()<n)
+    return;
+  for(size_t i=0; i<n; ++i) {
+    float v = s[i];
+    out[i] = (v < -1.00004566f ? int16_t(-32768) : (v > 1.00001514f ? int16_t(32767) : int16_t(v * 32767.5f)));
+    }
+  ctx.samples.erase(ctx.samples.begin(),ctx.samples.begin()+n);
+  }
 
 struct VideoWidget::Context {
   Context(Gothic& gothic, const std::u16string& path) : fin(path), input(fin), vid(&input) {
-    frameTime = Application::tickCount();
-    snd = sndDev.load(std::unique_ptr<VideoWidget::Sound>(new VideoWidget::Sound(*this)));
+    sndCtx.resize(vid.audioCount());
+    for(size_t i=0; i<sndCtx.size(); ++i) {
+      auto& aud = vid.audio(uint8_t(i));
+      sndCtx[i].reset(new SoundContext(*this,sndDev,aud.sampleRate,aud.isMono));
+      }
 
     const float volume = gothic.settingsGetF("SOUND","soundVolume");
     sndDev.setGlobalVolume(volume);
 
     restoreMusic = GameMusic::inst().isEnabled();
     GameMusic::inst().setEnabled(false);
+
+    frameTime = Application::tickCount();
     }
 
   ~Context() {
@@ -60,7 +99,7 @@ struct VideoWidget::Context {
     }
 
   void advance() {
-    uint64_t frameDest = (Application::tickCount()-frameTime)/(1000/25); //25fps
+    uint64_t frameDest = (Application::tickCount()-frameTime)/((1000*vid.fps().den)/vid.fps().num); //25fps
     if(frameDest<=vid.currentFrame()) {
       return;
       }
@@ -69,16 +108,9 @@ struct VideoWidget::Context {
     if(pm.w()!=f.width() || pm.h()!=f.height())
       pm = Pixmap(f.width(),f.height(),Pixmap::Format::RGBA);
 
-    yuvToRgba(f,pm);    
-    pushSamples(f.audio(0).samples);
-    //snd.play();
-    }
-
-  void pushSamples(const std::vector<float>& s) {
-    std::lock_guard<std::mutex> guard(syncSamples);
-    size_t sz = samples.size();
-    samples.resize(sz+s.size());
-    std::memcpy(samples.data()+sz, s.data(), s.size()*sizeof(s[0]));
+    yuvToRgba(f,pm);
+    for(size_t i=0; i<vid.audioCount(); ++i)
+      sndCtx[i]->pushSamples(f.audio(uint8_t(i)).samples);
     }
 
   void yuvToRgba(const Bink::Frame& f,Pixmap& pm) {
@@ -121,26 +153,9 @@ struct VideoWidget::Context {
   uint64_t             frameTime = 0;
   bool                 restoreMusic = false;
 
-  Tempest::SoundDevice sndDev;
-  Tempest::SoundEffect snd;
-
-  std::mutex           syncSamples;
-  std::vector<float>   samples;
+  Tempest::SoundDevice      sndDev;
+  std::vector<std::unique_ptr<SoundContext>> sndCtx;
   };
-
-void VideoWidget::Sound::renderSound(int16_t *out, size_t n) {
-  n = n*2; // stereo
-
-  std::lock_guard<std::mutex> guard(ctx.syncSamples);
-  auto& s = ctx.samples;
-  if(s.size()<n)
-    return;
-  for(size_t i=0; i<n; ++i) {
-    float v = s[i];
-    out[i] = (v < -1.00004566f ? int16_t(-32768) : (v > 1.00001514f ? int16_t(32767) : int16_t(v * 32767.5f)));
-    }
-  ctx.samples.erase(ctx.samples.begin(),ctx.samples.begin()+n);
-  }
 
 VideoWidget::VideoWidget(Gothic& gth)
   :gothic(gth) {
@@ -150,17 +165,8 @@ VideoWidget::~VideoWidget() {
   }
 
 void VideoWidget::pushVideo(const Daedalus::ZString& filename) {
-  while(true) {
-    {
-    std::lock_guard<std::mutex> guard(syncVideo);
-    if(pendingVideo.empty()) {
-      pendingVideo = filename;
-      return;
-      }
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    }
-
+  std::lock_guard<std::mutex> guard(syncVideo);
+  pendingVideo.push(filename);
   }
 
 bool VideoWidget::isActive() const {
@@ -183,7 +189,8 @@ void VideoWidget::tick() {
   std::lock_guard<std::mutex> guard(syncVideo);
   if(pendingVideo.empty())
     return;
-  filename = std::move(pendingVideo);
+  filename = std::move(pendingVideo.front());
+  pendingVideo.pop();
   }
 
   auto path  = gothic.nestedPath({u"_work",u"Data",u"Video"},Dir::FT_Dir);
@@ -232,8 +239,14 @@ void VideoWidget::keyUpEvent(KeyEvent&) {
 void VideoWidget::paintEvent(PaintEvent& e) {
   if(last==nullptr)
     return;
+  float k  = float(w())/float(last->w());
+  int   vh = int(k*float(last->h()));
+
   Painter p(e);
+  p.setBrush(Color(0,0,0,1));
+  p.drawRect(0,0,w(),h());
+
   p.setBrush(Brush(*last,Painter::NoBlend));
-  p.drawRect(0,0,w(),h(),
+  p.drawRect(0,(h()-vh)/2,w(),vh,
              0,0,p.brush().w(),p.brush().h());
   }

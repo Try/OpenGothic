@@ -3,6 +3,8 @@
 #include <Tempest/Widget>
 #include <daedalus/ZString.h>
 
+#include <queue>
+
 #include "resources.h"
 
 class Gothic;
@@ -24,6 +26,7 @@ class VideoWidget : public Tempest::Widget {
   private:
     struct Input;
     struct Sound;
+    struct SoundContext;
     class  Context;
 
     void paintEvent(Tempest::PaintEvent &event) override;
@@ -34,7 +37,7 @@ class VideoWidget : public Tempest::Widget {
     Tempest::Texture2d        tex[Resources::MaxFramesInFlight];
     Tempest::Texture2d*       last = nullptr;
 
-    std::mutex                syncVideo;
-    Daedalus::ZString         pendingVideo;
+    std::mutex                    syncVideo;
+    std::queue<Daedalus::ZString> pendingVideo;
   };
 
