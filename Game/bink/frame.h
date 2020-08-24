@@ -31,6 +31,7 @@ class Frame final {
         std::vector<uint8_t> dat;
         uint32_t             w = 0;
         uint32_t             h = 0;
+        uint32_t             stride = 0;
 
       friend class Frame;
       };
@@ -41,8 +42,9 @@ class Frame final {
       friend class Frame;
       };
 
-    uint32_t width()  const { return planes[0].w; }
-    uint32_t height() const { return planes[0].h; }
+    uint32_t width()  const { return planes[0].w;      }
+    uint32_t stride() const { return planes[0].stride; }
+    uint32_t height() const { return planes[0].h;      }
 
     const Plane& plane(uint8_t id) const { return planes[id]; }
     const Audio& audio(uint8_t id) const;

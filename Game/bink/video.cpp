@@ -1091,7 +1091,7 @@ int Video::getVlc2(BitStream& gb, int16_t (*table)[2], int bits, int max_depth) 
   if(max_depth>1 && n<0) {
     gb.skip(bits);
     code = setIdx(gb, code, n, nb_bits, table);
-    if (max_depth > 2 && n < 0) {
+    if(max_depth > 2 && n < 0) {
       gb.skip(nb_bits);
       code = setIdx(gb, code, n, nb_bits, table);
       }

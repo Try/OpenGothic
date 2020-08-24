@@ -1,7 +1,7 @@
 ### This folder contains a Bink-video codec
 
-Implementation is based on ffmepeg library source code.
-Codec itself is completly independent unit, wich does not require any other OpenGothic parts in order to work - fell free to use it for your game remake.
+Implementation is based on ffmepeg library source code (LGPLv2.1+).
+Codec itself is completly independent unit, wich does not require any other OpenGothic parts in order to work - fell free to use it for your open-source game remake.
 
 Classes:
 * Bink::Video - video codec
