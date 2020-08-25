@@ -52,6 +52,8 @@ class GameSession final {
     Camera&      camera(){ return cam; }
 
     auto         loadScriptCode() -> std::vector<uint8_t>;
+    void         setupVmCommonApi(Daedalus::DaedalusVM& vm);
+
     SoundFx*     loadSoundFx(const char *name);
     SoundFx*     loadSoundWavFx(const char *name);
     auto         loadParticleFx(const char* name) -> const ParticleFx*;
@@ -80,12 +82,6 @@ class GameSession final {
 
     AiOuputPipe* openDlgOuput(Npc &player, Npc &npc);
     bool         aiIsDlgFinished();
-
-    void         printScreen(const char *msg, int x, int y, int time, const GthFont &font);
-    void         print(const char *msg);
-    void         introChapter(const ChapterScreen::Show& s);
-    void         playVideo(const Daedalus::ZString& fname);
-    void         showDocument(const DocumentMenu::Show& s);
 
     auto         getFightAi(size_t i) const -> const FightAi::FA&;
 
@@ -121,8 +117,6 @@ class GameSession final {
 
     ChWorld                        chWorld;
     bool                           exitSessionFlg=false;
-    ChapterScreen::Show            chapter;
-    bool                           pendingChapter=false;
 
     static const uint64_t          multTime;
     static const uint64_t          divTime;

@@ -181,7 +181,6 @@ class GameScript final {
 
     template<void(GameScript::*)(Daedalus::DaedalusVM &vm)>
     void  notImplementedFn(const char* name);
-    void  notImplementedRoutine(Daedalus::DaedalusVM&);
 
     Item* getItem(Daedalus::GEngineClasses::C_Item* handle);
     Item* getItemById(size_t id);
@@ -189,7 +188,6 @@ class GameScript final {
     Npc*  getNpcById (size_t id);
     auto  getInfo    (size_t id) -> Daedalus::GEngineClasses::C_Info*;
     auto  getFocus(const char* name) -> Daedalus::GEngineClasses::C_Focus;
-    auto  getDocument(int id) -> std::unique_ptr<DocumentMenu::Show>&;
 
     void  storeItem(Item* it);
 
@@ -198,16 +196,9 @@ class GameScript final {
 
     bool  searchScheme(const char* sc,const char* listName);
 
-    static void concatstrings(Daedalus::DaedalusVM& vm);
-    static void inttostring  (Daedalus::DaedalusVM& vm);
-    static void floattostring(Daedalus::DaedalusVM& vm);
-    static void floattoint   (Daedalus::DaedalusVM& vm);
-    static void inttofloat   (Daedalus::DaedalusVM& vm);
-
     void game_initgerman     (Daedalus::DaedalusVM& vm);
     void game_initenglish    (Daedalus::DaedalusVM& vm);
 
-    static void hlp_strcmp   (Daedalus::DaedalusVM& vm);
     void hlp_random          (Daedalus::DaedalusVM& vm);
     void hlp_isvalidnpc      (Daedalus::DaedalusVM &vm);
     void hlp_isitem          (Daedalus::DaedalusVM &vm);
@@ -384,32 +375,6 @@ class GameScript final {
 
     void snd_play            (Daedalus::DaedalusVM &vm);
 
-    void doc_create          (Daedalus::DaedalusVM &vm);
-    void doc_createmap       (Daedalus::DaedalusVM &vm);
-    void doc_setpage         (Daedalus::DaedalusVM &vm);
-    void doc_setpages        (Daedalus::DaedalusVM &vm);
-    void doc_printline       (Daedalus::DaedalusVM &vm);
-    void doc_printlines      (Daedalus::DaedalusVM &vm);
-    void doc_setmargins      (Daedalus::DaedalusVM &vm);
-    void doc_setfont         (Daedalus::DaedalusVM &vm);
-    void doc_setlevel        (Daedalus::DaedalusVM &vm);
-    void doc_setlevelcoords  (Daedalus::DaedalusVM &vm);
-    void doc_show            (Daedalus::DaedalusVM &vm);
-
-    void introducechapter    (Daedalus::DaedalusVM &vm);
-    void playvideo           (Daedalus::DaedalusVM &vm);
-    void playvideoex         (Daedalus::DaedalusVM &vm);
-    void printscreen         (Daedalus::DaedalusVM &vm);
-    void printdialog         (Daedalus::DaedalusVM &vm);
-    void print               (Daedalus::DaedalusVM &vm);
-    void perc_setrange       (Daedalus::DaedalusVM &vm);
-
-    void printdebug          (Daedalus::DaedalusVM &vm);
-    void printdebugch        (Daedalus::DaedalusVM &vm);
-    void printdebuginst      (Daedalus::DaedalusVM &vm);
-    void printdebuginstch    (Daedalus::DaedalusVM &vm);
-
-    void exitgame            (Daedalus::DaedalusVM &vm);
     void exitsession         (Daedalus::DaedalusVM &vm);
 
     void sort(std::vector<DlgChoise>& dlg);
@@ -453,6 +418,4 @@ class GameScript final {
 
     Daedalus::GEngineClasses::C_Focus                           cFocusNorm,cFocusMele,cFocusRange,cFocusMage;
     Daedalus::GEngineClasses::C_GilValues                       cGuildVal;
-
-    std::vector<std::unique_ptr<DocumentMenu::Show>>            documents;
   };

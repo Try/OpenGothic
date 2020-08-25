@@ -475,14 +475,6 @@ bool World::aiIsDlgFinished() {
   return game.aiIsDlgFinished();
   }
 
-void World::printScreen(const char *msg, int x, int y, int time, const GthFont &font) {
-  game.printScreen(msg,x,y,time,font);
-  }
-
-void World::print(const char *msg) {
-  game.print(msg);
-  }
-
 bool World::isTargeted(Npc& npc) {
   return wobj.isTargeted(npc);
   }

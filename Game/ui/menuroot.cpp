@@ -10,10 +10,6 @@ using namespace Tempest;
 MenuRoot::MenuRoot(Gothic &gothic)
   :gothic(gothic){
   vm = gothic.createVm(u"MENU.DAT");
-  vm->registerUnsatisfiedLink([](Daedalus::DaedalusVM&){});
-
-  vm->registerExternalFunction("playvideo",   [this](Daedalus::DaedalusVM& vm){ playvideo(vm);   });
-  vm->registerExternalFunction("playvideoex", [this](Daedalus::DaedalusVM& vm){ playvideoex(vm); });
   }
 
 MenuRoot::~MenuRoot() {
@@ -120,22 +116,4 @@ void MenuRoot::keyUpEvent(KeyEvent &e) {
     if(e.key==Event::K_ESCAPE)
       popMenu();
     }
-  }
-
-void MenuRoot::playvideo(Daedalus::DaedalusVM& vm) {
-  Daedalus::ZString filename = vm.popString();
-  gothic.playVideo(filename);
-  vm.setReturn(0);
-  }
-
-void MenuRoot::playvideoex(Daedalus::DaedalusVM& vm) {
-  int exitSession = vm.popInt();
-  int screenBlend = vm.popInt();
-
-  (void)exitSession; // TODO: ex-fetures
-  (void)screenBlend;
-
-  Daedalus::ZString filename = vm.popString();
-  gothic.playVideo(filename);
-  vm.setReturn(0);
   }

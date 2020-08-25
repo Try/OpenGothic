@@ -109,10 +109,6 @@ class Gothic final {
     auto      getCameraDef() const -> const CameraDefinitions&;
     auto      getMusicDef(const char *clsTheme) const -> const Daedalus::GEngineClasses::C_MusicTheme*;
 
-    void      printScreen(const char* msg, int x, int y, int time, const GthFont &font);
-    void      print      (const char* msg);
-    void      playVideo  (const Daedalus::ZString& fname);
-
     Tempest::Signal<void(const std::string&)>              onStartGame;
     Tempest::Signal<void(const std::string&)>              onLoadGame;
     Tempest::Signal<void(const std::string&)>              onSaveGame;
@@ -138,6 +134,7 @@ class Gothic final {
     const std::string&                    defaultWorld() const;
     const std::string&                    defaultSave() const;
     std::unique_ptr<Daedalus::DaedalusVM> createVm(const char16_t *datFile);
+    void                                  setupVmCommonApi(Daedalus::DaedalusVM &vm);
 
     int                                   settingsGetI(const char* sec, const char* name) const;
     void                                  settingsSetI(const char* sec, const char* name, int val);
@@ -163,6 +160,7 @@ class Gothic final {
     bool                                    isDebug=false;
     bool                                    isRambo=false;
     VersionInfo                             vinfo;
+    std::mt19937                            randGen;
 
     std::unique_ptr<IniFile>                baseIniFile;
     std::unique_ptr<IniFile>                iniFile;
@@ -187,6 +185,11 @@ class Gothic final {
     std::unordered_map<std::string,SoundFx> sndWavCache;
     std::vector<Tempest::SoundEffect>       sndStorage;
 
+
+    std::vector<std::unique_ptr<DocumentMenu::Show>> documents;
+    ChapterScreen::Show                     chapter;
+    bool                                    pendingChapter=false;
+
     void                                    implStartLoadSave(const char *banner,
                                                               bool load,
                                                               const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
@@ -194,4 +197,44 @@ class Gothic final {
     bool                                    validateGothicPath() const;
     void                                    detectGothicVersion();
     void                                    setupSettings();
+
+    auto                                    getDocument(int id) -> std::unique_ptr<DocumentMenu::Show>&;
+
+    static void                             notImplementedRoutine(Daedalus::DaedalusVM &vm);
+
+    static void                             concatstrings     (Daedalus::DaedalusVM& vm);
+    static void                             inttostring       (Daedalus::DaedalusVM& vm);
+    static void                             floattostring     (Daedalus::DaedalusVM& vm);
+    static void                             floattoint        (Daedalus::DaedalusVM& vm);
+    static void                             inttofloat        (Daedalus::DaedalusVM& vm);
+
+    static void                             hlp_strcmp        (Daedalus::DaedalusVM& vm);
+    void                                    hlp_random        (Daedalus::DaedalusVM& vm);
+
+    void                                    introducechapter  (Daedalus::DaedalusVM &vm);
+    void                                    playvideo         (Daedalus::DaedalusVM &vm);
+    void                                    playvideoex       (Daedalus::DaedalusVM &vm);
+    void                                    printscreen       (Daedalus::DaedalusVM &vm);
+    void                                    ai_printscreen    (Daedalus::DaedalusVM &vm);
+    void                                    printdialog       (Daedalus::DaedalusVM &vm);
+    void                                    print             (Daedalus::DaedalusVM &vm);
+
+    void                                    doc_create        (Daedalus::DaedalusVM &vm);
+    void                                    doc_createmap     (Daedalus::DaedalusVM &vm);
+    void                                    doc_setpage       (Daedalus::DaedalusVM &vm);
+    void                                    doc_setpages      (Daedalus::DaedalusVM &vm);
+    void                                    doc_printline     (Daedalus::DaedalusVM &vm);
+    void                                    doc_printlines    (Daedalus::DaedalusVM &vm);
+    void                                    doc_setmargins    (Daedalus::DaedalusVM &vm);
+    void                                    doc_setfont       (Daedalus::DaedalusVM &vm);
+    void                                    doc_setlevel      (Daedalus::DaedalusVM &vm);
+    void                                    doc_setlevelcoords(Daedalus::DaedalusVM &vm);
+    void                                    doc_show          (Daedalus::DaedalusVM &vm);
+
+    void                                    exitgame          (Daedalus::DaedalusVM &vm);
+
+    void                                    printdebug        (Daedalus::DaedalusVM &vm);
+    void                                    printdebugch      (Daedalus::DaedalusVM &vm);
+    void                                    printdebuginst    (Daedalus::DaedalusVM &vm);
+    void                                    printdebuginstch  (Daedalus::DaedalusVM &vm);
   };

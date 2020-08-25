@@ -410,7 +410,7 @@ void PlayerControl::implMove(uint64_t dt) {
           wctrl_last = static_cast<WeponAction>(Weapon3+i);
           if(ret) {
             if(auto spl = pl.inventory().currentSpell(i)) {
-              gothic.print(spl->description());
+              gothic.onPrint(spl->description());
               }
             }
           } else {

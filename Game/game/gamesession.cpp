@@ -192,6 +192,10 @@ std::vector<uint8_t> GameSession::loadScriptCode() {
   return ret;
   }
 
+void GameSession::setupVmCommonApi(Daedalus::DaedalusVM& vm) {
+  gothic.setupVmCommonApi(vm);
+  }
+
 SoundFx *GameSession::loadSoundFx(const char *name) {
   return gothic.loadSoundFx(name);
   }
@@ -259,13 +263,6 @@ void GameSession::tick(uint64_t dt) {
     g.clearGame();
     g.onSessionExit();
     return;
-    }
-
-  if(pendingChapter){
-    if(aiIsDlgFinished()) {
-      gothic.onIntroChapter(chapter);
-      pendingChapter=false;
-      }
     }
 
   if(!chWorld.zen.empty()) {
@@ -406,27 +403,6 @@ AiOuputPipe *GameSession::openDlgOuput(Npc &player, Npc &npc) {
 
 bool GameSession::aiIsDlgFinished() {
   return gothic.aiIsDlgFinished();
-  }
-
-void GameSession::printScreen(const char *msg, int x, int y, int time, const GthFont &font) {
-  gothic.printScreen(msg,x,y,time,font);
-  }
-
-void GameSession::print(const char *msg) {
-  gothic.print(msg);
-  }
-
-void GameSession::introChapter(const ChapterScreen::Show &s) {
-  pendingChapter = true;
-  chapter        = s;
-  }
-
-void GameSession::playVideo(const Daedalus::ZString& fname) {
-  gothic.playVideo(fname);
-  }
-
-void GameSession::showDocument(const DocumentMenu::Show &s) {
-  gothic.onShowDocument(s);
   }
 
 bool GameSession::isWorldKnown(const std::string &name) const {

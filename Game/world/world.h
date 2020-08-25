@@ -136,9 +136,6 @@ class World final {
     void                 aiOutputSound(Npc &player, const std::string& msg);
     bool                 aiIsDlgFinished();
 
-    void                 printScreen(const char* msg, int x, int y, int time, const GthFont &font);
-    void                 print      (const char* msg);
-
     bool                 isTargeted (Npc& npc);
     Npc*                 addNpc     (const char* name,    const Daedalus::ZString& at);
     Npc*                 addNpc     (size_t itemInstance, const Daedalus::ZString& at);

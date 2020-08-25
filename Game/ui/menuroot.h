@@ -29,9 +29,6 @@ class MenuRoot : public Tempest::Widget {
     void mouseUpEvent   (Tempest::MouseEvent& event) override;
 
   private:
-    void playvideo           (Daedalus::DaedalusVM &vm);
-    void playvideoex         (Daedalus::DaedalusVM &vm);
-
     Gothic&                                gothic;
     std::unique_ptr<Daedalus::DaedalusVM>  vm;
     GameMenu*                              current=nullptr;
