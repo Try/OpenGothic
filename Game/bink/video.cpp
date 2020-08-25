@@ -923,7 +923,13 @@ Video::~Video() {
 const Frame& Video::nextFrame() {
   if(frameCounter==index.size())
     return frames[frameCounter%2];
-  readPacket();
+  try {
+    readPacket();
+    }
+  catch(const VideoDecodingException&) {
+    frameCounter++;
+    throw;
+    }
   auto& f = frames[frameCounter%2];
   frameCounter++;
   return f;
@@ -947,6 +953,8 @@ uint16_t Video::rl16() {
 
 void Video::readPacket() {
   const Index& id = index[frameCounter];
+
+  fin->seek(id.pos+smush_size);
 
   uint32_t videoSize = id.size;
   for(size_t i=0; i<aud.size(); ++i) {
@@ -1201,7 +1209,7 @@ void Video::decodePlane(BitStream& gb, int planeId, bool chroma) {
 
       switch(blk) {
         case SCALED_BLOCK:
-          throw std::runtime_error("unsupported type of superblock");
+          throw VideoDecodingException("unsupported type of superblock");
         case SKIP_BLOCK:
           last.getBlock8x8(bx,by,dst);
           break;
@@ -1264,7 +1272,7 @@ void Video::decodePlane(BitStream& gb, int planeId, bool chroma) {
             const int run = getValue(BINK_SRC_RUN) + 1;
             i += run;
             if(i > 64)
-              throw std::runtime_error("Run went out of bounds");
+              throw VideoDecodingException("Run went out of bounds");
             if(gb.getBit()) {
               int v = getValue(BINK_SRC_COLORS);
               for(int j = 0; j < run; j++)
@@ -1280,7 +1288,7 @@ void Video::decodePlane(BitStream& gb, int planeId, bool chroma) {
           }
         case MOTION_BLOCK:  {
           if(isScaled)
-            throw std::runtime_error("unsupported type of superblock");
+            throw VideoDecodingException("unsupported type of superblock");
           const int xoff = getValue(BINK_SRC_X_OFF);
           const int yoff = getValue(BINK_SRC_Y_OFF);
           last.getPixels8x8(bx*8+xoff, by*8+yoff, dst);
@@ -1303,12 +1311,7 @@ void Video::decodePlane(BitStream& gb, int planeId, bool chroma) {
           break;
           }
         default:
-          throw std::runtime_error("not implemented block type");
-        }
-
-      if(blk==INTER_BLOCK && frameCounter==351 && false) {
-        for(int i=0;i<64;++i)
-          dst[i] = 255;
+          throw VideoDecodingException("not implemented block type");
         }
 
       if(isScaled) {
@@ -1401,7 +1404,7 @@ void Video::readBlockTypes(BitStream& gb, Bundle& b) {
     }
   dec_end = b.cur_dec + t;
   if(dec_end > b.data_end)
-    throw std::runtime_error("Too many block type values");
+    throw VideoDecodingException("Too many block type values");
 
   if(gb.getBit()) {
     v = gb.getBits(4);
@@ -1417,7 +1420,7 @@ void Video::readBlockTypes(BitStream& gb, Bundle& b) {
         int run = bink_rlelens[v - 12];
 
         if(dec_end - b.cur_dec < run)
-          throw std::runtime_error("decoding block error");
+          throw VideoDecodingException("decoding block error");
         std::memset(b.cur_dec, last, run);
         b.cur_dec += run;
         }
@@ -1434,7 +1437,7 @@ void Video::readColors(BitStream& gb, Bundle& b) {
 
   dec_end = b.cur_dec + t;
   if(dec_end>b.data_end)
-    throw std::runtime_error("Too many color values");
+    throw VideoDecodingException("Too many color values");
 
   if(gb.getBit()) {
     col_lastval = getHuff(gb, col_high[col_lastval]);
@@ -1470,7 +1473,7 @@ void Video::readPatterns(BitStream& gb, Bundle& b) { // note: not tested
     return;
   dec_end = b.cur_dec + t;
   if(dec_end>b.data_end)
-    throw std::runtime_error("Too many pattern values");
+    throw VideoDecodingException("Too many pattern values");
 
   while(b.cur_dec < dec_end) {
     v  = getHuff(gb, b.tree);
@@ -1487,7 +1490,7 @@ void Video::readMotionValues(BitStream& gb, Bundle& b) { // note: not tested
     return;
   dec_end = b.cur_dec + t;
   if(dec_end>b.data_end)
-    throw std::runtime_error("Too many motion values");
+    throw VideoDecodingException("Too many motion values");
   if (gb.getBit()) {
     v = gb.getBits(4);
     if(v) {
@@ -1541,7 +1544,7 @@ void Video::readDcs(BitStream& gb, Bundle& b, int start_bits, int has_sign) {
         if(v < -32768 || v > 32767) {
           char buf[128]={};
           std::snprintf(buf,sizeof(buf),"DC value went out of bounds: %d", v);
-          throw std::runtime_error(buf);
+          throw VideoDecodingException(buf);
           }
         }
       } else {
@@ -1562,7 +1565,7 @@ void Video::readRuns(BitStream& gb, Bundle& b) {
 
   dec_end = b.cur_dec + t;
   if(dec_end > b.data_end)
-    throw std::runtime_error("Run value went out of bounds\n");
+    throw VideoDecodingException("Run value went out of bounds\n");
   if(gb.getBit()) {
     v = gb.getBits(4);
     std::memset(b.cur_dec, v, t);
@@ -1668,7 +1671,7 @@ int Video::readDctCoeffs(BitStream& gb, int32_t block[64],
     if(quant_idx > 15U) {
       char buf[128]={};
       std::snprintf(buf,sizeof(buf),"quant_index %d out of range\n", quant_idx);
-      throw std::runtime_error(buf);
+      throw SoundDecodingException(buf);
       }
     }
   return quant_idx;

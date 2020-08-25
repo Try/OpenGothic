@@ -35,9 +35,11 @@
 #include "ui/chapterscreen.h"
 #include "ui/documentmenu.h"
 #include "ui/videowidget.h"
+#include "ui/menuroot.h"
 
 #include "utils/keycodec.h"
 #include "resources.h"
+
 
 class MenuRoot;
 class Gothic;
@@ -100,8 +102,6 @@ class MainWindow : public Tempest::Window {
 
     Renderer              renderer;
 
-    MenuRoot*             rootMenu=nullptr;
-
     struct FrameLocal {
       explicit FrameLocal(Tempest::Device& dev):imageAvailable(dev.semaphore()),renderDone(dev.semaphore()),gpuLock(dev.fence()){}
       Tempest::Semaphore imageAvailable;
@@ -127,11 +127,13 @@ class MainWindow : public Tempest::Window {
 
     Gothic&                   gothic;
     KeyCodec                  keycodec;
+
+    MenuRoot                  rootMenu;
+    VideoWidget               video;
     InventoryMenu             inventory;
     DialogMenu                dialogs;
     DocumentMenu              document;
     ChapterScreen             chapter;
-    VideoWidget               video;
 
     Tempest::Widget*          uiKeyUp=nullptr;
     Tempest::Point            mpos;

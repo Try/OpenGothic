@@ -17,18 +17,21 @@ class MenuRoot : public Tempest::Widget {
     void pushMenu(GameMenu* w);
     void popMenu();
     void closeAll();
+    bool isActive() const;
     void setPlayer(const Npc& pl);
 
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
+    void keyDownEvent   (Tempest::KeyEvent&   event) override;
+    void keyUpEvent     (Tempest::KeyEvent&   event) override;
 
   protected:
     void mouseDownEvent (Tempest::MouseEvent& event) override;
     void mouseUpEvent   (Tempest::MouseEvent& event) override;
 
-    void keyDownEvent   (Tempest::KeyEvent&   event) override;
-    void keyUpEvent     (Tempest::KeyEvent&   event) override;
-
   private:
+    void playvideo           (Daedalus::DaedalusVM &vm);
+    void playvideoex         (Daedalus::DaedalusVM &vm);
+
     Gothic&                                gothic;
     std::unique_ptr<Daedalus::DaedalusVM>  vm;
     GameMenu*                              current=nullptr;

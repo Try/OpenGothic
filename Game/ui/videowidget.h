@@ -18,7 +18,8 @@ class VideoWidget : public Tempest::Widget {
     bool isActive() const;
 
     void tick();
-    void paint(Tempest::Device& device, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void paint(Tempest::Device& device, uint8_t fId);
+    void paintEvent(Tempest::PaintEvent &event) override;
 
     void keyDownEvent(Tempest::KeyEvent&   event) override;
     void keyUpEvent  (Tempest::KeyEvent&   event) override;
@@ -29,13 +30,13 @@ class VideoWidget : public Tempest::Widget {
     struct SoundContext;
     class  Context;
 
-    void paintEvent(Tempest::PaintEvent &event) override;
+    void  stopVideo();
 
-    Gothic&                   gothic;
-    std::unique_ptr<Context>  ctx;
-
-    Tempest::Texture2d        tex[Resources::MaxFramesInFlight];
-    Tempest::Texture2d*       last = nullptr;
+    Gothic&                       gothic;
+    std::unique_ptr<Context>      ctx;
+    Tempest::Texture2d            tex;
+    bool                          active = false;
+    bool                          restoreMusic = false;
 
     std::atomic_bool              hasPendingVideo{false};
     std::mutex                    syncVideo;

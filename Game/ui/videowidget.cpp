@@ -28,6 +28,7 @@ struct VideoWidget::Input : Bink::Video::Input {
     if(pos<at)
       fin.unget(at-pos); else
       fin.seek (pos-at);
+    at = pos;
     }
 
   Tempest::RFile& fin;
@@ -86,24 +87,13 @@ struct VideoWidget::Context {
 
     const float volume = gothic.settingsGetF("SOUND","soundVolume");
     sndDev.setGlobalVolume(volume);
-
-    restoreMusic = GameMusic::inst().isEnabled();
-    GameMusic::inst().setEnabled(false);
-
     frameTime = Application::tickCount();
     }
 
   ~Context() {
-    if(restoreMusic && !GameMusic::inst().isEnabled())
-      GameMusic::inst().setEnabled(true);
     }
 
   void advance() {
-    uint64_t frameDest = (Application::tickCount()-frameTime)/((1000*vid.fps().den)/vid.fps().num); //25fps
-    if(frameDest<=vid.currentFrame()) {
-      return;
-      }
-
     auto& f = vid.nextFrame();
     if(pm.w()!=f.width() || pm.h()!=f.height())
       pm = Pixmap(f.width(),f.height(),Pixmap::Format::RGBA);
@@ -111,6 +101,12 @@ struct VideoWidget::Context {
     yuvToRgba(f,pm);
     for(size_t i=0; i<vid.audioCount(); ++i)
       sndCtx[i]->pushSamples(f.audio(uint8_t(i)).samples);
+
+    uint64_t destTick = frameTime+(1000*vid.fps().den*vid.currentFrame())/vid.fps().num;
+    uint64_t tick     = Application::tickCount();
+    if(tick<destTick) {
+      Application::sleep(uint32_t(destTick-tick));
+      }
     }
 
   void yuvToRgba(const Bink::Frame& f,Pixmap& pm) {
@@ -151,7 +147,6 @@ struct VideoWidget::Context {
   Bink::Video          vid;
   Pixmap               pm;
   uint64_t             frameTime = 0;
-  bool                 restoreMusic = false;
 
   Tempest::SoundDevice      sndDev;
   std::vector<std::unique_ptr<SoundContext>> sndCtx;
@@ -176,14 +171,11 @@ bool VideoWidget::isActive() const {
 
 void VideoWidget::tick() {
   if(ctx!=nullptr && ctx->isEof()) {
-    ctx.reset();
-    last = nullptr;
-    update();
+    stopVideo();
     }
 
-  if(ctx!=nullptr) {
+  if(ctx!=nullptr)
     return;
-    }
 
   if(!hasPendingVideo)
     return;
@@ -209,50 +201,64 @@ void VideoWidget::tick() {
 
   try {
     ctx.reset(new Context(gothic,f));
+    if(!active) {
+      active       = true;
+      restoreMusic = GameMusic::inst().isEnabled();
+      GameMusic::inst().setEnabled(false);
+      }
     }
   catch(...){
     Log::e("unable to play video: \"",filename.c_str(),"\"");
     }
   }
 
-void VideoWidget::paint(Tempest::Device& device, Tempest::Encoder<CommandBuffer>& /*cmd*/, uint8_t fId) {
-  if(ctx==nullptr)
-    return;
-  try {
-    ctx->advance();
-    tex[fId] = device.loadTexture(ctx->pm);
-    last = &tex[fId];
-    update();
-    }
-  catch(...) {
-    Log::e("video decoding error. frame: \"",ctx->vid.currentFrame(),"\"");
-    ctx.reset();
-    last = nullptr;
-    }
-  }
-
 void VideoWidget::keyDownEvent(KeyEvent& event) {
   if(event.key==Event::K_ESCAPE) {
-    ctx.reset(nullptr);
-    last = nullptr;
-    update();
+    stopVideo();
     }
   }
 
 void VideoWidget::keyUpEvent(KeyEvent&) {
   }
 
-void VideoWidget::paintEvent(PaintEvent& e) {
-  if(last==nullptr)
+void VideoWidget::stopVideo() {
+  ctx.reset();
+  if(!hasPendingVideo) {
+    if(restoreMusic && !GameMusic::inst().isEnabled())
+      GameMusic::inst().setEnabled(true);
+    active = false;
+    }
+  update();
+  }
+
+void VideoWidget::paint(Tempest::Device& device, uint8_t /*fId*/) {
+  if(ctx==nullptr)
     return;
-  float k  = float(w())/float(last->w());
-  int   vh = int(k*float(last->h()));
+  try {
+    ctx->advance();
+    tex = device.loadTexture(ctx->pm,false);
+    update();
+    }
+  catch(const Bink::VideoDecodingException& e) { // video exception is recoverable
+    Log::e("video decoding error. frame: ",ctx->vid.currentFrame(),", what: \"", e.what(), "\"");
+    }
+  catch(...) {
+    Log::e("video decoding error. frame: ",ctx->vid.currentFrame());
+    ctx.reset();
+    }
+  }
+
+void VideoWidget::paintEvent(PaintEvent& e) {
+  if(ctx==nullptr)
+    return;
+  float k  = float(w())/float(tex.w());
+  int   vh = int(k*float(tex.h()));
 
   Painter p(e);
   p.setBrush(Color(0,0,0,1));
   p.drawRect(0,0,w(),h());
 
-  p.setBrush(Brush(*last,Painter::NoBlend));
+  p.setBrush(Brush(tex,Painter::NoBlend,ClampMode::ClampToEdge));
   p.drawRect(0,(h()-vh)/2,w(),vh,
              0,0,p.brush().w(),p.brush().h());
   }

@@ -26,7 +26,7 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
   : Window(Maximized),device(device),swapchain(device,hwnd()),
     atlas(device),renderer(device,swapchain,gothic),
     gothic(gothic),keycodec(gothic),
-    inventory(gothic,renderer.storage()),dialogs(gothic,inventory),document(gothic),chapter(gothic),video(gothic),
+    rootMenu(gothic),video(gothic),inventory(gothic,renderer.storage()),dialogs(gothic,inventory),document(gothic),chapter(gothic),
     player(gothic,dialogs,inventory) {
   CrashLog::setGpu(device.renderer());
   if(!gothic.isWindowMode())
@@ -57,11 +57,11 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
 
   if(!gothic.defaultSave().empty()){
     gothic.load(gothic.defaultSave());
-    rootMenu->popMenu();
+    rootMenu.popMenu();
     }
   else if(!gothic.doStartMenu()) {
     startGame(gothic.defaultWorld());
-    rootMenu->popMenu();
+    rootMenu.popMenu();
     }
   else {
     GameMusic::inst().setMusic(GameMusic::SysMenu);
@@ -77,6 +77,7 @@ MainWindow::~MainWindow() {
   takeWidget(&chapter);
   takeWidget(&document);
   takeWidget(&video);
+  takeWidget(&rootMenu);
   removeAllWidgets();
   // unload
   gothic.setGame(std::unique_ptr<GameSession>());
@@ -89,9 +90,9 @@ void MainWindow::setupUi() {
   addWidget(&inventory);
   addWidget(&chapter);
   addWidget(&video);
+  addWidget(&rootMenu);
 
-  rootMenu = &addWidget(new MenuRoot(gothic));
-  rootMenu->setMenu("MENU_MAIN");
+  rootMenu.setMenu("MENU_MAIN");
 
   gothic.onDialogPipe  .bind(&dialogs,&DialogMenu::openPipe);
   gothic.isDialogClose .bind(&dialogs,&DialogMenu::aiIsClose);
@@ -258,6 +259,16 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
       return;
       }
     }
+
+  if(rootMenu.isActive()) {
+    event.accept();
+    rootMenu.keyDownEvent(event);
+    if(event.isAccepted()){
+      uiKeyUp=&rootMenu;
+      return;
+      }
+    }
+
   if(chapter.isActive()){
     event.accept();
     chapter.keyDownEvent(event);
@@ -310,6 +321,10 @@ void MainWindow::keyRepeatEvent(KeyEvent& event) {
     if(event.isAccepted())
       return;
     }
+  if(uiKeyUp==&rootMenu){
+    if(event.isAccepted())
+      return;
+    }
   if(uiKeyUp==&chapter){
     if(event.isAccepted())
       return;
@@ -332,6 +347,11 @@ void MainWindow::keyRepeatEvent(KeyEvent& event) {
 void MainWindow::keyUpEvent(KeyEvent &event) {
   if(uiKeyUp==&video){
     video.keyUpEvent(event);
+    if(event.isAccepted())
+      return;
+    }
+  if(uiKeyUp==&rootMenu){
+    rootMenu.keyUpEvent(event);
     if(event.isAccepted())
       return;
     }
@@ -374,10 +394,9 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     menuEv="MENU_STATUS";
 
   if(menuEv!=nullptr) {
-    rootMenu->setMenu(menuEv);
-    rootMenu->setFocus(true);
+    rootMenu.setMenu(menuEv);
     if(auto pl = gothic.player())
-      rootMenu->setPlayer(*pl);
+      rootMenu.setPlayer(*pl);
     clearInput();
     }
   else if(act==KeyCodec::Inventory){
@@ -480,7 +499,7 @@ void MainWindow::tick() {
   if(st==Gothic::LoadState::Finalize || st==Gothic::LoadState::FailedLoad || st==Gothic::LoadState::FailedSave) {
     gothic.finishLoading();
     if(st==Gothic::LoadState::FailedLoad)
-      rootMenu->setMenu("MENU_MAIN");
+      rootMenu.setMenu("MENU_MAIN");
     if(st==Gothic::LoadState::FailedSave)
       gothic.print("unable to write savegame file");
     }
@@ -678,7 +697,7 @@ void MainWindow::onWorldLoaded() {
   }
 
 void MainWindow::onSessionExit() {
-  rootMenu->setMenu("MENU_MAIN");
+  rootMenu.setMenu("MENU_MAIN");
   }
 
 void MainWindow::setGameImpl(std::unique_ptr<GameSession> &&w) {
@@ -716,9 +735,15 @@ void MainWindow::render(){
       }
 
     auto& context = fLocal[swapchain.frameId()];
-
     context.gpuLock.wait();
-    if(needToUpdate() || gothic.checkLoading()!=Gothic::LoadState::Idle) {
+
+    if(video.isActive()) {
+      video.paint(device,swapchain.frameId());
+      uiLayer.clear();
+      PaintEvent p(uiLayer,atlas,this->w(),this->h());
+      video.paintEvent(p);
+      }
+    else if(needToUpdate() || gothic.checkLoading()!=Gothic::LoadState::Idle) {
       dispatchPaintEvent(uiLayer,atlas);
 
       numOverlay.clear();
@@ -732,14 +757,12 @@ void MainWindow::render(){
     {
     auto enc = cmd.startEncoding(device);
     renderer.draw(enc,swapchain.frameId(),uint8_t(imgId),uiLayer,numOverlay,inventory,gothic);
-    if(video.isActive())
-      video.paint(device,enc,swapchain.frameId());
     }
     device.submit(cmd,context.imageAvailable,context.renderDone,context.gpuLock);
     device.present(swapchain,imgId,context.renderDone);
 
     auto t = Application::tickCount();
-    if(t-time<16 && !gothic.isInGame()){
+    if(t-time<16 && !gothic.isInGame() && !video.isActive()){
       Application::sleep(uint32_t(16-(t-time)));
       t = Application::tickCount();
       }

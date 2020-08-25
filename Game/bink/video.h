@@ -1,11 +1,24 @@
 #pragma once
 
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
 
 #include "frame.h"
 
 namespace Bink {
+
+class Video;
+
+class SoundDecodingException : public std::runtime_error {
+  SoundDecodingException(const char* msg):std::runtime_error(msg){};
+  friend class Video;
+  };
+
+class VideoDecodingException : public std::runtime_error {
+  VideoDecodingException(const char* msg):std::runtime_error(msg){};
+  friend class Video;
+  };
 
 class Video final {
   public:
