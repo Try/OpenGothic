@@ -241,7 +241,8 @@ bool Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
       changed |= updateFrame(*seq,lastUpdate,i.sAnim,tickCount);
       }
     lastUpdate = tickCount;
-    mkSkeleton(*lay[0].seq);
+    if(changed)
+      mkSkeleton(*lay[0].seq);
     return true;
     }
   // no changes to skeleton
@@ -287,6 +288,43 @@ bool Pose::updateFrame(const Animation::Sequence &s,
     base[d.nodeIndex[i]] = mkMatrix(smp);
     }
   return true;
+  }
+
+void Pose::mkSkeleton(const Animation::Sequence &s) {
+  if(skeleton==nullptr)
+    return;
+  Matrix4x4 m = mkBaseTranslation(&s);
+  if(skeleton->ordered)
+    mkSkeleton(m); else
+    mkSkeleton(m,size_t(-1));
+  }
+
+void Pose::mkSkeleton(const Matrix4x4 &mt) {
+  if(skeleton==nullptr)
+    return;
+  auto& nodes=skeleton->nodes;
+  for(size_t i=0;i<nodes.size();++i){
+    if(nodes[i].parent==size_t(-1)) {
+      tr[i] = mt;
+      tr[i].mul(base[i]);
+      } else {
+      tr[i] = tr[nodes[i].parent];
+      tr[i].mul(base[i]);
+      }
+    }
+  }
+
+void Pose::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
+  if(skeleton==nullptr)
+    return;
+  auto& nodes=skeleton->nodes;
+  for(size_t i=0;i<nodes.size();++i){
+    if(nodes[i].parent!=parent)
+      continue;
+    tr[i] = mt;
+    tr[i].mul(base[i]);
+    mkSkeleton(tr[i],i);
+    }
   }
 
 const Animation::Sequence* Pose::getNext(AnimationSolver &solver, const Animation::Sequence* sq) {
@@ -588,43 +626,6 @@ void Pose::zeroSkeleton() {
   for(size_t i=0;i<tr.size();++i){
     tr[i] = m;
     tr[i].mul(nodes[i]);
-    }
-  }
-
-void Pose::mkSkeleton(const Animation::Sequence &s) {
-  if(skeleton==nullptr)
-    return;
-  Matrix4x4 m = mkBaseTranslation(&s);
-  if(skeleton->ordered)
-    mkSkeleton(m); else
-    mkSkeleton(m,size_t(-1));
-  }
-
-void Pose::mkSkeleton(const Matrix4x4 &mt) {
-  if(skeleton==nullptr)
-    return;
-  auto& nodes=skeleton->nodes;
-  for(size_t i=0;i<nodes.size();++i){
-    if(nodes[i].parent==size_t(-1)) {
-      tr[i] = mt;
-      tr[i].mul(base[i]);
-      } else {
-      tr[i] = tr[nodes[i].parent];
-      tr[i].mul(base[i]);
-      }
-    }
-  }
-
-void Pose::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
-  if(skeleton==nullptr)
-    return;
-  auto& nodes=skeleton->nodes;
-  for(size_t i=0;i<nodes.size();++i){
-    if(nodes[i].parent!=parent)
-      continue;
-    tr[i] = mt;
-    tr[i].mul(base[i]);
-    mkSkeleton(tr[i],i);
     }
   }
 

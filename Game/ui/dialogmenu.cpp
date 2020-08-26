@@ -382,11 +382,11 @@ void DialogMenu::paintChoise(PaintEvent &e) {
     }
 
   for(size_t i=0;i<choise.size();++i){
-    const GthFont* fnt = &Resources::font(Resources::FontType::Normal);
+    const GthFont* font = &fnt;
     int x = (w()-dw)/2;
     if(i==dlgSel)
-      fnt = &Resources::font(Resources::FontType::Hi);
-    fnt->drawText(p,x+padd,y+padd+int(i+1)*fnt->pixelSize(),choise[i].title);
+      font = &Resources::font(Resources::FontType::Hi);
+    font->drawText(p,x+padd,y+padd+int(i+1)*font->pixelSize(),choise[i].title);
     }
   }
 
