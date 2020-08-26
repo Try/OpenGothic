@@ -158,7 +158,7 @@ void Interactive::updateAnimation() {
   uint64_t tickCount = world.tickCount();
 
   solver.update(tickCount);
-  animChanged = pose.update(solver,0,tickCount);
+  animChanged |= pose.update(solver,0,tickCount);
 
   view.setPose(pose,transform());
   }

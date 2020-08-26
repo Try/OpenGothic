@@ -609,6 +609,7 @@ DynamicWorld::RayResult DynamicWorld::implWaterRay(float x0, float y0, float z0,
   CallBack callback{s,e};
   //callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
 
+  updateAabbs();
   if(waterBody!=nullptr) {
     btTransform rayFromTrans,rayToTrans;
     rayFromTrans.setIdentity();
@@ -815,6 +816,7 @@ DynamicWorld::StaticItem DynamicWorld::staticObj(const PhysicMeshShape *shape, c
   obj->setWorldTransform(trans);
 
   world->addCollisionObject(obj.get());
+  aabbChanged++;
   return StaticItem(this,obj.release());
   }
 
@@ -969,10 +971,18 @@ void DynamicWorld::updateSingleAabb(btCollisionObject *obj) {
   world->updateSingleAabb(obj);
   }
 
+void DynamicWorld::updateAabbs() const {
+  if(aabbChanged==0)
+    return;
+  aabbChanged=0;
+  world->updateAabbs();
+  }
+
 void DynamicWorld::deleteObj(NpcBody *obj) {
   if(!obj)
     return;
 
+  aabbChanged++;
   if(!npcList->del(obj))
     world->removeCollisionObject(obj);
   delete obj;
@@ -990,6 +1000,7 @@ void DynamicWorld::deleteObj(btCollisionObject *obj) {
   if(!obj)
     return;
 
+  aabbChanged++;
   if(!npcList->del(obj))
     world->removeCollisionObject(obj);
   delete obj;
@@ -1033,6 +1044,8 @@ bool DynamicWorld::hasCollision(const Item& it,Tempest::Vec3& normal) {
     };
 
   rCallBack callback{it.obj};
+
+  updateAabbs();
   world->contactTest(it.obj, callback);
 
   if(callback.count>0){
@@ -1057,6 +1070,7 @@ void DynamicWorld::rayTest(const btVector3 &s,
     rayFromTrans.setOrigin(s);
     rayToTrans.setIdentity();
     rayToTrans.setOrigin(e);
+    updateAabbs();
     world->rayTestSingle(rayFromTrans, rayToTrans, landBody.get(),
                          landBody->getCollisionShape(),
                          landBody->getWorldTransform(),
@@ -1085,8 +1099,10 @@ void DynamicWorld::Item::implSetPosition(float x, float y, float z) {
   }
 
 void DynamicWorld::Item::setEnable(bool e) {
-  if(obj)
+  if(obj) {
     obj->enable = e;
+    owner->aabbChanged++;
+    }
   }
 
 void DynamicWorld::Item::setUserPointer(void *p) {
@@ -1197,7 +1213,10 @@ void DynamicWorld::StaticItem::setObjMatrix(const Tempest::Matrix4x4 &m) {
   if(obj){
     btTransform trans;
     trans.setFromOpenGLMatrix(reinterpret_cast<const btScalar*>(&m));
+    if(obj->getWorldTransform()==trans)
+      return;
     obj->setWorldTransform(trans);
+    //owner->aabbChanged++;
     owner->updateSingleAabb(obj);
     }
   }

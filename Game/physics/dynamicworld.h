@@ -229,6 +229,7 @@ class DynamicWorld final {
     std::unique_ptr<btRigidBody> waterObj();
 
     void       updateSingleAabb(btCollisionObject* obj);
+    void       updateAabbs() const;
 
     std::unique_ptr<btCollisionConfiguration>   conf;
     std::unique_ptr<btDispatcher>               dispatcher;
@@ -249,6 +250,8 @@ class DynamicWorld final {
     std::unique_ptr<NpcBodyList>                npcList;
     std::unique_ptr<BulletsList>                bulletList;
     std::unique_ptr<BBoxList>                   bboxList;
+
+    mutable uint32_t                            aabbChanged = 0;
 
     static const float                          ghostPadding;
     static const float                          ghostHeight;

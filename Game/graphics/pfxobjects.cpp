@@ -451,6 +451,10 @@ void PfxObjects::resetTicks() {
   }
 
 void PfxObjects::tick(uint64_t ticks) {
+  static bool disabled = false;
+  if(disabled)
+    return;
+
   if(lastUpdate>ticks) {
     lastUpdate = ticks;
     return;

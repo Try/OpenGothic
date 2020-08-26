@@ -240,9 +240,9 @@ bool Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
         }
       changed |= updateFrame(*seq,lastUpdate,i.sAnim,tickCount);
       }
-    lastUpdate = tickCount;
-    if(changed)
+    if(changed || lastUpdate==0)
       mkSkeleton(*lay[0].seq);
+    lastUpdate = tickCount;
     return true;
     }
   // no changes to skeleton
