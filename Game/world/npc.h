@@ -608,7 +608,9 @@ class Npc final {
     float                          x=0.f;
     float                          y=0.f;
     float                          z=0.f;
-    float                          angle=0.f;
+    float                          angle    = 0.f;
+    float                          runAngle = 0.f;
+    float                          runAngleDest = 0.f;
     float                          sz[3]={1.f,1.f,1.f};
 
     // visual props (cache)

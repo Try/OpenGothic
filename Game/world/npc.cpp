@@ -287,8 +287,20 @@ void Npc::setDirection(float x, float /*y*/, float z) {
 
 void Npc::setDirection(float rotation) {
   rotation = std::fmod(rotation,360.f);
-  if(std::fabs(angle-rotation)<0.001f)
+  if(std::fabs(angle-rotation)<0.001f) {
+    runAngleDest = 0.f;
     return;
+    }
+
+  if(bodyStateMasked()==BS_RUN) {
+    if(angle<rotation)
+      runAngleDest =  15;
+    if(angle>rotation)
+      runAngleDest = -15;
+    } else {
+    runAngleDest = 0.f;
+    }
+
   angle = rotation;
   durtyTranform |= TR_Rot;
   }
@@ -1557,6 +1569,22 @@ void Npc::tick(uint64_t dt) {
   if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount()) {
     mvAlgo.tick(dt,MoveAlgo::WaitMove);
     return;
+    }
+
+  if(true) {
+    const float speed = 40.f;
+    if(runAngle<runAngleDest) {
+      durtyTranform |= TR_Rot;
+      runAngle+=speed*(float(dt)/1000.f);
+      if(runAngle>runAngleDest)
+        runAngle = runAngleDest;
+      }
+    if(runAngle>runAngleDest) {
+      durtyTranform |= TR_Rot;
+      runAngle-=speed*(float(dt)/1000.f);
+      if(runAngle<runAngleDest)
+        runAngle = runAngleDest;
+      }
     }
 
   if(!isDown()) {
@@ -3233,6 +3261,9 @@ void Npc::updatePos() {
       }
 
     mt.rotateOY(180-angle);
+    if(isPlayer() && !align) {
+      mt.rotateOZ(runAngle);
+      }
     mt.scale(sz[0],sz[1],sz[2]);
     visual.setPos(mt);
     }
