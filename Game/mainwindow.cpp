@@ -720,8 +720,6 @@ void MainWindow::render(){
   try {
     static uint64_t time=Application::tickCount();
 
-    followCamera();
-
     static bool once=true;
     if(once) {
       gothic.emitGlobalSoundWav("GAMESTART.WAV");
@@ -731,6 +729,7 @@ void MainWindow::render(){
     video.tick();
     if(!video.isActive() && !gothic.isPause()) {
       tick();
+      followCamera();
       gothic.updateAnimation();
       }
 

@@ -69,6 +69,7 @@ class Camera final {
     State                 state, dest;
     float                 zoom=0.3f;
     float                 dlgDist = 0;
+    float                 camDistLast = 0.f;
 
     bool                  isInMove = false;
     bool                  hasPos   = false;
