@@ -116,17 +116,16 @@ void Interactive::save(Serialize &fout) const {
     int32_t userState=0; // unused
     fout.write(i.name,i.user,userState,i.attachMode);
     }
-
   }
 
 void Interactive::setVisual(const std::string &visual) {
   if(!FileExt::hasExt(visual,"3ds"))
     skeleton = Resources::loadSkeleton(visual.c_str());
   mesh = Resources::loadMesh(visual);
+  animChanged = true;
 
   if(mesh) {
     if(showVisual) {
-      animChanged = true;
       view   = world.getView(visual.c_str());
       physic = PhysicMesh(*mesh,*world.physic());
       }
@@ -158,9 +157,10 @@ void Interactive::updateAnimation() {
   uint64_t tickCount = world.tickCount();
 
   solver.update(tickCount);
-  animChanged |= pose.update(solver,0,tickCount);
-
-  view.setPose(pose,transform());
+  if(pose.update(solver,0,tickCount)){
+    animChanged = true;
+    view.setPose(pose,transform());
+    }
   }
 
 void Interactive::tick(uint64_t dt) {

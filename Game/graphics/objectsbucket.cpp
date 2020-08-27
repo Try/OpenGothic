@@ -135,15 +135,14 @@ const Material& ObjectsBucket::material() const {
 
 ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds& bounds) {
   Object* v = nullptr;
-  if(freeList.size()>0) {
-    v = &val[freeList.back()];
-    freeList.pop_back();
-    } else {
-    val.emplace_back();
-    v = &val.back();
-    index.resize(val.size());
+  for(auto& i:val) {
+    if(i.isValid())
+      continue;
+    v = &i;
+    break;
     }
 
+  ++valSz;
   v->vboType   = type;
   v->vbo       = nullptr;
   v->vboA      = nullptr;
@@ -186,6 +185,8 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
 
 void ObjectsBucket::setupUbo() {
   for(auto& v:val) {
+    if(!v.isValid())
+      continue;
     setupLights(v,true);
     }
 
@@ -194,6 +195,8 @@ void ObjectsBucket::setupUbo() {
     uboSetCommon(uboShared);
     } else {
     for(auto& i:val) {
+      if(!i.isValid())
+        continue;
       i.ubo.invalidate();
       uboSetCommon(i.ubo);
       }
@@ -229,8 +232,8 @@ bool ObjectsBucket::groupVisibility(Painter3d& p) {
   if(allBounds.r<=0) {
     Tempest::Vec3 bbox[2] = {};
     bool          fisrt=true;
-    for(size_t i=0;i<val.size();++i) {
-      if(val[i].ibo==nullptr)
+    for(size_t i=0;i<CAPACITY;++i) {
+      if(!val[i].isValid())
         continue;
       auto& b = val[i].bounds;
       if(fisrt) {
@@ -252,16 +255,19 @@ bool ObjectsBucket::groupVisibility(Painter3d& p) {
   }
 
 void ObjectsBucket::visibilityPass(Painter3d& p) {
-  index.clear();
+  indexSz = 0;
   if(!groupVisibility(p))
     return;
 
+  Object** idx = index;
   for(auto& v:val) {
-    if(v.vboType==VboType::NoVbo)
+    if(!v.isValid())
       continue;
     if(!p.isVisible(v.bounds) && v.vboType!=VboType::VboMorph)
       continue;
-    index.push_back(&v);
+    idx[indexSz] = &v;
+    ++indexSz;
+    //index.push_back(&v);
     }
   }
 
@@ -271,7 +277,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
   Object* v = &implAlloc(VboType::VboVertex,bounds);
   v->vbo = &vbo;
   v->ibo = &ibo;
-  return std::distance(val.data(),v);
+  return std::distance(val,v);
   }
 
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
@@ -281,18 +287,18 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
   v->vboA   = &vbo;
   v->ibo    = &ibo;
   v->storageAni = storage.ani.alloc();
-  return std::distance(val.data(),v);
+  return std::distance(val,v);
   }
 
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* vbo[], const Bounds& bounds) {
   Object* v = &implAlloc(VboType::VboMorph,bounds);
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     v->vboM[i] = vbo[i];
-  return std::distance(val.data(),v);
+  return std::distance(val,v);
   }
 
 void ObjectsBucket::free(const size_t objId) {
-  freeList.push_back(objId);
+  // freeList.push_back(objId);
   auto& v = val[objId];
   if(v.storageAni!=size_t(-1))
     storage.ani.free(v.storageAni);
@@ -302,18 +308,20 @@ void ObjectsBucket::free(const size_t objId) {
     v.vboM[i] = nullptr;
   v.vboA    = nullptr;
   v.ibo     = nullptr;
+  valSz--;
   }
 
 void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) {
-  if(pMain==nullptr || index.size()==0)
+  if(pMain==nullptr || indexSz==0)
     return;
 
   if(useSharedUbo)
     p.setUniforms(*pMain,uboShared.ubo[fId]);
 
   UboPush pushBlock;
-  for(auto pv:index) {
-    auto& v = *pv;
+  Object** idx = index;
+  for(size_t i=0;i<indexSz;++i) {
+    auto& v = *idx[i];
 
     pushBlock.pos = v.pos;
     const size_t cnt = v.lightCnt;
@@ -352,15 +360,16 @@ void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fI
   }
 
 void ObjectsBucket::drawLight(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) {
-  if(pLight==nullptr || index.size()==0)
+  if(pLight==nullptr || indexSz==0)
     return;
 
   if(useSharedUbo)
     p.setUniforms(*pLight,uboShared.ubo[fId]);
 
   UboPush pushBlock;
-  for(auto pv:index) {
-    auto& v = *pv;
+  Object** idx = index;
+  for(size_t i=0;i<indexSz;++i) {
+    auto& v = *idx[i];
     if(v.lightCnt<=LIGHT_BLOCK)
       continue;
 
@@ -398,15 +407,16 @@ void ObjectsBucket::drawLight(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8
   }
 
 void ObjectsBucket::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId, int layer) {
-  if(pShadow==nullptr || index.size()==0)
+  if(pShadow==nullptr || indexSz==0)
     return;
 
   UboPush pushBlock = {};
   if(useSharedUbo)
     p.setUniforms(*pShadow,uboShared.uboSh[fId][layer]);
 
-  for(auto pv:index) {
-    auto& v = *pv;
+  Object** idx = index;
+  for(size_t i=0;i<indexSz;++i) {
+    auto& v = *idx[i];
 
     if(!useSharedUbo) {
       auto& ubo = v.ubo.uboSh[fId][layer];

@@ -25,10 +25,14 @@ class ObjectsBucket final {
 
     enum {
       LIGHT_BLOCK  = 2,
-      MAX_LIGHT    = 64
+      MAX_LIGHT    = 64,
       };
 
   public:
+    enum {
+      CAPACITY     = 128,
+      };
+
     enum Type : uint8_t {
       Static,
       Movable,
@@ -86,6 +90,7 @@ class ObjectsBucket final {
 
     const Material&           material() const;
     Type                      type()     const { return shaderType; }
+    size_t                    size()     const { return valSz; }
 
     size_t                    alloc(const Tempest::VertexBuffer<Vertex>  &vbo,
                                     const Tempest::IndexBuffer<uint32_t> &ibo,
@@ -157,13 +162,16 @@ class ObjectsBucket final {
 
       size_t                                texAnim=0;
       uint64_t                              timeShift=0;
+
+      bool                                  isValid() const { return vboType!=VboType::NoVbo; }
       };
 
     Descriptors               uboShared;
 
-    std::vector<Object>       val;
-    std::vector<size_t>       freeList;
-    std::vector<Object*>      index;
+    Object                    val  [CAPACITY];
+    size_t                    valSz=0;
+    Object*                   index[CAPACITY] = {};
+    size_t                    indexSz=0;
 
     const SceneGlobals&       scene;
     Storage&                  storage;

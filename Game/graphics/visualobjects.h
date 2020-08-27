@@ -37,6 +37,7 @@ class VisualObjects final {
 
     std::list<ObjectsBucket>        buckets;
     std::vector<ObjectsBucket*>     index;
+    size_t                          lastSolidBucket = 0;
 
     Sky                             sky;
   };

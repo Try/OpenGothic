@@ -186,8 +186,13 @@ void Pose::stopAllAnim() {
 
 bool Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
   if(lay.size()==0){
-    zeroSkeleton();
-    return true;
+    if(lastUpdate==0){
+      zeroSkeleton();
+      lastUpdate = tickCount;
+      return true;
+      }
+    lastUpdate = tickCount;
+    return false;
     }
 
   size_t ret=0;

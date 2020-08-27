@@ -77,6 +77,7 @@ struct DynamicWorld::Broadphase : btDbvtBroadphase {
     };
 
   Broadphase() {
+    m_deferedcollide = true;
     rayTestStk.reserve(btDbvt::DOUBLE_STACKSIZE);
     m_paircache->setOverlapFilterCallback(&overlapFilter);
     }

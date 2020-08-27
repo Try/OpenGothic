@@ -14,7 +14,7 @@ VisualObjects::VisualObjects(const SceneGlobals& globals)
 
 ObjectsBucket& VisualObjects::getBucket(const Material& mat, ObjectsBucket::Type type) {
   for(auto& i:buckets)
-    if(i.material()==mat && i.type()==type)
+    if(i.material()==mat && i.type()==type && i.size()<ObjectsBucket::CAPACITY)
       return i;
 
   index.clear();
@@ -86,15 +86,12 @@ void VisualObjects::draw(Painter3d& painter, Tempest::Encoder<Tempest::CommandBu
     c->visibilityPass(painter);
     });
 
-  size_t i=0;
-  for(;i<index.size();++i) {
+  for(size_t i=0;i<lastSolidBucket;++i) {
     auto c = index[i];
-    if(c->material().alpha!=Material::Solid && c->material().alpha!=Material::AlphaTest)
-      break;
     c->draw(enc,fId);
     }
   sky.draw(enc,fId);
-  for(;i<index.size();++i) {
+  for(size_t i=lastSolidBucket;i<index.size();++i) {
     auto c = index[i];
     c->draw(enc,fId);
     }
@@ -107,12 +104,14 @@ void VisualObjects::drawShadow(Painter3d& painter, Tempest::Encoder<Tempest::Com
   commitUbo(fId);
   mkIndex();
 
-  Workers::parallelFor(index,[&painter](ObjectsBucket* c){
+  Workers::parallelFor(index.data(),index.data()+lastSolidBucket,[&painter](ObjectsBucket* c){
     c->visibilityPass(painter);
     });
 
-  for(auto c:index)
+  for(size_t i=0;i<lastSolidBucket;++i) {
+    auto c = index[i];
     c->drawShadow(enc,fId,layer);
+    }
   }
 
 void VisualObjects::setWorld(const World& world) {
@@ -136,6 +135,14 @@ void VisualObjects::mkIndex() {
   std::sort(index.begin(),index.end(),[](const ObjectsBucket* l,const ObjectsBucket* r){
     return l->material()<r->material();
     });
+  lastSolidBucket = index.size();
+  for(size_t i=0;i<index.size();++i) {
+    auto c = index[i];
+    if(c->material().alpha!=Material::Solid && c->material().alpha!=Material::AlphaTest) {
+      lastSolidBucket = i;
+      break;
+      }
+    }
   }
 
 void VisualObjects::commitUbo(uint8_t fId) {
