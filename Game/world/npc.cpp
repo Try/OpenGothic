@@ -293,10 +293,11 @@ void Npc::setDirection(float rotation) {
     }
 
   if(bodyStateMasked()==BS_RUN) {
+    float maxV = 15;
     if(angle<rotation)
-      runAngleDest =  15;
+      runAngleDest =  std::min( 2.f*(rotation-angle),maxV);
     if(angle>rotation)
-      runAngleDest = -15;
+      runAngleDest = -std::min(-2.f*(rotation-angle),maxV);
     } else {
     runAngleDest = 0.f;
     }
@@ -1203,15 +1204,7 @@ bool Npc::implAtack(uint64_t dt) {
     return false;
 
   if(faiWaitTime>=owner.tickCount()) {
-    if(!visual.pose().isInAnim("T_FISTATTACKMOVE") &&
-       !visual.pose().isInAnim("T_1HATTACKMOVE") &&
-       !visual.pose().isInAnim("T_2HATTACKMOVE")) {
-      bool noAnim = !hasAutoroll();
-      if(ws==WeaponState::Bow || ws==WeaponState::CBow ||
-         ws==WeaponState::Mage)
-         noAnim = true;
-      implLookAt(*currentTarget,noAnim,dt);
-      }
+    adjustAtackRotation(dt);
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
     return true;
     }
@@ -1341,6 +1334,33 @@ bool Npc::implAtack(uint64_t dt) {
     }
 
   return true;
+  }
+
+void Npc::adjustAtackRotation(uint64_t dt) {
+  if(currentTarget!=nullptr && !currentTarget->isDown() && faiWaitTime<owner.tickCount()) {
+    auto ws = weaponState();
+    if(!visual.pose().isInAnim("T_FISTATTACKMOVE") &&
+       !visual.pose().isInAnim("T_1HATTACKMOVE")   &&
+       !visual.pose().isInAnim("T_2HATTACKMOVE")   &&
+       ws!=WeaponState::NoWeapon){
+      bool noAnim = !hasAutoroll();
+      if(ws==WeaponState::Bow || ws==WeaponState::CBow ||
+         ws==WeaponState::Mage)
+         noAnim = true;
+      implLookAt(*currentTarget,noAnim,dt);
+      }
+    }
+  /*
+    if(!visual.pose().isInAnim("T_FISTATTACKMOVE") &&
+       !visual.pose().isInAnim("T_1HATTACKMOVE") &&
+       !visual.pose().isInAnim("T_2HATTACKMOVE")) {
+      bool noAnim = !hasAutoroll();
+      if(ws==WeaponState::Bow || ws==WeaponState::CBow ||
+         ws==WeaponState::Mage)
+         noAnim = true;
+      implLookAt(*currentTarget,noAnim,dt);
+      }
+    */
   }
 
 bool Npc::implAiTick(uint64_t dt) {
@@ -1567,19 +1587,20 @@ void Npc::tick(uint64_t dt) {
     tickTimedEvt(ev);
 
   if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount()) {
+    adjustAtackRotation(dt);
     mvAlgo.tick(dt,MoveAlgo::WaitMove);
     return;
     }
 
-  if(true) {
-    const float speed = 40.f;
+  if(runAngle!=0.f || std::fabs(runAngleDest)>5.f) {
+    const float speed = 30.f;
     if(runAngle<runAngleDest) {
       durtyTranform |= TR_Rot;
       runAngle+=speed*(float(dt)/1000.f);
       if(runAngle>runAngleDest)
         runAngle = runAngleDest;
       }
-    if(runAngle>runAngleDest) {
+    else if(runAngle>runAngleDest) {
       durtyTranform |= TR_Rot;
       runAngle-=speed*(float(dt)/1000.f);
       if(runAngle<runAngleDest)

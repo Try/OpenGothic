@@ -578,6 +578,7 @@ class Npc final {
     bool      implGoTo   (uint64_t dt);
     bool      implGoTo   (uint64_t dt, float destDist);
     bool      implAtack  (uint64_t dt);
+    void      adjustAtackRotation(uint64_t dt);
     bool      implAiTick (uint64_t dt);
     void      implAiWait (uint64_t dt);
     void      implAniWait(uint64_t dt);
