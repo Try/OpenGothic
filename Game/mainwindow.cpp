@@ -240,7 +240,7 @@ void MainWindow::processMouse(MouseEvent &event,bool /*fs*/) {
   PointF dpScaled = PointF(float(dp.x)*mouseSensitivity,float(dp.y)*mouseSensitivity);
   mpos = event.pos();
   if(auto camera = gothic.gameCamera())
-    camera->onRotateMouse(dpScaled);
+    camera->onRotateMouse(PointF(-dpScaled.x,dpScaled.y));
   if(!inventory.isActive())
     player.onRotateMouse(-dpScaled.x);
   }

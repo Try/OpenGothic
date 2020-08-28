@@ -349,7 +349,7 @@ void Camera::follow(const Npc &npc,uint64_t dt,bool inMove,bool includeRot) {
 
   if(len>0.1f && def.translate && camMod!=Dialog){
     const float maxDist = 100;
-    float       speed   = inMove ? 0.f : dp.manhattanLength()*dtF*(def.veloTrans/10.f);//def.veloTrans*dtF*5;
+    float       speed   = inMove ? 0.f : dp.manhattanLength()*dtF*(def.veloTrans/10.f);
     float       tr      = std::min(speed,len);
     if(len-tr>maxDist)
       tr += (len-maxDist);
@@ -366,10 +366,9 @@ void Camera::follow(const Npc &npc,uint64_t dt,bool inMove,bool includeRot) {
     auto rotation = dest.spin;
     applyModRotation(rotation);
 
-    float shift = def.veloRot*dtF*90;//(360.f); // cycles per second
-
-    followAng(state.spin.x,rotation.x,shift);
-    followAng(state.spin.y,rotation.y,shift);
+    float shift = def.veloRot*45;
+    followAng(state.spin.x,rotation.x,shift*dtF);
+    followAng(state.spin.y,rotation.y,shift*dtF);
 
     if(state.spin.y>def.maxElevation)
       state.spin.y = def.maxElevation;

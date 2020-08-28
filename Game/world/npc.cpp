@@ -2751,7 +2751,10 @@ bool Npc::setInteraction(Interactive *id,bool quick) {
     }
 
   if(id->attach(*this)) {
+    runAngle = 0;
+    runAngleDest = 0;
     currentInteract = id;
+    setAnimRotate(0);
     return true;
     }
 
