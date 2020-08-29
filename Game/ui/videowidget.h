@@ -28,7 +28,7 @@ class VideoWidget : public Tempest::Widget {
     struct Input;
     struct Sound;
     struct SoundContext;
-    class  Context;
+    struct Context;
 
     void  stopVideo();
 

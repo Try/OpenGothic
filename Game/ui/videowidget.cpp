@@ -209,6 +209,7 @@ void VideoWidget::tick() {
     }
   catch(...){
     Log::e("unable to play video: \"",filename.c_str(),"\"");
+    stopVideo();
     }
   }
 
