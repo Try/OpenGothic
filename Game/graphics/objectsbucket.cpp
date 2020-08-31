@@ -117,8 +117,10 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const SceneGlobals& scene, Sto
 
   textureInShadowPass = (pShadow==&scene.storage.pObjectAtSh || pShadow==&scene.storage.pAnimAtSh);
 
-  for(auto& i:uboMat)
-    i = scene.storage.device.ubo<UboMaterial>(nullptr,1);
+  for(auto& i:uboMat) {
+    UboMaterial zero;
+    i = scene.storage.device.ubo<UboMaterial>(&zero,1);
+    }
 
   if(useSharedUbo) {
     uboShared.invalidate();
@@ -135,10 +137,13 @@ const Material& ObjectsBucket::material() const {
 
 ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds& bounds) {
   Object* v = nullptr;
-  for(auto& i:val) {
-    if(i.isValid())
+  for(size_t i=0; i<CAPACITY; ++i) {
+    auto& vx = val[i];
+    if(vx.isValid())
       continue;
-    v = &i;
+    v = &vx;
+    if(valLast<=i)
+      valLast = i+1;
     break;
     }
 
@@ -219,7 +224,9 @@ void ObjectsBucket::preFrameUpdate(uint8_t fId) {
   if(mat.texAniMapDirPeriod.y!=0)
     ubo.texAniMapDir.y = float(scene.tickCount%std::abs(mat.texAniMapDirPeriod.y))/float(mat.texAniMapDirPeriod.y);
 
-  uboMat[fId].update(&ubo,0,1);
+  if(mat.texAniMapDirPeriod.x!=0 || mat.texAniMapDirPeriod.y!=0)
+    uboMat[fId].update(&ubo,0,1);
+
   if(mat.frames.size()>0) {
     //texAnim;
     }
@@ -260,15 +267,27 @@ void ObjectsBucket::visibilityPass(Painter3d& p) {
     return;
 
   Object** idx = index;
-  for(auto& v:val) {
+  for(size_t i=0; i<valLast; ++i) {
+    auto& v = val[i];
     if(!v.isValid())
       continue;
     if(!p.isVisible(v.bounds) && v.vboType!=VboType::VboMorph)
       continue;
     idx[indexSz] = &v;
     ++indexSz;
-    //index.push_back(&v);
     }
+  }
+
+void ObjectsBucket::visibilityPassAnd(Painter3d& p) {
+  size_t nextSz = 0;
+  for(size_t i=0; i<indexSz; ++i) {
+    auto& v = *index[i];
+    if(!p.isVisible(v.bounds))
+      continue;
+    index[nextSz] = &v;
+    ++nextSz;
+    }
+  indexSz = nextSz;
   }
 
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
@@ -277,6 +296,8 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
   Object* v = &implAlloc(VboType::VboVertex,bounds);
   v->vbo = &vbo;
   v->ibo = &ibo;
+  polySz+=ibo.size();
+  polyAvg = polySz/valSz;
   return std::distance(val,v);
   }
 
@@ -287,6 +308,8 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
   v->vboA   = &vbo;
   v->ibo    = &ibo;
   v->storageAni = storage.ani.alloc();
+  polySz+=ibo.size();
+  polyAvg = polySz/valSz;
   return std::distance(val,v);
   }
 
@@ -298,10 +321,11 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* 
   }
 
 void ObjectsBucket::free(const size_t objId) {
-  // freeList.push_back(objId);
   auto& v = val[objId];
   if(v.storageAni!=size_t(-1))
     storage.ani.free(v.storageAni);
+  if(v.ibo!=nullptr)
+    polySz -= v.ibo->size();
   v.vboType = VboType::NoVbo;
   v.vbo     = nullptr;
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i)
@@ -309,6 +333,17 @@ void ObjectsBucket::free(const size_t objId) {
   v.vboA    = nullptr;
   v.ibo     = nullptr;
   valSz--;
+  valLast = 0;
+  for(size_t i=CAPACITY; i>0;) {
+    --i;
+    if(val[i].isValid()) {
+      valLast = i+1;
+      break;
+      }
+    }
+  if(valSz>0)
+    polyAvg = polySz/valSz; else
+    polyAvg = 0;
   }
 
 void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) {
@@ -360,6 +395,10 @@ void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fI
   }
 
 void ObjectsBucket::drawLight(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) {
+  static bool disabled = false;
+  if(disabled)
+    return;
+
   if(pLight==nullptr || indexSz==0)
     return;
 
@@ -482,10 +521,11 @@ void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
 void ObjectsBucket::setPose(size_t i, const Pose& p) {
   if(shaderType!=Animated)
     return;
-  auto& v    = val[i];
-  auto& skel = storage.ani.element(v.storageAni);
+  auto& v       = val[i];
 
-  std::memcpy(&skel.skel[0],p.tr.data(),p.tr.size()*sizeof(p.tr[0]));
+  auto& skel = storage.ani.element(v.storageAni);
+  auto& tr = p.transform();
+  std::memcpy(&skel.skel[0],tr.data(),tr.size()*sizeof(tr[0]));
   storage.ani.markAsChanged(v.storageAni);
   }
 

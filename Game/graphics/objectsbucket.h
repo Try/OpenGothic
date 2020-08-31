@@ -92,6 +92,8 @@ class ObjectsBucket final {
     Type                      type()     const { return shaderType; }
     size_t                    size()     const { return valSz; }
 
+    size_t                    avgPoligons() const { return polySz; }
+
     size_t                    alloc(const Tempest::VertexBuffer<Vertex>  &vbo,
                                     const Tempest::IndexBuffer<uint32_t> &ibo,
                                     const Bounds& bounds);
@@ -107,6 +109,7 @@ class ObjectsBucket final {
 
     void                      preFrameUpdate(uint8_t fId);
     void                      visibilityPass(Painter3d& p);
+    void                      visibilityPassAnd(Painter3d& p);
     void                      draw      (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
     void                      drawLight (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
     void                      drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId, int layer=0);
@@ -170,8 +173,11 @@ class ObjectsBucket final {
 
     Object                    val  [CAPACITY];
     size_t                    valSz=0;
+    size_t                    valLast=0;
     Object*                   index[CAPACITY] = {};
     size_t                    indexSz=0;
+    size_t                    polySz=0;
+    size_t                    polyAvg=0;
 
     const SceneGlobals&       scene;
     Storage&                  storage;

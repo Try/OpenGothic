@@ -170,7 +170,8 @@ void PackedMesh::landRepack() {
   }
 
 void PackedMesh::split(std::vector<SubMesh>& out, SubMesh& src) {
-  if(src.indices.size()<512*3 && false) { // avoid micro-meshes
+  static bool avoidMicroMeshes = false;
+  if(!avoidMicroMeshes && src.indices.size()<512*3) {
     if(src.indices.size()>0)
       out.push_back(std::move(src));
     return;
@@ -182,7 +183,8 @@ void PackedMesh::split(std::vector<SubMesh>& out, SubMesh& src) {
 
   static const float blockSz = 40*100;
   if(sz.x*sz.y*sz.z<blockSz*blockSz*blockSz) {
-    out.push_back(std::move(src));
+    if(src.indices.size()>0)
+      out.push_back(std::move(src));
     return;
     }
 

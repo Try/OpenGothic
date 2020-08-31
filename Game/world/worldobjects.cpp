@@ -109,8 +109,9 @@ void WorldObjects::tick(uint64_t dt) {
   const float nearDist = 3000*3000;
   const float farDist  = 6000*6000;
 
+  auto plPos = pl->position();
   for(auto& i:npcArr) {
-    float dist = pl->qDistTo(*i);
+    float dist = (i->position()-plPos).quadLength();
     if(dist<nearDist){
       npcNear.push_back(i.get());
       if(i.get()!=pl)

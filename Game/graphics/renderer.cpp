@@ -78,7 +78,6 @@ void Renderer::resetSwapchain() {
 
   if(auto wview=gothic.worldView()) {
     wview->initPipeline(w,h);
-    wview->resetCmd();
     }
 
   Sampler2d smp = Sampler2d::nearest();
@@ -126,7 +125,8 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, cons
   wview->setModelView(view,shadow,2);
   wview->setFrameGlobals(textureCast(shadowMapFinal),gothic.world()->tickCount(),frameId);
 
-  for(uint8_t i=0;i<2;++i) {
+  for(uint8_t i=2;i>0;) {
+    --i;
     cmd.setFramebuffer(fboShadow[i],shadowPass);
     painter.setFrustrum(shadow[i]);
     wview->drawShadow(cmd,painter,frameId,i);
@@ -166,6 +166,9 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   auto        zbuf = device.zbuffer   (zBufferFormat,w,h);
   auto        img  = device.attachment(Tempest::TextureFormat::RGBA8,w,h);
   FrameBuffer fbo  = device.frameBuffer(img,zbuf);
+
+  if(auto wview = gothic.worldView())
+    wview->resetCmd();
 
   CommandBuffer cmd;
   {

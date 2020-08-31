@@ -165,6 +165,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
           }*/
         }
 
+      // world->view()->dbgLights(p);
       if(auto pl=gothic.player()){
         float hp = float(pl->attribute(Npc::ATR_HITPOINTS))/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
         float mp = float(pl->attribute(Npc::ATR_MANA))     /float(pl->attribute(Npc::ATR_MANAMAX));

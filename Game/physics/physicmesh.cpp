@@ -48,10 +48,10 @@ void PhysicMesh::setPose(const Pose& p, const Tempest::Matrix4x4& obj) {
   if(binder!=nullptr){
     for(size_t i=0;i<binder->bind.size();++i){
       auto id=binder->bind[i];
-      if(id>=p.tr.size())
+      if(id>=p.transform().size())
         continue;
       auto mat=obj;
-      mat.mul(p.tr[id]);
+      mat.mul(p.transform(id));
 
       auto subI = ani->submeshId[i].id;
       sub[subI].setObjMatrix(mat);

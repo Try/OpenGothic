@@ -245,8 +245,9 @@ bool Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
         }
       changed |= updateFrame(*seq,lastUpdate,i.sAnim,tickCount);
       }
-    if(changed || lastUpdate==0)
+    if(changed || lastUpdate==0) {
       mkSkeleton(*lay[0].seq);
+      }
     lastUpdate = tickCount;
     return true;
     }
@@ -310,11 +311,9 @@ void Pose::mkSkeleton(const Matrix4x4 &mt) {
   auto& nodes=skeleton->nodes;
   for(size_t i=0;i<nodes.size();++i){
     if(nodes[i].parent==size_t(-1)) {
-      tr[i] = mt;
-      tr[i].mul(base[i]);
+      tr[i] = mt*base[i];
       } else {
-      tr[i] = tr[nodes[i].parent];
-      tr[i].mul(base[i]);
+      tr[i] = tr[nodes[i].parent]*base[i];
       }
     }
   }
@@ -326,8 +325,7 @@ void Pose::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
   for(size_t i=0;i<nodes.size();++i){
     if(nodes[i].parent!=parent)
       continue;
-    tr[i] = mt;
-    tr[i].mul(base[i]);
+    tr[i] = mt*base[i];
     mkSkeleton(tr[i],i);
     }
   }
@@ -596,6 +594,14 @@ bool Pose::setAnimItem(const AnimationSolver &solver, Npc &npc, const char *sche
   return false;
   }
 
+const std::vector<Matrix4x4>& Pose::transform() const {
+  return tr;
+  }
+
+const Matrix4x4& Pose::transform(size_t id) const {
+  return tr[id];
+  }
+
 Matrix4x4 Pose::mkBaseTranslation(const Animation::Sequence *s) {
   Matrix4x4 m;
   m.identity();
@@ -633,8 +639,7 @@ void Pose::zeroSkeleton() {
 
   Matrix4x4 m = mkBaseTranslation(nullptr);
   for(size_t i=0;i<tr.size();++i){
-    tr[i] = m;
-    tr[i].mul(nodes[i]);
+    tr[i] = m * nodes[i];
     }
   }
 

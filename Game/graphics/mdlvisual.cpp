@@ -520,7 +520,7 @@ float MdlVisual::viewDirection() const {
   if(nullptr!=skeleton) {
     size_t nodeId = skeleton->findNode("BIP01");
     if(nodeId!=size_t(-1))
-      p.mul(pose().tr[nodeId]);
+      p.mul(pose().transform(nodeId));
     }
   float rx = p.at(2,0);
   float rz = p.at(2,2);
@@ -601,8 +601,8 @@ void MdlVisual::syncAttaches(Attach<View>& att) {
   if(att.view.isEmpty())
     return;
   auto p = pos;
-  if(att.boneId<pose.tr.size())
-    p.mul(pose.tr[att.boneId]);
+  if(att.boneId<pose.transform().size())
+    p.mul(pose.transform(att.boneId));
   att.view.setObjMatrix(p);
   }
 

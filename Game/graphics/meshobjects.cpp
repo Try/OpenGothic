@@ -119,11 +119,11 @@ void MeshObjects::Mesh::setPose(const Pose &p,const Tempest::Matrix4x4& obj) {
   if(binder!=nullptr){
     for(size_t i=0;i<binder->bind.size();++i){
       auto id=binder->bind[i];
-      if(id>=p.tr.size())
+      if(id>=p.transform().size())
         continue;
       auto mat=obj;
       mat.translate(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
-      mat.mul(p.tr[id]);
+      mat.mul(p.transform(id));
       sub[i].setObjMatrix(mat);
       }
     }

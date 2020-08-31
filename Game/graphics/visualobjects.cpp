@@ -79,12 +79,13 @@ void VisualObjects::preFrameUpdate(uint8_t fId) {
   }
 
 void VisualObjects::draw(Painter3d& painter, Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
-  commitUbo(fId);
   mkIndex();
 
   Workers::parallelFor(index,[&painter](ObjectsBucket* c){
     c->visibilityPass(painter);
     });
+
+  commitUbo(fId);
 
   for(size_t i=0;i<lastSolidBucket;++i) {
     auto c = index[i];
@@ -101,12 +102,17 @@ void VisualObjects::draw(Painter3d& painter, Tempest::Encoder<Tempest::CommandBu
   }
 
 void VisualObjects::drawShadow(Painter3d& painter, Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer) {
-  commitUbo(fId);
-  mkIndex();
-
-  Workers::parallelFor(index.data(),index.data()+lastSolidBucket,[&painter](ObjectsBucket* c){
-    c->visibilityPass(painter);
-    });
+  if(layer+1==Resources::ShadowLayers) {
+    mkIndex();
+    Workers::parallelFor(index.data(),index.data()+lastSolidBucket,[&painter](ObjectsBucket* c){
+      c->visibilityPass(painter);
+      });
+    commitUbo(fId);
+    } else {
+    Workers::parallelFor(index.data(),index.data()+lastSolidBucket,[&painter](ObjectsBucket* c){
+      c->visibilityPassAnd(painter);
+      });
+    }
 
   for(size_t i=0;i<lastSolidBucket;++i) {
     auto c = index[i];
@@ -129,11 +135,27 @@ void VisualObjects::mkIndex() {
   index.resize(buckets.size());
   size_t id=0;
   for(auto& i:buckets) {
+    if(i.size()==0)
+      continue;
     index[id] = &i;
     ++id;
     }
+  index.resize(id);
+
   std::sort(index.begin(),index.end(),[](const ObjectsBucket* l,const ObjectsBucket* r){
-    return l->material()<r->material();
+    auto& lm = l->material();
+    auto& rm = r->material();
+
+    if(lm.alphaOrder()<rm.alphaOrder())
+      return true;
+    if(lm.alphaOrder()>rm.alphaOrder())
+      return false;
+
+    if(l->avgPoligons()<r->avgPoligons())
+      return false; //inverted
+    if(l->avgPoligons()>r->avgPoligons())
+      return true;
+    return lm.tex < rm.tex;
     });
   lastSolidBucket = index.size();
   for(size_t i=0;i<index.size();++i) {

@@ -71,7 +71,8 @@ class Pose final {
     void               setRotation(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir);
     bool               setAnimItem(const AnimationSolver &solver, Npc &npc, const char* scheme);
 
-    std::vector<Tempest::Matrix4x4> tr;
+    const std::vector<Tempest::Matrix4x4>& transform() const;
+    const Tempest::Matrix4x4&              transform(size_t id) const;
 
   private:
     struct Layer final {
@@ -107,4 +108,6 @@ class Pose final {
     Flags                           flag=NoFlags;
     uint64_t                        lastUpdate=0;
     uint16_t                        comboLen=0;
+
+    std::vector<Tempest::Matrix4x4> tr;
   };

@@ -85,6 +85,17 @@ bool Material::operator < (const Material& other) const {
   return tex<other.tex;
   }
 
+bool Material::operator >(const Material& other) const {
+  auto a0 = alphaOrder(alpha);
+  auto a1 = alphaOrder(other.alpha);
+
+  if(a0>a1)
+    return true;
+  if(a0<a1)
+    return false;
+  return tex>other.tex;
+  }
+
 bool Material::operator ==(const Material& other) const {
   return tex==other.tex &&
          alpha==other.alpha &&
