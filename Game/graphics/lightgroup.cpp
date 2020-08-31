@@ -2,6 +2,8 @@
 
 #include "bounds.h"
 
+#include "utils/workers.h"
+
 using namespace Tempest;
 
 LightGroup::LightGroup() {
@@ -14,10 +16,20 @@ size_t LightGroup::size() const {
 void LightGroup::set(const std::vector<Light>& l) {
   light = l;
   mkIndex(index,light.data(),light.size(),0);
+  dynamicState.clear();
+  for(auto& i:light)
+    if(i.isDynamic())
+      dynamicState.push_back(&i);
+  dynamicState.reserve(dynamicState.size());
   }
 
 size_t LightGroup::get(const Bounds& area, const Light** out, size_t maxOut) const {
   return implGet(index,area,out,maxOut);
+  }
+
+void LightGroup::tick(uint64_t time) {
+  for(auto i:dynamicState)
+    i->update(time);
   }
 
 size_t LightGroup::implGet(const LightGroup::Bvh& index, const Bounds& area, const Light** out, size_t maxOut) const {

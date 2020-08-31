@@ -47,13 +47,20 @@ void WorldView::tick(uint64_t /*dt*/) {
   }
 
 void WorldView::addLight(const ZenLoad::zCVobData& vob) {
-  uint8_t cl[4];
-  std::memcpy(cl,&vob.zCVobLight.color,4);
-
   Light l;
   l.setPosition(Vec3(vob.position.x,vob.position.y,vob.position.z));
-  l.setColor   (Vec3(cl[2]/255.f,cl[1]/255.f,cl[1]/255.f));
-  l.setRange   (vob.zCVobLight.range);
+
+  if(vob.zCVobLight.dynamic.rangeAniScale.size()>0) {
+    l.setRange(vob.zCVobLight.dynamic.rangeAniScale,vob.zCVobLight.range,vob.zCVobLight.dynamic.rangeAniFPS,vob.zCVobLight.dynamic.rangeAniSmooth);
+    } else {
+    l.setRange(vob.zCVobLight.range);
+    }
+
+  if(vob.zCVobLight.dynamic.colorAniList.size()>0) {
+    l.setColor(vob.zCVobLight.dynamic.colorAniList,vob.zCVobLight.dynamic.colorAniListFPS,vob.zCVobLight.dynamic.colorAniSmooth);
+    } else {
+    l.setColor(vob.zCVobLight.color);
+    }
 
   pendingLights.push_back(l);
   }
@@ -85,6 +92,7 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
     visuals.setupUbo();
     }
   pfxGroup.tick(tickCount);
+  sGlobal.lights.tick(tickCount);
   sGlobal .setTime(tickCount);
   sGlobal .commitUbo(fId);
 

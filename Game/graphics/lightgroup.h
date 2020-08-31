@@ -13,6 +13,7 @@ class LightGroup final {
 
     void   set(const std::vector<Light>& light);
     size_t get(const Bounds& area, const Light** out, size_t maxOut) const;
+    void   tick(uint64_t time);
 
   private:
     struct Bvh {
@@ -26,7 +27,8 @@ class LightGroup final {
     void        mkIndex(Bvh& id, Light* b, size_t count, int depth);
     static bool isIntersected(const Bounds& a,const Bounds& b);
 
-    std::vector<Light> light;
-    Bvh                index;
+    std::vector<Light>  light;
+    std::vector<Light*> dynamicState;
+    Bvh                 index;
   };
 

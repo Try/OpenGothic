@@ -362,8 +362,8 @@ void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fI
     const size_t cnt = v.lightCnt;
     for(size_t r=0; r<cnt && r<LIGHT_BLOCK; ++r) {
       pushBlock.light[r].pos   = v.light[r]->position();
-      pushBlock.light[r].color = v.light[r]->color();
-      pushBlock.light[r].range = v.light[r]->range();
+      pushBlock.light[r].color = v.light[r]->currentColor();
+      pushBlock.light[r].range = v.light[r]->currentRange();
       }
     for(size_t r=cnt;r<LIGHT_BLOCK;++r) {
       pushBlock.light[r].range = 0;
