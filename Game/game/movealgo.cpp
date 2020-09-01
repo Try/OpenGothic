@@ -1,6 +1,6 @@
 #include "movealgo.h"
-#include "serialize.h"
 
+#include "serialize.h"
 #include "world/world.h"
 #include "world/npc.h"
 
@@ -79,7 +79,8 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
     return false;
     }
 
-  if(!testSlide(pos.x,pos.y+fallThreshold,pos.z)) {
+  const float lnorm = std::sqrt(norm.x*norm.x+norm.z*norm.z);;
+  if(lnorm<0.01f || norm.y>=1.f || !testSlide(pos.x,pos.y+fallThreshold,pos.z)) {
     setAsSlide(false);
     return false;
     }
@@ -87,13 +88,12 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
   const float timeK = float(dt)/100.f;
   const float speed = 0.02f*timeK*gravity;
 
-  float k = std::fabs(norm.y)/std::sqrt(norm.x*norm.x+norm.z*norm.z);
+  float k = std::fabs(norm.y)/lnorm;
   fallSpeed.x += +speed*norm.x*k;
   fallSpeed.y += -speed*std::sqrt(1.f - norm.y*norm.y);
   fallSpeed.z += +speed*norm.z*k;
 
   auto dp = fallSpeed*timeK;
-
   if(!tryMove(dp.x,dp.y,dp.z))
     tryMove(dp.x,0.f,dp.z);
 
