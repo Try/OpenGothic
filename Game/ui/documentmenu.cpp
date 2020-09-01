@@ -82,7 +82,7 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
     p.setBrush(Color(0.04f,0.04f,0.04f,1));
 
     fnt->drawText(p,x+mgr.left,
-                  y+mgr.top,
+                  y+mgr.top+fnt->pixelSize(),
                   w - mgr.xMargin(),
                   back->h() - mgr.yMargin(),
                   i.text, Tempest::AlignLeft);
