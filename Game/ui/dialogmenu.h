@@ -18,6 +18,7 @@ class GthFont;
 class DialogMenu : public Tempest::Widget {
   public:
     DialogMenu(Gothic& gothic,InventoryMenu& trade);
+    ~DialogMenu();
 
     void tick(uint64_t dt);
     void clear();
@@ -45,6 +46,8 @@ class DialogMenu : public Tempest::Widget {
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
 
     void onSelect();
+    void setupSettings();
+    bool isChoiseMenuActive() const;
 
   private:
     const Tempest::Texture2d* tex    =nullptr;
@@ -64,7 +67,8 @@ class DialogMenu : public Tempest::Widget {
       };
 
     enum {
-      MAX_PRINT=5
+      MAX_PRINT = 5,
+      ANIM_TIME = 200,
       };
 
     enum class State : uint8_t {
@@ -75,7 +79,8 @@ class DialogMenu : public Tempest::Widget {
 
     struct Entry {
       std::string txt;
-      uint64_t    time=0;
+      uint64_t    msgTime = 0;
+      uint64_t    time    = 0;
       };
 
     struct Forward {
@@ -101,6 +106,7 @@ class DialogMenu : public Tempest::Widget {
     bool haveToWaitOutput() const;
 
     void drawTextMultiline(Tempest::Painter& p, int x, int y, int w, int h, const std::string& txt, bool isPl);
+    Tempest::Size processTextMultiline(Tempest::Painter* p, int x, int y, int w, int h, const std::string& txt, bool isPl);
 
     void startTrade();
 
@@ -128,4 +134,7 @@ class DialogMenu : public Tempest::Widget {
     std::vector<PScreen>                pscreen;
     PScreen                             printMsg[MAX_PRINT];
     uint64_t                            remPrint=0;
+
+    bool                                dlgAnimation   = true;
+    uint64_t                            choiseAnimTime = 0;
   };

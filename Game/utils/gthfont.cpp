@@ -18,15 +18,20 @@ void GthFont::drawText(Painter &p, int bx, int by, int bw, int bh, const std::st
   drawText(p,bx,by,bw,bh,txtChar.c_str(),align);
   }
 
-void GthFont::drawText(Painter &p, int bx, int by, int bw, int /*bh*/,
+void GthFont::drawText(Painter &p, int bx, int by, int bw, int bh,
                        const char *txtChar, Tempest::AlignFlag align) const {
   if(tex==nullptr || txtChar==nullptr)
     return;
 
-  const uint8_t* txt = reinterpret_cast<const uint8_t*>(txtChar);
-
   auto b = p.brush();
   p.setBrush(Brush(*tex,color));
+  processText(&p,bx,by,bw,bh,txtChar,align);
+  p.setBrush(b);
+  }
+
+Size GthFont::processText(Painter* p, int bx, int by, int bw, int /*bh*/,
+                          const char* txtChar, AlignFlag align) const {
+  const uint8_t* txt = reinterpret_cast<const uint8_t*>(txtChar);
 
   int   h  = pixelSize();
   int   x  = bx, y=by-h;
@@ -35,11 +40,15 @@ void GthFont::drawText(Painter &p, int bx, int by, int bw, int /*bh*/,
 
   int   lwidth = 0;
 
+  Size ret = {0,0};
   while(*txt) {
     auto t = getLine(txt,bw,lwidth);
 
+    auto sz = textSize(txt,t);
+    ret.w  = std::max(ret.w,sz.w);
+    ret.h += sz.h;
+
     if(align!=NoAlign && align!=AlignLeft) {
-      auto sz = textSize(txt,t);
       int x1 = x;
       if(align & AlignHCenter)
         x1 = x + (bw-sz.w)/2;
@@ -54,8 +63,10 @@ void GthFont::drawText(Painter &p, int bx, int by, int bw, int /*bh*/,
       auto&   uv2 = fnt.getFontInfo().fontUV2[id];
       int     w   = fnt.getFontInfo().glyphWidth[id];
 
-      p.drawRect(x,y, w,h,
-                 tw*uv1.x,th*uv1.y, tw*uv2.x,th*uv2.y);
+      if(p!=nullptr) {
+        p->drawRect(x,y, w,h,
+                    tw*uv1.x,th*uv1.y, tw*uv2.x,th*uv2.y);
+        }
       x += w;
       }
 
@@ -67,7 +78,7 @@ void GthFont::drawText(Painter &p, int bx, int by, int bw, int /*bh*/,
     y+= h;
     }
 
-  p.setBrush(b);
+  return ret;
   }
 
 void GthFont::drawText(Painter &p, int x, int y, const std::string &txt) const {
@@ -143,6 +154,10 @@ Size GthFont::textSize(const uint8_t* b, const uint8_t* e) const {
     }
 
   return Size(totalW,y);
+  }
+
+Size GthFont::textSize(int bw, const char* txt) const {
+  return processText(nullptr,0,0,bw,0,txt,NoAlign);
   }
 
 const uint8_t* GthFont::getLine(const uint8_t *txt, int bw, int& width) const {
