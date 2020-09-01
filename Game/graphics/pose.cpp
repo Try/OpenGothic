@@ -50,6 +50,10 @@ void Pose::load(Serialize &fin,const AnimationSolver& solver) {
     if(i.seq->name==name)
       itemUse = i.seq;
     }
+
+  if(lay.size()==0)
+    zeroSkeleton(); else
+    mkSkeleton(*lay[0].seq);
   }
 
 void Pose::setFlags(Pose::Flags f) {

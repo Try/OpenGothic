@@ -99,6 +99,8 @@ void Interactive::load(Serialize &fin) {
           i.user->setInteraction(this,true);
         }
     }
+  view.setPose(*skInst,transform());
+  view.setPose(*skInst,transform());
   }
 
 void Interactive::save(Serialize &fout) const {
