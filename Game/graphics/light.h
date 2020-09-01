@@ -2,6 +2,7 @@
 
 #include <Tempest/Point>
 #include <array>
+#include <vector>
 
 class Light final {
   public:
