@@ -11,17 +11,19 @@ class Item;
 class Inventory;
 class Interactive;
 class World;
+class KeyCodec;
 
 class InventoryMenu : public Tempest::Widget {
   public:
-    InventoryMenu(Gothic& gothic,const RendererStorage &storage);
+    InventoryMenu(Gothic& gothic, const KeyCodec& key, const RendererStorage &storage);
 
     enum class State:uint8_t {
       Closed=0,
       Equip,
       Chest,
       Trade,
-      Ransack
+      Ransack,
+      LockPicking
       };
 
     enum class LootMode:uint8_t {
@@ -78,6 +80,8 @@ class InventoryMenu : public Tempest::Widget {
       };
 
     Gothic&                   gothic;
+    const KeyCodec&           keycodec;
+
     const Tempest::Texture2d* tex =nullptr;
     const Tempest::Texture2d* slot=nullptr;
     const Tempest::Texture2d* selT=nullptr;
@@ -98,6 +102,9 @@ class InventoryMenu : public Tempest::Widget {
     InventoryRenderer         renderer;
 
     size_t                    columsCount=5;
+
+    size_t                    pickLockProgress = 0;
+
     size_t                    rowsCount() const;
 
     Tempest::Size             slotSize() const;
@@ -109,6 +116,7 @@ class InventoryMenu : public Tempest::Widget {
     const World*              world() const;
 
     void          processMove(Tempest::KeyEvent& e);
+    void          processPickLock(Tempest::KeyEvent& e);
 
     void          onTakeStuff();
     void          adjustScroll();

@@ -119,7 +119,7 @@ Size DialogMenu::processTextMultiline(Painter* p, int x, int y, int w, int h, co
       fnt.drawText(*p,x+pdd, y,
                    w-2*pdd, h, txt, Tempest::AlignHCenter);
       }
-    auto sz = fnt.textSize(txt);
+    auto sz = fnt.textSize(w,txt.c_str());
     ret.w  = std::max(ret.w,sz.w);
     ret.h += sz.h;
     } else {
@@ -141,7 +141,7 @@ Size DialogMenu::processTextMultiline(Painter* p, int x, int y, int w, int h, co
       fnt.drawText(*p,x+pdd, y,
                    w-2*pdd, h, txt, Tempest::AlignHCenter);
       }
-    auto sz = fnt.textSize(txt);
+    auto sz = fnt.textSize(w,txt.c_str());
     ret.w  = std::max(ret.w,sz.w);
     ret.h += sz.h;
     }
@@ -361,7 +361,6 @@ void DialogMenu::onEntry(const GameScript::DlgChoise &e) {
 
 void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
   Painter p(e);
-
   const uint64_t da = dlgAnimation ? ANIM_TIME : 0;
   const int      dw = std::min(w(),600);
   const int      dh = 100;
@@ -426,6 +425,9 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
   }
 
 void DialogMenu::paintChoise(PaintEvent &e) {
+  if(choise.size()==0)
+    return;
+
   auto& fnt = Resources::dialogFont();
   const int  padd     = 20;
   const int  dw       = std::min(w(),600);

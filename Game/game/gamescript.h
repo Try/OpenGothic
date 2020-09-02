@@ -116,12 +116,14 @@ class GameScript final {
     auto updateDialog (const GameScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoise>;
     void exec(const DlgChoise &dlg, Npc &player, Npc &npc);
 
-    int  printCannotUseError   (Npc &npc, int32_t atr, int32_t nValue);
-    int  printCannotCastError  (Npc &npc, int32_t plM, int32_t itM);
-    int  printCannotBuyError   (Npc &npc);
-    int  printMobMissingItem   (Npc &npc);
-    int  printMobMissingKey    (Npc &npc);
-    int  printMobAnotherIsUsing(Npc &npc);
+    int  printCannotUseError         (Npc &npc, int32_t atr, int32_t nValue);
+    int  printCannotCastError        (Npc &npc, int32_t plM, int32_t itM);
+    int  printCannotBuyError         (Npc &npc);
+    int  printMobMissingItem         (Npc &npc);
+    int  printMobAnotherIsUsing      (Npc &npc);
+    int  printMobMissingKey          (Npc &npc);
+    int  printMobMissingKeyOrLockpick(Npc &npc);
+    int  printMobMissingLockpick     (Npc &npc);
 
     int  invokeState(Daedalus::GEngineClasses::C_Npc *hnpc, Daedalus::GEngineClasses::C_Npc *hother, const char* name);
     int  invokeState(Npc* npc, Npc* other, Npc *victum, ScriptFn fn);
@@ -129,6 +131,7 @@ class GameScript final {
     int  invokeMana (Npc& npc, Npc* target, Item&  fn);
     int  invokeSpell(Npc& npc, Npc *target, Item&  fn);
     int  invokeCond (Npc& npc, const char *func);
+    void invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen);
     auto canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t spellId) -> CollideMask;
 
     int  playerHotKeyScreenMap(Npc& pl);

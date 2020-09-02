@@ -4,6 +4,7 @@
 #include <Tempest/SoundEffect>
 
 #include "utils/gthfont.h"
+#include "utils/keycodec.h"
 #include "world/world.h"
 #include "gothic.h"
 #include "resources.h"
@@ -40,8 +41,8 @@ struct InventoryMenu::RansackPage : InventoryMenu::Page {
   const Inventory& inv;
   };
 
-InventoryMenu::InventoryMenu(Gothic &gothic, const RendererStorage &storage)
-  :gothic(gothic),renderer(storage) {
+InventoryMenu::InventoryMenu(Gothic &gothic, const KeyCodec& key, const RendererStorage &storage)
+  :gothic(gothic), keycodec(key), renderer(storage) {
   slot = Resources::loadTexture("INV_SLOT.TGA");
   selT = Resources::loadTexture("INV_SLOT_HIGHLIGHTED.TGA");
   selU = Resources::loadTexture("INV_SLOT_EQUIPPED.TGA");
@@ -117,9 +118,16 @@ bool InventoryMenu::ransack(Npc &pl, Npc &tr) {
 void InventoryMenu::open(Npc &pl, Interactive &ch) {
   if(pl.isDown())
     return;
+  const bool needToPicklock = (ch.pickLockCode().size()>0);
   if(!pl.setInteraction(&ch))
     return;
-  state  = State::Chest;
+
+  if(needToPicklock && !ch.isCracked()) {
+    state = State::LockPicking;
+    } else {
+    state = State::Chest;
+    }
+
   player = &pl;
   trader = nullptr;
   chest  = &ch;
@@ -175,15 +183,16 @@ void InventoryMenu::processMove(KeyEvent& e) {
   auto&        sel    = activePageSel();
   const size_t pCount = pagesCount();
 
-  if(e.key==KeyEvent::K_W){
+  auto key = keycodec.tr(e);
+  if(key==KeyCodec::Forward){
     if(sel.sel>=columsCount)
       sel.sel -= columsCount;
     }
-  else if(e.key==KeyEvent::K_S){
+  else if(key==KeyCodec::Back){
     if(sel.sel+columsCount<pg.size())
       sel.sel += columsCount;
     }
-  else if(e.key==KeyEvent::K_A){
+  else if(key==KeyCodec::Left){
     if(sel.sel%columsCount==0 && page>0){
       page--;
       sel.sel += (columsCount-1);
@@ -191,7 +200,7 @@ void InventoryMenu::processMove(KeyEvent& e) {
     else if(sel.sel>0)
       sel.sel--;
     }
-  else if(e.key==KeyEvent::K_D) {
+  else if(key==KeyCodec::Right) {
     if(((sel.sel+1u)%columsCount==0 || sel.sel+1u==pg.size() || pg.size()==0) && page+1u<pCount) {
       page++;
       sel.sel -= sel.sel%columsCount;
@@ -201,9 +210,58 @@ void InventoryMenu::processMove(KeyEvent& e) {
     }
   }
 
+void InventoryMenu::processPickLock(KeyEvent& e) {
+  auto&        script        = world()->script();
+  const size_t ItKE_lockpick = script.getSymbolIndex("ItKE_lockpick");
+
+  auto k  = keycodec.tr(e);
+  char ch = '\0';
+  if(k==KeyCodec::Left)
+    ch = 'L';
+  else if(k==KeyCodec::Right)
+    ch = 'R';
+  else if(k==KeyCodec::Back) {
+    close();
+    return;
+    }
+  else
+    return;
+
+  const std::string& cmp = chest->pickLockCode();
+  if(pickLockProgress<cmp.size() && cmp[pickLockProgress]!=ch) {
+    pickLockProgress = 0;
+    const int32_t dex = player->attribute(Npc::ATR_DEXTERITY);
+    if(dex<int32_t(script.rand(100)))  {
+      script.invokePickLock(*player,0,1);
+      player->delItem(ItKE_lockpick,1);
+      if(player->inventory().itemCount(ItKE_lockpick)==0) {
+        close();
+        return;
+        }
+      } else {
+      script.invokePickLock(*player,0,0);
+      }
+    } else {
+    pickLockProgress++;
+    if(pickLockProgress==cmp.size()) {
+      script.invokePickLock(*player,1,1);
+      chest->setAsCracked(true);
+      pickLockProgress = 0;
+      state            = State::Chest;
+      } else {
+      script.invokePickLock(*player,1,0);
+      }
+    }
+  }
+
 void InventoryMenu::keyDownEvent(KeyEvent &e) {
   if(state==State::Closed){
     e.ignore();
+    return;
+    }
+
+  if(state==State::LockPicking) {
+    processPickLock(e);
     return;
     }
 
@@ -224,11 +282,18 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     takeTimer.start(200);
     onTakeStuff();
     }
+  else if(keycodec.tr(e)==KeyCodec::ActionGeneric) {
+    lootMode = LootMode::Normal;
+    takeTimer.start(200);
+    onTakeStuff();
+    }
   adjustScroll();
   update();
   }
 
 void InventoryMenu::keyRepeatEvent(KeyEvent& e) {
+  if(state==State::LockPicking)
+    return;
   processMove(e);
   adjustScroll();
   update();
@@ -248,6 +313,9 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
     return;
     }
 
+  if(state==State::LockPicking)
+    return;
+
   auto& page = activePage();
   auto& sel  = activePageSel();
 
@@ -258,12 +326,12 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
     if(r.isEquiped())
       player->unequipItem(r.clsId()); else
       player->useItem    (r.clsId());
-  }
+    }
   else if(state==State::Chest || state==State::Trade || state==State::Ransack) {
     lootMode = LootMode::Normal;
     takeTimer.start(200);
     onTakeStuff();
-  }
+    }
   adjustScroll();
 }
 
@@ -277,6 +345,9 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
     e.ignore();
     return;
     }
+
+  if(state==State::LockPicking)
+    return;
 
   auto& pg  = activePage();
   auto& sel = activePageSel();
@@ -421,6 +492,9 @@ void InventoryMenu::drawAll(Painter &p,Npc &player,DrawPass pass) {
 
   int iy=30+34+70;
 
+  if(state==State::LockPicking)
+    return;
+
   const int wcount = int(columsCount);
   const int hcount = int(rowsCount());
 
@@ -448,6 +522,9 @@ void InventoryMenu::drawAll(Painter &p,Npc &player,DrawPass pass) {
 
 void InventoryMenu::drawItems(Painter &p, DrawPass pass,
                               const Page &inv, const PageLocal& sel, int x, int y, int wcount, int hcount) {
+  if(state==State::LockPicking)
+    return;
+
   if(tex && pass==DrawPass::Back) {
     p.setBrush(*tex);
     p.drawRect(x,y,slotSize().w*wcount,slotSize().h*hcount,
@@ -594,6 +671,6 @@ void InventoryMenu::drawInfo(Painter &p) {
   renderer.drawItem(x+dw-sz-sz/2,y,sz,sz,r);
   }
 
-void InventoryMenu::draw(FrameBuffer& fbo, Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
+void InventoryMenu::draw(FrameBuffer& /*fbo*/, Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   renderer.draw(cmd,fId);
   }

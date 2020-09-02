@@ -74,7 +74,7 @@ KeyCodec::KeyCodec(Gothic& gothic)
   setupSettings();
   }
 
-KeyCodec::Action KeyCodec::tr(Tempest::KeyEvent& e) {
+KeyCodec::Action KeyCodec::tr(Tempest::KeyEvent& e) const {
   int32_t code = keyToCode(e.key);
   if(e.key==Tempest::KeyEvent::K_ESCAPE)
     return Escape;
@@ -88,7 +88,7 @@ KeyCodec::Action KeyCodec::tr(Tempest::KeyEvent& e) {
   return Idle;
   }
 
-KeyCodec::Action KeyCodec::tr(Tempest::MouseEvent& e) {
+KeyCodec::Action KeyCodec::tr(Tempest::MouseEvent& e) const {
   int32_t code = keyToCode(e.button);
   auto act = implTr(code);
   if(act!=KeyCodec::Idle)
@@ -113,7 +113,7 @@ std::string KeyCodec::toCode(int32_t code) {
   return ret;
   }
 
-KeyCodec::Action KeyCodec::implTr(int32_t code) {
+KeyCodec::Action KeyCodec::implTr(int32_t code) const {
   if(keyEnd.is(code))
     return Idle;
   if(keyUp.is(code))

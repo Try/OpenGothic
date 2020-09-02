@@ -104,6 +104,7 @@ class DialogMenu : public Tempest::Widget {
     bool aiClose();
 
     bool haveToWaitOutput() const;
+    bool hasPrintMsg() const;
 
     void drawTextMultiline(Tempest::Painter& p, int x, int y, int w, int h, const std::string& txt, bool isPl);
     Tempest::Size processTextMultiline(Tempest::Painter* p, int x, int y, int w, int h, const std::string& txt, bool isPl);

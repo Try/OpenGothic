@@ -76,6 +76,8 @@ void Interactive::load(Serialize &fin) {
   fin.read(locked,keyInstance,pickLockStr);
   invent.load(*this,world,fin);
   fin.read(pos,state,reverseState,loopState);
+  if(fin.version()>=12)
+    fin.read(isLockCracked);
 
   setGlobalTransform(pos);
   setVisual(mdlVisual);
@@ -110,7 +112,7 @@ void Interactive::save(Serialize &fout) const {
   fout.write(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
   fout.write(locked,keyInstance,pickLockStr);
   invent.save(fout);
-  fout.write(transform(),state,reverseState,loopState);
+  fout.write(transform(),state,reverseState,loopState,isLockCracked);
   skInst->save(fout);
 
   fout.write(uint32_t(attPos.size()));
@@ -423,6 +425,7 @@ bool Interactive::checkUseConditions(Npc& npc) {
       return false;
       }
     }
+
   if(!useWithItem.empty()) {
     size_t it = world.getSymbolIndex(useWithItem.c_str());
     if(it!=size_t(-1)) {
@@ -435,10 +438,30 @@ bool Interactive::checkUseConditions(Npc& npc) {
       npc.setCurrentItem(it);
       }
     }
-  if(isPlayer && !keyInstance.empty()) {
-    size_t it = world.getSymbolIndex(keyInstance.c_str());
-    if(it!=size_t(-1) && npc.hasItem(it)==0) {
+
+  if(isPlayer) {
+    const size_t ItKE_lockpick  = world.getSymbolIndex("ItKE_lockpick");
+    const size_t lockPickCnt    = npc.inventory().itemCount(ItKE_lockpick);
+    const bool   canLockPick    = (npc.talentSkill(Npc::TALENT_PICKLOCK)!=0 && lockPickCnt>0);
+
+    const size_t keyInst        = keyInstance.empty() ? size_t(-1) : world.getSymbolIndex(keyInstance.c_str());
+    const bool   needToPicklock = (pickLockStr.size()>0);
+
+    if(keyInst!=size_t(-1) && npc.hasItem(keyInst)>0)
+      return true;
+    if((canLockPick || isLockCracked) && needToPicklock)
+      return true;
+
+    if(keyInst!=size_t(-1) && needToPicklock) { // key+lockpick
+      sc.printMobMissingKeyOrLockpick(npc);
+      return false;
+      }
+    else if(keyInst!=size_t(-1)) { // key-only
       sc.printMobMissingKey(npc);
+      return false;
+      }
+    else if(needToPicklock) { // lockpick only
+      sc.printMobMissingLockpick(npc);
       return false;
       }
     }

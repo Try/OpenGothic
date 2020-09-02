@@ -47,6 +47,10 @@ class Interactive : public Vob {
     const char*         posSchemeName() const;
 
     bool                isContainer() const;
+    const std::string&  pickLockCode() const { return pickLockStr; }
+    void                setAsCracked(bool c) { isLockCracked = c; }
+    bool                isCracked() const { return isLockCracked; }
+
     Inventory&          inventory();
 
     uint32_t            stateMask() const;
@@ -121,11 +125,13 @@ class Interactive : public Vob {
     std::string                  pickLockStr;
     Inventory                    invent;
 
-    int                          state=0;
-    bool                         reverseState=false;
-    bool                         loopState=false;
-    uint64_t                     waitAnim = 0;
-    bool                         animChanged=false;
+    int                          state         = 0;
+    bool                         reverseState  = false;
+    bool                         loopState     = false;
+    bool                         isLockCracked = false;
+
+    uint64_t                     waitAnim      = 0;
+    bool                         animChanged   = false;
 
     std::vector<Pos>             attPos;
     const ProtoMesh*             mesh = nullptr;

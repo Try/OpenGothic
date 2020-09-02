@@ -19,7 +19,6 @@ class GthFont final {
     auto textSize(const char*        txt) const -> Tempest::Size;
     auto textSize(const char*    b, const char* e) const -> Tempest::Size;
     auto textSize(const uint8_t* b, const uint8_t* e) const -> Tempest::Size;
-    auto textSize(const char*        txt, int bw) const -> Tempest::Size;
     auto textSize(int w, const char* txt) const -> Tempest::Size;
 
   private:

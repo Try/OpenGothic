@@ -851,6 +851,22 @@ int GameScript::printMobAnotherIsUsing(Npc &npc) {
   return runFunction(id);
   }
 
+int GameScript::printMobMissingKeyOrLockpick(Npc& npc) {
+  auto id = vm.getDATFile().getSymbolIndexByName("player_mob_missing_key_or_lockpick");
+  if(id==size_t(-1))
+    return 0;
+  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
+  return runFunction(id);
+  }
+
+int GameScript::printMobMissingLockpick(Npc& npc) {
+  auto id = vm.getDATFile().getSymbolIndexByName("player_mob_missing_lockpick");
+  if(id==size_t(-1))
+    return 0;
+  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
+  return runFunction(id);
+  }
+
 int GameScript::invokeState(Daedalus::GEngineClasses::C_Npc* hnpc, Daedalus::GEngineClasses::C_Npc* oth, const char *name) {
   auto& dat = vm.getDATFile();
   auto  id  = dat.getSymbolIndexByName(name);
@@ -941,6 +957,17 @@ int GameScript::invokeCond(Npc &,const char* func) {
   //FIXME
   Log::d("not implemented: \"",__func__,"\' '",func,"'");
   return 0;
+  }
+
+void GameScript::invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen) {
+  auto& dat = vm.getDATFile();
+  auto fn   = dat.getSymbolIndexByName("G_PickLock");
+  if(fn==size_t(-1))
+    return;
+  ScopeVar self(vm, vm.globalSelf(),  npc);
+  vm.pushInt(bSuccess);
+  vm.pushInt(bBrokenOpen);
+  runFunction(fn);
   }
 
 CollideMask GameScript::canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t spellId) {

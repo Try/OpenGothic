@@ -50,8 +50,8 @@ class KeyCodec final {
       };
 
     static void   keysStr(const std::string& keys, char buf[], size_t bufSz);
-    Action        tr(Tempest::KeyEvent&   e);
-    Action        tr(Tempest::MouseEvent& e);
+    Action        tr(Tempest::KeyEvent&   e) const;
+    Action        tr(Tempest::MouseEvent& e) const;
 
     static std::string toCode(Tempest::Event::KeyType k);
     static std::string toCode(Tempest::Event::MouseButton k);
@@ -71,10 +71,10 @@ class KeyCodec final {
 
     struct KeyPair {
       int32_t k[2]={};
-      bool is(int32_t i) { return k[0]==i || k[1]==i; }
+      bool is(int32_t i) const { return k[0]==i || k[1]==i; }
       };
 
-    Action      implTr(int32_t code);
+    Action      implTr(int32_t code) const;
     static int  fetch(const std::string& keys,size_t s,size_t e);
     static bool keyToStr(int32_t k, char* buf, size_t bufSz);
     static void keyToStr(Tempest::Event::KeyType k, char* buf, size_t bufSz);
