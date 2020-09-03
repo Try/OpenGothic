@@ -235,6 +235,11 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
       }
     }
 
+  if(needToLockpick(npc)) {
+    if(p.attachMode)
+      return; // chest is locked - need to crack lock first
+    }
+
   if((p.attachMode^reverseState) && state==stateNum){
     if(!setAnim(&npc,Anim::Active))
       return;
@@ -362,6 +367,13 @@ const char* Interactive::posSchemeName() const {
 
 bool Interactive::isContainer() const {
   return vobType==ZenLoad::zCVobData::VT_oCMobContainer;
+  }
+
+bool Interactive::needToLockpick(const Npc& pl) const {
+  const size_t keyInst = keyInstance.empty() ? size_t(-1) : world.getSymbolIndex(keyInstance.c_str());
+  if(keyInst!=size_t(-1) && pl.inventory().itemCount(keyInst)>0)
+    return false;
+  return !(pickLockStr.empty() || isLockCracked);
   }
 
 Inventory &Interactive::inventory()  {

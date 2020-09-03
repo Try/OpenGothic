@@ -50,6 +50,7 @@ class Interactive : public Vob {
     const std::string&  pickLockCode() const { return pickLockStr; }
     void                setAsCracked(bool c) { isLockCracked = c; }
     bool                isCracked() const { return isLockCracked; }
+    bool                needToLockpick(const Npc& pl) const;
 
     Inventory&          inventory();
 
