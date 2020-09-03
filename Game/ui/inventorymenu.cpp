@@ -123,6 +123,7 @@ void InventoryMenu::open(Npc &pl, Interactive &ch) {
     return;
 
   if(needToPicklock && !ch.isCracked()) {
+    pickLockProgress = 0;
     state = State::LockPicking;
     } else {
     state = State::Chest;

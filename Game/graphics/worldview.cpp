@@ -62,7 +62,7 @@ void WorldView::addLight(const ZenLoad::zCVobData& vob) {
     l.setColor(vob.zCVobLight.color);
     }
 
-  pendingLights.push_back(l);
+  pendingLights.push_back(std::move(l));
   }
 
 void WorldView::setupSunDir(float pulse,float ang) {
@@ -242,7 +242,6 @@ void WorldView::updateLight() {
 
 void WorldView::resetCmd() {
   // cmd buffers must not be in use
-  storage.device.waitIdle();
   visuals.setupUbo();
   }
 

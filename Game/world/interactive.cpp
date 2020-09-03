@@ -570,8 +570,11 @@ bool Interactive::attach(Npc &npc) {
       return true;
 
   for(auto& i:attPos)
-    if(i.user!=nullptr)
+    if(i.user!=nullptr) {
+      if(npc.isPlayer())
+        world.script().printMobAnotherIsUsing(npc);
       return false;
+      }
 
   for(auto& i:attPos) {
     if(i.user || !i.isAttachPoint())

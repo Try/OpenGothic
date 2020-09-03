@@ -495,7 +495,11 @@ void MainWindow::drawSaving(Painter& p, int sw, int sh, float scale) {
   drawProgress(p, x+int(100.f*scale), y+sh-int(75.f*scale), sw-2*int(100.f*scale), int(40.f*scale), v);
   }
 
-void MainWindow::tick() {
+void MainWindow::tick() {  
+  auto time = Application::tickCount();
+  auto dt   = time-lastTick;
+  lastTick  = time;
+
   auto st = gothic.checkLoading();
   if(st==Gothic::LoadState::Finalize || st==Gothic::LoadState::FailedLoad || st==Gothic::LoadState::FailedSave) {
     gothic.finishLoading();
@@ -503,6 +507,7 @@ void MainWindow::tick() {
       rootMenu.setMenu("MENU_MAIN");
     if(st==Gothic::LoadState::FailedSave)
       gothic.onPrint("unable to write savegame file");
+    return;
     }
   else if(st!=Gothic::LoadState::Idle) {
     if(st==Gothic::LoadState::Loading)
@@ -511,11 +516,7 @@ void MainWindow::tick() {
     return;
     }
 
-  auto time = Application::tickCount();
-  auto dt   = time-lastTick;
-  lastTick  = time;
-
-  if(gothic.isPause())
+  if(gothic.isPause() || dt==0)
     return;
 
   if(dt>50)
@@ -581,6 +582,9 @@ void MainWindow::followCamera() {
   uint64_t now = Application::tickCount();
   uint64_t dt  = now - tick;
   tick = now;
+
+  if(dt==0)
+    return;
 
   camera.setMode(solveCameraMode());
   camera.follow(*pl,dt,followCamera,
