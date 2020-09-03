@@ -158,6 +158,7 @@ class World final {
     void                 emitDlgSound   (const char *s, float x, float y, float z, float range, uint64_t &timeLen);
     void                 emitSoundEffect(const char *s, float x, float y, float z, float range, bool freeSlot);
     void                 emitSoundRaw   (const char *s, float x, float y, float z, float range, bool freeSlot);
+    void                 emitSoundRaw3d (const char *s, float x, float y, float z, float range);
     void                 takeSoundSlot(GSoundEffect &&eff);
     void                 tickSlot(GSoundEffect &slot);
 

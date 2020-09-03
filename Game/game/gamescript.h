@@ -377,6 +377,7 @@ class GameScript final {
     void infomanager_hasfinished(Daedalus::DaedalusVM &vm);
 
     void snd_play            (Daedalus::DaedalusVM &vm);
+    void snd_play3d          (Daedalus::DaedalusVM &vm);
 
     void exitsession         (Daedalus::DaedalusVM &vm);
 

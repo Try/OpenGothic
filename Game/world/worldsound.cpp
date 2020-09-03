@@ -86,8 +86,8 @@ void WorldSound::emitSound(const char* s, float x, float y, float z, float range
     range = 3500.f;
 
   GSoundEffect* slot = nullptr;
-  std::lock_guard<std::mutex> guard(sync);
-  if(isInListenerRange({x,y,z})) {
+  if(isInListenerRange({x,y,z},range)) {
+    std::lock_guard<std::mutex> guard(sync);
     if(fSlot)
       slot = &freeSlot[s];
     if(slot!=nullptr && !slot->isFinished())
@@ -109,13 +109,33 @@ void WorldSound::emitSound(const char* s, float x, float y, float z, float range
     }
   }
 
+void WorldSound::emitSound3d(const char* s, float x, float y, float z, float range) {
+  if(range<=0.f)
+    range = 3500.f;
+
+  auto snd = game.loadSoundFx(s);
+  if(snd==nullptr)
+    return;
+  GSoundEffect eff = game.loadSound(*snd);
+  if(eff.isEmpty())
+    return;
+  eff.setPosition(x,y,z);
+  eff.setMaxDistance(maxDist);
+  eff.setRefDistance(range);
+  eff.play();
+
+  std::lock_guard<std::mutex> guard(sync);
+  tickSlot(eff);
+  effect3d.emplace_back(std::move(eff));
+  }
+
 void WorldSound::emitSoundRaw(const char *s, float x, float y, float z, float range, bool fSlot) {
   if(range<=0.f)
     range = 3500.f;
 
-  std::lock_guard<std::mutex> guard(sync);
   GSoundEffect* slot = nullptr;
-  if(isInListenerRange({x,y,z})){
+  if(isInListenerRange({x,y,z},range)){
+    std::lock_guard<std::mutex> guard(sync);
     if(fSlot)
       slot = &freeSlot[s];
     if(slot!=nullptr && !slot->isFinished())
@@ -138,9 +158,8 @@ void WorldSound::emitSoundRaw(const char *s, float x, float y, float z, float ra
   }
 
 void WorldSound::emitDlgSound(const char *s, float x, float y, float z, float range, uint64_t& timeLen) {
-  std::lock_guard<std::mutex> guard(sync);
-
-  if(isInListenerRange({x,y,z})){
+  if(isInListenerRange({x,y,z},range)){
+    std::lock_guard<std::mutex> guard(sync);
     auto snd = Resources::loadSoundBuffer(s);
     if(snd.isEmpty())
       return;
@@ -174,6 +193,16 @@ void WorldSound::tick(Npc &player) {
       effect.pop_back();
       } else {
       tickSlot(effect[i]);
+      ++i;
+      }
+    }
+
+  for(size_t i=0;i<effect3d.size();) {
+    if(effect3d[i].isFinished()){
+      effect3d[i]=std::move(effect3d.back());
+      effect3d.pop_back();
+      } else {
+      tickSlot(effect3d[i]);
       ++i;
       }
     }
@@ -287,13 +316,13 @@ void WorldSound::tickSlot(GSoundEffect& slot) {
   slot.setOcclusion(std::max(0.f,1.f-occ));
   }
 
-bool WorldSound::isInListenerRange(const Tempest::Vec3& pos) const {
-  return (pos-plPos).quadLength()<4*maxDist*maxDist;
+bool WorldSound::isInListenerRange(const Tempest::Vec3& pos, float sndRgn) const {
+  return (pos-plPos).quadLength()<4*(maxDist+sndRgn)*(maxDist+sndRgn);
   }
 
 void WorldSound::aiOutput(const Tempest::Vec3& pos,const std::string &outputname) {
-  std::lock_guard<std::mutex> guard(sync);
-  if(isInListenerRange(pos)){
+  if(isInListenerRange(pos,0)){
+    std::lock_guard<std::mutex> guard(sync);
     game.emitGlobalSound(Resources::loadSoundBuffer(outputname+".wav"));
     }
   }

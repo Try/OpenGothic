@@ -702,7 +702,7 @@ void World::emitBlockSound(Npc &self, Npc &other) {
   }
 
 bool World::isInListenerRange(const Vec3& pos) const {
-  return wsound.isInListenerRange(pos);
+  return wsound.isInListenerRange(pos,0);
   }
 
 void World::emitDlgSound(const char* s, float x, float y, float z, float range, uint64_t& timeLen) {
@@ -715,6 +715,10 @@ void World::emitSoundEffect(const char *s, float x, float y, float z, float rang
 
 void World::emitSoundRaw(const char *s, float x, float y, float z, float range, bool freeSlot) {
   wsound.emitSoundRaw(s,x,y,z,range,freeSlot);
+  }
+
+void World::emitSoundRaw3d(const char* s, float x, float y, float z, float range) {
+  wsound.emitSound3d(s,x,y,z,range);
   }
 
 void World::takeSoundSlot(GSoundEffect &&eff)  {

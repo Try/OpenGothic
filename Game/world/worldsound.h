@@ -26,6 +26,7 @@ class WorldSound final {
     void addSound      (const ZenLoad::zCVobData &vob);
 
     void emitSound   (const char *s, float x, float y, float z, float range, bool freeSlot);
+    void emitSound3d (const char *s, float x, float y, float z, float range);
     void emitSoundRaw(const char *s, float x, float y, float z, float range, bool freeSlot);
     void emitDlgSound(const char *s, float x, float y, float z, float range, uint64_t &timeLen);
     void takeSoundSlot(GSoundEffect &&eff);
@@ -33,7 +34,7 @@ class WorldSound final {
 
     void tick(Npc& player);
     void tickSlot(GSoundEffect &slot);
-    bool isInListenerRange(const Tempest::Vec3& pos) const;
+    bool isInListenerRange(const Tempest::Vec3& pos, float sndRgn) const;
 
     static const float talkRange;
 
@@ -78,6 +79,7 @@ class WorldSound final {
 
     std::unordered_map<std::string,GSoundEffect> freeSlot;
     std::vector<GSoundEffect>               effect;
+    std::vector<GSoundEffect>               effect3d; // snd_play3d
     std::vector<WSound>                     worldEff;
 
     std::mutex                              sync;

@@ -286,6 +286,7 @@ void GameScript::initCommon() {
                                                      [this](Daedalus::DaedalusVM& vm){ infomanager_hasfinished(vm); });
 
   vm.registerExternalFunction("snd_play",            [this](Daedalus::DaedalusVM& vm){ snd_play(vm);             });
+  vm.registerExternalFunction("snd_play3d",          [this](Daedalus::DaedalusVM& vm){ snd_play3d(vm);           });
 
   vm.registerExternalFunction("game_initgerman",     [this](Daedalus::DaedalusVM& vm){ game_initgerman(vm);      });
   vm.registerExternalFunction("game_initenglish",    [this](Daedalus::DaedalusVM& vm){ game_initenglish(vm);     });
@@ -2975,6 +2976,18 @@ void GameScript::snd_play(Daedalus::DaedalusVM &vm) {
   for(auto& c:file)
     c = char(std::toupper(c));
   owner.emitGlobalSound(file);
+  }
+
+void GameScript::snd_play3d(Daedalus::DaedalusVM& vm) {
+  std::string file = vm.popString().c_str();
+  Npc*        npc  = popInstance(vm);
+  if(npc==nullptr)
+    return;
+  for(auto& c:file)
+    c = char(std::toupper(c));
+  auto pos = npc->position();
+  owner.world()->emitSoundRaw3d(file.c_str(),pos.x,pos.y,pos.z,0.f);
+  owner.world()->sendPassivePerc(*npc,*npc,*npc,Npc::PERC_ASSESSQUIETSOUND);
   }
 
 void GameScript::exitsession(Daedalus::DaedalusVM&) {
