@@ -57,6 +57,7 @@ void MdlVisual::setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, W
     }
   view = std::move(body);
   view.setSkeleton(skeleton);
+  //view.setPose(*skInst,pos);
   }
 
 bool MdlVisual::hasOverlay(const Skeleton* sk) const {
@@ -244,7 +245,7 @@ void MdlVisual::setPos(float x, float y, float z) {
 void MdlVisual::setPos(const Tempest::Matrix4x4 &m) {
   pos = m;
   view.setObjMatrix(pos);
-  // syncAttaches();
+  syncAttaches();
   }
 
 void MdlVisual::setTarget(const Tempest::Vec3& p) {

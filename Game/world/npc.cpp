@@ -238,6 +238,7 @@ bool Npc::setPosition(float ix, float iy, float iz) {
   z = iz;
   durtyTranform |= TR_Pos;
   physic.setPosition(x,y,z);
+  visual.setPos(x,y,z);
   return true;
   }
 
@@ -583,15 +584,22 @@ void Npc::updateAnimation() {
     // sides angle: +/- 30 height angle: +/- 45
     comb   = 1+cy*3+cx;
     }
+
   if(currentTarget!=nullptr)
     visual.setTarget(currentTarget->position()); else
     visual.setTarget(position());
+
+  if(durtyTranform){
+    updatePos();
+    durtyTranform=0;
+    }
   visual.updateAnimation(*this,comb);
   }
 
 void Npc::updateTransform() {
   if(durtyTranform){
     updatePos();
+    visual.syncAttaches();
     durtyTranform=0;
     }
   }

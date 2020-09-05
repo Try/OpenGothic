@@ -26,6 +26,7 @@ class MdlVisual final {
     void                           setTarget(const Tempest::Vec3& p);
     void                           setVisual(const Skeleton *visual);
     void                           setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner);
+    void                           syncAttaches();
 
     bool                           hasOverlay(const Skeleton *sk) const;
     void                           addOverlay(const Skeleton *sk, uint64_t time);
@@ -104,7 +105,6 @@ class MdlVisual final {
     void syncAttaches(Attach<View>& mesh);
 
     void rebindAttaches(const Skeleton& from,const Skeleton& to);
-    void syncAttaches();
 
     Tempest::Matrix4x4             pos;
     Tempest::Vec3                  targetPos;

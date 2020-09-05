@@ -283,7 +283,6 @@ void WorldObjects::execTriggerEvent(const TriggerEvent& e) {
 
 void WorldObjects::updateAnimation() {
   Workers::parallelFor(npcArr,[](std::unique_ptr<Npc>& i){
-    i->updateTransform();
     i->updateAnimation();
     });
   interactiveObj.parallelFor([](Interactive& i){
