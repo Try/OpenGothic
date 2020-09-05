@@ -76,6 +76,7 @@ class MainWindow : public Tempest::Window {
     void saveGame (const std::string& name);
 
     void onVideo(const Daedalus::ZString& fname);
+    void onStartLoading();
     void onWorldLoaded();
     void onSessionExit();
     void setGameImpl(std::unique_ptr<GameSession>&& w);

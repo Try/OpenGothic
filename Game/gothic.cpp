@@ -342,6 +342,7 @@ void Gothic::implStartLoadSave(const char* banner,
     return; // loading already
     }
 
+  onStartLoading();
   auto g = clearGame().release();
   try{
     auto l = std::thread([this,f,g,one]() noexcept {

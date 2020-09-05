@@ -249,11 +249,6 @@ bool DialogMenu::onStart(Npc &p, Npc &ot) {
   curentIsPl     = true;
   choiseAnimTime = 0;
 
-  if(choise.size()==0){
-    close();
-    return false;
-    }
-
   if(choise.size()>0 && choise[0].title.size()==0){
     // important dialog
     onEntry(choise[0]);

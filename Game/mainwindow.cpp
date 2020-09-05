@@ -50,6 +50,7 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
   gothic.onLoadGame     .bind(this,&MainWindow::loadGame);
   gothic.onSaveGame     .bind(this,&MainWindow::saveGame);
 
+  gothic.onStartLoading .bind(this,&MainWindow::onStartLoading);
   gothic.onWorldLoaded  .bind(this,&MainWindow::onWorldLoaded);
   gothic.onSessionExit  .bind(this,&MainWindow::onSessionExit);
 
@@ -683,9 +684,15 @@ void MainWindow::onVideo(const Daedalus::ZString& fname) {
   video.pushVideo(fname);
   }
 
+void MainWindow::onStartLoading() {
+  player.clearInput();
+  inventory.onWorldChanged();
+  dialogs.onWorldChanged();
+  }
+
 void MainWindow::onWorldLoaded() {
   player   .clearInput();
-  inventory.update();
+  inventory.onWorldChanged();
   dialogs  .onWorldChanged();
 
   mpos = Point(w()/2,h()/2);

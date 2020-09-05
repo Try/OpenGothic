@@ -123,6 +123,7 @@ class Gothic final {
     Tempest::Signal<void(const ChapterScreen::Show&)>                   onIntroChapter;
     Tempest::Signal<void(const DocumentMenu::Show&)>                    onShowDocument;
     Tempest::Signal<void()>                                             onWorldLoaded;
+    Tempest::Signal<void()>                                             onStartLoading;
     Tempest::Signal<void()>                                             onSessionExit;
     Tempest::Signal<void()>                                             onSettingsChanged;
 

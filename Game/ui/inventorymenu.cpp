@@ -64,7 +64,7 @@ void InventoryMenu::close() {
       gothic.emitGlobalSound("INV_CLOSE");
     }
   renderer.reset();
-  state = State::Closed;
+  state  = State::Closed;
   }
 
 void InventoryMenu::open(Npc &pl) {
@@ -147,9 +147,18 @@ bool InventoryMenu::isActive() const {
   return state!=State::Closed;
   }
 
+void InventoryMenu::onWorldChanged() {
+  close();
+  player = nullptr;
+  trader = nullptr;
+  chest  = nullptr;
+  }
+
 void InventoryMenu::tick(uint64_t /*dt*/) {
-  if(player==nullptr || player->isDown())
+  if(player!=nullptr && player->isDown()) {
     close();
+    return;
+    }
 
   if(state==State::Ransack) {
     if(trader==nullptr){
