@@ -220,6 +220,7 @@ void GameScript::initCommon() {
                                                      [this](Daedalus::DaedalusVM& vm){ npc_isdetectedmobownedbynpc(vm);});
   vm.registerExternalFunction("npc_getdetectedmob",  [this](Daedalus::DaedalusVM& vm){ npc_getdetectedmob(vm);   });
   vm.registerExternalFunction("npc_ownedbynpc",      [this](Daedalus::DaedalusVM& vm){ npc_ownedbynpc(vm);       });
+  vm.registerExternalFunction("npc_canseesource",    [this](Daedalus::DaedalusVM& vm){ npc_canseesource(vm);     });
 
   vm.registerExternalFunction("ai_output",           [this](Daedalus::DaedalusVM& vm){ ai_output(vm);            });
   vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
@@ -2224,6 +2225,7 @@ void GameScript::npc_checkinfo(Daedalus::DaedalusVM &vm) {
       return;
       }
     }
+
   vm.setReturn(0);
   }
 
@@ -2448,6 +2450,14 @@ void GameScript::npc_ownedbynpc(Daedalus::DaedalusVM &vm) {
 
   auto& sym = vm.getDATFile().getSymbolByIndex(itm->handle()->owner);
   if(npc->handle()==sym.instance.get())
+    vm.setReturn(1); else
+    vm.setReturn(0);
+  }
+
+void GameScript::npc_canseesource(Daedalus::DaedalusVM& vm) {
+  notImplementedFn<&GameScript::npc_canseesource>("npc_canseesource");
+  Npc* self = popInstance(vm);
+  if(self!=nullptr) // TODO
     vm.setReturn(1); else
     vm.setReturn(0);
   }

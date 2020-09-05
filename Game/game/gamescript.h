@@ -314,6 +314,7 @@ class GameScript final {
     void npc_isdetectedmobownedbynpc(Daedalus::DaedalusVM &vm);
     void npc_getdetectedmob  (Daedalus::DaedalusVM &vm);
     void npc_ownedbynpc      (Daedalus::DaedalusVM &vm);
+    void npc_canseesource    (Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
