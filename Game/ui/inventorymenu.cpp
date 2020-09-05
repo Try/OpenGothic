@@ -118,7 +118,7 @@ bool InventoryMenu::ransack(Npc &pl, Npc &tr) {
 void InventoryMenu::open(Npc &pl, Interactive &ch) {
   if(pl.isDown())
     return;
-  const bool needToPicklock = (ch.pickLockCode().size()>0);
+  const bool needToPicklock = ch.needToLockpick(pl);
   if(!pl.setInteraction(&ch))
     return;
 
