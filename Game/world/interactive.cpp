@@ -90,18 +90,22 @@ void Interactive::load(Serialize &fin) {
     std::string name;
     Npc*        user=nullptr;
     int32_t     userState=0; // unused
-    bool        attachMode=false;
+    bool        attachMode = false;
+    bool        started    = false;
 
     fin.read(name,user,userState,attachMode);
+    if(fin.version()>=13)
+      fin.read(started);
+
     for(auto& i:attPos)
       if(i.name==name) {
         i.user       = user;
         i.attachMode = attachMode;
+        i.started    = started;
         if(i.user!=nullptr)
           i.user->setInteraction(this,true);
         }
     }
-  view.setPose(*skInst,transform());
   view.setPose(*skInst,transform());
   }
 
@@ -118,7 +122,7 @@ void Interactive::save(Serialize &fout) const {
   fout.write(uint32_t(attPos.size()));
   for(auto& i:attPos) {
     int32_t userState=0; // unused
-    fout.write(i.name,i.user,userState,i.attachMode);
+    fout.write(i.name,i.user,userState,i.attachMode,i.started);
     }
   }
 
@@ -202,8 +206,8 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     // STAND -> S0
     auto sq = npc.setAnimAngGet(Npc::Anim::InteractFromStand,false);
     uint64_t t = sq==nullptr ? 0 : uint64_t(sq->totalTime());
-    waitAnim = world.tickCount()+t;
-    p.started         = true;
+    waitAnim   = world.tickCount()+t;
+    p.started  = sq!=nullptr;
     return;
     }
 

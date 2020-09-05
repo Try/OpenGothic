@@ -19,6 +19,7 @@ void Pose::save(Serialize &fout) {
     fout.write(i.seq->name,i.sAnim,i.bs);
     }
   fout.write(lastUpdate);
+  fout.write(base,tr);
   fout.write(comboLen);
   fout.write(rotation ? rotation->name : "");
   fout.write(itemUse  ? itemUse->name  : "");
@@ -35,6 +36,13 @@ void Pose::load(Serialize &fin,const AnimationSolver& solver) {
     i.seq = solver.solveFrm(name.c_str());
     }
   fin.read(lastUpdate);
+  if(fin.version()>=13) {
+    fin.read(base,tr);
+    if(skeleton!=nullptr) {
+      base.resize(skeleton->nodes.size());
+      tr  .resize(skeleton->nodes.size());
+      }
+    }
   if(fin.version()>=3)
     fin.read(comboLen);
   removeIf(lay,[](const Layer& l){
@@ -50,10 +58,6 @@ void Pose::load(Serialize &fin,const AnimationSolver& solver) {
     if(i.seq->name==name)
       itemUse = i.seq;
     }
-
-  if(lay.size()==0)
-    zeroSkeleton(); else
-    mkSkeleton(*lay[0].seq);
   }
 
 void Pose::setFlags(Pose::Flags f) {
@@ -249,7 +253,7 @@ bool Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
         }
       changed |= updateFrame(*seq,lastUpdate,i.sAnim,tickCount);
       }
-    if(changed || lastUpdate==0) {
+    if(changed) {
       mkSkeleton(*lay[0].seq);
       }
     lastUpdate = tickCount;
