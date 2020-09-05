@@ -31,6 +31,7 @@ class Animation final {
 
     struct EvCount final {
       uint8_t              def_opt_frame=0;
+      uint8_t              groundSounds=0;
       ZenLoad::EFightMode  weaponCh=ZenLoad::FM_LAST;
       std::vector<EvTimed> timed;
       };

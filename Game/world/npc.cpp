@@ -1588,6 +1588,8 @@ void Npc::tick(uint64_t dt) {
   Animation::EvCount ev;
   visual.pose().processEvents(lastEventTime,owner.tickCount(),ev);
 
+  if(ev.groundSounds>0 && isPlayer())
+    world().sendPassivePerc(*this,*this,*this,Npc::PERC_ASSESSQUIETSOUND);
   if(ev.def_opt_frame>0)
     commitDamage();
   implSetFightMode(ev);

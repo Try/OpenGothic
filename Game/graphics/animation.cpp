@@ -431,8 +431,8 @@ void Animation::Sequence::processPfx(uint64_t barrier, uint64_t sTime, uint64_t 
   }
 
 void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const {
-  if(data->events.size()==0)
-    return;
+  //if(data->events.size()==0)
+  //  return;
 
   uint64_t frameA=0,frameB=0;
   bool     invert=false;
@@ -454,6 +454,12 @@ void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64
       if((frameA<=fr && fr<frameB) ^ invert)
         processEvent(e,ev,uint64_t(float(fr)*1000.f/fpsRate)+sTime);
       }
+    }
+
+  for(auto& i:d.gfx){
+    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.lastFrame);
+    if((frameA<=fr && fr<frameB) ^ invert)
+      ev.groundSounds++;
     }
   }
 
