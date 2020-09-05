@@ -50,6 +50,10 @@ struct VideoWidget::SoundContext {
     snd = dev.load(std::unique_ptr<VideoWidget::Sound>(new VideoWidget::Sound(*this,sampleRate,isMono)));
     }
 
+  ~SoundContext() {
+    snd = SoundEffect();
+    }
+
   void pushSamples(const std::vector<float>& s) {
     std::lock_guard<std::mutex> guard(syncSamples);
     size_t sz = samples.size();
