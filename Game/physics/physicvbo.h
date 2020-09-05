@@ -24,6 +24,8 @@ class PhysicVbo : public btTriangleIndexVertexArray {
 
     void    adjustMesh();
 
+    const char* validateSectorName(const char* name) const;
+
   private:
     PhysicVbo(const std::vector<ZenLoad::WorldVertex>& v);
 

@@ -128,3 +128,10 @@ void PhysicVbo::adjustMesh(){
     meshIndex.m_numTriangles      = sg.size;
     }
   }
+
+const char* PhysicVbo::validateSectorName(const char* name) const {
+  for(auto& i:segments)
+    if(std::strcmp(i.sector,name)==0)
+      return i.sector;
+  return nullptr;
+  }

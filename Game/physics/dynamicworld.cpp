@@ -997,6 +997,10 @@ void DynamicWorld::deleteObj(DynamicWorld::BBoxBody* obj) {
   bboxList->del(obj);
   }
 
+const char* DynamicWorld::validateSectorName(const char* name) const {
+  return landMesh->validateSectorName(name);
+  }
+
 void DynamicWorld::deleteObj(btCollisionObject *obj) {
   if(!obj)
     return;

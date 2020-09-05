@@ -213,6 +213,8 @@ class DynamicWorld final {
     void        deleteObj(BulletBody* obj);
     void        deleteObj(BBoxBody*   obj);
 
+    const char* validateSectorName(const char* name) const;
+
   private:
     void        deleteObj(NpcBody*    obj);
     void        deleteObj(btCollisionObject* obj);
