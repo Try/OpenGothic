@@ -2719,6 +2719,8 @@ bool Npc::perceptionProcess(Npc &pl) {
       ret = true;
       }
     }
+
+  perceptionNextTime=owner.tickCount()+perceptionTime;
   return ret;
   }
 
@@ -2730,10 +2732,8 @@ bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType 
   if(hasPerc(perc)){
     owner.script().invokeState(this,&pl,victum,perception[perc].func);
     //currentOther=&pl;
-    perceptionNextTime=owner.tickCount()+perceptionTime;
     return true;
     }
-  perceptionNextTime=owner.tickCount()+perceptionTime;
   return false;
   }
 
