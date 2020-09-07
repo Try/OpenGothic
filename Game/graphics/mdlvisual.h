@@ -62,7 +62,7 @@ class MdlVisual final {
     const Animation::Sequence*     startAnimAndGet(Npc &npc, const char* name, bool forceAnim, BodyState bs);
     const Animation::Sequence*     startAnimAndGet(Npc &npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk, bool noInterupt);
     bool                           startAnim(Npc &npc, WeaponState st);
-    bool                           startAnimItem(Npc &npc, const char* scheme);
+    bool                           startAnimItem(Npc &npc, const char* scheme, int state);
     bool                           startAnimSpell(Npc &npc, const char* scheme);
     bool                           startAnimDialog(Npc &npc);
     void                           stopDlgAnim();

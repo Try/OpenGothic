@@ -112,7 +112,6 @@ class Inventory final {
     void   clearSlot       (Npc& owner, const char* slot, bool remove);
     void   putAmmunition   (Npc& owner, size_t cls, const char* slot);
     bool   putState        (Npc& owner, size_t cls, int mode);
-    void   commitPutToState(Npc& owner);
 
     void   setCurrentItem(size_t cls);
     void   setStateItem  (size_t cls);

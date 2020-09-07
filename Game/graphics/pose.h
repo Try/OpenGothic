@@ -69,7 +69,7 @@ class Pose final {
     auto               bone(size_t id) const -> const Tempest::Matrix4x4&;
 
     void               setRotation(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir);
-    bool               setAnimItem(const AnimationSolver &solver, Npc &npc, const char* scheme);
+    bool               setAnimItem(const AnimationSolver &solver, Npc &npc, const char* scheme, int state);
 
     const std::vector<Tempest::Matrix4x4>& transform() const;
     const Tempest::Matrix4x4&              transform(size_t id) const;
@@ -90,7 +90,7 @@ class Pose final {
 
     bool updateFrame(const Animation::Sequence &s, uint64_t barrier, uint64_t sTime, uint64_t now);
 
-    auto getNext(AnimationSolver& solver, const Animation::Sequence* sq) -> const Animation::Sequence*;
+    auto getNext(AnimationSolver& solver, const Layer& lay, const Animation::Sequence* sq) -> const Animation::Sequence*;
 
     void addLayer(const Animation::Sequence* seq, BodyState bs, uint64_t tickCount);
     void onRemoveLayer(Layer& l);
@@ -104,6 +104,8 @@ class Pose final {
     std::vector<Layer>              lay;
     const Animation::Sequence*      rotation=nullptr;
     const Animation::Sequence*      itemUse=nullptr;
+    int32_t                         itemUseSt     = 0;
+    int32_t                         itemUseDestSt = 0;
     float                           trY=0;
     Flags                           flag=NoFlags;
     uint64_t                        lastUpdate=0;

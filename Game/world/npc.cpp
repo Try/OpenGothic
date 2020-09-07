@@ -329,6 +329,9 @@ bool Npc::resetPositionToTA() {
     }
 
   invent.clearSlot(*this,nullptr,false);
+  if(routines.size()==0)
+    return true;
+
   attachToPoint(nullptr);
   if(!isPlayer())
     setInteraction(nullptr,true);
@@ -339,8 +342,6 @@ bool Npc::resetPositionToTA() {
     clearState(true);
     }
 
-  if(routines.size()==0)
-    return true;
   auto& rot = currentRoutine();
   auto  at  = rot.point;
 
@@ -839,10 +840,10 @@ void Npc::setAnimRotate(int rot) {
   visual.setRotation(*this,rot);
   }
 
-bool Npc::setAnimItem(const char *scheme) {
+bool Npc::setAnimItem(const char *scheme, int state) {
   if(scheme==nullptr || scheme[0]==0)
     return true;
-  return visual.startAnimItem(*this,scheme);
+  return visual.startAnimItem(*this,scheme,state);
   }
 
 void Npc::stopAnim(const std::string &ani) {
@@ -1719,11 +1720,7 @@ void Npc::nextAiAction(uint64_t dt) {
       }
     case AI_PlayAnimBs:{
       BodyState bs = BodyState(act.i0);
-      if(invent.hasStateItem())
-        bs = BodyState(BodyState(act.i0) | BS_FLAG_OGT_STATEITEM);
-
       if(auto sq = playAnimByName(act.s0,false,bs)) {
-        invent.commitPutToState(*this);
         implAniWait(uint64_t(sq->totalTime()));
         } else {
         if(visual.isAnimExist(act.s0.c_str()))

@@ -18,9 +18,11 @@ static void setupTime(std::vector<uint64_t>& t0,const std::vector<int32_t>& inp,
     }
   }
 
-static uint64_t frameClamp(int32_t frame,uint32_t first,uint32_t last) {
+static uint64_t frameClamp(int32_t frame,uint32_t first,uint32_t numFrames,uint32_t last) {
   if(frame<int(first))
     return 0;
+  if(frame>=int(first+numFrames))
+    return numFrames-1; //workaround for gin, water, milk
   if(frame>int(last))
     return last-first;
   return uint64_t(frame)-first;
@@ -393,14 +395,14 @@ void Animation::Sequence::processSfx(uint64_t barrier, uint64_t sTime, uint64_t 
 
   auto& d = *data;
   for(auto& i:d.sfx){
-    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.lastFrame);
+    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
     if(((frameA<=fr && fr<frameB) ^ invert) ||
        i.m_Frame==int32_t(d.lastFrame))
       npc.emitSoundEffect(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
     }
   if(!npc.isInAir()) {
     for(auto& i:d.gfx){
-      uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.lastFrame);
+      uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
       if((frameA<=fr && fr<frameB) ^ invert)
         npc.emitSoundGround(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
       }
@@ -415,14 +417,14 @@ void Animation::Sequence::processPfx(uint64_t barrier, uint64_t sTime, uint64_t 
 
   auto& d = *data;
   for(auto& i:d.pfx){
-    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.lastFrame);
+    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
     if(((frameA<=fr && fr<frameB) ^ invert) ||
        i.m_Frame==int32_t(d.lastFrame)) {
       npc.startParticleEffect(i.m_Name.c_str(),i.m_Num,i.m_Pos.c_str());
       }
     }
   for(auto& i:d.pfxStop){
-    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.lastFrame);
+    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
     if(((frameA<=fr && fr<frameB) ^ invert) ||
        i.m_Frame==int32_t(d.lastFrame)) {
       npc.stopParticleEffect(i.m_Num);
@@ -445,19 +447,19 @@ void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64
   for(auto& e:d.events) {
     if(e.m_Def==ZenLoad::DEF_OPT_FRAME) {
       for(auto i:e.m_Int){
-        uint64_t fr = frameClamp(i,d.firstFrame,d.lastFrame);
+        uint64_t fr = frameClamp(i,d.firstFrame,d.numFrames,d.lastFrame);
         if((frameA<=fr && fr<frameB) ^ invert)
           processEvent(e,ev,uint64_t(float(fr)*1000.f/fpsRate)+sTime);
         }
       } else {
-      uint64_t fr = frameClamp(e.m_Frame,d.firstFrame,d.lastFrame);
+      uint64_t fr = frameClamp(e.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
       if((frameA<=fr && fr<frameB) ^ invert)
         processEvent(e,ev,uint64_t(float(fr)*1000.f/fpsRate)+sTime);
       }
     }
 
   for(auto& i:d.gfx){
-    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.lastFrame);
+    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
     if((frameA<=fr && fr<frameB) ^ invert)
       ev.groundSounds++;
     }

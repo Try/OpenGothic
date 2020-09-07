@@ -607,8 +607,8 @@ void MdlVisual::syncAttaches(Attach<View>& att) {
   att.view.setObjMatrix(p);
   }
 
-bool MdlVisual::startAnimItem(Npc &npc, const char *scheme) {
-  return skInst->setAnimItem(solver,npc,scheme);
+bool MdlVisual::startAnimItem(Npc &npc, const char *scheme, int state) {
+  return skInst->setAnimItem(solver,npc,scheme,state);
   }
 
 bool MdlVisual::startAnimSpell(Npc &npc, const char *scheme) {

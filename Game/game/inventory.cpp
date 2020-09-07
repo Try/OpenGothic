@@ -675,25 +675,12 @@ bool Inventory::putState(Npc& owner, size_t cls, int mode) {
     return true;
     }
 
-  if(mode>0 && !owner.setAnimItem(it->handle()->scemeName.c_str()))
+  if(!owner.setAnimItem(it->handle()->scemeName.c_str(),mode))
     return false;
 
-  if(mode==0) {
-    // for mode==0, item is going to be instanciated later in AI_PlayAniBS
-    setCurrentItem(0);
-    setStateItem(cls);
-    return true;
-    }
-
-  // implPutState(owner,cls,"ZS_LEFTHAND");
   setCurrentItem(0);
   setStateItem(cls);
   return true;
-  }
-
-void Inventory::commitPutToState(Npc& owner) {
-  implPutState(owner,size_t(stateItem),"ZS_LEFTHAND");
-  setCurrentItem(0);
   }
 
 void Inventory::setCurrentItem(size_t cls) {
@@ -767,7 +754,7 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
       }
     }
 
-  if(!owner.setAnimItem(it->handle()->scemeName.c_str()))
+  if(!owner.setAnimItem(it->handle()->scemeName.c_str(),0))
     return false;
 
   setCurrentItem(it->clsId());

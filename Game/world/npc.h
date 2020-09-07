@@ -236,7 +236,7 @@ class Npc final {
     bool       setAnim(Anim a);
     auto       setAnimAngGet(Anim a,bool noInterupt) -> const Animation::Sequence*;
     void       setAnimRotate(int rot);
-    bool       setAnimItem(const char* scheme);
+    bool       setAnimItem(const char* scheme, int state);
     void       stopAnim(const std::string& ani);
     bool       isFinishingMove() const;
 
