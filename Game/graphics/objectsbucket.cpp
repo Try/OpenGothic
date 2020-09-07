@@ -534,9 +534,9 @@ void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
   }
 
 void ObjectsBucket::setupLights(Object& val, bool noCache) {
-  int cx = int(val.bounds.midTr.x/20.f);
-  int cy = int(val.bounds.midTr.y/20.f);
-  int cz = int(val.bounds.midTr.z/20.f);
+  int cx = int(val.bounds.midTr.x/2.f);
+  int cy = int(val.bounds.midTr.y/2.f);
+  int cz = int(val.bounds.midTr.z/2.f);
 
   if(cx==val.lightCacheKey[0] &&
      cy==val.lightCacheKey[1] &&

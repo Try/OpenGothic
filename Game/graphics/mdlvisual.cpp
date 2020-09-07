@@ -328,10 +328,12 @@ void MdlVisual::stopAnim(Npc& npc,const char* ani) {
     startAnimAndGet(npc,AnimationSolver::Idle,fgtMode,npc.walkMode(),false);
   }
 
-void MdlVisual::stopItemStateAnim(Npc& npc) {
-  skInst->stopItemStateAnim();
+bool MdlVisual::stopItemStateAnim(Npc& npc) {
+  if(!skInst->stopItemStateAnim(solver,npc))
+    return false;
   if(!skInst->hasAnim())
     startAnimAndGet(npc,AnimationSolver::Idle,fgtMode,npc.walkMode(),false);
+  return true;
   }
 
 void MdlVisual::stopWalkAnim(Npc &npc) {
@@ -344,10 +346,6 @@ void MdlVisual::stopWalkAnim(Npc &npc) {
 
 bool MdlVisual::isStanding() const {
   return skInst->isStanding();
-  }
-
-bool MdlVisual::isItem() const {
-  return skInst->isItem();
   }
 
 bool MdlVisual::isAnimExist(const char* name) const {

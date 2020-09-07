@@ -22,7 +22,7 @@ void Pose::save(Serialize &fout) {
   fout.write(base,tr);
   fout.write(comboLen);
   fout.write(rotation ? rotation->name : "");
-  fout.write(itemUse  ? itemUse->name  : "");
+  fout.write(itemUseSt,itemUseDestSt);
   }
 
 void Pose::load(Serialize &fin,const AnimationSolver& solver) {
@@ -53,10 +53,10 @@ void Pose::load(Serialize &fin,const AnimationSolver& solver) {
     if(i.seq->name==name)
       rotation = i.seq;
     }
-  fin.read(name);
-  for(auto& i:lay) {
-    if(i.seq->name==name)
-      itemUse = i.seq;
+  if(fin.version()>=15) {
+    fin.read(itemUseSt,itemUseDestSt);
+    } else {
+    fin.read(name); //itemUse
     }
   }
 
@@ -111,12 +111,6 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
         return false;
       char tansition[256]={};
       const Animation::Sequence* tr=nullptr;
-      if(i.seq==itemUse) {
-        if(i.seq->shortName==nullptr)
-          return false;
-        std::snprintf(tansition,sizeof(tansition),"T_%s_2_STAND",i.seq->shortName);
-        tr = solver.solveFrm(tansition);
-        }
       if(i.seq->shortName!=nullptr && sq->shortName!=nullptr) {
         std::snprintf(tansition,sizeof(tansition),"T_%s_2_%s",i.seq->shortName,sq->shortName);
         tr = solver.solveFrm(tansition);
@@ -130,11 +124,9 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
         tr = solver.solveFrm(tansition);
         }
       onRemoveLayer(i);
-      i.seq     = tr ? tr : sq;
-      i.sAnim   = tickCount;
-      i.bs      = bs;
-      if(bs==BS_ITEMINTERACT)
-        itemUse = i.seq;
+      i.seq   = tr ? tr : sq;
+      i.sAnim = tickCount;
+      i.bs    = bs;
       return true;
       }
   addLayer(sq,bs,tickCount);
@@ -156,21 +148,6 @@ bool Pose::stopAnim(const char *name) {
     }
   lay.resize(ret);
   return done;
-  }
-
-void Pose::stopItemStateAnim() {
-  size_t ret=0;
-  for(size_t i=0;i<lay.size();++i) {
-    if((lay[i].bs & BS_FLAG_OGT_STATEITEM)==0) {
-      if(ret!=i)
-        lay[ret] = lay[i];
-      ret++;
-      } else {
-      onRemoveLayer(lay[i]);
-      }
-    }
-  itemUseDestSt = -1;
-  lay.resize(ret);
   }
 
 void Pose::interrupt() {
@@ -211,20 +188,15 @@ bool Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
     const auto& l = lay[i];
     if(l.seq->animCls==Animation::Transition &&
        (l.seq==rotation || l.seq->isFinished(tickCount-l.sAnim,comboLen))) {
-      auto next=getNext(solver,lay[i],lay[i].seq);
-      if(true) {
+      auto next = getNext(solver,lay[i]);
+      if(next!=lay[i].seq) {
         changed = true;
-        if(lay[i].seq==itemUse) {
-          onRemoveLayer(lay[i]);
-          itemUse=next;
-          } else {
-          onRemoveLayer(lay[i]);
-          }
+        onRemoveLayer(lay[i]);
 
         if(next!=nullptr) {
-          doSort         = lay[i].seq->layer!=next->layer;
-          lay[i].seq     = next;
-          lay[i].sAnim   = tickCount;
+          doSort       = lay[i].seq->layer!=next->layer;
+          lay[i].seq   = next;
+          lay[i].sAnim = tickCount;
           ret++;
           }
         continue;
@@ -341,28 +313,21 @@ void Pose::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
     }
   }
 
-const Animation::Sequence* Pose::getNext(AnimationSolver &solver, const Layer& lay, const Animation::Sequence* sq) {
+const Animation::Sequence* Pose::getNext(AnimationSolver &solver, const Layer& lay) {
+  auto sq = lay.seq;
+
   if((lay.bs & BS_ITEMINTERACT)==BS_ITEMINTERACT && itemUseSt!=itemUseDestSt) {
-    int sA = itemUseSt, sB = itemUseSt;
+    int sA = itemUseSt, sB = itemUseSt, nextState = itemUseSt;
     if(itemUseSt<itemUseDestSt) {
       sB++;
-      itemUseSt++;
+      nextState = itemUseSt+1;
       } else {
       sB--;
-      itemUseSt--;
+      nextState = itemUseSt-1;
       }
     char scheme[64]={};
-    for(size_t i=0, r=0; i<sq->name.size(); ++i) {
-      if(sq->name[i]=='_') {
-        for(i++;i<sq->name.size();++i) {
-          if(sq->name[i]=='_')
-            break;
-          scheme[r] = sq->name[i];
-          ++r;
-          }
-        break;
-        }
-      }
+    sq->schemeName(scheme);
+
     const Animation::Sequence* ret = nullptr;
     if(sB==-1) {
       char T_ID_S0_2_STAND[128]={};
@@ -373,10 +338,11 @@ const Animation::Sequence* Pose::getNext(AnimationSolver &solver, const Layer& l
       std::snprintf(T_ID_Sa_2_Sb,sizeof(T_ID_Sa_2_Sb),"T_%s_S%d_2_S%d",scheme,sA,sB);
       ret = solver.solveAsc(T_ID_Sa_2_Sb);
       }
-    if(ret!=nullptr)
-      return ret;
-    if(itemUseDestSt>=0)
+
+    if(ret==nullptr && itemUseDestSt>=0)
       return sq;
+    itemUseSt = nextState;
+    return ret;
     }
   if(sq->next.empty())
     return nullptr;
@@ -390,8 +356,6 @@ void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, uint64_t tickC
   l.seq   = seq;
   l.sAnim = tickCount;
   l.bs    = bs;
-  if(bs==BS_ITEMINTERACT)
-    itemUse = seq;
   lay.push_back(l);
   std::sort(lay.begin(),lay.end(),[](const Layer& a,const Layer& b){
     return a.seq->layer<b.seq->layer;
@@ -401,8 +365,6 @@ void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, uint64_t tickC
 void Pose::onRemoveLayer(Pose::Layer &l) {
   if(l.seq==rotation)
     rotation=nullptr;
-  if(l.seq==itemUse)
-    itemUse=nullptr;
   }
 
 void Pose::processSfx(Npc &npc, uint64_t tickCount) {
@@ -507,10 +469,6 @@ bool Pose::isStanding() const {
          s.name=="S_FISTWALK" || s.name=="S_MAGWALK" ||
          s.name=="S_1HWALK"   || s.name=="S_BOWWALK" ||
          s.name=="S_2HWALK"   || s.name=="S_CBOWWALK";
-  }
-
-bool Pose::isItem() const {
-  return itemUse;
   }
 
 bool Pose::isPrehit(uint64_t now) const {
@@ -628,18 +586,25 @@ void Pose::setRotation(const AnimationSolver &solver, Npc &npc, WeaponState figh
   }
 
 bool Pose::setAnimItem(const AnimationSolver &solver, Npc &npc, const char *scheme, int state) {
-  if(itemUse!=nullptr)
-    return false;
+  //if(itemUse!=nullptr)
+  //  return false;
   char T_ID_STAND_2_S0[128]={};
   std::snprintf(T_ID_STAND_2_S0,sizeof(T_ID_STAND_2_S0),"T_%s_STAND_2_S0",scheme);
   const Animation::Sequence *sq = solver.solveFrm(T_ID_STAND_2_S0);
   if(startAnim(solver,sq,BS_ITEMINTERACT,Pose::NoHint,npc.world().tickCount())) {
-    itemUse       = sq;
+    //itemUse       = sq;
     itemUseSt     = 0;
     itemUseDestSt = state;
     return true;
     }
   return false;
+  }
+
+bool Pose::stopItemStateAnim(const AnimationSolver&, Npc&) {
+  if(itemUseSt<0)
+    return true;
+  itemUseDestSt = -1;
+  return true;
   }
 
 const std::vector<Matrix4x4>& Pose::transform() const {

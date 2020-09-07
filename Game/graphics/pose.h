@@ -37,7 +37,6 @@ class Pose final {
     bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq, BodyState bs,
                                  StartHint hint, uint64_t tickCount);
     bool               stopAnim(const char* name);
-    void               stopItemStateAnim();
     void               interrupt();
     void               stopAllAnim();
     bool               update(AnimationSolver &solver, int comb, uint64_t tickCount);
@@ -53,7 +52,6 @@ class Pose final {
     bool               isJumpAnim() const;
     bool               isFlyAnim() const;
     bool               isStanding() const;
-    bool               isItem() const;
     bool               isPrehit(uint64_t now) const;
     bool               isIdle() const;
     bool               isInAnim(const char *sq) const;
@@ -70,6 +68,7 @@ class Pose final {
 
     void               setRotation(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir);
     bool               setAnimItem(const AnimationSolver &solver, Npc &npc, const char* scheme, int state);
+    bool               stopItemStateAnim(const AnimationSolver &solver, Npc &npc);
 
     const std::vector<Tempest::Matrix4x4>& transform() const;
     const Tempest::Matrix4x4&              transform(size_t id) const;
@@ -90,7 +89,7 @@ class Pose final {
 
     bool updateFrame(const Animation::Sequence &s, uint64_t barrier, uint64_t sTime, uint64_t now);
 
-    auto getNext(AnimationSolver& solver, const Layer& lay, const Animation::Sequence* sq) -> const Animation::Sequence*;
+    const Animation::Sequence* getNext(AnimationSolver& solver, const Layer& lay);
 
     void addLayer(const Animation::Sequence* seq, BodyState bs, uint64_t tickCount);
     void onRemoveLayer(Layer& l);
@@ -103,7 +102,6 @@ class Pose final {
     const Skeleton*                 skeleton=nullptr;
     std::vector<Layer>              lay;
     const Animation::Sequence*      rotation=nullptr;
-    const Animation::Sequence*      itemUse=nullptr;
     int32_t                         itemUseSt     = 0;
     int32_t                         itemUseDestSt = 0;
     float                           trY=0;

@@ -56,7 +56,6 @@ class MdlVisual final {
     auto                           mapWeaponBone() const -> Tempest::Vec3;
 
     bool                           isStanding() const;
-    bool                           isItem() const;
 
     bool                           isAnimExist(const char* name) const;
     const Animation::Sequence*     startAnimAndGet(Npc &npc, const char* name, bool forceAnim, BodyState bs);
@@ -67,7 +66,7 @@ class MdlVisual final {
     bool                           startAnimDialog(Npc &npc);
     void                           stopDlgAnim();
     void                           stopAnim(Npc &npc, const char *ani);
-    void                           stopItemStateAnim(Npc &npc);
+    bool                           stopItemStateAnim(Npc &npc);
     void                           stopWalkAnim(Npc &npc);
     void                           setRotation(Npc &npc, int dir);
     void                           interrupt();

@@ -850,6 +850,10 @@ void Npc::stopAnim(const std::string &ani) {
   visual.stopAnim(*this,ani.c_str());
   }
 
+bool Npc::stopItemStateAnim() {
+  return visual.stopItemStateAnim(*this);
+  }
+
 bool Npc::isFinishingMove() const {
   return visual.pose().isInAnim("T_1HSFINISH") || visual.pose().isInAnim("T_2HSFINISH");
   }
@@ -1568,11 +1572,6 @@ Npc* Npc::updateNearestBody() {
 void Npc::tick(uint64_t dt) {
   if(!visual.pose().hasAnim())
     setAnim(AnimationSolver::Idle);
-
-  if(!isPlayer() && visual.isItem() && !invent.hasStateItem()) {
-    // forward from S_IITEMSCHEME to Idle
-    setAnim(AnimationSolver::Idle);
-    }
 
   if(currentSpellCast!=0) {
     if(setAnim(Npc::Anim::Idle))

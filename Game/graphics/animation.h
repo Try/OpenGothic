@@ -86,6 +86,7 @@ class Animation final {
       ZMath::float3                          translation(uint64_t dt) const;
       ZMath::float3                          speed(uint64_t at, uint64_t dt) const;
       ZMath::float3                          translateXZ(uint64_t at) const;
+      void                                   schemeName(char buf[64]) const;
 
       std::string                            name, askName;
       const char*                            shortName = nullptr;

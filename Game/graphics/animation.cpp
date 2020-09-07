@@ -583,6 +583,22 @@ ZMath::float3 Animation::Sequence::translateXZ(uint64_t at) const {
   return p;
   }
 
+void Animation::Sequence::schemeName(char scheme[]) const {
+  scheme[0] = '\0';
+  for(size_t i=0, r=0; i<name.size(); ++i) {
+    if(name[i]=='_') {
+      for(i++;i<name.size() && r<63;++i) {
+        if(name[i]=='_')
+          break;
+        scheme[r] = name[i];
+        ++r;
+        }
+      scheme[r] = '\0';
+      break;
+      }
+    }
+  }
+
 void Animation::Sequence::setupMoveTr() {
   data->setupMoveTr();
   }

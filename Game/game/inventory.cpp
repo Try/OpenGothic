@@ -631,6 +631,8 @@ void Inventory::clearSlot(Npc& owner,const char *slot,bool remove) {
       } else {
       ++i;
       }
+  if(all || slot==nullptr || stateSlot.slot==slot)
+    implPutState(owner,0,stateSlot.slot.c_str());
   }
 
 void Inventory::putAmmunition(Npc& owner, size_t cls, const char* slot) {
@@ -665,17 +667,14 @@ void Inventory::implPutState(Npc& owner, size_t cls, const char* slot) {
   owner.setStateItem(std::move(vitm),slot);
   }
 
-bool Inventory::putState(Npc& owner, size_t cls, int mode) {
+bool Inventory::putState(Npc& owner, size_t cls, int state) {
   Item* it = (cls==0 ? nullptr : findByClass(cls));
   if(it==nullptr) {
-    if(stateSlot.item)
-      owner.setAnim(Npc::Anim::Idle);
-    implPutState(owner,0,stateSlot.slot.c_str());
     setStateItem(0);
-    return true;
+    return owner.stopItemStateAnim();
     }
 
-  if(!owner.setAnimItem(it->handle()->scemeName.c_str(),mode))
+  if(!owner.setAnimItem(it->handle()->scemeName.c_str(),state))
     return false;
 
   setCurrentItem(0);
@@ -754,7 +753,7 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
       }
     }
 
-  if(!owner.setAnimItem(it->handle()->scemeName.c_str(),0))
+  if(!owner.setAnimItem(it->handle()->scemeName.c_str(),-1))
     return false;
 
   setCurrentItem(it->clsId());
