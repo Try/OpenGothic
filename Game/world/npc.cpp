@@ -1363,24 +1363,11 @@ void Npc::adjustAtackRotation(uint64_t dt) {
       implLookAt(*currentTarget,noAnim,dt);
       }
     }
-  /*
-    if(!visual.pose().isInAnim("T_FISTATTACKMOVE") &&
-       !visual.pose().isInAnim("T_1HATTACKMOVE") &&
-       !visual.pose().isInAnim("T_2HATTACKMOVE")) {
-      bool noAnim = !hasAutoroll();
-      if(ws==WeaponState::Bow || ws==WeaponState::CBow ||
-         ws==WeaponState::Mage)
-         noAnim = true;
-      implLookAt(*currentTarget,noAnim,dt);
-      }
-    */
   }
 
 bool Npc::implAiTick(uint64_t dt) {
-  if(!aiState.started && aiState.funcIni.isValid()) {
-    tickRoutine();
-    }
-  else if(aiActions.size()==0) {
+  // Note AI-action queue takes priority, test case: Vatras pray at night
+  if(aiActions.size()==0) {
     tickRoutine();
     if(aiActions.size()>0)
       nextAiAction(dt);
@@ -1705,7 +1692,7 @@ void Npc::nextAiAction(uint64_t dt) {
         }
       break;
     case AI_StartState:
-      if(startState(act.func,act.s0.c_str(),aiState.eTime,act.i0==0))
+      if(startState(act.func,act.s0,aiState.eTime,act.i0==0))
         setOther(act.target);
       break;
     case AI_PlayAnim:{
