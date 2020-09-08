@@ -78,6 +78,11 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
       auto  vbody  = world.getView(itData.visual,itData.material,0,itData.material);
       owner->setAmmoItem(std::move(vbody),ammotSlot.slot.c_str());
       }
+    if(stateSlot.item!=nullptr) {
+      auto& itData = *stateSlot.item->handle();
+      auto  vitm   = world.getView(itData.visual,itData.material,0,itData.material);
+      owner->setStateItem(std::move(vitm),stateSlot.slot.c_str());
+      }
     }
   s.read(curItem,stateItem);
   }
