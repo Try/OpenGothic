@@ -376,8 +376,8 @@ bool Animation::Sequence::extractFrames(uint64_t& frameA,uint64_t& frameB,bool& 
     }
 
   if(reverse) {
-    frameA = numFrames-frameA-1;
-    frameB = numFrames-frameB-1;
+    frameA = numFrames-frameA;
+    frameB = numFrames-frameB;
     std::swap(frameA,frameB);
     }
 
