@@ -190,8 +190,6 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
 
 void ObjectsBucket::setupUbo() {
   for(auto& v:val) {
-    if(!v.isValid())
-      continue;
     setupLights(v,true);
     }
 
@@ -200,10 +198,9 @@ void ObjectsBucket::setupUbo() {
     uboSetCommon(uboShared);
     } else {
     for(auto& i:val) {
-      if(!i.isValid())
-        continue;
       i.ubo.invalidate();
-      uboSetCommon(i.ubo);
+      if(!i.ubo.ubo[0].isEmpty())
+        uboSetCommon(i.ubo);
       }
     }
   }

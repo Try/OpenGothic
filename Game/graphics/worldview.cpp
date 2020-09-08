@@ -88,7 +88,6 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
     // wait before update all descriptors
     sGlobal.storage.device.waitIdle();
     sGlobal.setShadowmMap(shadow);
-
     visuals.setupUbo();
     }
   pfxGroup.tick(tickCount);

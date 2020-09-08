@@ -17,7 +17,6 @@ ObjectsBucket& VisualObjects::getBucket(const Material& mat, ObjectsBucket::Type
     if(i.material()==mat && i.type()==type && i.size()<ObjectsBucket::CAPACITY)
       return i;
 
-  index.clear();
   if(type==ObjectsBucket::Type::Static)
     buckets.emplace_back(mat,globals,uboStatic,type); else
     buckets.emplace_back(mat,globals,uboDyn,   type);
@@ -32,6 +31,8 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh &mesh, const Material& m
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(mat,staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
+  if(bucket.size()==0)
+    index.clear();
   const size_t id     = bucket.alloc(mesh.vbo,ibo,mesh.bbox);
   return ObjectsBucket::Item(bucket,id);
   }
@@ -43,6 +44,8 @@ ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(mat,ObjectsBucket::Animated);
+  if(bucket.size()==0)
+    index.clear();
   const size_t id     = bucket.alloc(mesh.vbo,ibo,mesh.bbox);
   return ObjectsBucket::Item(bucket,id);
   }
@@ -54,6 +57,8 @@ ObjectsBucket::Item VisualObjects::get(Tempest::VertexBuffer<Resources::Vertex>&
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(mat,ObjectsBucket::Static);
+  if(bucket.size()==0)
+    index.clear();
   const size_t id     = bucket.alloc(vbo,ibo,bbox);
   return ObjectsBucket::Item(bucket,id);
   }
@@ -64,6 +69,8 @@ ObjectsBucket::Item VisualObjects::get(const Tempest::VertexBuffer<Resources::Ve
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(mat,ObjectsBucket::Movable);
+  if(bucket.size()==0)
+    index.clear();
   const size_t id     = bucket.alloc(vbo,bbox);
   return ObjectsBucket::Item(bucket,id);
   }
