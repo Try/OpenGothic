@@ -236,12 +236,13 @@ void VideoWidget::stopVideo() {
   update();
   }
 
-void VideoWidget::paint(Tempest::Device& device, uint8_t /*fId*/) {
+void VideoWidget::paint(Tempest::Device& device, uint8_t fId) {
   if(ctx==nullptr)
     return;
   try {
     ctx->advance();
-    tex = device.loadTexture(ctx->pm,false);
+    tex[fId] = device.loadTexture(ctx->pm,false);
+    frame    = &tex[fId];
     update();
     }
   catch(const Bink::VideoDecodingException& e) { // video exception is recoverable
@@ -254,16 +255,16 @@ void VideoWidget::paint(Tempest::Device& device, uint8_t /*fId*/) {
   }
 
 void VideoWidget::paintEvent(PaintEvent& e) {
-  if(ctx==nullptr)
+  if(ctx==nullptr || frame==nullptr)
     return;
-  float k  = float(w())/float(tex.w());
-  int   vh = int(k*float(tex.h()));
+  float k  = float(w())/float(frame->w());
+  int   vh = int(k*float(frame->h()));
 
   Painter p(e);
   p.setBrush(Color(0,0,0,1));
   p.drawRect(0,0,w(),h());
 
-  p.setBrush(Brush(tex,Painter::NoBlend,ClampMode::ClampToEdge));
+  p.setBrush(Brush(*frame,Painter::NoBlend,ClampMode::ClampToEdge));
   p.drawRect(0,(h()-vh)/2,w(),vh,
              0,0,p.brush().w(),p.brush().h());
   }

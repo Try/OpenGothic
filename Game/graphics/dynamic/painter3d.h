@@ -11,6 +11,7 @@
 #include "resources.h"
 
 class Bounds;
+class Light;
 
 class Painter3d final {
   public:
@@ -57,6 +58,8 @@ class Painter3d final {
 
     Tempest::Encoder<Tempest::CommandBuffer>& enc;
 
-    Frustrum              frustrum;
+    Frustrum                                  frustrum;
+    std::vector<Resources::Vertex>            vboCpu;
+    Tempest::VertexBuffer<Resources::Vertex>  vbo[Resources::MaxFramesInFlight];
   };
 

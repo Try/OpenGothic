@@ -14,9 +14,17 @@ layout(location = 1) in vec4 inShadowPos;
 layout(location = 2) in vec3 inNormal;
 layout(location = 3) in vec4 inColor;
 layout(location = 4) in vec4 inPos;
+layout(location = 5) in vec4 inZ;
 #endif
 
+#ifdef GBUFFER
 layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outDiffuse;
+layout(location = 2) out vec4 outNormal;
+layout(location = 3) out vec4 outDepth;
+#else
+layout(location = 0) out vec4 outColor;
+#endif
 
 #if !defined(SHADOW_MAP)
 float implShadowVal(in vec2 uv, in float shPosZ, in int layer) {
@@ -111,8 +119,6 @@ void main() {
 #ifdef SHADOW_MAP
   outColor = vec4(inShadowPos.zzz,0.0);
 #else
-  //outColor = t;
-  //return;
 
 #if defined(EMMISSIVE)
   vec3  color   = inColor.rgb;
@@ -121,6 +127,13 @@ void main() {
 #endif
   outColor      = vec4(t.rgb*color,t.a*inColor.a);
 
+#ifdef GBUFFER
+  outDiffuse    = t;
+  outNormal     = vec4(normalize(inNormal)*0.5 + vec3(0.5),1.0);
+  outDepth      = vec4(inZ.z/inZ.w,0.0,0.0,0.0);
+#endif
+
+  //outColor   = vec4(inZ.xyz/inZ.w,1.0);
   //outColor = vec4(vec3(inPos.xyz)/1000.0,1.0);
   //outColor = vec4(vec3(shMap),1.0);
   //outColor = vec4(vec3(calcLight()),1.0);

@@ -94,9 +94,24 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
   sGlobal.lights.tick(tickCount);
   sGlobal .setTime(tickCount);
   sGlobal .commitUbo(fId);
+  sGlobal.lights.preFrameUpdate(fId);
 
   visuals .preFrameUpdate(fId);
   pfxGroup.preFrameUpdate(fId);
+  }
+
+void WorldView::setGbuffer(const Texture2d& diffuse, const Texture2d& norm, const Texture2d& depth) {
+  if(sGlobal.gbufDiffuse == &diffuse ||
+     sGlobal.gbufNormals == &norm    ||
+     sGlobal.gbufDepth   == &depth)
+    return;
+  sGlobal.gbufDiffuse = &diffuse;
+  sGlobal.gbufNormals = &norm;
+  sGlobal.gbufDepth   = &depth;
+
+  // wait before update all descriptors
+  sGlobal.storage.device.waitIdle();
+  sGlobal.lights.setupUbo();
   }
 
 void WorldView::dbgLights(Painter& p) const {
@@ -162,11 +177,19 @@ void WorldView::dbgLights(Painter& p) const {
   }
 
 void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId, uint8_t layer) {
-  visuals.drawShadow(painter,cmd,fId,layer);
+  visuals.drawShadow(cmd,painter,fId,layer);
+  }
+
+void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId) {
+  visuals.drawGBuffer(cmd,painter,fId);
   }
 
 void WorldView::drawMain(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId) {
-  visuals.draw(painter,cmd,fId);
+  visuals.draw(cmd,painter,fId);
+  }
+
+void WorldView::drawLights(Tempest::Encoder<CommandBuffer>& cmd, Painter3d&, uint8_t fId) {
+  sGlobal.lights.draw(cmd,fId);
   }
 
 MeshObjects::Mesh WorldView::getView(const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
@@ -242,5 +265,6 @@ void WorldView::updateLight() {
 void WorldView::resetCmd() {
   // cmd buffers must not be in use
   visuals.setupUbo();
+  sGlobal.lights.setupUbo();
   }
 

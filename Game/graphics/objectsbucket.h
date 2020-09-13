@@ -110,10 +110,11 @@ class ObjectsBucket final {
     void                      preFrameUpdate(uint8_t fId);
     void                      visibilityPass(Painter3d& p);
     void                      visibilityPassAnd(Painter3d& p);
-    void                      draw      (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
-    void                      drawLight (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
-    void                      drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId, int layer=0);
-    void                      draw      (size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId);
+    void                      draw       (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
+    void                      drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
+    void                      drawLight  (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
+    void                      drawShadow (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId, int layer=0);
+    void                      draw       (size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId);
 
   private:
     struct ShLight final {
@@ -191,9 +192,10 @@ class ObjectsBucket final {
 
     Bounds                    allBounds;
 
-    const Tempest::RenderPipeline* pMain   = nullptr;
-    const Tempest::RenderPipeline* pLight  = nullptr;
-    const Tempest::RenderPipeline* pShadow = nullptr;
+    const Tempest::RenderPipeline* pMain    = nullptr;
+    const Tempest::RenderPipeline* pGbuffer = nullptr;
+    const Tempest::RenderPipeline* pLight   = nullptr;
+    const Tempest::RenderPipeline* pShadow  = nullptr;
 
     Object& implAlloc(const VboType type, const Bounds& bounds);
     void    uboSetCommon(Descriptors& v);

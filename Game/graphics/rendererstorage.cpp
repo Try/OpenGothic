@@ -21,20 +21,33 @@ void RendererStorage::ShaderPair::load(Device &device, const char *tag, const ch
   fs = device.shader(sh.data,sh.len);
   }
 
-void RendererStorage::Material::load(Device &device, const char *f) {
-  main.  load(device,f,"%s.%s.sprv");
-  shadow.load(device,f,"%s_shadow.%s.sprv");
-  light .load(device,f,"%s_light.%s.sprv");
+void RendererStorage::ShaderPair::load(Device& device, const char* tag) {
+  load(device,tag,"%s.%s.sprv");
+  }
+
+void RendererStorage::Material::load(Device &device, const char *tag) {
+  char fobj[256]={};
+  char fani[256]={};
+  if(tag==nullptr || tag[0]=='\0') {
+    std::snprintf(fobj,sizeof(fobj),"obj");
+    std::snprintf(fani,sizeof(fani),"ani");
+    } else {
+    std::snprintf(fobj,sizeof(fobj),"obj_%s",tag);
+    std::snprintf(fani,sizeof(fani),"ani_%s",tag);
+    }
+  obj.load(device,fobj,"%s.%s.sprv");
+  ani.load(device,fani,"%s.%s.sprv");
   }
 
 RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   :device(device) {
-  obj      .load(device,"obj");
-  objAt    .load(device,"obj_at");
-  objEmi   .load(device,"obj_emi");
-  ani      .load(device,"ani");
-  aniAt    .load(device,"ani_at");
-  aniEmi   .load(device,"ani_emi");
+  obj        .load(device,"");
+  objG       .load(device,"gbuffer");
+  objAt      .load(device,"at");
+  objAtG     .load(device,"at_gbuffer");
+  objEmi     .load(device,"emi");
+  objShadow  .load(device,"shadow");
+  objShadowAt.load(device,"shadow_at");
 
   initPipeline(gothic);
   initShadow();
@@ -83,21 +96,40 @@ void RendererStorage::initPipeline(Gothic& gothic) {
 
   pComposeShadow = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vsComp, fsComp);
 
-  pAnim          = pipeline<Resources::VertexA>(stateObj,   ani.main);
-  pAnimAt        = pipeline<Resources::VertexA>(stateObj,   aniAt.main);
-  pAnimLt        = pipeline<Resources::VertexA>(stateAdd,   ani.light);
-  pAnimAtLt      = pipeline<Resources::VertexA>(stateAdd,   aniAt.light);
+  pAnim          = pipeline<Resources::VertexA>(stateObj,   obj.ani);
+  pAnimG         = pipeline<Resources::VertexA>(stateObj,   objG.ani);
+  pAnimAt        = pipeline<Resources::VertexA>(stateObj,   objAt.ani);
+  pAnimAtG       = pipeline<Resources::VertexA>(stateObj,   objAtG.ani);
+  pAnimLt        = pipeline<Resources::VertexA>(stateAdd,   obj.ani);
+  pAnimAtLt      = pipeline<Resources::VertexA>(stateAdd,   objAt.ani);
 
-  pObject        = pipeline<Resources::Vertex> (stateObj,   obj.main);
-  pObjectAt      = pipeline<Resources::Vertex> (stateObj,   objAt.main);
-  pObjectLt      = pipeline<Resources::Vertex> (stateAdd,   obj.light);
-  pObjectAtLt    = pipeline<Resources::Vertex> (stateAdd,   objAt.light);
+  pObject        = pipeline<Resources::Vertex> (stateObj,   obj.obj);
+  pObjectG       = pipeline<Resources::Vertex> (stateObj,   objG.obj);
+  pObjectAt      = pipeline<Resources::Vertex> (stateObj,   objAt.obj);
+  pObjectAtG     = pipeline<Resources::Vertex> (stateObj,   objAtG.obj);
+  pObjectLt      = pipeline<Resources::Vertex> (stateAdd,   obj.obj);
+  pObjectAtLt    = pipeline<Resources::Vertex> (stateAdd,   objAt.obj);
 
-  pObjectAlpha   = pipeline<Resources::Vertex> (stateAlpha, obj.main);
-  pAnimAlpha     = pipeline<Resources::VertexA>(stateAlpha, ani.main);
+  pObjectAlpha   = pipeline<Resources::Vertex> (stateAlpha, obj.obj);
+  pAnimAlpha     = pipeline<Resources::VertexA>(stateAlpha, obj.ani);
 
-  pObjectMAdd    = pipeline<Resources::Vertex> (stateMAdd,  objEmi.main);
-  pAnimMAdd      = pipeline<Resources::VertexA>(stateMAdd,  aniEmi.main);
+  pObjectMAdd    = pipeline<Resources::Vertex> (stateMAdd,  objEmi.obj);
+  pAnimMAdd      = pipeline<Resources::VertexA>(stateMAdd,  objEmi.ani);
+
+  {
+  RenderState state;
+  state.setCullFaceMode (RenderState::CullMode::Front);
+  state.setBlendSource  (RenderState::BlendMode::one);
+  state.setBlendDest    (RenderState::BlendMode::one);
+  state.setZTestMode    (RenderState::ZTestMode::Less);
+  state.setZWriteEnabled(false);
+
+  auto sh      = GothicShader::get("light.vert.sprv");
+  auto vsLight = device.shader(sh.data,sh.len);
+  sh           = GothicShader::get("light.frag.sprv");
+  auto fsLight = device.shader(sh.data,sh.len);
+  pLights      = device.pipeline<Resources::VertexL>(Triangles, state, vsLight, fsLight);
+  }
 
   if(gothic.version().game==1) {
     auto sh    = GothicShader::get("sky_g1.vert.sprv");
@@ -120,8 +152,8 @@ void RendererStorage::initShadow() {
   state.setCullFaceMode(RenderState::CullMode::Back);
   //state.setCullFaceMode(RenderState::CullMode::Front);
 
-  pObjectSh   = pipeline<Resources::Vertex> (state,obj.shadow);
-  pObjectAtSh = pipeline<Resources::Vertex> (state,objAt.shadow);
-  pAnimSh     = pipeline<Resources::VertexA>(state,ani.shadow);
-  pAnimAtSh   = pipeline<Resources::VertexA>(state,aniAt.shadow);
+  pObjectSh   = pipeline<Resources::Vertex> (state,objShadow  .obj);
+  pObjectAtSh = pipeline<Resources::Vertex> (state,objShadowAt.obj);
+  pAnimSh     = pipeline<Resources::VertexA>(state,objShadow  .ani);
+  pAnimAtSh   = pipeline<Resources::VertexA>(state,objShadowAt.ani);
   }

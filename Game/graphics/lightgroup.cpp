@@ -1,12 +1,15 @@
 #include "lightgroup.h"
 
 #include "bounds.h"
-
+#include "graphics/rendererstorage.h"
+#include "graphics/sceneglobals.h"
 #include "utils/workers.h"
 
 using namespace Tempest;
 
-LightGroup::LightGroup() {
+LightGroup::LightGroup(const SceneGlobals& scene)
+  :scene(scene) {
+  static_assert(sizeof(Ubo)<=128,"push constant size is too large");
   }
 
 size_t LightGroup::size() const {
@@ -30,6 +33,39 @@ size_t LightGroup::get(const Bounds& area, const Light** out, size_t maxOut) con
 void LightGroup::tick(uint64_t time) {
   for(auto i:dynamicState)
     i->update(time);
+  }
+
+void LightGroup::preFrameUpdate(uint8_t fId) {
+  vboCpu.resize(light.size()*36);
+  buildVbo();
+  if(vboGpu[fId].size()!=vboCpu.size())
+    vboGpu[fId] = scene.storage.device.vboDyn(vboCpu); else
+    vboGpu[fId].update(vboCpu);
+  }
+
+void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
+  auto& p = scene.storage.pLights;
+
+  Ubo push;
+  push.mvp    = scene.modelView();
+  push.mvpInv = push.mvp;
+  push.mvpInv.inverse();
+
+  cmd.setUniforms(p,ubo[fId]);
+  cmd.setUniforms(p,&push,sizeof(push));
+  cmd.draw(vboGpu[fId]);
+  }
+
+void LightGroup::setupUbo() {
+  auto& device = scene.storage.device;
+  auto& p      = scene.storage.pLights;
+
+  for(auto& i:ubo) {
+    i = device.uniforms(p.layout());
+    i.set(0,*scene.gbufDiffuse,Sampler2d::nearest());
+    i.set(1,*scene.gbufNormals,Sampler2d::nearest());
+    i.set(2,*scene.gbufDepth,  Sampler2d::nearest());
+    }
   }
 
 size_t LightGroup::implGet(const LightGroup::Bvh& index, const Bounds& area, const Light** out, size_t maxOut) const {
@@ -128,4 +164,42 @@ bool LightGroup::isIntersected(const Bounds& a, const Bounds& b) {
   if(a.bboxTr[0].z>b.bboxTr[1].z)
     return false;
   return true;
+  }
+
+void LightGroup::buildVbo() {
+  static Vec3 v[8] = {
+    {-1,-1,-1},
+    { 1,-1,-1},
+    { 1, 1,-1},
+    {-1, 1,-1},
+
+    {-1,-1, 1},
+    { 1,-1, 1},
+    { 1, 1, 1},
+    {-1, 1, 1},
+    };
+
+  static uint16_t ibo[] = {
+    0, 1, 3, 3, 1, 2,
+    1, 5, 2, 2, 5, 6,
+    5, 4, 6, 6, 4, 7,
+    4, 0, 7, 7, 0, 3,
+    3, 2, 7, 7, 2, 6,
+    4, 5, 0, 0, 5, 1
+    };
+
+  for(size_t i=0; i<light.size(); ++i) {
+    auto& l  = light[i];
+    auto  R  = l.currentRange();
+    auto& at = l.position();
+    auto& cl = l.currentColor();
+    auto* vbo = &vboCpu[i*36];
+    for(int r=0; r<36; ++r) {
+      Vertex&  vx = vbo[r];
+      uint16_t id = ibo[r];
+      vx.pos   = at + v[id]*R;
+      vx.cen   = Vec4(at.x,at.y,at.z,R);
+      vx.color = cl;
+      }
+    }
   }

@@ -34,7 +34,8 @@ class VideoWidget : public Tempest::Widget {
 
     Gothic&                       gothic;
     std::unique_ptr<Context>      ctx;
-    Tempest::Texture2d            tex;
+    Tempest::Texture2d            tex[Resources::MaxFramesInFlight];
+    Tempest::Texture2d*           frame  = nullptr;
     bool                          active = false;
     bool                          restoreMusic = false;
 

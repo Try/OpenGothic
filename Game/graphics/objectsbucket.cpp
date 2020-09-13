@@ -60,13 +60,15 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const SceneGlobals& scene, Sto
   switch(mat.alpha) {
     case Material::AlphaTest:
       if(shaderType==Animated) {
-        pMain   = &scene.storage.pAnimAt;
-        pLight  = &scene.storage.pAnimAtLt;
-        pShadow = &scene.storage.pAnimAtSh;
+        pMain    = &scene.storage.pAnimAt;
+        pGbuffer = &scene.storage.pAnimAtG;
+        pLight   = &scene.storage.pAnimAtLt;
+        pShadow  = &scene.storage.pAnimAtSh;
         } else {
-        pMain   = &scene.storage.pObjectAt;
-        pLight  = &scene.storage.pObjectAtLt;
-        pShadow = &scene.storage.pObjectAtSh;
+        pMain    = &scene.storage.pObjectAt;
+        pGbuffer = &scene.storage.pObjectAtG;
+        pLight   = &scene.storage.pObjectAtLt;
+        pShadow  = &scene.storage.pObjectAtSh;
         }
       break;
     case Material::Transparent:
@@ -96,13 +98,15 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const SceneGlobals& scene, Sto
     case Material::Multiply2:
     case Material::Solid:
       if(shaderType==Animated) {
-        pMain   = &scene.storage.pAnim;
-        pLight  = &scene.storage.pAnimLt;
-        pShadow = &scene.storage.pAnimSh;
+        pMain    = &scene.storage.pAnim;
+        pLight   = &scene.storage.pAnimLt;
+        pShadow  = &scene.storage.pAnimSh;
+        pGbuffer = &scene.storage.pAnimG;
         } else {
-        pMain   = &scene.storage.pObject;
-        pLight  = &scene.storage.pObjectLt;
-        pShadow = &scene.storage.pObjectSh;
+        pMain    = &scene.storage.pObject;
+        pLight   = &scene.storage.pObjectLt;
+        pShadow  = &scene.storage.pObjectSh;
+        pGbuffer = &scene.storage.pObjectG;
         }
       break;
     case Material::InvalidAlpha:
@@ -153,7 +157,7 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
   v->vboA      = nullptr;
   v->ibo       = nullptr;
   v->bounds    = bounds;
-  v->timeShift = uint64_t(-scene.tickCount);
+  v->timeShift = uint64_t(0-scene.tickCount);
 
   if(!useSharedUbo) {
     v->ubo.invalidate();
@@ -391,6 +395,54 @@ void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fI
     }
   }
 
+void ObjectsBucket::drawGBuffer(Tempest::Encoder<CommandBuffer>& p, uint8_t fId) {
+  if(pGbuffer==nullptr || indexSz==0)
+    return;
+
+  if(useSharedUbo)
+    p.setUniforms(*pGbuffer,uboShared.ubo[fId]);
+
+  UboPush pushBlock;
+  Object** idx = index;
+  for(size_t i=0;i<indexSz;++i) {
+    auto& v = *idx[i];
+
+    pushBlock.pos = v.pos;
+    const size_t cnt = v.lightCnt;
+    for(size_t r=0; r<cnt && r<LIGHT_BLOCK; ++r) {
+      pushBlock.light[r].pos   = v.light[r]->position();
+      pushBlock.light[r].color = v.light[r]->currentColor();
+      pushBlock.light[r].range = v.light[r]->currentRange();
+      }
+    for(size_t r=cnt;r<LIGHT_BLOCK;++r) {
+      pushBlock.light[r].range = 0;
+      }
+
+    p.setUniforms(*pGbuffer,&pushBlock,sizeof(pushBlock));
+    if(!useSharedUbo) {
+      auto& ubo = v.ubo.ubo[fId];
+      setAnim(v,ubo);
+      if(v.storageAni!=size_t(-1))
+        setUbo(v.ubo.uboBit[fId],ubo,3,storage.ani[fId],v.storageAni,1);
+      p.setUniforms(*pGbuffer,ubo);
+      }
+
+    switch(v.vboType) {
+      case VboType::NoVbo:
+        break;
+      case VboType::VboVertex:
+        p.draw(*v.vbo, *v.ibo);
+        break;
+      case VboType::VboVertexA:
+        p.draw(*v.vboA,*v.ibo);
+        break;
+      case VboType::VboMorph:
+        p.draw(*v.vboM[fId]);
+        break;
+      }
+    }
+  }
+
 void ObjectsBucket::drawLight(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) {
   static bool disabled = false;
   if(disabled)
@@ -531,6 +583,8 @@ void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
   }
 
 void ObjectsBucket::setupLights(Object& val, bool noCache) {
+  if(pGbuffer!=nullptr)
+    return;
   int cx = int(val.bounds.midTr.x/2.f);
   int cy = int(val.bounds.midTr.y/2.f);
   int cz = int(val.bounds.midTr.z/2.f);

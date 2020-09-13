@@ -3,6 +3,7 @@
 #include <Tempest/Log>
 
 #include "graphics/submesh/animmesh.h"
+#include "graphics/dynamic/painter3d.h"
 #include "utils/workers.h"
 #include "rendererstorage.h"
 
@@ -85,7 +86,30 @@ void VisualObjects::preFrameUpdate(uint8_t fId) {
     c.preFrameUpdate(fId);
   }
 
-void VisualObjects::draw(Painter3d& painter, Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
+void VisualObjects::draw(Tempest::Encoder<Tempest::CommandBuffer>& enc, Painter3d& /*painter*/, uint8_t fId) {
+  mkIndex();
+
+  // Workers::parallelFor(index,[&painter](ObjectsBucket* c){
+  //   c->visibilityPass(painter);
+  //   });
+
+  commitUbo(fId);
+/*
+  for(size_t i=0;i<lastSolidBucket;++i) {
+    auto c = index[i];
+    c->draw(enc,fId);
+    }*/
+  sky.draw(enc,fId);
+  for(size_t i=lastSolidBucket;i<index.size();++i) {
+    auto c = index[i];
+    c->draw(enc,fId);
+    }
+
+  //for(auto c:index)
+  //  c->drawLight(enc,fId);
+  }
+
+void VisualObjects::drawGBuffer(Tempest::Encoder<CommandBuffer>& enc, Painter3d& painter, uint8_t fId) {
   mkIndex();
 
   Workers::parallelFor(index,[&painter](ObjectsBucket* c){
@@ -96,19 +120,11 @@ void VisualObjects::draw(Painter3d& painter, Tempest::Encoder<Tempest::CommandBu
 
   for(size_t i=0;i<lastSolidBucket;++i) {
     auto c = index[i];
-    c->draw(enc,fId);
+    c->drawGBuffer(enc,fId);
     }
-  sky.draw(enc,fId);
-  for(size_t i=lastSolidBucket;i<index.size();++i) {
-    auto c = index[i];
-    c->draw(enc,fId);
-    }
-
-  for(auto c:index)
-    c->drawLight(enc,fId);
   }
 
-void VisualObjects::drawShadow(Painter3d& painter, Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer) {
+void VisualObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& enc, Painter3d& painter, uint8_t fId, int layer) {
   if(layer+1==Resources::ShadowLayers) {
     mkIndex();
     Workers::parallelFor(index.data(),index.data()+lastSolidBucket,[&painter](ObjectsBucket* c){

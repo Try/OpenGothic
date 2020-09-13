@@ -29,6 +29,7 @@ void Light::setDir(float x, float y, float z) {
 
 void Light::setColor(const Vec3& cl) {
   clr                = cl;
+  curClr             = clr;
   colorAniListFpsInv = 0;
   }
 
@@ -53,7 +54,8 @@ void Light::setColor(const std::vector<uint32_t>& arr, float fps, bool smooth) {
   }
 
 void Light::setRange(float r) {
-  rgn = r;
+  rgn            = r;
+  curRgn         = rgn;
   rangeAniFPSInv = 0;
   }
 

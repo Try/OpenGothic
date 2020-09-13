@@ -72,6 +72,12 @@ class Resources final {
       float    pos[2];
       };
 
+    struct VertexL {
+      Tempest::Vec3 pos;
+      Tempest::Vec4 cen;
+      Tempest::Vec3 color;
+      };
+
     static const char* renderer();
 
     static const Tempest::Sampler2d& shadowSampler();
@@ -210,6 +216,11 @@ inline VertexBufferDecl vertexBufferDecl<Resources::VertexA>() {
 template<>
 inline VertexBufferDecl vertexBufferDecl<Resources::VertexFsq>() {
   return {Decl::float2};
+  }
+
+template<>
+inline VertexBufferDecl vertexBufferDecl<Resources::VertexL>() {
+  return {Decl::float3,Decl::float4,Decl::float3};
   }
 
 }

@@ -1,6 +1,7 @@
 #include "painter3d.h"
 
 #include "graphics/bounds.h"
+#include "graphics/light.h"
 
 using namespace Tempest;
 

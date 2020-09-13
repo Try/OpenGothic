@@ -6,7 +6,7 @@
 #include <cassert>
 
 SceneGlobals::SceneGlobals(const RendererStorage& storage)
-  :storage(storage) {
+  :storage(storage), lights(*this) {
   uboGlobal.lightDir={1,1,-1};
   uboGlobal.lightDir/=uboGlobal.lightDir.manhattanLength();
 

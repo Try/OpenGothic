@@ -15,8 +15,9 @@ class RendererStorage {
 
     Tempest::Device&        device;
 
-    Tempest::RenderPipeline pAnim,    pAnimAt,   pAnimLt,   pAnimAtLt;
-    Tempest::RenderPipeline pObject,  pObjectAt, pObjectLt, pObjectAtLt;
+    Tempest::RenderPipeline pAnim,   pAnimG,   pAnimAt,   pAnimAtG,   pAnimLt,   pAnimAtLt;
+    Tempest::RenderPipeline pObject, pObjectG, pObjectAt, pObjectAtG, pObjectLt, pObjectAtLt;
+
     Tempest::RenderPipeline pObjectAlpha, pAnimAlpha;
     Tempest::RenderPipeline pObjectMAdd,  pAnimMAdd;
 
@@ -24,6 +25,7 @@ class RendererStorage {
     Tempest::RenderPipeline pAnimSh,   pAnimAtSh;
 
     Tempest::RenderPipeline pSky;
+    Tempest::RenderPipeline pLights;
     Tempest::RenderPipeline pComposeShadow;
 
   private:
@@ -31,15 +33,17 @@ class RendererStorage {
       Tempest::Shader vs;
       Tempest::Shader fs;
       void load(Tempest::Device &device, const char* tag, const char* format);
+      void load(Tempest::Device &device, const char* tag);
       };
 
     struct Material {
-      ShaderPair main, shadow, light;
-      void load(Tempest::Device& device, const char* f);
+      ShaderPair obj, ani;
+      void load(Tempest::Device& device, const char* tag);
       };
+    // ShaderPair obj, objAt, objG, objAtG, objEmi;
+    // ShaderPair ani, aniAt, aniG, aniAtG, aniEmi;
 
-    Material obj, objAt, objEmi;
-    Material ani, aniAt, aniEmi;
+    Material obj, objAt, objG, objAtG, objEmi, objShadow, objShadowAt;
 
     void initPipeline(Gothic& gothic);
     void initShadow();
