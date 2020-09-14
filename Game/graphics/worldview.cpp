@@ -94,8 +94,8 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
   sGlobal.lights.tick(tickCount);
   sGlobal .setTime(tickCount);
   sGlobal .commitUbo(fId);
-  sGlobal.lights.preFrameUpdate(fId);
 
+  sGlobal.lights.preFrameUpdate(fId);
   visuals .preFrameUpdate(fId);
   pfxGroup.preFrameUpdate(fId);
   }

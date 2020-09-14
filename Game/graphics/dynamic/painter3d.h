@@ -8,6 +8,7 @@
 
 #include <vector>
 
+#include "frustrum.h"
 #include "resources.h"
 
 class Bounds;
@@ -46,16 +47,6 @@ class Painter3d final {
               const Tempest::VertexBuffer<Vertex>& vbo);
 
   private:
-    struct Frustrum {
-      void make(const Tempest::Matrix4x4& m);
-      void clear();
-
-      bool testPoint(float x, float y, float z) const;
-      bool testPoint(float x, float y, float z, float R) const;
-
-      float f[6][4] = {};
-      };
-
     Tempest::Encoder<Tempest::CommandBuffer>& enc;
 
     Frustrum                                  frustrum;

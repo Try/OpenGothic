@@ -97,7 +97,7 @@ void Renderer::resetSwapchain() {
   gbufPass       = device.pass(FboMode(FboMode::PreserveOut,Color(0.0)),
                                FboMode(FboMode::PreserveOut),
                                FboMode(FboMode::PreserveOut),
-                               FboMode(FboMode::PreserveOut),
+                               FboMode(FboMode::PreserveOut,Color(1.0)),
                                FboMode(FboMode::PreserveOut,1.f));
   mainPass       = device.pass(FboMode::Preserve, FboMode::PreserveIn);
   mainPassNoGbuf = device.pass(FboMode(FboMode::PreserveOut,Color(0.0)), FboMode(FboMode::Discard,1.f));

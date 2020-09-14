@@ -9,7 +9,8 @@ using namespace Tempest;
 
 LightGroup::LightGroup(const SceneGlobals& scene)
   :scene(scene) {
-  static_assert(sizeof(Ubo)<=128,"push constant size is too large");
+  for(auto& u:uboBuf)
+    u = scene.storage.device.ubo<Ubo>(nullptr,1);
   }
 
 size_t LightGroup::size() const {
@@ -36,35 +37,36 @@ void LightGroup::tick(uint64_t time) {
   }
 
 void LightGroup::preFrameUpdate(uint8_t fId) {
-  vboCpu.resize(light.size()*36);
-  buildVbo();
-  if(vboGpu[fId].size()!=vboCpu.size())
-    vboGpu[fId] = scene.storage.device.vboDyn(vboCpu); else
-    vboGpu[fId].update(vboCpu);
+  buildVbo(fId);
+
+  Ubo ubo;
+  ubo.mvp    = scene.modelView();
+  ubo.mvpInv = ubo.mvp;
+  ubo.mvpInv.inverse();
+  ubo.fr.make(ubo.mvp);
+  uboBuf[fId].update(&ubo,0,1);
   }
 
 void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   auto& p = scene.storage.pLights;
-
-  Ubo push;
-  push.mvp    = scene.modelView();
-  push.mvpInv = push.mvp;
-  push.mvpInv.inverse();
-
   cmd.setUniforms(p,ubo[fId]);
-  cmd.setUniforms(p,&push,sizeof(push));
-  cmd.draw(vboGpu[fId]);
+  for(auto& i:chunks) {
+    size_t sz = (i.vboGpu[fId].size()/8)*36;
+    cmd.draw(i.vboGpu[fId],iboGpu,0,sz);
+    }
   }
 
 void LightGroup::setupUbo() {
   auto& device = scene.storage.device;
   auto& p      = scene.storage.pLights;
 
-  for(auto& i:ubo) {
-    i = device.uniforms(p.layout());
-    i.set(0,*scene.gbufDiffuse,Sampler2d::nearest());
-    i.set(1,*scene.gbufNormals,Sampler2d::nearest());
-    i.set(2,*scene.gbufDepth,  Sampler2d::nearest());
+  for(int i=0;i<Resources::MaxFramesInFlight;++i) {
+    auto& u = ubo[i];
+    u = device.uniforms(p.layout());
+    u.set(0,*scene.gbufDiffuse,Sampler2d::nearest());
+    u.set(1,*scene.gbufNormals,Sampler2d::nearest());
+    u.set(2,*scene.gbufDepth,  Sampler2d::nearest());
+    u.set(3,uboBuf[i]);
     }
   }
 
@@ -166,7 +168,7 @@ bool LightGroup::isIntersected(const Bounds& a, const Bounds& b) {
   return true;
   }
 
-void LightGroup::buildVbo() {
+void LightGroup::buildVbo(uint8_t fId) {
   static Vec3 v[8] = {
     {-1,-1,-1},
     { 1,-1,-1},
@@ -179,7 +181,7 @@ void LightGroup::buildVbo() {
     {-1, 1, 1},
     };
 
-  static uint16_t ibo[] = {
+  static uint16_t ibo[36] = {
     0, 1, 3, 3, 1, 2,
     1, 5, 2, 2, 5, 6,
     5, 4, 6, 6, 4, 7,
@@ -188,18 +190,41 @@ void LightGroup::buildVbo() {
     4, 5, 0, 0, 5, 1
     };
 
+  auto& device = scene.storage.device;
+  if(iboGpu.size()==0) {
+    std::vector<uint16_t> iboCpu;
+    iboCpu.resize(CHUNK_SIZE*36);
+    for(uint16_t i=0; i<CHUNK_SIZE; ++i) {
+      for(uint16_t r=0; r<36;++r) {
+        iboCpu[i*36u+r] = uint16_t(i*8u+ibo[r]);
+        }
+      }
+    iboGpu = device.ibo(iboCpu);
+    }
+
+  chunks.resize((light.size()+CHUNK_SIZE-1)/CHUNK_SIZE);
+
+  vboCpu.resize(light.size()*8);
   for(size_t i=0; i<light.size(); ++i) {
-    auto& l  = light[i];
-    auto  R  = l.currentRange();
-    auto& at = l.position();
-    auto& cl = l.currentColor();
-    auto* vbo = &vboCpu[i*36];
-    for(int r=0; r<36; ++r) {
-      Vertex&  vx = vbo[r];
-      uint16_t id = ibo[r];
-      vx.pos   = at + v[id]*R;
+    auto& l   = light[i];
+    auto  R   = l.currentRange();
+    auto& at  = l.position();
+    auto& cl  = l.currentColor();
+    auto* vbo = &vboCpu[i*8];
+    for(int r=0; r<8; ++r) {
+      Vertex& vx = vbo[r];
+      vx.pos   = at + v[r]*R;
       vx.cen   = Vec4(at.x,at.y,at.z,R);
       vx.color = cl;
       }
+    }
+
+  for(size_t i=0; i<chunks.size(); ++i) {
+    auto&  ch = chunks[i];
+    size_t i0  = i*CHUNK_SIZE*8;
+    size_t len = std::min<size_t>(vboCpu.size()-i0,CHUNK_SIZE*8);
+    if(ch.vboGpu[fId].size()!=len)
+      ch.vboGpu[fId] = scene.storage.device.vboDyn(&vboCpu[i0],len); else
+      ch.vboGpu[fId].update(&vboCpu[i0],0,len);
     }
   }

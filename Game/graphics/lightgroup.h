@@ -3,6 +3,7 @@
 #include <Tempest/CommandBuffer>
 #include <memory>
 
+#include "graphics/dynamic/frustrum.h"
 #include "bounds.h"
 #include "light.h"
 #include "resources.h"
@@ -26,9 +27,14 @@ class LightGroup final {
   private:
     using Vertex = Resources::VertexL;
 
+    enum {
+      CHUNK_SIZE=256
+      };
+
     struct Ubo {
       Tempest::Matrix4x4 mvp;
       Tempest::Matrix4x4 mvpInv;
+      Frustrum           fr;
       };
 
     struct Bvh {
@@ -41,14 +47,20 @@ class LightGroup final {
     size_t      implGet(const Bvh& index, const Bounds& area, const Light** out, size_t maxOut) const;
     void        mkIndex(Bvh& id, Light* b, size_t count, int depth);
     static bool isIntersected(const Bounds& a,const Bounds& b);
-    void        buildVbo();
+    void        buildVbo(uint8_t fId);
 
     const SceneGlobals& scene;
 
+    struct Chunk {
+      Tempest::VertexBufferDyn<Vertex> vboGpu[Resources::MaxFramesInFlight];
+      };
+    std::vector<Chunk> chunks;
+
     std::vector<Vertex>              vboCpu;
-    Tempest::VertexBufferDyn<Vertex> vboGpu[Resources::MaxFramesInFlight];
+    Tempest::IndexBuffer<uint16_t>   iboGpu;
 
     Tempest::Uniforms                ubo[Resources::MaxFramesInFlight];
+    Tempest::UniformBuffer<Ubo>      uboBuf[Resources::MaxFramesInFlight];
 
     std::vector<Light>  light;
     std::vector<Light*> dynamicState;
