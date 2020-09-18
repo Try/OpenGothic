@@ -746,7 +746,8 @@ void MainWindow::render(){
       }
 
     auto& context = fLocal[swapchain.frameId()];
-    context.gpuLock.wait();
+    if(!context.gpuLock.wait(0))
+      return;
 
     if(video.isActive()) {
       video.paint(device,swapchain.frameId());
