@@ -1434,15 +1434,10 @@ void GameScript::wld_ismobavailable(Daedalus::DaedalusVM &vm) {
 void GameScript::wld_setmobroutine(Daedalus::DaedalusVM &vm) {
   int  st   = vm.popInt();
   auto name = vm.popString();
-  int  mm   = vm.popInt();
-  int  hh   = vm.popInt();
+  int  m    = vm.popInt();
+  int  h    = vm.popInt();
 
-  (void)st;
-  (void)name;
-  (void)mm;
-  (void)hh;
-
-  notImplementedFn<&GameScript::wld_setmobroutine>("wld_setmobroutine");
+  world().setMobRoutine(gtime(h,m), name, st);
   }
 
 void GameScript::wld_getmobstate(Daedalus::DaedalusVM& vm) {

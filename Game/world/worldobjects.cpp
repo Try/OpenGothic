@@ -21,6 +21,37 @@
 using namespace Tempest;
 using namespace Daedalus::GameState;
 
+int32_t WorldObjects::MobStates::stateByTime(gtime t) const {
+  t = t.timeInDay();
+  for(size_t i=routines.size(); i>0; ) {
+    --i;
+    if(routines[i].time<=t) {
+      return routines[i].state;
+      }
+    }
+  if(routines.size()>0)
+    return routines.back().state;
+  return 0;
+  }
+
+void WorldObjects::MobStates::save(Serialize& fout) {
+  fout.write(curState,scheme);
+  fout.write(uint32_t(routines.size()));
+  for(auto& i:routines) {
+    fout.write(i.time,i.state);
+    }
+  }
+
+void WorldObjects::MobStates::load(Serialize& fin) {
+  fin.read(curState,scheme);
+  uint32_t sz=0;
+  fin.read(sz);
+  routines.resize(sz);
+  for(auto& i:routines) {
+    fin.read(i.time,i.state);
+    }
+  }
+
 WorldObjects::SearchOpt::SearchOpt(float rangeMin, float rangeMax, float azi, TargetCollect collectAlgo, WorldObjects::SearchFlg flags)
   :rangeMin(rangeMin),rangeMax(rangeMax),azi(azi),collectAlgo(collectAlgo),flags(flags) {
   }
@@ -62,6 +93,13 @@ void WorldObjects::load(Serialize &fin) {
     for(auto& i:triggerEvents)
       i.load(fin);
     }
+  if(fin.version()>=16) {
+    uint32_t sz = 0;
+    fin.read(sz);
+    routines.resize(sz);
+    for(auto& i:routines)
+      i.load(fin);
+    }
   }
 
 void WorldObjects::save(Serialize &fout) {
@@ -82,6 +120,10 @@ void WorldObjects::save(Serialize &fout) {
   fout.write(uint32_t(triggerEvents.size()));
   for(auto& i:triggerEvents)
     i.save(fout);
+
+  fout.write(uint32_t(routines.size()));
+  for(auto& i:routines)
+    i.save(fout);
   }
 
 void WorldObjects::tick(uint64_t dt) {
@@ -90,6 +132,14 @@ void WorldObjects::tick(uint64_t dt) {
 
   for(size_t i=0; i<npcArr.size(); ++i)
     npcArr[i]->tick(dt);
+
+  for(auto& i:routines) {
+    auto s = i.stateByTime(owner.time());
+    if(s!=i.curState) {
+      setMobState(i.scheme.c_str(),s);
+      i.curState = s;
+      }
+    }
 
   for(auto& i:interactiveObj)
     i->tick(dt);
@@ -572,6 +622,26 @@ Interactive *WorldObjects::aviableMob(const Npc &pl, const char* dest) {
   return ret;
   }
 
+void WorldObjects::setMobRoutine(gtime time, const Daedalus::ZString& scheme, int32_t state) {
+  MobRoutine r;
+  r.time  = time;
+  r.state = state;
+
+  for(auto& i:routines) {
+    if(i.scheme==scheme) {
+      i.routines.push_back(r);
+      std::sort(i.routines.begin(),i.routines.end(),[](const MobRoutine& l, const MobRoutine& r){
+        return l.time<r.time;
+        });
+      return;
+      }
+    }
+  MobStates st;
+  st.scheme = scheme;
+  st.routines.push_back(r);
+  routines.emplace_back(std::move(st));
+  }
+
 void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {
   PerceptionMsg m;
   m.what   = perc;
@@ -609,6 +679,14 @@ void WorldObjects::resetPositionToTA() {
       npc.setPosition(-1000,-1000,-1000); // FIXME
       npc.updateTransform();
       }
+    }
+  }
+
+void WorldObjects::setMobState(const char* scheme, int32_t st) {
+  for(auto& i:interactiveObj) {
+    if(std::strcmp(i->schemeName(),scheme)!=0)
+      continue;
+    i->setState(st);
     }
   }
 

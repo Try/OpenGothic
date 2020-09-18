@@ -9,6 +9,7 @@
 #include "interactive.h"
 #include "spaceindex.h"
 #include "staticobj.h"
+#include "game/gametime.h"
 #include "game/perceptionmsg.h"
 
 class Npc;
@@ -99,12 +100,27 @@ class WorldObjects final {
     void           marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
     Interactive*   aviableMob(const Npc& pl, const char* name);
+    void           setMobRoutine(gtime time, const Daedalus::ZString& scheme, int32_t state);
 
     void           sendPassivePerc(Npc& self,Npc& other,Npc& victum,int32_t perc);
     void           sendPassivePerc(Npc& self,Npc& other,Npc& victum,Item& itm,int32_t perc);
     void           resetPositionToTA();
 
   private:
+    struct MobRoutine {
+      gtime   time;
+      int32_t state = 0;
+      };
+
+    struct MobStates {
+      Daedalus::ZString       scheme;
+      std::vector<MobRoutine> routines;
+      int32_t                 curState = 0;
+      int32_t                 stateByTime(gtime t) const;
+      void                    save(Serialize& fout);
+      void                    load(Serialize& fin);
+      };
+
     World&                             owner;
     std::vector<std::unique_ptr<Vob>>  rootVobs;
 
@@ -113,6 +129,7 @@ class WorldObjects final {
 
     std::vector<StaticObj*>            objStatic;
     std::vector<std::unique_ptr<Item>> itemArr;
+    std::list<MobStates>               routines;
 
     std::list<Bullet>                  bullets;
 
@@ -134,6 +151,8 @@ class WorldObjects final {
     bool testObj(T &src, const Npc &pl, const SearchOpt& opt);
     template<class T>
     bool testObj(T &src, const Npc &pl, const SearchOpt& opt, float& rlen);
+
+    void             setMobState(const char* scheme, int32_t st);
 
     void             tickNear(uint64_t dt);
     void             tickTriggers(uint64_t dt);

@@ -127,6 +127,7 @@ class World final {
     Interactive*         aviableMob(const Npc &pl, const char* name);
     Interactive*         findInteractive(const Npc& pl);
     void                 changeWorld(const std::string &world, const std::string &wayPoint);
+    void                 setMobRoutine(gtime time, const Daedalus::ZString& scheme, int32_t state);
 
     void                 marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
     void                 marchPoints      (Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;

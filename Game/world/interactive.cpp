@@ -127,6 +127,10 @@ void Interactive::save(Serialize &fout) const {
   }
 
 void Interactive::setVisual(const std::string &visual) {
+  if(visual.find("FIREPLACE")!=std::string::npos) {
+    Tempest::Log::d("");
+    //return;
+    }
   if(!FileExt::hasExt(visual,"3ds"))
     skeleton = Resources::loadSkeleton(visual.c_str());
   mesh = Resources::loadMesh(visual);
@@ -335,6 +339,19 @@ const char *Interactive::displayName() const {
   if(std::strlen(txt)==0)
     txt="";
   return txt;
+  }
+
+bool Interactive::setState(int32_t st) {
+  char buf[256]={};
+  std::snprintf(buf,sizeof(buf),"S_S%d",st);
+  auto sq = solver.solveFrm(buf);
+  if(sq) {
+    if(skInst->startAnim(solver,sq,BS_NONE,Pose::NoHint,world.tickCount())) {
+      state = st;
+      return true;
+      }
+    }
+  return false;
   }
 
 void Interactive::invokeStateFunc(Npc& npc) {

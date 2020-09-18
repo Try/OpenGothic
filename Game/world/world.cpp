@@ -455,6 +455,10 @@ void World::changeWorld(const std::string& world, const std::string& wayPoint) {
   game.changeWorld(world,wayPoint);
   }
 
+void World::setMobRoutine(gtime time, const Daedalus::ZString& scheme, int32_t state) {
+  wobj.setMobRoutine(time,scheme,state);
+  }
+
 void World::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,int w,int h) const {
   wobj.marchInteractives(p,mvp,w,h);
   }
