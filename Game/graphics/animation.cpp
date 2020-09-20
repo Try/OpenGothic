@@ -257,6 +257,11 @@ void Animation::setupIndex() {
        i.name=="T_MAGRUN_2_MAG" || i.name=="T_FISTRUN_2_FIST")
       i.next = "";
     }
+
+  for(auto& i:sequences) {
+    i.nextPtr = sequenceAsc(i.next.c_str());
+    i.owner   = this;
+    }
   // for(auto& i:sequences)
   //   Log::i(i.name);
   }

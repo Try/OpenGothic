@@ -96,7 +96,10 @@ class Animation final {
       Flags                                  flags  =Flags::None;
       AnimClass                              animCls=Transition;
       bool                                   reverse=false;
+
       std::string                            next;
+      const Sequence*                        nextPtr = nullptr;
+      const Animation*                       owner   = nullptr;
 
       std::vector<const Sequence*>           comb;
       std::shared_ptr<AnimData>              data;

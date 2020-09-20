@@ -344,6 +344,22 @@ const Animation::Sequence *AnimationSolver::solveFrm(const char *format, WeaponS
   return solveFrm(name);
   }
 
+const Animation::Sequence* AnimationSolver::solveNext(const Animation::Sequence& sq) const {
+  if(sq.next.empty())
+    return nullptr;
+  const char* name = sq.next.c_str();
+  for(size_t i=overlay.size();i>0;){
+    --i;
+    if(overlay[i].skeleton->animation()==sq.owner)
+      return sq.nextPtr; // fast-forward path
+    if(auto s = overlay[i].skeleton->sequenceAsc(name))
+      return s;
+    }
+  if(baseSk->animation()==sq.owner)
+    return sq.nextPtr; // fast-forward path
+  return baseSk ? baseSk->sequenceAsc(name) : nullptr;
+  }
+
 const Animation::Sequence *AnimationSolver::solveAsc(const char *name) const {
   if(name==nullptr || name[0]=='\0')
     return nullptr;

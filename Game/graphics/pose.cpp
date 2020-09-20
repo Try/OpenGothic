@@ -344,9 +344,8 @@ const Animation::Sequence* Pose::getNext(AnimationSolver &solver, const Layer& l
     itemUseSt = nextState;
     return ret;
     }
-  if(sq->next.empty())
-    return nullptr;
-  return solver.solveAsc(sq->next.c_str());
+
+  return solver.solveNext(*sq);
   }
 
 void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, uint64_t tickCount) {
