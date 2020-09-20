@@ -1165,11 +1165,8 @@ bool Npc::implGoTo(uint64_t dt,float destDist) {
     dz = go2.wp->z-z;
     }
 
-  /*
-  auto bs = bodyState();
-  if(bs!=BS_RUN && bs!=BS_WALK)
-    visual.stopWalkAnim(*this);
-    */
+  if(dx*dx+dz*dz < destDist*destDist)
+    return false;
 
   if(implLookAt(dx,dz,false,dt)){
     mvAlgo.tick(dt);

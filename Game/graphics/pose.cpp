@@ -27,7 +27,7 @@ void Pose::save(Serialize &fout) {
 
 void Pose::load(Serialize &fin,const AnimationSolver& solver) {
   std::string name;
-  uint8_t sz=uint8_t(lay.size());
+  uint8_t     sz = uint8_t(lay.size());
 
   fin.read(sz);
   lay.resize(sz);
@@ -93,9 +93,6 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
                      StartHint hint, uint64_t tickCount) {
   if(sq==nullptr)
     return false;
-
-  //if(bs==BS_ITEMINTERACT && itemUse!=nullptr)
-  //  return false;
 
   const bool force   = (hint&Force);
   const bool noInter = (hint&NoInterupt);
@@ -186,14 +183,15 @@ bool Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
   bool   changed = false;
   for(size_t i=0;i<lay.size();++i) {
     const auto& l = lay[i];
-    if(l.seq->animCls==Animation::Transition &&
-       (l.seq==rotation || l.seq->isFinished(tickCount-l.sAnim,comboLen))) {
+    if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount-l.sAnim,comboLen)) {
       auto next = getNext(solver,lay[i]);
       if(next!=lay[i].seq) {
         changed = true;
         onRemoveLayer(lay[i]);
 
         if(next!=nullptr) {
+          if(lay[i].seq==rotation)
+            rotation = next;
           doSort       = lay[i].seq->layer!=next->layer;
           lay[i].seq   = next;
           lay[i].sAnim = tickCount;
@@ -385,7 +383,7 @@ void Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev
 Tempest::Vec3 Pose::animMoveSpeed(uint64_t tickCount,uint64_t dt) const {
   Tempest::Vec3 ret;
   for(auto& i:lay) {
-    if(!i.seq->data->hasMoveTr)
+    if(!i.seq->data->hasMoveTr && i.seq->animCls!=Animation::Transition)
       continue;
     ret += i.seq->speed(tickCount-i.sAnim,dt);
     if(i.bs==BS_RUN)
@@ -576,6 +574,8 @@ void Pose::setRotation(const AnimationSolver &solver, Npc &npc, WeaponState figh
     }
   if(rotation!=nullptr) {
     if(rotation->name==sq->name)
+      return;
+    if(!stopAnim(rotation->name.c_str()))
       return;
     }
   if(sq==nullptr)
