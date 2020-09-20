@@ -525,35 +525,26 @@ void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation
     }
   }
 
-ZMath::float3 Animation::Sequence::translation(uint64_t dt) const {
+Tempest::Vec3 Animation::Sequence::translation(uint64_t dt) const {
   float k = float(dt)/totalTime();
-  ZMath::float3 p = data->moveTr.position;
-  p.x*=k;
-  p.y*=k;
-  p.z*=k;
-  return p;
+  return data->moveTr*k;
   }
 
-ZMath::float3 Animation::Sequence::speed(uint64_t at,uint64_t dt) const {
-  ZMath::float3 f={};
-
+Tempest::Vec3 Animation::Sequence::speed(uint64_t at,uint64_t dt) const {
   auto a = translateXZ(at+dt), b=translateXZ(at);
-  f.x = a.x-b.x;
-  f.y = a.y-b.y;
-  f.z = a.z-b.z;
+  Tempest::Vec3 f = a-b;
 
   if(reverse)
-    return ZMath::float3{-f.x,-f.y,-f.z};
+    return -f;
   return f;
   }
 
-ZMath::float3 Animation::Sequence::translateXZ(uint64_t at) const {
+Tempest::Vec3 Animation::Sequence::translateXZ(uint64_t at) const {
   auto&    d         = *data;
   uint32_t numFrames = d.numFrames;
-  if(numFrames==0 || d.tr.size()==0) {
-    ZMath::float3 n={0,0,0};
-    return n;
-    }
+  if(numFrames==0 || d.tr.size()==0)
+    return Tempest::Vec3();
+
   if(animCls==Transition && !isFly()){
     uint64_t all=uint64_t(totalTime());
     if(at>all)
@@ -571,15 +562,11 @@ ZMath::float3 Animation::Sequence::translateXZ(uint64_t at) const {
   auto  mB = frameB/d.tr.size();
   auto  pB = d.tr[size_t(frameB%d.tr.size())];
 
-  float m = float(mA)+float(mB-mA)*a;
-  ZMath::float3 p=pA;
-  p.x += (pB.x-pA.x)*a;
-  p.y += (pB.y-pA.y)*a;
-  p.z += (pB.z-pA.z)*a;
+  float m  = float(mA)+float(mB-mA)*a;
+  Tempest::Vec3 p=pA;
+  p += (pB-pA)*a;
 
-  p.x += m*data->moveTr.position.x;
-  p.y += m*data->moveTr.position.y;
-  p.z += m*data->moveTr.position.z;
+  p += d.moveTr*m;
   return p;
   }
 
@@ -609,9 +596,9 @@ void Animation::AnimData::setupMoveTr() {
   if(samples.size()>0 && samples.size()>=sz) {
     auto& a = samples[0].position;
     auto& b = samples[samples.size()-sz].position;
-    moveTr.position.x = b.x-a.x;
-    moveTr.position.y = b.y-a.y;
-    moveTr.position.z = b.z-a.z;
+    moveTr.x = b.x-a.x;
+    moveTr.y = b.y-a.y;
+    moveTr.z = b.z-a.z;
 
     tr.resize(samples.size()/sz);
     for(size_t i=0,r=0;i<samples.size();i+=sz,++r){
@@ -621,10 +608,19 @@ void Animation::AnimData::setupMoveTr() {
       p.y = bi.y-a.y;
       p.z = bi.z-a.z;
       }
+    static const float eps = 0.4f;
+    for(auto& i:tr) {
+      if(std::fabs(i.x)<eps && std::fabs(i.y)<eps && std::fabs(i.z)<eps)
+        continue;
+      hasMoveTr = true;
+      break;
+      }
     }
 
   if(samples.size()>0){
-    translate=samples[0].position;
+    translate.x = samples[0].position.x;
+    translate.y = samples[0].position.y;
+    translate.z = samples[0].position.z;
     }
   }
 

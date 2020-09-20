@@ -383,12 +383,14 @@ void Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev
   barrier=now;
   }
 
-ZMath::float3 Pose::animMoveSpeed(uint64_t tickCount,uint64_t dt) const {
-  ZMath::float3 ret(0,0,0);
+Tempest::Vec3 Pose::animMoveSpeed(uint64_t tickCount,uint64_t dt) const {
+  Tempest::Vec3 ret;
   for(auto& i:lay) {
-    if(i.bs==BS_STAND)
+    if(!i.seq->data->hasMoveTr)
       continue;
-    return i.seq->speed(tickCount-i.sAnim,dt);
+    ret += i.seq->speed(tickCount-i.sAnim,dt);
+    if(i.bs==BS_RUN)
+      return ret;
     }
   return ret;
   }

@@ -6,7 +6,8 @@
 
 const float   MoveAlgo::closeToPointThreshold = 50;
 const float   MoveAlgo::gravity               = DynamicWorld::gravity;
-const float   MoveAlgo::eps                   = 1.f; // 1-milimeter
+const float   MoveAlgo::eps                   = 2.f;   // 2-santimeters
+const float   MoveAlgo::epsAni                = 0.25f; // 25-millimeters
 const int32_t MoveAlgo::flyOverWaterHint      = 999999;
 
 MoveAlgo::MoveAlgo(Npc& unit)
@@ -60,10 +61,11 @@ void MoveAlgo::tickMobsi(uint64_t dt) {
   }
 
 bool MoveAlgo::tryMove(float x,float y,float z) {
-  if(npc.isStanding() && !isSlide() && !isFaling()) {
-    if(std::fabs(x)<eps && std::fabs(y)<eps && std::fabs(z)<eps)
-      return true;
+  if(flags==NoFlags && std::fabs(x)<epsAni && std::fabs(y)<epsAni && std::fabs(z)<epsAni) {
+    skipMove = Tempest::Vec3(x,y,z);
+    return true;
     }
+  skipMove = Tempest::Vec3();
   return npc.tryMove({x,y,z});
   }
 
@@ -291,7 +293,7 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
       return;
     }
 
-  auto  dp            = npcMoveSpeed(dt,moveFlg);
+  auto  dp            = skipMove+npcMoveSpeed(dt,moveFlg);
   auto  pos           = npc.position();
   float pY            = pos.y;
   float fallThreshold = stepHeight();
@@ -399,8 +401,8 @@ void MoveAlgo::applyRotation(Tempest::Vec3& out, const Tempest::Vec3& dpos) cons
 
 Tempest::Vec3 MoveAlgo::animMoveSpeed(uint64_t dt) const {
   auto dp = npc.animMoveSpeed(dt);
-  Tempest::Vec3 ret, d={dp.x,dp.y,dp.z};
-  applyRotation(ret,d);
+  Tempest::Vec3 ret;
+  applyRotation(ret,dp);
   return ret;
   }
 
@@ -716,8 +718,6 @@ float MoveAlgo::dropRay(float x, float y, float z, bool &hasCol) const {
   }
 
 float MoveAlgo::waterRay(float x, float y, float z) const {
-  static const float eps = 0.1f;
-
   if(std::fabs(cache.wx-x)>eps || std::fabs(cache.wy-y)>eps || std::fabs(cache.wz-z)>eps) {
     auto ret     = npc.world().physic()->waterRay(x,y,z);
     cache.wx     = x;

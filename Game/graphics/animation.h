@@ -1,6 +1,7 @@
 #pragma once
 
 #include <zenload/modelScriptParser.h>
+#include <Tempest/Vec>
 #include <memory>
 
 class Npc;
@@ -37,12 +38,13 @@ class Animation final {
       };
 
     struct AnimData final {
-      ZMath::float3                               translate={};
-      ZenLoad::zCModelAniSample                   moveTr={};
+      Tempest::Vec3                               translate={};
+      Tempest::Vec3                               moveTr={};
 
       std::vector<ZenLoad::zCModelAniSample>      samples;
       std::vector<uint32_t>                       nodeIndex;
-      std::vector<ZMath::float3>                  tr;
+      std::vector<Tempest::Vec3>                  tr;
+      bool                                        hasMoveTr=false;
 
       uint32_t                                    firstFrame=0;
       uint32_t                                    lastFrame =0;
@@ -83,9 +85,9 @@ class Animation final {
       void                                   processSfx   (uint64_t barrier, uint64_t sTime, uint64_t now, Npc &npc) const;
       void                                   processPfx   (uint64_t barrier, uint64_t sTime, uint64_t now, Npc &npc) const;
 
-      ZMath::float3                          translation(uint64_t dt) const;
-      ZMath::float3                          speed(uint64_t at, uint64_t dt) const;
-      ZMath::float3                          translateXZ(uint64_t at) const;
+      Tempest::Vec3                          translation(uint64_t dt) const;
+      Tempest::Vec3                          speed(uint64_t at, uint64_t dt) const;
+      Tempest::Vec3                          translateXZ(uint64_t at) const;
       void                                   schemeName(char buf[64]) const;
 
       std::string                            name, askName;
@@ -100,7 +102,7 @@ class Animation final {
       std::shared_ptr<AnimData>              data;
 
       private:
-        void setupMoveTr();
+        void                                 setupMoveTr();
         static void                          processEvent(const ZenLoad::zCModelEvent& e, EvCount& ev, uint64_t time);
         bool                                 extractFrames(uint64_t &frameA, uint64_t &frameB, bool &invert, uint64_t barrier, uint64_t sTime, uint64_t now) const;
       };

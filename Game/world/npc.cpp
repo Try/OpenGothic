@@ -648,7 +648,7 @@ void Npc::delOverlay(const Skeleton *sk) {
   visual.delOverlay(sk);
   }
 
-ZMath::float3 Npc::animMoveSpeed(uint64_t dt) const {
+Tempest::Vec3 Npc::animMoveSpeed(uint64_t dt) const {
   return visual.pose().animMoveSpeed(owner.tickCount(),dt);
   }
 
@@ -2805,18 +2805,15 @@ Npc::MoveCode Npc::testMove(const Tempest::Vec3& pos,
   }
 
 bool Npc::tryMove(const Vec3& dp) {
-  if(dp.x==0.f && dp.y==0.f && dp.z==0.f)
-    return true;
-
   Vec3 pos  = Vec3{x,y,z}+dp;
   Vec3 norm = {};
 
-  if(physic.tryMoveN(pos,norm)){
+  if(physic.tryMoveN(pos,norm)) {
     return setViewPosition(pos);
     }
 
   const float speed = dp.manhattanLength();
-  if(speed>=physic.radius() || speed==0.f)
+  if(speed>=physic.radius())
     return false;
 
   float scale=speed*0.25f;

@@ -241,7 +241,7 @@ class Npc final {
     bool       stopItemStateAnim();
     bool       isFinishingMove() const;
 
-    auto       animMoveSpeed(uint64_t dt) const -> ZMath::float3;
+    auto       animMoveSpeed(uint64_t dt) const -> Tempest::Vec3;
 
     bool       isJumpAnim() const;
     bool       isFlyAnim() const;
