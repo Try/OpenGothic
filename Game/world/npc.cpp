@@ -1165,14 +1165,6 @@ bool Npc::implGoTo(uint64_t dt,float destDist) {
     dz = go2.wp->z-z;
     }
 
-  if(dx*dx+dz*dz < destDist*destDist)
-    return false;
-
-  if(implLookAt(dx,dz,false,dt)){
-    mvAlgo.tick(dt);
-    return true;
-    }
-
   if(go2.wp!=nullptr) {
     if(!mvAlgo.aiGoTo(go2.wp,destDist)) {
       go2.wp = wayPath.pop();
@@ -1191,7 +1183,11 @@ bool Npc::implGoTo(uint64_t dt,float destDist) {
       }
     }
 
-  if(!go2.empty()) {
+  if(!go2.empty()) {    
+    if(implLookAt(dx,dz,false,dt)){
+      mvAlgo.tick(dt);
+      return true;
+      }
     setAnim(AnimationSolver::Move);
     mvAlgo.tick(dt);
     return true;
