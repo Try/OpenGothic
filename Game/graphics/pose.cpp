@@ -89,7 +89,7 @@ void Pose::setSkeleton(const Skeleton* sk) {
   lay.clear();
   }
 
-bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, BodyState bs,
+bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, int comb, BodyState bs,
                      StartHint hint, uint64_t tickCount) {
   if(sq==nullptr)
     return false;
@@ -106,6 +106,10 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
         return true;
       if(!interrupt && !finished)
         return false;
+      if(i.bs==BS_ITEMINTERACT) {
+        stopItemStateAnim(solver,tickCount);
+        return false;
+        }
       char tansition[256]={};
       const Animation::Sequence* tr=nullptr;
       if(i.seq->shortName!=nullptr && sq->shortName!=nullptr) {
@@ -123,10 +127,11 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       onRemoveLayer(i);
       i.seq   = tr ? tr : sq;
       i.sAnim = tickCount;
+      i.comb  = 0;
       i.bs    = bs;
       return true;
       }
-  addLayer(sq,bs,tickCount);
+  addLayer(sq,bs,comb,tickCount);
   return true;
   }
 
@@ -167,26 +172,15 @@ void Pose::stopAllAnim() {
   lay.clear();
   }
 
-bool Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
-  if(lay.size()==0){
-    if(lastUpdate==0){
-      zeroSkeleton();
-      lastUpdate = tickCount;
-      return true;
-      }
-    lastUpdate = tickCount;
-    return false;
-    }
-
-  size_t ret=0;
-  bool   doSort  = false;
-  bool   changed = false;
+void Pose::processLayers(AnimationSolver& solver, int comb, uint64_t tickCount) {
+  size_t ret    = 0;
+  bool   doSort = false;
   for(size_t i=0;i<lay.size();++i) {
     const auto& l = lay[i];
     if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount-l.sAnim,comboLen)) {
       auto next = getNext(solver,lay[i]);
       if(next!=lay[i].seq) {
-        changed = true;
+        needToUpdate = true;
         onRemoveLayer(lay[i]);
 
         if(next!=nullptr) {
@@ -205,6 +199,7 @@ bool Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
     ret++;
     }
   lay.resize(ret);
+
   if(doSort) {
     std::sort(lay.begin(),lay.end(),[](const Layer& a,const Layer& b){
       return a.seq->layer<b.seq->layer;
@@ -212,28 +207,40 @@ bool Pose::update(AnimationSolver& solver, int comb, uint64_t tickCount) {
     }
 
   for(auto& i:lay) {
-    if(i.seq->comb.size()==0)
+    if(i.seq->comb.size()==0 || i.comb==comb)
       continue;
-    i.comb = comb;
+    i.comb       = comb;
+    needToUpdate = true;
     }
+  }
 
-  if(lastUpdate!=tickCount) {
-    for(auto& i:lay) {
-      const Animation::Sequence* seq = i.seq;
-      if(0<i.comb && size_t(i.comb)<=i.seq->comb.size()) {
-        if(auto sx = i.seq->comb[size_t(i.comb-1)])
-          seq = sx;
-        }
-      changed |= updateFrame(*seq,lastUpdate,i.sAnim,tickCount);
-      }
-    if(changed) {
-      mkSkeleton(*lay[0].seq);
+bool Pose::update(uint64_t tickCount) {
+  if(lay.size()==0){
+    if(lastUpdate==0){
+      zeroSkeleton();
+      lastUpdate = tickCount;
+      return true;
       }
     lastUpdate = tickCount;
-    return true;
+    return false;
     }
-  // no changes to skeleton
-  return false;
+
+  if(lastUpdate==tickCount)
+    return false;
+
+  for(auto& i:lay) {
+    const Animation::Sequence* seq = i.seq;
+    if(0<i.comb && size_t(i.comb)<=i.seq->comb.size()) {
+      if(auto sx = i.seq->comb[size_t(i.comb-1)])
+        seq = sx;
+      }
+    needToUpdate |= updateFrame(*seq,lastUpdate,i.sAnim,tickCount);
+    }
+
+  if(needToUpdate)
+    mkSkeleton(*lay[0].seq);
+  lastUpdate = tickCount;
+  return true;
   }
 
 bool Pose::updateFrame(const Animation::Sequence &s,
@@ -311,7 +318,7 @@ void Pose::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
     }
   }
 
-const Animation::Sequence* Pose::getNext(AnimationSolver &solver, const Layer& lay) {
+const Animation::Sequence* Pose::getNext(const AnimationSolver &solver, const Layer& lay) {
   auto sq = lay.seq;
 
   if((lay.bs & BS_ITEMINTERACT)==BS_ITEMINTERACT && itemUseSt!=itemUseDestSt) {
@@ -346,13 +353,14 @@ const Animation::Sequence* Pose::getNext(AnimationSolver &solver, const Layer& l
   return solver.solveNext(*sq);
   }
 
-void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, uint64_t tickCount) {
+void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, int comb, uint64_t tickCount) {
   if(seq==nullptr)
     return;
   Layer l;
   l.seq   = seq;
   l.sAnim = tickCount;
   l.bs    = bs;
+  l.comb  = comb;
   lay.push_back(l);
   std::sort(lay.begin(),lay.end(),[](const Layer& a,const Layer& b){
     return a.seq->layer<b.seq->layer;
@@ -527,7 +535,7 @@ const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, co
           return i.seq;
           } else {
           comboLen = 0;
-          startAnim(solver,sq,i.bs,Pose::Force,tickCount);
+          startAnim(solver,sq,i.comb,i.bs,Pose::Force,tickCount);
           return sq;
           }
         }
@@ -580,20 +588,17 @@ void Pose::setRotation(const AnimationSolver &solver, Npc &npc, WeaponState figh
     }
   if(sq==nullptr)
     return;
-  if(startAnim(solver,sq,BS_FLAG_FREEHANDS,Pose::NoHint,npc.world().tickCount())) {
+  if(startAnim(solver,sq,0,BS_FLAG_FREEHANDS,Pose::NoHint,npc.world().tickCount())) {
     rotation = sq;
     return;
     }
   }
 
 bool Pose::setAnimItem(const AnimationSolver &solver, Npc &npc, const char *scheme, int state) {
-  //if(itemUse!=nullptr)
-  //  return false;
   char T_ID_STAND_2_S0[128]={};
   std::snprintf(T_ID_STAND_2_S0,sizeof(T_ID_STAND_2_S0),"T_%s_STAND_2_S0",scheme);
   const Animation::Sequence *sq = solver.solveFrm(T_ID_STAND_2_S0);
-  if(startAnim(solver,sq,BS_ITEMINTERACT,Pose::NoHint,npc.world().tickCount())) {
-    //itemUse       = sq;
+  if(startAnim(solver,sq,0,BS_ITEMINTERACT,Pose::NoHint,npc.world().tickCount())) {
     itemUseSt     = 0;
     itemUseDestSt = state;
     return true;
@@ -601,10 +606,18 @@ bool Pose::setAnimItem(const AnimationSolver &solver, Npc &npc, const char *sche
   return false;
   }
 
-bool Pose::stopItemStateAnim(const AnimationSolver&, Npc&) {
+bool Pose::stopItemStateAnim(const AnimationSolver& solver, uint64_t tickCount) {
   if(itemUseSt<0)
     return true;
   itemUseDestSt = -1;
+  for(auto& i:lay)
+    if(i.bs==BS_ITEMINTERACT) {
+      auto next = getNext(solver,i);
+      if(next==nullptr)
+        continue;
+      i.seq   = next;
+      i.sAnim = tickCount;
+      }
   return true;
   }
 

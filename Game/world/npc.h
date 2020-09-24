@@ -605,6 +605,8 @@ class Npc final {
     void      loadAiState(Serialize& fin);
     static float angleDir(float x,float z);
 
+    int       calcAniComb() const;
+
     World&                         owner;
     Daedalus::GEngineClasses::C_Npc hnpc={};
     float                          x=0.f;

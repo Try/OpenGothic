@@ -135,7 +135,7 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
       }
     if(a==Anim::Idle) {
       if(!pose.hasAnim())
-        return solveFrm("S_%sAIM",st);
+        return solveFrm("S_%sRUN",st);
       if(pose.isInAnim("S_BOWSHOOT") || pose.isInAnim("S_CBOWSHOOT"))
         return solveFrm("T_%sAIM_2_%sRUN",st);
       }

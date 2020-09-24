@@ -565,27 +565,31 @@ float Npc::qDistTo(const Interactive &p) const {
   return qDistTo(pos.x,pos.y,pos.z);
   }
 
-void Npc::updateAnimation() {
+int Npc::calcAniComb() const {
+  if(currentTarget==nullptr)
+    return 0;
+
   float aXZ  = 0;
   float aY   = 0;
   int   comb = 0;
-  if(currentTarget!=nullptr) {
-    float dx = currentTarget->x-x;
-    float dy = currentTarget->y-y;
-    float dz = currentTarget->z-z;
-    float l  = std::sqrt(dx*dx+dz*dz);
+  float dx   = currentTarget->x-x;
+  float dy   = currentTarget->y-y;
+  float dz   = currentTarget->z-z;
+  float l    = std::sqrt(dx*dx+dz*dz);
 
-    float dir = angleDir(dx,dz);
-    aXZ       = (angle-dir);
-    aY        = -std::atan2(dy,l)*180.f/float(M_PI);
+  float dir  = angleDir(dx,dz);
+  aXZ        = (angle-dir);
+  aY         = -std::atan2(dy,l)*180.f/float(M_PI);
 
-    int cx = (aXZ<-30.f) ? 0 : (aXZ<=30.f ? 1 : 2);
-    int cy = (aY <-45.f) ? 0 : (aY <=45.f ? 1 : 2);
+  int cx = (aXZ<-30.f) ? 0 : (aXZ<=30.f ? 1 : 2);
+  int cy = (aY <-45.f) ? 0 : (aY <=45.f ? 1 : 2);
 
-    // sides angle: +/- 30 height angle: +/- 45
-    comb   = 1+cy*3+cx;
-    }
+  // sides angle: +/- 30 height angle: +/- 45
+  comb   = 1+cy*3+cx;
+  return comb;
+  }
 
+void Npc::updateAnimation() {
   if(currentTarget!=nullptr)
     visual.setTarget(currentTarget->position()); else
     visual.setTarget(position());
@@ -594,7 +598,7 @@ void Npc::updateAnimation() {
     updatePos();
     durtyTranform=0;
     }
-  visual.updateAnimation(*this,comb);
+  visual.updateAnimation(*this);
   }
 
 void Npc::updateTransform() {
@@ -819,7 +823,7 @@ void Npc::setScale(float x, float y, float z) {
   }
 
 const Animation::Sequence* Npc::playAnimByName(const Daedalus::ZString& name,bool forceAnim,BodyState bs) {
-  return visual.startAnimAndGet(*this,name.c_str(),forceAnim,bs);
+  return visual.startAnimAndGet(*this,name.c_str(),calcAniComb(),forceAnim,bs);
   }
 
 bool Npc::setAnim(Npc::Anim a) {
@@ -833,7 +837,7 @@ const Animation::Sequence* Npc::setAnimAngGet(Npc::Anim a,bool noInterupt) {
     wlk = WalkBit::WM_Swim;
   else if(mvAlgo.isInWater())
     wlk = WalkBit::WM_Water;
-  return visual.startAnimAndGet(*this,a,st,wlk,noInterupt);
+  return visual.startAnimAndGet(*this,a,calcAniComb(),st,wlk,noInterupt);
   }
 
 void Npc::setAnimRotate(int rot) {
@@ -1550,6 +1554,9 @@ Npc* Npc::updateNearestBody() {
   }
 
 void Npc::tick(uint64_t dt) {
+  Animation::EvCount ev;
+  visual.pose().processEvents(lastEventTime,owner.tickCount(),ev);
+  visual.processLayers(*this,calcAniComb());
   if(!visual.pose().hasAnim())
     setAnim(AnimationSolver::Idle);
 
@@ -1564,9 +1571,6 @@ void Npc::tick(uint64_t dt) {
     tickRegen(hnpc.attribute[ATR_MANA],hnpc.attribute[ATR_MANAMAX],
               hnpc.attribute[ATR_REGENERATEMANA],dt);
     }
-
-  Animation::EvCount ev;
-  visual.pose().processEvents(lastEventTime,owner.tickCount(),ev);
 
   if(ev.groundSounds>0 && isPlayer())
     world().sendPassivePerc(*this,*this,*this,Npc::PERC_ASSESSQUIETSOUND);
@@ -1813,6 +1817,7 @@ void Npc::nextAiAction(uint64_t dt) {
       //atackMode=false;
       break;
     case AI_Dodge:
+      visual.setRotation(*this,0);
       setAnim(Anim::MoveBack);
       break;
     case AI_UnEquipWeapons:
@@ -2463,6 +2468,7 @@ void Npc::blockFist() {
   auto weaponSt=weaponState();
   if(weaponSt!=WeaponState::Fist)
     return;
+  visual.setRotation(*this,0);
   setAnim(Anim::AtackBlock);
   }
 
@@ -2504,7 +2510,8 @@ void Npc::blockSword() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return;
-  setAnim(AnimationSolver::AtackBlock);
+  visual.setRotation(*this,0);
+  setAnim(Anim::AtackBlock);
   }
 
 bool Npc::castSpell() {

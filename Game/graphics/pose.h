@@ -34,12 +34,14 @@ class Pose final {
     void               setFlags(Flags f);
     BodyState          bodyState() const;
     void               setSkeleton(const Skeleton *sk);
-    bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq, BodyState bs,
+    bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq,
+                                 int comb, BodyState bs,
                                  StartHint hint, uint64_t tickCount);
     bool               stopAnim(const char* name);
     void               interrupt();
     void               stopAllAnim();
-    bool               update(AnimationSolver &solver, int comb, uint64_t tickCount);
+    bool               update(uint64_t tickCount);
+    void               processLayers(AnimationSolver &solver, int comb, uint64_t tickCount);
 
     Tempest::Vec3      animMoveSpeed(uint64_t tickCount, uint64_t dt) const;
     void               processSfx(Npc &npc, uint64_t tickCount);
@@ -68,7 +70,7 @@ class Pose final {
 
     void               setRotation(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir);
     bool               setAnimItem(const AnimationSolver &solver, Npc &npc, const char* scheme, int state);
-    bool               stopItemStateAnim(const AnimationSolver &solver, Npc &npc);
+    bool               stopItemStateAnim(const AnimationSolver &solver, uint64_t tickCount);
 
     const std::vector<Tempest::Matrix4x4>& transform() const;
     const Tempest::Matrix4x4&              transform(size_t id) const;
@@ -89,9 +91,9 @@ class Pose final {
 
     bool updateFrame(const Animation::Sequence &s, uint64_t barrier, uint64_t sTime, uint64_t now);
 
-    const Animation::Sequence* getNext(AnimationSolver& solver, const Layer& lay);
+    const Animation::Sequence* getNext(const AnimationSolver& solver, const Layer& lay);
 
-    void addLayer(const Animation::Sequence* seq, BodyState bs, uint64_t tickCount);
+    void addLayer(const Animation::Sequence* seq, BodyState bs, int comb, uint64_t tickCount);
     void onRemoveLayer(Layer& l);
 
     template<class T,class F>
@@ -108,6 +110,7 @@ class Pose final {
     Flags                           flag=NoFlags;
     uint64_t                        lastUpdate=0;
     uint16_t                        comboLen=0;
+    bool                            needToUpdate = true;
 
     std::vector<Tempest::Matrix4x4> tr;
   };

@@ -169,13 +169,15 @@ void Interactive::updateAnimation() {
   uint64_t tickCount = world.tickCount();
 
   solver.update(tickCount);
-  if(pose.update(solver,0,tickCount)){
+  if(pose.update(tickCount)){
     animChanged = true;
     view.setPose(pose,transform());
     }
   }
 
 void Interactive::tick(uint64_t dt) {
+  skInst->processLayers(solver,0,world.tickCount());
+
   if(animChanged) {
     physic.setPose(*skInst,transform());
     animChanged = false;
@@ -285,7 +287,7 @@ void Interactive::implQuitInteract(Interactive::Pos &p) {
   if(p.user==nullptr)
     return;
   Npc& npc = *p.user;
-  if(!(npc.isPlayer() && !npc.world().aiIsDlgFinished())) {
+  if(!(npc.isPlayer() && (!npc.world().aiIsDlgFinished() || !npc.isAiQueueEmpty()))) {
     const Animation::Sequence* sq = nullptr;
     if(state==0) {
       // S0 -> STAND
@@ -346,7 +348,7 @@ bool Interactive::setState(int32_t st) {
   std::snprintf(buf,sizeof(buf),"S_S%d",st);
   auto sq = solver.solveFrm(buf);
   if(sq) {
-    if(skInst->startAnim(solver,sq,BS_NONE,Pose::NoHint,world.tickCount())) {
+    if(skInst->startAnim(solver,sq,0,BS_NONE,Pose::NoHint,world.tickCount())) {
       state = st;
       return true;
       }
@@ -717,7 +719,7 @@ const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {
 
   auto sq = solver.solveFrm(buf);
   if(sq) {
-    if(skInst->startAnim(solver,sq,BS_NONE,Pose::NoHint,world.tickCount()))
+    if(skInst->startAnim(solver,sq,0,BS_NONE,Pose::NoHint,world.tickCount()))
       return sq;
     }
   return nullptr;
