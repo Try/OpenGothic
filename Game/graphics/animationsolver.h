@@ -68,7 +68,7 @@ class AnimationSolver final {
       uint64_t        time    =0;
       };
 
-    void                           save(Serialize& fout);
+    void                           save(Serialize& fout) const;
     void                           load(Serialize& fin);
 
     void                           setSkeleton(const Skeleton* sk);

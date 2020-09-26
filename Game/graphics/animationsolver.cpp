@@ -13,7 +13,7 @@ using namespace Tempest;
 AnimationSolver::AnimationSolver() {
   }
 
-void AnimationSolver::save(Serialize &fout) {
+void AnimationSolver::save(Serialize &fout) const {
   fout.write(uint32_t(overlay.size()));
   for(auto& i:overlay){
     fout.write(i.skeleton->name(),i.time);

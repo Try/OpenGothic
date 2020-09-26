@@ -1,4 +1,5 @@
 #include "animation.h"
+#include "particlefx.h"
 
 #include <Tempest/Log>
 
@@ -6,6 +7,7 @@
 #include <zenload/zCModelPrototype.h>
 #include <zenload/zenParser.h>
 
+#include "world/world.h"
 #include "world/npc.h"
 #include "resources.h"
 
@@ -414,7 +416,7 @@ void Animation::Sequence::processSfx(uint64_t barrier, uint64_t sTime, uint64_t 
     }
   }
 
-void Animation::Sequence::processPfx(uint64_t barrier, uint64_t sTime, uint64_t now, Npc& npc) const {
+void Animation::Sequence::processPfx(uint64_t barrier, uint64_t sTime, uint64_t now, MdlVisual& visual, World& world) const {
   uint64_t frameA=0,frameB=0;
   bool     invert=false;
   if(!extractFrames(frameA,frameB,invert,barrier,sTime,now))
@@ -425,14 +427,21 @@ void Animation::Sequence::processPfx(uint64_t barrier, uint64_t sTime, uint64_t 
     uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
     if(((frameA<=fr && fr<frameB) ^ invert) ||
        i.m_Frame==int32_t(d.lastFrame)) {
-      npc.startParticleEffect(i.m_Name.c_str(),i.m_Num,i.m_Pos.c_str());
+      if(i.m_Name.empty())
+        continue;
+      const ParticleFx* pfx = world.script().getParticleFx(i.m_Name.c_str());
+      if(pfx==nullptr)
+        return;
+      auto vemitter = world.getView(pfx);
+      vemitter.setActive(true);
+      visual.startParticleEffect(std::move(vemitter),i.m_Num,i.m_Pos.c_str(),world.tickCount()+pfx->effectPrefferedTime());
       }
     }
   for(auto& i:d.pfxStop){
     uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
     if(((frameA<=fr && fr<frameB) ^ invert) ||
        i.m_Frame==int32_t(d.lastFrame)) {
-      npc.stopParticleEffect(i.m_Num);
+      visual.stopParticleEffect(i.m_Num);
       }
     }
   }

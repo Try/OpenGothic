@@ -18,13 +18,16 @@ class MdlVisual final {
     MdlVisual();
     MdlVisual(const MdlVisual&)=delete;
 
-    void                           save(Serialize& fout);
-    void                           load(Serialize& fin, Npc &npc);
+    void                           save(Serialize& fout, const Npc& npc) const;
+    void                           save(Serialize& fout, const Interactive& mob) const;
+    void                           load(Serialize& fin,  Npc& npc);
+    void                           load(Serialize& fin,  Interactive &mob);
 
     void                           setPos(float x,float y,float z);
     void                           setPos(const Tempest::Matrix4x4 &m);
     void                           setTarget(const Tempest::Vec3& p);
     void                           setVisual(const Skeleton *visual);
+    void                           setYTranslationEnable(bool e);
     void                           setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner);
     void                           syncAttaches();
 
@@ -51,14 +54,15 @@ class MdlVisual final {
     void                           updateWeaponSkeleton(const Item *sword, const Item *bow);
 
     const Pose&                    pose() const { return *skInst; }
-    void                           updateAnimation(Npc &owner);
-    void                           processLayers  (Npc &owner, int comb);
+    bool                           updateAnimation(Npc* npc, World& world);
+    void                           processLayers  (World& world, int comb);
     auto                           mapBone(const size_t boneId) const -> Tempest::Vec3;
     auto                           mapWeaponBone() const -> Tempest::Vec3;
 
     bool                           isStanding() const;
 
     bool                           isAnimExist(const char* name) const;
+    const Animation::Sequence*     startAnimAndGet(const char* name, uint64_t tickCount);
     const Animation::Sequence*     startAnimAndGet(Npc &npc, const char* name, int comb, bool forceAnim, BodyState bs);
     const Animation::Sequence*     startAnimAndGet(Npc &npc, AnimationSolver::Anim a, int comb,
                                                    WeaponState st, WalkBit wlk, bool noInterupt);

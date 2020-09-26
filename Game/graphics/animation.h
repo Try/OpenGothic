@@ -5,6 +5,8 @@
 #include <memory>
 
 class Npc;
+class MdlVisual;
+class World;
 
 class Animation final {
   public:
@@ -83,7 +85,7 @@ class Animation final {
       bool                                   isPrehit(uint64_t sTime, uint64_t now) const;
       void                                   processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const;
       void                                   processSfx   (uint64_t barrier, uint64_t sTime, uint64_t now, Npc &npc) const;
-      void                                   processPfx   (uint64_t barrier, uint64_t sTime, uint64_t now, Npc &npc) const;
+      void                                   processPfx   (uint64_t barrier, uint64_t sTime, uint64_t now, MdlVisual& visual, World& world) const;
 
       Tempest::Vec3                          translation(uint64_t dt) const;
       Tempest::Vec3                          speed(uint64_t at, uint64_t dt) const;

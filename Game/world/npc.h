@@ -456,9 +456,6 @@ class Npc final {
     void      emitSoundEffect(const char* sound, float range, bool freeSlot);
     void      emitSoundGround(const char* sound, float range, bool freeSlot);
 
-    void      startParticleEffect(const char* pfx, int32_t slot, const char* bone);
-    void      stopParticleEffect(int32_t slot);
-
     void      playEffect(Npc& to, const VisualFx& vfx);
     void      commitSpell();
 

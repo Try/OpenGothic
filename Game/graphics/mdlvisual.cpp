@@ -14,7 +14,7 @@ MdlVisual::MdlVisual()
   pos.identity();
   }
 
-void MdlVisual::save(Serialize &fout) {
+void MdlVisual::save(Serialize &fout, const Npc&) const {
   fout.write(fgtMode);
   if(skeleton!=nullptr)
     fout.write(skeleton->name()); else
@@ -23,7 +23,12 @@ void MdlVisual::save(Serialize &fout) {
   skInst->save(fout);
   }
 
-void MdlVisual::load(Serialize &fin,Npc& npc) {
+void MdlVisual::save(Serialize& fout, const Interactive&) const {
+  solver.save(fout);
+  skInst->save(fout);
+  }
+
+void MdlVisual::load(Serialize& fin, Npc& npc) {
   std::string s;
 
   fin.read(fgtMode);
@@ -31,6 +36,13 @@ void MdlVisual::load(Serialize &fin,Npc& npc) {
   npc.setVisual(s.c_str());
   solver.load(fin);
   skInst->load(fin,solver);
+  }
+
+void MdlVisual::load(Serialize& fin, Interactive&) {
+  if(fin.version()>=17)
+    solver.load(fin);
+  if(fin.version()>=11)
+    skInst->load(fin,solver);
   }
 
 // Mdl_SetVisual
@@ -43,6 +55,12 @@ void MdlVisual::setVisual(const Skeleton *v) {
 
   skeleton = v;
   setPos(pos); // update obj matrix
+  }
+
+void MdlVisual::setYTranslationEnable(bool e) {
+  if(e)
+    skInst->setFlags(Pose::NoFlags); else
+    skInst->setFlags(Pose::NoTranslation);
   }
 
 // Mdl_SetVisualBody
@@ -275,13 +293,13 @@ void MdlVisual::updateWeaponSkeleton(const Item* weapon,const Item* range) {
   syncAttaches();
   }
 
-void MdlVisual::updateAnimation(Npc& npc) {
+bool MdlVisual::updateAnimation(Npc* npc, World& world) {
   Pose&    pose      = *skInst;
-  uint64_t tickCount = npc.world().tickCount();
+  uint64_t tickCount = world.tickCount();
 
-  if(npc.world().isInListenerRange(npc.position()))
-    pose.processSfx(npc,tickCount);
-  pose.processPfx(npc,tickCount);
+  if(npc!=nullptr && npc->world().isInListenerRange(npc->position()))
+    pose.processSfx(*npc,tickCount);
+  pose.processPfx(*this,world,tickCount);
 
   for(size_t i=0;i<effects.size();) {
     if(effects[i].timeUntil<tickCount) {
@@ -295,14 +313,16 @@ void MdlVisual::updateAnimation(Npc& npc) {
   solver.update(tickCount);
   const bool changed = pose.update(tickCount);
 
-  syncAttaches();
-  if(changed)
+  if(changed) {
+    syncAttaches();
     view.setPose(pose,pos);
+    }
+  return changed;
   }
 
-void MdlVisual::processLayers(Npc& npc, int comb) {
+void MdlVisual::processLayers(World& world, int comb) {
   Pose&    pose      = *skInst;
-  uint64_t tickCount = npc.world().tickCount();
+  uint64_t tickCount = world.tickCount();
   pose.processLayers(solver,comb,tickCount);
   }
 
@@ -356,6 +376,16 @@ bool MdlVisual::isStanding() const {
 bool MdlVisual::isAnimExist(const char* name) const {
   const Animation::Sequence *sq = solver.solveFrm(name);
   return sq!=nullptr;
+  }
+
+const Animation::Sequence* MdlVisual::startAnimAndGet(const char* name, uint64_t tickCount) {
+  auto sq = solver.solveFrm(name);
+  if(sq) {
+    if(skInst->startAnim(solver,sq,0,BS_NONE,Pose::NoHint,tickCount)) {
+      return sq;
+      }
+    }
+  return nullptr;
   }
 
 const Animation::Sequence* MdlVisual::startAnimAndGet(Npc &npc, const char *name, int comb,

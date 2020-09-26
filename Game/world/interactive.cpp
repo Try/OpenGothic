@@ -11,7 +11,7 @@
 
 
 Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData&& vob, bool startup)
-  : Vob(parent,world,vob,startup), skInst(std::make_unique<Pose>()) {
+  : Vob(parent,world,vob,startup) {
   vobType       = vob.vobType;
   vobName       = std::move(vob.vobName);
   focName       = std::move(vob.oCMOB.focusName);
@@ -81,8 +81,8 @@ void Interactive::load(Serialize &fin) {
 
   setGlobalTransform(pos);
   setVisual(mdlVisual);
-  if(fin.version()>=11)
-    skInst->load(fin,solver);
+  visual.load(fin,*this);
+  visual.setPos(transform());
 
   uint32_t sz=0;
   fin.read(sz);
@@ -106,7 +106,6 @@ void Interactive::load(Serialize &fin) {
           i.user->setInteraction(this,true);
         }
     }
-  view.setPose(*skInst,transform());
   }
 
 void Interactive::save(Serialize &fout) const {
@@ -117,7 +116,7 @@ void Interactive::save(Serialize &fout) const {
   fout.write(locked,keyInstance,pickLockStr);
   invent.save(fout);
   fout.write(transform(),state,reverseState,loopState,isLockCracked);
-  skInst->save(fout);
+  visual.save(fout,*this);
 
   fout.write(uint32_t(attPos.size()));
   for(auto& i:attPos) {
@@ -126,24 +125,23 @@ void Interactive::save(Serialize &fout) const {
     }
   }
 
-void Interactive::setVisual(const std::string &visual) {
-  if(visual.find("FIREPLACE")!=std::string::npos) {
-    Tempest::Log::d("");
-    //return;
-    }
-  if(!FileExt::hasExt(visual,"3ds"))
-    skeleton = Resources::loadSkeleton(visual.c_str());
-  mesh = Resources::loadMesh(visual);
+void Interactive::setVisual(const std::string& body) {
+  const Skeleton* skeleton=nullptr;
+  if(!FileExt::hasExt(body,"3ds"))
+    skeleton = Resources::loadSkeleton(body.c_str());
+  mesh = Resources::loadMesh(body);
   animChanged = true;
 
   if(mesh) {
     if(showVisual) {
-      view   = world.getView(visual.c_str());
+      auto view = world.getView(body.c_str());
+      visual.setVisualBody(MeshObjects::Mesh(),std::move(view),world);
       physic = PhysicMesh(*mesh,*world.physic());
       }
 
-    view  .setSkeleton (skeleton);
-    view  .setObjMatrix(transform());
+    visual.setYTranslationEnable(false);
+    visual.setVisual(skeleton);
+    visual.setPos(transform());
 
     physic.setSkeleton (skeleton);
     physic.setObjMatrix(transform());
@@ -155,31 +153,18 @@ void Interactive::setVisual(const std::string &visual) {
       attPos[i].node = mesh->pos[i].node;
       }
     }
-
-  if(mesh!=nullptr && skeleton!=nullptr) {
-    solver.setSkeleton (skeleton);
-    skInst->setFlags(Pose::NoTranslation);
-    skInst->setSkeleton(skeleton);
-    setAnim(Interactive::Active); // setup default anim
-    }
+  setAnim(Interactive::Active); // setup default anim
   }
 
 void Interactive::updateAnimation() {
-  Pose&    pose      = *skInst;
-  uint64_t tickCount = world.tickCount();
-
-  solver.update(tickCount);
-  if(pose.update(tickCount)){
-    animChanged = true;
-    view.setPose(pose,transform());
-    }
+  animChanged |= visual.updateAnimation(nullptr,world);
   }
 
 void Interactive::tick(uint64_t dt) {
-  skInst->processLayers(solver,0,world.tickCount());
+  visual.processLayers(world,0);
 
   if(animChanged) {
-    physic.setPose(*skInst,transform());
+    physic.setPose(visual.pose(),transform());
     animChanged = false;
     }
 
@@ -346,12 +331,9 @@ const char *Interactive::displayName() const {
 bool Interactive::setState(int32_t st) {
   char buf[256]={};
   std::snprintf(buf,sizeof(buf),"S_S%d",st);
-  auto sq = solver.solveFrm(buf);
-  if(sq) {
-    if(skInst->startAnim(solver,sq,0,BS_NONE,Pose::NoHint,world.tickCount())) {
-      state = st;
-      return true;
-      }
+  if(visual.startAnimAndGet(buf,world.tickCount())!=nullptr) {
+    state = st;
+    return true;
     }
   return false;
   }
@@ -717,12 +699,7 @@ const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {
     std::snprintf(buf,sizeof(buf),"S_%s",ss[0]); else
     std::snprintf(buf,sizeof(buf),"T_%s_2_%s",ss[0],ss[1]);
 
-  auto sq = solver.solveFrm(buf);
-  if(sq) {
-    if(skInst->startAnim(solver,sq,0,BS_NONE,Pose::NoHint,world.tickCount()))
-      return sq;
-    }
-  return nullptr;
+  return visual.startAnimAndGet(buf,world.tickCount());
   }
 
 bool Interactive::setAnim(Npc* npc,Anim dir) {
@@ -804,8 +781,7 @@ void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x
 
 void Interactive::moveEvent() {
   Vob::moveEvent();
-  Pose& pose = *skInst;
-  view.setPose(pose,transform());
+  visual.setPos(transform());
   }
 
 const char *Interactive::Pos::posTag() const {

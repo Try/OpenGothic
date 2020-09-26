@@ -2,6 +2,7 @@
 
 #include <Tempest/Matrix4x4>
 #include "physics/physicmesh.h"
+#include "graphics/mdlvisual.h"
 #include "graphics/animationsolver.h"
 #include "graphics/meshobjects.h"
 #include "graphics/protomesh.h"
@@ -139,8 +140,5 @@ class Interactive : public Vob {
     const ProtoMesh*             mesh = nullptr;
     PhysicMesh                   physic;
 
-    const Skeleton*              skeleton=nullptr;
-    MeshObjects::Mesh            view;
-    AnimationSolver              solver;
-    std::unique_ptr<Pose>        skInst;
+    MdlVisual                    visual;
   };

@@ -87,7 +87,7 @@ void Npc::save(Serialize &fout) {
   fout.write(x,y,z,angle,sz);
   fout.write(body,head,vHead,vTeeth,bdColor,vColor);
   fout.write(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
-  visual.save(fout);
+  visual.save(fout,*this);
 
   fout.write(int32_t(permAttitude),int32_t(tmpAttitude));
   fout.write(perceptionTime,perceptionNextTime);
@@ -598,7 +598,7 @@ void Npc::updateAnimation() {
     updatePos();
     durtyTranform=0;
     }
-  visual.updateAnimation(*this);
+  visual.updateAnimation(this,owner);
   }
 
 void Npc::updateTransform() {
@@ -1556,7 +1556,7 @@ Npc* Npc::updateNearestBody() {
 void Npc::tick(uint64_t dt) {
   Animation::EvCount ev;
   visual.pose().processEvents(lastEventTime,owner.tickCount(),ev);
-  visual.processLayers(*this,calcAniComb());
+  visual.processLayers(owner,calcAniComb());
   if(!visual.pose().hasAnim())
     setAnim(AnimationSolver::Idle);
 
@@ -2062,21 +2062,6 @@ void Npc::emitSoundGround(const char* sound, float range, bool freeSlot) {
   uint8_t mat = mvAlgo.groundMaterial();
   std::snprintf(buf,sizeof(buf),"%s_%s",sound,ZenLoad::zCMaterial::getMatGroupString(ZenLoad::MaterialGroup(mat)));
   owner.emitSoundEffect(buf,x,y,z,range,freeSlot);
-  }
-
-void Npc::startParticleEffect(const char* pfxName, int32_t slot, const char* bone) {
-  if(pfxName==nullptr || pfxName[0]=='\0')
-    return;
-  const ParticleFx* pfx = owner.script().getParticleFx(pfxName);
-  if(pfx==nullptr)
-    return;
-  auto vemitter = owner.getView(pfx);
-  vemitter.setActive(true);
-  visual.startParticleEffect(std::move(vemitter),slot,bone,owner.tickCount()+pfx->effectPrefferedTime());
-  }
-
-void Npc::stopParticleEffect(int32_t slot) {
-  visual.stopParticleEffect(slot);
   }
 
 void Npc::playEffect(Npc& /*to*/, const VisualFx& vfx) {
