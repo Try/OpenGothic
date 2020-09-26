@@ -551,6 +551,20 @@ PfxObjects::Bucket& PfxObjects::getBucket(const Material& mat, const ZenLoad::zC
   return getBucket(*e.pfx);
   }
 
+static uint64_t ppsDiff(const ParticleFx& decl, uint64_t time0, uint64_t time1) {
+  static const float fltScale = 100;
+
+  const float pps0    = decl.ppsScale(time0)*decl.ppsValue*fltScale;
+  const float pps1    = decl.ppsScale(time1)*decl.ppsValue*fltScale;
+
+  uint64_t    emited0 = uint64_t(time0*uint64_t(pps0))/uint64_t(1000.f*fltScale);
+  uint64_t    emited1 = uint64_t(time1*uint64_t(pps1))/uint64_t(1000.f*fltScale);
+
+  if(emited1<=emited0)
+    return 0;
+  return emited1-emited0;
+  }
+
 void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
   bool doShrink = false;
   for(auto& emitter:b.impl) {
@@ -575,21 +589,14 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
         }
       }
 
-    p.timeTotal+=dt;
-    float          fltScale = 100;
-    const float    pps      = b.owner->ppsValue*b.owner->ppsScale(p.timeTotal)*fltScale;
-    uint64_t       emited   = uint64_t(p.timeTotal*uint64_t(pps))/uint64_t(1000.f*fltScale);
     if(b.owner->ppsValue<0){
-      p.emited = p.count;
-      emited   = 1;
-      tickSysEmit(b,p,emited);
+      tickSysEmit(b,p,p.count==0 ? 1 : 0);
       }
-    else if(!nearby) {
-      p.emited = emited;
+    else if(active && nearby) {
+      auto dE = ppsDiff(*b.owner,p.timeTotal,p.timeTotal+dt);
+      tickSysEmit(b,p,dE);
       }
-    else if(active) {
-      tickSysEmit(b,p,emited);
-      }
+    p.timeTotal+=dt;
     }
 
   if(doShrink)
@@ -597,9 +604,7 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
   }
 
 void PfxObjects::tickSysEmit(PfxObjects::Bucket& b, PfxObjects::Block& p, uint64_t emited) {
-  while(p.emited<emited) {
-    p.emited++;
-
+  for(size_t i=0; i<emited; ++i) {
     for(size_t i=0;i<b.blockSize;++i) {
       ParState& ps = b.particles[i+p.offset];
       if(ps.life==0) { // free slot

@@ -65,7 +65,6 @@ class PfxObjects final {
     struct ImplEmitter;
     struct Block final {
       uint64_t      timeTotal    = 0;
-      uint64_t      emited       = 0;
 
       size_t        offset       = 0;
       size_t        count        = 0;
