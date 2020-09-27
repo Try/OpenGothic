@@ -4,7 +4,7 @@
 
 using namespace Tempest;
 
-Material::Material(const ZenLoad::zCMaterialData& m) {
+Material::Material(const ZenLoad::zCMaterialData& m, bool enableAlphaTest) {
   tex   = Resources::loadTexture(m.texture);
   alpha = ApphaFunc(m.alphaFunc);
   loadFrames(m);
@@ -20,6 +20,10 @@ Material::Material(const ZenLoad::zCMaterialData& m) {
     if(tex!=nullptr && tex->format()==Tempest::TextureFormat::DXT1) {
       alpha = Solid;
       }
+    }
+
+  if(alpha==AlphaTest && !enableAlphaTest) {
+    alpha = Solid;
     }
 
   if(m.texAniMapMode!=0 && tex!=nullptr) {

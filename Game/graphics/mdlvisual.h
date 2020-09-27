@@ -28,7 +28,7 @@ class MdlVisual final {
     void                           setTarget(const Tempest::Vec3& p);
     void                           setVisual(const Skeleton *visual);
     void                           setYTranslationEnable(bool e);
-    void                           setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner);
+    void                           setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner, int32_t version);
     void                           syncAttaches();
 
     bool                           hasOverlay(const Skeleton *sk) const;
@@ -36,7 +36,7 @@ class MdlVisual final {
     void                           delOverlay(const char*     sk);
     void                           delOverlay(const Skeleton *sk);
 
-    void                           setArmour     (MeshObjects::Mesh&& body, World& owner);
+    void                           setArmour     (MeshObjects::Mesh&& body, World& owner, const int32_t version);
     void                           setSword      (MeshObjects::Mesh&& sword);
     void                           setRangeWeapon(MeshObjects::Mesh&& bow);
     void                           setAmmoItem   (MeshObjects::Mesh&& ammo, const char* bone);
@@ -99,7 +99,9 @@ class MdlVisual final {
       int      id=0;
       };
 
-    void implSetBody(MeshObjects::Mesh&& body, World& owner);
+    void implSetBody(MeshObjects::Mesh&& body, World& owner, const int32_t version);
+    void setSlotAttachment(MeshObjects::Mesh&& itm, const char *bone);
+
     void bind(MeshAttach& slot, MeshObjects::Mesh&&   itm, const char *bone);
     void bind(PfxAttach&  slot, PfxObjects::Emitter&& itm, const char *bone);
 
@@ -119,6 +121,7 @@ class MdlVisual final {
     MeshAttach                     head, sword, bow;
     MeshAttach                     ammunition, stateItm;
     std::vector<MeshAttach>        item;
+    std::vector<MeshAttach>        attach;
 
     std::vector<PfxSlot>           effects;
     PfxAttach                      pfx;

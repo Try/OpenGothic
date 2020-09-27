@@ -8,7 +8,7 @@ StaticMesh::StaticMesh(const ZenLoad::PackedMesh &mesh) {
   sub.resize(mesh.subMeshes.size());
   for(size_t i=0;i<mesh.subMeshes.size();++i){
     sub[i].texName  = mesh.subMeshes[i].material.texture;
-    sub[i].material = Resources::loadMaterial(mesh.subMeshes[i].material);
+    sub[i].material = Resources::loadMaterial(mesh.subMeshes[i].material,mesh.isUsingAlphaTest);
     sub[i].ibo      = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
     }
   bbox.assign(mesh.bbox);
@@ -35,7 +35,7 @@ StaticMesh::StaticMesh(const ZenLoad::PackedSkeletalMesh &mesh) {
   sub.resize(mesh.subMeshes.size());
   for(size_t i=0;i<mesh.subMeshes.size();++i){
     sub[i].texName  = mesh.subMeshes[i].material.texture;
-    sub[i].material = Resources::loadMaterial(mesh.subMeshes[i].material);
+    sub[i].material = Resources::loadMaterial(mesh.subMeshes[i].material,true);
     sub[i].ibo      = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
     }
   bbox.assign(mesh.bbox);

@@ -136,7 +136,7 @@ void Interactive::setVisual(const std::string& body) {
   if(mesh) {
     if(showVisual) {
       auto view = world.getView(body.c_str());
-      visual.setVisualBody(MeshObjects::Mesh(),std::move(view),world);
+      visual.setVisualBody(MeshObjects::Mesh(),std::move(view),world,0);
       physic = PhysicMesh(*mesh,*world.physic());
       }
 

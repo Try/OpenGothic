@@ -65,9 +65,9 @@ void MdlVisual::setYTranslationEnable(bool e) {
   }
 
 // Mdl_SetVisualBody
-void MdlVisual::setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner) {
+void MdlVisual::setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner, int32_t version) {
   bind(head,std::move(h),"BIP01 HEAD");
-  implSetBody(std::move(body),owner);
+  implSetBody(std::move(body),owner,version);
   }
 
 bool MdlVisual::hasOverlay(const Skeleton* sk) const {
@@ -89,29 +89,47 @@ void MdlVisual::delOverlay(const Skeleton *sk) {
   solver.delOverlay(sk);
   }
 
-void MdlVisual::setArmour(MeshObjects::Mesh &&a, World& owner) {
-  implSetBody(std::move(a),owner);
+void MdlVisual::setArmour(MeshObjects::Mesh &&a, World& owner, const int32_t version) {
+  implSetBody(std::move(a),owner,version);
   setPos(pos);
   }
 
-void MdlVisual::implSetBody(MeshObjects::Mesh&& body, World& owner) {
-  if(auto p = view.protoMesh()) {
-    for(auto& att:p->attach) {
-      if(!att.hasNode)
-        setSlotItem(MeshObjects::Mesh(),att.name.c_str());
-      }
-    }
+void MdlVisual::implSetBody(MeshObjects::Mesh&& body, World& owner, const int32_t version) {
+  attach.clear();
   if(auto p = body.protoMesh()) {
     for(auto& att:p->attach) {
       if(!att.hasNode) {
-        auto view = owner.getAtachView(att);
-        setSlotItem(std::move(view),att.name.c_str());
+        auto view = owner.getAtachView(att,version);
+        setSlotAttachment(std::move(view),att.name.c_str());
         }
       }
+    syncAttaches();
     }
   view = std::move(body);
   view.setSkeleton(skeleton);
   view.setPose(*skInst,pos);
+  }
+
+void MdlVisual::setSlotAttachment(MeshObjects::Mesh&& itm, const char* bone) {
+  if(bone==nullptr || skeleton==nullptr)
+    return;
+
+  size_t id = skeleton->findNode(bone);
+  if(id==size_t(-1))
+    return;
+
+  for(auto& i:attach) {
+    if(i.boneId==id) {
+      i.view=std::move(itm);
+      syncAttaches();
+      return;
+      }
+    }
+
+  MeshAttach slt;
+  slt.bone = skeleton->nodes[id].name.c_str();
+  bind(slt,std::move(itm),slt.bone);
+  attach.push_back(std::move(slt));
   }
 
 void MdlVisual::setSword(MeshObjects::Mesh &&s) {
@@ -618,6 +636,8 @@ void MdlVisual::rebindAttaches(const Skeleton& from, const Skeleton& to) {
     rebindAttaches(*i,from,to);
   for(auto& i:item)
     rebindAttaches(i,from,to);
+  for(auto& i:attach)
+    rebindAttaches(i,from,to);
   rebindAttaches(pfx,from,to);
   }
 
@@ -637,6 +657,8 @@ void MdlVisual::syncAttaches() {
   for(auto i:mesh)
     syncAttaches(*i);
   for(auto& i:item)
+    syncAttaches(i);
+  for(auto& i:attach)
     syncAttaches(i);
   for(auto& i:effects) {
     syncAttaches(i);

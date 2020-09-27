@@ -20,7 +20,7 @@ Landscape::Landscape(WorldView& owner, VisualObjects& visual, const PackedMesh &
   ident.identity();
 
   for(auto& i:mesh.subMeshes) {
-    auto material = Resources::loadMaterial(i.material);
+    auto material = Resources::loadMaterial(i.material,true);
     if(material.alpha==Material::AdditiveLight || i.indices.size()==0)
       continue;
     if(material.alpha==Material::InvalidAlpha) {

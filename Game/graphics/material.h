@@ -7,7 +7,7 @@
 class Material final {
   public:
     Material()=default;
-    Material(const ZenLoad::zCMaterialData& m);
+    Material(const ZenLoad::zCMaterialData& m, bool enableAlphaTest);
     Material(const ZenLoad::zCVobData& vob);
     Material(const Daedalus::GEngineClasses::C_ParticleFX &src);
 

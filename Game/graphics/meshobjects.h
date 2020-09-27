@@ -72,7 +72,7 @@ class MeshObjects final {
         void setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix4x4& mt, size_t parent);
       };
 
-    Mesh get(const StaticMesh& mesh, bool staticDraw);
+    Mesh get(const StaticMesh& mesh, int32_t version, bool staticDraw);
     Mesh get(const StaticMesh& mesh, int32_t headTexVar, int32_t teethTex, int32_t bodyColor);
     Mesh get(const ProtoMesh&  mesh, int32_t headTexVar, int32_t teethTex, int32_t bodyColor, bool staticDraw);
 

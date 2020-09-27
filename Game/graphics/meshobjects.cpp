@@ -47,11 +47,14 @@ const Tempest::Texture2d *MeshObjects::solveTex(const Tempest::Texture2d *def, c
   return def;
   }
 
-MeshObjects::Mesh MeshObjects::get(const StaticMesh &mesh, bool staticDraw) {
+MeshObjects::Mesh MeshObjects::get(const StaticMesh &mesh, int32_t version, bool staticDraw) {
   std::unique_ptr<Item[]> dat(new Item[mesh.sub.size()]);
   size_t count=0;
-  for(size_t i=0;i<mesh.sub.size();++i){
-    Item it = parent.get(mesh,mesh.sub[i].material,mesh.sub[i].ibo,staticDraw);
+  for(size_t i=0;i<mesh.sub.size();++i) {
+    // NOTE: light dragon hunter armour
+    if(mesh.sub[i].texName.find_first_of("VC")==std::string::npos)
+      continue;
+    Item it = implGet(mesh,mesh.sub[i],0,0,version,staticDraw);
     if(it.isEmpty())
       continue;
     dat[count] = std::move(it);

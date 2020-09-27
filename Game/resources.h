@@ -94,7 +94,7 @@ class Resources final {
     static const Tempest::Texture2d* loadTexture(const std::string& name,int32_t v,int32_t c);
     static auto                      loadTextureAnim(const std::string& name) -> std::vector<const Tempest::Texture2d*>;
     static       Tempest::Texture2d  loadTexture(const Tempest::Pixmap& pm);
-    static       Material            loadMaterial(const ZenLoad::zCMaterialData& src);
+    static       Material            loadMaterial(const ZenLoad::zCMaterialData& src, bool enableAlphaTest);
 
     static const AttachBinder*       bindMesh      (const ProtoMesh& anim,const Skeleton& s);
     static const ProtoMesh*          loadMesh      (const std::string& name);

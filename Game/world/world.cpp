@@ -175,8 +175,8 @@ PfxObjects::Emitter World::getView(const ZenLoad::zCVobData& vob) const {
   return view()->getView(vob);
   }
 
-MeshObjects::Mesh World::getAtachView(const ProtoMesh::Attach& visual) {
-  return view()->getAtachView(visual);
+MeshObjects::Mesh World::getAtachView(const ProtoMesh::Attach& visual, const int32_t version) {
+  return view()->getAtachView(visual,version);
   }
 
 MeshObjects::Mesh World::getItmView(const Daedalus::ZString& visual, int32_t tex) const {

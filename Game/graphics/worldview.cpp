@@ -204,8 +204,8 @@ MeshObjects::Mesh WorldView::getItmView(const char* visual, int32_t material) {
   return MeshObjects::Mesh();
   }
 
-MeshObjects::Mesh WorldView::getAtachView(const ProtoMesh::Attach& visual) {
-  return objGroup.get(visual,false);
+MeshObjects::Mesh WorldView::getAtachView(const ProtoMesh::Attach& visual, const int32_t version) {
+  return objGroup.get(visual,version,false);
   }
 
 MeshObjects::Mesh WorldView::getStaticView(const char* visual) {

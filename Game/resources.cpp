@@ -541,9 +541,8 @@ Texture2d Resources::loadTexture(const Pixmap &pm) {
   return inst->device.loadTexture(pm);
   }
 
-Material Resources::loadMaterial(const ZenLoad::zCMaterialData& src) {
-  Material mt(src);
-  return src;
+Material Resources::loadMaterial(const ZenLoad::zCMaterialData& src, bool enableAlphaTest) {
+  return Material(src,enableAlphaTest);
   }
 
 const ProtoMesh *Resources::loadMesh(const std::string &name) {
