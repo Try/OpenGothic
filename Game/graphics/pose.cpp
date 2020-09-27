@@ -58,6 +58,7 @@ void Pose::load(Serialize &fin,const AnimationSolver& solver) {
     } else {
     fin.read(name); //itemUse
     }
+  needToUpdate = true;
   }
 
 void Pose::setFlags(Pose::Flags f) {
@@ -218,29 +219,34 @@ bool Pose::update(uint64_t tickCount) {
   if(lay.size()==0){
     if(lastUpdate==0){
       zeroSkeleton();
-      lastUpdate = tickCount;
+      needToUpdate = false;
+      lastUpdate   = tickCount;
       return true;
       }
-    lastUpdate = tickCount;
-    return false;
+    const bool ret = needToUpdate;
+    needToUpdate = false;
+    lastUpdate   = tickCount;
+    return ret;
     }
 
-  if(lastUpdate==tickCount)
-    return false;
-
-  for(auto& i:lay) {
-    const Animation::Sequence* seq = i.seq;
-    if(0<i.comb && size_t(i.comb)<=i.seq->comb.size()) {
-      if(auto sx = i.seq->comb[size_t(i.comb-1)])
-        seq = sx;
+  if(lastUpdate!=tickCount) {
+    for(auto& i:lay) {
+      const Animation::Sequence* seq = i.seq;
+      if(0<i.comb && size_t(i.comb)<=i.seq->comb.size()) {
+        if(auto sx = i.seq->comb[size_t(i.comb-1)])
+          seq = sx;
+        }
+      needToUpdate |= updateFrame(*seq,lastUpdate,i.sAnim,tickCount);
       }
-    needToUpdate |= updateFrame(*seq,lastUpdate,i.sAnim,tickCount);
+    lastUpdate = tickCount;
     }
 
-  if(needToUpdate)
+  if(needToUpdate) {
     mkSkeleton(*lay[0].seq);
-  lastUpdate = tickCount;
-  return true;
+    needToUpdate = false;
+    return true;
+    }
+  return false;
   }
 
 bool Pose::updateFrame(const Animation::Sequence &s,

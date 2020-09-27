@@ -18,7 +18,7 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &
     }
 
   nodes.resize(library.getNodes().size());
-  for(size_t i=0;i<nodes.size();++i){
+  for(size_t i=0;i<nodes.size();++i) {
     Node& n   = nodes[i];
     auto& src = library.getNodes()[i];
     for(size_t r=0;r<attach.size();++r)

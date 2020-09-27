@@ -43,6 +43,7 @@ void MdlVisual::load(Serialize& fin, Interactive&) {
     solver.load(fin);
   if(fin.version()>=11)
     skInst->load(fin,solver);
+  syncAttaches();
   }
 
 // Mdl_SetVisual
@@ -66,16 +67,7 @@ void MdlVisual::setYTranslationEnable(bool e) {
 // Mdl_SetVisualBody
 void MdlVisual::setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner) {
   bind(head,std::move(h),"BIP01 HEAD");
-
-  if(auto p = body.protoMesh()) {
-    for(auto& att:p->attach) {
-      auto view = owner.getAtachView(att);
-      setSlotItem(std::move(view),att.name.c_str());
-      }
-    }
-  view = std::move(body);
-  view.setSkeleton(skeleton);
-  //view.setPose(*skInst,pos);
+  implSetBody(std::move(body),owner);
   }
 
 bool MdlVisual::hasOverlay(const Skeleton* sk) const {
@@ -97,10 +89,29 @@ void MdlVisual::delOverlay(const Skeleton *sk) {
   solver.delOverlay(sk);
   }
 
-void MdlVisual::setArmour(MeshObjects::Mesh &&a) {
-  view = std::move(a);
-  view.setSkeleton(skeleton);
+void MdlVisual::setArmour(MeshObjects::Mesh &&a, World& owner) {
+  implSetBody(std::move(a),owner);
   setPos(pos);
+  }
+
+void MdlVisual::implSetBody(MeshObjects::Mesh&& body, World& owner) {
+  if(auto p = view.protoMesh()) {
+    for(auto& att:p->attach) {
+      if(!att.hasNode)
+        setSlotItem(MeshObjects::Mesh(),att.name.c_str());
+      }
+    }
+  if(auto p = body.protoMesh()) {
+    for(auto& att:p->attach) {
+      if(!att.hasNode) {
+        auto view = owner.getAtachView(att);
+        setSlotItem(std::move(view),att.name.c_str());
+        }
+      }
+    }
+  view = std::move(body);
+  view.setSkeleton(skeleton);
+  view.setPose(*skInst,pos);
   }
 
 void MdlVisual::setSword(MeshObjects::Mesh &&s) {
@@ -125,6 +136,10 @@ void MdlVisual::setSlotItem(MeshObjects::Mesh &&itm, const char *bone) {
 
   size_t id = skeleton->findNode(bone);
   if(id==size_t(-1))
+    return;
+
+  // HACK: light dragon hunter armour
+  if(id==head.boneId && !head.view.isEmpty())
     return;
 
   for(auto& i:item) {

@@ -36,7 +36,7 @@ class MdlVisual final {
     void                           delOverlay(const char*     sk);
     void                           delOverlay(const Skeleton *sk);
 
-    void                           setArmour     (MeshObjects::Mesh&& body);
+    void                           setArmour     (MeshObjects::Mesh&& body, World& owner);
     void                           setSword      (MeshObjects::Mesh&& sword);
     void                           setRangeWeapon(MeshObjects::Mesh&& bow);
     void                           setAmmoItem   (MeshObjects::Mesh&& ammo, const char* bone);
@@ -99,6 +99,7 @@ class MdlVisual final {
       int      id=0;
       };
 
+    void implSetBody(MeshObjects::Mesh&& body, World& owner);
     void bind(MeshAttach& slot, MeshObjects::Mesh&&   itm, const char *bone);
     void bind(PfxAttach&  slot, PfxObjects::Emitter&& itm, const char *bone);
 

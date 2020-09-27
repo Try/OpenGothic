@@ -57,6 +57,7 @@ Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData&& vob, bo
         }
       }
     }
+  visual.setYTranslationEnable(false);
   setVisual(mdlVisual);
   world.addInteractive(this);
   }
@@ -129,7 +130,7 @@ void Interactive::setVisual(const std::string& body) {
   const Skeleton* skeleton=nullptr;
   if(!FileExt::hasExt(body,"3ds"))
     skeleton = Resources::loadSkeleton(body.c_str());
-  mesh = Resources::loadMesh(body);
+  mesh        = Resources::loadMesh(body);
   animChanged = true;
 
   if(mesh) {
@@ -139,10 +140,8 @@ void Interactive::setVisual(const std::string& body) {
       physic = PhysicMesh(*mesh,*world.physic());
       }
 
-    visual.setYTranslationEnable(false);
     visual.setVisual(skeleton);
     visual.setPos(transform());
-
     physic.setSkeleton (skeleton);
     physic.setObjMatrix(transform());
 
