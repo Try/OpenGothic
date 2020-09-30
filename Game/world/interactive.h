@@ -43,7 +43,7 @@ class Interactive : public Vob {
     const char*         displayName() const;
 
     int32_t             stateId() const { return state; }
-    bool                setState(int32_t st);
+    bool                setMobState(const char* scheme,int32_t st) override;
     void                emitTriggerEvent() const;
     const char*         schemeName() const;
     const char*         posSchemeName() const;

@@ -683,11 +683,8 @@ void WorldObjects::resetPositionToTA() {
   }
 
 void WorldObjects::setMobState(const char* scheme, int32_t st) {
-  for(auto& i:interactiveObj) {
-    if(std::strcmp(i->schemeName(),scheme)!=0)
-      continue;
-    i->setState(st);
-    }
+  for(auto& i:rootVobs)
+    i->setMobState(scheme,st);
   }
 
 template<class T>

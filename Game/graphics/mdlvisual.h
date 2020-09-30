@@ -28,6 +28,7 @@ class MdlVisual final {
     void                           setTarget(const Tempest::Vec3& p);
     void                           setVisual(const Skeleton *visual);
     void                           setYTranslationEnable(bool e);
+    void                           setVisualBody(MeshObjects::Mesh &&body, World& owner);
     void                           setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner, int32_t version);
     void                           syncAttaches();
 

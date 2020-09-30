@@ -136,7 +136,7 @@ void Interactive::setVisual(const std::string& body) {
   if(mesh) {
     if(showVisual) {
       auto view = world.getView(body.c_str());
-      visual.setVisualBody(MeshObjects::Mesh(),std::move(view),world,0);
+      visual.setVisualBody(std::move(view),world);
       physic = PhysicMesh(*mesh,*world.physic());
       }
 
@@ -327,12 +327,17 @@ const char *Interactive::displayName() const {
   return txt;
   }
 
-bool Interactive::setState(int32_t st) {
+bool Interactive::setMobState(const char* scheme, int32_t st) {
+  const bool ret = Vob::setMobState(scheme,st);
+
+  if(std::strcmp(schemeName(),scheme)!=0)
+    return ret;
+
   char buf[256]={};
   std::snprintf(buf,sizeof(buf),"S_S%d",st);
   if(visual.startAnimAndGet(buf,world.tickCount())!=nullptr) {
     state = st;
-    return true;
+    return ret;
     }
   return false;
   }

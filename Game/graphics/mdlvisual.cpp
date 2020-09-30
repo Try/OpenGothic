@@ -64,6 +64,10 @@ void MdlVisual::setYTranslationEnable(bool e) {
     skInst->setFlags(Pose::NoTranslation);
   }
 
+void MdlVisual::setVisualBody(MeshObjects::Mesh&& body, World& owner) {
+  implSetBody(std::move(body),owner,0);
+  }
+
 // Mdl_SetVisualBody
 void MdlVisual::setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner, int32_t version) {
   bind(head,std::move(h),"BIP01 HEAD");

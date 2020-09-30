@@ -1458,7 +1458,6 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
       perceptionProcess(other,this,0,PERC_ASSESSMAGIC);
       }
     perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
-    owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
 
     lastHit = &other;
     fghAlgo.onTakeHit();
@@ -1496,6 +1495,9 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
         }
       else if(isDead()) {
         owner.sendPassivePerc(*this,other,*this,PERC_ASSESSMURDER);
+        }
+      else {
+        owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
         }
       }
 

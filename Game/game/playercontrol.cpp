@@ -513,8 +513,9 @@ void PlayerControl::implMove(uint64_t dt) {
   pl.setAnimRotate(ani==Npc::Anim::Idle ? rotation : 0);
   if(actrl[ActGeneric] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.isFinishingMove()) {
     if(auto other = pl.target()){
-      if(pl.weaponState()==WeaponState::NoWeapon || other->isDown() || pl.isFinishingMove()){
-        pl.setOther(nullptr);
+      if(pl.weaponState()==WeaponState::NoWeapon || other->isDown() || pl.isFinishingMove() ||
+         other->qDistTo(pl)>500*500){
+        pl.setTarget(nullptr);
         } else {
         float dx = other->position().x-pl.position().x;
         float dz = other->position().z-pl.position().z;
