@@ -558,6 +558,8 @@ const PfxEmitterMesh* Resources::loadEmiterMesh(const char* name) {
   }
 
 const Skeleton *Resources::loadSkeleton(const char* name) {
+  if(FileExt::hasExt(name,"3ds"))
+    return nullptr;
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadSkeleton(name);
   }

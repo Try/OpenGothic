@@ -40,7 +40,7 @@ class WorldView {
                     const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay);
     void setModelView   (const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4* shadow, size_t shCount);
     void setFrameGlobals(const Tempest::Texture2d& shadow, uint64_t tickCount, uint8_t fId);
-    void setGbuffer     (const Tempest::Texture2d& diffuse, const Tempest::Texture2d& norm, const Tempest::Texture2d& depth);
+    void setGbuffer     (const Tempest::Texture2d& lightingBuf, const Tempest::Texture2d& diffuse, const Tempest::Texture2d& norm, const Tempest::Texture2d& depth);
 
     void dbgLights    (Tempest::Painter& p) const;
     void drawShadow   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t frameId, uint8_t layer);

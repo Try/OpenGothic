@@ -27,6 +27,7 @@ class RendererStorage {
     Tempest::RenderPipeline pSky;
     Tempest::RenderPipeline pLights;
     Tempest::RenderPipeline pComposeShadow;
+    Tempest::RenderPipeline pCopy;
 
   private:
     struct ShaderPair {

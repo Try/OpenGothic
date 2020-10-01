@@ -43,6 +43,7 @@ class Renderer final {
     Tempest::Attachment               shadowMap[2], shadowMapFinal;
     Tempest::ZBuffer                  zbuffer, zbufferItem, shadowZ[2];
 
+    Tempest::Attachment               lightingBuf;
     Tempest::Attachment               gbufDiffuse;
     Tempest::Attachment               gbufNormal;
     Tempest::Attachment               gbufDepth;
@@ -50,19 +51,17 @@ class Renderer final {
     Tempest::TextureFormat            shadowFormat =Tempest::TextureFormat::RGBA8;
     Tempest::TextureFormat            zBufferFormat=Tempest::TextureFormat::Depth16;
 
-    std::vector<Tempest::FrameBuffer> fboGBuf, fbo3d, fboUi, fboItem;
-    Tempest::FrameBuffer              fboShadow[2], fboCompose;
+    std::vector<Tempest::FrameBuffer> fbo3d, fboCpy, fboUi, fboItem;
+    Tempest::FrameBuffer              fboShadow[2], fboCompose, fboGBuf;
 
-    Tempest::RenderPass               mainPass, mainPassNoGbuf, gbufPass, shadowPass, composePass;
+    Tempest::RenderPass               mainPass, mainPassNoGbuf, gbufPass, shadowPass, composePass, copyPass;
     Tempest::RenderPass               inventoryPass;
     Tempest::RenderPass               uiPass;
 
-    Tempest::Uniforms                 uboShadowComp;
+    Tempest::Uniforms                 uboShadowComp, uboCopy;
     RendererStorage                   stor;
 
-    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::FrameBuffer& fboG, const Gothic& gothic, uint8_t frameId);
+    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::FrameBuffer& fboCpy, const Gothic& gothic, uint8_t frameId);
     void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, InventoryMenu& inv);
     void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::VectorImage& surface);
-
-    void composeShadow(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer &fbo);
   };

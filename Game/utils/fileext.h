@@ -21,6 +21,23 @@ namespace FileExt {
     return true;
     }
 
+  inline bool hasExt(const char* s,const char* extIn) {
+    const size_t ssize = std::strlen(s);
+    const size_t l     = std::strlen(extIn);
+    if(l+1>ssize)
+      return false;
+    const size_t off = ssize-l;
+    if(s[off-1]!='.')
+      return false;
+    for(size_t i=0;i<l;++i) {
+      char a = char(std::tolower(s[off+i]));
+      char b = char(std::tolower(extIn[i]));
+      if(a!=b)
+        return false;
+      }
+    return true;
+    }
+
   inline bool exchangeExt(std::string& s,const char* extIn,const char* extOut) {
     if(!hasExt(s,extIn))
       return false;

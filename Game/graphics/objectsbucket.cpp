@@ -184,7 +184,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
       ubo.set(2,scene.uboGlobalPf[i][0]);
       ubo.set(4,uboMat[i]);
       if(mat.alpha==Material::Water) {
-        ubo.set(5,*scene.gbufDiffuse,Sampler2d::nearest());
+        ubo.set(5,*scene.lightingBuf,Sampler2d::nearest());
         ubo.set(6,*scene.gbufDepth,  Sampler2d::nearest());
         }
       }

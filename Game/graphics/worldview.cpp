@@ -100,11 +100,13 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
   pfxGroup.preFrameUpdate(fId);
   }
 
-void WorldView::setGbuffer(const Texture2d& diffuse, const Texture2d& norm, const Texture2d& depth) {
-  if(sGlobal.gbufDiffuse == &diffuse ||
-     sGlobal.gbufNormals == &norm    ||
+void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffuse, const Texture2d& norm, const Texture2d& depth) {
+  if(sGlobal.lightingBuf == &lightingBuf &&
+     sGlobal.gbufDiffuse == &diffuse &&
+     sGlobal.gbufNormals == &norm    &&
      sGlobal.gbufDepth   == &depth)
     return;
+  sGlobal.lightingBuf = &lightingBuf;
   sGlobal.gbufDiffuse = &diffuse;
   sGlobal.gbufNormals = &norm;
   sGlobal.gbufDepth   = &depth;

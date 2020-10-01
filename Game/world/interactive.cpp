@@ -127,9 +127,7 @@ void Interactive::save(Serialize &fout) const {
   }
 
 void Interactive::setVisual(const std::string& body) {
-  const Skeleton* skeleton=nullptr;
-  if(!FileExt::hasExt(body,"3ds"))
-    skeleton = Resources::loadSkeleton(body.c_str());
+  const Skeleton* skeleton = Resources::loadSkeleton(body.c_str());
   mesh        = Resources::loadMesh(body);
   animChanged = true;
 

@@ -81,12 +81,21 @@ RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   stateMAdd.setZTestMode    (RenderState::ZTestMode::Less);
   stateMAdd.setZWriteEnabled(false);
 
-  auto sh     = GothicShader::get("shadow_compose.vert.sprv");
-  auto vsComp = device.shader(sh.data,sh.len);
-  sh          = GothicShader::get("shadow_compose.frag.sprv");
-  auto fsComp = device.shader(sh.data,sh.len);
+  {
+  auto sh = GothicShader::get("copy.vert.sprv");
+  auto vs = device.shader(sh.data,sh.len);
+  sh      = GothicShader::get("copy.frag.sprv");
+  auto fs = device.shader(sh.data,sh.len);
+  pCopy = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vs,fs);
+  }
 
-  pComposeShadow = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vsComp, fsComp);
+  {
+  auto sh = GothicShader::get("shadow_compose.vert.sprv");
+  auto vs = device.shader(sh.data,sh.len);
+  sh      = GothicShader::get("shadow_compose.frag.sprv");
+  auto fs = device.shader(sh.data,sh.len);
+  pComposeShadow = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vs,fs);
+  }
 
   pAnim          = pipeline<Resources::VertexA>(stateObj,   obj.ani);
   pAnimG         = pipeline<Resources::VertexA>(stateObj,   objG.ani);

@@ -117,8 +117,9 @@ vec3 waterColor(vec3 selfColor) {
   vec4 ground = scene.modelViewInv*vec4(scr.xy,depth,1.0);
   vec4 water  = scene.modelViewInv*vec4(scr,1.0);
 
-  float dist  = 0.001*distance(water.xyz/water.w,ground.xyz/ground.w);
-  float a     = min(dist,0.98);
+  float dist  = distance(water.xyz/water.w,ground.xyz/ground.w)/100.0;
+  dist = pow(dist,2);
+  float a     = min(dist,0.8);
   return mix(back.rgb,selfColor,a);
   }
 #endif

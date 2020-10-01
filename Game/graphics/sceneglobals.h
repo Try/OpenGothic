@@ -26,6 +26,7 @@ class SceneGlobals final {
     uint64_t                          tickCount = 0;
     const Tempest::Texture2d*         shadowMap = &Resources::fallbackBlack();
 
+    const Tempest::Texture2d*         lightingBuf = &Resources::fallbackBlack();
     const Tempest::Texture2d*         gbufDiffuse = &Resources::fallbackBlack();
     const Tempest::Texture2d*         gbufNormals = &Resources::fallbackBlack();
     const Tempest::Texture2d*         gbufDepth   = &Resources::fallbackBlack();
