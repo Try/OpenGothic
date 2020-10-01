@@ -112,6 +112,7 @@ void WorldView::setGbuffer(const Texture2d& diffuse, const Texture2d& norm, cons
   // wait before update all descriptors
   sGlobal.storage.device.waitIdle();
   sGlobal.lights.setupUbo();
+  visuals.setupUbo();
   }
 
 void WorldView::dbgLights(Painter& p) const {

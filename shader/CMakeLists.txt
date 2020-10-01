@@ -40,6 +40,7 @@ endfunction(add_shader)
 #   SHADOW_MAP - output is shadowmap
 #   ATEST      - use alpha test
 #   PFX        - use color modulation
+#   WATER      - water material
 #   G1         - hint for gothic1 shader
 add_shader(obj.vert             main.vert -DOBJ)
 add_shader(obj.frag             main.frag -DOBJ)
@@ -57,6 +58,8 @@ add_shader(obj_shadow_at.vert   main.vert -DOBJ -DSHADOW_MAP -DATEST)
 add_shader(obj_shadow_at.frag   main.frag -DOBJ -DSHADOW_MAP -DATEST)
 add_shader(obj_light.vert       main.vert -DOBJ -DLIGHT_EXT)
 add_shader(obj_light.frag       main.frag -DOBJ -DLIGHT_EXT)
+add_shader(obj_water.vert       main.vert -DOBJ -DWATER)
+add_shader(obj_water.frag       main.frag -DOBJ -DWATER)
 
 add_shader(ani.vert             main.vert -DOBJ -DSKINING)
 add_shader(ani.frag             main.frag -DOBJ -DSKINING)
@@ -74,6 +77,8 @@ add_shader(ani_shadow_at.vert   main.vert -DOBJ -DSKINING -DSHADOW_MAP -DATEST)
 add_shader(ani_shadow_at.frag   main.frag -DOBJ -DSKINING -DSHADOW_MAP -DATEST)
 add_shader(ani_light.vert       main.vert -DOBJ -DSKINING -DLIGHT_EXT)
 add_shader(ani_light.frag       main.frag -DOBJ -DSKINING -DLIGHT_EXT)
+add_shader(ani_water.vert       main.vert -DOBJ -DSKINING -DWATER)
+add_shader(ani_water.frag       main.frag -DOBJ -DSKINING -DWATER)
 
 add_shader(light.vert           light.vert "")
 add_shader(light.frag           light.frag "")

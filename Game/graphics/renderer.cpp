@@ -52,6 +52,10 @@ void Renderer::resetSwapchain() {
   const uint32_t imgC   = swapchain.imageCount();
   const uint32_t smSize = 2048;
 
+  if(auto wview = gothic.worldView()) {
+    wview->setGbuffer(Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack());
+    }
+
   zbuffer        = device.zbuffer   (zBufferFormat,w,h);
   zbufferItem    = device.zbuffer   (zBufferFormat,w,h);
   shadowMapFinal = device.attachment(shadowFormat,smSize,smSize);

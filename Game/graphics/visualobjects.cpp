@@ -57,7 +57,7 @@ ObjectsBucket::Item VisualObjects::get(Tempest::VertexBuffer<Resources::Vertex>&
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
-  auto&        bucket = getBucket(mat,ObjectsBucket::Static);
+  auto& bucket = getBucket(mat,ObjectsBucket::Static);
   if(bucket.size()==0)
     index.clear();
   const size_t id     = bucket.alloc(vbo,ibo,bbox);
@@ -69,7 +69,7 @@ ObjectsBucket::Item VisualObjects::get(const Tempest::VertexBuffer<Resources::Ve
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
-  auto&        bucket = getBucket(mat,ObjectsBucket::Movable);
+  auto& bucket = getBucket(mat,ObjectsBucket::Movable);
   if(bucket.size()==0)
     index.clear();
   const size_t id     = bucket.alloc(vbo,bbox);

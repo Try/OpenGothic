@@ -109,6 +109,12 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const SceneGlobals& scene, Sto
         pGbuffer = &scene.storage.pObjectG;
         }
       break;
+    case Material::Water:{
+      if(shaderType==Animated)
+        pMain = &scene.storage.pAnimWater; else
+        pMain = &scene.storage.pObjectWater;
+      }
+      break;
     case Material::InvalidAlpha:
     case Material::LastGothic:
     case Material::FirstOpenGothic:
@@ -177,6 +183,10 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
       ubo.set(1,*scene.shadowMap,Resources::shadowSampler());
       ubo.set(2,scene.uboGlobalPf[i][0]);
       ubo.set(4,uboMat[i]);
+      if(mat.alpha==Material::Water) {
+        ubo.set(5,*scene.gbufDiffuse,Sampler2d::nearest());
+        ubo.set(6,*scene.gbufDepth,  Sampler2d::nearest());
+        }
       }
 
     if(pShadow!=nullptr) {

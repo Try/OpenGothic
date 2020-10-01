@@ -22,6 +22,7 @@ class Material final {
 
       FirstOpenGothic,
       Solid,
+      Water,
       Last
       };
 

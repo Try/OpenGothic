@@ -14,7 +14,7 @@ layout(location = 1) in vec4 inShadowPos;
 layout(location = 2) in vec3 inNormal;
 layout(location = 3) in vec4 inColor;
 layout(location = 4) in vec4 inPos;
-layout(location = 5) in vec4 inZ;
+layout(location = 5) in vec4 inScr;
 #endif
 
 #ifdef GBUFFER
@@ -107,6 +107,22 @@ vec3 calcLight() {
   }
 #endif
 
+#if defined(WATER)
+vec3 waterColor(vec3 selfColor) {
+  vec3  scr   = inScr.xyz/inScr.w;
+  vec2  p     = scr.xy*0.5+vec2(0.5);
+  vec4  back  = texture(gbufferDiffuse,p);
+  float depth = texture(gbufferDepth,p).r;
+
+  vec4 ground = scene.modelViewInv*vec4(scr.xy,depth,1.0);
+  vec4 water  = scene.modelViewInv*vec4(scr,1.0);
+
+  float dist  = 0.001*distance(water.xyz/water.w,ground.xyz/ground.w);
+  float a     = min(dist,0.98);
+  return mix(back.rgb,selfColor,a);
+  }
+#endif
+
 void main() {
 #if !defined(SHADOW_MAP) || defined(ATEST)
   vec4 t = texture(textureD,inUV);
@@ -121,16 +137,22 @@ void main() {
 #else
 
 #if defined(EMMISSIVE)
-  vec3  color   = inColor.rgb;
+  vec3 color = inColor.rgb;
 #else
-  vec3  color   = calcLight();
+  vec3 color = calcLight();
 #endif
-  outColor      = vec4(t.rgb*color,t.a*inColor.a);
+
+  color = t.rgb*color;
+#if defined(WATER)
+  color = waterColor(color);
+#endif
+
+  outColor      = vec4(color,t.a*inColor.a);
 
 #ifdef GBUFFER
   outDiffuse    = t;
   outNormal     = vec4(normalize(inNormal)*0.5 + vec3(0.5),1.0);
-  outDepth      = vec4(inZ.z/inZ.w,0.0,0.0,0.0);
+  outDepth      = vec4(inScr.z/inScr.w,0.0,0.0,0.0);
 #endif
 
   //outColor   = vec4(inZ.xyz/inZ.w,1.0);

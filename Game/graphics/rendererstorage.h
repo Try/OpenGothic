@@ -18,8 +18,8 @@ class RendererStorage {
     Tempest::RenderPipeline pAnim,   pAnimG,   pAnimAt,   pAnimAtG,   pAnimLt,   pAnimAtLt;
     Tempest::RenderPipeline pObject, pObjectG, pObjectAt, pObjectAtG, pObjectLt, pObjectAtLt;
 
-    Tempest::RenderPipeline pObjectAlpha, pAnimAlpha;
-    Tempest::RenderPipeline pObjectMAdd,  pAnimMAdd;
+    Tempest::RenderPipeline pObjectAlpha, pAnimAlpha, pObjectWater;
+    Tempest::RenderPipeline pObjectMAdd,  pAnimMAdd,  pAnimWater;
 
     Tempest::RenderPipeline pObjectSh, pObjectAtSh;
     Tempest::RenderPipeline pAnimSh,   pAnimAtSh;
@@ -40,13 +40,7 @@ class RendererStorage {
       ShaderPair obj, ani;
       void load(Tempest::Device& device, const char* tag);
       };
-    // ShaderPair obj, objAt, objG, objAtG, objEmi;
-    // ShaderPair ani, aniAt, aniG, aniAtG, aniEmi;
 
-    Material obj, objAt, objG, objAtG, objEmi, objShadow, objShadowAt;
-
-    void initPipeline(Gothic& gothic);
-    void initShadow();
     template<class Vertex>
     Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const ShaderPair &fs);
   };

@@ -11,6 +11,7 @@ SceneGlobals::SceneGlobals(const RendererStorage& storage)
   uboGlobal.lightDir/=uboGlobal.lightDir.manhattanLength();
 
   uboGlobal.modelView.identity();
+  uboGlobal.modelViewInv.identity();
   uboGlobal.shadowView.identity();
 
   sun.setDir(1,-1,1);
@@ -27,9 +28,11 @@ SceneGlobals::~SceneGlobals() {
 void SceneGlobals::setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4* sh, size_t shCount) {
   assert(shCount==2);
 
-  uboGlobal.modelView  = m;
-  uboGlobal.shadowView = sh[0];
-  shadowView1          = sh[1];  
+  uboGlobal.modelView    = m;
+  uboGlobal.modelViewInv = m;
+  uboGlobal.modelViewInv.inverse();
+  uboGlobal.shadowView   = sh[0];
+  shadowView1            = sh[1];
   }
 
 void SceneGlobals::setTime(uint64_t time) {

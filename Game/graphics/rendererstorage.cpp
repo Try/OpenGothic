@@ -41,6 +41,7 @@ void RendererStorage::Material::load(Device &device, const char *tag) {
 
 RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   :device(device) {
+  Material obj, objAt, objG, objAtG, objEmi, objShadow, objShadowAt, objWater;
   obj        .load(device,"");
   objG       .load(device,"gbuffer");
   objAt      .load(device,"at");
@@ -48,17 +49,8 @@ RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   objEmi     .load(device,"emi");
   objShadow  .load(device,"shadow");
   objShadowAt.load(device,"shadow_at");
+  objWater   .load(device,"water");
 
-  initPipeline(gothic);
-  initShadow();
-  }
-
-template<class Vertex>
-RenderPipeline RendererStorage::pipeline(RenderState& st, const ShaderPair &sh) {
-  return device.pipeline<Vertex>(Triangles,st,sh.vs,sh.fs);
-  }
-
-void RendererStorage::initPipeline(Gothic& gothic) {
   RenderState stateAlpha;
   stateAlpha.setCullFaceMode(RenderState::CullMode::Front);
   stateAlpha.setBlendSource (RenderState::BlendMode::src_alpha);
@@ -116,6 +108,9 @@ void RendererStorage::initPipeline(Gothic& gothic) {
   pObjectMAdd    = pipeline<Resources::Vertex> (stateMAdd,  objEmi.obj);
   pAnimMAdd      = pipeline<Resources::VertexA>(stateMAdd,  objEmi.ani);
 
+  pObjectWater   = pipeline<Resources::Vertex> (stateObj,   objWater.obj);
+  pAnimWater     = pipeline<Resources::VertexA>(stateObj,   objWater.ani);
+
   {
   RenderState state;
   state.setCullFaceMode (RenderState::CullMode::Front);
@@ -144,9 +139,7 @@ void RendererStorage::initPipeline(Gothic& gothic) {
     auto fsSky = device.shader(sh.data,sh.len);
     pSky       = device.pipeline<Resources::VertexFsq>(Triangles, stateFsq, vsSky,  fsSky);
     }
-  }
 
-void RendererStorage::initShadow() {
   RenderState state;
   state.setZTestMode   (RenderState::ZTestMode::Less);
   state.setCullFaceMode(RenderState::CullMode::Back);
@@ -156,4 +149,9 @@ void RendererStorage::initShadow() {
   pObjectAtSh = pipeline<Resources::Vertex> (state,objShadowAt.obj);
   pAnimSh     = pipeline<Resources::VertexA>(state,objShadow  .ani);
   pAnimAtSh   = pipeline<Resources::VertexA>(state,objShadowAt.ani);
+  }
+
+template<class Vertex>
+RenderPipeline RendererStorage::pipeline(RenderState& st, const ShaderPair &sh) {
+  return device.pipeline<Vertex>(Triangles,st,sh.vs,sh.fs);
   }

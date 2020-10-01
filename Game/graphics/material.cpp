@@ -1,5 +1,7 @@
 #include "material.h"
 
+#include <zenload/zCMaterial.h>
+
 #include "resources.h"
 
 using namespace Tempest;
@@ -14,7 +16,10 @@ Material::Material(const ZenLoad::zCMaterialData& m, bool enableAlphaTest) {
 
   if(alpha>LastGothic) {
     alpha = InvalidAlpha;
-    }
+    }  
+
+  if(m.matGroup==ZenLoad::MaterialGroup::WATER)
+    alpha = Water;
 
   if(alpha==AlphaTest || alpha==Transparent) {
     if(tex!=nullptr && tex->format()==Tempest::TextureFormat::DXT1) {

@@ -35,7 +35,7 @@ layout(location = 1) out vec4 outShadowPos;
 layout(location = 2) out vec3 outNormal;
 layout(location = 3) out vec4 outColor;
 layout(location = 4) out vec4 outPos;
-layout(location = 5) out vec4 outZ;
+layout(location = 5) out vec4 outScr;
 #endif
 
 vec4 vertexPos() {
@@ -96,14 +96,14 @@ void main() {
   outNormal    = (push.obj*norm).xyz;
   outPos       = (push.obj*pos);
   vec4 trPos   = scene.mv*outPos;
-  outZ         = trPos;
+  outScr       = trPos;
   gl_Position  = trPos;
 #  else
   outNormal    = norm.xyz;
   outPos       = pos;
 
   vec4 trPos   = scene.mv*pos;
-  outZ         = trPos;
+  outScr       = trPos;
   gl_Position  = trPos;
 #  endif
 #endif
