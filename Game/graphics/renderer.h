@@ -54,7 +54,7 @@ class Renderer final {
     std::vector<Tempest::FrameBuffer> fbo3d, fboCpy, fboUi, fboItem;
     Tempest::FrameBuffer              fboShadow[2], fboCompose, fboGBuf;
 
-    Tempest::RenderPass               mainPass, mainPassNoGbuf, gbufPass, shadowPass, composePass, copyPass;
+    Tempest::RenderPass               mainPass, mainPassNoGbuf, gbufPass, shadowPass, copyPass;
     Tempest::RenderPass               inventoryPass;
     Tempest::RenderPass               uiPass;
 

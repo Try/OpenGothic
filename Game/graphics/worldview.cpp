@@ -87,7 +87,7 @@ void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uin
   if(&shadow!=sGlobal.shadowMap) {
     // wait before update all descriptors
     sGlobal.storage.device.waitIdle();
-    sGlobal.setShadowmMap(shadow);
+    sGlobal.setShadowMap(shadow);
     visuals.setupUbo();
     }
   pfxGroup.tick(tickCount);
@@ -122,7 +122,7 @@ void WorldView::dbgLights(Painter& p) const {
   p.setBrush(Color(1,0,0,0.01f));
   //p.setBrush(Color(1,0,0,1.f));
 
-  auto mv = sGlobal.modelView();
+  auto vp = sGlobal.viewProject();
   for(auto& i:pendingLights) {
     float r  = i.range();
     auto  pt = i.position();
@@ -138,7 +138,7 @@ void WorldView::dbgLights(Painter& p) const {
     px[8] = pt;
 
     for(auto& i:px) {
-      mv.project(i.x,i.y,i.z);
+      vp.project(i.x,i.y,i.z);
       i.x = (i.x+1.f)*0.5f;
       i.y = (i.y+1.f)*0.5f;
       }

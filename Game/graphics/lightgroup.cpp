@@ -40,7 +40,7 @@ void LightGroup::preFrameUpdate(uint8_t fId) {
   buildVbo(fId);
 
   Ubo ubo;
-  ubo.mvp    = scene.modelView();
+  ubo.mvp    = scene.viewProject();
   ubo.mvpInv = ubo.mvp;
   ubo.mvpInv.inverse();
   ubo.fr.make(ubo.mvp);

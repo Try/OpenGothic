@@ -18,9 +18,9 @@ class SceneGlobals final {
     void setTime(uint64_t time);
     void commitUbo(uint8_t fId);
 
-    void setShadowmMap(const Tempest::Texture2d& tex);
+    void setShadowMap(const Tempest::Texture2d& tex);
 
-    const Tempest::Matrix4x4& modelView() const;
+    const Tempest::Matrix4x4& viewProject() const;
 
     const RendererStorage&            storage;
     uint64_t                          tickCount = 0;
@@ -34,8 +34,8 @@ class SceneGlobals final {
     struct UboGlobal final {
       Tempest::Vec3                   lightDir={0,0,1};
       float                           shadowSize=2048;
-      Tempest::Matrix4x4              modelView;
-      Tempest::Matrix4x4              modelViewInv;
+      Tempest::Matrix4x4              viewProject;
+      Tempest::Matrix4x4              viewProjectInv;
       Tempest::Matrix4x4              shadowView;
       Tempest::Vec4                   lightAmb={0,0,0,0};
       Tempest::Vec4                   lightCl ={1,1,1,0};

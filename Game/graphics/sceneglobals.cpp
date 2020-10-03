@@ -10,8 +10,8 @@ SceneGlobals::SceneGlobals(const RendererStorage& storage)
   uboGlobal.lightDir={1,1,-1};
   uboGlobal.lightDir/=uboGlobal.lightDir.manhattanLength();
 
-  uboGlobal.modelView.identity();
-  uboGlobal.modelViewInv.identity();
+  uboGlobal.viewProject.identity();
+  uboGlobal.viewProjectInv.identity();
   uboGlobal.shadowView.identity();
 
   sun.setDir(1,-1,1);
@@ -28,9 +28,9 @@ SceneGlobals::~SceneGlobals() {
 void SceneGlobals::setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4* sh, size_t shCount) {
   assert(shCount==2);
 
-  uboGlobal.modelView    = m;
-  uboGlobal.modelViewInv = m;
-  uboGlobal.modelViewInv.inverse();
+  uboGlobal.viewProject    = m;
+  uboGlobal.viewProjectInv = m;
+  uboGlobal.viewProjectInv.inverse();
   uboGlobal.shadowView   = sh[0];
   shadowView1            = sh[1];
   }
@@ -55,11 +55,11 @@ void SceneGlobals::commitUbo(uint8_t fId) {
   uboGlobalPf[fId][1].update(&ubo2,     0,1);
   }
 
-void SceneGlobals::setShadowmMap(const Tempest::Texture2d& tex) {
+void SceneGlobals::setShadowMap(const Tempest::Texture2d& tex) {
   shadowMap            = &tex;
   uboGlobal.shadowSize = float(tex.w());
   }
 
-const Tempest::Matrix4x4& SceneGlobals::modelView() const {
-  return uboGlobal.modelView;
+const Tempest::Matrix4x4& SceneGlobals::viewProject() const {
+  return uboGlobal.viewProject;
   }

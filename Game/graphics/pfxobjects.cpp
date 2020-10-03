@@ -465,7 +465,7 @@ void PfxObjects::tick(uint64_t ticks) {
     return;
 
   VboContext ctx;
-  const auto& m = scene.modelView();
+  const auto& m = scene.viewProject();
   for(int i=0;i<3;++i) {
     ctx.left[i] = m.at(i,0);
     ctx.top [i] = m.at(i,1);

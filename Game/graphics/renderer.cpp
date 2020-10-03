@@ -53,18 +53,14 @@ void Renderer::resetSwapchain() {
   const uint32_t imgC   = swapchain.imageCount();
   const uint32_t smSize = 2048;
 
-  if(auto wview = gothic.worldView()) {
-    wview->setGbuffer(Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack());
-    }
-
   zbuffer        = device.zbuffer   (zBufferFormat,w,h);
   zbufferItem    = device.zbuffer   (zBufferFormat,w,h);
   shadowMapFinal = device.attachment(shadowFormat,smSize,smSize);
 
   shadowPass = device.pass(FboMode(FboMode::PreserveOut,Color(1.0)), FboMode(FboMode::Discard,1.f));
   for(int i=0;i<2;++i){
-    shadowMap[i] = device.attachment(shadowFormat, smSize,smSize);
-    shadowZ[i]   = device.zbuffer   (zBufferFormat,smSize,smSize);
+    shadowMap[i] = device.attachment (shadowFormat, smSize,smSize);
+    shadowZ[i]   = device.zbuffer    (zBufferFormat,smSize,smSize);
     fboShadow[i] = device.frameBuffer(shadowMap[i],shadowZ[i]);
     }
 
@@ -85,12 +81,12 @@ void Renderer::resetSwapchain() {
     fboUi  .emplace_back(device.frameBuffer(frame));
     }
   fboGBuf     = device.frameBuffer(lightingBuf,gbufDiffuse,gbufNormal,gbufDepth,zbuffer);
-
-  composePass = device.pass(FboMode::PreserveOut);
-  copyPass    = device.pass(FboMode::PreserveOut,FboMode::Preserve);
+  copyPass    = device.pass(FboMode::PreserveOut);
   fboCompose  = device.frameBuffer(shadowMapFinal);
 
   if(auto wview=gothic.worldView()) {
+    wview->setFrameGlobals(Resources::fallbackBlack(),0,0);
+    wview->setGbuffer(Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack());
     wview->initPipeline(w,h);
     }
 
@@ -139,7 +135,8 @@ void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t frameId, uint8_t imgId,
   draw(cmd, fboUi  [imgId], numOverlay);
   }
 
-void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, FrameBuffer& fboCpy, const Gothic &gothic, uint8_t frameId) {
+void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
+                    FrameBuffer& fbo, FrameBuffer& fboCpy, const Gothic &gothic, uint8_t frameId) {
   auto wview = gothic.worldView();
   if(wview==nullptr) {
     cmd.setFramebuffer(fbo,mainPassNoGbuf);
@@ -158,7 +155,7 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, Fram
     wview->drawShadow(cmd,painter,frameId,i);
     }
 
-  cmd.setFramebuffer(fboCompose,composePass);
+  cmd.setFramebuffer(fboCompose,copyPass);
   cmd.setUniforms(stor.pComposeShadow,uboShadowComp);
   cmd.draw(Resources::fsqVbo());
 
@@ -166,7 +163,7 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, Fram
   cmd.setFramebuffer(fboGBuf,gbufPass);
   wview->drawGBuffer(cmd,painter,frameId);
 
-  cmd.setFramebuffer(fboCpy,composePass);
+  cmd.setFramebuffer(fboCpy,copyPass);
   cmd.setUniforms(stor.pCopy,uboCopy);
   cmd.draw(Resources::fsqVbo());
 
@@ -193,9 +190,8 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   uint32_t w = uint32_t(zbuffer.w());
   uint32_t h = uint32_t(zbuffer.h());
 
-  auto        zbuf = device.zbuffer   (zBufferFormat,w,h);
   auto        img  = device.attachment(Tempest::TextureFormat::RGBA8,w,h);
-  FrameBuffer fbo  = device.frameBuffer(img,zbuf);
+  FrameBuffer fbo  = device.frameBuffer(img,zbuffer);
   FrameBuffer fboC = device.frameBuffer(img);
 
   if(auto wview = gothic.worldView())
