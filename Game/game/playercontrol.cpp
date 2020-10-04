@@ -179,6 +179,8 @@ bool PlayerControl::interact(Interactive &it) {
   auto pl = w->player();
   if(pl->weaponState()!=WeaponState::NoWeapon)
     return false;
+  if(w->player()->isDown())
+    return true;
   if(it.isContainer()){
     inv.open(*pl,it);
     return true;
@@ -194,6 +196,8 @@ bool PlayerControl::interact(Npc &other) {
     return false;
   if(w->player()->weaponState()!=WeaponState::NoWeapon)
     return false;
+  if(w->player()->isDown())
+    return true;
   if(w->script().isDead(other) || w->script().isUnconscious(other)){
     if(!inv.ransack(*w->player(),other))
       w->script().printNothingToGet();
@@ -209,6 +213,8 @@ bool PlayerControl::interact(Item &item) {
   auto pl = w->player();
   if(pl->weaponState()!=WeaponState::NoWeapon)
     return false;
+  if(w->player()->isDown())
+    return true;
   std::unique_ptr<Item> ptr {w->takeItem(item)};
   auto it = ptr.get();
   pl->addItem(std::move(ptr));
