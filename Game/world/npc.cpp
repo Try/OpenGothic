@@ -691,7 +691,7 @@ void Npc::updateArmour() {
 
   if(ar==nullptr) {
     auto  vbody = body.empty() ? MeshObjects::Mesh() : w.getView(addExt(body,".MDM").c_str(),vColor,0,bdColor);
-    visual.setArmour(std::move(vbody),owner,bdColor);
+    visual.setBody(std::move(vbody),owner,bdColor);
     } else {
     auto& itData = *ar->handle();
     auto  flag   = Inventory::Flags(itData.mainflag);
@@ -700,7 +700,7 @@ void Npc::updateArmour() {
       if(asc.rfind(".asc")==asc.size()-4)
         std::memcpy(&asc[asc.size()-3],"MDM",3);
       auto vbody  = asc.empty() ? MeshObjects::Mesh() : w.getView(asc.c_str(),vColor,0,bdColor);
-      visual.setArmour(std::move(vbody),owner,bdColor);
+      visual.setArmour(std::move(vbody),owner);
       }
     }
   }
@@ -1188,7 +1188,6 @@ bool Npc::implGoTo(uint64_t dt,float destDist) {
     }
 
   if(!go2.empty()) {    
-    if(implLookAt(dx,dz,false,dt)){
       mvAlgo.tick(dt);
       return true;
       }

@@ -93,8 +93,16 @@ void MdlVisual::delOverlay(const Skeleton *sk) {
   solver.delOverlay(sk);
   }
 
-void MdlVisual::setArmour(MeshObjects::Mesh &&a, World& owner, const int32_t version) {
+void MdlVisual::setBody(MeshObjects::Mesh&& a, World& owner, const int32_t version) {
   implSetBody(std::move(a),owner,version);
+  setPos(pos);
+  }
+
+void MdlVisual::setArmour(MeshObjects::Mesh &&a, World& owner) {
+  // NOTE: Giant_Bug have no version tag in attachments;
+  // Light dragon hunter armour has broken attachment with no tags
+  // Big dragon hunter armour has many atachments with version tags
+  implSetBody(std::move(a),owner,-1);
   setPos(pos);
   }
 

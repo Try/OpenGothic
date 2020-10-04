@@ -52,7 +52,7 @@ MeshObjects::Mesh MeshObjects::get(const StaticMesh &mesh, int32_t version, bool
   size_t count=0;
   for(size_t i=0;i<mesh.sub.size();++i) {
     // NOTE: light dragon hunter armour
-    if(mesh.sub[i].texName.find_first_of("VC")==std::string::npos)
+    if(mesh.sub[i].texName.find_first_of("VC")==std::string::npos && version!=0)
       continue;
     Item it = implGet(mesh,mesh.sub[i],0,0,version,staticDraw);
     if(it.isEmpty())
