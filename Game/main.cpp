@@ -50,9 +50,6 @@ std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(Gothic& g) {
 
 int main(int argc,const char** argv) {
   CrashLog::setup();
-#if defined(__WINDOWS__)
-  ::ShowWindow(::GetConsoleWindow(), SW_HIDE);
-#endif
   VDFS::FileIndex::initVDFS(argv[0]);
 
   Gothic               gothic{argc,argv};

@@ -79,6 +79,7 @@ class Resources final {
       };
 
     static const char* renderer();
+    static void        waitDeviceIdle();
 
     static const Tempest::Sampler2d& shadowSampler();
 

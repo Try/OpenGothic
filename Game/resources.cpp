@@ -119,6 +119,11 @@ const char* Resources::renderer() {
   return inst->device.renderer();
   }
 
+void Resources::waitDeviceIdle() {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  return inst->device.waitIdle();
+  }
+
 static Sampler2d implShadowSampler() {
   Tempest::Sampler2d smp;
   smp.setClamping(Tempest::ClampMode::ClampToBorder);
