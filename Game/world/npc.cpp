@@ -1181,6 +1181,10 @@ bool Npc::implGoTo(uint64_t dt,float destDist) {
         }
       }
     } else {
+    if(implLookAt(dx,dz,false,dt)){
+      mvAlgo.tick(dt);
+      return true;
+      }
     if(!mvAlgo.aiGoTo(go2.npc,destDist)) {
       setAnim(AnimationSolver::Idle);
       go2.clear();
@@ -1188,6 +1192,7 @@ bool Npc::implGoTo(uint64_t dt,float destDist) {
     }
 
   if(!go2.empty()) {    
+    if(go2.wp!=nullptr && implLookAt(dx,dz,false,dt)){
       mvAlgo.tick(dt);
       return true;
       }
