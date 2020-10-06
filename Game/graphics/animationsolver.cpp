@@ -190,6 +190,8 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
       return solveFrm("S_SWIMB");
     if(bool(wlkMode & WalkBit::WM_Sneak))
       return solveFrm("S_%sSNEAKBL",st);
+    if(st==WeaponState::Fist)
+      return solveFrm("T_%sPARADEJUMPB",st);
     return solveFrm("T_%sJUMPB",st);
     }
   // Rotation

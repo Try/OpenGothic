@@ -447,6 +447,8 @@ bool Pose::isJumpBack() const {
       if(i.seq->name==buf)
         return true;
       }
+    if(i.seq->name=="T_FISTPARADEJUMPB")
+      return true;
     }
   return false;
   }
