@@ -90,6 +90,8 @@ class GameMenu : public Tempest::Widget {
     void                                  updateVideo();
     void                                  setDefaultKeys(const char* preset);
 
+    bool                                  isInGameAndAlive() const;
+
     void                                  set(const char* item,const Tempest::Texture2d* value);
     void                                  set(const char* item,const uint32_t value);
     void                                  set(const char* item,const int32_t  value);

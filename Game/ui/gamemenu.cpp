@@ -72,7 +72,7 @@ GameMenu::GameMenu(MenuRoot &owner, Daedalus::DaedalusVM &vm, Gothic &gothic, co
     setPosition(int(infoX*float(w())),int(infoY*float(h())));
     }
 
-  setSelection(gothic.isInGame() ? menu.defaultInGame : menu.defaultOutGame);
+  setSelection(isInGameAndAlive() ? menu.defaultInGame : menu.defaultOutGame);
   updateValues();
   slider = Resources::loadTexture("MENU_SLIDER_POS.TGA");
 
@@ -348,9 +348,9 @@ const GthFont &GameMenu::getTextFont(const GameMenu::Item &it) {
   }
 
 bool GameMenu::isEnabled(const Daedalus::GEngineClasses::C_Menu_Item &item) {
-  if((item.flags & Daedalus::GEngineClasses::C_Menu_Item::IT_ONLY_IN_GAME) && !gothic.isInGame())
+  if((item.flags & Daedalus::GEngineClasses::C_Menu_Item::IT_ONLY_IN_GAME) && !isInGameAndAlive())
     return false;
-  if((item.flags & Daedalus::GEngineClasses::C_Menu_Item::IT_ONLY_OUT_GAME) && gothic.isInGame())
+  if((item.flags & Daedalus::GEngineClasses::C_Menu_Item::IT_ONLY_OUT_GAME) && isInGameAndAlive())
     return false;
   return true;
   }
@@ -576,6 +576,13 @@ void GameMenu::setDefaultKeys(const char* preset) {
     auto s = gothic.settingsGetS(preset,i);
     gothic.settingsSetS("KEYS",i,s.c_str());
     }
+  }
+
+bool GameMenu::isInGameAndAlive() const {
+  auto pl = gothic.player();
+  if(pl==nullptr || pl->isDead())
+    return false;
+  return gothic.isInGame();
   }
 
 bool GameMenu::implUpdateSavThumb(GameMenu::Item& sel) {
