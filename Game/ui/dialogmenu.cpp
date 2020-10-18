@@ -510,11 +510,11 @@ void DialogMenu::keyDownEvent(KeyEvent &e) {
     onSelect();
     return;
     }
-  if(e.key==Event::K_W || e.key==Event::K_S || e.key==Event::K_ESCAPE){
-    if(e.key==Event::K_W){
+  if(e.key==Event::K_W || e.key==Event::K_S || e.key==Event::K_Up || e.key==Event::K_Down || e.key==Event::K_ESCAPE){
+    if(e.key==Event::K_W || e.key==Event::K_Up){
       dlgSel--;
       }
-    if(e.key==Event::K_S){
+    if(e.key==Event::K_S || e.key==Event::K_Down){
       dlgSel++;
       }
     dlgSel = (dlgSel+choise.size())%std::max<size_t>(choise.size(),1);
