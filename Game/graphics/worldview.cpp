@@ -46,7 +46,7 @@ void WorldView::tick(uint64_t /*dt*/) {
     }
   }
 
-void WorldView::addLight(const ZenLoad::zCVobData& vob) {
+size_t WorldView::addLight(const ZenLoad::zCVobData& vob) {
   Light l;
   l.setPosition(Vec3(vob.position.x,vob.position.y,vob.position.z));
 
@@ -62,7 +62,8 @@ void WorldView::addLight(const ZenLoad::zCVobData& vob) {
     l.setColor(vob.zCVobLight.color);
     }
 
-  pendingLights.push_back(std::move(l));
+  needToUpdateUbo = true;
+  return sGlobal.lights.add(std::move(l));
   }
 
 void WorldView::setupSunDir(float pulse,float ang) {
@@ -78,13 +79,8 @@ void WorldView::setModelView(const Matrix4x4& view, const Tempest::Matrix4x4* sh
   }
 
 void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uint8_t fId) {
-  if(pendingLights.size()!=sGlobal.lights.size()) {
-    sGlobal.lights.set(pendingLights);
-    // wait before update all descriptors
-    sGlobal.storage.device.waitIdle();
-    visuals.setupUbo();
-    }
-  if(&shadow!=sGlobal.shadowMap) {
+  if(needToUpdateUbo || &shadow!=sGlobal.shadowMap) {
+    needToUpdateUbo = false;
     // wait before update all descriptors
     sGlobal.storage.device.waitIdle();
     sGlobal.setShadowMap(shadow);
@@ -118,65 +114,7 @@ void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffus
   }
 
 void WorldView::dbgLights(Painter& p) const {
-  int cnt = 0;
-  p.setBrush(Color(1,0,0,0.01f));
-  //p.setBrush(Color(1,0,0,1.f));
-
-  auto vp = sGlobal.viewProject();
-  for(auto& i:pendingLights) {
-    float r  = i.range();
-    auto  pt = i.position();
-    Vec3 px[9] = {};
-    px[0] = pt+Vec3(-r,-r,-r);
-    px[1] = pt+Vec3( r,-r,-r);
-    px[2] = pt+Vec3( r, r,-r);
-    px[3] = pt+Vec3(-r, r,-r);
-    px[4] = pt+Vec3(-r,-r, r);
-    px[5] = pt+Vec3( r,-r, r);
-    px[6] = pt+Vec3( r, r, r);
-    px[7] = pt+Vec3(-r, r, r);
-    px[8] = pt;
-
-    for(auto& i:px) {
-      vp.project(i.x,i.y,i.z);
-      i.x = (i.x+1.f)*0.5f;
-      i.y = (i.y+1.f)*0.5f;
-      }
-
-    int x = int(px[8].x*float(vpWidth ));
-    int y = int(px[8].y*float(vpHeight));
-
-    int x0 = x, x1 = x;
-    int y0 = y, y1 = y;
-    float z0=px[8].z, z1=px[8].z;
-
-    for(auto& i:px) {
-      int x = int(i.x*float(vpWidth ));
-      int y = int(i.y*float(vpHeight));
-      x0 = std::min(x0, x);
-      y0 = std::min(y0, y);
-      x1 = std::max(x1, x);
-      y1 = std::max(y1, y);
-      z0 = std::min(z0, i.z);
-      z1 = std::max(z1, i.z);
-      }
-
-    if(z1<0.f || z0>1.f)
-      continue;
-    if(x1<0 || x0>int(vpWidth))
-      continue;
-    if(y1<0 || y0>int(vpHeight))
-      continue;
-
-    cnt++;
-    p.drawRect(x0,y0,x1-x0,y1-y0);
-    p.drawRect(x0,y0,3,3);
-    }
-
-  auto& fnt = Resources::font();
-  char  buf[250]={};
-  std::snprintf(buf,sizeof(buf),"light count = %d",cnt);
-  fnt.drawText(p,10,50,buf);
+  sGlobal.lights.dbgLights(p,sGlobal.viewProject(),vpWidth,vpHeight);
   }
 
 void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId, uint8_t layer) {

@@ -33,7 +33,7 @@ class WorldView {
 
     void tick(uint64_t dt);
 
-    void addLight(const ZenLoad::zCVobData &vob);
+    size_t addLight(const ZenLoad::zCVobData &vob);
 
     void updateCmd (uint8_t frameId, const World &world,
                     const Tempest::Attachment& main, const Tempest::Attachment& shadow,
@@ -68,10 +68,11 @@ class WorldView {
     PfxObjects              pfxGroup;
     Landscape               land;
 
-    std::vector<Light>      pendingLights;
     Tempest::Matrix4x4      proj;
     uint32_t                vpWidth=0;
     uint32_t                vpHeight=0;
+
+    bool                    needToUpdateUbo = false;
 
     bool needToUpdateCmd(uint8_t frameId) const;
     void invalidateCmd();

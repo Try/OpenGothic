@@ -19,6 +19,7 @@
 #include "game/serialize.h"
 
 #include "world.h"
+#include "worldlight.h"
 
 using namespace Tempest;
 
@@ -202,9 +203,7 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));
       }
     case ZenLoad::zCVobData::VT_zCVobLight: {
-      world.addLight(vob);
-      // FIXME
-      return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));
+      return std::unique_ptr<Vob>(new WorldLight(parent,world,std::move(vob),startup));
       }
     }
 

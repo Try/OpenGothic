@@ -168,7 +168,7 @@ class World final {
     void                 addStartPoint (const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
     void                 addFreePoint  (const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
     void                 addSound      (const ZenLoad::zCVobData& vob);
-    void                 addLight      (const ZenLoad::zCVobData& vob);
+    size_t               addLight(const ZenLoad::zCVobData& vob);
 
     void                 invalidateVobIndex();
     void                 triggerOnStart(bool firstTime);

@@ -3,6 +3,7 @@
 #include "bounds.h"
 #include "graphics/rendererstorage.h"
 #include "graphics/sceneglobals.h"
+#include "utils/gthfont.h"
 #include "utils/workers.h"
 
 using namespace Tempest;
@@ -13,27 +14,88 @@ LightGroup::LightGroup(const SceneGlobals& scene)
     u = scene.storage.device.ubo<Ubo>(nullptr,1);
   }
 
+void LightGroup::dbgLights(Painter& p, const Matrix4x4& vp, uint32_t vpWidth, uint32_t vpHeight) const {
+  int cnt = 0;
+  p.setBrush(Color(1,0,0,0.01f));
+  //p.setBrush(Color(1,0,0,1.f));
+
+  for(auto& i:light) {
+    float r  = i.range();
+    auto  pt = i.position();
+    Vec3 px[9] = {};
+    px[0] = pt+Vec3(-r,-r,-r);
+    px[1] = pt+Vec3( r,-r,-r);
+    px[2] = pt+Vec3( r, r,-r);
+    px[3] = pt+Vec3(-r, r,-r);
+    px[4] = pt+Vec3(-r,-r, r);
+    px[5] = pt+Vec3( r,-r, r);
+    px[6] = pt+Vec3( r, r, r);
+    px[7] = pt+Vec3(-r, r, r);
+    px[8] = pt;
+
+    for(auto& i:px) {
+      vp.project(i.x,i.y,i.z);
+      i.x = (i.x+1.f)*0.5f;
+      i.y = (i.y+1.f)*0.5f;
+      }
+
+    int x = int(px[8].x*float(vpWidth ));
+    int y = int(px[8].y*float(vpHeight));
+
+    int x0 = x, x1 = x;
+    int y0 = y, y1 = y;
+    float z0=px[8].z, z1=px[8].z;
+
+    for(auto& i:px) {
+      int x = int(i.x*float(vpWidth ));
+      int y = int(i.y*float(vpHeight));
+      x0 = std::min(x0, x);
+      y0 = std::min(y0, y);
+      x1 = std::max(x1, x);
+      y1 = std::max(y1, y);
+      z0 = std::min(z0, i.z);
+      z1 = std::max(z1, i.z);
+      }
+
+    if(z1<0.f || z0>1.f)
+      continue;
+    if(x1<0 || x0>int(vpWidth))
+      continue;
+    if(y1<0 || y0>int(vpHeight))
+      continue;
+
+    cnt++;
+    p.drawRect(x0,y0,x1-x0,y1-y0);
+    p.drawRect(x0,y0,3,3);
+    }
+
+  auto& fnt = Resources::font();
+  char  buf[250]={};
+  std::snprintf(buf,sizeof(buf),"light count = %d",cnt);
+  fnt.drawText(p,10,50,buf);
+  }
+
 size_t LightGroup::size() const {
   return light.size();
   }
 
-void LightGroup::set(const std::vector<Light>& l) {
-  light = l;
-  mkIndex(index,light.data(),light.size(),0);
-  dynamicState.clear();
-  for(auto& i:light)
-    if(i.isDynamic())
-      dynamicState.push_back(&i);
-  dynamicState.reserve(dynamicState.size());
+size_t LightGroup::add(Light&& l) {
+  clearIndex();
+  light.push_back(std::move(l));
+  if(light.back().isDynamic())
+    dynamicState.push_back(light.size()-1);
+  return light.size()-1;
   }
 
 size_t LightGroup::get(const Bounds& area, const Light** out, size_t maxOut) const {
+  if(index.count!=light.size())
+    mkIndex();
   return implGet(index,area,out,maxOut);
   }
 
 void LightGroup::tick(uint64_t time) {
   for(auto i:dynamicState)
-    i->update(time);
+    light[i].update(time);
   }
 
 void LightGroup::preFrameUpdate(uint8_t fId) {
@@ -78,7 +140,7 @@ size_t LightGroup::implGet(const LightGroup::Bvh& index, const Bounds& area, con
     if(cur->next[0]==nullptr && cur->next[1]==nullptr) {
       size_t cnt = std::min(cur->count,maxOut);
       for(size_t i=0; i<cnt; ++i) {
-        out[i] = &cur->b[i];
+        out[i] = cur->b[i];
         }
       return cnt;
       }
@@ -102,29 +164,36 @@ size_t LightGroup::implGet(const LightGroup::Bvh& index, const Bounds& area, con
     }
   }
 
-void LightGroup::mkIndex(Bvh& id, Light* b, size_t count, int depth) {
+void LightGroup::mkIndex() const {
+  indexPtr.resize(light.size());
+  for(size_t i=0; i<indexPtr.size(); ++i)
+    indexPtr[i] = &light[i];
+  mkIndex(index,indexPtr.data(),indexPtr.size(),0);
+  }
+
+void LightGroup::mkIndex(Bvh& id, const Light** b, size_t count, int depth) const {
   id.b     = b;
   id.count = count;
 
   if(count==1) {
-    id.bbox.assign(b->position(),b->range());
+    id.bbox.assign((**b).position(),(**b).range());
     return;
     }
 
   depth%=3;
   if(depth==0) {
-    std::sort(b,b+count,[](const Light& a,const Light& b){
-      return a.position().x<b.position().x;
+    std::sort(b,b+count,[](const Light* a,const Light* b){
+      return a->position().x<b->position().x;
       });
     }
   else if(depth==1) {
-    std::sort(b,b+count,[](const Light& a,const Light& b){
-      return a.position().y<b.position().y;
+    std::sort(b,b+count,[](const Light* a,const Light* b){
+      return a->position().y<b->position().y;
       });
     }
   else {
-    std::sort(b,b+count,[](const Light& a,const Light& b){
-      return a.position().z<b.position().z;
+    std::sort(b,b+count,[](const Light* a,const Light* b){
+      return a->position().z<b->position().z;
       });
     }
 
@@ -150,6 +219,12 @@ void LightGroup::mkIndex(Bvh& id, Light* b, size_t count, int depth) {
     id.bbox = id.next[0]->bbox;
   else if(id.next[1]!=nullptr)
     id.bbox = id.next[1]->bbox;
+  }
+
+void LightGroup::clearIndex() {
+  index.next[0].reset();
+  index.next[1].reset();
+  index.count = 0;
   }
 
 bool LightGroup::isIntersected(const Bounds& a, const Bounds& b) {
@@ -205,12 +280,12 @@ void LightGroup::buildVbo(uint8_t fId) {
   chunks.resize((light.size()+CHUNK_SIZE-1)/CHUNK_SIZE);
 
   vboCpu.resize(light.size()*8);
-  for(size_t i=0; i<light.size(); ++i) {
-    auto& l   = light[i];
-    auto  R   = l.currentRange();
-    auto& at  = l.position();
-    auto& cl  = l.currentColor();
-    auto* vbo = &vboCpu[i*8];
+  for(auto i:dynamicState) {
+    auto&  l   = light[i];
+    auto   R   = l.currentRange();
+    auto&  at  = l.position();
+    auto&  cl  = l.currentColor();
+    auto*  vbo = &vboCpu[i*8];
     for(int r=0; r<8; ++r) {
       Vertex& vx = vbo[r];
       vx.pos   = at + v[r]*R;

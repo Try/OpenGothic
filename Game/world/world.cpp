@@ -762,8 +762,8 @@ void World::addSound(const ZenLoad::zCVobData& vob) {
     }
   }
 
-void World::addLight(const ZenLoad::zCVobData& vob) {
-  wview->addLight(vob);
+size_t World::addLight(const ZenLoad::zCVobData& vob) {
+  return wview->addLight(vob);
   }
 
 void World::invalidateVobIndex() {
