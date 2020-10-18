@@ -81,7 +81,6 @@ class DynamicWorld final {
         bool  testMove(const Tempest::Vec3& pos);
         bool  testMove(const Tempest::Vec3& pos, Tempest::Vec3& fallback, float speed);
         bool  tryMoveN(const Tempest::Vec3& pos, Tempest::Vec3& norm);
-        bool  tryMove (const Tempest::Vec3& pos, Tempest::Vec3& fallback, float speed);
 
         bool  hasCollision() const;
         float radius() const { return r; }
