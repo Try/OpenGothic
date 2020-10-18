@@ -113,6 +113,8 @@ bool Material::operator ==(const Material& other) const {
 
 int Material::alphaOrder(Material::ApphaFunc a) {
   if(a==Solid)
+    return -2;
+  if(a==Water)
     return -1;
   return a;
   }
