@@ -243,8 +243,10 @@ void MainWindow::processMouse(MouseEvent &event,bool /*fs*/) {
   mpos = event.pos();
   if(auto camera = gothic.gameCamera())
     camera->onRotateMouse(PointF(-dpScaled.x,dpScaled.y));
-  if(!inventory.isActive())
+  if(!inventory.isActive()) {
     player.onRotateMouse(-dpScaled.x);
+    player.onRotateMouseDy(-dpScaled.y);
+    }
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
@@ -575,6 +577,8 @@ void MainWindow::followCamera() {
   else {
     auto spin = camera.destSpin();
     spin.x = pl->rotation();
+    if(pl->isDive())
+      spin.y = -pl->rotationY();
     camera.setDestSpin(spin);
     camera.setDestPosition(pos.x,pos.y,pos.z);
     }

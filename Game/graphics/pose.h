@@ -83,8 +83,8 @@ class Pose final {
       BodyState                  bs      = BS_NONE;
       };
 
-    auto mkBaseTranslation(const Animation::Sequence *s) -> Tempest::Matrix4x4;
-    void mkSkeleton(const Animation::Sequence &s);
+    auto mkBaseTranslation(const Animation::Sequence *s, BodyState bs) -> Tempest::Matrix4x4;
+    void mkSkeleton(const Animation::Sequence &s, BodyState bs);
     void mkSkeleton(const Tempest::Matrix4x4 &mt);
     void mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent);
     void zeroSkeleton();

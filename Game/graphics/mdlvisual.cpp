@@ -554,9 +554,11 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
       break;
     }
 
-  if(bool(wlk & WalkBit::WM_Swim))
+  if(bool(wlk & WalkBit::WM_Dive))
+    bs = BS_DIVE;
+  else if(bool(wlk & WalkBit::WM_Swim))
     bs = BS_SWIM;
-  if(bool(wlk & WalkBit::WM_Sneak))
+  else if(bool(wlk & WalkBit::WM_Sneak))
     bs = BS_SNEAK;
 
   Pose::StartHint hint = Pose::StartHint((forceAnim  ? Pose::Force : Pose::NoHint) |

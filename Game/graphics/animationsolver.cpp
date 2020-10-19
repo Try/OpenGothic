@@ -144,6 +144,8 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     return solveFrm("T_CASTFAIL");
   // Move
   if(a==Idle) {
+    if(bool(wlkMode & WalkBit::WM_Dive))
+      return solveFrm("S_DIVE");
     if(bool(wlkMode & WalkBit::WM_Swim))
       return solveFrm("S_SWIM");
     if(bool(wlkMode&WalkBit::WM_Sneak))
@@ -153,6 +155,8 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     return solveFrm("S_%sRUN",st);
     }
   if(a==Move)  {
+    if(bool(wlkMode & WalkBit::WM_Dive))
+      return solveFrm("S_DIVEF",st);
     if(bool(wlkMode & WalkBit::WM_Swim))
       return solveFrm("S_SWIMF",st);
     if(bool(wlkMode & WalkBit::WM_Sneak))
@@ -164,6 +168,8 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     return solveFrm("S_%sRUNL",st);
     }
   if(a==MoveL) {
+    if(bool(wlkMode & WalkBit::WM_Dive))
+      return solveFrm("S_DIVE"); // ???
     if(bool(wlkMode & WalkBit::WM_Swim))
       return solveFrm("S_SWIM"); // ???
     if(bool(wlkMode & WalkBit::WM_Sneak))
@@ -175,6 +181,8 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     return solveFrm("T_%sRUNSTRAFEL",st);
     }
   if(a==MoveR) {
+    if(bool(wlkMode & WalkBit::WM_Dive))
+      return solveFrm("S_DIVE"); // ???
     if(bool(wlkMode & WalkBit::WM_Swim))
       return solveFrm("S_SWIM"); // ???
     if(bool(wlkMode & WalkBit::WM_Sneak))
@@ -186,6 +194,8 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     return solveFrm("T_%sRUNSTRAFER",st);
     }
   if(a==Anim::MoveBack) {
+    if(bool(wlkMode & WalkBit::WM_Dive))
+      return solveFrm("S_DIVE");
     if(bool(wlkMode & WalkBit::WM_Swim))
       return solveFrm("S_SWIMB");
     if(bool(wlkMode & WalkBit::WM_Sneak))
@@ -196,6 +206,8 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     }
   // Rotation
   if(a==RotL) {
+    if(bool(wlkMode & WalkBit::WM_Dive))
+      return solveFrm("T_DIVETURNL");
     if(bool(wlkMode & WalkBit::WM_Swim))
       return solveFrm("T_SWIMTURNL");
     if(bool(wlkMode & WalkBit::WM_Sneak))
@@ -207,6 +219,8 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     return solveFrm("T_%sRUNTURNL",st);
     }
   if(a==RotR) {
+    if(bool(wlkMode & WalkBit::WM_Dive))
+      return solveFrm("T_DIVETURNR");
     if(bool(wlkMode & WalkBit::WM_Swim))
       return solveFrm("T_SWIMTURNR");
     if(bool(wlkMode & WalkBit::WM_Sneak))

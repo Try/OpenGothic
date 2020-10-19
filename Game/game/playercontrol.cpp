@@ -133,6 +133,11 @@ void PlayerControl::onRotateMouse(float dAngle) {
   rotMouse += dAngle*0.4f;
   }
 
+void PlayerControl::onRotateMouseDy(float dAngle) {
+  dAngle = std::max(-100.f,std::min(dAngle,100.f));
+  rotMouseY += dAngle*0.4f;
+  }
+
 void PlayerControl::tickFocus() {
   currentFocus = findFocus(&currentFocus);
   setTarget(currentFocus.npc);
@@ -229,7 +234,7 @@ void PlayerControl::toogleWalkMode() {
   if(w==nullptr || w->player()==nullptr)
     return;
   auto pl = w->player();
-  pl->setWalkMode(WalkBit(pl->walkMode()^WalkBit::WM_Walk));
+  pl->setWalkMode(pl->walkMode()^WalkBit::WM_Walk);
   }
 
 void PlayerControl::toggleSneakMode() {
@@ -238,7 +243,7 @@ void PlayerControl::toggleSneakMode() {
     return;
   auto pl = w->player();
   if(pl->canSneak())
-    pl->setWalkMode(WalkBit(pl->walkMode()^WalkBit::WM_Sneak));
+    pl->setWalkMode(pl->walkMode()^WalkBit::WM_Sneak);
   }
 
 WeaponState PlayerControl::weaponState() const {
@@ -330,7 +335,8 @@ bool PlayerControl::tickMove(uint64_t dt) {
     }
 
   implMove(dt);
-  rotMouse=0;
+  rotMouse  = 0;
+  rotMouseY = 0;
   return true;
   }
 
@@ -338,6 +344,7 @@ void PlayerControl::implMove(uint64_t dt) {
   auto  w        = world();
   Npc&  pl       = *w->player();
   float rot      = pl.rotation();
+  float rotY     = pl.rotationY();
   auto  gl       = pl.guild();
   float rspeed   = float(w->script().guildVal().turn_speed[gl])*(float(dt)/1000.f)*60.f/100.f;
   auto  ws       = pl.weaponState();
@@ -379,7 +386,9 @@ void PlayerControl::implMove(uint64_t dt) {
       rotation = 1; */
     }
   rot+=rotMouse;
+  rotY+=rotMouseY;
 
+  pl.setDirectionY(rotY);
   if(pl.isFaling() || pl.isSlide() || pl.isInAir()){
     pl.setDirection(rot);
     return;
@@ -495,14 +504,18 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   if(ctrl[Action::Jump]) {
-    if(pl.isStanding()) {
+    if(pl.isSwim()) {
+      pl.setWalkMode(pl.walkMode() | WalkBit::WM_Dive);
+      }
+    else if(pl.isStanding()) {
       auto code = pl.tryJump(pl.position());
       if(!pl.isFaling() && !pl.isSlide() && code!=Npc::JumpCode::JM_OK){
         pl.startClimb(code);
         return;
         }
       ani = Npc::Anim::Jump;
-      } else {
+      }
+    else {
       ani = Npc::Anim::Jump;
       }
     }

@@ -22,6 +22,7 @@ class PlayerControl final {
     void onKeyPressed (KeyCodec::Action a);
     void onKeyReleased(KeyCodec::Action a);
     void onRotateMouse(float dAngle);
+    void onRotateMouseDy(float dAngle);
 
     void changeZoom(int delta);
     void tickFocus();
@@ -78,6 +79,7 @@ class PlayerControl final {
     bool           cacheFocus=false;
     Focus          currentFocus;
     float          rotMouse=0;
+    float          rotMouseY=0;
 
     Gothic&        gothic;
     DialogMenu&    dlg;

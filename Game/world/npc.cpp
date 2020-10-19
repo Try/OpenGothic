@@ -307,6 +307,14 @@ void Npc::setDirection(float rotation) {
   durtyTranform |= TR_Rot;
   }
 
+void Npc::setDirectionY(float rotation) {
+  rotation = std::fmod(rotation,360.f);
+  if(!mvAlgo.isSwim())
+    return;
+  angleY = rotation;
+  durtyTranform |= TR_Rot;
+  }
+
 float Npc::angleDir(float x, float z) {
   float a=-90;
   if(x!=0.f || z!=0.f)
@@ -525,6 +533,14 @@ float Npc::rotation() const {
 
 float Npc::rotationRad() const {
   return angle*float(M_PI)/180.f;
+  }
+
+float Npc::rotationY() const {
+  return angleY;
+  }
+
+float Npc::rotationYRad() const {
+  return angleY*float(M_PI)/180.f;
   }
 
 float Npc::translateY() const {
@@ -833,7 +849,9 @@ bool Npc::setAnim(Npc::Anim a) {
 const Animation::Sequence* Npc::setAnimAngGet(Npc::Anim a,bool noInterupt) {
   auto st  = weaponState();
   auto wlk = walkMode();
-  if(mvAlgo.isSwim())
+  if(mvAlgo.isDive())
+    wlk = WalkBit::WM_Dive;
+  else if(mvAlgo.isSwim())
     wlk = WalkBit::WM_Swim;
   else if(mvAlgo.isInWater())
     wlk = WalkBit::WM_Water;
@@ -864,6 +882,14 @@ bool Npc::isFinishingMove() const {
 
 bool Npc::isStanding() const {
   return visual.isStanding();
+  }
+
+bool Npc::isSwim() const {
+  return mvAlgo.isSwim();
+  }
+
+bool Npc::isDive() const {
+  return mvAlgo.isDive();
   }
 
 bool Npc::isJumpAnim() const {
@@ -3266,6 +3292,8 @@ void Npc::updatePos() {
       }
 
     mt.rotateOY(180-angle);
+    if(mvAlgo.isDive())
+      mt.rotateOX(-angleY);
     if(isPlayer() && !align) {
       mt.rotateOZ(runAngle);
       }

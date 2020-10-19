@@ -242,7 +242,7 @@ bool Pose::update(uint64_t tickCount) {
     }
 
   if(needToUpdate) {
-    mkSkeleton(*lay[0].seq);
+    mkSkeleton(*lay[0].seq,lay[0].bs);
     needToUpdate = false;
     return true;
     }
@@ -290,10 +290,10 @@ bool Pose::updateFrame(const Animation::Sequence &s,
   return true;
   }
 
-void Pose::mkSkeleton(const Animation::Sequence &s) {
+void Pose::mkSkeleton(const Animation::Sequence &s, BodyState bs) {
   if(skeleton==nullptr)
     return;
-  Matrix4x4 m = mkBaseTranslation(&s);
+  Matrix4x4 m = mkBaseTranslation(&s,bs);
   if(skeleton->ordered)
     mkSkeleton(m); else
     mkSkeleton(m,size_t(-1));
@@ -637,7 +637,7 @@ const Matrix4x4& Pose::transform(size_t id) const {
   return tr[id];
   }
 
-Matrix4x4 Pose::mkBaseTranslation(const Animation::Sequence *s) {
+Matrix4x4 Pose::mkBaseTranslation(const Animation::Sequence *s, BodyState bs) {
   Matrix4x4 m;
   m.identity();
 
@@ -652,7 +652,9 @@ Matrix4x4 Pose::mkBaseTranslation(const Animation::Sequence *s) {
   float dy=0;
   float dz=b0.at(3,2);
 
-  if((flag&NoTranslation)==NoTranslation)
+  if(bs==BS_DIVE)
+    dy=(s->data->translate.y);
+  else if((flag&NoTranslation)==NoTranslation)
     dy=b0.at(3,1);
   else if(s==nullptr || !s->isFly())
     dy=0;
@@ -672,7 +674,7 @@ void Pose::zeroSkeleton() {
   if(nodes.size()<tr.size())
     return;
 
-  Matrix4x4 m = mkBaseTranslation(nullptr);
+  Matrix4x4 m = mkBaseTranslation(nullptr,BS_NONE);
   for(size_t i=0;i<tr.size();++i){
     tr[i] = m * nodes[i];
     }

@@ -173,6 +173,7 @@ class Npc final {
     bool       setPosition (const Tempest::Vec3& pos);
     void       setDirection(float x,float y,float z);
     void       setDirection(float rotation);
+    void       setDirectionY(float rotation);
     void       clearSpeed();
     bool       resetPositionToTA();
 
@@ -194,6 +195,8 @@ class Npc final {
     float      collisionRadius() const;
     float      rotation() const;
     float      rotationRad() const;
+    float      rotationY() const;
+    float      rotationYRad() const;
     float      translateY() const;
     float      centerY() const;
     Npc*       lookAtTarget() const;
@@ -249,6 +252,8 @@ class Npc final {
     bool       isSlide() const;
     bool       isInAir() const;
     bool       isStanding() const;
+    bool       isSwim() const;
+    bool       isDive() const;
 
     void       setTalentSkill(Talent t,int32_t lvl);
     int32_t    talentSkill(Talent t) const;
@@ -610,6 +615,7 @@ class Npc final {
     float                          y=0.f;
     float                          z=0.f;
     float                          angle    = 0.f;
+    float                          angleY   = 0.f;
     float                          runAngle = 0.f;
     float                          runAngleDest = 0.f;
     float                          sz[3]={1.f,1.f,1.f};

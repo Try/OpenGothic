@@ -57,6 +57,7 @@ class MoveAlgo final {
     bool    isClimb()   const;
     bool    isInWater() const;
     bool    isSwim()    const;
+    bool    isDive()    const;
 
     uint8_t groundMaterial() const;
     auto    groundNormal() const -> Tempest::Vec3;
@@ -80,7 +81,8 @@ class MoveAlgo final {
       JumpUp  = 1<<4,
       ClimbUp = 1<<5,
       InWater = 1<<6,
-      Swim    = 1<<7
+      Swim    = 1<<7,
+      Dive    = 1<<8,
       };
 
     void    setInAir   (bool f);
@@ -89,6 +91,7 @@ class MoveAlgo final {
     void    setAsSlide (bool f);
     void    setInWater (bool f);
     void    setAsSwim  (bool f);
+    void    setAsDive  (bool f);
 
     bool    slideDir() const;
     void    onMoveFailed();

@@ -252,21 +252,33 @@ void MoveAlgo::tickSwim(uint64_t dt) {
   auto  ground = dropRay (pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z, valid);
   auto  water  = waterRay(pos.x+dp.x, pos.y+dp.y-chest,         pos.z+dp.z);
 
+  if(npc.isDead()){
+    setAsSwim(false);
+    setAsDive(false);
+    return;
+    }
+
   if(ground+chest>=water) {
     if(testSlide(pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z))
       return;
     setAsSwim(false);
+    setAsDive(false);
     tryMove(dp.x,ground-pY,dp.z);
     return;
     }
 
-  if(npc.isDead()){
-    setAsSwim(false);
+  if(isDive() && pos.y>water) {
+    setAsDive(false);
     return;
     }
 
+  if((npc.walkMode() & WalkBit::WM_Dive)==WalkBit::WM_Dive)
+    setAsDive(true);
+
   // swim on top of water
-  tryMove(dp.x,water-pY,dp.z);
+  if(!isDive())
+    tryMove(dp.x,water-pY,dp.z); else
+    tryMove(dp.x,dp.y,dp.z);
   }
 
 void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
@@ -392,11 +404,20 @@ void MoveAlgo::accessDamFly(float dx, float dz) {
   }
 
 void MoveAlgo::applyRotation(Tempest::Vec3& out, const Tempest::Vec3& dpos) const {
+  float mul = mulSpeed;
+  if(isDive()) {
+    float rot = -npc.rotationYRad();
+    float s   = std::sin(rot), c = std::cos(rot);
+
+    out.y = -dpos.manhattanLength()*s;
+    mul   = c*mulSpeed;
+    } else {
+    out.y = dpos.y;
+    }
   float rot = npc.rotationRad();
   float s   = std::sin(rot), c = std::cos(rot);
-  out.x = -mulSpeed*(dpos.x*c-dpos.z*s);
-  out.z = -mulSpeed*(dpos.x*s+dpos.z*c);
-  out.y = dpos.y;
+  out.x = -mul*(dpos.x*c-dpos.z*s);
+  out.z = -mul*(dpos.x*s+dpos.z*c);
   }
 
 Tempest::Vec3 MoveAlgo::animMoveSpeed(uint64_t dt) const {
@@ -638,6 +659,10 @@ bool MoveAlgo::isSwim() const {
   return flags&Swim;
   }
 
+bool MoveAlgo::isDive() const {
+  return flags&Dive;
+  }
+
 void MoveAlgo::setInAir(bool f) {
   if(f)
     flags=Flags(flags|InAir); else
@@ -679,6 +704,14 @@ void MoveAlgo::setAsSwim(bool f) {
   if(f)
     flags=Flags(flags|Swim);  else
     flags=Flags(flags&(~Swim));
+  }
+
+void MoveAlgo::setAsDive(bool f) {
+  if(!f)
+    npc.setWalkMode(npc.walkMode() & (~WalkBit::WM_Dive));
+  if(f)
+    flags=Flags(flags|Dive);  else
+    flags=Flags(flags&(~Dive));
   }
 
 bool MoveAlgo::slideDir() const {

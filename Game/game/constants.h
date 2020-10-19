@@ -156,6 +156,7 @@ enum class WalkBit : uint8_t {
   WM_Sneak=2,
   WM_Water=4,
   WM_Swim =8,
+  WM_Dive =16,
   };
 
 inline WalkBit operator & (WalkBit a,const WalkBit& b){
@@ -168,6 +169,10 @@ inline WalkBit operator | (WalkBit a,const WalkBit& b){
 
 inline WalkBit operator ^ (WalkBit a,const WalkBit& b){
   return WalkBit(uint8_t(a)^uint8_t(b));
+  }
+
+inline WalkBit operator ~ (WalkBit a){
+  return WalkBit(~uint8_t(a));
   }
 
 enum Attitude : int32_t {
