@@ -57,7 +57,7 @@ Item::~Item() {
   assert(hitem.useCount==0);
   }
 
-void Item::save(Serialize &fout) {
+void Item::save(Serialize &fout) const {
   auto& h = hitem;
   fout.write(uint32_t(h.instanceSymbol));
   fout.write(h.id,h.name,h.nameID,h.hp,h.hp_max,h.mainflag);

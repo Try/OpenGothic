@@ -800,7 +800,7 @@ struct Video::BitStream {
       }
     uint64_t& v64 = *reinterpret_cast<uint64_t*>(buf);
     v64 = v64 >> offset;
-    return v64 & uint32_t(-1);
+    return uint32_t(v64 & uint32_t(-1));
     }
 
   size_t position() const { return at; }
@@ -2052,8 +2052,8 @@ void Video::rdftCalcC(AudioCtx& aud, float *data, bool negativeSign) {
   const float *tcos = aud.tcos;
   const float *tsin = aud.tsin;
 
-  float signConvention    = negativeSign ? -1 :  1;
-  float signConventionInv = negativeSign ?  1 : -1;
+  float signConvention    = negativeSign ? -1.f :  1.f;
+  float signConventionInv = negativeSign ?  1.f : -1.f;
 
   // i=0 is a special case because of packing, the DC term is real, so we
   // are going to throw the N/2 term (also real) in with it.

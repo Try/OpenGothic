@@ -17,7 +17,7 @@ class Item final : public Vob {
     ~Item();
     Item& operator=(Item&&)=delete;
 
-    void save(Serialize& fout);
+    void save(Serialize& fout) const override;
 
     enum { MAX_UI_ROWS=6, NSLOT=255 };
 
