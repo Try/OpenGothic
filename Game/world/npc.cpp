@@ -362,9 +362,9 @@ bool Npc::resetPositionToTA() {
     for(auto& i:routines) {
       int64_t d=0;
       if(i.start<i.end) {
-        d = i.end.toInt()-time.toInt();
+        d = time.toInt()-i.start.toInt();
         } else {
-        d = i.start.toInt()-time.toInt();
+        d = time.toInt()-i.end.toInt();
         }
       if(d<=0)
         d+=day;

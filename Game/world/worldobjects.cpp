@@ -130,6 +130,9 @@ void WorldObjects::tick(uint64_t dt) {
   auto passive=std::move(sndPerc);
   sndPerc.clear();
 
+  std::sort(npcArr.begin(),npcArr.end(),[](std::unique_ptr<Npc>& a, std::unique_ptr<Npc>& b){
+    return a->handle()->id<b->handle()->id;
+    });
   for(size_t i=0; i<npcArr.size(); ++i)
     npcArr[i]->tick(dt);
 
