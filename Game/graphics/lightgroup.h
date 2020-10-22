@@ -52,6 +52,7 @@ class LightGroup final {
     void        clearIndex();
     static bool isIntersected(const Bounds& a,const Bounds& b);
     void        buildVbo(uint8_t fId);
+    void        buildVbo(Vertex* out, const Light& l);
 
     const SceneGlobals& scene;
 
@@ -70,5 +71,6 @@ class LightGroup final {
     std::vector<size_t>               dynamicState;
     mutable std::vector<const Light*> indexPtr;
     mutable Bvh                       index;
+    mutable bool                      fullGpuUpdate = false;
   };
 

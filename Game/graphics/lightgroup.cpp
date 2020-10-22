@@ -80,6 +80,7 @@ size_t LightGroup::size() const {
   }
 
 size_t LightGroup::add(Light&& l) {
+  fullGpuUpdate = true;
   clearIndex();
   light.push_back(std::move(l));
   if(light.back().isDynamic())
@@ -244,19 +245,7 @@ bool LightGroup::isIntersected(const Bounds& a, const Bounds& b) {
   }
 
 void LightGroup::buildVbo(uint8_t fId) {
-  static Vec3 v[8] = {
-    {-1,-1,-1},
-    { 1,-1,-1},
-    { 1, 1,-1},
-    {-1, 1,-1},
-
-    {-1,-1, 1},
-    { 1,-1, 1},
-    { 1, 1, 1},
-    {-1, 1, 1},
-    };
-
-  static uint16_t ibo[36] = {
+  static const uint16_t ibo[36] = {
     0, 1, 3, 3, 1, 2,
     1, 5, 2, 2, 5, 6,
     5, 4, 6, 6, 4, 7,
@@ -277,20 +266,16 @@ void LightGroup::buildVbo(uint8_t fId) {
     iboGpu = device.ibo(iboCpu);
     }
 
-  chunks.resize((light.size()+CHUNK_SIZE-1)/CHUNK_SIZE);
-
-  vboCpu.resize(light.size()*8);
-  for(auto i:dynamicState) {
-    auto&  l   = light[i];
-    auto   R   = l.currentRange();
-    auto&  at  = l.position();
-    auto&  cl  = l.currentColor();
-    auto*  vbo = &vboCpu[i*8];
-    for(int r=0; r<8; ++r) {
-      Vertex& vx = vbo[r];
-      vx.pos   = at + v[r]*R;
-      vx.cen   = Vec4(at.x,at.y,at.z,R);
-      vx.color = cl;
+  if(fullGpuUpdate) {
+    chunks.resize((light.size()+CHUNK_SIZE-1)/CHUNK_SIZE);
+    fullGpuUpdate = false;
+    vboCpu.resize(light.size()*8);
+    for(size_t i=0; i<light.size(); ++i)
+      buildVbo(&vboCpu[i*8],light[i]);
+    } else {
+    for(auto i:dynamicState) {
+      auto&  l   = light[i];
+      buildVbo(&vboCpu[i*8],l);
       }
     }
 
@@ -301,5 +286,29 @@ void LightGroup::buildVbo(uint8_t fId) {
     if(ch.vboGpu[fId].size()!=len)
       ch.vboGpu[fId] = scene.storage.device.vboDyn(&vboCpu[i0],len); else
       ch.vboGpu[fId].update(&vboCpu[i0],0,len);
+    }
+  }
+
+void LightGroup::buildVbo(LightGroup::Vertex* vbo, const Light& l) {
+  static const Vec3 v[8] = {
+    {-1,-1,-1},
+    { 1,-1,-1},
+    { 1, 1,-1},
+    {-1, 1,-1},
+
+    {-1,-1, 1},
+    { 1,-1, 1},
+    { 1, 1, 1},
+    {-1, 1, 1},
+    };
+
+  auto   R   = l.currentRange();
+  auto&  at  = l.position();
+  auto&  cl  = l.currentColor();
+  for(int r=0; r<8; ++r) {
+    Vertex& vx = vbo[r];
+    vx.pos   = at + v[r]*R;
+    vx.cen   = Vec4(at.x,at.y,at.z,R);
+    vx.color = cl;
     }
   }
