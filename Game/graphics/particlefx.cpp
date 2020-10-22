@@ -254,8 +254,6 @@ float ParticleFx::fetchScaleKey(uint64_t time, const KeyList& keys, float fps, b
   uint64_t timeScaled = uint64_t(fps*float(time));
   size_t   at         = size_t(timeScaled/1000);
   float    alpha      = float(timeScaled%1000)/1000.f;
-  if(smooth)
-    alpha = alpha<0.5f ? 0.f : 1.f;
 
   size_t frameA = 0, frameB = 0;
   if(loop) {
@@ -267,5 +265,9 @@ float ParticleFx::fetchScaleKey(uint64_t time, const KeyList& keys, float fps, b
     }
   float k0 = keys[frameA];
   float k1 = keys[frameB];
-  return k0+alpha*(k1-k0);
+  if(smooth)
+    return k0+alpha*(k1-k0);
+  if(alpha<0.5)
+    return k0; else
+    return k1;
   }
