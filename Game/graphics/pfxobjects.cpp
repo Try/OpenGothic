@@ -555,8 +555,9 @@ static uint64_t ppsDiff(const ParticleFx& decl, uint64_t time0, uint64_t time1) 
   if(time1<=time0)
     return 0;
   const float pps     = decl.ppsScale(time1)*decl.ppsValue;
-  uint64_t    emitted = uint64_t(pps*float(time1-time0)/1000.f);
-  return emitted;
+  uint64_t    emitted0 = uint64_t(pps*float(time0)/1000.f);
+  uint64_t    emitted1 = uint64_t(pps*float(time1)/1000.f);
+  return emitted1-emitted0;
   }
 
 void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
@@ -588,8 +589,6 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
       }
     else if(active && nearby) {
       auto dE = ppsDiff(*b.owner,p.timeTotal,p.timeTotal+dt);
-      if(dE>1000)
-        dE = ppsDiff(*b.owner,p.timeTotal,p.timeTotal+dt);
       tickSysEmit(b,p,dE);
       }
     p.timeTotal+=dt;
