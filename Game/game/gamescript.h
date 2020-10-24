@@ -92,6 +92,7 @@ class GameScript final {
 
     size_t       goldId() const { return itMi_Gold; }
     const char*  currencyName() const { return goldTxt.c_str(); }
+    int          npcDamDiveTime();
     bool         isRamboMode() const;
 
     const Daedalus::GEngineClasses::C_Focus&          focusNorm()  const { return cFocusNorm;  }

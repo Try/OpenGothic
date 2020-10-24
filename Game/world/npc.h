@@ -282,6 +282,7 @@ class Npc final {
     int32_t    experience() const;
     int32_t    experienceNext() const;
     int32_t    learningPoints() const;
+    int32_t    diveTime() const;
 
     void      setAttitude(Attitude att);
     Attitude  attitude() const { return permAttitude; }
@@ -360,6 +361,8 @@ class Npc final {
 
     JumpCode  tryJump(const Tempest::Vec3& pos);
     bool      hasCollision() const { return physic.hasCollision(); }
+
+    void      startDive();
 
     auto      dialogChoises(Npc &player, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<GameScript::DlgChoise>;
 

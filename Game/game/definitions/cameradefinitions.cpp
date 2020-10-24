@@ -21,6 +21,8 @@ CameraDefinitions::CameraDefinitions(Gothic &gothic) {
   camModMelee     = loadCam("CAMMODMELEE");
   camModRange     = loadCam("CAMMODRANGED");
   camModMage      = loadCam("CAMMODMAGIC");
+  camModSwim      = loadCam("CAMMODSWIM");
+  camModDive      = loadCam("CAMMODDIVE");
 
   vm->clearReferences(Daedalus::IC_CamSys);
   }

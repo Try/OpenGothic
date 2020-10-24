@@ -243,6 +243,10 @@ const Daedalus::GEngineClasses::CCamSys &Camera::cameraDef() const {
     return camd.rangeCam();
   if(camMod==Magic)
     return camd.mageCam();
+  if(camMod==Swim)
+    return camd.swimCam();
+  if(camMod==Dive)
+    return camd.diveCam();
   if(camMod==Mobsi) {
     const char *tag = "", *pos = nullptr;
     if(auto pl = gothic.player())
@@ -326,7 +330,7 @@ static void followAng(float& ang,float dest,float speed) {
   ang += shift;
   }
 
-void Camera::follow(const Npc &npc,uint64_t dt,bool inMove,bool includeRot) {
+void Camera::follow(const Npc& npc,uint64_t dt,bool inMove,bool includeRot) {
   const auto& def = cameraDef();
   const float dtF = float(dt)/1000.f;
 

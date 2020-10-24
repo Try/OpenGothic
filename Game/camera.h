@@ -23,7 +23,9 @@ class Camera final {
       Ranged,
       Magic,
       Mobsi,
-      Death
+      Death,
+      Swim,
+      Dive
       };
 
     void reset();

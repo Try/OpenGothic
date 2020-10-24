@@ -120,6 +120,7 @@ class MainWindow : public Tempest::Window {
 
     const Tempest::Texture2d* barBack=nullptr;
     const Tempest::Texture2d* barHp  =nullptr;
+    const Tempest::Texture2d* barMisc=nullptr;
     const Tempest::Texture2d* barMana=nullptr;
 
     const Tempest::Texture2d* saveback=nullptr;

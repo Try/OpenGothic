@@ -32,6 +32,9 @@ void MoveAlgo::load(Serialize &fin) {
       cache.portalName = npc.world().physic()->validateSectorName(reinterpret_cast<char*>(str)); else
       cache.portalName = nullptr;
     }
+  if(fin.version()>17) {
+    fin.read(diveStart);
+    }
   }
 
 void MoveAlgo::save(Serialize &fout) const {
@@ -44,6 +47,7 @@ void MoveAlgo::save(Serialize &fout) const {
   if(len>0 && len<std::extent<decltype(str)>::value)
     std::strcpy(reinterpret_cast<char*>(str),cache.portalName);
   fout.write(str);
+  fout.write(diveStart);
   }
 
 void MoveAlgo::tickMobsi(uint64_t dt) {
@@ -268,12 +272,10 @@ void MoveAlgo::tickSwim(uint64_t dt) {
     }
 
   if(isDive() && pos.y>water) {
-    setAsDive(false);
+    if(npc.world().tickCount()-diveStart>1000)
+      setAsDive(false);
     return;
     }
-
-  if((npc.walkMode() & WalkBit::WM_Dive)==WalkBit::WM_Dive)
-    setAsDive(true);
 
   // swim on top of water
   if(!isDive())
@@ -405,7 +407,7 @@ void MoveAlgo::accessDamFly(float dx, float dz) {
 
 void MoveAlgo::applyRotation(Tempest::Vec3& out, const Tempest::Vec3& dpos) const {
   float mul = mulSpeed;
-  if(isDive()) {
+  if((npc.bodyState()&BS_DIVE)==BS_DIVE) {
     float rot = -npc.rotationYRad();
     float s   = std::sin(rot), c = std::cos(rot);
 
@@ -557,6 +559,12 @@ void MoveAlgo::takeFallDamage() const {
   npc.changeAttribute(Npc::ATR_HITPOINTS,-damage,false);
   }
 
+int32_t MoveAlgo::diveTime() const {
+  if(!isDive())
+    return 0;
+  return int32_t(npc.world().tickCount() - diveStart);
+  }
+
 bool MoveAlgo::isClose(const Tempest::Vec3& w, const WayPoint &p) {
   return isClose(w.x,w.y,w.z,p);
   }
@@ -613,10 +621,10 @@ bool MoveAlgo::startClimb(JumpCode ani) {
   if(jmp==JM_Up){
     setAsJumpup(true);
     setInAir(true);
-    fallSpeed.x=0.f;
-    fallSpeed.y=0.55f*gravity;
-    fallSpeed.z=0.f;
-    fallCount   =1000.f;
+    fallSpeed.x = 0.f;
+    fallSpeed.y = 0.55f*gravity;
+    fallSpeed.z = 0.f;
+    fallCount   = 1000.f;
     }
   else if(jmp==JM_UpMid){
     setAsJumpup(false);
@@ -629,6 +637,14 @@ bool MoveAlgo::startClimb(JumpCode ani) {
     setInAir(true);
     }
   return true;
+  }
+
+void MoveAlgo::startDive() {
+  if(isSwim() && !isDive()) {
+    if(npc.world().tickCount()-diveStart>1000) {
+      setAsDive(true);
+      }
+    }
   }
 
 bool MoveAlgo::isFaling() const {
@@ -707,8 +723,16 @@ void MoveAlgo::setAsSwim(bool f) {
   }
 
 void MoveAlgo::setAsDive(bool f) {
-  if(!f)
+  if(f==isDive())
+    return;
+  if(f) {
+    npc.setDirectionY(-60);
+    diveStart = npc.world().tickCount();
+    npc.setWalkMode(npc.walkMode() | WalkBit::WM_Dive);
+    } else {
+    diveStart = npc.world().tickCount();
     npc.setWalkMode(npc.walkMode() & (~WalkBit::WM_Dive));
+    }
   if(f)
     flags=Flags(flags|Dive);  else
     flags=Flags(flags&(~Dive));

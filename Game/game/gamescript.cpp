@@ -1264,6 +1264,14 @@ AiOuputPipe *GameScript::openDlgOuput(Npc &player, Npc &npc) {
   return owner.openDlgOuput(npc,player);
   }
 
+int GameScript::npcDamDiveTime() {
+  size_t id = vm.getDATFile().getSymbolIndexByName("NPC_DAM_DIVE_TIME");
+  if(id==size_t(-1))
+    return 0;
+  auto& var = vm.getDATFile().getSymbolByIndex(id);
+  return var.getInt(0);
+  }
+
 bool GameScript::isRamboMode() const {
   return owner.isRamboMode();
   }

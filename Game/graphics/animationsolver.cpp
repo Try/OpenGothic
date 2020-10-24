@@ -155,8 +155,11 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     return solveFrm("S_%sRUN",st);
     }
   if(a==Move)  {
-    if(bool(wlkMode & WalkBit::WM_Dive))
-      return solveFrm("S_DIVEF",st);
+    if(bool(wlkMode & WalkBit::WM_Dive)) {
+      if(pose.bodyState()==BS_DIVE)
+        return solveFrm("S_DIVEF",st); else
+        return solveFrm("S_DIVE");
+      }
     if(bool(wlkMode & WalkBit::WM_Swim))
       return solveFrm("S_SWIMF",st);
     if(bool(wlkMode & WalkBit::WM_Sneak))

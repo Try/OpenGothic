@@ -49,6 +49,7 @@ class MoveAlgo final {
     bool    aiGoToTarget(float destDist);
 
     bool    startClimb(JumpCode ani);
+    void    startDive();
 
     bool    isFaling()  const;
     bool    isSlide()   const;
@@ -63,6 +64,7 @@ class MoveAlgo final {
     auto    groundNormal() const -> Tempest::Vec3;
 
     auto    portalName() -> const char*;
+    int32_t diveTime() const;
 
   private:
     void    tickMobsi  (uint64_t dt);
@@ -144,6 +146,8 @@ class MoveAlgo final {
     Tempest::Vec3       climbPos0={};
     float               climbHeight=0.f;
     JumpCode            jmp=JumpCode::JM_OK;
+
+    uint64_t            diveStart=0;
 
     static const float   gravity;
     static const float   eps;

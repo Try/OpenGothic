@@ -504,8 +504,11 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   if(ctrl[Action::Jump]) {
-    if(pl.isSwim()) {
-      pl.setWalkMode(pl.walkMode() | WalkBit::WM_Dive);
+    if(pl.isDive()) {
+      ani = Npc::Anim::Move;
+      }
+    else if(pl.isSwim()) {
+      pl.startDive();
       }
     else if(pl.isStanding()) {
       auto code = pl.tryJump(pl.position());
@@ -519,8 +522,10 @@ void PlayerControl::implMove(uint64_t dt) {
       ani = Npc::Anim::Jump;
       }
     }
-  else if(ctrl[Action::Forward])
-    ani = Npc::Anim::Move;
+  else if(ctrl[Action::Forward]) {
+    if((pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive)
+      ani = Npc::Anim::Move;
+    }
   else if(ctrl[Action::Back])
     ani = Npc::Anim::MoveBack;
   else if(ctrl[Action::Left])

@@ -107,6 +107,7 @@ void Npc::save(Serialize &fout) {
   mvAlgo.save(fout);
   fghAlgo.save(fout);
   fout.write(lastEventTime);
+  fout.write(angleY);
   }
 
 void Npc::load(Serialize &fin) {
@@ -139,6 +140,10 @@ void Npc::load(Serialize &fin) {
   mvAlgo.load(fin);
   fghAlgo.load(fin);
   fin.read(lastEventTime);
+
+  if(fin.version()>17) {
+    fin.read(angleY);
+    }
 
   if(isDead())
     physic.setEnable(false);
@@ -308,6 +313,10 @@ void Npc::setDirection(float rotation) {
   }
 
 void Npc::setDirectionY(float rotation) {
+  if(rotation>90)
+    rotation = 90;
+  if(rotation<-90)
+    rotation = -90;
   rotation = std::fmod(rotation,360.f);
   if(!mvAlgo.isSwim())
     return;
@@ -519,7 +528,7 @@ Vec3 Npc::cameraBone() const {
   auto bone=visual.pose().cameraBone();
   Tempest::Vec3 r={};
   bone.project(r.x,r.y,r.z);
-  visual.position().project (r.x,r.y,r.z);
+  visual.position().project(r.x,r.y,r.z);
   return r;
   }
 
@@ -1096,6 +1105,10 @@ int32_t Npc::learningPoints() const {
   return hnpc.lp;
   }
 
+int32_t Npc::diveTime() const {
+  return mvAlgo.diveTime();
+  }
+
 void Npc::setAttitude(Attitude att) {
   permAttitude = att;
   }
@@ -1602,6 +1615,21 @@ void Npc::tick(uint64_t dt) {
               hnpc.attribute[ATR_REGENERATEHP],dt);
     tickRegen(hnpc.attribute[ATR_MANA],hnpc.attribute[ATR_MANAMAX],
               hnpc.attribute[ATR_REGENERATEMANA],dt);
+    }
+
+  if(isDive()) {
+    int32_t gl = guild();
+    int32_t v  = world().script().guildVal().dive_time[gl]*1000;
+    int32_t t  = diveTime();
+    if(v>=0 && t>v+int(dt)) {
+      int tickSz = world().script().npcDamDiveTime();
+      if(tickSz>0) {
+        t-=v;
+        int dmg = t/tickSz - (t-int(dt))/tickSz;
+        if(dmg>0)
+          changeAttribute(ATR_HITPOINTS,-100*dmg,false);
+        }
+      }
     }
 
   if(ev.groundSounds>0 && isPlayer())
@@ -2205,8 +2233,6 @@ BodyState Npc::bodyState() const {
     return BS_FALL;
 
   uint32_t s = visual.pose().bodyState();
-  if(mvAlgo.isSwim())
-    s = BS_SWIM;
   if(auto i = interactive())
     s = i->stateMask();
   return BodyState(s);
@@ -2882,6 +2908,10 @@ Npc::JumpCode Npc::tryJump(const Tempest::Vec3& p0) {
     }
   // Jump to the edge, and then pull up. Height: 200-350cm
   return JumpCode::JM_Up;
+  }
+
+void Npc::startDive() {
+  mvAlgo.startDive();
   }
 
 std::vector<GameScript::DlgChoise> Npc::dialogChoises(Npc& player,const std::vector<uint32_t> &except,bool includeImp) {

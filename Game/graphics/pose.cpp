@@ -303,7 +303,7 @@ void Pose::mkSkeleton(const Matrix4x4 &mt) {
   if(skeleton==nullptr)
     return;
   auto& nodes=skeleton->nodes;
-  for(size_t i=0;i<nodes.size();++i){
+  for(size_t i=0; i<nodes.size(); ++i) {
     if(nodes[i].parent==size_t(-1)) {
       tr[i] = mt*base[i];
       } else {
@@ -561,10 +561,10 @@ uint32_t Pose::comboLength() const {
 
 Matrix4x4 Pose::cameraBone() const {
   size_t id=skeleton->findNode("BIP01 HEAD");
-  if(id<skeleton->tr.size())
-    return skeleton->tr[id];
-  if(0<skeleton->tr.size())
-    return skeleton->tr[0];
+  if(id<tr.size())
+    return tr[id];
+  if(0<tr.size())
+    return tr[0];
   return Matrix4x4();
   }
 

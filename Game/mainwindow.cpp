@@ -40,6 +40,7 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
 
   barBack    = Resources::loadTexture("BAR_BACK.TGA");
   barHp      = Resources::loadTexture("BAR_HEALTH.TGA");
+  barMisc    = Resources::loadTexture("BAR_MISC.TGA");
   barMana    = Resources::loadTexture("BAR_MANA.TGA");
 
   background = Resources::loadTexture("STARTSCREEN.TGA");
@@ -170,8 +171,16 @@ void MainWindow::paintEvent(PaintEvent& event) {
       if(auto pl=gothic.player()){
         float hp = float(pl->attribute(Npc::ATR_HITPOINTS))/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
         float mp = float(pl->attribute(Npc::ATR_MANA))     /float(pl->attribute(Npc::ATR_MANAMAX));
-        drawBar(p,barHp,  10,    h()-10, hp, AlignLeft |AlignBottom);
-        drawBar(p,barMana,w()-10,h()-10, mp, AlignRight|AlignBottom);
+        drawBar(p,barHp,  10,    h()-10, hp, AlignLeft  | AlignBottom);
+        drawBar(p,barMana,w()-10,h()-10, mp, AlignRight | AlignBottom);
+        if(pl->isDive()) {
+          int32_t gl = pl->guild();
+          auto    v  = float(pl->world().script().guildVal().dive_time[gl]);
+          if(v>0) {
+            auto t = float(pl->diveTime())/1000.f;
+            drawBar(p,barMisc,w()/2,h()-10, (v-t)/(v), AlignHCenter | AlignBottom);
+            }
+          }
         }
       }
 
@@ -613,6 +622,10 @@ Camera::Mode MainWindow::solveCameraMode() const {
   if(auto pl=gothic.player()) {
     if(pl->isDead())
       return Camera::Death;
+    if(pl->isDive())
+      return Camera::Dive;
+    if(pl->isSwim())
+      return Camera::Swim;
     switch(pl->weaponState()){
       case WeaponState::Fist:
       case WeaponState::W1H:
