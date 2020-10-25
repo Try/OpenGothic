@@ -5,7 +5,15 @@
 
 #include "dlscollection.h"
 #include "hydra.h"
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include "tsf.h"
+#pragma GCC diagnostic pop
+#else
+#include "tsf.h"
+#endif
 
 using namespace Dx8;
 using namespace Tempest;
