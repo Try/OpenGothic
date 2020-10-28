@@ -35,7 +35,7 @@ Common Gothic installation paths:
 `mkdir OpenGothic/build` --> `cd OpenGothic/build` --> `cmake ..` --> `make`
 
 #### Gameplay video
-[![Video](https://img.youtube.com/vi/21OTvuMdwb4/0.jpg)](https://www.youtube.com/watch?v=21OTvuMdwb4) [![Video](https://img.youtube.com/vi/MUVd-ZWliKY/0.jpg)](https://www.youtube.com/watch?v=MUVd-ZWliKY)
+[![Video](https://img.youtube.com/vi/R9MNhNsBVQ0/0.jpg)](https://www.youtube.com/watch?v=R9MNhNsBVQ0) [![Video](https://img.youtube.com/vi/6BvwNkPMbwM/0.jpg)](https://www.youtube.com/watch?v=6BvwNkPMbwM)
 
 ##### Features
 * General
