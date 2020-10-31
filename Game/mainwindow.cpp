@@ -791,8 +791,8 @@ void MainWindow::render(){
     device.present(swapchain,imgId,context.renderDone);
 
     auto t = Application::tickCount();
-    if(t-time<10 && !gothic.isInGame() && !video.isActive()){
-      Application::sleep(uint32_t(10-(t-time)));
+    if(t-time<15 && !gothic.isInGame() && !video.isActive()){
+      Application::sleep(uint32_t(15-(t-time)));
       t = Application::tickCount();
       }
     fps.push(t-time);
