@@ -29,6 +29,7 @@ class Interactive : public Vob {
     void                load(Serialize& fin) override;
     void                save(Serialize& fout) const override;
 
+    void                resetPositionToTA();
     void                updateAnimation();
     void                tick(uint64_t dt);
 

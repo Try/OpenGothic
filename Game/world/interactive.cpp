@@ -126,6 +126,10 @@ void Interactive::save(Serialize &fout) const {
     }
   }
 
+void Interactive::resetPositionToTA() {
+  setAnim(Interactive::Active); // setup default anim
+  }
+
 void Interactive::setVisual(const std::string& body) {
   const Skeleton* skeleton = Resources::loadSkeleton(body.c_str());
   mesh        = Resources::loadMesh(body);
@@ -314,10 +318,11 @@ Tempest::Vec3 Interactive::displayPosition() const {
 const char *Interactive::displayName() const {
   if(focName.empty())
     return "";
+
   const char* strId=focName.c_str();
-  if(world.getSymbolIndex(strId)==size_t(-1)) {
-    return vobName.c_str();
-    }
+  if(world.getSymbolIndex(strId)==size_t(-1))
+    return focName.c_str();
+
   auto& s=world.getSymbol(strId);
   const char* txt = s.getString(0).c_str();
   if(std::strlen(txt)==0)
