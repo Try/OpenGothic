@@ -127,7 +127,8 @@ void Interactive::save(Serialize &fout) const {
   }
 
 void Interactive::resetPositionToTA() {
-  setAnim(Interactive::Active); // setup default anim
+  visual.startAnimAndGet("S_S0",world.tickCount());
+  // setAnim(Interactive::Active); // setup default anim
   }
 
 void Interactive::setVisual(const std::string& body) {
