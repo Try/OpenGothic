@@ -32,11 +32,20 @@ bool WayPoint::checkName(const std::string &name) const {
   }
 
 bool WayPoint::checkName(const char *n) const {
-  if(name.find(n)!=std::string::npos)
-    return true;
-  if(std::strcmp(n,"STAND")==0) {
-    return name.find("_PATH_")==std::string::npos;
+  const char*  src = name.c_str();
+  const size_t len = std::strlen(n);
+
+  for(size_t i=0, i0=0; ; ++i) {
+    if(src[i]=='_' || src[i]=='\0') {
+      const size_t len2 = i-i0;
+      if(len==len2 && std::memcmp(&src[i0],n,len2)==0)
+        return true;
+      i0=i+1;
+      }
+    if(src[i]=='\0')
+      break;
     }
+
   return false;
   }
 

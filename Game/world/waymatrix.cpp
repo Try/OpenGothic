@@ -1,10 +1,11 @@
 #include "waymatrix.h"
 
-#include "world.h"
-
 #include <Tempest/Log>
 #include <algorithm>
 #include <limits>
+
+#include "world.h"
+#include "utils/gthfont.h"
 
 using namespace Tempest;
 
@@ -152,8 +153,10 @@ void WayMatrix::marchPoints(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, 
   static bool ddraw=false;
   if(!ddraw)
     return;
-  //for(auto& i:wayPoints) {
-  for(auto& i:freePoints) {
+  auto& fnt = Resources::font();
+  static bool fp = true;
+  auto& points = fp ? freePoints : wayPoints;
+  for(auto& i:points) {
     float x = i.x, y = i.y, z = i.z;
     mvp.project(x,y,z);
     if(z<0.f || z>1.f)
@@ -164,6 +167,8 @@ void WayMatrix::marchPoints(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, 
 
     p.setBrush(Tempest::Color(1,0,0,1));
     p.drawRect(int(x),int(y),4,4);
+
+    fnt.drawText(p,int(x),int(y),i.name.c_str());
     }
   }
 
@@ -199,7 +204,8 @@ const WayMatrix::FpIndex &WayMatrix::findFpIndex(const char *name) const {
   }
 
 const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpIndex& ind, const WayPoint *ex) const {
-  float R = 20.f*100.f; // see scripting doc
+  // float R = 20.f*100.f; // see scripting doc
+  float R = 5.f*100.f; // scripting doc says 20m, but number seems to be incorrect
   auto b = std::lower_bound(ind.index.begin(),ind.index.end(), x-R ,[](const WayPoint *a, float b){
     return a->x<b;
     });

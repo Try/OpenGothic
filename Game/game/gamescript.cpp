@@ -1982,10 +1982,6 @@ void GameScript::npc_isonfp(Daedalus::DaedalusVM &vm) {
     vm.setReturn(1);
     return;
     }
-  if(val=="STAND"){
-    vm.setReturn(1);
-    return;
-    }
   vm.setReturn(0);
   }
 
