@@ -155,10 +155,10 @@ MeshObjects::Mesh WorldView::getStaticView(const char* visual) {
   return MeshObjects::Mesh();
   }
 
-MeshObjects::Mesh WorldView::getDecalView(const ZenLoad::zCVobData& vob,
-                                          const Tempest::Matrix4x4& obj, ProtoMesh& out) {
-  out = owner.physic()->decalMesh(vob,obj);
-  return objGroup.get(out,0,0,0,true);
+MeshObjects::Mesh WorldView::getDecalView(const ZenLoad::zCVobData& vob) {
+  if(auto mesh=Resources::decalMesh(vob.visual.c_str(),vob.visualChunk.zCDecal.decalDim.x,vob.visualChunk.zCDecal.decalDim.y))
+    return objGroup.get(*mesh,0,0,0,true);
+  return MeshObjects::Mesh();
   }
 
 PfxObjects::Emitter WorldView::getView(const ParticleFx *decl) {

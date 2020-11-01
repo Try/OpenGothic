@@ -818,38 +818,6 @@ DynamicWorld::BBoxBody* DynamicWorld::bboxObj(BBoxCallback* cb, const ZMath::flo
   return bboxList->add(cb,bbox);
   }
 
-ProtoMesh DynamicWorld::decalMesh(const ZenLoad::zCVobData& vob, const Tempest::Matrix4x4& objMat) const {
-  float sX = vob.visualChunk.zCDecal.decalDim.x;
-  float sY = vob.visualChunk.zCDecal.decalDim.y;
-
-  Resources::Vertex vbo[4] = {
-    {{-1.f, -1.f, 0.f},{0,0,-1},{0,1},0},
-    {{ 1.f, -1.f, 0.f},{0,0,-1},{1,1},0},
-    {{ 1.f,  1.f, 0.f},{0,0,-1},{1,0},0},
-    {{-1.f,  1.f, 0.f},{0,0,-1},{0,0},0},
-    };
-
-  for(auto& i:vbo) {
-    i.pos[0]*=sX;
-    i.pos[1]*=sY;
-
-    float w=0;
-    objMat.project(i.pos[0], i.pos[1], i.pos[2]);
-    objMat.project(i.norm[0],i.norm[1],i.norm[2],0.f,
-                   i.norm[0],i.norm[1],i.norm[2],w);
-    i.norm[0]/=w;
-    i.norm[1]/=w;
-    i.norm[2]/=w;
-
-    i.color = 0xFFFFFFFF;
-    }
-
-  std::vector<Resources::Vertex> cvbo(vbo,vbo+4);
-  std::vector<uint32_t>          cibo = { 0,1,2, 0,2,3 };
-
-  return ProtoMesh(vob, std::move(cvbo), std::move(cibo));
-  }
-
 void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint64_t dt) {
   float k  = float(dt)/1000.f;
   const bool isSpell = b.isSpell();

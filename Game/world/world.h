@@ -94,7 +94,7 @@ class World final {
     MeshObjects::Mesh   getItmView   (const Daedalus::ZString& visual, int32_t tex) const;
     MeshObjects::Mesh   getItmView   (const char*              visual, int32_t tex) const;
     MeshObjects::Mesh   getStaticView(const char* visual) const;
-    MeshObjects::Mesh   getDecalView (const ZenLoad::zCVobData& vob, const Tempest::Matrix4x4& obj, ProtoMesh& out) const;
+    MeshObjects::Mesh   getDecalView (const ZenLoad::zCVobData& vob) const;
     DynamicWorld::Item  getPhysic    (const char* visual);
 
     const VisualFx*      loadVisualFx(const char* name);

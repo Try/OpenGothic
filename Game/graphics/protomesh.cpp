@@ -115,10 +115,10 @@ ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm, const std::string& fname) {
   setupScheme(fname);
   }
 
-ProtoMesh::ProtoMesh(const ZenLoad::zCVobData& vob, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo) {
-  attach.emplace_back(vob,std::move(vbo),std::move(ibo));
+ProtoMesh::ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo) {
+  attach.emplace_back(mat,std::move(vbo),std::move(ibo));
   submeshId.resize(attach[0].sub.size());
-  auto&  att   = attach[0];
+  auto& att = attach[0];
 
   size_t count = 0;
   for(size_t r=0;r<att.sub.size();++r) {

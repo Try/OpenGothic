@@ -205,8 +205,6 @@ class DynamicWorld final {
     BulletBody* bulletObj(BulletCallback* cb);
     BBoxBody*   bboxObj(BBoxCallback* cb, const ZMath::float3* bbox);
 
-    ProtoMesh   decalMesh(const ZenLoad::zCVobData& vob, const Tempest::Matrix4x4& obj) const;
-
     void        tick(uint64_t dt);
 
     void        deleteObj(BulletBody* obj);

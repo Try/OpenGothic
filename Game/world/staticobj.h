@@ -16,7 +16,6 @@ class StaticObj : public Vob {
 
     PhysicMesh                 physic;
     PfxObjects::Emitter        pfx;
-    std::unique_ptr<ProtoMesh> decalMesh;
 
     MdlVisual                  visual;
     std::string                scheme;

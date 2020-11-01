@@ -16,7 +16,7 @@ class ProtoMesh {
 
     ProtoMesh(const ZenLoad::zCModelMeshLib& lib,const std::string& fname);
     ProtoMesh(ZenLoad::PackedMesh&&     pm, const std::string& fname);
-    ProtoMesh(const ZenLoad::zCVobData& vob, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo);
+    ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo);
     ProtoMesh(ProtoMesh&&)=default;
     ProtoMesh& operator=(ProtoMesh&&)=default;
     ~ProtoMesh();

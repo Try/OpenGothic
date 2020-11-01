@@ -25,9 +25,9 @@ StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool s
     } else
   if(FileExt::hasExt(vob.visual,"TGA")){
     if(vob.visualCamAlign==0) {
-      decalMesh = std::make_unique<ProtoMesh>(ZenLoad::PackedMesh(),"");
-      auto mesh = world.getDecalView(vob, transform(), *decalMesh);
+      auto mesh = world.getDecalView(vob);
       visual.setVisualBody(std::move(mesh),world);
+      visual.setPos(transform());
       } else {
       pfx = world.getView(vob);
       pfx.setActive(true);

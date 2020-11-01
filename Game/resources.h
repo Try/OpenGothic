@@ -110,6 +110,7 @@ class Resources final {
     static Tempest::Sound            loadSoundBuffer(const char*        name);
 
     static Dx8::PatternList          loadDxMusic(const char *name);
+    static const ProtoMesh*          decalMesh(const char* tex, float sX, float sY);
 
     template<class V>
     static Tempest::VertexBuffer<V>  vbo(const V* data,size_t sz){ return inst->device.vbo(data,sz); }
@@ -150,6 +151,7 @@ class Resources final {
     Tempest::Texture2d*   implLoadTexture(TextureCache& cache, const char* cname);
     Tempest::Texture2d*   implLoadTexture(TextureCache& cache, std::string &&name, const std::vector<uint8_t> &data);
     ProtoMesh*            implLoadMesh(const std::string &name);
+    ProtoMesh*            implDecalMesh(const char* tex, float sX, float sY);
     Skeleton*             implLoadSkeleton(std::string name);
     Animation*            implLoadAnimation(std::string name);
     Tempest::Sound        implLoadSoundBuffer(const char* name);
@@ -164,11 +166,15 @@ class Resources final {
 
     Tempest::Texture2d fallback, fbZero;
 
-    using BindK = std::tuple<const Skeleton*,const ProtoMesh*>;
-    using FontK = std::pair<const std::string,FontType>;
+    using BindK  = std::tuple<const Skeleton*,const ProtoMesh*>;
+    using DecalK = std::tuple<const Tempest::Texture2d*,float,float>;
+    using FontK  = std::pair<const std::string,FontType>;
 
     struct Hash {
       size_t operator()(const BindK& b) const {
+        return std::uintptr_t(std::get<0>(b));
+        }
+      size_t operator()(const DecalK& b) const {
         return std::uintptr_t(std::get<0>(b));
         }
       size_t operator()(const FontK& b) const {
@@ -190,6 +196,7 @@ class Resources final {
     TextureCache                                                          texCache;
 
     std::unordered_map<std::string,std::unique_ptr<ProtoMesh>>            aniMeshCache;
+    std::unordered_map<DecalK,std::unique_ptr<ProtoMesh>,Hash>            decalMeshCache;
     std::unordered_map<std::string,std::unique_ptr<Skeleton>>             skeletonCache;
     std::unordered_map<std::string,std::unique_ptr<Animation>>            animCache;
     std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>          bindCache;
