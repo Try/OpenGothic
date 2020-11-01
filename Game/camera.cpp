@@ -356,7 +356,7 @@ void Camera::follow(const Npc& npc,uint64_t dt,bool inMove,bool includeRot) {
     float       speed   = inMove ? 0.f : dp.manhattanLength()*dtF*(def.veloTrans/10.f);
     float       tr      = std::min(speed,len);
     if(len-tr>maxDist)
-      tr += (len-maxDist);
+      tr = (len-maxDist);
 
     float k = tr/len;
     state.pos   = Vec3(state.pos.x+dp.x*k, state.pos.y+dp.y*k, state.pos.z+dp.z*k);

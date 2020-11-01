@@ -758,8 +758,8 @@ void MainWindow::render(){
     video.tick();
     if(!video.isActive() && !gothic.isPause()) {
       tick();
-      followCamera();
       gothic.updateAnimation();
+      followCamera();
       }
 
     auto& context = fLocal[swapchain.frameId()];
