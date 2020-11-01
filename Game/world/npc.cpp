@@ -2065,7 +2065,7 @@ void Npc::setTarget(Npc *t) {
     }
   }
 
-Npc *Npc::target() {
+Npc *Npc::target() const {
   return currentTarget;
   }
 

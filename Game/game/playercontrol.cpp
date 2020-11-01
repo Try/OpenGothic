@@ -543,7 +543,8 @@ void PlayerControl::implMove(uint64_t dt) {
         } else {
         float dx = other->position().x-pl.position().x;
         float dz = other->position().z-pl.position().z;
-        pl.lookAt(dx,dz,false,dt);
+        // pl.lookAt(dx,dz,false,dt);
+        pl.setDirection(dx,0,dz);
         rot = pl.rotation();
         }
       }

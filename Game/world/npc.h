@@ -448,7 +448,7 @@ class Npc final {
     auto      canSenseNpc(float x,float y,float z,bool freeLos,bool isNoisy,float extRange=0.f) const -> SensesBit;
 
     void      setTarget(Npc* t);
-    Npc*      target();
+    Npc*      target() const;
 
     void      clearNearestEnemy();
     int32_t   lastHitSpellId() const { return lastHitSpell; }
