@@ -710,6 +710,8 @@ bool MdlVisual::startAnimSpell(Npc &npc, const char *scheme) {
 bool MdlVisual::startAnimDialog(Npc &npc) {
   if((npc.bodyState()&BS_FLAG_FREEHANDS)==0 || fgtMode!=WeaponState::NoWeapon)
     return true;
+  if(npc.bodyStateMasked()!=BS_STAND)
+    return true;
 
   //const int countG1 = 21;
   const int countG2 = 11;
