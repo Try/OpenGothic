@@ -21,9 +21,16 @@ void PlayerControl::setTarget(Npc *other) {
   auto pl = w ? w->player() : nullptr;
   if(pl==nullptr || pl->isFinishingMove())
     return;
-  auto ws = pl->weaponState();
-  if(other!=nullptr || (ws!=WeaponState::W1H && ws!=WeaponState::W2H))
-    pl->setTarget(other); // dont lose focus in melee combat
+  const auto ws    = pl->weaponState();
+  const bool melle = (ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H);
+  if(other==nullptr) {
+    if(!(melle && ctrl[Action::ActionGeneric])) {
+      // dont lose focus in melee combat
+      pl->setTarget(nullptr);
+      }
+    } else {
+    pl->setTarget(other);
+    }
   }
 
 void PlayerControl::onKeyPressed(KeyCodec::Action a) {
@@ -536,9 +543,8 @@ void PlayerControl::implMove(uint64_t dt) {
   pl.setAnim(ani);
   pl.setAnimRotate(ani==Npc::Anim::Idle ? rotation : 0);
   if(actrl[ActGeneric] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.isFinishingMove()) {
-    if(auto other = pl.target()){
-      if(pl.weaponState()==WeaponState::NoWeapon || other->isDown() || pl.isFinishingMove() ||
-         other->qDistTo(pl)>500*500){
+    if(auto other = pl.target()) {
+      if(pl.weaponState()==WeaponState::NoWeapon || other->isDown() || pl.isFinishingMove()){
         pl.setTarget(nullptr);
         } else {
         float dx = other->position().x-pl.position().x;
