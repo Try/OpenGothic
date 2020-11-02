@@ -17,7 +17,7 @@ ParticleFx::ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob) {
   visMaterial      = mat;
 
   dirFOR           = Frame::World;
-  dirAngleElev     = 90;
+  dirAngleElev     = -90;
   visSizeEndScale  = 1;
   visAlphaStart    = 1;
   visAlphaEnd      = 1;

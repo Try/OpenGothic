@@ -359,6 +359,9 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
       p.rotation = dirRotation;
       break;
     }
+
+  if(pfx.useEmittersFOR==0)
+    p.pos += emitter.pos;
   }
 
 void PfxObjects::Bucket::finalize(size_t particle) {
@@ -715,9 +718,15 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
         float sy = l[1]*dx[i]*szX + t[1]*dy[i]*szY;
         float sz = l[2]*dx[i]*szX + t[2]*dy[i]*szY;
 
-        v[i].pos[0] = ps.pos.x + p.pos.x + sx;
-        v[i].pos[1] = ps.pos.y + p.pos.y + sy;
-        v[i].pos[2] = ps.pos.z + p.pos.z + sz;
+        if(b.owner->useEmittersFOR) {
+          v[i].pos[0] = p.pos.x + ps.pos.x + sx;
+          v[i].pos[1] = p.pos.y + ps.pos.y + sy;
+          v[i].pos[2] = p.pos.z + ps.pos.z + sz;
+          } else {
+          v[i].pos[0] = ps.pos.x + sx;
+          v[i].pos[1] = ps.pos.y + sy;
+          v[i].pos[2] = ps.pos.z + sz;
+          }
 
         if(pfx.visZBias) {
           v[i].pos[0] -= szZ*ctx.z[0];
@@ -725,8 +734,8 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
           v[i].pos[2] -= szZ*ctx.z[2];
           }
 
-        v[i].uv[0]  = (dx[i]+0.5f);//float(ow.frameCount);
-        v[i].uv[1]  = (dy[i]+0.5f);
+        v[i].uv[0]  = (dx[i]+0.5f);
+        v[i].uv[1]  = (0.5f-dy[i]);
 
         std::memcpy(&v[i].color,&color,4);
         }
