@@ -95,7 +95,10 @@ void Npc::save(Serialize &fout) {
     fout.write(i.func);
 
   invent.save(fout);
-  fout.write(lastHitType,lastHitSpell,currentSpellCast);
+  fout.write(lastHitType,lastHitSpell);
+  if(currentSpellCast<uint32_t(-1))
+    fout.write(uint32_t(currentSpellCast)); else
+    fout.write(uint32_t(-1));
   saveAiState(fout);
 
   fout.write(currentOther,currentLookAt,currentTarget,nearestEnemy);
@@ -127,8 +130,17 @@ void Npc::load(Serialize &fin) {
     fin.read(i.func);
   invent.load(*this,fin);
   fin.read(lastHitType,lastHitSpell);
-  if(fin.version()>=9)
-    fin.read(currentSpellCast);
+  if(fin.version()>=9) {
+    if(fin.version()>=19) {
+      uint32_t currentSpellCastU32 = uint32_t(-1);
+      fin.read(currentSpellCastU32);
+      currentSpellCast = (currentSpellCastU32==uint32_t(-1) ? size_t(-1) : currentSpellCastU32);
+      } else {
+      int32_t currentSpellCast32;
+      fin.read(currentSpellCast32);
+      // legacy
+      }
+    }
   loadAiState(fin);
 
   fin.read(currentOther,currentLookAt,currentTarget,nearestEnemy);
@@ -1285,12 +1297,11 @@ bool Npc::implAtack(uint64_t dt) {
     if(ws==WeaponState::Mage){
       if(castSpell()) {
         fghAlgo.consumeAction();
-        } else {
-        setAnimRotate(0);
-        setDirection(currentTarget->x-x,
-                     currentTarget->y-y,
-                     currentTarget->z-z);
         }
+      setAnimRotate(0);
+      setDirection(currentTarget->x-x,
+                   currentTarget->y-y,
+                   currentTarget->z-z);
       }
     else if(ws==WeaponState::Bow || ws==WeaponState::CBow){
       if(shootBow()) {
@@ -1390,15 +1401,14 @@ bool Npc::implAtack(uint64_t dt) {
   }
 
 void Npc::adjustAtackRotation(uint64_t dt) {
-  if(currentTarget!=nullptr && !currentTarget->isDown() && faiWaitTime<owner.tickCount()) {
+  if(currentTarget!=nullptr && !currentTarget->isDown()) {
     auto ws = weaponState();
     if(!visual.pose().isInAnim("T_FISTATTACKMOVE") &&
        !visual.pose().isInAnim("T_1HATTACKMOVE")   &&
        !visual.pose().isInAnim("T_2HATTACKMOVE")   &&
        ws!=WeaponState::NoWeapon){
       bool noAnim = !hasAutoroll();
-      if(ws==WeaponState::Bow || ws==WeaponState::CBow ||
-         ws==WeaponState::Mage)
+      if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage)
          noAnim = true;
       implLookAt(*currentTarget,noAnim,dt);
       }
@@ -1523,14 +1533,19 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
     if(!isSpell && !isDown() && hitResult.hasHit)
       owner.emitWeaponsSound(other,*this);
 
-    if(hitResult.value>0) {
+    if(hitResult.hasHit) {
       if(attribute(ATR_HITPOINTS)>0) {
         const bool noInter = (hnpc.bodyStateInterruptableOverride!=0);
         if(!noInter)
           visual.interrupt();
-        if(auto ani = setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB,noInter))
-          implAniWait(uint64_t(ani->totalTime()));
+        if(auto ani = setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB,noInter)) {
+          if(ani->layer==0)
+            implAniWait(uint64_t(ani->totalTime()));
+          }
         }
+      }
+
+    if(hitResult.value>0) {
       changeAttribute(ATR_HITPOINTS,-hitResult.value,dontKill);
 
       if(isUnconscious()){
@@ -1605,7 +1620,7 @@ void Npc::tick(uint64_t dt) {
   if(!visual.pose().hasAnim())
     setAnim(AnimationSolver::Idle);
 
-  if(currentSpellCast!=0) {
+  if(currentSpellCast!=size_t(-1)) {
     if(setAnim(Npc::Anim::Idle))
       commitSpell();
     }
@@ -1641,7 +1656,8 @@ void Npc::tick(uint64_t dt) {
     tickTimedEvt(ev);
 
   if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount()) {
-    adjustAtackRotation(dt);
+    if(faiWaitTime<owner.tickCount())
+      adjustAtackRotation(dt);
     mvAlgo.tick(dt,MoveAlgo::WaitMove);
     return;
     }
@@ -2138,13 +2154,13 @@ void Npc::playEffect(Npc& /*to*/, const VisualFx& vfx) {
   }
 
 void Npc::commitSpell() {
-  const int32_t   splId = currentSpellCast;
-  currentSpellCast = 0;
+  auto active      = invent.getItem(currentSpellCast);
+  currentSpellCast = size_t(-1);
 
-  auto active=invent.spellById(splId);
   if(active==nullptr || !active->isSpellOrRune())
     return;
 
+  const int32_t splId = active->spellId();
   owner.script().invokeSpell(*this,currentTarget,*active);
 
   const VisualFx* vfx = owner.script().getSpellVFx(splId);
@@ -2566,15 +2582,15 @@ bool Npc::castSpell() {
     return false;
     }
 
-  currentSpellCast      = active->spellId();
-  const SpellCode code  = SpellCode(owner.script().invokeMana(*this,currentTarget,*active));
+  currentSpellCast     = active->clsId();
+  const SpellCode code = SpellCode(owner.script().invokeMana(*this,currentTarget,*active));
   switch(code) {
     case SpellCode::SPL_SENDSTOP:
       setAnim(Anim::MagNoMana);
-      currentSpellCast = 0;
+      currentSpellCast = size_t(-1);
       break;
     case SpellCode::SPL_STATUS_CANINVEST_NO_MANADEC:
-    case SpellCode::SPL_NEXTLEVEL:{
+    case SpellCode::SPL_NEXTLEVEL: {
       auto& ani = owner.script().spellCastAnim(*this,*active);
       if(!visual.startAnimSpell(*this,ani.c_str()))
         return false;

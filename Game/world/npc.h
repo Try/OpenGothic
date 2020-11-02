@@ -654,10 +654,10 @@ class Npc final {
     Inventory                      invent;
 
     // last hit
-    Npc*                           lastHit      = nullptr;
-    char                           lastHitType  = 'A';
-    int32_t                        lastHitSpell = 0;
-    int32_t                        currentSpellCast = 0;
+    Npc*                           lastHit          = nullptr;
+    char                           lastHitType      = 'A';
+    int32_t                        lastHitSpell     = 0;
+    size_t                         currentSpellCast = size_t(-1);
 
     // ai state
     uint64_t                       aniWaitTime=0;
