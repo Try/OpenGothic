@@ -11,7 +11,7 @@ class Material final {
     Material(const ZenLoad::zCVobData& vob);
     Material(const Daedalus::GEngineClasses::C_ParticleFX &src);
 
-    enum ApphaFunc:uint8_t {
+    enum AlphaFunc:uint8_t {
       InvalidAlpha    = 0,
       AlphaTest       = 1,
       Transparent     = 2,
@@ -28,7 +28,7 @@ class Material final {
 
     const Tempest::Texture2d* tex=nullptr;
     std::vector<const Tempest::Texture2d*> frames;
-    ApphaFunc                 alpha=AlphaTest;
+    AlphaFunc                 alpha=AlphaTest;
     Tempest::Point            texAniMapDirPeriod;
     uint64_t                  texAniFPSInv=1;
 
@@ -39,7 +39,7 @@ class Material final {
     int  alphaOrder() const { return alphaOrder(alpha); }
 
   private:
-    static int alphaOrder(ApphaFunc a);
+    static int alphaOrder(AlphaFunc a);
 
     void          loadFrames(const ZenLoad::zCMaterialData& m);
     Tempest::Vec2 loadVec2(const std::string& src);

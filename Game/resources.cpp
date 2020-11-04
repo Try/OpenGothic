@@ -297,17 +297,16 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
     }
   }
 
-ProtoMesh* Resources::implDecalMesh(const char* tex, float sX, float sY) {
-  Material mat;
-  mat.tex   = loadTexture(tex);
-  mat.alpha = Material::Transparent;
-  // mat.alpha = Material::AlphaTest;
+ProtoMesh* Resources::implDecalMesh(const ZenLoad::zCVobData& vob) {
+  DecalK key;
+  key.mat = Material(vob);
+  key.sX  = vob.visualChunk.zCDecal.decalDim.x;
+  key.sY  = vob.visualChunk.zCDecal.decalDim.y;
 
-  if(mat.tex==nullptr)
+  if(key.mat.tex==nullptr)
     return nullptr;
 
-  auto key = std::tie(mat.tex,sX,sY);
-  auto it  = decalMeshCache.find(key);
+  auto it = decalMeshCache.find(key);
   if(it!=decalMeshCache.end())
     return it->second.get();
 
@@ -323,14 +322,17 @@ ProtoMesh* Resources::implDecalMesh(const char* tex, float sX, float sY) {
     {{-1.f,  1.f, 0.f},{0,0, 1},{0,0}, 0xFFFFFFFF},
     };
   for(auto& i:vbo) {
-    i.pos[0]*=sX;
-    i.pos[1]*=sY;
+    i.pos[0]*=key.sX;
+    i.pos[1]*=key.sY;
     }
 
   std::vector<Resources::Vertex> cvbo(vbo,vbo+8);
-  std::vector<uint32_t>          cibo = { 0,1,2, 0,2,3, 4,6,5, 4,6,7 };
+  std::vector<uint32_t>          cibo;
+  if(key.decal2Sided)
+    cibo = { 0,1,2, 0,2,3, 4,6,5, 4,6,7 }; else
+    cibo = { 0,1,2, 0,2,3 };
 
-  std::unique_ptr<ProtoMesh> t{new ProtoMesh(mat, std::move(cvbo), std::move(cibo))};
+  std::unique_ptr<ProtoMesh> t{new ProtoMesh(key.mat, std::move(cvbo), std::move(cibo))};
 
   auto ret = t.get();
   decalMeshCache[key] = std::move(t);
@@ -639,9 +641,9 @@ Dx8::PatternList Resources::loadDxMusic(const char* name) {
   return inst->implLoadDxMusic(name);
   }
 
-const ProtoMesh* Resources::decalMesh(const char* tex, float sX, float sY) {
+const ProtoMesh* Resources::decalMesh(const ZenLoad::zCVobData& vob) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implDecalMesh(tex,sX,sY);
+  return inst->implDecalMesh(vob);
   }
 
 bool Resources::getFileData(const char *name, std::vector<uint8_t> &dat) {

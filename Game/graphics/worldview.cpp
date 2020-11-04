@@ -149,7 +149,7 @@ MeshObjects::Mesh WorldView::getStaticView(const char* visual) {
   }
 
 MeshObjects::Mesh WorldView::getDecalView(const ZenLoad::zCVobData& vob) {
-  if(auto mesh=Resources::decalMesh(vob.visual.c_str(),vob.visualChunk.zCDecal.decalDim.x,vob.visualChunk.zCDecal.decalDim.y))
+  if(auto mesh=Resources::decalMesh(vob))
     return objGroup.get(*mesh,0,0,0,true);
   return MeshObjects::Mesh();
   }

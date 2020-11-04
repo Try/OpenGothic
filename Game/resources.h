@@ -13,6 +13,7 @@
 
 #include <tuple>
 
+#include "graphics/material.h"
 #include "world/soundfx.h"
 
 class Gothic;
@@ -25,7 +26,6 @@ class PhysicMeshShape;
 class PfxEmitterMesh;
 class SoundFx;
 class GthFont;
-class Material;
 
 namespace Dx8 {
 class DirectMusic;
@@ -110,7 +110,7 @@ class Resources final {
     static Tempest::Sound            loadSoundBuffer(const char*        name);
 
     static Dx8::PatternList          loadDxMusic(const char *name);
-    static const ProtoMesh*          decalMesh(const char* tex, float sX, float sY);
+    static const ProtoMesh*          decalMesh(const ZenLoad::zCVobData& vob);
 
     template<class V>
     static Tempest::VertexBuffer<V>  vbo(const V* data,size_t sz){ return inst->device.vbo(data,sz); }
@@ -143,6 +143,19 @@ class Resources final {
       bool           isMod=false;
       };
 
+    struct DecalK {
+      Material mat;
+      float    sX = 1;
+      float    sY = 1;
+      bool     decal2Sided = false;
+      bool     operator == (const DecalK& other) const {
+        return mat        ==other.mat &&
+               sX         ==other.sX &&
+               sY         ==other.sY &&
+               decal2Sided==other.decal2Sided;
+        }
+      };
+
     using TextureCache = std::unordered_map<std::string,std::unique_ptr<Tempest::Texture2d>>;
 
     int64_t               vdfTimestamp(const std::u16string& name);
@@ -151,7 +164,7 @@ class Resources final {
     Tempest::Texture2d*   implLoadTexture(TextureCache& cache, const char* cname);
     Tempest::Texture2d*   implLoadTexture(TextureCache& cache, std::string &&name, const std::vector<uint8_t> &data);
     ProtoMesh*            implLoadMesh(const std::string &name);
-    ProtoMesh*            implDecalMesh(const char* tex, float sX, float sY);
+    ProtoMesh*            implDecalMesh(const ZenLoad::zCVobData& vob);
     Skeleton*             implLoadSkeleton(std::string name);
     Animation*            implLoadAnimation(std::string name);
     Tempest::Sound        implLoadSoundBuffer(const char* name);
@@ -167,7 +180,6 @@ class Resources final {
     Tempest::Texture2d fallback, fbZero;
 
     using BindK  = std::tuple<const Skeleton*,const ProtoMesh*>;
-    using DecalK = std::tuple<const Tempest::Texture2d*,float,float>;
     using FontK  = std::pair<const std::string,FontType>;
 
     struct Hash {
@@ -175,7 +187,7 @@ class Resources final {
         return std::uintptr_t(std::get<0>(b));
         }
       size_t operator()(const DecalK& b) const {
-        return std::uintptr_t(std::get<0>(b));
+        return std::uintptr_t(b.mat.tex);
         }
       size_t operator()(const FontK& b) const {
         std::hash<std::string> h;

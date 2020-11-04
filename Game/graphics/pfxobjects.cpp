@@ -700,13 +700,13 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
         uint8_t a=255;
         } color;
 
-      if(visAlphaFunc==Material::ApphaFunc::AdditiveLight) {
+      if(visAlphaFunc==Material::AlphaFunc::AdditiveLight) {
         color.r = uint8_t(cl.x*clA);
         color.g = uint8_t(cl.y*clA);
         color.b = uint8_t(cl.z*clA);
         color.a = uint8_t(255);
         }
-      else if(visAlphaFunc==Material::ApphaFunc::Transparent) {
+      else if(visAlphaFunc==Material::AlphaFunc::Transparent) {
         color.r = uint8_t(cl.x);
         color.g = uint8_t(cl.y);
         color.b = uint8_t(cl.z);

@@ -8,7 +8,7 @@ using namespace Tempest;
 
 Material::Material(const ZenLoad::zCMaterialData& m, bool enableAlphaTest) {
   tex   = Resources::loadTexture(m.texture);
-  alpha = ApphaFunc(m.alphaFunc);
+  alpha = AlphaFunc(m.alphaFunc);
   loadFrames(m);
 
   if(m.alphaFunc==0) //Gothic1
@@ -43,8 +43,13 @@ Material::Material(const ZenLoad::zCMaterialData& m, bool enableAlphaTest) {
 Material::Material(const ZenLoad::zCVobData& vob) {
   tex          = Resources::loadTexture(vob.visual);
   frames       = Resources::loadTextureAnim(vob.visual);
+
   texAniFPSInv = 1000/std::max<size_t>(frames.size(),1);
-  alpha        = ApphaFunc::AdditiveLight;
+  alpha        = Material::AlphaFunc(vob.visualChunk.zCDecal.decalAlphaFunc);
+
+  if(vob.visualChunk.zCDecal.decalTexAniFPS>0)
+    texAniFPSInv = uint64_t(1000.f/vob.visualChunk.zCDecal.decalTexAniFPS); else
+    texAniFPSInv = 1;
   }
 
 Material::Material(const Daedalus::GEngineClasses::C_ParticleFX& src) {
@@ -111,7 +116,7 @@ bool Material::operator ==(const Material& other) const {
          texAniMapDirPeriod==other.texAniMapDirPeriod;
   }
 
-int Material::alphaOrder(Material::ApphaFunc a) {
+int Material::alphaOrder(AlphaFunc a) {
   if(a==Solid)
     return -3;
   if(a==AlphaTest)
