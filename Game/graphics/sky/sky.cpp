@@ -50,7 +50,8 @@ void Sky::setupUbo() {
     i.uboSky.set(4,*night.lay[1].texture);
 
     i.uboFog = device.uniforms(scene.storage.pFog.layout());
-    i.uboFog.set(0,*scene.gbufDepth);
+    i.uboFog.set(0,i.uboSkyGpu);
+    i.uboFog.set(1,*scene.gbufDepth,Sampler2d::nearest());
     }
   }
 
@@ -68,7 +69,7 @@ void Sky::calcUboParams() {
 
   Vec3 plPos = Vec3(0,0,0);
   uboCpu.mvpInv.project(plPos);
-  uboCpu.plPosY = plPos.y;
+  uboCpu.plPosY = plPos.y/100.f; //meters
   }
 
 void Sky::drawSky(Tempest::Encoder<CommandBuffer>& p, uint32_t fId) {
@@ -89,7 +90,7 @@ void Sky::drawFog(Tempest::Encoder<CommandBuffer>& p, uint32_t fId) {
 
   auto& pf = perFrame[fId];
   p.setUniforms(scene.storage.pFog, pf.uboFog);
-  p.setUniforms(scene.storage.pFog, &ubo, sizeof(ubo));
+  //p.setUniforms(scene.storage.pFog, &ubo, sizeof(ubo));
   p.draw(Resources::fsqVbo());
   }
 

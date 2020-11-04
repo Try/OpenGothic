@@ -138,7 +138,7 @@ RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   {
   RenderState state;
   state.setCullFaceMode (RenderState::CullMode::Front);
-  state.setBlendSource  (RenderState::BlendMode::src_alpha);
+  state.setBlendSource  (RenderState::BlendMode::one);
   state.setBlendDest    (RenderState::BlendMode::one_minus_src_alpha);
   state.setZTestMode    (RenderState::ZTestMode::Greater);
   state.setZWriteEnabled(false);

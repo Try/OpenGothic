@@ -83,13 +83,13 @@ add_shader(ani_water.frag       main.frag -DOBJ -DSKINING -DWATER)
 add_shader(light.vert           light.vert "")
 add_shader(light.frag           light.frag "")
 
-add_shader(fog.vert             fog.vert "")
-add_shader(fog.frag             fog.frag "")
-
+add_shader(fog.vert             sky.vert -DFOG)
+add_shader(fog.frag             sky.frag -DFOG)
 add_shader(sky_g2.vert          sky.vert -DG2)
 add_shader(sky_g2.frag          sky.frag -DG2)
 add_shader(sky_g1.vert          sky.vert -DG1)
 add_shader(sky_g1.frag          sky.frag -DG1)
+
 add_shader(shadow_compose.vert  shadow_compose.vert "")
 add_shader(shadow_compose.frag  shadow_compose.frag "")
 add_shader(copy.vert            copy.vert "")

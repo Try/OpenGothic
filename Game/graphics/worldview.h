@@ -78,5 +78,4 @@ class WorldView {
     void invalidateCmd();
 
     void updateLight();
-    void setupSunDir(float pulse,float ang);
   };

@@ -66,14 +66,6 @@ size_t WorldView::addLight(const ZenLoad::zCVobData& vob) {
   return sGlobal.lights.add(std::move(l));
   }
 
-void WorldView::setupSunDir(float pulse,float ang) {
-  float a  = 360-360*ang;
-  a = a*float(M_PI/180.0);
-
-  const float shadowLength = 0.56f; // shadow length of 1-meter tall object in Berlin at June 28
-  sGlobal.sun.setDir(-std::sin(a)*shadowLength, pulse, std::cos(a)*shadowLength);
-  }
-
 void WorldView::setModelView(const Matrix4x4& view, const Tempest::Matrix4x4* shadow, size_t shCount) {
   updateLight();
   sGlobal.setModelView(viewProj(view),shadow,shCount);
@@ -173,11 +165,13 @@ PfxObjects::Emitter WorldView::getView(const ZenLoad::zCVobData& vob) {
   }
 
 void WorldView::updateLight() {
-  const int64_t rise     = gtime(3,1).toInt();
-  const int64_t meridian = gtime(11,46).toInt();
-  const int64_t set      = gtime(20,32).toInt();
-  const int64_t midnight = gtime(1,0,0).toInt();
-  const int64_t now      = owner.time().timeInDay().toInt();
+  // https://www.suncalc.org/#/52.4561,13.4033,5/2020.06.28/13:09/1/3
+  const int64_t rise         = gtime( 4,45).toInt();
+  const int64_t meridian     = gtime(13, 9).toInt();
+  const int64_t set          = gtime(21,33).toInt();
+  const int64_t midnight     = gtime(1,0,0).toInt();
+  const int64_t now          = owner.time().timeInDay().toInt();
+  const float   shadowLength = 0.56f;
 
   float pulse = 0.f;
   if(rise<=now && now<meridian){
@@ -199,7 +193,10 @@ void WorldView::updateLight() {
   auto clr = Vec3(0.75f,0.75f,0.75f)*a;
   sGlobal.ambient  = Vec3(0.2f,0.2f,0.3f)*(1.f-a)+Vec3(0.25f,0.25f,0.25f)*a;
 
-  setupSunDir(pulse,std::fmod(k+0.25f,1.f));
+  float ax  = 360-360*std::fmod(k+0.25f,1.f);
+  ax = ax*float(M_PI/180.0);
+
+  sGlobal.sun.setDir(-std::sin(ax)*shadowLength, pulse, std::cos(ax)*shadowLength);
   sGlobal.sun.setColor(clr);
   visuals.setDayNight(std::min(std::max(pulse*3.f,0.f),1.f));
   }

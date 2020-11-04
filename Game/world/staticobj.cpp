@@ -23,7 +23,7 @@ StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool s
     pfx.setActive(true);
     pfx.setObjMatrix(transform());
     } else
-  if(FileExt::hasExt(vob.visual,"TGA")){
+  if(FileExt::hasExt(vob.visual,"TGA")) {
     if(vob.visualCamAlign==0) {
       auto mesh = world.getDecalView(vob);
       visual.setVisualBody(std::move(mesh),world);
