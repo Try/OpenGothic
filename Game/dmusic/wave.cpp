@@ -82,7 +82,7 @@ void Wave::implRead(Riff &input) {
     if(extra.size()<size_t(4+4*nCoefs))
       throw std::runtime_error("invalid MS ADPCM sound");
     coeffTable.reset(new int16_t[nCoefs*2]);
-    for(size_t i=0; i<2*nCoefs; i++) {
+    for(size_t i=0; i<2u*nCoefs; i++) {
       f.read(&coeffTable[i],2);
       if(i<14)
         errct += (coeffTable[i] != msAdpcmIcoef[i/2][i%2]);
