@@ -21,7 +21,6 @@ Sky::Sky(const SceneGlobals& scene)
   }
 
 void Sky::setWorld(const World &world) {
-  auto& device = scene.storage.device;
   auto& wname  = world.name();
   auto  dot    = wname.rfind('.');
   auto  name   = dot==std::string::npos ? wname : wname.substr(0,dot);
@@ -35,26 +34,31 @@ void Sky::setWorld(const World &world) {
     //skymesh = world.getStaticView("SKYDOME_COLORLAYER.MRM");
     }
 
-  for(auto& i:perFrame){
-    i.ubo    = device.uniforms(scene.storage.pSky.layout());
-    i.uboGpu = device.ubo<UboGlobal>(nullptr,1);
+  setupUbo();
+  }
 
-    i.ubo.set(0,i.uboGpu);
-    i.ubo.set(1,*day.lay[0].texture);
-    i.ubo.set(2,*day.lay[1].texture);
-    i.ubo.set(3,*night.lay[0].texture);
-    i.ubo.set(4,*night.lay[1].texture);
+void Sky::setupUbo() {
+  auto& device = scene.storage.device;
+  for(auto& i:perFrame){
+    i.uboSky    = device.uniforms(scene.storage.pSky.layout());
+    i.uboSkyGpu = device.ubo<UboSky>(nullptr,1);
+
+    i.uboSky.set(0,i.uboSkyGpu);
+    i.uboSky.set(1,*day.lay[0].texture);
+    i.uboSky.set(2,*day.lay[1].texture);
+    i.uboSky.set(3,*night.lay[0].texture);
+    i.uboSky.set(4,*night.lay[1].texture);
+
+    i.uboFog = device.uniforms(scene.storage.pFog.layout());
+    i.uboFog.set(0,*scene.gbufDepth);
     }
   }
 
 void Sky::calcUboParams() {
-  uboCpu.mvp = scene.viewProject();
-  uboCpu.mvp.inverse();
+  uboCpu.mvpInv = scene.viewProject();
+  uboCpu.mvpInv.inverse();
 
-  auto l = scene.sun.dir();
-  uboCpu.sky[0] = -l.z;
-  uboCpu.sky[1] = -l.y;
-  uboCpu.sky[2] =  l.x;
+  uboCpu.sky = scene.sun.dir();
 
   auto ticks = scene.tickCount;
   auto t0 = float(ticks%90000 )/90000.f;
@@ -62,19 +66,30 @@ void Sky::calcUboParams() {
   uboCpu.dxy0[0] = t0;
   uboCpu.dxy1[0] = t1;
 
-  uboCpu.color[0]=Sky::color[0];
-  uboCpu.color[1]=Sky::color[1];
-  uboCpu.color[2]=Sky::color[2];
-  uboCpu.color[3]=1.f;
+  Vec3 plPos = Vec3(0,0,0);
+  uboCpu.mvpInv.project(plPos);
+  uboCpu.plPosY = plPos.y;
   }
 
-void Sky::draw(Tempest::Encoder<CommandBuffer>& p, uint32_t fId) {
+void Sky::drawSky(Tempest::Encoder<CommandBuffer>& p, uint32_t fId) {
   calcUboParams();
 
   auto& pf = perFrame[fId];
-  pf.uboGpu.update(&uboCpu,0,1);
+  pf.uboSkyGpu.update(&uboCpu,0,1);
 
-  p.setUniforms(scene.storage.pSky, pf.ubo);
+  p.setUniforms(scene.storage.pSky, pf.uboSky);
+  p.draw(Resources::fsqVbo());
+  }
+
+void Sky::drawFog(Tempest::Encoder<CommandBuffer>& p, uint32_t fId) {
+  UboFog ubo;
+  ubo.mvp    = scene.viewProject();
+  ubo.mvpInv = scene.viewProject();
+  ubo.mvpInv.inverse();
+
+  auto& pf = perFrame[fId];
+  p.setUniforms(scene.storage.pFog, pf.uboFog);
+  p.setUniforms(scene.storage.pFog, &ubo, sizeof(ubo));
   p.draw(Resources::fsqVbo());
   }
 

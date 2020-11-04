@@ -44,7 +44,7 @@ void SceneGlobals::commitUbo(uint8_t fId) {
   auto  d = sun.dir();
   auto& c = sun.color();
 
-  uboGlobal.lightDir = {-d.x,-d.y,-d.z};
+  uboGlobal.lightDir = {d.x,d.y,d.z};
   uboGlobal.lightCl  = {c.x,c.y,c.z,0.f};
   uboGlobal.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
 

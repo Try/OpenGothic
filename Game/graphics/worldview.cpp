@@ -70,7 +70,8 @@ void WorldView::setupSunDir(float pulse,float ang) {
   float a  = 360-360*ang;
   a = a*float(M_PI/180.0);
 
-  sGlobal.sun.setDir(std::cos(a),std::min(0.9f,-1.0f*pulse),std::sin(a));
+  const float shadowLength = 0.56f; // shadow length of 1-meter tall object in Berlin at June 28
+  sGlobal.sun.setDir(-std::sin(a)*shadowLength, pulse, std::cos(a)*shadowLength);
   }
 
 void WorldView::setModelView(const Matrix4x4& view, const Tempest::Matrix4x4* shadow, size_t shCount) {

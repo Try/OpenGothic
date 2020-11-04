@@ -20,7 +20,7 @@ class VisualObjects final {
     void setupUbo();
     void preFrameUpdate(uint8_t fId);
     void draw          (Tempest::Encoder<Tempest::CommandBuffer>& enc, Painter3d& painter, uint8_t fId);
-    void drawGBuffer   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t fId);
+    void drawGBuffer   (Tempest::Encoder<Tempest::CommandBuffer>& enc, Painter3d& painter, uint8_t fId);
     void drawShadow    (Tempest::Encoder<Tempest::CommandBuffer>& enc, Painter3d& painter, uint8_t fId, int layer=0);
 
     void setWorld   (const World& world);

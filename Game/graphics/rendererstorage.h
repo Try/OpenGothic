@@ -25,6 +25,7 @@ class RendererStorage {
     Tempest::RenderPipeline pAnimSh,   pAnimAtSh;
 
     Tempest::RenderPipeline pSky;
+    Tempest::RenderPipeline pFog;
     Tempest::RenderPipeline pLights;
     Tempest::RenderPipeline pComposeShadow;
     Tempest::RenderPipeline pCopy;

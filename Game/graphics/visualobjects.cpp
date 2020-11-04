@@ -79,6 +79,7 @@ ObjectsBucket::Item VisualObjects::get(const Tempest::VertexBuffer<Resources::Ve
 void VisualObjects::setupUbo() {
   for(auto& c:buckets)
     c.setupUbo();
+  sky.setupUbo();
   }
 
 void VisualObjects::preFrameUpdate(uint8_t fId) {
@@ -88,25 +89,14 @@ void VisualObjects::preFrameUpdate(uint8_t fId) {
 
 void VisualObjects::draw(Tempest::Encoder<Tempest::CommandBuffer>& enc, Painter3d& /*painter*/, uint8_t fId) {
   mkIndex();
-
-  // Workers::parallelFor(index,[&painter](ObjectsBucket* c){
-  //   c->visibilityPass(painter);
-  //   });
-
   commitUbo(fId);
-/*
-  for(size_t i=0;i<lastSolidBucket;++i) {
-    auto c = index[i];
-    c->draw(enc,fId);
-    }*/
-  sky.draw(enc,fId);
+
+  sky.drawSky(enc,fId);
   for(size_t i=lastSolidBucket;i<index.size();++i) {
     auto c = index[i];
     c->draw(enc,fId);
     }
-
-  //for(auto c:index)
-  //  c->drawLight(enc,fId);
+  sky.drawFog(enc,fId);
   }
 
 void VisualObjects::drawGBuffer(Tempest::Encoder<CommandBuffer>& enc, Painter3d& painter, uint8_t fId) {

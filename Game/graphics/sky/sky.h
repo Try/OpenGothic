@@ -16,9 +16,12 @@ class Sky final {
 
     Sky(const SceneGlobals& scene);
 
+    void setupUbo();
     void setWorld   (const World& world);
     void setDayNight(float dayF);
-    void draw       (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
+
+    void drawSky    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
+    void drawFog    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
 
   private:
     struct Layer final {
@@ -29,18 +32,24 @@ class Sky final {
       Layer lay[2];
       };
 
-    struct UboGlobal {
+    struct UboSky {
+      Tempest::Matrix4x4 mvpInv;
+      float              dxy0[2]  = {};
+      float              dxy1[2]  = {};
+      Tempest::Vec3      sky      = {};
+      float              night    = 1.0;
+      float              plPosY   = 0.0;
+      };
+
+    struct UboFog {
       Tempest::Matrix4x4 mvp;
-      float              color[4]={};
-      float              dxy0[2]={};
-      float              dxy1[2]={};
-      float              sky [3]={};
-      float              night  =1.0;
+      Tempest::Matrix4x4 mvpInv;
       };
 
     struct PerFrame {
-      Tempest::UniformBuffer<UboGlobal> uboGpu;
-      Tempest::Uniforms                 ubo;
+      Tempest::UniformBuffer<UboSky> uboSkyGpu;
+      Tempest::Uniforms              uboSky;
+      Tempest::Uniforms              uboFog;
       };
 
     void                          calcUboParams();
@@ -49,7 +58,7 @@ class Sky final {
     const Tempest::Texture2d*     implSkyTexture(const char* name, bool day, size_t id);
 
     const SceneGlobals&           scene;
-    UboGlobal                     uboCpu;
+    UboSky                        uboCpu;
     PerFrame                      perFrame[Resources::MaxFramesInFlight];
     Tempest::VertexBuffer<Vertex> vbo;
 

@@ -205,6 +205,11 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
     case ZenLoad::zCVobData::VT_zCVobLight: {
       return std::unique_ptr<Vob>(new WorldLight(parent,world,std::move(vob),startup));
       }
+    case ZenLoad::zCVobData::VT_zCZoneZFog:
+    case ZenLoad::zCVobData::VT_zCZoneZFogDefault: {
+      // TODO
+      return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));
+      }
     }
 
   if(vob.objectClass=="zCVobAnimate:zCVob") { // ork flags
@@ -213,9 +218,7 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
     }
   else if(vob.objectClass=="zCVobLensFlare:zCVob" ||
           vob.objectClass=="zCZoneVobFarPlane:zCVob" ||
-          vob.objectClass=="zCZoneVobFarPlaneDefault:zCZoneVobFarPlane:zCVob" ||
-          vob.objectClass=="zCZoneZFog:zCVob" ||
-          vob.objectClass=="zCZoneZFogDefault:zCZoneZFog:zCVob") {
+          vob.objectClass=="zCZoneVobFarPlaneDefault:zCZoneVobFarPlane:zCVob") {
     // WONT-IMPLEMENT
     }
   else {

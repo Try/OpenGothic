@@ -138,7 +138,7 @@ Matrix4x4 Camera::viewShadow(const Vec3& ldir, int layer) const {
   const float c = std::cos(state.spin.x*float(M_PI)/180.f), s = std::sin(state.spin.x*float(M_PI)/180.f);
 
   Matrix4x4 view;
-  if(ldir.y>=0.f)
+  if(ldir.y<=0.f)
     return view;
 
   view.identity();
@@ -165,8 +165,8 @@ Matrix4x4 Camera::viewShadow(const Vec3& ldir, int layer) const {
   float lz  = view.at(1,2);
   float k   = ldir.y!=0.f ? lz/ldir.y : 0.f;
 
-  lx = -ldir.z*k;
-  ly = -ldir.x*k;
+  lx = -ldir.x*k;
+  ly =  ldir.z*k;
 
   lz =  ldir.y*k;
 

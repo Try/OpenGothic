@@ -135,6 +135,21 @@ RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   pLights      = device.pipeline<Resources::VertexL>(Triangles, state, vsLight, fsLight);
   }
 
+  {
+  RenderState state;
+  state.setCullFaceMode (RenderState::CullMode::Front);
+  state.setBlendSource  (RenderState::BlendMode::src_alpha);
+  state.setBlendDest    (RenderState::BlendMode::one_minus_src_alpha);
+  state.setZTestMode    (RenderState::ZTestMode::Greater);
+  state.setZWriteEnabled(false);
+
+  auto sh      = GothicShader::get("fog.vert.sprv");
+  auto vsFog   = device.shader(sh.data,sh.len);
+  sh           = GothicShader::get("fog.frag.sprv");
+  auto fsFog   = device.shader(sh.data,sh.len);
+  pFog         = device.pipeline<Resources::VertexFsq>(Triangles, state, vsFog, fsFog);
+  }
+
   if(gothic.version().game==1) {
     auto sh    = GothicShader::get("sky_g1.vert.sprv");
     auto vsSky = device.shader(sh.data,sh.len);
@@ -142,9 +157,9 @@ RendererStorage::RendererStorage(Device& device, Gothic& gothic)
     auto fsSky = device.shader(sh.data,sh.len);
     pSky       = device.pipeline<Resources::VertexFsq>(Triangles, stateFsq, vsSky,  fsSky);
     } else {
-    auto sh    = GothicShader::get("sky.vert.sprv");
+    auto sh    = GothicShader::get("sky_g2.vert.sprv");
     auto vsSky = device.shader(sh.data,sh.len);
-    sh         = GothicShader::get("sky.frag.sprv");
+    sh         = GothicShader::get("sky_g2.frag.sprv");
     auto fsSky = device.shader(sh.data,sh.len);
     pSky       = device.pipeline<Resources::VertexFsq>(Triangles, stateFsq, vsSky,  fsSky);
     }
