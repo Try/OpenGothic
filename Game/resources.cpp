@@ -299,9 +299,10 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
 
 ProtoMesh* Resources::implDecalMesh(const ZenLoad::zCVobData& vob) {
   DecalK key;
-  key.mat = Material(vob);
-  key.sX  = vob.visualChunk.zCDecal.decalDim.x;
-  key.sY  = vob.visualChunk.zCDecal.decalDim.y;
+  key.mat         = Material(vob);
+  key.sX          = vob.visualChunk.zCDecal.decalDim.x;
+  key.sY          = vob.visualChunk.zCDecal.decalDim.y;
+  key.decal2Sided = vob.visualChunk.zCDecal.decal2Sided;
 
   if(key.mat.tex==nullptr)
     return nullptr;
