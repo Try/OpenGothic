@@ -1516,15 +1516,10 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
     fghAlgo.onTakeHit();
     implFaiWait(0);
 
-    uint32_t g = guild();
-    if(g==GIL_SKELETON || g==GIL_SKELETON_MAGE || g==GIL_SUMMONED_SKELETON) {
-      lastHitType='A';
-      } else {
-      float da = rotationRad()-lastHit->rotationRad();
-      if(std::cos(da)>=0)
-        lastHitType='A'; else
-        lastHitType='B';
-      }
+    float da = rotationRad()-lastHit->rotationRad();
+    if(std::cos(da)>=0)
+      lastHitType='A'; else
+      lastHitType='B';
 
     if(!isPlayer())
       setOther(lastHit);
