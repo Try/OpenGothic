@@ -45,7 +45,7 @@ Common Gothic installation paths:
     * Sneak - Done
     * Jump - Done
     * Jump(pull-up) - Not Implemented
-    * Swimming - Partial
+    * Swimming - Done
     * Physic - mostly Done, with Bullet collision. Need small tweaks/tuning
 * Loot
     * Pick an object - Partial(no animation)
