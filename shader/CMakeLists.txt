@@ -25,7 +25,6 @@ function(add_shader OUTPUT SOURCE)
   list(SUBLIST ARGV 2 -1 VARS)
   add_custom_command(
     OUTPUT     ${OUTPUT_FILE}
-    BYPRODUCTS ${OUTPUT_FILE}
     DEPENDS    ${SOURCE_FILE}
     COMMAND    ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/sprv/"
     COMMAND    ${GLSLANGVALIDATOR} -V ${VARS} "${SOURCE_FILE}" -o ${OUTPUT_FILE}
@@ -97,7 +96,6 @@ add_shader(copy.frag            copy.frag "")
 
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}
-  BYPRODUCTS ${HEADER} ${CPP}
   DEPENDS    ${OPENGOTHIC_SHADERS_SPRV}
   COMMAND    ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/sprv/"
   COMMAND    ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/shader/link_shaders.cmake"
