@@ -799,7 +799,8 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
         break;
         }
       case ZenLoad::DEF_EXCHANGE_ITEM: {
-        invent.clearSlot(*this,i.slot[0],true);
+        if(!invent.clearSlot(*this,i.slot[0],true))
+          invent.clearSlot(*this,nullptr,true); // fallback for cooking animations
         if(auto it = invent.addItem(i.item,1,world())) {
           invent.putToSlot(*this,it->clsId(),i.slot[0]);
           }

@@ -623,7 +623,8 @@ void Inventory::putToSlot(Npc& owner, size_t cls, const char *slot) {
   owner.setSlotItem(std::move(vitm),slot);
   }
 
-void Inventory::clearSlot(Npc& owner,const char *slot,bool remove) {
+bool Inventory::clearSlot(Npc& owner,const char *slot,bool remove) {
+  uint32_t count = 0;
   const bool all = (slot==nullptr || slot[0]=='\0');
   for(size_t i=0;i<mdlSlots.size();)
     if(all || mdlSlots[i].slot==slot) {
@@ -633,11 +634,16 @@ void Inventory::clearSlot(Npc& owner,const char *slot,bool remove) {
       mdlSlots.pop_back();
       if(remove)
         delItem(last,1,owner);
+      ++count;
       } else {
       ++i;
       }
-  if(all || slot==nullptr || stateSlot.slot==slot)
+  if(all || slot==nullptr || stateSlot.slot==slot) {
+    if(stateSlot.item!=nullptr)
+      ++count;
     implPutState(owner,0,stateSlot.slot.c_str());
+    }
+  return count>0;
   }
 
 void Inventory::putAmmunition(Npc& owner, size_t cls, const char* slot) {
