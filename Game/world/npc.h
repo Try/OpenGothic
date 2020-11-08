@@ -398,7 +398,7 @@ class Npc final {
     void      aiTurnToNpc(Npc *other);
     void      aiGoToNpc  (Npc *other);
     void      aiGoToNextFp(const Daedalus::ZString& fp);
-    void      aiStartState(ScriptFn stateFn, int behavior, Npc *other, const Daedalus::ZString& wp);
+    void      aiStartState(ScriptFn stateFn, int behavior, Npc *other, Npc* victum, const Daedalus::ZString& wp);
     void      aiPlayAnim(const Daedalus::ZString& ani);
     void      aiPlayAnimBs(const Daedalus::ZString& ani, BodyState bs);
     void      aiWait(uint64_t dt);
@@ -454,6 +454,7 @@ class Npc final {
     int32_t   lastHitSpellId() const { return lastHitSpell; }
 
     void      setOther(Npc* ot);
+    void      setVictum(Npc* ot);
 
     bool      haveOutput() const;
     void      setAiOutputBarrier(uint64_t dt);
@@ -529,6 +530,7 @@ class Npc final {
     struct AiAction final {
       Action            act   =AI_None;
       Npc*              target=nullptr;
+      Npc*              victum=nullptr;
       const WayPoint*   point =nullptr;
       ScriptFn          func  =0;
       int               i0    =0;
@@ -672,6 +674,8 @@ class Npc final {
 
     Interactive*                   currentInteract=nullptr;
     Npc*                           currentOther   =nullptr;
+    Npc*                           currentVictum  =nullptr;
+
     Npc*                           currentLookAt  =nullptr;
     Npc*                           currentTarget  =nullptr;
     Npc*                           nearestEnemy   =nullptr;

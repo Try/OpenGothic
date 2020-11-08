@@ -2586,15 +2586,22 @@ void GameScript::ai_startstate(Daedalus::DaedalusVM &vm) {
   auto  state = vm.popInt();
   auto  func  = vm.popInt();
   auto  self  = popInstance(vm);
-  Daedalus::PARSymbol& s = vm.globalOther();
+  Daedalus::PARSymbol& sOth = vm.globalOther();
+  Daedalus::PARSymbol& sVic = vm.globalVictim();
   if(self!=nullptr && func>0){
     Npc* oth = nullptr;
-    if(s.instance.instanceOf(Daedalus::IC_Npc)){
-      auto npc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(s.instance.get());
+    Npc* vic = nullptr;
+    if(sOth.instance.instanceOf(Daedalus::IC_Npc)){
+      auto npc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(sOth.instance.get());
       if(npc)
         oth = reinterpret_cast<Npc*>(npc->userPtr);
       }
-    self->aiStartState(uint32_t(func),state,oth,wp);
+    if(sVic.instance.instanceOf(Daedalus::IC_Npc)){
+      auto npc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(sVic.instance.get());
+      if(npc)
+        vic = reinterpret_cast<Npc*>(npc->userPtr);
+      }
+    self->aiStartState(uint32_t(func),state,oth,vic,wp);
     }
   }
 

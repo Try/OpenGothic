@@ -101,7 +101,9 @@ void Npc::save(Serialize &fout) {
     fout.write(uint32_t(-1));
   saveAiState(fout);
 
-  fout.write(currentOther,currentLookAt,currentTarget,nearestEnemy);
+  fout.write(currentOther);
+  fout.write(currentVictum);
+  fout.write(currentLookAt,currentTarget,nearestEnemy);
 
   go2.save(fout);
   fout.write(currentFp,currentFpLock);
@@ -143,7 +145,10 @@ void Npc::load(Serialize &fin) {
     }
   loadAiState(fin);
 
-  fin.read(currentOther,currentLookAt,currentTarget,nearestEnemy);
+  fin.read(currentOther);
+  if(fin.version()>=20)
+    fin.read(currentVictum);
+  fin.read(currentLookAt,currentTarget,nearestEnemy);
 
   go2.load(fin);
   fin.read(currentFp,currentFpLock);
@@ -212,6 +217,7 @@ void Npc::saveAiState(Serialize& fout) const {
   fout.write(uint32_t(aiActions.size()));
   for(auto& i:aiActions){
     fout.write(uint32_t(i.act));
+    fout.write(i.target,i.victum);
     fout.write(i.point,i.func,i.i0,i.i1,i.s0);
     }
 
@@ -234,6 +240,8 @@ void Npc::loadAiState(Serialize& fin) {
   aiActions.resize(size);
   for(auto& i:aiActions){
     fin.read(reinterpret_cast<uint32_t&>(i.act));
+    if(fin.version()>=20)
+      fin.read(i.target,i.victum);
     fin.read(i.point,i.func,i.i0);
     if(fin.version()>=4)
       fin.read(i.i1);
@@ -1760,8 +1768,10 @@ void Npc::nextAiAction(uint64_t dt) {
         }
       break;
     case AI_StartState:
-      if(startState(act.func,act.s0,aiState.eTime,act.i0==0))
+      if(startState(act.func,act.s0,aiState.eTime,act.i0==0)) {
         setOther(act.target);
+        setVictum(act.victum);
+        }
       break;
     case AI_PlayAnim:{
       if(auto sq = playAnimByName(act.s0,false,BS_NONE)) {
@@ -1949,7 +1959,7 @@ void Npc::nextAiAction(uint64_t dt) {
       const int32_t r = act.i0*act.i0;
       owner.detectNpc(position(),float(hnpc.senses_range),[&act,this,r](Npc& other){
         if(&other!=this && qDistTo(other)<float(r))
-          other.aiStartState(act.func,1,other.currentOther,other.hnpc.wp.c_str());
+          other.aiStartState(act.func,1,other.currentOther,other.currentVictum,other.hnpc.wp.c_str());
         });
       break;
       }
@@ -2007,7 +2017,7 @@ bool Npc::startState(ScriptFn id, const Daedalus::ZString& wp, gtime endTime, bo
 void Npc::clearState(bool noFinalize) {
   if(aiState.funcIni.isValid() && aiState.started) {
     if(!noFinalize)
-      owner.script().invokeState(this,currentOther,nullptr,aiState.funcEnd);  // cleanup
+      owner.script().invokeState(this,currentOther,currentVictum,aiState.funcEnd);  // cleanup
     aiPrevState = aiState.funcIni;
     invent.putState(*this,0,0);
     visual.stopItemStateAnim(*this);
@@ -2042,7 +2052,7 @@ void Npc::tickRoutine() {
       aiState.loopNextTime+=1000; // one tick per second?
       int loop = 0;
       if(aiState.funcLoop.isValid()) {
-        loop = owner.script().invokeState(this,currentOther,nullptr,aiState.funcLoop);
+        loop = owner.script().invokeState(this,currentOther,currentVictum,aiState.funcLoop);
         } else {
         // ZS_DEATH   have no looping, in G1, G2 classic
         // ZS_GETMEAT have no looping, at all
@@ -2056,12 +2066,13 @@ void Npc::tickRoutine() {
         }
       if(loop!=0) {
         clearState(false);
-        currentOther = nullptr;
+        currentOther  = nullptr;
+        currentVictum = nullptr;
         }
       }
     } else {
     aiState.started=true;
-    owner.script().invokeState(this,currentOther,nullptr,aiState.funcIni);
+    owner.script().invokeState(this,currentOther,currentVictum,aiState.funcIni);
     }
   }
 
@@ -2088,6 +2099,10 @@ void Npc::setOther(Npc *ot) {
   if(isTalk() && ot && !ot->isPlayer())
     Log::e("unxepected perc acton");
   currentOther = ot;
+  }
+
+void Npc::setVictum(Npc* ot) {
+  currentVictum = ot;
   }
 
 bool Npc::haveOutput() const {
@@ -2839,7 +2854,7 @@ void Npc::addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint *point)
 
 void Npc::excRoutine(size_t callback) {
   routines.clear();
-  owner.script().invokeState(this,currentOther,nullptr,callback);
+  owner.script().invokeState(this,currentOther,currentVictum,callback);
   aiState.eTime = gtime();
   }
 
@@ -2971,7 +2986,7 @@ void Npc::aiGoToNextFp(const Daedalus::ZString& fp) {
   aiActions.push_back(a);
   }
 
-void Npc::aiStartState(ScriptFn stateFn, int behavior, Npc* other, const Daedalus::ZString& wp) {
+void Npc::aiStartState(ScriptFn stateFn, int behavior, Npc* other, Npc* victum, const Daedalus::ZString& wp) {
   auto& st = owner.script().getAiState(stateFn);(void)st;
 
   AiAction a;
@@ -2980,6 +2995,7 @@ void Npc::aiStartState(ScriptFn stateFn, int behavior, Npc* other, const Daedalu
   a.i0     = behavior;
   a.s0     = wp;
   a.target = other;
+  a.victum = victum;
   aiActions.push_back(a);
   }
 
