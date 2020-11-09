@@ -153,6 +153,23 @@ bool Pose::stopAnim(const char *name) {
   return done;
   }
 
+bool Pose::stopWalkAnim() {
+  bool done=false;
+  size_t ret=0;
+  for(size_t i=0;i<lay.size();++i) {
+    if(lay[i].bs!=BS_RUN && lay[i].bs!=BS_SPRINT && lay[i].bs!=BS_SNEAK && lay[i].bs!=BS_WALK) {
+      if(ret!=i)
+        lay[ret] = lay[i];
+      ret++;
+      } else {
+      onRemoveLayer(lay[i]);
+      done=true;
+      }
+    }
+  lay.resize(ret);
+  return done;
+  }
+
 void Pose::interrupt() {
   size_t ret=0;
   for(size_t i=0;i<lay.size();++i) {

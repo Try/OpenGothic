@@ -407,11 +407,9 @@ bool MdlVisual::stopItemStateAnim(Npc& npc) {
   }
 
 void MdlVisual::stopWalkAnim(Npc &npc) {
-  auto state = pose().bodyState();
-  if(state!=BS_STAND && state!=BS_MOBINTERACT) {
-    skInst->stopAnim(nullptr);
+  skInst->stopWalkAnim();
+  if(!skInst->hasAnim())
     startAnimAndGet(npc,AnimationSolver::Idle,0,fgtMode,npc.walkMode(),false);
-    }
   }
 
 bool MdlVisual::isStanding() const {

@@ -38,6 +38,7 @@ class Pose final {
                                  int comb, BodyState bs,
                                  StartHint hint, uint64_t tickCount);
     bool               stopAnim(const char* name);
+    bool               stopWalkAnim();
     void               interrupt();
     void               stopAllAnim();
     bool               update(uint64_t tickCount);
