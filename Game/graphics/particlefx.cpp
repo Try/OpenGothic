@@ -32,8 +32,8 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
   ppsIsLooping        = src.ppsIsLooping!=0;
   ppsIsSmooth         = src.ppsIsSmooth!=0;
   ppsFPS              = src.ppsFPS;
-  ppsCreateEm_S       = src.ppsCreateEm_S.c_str();
-  ppsCreateEmDelay    = src.ppsCreateEmDelay;
+  // ppsCreateEm = ; // assign externaly
+  ppsCreateEmDelay    = uint64_t(src.ppsCreateEmDelay);
 
   shpType             = loadEmitType(src.shpType_S);
   shpFOR              = loadFrameType(src.shpFOR_S);
@@ -93,6 +93,8 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
 
   timeStartEnd_S      = src.timeStartEnd_S.c_str();
   m_bIsAmbientPFX     = src.m_bIsAmbientPFX!=0;
+
+  //auto pfx = world.loadParticleFx(b.owner->ppsCreateEm_S.c_str());
   }
 
 uint64_t ParticleFx::maxLifetime() const {

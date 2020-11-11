@@ -2154,14 +2154,9 @@ void Npc::emitSoundGround(const char* sound, float range, bool freeSlot) {
 void Npc::playEffect(Npc& /*to*/, const VisualFx& vfx) {
   emitSoundEffect(vfx.handle().sfxID.c_str(),25,true);
 
-  const ParticleFx* pfx      = owner.script().getParticleFx(vfx.handle().visName_S.c_str());
-  if(pfx!=nullptr) {
-    auto              vemitter = owner.getView(pfx);
-    uint64_t          time     = owner.tickCount()+pfx->effectPrefferedTime();
-
-    vemitter.setActive(true);
-    visual.startParticleEffect(std::move(vemitter),-1,vfx.handle().emTrjOriginNode.c_str(),time);
-    }
+  auto     vemitter = vfx.visual(owner);
+  uint64_t time     = owner.tickCount()+vemitter.effectPrefferedTime();
+  visual.startParticleEffect(std::move(vemitter), -1, vfx.handle().emTrjOriginNode.c_str(), time);
   }
 
 void Npc::commitSpell() {

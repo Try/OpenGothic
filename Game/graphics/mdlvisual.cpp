@@ -242,15 +242,11 @@ void MdlVisual::startParticleEffect(World& owner, const VisualFx& src, SpellFxKe
   const VisualFx*   vfx = owner.script().getVisualFx(k.emCreateFXID.c_str());
   if(vfx==nullptr)
     return;
-  //vfx->handle().sfxID;
-  const ParticleFx* pfx = owner.script().getParticleFx(vfx->handle().visName_S.c_str());
-  if(pfx==nullptr)
-    return;
 
-  auto vemitter = owner.getView(pfx);
-  startParticleEffect(std::move(vemitter),-1,
-                      vfx->handle().emTrjOriginNode.c_str(),
-                      owner.tickCount()+pfx->effectPrefferedTime());
+  auto     vemitter = vfx->visual(owner);
+  uint64_t time     = owner.tickCount()+vemitter.effectPrefferedTime();
+
+  startParticleEffect(std::move(vemitter), -1, vfx->handle().emTrjOriginNode.c_str(), time);
   }
 
 void MdlVisual::startParticleEffect(PfxObjects::Emitter&& pfx, int32_t slot, const char* bone, uint64_t timeUntil) {
@@ -261,6 +257,7 @@ void MdlVisual::startParticleEffect(PfxObjects::Emitter&& pfx, int32_t slot, con
   if(id==size_t(-1))
     return;
 
+  pfx.setActive(true);
   for(auto& i:effects) {
     if(i.id==slot) {
       i.bone      = skeleton->nodes[id].name.c_str();

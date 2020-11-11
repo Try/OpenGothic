@@ -13,10 +13,10 @@ Bullet::Bullet(World& owner,const Item& itm,float x,float y,float z)
   if(itm.isSpellOrRune()) {
     material = ZenLoad::NUM_MAT_GROUPS;
     int32_t id = itm.spellId();
-    const VisualFx*   vfx = owner.script().getSpellVFx(id);
-    const ParticleFx* pfx = owner.script().getSpellFx (vfx);
+    const VisualFx* vfx     = owner.script().getSpellVFx(id);
+    auto            emitter = owner.script().getSpellFx (vfx);
 
-    setView(owner.getView(pfx));
+    setView(std::move(emitter));
     if(vfx!=nullptr)
       owner.emitSoundEffect(vfx->handle().sfxID.c_str(),x,y,z,0,true);
     } else {

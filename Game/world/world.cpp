@@ -206,7 +206,7 @@ const VisualFx *World::loadVisualFx(const char *name) {
   return game.loadVisualFx(name);
   }
 
-const ParticleFx* World::loadParticleFx(const char *name) {
+const ParticleFx* World::loadParticleFx(const char *name) const {
   return game.loadParticleFx(name);
   }
 

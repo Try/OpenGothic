@@ -4,6 +4,7 @@
 #include <Tempest/Point>
 
 #include "game/constants.h"
+#include "pfxobjects.h"
 
 class World;
 
@@ -13,6 +14,7 @@ class VisualFx final {
 
     const Daedalus::GEngineClasses::CFx_Base&            handle() const { return fx; }
 
+    PfxObjects::Emitter                                  visual(World& owner) const;
     const Daedalus::GEngineClasses::C_ParticleFXEmitKey& key(SpellFxKey type) const;
     Daedalus::GEngineClasses::C_ParticleFXEmitKey&       key(SpellFxKey type);
 

@@ -53,7 +53,7 @@ RendererStorage::RendererStorage(Device& device, Gothic& gothic)
 
   RenderState stateAlpha;
   stateAlpha.setCullFaceMode(RenderState::CullMode::Front);
-  stateAlpha.setBlendSource (RenderState::BlendMode::src_alpha);
+  stateAlpha.setBlendSource (RenderState::BlendMode::src_alpha); // premultiply in shader
   stateAlpha.setBlendDest   (RenderState::BlendMode::one_minus_src_alpha);
   stateAlpha.setZTestMode   (RenderState::ZTestMode::Less);
   stateAlpha.setZWriteEnabled(false);

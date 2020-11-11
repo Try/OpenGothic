@@ -57,8 +57,8 @@ class ParticleFx final {
     bool          ppsIsLooping        = false;
     bool          ppsIsSmooth         = false;
     float         ppsFPS              = 0;
-    std::string   ppsCreateEm_S;
-    float         ppsCreateEmDelay    = 0;
+    const ParticleFx* ppsCreateEm    = nullptr;
+    uint64_t      ppsCreateEmDelay    = 0;
 
     EmitterType   shpType             = EmitterType::Point;
     Frame         shpFOR              = Frame::Object;

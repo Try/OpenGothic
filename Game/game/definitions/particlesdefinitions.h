@@ -21,5 +21,6 @@ class ParticlesDefinitions final {
     std::unique_ptr<Daedalus::DaedalusVM>                       vm;
     std::unordered_map<std::string,std::unique_ptr<ParticleFx>> pfx;
 
+    const ParticleFx* implGet(const char* name);
     bool implGet(const char* name, Daedalus::GEngineClasses::C_ParticleFX &ret);
   };

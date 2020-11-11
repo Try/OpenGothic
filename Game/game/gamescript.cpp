@@ -678,10 +678,10 @@ const VisualFx* GameScript::getSpellVFx(int32_t splId) {
   return owner.loadVisualFx(name);
   }
 
-const ParticleFx* GameScript::getSpellFx(const VisualFx* vfx) {
+PfxObjects::Emitter GameScript::getSpellFx(const VisualFx* vfx) {
   if(vfx==nullptr)
-    return nullptr;
-  return getParticleFx(vfx->handle().visName_S.c_str());
+    return PfxObjects::Emitter();
+  return vfx->visual(*owner.world());
   }
 
 const VisualFx* GameScript::getVisualFx(const char* name) {

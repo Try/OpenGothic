@@ -40,6 +40,8 @@ class PfxObjects final {
         void   setActive(bool act);
         bool   isActive() const;
 
+        uint64_t effectPrefferedTime() const;
+
       private:
         Emitter(Bucket &b,size_t id);
 
@@ -80,8 +82,11 @@ class PfxObjects final {
       size_t        block        = size_t(-1);
       Tempest::Vec3 pos          = {};
       Tempest::Vec3 direction[3] = {};
-      bool          alive        = true;
-      bool          active       = true;
+      bool          alive        = false;
+      bool          active       = false;
+
+      uint64_t                 waitforNext = 0;
+      std::unique_ptr<Emitter> next;
       };
 
     struct ParState final {
@@ -151,7 +156,7 @@ class PfxObjects final {
 
     const SceneGlobals&           scene;
     VisualObjects&                visual;
-    std::mutex                    sync;
+    std::recursive_mutex          sync;
 
     std::vector<std::unique_ptr<Bucket>> bucket;
     std::vector<SpriteEmitter>           spriteEmit;

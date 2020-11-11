@@ -22,15 +22,23 @@ const ParticleFx* ParticlesDefinitions::get(const char *n) {
     name.resize(name.size()-4);
 
   std::lock_guard<std::mutex> guard(sync);
+  return implGet(n);
+  }
+
+const ParticleFx* ParticlesDefinitions::implGet(const char* name) {
   auto it = pfx.find(name);
   if(it!=pfx.end())
     return it->second.get();
   Daedalus::GEngineClasses::C_ParticleFX decl={};
-  if(!implGet(name.c_str(),decl))
+  if(!implGet(name,decl))
     return nullptr;
-  std::unique_ptr<ParticleFx> p{new ParticleFx(decl,name.c_str())};
-  auto ret = pfx.insert(std::make_pair<std::string,std::unique_ptr<ParticleFx>>(name.c_str(),std::move(p)));
-  return ret.first->second.get();
+  std::unique_ptr<ParticleFx> p{new ParticleFx(decl,name)};
+  auto elt = pfx.insert(std::make_pair<std::string,std::unique_ptr<ParticleFx>>(name,std::move(p)));
+
+  auto* ret = elt.first->second.get();
+  if(!decl.ppsCreateEm_S.empty())
+    ret->ppsCreateEm = implGet(decl.ppsCreateEm_S.c_str());
+  return ret;
   }
 
 bool ParticlesDefinitions::implGet(const char *name,

@@ -98,7 +98,7 @@ class World final {
     DynamicWorld::Item  getPhysic    (const char* visual);
 
     const VisualFx*      loadVisualFx(const char* name);
-    const ParticleFx*    loadParticleFx(const char* name);
+    const ParticleFx*    loadParticleFx(const char* name) const;
 
     void                 updateAnimation();
     void                 resetPositionToTA();
