@@ -3,6 +3,9 @@
 #include "world/world.h"
 
 VisualFx::VisualFx(Daedalus::GEngineClasses::CFx_Base &&src):fx(std::move(src)) {
+  emTrjOriginNode = fx.emTrjOriginNode.c_str();
+  for(auto& c:emTrjOriginNode)
+    c = char(std::toupper(c));
   }
 
 PfxObjects::Emitter VisualFx::visual(World& owner) const {

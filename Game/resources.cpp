@@ -19,13 +19,13 @@
 
 #include <fstream>
 
-#include "graphics/submesh/staticmesh.h"
-#include "graphics/submesh/animmesh.h"
-#include "graphics/submesh/pfxemittermesh.h"
-#include "graphics/skeleton.h"
-#include "graphics/protomesh.h"
-#include "graphics/animation.h"
-#include "graphics/attachbinder.h"
+#include "graphics/mesh/submesh/staticmesh.h"
+#include "graphics/mesh/submesh/animmesh.h"
+#include "graphics/mesh/submesh/pfxemittermesh.h"
+#include "graphics/mesh/skeleton.h"
+#include "graphics/mesh/protomesh.h"
+#include "graphics/mesh/animation.h"
+#include "graphics/mesh/attachbinder.h"
 #include "graphics/material.h"
 #include "physics/physicmeshshape.h"
 #include "dmusic/music.h"

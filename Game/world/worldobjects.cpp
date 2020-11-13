@@ -12,6 +12,7 @@
 #include "world/triggers/triggerlist.h"
 #include "world/triggers/triggerworldstart.h"
 #include "world/triggers/messagefilter.h"
+#include "world/interactive.h"
 #include "world/vob.h"
 
 #include <Tempest/Painter>

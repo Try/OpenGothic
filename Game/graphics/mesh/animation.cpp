@@ -1,5 +1,4 @@
 #include "animation.h"
-#include "particlefx.h"
 
 #include <Tempest/Log>
 
@@ -7,6 +6,7 @@
 #include <zenload/zCModelPrototype.h>
 #include <zenload/zenParser.h>
 
+#include "graphics/particlefx.h"
 #include "world/world.h"
 #include "world/npc.h"
 #include "resources.h"
@@ -432,16 +432,14 @@ void Animation::Sequence::processPfx(uint64_t barrier, uint64_t sTime, uint64_t 
       const ParticleFx* pfx = world.script().getParticleFx(i.m_Name.c_str());
       if(pfx==nullptr)
         return;
-      auto vemitter = world.getView(pfx);
-      vemitter.setActive(true);
-      visual.startParticleEffect(std::move(vemitter),i.m_Num,i.m_Pos.c_str(),world.tickCount()+pfx->effectPrefferedTime());
+      visual.startEffect(world,Effect(world.getView(pfx),i.m_Pos.c_str()),i.m_Num);
       }
     }
   for(auto& i:d.pfxStop){
     uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
     if(((frameA<=fr && fr<frameB) ^ invert) ||
        i.m_Frame==int32_t(d.lastFrame)) {
-      visual.stopParticleEffect(i.m_Num);
+      visual.stopEffect(i.m_Num);
       }
     }
   }

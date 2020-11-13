@@ -4,14 +4,14 @@
 #include <cstring>
 #include <cassert>
 
-#include "graphics/submesh/pfxemittermesh.h"
+#include "graphics/mesh/submesh/pfxemittermesh.h"
+#include "graphics/mesh/pose.h"
+#include "graphics/mesh/skeleton.h"
 #include "graphics/dynamic/painter3d.h"
 #include "world/world.h"
 #include "particlefx.h"
 #include "light.h"
-#include "pose.h"
 #include "rendererstorage.h"
-#include "skeleton.h"
 
 using namespace Tempest;
 
@@ -769,6 +769,10 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
 
         v[i].uv[0]  = (dx[i]+0.5f);
         v[i].uv[1]  = (0.5f-dy[i]);
+
+        v[i].norm[0] = -ctx.z[0];
+        v[i].norm[1] = -ctx.z[1];
+        v[i].norm[2] = -ctx.z[2];
 
         std::memcpy(&v[i].color,&color,4);
         }

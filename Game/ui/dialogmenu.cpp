@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "utils/gthfont.h"
+#include "world/npc.h"
 #include "gothic.h"
 #include "inventorymenu.h"
 #include "resources.h"

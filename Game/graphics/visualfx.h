@@ -17,11 +17,13 @@ class VisualFx final {
     PfxObjects::Emitter                                  visual(World& owner) const;
     const Daedalus::GEngineClasses::C_ParticleFXEmitKey& key(SpellFxKey type) const;
     Daedalus::GEngineClasses::C_ParticleFXEmitKey&       key(SpellFxKey type);
+    const char*                                          origin() const { return emTrjOriginNode.c_str(); }
 
     void emitSound(World& wrld, const Tempest::Vec3& pos, SpellFxKey type) const;
 
   private:
     const Daedalus::GEngineClasses::CFx_Base      fx;
+    std::string                                   emTrjOriginNode;
     Daedalus::GEngineClasses::C_ParticleFXEmitKey keys[int(SpellFxKey::Count)];
   };
 

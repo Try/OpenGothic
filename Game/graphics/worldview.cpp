@@ -2,11 +2,12 @@
 
 #include <Tempest/Application>
 
-#include "world/world.h"
-#include "rendererstorage.h"
-#include "graphics/submesh/packedmesh.h"
+#include "graphics/mesh/submesh/packedmesh.h"
 #include "graphics/dynamic/painter3d.h"
+#include "world/world.h"
+#include "world/npc.h"
 #include "utils/gthfont.h"
+#include "rendererstorage.h"
 
 using namespace Tempest;
 

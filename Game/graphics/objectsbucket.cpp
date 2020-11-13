@@ -2,11 +2,11 @@
 
 #include <Tempest/Log>
 
-#include "pose.h"
-#include "sceneglobals.h"
-#include "skeleton.h"
-
 #include "graphics/dynamic/painter3d.h"
+#include "graphics/mesh/pose.h"
+#include "graphics/mesh/skeleton.h"
+#include "sceneglobals.h"
+
 #include "utils/workers.h"
 #include "rendererstorage.h"
 

@@ -8,10 +8,10 @@
 #include <vector>
 #include <list>
 
-#include "graphics/submesh/staticmesh.h"
-#include "graphics/submesh/animmesh.h"
+#include "graphics/mesh/submesh/staticmesh.h"
+#include "graphics/mesh/submesh/animmesh.h"
+#include "graphics/mesh/protomesh.h"
 #include "objectsbucket.h"
-#include "protomesh.h"
 
 class VisualObjects;
 class Pose;

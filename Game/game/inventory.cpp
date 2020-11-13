@@ -468,9 +468,8 @@ void Inventory::updateRuneView(Npc &owner) {
   if(!sp->isSpellOrRune())
     return;
 
-  const VisualFx* vfx      = owner.world().script().getSpellVFx(sp->spellId());
-  auto            vemitter = owner.world().script().getSpellFx(vfx);
-  owner.setMagicWeapon(std::move(vemitter));
+  const VisualFx* vfx = owner.world().script().getSpellVFx(sp->spellId());
+  owner.setMagicWeapon(Effect(*vfx,owner.world(),owner));
   }
 
 void Inventory::equipBestMeleWeapon(Npc &owner) {

@@ -17,6 +17,9 @@ ParticlesDefinitions::~ParticlesDefinitions() {
   }
 
 const ParticleFx* ParticlesDefinitions::get(const char *n) {
+  if(n==nullptr || n[0]=='\0')
+    return nullptr;
+
   std::string name = n;
   while(FileExt::hasExt(name,"PFX"))
     name.resize(name.size()-4);

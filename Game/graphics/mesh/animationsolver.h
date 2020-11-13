@@ -3,11 +3,11 @@
 #include <Tempest/Matrix4x4>
 #include <vector>
 
+#include "graphics/meshobjects.h"
+#include "graphics/pfxobjects.h"
 #include "world/gsoundeffect.h"
 #include "game/inventory.h"
 #include "game/constants.h"
-#include "meshobjects.h"
-#include "pfxobjects.h"
 #include "animation.h"
 
 class Skeleton;

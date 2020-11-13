@@ -5,9 +5,10 @@
 #include <Tempest/TextCodec>
 #include <Tempest/Dialog>
 
-#include "utils/gthfont.h"
 #include "world/world.h"
+#include "world/npc.h"
 #include "ui/menuroot.h"
+#include "utils/gthfont.h"
 #include "utils/fileutil.h"
 #include "utils/keycodec.h"
 #include "game/serialize.h"

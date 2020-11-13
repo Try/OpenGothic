@@ -1,6 +1,8 @@
 #include "documentmenu.h"
 
 #include "utils/gthfont.h"
+#include "world/interactive.h"
+#include "world/npc.h"
 #include "gothic.h"
 
 using namespace Tempest;

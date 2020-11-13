@@ -26,7 +26,6 @@
 #include <LinearMath/btDefaultMotionState.h>
 #include <LinearMath/btScalar.h>
 
-#include "graphics/submesh/packedmesh.h"
 #include "physicmeshshape.h"
 #include "physicvbo.h"
 
@@ -37,8 +36,8 @@
 #include <algorithm>
 #include <cmath>
 
+#include "graphics/mesh/submesh/packedmesh.h"
 #include "world/bullet.h"
-#include "graphics/submesh/packedmesh.h"
 
 const float DynamicWorld::ghostPadding=50-22.5f;
 const float DynamicWorld::ghostHeight =140;

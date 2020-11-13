@@ -2,9 +2,9 @@
 
 #include <Tempest/Log>
 
-#include "world/world.h"
-#include "graphics/animmath.h"
+#include "graphics/mesh/animmath.h"
 #include "game/serialize.h"
+#include "world/world.h"
 
 using namespace Tempest;
 

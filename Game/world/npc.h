@@ -1,8 +1,8 @@
 #pragma once
 
+#include "graphics/mesh/pose.h"
+#include "graphics/mesh/animation.h"
 #include "graphics/meshobjects.h"
-#include "graphics/pose.h"
-#include "graphics/animation.h"
 #include "graphics/mdlvisual.h"
 #include "game/gametime.h"
 #include "game/movealgo.h"
@@ -227,7 +227,7 @@ class Npc final {
     void       updateArmour  ();
     void       setSword      (MeshObjects::Mesh&& sword);
     void       setRangeWeapon(MeshObjects::Mesh&& bow);
-    void       setMagicWeapon(PfxObjects::Emitter&& spell);
+    void       setMagicWeapon(Effect&& spell);
     void       setSlotItem   (MeshObjects::Mesh&& itm,const char* slot);
     void       setStateItem  (MeshObjects::Mesh&& itm,const char* slot);
     void       setAmmoItem   (MeshObjects::Mesh&& itm,const char* slot);

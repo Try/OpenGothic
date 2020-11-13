@@ -1,6 +1,8 @@
 #include "bullet.h"
 
 #include "graphics/visualfx.h"
+#include "world/item.h"
+#include "world/npc.h"
 #include "world.h"
 
 Bullet::Bullet(World& owner,const Item& itm,float x,float y,float z)

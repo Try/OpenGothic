@@ -6,15 +6,16 @@
 #include <daedalus/DaedalusGameState.h>
 
 #include "bullet.h"
-#include "interactive.h"
 #include "spaceindex.h"
-#include "staticobj.h"
 #include "game/gametime.h"
 #include "game/perceptionmsg.h"
+#include "game/constants.h"
 
 class Npc;
 class Item;
 class Vob;
+class StaticObj;
+class Interactive;
 class World;
 class Serialize;
 class TriggerEvent;

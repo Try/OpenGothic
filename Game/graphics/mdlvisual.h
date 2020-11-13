@@ -3,11 +3,12 @@
 #include <zenload/zCModelScript.h>
 #include <Tempest/Matrix4x4>
 
+#include "graphics/mesh/animationsolver.h"
 #include "game/constants.h"
 #include "pfxobjects.h"
 #include "meshobjects.h"
-#include "animationsolver.h"
 #include "visualfx.h"
+#include "effect.h"
 
 class Serialize;
 class Npc;
@@ -17,6 +18,7 @@ class MdlVisual final {
   public:
     MdlVisual();
     MdlVisual(const MdlVisual&)=delete;
+    ~MdlVisual();
 
     void                           save(Serialize& fout, const Npc& npc) const;
     void                           save(Serialize& fout, const Interactive& mob) const;
@@ -42,15 +44,15 @@ class MdlVisual final {
     void                           setSword      (MeshObjects::Mesh&& sword);
     void                           setRangeWeapon(MeshObjects::Mesh&& bow);
     void                           setAmmoItem   (MeshObjects::Mesh&& ammo, const char* bone);
-    void                           setMagicWeapon(PfxObjects::Emitter&& spell);
+    void                           setMagicWeapon(Effect&& spell);
     void                           setSlotItem   (MeshObjects::Mesh&& itm, const char *bone);
     void                           setStateItem  (MeshObjects::Mesh&& itm, const char *bone);
     void                           clearSlotItem (const char *bone);
-    bool                           setFightMode(const ZenLoad::EFightMode mode);
+    bool                           setFightMode  (const ZenLoad::EFightMode mode);
 
-    void                           startParticleEffect(World& owner, const VisualFx& vfx, SpellFxKey key);
-    void                           startParticleEffect(PfxObjects::Emitter&& pfx, int32_t slot, const char* bone, uint64_t timeUntil);
-    void                           stopParticleEffect(int32_t slot);
+    void                           startEffect(World& owner, Effect&& pfx, int32_t slot);
+    void                           setEffectKey(SpellFxKey key, World& owner);
+    void                           stopEffect (int32_t slot);
 
     bool                           setToFightMode(const WeaponState ws);
     void                           updateWeaponSkeleton(const Item *sword, const Item *bow);
@@ -94,18 +96,19 @@ class MdlVisual final {
       const char* bone=nullptr;
       };
     using MeshAttach = Attach<MeshObjects::Mesh>;
-    using PfxAttach  = Attach<PfxObjects::Emitter>;
+    using PfxAttach  = Attach<Effect>;
 
-    struct PfxSlot : PfxAttach {
-      uint64_t timeUntil=0;
-      int      id=0;
+    struct PfxSlot {
+      Effect      view;
+      uint64_t    timeUntil=0;
+      int         id=0;
       };
 
     void implSetBody(MeshObjects::Mesh&& body, World& owner, const int32_t version);
     void setSlotAttachment(MeshObjects::Mesh&& itm, const char *bone);
 
     void bind(MeshAttach& slot, MeshObjects::Mesh&&   itm, const char *bone);
-    void bind(PfxAttach&  slot, PfxObjects::Emitter&& itm, const char *bone);
+    void bind(PfxAttach&  slot, Effect&& itm, const char *bone);
 
     template<class View>
     void bind(Attach<View>& slot, const char *bone);
@@ -126,7 +129,7 @@ class MdlVisual final {
     std::vector<MeshAttach>        attach;
 
     std::vector<PfxSlot>           effects;
-    PfxAttach                      pfx;
+    PfxSlot                        pfx;
 
     const Skeleton*                skeleton=nullptr;
 

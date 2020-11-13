@@ -1,6 +1,8 @@
 #include "playercontrol.h"
 
 #include "world/npc.h"
+#include "world/item.h"
+#include "world/interactive.h"
 #include "world/world.h"
 #include "ui/dialogmenu.h"
 #include "ui/inventorymenu.h"

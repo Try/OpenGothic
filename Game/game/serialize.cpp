@@ -4,6 +4,7 @@
 
 #include "savegameheader.h"
 #include "world/world.h"
+#include "world/fplock.h"
 #include "world/waypoint.h"
 
 const char Serialize::tag[]="OpenGothic/Save";

@@ -6,8 +6,7 @@
 #include "physics/dynamicworld.h"
 
 #include "graphics/sky/sky.h"
-#include "graphics/meshobjects.h"
-#include "graphics/landscape.h"
+#include "graphics/mesh/landscape.h"
 #include "graphics/meshobjects.h"
 #include "graphics/pfxobjects.h"
 #include "light.h"

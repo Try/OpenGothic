@@ -8,13 +8,16 @@
 #include <Tempest/Log>
 #include <Tempest/Painter>
 
+#include "graphics/mesh/submesh/packedmesh.h"
+#include "graphics/mesh/skeleton.h"
+#include "graphics/visualfx.h"
+#include "world/npc.h"
+#include "world/item.h"
+#include "world/interactive.h"
+#include "game/serialize.h"
 #include "gothic.h"
 #include "focus.h"
 #include "resources.h"
-#include "game/serialize.h"
-#include "graphics/submesh/packedmesh.h"
-#include "graphics/visualfx.h"
-#include "graphics/skeleton.h"
 
 using namespace Tempest;
 

@@ -5,17 +5,18 @@
 
 #include <zenload/zCMaterial.h>
 
-#include "interactive.h"
+#include "graphics/mesh/skeleton.h"
+#include "graphics/mesh/animmath.h"
 #include "graphics/visualfx.h"
-#include "graphics/skeleton.h"
 #include "graphics/particlefx.h"
 #include "game/damagecalculator.h"
 #include "game/serialize.h"
 #include "game/gamescript.h"
 #include "world/triggers/trigger.h"
-#include "world.h"
 #include "utils/versioninfo.h"
-#include "graphics/animmath.h"
+#include "interactive.h"
+#include "item.h"
+#include "world.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -760,7 +761,7 @@ void Npc::setRangeWeapon(MeshObjects::Mesh &&b) {
   updateWeaponSkeleton();
   }
 
-void Npc::setMagicWeapon(PfxObjects::Emitter &&s) {
+void Npc::setMagicWeapon(Effect&& s) {
   visual.setMagicWeapon(std::move(s));
   updateWeaponSkeleton();
   }
@@ -2152,11 +2153,7 @@ void Npc::emitSoundGround(const char* sound, float range, bool freeSlot) {
   }
 
 void Npc::playEffect(Npc& /*to*/, const VisualFx& vfx) {
-  emitSoundEffect(vfx.handle().sfxID.c_str(),25,true);
-
-  auto     vemitter = vfx.visual(owner);
-  uint64_t time     = owner.tickCount()+vemitter.effectPrefferedTime();
-  visual.startParticleEffect(std::move(vemitter), -1, vfx.handle().emTrjOriginNode.c_str(), time);
+  visual.startEffect(owner, Effect(vfx,owner,*this), -1);
   }
 
 void Npc::commitSpell() {
@@ -2171,8 +2168,8 @@ void Npc::commitSpell() {
 
   const VisualFx* vfx = owner.script().getSpellVFx(splId);
   if(vfx!=nullptr) {
-    vfx->emitSound(owner,position(),SpellFxKey::Cast);
-    visual.startParticleEffect(owner,*vfx,SpellFxKey::Cast);
+    // visual.startEffect(owner,Effect(*vfx,owner,*this,SpellFxKey::Cast),-1);
+    visual.setEffectKey(SpellFxKey::Cast,owner);
     }
 
   if(active->isSpellShoot()) {

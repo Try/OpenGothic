@@ -6,6 +6,8 @@
 #include "gothic.h"
 #include "world/world.h"
 #include "game/serialize.h"
+#include "world/npc.h"
+#include "world/interactive.h"
 
 using namespace Tempest;
 

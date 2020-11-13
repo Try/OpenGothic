@@ -6,6 +6,9 @@
 #include "utils/gthfont.h"
 #include "utils/keycodec.h"
 #include "world/world.h"
+#include "world/npc.h"
+#include "world/interactive.h"
+#include "world/item.h"
 #include "gothic.h"
 #include "resources.h"
 

@@ -14,9 +14,6 @@
 #include "physics/dynamicworld.h"
 #include "triggers/trigger.h"
 #include "game/gamescript.h"
-#include "item.h"
-#include "npc.h"
-#include "interactive.h"
 #include "worldobjects.h"
 #include "worldsound.h"
 #include "waypoint.h"
@@ -29,6 +26,7 @@ class Focus;
 class WayMatrix;
 class VisualFx;
 class ParticleFx;
+class Interactive;
 class VersionInfo;
 
 class World final {

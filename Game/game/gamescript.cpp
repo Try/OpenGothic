@@ -6,6 +6,7 @@
 #include "gothic.h"
 #include "world/npc.h"
 #include "world/item.h"
+#include "world/interactive.h"
 
 #include <fstream>
 #include <cctype>

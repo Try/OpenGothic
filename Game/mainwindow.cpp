@@ -16,6 +16,7 @@
 #include "ui/videowidget.h"
 
 #include "gothic.h"
+#include "world/npc.h"
 #include "game/serialize.h"
 #include "utils/crashlog.h"
 #include "utils/gthfont.h"

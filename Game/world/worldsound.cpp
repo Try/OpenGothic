@@ -3,6 +3,7 @@
 #include <Tempest/SoundEffect>
 
 #include "game/gamesession.h"
+#include "world/npc.h"
 #include "gamemusic.h"
 #include "world.h"
 #include "gothic.h"
