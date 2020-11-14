@@ -160,7 +160,7 @@ class ObjectsBucket final {
       Descriptors                           ubo;
       size_t                                storageAni = size_t(-1);
 
-      const Light*                          light[MAX_LIGHT] = {};
+      const LightSource*                          light[MAX_LIGHT] = {};
       size_t                                lightCnt=0;
       int                                   lightCacheKey[3]={};
 

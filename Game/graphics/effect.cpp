@@ -1,5 +1,7 @@
 #include "effect.h"
 
+#include <Tempest/Log>
+
 #include "graphics/mesh/skeleton.h"
 #include "world/world.h"
 #include "world/npc.h"
@@ -47,6 +49,9 @@ void Effect::setObjMatrix(Tempest::Matrix4x4& mt) {
   if(next!=nullptr)
     next->setObjMatrix(mt);
   visual.setObjMatrix(mt);
+
+  Vec3 pos = {mt.at(3,0),mt.at(3,1),mt.at(3,2)};
+  light.setPosition(pos);
   }
 
 void Effect::setKey(World& owner, const Vec3& pos, SpellFxKey k) {
@@ -66,6 +71,40 @@ void Effect::setKey(World& owner, const Vec3& pos, SpellFxKey k) {
     visual = owner.getView(pfx);
     visual.setActive(true);
     }
+
+  if(key->lightRange>0.0) {
+    light = owner.getLight();
+    light.setPosition(pos);
+    light.setColor(Vec3(1,1,1));
+    light.setRange(key->lightRange);
+    const Daedalus::ZString* preset = &root->handle().lightPresetName;
+    if(!key->lightPresetName.empty())
+      preset = &key->lightPresetName;
+    switch(toPreset(*preset)) {
+      case NoPreset:
+        light = LightGroup::Light();
+        break;
+      case JUSTWHITE:
+      case WHITEBLEND:
+        light.setColor(Vec3(1,1,1));
+        break;
+      case AURA:
+        light.setColor(Vec3(0,0.5,1));
+        break;
+      case REDAMBIENCE:
+        light.setColor(Vec3(1,0,0));
+        break;
+      case FIRESMALL:
+        light.setColor(Vec3(1,1,0));
+        break;
+      case CATACLYSM:
+        light.setColor(Vec3(1,0,0));
+        break;
+      }
+    } else {
+    light = LightGroup::Light();
+    }
+
   owner.emitSoundEffect(key->sfxID.c_str(),pos.x,pos.y,pos.z,25,true);
   }
 
@@ -104,5 +143,27 @@ void Effect::syncAttaches(const Pose& pose, const Matrix4x4& pos) {
   auto p = pos;
   if(boneId<pose.transform().size())
     p.mul(pose.transform(boneId));
-  visual.setObjMatrix(p);
+
+  const float emTrjEaseVel = root==nullptr ? 0.f : root->handle().emTrjTargetElev;
+  Vec3 pos3 = {p.at(3,0),p.at(3,1)+emTrjEaseVel,p.at(3,2)};
+
+  visual.setPosition(pos3);
+  light .setPosition(pos3);
+  }
+
+Effect::LightPreset Effect::toPreset(const Daedalus::ZString& str) {
+  if(str=="JUSTWHITE")
+    return JUSTWHITE;
+  if(str=="WHITEBLEND")
+    return WHITEBLEND;
+  if(str=="AURA")
+    return AURA;
+  if(str=="REDAMBIENCE")
+    return REDAMBIENCE;
+  if(str=="FIRESMALL")
+    return FIRESMALL;
+  if(str=="CATACLYSM")
+    return CATACLYSM;
+  Log::e("unknown light preset: \"",str.c_str(),"\"");
+  return NoPreset;
   }

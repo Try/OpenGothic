@@ -158,6 +158,14 @@ Item *World::itmById(uint32_t id) {
   return nullptr;
   }
 
+LightGroup::Light World::getLight() {
+  return wview->getLight();
+  }
+
+LightGroup::Light World::getLight(const ZenLoad::zCVobData& vob) {
+  return wview->getLight(vob);
+  }
+
 MeshObjects::Mesh World::getView(const char* visual) const {
   return getView(visual,0,0,0);
   }
@@ -763,10 +771,6 @@ void World::addSound(const ZenLoad::zCVobData& vob) {
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusicDefault) {
     wsound.setDefaultZone(vob);
     }
-  }
-
-size_t World::addLight(const ZenLoad::zCVobData& vob) {
-  return wview->addLight(vob);
   }
 
 void World::invalidateVobIndex() {

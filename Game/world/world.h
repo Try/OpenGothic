@@ -10,6 +10,7 @@
 #include <zenload/zTypes.h>
 
 #include "graphics/worldview.h"
+#include "graphics/lightgroup.h"
 #include "graphics/meshobjects.h"
 #include "physics/dynamicworld.h"
 #include "triggers/trigger.h"
@@ -82,6 +83,8 @@ class World final {
     int32_t         guildOfRoom(const Tempest::Vec3& pos);
     int32_t         guildOfRoom(const char* portalName);
 
+    LightGroup::Light   getLight();
+    LightGroup::Light   getLight(const ZenLoad::zCVobData& vob);
     MeshObjects::Mesh   getView(const Daedalus::ZString& visual) const;
     MeshObjects::Mesh   getView(const char*              visual) const;
     MeshObjects::Mesh   getView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
@@ -166,7 +169,6 @@ class World final {
     void                 addStartPoint (const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
     void                 addFreePoint  (const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
     void                 addSound      (const ZenLoad::zCVobData& vob);
-    size_t               addLight(const ZenLoad::zCVobData& vob);
 
     void                 invalidateVobIndex();
     void                 triggerOnStart(bool firstTime);

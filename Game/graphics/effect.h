@@ -32,12 +32,25 @@ class Effect final {
     void     syncAttaches  (const Pose& pose, const Tempest::Matrix4x4& pos);
 
   private:
+    enum LightPreset : uint8_t {
+      NoPreset = 0,
+      JUSTWHITE,
+      WHITEBLEND,
+      AURA,
+      REDAMBIENCE,
+      FIRESMALL,
+      CATACLYSM,
+      };
+
+    static LightPreset toPreset(const Daedalus::ZString& str);
+
     using Key = Daedalus::GEngineClasses::C_ParticleFXEmitKey;
 
     const Key*          key  = nullptr;
 
     const VisualFx*     root = nullptr;
     PfxObjects::Emitter visual;
+    LightGroup::Light   light;
     const char*         nodeSlot = nullptr;
     size_t              boneId   = size_t(-1);
     std::unique_ptr<Effect> next;

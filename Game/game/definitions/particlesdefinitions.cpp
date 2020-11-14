@@ -25,7 +25,7 @@ const ParticleFx* ParticlesDefinitions::get(const char *n) {
     name.resize(name.size()-4);
 
   std::lock_guard<std::mutex> guard(sync);
-  return implGet(n);
+  return implGet(name.c_str());
   }
 
 const ParticleFx* ParticlesDefinitions::implGet(const char* name) {

@@ -4,9 +4,9 @@
 #include <array>
 #include <vector>
 
-class Light final {
+class LightSource final {
   public:
-    Light();
+    LightSource();
 
     Tempest::Vec3        dir() const { return ldir; }
     void                 setDir(const Tempest::Vec3& d);

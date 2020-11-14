@@ -10,7 +10,7 @@
 #include "graphics/dynamic/painter3d.h"
 #include "world/world.h"
 #include "particlefx.h"
-#include "light.h"
+#include "lightsource.h"
 #include "rendererstorage.h"
 
 using namespace Tempest;
@@ -42,17 +42,21 @@ PfxObjects::Emitter &PfxObjects::Emitter::operator=(PfxObjects::Emitter &&b) {
   }
 
 void PfxObjects::Emitter::setPosition(float x, float y, float z) {
+  setPosition(Vec3(x,y,z));
+  }
+
+void PfxObjects::Emitter::setPosition(const Vec3& pos) {
   if(bucket==nullptr)
     return;
   std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
   auto& v = bucket->impl[id];
-  v.pos = Vec3(x,y,z);
+  v.pos = pos;
   if(v.next!=nullptr)
-    v.next->setPosition(x,y,z);
+    v.next->setPosition(pos);
   if(bucket->impl[id].block==size_t(-1))
     return; // no backup memory
   auto& p = bucket->getBlock(*this);
-  p.pos = Vec3(x,y,z);
+  p.pos = pos;
   }
 
 void PfxObjects::Emitter::setTarget(const Vec3& pos) {

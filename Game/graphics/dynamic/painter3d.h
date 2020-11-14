@@ -12,7 +12,7 @@
 #include "resources.h"
 
 class Bounds;
-class Light;
+class LightSource;
 
 class Painter3d final {
   public:

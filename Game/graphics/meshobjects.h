@@ -15,7 +15,7 @@
 
 class VisualObjects;
 class Pose;
-class Light;
+class LightSource;
 
 class MeshObjects final {
   private:

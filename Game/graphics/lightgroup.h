@@ -5,7 +5,7 @@
 
 #include "graphics/dynamic/frustrum.h"
 #include "bounds.h"
-#include "light.h"
+#include "lightsource.h"
 #include "resources.h"
 
 class SceneGlobals;
@@ -14,13 +14,33 @@ class LightGroup final {
   public:
     LightGroup(const SceneGlobals& scene);
 
+    class Light final {
+      public:
+        Light() = default;
+        Light(Light&& other);
+        Light& operator = (Light&& other);
+        ~Light();
+
+        void setPosition(float x, float y, float z);
+        void setPosition(const Tempest::Vec3& p);
+
+        void setRange(float r);
+        void setColor(const Tempest::Vec3& c);
+
+      private:
+        Light(LightGroup& l, size_t id):light(&l), id(id) {}
+        LightGroup* light = nullptr;
+        size_t      id    = 0;
+
+      friend class LightGroup;
+      };
+
     void   dbgLights(Tempest::Painter& p, const Tempest::Matrix4x4& vp, uint32_t vpWidth, uint32_t vpHeight) const;
-    size_t size() const;
-    const Light& operator [](size_t i) const { return light[i]; }
 
-    size_t add(Light&& l);
+    Light  get();
+    Light  get(LightSource&& l);
+    size_t get(const Bounds& area, const LightSource** out, size_t maxOut) const;
 
-    size_t get(const Bounds& area, const Light** out, size_t maxOut) const;
     void   tick(uint64_t time);
     void   preFrameUpdate(uint8_t fId);
     void   draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
@@ -42,34 +62,37 @@ class LightGroup final {
     struct Bvh {
       std::unique_ptr<Bvh> next[2];
       Bounds               bbox;
-      const Light**        b = nullptr;
+      const LightSource**        b = nullptr;
       size_t               count=0;
       };
 
-    size_t      implGet(const Bvh& index, const Bounds& area, const Light** out, size_t maxOut) const;
+    void        free(size_t id);
+    size_t      implGet(const Bvh& index, const Bounds& area, const LightSource** out, size_t maxOut) const;
     void        mkIndex() const;
-    void        mkIndex(Bvh& id, const Light** b, size_t count, int depth) const;
+    void        mkIndex(Bvh& id, const LightSource** b, size_t count, int depth) const;
     void        clearIndex();
     static bool isIntersected(const Bounds& a,const Bounds& b);
     void        buildVbo(uint8_t fId);
-    void        buildVbo(Vertex* out, const Light& l);
+    void        buildVbo(Vertex* out, const LightSource& l);
 
     const SceneGlobals& scene;
 
     struct Chunk {
       Tempest::VertexBufferDyn<Vertex> vboGpu[Resources::MaxFramesInFlight];
       };
-    std::vector<Chunk>               chunks;
+    std::vector<Chunk>                chunks;
 
-    std::vector<Vertex>              vboCpu;
-    Tempest::IndexBuffer<uint16_t>   iboGpu;
+    std::vector<Vertex>               vboCpu;
+    Tempest::IndexBuffer<uint16_t>    iboGpu;
 
-    Tempest::Uniforms                ubo[Resources::MaxFramesInFlight];
-    Tempest::UniformBuffer<Ubo>      uboBuf[Resources::MaxFramesInFlight];
+    Tempest::Uniforms                 ubo[Resources::MaxFramesInFlight];
+    Tempest::UniformBuffer<Ubo>       uboBuf[Resources::MaxFramesInFlight];
 
-    std::vector<Light>                light;
+    std::recursive_mutex              sync;
+    std::vector<LightSource>          light;
     std::vector<size_t>               dynamicState;
-    mutable std::vector<const Light*> indexPtr;
+    std::vector<size_t>               freeList;
+    mutable std::vector<const LightSource*> indexPtr;
     mutable Bvh                       index;
     mutable bool                      fullGpuUpdate = false;
   };

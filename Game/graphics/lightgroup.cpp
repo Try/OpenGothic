@@ -8,6 +8,43 @@
 
 using namespace Tempest;
 
+LightGroup::Light::Light(LightGroup::Light&& oth):light(oth.light), id(oth.id) {
+  oth.light = nullptr;
+  }
+
+LightGroup::Light& LightGroup::Light::operator =(LightGroup::Light&& other) {
+  std::swap(light,other.light);
+  std::swap(id,other.id);
+  return *this;
+  }
+
+LightGroup::Light::~Light() {
+  if(light!=nullptr)
+    light->free(id);
+  }
+
+void LightGroup::Light::setPosition(float x, float y, float z) {
+  setPosition(Vec3(x,y,z));
+  }
+
+void LightGroup::Light::setPosition(const Vec3& p) {
+  if(light==nullptr)
+    return;
+  light->light[id].setPosition(p);
+  }
+
+void LightGroup::Light::setRange(float r) {
+  if(light==nullptr)
+    return;
+  light->light[id].setRange(r);
+  }
+
+void LightGroup::Light::setColor(const Vec3& c) {
+  if(light==nullptr)
+    return;
+  light->light[id].setColor(c);
+  }
+
 LightGroup::LightGroup(const SceneGlobals& scene)
   :scene(scene) {
   for(auto& u:uboBuf)
@@ -75,20 +112,47 @@ void LightGroup::dbgLights(Painter& p, const Matrix4x4& vp, uint32_t vpWidth, ui
   fnt.drawText(p,10,50,buf);
   }
 
-size_t LightGroup::size() const {
-  return light.size();
+LightGroup::Light LightGroup::get() {
+  std::lock_guard<std::recursive_mutex> guard(sync);
+  auto l = get(LightSource());
+  dynamicState.push_back(l.id);
+  return l;
   }
 
-size_t LightGroup::add(Light&& l) {
+LightGroup::Light LightGroup::get(LightSource&& l) {
+  std::lock_guard<std::recursive_mutex> guard(sync);
   fullGpuUpdate = true;
   clearIndex();
-  light.push_back(std::move(l));
-  if(light.back().isDynamic())
-    dynamicState.push_back(light.size()-1);
-  return light.size()-1;
+
+  size_t id = light.size();
+  if(freeList.size()>0) {
+    id = freeList.back();
+    light[id] = std::move(l);
+    } else {
+    light.push_back(std::move(l));
+    }
+
+  if(light[id].isDynamic())
+    dynamicState.push_back(id);
+  return Light(*this,id);
   }
 
-size_t LightGroup::get(const Bounds& area, const Light** out, size_t maxOut) const {
+void LightGroup::free(size_t id) {
+  std::lock_guard<std::recursive_mutex> guard(sync);
+  fullGpuUpdate = true;
+  clearIndex();
+
+  for(size_t i=0; i<dynamicState.size(); ++i)
+    if(dynamicState[i]==id) {
+      dynamicState[i] = dynamicState.back();
+      dynamicState.pop_back();
+      break;
+      }
+  light[id] = LightSource();
+  freeList.push_back(id);
+  }
+
+size_t LightGroup::get(const Bounds& area, const LightSource** out, size_t maxOut) const {
   if(index.count!=light.size())
     mkIndex();
   return implGet(index,area,out,maxOut);
@@ -133,7 +197,7 @@ void LightGroup::setupUbo() {
     }
   }
 
-size_t LightGroup::implGet(const LightGroup::Bvh& index, const Bounds& area, const Light** out, size_t maxOut) const {
+size_t LightGroup::implGet(const LightGroup::Bvh& index, const Bounds& area, const LightSource** out, size_t maxOut) const {
   const Bvh* cur = &index;
   if(maxOut==0)
     return 0;
@@ -172,7 +236,7 @@ void LightGroup::mkIndex() const {
   mkIndex(index,indexPtr.data(),indexPtr.size(),0);
   }
 
-void LightGroup::mkIndex(Bvh& id, const Light** b, size_t count, int depth) const {
+void LightGroup::mkIndex(Bvh& id, const LightSource** b, size_t count, int depth) const {
   id.b     = b;
   id.count = count;
 
@@ -183,17 +247,17 @@ void LightGroup::mkIndex(Bvh& id, const Light** b, size_t count, int depth) cons
 
   depth%=3;
   if(depth==0) {
-    std::sort(b,b+count,[](const Light* a,const Light* b){
+    std::sort(b,b+count,[](const LightSource* a,const LightSource* b){
       return a->position().x<b->position().x;
       });
     }
   else if(depth==1) {
-    std::sort(b,b+count,[](const Light* a,const Light* b){
+    std::sort(b,b+count,[](const LightSource* a,const LightSource* b){
       return a->position().y<b->position().y;
       });
     }
   else {
-    std::sort(b,b+count,[](const Light* a,const Light* b){
+    std::sort(b,b+count,[](const LightSource* a,const LightSource* b){
       return a->position().z<b->position().z;
       });
     }
@@ -289,7 +353,7 @@ void LightGroup::buildVbo(uint8_t fId) {
     }
   }
 
-void LightGroup::buildVbo(LightGroup::Vertex* vbo, const Light& l) {
+void LightGroup::buildVbo(LightGroup::Vertex* vbo, const LightSource& l) {
   static const Vec3 v[8] = {
     {-1,-1,-1},
     { 1,-1,-1},
@@ -312,3 +376,4 @@ void LightGroup::buildVbo(LightGroup::Vertex* vbo, const Light& l) {
     vx.color = cl;
     }
   }
+

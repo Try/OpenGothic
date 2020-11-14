@@ -13,7 +13,7 @@
 
 class World;
 class SceneGlobals;
-class Light;
+class LightSource;
 class PackedMesh;
 class WorldView;
 

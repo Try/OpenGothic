@@ -34,6 +34,7 @@ class PfxObjects final {
 
         bool   isEmpty() const { return bucket==nullptr; }
         void   setPosition (float x,float y,float z);
+        void   setPosition (const Tempest::Vec3& pos);
         void   setTarget   (const Tempest::Vec3& pos);
         void   setDirection(const Tempest::Matrix4x4& pos);
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
