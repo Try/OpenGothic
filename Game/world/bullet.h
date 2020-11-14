@@ -4,6 +4,7 @@
 
 #include "physics/dynamicworld.h"
 
+#include "graphics/effect.h"
 #include "graphics/meshobjects.h"
 #include "graphics/pfxobjects.h"
 
@@ -24,38 +25,39 @@ class Bullet final : public DynamicWorld::BulletCallback {
       Stopped = 1,
       };
 
-    void setPosition  (const Tempest::Vec3& p);
-    void setPosition  (float x,float y,float z);
+    void     setPosition  (const Tempest::Vec3& p);
+    void     setPosition  (float x,float y,float z);
 
-    void setDirection (float x,float y,float z);
+    void     setDirection (float x,float y,float z);
 
-    void setView      (MeshObjects::Mesh&&   m);
-    void setView      (PfxObjects::Emitter&& p);
+    void     setView      (MeshObjects::Mesh&&   m);
+    void     setView      (Effect&& p);
 
-    bool    isSpell() const;
-    int32_t spellId() const;
+    bool     isSpell() const;
+    int32_t  spellId() const;
 
-    void setOwner(Npc* n);
-    Npc* owner() const;
+    void     setOwner(Npc* n);
+    Npc*     owner() const;
 
-    Flg                        flags()     const { return flg;  }
-    void                       setFlags(Flg f) { flg=f; }
-    void                       addFlags(Flg f) { flg=Flg(flg|f); }
+    Flg      flags()     const { return flg;  }
+    void     setFlags(Flg f) { flg=f; }
+    void     addFlags(Flg f) { flg=Flg(flg|f); }
 
-    auto                       damage() const -> const std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX>& { return dmg; }
-    void                       setDamage(std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> d) { dmg=d; }
+    auto     damage() const -> const std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX>& { return dmg; }
+    void     setDamage(std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> d) { dmg=d; }
 
-    float                      hitChance() const { return hitCh; }
-    void                       setHitChance(float h) { hitCh=h; }
+    float    hitChance() const { return hitCh; }
+    void     setHitChance(float h) { hitCh=h; }
+    bool     isFinished() const;
 
-    float                      pathLength() const;
+    float    pathLength() const;
 
   protected:
-    void                       onStop() override;
-    void                       onMove() override;
-    void                       onCollide(uint8_t matId) override;
-    void                       onCollide(Npc& other) override;
-    void                       collideCommon();
+    void     onStop() override;
+    void     onMove() override;
+    void     onCollide(uint8_t matId) override;
+    void     onCollide(Npc& other) override;
+    void     collideCommon(bool isDyn);
 
   private:
     DynamicWorld::BulletBody*         obj=nullptr;
@@ -66,7 +68,7 @@ class Bullet final : public DynamicWorld::BulletCallback {
     float                             hitCh=1.f;
 
     MeshObjects::Mesh                 view;
-    PfxObjects::Emitter               pfx;
+    Effect                            vfx;
 
     uint8_t                           material=0;
     Flg                               flg=NoFlags;

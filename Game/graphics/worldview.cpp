@@ -212,4 +212,3 @@ void WorldView::resetCmd() {
   visuals.setupUbo();
   sGlobal.lights.setupUbo();
   }
-

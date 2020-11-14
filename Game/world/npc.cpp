@@ -2166,12 +2166,6 @@ void Npc::commitSpell() {
   const int32_t splId = active->spellId();
   owner.script().invokeSpell(*this,currentTarget,*active);
 
-  const VisualFx* vfx = owner.script().getSpellVFx(splId);
-  if(vfx!=nullptr) {
-    // visual.startEffect(owner,Effect(*vfx,owner,*this,SpellFxKey::Cast),-1);
-    visual.setEffectKey(SpellFxKey::Cast,owner);
-    }
-
   if(active->isSpellShoot()) {
     auto& spl = owner.script().getSpell(splId);
     std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> dmg={};
@@ -2185,6 +2179,7 @@ void Npc::commitSpell() {
     b.setDamage(dmg);
     b.setHitChance(1.f);
     } else {
+    visual.setEffectKey(SpellFxKey::Cast,owner);
     if(currentTarget!=nullptr) {
       currentTarget->lastHitSpell = splId;
       currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);

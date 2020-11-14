@@ -158,6 +158,10 @@ Item *World::itmById(uint32_t id) {
   return nullptr;
   }
 
+void World::runEffect(Effect&& e) {
+  wobj.runEffect(std::move(e));
+  }
+
 LightGroup::Light World::getLight() {
   return wview->getLight();
   }

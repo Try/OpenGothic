@@ -151,6 +151,19 @@ void Effect::syncAttaches(const Pose& pose, const Matrix4x4& pos) {
   light .setPosition(pos3);
   }
 
+void Effect::onCollide(World& owner, const Vec3& pos, bool isDyn) {
+  if(root==nullptr)
+    return;
+
+  const VisualFx* vfx = owner.script().getVisualFx(root->colStat());
+  if(vfx==nullptr)
+    return;
+
+  Effect eff(*vfx,owner,pos,SpellFxKey::Count);
+  eff.setActive(true);
+  owner.runEffect(std::move(eff));
+  }
+
 Effect::LightPreset Effect::toPreset(const Daedalus::ZString& str) {
   if(str=="JUSTWHITE")
     return JUSTWHITE;

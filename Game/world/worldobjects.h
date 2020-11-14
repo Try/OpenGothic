@@ -77,6 +77,7 @@ class WorldObjects final {
     void           enableTicks (AbstractTrigger& t);
     void           disableTicks(AbstractTrigger& t);
 
+    void           runEffect(Effect&& e);
     Item*          addItem(size_t itemInstance, const char *at);
     Item*          addItem(const ZenLoad::zCVobData &vob);
     Item*          takeItem(Item& it);
@@ -122,6 +123,11 @@ class WorldObjects final {
       void                    load(Serialize& fin);
       };
 
+    struct EffectState {
+      Effect   eff;
+      uint64_t timeUntil = 0;
+      };
+
     World&                             owner;
     std::vector<std::unique_ptr<Vob>>  rootVobs;
 
@@ -133,6 +139,7 @@ class WorldObjects final {
     std::list<MobStates>               routines;
 
     std::list<Bullet>                  bullets;
+    std::vector<EffectState>           effects;
 
     std::vector<std::unique_ptr<Npc>>  npcArr;
     std::vector<std::unique_ptr<Npc>>  npcInvalid;

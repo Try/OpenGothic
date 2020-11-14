@@ -7,7 +7,6 @@
 #include "game/constants.h"
 #include "pfxobjects.h"
 #include "meshobjects.h"
-#include "visualfx.h"
 #include "effect.h"
 
 class Serialize;

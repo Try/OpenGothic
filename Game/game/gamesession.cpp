@@ -9,6 +9,8 @@
 #include "worldstatestorage.h"
 #include "serialize.h"
 #include "world/world.h"
+#include "world/npc.h"
+#include "world/interactive.h"
 #include "gothic.h"
 
 using namespace Tempest;
