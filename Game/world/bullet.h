@@ -57,7 +57,7 @@ class Bullet final : public DynamicWorld::BulletCallback {
     void     onMove() override;
     void     onCollide(uint8_t matId) override;
     void     onCollide(Npc& other) override;
-    void     collideCommon(bool isDyn);
+    void     collideCommon(Npc* isDyn);
 
   private:
     DynamicWorld::BulletBody*         obj=nullptr;

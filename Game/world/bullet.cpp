@@ -102,18 +102,18 @@ void Bullet::onCollide(uint8_t matId) {
       wrld->emitLandHitSound(pos.x,pos.y,pos.z,material,matId);
       }
     }
-  collideCommon(false);
+  collideCommon(nullptr);
   }
 
 void Bullet::onCollide(Npc& npc) {
   if(ow!=nullptr)
     npc.takeDamage(*ow,this);
-  collideCommon(true);
+  collideCommon(&npc);
   }
 
-void Bullet::collideCommon(bool isDyn) {
+void Bullet::collideCommon(Npc* isDyn) {
   if(obj->isSpell()) {
-    vfx.onCollide(*wrld, obj->position(),isDyn);
+    vfx.onCollide(*wrld, obj->position(), isDyn);
     vfx.setKey   (*wrld, obj->position(), SpellFxKey::Collide);
     wrld->runEffect(std::move(vfx));
     }

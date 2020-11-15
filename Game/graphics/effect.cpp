@@ -30,7 +30,9 @@ Effect::Effect(const VisualFx& v, World& owner, const Vec3& pos, SpellFxKey k) {
       next.reset(new Effect(*vfx,owner,pos,k));
     }
 
-  setKey(owner,pos,k);
+  if(k==SpellFxKey::Count || root==nullptr)
+    setPosition(pos); else
+    setKey(owner,pos,k);
   }
 
 void Effect::setActive(bool e) {
@@ -54,11 +56,25 @@ void Effect::setObjMatrix(Tempest::Matrix4x4& mt) {
   light.setPosition(pos);
   }
 
+void Effect::setPosition(const Vec3& pos) {
+  if(next!=nullptr)
+    next->setPosition(pos);
+
+  const float emTrjEaseVel = root==nullptr ? 0.f : root->handle().emTrjTargetElev;
+  Vec3 pos3 = {pos.x,pos.y+emTrjEaseVel,pos.z};
+
+  visual.setPosition(pos3);
+  light .setPosition(pos3);
+  }
+
 void Effect::setKey(World& owner, const Vec3& pos, SpellFxKey k) {
-  if(k==SpellFxKey::Count || root==nullptr)
+  if(k==SpellFxKey::Count)
     return;
   if(next!=nullptr)
     next->setKey(owner,pos,k);
+
+  if(root==nullptr)
+    return;
 
   key = &root->key(k);
   auto vfx = owner.script().getVisualFx(key->emCreateFXID.c_str());
@@ -74,7 +90,6 @@ void Effect::setKey(World& owner, const Vec3& pos, SpellFxKey k) {
 
   if(key->lightRange>0.0) {
     light = owner.getLight();
-    light.setPosition(pos);
     light.setColor(Vec3(1,1,1));
     light.setRange(key->lightRange);
     const Daedalus::ZString* preset = &root->handle().lightPresetName;
@@ -105,16 +120,18 @@ void Effect::setKey(World& owner, const Vec3& pos, SpellFxKey k) {
     light = LightGroup::Light();
     }
 
+  setPosition(pos);
   owner.emitSoundEffect(key->sfxID.c_str(),pos.x,pos.y,pos.z,25,true);
   }
 
 uint64_t Effect::effectPrefferedTime() const {
+  uint64_t ret = next==nullptr ? 0 : next->effectPrefferedTime();
   if(root!=nullptr) {
     float timeF = root->handle().emFXLifeSpan;
     if(timeF>0)
-      return uint64_t(timeF*1000.f);
+      return std::max(ret,uint64_t(timeF*1000.f));
     }
-  return visual.effectPrefferedTime();
+  return std::max(ret,visual.effectPrefferedTime());
   }
 
 void Effect::bindAttaches(const Skeleton& to) {
@@ -145,23 +162,32 @@ void Effect::syncAttaches(const Pose& pose, const Matrix4x4& pos) {
     p.mul(pose.transform(boneId));
 
   const float emTrjEaseVel = root==nullptr ? 0.f : root->handle().emTrjTargetElev;
-  Vec3 pos3 = {p.at(3,0),p.at(3,1)+emTrjEaseVel,p.at(3,2)};
+  p.set(3,1, p.at(3,1)+emTrjEaseVel);
+  Vec3 pos3 = {p.at(3,0),p.at(3,1),p.at(3,2)};
 
-  visual.setPosition(pos3);
+  visual.setObjMatrix(p);
   light .setPosition(pos3);
   }
 
-void Effect::onCollide(World& owner, const Vec3& pos, bool isDyn) {
+void Effect::onCollide(World& owner, const Vec3& pos, Npc* npc) {
   if(root==nullptr)
     return;
 
-  const VisualFx* vfx = owner.script().getVisualFx(root->colStat());
-  if(vfx==nullptr)
-    return;
+  const char* fxName = root->colStat();
+  if(npc!=nullptr)
+    fxName = root->colDyn();
 
-  Effect eff(*vfx,owner,pos,SpellFxKey::Count);
-  eff.setActive(true);
-  owner.runEffect(std::move(eff));
+  const VisualFx* vfx = owner.script().getVisualFx(fxName);
+  if(vfx!=nullptr) {
+    Effect eff(*vfx,owner,pos,SpellFxKey::Count);
+    eff.setActive(true);
+    owner.runEffect(std::move(eff));
+    }
+
+  vfx = owner.script().getVisualFx(root->handle().emFXCollDynPerc_S.c_str());
+  if(vfx!=nullptr && npc!=nullptr) {
+    npc->playEffect(*npc,*vfx);
+    }
   }
 
 Effect::LightPreset Effect::toPreset(const Daedalus::ZString& str) {

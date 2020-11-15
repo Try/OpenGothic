@@ -292,6 +292,21 @@ void MdlVisual::stopEffect(int32_t slot) {
     }
   }
 
+void MdlVisual::setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s) {
+  if(hnpcVisualName==s)
+    return;
+  hnpcVisualName = s;
+  auto vfx = owner.script().getVisualFx(s.c_str());
+  if(vfx==nullptr) {
+    hnpcVisual.view = Effect();
+    return;
+    }
+  hnpcVisual.view = Effect(*vfx,owner,npc,SpellFxKey::Count);
+  if(skeleton!=nullptr)
+    hnpcVisual.view.bindAttaches(*skeleton);
+  hnpcVisual.view.setActive(true);
+  }
+
 bool MdlVisual::setToFightMode(const WeaponState f) {
   if(f==fgtMode)
     return false;
@@ -651,8 +666,9 @@ void MdlVisual::rebindAttaches(const Skeleton& from, const Skeleton& to) {
   for(auto& i:attach)
     rebindAttaches(i,from,to);
   for(auto& i:effects)
-    i.view.syncAttaches(*skInst,pos);
+    i.view.rebindAttaches(from,to);
   pfx.view.rebindAttaches(from,to);
+  hnpcVisual.view.rebindAttaches(from,to);
   }
 
 template<class View>
@@ -679,6 +695,7 @@ void MdlVisual::syncAttaches() {
     i.view.setTarget(targetPos);
     }
   pfx.view.syncAttaches(*skInst,pos);
+  hnpcVisual.view.syncAttaches(*skInst,pos);
   }
 
 template<class View>

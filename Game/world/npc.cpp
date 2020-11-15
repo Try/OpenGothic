@@ -1622,6 +1622,7 @@ void Npc::tick(uint64_t dt) {
   Animation::EvCount ev;
   visual.pose().processEvents(lastEventTime,owner.tickCount(),ev);
   visual.processLayers(owner,calcAniComb());
+  visual.setNpcEffect(owner,*this,hnpc.effect);
   if(!visual.pose().hasAnim())
     setAnim(AnimationSolver::Idle);
 

@@ -139,12 +139,12 @@ class PfxObjects final {
       };
 
     struct VboContext {
-      float left[4] = {};
-      float top [4] = {};
-      float z   [4] = {};
+      Tempest::Vec3 left = {};
+      Tempest::Vec3 top  = {};
+      Tempest::Vec3 z    = {};
 
-      float leftA[4] = {};
-      float topA [4] = {0,1,0};
+      Tempest::Vec3 leftA = {};
+      Tempest::Vec3 topA  = {0,1,0};
       };
 
     static float                  randf();

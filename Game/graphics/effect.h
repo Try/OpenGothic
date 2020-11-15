@@ -23,6 +23,7 @@ class Effect final {
 
     void     setTarget   (const Tempest::Vec3& tg);
     void     setObjMatrix(Tempest::Matrix4x4& mt);
+    void     setPosition (const Tempest::Vec3& pos);
     void     setKey      (World& owner, const Tempest::Vec3& pos, SpellFxKey key);
 
     uint64_t effectPrefferedTime() const;
@@ -30,7 +31,7 @@ class Effect final {
     void     bindAttaches  (const Skeleton& to);
     void     rebindAttaches(const Skeleton& from, const Skeleton& to);
     void     syncAttaches  (const Pose& pose, const Tempest::Matrix4x4& pos);
-    void     onCollide     (World& owner, const Tempest::Vec3& pos, bool isDyn);
+    void     onCollide     (World& owner, const Tempest::Vec3& pos, Npc* npc);
 
   private:
     enum LightPreset : uint8_t {

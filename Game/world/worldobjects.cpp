@@ -156,7 +156,7 @@ void WorldObjects::tick(uint64_t dt) {
     });
 
   for(size_t i=0; i<effects.size();) {
-    if(effects[i].timeUntil<owner.tickCount() && false) {
+    if(effects[i].timeUntil<owner.tickCount()) {
       effects[i] = std::move(effects.back());
       effects.pop_back();
       } else {

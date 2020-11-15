@@ -49,9 +49,10 @@ class MdlVisual final {
     void                           clearSlotItem (const char *bone);
     bool                           setFightMode  (const ZenLoad::EFightMode mode);
 
-    void                           startEffect(World& owner, Effect&& pfx, int32_t slot);
+    void                           startEffect (World& owner, Effect&& pfx, int32_t slot);
     void                           setEffectKey(SpellFxKey key, World& owner);
-    void                           stopEffect (int32_t slot);
+    void                           stopEffect  (int32_t slot);
+    void                           setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s);
 
     bool                           setToFightMode(const WeaponState ws);
     void                           updateWeaponSkeleton(const Item *sword, const Item *bow);
@@ -129,6 +130,9 @@ class MdlVisual final {
 
     std::vector<PfxSlot>           effects;
     PfxSlot                        pfx;
+
+    Daedalus::ZString              hnpcVisualName;
+    PfxSlot                        hnpcVisual;
 
     const Skeleton*                skeleton=nullptr;
 
