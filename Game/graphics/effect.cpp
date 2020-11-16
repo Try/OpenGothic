@@ -41,6 +41,12 @@ void Effect::setActive(bool e) {
   visual.setActive(e);
   }
 
+void Effect::setLooped(bool l) {
+  if(next!=nullptr)
+    next->setLooped(l);
+  visual.setLooped(l);
+  }
+
 void Effect::setTarget(const Tempest::Vec3& tg) {
   if(next!=nullptr)
     next->setTarget(tg);
@@ -153,9 +159,9 @@ void Effect::rebindAttaches(const Skeleton& from, const Skeleton& to) {
     }
   }
 
-void Effect::syncAttaches(const Pose& pose, const Matrix4x4& pos) {
+void Effect::syncAttaches(const Pose& pose, const Matrix4x4& pos, bool topLevel) {
   if(next!=nullptr)
-    next->syncAttaches(pose,pos);
+    next->syncAttaches(pose,pos,false);
 
   auto p = pos;
   if(boneId<pose.transform().size())
@@ -165,8 +171,10 @@ void Effect::syncAttaches(const Pose& pose, const Matrix4x4& pos) {
   p.set(3,1, p.at(3,1)+emTrjEaseVel);
   Vec3 pos3 = {p.at(3,0),p.at(3,1),p.at(3,2)};
 
-  visual.setObjMatrix(p);
-  light .setPosition(pos3);
+  if(topLevel)
+    visual.setObjMatrix(p); else
+    visual.setPosition(pos3);
+  light.setPosition(pos3);
   }
 
 void Effect::onCollide(World& owner, const Vec3& pos, Npc* npc) {

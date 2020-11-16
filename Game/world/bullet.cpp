@@ -57,6 +57,7 @@ void Bullet::setView(MeshObjects::Mesh &&m) {
 void Bullet::setView(Effect &&p) {
   vfx = std::move(p);
   vfx.setActive(true);
+  vfx.setLooped(true);
   updateMatrix();
   }
 
@@ -111,9 +112,9 @@ void Bullet::onCollide(Npc& npc) {
   collideCommon(&npc);
   }
 
-void Bullet::collideCommon(Npc* isDyn) {
+void Bullet::collideCommon(Npc* npc) {
   if(obj->isSpell()) {
-    vfx.onCollide(*wrld, obj->position(), isDyn);
+    vfx.onCollide(*wrld, obj->position(), npc);
     vfx.setKey   (*wrld, obj->position(), SpellFxKey::Collide);
     wrld->runEffect(std::move(vfx));
     }

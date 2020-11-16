@@ -112,6 +112,16 @@ bool PfxObjects::Emitter::isActive() const {
   return bucket->impl[id].active;
   }
 
+void PfxObjects::Emitter::setLooped(bool loop) {
+  if(bucket==nullptr)
+    return;
+  std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
+  auto& v = bucket->impl[id];
+  v.isLoop = loop;
+  if(v.next!=nullptr)
+    v.next->setLooped(loop);
+  }
+
 uint64_t PfxObjects::Emitter::effectPrefferedTime() const {
   if(bucket==nullptr)
     return 0;
@@ -577,9 +587,13 @@ PfxObjects::Bucket& PfxObjects::getBucket(const Material& mat, const ZenLoad::zC
   return getBucket(*e.pfx);
   }
 
-static uint64_t ppsDiff(const ParticleFx& decl, uint64_t time0, uint64_t time1) {
+static uint64_t ppsDiff(const ParticleFx& decl, bool loop, uint64_t time0, uint64_t time1) {
   if(time1<=time0)
     return 0;
+  if(!loop) {
+    time0 = std::min(decl.prefferedTime,time0);
+    time1 = std::min(decl.prefferedTime,time1);
+    }
   const float pps     = decl.ppsScale(time1)*decl.ppsValue;
   uint64_t    emitted0 = uint64_t(pps*float(time0)/1000.f);
   uint64_t    emitted1 = uint64_t(pps*float(time1)/1000.f);
@@ -599,6 +613,7 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
       auto& e = *emitter.next;
       e.setPosition(emitter.pos.x,emitter.pos.y,emitter.pos.z);
       e.setActive(true);
+      e.setLooped(emitter.isLoop);
       }
 
     if(emitter.waitforNext>=dt)
@@ -625,7 +640,7 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
       tickSysEmit(b,p,p.count==0 ? 1 : 0);
       }
     else if(active && nearby) {
-      auto dE = ppsDiff(*b.owner,p.timeTotal,p.timeTotal+dt);
+      auto dE = ppsDiff(*b.owner,emitter.isLoop,p.timeTotal,p.timeTotal+dt);
       tickSysEmit(b,p,dE);
       }
     p.timeTotal+=dt;
@@ -757,7 +772,7 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
           }
 
         v[i].uv[0]  = (dx[i]+0.5f);
-        v[i].uv[1]  = (0.5f-dy[i]);
+        v[i].uv[1]  = (dy[i]+0.5f);
 
         v[i].norm[0] = -ctx.z.x;
         v[i].norm[1] = -ctx.z.y;

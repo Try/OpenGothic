@@ -161,6 +161,7 @@ void MdlVisual::setAmmoItem(MeshObjects::Mesh&& a, const char *bone) {
 
 void MdlVisual::setMagicWeapon(Effect&& spell) {
   pfx.view = std::move(spell);
+  pfx.view.setLooped(true);
   if(skeleton!=nullptr)
     pfx.view.bindAttaches(*skeleton);
   }
@@ -243,7 +244,7 @@ bool MdlVisual::setFightMode(const ZenLoad::EFightMode mode) {
   }
 
 void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot) {
-  uint64_t    timeUntil = vfx.effectPrefferedTime();
+  uint64_t timeUntil = vfx.effectPrefferedTime();
   if(timeUntil!=uint64_t(-1))
     timeUntil+=owner.tickCount();
 
@@ -305,6 +306,7 @@ void MdlVisual::setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s)
   if(skeleton!=nullptr)
     hnpcVisual.view.bindAttaches(*skeleton);
   hnpcVisual.view.setActive(true);
+  hnpcVisual.view.setLooped(true);
   }
 
 bool MdlVisual::setToFightMode(const WeaponState f) {

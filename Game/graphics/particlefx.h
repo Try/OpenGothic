@@ -121,6 +121,8 @@ class ParticleFx final {
     std::string   timeStartEnd_S;
     bool          m_bIsAmbientPFX=false;
 
+    uint64_t      prefferedTime = 0;
+
     uint64_t      maxLifetime() const;
     uint64_t      effectPrefferedTime() const;
     float         maxPps() const;
@@ -128,6 +130,7 @@ class ParticleFx final {
     float         ppsScale(uint64_t time) const;
 
   private:
+    uint64_t             calcPrefferedTimeSingle() const;
     static auto          loadTexture(const char* src) -> const Tempest::Texture2d*;
     static Tempest::Vec2 loadVec2(const Daedalus::ZString& src);
     static Tempest::Vec3 loadVec3(const Daedalus::ZString& src);

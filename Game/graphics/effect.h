@@ -20,6 +20,7 @@ class Effect final {
     Effect(const VisualFx& vfx, World& owner, const Tempest::Vec3& pos, SpellFxKey key = SpellFxKey::Count);
 
     void     setActive(bool e);
+    void     setLooped(bool l);
 
     void     setTarget   (const Tempest::Vec3& tg);
     void     setObjMatrix(Tempest::Matrix4x4& mt);
@@ -30,7 +31,7 @@ class Effect final {
 
     void     bindAttaches  (const Skeleton& to);
     void     rebindAttaches(const Skeleton& from, const Skeleton& to);
-    void     syncAttaches  (const Pose& pose, const Tempest::Matrix4x4& pos);
+    void     syncAttaches  (const Pose& pose, const Tempest::Matrix4x4& pos, bool topLevel=true);
     void     onCollide     (World& owner, const Tempest::Vec3& pos, Npc* npc);
 
   private:

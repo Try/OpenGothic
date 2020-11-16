@@ -1,8 +1,9 @@
 #include "visualfx.h"
 
-#include "world/world.h"
-
 #include <Tempest/Log>
+#include <cctype>
+
+#include "world/world.h"
 
 using namespace Tempest;
 

@@ -40,6 +40,7 @@ class PfxObjects final {
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setActive(bool act);
         bool   isActive() const;
+        void   setLooped(bool loop);
 
         uint64_t effectPrefferedTime() const;
 
@@ -85,6 +86,7 @@ class PfxObjects final {
       Tempest::Vec3 direction[3] = {};
       bool          alive        = false;
       bool          active       = false;
+      bool          isLoop       = false;
 
       uint64_t                 waitforNext = 0;
       std::unique_ptr<Emitter> next;

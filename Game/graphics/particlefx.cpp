@@ -17,7 +17,7 @@ ParticleFx::ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob) {
   visMaterial      = mat;
 
   dirFOR           = Frame::World;
-  dirAngleElev     = -90;
+  dirAngleElev     = 90;
   visSizeEndScale  = 1;
   visAlphaStart    = 1;
   visAlphaEnd      = 1;
@@ -94,7 +94,7 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
   timeStartEnd_S      = src.timeStartEnd_S.c_str();
   m_bIsAmbientPFX     = src.m_bIsAmbientPFX!=0;
 
-  //auto pfx = world.loadParticleFx(b.owner->ppsCreateEm_S.c_str());
+  prefferedTime       = calcPrefferedTimeSingle();
   }
 
 uint64_t ParticleFx::maxLifetime() const {
@@ -102,11 +102,9 @@ uint64_t ParticleFx::maxLifetime() const {
   }
 
 uint64_t ParticleFx::effectPrefferedTime() const {
-  if(ppsScaleKeys.size()==0)
-    return 5000;
-
-  auto sec = ppsScaleKeys.size()/std::max<size_t>(1,size_t(std::ceil(ppsFPS)));
-  return sec*1000;
+  auto v0 = prefferedTime;
+  auto v1 = ppsCreateEm==nullptr ? 0 : ppsCreateEmDelay+ppsCreateEm->effectPrefferedTime();
+  return std::max(v0,v1);
   }
 
 float ParticleFx::maxPps() const {
@@ -132,6 +130,15 @@ float ParticleFx::ppsScale(uint64_t time) const {
   if(v<0)
     return 0.f;
   return v;
+  }
+
+uint64_t ParticleFx::calcPrefferedTimeSingle() const {
+  if(ppsScaleKeys.size()==0)
+    return 5000;
+
+  auto div = std::max<uint64_t>(1,uint64_t(std::ceil(ppsFPS)));
+  auto sec = uint64_t(ppsScaleKeys.size()*1000)/div;
+  return sec;
   }
 
 Vec2 ParticleFx::loadVec2(const Daedalus::ZString& src) {
