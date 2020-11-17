@@ -1539,7 +1539,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
       owner.emitWeaponsSound(other,*this);
 
     if(hitResult.hasHit) {
-      if(attribute(ATR_HITPOINTS)>0) {
+      if(bodyStateMasked()!=BS_UNCONSCIOUS) {
         const bool noInter = (hnpc.bodyStateInterruptableOverride!=0);
         if(!noInter)
           visual.interrupt();
@@ -1627,7 +1627,10 @@ void Npc::tick(uint64_t dt) {
     setAnim(AnimationSolver::Idle);
 
   if(currentSpellCast!=size_t(-1)) {
-    if(setAnim(Npc::Anim::Idle))
+    if(isDown()) {
+      currentSpellCast = size_t(-1);
+      }
+    else if(setAnim(Npc::Anim::Idle))
       commitSpell();
     }
 
