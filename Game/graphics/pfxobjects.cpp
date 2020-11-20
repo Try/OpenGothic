@@ -1,6 +1,7 @@
 #include "pfxobjects.h"
 #include "sceneglobals.h"
 
+#include <Tempest/Log>
 #include <cstring>
 #include <cassert>
 
@@ -178,7 +179,7 @@ size_t PfxObjects::Bucket::allocBlock() {
   vboCpu.resize(particles.size()*6);
 
   for(size_t i=0; i<blockSize; ++i)
-    particles[i].life = 0;
+    particles[b.offset+i].life = 0;
   return block.size()-1;
   }
 
@@ -187,7 +188,6 @@ void PfxObjects::Bucket::freeBlock(size_t& i) {
     return;
   auto& b = block[i];
   assert(b.count==0);
-  b.alive = false;
   b.alive = false;
   i = size_t(-1);
   }
@@ -636,7 +636,7 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
         }
       }
 
-    if(b.owner->ppsValue<0){
+    if(b.owner->ppsValue<0) {
       tickSysEmit(b,p,p.count==0 ? 1 : 0);
       }
     else if(active && nearby) {
@@ -653,13 +653,15 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
 void PfxObjects::tickSysEmit(PfxObjects::Bucket& b, PfxObjects::Block& p, uint64_t emited) {
   size_t lastI = 0;
   for(size_t id=1; emited>0; ++id) {
-    const size_t i = id%b.blockSize;
-    ParState& ps = b.particles[i+p.offset];
+    const size_t i  = id%b.blockSize;
+    ParState&    ps = b.particles[i+p.offset];
     if(ps.life==0) { // free slot
-      lastI = i;
-      p.count++;
-      b.init(p,i+p.offset);
       --emited;
+      lastI = i;
+      b.init(p,i+p.offset);
+      if(ps.life==0)
+        continue;
+      p.count++;
       } else {
       // out of slots
       if(lastI==i)
