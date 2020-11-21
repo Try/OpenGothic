@@ -13,7 +13,8 @@ class PfxEmitterMesh;
 class ParticleFx final {
   public:
     ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob);
-    ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX & src, const char* name);
+    ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX& src, const char* name);
+    ParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& src, const Daedalus::GEngineClasses::C_ParticleFX& proto);
 
     enum class EmitterType:uint8_t {
       Point,

@@ -74,10 +74,8 @@ class PfxObjects final {
       size_t        count        = 0;
 
       Tempest::Vec3 pos          = {};
-      Tempest::Vec3 target       = {};
       Tempest::Vec3 direction[3] = {};
       bool          alive        = true;
-      bool          hasTarget    = false;
       };
 
     struct ImplEmitter final {
@@ -87,6 +85,9 @@ class PfxObjects final {
       bool          alive        = false;
       bool          active       = false;
       bool          isLoop       = false;
+
+      Tempest::Vec3 target       = {};
+      bool          hasTarget    = false;
 
       uint64_t                 waitforNext = 0;
       std::unique_ptr<Emitter> next;
@@ -130,7 +131,7 @@ class PfxObjects final {
 
       void                        init    (Block& emitter, size_t particle);
       void                        finalize(size_t particle);
-      void                        tick    (Block& sys, size_t particle, uint64_t dt);
+      void                        tick    (Block& sys, ImplEmitter& emitter, size_t particle, uint64_t dt);
       };
 
     struct SpriteEmitter {

@@ -163,7 +163,7 @@ void MdlVisual::setMagicWeapon(Effect&& spell) {
   pfx.view = std::move(spell);
   pfx.view.setLooped(true);
   if(skeleton!=nullptr)
-    pfx.view.bindAttaches(*skeleton);
+    pfx.view.bindAttaches(*skInst,*skeleton);
   }
 
 void MdlVisual::setSlotItem(MeshObjects::Mesh &&itm, const char *bone) {
@@ -256,7 +256,7 @@ void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot) {
     if(i.id==slot) {
       i.timeUntil = timeUntil;
       i.view = std::move(vfx);
-      i.view.bindAttaches(*skeleton);
+      i.view.bindAttaches(*skInst,*skeleton);
       syncAttaches();
       return;
       }
@@ -266,20 +266,15 @@ void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot) {
   slt.id        = slot;
   slt.timeUntil = timeUntil;
   slt.view      = std::move(vfx);
-  slt.view.bindAttaches(*skeleton);
+  slt.view.bindAttaches(*skInst,*skeleton);
   effects.push_back(std::move(slt));
   syncAttaches();
   }
 
 void MdlVisual::setEffectKey(SpellFxKey key, World& owner) {
-  Vec3 p = {
-    pos.at(3,0),
-    pos.at(3,1),
-    pos.at(3,2),
-    };
   for(auto& i:effects)
-    i.view.setKey(owner,p,key);
-  pfx.view.setKey(owner,p,key);
+    i.view.setKey(owner,key);
+  pfx.view.setKey(owner,key);
   }
 
 void MdlVisual::stopEffect(int32_t slot) {
@@ -304,7 +299,7 @@ void MdlVisual::setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s)
     }
   hnpcVisual.view = Effect(*vfx,owner,npc,SpellFxKey::Count);
   if(skeleton!=nullptr)
-    hnpcVisual.view.bindAttaches(*skeleton);
+    hnpcVisual.view.bindAttaches(*skInst,*skeleton);
   hnpcVisual.view.setActive(true);
   hnpcVisual.view.setLooped(true);
   }
@@ -668,9 +663,9 @@ void MdlVisual::rebindAttaches(const Skeleton& from, const Skeleton& to) {
   for(auto& i:attach)
     rebindAttaches(i,from,to);
   for(auto& i:effects)
-    i.view.rebindAttaches(from,to);
-  pfx.view.rebindAttaches(from,to);
-  hnpcVisual.view.rebindAttaches(from,to);
+    i.view.bindAttaches(*skInst,to);
+  pfx.view.bindAttaches(*skInst,to);
+  hnpcVisual.view.bindAttaches(*skInst,to);
   }
 
 template<class View>
@@ -693,11 +688,11 @@ void MdlVisual::syncAttaches() {
   for(auto& i:attach)
     syncAttaches(i);
   for(auto& i:effects) {
-    i.view.syncAttaches(*skInst,pos);
+    i.view.setObjMatrix(pos);
     i.view.setTarget(targetPos);
     }
-  pfx.view.syncAttaches(*skInst,pos);
-  hnpcVisual.view.syncAttaches(*skInst,pos);
+  pfx.view.setObjMatrix(pos);
+  hnpcVisual.view.setObjMatrix(pos);
   }
 
 template<class View>

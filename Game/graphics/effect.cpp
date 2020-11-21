@@ -17,22 +17,26 @@ Effect::Effect(const VisualFx& vfx, World& owner, const Npc& src, SpellFxKey key
   :Effect(vfx,owner,src.position() + Vec3(0,src.translateY(),0), key){
   }
 
-Effect::Effect(const VisualFx& v, World& owner, const Vec3& pos, SpellFxKey k) {
+Effect::Effect(const VisualFx& v, World& owner, const Vec3& inPos, SpellFxKey k) {
   root     = &v;
   nodeSlot = root->origin();
   visual   = root->visual(owner);
 
   auto& h  = root->handle();
-  owner.emitSoundEffect(h.sfxID.c_str(), pos.x,pos.y,pos.z,25,true);
+  owner.emitSoundEffect(h.sfxID.c_str(), inPos.x,inPos.y,inPos.z,25,true);
   if(!h.emFXCreate_S.empty()) {
     auto vfx = owner.script().getVisualFx(h.emFXCreate_S.c_str());
     if(vfx!=nullptr)
-      next.reset(new Effect(*vfx,owner,pos,k));
+      next.reset(new Effect(*vfx,owner,inPos,k));
     }
 
-  if(k==SpellFxKey::Count || root==nullptr)
-    setPosition(pos); else
-    setKey(owner,pos,k);
+  if(k==SpellFxKey::Count || root==nullptr) {
+    setPosition(inPos);
+    } else {
+    pos.identity();
+    pos.translate(inPos);
+    setKey(owner,k);
+    }
   }
 
 void Effect::setActive(bool e) {
@@ -54,41 +58,72 @@ void Effect::setTarget(const Tempest::Vec3& tg) {
   }
 
 void Effect::setObjMatrix(Tempest::Matrix4x4& mt) {
-  if(next!=nullptr)
-    next->setObjMatrix(mt);
-  visual.setObjMatrix(mt);
-
-  Vec3 pos = {mt.at(3,0),mt.at(3,1),mt.at(3,2)};
-  light.setPosition(pos);
+  syncAttaches(mt,true);
   }
 
-void Effect::setPosition(const Vec3& pos) {
+void Effect::setPosition(const Vec3& pos3) {
   if(next!=nullptr)
-    next->setPosition(pos);
+    next->setPosition(pos3);
+
+  pos.set(3,0, pos3.x);
+  pos.set(3,1, pos3.y);
+  pos.set(3,2, pos3.z);
+  syncAttachesSingle(pos,true);
+  }
+
+void Effect::syncAttaches(const Matrix4x4& inPos, bool topLevel) {
+  if(next!=nullptr)
+    next->syncAttaches(inPos,false);
+  syncAttachesSingle(inPos,topLevel);
+  }
+
+void Effect::syncAttachesSingle(const Matrix4x4& inPos, bool topLevel) {
+  pos    = inPos;
+  auto p = inPos;
+
+  if(pose!=nullptr && boneId<pose->transform().size())
+    p.mul(pose->transform(boneId));
 
   const float emTrjEaseVel = root==nullptr ? 0.f : root->handle().emTrjTargetElev;
-  Vec3 pos3 = {pos.x,pos.y+emTrjEaseVel,pos.z};
+  p.set(3,1, p.at(3,1)+emTrjEaseVel);
+  Vec3 pos3 = {p.at(3,0),p.at(3,1),p.at(3,2)};
 
-  visual.setPosition(pos3);
-  light .setPosition(pos3);
+  if(topLevel) // HACK: VOB_MAGICBURN
+    visual.setObjMatrix(p); else
+    visual.setPosition(pos3);
+  light.setPosition(pos3);
   }
 
-void Effect::setKey(World& owner, const Vec3& pos, SpellFxKey k) {
+void Effect::setKey(World& owner, SpellFxKey k) {
   if(k==SpellFxKey::Count)
     return;
   if(next!=nullptr)
-    next->setKey(owner,pos,k);
+    next->setKey(owner,k);
 
   if(root==nullptr)
     return;
 
-  key = &root->key(k);
+  Vec3 pos3 = {pos.at(3,0),pos.at(3,1),pos.at(3,2)};
+  key       = &root->key(k);
+
   auto vfx = owner.script().getVisualFx(key->emCreateFXID.c_str());
   if(vfx!=nullptr) {
-    // TODO: start new effect in parallel
-    // visual = vfx->visual(owner);
+    auto ex = Effect(*vfx,owner,pos3,SpellFxKey::Count);
+    if(skeleton!=nullptr && pose!=nullptr) {
+      size_t nid = 0;//skeleton->findNode(vfx->origin());
+      if(nid<pose->transform().size()) {
+        Matrix4x4 p = pos;
+        p.mul(pose->transform(nid));
+        ex.setObjMatrix(p);
+        ex.setTarget(pos3);
+        }
+      }
+    ex.setActive(true);
+    owner.runEffect(std::move(ex));
     }
-  const ParticleFx* pfx = owner.script().getParticleFx(key->visName_S.c_str());
+
+  const ParticleFx* pfx = owner.script().getParticleFx(*key);
+  //const ParticleFx* pfx = owner.script().getParticleFx(key->visName_S.c_str());
   if(pfx!=nullptr) {
     visual = owner.getView(pfx);
     visual.setActive(true);
@@ -126,8 +161,8 @@ void Effect::setKey(World& owner, const Vec3& pos, SpellFxKey k) {
     light = LightGroup::Light();
     }
 
-  setPosition(pos);
-  owner.emitSoundEffect(key->sfxID.c_str(),pos.x,pos.y,pos.z,25,true);
+  setObjMatrix(pos);
+  owner.emitSoundEffect(key->sfxID.c_str(),pos3.x,pos3.y,pos3.z,25,true);
   }
 
 uint64_t Effect::effectPrefferedTime() const {
@@ -140,41 +175,13 @@ uint64_t Effect::effectPrefferedTime() const {
   return std::max(ret,visual.effectPrefferedTime());
   }
 
-void Effect::bindAttaches(const Skeleton& to) {
+void Effect::bindAttaches(const Pose& p, const Skeleton& to) {
   if(next!=nullptr)
-    next->bindAttaches(to);
-  boneId = to.findNode(nodeSlot);
-  }
+    next->bindAttaches(p,to);
 
-void Effect::rebindAttaches(const Skeleton& from, const Skeleton& to) {
-  if(next!=nullptr)
-    next->rebindAttaches(from,to);
-
-  if(boneId<from.nodes.size()) {
-    size_t nid = 0;
-    if(nodeSlot==nullptr)
-      nid = to.findNode(from.nodes[boneId].name); else
-      nid = to.findNode(nodeSlot);
-    boneId = nid;
-    }
-  }
-
-void Effect::syncAttaches(const Pose& pose, const Matrix4x4& pos, bool topLevel) {
-  if(next!=nullptr)
-    next->syncAttaches(pose,pos,false);
-
-  auto p = pos;
-  if(boneId<pose.transform().size())
-    p.mul(pose.transform(boneId));
-
-  const float emTrjEaseVel = root==nullptr ? 0.f : root->handle().emTrjTargetElev;
-  p.set(3,1, p.at(3,1)+emTrjEaseVel);
-  Vec3 pos3 = {p.at(3,0),p.at(3,1),p.at(3,2)};
-
-  if(topLevel)
-    visual.setObjMatrix(p); else
-    visual.setPosition(pos3);
-  light.setPosition(pos3);
+  skeleton = &to;
+  pose     = &p;
+  boneId   = to.findNode(nodeSlot);
   }
 
 void Effect::onCollide(World& owner, const Vec3& pos, Npc* npc) {

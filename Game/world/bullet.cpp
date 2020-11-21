@@ -115,7 +115,7 @@ void Bullet::onCollide(Npc& npc) {
 void Bullet::collideCommon(Npc* npc) {
   if(obj->isSpell()) {
     vfx.onCollide(*wrld, obj->position(), npc);
-    vfx.setKey   (*wrld, obj->position(), SpellFxKey::Collide);
+    vfx.setKey   (*wrld, SpellFxKey::Collide);
     wrld->runEffect(std::move(vfx));
     }
   }

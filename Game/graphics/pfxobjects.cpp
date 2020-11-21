@@ -65,9 +65,7 @@ void PfxObjects::Emitter::setTarget(const Vec3& pos) {
   if(bucket==nullptr)
     return;
   std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
-  if(bucket->impl[id].block==size_t(-1))
-    return; // no backup memory
-  auto& p     = bucket->getBlock(*this);
+  auto& p     = bucket->impl[id];
   p.target    = pos;
   p.hasTarget = true;
   }
@@ -152,6 +150,8 @@ PfxObjects::Bucket::Bucket(const ParticleFx &ow, PfxObjects *parent)
   uint64_t pps     = uint64_t(std::ceil(ow.maxPps()));
   uint64_t reserve = (lt*pps+1000-1)/1000;
   blockSize        = size_t(reserve);
+  if(blockSize==0)
+    blockSize=1;
   }
 
 bool PfxObjects::Bucket::isEmpty() const {
@@ -406,7 +406,7 @@ void PfxObjects::Bucket::finalize(size_t particle) {
   p = {};
   }
 
-void PfxObjects::Bucket::tick(Block& sys, size_t particle, uint64_t dt) {
+void PfxObjects::Bucket::tick(Block& sys, ImplEmitter& emitter, size_t particle, uint64_t dt) {
   ParState& ps = particles[particle+sys.offset];
   if(ps.life==0)
     return;
@@ -428,8 +428,8 @@ void PfxObjects::Bucket::tick(Block& sys, size_t particle, uint64_t dt) {
       break;
     case ParticleFx::Dir::Target: {
       Vec3 dx, to;
-      if(sys.hasTarget)
-        to = sys.target; else
+      if(emitter.hasTarget)
+        to = emitter.target; else
         to = sys.pos;
 
       dx = to - (ps.pos+sys.pos);
@@ -627,7 +627,7 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
 
     if(p.count>0) {
       for(size_t i=0;i<b.blockSize;++i)
-        b.tick(p,i,dt);
+        b.tick(p,emitter,i,dt);
       if(p.count==0 && !process) {
         // free mem
         b.freeBlock(emitter.block);
@@ -725,7 +725,7 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
       Vec3 t={};
 
       if(pfx.visOrientation==ParticleFx::Orientation::Velocity3d) {
-        static float k1 = 1, k2 = -1;
+        static float k1 = -1, k2 = -1;
         t = ps.dir*k1;
         l = Vec3::crossProduct(t,ctx.z)*k2;
         } else {

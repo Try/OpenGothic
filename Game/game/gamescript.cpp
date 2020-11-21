@@ -693,6 +693,10 @@ const ParticleFx *GameScript::getParticleFx(const char *symbol) {
   return owner.loadParticleFx(symbol);
   }
 
+const ParticleFx* GameScript::getParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k) {
+  return owner.loadParticleFx(k);
+  }
+
 std::vector<GameScript::DlgChoise> GameScript::dialogChoises(Daedalus::GEngineClasses::C_Npc* player,
                                                                Daedalus::GEngineClasses::C_Npc* hnpc,
                                                                const std::vector<uint32_t>& except,

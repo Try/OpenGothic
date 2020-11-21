@@ -97,6 +97,47 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
   prefferedTime       = calcPrefferedTimeSingle();
   }
 
+ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& src, const Daedalus::GEngineClasses::C_ParticleFX& proto) {
+  *this = ParticleFx(proto,src.visName_S.c_str());
+
+  if(!src.pfx_shpDim_S.empty())
+    shpDim            = loadVec3(src.pfx_shpDim_S);
+
+  shpIsVolume         = src.pfx_shpIsVolumeChg!=0;
+
+  if(src.pfx_shpScaleFPS>0)
+    shpScaleFPS       = src.pfx_shpScaleFPS;
+
+  shpDistribWalkSpeed = src.pfx_shpDistribWalkSpeed;
+
+  if(!src.pfx_shpOffsetVec_S.empty())
+    shpOffsetVec      = loadVec3(src.pfx_shpOffsetVec_S);
+
+  if(!src.pfx_shpDistribType_S.empty())
+    shpDistribType    = loadDistribType(src.pfx_shpDistribType_S);
+
+  if(!src.pfx_dirMode_S.empty())
+    dirMode           = loadDirType(src.pfx_dirMode_S);
+
+  if(!src.pfx_dirFOR_S.empty())
+    dirFOR            = loadFrameType(src.pfx_dirFOR_S);
+
+  if(!src.pfx_dirModeTargetFOR_S.empty())
+    dirModeTargetFOR  = loadFrameType(src.pfx_dirModeTargetFOR_S);
+
+  if(!src.pfx_dirModeTargetPos_S.empty())
+    dirModeTargetPos  = loadVec3(src.pfx_dirModeTargetPos_S);
+
+  if(src.pfx_velAvg>0)
+    velAvg            = src.pfx_velAvg;
+
+  if(src.pfx_lspPartAvg>0)
+    lspPartAvg        = src.pfx_lspPartAvg;
+
+  if(src.pfx_visAlphaStart>0)
+    visAlphaStart     = src.pfx_visAlphaStart;
+  }
+
 uint64_t ParticleFx::maxLifetime() const {
   return uint64_t(lspPartAvg+lspPartVar);
   }
