@@ -41,7 +41,7 @@ const ParticleFx* ParticlesDefinitions::implGet(const char* name) {
   if(!implGet(name,decl))
     return nullptr;
   std::unique_ptr<ParticleFx> p{new ParticleFx(decl,name)};
-  auto elt = pfx.insert(std::make_pair<std::string,std::unique_ptr<ParticleFx>>(name,std::move(p)));
+  auto elt = pfx.insert(std::pair<std::string,std::unique_ptr<ParticleFx>>(name,std::move(p)));
 
   auto* ret = elt.first->second.get();
   if(!decl.ppsCreateEm_S.empty())
@@ -59,7 +59,7 @@ const ParticleFx* ParticlesDefinitions::implGet(const Daedalus::GEngineClasses::
     return nullptr;
 
   std::unique_ptr<ParticleFx> p{new ParticleFx(k,decl)};
-  auto elt = pfxKey.insert(std::make_pair<size_t,std::unique_ptr<ParticleFx>>(size_t(k.instanceSymbol),std::move(p)));
+  auto elt = pfxKey.insert(std::pair<size_t,std::unique_ptr<ParticleFx>>(k.instanceSymbol,std::move(p)));
 
   auto* ret = elt.first->second.get();
   if(!decl.ppsCreateEm_S.empty())
