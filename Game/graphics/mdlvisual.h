@@ -43,7 +43,7 @@ class MdlVisual final {
     void                           setSword      (MeshObjects::Mesh&& sword);
     void                           setRangeWeapon(MeshObjects::Mesh&& bow);
     void                           setAmmoItem   (MeshObjects::Mesh&& ammo, const char* bone);
-    void                           setMagicWeapon(Effect&& spell);
+    void                           setMagicWeapon(Effect&& spell, World& owner);
     void                           setSlotItem   (MeshObjects::Mesh&& itm, const char *bone);
     void                           setStateItem  (MeshObjects::Mesh&& itm, const char *bone);
     void                           clearSlotItem (const char *bone);
@@ -72,7 +72,7 @@ class MdlVisual final {
                                                    WeaponState st, WalkBit wlk, bool noInterupt);
     bool                           startAnim(Npc &npc, WeaponState st);
     bool                           startAnimItem(Npc &npc, const char* scheme, int state);
-    bool                           startAnimSpell(Npc &npc, const char* scheme);
+    bool                           startAnimSpell(Npc &npc, const char* scheme, bool invest);
     bool                           startAnimDialog(Npc &npc);
     void                           stopDlgAnim();
     void                           stopAnim(Npc &npc, const char *ani);

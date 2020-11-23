@@ -159,7 +159,11 @@ void MdlVisual::setAmmoItem(MeshObjects::Mesh&& a, const char *bone) {
   bind(ammunition,std::move(a),bone);
   }
 
-void MdlVisual::setMagicWeapon(Effect&& spell) {
+void MdlVisual::setMagicWeapon(Effect&& spell, World& owner) {
+  auto n = pfx.view.takeNext();
+  if(n!=nullptr) {
+    startEffect(owner,std::move(*n),-1);
+    }
   pfx.view = std::move(spell);
   pfx.view.setLooped(true);
   if(skeleton!=nullptr)
@@ -710,12 +714,15 @@ bool MdlVisual::startAnimItem(Npc &npc, const char *scheme, int state) {
   return skInst->setAnimItem(solver,npc,scheme,state);
   }
 
-bool MdlVisual::startAnimSpell(Npc &npc, const char *scheme) {
+bool MdlVisual::startAnimSpell(Npc &npc, const char *scheme, bool invest) {
   char name[128]={};
-  std::snprintf(name,sizeof(name),"S_%sSHOOT",scheme);
+
+  if(invest)
+    std::snprintf(name,sizeof(name),"S_%sCAST",scheme); else
+    std::snprintf(name,sizeof(name),"S_%sSHOOT",scheme);
 
   const Animation::Sequence *sq = solver.solveFrm(name);
-  if(skInst->startAnim(solver,sq,0,BS_CASTING,Pose::Force,npc.world().tickCount())) {
+  if(skInst->startAnim(solver,sq,0,BS_CASTING,Pose::NoHint,npc.world().tickCount())) {
     return true;
     }
   return false;

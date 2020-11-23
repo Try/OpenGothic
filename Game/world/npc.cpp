@@ -100,6 +100,7 @@ void Npc::save(Serialize &fout) {
   if(currentSpellCast<uint32_t(-1))
     fout.write(uint32_t(currentSpellCast)); else
     fout.write(uint32_t(-1));
+  fout.write(uint8_t(castLevel),castBegin);
   saveAiState(fout);
 
   fout.write(currentOther);
@@ -138,6 +139,8 @@ void Npc::load(Serialize &fin) {
       uint32_t currentSpellCastU32 = uint32_t(-1);
       fin.read(currentSpellCastU32);
       currentSpellCast = (currentSpellCastU32==uint32_t(-1) ? size_t(-1) : currentSpellCastU32);
+      if(fin.version()>=21)
+        fin.read(reinterpret_cast<uint8_t&>(castLevel),castBegin);
       } else {
       int32_t currentSpellCast32;
       fin.read(currentSpellCast32);
@@ -762,7 +765,7 @@ void Npc::setRangeWeapon(MeshObjects::Mesh &&b) {
   }
 
 void Npc::setMagicWeapon(Effect&& s) {
-  visual.setMagicWeapon(std::move(s));
+  visual.setMagicWeapon(std::move(s),owner);
   updateWeaponSkeleton();
   }
 
@@ -921,6 +924,10 @@ bool Npc::isSwim() const {
 
 bool Npc::isDive() const {
   return mvAlgo.isDive();
+  }
+
+bool Npc::isCasting() const {
+  return castLevel!=CS_NoCast;
   }
 
 bool Npc::isJumpAnim() const {
@@ -1626,13 +1633,8 @@ void Npc::tick(uint64_t dt) {
   if(!visual.pose().hasAnim())
     setAnim(AnimationSolver::Idle);
 
-  if(currentSpellCast!=size_t(-1)) {
-    if(isDown()) {
-      currentSpellCast = size_t(-1);
-      }
-    else if(setAnim(Npc::Anim::Idle))
-      commitSpell();
-    }
+  if(tickCast())
+    return;
 
   if(!isDead()) {
     tickRegen(hnpc.attribute[ATR_HITPOINTS],hnpc.attribute[ATR_HITPOINTSMAX],
@@ -2161,9 +2163,7 @@ void Npc::playEffect(Npc& /*to*/, const VisualFx& vfx) {
   }
 
 void Npc::commitSpell() {
-  auto active      = invent.getItem(currentSpellCast);
-  currentSpellCast = size_t(-1);
-
+  auto active = invent.getItem(currentSpellCast);
   if(active==nullptr || !active->isSpellOrRune())
     return;
 
@@ -2575,40 +2575,128 @@ void Npc::blockSword() {
   setAnim(Anim::AtackBlock);
   }
 
-bool Npc::castSpell() {
+bool Npc::beginCastSpell() {
+  if(castLevel!=CS_NoCast)
+    return false;
+
+  if(!isStanding())
+    return false;
+
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
 
-  if(!isStanding()) {
-    return false;
-    }
+  castLevel        = CS_Invest_0;
+  currentSpellCast = active->clsId();
+  castBegin        = owner.tickCount();
+  hnpc.aivar[88]   = 0; // HACK: clear AIV_SpellLevel
 
-  currentSpellCast     = active->clsId();
   const SpellCode code = SpellCode(owner.script().invokeMana(*this,currentTarget,*active));
   switch(code) {
     case SpellCode::SPL_SENDSTOP:
+    case SpellCode::SPL_DONTINVEST:
+    case SpellCode::SPL_STATUS_CANINVEST_NO_MANADEC:
       setAnim(Anim::MagNoMana);
       currentSpellCast = size_t(-1);
-      break;
-    case SpellCode::SPL_STATUS_CANINVEST_NO_MANADEC:
+      return false;
     case SpellCode::SPL_NEXTLEVEL: {
       auto& ani = owner.script().spellCastAnim(*this,*active);
-      if(!visual.startAnimSpell(*this,ani.c_str()))
+      if(!visual.startAnimSpell(*this,ani.c_str(),true))
         return false;
       break;
       }
-    case SpellCode::SPL_DONTINVEST:
-    case SpellCode::SPL_SENDCAST: {
+    case SpellCode::SPL_SENDCAST:{
       auto& ani = owner.script().spellCastAnim(*this,*active);
-      if(!visual.startAnimSpell(*this,ani.c_str()))
+      if(!visual.startAnimSpell(*this,ani.c_str(),false))
         return false;
-      break;
+      endCastSpell();
+      return false;
       }
     default:
       Log::d("unexpected Spell_ProcessMana result: '",int(code),"' for spell '",currentSpellCast,"'");
       return false;
     }
+  return true;
+  }
+
+bool Npc::tickCast() {
+  if(castLevel==CS_NoCast)
+    return false;
+
+  auto active = currentSpellCast!=size_t(-1) ? invent.getItem(currentSpellCast) : nullptr;
+
+  if(currentSpellCast!=size_t(-1)) {
+    if(active==nullptr || !active->isSpellOrRune() || isDown()) {
+      // canot cast spell
+      castLevel        = CS_NoCast;
+      currentSpellCast = size_t(-1);
+      castBegin        = 0;
+      return true;
+      }
+    }
+
+  if(castLevel==CS_Cast) {
+    // cast anim
+    if(active!=nullptr) {
+      auto& ani = owner.script().spellCastAnim(*this,*active);
+      if(!visual.startAnimSpell(*this,ani.c_str(),false))
+        return true;
+      }
+    commitSpell();
+    castLevel = CS_Finalize;
+    currentSpellCast = size_t(-1);
+    castBegin = 0;
+    return true;
+    }
+
+  if(castLevel==CS_Finalize) {
+    // final commit
+    if(!setAnim(Npc::Anim::Idle))
+      return true;
+    castLevel        = CS_NoCast;
+    currentSpellCast = size_t(-1);
+    castBegin        = 0;
+    return false;
+    }
+
+  if(active==nullptr)
+    return true;
+
+  if(bodyStateMasked()!=BS_CASTING)
+    return true;
+
+  if(owner.tickCount()-castBegin < uint64_t((int(castLevel)-int(CS_Invest_0))*1000))
+    return true;
+
+  castLevel = CastState(castLevel+1);
+  const SpellCode code = SpellCode(owner.script().invokeMana(*this,currentTarget,*active));
+  switch(code) {
+    case SpellCode::SPL_NEXTLEVEL: {
+      visual.setEffectKey(SpellFxKey::Invest,owner);
+      break;
+      }
+    case SpellCode::SPL_SENDSTOP:
+    case SpellCode::SPL_STATUS_CANINVEST_NO_MANADEC:
+    case SpellCode::SPL_DONTINVEST:
+    case SpellCode::SPL_SENDCAST: {
+      endCastSpell();
+      return true;
+      }
+    default:
+      Log::d("unexpected Spell_ProcessMana result: '",int(code),"' for spell '",currentSpellCast,"'");
+      return false;
+    }
+  return true;
+  }
+
+void Npc::endCastSpell() {
+  castLevel = CS_Cast;
+  }
+
+bool Npc::castSpell() {
+  if(!beginCastSpell())
+    return false;
+  endCastSpell();
   return true;
   }
 

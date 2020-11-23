@@ -403,6 +403,16 @@ void PlayerControl::implMove(uint64_t dt) {
     return;
     }
 
+  if(casting) {
+    if(actrl[ActForward]) {
+      actrl[ActForward] = false;
+      } else {
+      casting = false;
+      pl.endCastSpell();
+      }
+    return;
+    }
+
   if(pl.canSwitchWeapon()) {
     if(wctrl[WeaponClose]) {
       wctrl[WeaponClose] = !pl.closeWeapon(false);
@@ -485,8 +495,7 @@ void PlayerControl::implMove(uint64_t dt) {
         return;
         }
       case WeaponState::Mage: {
-        pl.castSpell();
-        return;
+        casting = pl.beginCastSpell();
         }
       }
     }
@@ -542,7 +551,8 @@ void PlayerControl::implMove(uint64_t dt) {
   else if(ctrl[Action::Right])
     ani = Npc::Anim::MoveR;
 
-  pl.setAnim(ani);
+  if(!pl.isCasting())
+    pl.setAnim(ani);
   pl.setAnimRotate(ani==Npc::Anim::Idle ? rotation : 0);
   if(actrl[ActGeneric] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.isFinishingMove()) {
     if(auto other = pl.target()) {

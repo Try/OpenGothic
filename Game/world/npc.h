@@ -159,6 +159,19 @@ class Npc final {
       HS_Dead    = 1
       };
 
+    enum CastState : uint8_t {
+      CS_NoCast   = 0,
+      CS_Cast     = 1,
+      CS_Finalize = 2,
+      CS_Invest_0 = 3,
+      CS_Invest_1 = 4,
+      CS_Invest_2 = 5,
+      CS_Invest_3 = 6,
+      CS_Invest_4 = 7,
+      CS_Invest_5 = 8,
+      CS_Invest_6 = 9,
+      };
+
     using Anim = AnimationSolver::Anim;
 
     Npc(World &owner, size_t instance, const Daedalus::ZString& waypoint);
@@ -254,6 +267,7 @@ class Npc final {
     bool       isStanding() const;
     bool       isSwim() const;
     bool       isDive() const;
+    bool       isCasting() const;
 
     void       setTalentSkill(Talent t,int32_t lvl);
     int32_t    talentSkill(Talent t) const;
@@ -319,6 +333,8 @@ class Npc final {
     void      swingSwordL();
     void      swingSwordR();
     void      blockSword();
+    bool      beginCastSpell();
+    void      endCastSpell();
     bool      castSpell();
     bool      aimBow();
     bool      shootBow(Interactive* focOverride = nullptr);
@@ -572,6 +588,7 @@ class Npc final {
     void      tickRegen(int32_t& v,const int32_t max,const int32_t chg, const uint64_t dt);
     void      updatePos();
     bool      setViewPosition(const Tempest::Vec3& pos);
+    bool      tickCast();
 
     int       aiOutputOrderId() const;
     bool      performOutput(const AiAction &ai);
@@ -659,7 +676,11 @@ class Npc final {
     Npc*                           lastHit          = nullptr;
     char                           lastHitType      = 'A';
     int32_t                        lastHitSpell     = 0;
+
+    // spell cast
+    CastState                      castLevel        = CS_NoCast;
     size_t                         currentSpellCast = size_t(-1);
+    uint64_t                       castBegin        = 0;
 
     // ai state
     uint64_t                       aniWaitTime=0;

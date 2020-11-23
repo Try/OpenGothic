@@ -80,6 +80,7 @@ class PlayerControl final {
     Focus          currentFocus;
     float          rotMouse=0;
     float          rotMouseY=0;
+    bool           casting = false;
 
     Gothic&        gothic;
     DialogMenu&    dlg;

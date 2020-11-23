@@ -27,7 +27,7 @@ class Serialize final {
   public:
     enum {
       MinVersion = 0,
-      Version    = 20
+      Version    = 21
       };
 
     Serialize(Tempest::ODevice& fout);
