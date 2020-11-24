@@ -7,12 +7,46 @@
 
 using namespace Tempest;
 
-VisualFx::VisualFx(Daedalus::GEngineClasses::CFx_Base &&src):fx(std::move(src)) {
+VisualFx::VisualFx(Daedalus::GEngineClasses::CFx_Base &&src, Daedalus::DaedalusVM& vm, const char* name)
+  :fx(std::move(src)) {
   emTrjOriginNode = fx.emTrjOriginNode.c_str();
   for(auto& c:emTrjOriginNode)
     c = char(std::toupper(c));
   colStatFlg = strToColision(fx.emActionCollStat_S.c_str());
-  colDynFlg  = strToColision(fx.emActionCollDyn_S.c_str());
+  colDynFlg  = strToColision(fx.emActionCollDyn_S.c_str());  
+
+  static const char* keyName[int(SpellFxKey::Count)] = {
+    "OPEN",
+    "INIT",
+    "CAST",
+    "INVEST",
+    "COLLIDE"
+    };
+
+  for(int i=0;i<int(SpellFxKey::Count);++i) {
+    char kname[256]={};
+    std::snprintf(kname,sizeof(kname),"%s_KEY_%s",name,keyName[i]);
+    auto id = vm.getDATFile().getSymbolIndexByName(kname);
+    if(id==size_t(-1))
+      continue;
+    Daedalus::GEngineClasses::C_ParticleFXEmitKey key;
+    vm.initializeInstance(key, id, Daedalus::IC_FXEmitKey);
+    vm.clearReferences(Daedalus::IC_FXEmitKey);
+    keys[i] = key;
+    }
+
+  for(int i=1; ; ++i) {
+    char kname[256]={};
+    std::snprintf(kname,sizeof(kname),"%s_KEY_INVEST_%d",name,i);
+    auto id = vm.getDATFile().getSymbolIndexByName(kname);
+    if(id==size_t(-1))
+      break;
+    Daedalus::GEngineClasses::C_ParticleFXEmitKey key;
+    vm.initializeInstance(key, id, Daedalus::IC_FXEmitKey);
+    vm.clearReferences(Daedalus::IC_FXEmitKey);
+    // keys[int(SpellFxKey::Invest)] = key;
+    investKeys.push_back(std::move(key));
+    }
   }
 
 const char* VisualFx::colStat() const {
@@ -32,17 +66,13 @@ PfxObjects::Emitter VisualFx::visual(World& owner) const {
   return vemitter;
   }
 
-const Daedalus::GEngineClasses::C_ParticleFXEmitKey& VisualFx::key(SpellFxKey type) const {
+const Daedalus::GEngineClasses::C_ParticleFXEmitKey& VisualFx::key(SpellFxKey type, int32_t keyLvl) const {
+  if(type==SpellFxKey::Invest && keyLvl>0) {
+    keyLvl--;
+    if(size_t(keyLvl)<investKeys.size())
+      return investKeys[keyLvl];
+    }
   return keys[int(type)];
-  }
-
-Daedalus::GEngineClasses::C_ParticleFXEmitKey& VisualFx::key(SpellFxKey type) {
-  return keys[int(type)];
-  }
-
-void VisualFx::emitSound(World& wrld, const Tempest::Vec3& p, SpellFxKey type) const {
-  auto& k   = key(type);
-  wrld.emitSoundEffect(k.sfxID.c_str(),p.x,p.y,p.z,0,true);
   }
 
 VisualFx::Collision VisualFx::strToColision(const char* s) {

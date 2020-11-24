@@ -25,7 +25,7 @@ class Effect final {
     void     setTarget   (const Tempest::Vec3& tg);
     void     setObjMatrix(Tempest::Matrix4x4& mt);
     void     setPosition (const Tempest::Vec3& pos);
-    void     setKey      (World& owner, SpellFxKey key);
+    void     setKey      (World& owner, SpellFxKey key, int32_t keyLvl=0);
 
     uint64_t effectPrefferedTime() const;
 

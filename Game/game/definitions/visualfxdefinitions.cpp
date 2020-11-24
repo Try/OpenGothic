@@ -23,27 +23,7 @@ const VisualFx *VisualFxDefinitions::get(const char *name) {
   if(def==nullptr)
     return nullptr;
 
-  static const char* keyName[int(SpellFxKey::Count)] = {
-    "OPEN",
-    "INIT",
-    "CAST",
-    "INVEST",
-    "COLLIDE"
-    };
-
-  std::unique_ptr<VisualFx> p{new VisualFx(std::move(*def))};
-  for(int i=0;i<int(SpellFxKey::Count);++i) {
-    char kname[256]={};
-    std::snprintf(kname,sizeof(kname),"%s_KEY_%s",name,keyName[i]);
-    auto id = vm->getDATFile().getSymbolIndexByName(kname);
-    if(id==size_t(-1))
-      continue;
-    Daedalus::GEngineClasses::C_ParticleFXEmitKey key;
-    vm->initializeInstance(key, id, Daedalus::IC_FXEmitKey);
-    vm->clearReferences(Daedalus::IC_FXEmitKey);
-    p->key(SpellFxKey(i)) = key;
-    }
-
+  std::unique_ptr<VisualFx> p{new VisualFx(std::move(*def),*vm,name)};
   auto ret = vfx.insert(std::make_pair<std::string,std::unique_ptr<VisualFx>>(name,std::move(p)));
   return ret.first->second.get();
   }

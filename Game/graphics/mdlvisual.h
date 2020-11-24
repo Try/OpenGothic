@@ -50,7 +50,7 @@ class MdlVisual final {
     bool                           setFightMode  (const ZenLoad::EFightMode mode);
 
     void                           startEffect (World& owner, Effect&& pfx, int32_t slot);
-    void                           setEffectKey(SpellFxKey key, World& owner);
+    void                           setEffectKey(World& owner, SpellFxKey key, int32_t keyLvl=0);
     void                           stopEffect  (int32_t slot);
     void                           setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s);
 

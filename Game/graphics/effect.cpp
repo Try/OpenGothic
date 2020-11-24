@@ -94,7 +94,7 @@ void Effect::syncAttachesSingle(const Matrix4x4& inPos, bool topLevel) {
   light.setPosition(pos3);
   }
 
-void Effect::setKey(World& owner, SpellFxKey k) {
+void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
   if(k==SpellFxKey::Count)
     return;
   if(next!=nullptr)
@@ -104,13 +104,14 @@ void Effect::setKey(World& owner, SpellFxKey k) {
     return;
 
   Vec3 pos3 = {pos.at(3,0),pos.at(3,1),pos.at(3,2)};
-  key       = &root->key(k);
+  key       = &root->key(k,keyLvl);
 
   auto vfx = owner.script().getVisualFx(key->emCreateFXID.c_str());
   if(vfx!=nullptr) {
     auto ex = Effect(*vfx,owner,pos3,SpellFxKey::Count);
     if(skeleton!=nullptr && pose!=nullptr) {
-      size_t nid = 0;//skeleton->findNode(vfx->origin());
+      // size_t nid = 0;
+      size_t nid = skeleton->findNode(vfx->origin());
       if(nid<pose->transform().size()) {
         Matrix4x4 p = pos;
         p.mul(pose->transform(nid));

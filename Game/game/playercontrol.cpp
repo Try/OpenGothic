@@ -373,7 +373,6 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   if(!pl.isAiQueueEmpty()) {
-    pl.setAnim(Npc::Anim::Idle);
     return;
     }
 

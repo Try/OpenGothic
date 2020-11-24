@@ -10,7 +10,7 @@ class World;
 
 class VisualFx final {
   public:
-    VisualFx(Daedalus::GEngineClasses::CFx_Base&& src);
+    VisualFx(Daedalus::GEngineClasses::CFx_Base&& src, Daedalus::DaedalusVM& tmpVm, const char* name);
 
     enum Collision : uint8_t {
       NoCollide  = 0,
@@ -30,10 +30,7 @@ class VisualFx final {
     const char*                                          origin()        const { return emTrjOriginNode.c_str(); }
 
     PfxObjects::Emitter                                  visual(World& owner) const;
-    const Daedalus::GEngineClasses::C_ParticleFXEmitKey& key(SpellFxKey type) const;
-    Daedalus::GEngineClasses::C_ParticleFXEmitKey&       key(SpellFxKey type);
-
-    void emitSound(World& wrld, const Tempest::Vec3& pos, SpellFxKey type) const;
+    const Daedalus::GEngineClasses::C_ParticleFXEmitKey& key(SpellFxKey type, int32_t keyLvl=0) const;
 
   private:
     const Daedalus::GEngineClasses::CFx_Base      fx;
@@ -44,5 +41,6 @@ class VisualFx final {
     static Collision                              strToColision(const char* s);
 
     Daedalus::GEngineClasses::C_ParticleFXEmitKey keys[int(SpellFxKey::Count)];
+    std::vector<Daedalus::GEngineClasses::C_ParticleFXEmitKey> investKeys;
   };
 

@@ -160,16 +160,22 @@ class Npc final {
       };
 
     enum CastState : uint8_t {
-      CS_NoCast   = 0,
-      CS_Cast     = 1,
-      CS_Finalize = 2,
-      CS_Invest_0 = 3,
-      CS_Invest_1 = 4,
-      CS_Invest_2 = 5,
-      CS_Invest_3 = 6,
-      CS_Invest_4 = 7,
-      CS_Invest_5 = 8,
-      CS_Invest_6 = 9,
+      CS_NoCast      = 0,
+      CS_Finalize    = 1,
+
+      CS_Invest_0    = 16,
+      CS_Invest_1    = 17,
+      CS_Invest_2    = 18,
+      CS_Invest_3    = 18,
+      CS_Invest_4    = 20,
+      CS_Invest_5    = 21,
+      CS_Invest_6    = 22,
+      CS_Invest_Last = 31,
+      CS_Cast_0      = 32,
+      CS_Cast_1      = 33,
+      CS_Cast_2      = 34,
+      CS_Cast_3      = 35,
+      CS_Cast_Last   = 47,
       };
 
     using Anim = AnimationSolver::Anim;

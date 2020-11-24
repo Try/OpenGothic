@@ -275,10 +275,10 @@ void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot) {
   syncAttaches();
   }
 
-void MdlVisual::setEffectKey(SpellFxKey key, World& owner) {
+void MdlVisual::setEffectKey(World& owner, SpellFxKey key, int32_t keyLvl) {
   for(auto& i:effects)
-    i.view.setKey(owner,key);
-  pfx.view.setKey(owner,key);
+    i.view.setKey(owner,key,keyLvl);
+  pfx.view.setKey(owner,key,keyLvl);
   }
 
 void MdlVisual::stopEffect(int32_t slot) {
