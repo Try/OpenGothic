@@ -186,6 +186,8 @@ void GameScript::initCommon() {
                                                      [this](Daedalus::DaedalusVM& vm){ npc_getactivespellcat(vm); });
   vm.registerExternalFunction("npc_setactivespellinfo",
                                                      [this](Daedalus::DaedalusVM& vm){ npc_setactivespellinfo(vm); });
+  vm.registerExternalFunction("npc_getactivespelllevel",
+                                                     [this](Daedalus::DaedalusVM& vm){ npc_getactivespelllevel(vm); });
 
   vm.registerExternalFunction("npc_canseenpcfreelos",[this](Daedalus::DaedalusVM& vm){ npc_canseenpcfreelos(vm); });
   vm.registerExternalFunction("npc_isinfightmode",   [this](Daedalus::DaedalusVM& vm){ npc_isinfightmode(vm);    });
@@ -2487,12 +2489,17 @@ void GameScript::npc_getactivespellcat(Daedalus::DaedalusVM &vm) {
 void GameScript::npc_setactivespellinfo(Daedalus::DaedalusVM &vm) {
   int32_t v   = vm.popInt();
   auto    npc = popInstance(vm);
-
-  (void)v;
-  (void)npc;
-
-  notImplementedFn<&GameScript::npc_setactivespellinfo>("npc_setactivespellinfo");
+  if(npc!=nullptr)
+    npc->setActiveSpellInfo(v);
   vm.setReturn(0);
+  }
+
+void GameScript::npc_getactivespelllevel(Daedalus::DaedalusVM& vm) {
+  int  v   = 0;
+  auto npc = popInstance(vm);
+  if(npc!=nullptr)
+    v = npc->activeSpellLevel();
+  vm.setReturn(v);
   }
 
 void GameScript::ai_processinfos(Daedalus::DaedalusVM &vm) {

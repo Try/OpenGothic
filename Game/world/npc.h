@@ -290,7 +290,7 @@ class Npc final {
     int32_t    attribute (Attribute a) const;
     void       changeAttribute(Attribute a, int32_t val, bool allowUnconscious);
     int32_t    protection(Protection p) const;
-    void       changeProtection(Protection p,int32_t val);
+    void       changeProtection(Protection p, int32_t val);
 
     uint32_t   instanceSymbol() const;
     uint32_t   guild() const;
@@ -341,6 +341,8 @@ class Npc final {
     void      blockSword();
     bool      beginCastSpell();
     void      endCastSpell();
+    void      setActiveSpellInfo(int32_t info);
+    int32_t   activeSpellLevel() const;
     bool      castSpell();
     bool      aimBow();
     bool      shootBow(Interactive* focOverride = nullptr);
@@ -385,6 +387,7 @@ class Npc final {
     bool      hasCollision() const { return physic.hasCollision(); }
 
     void      startDive();
+    void      transformBack();
 
     auto      dialogChoises(Npc &player, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<GameScript::DlgChoise>;
 
@@ -654,7 +657,7 @@ class Npc final {
 
     // visual props
     std::string                    body,head;
-    int32_t                        vHead=0, vTeeth=0, vColor =0;
+    int32_t                        vHead=0, vTeeth=0, vColor=0;
     int32_t                        bdColor=0;
     MdlVisual                      visual;
 
@@ -687,6 +690,11 @@ class Npc final {
     CastState                      castLevel        = CS_NoCast;
     size_t                         currentSpellCast = size_t(-1);
     uint64_t                       castBegin        = 0;
+    int32_t                        spellInfo        = 0;
+
+    // transform-backshape
+    struct TransformBack;
+    std::unique_ptr<TransformBack> transform;
 
     // ai state
     uint64_t                       aniWaitTime=0;

@@ -32,6 +32,7 @@ class MdlVisual final {
     void                           setVisualBody(MeshObjects::Mesh &&body, World& owner);
     void                           setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner, int32_t version);
     void                           syncAttaches();
+    const Skeleton*                visualSkeleton() const;
 
     bool                           hasOverlay(const Skeleton *sk) const;
     void                           addOverlay(const Skeleton *sk, uint64_t time);

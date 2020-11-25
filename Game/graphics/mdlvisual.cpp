@@ -699,6 +699,10 @@ void MdlVisual::syncAttaches() {
   hnpcVisual.view.setObjMatrix(pos);
   }
 
+const Skeleton* MdlVisual::visualSkeleton() const {
+  return skeleton;
+  }
+
 template<class View>
 void MdlVisual::syncAttaches(Attach<View>& att) {
   auto& pose = *skInst;

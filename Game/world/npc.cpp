@@ -51,6 +51,56 @@ void Npc::GoTo::set(const WayPoint* to, GoToHint hnt) {
   flag = hnt;
   }
 
+
+struct Npc::TransformBack {
+  TransformBack(Npc& self) {
+    hnpc        = self.hnpc;
+    invent      = std::move(self.invent);
+    self.invent = Inventory(); // cleanup
+
+    std::memcpy(talentsSk,self.talentsSk,sizeof(talentsSk));
+    std::memcpy(talentsVl,self.talentsVl,sizeof(talentsVl));
+
+    body     = std::move(self.body);
+    head     = std::move(self.head);
+    vHead    = self.vHead;
+    vTeeth   = self.vTeeth;
+    vColor   = self.vColor;
+    bdColor  = self.bdColor;
+
+    skeleton = self.visual.visualSkeleton();
+    }
+
+  void undo(Npc& self) {
+    auto ucnt = self.hnpc.useCount;
+    self.invent = std::move(invent);
+    self.hnpc   = hnpc;
+    self.hnpc.useCount = ucnt;
+
+    std::memcpy(self.talentsSk,talentsSk,sizeof(talentsSk));
+    std::memcpy(self.talentsVl,talentsVl,sizeof(talentsVl));
+
+    self.body    = std::move(body);
+    self.head    = std::move(head);
+    self.vHead   = vHead;
+    self.vTeeth  = vTeeth;
+    self.vColor  = vColor;
+    self.bdColor = bdColor;
+    }
+
+  Daedalus::GEngineClasses::C_Npc hnpc={};
+  Inventory                       invent;
+  int32_t                         talentsSk[TALENT_MAX_G2]={};
+  int32_t                         talentsVl[TALENT_MAX_G2]={};
+
+  std::string                     body,head;
+  int32_t                         vHead=0, vTeeth=0, vColor=0;
+  int32_t                         bdColor=0;
+
+  const Skeleton*                 skeleton = nullptr;
+  };
+
+
 Npc::Npc(World &owner, size_t instance, const Daedalus::ZString& waypoint)
   :owner(owner),mvAlgo(*this) {
   outputPipe          = owner.script().openAiOuput();
@@ -2172,7 +2222,7 @@ void Npc::commitSpell() {
 
   if(active->isSpellShoot()) {
     auto& spl = owner.script().getSpell(splId);
-    int   lvl = (castLevel-CS_Cast_0);
+    int   lvl = (castLevel-CS_Cast_0)+1;
     std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> dmg={};
     for(size_t i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i)
       if((spl.damageType&(1<<i))!=0) {
@@ -2190,6 +2240,7 @@ void Npc::commitSpell() {
       currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
       }
     }
+
   if(active->isSpell()) {
     size_t cnt = active->count();
     invent.delItem(active->clsId(),1,*this);
@@ -2207,6 +2258,16 @@ void Npc::commitSpell() {
         drawSpell(spl->spellId());
         }
       }
+    }
+
+  if(spellInfo!=0 && transform==nullptr) {
+    transform.reset(new TransformBack(*this));
+    invent.updateView(*this);
+    //visual.delOverlay();
+
+    owner.script().initializeInstance(hnpc,size_t(spellInfo));
+    spellInfo  = 0;
+    hnpc.level = transform->hnpc.level;
     }
   }
 
@@ -2661,6 +2722,7 @@ bool Npc::tickCast() {
     castLevel        = CS_NoCast;
     currentSpellCast = size_t(-1);
     castBegin        = 0;
+    spellInfo        = 0;
     return false;
     }
 
@@ -2670,8 +2732,9 @@ bool Npc::tickCast() {
   if(bodyStateMasked()!=BS_CASTING)
     return true;
 
+  auto& spl = owner.script().getSpell(active->spellId());
   int32_t castLvl = int(castLevel)-int(CS_Invest_0);
-  if(owner.tickCount()-castBegin < uint64_t(castLvl)*1000)
+  if(owner.tickCount()-castBegin < uint64_t(castLvl)*uint64_t(spl.time_per_mana))
     return true;
 
   if(castLvl<=15)
@@ -2702,6 +2765,18 @@ void Npc::endCastSpell() {
   if(castLvl<0)
     return;
   castLevel = CastState(castLvl+CS_Cast_0);
+  }
+
+void Npc::setActiveSpellInfo(int32_t info) {
+  spellInfo = info;
+  }
+
+int32_t Npc::activeSpellLevel() const {
+  if(CS_Cast_0<=castLevel && castLevel<=CS_Cast_Last)
+    return int(castLevel)-int(CS_Cast_0)+1;
+  if(CS_Invest_0<=castLevel && castLevel<=CS_Invest_Last)
+    return int(castLevel)-int(CS_Invest_0)+1;
+  return 0;
   }
 
 bool Npc::castSpell() {
@@ -3029,6 +3104,18 @@ Npc::JumpCode Npc::tryJump(const Tempest::Vec3& p0) {
 
 void Npc::startDive() {
   mvAlgo.startDive();
+  }
+
+void Npc::transformBack() {
+  if(transform==nullptr)
+    return;
+  transform->undo(*this);
+  setVisual(transform->skeleton);
+  setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
+  closeWeapon(true);
+
+  invent.updateView(*this);
+  transform.reset();
   }
 
 std::vector<GameScript::DlgChoise> Npc::dialogChoises(Npc& player,const std::vector<uint32_t> &except,bool includeImp) {

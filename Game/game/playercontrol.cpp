@@ -35,7 +35,7 @@ void PlayerControl::setTarget(Npc *other) {
     }
   }
 
-void PlayerControl::onKeyPressed(KeyCodec::Action a) {
+void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType key) {
   auto    w    = world();
   auto    pl   = w  ? w->player() : nullptr;
   auto    ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
@@ -78,6 +78,8 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a) {
         return;
         }
       }
+    if(key==Tempest::KeyEvent::K_Return)
+      ctrl[Action::K_ENTER] = true;
     }
 
   if(ctrl[KeyCodec::ActionGeneric]) {
@@ -344,6 +346,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
     }
 
   implMove(dt);
+
   rotMouse  = 0;
   rotMouseY = 0;
   return true;
@@ -410,6 +413,11 @@ void PlayerControl::implMove(uint64_t dt) {
       pl.endCastSpell();
       }
     return;
+    }
+
+  if(ctrl[Action::K_ENTER]) {
+    pl.transformBack();
+    ctrl[Action::K_ENTER] = false;
     }
 
   if(pl.canSwitchWeapon()) {

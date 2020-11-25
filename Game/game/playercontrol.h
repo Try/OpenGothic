@@ -19,7 +19,7 @@ class PlayerControl final {
   public:
     PlayerControl(Gothic& gothic,DialogMenu& dlg,InventoryMenu& inv);
 
-    void onKeyPressed (KeyCodec::Action a);
+    void onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key);
     void onKeyReleased(KeyCodec::Action a);
     void onRotateMouse(float dAngle);
     void onRotateMouseDy(float dAngle);

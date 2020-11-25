@@ -288,6 +288,7 @@ class GameScript final {
     void npc_getactivespellisscroll(Daedalus::DaedalusVM &vm);
     void npc_getactivespellcat(Daedalus::DaedalusVM &vm);
     void npc_setactivespellinfo(Daedalus::DaedalusVM &vm);
+    void npc_getactivespelllevel(Daedalus::DaedalusVM &vm);
     void npc_canseenpcfreelos(Daedalus::DaedalusVM &vm);
     void npc_isinfightmode   (Daedalus::DaedalusVM &vm);
     void npc_settarget       (Daedalus::DaedalusVM &vm);
