@@ -19,16 +19,17 @@ environment:
 install:
 - git submodule -q update --init --recursive
 # Vulkan SDK and thirdparty
-- cmd: curl -L --silent --show-error --output VulkanSDK.exe https://vulkan.lunarg.com/sdk/download/1.2.135.0/windows/VulkanSDK-1.2.135.0-Installer.exe?Human=true
+# https://vulkan.lunarg.com/content/view/latest-sdk-version-api
+- cmd: curl -L --silent --show-error --output VulkanSDK.exe https://sdk.lunarg.com/sdk/download/1.2.154.1/windows/vulkan_sdk.exe
 - cmd: VulkanSDK.exe /S
-- cmd: set VK_SDK_PATH=C:/VulkanSDK/1.2.135.0
+- cmd: set VK_SDK_PATH=C:/VulkanSDK/1.2.154.1
 
 - sh:  sudo apt-get update
 - sh:  sudo apt-get --yes install libvulkan-dev libasound2-dev
-- sh:  wget -O vulkansdk-linux-x86_64-1.2.135.0.tar.gz https://vulkan.lunarg.com/sdk/download/1.2.135.0/linux/vulkansdk-linux-x86_64-1.2.135.0.tar.gz?Human=true
+- sh:  curl -L --silent --show-error --output VulkanSDK.tar.gz https://sdk.lunarg.com/sdk/download/1.2.154.0/linux/vulkan_sdk.tar.gz
 - sh:  mkdir VulkanSDK
-- sh:  tar -xzf vulkansdk-linux-x86_64-1.2.135.0.tar.gz -C ./VulkanSDK
-- sh:  export VK_SDK_PATH=$APPVEYOR_BUILD_FOLDER/VulkanSDK/1.2.135.0/x86_64
+- sh:  tar -xzf VulkanSDK.tar.gz -C ./VulkanSDK
+- sh:  export VK_SDK_PATH=$APPVEYOR_BUILD_FOLDER/VulkanSDK/1.2.154.0/x86_64
 
 # GLSL compiller
 - mkdir glslang
