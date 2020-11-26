@@ -25,7 +25,7 @@ class SaveGameHeader;
 
 namespace Daedalus {
 namespace GEngineClasses {
-class C_Npc;
+struct C_Npc;
 }
 }
 

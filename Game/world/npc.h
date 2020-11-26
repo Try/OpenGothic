@@ -628,12 +628,6 @@ class Npc final {
     void      onNoHealth(bool death, HitSound sndMask);
     bool      hasAutoroll() const;
 
-    void      save(Serialize& fout,Daedalus::GEngineClasses::C_Npc& hnpc) const;
-    void      load(Serialize& fin, Daedalus::GEngineClasses::C_Npc& hnpc);
-
-    void      save(Serialize& fout,const Daedalus::GEngineClasses::C_Npc::ENPCFlag& flg) const;
-    void      load(Serialize& fin, Daedalus::GEngineClasses::C_Npc::ENPCFlag&       flg);
-
     void      saveAiState(Serialize& fout) const;
     void      loadAiState(Serialize& fin);
     static float angleDir(float x,float z);

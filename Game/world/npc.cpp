@@ -267,26 +267,6 @@ void Npc::load(Serialize &fin) {
     physic.setEnable(false);
   }
 
-void Npc::save(Serialize &fout, Daedalus::GEngineClasses::C_Npc &h) const {
-  fout.write(h);
-  }
-
-void Npc::load(Serialize &fin, Daedalus::GEngineClasses::C_Npc &h) {
-  fin.read(h);
-  auto& sym = owner.script().getSymbol(hnpc.instanceSymbol);
-  sym.instance.set(&hnpc, Daedalus::IC_Npc);
-  }
-
-void Npc::save(Serialize &fout, const Daedalus::GEngineClasses::C_Npc::ENPCFlag &flg) const {
-  fout.write(int32_t(flg));
-  }
-
-void Npc::load(Serialize &fin, Daedalus::GEngineClasses::C_Npc::ENPCFlag &flg) {
-  int32_t flags=0;
-  fin.read(flags);
-  flg=Daedalus::GEngineClasses::C_Npc::ENPCFlag(flags);
-  }
-
 void Npc::saveAiState(Serialize& fout) const {
   fout.write(aniWaitTime);
   fout.write(waitTime,faiWaitTime,uint8_t(aiPolicy));
