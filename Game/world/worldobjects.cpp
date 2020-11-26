@@ -12,6 +12,7 @@
 #include "world/triggers/triggerlist.h"
 #include "world/triggers/triggerworldstart.h"
 #include "world/triggers/messagefilter.h"
+#include "world/interactive.h"
 #include "world/vob.h"
 
 #include <Tempest/Painter>
@@ -151,8 +152,17 @@ void WorldObjects::tick(uint64_t dt) {
     i->tick(dt);
 
   bullets.remove_if([](Bullet& b){
-    return b.flags()&Bullet::Stopped;
+    return b.isFinished();
     });
+
+  for(size_t i=0; i<effects.size();) {
+    if(effects[i].timeUntil<owner.tickCount()) {
+      effects[i] = std::move(effects.back());
+      effects.pop_back();
+      } else {
+      ++i;
+      }
+    }
 
   auto pl = owner.player();
   if(pl==nullptr)
@@ -418,6 +428,13 @@ void WorldObjects::disableTicks(AbstractTrigger& t) {
       triggersTk.pop_back();
       return;
       }
+  }
+
+void WorldObjects::runEffect(Effect&& ex) {
+  EffectState e;
+  e.eff       = std::move(ex);
+  e.timeUntil = owner.tickCount()+e.eff.effectPrefferedTime();
+  effects.push_back(std::move(e));
   }
 
 Item* WorldObjects::addItem(const ZenLoad::zCVobData &vob) {

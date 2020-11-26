@@ -4,7 +4,7 @@
 
 WorldLight::WorldLight(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool startup)
   : Vob(parent,world,vob,startup) {
-  world.addLight(vob);
+  light = world.getLight(vob);
   }
 
 void WorldLight::moveEvent() {

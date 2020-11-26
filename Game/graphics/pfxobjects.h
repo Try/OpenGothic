@@ -34,11 +34,15 @@ class PfxObjects final {
 
         bool   isEmpty() const { return bucket==nullptr; }
         void   setPosition (float x,float y,float z);
+        void   setPosition (const Tempest::Vec3& pos);
         void   setTarget   (const Tempest::Vec3& pos);
         void   setDirection(const Tempest::Matrix4x4& pos);
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setActive(bool act);
         bool   isActive() const;
+        void   setLooped(bool loop);
+
+        uint64_t effectPrefferedTime() const;
 
       private:
         Emitter(Bucket &b,size_t id);
@@ -70,18 +74,23 @@ class PfxObjects final {
       size_t        count        = 0;
 
       Tempest::Vec3 pos          = {};
-      Tempest::Vec3 target       = {};
       Tempest::Vec3 direction[3] = {};
       bool          alive        = true;
-      bool          hasTarget    = false;
       };
 
     struct ImplEmitter final {
       size_t        block        = size_t(-1);
       Tempest::Vec3 pos          = {};
       Tempest::Vec3 direction[3] = {};
-      bool          alive        = true;
-      bool          active       = true;
+      bool          alive        = false;
+      bool          active       = false;
+      bool          isLoop       = false;
+
+      Tempest::Vec3 target       = {};
+      bool          hasTarget    = false;
+
+      uint64_t                 waitforNext = 0;
+      std::unique_ptr<Emitter> next;
       };
 
     struct ParState final {
@@ -122,7 +131,7 @@ class PfxObjects final {
 
       void                        init    (Block& emitter, size_t particle);
       void                        finalize(size_t particle);
-      void                        tick    (Block& sys, size_t particle, uint64_t dt);
+      void                        tick    (Block& sys, ImplEmitter& emitter, size_t particle, uint64_t dt);
       };
 
     struct SpriteEmitter {
@@ -133,12 +142,12 @@ class PfxObjects final {
       };
 
     struct VboContext {
-      float left[4] = {};
-      float top [4] = {};
-      float z   [4] = {};
+      Tempest::Vec3 left = {};
+      Tempest::Vec3 top  = {};
+      Tempest::Vec3 z    = {};
 
-      float leftA[4] = {};
-      float topA [4] = {0,1,0};
+      Tempest::Vec3 leftA = {};
+      Tempest::Vec3 topA  = {0,1,0};
       };
 
     static float                  randf();
@@ -151,7 +160,7 @@ class PfxObjects final {
 
     const SceneGlobals&           scene;
     VisualObjects&                visual;
-    std::mutex                    sync;
+    std::recursive_mutex          sync;
 
     std::vector<std::unique_ptr<Bucket>> bucket;
     std::vector<SpriteEmitter>           spriteEmit;

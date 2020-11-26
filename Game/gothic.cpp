@@ -221,6 +221,10 @@ const VisualFx* Gothic::loadVisualFx(const char *name) {
   return vfxDef->get(name);
   }
 
+const ParticleFx* Gothic::loadParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k) {
+  return particleDef->get(k);
+  }
+
 const ParticleFx* Gothic::loadParticleFx(const char *name) {
   return particleDef->get(name);
   }

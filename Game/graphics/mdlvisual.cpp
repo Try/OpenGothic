@@ -1,7 +1,7 @@
 #include "mdlvisual.h"
 #include "particlefx.h"
 
-#include "graphics/skeleton.h"
+#include "graphics/mesh/skeleton.h"
 #include "game/serialize.h"
 #include "world/npc.h"
 #include "world/item.h"
@@ -12,6 +12,9 @@ using namespace Tempest;
 MdlVisual::MdlVisual()
   :skInst(std::make_unique<Pose>()) {
   pos.identity();
+  }
+
+MdlVisual::~MdlVisual() {
   }
 
 void MdlVisual::save(Serialize &fout, const Npc&) const {
@@ -93,6 +96,10 @@ void MdlVisual::delOverlay(const Skeleton *sk) {
   solver.delOverlay(sk);
   }
 
+void MdlVisual::clearOverlays() {
+  solver.clearOverlays();
+  }
+
 void MdlVisual::setBody(MeshObjects::Mesh&& a, World& owner, const int32_t version) {
   implSetBody(std::move(a),owner,version);
   setPos(pos);
@@ -156,8 +163,15 @@ void MdlVisual::setAmmoItem(MeshObjects::Mesh&& a, const char *bone) {
   bind(ammunition,std::move(a),bone);
   }
 
-void MdlVisual::setMagicWeapon(PfxObjects::Emitter &&spell) {
-  bind(pfx,std::move(spell),"ZS_RIGHTHAND");
+void MdlVisual::setMagicWeapon(Effect&& spell, World& owner) {
+  auto n = pfx.view.takeNext();
+  if(n!=nullptr) {
+    startEffect(owner,std::move(*n),-1);
+    }
+  pfx.view = std::move(spell);
+  pfx.view.setLooped(true);
+  if(skeleton!=nullptr)
+    pfx.view.bindAttaches(*skInst,*skeleton);
   }
 
 void MdlVisual::setSlotItem(MeshObjects::Mesh &&itm, const char *bone) {
@@ -237,50 +251,41 @@ bool MdlVisual::setFightMode(const ZenLoad::EFightMode mode) {
   return setToFightMode(f);
   }
 
-void MdlVisual::startParticleEffect(World& owner, const VisualFx& src, SpellFxKey key) {
-  auto& k = src.key(key);
-  const VisualFx*   vfx = owner.script().getVisualFx(k.emCreateFXID.c_str());
-  if(vfx==nullptr)
-    return;
-  //vfx->handle().sfxID;
-  const ParticleFx* pfx = owner.script().getParticleFx(vfx->handle().visName_S.c_str());
-  if(pfx==nullptr)
+void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot) {
+  uint64_t timeUntil = vfx.effectPrefferedTime();
+  if(timeUntil!=uint64_t(-1))
+    timeUntil+=owner.tickCount();
+
+  if(skeleton==nullptr)
     return;
 
-  auto vemitter = owner.getView(pfx);
-  startParticleEffect(std::move(vemitter),-1,
-                      vfx->handle().emTrjOriginNode.c_str(),
-                      owner.tickCount()+pfx->effectPrefferedTime());
-  }
-
-void MdlVisual::startParticleEffect(PfxObjects::Emitter&& pfx, int32_t slot, const char* bone, uint64_t timeUntil) {
-  if(bone==nullptr || skeleton==nullptr)
-    return;
-
-  size_t id = skeleton->findNode(bone);
-  if(id==size_t(-1))
-    return;
-
+  vfx.setActive(true);
   for(auto& i:effects) {
     if(i.id==slot) {
-      i.bone      = skeleton->nodes[id].name.c_str();
       i.timeUntil = timeUntil;
-      bind(i,std::move(pfx),i.bone);
+      i.view = std::move(vfx);
+      i.view.bindAttaches(*skInst,*skeleton);
       syncAttaches();
       return;
       }
     }
 
   PfxSlot slt;
-  slt.bone      = skeleton->nodes[id].name.c_str();
   slt.id        = slot;
   slt.timeUntil = timeUntil;
-  bind(slt,std::move(pfx),slt.bone);
+  slt.view      = std::move(vfx);
+  slt.view.bindAttaches(*skInst,*skeleton);
   effects.push_back(std::move(slt));
   syncAttaches();
   }
 
-void MdlVisual::stopParticleEffect(int32_t slot) {
+void MdlVisual::setEffectKey(World& owner, SpellFxKey key, int32_t keyLvl) {
+  for(auto& i:effects)
+    i.view.setKey(owner,key,keyLvl);
+  pfx.view.setKey(owner,key,keyLvl);
+  }
+
+void MdlVisual::stopEffect(int32_t slot) {
   for(size_t i=0;i<effects.size();++i) {
     if(effects[i].id==slot) {
       effects[i] = std::move(effects.back());
@@ -289,6 +294,22 @@ void MdlVisual::stopParticleEffect(int32_t slot) {
       return;
       }
     }
+  }
+
+void MdlVisual::setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s) {
+  if(hnpcVisualName==s)
+    return;
+  hnpcVisualName = s;
+  auto vfx = owner.script().getVisualFx(s.c_str());
+  if(vfx==nullptr) {
+    hnpcVisual.view = Effect();
+    return;
+    }
+  hnpcVisual.view = Effect(*vfx,owner,npc,SpellFxKey::Count);
+  if(skeleton!=nullptr)
+    hnpcVisual.view.bindAttaches(*skInst,*skeleton);
+  hnpcVisual.view.setActive(true);
+  hnpcVisual.view.setLooped(true);
   }
 
 bool MdlVisual::setToFightMode(const WeaponState f) {
@@ -332,8 +353,7 @@ void MdlVisual::updateWeaponSkeleton(const Item* weapon,const Item* range) {
     bool cbow  = range!=nullptr && range->isCrossbow();
     bind(bow,cbow ? "ZS_CROSSBOW" : "ZS_BOW");
     }
-  if(st==WeaponState::Mage)
-    bind(pfx,"ZS_RIGHTHAND");
+
   pfx.view.setActive(st==WeaponState::Mage);
   syncAttaches();
   }
@@ -628,7 +648,7 @@ void MdlVisual::bind(MeshAttach& slot, MeshObjects::Mesh&& itm, const char* bone
   // sync?
   }
 
-void MdlVisual::bind(MdlVisual::PfxAttach& slot, PfxObjects::Emitter&& itm, const char* bone) {
+void MdlVisual::bind(PfxAttach& slot, Effect&& itm, const char* bone) {
   slot.boneId = skeleton==nullptr ? size_t(-1) : skeleton->findNode(bone);
   slot.view   = std::move(itm);
   slot.bone   = bone;
@@ -650,7 +670,10 @@ void MdlVisual::rebindAttaches(const Skeleton& from, const Skeleton& to) {
     rebindAttaches(i,from,to);
   for(auto& i:attach)
     rebindAttaches(i,from,to);
-  rebindAttaches(pfx,from,to);
+  for(auto& i:effects)
+    i.view.bindAttaches(*skInst,to);
+  pfx.view.bindAttaches(*skInst,to);
+  hnpcVisual.view.bindAttaches(*skInst,to);
   }
 
 template<class View>
@@ -673,10 +696,15 @@ void MdlVisual::syncAttaches() {
   for(auto& i:attach)
     syncAttaches(i);
   for(auto& i:effects) {
-    syncAttaches(i);
+    i.view.setObjMatrix(pos);
     i.view.setTarget(targetPos);
     }
-  syncAttaches(pfx);
+  pfx.view.setObjMatrix(pos);
+  hnpcVisual.view.setObjMatrix(pos);
+  }
+
+const Skeleton* MdlVisual::visualSkeleton() const {
+  return skeleton;
   }
 
 template<class View>
@@ -694,12 +722,15 @@ bool MdlVisual::startAnimItem(Npc &npc, const char *scheme, int state) {
   return skInst->setAnimItem(solver,npc,scheme,state);
   }
 
-bool MdlVisual::startAnimSpell(Npc &npc, const char *scheme) {
+bool MdlVisual::startAnimSpell(Npc &npc, const char *scheme, bool invest) {
   char name[128]={};
-  std::snprintf(name,sizeof(name),"S_%sSHOOT",scheme);
+
+  if(invest)
+    std::snprintf(name,sizeof(name),"S_%sCAST",scheme); else
+    std::snprintf(name,sizeof(name),"S_%sSHOOT",scheme);
 
   const Animation::Sequence *sq = solver.solveFrm(name);
-  if(skInst->startAnim(solver,sq,0,BS_CASTING,Pose::Force,npc.world().tickCount())) {
+  if(skInst->startAnim(solver,sq,0,BS_CASTING,Pose::NoHint,npc.world().tickCount())) {
     return true;
     }
   return false;

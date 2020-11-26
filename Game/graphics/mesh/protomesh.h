@@ -5,8 +5,8 @@
 #include <Tempest/Device>
 #include <Tempest/Matrix4x4>
 
-#include "graphics/submesh/staticmesh.h"
-#include "graphics/submesh/animmesh.h"
+#include "graphics/mesh/submesh/staticmesh.h"
+#include "graphics/mesh/submesh/animmesh.h"
 
 #include "resources.h"
 

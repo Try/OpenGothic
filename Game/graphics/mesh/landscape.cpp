@@ -2,9 +2,9 @@
 
 #include <Tempest/Log>
 
-#include "rendererstorage.h"
-#include "graphics/submesh/packedmesh.h"
+#include "graphics/mesh/submesh/packedmesh.h"
 #include "graphics/dynamic/painter3d.h"
+#include "graphics/rendererstorage.h"
 #include "gothic.h"
 
 using namespace Tempest;

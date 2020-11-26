@@ -1,7 +1,11 @@
 #include "bullet.h"
 
 #include "graphics/visualfx.h"
+#include "world/item.h"
+#include "world/npc.h"
 #include "world.h"
+
+using namespace Tempest;
 
 Bullet::Bullet(World& owner,const Item& itm,float x,float y,float z)
   :wrld(&owner) {
@@ -11,14 +15,13 @@ Bullet::Bullet(World& owner,const Item& itm,float x,float y,float z)
     }
 
   if(itm.isSpellOrRune()) {
-    material = ZenLoad::NUM_MAT_GROUPS;
+    material   = ZenLoad::NUM_MAT_GROUPS;
     int32_t id = itm.spellId();
-    const VisualFx*   vfx = owner.script().getSpellVFx(id);
-    const ParticleFx* pfx = owner.script().getSpellFx (vfx);
-
-    setView(owner.getView(pfx));
-    if(vfx!=nullptr)
-      owner.emitSoundEffect(vfx->handle().sfxID.c_str(),x,y,z,0,true);
+    const VisualFx* vfx = owner.script().getSpellVFx(id);
+    if(vfx!=nullptr) {
+      auto e = Effect(*vfx,owner,Vec3(x,y,z),SpellFxKey::Cast);
+      setView(std::move(e));
+      }
     } else {
     material = uint8_t(itm.handle()->material);
     setView(owner.getItmView(itm.handle()->visual,material));
@@ -51,9 +54,10 @@ void Bullet::setView(MeshObjects::Mesh &&m) {
   updateMatrix();
   }
 
-void Bullet::setView(PfxObjects::Emitter &&p) {
-  pfx = std::move(p);
-  pfx.setActive(true);
+void Bullet::setView(Effect &&p) {
+  vfx = std::move(p);
+  vfx.setActive(true);
+  vfx.setLooped(true);
   updateMatrix();
   }
 
@@ -71,6 +75,12 @@ void Bullet::setOwner(Npc *n) {
 
 Npc *Bullet::owner() const {
   return ow;
+  }
+
+bool Bullet::isFinished() const {
+  if((flags()&Bullet::Stopped)!=Bullet::Stopped)
+    return false;
+  return true;
   }
 
 float Bullet::pathLength() const {
@@ -93,29 +103,26 @@ void Bullet::onCollide(uint8_t matId) {
       wrld->emitLandHitSound(pos.x,pos.y,pos.z,material,matId);
       }
     }
-  collideCommon();
+  collideCommon(nullptr);
   }
 
 void Bullet::onCollide(Npc& npc) {
   if(ow!=nullptr)
     npc.takeDamage(*ow,this);
-  collideCommon();
+  collideCommon(&npc);
   }
 
-void Bullet::collideCommon() {
+void Bullet::collideCommon(Npc* npc) {
   if(obj->isSpell()) {
-    const int32_t     id  = obj->spellId();
-    const VisualFx*   vfx = wrld->script().getSpellVFx(id);
-
-    if(vfx!=nullptr) {
-      auto pos = obj->position();
-      vfx->emitSound(*wrld,pos,SpellFxKey::Collide);
-      }
+    vfx.onCollide(*wrld, obj->position(), npc);
+    vfx.setKey   (*wrld, SpellFxKey::Collide);
+    wrld->runEffect(std::move(vfx));
     }
   }
 
 void Bullet::updateMatrix() {
   auto mat = obj->matrix();
   view.setObjMatrix(mat);
-  pfx .setObjMatrix(mat);
+  vfx .setObjMatrix(mat);
+  vfx .setTarget(obj->position()+obj->direction());
   }

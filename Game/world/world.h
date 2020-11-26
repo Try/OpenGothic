@@ -10,13 +10,11 @@
 #include <zenload/zTypes.h>
 
 #include "graphics/worldview.h"
+#include "graphics/lightgroup.h"
 #include "graphics/meshobjects.h"
 #include "physics/dynamicworld.h"
 #include "triggers/trigger.h"
 #include "game/gamescript.h"
-#include "item.h"
-#include "npc.h"
-#include "interactive.h"
 #include "worldobjects.h"
 #include "worldsound.h"
 #include "waypoint.h"
@@ -29,6 +27,7 @@ class Focus;
 class WayMatrix;
 class VisualFx;
 class ParticleFx;
+class Interactive;
 class VersionInfo;
 
 class World final {
@@ -42,63 +41,67 @@ class World final {
       int32_t guild=GIL_NONE;
       };
 
-    void  createPlayer(const char* cls);
-    void  insertPlayer(std::unique_ptr<Npc>&& npc, const char *waypoint);
-    void  postInit();
-    const std::string& name() const { return wname; }
+    void                 createPlayer(const char* cls);
+    void                 insertPlayer(std::unique_ptr<Npc>&& npc, const char *waypoint);
+    void                 postInit();
+    const std::string&   name() const { return wname; }
 
-    void  load(Serialize& fin );
-    void  save(Serialize& fout);
+    void                 load(Serialize& fin );
+    void                 save(Serialize& fout);
 
-    uint32_t        npcId(const Npc* ptr) const;
-    Npc*            npcById(uint32_t id);
+    uint32_t             npcId(const Npc* ptr) const;
+    Npc*                 npcById(uint32_t id);
 
-    uint32_t        itmId(const void* ptr) const;
-    Item*           itmById(uint32_t id);
+    uint32_t             itmId(const void* ptr) const;
+    Item*                itmById(uint32_t id);
 
-    const WayPoint* findPoint(const std::string& s, bool inexact=true) const { return findPoint(s.c_str(),inexact); }
-    const WayPoint* findPoint(const char* name, bool inexact=true) const;
-    const WayPoint* findWayPoint(const Tempest::Vec3& pos) const;
-    const WayPoint* findWayPoint(float x,float y,float z) const;
+    const WayPoint*      findPoint(const std::string& s, bool inexact=true) const { return findPoint(s.c_str(),inexact); }
+    const WayPoint*      findPoint(const char* name, bool inexact=true) const;
+    const WayPoint*      findWayPoint(const Tempest::Vec3& pos) const;
+    const WayPoint*      findWayPoint(float x,float y,float z) const;
 
-    const WayPoint* findFreePoint(const Npc& pos,const char* name) const;
-    const WayPoint* findFreePoint(const Tempest::Vec3& pos, const char* name) const;
-    const WayPoint* findFreePoint(float x,float y,float z,const char* name) const;
+    const WayPoint*      findFreePoint(const Npc& pos,const char* name) const;
+    const WayPoint*      findFreePoint(const Tempest::Vec3& pos, const char* name) const;
+    const WayPoint*      findFreePoint(float x,float y,float z,const char* name) const;
 
-    const WayPoint* findNextFreePoint(const Npc& pos,const char* name) const;
-    const WayPoint* findNextPoint(const WayPoint& pos) const;
+    const WayPoint*      findNextFreePoint(const Npc& pos,const char* name) const;
+    const WayPoint*      findNextPoint(const WayPoint& pos) const;
 
-    void            detectNpcNear(std::function<void(Npc&)> f);
-    void            detectNpc(const Tempest::Vec3& p, const float r, std::function<void(Npc&)> f);
-    void            detectNpc(const float x, const float y, const float z, const float r, std::function<void(Npc&)> f);
+    void                 detectNpcNear(std::function<void(Npc&)> f);
+    void                 detectNpc(const Tempest::Vec3& p, const float r, std::function<void(Npc&)> f);
+    void                 detectNpc(const float x, const float y, const float z, const float r, std::function<void(Npc&)> f);
 
-    WayPath         wayTo(const Npc& pos,const WayPoint& end) const;
-    WayPath         wayTo(float npcX,float npcY,float npcZ,const WayPoint& end) const;
+    WayPath              wayTo(const Npc& pos,const WayPoint& end) const;
+    WayPath              wayTo(float npcX,float npcY,float npcZ,const WayPoint& end) const;
 
-    WorldView*      view()   const { return wview.get();    }
-    DynamicWorld*   physic() const { return wdynamic.get(); }
-    GameScript&     script() const;
-    auto            version() const -> const VersionInfo&;
+    WorldView*           view()   const { return wview.get();    }
+    DynamicWorld*        physic() const { return wdynamic.get(); }
+    GameScript&          script() const;
+    auto                 version() const -> const VersionInfo&;
 
-    void            assignRoomToGuild(const char* room, int32_t guildId);
-    int32_t         guildOfRoom(const Tempest::Vec3& pos);
-    int32_t         guildOfRoom(const char* portalName);
+    void                 assignRoomToGuild(const char* room, int32_t guildId);
+    int32_t              guildOfRoom(const Tempest::Vec3& pos);
+    int32_t              guildOfRoom(const char* portalName);
 
-    MeshObjects::Mesh   getView(const Daedalus::ZString& visual) const;
-    MeshObjects::Mesh   getView(const char*              visual) const;
-    MeshObjects::Mesh   getView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
-    MeshObjects::Mesh   getView(const char*              visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
-    PfxObjects::Emitter getView(const ParticleFx* decl) const;
-    PfxObjects::Emitter getView(const ZenLoad::zCVobData& vob) const;
-    MeshObjects::Mesh   getAtachView (const ProtoMesh::Attach& visual, const int32_t version);
-    MeshObjects::Mesh   getItmView   (const Daedalus::ZString& visual, int32_t tex) const;
-    MeshObjects::Mesh   getItmView   (const char*              visual, int32_t tex) const;
-    MeshObjects::Mesh   getStaticView(const char* visual) const;
-    MeshObjects::Mesh   getDecalView (const ZenLoad::zCVobData& vob) const;
-    DynamicWorld::Item  getPhysic    (const char* visual);
+    void                 runEffect(Effect&& e);
+
+    LightGroup::Light    getLight();
+    LightGroup::Light    getLight(const ZenLoad::zCVobData& vob);
+    MeshObjects::Mesh    getView(const Daedalus::ZString& visual) const;
+    MeshObjects::Mesh    getView(const char*              visual) const;
+    MeshObjects::Mesh    getView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
+    MeshObjects::Mesh    getView(const char*              visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
+    PfxObjects::Emitter  getView(const ParticleFx* decl) const;
+    PfxObjects::Emitter  getView(const ZenLoad::zCVobData& vob) const;
+    MeshObjects::Mesh    getAtachView (const ProtoMesh::Attach& visual, const int32_t version);
+    MeshObjects::Mesh    getItmView   (const Daedalus::ZString& visual, int32_t tex) const;
+    MeshObjects::Mesh    getItmView   (const char*              visual, int32_t tex) const;
+    MeshObjects::Mesh    getStaticView(const char* visual) const;
+    MeshObjects::Mesh    getDecalView (const ZenLoad::zCVobData& vob) const;
+    DynamicWorld::Item   getPhysic    (const char* visual);
 
     const VisualFx*      loadVisualFx(const char* name);
-    const ParticleFx*    loadParticleFx(const char* name);
+    const ParticleFx*    loadParticleFx(const char* name) const;
 
     void                 updateAnimation();
     void                 resetPositionToTA();
@@ -168,7 +171,6 @@ class World final {
     void                 addStartPoint (const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
     void                 addFreePoint  (const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
     void                 addSound      (const ZenLoad::zCVobData& vob);
-    size_t               addLight(const ZenLoad::zCVobData& vob);
 
     void                 invalidateVobIndex();
     void                 triggerOnStart(bool firstTime);

@@ -13,7 +13,8 @@ class PfxEmitterMesh;
 class ParticleFx final {
   public:
     ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob);
-    ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX & src, const char* name);
+    ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX& src, const char* name);
+    ParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& src, const Daedalus::GEngineClasses::C_ParticleFX& proto);
 
     enum class EmitterType:uint8_t {
       Point,
@@ -57,8 +58,8 @@ class ParticleFx final {
     bool          ppsIsLooping        = false;
     bool          ppsIsSmooth         = false;
     float         ppsFPS              = 0;
-    std::string   ppsCreateEm_S;
-    float         ppsCreateEmDelay    = 0;
+    const ParticleFx* ppsCreateEm    = nullptr;
+    uint64_t      ppsCreateEmDelay    = 0;
 
     EmitterType   shpType             = EmitterType::Point;
     Frame         shpFOR              = Frame::Object;
@@ -121,6 +122,8 @@ class ParticleFx final {
     std::string   timeStartEnd_S;
     bool          m_bIsAmbientPFX=false;
 
+    uint64_t      prefferedTime = 0;
+
     uint64_t      maxLifetime() const;
     uint64_t      effectPrefferedTime() const;
     float         maxPps() const;
@@ -128,6 +131,7 @@ class ParticleFx final {
     float         ppsScale(uint64_t time) const;
 
   private:
+    uint64_t             calcPrefferedTimeSingle() const;
     static auto          loadTexture(const char* src) -> const Tempest::Texture2d*;
     static Tempest::Vec2 loadVec2(const Daedalus::ZString& src);
     static Tempest::Vec3 loadVec3(const Daedalus::ZString& src);

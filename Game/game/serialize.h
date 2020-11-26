@@ -23,11 +23,17 @@ class FpLock;
 class ScriptFn;
 class SaveGameHeader;
 
+namespace Daedalus {
+namespace GEngineClasses {
+class C_Npc;
+}
+}
+
 class Serialize final {
   public:
     enum {
       MinVersion = 0,
-      Version    = 20
+      Version    = 22
       };
 
     Serialize(Tempest::ODevice& fout);
@@ -196,6 +202,9 @@ class Serialize final {
     void read (std::array<float,sz>& v) {
       readBytes(&v[0],sz*sizeof(float));
       }
+
+    void write(const Daedalus::GEngineClasses::C_Npc& h);
+    void read (Daedalus::GEngineClasses::C_Npc&       h);
 
   private:
     Serialize();

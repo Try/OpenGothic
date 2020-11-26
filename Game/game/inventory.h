@@ -17,6 +17,7 @@ class Inventory final {
   public:
     Inventory();
     Inventory(Inventory&&)=default;
+    Inventory& operator = (Inventory&&)=default;
     ~Inventory();
 
     void load(Npc& owner, Serialize& s);
@@ -90,6 +91,7 @@ class Inventory final {
     void   updateSwordView (Npc& owner);
     void   updateBowView   (Npc& owner);
     void   updateRuneView  (Npc& owner);
+    void   updateView      (Npc& owner);
 
     const Item*  activeWeapon() const;
     Item*  activeWeapon();

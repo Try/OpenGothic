@@ -1,14 +1,13 @@
 #include "interactive.h"
 
-#include "npc.h"
-#include "world.h"
-#include "utils/fileext.h"
-#include "game/serialize.h"
-#include "graphics/pose.h"
-
 #include <Tempest/Painter>
 #include <Tempest/Log>
 
+#include "utils/fileext.h"
+#include "game/serialize.h"
+#include "graphics/mesh/pose.h"
+#include "world.h"
+#include "npc.h"
 
 Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData&& vob, bool startup)
   : Vob(parent,world,vob,startup) {

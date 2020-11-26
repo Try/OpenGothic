@@ -62,29 +62,10 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
     active=&range;
   else if(3<=id && id<10)
     active=&numslot[id-3];
-
-  if(owner!=nullptr) {
-    updateArmourView(*owner);
-    updateSwordView (*owner);
-    updateBowView   (*owner);
-
-    for(auto& i:mdlSlots) {
-      auto& itData = *i.item->handle();
-      auto  vbody  = world.getView(itData.visual,itData.material,0,itData.material);
-      owner->setSlotItem(std::move(vbody),i.slot.c_str());
-      }
-    if(ammotSlot.item!=nullptr) {
-      auto& itData = *ammotSlot.item->handle();
-      auto  vbody  = world.getView(itData.visual,itData.material,0,itData.material);
-      owner->setAmmoItem(std::move(vbody),ammotSlot.slot.c_str());
-      }
-    if(stateSlot.item!=nullptr) {
-      auto& itData = *stateSlot.item->handle();
-      auto  vitm   = world.getView(itData.visual,itData.material,0,itData.material);
-      owner->setStateItem(std::move(vitm),stateSlot.slot.c_str());
-      }
-    }
   s.read(curItem,stateItem);
+
+  if(owner!=nullptr)
+    updateView(*owner);
   }
 
 void Inventory::load(Npc &owner, Serialize &s) {
@@ -429,6 +410,30 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
   return true;
   }
 
+void Inventory::updateView(Npc& owner) {
+  auto& world = owner.world();
+
+  updateArmourView(owner);
+  updateSwordView (owner);
+  updateBowView   (owner);
+
+  for(auto& i:mdlSlots) {
+    auto& itData = *i.item->handle();
+    auto  vbody  = world.getView(itData.visual,itData.material,0,itData.material);
+    owner.setSlotItem(std::move(vbody),i.slot.c_str());
+    }
+  if(ammotSlot.item!=nullptr) {
+    auto& itData = *ammotSlot.item->handle();
+    auto  vbody  = world.getView(itData.visual,itData.material,0,itData.material);
+    owner.setAmmoItem(std::move(vbody),ammotSlot.slot.c_str());
+    }
+  if(stateSlot.item!=nullptr) {
+    auto& itData = *stateSlot.item->handle();
+    auto  vitm   = world.getView(itData.visual,itData.material,0,itData.material);
+    owner.setStateItem(std::move(vitm),stateSlot.slot.c_str());
+    }
+  }
+
 void Inventory::updateArmourView(Npc& owner) {
   if(armour==nullptr)
     return;
@@ -440,8 +445,10 @@ void Inventory::updateArmourView(Npc& owner) {
   }
 
 void Inventory::updateSwordView(Npc &owner) {
-  if(mele==nullptr)
+  if(mele==nullptr) {
+    owner.setSword(MeshObjects::Mesh());
     return;
+    }
 
   auto& itData = *mele->handle();
   auto  vbody  = owner.world().getView(itData.visual,itData.material,0,itData.material);
@@ -449,8 +456,10 @@ void Inventory::updateSwordView(Npc &owner) {
   }
 
 void Inventory::updateBowView(Npc &owner) {
-  if(range==nullptr)
+  if(range==nullptr){
+    owner.setRangeWeapon(MeshObjects::Mesh());
     return;
+    }
 
   auto flag = Flags(range->mainFlag());
   if(flag & ITM_CAT_FF){
@@ -468,10 +477,8 @@ void Inventory::updateRuneView(Npc &owner) {
   if(!sp->isSpellOrRune())
     return;
 
-  const VisualFx*   vfx      = owner.world().script().getSpellVFx(sp->spellId());
-  const ParticleFx* pfx      = owner.world().script().getSpellFx(vfx);
-  auto              vemitter = owner.world().getView(pfx);
-  owner.setMagicWeapon(std::move(vemitter));
+  const VisualFx* vfx = owner.world().script().getSpellVFx(sp->spellId());
+  owner.setMagicWeapon(Effect(*vfx,owner.world(),owner));
   }
 
 void Inventory::equipBestMeleWeapon(Npc &owner) {

@@ -4,8 +4,9 @@
 #include <algorithm>
 #include <limits>
 
-#include "world.h"
+#include "game/movealgo.h"
 #include "utils/gthfont.h"
+#include "world.h"
 
 using namespace Tempest;
 

@@ -18,6 +18,7 @@
 #include "game/constants.h"
 #include "game/aistate.h"
 #include "game/questlog.h"
+#include "graphics/pfxobjects.h"
 #include "ui/documentmenu.h"
 
 class Gothic;
@@ -109,9 +110,10 @@ class GameScript final {
     const AiState&                                    getAiState(ScriptFn id);
     const Daedalus::GEngineClasses::C_Spell&          getSpell(int32_t splId);
     const VisualFx*                                   getSpellVFx(int32_t splId);
-    const ParticleFx*                                 getSpellFx(const VisualFx* vfx);
+    PfxObjects::Emitter                               getSpellFx(const VisualFx* vfx);
     const VisualFx*                                   getVisualFx(const char* symbol);
     const ParticleFx*                                 getParticleFx(const char* symbol);
+    const ParticleFx*                                 getParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k);
 
     auto dialogChoises(Daedalus::GEngineClasses::C_Npc *self, Daedalus::GEngineClasses::C_Npc *npc, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<DlgChoise>;
     auto updateDialog (const GameScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoise>;
@@ -286,6 +288,7 @@ class GameScript final {
     void npc_getactivespellisscroll(Daedalus::DaedalusVM &vm);
     void npc_getactivespellcat(Daedalus::DaedalusVM &vm);
     void npc_setactivespellinfo(Daedalus::DaedalusVM &vm);
+    void npc_getactivespelllevel(Daedalus::DaedalusVM &vm);
     void npc_canseenpcfreelos(Daedalus::DaedalusVM &vm);
     void npc_isinfightmode   (Daedalus::DaedalusVM &vm);
     void npc_settarget       (Daedalus::DaedalusVM &vm);

@@ -6,11 +6,10 @@
 #include "physics/dynamicworld.h"
 
 #include "graphics/sky/sky.h"
-#include "graphics/meshobjects.h"
-#include "graphics/landscape.h"
+#include "graphics/mesh/landscape.h"
 #include "graphics/meshobjects.h"
 #include "graphics/pfxobjects.h"
-#include "light.h"
+#include "lightsource.h"
 #include "sceneglobals.h"
 #include "visualobjects.h"
 
@@ -29,11 +28,9 @@ class WorldView {
 
     Tempest::Matrix4x4        viewProj(const Tempest::Matrix4x4 &view) const;
     const Tempest::Matrix4x4& projective() const { return proj; }
-    const Light&              mainLight() const;
+    const LightSource&              mainLight() const;
 
     void tick(uint64_t dt);
-
-    size_t addLight(const ZenLoad::zCVobData &vob);
 
     void updateCmd (uint8_t frameId, const World &world,
                     const Tempest::Attachment& main, const Tempest::Attachment& shadow,
@@ -49,6 +46,8 @@ class WorldView {
     void drawLights   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
     void resetCmd     ();
 
+    LightGroup::Light   getLight     ();
+    LightGroup::Light   getLight     (const ZenLoad::zCVobData& vob);
     MeshObjects::Mesh   getView      (const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
     MeshObjects::Mesh   getItmView   (const char* visual, int32_t material);
     MeshObjects::Mesh   getAtachView (const ProtoMesh::Attach& visual, const int32_t version);

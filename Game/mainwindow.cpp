@@ -16,6 +16,7 @@
 #include "ui/videowidget.h"
 
 #include "gothic.h"
+#include "world/npc.h"
 #include "game/serialize.h"
 #include "utils/crashlog.h"
 #include "utils/gthfont.h"
@@ -212,7 +213,7 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
   if(event.button<sizeof(mouseP))
     mouseP[event.button]=true;
   mpos = event.pos();
-  player.onKeyPressed(keycodec.tr(event));
+  player.onKeyPressed(keycodec.tr(event),KeyEvent::K_NoKey);
   }
 
 void MainWindow::mouseUpEvent(MouseEvent &event) {
@@ -320,7 +321,7 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
   uiKeyUp=nullptr;
 
   auto act = keycodec.tr(event);
-  player.onKeyPressed(act);
+  player.onKeyPressed(act,event.key);
 
   if(event.key==Event::K_F9) {
     auto tex = renderer.screenshoot(swapchain.frameId());

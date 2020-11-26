@@ -2,7 +2,7 @@
 
 #include <Tempest/Log>
 
-#include "graphics/submesh/animmesh.h"
+#include "graphics/mesh/submesh/animmesh.h"
 #include "graphics/dynamic/painter3d.h"
 #include "utils/workers.h"
 #include "rendererstorage.h"

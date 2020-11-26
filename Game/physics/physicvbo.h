@@ -5,7 +5,7 @@
 #include <vector>
 #include <cstdint>
 
-#include "graphics/protomesh.h"
+#include "graphics/mesh/protomesh.h"
 
 class PhysicVbo : public btTriangleIndexVertexArray {
   public:

@@ -2,10 +2,10 @@
 
 #include <Tempest/Matrix4x4>
 #include "physics/physicmesh.h"
+#include "graphics/mesh/animationsolver.h"
+#include "graphics/mesh/protomesh.h"
 #include "graphics/mdlvisual.h"
-#include "graphics/animationsolver.h"
 #include "graphics/meshobjects.h"
-#include "graphics/protomesh.h"
 #include "game/inventory.h"
 #include "vob.h"
 
