@@ -72,11 +72,24 @@ struct Npc::TransformBack {
     }
 
   void undo(Npc& self) {
-    auto ucnt = self.hnpc.useCount;
-    self.invent = std::move(invent);
+    int32_t aivar[100]={};
+
+    auto ucnt     = self.hnpc.useCount;
+    auto exp      = self.hnpc.exp;
+    auto exp_next = self.hnpc.exp_next;
+    auto lp       = self.hnpc.lp;
+    auto level    = self.hnpc.level;
+    std::memcpy(aivar,self.hnpc.aivar,sizeof(aivar));
+
     self.hnpc   = hnpc;
     self.hnpc.useCount = ucnt;
+    self.hnpc.exp      = exp;
+    self.hnpc.exp_next = exp_next;
+    self.hnpc.lp       = lp;
+    self.hnpc.level    = level;
+    std::memcpy(self.hnpc.aivar,aivar,sizeof(aivar));
 
+    self.invent = std::move(invent);
     std::memcpy(self.talentsSk,talentsSk,sizeof(talentsSk));
     std::memcpy(self.talentsVl,talentsVl,sizeof(talentsVl));
 
@@ -2263,7 +2276,7 @@ void Npc::commitSpell() {
   if(spellInfo!=0 && transform==nullptr) {
     transform.reset(new TransformBack(*this));
     invent.updateView(*this);
-    //visual.delOverlay();
+    visual.clearOverlays();
 
     owner.script().initializeInstance(hnpc,size_t(spellInfo));
     spellInfo  = 0;
@@ -3113,6 +3126,10 @@ void Npc::transformBack() {
   setVisual(transform->skeleton);
   setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
   closeWeapon(true);
+
+  // invalidate tallent overlays
+  for(size_t i=0; i<TALENT_MAX_G2; ++i)
+    setTalentSkill(Talent(i),talentsSk[i]);
 
   invent.updateView(*this);
   transform.reset();

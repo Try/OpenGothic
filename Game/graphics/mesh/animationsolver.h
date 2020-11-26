@@ -78,6 +78,7 @@ class AnimationSolver final {
     void                           addOverlay(const Skeleton *sk, uint64_t time);
     void                           delOverlay(const char *sk);
     void                           delOverlay(const Skeleton *sk);
+    void                           clearOverlays();
 
     const Animation::Sequence*     solveNext(const Animation::Sequence& sq) const;
     const Animation::Sequence*     solveAsc (const char *format) const;

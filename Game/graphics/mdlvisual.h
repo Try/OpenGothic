@@ -38,6 +38,7 @@ class MdlVisual final {
     void                           addOverlay(const Skeleton *sk, uint64_t time);
     void                           delOverlay(const char*     sk);
     void                           delOverlay(const Skeleton *sk);
+    void                           clearOverlays();
 
     void                           setArmour     (MeshObjects::Mesh&& body, World& owner);
     void                           setBody       (MeshObjects::Mesh&& body, World& owner, const int32_t version);

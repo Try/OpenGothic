@@ -96,6 +96,10 @@ void MdlVisual::delOverlay(const Skeleton *sk) {
   solver.delOverlay(sk);
   }
 
+void MdlVisual::clearOverlays() {
+  solver.clearOverlays();
+  }
+
 void MdlVisual::setBody(MeshObjects::Mesh&& a, World& owner, const int32_t version) {
   implSetBody(std::move(a),owner,version);
   setPos(pos);
