@@ -7,7 +7,7 @@
 #include <memory>
 #include <limits>
 
-#include "graphics/protomesh.h"
+#include "graphics/mesh/protomesh.h"
 
 class btConstraintSolver;
 class btCollisionConfiguration;

@@ -21,6 +21,7 @@ StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool s
       return;
     pfx = world.getView(view);
     pfx.setActive(true);
+    pfx.setLooped(true);
     pfx.setObjMatrix(transform());
     } else
   if(FileExt::hasExt(vob.visual,"TGA")) {
@@ -31,6 +32,7 @@ StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool s
       } else {
       pfx = world.getView(vob);
       pfx.setActive(true);
+      pfx.setLooped(true);
       pfx.setObjMatrix(transform());
       }
     } else {

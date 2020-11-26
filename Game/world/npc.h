@@ -1,8 +1,8 @@
 #pragma once
 
+#include "graphics/mesh/pose.h"
+#include "graphics/mesh/animation.h"
 #include "graphics/meshobjects.h"
-#include "graphics/pose.h"
-#include "graphics/animation.h"
 #include "graphics/mdlvisual.h"
 #include "game/gametime.h"
 #include "game/movealgo.h"
@@ -159,6 +159,25 @@ class Npc final {
       HS_Dead    = 1
       };
 
+    enum CastState : uint8_t {
+      CS_NoCast      = 0,
+      CS_Finalize    = 1,
+
+      CS_Invest_0    = 16,
+      CS_Invest_1    = 17,
+      CS_Invest_2    = 18,
+      CS_Invest_3    = 18,
+      CS_Invest_4    = 20,
+      CS_Invest_5    = 21,
+      CS_Invest_6    = 22,
+      CS_Invest_Last = 31,
+      CS_Cast_0      = 32,
+      CS_Cast_1      = 33,
+      CS_Cast_2      = 34,
+      CS_Cast_3      = 35,
+      CS_Cast_Last   = 47,
+      };
+
     using Anim = AnimationSolver::Anim;
 
     Npc(World &owner, size_t instance, const Daedalus::ZString& waypoint);
@@ -227,7 +246,7 @@ class Npc final {
     void       updateArmour  ();
     void       setSword      (MeshObjects::Mesh&& sword);
     void       setRangeWeapon(MeshObjects::Mesh&& bow);
-    void       setMagicWeapon(PfxObjects::Emitter&& spell);
+    void       setMagicWeapon(Effect&& spell);
     void       setSlotItem   (MeshObjects::Mesh&& itm,const char* slot);
     void       setStateItem  (MeshObjects::Mesh&& itm,const char* slot);
     void       setAmmoItem   (MeshObjects::Mesh&& itm,const char* slot);
@@ -254,6 +273,7 @@ class Npc final {
     bool       isStanding() const;
     bool       isSwim() const;
     bool       isDive() const;
+    bool       isCasting() const;
 
     void       setTalentSkill(Talent t,int32_t lvl);
     int32_t    talentSkill(Talent t) const;
@@ -270,7 +290,7 @@ class Npc final {
     int32_t    attribute (Attribute a) const;
     void       changeAttribute(Attribute a, int32_t val, bool allowUnconscious);
     int32_t    protection(Protection p) const;
-    void       changeProtection(Protection p,int32_t val);
+    void       changeProtection(Protection p, int32_t val);
 
     uint32_t   instanceSymbol() const;
     uint32_t   guild() const;
@@ -319,6 +339,10 @@ class Npc final {
     void      swingSwordL();
     void      swingSwordR();
     void      blockSword();
+    bool      beginCastSpell();
+    void      endCastSpell();
+    void      setActiveSpellInfo(int32_t info);
+    int32_t   activeSpellLevel() const;
     bool      castSpell();
     bool      aimBow();
     bool      shootBow(Interactive* focOverride = nullptr);
@@ -363,6 +387,7 @@ class Npc final {
     bool      hasCollision() const { return physic.hasCollision(); }
 
     void      startDive();
+    void      transformBack();
 
     auto      dialogChoises(Npc &player, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<GameScript::DlgChoise>;
 
@@ -572,6 +597,7 @@ class Npc final {
     void      tickRegen(int32_t& v,const int32_t max,const int32_t chg, const uint64_t dt);
     void      updatePos();
     bool      setViewPosition(const Tempest::Vec3& pos);
+    bool      tickCast();
 
     int       aiOutputOrderId() const;
     bool      performOutput(const AiAction &ai);
@@ -631,7 +657,7 @@ class Npc final {
 
     // visual props
     std::string                    body,head;
-    int32_t                        vHead=0, vTeeth=0, vColor =0;
+    int32_t                        vHead=0, vTeeth=0, vColor=0;
     int32_t                        bdColor=0;
     MdlVisual                      visual;
 
@@ -659,7 +685,16 @@ class Npc final {
     Npc*                           lastHit          = nullptr;
     char                           lastHitType      = 'A';
     int32_t                        lastHitSpell     = 0;
+
+    // spell cast
+    CastState                      castLevel        = CS_NoCast;
     size_t                         currentSpellCast = size_t(-1);
+    uint64_t                       castBegin        = 0;
+    int32_t                        spellInfo        = 0;
+
+    // transform-backshape
+    struct TransformBack;
+    std::unique_ptr<TransformBack> transform;
 
     // ai state
     uint64_t                       aniWaitTime=0;

@@ -3,6 +3,7 @@
 #include "serialize.h"
 #include "world/world.h"
 #include "world/npc.h"
+#include "world/interactive.h"
 
 const float   MoveAlgo::closeToPointThreshold = 50;
 const float   MoveAlgo::gravity               = DynamicWorld::gravity;

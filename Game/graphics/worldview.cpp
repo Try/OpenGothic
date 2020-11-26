@@ -2,11 +2,12 @@
 
 #include <Tempest/Application>
 
-#include "world/world.h"
-#include "rendererstorage.h"
-#include "graphics/submesh/packedmesh.h"
+#include "graphics/mesh/submesh/packedmesh.h"
 #include "graphics/dynamic/painter3d.h"
+#include "world/world.h"
+#include "world/npc.h"
 #include "utils/gthfont.h"
+#include "rendererstorage.h"
 
 using namespace Tempest;
 
@@ -35,7 +36,7 @@ Matrix4x4 WorldView::viewProj(const Matrix4x4 &view) const {
   return viewProj;
   }
 
-const Light &WorldView::mainLight() const {
+const LightSource &WorldView::mainLight() const {
   return sGlobal.sun;
   }
 
@@ -46,8 +47,13 @@ void WorldView::tick(uint64_t /*dt*/) {
     }
   }
 
-size_t WorldView::addLight(const ZenLoad::zCVobData& vob) {
-  Light l;
+LightGroup::Light WorldView::getLight() {
+  needToUpdateUbo = true;
+  return sGlobal.lights.get();
+  }
+
+LightGroup::Light WorldView::getLight(const ZenLoad::zCVobData& vob) {
+  LightSource l;
   l.setPosition(Vec3(vob.position.x,vob.position.y,vob.position.z));
 
   if(vob.zCVobLight.dynamic.rangeAniScale.size()>0) {
@@ -63,7 +69,7 @@ size_t WorldView::addLight(const ZenLoad::zCVobData& vob) {
     }
 
   needToUpdateUbo = true;
-  return sGlobal.lights.add(std::move(l));
+  return sGlobal.lights.get(std::move(l));
   }
 
 void WorldView::setModelView(const Matrix4x4& view, const Tempest::Matrix4x4* shadow, size_t shCount) {
@@ -206,4 +212,3 @@ void WorldView::resetCmd() {
   visuals.setupUbo();
   sGlobal.lights.setupUbo();
   }
-

@@ -66,6 +66,7 @@ class Gothic final {
     SoundFx*  loadSoundFx   (const char* name);
     SoundFx*  loadSoundWavFx(const char *name);
 
+    auto      loadParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k) -> const ParticleFx*;
     auto      loadParticleFx(const char* name) -> const ParticleFx*;
     auto      loadVisualFx  (const char* name) -> const VisualFx*;
 

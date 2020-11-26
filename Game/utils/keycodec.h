@@ -44,6 +44,7 @@ class KeyCodec final {
       WeaponMage9,
       WeaponMage10,
 
+      K_ENTER, // transform back
       K_F8,
 
       Last

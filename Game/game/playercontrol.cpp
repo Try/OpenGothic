@@ -1,6 +1,8 @@
 #include "playercontrol.h"
 
 #include "world/npc.h"
+#include "world/item.h"
+#include "world/interactive.h"
 #include "world/world.h"
 #include "ui/dialogmenu.h"
 #include "ui/inventorymenu.h"
@@ -33,7 +35,7 @@ void PlayerControl::setTarget(Npc *other) {
     }
   }
 
-void PlayerControl::onKeyPressed(KeyCodec::Action a) {
+void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType key) {
   auto    w    = world();
   auto    pl   = w  ? w->player() : nullptr;
   auto    ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
@@ -76,6 +78,8 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a) {
         return;
         }
       }
+    if(key==Tempest::KeyEvent::K_Return)
+      ctrl[Action::K_ENTER] = true;
     }
 
   if(ctrl[KeyCodec::ActionGeneric]) {
@@ -342,6 +346,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
     }
 
   implMove(dt);
+
   rotMouse  = 0;
   rotMouseY = 0;
   return true;
@@ -371,7 +376,6 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   if(!pl.isAiQueueEmpty()) {
-    pl.setAnim(Npc::Anim::Idle);
     return;
     }
 
@@ -399,6 +403,21 @@ void PlayerControl::implMove(uint64_t dt) {
   if(pl.isFaling() || pl.isSlide() || pl.isInAir()){
     pl.setDirection(rot);
     return;
+    }
+
+  if(casting) {
+    if(actrl[ActForward]) {
+      actrl[ActForward] = false;
+      } else {
+      casting = false;
+      pl.endCastSpell();
+      }
+    return;
+    }
+
+  if(ctrl[Action::K_ENTER]) {
+    pl.transformBack();
+    ctrl[Action::K_ENTER] = false;
     }
 
   if(pl.canSwitchWeapon()) {
@@ -483,8 +502,7 @@ void PlayerControl::implMove(uint64_t dt) {
         return;
         }
       case WeaponState::Mage: {
-        pl.castSpell();
-        return;
+        casting = pl.beginCastSpell();
         }
       }
     }
@@ -540,7 +558,8 @@ void PlayerControl::implMove(uint64_t dt) {
   else if(ctrl[Action::Right])
     ani = Npc::Anim::MoveR;
 
-  pl.setAnim(ani);
+  if(!pl.isCasting())
+    pl.setAnim(ani);
   pl.setAnimRotate(ani==Npc::Anim::Idle ? rotation : 0);
   if(actrl[ActGeneric] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.isFinishingMove()) {
     if(auto other = pl.target()) {

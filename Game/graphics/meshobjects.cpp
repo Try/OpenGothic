@@ -2,9 +2,9 @@
 
 #include <Tempest/Log>
 
-#include "skeleton.h"
-#include "pose.h"
-#include "attachbinder.h"
+#include "graphics/mesh/skeleton.h"
+#include "graphics/mesh/pose.h"
+#include "graphics/mesh/attachbinder.h"
 #include "visualobjects.h"
 
 MeshObjects::MeshObjects(VisualObjects& parent)

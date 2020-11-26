@@ -4,7 +4,7 @@
 #include <Tempest/Vec>
 #include <list>
 
-#include "light.h"
+#include "lightsource.h"
 #include "lightgroup.h"
 
 class RendererStorage;
@@ -44,7 +44,7 @@ class SceneGlobals final {
 
     Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][Resources::ShadowLayers];
 
-    Light                             sun;
+    LightSource                             sun;
     Tempest::Vec3                     ambient;
     LightGroup                        lights;
 

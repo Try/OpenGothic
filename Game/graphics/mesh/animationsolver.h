@@ -3,11 +3,11 @@
 #include <Tempest/Matrix4x4>
 #include <vector>
 
+#include "graphics/meshobjects.h"
+#include "graphics/pfxobjects.h"
 #include "world/gsoundeffect.h"
 #include "game/inventory.h"
 #include "game/constants.h"
-#include "meshobjects.h"
-#include "pfxobjects.h"
 #include "animation.h"
 
 class Skeleton;
@@ -78,6 +78,7 @@ class AnimationSolver final {
     void                           addOverlay(const Skeleton *sk, uint64_t time);
     void                           delOverlay(const char *sk);
     void                           delOverlay(const Skeleton *sk);
+    void                           clearOverlays();
 
     const Animation::Sequence*     solveNext(const Animation::Sequence& sq) const;
     const Animation::Sequence*     solveAsc (const char *format) const;

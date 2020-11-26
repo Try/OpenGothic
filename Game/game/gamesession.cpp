@@ -9,6 +9,8 @@
 #include "worldstatestorage.h"
 #include "serialize.h"
 #include "world/world.h"
+#include "world/npc.h"
+#include "world/interactive.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -207,6 +209,10 @@ SoundFx *GameSession::loadSoundWavFx(const char *name) {
 
 const VisualFx* GameSession::loadVisualFx(const char *name) {
   return gothic.loadVisualFx(name);
+  }
+
+const ParticleFx* GameSession::loadParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k) {
+  return gothic.loadParticleFx(k);
   }
 
 const ParticleFx* GameSession::loadParticleFx(const char *name) {

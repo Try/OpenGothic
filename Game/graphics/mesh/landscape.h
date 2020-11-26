@@ -6,14 +6,14 @@
 
 #include <zenload/zTypes.h>
 
-#include "bounds.h"
-#include "material.h"
-#include "meshobjects.h"
+#include "graphics/bounds.h"
+#include "graphics/material.h"
+#include "graphics/meshobjects.h"
 #include "resources.h"
 
 class World;
 class SceneGlobals;
-class Light;
+class LightSource;
 class PackedMesh;
 class WorldView;
 

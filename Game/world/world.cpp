@@ -8,13 +8,16 @@
 #include <Tempest/Log>
 #include <Tempest/Painter>
 
+#include "graphics/mesh/submesh/packedmesh.h"
+#include "graphics/mesh/skeleton.h"
+#include "graphics/visualfx.h"
+#include "world/npc.h"
+#include "world/item.h"
+#include "world/interactive.h"
+#include "game/serialize.h"
 #include "gothic.h"
 #include "focus.h"
 #include "resources.h"
-#include "game/serialize.h"
-#include "graphics/submesh/packedmesh.h"
-#include "graphics/visualfx.h"
-#include "graphics/skeleton.h"
 
 using namespace Tempest;
 
@@ -155,6 +158,18 @@ Item *World::itmById(uint32_t id) {
   return nullptr;
   }
 
+void World::runEffect(Effect&& e) {
+  wobj.runEffect(std::move(e));
+  }
+
+LightGroup::Light World::getLight() {
+  return wview->getLight();
+  }
+
+LightGroup::Light World::getLight(const ZenLoad::zCVobData& vob) {
+  return wview->getLight(vob);
+  }
+
 MeshObjects::Mesh World::getView(const char* visual) const {
   return getView(visual,0,0,0);
   }
@@ -206,7 +221,7 @@ const VisualFx *World::loadVisualFx(const char *name) {
   return game.loadVisualFx(name);
   }
 
-const ParticleFx* World::loadParticleFx(const char *name) {
+const ParticleFx* World::loadParticleFx(const char *name) const {
   return game.loadParticleFx(name);
   }
 
@@ -760,10 +775,6 @@ void World::addSound(const ZenLoad::zCVobData& vob) {
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusicDefault) {
     wsound.setDefaultZone(vob);
     }
-  }
-
-size_t World::addLight(const ZenLoad::zCVobData& vob) {
-  return wview->addLight(vob);
   }
 
 void World::invalidateVobIndex() {

@@ -75,6 +75,10 @@ void AnimationSolver::delOverlay(const Skeleton *sk) {
       }
   }
 
+void AnimationSolver::clearOverlays() {
+  overlay.clear();
+  }
+
 void AnimationSolver::update(uint64_t tickCount) {
   for(size_t i=0;i<overlay.size();){
     auto& ov = overlay[i];

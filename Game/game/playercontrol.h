@@ -19,7 +19,7 @@ class PlayerControl final {
   public:
     PlayerControl(Gothic& gothic,DialogMenu& dlg,InventoryMenu& inv);
 
-    void onKeyPressed (KeyCodec::Action a);
+    void onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key);
     void onKeyReleased(KeyCodec::Action a);
     void onRotateMouse(float dAngle);
     void onRotateMouseDy(float dAngle);
@@ -80,6 +80,7 @@ class PlayerControl final {
     Focus          currentFocus;
     float          rotMouse=0;
     float          rotMouseY=0;
+    bool           casting = false;
 
     Gothic&        gothic;
     DialogMenu&    dlg;

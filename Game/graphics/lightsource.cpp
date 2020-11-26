@@ -1,4 +1,4 @@
-#include "light.h"
+#include "lightsource.h"
 
 #include <cmath>
 #include <cstring>
@@ -11,10 +11,10 @@ static Vec3 toVec3(uint32_t v) {
   return Vec3(cl[0]/255.f,cl[1]/255.f,cl[2]/255.f);
   }
 
-Light::Light() {
+LightSource::LightSource() {
   }
 
-void Light::setDir(const Tempest::Vec3& d) {
+void LightSource::setDir(const Tempest::Vec3& d) {
   float l = d.manhattanLength();
   if(l>0){
     ldir = d/l;
@@ -23,23 +23,23 @@ void Light::setDir(const Tempest::Vec3& d) {
     }
   }
 
-void Light::setDir(float x, float y, float z) {
+void LightSource::setDir(float x, float y, float z) {
   setDir({x,y,z});
   }
 
-void Light::setColor(const Vec3& cl) {
+void LightSource::setColor(const Vec3& cl) {
   clr                = cl;
   curClr             = clr;
   colorAniListFpsInv = 0;
   }
 
-void Light::setColor(uint32_t v) {
+void LightSource::setColor(uint32_t v) {
   uint8_t cl[4];
   std::memcpy(cl,&v,4);
   setColor(Vec3(cl[2]/255.f,cl[1]/255.f,cl[0]/255.f));
   }
 
-void Light::setColor(const std::vector<uint32_t>& arr, float fps, bool smooth) {
+void LightSource::setColor(const std::vector<uint32_t>& arr, float fps, bool smooth) {
   colorSmooth = smooth;
   if(arr.size()==1) {
     setColor(toVec3(arr[0]));
@@ -53,13 +53,13 @@ void Light::setColor(const std::vector<uint32_t>& arr, float fps, bool smooth) {
   colorAniListFpsInv = arr.size()>0 ? uint64_t(1000.0/fps) : 0;
   }
 
-void Light::setRange(float r) {
+void LightSource::setRange(float r) {
   rgn            = r;
   curRgn         = rgn;
   rangeAniFPSInv = 0;
   }
 
-void Light::setRange(const std::vector<float>& arr, float base, float fps, bool smooth) {
+void LightSource::setRange(const std::vector<float>& arr, float base, float fps, bool smooth) {
   rangeSmooth = smooth;
   if(arr.size()==1) {
     setRange(arr[0]*base);
@@ -77,7 +77,7 @@ void Light::setRange(const std::vector<float>& arr, float base, float fps, bool 
     }
   }
 
-void Light::update(uint64_t time) {
+void LightSource::update(uint64_t time) {
   if(rangeAniFPSInv==0) {
     curRgn = rgn;
     } else {
@@ -105,6 +105,6 @@ void Light::update(uint64_t time) {
     }
   }
 
-bool Light::isDynamic() const {
+bool LightSource::isDynamic() const {
   return rangeAniFPSInv!=0 || colorAniListFpsInv!=0;
   }

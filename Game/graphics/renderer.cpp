@@ -5,7 +5,7 @@
 #include <Tempest/Semaphore>
 #include <Tempest/Log>
 
-#include "graphics/submesh/staticmesh.h"
+#include "graphics/mesh/submesh/staticmesh.h"
 #include "ui/inventorymenu.h"
 #include "camera.h"
 #include "gothic.h"

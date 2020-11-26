@@ -5,17 +5,18 @@
 
 #include <zenload/zCMaterial.h>
 
-#include "interactive.h"
+#include "graphics/mesh/skeleton.h"
+#include "graphics/mesh/animmath.h"
 #include "graphics/visualfx.h"
-#include "graphics/skeleton.h"
 #include "graphics/particlefx.h"
 #include "game/damagecalculator.h"
 #include "game/serialize.h"
 #include "game/gamescript.h"
 #include "world/triggers/trigger.h"
-#include "world.h"
 #include "utils/versioninfo.h"
-#include "graphics/animmath.h"
+#include "interactive.h"
+#include "item.h"
+#include "world.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -50,6 +51,88 @@ void Npc::GoTo::set(const WayPoint* to, GoToHint hnt) {
   flag = hnt;
   }
 
+
+struct Npc::TransformBack {
+  TransformBack(Npc& self) {
+    hnpc        = self.hnpc;
+    invent      = std::move(self.invent);
+    self.invent = Inventory(); // cleanup
+
+    std::memcpy(talentsSk,self.talentsSk,sizeof(talentsSk));
+    std::memcpy(talentsVl,self.talentsVl,sizeof(talentsVl));
+
+    body     = std::move(self.body);
+    head     = std::move(self.head);
+    vHead    = self.vHead;
+    vTeeth   = self.vTeeth;
+    vColor   = self.vColor;
+    bdColor  = self.bdColor;
+
+    skeleton = self.visual.visualSkeleton();
+    }
+
+  TransformBack(Npc& owner, Serialize& fin) {
+    fin.read(hnpc);
+    invent.load(owner,fin);
+    fin.read(talentsSk,talentsVl);
+    fin.read(body,head,vHead,vTeeth,vColor,bdColor);
+
+    std::string sk;
+    fin.read(sk);
+    skeleton = Resources::loadSkeleton(sk.c_str());
+    }
+
+  void undo(Npc& self) {
+    int32_t aivar[100]={};
+
+    auto ucnt     = self.hnpc.useCount;
+    auto exp      = self.hnpc.exp;
+    auto exp_next = self.hnpc.exp_next;
+    auto lp       = self.hnpc.lp;
+    auto level    = self.hnpc.level;
+    std::memcpy(aivar,self.hnpc.aivar,sizeof(aivar));
+
+    self.hnpc   = hnpc;
+    self.hnpc.useCount = ucnt;
+    self.hnpc.exp      = exp;
+    self.hnpc.exp_next = exp_next;
+    self.hnpc.lp       = lp;
+    self.hnpc.level    = level;
+    std::memcpy(self.hnpc.aivar,aivar,sizeof(aivar));
+
+    self.invent = std::move(invent);
+    std::memcpy(self.talentsSk,talentsSk,sizeof(talentsSk));
+    std::memcpy(self.talentsVl,talentsVl,sizeof(talentsVl));
+
+    self.body    = std::move(body);
+    self.head    = std::move(head);
+    self.vHead   = vHead;
+    self.vTeeth  = vTeeth;
+    self.vColor  = vColor;
+    self.bdColor = bdColor;
+    }
+
+  void save(Serialize& fout) {
+    fout.write(hnpc);
+    invent.save(fout);
+    fout.write(talentsSk,talentsVl);
+    fout.write(body,head,vHead,vTeeth,vColor,bdColor);
+    fout.write(skeleton!=nullptr ? skeleton->name() : "");
+    }
+
+  Daedalus::GEngineClasses::C_Npc hnpc={};
+  Inventory                       invent;
+  int32_t                         talentsSk[TALENT_MAX_G2]={};
+  int32_t                         talentsVl[TALENT_MAX_G2]={};
+
+  std::string                     body,head;
+  int32_t                         vHead=0, vTeeth=0, vColor=0;
+  int32_t                         bdColor=0;
+
+  const Skeleton*                 skeleton = nullptr;
+  };
+
+
 Npc::Npc(World &owner, size_t instance, const Daedalus::ZString& waypoint)
   :owner(owner),mvAlgo(*this) {
   outputPipe          = owner.script().openAiOuput();
@@ -82,8 +165,7 @@ Npc::~Npc(){
   }
 
 void Npc::save(Serialize &fout) {
-  save(fout,hnpc);
-
+  fout.write(hnpc);
   fout.write(x,y,z,angle,sz);
   fout.write(body,head,vHead,vTeeth,bdColor,vColor);
   fout.write(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
@@ -99,6 +181,14 @@ void Npc::save(Serialize &fout) {
   if(currentSpellCast<uint32_t(-1))
     fout.write(uint32_t(currentSpellCast)); else
     fout.write(uint32_t(-1));
+  fout.write(uint8_t(castLevel),castBegin);
+  fout.write(spellInfo);
+  if(transform!=nullptr) {
+    fout.write(true);
+    transform->save(fout);
+    } else {
+    fout.write(false);
+    }
   saveAiState(fout);
 
   fout.write(currentOther);
@@ -116,7 +206,9 @@ void Npc::save(Serialize &fout) {
   }
 
 void Npc::load(Serialize &fin) {
-  load(fin,hnpc);
+  fin.read(hnpc);
+  auto& sym = owner.script().getSymbol(hnpc.instanceSymbol);
+  sym.instance.set(&hnpc, Daedalus::IC_Npc);
 
   fin.read(x,y,z,angle,sz);
   fin.read(body,head,vHead,vTeeth,bdColor,vColor);
@@ -143,6 +235,15 @@ void Npc::load(Serialize &fin) {
       // legacy
       }
     }
+  if(fin.version()>=21)
+    fin.read(reinterpret_cast<uint8_t&>(castLevel),castBegin);
+  if(fin.version()>=22) {
+    fin.read(spellInfo);
+    bool hasTr = false;
+    fin.read(hasTr);
+    if(hasTr)
+      transform.reset(new TransformBack(*this,fin));
+    }
   loadAiState(fin);
 
   fin.read(currentOther);
@@ -167,33 +268,11 @@ void Npc::load(Serialize &fin) {
   }
 
 void Npc::save(Serialize &fout, Daedalus::GEngineClasses::C_Npc &h) const {
-  fout.write(uint32_t(h.instanceSymbol));
-  fout.write(h.id,h.name,h.slot,h.effect,int32_t(h.npcType));
-  save(fout,h.flags);
-  fout.write(h.attribute,h.hitChance,h.protection,h.damage);
-  fout.write(h.damagetype,h.guild,h.level);
-  fout.write(h.mission);
-  fout.write(h.fight_tactic,h.weapon,h.voice,h.voicePitch,h.bodymass);
-  fout.write(h.daily_routine,h.start_aistate);
-  fout.write(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
-  fout.write(h.aivar);
-  fout.write(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
+  fout.write(h);
   }
 
 void Npc::load(Serialize &fin, Daedalus::GEngineClasses::C_Npc &h) {
-  uint32_t instanceSymbol=0;
-  fin.read(instanceSymbol); h.instanceSymbol = instanceSymbol;
-  fin.read(h.id,h.name,h.slot,h.effect, reinterpret_cast<int32_t&>(h.npcType));
-  load(fin,h.flags);
-  fin.read(h.attribute,h.hitChance,h.protection,h.damage);
-  fin.read(h.damagetype,h.guild,h.level);
-  fin.read(h.mission);
-  fin.read(h.fight_tactic,h.weapon,h.voice,h.voicePitch,h.bodymass);
-  fin.read(h.daily_routine,h.start_aistate);
-  fin.read(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
-  fin.read(h.aivar);
-  fin.read(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
-
+  fin.read(h);
   auto& sym = owner.script().getSymbol(hnpc.instanceSymbol);
   sym.instance.set(&hnpc, Daedalus::IC_Npc);
   }
@@ -760,8 +839,8 @@ void Npc::setRangeWeapon(MeshObjects::Mesh &&b) {
   updateWeaponSkeleton();
   }
 
-void Npc::setMagicWeapon(PfxObjects::Emitter &&s) {
-  visual.setMagicWeapon(std::move(s));
+void Npc::setMagicWeapon(Effect&& s) {
+  visual.setMagicWeapon(std::move(s),owner);
   updateWeaponSkeleton();
   }
 
@@ -920,6 +999,10 @@ bool Npc::isSwim() const {
 
 bool Npc::isDive() const {
   return mvAlgo.isDive();
+  }
+
+bool Npc::isCasting() const {
+  return castLevel!=CS_NoCast;
   }
 
 bool Npc::isJumpAnim() const {
@@ -1538,7 +1621,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
       owner.emitWeaponsSound(other,*this);
 
     if(hitResult.hasHit) {
-      if(attribute(ATR_HITPOINTS)>0) {
+      if(bodyStateMasked()!=BS_UNCONSCIOUS) {
         const bool noInter = (hnpc.bodyStateInterruptableOverride!=0);
         if(!noInter)
           visual.interrupt();
@@ -1621,13 +1704,12 @@ void Npc::tick(uint64_t dt) {
   Animation::EvCount ev;
   visual.pose().processEvents(lastEventTime,owner.tickCount(),ev);
   visual.processLayers(owner,calcAniComb());
+  visual.setNpcEffect(owner,*this,hnpc.effect);
   if(!visual.pose().hasAnim())
     setAnim(AnimationSolver::Idle);
 
-  if(currentSpellCast!=size_t(-1)) {
-    if(setAnim(Npc::Anim::Idle))
-      commitSpell();
-    }
+  if(tickCast())
+    return;
 
   if(!isDead()) {
     tickRegen(hnpc.attribute[ATR_HITPOINTS],hnpc.attribute[ATR_HITPOINTSMAX],
@@ -2152,40 +2234,24 @@ void Npc::emitSoundGround(const char* sound, float range, bool freeSlot) {
   }
 
 void Npc::playEffect(Npc& /*to*/, const VisualFx& vfx) {
-  emitSoundEffect(vfx.handle().sfxID.c_str(),25,true);
-
-  const ParticleFx* pfx      = owner.script().getParticleFx(vfx.handle().visName_S.c_str());
-  if(pfx!=nullptr) {
-    auto              vemitter = owner.getView(pfx);
-    uint64_t          time     = owner.tickCount()+pfx->effectPrefferedTime();
-
-    vemitter.setActive(true);
-    visual.startParticleEffect(std::move(vemitter),-1,vfx.handle().emTrjOriginNode.c_str(),time);
-    }
+  visual.startEffect(owner, Effect(vfx,owner,*this), -1);
   }
 
 void Npc::commitSpell() {
-  auto active      = invent.getItem(currentSpellCast);
-  currentSpellCast = size_t(-1);
-
+  auto active = invent.getItem(currentSpellCast);
   if(active==nullptr || !active->isSpellOrRune())
     return;
 
   const int32_t splId = active->spellId();
   owner.script().invokeSpell(*this,currentTarget,*active);
 
-  const VisualFx* vfx = owner.script().getSpellVFx(splId);
-  if(vfx!=nullptr) {
-    vfx->emitSound(owner,position(),SpellFxKey::Cast);
-    visual.startParticleEffect(owner,*vfx,SpellFxKey::Cast);
-    }
-
   if(active->isSpellShoot()) {
     auto& spl = owner.script().getSpell(splId);
+    int   lvl = (castLevel-CS_Cast_0)+1;
     std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> dmg={};
     for(size_t i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i)
       if((spl.damageType&(1<<i))!=0) {
-        dmg[i] = spl.damage_per_level;
+        dmg[i] = spl.damage_per_level*lvl;
         }
 
     auto& b = owner.shootSpell(*active, *this, currentTarget);
@@ -2193,11 +2259,13 @@ void Npc::commitSpell() {
     b.setDamage(dmg);
     b.setHitChance(1.f);
     } else {
+    visual.setEffectKey(owner,SpellFxKey::Cast);
     if(currentTarget!=nullptr) {
       currentTarget->lastHitSpell = splId;
       currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
       }
     }
+
   if(active->isSpell()) {
     size_t cnt = active->count();
     invent.delItem(active->clsId(),1,*this);
@@ -2215,6 +2283,16 @@ void Npc::commitSpell() {
         drawSpell(spl->spellId());
         }
       }
+    }
+
+  if(spellInfo!=0 && transform==nullptr) {
+    transform.reset(new TransformBack(*this));
+    invent.updateView(*this);
+    visual.clearOverlays();
+
+    owner.script().initializeInstance(hnpc,size_t(spellInfo));
+    spellInfo  = 0;
+    hnpc.level = transform->hnpc.level;
     }
   }
 
@@ -2584,40 +2662,152 @@ void Npc::blockSword() {
   setAnim(Anim::AtackBlock);
   }
 
-bool Npc::castSpell() {
+bool Npc::beginCastSpell() {
+  if(castLevel!=CS_NoCast)
+    return false;
+
+  if(!isStanding())
+    return false;
+
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
 
-  if(!isStanding()) {
-    return false;
-    }
+  castLevel        = CS_Invest_0;
+  currentSpellCast = active->clsId();
+  castBegin        = owner.tickCount();
+  hnpc.aivar[88]   = 0; // HACK: clear AIV_SpellLevel
 
-  currentSpellCast     = active->clsId();
   const SpellCode code = SpellCode(owner.script().invokeMana(*this,currentTarget,*active));
   switch(code) {
     case SpellCode::SPL_SENDSTOP:
-      setAnim(Anim::MagNoMana);
-      currentSpellCast = size_t(-1);
-      break;
+    case SpellCode::SPL_DONTINVEST:
     case SpellCode::SPL_STATUS_CANINVEST_NO_MANADEC:
+      setAnim(Anim::MagNoMana);
+      castLevel        = CS_NoCast;
+      currentSpellCast = size_t(-1);
+      castBegin        = 0;
+      return false;
     case SpellCode::SPL_NEXTLEVEL: {
       auto& ani = owner.script().spellCastAnim(*this,*active);
-      if(!visual.startAnimSpell(*this,ani.c_str()))
+      if(!visual.startAnimSpell(*this,ani.c_str(),true))
         return false;
       break;
       }
-    case SpellCode::SPL_DONTINVEST:
-    case SpellCode::SPL_SENDCAST: {
+    case SpellCode::SPL_SENDCAST:{
       auto& ani = owner.script().spellCastAnim(*this,*active);
-      if(!visual.startAnimSpell(*this,ani.c_str()))
+      if(!visual.startAnimSpell(*this,ani.c_str(),false))
         return false;
-      break;
+      endCastSpell();
+      return false;
       }
     default:
       Log::d("unexpected Spell_ProcessMana result: '",int(code),"' for spell '",currentSpellCast,"'");
       return false;
     }
+  return true;
+  }
+
+bool Npc::tickCast() {
+  if(castLevel==CS_NoCast)
+    return false;
+
+  auto active = currentSpellCast!=size_t(-1) ? invent.getItem(currentSpellCast) : nullptr;
+
+  if(currentSpellCast!=size_t(-1)) {
+    if(active==nullptr || !active->isSpellOrRune() || isDown()) {
+      // canot cast spell
+      castLevel        = CS_NoCast;
+      currentSpellCast = size_t(-1);
+      castBegin        = 0;
+      return true;
+      }
+    }
+
+  if(CS_Cast_0<=castLevel && castLevel<=CS_Cast_Last) {
+    // cast anim
+    if(active!=nullptr) {
+      auto& ani = owner.script().spellCastAnim(*this,*active);
+      if(!visual.startAnimSpell(*this,ani.c_str(),false))
+        return true;
+      }
+    commitSpell();
+    castLevel        = CS_Finalize;
+    currentSpellCast = size_t(-1);
+    castBegin        = 0;
+    return true;
+    }
+
+  if(castLevel==CS_Finalize) {
+    // final commit
+    if(isAiQueueEmpty()) {
+      if(!setAnim(Npc::Anim::Idle))
+        return true;
+      }
+    castLevel        = CS_NoCast;
+    currentSpellCast = size_t(-1);
+    castBegin        = 0;
+    spellInfo        = 0;
+    return false;
+    }
+
+  if(active==nullptr)
+    return false;
+
+  if(bodyStateMasked()!=BS_CASTING)
+    return true;
+
+  auto& spl = owner.script().getSpell(active->spellId());
+  int32_t castLvl = int(castLevel)-int(CS_Invest_0);
+  if(owner.tickCount()-castBegin < uint64_t(castLvl)*uint64_t(spl.time_per_mana))
+    return true;
+
+  if(castLvl<=15)
+    castLevel = CastState(castLevel+1);
+
+  const SpellCode code = SpellCode(owner.script().invokeMana(*this,currentTarget,*active));
+  switch(code) {
+    case SpellCode::SPL_NEXTLEVEL: {
+      visual.setEffectKey(owner,SpellFxKey::Invest,castLvl+1);
+      break;
+      }
+    case SpellCode::SPL_SENDSTOP:
+    case SpellCode::SPL_STATUS_CANINVEST_NO_MANADEC:
+    case SpellCode::SPL_DONTINVEST:
+    case SpellCode::SPL_SENDCAST: {
+      endCastSpell();
+      return true;
+      }
+    default:
+      Log::d("unexpected Spell_ProcessMana result: '",int(code),"' for spell '",currentSpellCast,"'");
+      return false;
+    }
+  return true;
+  }
+
+void Npc::endCastSpell() {
+  int32_t castLvl = int(castLevel)-int(CS_Invest_0);
+  if(castLvl<0)
+    return;
+  castLevel = CastState(castLvl+CS_Cast_0);
+  }
+
+void Npc::setActiveSpellInfo(int32_t info) {
+  spellInfo = info;
+  }
+
+int32_t Npc::activeSpellLevel() const {
+  if(CS_Cast_0<=castLevel && castLevel<=CS_Cast_Last)
+    return int(castLevel)-int(CS_Cast_0)+1;
+  if(CS_Invest_0<=castLevel && castLevel<=CS_Invest_Last)
+    return int(castLevel)-int(CS_Invest_0)+1;
+  return 0;
+  }
+
+bool Npc::castSpell() {
+  if(!beginCastSpell())
+    return true;
+  endCastSpell();
   return true;
   }
 
@@ -2939,6 +3129,22 @@ Npc::JumpCode Npc::tryJump(const Tempest::Vec3& p0) {
 
 void Npc::startDive() {
   mvAlgo.startDive();
+  }
+
+void Npc::transformBack() {
+  if(transform==nullptr)
+    return;
+  transform->undo(*this);
+  setVisual(transform->skeleton);
+  setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
+  closeWeapon(true);
+
+  // invalidate tallent overlays
+  for(size_t i=0; i<TALENT_MAX_G2; ++i)
+    setTalentSkill(Talent(i),talentsSk[i]);
+
+  invent.updateView(*this);
+  transform.reset();
   }
 
 std::vector<GameScript::DlgChoise> Npc::dialogChoises(Npc& player,const std::vector<uint32_t> &except,bool includeImp) {

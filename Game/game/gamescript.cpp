@@ -6,6 +6,7 @@
 #include "gothic.h"
 #include "world/npc.h"
 #include "world/item.h"
+#include "world/interactive.h"
 
 #include <fstream>
 #include <cctype>
@@ -185,6 +186,8 @@ void GameScript::initCommon() {
                                                      [this](Daedalus::DaedalusVM& vm){ npc_getactivespellcat(vm); });
   vm.registerExternalFunction("npc_setactivespellinfo",
                                                      [this](Daedalus::DaedalusVM& vm){ npc_setactivespellinfo(vm); });
+  vm.registerExternalFunction("npc_getactivespelllevel",
+                                                     [this](Daedalus::DaedalusVM& vm){ npc_getactivespelllevel(vm); });
 
   vm.registerExternalFunction("npc_canseenpcfreelos",[this](Daedalus::DaedalusVM& vm){ npc_canseenpcfreelos(vm); });
   vm.registerExternalFunction("npc_isinfightmode",   [this](Daedalus::DaedalusVM& vm){ npc_isinfightmode(vm);    });
@@ -678,10 +681,10 @@ const VisualFx* GameScript::getSpellVFx(int32_t splId) {
   return owner.loadVisualFx(name);
   }
 
-const ParticleFx* GameScript::getSpellFx(const VisualFx* vfx) {
+PfxObjects::Emitter GameScript::getSpellFx(const VisualFx* vfx) {
   if(vfx==nullptr)
-    return nullptr;
-  return getParticleFx(vfx->handle().visName_S.c_str());
+    return PfxObjects::Emitter();
+  return vfx->visual(*owner.world());
   }
 
 const VisualFx* GameScript::getVisualFx(const char* name) {
@@ -690,6 +693,10 @@ const VisualFx* GameScript::getVisualFx(const char* name) {
 
 const ParticleFx *GameScript::getParticleFx(const char *symbol) {
   return owner.loadParticleFx(symbol);
+  }
+
+const ParticleFx* GameScript::getParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k) {
+  return owner.loadParticleFx(k);
   }
 
 std::vector<GameScript::DlgChoise> GameScript::dialogChoises(Daedalus::GEngineClasses::C_Npc* player,
@@ -2482,12 +2489,17 @@ void GameScript::npc_getactivespellcat(Daedalus::DaedalusVM &vm) {
 void GameScript::npc_setactivespellinfo(Daedalus::DaedalusVM &vm) {
   int32_t v   = vm.popInt();
   auto    npc = popInstance(vm);
-
-  (void)v;
-  (void)npc;
-
-  notImplementedFn<&GameScript::npc_setactivespellinfo>("npc_setactivespellinfo");
+  if(npc!=nullptr)
+    npc->setActiveSpellInfo(v);
   vm.setReturn(0);
+  }
+
+void GameScript::npc_getactivespelllevel(Daedalus::DaedalusVM& vm) {
+  int  v   = 0;
+  auto npc = popInstance(vm);
+  if(npc!=nullptr)
+    v = npc->activeSpellLevel();
+  vm.setReturn(v);
   }
 
 void GameScript::ai_processinfos(Daedalus::DaedalusVM &vm) {
