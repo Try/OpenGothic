@@ -139,3 +139,33 @@ void Serialize::write(const FpLock &fp) {
 void Serialize::read(FpLock &fp) {
   fp.load(*this);
   }
+
+void Serialize::write(const Daedalus::GEngineClasses::C_Npc& h) {
+  write(uint32_t(h.instanceSymbol));
+  write(h.id,h.name,h.slot,h.effect,int32_t(h.npcType));
+  write(int32_t(h.flags));
+  write(h.attribute,h.hitChance,h.protection,h.damage);
+  write(h.damagetype,h.guild,h.level);
+  write(h.mission);
+  write(h.fight_tactic,h.weapon,h.voice,h.voicePitch,h.bodymass);
+  write(h.daily_routine,h.start_aistate);
+  write(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
+  write(h.aivar);
+  write(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
+  }
+
+void Serialize::read(Daedalus::GEngineClasses::C_Npc& h) {
+  uint32_t instanceSymbol=0;
+
+  read(instanceSymbol); h.instanceSymbol = instanceSymbol;
+  read(h.id,h.name,h.slot,h.effect, reinterpret_cast<int32_t&>(h.npcType));
+  read(reinterpret_cast<int32_t&>(h.flags));
+  read(h.attribute,h.hitChance,h.protection,h.damage);
+  read(h.damagetype,h.guild,h.level);
+  read(h.mission);
+  read(h.fight_tactic,h.weapon,h.voice,h.voicePitch,h.bodymass);
+  read(h.daily_routine,h.start_aistate);
+  read(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
+  read(h.aivar);
+  read(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
+  }

@@ -71,6 +71,17 @@ struct Npc::TransformBack {
     skeleton = self.visual.visualSkeleton();
     }
 
+  TransformBack(Npc& owner, Serialize& fin) {
+    fin.read(hnpc);
+    invent.load(owner,fin);
+    fin.read(talentsSk,talentsVl);
+    fin.read(body,head,vHead,vTeeth,vColor,bdColor);
+
+    std::string sk;
+    fin.read(sk);
+    skeleton = Resources::loadSkeleton(sk.c_str());
+    }
+
   void undo(Npc& self) {
     int32_t aivar[100]={};
 
@@ -99,6 +110,14 @@ struct Npc::TransformBack {
     self.vTeeth  = vTeeth;
     self.vColor  = vColor;
     self.bdColor = bdColor;
+    }
+
+  void save(Serialize& fout) {
+    fout.write(hnpc);
+    invent.save(fout);
+    fout.write(talentsSk,talentsVl);
+    fout.write(body,head,vHead,vTeeth,vColor,bdColor);
+    fout.write(skeleton!=nullptr ? skeleton->name() : "");
     }
 
   Daedalus::GEngineClasses::C_Npc hnpc={};
@@ -146,8 +165,7 @@ Npc::~Npc(){
   }
 
 void Npc::save(Serialize &fout) {
-  save(fout,hnpc);
-
+  fout.write(hnpc);
   fout.write(x,y,z,angle,sz);
   fout.write(body,head,vHead,vTeeth,bdColor,vColor);
   fout.write(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
@@ -164,6 +182,13 @@ void Npc::save(Serialize &fout) {
     fout.write(uint32_t(currentSpellCast)); else
     fout.write(uint32_t(-1));
   fout.write(uint8_t(castLevel),castBegin);
+  fout.write(spellInfo);
+  if(transform!=nullptr) {
+    fout.write(true);
+    transform->save(fout);
+    } else {
+    fout.write(false);
+    }
   saveAiState(fout);
 
   fout.write(currentOther);
@@ -181,7 +206,9 @@ void Npc::save(Serialize &fout) {
   }
 
 void Npc::load(Serialize &fin) {
-  load(fin,hnpc);
+  fin.read(hnpc);
+  auto& sym = owner.script().getSymbol(hnpc.instanceSymbol);
+  sym.instance.set(&hnpc, Daedalus::IC_Npc);
 
   fin.read(x,y,z,angle,sz);
   fin.read(body,head,vHead,vTeeth,bdColor,vColor);
@@ -202,13 +229,20 @@ void Npc::load(Serialize &fin) {
       uint32_t currentSpellCastU32 = uint32_t(-1);
       fin.read(currentSpellCastU32);
       currentSpellCast = (currentSpellCastU32==uint32_t(-1) ? size_t(-1) : currentSpellCastU32);
-      if(fin.version()>=21)
-        fin.read(reinterpret_cast<uint8_t&>(castLevel),castBegin);
       } else {
       int32_t currentSpellCast32;
       fin.read(currentSpellCast32);
       // legacy
       }
+    }
+  if(fin.version()>=21)
+    fin.read(reinterpret_cast<uint8_t&>(castLevel),castBegin);
+  if(fin.version()>=22) {
+    fin.read(spellInfo);
+    bool hasTr = false;
+    fin.read(hasTr);
+    if(hasTr)
+      transform.reset(new TransformBack(*this,fin));
     }
   loadAiState(fin);
 
@@ -234,33 +268,11 @@ void Npc::load(Serialize &fin) {
   }
 
 void Npc::save(Serialize &fout, Daedalus::GEngineClasses::C_Npc &h) const {
-  fout.write(uint32_t(h.instanceSymbol));
-  fout.write(h.id,h.name,h.slot,h.effect,int32_t(h.npcType));
-  save(fout,h.flags);
-  fout.write(h.attribute,h.hitChance,h.protection,h.damage);
-  fout.write(h.damagetype,h.guild,h.level);
-  fout.write(h.mission);
-  fout.write(h.fight_tactic,h.weapon,h.voice,h.voicePitch,h.bodymass);
-  fout.write(h.daily_routine,h.start_aistate);
-  fout.write(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
-  fout.write(h.aivar);
-  fout.write(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
+  fout.write(h);
   }
 
 void Npc::load(Serialize &fin, Daedalus::GEngineClasses::C_Npc &h) {
-  uint32_t instanceSymbol=0;
-  fin.read(instanceSymbol); h.instanceSymbol = instanceSymbol;
-  fin.read(h.id,h.name,h.slot,h.effect, reinterpret_cast<int32_t&>(h.npcType));
-  load(fin,h.flags);
-  fin.read(h.attribute,h.hitChance,h.protection,h.damage);
-  fin.read(h.damagetype,h.guild,h.level);
-  fin.read(h.mission);
-  fin.read(h.fight_tactic,h.weapon,h.voice,h.voicePitch,h.bodymass);
-  fin.read(h.daily_routine,h.start_aistate);
-  fin.read(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
-  fin.read(h.aivar);
-  fin.read(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
-
+  fin.read(h);
   auto& sym = owner.script().getSymbol(hnpc.instanceSymbol);
   sym.instance.set(&hnpc, Daedalus::IC_Npc);
   }
