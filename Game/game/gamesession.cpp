@@ -211,6 +211,10 @@ const VisualFx* GameSession::loadVisualFx(const char *name) {
   return gothic.loadVisualFx(name);
   }
 
+const ParticleFx* GameSession::loadParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k) {
+  return gothic.loadParticleFx(k);
+  }
+
 const ParticleFx* GameSession::loadParticleFx(const char *name) {
   return gothic.loadParticleFx(name);
   }
