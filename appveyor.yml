@@ -13,7 +13,7 @@ environment:
       CC:        C:/Qt/Tools/mingw530_32/bin/gcc.exe
       CXX:       C:/Qt/Tools/mingw530_32/bin/g++.exe
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu1804
+    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
       GENERATOR: ""
 
 install:
@@ -26,8 +26,6 @@ install:
 
 - sh:  sudo apt-get update
 - sh:  sudo apt-get --yes install libvulkan-dev libasound2-dev
-# appveyor issue
-- sh:  sudo apt-get --yes remove doxygen
 - sh:  curl -L --silent --show-error --output VulkanSDK.tar.gz https://sdk.lunarg.com/sdk/download/1.2.154.0/linux/vulkan_sdk.tar.gz
 - sh:  mkdir VulkanSDK
 - sh:  tar -xzf VulkanSDK.tar.gz -C ./VulkanSDK
