@@ -26,7 +26,7 @@ install:
 
 - sh:  sudo apt-get update
 - sh:  sudo apt-get --yes install libvulkan-dev libasound2-dev
-- sh:  sudo apt-get --yes remove doxygen
+- sh:  sudo apt-get --yes install doxygen
 - sh:  curl -L --silent --show-error --output VulkanSDK.tar.gz https://sdk.lunarg.com/sdk/download/1.2.154.0/linux/vulkan_sdk.tar.gz
 - sh:  mkdir VulkanSDK
 - sh:  tar -xzf VulkanSDK.tar.gz -C ./VulkanSDK
