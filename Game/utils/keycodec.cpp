@@ -81,8 +81,10 @@ KeyCodec::Action KeyCodec::tr(Tempest::KeyEvent& e) const {
   auto act = implTr(code);
   if(act!=KeyCodec::Idle)
     return act;
-  if(Tempest::Event::K_0<=e.key && e.key<=Tempest::Event::K_9)
+  if(Tempest::Event::K_0<e.key && e.key<=Tempest::Event::K_9)
     return Action(Weapon+int(e.key-Tempest::Event::K_0));
+  if(Tempest::Event::K_0==e.key)
+    return Action(Weapon+10);
   if(e.key==Tempest::Event::K_F8)
     return K_F8;
   return Idle;
