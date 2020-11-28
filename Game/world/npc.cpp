@@ -367,12 +367,15 @@ bool Npc::performOutput(const Npc::AiAction &act) {
 
 void Npc::setDirection(float x, float /*y*/, float z) {
   float a=angleDir(x,z);
-  setDirection(a);
+  setDirection(a,0);
   }
 
-void Npc::setDirection(float rotation) {
+void Npc::setDirection(float rotation, uint64_t dt) {
   rotation = std::fmod(rotation,360.f);
-  if(std::fabs(angle-rotation)<0.001f) {
+  float dangle = 200.f*(rotation-angle);
+  if(dt>0)
+    dangle/=float(dt);
+  if(std::fabs(dangle)<0.001f) {
     runAngleDest = 0.f;
     return;
     }
@@ -380,9 +383,9 @@ void Npc::setDirection(float rotation) {
   if(bodyStateMasked()==BS_RUN) {
     float maxV = 15;
     if(angle<rotation)
-      runAngleDest =  std::min( 2.f*(rotation-angle),maxV);
+      runAngleDest =  std::min( dangle,maxV);
     if(angle>rotation)
-      runAngleDest = -std::min(-2.f*(rotation-angle),maxV);
+      runAngleDest = -std::min(-dangle,maxV);
     } else {
     runAngleDest = 0.f;
     }

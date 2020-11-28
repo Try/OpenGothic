@@ -574,5 +574,5 @@ void PlayerControl::implMove(uint64_t dt) {
         }
       }
     }
-  pl.setDirection(rot);
+  pl.setDirection(rot,dt);
   }
