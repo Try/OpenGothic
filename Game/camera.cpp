@@ -46,6 +46,7 @@ void Camera::implReset(const Npc &pl) {
   applyModRotation(state.spin);
 
   zoom         = def.bestRange/def.maxRange;
+  camDistLast  = 100;
   }
 
 void Camera::save(Serialize &s) {

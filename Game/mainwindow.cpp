@@ -119,17 +119,22 @@ void MainWindow::paintEvent(PaintEvent& event) {
     p.drawRect(0,0,w(),h());
 
     if(st==Gothic::LoadState::Idle) {
-      p.setBrush(*background);
+      p.setBrush(Brush(*background,Painter::NoBlend));
       p.drawRect(0,0,w(),h(),
                  0,0,background->w(),background->h());
       }
     }
 
-  if(st!=Gothic::LoadState::Idle) {
+  if(st!=Gothic::LoadState::Idle && st!=Gothic::LoadState::Finalize) {
     if(st==Gothic::LoadState::Saving) {
       drawSaving(p);
       } else {
-      if(loadBox)
+      if(auto back = gothic.loadingBanner()) {
+        p.setBrush(Brush(*back,Painter::NoBlend));
+        p.drawRect(0,0,this->w(),this->h(),
+                   0,0,back->w(),back->h());
+        }
+      if(loadBox!=nullptr)
         drawLoading(p,int(w()*0.92)-loadBox->w(), int(h()*0.12), loadBox->w(),loadBox->h());
       }
     } else {
@@ -467,19 +472,13 @@ void MainWindow::drawProgress(Painter &p, int x, int y, int w, int h, float v) {
   }
 
 void MainWindow::drawLoading(Painter &p, int x, int y, int w, int h) {
-  if(auto back = gothic.loadingBanner()) {
-    p.setBrush(*back);
-    p.drawRect(0,0,this->w(),this->h(),
-               0,0,back->w(),back->h());
-    }
-
   float v = float(gothic.loadingProgress())/100.f;
   drawProgress(p,x,y,w,h,v);
   }
 
 void MainWindow::drawSaving(Painter &p) {
   if(auto back = gothic.loadingBanner()) {
-    p.setBrush(*back);
+    p.setBrush(Brush(*back,Painter::NoBlend));
     p.drawRect(0,0,this->w(),this->h(),
                0,0,back->w(),back->h());
     }
@@ -554,7 +553,7 @@ void MainWindow::isDialogClosed(bool& ret) {
 void MainWindow::followCamera() {
   auto pcamera = gothic.gameCamera();
   auto pl      = gothic.player();
-  if(pcamera==nullptr || pl==nullptr || gothic.isPause())
+  if(pcamera==nullptr || pl==nullptr)
     return;
 
   auto&      camera       = *pcamera;
@@ -564,6 +563,10 @@ void MainWindow::followCamera() {
                              ws==WeaponState::W1H  ||
                              ws==WeaponState::W2H);
   auto       pos = pl->cameraBone();
+
+  if(gothic.isPause()) {
+    renderer.setCameraView(camera);
+    }
 
   const bool fs = SystemApi::isFullscreen(hwnd());
   if(!fs && mouseP[Event::ButtonLeft]) {
@@ -757,15 +760,17 @@ void MainWindow::render(){
       }
 
     video.tick();
-    if(!video.isActive() && !gothic.isPause()) {
+    if(!video.isActive())
       tick();
-      gothic.updateAnimation();
-      followCamera();
-      }
 
     auto& context = fLocal[swapchain.frameId()];
     if(!context.gpuLock.wait(0))
       return;
+
+    if(!video.isActive()) {
+      gothic.updateAnimation();
+      followCamera();
+      }
 
     if(video.isActive()) {
       video.paint(device,swapchain.frameId());
