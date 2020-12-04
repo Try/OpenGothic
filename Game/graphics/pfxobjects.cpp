@@ -395,7 +395,7 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
       break;
     }
 
-  if(pfx.useEmittersFOR==0)
+  if(!pfx.useEmittersFOR)
     p.pos += emitter.pos;
   }
 
@@ -427,12 +427,16 @@ void PfxObjects::Bucket::tick(Block& sys, ImplEmitter& emitter, size_t particle,
       dpos = ps.dir*ps.velocity;
       break;
     case ParticleFx::Dir::Target: {
-      Vec3 dx, to;
+      Vec3 dx, from, to;
       if(emitter.hasTarget)
         to = emitter.target; else
         to = sys.pos;
 
-      dx = to - (ps.pos+sys.pos);
+      if(pfx.useEmittersFOR)
+        from = ps.pos+sys.pos; else
+        from = ps.pos;
+
+      dx = to - from;
       const float dplen = dx.manhattanLength();
       if(ps.velocity*dtF>dplen)
         dpos = dx/dtF; else

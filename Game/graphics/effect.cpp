@@ -10,17 +10,20 @@
 using namespace Tempest;
 
 Effect::Effect(PfxObjects::Emitter&& visual, const char* node)
-  :visual(std::move(visual)), nodeSlot(node){
+  :visual(std::move(visual)), nodeSlot(node) {
+  pos.identity();
   }
 
 Effect::Effect(const VisualFx& vfx, World& owner, const Npc& src, SpellFxKey key)
-  :Effect(vfx,owner,src.position() + Vec3(0,src.translateY(),0), key){
+  :Effect(vfx,owner,src.position() + Vec3(0,src.translateY(),0), key) {
+  pos.identity();
   }
 
 Effect::Effect(const VisualFx& v, World& owner, const Vec3& inPos, SpellFxKey k) {
   root     = &v;
   nodeSlot = root->origin();
   visual   = root->visual(owner);
+  pos.identity();
 
   auto& h  = root->handle();
   owner.emitSoundEffect(h.sfxID.c_str(), inPos.x,inPos.y,inPos.z,25,true);
@@ -112,19 +115,19 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
     if(skeleton!=nullptr && pose!=nullptr) {
       // size_t nid = 0;
       size_t nid = skeleton->findNode(vfx->origin());
+      Matrix4x4 p = pos;
       if(nid<pose->transform().size()) {
-        Matrix4x4 p = pos;
         p.mul(pose->transform(nid));
-        ex.setObjMatrix(p);
-        ex.setTarget(pos3);
         }
+      pos3 = {p.at(3,0),p.at(3,1),p.at(3,2)};
+      ex.setPosition(pos3);
+      ex.setTarget  (pos3);
       }
     ex.setActive(true);
     owner.runEffect(std::move(ex));
     }
 
   const ParticleFx* pfx = owner.script().getParticleFx(*key);
-  //const ParticleFx* pfx = owner.script().getParticleFx(key->visName_S.c_str());
   if(pfx!=nullptr) {
     visual = owner.getView(pfx);
     visual.setActive(true);

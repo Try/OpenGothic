@@ -416,6 +416,7 @@ void Inventory::updateView(Npc& owner) {
   updateArmourView(owner);
   updateSwordView (owner);
   updateBowView   (owner);
+  updateRuneView  (owner);
 
   for(auto& i:mdlSlots) {
     auto& itData = *i.item->handle();

@@ -812,12 +812,12 @@ void Npc::updateArmour() {
     }
   }
 
-void Npc::setSword(MeshObjects::Mesh &&s) {
+void Npc::setSword(MeshObjects::Mesh&& s) {
   visual.setSword(std::move(s));
   updateWeaponSkeleton();
   }
 
-void Npc::setRangeWeapon(MeshObjects::Mesh &&b) {
+void Npc::setRangeWeapon(MeshObjects::Mesh&& b) {
   visual.setRangeWeapon(std::move(b));
   updateWeaponSkeleton();
   }
@@ -827,7 +827,7 @@ void Npc::setMagicWeapon(Effect&& s) {
   updateWeaponSkeleton();
   }
 
-void Npc::setSlotItem(MeshObjects::Mesh &&itm, const char *slot) {
+void Npc::setSlotItem(MeshObjects::Mesh&& itm, const char *slot) {
   visual.setSlotItem(std::move(itm),slot);
   }
 
