@@ -385,7 +385,14 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
 
   switch(pfx.visOrientation){
     case ParticleFx::Orientation::None:
-      p.rotation = randf()*float(2.0*M_PI);
+      switch(pfx.dirMode) {
+        case ParticleFx::Dir::Target:
+          p.rotation = dirRotation;
+          break;
+        default:
+          p.rotation = 0; //randf()*float(2.0*M_PI);
+          break;
+        }
       break;
     case ParticleFx::Orientation::Velocity:
       p.rotation = dirRotation;
