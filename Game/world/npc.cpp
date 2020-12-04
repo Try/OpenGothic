@@ -181,7 +181,7 @@ void Npc::save(Serialize &fout) {
   if(currentSpellCast<uint32_t(-1))
     fout.write(uint32_t(currentSpellCast)); else
     fout.write(uint32_t(-1));
-  fout.write(uint8_t(castLevel),castBegin);
+  fout.write(uint8_t(castLevel),castNextTime);
   fout.write(spellInfo);
   if(transform!=nullptr) {
     fout.write(true);
@@ -236,7 +236,7 @@ void Npc::load(Serialize &fin) {
       }
     }
   if(fin.version()>=21)
-    fin.read(reinterpret_cast<uint8_t&>(castLevel),castBegin);
+    fin.read(reinterpret_cast<uint8_t&>(castLevel),castNextTime);
   if(fin.version()>=22) {
     fin.read(spellInfo);
     bool hasTr = false;
@@ -2485,7 +2485,11 @@ bool Npc::closeWeapon(bool noAnim) {
     visual.setToFightMode(WeaponState::NoWeapon);
     updateWeaponSkeleton();
     }
-  hnpc.weapon = 0;
+  hnpc.weapon      = 0;
+  // clear spell-cast state
+  castLevel        = CS_NoCast;
+  currentSpellCast = size_t(-1);
+  castNextTime     = 0;
   return true;
   }
 
@@ -2658,7 +2662,7 @@ bool Npc::beginCastSpell() {
 
   castLevel        = CS_Invest_0;
   currentSpellCast = active->clsId();
-  castBegin        = owner.tickCount();
+  castNextTime     = owner.tickCount();
   hnpc.aivar[88]   = 0; // HACK: clear AIV_SpellLevel
 
   const SpellCode code = SpellCode(owner.script().invokeMana(*this,currentTarget,*active));
@@ -2669,7 +2673,7 @@ bool Npc::beginCastSpell() {
       setAnim(Anim::MagNoMana);
       castLevel        = CS_NoCast;
       currentSpellCast = size_t(-1);
-      castBegin        = 0;
+      castNextTime     = 0;
       return false;
     case SpellCode::SPL_NEXTLEVEL: {
       auto& ani = owner.script().spellCastAnim(*this,*active);
@@ -2702,7 +2706,7 @@ bool Npc::tickCast() {
       // canot cast spell
       castLevel        = CS_NoCast;
       currentSpellCast = size_t(-1);
-      castBegin        = 0;
+      castNextTime     = 0;
       return true;
       }
     }
@@ -2717,7 +2721,7 @@ bool Npc::tickCast() {
     commitSpell();
     castLevel        = CS_Finalize;
     currentSpellCast = size_t(-1);
-    castBegin        = 0;
+    castNextTime     = 0;
     return true;
     }
 
@@ -2729,7 +2733,7 @@ bool Npc::tickCast() {
       }
     castLevel        = CS_NoCast;
     currentSpellCast = size_t(-1);
-    castBegin        = 0;
+    castNextTime     = 0;
     spellInfo        = 0;
     return false;
     }
@@ -2742,16 +2746,20 @@ bool Npc::tickCast() {
 
   auto& spl = owner.script().getSpell(active->spellId());
   int32_t castLvl = int(castLevel)-int(CS_Invest_0);
-  if(owner.tickCount()-castBegin < uint64_t(castLvl)*uint64_t(spl.time_per_mana))
+  if(owner.tickCount()<castNextTime)
     return true;
 
   if(castLvl<=15)
     castLevel = CastState(castLevel+1);
 
+  int32_t mana = attribute(ATR_MANA);
   const SpellCode code = SpellCode(owner.script().invokeMana(*this,currentTarget,*active));
+  mana = std::max(mana-attribute(ATR_MANA),0);
+
   switch(code) {
     case SpellCode::SPL_NEXTLEVEL: {
       visual.setEffectKey(owner,SpellFxKey::Invest,castLvl+1);
+      castNextTime += uint64_t(spl.time_per_mana*float(mana));
       break;
       }
     case SpellCode::SPL_SENDSTOP:
