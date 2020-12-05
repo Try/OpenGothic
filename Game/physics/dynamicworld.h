@@ -115,17 +115,18 @@ class DynamicWorld final {
         btCollisionObject*  obj    = nullptr;
       };
 
-    struct RayResult final {
+    struct RayLandResult {
       Tempest::Vec3       v={};
       Tempest::Vec3       n={};
-      uint8_t             mat    = 0;
-      Category            colCat = C_Null;
-      bool                hasCol = 0;
-      const char*         sector = nullptr;
+      uint8_t             mat     = 0;
+      bool                hasCol  = 0;
 
-      float               x() const { return v.x; }
-      float               y() const { return v.y; }
-      float               z() const { return v.z; }
+      const char*         sector  = nullptr;
+      };
+
+    struct RayWaterResult {
+      float               wdepth  = 0.f;
+      bool                hasCol = false;
       };
 
     struct BulletCallback {
@@ -192,13 +193,11 @@ class DynamicWorld final {
       friend class DynamicWorld;
       };
 
-    RayResult   dropRay (float x, float y, float z) const;
-    RayResult   waterRay(float x, float y, float z) const;
+    RayLandResult  landRay    (float x, float y, float z) const;
+    RayWaterResult waterRay   (float x, float y, float z) const;
 
-    RayResult   ray          (float x0, float y0, float z0, float x1, float y1, float z1) const;
-    float       soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const;
-
-    Tempest::Vec3 landNormal(float x, float y, float z) const;
+    RayLandResult  ray        (float x0, float y0, float z0, float x1, float y1, float z1) const;
+    float          soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const;
 
     Item        ghostObj (const ZMath::float3& min,const ZMath::float3& max);
     StaticItem  staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
@@ -218,7 +217,7 @@ class DynamicWorld final {
 
 
     void       moveBullet(BulletBody& b, float dx, float dy, float dz, uint64_t dt);
-    RayResult  implWaterRay (float x0, float y0, float z0, float x1, float y1, float z1) const;
+    RayWaterResult implWaterRay (float x0, float y0, float z0, float x1, float y1, float z1) const;
     bool       hasCollision(const Item &it, Tempest::Vec3& normal);
 
     template<class RayResultCallback>

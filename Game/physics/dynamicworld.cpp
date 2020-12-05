@@ -336,7 +336,7 @@ struct DynamicWorld::NpcBodyList final {
       frozen[i].body->frozen = i;
     }
 
-  void updateAabbs() {
+  void tickAabbs() {
     for(size_t i=0;i<body.size();) {
       if(body[i].body->lastMove!=tick){
         auto b = body[i];
@@ -538,56 +538,19 @@ DynamicWorld::~DynamicWorld(){
     world->removeCollisionObject(landBody .get());
   }
 
-Tempest::Vec3 DynamicWorld::landNormal(float x, float y, float z) const {
-  struct rCallBack:btCollisionWorld::ClosestRayResultCallback {
-    using ClosestRayResultCallback::ClosestRayResultCallback;
-
-    Category colCat=Category::C_Null;
-
-    rCallBack(const btVector3& rayFromWorld, const btVector3& rayToWorld)
-      :ClosestRayResultCallback(rayFromWorld,rayToWorld){
-      m_collisionFilterMask = btBroadphaseProxy::DefaultFilter | btBroadphaseProxy::StaticFilter;
-      }
-
-    btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
-      auto obj = rayResult.m_collisionObject;
-      colCat = Category(obj->getUserIndex());
-      return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
-      }
-
-    bool needsCollision(btBroadphaseProxy* proxy0) const override {
-      int32_t uid = reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject)->getUserIndex();
-      if(uid==C_Landscape || uid==C_Object)
-        return ClosestRayResultCallback::needsCollision(proxy0);
-      return false;
-      }
-    };
-
-  btVector3 s(x,y+50,z), e(x,y-worldHeight,z);
-  rCallBack callback{s,e};
-
-  rayTest(s,e,callback);
-
-  if(callback.hasHit() && callback.colCat==DynamicWorld::C_Landscape)
-    return Tempest::Vec3{callback.m_hitNormalWorld.x(),callback.m_hitNormalWorld.y(),callback.m_hitNormalWorld.z()};
-  return {0,1,0};
+DynamicWorld::RayLandResult DynamicWorld::landRay(float x, float y, float z) const {
+  updateAabbs();
+  return ray(x,y+ghostPadding,z, x,y-worldHeight,z);
   }
 
-DynamicWorld::RayResult DynamicWorld::dropRay(float x, float y, float z) const {
-  RayResult rayDrop = ray(x,y+ghostPadding,z, x,y-worldHeight,z);
-  return rayDrop;
+DynamicWorld::RayWaterResult DynamicWorld::waterRay(float x, float y, float z) const {
+  updateAabbs();
+  return implWaterRay(x,y,z, x,y+worldHeight,z);
   }
 
-DynamicWorld::RayResult DynamicWorld::waterRay(float x, float y, float z) const {
-  RayResult rayDrop = implWaterRay(x,y,z, x,y+worldHeight,z);
-  return rayDrop;
-  }
-
-DynamicWorld::RayResult DynamicWorld::implWaterRay(float x0, float y0, float z0, float x1, float y1, float z1) const {
+DynamicWorld::RayWaterResult DynamicWorld::implWaterRay(float x0, float y0, float z0, float x1, float y1, float z1) const {
   struct CallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;
-    uint8_t  matId  = 0;
-    Category colCat = C_Water;
 
     btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
       return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
@@ -598,7 +561,6 @@ DynamicWorld::RayResult DynamicWorld::implWaterRay(float x0, float y0, float z0,
   CallBack callback{s,e};
   //callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
 
-  updateAabbs();
   if(waterBody!=nullptr) {
     btTransform rayFromTrans,rayToTrans;
     rayFromTrans.setIdentity();
@@ -611,24 +573,25 @@ DynamicWorld::RayResult DynamicWorld::implWaterRay(float x0, float y0, float z0,
                          callback);
     }
 
-  if(callback.hasHit()){
-    x1 = callback.m_hitPointWorld.x();
-    y1 = callback.m_hitPointWorld.y();
-    z1 = callback.m_hitPointWorld.z();
-    } else {
-    y1 = y0-worldHeight;
+  RayWaterResult ret;
+  if(callback.hasHit()) {
+    auto cave = ray(x0,y0,z0,x1,y1,z1);
+    if(cave.hasCol && cave.v.y<callback.m_hitPointWorld.y()) {
+      ret.wdepth = y0-worldHeight;
+      ret.hasCol = false;
+      } else {
+      ret.wdepth = callback.m_hitPointWorld.y();
+      ret.hasCol = true;
+      }
+    return ret;
     }
 
-  RayResult ret;
-  ret.v      = Tempest::Vec3(x1,y1,z1);
-  ret.n      = Tempest::Vec3(0,1,0);
-  ret.mat    = callback.matId;
-  ret.colCat = callback.colCat;
-  ret.hasCol = callback.hasHit();
+  ret.wdepth = y0-worldHeight;
+  ret.hasCol = false;
   return ret;
   }
 
-DynamicWorld::RayResult DynamicWorld::ray(float x0, float y0, float z0, float x1, float y1, float z1) const {
+DynamicWorld::RayLandResult DynamicWorld::ray(float x0, float y0, float z0, float x1, float y1, float z1) const {
   struct CallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;
     uint8_t     matId  = 0;
@@ -675,11 +638,10 @@ DynamicWorld::RayResult DynamicWorld::ray(float x0, float y0, float z0, float x1
       }
     }
 
-  RayResult ret;
+  RayLandResult ret;
   ret.v      = Tempest::Vec3(x1,y1,z1);
   ret.n      = Tempest::Vec3(nx,ny,nz);
   ret.mat    = callback.matId;
-  ret.colCat = callback.colCat;
   ret.hasCol = callback.hasHit();
   ret.sector = callback.sector;
   return ret;
@@ -920,7 +882,7 @@ void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint6
   }
 
 void DynamicWorld::tick(uint64_t dt) {
-  npcList->updateAabbs();
+  npcList->tickAabbs();
   bulletList->tick(dt);
   }
 
@@ -1031,7 +993,6 @@ void DynamicWorld::rayTest(const btVector3 &s,
     rayFromTrans.setOrigin(s);
     rayToTrans.setIdentity();
     rayToTrans.setOrigin(e);
-    updateAabbs();
     world->rayTestSingle(rayFromTrans, rayToTrans, landBody.get(),
                          landBody->getCollisionShape(),
                          landBody->getWorldTransform(),

@@ -175,7 +175,7 @@ void WayMatrix::marchPoints(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, 
 
 void WayMatrix::adjustWaypoints(std::vector<WayPoint> &wp) {
   for(auto& w:wp) {
-    w.y = world.physic()->dropRay(w.x,w.y,w.z).y();
+    w.y = world.physic()->landRay(w.x,w.y,w.z).v.y;
     indexPoints.push_back(&w);
     }
   }

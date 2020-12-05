@@ -30,8 +30,8 @@ void MoveAlgo::load(Serialize &fin) {
     uint8_t str[128]={};
     fin.read(str);
     if(str[0]!=0)
-      cache.portalName = npc.world().physic()->validateSectorName(reinterpret_cast<char*>(str)); else
-      cache.portalName = nullptr;
+      cache.sector = npc.world().physic()->validateSectorName(reinterpret_cast<char*>(str)); else
+      cache.sector = nullptr;
     }
   if(fin.version()>17) {
     fin.read(diveStart);
@@ -43,10 +43,10 @@ void MoveAlgo::save(Serialize &fout) const {
   fout.write(mulSpeed,fallSpeed,fallCount,climbStart,climbPos0,climbHeight);
   fout.write(uint8_t(jmp));
 
-  const auto len = cache.portalName==nullptr ? 0 : std::strlen(cache.portalName);
+  const auto len = cache.sector==nullptr ? 0 : std::strlen(cache.sector);
   uint8_t str[128]={};
   if(len>0 && len<std::extent<decltype(str)>::value)
-    std::strcpy(reinterpret_cast<char*>(str),cache.portalName);
+    std::strcpy(reinterpret_cast<char*>(str),cache.sector);
   fout.write(str);
   fout.write(diveStart);
   }
@@ -82,7 +82,7 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
   // check ground
   float pY     = pos.y;
   bool  valid  = false;
-  auto  ground = dropRay(pos.x, pos.y+fallThreshold, pos.z, valid);
+  auto  ground = dropRay (pos.x, pos.y+fallThreshold, pos.z, valid);
   auto  water  = waterRay(pos.x, pos.y, pos.z);
   float dY     = pY-ground;
 
@@ -753,67 +753,45 @@ void MoveAlgo::onMoveFailed() {
     }
   }
 
-float MoveAlgo::dropRay(float x, float y, float z, bool &hasCol) const {
-  if(std::fabs(cache.x-x)>eps || std::fabs(cache.y-y)>eps || std::fabs(cache.z-z)>eps) {
-    auto ret         = npc.world().physic()->dropRay(x,y,z);
-    cache.x          = x;
-    cache.y          = y;
-    cache.z          = z;
-    cache.rayCastRet = ret.y();
-    cache.mat        = ret.mat;
-    cache.portalName = ret.sector!=nullptr ? ret.sector : cache.portalName;
-    cache.hasCol     = ret.hasCol;
-    if(ret.hasCol) {
-      // store also normal
-      cache.nx   = x;
-      cache.ny   = y;
-      cache.nz   = z;
-      cache.norm = ret.n;
-      }
+float MoveAlgo::waterRay(float x, float y, float z) const {
+  if(std::fabs(cacheW.x-x)>eps || std::fabs(cacheW.y-y)>eps || std::fabs(cacheW.z-z)>eps) {
+    reinterpret_cast<DynamicWorld::RayWaterResult&>(cacheW) = npc.world().physic()->waterRay(x,y,z);
+    cacheW.x = x;
+    cacheW.y = y;
+    cacheW.z = z;
     }
-  hasCol = cache.hasCol;
-  return cache.rayCastRet;
+  return cacheW.wdepth;
   }
 
-float MoveAlgo::waterRay(float x, float y, float z) const {
-  if(std::fabs(cache.wx-x)>eps || std::fabs(cache.wy-y)>eps || std::fabs(cache.wz-z)>eps) {
-    auto ret     = npc.world().physic()->waterRay(x,y,z);
-    cache.wx     = x;
-    cache.wy     = y;
-    cache.wz     = z;
-    cache.wdepth = ret.y();
+void MoveAlgo::rayMain(float x, float y, float z) const {
+  if(std::fabs(cache.x-x)>eps || std::fabs(cache.y-y)>eps || std::fabs(cache.z-z)>eps) {
+    auto prev = cache.sector;
+    reinterpret_cast<DynamicWorld::RayLandResult&>(cache) = npc.world().physic()->landRay(x,y,z);
+    cache.x = x;
+    cache.y = y;
+    cache.z = z;
+    if(!cache.hasCol) {
+      cache.sector = prev;
+      }
     }
-  return cache.wdepth;
+  }
+
+float MoveAlgo::dropRay(float x, float y, float z, bool &hasCol) const {
+  rayMain(x,y,z);
+  hasCol = cache.hasCol;
+  return cache.v.y;
   }
 
 Tempest::Vec3 MoveAlgo::normalRay(float x, float y, float z) const {
-  if(std::fabs(cache.nx-x)>eps || std::fabs(cache.ny-y)>eps || std::fabs(cache.nz-z)>eps){
-    cache.nx   = x;
-    cache.ny   = y;
-    cache.nz   = z;
-    cache.norm = npc.world().physic()->landNormal(x,y,z);
-    }
-
-  return cache.norm;
-  }
-
-uint8_t MoveAlgo::groundMaterial(float x, float y, float z) const {
-  if(std::fabs(cache.x-x)>eps || std::fabs(cache.y-y)>eps || std::fabs(cache.z-z)>eps) {
-    auto r = npc.world().physic()->dropRay(x,y,z);
-    return r.mat;
-    }
-  return cache.mat;
+  rayMain(x,y,z);
+  return cache.n;
   }
 
 uint8_t MoveAlgo::groundMaterial() const {
   const float stp = stepHeight();
-
-  if(cache.wdepth+stp>cache.y)
+  if(cacheW.wdepth+stp>cache.v.y)
     return ZenLoad::MaterialGroup::WATER;
-
-  //make cache happy by addup fallThreshold
-  const Tempest::Vec3 &p = npc.position();
-  return groundMaterial(p.x,p.y+stp,p.z);
+  return cache.mat;
   }
 
 Tempest::Vec3 MoveAlgo::groundNormal() const {
@@ -825,6 +803,6 @@ Tempest::Vec3 MoveAlgo::groundNormal() const {
   }
 
 const char* MoveAlgo::portalName() {
-  return cache.portalName;
+  return cache.sector;
   }
 

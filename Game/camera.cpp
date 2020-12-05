@@ -294,7 +294,7 @@ void Camera::implMove(Tempest::Event::KeyType key) {
     state.pos.z+=dpos*c;
     }
   if(auto world = gothic.world())
-    state.pos.y = world->physic()->dropRay(state.pos.x,state.pos.y,state.pos.z).y();
+    state.pos.y = world->physic()->landRay(state.pos.x,state.pos.y,state.pos.z).v.y;
   }
 
 void Camera::setPosition(float x, float y, float z) {

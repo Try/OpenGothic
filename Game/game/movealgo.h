@@ -7,6 +7,8 @@
 #include <zenload/zTypes.h>
 #include <Tempest/Point>
 
+#include "physics/dynamicworld.h"
+
 class Npc;
 class World;
 class WayPoint;
@@ -113,27 +115,21 @@ class MoveAlgo final {
     bool    canFlyOverWater() const;
     void    takeFallDamage() const;
 
+    void    rayMain  (float x, float y, float z) const;
     float   dropRay  (float x, float y, float z, bool &hasCol) const;
     float   waterRay (float x, float y, float z) const;
     auto    normalRay(float x, float y, float z) const -> Tempest::Vec3;
-    uint8_t groundMaterial(float x, float y, float z) const;
 
-    struct Cache {
-      float       x=0,y=0,z=std::numeric_limits<float>::infinity();
-      float       rayCastRet = 0;
-      uint8_t     mat        = 0;
-      const char* portalName = nullptr;
-      bool        hasCol     = false;
-
-      float       nx=0,ny=0,nz=std::numeric_limits<float>::infinity();
-      Tempest::Vec3 norm={};
-
-      float wx=0,wy=0,wz=std::numeric_limits<float>::infinity();
-      float wdepth=0.f;
+    struct CacheLand : DynamicWorld::RayLandResult {
+      float x=0, y=0, z=std::numeric_limits<float>::infinity();
+      };
+    struct CacheWater : DynamicWorld::RayWaterResult {
+      float x=0, y=0, z=std::numeric_limits<float>::infinity();
       };
 
     Npc&                npc;
-    mutable Cache       cache;
+    mutable CacheLand   cache;
+    mutable CacheWater  cacheW;
     Flags               flags=NoFlags;
 
     float               mulSpeed  =1.f;
