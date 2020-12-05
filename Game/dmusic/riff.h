@@ -44,12 +44,18 @@ class Riff final {
     void readAll(std::vector<T>& all){
       uint32_t sz=0;
       read(&sz,4);
-      if(sz>sizeof(T))
-        throw std::runtime_error("inconsistent struct size");
       size_t cnt = remaning()/sz;
-      all.resize(cnt);
-      for(size_t i=0;i<cnt;++i) {
-        read(&all[i],sz);
+      if(sz>sizeof(T)) {
+        all.resize(cnt);
+        for(size_t i=0;i<cnt;++i) {
+          read(&all[i],sizeof(T));
+          skip(sz-sizeof(T));
+          }
+        } else {
+        all.resize(cnt);
+        for(size_t i=0;i<cnt;++i) {
+          read(&all[i],sz);
+          }
         }
       }
 
