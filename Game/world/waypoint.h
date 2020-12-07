@@ -19,6 +19,8 @@ class WayPoint final {
     bool isLocked() const { return useCount!=0; }
     bool isFreePoint() const;
 
+    uint32_t useCounter() const { return useCount; }
+
     bool checkName(const std::string& name) const;
     bool checkName(const char* name) const;
 

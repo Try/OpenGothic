@@ -1277,6 +1277,8 @@ bool Npc::implGoTo(uint64_t dt) {
     } else {
     // use smaller threshold, to avoid edge-looping in script
     dist = MoveAlgo::closeToPointThreshold*0.5f;
+    if(go2.wp!=nullptr && go2.wp->useCounter()>1)
+      dist += 200;
     }
   return implGoTo(dt,dist);
   }
@@ -3064,7 +3066,7 @@ bool Npc::tryMove(const Vec3& dp) {
     }
 
   const float speed = dp.manhattanLength();
-  if(speed>=physic.radius())
+  if(speed<=0 || speed>=physic.radius())
     return false;
 
   float scale=speed*0.25f;
