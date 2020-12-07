@@ -795,11 +795,7 @@ uint8_t MoveAlgo::groundMaterial() const {
   }
 
 Tempest::Vec3 MoveAlgo::groundNormal() const {
-  const float stp = stepHeight();
-
-  //make cache happy by addup fallThreshold
-  const Tempest::Vec3 &p = npc.position();
-  return normalRay(p.x,p.y+stp,p.z);
+  return cache.n;
   }
 
 const char* MoveAlgo::portalName() {
