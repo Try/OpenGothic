@@ -1865,12 +1865,12 @@ void Npc::nextAiAction(uint64_t dt) {
       if(!setInteraction(nullptr)) {
         aiActions.push_front(std::move(act));
         }
-      else if(bodyStateMasked()==BS_UNCONSCIOUS || bodyStateMasked()==BS_DEAD) {
+      else if(bodyStateMasked()==BS_UNCONSCIOUS) {
         if(!setAnim(Anim::Idle))
           aiActions.push_front(std::move(act)); else
           implAniWait(visual.pose().animationTotalTime());
         }
-      else {
+      else if(bodyStateMasked()!=BS_DEAD) {
         setAnim(Anim::Idle);
         }
       break;
