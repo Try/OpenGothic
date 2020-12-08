@@ -11,6 +11,7 @@
 #include "game/perceptionmsg.h"
 #include "game/gamescript.h"
 #include "physics/dynamicworld.h"
+#include "aiqueue.h"
 #include "fplock.h"
 #include "waypath.h"
 
@@ -322,6 +323,8 @@ class Npc final {
     void      setToFightMode(const size_t item);
     void      setToFistMode();
 
+    void      aiPush(AiQueue::AiAction&& a);
+
     bool      canSwitchWeapon() const;
     bool      closeWeapon(bool noAnim);
     bool      drawWeaponFist();
@@ -417,47 +420,7 @@ class Npc final {
     auto      playAnimByName(const Daedalus::ZString& name, bool forceAnim, BodyState bs) -> const Animation::Sequence*;
 
     bool      checkGoToNpcdistance(const Npc& other);
-    void      aiLookAt(Npc* other);
-    void      aiStopLookAt();
-    void      aiRemoveWeapon();
-    void      aiTurnToNpc(Npc *other);
-    void      aiGoToNpc  (Npc *other);
-    void      aiGoToNextFp(const Daedalus::ZString& fp);
-    void      aiStartState(ScriptFn stateFn, int behavior, Npc *other, Npc* victum, const Daedalus::ZString& wp);
-    void      aiPlayAnim(const Daedalus::ZString& ani);
-    void      aiPlayAnimBs(const Daedalus::ZString& ani, BodyState bs);
-    void      aiWait(uint64_t dt);
-    void      aiStandup();
-    void      aiStandupQuick();
-    void      aiGoToPoint(const WayPoint &to);
-    void      aiEquipArmor(int32_t id);
-    void      aiEquipBestArmor();
-    void      aiEquipBestMeleWeapon();
-    void      aiEquipBestRangeWeapon();
-    void      aiUseMob(const Daedalus::ZString& name,int st);
-    void      aiUseItem(int32_t id);
-    void      aiUseItemToState(int32_t id, int32_t state);
-    void      aiTeleport(const WayPoint& to);
-    void      aiDrawWeapon();
-    void      aiReadyMeleWeapon();
-    void      aiReadyRangeWeapon();
-    void      aiReadySpell(int32_t spell, int32_t mana);
-    void      aiAtack();
-    void      aiFlee();
-    void      aiDodge();
-    void      aiUnEquipWeapons();
-    void      aiUnEquipArmor();
-    void      aiProcessInfo(Npc& other);
-    void      aiOutput(Npc &to, const Daedalus::ZString& text, int order);
-    void      aiOutputSvm(Npc &to, const Daedalus::ZString& text, int order);
-    void      aiOutputSvmOverlay(Npc &to, const Daedalus::ZString& text, int order);
-    void      aiStopProcessInfo();
-    void      aiContinueRoutine();
-    void      aiAlignToFp();
-    void      aiAlignToWp();
-    void      aiSetNpcsToState(ScriptFn func, int32_t radius);
-    void      aiSetWalkMode(WalkBit w);
-    void      aiFinishingMove(Npc& other);
+
 
     bool      isAiQueueEmpty() const;
     void      clearAiQueue();
@@ -501,66 +464,10 @@ class Npc final {
       const WayPoint* point=nullptr;
       };
 
-    enum Action:uint32_t {
-      AI_None  =0,
-      AI_LookAt,
-      AI_StopLookAt,
-      AI_RemoveWeapon,
-      AI_TurnToNpc,
-      AI_GoToNpc,
-      AI_GoToNextFp,
-      AI_GoToPoint,
-      AI_StartState,
-      AI_PlayAnim,
-      AI_PlayAnimBs,
-      AI_Wait,
-      AI_StandUp,
-      AI_StandUpQuick,
-      AI_EquipArmor,
-      AI_EquipBestArmor,
-      AI_EquipMelee,
-      AI_EquipRange,
-      AI_UseMob,
-      AI_UseItem,
-      AI_UseItemToState,
-      AI_Teleport,
-      AI_DrawWeaponMele,
-      AI_DrawWeaponRange,
-      AI_DrawSpell,
-      AI_Atack,
-      AI_Flee,
-      AI_Dodge,
-      AI_UnEquipWeapons,
-      AI_UnEquipArmor,
-      AI_Output,
-      AI_OutputSvm,
-      AI_OutputSvmOverlay,
-      AI_ProcessInfo,
-      AI_StopProcessInfo,
-      AI_ContinueRoutine,
-      AI_AlignToFp,
-      AI_AlignToWp,
-      AI_SetNpcsToState,
-      AI_SetWalkMode,
-      AI_FinishingMove,
-      AI_DrawWeapon,
-      };
-
     enum TransformBit : uint8_t {
       TR_Pos  =1,
       TR_Rot  =1<<1,
       TR_Scale=1<<2,
-      };
-
-    struct AiAction final {
-      Action            act   =AI_None;
-      Npc*              target=nullptr;
-      Npc*              victum=nullptr;
-      const WayPoint*   point =nullptr;
-      ScriptFn          func  =0;
-      int               i0    =0;
-      int               i1    =0;
-      Daedalus::ZString s0;
       };
 
     struct AiState final {
@@ -600,7 +507,7 @@ class Npc final {
     bool      tickCast();
 
     int       aiOutputOrderId() const;
-    bool      performOutput(const AiAction &ai);
+    bool      performOutput(const AiQueue::AiAction &ai);
 
     auto      currentRoutine() const -> const Routine&;
     gtime     endTime(const Routine& r) const;
@@ -698,7 +605,7 @@ class Npc final {
     ProcessPolicy                  aiPolicy=ProcessPolicy::AiNormal;
     AiState                        aiState;
     ScriptFn                       aiPrevState;
-    std::deque<AiAction>           aiActions;
+    AiQueue                        aiQueue;
     std::vector<Routine>           routines;
 
     Interactive*                   currentInteract=nullptr;

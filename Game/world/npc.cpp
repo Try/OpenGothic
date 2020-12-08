@@ -273,12 +273,7 @@ void Npc::saveAiState(Serialize& fout) const {
   fout.write(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
   fout.write(aiPrevState);
 
-  fout.write(uint32_t(aiActions.size()));
-  for(auto& i:aiActions){
-    fout.write(uint32_t(i.act));
-    fout.write(i.target,i.victum);
-    fout.write(i.point,i.func,i.i0,i.i1,i.s0);
-    }
+  aiQueue.save(fout);
 
   fout.write(uint32_t(routines.size()));
   for(auto& i:routines){
@@ -287,26 +282,15 @@ void Npc::saveAiState(Serialize& fout) const {
   }
 
 void Npc::loadAiState(Serialize& fin) {
-  uint32_t size=0;
-
   if(fin.version()>=1)
     fin.read(aniWaitTime);
   fin.read(waitTime,faiWaitTime,reinterpret_cast<uint8_t&>(aiPolicy));
   fin.read(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
   fin.read(aiPrevState);
 
-  fin.read(size);
-  aiActions.resize(size);
-  for(auto& i:aiActions){
-    fin.read(reinterpret_cast<uint32_t&>(i.act));
-    if(fin.version()>=20)
-      fin.read(i.target,i.victum);
-    fin.read(i.point,i.func,i.i0);
-    if(fin.version()>=4)
-      fin.read(i.i1);
-    fin.read(i.s0);
-    }
+  aiQueue.load(fin);
 
+  uint32_t size=0;
   fin.read(size);
   routines.resize(size);
   for(auto& i:routines){
@@ -339,14 +323,10 @@ bool Npc::setViewPosition(const Tempest::Vec3& pos) {
   }
 
 int Npc::aiOutputOrderId() const {
-  int v = std::numeric_limits<int>::max();
-  for(auto& i:aiActions)
-    if(i.i0<v && (i.act==AI_Output || i.act==AI_OutputSvm || i.act==AI_OutputSvmOverlay))
-      v = i.i0;
-  return v;
+  return aiQueue.aiOutputOrderId();
   }
 
-bool Npc::performOutput(const Npc::AiAction &act) {
+bool Npc::performOutput(const AiQueue::AiAction &act) {
   if(act.target==nullptr) //FIXME: target is null after loading
     return true;
   const int order = act.target->aiOutputOrderId();
@@ -1494,9 +1474,9 @@ void Npc::adjustAtackRotation(uint64_t dt) {
 
 bool Npc::implAiTick(uint64_t dt) {
   // Note AI-action queue takes priority, test case: Vatras pray at night
-  if(aiActions.size()==0) {
+  if(aiQueue.size()==0) {
     tickRoutine();
-    if(aiActions.size()>0)
+    if(aiQueue.size()>0)
       nextAiAction(dt);
     return false;
     }
@@ -1762,11 +1742,9 @@ void Npc::tick(uint64_t dt) {
   }
 
 void Npc::nextAiAction(uint64_t dt) {
-  if(aiActions.size()==0)
+  if(aiQueue.size()==0)
     return;
-  auto act = std::move(aiActions.front());
-  aiActions.pop_front();
-
+  auto act = aiQueue.pop();
   switch(act.act) {
     case AI_None: break;
     case AI_LookAt:{
@@ -1775,13 +1753,13 @@ void Npc::nextAiAction(uint64_t dt) {
       }
     case AI_TurnToNpc: {
       if(act.target!=nullptr && implLookAt(*act.target,dt)){
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
         }
       break;
       }
     case AI_GoToNpc:
       if(!setInteraction(nullptr)) {
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
         break;
         }
       currentFp       = nullptr;
@@ -1791,7 +1769,7 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
     case AI_GoToNextFp: {
       if(!setInteraction(nullptr)) {
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
         break;
         }
       auto fp = owner.findNextFreePoint(*this,act.s0.c_str());
@@ -1805,7 +1783,7 @@ void Npc::nextAiAction(uint64_t dt) {
       }
     case AI_GoToPoint: {
       if(!setInteraction(nullptr)) {
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
         break;
         }
       if(wayPath.last()!=act.point) {
@@ -1832,7 +1810,7 @@ void Npc::nextAiAction(uint64_t dt) {
         setAnim(Anim::Idle);
         }
       if(weaponState()!=WeaponState::NoWeapon){
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
         }
       break;
     case AI_StartState:
@@ -1846,7 +1824,7 @@ void Npc::nextAiAction(uint64_t dt) {
         implAniWait(uint64_t(sq->totalTime()));
         } else {
         if(visual.isAnimExist(act.s0.c_str()))
-          aiActions.push_front(std::move(act));
+          aiQueue.pushFront(std::move(act));
         }
       break;
       }
@@ -1856,7 +1834,7 @@ void Npc::nextAiAction(uint64_t dt) {
         implAniWait(uint64_t(sq->totalTime()));
         } else {
         if(visual.isAnimExist(act.s0.c_str()))
-          aiActions.push_front(std::move(act));
+          aiQueue.pushFront(std::move(act));
         }
       break;
       }
@@ -1865,11 +1843,11 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
     case AI_StandUp:
       if(!setInteraction(nullptr)) {
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
         }
       else if(bodyStateMasked()==BS_UNCONSCIOUS) {
         if(!setAnim(Anim::Idle))
-          aiActions.push_front(std::move(act)); else
+          aiQueue.pushFront(std::move(act)); else
           implAniWait(visual.pose().animationTotalTime());
         }
       else if(bodyStateMasked()!=BS_DEAD) {
@@ -1895,16 +1873,16 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_UseMob: {
       if(act.i0<0){
         if(!setInteraction(nullptr))
-          aiActions.push_front(std::move(act));
+          aiQueue.pushFront(std::move(act));
         break;
         }
       if(owner.script().isTalk(*this)) {
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
         break;
         }
       auto inter = owner.aviableMob(*this,act.s0.c_str());
       if(inter==nullptr) {
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
         break;
         }
 
@@ -1912,7 +1890,7 @@ void Npc::nextAiAction(uint64_t dt) {
         //break; //TODO
         }
       if(!setInteraction(inter))
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
       break;
       }
     case AI_UseItem:
@@ -1926,7 +1904,7 @@ void Npc::nextAiAction(uint64_t dt) {
         if(state>0)
           visual.stopDlgAnim();
         if(!invent.putState(*this,state>=0 ? itm : 0,state))
-          aiActions.push_front(std::move(act));
+          aiQueue.pushFront(std::move(act));
         }
       break;
     case AI_Teleport: {
@@ -1937,29 +1915,29 @@ void Npc::nextAiAction(uint64_t dt) {
       fghAlgo.onClearTarget();
       if(!drawWeaponMele() &&
          !drawWeaponBow())
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
       break;
     case AI_DrawWeaponMele:
       fghAlgo.onClearTarget();
       if(!drawWeaponMele())
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
       break;
     case AI_DrawWeaponRange:
       fghAlgo.onClearTarget();
       if(!drawWeaponBow())
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
       break;
     case AI_DrawSpell: {
       const int32_t spell = act.i0;
       fghAlgo.onClearTarget();
       if(!drawSpell(spell))
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
       break;
       }
     case AI_Atack:
       if(currentTarget!=nullptr){
         if(!fghAlgo.fetchInstructions(*this,*currentTarget,owner.script()))
-          aiActions.push_front(std::move(act));
+          aiQueue.pushFront(std::move(act));
         }
       break;
     case AI_Flee:
@@ -1982,7 +1960,7 @@ void Npc::nextAiAction(uint64_t dt) {
         if(act.act!=AI_OutputSvmOverlay)
           visual.startAnimDialog(*this);
         } else {
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
         }
       break;
       }
@@ -1995,7 +1973,7 @@ void Npc::nextAiAction(uint64_t dt) {
         act.target->setOther(this);
         act.target->outputPipe = p;
         } else {
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
         }
       break;
     case AI_StopProcessInfo:
@@ -2004,7 +1982,7 @@ void Npc::nextAiAction(uint64_t dt) {
         if(currentOther!=nullptr)
           currentOther->outputPipe = owner.script().openAiOuput();
         } else {
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
         }
       break;
     case AI_ContinueRoutine:{
@@ -2018,7 +1996,7 @@ void Npc::nextAiAction(uint64_t dt) {
       if(auto fp = currentFp){
         if(fp->dirX!=0.f || fp->dirZ!=0.f){
           if(implLookAt(fp->dirX,fp->dirZ,false,dt))
-            aiActions.push_front(std::move(act));
+            aiQueue.pushFront(std::move(act));
           }
         }
       break;
@@ -2027,7 +2005,7 @@ void Npc::nextAiAction(uint64_t dt) {
       const int32_t r = act.i0*act.i0;
       owner.detectNpc(position(),float(hnpc.senses_range),[&act,this,r](Npc& other){
         if(&other!=this && qDistTo(other)<float(r))
-          other.aiStartState(act.func,1,other.currentOther,other.currentVictum,other.hnpc.wp.c_str());
+          other.aiPush(AiQueue::aiStartState(act.func,1,other.currentOther,other.currentVictum,other.hnpc.wp.c_str()));
         });
       break;
       }
@@ -2040,13 +2018,13 @@ void Npc::nextAiAction(uint64_t dt) {
         break;
 
       if(!fghAlgo.isInAtackRange(*this,*act.target,owner.script())){
-        aiActions.push_front(std::move(act));
+        aiQueue.pushFront(std::move(act));
         implGoTo(dt,fghAlgo.prefferedAtackDistance(*this,*act.target,owner.script()));
         }
       else if(canFinish(*act.target)){
         setTarget(act.target);
         if(!finishingMove())
-          aiActions.push_front(std::move(act));
+          aiQueue.pushFront(std::move(act));
         }
       break;
       }
@@ -2263,7 +2241,7 @@ void Npc::commitSpell() {
           }
         }
       if(spl==nullptr) {
-        aiRemoveWeapon();
+        aiPush(AiQueue::aiRemoveWeapon());
         } else {
         drawSpell(spl->spellId());
         }
@@ -2368,6 +2346,10 @@ void Npc::setToFistMode() {
   if(visual.setToFightMode(WeaponState::Fist))
     updateWeaponSkeleton();
   hnpc.weapon  = 1;
+  }
+
+void Npc::aiPush(AiQueue::AiAction&& a) {
+  aiQueue.pushBack(std::move(a));
   }
 
 Item* Npc::addItem(const size_t item, uint32_t count) {
@@ -3144,300 +3126,14 @@ std::vector<GameScript::DlgChoise> Npc::dialogChoises(Npc& player,const std::vec
   return owner.script().dialogChoises(&player.hnpc,&this->hnpc,except,includeImp);
   }
 
-void Npc::aiLookAt(Npc *other) {
-  if(aiActions.size()>0 && aiActions.back().act==AI_LookAt)
-    return;
-  AiAction a;
-  a.act    = AI_LookAt;
-  a.target = other;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiStopLookAt() {
-  AiAction a;
-  a.act = AI_StopLookAt;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiRemoveWeapon() {
-  AiAction a;
-  a.act = AI_RemoveWeapon;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiTurnToNpc(Npc *other) {
-  AiAction a;
-  a.act    = AI_TurnToNpc;
-  a.target = other;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiGoToNpc(Npc *other) {
-  AiAction a;
-  a.act    = AI_GoToNpc;
-  a.target = other;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiGoToNextFp(const Daedalus::ZString& fp) {
-  AiAction a;
-  a.act = AI_GoToNextFp;
-  a.s0  = fp;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiStartState(ScriptFn stateFn, int behavior, Npc* other, Npc* victum, const Daedalus::ZString& wp) {
-  auto& st = owner.script().getAiState(stateFn);(void)st;
-
-  AiAction a;
-  a.act    = AI_StartState;
-  a.func   = stateFn;
-  a.i0     = behavior;
-  a.s0     = wp;
-  a.target = other;
-  a.victum = victum;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiPlayAnim(const Daedalus::ZString& ani) {
-  AiAction a;
-  a.act  = AI_PlayAnim;
-  a.s0   = ani;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiPlayAnimBs(const Daedalus::ZString& ani, BodyState bs) {
-  AiAction a;
-  a.act  = AI_PlayAnimBs;
-  a.s0   = ani;
-  a.i0   = int(bs);
-  aiActions.push_back(a);
-  }
-
-void Npc::aiWait(uint64_t dt) {
-  AiAction a;
-  a.act  = AI_Wait;
-  a.i0   = int(dt);
-  aiActions.push_back(a);
-  }
-
-void Npc::aiStandup() {
-  AiAction a;
-  a.act = AI_StandUp;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiStandupQuick() {
-  AiAction a;
-  a.act = AI_StandUpQuick;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiGoToPoint(const WayPoint& to) {
-  AiAction a;
-  a.act   = AI_GoToPoint;
-  a.point = &to;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiEquipArmor(int32_t id) {
-  AiAction a;
-  a.act = AI_EquipArmor;
-  a.i0  = id;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiEquipBestArmor() {
-  AiAction a;
-  a.act = AI_EquipBestArmor;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiEquipBestMeleWeapon() {
-  AiAction a;
-  a.act = AI_EquipMelee;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiEquipBestRangeWeapon() {
-  AiAction a;
-  a.act = AI_EquipRange;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiUseMob(const Daedalus::ZString& name, int st) {
-  AiAction a;
-  a.act = AI_UseMob;
-  a.s0  = name;
-  a.i0  = st;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiUseItem(int32_t id) {
-  AiAction a;
-  a.act = AI_UseItem;
-  a.i0  = id;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiUseItemToState(int32_t id, int32_t state) {
-  AiAction a;
-  a.act  = AI_UseItemToState;
-  a.i0   = id;
-  a.i1   = state;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiTeleport(const WayPoint &to) {
-  AiAction a;
-  a.act   = AI_Teleport;
-  a.point = &to;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiDrawWeapon() {
-  AiAction a;
-  a.act = AI_DrawWeapon;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiReadyMeleWeapon() {
-  AiAction a;
-  a.act = AI_DrawWeaponMele;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiReadyRangeWeapon() {
-  AiAction a;
-  a.act = AI_DrawWeaponRange;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiReadySpell(int32_t spell,int32_t /*mana*/) {
-  AiAction a;
-  a.act = AI_DrawSpell;
-  a.i0  = spell;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiAtack() {
-  AiAction a;
-  a.act = AI_Atack;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiFlee() {
-  AiAction a;
-  a.act = AI_Flee;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiDodge() {
-  AiAction a;
-  a.act = AI_Dodge;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiUnEquipWeapons() {
-  AiAction a;
-  a.act = AI_UnEquipWeapons;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiUnEquipArmor() {
-  AiAction a;
-  a.act = AI_UnEquipArmor;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiProcessInfo(Npc &other) {
-  AiAction a;
-  a.act    = AI_ProcessInfo;
-  a.target = &other;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiOutput(Npc& to, const Daedalus::ZString& text, int order) {
-  AiAction a;
-  a.act    = AI_Output;
-  a.s0     = text;
-  a.target = &to;
-  a.i0     = order;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiOutputSvm(Npc &to, const Daedalus::ZString& text, int order) {
-  AiAction a;
-  a.act    = AI_OutputSvm;
-  a.s0     = text;
-  a.target = &to;
-  a.i0     = order;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiOutputSvmOverlay(Npc &to, const Daedalus::ZString& text, int order) {
-  AiAction a;
-  a.act    = AI_OutputSvmOverlay;
-  a.s0     = text;
-  a.target = &to;
-  a.i0     = order;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiStopProcessInfo() {
-  AiAction a;
-  a.act = AI_StopProcessInfo;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiContinueRoutine() {
-  AiAction a;
-  a.act = AI_ContinueRoutine;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiAlignToFp() {
-  AiAction a;
-  a.act = AI_AlignToFp;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiAlignToWp() {
-  AiAction a;
-  a.act = AI_AlignToWp;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiSetNpcsToState(ScriptFn func, int32_t radius) {
-  AiAction a;
-  a.act  = AI_SetNpcsToState;
-  a.func = func;
-  a.i0   = radius;
-  aiActions.push_back(a);
-  }
-
-void Npc::aiSetWalkMode(WalkBit w) {
-  AiAction a;
-  a.act  = AI_SetWalkMode;
-  a.i0   = int(w);
-  aiActions.push_back(a);
-  }
-
-void Npc::aiFinishingMove(Npc &other) {
-  AiAction a;
-  a.act    = AI_FinishingMove;
-  a.target = &other;
-  aiActions.push_back(a);
-  }
-
 bool Npc::isAiQueueEmpty() const {
-  return aiActions.size()==0 &&
+  return aiQueue.size()==0 &&
          waitTime<owner.tickCount() &&
          go2.empty();
   }
 
 void Npc::clearAiQueue() {
-  aiActions.clear();
+  aiQueue.clear();
   waitTime        = 0;
   faiWaitTime     = 0;
   wayPath.clear();

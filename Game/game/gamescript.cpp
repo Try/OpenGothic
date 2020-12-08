@@ -2507,7 +2507,7 @@ void GameScript::ai_processinfos(Daedalus::DaedalusVM &vm) {
   auto pl  = owner.player();
   if(pl!=nullptr && npc!=nullptr) {
     aiOutOrderId=0;
-    npc->aiProcessInfo(*pl);
+    npc->aiPush(AiQueue::aiProcessInfo(*pl));
     }
   }
 
@@ -2519,58 +2519,58 @@ void GameScript::ai_output(Daedalus::DaedalusVM &vm) {
   if(!self || !target)
     return;
 
-  self->aiOutput(*target,outputname,aiOutOrderId);
+  self->aiPush(AiQueue::aiOutput(*target,outputname,aiOutOrderId));
   ++aiOutOrderId;
   }
 
 void GameScript::ai_stopprocessinfos(Daedalus::DaedalusVM &vm) {
   auto self = popInstance(vm);
   if(self)
-    self->aiStopProcessInfo();
+    self->aiPush(AiQueue::aiStopProcessInfo());
   }
 
 void GameScript::ai_standup(Daedalus::DaedalusVM &vm) {
   auto self = popInstance(vm);
   if(self!=nullptr)
-    self->aiStandup();
+    self->aiPush(AiQueue::aiStandup());
   }
 
 void GameScript::ai_standupquick(Daedalus::DaedalusVM &vm) {
   auto self = popInstance(vm);
   if(self!=nullptr)
-    self->aiStandupQuick();
+    self->aiPush(AiQueue::aiStandupQuick());
   }
 
 void GameScript::ai_continueroutine(Daedalus::DaedalusVM &vm) {
   auto self = popInstance(vm);
   if(self!=nullptr)
-    self->aiContinueRoutine();
+    self->aiPush(AiQueue::aiContinueRoutine());
   }
 
 void GameScript::ai_stoplookat(Daedalus::DaedalusVM &vm) {
   auto self = popInstance(vm);
   if(self!=nullptr)
-    self->aiStopLookAt();
+    self->aiPush(AiQueue::aiStopLookAt());
   }
 
 void GameScript::ai_lookatnpc(Daedalus::DaedalusVM &vm) {
   auto npc  = popInstance(vm);
   auto self = popInstance(vm);
   if(self!=nullptr)
-    self->aiLookAt(npc);
+    self->aiPush(AiQueue::aiLookAt(npc));
   }
 
 void GameScript::ai_removeweapon(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiRemoveWeapon();
+    npc->aiPush(AiQueue::aiRemoveWeapon());
   }
 
 void GameScript::ai_turntonpc(Daedalus::DaedalusVM &vm) {
   auto npc  = popInstance(vm);
   auto self = popInstance(vm);
   if(self!=nullptr)
-    self->aiTurnToNpc(npc);
+    self->aiPush(AiQueue::aiTurnToNpc(npc));
   }
 
 void GameScript::ai_outputsvm(Daedalus::DaedalusVM &vm) {
@@ -2578,7 +2578,7 @@ void GameScript::ai_outputsvm(Daedalus::DaedalusVM &vm) {
   auto target = popInstance(vm);
   auto self   = popInstance(vm);
   if(self!=nullptr && target!=nullptr) {
-    self->aiOutputSvm(*target,name,aiOutOrderId);
+    self->aiPush(AiQueue::aiOutputSvm(*target,name,aiOutOrderId));
     ++aiOutOrderId;
     }
   }
@@ -2588,7 +2588,7 @@ void GameScript::ai_outputsvm_overlay(Daedalus::DaedalusVM &vm) {
   auto target = popInstance(vm);
   auto self   = popInstance(vm);
   if(self!=nullptr && target!=nullptr) {
-    self->aiOutputSvmOverlay(*target,name,aiOutOrderId);
+    self->aiPush(AiQueue::aiOutputSvmOverlay(*target,name,aiOutOrderId));
     ++aiOutOrderId;
     }
   }
@@ -2613,7 +2613,7 @@ void GameScript::ai_startstate(Daedalus::DaedalusVM &vm) {
       if(npc)
         vic = reinterpret_cast<Npc*>(npc->userPtr);
       }
-    self->aiStartState(uint32_t(func),state,oth,vic,wp);
+    self->aiPush(AiQueue::aiStartState(uint32_t(func),state,oth,vic,wp));
     }
   }
 
@@ -2621,7 +2621,7 @@ void GameScript::ai_playani(Daedalus::DaedalusVM &vm) {
   auto name = vm.popString();
   auto npc  = popInstance(vm);
   if(npc!=nullptr) {
-    npc->aiPlayAnim(name);
+    npc->aiPush(AiQueue::aiPlayAnim(name));
     }
   }
 
@@ -2632,7 +2632,7 @@ void GameScript::ai_setwalkmode(Daedalus::DaedalusVM &vm) {
 
   int32_t mode = modeBits & (~weaponBit);
   if(npc!=nullptr && mode>=0 && mode<=3){ //TODO: weapon flags
-    npc->aiSetWalkMode(WalkBit(mode));
+    npc->aiPush(AiQueue::aiSetWalkMode(WalkBit(mode)));
     }
   }
 
@@ -2640,20 +2640,20 @@ void GameScript::ai_wait(Daedalus::DaedalusVM &vm) {
   auto ms  = vm.popFloat();
   auto npc = popInstance(vm);
   if(npc!=nullptr && ms>0)
-    npc->aiWait(uint64_t(ms*1000));
+    npc->aiPush(AiQueue::aiWait(uint64_t(ms*1000)));
   }
 
 void GameScript::ai_waitms(Daedalus::DaedalusVM &vm) {
   auto ms  = vm.popInt();
   auto npc = popInstance(vm);
   if(npc!=nullptr && ms>0)
-    npc->aiWait(uint64_t(ms));
+    npc->aiPush(AiQueue::aiWait(uint64_t(ms)));
   }
 
 void GameScript::ai_aligntowp(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc)
-    npc->aiAlignToWp();
+    npc->aiPush(AiQueue::aiAlignToWp());
   }
 
 void GameScript::ai_gotowp(Daedalus::DaedalusVM &vm) {
@@ -2662,7 +2662,7 @@ void GameScript::ai_gotowp(Daedalus::DaedalusVM &vm) {
 
   auto to = world().findPoint(waypoint.c_str());
   if(npc && to)
-    npc->aiGoToPoint(*to);
+    npc->aiPush(AiQueue::aiGoToPoint(*to));
   }
 
 void GameScript::ai_gotofp(Daedalus::DaedalusVM &vm) {
@@ -2672,7 +2672,7 @@ void GameScript::ai_gotofp(Daedalus::DaedalusVM &vm) {
   if(npc) {
     auto to = world().findFreePoint(*npc,waypoint.c_str());
     if(to!=nullptr)
-      npc->aiGoToPoint(*to);
+      npc->aiPush(AiQueue::aiGoToPoint(*to));
     }
   }
 
@@ -2681,32 +2681,32 @@ void GameScript::ai_playanibs(Daedalus::DaedalusVM &vm) {
   auto      ani = vm.popString();
   auto      npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiPlayAnimBs(ani,bs);
+    npc->aiPush(AiQueue::aiPlayAnimBs(ani,bs));
   }
 
 void GameScript::ai_equiparmor(Daedalus::DaedalusVM &vm) {
   auto id  = vm.popInt();
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiEquipArmor(id);
+    npc->aiPush(AiQueue::aiEquipArmor(id));
   }
 
 void GameScript::ai_equipbestarmor(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiEquipBestArmor();
+    npc->aiPush(AiQueue::aiEquipBestArmor());
   }
 
 void GameScript::ai_equipbestmeleeweapon(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiEquipBestMeleWeapon();
+    npc->aiPush(AiQueue::aiEquipBestMeleWeapon());
   }
 
 void GameScript::ai_equipbestrangedweapon(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiEquipBestRangeWeapon();
+    npc->aiPush(AiQueue::aiEquipBestRangeWeapon());
   }
 
 void GameScript::ai_usemob(Daedalus::DaedalusVM &vm) {
@@ -2714,7 +2714,7 @@ void GameScript::ai_usemob(Daedalus::DaedalusVM &vm) {
   auto     tg    = vm.popString();
   auto     npc   = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiUseMob(tg,state);
+    npc->aiPush(AiQueue::aiUseMob(tg,state));
   vm.pushInt(0);
   }
 
@@ -2723,7 +2723,7 @@ void GameScript::ai_teleport(Daedalus::DaedalusVM &vm) {
   auto     npc = popInstance(vm);
   auto     pt  = world().findPoint(tg.c_str());
   if(npc!=nullptr && pt!=nullptr)
-    npc->aiTeleport(*pt);
+    npc->aiPush(AiQueue::aiTeleport(*pt));
   }
 
 void GameScript::ai_stoppointat(Daedalus::DaedalusVM &vm) {
@@ -2735,19 +2735,19 @@ void GameScript::ai_stoppointat(Daedalus::DaedalusVM &vm) {
 void GameScript::ai_drawweapon(Daedalus::DaedalusVM& vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiDrawWeapon();
+    npc->aiPush(AiQueue::aiDrawWeapon());
   }
 
 void GameScript::ai_readymeleeweapon(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiReadyMeleWeapon();
+    npc->aiPush(AiQueue::aiReadyMeleWeapon());
   }
 
 void GameScript::ai_readyrangedweapon(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiReadyRangeWeapon();
+    npc->aiPush(AiQueue::aiReadyRangeWeapon());
   }
 
 void GameScript::ai_readyspell(Daedalus::DaedalusVM &vm) {
@@ -2755,64 +2755,64 @@ void GameScript::ai_readyspell(Daedalus::DaedalusVM &vm) {
   auto spell = vm.popInt();
   auto npc   = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiReadySpell(spell,mana);
+    npc->aiPush(AiQueue::aiReadySpell(spell,mana));
   }
 
 void GameScript::ai_atack(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiAtack();
+    npc->aiPush(AiQueue::aiAtack());
   }
 
 void GameScript::ai_flee(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiFlee();
+    npc->aiPush(AiQueue::aiFlee());
   }
 
 void GameScript::ai_dodge(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiDodge();
+    npc->aiPush(AiQueue::aiDodge());
   }
 
 void GameScript::ai_unequipweapons(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiUnEquipWeapons();
+    npc->aiPush(AiQueue::aiUnEquipWeapons());
   }
 
 void GameScript::ai_unequiparmor(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiUnEquipArmor();
+    npc->aiPush(AiQueue::aiUnEquipArmor());
   }
 
 void GameScript::ai_gotonpc(Daedalus::DaedalusVM &vm) {
   auto to  = popInstance(vm);
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiGoToNpc(to);
+    npc->aiPush(AiQueue::aiGoToNpc(to));
   }
 
 void GameScript::ai_gotonextfp(Daedalus::DaedalusVM &vm) {
   auto to  = vm.popString();
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiGoToNextFp(to);
+    npc->aiPush(AiQueue::aiGoToNextFp(to));
   }
 
 void GameScript::ai_aligntofp(Daedalus::DaedalusVM &vm) {
   auto  npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->aiAlignToFp();
+    npc->aiPush(AiQueue::aiAlignToFp());
   }
 
 void GameScript::ai_useitem(Daedalus::DaedalusVM &vm) {
   int32_t  item  = vm.popInt();
   auto     npc   = popInstance(vm);
   if(npc)
-    npc->aiUseItem(item);
+    npc->aiPush(AiQueue::aiUseItem(item));
   }
 
 void GameScript::ai_useitemtostate(Daedalus::DaedalusVM &vm) {
@@ -2820,7 +2820,7 @@ void GameScript::ai_useitemtostate(Daedalus::DaedalusVM &vm) {
   int32_t  item  = vm.popInt();
   auto     npc   = popInstance(vm);
   if(npc)
-    npc->aiUseItemToState(item,state);
+    npc->aiPush(AiQueue::aiUseItemToState(item,state));
   }
 
 void GameScript::ai_setnpcstostate(Daedalus::DaedalusVM &vm) {
@@ -2828,14 +2828,14 @@ void GameScript::ai_setnpcstostate(Daedalus::DaedalusVM &vm) {
   int32_t  state  = vm.popInt();
   auto     npc    = popInstance(vm);
   if(npc && state>0)
-    npc->aiSetNpcsToState(size_t(state),radius);
+    npc->aiPush(AiQueue::aiSetNpcsToState(size_t(state),radius));
   }
 
 void GameScript::ai_finishingmove(Daedalus::DaedalusVM &vm) {
   auto oth = popInstance(vm);
   auto npc = popInstance(vm);
   if(npc!=nullptr && oth!=nullptr)
-    npc->aiFinishingMove(*oth);
+    npc->aiPush(AiQueue::aiFinishingMove(*oth));
   }
 
 void GameScript::mob_hasitems(Daedalus::DaedalusVM &vm) {
