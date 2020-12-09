@@ -40,6 +40,7 @@ class PlayerControl final {
     void emptyFocus();
 
     Focus focus() const;
+    bool  hasActionFocus() const;
 
     bool tickMove(uint64_t dt);
     auto weaponState() const -> WeaponState;

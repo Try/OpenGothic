@@ -374,11 +374,7 @@ void Camera::follow(const Npc& npc,uint64_t dt,bool inMove,bool includeRot) {
     applyModRotation(rotation);
 
     float shift = def.veloRot*45;
-    if(npc.target()!=nullptr) {
-      state.spin.x = rotation.x;
-      } else {
-      followAng(state.spin.x,rotation.x,shift*dtF);
-      }
+    followAng(state.spin.x,rotation.x,shift*dtF);
     followAng(state.spin.y,rotation.y,shift*dtF);
 
     if(state.spin.y>def.maxElevation)

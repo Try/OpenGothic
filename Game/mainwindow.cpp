@@ -606,7 +606,7 @@ void MainWindow::followCamera() {
 
   camera.setMode(solveCameraMode());
   camera.follow(*pl,dt,followCamera,
-                (!mouseP[Event::ButtonLeft] || player.focus() || fs));
+                (!mouseP[Event::ButtonLeft] || player.hasActionFocus() || fs));
   renderer.setCameraView(camera);
   }
 

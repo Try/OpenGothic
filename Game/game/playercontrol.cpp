@@ -188,6 +188,12 @@ Focus PlayerControl::focus() const {
   return currentFocus;
   }
 
+bool PlayerControl::hasActionFocus() const {
+  if(!ctrl[Action::ActionGeneric])
+    return false;
+  return currentFocus.npc!=nullptr;
+  }
+
 bool PlayerControl::interact(Interactive &it) {
   auto w = world();
   if(w==nullptr || w->player()==nullptr)
