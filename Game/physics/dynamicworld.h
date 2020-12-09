@@ -193,7 +193,7 @@ class DynamicWorld final {
       friend class DynamicWorld;
       };
 
-    RayLandResult  landRay    (float x, float y, float z) const;
+    RayLandResult  landRay    (float x, float y, float z, float maxDy=0) const;
     RayWaterResult waterRay   (float x, float y, float z) const;
 
     RayLandResult  ray        (float x0, float y0, float z0, float x1, float y1, float z1) const;

@@ -221,7 +221,7 @@ void MoveAlgo::tickClimb(uint64_t dt) {
     pos.x+=p.x;
     pos.z+=p.z;
     if(npc.testMove(pos,v,0))
-      npc.setPosition(pos);
+      npc.setPosition(v);
     clearSpeed();
     return;
     }
@@ -235,12 +235,12 @@ void MoveAlgo::tickClimb(uint64_t dt) {
   pos.z+=dp.z*k;
 
   if(npc.testMove(pos,v,0))
-    npc.setPosition(pos);
+    npc.setPosition(v);
 
   pos = npc.position();
   pos.y+=dp.y;
   if(npc.testMove(pos,v,0))
-    npc.setPosition(pos);
+    npc.setPosition(v);
 
   setAsSlide(false);
   setInAir  (false);
@@ -754,7 +754,7 @@ void MoveAlgo::onMoveFailed() {
   }
 
 float MoveAlgo::waterRay(float x, float y, float z) const {
-  if(std::fabs(cacheW.x-x)>eps || std::fabs(cacheW.y-y)>eps || std::fabs(cacheW.z-z)>eps) {
+  if(std::fabs(cacheW.x-x)>eps || cacheW.y<y+eps || std::fabs(cacheW.z-z)>eps) {
     reinterpret_cast<DynamicWorld::RayWaterResult&>(cacheW) = npc.world().physic()->waterRay(x,y,z);
     cacheW.x = x;
     cacheW.y = y;
@@ -765,8 +765,9 @@ float MoveAlgo::waterRay(float x, float y, float z) const {
 
 void MoveAlgo::rayMain(float x, float y, float z) const {
   if(std::fabs(cache.x-x)>eps || std::fabs(cache.y-y)>eps || std::fabs(cache.z-z)>eps) {
-    auto prev = cache.sector;
-    reinterpret_cast<DynamicWorld::RayLandResult&>(cache) = npc.world().physic()->landRay(x,y,z);
+    auto  prev = cache.sector;
+    float dy   = waterDepthChest()+100;  // 1 meter offset is enought
+    reinterpret_cast<DynamicWorld::RayLandResult&>(cache) = npc.world().physic()->landRay(x,y,z,dy);
     cache.x = x;
     cache.y = y;
     cache.z = z;

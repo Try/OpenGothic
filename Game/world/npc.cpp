@@ -356,11 +356,13 @@ void Npc::setDirection(float rotation, uint64_t dt) {
   if(dt>0)
     dangle/=float(dt);
   if(std::fabs(dangle)<0.001f) {
-    runAngleDest = 0.f;
+    if(runAngleSmooth<owner.tickCount())
+      runAngleDest = 0;//std::max(0.f,runAngleDest-15.f/float(dt));
     return;
     }
 
   if(bodyStateMasked()==BS_RUN) {
+    runAngleSmooth = owner.tickCount()+250;
     float maxV = 15;
     if(angle<rotation)
       runAngleDest =  std::min( dangle,maxV);
@@ -681,11 +683,11 @@ void Npc::updateAnimation() {
     visual.setTarget(currentTarget->position()); else
     visual.setTarget(position());
 
+  visual.updateAnimation(this,owner);
   if(durtyTranform){
     updatePos();
     durtyTranform=0;
     }
-  visual.updateAnimation(this,owner);
   }
 
 void Npc::updateTransform() {
@@ -3206,17 +3208,15 @@ void Npc::updatePos() {
   bool align = (world().script().guildVal().surface_align[gl]!=0) || isDead();
 
   auto ground = mvAlgo.groundNormal();
-  if(align && !mvAlgo.isInAir() && !mvAlgo.isSwim()) {
-    if(groundNormal!=ground) {
-      durtyTranform |= TR_Rot;
-      groundNormal = ground;
-      }
-    } else {
+
+  if(!align || mvAlgo.isInAir() || mvAlgo.isSwim())
     ground = {0,1,0};
-    if(groundNormal!=ground) {
-      durtyTranform |= TR_Rot;
-      groundNormal = ground;
-      }
+  if(ground==Vec3())
+    ground = {0,1,0};
+
+  if(groundNormal!=ground) {
+    durtyTranform |= TR_Rot;
+    groundNormal = ground;
     }
 
   if(durtyTranform==TR_Pos){

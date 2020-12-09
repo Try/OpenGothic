@@ -538,9 +538,11 @@ DynamicWorld::~DynamicWorld(){
     world->removeCollisionObject(landBody .get());
   }
 
-DynamicWorld::RayLandResult DynamicWorld::landRay(float x, float y, float z) const {
+DynamicWorld::RayLandResult DynamicWorld::landRay(float x, float y, float z, float maxDy) const {
   updateAabbs();
-  return ray(x,y+ghostPadding,z, x,y-worldHeight,z);
+  if(maxDy==0)
+    maxDy = worldHeight;
+  return ray(x,y+ghostPadding,z, x,y-maxDy,z);
   }
 
 DynamicWorld::RayWaterResult DynamicWorld::waterRay(float x, float y, float z) const {
@@ -575,12 +577,13 @@ DynamicWorld::RayWaterResult DynamicWorld::implWaterRay(float x0, float y0, floa
 
   RayWaterResult ret;
   if(callback.hasHit()) {
-    auto cave = ray(x0,y0,z0,x1,y1,z1);
+    float waterY = callback.m_hitPointWorld.y();
+    auto  cave   = ray(x0,y0,z0,x1,waterY,z1);
     if(cave.hasCol && cave.v.y<callback.m_hitPointWorld.y()) {
       ret.wdepth = y0-worldHeight;
       ret.hasCol = false;
       } else {
-      ret.wdepth = callback.m_hitPointWorld.y();
+      ret.wdepth = waterY;
       ret.hasCol = true;
       }
     return ret;

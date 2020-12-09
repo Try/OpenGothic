@@ -550,6 +550,7 @@ class Npc final {
     float                          angleY   = 0.f;
     float                          runAngle = 0.f;
     float                          runAngleDest = 0.f;
+    uint64_t                       runAngleSmooth = 0;
     float                          sz[3]={1.f,1.f,1.f};
 
     // visual props (cache)
