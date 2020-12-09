@@ -1714,7 +1714,7 @@ void Npc::tick(uint64_t dt) {
     }
 
   if(runAngle!=0.f || std::fabs(runAngleDest)>5.f) {
-    const float speed = 30.f;
+    const float speed = 20.f;
     if(runAngle<runAngleDest) {
       durtyTranform |= TR_Rot;
       runAngle+=speed*(float(dt)/1000.f);

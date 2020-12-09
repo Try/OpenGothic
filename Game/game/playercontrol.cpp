@@ -140,8 +140,8 @@ void PlayerControl::onKeyReleased(KeyCodec::Action a) {
   }
 
 void PlayerControl::onRotateMouse(float dAngle) {
-  dAngle = std::max(-100.f,std::min(dAngle,100.f));
-  rotMouse += dAngle*0.4f;
+  dAngle = std::max(-40.f,std::min(dAngle,40.f));
+  rotMouse += dAngle*0.3f;
   }
 
 void PlayerControl::onRotateMouseDy(float dAngle) {
