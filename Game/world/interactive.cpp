@@ -162,7 +162,7 @@ void Interactive::updateAnimation() {
   }
 
 void Interactive::tick(uint64_t dt) {
-  visual.processLayers(world,0);
+  visual.processLayers(world);
 
   if(animChanged) {
     physic.setPose(visual.pose(),transform());

@@ -237,6 +237,12 @@ bool PlayerControl::interact(Item &item) {
     return false;
   if(w->player()->isDown())
     return true;
+
+  auto dpos = item.position()-pl->position();
+  dpos.y-=pl->translateY();
+  if(!pl->setAnim(Npc::Anim::ItmGet,Pose::calcAniCombVert(dpos)))
+    return false;
+
   std::unique_ptr<Item> ptr {w->takeItem(item)};
   auto it = ptr.get();
   pl->addItem(std::move(ptr));

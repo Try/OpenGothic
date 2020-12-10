@@ -257,6 +257,7 @@ class Npc final {
     void       setScale      (float x,float y,float z);
 
     bool       setAnim(Anim a);
+    bool       setAnim(Anim a, int comb);
     auto       setAnimAngGet(Anim a,bool noInterupt) -> const Animation::Sequence*;
     void       setAnimRotate(int rot);
     bool       setAnimItem(const char* scheme, int state);
@@ -410,6 +411,7 @@ class Npc final {
     void      moveItem   (size_t id, Interactive& to,uint32_t count=1);
     void      sellItem   (size_t id, Npc& to,uint32_t count=1);
     void      buyItem    (size_t id, Npc& from,uint32_t count=1);
+    void      dropItem   (size_t id);
     void      clearInventory();
     Item*     currentArmour();
     Item*     currentMeleWeapon();

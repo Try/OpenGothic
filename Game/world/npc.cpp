@@ -658,24 +658,8 @@ int Npc::calcAniComb() const {
   if(currentTarget==nullptr)
     return 0;
 
-  float aXZ  = 0;
-  float aY   = 0;
-  int   comb = 0;
-  float dx   = currentTarget->x-x;
-  float dy   = currentTarget->y-y;
-  float dz   = currentTarget->z-z;
-  float l    = std::sqrt(dx*dx+dz*dz);
-
-  float dir  = angleDir(dx,dz);
-  aXZ        = (angle-dir);
-  aY         = -std::atan2(dy,l)*180.f/float(M_PI);
-
-  int cx = (aXZ<-30.f) ? 0 : (aXZ<=30.f ? 1 : 2);
-  int cy = (aY <-45.f) ? 0 : (aY <=45.f ? 1 : 2);
-
-  // sides angle: +/- 30 height angle: +/- 45
-  comb   = 1+cy*3+cx;
-  return comb;
+  auto dpos = currentTarget->position()-position();
+  return Pose::calcAniComb(dpos,angle);
   }
 
 void Npc::updateAnimation() {
@@ -918,6 +902,18 @@ const Animation::Sequence* Npc::playAnimByName(const Daedalus::ZString& name,boo
 
 bool Npc::setAnim(Npc::Anim a) {
   return setAnimAngGet(a,false)!=nullptr;
+  }
+
+bool Npc::setAnim(Npc::Anim a, int comb) {
+  auto st  = weaponState();
+  auto wlk = walkMode();
+  if(mvAlgo.isDive())
+    wlk = WalkBit::WM_Dive;
+  else if(mvAlgo.isSwim())
+    wlk = WalkBit::WM_Swim;
+  else if(mvAlgo.isInWater())
+    wlk = WalkBit::WM_Water;
+  return visual.startAnimAndGet(*this,a,comb,st,wlk,false);
   }
 
 const Animation::Sequence* Npc::setAnimAngGet(Npc::Anim a,bool noInterupt) {
@@ -1670,7 +1666,7 @@ Npc* Npc::updateNearestBody() {
 void Npc::tick(uint64_t dt) {
   Animation::EvCount ev;
   visual.pose().processEvents(lastEventTime,owner.tickCount(),ev);
-  visual.processLayers(owner,calcAniComb());
+  visual.processLayers(owner);
   visual.setNpcEffect(owner,*this,hnpc.effect);
   if(!visual.pose().hasAnim())
     setAnim(AnimationSolver::Idle);
@@ -2399,6 +2395,22 @@ void Npc::buyItem(size_t id, Npc &from, uint32_t count) {
   if(price>=0)
     invent.delItem(owner.script().goldId(),uint32_t(price)*count,*this); else
     invent.addItem(owner.script().goldId(),uint32_t(-price)*count,owner);
+  }
+
+void Npc::dropItem(size_t id) {
+  if(id==size_t(-1))
+    return;
+  size_t cnt = invent.itemCount(id);
+  if(cnt<1)
+    return;
+
+  invent.delItem(id,cnt,*this);
+  if(!setAnim(Anim::ItmDrop))
+    return;
+
+  // TODO: item-drop
+  auto it = owner.addItem(id,nullptr);
+  it->setPosition(x,y,z);
   }
 
 void Npc::clearInventory() {

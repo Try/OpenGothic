@@ -479,6 +479,9 @@ void InventoryMenu::onTakeStuff() {
       player->addItem(r.clsId(),*trader,itemCount);
       }
     }
+  else if(state==State::Equip) {
+    player->dropItem(r.clsId());
+    }
   adjustScroll();
   }
 

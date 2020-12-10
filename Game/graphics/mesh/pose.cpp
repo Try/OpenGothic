@@ -12,6 +12,29 @@
 
 using namespace Tempest;
 
+int Pose::calcAniComb(const Vec3& dpos, float rotation) {
+  float l    = std::sqrt(dpos.x*dpos.x+dpos.z*dpos.z);
+
+  float dir  = 90+180.f*std::atan2(dpos.z,dpos.x)/float(M_PI);
+  float aXZ  = (rotation-dir);
+  float aY   = -std::atan2(dpos.y,l)*180.f/float(M_PI);
+
+  int cx = (aXZ<-30.f) ? 0 : (aXZ<=30.f ? 1 : 2);
+  int cy = (aY <-45.f) ? 0 : (aY <=45.f ? 1 : 2);
+
+  // sides angle: +/- 30 height angle: +/- 45
+  return 1+cy*3+cx;
+  }
+
+int Pose::calcAniCombVert(const Vec3& dpos) {
+  float l  = std::sqrt(dpos.x*dpos.x+dpos.z*dpos.z);
+  float aY = 180.f*std::atan2(dpos.y,l)/float(M_PI);
+  int   cy = (aY <-25.f) ? 0 : (aY <=25.f ? 1 : 2);
+
+  // height angle: +/- 25
+  return cy+1;
+  }
+
 void Pose::save(Serialize &fout) {
   uint8_t sz=uint8_t(lay.size());
   fout.write(sz);
@@ -103,7 +126,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       const bool hasNext   = (!i.seq->next.empty() && i.seq->animCls!=Animation::Loop);
       const bool finished  = i.seq->isFinished(tickCount-i.sAnim,comboLen) && !hasNext;
       const bool interrupt = force || (!noInter && i.seq->canInterrupt());
-      if(i.seq==sq && i.bs==bs && !finished)
+      if(i.seq==sq && i.comb==comb && i.bs==bs && !finished)
         return true;
       if(!interrupt && !finished)
         return false;
@@ -128,7 +151,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       onRemoveLayer(i);
       i.seq   = tr ? tr : sq;
       i.sAnim = tickCount;
-      i.comb  = 0;
+      i.comb  = comb;
       i.bs    = bs;
       return true;
       }
@@ -190,7 +213,7 @@ void Pose::stopAllAnim() {
   lay.clear();
   }
 
-void Pose::processLayers(AnimationSolver& solver, int comb, uint64_t tickCount) {
+void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
   size_t ret    = 0;
   bool   doSort = false;
   for(size_t i=0;i<lay.size();++i) {
@@ -222,13 +245,6 @@ void Pose::processLayers(AnimationSolver& solver, int comb, uint64_t tickCount) 
     std::sort(lay.begin(),lay.end(),[](const Layer& a,const Layer& b){
       return a.seq->layer<b.seq->layer;
       });
-    }
-
-  for(auto& i:lay) {
-    if(i.seq->comb.size()==0 || i.comb==comb)
-      continue;
-    i.comb       = comb;
-    needToUpdate = true;
     }
   }
 

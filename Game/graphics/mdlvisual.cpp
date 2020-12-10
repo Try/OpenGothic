@@ -385,10 +385,10 @@ bool MdlVisual::updateAnimation(Npc* npc, World& world) {
   return changed;
   }
 
-void MdlVisual::processLayers(World& world, int comb) {
+void MdlVisual::processLayers(World& world) {
   Pose&    pose      = *skInst;
   uint64_t tickCount = world.tickCount();
-  pose.processLayers(solver,comb,tickCount);
+  pose.processLayers(solver,tickCount);
   }
 
 Vec3 MdlVisual::mapBone(const size_t boneId) const {
@@ -488,12 +488,13 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     }
 
   const Animation::Sequence *sq = solver.solveAnim(a,st,wlk,*skInst);
+  if(sq==nullptr)
+    return nullptr;
 
   bool forceAnim=false;
   if(a==AnimationSolver::Anim::DeadA || a==AnimationSolver::Anim::UnconsciousA ||
      a==AnimationSolver::Anim::DeadB || a==AnimationSolver::Anim::UnconsciousB) {
-    if(sq!=nullptr)
-      skInst->stopAllAnim();
+    skInst->stopAllAnim();
     forceAnim = true;
     }
   if(!noInterupt) {
@@ -570,6 +571,12 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     case AnimationSolver::Anim::AimBow:
       bs = BS_AIMNEAR; //TODO: BS_AIMFAR
       break;
+    case AnimationSolver::Anim::ItmGet:
+      bs = BS_TAKEITEM;
+      break;
+    case AnimationSolver::Anim::ItmDrop:
+      bs = BS_DROPITEM;
+      break;
     }
 
   if(bool(wlk & WalkBit::WM_Dive))
@@ -582,9 +589,8 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
   Pose::StartHint hint = Pose::StartHint((forceAnim  ? Pose::Force : Pose::NoHint) |
                                          (noInterupt ? Pose::NoInterupt : Pose::NoHint));
 
-  if(skInst->startAnim(solver,sq,comb,bs,hint,npc.world().tickCount())) {
+  if(skInst->startAnim(solver,sq,comb,bs,hint,npc.world().tickCount()))
     return sq;
-    }
   return nullptr;
   }
 

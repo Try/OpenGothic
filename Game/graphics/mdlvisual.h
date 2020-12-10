@@ -61,7 +61,7 @@ class MdlVisual final {
 
     const Pose&                    pose() const { return *skInst; }
     bool                           updateAnimation(Npc* npc, World& world);
-    void                           processLayers  (World& world, int comb);
+    void                           processLayers  (World& world);
     auto                           mapBone(const size_t boneId) const -> Tempest::Vec3;
     auto                           mapWeaponBone() const -> Tempest::Vec3;
 

@@ -60,6 +60,9 @@ class AnimationSolver final {
       StumbleB,
       AimBow,
 
+      ItmGet,
+      ItmDrop,
+
       MagNoMana
       };
 

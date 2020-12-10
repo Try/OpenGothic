@@ -28,6 +28,9 @@ class Pose final {
       NoInterupt = 0x2,
       };
 
+    static int         calcAniComb(const Tempest::Vec3& dpos, float rotation);
+    static int         calcAniCombVert(const Tempest::Vec3& dpos);
+
     void               save(Serialize& fout);
     void               load(Serialize& fin, const AnimationSolver &solver);
 
@@ -42,7 +45,7 @@ class Pose final {
     void               interrupt();
     void               stopAllAnim();
     bool               update(uint64_t tickCount);
-    void               processLayers(AnimationSolver &solver, int comb, uint64_t tickCount);
+    void               processLayers(AnimationSolver &solver, uint64_t tickCount);
 
     Tempest::Vec3      animMoveSpeed(uint64_t tickCount, uint64_t dt) const;
     void               processSfx(Npc &npc, uint64_t tickCount);

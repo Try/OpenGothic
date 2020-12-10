@@ -304,6 +304,12 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     return solveFrm("T_STAND_2_WOUNDED");
   if(a==Anim::UnconsciousB)
     return solveFrm("T_STAND_2_WOUNDEDB");
+
+  if(a==Anim::ItmGet)
+    return solveFrm("S_IGET");
+  if(a==Anim::ItmDrop)
+    return solveFrm("S_IDROP");
+
   return nullptr;
   }
 
