@@ -373,14 +373,16 @@ const Animation::Sequence* Pose::getNext(const AnimationSolver &solver, const La
     sq->schemeName(scheme);
 
     const Animation::Sequence* ret = nullptr;
-    if(sB==-1) {
-      char T_ID_S0_2_STAND[128]={};
-      std::snprintf(T_ID_S0_2_STAND,sizeof(T_ID_S0_2_STAND),"T_%s_S0_2_STAND",scheme);
-      ret = solver.solveAsc(T_ID_S0_2_STAND);
-      } else {
+    if(itemUseSt>itemUseDestSt) {
+      char T_ID_SX_2_STAND[128]={};
+      std::snprintf(T_ID_SX_2_STAND,sizeof(T_ID_SX_2_STAND),"T_%s_S%d_2_STAND",scheme,itemUseSt);
+      ret = solver.solveFrm(T_ID_SX_2_STAND);
+      }
+
+    if(ret==nullptr) {
       char T_ID_Sa_2_Sb[256]={};
       std::snprintf(T_ID_Sa_2_Sb,sizeof(T_ID_Sa_2_Sb),"T_%s_S%d_2_S%d",scheme,sA,sB);
-      ret = solver.solveAsc(T_ID_Sa_2_Sb);
+      ret = solver.solveFrm(T_ID_Sa_2_Sb);
       }
 
     if(ret==nullptr && itemUseDestSt>=0)

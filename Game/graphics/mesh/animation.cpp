@@ -184,15 +184,9 @@ const Animation::Sequence* Animation::sequence(const char *name) const {
   }
 
 const Animation::Sequence *Animation::sequenceAsc(const char *name) const {
-  if(auto s = sequence(name))
-    return s; //gothic2 format
-
-  auto it = std::lower_bound(sequences.begin(),sequences.end(),name,[](const Sequence& s,const char* n){
-    return s.askName<n;
-    });
-
-  if(it!=sequences.end() && it->askName==name)
-    return &(*it);
+  for(auto& i:sequences)
+    if(i.askName==name)
+      return &i;
   return nullptr;
   }
 
@@ -261,7 +255,7 @@ void Animation::setupIndex() {
     }
 
   for(auto& i:sequences) {
-    i.nextPtr = sequenceAsc(i.next.c_str());
+    i.nextPtr = sequence(i.next.c_str());
     i.owner   = this;
     }
   // for(auto& i:sequences)

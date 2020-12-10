@@ -559,14 +559,14 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     case AnimationSolver::Anim::AtackL:
     case AnimationSolver::Anim::AtackR:
     case AnimationSolver::Anim::AtackFinish:
-      bs = pose().bodyState()==BS_RUN ? BS_RUN : BS_NONE;
+      bs = BS_HIT;
       break;
     case AnimationSolver::Anim::AtackBlock:
       bs = BS_PARADE;
       break;
     case AnimationSolver::Anim::StumbleA:
     case AnimationSolver::Anim::StumbleB:
-      bs = BS_PARADE;
+      bs = BS_STUMBLE;
       break;
     case AnimationSolver::Anim::AimBow:
       bs = BS_AIMNEAR; //TODO: BS_AIMFAR

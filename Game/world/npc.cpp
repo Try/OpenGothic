@@ -362,7 +362,7 @@ void Npc::setDirection(float rotation, uint64_t dt) {
     }
 
   if(bodyStateMasked()==BS_RUN) {
-    runAngleSmooth = owner.tickCount()+250;
+    runAngleSmooth = owner.tickCount()+200;
     float maxV = 15;
     if(angle<rotation)
       runAngleDest =  std::min( dangle,maxV);
@@ -1589,7 +1589,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
         if(!noInter)
           visual.interrupt();
         if(auto ani = setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB,noInter)) {
-          if(ani->layer==0)
+          if(ani->layer==1)
             implAniWait(uint64_t(ani->totalTime()));
           }
         }
@@ -2675,19 +2675,21 @@ bool Npc::beginCastSpell() {
       return false;
     case SpellCode::SPL_NEXTLEVEL: {
       auto& ani = owner.script().spellCastAnim(*this,*active);
-      if(!visual.startAnimSpell(*this,ani.c_str(),true))
+      if(!visual.startAnimSpell(*this,ani.c_str(),true)) {
+        endCastSpell();
         return false;
+        }
       break;
       }
     case SpellCode::SPL_SENDCAST:{
       auto& ani = owner.script().spellCastAnim(*this,*active);
-      if(!visual.startAnimSpell(*this,ani.c_str(),false))
-        return false;
+      visual.startAnimSpell(*this,ani.c_str(),false);
       endCastSpell();
       return false;
       }
     default:
       Log::d("unexpected Spell_ProcessMana result: '",int(code),"' for spell '",currentSpellCast,"'");
+      endCastSpell();
       return false;
     }
   return true;

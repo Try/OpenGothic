@@ -125,24 +125,20 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
   else if(st==WeaponState::Bow || st==WeaponState::CBow) {
     // S_BOWAIM -> S_BOWSHOOT+T_BOWRELOAD -> S_BOWAIM
     if(a==Anim::AimBow) {
-      if(pose.isInAnim("S_BOWRUN")  || pose.isInAnim("S_CBOWRUN") ||
-         pose.isInAnim("S_BOWWALK") || pose.isInAnim("S_CBOWWALK"))
-        return solveFrm("T_%sRUN_2_%sAIM",st);
-      if(pose.isInAnim("S_BOWSHOOT") || pose.isInAnim("S_CBOWSHOOT"))
+      auto bs = pose.bodyState();
+      if(bs==BS_HIT)
         return solveFrm("T_%sRELOAD",st);
-      if(!pose.hasAnim() || pose.isInAnim("T_BOWRUN_2_BOWAIM") || pose.isInAnim("T_CBOWRUN_2_CBOWAIM"))
-        return solveFrm("S_%sSHOOT",st);
+      if(bs==BS_AIMNEAR || bs==BS_AIMFAR || pose.isStanding())
+        return solveFrm("S_%sAIM",st);
+      return solveFrm("S_%sRUN",st);
       }
     if(a==Anim::Atack) {
-      if(pose.isInAnim("S_BOWAIM") || pose.isInAnim("S_CBOWAIM"))
+      auto bs = pose.bodyState();
+      if(bs==BS_AIMNEAR || bs==BS_AIMFAR)
         return solveFrm("S_%sSHOOT",st);
       }
-    if(a==Anim::Idle) {
-      if(!pose.hasAnim())
-        return solveFrm("S_%sRUN",st);
-      if(pose.isInAnim("S_BOWSHOOT") || pose.isInAnim("S_CBOWSHOOT"))
-        return solveFrm("T_%sAIM_2_%sRUN",st);
-      }
+    if(a==Anim::Idle)
+      return solveFrm("S_%sRUN",st);
     }
   if(a==Anim::MagNoMana)
     return solveFrm("T_CASTFAIL");
@@ -373,44 +369,6 @@ const Animation::Sequence *AnimationSolver::solveFrm(const char *format, WeaponS
   return solveFrm(name);
   }
 
-const Animation::Sequence* AnimationSolver::solveNext(const Animation::Sequence& sq) const {
-  if(sq.next.empty())
-    return nullptr;
-  const char* name = sq.next.c_str();
-  for(size_t i=overlay.size();i>0;){
-    --i;
-    if(overlay[i].skeleton->animation()==sq.owner)
-      return sq.nextPtr; // fast-forward path
-    if(auto s = overlay[i].skeleton->sequenceAsc(name))
-      return s;
-    }
-  if(baseSk->animation()==sq.owner)
-    return sq.nextPtr; // fast-forward path
-  return baseSk ? baseSk->sequenceAsc(name) : nullptr;
-  }
-
-const Animation::Sequence *AnimationSolver::solveAsc(const char *name) const {
-  if(name==nullptr || name[0]=='\0')
-    return nullptr;
-  for(size_t i=overlay.size();i>0;){
-    --i;
-    if(auto s = overlay[i].skeleton->sequenceAsc(name))
-      return s;
-    }
-  return baseSk ? baseSk->sequenceAsc(name) : nullptr;
-  }
-
-const Animation::Sequence *AnimationSolver::solveFrm(const char *name) const {
-  if(name==nullptr || name[0]=='\0')
-    return nullptr;
-  for(size_t i=overlay.size();i>0;){
-    --i;
-    if(auto s = overlay[i].skeleton->sequence(name))
-      return s;
-    }
-  return baseSk ? baseSk->sequence(name) : nullptr;
-  }
-
 const Animation::Sequence* AnimationSolver::solveMag(const char *format, const std::string &spell) const {
   char name[128]={};
   std::snprintf(name,sizeof(name),format,spell.c_str());
@@ -421,4 +379,34 @@ const Animation::Sequence *AnimationSolver::solveDead(const char *format1, const
   if(auto a=solveFrm(format1))
     return a;
   return solveFrm(format2);
+  }
+
+const Animation::Sequence* AnimationSolver::solveNext(const Animation::Sequence& sq) const {
+  if(sq.next.empty())
+    return nullptr;
+  const char* name = sq.next.c_str();
+  for(size_t i=overlay.size();i>0;){
+    --i;
+    if(overlay[i].skeleton->animation()==sq.owner)
+      return sq.nextPtr; // fast-forward path
+    if(auto s = overlay[i].skeleton->sequence(name))
+      return s;
+    }
+  if(baseSk->animation()==sq.owner)
+    return sq.nextPtr; // fast-forward path
+  return baseSk ? baseSk->sequence(name) : nullptr;
+  }
+
+const Animation::Sequence *AnimationSolver::solveFrm(const char* name) const {
+  if(name==nullptr || name[0]=='\0')
+    return nullptr;
+
+  for(size_t i=overlay.size();i>0;){
+    --i;
+    if(auto s = overlay[i].skeleton->sequence(name))
+      return s;
+    }
+  if(baseSk==nullptr)
+    return nullptr;
+  return baseSk->sequence(name);
   }
