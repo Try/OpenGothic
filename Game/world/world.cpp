@@ -830,12 +830,12 @@ void World::detectNpcNear(std::function<void (Npc &)> f) {
   wobj.detectNpcNear(f);
   }
 
-void World::detectNpc(const Tempest::Vec3& p, const float r, std::function<void (Npc &)> f) {
+void World::detectNpc(const Tempest::Vec3& p, const float r, const std::function<void(Npc&)>& f) {
   wobj.detectNpc(p.x,p.y,p.z,r,f);
   }
 
-void World::detectNpc(const float x, const float y, const float z, const float r, std::function<void(Npc&)> f) {
-  wobj.detectNpc(x,y,z,r,f);
+void World::detectItem(const Vec3& p, const float r, const std::function<void(Item&)>& f) {
+  wobj.detectItem(p.x,p.y,p.z,r,f);
   }
 
 WayPath World::wayTo(const Npc &pos, const WayPoint &end) const {

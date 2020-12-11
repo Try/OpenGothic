@@ -68,8 +68,8 @@ class World final {
     const WayPoint*      findNextPoint(const WayPoint& pos) const;
 
     void                 detectNpcNear(std::function<void(Npc&)> f);
-    void                 detectNpc(const Tempest::Vec3& p, const float r, std::function<void(Npc&)> f);
-    void                 detectNpc(const float x, const float y, const float z, const float r, std::function<void(Npc&)> f);
+    void                 detectNpc (const Tempest::Vec3& p, const float r, const std::function<void(Npc&)>& f);
+    void                 detectItem(const Tempest::Vec3& p, const float r, const std::function<void(Item&)>& f);
 
     WayPath              wayTo(const Npc& pos,const WayPoint& end) const;
     WayPath              wayTo(float npcX,float npcY,float npcZ,const WayPoint& end) const;

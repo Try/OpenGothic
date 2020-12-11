@@ -7,6 +7,7 @@
 #include "game/constants.h"
 
 class Npc;
+class Item;
 class WayPoint;
 class Serialize;
 
@@ -21,6 +22,7 @@ class AiQueue {
       Npc*              target=nullptr;
       Npc*              victum=nullptr;
       const WayPoint*   point =nullptr;
+      Item*             item  =nullptr;
       ScriptFn          func  =0;
       int               i0    =0;
       int               i1    =0;
@@ -78,6 +80,7 @@ class AiQueue {
     static AiAction aiSetNpcsToState(ScriptFn func, int32_t radius);
     static AiAction aiSetWalkMode(WalkBit w);
     static AiAction aiFinishingMove(Npc& other);
+    static AiAction aiTakeItem(Item& item);
 
   private:
     std::deque<AiAction> aiActions;

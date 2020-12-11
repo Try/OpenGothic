@@ -904,19 +904,11 @@ bool Npc::setAnim(Npc::Anim a) {
   return setAnimAngGet(a,false)!=nullptr;
   }
 
-bool Npc::setAnim(Npc::Anim a, int comb) {
-  auto st  = weaponState();
-  auto wlk = walkMode();
-  if(mvAlgo.isDive())
-    wlk = WalkBit::WM_Dive;
-  else if(mvAlgo.isSwim())
-    wlk = WalkBit::WM_Swim;
-  else if(mvAlgo.isInWater())
-    wlk = WalkBit::WM_Water;
-  return visual.startAnimAndGet(*this,a,comb,st,wlk,false);
+const Animation::Sequence* Npc::setAnimAngGet(Npc::Anim a,bool noInterupt) {
+  return setAnimAngGet(a,noInterupt,calcAniComb());
   }
 
-const Animation::Sequence* Npc::setAnimAngGet(Npc::Anim a,bool noInterupt) {
+const Animation::Sequence* Npc::setAnimAngGet(Npc::Anim a,bool noInterupt,int comb) {
   auto st  = weaponState();
   auto wlk = walkMode();
   if(mvAlgo.isDive())
@@ -925,7 +917,7 @@ const Animation::Sequence* Npc::setAnimAngGet(Npc::Anim a,bool noInterupt) {
     wlk = WalkBit::WM_Swim;
   else if(mvAlgo.isInWater())
     wlk = WalkBit::WM_Water;
-  return visual.startAnimAndGet(*this,a,calcAniComb(),st,wlk,noInterupt);
+  return visual.startAnimAndGet(*this,a,comb,st,wlk,noInterupt);
   }
 
 void Npc::setAnimRotate(int rot) {
@@ -1955,8 +1947,10 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_OutputSvm:
     case AI_OutputSvmOverlay:{
       if(performOutput(act)) {
-        if(act.act!=AI_OutputSvmOverlay)
+        if(act.act!=AI_OutputSvmOverlay) {
           visual.startAnimDialog(*this);
+          implAniWait(visual.pose().animationTotalTime());
+          }
         } else {
         aiQueue.pushFront(std::move(act));
         }
@@ -2025,6 +2019,14 @@ void Npc::nextAiAction(uint64_t dt) {
           aiQueue.pushFront(std::move(act));
         }
       break;
+      }
+    case AI_TakeItem:{
+      if(act.item==nullptr)
+        break;
+      if(takeItem(*act.item)==nullptr) {
+        if(owner.itmId(act.item)!=size_t(-1))
+          aiQueue.pushFront(std::move(act));
+        }
       }
     }
   }
@@ -2358,6 +2360,27 @@ Item* Npc::addItem(std::unique_ptr<Item>&& i) {
   return invent.addItem(std::move(i));
   }
 
+Item* Npc::takeItem(Item& item) {
+  auto dpos = item.position()-position();
+  dpos.y-=translateY();
+
+  const Animation::Sequence* sq = setAnimAngGet(Npc::Anim::ItmGet,false,Pose::calcAniCombVert(dpos));
+  if(sq==nullptr)
+    return nullptr;
+
+  std::unique_ptr<Item> ptr {owner.takeItem(item)};
+  auto it = ptr.get();
+
+  if(it==nullptr)
+    return nullptr;
+
+  addItem(std::move(ptr));
+  implAniWait(uint64_t(sq->totalTime()));
+  if(it->handle()->owner!=0)
+    owner.sendPassivePerc(*this,*this,*this,*it,Npc::PERC_ASSESSTHEFT);
+  return it;
+  }
+
 void Npc::addItem(size_t id, Interactive &chest, uint32_t count) {
   Inventory::trasfer(invent,chest.inventory(),nullptr,id,count,owner);
   }
@@ -2404,12 +2427,13 @@ void Npc::dropItem(size_t id) {
   if(cnt<1)
     return;
 
-  invent.delItem(id,cnt,*this);
+  invent.delItem(id,uint32_t(cnt),*this);
   if(!setAnim(Anim::ItmDrop))
     return;
 
   // TODO: item-drop
   auto it = owner.addItem(id,nullptr);
+  it->setCount(cnt);
   it->setPosition(x,y,z);
   }
 

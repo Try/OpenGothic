@@ -64,8 +64,9 @@ class WorldObjects final {
     size_t         npcCount()    const { return npcArr.size(); }
     const Npc&     npc(size_t i) const { return *npcArr[i];    }
     Npc&           npc(size_t i)       { return *npcArr[i];    }
-    void           detectNpcNear(std::function<void(Npc&)> f);
-    void           detectNpc(const float x,const float y,const float z,const float r,std::function<void(Npc&)> f);
+    void           detectNpcNear(const std::function<void(Npc&)>& f);
+    void           detectNpc (const float x, const float y, const float z, const float r, const std::function<void(Npc&)>&  f);
+    void           detectItem(const float x, const float y, const float z, const float r, const std::function<void(Item&)>& f);
 
     size_t         itmCount()    const { return itemArr.size(); }
     Item&          itm(size_t i)       { return *itemArr[i];    }

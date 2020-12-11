@@ -319,6 +319,8 @@ class GameScript final {
     void npc_getdetectedmob  (Daedalus::DaedalusVM &vm);
     void npc_ownedbynpc      (Daedalus::DaedalusVM &vm);
     void npc_canseesource    (Daedalus::DaedalusVM &vm);
+    void npc_getdisttoitem   (Daedalus::DaedalusVM &vm);
+    void npc_getheighttoitem (Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
@@ -364,6 +366,7 @@ class GameScript final {
     void ai_useitemtostate   (Daedalus::DaedalusVM &vm);
     void ai_setnpcstostate   (Daedalus::DaedalusVM &vm);
     void ai_finishingmove    (Daedalus::DaedalusVM &vm);
+    void ai_takeitem         (Daedalus::DaedalusVM &vm);
 
     void mob_hasitems        (Daedalus::DaedalusVM &vm);
 

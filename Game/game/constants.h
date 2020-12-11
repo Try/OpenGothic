@@ -298,4 +298,5 @@ enum Action:uint32_t {
   AI_SetWalkMode,
   AI_FinishingMove,
   AI_DrawWeapon,
+  AI_TakeItem,
   };

@@ -387,15 +387,25 @@ Npc *WorldObjects::findNpcByInstance(size_t instance) {
   return nullptr;
   }
 
-void WorldObjects::detectNpcNear(std::function<void (Npc &)> f) {
+void WorldObjects::detectNpcNear(const std::function<void(Npc&)>& f) {
   for(auto& i:npcNear)
     f(*i);
   }
 
 void WorldObjects::detectNpc(const float x, const float y, const float z,
-                             const float r, std::function<void (Npc &)> f) {
+                             const float r, const std::function<void(Npc&)>& f) {
   float maxDist=r*r;
   for(auto& i:npcArr) {
+    auto qDist = (i->position()-Vec3(x,y,z)).quadLength();
+    if(qDist<maxDist)
+      f(*i);
+    }
+  }
+
+void WorldObjects::detectItem(const float x, const float y, const float z,
+                              const float r, const std::function<void(Item&)>& f) {
+  float maxDist=r*r;
+  for(auto& i:itemArr) {
     auto qDist = (i->position()-Vec3(x,y,z)).quadLength();
     if(qDist<maxDist)
       f(*i);

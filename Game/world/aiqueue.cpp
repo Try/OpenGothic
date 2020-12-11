@@ -340,3 +340,10 @@ AiQueue::AiAction AiQueue::aiFinishingMove(Npc &other) {
   a.target = &other;
   return a;
   }
+
+AiQueue::AiAction AiQueue::aiTakeItem(Item& item) {
+  AiAction a;
+  a.act  = AI_TakeItem;
+  a.item = &item;
+  return a;
+  }

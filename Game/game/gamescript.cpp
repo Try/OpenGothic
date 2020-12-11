@@ -224,6 +224,8 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("npc_getdetectedmob",  [this](Daedalus::DaedalusVM& vm){ npc_getdetectedmob(vm);   });
   vm.registerExternalFunction("npc_ownedbynpc",      [this](Daedalus::DaedalusVM& vm){ npc_ownedbynpc(vm);       });
   vm.registerExternalFunction("npc_canseesource",    [this](Daedalus::DaedalusVM& vm){ npc_canseesource(vm);     });
+  vm.registerExternalFunction("npc_getdisttoitem",   [this](Daedalus::DaedalusVM& vm){ npc_getdisttoitem(vm);    });
+  vm.registerExternalFunction("npc_getheighttoitem", [this](Daedalus::DaedalusVM& vm){ npc_getheighttoitem(vm);  });
 
   vm.registerExternalFunction("ai_output",           [this](Daedalus::DaedalusVM& vm){ ai_output(vm);            });
   vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
@@ -271,6 +273,7 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("ai_useitemtostate",   [this](Daedalus::DaedalusVM& vm){ ai_useitemtostate(vm);    });
   vm.registerExternalFunction("ai_setnpcstostate",   [this](Daedalus::DaedalusVM& vm){ ai_setnpcstostate(vm);    });
   vm.registerExternalFunction("ai_finishingmove",    [this](Daedalus::DaedalusVM& vm){ ai_finishingmove(vm);     });
+  vm.registerExternalFunction("ai_takeitem",         [this](Daedalus::DaedalusVM& vm){ ai_takeitem(vm);          });
 
   vm.registerExternalFunction("mob_hasitems",        [this](Daedalus::DaedalusVM& vm){ mob_hasitems(vm);         });
 
@@ -1542,12 +1545,26 @@ void GameScript::wld_detectnpcex(Daedalus::DaedalusVM &vm) {
 void GameScript::wld_detectitem(Daedalus::DaedalusVM &vm) {
   int   flags = vm.popInt();
   auto  npc   = popInstance(vm);
+  if(npc==nullptr) {
+    vm.setReturn(0);
+    return;
+    }
 
-  (void)flags;
-  (void)npc;
+  Item* ret =nullptr;
+  float dist=std::numeric_limits<float>::max();
+  world().detectItem(npc->position(), float(npc->handle()->senses_range), [npc,&ret,&dist,flags](Item& it) {
+    if((it.handle()->mainflag&flags)!=0)
+      return;
+    float d = (npc->position()-it.position()).quadLength();
+    if(d<dist) {
+      ret = &it;
+      dist= d;
+      }
+    });
 
-  notImplementedFn<&GameScript::wld_detectitem>("wld_detectitem");
-  vm.setReturn(0);
+  if(ret)
+    vm.globalItem().instance.set(ret->handle(), Daedalus::IC_Item);
+  vm.setReturn(ret ? 1 : 0);
   }
 
 void GameScript::wld_spawnnpcrange(Daedalus::DaedalusVM& vm) {
@@ -2468,6 +2485,28 @@ void GameScript::npc_canseesource(Daedalus::DaedalusVM& vm) {
     vm.setReturn(0);
   }
 
+void GameScript::npc_getdisttoitem(Daedalus::DaedalusVM& vm) {
+  auto itm = popItem(vm);
+  auto npc = popInstance(vm);
+  if(itm==nullptr || npc==nullptr) {
+    vm.setReturn(std::numeric_limits<int32_t>::max());
+    return;
+    }
+  auto dp = itm->position()-npc->position();
+  vm.setReturn(int32_t(dp.manhattanLength()));
+  }
+
+void GameScript::npc_getheighttoitem(Daedalus::DaedalusVM& vm) {
+  auto itm = popItem(vm);
+  auto npc = popInstance(vm);
+  if(itm==nullptr || npc==nullptr) {
+    vm.setReturn(std::numeric_limits<int32_t>::max());
+    return;
+    }
+  auto dp = int32_t(itm->position().y-npc->position().y);
+  vm.setReturn(std::abs(dp));
+  }
+
 void GameScript::npc_getactivespellcat(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc==nullptr){
@@ -2836,6 +2875,13 @@ void GameScript::ai_finishingmove(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr && oth!=nullptr)
     npc->aiPush(AiQueue::aiFinishingMove(*oth));
+  }
+
+void GameScript::ai_takeitem(Daedalus::DaedalusVM& vm) {
+  auto itm = popItem(vm);
+  auto npc = popInstance(vm);
+  if(npc!=nullptr && itm!=nullptr)
+    npc->aiPush(AiQueue::aiTakeItem(*itm));
   }
 
 void GameScript::mob_hasitems(Daedalus::DaedalusVM &vm) {
