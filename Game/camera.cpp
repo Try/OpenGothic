@@ -355,8 +355,11 @@ void Camera::follow(const Npc& npc,uint64_t dt,bool inMove,bool includeRot) {
   auto len = dp.manhattanLength();
 
   if(len>0.1f && def.translate && camMod!=Dialog){
-    const float maxDist = 100;
-    float       speed   = inMove ? 0.f : dp.manhattanLength()*dtF*(def.veloTrans/10.f);
+    const float maxDist = 150;
+    float       speed   = 0;
+    if(inMove)
+      speed = def.veloTrans*dtF; else
+      speed = dp.manhattanLength()*dtF*2.f;
     float       tr      = std::min(speed,len);
     if(len-tr>maxDist)
       tr = (len-maxDist);
