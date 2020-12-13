@@ -4,6 +4,7 @@
 #include <Tempest/IndexBuffer>
 #include <Tempest/Matrix4x4>
 #include <string>
+#include <functional>
 
 #include <daedalus/DaedalusVM.h>
 #include <zenload/zTypes.h>
