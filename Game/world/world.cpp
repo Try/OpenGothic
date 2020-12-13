@@ -805,21 +805,36 @@ const WayPoint *World::findFreePoint(const Npc &npc, const char *name) const {
     }
   auto pos = npc.position();
   pos.y+=npc.translateY();
-  return findFreePoint(pos,name);
+
+  return wmatrix->findFreePoint(pos.x,pos.y,pos.z,name,[&npc](const WayPoint& wp) -> bool {
+    if(wp.isLocked())
+      return false;
+    if(!npc.canSeeNpc(wp.x,wp.y+10,wp.z,true))
+      return false;
+    return true;
+    });
   }
 
-const WayPoint *World::findFreePoint(const Tempest::Vec3& pos,const char* name) const {
-  return findFreePoint(pos.x,pos.y,pos.z,name);
-  }
-
-const WayPoint *World::findFreePoint(float x, float y, float z, const char *name) const {
-  return wmatrix->findFreePoint(x,y,z,name);
+const WayPoint *World::findFreePoint(const Tempest::Vec3& pos, const char* name) const {
+  return wmatrix->findFreePoint(pos.x,pos.y,pos.z,name,[](const WayPoint& wp) -> bool {
+    if(wp.isLocked())
+      return false;
+    return true;
+    });
   }
 
 const WayPoint *World::findNextFreePoint(const Npc &npc, const char *name) const {
   auto pos = npc.position();
   pos.y+=npc.translateY();
-  return wmatrix->findNextFreePoint(pos.x,pos.y,pos.z,name,npc.currentWayPoint());
+  auto cur = npc.currentWayPoint();
+  auto wp  = wmatrix->findFreePoint(pos.x,pos.y,pos.z,name,[cur,&npc](const WayPoint& wp) -> bool {
+    if(wp.isLocked() || &wp==cur)
+      return false;
+    if(!npc.canSeeNpc(wp.x,wp.y+10,wp.z,true))
+      return false;
+    return true;
+    });
+  return wp;
   }
 
 const WayPoint *World::findNextPoint(const WayPoint &pos) const {

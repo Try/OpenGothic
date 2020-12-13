@@ -73,20 +73,9 @@ const WayPoint *WayMatrix::findWayPoint(float x, float y, float z) const {
   return ret;
   }
 
-const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const char *name) const {
+const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const char *name, const std::function<bool(const WayPoint&)>& filter) const {
   auto&  index = findFpIndex(name);
-  return findFreePoint(x,y,z,index,nullptr);
-  }
-
-const WayPoint *WayMatrix::findNextFreePoint(float x, float y, float z, const char *name) const {
-  auto&           index = findFpIndex(name);
-  const WayPoint* cur   = findFreePoint(x,y,z,index,nullptr);
-  return findFreePoint(x,y,z,index,cur);
-  }
-
-const WayPoint *WayMatrix::findNextFreePoint(float x, float y, float z, const char *name, const WayPoint *cur) const {
-  auto& index = findFpIndex(name);
-  return findFreePoint(x,y,z,index,cur);
+  return findFreePoint(x,y,z,index,filter);
   }
 
 const WayPoint *WayMatrix::findNextPoint(float x, float y, float z) const {
@@ -204,7 +193,8 @@ const WayMatrix::FpIndex &WayMatrix::findFpIndex(const char *name) const {
   return *it;
   }
 
-const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpIndex& ind, const WayPoint *ex) const {
+const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpIndex& ind,
+                                         const std::function<bool(const WayPoint&)>& filter) const {
   // float R = 20.f*100.f; // see scripting doc
   float R = 5.f*100.f; // scripting doc says 20m, but number seems to be incorrect
   auto b = std::lower_bound(ind.index.begin(),ind.index.end(), x-R ,[](const WayPoint *a, float b){
@@ -219,7 +209,7 @@ const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpInde
   float dist  = R*R;
   for(auto i=b;i!=e;++i){
     auto& w  = **i;
-    if(w.isLocked() || &w==ex)
+    if(!filter(w))
       continue;
     float dx = w.x-x;
     float dy = w.y-y;

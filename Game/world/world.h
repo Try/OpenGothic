@@ -60,9 +60,8 @@ class World final {
     const WayPoint*      findWayPoint(const Tempest::Vec3& pos) const;
     const WayPoint*      findWayPoint(float x,float y,float z) const;
 
-    const WayPoint*      findFreePoint(const Npc& pos,const char* name) const;
+    const WayPoint*      findFreePoint(const Npc& pos,           const char* name) const;
     const WayPoint*      findFreePoint(const Tempest::Vec3& pos, const char* name) const;
-    const WayPoint*      findFreePoint(float x,float y,float z,const char* name) const;
 
     const WayPoint*      findNextFreePoint(const Npc& pos,const char* name) const;
     const WayPoint*      findNextPoint(const WayPoint& pos) const;

@@ -1308,6 +1308,8 @@ bool Npc::implAtack(uint64_t dt) {
   if(currentTarget->isDown() && !fghAlgo.hasInstructions()){
     // NOTE: don't clear internal target, to make scripts happy
     // currentTarget=nullptr;
+    if(go2.flag==GT_Enemy)
+      go2.clear();
     return false;
     }
 
