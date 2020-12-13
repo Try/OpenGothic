@@ -314,6 +314,8 @@ bool PlayerControl::tickMove(uint64_t dt) {
   auto w = world();
   if(w==nullptr)
     return false;
+  const float dtF = float(dt)/1000.f;
+
   Npc*  pl     = w->player();
   auto  camera = gothic.gameCamera();
   if(pl==nullptr) {
@@ -348,23 +350,22 @@ bool PlayerControl::tickMove(uint64_t dt) {
   implMove(dt);
 
   float runAngle = pl->runAngle();
-  if(runAngle!=0.f || runAngleDest!=0.f) {
-    const float speed = 20.f;
+  if(runAngle!=0.f || std::fabs(runAngleDest)>5.f) {
+    const float speed = 30.f;
     if(runAngle<runAngleDest) {
-      runAngle+=speed*(float(dt)/1000.f);
+      runAngle+=speed*dtF;
       if(runAngle>runAngleDest)
         runAngle = runAngleDest;
       pl->setRunAngle(runAngle);
       }
     else if(runAngle>runAngleDest) {
-      runAngle-=speed*(float(dt)/1000.f);
+      runAngle-=speed*dtF;
       if(runAngle<runAngleDest)
         runAngle = runAngleDest;
       pl->setRunAngle(runAngle);
       }
     }
 
-  rotMouse  = 0;
   rotMouseY = 0;
   return true;
   }
@@ -407,13 +408,13 @@ void PlayerControl::implMove(uint64_t dt) {
     rotation = 1;
     rotMouse=0;
     }
-  if(std::fabs(rotMouse)>5) {
-    /* TODO: proper anim
+  if(std::fabs(rotMouse)>0.f) {
     if(rotMouse>0)
       rotation = -1; else
-      rotation = 1; */
+      rotation = 1;
+    rot +=rotMouse;
+    rotMouse  = 0;
     }
-  rot +=rotMouse;
   rotY+=rotMouseY;
 
   pl.setDirectionY(rotY);
@@ -575,7 +576,7 @@ void PlayerControl::implMove(uint64_t dt) {
 
   if(!pl.isCasting())
     pl.setAnim(ani);
-  pl.setAnimRotate(ani==Npc::Anim::Idle ? rotation : 0);
+  setAnimRotate(pl, ani==Npc::Anim::Idle ? rotation : 0, ctrl[KeyCodec::RotateL] || ctrl[KeyCodec::RotateR]);
   if(actrl[ActGeneric] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.isFinishingMove()) {
     if(auto other = pl.target()) {
       if(pl.weaponState()==WeaponState::NoWeapon || other->isDown() || pl.isFinishingMove()){
@@ -599,20 +600,32 @@ void PlayerControl::implMove(uint64_t dt) {
   }
 
 void PlayerControl::assignRunAngle(Npc& pl, float rotation, uint64_t dt) {
+  float dtF    = (float(dt)/1000.f);
   float angle  = pl.rotation();
-  float dangle = 200.f*(rotation-angle)*(float(dt)/1000.f);
+  float dangle = 0.2f*(rotation-angle)/dtF;
   auto& wrld   = pl.world();
 
-  if(std::fabs(dangle)<0.001f) {
+  if(std::fabs(dangle*dtF)<0.1f) {
     if(runAngleSmooth<wrld.tickCount())
       runAngleDest = 0;
     return;
     }
 
-  float maxV = 15;
+  float maxV = 12.5;
   if(angle<rotation)
     runAngleDest =  std::min( dangle,maxV);
   if(angle>rotation)
     runAngleDest = -std::min(-dangle,maxV);
-  runAngleSmooth = wrld.tickCount()+200;
+  runAngleSmooth = wrld.tickCount()+150;
+  }
+
+void PlayerControl::setAnimRotate(Npc& pl, int rot, bool force) {
+  auto ticks = pl.world().tickCount();
+  if(rotationAni==rot && rot!=0)
+    force = true;
+  if(!force && ticks<turnAniSmooth)
+    return;
+  turnAniSmooth = ticks + 150;
+  rotationAni   = rot;
+  pl.setAnimRotate(rot);
   }

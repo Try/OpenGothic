@@ -82,7 +82,9 @@ class MainWindow : public Tempest::Window {
     void setGameImpl(std::unique_ptr<GameSession>&& w);
     void clearInput();
     void setFullscreen(bool fs);
-    void processMouse(Tempest::MouseEvent& event, bool fs);
+
+    void processMouse(Tempest::MouseEvent& event, bool enable);
+    void tickMouse();
 
     void setupUi();
 
@@ -138,7 +140,7 @@ class MainWindow : public Tempest::Window {
     ChapterScreen             chapter;
 
     Tempest::Widget*          uiKeyUp=nullptr;
-    Tempest::Point            mpos;
+    Tempest::Point            dMouse;
     PlayerControl             player;
     uint64_t                  lastTick=0;
 

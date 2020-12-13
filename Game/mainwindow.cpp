@@ -217,7 +217,6 @@ void MainWindow::resizeEvent(SizeEvent&) {
 void MainWindow::mouseDownEvent(MouseEvent &event) {
   if(event.button<sizeof(mouseP))
     mouseP[event.button]=true;
-  mpos = event.pos();
   player.onKeyPressed(keycodec.tr(event),KeyEvent::K_NoKey);
   }
 
@@ -233,35 +232,47 @@ void MainWindow::mouseDragEvent(MouseEvent &event) {
     return;
   if(player.focus().npc && !fs)
     return;
-  processMouse(event,fs);
+  processMouse(event,true);
   }
 
 void MainWindow::mouseMoveEvent(MouseEvent &event) {
-  const bool fs = SystemApi::isFullscreen(hwnd());
-  if(fs) {
-    processMouse(event,true);
-    mpos = Point(w()/2,h()/2);
-    SystemApi::setCursorPosition(hwnd(),mpos.x,mpos.y);
-    }
+  processMouse(event,SystemApi::isFullscreen(hwnd()));
   }
 
-void MainWindow::processMouse(MouseEvent &event,bool /*fs*/) {
-  if(dialogs.isActive() || gothic.isPause())
+void MainWindow::processMouse(MouseEvent& event, bool enable) {
+  auto center = Point(w()/2,h()/2);
+  if(enable && event.pos()!=center)
+    dMouse += (event.pos()-center);
+  SystemApi::setCursorPosition(hwnd(),center.x,center.y);
+  }
+
+void MainWindow::tickMouse() {
+  if(dialogs.isActive() || gothic.isPause()) {
+    dMouse = Point();
     return;
+    }
+
   const bool enableMouse = gothic.settingsGetI("GAME","enableMouse");
-  if(enableMouse==0)
+  if(enableMouse==0) {
+    dMouse = Point();
     return;
+    }
 
   const float mouseSensitivity = gothic.settingsGetF("GAME","mouseSensitivity");
-  auto   dp       = (event.pos()-mpos);
-  PointF dpScaled = PointF(float(dp.x)*mouseSensitivity,float(dp.y)*mouseSensitivity);
-  mpos = event.pos();
+  PointF dpScaled = PointF(float(dMouse.x)*mouseSensitivity,float(dMouse.y)*mouseSensitivity);
+  dpScaled.x/=float(w());
+  dpScaled.y/=float(h());
+
+  dpScaled*=1000.f;
+
   if(auto camera = gothic.gameCamera())
     camera->onRotateMouse(PointF(-dpScaled.x,dpScaled.y));
   if(!inventory.isActive()) {
     player.onRotateMouse(-dpScaled.x);
     player.onRotateMouseDy(-dpScaled.y);
     }
+
+  dMouse = Point();
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
@@ -543,6 +554,7 @@ void MainWindow::tick() {
   player.tickFocus();
   if(document.isActive())
     clearInput();
+  tickMouse();
   player.tickMove(dt);
   }
 
@@ -716,7 +728,7 @@ void MainWindow::onWorldLoaded() {
   inventory.onWorldChanged();
   dialogs  .onWorldChanged();
 
-  mpos = Point(w()/2,h()/2);
+  dMouse = Point();
   renderer.onWorldChanged();
 
   device.waitIdle();
@@ -743,9 +755,9 @@ void MainWindow::clearInput() {
   }
 
 void MainWindow::setFullscreen(bool fs) {
+  dMouse = Point();
   SystemApi::setAsFullscreen(hwnd(),fs);
-  mpos = Point(w()/2,h()/2);
-  SystemApi::setCursorPosition(hwnd(),mpos.x,mpos.y);
+  SystemApi::setCursorPosition(hwnd(),w()/2,h()/2);
   SystemApi::showCursor(!fs);
   }
 

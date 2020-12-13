@@ -333,7 +333,7 @@ static void followAng(float& ang,float dest,float speed) {
   ang += shift;
   }
 
-void Camera::follow(const Npc& npc,uint64_t dt,bool inMove,bool includeRot) {
+void Camera::follow(const Npc& npc, uint64_t dt, bool inMove, bool includeRot) {
   const auto& def = cameraDef();
   const float dtF = float(dt)/1000.f;
 
@@ -348,6 +348,9 @@ void Camera::follow(const Npc& npc,uint64_t dt,bool inMove,bool includeRot) {
     hasPos = true;
     }
 
+  if(gothic.isPause())
+    return;
+
   {
   auto pos = dest.pos;
   applyModPosition(pos);
@@ -355,7 +358,7 @@ void Camera::follow(const Npc& npc,uint64_t dt,bool inMove,bool includeRot) {
   auto len = dp.manhattanLength();
 
   if(len>0.1f && def.translate && camMod!=Dialog){
-    const float maxDist = 150;
+    const float maxDist = 180;
     float       speed   = 0;
     if(inMove)
       speed = def.veloTrans*dtF; else
