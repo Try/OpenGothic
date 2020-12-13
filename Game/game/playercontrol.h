@@ -42,8 +42,8 @@ class PlayerControl final {
     Focus focus() const;
     bool  hasActionFocus() const;
 
-    bool tickMove(uint64_t dt);
-    auto weaponState() const -> WeaponState;
+    bool  tickMove(uint64_t dt);
+    auto  weaponState() const -> WeaponState;
 
   private:
     enum WeponAction : uint8_t {
@@ -83,6 +83,9 @@ class PlayerControl final {
     float          rotMouseY=0;
     bool           casting = false;
 
+    float          runAngleDest = 0.f;
+    uint64_t       runAngleSmooth = 0;
+
     Gothic&        gothic;
     DialogMenu&    dlg;
     InventoryMenu& inv;
@@ -96,4 +99,5 @@ class PlayerControl final {
     void           clrDraw();
     void           implMove(uint64_t dt);
     void           setPos(std::array<float,3> a, uint64_t dt, float speed);
+    void           assignRunAngle(Npc& pl, float rotation, uint64_t dt);
   };

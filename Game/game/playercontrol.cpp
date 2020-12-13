@@ -347,6 +347,23 @@ bool PlayerControl::tickMove(uint64_t dt) {
 
   implMove(dt);
 
+  float runAngle = pl->runAngle();
+  if(runAngle!=0.f || runAngleDest!=0.f) {
+    const float speed = 20.f;
+    if(runAngle<runAngleDest) {
+      runAngle+=speed*(float(dt)/1000.f);
+      if(runAngle>runAngleDest)
+        runAngle = runAngleDest;
+      pl->setRunAngle(runAngle);
+      }
+    else if(runAngle>runAngleDest) {
+      runAngle-=speed*(float(dt)/1000.f);
+      if(runAngle<runAngleDest)
+        runAngle = runAngleDest;
+      pl->setRunAngle(runAngle);
+      }
+    }
+
   rotMouse  = 0;
   rotMouseY = 0;
   return true;
@@ -396,7 +413,7 @@ void PlayerControl::implMove(uint64_t dt) {
       rotation = -1; else
       rotation = 1; */
     }
-  rot+=rotMouse;
+  rot +=rotMouse;
   rotY+=rotMouseY;
 
   pl.setDirectionY(rotY);
@@ -572,5 +589,30 @@ void PlayerControl::implMove(uint64_t dt) {
         }
       }
     }
-  pl.setDirection(rot,dt);
+
+  if(ani==Npc::Anim::Move && (rotation!=0 || rotY!=0)) {
+    assignRunAngle(pl,rot,dt);
+    } else {
+    assignRunAngle(pl,pl.rotation(),dt);
+    }
+  pl.setDirection(rot);
+  }
+
+void PlayerControl::assignRunAngle(Npc& pl, float rotation, uint64_t dt) {
+  float angle  = pl.rotation();
+  float dangle = 200.f*(rotation-angle)*(float(dt)/1000.f);
+  auto& wrld   = pl.world();
+
+  if(std::fabs(dangle)<0.001f) {
+    if(runAngleSmooth<wrld.tickCount())
+      runAngleDest = 0;
+    return;
+    }
+
+  float maxV = 15;
+  if(angle<rotation)
+    runAngleDest =  std::min( dangle,maxV);
+  if(angle>rotation)
+    runAngleDest = -std::min(-dangle,maxV);
+  runAngleSmooth = wrld.tickCount()+200;
   }

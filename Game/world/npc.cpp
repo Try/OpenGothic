@@ -347,31 +347,10 @@ bool Npc::performOutput(const AiQueue::AiAction &act) {
 
 void Npc::setDirection(float x, float /*y*/, float z) {
   float a=angleDir(x,z);
-  setDirection(a,0);
+  setDirection(a);
   }
 
-void Npc::setDirection(float rotation, uint64_t dt) {
-  rotation = std::fmod(rotation,360.f);
-  float dangle = 200.f*(rotation-angle);
-  if(dt>0)
-    dangle/=float(dt);
-  if(std::fabs(dangle)<0.001f) {
-    if(runAngleSmooth<owner.tickCount())
-      runAngleDest = 0;//std::max(0.f,runAngleDest-15.f/float(dt));
-    return;
-    }
-
-  if(bodyStateMasked()==BS_RUN) {
-    runAngleSmooth = owner.tickCount()+200;
-    float maxV = 15;
-    if(angle<rotation)
-      runAngleDest =  std::min( dangle,maxV);
-    if(angle>rotation)
-      runAngleDest = -std::min(-dangle,maxV);
-    } else {
-    runAngleDest = 0.f;
-    }
-
+void Npc::setDirection(float rotation) {
   angle = rotation;
   durtyTranform |= TR_Rot;
   }
@@ -386,6 +365,11 @@ void Npc::setDirectionY(float rotation) {
     return;
   angleY = rotation;
   durtyTranform |= TR_Rot;
+  }
+
+void Npc::setRunAngle(float angle) {
+  durtyTranform |= TR_Rot;
+  runAng = angle;
   }
 
 float Npc::angleDir(float x, float z) {
@@ -473,6 +457,10 @@ void Npc::clearSpeed() {
   }
 
 void Npc::setProcessPolicy(ProcessPolicy t) {
+  if(aiPolicy==t)
+    return;
+  if(aiPolicy==ProcessPolicy::Player)
+    runAng = 0;
   aiPolicy=t;
   }
 
@@ -1703,22 +1691,6 @@ void Npc::tick(uint64_t dt) {
       adjustAtackRotation(dt);
     mvAlgo.tick(dt,MoveAlgo::WaitMove);
     return;
-    }
-
-  if(runAngle!=0.f || std::fabs(runAngleDest)>5.f) {
-    const float speed = 20.f;
-    if(runAngle<runAngleDest) {
-      durtyTranform |= TR_Rot;
-      runAngle+=speed*(float(dt)/1000.f);
-      if(runAngle>runAngleDest)
-        runAngle = runAngleDest;
-      }
-    else if(runAngle>runAngleDest) {
-      durtyTranform |= TR_Rot;
-      runAngle-=speed*(float(dt)/1000.f);
-      if(runAngle<runAngleDest)
-        runAngle = runAngleDest;
-      }
     }
 
   if(!isDown()) {
@@ -3021,8 +2993,6 @@ bool Npc::setInteraction(Interactive *id,bool quick) {
     }
 
   if(id->attach(*this)) {
-    runAngle = 0;
-    runAngleDest = 0;
     currentInteract = id;
     setAnimRotate(0);
     return true;
@@ -3288,7 +3258,7 @@ void Npc::updatePos() {
     if(mvAlgo.isDive())
       mt.rotateOX(-angleY);
     if(isPlayer() && !align) {
-      mt.rotateOZ(runAngle);
+      mt.rotateOZ(runAng);
       }
     mt.scale(sz[0],sz[1],sz[2]);
     visual.setPos(mt);

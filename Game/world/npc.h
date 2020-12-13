@@ -192,12 +192,22 @@ class Npc final {
     bool       setPosition (float x,float y,float z);
     bool       setPosition (const Tempest::Vec3& pos);
     void       setDirection(float x,float y,float z);
-    void       setDirection(float rotation, uint64_t dt=0);
+    void       setDirection(float rotation);
     void       setDirectionY(float rotation);
-    void       clearSpeed();
-    bool       resetPositionToTA();
+    void       setRunAngle  (float angle);
+
+    auto       position()   const -> Tempest::Vec3;
+    auto       cameraBone() const -> Tempest::Vec3;
+    float      collisionRadius() const;
+    float      rotation() const;
+    float      rotationRad() const;
+    float      rotationY() const;
+    float      rotationYRad() const;
+    float      runAngle() const { return runAng; }
 
     void       stopDlgAnim();
+    void       clearSpeed();
+    bool       resetPositionToTA();
 
     void       setProcessPolicy(ProcessPolicy t);
     auto       processPolicy() const -> ProcessPolicy { return aiPolicy; }
@@ -210,13 +220,6 @@ class Npc final {
 
     auto       world() -> World&;
 
-    auto       position()   const -> Tempest::Vec3;
-    auto       cameraBone() const -> Tempest::Vec3;
-    float      collisionRadius() const;
-    float      rotation() const;
-    float      rotationRad() const;
-    float      rotationY() const;
-    float      rotationYRad() const;
     float      translateY() const;
     float      centerY() const;
     Npc*       lookAtTarget() const;
@@ -551,9 +554,7 @@ class Npc final {
     float                          z=0.f;
     float                          angle    = 0.f;
     float                          angleY   = 0.f;
-    float                          runAngle = 0.f;
-    float                          runAngleDest = 0.f;
-    uint64_t                       runAngleSmooth = 0;
+    float                          runAng   = 0.f;
     float                          sz[3]={1.f,1.f,1.f};
 
     // visual props (cache)
