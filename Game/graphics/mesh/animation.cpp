@@ -72,11 +72,10 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
             sequences.emplace_back();
             Animation::Sequence& ani = sequences.back();
             ani.name    = p.comb.m_Name;
-            //ani.name    = sequences[sequences.size()-r-1].name;
             ani.askName = p.comb.m_Asc;
             ani.layer   = p.comb.m_Layer;
             ani.flags   = Flags(p.comb.m_Flags);
-            ani.next    = p.comb.m_Next;
+            ani.next    = std::move(p.comb.m_Next);
             ani.data    = d; // set first as default
             ani.comb.resize(p.comb.m_LastFrame);
             found=true;
@@ -228,6 +227,13 @@ void Animation::setupIndex() {
     sequences.emplace_back(std::move(ani));
     }
   ref.clear();
+
+  for(auto& sq:sequences) {
+    for(auto& i:sq.name)
+      i = char(std::toupper(i));
+    for(auto& i:sq.next)
+      i = char(std::toupper(i));
+    }
 
   std::sort(sequences.begin(),sequences.end(),[](const Sequence& a,const Sequence& b){
     return a.name<b.name;
