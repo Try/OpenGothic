@@ -5,6 +5,7 @@
 
 #include <zenload/zTypes.h>
 #include <vector>
+#include <functional>
 
 #include "waypath.h"
 #include "waypoint.h"
