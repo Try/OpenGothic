@@ -16,7 +16,7 @@ void AiQueue::save(Serialize& fout) const {
   }
 
 void AiQueue::load(Serialize& fin) {
-  size_t size = 0;
+  uint32_t size = 0;
   fin.read(size);
   aiActions.resize(size);
   for(auto& i:aiActions){
