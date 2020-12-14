@@ -1,6 +1,7 @@
 #include "animation.h"
 
 #include <Tempest/Log>
+#include <cctype>
 
 #include <zenload/modelAnimationParser.h>
 #include <zenload/zCModelPrototype.h>
