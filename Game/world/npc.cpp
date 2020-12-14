@@ -1686,7 +1686,7 @@ void Npc::tick(uint64_t dt) {
   if(!ev.timed.empty())
     tickTimedEvt(ev);
 
-  if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount()) {
+  if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount() || aiOutputBarrier>owner.tickCount()) {
     if(faiWaitTime<owner.tickCount())
       adjustAtackRotation(dt);
     mvAlgo.tick(dt,MoveAlgo::WaitMove);
@@ -1921,10 +1921,8 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_OutputSvm:
     case AI_OutputSvmOverlay:{
       if(performOutput(act)) {
-        if(act.act!=AI_OutputSvmOverlay) {
+        if(act.act!=AI_OutputSvmOverlay)
           visual.startAnimDialog(*this);
-          implAniWait(visual.pose().animationTotalTime());
-          }
         } else {
         aiQueue.pushFront(std::move(act));
         }
