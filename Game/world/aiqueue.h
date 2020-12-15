@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <deque>
 
+#include "game/gamescript.h"
 #include "game/constants.h"
 
 class Npc;
@@ -14,8 +15,6 @@ class Serialize;
 class AiQueue {
   public:
     AiQueue();
-
-    using ScriptFn = size_t;
 
     struct AiAction final {
       Action            act   =AI_None;
