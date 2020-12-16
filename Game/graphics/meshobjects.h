@@ -33,6 +33,7 @@ class MeshObjects final {
         Node(Node&&)=default;
 
         void draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) const;
+        const Bounds& bounds() const;
 
       private:
         Node(const Item* it):it(it){}

@@ -46,7 +46,7 @@ StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool s
     visual.setVisualBody(std::move(mesh),world);
 
     if(vob.cdDyn || vob.cdStatic) {
-      physic = PhysicMesh(*view,*world.physic());
+      physic = PhysicMesh(*view,*world.physic(),false);
       physic.setObjMatrix(transform());
       }
     visual.setPos(transform());

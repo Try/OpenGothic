@@ -7,7 +7,7 @@ class Pose;
 class PhysicMesh final {
   public:
     PhysicMesh()=default;
-    PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner);
+    PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner, bool movable);
 
     void   setObjMatrix  (const Tempest::Matrix4x4& m);
     void   setSkeleton   (const Skeleton* sk);

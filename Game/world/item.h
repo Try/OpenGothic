@@ -3,6 +3,7 @@
 #include <daedalus/DaedalusVM.h>
 
 #include "graphics/meshobjects.h"
+#include "physics/dynamicworld.h"
 #include "vob.h"
 
 class World;
@@ -31,6 +32,8 @@ class Item final : public Vob {
     bool isMission() const;
     bool isEquiped() const    { return equiped; }
     void setAsEquiped(bool e) { equiped=e; if(!e) itSlot=NSLOT; }
+    void setPhysicsEnable (DynamicWorld& physic);
+    void setPhysicsDisable();
 
     uint8_t slot() const      { return itSlot;  }
     void    setSlot(uint8_t s)   { itSlot = s;     }
@@ -74,4 +77,6 @@ class Item final : public Vob {
     Tempest::Vec3                     pos={};
     bool                              equiped=false;
     uint8_t                           itSlot=NSLOT;
+
+    DynamicWorld::DynamicItem         physic;
   };

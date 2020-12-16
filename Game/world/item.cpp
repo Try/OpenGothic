@@ -52,6 +52,7 @@ Item::Item(Item &&it)
   : Vob(it.world), hitem(it.hitem),view(std::move(it.view)),
     pos(it.pos),equiped(it.equiped),itSlot(it.itSlot) {
   setLocalTransform(it.localTransform());
+  physic = std::move(it.physic);
   }
 
 Item::~Item() {
@@ -103,6 +104,20 @@ void Item::setMatrix(const Tempest::Matrix4x4 &m) {
 
 bool Item::isMission() const {
   return (uint32_t(hitem.flags)&Inventory::ITM_MISSION);
+  }
+
+void Item::setPhysicsEnable(DynamicWorld& p) {
+  if(view.nodesCount()==0)
+    return;
+  auto b = view.node(0).bounds();
+  for(size_t i=1; i<view.nodesCount(); ++i)
+    b.assign(b,view.node(i).bounds());
+  physic = p.dynamicObj(transform(),b,ZenLoad::MaterialGroup(hitem.material));
+  physic.setItem(this);
+  }
+
+void Item::setPhysicsDisable() {
+  physic = DynamicWorld::DynamicItem();
   }
 
 const char *Item::displayName() const {

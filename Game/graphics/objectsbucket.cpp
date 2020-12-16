@@ -24,6 +24,13 @@ void ObjectsBucket::Item::setBounds(const Bounds& bbox) {
   owner->setBounds(id,bbox);
   }
 
+const Bounds& ObjectsBucket::Item::bounds() const {
+  if(owner!=nullptr)
+    return owner->bounds(id);
+  static Bounds b;
+  return b;
+  }
+
 void ObjectsBucket::Item::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) const {
   owner->draw(id,p,fId);
   }
@@ -590,6 +597,10 @@ void ObjectsBucket::setPose(size_t i, const Pose& p) {
 
 void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
   val[i].bounds = b;
+  }
+
+const Bounds& ObjectsBucket::bounds(size_t i) const {
+  return val[i].bounds;
   }
 
 void ObjectsBucket::setupLights(Object& val, bool noCache) {

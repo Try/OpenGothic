@@ -2342,7 +2342,6 @@ Item* Npc::takeItem(Item& item) {
 
   std::unique_ptr<Item> ptr {owner.takeItem(item)};
   auto it = ptr.get();
-
   if(it==nullptr)
     return nullptr;
 
@@ -2403,10 +2402,17 @@ void Npc::dropItem(size_t id) {
   if(!setAnim(Anim::ItmDrop))
     return;
 
-  // TODO: item-drop
   auto it = owner.addItem(id,nullptr);
   it->setCount(cnt);
-  it->setPosition(x,y,z);
+
+  if(true) {
+    it->setPosition(x,y,z);
+    } else {
+    float rot = rotationRad()-float(M_PI/2), mul=50;
+    float s   = std::sin(rot), c = std::cos(rot);
+    it->setPosition(x+c*mul,y+100,z+s*mul);
+    it->setPhysicsEnable(*owner.physic());
+    }
   }
 
 void Npc::clearInventory() {

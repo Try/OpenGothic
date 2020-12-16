@@ -241,9 +241,10 @@ void MainWindow::mouseMoveEvent(MouseEvent &event) {
 
 void MainWindow::processMouse(MouseEvent& event, bool enable) {
   auto center = Point(w()/2,h()/2);
-  if(enable && event.pos()!=center)
+  if(enable && event.pos()!=center) {
     dMouse += (event.pos()-center);
-  SystemApi::setCursorPosition(hwnd(),center.x,center.y);
+    SystemApi::setCursorPosition(hwnd(),center.x,center.y);
+    }
   }
 
 void MainWindow::tickMouse() {

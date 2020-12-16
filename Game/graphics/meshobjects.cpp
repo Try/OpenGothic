@@ -193,3 +193,7 @@ void MeshObjects::Mesh::setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix
 void MeshObjects::Node::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) const {
   it->draw(p,fId);
   }
+
+const Bounds& MeshObjects::Node::bounds() const {
+  return it->bounds();
+  }

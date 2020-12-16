@@ -13,7 +13,7 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& d, bool
   setView(world.getView(data.visual.c_str()));
   if(data.cdDyn || data.cdStatic) {
     auto mesh = Resources::loadMesh(data.visual);
-    physic    = PhysicMesh(*mesh,*world.physic());
+    physic    = PhysicMesh(*mesh,*world.physic(),true);
     }
   if(data.zCMover.moverLocked && data.zCMover.keyframes.size()>0) {
     frame = uint32_t(data.zCMover.keyframes.size()-1);

@@ -10,13 +10,16 @@
 #include "graphics/mesh/skeleton.h"
 #include "graphics/mesh/pose.h"
 
-PhysicMesh::PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner)
+PhysicMesh::PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner, bool movable)
   :ani(&proto) {
   Tempest::Matrix4x4 pos;
   pos.identity();
 
   for(auto& i:proto.attach) {
-    auto physic = owner.staticObj(i.shape.get(),pos);
+    DynamicWorld::StaticItem physic;
+    if(movable)
+      physic = owner.movableObj(i.shape.get(),pos); else
+      physic = owner.staticObj (i.shape.get(),pos);
     sub.emplace_back(std::move(physic));
     }
   }

@@ -71,6 +71,8 @@ class ObjectsBucket final {
         void   setPose     (const Pose&                p);
         void   setBounds   (const Bounds&           bbox);
 
+        const Bounds& bounds() const;
+
         void   draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) const;
 
       private:
@@ -204,6 +206,8 @@ class ObjectsBucket final {
     void    setObjMatrix(size_t i,const Tempest::Matrix4x4& m);
     void    setPose     (size_t i,const Pose& sk);
     void    setBounds   (size_t i,const Bounds& b);
+
+    const Bounds& bounds(size_t i) const;
 
     void    setupLights (Object& val, bool noCache);
 

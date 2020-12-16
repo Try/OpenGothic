@@ -22,6 +22,7 @@
 #include <BulletCollision/CollisionShapes/btConeShape.h>
 #include <BulletCollision/CollisionShapes/btMultimaterialTriangleMeshShape.h>
 #include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
+#include <BulletCollision/CollisionDispatch/btSimulationIslandManager.h>
 #include <BulletCollision/NarrowPhaseCollision/btRaycastCallback.h>
 #include <LinearMath/btDefaultMotionState.h>
 #include <LinearMath/btScalar.h>
@@ -38,6 +39,7 @@
 
 #include "graphics/mesh/submesh/packedmesh.h"
 #include "world/bullet.h"
+#include "world/item.h"
 
 const float DynamicWorld::ghostPadding=50-22.5f;
 const float DynamicWorld::ghostHeight =140;
@@ -68,17 +70,9 @@ struct DynamicWorld::Broadphase : btDbvtBroadphase {
       }
     };
 
-  struct OverlapFilter:btOverlapFilterCallback {
-    bool needBroadphaseCollision(btBroadphaseProxy*, btBroadphaseProxy*) const override {
-      // hard disable
-      return false;
-      }
-    };
-
   Broadphase() {
     m_deferedcollide = true;
     rayTestStk.reserve(btDbvt::DOUBLE_STACKSIZE);
-    m_paircache->setOverlapFilterCallback(&overlapFilter);
     }
 
   void rayTest(const btVector3& rayFrom, const btVector3& rayTo, btBroadphaseRayCallback& rayCallback,
@@ -110,7 +104,40 @@ struct DynamicWorld::Broadphase : btDbvtBroadphase {
     }
 
   btAlignedObjectArray<const btDbvtNode*> rayTestStk;
-  OverlapFilter                           overlapFilter;
+  };
+
+// the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
+struct DynamicWorld::BulletWorld : btDiscreteDynamicsWorld {
+  using Supper = btDiscreteDynamicsWorld;
+
+  BulletWorld(btDispatcher* dispatcher, btBroadphaseInterface * pairCache,
+              btConstraintSolver * constraintSolver, btCollisionConfiguration * collisionConfiguration)
+    : Supper(dispatcher,pairCache,constraintSolver,collisionConfiguration) {
+    }
+
+  void saveKinematicState(btScalar) override {
+    // skip heavi this per-object function, because we dont use this functionality
+    }
+
+  void updateAabbs() override {
+    if(aabbChanged>0) {
+      Supper::updateAabbs();
+      aabbChanged = 0;
+      return;
+      }
+
+    btTransform predictedTrans;
+    for(int i=0; i<m_nonStaticRigidBodies.size(); ++i) {
+      btCollisionObject* colObj = m_nonStaticRigidBodies[i];
+      //only update aabb of active objects
+      if(m_forceUpdateAllAabbs || colObj->isActive()) {
+        updateSingleAabb(colObj);
+        }
+      }
+    }
+
+  btAlignedObjectArray<btRigidBody*> m_nonStaticRigidBodies;
+  mutable uint32_t aabbChanged = 0;
   };
 
 struct DynamicWorld::NpcBody : btRigidBody {
@@ -473,16 +500,25 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::zCMesh& worldMesh) {
   // collision configuration contains default setup for memory, collision setup
   conf.reset(new btDefaultCollisionConfiguration());
 
+  static std::unique_ptr<btITaskScheduler> taskScheduler;
+  if(taskScheduler==nullptr) {
+    taskScheduler.reset(btCreateDefaultTaskScheduler());
+    btSetTaskScheduler(taskScheduler.get());
+    }
+
   // use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
-  auto disp = new btCollisionDispatcherMt(conf.get());
-  //auto disp = new btCollisionDispatcher(conf.get());
+  //auto disp = new btCollisionDispatcherMt(conf.get());
+  auto disp = new btCollisionDispatcher(conf.get());
   dispatcher.reset(disp);
   disp->setDispatcherFlags(btCollisionDispatcher::CD_DISABLE_CONTACTPOOL_DYNAMIC_ALLOCATION);
 
+  solver.reset(new btSequentialImpulseConstraintSolver());
+
+  //btBroadphaseInterface* brod = new btDbvtBroadphase();
   Broadphase* brod = new Broadphase();
   broadphase.reset(brod);
-  // the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
-  world.reset(new btCollisionWorld(dispatcher.get(),broadphase.get(),conf.get()));
+  // world.reset(new btCollisionWorld(dispatcher.get(),broadphase.get(),conf.get()));
+  world.reset(new BulletWorld(dispatcher.get(),broadphase.get(),solver.get(),conf.get()));
 
   PackedMesh pkg(worldMesh,PackedMesh::PK_PhysicZoned);
   sectors.resize(pkg.subMeshes.size());
@@ -525,6 +561,7 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::zCMesh& worldMesh) {
     world->addCollisionObject(waterBody.get());
 
   world->setForceUpdateAllAabbs(false);
+  world->setGravity(btVector3(0,-gravity/100.f,0));
 
   npcList   .reset(new NpcBodyList(*this));
   bulletList.reset(new BulletsList(*this));
@@ -706,7 +743,8 @@ std::unique_ptr<btRigidBody> DynamicWorld::landObj() {
   std::unique_ptr<btRigidBody> obj(new btRigidBody(rigidBodyCI));
   obj->setUserIndex(C_Landscape);
   obj->setFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
-  obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
+  obj->setCollisionFlags(btCollisionObject::CO_COLLISION_OBJECT);
+  obj->setFriction(DynamicWorld::materialFriction(ZenLoad::NUM_MAT_GROUPS));
   return obj;
   }
 
@@ -720,7 +758,7 @@ std::unique_ptr<btRigidBody> DynamicWorld::waterObj() {
   std::unique_ptr<btRigidBody> obj(new btRigidBody(rigidBodyCI));
   obj->setUserIndex(C_Water);
   obj->setFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
-  obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
+  obj->setCollisionFlags(btCollisionObject::CO_HF_FLUID);
   return obj;
   }
 
@@ -763,15 +801,79 @@ DynamicWorld::StaticItem DynamicWorld::staticObj(const PhysicMeshShape *shape, c
   std::unique_ptr<btRigidBody> obj(new btRigidBody(rigidBodyCI));
   obj->setUserIndex(C_Object);
   obj->setFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
+  obj->setCollisionFlags(btCollisionObject::CO_COLLISION_OBJECT);
+
+  btTransform trans;
+  trans.setFromOpenGLMatrix(m.data());
+  obj->setWorldTransform(trans);
+  obj->setFriction(shape->friction());
+
+  world->addCollisionObject(obj.get());
+  world->updateSingleAabb(obj.get());
+  return StaticItem(this,obj.release());
+  }
+
+DynamicWorld::StaticItem DynamicWorld::movableObj(const PhysicMeshShape* shape, const Tempest::Matrix4x4& m) {
+  if(shape==nullptr)
+    return StaticItem();
+
+  btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(
+        0,                  // mass, in kg. 0 -> Static object, will never move.
+        nullptr,
+        &shape->shape,
+        btVector3(0,0,0)
+        );
+  std::unique_ptr<btRigidBody> obj(new btRigidBody(rigidBodyCI));
+  obj->setUserIndex(C_Object);
+  obj->setFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
   obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
 
   btTransform trans;
   trans.setFromOpenGLMatrix(m.data());
   obj->setWorldTransform(trans);
+  obj->setFriction(shape->friction());
 
   world->addCollisionObject(obj.get());
-  aabbChanged++;
+  world->updateSingleAabb(obj.get());
   return StaticItem(this,obj.release());
+  }
+
+DynamicWorld::DynamicItem DynamicWorld::dynamicObj(const Tempest::Matrix4x4& pos, const Bounds& b, ZenLoad::MaterialGroup mat) {
+  btVector3 localInertia;
+  btVector3 hExt = {b.bbox[1].x-b.bbox[0].x, b.bbox[1].y-b.bbox[0].y, b.bbox[1].z-b.bbox[0].z};
+
+  float density = DynamicWorld::materialDensity(mat);
+  float mass    = density*(hExt[0]/100.f)*(hExt[1]/100.f)*(hExt[2]/100.f);
+  //mass = 0.1f;
+
+  for(int i=0;i<3;++i)
+    hExt[i] = std::max(hExt[i],20.f);
+
+  std::unique_ptr<btCollisionShape> shape { new btBoxShape(hExt*0.5f) };
+  shape->calculateLocalInertia(mass, localInertia);
+  //shape->setMargin(50);
+
+  btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(
+        mass,                  // mass, in kg. 0 -> Static object, will never move.
+        nullptr,
+        shape.get(),
+        localInertia
+        );
+  std::unique_ptr<btRigidBody> obj(new btRigidBody(rigidBodyCI));
+  obj->setUserIndex(C_item);
+  //obj->setFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
+  //obj->setCollisionFlags(btCollisionObject::CO_COLLISION_OBJECT);
+
+  btTransform trans;
+  trans.setFromOpenGLMatrix(pos.data());
+  obj->setWorldTransform(trans);
+  obj->setFriction(materialFriction(mat));
+
+  world->addRigidBody(obj.get());
+
+  dynItems.push_back(obj.get());
+  DynamicItem it(this,obj.release(),shape.release());
+  return it;
   }
 
 DynamicWorld::BulletBody* DynamicWorld::bulletObj(BulletCallback* cb) {
@@ -885,8 +987,20 @@ void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint6
   }
 
 void DynamicWorld::tick(uint64_t dt) {
+  static bool dynamic = true;
+
   npcList->tickAabbs();
   bulletList->tick(dt);
+
+  if(dynamic && dynItems.size()>0)
+    world->stepSimulation(float(dt), 8, 1.f/20.f);
+  for(auto i:dynItems)
+    if(auto ptr = reinterpret_cast<::Item*>(i->getUserPointer())) {
+      auto& t = i->getWorldTransform();
+      Tempest::Matrix4x4 mt;
+      t.getOpenGLMatrix(reinterpret_cast<btScalar*>(&mt));
+      ptr->setMatrix(mt);
+      }
   }
 
 void DynamicWorld::updateSingleAabb(btCollisionObject *obj) {
@@ -894,9 +1008,8 @@ void DynamicWorld::updateSingleAabb(btCollisionObject *obj) {
   }
 
 void DynamicWorld::updateAabbs() const {
-  if(aabbChanged==0)
+  if(world->aabbChanged==0)
     return;
-  aabbChanged=0;
   world->updateAabbs();
   }
 
@@ -904,7 +1017,7 @@ void DynamicWorld::deleteObj(NpcBody *obj) {
   if(!obj)
     return;
 
-  aabbChanged++;
+  world->aabbChanged++;
   if(!npcList->del(obj))
     world->removeCollisionObject(obj);
   delete obj;
@@ -918,18 +1031,70 @@ void DynamicWorld::deleteObj(DynamicWorld::BBoxBody* obj) {
   bboxList->del(obj);
   }
 
+float DynamicWorld::materialFriction(ZenLoad::MaterialGroup mat) {
+  // https://www.thoughtspike.com/friction-coefficients-for-bullet-physics/
+  switch(mat) {
+    case ZenLoad::MaterialGroup::UNDEF:
+      return 0.5f;
+    case ZenLoad::MaterialGroup::METAL:
+      return 1.1f;
+    case ZenLoad::MaterialGroup::STONE:
+      return 0.65f;
+    case ZenLoad::MaterialGroup::WOOD:
+      return 0.4f;
+    case ZenLoad::MaterialGroup::EARTH:
+      return 0.4f;
+    case ZenLoad::MaterialGroup::WATER:
+      return 0.01f;
+    case ZenLoad::MaterialGroup::SNOW:
+      return 0.2f;
+    case ZenLoad::MaterialGroup::NUM_MAT_GROUPS:
+      break;
+    }
+  return 0.75f;
+  }
+
+float DynamicWorld::materialDensity(ZenLoad::MaterialGroup mat) {
+  switch(mat) {
+    case ZenLoad::MaterialGroup::UNDEF:
+      return 2000.0f;
+    case ZenLoad::MaterialGroup::METAL:
+      return 7800.f;
+    case ZenLoad::MaterialGroup::STONE:
+      return 2200.f;
+    case ZenLoad::MaterialGroup::WOOD:
+      return 700.f;
+    case ZenLoad::MaterialGroup::EARTH:
+      return 1500.f;
+    case ZenLoad::MaterialGroup::WATER:
+      return 1000.f;
+    case ZenLoad::MaterialGroup::SNOW:
+      return 1000.f;
+    case ZenLoad::MaterialGroup::NUM_MAT_GROUPS:
+      break;
+    }
+  return 2000.f;
+  }
+
 const char* DynamicWorld::validateSectorName(const char* name) const {
   return landMesh->validateSectorName(name);
   }
 
 void DynamicWorld::deleteObj(btCollisionObject *obj) {
-  if(!obj)
+  if(obj==nullptr)
     return;
 
-  aabbChanged++;
-  if(!npcList->del(obj))
-    world->removeCollisionObject(obj);
-  delete obj;
+  std::unique_ptr<btCollisionObject> ref{obj};
+  world->aabbChanged++;
+  for(size_t i=0; i<dynItems.size(); ++i)
+    if(dynItems[i]==obj) {
+      auto v = dynItems[i];
+      dynItems[i] = dynItems.back();
+      dynItems.pop_back();
+      world->removeRigidBody(v);
+      return;
+      }
+  world->removeCollisionObject(obj);
   }
 
 bool DynamicWorld::hasCollision(const Item& it,Tempest::Vec3& normal) {
@@ -1019,7 +1184,7 @@ void DynamicWorld::Item::implSetPosition(float x, float y, float z) {
 void DynamicWorld::Item::setEnable(bool e) {
   if(obj) {
     obj->enable = e;
-    owner->aabbChanged++;
+    owner->world->aabbChanged++;
     }
   }
 
@@ -1189,4 +1354,25 @@ DynamicWorld::BBoxBody::~BBoxBody() {
   //owner->world->removeCollisionObject(obj);
   delete obj;
   delete shape;
+  }
+
+DynamicWorld::DynamicItem::~DynamicItem() {
+  if(owner)
+    owner->deleteObj(obj);
+  delete shape;
+  }
+
+void DynamicWorld::DynamicItem::setObjMatrix(const Tempest::Matrix4x4& m) {
+  if(obj!=nullptr){
+    btTransform trans;
+    trans.setFromOpenGLMatrix(reinterpret_cast<const btScalar*>(&m));
+    if(obj->getWorldTransform()==trans)
+      return;
+    obj->setWorldTransform(trans);
+    owner->updateSingleAabb(obj);
+    }
+  }
+
+void DynamicWorld::DynamicItem::setItem(::Item* it) {
+  obj->setUserPointer(it);
   }

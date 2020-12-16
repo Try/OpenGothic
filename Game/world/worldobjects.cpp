@@ -465,6 +465,7 @@ Item *WorldObjects::takeItem(Item &it) {
       i = std::move(itemArr.back());
       itemArr.pop_back();
       items.del(ret);
+      ret->setPhysicsDisable();
       return ret;
       }
   return nullptr;

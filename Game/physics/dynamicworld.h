@@ -22,6 +22,7 @@ class btGhostObject;
 class btCollisionObject;
 class btTriangleMesh;
 class btCollisionWorld;
+class btITaskScheduler;
 class btVector3;
 
 class PhysicMeshShape;
@@ -30,6 +31,7 @@ class PackedMesh;
 class World;
 class Bullet;
 class Npc;
+class Item;
 
 class DynamicWorld final {
   private:
@@ -39,6 +41,8 @@ class DynamicWorld final {
     struct BulletsList;
     struct BBoxList;
     struct Broadphase;
+    struct IslandManager;
+    struct BulletWorld;
 
   public:
     static constexpr float gravity     = 100*9.8f;
@@ -54,7 +58,8 @@ class DynamicWorld final {
       C_Landscape = 2,
       C_Water     = 3,
       C_Object    = 4,
-      C_Ghost     = 5
+      C_Ghost     = 5,
+      C_item      = 6,
       };
 
     struct Item {
@@ -113,6 +118,33 @@ class DynamicWorld final {
       private:
         DynamicWorld*       owner  = nullptr;
         btCollisionObject*  obj    = nullptr;
+      };
+
+    struct DynamicItem {
+      public:
+        DynamicItem()=default;
+        DynamicItem(DynamicWorld* owner,btCollisionObject* obj,btCollisionShape*shp):owner(owner),obj(obj),shape(shp){}
+        DynamicItem(DynamicItem&& it):owner(it.owner),obj(it.obj){it.obj=nullptr;}
+        ~DynamicItem();
+
+        DynamicItem& operator = (DynamicItem&& it){
+          std::swap(owner,it.owner);
+          std::swap(obj,  it.obj);
+          std::swap(itm,  it.itm);
+          std::swap(shape,it.shape);
+          return *this;
+          }
+
+        void setObjMatrix(const Tempest::Matrix4x4& m);
+        void setItem(::Item* it);
+
+      private:
+        DynamicWorld*       owner = nullptr;
+        btCollisionObject*  obj   = nullptr;
+        ::Item*             itm   = nullptr;
+        btCollisionShape*   shape = nullptr;
+
+      friend class DynamicWorld;
       };
 
     struct RayLandResult {
@@ -199,40 +231,47 @@ class DynamicWorld final {
     RayLandResult  ray        (float x0, float y0, float z0, float x1, float y1, float z1) const;
     float          soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const;
 
-    Item        ghostObj (const ZMath::float3& min,const ZMath::float3& max);
-    StaticItem  staticObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
-    BulletBody* bulletObj(BulletCallback* cb);
-    BBoxBody*   bboxObj(BBoxCallback* cb, const ZMath::float3* bbox);
+    Item           ghostObj  (const ZMath::float3& min,const ZMath::float3& max);
+    StaticItem     staticObj (const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
+    StaticItem     movableObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
+    DynamicItem    dynamicObj(const Tempest::Matrix4x4& pos, const Bounds& bbox, ZenLoad::MaterialGroup mat);
 
-    void        tick(uint64_t dt);
+    BulletBody*    bulletObj(BulletCallback* cb);
+    BBoxBody*      bboxObj(BBoxCallback* cb, const ZMath::float3* bbox);
 
-    void        deleteObj(BulletBody* obj);
-    void        deleteObj(BBoxBody*   obj);
+    void           tick(uint64_t dt);
 
-    const char* validateSectorName(const char* name) const;
+    void           deleteObj(BulletBody* obj);
+    void           deleteObj(BBoxBody*   obj);
+
+    static float   materialFriction(ZenLoad::MaterialGroup mat);
+    static float   materialDensity (ZenLoad::MaterialGroup mat);
+
+    const char*    validateSectorName(const char* name) const;
 
   private:
-    void        deleteObj(NpcBody*    obj);
-    void        deleteObj(btCollisionObject* obj);
+    void           deleteObj(NpcBody*    obj);
+    void           deleteObj(btCollisionObject* obj);
 
 
-    void       moveBullet(BulletBody& b, float dx, float dy, float dz, uint64_t dt);
+    void           moveBullet(BulletBody& b, float dx, float dy, float dz, uint64_t dt);
     RayWaterResult implWaterRay (float x0, float y0, float z0, float x1, float y1, float z1) const;
-    bool       hasCollision(const Item &it, Tempest::Vec3& normal);
+    bool           hasCollision(const Item &it, Tempest::Vec3& normal);
 
     template<class RayResultCallback>
-    void       rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, RayResultCallback& resultCallback) const;
+    void           rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, RayResultCallback& resultCallback) const;
 
     std::unique_ptr<btRigidBody> landObj();
     std::unique_ptr<btRigidBody> waterObj();
 
-    void       updateSingleAabb(btCollisionObject* obj);
-    void       updateAabbs() const;
+    void           updateSingleAabb(btCollisionObject* obj);
+    void           updateAabbs() const;
 
     std::unique_ptr<btCollisionConfiguration>   conf;
     std::unique_ptr<btDispatcher>               dispatcher;
     std::unique_ptr<btBroadphaseInterface>      broadphase;
-    std::unique_ptr<btCollisionWorld>           world;
+    std::unique_ptr<btConstraintSolver>         solver;
+    std::unique_ptr<BulletWorld>                world;
 
     std::vector<std::string>                    sectors;
 
@@ -249,7 +288,7 @@ class DynamicWorld final {
     std::unique_ptr<BulletsList>                bulletList;
     std::unique_ptr<BBoxList>                   bboxList;
 
-    mutable uint32_t                            aabbChanged = 0;
+    std::vector<btRigidBody*>                   dynItems;
 
     static const float                          ghostPadding;
     static const float                          ghostHeight;
