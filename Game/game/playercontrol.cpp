@@ -574,8 +574,13 @@ void PlayerControl::implMove(uint64_t dt) {
   else if(ctrl[Action::Right])
     ani = Npc::Anim::MoveR;
 
-  if(!pl.isCasting())
+  if(!pl.isCasting()) {
+    if(ani==Npc::Anim::Jump) {
+      pl.setAnimRotate(0);
+      rotation = 0;
+      }
     pl.setAnim(ani);
+    }
   setAnimRotate(pl, ani==Npc::Anim::Idle ? rotation : 0, ctrl[KeyCodec::RotateL] || ctrl[KeyCodec::RotateR]);
   if(actrl[ActGeneric] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.isFinishingMove()) {
     if(auto other = pl.target()) {

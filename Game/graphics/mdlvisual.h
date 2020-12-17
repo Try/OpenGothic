@@ -50,6 +50,7 @@ class MdlVisual final {
     void                           setStateItem  (MeshObjects::Mesh&& itm, const char *bone);
     void                           clearSlotItem (const char *bone);
     bool                           setFightMode  (const ZenLoad::EFightMode mode);
+    void                           dropWeapon    (Npc& owner);
 
     void                           startEffect (World& owner, Effect&& pfx, int32_t slot);
     void                           setEffectKey(World& owner, SpellFxKey key, int32_t keyLvl=0);

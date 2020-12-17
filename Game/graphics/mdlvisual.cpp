@@ -251,6 +251,34 @@ bool MdlVisual::setFightMode(const ZenLoad::EFightMode mode) {
   return setToFightMode(f);
   }
 
+void MdlVisual::dropWeapon(Npc& npc) {
+  MeshAttach* att  = &sword;
+  auto&       pose = *skInst;
+
+  if(fgtMode!=WeaponState::W1H && fgtMode!=WeaponState::W2H &&
+     fgtMode!=WeaponState::Bow && fgtMode!=WeaponState::CBow)
+    return;
+
+  auto p = pos;
+  if(att->boneId<pose.transform().size())
+    p.mul(pose.transform(att->boneId));
+
+  Item* itm = nullptr;
+  if(fgtMode==WeaponState::W1H || fgtMode==WeaponState::W2H)
+    itm = npc.currentMeleWeapon(); else
+    itm = npc.currentRangeWeapon();
+
+  if(itm==nullptr)
+    return;
+
+  auto it = npc.world().addItem(itm->clsId(),nullptr);
+  it->setCount(1);
+  it->setMatrix(p);
+  it->setPhysicsEnable(*npc.world().physic());
+
+  npc.delItem(itm->clsId(),1);
+  }
+
 void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot) {
   uint64_t timeUntil = vfx.effectPrefferedTime();
   if(timeUntil!=uint64_t(-1))

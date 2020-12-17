@@ -488,7 +488,8 @@ bool Npc::startClimb(JumpCode code) {
       ani = Npc::Anim::Jump;
       break;
     }
-  if(mvAlgo.startClimb(code)){
+  if(mvAlgo.startClimb(code)) {
+    visual.setRotation(*this,0);
     setAnim(ani);
     return true;
     }
@@ -531,7 +532,7 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
   }
 
 void Npc::onNoHealth(bool death,HitSound sndMask) {
-  // TODO: drop the weapon instead
+  visual.dropWeapon(*this);
   visual.setToFightMode(WeaponState::NoWeapon);
   updateWeaponSkeleton();
 
@@ -1931,6 +1932,13 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_ProcessInfo:
       if(act.target==nullptr)
         break;
+
+      // clear animation, in case if player is on a move
+      if(act.target->interactive()!=nullptr)
+        act.target->visual.stopAnim(*act.target,nullptr);
+      if(interactive()!=nullptr)
+        visual.stopAnim(*this,nullptr);
+
       if(auto p = owner.script().openDlgOuput(*this,*act.target)) {
         outputPipe = p;
         setOther(act.target);
@@ -2405,14 +2413,10 @@ void Npc::dropItem(size_t id) {
   auto it = owner.addItem(id,nullptr);
   it->setCount(cnt);
 
-  if(true) {
-    it->setPosition(x,y,z);
-    } else {
-    float rot = rotationRad()-float(M_PI/2), mul=50;
-    float s   = std::sin(rot), c = std::cos(rot);
-    it->setPosition(x+c*mul,y+100,z+s*mul);
-    it->setPhysicsEnable(*owner.physic());
-    }
+  float rot = rotationRad()-float(M_PI/2), mul=50;
+  float s   = std::sin(rot), c = std::cos(rot);
+  it->setPosition(x+c*mul,y+100,z+s*mul);
+  it->setPhysicsEnable(*owner.physic());
   }
 
 void Npc::clearInventory() {

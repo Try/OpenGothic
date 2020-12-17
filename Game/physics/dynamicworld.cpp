@@ -500,12 +500,6 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::zCMesh& worldMesh) {
   // collision configuration contains default setup for memory, collision setup
   conf.reset(new btDefaultCollisionConfiguration());
 
-  static std::unique_ptr<btITaskScheduler> taskScheduler;
-  if(taskScheduler==nullptr) {
-    taskScheduler.reset(btCreateDefaultTaskScheduler());
-    btSetTaskScheduler(taskScheduler.get());
-    }
-
   // use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
   //auto disp = new btCollisionDispatcherMt(conf.get());
   auto disp = new btCollisionDispatcher(conf.get());
@@ -997,9 +991,15 @@ void DynamicWorld::tick(uint64_t dt) {
   for(auto i:dynItems)
     if(auto ptr = reinterpret_cast<::Item*>(i->getUserPointer())) {
       auto& t = i->getWorldTransform();
+      i->isActive();
       Tempest::Matrix4x4 mt;
       t.getOpenGLMatrix(reinterpret_cast<btScalar*>(&mt));
       ptr->setMatrix(mt);
+      }
+  for(size_t i=0; i<dynItems.size(); ++i)
+    if(dynItems[i]->wantsSleeping() && dynItems[i]->getDeactivationTime()>3.f) {
+      if(auto ptr = reinterpret_cast<::Item*>(dynItems[i]->getUserPointer()))
+        ptr->setPhysicsDisable();
       }
   }
 
@@ -1271,7 +1271,6 @@ void DynamicWorld::StaticItem::setObjMatrix(const Tempest::Matrix4x4 &m) {
     if(obj->getWorldTransform()==trans)
       return;
     obj->setWorldTransform(trans);
-    //owner->aabbChanged++;
     owner->updateSingleAabb(obj);
     }
   }
