@@ -2,6 +2,8 @@
 
 #include <Tempest/Log>
 
+#include <algorithm>
+
 using namespace Tempest;
 
 Workers::Workers() {
