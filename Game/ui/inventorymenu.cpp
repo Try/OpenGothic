@@ -294,12 +294,26 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     lootMode = LootMode::Stack;
     takeTimer.start(200);
     onTakeStuff();
-    }
-  else if(keycodec.tr(e)==KeyCodec::ActionGeneric) {
-    lootMode = LootMode::Normal;
-    takeTimer.start(200);
-    onTakeStuff();
-    }
+    } else if (keycodec.tr(e) == KeyCodec::ActionGeneric) {
+
+      auto &p = activePage();
+      auto &sel = activePageSel();
+      if (sel.sel >= p.size()) {
+          return;
+      }
+      auto &item = p[sel.sel];
+      if (state == State::Equip) {
+          if (item.isEquiped()) {
+              player->unequipItem(item.clsId());
+          } else {
+              player->useItem(item.clsId());
+          }
+      } else if (state == State::Chest || state == State::Trade || state == State::Ransack) {
+          lootMode = LootMode::Normal;
+          takeTimer.start(200);
+          onTakeStuff();
+      }
+  }
   adjustScroll();
   update();
   }
