@@ -46,6 +46,7 @@ void Camera::implReset(const Npc &pl) {
   applyModRotation(state.spin);
 
   zoom         = def.bestRange/def.maxRange;
+  zoomDest     = zoom;
   camDistLast  = 100;
   }
 
@@ -53,6 +54,7 @@ void Camera::save(Serialize &s) {
   s.write(state.spin,state.pos,
           dest.spin,dest.pos,
           zoom,hasPos);
+  zoomDest = zoom;
   }
 
 void Camera::load(Serialize &s, Npc *pl) {
@@ -62,16 +64,14 @@ void Camera::load(Serialize &s, Npc *pl) {
     return;
   s.read(state.spin,state.pos,
          dest.spin,dest.pos,
-         zoom,hasPos);
+         zoomDest,hasPos);
   }
 
 void Camera::changeZoom(int delta) {
-  const float dd=1.1f;
   if(delta>0)
-    zoom/=dd;
-  if(delta<0)
-    zoom*=dd;
-  clampZoom(zoom);
+    zoomDest-=0.1f; else
+    zoomDest+=0.1f;
+  clampZoom(zoomDest);
   }
 
 void Camera::rotateLeft() {
@@ -218,7 +218,7 @@ void Camera::applyModRotation(Vec3& spin) {
     }
   }
 
-Matrix4x4 Camera::mkView(float dist) const {
+Matrix4x4 Camera::mkView(const Vec3& pos, float dist) const {
   const float scale=0.0009f;
   Matrix4x4 view;
   view.identity();
@@ -227,7 +227,7 @@ Matrix4x4 Camera::mkView(float dist) const {
   view.rotate(state.spin.x, 0, 1, 0);
   view.rotate(state.spin.z, 0, 0, 1);
   view.scale(scale);
-  view.translate(state.pos.x,state.pos.y,state.pos.z);
+  view.translate(pos.x,pos.y,pos.z);
   view.scale(-1,-1,-1);
   return view;
   }
@@ -337,9 +337,10 @@ void Camera::follow(const Npc& npc, uint64_t dt, bool inMove, bool includeRot) {
   const auto& def = cameraDef();
   const float dtF = float(dt)/1000.f;
 
-  clampZoom(zoom);
+  clampZoom(zoomDest);
 
   if(!hasPos) {
+    zoom         = zoomDest;
     dest.pos     = npc.cameraBone();
     state.pos    = dest.pos;
     applyModPosition(state.pos);
@@ -350,6 +351,17 @@ void Camera::follow(const Npc& npc, uint64_t dt, bool inMove, bool includeRot) {
 
   if(gothic.isPause())
     return;
+
+  {
+  static const float zSpeed = 0.5f*dtF;
+  const float dz = zoomDest-zoom;
+  if(std::fabs(dz)<zSpeed)
+    zoom=zoomDest;
+  else if(zoom<zoomDest)
+    zoom+=zSpeed;
+  else if(zoom>zoomDest)
+    zoom-=zSpeed;
+  }
 
   {
   auto pos = dest.pos;
@@ -419,14 +431,17 @@ Matrix4x4 Camera::view() const {
     dist*=100; //to santimeters
     }
 
+  auto pos = state.pos;
+  pos.y += std::max(0.f,zoom-0.3f)*def.maxRange*100.f*0.25f;
+
   auto world = gothic.world();
   if(world==nullptr)
-    return mkView(dist);
+    return mkView(pos,dist);
 
   const auto proj = world->view()->projective();
 
   Matrix4x4 view=proj;
-  view.mul(mkView(dist));
+  view.mul(mkView(pos,dist));
 
   Matrix4x4 vinv=view;
   vinv.inverse();
@@ -437,7 +452,7 @@ Matrix4x4 Camera::view() const {
   for(int i=-n;i<=n;++i)
     for(int r=-n;r<=n;++r) {
       float u = float(i)/float(nn),v = float(r)/float(nn);
-      Tempest::Vec3 r0=state.pos;
+      Tempest::Vec3 r0=pos;
       Tempest::Vec3 r1={u,v,0};
 
       view.project(r0.x,r0.y,r0.z);
@@ -462,6 +477,6 @@ Matrix4x4 Camera::view() const {
         distMd=md;
       }
 
-  view=mkView(distMd);
+  view=mkView(pos,distMd);
   return view;
   }

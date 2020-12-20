@@ -69,7 +69,8 @@ class Camera final {
 
     Gothic&               gothic;
     State                 state, dest;
-    float                 zoom=0.3f;
+    float                 zoom     = 0.3f;
+    float                 zoomDest = 0.3f;
     float                 dlgDist = 0;
     float                 camDistLast = 0.f;
 
@@ -82,7 +83,7 @@ class Camera final {
 
     void               implReset(const Npc& pl);
     void               implMove(Tempest::KeyEvent::KeyType t);
-    Tempest::Matrix4x4 mkView(float dist) const;
+    Tempest::Matrix4x4 mkView(const Tempest::Vec3& pos, float dist) const;
 
     const Daedalus::GEngineClasses::CCamSys& cameraDef() const;
     void clampZoom(float& z);
