@@ -272,11 +272,7 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
     return it->second.get();
 
   if(FileExt::hasExt(name,"TGA")){
-    static std::unordered_set<std::string> dec;
-    if(dec.find(name)==dec.end()) {
-      Log::e("decals are not implemented yet \"",name,"\"");
-      dec.insert(name);
-      }
+    Log::e("decals should be loaded by Resources::implDecalMesh instead");
     return nullptr;
     }
 
@@ -330,7 +326,7 @@ ProtoMesh* Resources::implDecalMesh(const ZenLoad::zCVobData& vob) {
   std::vector<Resources::Vertex> cvbo(vbo,vbo+8);
   std::vector<uint32_t>          cibo;
   if(key.decal2Sided)
-    cibo = { 0,1,2, 0,2,3, 4,6,5, 4,6,7 }; else
+    cibo = { 0,1,2, 0,2,3, 4,6,5, 4,7,6 }; else
     cibo = { 0,1,2, 0,2,3 };
 
   std::unique_ptr<ProtoMesh> t{new ProtoMesh(key.mat, std::move(cvbo), std::move(cibo))};
