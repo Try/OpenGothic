@@ -32,8 +32,10 @@ class Item final : public Vob {
     bool isMission() const;
     bool isEquiped() const    { return equiped; }
     void setAsEquiped(bool e) { equiped=e; if(!e) itSlot=NSLOT; }
+
     void setPhysicsEnable (DynamicWorld& physic);
     void setPhysicsDisable();
+    bool isDynamic() const override;
 
     uint8_t slot() const      { return itSlot;  }
     void    setSlot(uint8_t s)   { itSlot = s;     }

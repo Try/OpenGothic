@@ -996,11 +996,13 @@ void DynamicWorld::tick(uint64_t dt) {
       t.getOpenGLMatrix(reinterpret_cast<btScalar*>(&mt));
       ptr->setMatrix(mt);
       }
-  for(size_t i=0; i<dynItems.size(); ++i)
-    if(dynItems[i]->wantsSleeping() && dynItems[i]->getDeactivationTime()>3.f) {
-      if(auto ptr = reinterpret_cast<::Item*>(dynItems[i]->getUserPointer()))
+  for(size_t i=0; i<dynItems.size(); ++i) {
+    auto it = dynItems[i];
+    if(it->wantsSleeping() && (it->getDeactivationTime()>3.f || !it->isActive())) {
+      if(auto ptr = reinterpret_cast<::Item*>(it->getUserPointer()))
         ptr->setPhysicsDisable();
       }
+    }
   }
 
 void DynamicWorld::updateSingleAabb(btCollisionObject *obj) {

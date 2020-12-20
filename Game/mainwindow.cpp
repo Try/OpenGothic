@@ -269,7 +269,7 @@ void MainWindow::tickMouse() {
   if(auto camera = gothic.gameCamera())
     camera->onRotateMouse(PointF(-dpScaled.x,dpScaled.y));
   if(!inventory.isActive()) {
-    player.onRotateMouse(-dpScaled.x);
+    player.onRotateMouse  (-dpScaled.x);
     player.onRotateMouseDy(-dpScaled.y);
     }
 

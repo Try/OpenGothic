@@ -85,6 +85,10 @@ bool Vob::setMobState(const char* scheme, int32_t st) {
 void Vob::moveEvent() {
   }
 
+bool Vob::isDynamic() const {
+  return false;
+  }
+
 void Vob::recalculateTransform() {
   auto old = position();
   if(parent!=nullptr) {

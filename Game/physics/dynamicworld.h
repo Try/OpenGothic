@@ -137,6 +137,7 @@ class DynamicWorld final {
 
         void setObjMatrix(const Tempest::Matrix4x4& m);
         void setItem(::Item* it);
+        bool isEmpty() const { return obj==nullptr; }
 
       private:
         DynamicWorld*       owner = nullptr;

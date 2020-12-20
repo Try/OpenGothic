@@ -29,6 +29,8 @@ class Vob {
     void          setLocalTransform(const Tempest::Matrix4x4& p);
     virtual bool  setMobState(const char* scheme, int32_t st);
 
+    virtual bool  isDynamic() const;
+
   protected:
     World&                            world;
 

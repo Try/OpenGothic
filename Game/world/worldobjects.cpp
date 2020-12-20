@@ -534,7 +534,7 @@ void WorldObjects::addRoot(ZenLoad::zCVobData&& vob, bool startup) {
   }
 
 void WorldObjects::invalidateVobIndex() {
-  //items.invalidate();
+  items.invalidate();
   interactiveObj.invalidate();
   }
 

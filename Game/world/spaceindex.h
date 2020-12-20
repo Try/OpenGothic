@@ -23,7 +23,7 @@ class BaseSpaceIndex {
     void               del(Vob* v);
     bool               hasObject(const Vob* v) const;
 
-    void               find(const Tempest::Vec3& p,float R,void* ctx,void (*func)(void*, Vob*));
+    void               find(const Tempest::Vec3& p, float R, const void* ctx, void (*func)(const void*, Vob*));
     template<class Func>
     void               parallelFor(Func f);
     Vob**              data() { return arr.data(); }
@@ -32,11 +32,12 @@ class BaseSpaceIndex {
   private:
     std::vector<Vob*>  arr;
     std::vector<Vob*>  index;
+    std::vector<Vob*>  dynamic;
 
     void               buildIndex();
     void               buildIndex(Vob** v, size_t cnt, uint8_t depth);
     void               sort(Vob** v, size_t cnt, uint8_t component);
-    void               implFind(Vob** v, size_t cnt, uint8_t depth, const Tempest::Vec3& p, float R, void* ctx, void(*func)(void*, Vob*));
+    void               implFind(Vob** v, size_t cnt, uint8_t depth, const Tempest::Vec3& p, float R, const void* ctx, void(*func)(const void*, Vob*));
   };
 
 template<class Func>
@@ -69,9 +70,9 @@ class SpaceIndex final : public BaseSpaceIndex {
     T*const*  end()   const  { return begin()+size();                     }
 
     template<class Func>
-    void find(const Tempest::Vec3& p,float R,Func f) {
-      return BaseSpaceIndex::find(p,R,&f,[](void* ctx, Vob* v){
-        auto& f = *reinterpret_cast<Func*>(ctx);
+    void find(const Tempest::Vec3& p, float R, const Func& f) {
+      return BaseSpaceIndex::find(p,R,&f,[](const void* ctx, Vob* v){
+        auto& f = *reinterpret_cast<const Func*>(ctx);
         f(*reinterpret_cast<T*>(v));
         });
       }

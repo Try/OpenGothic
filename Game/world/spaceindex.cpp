@@ -15,6 +15,7 @@ void BaseSpaceIndex::add(Vob* v) {
   arr.push_back(v);
   index.reserve(arr.size());
   index.clear();
+  dynamic.clear();
   }
 
 void BaseSpaceIndex::del(Vob* v) {
@@ -23,6 +24,7 @@ void BaseSpaceIndex::del(Vob* v) {
       arr[i] = arr.back();
       arr.pop_back();
       index.clear();
+      dynamic.clear();
       return;
       }
     }
@@ -37,16 +39,27 @@ bool BaseSpaceIndex::hasObject(const Vob* v) const {
   return false;
   }
 
-void BaseSpaceIndex::find(const Tempest::Vec3& p, float R, void* ctx, void (*func)(void*, Vob*)) {
+void BaseSpaceIndex::find(const Tempest::Vec3& p, float R, const void* ctx, void (*func)(const void*, Vob*)) {
   if(index.size()==0)
     buildIndex();
+  for(auto& i:dynamic)
+    (*func)(ctx,i);
   implFind(index.data(),index.size(),0,p,R,ctx,func);
   }
 
 void BaseSpaceIndex::buildIndex() {
+  size_t cnt = 0;
   index.resize(arr.size());
-  for(size_t i=0; i<arr.size(); ++i)
-    index[i] = arr[i];
+  dynamic.clear();
+  for(size_t i=0; i<arr.size(); ++i) {
+    if(arr[i]->isDynamic()) {
+      dynamic.push_back(arr[i]);
+      } else {
+      index[cnt] = arr[i];
+      ++cnt;
+      }
+    }
+  index.resize(cnt);
   buildIndex(index.data(),index.size(),0);
   }
 
@@ -81,7 +94,7 @@ void BaseSpaceIndex::sort(Vob** v, size_t cnt, uint8_t component) {
   }
 
 void BaseSpaceIndex::implFind(Vob** v, size_t cnt, uint8_t depth,
-                              const Tempest::Vec3& p, float R, void* ctx, void (*func)(void*, Vob*)) {
+                              const Tempest::Vec3& p, float R, const void* ctx, void (*func)(const void*, Vob*)) {
   if(cnt==0)
     return;
 

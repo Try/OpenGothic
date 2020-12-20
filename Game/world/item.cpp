@@ -118,6 +118,11 @@ void Item::setPhysicsEnable(DynamicWorld& p) {
 
 void Item::setPhysicsDisable() {
   physic = DynamicWorld::DynamicItem();
+  world.invalidateVobIndex();
+  }
+
+bool Item::isDynamic() const {
+  return !physic.isEmpty();
   }
 
 const char *Item::displayName() const {
