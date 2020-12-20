@@ -289,6 +289,8 @@ bool Pose::updateFrame(const Animation::Sequence &s,
   const size_t idSize    = d.nodeIndex.size();
   if(numFrames==0 || idSize==0 || d.samples.size()%idSize!=0)
     return false;
+  if(numFrames==1 && !needToUpdate)
+    return false;
 
   (void)barrier;
   now = now-sTime;

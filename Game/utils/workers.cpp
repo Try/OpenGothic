@@ -63,6 +63,7 @@ void Workers::execWork() {
       workInc[i]=true;
     workWait.notify_all();
   }
+  std::this_thread::yield();
 
   while(true) {
     int expect = int(workTasks);

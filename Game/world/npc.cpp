@@ -1934,9 +1934,9 @@ void Npc::nextAiAction(uint64_t dt) {
         break;
 
       // clear animation, in case if player is on a move
-      if(act.target->interactive()!=nullptr)
+      if(act.target->interactive()==nullptr)
         act.target->visual.stopAnim(*act.target,nullptr);
-      if(interactive()!=nullptr)
+      if(interactive()==nullptr)
         visual.stopAnim(*this,nullptr);
 
       if(auto p = owner.script().openDlgOuput(*this,*act.target)) {
