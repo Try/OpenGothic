@@ -10,6 +10,7 @@
 #include "material.h"
 #include "resources.h"
 #include "sceneglobals.h"
+#include "skeletalstorage.h"
 #include "ubostorage.h"
 
 class RendererStorage;
@@ -18,8 +19,8 @@ class Painter3d;
 
 class ObjectsBucket final {
   private:
-    struct UboAnim;
     struct UboMaterial;
+
     using Vertex  = Resources::Vertex;
     using VertexA = Resources::VertexA;
 
@@ -82,17 +83,19 @@ class ObjectsBucket final {
 
     class Storage final {
       public:
-        UboStorage<UboAnim>     ani;
+        Storage(Tempest::Device& device):ani(device){}
+        SkeletalStorage         ani;
         UboStorage<UboMaterial> mat;
         bool                    commitUbo(Tempest::Device &device, uint8_t fId);
       };
 
-    ObjectsBucket(const Material& mat, const SceneGlobals& scene, Storage& storage, const Type type);
+    ObjectsBucket(const Material& mat, size_t boneCount, const SceneGlobals& scene, Storage& storage, const Type type);
     ~ObjectsBucket();
 
-    const Material&           material() const;
-    Type                      type()     const { return shaderType; }
-    size_t                    size()     const { return valSz; }
+    const Material&           material()  const;
+    Type                      type()      const { return shaderType; }
+    size_t                    size()      const { return valSz; }
+    size_t                    boneCount() const { return boneCnt; }
 
     size_t                    avgPoligons() const { return polySz; }
 
@@ -131,10 +134,6 @@ class ObjectsBucket final {
       ShLight            light[LIGHT_BLOCK];
       };
 
-    struct UboAnim final {
-      Tempest::Matrix4x4 skel[Resources::MAX_NUM_SKELETAL_NODES];
-      };
-
     struct UboMaterial final {
       Tempest::Vec2 texAniMapDir;
       };
@@ -162,7 +161,7 @@ class ObjectsBucket final {
       Descriptors                           ubo;
       size_t                                storageAni = size_t(-1);
 
-      const LightSource*                          light[MAX_LIGHT] = {};
+      const LightSource*                    light[MAX_LIGHT] = {};
       size_t                                lightCnt=0;
       int                                   lightCacheKey[3]={};
 
@@ -176,6 +175,7 @@ class ObjectsBucket final {
 
     Object                    val  [CAPACITY];
     size_t                    valSz=0;
+    size_t                    boneCnt=0;
     size_t                    valLast=0;
     Object*                   index[CAPACITY] = {};
     size_t                    indexSz=0;
@@ -215,6 +215,8 @@ class ObjectsBucket final {
     template<class T>
     void    setUbo(uint8_t& bit, Tempest::Uniforms& ubo, uint8_t layoutBind,
                    const Tempest::UniformBuffer<T>& vbuf,size_t offset,size_t size);
+    void    setUbo(uint8_t& bit, Tempest::Uniforms& ubo, uint8_t layoutBind, uint8_t fId,
+                   SkeletalStorage& anim, size_t id);
     void    setUbo(uint8_t& bit, Tempest::Uniforms& ubo, uint8_t layoutBind,
                    const Tempest::Texture2d&  tex, const Tempest::Sampler2d& smp = Tempest::Sampler2d::anisotrophy());
   };

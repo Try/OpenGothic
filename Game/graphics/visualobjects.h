@@ -8,7 +8,7 @@ class AnimMesh;
 
 class VisualObjects final {
   public:
-    VisualObjects(const SceneGlobals& globals);
+    VisualObjects(Tempest::Device& device, const SceneGlobals& globals);
 
     ObjectsBucket::Item get(const StaticMesh& mesh, const Material& mat, const Tempest::IndexBuffer<uint32_t>& ibo, bool staticDraw);
     ObjectsBucket::Item get(const AnimMesh&   mesh, const Material& mat, const Tempest::IndexBuffer<uint32_t>& ibo);
@@ -27,7 +27,7 @@ class VisualObjects final {
     void setDayNight(float dayF);
 
   private:
-    ObjectsBucket&                  getBucket(const Material& mat, ObjectsBucket::Type type);
+    ObjectsBucket&                  getBucket(const Material& mat, size_t boneCnt, ObjectsBucket::Type type);
     void                            mkIndex();
     void                            commitUbo(uint8_t fId);
 

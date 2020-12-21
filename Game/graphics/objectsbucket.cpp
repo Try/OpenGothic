@@ -60,8 +60,8 @@ void ObjectsBucket::Descriptors::alloc(ObjectsBucket& owner) {
   owner.uboSetCommon(*this);
   }
 
-ObjectsBucket::ObjectsBucket(const Material& mat, const SceneGlobals& scene, Storage& storage, const Type type)
-  :scene(scene), storage(storage), mat(mat), shaderType(type), useSharedUbo(type!=Animated) {
+ObjectsBucket::ObjectsBucket(const Material& mat, size_t boneCount, const SceneGlobals& scene, Storage& storage, const Type type)
+  :boneCnt(boneCount), scene(scene), storage(storage), mat(mat), shaderType(type), useSharedUbo(type!=Animated) {
   static_assert(sizeof(UboPush)<=128, "UboPush is way too big");
 
   switch(mat.alpha) {
@@ -325,7 +325,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
   Object* v = &implAlloc(VboType::VboVertexA,bounds);
   v->vboA   = &vbo;
   v->ibo    = &ibo;
-  v->storageAni = storage.ani.alloc();
+  v->storageAni = storage.ani.alloc(boneCnt);
   polySz+=ibo.size();
   polyAvg = polySz/valSz;
   return std::distance(val,v);
@@ -341,7 +341,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* 
 void ObjectsBucket::free(const size_t objId) {
   auto& v = val[objId];
   if(v.storageAni!=size_t(-1))
-    storage.ani.free(v.storageAni);
+    storage.ani.free(v.storageAni,boneCnt);
   if(v.ibo!=nullptr)
     polySz -= v.ibo->size();
   v.vboType = VboType::NoVbo;
@@ -391,8 +391,7 @@ void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fI
     if(!useSharedUbo) {
       auto& ubo = v.ubo.ubo[fId];
       setAnim(v,ubo);
-      if(v.storageAni!=size_t(-1))
-        setUbo(v.ubo.uboBit[fId],ubo,3,storage.ani[fId],v.storageAni,1);
+      setUbo(v.ubo.uboBit[fId],ubo,3,fId,storage.ani,v.storageAni);
       p.setUniforms(*pMain,ubo);
       }
 
@@ -439,8 +438,7 @@ void ObjectsBucket::drawGBuffer(Tempest::Encoder<CommandBuffer>& p, uint8_t fId)
     if(!useSharedUbo) {
       auto& ubo = v.ubo.ubo[fId];
       setAnim(v,ubo);
-      if(v.storageAni!=size_t(-1))
-        setUbo(v.ubo.uboBit[fId],ubo,3,storage.ani[fId],v.storageAni,1);
+      setUbo(v.ubo.uboBit[fId],ubo,3,fId,storage.ani,v.storageAni);
       p.setUniforms(*pGbuffer,ubo);
       }
 
@@ -527,8 +525,7 @@ void ObjectsBucket::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& p, uint
       auto& ubo = v.ubo.uboSh[fId][layer];
       if(textureInShadowPass)
         setAnim(v,ubo);
-      if(v.storageAni!=size_t(-1))
-        setUbo(v.ubo.uboBitSh[fId][layer],ubo,3,storage.ani[fId],v.storageAni,1);
+      setUbo(v.ubo.uboBitSh[fId][layer],ubo,3,fId,storage.ani,v.storageAni);
       p.setUniforms(*pShadow,ubo);
       }
 
@@ -555,7 +552,7 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p,
   if(v.vbo==nullptr || pMain==nullptr)
     return;
 
-  storage.ani.commitUbo(scene.storage.device,fId);
+  storage.commitUbo(scene.storage.device,fId);
 
   UboPush pushBlock = {};
   pushBlock.pos = v.pos;
@@ -591,7 +588,7 @@ void ObjectsBucket::setPose(size_t i, const Pose& p) {
 
   auto& skel = storage.ani.element(v.storageAni);
   auto& tr = p.transform();
-  std::memcpy(&skel.skel[0],tr.data(),tr.size()*sizeof(tr[0]));
+  std::memcpy(&skel,tr.data(),std::min(tr.size(),boneCnt)*sizeof(tr[0]));
   storage.ani.markAsChanged(v.storageAni);
   }
 
@@ -629,6 +626,17 @@ void ObjectsBucket::setAnim(ObjectsBucket::Object& v, Tempest::Uniforms& ubo) {
   auto frame = size_t((v.timeShift+scene.tickCount)/mat.texAniFPSInv);
   auto t = mat.frames[frame%mat.frames.size()];
   ubo.set(0,*t);
+  }
+
+void ObjectsBucket::setUbo(uint8_t& bit, Uniforms& ubo, uint8_t layoutBind, uint8_t fId, SkeletalStorage& anim, size_t id) {
+  const uint8_t flg = uint8_t(uint8_t(1)<<layoutBind);
+  if(bit & flg)
+    return;
+  bit = uint8_t(bit | flg);
+
+  if(id==size_t(-1))
+    return;
+  anim.bind(ubo,layoutBind, fId,id,boneCnt);
   }
 
 template<class T>
