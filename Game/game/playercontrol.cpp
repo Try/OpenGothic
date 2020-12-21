@@ -581,7 +581,7 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     pl.setAnim(ani);
     }
-  setAnimRotate(pl, ani==Npc::Anim::Idle ? rotation : 0, ctrl[KeyCodec::RotateL] || ctrl[KeyCodec::RotateR]);
+  setAnimRotate(pl, rot, ani==Npc::Anim::Idle ? rotation : 0, ctrl[KeyCodec::RotateL] || ctrl[KeyCodec::RotateR], dt);
   if(actrl[ActGeneric] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.isFinishingMove()) {
     if(auto other = pl.target()) {
       if(pl.weaponState()==WeaponState::NoWeapon || other->isDown() || pl.isFinishingMove()){
@@ -607,14 +607,21 @@ void PlayerControl::implMove(uint64_t dt) {
 void PlayerControl::assignRunAngle(Npc& pl, float rotation, uint64_t dt) {
   float dtF    = (float(dt)/1000.f);
   float angle  = pl.rotation();
-  float dangle = 0.2f*(rotation-angle)/dtF;
+  float dangle = (rotation-angle)/dtF;
   auto& wrld   = pl.world();
 
-  if(std::fabs(dangle*dtF)<0.1f) {
+  if(std::fabs(dangle)<5.f) {
     if(runAngleSmooth<wrld.tickCount())
       runAngleDest = 0;
     return;
     }
+
+  if(dangle>0)
+    dangle-=5.f;
+  if(dangle<0)
+    dangle+=5.f;
+
+  dangle *= 0.25f;
 
   float maxV = 12.5;
   if(angle<rotation)
@@ -624,13 +631,19 @@ void PlayerControl::assignRunAngle(Npc& pl, float rotation, uint64_t dt) {
   runAngleSmooth = wrld.tickCount()+150;
   }
 
-void PlayerControl::setAnimRotate(Npc& pl, int rot, bool force) {
-  auto ticks = pl.world().tickCount();
-  if(rotationAni==rot && rot!=0)
+void PlayerControl::setAnimRotate(Npc& pl, float rotation, int anim, bool force, uint64_t dt) {
+  float dtF    = (float(dt)/1000.f);
+  float angle  = pl.rotation();
+  float dangle = (rotation-angle)/dtF;
+  auto& wrld   = pl.world();
+
+  if(std::fabs(dangle)<100.f && !force) // 100 deg per second threshold
+    anim = 0;
+  if(rotationAni==anim && anim!=0)
     force = true;
-  if(!force && ticks<turnAniSmooth)
+  if(!force && wrld.tickCount()<turnAniSmooth)
     return;
-  turnAniSmooth = ticks + 150;
-  rotationAni   = rot;
-  pl.setAnimRotate(rot);
+  turnAniSmooth = wrld.tickCount() + 150;
+  rotationAni   = anim;
+  pl.setAnimRotate(anim);
   }
