@@ -2,8 +2,6 @@
 
 #include <Tempest/Log>
 
-#include <algorithm>
-
 using namespace Tempest;
 
 Workers::Workers() {
@@ -67,7 +65,7 @@ void Workers::execWork() {
 
   while(true) {
     int expect = int(workTasks);
-    if(workDone.compare_exchange_strong(expect,0))
+    if(workDone.compare_exchange_strong(expect,0,std::memory_order::memory_order_acq_rel))
       break;
     std::this_thread::yield();
     }

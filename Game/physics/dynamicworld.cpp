@@ -991,7 +991,6 @@ void DynamicWorld::tick(uint64_t dt) {
   for(auto i:dynItems)
     if(auto ptr = reinterpret_cast<::Item*>(i->getUserPointer())) {
       auto& t = i->getWorldTransform();
-      i->isActive();
       Tempest::Matrix4x4 mt;
       t.getOpenGLMatrix(reinterpret_cast<btScalar*>(&mt));
       ptr->setMatrix(mt);

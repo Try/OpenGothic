@@ -5,6 +5,7 @@
 #include <vector>
 #include <functional>
 #include <atomic>
+#include <algorithm>
 
 #include "semaphore.h"
 
@@ -14,17 +15,17 @@ class Workers final {
     ~Workers();
 
     template<class T,class F>
-    static void parallelFor(T* b, T* e, F func) {
+    static void parallelFor(T* b, T* e, const F& func) {
       inst().runParallelFor(b,std::distance(b,e),std::thread::hardware_concurrency(),func);
       }
 
     template<class T,class F>
-    static void parallelFor(std::vector<T>& data, F func) {
+    static void parallelFor(std::vector<T>& data, const F& func) {
       inst().runParallelFor(data.data(),data.size(),std::thread::hardware_concurrency(),func);
       }
 
     template<class T,class F>
-    static void parallelFor(std::vector<T>& data, size_t maxTh, F func) {
+    static void parallelFor(std::vector<T>& data, size_t maxTh, const F& func) {
       inst().runParallelFor(data.data(),data.size(),maxTh,func);
       }
 
@@ -36,7 +37,7 @@ class Workers final {
     static Workers& inst();
 
     template<class T,class F>
-    void runParallelFor(T* data, size_t sz, size_t maxTh, F func) {
+    void runParallelFor(T* data, size_t sz, size_t maxTh, const F& func) {
       workSet     = reinterpret_cast<uint8_t*>(data);
       workSize    = sz;
       workEltSize = sizeof(T);
