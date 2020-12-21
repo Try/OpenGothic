@@ -268,55 +268,42 @@ void InventoryMenu::processPickLock(KeyEvent& e) {
   }
 
 void InventoryMenu::keyDownEvent(KeyEvent &e) {
-  if(state==State::Closed){
-    e.ignore();
-    return;
+    const auto key = keycodec.tr(e);
+    switch (state) {
+        case State::Closed:
+            e.ignore();
+            return;
+        case State::LockPicking:
+            processPickLock(e);
+            return;
+        case State::Equip:
+            if (keycodec.tr(e) == KeyCodec::ActionGeneric) onEquip();
+            break;
+        case State::Chest:
+        case State::Trade:
+        case State::Ransack:
+            if (key == KeyCodec::ActionGeneric) {
+                lootMode = LootMode::Normal;
+                takeTimer.start(200);
+                onTakeStuff();
+            } else if (e.key == KeyEvent::K_Z) {
+                lootMode = LootMode::Ten;
+                takeTimer.start(200);
+                onTakeStuff();
+            } else if (e.key == KeyEvent::K_X) {
+                lootMode = LootMode::Hundred;
+                takeTimer.start(200);
+                onTakeStuff();
+            } else if (e.key == KeyEvent::K_Space) {
+                lootMode = LootMode::Stack;
+                takeTimer.start(200);
+                onTakeStuff();
+            }
     }
-
-  if(state==State::LockPicking) {
-    processPickLock(e);
-    return;
-    }
-
-  processMove(e);
-
-  if(e.key==KeyEvent::K_Z) {
-    lootMode = LootMode::Ten;
-    takeTimer.start(200);
-    onTakeStuff();
-    }
-  else if(e.key==KeyEvent::K_X) {
-    lootMode = LootMode::Hundred;
-    takeTimer.start(200);
-    onTakeStuff();
-    }
-  else if(e.key==KeyEvent::K_Space) {
-    lootMode = LootMode::Stack;
-    takeTimer.start(200);
-    onTakeStuff();
-    } else if (keycodec.tr(e) == KeyCodec::ActionGeneric) {
-
-      auto &p = activePage();
-      auto &sel = activePageSel();
-      if (sel.sel >= p.size()) {
-          return;
-      }
-      auto &item = p[sel.sel];
-      if (state == State::Equip) {
-          if (item.isEquiped()) {
-              player->unequipItem(item.clsId());
-          } else {
-              player->useItem(item.clsId());
-          }
-      } else if (state == State::Chest || state == State::Trade || state == State::Ransack) {
-          lootMode = LootMode::Normal;
-          takeTimer.start(200);
-          onTakeStuff();
-      }
-  }
-  adjustScroll();
-  update();
-  }
+    processMove(e);
+    adjustScroll();
+    update();
+}
 
 void InventoryMenu::keyRepeatEvent(KeyEvent& e) {
   if(state==State::LockPicking)
@@ -343,16 +330,8 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
   if(state==State::LockPicking)
     return;
 
-  auto& page = activePage();
-  auto& sel  = activePageSel();
-
-  if(sel.sel>=page.size())
-    return;
-  auto& r = page[sel.sel];
   if(state==State::Equip) {
-    if(r.isEquiped())
-      player->unequipItem(r.clsId()); else
-      player->useItem    (r.clsId());
+    onEquip();
     }
   else if(state==State::Chest || state==State::Trade || state==State::Ransack) {
     lootMode = LootMode::Normal;
@@ -445,7 +424,7 @@ InventoryMenu::PageLocal &InventoryMenu::activePageSel() {
   return pageLocal[1];
   }
 
-void InventoryMenu::onTakeStuff() { 
+void InventoryMenu::onTakeStuff() {
   uint32_t itemCount = 0;
   auto& page = activePage();
   auto& sel = activePageSel();
@@ -704,3 +683,18 @@ void InventoryMenu::drawInfo(Painter &p) {
 void InventoryMenu::draw(FrameBuffer& /*fbo*/, Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   renderer.draw(cmd,fId);
   }
+
+void InventoryMenu::onEquip() {
+    auto &p = activePage();
+    auto &sel = activePageSel();
+    if (sel.sel >= p.size()) {
+        return;
+    }
+    auto &item = p[sel.sel];
+
+    if (item.isEquiped()) {
+        player->unequipItem(item.clsId());
+    } else {
+        player->useItem(item.clsId());
+    }
+}

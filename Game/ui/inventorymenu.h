@@ -121,6 +121,7 @@ class InventoryMenu : public Tempest::Widget {
 
     void          onTakeStuff();
     void          adjustScroll();
+    void          onEquip();
     void          drawAll   (Tempest::Painter& p, Npc& player, DrawPass pass);
     void          drawItems (Tempest::Painter& p, DrawPass pass, const Page &inv, const PageLocal &sel, int x, int y, int wcount, int hcount);
     void          drawSlot  (Tempest::Painter& p, DrawPass pass, const Page &inv, const PageLocal &sel, int x, int y, size_t id);
