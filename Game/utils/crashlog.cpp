@@ -7,6 +7,11 @@
 #include <csignal>
 #include <fstream>
 #include <cstring>
+#ifdef __LINUX__
+#include <execinfo.h> // backtrace
+#include <dlfcn.h>    // dladdr
+#include <cxxabi.h>   // __cxa_demangle
+#endif
 
 #include <dbg/frames.hpp>
 #include <dbg/symbols.hpp>
@@ -92,23 +97,71 @@ void CrashLog::dumpStack(const char *sig) {
 #ifdef __WINDOWS__
   dbg::symdb          db;
   dbg::call_stack<64> traceback;
-
+#endif
   if(sig==nullptr)
     sig = "SIGSEGV";
 
   std::cout.setf(std::ios::unitbuf);
   std::cout << std::endl << "---crashlog(" <<  sig   << ")---" << std::endl;
   writeSysInfo(std::cout);
+#ifdef __WINDOWS__
   traceback.collect(0);
   traceback.log(db, std::cout);
+#elif __LINUX__
+  tracebackLinux(std::cout);
+#endif
   std::cout << std::endl;
 
   std::ofstream fout("crash.log");
   fout.setf(std::ios::unitbuf);
   fout << "---crashlog(" <<  sig << ")---" << std::endl;
   writeSysInfo(fout);
+#ifdef __WINDOWS__
   traceback.log(db, fout);
+#elif __LINUX__
+  tracebackLinux(fout);
 #endif
+  }
+
+std::string CrashLog::demangle(const void* frame, const char* symbol) {
+  #ifdef __LINUX__
+  Dl_info info;
+  if (dladdr(frame, &info) && info.dli_sname) {
+    std::string output;
+    int status = -1;
+    if (info.dli_sname[0] == '_')
+        output = abi::__cxa_demangle(info.dli_sname, NULL, 0, &status);
+    output = status == 0 ? output : info.dli_sname == 0 ? symbol : info.dli_sname;
+    return output;
+    }
+  // couldn't demangle, return the unchanged symbol
+  return symbol;
+  #endif
+  }
+
+void CrashLog::tracebackLinux(std::ostream &out) {
+  void *callstack[64];
+  char **symbols = NULL;
+  int framesNum = 0;
+  framesNum = backtrace(callstack, 50);
+  symbols = backtrace_symbols(callstack, framesNum);
+  if(symbols != NULL)
+  {
+    int skip = 4; // skip the signal handler frames
+    bool loop = true;
+    for(int i = skip; i < framesNum && loop; i++) {
+      std::string frame = demangle(callstack[i], symbols[i]);
+      if (frame == "main") {
+        // looping beyond the main() cahses crashes
+        loop = false;
+        }
+      if (frame != symbols[i]) {
+        frame = frame + " - " + symbols[i];
+        }
+      out << "#" << i-skip << ": " << frame << std::endl;
+      }
+    }
+    free(symbols);
   }
 
 void CrashLog::writeSysInfo(std::ostream &fout) {
