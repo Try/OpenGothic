@@ -315,7 +315,7 @@ void InventoryMenu::keyRepeatEvent(KeyEvent& e) {
 void InventoryMenu::keyUpEvent(KeyEvent &e) {
   takeTimer.stop();
   lootMode = LootMode::Normal;
-  if(e.key==KeyEvent::K_ESCAPE || (e.key==KeyEvent::K_Tab && state!=State::Trade)){
+  if(e.key==KeyEvent::K_ESCAPE || (keycodec.tr(e)==KeyCodec::Inventory && state!=State::Trade)){
     close();
     }
   }
