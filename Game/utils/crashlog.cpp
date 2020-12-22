@@ -136,10 +136,13 @@ std::string CrashLog::demangle(const void* frame, const char* symbol) {
     }
   // couldn't demangle, return the unchanged symbol
   return symbol;
+  #else
+  return "";
   #endif
   }
 
 void CrashLog::tracebackLinux(std::ostream &out) {
+  #ifdef __LINUX__
   // inspired by https://gist.github.com/fmela/591333 (BSD)
   void *callstack[64];
   char **symbols = NULL;
@@ -163,6 +166,7 @@ void CrashLog::tracebackLinux(std::ostream &out) {
       }
     }
     free(symbols);
+  #endif
   }
 
 void CrashLog::writeSysInfo(std::ostream &fout) {

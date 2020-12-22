@@ -103,8 +103,10 @@ target_link_libraries(${PROJECT_NAME} GothicShaders)
 
 if(NOT MSVC)
   target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wconversion -Wno-strict-aliasing -Werror)
-  # -rdynamic is needed to allow obtaining meaningful backtraces
-  target_link_options(${PROJECT_NAME} PRIVATE -rdynamic)
+  if(UNIX)
+    # -rdynamic is needed to allow obtaining meaningful backtraces
+    target_link_options(${PROJECT_NAME} PRIVATE -rdynamic)
+  endif()
 endif()
 
 if(WIN32)
