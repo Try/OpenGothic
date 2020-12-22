@@ -140,10 +140,11 @@ std::string CrashLog::demangle(const void* frame, const char* symbol) {
   }
 
 void CrashLog::tracebackLinux(std::ostream &out) {
+  // inspired by https://gist.github.com/fmela/591333 (BSD)
   void *callstack[64];
   char **symbols = NULL;
   int framesNum = 0;
-  framesNum = backtrace(callstack, 50);
+  framesNum = backtrace(callstack, 64);
   symbols = backtrace_symbols(callstack, framesNum);
   if(symbols != NULL)
   {
@@ -158,7 +159,7 @@ void CrashLog::tracebackLinux(std::ostream &out) {
       if (frame != symbols[i]) {
         frame = frame + " - " + symbols[i];
         }
-      out << "#" << i-skip << ": " << frame << std::endl;
+      out << "#" << i-skip+1 << ": " << frame << std::endl;
       }
     }
     free(symbols);
