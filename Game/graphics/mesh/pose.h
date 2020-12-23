@@ -98,6 +98,7 @@ class Pose final {
     const Animation::Sequence* getNext(const AnimationSolver& solver, const Layer& lay);
 
     void addLayer(const Animation::Sequence* seq, BodyState bs, int comb, uint64_t tickCount);
+    void onAddLayer   (Layer& l);
     void onRemoveLayer(Layer& l);
 
     template<class T,class F>
@@ -115,6 +116,7 @@ class Pose final {
     uint64_t                        lastUpdate=0;
     uint16_t                        comboLen=0;
     bool                            needToUpdate = true;
+    uint8_t                         hasEvents = 0;
 
     std::vector<Tempest::Matrix4x4> tr;
   };

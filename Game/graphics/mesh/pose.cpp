@@ -81,6 +81,8 @@ void Pose::load(Serialize &fin,const AnimationSolver& solver) {
     } else {
     fin.read(name); //itemUse
     }
+  for(auto& i:lay)
+    onAddLayer(i);
   needToUpdate = true;
   }
 
@@ -153,6 +155,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       i.sAnim = tickCount;
       i.comb  = comb;
       i.bs    = bs;
+      onAddLayer(i);
       return true;
       }
   addLayer(sq,bs,comb,tickCount);
@@ -230,6 +233,7 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
           doSort       = lay[i].seq->layer!=next->layer;
           lay[i].seq   = next;
           lay[i].sAnim = tickCount;
+          onAddLayer(lay[i]);
           ret++;
           }
         continue;
@@ -405,14 +409,22 @@ void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, int comb, uint
   l.bs    = bs;
   l.comb  = comb;
   lay.push_back(l);
+  onAddLayer(lay.back());
   std::sort(lay.begin(),lay.end(),[](const Layer& a,const Layer& b){
     return a.seq->layer<b.seq->layer;
     });
   }
 
+void Pose::onAddLayer(Pose::Layer& l) {
+  if(l.seq->data->events.size()>0)
+    hasEvents++;
+  }
+
 void Pose::onRemoveLayer(Pose::Layer &l) {
   if(l.seq==rotation)
     rotation=nullptr;
+  if(l.seq->data->events.size()>0)
+    hasEvents--;
   }
 
 void Pose::processSfx(Npc &npc, uint64_t tickCount) {
@@ -426,8 +438,10 @@ void Pose::processPfx(MdlVisual& visual, World& world, uint64_t tickCount) {
   }
 
 void Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev) const {
-  for(auto& i:lay)
-    i.seq->processEvents(barrier,i.sAnim,now,ev);
+  if(hasEvents>0) {
+    for(auto& i:lay)
+      i.seq->processEvents(barrier,i.sAnim,now,ev);
+    }
   barrier=now;
   }
 
@@ -660,8 +674,10 @@ bool Pose::stopItemStateAnim(const AnimationSolver& solver, uint64_t tickCount) 
       auto next = getNext(solver,i);
       if(next==nullptr)
         continue;
+      onRemoveLayer(i);
       i.seq   = next;
       i.sAnim = tickCount;
+      onAddLayer(i);
       }
   return true;
   }

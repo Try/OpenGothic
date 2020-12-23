@@ -239,8 +239,8 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     }
 
   if((p.attachMode^reverseState) && state==stateNum){
-    if(!setAnim(&npc,Anim::Active))
-      return;
+    // if(!setAnim(&npc,Anim::Active))
+    //   return;
     }
   else if(p.attachMode) {
     if(!setAnim(&npc,Anim::In))
