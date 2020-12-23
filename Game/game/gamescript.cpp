@@ -1343,8 +1343,8 @@ void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
   int32_t                  damageType   = vm.popInt();
   int32_t                  damage       = vm.popInt();
   int32_t                  effectLevel  = vm.popInt();
-  auto                     target       = popInstance(vm);
-  auto                     source       = popInstance(vm);
+  uint32_t                 targetId     = vm.popUInt();
+  uint32_t                 sourceId     = vm.popUInt();
   const Daedalus::ZString& visual       = vm.popString();
 
   if(isProjectile!=0 || damageType!=0 || damage!=0 || effectLevel!=0) {
@@ -1352,10 +1352,23 @@ void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
     Log::i("effect not implemented [",visual.c_str(),"]");
     return;
     }
-
   const VisualFx* vfx = owner.loadVisualFx(visual.c_str());
-  if(vfx!=nullptr && source!=nullptr && target!=nullptr)
-    source->playEffect(*target,*vfx);
+  if(vfx==nullptr)
+    return;
+
+  auto dstNpc = getNpcById(targetId);
+  auto srcNpc = getNpcById(sourceId);
+
+  auto dstItm = getItemById(targetId);
+  auto srcItm = getItemById(sourceId);
+
+  if(srcNpc!=nullptr && dstNpc!=nullptr) {
+    srcNpc->playEffect(*dstNpc,*vfx);
+    } else
+  if(srcItm!=nullptr && dstItm!=nullptr){
+    Effect e(*vfx,world(),srcItm->position());
+    world().runEffect(std::move(e));
+    }
   }
 
 void GameScript::wld_stopeffect(Daedalus::DaedalusVM &vm) {
@@ -1553,7 +1566,7 @@ void GameScript::wld_detectitem(Daedalus::DaedalusVM &vm) {
   Item* ret =nullptr;
   float dist=std::numeric_limits<float>::max();
   world().detectItem(npc->position(), float(npc->handle()->senses_range), [npc,&ret,&dist,flags](Item& it) {
-    if((it.handle()->mainflag&flags)!=0)
+    if((it.handle()->mainflag&flags)==0)
       return;
     float d = (npc->position()-it.position()).quadLength();
     if(d<dist) {
