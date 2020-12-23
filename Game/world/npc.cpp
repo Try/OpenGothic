@@ -1900,7 +1900,7 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
       }
     case AI_Atack:
-      if(currentTarget!=nullptr){
+      if(currentTarget!=nullptr && weaponState()!=WeaponState::NoWeapon){
         if(!fghAlgo.fetchInstructions(*this,*currentTarget,owner.script()))
           aiQueue.pushFront(std::move(act));
         }
