@@ -31,6 +31,11 @@ int Pose::calcAniCombVert(const Vec3& dpos) {
   float aY = 180.f*std::atan2(dpos.y,l)/float(M_PI);
   int   cy = (aY <-25.f) ? 0 : (aY <=25.f ? 1 : 2);
 
+  if(dpos.y<50)
+    cy = 0;
+  if(dpos.y>50)
+    cy = 2;
+
   // height angle: +/- 25
   return cy+1;
   }
