@@ -46,7 +46,7 @@ const float DynamicWorld::ghostHeight =140;
 const float DynamicWorld::worldHeight =20000;
 
 struct DynamicWorld::HumShape:btCapsuleShape {
-  HumShape(btScalar radius, btScalar height):btCapsuleShape(height<=0.f ? 0.f : radius,height){}
+  HumShape(btScalar radius, btScalar height):btCapsuleShape(height<=0.f ? 0.f : radius,height) {}
 
   // "human" object mush have identyty scale/rotation matrix. Only translation allowed.
   void getAabb(const btTransform& t, btVector3& aabbMin, btVector3& aabbMax) const override {
@@ -142,6 +142,9 @@ struct DynamicWorld::BulletWorld : btDiscreteDynamicsWorld {
 
 struct DynamicWorld::NpcBody : btRigidBody {
   NpcBody(btCollisionShape* shape):btRigidBody(0,nullptr,shape){}
+  ~NpcBody() {
+    delete m_collisionShape;
+    }
 
   Tempest::Vec3 pos={};
   float         r=0, h=0, rX=0, rZ=0;
@@ -176,6 +179,32 @@ struct DynamicWorld::NpcBodyList final {
   NpcBodyList(DynamicWorld& wrld):wrld(wrld){
     body.reserve(1024);
     frozen.reserve(1024);
+    }
+
+  NpcBody* create(const ZMath::float3 &min, const ZMath::float3 &max) {
+    static const float dimMax=45.f;
+    float dx     = max.x-min.x;
+    float dz     = max.z-min.z;
+    float dim    = std::max(dx,dz);
+    float height = max.y-min.y;
+
+    if(dim>dimMax)
+      dim=dimMax;
+
+    btCollisionShape* shape = new HumShape(dim*0.5f,std::max(height-ghostPadding,0.f)*0.5f);
+    NpcBody*          obj   = new NpcBody(shape);
+
+    btTransform trans;
+    trans.setIdentity();
+    obj->setWorldTransform(trans);
+    obj->setUserIndex(C_Ghost);
+    obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+    obj->setCollisionFlags(btCollisionObject::CO_GHOST_OBJECT);
+
+    //world->addCollisionObject(obj);
+    add(obj);
+    resize(*obj,height,dx,dz);
+    return obj;
     }
 
   void add(NpcBody* b){
@@ -271,6 +300,7 @@ struct DynamicWorld::NpcBodyList final {
     rayFromTrans.setOrigin(s);
     rayToTrans.setIdentity();
     rayToTrans.setOrigin(e);
+
     for(auto i:body)
       if(rayTestSingle(rayFromTrans, rayToTrans, *i.body, callback))
         return i.body;
@@ -757,29 +787,9 @@ std::unique_ptr<btRigidBody> DynamicWorld::waterObj() {
   }
 
 DynamicWorld::Item DynamicWorld::ghostObj(const ZMath::float3 &min, const ZMath::float3 &max) {
-  static const float dimMax=45.f;
-  float dx     = max.x-min.x;
-  float dz     = max.z-min.z;
-  float dim    = std::max(dx,dz);
-  float height = max.y-min.y;
-
-  if(dim>dimMax)
-    dim=dimMax;
-
-  btCollisionShape* shape = new HumShape(dim*0.5f,std::max(height-ghostPadding,0.f)*0.5f);
-  NpcBody*          obj   = new NpcBody(shape);
-
-  btTransform trans;
-  trans.setIdentity();
-  obj->setWorldTransform(trans);
-  obj->setUserIndex(C_Ghost);
-  obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
-  obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
-
-  //world->addCollisionObject(obj);
-  npcList->add(obj);
-  npcList->resize(*obj,height,dx,dz);
-  return Item(this,obj,height,dim*0.5f);
+  auto  obj = npcList->create(min,max);
+  float dim = std::max(obj->rX,obj->rZ);
+  return Item(this,obj,obj->h,dim*0.5f);
   }
 
 DynamicWorld::StaticItem DynamicWorld::staticObj(const PhysicMeshShape *shape, const Tempest::Matrix4x4 &m) {
