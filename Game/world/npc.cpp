@@ -2341,6 +2341,9 @@ Item* Npc::addItem(std::unique_ptr<Item>&& i) {
   }
 
 Item* Npc::takeItem(Item& item) {
+  if(interactive()!=nullptr)
+    return nullptr;
+
   auto dpos = item.position()-position();
   dpos.y-=translateY();
 
