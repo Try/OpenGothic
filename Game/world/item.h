@@ -37,8 +37,8 @@ class Item final : public Vob {
     void setPhysicsDisable();
     bool isDynamic() const override;
 
-    uint8_t slot() const      { return itSlot;  }
-    void    setSlot(uint8_t s)   { itSlot = s;     }
+    uint8_t slot() const       { return itSlot;  }
+    void    setSlot(uint8_t s) { itSlot = s;     }
 
     const char*         displayName() const;
     const char*         description() const;
@@ -72,7 +72,8 @@ class Item final : public Vob {
     size_t                                  clsId() const;
 
   private:
-    void updateMatrix();
+    void                updateMatrix();
+    void                moveEvent() override;
 
     Daedalus::GEngineClasses::C_Item  hitem={};
     MeshObjects::Mesh                 view;

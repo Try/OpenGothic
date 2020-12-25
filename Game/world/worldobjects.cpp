@@ -543,6 +543,8 @@ Interactive* WorldObjects::validateInteractive(Interactive *def) {
   }
 
 Npc *WorldObjects::validateNpc(Npc *def) {
+  if(def==nullptr)
+    return nullptr;
   for(auto& i:npcArr)
     if(i.get()==def)
       return def;

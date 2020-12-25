@@ -863,6 +863,9 @@ DynamicWorld::DynamicItem DynamicWorld::dynamicObj(const Tempest::Matrix4x4& pos
         shape.get(),
         localInertia
         );
+  rigidBodyCI.m_linearSleepingThreshold  = 30;
+  rigidBodyCI.m_angularSleepingThreshold = 10;
+
   std::unique_ptr<btRigidBody> obj(new btRigidBody(rigidBodyCI));
   obj->setUserIndex(C_item);
   //obj->setFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
@@ -1246,26 +1249,33 @@ bool DynamicWorld::Item::testMove(const Tempest::Vec3 &pos,
   return !ret;
   }
 
-bool DynamicWorld::Item::tryMoveN(const Tempest::Vec3& pos, Tempest::Vec3& norm) {
+bool DynamicWorld::Item::tryMove(const Tempest::Vec3& dst, Tempest::Vec3& norm) {
   norm = {};
   if(!obj)
     return false;
 
-  auto prev = obj->pos;
-  implSetPosition(pos.x,pos.y,pos.z);
+  auto prev  = obj->pos;
+  auto dp    = dst-prev;
+  int  count = 1;
 
-  if(owner->hasCollision(*this,norm)) {
-    implSetPosition(prev.x,prev.y,prev.z);
-    if(owner->hasCollision(*this,norm)) { // was in collision from the start
-      setPosition(pos.x,pos.y,pos.z);
-      return true;
+  if(dp.quadLength()>obj->r*obj->r)
+    count = int(std::ceil(dp.manhattanLength()/obj->r));
+
+  for(int i=0; i<count; ++i) {
+    auto pos = prev+(dp*float(i))/float(count);
+    implSetPosition(pos.x,pos.y,pos.z);
+    if(owner->hasCollision(*this,norm)) {
+      implSetPosition(prev.x,prev.y,prev.z);
+      if(owner->hasCollision(*this,norm)) { // was in collision from the start
+        setPosition(pos.x,pos.y,pos.z);
+        return true;
+        }
+      return false;
       }
-    return false;
-    } else {
-    owner->npcList->onMove(*obj);
-    owner->bulletList->onMoveNpc(*obj,*owner->npcList);
-    return true;
     }
+  owner->npcList->onMove(*obj);
+  owner->bulletList->onMoveNpc(*obj,*owner->npcList);
+  return true;
   }
 
 bool DynamicWorld::Item::hasCollision() const {
@@ -1356,12 +1366,9 @@ DynamicWorld::BBoxBody::BBoxBody(DynamicWorld* wrld, DynamicWorld::BBoxCallback*
   obj->setUserIndex(C_Ghost);
   obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
   obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
-
-  //owner->world->addCollisionObject(obj);
   }
 
 DynamicWorld::BBoxBody::~BBoxBody() {
-  //owner->world->removeCollisionObject(obj);
   delete obj;
   delete shape;
   }

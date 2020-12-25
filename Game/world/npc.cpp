@@ -3063,25 +3063,21 @@ Npc::MoveCode Npc::testMove(const Tempest::Vec3& pos,
   }
 
 bool Npc::tryMove(const Vec3& dp) {
-  Vec3 pos  = Vec3{x,y,z}+dp;
+  Vec3 pos0 = Vec3{x,y,z};
+  Vec3 pos  = pos0+dp;
   Vec3 norm = {};
 
-  if(physic.tryMoveN(pos,norm)) {
+  if(physic.tryMove(pos,norm))
     return setViewPosition(pos);
-    }
 
   const float speed = dp.manhattanLength();
-  if(speed<=0 || speed>=physic.radius())
+  if(speed<=0.f || Vec3::dotProduct(norm,dp/speed)<-0.9f)
     return false;
 
-  float scale=speed*0.25f;
-  for(int i=1;i<4+3;++i){
-    Vec3 p=pos;
-    p.x+=norm.x*scale*float(i);
-    p.z+=norm.z*scale*float(i);
-
-    Vec3 nn={};
-    if(physic.tryMoveN(p,nn)) {
+  for(int i=1;i<4+3;++i) {
+    Vec3 nn = {};
+    Vec3 p  = pos0 + Vec3(norm.x,0,norm.z)*speed*(float(i)/4.f);
+    if(physic.tryMove(p,nn)) {
       return setViewPosition(p);
       }
     }

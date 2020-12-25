@@ -95,10 +95,10 @@ void Item::setDirection(float, float, float) {
   }
 
 void Item::setMatrix(const Tempest::Matrix4x4 &m) {
-  setLocalTransform(m);
   pos.x = m.at(3,0);
   pos.y = m.at(3,1);
   pos.z = m.at(3,2);
+  setLocalTransform(m);
   view.setObjMatrix(m);
   }
 
@@ -243,4 +243,8 @@ void Item::updateMatrix() {
   mat.translate(pos.x,pos.y,pos.z);
   setLocalTransform(mat);
   view.setObjMatrix(mat);
+  }
+
+void Item::moveEvent() {
+  world.invalidateVobIndex();
   }

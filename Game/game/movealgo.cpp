@@ -360,6 +360,7 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
     }
   else if(-fallThreshold<dY && dY<0.f) {
     if(onGound && testSlide(pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z)) {
+      onMoveFailed();
       return;
       }
     // move up the ramp
