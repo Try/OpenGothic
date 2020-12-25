@@ -803,6 +803,9 @@ void Npc::updateWeaponSkeleton() {
   }
 
 void Npc::tickTimedEvt(Animation::EvCount& ev) {
+  if(ev.timed.empty())
+    return;
+
   std::sort(ev.timed.begin(),ev.timed.end(),[](const Animation::EvTimed& a,const Animation::EvTimed& b){
     return a.time<b.time;
     });
@@ -1684,8 +1687,7 @@ void Npc::tick(uint64_t dt) {
   if(ev.def_opt_frame>0)
     commitDamage();
   implSetFightMode(ev);
-  if(!ev.timed.empty())
-    tickTimedEvt(ev);
+  tickTimedEvt(ev);
 
   if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount() || aiOutputBarrier>owner.tickCount()) {
     if(faiWaitTime<owner.tickCount())
@@ -2004,7 +2006,7 @@ void Npc::nextAiAction(uint64_t dt) {
       if(act.item==nullptr)
         break;
       if(takeItem(*act.item)==nullptr) {
-        if(owner.itmId(act.item)!=size_t(-1))
+        if(owner.itmId(act.item)!=uint32_t(-1))
           aiQueue.pushFront(std::move(act));
         }
       }
