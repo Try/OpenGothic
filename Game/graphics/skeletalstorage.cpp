@@ -7,7 +7,7 @@ struct SkeletalStorage::Impl {
 
   virtual size_t alloc(size_t bonesCount) = 0;
   virtual void   free (const size_t objId, const size_t bonesCount) = 0;
-  virtual void   bind(Uniforms& ubo, uint8_t bind, uint8_t fId, size_t id, size_t /*boneCnt*/) = 0;
+  virtual void   bind(Uniforms& ubo, uint8_t bind, uint8_t fId, size_t id) = 0;
   virtual bool   commitUbo(Tempest::Device &device, uint8_t fId) = 0;
   virtual Matrix4x4* get(size_t id) = 0;
   virtual void   reserve(size_t n) = 0;
@@ -113,9 +113,9 @@ struct SkeletalStorage::TImpl : Impl {
     std::memset(m,0,sizeof(Matrix4x4)*bonesCount);
     }
 
-  void   bind(Uniforms& ubo, uint8_t bind, uint8_t fId, size_t id, size_t /*boneCnt*/) override {
+  void   bind(Uniforms& ubo, uint8_t bind, uint8_t fId, size_t id) override {
     auto& v = uboData[fId];
-    ubo.set(bind,v,id,1);
+    ubo.set(bind,v,id);
     }
 
   bool   commitUbo(Tempest::Device &device, uint8_t fId) override {
@@ -179,8 +179,8 @@ void SkeletalStorage::free(const size_t objId, size_t bonesCount) {
   impl->free(objId,bonesCount);
   }
 
-void SkeletalStorage::bind(Uniforms& ubo, uint8_t bind, uint8_t fId, size_t id, size_t boneCnt) {
-  impl->bind(ubo,bind,fId,id,boneCnt);
+void SkeletalStorage::bind(Uniforms& ubo, uint8_t bind, uint8_t fId, size_t id, size_t /*boneCnt*/) {
+  impl->bind(ubo,bind,fId,id);
   }
 
 bool SkeletalStorage::commitUbo(Tempest::Device& device, uint8_t fId) {

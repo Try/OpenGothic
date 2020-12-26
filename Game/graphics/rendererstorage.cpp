@@ -126,6 +126,7 @@ RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   state.setBlendSource  (RenderState::BlendMode::one);
   state.setBlendDest    (RenderState::BlendMode::one);
   state.setZTestMode    (RenderState::ZTestMode::Less);
+
   state.setZWriteEnabled(false);
 
   auto sh      = GothicShader::get("light.vert.sprv");

@@ -561,7 +561,7 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p,
   if(!useSharedUbo) {
     ubo.set(0,*mat.tex);
     ubo.set(1,Resources::fallbackTexture(),Sampler2d::nearest());
-    ubo.set(2,scene.uboGlobalPf[fId][0],0,1);
+    ubo.set(2,scene.uboGlobalPf[fId][0]);
     ubo.set(4,uboMat[fId]);
     }
 
