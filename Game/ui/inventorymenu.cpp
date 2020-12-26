@@ -302,7 +302,7 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     }
   else if (keycodec.tr(e)==KeyCodec::ActionGeneric) {
     onItemAction();
-  }
+    }
   adjustScroll();
   update();
   }
