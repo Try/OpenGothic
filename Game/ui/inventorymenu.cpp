@@ -295,10 +295,13 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     takeTimer.start(200);
     onTakeStuff();
     }
-  else if(keycodec.tr(e)==KeyCodec::ActionGeneric) {
+  else if(keycodec.tr(e)==KeyCodec::Jump) {
     lootMode = LootMode::Normal;
     takeTimer.start(200);
     onTakeStuff();
+    }
+  else if (keycodec.tr(e)==KeyCodec::ActionGeneric) {
+    onItemAction();
     }
   adjustScroll();
   update();
@@ -329,22 +332,7 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
   if(state==State::LockPicking)
     return;
 
-  auto& page = activePage();
-  auto& sel  = activePageSel();
-
-  if(sel.sel>=page.size())
-    return;
-  auto& r = page[sel.sel];
-  if(state==State::Equip) {
-    if(r.isEquiped())
-      player->unequipItem(r.clsId()); else
-      player->useItem    (r.clsId());
-    }
-  else if(state==State::Chest || state==State::Trade || state==State::Ransack) {
-    lootMode = LootMode::Normal;
-    takeTimer.start(200);
-    onTakeStuff();
-    }
+  onItemAction();
   adjustScroll();
 }
 
@@ -429,6 +417,25 @@ InventoryMenu::PageLocal &InventoryMenu::activePageSel() {
   if(pageOth!=nullptr)
     return (page==0 ? pageLocal[0] : pageLocal[1]);
   return pageLocal[1];
+  }
+  
+void InventoryMenu::onItemAction() { 
+  auto& page = activePage();
+  auto& sel  = activePageSel();
+  if(sel.sel>=page.size())
+    return;
+
+  auto& r = page[sel.sel];
+  if(state==State::Equip) {
+    if(r.isEquiped())
+      player->unequipItem(r.clsId()); else
+      player->useItem    (r.clsId());
+    }
+  else if(state==State::Chest || state==State::Trade || state==State::Ransack) {
+    lootMode = LootMode::Normal;
+    takeTimer.start(200);
+    onTakeStuff();
+    }
   }
 
 void InventoryMenu::onTakeStuff() { 
