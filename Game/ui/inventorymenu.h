@@ -119,6 +119,7 @@ class InventoryMenu : public Tempest::Widget {
     void          processMove(Tempest::KeyEvent& e);
     void          processPickLock(Tempest::KeyEvent& e);
 
+    void          onItemAction();
     void          onTakeStuff();
     void          adjustScroll();
     void          drawAll   (Tempest::Painter& p, Npc& player, DrawPass pass);
