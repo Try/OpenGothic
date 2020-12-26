@@ -43,9 +43,9 @@ add_subdirectory(lib/edd-dbg)
 # ZenLib
 add_subdirectory(lib/ZenLib)
 
-# MoltenTempest
+# Tempest
 set(TEMPEST_BUILD_SHARED ON  CACHE INTERNAL "")
-add_subdirectory(lib/MoltenTempest/Engine)
+add_subdirectory(lib/Tempest/Engine)
 
 ## OpenGothic
 
@@ -94,9 +94,9 @@ include_directories(lib/TinySoundFont)
 include_directories(lib/bullet3/src)
 target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath)
 
-# MoltenTempest
-include_directories(lib/MoltenTempest/Engine/include)
-target_link_libraries(${PROJECT_NAME} MoltenTempest)
+# Tempest
+include_directories(lib/Tempest/Engine/include)
+target_link_libraries(${PROJECT_NAME} Tempest)
 
 # shaders
 target_link_libraries(${PROJECT_NAME} GothicShaders)
