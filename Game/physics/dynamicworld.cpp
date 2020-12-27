@@ -29,6 +29,7 @@
 
 #include "physicmeshshape.h"
 #include "physicvbo.h"
+#include "graphics/mesh/skeleton.h"
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -136,7 +137,6 @@ struct DynamicWorld::BulletWorld : btDiscreteDynamicsWorld {
       }
     }
 
-  btAlignedObjectArray<btRigidBody*> m_nonStaticRigidBodies;
   mutable uint32_t aabbChanged = 0;
   };
 
@@ -199,7 +199,7 @@ struct DynamicWorld::NpcBodyList final {
     obj->setWorldTransform(trans);
     obj->setUserIndex(C_Ghost);
     obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
-    obj->setCollisionFlags(btCollisionObject::CO_GHOST_OBJECT);
+    // obj->setCollisionFlags(btCollisionObject::CO_GHOST_OBJECT);
 
     //world->addCollisionObject(obj);
     add(obj);
@@ -322,7 +322,7 @@ struct DynamicWorld::NpcBodyList final {
     return callback.hasHit();
     }
 
-  bool hasCollision(const DynamicWorld::Item& obj,Tempest::Vec3& normal) {
+  bool hasCollision(const DynamicWorld::NpcItem& obj,Tempest::Vec3& normal) {
     static bool disable=false;
     if(disable)
       return false;
@@ -786,63 +786,75 @@ std::unique_ptr<btRigidBody> DynamicWorld::waterObj() {
   return obj;
   }
 
-DynamicWorld::Item DynamicWorld::ghostObj(const ZMath::float3 &min, const ZMath::float3 &max) {
+DynamicWorld::NpcItem DynamicWorld::ghostObj(const char* visual) {
+  ZMath::float3 min={}, max={};
+  if(auto sk=Resources::loadSkeleton(visual)) {
+    min = sk->bboxCol[0];
+    max = sk->bboxCol[1];
+    }
   auto  obj = npcList->create(min,max);
   float dim = std::max(obj->rX,obj->rZ);
-  return Item(this,obj,obj->h,dim*0.5f);
+  return NpcItem(this,obj,obj->h,dim*0.5f);
   }
 
-DynamicWorld::StaticItem DynamicWorld::staticObj(const PhysicMeshShape *shape, const Tempest::Matrix4x4 &m) {
+DynamicWorld::Item DynamicWorld::staticObj(const PhysicMeshShape *shape, const Tempest::Matrix4x4 &m) {
   if(shape==nullptr)
-    return StaticItem();
+    return Item();
+  return createObj(&shape->shape,false,m,0,shape->friction(),IT_Static);
+  }
 
+DynamicWorld::Item DynamicWorld::movableObj(const PhysicMeshShape* shape, const Tempest::Matrix4x4& m) {
+  if(shape==nullptr)
+    return Item();
+  return createObj(&shape->shape,false,m,0,shape->friction(),IT_Movable);
+  }
+
+DynamicWorld::Item DynamicWorld::createObj(btCollisionShape* shape, bool ownShape, const Tempest::Matrix4x4& m, float mass, float friction, ItemType type) {
   btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(
-        0,                  // mass, in kg. 0 -> Static object, will never move.
+        mass,                  // mass, in kg. 0 -> Static object, will never move.
         nullptr,
-        &shape->shape,
+        shape,
         btVector3(0,0,0)
         );
+
   std::unique_ptr<btRigidBody> obj(new btRigidBody(rigidBodyCI));
-  obj->setUserIndex(C_Object);
-  obj->setFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
-  obj->setCollisionFlags(btCollisionObject::CO_COLLISION_OBJECT);
+  switch(type) {
+    case IT_Movable:
+      obj->setUserIndex(C_Object);
+      obj->setFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
+      obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
+      break;
+    case IT_Static:
+      obj->setUserIndex(C_Object);
+      obj->setFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
+      obj->setCollisionFlags(btCollisionObject::CO_COLLISION_OBJECT);
+      break;
+    case IT_Dynamic:
+      obj->setUserIndex(C_item);
+      break;
+    }
 
   btTransform trans;
   trans.setFromOpenGLMatrix(m.data());
   obj->setWorldTransform(trans);
-  obj->setFriction(shape->friction());
+  obj->setFriction(friction);
 
-  world->addCollisionObject(obj.get());
+  switch(type) {
+    case IT_Movable:
+    case IT_Static:
+      world->addCollisionObject(obj.get());
+      break;
+    case IT_Dynamic:
+      world->addRigidBody(obj.get());
+      dynItems.push_back(obj.get());
+      break;
+    }
+
   world->updateSingleAabb(obj.get());
-  return StaticItem(this,obj.release());
+  return Item(this,obj.release(),ownShape ? shape : nullptr);
   }
 
-DynamicWorld::StaticItem DynamicWorld::movableObj(const PhysicMeshShape* shape, const Tempest::Matrix4x4& m) {
-  if(shape==nullptr)
-    return StaticItem();
-
-  btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(
-        0,                  // mass, in kg. 0 -> Static object, will never move.
-        nullptr,
-        &shape->shape,
-        btVector3(0,0,0)
-        );
-  std::unique_ptr<btRigidBody> obj(new btRigidBody(rigidBodyCI));
-  obj->setUserIndex(C_Object);
-  obj->setFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
-  obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
-
-  btTransform trans;
-  trans.setFromOpenGLMatrix(m.data());
-  obj->setWorldTransform(trans);
-  obj->setFriction(shape->friction());
-
-  world->addCollisionObject(obj.get());
-  world->updateSingleAabb(obj.get());
-  return StaticItem(this,obj.release());
-  }
-
-DynamicWorld::DynamicItem DynamicWorld::dynamicObj(const Tempest::Matrix4x4& pos, const Bounds& b, ZenLoad::MaterialGroup mat) {
+DynamicWorld::Item DynamicWorld::dynamicObj(const Tempest::Matrix4x4& pos, const Bounds& b, ZenLoad::MaterialGroup mat) {
   btVector3 localInertia;
   btVector3 hExt = {b.bbox[1].x-b.bbox[0].x, b.bbox[1].y-b.bbox[0].y, b.bbox[1].z-b.bbox[0].z};
 
@@ -852,8 +864,9 @@ DynamicWorld::DynamicItem DynamicWorld::dynamicObj(const Tempest::Matrix4x4& pos
 
   for(int i=0;i<3;++i)
     hExt[i] = std::max(hExt[i],20.f);
-
   std::unique_ptr<btCollisionShape> shape { new btBoxShape(hExt*0.5f) };
+  return createObj(shape.release(),true,pos,mass,materialFriction(mat),IT_Dynamic);
+  /*
   shape->calculateLocalInertia(mass, localInertia);
   //shape->setMargin(50);
 
@@ -877,10 +890,11 @@ DynamicWorld::DynamicItem DynamicWorld::dynamicObj(const Tempest::Matrix4x4& pos
   obj->setFriction(materialFriction(mat));
 
   world->addRigidBody(obj.get());
-
   dynItems.push_back(obj.get());
+
   DynamicItem it(this,obj.release(),shape.release());
   return it;
+  */
   }
 
 DynamicWorld::BulletBody* DynamicWorld::bulletObj(BulletCallback* cb) {
@@ -1111,7 +1125,7 @@ void DynamicWorld::deleteObj(btCollisionObject *obj) {
   world->removeCollisionObject(obj);
   }
 
-bool DynamicWorld::hasCollision(const Item& it,Tempest::Vec3& normal) {
+bool DynamicWorld::hasCollision(const NpcItem& it,Tempest::Vec3& normal) {
   if(npcList->hasCollision(it,normal)){
     normal /= normal.manhattanLength();
     return true;
@@ -1183,7 +1197,7 @@ void DynamicWorld::rayTest(const btVector3 &s,
   }
 
 
-void DynamicWorld::Item::setPosition(float x, float y, float z) {
+void DynamicWorld::NpcItem::setPosition(float x, float y, float z) {
   if(obj) {
     implSetPosition(x,y,z);
     owner->npcList->onMove(*obj);
@@ -1191,22 +1205,22 @@ void DynamicWorld::Item::setPosition(float x, float y, float z) {
     }
   }
 
-void DynamicWorld::Item::implSetPosition(float x, float y, float z) {
+void DynamicWorld::NpcItem::implSetPosition(float x, float y, float z) {
   obj->setPosition(x,y,z);
   }
 
-void DynamicWorld::Item::setEnable(bool e) {
+void DynamicWorld::NpcItem::setEnable(bool e) {
   if(obj) {
     obj->enable = e;
     owner->world->aabbChanged++;
     }
   }
 
-void DynamicWorld::Item::setUserPointer(void *p) {
+void DynamicWorld::NpcItem::setUserPointer(void *p) {
   obj->setUserPointer(p);
   }
 
-float DynamicWorld::Item::centerY() const {
+float DynamicWorld::NpcItem::centerY() const {
   if(obj) {
     const btTransform& tr = obj->getWorldTransform();
     return tr.getOrigin().y();
@@ -1214,7 +1228,7 @@ float DynamicWorld::Item::centerY() const {
   return 0;
   }
 
-bool DynamicWorld::Item::testMove(const Tempest::Vec3& pos) {
+bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& pos) {
   if(!obj)
     return false;
   Tempest::Vec3 tmp={};
@@ -1227,7 +1241,7 @@ bool DynamicWorld::Item::testMove(const Tempest::Vec3& pos) {
   return !ret;
   }
 
-bool DynamicWorld::Item::testMove(const Tempest::Vec3 &pos,
+bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3 &pos,
                                   Tempest::Vec3       &fallback,
                                   float speed) {
   fallback=pos;
@@ -1249,7 +1263,7 @@ bool DynamicWorld::Item::testMove(const Tempest::Vec3 &pos,
   return !ret;
   }
 
-bool DynamicWorld::Item::tryMove(const Tempest::Vec3& dst, Tempest::Vec3& norm) {
+bool DynamicWorld::NpcItem::tryMove(const Tempest::Vec3& dst, Tempest::Vec3& norm) {
   norm = {};
   if(!obj)
     return false;
@@ -1278,15 +1292,21 @@ bool DynamicWorld::Item::tryMove(const Tempest::Vec3& dst, Tempest::Vec3& norm) 
   return true;
   }
 
-bool DynamicWorld::Item::hasCollision() const {
+bool DynamicWorld::NpcItem::hasCollision() const {
   if(!obj)
     return false;
   Tempest::Vec3 tmp;
   return owner->hasCollision(*this,tmp);
   }
 
-void DynamicWorld::StaticItem::setObjMatrix(const Tempest::Matrix4x4 &m) {
-  if(obj){
+DynamicWorld::Item::~Item() {
+  if(owner)
+    owner->deleteObj(obj);
+  delete shp;
+  }
+
+void DynamicWorld::Item::setObjMatrix(const Tempest::Matrix4x4 &m) {
+  if(obj) {
     btTransform trans;
     trans.setFromOpenGLMatrix(reinterpret_cast<const btScalar*>(&m));
     if(obj->getWorldTransform()==trans)
@@ -1294,6 +1314,10 @@ void DynamicWorld::StaticItem::setObjMatrix(const Tempest::Matrix4x4 &m) {
     obj->setWorldTransform(trans);
     owner->updateSingleAabb(obj);
     }
+  }
+
+void DynamicWorld::Item::setItem(::Item* it) {
+  obj->setUserPointer(it);
   }
 
 DynamicWorld::BulletBody::BulletBody(DynamicWorld* wrld, DynamicWorld::BulletCallback* cb)
@@ -1371,25 +1395,4 @@ DynamicWorld::BBoxBody::BBoxBody(DynamicWorld* wrld, DynamicWorld::BBoxCallback*
 DynamicWorld::BBoxBody::~BBoxBody() {
   delete obj;
   delete shape;
-  }
-
-DynamicWorld::DynamicItem::~DynamicItem() {
-  if(owner)
-    owner->deleteObj(obj);
-  delete shape;
-  }
-
-void DynamicWorld::DynamicItem::setObjMatrix(const Tempest::Matrix4x4& m) {
-  if(obj!=nullptr){
-    btTransform trans;
-    trans.setFromOpenGLMatrix(reinterpret_cast<const btScalar*>(&m));
-    if(obj->getWorldTransform()==trans)
-      return;
-    obj->setWorldTransform(trans);
-    owner->updateSingleAabb(obj);
-    }
-  }
-
-void DynamicWorld::DynamicItem::setItem(::Item* it) {
-  obj->setUserPointer(it);
   }

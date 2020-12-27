@@ -81,5 +81,5 @@ class Item final : public Vob {
     bool                              equiped=false;
     uint8_t                           itSlot=NSLOT;
 
-    DynamicWorld::DynamicItem         physic;
+    DynamicWorld::Item                physic;
   };

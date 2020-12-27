@@ -14,8 +14,8 @@ class PhysicMesh final {
     void   setPose       (const Pose&      p,const Tempest::Matrix4x4& obj);
 
   private:
-    std::vector<DynamicWorld::StaticItem> sub;
-    const ProtoMesh*                      ani=nullptr;
-    const Skeleton*                       skeleton=nullptr;
-    const AttachBinder*                   binder=nullptr;
+    std::vector<DynamicWorld::Item> sub;
+    const ProtoMesh*                ani=nullptr;
+    const Skeleton*                 skeleton=nullptr;
+    const AttachBinder*             binder=nullptr;
   };

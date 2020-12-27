@@ -210,13 +210,6 @@ MeshObjects::Mesh World::getDecalView(const ZenLoad::zCVobData& vob) const {
   return view()->getDecalView(vob);
   }
 
-DynamicWorld::Item World::getPhysic(const char* visual) {
-  if(auto sk=Resources::loadSkeleton(visual))
-    return physic()->ghostObj(sk->bboxCol[0],sk->bboxCol[1]);
-  ZMath::float3 zero={};
-  return physic()->ghostObj(zero,zero);
-  }
-
 const VisualFx *World::loadVisualFx(const char *name) {
   return game.loadVisualFx(name);
   }

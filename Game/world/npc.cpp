@@ -683,7 +683,7 @@ Tempest::Vec3 Npc::displayPosition() const {
 void Npc::setVisual(const char* visual) {
   auto skelet = Resources::loadSkeleton(visual);
   setVisual(skelet);
-  setPhysic(owner.getPhysic(visual));
+  setPhysic(owner.physic()->ghostObj(visual));
   }
 
 bool Npc::hasOverlay(const char* sk) const {
@@ -871,7 +871,7 @@ void Npc::tickRegen(int32_t& v, const int32_t max, const int32_t chg, const uint
     }
   }
 
-void Npc::setPhysic(DynamicWorld::Item &&item) {
+void Npc::setPhysic(DynamicWorld::NpcItem &&item) {
   physic = std::move(item);
   physic.setUserPointer(this);
   physic.setPosition(x,y,z);

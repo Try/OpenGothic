@@ -117,7 +117,7 @@ void Item::setPhysicsEnable(DynamicWorld& p) {
   }
 
 void Item::setPhysicsDisable() {
-  physic = DynamicWorld::DynamicItem();
+  physic = DynamicWorld::Item();
   world.invalidateVobIndex();
   }
 

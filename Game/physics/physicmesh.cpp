@@ -16,7 +16,7 @@ PhysicMesh::PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner, bool movable
   pos.identity();
 
   for(auto& i:proto.attach) {
-    DynamicWorld::StaticItem physic;
+    DynamicWorld::Item physic;
     if(movable)
       physic = owner.movableObj(i.shape.get(),pos); else
       physic = owner.staticObj (i.shape.get(),pos);

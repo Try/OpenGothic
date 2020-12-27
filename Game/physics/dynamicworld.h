@@ -62,14 +62,14 @@ class DynamicWorld final {
       C_item      = 6,
       };
 
-    struct Item {
+    struct NpcItem {
       public:
-        Item()=default;
-        Item(DynamicWorld* owner,NpcBody* obj,float h,float r):owner(owner),obj(obj),height(h),r(r){}
-        Item(Item&& it):owner(it.owner),obj(it.obj),height(it.height),r(it.r){it.obj=nullptr;}
-        ~Item() { if(owner) owner->deleteObj(obj); }
+        NpcItem()=default;
+        NpcItem(DynamicWorld* owner,NpcBody* obj,float h,float r):owner(owner),obj(obj),height(h),r(r){}
+        NpcItem(NpcItem&& it):owner(it.owner),obj(it.obj),height(it.height),r(it.r){it.obj=nullptr;}
+        ~NpcItem() { if(owner) owner->deleteObj(obj); }
 
-        Item& operator = (Item&& it){
+        NpcItem& operator = (NpcItem&& it){
           std::swap(owner,it.owner);
           std::swap(obj,it.obj);
           std::swap(height,it.height);
@@ -100,38 +100,17 @@ class DynamicWorld final {
       friend class DynamicWorld;
       };
 
-    struct StaticItem {
+    struct Item {
       public:
-        StaticItem()=default;
-        StaticItem(DynamicWorld* owner,btCollisionObject* obj):owner(owner),obj(obj){}
-        StaticItem(StaticItem&& it):owner(it.owner),obj(it.obj){it.obj=nullptr;}
-        ~StaticItem() { if(owner) owner->deleteObj(obj); }
+        Item()=default;
+        Item(DynamicWorld* owner, btCollisionObject* obj, btCollisionShape* shp):owner(owner),obj(obj),shp(shp){}
+        Item(Item&& it):owner(it.owner),obj(it.obj),shp(it.shp){ it.obj=nullptr; it.shp=nullptr; }
+        ~Item();
 
-        StaticItem& operator = (StaticItem&& it){
-          std::swap(owner,it.owner);
-          std::swap(obj,it.obj);
-          return *this;
-          }
-
-        void setObjMatrix(const Tempest::Matrix4x4& m);
-
-      private:
-        DynamicWorld*       owner  = nullptr;
-        btCollisionObject*  obj    = nullptr;
-      };
-
-    struct DynamicItem {
-      public:
-        DynamicItem()=default;
-        DynamicItem(DynamicWorld* owner,btCollisionObject* obj,btCollisionShape*shp):owner(owner),obj(obj),shape(shp){}
-        DynamicItem(DynamicItem&& it):owner(it.owner),obj(it.obj){it.obj=nullptr;}
-        ~DynamicItem();
-
-        DynamicItem& operator = (DynamicItem&& it){
+        Item& operator = (Item&& it){
           std::swap(owner,it.owner);
           std::swap(obj,  it.obj);
-          std::swap(itm,  it.itm);
-          std::swap(shape,it.shape);
+          std::swap(shp,  it.shp);
           return *this;
           }
 
@@ -140,12 +119,9 @@ class DynamicWorld final {
         bool isEmpty() const { return obj==nullptr; }
 
       private:
-        DynamicWorld*       owner = nullptr;
-        btCollisionObject*  obj   = nullptr;
-        ::Item*             itm   = nullptr;
-        btCollisionShape*   shape = nullptr;
-
-      friend class DynamicWorld;
+        DynamicWorld*       owner  = nullptr;
+        btCollisionObject*  obj    = nullptr;
+        btCollisionShape*   shp    = nullptr;
       };
 
     struct RayLandResult {
@@ -232,10 +208,10 @@ class DynamicWorld final {
     RayLandResult  ray        (float x0, float y0, float z0, float x1, float y1, float z1) const;
     float          soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const;
 
-    Item           ghostObj  (const ZMath::float3& min,const ZMath::float3& max);
-    StaticItem     staticObj (const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
-    StaticItem     movableObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
-    DynamicItem    dynamicObj(const Tempest::Matrix4x4& pos, const Bounds& bbox, ZenLoad::MaterialGroup mat);
+    NpcItem        ghostObj  (const char* visual);
+    Item           staticObj (const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
+    Item           movableObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
+    Item           dynamicObj(const Tempest::Matrix4x4& pos, const Bounds& bbox, ZenLoad::MaterialGroup mat);
 
     BulletBody*    bulletObj(BulletCallback* cb);
     BBoxBody*      bboxObj(BBoxCallback* cb, const ZMath::float3* bbox);
@@ -251,13 +227,21 @@ class DynamicWorld final {
     const char*    validateSectorName(const char* name) const;
 
   private:
-    void           deleteObj(NpcBody*    obj);
+    enum ItemType : uint8_t {
+      IT_Static,
+      IT_Movable,
+      IT_Dynamic,
+      };
+    Item           createObj(btCollisionShape* shape, bool ownShape, const Tempest::Matrix4x4& m,
+                             float mass, float friction, ItemType type);
+
+    void           deleteObj(NpcBody*           obj);
     void           deleteObj(btCollisionObject* obj);
 
 
     void           moveBullet(BulletBody& b, float dx, float dy, float dz, uint64_t dt);
     RayWaterResult implWaterRay (float x0, float y0, float z0, float x1, float y1, float z1) const;
-    bool           hasCollision(const Item &it, Tempest::Vec3& normal);
+    bool           hasCollision(const NpcItem &it, Tempest::Vec3& normal);
 
     template<class RayResultCallback>
     void           rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, RayResultCallback& resultCallback) const;

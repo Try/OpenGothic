@@ -255,7 +255,7 @@ class Npc final {
     void       setStateItem  (MeshObjects::Mesh&& itm,const char* slot);
     void       setAmmoItem   (MeshObjects::Mesh&& itm,const char* slot);
     void       clearSlotItem (const char* slot);
-    void       setPhysic     (DynamicWorld::Item&& item);
+    void       setPhysic     (DynamicWorld::NpcItem&& item);
     void       setFatness    (float f);
     void       setScale      (float x,float y,float z);
 
@@ -567,7 +567,7 @@ class Npc final {
     int32_t                        bdColor=0;
     MdlVisual                      visual;
 
-    DynamicWorld::Item             physic;
+    DynamicWorld::NpcItem          physic;
 
     WalkBit                        wlkMode                 =WalkBit::WM_Run;
     int32_t                        trGuild                 =GIL_NONE;

@@ -98,7 +98,6 @@ class World final {
     MeshObjects::Mesh    getItmView   (const char*              visual, int32_t tex) const;
     MeshObjects::Mesh    getStaticView(const char* visual) const;
     MeshObjects::Mesh    getDecalView (const ZenLoad::zCVobData& vob) const;
-    DynamicWorld::Item   getPhysic    (const char* visual);
 
     const VisualFx*      loadVisualFx(const char* name);
     const ParticleFx*    loadParticleFx(const char* name) const;
