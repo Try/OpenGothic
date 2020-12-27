@@ -772,8 +772,10 @@ void MainWindow::render(){
       dt = tick();
 
     auto& context = fLocal[swapchain.frameId()];
-    if(!context.gpuLock.wait(0))
+    if(!context.gpuLock.wait(0)) {
+      tickCamera(dt);
       return;
+      }
 
     if(!video.isActive()) {
       gothic.updateAnimation();
