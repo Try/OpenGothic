@@ -90,9 +90,9 @@ class MainWindow : public Tempest::Window {
 
     void render() override;
 
-    void tick();
-    void isDialogClosed(bool& ret);
-    void followCamera();
+    uint64_t tick();
+    void     tickCamera(uint64_t dt);
+    void     isDialogClosed(bool& ret);
 
     Camera::Mode solveCameraMode() const;
 

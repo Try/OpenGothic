@@ -519,7 +519,11 @@ void MainWindow::drawSaving(Painter& p, int sw, int sh, float scale) {
   drawProgress(p, x+int(100.f*scale), y+sh-int(75.f*scale), sw-2*int(100.f*scale), int(40.f*scale), v);
   }
 
-void MainWindow::tick() {  
+void MainWindow::isDialogClosed(bool& ret) {
+  ret = !(dialogs.isActive() || document.isActive());
+  }
+
+uint64_t MainWindow::tick() {
   auto time = Application::tickCount();
   auto dt   = time-lastTick;
   lastTick  = time;
@@ -531,17 +535,17 @@ void MainWindow::tick() {
       rootMenu.setMenu("MENU_MAIN");
     if(st==Gothic::LoadState::FailedSave)
       gothic.onPrint("unable to write savegame file");
-    return;
+    return 0;
     }
   else if(st!=Gothic::LoadState::Idle) {
     if(st==Gothic::LoadState::Loading)
       GameMusic::inst().setMusic(GameMusic::SysLoading); else
       GameMusic::inst().setMusic(GameMusic::SysMenu);
-    return;
+    return 0;
     }
 
   if(gothic.isPause() || dt==0)
-    return;
+    return 0;
 
   if(dt>50)
     dt=50;
@@ -557,13 +561,10 @@ void MainWindow::tick() {
     clearInput();
   tickMouse();
   player.tickMove(dt);
+  return dt;
   }
 
-void MainWindow::isDialogClosed(bool& ret) {
-  ret = !(dialogs.isActive() || document.isActive());
-  }
-
-void MainWindow::followCamera() {
+void MainWindow::tickCamera(uint64_t dt) {
   auto pcamera = gothic.gameCamera();
   auto pl      = gothic.player();
   if(pcamera==nullptr || pl==nullptr)
@@ -597,7 +598,7 @@ void MainWindow::followCamera() {
   else if(player.focus().npc!=nullptr && meleeFocus) {
     auto spin = camera.destSpin();
     spin.x = pl->rotation();
-    camera.setSpin(spin);
+    camera.setDestSpin(spin);
     camera.setDestPosition(pos.x,pos.y,pos.z);
     }
   else {
@@ -609,17 +610,10 @@ void MainWindow::followCamera() {
     camera.setDestPosition(pos.x,pos.y,pos.z);
     }
 
-  static uint64_t tick = Application::tickCount();
-  uint64_t now = Application::tickCount();
-  uint64_t dt  = now - tick;
-  tick = now;
-
   if(dt==0)
     return;
-
   camera.setMode(solveCameraMode());
-  camera.follow(*pl,dt,followCamera,
-                (!mouseP[Event::ButtonLeft] || player.hasActionFocus() || fs));
+  camera.follow(*pl, dt, followCamera, (!mouseP[Event::ButtonLeft] || player.hasActionFocus() || fs));
   renderer.setCameraView(camera);
   }
 
@@ -773,8 +767,9 @@ void MainWindow::render(){
       }
 
     video.tick();
+    uint64_t dt = 0;
     if(!video.isActive())
-      tick();
+      dt = tick();
 
     auto& context = fLocal[swapchain.frameId()];
     if(!context.gpuLock.wait(0))
@@ -782,7 +777,7 @@ void MainWindow::render(){
 
     if(!video.isActive()) {
       gothic.updateAnimation();
-      followCamera();
+      tickCamera(dt);
       }
 
     if(video.isActive()) {
