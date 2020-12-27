@@ -1,14 +1,15 @@
 #include "documentmenu.h"
 
 #include "utils/gthfont.h"
+#include "utils/keycodec.h"
 #include "world/interactive.h"
 #include "world/npc.h"
 #include "gothic.h"
 
 using namespace Tempest;
 
-DocumentMenu::DocumentMenu(Gothic& gothic)
-  :gothic(gothic) {
+DocumentMenu::DocumentMenu(Gothic& gothic, const KeyCodec& key)
+  :gothic(gothic), keycodec(key) {
   cursor = Resources::loadTexture("U.TGA");
   }
 
@@ -33,7 +34,7 @@ void DocumentMenu::keyDownEvent(KeyEvent &e) {
     return;
     }
 
-  if(e.key!=Event::K_ESCAPE){
+  if(e.key!=Event::K_ESCAPE && keycodec.tr(e)!=KeyCodec::Inventory){
     e.ignore();
     return;
     }

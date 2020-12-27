@@ -17,7 +17,7 @@ class GthFont;
 
 class DialogMenu : public Tempest::Widget {
   public:
-    DialogMenu(Gothic& gothic,InventoryMenu& trade);
+    DialogMenu(Gothic& gothic, InventoryMenu& trade);
     ~DialogMenu();
 
     void tick(uint64_t dt);

@@ -205,7 +205,7 @@ void InventoryMenu::processMove(KeyEvent& e) {
     if(sel.sel+columsCount<pg.size())
       sel.sel += columsCount;
     }
-  else if(key==KeyCodec::Left){
+  else if(key==KeyCodec::Left || key==KeyCodec::RotateL){
     if(sel.sel%columsCount==0 && page>0){
       page--;
       sel.sel += (columsCount-1);
@@ -213,7 +213,7 @@ void InventoryMenu::processMove(KeyEvent& e) {
     else if(sel.sel>0)
       sel.sel--;
     }
-  else if(key==KeyCodec::Right) {
+  else if(key==KeyCodec::Right || key==KeyCodec::RotateR) {
     if(((sel.sel+1u)%columsCount==0 || sel.sel+1u==pg.size() || pg.size()==0) && page+1u<pCount) {
       page++;
       sel.sel -= sel.sel%columsCount;
@@ -229,9 +229,9 @@ void InventoryMenu::processPickLock(KeyEvent& e) {
 
   auto k  = keycodec.tr(e);
   char ch = '\0';
-  if(k==KeyCodec::Left)
+  if(k==KeyCodec::Left || k==KeyCodec::RotateL)
     ch = 'L';
-  else if(k==KeyCodec::Right)
+  else if(k==KeyCodec::Right || k==KeyCodec::RotateR)
     ch = 'R';
   else if(k==KeyCodec::Back) {
     close();
@@ -318,7 +318,7 @@ void InventoryMenu::keyRepeatEvent(KeyEvent& e) {
 void InventoryMenu::keyUpEvent(KeyEvent &e) {
   takeTimer.stop();
   lootMode = LootMode::Normal;
-  if(e.key==KeyEvent::K_ESCAPE || (keycodec.tr(e)==KeyCodec::Inventory && state!=State::Trade)){
+  if(e.key==KeyEvent::K_ESCAPE || keycodec.tr(e)==KeyCodec::Inventory){
     close();
     }
   }
