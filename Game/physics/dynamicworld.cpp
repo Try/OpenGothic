@@ -787,7 +787,7 @@ std::unique_ptr<btRigidBody> DynamicWorld::waterObj() {
   }
 
 DynamicWorld::NpcItem DynamicWorld::ghostObj(const char* visual) {
-  ZMath::float3 min={}, max={};
+  ZMath::float3 min={0,0,0}, max={0,0,0};
   if(auto sk=Resources::loadSkeleton(visual)) {
     min = sk->bboxCol[0];
     max = sk->bboxCol[1];
