@@ -27,7 +27,7 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
   : Window(Maximized),device(device),swapchain(device,hwnd()),
     atlas(device),renderer(device,swapchain,gothic),
     gothic(gothic),keycodec(gothic),
-    rootMenu(gothic),video(gothic),inventory(gothic,keycodec,renderer.storage()),dialogs(gothic,inventory),document(gothic),chapter(gothic),
+    rootMenu(gothic),video(gothic),inventory(gothic,keycodec,renderer.storage()),dialogs(gothic,inventory),document(gothic,keycodec),chapter(gothic),
     player(gothic,dialogs,inventory) {
   CrashLog::setGpu(device.renderer());
   if(!gothic.isWindowMode())

@@ -89,9 +89,9 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
     if(ws==WeaponState::W1H || ws==WeaponState::W2H) {
       if(a==Action::Back)
         fk = ActBack;
-      if(a==Action::Left)
+      if(a==Action::Left || a==Action::RotateL)
         fk = ActLeft;
-      if(a==Action::Right)
+      if(a==Action::Right || a==Action::RotateR)
         fk = ActRight;
       }
     if(fk>=0) {
@@ -544,6 +544,27 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     }
 
+  if(ctrl[Action::Forward]) {
+    if((pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive) {
+      ani = Npc::Anim::Move;
+      } else if(pl.isDive()) {
+      pl.setDirectionY(rotY - 1);
+      return;
+      }
+    }
+  else if(ctrl[Action::Back]) {
+    if((pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive) {
+      ani = Npc::Anim::MoveBack;
+      } else if(pl.isDive()) {
+      pl.setDirectionY(rotY + 1);
+      return;
+      }
+    }
+  else if(ctrl[Action::Left])
+    ani = Npc::Anim::MoveL;
+  else if(ctrl[Action::Right])
+    ani = Npc::Anim::MoveR;
+
   if(ctrl[Action::Jump]) {
     if(pl.isDive()) {
       ani = Npc::Anim::Move;
@@ -563,16 +584,6 @@ void PlayerControl::implMove(uint64_t dt) {
       ani = Npc::Anim::Jump;
       }
     }
-  else if(ctrl[Action::Forward]) {
-    if((pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive)
-      ani = Npc::Anim::Move;
-    }
-  else if(ctrl[Action::Back])
-    ani = Npc::Anim::MoveBack;
-  else if(ctrl[Action::Left])
-    ani = Npc::Anim::MoveL;
-  else if(ctrl[Action::Right])
-    ani = Npc::Anim::MoveR;
 
   if(!pl.isCasting()) {
     if(ani==Npc::Anim::Jump) {
