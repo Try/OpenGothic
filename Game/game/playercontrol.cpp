@@ -381,9 +381,9 @@ void PlayerControl::implMove(uint64_t dt) {
 
   Npc::Anim ani=Npc::Anim::Idle;
 
-  if((pl.bodyState()&BS_MAX)==BS_DEAD)
+  if(pl.bodyStateMasked()==BS_DEAD)
     return;
-  if((pl.bodyState()&BS_MAX)==BS_UNCONSCIOUS)
+  if(pl.bodyStateMasked()==BS_UNCONSCIOUS)
     return;
 
   if(pl.interactive()!=nullptr) {
@@ -398,24 +398,29 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   int rotation=0;
-  if(ctrl[KeyCodec::RotateL]) {
-    rot += rspeed;
-    rotation = -1;
-    rotMouse=0;
-    }
-  if(ctrl[KeyCodec::RotateR]) {
-    rot -= rspeed;
-    rotation = 1;
-    rotMouse=0;
-    }
-  if(std::fabs(rotMouse)>0.f) {
-    if(rotMouse>0)
-      rotation = -1; else
+  if(pl.bodyStateMasked()!=BS_CLIMB) {
+    if(ctrl[KeyCodec::RotateL]) {
+      rot += rspeed;
+      rotation = -1;
+      rotMouse=0;
+      }
+    if(ctrl[KeyCodec::RotateR]) {
+      rot -= rspeed;
       rotation = 1;
-    rot +=rotMouse;
+      rotMouse=0;
+      }
+    if(std::fabs(rotMouse)>0.f) {
+      if(rotMouse>0)
+        rotation = -1; else
+        rotation = 1;
+      rot +=rotMouse;
+      rotMouse  = 0;
+      }
+    rotY+=rotMouseY;
+    } else {
     rotMouse  = 0;
+    rotMouseY = 0;
     }
-  rotY+=rotMouseY;
 
   pl.setDirectionY(rotY);
   if(pl.isFaling() || pl.isSlide() || pl.isInAir()){
@@ -573,9 +578,9 @@ void PlayerControl::implMove(uint64_t dt) {
       pl.startDive();
       }
     else if(pl.isStanding()) {
-      auto code = pl.tryJump(pl.position());
-      if(!pl.isFaling() && !pl.isSlide() && code!=Npc::JumpCode::JM_OK){
-        pl.startClimb(code);
+      auto jump = pl.tryJump();
+      if(!pl.isFaling() && !pl.isSlide() && jump.anim!=Npc::Anim::Jump){
+        pl.startClimb(jump);
         return;
         }
       ani = Npc::Anim::Jump;

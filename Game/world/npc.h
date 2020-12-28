@@ -33,13 +33,7 @@ class Npc final {
       AiFar2
       };
 
-    enum MoveCode : uint8_t {
-      MV_FAILED,
-      MV_OK,
-      MV_CORRECT
-      };
-
-    using JumpCode = MoveAlgo::JumpCode;
+    using JumpStatus = MoveAlgo::JumpStatus;
 
     enum PercType : uint8_t {
       PERC_ASSESSPLAYER       = 1,
@@ -216,7 +210,7 @@ class Npc final {
     void       setWalkMode(WalkBit m);
     auto       walkMode() const { return wlkMode; }
     void       tick(uint64_t dt);
-    bool       startClimb(JumpCode code);
+    bool       startClimb(JumpStatus jump);
 
     auto       world() -> World&;
 
@@ -387,10 +381,11 @@ class Npc final {
     void      excRoutine(size_t callback);
     void      multSpeed(float s);
 
-    MoveCode  testMove  (const Tempest::Vec3& pos, Tempest::Vec3& fallback, float speed);
-    bool      tryMove   (const Tempest::Vec3 &dp);
+    bool      testMove    (const Tempest::Vec3& pos);
+    bool      tryMove     (const Tempest::Vec3& dp);
+    bool      tryTranslate(const Tempest::Vec3& pos);
 
-    JumpCode  tryJump(const Tempest::Vec3& pos);
+    JumpStatus tryJump();
     bool      hasCollision() const { return physic.hasCollision(); }
 
     void      startDive();
@@ -509,7 +504,7 @@ class Npc final {
     void      tickTimedEvt(Animation::EvCount &ev);
     void      tickRegen(int32_t& v,const int32_t max,const int32_t chg, const uint64_t dt);
     void      updatePos();
-    bool      setViewPosition(const Tempest::Vec3& pos);
+    void      setViewPosition(const Tempest::Vec3& pos);
     bool      tickCast();
 
     int       aiOutputOrderId() const;

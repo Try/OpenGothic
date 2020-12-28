@@ -553,8 +553,8 @@ bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
   float x=0, y=0, z=0;
   mat.project(x,y,z);
 
-  Tempest::Vec3 mv = {x,y-npc.translateY(),z}, fallback={};
-  if(!npc.testMove(mv,fallback,0)) {
+  Tempest::Vec3 mv = {x,y-npc.translateY(),z};
+  if(!npc.testMove(mv)) {
     // FIXME: switches on stone-arks
     // return false;
     }

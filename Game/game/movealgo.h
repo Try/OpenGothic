@@ -8,6 +8,7 @@
 #include <Tempest/Point>
 
 #include "physics/dynamicworld.h"
+#include "graphics/mesh/animationsolver.h"
 
 class Npc;
 class World;
@@ -20,11 +21,9 @@ class MoveAlgo final {
 
     MoveAlgo(Npc& unit);
 
-    enum JumpCode : uint8_t {
-      JM_OK,
-      JM_UpLow,
-      JM_UpMid,
-      JM_Up,
+    struct JumpStatus {
+      AnimationSolver::Anim anim = AnimationSolver::Anim::Jump;
+      float                 height = 0;
       };
 
     enum MvFlags {
@@ -50,7 +49,7 @@ class MoveAlgo final {
     bool    aiGoTo      (Npc *p, float destDist);
     bool    aiGoToTarget(float destDist);
 
-    bool    startClimb(JumpCode ani);
+    bool    startClimb(JumpStatus ani);
     void    startDive();
 
     bool    isFaling()  const;
@@ -75,6 +74,7 @@ class MoveAlgo final {
     void    tickSwim   (uint64_t dt);
     void    tickClimb  (uint64_t dt);
     void    tickJumpup (uint64_t dt);
+
     bool    tryMove    (float x, float y, float z);
 
     enum Flags : uint32_t {
@@ -141,7 +141,7 @@ class MoveAlgo final {
     uint64_t            climbStart=0;
     Tempest::Vec3       climbPos0={};
     float               climbHeight=0.f;
-    JumpCode            jmp=JumpCode::JM_OK;
+    uint8_t             jmp=0;
 
     uint64_t            diveStart=0;
 

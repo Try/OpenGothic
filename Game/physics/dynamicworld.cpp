@@ -156,10 +156,6 @@ struct DynamicWorld::NpcBody : btRigidBody {
     return reinterpret_cast<Npc*>(getUserPointer());
     }
 
-  void setPosition(float x,float y,float z){
-    return setPosition({x,y,z});
-    }
-
   void setPosition(const Tempest::Vec3& p){
     pos = p;
 
@@ -1197,16 +1193,16 @@ void DynamicWorld::rayTest(const btVector3 &s,
   }
 
 
-void DynamicWorld::NpcItem::setPosition(float x, float y, float z) {
+void DynamicWorld::NpcItem::setPosition(const Tempest::Vec3& pos) {
   if(obj) {
-    implSetPosition(x,y,z);
+    implSetPosition(pos);
     owner->npcList->onMove(*obj);
     owner->bulletList->onMoveNpc(*obj,*owner->npcList);
     }
   }
 
-void DynamicWorld::NpcItem::implSetPosition(float x, float y, float z) {
-  obj->setPosition(x,y,z);
+void DynamicWorld::NpcItem::implSetPosition(const Tempest::Vec3& pos) {
+  obj->setPosition(pos);
   }
 
 void DynamicWorld::NpcItem::setEnable(bool e) {
@@ -1228,60 +1224,57 @@ float DynamicWorld::NpcItem::centerY() const {
   return 0;
   }
 
-bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& pos) {
+const Tempest::Vec3& DynamicWorld::NpcItem::position() const {
+  return obj->pos;
+  }
+
+bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& dst) {
+  if(!obj)
+    return false;
+  return testMove(dst,obj->pos);
+  }
+
+bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& dst, const Tempest::Vec3& pos0) {
   if(!obj)
     return false;
   Tempest::Vec3 tmp={};
-  if(owner->hasCollision(*this,tmp))
-    return true;
-  auto prev = obj->pos;
-  implSetPosition(pos.x,pos.y,pos.z);
-  const bool ret=owner->hasCollision(*this,tmp);
-  implSetPosition(prev.x,prev.y,prev.z);
-  return !ret;
-  }
-
-bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3 &pos,
-                                  Tempest::Vec3       &fallback,
-                                  float speed) {
-  fallback=pos;
-  if(!obj)
-    return false;
-
-  Tempest::Vec3 norm = {};
-  auto          prev = obj->pos;
-  if(owner->hasCollision(*this,norm))
-    return true;
-  implSetPosition(pos.x,pos.y,pos.z);
-  const bool ret=owner->hasCollision(*this,norm);
-  if(ret && speed!=0.f){
-    fallback.x = pos.x + norm.x*speed;
-    fallback.y = pos.y;// - norm[1]*speed;
-    fallback.z = pos.z + norm.z*speed;
-    }
-  implSetPosition(prev.x,prev.y,prev.z);
-  return !ret;
-  }
-
-bool DynamicWorld::NpcItem::tryMove(const Tempest::Vec3& dst, Tempest::Vec3& norm) {
-  norm = {};
-  if(!obj)
-    return false;
-
   auto prev  = obj->pos;
-  auto dp    = dst-prev;
+  auto dp    = dst-pos0;
   int  count = 1;
 
   if(dp.quadLength()>obj->r*obj->r)
     count = int(std::ceil(dp.manhattanLength()/obj->r));
 
-  for(int i=0; i<count; ++i) {
+  for(int i=1; i<=count; ++i) {
+    auto pos = pos0+(dp*float(i))/float(count);
+    implSetPosition(pos);
+    if(owner->hasCollision(*this,tmp)) {
+      implSetPosition(prev);
+      return (owner->hasCollision(*this,tmp));
+      }
+    }
+  implSetPosition(prev);
+  return true;
+  }
+
+bool DynamicWorld::NpcItem::tryMove(const Tempest::Vec3& dp, Tempest::Vec3& norm) {
+  norm = {};
+  if(!obj)
+    return false;
+
+  auto prev  = obj->pos;
+  int  count = 1;
+
+  if(dp.quadLength()>obj->r*obj->r)
+    count = int(std::ceil(dp.manhattanLength()/obj->r));
+
+  for(int i=1; i<=count; ++i) {
     auto pos = prev+(dp*float(i))/float(count);
-    implSetPosition(pos.x,pos.y,pos.z);
+    implSetPosition(pos);
     if(owner->hasCollision(*this,norm)) {
-      implSetPosition(prev.x,prev.y,prev.z);
+      implSetPosition(prev);
       if(owner->hasCollision(*this,norm)) { // was in collision from the start
-        setPosition(pos.x,pos.y,pos.z);
+        setPosition(pos);
         return true;
         }
       return false;

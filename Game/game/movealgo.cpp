@@ -114,8 +114,8 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
   fallSpeed.z += +speed*norm.z*k;
 
   auto dp = fallSpeed*timeK;
-  if(!tryMove(dp.x,dp.y,dp.z))
-    tryMove(dp.x,0.f,dp.z);
+  if(!npc.tryTranslate(pos+dp))
+    npc.tryTranslate(pos+Tempest::Vec3(dp.x,0,dp.y));
 
   if(slideDir())
     npc.setAnim(AnimationSolver::SlideA); else
@@ -187,60 +187,51 @@ void MoveAlgo::tickGravity(uint64_t dt) {
   }
 
 void MoveAlgo::tickJumpup(uint64_t dt) {
-  tickGravity(dt);
-  if(fallSpeed.y<=0.f || !isInAir()) {
-    setAsJumpup(false);
-    //return;
+  auto pos = npc.position();
+  if(pos.y<climbHeight) {
+    pos.y += fallSpeed.y*float(dt);
+    pos.y = std::min(pos.y,climbHeight);
+    if(!npc.tryTranslate(pos))
+      climbHeight = pos.y;
+    return;
     }
 
-  float len=50;
-  Tempest::Vec3 ret = {}, v={0,npc.translateY(),len};
-  applyRotation(ret,v);
+  auto climb = npc.tryJump();
 
-  if(testClimp(0.15f) &&
-     testClimp(0.25f) &&
-     testClimp(0.5f) &&
-     testClimp(0.75f)){
-    if(npc.setAnim(Npc::Anim::JumpHang)) {
-      setAsJumpup(false);
-      setAsClimb(true);
-      return;
-      }
-    //tryMove(ret[0],ret[1],ret[2]);
-    //return;
+  if(climb.anim==Npc::Anim::JumpHang) {
+    startClimb(climb);
+    } else {
+    setAsClimb(false);
+    setAsJumpup(false);
+    clearSpeed();
     }
   }
 
 void MoveAlgo::tickClimb(uint64_t dt) {
-  if(npc.bodyStateMasked()!=BS_CLIMB){
+  if(npc.bodyStateMasked()!=BS_CLIMB) {
     setAsClimb(false);
+    setInAir  (false);
 
     Tempest::Vec3 p={}, v={0,0,50};
-    auto pos = npc.position();
     applyRotation(p,v);
-    pos.x+=p.x;
-    pos.z+=p.z;
-    if(npc.testMove(pos,v,0))
-      npc.setPosition(v);
+    p+=npc.position();
+    npc.tryTranslate(p);
     clearSpeed();
     return;
     }
-  Tempest::Vec3 v={};
-  float k=1.5f;
 
   auto dp  = animMoveSpeed(dt);
   auto pos = npc.position();
-  pos.x+=dp.x*k;
-  //pos[1]+=dp[1];
-  pos.z+=dp.z*k;
 
-  if(npc.testMove(pos,v,0))
-    npc.setPosition(v);
+  if(pos.y<climbHeight) {
+    pos.y += fallSpeed.y*float(dt);
+    pos.y = std::min(pos.y,climbHeight);
+    npc.tryTranslate(pos);
+    }
 
-  pos = npc.position();
-  pos.y+=dp.y;
-  if(npc.testMove(pos,v,0))
-    npc.setPosition(v);
+  pos.x += dp.x;
+  pos.z += dp.z;
+  npc.tryTranslate(pos);
 
   setAsSlide(false);
   setInAir  (false);
@@ -473,14 +464,14 @@ Tempest::Vec3 MoveAlgo::go2WpMoveSpeed(Tempest::Vec3 dp, float x, float z) {
 
 bool MoveAlgo::testClimp(float scale) const {
   float len=100;
-  Tempest::Vec3 ret = {}, orig = {0,0,len*scale}, v={};
+  Tempest::Vec3 ret = {}, orig = {0,0,len*scale};
   applyRotation(ret,orig);
 
   ret.x+=npc.x;
   ret.y+=npc.y + 150;//npc.translateY();
   ret.z+=npc.z;
 
-  return npc.testMove(ret,v,0.f);
+  return npc.testMove(ret);
   }
 
 bool MoveAlgo::testSlide(float x,float y,float z) const {
@@ -615,28 +606,38 @@ bool MoveAlgo::aiGoToTarget(float destDist) {
   return true;
   }
 
-bool MoveAlgo::startClimb(JumpCode ani) {
-  climbStart = npc.world().tickCount();
-  climbPos0  = npc.position();
-  jmp        = ani;
+bool MoveAlgo::startClimb(JumpStatus jump) {
+  auto sq = npc.setAnimAngGet(jump.anim,false);
+  if(sq==nullptr)
+    return false;
 
-  if(jmp==JM_Up){
+  climbStart  = npc.world().tickCount();
+  climbPos0   = npc.position();
+  climbHeight = jump.height;
+
+  fallSpeed.x = 0.f;
+  fallSpeed.y = (jump.height-climbPos0.y)/sq->totalTime();
+  fallSpeed.z = 0.f;
+  fallCount   = 1.f;
+
+  if(jump.anim==Npc::Anim::JumpUp){
     setAsJumpup(true);
     setInAir(true);
-    fallSpeed.x = 0.f;
-    fallSpeed.y = 0.55f*gravity;
-    fallSpeed.z = 0.f;
-    fallCount   = 1000.f;
+    // fallSpeed.y = 0.55f*gravity;
     }
-  else if(jmp==JM_UpMid){
+  else if(jump.anim==Npc::Anim::JumpUpMid ||
+          jump.anim==Npc::Anim::JumpUpLow) {
     setAsJumpup(false);
     setAsClimb(true);
     setInAir(true);
     }
-  else if(jmp==JM_UpLow){
+  else if(isJumpup() && jump.anim==Npc::Anim::JumpHang) {
     setAsJumpup(false);
     setAsClimb(true);
     setInAir(true);
+    }
+  else {
+    return false;
     }
   return true;
   }

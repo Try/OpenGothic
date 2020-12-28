@@ -77,15 +77,16 @@ class DynamicWorld final {
           return *this;
           }
 
-        void  setPosition(float x,float y,float z);
+        void  setPosition(const Tempest::Vec3& pos);
         void  setEnable(bool e);
         void  setUserPointer(void* p);
 
         float centerY() const;
+        const Tempest::Vec3& position() const;
 
         bool  testMove(const Tempest::Vec3& pos);
-        bool  testMove(const Tempest::Vec3& pos, Tempest::Vec3& fallback, float speed);
-        bool  tryMove (const Tempest::Vec3& pos, Tempest::Vec3& norm);
+        bool  testMove(const Tempest::Vec3& pos, const Tempest::Vec3& from);
+        bool  tryMove (const Tempest::Vec3& dp, Tempest::Vec3& norm);
 
         bool  hasCollision() const;
         float radius() const { return r; }
@@ -95,7 +96,7 @@ class DynamicWorld final {
         NpcBody*            obj    = nullptr;
         float               height = 0.f;
         float               r      = 0.f;
-        void implSetPosition(float x,float y,float z);
+        void  implSetPosition(const Tempest::Vec3& pos);
 
       friend class DynamicWorld;
       };

@@ -305,7 +305,7 @@ bool Npc::setPosition(float ix, float iy, float iz) {
   y = iy;
   z = iz;
   durtyTranform |= TR_Pos;
-  physic.setPosition(x,y,z);
+  physic.setPosition(Vec3{x,y,z});
   visual.setPos(x,y,z);
   return true;
   }
@@ -314,12 +314,11 @@ bool Npc::setPosition(const Tempest::Vec3& pos) {
   return setPosition(pos.x,pos.y,pos.z);
   }
 
-bool Npc::setViewPosition(const Tempest::Vec3& pos) {
+void Npc::setViewPosition(const Tempest::Vec3& pos) {
   x = pos.x;
   y = pos.y;
   z = pos.z;
   durtyTranform |= TR_Pos;
-  return true;
   }
 
 int Npc::aiOutputOrderId() const {
@@ -472,28 +471,9 @@ bool Npc::isPlayer() const {
   return aiPolicy==Npc::ProcessPolicy::Player;
   }
 
-bool Npc::startClimb(JumpCode code) {
-  Anim ani = Anim::Idle;
-  switch(code){
-    case Npc::JumpCode::JM_Up:
-      ani = Npc::Anim::JumpUp;
-      break;
-    case Npc::JumpCode::JM_UpLow:
-      ani = Npc::Anim::JumpUpLow;
-      break;
-    case Npc::JumpCode::JM_UpMid:
-      ani = Npc::Anim::JumpUpMid;
-      break;
-    case Npc::JumpCode::JM_OK:
-      ani = Npc::Anim::Jump;
-      break;
-    }
-  if(mvAlgo.startClimb(code)) {
-    visual.setRotation(*this,0);
-    setAnim(ani);
-    return true;
-    }
-  return false;
+bool Npc::startClimb(JumpStatus jump) {
+  visual.setRotation(*this,0);
+  return mvAlgo.startClimb(jump);
   }
 
 bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
@@ -874,7 +854,7 @@ void Npc::tickRegen(int32_t& v, const int32_t max, const int32_t chg, const uint
 void Npc::setPhysic(DynamicWorld::NpcItem &&item) {
   physic = std::move(item);
   physic.setUserPointer(this);
-  physic.setPosition(x,y,z);
+  physic.setPosition(Vec3{x,y,z});
   }
 
 void Npc::setFatness(float) {
@@ -3053,74 +3033,108 @@ void Npc::multSpeed(float s) {
   mvAlgo.multSpeed(s);
   }
 
-Npc::MoveCode Npc::testMove(const Tempest::Vec3& pos,
-                            Tempest::Vec3& fallback,
-                            float speed) {
-  if(physic.testMove(pos,fallback,speed))
-    return MV_OK;
-  Vec3 tmp;
-  if(physic.testMove(fallback,tmp,0))
-    return MV_CORRECT;
-  return MV_FAILED;
+bool Npc::testMove(const Tempest::Vec3& pos) {
+  return physic.testMove(pos);
   }
 
 bool Npc::tryMove(const Vec3& dp) {
-  Vec3 pos0 = Vec3{x,y,z};
-  Vec3 pos  = pos0+dp;
   Vec3 norm = {};
 
-  if(physic.tryMove(pos,norm))
-    return setViewPosition(pos);
+  if(physic.tryMove(dp,norm)) {
+    setViewPosition(physic.position());
+    return true;
+    }
 
   const float speed = dp.manhattanLength();
   if(speed<=0.f || Vec3::dotProduct(norm,dp/speed)<-0.9f)
     return false;
 
   for(int i=1;i<4+3;++i) {
-    Vec3 nn = {};
-    Vec3 p  = pos0 + Vec3(norm.x,0,norm.z)*speed*(float(i)/4.f);
-    if(physic.tryMove(p,nn)) {
-      return setViewPosition(p);
+    Vec3 nn  = {};
+    Vec3 dp1 = Vec3(norm.x,0,norm.z)*speed*(float(i)/4.f);
+    if(physic.tryMove(dp1,nn)) {
+      setViewPosition(physic.position());
+      return true;
       }
     }
   return false;
   }
 
-Npc::JumpCode Npc::tryJump(const Tempest::Vec3& p0) {
-  float len = 40.f;
+bool Npc::tryTranslate(const Vec3& pos) {
+  Vec3 norm = {};
+  if(physic.tryMove(pos-physic.position(),norm)) {
+    setViewPosition(physic.position());
+    return true;
+    }
+  return false;
+  }
+
+Npc::JumpStatus Npc::tryJump() {
+  float len = 50.f;
   float rot = rotationRad();
   float s   = std::sin(rot), c = std::cos(rot);
-  float dx  = len*s, dz = -len*c;
-  float trY = translateY();
+  Vec3  dp  = Vec3{len*s, 0, -len*c};
 
-  auto& g = owner.script().guildVal();
-  auto  i = guild();
+  auto& g  = owner.script().guildVal();
+  auto  gl = guild();
 
-  const float jumpLow = float(g.jumplow_height[i]);
-  const float jumpMid = float(g.jumpmid_height[i]);
-  const float jumpUp  = float(g.jumpup_height[i]);
-  (void)jumpUp;
+  const float jumpLow = float(g.jumplow_height[gl]);
+  const float jumpMid = float(g.jumpmid_height[gl]);
+  const float jumpUp  = float(g.jumpup_height [gl]);
 
-  auto pos = p0;
-  pos.x+=dx;
-  pos.z+=dz;
-
-  if(physic.testMove(pos))
-    return JumpCode::JM_OK;
-
-  pos.y = p0.y+jumpLow;
-  if(physic.testMove(pos)) {
-    // Without using the hands, just big footstep. Height: 50-100cm
-    return JumpCode::JM_UpLow;
+  auto pos = position();
+  JumpStatus ret;
+  if(!isInAir() && physic.testMove(pos+dp)) {
+    // jump forward
+    ret.anim = Anim::Jump;
+    return ret;
     }
 
-  pos.y = p0.y+jumpMid-trY;
-  if(physic.testMove(pos)) {
+  float jumpY = 0;
+  for(int i=1; i<int(jumpUp+jumpLow); i+=2) {
+    auto p0 = Vec3{pos.x,pos.y+float(i),pos.z};
+
+    if(!physic.testMove(p0,pos)) {
+      // jump forward - something is blocking climbing
+      ret.anim = Anim::Jump;
+      return ret;
+      }
+
+    jumpY = p0.y;
+    if(physic.testMove(p0+dp,p0))
+      break;
+    }
+
+  const float dY = jumpY-y;
+
+  if(isInAir() && (0<dY && dY<=jumpLow)) {
+    // jumpup -> climb
+    ret.anim   = Anim::JumpHang;
+    ret.height = jumpY;
+    return ret;
+    }
+
+  if(isInAir()) {
+    ret.anim   = Anim::Idle;
+    return ret;
+    }
+
+  if(dY<=jumpLow) {
+    // Without using the hands, just big footstep. Height: 50-100cm
+    ret.anim   = Anim::JumpUpLow;
+    ret.height = jumpY;
+    return ret;
+    }
+  if(dY<=jumpMid) {
     // Supported on the hands in one sentence. Height: 100-200cm
-    return JumpCode::JM_UpMid;
+    ret.anim   = Anim::JumpUpMid;
+    ret.height = jumpY;
+    return ret;
     }
   // Jump to the edge, and then pull up. Height: 200-350cm
-  return JumpCode::JM_Up;
+  ret.anim   = Anim::JumpUp;
+  ret.height = jumpY - jumpLow;
+  return ret;
   }
 
 void Npc::startDive() {
