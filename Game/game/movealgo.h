@@ -18,6 +18,7 @@ class Serialize;
 class MoveAlgo final {
   public:
     static const float closeToPointThreshold;
+    static const float climbMove;
 
     MoveAlgo(Npc& unit);
 
@@ -105,7 +106,6 @@ class MoveAlgo final {
     auto    go2NpcMoveSpeed (const Tempest::Vec3& dp, const Npc &tg) -> Tempest::Vec3;
     auto    go2WpMoveSpeed  (Tempest::Vec3 dp, float x, float z) -> Tempest::Vec3;
     bool    testSlide(float x, float y, float z) const;
-    bool    testClimp(float scale) const;
 
     float   stepHeight()  const;
     float   slideAngle()  const;

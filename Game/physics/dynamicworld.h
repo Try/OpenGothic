@@ -45,9 +45,11 @@ class DynamicWorld final {
     struct BulletWorld;
 
   public:
-    static constexpr float gravity     = 100*9.8f;
-    static constexpr float bulletSpeed = 3000; //per sec
-    static constexpr float spellSpeed  = 1000; //per sec
+    static constexpr float gravityMS   = 9.8f; // meters per second^2
+    static constexpr float gravity     = gravityMS*100.f/(1000.f*1000.f); // santimeters per milliseconds^2
+    static constexpr float bulletSpeed = 3000; // per sec
+    static constexpr float spellSpeed  = 1000; // per sec
+    static const     float ghostPadding;
 
     DynamicWorld(World &world, const ZenLoad::zCMesh& mesh);
     DynamicWorld(const DynamicWorld&)=delete;
@@ -276,7 +278,6 @@ class DynamicWorld final {
 
     std::vector<btRigidBody*>                   dynItems;
 
-    static const float                          ghostPadding;
     static const float                          ghostHeight;
     static const float                          worldHeight;
   };

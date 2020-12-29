@@ -3070,13 +3070,19 @@ bool Npc::tryTranslate(const Vec3& pos) {
   }
 
 Npc::JumpStatus Npc::tryJump() {
-  float len = 50.f;
+  float len = MoveAlgo::climbMove;
   float rot = rotationRad();
   float s   = std::sin(rot), c = std::cos(rot);
   Vec3  dp  = Vec3{len*s, 0, -len*c};
 
   auto& g  = owner.script().guildVal();
   auto  gl = guild();
+
+  if(isSlide() || isSwim() || isDive()) {
+    JumpStatus ret;
+    ret.anim   = Anim::Idle;
+    return ret;
+    }
 
   const float jumpLow = float(g.jumplow_height[gl]);
   const float jumpMid = float(g.jumpmid_height[gl]);
@@ -3091,7 +3097,8 @@ Npc::JumpStatus Npc::tryJump() {
     }
 
   float jumpY = 0;
-  for(int i=1; i<int(jumpUp+jumpLow); i+=2) {
+  int   step  = 2;
+  for(int i=1; i<int(jumpUp+jumpLow); i+=step) {
     auto p0 = Vec3{pos.x,pos.y+float(i),pos.z};
 
     if(!physic.testMove(p0,pos)) {
@@ -3105,7 +3112,20 @@ Npc::JumpStatus Npc::tryJump() {
       break;
     }
 
-  const float dY = jumpY-y;
+  for(int i=1; i<int(DynamicWorld::ghostPadding); i+=step) {
+    jumpY+=float(step);
+    auto p0 = Vec3{pos.x,jumpY,pos.z};
+    if(!physic.testMove(p0,pos))
+      break;
+    }
+
+  float dY = jumpY - y;
+  if(dY>=jumpUp || dY>=jumpMid) {
+    // Jump to the edge, and then pull up. Height: 200-350cm
+    ret.anim   = Anim::JumpUp;
+    ret.height = jumpY - jumpLow;
+    return ret;
+    }
 
   if(isInAir() && (0<dY && dY<=jumpLow)) {
     // jumpup -> climb
@@ -3131,10 +3151,7 @@ Npc::JumpStatus Npc::tryJump() {
     ret.height = jumpY;
     return ret;
     }
-  // Jump to the edge, and then pull up. Height: 200-350cm
-  ret.anim   = Anim::JumpUp;
-  ret.height = jumpY - jumpLow;
-  return ret;
+  return JumpStatus(); // error
   }
 
 void Npc::startDive() {

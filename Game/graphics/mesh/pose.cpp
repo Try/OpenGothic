@@ -710,16 +710,18 @@ Matrix4x4 Pose::mkBaseTranslation(const Animation::Sequence *s, BodyState bs) {
   float dy=0;
   float dz=b0.at(3,2);
 
-  if(bs==BS_DIVE)
-    dy=(s->data->translate.y);
-  else if((flag&NoTranslation)==NoTranslation)
-    dy=b0.at(3,1);
+  if((flag&NoTranslation)==NoTranslation)
+    dy = b0.at(3,1);
+  else if(bs==BS_CLIMB)
+    dy = b0.at(3,1) - trY;
+  else if(bs==BS_DIVE)
+    dy = (s->data->translate.y);
   else if(s==nullptr || !s->isFly())
-    dy=0;
+    dy = 0;
   else if(s!=nullptr)
-    dy=b0.at(3,1)-(s->data->translate.y);
+    dy = b0.at(3,1)-(s->data->translate.y);
   else
-    dy=b0.at(3,1);
+    dy = b0.at(3,1);
 
   m.translate(-dx,-dy,-dz);
   return m;

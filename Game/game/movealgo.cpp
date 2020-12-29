@@ -6,6 +6,7 @@
 #include "world/interactive.h"
 
 const float   MoveAlgo::closeToPointThreshold = 50;
+const float   MoveAlgo::climbMove             = 55;
 const float   MoveAlgo::gravity               = DynamicWorld::gravity;
 const float   MoveAlgo::eps                   = 2.f;   // 2-santimeters
 const float   MoveAlgo::epsAni                = 0.25f; // 25-millimeters
@@ -92,30 +93,35 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
     return true;
     }
   if(dY>fallThreshold*2) {
-    fallSpeed.x *=2;
-    fallSpeed.z *=2;
     setInAir  (true);
     setAsSlide(false);
     return false;
     }
 
-  const float lnorm = std::sqrt(norm.x*norm.x+norm.z*norm.z);;
+  const float lnorm    = std::sqrt(norm.x*norm.x+norm.z*norm.z);
+  const float lnormInv = std::sqrt(1.f - lnorm*lnorm);
   if(lnorm<0.01f || norm.y>=1.f || !testSlide(pos.x,pos.y+fallThreshold,pos.z)) {
     setAsSlide(false);
     return false;
     }
 
-  const float timeK = float(dt)/100.f;
-  const float speed = 0.02f*timeK*gravity;
+  const float speed = float(dt)*gravity;
 
-  float k = std::fabs(norm.y)/lnorm;
+  norm.x = lnormInv*norm.x/lnorm;
+  norm.z = lnormInv*norm.z/lnorm;
+  norm.y = lnorm   *norm.y/lnormInv;
+
+  float k = 0.8f;
   fallSpeed.x += +speed*norm.x*k;
-  fallSpeed.y += -speed*std::sqrt(1.f - norm.y*norm.y);
+  fallSpeed.y += -speed*norm.y*k;
   fallSpeed.z += +speed*norm.z*k;
 
-  auto dp = fallSpeed*timeK;
-  if(!npc.tryTranslate(pos+dp))
-    npc.tryTranslate(pos+Tempest::Vec3(dp.x,0,dp.y));
+  auto dp   = fallSpeed*float(dt);
+  //auto pos0 = npc.position();
+  if(!npc.tryMove(dp))
+    npc.tryMove(Tempest::Vec3(dp.x,0,dp.y));
+  //auto dpos = (npc.position()-pos0)/float(dt);
+  //fallSpeed.y = dpos.y;
 
   if(slideDir())
     npc.setAnim(AnimationSolver::SlideA); else
@@ -129,13 +135,11 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
 void MoveAlgo::tickGravity(uint64_t dt) {
   float fallThreshold = stepHeight();
   // falling
-  float timeK         = float(dt)/1000.f;
-  float aceleration   = -gravity*timeK;
   if(0.f<fallCount) {
-    fallSpeed/=(fallCount/1000.f);
+    fallSpeed/=fallCount;
     fallCount=-1.f;
     }
-  fallSpeed.y+=aceleration;
+  fallSpeed.y   -= gravity*float(dt);
 
   // check ground
   auto  pos      = npc.position();
@@ -146,7 +150,7 @@ void MoveAlgo::tickGravity(uint64_t dt) {
   auto  water    = waterRay(pos.x, pos.y, pos.z);
   float fallStop = std::max(water-chest,ground);
 
-  auto dp = fallSpeed*timeK;
+  auto dp        = fallSpeed*float(dt);
 
   if(pY+dp.y>fallStop) {
     // continue falling
@@ -161,9 +165,9 @@ void MoveAlgo::tickGravity(uint64_t dt) {
         }
       setInAir(false);
       }
-    if(fallSpeed.y<-1500.f && !npc.isDead())
+    if(fallSpeed.y<-1.5f && !npc.isDead())
       npc.setAnim(AnimationSolver::FallDeep); else
-    if(fallSpeed.y<-300.f && !npc.isDead())
+    if(fallSpeed.y<-0.3f && !npc.isDead())
       npc.setAnim(AnimationSolver::Fall);
     } else {
     if(ground+chest<water && !npc.isDead()) {
@@ -189,15 +193,22 @@ void MoveAlgo::tickGravity(uint64_t dt) {
 void MoveAlgo::tickJumpup(uint64_t dt) {
   auto pos = npc.position();
   if(pos.y<climbHeight) {
-    pos.y += fallSpeed.y*float(dt);
+    pos.y       += fallSpeed.y*float(dt);
+    fallSpeed.y -= gravity*float(dt);
+
     pos.y = std::min(pos.y,climbHeight);
     if(!npc.tryTranslate(pos))
       climbHeight = pos.y;
     return;
     }
 
-  auto climb = npc.tryJump();
+  Tempest::Vec3 p={}, v={0,0,climbMove};
+  applyRotation(p,v);
+  p = climbPos0;
+  p.y = climbHeight;
+  npc.tryTranslate(p);
 
+  auto climb = npc.tryJump();
   if(climb.anim==Npc::Anim::JumpHang) {
     startClimb(climb);
     } else {
@@ -212,10 +223,14 @@ void MoveAlgo::tickClimb(uint64_t dt) {
     setAsClimb(false);
     setInAir  (false);
 
-    Tempest::Vec3 p={}, v={0,0,50};
+    Tempest::Vec3 p={}, v={0,0,climbMove};
     applyRotation(p,v);
-    p+=npc.position();
-    npc.tryTranslate(p);
+    p += climbPos0;
+    p.y = climbHeight;
+    if(!npc.tryTranslate(p)) {
+      npc.setPosition(Tempest::Vec3(climbPos0.x,climbHeight,climbPos0.z));
+      npc.tryTranslate(p);
+      }
     clearSpeed();
     return;
     }
@@ -224,7 +239,7 @@ void MoveAlgo::tickClimb(uint64_t dt) {
   auto pos = npc.position();
 
   if(pos.y<climbHeight) {
-    pos.y += fallSpeed.y*float(dt);
+    pos.y += dp.y;
     pos.y = std::min(pos.y,climbHeight);
     npc.tryTranslate(pos);
     }
@@ -462,18 +477,6 @@ Tempest::Vec3 MoveAlgo::go2WpMoveSpeed(Tempest::Vec3 dp, float x, float z) {
   return dp;
   }
 
-bool MoveAlgo::testClimp(float scale) const {
-  float len=100;
-  Tempest::Vec3 ret = {}, orig = {0,0,len*scale};
-  applyRotation(ret,orig);
-
-  ret.x+=npc.x;
-  ret.y+=npc.y + 150;//npc.translateY();
-  ret.z+=npc.z;
-
-  return npc.testMove(ret);
-  }
-
 bool MoveAlgo::testSlide(float x,float y,float z) const {
   if(isInAir() || npc.isJumpAnim())
     return false;
@@ -615,15 +618,19 @@ bool MoveAlgo::startClimb(JumpStatus jump) {
   climbPos0   = npc.position();
   climbHeight = jump.height;
 
-  fallSpeed.x = 0.f;
-  fallSpeed.y = (jump.height-climbPos0.y)/sq->totalTime();
-  fallSpeed.z = 0.f;
-  fallCount   = 1.f;
+  const float dHeight = (jump.height-climbPos0.y);
 
-  if(jump.anim==Npc::Anim::JumpUp){
+  fallSpeed.x = 0.f;
+  fallSpeed.y = dHeight/sq->totalTime();
+  fallSpeed.z = 0.f;
+  fallCount   = -1.f;
+
+  if(jump.anim==Npc::Anim::JumpUp && dHeight>0.f){
     setAsJumpup(true);
     setInAir(true);
-    // fallSpeed.y = 0.55f*gravity;
+
+    float t = std::sqrt(2.f*dHeight/gravity);
+    fallSpeed.y = gravity*t;
     }
   else if(jump.anim==Npc::Anim::JumpUpMid ||
           jump.anim==Npc::Anim::JumpUpLow) {
@@ -756,7 +763,7 @@ void MoveAlgo::onMoveFailed() {
   }
 
 float MoveAlgo::waterRay(float x, float y, float z) const {
-  if(std::fabs(cacheW.x-x)>eps || cacheW.y<y+eps || std::fabs(cacheW.z-z)>eps) {
+  if(std::fabs(cacheW.x-x)>eps || std::fabs(cacheW.y-y)>eps || std::fabs(cacheW.z-z)>eps) {
     reinterpret_cast<DynamicWorld::RayWaterResult&>(cacheW) = npc.world().physic()->waterRay(x,y,z);
     cacheW.x = x;
     cacheW.y = y;
@@ -768,7 +775,9 @@ float MoveAlgo::waterRay(float x, float y, float z) const {
 void MoveAlgo::rayMain(float x, float y, float z) const {
   if(std::fabs(cache.x-x)>eps || std::fabs(cache.y-y)>eps || std::fabs(cache.z-z)>eps) {
     auto  prev = cache.sector;
-    float dy   = waterDepthChest()+100;  // 1 meter offset is enought
+    float dy   = waterDepthChest()+100;  // 1 meter extra offset
+    if(fallSpeed.y<0)
+      dy = 0; // whole world
     reinterpret_cast<DynamicWorld::RayLandResult&>(cache) = npc.world().physic()->landRay(x,y,z,dy);
     cache.x = x;
     cache.y = y;

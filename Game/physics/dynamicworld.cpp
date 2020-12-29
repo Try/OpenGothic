@@ -581,7 +581,7 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::zCMesh& worldMesh) {
     world->addCollisionObject(waterBody.get());
 
   world->setForceUpdateAllAabbs(false);
-  world->setGravity(btVector3(0,-gravity/100.f,0));
+  world->setGravity(btVector3(0,-gravity*1000.f,0));
 
   npcList   .reset(new NpcBodyList(*this));
   bulletList.reset(new BulletsList(*this));
