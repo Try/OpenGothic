@@ -325,11 +325,12 @@ static void followAng(float& ang,float dest,float speed) {
     shift = -std::min(-da,speed);
 
   static const float min=-45, max=45;
-  if(da>max)
+  if(da>max+1.f) {
     shift = (da-max);
-  if(da<min)
+    }
+  if(da<min-1.f) {
     shift = (da-min);
-
+    }
   ang += shift;
   }
 
