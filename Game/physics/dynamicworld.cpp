@@ -27,6 +27,7 @@
 #include <LinearMath/btDefaultMotionState.h>
 #include <LinearMath/btScalar.h>
 
+#include "collisionworld.h"
 #include "physicmeshshape.h"
 #include "physicvbo.h"
 #include "graphics/mesh/skeleton.h"
@@ -59,85 +60,6 @@ struct DynamicWorld::HumShape:btCapsuleShape {
     aabbMin = center - extent;
     aabbMax = center + extent;
     }
-  };
-
-struct DynamicWorld::Broadphase : btDbvtBroadphase {
-  struct BroadphaseRayTester : btDbvt::ICollide {
-    btBroadphaseRayCallback& m_rayCallback;
-    BroadphaseRayTester(btBroadphaseRayCallback& orgCallback) : m_rayCallback(orgCallback) {}
-    void Process(const btDbvtNode* leaf) {
-      btDbvtProxy* proxy = reinterpret_cast<btDbvtProxy*>(leaf->data);
-      m_rayCallback.process(proxy);
-      }
-    };
-
-  Broadphase() {
-    m_deferedcollide = true;
-    rayTestStk.reserve(btDbvt::DOUBLE_STACKSIZE);
-    }
-
-  void rayTest(const btVector3& rayFrom, const btVector3& rayTo, btBroadphaseRayCallback& rayCallback,
-               const btVector3& aabbMin, const btVector3& aabbMax) {
-    BroadphaseRayTester callback(rayCallback);
-    btAlignedObjectArray<const btDbvtNode*>* stack = &rayTestStk;
-
-    m_sets[0].rayTestInternal(m_sets[0].m_root,
-        rayFrom,
-        rayTo,
-        rayCallback.m_rayDirectionInverse,
-        rayCallback.m_signs,
-        rayCallback.m_lambda_max,
-        aabbMin,
-        aabbMax,
-        *stack,
-        callback);
-
-    m_sets[1].rayTestInternal(m_sets[1].m_root,
-        rayFrom,
-        rayTo,
-        rayCallback.m_rayDirectionInverse,
-        rayCallback.m_signs,
-        rayCallback.m_lambda_max,
-        aabbMin,
-        aabbMax,
-        *stack,
-        callback);
-    }
-
-  btAlignedObjectArray<const btDbvtNode*> rayTestStk;
-  };
-
-// the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
-struct DynamicWorld::BulletWorld : btDiscreteDynamicsWorld {
-  using Supper = btDiscreteDynamicsWorld;
-
-  BulletWorld(btDispatcher* dispatcher, btBroadphaseInterface * pairCache,
-              btConstraintSolver * constraintSolver, btCollisionConfiguration * collisionConfiguration)
-    : Supper(dispatcher,pairCache,constraintSolver,collisionConfiguration) {
-    }
-
-  void saveKinematicState(btScalar) override {
-    // skip heavi this per-object function, because we dont use this functionality
-    }
-
-  void updateAabbs() override {
-    if(aabbChanged>0) {
-      Supper::updateAabbs();
-      aabbChanged = 0;
-      return;
-      }
-
-    btTransform predictedTrans;
-    for(int i=0; i<m_nonStaticRigidBodies.size(); ++i) {
-      btCollisionObject* colObj = m_nonStaticRigidBodies[i];
-      //only update aabb of active objects
-      if(m_forceUpdateAllAabbs || colObj->isActive()) {
-        updateSingleAabb(colObj);
-        }
-      }
-    }
-
-  mutable uint32_t aabbChanged = 0;
   };
 
 struct DynamicWorld::NpcBody : btRigidBody {
@@ -523,22 +445,8 @@ struct DynamicWorld::BBoxList final {
   };
 
 DynamicWorld::DynamicWorld(World&,const ZenLoad::zCMesh& worldMesh) {
-  // collision configuration contains default setup for memory, collision setup
-  conf.reset(new btDefaultCollisionConfiguration());
-
-  // use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
-  //auto disp = new btCollisionDispatcherMt(conf.get());
-  auto disp = new btCollisionDispatcher(conf.get());
-  dispatcher.reset(disp);
-  disp->setDispatcherFlags(btCollisionDispatcher::CD_DISABLE_CONTACTPOOL_DYNAMIC_ALLOCATION);
-
-  solver.reset(new btSequentialImpulseConstraintSolver());
-
-  //btBroadphaseInterface* brod = new btDbvtBroadphase();
-  Broadphase* brod = new Broadphase();
-  broadphase.reset(brod);
-  // world.reset(new btCollisionWorld(dispatcher.get(),broadphase.get(),conf.get()));
-  world.reset(new BulletWorld(dispatcher.get(),broadphase.get(),solver.get(),conf.get()));
+  //solver.reset(new btSequentialImpulseConstraintSolver());
+  world.reset(new CollisionWorld());
 
   PackedMesh pkg(worldMesh,PackedMesh::PK_PhysicZoned);
   sectors.resize(pkg.subMeshes.size());
@@ -580,8 +488,6 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::zCMesh& worldMesh) {
   if(waterBody!=nullptr)
     world->addCollisionObject(waterBody.get());
 
-  world->setForceUpdateAllAabbs(false);
-  world->setGravity(btVector3(0,-gravity*1000.f,0));
 
   npcList   .reset(new NpcBodyList(*this));
   bulletList.reset(new BulletsList(*this));
@@ -596,14 +502,14 @@ DynamicWorld::~DynamicWorld(){
   }
 
 DynamicWorld::RayLandResult DynamicWorld::landRay(float x, float y, float z, float maxDy) const {
-  updateAabbs();
+  world->updateAabbs();
   if(maxDy==0)
     maxDy = worldHeight;
   return ray(x,y+ghostPadding,z, x,y-maxDy,z);
   }
 
 DynamicWorld::RayWaterResult DynamicWorld::waterRay(float x, float y, float z) const {
-  updateAabbs();
+  world->updateAabbs();
   return implWaterRay(x,y,z, x,y+worldHeight,z);
   }
 
@@ -827,6 +733,7 @@ DynamicWorld::Item DynamicWorld::createObj(btCollisionShape* shape, bool ownShap
       break;
     case IT_Dynamic:
       obj->setUserIndex(C_item);
+      obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
       break;
     }
 
@@ -857,40 +764,11 @@ DynamicWorld::Item DynamicWorld::dynamicObj(const Tempest::Matrix4x4& pos, const
   float density = DynamicWorld::materialDensity(mat);
   float mass    = density*(hExt[0]/100.f)*(hExt[1]/100.f)*(hExt[2]/100.f);
   //mass = 0.1f;
-
   for(int i=0;i<3;++i)
-    hExt[i] = std::max(hExt[i],20.f);
+    hExt[i] = std::max(hExt[i],10.f);
+
   std::unique_ptr<btCollisionShape> shape { new btBoxShape(hExt*0.5f) };
   return createObj(shape.release(),true,pos,mass,materialFriction(mat),IT_Dynamic);
-  /*
-  shape->calculateLocalInertia(mass, localInertia);
-  //shape->setMargin(50);
-
-  btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(
-        mass,                  // mass, in kg. 0 -> Static object, will never move.
-        nullptr,
-        shape.get(),
-        localInertia
-        );
-  rigidBodyCI.m_linearSleepingThreshold  = 30;
-  rigidBodyCI.m_angularSleepingThreshold = 10;
-
-  std::unique_ptr<btRigidBody> obj(new btRigidBody(rigidBodyCI));
-  obj->setUserIndex(C_item);
-  //obj->setFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
-  //obj->setCollisionFlags(btCollisionObject::CO_COLLISION_OBJECT);
-
-  btTransform trans;
-  trans.setFromOpenGLMatrix(pos.data());
-  obj->setWorldTransform(trans);
-  obj->setFriction(materialFriction(mat));
-
-  world->addRigidBody(obj.get());
-  dynItems.push_back(obj.get());
-
-  DynamicItem it(this,obj.release(),shape.release());
-  return it;
-  */
   }
 
 DynamicWorld::BulletBody* DynamicWorld::bulletObj(BulletCallback* cb) {
@@ -1008,9 +886,9 @@ void DynamicWorld::tick(uint64_t dt) {
 
   npcList->tickAabbs();
   bulletList->tick(dt);
+  if(dynamic)
+    world->tick(dt);
 
-  if(dynamic && dynItems.size()>0)
-    world->stepSimulation(float(dt), 8, 1.f/20.f);
   for(auto i:dynItems)
     if(auto ptr = reinterpret_cast<::Item*>(i->getUserPointer())) {
       auto& t = i->getWorldTransform();
@@ -1031,17 +909,11 @@ void DynamicWorld::updateSingleAabb(btCollisionObject *obj) {
   world->updateSingleAabb(obj);
   }
 
-void DynamicWorld::updateAabbs() const {
-  if(world->aabbChanged==0)
-    return;
-  world->updateAabbs();
-  }
-
 void DynamicWorld::deleteObj(NpcBody *obj) {
   if(!obj)
     return;
 
-  world->aabbChanged++;
+  world->touchAabbs();
   if(!npcList->del(obj))
     world->removeCollisionObject(obj);
   delete obj;
@@ -1109,7 +981,7 @@ void DynamicWorld::deleteObj(btCollisionObject *obj) {
     return;
 
   std::unique_ptr<btCollisionObject> ref{obj};
-  world->aabbChanged++;
+  world->touchAabbs();
   for(size_t i=0; i<dynItems.size(); ++i)
     if(dynItems[i]==obj) {
       auto v = dynItems[i];
@@ -1160,7 +1032,7 @@ bool DynamicWorld::hasCollision(const NpcItem& it,Tempest::Vec3& normal) {
 
   rCallBack callback{it.obj};
 
-  updateAabbs();
+  world->updateAabbs();
   world->contactTest(it.obj, callback);
 
   if(callback.count>0){
@@ -1208,7 +1080,7 @@ void DynamicWorld::NpcItem::implSetPosition(const Tempest::Vec3& pos) {
 void DynamicWorld::NpcItem::setEnable(bool e) {
   if(obj) {
     obj->enable = e;
-    owner->world->aabbChanged++;
+    owner->world->touchAabbs();
     }
   }
 

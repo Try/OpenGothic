@@ -9,29 +9,22 @@
 
 #include "graphics/mesh/protomesh.h"
 
-class btConstraintSolver;
-class btCollisionConfiguration;
-class btBroadphaseInterface;
-class btDispatcher;
-class btDynamicsWorld;
 class btTriangleIndexVertexArray;
 class btCollisionShape;
-class btConcaveShape;
-class btRigidBody;
-class btGhostObject;
 class btCollisionObject;
-class btTriangleMesh;
-class btCollisionWorld;
-class btITaskScheduler;
+class btRigidBody;
 class btVector3;
 
 class PhysicMeshShape;
 class PhysicVbo;
 class PackedMesh;
+
 class World;
 class Bullet;
 class Npc;
 class Item;
+
+class CollisionWorld;
 
 class DynamicWorld final {
   private:
@@ -40,9 +33,6 @@ class DynamicWorld final {
     struct NpcBodyList;
     struct BulletsList;
     struct BBoxList;
-    struct Broadphase;
-    struct IslandManager;
-    struct BulletWorld;
 
   public:
     static constexpr float gravityMS   = 9.8f; // meters per second^2
@@ -253,19 +243,14 @@ class DynamicWorld final {
     std::unique_ptr<btRigidBody> waterObj();
 
     void           updateSingleAabb(btCollisionObject* obj);
-    void           updateAabbs() const;
 
-    std::unique_ptr<btCollisionConfiguration>   conf;
-    std::unique_ptr<btDispatcher>               dispatcher;
-    std::unique_ptr<btBroadphaseInterface>      broadphase;
-    std::unique_ptr<btConstraintSolver>         solver;
-    std::unique_ptr<BulletWorld>                world;
+    std::unique_ptr<CollisionWorld>             world;
 
     std::vector<std::string>                    sectors;
 
     std::vector<btVector3>                      landVbo;
     std::unique_ptr<PhysicVbo>                  landMesh;
-    std::unique_ptr<btConcaveShape>             landShape;
+    std::unique_ptr<btCollisionShape>           landShape;
     std::unique_ptr<btRigidBody>                landBody;
 
     std::unique_ptr<btCollisionShape>           waterShape;
