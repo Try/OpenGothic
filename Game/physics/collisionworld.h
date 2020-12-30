@@ -3,6 +3,7 @@
 #include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
 #include <Tempest/Vec>
 #include <memory>
+#include <vector>
 
 class btCollisionConfiguration;
 class btConstraintSolver;
