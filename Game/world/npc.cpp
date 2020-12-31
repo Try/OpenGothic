@@ -143,7 +143,6 @@ Npc::Npc(World &owner, size_t instance, const Daedalus::ZString& waypoint)
     return;
 
   hnpc.wp = waypoint;
-  owner.script().initializePerceptions(hnpc);
   owner.script().initializeInstance(hnpc,instance);
   if(hnpc.attribute[ATR_HITPOINTS]<=1 && hnpc.attribute[ATR_HITPOINTSMAX]<=1) {
     onNoHealth(true,HS_NoSound);
@@ -1754,11 +1753,13 @@ void Npc::nextAiAction(uint64_t dt) {
       currentLookAt=nullptr;
       break;
     case AI_RemoveWeapon:
-      if(closeWeapon(false)) {
-        setAnim(Anim::Idle);
-        }
-      if(weaponState()!=WeaponState::NoWeapon){
-        aiQueue.pushFront(std::move(act));
+      if(!isDead()) {
+        if(closeWeapon(false)) {
+          setAnim(Anim::Idle);
+          }
+        if(weaponState()!=WeaponState::NoWeapon){
+          aiQueue.pushFront(std::move(act));
+          }
         }
       break;
     case AI_StartState:
@@ -1861,26 +1862,34 @@ void Npc::nextAiAction(uint64_t dt) {
       }
       break;
     case AI_DrawWeapon:
-      fghAlgo.onClearTarget();
-      if(!drawWeaponMele() &&
-         !drawWeaponBow())
-        aiQueue.pushFront(std::move(act));
+      if(!isDead()) {
+        fghAlgo.onClearTarget();
+        if(!drawWeaponMele() &&
+           !drawWeaponBow())
+          aiQueue.pushFront(std::move(act));
+        }
       break;
     case AI_DrawWeaponMele:
-      fghAlgo.onClearTarget();
-      if(!drawWeaponMele())
-        aiQueue.pushFront(std::move(act));
+      if(!isDead()) {
+        fghAlgo.onClearTarget();
+        if(!drawWeaponMele())
+          aiQueue.pushFront(std::move(act));
+        }
       break;
     case AI_DrawWeaponRange:
-      fghAlgo.onClearTarget();
-      if(!drawWeaponBow())
-        aiQueue.pushFront(std::move(act));
+      if(!isDead()) {
+        fghAlgo.onClearTarget();
+        if(!drawWeaponBow())
+          aiQueue.pushFront(std::move(act));
+        }
       break;
     case AI_DrawSpell: {
-      const int32_t spell = act.i0;
-      fghAlgo.onClearTarget();
-      if(!drawSpell(spell))
-        aiQueue.pushFront(std::move(act));
+      if(!isDead()) {
+        const int32_t spell = act.i0;
+        fghAlgo.onClearTarget();
+        if(!drawSpell(spell))
+          aiQueue.pushFront(std::move(act));
+        }
       break;
       }
     case AI_Atack:
