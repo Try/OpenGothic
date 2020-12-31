@@ -70,6 +70,8 @@ class GameScript final {
     void         initializeInstance(Daedalus::GEngineClasses::C_Item& it, size_t instance);
     void         clearReferences(Daedalus::GEngineClasses::Instance& ptr);
 
+    void         initializePerceptions(Daedalus::GEngineClasses::C_Npc& n);
+
     void         save(Serialize& fout);
     void         saveVar(Serialize& fout);
     void         loadVar(Serialize& fin);
@@ -127,6 +129,7 @@ class GameScript final {
     int  printMobMissingKey          (Npc &npc);
     int  printMobMissingKeyOrLockpick(Npc &npc);
     int  printMobMissingLockpick     (Npc &npc);
+    int  printMobTooFar              (Npc &npc);
 
     int  invokeState(Daedalus::GEngineClasses::C_Npc *hnpc, Daedalus::GEngineClasses::C_Npc *hother, const char* name);
     int  invokeState(Npc* npc, Npc* other, Npc *victum, ScriptFn fn);
@@ -416,6 +419,7 @@ class GameScript final {
     float                                                       tradeValMult=0.3f;
     size_t                                                      spellFxInstanceNames=0;
     size_t                                                      spellFxAniLetters=0;
+    size_t                                                      perception_Set_Minimal = size_t(-1);
     std::string                                                 goldTxt;
     float                                                       viewTimePerChar=0.5;
     size_t                                                      gilCount=0;

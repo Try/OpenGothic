@@ -426,6 +426,8 @@ class Npc final {
     bool      isAiQueueEmpty() const;
     void      clearAiQueue();
 
+    bool      isInState(ScriptFn fn) const;
+
     auto      currentWayPoint() const -> const WayPoint* { return currentFp; }
     void      attachToPoint(const WayPoint* p);
     GoToHint  moveHint() const { return go2.flag; }

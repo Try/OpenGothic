@@ -304,6 +304,7 @@ void GameScript::initCommon() {
 
   spellFxInstanceNames = vm.getDATFile().getSymbolIndexByName("spellFxInstanceNames");
   spellFxAniLetters    = vm.getDATFile().getSymbolIndexByName("spellFxAniLetters");
+  perception_Set_Minimal = vm.getDATFile().getSymbolIndexByName("Perception_Set_Minimal");
 
   spells               = std::make_unique<SpellDefinitions>(vm);
   svm                  = std::make_unique<SvmDefinitions>(vm);
@@ -464,6 +465,13 @@ void GameScript::initializeInstance(Daedalus::GEngineClasses::C_Item &it,size_t 
 
 void GameScript::clearReferences(Daedalus::GEngineClasses::Instance &ptr) {
   vm.clearReferences(ptr);
+  }
+
+void GameScript::initializePerceptions(Daedalus::GEngineClasses::C_Npc& n) {
+  if(perception_Set_Minimal!=size_t(-1)) {
+    ScopeVar self(vm,vm.globalSelf(),&n,Daedalus::IC_Npc);
+    vm.runFunctionBySymIndex(perception_Set_Minimal);
+    }
   }
 
 void GameScript::save(Serialize &fout) {
@@ -873,6 +881,14 @@ int GameScript::printMobMissingKeyOrLockpick(Npc& npc) {
 
 int GameScript::printMobMissingLockpick(Npc& npc) {
   auto id = vm.getDATFile().getSymbolIndexByName("player_mob_missing_lockpick");
+  if(id==size_t(-1))
+    return 0;
+  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
+  return runFunction(id);
+  }
+
+int GameScript::printMobTooFar(Npc& npc) {
+  auto id = vm.getDATFile().getSymbolIndexByName("player_mob_too_far_away");
   if(id==size_t(-1))
     return 0;
   ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);

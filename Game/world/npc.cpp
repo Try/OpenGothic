@@ -143,6 +143,7 @@ Npc::Npc(World &owner, size_t instance, const Daedalus::ZString& waypoint)
     return;
 
   hnpc.wp = waypoint;
+  owner.script().initializePerceptions(hnpc);
   owner.script().initializeInstance(hnpc,instance);
   if(hnpc.attribute[ATR_HITPOINTS]<=1 && hnpc.attribute[ATR_HITPOINTSMAX]<=1) {
     onNoHealth(true,HS_NoSound);
@@ -3201,6 +3202,10 @@ void Npc::clearAiQueue() {
     setAnim(Anim::Idle);
     go2.clear();
     }
+  }
+
+bool Npc::isInState(ScriptFn fn) const {
+  return aiState.funcIni==fn;
   }
 
 void Npc::attachToPoint(const WayPoint *p) {
