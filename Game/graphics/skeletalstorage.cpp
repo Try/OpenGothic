@@ -110,7 +110,9 @@ struct SkeletalStorage::TImpl : Impl {
   void   free(const size_t objId, const size_t bonesCount) override {
     freeList.free(objId, bonesCount);
     auto m = &obj[objId];
-    std::memset(m,0,sizeof(Matrix4x4)*bonesCount);
+    for (size_t i=0; i<bonesCount; i++) {
+      m[i] = Block();
+    }
     }
 
   void   bind(Uniforms& ubo, uint8_t bind, uint8_t fId, size_t id) override {
