@@ -110,7 +110,8 @@ struct SkeletalStorage::TImpl : Impl {
   void   free(const size_t objId, const size_t bonesCount) override {
     freeList.free(objId, bonesCount);
     auto m = &obj[objId];
-    std::memset(m,0,sizeof(Matrix4x4)*bonesCount);
+    //NOTE: -Werror=class-memaccess in gcc8
+    std::memset(static_cast<void*>(m),0,sizeof(Matrix4x4)*bonesCount);
     }
 
   void   bind(Uniforms& ubo, uint8_t bind, uint8_t fId, size_t id) override {
