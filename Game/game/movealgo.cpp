@@ -152,7 +152,7 @@ void MoveAlgo::tickGravity(uint64_t dt) {
 
   auto dp        = fallSpeed*float(dt);
 
-  if(pY+dp.y>fallStop) {
+  if(pY+dp.y>fallStop || dp.y>0) {
     // continue falling
     if(!tryMove(dp.x,dp.y,dp.z)) {
       fallSpeed.y=0.f;
@@ -405,10 +405,11 @@ void MoveAlgo::clearSpeed() {
 void MoveAlgo::accessDamFly(float dx, float dz) {
   if(flags==0) {
     float len = std::sqrt(dx*dx+dz*dz);
-    fallSpeed.x = gravity*dx/len;
-    fallSpeed.y = 0.4f*gravity;
-    fallSpeed.z = gravity*dz/len;
-    fallCount   =-1.f;
+    auto  vec = Tempest::Vec3(dx,len*0.5f,dz);
+    vec = vec/vec.manhattanLength();
+
+    fallSpeed = vec*1.f;
+    fallCount =-1.f;
     setInAir(true);
     }
   }
@@ -547,9 +548,7 @@ void MoveAlgo::takeFallDamage() const {
     return;
 
   if(hp>damage) {
-    char name[32]={};
-    std::snprintf(name,sizeof(name),"SVM_%d_AARGH",int(npc.handle()->voice));
-    npc.emitSoundEffect(name,25,true);
+    npc.emitSoundSVM("SVM_%d_AARGH");
     npc.setAnim(Npc::Anim::Fallen);
     }
   npc.changeAttribute(Npc::ATR_HITPOINTS,-damage,false);
