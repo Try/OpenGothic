@@ -304,7 +304,6 @@ void GameScript::initCommon() {
 
   spellFxInstanceNames = vm.getDATFile().getSymbolIndexByName("spellFxInstanceNames");
   spellFxAniLetters    = vm.getDATFile().getSymbolIndexByName("spellFxAniLetters");
-  perception_Set_Minimal = vm.getDATFile().getSymbolIndexByName("Perception_Set_Minimal");
 
   spells               = std::make_unique<SpellDefinitions>(vm);
   svm                  = std::make_unique<SvmDefinitions>(vm);
@@ -465,13 +464,6 @@ void GameScript::initializeInstance(Daedalus::GEngineClasses::C_Item &it,size_t 
 
 void GameScript::clearReferences(Daedalus::GEngineClasses::Instance &ptr) {
   vm.clearReferences(ptr);
-  }
-
-void GameScript::initializePerceptions(Daedalus::GEngineClasses::C_Npc& n) {
-  if(perception_Set_Minimal!=size_t(-1)) {
-    ScopeVar self(vm,vm.globalSelf(),&n,Daedalus::IC_Npc);
-    vm.runFunctionBySymIndex(perception_Set_Minimal);
-    }
   }
 
 void GameScript::save(Serialize &fout) {
@@ -1288,6 +1280,17 @@ AiOuputPipe *GameScript::openDlgOuput(Npc &player, Npc &npc) {
   if(player.isPlayer())
     return owner.openDlgOuput(player,npc);
   return owner.openDlgOuput(npc,player);
+  }
+
+ScriptFn GameScript::playerPercAssessMagic() {
+  size_t id = vm.getDATFile().getSymbolIndexByName("PLAYER_PERC_ASSESSMAGIC");
+  if(id==size_t(-1))
+    return ScriptFn();
+  auto& var = vm.getDATFile().getSymbolByIndex(id);
+  auto& cnt = var.getDataContainer<int>();
+  if(cnt.size()>0)
+    return ScriptFn(cnt[0]);
+  return ScriptFn();
   }
 
 int GameScript::npcDamDiveTime() {

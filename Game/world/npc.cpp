@@ -2971,9 +2971,14 @@ bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType 
   r = r*r;
   if(quadDist>r)
     return false;
-  if(hasPerc(perc)){
+  if(hasPerc(perc)) {
     owner.script().invokeState(this,&pl,victum,perception[perc].func);
-    //currentOther=&pl;
+    return true;
+    }
+  if(perc==PERC_ASSESSMAGIC && isPlayer()) {
+    auto defaultFn = owner.script().playerPercAssessMagic();
+    if(defaultFn.isValid())
+      owner.script().invokeState(this,&pl,victum,defaultFn);
     return true;
     }
   return false;
