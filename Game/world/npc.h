@@ -453,6 +453,7 @@ class Npc final {
     void      emitDlgSound(const char* sound);
     void      emitSoundEffect(const char* sound, float range, bool freeSlot);
     void      emitSoundGround(const char* sound, float range, bool freeSlot);
+    void      emitSoundSVM   (const char* sound);
 
     void      playEffect(Npc& to, const VisualFx& vfx);
     void      commitSpell();

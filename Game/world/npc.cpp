@@ -528,9 +528,7 @@ void Npc::onNoHealth(bool death,HitSound sndMask) {
   size_t fdead=owner.getSymbolIndex(state);
   startState(fdead,"",gtime::endOfTime(),true);
   if(hnpc.voice>0 && sndMask!=HS_NoSound) {
-    char name[32]={};
-    std::snprintf(name,sizeof(name),svm,int(hnpc.voice));
-    emitSoundEffect(name,25,true);
+    emitSoundSVM(svm);
     }
 
   setInteraction(nullptr,true);
@@ -1550,7 +1548,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
       owner.emitWeaponsSound(other,*this);
 
     if(hitResult.hasHit) {
-      if(bodyStateMasked()!=BS_UNCONSCIOUS) {
+      if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr) {
         const bool noInter = (hnpc.bodyStateInterruptableOverride!=0);
         if(!noInter)
           visual.interrupt();
@@ -1572,6 +1570,8 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
         }
       else {
         owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
+        if(owner.script().rand(2)==0)
+          emitSoundSVM("SVM_%d_AARGH");
         }
       }
 
@@ -1834,10 +1834,11 @@ void Npc::nextAiAction(uint64_t dt) {
         }
 
       if(qDistTo(*inter)>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) { // too far
-        //break; //TODO
+        // TODO: go to MOBSI
         }
-      if(!setInteraction(inter))
-        aiQueue.pushFront(std::move(act));
+      if(!setInteraction(inter)) {
+        // aiQueue.pushFront(std::move(act));
+        }
       break;
       }
     case AI_UseItem:
@@ -2156,6 +2157,12 @@ void Npc::emitSoundGround(const char* sound, float range, bool freeSlot) {
   uint8_t mat = mvAlgo.groundMaterial();
   std::snprintf(buf,sizeof(buf),"%s_%s",sound,ZenLoad::zCMaterial::getMatGroupString(ZenLoad::MaterialGroup(mat)));
   owner.emitSoundEffect(buf,x,y,z,range,freeSlot);
+  }
+
+void Npc::emitSoundSVM(const char* svm) {
+  char name[32]={};
+  std::snprintf(name,sizeof(name),svm,int(hnpc.voice));
+  emitSoundEffect(name,25,true);
   }
 
 void Npc::playEffect(Npc& /*to*/, const VisualFx& vfx) {
@@ -2976,7 +2983,7 @@ Interactive* Npc::detectedMob() const {
   return moveMob;
   }
 
-bool Npc::setInteraction(Interactive *id,bool quick) {
+bool Npc::setInteraction(Interactive *id, bool quick) {
   if(currentInteract==id)
     return true;
 
