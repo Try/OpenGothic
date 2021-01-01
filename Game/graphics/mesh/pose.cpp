@@ -423,6 +423,7 @@ void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, int comb, uint
 void Pose::onAddLayer(Pose::Layer& l) {
   if(l.seq->data->events.size()>0)
     hasEvents++;
+  needToUpdate = true;
   }
 
 void Pose::onRemoveLayer(Pose::Layer &l) {
