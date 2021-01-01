@@ -115,7 +115,6 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Seriali
     vm->setInstanceNPC("HERO",*hero);
   cam.load(fin,wrld->player());
   gothic.setLoadingProgress(96);
-  ticks = 1;
   }
 
 GameSession::~GameSession() {
