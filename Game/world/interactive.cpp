@@ -522,6 +522,9 @@ Tempest::Vec3 Interactive::worldPos(const Interactive::Pos &to) const {
   }
 
 bool Interactive::isAvailable() const {
+  for(auto& i:attPos)
+    if(i.user!=nullptr)
+      return false;
   return findFreePos()!=nullptr;
   }
 
@@ -549,7 +552,6 @@ bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
     return false;
 
   auto mat = nodeTranform(npc,to);
-
   float x=0, y=0, z=0;
   mat.project(x,y,z);
 
@@ -557,6 +559,15 @@ bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
   if(!npc.testMove(mv)) {
     // FIXME: switches on stone-arks
     // return false;
+    }
+
+  if((npc.position()-mv).quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) {
+    if(npc.isPlayer()) {
+      auto& sc = npc.world().script();
+      sc.printMobTooFar(npc);
+      }
+    if(npc.isPlayer())
+      return false; // TODO: same for npc
     }
 
   setPos(npc,mv);
@@ -583,12 +594,11 @@ bool Interactive::attach(Npc &npc) {
     if(i.user==&npc)
       return true;
 
-  for(auto& i:attPos)
-    if(i.user!=nullptr) {
-      if(npc.isPlayer())
-        world.script().printMobAnotherIsUsing(npc);
-      return false;
-      }
+  if(!isAvailable()) {
+    if(npc.isPlayer())
+      world.script().printMobAnotherIsUsing(npc);
+    return false;
+    }
 
   for(auto& i:attPos) {
     if(i.user || !i.isAttachPoint())
@@ -600,12 +610,11 @@ bool Interactive::attach(Npc &npc) {
       }
     }
 
-  if(p!=nullptr) {
+  if(p!=nullptr)
     return attach(npc,*p);
-    } else {
-    if(npc.isPlayer() && attPos.size()>0)
-      world.script().printMobAnotherIsUsing(npc);
-    }
+
+  if(npc.isPlayer() && attPos.size()>0)
+    world.script().printMobAnotherIsUsing(npc);
   return false;
   }
 
