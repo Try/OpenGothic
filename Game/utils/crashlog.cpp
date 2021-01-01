@@ -123,27 +123,9 @@ void CrashLog::dumpStack(const char *sig) {
 #endif
   }
 
-std::string CrashLog::demangle(const void* frame, const char* symbol) {
-  #ifdef __LINUX__
-  Dl_info info;
-  if (dladdr(frame, &info) && info.dli_sname) {
-    std::string output;
-    int status = -1;
-    if (info.dli_sname[0] == '_')
-        output = abi::__cxa_demangle(info.dli_sname, NULL, 0, &status);
-    output = status == 0 ? output : info.dli_sname == 0 ? symbol : info.dli_sname;
-    return output;
-    }
-  // couldn't demangle, return the unchanged symbol
-  return symbol;
-  #else
-  return "";
-  #endif
-  }
-
 void CrashLog::tracebackLinux(std::ostream &out) {
   #ifdef __LINUX__
-  // inspired by https://gist.github.com/fmela/591333 (BSD)
+  // inspired by https://gist.github.com/fmela/591333/36faca4c2f68f7483cd0d3a357e8a8dd5f807edf (BSD)
   void *callstack[64];
   char **symbols = NULL;
   int framesNum = 0;
@@ -153,16 +135,23 @@ void CrashLog::tracebackLinux(std::ostream &out) {
   {
     int skip = 4; // skip the signal handler frames
     bool loop = true;
+    Dl_info info;
+    const char* frame;
     for(int i = skip; i < framesNum && loop; i++) {
-      std::string frame = demangle(callstack[i], symbols[i]);
-      if (frame == "main") {
-        // looping beyond the main() cahses crashes
+      if(dladdr(callstack[i], &info) && info.dli_sname) {
+        int status = -1;
+        if (info.dli_sname[0] == '_')
+            frame = abi::__cxa_demangle(info.dli_sname, NULL, 0, &status);
+        frame = status == 0 ? frame : info.dli_sname == 0 ? symbols[i] : info.dli_sname;
+        }
+      if(!strcmp("main", frame)) {
+        // looping beyond the main() causes crashes
         loop = false;
         }
-      if (frame != symbols[i]) {
-        frame = frame + " - " + symbols[i];
-        }
-      out << "#" << i-skip+1 << ": " << frame << std::endl;
+      if(strcmp(frame, symbols[i]))
+        out << "#" << i-skip+1 << ": " << frame << " - " << symbols[i] << std::endl;
+      else
+        out << "#" << i-skip+1 << ": " << frame << std::endl;
       }
     }
     free(symbols);
