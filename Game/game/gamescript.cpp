@@ -2671,7 +2671,7 @@ void GameScript::ai_startstate(Daedalus::DaedalusVM &vm) {
   auto  self  = popInstance(vm);
   Daedalus::PARSymbol& sOth = vm.globalOther();
   Daedalus::PARSymbol& sVic = vm.globalVictim();
-  if(self!=nullptr && func>0){
+  if(self!=nullptr && func>0) {
     Npc* oth = nullptr;
     Npc* vic = nullptr;
     if(sOth.instance.instanceOf(Daedalus::IC_Npc)){
@@ -2684,7 +2684,15 @@ void GameScript::ai_startstate(Daedalus::DaedalusVM &vm) {
       if(npc)
         vic = reinterpret_cast<Npc*>(npc->userPtr);
       }
-    self->aiPush(AiQueue::aiStartState(uint32_t(func),state,oth,vic,wp));
+
+    if(!self->isInState(ScriptFn()) && self->isPlayer()) {
+      // avoid issue with B_StopMagicFreeze
+      self->aiPush(AiQueue::aiStandup());
+      return;
+      }
+
+    auto& st = getAiState(func);(void)st;
+    self->aiPush(AiQueue::aiStartState(func,state,oth,vic,wp));
     }
   }
 

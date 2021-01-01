@@ -2042,7 +2042,6 @@ void Npc::clearState(bool noFinalize) {
     visual.stopItemStateAnim(*this);
     }
   aiState = AiState();
-  aiState.funcIni = ScriptFn();
   }
 
 void Npc::tickRoutine() {

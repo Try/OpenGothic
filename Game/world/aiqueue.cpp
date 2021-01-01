@@ -99,7 +99,6 @@ AiQueue::AiAction AiQueue::aiGoToNextFp(const Daedalus::ZString& fp) {
   }
 
 AiQueue::AiAction AiQueue::aiStartState(ScriptFn stateFn, int behavior, Npc* other, Npc* victum, const Daedalus::ZString& wp) {
-  // auto& st = owner.script().getAiState(stateFn);(void)st;
   AiAction a;
   a.act    = AI_StartState;
   a.func   = stateFn;
