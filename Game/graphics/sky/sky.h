@@ -63,6 +63,4 @@ class Sky final {
     Tempest::VertexBuffer<Vertex> vbo;
 
     State                         day, night;
-
-    static std::array<float,3>    color;
   };
