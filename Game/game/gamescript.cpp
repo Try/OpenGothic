@@ -302,9 +302,6 @@ void GameScript::initCommon() {
 
   // vm.validateExternals();
 
-  spellFxInstanceNames = vm.getDATFile().getSymbolIndexByName("spellFxInstanceNames");
-  spellFxAniLetters    = vm.getDATFile().getSymbolIndexByName("spellFxAniLetters");
-
   spells               = std::make_unique<SpellDefinitions>(vm);
   svm                  = std::make_unique<SvmDefinitions>(vm);
 
@@ -319,7 +316,10 @@ void GameScript::initCommon() {
   ZS_Attack            = getAiState(getSymbolIndex("ZS_Attack")).funcIni;
   ZS_MM_Attack         = getAiState(getSymbolIndex("ZS_MM_Attack")).funcIni;
 
-  auto& dat = vm.getDATFile();
+  auto& dat            = vm.getDATFile();
+
+  spellFxInstanceNames = dat.getSymbolIndexByName("spellFxInstanceNames");
+  spellFxAniLetters    = dat.getSymbolIndexByName("spellFxAniLetters");
 
   if(owner.version().game==2){
     auto& currency = dat.getSymbolByName("TRADE_CURRENCY_INSTANCE");
