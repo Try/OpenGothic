@@ -1518,7 +1518,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
       owner.emitWeaponsSound(other,*this);
 
     if(hitResult.hasHit) {
-      if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr) {
+      if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr && !isSwim()) {
         const bool noInter = (hnpc.bodyStateInterruptableOverride!=0);
         if(!noInter)
           visual.interrupt();
@@ -1885,8 +1885,10 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_OutputSvm:
     case AI_OutputSvmOverlay:{
       if(performOutput(act)) {
-        if(act.act!=AI_OutputSvmOverlay)
+        if(act.act!=AI_OutputSvmOverlay) {
           visual.startAnimDialog(*this);
+          visual.setRotation(*this,0);
+          }
         } else {
         aiQueue.pushFront(std::move(act));
         }

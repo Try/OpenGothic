@@ -662,14 +662,12 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
       pl.setTarget(nullptr);
       }
     else if(!pl.isAtack()) {
-      float dx = other->position().x-pl.position().x;
-      float dz = other->position().z-pl.position().z;
-
+      auto  dp   = other->position()-pl.position();
       auto  gl   = pl.guild();
       float step = float(pl.world().script().guildVal().turn_speed[gl]);
       if(actrl[ActGeneric])
         step*=2.f;
-      pl.rotateTo(dx,dz,step,false,dt);
+      pl.rotateTo(dp.x,dp.z,step,false,dt);
       rot = pl.rotation();
       }
     }
