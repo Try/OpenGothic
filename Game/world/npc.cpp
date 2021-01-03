@@ -1176,38 +1176,8 @@ bool Npc::implLookAt(const Npc& oth, bool noAnim, uint64_t dt) {
 
 bool Npc::implLookAt(float dx, float dz, bool noAnim, uint64_t dt) {
   auto  gl   = guild();
-  float step = float(owner.script().guildVal().turn_speed[gl])*(float(dt)/1000.f)*60.f/100.f;
-
-  if(dx==0.f && dz==0.f) {
-    setAnimRotate(0);
-    return false;
-    }
-
-  float a  = angleDir(dx,dz);
-  float da = a-angle;
-
-  if(noAnim || std::cos(double(da)*M_PI/180.0)>0) {
-    if(float(std::abs(int(da)%180))<=step) {
-      setAnimRotate(0);
-      setDirection(a);
-      return false;
-      }
-    } else {
-    visual.stopWalkAnim(*this);
-    }
-
-  const auto sgn = std::sin(double(da)*M_PI/180.0);
-  if(sgn<0) {
-    setAnimRotate( 1);
-    setDirection(angle-step);
-    } else
-  if(sgn>0) {
-    setAnimRotate(-1);
-    setDirection(angle+step);
-    } else {
-    setAnimRotate(0);
-    }
-  return true;
+  float step = float(owner.script().guildVal().turn_speed[gl]);
+  return rotateTo(dx,dz,step,noAnim,dt);
   }
 
 bool Npc::implGoTo(uint64_t dt) {
@@ -2442,6 +2412,41 @@ Vec3 Npc::mapWeaponBone() const {
 
 bool Npc::lookAt(float dx, float dz, bool anim, uint64_t dt) {
   return implLookAt(dx,dz,anim,dt);
+  }
+
+bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
+  step *= (float(dt)/1000.f)*60.f/100.f;
+
+  if(dx==0.f && dz==0.f) {
+    setAnimRotate(0);
+    return false;
+    }
+
+  float a  = angleDir(dx,dz);
+  float da = a-angle;
+
+  if(noAnim || std::cos(double(da)*M_PI/180.0)>0) {
+    if(float(std::abs(int(da)%180))<=step) {
+      setAnimRotate(0);
+      setDirection(a);
+      return false;
+      }
+    } else {
+    visual.stopWalkAnim(*this);
+    }
+
+  const auto sgn = std::sin(double(da)*M_PI/180.0);
+  if(sgn<0) {
+    setAnimRotate( 1);
+    setDirection(angle-step);
+    } else
+  if(sgn>0) {
+    setAnimRotate(-1);
+    setDirection(angle+step);
+    } else {
+    setAnimRotate(0);
+    }
+  return true;
   }
 
 bool Npc::checkGoToNpcdistance(const Npc &other) {

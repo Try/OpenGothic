@@ -146,7 +146,7 @@ void PlayerControl::onRotateMouse(float dAngle) {
 
 void PlayerControl::onRotateMouseDy(float dAngle) {
   dAngle = std::max(-100.f,std::min(dAngle,100.f));
-  rotMouseY += dAngle*0.4f;
+  rotMouseY += dAngle*0.2f;
   }
 
 void PlayerControl::tickFocus() {
@@ -425,6 +425,7 @@ void PlayerControl::implMove(uint64_t dt) {
   pl.setDirectionY(rotY);
   if(pl.isFaling() || pl.isSlide() || pl.isInAir()){
     pl.setDirection(rot);
+    runAngleDest = 0;
     return;
     }
 
@@ -597,19 +598,10 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     pl.setAnim(ani);
     }
+
   setAnimRotate(pl, rot, ani==Npc::Anim::Idle ? rotation : 0, ctrl[KeyCodec::RotateL] || ctrl[KeyCodec::RotateR], dt);
   if(actrl[ActGeneric] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.isFinishingMove()) {
-    if(auto other = pl.target()) {
-      if(pl.weaponState()==WeaponState::NoWeapon || other->isDown() || pl.isFinishingMove()){
-        pl.setTarget(nullptr);
-        } else {
-        float dx = other->position().x-pl.position().x;
-        float dz = other->position().z-pl.position().z;
-        // pl.lookAt(dx,dz,false,dt);
-        pl.setDirection(dx,0,dz);
-        rot = pl.rotation();
-        }
-      }
+    processAutoRotate(pl,rot,dt);
     }
 
   if(ani==Npc::Anim::Move && (rotation!=0 || rotY!=0)) {
@@ -662,4 +654,23 @@ void PlayerControl::setAnimRotate(Npc& pl, float rotation, int anim, bool force,
   turnAniSmooth = wrld.tickCount() + 150;
   rotationAni   = anim;
   pl.setAnimRotate(anim);
+  }
+
+void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
+  if(auto other = pl.target()) {
+    if(pl.weaponState()==WeaponState::NoWeapon || other->isDown() || pl.isFinishingMove()){
+      pl.setTarget(nullptr);
+      }
+    else if(!pl.isAtack()) {
+      float dx = other->position().x-pl.position().x;
+      float dz = other->position().z-pl.position().z;
+
+      auto  gl   = pl.guild();
+      float step = float(pl.world().script().guildVal().turn_speed[gl]);
+      if(actrl[ActGeneric])
+        step*=2.f;
+      pl.rotateTo(dx,dz,step,false,dt);
+      rot = pl.rotation();
+      }
+    }
   }

@@ -417,7 +417,8 @@ class Npc final {
     Item*     currentRangeWeapon();
     auto      mapWeaponBone() const -> Tempest::Vec3;
 
-    bool      lookAt(float dx, float dz, bool anim, uint64_t dt);
+    bool      lookAt  (float dx, float dz, bool anim, uint64_t dt);
+    bool      rotateTo(float dx, float dz, float speed, bool anim, uint64_t dt);
     auto      playAnimByName(const Daedalus::ZString& name, bool forceAnim, BodyState bs) -> const Animation::Sequence*;
 
     bool      checkGoToNpcdistance(const Npc& other);
