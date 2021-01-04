@@ -24,7 +24,7 @@ class WorldView {
     WorldView(const World &world, const PackedMesh& wmesh, const RendererStorage& storage);
     ~WorldView();
 
-    void initPipeline(uint32_t w, uint32_t h);
+    void setViewport(uint32_t w, uint32_t h);
 
     Tempest::Matrix4x4        viewProj(const Tempest::Matrix4x4 &view) const;
     const Tempest::Matrix4x4& projective() const { return proj; }
@@ -44,7 +44,7 @@ class WorldView {
     void drawGBuffer  (Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
     void drawMain     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
     void drawLights   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
-    void resetCmd     ();
+    void setupUbo     ();
 
     LightGroup::Light   getLight     ();
     LightGroup::Light   getLight     (const ZenLoad::zCVobData& vob);

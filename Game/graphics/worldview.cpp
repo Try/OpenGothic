@@ -23,11 +23,11 @@ WorldView::~WorldView() {
   storage.device.waitIdle();
   }
 
-void WorldView::initPipeline(uint32_t w, uint32_t h) {
+void WorldView::setViewport(uint32_t w, uint32_t h) {
   proj.perspective(45.0f, float(w)/float(h), 0.05f, 100.0f);
   vpWidth  = w;
   vpHeight = h;
-  resetCmd();
+  setupUbo();
   }
 
 Matrix4x4 WorldView::viewProj(const Matrix4x4 &view) const {
@@ -108,8 +108,7 @@ void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffus
 
   // wait before update all descriptors
   sGlobal.storage.device.waitIdle();
-  sGlobal.lights.setupUbo();
-  visuals.setupUbo();
+  setupUbo();
   }
 
 void WorldView::dbgLights(Painter& p) const {
@@ -207,8 +206,8 @@ void WorldView::updateLight() {
   visuals.setDayNight(std::min(std::max(pulse*3.f,0.f),1.f));
   }
 
-void WorldView::resetCmd() {
+void WorldView::setupUbo() {
   // cmd buffers must not be in use
-  visuals.setupUbo();
   sGlobal.lights.setupUbo();
+  visuals.setupUbo();
   }

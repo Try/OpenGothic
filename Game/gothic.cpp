@@ -140,7 +140,7 @@ void Gothic::setGame(std::unique_ptr<GameSession> &&w) {
 
 std::unique_ptr<GameSession> Gothic::clearGame() {
   if(game)
-    game->view()->resetCmd();
+    game->view()->setupUbo();
   return std::move(game);
   }
 

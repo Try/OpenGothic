@@ -56,9 +56,9 @@ void Renderer::resetSwapchain() {
   zbuffer        = device.zbuffer   (zBufferFormat,w,h);
   zbufferItem    = device.zbuffer   (zBufferFormat,w,h);
   shadowMapFinal = device.attachment(shadowFormat,smSize,smSize);
+  shadowPass     = device.pass(FboMode(FboMode::PreserveOut,Color(1.0)), FboMode(FboMode::Discard,1.f));
 
-  shadowPass = device.pass(FboMode(FboMode::PreserveOut,Color(1.0)), FboMode(FboMode::Discard,1.f));
-  for(int i=0;i<2;++i){
+  for(int i=0; i<2; ++i){
     shadowMap[i] = device.attachment (shadowFormat, smSize,smSize);
     shadowZ[i]   = device.zbuffer    (zBufferFormat,smSize,smSize);
     fboShadow[i] = device.frameBuffer(shadowMap[i],shadowZ[i]);
@@ -87,7 +87,7 @@ void Renderer::resetSwapchain() {
   if(auto wview=gothic.worldView()) {
     wview->setFrameGlobals(Resources::fallbackBlack(),0,0);
     wview->setGbuffer(Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack());
-    wview->initPipeline(w,h);
+    wview->setViewport(w,h);
     }
 
   Sampler2d smp = Sampler2d::nearest();
@@ -114,7 +114,7 @@ void Renderer::resetSwapchain() {
 void Renderer::onWorldChanged() {
   if(auto wview=gothic.worldView()){
     if(zbuffer.w()>0 && zbuffer.h()>0)
-      wview->initPipeline(uint32_t(zbuffer.w()),uint32_t(zbuffer.h()));
+      wview->setViewport(uint32_t(zbuffer.w()),uint32_t(zbuffer.h()));
     }
   }
 
@@ -195,7 +195,7 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   FrameBuffer fboC = device.frameBuffer(img);
 
   if(auto wview = gothic.worldView())
-    wview->resetCmd();
+    wview->setupUbo();
 
   CommandBuffer cmd;
   {
@@ -210,7 +210,7 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   sync.wait();
 
   if(auto wview = gothic.worldView())
-    wview->resetCmd();
+    wview->setupUbo();
 
   return img;
   }
