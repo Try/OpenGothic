@@ -1,146 +1,53 @@
-#include "pfxobjects.h"
-#include "sceneglobals.h"
-
-#include <Tempest/Log>
-#include <cstring>
-#include <cassert>
+#include "pfxbucket.h"
 
 #include "graphics/mesh/submesh/pfxemittermesh.h"
-#include "graphics/mesh/pose.h"
-#include "graphics/mesh/skeleton.h"
-#include "graphics/dynamic/painter3d.h"
-#include "world/world.h"
+#include "pfxobjects.h"
 #include "particlefx.h"
-#include "lightsource.h"
-#include "rendererstorage.h"
 
 using namespace Tempest;
 
-std::mt19937 PfxObjects::rndEngine;
+static void     rotate(Vec3& rx, Vec3& ry,float a,const Vec3& x, const Vec3& y){
+  const float c = std::cos(a);
+  const float s = std::sin(a);
 
-PfxObjects::Emitter::Emitter(PfxObjects::Bucket& b, size_t id)
-  :bucket(&b), id(id) {
+  rx.x = x.x*c - y.x*s;
+  rx.y = x.y*c - y.y*s;
+  rx.z = x.z*c - y.z*s;
+
+  ry.x = x.x*s + y.x*c;
+  ry.y = x.y*s + y.y*c;
+  ry.z = x.z*s + y.z*c;
   }
 
-PfxObjects::Emitter::~Emitter() {
-  if(bucket!=nullptr) {
-    std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
-    auto& p  = bucket->impl[id];
-    p.alive  = false;
-    p.active = false;
-    p.next.reset();
-    }
-  }
-
-PfxObjects::Emitter::Emitter(PfxObjects::Emitter && b)
-  :bucket(b.bucket), id(b.id) {
-  b.bucket = nullptr;
-  }
-
-PfxObjects::Emitter &PfxObjects::Emitter::operator=(PfxObjects::Emitter &&b) {
-  std::swap(bucket,b.bucket);
-  std::swap(id,b.id);
-  return *this;
-  }
-
-void PfxObjects::Emitter::setPosition(float x, float y, float z) {
-  setPosition(Vec3(x,y,z));
-  }
-
-void PfxObjects::Emitter::setPosition(const Vec3& pos) {
-  if(bucket==nullptr)
-    return;
-  std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
-  auto& v = bucket->impl[id];
-  v.pos = pos;
-  if(v.next!=nullptr)
-    v.next->setPosition(pos);
-  if(bucket->impl[id].block==size_t(-1))
-    return; // no backup memory
-  auto& p = bucket->getBlock(*this);
-  p.pos = pos;
-  }
-
-void PfxObjects::Emitter::setTarget(const Vec3& pos) {
-  if(bucket==nullptr)
-    return;
-  std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
-  auto& p     = bucket->impl[id];
-  p.target    = pos;
-  p.hasTarget = true;
-  }
-
-void PfxObjects::Emitter::setDirection(const Matrix4x4& d) {
-  if(bucket==nullptr)
-    return;
-  std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
-  auto& v = bucket->impl[id];
-  v.direction[0] = Vec3(d.at(0,0),d.at(0,1),d.at(0,2));
-  v.direction[1] = Vec3(d.at(1,0),d.at(1,1),d.at(1,2));
-  v.direction[2] = Vec3(d.at(2,0),d.at(2,1),d.at(2,2));
-
-  if(v.next!=nullptr)
-    v.next->setDirection(d);
-
-  if(bucket->impl[id].block==size_t(-1))
-    return; // no backup memory
-  auto& p = bucket->getBlock(*this);
-  p.direction[0] = v.direction[0];
-  p.direction[1] = v.direction[1];
-  p.direction[2] = v.direction[2];
-  }
-
-void PfxObjects::Emitter::setActive(bool act) {
-  if(bucket==nullptr)
-    return;
-  std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
-  auto& v = bucket->impl[id];
-  if(act==v.active)
-    return;
-  v.active = act;
-  if(v.next!=nullptr)
-    v.next->setActive(act);
-  if(act==true)
-    v.waitforNext = bucket->owner->ppsCreateEmDelay;
-  }
-
-bool PfxObjects::Emitter::isActive() const {
-  if(bucket==nullptr)
-    return false;
-  std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
-  return bucket->impl[id].active;
-  }
-
-void PfxObjects::Emitter::setLooped(bool loop) {
-  if(bucket==nullptr)
-    return;
-  std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
-  auto& v = bucket->impl[id];
-  v.isLoop = loop;
-  if(v.next!=nullptr)
-    v.next->setLooped(loop);
-  }
-
-uint64_t PfxObjects::Emitter::effectPrefferedTime() const {
-  if(bucket==nullptr)
+static uint64_t ppsDiff(const ParticleFx& decl, bool loop, uint64_t time0, uint64_t time1) {
+  if(time1<=time0)
     return 0;
-  return bucket->owner->effectPrefferedTime();
+  if(!loop) {
+    time0 = std::min(decl.prefferedTime,time0);
+    time1 = std::min(decl.prefferedTime,time1);
+    }
+  const float pps     = decl.ppsScale(time1)*decl.ppsValue;
+  uint64_t    emitted0 = uint64_t(pps*float(time0)/1000.f);
+  uint64_t    emitted1 = uint64_t(pps*float(time1)/1000.f);
+  return emitted1-emitted0;
   }
 
-void PfxObjects::Emitter::setObjMatrix(const Matrix4x4 &mt) {
-  setPosition (mt.at(3,0),mt.at(3,1),mt.at(3,2));
-  setDirection(mt);
+float PfxBucket::ParState::lifeTime() const {
+  return 1.f-life/float(maxLife);
   }
 
-PfxObjects::Bucket::Bucket(const ParticleFx &ow, PfxObjects *parent)
-  :owner(&ow), parent(parent) {
+std::mt19937 PfxBucket::rndEngine;
+
+
+PfxBucket::PfxBucket(const ParticleFx &ow, PfxObjects* parent, VisualObjects& visual)
+  :owner(&ow), parent(parent), visual(visual) {
   Bounds bbox;
   bbox.assign(Vec3(0,0,0),1000000); //TODO
 
   const Tempest::VertexBuffer<Resources::Vertex>* vbo[Resources::MaxFramesInFlight] = {};
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i)
     vbo[i] = &vboGpu[i];
-  item = parent->visual.get(vbo,owner->visMaterial,bbox);
+  item = visual.get(vbo,owner->visMaterial,bbox);
 
   Matrix4x4 ident;
   ident.identity();
@@ -154,7 +61,10 @@ PfxObjects::Bucket::Bucket(const ParticleFx &ow, PfxObjects *parent)
     blockSize=1;
   }
 
-bool PfxObjects::Bucket::isEmpty() const {
+PfxBucket::~PfxBucket() {
+  }
+
+bool PfxBucket::isEmpty() const {
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
     if(vboGpu[i].size()>0)
       return false;
@@ -162,7 +72,7 @@ bool PfxObjects::Bucket::isEmpty() const {
   return impl.size()==0;
   }
 
-size_t PfxObjects::Bucket::allocBlock() {
+size_t PfxBucket::allocBlock() {
   for(size_t i=0;i<block.size();++i) {
     if(!block[i].alive) {
       block[i].alive=true;
@@ -183,7 +93,7 @@ size_t PfxObjects::Bucket::allocBlock() {
   return block.size()-1;
   }
 
-void PfxObjects::Bucket::freeBlock(size_t& i) {
+void PfxBucket::freeBlock(size_t& i) {
   if(i==size_t(-1))
     return;
   auto& b = block[i];
@@ -192,7 +102,7 @@ void PfxObjects::Bucket::freeBlock(size_t& i) {
   i = size_t(-1);
   }
 
-PfxObjects::Block &PfxObjects::Bucket::getBlock(PfxObjects::ImplEmitter &e) {
+PfxBucket::Block& PfxBucket::getBlock(ImplEmitter &e) {
   if(e.block==size_t(-1)) {
     e.block        = allocBlock();
     auto& p        = block[e.block];
@@ -204,11 +114,11 @@ PfxObjects::Block &PfxObjects::Bucket::getBlock(PfxObjects::ImplEmitter &e) {
   return block[e.block];
   }
 
-PfxObjects::Block &PfxObjects::Bucket::getBlock(PfxObjects::Emitter &e) {
+PfxBucket::Block& PfxBucket::getBlock(PfxObjects::Emitter &e) {
   return getBlock(impl[e.id]);
   }
 
-size_t PfxObjects::Bucket::allocEmitter() {
+size_t PfxBucket::allocEmitter() {
   for(size_t i=0; i<impl.size(); ++i) {
     auto& b = impl[i];
     if(!b.alive && b.block==size_t(-1)) {
@@ -224,7 +134,15 @@ size_t PfxObjects::Bucket::allocEmitter() {
   return impl.size()-1;
   }
 
-bool PfxObjects::Bucket::shrink() {
+void PfxBucket::freeEmitter(size_t& id) {
+  auto& v = impl[id];
+  v.alive  = false;
+  v.active = false;
+  v.next.reset();
+  id = size_t(-1);
+  }
+
+bool PfxBucket::shrink() {
   while(impl.size()>0) {
     auto& b = impl.back();
     if(b.alive || b.block!=size_t(-1))
@@ -245,7 +163,15 @@ bool PfxObjects::Bucket::shrink() {
   return false;
   }
 
-void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
+float PfxBucket::randf() {
+  return float(rndEngine()%10000)/10000.f;
+  }
+
+float PfxBucket::randf(float base, float var) {
+  return (2.f*randf()-1.f)*var + base;
+  }
+
+void PfxBucket::init(PfxBucket::Block& emitter, size_t particle) {
   auto& p   = particles[particle];
   auto& pfx = *owner;
 
@@ -406,14 +332,14 @@ void PfxObjects::Bucket::init(PfxObjects::Block& emitter, size_t particle) {
     p.pos += emitter.pos;
   }
 
-void PfxObjects::Bucket::finalize(size_t particle) {
+void PfxBucket::finalize(size_t particle) {
   Vertex* v = &vboCpu[particle*6];
   std::memset(v,0,sizeof(*v)*6);
   auto& p = particles[particle];
   p = {};
   }
 
-void PfxObjects::Bucket::tick(Block& sys, ImplEmitter& emitter, size_t particle, uint64_t dt) {
+void PfxBucket::tick(Block& sys, ImplEmitter& emitter, size_t particle, uint64_t dt) {
   ParState& ps = particles[particle+sys.offset];
   if(ps.life==0)
     return;
@@ -461,166 +387,16 @@ void PfxObjects::Bucket::tick(Block& sys, ImplEmitter& emitter, size_t particle,
   ps.dir  += pfx.flyGravity*dtF;
   }
 
-float PfxObjects::ParState::lifeTime() const {
-  return 1.f-life/float(maxLife);
-  }
-
-
-PfxObjects::PfxObjects(const SceneGlobals& scene, VisualObjects& visual)
-  :scene(scene), visual(visual) {
-  }
-
-PfxObjects::~PfxObjects() {
-  }
-
-PfxObjects::Emitter PfxObjects::get(const ParticleFx &decl) {
-  if(decl.visMaterial.tex==nullptr)
-    return Emitter();
-  std::lock_guard<std::recursive_mutex> guard(sync);
-  auto&  b = getBucket(decl);
-  size_t e = b.allocEmitter();
-  return Emitter(b,e);
-  }
-
-PfxObjects::Emitter PfxObjects::get(const ZenLoad::zCVobData& vob) {
-  Material mat(vob);
-
-  std::lock_guard<std::recursive_mutex> guard(sync);
-  auto&  b = getBucket(mat,vob);
-  size_t e = b.allocEmitter();
-  return Emitter(b,e);
-  }
-
-void PfxObjects::setViewerPos(const Vec3& pos) {
-  viewePos = pos;
-  }
-
-void PfxObjects::resetTicks() {
-  lastUpdate = size_t(-1);
-  }
-
-void PfxObjects::tick(uint64_t ticks) {
-  static bool disabled = false;
-  if(disabled)
-    return;
-
-  if(lastUpdate>ticks) {
-    lastUpdate = ticks;
-    return;
-    }
-
-  uint64_t dt = ticks-lastUpdate;
-  if(dt==0)
-    return;
-
-  VboContext ctx;
-  const auto& m = scene.viewProject();
-  ctx.left.x = m.at(0,0);
-  ctx.left.y = m.at(1,0);
-  ctx.left.z = m.at(2,0);
-
-  ctx.top.x  = m.at(0,1);
-  ctx.top.y  = m.at(1,1);
-  ctx.top.z  = m.at(2,1);
-
-  ctx.z.x    = m.at(0,2);
-  ctx.z.y    = m.at(1,2);
-  ctx.z.z    = m.at(2,2);
-
-  ctx.left/=ctx.left.manhattanLength();
-  ctx.top /=ctx.top.manhattanLength();
-  ctx.z   /=ctx.z.manhattanLength();
-
-  ctx.leftA.x = ctx.left.x;
-  ctx.leftA.z = ctx.left.z;
-  ctx.topA.y  = -1;
-
-  for(size_t i=0; i<bucket.size(); ++i)
-    tickSys(*bucket[i],dt);
-
-  for(auto& i:bucket)
-    buildVbo(*i,ctx);
-
-  lastUpdate = ticks;
-  }
-
-void PfxObjects::preFrameUpdate(uint8_t fId) {
-  for(size_t i=0; i<bucket.size(); ) {
-    if(bucket[i]->isEmpty()) {
-      bucket[i] = std::move(bucket.back());
-      bucket.pop_back();
-      } else {
-      ++i;
-      }
-    }
-
-  auto& device = scene.storage.device;
-  for(auto& pi:bucket) {
-    auto& i=*pi;
-    auto& vbo = i.vboGpu[fId];
-    if(i.vboCpu.size()!=vbo.size())
-      vbo = device.vboDyn(i.vboCpu); else
-      vbo.update(i.vboCpu);
-    }
-  }
-
-float PfxObjects::randf() {
-  return float(rndEngine()%10000)/10000.f;
-  }
-
-float PfxObjects::randf(float base, float var) {
-  return (2.f*randf()-1.f)*var + base;
-  }
-
-PfxObjects::Bucket &PfxObjects::getBucket(const ParticleFx &ow) {
-  for(auto& i:bucket)
-    if(i->owner==&ow)
-      return *i;
-  bucket.emplace_back(new Bucket(ow,this));
-  return *bucket.back();
-  }
-
-PfxObjects::Bucket& PfxObjects::getBucket(const Material& mat, const ZenLoad::zCVobData& vob) {
-  for(auto& i:spriteEmit)
-    if(i.pfx->visMaterial==mat &&
-       i.visualCamAlign==vob.visualCamAlign &&
-       i.zBias==vob.zBias &&
-       i.decalDim==vob.visualChunk.zCDecal.decalDim) {
-      return getBucket(*i.pfx);
-      }
-  spriteEmit.emplace_back();
-  auto& e = spriteEmit.back();
-
-  e.visualCamAlign = vob.visualCamAlign;
-  e.zBias          = vob.zBias;
-  e.decalDim       = vob.visualChunk.zCDecal.decalDim;
-  e.pfx.reset(new ParticleFx(mat,vob));
-  return getBucket(*e.pfx);
-  }
-
-static uint64_t ppsDiff(const ParticleFx& decl, bool loop, uint64_t time0, uint64_t time1) {
-  if(time1<=time0)
-    return 0;
-  if(!loop) {
-    time0 = std::min(decl.prefferedTime,time0);
-    time1 = std::min(decl.prefferedTime,time1);
-    }
-  const float pps     = decl.ppsScale(time1)*decl.ppsValue;
-  uint64_t    emitted0 = uint64_t(pps*float(time0)/1000.f);
-  uint64_t    emitted1 = uint64_t(pps*float(time1)/1000.f);
-  return emitted1-emitted0;
-  }
-
-void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
+void PfxBucket::tick(uint64_t dt, const Vec3& viewPos) {
   bool doShrink = false;
-  for(auto& emitter:b.impl) {
-    const auto dp      = emitter.pos-viewePos;
+  for(auto& emitter:impl) {
+    const auto dp      = emitter.pos-viewPos;
     const bool active  = emitter.active;
     const bool nearby  = (dp.quadLength()<4000*4000);
     const bool process = active && nearby;
 
-    if(emitter.next==nullptr && b.owner->ppsCreateEm!=nullptr && emitter.waitforNext<dt && emitter.active) {
-      emitter.next.reset(new Emitter(get(*b.owner->ppsCreateEm)));
+    if(emitter.next==nullptr && owner->ppsCreateEm!=nullptr && emitter.waitforNext<dt && emitter.active) {
+      emitter.next.reset(new PfxObjects::Emitter(parent->get(*owner->ppsCreateEm)));
       auto& e = *emitter.next;
       e.setPosition(emitter.pos.x,emitter.pos.y,emitter.pos.z);
       e.setActive(true);
@@ -634,42 +410,41 @@ void PfxObjects::tickSys(PfxObjects::Bucket &b, uint64_t dt) {
       continue;
       }
 
-    auto& p = b.getBlock(emitter);
-
+    auto& p = getBlock(emitter);
     if(p.count>0) {
-      for(size_t i=0;i<b.blockSize;++i)
-        b.tick(p,emitter,i,dt);
+      for(size_t i=0;i<blockSize;++i)
+        tick(p,emitter,i,dt);
       if(p.count==0 && !process) {
         // free mem
-        b.freeBlock(emitter.block);
+        freeBlock(emitter.block);
         doShrink = true;
         continue;
         }
       }
 
-    if(b.owner->ppsValue<0) {
-      tickSysEmit(b,p,p.count==0 ? 1 : 0);
+    if(owner->ppsValue<0) {
+      tickEmit(p,p.count==0 ? 1 : 0);
       }
     else if(active && nearby) {
-      auto dE = ppsDiff(*b.owner,emitter.isLoop,p.timeTotal,p.timeTotal+dt);
-      tickSysEmit(b,p,dE);
+      auto dE = ppsDiff(*owner,emitter.isLoop,p.timeTotal,p.timeTotal+dt);
+      tickEmit(p,dE);
       }
     p.timeTotal+=dt;
     }
 
   if(doShrink)
-    b.shrink();
+    shrink();
   }
 
-void PfxObjects::tickSysEmit(PfxObjects::Bucket& b, PfxObjects::Block& p, uint64_t emited) {
+void PfxBucket::tickEmit(Block& p, uint64_t emited) {
   size_t lastI = 0;
   for(size_t id=1; emited>0; ++id) {
-    const size_t i  = id%b.blockSize;
-    ParState&    ps = b.particles[i+p.offset];
+    const size_t i  = id%blockSize;
+    ParState&    ps = particles[i+p.offset];
     if(ps.life==0) { // free slot
       --emited;
       lastI = i;
-      b.init(p,i+p.offset);
+      init(p,i+p.offset);
       if(ps.life==0)
         continue;
       p.count++;
@@ -681,24 +456,11 @@ void PfxObjects::tickSysEmit(PfxObjects::Bucket& b, PfxObjects::Block& p, uint64
     }
   }
 
-static void rotate(Vec3& rx, Vec3& ry,float a,const Vec3& x, const Vec3& y){
-  const float c = std::cos(a);
-  const float s = std::sin(a);
-
-  rx.x = x.x*c - y.x*s;
-  rx.y = x.y*c - y.y*s;
-  rx.z = x.z*c - y.z*s;
-
-  ry.x = x.x*s + y.x*c;
-  ry.y = x.y*s + y.y*c;
-  ry.z = x.z*s + y.z*c;
-  }
-
-void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
+void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
   static const float dx[6] = {-0.5f, 0.5f, -0.5f,  0.5f,  0.5f, -0.5f};
   static const float dy[6] = { 0.5f, 0.5f, -0.5f,  0.5f, -0.5f, -0.5f};
 
-  auto& pfx             = *b.owner;
+  auto& pfx             = *owner;
   auto  colorS          = pfx.visTexColorStart;
   auto  colorE          = pfx.visTexColorEnd;
   auto  visSizeStart    = pfx.visSizeStart;
@@ -710,13 +472,13 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
   const Vec3& left = pfx.visYawAlign ? ctx.leftA : ctx.left;
   const Vec3& top  = pfx.visYawAlign ? ctx.topA  : ctx.top;
 
-  for(auto& p:b.block) {
+  for(auto& p:block) {
     if(p.count==0)
       continue;
 
-    for(size_t i=0;i<b.blockSize;++i) {
-      ParState& ps = b.particles[i+p.offset];
-      Vertex*   v  = &b.vboCpu[(p.offset+i)*6];
+    for(size_t i=0;i<blockSize;++i) {
+      ParState& ps = particles[i+p.offset];
+      Vertex*   v  = &vboCpu[(p.offset+i)*6];
 
       if(ps.life==0) {
         std::memset(v,0,6*sizeof(*v));
@@ -768,7 +530,7 @@ void PfxObjects::buildVbo(PfxObjects::Bucket &b, const VboContext& ctx) {
         float sy = l.y*dx[i]*szX + t.y*dy[i]*szY;
         float sz = l.z*dx[i]*szX + t.z*dy[i]*szY;
 
-        if(b.owner->useEmittersFOR) {
+        if(pfx.useEmittersFOR) {
           v[i].pos[0] = p.pos.x + ps.pos.x + sx;
           v[i].pos[1] = p.pos.y + ps.pos.y + sy;
           v[i].pos[2] = p.pos.z + ps.pos.z + sz;

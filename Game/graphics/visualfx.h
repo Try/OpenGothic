@@ -4,7 +4,7 @@
 #include <Tempest/Point>
 
 #include "game/constants.h"
-#include "pfxobjects.h"
+#include "graphics/pfx/pfxobjects.h"
 
 class World;
 

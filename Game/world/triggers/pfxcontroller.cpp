@@ -1,7 +1,7 @@
 #include "pfxcontroller.h"
 
 #include "world/world.h"
-#include "graphics/particlefx.h"
+#include "graphics/pfx/particlefx.h"
 
 #include "game/serialize.h"
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "abstracttrigger.h"
-#include "graphics/pfxobjects.h"
+#include "graphics/pfx/pfxobjects.h"
 
 class World;
 

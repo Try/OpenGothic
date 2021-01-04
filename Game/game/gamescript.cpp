@@ -694,7 +694,7 @@ const VisualFx* GameScript::getVisualFx(const char* name) {
   return owner.loadVisualFx(name);
   }
 
-const ParticleFx *GameScript::getParticleFx(const char *symbol) {
+const ParticleFx* GameScript::getParticleFx(const char *symbol) {
   return owner.loadParticleFx(symbol);
   }
 

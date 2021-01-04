@@ -58,6 +58,15 @@ const char* VisualFx::colDyn() const {
   }
 
 PfxObjects::Emitter VisualFx::visual(World& owner) const {
+  if(fx.visName_S=="time.slw" ||
+     fx.visName_S=="morph.fov") {
+    return PfxObjects::Emitter();
+    }
+  if(fx.visName_S=="earthquake.eqk") {
+
+    return PfxObjects::Emitter();
+    }
+
   const ParticleFx* pfx = owner.script().getParticleFx(fx.visName_S.c_str());
   if(pfx==nullptr)
     return PfxObjects::Emitter();

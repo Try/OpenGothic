@@ -1,7 +1,7 @@
 #pragma once
 
+#include "graphics/pfx/pfxobjects.h"
 #include "graphics/meshobjects.h"
-#include "graphics/pfxobjects.h"
 #include "graphics/mdlvisual.h"
 #include "physics/physicmesh.h"
 #include "vob.h"

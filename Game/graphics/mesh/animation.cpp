@@ -7,7 +7,7 @@
 #include <zenload/zCModelPrototype.h>
 #include <zenload/zenParser.h>
 
-#include "graphics/particlefx.h"
+#include "graphics/pfx/particlefx.h"
 #include "world/world.h"
 #include "world/npc.h"
 #include "resources.h"

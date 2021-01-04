@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pfxobjects.h"
+#include "graphics/pfx/pfxobjects.h"
 #include "game/constants.h"
 
 class VisualFx;

@@ -18,7 +18,7 @@
 #include "game/constants.h"
 #include "game/aistate.h"
 #include "game/questlog.h"
-#include "graphics/pfxobjects.h"
+#include "graphics/pfx/pfxobjects.h"
 #include "ui/documentmenu.h"
 
 class Gothic;

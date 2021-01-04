@@ -1,12 +1,12 @@
 #pragma once
 
-#include "material.h"
-
 #include <daedalus/DaedalusStdlib.h>
 #include <Tempest/RenderState>
 #include <zenload/zTypes.h>
 
 #include <Tempest/Texture2d>
+
+#include "graphics/material.h"
 
 class PfxEmitterMesh;
 

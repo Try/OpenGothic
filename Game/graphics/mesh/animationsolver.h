@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "graphics/meshobjects.h"
-#include "graphics/pfxobjects.h"
+#include "graphics/pfx/pfxobjects.h"
 #include "world/gsoundeffect.h"
 #include "game/inventory.h"
 #include "game/constants.h"

@@ -4,8 +4,8 @@
 #include <Tempest/Matrix4x4>
 
 #include "graphics/mesh/animationsolver.h"
+#include "graphics/pfx/pfxobjects.h"
 #include "game/constants.h"
-#include "pfxobjects.h"
 #include "meshobjects.h"
 #include "effect.h"
 

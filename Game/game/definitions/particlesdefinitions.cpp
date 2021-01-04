@@ -2,7 +2,7 @@
 
 #include <Tempest/Log>
 
-#include "graphics/particlefx.h"
+#include "graphics/pfx/particlefx.h"
 #include "utils/fileext.h"
 #include "gothic.h"
 

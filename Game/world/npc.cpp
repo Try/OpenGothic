@@ -7,8 +7,8 @@
 
 #include "graphics/mesh/skeleton.h"
 #include "graphics/mesh/animmath.h"
+#include "graphics/pfx/particlefx.h"
 #include "graphics/visualfx.h"
-#include "graphics/particlefx.h"
 #include "game/damagecalculator.h"
 #include "game/serialize.h"
 #include "game/gamescript.h"

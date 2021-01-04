@@ -4,9 +4,9 @@
 
 #include "physics/dynamicworld.h"
 
-#include "graphics/effect.h"
+#include "graphics/pfx/pfxobjects.h"
 #include "graphics/meshobjects.h"
-#include "graphics/pfxobjects.h"
+#include "graphics/effect.h"
 
 class World;
 class Item;

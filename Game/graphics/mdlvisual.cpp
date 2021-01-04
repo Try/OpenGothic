@@ -1,6 +1,6 @@
 #include "mdlvisual.h"
-#include "particlefx.h"
 
+#include "graphics/pfx/particlefx.h"
 #include "graphics/mesh/skeleton.h"
 #include "game/serialize.h"
 #include "world/npc.h"
