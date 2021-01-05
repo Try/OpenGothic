@@ -46,7 +46,7 @@ class WorldObjects final {
 
     void           load(Serialize& fout);
     void           save(Serialize& fout);
-    void           tick(uint64_t dt);
+    void           tick(uint64_t dt, uint64_t dtPlayer);
 
     uint32_t       npcId(const Npc *ptr) const;
     uint32_t       itmId(const void* ptr) const;

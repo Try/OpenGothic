@@ -27,6 +27,7 @@ class RendererStorage;
 class Focus;
 class WayMatrix;
 class VisualFx;
+class GlobalEffects;
 class ParticleFx;
 class Interactive;
 class VersionInfo;
@@ -37,6 +38,7 @@ class World final {
     World(const World&)=delete;
     World(Gothic& gothic, GameSession &game, const RendererStorage& storage, std::string file, uint8_t isG2, std::function<void(int)> loadProgress);
     World(Gothic& gothic, GameSession &game, const RendererStorage& storage, Serialize& fin, uint8_t isG2, std::function<void(int)> loadProgress);
+    ~World();
 
     struct BspSector final {
       int32_t guild=GIL_NONE;
@@ -84,6 +86,7 @@ class World final {
     int32_t              guildOfRoom(const char* portalName);
 
     void                 runEffect(Effect&& e);
+    void                 runGlobalEffect(const Daedalus::ZString& what, uint64_t len, const Daedalus::ZString* argv, size_t argc);
 
     LightGroup::Light    getLight();
     LightGroup::Light    getLight(const ZenLoad::zCVobData& vob);
@@ -110,6 +113,7 @@ class World final {
     Npc*                 findNpcByInstance(size_t instance);
     auto                 roomAt(const Tempest::Vec3& arr) -> const std::string&;
 
+    void                 scaleTime(uint64_t& dt);
     void                 tick(uint64_t dt);
     uint64_t             tickCount() const;
     void                 setDayTime(int32_t h,int32_t min);
@@ -186,6 +190,7 @@ class World final {
 
     std::unique_ptr<DynamicWorld>         wdynamic;
     std::unique_ptr<WorldView>            wview;
+    std::unique_ptr<GlobalEffects>        globFx;
     WorldSound                            wsound;
     WorldObjects                          wobj;
     std::unique_ptr<Npc>                  lvlInspector;

@@ -127,15 +127,19 @@ void WorldObjects::save(Serialize &fout) {
     i.save(fout);
   }
 
-void WorldObjects::tick(uint64_t dt) {
+void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
   auto passive=std::move(sndPerc);
   sndPerc.clear();
 
   std::sort(npcArr.begin(),npcArr.end(),[](std::unique_ptr<Npc>& a, std::unique_ptr<Npc>& b){
     return a->handle()->id<b->handle()->id;
     });
-  for(size_t i=0; i<npcArr.size(); ++i)
-    npcArr[i]->tick(dt);
+  for(size_t i=0; i<npcArr.size(); ++i) {
+    auto& npc = *npcArr[i];
+    if(npc.isPlayer())
+      npc.tick(dtPlayer); else
+      npc.tick(dt);
+    }
 
   for(auto& i:routines) {
     auto s = i.stateByTime(owner.time());

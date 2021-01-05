@@ -14,6 +14,7 @@
 #include "world/npc.h"
 #include "world/item.h"
 #include "world/interactive.h"
+#include "game/globaleffects.h"
 #include "game/serialize.h"
 #include "gothic.h"
 #include "focus.h"
@@ -41,6 +42,8 @@ World::World(Gothic& gothic, GameSession& game,const RendererStorage &storage, s
   wdynamic.reset(new DynamicWorld(*this,*worldMesh));
   wview.reset   (new WorldView(*this,vmesh,storage));
   loadProgress(70);
+
+  globFx.reset(new GlobalEffects(*this));
 
   wmatrix.reset(new WayMatrix(*this,world.waynet));
   if(1){
@@ -75,6 +78,8 @@ World::World(Gothic& gothic, GameSession &game, const RendererStorage &storage,
   wview.reset   (new WorldView(*this,vmesh,storage));
   loadProgress(70);
 
+  globFx.reset(new GlobalEffects(*this));
+
   wmatrix.reset(new WayMatrix(*this,world.waynet));
   if(1){
     for(auto& vob:world.rootVobs)
@@ -85,6 +90,9 @@ World::World(Gothic& gothic, GameSession &game, const RendererStorage &storage,
   bspSectors.resize(bsp.sectors.size());
 
   loadProgress(100);
+  }
+
+World::~World() {
   }
 
 void World::createPlayer(const char *cls) {
@@ -160,6 +168,10 @@ Item *World::itmById(uint32_t id) {
 
 void World::runEffect(Effect&& e) {
   wobj.runEffect(std::move(e));
+  }
+
+void World::runGlobalEffect(const Daedalus::ZString& what, uint64_t len, const Daedalus::ZString* argv, size_t argc) {
+  globFx->start(what,len,argv,argc);
   }
 
 LightGroup::Light World::getLight() {
@@ -299,15 +311,20 @@ World::BspSector* World::portalAt(const std::string &tag) {
   return nullptr;
   }
 
+void World::scaleTime(uint64_t& dt) {
+  globFx->scaleTime(dt);
+  }
+
 void World::tick(uint64_t dt) {
   static bool doTicks=true;
   if(!doTicks)
     return;
-  wobj.tick(dt);
+  wobj.tick(dt,dt);
   wdynamic->tick(dt);
   wview->tick(dt);
   if(auto pl = player())
     wsound.tick(*pl);
+  globFx->tick(dt);
   }
 
 uint64_t World::tickCount() const {

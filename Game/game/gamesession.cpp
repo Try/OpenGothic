@@ -256,12 +256,14 @@ void GameSession::setTime(gtime t) {
   }
 
 void GameSession::tick(uint64_t dt) {
+  wrld->scaleTime(dt);
   ticks+=dt;
 
   uint64_t add = (dt+wrldTimePart)*multTime;
   wrldTimePart=add%divTime;
 
   wrldTime.addMilis(add/divTime);
+
   wrld->tick(dt);
   // std::this_thread::sleep_for(std::chrono::milliseconds(60));
 

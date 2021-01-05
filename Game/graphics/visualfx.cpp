@@ -58,21 +58,17 @@ const char* VisualFx::colDyn() const {
   }
 
 PfxObjects::Emitter VisualFx::visual(World& owner) const {
-  if(fx.visName_S=="time.slw" ||
-     fx.visName_S=="morph.fov") {
-    return PfxObjects::Emitter();
-    }
-  if(fx.visName_S=="earthquake.eqk") {
-
+  if(fx.visName_S=="time.slw"  ||
+     fx.visName_S=="morph.fov" ||
+     fx.visName_S=="earthquake.eqk") {
+    owner.runGlobalEffect(fx.visName_S,uint64_t(fx.emFXLifeSpan*1000.f),fx.userString,Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS);
     return PfxObjects::Emitter();
     }
 
   const ParticleFx* pfx = owner.script().getParticleFx(fx.visName_S.c_str());
   if(pfx==nullptr)
     return PfxObjects::Emitter();
-  auto vemitter = owner.getView(pfx);
-  // vemitter.setObjMatrix();
-  return vemitter;
+  return owner.getView(pfx);
   }
 
 const Daedalus::GEngineClasses::C_ParticleFXEmitKey& VisualFx::key(SpellFxKey type, int32_t keyLvl) const {

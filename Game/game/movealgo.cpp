@@ -763,7 +763,7 @@ void MoveAlgo::onMoveFailed() {
 
 float MoveAlgo::waterRay(float x, float y, float z) const {
   if(std::fabs(cacheW.x-x)>eps || std::fabs(cacheW.y-y)>eps || std::fabs(cacheW.z-z)>eps) {
-    reinterpret_cast<DynamicWorld::RayWaterResult&>(cacheW) = npc.world().physic()->waterRay(x,y,z);
+    static_cast<DynamicWorld::RayWaterResult&>(cacheW) = npc.world().physic()->waterRay(x,y,z);
     cacheW.x = x;
     cacheW.y = y;
     cacheW.z = z;
@@ -777,7 +777,7 @@ void MoveAlgo::rayMain(float x, float y, float z) const {
     float dy   = waterDepthChest()+100;  // 1 meter extra offset
     if(fallSpeed.y<0)
       dy = 0; // whole world
-    reinterpret_cast<DynamicWorld::RayLandResult&>(cache) = npc.world().physic()->landRay(x,y,z,dy);
+    static_cast<DynamicWorld::RayLandResult&>(cache) = npc.world().physic()->landRay(x,y,z,dy);
     cache.x = x;
     cache.y = y;
     cache.z = z;
