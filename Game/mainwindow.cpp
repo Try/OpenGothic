@@ -44,6 +44,8 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
   barMisc    = Resources::loadTexture("BAR_MISC.TGA");
   barMana    = Resources::loadTexture("BAR_MANA.TGA");
 
+  focusImg   = Resources::loadTexture("FOCUS_HIGHLIGHT.TGA");
+
   background = Resources::loadTexture("STARTSCREEN.TGA");
   loadBox    = Resources::loadTexture("PROGRESS.TGA");
   loadVal    = Resources::loadTexture("PROGRESS_BAR.TGA");
@@ -146,32 +148,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
       p.setBrush(Color(1.0));
 
       auto focus = world->validateFocus(player.focus());
-      if(focus && !dialogs.isActive()) {
-        auto pos = focus.displayPosition();
-        vp.project(pos.x,pos.y,pos.z);
-
-        int   ix = int((0.5f*pos.x+0.5f)*float(w()));
-        int   iy = int((0.5f*pos.y+0.5f)*float(h()));
-        auto& fnt = Resources::font();
-
-        auto tsize = fnt.textSize(focus.displayName());
-        ix-=tsize.w/2;
-        if(iy<tsize.h)
-          iy = tsize.h;
-        if(iy>h())
-          iy = h();
-        fnt.drawText(p, ix,iy,focus.displayName());
-
-        if(auto pl = focus.npc){
-          float hp = float(pl->attribute(Npc::ATR_HITPOINTS))/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
-          drawBar(p,barHp, w()/2,10, hp, AlignHCenter|AlignTop);
-          }
-
-        /*
-        if(auto pl = focus.interactive){
-          pl->marchInteractives(p,vp,w(),h());
-          }*/
-        }
+      paintFocus(p,focus,vp);
 
       // world->view()->dbgLights(p);
       if(auto pl=gothic.player()){
@@ -441,6 +418,97 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     clearInput();
     }
   player.onKeyReleased(act);
+  }
+
+void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp) {
+  if(!focus || dialogs.isActive())
+    return;
+
+  auto world = gothic.world();
+  auto pl    = world==nullptr ? nullptr : world->player();
+
+  auto pos = focus.displayPosition();
+  vp.project(pos.x,pos.y,pos.z);
+
+  int   ix = int((0.5f*pos.x+0.5f)*float(w()));
+  int   iy = int((0.5f*pos.y+0.5f)*float(h()));
+  auto& fnt = Resources::font();
+
+  auto tsize = fnt.textSize(focus.displayName());
+  ix-=tsize.w/2;
+  if(iy<tsize.h)
+    iy = tsize.h;
+  if(iy>h())
+    iy = h();
+  fnt.drawText(p,ix,iy,focus.displayName());
+
+  if(focus.npc!=nullptr) {
+    float hp = float(focus.npc->attribute(Npc::ATR_HITPOINTS))/float(focus.npc->attribute(Npc::ATR_HITPOINTSMAX));
+    drawBar(p,barHp, w()/2,10, hp, AlignHCenter|AlignTop);
+    }
+
+  const int foc = gothic.settingsGetI("GAME","highlightMeleeFocus");
+  if(focus.npc!=nullptr  &&
+     (foc==1 || foc==3) &&
+     player.isPressed(KeyCodec::ActionGeneric) &&
+     pl->weaponState()!=WeaponState::NoWeapon &&
+     pl->weaponState()!=WeaponState::Fist) {
+    auto b    = focus.npc->bounds();
+    Vec3 bx[] = {
+      {b.bboxTr[0].x,b.bboxTr[0].y,b.bboxTr[0].z},
+      {b.bboxTr[1].x,b.bboxTr[0].y,b.bboxTr[0].z},
+      {b.bboxTr[1].x,b.bboxTr[1].y,b.bboxTr[0].z},
+      {b.bboxTr[0].x,b.bboxTr[1].y,b.bboxTr[0].z},
+      {b.bboxTr[0].x,b.bboxTr[0].y,b.bboxTr[1].z},
+      {b.bboxTr[1].x,b.bboxTr[0].y,b.bboxTr[1].z},
+      {b.bboxTr[1].x,b.bboxTr[1].y,b.bboxTr[1].z},
+      {b.bboxTr[0].x,b.bboxTr[1].y,b.bboxTr[1].z},
+      };
+    int min[2]={ix,iy-20}, max[2]={ix,iy-20};
+    for(int i=0; i<8; ++i) {
+      vp.project(bx[i]);
+      int x = int((bx[i].x*0.5f+0.5f)*float(w()));
+      int y = int((bx[i].y*0.5f+0.5f)*float(h()));
+      min[0] = std::min(x,min[0]);
+      min[1] = std::min(y,min[1]);
+      max[0] = std::max(x,max[0]);
+      max[1] = std::max(y,max[1]);
+      }
+
+    paintFocus(p,Rect(min[0],min[1],max[0]-min[0],max[1]-min[1]));
+    }
+
+  // focusImg
+  /*
+  if(auto pl = focus.interactive){
+    pl->marchInteractives(p,vp,w(),h());
+    }*/
+  }
+
+void MainWindow::paintFocus(Painter& p, Rect rect) {
+  if(focusImg==nullptr)
+    return;
+  const int w2 = focusImg->w();
+  const int h2 = focusImg->h();
+  const int w  = w2/2;
+  const int h  = h2/2;
+
+  if(rect.w<w) {
+    int dw = w-rect.w;
+    rect.x -= dw/2;
+    rect.w += dw;
+    }
+  if(rect.h<h) {
+    int dh = h-rect.h;
+    rect.y -= dh/2;
+    rect.h += dh;
+    }
+
+  p.setBrush(Brush(*focusImg,Painter::Add));
+  p.drawRect(rect.x,         rect.y,         w,h, 0,0, w, h);
+  p.drawRect(rect.x+rect.w-w,rect.y,         w,h, w,0, w2,h);
+  p.drawRect(rect.x,         rect.y+rect.h-h,w,h, 0,h, w, h2);
+  p.drawRect(rect.x+rect.w-w,rect.y+rect.h-h,w,h, w,h, w2,h2);
   }
 
 void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y, float v, AlignFlag flg) {

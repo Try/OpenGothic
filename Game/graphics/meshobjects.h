@@ -59,6 +59,8 @@ class MeshObjects final {
         size_t nodesCount() const { return subCount;    }
         Node   node(size_t i) const { return Node(&sub[i]); }
 
+        Bounds bounds() const;
+
         Tempest::Vec3    translate() const;
         const ProtoMesh* protoMesh() const { return ani; }
 

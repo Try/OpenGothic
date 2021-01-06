@@ -675,6 +675,13 @@ uint32_t MdlVisual::comboLength() const {
   return skInst->comboLength();
   }
 
+Bounds MdlVisual::bounds() const {
+  auto b = view.bounds();
+  if(!head.view.isEmpty())
+    b.assign(b,head.view.bounds());
+  return b;
+  }
+
 void MdlVisual::bind(MeshAttach& slot, MeshObjects::Mesh&& itm, const char* bone) {
   slot.boneId = skeleton==nullptr ? size_t(-1) : skeleton->findNode(bone);
   slot.view   = std::move(itm);

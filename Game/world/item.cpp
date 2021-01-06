@@ -109,10 +109,7 @@ bool Item::isMission() const {
 void Item::setPhysicsEnable(DynamicWorld& p) {
   if(view.nodesCount()==0)
     return;
-  auto b = view.node(0).bounds();
-  for(size_t i=1; i<view.nodesCount(); ++i)
-    b.assign(b,view.node(i).bounds());
-  physic = p.dynamicObj(transform(),b,ZenLoad::MaterialGroup(hitem.material));
+  physic = p.dynamicObj(transform(),view.bounds(),ZenLoad::MaterialGroup(hitem.material));
   physic.setItem(this);
   }
 

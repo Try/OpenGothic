@@ -583,6 +583,10 @@ float Npc::rotationYRad() const {
   return angleY*float(M_PI)/180.f;
   }
 
+Bounds Npc::bounds() const {
+  return visual.bounds();
+  }
+
 float Npc::translateY() const {
   return visual.pose().translateY();
   }

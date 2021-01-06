@@ -21,6 +21,7 @@ class PlayerControl final {
 
     void onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key);
     void onKeyReleased(KeyCodec::Action a);
+    bool isPressed(KeyCodec::Action a) const;
     void onRotateMouse(float dAngle);
     void onRotateMouseDy(float dAngle);
 

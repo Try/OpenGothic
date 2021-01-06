@@ -65,6 +65,9 @@ class MainWindow : public Tempest::Window {
     void keyRepeatEvent (Tempest::KeyEvent&   event) override;
     void keyUpEvent     (Tempest::KeyEvent&   event) override;
 
+    void paintFocus     (Tempest::Painter& p, const Focus& fc, const Tempest::Matrix4x4& vp);
+    void paintFocus     (Tempest::Painter& p, Tempest::Rect rect);
+
     void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, float v, Tempest::AlignFlag flg);   
     void drawProgress(Tempest::Painter& p, int x, int y, int w, int h, float v);
     void drawLoading (Tempest::Painter& p,int x,int y,int w,int h);
@@ -124,6 +127,8 @@ class MainWindow : public Tempest::Window {
     const Tempest::Texture2d* barHp  =nullptr;
     const Tempest::Texture2d* barMisc=nullptr;
     const Tempest::Texture2d* barMana=nullptr;
+
+    const Tempest::Texture2d* focusImg=nullptr;
 
     const Tempest::Texture2d* saveback=nullptr;
 

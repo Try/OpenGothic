@@ -139,6 +139,10 @@ void PlayerControl::onKeyReleased(KeyCodec::Action a) {
     std::memset(actrl,0,sizeof(actrl));
   }
 
+bool PlayerControl::isPressed(KeyCodec::Action a) const {
+  return ctrl[a];
+  }
+
 void PlayerControl::onRotateMouse(float dAngle) {
   dAngle = std::max(-40.f,std::min(dAngle,40.f));
   rotMouse += dAngle*0.3f;

@@ -132,6 +132,15 @@ void MeshObjects::Mesh::setPose(const Pose &p,const Tempest::Matrix4x4& obj) {
     }
   }
 
+Bounds MeshObjects::Mesh::bounds() const {
+  if(subCount==0)
+    return Bounds();
+  auto b = node(0).bounds();
+  for(size_t i=1; i<subCount; ++i)
+    b.assign(b,sub[i].bounds());
+  return b;
+  }
+
 Tempest::Vec3 MeshObjects::Mesh::translate() const {
   if(ani==nullptr)
     return Tempest::Vec3();

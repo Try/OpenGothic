@@ -198,6 +198,7 @@ class Npc final {
     float      rotationY() const;
     float      rotationYRad() const;
     float      runAngle() const { return runAng; }
+    Bounds     bounds() const;
 
     void       stopDlgAnim();
     void       clearSpeed();

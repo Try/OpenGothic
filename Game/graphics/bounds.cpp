@@ -17,17 +17,21 @@ void Bounds::assign(const Vec3& cen, float sizeSz) {
   }
 
 void Bounds::assign(const Bounds& a, const Bounds& b) {
-  bbox[0].x = std::min(a.bbox[0].x,b.bbox[0].x);
-  bbox[0].y = std::min(a.bbox[0].y,b.bbox[0].y);
-  bbox[0].z = std::min(a.bbox[0].z,b.bbox[0].z);
+  bbox[0].x   = std::min(a.bbox[0].x,b.bbox[0].x);
+  bbox[0].y   = std::min(a.bbox[0].y,b.bbox[0].y);
+  bbox[0].z   = std::min(a.bbox[0].z,b.bbox[0].z);
+  bbox[1].x   = std::max(a.bbox[1].x,b.bbox[1].x);
+  bbox[1].y   = std::max(a.bbox[1].y,b.bbox[1].y);
+  bbox[1].z   = std::max(a.bbox[1].z,b.bbox[1].z);
 
-  bbox[1].x = std::max(a.bbox[1].x,b.bbox[1].x);
-  bbox[1].y = std::max(a.bbox[1].y,b.bbox[1].y);
-  bbox[1].z = std::max(a.bbox[1].z,b.bbox[1].z);
+  bboxTr[0].x = std::min(a.bboxTr[0].x,b.bboxTr[0].x);
+  bboxTr[0].y = std::min(a.bboxTr[0].y,b.bboxTr[0].y);
+  bboxTr[0].z = std::min(a.bboxTr[0].z,b.bboxTr[0].z);
+  bboxTr[1].x = std::max(a.bboxTr[1].x,b.bboxTr[1].x);
+  bboxTr[1].y = std::max(a.bboxTr[1].y,b.bboxTr[1].y);
+  bboxTr[1].z = std::max(a.bboxTr[1].z,b.bboxTr[1].z);
 
-  bboxTr[0] = bbox[0];
-  bboxTr[1] = bbox[1];
-  midTr     = (bboxTr[0]+bboxTr[1])/2;
+  midTr       = (bboxTr[0]+bboxTr[1])/2;
   calcR();
   }
 
@@ -112,7 +116,6 @@ void Bounds::assign(const std::vector<ZenLoad::WorldVertex>& vbo, const std::vec
   }
 
 void Bounds::setObjMatrix(const Matrix4x4& m) {
-  at = Vec3(m.at(3,0),m.at(3,1),m.at(3,2));
   transformBbox(m);
   calcR();
   }

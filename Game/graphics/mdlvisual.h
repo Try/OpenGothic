@@ -91,6 +91,8 @@ class MdlVisual final {
     const Animation::Sequence*     continueCombo(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk);
     uint32_t                       comboLength() const;
 
+    Bounds                         bounds() const;
+
   private:
     template<class View>
     struct Attach {
