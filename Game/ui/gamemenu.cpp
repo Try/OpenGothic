@@ -44,8 +44,8 @@ struct GameMenu::KeyEditDialog : Dialog {
   Event::MouseButton mkey = Event::ButtonNone;
   };
 
-GameMenu::GameMenu(MenuRoot &owner, Daedalus::DaedalusVM &vm, Gothic &gothic, const char* menuSection)
-  :gothic(gothic), owner(owner), vm(vm) {
+GameMenu::GameMenu(MenuRoot &owner, Daedalus::DaedalusVM &vm, Gothic &gothic, const char* menuSection, KeyCodec::Action kClose)
+  :gothic(gothic), owner(owner), vm(vm), kClose(kClose) {
   timer.timeout.bind(this,&GameMenu::onTick);
   timer.start(100);
 
@@ -396,7 +396,7 @@ void GameMenu::execSingle(Item &it, int slideDx) {
         break;
       case SEL_ACTION_STARTMENU:
         if(vm.getDATFile().hasSymbolName(onSelAction_S[i].c_str()))
-          owner.pushMenu(new GameMenu(owner,vm,gothic,onSelAction_S[i].c_str()));
+          owner.pushMenu(new GameMenu(owner,vm,gothic,onSelAction_S[i].c_str(),keyClose()));
         break;
       case SEL_ACTION_STARTITEM:
         break;

@@ -3,16 +3,18 @@
 #include <Tempest/Widget>
 #include <daedalus/DaedalusVM.h>
 
+#include "utils/keycodec.h"
+
 class Gothic;
 class GameMenu;
 class Npc;
 
 class MenuRoot : public Tempest::Widget {
   public:
-    MenuRoot(Gothic& gothic);
+    MenuRoot(Gothic& gothic, KeyCodec& keyCodec);
     ~MenuRoot() override;
 
-    void setMenu(const char* menu);
+    void setMenu(const char* menu, KeyCodec::Action key = KeyCodec::Escape);
     void setMenu(GameMenu* w);
     void pushMenu(GameMenu* w);
     void popMenu();
@@ -33,4 +35,5 @@ class MenuRoot : public Tempest::Widget {
     std::unique_ptr<Daedalus::DaedalusVM>  vm;
     GameMenu*                              current=nullptr;
     std::vector<std::unique_ptr<GameMenu>> menuStack;
+    KeyCodec&                              keyCodec;
   };

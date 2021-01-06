@@ -27,7 +27,8 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
   : Window(Maximized),device(device),swapchain(device,hwnd()),
     atlas(device),renderer(device,swapchain,gothic),
     gothic(gothic),keycodec(gothic),
-    rootMenu(gothic),video(gothic),inventory(gothic,keycodec,renderer.storage()),dialogs(gothic,inventory),document(gothic,keycodec),chapter(gothic),
+    rootMenu(gothic,keycodec),video(gothic),inventory(gothic,keycodec,renderer.storage()),
+    dialogs(gothic,inventory),document(gothic,keycodec),chapter(gothic),
     player(gothic,dialogs,inventory) {
   CrashLog::setGpu(device.renderer());
   if(!gothic.isWindowMode())
@@ -175,12 +176,12 @@ void MainWindow::paintEvent(PaintEvent& event) {
       }
     }
 
-    if(gothic.doFrate()) {
-      char fpsT[64]={};
-      std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %s",fps.get(),info);
+  if(gothic.doFrate()) {
+    char fpsT[64]={};
+    std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %s",fps.get(),info);
 
-      auto& fnt = Resources::font();
-      fnt.drawText(p,5,30,fpsT);
+    auto& fnt = Resources::font();
+    fnt.drawText(p,5,30,fpsT);
     }
   }
 
@@ -402,7 +403,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     menuEv="MENU_STATUS";
 
   if(menuEv!=nullptr) {
-    rootMenu.setMenu(menuEv);
+    rootMenu.setMenu(menuEv,act);
     if(auto pl = gothic.player())
       rootMenu.setPlayer(*pl);
     clearInput();

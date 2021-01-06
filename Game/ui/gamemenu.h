@@ -9,6 +9,7 @@
 #include <memory>
 
 #include "game/questlog.h"
+#include "utils/keycodec.h"
 
 class Gothic;
 class MenuRoot;
@@ -17,7 +18,7 @@ class GthFont;
 
 class GameMenu : public Tempest::Widget {
   public:
-    GameMenu(MenuRoot& owner, Daedalus::DaedalusVM& vm, Gothic& gothic, const char *menuSection);
+    GameMenu(MenuRoot& owner, Daedalus::DaedalusVM& vm, Gothic& gothic, const char *menuSection, KeyCodec::Action keyClose);
     ~GameMenu() override;
 
     void setPlayer(const Npc& pl);
@@ -27,25 +28,15 @@ class GameMenu : public Tempest::Widget {
     void onSelect();
     void onTick();
 
+
+    KeyCodec::Action keyClose() const { return kClose; }
+
   protected:
     void paintEvent (Tempest::PaintEvent& event) override;
     void resizeEvent(Tempest::SizeEvent&  event) override;
 
   private:
     struct KeyEditDialog;
-
-    Gothic&                               gothic;
-    MenuRoot&                             owner;
-    Daedalus::DaedalusVM&                 vm;
-
-    Daedalus::GEngineClasses::C_Menu      menu={};
-    const Tempest::Texture2d*             back=nullptr;
-    const Tempest::Texture2d*             slider=nullptr;
-    Tempest::Texture2d                    savThumb;
-    std::vector<char>                     textBuf;
-
-    Tempest::Timer                        timer;
-
     struct Item {
       std::string                           name;
       Daedalus::GEngineClasses::C_Menu_Item handle={};
@@ -53,11 +44,25 @@ class GameMenu : public Tempest::Widget {
       bool                                  visible=true;
       int                                   value=0;
       };
+
+    Gothic&                               gothic;
+    MenuRoot&                             owner;
+    Daedalus::DaedalusVM&                 vm;
+    Tempest::Timer                        timer;
+
+    Daedalus::GEngineClasses::C_Menu      menu={};
+    const Tempest::Texture2d*             back=nullptr;
+    const Tempest::Texture2d*             slider=nullptr;
+    Tempest::Texture2d                    savThumb;
+    std::vector<char>                     textBuf;
+
     Item                                  hItems[Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS];
     Item*                                 ctrlInput = nullptr;
     uint32_t                              curItem=0;
     bool                                  exitFlag=false;
     bool                                  closeFlag=false;
+
+    KeyCodec::Action                      kClose = KeyCodec::Escape;
 
     void                                  drawItem(Tempest::Painter& p, Item& it);
     void                                  drawSlider(Tempest::Painter& p, Item& it, int x, int y, int w, int h);

@@ -7,20 +7,20 @@
 
 using namespace Tempest;
 
-MenuRoot::MenuRoot(Gothic &gothic)
-  :gothic(gothic){
+MenuRoot::MenuRoot(Gothic &gothic, KeyCodec& keyCodec)
+  :gothic(gothic), keyCodec(keyCodec) {
   vm = gothic.createVm(u"MENU.DAT");
   }
 
 MenuRoot::~MenuRoot() {
   }
 
-void MenuRoot::setMenu(const char *menuEv) {
+void MenuRoot::setMenu(const char *menuEv, KeyCodec::Action key) {
   if(!vm->getDATFile().hasSymbolName(menuEv)){
     Log::e("invalid menu-id: ",menuEv);
     return;
     }
-  setMenu(new GameMenu(*this,*vm,gothic,menuEv));
+  setMenu(new GameMenu(*this,*vm,gothic,menuEv,key));
   }
 
 void MenuRoot::setMenu(GameMenu *w) {
@@ -113,7 +113,7 @@ void MenuRoot::keyUpEvent(KeyEvent &e) {
       current->onSlide(1);
     if(e.key==Event::K_Return)
       current->onSelect();
-    if(e.key==Event::K_ESCAPE)
+    if(e.key==Event::K_ESCAPE || keyCodec.tr(e)==current->keyClose())
       popMenu();
     }
   }
