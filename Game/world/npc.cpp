@@ -1608,18 +1608,16 @@ void Npc::tick(uint64_t dt) {
   visual.pose().processEvents(lastEventTime,owner.tickCount(),ev);
   visual.processLayers(owner);
   visual.setNpcEffect(owner,*this,hnpc.effect);
+
+  if(ev.groundSounds>0 && isPlayer())
+    world().sendPassivePerc(*this,*this,*this,Npc::PERC_ASSESSQUIETSOUND);
+  if(ev.def_opt_frame>0)
+    commitDamage();
+  implSetFightMode(ev);
+  tickTimedEvt(ev);
+
   if(!visual.pose().hasAnim())
     setAnim(AnimationSolver::Idle);
-
-  if(tickCast())
-    return;
-
-  if(!isDead()) {
-    tickRegen(hnpc.attribute[ATR_HITPOINTS],hnpc.attribute[ATR_HITPOINTSMAX],
-              hnpc.attribute[ATR_REGENERATEHP],dt);
-    tickRegen(hnpc.attribute[ATR_MANA],hnpc.attribute[ATR_MANAMAX],
-              hnpc.attribute[ATR_REGENERATEMANA],dt);
-    }
 
   if(isDive()) {
     int32_t gl = guild();
@@ -1636,12 +1634,15 @@ void Npc::tick(uint64_t dt) {
       }
     }
 
-  if(ev.groundSounds>0 && isPlayer())
-    world().sendPassivePerc(*this,*this,*this,Npc::PERC_ASSESSQUIETSOUND);
-  if(ev.def_opt_frame>0)
-    commitDamage();
-  implSetFightMode(ev);
-  tickTimedEvt(ev);
+  if(tickCast())
+    return;
+
+  if(!isDead()) {
+    tickRegen(hnpc.attribute[ATR_HITPOINTS],hnpc.attribute[ATR_HITPOINTSMAX],
+              hnpc.attribute[ATR_REGENERATEHP],dt);
+    tickRegen(hnpc.attribute[ATR_MANA],hnpc.attribute[ATR_MANAMAX],
+              hnpc.attribute[ATR_REGENERATEMANA],dt);
+    }
 
   if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount() || aiOutputBarrier>owner.tickCount()) {
     if(faiWaitTime<owner.tickCount())
@@ -2145,6 +2146,8 @@ void Npc::emitSoundGround(const char* sound, float range, bool freeSlot) {
   }
 
 void Npc::emitSoundSVM(const char* svm) {
+  if(hnpc.voice==0)
+    return;
   char name[32]={};
   std::snprintf(name,sizeof(name),svm,int(hnpc.voice));
   emitSoundEffect(name,25,true);

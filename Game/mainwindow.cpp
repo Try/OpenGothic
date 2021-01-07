@@ -323,6 +323,7 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
     auto pm  = device.readPixels(textureCast(tex));
     pm.save("dbg.png");
     }
+  event.accept();
   }
 
 void MainWindow::keyRepeatEvent(KeyEvent& event) {
@@ -622,10 +623,10 @@ uint64_t MainWindow::tick() {
   inventory.tick(dt);
   gothic.tick(dt);
 
-  if(dialogs.isActive())
-    clearInput();
-
   player.tickFocus();
+
+  if(dialogs.isActive())
+    ;//clearInput();
   if(document.isActive())
     clearInput();
   tickMouse();

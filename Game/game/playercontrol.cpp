@@ -397,9 +397,53 @@ void PlayerControl::implMove(uint64_t dt) {
     return;
     }
 
-  if(!pl.isAiQueueEmpty() || !pl.isInState(ScriptFn())) {
+  if(!pl.isAiQueueEmpty())
     return;
+
+  if(pl.canSwitchWeapon()) {
+    if(wctrl[WeaponClose]) {
+      wctrl[WeaponClose] = !pl.closeWeapon(false);
+      return;
+      }
+    if(wctrl[WeaponMele]) {
+      bool ret=false;
+      if(pl.currentMeleWeapon()!=nullptr)
+        ret = pl.drawWeaponMele(); else
+        ret = pl.drawWeaponFist();
+      wctrl[WeaponMele] = !ret;
+      wctrl_last = WeaponMele;
+      return;
+      }
+    if(wctrl[WeaponBow]) {
+      if(pl.currentRangeWeapon()!=nullptr){
+        wctrl[WeaponBow] = !pl.drawWeaponBow();
+        wctrl_last = WeaponBow;
+        } else {
+        wctrl[WeaponBow] = false;
+        }
+      return;
+      }
+    for(uint8_t i=0;i<8;++i) {
+      if(wctrl[Weapon3+i]){
+        if(pl.inventory().currentSpell(i)!=nullptr){
+          bool ret = pl.drawMage(uint8_t(3+i));
+          wctrl[Weapon3+i] = !ret;
+          wctrl_last = static_cast<WeponAction>(Weapon3+i);
+          if(ret) {
+            if(auto spl = pl.inventory().currentSpell(i)) {
+              gothic.onPrint(spl->description());
+              }
+            }
+          } else {
+          wctrl[Weapon3+i] = false;
+          }
+        return;
+        }
+      }
     }
+
+  if(!pl.isInState(ScriptFn()) || dlg.isActive())
+    return;
 
   int rotation=0;
   if(pl.bodyStateMasked()!=BS_CLIMB) {
@@ -446,48 +490,6 @@ void PlayerControl::implMove(uint64_t dt) {
   if(ctrl[Action::K_ENTER]) {
     pl.transformBack();
     ctrl[Action::K_ENTER] = false;
-    }
-
-  if(pl.canSwitchWeapon()) {
-    if(wctrl[WeaponClose]) {
-      wctrl[WeaponClose] = !pl.closeWeapon(false);
-      return;
-      }
-    if(wctrl[WeaponMele]) {
-      bool ret=false;
-      if(pl.currentMeleWeapon()!=nullptr)
-        ret = pl.drawWeaponMele(); else
-        ret = pl.drawWeaponFist();
-      wctrl[WeaponMele] = !ret;
-      wctrl_last = WeaponMele;
-      return;
-      }
-    if(wctrl[WeaponBow]) {
-      if(pl.currentRangeWeapon()!=nullptr){
-        wctrl[WeaponBow] = !pl.drawWeaponBow();
-        wctrl_last = WeaponBow;
-        } else {
-        wctrl[WeaponBow] = false;
-        }
-      return;
-      }
-    for(uint8_t i=0;i<8;++i) {
-      if(wctrl[Weapon3+i]){
-        if(pl.inventory().currentSpell(i)!=nullptr){
-          bool ret = pl.drawMage(uint8_t(3+i));
-          wctrl[Weapon3+i] = !ret;
-          wctrl_last = static_cast<WeponAction>(Weapon3+i);
-          if(ret) {
-            if(auto spl = pl.inventory().currentSpell(i)) {
-              gothic.onPrint(spl->description());
-              }
-            }
-          } else {
-          wctrl[Weapon3+i] = false;
-          }
-        return;
-        }
-      }
     }
 
   if((ws==WeaponState::Bow || ws==WeaponState::CBow) && pl.hasAmunition()) {
