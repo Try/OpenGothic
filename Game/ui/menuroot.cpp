@@ -20,7 +20,7 @@ void MenuRoot::setMenu(const char *menuEv, KeyCodec::Action key) {
     Log::e("invalid menu-id: ",menuEv);
     return;
     }
-  setMenu(new GameMenu(*this,*vm,gothic,menuEv,key));
+  setMenu(new GameMenu(*this,keyCodec,*vm,gothic,menuEv,key));
   }
 
 void MenuRoot::setMenu(GameMenu *w) {

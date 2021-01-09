@@ -44,8 +44,8 @@ struct GameMenu::KeyEditDialog : Dialog {
   Event::MouseButton mkey = Event::ButtonNone;
   };
 
-GameMenu::GameMenu(MenuRoot &owner, Daedalus::DaedalusVM &vm, Gothic &gothic, const char* menuSection, KeyCodec::Action kClose)
-  :gothic(gothic), owner(owner), vm(vm), kClose(kClose) {
+GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, Daedalus::DaedalusVM &vm, Gothic &gothic, const char* menuSection, KeyCodec::Action kClose)
+  :gothic(gothic), owner(owner), keyCodec(keyCodec), vm(vm), kClose(kClose) {
   timer.timeout.bind(this,&GameMenu::onTick);
   timer.start(100);
 
@@ -396,7 +396,7 @@ void GameMenu::execSingle(Item &it, int slideDx) {
         break;
       case SEL_ACTION_STARTMENU:
         if(vm.getDATFile().hasSymbolName(onSelAction_S[i].c_str()))
-          owner.pushMenu(new GameMenu(owner,vm,gothic,onSelAction_S[i].c_str(),keyClose()));
+          owner.pushMenu(new GameMenu(owner,keyCodec,vm,gothic,onSelAction_S[i].c_str(),keyClose()));
         break;
       case SEL_ACTION_STARTITEM:
         break;
@@ -447,13 +447,11 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
     ctrlInput = nullptr;
     if(dlg.key==Event::K_ESCAPE && dlg.mkey==Event::ButtonNone)
       return;
-    std::string val = gothic.settingsGetS(sec.c_str(), opt.c_str());
-    if(val.size()>4)
-      val = val.substr(val.size()-4,4);
+    int32_t next = 0;
     if(dlg.key==Event::K_ESCAPE)
-      val += KeyCodec::toCode(dlg.mkey); else
-      val += KeyCodec::toCode(dlg.key);
-    gothic.settingsSetS(sec.c_str(), opt.c_str(), val.c_str());
+      next = KeyCodec::keyToCode(dlg.mkey); else
+      next = KeyCodec::keyToCode(dlg.key);
+    keyCodec.set(sec.c_str(), opt.c_str(), next);
     updateItem(item);
     }
   if(item.handle.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_SLIDER && slideDx!=0) {
@@ -546,37 +544,7 @@ void GameMenu::updateVideo() {
   }
 
 void GameMenu::setDefaultKeys(const char* preset) {
-  const char* keys[] = {
-    "keyEnd",
-    "keyHeal",
-    "keyPotion",
-    "keyLockTarget",
-    "keyParade",
-    "keyActionRight",
-    "keyActionLeft",
-    "keyUp",
-    "keyDown",
-    "keyLeft",
-    "keyRight",
-    "keyStrafeLeft",
-    "keyStrafeRight",
-    "keyAction",
-    "keySlow",
-    "keySMove",
-    "keyWeapon",
-    "keySneak",
-    "keyLook",
-    "keyLookFP",
-    "keyInventory",
-    "keyShowStatus",
-    "keyShowLog",
-    "keyShowMap",
-    };
-
-  for(auto i:keys) {
-    auto s = gothic.settingsGetS(preset,i);
-    gothic.settingsSetS("KEYS",i,s.c_str());
-    }
+  keyCodec.setDefaultKeys(preset);
   }
 
 bool GameMenu::isInGameAndAlive() const {

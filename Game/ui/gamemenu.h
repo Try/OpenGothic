@@ -18,7 +18,7 @@ class GthFont;
 
 class GameMenu : public Tempest::Widget {
   public:
-    GameMenu(MenuRoot& owner, Daedalus::DaedalusVM& vm, Gothic& gothic, const char *menuSection, KeyCodec::Action keyClose);
+    GameMenu(MenuRoot& owner, KeyCodec& keyCodec, Daedalus::DaedalusVM& vm, Gothic& gothic, const char *menuSection, KeyCodec::Action keyClose);
     ~GameMenu() override;
 
     void setPlayer(const Npc& pl);
@@ -47,6 +47,7 @@ class GameMenu : public Tempest::Widget {
 
     Gothic&                               gothic;
     MenuRoot&                             owner;
+    KeyCodec&                             keyCodec;
     Daedalus::DaedalusVM&                 vm;
     Tempest::Timer                        timer;
 

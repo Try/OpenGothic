@@ -53,9 +53,12 @@ class KeyCodec final {
     static void   keysStr(const std::string& keys, char buf[], size_t bufSz);
     Action        tr(Tempest::KeyEvent&   e) const;
     Action        tr(Tempest::MouseEvent& e) const;
+    void          set(const char* section, const char* key, int32_t code);
+    void          setDefaultKeys(const char* preset);
 
-    static std::string toCode(Tempest::Event::KeyType k);
-    static std::string toCode(Tempest::Event::MouseButton k);
+    static int32_t     keyToCode(Tempest::Event::KeyType     t);
+    static int32_t     keyToCode(Tempest::Event::MouseButton t);
+
     static std::string toCode(int32_t scan);
 
   private:
@@ -71,7 +74,8 @@ class KeyCodec final {
       };
 
     struct KeyPair {
-      int32_t k[2]={};
+      const char* key = "";
+      int32_t     k[2]={};
       bool is(int32_t i) const { return k[0]==i || k[1]==i; }
       };
 
@@ -81,10 +85,8 @@ class KeyCodec final {
     static void keyToStr(Tempest::Event::KeyType k, char* buf, size_t bufSz);
     static void keyToStr(Tempest::Event::MouseButton k, char* buf, size_t bufSz);
 
-    static int32_t keyToCode(Tempest::Event::KeyType     t);
-    static int32_t keyToCode(Tempest::Event::MouseButton t);
-
     void        setupSettings();
+    KeyPair     setup(const char* kp);
     static auto parse(const std::string& kp) -> KeyPair;
 
     Gothic&     gothic;
@@ -113,6 +115,8 @@ class KeyCodec final {
     KeyPair     keyShowStatus;
     KeyPair     keyShowLog;
     KeyPair     keyShowMap;
+
+    std::vector<KeyPair*> allKeys;
 
     static std::initializer_list<K_Key> keys;
     static std::initializer_list<M_Key> mkeys;

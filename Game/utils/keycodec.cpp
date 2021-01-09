@@ -69,7 +69,33 @@ std::initializer_list<KeyCodec::M_Key> KeyCodec::mkeys = {
   };
 
 KeyCodec::KeyCodec(Gothic& gothic)
-  :gothic(gothic) {
+  :gothic(gothic) {  
+  allKeys = {
+    &keyEnd,
+    &keyHeal,
+    &keyPotion,
+    &keyLockTarget,
+    &keyParade,
+    &keyActionRight,
+    &keyActionLeft,
+    &keyUp,
+    &keyDown,
+    &keyLeft,
+    &keyRight,
+    &keyStrafeLeft,
+    &keyStrafeRight,
+    &keyAction,
+    &keySlow,
+    &keySMove,
+    &keyWeapon,
+    &keySneak,
+    &keyLook,
+    &keyLookFP,
+    &keyInventory,
+    &keyShowStatus,
+    &keyShowLog,
+    &keyShowMap
+    };
   gothic.onSettingsChanged.bind(this,&KeyCodec::setupSettings);
   setupSettings();
   }
@@ -98,12 +124,35 @@ KeyCodec::Action KeyCodec::tr(Tempest::MouseEvent& e) const {
   return Idle;
   }
 
-std::string KeyCodec::toCode(Tempest::Event::KeyType k) {
-  return toCode(keyToCode(k));
+void KeyCodec::set(const char* sec, const char* opt, int32_t code) {
+  for(auto i:allKeys) {
+    const bool chg = i->is(code);
+    if(i->k[0]==code)
+      i->k[0] = 0;
+    if(i->k[1]==code)
+      i->k[1] = 0;
+    if(chg) {
+      std::string s;
+      for(auto r:i->k)
+        if(r!=0)
+          s += toCode(r);
+      gothic.settingsSetS("KEYS",i->key,s.c_str());
+      }
+    }
+
+  std::string val = gothic.settingsGetS(sec, opt);
+  if(val.size()>4)
+    val = val.substr(val.size()-4,4);
+  val += toCode(code);
+  gothic.settingsSetS(sec, opt, val.c_str());
   }
 
-std::string KeyCodec::toCode(Tempest::Event::MouseButton k) {
-  return toCode(keyToCode(k));
+void KeyCodec::setDefaultKeys(const char* preset) {
+  for(auto i:allKeys) {
+    auto s = gothic.settingsGetS(preset,i->key);
+    gothic.settingsSetS("KEYS",i->key,s.c_str());
+    *i = setup(i->key);
+    }
   }
 
 std::string KeyCodec::toCode(int32_t code) {
@@ -301,30 +350,36 @@ int32_t KeyCodec::keyToCode(Tempest::Event::MouseButton t) {
   }
 
 void KeyCodec::setupSettings() {
-  keyEnd         = parse(gothic.settingsGetS("KEYS","keyEnd"));
-  keyHeal        = parse(gothic.settingsGetS("KEYS","keyHeal"));
-  keyPotion      = parse(gothic.settingsGetS("KEYS","keyPotion"));
-  keyLockTarget  = parse(gothic.settingsGetS("KEYS","keyLockTarget"));
-  keyParade      = parse(gothic.settingsGetS("KEYS","keyParade"));
-  keyActionRight = parse(gothic.settingsGetS("KEYS","keyActionRight"));
-  keyActionLeft  = parse(gothic.settingsGetS("KEYS","keyActionLeft"));
-  keyUp          = parse(gothic.settingsGetS("KEYS","keyUp"));
-  keyDown        = parse(gothic.settingsGetS("KEYS","keyDown"));
-  keyLeft        = parse(gothic.settingsGetS("KEYS","keyLeft"));
-  keyRight       = parse(gothic.settingsGetS("KEYS","keyRight"));
-  keyStrafeLeft  = parse(gothic.settingsGetS("KEYS","keyStrafeLeft"));
-  keyStrafeRight = parse(gothic.settingsGetS("KEYS","keyStrafeRight"));
-  keyAction      = parse(gothic.settingsGetS("KEYS","keyAction"));
-  keySlow        = parse(gothic.settingsGetS("KEYS","keySlow"));
-  keySMove       = parse(gothic.settingsGetS("KEYS","keySMove"));
-  keyWeapon      = parse(gothic.settingsGetS("KEYS","keyWeapon"));
-  keySneak       = parse(gothic.settingsGetS("KEYS","keySneak"));
-  keyLook        = parse(gothic.settingsGetS("KEYS","keyLook"));
-  keyLookFP      = parse(gothic.settingsGetS("KEYS","keyLookFP"));
-  keyInventory   = parse(gothic.settingsGetS("KEYS","keyInventory"));
-  keyShowStatus  = parse(gothic.settingsGetS("KEYS","keyShowStatus"));
-  keyShowLog     = parse(gothic.settingsGetS("KEYS","keyShowLog"));
-  keyShowMap     = parse(gothic.settingsGetS("KEYS","keyShowMap"));
+  keyEnd         = setup("keyEnd");
+  keyHeal        = setup("keyHeal");
+  keyPotion      = setup("keyPotion");
+  keyLockTarget  = setup("keyLockTarget");
+  keyParade      = setup("keyParade");
+  keyActionRight = setup("keyActionRight");
+  keyActionLeft  = setup("keyActionLeft");
+  keyUp          = setup("keyUp");
+  keyDown        = setup("keyDown");
+  keyLeft        = setup("keyLeft");
+  keyRight       = setup("keyRight");
+  keyStrafeLeft  = setup("keyStrafeLeft");
+  keyStrafeRight = setup("keyStrafeRight");
+  keyAction      = setup("keyAction");
+  keySlow        = setup("keySlow");
+  keySMove       = setup("keySMove");
+  keyWeapon      = setup("keyWeapon");
+  keySneak       = setup("keySneak");
+  keyLook        = setup("keyLook");
+  keyLookFP      = setup("keyLookFP");
+  keyInventory   = setup("keyInventory");
+  keyShowStatus  = setup("keyShowStatus");
+  keyShowLog     = setup("keyShowLog");
+  keyShowMap     = setup("keyShowMap");
+  }
+
+KeyCodec::KeyPair KeyCodec::setup(const char* kp) {
+  auto k = parse(gothic.settingsGetS("KEYS",kp));
+  k.key = kp;
+  return k;
   }
 
 KeyCodec::KeyPair KeyCodec::parse(const std::string& kp) {
