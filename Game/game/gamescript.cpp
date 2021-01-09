@@ -1386,6 +1386,7 @@ void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
     } else
   if(srcItm!=nullptr && dstItm!=nullptr){
     Effect e(*vfx,world(),srcItm->position());
+    e.setActive(true);
     world().runEffect(std::move(e));
     }
   }
