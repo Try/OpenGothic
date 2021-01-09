@@ -47,7 +47,7 @@ class PlayerControl final {
     auto  weaponState() const -> WeaponState;
 
   private:
-    enum WeponAction : uint8_t {
+    enum WeaponAction : uint8_t {
       WeaponClose,
       WeaponMele,
       WeaponBow,
