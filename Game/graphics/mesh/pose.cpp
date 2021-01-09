@@ -171,7 +171,11 @@ bool Pose::stopAnim(const char *name) {
   bool done=false;
   size_t ret=0;
   for(size_t i=0;i<lay.size();++i) {
-    if(name!=nullptr && lay[i].seq->name!=name) {
+    bool rm = (name==nullptr || lay[i].seq->name==name);
+    if(itemUseSt!=0 && lay[i].bs==BS_ITEMINTERACT)
+      rm = false;
+
+    if(!rm) {
       if(ret!=i)
         lay[ret] = lay[i];
       ret++;
