@@ -46,11 +46,11 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       if(ws!=WeaponState::NoWeapon) //Currently a weapon is active
         wctrl[WeaponClose] = true;
       else {
-        if(wctrl_last>=WeponAction::Weapon3 && pl->inventory().currentSpell(static_cast<uint8_t>(wctrl_last-3))==nullptr)
-          wctrl_last=WeponAction::WeaponBow;  //Spell no longer available -> fallback to Bow.
-        if(wctrl_last==WeponAction::WeaponBow && pl->currentRangeWeapon()==nullptr)
-          wctrl_last=WeponAction::WeaponMele; //Bow no longer available -> fallback to Mele.
-        wctrl[wctrl_last] = true;
+        if(wctrlLast>=WeaponAction::Weapon3 && pl->inventory().currentSpell(static_cast<uint8_t>(wctrlLast-3))==nullptr)
+          wctrlLast=WeaponAction::WeaponBow;  //Spell no longer available -> fallback to Bow.
+        if(wctrlLast==WeaponAction::WeaponBow && pl->currentRangeWeapon()==nullptr)
+          wctrlLast=WeaponAction::WeaponMele; //Bow no longer available -> fallback to Mele.
+        wctrl[wctrlLast] = true;
         }
       return;
       }
@@ -411,13 +411,13 @@ void PlayerControl::implMove(uint64_t dt) {
         ret = pl.drawWeaponMele(); else
         ret = pl.drawWeaponFist();
       wctrl[WeaponMele] = !ret;
-      wctrl_last = WeaponMele;
+      wctrlLast         = WeaponMele;
       return;
       }
     if(wctrl[WeaponBow]) {
       if(pl.currentRangeWeapon()!=nullptr){
         wctrl[WeaponBow] = !pl.drawWeaponBow();
-        wctrl_last = WeaponBow;
+        wctrlLast        = WeaponBow;
         } else {
         wctrl[WeaponBow] = false;
         }
@@ -428,7 +428,7 @@ void PlayerControl::implMove(uint64_t dt) {
         if(pl.inventory().currentSpell(i)!=nullptr){
           bool ret = pl.drawMage(uint8_t(3+i));
           wctrl[Weapon3+i] = !ret;
-          wctrl_last = static_cast<WeponAction>(Weapon3+i);
+          wctrlLast = static_cast<WeaponAction>(Weapon3+i);
           if(ret) {
             if(auto spl = pl.inventory().currentSpell(i)) {
               gothic.onPrint(spl->description());

@@ -74,8 +74,8 @@ class PlayerControl final {
     using Action=KeyCodec::Action;
 
     bool           ctrl[Action::Last]={};
-    bool           wctrl[WeponAction::Last]={};
-    WeponAction    wctrl_last = WeponAction::WeaponMele; //!< Reminder for weapon toggle.
+    bool           wctrl[WeaponAction::Last]={};
+    WeaponAction   wctrlLast = WeaponAction::WeaponMele; //!< Reminder for weapon toggle.
     bool           actrl[5]={};
 
     bool           cacheFocus=false;
