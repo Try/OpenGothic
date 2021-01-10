@@ -60,6 +60,7 @@ class Interactive : public Vob {
     uint32_t            stateMask() const;
 
     bool                canSeeNpc(const Npc &npc, bool freeLos) const;
+    Tempest::Vec3       nearestPoint(const Npc& to);
 
     bool                isAvailable() const;
     bool                isStaticState() const;
@@ -101,10 +102,11 @@ class Interactive : public Vob {
     auto                setAnim(Anim t) -> const Animation::Sequence*;
     bool                setAnim(Npc* npc, Anim dir);
 
+    Pos*                findNearest(const Npc& to);
     const Pos*          findFreePos() const;
     Pos*                findFreePos();
     auto                worldPos(const Pos &to) const -> Tempest::Vec3;
-    float               qDistanceTo(const Npc &npc, const Pos &to);
+    float               qDistanceTo(const Npc &npc, const Pos &to) const;
     Tempest::Matrix4x4  nodeTranform(const Npc &npc, const Pos &p) const;
     auto                nodePosition(const Npc &npc, const Pos &p) const -> Tempest::Vec3;
 

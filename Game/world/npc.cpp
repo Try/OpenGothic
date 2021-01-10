@@ -66,6 +66,11 @@ void Npc::GoTo::set(const Item* to) {
   flag = Npc::GT_Item;
   }
 
+void Npc::GoTo::set(const Vec3& to) {
+  pos  = to;
+  flag = GT_Point;
+  }
+
 
 struct Npc::TransformBack {
   TransformBack(Npc& self) {
@@ -1812,7 +1817,11 @@ void Npc::nextAiAction(uint64_t dt) {
         }
 
       if(qDistTo(*inter)>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) { // too far
-        // TODO: go to MOBSI
+        auto pos = inter->nearestPoint(*this);
+        go2.set(pos);
+        // go to MOBSI and then complete AI_UseMob
+        aiQueue.pushFront(std::move(act));
+        return;
         }
       if(!setInteraction(inter)) {
         // aiQueue.pushFront(std::move(act));

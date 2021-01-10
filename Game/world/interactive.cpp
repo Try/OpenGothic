@@ -421,6 +421,27 @@ bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
   return false;
   }
 
+Tempest::Vec3 Interactive::nearestPoint(const Npc& to) {
+  if(auto p = findNearest(to))
+    return worldPos(*p);
+  return Tempest::Vec3();
+  }
+
+Interactive::Pos* Interactive::findNearest(const Npc& to) {
+  float dist = 0;
+  Pos*  p    = nullptr;
+  for(auto& i:attPos) {
+    if(i.user || !i.isAttachPoint())
+      continue;
+    float d = qDistanceTo(to,i);
+    if(d<dist || p==nullptr) {
+      p    = &i;
+      dist = d;
+      }
+    }
+  return p;
+  }
+
 void Interactive::implAddItem(char *name) {
   char* sep = std::strchr(name,':');
   if(sep!=nullptr) {
@@ -589,8 +610,6 @@ bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
   }
 
 bool Interactive::attach(Npc &npc) {
-  float dist = 0;
-  Pos*  p    = nullptr;
 
   for(auto& i:attPos)
     if(i.user==&npc)
@@ -602,16 +621,7 @@ bool Interactive::attach(Npc &npc) {
     return false;
     }
 
-  for(auto& i:attPos) {
-    if(i.user || !i.isAttachPoint())
-      continue;
-    float d = qDistanceTo(npc,i);
-    if(d<dist || p==nullptr) {
-      p    = &i;
-      dist = d;
-      }
-    }
-
+  auto p = findNearest(npc);
   if(p!=nullptr)
     return attach(npc,*p);
 
@@ -653,7 +663,7 @@ void Interactive::setDir(Npc &npc, const Tempest::Matrix4x4 &mat) {
   npc.setDirection(x1-x0,y1-y0,z1-z0);
   }
 
-float Interactive::qDistanceTo(const Npc &npc, const Interactive::Pos &to) {
+float Interactive::qDistanceTo(const Npc &npc, const Interactive::Pos &to) const {
   auto p = worldPos(to);
   return npc.qDistTo(p.x,p.y-npc.translateY(),p.z);
   }

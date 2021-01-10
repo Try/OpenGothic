@@ -148,6 +148,7 @@ class Npc final {
       GT_NextFp,
       GT_Enemy,
       GT_Item,
+      GT_Point,
       };
 
     enum HitSound : uint8_t {
@@ -507,6 +508,7 @@ class Npc final {
       void                         set(Npc* to, GoToHint hnt = GoToHint::GT_Way);
       void                         set(const WayPoint* to, GoToHint hnt = GoToHint::GT_Way);
       void                         set(const Item* to);
+      void                         set(const Tempest::Vec3& to);
       };
 
     void      updateWeaponSkeleton();
