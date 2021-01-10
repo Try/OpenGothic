@@ -1736,7 +1736,8 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_RemoveWeapon:
       if(!isDead()) {
         if(closeWeapon(false)) {
-          setAnim(Anim::Idle);
+          if(interactive()==nullptr)
+            setAnim(Anim::Idle);
           }
         if(weaponState()!=WeaponState::NoWeapon){
           aiQueue.pushFront(std::move(act));
