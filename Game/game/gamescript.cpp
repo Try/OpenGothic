@@ -274,6 +274,7 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("ai_setnpcstostate",   [this](Daedalus::DaedalusVM& vm){ ai_setnpcstostate(vm);    });
   vm.registerExternalFunction("ai_finishingmove",    [this](Daedalus::DaedalusVM& vm){ ai_finishingmove(vm);     });
   vm.registerExternalFunction("ai_takeitem",         [this](Daedalus::DaedalusVM& vm){ ai_takeitem(vm);          });
+  vm.registerExternalFunction("ai_gotoitem",         [this](Daedalus::DaedalusVM& vm){ ai_gotoitem(vm);          });
 
   vm.registerExternalFunction("mob_hasitems",        [this](Daedalus::DaedalusVM& vm){ mob_hasitems(vm);         });
 
@@ -2923,6 +2924,13 @@ void GameScript::ai_takeitem(Daedalus::DaedalusVM& vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr && itm!=nullptr)
     npc->aiPush(AiQueue::aiTakeItem(*itm));
+  }
+
+void GameScript::ai_gotoitem(Daedalus::DaedalusVM& vm) {
+  auto itm = popItem(vm);
+  auto npc = popInstance(vm);
+  if(npc!=nullptr && itm!=nullptr)
+    npc->aiPush(AiQueue::aiGotoItem(*itm));
   }
 
 void GameScript::mob_hasitems(Daedalus::DaedalusVM &vm) {

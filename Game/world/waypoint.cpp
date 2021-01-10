@@ -49,6 +49,10 @@ bool WayPoint::checkName(const char *n) const {
   return false;
   }
 
+Vec3 WayPoint::position() const {
+  return {x,y,z};
+  }
+
 float WayPoint::qDistTo(float ix, float iy, float iz) const {
   float dx = x-ix;
   float dy = y-iy;

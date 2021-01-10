@@ -24,6 +24,8 @@ class WayPoint final {
     bool checkName(const std::string& name) const;
     bool checkName(const char* name) const;
 
+    Tempest::Vec3 position() const;
+
     float x=0;
     float y=0;
     float z=0;

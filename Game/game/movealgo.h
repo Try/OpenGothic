@@ -46,8 +46,7 @@ class MoveAlgo final {
     void    clearSpeed();
     void    accessDamFly(float dx,float dz);
 
-    bool    aiGoTo      (const WayPoint* p, float destDist);
-    bool    aiGoTo      (Npc *p, float destDist);
+    bool    aiGoTo      (const Tempest::Vec3& p, float destDist);
     bool    aiGoToTarget(float destDist);
 
     bool    startClimb(JumpStatus ani);
@@ -104,7 +103,7 @@ class MoveAlgo final {
     auto    animMoveSpeed(uint64_t dt) const -> Tempest::Vec3;
     auto    npcMoveSpeed (uint64_t dt, MvFlags moveFlg) -> Tempest::Vec3;
     auto    go2NpcMoveSpeed (const Tempest::Vec3& dp, const Npc &tg) -> Tempest::Vec3;
-    auto    go2WpMoveSpeed  (Tempest::Vec3 dp, float x, float z) -> Tempest::Vec3;
+    auto    go2WpMoveSpeed  (Tempest::Vec3 dp, const Tempest::Vec3& to) -> Tempest::Vec3;
     bool    testSlide(float x, float y, float z) const;
 
     float   stepHeight()  const;

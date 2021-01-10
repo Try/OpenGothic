@@ -80,6 +80,7 @@ class AiQueue {
     static AiAction aiSetWalkMode(WalkBit w);
     static AiAction aiFinishingMove(Npc& other);
     static AiAction aiTakeItem(Item& item);
+    static AiAction aiGotoItem(Item& item);
 
   private:
     std::deque<AiAction> aiActions;

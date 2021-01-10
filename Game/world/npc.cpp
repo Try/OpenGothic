@@ -22,15 +22,25 @@
 using namespace Tempest;
 
 void Npc::GoTo::save(Serialize& fout) const {
-  fout.write(npc, uint8_t(flag), wp);
+  fout.write(npc, uint8_t(flag), wp, pos);
   }
 
 void Npc::GoTo::load(Serialize& fin) {
   fin.read(npc, reinterpret_cast<uint8_t&>(flag), wp);
+  if(fin.version()>=23)
+    fin.read(pos);
+  }
+
+Vec3 Npc::GoTo::target() const {
+  if(npc!=nullptr)
+    return npc->position();
+  if(wp!=nullptr)
+    return Vec3(wp->x,wp->y,wp->z);
+  return pos;
   }
 
 bool Npc::GoTo::empty() const {
-  return npc==nullptr && wp==nullptr;
+  return flag==Npc::GT_No;
   }
 
 void Npc::GoTo::clear() {
@@ -49,6 +59,11 @@ void Npc::GoTo::set(const WayPoint* to, GoToHint hnt) {
   npc  = nullptr;
   wp   = to;
   flag = hnt;
+  }
+
+void Npc::GoTo::set(const Item* to) {
+  pos  = to->position();
+  flag = Npc::GT_Item;
   }
 
 
@@ -1198,46 +1213,32 @@ bool Npc::implGoTo(uint64_t dt) {
   }
 
 bool Npc::implGoTo(uint64_t dt,float destDist) {
-  if(go2.wp==nullptr && go2.npc==nullptr)
+  if(go2.flag==GT_No)
     return false;
 
-  float dx = 0.f;
-  float dz = 0.f;
-  if(go2.npc){
-    dx = go2.npc->x-x;
-    dz = go2.npc->z-z;
-    } else {
-    dx = go2.wp->x-x;
-    dz = go2.wp->z-z;
+  auto dpos = go2.target()-position();
+
+  if(implLookAt(dpos.x,dpos.z,false,dt)){
+    mvAlgo.tick(dt);
+    return true;
     }
 
-  if(go2.wp!=nullptr) {
-    if(!mvAlgo.aiGoTo(go2.wp,destDist)) {
+  if(!mvAlgo.aiGoTo(go2.target(),destDist)) {
+    bool finished = true;
+    if(go2.flag==GT_Way) {
       go2.wp = wayPath.pop();
       if(go2.wp!=nullptr) {
         attachToPoint(go2.wp);
-        } else {
-        visual.stopWalkAnim(*this);
-        setAnim(AnimationSolver::Idle);
-        go2.clear();
+        finished = false;
         }
       }
-    } else {
-    if(implLookAt(dx,dz,false,dt)){
-      mvAlgo.tick(dt);
-      return true;
-      }
-    if(!mvAlgo.aiGoTo(go2.npc,destDist)) {
+    if(finished) {
       setAnim(AnimationSolver::Idle);
       go2.clear();
       }
     }
 
-  if(!go2.empty()) {    
-    if(go2.wp!=nullptr && implLookAt(dx,dz,false,dt)){
-      mvAlgo.tick(dt);
-      return true;
-      }
+  if(!go2.empty()) {
     setAnim(AnimationSolver::Move);
     mvAlgo.tick(dt);
     return true;
@@ -1977,6 +1978,11 @@ void Npc::nextAiAction(uint64_t dt) {
         if(owner.itmId(act.item)!=uint32_t(-1))
           aiQueue.pushFront(std::move(act));
         }
+      break;
+      }
+    case AI_GotoItem:{
+      go2.set(act.item);
+      break;
       }
     }
   }
@@ -2935,6 +2941,9 @@ bool Npc::perceptionProcess(Npc &pl) {
 
   if(isPlayer())
     return true;
+
+  if(!isAiQueueEmpty())
+    return false;
 
   bool ret=false;
   if(hasPerc(PERC_MOVEMOB) && interactive()==nullptr) {

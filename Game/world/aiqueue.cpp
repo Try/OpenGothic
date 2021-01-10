@@ -346,3 +346,10 @@ AiQueue::AiAction AiQueue::aiTakeItem(Item& item) {
   a.item = &item;
   return a;
   }
+
+AiQueue::AiAction AiQueue::aiGotoItem(Item& item) {
+  AiAction a;
+  a.act  = AI_GotoItem;
+  a.item = &item;
+  return a;
+  }

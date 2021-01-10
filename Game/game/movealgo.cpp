@@ -438,7 +438,7 @@ Tempest::Vec3 MoveAlgo::animMoveSpeed(uint64_t dt) const {
   return ret;
   }
 
-Tempest::Vec3 MoveAlgo::npcMoveSpeed(uint64_t dt,MvFlags moveFlg) {
+Tempest::Vec3 MoveAlgo::npcMoveSpeed(uint64_t dt, MvFlags moveFlg) {
   Tempest::Vec3 dp = animMoveSpeed(dt);
   if(!npc.isJumpAnim())
     dp.y = 0.f;
@@ -454,20 +454,22 @@ Tempest::Vec3 MoveAlgo::npcMoveSpeed(uint64_t dt,MvFlags moveFlg) {
       return go2NpcMoveSpeed(dp,*npc.go2.npc);
 
     if(npc.go2.wp)
-      return go2WpMoveSpeed(dp,npc.go2.wp->x,npc.go2.wp->z);
+      return go2WpMoveSpeed(dp,npc.go2.wp->position());
+
+    if(npc.go2.flag!=Npc::GT_No)
+      return go2WpMoveSpeed(dp,npc.go2.pos);
     }
 
   return dp;
   }
 
 Tempest::Vec3 MoveAlgo::go2NpcMoveSpeed(const Tempest::Vec3& dp,const Npc& tg) {
-  return go2WpMoveSpeed(dp,tg.position().x,tg.position().z);
+  return go2WpMoveSpeed(dp,tg.position());
   }
 
-Tempest::Vec3 MoveAlgo::go2WpMoveSpeed(Tempest::Vec3 dp, float x, float z) {
-  float dx   = x-npc.position().x;
-  float dz   = z-npc.position().z;
-  float qLen = (dx*dx+dz*dz);
+Tempest::Vec3 MoveAlgo::go2WpMoveSpeed(Tempest::Vec3 dp, const Tempest::Vec3& to) {
+  auto  d    = to-npc.position();
+  float qLen = (d.x*d.x+d.z*d.z);
 
   const float qSpeed = dp.x*dp.x+dp.z*dp.z;
   if(qSpeed>0.01f){
@@ -573,27 +575,14 @@ bool MoveAlgo::isClose(float x, float /*y*/, float z, const WayPoint &p, float d
   return (len<dist*dist);
   }
 
-bool MoveAlgo::aiGoTo(const WayPoint *p,float destDist) {
-  if(p==nullptr)
-    return false;
-
+bool MoveAlgo::aiGoTo(const Tempest::Vec3& p, float destDist) {
   // use smaller threshold, to avoid edge-looping in script
-  if(isClose(npc.position().x,npc.position().y,npc.position().z,*p,destDist))
-    return false;
+  auto  dp  = npc.position()-p;
+  dp.y = 0;
+  float len = dp.quadLength();
 
-  npc.go2.set(p);
-  return true;
-  }
-
-bool MoveAlgo::aiGoTo(Npc *p,float destDist) {
-  if(p==nullptr)
-    return false;
-
-  float len = npc.qDistTo(*p);
   if(len<destDist*destDist)
     return false;
-
-  npc.go2.set(p);
   return true;
   }
 
