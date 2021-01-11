@@ -1817,8 +1817,10 @@ void Npc::nextAiAction(uint64_t dt) {
         break;
         }
 
-      if(qDistTo(*inter)>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) { // too far
-        auto pos = inter->nearestPoint(*this);
+      auto pos = inter->nearestPoint(*this);
+      auto dp  = pos-position();
+      dp.y = 0;
+      if(dp.quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) { // too far
         go2.set(pos);
         // go to MOBSI and then complete AI_UseMob
         aiQueue.pushFront(std::move(act));
@@ -2951,9 +2953,6 @@ bool Npc::perceptionProcess(Npc &pl) {
 
   if(isPlayer())
     return true;
-
-  if(!isAiQueueEmpty())
-    return false;
 
   bool ret=false;
   if(hasPerc(PERC_MOVEMOB) && interactive()==nullptr) {

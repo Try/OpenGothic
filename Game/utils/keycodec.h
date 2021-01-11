@@ -2,6 +2,7 @@
 
 #include <Tempest/Event>
 #include <string>
+#include <vector>
 
 class Gothic;
 
