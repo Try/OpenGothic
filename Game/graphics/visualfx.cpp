@@ -60,11 +60,11 @@ const char* VisualFx::colDyn() const {
 PfxObjects::Emitter VisualFx::visual(World& owner) const {
   if(fx.visName_S=="time.slw"  ||
      fx.visName_S=="morph.fov" ||
+     fx.visName_S=="screenblend.scx" ||
      fx.visName_S=="earthquake.eqk") {
-    owner.runGlobalEffect(fx.visName_S,uint64_t(fx.emFXLifeSpan*1000.f),fx.userString,Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS);
+    owner.startGlobalEffect(fx.visName_S,fx.emFXLifeSpan,fx.userString,Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS);
     return PfxObjects::Emitter();
     }
-
   const ParticleFx* pfx = owner.script().getParticleFx(fx.visName_S.c_str());
   if(pfx==nullptr)
     return PfxObjects::Emitter();

@@ -13,9 +13,9 @@
 #include "graphics/worldview.h"
 #include "graphics/lightgroup.h"
 #include "graphics/meshobjects.h"
+#include "game/gamescript.h"
 #include "physics/dynamicworld.h"
 #include "triggers/trigger.h"
-#include "game/gamescript.h"
 #include "worldobjects.h"
 #include "worldsound.h"
 #include "waypoint.h"
@@ -76,17 +76,18 @@ class World final {
     WayPath              wayTo(const Npc& pos,const WayPoint& end) const;
     WayPath              wayTo(float npcX,float npcY,float npcZ,const WayPoint& end) const;
 
-    WorldView*           view()   const { return wview.get();    }
-    DynamicWorld*        physic() const { return wdynamic.get(); }
-    GameScript&          script() const;
-    auto                 version() const -> const VersionInfo&;
+    WorldView*           view()     const { return wview.get();    }
+    DynamicWorld*        physic()   const { return wdynamic.get(); }
+    GlobalEffects*       globalFx() const { return globFx.get();   }
+    GameScript&          script()   const;
+    auto                 version()  const -> const VersionInfo&;
 
     void                 assignRoomToGuild(const char* room, int32_t guildId);
     int32_t              guildOfRoom(const Tempest::Vec3& pos);
     int32_t              guildOfRoom(const char* portalName);
 
     void                 runEffect(Effect&& e);
-    void                 runGlobalEffect(const Daedalus::ZString& what, uint64_t len, const Daedalus::ZString* argv, size_t argc);
+    void                 startGlobalEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc);
 
     LightGroup::Light    getLight();
     LightGroup::Light    getLight(const ZenLoad::zCVobData& vob);

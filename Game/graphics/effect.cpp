@@ -205,7 +205,7 @@ void Effect::onCollide(World& owner, const Vec3& pos, Npc* npc) {
 
   vfx = owner.script().getVisualFx(root->handle().emFXCollDynPerc_S.c_str());
   if(vfx!=nullptr && npc!=nullptr) {
-    npc->playEffect(*npc,*vfx);
+    npc->startEffect(*npc,*vfx);
     }
   }
 

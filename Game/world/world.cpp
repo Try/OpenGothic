@@ -170,8 +170,8 @@ void World::runEffect(Effect&& e) {
   wobj.runEffect(std::move(e));
   }
 
-void World::runGlobalEffect(const Daedalus::ZString& what, uint64_t len, const Daedalus::ZString* argv, size_t argc) {
-  globFx->start(what,len,argv,argc);
+void World::startGlobalEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc) {
+  globFx->startEffect(what,len,argv,argc);
   }
 
 LightGroup::Light World::getLight() {

@@ -2171,7 +2171,7 @@ void Npc::emitSoundSVM(const char* svm) {
   emitSoundEffect(name,25,true);
   }
 
-void Npc::playEffect(Npc& /*to*/, const VisualFx& vfx) {
+void Npc::startEffect(Npc& /*to*/, const VisualFx& vfx) {
   visual.startEffect(owner, Effect(vfx,owner,*this), -1);
   }
 

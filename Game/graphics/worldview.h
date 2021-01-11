@@ -28,7 +28,7 @@ class WorldView {
 
     Tempest::Matrix4x4        viewProj(const Tempest::Matrix4x4 &view) const;
     const Tempest::Matrix4x4& projective() const { return proj; }
-    const LightSource&              mainLight() const;
+    const LightSource&        mainLight() const;
 
     void tick(uint64_t dt);
 

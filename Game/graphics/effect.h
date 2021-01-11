@@ -51,18 +51,18 @@ class Effect final {
 
     using Key = Daedalus::GEngineClasses::C_ParticleFXEmitKey;
 
-    const Key*          key  = nullptr;
+    const Key*            key  = nullptr;
 
-    const VisualFx*     root = nullptr;
-    PfxObjects::Emitter visual;
-    LightGroup::Light   light;
-    const char*         nodeSlot = nullptr;
-    size_t              boneId   = size_t(-1);
+    const VisualFx*       root = nullptr;
+    PfxObjects::Emitter   visual;
+    LightGroup::Light     light;
+    const char*           nodeSlot = nullptr;
+    size_t                boneId   = size_t(-1);
 
-    const Skeleton*     skeleton = nullptr;
-    const Pose*         pose     = nullptr;
+    const Skeleton*       skeleton = nullptr;
+    const Pose*           pose     = nullptr;
 
-    Tempest::Matrix4x4  pos;
+    Tempest::Matrix4x4    pos;
 
     std::unique_ptr<Effect> next;
   };

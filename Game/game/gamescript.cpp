@@ -2,6 +2,7 @@
 
 #include "game/definitions/spelldefinitions.h"
 #include "game/serialize.h"
+#include "game/globaleffects.h"
 #include "graphics/visualfx.h"
 #include "gothic.h"
 #include "world/npc.h"
@@ -1373,8 +1374,10 @@ void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
     return;
     }
   const VisualFx* vfx = owner.loadVisualFx(visual.c_str());
-  if(vfx==nullptr)
+  if(vfx==nullptr) {
+    Log::i("invalid effect [",visual.c_str(),"]");
     return;
+    }
 
   auto dstNpc = getNpcById(targetId);
   auto srcNpc = getNpcById(sourceId);
@@ -1383,7 +1386,7 @@ void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
   auto srcItm = getItemById(sourceId);
 
   if(srcNpc!=nullptr && dstNpc!=nullptr) {
-    srcNpc->playEffect(*dstNpc,*vfx);
+    srcNpc->startEffect(*dstNpc,*vfx);
     } else
   if(srcItm!=nullptr && dstItm!=nullptr){
     Effect e(*vfx,world(),srcItm->position());
@@ -1394,7 +1397,15 @@ void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
 
 void GameScript::wld_stopeffect(Daedalus::DaedalusVM &vm) {
   const Daedalus::ZString& visual = vm.popString();
-  Log::i("effect not implemented [",visual.c_str(),"]");
+  const VisualFx* vfx = owner.loadVisualFx(visual.c_str());
+  if(vfx==nullptr) {
+    Log::i("invalid effect [",visual.c_str(),"]");
+    return;
+    }
+  while(vfx!=nullptr) {
+    world().globalFx()->stopEffect(*vfx);
+    vfx = owner.loadVisualFx(vfx->handle().emFXCreate_S.c_str());
+    }
   }
 
 void GameScript::wld_getplayerportalguild(Daedalus::DaedalusVM &vm) {

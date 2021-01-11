@@ -4,6 +4,7 @@
 
 #include "graphics/mesh/submesh/packedmesh.h"
 #include "graphics/dynamic/painter3d.h"
+#include "game/globaleffects.h"
 #include "world/world.h"
 #include "world/npc.h"
 #include "utils/gthfont.h"
@@ -32,6 +33,7 @@ void WorldView::setViewport(uint32_t w, uint32_t h) {
 
 Matrix4x4 WorldView::viewProj(const Matrix4x4 &view) const {
   auto viewProj=proj;
+  owner.globalFx()->morph(viewProj);
   viewProj.mul(view);
   return viewProj;
   }
