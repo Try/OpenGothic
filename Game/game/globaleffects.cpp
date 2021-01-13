@@ -3,10 +3,6 @@
 #include "graphics/visualfx.h"
 #include "world/world.h"
 
-GlobalEffects::ScreenBlend::ScreenBlend(const char* tex) {
-  }
-
-
 GlobalEffects::GlobalEffects(World& owner):owner(owner){
   }
 
@@ -36,15 +32,40 @@ void GlobalEffects::scaleTime(uint64_t& dt) {
     }
   }
 
+static float generator(uint64_t dt, uint64_t period) {
+  float a0 = float((dt+period/2)%period)/float(period); //[0..1]
+  a0 = a0*2.f-1.f;
+  return a0;
+  }
+
 void GlobalEffects::morph(Tempest::Matrix4x4& proj) {
   for(auto& i:morphEff) {
-    float x = i.amplitude*0.05f;
-    float y = i.amplitude*0.05f;
+    float x = i.amplitude*0.075f;
+    float y = i.amplitude*0.075f;
 
-    float a = float(owner.tickCount()%2000)/2000.f;
-    a = std::fabs(a*2.f-1.f);
-    a = a*2.f-1.f;
-    proj.scale(1.f+a*x,1.f-a*y,1.f);
+    uint64_t time = owner.tickCount()-i.timeStart;
+    // a0 = std::sin(float(2*a0*M_PI));
+
+    float a0 = generator(time,5000);
+    float a1 = generator(time,9000);
+    a0 = std::sin(a0*float(M_PI));
+    a1 = std::sin(a1*float(M_PI));
+
+    proj.scale(1.f+a0*x,1.f-a0*y,1.f);
+    proj.scale(1.f+a1*x,1.f+a1*y,1.f);
+    }
+  }
+
+void GlobalEffects::scrBlend(Tempest::Painter& p, const Tempest::Rect& rect) {
+  for(auto& i:scrEff) {
+    if(i.frames.size()==0)
+      continue;
+    uint64_t dt    = owner.tickCount()-i.timeStart;
+    size_t   frame = size_t(i.fps*dt)/1000;
+    if(i.fps>0)
+      frame%=i.fps;
+    p.setBrush(Tempest::Brush(*i.frames[frame],Tempest::Color(1,1,1,i.cl.a()),Tempest::Painter::Alpha));
+    p.drawRect(rect.x,rect.y,rect.w,rect.h,0,0,p.brush().w(),p.brush().h());
     }
   }
 
@@ -54,6 +75,7 @@ void GlobalEffects::startEffect(const Daedalus::ZString& what, float lenF, const
   if(lenF<0)
     eff.timeUntil = uint64_t(-1); else
     eff.timeUntil = owner.tickCount()+len;
+  eff.timeStart = owner.tickCount();
   }
 
 void GlobalEffects::stopEffect(const VisualFx& vfx) {
@@ -65,7 +87,7 @@ void GlobalEffects::stopEffect(const VisualFx& vfx) {
   if(what=="morph.fov")
     morphEff.clear();
   if(what=="earthquake.eqk")
-    ;
+    quakeEff.clear();
   }
 
 GlobalEffects::Effect& GlobalEffects::create(const Daedalus::ZString& what, const Daedalus::ZString* argv, size_t argc) {
@@ -76,7 +98,7 @@ GlobalEffects::Effect& GlobalEffects::create(const Daedalus::ZString& what, cons
   if(what=="morph.fov")
     return addMorphFov(argv,argc);
   if(what=="earthquake.eqk")
-    ;
+    return addEarthQuake(argv,argc);
   static Effect eff;
   return eff;
   }
@@ -97,13 +119,20 @@ GlobalEffects::Effect& GlobalEffects::addSlowTime(const Daedalus::ZString* argv,
   }
 
 GlobalEffects::Effect& GlobalEffects::addScreenBlend(const Daedalus::ZString* argv, size_t argc) {
-  double val[4] = {0,0,0,0};
-  for(size_t i=0; i<argc && i<4; ++i) {
-    val[i] = std::atof(argv[i].c_str());
-    }
-  const char* tex = 3<argc ? argv[3].c_str() : nullptr;
-  (void)val;
-  scrEff.emplace_back(ScreenBlend(tex));
+  ScreenBlend sc;
+
+  if(0<argc)
+    sc.loop   = float(std::atof(argv[0].c_str()));
+  if(1<argc)
+    sc.cl     = parseColor(argv[1].c_str());
+  if(2<argc)
+    sc.inout  = float(std::atof(argv[2].c_str()));
+  if(3<argc)
+    sc.frames = Resources::loadTextureAnim(argv[3].c_str());
+  if(4<argc)
+    sc.fps    = size_t(std::atoi(argv[4].c_str()));
+
+  scrEff.emplace_back(std::move(sc));
   return scrEff.back();
   }
 
@@ -120,4 +149,27 @@ GlobalEffects::Effect& GlobalEffects::addMorphFov(const Daedalus::ZString* argv,
 
   morphEff.emplace_back(m);
   return morphEff.back();
+  }
+
+GlobalEffects::Effect& GlobalEffects::addEarthQuake(const Daedalus::ZString*, size_t) {
+  quakeEff.emplace_back();
+  return quakeEff.back();
+  }
+
+Tempest::Color GlobalEffects::parseColor(const char* str) {
+  float v[4] = {};
+  for(int i=0;i<4;++i) {
+    char* next=nullptr;
+    v[i] = std::strtof(str,&next)/255.f;
+    if(str==next)
+      if(i==1) {
+        return Tempest::Color(v[0],v[0],v[0],1.f);
+      if(i==2)
+        return Tempest::Color(v[0],v[1],0.f,1.f);
+      if(i==3)
+        return Tempest::Color(v[0],v[1],v[2],1.f);
+      }
+    str = next;
+    }
+  return Tempest::Color(v[0],v[1],v[2],v[3]);
   }

@@ -18,6 +18,7 @@
 #include "gothic.h"
 #include "world/npc.h"
 #include "game/serialize.h"
+#include "game/globaleffects.h"
 #include "utils/crashlog.h"
 #include "utils/gthfont.h"
 
@@ -126,6 +127,10 @@ void MainWindow::paintEvent(PaintEvent& event) {
       p.drawRect(0,0,w(),h(),
                  0,0,background->w(),background->h());
       }
+    }
+
+  if(world!=nullptr) {
+    world->globalFx()->scrBlend(p,Rect(0,0,w(),h()));
     }
 
   if(st!=Gothic::LoadState::Idle && st!=Gothic::LoadState::Finalize) {
@@ -243,6 +248,7 @@ void MainWindow::tickMouse() {
   dpScaled.y/=float(h());
 
   dpScaled*=1000.f;
+  dpScaled.y /= 7.f;
 
   if(auto camera = gothic.gameCamera())
     camera->onRotateMouse(PointF(-dpScaled.x,dpScaled.y));
