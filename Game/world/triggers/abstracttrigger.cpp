@@ -2,7 +2,7 @@
 
 #include <Tempest/Log>
 
-#include "world/npc.h"
+#include "world/objects/npc.h"
 #include "world/world.h"
 #include "game/serialize.h"
 

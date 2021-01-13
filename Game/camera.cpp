@@ -1,13 +1,12 @@
 #include "camera.h"
 
+#include "world/objects/npc.h"
+#include "world/objects/interactive.h"
+#include "world/world.h"
 #include "game/playercontrol.h"
 #include "game/definitions/cameradefinitions.h"
-
-#include "gothic.h"
-#include "world/world.h"
 #include "game/serialize.h"
-#include "world/npc.h"
-#include "world/interactive.h"
+#include "gothic.h"
 
 using namespace Tempest;
 
@@ -105,6 +104,7 @@ void Camera::setMode(Camera::Mode m) {
   camMod = m;
   if(camMod==Mode::Inventory ||
      camMod==Mode::Dialog ||
+     camMod==Mode::Mobsi ||
      camMod==Mode::Death) {
     const auto& def = cameraDef();
     dest.spin.x = def.bestAzimuth;
@@ -370,7 +370,7 @@ void Camera::follow(const Npc& npc, uint64_t dt, bool inMove, bool includeRot) {
   auto dp  = (pos-state.pos);
   auto len = dp.manhattanLength();
 
-  if(len>0.1f && def.translate && camMod!=Dialog){
+  if(len>0.1f && def.translate && camMod!=Dialog && camMod!=Mobsi){
     const float maxDist = 180;
     float       speed   = 0;
     if(inMove)

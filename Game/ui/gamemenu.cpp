@@ -5,8 +5,8 @@
 #include <Tempest/TextCodec>
 #include <Tempest/Dialog>
 
+#include "world/objects/npc.h"
 #include "world/world.h"
-#include "world/npc.h"
 #include "ui/menuroot.h"
 #include "utils/gthfont.h"
 #include "utils/fileutil.h"

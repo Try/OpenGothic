@@ -2,8 +2,8 @@
 
 #include <daedalus/DaedalusStdlib.h>
 
+#include "world/objects/npc.h"
 #include "world/world.h"
-#include "world/npc.h"
 #include "game/serialize.h"
 
 TouchDamage::TouchDamage(Vob* parent, World &world, ZenLoad::zCVobData&& d, bool startup)

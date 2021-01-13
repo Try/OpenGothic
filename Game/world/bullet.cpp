@@ -1,8 +1,8 @@
 #include "bullet.h"
 
 #include "graphics/visualfx.h"
-#include "world/item.h"
-#include "world/npc.h"
+#include "world/objects/item.h"
+#include "world/objects/npc.h"
 #include "world.h"
 
 using namespace Tempest;

@@ -8,8 +8,8 @@
 #include <zenload/zenParser.h>
 
 #include "graphics/pfx/particlefx.h"
+#include "world/objects/npc.h"
 #include "world/world.h"
-#include "world/npc.h"
 #include "resources.h"
 
 using namespace Tempest;

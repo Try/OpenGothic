@@ -2,7 +2,7 @@
 
 #include <Tempest/Log>
 
-#include "world.h"
+#include "world/world.h"
 #include "utils/fileext.h"
 
 using namespace Tempest;

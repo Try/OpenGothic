@@ -1,9 +1,9 @@
 #include "documentmenu.h"
 
+#include "world/objects/interactive.h"
+#include "world/objects/npc.h"
 #include "utils/gthfont.h"
 #include "utils/keycodec.h"
-#include "world/interactive.h"
-#include "world/npc.h"
 #include "gothic.h"
 
 using namespace Tempest;

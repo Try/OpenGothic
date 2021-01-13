@@ -2,10 +2,10 @@
 
 #include <Tempest/Log>
 
-#include "skeleton.h"
-#include "game/serialize.h"
-#include "world/npc.h"
+#include "world/objects/npc.h"
 #include "world/world.h"
+#include "game/serialize.h"
+#include "skeleton.h"
 #include "animmath.h"
 
 #include <cmath>

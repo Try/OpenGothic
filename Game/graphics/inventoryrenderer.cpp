@@ -1,8 +1,8 @@
 #include "inventoryrenderer.h"
 
-#include "rendererstorage.h"
+#include "world/objects/item.h"
 #include "game/inventory.h"
-#include "world/item.h"
+#include "rendererstorage.h"
 #include "lightsource.h"
 
 using namespace Tempest;

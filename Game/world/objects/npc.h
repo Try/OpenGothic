@@ -11,9 +11,9 @@
 #include "game/perceptionmsg.h"
 #include "game/gamescript.h"
 #include "physics/dynamicworld.h"
-#include "aiqueue.h"
-#include "fplock.h"
-#include "waypath.h"
+#include "world/aiqueue.h"
+#include "world/fplock.h"
+#include "world/waypath.h"
 
 #include <cstdint>
 #include <string>

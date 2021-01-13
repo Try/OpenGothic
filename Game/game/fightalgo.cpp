@@ -2,8 +2,8 @@
 
 #include <Tempest/Log>
 
-#include "world/npc.h"
-#include "world/item.h"
+#include "world/objects/npc.h"
+#include "world/objects/item.h"
 #include "serialize.h"
 
 FightAlgo::FightAlgo() {

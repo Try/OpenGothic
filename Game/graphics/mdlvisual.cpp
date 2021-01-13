@@ -2,9 +2,9 @@
 
 #include "graphics/pfx/particlefx.h"
 #include "graphics/mesh/skeleton.h"
+#include "world/objects/npc.h"
+#include "world/objects/item.h"
 #include "game/serialize.h"
-#include "world/npc.h"
-#include "world/item.h"
 #include "world/world.h"
 
 using namespace Tempest;

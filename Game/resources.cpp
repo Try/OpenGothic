@@ -570,26 +570,33 @@ const Texture2d *Resources::loadTexture(const std::string &name, int32_t iv, int
 
 std::vector<const Texture2d*> Resources::loadTextureAnim(const std::string& name) {
   std::vector<const Texture2d*> ret;
-  if(name.find("_A0")==std::string::npos)
+  if(name.find("_A0")==std::string::npos &&
+     name.find("_a0")==std::string::npos)
     return ret;
 
   for(int id=0; ; ++id) {
     size_t at = 0;
     char   buf[128]={};
     for(size_t i=0;i<name.size();++i) {
-      if(i+2<name.size() && name[i]=='_' && name[i+1]=='A' && name[i+2]=='0'){
+      if(i+2<name.size() && name[i]=='_' && (name[i+1]=='A' || name[i+1]=='a') && name[i+2]=='0'){
         at += std::snprintf(buf+at,sizeof(buf)-at,"_A%d",id);
         i+=2;
         } else {
         buf[at] = name[i];
+        if('a'<=buf[at] && buf[at]<='z')
+          buf[at] = char(buf[at]+'A'-'a');
         at++;
         }
       if(at>sizeof(buf))
         return ret;
       }
-    auto t = loadTexture(buf);
-    if(t==nullptr)
-      return ret;
+   auto t = loadTexture(buf);
+    if(t==nullptr) {
+      strncat(buf,".TGA",sizeof(buf));
+      t = loadTexture(buf);
+      if(t==nullptr)
+        return ret;
+      }
     ret.push_back(t);
     }
   }

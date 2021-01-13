@@ -1,12 +1,13 @@
 #include "inventory.h"
-#include <Tempest/Log>
 
-#include "game/gamescript.h"
-#include "world/item.h"
-#include "world/npc.h"
-#include "world/world.h"
-#include "serialize.h"
+#include <Tempest/Log>
 #include <daedalus/DaedalusExcept.h>
+
+#include "world/objects/item.h"
+#include "world/objects/npc.h"
+#include "world/world.h"
+#include "game/gamescript.h"
+#include "serialize.h"
 
 using namespace Daedalus::GameState;
 using namespace Tempest;

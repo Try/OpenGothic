@@ -13,10 +13,10 @@
 #include "game/serialize.h"
 #include "game/gamescript.h"
 #include "world/triggers/trigger.h"
+#include "world/objects/interactive.h"
+#include "world/objects/item.h"
+#include "world/world.h"
 #include "utils/versioninfo.h"
-#include "interactive.h"
-#include "item.h"
-#include "world.h"
 #include "resources.h"
 
 using namespace Tempest;

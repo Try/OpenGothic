@@ -3,9 +3,8 @@
 #include <Tempest/Log>
 #include <Tempest/Vec>
 
-#include "interactive.h"
-#include "staticobj.h"
-
+#include "world/objects/interactive.h"
+#include "world/objects/staticobj.h"
 #include "world/triggers/movetrigger.h"
 #include "world/triggers/codemaster.h"
 #include "world/triggers/triggerlist.h"
@@ -16,10 +15,9 @@
 #include "world/triggers/pfxcontroller.h"
 #include "world/triggers/trigger.h"
 #include "world/triggers/touchdamage.h"
+#include "world/worldlight.h"
+#include "world/world.h"
 #include "game/serialize.h"
-
-#include "world.h"
-#include "worldlight.h"
 
 using namespace Tempest;
 

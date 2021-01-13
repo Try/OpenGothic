@@ -40,8 +40,8 @@
 #include <cmath>
 
 #include "graphics/mesh/submesh/packedmesh.h"
+#include "world/objects/item.h"
 #include "world/bullet.h"
-#include "world/item.h"
 
 const float DynamicWorld::ghostPadding=50-22.5f;
 const float DynamicWorld::ghostHeight =140;

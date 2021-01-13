@@ -1,19 +1,19 @@
 #include "gamescript.h"
 
-#include "game/definitions/spelldefinitions.h"
-#include "game/serialize.h"
-#include "game/globaleffects.h"
-#include "graphics/visualfx.h"
-#include "gothic.h"
-#include "world/npc.h"
-#include "world/item.h"
-#include "world/interactive.h"
+#include <Tempest/Log>
+#include <Tempest/SoundEffect>
 
 #include <fstream>
 #include <cctype>
 
-#include <Tempest/Log>
-#include <Tempest/SoundEffect>
+#include "game/definitions/spelldefinitions.h"
+#include "game/serialize.h"
+#include "game/globaleffects.h"
+#include "world/objects/npc.h"
+#include "world/objects/item.h"
+#include "world/objects/interactive.h"
+#include "graphics/visualfx.h"
+#include "gothic.h"
 
 using namespace Tempest;
 using namespace Daedalus::GameState;

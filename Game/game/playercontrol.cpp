@@ -1,14 +1,14 @@
 #include "playercontrol.h"
 
-#include "world/npc.h"
-#include "world/item.h"
-#include "world/interactive.h"
+#include <cmath>
+
+#include "world/objects/npc.h"
+#include "world/objects/item.h"
+#include "world/objects/interactive.h"
 #include "world/world.h"
 #include "ui/dialogmenu.h"
 #include "ui/inventorymenu.h"
 #include "gothic.h"
-
-#include <cmath>
 
 PlayerControl::PlayerControl(Gothic &gothic, DialogMenu& dlg, InventoryMenu &inv)
   :gothic(gothic), dlg(dlg),inv(inv) {

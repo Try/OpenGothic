@@ -3,7 +3,7 @@
 #include <string>
 #include <zenload/zTypes.h>
 
-#include "world/vob.h"
+#include "world/objects/vob.h"
 #include "physics/dynamicworld.h"
 
 class Npc;

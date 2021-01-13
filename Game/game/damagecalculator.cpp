@@ -1,9 +1,9 @@
 #include "damagecalculator.h"
 
+#include "world/objects/npc.h"
+#include "world/objects/item.h"
 #include "world/world.h"
 #include "world/bullet.h"
-#include "world/npc.h"
-#include "world/item.h"
 
 using namespace Daedalus::GEngineClasses;
 

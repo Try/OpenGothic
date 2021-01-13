@@ -7,10 +7,10 @@
 #include <cctype>
 
 #include "worldstatestorage.h"
-#include "serialize.h"
+#include "world/objects/npc.h"
+#include "world/objects/interactive.h"
 #include "world/world.h"
-#include "world/npc.h"
-#include "world/interactive.h"
+#include "serialize.h"
 #include "gothic.h"
 
 using namespace Tempest;

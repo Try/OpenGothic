@@ -15,12 +15,13 @@
 #include "ui/stacklayout.h"
 #include "ui/videowidget.h"
 
-#include "gothic.h"
-#include "world/npc.h"
+#include "world/objects/npc.h"
 #include "game/serialize.h"
 #include "game/globaleffects.h"
 #include "utils/crashlog.h"
 #include "utils/gthfont.h"
+
+#include "gothic.h"
 
 using namespace Tempest;
 

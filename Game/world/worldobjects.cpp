@@ -2,18 +2,17 @@
 
 #include "game/serialize.h"
 #include "graphics/meshobjects.h"
-#include "item.h"
-#include "npc.h"
-#include "world.h"
-#include "utils/workers.h"
-
 #include "world/triggers/codemaster.h"
 #include "world/triggers/triggerscript.h"
 #include "world/triggers/triggerlist.h"
 #include "world/triggers/triggerworldstart.h"
 #include "world/triggers/messagefilter.h"
-#include "world/interactive.h"
-#include "world/vob.h"
+#include "world/objects/item.h"
+#include "world/objects/npc.h"
+#include "world/objects/interactive.h"
+#include "world/objects/vob.h"
+#include "world.h"
+#include "utils/workers.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Application>

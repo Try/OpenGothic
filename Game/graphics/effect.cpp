@@ -3,8 +3,8 @@
 #include <Tempest/Log>
 
 #include "graphics/mesh/skeleton.h"
+#include "world/objects/npc.h"
 #include "world/world.h"
-#include "world/npc.h"
 #include "visualfx.h"
 
 using namespace Tempest;
@@ -175,6 +175,8 @@ uint64_t Effect::effectPrefferedTime() const {
     float timeF = root->handle().emFXLifeSpan;
     if(timeF>0)
       return std::max(ret,uint64_t(timeF*1000.f));
+    if(timeF<0)
+      return uint64_t(-1);
     }
   return std::max(ret,visual.effectPrefferedTime());
   }

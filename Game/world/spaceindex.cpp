@@ -1,6 +1,6 @@
 #include "spaceindex.h"
 
-#include "vob.h"
+#include "world/objects/vob.h"
 
 void BaseSpaceIndex::clear() {
   arr.clear();

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vob.h"
+#include "world/objects/vob.h"
 #include "graphics/lightgroup.h"
 
 class WorldLight : public Vob {

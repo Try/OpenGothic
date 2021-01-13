@@ -1,8 +1,8 @@
 #include "focus.h"
 
-#include "world/npc.h"
-#include "world/interactive.h"
-#include "world/item.h"
+#include "world/objects/npc.h"
+#include "world/objects/interactive.h"
+#include "world/objects/item.h"
 
 Focus::Focus(Interactive &i):interactive(&i){
   }

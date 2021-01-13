@@ -1,11 +1,10 @@
 #include "animationsolver.h"
 
-#include "skeleton.h"
-#include "pose.h"
-#include "world/interactive.h"
+#include "world/objects/interactive.h"
 #include "world/world.h"
 #include "game/serialize.h"
-
+#include "skeleton.h"
+#include "pose.h"
 #include "resources.h"
 
 using namespace Tempest;

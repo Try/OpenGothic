@@ -3,8 +3,8 @@
 #include "game/serialize.h"
 #include "game/gamescript.h"
 #include "game/inventory.h"
-#include "world/npc.h"
-#include "world.h"
+#include "world/objects/npc.h"
+#include "world/world.h"
 
 Item::Item(World &owner, size_t itemInstance)
   :Vob(owner) {

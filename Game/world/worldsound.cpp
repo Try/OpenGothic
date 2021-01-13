@@ -3,9 +3,9 @@
 #include <Tempest/SoundEffect>
 
 #include "game/gamesession.h"
-#include "world/npc.h"
-#include "gamemusic.h"
+#include "world/objects/npc.h"
 #include "world.h"
+#include "gamemusic.h"
 #include "gothic.h"
 #include "resources.h"
 

@@ -1,9 +1,9 @@
 #include "movealgo.h"
 
-#include "serialize.h"
+#include "world/objects/npc.h"
+#include "world/objects/interactive.h"
 #include "world/world.h"
-#include "world/npc.h"
-#include "world/interactive.h"
+#include "serialize.h"
 
 const float   MoveAlgo::closeToPointThreshold = 50;
 const float   MoveAlgo::climbMove             = 55;
