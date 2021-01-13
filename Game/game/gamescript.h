@@ -111,7 +111,6 @@ class GameScript final {
     const AiState&                                    getAiState(ScriptFn id);
     const Daedalus::GEngineClasses::C_Spell&          getSpell(int32_t splId);
     const VisualFx*                                   getSpellVFx(int32_t splId);
-    PfxObjects::Emitter                               getSpellFx(const VisualFx* vfx);
     const VisualFx*                                   getVisualFx(const char* symbol);
     const ParticleFx*                                 getParticleFx(const char* symbol);
     const ParticleFx*                                 getParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k);

@@ -1,10 +1,18 @@
 #pragma once
 
-#include "graphics/pfx/pfxobjects.h"
+#include "world/objects/pfxemitter.h"
+#include "world/objects/globalfx.h"
 #include "game/constants.h"
+#include "lightgroup.h"
+
+#include <memory>
+#include <daedalus/ZString.h>
 
 class VisualFx;
+class World;
 class Npc;
+class Pose;
+class Skeleton;
 
 namespace Daedalus {
 namespace GEngineClasses {
@@ -15,7 +23,7 @@ struct C_ParticleFXEmitKey;
 class Effect final {
   public:
     Effect() = default;
-    Effect(PfxObjects::Emitter&& pfxOnly, const char* node);
+    Effect(PfxEmitter&& pfxOnly, const char* node);
     Effect(const VisualFx& vfx, World& owner, const Npc& src,           SpellFxKey key = SpellFxKey::Count);
     Effect(const VisualFx& vfx, World& owner, const Tempest::Vec3& pos, SpellFxKey key = SpellFxKey::Count);
 
@@ -54,7 +62,8 @@ class Effect final {
     const Key*            key  = nullptr;
 
     const VisualFx*       root = nullptr;
-    PfxObjects::Emitter   visual;
+    PfxEmitter            visual;
+    GlobalFx              gfx;
     LightGroup::Light     light;
     const char*           nodeSlot = nullptr;
     size_t                boneId   = size_t(-1);

@@ -11,6 +11,7 @@
 #include "graphics/mesh/submesh/packedmesh.h"
 #include "graphics/mesh/skeleton.h"
 #include "graphics/visualfx.h"
+#include "world/objects/globalfx.h"
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
 #include "world/objects/interactive.h"
@@ -170,8 +171,8 @@ void World::runEffect(Effect&& e) {
   wobj.runEffect(std::move(e));
   }
 
-void World::startGlobalEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc) {
-  globFx->startEffect(what,len,argv,argc);
+GlobalFx World::getGlobalEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc) {
+  return globFx->startEffect(what,len,argv,argc);
   }
 
 LightGroup::Light World::getLight() {
@@ -194,11 +195,11 @@ MeshObjects::Mesh World::getView(const char* visual, int32_t headTex, int32_t te
   return view()->getView(visual,headTex,teetTex,bodyColor);
   }
 
-PfxObjects::Emitter World::getView(const ParticleFx *decl) const {
+PfxEmitter World::getView(const ParticleFx *decl) const {
   return view()->getView(decl);
   }
 
-PfxObjects::Emitter World::getView(const ZenLoad::zCVobData& vob) const {
+PfxEmitter World::getView(const ZenLoad::zCVobData& vob) const {
   return view()->getView(vob);
   }
 

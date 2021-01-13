@@ -29,7 +29,7 @@ class VisualFx final {
     const char*                                          colDyn()        const;
     const char*                                          origin()        const { return emTrjOriginNode.c_str(); }
 
-    PfxObjects::Emitter                                  visual(World& owner) const;
+    PfxEmitter                                           visual(World& owner) const;
     const Daedalus::GEngineClasses::C_ParticleFXEmitKey& key(SpellFxKey type, int32_t keyLvl=0) const;
 
   private:

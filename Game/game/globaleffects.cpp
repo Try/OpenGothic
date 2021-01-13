@@ -1,7 +1,8 @@
 #include "globaleffects.h"
 
-#include "graphics/visualfx.h"
+#include "world/objects/globalfx.h"
 #include "world/world.h"
+#include "graphics/visualfx.h"
 
 GlobalEffects::GlobalEffects(World& owner):owner(owner){
   }
@@ -10,13 +11,14 @@ void GlobalEffects::tick(uint64_t dt) {
   tick(dt,timeEff);
   tick(dt,scrEff);
   tick(dt,morphEff);
+  tick(dt,quakeEff);
   }
 
 template<class T>
 void GlobalEffects::tick(uint64_t /*dt*/, std::vector<T>& eff) {
   uint64_t time = owner.tickCount();
   for(size_t i=0; i<eff.size(); ) {
-    if(eff[i].timeUntil<time) {
+    if(eff[i]->timeUntil<time) {
       eff.erase(eff.begin()+int(i));
       } else {
       ++i;
@@ -25,7 +27,8 @@ void GlobalEffects::tick(uint64_t /*dt*/, std::vector<T>& eff) {
   }
 
 void GlobalEffects::scaleTime(uint64_t& dt) {
-  for(auto& i:timeEff) {
+  for(auto& pi:timeEff) {
+    auto& i = *pi;
     dt          = dt*i.mul + timeWrldRem;
     timeWrldRem = dt%i.div;
     dt /=i.div;
@@ -39,7 +42,8 @@ static float generator(uint64_t dt, uint64_t period) {
   }
 
 void GlobalEffects::morph(Tempest::Matrix4x4& proj) {
-  for(auto& i:morphEff) {
+  for(auto& pi:morphEff) {
+    auto& i = *pi;
     float x = i.amplitude*0.075f;
     float y = i.amplitude*0.075f;
 
@@ -57,7 +61,8 @@ void GlobalEffects::morph(Tempest::Matrix4x4& proj) {
   }
 
 void GlobalEffects::scrBlend(Tempest::Painter& p, const Tempest::Rect& rect) {
-  for(auto& i:scrEff) {
+  for(auto& pi:scrEff) {
+    auto& i = *pi;
     if(i.frames.size()==0)
       continue;
     uint64_t dt    = owner.tickCount()-i.timeStart;
@@ -69,13 +74,15 @@ void GlobalEffects::scrBlend(Tempest::Painter& p, const Tempest::Rect& rect) {
     }
   }
 
-void GlobalEffects::startEffect(const Daedalus::ZString& what, float lenF, const Daedalus::ZString* argv, size_t argc) {
+GlobalFx GlobalEffects::startEffect(const Daedalus::ZString& what, float lenF, const Daedalus::ZString* argv, size_t argc) {
   uint64_t len = uint64_t(lenF*1000.f);
-  auto&    eff = create(what,argv,argc);
+  auto     ret = create(what,argv,argc);
+  auto&    eff = *ret.h;
   if(lenF<0)
     eff.timeUntil = uint64_t(-1); else
     eff.timeUntil = owner.tickCount()+len;
   eff.timeStart = owner.tickCount();
+  return ret;
   }
 
 void GlobalEffects::stopEffect(const VisualFx& vfx) {
@@ -90,7 +97,7 @@ void GlobalEffects::stopEffect(const VisualFx& vfx) {
     quakeEff.clear();
   }
 
-GlobalEffects::Effect& GlobalEffects::create(const Daedalus::ZString& what, const Daedalus::ZString* argv, size_t argc) {
+GlobalFx GlobalEffects::create(const Daedalus::ZString& what, const Daedalus::ZString* argv, size_t argc) {
   if(what=="time.slw")
     return addSlowTime(argv,argc);
   if(what=="screenblend.scx")
@@ -99,11 +106,10 @@ GlobalEffects::Effect& GlobalEffects::create(const Daedalus::ZString& what, cons
     return addMorphFov(argv,argc);
   if(what=="earthquake.eqk")
     return addEarthQuake(argv,argc);
-  static Effect eff;
-  return eff;
+  return GlobalFx();
   }
 
-GlobalEffects::Effect& GlobalEffects::addSlowTime(const Daedalus::ZString* argv, size_t argc) {
+GlobalFx GlobalEffects::addSlowTime(const Daedalus::ZString* argv, size_t argc) {
   double val[2] = {1,1};
   for(size_t i=0; i<argc && i<2; ++i)
     val[i] = std::atof(argv[i].c_str());
@@ -114,11 +120,11 @@ GlobalEffects::Effect& GlobalEffects::addSlowTime(const Daedalus::ZString* argv,
   SlowTime s;
   s.mul = v[0];
   s.div = 1000;
-  timeEff.emplace_back(s);
-  return timeEff.back();
+  timeEff.emplace_back(std::make_shared<SlowTime>(s));
+  return GlobalFx(timeEff.back());
   }
 
-GlobalEffects::Effect& GlobalEffects::addScreenBlend(const Daedalus::ZString* argv, size_t argc) {
+GlobalFx GlobalEffects::addScreenBlend(const Daedalus::ZString* argv, size_t argc) {
   ScreenBlend sc;
 
   if(0<argc)
@@ -132,11 +138,11 @@ GlobalEffects::Effect& GlobalEffects::addScreenBlend(const Daedalus::ZString* ar
   if(4<argc)
     sc.fps    = size_t(std::atoi(argv[4].c_str()));
 
-  scrEff.emplace_back(std::move(sc));
-  return scrEff.back();
+  scrEff.emplace_back(std::make_shared<ScreenBlend>(sc));
+  return GlobalFx(scrEff.back());
   }
 
-GlobalEffects::Effect& GlobalEffects::addMorphFov(const Daedalus::ZString* argv, size_t argc) {
+GlobalFx GlobalEffects::addMorphFov(const Daedalus::ZString* argv, size_t argc) {
   double val[4] = {0,0,0,0};
   for(size_t i=0; i<argc && i<4; ++i) {
     val[i] = std::atof(argv[i].c_str());
@@ -147,13 +153,13 @@ GlobalEffects::Effect& GlobalEffects::addMorphFov(const Daedalus::ZString* argv,
   m.baseX     = float(val[2]);
   m.baseY     = float(val[3]);
 
-  morphEff.emplace_back(m);
-  return morphEff.back();
+  morphEff.emplace_back(std::make_shared<Morph>(m));
+  return GlobalFx(morphEff.back());
   }
 
-GlobalEffects::Effect& GlobalEffects::addEarthQuake(const Daedalus::ZString*, size_t) {
-  quakeEff.emplace_back();
-  return quakeEff.back();
+GlobalFx GlobalEffects::addEarthQuake(const Daedalus::ZString*, size_t) {
+  quakeEff.emplace_back(std::make_shared<Quake>());
+  return GlobalFx(quakeEff.back());
   }
 
 Tempest::Color GlobalEffects::parseColor(const char* str) {

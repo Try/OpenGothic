@@ -114,7 +114,7 @@ PfxBucket::Block& PfxBucket::getBlock(ImplEmitter &e) {
   return block[e.block];
   }
 
-PfxBucket::Block& PfxBucket::getBlock(PfxObjects::Emitter &e) {
+PfxBucket::Block& PfxBucket::getBlock(PfxEmitter& e) {
   return getBlock(impl[e.id]);
   }
 
@@ -396,7 +396,7 @@ void PfxBucket::tick(uint64_t dt, const Vec3& viewPos) {
     const bool process = active && nearby;
 
     if(emitter.next==nullptr && owner->ppsCreateEm!=nullptr && emitter.waitforNext<dt && emitter.active) {
-      emitter.next.reset(new PfxObjects::Emitter(parent->get(*owner->ppsCreateEm)));
+      emitter.next.reset(new PfxEmitter(parent->get(*owner->ppsCreateEm)));
       auto& e = *emitter.next;
       e.setPosition(emitter.pos.x,emitter.pos.y,emitter.pos.z);
       e.setActive(true);

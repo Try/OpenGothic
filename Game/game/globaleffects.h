@@ -11,18 +11,19 @@
 
 class World;
 class VisualFx;
+class GlobalFx;
 
 class GlobalEffects {
   public:
     GlobalEffects(World& owner);
 
-    void   tick(uint64_t dt);
-    void   startEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc);
-    void   stopEffect (const VisualFx& vfx);
+    void     tick(uint64_t dt);
+    GlobalFx startEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc);
+    void     stopEffect (const VisualFx& vfx);
 
-    void   scaleTime(uint64_t& dt);
-    void   morph(Tempest::Matrix4x4& proj);
-    void   scrBlend(Tempest::Painter& p, const Tempest::Rect& rect);
+    void     scaleTime(uint64_t& dt);
+    void     morph(Tempest::Matrix4x4& proj);
+    void     scrBlend(Tempest::Painter& p, const Tempest::Rect& rect);
 
   private:
     struct Effect {
@@ -59,21 +60,22 @@ class GlobalEffects {
     template<class T>
     void    tick(uint64_t dt, std::vector<T>& eff);
 
-    Effect& create        (const Daedalus::ZString& what, const Daedalus::ZString* argv, size_t argc);
-    Effect& addSlowTime   (const Daedalus::ZString* argv, size_t argc);
-    Effect& addScreenBlend(const Daedalus::ZString* argv, size_t argc);
-    Effect& addMorphFov   (const Daedalus::ZString* argv, size_t argc);
-    Effect& addEarthQuake (const Daedalus::ZString* argv, size_t argc);
+    GlobalFx create        (const Daedalus::ZString& what, const Daedalus::ZString* argv, size_t argc);
+    GlobalFx addSlowTime   (const Daedalus::ZString* argv, size_t argc);
+    GlobalFx addScreenBlend(const Daedalus::ZString* argv, size_t argc);
+    GlobalFx addMorphFov   (const Daedalus::ZString* argv, size_t argc);
+    GlobalFx addEarthQuake (const Daedalus::ZString* argv, size_t argc);
 
 
     static Tempest::Color parseColor(const char* c);
 
-    World&                   owner;
-    uint64_t                 timeWrldRem = 0;
+    World&   owner;
+    uint64_t timeWrldRem = 0;
 
-    std::vector<SlowTime>    timeEff;
-    std::vector<ScreenBlend> scrEff;
-    std::vector<Morph>       morphEff;
-    std::vector<Quake>       quakeEff;
+    std::vector<std::shared_ptr<SlowTime>>    timeEff;
+    std::vector<std::shared_ptr<ScreenBlend>> scrEff;
+    std::vector<std::shared_ptr<Morph>>       morphEff;
+    std::vector<std::shared_ptr<Quake>>       quakeEff;
+  friend class GlobalFx;
   };
 

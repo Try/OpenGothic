@@ -31,6 +31,7 @@ class GlobalEffects;
 class ParticleFx;
 class Interactive;
 class VersionInfo;
+class GlobalFx;
 
 class World final {
   public:
@@ -87,16 +88,16 @@ class World final {
     int32_t              guildOfRoom(const char* portalName);
 
     void                 runEffect(Effect&& e);
-    void                 startGlobalEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc);
 
+    GlobalFx             getGlobalEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc);
     LightGroup::Light    getLight();
     LightGroup::Light    getLight(const ZenLoad::zCVobData& vob);
     MeshObjects::Mesh    getView(const Daedalus::ZString& visual) const;
     MeshObjects::Mesh    getView(const char*              visual) const;
     MeshObjects::Mesh    getView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
     MeshObjects::Mesh    getView(const char*              visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
-    PfxObjects::Emitter  getView(const ParticleFx* decl) const;
-    PfxObjects::Emitter  getView(const ZenLoad::zCVobData& vob) const;
+    PfxEmitter           getView(const ParticleFx* decl) const;
+    PfxEmitter           getView(const ZenLoad::zCVobData& vob) const;
     MeshObjects::Mesh    getAtachView (const ProtoMesh::Attach& visual, const int32_t version);
     MeshObjects::Mesh    getItmView   (const Daedalus::ZString& visual, int32_t tex) const;
     MeshObjects::Mesh    getItmView   (const char*              visual, int32_t tex) const;

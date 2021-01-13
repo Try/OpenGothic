@@ -9,7 +9,7 @@
 
 using namespace Tempest;
 
-Effect::Effect(PfxObjects::Emitter&& visual, const char* node)
+Effect::Effect(PfxEmitter&& visual, const char* node)
   :visual(std::move(visual)), nodeSlot(node) {
   pos.identity();
   }
@@ -22,10 +22,18 @@ Effect::Effect(const VisualFx& vfx, World& owner, const Npc& src, SpellFxKey key
 Effect::Effect(const VisualFx& v, World& owner, const Vec3& inPos, SpellFxKey k) {
   root     = &v;
   nodeSlot = root->origin();
-  visual   = root->visual(owner);
+  auto& h  = root->handle();
+
+  if(h.visName_S=="time.slw"  ||
+     h.visName_S=="morph.fov" ||
+     h.visName_S=="screenblend.scx" ||
+     h.visName_S=="earthquake.eqk") {
+    gfx    = owner.getGlobalEffect(h.visName_S,h.emFXLifeSpan,h.userString,Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS);
+    } else {
+    visual = root->visual(owner);
+    }
   pos.identity();
 
-  auto& h  = root->handle();
   owner.emitSoundEffect(h.sfxID.c_str(), inPos.x,inPos.y,inPos.z,25,true);
   if(!h.emFXCreate_S.empty()) {
     auto vfx = owner.script().getVisualFx(h.emFXCreate_S.c_str());
@@ -171,6 +179,8 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
 
 uint64_t Effect::effectPrefferedTime() const {
   uint64_t ret = next==nullptr ? 0 : next->effectPrefferedTime();
+  if(ret==uint64_t(-1))
+    ret = 0;
   if(root!=nullptr) {
     float timeF = root->handle().emFXLifeSpan;
     if(timeF>0)

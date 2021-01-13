@@ -161,13 +161,13 @@ MeshObjects::Mesh WorldView::getDecalView(const ZenLoad::zCVobData& vob) {
   return MeshObjects::Mesh();
   }
 
-PfxObjects::Emitter WorldView::getView(const ParticleFx *decl) {
+PfxEmitter WorldView::getView(const ParticleFx *decl) {
   if(decl!=nullptr)
     return pfxGroup.get(*decl);
-  return PfxObjects::Emitter();
+  return PfxEmitter();
   }
 
-PfxObjects::Emitter WorldView::getView(const ZenLoad::zCVobData& vob) {
+PfxEmitter WorldView::getView(const ZenLoad::zCVobData& vob) {
   return pfxGroup.get(vob);
   }
 

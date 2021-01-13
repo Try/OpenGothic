@@ -1,7 +1,7 @@
 #pragma once
 
 #include "abstracttrigger.h"
-#include "graphics/pfx/pfxobjects.h"
+#include "world/objects/pfxemitter.h"
 
 class World;
 
@@ -18,7 +18,7 @@ class PfxController : public AbstractTrigger {
     void moveEvent() override;
     void tick(uint64_t dt) override;
 
-    PfxObjects::Emitter pfx;
-    uint64_t            killed   = std::numeric_limits<uint64_t>::max();
-    uint64_t            lifeTime = 0;
+    PfxEmitter pfx;
+    uint64_t   killed   = std::numeric_limits<uint64_t>::max();
+    uint64_t   lifeTime = 0;
   };

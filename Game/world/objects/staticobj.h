@@ -14,10 +14,10 @@ class StaticObj : public Vob {
     void  moveEvent() override;
     bool  setMobState(const char* scheme,int32_t st) override;
 
-    PhysicMesh                 physic;
-    PfxObjects::Emitter        pfx;
+    PhysicMesh  physic;
+    PfxEmitter  pfx;
 
-    MdlVisual                  visual;
-    std::string                scheme;
+    MdlVisual   visual;
+    std::string scheme;
   };
 

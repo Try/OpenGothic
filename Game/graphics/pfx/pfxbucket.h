@@ -29,7 +29,7 @@ class PfxBucket {
       bool          hasTarget    = false;
 
       uint64_t      waitforNext = 0;
-      std::unique_ptr<PfxObjects::Emitter> next;
+      std::unique_ptr<PfxEmitter> next;
       };
 
     ObjectsBucket::Item         item;
@@ -80,8 +80,8 @@ class PfxBucket {
     static float                randf();
     static float                randf(float base, float var);
 
-    Block&                      getBlock(ImplEmitter&         emitter);
-    Block&                      getBlock(PfxObjects::Emitter& emitter);
+    Block&                      getBlock(ImplEmitter& emitter);
+    Block&                      getBlock(PfxEmitter&  emitter);
 
     void                        init    (Block& emitter, size_t particle);
     void                        finalize(size_t particle);
@@ -94,6 +94,6 @@ class PfxBucket {
 
     static std::mt19937         rndEngine;
 
-    friend class PfxObjects::Emitter;
+    friend class PfxEmitter;
   };
 
