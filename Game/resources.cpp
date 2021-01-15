@@ -592,8 +592,9 @@ std::vector<const Texture2d*> Resources::loadTextureAnim(const std::string& name
       }
    auto t = loadTexture(buf);
     if(t==nullptr) {
-      strncat(buf,".TGA",sizeof(buf));
-      t = loadTexture(buf);
+      char buf2[128]={};
+      std::snprintf(buf2,sizeof(buf),"%s.TGA",buf);
+      t = loadTexture(buf2);
       if(t==nullptr)
         return ret;
       }
