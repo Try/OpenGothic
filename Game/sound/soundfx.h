@@ -6,9 +6,8 @@
 
 #include <daedalus/DaedalusStdlib.h>
 
-#include "gsoundeffect.h"
-
 class Gothic;
+class GSoundEffect;
 
 class SoundFx {
   public:
@@ -17,7 +16,7 @@ class SoundFx {
     SoundFx(SoundFx&&)=default;
     SoundFx& operator=(SoundFx&&)=default;
 
-    GSoundEffect         getEffect(Tempest::SoundDevice& dev) const;
+    Tempest::SoundEffect getEffect(Tempest::SoundDevice& dev) const;
     Tempest::SoundEffect getGlobal(Tempest::SoundDevice& dev) const;
 
   private:

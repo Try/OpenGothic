@@ -21,8 +21,6 @@
 #include "focus.h"
 #include "resources.h"
 
-using namespace Tempest;
-
 World::World(Gothic& gothic, GameSession& game,const RendererStorage &storage, std::string file, uint8_t isG2, std::function<void(int)> loadProgress)
   :wname(std::move(file)),game(game),wsound(gothic,game,*this),wobj(*this) {
   using namespace Daedalus::GameState;
@@ -489,7 +487,7 @@ void World::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,
   wobj.marchInteractives(p,mvp,w,h);
   }
 
-void World::marchPoints(Painter &p, const Matrix4x4 &mvp, int w, int h) const {
+void World::marchPoints(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const {
   wmatrix->marchPoints(p,mvp,w,h);
   }
 
@@ -520,7 +518,7 @@ Npc *World::addNpc(size_t npcInstance, const Daedalus::ZString& at) {
   return wobj.addNpc(npcInstance,at);
   }
 
-Npc* World::addNpc(size_t itemInstance, const Vec3& at) {
+Npc* World::addNpc(size_t itemInstance, const Tempest::Vec3& at) {
   return wobj.addNpc(itemInstance,at);
   }
 
@@ -731,32 +729,24 @@ void World::emitBlockSound(Npc &self, Npc &other) {
   wsound.emitSound(buf, mid.x, mid.y, mid.z,2500.f,false);
   }
 
-bool World::isInListenerRange(const Vec3& pos) const {
-  return wsound.isInListenerRange(pos,0);
+bool World::isInListenerRange(const Tempest::Vec3& pos) const {
+  return wsound.isInListenerRange(pos,WorldSound::talkRange);
   }
 
-void World::emitDlgSound(const char* s, float x, float y, float z, float range, uint64_t& timeLen) {
-  wsound.emitDlgSound(s,x,y,z,range,timeLen);
+Sound World::emitDlgSound(const char* s, float x, float y, float z, float range, uint64_t& timeLen) {
+  return wsound.emitDlgSound(s,x,y,z,range,timeLen);
   }
 
-void World::emitSoundEffect(const char *s, float x, float y, float z, float range, bool freeSlot) {
-  wsound.emitSound(s,x,y,z,range,freeSlot);
+Sound World::emitSoundEffect(const char *s, float x, float y, float z, float range, bool freeSlot) {
+  return wsound.emitSound(s,x,y,z,range,freeSlot);
   }
 
-void World::emitSoundRaw(const char *s, float x, float y, float z, float range, bool freeSlot) {
-  wsound.emitSoundRaw(s,x,y,z,range,freeSlot);
+Sound World::emitSoundRaw(const char *s, float x, float y, float z, float range, bool freeSlot) {
+  return wsound.emitSoundRaw(s,x,y,z,range,freeSlot);
   }
 
-void World::emitSoundRaw3d(const char* s, float x, float y, float z, float range) {
-  wsound.emitSound3d(s,x,y,z,range);
-  }
-
-void World::takeSoundSlot(GSoundEffect &&eff)  {
-  wsound.takeSoundSlot(std::move(eff));
-  }
-
-void World::tickSlot(GSoundEffect &slot) {
-  wsound.tickSlot(slot);
+Sound World::emitSoundRaw3d(const char* s, float x, float y, float z, float range) {
+  return wsound.emitSound3d(s,x,y,z,range);
   }
 
 void World::addTrigger(AbstractTrigger* trigger) {
@@ -767,11 +757,11 @@ void World::addInteractive(Interactive* inter) {
   wobj.addInteractive(inter);
   }
 
-void World::addStartPoint(const Vec3& pos, const Vec3& dir, const char* name) {
+void World::addStartPoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name) {
   wmatrix->addStartPoint(pos,dir,name);
   }
 
-void World::addFreePoint(const Vec3& pos, const Vec3& dir, const char* name) {
+void World::addFreePoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name) {
   wmatrix->addFreePoint(pos,dir,name);
   }
 
@@ -860,7 +850,7 @@ void World::detectNpc(const Tempest::Vec3& p, const float r, const std::function
   wobj.detectNpc(p.x,p.y,p.z,r,f);
   }
 
-void World::detectItem(const Vec3& p, const float r, const std::function<void(Item&)>& f) {
+void World::detectItem(const Tempest::Vec3& p, const float r, const std::function<void(Item&)>& f) {
   wobj.detectItem(p.x,p.y,p.z,r,f);
   }
 
@@ -895,7 +885,7 @@ void World::assignRoomToGuild(const char* r, int32_t guildId) {
     return;
     }
 
-  Log::d("room not found: ",room);
+  Tempest::Log::d("room not found: ",room);
   }
 
 int32_t World::guildOfRoom(const Tempest::Vec3& pos) {

@@ -1448,7 +1448,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
   if(!visual.setFightMode(ev.weaponCh))
     return;
 
-  if(ev.weaponCh==ZenLoad::FM_NONE && (ws==WeaponState::W1H || ws==WeaponState::W2H)){
+  if(ev.weaponCh==ZenLoad::FM_NONE && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
     if(auto melee = invent.currentMeleWeapon()) {
       if(melee->handle()->material==ItemMaterial::MAT_METAL)
         owner.emitSoundRaw("UNDRAWSOUND_ME.WAV",x,y+translateY(),z,500,false); else

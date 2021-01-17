@@ -164,12 +164,10 @@ class World final {
     void                 emitBlockSound  (Npc& self,Npc& other);
 
     bool                 isInListenerRange(const Tempest::Vec3& pos) const;
-    void                 emitDlgSound   (const char *s, float x, float y, float z, float range, uint64_t &timeLen);
-    void                 emitSoundEffect(const char *s, float x, float y, float z, float range, bool freeSlot);
-    void                 emitSoundRaw   (const char *s, float x, float y, float z, float range, bool freeSlot);
-    void                 emitSoundRaw3d (const char *s, float x, float y, float z, float range);
-    void                 takeSoundSlot(GSoundEffect &&eff);
-    void                 tickSlot(GSoundEffect &slot);
+    Sound                emitDlgSound     (const char *s, float x, float y, float z, float range, uint64_t &timeLen);
+    Sound                emitSoundEffect  (const char *s, float x, float y, float z, float range, bool freeSlot);
+    Sound                emitSoundRaw     (const char *s, float x, float y, float z, float range, bool freeSlot);
+    Sound                emitSoundRaw3d   (const char *s, float x, float y, float z, float range);
 
     void                 addTrigger    (AbstractTrigger* trigger);
     void                 addInteractive(Interactive* inter);

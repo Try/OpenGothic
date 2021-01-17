@@ -34,26 +34,36 @@ Effect::Effect(const VisualFx& v, World& owner, const Vec3& inPos, SpellFxKey k)
     }
   pos.identity();
 
-  owner.emitSoundEffect(h.sfxID.c_str(), inPos.x,inPos.y,inPos.z,25,true);
+
   if(!h.emFXCreate_S.empty()) {
     auto vfx = owner.script().getVisualFx(h.emFXCreate_S.c_str());
     if(vfx!=nullptr)
       next.reset(new Effect(*vfx,owner,inPos,k));
     }
 
-  if(k==SpellFxKey::Count || root==nullptr) {
+  if(k==SpellFxKey::Count) {
     setPosition(inPos);
     } else {
     pos.identity();
     pos.translate(inPos);
     setKey(owner,k);
     }
+
+  if(sfx.isEmpty()) {
+    sfx = owner.emitSoundEffect(h.sfxID.c_str(), inPos.x,inPos.y,inPos.z,25,false);
+    sfx.setLooping(h.sfxIsAmbient);
+    }
+  }
+
+Effect::~Effect() {
+  sfx.setLooping(false);
   }
 
 void Effect::setActive(bool e) {
   if(next!=nullptr)
     next->setActive(e);
   visual.setActive(e);
+  sfx   .setActive(e);
   }
 
 void Effect::setLooped(bool l) {
@@ -174,7 +184,8 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
     }
 
   setObjMatrix(pos);
-  owner.emitSoundEffect(key->sfxID.c_str(),pos3.x,pos3.y,pos3.z,25,true);
+  sfx = owner.emitSoundEffect(key->sfxID.c_str(),pos3.x,pos3.y,pos3.z,25,true);
+  sfx.setLooping(key->sfxIsAmbient);
   }
 
 uint64_t Effect::effectPrefferedTime() const {

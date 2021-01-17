@@ -7,13 +7,11 @@
 #include "gothic.h"
 #include "resources.h"
 
-using namespace Tempest;
-
-SoundFx::SoundVar::SoundVar(const Daedalus::GEngineClasses::C_SFX &sfx, Sound &&snd)
+SoundFx::SoundVar::SoundVar(const Daedalus::GEngineClasses::C_SFX &sfx, Tempest::Sound &&snd)
   :snd(std::move(snd)),vol(float(sfx.vol)/127.f){
   }
 
-SoundFx::SoundVar::SoundVar(const float vol, Sound &&snd)
+SoundFx::SoundVar::SoundVar(const float vol, Tempest::Sound &&snd)
   :snd(std::move(snd)),vol(vol/127.f){
   }
 
@@ -33,33 +31,33 @@ SoundFx::SoundFx(Gothic &gothic, const char* s) {
   if(name.rfind(".WAV")==name.size()-4) {
     auto snd = Resources::loadSoundBuffer(name);
     if(snd.isEmpty())
-      Log::d("unable to load sound fx: ",s); else
+      Tempest::Log::d("unable to load sound fx: ",s); else
       inst.emplace_back(1.f,std::move(snd));
     }
 
   if(inst.size()==0)
-    Log::d("unable to load sound fx: ",s);
+    Tempest::Log::d("unable to load sound fx: ",s);
   }
 
-SoundFx::SoundFx(Gothic &, Sound &&snd) {
+SoundFx::SoundFx(Gothic &, Tempest::Sound &&snd) {
   if(!snd.isEmpty())
     inst.emplace_back(127.f,std::move(snd));
   }
 
-GSoundEffect SoundFx::getEffect(SoundDevice &dev) const {
+Tempest::SoundEffect SoundFx::getEffect(Tempest::SoundDevice &dev) const {
   if(inst.size()==0)
-    return GSoundEffect();
-  auto&        var    = inst[size_t(std::rand())%inst.size()];
-  GSoundEffect effect = dev.load(var.snd);
+    return Tempest::SoundEffect();
+  auto&                var    = inst[size_t(std::rand())%inst.size()];
+  Tempest::SoundEffect effect = dev.load(var.snd);
   effect.setVolume(var.vol);
   return effect;
   }
 
-SoundEffect SoundFx::getGlobal(SoundDevice &dev) const {
+Tempest::SoundEffect SoundFx::getGlobal(Tempest::SoundDevice &dev) const {
   if(inst.size()==0)
-    return SoundEffect();
-  auto&       var    = inst[size_t(std::rand())%inst.size()];
-  SoundEffect effect = dev.load(var.snd);
+    return Tempest::SoundEffect();
+  auto&                var    = inst[size_t(std::rand())%inst.size()];
+  Tempest::SoundEffect effect = dev.load(var.snd);
   effect.setVolume(var.vol);
   return effect;
   }
@@ -71,7 +69,6 @@ void SoundFx::implLoad(Gothic &gothic, const char *s) {
   if(!snd.isEmpty())
     inst.emplace_back(sfx,std::move(snd));
   loadVariants(gothic,s);
-
   }
 
 void SoundFx::loadVariants(Gothic &gothic, const char *s) {

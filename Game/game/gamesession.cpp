@@ -10,6 +10,7 @@
 #include "world/objects/npc.h"
 #include "world/objects/interactive.h"
 #include "world/world.h"
+#include "sound/soundfx.h"
 #include "serialize.h"
 #include "gothic.h"
 
@@ -224,7 +225,7 @@ Tempest::SoundEffect GameSession::loadSound(const Tempest::Sound &raw) {
   return sound.load(raw);
   }
 
-GSoundEffect GameSession::loadSound(const SoundFx &fx) {
+Tempest::SoundEffect GameSession::loadSound(const SoundFx &fx) {
   return fx.getEffect(sound);
   }
 

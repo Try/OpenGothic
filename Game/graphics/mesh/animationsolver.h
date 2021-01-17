@@ -3,9 +3,6 @@
 #include <Tempest/Matrix4x4>
 #include <vector>
 
-#include "graphics/meshobjects.h"
-#include "graphics/pfx/pfxobjects.h"
-#include "world/gsoundeffect.h"
 #include "game/inventory.h"
 #include "game/constants.h"
 #include "animation.h"

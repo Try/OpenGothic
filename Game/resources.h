@@ -14,7 +14,7 @@
 #include <tuple>
 
 #include "graphics/material.h"
-#include "world/soundfx.h"
+#include "sound/soundfx.h"
 
 class Gothic;
 class StaticMesh;
@@ -103,9 +103,6 @@ class Resources final {
     static const Skeleton*           loadSkeleton  (const char*        name);
     static const Animation*          loadAnimation (const std::string& name);
 
-    static Tempest::SoundEffect*     loadSound(const char* name);
-    static Tempest::SoundEffect*     loadSound(const std::string& name);
-
     static Tempest::Sound            loadSoundBuffer(const std::string& name);
     static Tempest::Sound            loadSoundBuffer(const char*        name);
 
@@ -168,7 +165,6 @@ class Resources final {
     Skeleton*             implLoadSkeleton(std::string name);
     Animation*            implLoadAnimation(std::string name);
     Tempest::Sound        implLoadSoundBuffer(const char* name);
-    Tempest::SoundEffect* implLoadSound(const char *name);
     Dx8::PatternList      implLoadDxMusic(const char *name);
     GthFont&              implLoadFont(const char* fname, FontType type);
     PfxEmitterMesh*       implLoadEmiterMesh(const char* name);
@@ -213,8 +209,6 @@ class Resources final {
     std::unordered_map<std::string,std::unique_ptr<Animation>>            animCache;
     std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>          bindCache;
     std::unordered_map<std::string,std::unique_ptr<PfxEmitterMesh>>       emiMeshCache;
-
-    std::unordered_map<std::string,std::unique_ptr<Tempest::SoundEffect>> sndCache;
     std::unordered_map<FontK,std::unique_ptr<GthFont>,Hash>               gothicFnt;
   };
 

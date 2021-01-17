@@ -415,50 +415,24 @@ Animation* Resources::implLoadAnimation(std::string name) {
     }
   }
 
-SoundEffect *Resources::implLoadSound(const char* name) {
-  if(name==nullptr || *name=='\0')
-    return nullptr;
-
-  auto it=sndCache.find(name);
-  if(it!=sndCache.end())
-    return it->second.get();
-
-  if(!getFileData(name,fBuff))
-    return nullptr;
-
-  try {
-    Tempest::MemReader rd(fBuff.data(),fBuff.size());
-
-    auto s = sound.load(rd);
-    std::unique_ptr<SoundEffect> t{new SoundEffect(std::move(s))};
-    SoundEffect* ret=t.get();
-    sndCache[name] = std::move(t);
-    return ret;
-    }
-  catch(...){
-    Log::e("unable to load sound \"",name,"\"");
-    return nullptr;
-    }
-  }
-
 Dx8::PatternList Resources::implLoadDxMusic(const char* name) {
   auto u = Tempest::TextCodec::toUtf16(name);
   return dxMusic->load(u.c_str());
   }
 
-Sound Resources::implLoadSoundBuffer(const char *name) {
+Tempest::Sound Resources::implLoadSoundBuffer(const char *name) {
   if(name[0]=='\0')
-    return Sound();
+    return Tempest::Sound();
 
   if(!getFileData(name,fBuff))
-    return Sound();
+    return Tempest::Sound();
   try {
     Tempest::MemReader rd(fBuff.data(),fBuff.size());
-    return Sound(rd);
+    return Tempest::Sound(rd);
     }
   catch(...){
     Log::e("unable to load sound \"",name,"\"");
-    return Sound();
+    return Tempest::Sound();
     }
   }
 
@@ -635,22 +609,12 @@ const Animation *Resources::loadAnimation(const std::string &name) {
   return inst->implLoadAnimation(name);
   }
 
-SoundEffect *Resources::loadSound(const char *name) {
-  std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implLoadSound(name);
-  }
-
-SoundEffect *Resources::loadSound(const std::string &name) {
-  std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implLoadSound(name.c_str());
-  }
-
-Sound Resources::loadSoundBuffer(const std::string &name) {
+Tempest::Sound Resources::loadSoundBuffer(const std::string &name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadSoundBuffer(name.c_str());
   }
 
-Sound Resources::loadSoundBuffer(const char *name) {
+Tempest::Sound Resources::loadSoundBuffer(const char *name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadSoundBuffer(name);
   }

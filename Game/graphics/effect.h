@@ -2,8 +2,10 @@
 
 #include "world/objects/pfxemitter.h"
 #include "world/objects/globalfx.h"
+#include "world/objects/sound.h"
+#include "graphics/lightgroup.h"
+
 #include "game/constants.h"
-#include "lightgroup.h"
 
 #include <memory>
 #include <daedalus/ZString.h>
@@ -23,9 +25,13 @@ struct C_ParticleFXEmitKey;
 class Effect final {
   public:
     Effect() = default;
+    Effect(Effect&&) = default;
     Effect(PfxEmitter&& pfxOnly, const char* node);
     Effect(const VisualFx& vfx, World& owner, const Npc& src,           SpellFxKey key = SpellFxKey::Count);
     Effect(const VisualFx& vfx, World& owner, const Tempest::Vec3& pos, SpellFxKey key = SpellFxKey::Count);
+    ~Effect();
+
+    Effect& operator = (Effect&&) = default;
 
     void     setActive(bool e);
     void     setLooped(bool l);
@@ -63,8 +69,10 @@ class Effect final {
 
     const VisualFx*       root = nullptr;
     PfxEmitter            visual;
+    Sound                 sfx;
     GlobalFx              gfx;
     LightGroup::Light     light;
+
     const char*           nodeSlot = nullptr;
     size_t                boneId   = size_t(-1);
 
