@@ -202,7 +202,7 @@ uint64_t Effect::effectPrefferedTime() const {
     float timeF = root->handle().emFXLifeSpan;
     if(timeF>0)
       return std::max(ret,uint64_t(timeF*1000.f));
-    if(timeF<0)
+    if(timeF<0 && visual.isEmpty())
       return uint64_t(-1);
     }
   return std::max(ret,visual.effectPrefferedTime());
