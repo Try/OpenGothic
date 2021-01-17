@@ -2098,7 +2098,7 @@ void Npc::setTarget(Npc *t) {
     return;
 
   currentTarget=t;
-  if(!go2.empty()) {
+  if(!go2.empty() && !isPlayer()) {
     setAnim(Anim::Idle);
     go2.clear();
     }
