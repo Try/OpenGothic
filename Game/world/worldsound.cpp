@@ -130,7 +130,7 @@ Sound WorldSound::addSound(const char* s, float x, float y, float z, float range
     return Sound();
 
   std::lock_guard<std::mutex> guard(sync);
-  tickSlot(*ret.val);
+  initSlot(*ret.val);
   if(fSlot)
     freeSlot[s] = ret.val; else
     effect.emplace_back(ret.val);
@@ -150,7 +150,7 @@ Sound WorldSound::addSound3d(const char* s, float x, float y, float z, float ran
     return Sound();
 
   std::lock_guard<std::mutex> guard(sync);
-  tickSlot(*ret.val);
+  initSlot(*ret.val);
   effect3d.emplace_back(ret.val);
   return ret;
   }
@@ -178,7 +178,7 @@ Sound WorldSound::addSoundRaw(const char *s, float x, float y, float z, float ra
     return Sound();
 
   std::lock_guard<std::mutex> guard(sync);
-  tickSlot(*ret.val);
+  initSlot(*ret.val);
   if(fSlot)
     freeSlot[s] = ret.val; else
     effect.emplace_back(ret.val);
@@ -197,7 +197,7 @@ Sound WorldSound::addDlgSound(const char *s, float x, float y, float z, float ra
     return Sound();
 
   std::lock_guard<std::mutex> guard(sync);
-  tickSlot(*ret.val);
+  initSlot(*ret.val);
   timeLen = snd.timeLength();
   effect.emplace_back(ret.val);
   return ret;
@@ -334,8 +334,9 @@ void WorldSound::tickSlot(std::vector<PEffect>& effect) {
       ++i;
       }
     }
-  for(auto& i:effect)
+  for(auto& i:effect) {
     tickSlot(*i);
+    }
   }
 
 void WorldSound::tickSlot(Effect& slot) {
@@ -345,6 +346,13 @@ void WorldSound::tickSlot(Effect& slot) {
     slot.eff.play();
     }
 
+  auto  dyn = owner.physic();
+  auto  pos = slot.pos;
+  float occ = dyn->soundOclusion(plPos.x,plPos.y+180/*head pos*/,plPos.z, pos.x,pos.y,pos.z);
+  slot.setOcclusion(std::max(0.f,1.f-occ));
+  }
+
+void WorldSound::initSlot(WorldSound::Effect& slot) {
   auto  dyn = owner.physic();
   auto  pos = slot.pos;
   float occ = dyn->soundOclusion(plPos.x,plPos.y+180/*head pos*/,plPos.z, pos.x,pos.y,pos.z);

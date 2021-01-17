@@ -58,6 +58,7 @@ class WorldSound final {
     void    tickSoundZone(Npc& player);
     void    tickSlot(std::vector<PEffect>& eff);
     void    tickSlot(Effect& slot);
+    void    initSlot(Effect& slot);
     bool    setMusic(const char* zone, GameMusic::Tags tags);
     Sound   implAddSound(Tempest::SoundEffect&& s, float x, float y, float z, float rangeRef, float rangeMax);
 
