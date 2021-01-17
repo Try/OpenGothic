@@ -1818,6 +1818,9 @@ void Npc::nextAiAction(uint64_t dt) {
         break;
         }
 
+      if(inter==currentInteract)
+        break;
+
       auto pos = inter->nearestPoint(*this);
       auto dp  = pos-position();
       dp.y = 0;
