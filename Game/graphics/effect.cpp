@@ -60,6 +60,10 @@ Effect::~Effect() {
   sfx.setLooping(false);
   }
 
+bool Effect::is(const VisualFx& vfx) const {
+  return root==&vfx;
+  }
+
 void Effect::setActive(bool e) {
   if(next!=nullptr)
     next->setActive(e);

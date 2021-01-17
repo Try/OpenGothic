@@ -462,6 +462,8 @@ class Npc final {
     void      emitSoundSVM   (const char* sound);
 
     void      startEffect(Npc& to, const VisualFx& vfx);
+    void      stopEffect(const VisualFx& vfx);
+
     void      commitSpell();
 
   private:
@@ -639,6 +641,8 @@ class Npc final {
     MoveAlgo                       mvAlgo;
     FightAlgo                      fghAlgo;
     uint64_t                       lastEventTime=0;
+
+    Sound                          sfxWeapon;
 
   friend class MoveAlgo;
   };

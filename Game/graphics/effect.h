@@ -31,7 +31,8 @@ class Effect final {
     Effect(const VisualFx& vfx, World& owner, const Tempest::Vec3& pos, SpellFxKey key = SpellFxKey::Count);
     ~Effect();
 
-    Effect& operator = (Effect&&) = default;
+    Effect&  operator = (Effect&&) = default;
+    bool     is(const VisualFx& vfx) const;
 
     void     setActive(bool e);
     void     setLooped(bool l);

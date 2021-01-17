@@ -307,10 +307,15 @@ void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot) {
   syncAttaches();
   }
 
-void MdlVisual::setEffectKey(World& owner, SpellFxKey key, int32_t keyLvl) {
-  for(auto& i:effects)
-    i.view.setKey(owner,key,keyLvl);
-  pfx.view.setKey(owner,key,keyLvl);
+void MdlVisual::stopEffect(const VisualFx& vfx) {
+  for(size_t i=0;i<effects.size();++i) {
+    if(effects[i].view.is(vfx)) {
+      effects[i] = std::move(effects.back());
+      effects.pop_back();
+      syncAttaches();
+      return;
+      }
+    }
   }
 
 void MdlVisual::stopEffect(int32_t slot) {
@@ -322,6 +327,12 @@ void MdlVisual::stopEffect(int32_t slot) {
       return;
       }
     }
+  }
+
+void MdlVisual::setEffectKey(World& owner, SpellFxKey key, int32_t keyLvl) {
+  for(auto& i:effects)
+    i.view.setKey(owner,key,keyLvl);
+  pfx.view.setKey(owner,key,keyLvl);
   }
 
 void MdlVisual::setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s) {

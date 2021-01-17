@@ -88,6 +88,7 @@ class World final {
     int32_t              guildOfRoom(const char* portalName);
 
     void                 runEffect(Effect&& e);
+    void                 stopEffect(const VisualFx& vfx);
 
     GlobalFx             addGlobalEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc);
     LightGroup::Light    addLight();

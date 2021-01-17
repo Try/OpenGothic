@@ -1391,15 +1391,13 @@ void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
 
 void GameScript::wld_stopeffect(Daedalus::DaedalusVM &vm) {
   const Daedalus::ZString& visual = vm.popString();
-  const VisualFx* vfx = owner.loadVisualFx(visual.c_str());
+  const VisualFx*          vfx    = owner.loadVisualFx(visual.c_str());
   if(vfx==nullptr) {
     Log::i("invalid effect [",visual.c_str(),"]");
     return;
     }
-  while(vfx!=nullptr) {
-    world().globalFx()->stopEffect(*vfx);
-    vfx = owner.loadVisualFx(vfx->handle().emFXCreate_S.c_str());
-    }
+  if(auto w = owner.world())
+    w->stopEffect(*vfx);
   }
 
 void GameScript::wld_getplayerportalguild(Daedalus::DaedalusVM &vm) {

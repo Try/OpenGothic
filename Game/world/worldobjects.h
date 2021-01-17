@@ -79,6 +79,8 @@ class WorldObjects final {
     void           disableTicks(AbstractTrigger& t);
 
     void           runEffect(Effect&& e);
+    void           stopEffect(const VisualFx& vfx);
+
     Item*          addItem(size_t itemInstance, const char *at);
     Item*          addItem(const ZenLoad::zCVobData &vob);
     Item*          takeItem(Item& it);

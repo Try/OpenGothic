@@ -1448,25 +1448,24 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
   if(!visual.setFightMode(ev.weaponCh))
     return;
 
-  ::Sound sfx;
   if(ev.weaponCh==ZenLoad::FM_NONE && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
     if(auto melee = invent.currentMeleWeapon()) {
       if(melee->handle()->material==ItemMaterial::MAT_METAL)
-        sfx = owner.addSoundRaw("UNDRAWSOUND_ME.WAV",x,y+translateY(),z,500,false); else
-        sfx = owner.addSoundRaw("UNDRAWSOUND_WO.WAV",x,y+translateY(),z,500,false);
+        sfxWeapon = owner.addSoundRaw("UNDRAWSOUND_ME.WAV",x,y+translateY(),z,500,false); else
+        sfxWeapon = owner.addSoundRaw("UNDRAWSOUND_WO.WAV",x,y+translateY(),z,500,false);
       }
     }
   else if(ev.weaponCh==ZenLoad::FM_1H || ev.weaponCh==ZenLoad::FM_2H) {
     if(auto melee = invent.currentMeleWeapon()) {
       if(melee->handle()->material==ItemMaterial::MAT_METAL)
-        sfx = owner.addSoundRaw("DRAWSOUND_ME.WAV",x,y+translateY(),z,500,false); else
-        sfx = owner.addSoundRaw("DRAWSOUND_WO.WAV",x,y+translateY(),z,500,false);
+        sfxWeapon = owner.addSoundRaw("DRAWSOUND_ME.WAV",x,y+translateY(),z,500,false); else
+        sfxWeapon = owner.addSoundRaw("DRAWSOUND_WO.WAV",x,y+translateY(),z,500,false);
       }
     }
   else if(ev.weaponCh==ZenLoad::FM_BOW || ev.weaponCh==ZenLoad::FM_CBOW) {
-    emitSoundEffect("DRAWSOUND_BOW",25,true);
+    sfxWeapon = owner.addSoundRaw("DRAWSOUND_BOW",x,y+translateY(),z,25,true);
     }
-  sfx.play();
+  sfxWeapon.play();
   visual.stopDlgAnim();
   updateWeaponSkeleton();
   }
@@ -2175,6 +2174,10 @@ void Npc::emitSoundSVM(const char* svm) {
 
 void Npc::startEffect(Npc& /*to*/, const VisualFx& vfx) {
   visual.startEffect(owner, Effect(vfx,owner,*this), -1);
+  }
+
+void Npc::stopEffect(const VisualFx& vfx) {
+  visual.stopEffect(vfx);
   }
 
 void Npc::commitSpell() {
@@ -3327,6 +3330,8 @@ void Npc::updatePos() {
     durtyTranform |= TR_Rot;
     groundNormal = ground;
     }
+
+  sfxWeapon.setPosition(x,y,z);
 
   if(durtyTranform==TR_Pos){
     visual.setPos(x,y,z);

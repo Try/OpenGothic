@@ -169,6 +169,15 @@ void World::runEffect(Effect&& e) {
   wobj.runEffect(std::move(e));
   }
 
+void World::stopEffect(const VisualFx& root) {
+  auto* vfx = &root;
+  while(vfx!=nullptr) {
+    globFx->stopEffect(*vfx);
+    vfx = loadVisualFx(vfx->handle().emFXCreate_S.c_str());
+    }
+  wobj.stopEffect(root);
+  }
+
 GlobalFx World::addGlobalEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc) {
   return globFx->startEffect(what,len,argv,argc);
   }

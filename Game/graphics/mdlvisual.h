@@ -53,8 +53,9 @@ class MdlVisual final {
     void                           dropWeapon    (Npc& owner);
 
     void                           startEffect (World& owner, Effect&& pfx, int32_t slot);
-    void                           setEffectKey(World& owner, SpellFxKey key, int32_t keyLvl=0);
+    void                           stopEffect   (const VisualFx& vfx);
     void                           stopEffect  (int32_t slot);
+    void                           setEffectKey(World& owner, SpellFxKey key, int32_t keyLvl=0);
     void                           setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s);
 
     bool                           setToFightMode(const WeaponState ws);

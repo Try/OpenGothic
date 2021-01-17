@@ -450,6 +450,11 @@ void WorldObjects::runEffect(Effect&& ex) {
   effects.push_back(std::move(e));
   }
 
+void WorldObjects::stopEffect(const VisualFx& vfx) {
+  for(auto& i:npcArr)
+    i->stopEffect(vfx);
+  }
+
 Item* WorldObjects::addItem(const ZenLoad::zCVobData &vob) {
   size_t inst = owner.getSymbolIndex(vob.oCItem.instanceName.c_str());
   Item*  it   = addItem(inst,nullptr);
