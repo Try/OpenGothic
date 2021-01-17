@@ -433,7 +433,7 @@ void Animation::Sequence::processPfx(uint64_t barrier, uint64_t sTime, uint64_t 
       const ParticleFx* pfx = world.script().getParticleFx(i.m_Name.c_str());
       if(pfx==nullptr)
         return;
-      Effect e(world.getView(pfx),i.m_Pos.c_str());
+      Effect e(world.addView(pfx),i.m_Pos.c_str());
       e.setLooped(true);
       visual.startEffect(world,std::move(e),i.m_Num);
       }

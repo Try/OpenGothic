@@ -49,12 +49,12 @@ void WorldView::tick(uint64_t /*dt*/) {
     }
   }
 
-LightGroup::Light WorldView::getLight() {
+LightGroup::Light WorldView::addLight() {
   needToUpdateUbo = true;
   return sGlobal.lights.get();
   }
 
-LightGroup::Light WorldView::getLight(const ZenLoad::zCVobData& vob) {
+LightGroup::Light WorldView::addLight(const ZenLoad::zCVobData& vob) {
   LightSource l;
   l.setPosition(Vec3(vob.position.x,vob.position.y,vob.position.z));
 
@@ -133,41 +133,41 @@ void WorldView::drawLights(Tempest::Encoder<CommandBuffer>& cmd, Painter3d&, uin
   sGlobal.lights.draw(cmd,fId);
   }
 
-MeshObjects::Mesh WorldView::getView(const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
+MeshObjects::Mesh WorldView::addView(const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
   if(auto mesh=Resources::loadMesh(visual))
     return objGroup.get(*mesh,headTex,teethTex,bodyColor,false);
   return MeshObjects::Mesh();
   }
 
-MeshObjects::Mesh WorldView::getItmView(const char* visual, int32_t material) {
+MeshObjects::Mesh WorldView::addItmView(const char* visual, int32_t material) {
   if(auto mesh=Resources::loadMesh(visual))
     return objGroup.get(*mesh,material,0,0,true);
   return MeshObjects::Mesh();
   }
 
-MeshObjects::Mesh WorldView::getAtachView(const ProtoMesh::Attach& visual, const int32_t version) {
+MeshObjects::Mesh WorldView::addAtachView(const ProtoMesh::Attach& visual, const int32_t version) {
   return objGroup.get(visual,version,false);
   }
 
-MeshObjects::Mesh WorldView::getStaticView(const char* visual) {
+MeshObjects::Mesh WorldView::addStaticView(const char* visual) {
   if(auto mesh=Resources::loadMesh(visual))
     return objGroup.get(*mesh,0,0,0,true);
   return MeshObjects::Mesh();
   }
 
-MeshObjects::Mesh WorldView::getDecalView(const ZenLoad::zCVobData& vob) {
+MeshObjects::Mesh WorldView::addDecalView(const ZenLoad::zCVobData& vob) {
   if(auto mesh=Resources::decalMesh(vob))
     return objGroup.get(*mesh,0,0,0,true);
   return MeshObjects::Mesh();
   }
 
-PfxEmitter WorldView::getView(const ParticleFx *decl) {
+PfxEmitter WorldView::addView(const ParticleFx *decl) {
   if(decl!=nullptr)
     return pfxGroup.get(*decl);
   return PfxEmitter();
   }
 
-PfxEmitter WorldView::getView(const ZenLoad::zCVobData& vob) {
+PfxEmitter WorldView::addView(const ZenLoad::zCVobData& vob) {
   return pfxGroup.get(vob);
   }
 

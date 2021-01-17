@@ -45,7 +45,7 @@ Item::Item(World &owner, Serialize &fin, bool inWorld)
   sym.instance.set(&h,Daedalus::IC_Item);
 
   if(inWorld)
-    setView(owner.getItmView(h.visual,h.material));
+    setView(owner.addItmView(h.visual,h.material));
   }
 
 Item::Item(Item &&it)

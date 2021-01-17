@@ -9,6 +9,6 @@ ZoneTrigger::ZoneTrigger(Vob* parent, World &world, ZenLoad::zCVobData &&d, bool
 
 void ZoneTrigger::onIntersect(Npc &n) {
   if(n.isPlayer())
-    world.changeWorld(data.oCTriggerChangeLevel.levelName,
-                      data.oCTriggerChangeLevel.startVobName);
+    world.triggerChangeWorld(data.oCTriggerChangeLevel.levelName,
+                             data.oCTriggerChangeLevel.startVobName);
   }

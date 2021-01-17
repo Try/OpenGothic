@@ -169,56 +169,60 @@ void World::runEffect(Effect&& e) {
   wobj.runEffect(std::move(e));
   }
 
-GlobalFx World::getGlobalEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc) {
+GlobalFx World::addGlobalEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc) {
   return globFx->startEffect(what,len,argv,argc);
   }
 
-LightGroup::Light World::getLight() {
-  return wview->getLight();
+LightGroup::Light World::addLight() {
+  return wview->addLight();
   }
 
-LightGroup::Light World::getLight(const ZenLoad::zCVobData& vob) {
-  return wview->getLight(vob);
+LightGroup::Light World::addLight(const ZenLoad::zCVobData& vob) {
+  return wview->addLight(vob);
   }
 
-MeshObjects::Mesh World::getView(const char* visual) const {
-  return getView(visual,0,0,0);
+MeshObjects::Mesh World::addView(const char* visual) const {
+  return addView(visual,0,0,0);
   }
 
-MeshObjects::Mesh World::getView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const {
-  return getView(visual.c_str(),headTex,teetTex,bodyColor);
+MeshObjects::Mesh World::addView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const {
+  return addView(visual.c_str(),headTex,teetTex,bodyColor);
   }
 
-MeshObjects::Mesh World::getView(const char* visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const {
-  return view()->getView(visual,headTex,teetTex,bodyColor);
+MeshObjects::Mesh World::addView(const char* visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const {
+  return view()->addView(visual,headTex,teetTex,bodyColor);
   }
 
-PfxEmitter World::getView(const ParticleFx *decl) const {
-  return view()->getView(decl);
+PfxEmitter World::addView(const ParticleFx *decl) const {
+  return view()->addView(decl);
   }
 
-PfxEmitter World::getView(const ZenLoad::zCVobData& vob) const {
-  return view()->getView(vob);
+PfxEmitter World::addView(const ZenLoad::zCVobData& vob) const {
+  return view()->addView(vob);
   }
 
-MeshObjects::Mesh World::getAtachView(const ProtoMesh::Attach& visual, const int32_t version) {
-  return view()->getAtachView(visual,version);
+MeshObjects::Mesh World::addAtachView(const ProtoMesh::Attach& visual, const int32_t version) {
+  return view()->addAtachView(visual,version);
   }
 
-MeshObjects::Mesh World::getItmView(const Daedalus::ZString& visual, int32_t tex) const {
-  return getItmView(visual.c_str(),tex);
+MeshObjects::Mesh World::addItmView(const Daedalus::ZString& visual, int32_t tex) const {
+  return addItmView(visual.c_str(),tex);
   }
 
-MeshObjects::Mesh World::getItmView(const char* visual, int32_t tex) const {
-  return view()->getItmView(visual,tex);
+MeshObjects::Mesh World::addItmView(const char* visual, int32_t tex) const {
+  return view()->addItmView(visual,tex);
   }
 
-MeshObjects::Mesh World::getStaticView(const char* visual) const {
-  return view()->getStaticView(visual);
+MeshObjects::Mesh World::addStaticView(const char* visual) const {
+  return view()->addStaticView(visual);
   }
 
-MeshObjects::Mesh World::getDecalView(const ZenLoad::zCVobData& vob) const {
-  return view()->getDecalView(vob);
+MeshObjects::Mesh World::addDecalView(const ZenLoad::zCVobData& vob) const {
+  return view()->addDecalView(vob);
+  }
+
+MeshObjects::Mesh World::addView(const Daedalus::ZString& visual) const {
+  return addView(visual.c_str());
   }
 
 const VisualFx *World::loadVisualFx(const char *name) {
@@ -475,7 +479,7 @@ void World::disableTicks(AbstractTrigger& t) {
   wobj.disableTicks(t);
   }
 
-void World::changeWorld(const std::string& world, const std::string& wayPoint) {
+void World::triggerChangeWorld(const std::string& world, const std::string& wayPoint) {
   game.changeWorld(world,wayPoint);
   }
 
@@ -624,7 +628,7 @@ void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &item, int3
   wobj.sendPassivePerc(self,other,victum,item,perc);
   }
 
-void World::emitWeaponsSound(Npc &self, Npc &other) {
+Sound World::addWeaponsSound(Npc &self, Npc &other) {
   /*
    WO - Wood
    ME - Metal
@@ -672,10 +676,10 @@ void World::emitWeaponsSound(Npc &self, Npc &other) {
     std::snprintf(buf,sizeof(buf),"CS_MAM_%s_%s",selfMt,othMt); else
     std::snprintf(buf,sizeof(buf),"CS_IAM_%s_%s",selfMt,othMt);
   auto mid = (p0+p1)*0.5f;
-  wsound.emitSound(buf, mid.x, mid.y, mid.z,2500.f,false);
+  return wsound.addSound(buf, mid.x, mid.y, mid.z,2500.f,false);
   }
 
-void World::emitLandHitSound(float x,float y,float z,uint8_t m0, uint8_t m1) {
+void World::addLandHitSound(float x,float y,float z,uint8_t m0, uint8_t m1) {
   // ItemMaterial
   static const char* mat[]={
     "WO",
@@ -694,10 +698,10 @@ void World::emitLandHitSound(float x,float y,float z,uint8_t m0, uint8_t m1) {
 
   char buf[128]={};
   std::snprintf(buf,sizeof(buf),"CS_IHL_%s_%s",sm0,sm1);
-  wsound.emitSound(buf, x,y,z,2500.f,false);
+  wsound.addSound(buf, x,y,z,2500.f,false).play();
   }
 
-void World::emitBlockSound(Npc &self, Npc &other) {
+void World::addBlockSound(Npc &self, Npc &other) {
   // ItemMaterial
   auto p0 = self.position();
   auto p1 = other.position();
@@ -726,27 +730,27 @@ void World::emitBlockSound(Npc &self, Npc &other) {
   char buf[128]={};
   std::snprintf(buf,sizeof(buf),"CS_IAI_%s_%s",selfMt,othMt);
   auto mid = (p0+p1)*0.5f;
-  wsound.emitSound(buf, mid.x, mid.y, mid.z,2500.f,false);
+  wsound.addSound(buf, mid.x, mid.y, mid.z,2500.f,false).play();
   }
 
 bool World::isInListenerRange(const Tempest::Vec3& pos) const {
   return wsound.isInListenerRange(pos,WorldSound::talkRange);
   }
 
-Sound World::emitDlgSound(const char* s, float x, float y, float z, float range, uint64_t& timeLen) {
-  return wsound.emitDlgSound(s,x,y,z,range,timeLen);
+Sound World::addDlgSound(const char* s, float x, float y, float z, float range, uint64_t& timeLen) {
+  return wsound.addDlgSound(s,x,y,z,range,timeLen);
   }
 
-Sound World::emitSoundEffect(const char *s, float x, float y, float z, float range, bool freeSlot) {
-  return wsound.emitSound(s,x,y,z,range,freeSlot);
+Sound World::addSoundEffect(const char *s, float x, float y, float z, float range, bool freeSlot) {
+  return wsound.addSound(s,x,y,z,range,freeSlot);
   }
 
-Sound World::emitSoundRaw(const char *s, float x, float y, float z, float range, bool freeSlot) {
-  return wsound.emitSoundRaw(s,x,y,z,range,freeSlot);
+Sound World::addSoundRaw(const char *s, float x, float y, float z, float range, bool freeSlot) {
+  return wsound.addSoundRaw(s,x,y,z,range,freeSlot);
   }
 
-Sound World::emitSoundRaw3d(const char* s, float x, float y, float z, float range) {
-  return wsound.emitSound3d(s,x,y,z,range);
+Sound World::addSoundRaw3d(const char* s, float x, float y, float z, float range) {
+  return wsound.addSound3d(s,x,y,z,range);
   }
 
 void World::addTrigger(AbstractTrigger* trigger) {
@@ -921,8 +925,4 @@ int32_t World::guildOfRoom(const char* portalName) {
       return bspSectors[i].guild;
     }
   return GIL_NONE;
-  }
-
-MeshObjects::Mesh World::getView(const Daedalus::ZString& visual) const {
-  return getView(visual.c_str());
   }

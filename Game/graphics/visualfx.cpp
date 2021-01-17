@@ -61,7 +61,7 @@ PfxEmitter VisualFx::visual(World& owner) const {
   const ParticleFx* pfx = owner.script().getParticleFx(fx.visName_S.c_str());
   if(pfx==nullptr)
     return PfxEmitter();
-  return owner.getView(pfx);
+  return owner.addView(pfx);
   }
 
 const Daedalus::GEngineClasses::C_ParticleFXEmitKey& VisualFx::key(SpellFxKey type, int32_t keyLvl) const {

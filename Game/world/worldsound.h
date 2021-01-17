@@ -25,10 +25,10 @@ class WorldSound final {
     void    addZone       (const ZenLoad::zCVobData &vob);
     void    addSound      (const ZenLoad::zCVobData &vob);
 
-    Sound   emitSound   (const char *s, float x, float y, float z, float range, bool freeSlot);
-    Sound   emitSound3d (const char *s, float x, float y, float z, float range);
-    Sound   emitSoundRaw(const char *s, float x, float y, float z, float range, bool freeSlot);
-    Sound   emitDlgSound(const char *s, float x, float y, float z, float range, uint64_t &timeLen);
+    Sound   addSound   (const char *s, float x, float y, float z, float range, bool freeSlot);
+    Sound   addSound3d (const char *s, float x, float y, float z, float range);
+    Sound   addSoundRaw(const char *s, float x, float y, float z, float range, bool freeSlot);
+    Sound   addDlgSound(const char *s, float x, float y, float z, float range, uint64_t &timeLen);
 
     void    aiOutput(const Tempest::Vec3& pos, const std::string& outputname);
 
@@ -59,7 +59,7 @@ class WorldSound final {
     void    tickSlot(std::vector<PEffect>& eff);
     void    tickSlot(Effect& slot);
     bool    setMusic(const char* zone, GameMusic::Tags tags);
-    Sound   implEmitSound(Tempest::SoundEffect&& s, float x, float y, float z, float rangeRef, float rangeMax);
+    Sound   implAddSound(Tempest::SoundEffect&& s, float x, float y, float z, float rangeRef, float rangeMax);
 
     Gothic&                                 gothic;
     GameSession&                            game;

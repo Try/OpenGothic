@@ -46,15 +46,15 @@ class WorldView {
     void drawLights   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
     void setupUbo     ();
 
-    LightGroup::Light   getLight     ();
-    LightGroup::Light   getLight     (const ZenLoad::zCVobData& vob);
-    MeshObjects::Mesh   getView      (const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
-    MeshObjects::Mesh   getItmView   (const char* visual, int32_t material);
-    MeshObjects::Mesh   getAtachView (const ProtoMesh::Attach& visual, const int32_t version);
-    MeshObjects::Mesh   getStaticView(const char* visual);
-    MeshObjects::Mesh   getDecalView (const ZenLoad::zCVobData& vob);
-    PfxEmitter          getView      (const ParticleFx* decl);
-    PfxEmitter          getView      (const ZenLoad::zCVobData& vob);
+    LightGroup::Light   addLight     ();
+    LightGroup::Light   addLight     (const ZenLoad::zCVobData& vob);
+    MeshObjects::Mesh   addView      (const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
+    MeshObjects::Mesh   addItmView   (const char* visual, int32_t material);
+    MeshObjects::Mesh   addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
+    MeshObjects::Mesh   addStaticView(const char* visual);
+    MeshObjects::Mesh   addDecalView (const ZenLoad::zCVobData& vob);
+    PfxEmitter          addView      (const ParticleFx* decl);
+    PfxEmitter          addView      (const ZenLoad::zCVobData& vob);
 
   private:
     const World&            owner;

@@ -89,20 +89,20 @@ class World final {
 
     void                 runEffect(Effect&& e);
 
-    GlobalFx             getGlobalEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc);
-    LightGroup::Light    getLight();
-    LightGroup::Light    getLight(const ZenLoad::zCVobData& vob);
-    MeshObjects::Mesh    getView(const Daedalus::ZString& visual) const;
-    MeshObjects::Mesh    getView(const char*              visual) const;
-    MeshObjects::Mesh    getView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
-    MeshObjects::Mesh    getView(const char*              visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
-    PfxEmitter           getView(const ParticleFx* decl) const;
-    PfxEmitter           getView(const ZenLoad::zCVobData& vob) const;
-    MeshObjects::Mesh    getAtachView (const ProtoMesh::Attach& visual, const int32_t version);
-    MeshObjects::Mesh    getItmView   (const Daedalus::ZString& visual, int32_t tex) const;
-    MeshObjects::Mesh    getItmView   (const char*              visual, int32_t tex) const;
-    MeshObjects::Mesh    getStaticView(const char* visual) const;
-    MeshObjects::Mesh    getDecalView (const ZenLoad::zCVobData& vob) const;
+    GlobalFx             addGlobalEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc);
+    LightGroup::Light    addLight();
+    LightGroup::Light    addLight(const ZenLoad::zCVobData& vob);
+    MeshObjects::Mesh    addView(const Daedalus::ZString& visual) const;
+    MeshObjects::Mesh    addView(const char*              visual) const;
+    MeshObjects::Mesh    addView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
+    MeshObjects::Mesh    addView(const char*              visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
+    PfxEmitter           addView(const ParticleFx* decl) const;
+    PfxEmitter           addView(const ZenLoad::zCVobData& vob) const;
+    MeshObjects::Mesh    addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
+    MeshObjects::Mesh    addItmView   (const Daedalus::ZString& visual, int32_t tex) const;
+    MeshObjects::Mesh    addItmView   (const char*              visual, int32_t tex) const;
+    MeshObjects::Mesh    addStaticView(const char* visual) const;
+    MeshObjects::Mesh    addDecalView (const ZenLoad::zCVobData& vob) const;
 
     const VisualFx*      loadVisualFx(const char* name);
     const ParticleFx*    loadParticleFx(const char* name) const;
@@ -128,20 +128,21 @@ class World final {
     Focus                findFocus(const Npc& pl, const Focus &def);
     Focus                findFocus(const Focus& def);
 
+    void                 triggerOnStart(bool firstTime);
     void                 triggerEvent(const TriggerEvent& e);
+    void                 triggerChangeWorld(const std::string &world, const std::string &wayPoint);
     void                 execTriggerEvent(const TriggerEvent& e);
     void                 enableTicks (AbstractTrigger& t);
     void                 disableTicks(AbstractTrigger& t);
+
     Interactive*         aviableMob(const Npc &pl, const char* name);
     Interactive*         findInteractive(const Npc& pl);
-    void                 changeWorld(const std::string &world, const std::string &wayPoint);
     void                 setMobRoutine(gtime time, const Daedalus::ZString& scheme, int32_t state);
 
     void                 marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
     void                 marchPoints      (Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
     AiOuputPipe*         openDlgOuput(Npc &player, Npc &npc);
-
     void                 aiOutputSound(Npc &player, const std::string& msg);
     bool                 aiIsDlgFinished();
 
@@ -154,20 +155,21 @@ class World final {
     Item*                takeItem   (Item& it);
     void                 removeItem (Item &it);
     size_t               hasItems(const char* tag, size_t itemCls);
+
     Bullet&              shootBullet(const Item &itmId, const Npc& npc, const Npc* target, const Interactive* inter);
     Bullet&              shootSpell(const Item &itm, const Npc &npc, const Npc *target);
 
     void                 sendPassivePerc (Npc& self,Npc& other,Npc& victum,int32_t perc);
     void                 sendPassivePerc (Npc& self,Npc& other,Npc& victum, Item& item,int32_t perc);
-    void                 emitWeaponsSound(Npc& self,Npc& other);
-    void                 emitLandHitSound(float x, float y, float z, uint8_t m0, uint8_t m1);
-    void                 emitBlockSound  (Npc& self,Npc& other);
 
     bool                 isInListenerRange(const Tempest::Vec3& pos) const;
-    Sound                emitDlgSound     (const char *s, float x, float y, float z, float range, uint64_t &timeLen);
-    Sound                emitSoundEffect  (const char *s, float x, float y, float z, float range, bool freeSlot);
-    Sound                emitSoundRaw     (const char *s, float x, float y, float z, float range, bool freeSlot);
-    Sound                emitSoundRaw3d   (const char *s, float x, float y, float z, float range);
+    Sound                addDlgSound     (const char *s, float x, float y, float z, float range, uint64_t &timeLen);
+    Sound                addSoundEffect  (const char *s, float x, float y, float z, float range, bool freeSlot);
+    Sound                addSoundRaw     (const char *s, float x, float y, float z, float range, bool freeSlot);
+    Sound                addSoundRaw3d   (const char *s, float x, float y, float z, float range);
+    Sound                addWeaponsSound (Npc& self,Npc& other);
+    void                 addLandHitSound (float x, float y, float z, uint8_t m0, uint8_t m1);
+    void                 addBlockSound   (Npc& self,Npc& other);
 
     void                 addTrigger    (AbstractTrigger* trigger);
     void                 addInteractive(Interactive* inter);
@@ -176,7 +178,6 @@ class World final {
     void                 addSound      (const ZenLoad::zCVobData& vob);
 
     void                 invalidateVobIndex();
-    void                 triggerOnStart(bool firstTime);
 
   private:
     std::string                           wname;

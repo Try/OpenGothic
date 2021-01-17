@@ -10,7 +10,7 @@ using namespace Tempest;
 
 MoveTrigger::MoveTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& d, bool startup)
   :AbstractTrigger(parent,world,std::move(d),startup) {
-  setView(world.getView(data.visual.c_str()));
+  setView(world.addView(data.visual.c_str()));
   if(data.cdDyn || data.cdStatic) {
     auto mesh = Resources::loadMesh(data.visual);
     physic    = PhysicMesh(*mesh,*world.physic(),true);
@@ -52,8 +52,9 @@ void MoveTrigger::setView(MeshObjects::Mesh &&m) {
   }
 
 void MoveTrigger::emitSound(const char* snd,bool freeSlot) {
-  auto p = position();
-  world.emitSoundEffect(snd,p.x,p.y,p.z,0,freeSlot);
+  auto p   = position();
+  auto sfx = world.addSoundEffect(snd,p.x,p.y,p.z,0,freeSlot);
+  sfx.play();
   }
 
 void MoveTrigger::advanceAnim(uint32_t f0, uint32_t f1, float alpha) {

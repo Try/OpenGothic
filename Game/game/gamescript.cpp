@@ -3114,7 +3114,8 @@ void GameScript::snd_play3d(Daedalus::DaedalusVM& vm) {
   for(auto& c:file)
     c = char(std::toupper(c));
   auto pos = npc->position();
-  owner.world()->emitSoundRaw3d(file.c_str(),pos.x,pos.y,pos.z,0.f);
+  auto sfx = owner.world()->addSoundRaw3d(file.c_str(),pos.x,pos.y,pos.z,0.f);
+  sfx.play();
   owner.world()->sendPassivePerc(*npc,*npc,*npc,Npc::PERC_ASSESSQUIETSOUND);
   }
 

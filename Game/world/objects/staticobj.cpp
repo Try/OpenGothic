@@ -19,18 +19,18 @@ StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool s
     const ParticleFx* view = world.script().getParticleFx(vob.visual.c_str());
     if(view==nullptr)
       return;
-    pfx = world.getView(view);
+    pfx = world.addView(view);
     pfx.setActive(true);
     pfx.setLooped(true);
     pfx.setObjMatrix(transform());
     } else
   if(FileExt::hasExt(vob.visual,"TGA")) {
     if(vob.visualCamAlign==0) {
-      auto mesh = world.getDecalView(vob);
+      auto mesh = world.addDecalView(vob);
       visual.setVisualBody(std::move(mesh),world);
       visual.setPos(transform());
       } else {
-      pfx = world.getView(vob);
+      pfx = world.addView(vob);
       pfx.setActive(true);
       pfx.setLooped(true);
       pfx.setObjMatrix(transform());
@@ -41,7 +41,7 @@ StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool s
       return;
 
     auto sk   = Resources::loadSkeleton(vob.visual.c_str());
-    auto mesh = world.getStaticView(vob.visual.c_str());
+    auto mesh = world.addStaticView(vob.visual.c_str());
     visual.setVisual(sk);
     visual.setVisualBody(std::move(mesh),world);
 

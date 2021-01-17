@@ -118,7 +118,7 @@ void MdlVisual::implSetBody(MeshObjects::Mesh&& body, World& owner, const int32_
   if(auto p = body.protoMesh()) {
     for(auto& att:p->attach) {
       if(!att.hasNode) {
-        auto view = owner.getAtachView(att,version);
+        auto view = owner.addAtachView(att,version);
         setSlotAttachment(std::move(view),att.name.c_str());
         }
       }

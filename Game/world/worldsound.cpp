@@ -107,7 +107,7 @@ void WorldSound::addSound(const ZenLoad::zCVobData &vob) {
   worldEff.emplace_back(std::move(s));
   }
 
-Sound WorldSound::emitSound(const char* s, float x, float y, float z, float range, bool fSlot) {
+Sound WorldSound::addSound(const char* s, float x, float y, float z, float range, bool fSlot) {
   if(range<=0.f)
     range = 3500.f;
 
@@ -125,20 +125,19 @@ Sound WorldSound::emitSound(const char* s, float x, float y, float z, float rang
   if(snd==nullptr)
     return Sound();
 
-  std::lock_guard<std::mutex> guard(sync);
-  auto ret = implEmitSound(game.loadSound(*snd), x,y,z,range,maxDist);
+  auto ret = implAddSound(game.loadSound(*snd), x,y,z,range,maxDist);
   if(ret.isEmpty())
     return Sound();
 
+  std::lock_guard<std::mutex> guard(sync);
   tickSlot(*ret.val);
-  ret.play();
   if(fSlot)
     freeSlot[s] = ret.val; else
     effect.emplace_back(ret.val);
   return ret;
   }
 
-Sound WorldSound::emitSound3d(const char* s, float x, float y, float z, float range) {
+Sound WorldSound::addSound3d(const char* s, float x, float y, float z, float range) {
   if(range<=0.f)
     range = 3500.f;
 
@@ -146,18 +145,17 @@ Sound WorldSound::emitSound3d(const char* s, float x, float y, float z, float ra
   if(snd==nullptr)
     return Sound();
 
-  auto ret = implEmitSound(game.loadSound(*snd), x,y,z,range,maxDist);
+  auto ret = implAddSound(game.loadSound(*snd), x,y,z,range,maxDist);
   if(ret.isEmpty())
     return Sound();
 
   std::lock_guard<std::mutex> guard(sync);
   tickSlot(*ret.val);
-  ret.play();
   effect3d.emplace_back(ret.val);
   return ret;
   }
 
-Sound WorldSound::emitSoundRaw(const char *s, float x, float y, float z, float range, bool fSlot) {
+Sound WorldSound::addSoundRaw(const char *s, float x, float y, float z, float range, bool fSlot) {
   if(range<=0.f)
     range = 3500.f;
 
@@ -175,39 +173,37 @@ Sound WorldSound::emitSoundRaw(const char *s, float x, float y, float z, float r
   if(snd==nullptr)
     return Sound();
 
-  std::lock_guard<std::mutex> guard(sync);
-  auto ret = implEmitSound(game.loadSound(*snd), x,y,z,range,maxDist);
+  auto ret = implAddSound(game.loadSound(*snd), x,y,z,range,maxDist);
   if(ret.isEmpty())
     return Sound();
 
+  std::lock_guard<std::mutex> guard(sync);
   tickSlot(*ret.val);
-  ret.play();
   if(fSlot)
     freeSlot[s] = ret.val; else
     effect.emplace_back(ret.val);
   return ret;
   }
 
-Sound WorldSound::emitDlgSound(const char *s, float x, float y, float z, float range, uint64_t& timeLen) {
+Sound WorldSound::addDlgSound(const char *s, float x, float y, float z, float range, uint64_t& timeLen) {
   if(!isInListenerRange({x,y,z},range))
     return Sound();
   auto snd = Resources::loadSoundBuffer(s);
   if(snd.isEmpty())
     return Sound();
 
-  std::lock_guard<std::mutex> guard(sync);
-  auto ret = implEmitSound(game.loadSound(snd), x,y,z,range,maxDist);
+  auto ret = implAddSound(game.loadSound(snd), x,y,z,range,maxDist);
   if(ret.isEmpty())
     return Sound();
 
+  std::lock_guard<std::mutex> guard(sync);
   tickSlot(*ret.val);
-  ret.play();
   timeLen = snd.timeLength();
   effect.emplace_back(ret.val);
   return ret;
   }
 
-Sound WorldSound::implEmitSound(Tempest::SoundEffect&& eff, float x, float y, float z, float rangeRef, float rangeMax) {
+Sound WorldSound::implAddSound(Tempest::SoundEffect&& eff, float x, float y, float z, float rangeRef, float rangeMax) {
   if(eff.isEmpty())
     return Sound();
   auto ex = std::make_shared<Effect>();
@@ -258,7 +254,7 @@ void WorldSound::tick(Npc &player) {
     if(proto==nullptr)
       continue;
 
-    i.current = implEmitSound(game.loadSound(*proto),i.pos.x,i.pos.y,i.pos.z,0,i.sndRadius);
+    i.current = implAddSound(game.loadSound(*proto),i.pos.x,i.pos.y,i.pos.z,0,i.sndRadius);
     if(!i.current.isEmpty()) {
       effect.emplace_back(i.current.val);
       i.current.play();

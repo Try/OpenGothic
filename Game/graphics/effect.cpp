@@ -28,7 +28,7 @@ Effect::Effect(const VisualFx& v, World& owner, const Vec3& inPos, SpellFxKey k)
      h.visName_S=="morph.fov" ||
      h.visName_S=="screenblend.scx" ||
      h.visName_S=="earthquake.eqk") {
-    gfx    = owner.getGlobalEffect(h.visName_S,h.emFXLifeSpan,h.userString,Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS);
+    gfx    = owner.addGlobalEffect(h.visName_S,h.emFXLifeSpan,h.userString,Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS);
     } else {
     visual = root->visual(owner);
     }
@@ -50,7 +50,8 @@ Effect::Effect(const VisualFx& v, World& owner, const Vec3& inPos, SpellFxKey k)
     }
 
   if(sfx.isEmpty()) {
-    sfx = owner.emitSoundEffect(h.sfxID.c_str(), inPos.x,inPos.y,inPos.z,25,false);
+    sfx = owner.addSoundEffect(h.sfxID.c_str(), inPos.x,inPos.y,inPos.z,25,false);
+    sfx.play();
     sfx.setLooping(h.sfxIsAmbient);
     }
   }
@@ -147,12 +148,12 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
 
   const ParticleFx* pfx = owner.script().getParticleFx(*key);
   if(pfx!=nullptr) {
-    visual = owner.getView(pfx);
+    visual = owner.addView(pfx);
     visual.setActive(true);
     }
 
   if(key->lightRange>0.0) {
-    light = owner.getLight();
+    light = owner.addLight();
     light.setColor(Vec3(1,1,1));
     light.setRange(key->lightRange);
     const Daedalus::ZString* preset = &root->handle().lightPresetName;
@@ -184,7 +185,8 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
     }
 
   setObjMatrix(pos);
-  sfx = owner.emitSoundEffect(key->sfxID.c_str(),pos3.x,pos3.y,pos3.z,25,true);
+  sfx = owner.addSoundEffect(key->sfxID.c_str(),pos3.x,pos3.y,pos3.z,25,true);
+  sfx.play();
   sfx.setLooping(key->sfxIsAmbient);
   }
 

@@ -24,7 +24,7 @@ Bullet::Bullet(World& owner,const Item& itm,float x,float y,float z)
       }
     } else {
     material = uint8_t(itm.handle()->material);
-    setView(owner.getItmView(itm.handle()->visual,material));
+    setView(owner.addItmView(itm.handle()->visual,material));
     }
 
   setPosition(x,y,z);
@@ -100,7 +100,7 @@ void Bullet::onCollide(uint8_t matId) {
   if(matId<ZenLoad::NUM_MAT_GROUPS) {
     if(material<ZenLoad::NUM_MAT_GROUPS) {
       auto pos = obj->position();
-      wrld->emitLandHitSound(pos.x,pos.y,pos.z,material,matId);
+      wrld->addLandHitSound(pos.x,pos.y,pos.z,material,matId);
       }
     }
   collideCommon(nullptr);
