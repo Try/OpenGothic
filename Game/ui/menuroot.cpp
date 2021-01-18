@@ -102,18 +102,18 @@ void MenuRoot::keyDownEvent(KeyEvent &e) {
   }
 
 void MenuRoot::keyUpEvent(KeyEvent &e) {
-  if(current!=nullptr){
+  if(current!=nullptr) {
     if(e.key==Event::K_W || e.key==Event::K_Up)
       current->onMove(-1);
-    if(e.key==Event::K_S || e.key==Event::K_Down)
+    else if(e.key==Event::K_S || e.key==Event::K_Down)
       current->onMove(1);
-    if(e.key==Event::K_A || e.key==Event::K_Left)
+    else if(e.key==Event::K_A || e.key==Event::K_Left)
       current->onSlide(-1);
-    if(e.key==Event::K_D || e.key==Event::K_Right)
+    else if(e.key==Event::K_D || e.key==Event::K_Right)
       current->onSlide(1);
-    if(e.key==Event::K_Return)
+    else if(e.key==Event::K_Return)
       current->onSelect();
-    if(e.key==Event::K_ESCAPE || keyCodec.tr(e)==current->keyClose())
+    else if(e.key==Event::K_ESCAPE || keyCodec.tr(e)==current->keyClose())
       popMenu();
     }
   }
