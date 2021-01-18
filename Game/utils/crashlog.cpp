@@ -126,13 +126,12 @@ void CrashLog::dumpStack(const char *sig) {
 void CrashLog::tracebackLinux(std::ostream &out) {
   #ifdef __LINUX__
   // inspired by https://gist.github.com/fmela/591333/36faca4c2f68f7483cd0d3a357e8a8dd5f807edf (BSD)
-  void *callstack[64];
-  char **symbols = NULL;
+  void *callstack[64] = {};
+  char **symbols = nullptr;
   int framesNum = 0;
   framesNum = backtrace(callstack, 64);
   symbols = backtrace_symbols(callstack, framesNum);
-  if(symbols != NULL)
-  {
+  if(symbols != nullptr) {
     int skip = 4; // skip the signal handler frames
     bool loop = true;
     Dl_info info;
@@ -140,8 +139,8 @@ void CrashLog::tracebackLinux(std::ostream &out) {
     for(int i = skip; i < framesNum && loop; i++) {
       if(dladdr(callstack[i], &info) && info.dli_sname) {
         int status = -1;
-        if (info.dli_sname[0] == '_')
-            frame = abi::__cxa_demangle(info.dli_sname, NULL, 0, &status);
+        if(info.dli_sname[0] == '_')
+          frame = abi::__cxa_demangle(info.dli_sname, NULL, 0, &status);
         frame = status == 0 ? frame : info.dli_sname == 0 ? symbols[i] : info.dli_sname;
         }
       if(!strcmp("main", frame)) {
@@ -153,8 +152,8 @@ void CrashLog::tracebackLinux(std::ostream &out) {
       else
         out << "#" << i-skip+1 << ": " << frame << std::endl;
       }
-    }
     free(symbols);
+    }
   #endif
   }
 
