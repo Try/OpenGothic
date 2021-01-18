@@ -11,6 +11,7 @@ class CrashLog final {
     static void dumpStack(const char* sig);
 
   private:
+    static void tracebackLinux(std::ostream &out);
     static void writeSysInfo(std::ostream& fout);
   };
 

@@ -7,6 +7,11 @@
 #include <csignal>
 #include <fstream>
 #include <cstring>
+#ifdef __LINUX__
+#include <execinfo.h> // backtrace
+#include <dlfcn.h>    // dladdr
+#include <cxxabi.h>   // __cxa_demangle
+#endif
 
 #include <dbg/frames.hpp>
 #include <dbg/symbols.hpp>
@@ -92,23 +97,64 @@ void CrashLog::dumpStack(const char *sig) {
 #ifdef __WINDOWS__
   dbg::symdb          db;
   dbg::call_stack<64> traceback;
-
+#endif
   if(sig==nullptr)
     sig = "SIGSEGV";
 
   std::cout.setf(std::ios::unitbuf);
   std::cout << std::endl << "---crashlog(" <<  sig   << ")---" << std::endl;
   writeSysInfo(std::cout);
+#ifdef __WINDOWS__
   traceback.collect(0);
   traceback.log(db, std::cout);
+#elif __LINUX__
+  tracebackLinux(std::cout);
+#endif
   std::cout << std::endl;
 
   std::ofstream fout("crash.log");
   fout.setf(std::ios::unitbuf);
   fout << "---crashlog(" <<  sig << ")---" << std::endl;
   writeSysInfo(fout);
+#ifdef __WINDOWS__
   traceback.log(db, fout);
+#elif __LINUX__
+  tracebackLinux(fout);
 #endif
+  }
+
+void CrashLog::tracebackLinux(std::ostream &out) {
+  #ifdef __LINUX__
+  // inspired by https://gist.github.com/fmela/591333/36faca4c2f68f7483cd0d3a357e8a8dd5f807edf (BSD)
+  void *callstack[64] = {};
+  char **symbols = nullptr;
+  int framesNum = 0;
+  framesNum = backtrace(callstack, 64);
+  symbols = backtrace_symbols(callstack, framesNum);
+  if(symbols != nullptr) {
+    int skip = 4; // skip the signal handler frames
+    bool loop = true;
+    Dl_info info;
+    const char* frame;
+    for(int i = skip; i < framesNum && loop; i++) {
+      if(dladdr(callstack[i], &info) && info.dli_sname) {
+        int status = -1;
+        if(info.dli_sname[0] == '_')
+          frame = abi::__cxa_demangle(info.dli_sname, NULL, 0, &status);
+        frame = status == 0 ? frame : info.dli_sname == 0 ? symbols[i] : info.dli_sname;
+        }
+      if(!strcmp("main", frame)) {
+        // looping beyond the main() causes crashes
+        loop = false;
+        }
+      if(strcmp(frame, symbols[i]))
+        out << "#" << i-skip+1 << ": " << frame << " - " << symbols[i] << std::endl;
+      else
+        out << "#" << i-skip+1 << ": " << frame << std::endl;
+      }
+    free(symbols);
+    }
+  #endif
   }
 
 void CrashLog::writeSysInfo(std::ostream &fout) {
