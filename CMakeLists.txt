@@ -102,7 +102,10 @@ target_link_libraries(${PROJECT_NAME} Tempest)
 target_link_libraries(${PROJECT_NAME} GothicShaders)
 
 if(NOT MSVC)
-  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wconversion -Wno-strict-aliasing -Wno-format-truncation -Werror)
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wconversion -Wno-strict-aliasing -Werror)
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "7.1")
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wno-format-truncation)
+  endif()
   if(UNIX)
     # -rdynamic is needed to allow obtaining meaningful backtraces
     target_link_options(${PROJECT_NAME} PRIVATE -rdynamic)
