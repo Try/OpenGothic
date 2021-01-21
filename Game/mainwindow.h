@@ -36,10 +36,10 @@
 #include "ui/documentmenu.h"
 #include "ui/videowidget.h"
 #include "ui/menuroot.h"
+#include "ui/consolewidget.h"
 
 #include "utils/keycodec.h"
 #include "resources.h"
-
 
 class MenuRoot;
 class Gothic;
@@ -143,6 +143,7 @@ class MainWindow : public Tempest::Window {
     DialogMenu                dialogs;
     DocumentMenu              document;
     ChapterScreen             chapter;
+    ConsoleWidget             console;
 
     Tempest::Widget*          uiKeyUp=nullptr;
     Tempest::Point            dMouse;

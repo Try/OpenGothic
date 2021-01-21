@@ -187,7 +187,6 @@ class Gothic final {
     std::unordered_map<std::string,SoundFx> sndWavCache;
     std::vector<Tempest::SoundEffect>       sndStorage;
 
-
     std::vector<std::unique_ptr<DocumentMenu::Show>> documents;
     ChapterScreen::Show                     chapter;
     bool                                    pendingChapter=false;

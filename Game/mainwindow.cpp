@@ -30,7 +30,7 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
     atlas(device),renderer(device,swapchain,gothic),
     gothic(gothic),keycodec(gothic),
     rootMenu(gothic,keycodec),video(gothic),inventory(gothic,keycodec,renderer.storage()),
-    dialogs(gothic,inventory),document(gothic,keycodec),chapter(gothic),
+    dialogs(gothic,inventory),document(gothic,keycodec),chapter(gothic),console(gothic),
     player(gothic,dialogs,inventory) {
   CrashLog::setGpu(device.renderer());
   if(!gothic.isWindowMode())
@@ -393,7 +393,12 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
       return;
     }
 
-  if(event.key==KeyEvent::K_F3) {
+  if(event.key==KeyEvent::K_F2) {
+    console.resize(w(),h());
+    console.setFocus(true);
+    console.exec();
+    }
+  else if(event.key==KeyEvent::K_F3) {
     setFullscreen(!SystemApi::isFullscreen(hwnd()));
     }
   else if(event.key==KeyEvent::K_F5){
