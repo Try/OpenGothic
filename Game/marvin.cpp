@@ -1,5 +1,6 @@
 #include "marvin.h"
 
+#include <initializer_list>
 #include <cstdint>
 
 #include "world/objects/npc.h"
@@ -7,6 +8,7 @@
 
 Marvin::Marvin() {
   cmd = {
+  cmd = std::vector<Cmd>{
     {"cheat full",        C_CheatFull},
 
     {"camera autoswitch", C_CamAutoswitch},
