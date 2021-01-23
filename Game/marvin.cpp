@@ -7,7 +7,6 @@
 #include "gothic.h"
 
 Marvin::Marvin() {
-  cmd = {
   cmd = std::vector<Cmd>{
     {"cheat full",        C_CheatFull},
 
