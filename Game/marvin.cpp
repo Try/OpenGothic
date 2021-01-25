@@ -4,10 +4,10 @@
 #include <cstdint>
 
 #include "world/objects/npc.h"
+#include "camera.h"
 #include "gothic.h"
 
 Marvin::Marvin() {
-  cmd = {
   cmd = std::vector<Cmd>{
     {"cheat full",        C_CheatFull},
 
@@ -104,9 +104,6 @@ void Marvin::autoComplete(std::string& v) {
   }
 
 bool Marvin::exec(Gothic& gothic, const std::string& v) {
-  //auto w = gothic.world();
-  //auto c = gothic.gameCamera();
-
   auto ret = recognize(v);
   switch(ret.cmd.type) {
     case C_None:
@@ -118,13 +115,21 @@ bool Marvin::exec(Gothic& gothic, const std::string& v) {
       if(auto pl = gothic.player()) {
         pl->changeAttribute(Npc::ATR_HITPOINTS,pl->attribute(Npc::ATR_HITPOINTSMAX),false);
         }
-      break;
+      return true;
       }
     case C_CamAutoswitch:
-    case C_CamMode:
-    case C_ToogleCamDebug:
-    case C_ToogleCamera:
       return true;
+    case C_CamMode:
+      return true;
+    case C_ToogleCamDebug:
+      if(auto c = gothic.camera())
+        c->toogleDebug();
+      return true;
+    case C_ToogleCamera: {
+      if(auto c = gothic.camera())
+        c->setToogleEnable(!c->isToogleEnabled());
+      return true;
+      }
     }
 
   return true;

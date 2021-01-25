@@ -8,6 +8,7 @@
 #include "lightsource.h"
 #include "resources.h"
 
+class DbgPainter;
 class SceneGlobals;
 
 class LightGroup final {
@@ -35,7 +36,7 @@ class LightGroup final {
       friend class LightGroup;
       };
 
-    void   dbgLights(Tempest::Painter& p, const Tempest::Matrix4x4& vp, uint32_t vpWidth, uint32_t vpHeight) const;
+    void   dbgLights(DbgPainter& p) const;
 
     Light  get();
     Light  get(LightSource&& l);

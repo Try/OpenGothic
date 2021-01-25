@@ -87,7 +87,6 @@ void Renderer::resetSwapchain() {
   if(auto wview=gothic.worldView()) {
     wview->setFrameGlobals(Resources::fallbackBlack(),0,0);
     wview->setGbuffer(Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack());
-    wview->setViewport(w,h);
     }
 
   Sampler2d smp = Sampler2d::nearest();
@@ -112,14 +111,11 @@ void Renderer::resetSwapchain() {
   }
 
 void Renderer::onWorldChanged() {
-  if(auto wview=gothic.worldView()){
-    if(zbuffer.w()>0 && zbuffer.h()>0)
-      wview->setViewport(uint32_t(zbuffer.w()),uint32_t(zbuffer.h()));
-    }
   }
 
 void Renderer::setCameraView(const Camera& camera) {
-  view = camera.view();
+  view     = camera.view();
+  viewProj = camera.viewProj();
   if(auto wview=gothic.worldView()){
     shadow[0] = camera.viewShadow(wview->mainLight().dir(),0);
     shadow[1] = camera.viewShadow(wview->mainLight().dir(),1);
@@ -144,7 +140,7 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
     }
 
   Painter3d painter(cmd);
-  wview->setModelView(view,shadow,2);
+  wview->setModelView(viewProj,shadow,2);
   wview->setFrameGlobals(textureCast(shadowMapFinal),gothic.world()->tickCount(),frameId);
   wview->setGbuffer(textureCast(lightingBuf),textureCast(gbufDiffuse),textureCast(gbufNormal),textureCast(gbufDepth));
 
@@ -159,7 +155,7 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
   cmd.setUniforms(stor.pComposeShadow,uboShadowComp);
   cmd.draw(Resources::fsqVbo());
 
-  painter.setFrustrum(wview->viewProj(view));
+  painter.setFrustrum(viewProj);
   cmd.setFramebuffer(fboGBuf,gbufPass);
   wview->drawGBuffer(cmd,painter,frameId);
 

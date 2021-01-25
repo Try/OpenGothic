@@ -576,10 +576,8 @@ Vec3 Npc::position() const {
   }
 
 Vec3 Npc::cameraBone() const {
-  auto bone=visual.pose().cameraBone();
-  Tempest::Vec3 r={};
-  bone.project(r.x,r.y,r.z);
-  visual.position().project(r.x,r.y,r.z);
+  Vec3 r = position();
+  r.y += visual.pose().translateY();
   return r;
   }
 

@@ -20,6 +20,7 @@
 #include "game/globaleffects.h"
 #include "utils/crashlog.h"
 #include "utils/gthfont.h"
+#include "utils/dbgpainter.h"
 
 #include "gothic.h"
 
@@ -148,10 +149,10 @@ void MainWindow::paintEvent(PaintEvent& event) {
       }
     } else {
     if(world!=nullptr && world->view()){
-      auto& camera = *gothic.gameCamera();
-      world->marchPoints(p,world->view()->viewProj(camera.view()),w(),h());
+      auto& camera = *gothic.camera();
+      world->marchPoints(p,camera.viewProj(),w(),h());
 
-      auto vp = world->view()->viewProj(camera.view());
+      auto vp = camera.viewProj();
       p.setBrush(Color(1.0));
 
       auto focus = world->validateFocus(player.focus());
@@ -180,6 +181,11 @@ void MainWindow::paintEvent(PaintEvent& event) {
       else
         info = world->roomAt(world->player()->position()).c_str();
       }
+    }
+
+  if(auto c = gothic.camera()) {
+    DbgPainter dbg(p,c->viewProj(),w(),h());
+    c->debugDraw(dbg);
     }
 
   if(gothic.doFrate()) {
@@ -251,8 +257,8 @@ void MainWindow::tickMouse() {
   dpScaled*=1000.f;
   dpScaled.y /= 7.f;
 
-  if(auto camera = gothic.gameCamera())
-    camera->onRotateMouse(PointF(-dpScaled.x,dpScaled.y));
+  if(auto camera = gothic.camera())
+    camera->onRotateMouse(PointF(dpScaled.y,-dpScaled.x));
   if(!inventory.isActive()) {
     player.onRotateMouse  (-dpScaled.x);
     player.onRotateMouseDy(-dpScaled.y);
@@ -262,7 +268,7 @@ void MainWindow::tickMouse() {
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
-  if(auto camera = gothic.gameCamera())
+  if(auto camera = gothic.camera())
     camera->changeZoom(event.delta);
   }
 
@@ -647,7 +653,7 @@ uint64_t MainWindow::tick() {
   }
 
 void MainWindow::tickCamera(uint64_t dt) {
-  auto pcamera = gothic.gameCamera();
+  auto pcamera = gothic.camera();
   auto pl      = gothic.player();
   if(pcamera==nullptr || pl==nullptr)
     return;
@@ -673,29 +679,28 @@ void MainWindow::tickCamera(uint64_t dt) {
     dialogs.dialogCamera(camera);
     }
   else if(inventory.isActive()) {
-    //camera.setSpin(camera.destSpin());
-    //camera.setDestSpin(spin);
     camera.setDestPosition(pos.x,pos.y,pos.z);
     }
   else if(player.focus().npc!=nullptr && meleeFocus) {
     auto spin = camera.destSpin();
-    spin.x = pl->rotation();
+    spin.y = pl->rotation();
     camera.setDestSpin(spin);
     camera.setDestPosition(pos.x,pos.y,pos.z);
     }
   else {
     auto spin = camera.destSpin();
-    spin.x = pl->rotation();
+    spin.y = pl->rotation();
     if(pl->isDive())
-      spin.y = -pl->rotationY();
+      spin.x = -pl->rotationY();
     camera.setDestSpin(spin);
     camera.setDestPosition(pos.x,pos.y,pos.z);
     }
 
   if(dt==0)
     return;
-  camera.setMode(solveCameraMode());
-  camera.follow(*pl, dt, followCamera, (!mouseP[Event::ButtonLeft] || player.hasActionFocus() || fs));
+  if(camera.isToogleEnabled())
+    camera.setMode(solveCameraMode());
+  camera.tick(*pl, dt, followCamera, (!mouseP[Event::ButtonLeft] || player.hasActionFocus() || fs));
   renderer.setCameraView(camera);
   }
 
@@ -812,6 +817,8 @@ void MainWindow::onWorldLoaded() {
   for(auto& c:commandDynamic)
     c = device.commandBuffer();
 
+  if(auto c = gothic.camera())
+    c->setViewport(w(),h());
   if(auto pl = gothic.player())
     pl->multSpeed(1.f);
   lastTick = Application::tickCount();

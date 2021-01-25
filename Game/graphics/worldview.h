@@ -24,22 +24,18 @@ class WorldView {
     WorldView(const World &world, const PackedMesh& wmesh, const RendererStorage& storage);
     ~WorldView();
 
-    void setViewport(uint32_t w, uint32_t h);
-
-    Tempest::Matrix4x4        viewProj(const Tempest::Matrix4x4 &view) const;
-    const Tempest::Matrix4x4& projective() const { return proj; }
-    const LightSource&        mainLight() const;
+    const LightSource& mainLight() const;
 
     void tick(uint64_t dt);
 
     void updateCmd (uint8_t frameId, const World &world,
                     const Tempest::Attachment& main, const Tempest::Attachment& shadow,
                     const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay);
-    void setModelView   (const Tempest::Matrix4x4 &view, const Tempest::Matrix4x4* shadow, size_t shCount);
+    void setModelView   (const Tempest::Matrix4x4& viewProj, const Tempest::Matrix4x4* shadow, size_t shCount);
     void setFrameGlobals(const Tempest::Texture2d& shadow, uint64_t tickCount, uint8_t fId);
     void setGbuffer     (const Tempest::Texture2d& lightingBuf, const Tempest::Texture2d& diffuse, const Tempest::Texture2d& norm, const Tempest::Texture2d& depth);
 
-    void dbgLights    (Tempest::Painter& p) const;
+    void dbgLights    (DbgPainter& p) const;
     void drawShadow   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t frameId, uint8_t layer);
     void drawGBuffer  (Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
     void drawMain     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
@@ -66,10 +62,6 @@ class WorldView {
     MeshObjects             objGroup;
     PfxObjects              pfxGroup;
     Landscape               land;
-
-    Tempest::Matrix4x4      proj;
-    uint32_t                vpWidth=0;
-    uint32_t                vpHeight=0;
 
     bool                    needToUpdateUbo = false;
 

@@ -24,20 +24,6 @@ WorldView::~WorldView() {
   storage.device.waitIdle();
   }
 
-void WorldView::setViewport(uint32_t w, uint32_t h) {
-  proj.perspective(45.0f, float(w)/float(h), 0.05f, 100.0f);
-  vpWidth  = w;
-  vpHeight = h;
-  setupUbo();
-  }
-
-Matrix4x4 WorldView::viewProj(const Matrix4x4 &view) const {
-  auto viewProj=proj;
-  owner.globalFx()->morph(viewProj);
-  viewProj.mul(view);
-  return viewProj;
-  }
-
 const LightSource &WorldView::mainLight() const {
   return sGlobal.sun;
   }
@@ -74,9 +60,9 @@ LightGroup::Light WorldView::addLight(const ZenLoad::zCVobData& vob) {
   return sGlobal.lights.get(std::move(l));
   }
 
-void WorldView::setModelView(const Matrix4x4& view, const Tempest::Matrix4x4* shadow, size_t shCount) {
+void WorldView::setModelView(const Matrix4x4& viewProj, const Tempest::Matrix4x4* shadow, size_t shCount) {
   updateLight();
-  sGlobal.setModelView(viewProj(view),shadow,shCount);
+  sGlobal.setModelView(viewProj,shadow,shCount);
   }
 
 void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uint8_t fId) {
@@ -113,8 +99,8 @@ void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffus
   setupUbo();
   }
 
-void WorldView::dbgLights(Painter& p) const {
-  sGlobal.lights.dbgLights(p,sGlobal.viewProject(),vpWidth,vpHeight);
+void WorldView::dbgLights(DbgPainter& p) const {
+  sGlobal.lights.dbgLights(p);
   }
 
 void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId, uint8_t layer) {

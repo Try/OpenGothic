@@ -9,9 +9,9 @@
 #include "game/gamescript.h"
 #include "gamemusic.h"
 #include "gametime.h"
-#include "camera.h"
 
 class Gothic;
+class Camera;
 class World;
 class WorldView;
 class RendererStorage;
@@ -49,7 +49,8 @@ class GameSession final {
 
     WorldView*   view()   const;
     GameScript*  script() const { return vm.get(); }
-    Camera&      camera(){ return cam; }
+
+    Camera&      camera()       { return     *cam; }
 
     auto         loadScriptCode() -> std::vector<uint8_t>;
     void         setupVmCommonApi(Daedalus::DaedalusVM& vm);
@@ -107,7 +108,7 @@ class GameSession final {
     const RendererStorage&         storage;
     Tempest::SoundDevice           sound;
 
-    Camera                         cam;
+    std::unique_ptr<Camera>        cam;
     std::unique_ptr<GameScript>    vm;
     std::unique_ptr<World>         wrld;
 

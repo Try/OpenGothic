@@ -5,6 +5,7 @@
 #include "graphics/sceneglobals.h"
 #include "utils/gthfont.h"
 #include "utils/workers.h"
+#include "utils/dbgpainter.h"
 
 using namespace Tempest;
 
@@ -51,7 +52,7 @@ LightGroup::LightGroup(const SceneGlobals& scene)
     u = scene.storage.device.ubo<Ubo>(nullptr,1);
   }
 
-void LightGroup::dbgLights(Painter& p, const Matrix4x4& vp, uint32_t vpWidth, uint32_t vpHeight) const {
+void LightGroup::dbgLights(DbgPainter& p) const {
   int cnt = 0;
   p.setBrush(Color(1,0,0,0.01f));
   //p.setBrush(Color(1,0,0,1.f));
@@ -71,21 +72,21 @@ void LightGroup::dbgLights(Painter& p, const Matrix4x4& vp, uint32_t vpWidth, ui
     px[8] = pt;
 
     for(auto& i:px) {
-      vp.project(i.x,i.y,i.z);
+      p.mvp.project(i.x,i.y,i.z);
       i.x = (i.x+1.f)*0.5f;
       i.y = (i.y+1.f)*0.5f;
       }
 
-    int x = int(px[8].x*float(vpWidth ));
-    int y = int(px[8].y*float(vpHeight));
+    int x = int(px[8].x*float(p.w));
+    int y = int(px[8].y*float(p.h));
 
     int x0 = x, x1 = x;
     int y0 = y, y1 = y;
     float z0=px[8].z, z1=px[8].z;
 
     for(auto& i:px) {
-      int x = int(i.x*float(vpWidth ));
-      int y = int(i.y*float(vpHeight));
+      int x = int(i.x*float(p.w));
+      int y = int(i.y*float(p.h));
       x0 = std::min(x0, x);
       y0 = std::min(y0, y);
       x1 = std::max(x1, x);
@@ -96,20 +97,19 @@ void LightGroup::dbgLights(Painter& p, const Matrix4x4& vp, uint32_t vpWidth, ui
 
     if(z1<0.f || z0>1.f)
       continue;
-    if(x1<0 || x0>int(vpWidth))
+    if(x1<0 || x0>int(p.w))
       continue;
-    if(y1<0 || y0>int(vpHeight))
+    if(y1<0 || y0>int(p.h))
       continue;
 
     cnt++;
-    p.drawRect(x0,y0,x1-x0,y1-y0);
-    p.drawRect(x0,y0,3,3);
+    p.painter.drawRect(x0,y0,x1-x0,y1-y0);
+    p.painter.drawRect(x0,y0,3,3);
     }
 
-  auto& fnt = Resources::font();
   char  buf[250]={};
   std::snprintf(buf,sizeof(buf),"light count = %d",cnt);
-  fnt.drawText(p,10,50,buf);
+  p.drawText(10,50,buf);
   }
 
 LightGroup::Light LightGroup::get() {

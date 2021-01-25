@@ -92,7 +92,7 @@ Gothic::Gothic(const int argc, const char **argv) {
   detectGothicVersion();
 
   fight      .reset(new FightAi(*this));
-  camera     .reset(new CameraDefinitions(*this));
+  camDef     .reset(new CameraDefinitions(*this));
   soundDef   .reset(new SoundDefinitions(*this));
   particleDef.reset(new ParticlesDefinitions(*this));
   vfxDef     .reset(new VisualFxDefinitions(*this));
@@ -156,7 +156,7 @@ Npc *Gothic::player() {
   return nullptr;
   }
 
-Camera* Gothic::gameCamera() {
+Camera* Gothic::camera() {
   if(game)
     return &game->camera();
   return nullptr;
@@ -456,7 +456,7 @@ const Daedalus::GEngineClasses::C_MusicTheme* Gothic::getMusicDef(const char *cl
   }
 
 const CameraDefinitions& Gothic::getCameraDef() const {
-  return *camera;
+  return *camDef;
   }
 
 const Daedalus::GEngineClasses::C_SFX& Gothic::getSoundScheme(const char *name) {

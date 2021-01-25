@@ -69,7 +69,6 @@ class Pose final {
     uint32_t           comboLength() const;
 
     float              translateY() const { return trY; }
-    Tempest::Matrix4x4 cameraBone() const;
     auto               bone(size_t id) const -> const Tempest::Matrix4x4&;
 
     void               setRotation(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir);

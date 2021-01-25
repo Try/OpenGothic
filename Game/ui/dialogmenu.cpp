@@ -165,13 +165,13 @@ void DialogMenu::dialogCamera(Camera& camera) {
     auto p0 = pl   ->cameraBone();
     auto p1 = other->cameraBone();
     camera.setPosition(0.5f*(p0.x+p1.x),
-                       0.5f*(p0.y+p1.y),
+                       0.5f*(p0.y+p1.y) + 50,
                        0.5f*(p0.z+p1.z));
     p0 -= p1;
 
     if(pl==other) {
       float a = pl->rotation();
-      camera.setSpin(PointF(a,0));
+      camera.setSpin(PointF(20,a));
       } else {
       float l = p0.manhattanLength();
       float a = 0;
@@ -181,10 +181,9 @@ void DialogMenu::dialogCamera(Camera& camera) {
         a = other->rotation()-45+270;
         }
 
-      camera.setDialogDistance(l+100);
-      camera.setSpin(PointF(a,0));
+      camera.setDialogDistance(l);
+      camera.setSpin(PointF(0,a));
       }
-
     }
   }
 

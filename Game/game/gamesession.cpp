@@ -12,6 +12,7 @@
 #include "world/world.h"
 #include "sound/soundfx.h"
 #include "serialize.h"
+#include "camera.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -52,7 +53,9 @@ void GameSession::HeroStorage::putToWorld(World& owner,const std::string& wayPoi
 
 
 GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::string file)
-  :gothic(gothic), storage(storage), cam(gothic) {
+  :gothic(gothic), storage(storage) {
+  cam.reset(new Camera(gothic));
+
   gothic.setLoadingProgress(0);
   setTime(gtime(8,0));
   uint8_t ver = gothic.version().game;
@@ -85,13 +88,15 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
   if(!testMode)
     initScripts(true);
   wrld->triggerOnStart(true);
-  cam.reset();
+  cam->reset(*wrld);
   gothic.setLoadingProgress(96);
   ticks = 1;
   }
 
 GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Serialize &fin)
-  :gothic(gothic), storage(storage), cam(gothic) {
+  :gothic(gothic), storage(storage) {
+  cam.reset(new Camera(gothic));
+
   gothic.setLoadingProgress(0);
   uint16_t wssSize=0;
 
@@ -114,7 +119,7 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Seriali
   vm->loadVar(fin);
   if(auto hero = wrld->player())
     vm->setInstanceNPC("HERO",*hero);
-  cam.load(fin,wrld->player());
+  cam->load(fin,wrld->player());
   gothic.setLoadingProgress(96);
   }
 
@@ -145,7 +150,7 @@ void GameSession::save(Serialize &fout, const char* name, const Pixmap& screen) 
 
   gothic.setLoadingProgress(80);
   vm->saveVar(fout);
-  cam.save(fout);
+  cam->save(fout);
   }
 
 void GameSession::setWorld(std::unique_ptr<World> &&w) {

@@ -56,7 +56,7 @@ class Gothic final {
     World*       world();
     WorldView*   worldView() const;
     Npc*         player();
-    Camera*      gameCamera();
+    Camera*      camera();
     auto         questLog() const -> const QuestLog*;
 
     auto      loadingBanner() const -> const Tempest::Texture2d*;
@@ -175,7 +175,7 @@ class Gothic final {
 
     std::unique_ptr<GameSession>            game, pendingGame;
     std::unique_ptr<FightAi>                fight;
-    std::unique_ptr<CameraDefinitions>      camera;
+    std::unique_ptr<CameraDefinitions>      camDef;
     std::unique_ptr<SoundDefinitions>       soundDef;
     std::unique_ptr<VisualFxDefinitions>    vfxDef;
     std::unique_ptr<ParticlesDefinitions>   particleDef;

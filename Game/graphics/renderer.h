@@ -37,7 +37,7 @@ class Renderer final {
     Tempest::Device&                  device;
     Tempest::Swapchain&               swapchain;
     Gothic&                           gothic;
-    Tempest::Matrix4x4                view;
+    Tempest::Matrix4x4                view, viewProj;
     Tempest::Matrix4x4                shadow[2];
 
     Tempest::Attachment               shadowMap[2], shadowMapFinal;

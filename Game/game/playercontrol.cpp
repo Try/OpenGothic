@@ -321,7 +321,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
   const float dtF = float(dt)/1000.f;
 
   Npc*  pl     = w->player();
-  auto  camera = gothic.gameCamera();
+  auto  camera = gothic.camera();
   if(pl==nullptr) {
     if(camera==nullptr)
       return false;

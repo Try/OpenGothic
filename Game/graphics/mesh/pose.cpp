@@ -620,15 +620,6 @@ uint32_t Pose::comboLength() const {
   return comboLen;
   }
 
-Matrix4x4 Pose::cameraBone() const {
-  size_t id=skeleton->findNode("BIP01 HEAD");
-  if(id<tr.size())
-    return tr[id];
-  if(0<tr.size())
-    return tr[0];
-  return Matrix4x4();
-  }
-
 const Tempest::Matrix4x4& Pose::bone(size_t id) const {
   return tr[id];
   }
