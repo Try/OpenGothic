@@ -20,6 +20,7 @@ class ConsoleWidget : public Tempest::Widget {
     void paintEvent    (Tempest::PaintEvent& e) override;
     void keyDownEvent  (Tempest::KeyEvent&   e) override;
     void keyRepeatEvent(Tempest::KeyEvent&   e) override;
+    using Tempest::Widget::keyUpEvent;
 
   private:
     struct Overlay;

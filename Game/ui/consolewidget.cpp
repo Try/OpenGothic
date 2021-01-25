@@ -34,6 +34,11 @@ struct ConsoleWidget::Overlay : public Tempest::UiOverlay {
     e.accept();
     }
 
+  void keyRepeatEvent(Tempest::KeyEvent& e) override {
+    owner.keyRepeatEvent(e);
+    e.accept();
+    }
+
   void keyUpEvent(Tempest::KeyEvent& e) override {
     owner.keyUpEvent(e);
     e.accept();
