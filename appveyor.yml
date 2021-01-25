@@ -3,7 +3,7 @@ configuration:
 
 environment:
   matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       GENERATOR: "NMake Makefiles JOM"
       VCVARSALL: "%VS140COMNTOOLS%/../../VC/vcvarsall.bat"
       PLATFORM:  x64
