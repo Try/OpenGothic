@@ -160,6 +160,10 @@ void DialogMenu::onWorldChanged() {
   close();
   }
 
+bool DialogMenu::isMobsiDialog() const {
+  return pl!=nullptr && other==pl && pl->interactive()!=nullptr;
+  }
+
 void DialogMenu::dialogCamera(Camera& camera) {
   if(pl && other){
     auto p0 = pl   ->cameraBone();
@@ -171,7 +175,7 @@ void DialogMenu::dialogCamera(Camera& camera) {
 
     if(pl==other) {
       float a = pl->rotation();
-      camera.setSpin(PointF(20,a));
+      camera.setSpin(PointF(0,a));
       } else {
       float l = p0.manhattanLength();
       float a = 0;

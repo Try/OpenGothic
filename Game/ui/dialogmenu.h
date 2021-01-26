@@ -25,6 +25,7 @@ class DialogMenu : public Tempest::Widget {
 
     void onWorldChanged();
 
+    bool isMobsiDialog() const;
     void dialogCamera(Camera& camera);
 
     void openPipe(Npc &player, Npc& npc, AiOuputPipe*& out);

@@ -40,8 +40,6 @@ void Camera::implReset(const Npc &pl) {
   state.spin.y = pl.rotation();
   dest         = state;
 
-  applyModRotation(state.spin);
-
   state.range  = def.bestRange;
   dest.range   = state.range;
   }
@@ -105,18 +103,13 @@ void Camera::setMode(Camera::Mode m) {
     return;
 
   camMod = m;
-  if(camMod==Mode::Inventory ||
-     camMod==Mode::Dialog ||
-     camMod==Mode::Mobsi ||
-     camMod==Mode::Death) {
-    const auto& def = cameraDef();
-    dest.spin.y = def.bestAzimuth;
-    if(auto pl=gothic.player())
-      dest.spin.y+=pl->rotation();
 
-    if(camMod!=Dialog)
-      dest.spin.x = def.bestElevation;
-    }
+  const auto& def = cameraDef();
+  dest.spin.y = def.bestAzimuth;
+  if(auto pl=gothic.player())
+    dest.spin.y+=pl->rotation();
+  dest.spin.x = def.bestElevation;
+  dest.range  = def.bestRange;
   }
 
 void Camera::setToogleEnable(bool e) {
@@ -132,10 +125,9 @@ void Camera::toogleDebug() {
   }
 
 void Camera::setSpin(const PointF &p) {
-  state.spin = Vec3(p.x,p.y,0);
-  dest.spin  = state.spin;
-
-  applyModRotation(state.spin);
+  dest.spin   = Vec3(p.x,p.y,0);
+  state.spin  = dest.spin;
+  state.spin2 = applyModRotation(dest.spin);
   }
 
 void Camera::setDestSpin(const PointF& p) {
@@ -152,10 +144,6 @@ void Camera::onRotateMouse(const PointF& dpos) {
   }
 
 Matrix4x4 Camera::projective() const {
-  Matrix4x4 proj;
-  //if(camMod==Dialog)
-  //  proj.perspective(45.f, float(vpWidth)/float(vpHeight), 0.05f, 100.0f); else
-  proj.perspective(65.f, float(vpWidth)/float(vpHeight), 0.05f, 100.0f);
   return proj;
   }
 
@@ -213,7 +201,7 @@ Matrix4x4 Camera::viewShadow(const Vec3& ldir, int layer) const {
   return view;
   }
 
-void Camera::applyModPosition(Vec3& pos) {
+Vec3 Camera::applyModPosition(const Vec3& pos) {
   const auto& def = cameraDef();
 
   Vec3 targetOffset = Vec3(def.targetOffsetX,
@@ -227,33 +215,35 @@ void Camera::applyModPosition(Vec3& pos) {
     rot.project(targetOffset.x,targetOffset.y,targetOffset.z);
     }
 
-  pos = pos + targetOffset;
+  return pos + targetOffset;
   }
 
-void Camera::applyModRotation(Vec3&) {
+Vec3 Camera::applyModRotation(const Vec3& spin) {
+  const auto& def = cameraDef();
+  Vec3 rotOffset = {def.rotOffsetX,def.rotOffsetY,def.rotOffsetZ};
+  if(camMod==Dialog)
+    rotOffset = {}; // FIXME?
+  return spin-rotOffset;
+  }
+
+Vec3 Camera::calcTranslation(float dist) const {
+  Vec3 tr  = {0,0,dist};
+  auto mTr = mkRotation(state.spin);
+  mTr.inverse();
+  mTr.project(tr);
+  return tr;
   }
 
 Matrix4x4 Camera::mkView(const Vec3& pos, float dist) const {
   static float scale = 0.0009f;
 
-  const auto& def       = cameraDef();
-  Vec3        rotOffset = Vec3(def.rotOffsetX,
-                               def.rotOffsetY,
-                               def.rotOffsetZ);
-
-  if(camMod==Dialog)
-    rotOffset = {}; // FIXME?
-
-  Vec3 tr  = {0,0,dist};
-  auto mTr = mkRotation(state.spin);
-  mTr.inverse();
-  mTr.project(tr);
+  auto tr = calcTranslation(dist);
 
   Matrix4x4 view;
   view.identity();
   view.scale(-1,-1,-1);
 
-  view.mul(mkRotation(state.spin-rotOffset));
+  view.mul(mkRotation(state.spin2));
   view.scale(scale);
   view.translate(-pos-tr);
 
@@ -336,9 +326,8 @@ void Camera::implMove(Tempest::Event::KeyType key) {
   }
 
 void Camera::setPosition(float x, float y, float z) {
-  state.pos = {x,y,z};
-  dest.pos  = state.pos;
-  applyModPosition(state.pos);
+  dest.pos  = {x,y,z};
+  state.pos = applyModPosition(dest.pos);
   }
 
 void Camera::setDestPosition(float x, float y, float z) {
@@ -349,7 +338,36 @@ void Camera::setDialogDistance(float d) {
   dlgDist = d;
   }
 
-static void followAng(float& ang,float dest,float speed) {
+void Camera::followPos(Vec3& pos, Vec3 dest, bool inMove, float dtF) {
+  const auto& def = cameraDef();
+  auto        dp  = (dest-pos);
+  auto        len = dp.manhattanLength();
+
+  if(len>0.1f && def.translate && camMod!=Dialog && camMod!=Mobsi){
+    const float maxDist = 180;
+    float       speed   = 0;
+    if(inMove)
+      speed = def.veloTrans*dtF; else
+      speed = dp.manhattanLength()*dtF*2.f;
+    float       tr      = std::min(speed,len);
+    if(len-tr>maxDist)
+      tr = (len-maxDist);
+
+    float k = tr/len;
+    pos = Vec3(pos.x+dp.x*k, pos.y+dp.y*k, pos.z+dp.z*k);
+    } else {
+    pos = dest;
+    }
+  }
+
+void Camera::followAng(Vec3& spin, Vec3 dest, float dtF) {
+  const auto& def = cameraDef();
+  float shift = def.veloRot*45;
+  followAng(spin.x,dest.x,shift*dtF);
+  followAng(spin.y,dest.y,shift*dtF);
+  }
+
+void Camera::followAng(float& ang,float dest,float speed) {
   float da = angleMod(dest-ang);
   if(std::abs(da)<speed) {
     ang = dest;
@@ -358,7 +376,7 @@ static void followAng(float& ang,float dest,float speed) {
 
   float shift = 0;
   if(da>0)
-    shift = std::min(da,speed);
+    shift =  std::min(da,speed);
   if(da<0)
     shift = -std::min(-da,speed);
 
@@ -381,8 +399,7 @@ void Camera::tick(const Npc& npc, uint64_t dt, bool inMove, bool includeRot) {
   if(!hasPos) {
     state.range  = dest.range;
     dest.pos     = npc.cameraBone();
-    state.pos    = dest.pos;
-    applyModPosition(state.pos);
+    state.pos    = applyModPosition(dest.pos);
     state.spin   = dest.spin;
     state.spin.x += def.bestAzimuth;
     hasPos = true;
@@ -403,35 +420,15 @@ void Camera::tick(const Npc& npc, uint64_t dt, bool inMove, bool includeRot) {
   }
 
   {
-  auto pos = dest.pos;
-  applyModPosition(pos);
-  auto dp  = (pos-state.pos);
-  auto len = dp.manhattanLength();
-
-  if(len>0.1f && def.translate && camMod!=Dialog && camMod!=Mobsi){
-    const float maxDist = 180;
-    float       speed   = 0;
-    if(inMove)
-      speed = def.veloTrans*dtF; else
-      speed = dp.manhattanLength()*dtF*2.f;
-    float       tr      = std::min(speed,len);
-    if(len-tr>maxDist)
-      tr = (len-maxDist);
-
-    float k = tr/len;
-    state.pos   = Vec3(state.pos.x+dp.x*k, state.pos.y+dp.y*k, state.pos.z+dp.z*k);
-    } else {
-    state.pos = pos;
-    }
+  auto pos = applyModPosition(dest.pos);
+  followPos(state.pos,pos,inMove,dtF);
   }
 
   if(includeRot) {
     auto rotation = dest.spin;
-    applyModRotation(rotation);
-
-    float shift = def.veloRot*45;
-    followAng(state.spin.x,rotation.x,shift*dtF);
-    followAng(state.spin.y,rotation.y,shift*dtF);
+    followAng(state.spin, rotation,dtF);
+    rotation = applyModRotation(rotation);
+    followAng(state.spin2,rotation,dtF);
 
     if(state.spin.x>def.maxElevation)
       state.spin.x = def.maxElevation;
@@ -444,8 +441,7 @@ void Camera::debugDraw(DbgPainter& p) {
   if(!dbg)
     return;
 
-  auto destP = dest.pos;
-  applyModPosition(destP);
+  auto destP = applyModPosition(dest.pos);
 
   p.setPen(Color(0,1,0));
   p.drawLine(destP, state.pos);
@@ -463,9 +459,9 @@ void Camera::debugDraw(DbgPainter& p) {
   std::snprintf(buf,sizeof(buf),"Range To Player : %f", state.range*100.f);
   p.drawText(8,y,buf); y += fnt.pixelSize();
 
-  std::snprintf(buf,sizeof(buf),"Azimuth : %f", angleMod(dest.spin.x-state.spin.x));
+  std::snprintf(buf,sizeof(buf),"Azimuth : %f", angleMod(dest.spin.y-state.spin.y));
   p.drawText(8,y,buf); y += fnt.pixelSize();
-  std::snprintf(buf,sizeof(buf),"Elevation : %f", state.spin.y);
+  std::snprintf(buf,sizeof(buf),"Elevation : %f", state.spin.x);
   p.drawText(8,y,buf); y += fnt.pixelSize();
   }
 
@@ -488,7 +484,6 @@ Matrix4x4 Camera::viewProj() const {
 Matrix4x4 Camera::view() const {
   const auto& def     = cameraDef();
   float       dist    = 0;
-  float       minDist = 25;
 
   if(camMod==Mobsi) {
     dist = def.maxRange;
@@ -506,26 +501,32 @@ Matrix4x4 Camera::view() const {
     dist*=100; //to santimeters
     }
 
-  auto pos   = state.pos;
-  auto world = gothic.world();
-  if(world==nullptr)
-    return mkView(pos,dist);
-
   Matrix4x4 view=projective();
   if(auto w = gothic.world())
     w->globalFx()->morph(view);
-  view.mul(mkView(pos,dist));
+  view.mul(mkView(state.pos,dist));
+
+  float distMd = calcCameraColision(view,dist);
+  view=mkView(state.pos,distMd);
+  return view;
+  }
+
+float Camera::calcCameraColision(const Matrix4x4& view, const float dist) const {
+  auto world = gothic.world();
+  if(world==nullptr)
+    return dist;
+
+  float minDist = 20;
 
   Matrix4x4 vinv=view;
   vinv.inverse();
 
   float distMd = dist;
-
   static int n = 1, nn=1;
   for(int i=-n;i<=n;++i)
     for(int r=-n;r<=n;++r) {
       float u = float(i)/float(nn),v = float(r)/float(nn);
-      Tempest::Vec3 r0=pos;
+      Tempest::Vec3 r0=state.pos;
       Tempest::Vec3 r1={u,v,0};
 
       view.project(r0.x,r0.y,r0.z);
@@ -549,7 +550,5 @@ Matrix4x4 Camera::view() const {
       if(md<distMd)
         distMd=md;
       }
-
-  view=mkView(pos,distMd);
-  return view;
+  return distMd;
   }

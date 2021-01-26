@@ -768,6 +768,7 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
     if(owner.hasOverlay(overlay)) {
       owner.delOverlay(overlay);
       owner.delItem(cls,1);
+      return true;
       } else {
       owner.addOverlay(overlay,0);
       }

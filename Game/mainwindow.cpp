@@ -675,7 +675,7 @@ void MainWindow::tickCamera(uint64_t dt) {
     camera.setSpin(camera.destSpin());
     camera.setDestPosition(pos.x,pos.y,pos.z);
     }
-  else if(dialogs.isActive()) {
+  else if(dialogs.isActive() && !dialogs.isMobsiDialog()) {
     dialogs.dialogCamera(camera);
     }
   else if(inventory.isActive()) {

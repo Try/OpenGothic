@@ -75,6 +75,7 @@ class Camera final {
     struct State {
       Tempest::Vec3 pos   = {};
       Tempest::Vec3 spin  = {};
+      Tempest::Vec3 spin2 = {};
       float         range = 0.3f;
       };
 
@@ -92,14 +93,22 @@ class Camera final {
     bool                  tgEnable = true;
     Mode                  camMod   = Normal;
 
-    void                  applyModPosition(Tempest::Vec3& pos);
-    void                  applyModRotation(Tempest::Vec3& spin);
+    Tempest::Vec3         applyModPosition(const Tempest::Vec3& pos);
+    Tempest::Vec3         applyModRotation(const Tempest::Vec3& spin);
+
+    Tempest::Vec3         calcTranslation(float dist) const;
 
     void                  implReset(const Npc& pl);
     void                  implMove(Tempest::KeyEvent::KeyType t);
     Tempest::Matrix4x4    mkView    (const Tempest::Vec3& pos, float dist) const;
     Tempest::Matrix4x4    mkRotation(const Tempest::Vec3& spin) const;
     void                  clampRange(float& z);
+
+    void                  followPos(Tempest::Vec3& pos, Tempest::Vec3 dest, bool inMove, float dtF);
+    void                  followAng(Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF);
+    static void           followAng(float& ang,float dest,float speed);
+
+    float                 calcCameraColision(const Tempest::Matrix4x4& view, const float dist) const;
 
     const Daedalus::GEngineClasses::CCamSys& cameraDef() const;
   };

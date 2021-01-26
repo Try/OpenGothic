@@ -397,8 +397,10 @@ void PlayerControl::implMove(uint64_t dt) {
     return;
     }
 
-  if(!pl.isAiQueueEmpty())
+  if(!pl.isAiQueueEmpty()) {
+    runAngleDest = 0;
     return;
+    }
 
   if(pl.canSwitchWeapon()) {
     if(wctrl[WeaponClose]) {
@@ -442,8 +444,10 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     }
 
-  if(!pl.isInState(ScriptFn()) || dlg.isActive())
+  if(!pl.isInState(ScriptFn()) || dlg.isActive()) {
+    runAngleDest = 0;
     return;
+    }
 
   int rotation=0;
   if(pl.bodyStateMasked()!=BS_CLIMB) {
