@@ -18,6 +18,7 @@
 
 class WayPoint;
 class Npc;
+class Interactive;
 class World;
 class FpLock;
 class ScriptFn;
@@ -33,7 +34,7 @@ class Serialize final {
   public:
     enum {
       MinVersion = 0,
-      Version    = 23
+      Version    = 24
       };
 
     Serialize(Tempest::ODevice& fout);
@@ -122,6 +123,9 @@ class Serialize final {
 
     void write(Npc*        npc);
     void read (Npc*&       npc);
+
+    void write(Interactive*  mobsi);
+    void read (Interactive*& mobsi);
 
     void write(const FpLock& fp);
     void read (FpLock& fp);

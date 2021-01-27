@@ -45,20 +45,19 @@ void Camera::implReset(const Npc &pl) {
   }
 
 void Camera::save(Serialize &s) {
-  s.write(state.spin,state.pos,
-          dest.spin,dest.pos,
-          state.range,hasPos);
-  dest.range = state.range;
+  s.write(state.pos, state.spin, state.spin2, state.range,
+          dest.pos,  dest.spin,  dest.spin2,  dest.range,
+          hasPos);
   }
 
 void Camera::load(Serialize &s, Npc *pl) {
   if(pl)
     implReset(*pl);
-  if(s.version()<8)
+  if(s.version()<24)
     return;
-  s.read(state.spin,state.pos,
-         dest.spin,dest.pos,
-         dest.range,hasPos);
+  s.read(state.pos, state.spin, state.spin2, state.range,
+         dest.pos,  dest.spin,  dest.spin2,  dest.range,
+         hasPos);
   }
 
 void Camera::changeZoom(int delta) {
@@ -450,7 +449,7 @@ void Camera::debugDraw(DbgPainter& p) {
   int   y   = 300+fnt.pixelSize();
   char buf[256] = {};
 
-  std::snprintf(buf,sizeof(buf),"RaysCasted : TBD");
+  std::snprintf(buf,sizeof(buf),"RaysCasted : %d", raysCasted);
   p.drawText(8,y,buf); y += fnt.pixelSize();
 
   std::snprintf(buf,sizeof(buf),"PlayerPos : %f %f %f", dest.pos.x, dest.pos.y, dest.pos.z);
@@ -506,7 +505,9 @@ Matrix4x4 Camera::view() const {
     w->globalFx()->morph(view);
   view.mul(mkView(state.pos,dist));
 
-  float distMd = calcCameraColision(view,dist);
+  float distMd = dist;
+  if(def.collision)
+    distMd = calcCameraColision(view,dist);
   view=mkView(state.pos,distMd);
   return view;
   }
@@ -521,19 +522,16 @@ float Camera::calcCameraColision(const Matrix4x4& view, const float dist) const 
   Matrix4x4 vinv=view;
   vinv.inverse();
 
+  raysCasted = 0;
   float distMd = dist;
   static int n = 1, nn=1;
   for(int i=-n;i<=n;++i)
     for(int r=-n;r<=n;++r) {
       float u = float(i)/float(nn),v = float(r)/float(nn);
-      Tempest::Vec3 r0=state.pos;
-      Tempest::Vec3 r1={u,v,0};
+      Tempest::Vec3 r0 = state.pos;
+      Tempest::Vec3 r1 = {u,v,0};
 
-      view.project(r0.x,r0.y,r0.z);
-      //r0[0] = u;
-      //r0[1] = v;
-
-      vinv.project(r0.x,r0.y,r0.z);
+      //view.project(r0.x,r0.y,r0.z);
       vinv.project(r1.x,r1.y,r1.z);
 
       auto d = world->physic()->ray(r0.x,r0.y,r0.z, r1.x,r1.y,r1.z).v;
@@ -546,9 +544,10 @@ float Camera::calcCameraColision(const Matrix4x4& view, const float dist) const 
       float dist0 = r1.manhattanLength();
       float dist1 = d.manhattanLength();
 
-      float md = std::max(dist-std::max(0.f,dist0-dist1),minDist);
+      float md = dist-std::max(0.f,dist0-dist1);
       if(md<distMd)
         distMd=md;
+      raysCasted++;
       }
-  return distMd;
+  return std::max(minDist,distMd);
   }

@@ -93,6 +93,8 @@ class Camera final {
     bool                  tgEnable = true;
     Mode                  camMod   = Normal;
 
+    mutable int           raysCasted = 0;
+
     Tempest::Vec3         applyModPosition(const Tempest::Vec3& pos);
     Tempest::Vec3         applyModRotation(const Tempest::Vec3& spin);
 

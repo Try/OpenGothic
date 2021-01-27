@@ -124,6 +124,17 @@ void Serialize::read(Npc *&npc) {
   npc = ctx->npcById(id);
   }
 
+void Serialize::write(Interactive* mobsi) {
+  uint32_t id = ctx->mobsiId(mobsi);
+  write(id);
+  }
+
+void Serialize::read(Interactive*& mobsi) {
+  uint32_t id=uint32_t(-1);
+  read(id);
+  mobsi = ctx->mobsiById(id);
+  }
+
 void Serialize::write(WeaponState w) {
   write(uint8_t(w));
   }
