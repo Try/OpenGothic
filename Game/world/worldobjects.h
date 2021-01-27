@@ -48,9 +48,6 @@ class WorldObjects final {
     void           save(Serialize& fout);
     void           tick(uint64_t dt, uint64_t dtPlayer);
 
-    uint32_t       npcId(const Npc *ptr) const;
-    uint32_t       itmId(const void* ptr) const;
-
     Npc*           addNpc(size_t itemInstance, const Daedalus::ZString& at);
     Npc*           addNpc(size_t itemInstance, const Tempest::Vec3&     at);
     Npc*           insertPlayer(std::unique_ptr<Npc>&& npc, const Daedalus::ZString& waypoint);
@@ -61,15 +58,22 @@ class WorldObjects final {
     bool           isTargeted(Npc& npc);
     Npc*           findHero();
     Npc*           findNpcByInstance(size_t instance);
-    size_t         npcCount()    const { return npcArr.size(); }
-    const Npc&     npc(size_t i) const { return *npcArr[i];    }
-    Npc&           npc(size_t i)       { return *npcArr[i];    }
     void           detectNpcNear(const std::function<void(Npc&)>& f);
     void           detectNpc (const float x, const float y, const float z, const float r, const std::function<void(Npc&)>&  f);
     void           detectItem(const float x, const float y, const float z, const float r, const std::function<void(Item&)>& f);
 
+    uint32_t       npcId(const Npc *ptr) const;
+    size_t         npcCount()    const { return npcArr.size(); }
+    const Npc&     npc(size_t i) const { return *npcArr[i];    }
+    Npc&           npc(size_t i)       { return *npcArr[i];    }
+
     size_t         itmCount()    const { return itemArr.size(); }
     Item&          itm(size_t i)       { return *itemArr[i];    }
+    uint32_t       itmId(const void* ptr) const;
+
+    size_t         mobsiCount()    const { return interactiveObj.size();        }
+    Interactive&   mobsi(size_t i)       { return **(interactiveObj.begin()+i); }
+    uint32_t       mobsiId(const void* ptr) const;
 
     void           addTrigger(AbstractTrigger* trigger);
     void           triggerEvent(const TriggerEvent& e);

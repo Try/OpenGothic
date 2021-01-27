@@ -5,10 +5,12 @@
 void BaseSpaceIndex::clear() {
   arr.clear();
   index.clear();
+  dynamic.clear();
   }
 
 void BaseSpaceIndex::invalidate() {
   index.clear();
+  dynamic.clear();
   }
 
 void BaseSpaceIndex::add(Vob* v) {

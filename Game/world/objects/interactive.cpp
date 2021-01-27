@@ -102,7 +102,7 @@ void Interactive::load(Serialize &fin) {
         i.user       = user;
         i.attachMode = attachMode;
         i.started    = started;
-        if(i.user!=nullptr)
+        if(fin.version()<24 && i.user!=nullptr)
           i.user->setInteraction(this,true);
         }
     }

@@ -555,6 +555,10 @@ class Npc final {
 
     int       calcAniComb() const;
 
+    bool               isAlignedToGround() const;
+    Tempest::Vec3      groundNormal() const;
+    Tempest::Matrix4x4 mkPositionMatrix() const;
+
     World&                         owner;
     Daedalus::GEngineClasses::C_Npc hnpc={};
     float                          x=0.f;
@@ -567,7 +571,7 @@ class Npc final {
 
     // visual props (cache)
     uint8_t                        durtyTranform=0;
-    Tempest::Vec3                  groundNormal;
+    Tempest::Vec3                  lastGroundNormal;
 
     // visual props
     std::string                    body,head;

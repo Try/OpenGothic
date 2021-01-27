@@ -211,6 +211,7 @@ void Npc::save(Serialize &fout) {
     }
   saveAiState(fout);
 
+  fout.write(currentInteract);
   fout.write(currentOther);
   fout.write(currentVictum);
   fout.write(currentLookAt,currentTarget,nearestEnemy);
@@ -266,6 +267,8 @@ void Npc::load(Serialize &fin) {
     }
   loadAiState(fin);
 
+  if(fin.version()>=24)
+    fin.read(currentInteract);
   fin.read(currentOther);
   if(fin.version()>=20)
     fin.read(currentVictum);
@@ -576,8 +579,11 @@ Vec3 Npc::position() const {
   }
 
 Vec3 Npc::cameraBone() const {
-  Vec3 r = position();
-  r.y += visual.pose().translateY();
+  Vec3 r = {};
+  r.y = visual.pose().translateY();
+
+  auto mt = mkPositionMatrix();
+  mt.project(r);
   return r;
   }
 
@@ -3046,8 +3052,10 @@ bool Npc::setInteraction(Interactive *id, bool quick) {
 
   if(id->attach(*this)) {
     currentInteract = id;
-    visual.stopAnim(*this,nullptr);
-    setAnimRotate(0);
+    if(!quick) {
+      visual.stopAnim(*this,nullptr);
+      setAnimRotate(0);
+      }
     return true;
     }
 
@@ -3317,20 +3325,64 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, bool isNo
   return ret & SensesBit(hnpc.senses);
   }
 
-void Npc::updatePos() {
-  auto gl    = guild();
-  bool align = (world().script().guildVal().surface_align[gl]!=0) || isDead();
+bool Npc::isAlignedToGround() const {
+  auto gl = guild();
+  return (owner.script().guildVal().surface_align[gl]!=0) || isDead();
+  }
 
+Vec3 Npc::groundNormal() const {
   auto ground = mvAlgo.groundNormal();
+  const bool align = isAlignedToGround();
 
   if(!align || mvAlgo.isInAir() || mvAlgo.isSwim())
     ground = {0,1,0};
   if(ground==Vec3())
     ground = {0,1,0};
+  return ground;
+  }
 
-  if(groundNormal!=ground) {
+Matrix4x4 Npc::mkPositionMatrix() const {
+  const auto ground = groundNormal();
+  const bool align  = isAlignedToGround();
+
+  Matrix4x4 mt;
+  if(align) {
+    auto oy = ground;
+    auto ox = Vec3::crossProduct(oy,{0,0,1});
+    auto oz = Vec3::crossProduct(oy,ox);
+    float v[16] = {
+       ox.x, ox.y, ox.z, 0,
+       oy.x, oy.y, oy.z, 0,
+      -oz.x,-oz.y,-oz.z, 0,
+          x,    y,    z, 1
+    };
+    mt = Matrix4x4(v);
+    } else {
+    float v[16] = {
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      x, y, z, 1
+    };
+    mt = Matrix4x4(v);
+    }
+
+  mt.rotateOY(180-angle);
+  if(mvAlgo.isDive())
+    mt.rotateOX(-angleY);
+  if(isPlayer() && !align) {
+    mt.rotateOZ(runAng);
+    }
+  mt.scale(sz[0],sz[1],sz[2]);
+  return mt;
+  }
+
+void Npc::updatePos() {
+  const auto ground = groundNormal();
+
+  if(lastGroundNormal!=ground) {
     durtyTranform |= TR_Rot;
-    groundNormal = ground;
+    lastGroundNormal = ground;
     }
 
   sfxWeapon.setPosition(x,y,z);
@@ -3338,36 +3390,7 @@ void Npc::updatePos() {
   if(durtyTranform==TR_Pos){
     visual.setPos(x,y,z);
     } else {
-    Matrix4x4 mt;
-    if(align) {
-      auto oy = ground;
-      auto ox = Vec3::crossProduct(oy,{0,0,1});
-      auto oz = Vec3::crossProduct(oy,ox);
-      float v[16] = {
-         ox.x, ox.y, ox.z, 0,
-         oy.x, oy.y, oy.z, 0,
-        -oz.x,-oz.y,-oz.z, 0,
-            x,    y,    z, 1
-      };
-      mt = Matrix4x4(v);
-      } else {
-      float v[16] = {
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        x, y, z, 1
-      };
-      mt = Matrix4x4(v);
-      }
-
-    mt.rotateOY(180-angle);
-    if(mvAlgo.isDive())
-      mt.rotateOX(-angleY);
-    if(isPlayer() && !align) {
-      mt.rotateOZ(runAng);
-      }
-    mt.scale(sz[0],sz[1],sz[2]);
-    visual.setPos(mt);
+    visual.setPos(mkPositionMatrix());
     }
   }
 

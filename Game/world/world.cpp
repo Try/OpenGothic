@@ -149,14 +149,24 @@ uint32_t World::npcId(const Npc *ptr) const {
   return wobj.npcId(ptr);
   }
 
-uint32_t World::itmId(const void *ptr) const {
-  return wobj.itmId(ptr);
-  }
-
 Npc *World::npcById(uint32_t id) {
   if(id<wobj.npcCount())
     return &wobj.npc(id);
   return nullptr;
+  }
+
+uint32_t World::mobsiId(const Interactive* ptr) const {
+  return wobj.mobsiId(ptr);
+  }
+
+Interactive* World::mobsiById(uint32_t id) {
+  if(id<wobj.mobsiCount())
+    return &wobj.mobsi(id);
+  return nullptr;
+  }
+
+uint32_t World::itmId(const void *ptr) const {
+  return wobj.itmId(ptr);
   }
 
 Item *World::itmById(uint32_t id) {

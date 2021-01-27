@@ -239,6 +239,16 @@ uint32_t WorldObjects::itmId(const void *ptr) const {
   return uint32_t(-1);
   }
 
+uint32_t WorldObjects::mobsiId(const void* ptr) const {
+  uint32_t ret=0;
+  for(auto& i:interactiveObj) {
+    if(i==ptr)
+      return ret;
+    ++ret;
+    }
+  return uint32_t(-1);
+  }
+
 Npc *WorldObjects::addNpc(size_t npcInstance, const Daedalus::ZString& at) {
   auto pos = owner.findPoint(at.c_str());
   if(pos==nullptr){
