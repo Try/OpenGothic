@@ -3046,6 +3046,7 @@ bool Npc::setInteraction(Interactive *id, bool quick) {
 
   if(id->attach(*this)) {
     currentInteract = id;
+    visual.stopAnim(*this,nullptr);
     setAnimRotate(0);
     return true;
     }
