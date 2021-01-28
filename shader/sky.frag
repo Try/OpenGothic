@@ -49,20 +49,23 @@ vec4 stars(vec2 texc){
   }
 #endif
 
+vec3 inverse(vec3 pos) {
+  vec4 ret = ubo.mvpInv*vec4(pos,1.0);
+  return ret.xyz/ret.w;
+  }
+
 void main() {
-  vec3  view   = normalize((ubo.mvpInv*vec4(inPos,1.0,1.0)).xyz);
-  vec3  sunDir = ubo.sunDir;
-  vec3  pos    = vec3(0,RPlanet+ubo.plPosY,0);
+  vec3  view     = normalize(inverse(vec3(inPos,1.0)));
+  vec3  sunDir   = ubo.sunDir;
+  vec3  pos      = vec3(0,RPlanet+ubo.plPosY,0);
 
 #if defined(FOG)
   vec2  uv       = inPos*0.5+vec2(0.5);
   float z        = texture(depth,uv).r;
-  vec4 pos1      = ubo.mvpInv*vec4(inPos,  z,1.0);
-  pos1.xyz/=pos1.w;
-  vec4 pos0      = ubo.mvpInv*vec4(inPos,0.0,1.0);
-  pos0.xyz/=pos0.w;
+  vec3 pos1      = inverse(vec3(inPos,z));
+  vec3 pos0      = inverse(vec3(inPos,0));
 
-  float dist     = length(pos1.xyz-pos0.xyz);
+  float dist     = length(pos1-pos0);
   vec3  mie      = fogMie(pos,view,sunDir,dist);
   float fogDens  = volumetricFog(pos0.xyz,pos1.xyz-pos0.xyz);
   vec3  fogColor = skyColor*fogDens;
@@ -79,7 +82,7 @@ void main() {
 
   float L        = rayIntersect(pos, view, RAtmos);
   vec3  cloudsAt = normalize(pos + view * L);
-  vec2  texc     = vec2(cloudsAt.zx)*100.f;
+  vec2  texc     = vec2(cloudsAt.zx)*200.f;
   vec4  day      = clounds(texc);
   vec4  night    = stars(texc);
   vec4  cloud    = mix(day,night,ubo.night);

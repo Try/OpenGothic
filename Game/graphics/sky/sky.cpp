@@ -82,7 +82,7 @@ void Sky::drawSky(Tempest::Encoder<CommandBuffer>& p, uint32_t fId) {
 void Sky::drawFog(Tempest::Encoder<CommandBuffer>& p, uint32_t fId) {
   UboFog ubo;
   ubo.mvp    = scene.viewProject();
-  ubo.mvpInv = scene.viewProject();
+  ubo.mvpInv = ubo.mvp;
   ubo.mvpInv.inverse();
 
   auto& pf = perFrame[fId];

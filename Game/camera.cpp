@@ -68,7 +68,7 @@ void Camera::changeZoom(int delta) {
   }
 
 void Camera::setViewport(uint32_t w, uint32_t h) {
-  proj.perspective(65.f, float(w)/float(h), 0.05f, 100.0f);
+  proj.perspective(65.f, float(w)/float(h), 0.01f, 85.0f);
   vpWidth  = w;
   vpHeight = h;
   }
@@ -518,12 +518,16 @@ float Camera::calcCameraColision(const Matrix4x4& view, const float dist) const 
     return dist;
 
   float minDist = 20;
+  float padding = 20;
+
+  auto& physic = *world->physic();
 
   Matrix4x4 vinv=view;
   vinv.inverse();
 
   raysCasted = 0;
   float distMd = dist;
+  auto  tr     = calcTranslation(dist);
   static int n = 1, nn=1;
   for(int i=-n;i<=n;++i)
     for(int r=-n;r<=n;++r) {
@@ -531,18 +535,17 @@ float Camera::calcCameraColision(const Matrix4x4& view, const float dist) const 
       Tempest::Vec3 r0 = state.pos;
       Tempest::Vec3 r1 = {u,v,0};
 
-      //view.project(r0.x,r0.y,r0.z);
       vinv.project(r1.x,r1.y,r1.z);
 
-      auto d = world->physic()->ray(r0.x,r0.y,r0.z, r1.x,r1.y,r1.z).v;
-      d.x-=r0.x;
-      d.y-=r0.y;
-      d.z-=r0.z;
-
+      auto rc = physic.ray(r0.x,r0.y,r0.z, r1.x,r1.y,r1.z);
+      auto d  = rc.v;
+      d -=r0;
       r1-=r0;
 
       float dist0 = r1.manhattanLength();
-      float dist1 = d.manhattanLength();
+      float dist1 = Vec3::dotProduct(d,tr)/dist;
+      if(rc.hasCol)
+        dist1 = std::max<float>(0,dist1-padding);
 
       float md = dist-std::max(0.f,dist0-dist1);
       if(md<distMd)
