@@ -27,7 +27,7 @@ float volumetricFog(in vec3 pos, in vec3 cameraToWorldPos) {
   }
 
 #if !defined(FOG)
-vec4 clounds(vec2 texc){
+vec4 clouds(vec2 texc){
   vec4 cloudDL1 = texture(textureDayL1,texc*0.3+ubo.dxy1);
   vec4 cloudDL0 = texture(textureDayL0,texc*0.3+ubo.dxy0);
 #ifdef G1
@@ -83,7 +83,7 @@ void main() {
   float L        = rayIntersect(pos, view, RAtmos);
   vec3  cloudsAt = normalize(pos + view * L);
   vec2  texc     = vec2(cloudsAt.zx)*200.f;
-  vec4  day      = clounds(texc);
+  vec4  day      = clouds(texc);
   vec4  night    = stars(texc);
   vec4  cloud    = mix(day,night,ubo.night);
 
