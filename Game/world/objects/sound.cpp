@@ -1,6 +1,53 @@
 #include "sound.h"
 
+#include "game/gamesession.h"
+#include "world/world.h"
+
 Sound::Sound() {
+  }
+
+Sound::Sound(World& world, Sound::Type type, const char* s, const Tempest::Vec3& pos, float range, bool freeSlot) {
+  if(range<=0.f)
+    range = 3500.f;
+
+  auto& owner = *world.sound();
+  if(!owner.isInListenerRange(pos,range))
+    return;
+
+  if(freeSlot) {
+    std::lock_guard<std::mutex> guard(owner.sync);
+    auto slot = owner.freeSlot.find(s);
+    if(slot!=owner.freeSlot.end() && !slot->second->eff.isFinished())
+      return;
+    }
+
+  SoundFx* snd = nullptr;
+  if(type==T_Raw)
+    snd = owner.game.loadSoundWavFx(s); else
+    snd = owner.game.loadSoundFx(s);
+
+  if(snd==nullptr)
+    return;
+
+  *this = owner.implAddSound(*snd, pos.x,pos.y,pos.z,range,WorldSound::maxDist);
+  if(isEmpty())
+    return;
+
+  std::lock_guard<std::mutex> guard(owner.sync);
+  owner.initSlot(*val);
+  switch(type) {
+    case T_Regular:
+    case T_Raw: {
+      if(freeSlot)
+        owner.freeSlot[s] = val; else
+        owner.effect.emplace_back(val);
+      break;
+      }
+    case T_3D:{
+      owner.effect3d.emplace_back(val);
+      break;
+      }
+    }
   }
 
 Sound::Sound(Sound&& other)
@@ -63,6 +110,11 @@ void Sound::setPosition(float x, float y, float z) {
 void Sound::setLooping(bool l) {
   if(val!=nullptr)
     val->loop = l;
+  }
+
+void Sound::setAmbient(bool a) {
+  if(val!=nullptr)
+    val->ambient = a;
   }
 
 void Sound::setActive(bool a) {

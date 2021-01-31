@@ -107,84 +107,6 @@ void WorldSound::addSound(const ZenLoad::zCVobData &vob) {
   worldEff.emplace_back(std::move(s));
   }
 
-Sound WorldSound::addSound(const char* s, float x, float y, float z, float range, bool fSlot) {
-  if(range<=0.f)
-    range = 3500.f;
-
-  if(!isInListenerRange({x,y,z},range))
-    return Sound();
-
-  if(fSlot) {
-    std::lock_guard<std::mutex> guard(sync);
-    auto slot = freeSlot.find(s);
-    if(slot!=freeSlot.end() && !slot->second->eff.isFinished())
-      return Sound();
-    }
-
-  auto snd = game.loadSoundFx(s);
-  if(snd==nullptr)
-    return Sound();
-
-  auto ret = implAddSound(game.loadSound(*snd), x,y,z,range,maxDist);
-  if(ret.isEmpty())
-    return Sound();
-
-  std::lock_guard<std::mutex> guard(sync);
-  initSlot(*ret.val);
-  if(fSlot)
-    freeSlot[s] = ret.val; else
-    effect.emplace_back(ret.val);
-  return ret;
-  }
-
-Sound WorldSound::addSound3d(const char* s, float x, float y, float z, float range) {
-  if(range<=0.f)
-    range = 3500.f;
-
-  auto snd = game.loadSoundFx(s);
-  if(snd==nullptr)
-    return Sound();
-
-  auto ret = implAddSound(game.loadSound(*snd), x,y,z,range,maxDist);
-  if(ret.isEmpty())
-    return Sound();
-
-  std::lock_guard<std::mutex> guard(sync);
-  initSlot(*ret.val);
-  effect3d.emplace_back(ret.val);
-  return ret;
-  }
-
-Sound WorldSound::addSoundRaw(const char *s, float x, float y, float z, float range, bool fSlot) {
-  if(range<=0.f)
-    range = 3500.f;
-
-  if(!isInListenerRange({x,y,z},range))
-    return Sound();
-
-  if(fSlot) {
-    std::lock_guard<std::mutex> guard(sync);
-    auto slot = freeSlot.find(s);
-    if(slot!=freeSlot.end() && !slot->second->eff.isFinished())
-      return Sound();
-    }
-
-  auto snd = game.loadSoundWavFx(s);
-  if(snd==nullptr)
-    return Sound();
-
-  auto ret = implAddSound(game.loadSound(*snd), x,y,z,range,maxDist);
-  if(ret.isEmpty())
-    return Sound();
-
-  std::lock_guard<std::mutex> guard(sync);
-  initSlot(*ret.val);
-  if(fSlot)
-    freeSlot[s] = ret.val; else
-    effect.emplace_back(ret.val);
-  return ret;
-  }
-
 Sound WorldSound::addDlgSound(const char *s, float x, float y, float z, float range, uint64_t& timeLen) {
   if(!isInListenerRange({x,y,z},range))
     return Sound();
@@ -200,6 +122,13 @@ Sound WorldSound::addDlgSound(const char *s, float x, float y, float z, float ra
   initSlot(*ret.val);
   timeLen = snd.timeLength();
   effect.emplace_back(ret.val);
+  return ret;
+  }
+
+Sound WorldSound::implAddSound(const SoundFx& eff, float x, float y, float z, float rangeRef, float rangeMax) {
+  bool loop = false;
+  auto ret = implAddSound(game.loadSound(eff,loop), x,y,z,rangeRef,rangeMax);
+  ret.setLooping(loop);
   return ret;
   }
 
@@ -244,17 +173,17 @@ void WorldSound::tick(Npc &player) {
     auto time = owner.time();
     time = gtime(0,time.hour(),time.minute());
 
-    const SoundFx* proto = nullptr;
+    const SoundFx* snd = nullptr;
     if(i.sndStart<= time && time<i.sndEnd) {
-      proto = i.eff0;
+      snd = i.eff0;
       } else {
-      proto = i.eff1;
+      snd = i.eff1;
       }
 
-    if(proto==nullptr)
+    if(snd==nullptr)
       continue;
 
-    i.current = implAddSound(game.loadSound(*proto),i.pos.x,i.pos.y,i.pos.z,0,i.sndRadius);
+    i.current = implAddSound(*snd,i.pos.x,i.pos.y,i.pos.z,0,i.sndRadius);
     if(!i.current.isEmpty()) {
       effect.emplace_back(i.current.val);
       i.current.play();
@@ -346,10 +275,14 @@ void WorldSound::tickSlot(Effect& slot) {
     slot.eff.play();
     }
 
-  auto  dyn = owner.physic();
-  auto  pos = slot.pos;
-  float occ = dyn->soundOclusion(plPos.x,plPos.y+180/*head pos*/,plPos.z, pos.x,pos.y,pos.z);
-  slot.setOcclusion(std::max(0.f,1.f-occ));
+  if(slot.ambient) {
+    slot.setOcclusion(1.f);
+    } else {
+    auto  dyn = owner.physic();
+    auto  pos = slot.pos;
+    float occ = dyn->soundOclusion(plPos.x,plPos.y+180/*head pos*/,plPos.z, pos.x,pos.y,pos.z);
+    slot.setOcclusion(std::max(0.f,1.f-occ));
+    }
   }
 
 void WorldSound::initSlot(WorldSound::Effect& slot) {

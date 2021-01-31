@@ -52,7 +52,7 @@ void MoveTrigger::setView(MeshObjects::Mesh &&m) {
 
 void MoveTrigger::emitSound(const char* snd,bool freeSlot) {
   auto p   = position();
-  auto sfx = world.addSoundEffect(snd,p.x,p.y,p.z,0,freeSlot);
+  auto sfx = ::Sound(world,::Sound::T_Regular,snd,p,0,freeSlot);
   sfx.play();
   }
 

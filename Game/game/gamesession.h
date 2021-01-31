@@ -61,7 +61,7 @@ class GameSession final {
     auto         loadParticleFx (const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k) -> const ParticleFx*;
     auto         loadVisualFx   (const char* name) -> const VisualFx*;
     auto         loadSound      (const Tempest::Sound& raw) -> Tempest::SoundEffect;
-    auto         loadSound      (const SoundFx&        fx)  -> Tempest::SoundEffect;
+    auto         loadSound      (const SoundFx&        fx, bool& looped)  -> Tempest::SoundEffect;
     void         emitGlobalSound(const Tempest::Sound& sfx);
     void         emitGlobalSound(const std::string& sfx);
 

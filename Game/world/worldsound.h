@@ -25,9 +25,6 @@ class WorldSound final {
     void    addZone       (const ZenLoad::zCVobData &vob);
     void    addSound      (const ZenLoad::zCVobData &vob);
 
-    Sound   addSound   (const char *s, float x, float y, float z, float range, bool freeSlot);
-    Sound   addSound3d (const char *s, float x, float y, float z, float range);
-    Sound   addSoundRaw(const char *s, float x, float y, float z, float range, bool freeSlot);
     Sound   addDlgSound(const char *s, float x, float y, float z, float range, uint64_t &timeLen);
 
     void    aiOutput(const Tempest::Vec3& pos, const std::string& outputname);
@@ -44,10 +41,11 @@ class WorldSound final {
     struct Effect {
       Tempest::SoundEffect eff;
       Tempest::Vec3        pos;
-      float                vol    = 1.f;
-      float                occ    = 1.f;
-      bool                 loop   = false;
-      bool                 active = true;
+      float                vol     = 1.f;
+      float                occ     = 1.f;
+      bool                 loop    = false;
+      bool                 active  = true;
+      bool                 ambient = false;
 
       void setOcclusion(float occ);
       void setVolume(float v);
@@ -60,6 +58,8 @@ class WorldSound final {
     void    tickSlot(Effect& slot);
     void    initSlot(Effect& slot);
     bool    setMusic(const char* zone, GameMusic::Tags tags);
+
+    Sound   implAddSound(const SoundFx& s, float x, float y, float z, float rangeRef, float rangeMax);
     Sound   implAddSound(Tempest::SoundEffect&& s, float x, float y, float z, float rangeRef, float rangeMax);
 
     Gothic&                                 gothic;

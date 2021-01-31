@@ -42,8 +42,6 @@ class WorldView {
     void drawLights   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
     void setupUbo     ();
 
-    LightGroup::Light   addLight     ();
-    LightGroup::Light   addLight     (const ZenLoad::zCVobData& vob);
     MeshObjects::Mesh   addView      (const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
     MeshObjects::Mesh   addItmView   (const char* visual, int32_t material);
     MeshObjects::Mesh   addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
@@ -69,4 +67,6 @@ class WorldView {
     void invalidateCmd();
 
     void updateLight();
+
+  friend class LightGroup::Light;
   };

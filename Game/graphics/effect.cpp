@@ -50,9 +50,9 @@ Effect::Effect(const VisualFx& v, World& owner, const Vec3& inPos, SpellFxKey k)
     }
 
   if(sfx.isEmpty()) {
-    sfx = owner.addSoundEffect(h.sfxID.c_str(), inPos.x,inPos.y,inPos.z,25,false);
+    sfx = ::Sound(owner,::Sound::T_Regular,h.sfxID.c_str(),inPos,2500.f,false);
+    sfx.setAmbient(h.sfxIsAmbient);
     sfx.play();
-    sfx.setLooping(h.sfxIsAmbient);
     }
   }
 
@@ -157,7 +157,7 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
     }
 
   if(key->lightRange>0.0) {
-    light = owner.addLight();
+    light = LightGroup::Light(owner);
     light.setColor(Vec3(1,1,1));
     light.setRange(key->lightRange);
     const Daedalus::ZString* preset = &root->handle().lightPresetName;
@@ -189,9 +189,9 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
     }
 
   setObjMatrix(pos);
-  sfx = owner.addSoundEffect(key->sfxID.c_str(),pos3.x,pos3.y,pos3.z,25,true);
+  sfx = ::Sound(owner,::Sound::T_Regular,key->sfxID.c_str(),pos3,2500.f,false);
+  sfx.setAmbient(key->sfxIsAmbient);
   sfx.play();
-  sfx.setLooping(key->sfxIsAmbient);
   }
 
 uint64_t Effect::effectPrefferedTime() const {

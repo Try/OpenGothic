@@ -47,68 +47,6 @@ const Tempest::Texture2d *MeshObjects::solveTex(const Tempest::Texture2d *def, c
   return def;
   }
 
-MeshObjects::Mesh MeshObjects::get(const StaticMesh &mesh, int32_t version, bool staticDraw) {
-  std::unique_ptr<Item[]> dat(new Item[mesh.sub.size()]);
-  size_t count=0;
-  for(size_t i=0;i<mesh.sub.size();++i) {
-    // NOTE: light dragon hunter armour
-    if(mesh.sub[i].texName.find_first_of("VC")==std::string::npos && version!=0)
-      continue;
-    Item it = implGet(mesh,mesh.sub[i],0,0,version,staticDraw);
-    if(it.isEmpty())
-      continue;
-    dat[count] = std::move(it);
-    ++count;
-    }
-  return Mesh(nullptr,std::move(dat),count);
-  }
-
-MeshObjects::Mesh MeshObjects::get(const StaticMesh& mesh,
-                                   int32_t headTexVar, int32_t teethTex, int32_t bodyColor) {
-  std::unique_ptr<Item[]> dat(new Item[mesh.sub.size()]);
-  size_t count=0;
-  for(size_t i=0;i<mesh.sub.size();++i){
-    Item it = implGet(mesh,mesh.sub[i],headTexVar,teethTex,bodyColor,false);
-    if(it.isEmpty())
-      continue;
-    dat[count] = std::move(it);
-    ++count;
-    }
-  return Mesh(nullptr,std::move(dat),count);
-  }
-
-MeshObjects::Mesh MeshObjects::get(const ProtoMesh& mesh, int32_t texVar, int32_t teethTex, int32_t bodyColor,
-                                   bool staticDraw) {
-  const size_t skinnedCount=mesh.skinedNodesCount();
-  std::unique_ptr<Item[]> dat(new Item[mesh.submeshId.size()+skinnedCount]);
-
-  size_t count=0;
-  for(auto& m:mesh.submeshId) {
-    auto& att = mesh.attach[m.id];
-    auto& s   = att.sub[m.subId];
-    Item  it  = implGet(att,s,texVar,teethTex,bodyColor,staticDraw);
-    if(it.isEmpty())
-      continue;
-    dat[count] = std::move(it);
-    count++;
-    }
-
-  for(auto& skin:mesh.skined) {
-    for(auto& m:skin.sub){
-      Material mat = m.material;
-      mat.tex=solveTex(mat.tex,m.texName,texVar,bodyColor);
-      if(mat.tex!=nullptr) {
-        dat[count] = parent.get(skin,mat,m.ibo);
-        ++count;
-        } else {
-        if(!m.texName.empty())
-          Tempest::Log::e("texture not found: \"",m.texName,"\"");
-        }
-      }
-    }
-  return Mesh(&mesh,std::move(dat),count);
-  }
-
 void MeshObjects::Mesh::setSkeleton(const Skeleton *sk) {
   skeleton = sk;
   if(ani!=nullptr && skeleton!=nullptr)
@@ -149,6 +87,64 @@ Tempest::Vec3 MeshObjects::Mesh::translate() const {
 
 MeshObjects::Mesh::Mesh(MeshObjects::Mesh &&other) {
   *this = std::move(other);
+  }
+
+MeshObjects::Mesh::Mesh(MeshObjects& owner, const StaticMesh& mesh, int32_t version, bool staticDraw) {
+  sub.reset(new Item[mesh.sub.size()]);
+  subCount = 0;
+  for(size_t i=0;i<mesh.sub.size();++i) {
+    // NOTE: light dragon hunter armour
+    if(mesh.sub[i].texName.find_first_of("VC")==std::string::npos && version!=0)
+      continue;
+    Item it = owner.implGet(mesh,mesh.sub[i],0,0,version,staticDraw);
+    if(it.isEmpty())
+      continue;
+    sub[subCount] = std::move(it);
+    ++subCount;
+    }
+  }
+
+MeshObjects::Mesh::Mesh(MeshObjects& owner, const StaticMesh& mesh, int32_t headTexVar, int32_t teethTex, int32_t bodyColor) {
+  sub.reset(new Item[mesh.sub.size()]);
+  subCount = 0;
+  for(size_t i=0;i<mesh.sub.size();++i){
+    Item it = owner.implGet(mesh,mesh.sub[i],headTexVar,teethTex,bodyColor,false);
+    if(it.isEmpty())
+      continue;
+    sub[subCount] = std::move(it);
+    ++subCount;
+    }
+  }
+
+MeshObjects::Mesh::Mesh(MeshObjects& owner, const ProtoMesh& mesh, int32_t texVar, int32_t teethTex, int32_t bodyColor, bool staticDraw)
+  :ani(&mesh) {
+  const size_t skinnedCount=mesh.skinedNodesCount();
+  sub.reset(new Item[mesh.submeshId.size()+skinnedCount]);
+  subCount = 0;
+
+  for(auto& m:mesh.submeshId) {
+    auto& att = mesh.attach[m.id];
+    auto& s   = att.sub[m.subId];
+    Item  it  = owner.implGet(att,s,texVar,teethTex,bodyColor,staticDraw);
+    if(it.isEmpty())
+      continue;
+    sub[subCount] = std::move(it);
+    subCount++;
+    }
+
+  for(auto& skin:mesh.skined) {
+    for(auto& m:skin.sub){
+      Material mat = m.material;
+      mat.tex=owner.solveTex(mat.tex,m.texName,texVar,bodyColor);
+      if(mat.tex!=nullptr) {
+        sub[subCount] = owner.parent.get(skin,mat,m.ibo);
+        ++subCount;
+        } else {
+        if(!m.texName.empty())
+          Tempest::Log::e("texture not found: \"",m.texName,"\"");
+        }
+      }
+    }
   }
 
 MeshObjects::Mesh &MeshObjects::Mesh::operator =(MeshObjects::Mesh &&other) {

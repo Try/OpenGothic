@@ -230,8 +230,8 @@ Tempest::SoundEffect GameSession::loadSound(const Tempest::Sound &raw) {
   return sound.load(raw);
   }
 
-Tempest::SoundEffect GameSession::loadSound(const SoundFx &fx) {
-  return fx.getEffect(sound);
+Tempest::SoundEffect GameSession::loadSound(const SoundFx &fx, bool& looped) {
+  return fx.getEffect(sound,looped);
   }
 
 void GameSession::emitGlobalSound(const Tempest::Sound &sfx) {

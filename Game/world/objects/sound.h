@@ -4,7 +4,14 @@
 
 class Sound final {
   public:
+    enum Type : uint8_t {
+      T_Regular,
+      T_3D,
+      T_Raw,
+      };
     Sound();
+    Sound(World& owner, Type t, const char *s, const Tempest::Vec3& pos, float range, bool freeSlot);
+
     Sound(Sound&& other);
     Sound& operator = (Sound&& other);
     ~Sound();
@@ -22,6 +29,7 @@ class Sound final {
     void          setPosition(float x,float y,float z);
 
     void          setLooping(bool l);
+    void          setAmbient(bool a);
     void          setActive(bool a);
     void          play();
 

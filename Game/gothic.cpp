@@ -238,8 +238,9 @@ void Gothic::emitGlobalSound(const std::string &sfx) {
   }
 
 void Gothic::emitGlobalSound(const SoundFx *sfx) {
-  if(sfx!=nullptr){
-    auto s = sfx->getGlobal(sndDev);
+  if(sfx!=nullptr) {
+    bool loop = false;
+    auto s = sfx->getEffect(sndDev,loop);
     s.play();
 
     for(size_t i=0;i<sndStorage.size();){

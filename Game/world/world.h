@@ -81,6 +81,7 @@ class World final {
     WayPath              wayTo(float npcX,float npcY,float npcZ,const WayPoint& end) const;
 
     WorldView*           view()     const { return wview.get();    }
+    WorldSound*          sound()          { return &wsound;         }
     DynamicWorld*        physic()   const { return wdynamic.get(); }
     GlobalEffects*       globalFx() const { return globFx.get();   }
     GameScript&          script()   const;
@@ -94,8 +95,6 @@ class World final {
     void                 stopEffect(const VisualFx& vfx);
 
     GlobalFx             addGlobalEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc);
-    LightGroup::Light    addLight();
-    LightGroup::Light    addLight(const ZenLoad::zCVobData& vob);
     MeshObjects::Mesh    addView(const Daedalus::ZString& visual) const;
     MeshObjects::Mesh    addView(const char*              visual) const;
     MeshObjects::Mesh    addView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
@@ -167,11 +166,8 @@ class World final {
     void                 sendPassivePerc (Npc& self,Npc& other,Npc& victum, Item& item,int32_t perc);
 
     bool                 isInListenerRange(const Tempest::Vec3& pos) const;
-    Sound                addDlgSound     (const char *s, float x, float y, float z, float range, uint64_t &timeLen);
-    Sound                addSoundEffect  (const char *s, float x, float y, float z, float range, bool freeSlot);
-    Sound                addSoundRaw     (const char *s, float x, float y, float z, float range, bool freeSlot);
-    Sound                addSoundRaw3d   (const char *s, float x, float y, float z, float range);
-    Sound                addWeaponsSound (Npc& self,Npc& other);
+    void                 addDlgSound     (const char *s, const Tempest::Vec3& pos, float range, uint64_t &timeLen);
+    void                 addWeaponsSound (Npc& self,Npc& other);
     void                 addLandHitSound (float x, float y, float z, uint8_t m0, uint8_t m1);
     void                 addBlockSound   (Npc& self,Npc& other);
 

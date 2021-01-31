@@ -8,7 +8,7 @@
 #include "resources.h"
 
 SoundFx::SoundVar::SoundVar(const Daedalus::GEngineClasses::C_SFX &sfx, Tempest::Sound &&snd)
-  :snd(std::move(snd)),vol(float(sfx.vol)/127.f){
+  :snd(std::move(snd)),vol(float(sfx.vol)/127.f),loop(sfx.loop){
   }
 
 SoundFx::SoundVar::SoundVar(const float vol, Tempest::Sound &&snd)
@@ -44,21 +44,13 @@ SoundFx::SoundFx(Gothic &, Tempest::Sound &&snd) {
     inst.emplace_back(127.f,std::move(snd));
   }
 
-Tempest::SoundEffect SoundFx::getEffect(Tempest::SoundDevice &dev) const {
+Tempest::SoundEffect SoundFx::getEffect(Tempest::SoundDevice &dev, bool& loop) const {
   if(inst.size()==0)
     return Tempest::SoundEffect();
   auto&                var    = inst[size_t(std::rand())%inst.size()];
   Tempest::SoundEffect effect = dev.load(var.snd);
   effect.setVolume(var.vol);
-  return effect;
-  }
-
-Tempest::SoundEffect SoundFx::getGlobal(Tempest::SoundDevice &dev) const {
-  if(inst.size()==0)
-    return Tempest::SoundEffect();
-  auto&                var    = inst[size_t(std::rand())%inst.size()];
-  Tempest::SoundEffect effect = dev.load(var.snd);
-  effect.setVolume(var.vol);
+  loop = var.loop;
   return effect;
   }
 

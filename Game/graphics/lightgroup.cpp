@@ -7,10 +7,71 @@
 #include "utils/workers.h"
 #include "utils/dbgpainter.h"
 
+#include "world/world.h"
+
 using namespace Tempest;
 
 LightGroup::Light::Light(LightGroup::Light&& oth):light(oth.light), id(oth.id) {
   oth.light = nullptr;
+  }
+
+LightGroup::Light::Light(LightGroup& owner, const ZenLoad::zCVobData& vob)
+  :light(&owner) {
+  LightSource l;
+  l.setPosition(Vec3(vob.position.x,vob.position.y,vob.position.z));
+
+  if(vob.zCVobLight.dynamic.rangeAniScale.size()>0) {
+    l.setRange(vob.zCVobLight.dynamic.rangeAniScale,vob.zCVobLight.range,vob.zCVobLight.dynamic.rangeAniFPS,vob.zCVobLight.dynamic.rangeAniSmooth);
+    } else {
+    l.setRange(vob.zCVobLight.range);
+    }
+
+  if(vob.zCVobLight.dynamic.colorAniList.size()>0) {
+    l.setColor(vob.zCVobLight.dynamic.colorAniList,vob.zCVobLight.dynamic.colorAniListFPS,vob.zCVobLight.dynamic.colorAniSmooth);
+    } else {
+    l.setColor(vob.zCVobLight.color);
+    }
+
+  std::lock_guard<std::recursive_mutex> guard(owner.sync);
+  owner.fullGpuUpdate = true;
+  owner.clearIndex();
+
+  id = owner.light.size();
+  if(owner.freeList.size()>0) {
+    id = owner.freeList.back();
+    owner.light[id] = std::move(l);
+    } else {
+    owner.light.push_back(std::move(l));
+    }
+
+  if(owner.light[id].isDynamic())
+    owner.dynamicState.push_back(id);
+  }
+
+LightGroup::Light::Light(LightGroup& owner)
+  :light(&owner) {
+  std::lock_guard<std::recursive_mutex> guard(owner.sync);
+  owner.fullGpuUpdate = true;
+  owner.clearIndex();
+
+  id = owner.light.size();
+  if(owner.freeList.size()>0) {
+    id = owner.freeList.back();
+    owner.light[id] = LightSource();
+    } else {
+    owner.light.emplace_back(LightSource());
+    }
+  owner.dynamicState.push_back(id);
+  }
+
+LightGroup::Light::Light(World& owner, const ZenLoad::zCVobData& vob)
+  :Light(owner.view()->sGlobal.lights,vob) {
+  owner.view()->needToUpdateUbo = true;
+  }
+
+LightGroup::Light::Light(World& owner)
+  :Light(owner.view()->sGlobal.lights) {
+  owner.view()->needToUpdateUbo = true;
   }
 
 LightGroup::Light& LightGroup::Light::operator =(LightGroup::Light&& other) {
@@ -110,31 +171,6 @@ void LightGroup::dbgLights(DbgPainter& p) const {
   char  buf[250]={};
   std::snprintf(buf,sizeof(buf),"light count = %d",cnt);
   p.drawText(10,50,buf);
-  }
-
-LightGroup::Light LightGroup::get() {
-  std::lock_guard<std::recursive_mutex> guard(sync);
-  auto l = get(LightSource());
-  dynamicState.push_back(l.id);
-  return l;
-  }
-
-LightGroup::Light LightGroup::get(LightSource&& l) {
-  std::lock_guard<std::recursive_mutex> guard(sync);
-  fullGpuUpdate = true;
-  clearIndex();
-
-  size_t id = light.size();
-  if(freeList.size()>0) {
-    id = freeList.back();
-    light[id] = std::move(l);
-    } else {
-    light.push_back(std::move(l));
-    }
-
-  if(light[id].isDynamic())
-    dynamicState.push_back(id);
-  return Light(*this,id);
   }
 
 void LightGroup::free(size_t id) {

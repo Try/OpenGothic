@@ -10,6 +10,7 @@
 
 class DbgPainter;
 class SceneGlobals;
+class World;
 
 class LightGroup final {
   public:
@@ -18,6 +19,11 @@ class LightGroup final {
     class Light final {
       public:
         Light() = default;
+        Light(LightGroup& owner, const ZenLoad::zCVobData& vob);
+        Light(LightGroup& owner);
+        Light(World& owner, const ZenLoad::zCVobData& vob);
+        Light(World& owner);
+
         Light(Light&& other);
         Light& operator = (Light&& other);
         ~Light();
@@ -38,8 +44,6 @@ class LightGroup final {
 
     void   dbgLights(DbgPainter& p) const;
 
-    Light  get();
-    Light  get(LightSource&& l);
     size_t get(const Bounds& area, const LightSource** out, size_t maxOut) const;
 
     void   tick(uint64_t time);
@@ -63,8 +67,8 @@ class LightGroup final {
     struct Bvh {
       std::unique_ptr<Bvh> next[2];
       Bounds               bbox;
-      const LightSource**        b = nullptr;
-      size_t               count=0;
+      const LightSource**  b     = nullptr;
+      size_t               count = 0;
       };
 
     void        free(size_t id);

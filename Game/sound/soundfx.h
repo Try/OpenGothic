@@ -16,8 +16,7 @@ class SoundFx {
     SoundFx(SoundFx&&)=default;
     SoundFx& operator=(SoundFx&&)=default;
 
-    Tempest::SoundEffect getEffect(Tempest::SoundDevice& dev) const;
-    Tempest::SoundEffect getGlobal(Tempest::SoundDevice& dev) const;
+    Tempest::SoundEffect getEffect(Tempest::SoundDevice& dev, bool& loop) const;
 
   private:
     struct SoundVar {
@@ -26,7 +25,8 @@ class SoundFx {
       SoundVar(const float vol,Tempest::Sound&& snd);
 
       Tempest::Sound snd;
-      float          vol = 0.5f;
+      float          vol  = 0.5f;
+      bool           loop = false;
       };
 
     std::vector<SoundVar> inst;

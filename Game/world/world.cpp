@@ -192,14 +192,6 @@ GlobalFx World::addGlobalEffect(const Daedalus::ZString& what, float len, const 
   return globFx->startEffect(what,len,argv,argc);
   }
 
-LightGroup::Light World::addLight() {
-  return wview->addLight();
-  }
-
-LightGroup::Light World::addLight(const ZenLoad::zCVobData& vob) {
-  return wview->addLight(vob);
-  }
-
 MeshObjects::Mesh World::addView(const char* visual) const {
   return addView(visual,0,0,0);
   }
@@ -647,7 +639,7 @@ void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &item, int3
   wobj.sendPassivePerc(self,other,victum,item,perc);
   }
 
-Sound World::addWeaponsSound(Npc &self, Npc &other) {
+void World::addWeaponsSound(Npc &self, Npc &other) {
   /*
    WO - Wood
    ME - Metal
@@ -695,7 +687,8 @@ Sound World::addWeaponsSound(Npc &self, Npc &other) {
     std::snprintf(buf,sizeof(buf),"CS_MAM_%s_%s",selfMt,othMt); else
     std::snprintf(buf,sizeof(buf),"CS_IAM_%s_%s",selfMt,othMt);
   auto mid = (p0+p1)*0.5f;
-  return wsound.addSound(buf, mid.x, mid.y, mid.z,2500.f,false);
+  auto sfx = Sound(*this,Sound::T_Regular,buf,mid,2500.f,false);
+  sfx.play();
   }
 
 void World::addLandHitSound(float x,float y,float z,uint8_t m0, uint8_t m1) {
@@ -717,7 +710,9 @@ void World::addLandHitSound(float x,float y,float z,uint8_t m0, uint8_t m1) {
 
   char buf[128]={};
   std::snprintf(buf,sizeof(buf),"CS_IHL_%s_%s",sm0,sm1);
-  wsound.addSound(buf, x,y,z,2500.f,false).play();
+
+  auto snd = Sound(*this,Sound::T_Regular,buf,{x,y,z},2500.f,false);
+  snd.play();
   }
 
 void World::addBlockSound(Npc &self, Npc &other) {
@@ -749,27 +744,18 @@ void World::addBlockSound(Npc &self, Npc &other) {
   char buf[128]={};
   std::snprintf(buf,sizeof(buf),"CS_IAI_%s_%s",selfMt,othMt);
   auto mid = (p0+p1)*0.5f;
-  wsound.addSound(buf, mid.x, mid.y, mid.z,2500.f,false).play();
+
+  auto ret = Sound(*this,Sound::T_Regular,buf,mid,2500.f,false);
+  ret.play();
   }
 
 bool World::isInListenerRange(const Tempest::Vec3& pos) const {
   return wsound.isInListenerRange(pos,WorldSound::talkRange);
   }
 
-Sound World::addDlgSound(const char* s, float x, float y, float z, float range, uint64_t& timeLen) {
-  return wsound.addDlgSound(s,x,y,z,range,timeLen);
-  }
-
-Sound World::addSoundEffect(const char *s, float x, float y, float z, float range, bool freeSlot) {
-  return wsound.addSound(s,x,y,z,range,freeSlot);
-  }
-
-Sound World::addSoundRaw(const char *s, float x, float y, float z, float range, bool freeSlot) {
-  return wsound.addSoundRaw(s,x,y,z,range,freeSlot);
-  }
-
-Sound World::addSoundRaw3d(const char* s, float x, float y, float z, float range) {
-  return wsound.addSound3d(s,x,y,z,range);
+void World::addDlgSound(const char* s, const Tempest::Vec3& pos, float range, uint64_t& timeLen) {
+  auto sfx = wsound.addDlgSound(s,pos.x,pos.y,pos.z,range,timeLen);
+  sfx.play();
   }
 
 void World::addTrigger(AbstractTrigger* trigger) {

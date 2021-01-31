@@ -45,9 +45,9 @@ class MeshObjects final {
     class Mesh final {
       public:
         Mesh()=default;
-        Mesh(const ProtoMesh* mesh,
-             std::unique_ptr<Item[]>&& sub,size_t subCount)
-          :sub(std::move(sub)),subCount(subCount),ani(mesh){}
+        Mesh(MeshObjects& owner, const StaticMesh& mesh, int32_t version, bool staticDraw);
+        Mesh(MeshObjects& owner, const StaticMesh& mesh, int32_t headTexVar, int32_t teethTex, int32_t bodyColor);
+        Mesh(MeshObjects& owner, const ProtoMesh&  mesh, int32_t headTexVar, int32_t teethTex, int32_t bodyColor, bool staticDraw);
         Mesh(Mesh&& other);
         Mesh& operator = (Mesh&& other);
 
@@ -74,10 +74,6 @@ class MeshObjects final {
 
         void setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix4x4& mt, size_t parent);
       };
-
-    Mesh get(const StaticMesh& mesh, int32_t version, bool staticDraw);
-    Mesh get(const StaticMesh& mesh, int32_t headTexVar, int32_t teethTex, int32_t bodyColor);
-    Mesh get(const ProtoMesh&  mesh, int32_t headTexVar, int32_t teethTex, int32_t bodyColor, bool staticDraw);
 
   private:
     VisualObjects&                  parent;

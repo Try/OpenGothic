@@ -1455,21 +1455,23 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
   if(ev.weaponCh==ZenLoad::FM_NONE && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
     if(auto melee = invent.currentMeleWeapon()) {
       if(melee->handle()->material==ItemMaterial::MAT_METAL)
-        sfxWeapon = owner.addSoundRaw("UNDRAWSOUND_ME.WAV",x,y+translateY(),z,500,false); else
-        sfxWeapon = owner.addSoundRaw("UNDRAWSOUND_WO.WAV",x,y+translateY(),z,500,false);
+        sfxWeapon = ::Sound(owner,::Sound::T_Raw,"UNDRAWSOUND_ME.WAV",{x,y+translateY(),z},500,false); else
+        sfxWeapon = ::Sound(owner,::Sound::T_Raw,"UNDRAWSOUND_WO.WAV",{x,y+translateY(),z},500,false);
+      sfxWeapon.play();
       }
     }
   else if(ev.weaponCh==ZenLoad::FM_1H || ev.weaponCh==ZenLoad::FM_2H) {
     if(auto melee = invent.currentMeleWeapon()) {
       if(melee->handle()->material==ItemMaterial::MAT_METAL)
-        sfxWeapon = owner.addSoundRaw("DRAWSOUND_ME.WAV",x,y+translateY(),z,500,false); else
-        sfxWeapon = owner.addSoundRaw("DRAWSOUND_WO.WAV",x,y+translateY(),z,500,false);
+        sfxWeapon = ::Sound(owner,::Sound::T_Raw,"DRAWSOUND_ME.WAV",{x,y+translateY(),z},500,false); else
+        sfxWeapon = ::Sound(owner,::Sound::T_Raw,"DRAWSOUND_WO.WAV",{x,y+translateY(),z},500,false);
+      sfxWeapon.play();
       }
     }
   else if(ev.weaponCh==ZenLoad::FM_BOW || ev.weaponCh==ZenLoad::FM_CBOW) {
-    sfxWeapon = owner.addSoundRaw("DRAWSOUND_BOW",x,y+translateY(),z,25,true);
+    sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_BOW",{x,y+translateY(),z},2500,false);
+    sfxWeapon.play();
     }
-  sfxWeapon.play();
   visual.stopDlgAnim();
   updateWeaponSkeleton();
   }
@@ -1530,7 +1532,7 @@ void Npc::takeDamage(Npc &other, const Bullet *b) {
 
     auto hitResult = DamageCalculator::damageValue(other,*this,b,bMask);
     if(!isSpell && !isDown() && hitResult.hasHit)
-      owner.addWeaponsSound(other,*this).play();
+      owner.addWeaponsSound(other,*this);
 
     if(hitResult.hasHit) {
       if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr && !isSwim()) {
@@ -2156,19 +2158,21 @@ bool Npc::doAttack(Anim anim) {
 
 void Npc::emitDlgSound(const char *sound) {
   uint64_t dt=0;
-  owner.addDlgSound(sound,x,y+180,z,WorldSound::talkRange,dt).play();
+  owner.addDlgSound(sound,{x,y+180,z},WorldSound::talkRange,dt);
   setAiOutputBarrier(dt);
   }
 
 void Npc::emitSoundEffect(const char *sound, float range, bool freeSlot) {
-  owner.addSoundEffect(sound,x,y+translateY(),z,range,freeSlot).play();
+  auto sfx = ::Sound(owner,::Sound::T_Regular,sound,{x,y+translateY(),z},range,freeSlot);
+  sfx.play();
   }
 
 void Npc::emitSoundGround(const char* sound, float range, bool freeSlot) {
   char    buf[256]={};
   uint8_t mat = mvAlgo.groundMaterial();
   std::snprintf(buf,sizeof(buf),"%s_%s",sound,ZenLoad::zCMaterial::getMatGroupString(ZenLoad::MaterialGroup(mat)));
-  owner.addSoundEffect(buf,x,y,z,range,freeSlot).play();
+  auto sfx = ::Sound(owner,::Sound::T_Regular,buf,{x,y,z},range,freeSlot);
+  sfx.play();
   }
 
 void Npc::emitSoundSVM(const char* svm) {

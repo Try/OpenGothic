@@ -35,31 +35,6 @@ void WorldView::tick(uint64_t /*dt*/) {
     }
   }
 
-LightGroup::Light WorldView::addLight() {
-  needToUpdateUbo = true;
-  return sGlobal.lights.get();
-  }
-
-LightGroup::Light WorldView::addLight(const ZenLoad::zCVobData& vob) {
-  LightSource l;
-  l.setPosition(Vec3(vob.position.x,vob.position.y,vob.position.z));
-
-  if(vob.zCVobLight.dynamic.rangeAniScale.size()>0) {
-    l.setRange(vob.zCVobLight.dynamic.rangeAniScale,vob.zCVobLight.range,vob.zCVobLight.dynamic.rangeAniFPS,vob.zCVobLight.dynamic.rangeAniSmooth);
-    } else {
-    l.setRange(vob.zCVobLight.range);
-    }
-
-  if(vob.zCVobLight.dynamic.colorAniList.size()>0) {
-    l.setColor(vob.zCVobLight.dynamic.colorAniList,vob.zCVobLight.dynamic.colorAniListFPS,vob.zCVobLight.dynamic.colorAniSmooth);
-    } else {
-    l.setColor(vob.zCVobLight.color);
-    }
-
-  needToUpdateUbo = true;
-  return sGlobal.lights.get(std::move(l));
-  }
-
 void WorldView::setModelView(const Matrix4x4& viewProj, const Tempest::Matrix4x4* shadow, size_t shCount) {
   updateLight();
   sGlobal.setModelView(viewProj,shadow,shCount);
@@ -121,29 +96,29 @@ void WorldView::drawLights(Tempest::Encoder<CommandBuffer>& cmd, Painter3d&, uin
 
 MeshObjects::Mesh WorldView::addView(const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
   if(auto mesh=Resources::loadMesh(visual))
-    return objGroup.get(*mesh,headTex,teethTex,bodyColor,false);
+    return MeshObjects::Mesh(objGroup,*mesh,headTex,teethTex,bodyColor,false);
   return MeshObjects::Mesh();
   }
 
 MeshObjects::Mesh WorldView::addItmView(const char* visual, int32_t material) {
   if(auto mesh=Resources::loadMesh(visual))
-    return objGroup.get(*mesh,material,0,0,true);
+    return MeshObjects::Mesh(objGroup,*mesh,material,0,0,true);
   return MeshObjects::Mesh();
   }
 
 MeshObjects::Mesh WorldView::addAtachView(const ProtoMesh::Attach& visual, const int32_t version) {
-  return objGroup.get(visual,version,false);
+  return MeshObjects::Mesh(objGroup,visual,version,false);
   }
 
 MeshObjects::Mesh WorldView::addStaticView(const char* visual) {
   if(auto mesh=Resources::loadMesh(visual))
-    return objGroup.get(*mesh,0,0,0,true);
+    return MeshObjects::Mesh(objGroup,*mesh,0,0,0,true);
   return MeshObjects::Mesh();
   }
 
 MeshObjects::Mesh WorldView::addDecalView(const ZenLoad::zCVobData& vob) {
   if(auto mesh=Resources::decalMesh(vob))
-    return objGroup.get(*mesh,0,0,0,true);
+    return MeshObjects::Mesh(objGroup,*mesh,0,0,0,true);
   return MeshObjects::Mesh();
   }
 
