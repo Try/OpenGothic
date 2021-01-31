@@ -20,28 +20,30 @@ class AnimationSolver final {
     enum Anim : uint16_t {
       NoAnim,
       Idle,
-      DeadA,
-      DeadB,
-
-      UnconsciousA,
-      UnconsciousB,
-
       Move,
+      CacheLast = Move,
+
       MoveBack,
       MoveL,
       MoveR,
       RotL,
       RotR,
+      Fall,
+      FallDeep,
+
       Jump,
       JumpUpLow,
       JumpUpMid,
       JumpUp,
       JumpHang,
-      Fall,
-      FallDeep,
       Fallen,
       SlideA,
       SlideB,
+
+      DeadA,
+      DeadB,
+      UnconsciousA,
+      UnconsciousB,
 
       InteractIn,
       InteractOut,
@@ -92,6 +94,11 @@ class AnimationSolver final {
     const Animation::Sequence*     solveMag    (const char *format, const std::string& spell) const;
     const Animation::Sequence*     solveDead   (const char *format1, const char *format2) const;
 
+    const Animation::Sequence*     implSolveAnim(Anim a, WeaponState st, WalkBit wlk, const Pose &pose) const;
+    void                           invalidateCache();
+
     const Skeleton*                baseSk=nullptr;
     std::vector<Overlay>           overlay;
+
+    mutable const Animation::Sequence* cache [CacheLast][2][2] = {};
   };

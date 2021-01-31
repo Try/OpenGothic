@@ -552,14 +552,6 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     case AnimationSolver::Anim::MagNoMana:
       bs = BS_STAND;
       break;
-    case AnimationSolver::Anim::DeadA:
-    case AnimationSolver::Anim::DeadB:
-      bs = BS_DEAD;
-      break;
-    case AnimationSolver::Anim::UnconsciousA:
-    case AnimationSolver::Anim::UnconsciousB:
-      bs = BS_UNCONSCIOUS;
-      break;
     case AnimationSolver::Anim::Move:
     case AnimationSolver::Anim::MoveL:
     case AnimationSolver::Anim::MoveR:
@@ -571,6 +563,10 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     case AnimationSolver::Anim::RotL:
     case AnimationSolver::Anim::RotR:
       break;
+    case AnimationSolver::Anim::Fall:
+    case AnimationSolver::Anim::FallDeep:
+      bs = BS_FALL;
+      break;
     case AnimationSolver::Anim::Jump:
     case AnimationSolver::Anim::JumpUp:
       bs = BS_JUMP;
@@ -580,13 +576,17 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     case AnimationSolver::Anim::JumpHang:
       bs = BS_CLIMB;
       break;
-    case AnimationSolver::Anim::Fall:
-    case AnimationSolver::Anim::FallDeep:
-      bs = BS_FALL;
-      break;
     case AnimationSolver::Anim::SlideA:
     case AnimationSolver::Anim::SlideB:
       bs = BS_NONE;
+      break;
+    case AnimationSolver::Anim::DeadA:
+    case AnimationSolver::Anim::DeadB:
+      bs = BS_DEAD;
+      break;
+    case AnimationSolver::Anim::UnconsciousA:
+    case AnimationSolver::Anim::UnconsciousB:
+      bs = BS_UNCONSCIOUS;
       break;
     case AnimationSolver::Anim::InteractIn:
     case AnimationSolver::Anim::InteractOut:

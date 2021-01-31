@@ -37,10 +37,12 @@ void AnimationSolver::load(Serialize &fin) {
       ++sz;
     }
   overlay.resize(sz);
+  invalidateCache();
   }
 
 void AnimationSolver::setSkeleton(const Skeleton *sk) {
   baseSk = sk;
+  invalidateCache();
   }
 
 bool AnimationSolver::hasOverlay(const Skeleton* sk) const {
@@ -57,6 +59,7 @@ void AnimationSolver::addOverlay(const Skeleton* sk,uint64_t time) {
   ov.skeleton = sk;
   ov.time     = time;
   overlay.push_back(ov);
+  invalidateCache();
   }
 
 void AnimationSolver::delOverlay(const char *sk) {
@@ -72,10 +75,12 @@ void AnimationSolver::delOverlay(const Skeleton *sk) {
       overlay.erase(overlay.begin()+int(i));
       return;
       }
+  invalidateCache();
   }
 
 void AnimationSolver::clearOverlays() {
   overlay.clear();
+  invalidateCache();
   }
 
 void AnimationSolver::update(uint64_t tickCount) {
@@ -88,6 +93,16 @@ void AnimationSolver::update(uint64_t tickCount) {
   }
 
 const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, WeaponState st, WalkBit wlkMode, const Pose& pose) const {
+  if(0<a && a<=AnimationSolver::CacheLast && int(st)<2 && int(wlkMode)<2) {
+    auto& ptr = cache[a-1][int(st)][int(wlkMode)];
+    if(ptr==nullptr)
+      ptr = implSolveAnim(a,st,wlkMode,pose);
+    return ptr;
+    }
+  return implSolveAnim(a,st,wlkMode,pose);
+  }
+
+const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim a, WeaponState st, WalkBit wlkMode, const Pose& pose) const {
   // Atack
   if(st==WeaponState::Fist) {
     if(a==Anim::Atack) {
@@ -234,26 +249,15 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
     return solveFrm("T_%sRUNTURNR",st);
     }
   // Jump regular
-  if(a==Jump) {
-    if(pose.isIdle())
-      return solveFrm("T_STAND_2_JUMP");
+  if(a==Jump)
     return solveFrm("S_JUMP");
-    }
-  if(a==JumpUpLow) {
-    if(pose.isIdle())
-      return solveFrm("T_STAND_2_JUMPUPLOW");
+  if(a==JumpUpLow)
     return solveFrm("S_JUMPUPLOW");
-    }
-  if(a==JumpUpMid) {
-    if(pose.isIdle())
-      return solveFrm("T_STAND_2_JUMPUPMID");
+  if(a==JumpUpMid)
     return solveFrm("S_JUMPUPMID");
-    }
-  if(a==JumpUp) {
-    if(pose.isIdle())
-      return solveFrm("T_STAND_2_JUMPUP");
+  if(a==JumpUp)
     return solveFrm("S_JUMPUP");
-    }
+
   if(a==JumpHang) {
     if(pose.bodyState()==BS_JUMP)  {
       if(auto ret = solveFrm("T_JUMPUP_2_HANG"))
@@ -295,6 +299,7 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
       return solveDead("T_DEADB","T_DEAD"); else
       return solveDead("S_DEADB","S_DEAD");
     }
+
   if(a==Anim::UnconsciousA)
     return solveFrm("T_STAND_2_WOUNDED");
   if(a==Anim::UnconsciousB)
@@ -378,6 +383,10 @@ const Animation::Sequence *AnimationSolver::solveDead(const char *format1, const
   if(auto a=solveFrm(format1))
     return a;
   return solveFrm(format2);
+  }
+
+void AnimationSolver::invalidateCache() {
+  std::memset(cache,0,sizeof(cache));
   }
 
 const Animation::Sequence* AnimationSolver::solveNext(const Animation::Sequence& sq) const {
