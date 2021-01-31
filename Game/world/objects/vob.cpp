@@ -251,4 +251,5 @@ void Vob::load(Serialize& fin) {
   fin.read(type,pos,local);
   if(vobType!=type)
     throw std::logic_error("inconsistent *.sav vs world");
+  moveEvent();
   }

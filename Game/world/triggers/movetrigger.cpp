@@ -38,7 +38,6 @@ void MoveTrigger::load(Serialize& fin) {
     return;
   AbstractTrigger::load(fin);
   fin.read(pos0,reinterpret_cast<uint8_t&>(state),sAnim,frame);
-  moveEvent();
   if(state!=Idle)
     enableTicks();
   }
