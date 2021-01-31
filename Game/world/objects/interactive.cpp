@@ -466,27 +466,6 @@ bool Interactive::checkUseConditions(Npc& npc) {
   const bool isPlayer = npc.isPlayer();
 
   auto& sc = npc.world().script();
-  if(isPlayer && !conditionFunc.empty()) {
-    const int check = sc.invokeCond(npc,conditionFunc.c_str());
-    if(check==0) {
-      // FIXME: proper message
-      sc.printNothingToGet();
-      return false;
-      }
-    }
-
-  if(!useWithItem.empty()) {
-    size_t it = world.getSymbolIndex(useWithItem.c_str());
-    if(it!=size_t(-1)) {
-      if(isPlayer && npc.hasItem(it)==0) {
-        sc.printMobMissingItem(npc);
-        return false;
-        }
-      // forward here, if this is not a player
-      npc.delItem(it,1);
-      npc.setCurrentItem(it);
-      }
-    }
 
   if(isPlayer) {
     const size_t ItKE_lockpick  = world.getSymbolIndex("ItKE_lockpick");
@@ -512,6 +491,23 @@ bool Interactive::checkUseConditions(Npc& npc) {
     else if(needToPicklock) { // lockpick only
       sc.printMobMissingLockpick(npc);
       return false;
+      }
+
+    if(!conditionFunc.empty()) {
+      const int check = sc.invokeCond(npc,conditionFunc.c_str());
+      if(check==0) {
+        // FIXME: proper message
+        sc.printNothingToGet();
+        return false;
+        }
+      }
+
+    if(!useWithItem.empty()) {
+      size_t it = world.getSymbolIndex(useWithItem.c_str());
+      if(it!=size_t(-1) && npc.hasItem(it)==0) {
+        sc.printMobMissingItem(npc);
+        return false;
+        }
       }
     }
   return true;
@@ -571,9 +567,6 @@ bool Interactive::canQuitAtLastState() const {
 bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
   assert(to.user==nullptr);
 
-  if(!checkUseConditions(npc))
-    return false;
-
   auto mat = nodeTranform(npc,to);
   float x=0, y=0, z=0;
   mat.project(x,y,z);
@@ -591,6 +584,17 @@ bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
       }
     if(npc.isPlayer())
       return false; // TODO: same for npc
+    }
+
+  if(!checkUseConditions(npc))
+    return false;
+
+  if(!useWithItem.empty()) {
+    size_t it = world.getSymbolIndex(useWithItem.c_str());
+    if(it!=size_t(-1) && npc.hasItem(it)==0) {
+      npc.delItem(it,1);
+      npc.setCurrentItem(it);
+      }
     }
 
   setPos(npc,mv);
