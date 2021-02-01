@@ -15,14 +15,8 @@ StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool s
   if(vob.visual.find("FIREPLACE")==0)
     Log::d("");
 
-  if(FileExt::hasExt(vob.visual,"PFX")) {
-    pfx = PfxEmitter(world,vob.visual);
-    pfx.setActive(true);
-    pfx.setLooped(true);
-    pfx.setObjMatrix(transform());
-    } else
-  if(FileExt::hasExt(vob.visual,"TGA")) {
-    if(vob.visualCamAlign==0) {
+  if(FileExt::hasExt(vob.visual,"PFX") || FileExt::hasExt(vob.visual,"TGA")) {
+    if(vob.visualCamAlign!=0) {
       auto mesh = world.addDecalView(vob);
       visual.setVisualBody(std::move(mesh),world);
       visual.setPos(transform());
@@ -36,7 +30,6 @@ StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool s
     auto view = Resources::loadMesh(vob.visual);
     if(!view)
       return;
-
     auto sk   = Resources::loadSkeleton(vob.visual.c_str());
     auto mesh = world.addStaticView(vob.visual.c_str());
     visual.setVisual(sk);

@@ -5,6 +5,7 @@
 #include "graphics/pfx/particlefx.h"
 
 #include "world/world.h"
+#include "utils/fileext.h"
 
 using namespace Tempest;
 
@@ -33,11 +34,20 @@ PfxEmitter::PfxEmitter(PfxObjects& owner, const ParticleFx* decl) {
   }
 
 PfxEmitter::PfxEmitter(World& world, const ZenLoad::zCVobData& vob) {
-  Material mat(vob);
   auto& owner = world.view()->pfxGroup;
-  std::lock_guard<std::recursive_mutex> guard(owner.sync);
-  bucket = &owner.getBucket(mat,vob);
-  id     = bucket->allocEmitter();
+  if(FileExt::hasExt(vob.visual,"PFX")) {
+    auto decl = world.script().getParticleFx(vob.visual.c_str());
+    if(decl==nullptr || decl->visMaterial.tex==nullptr)
+      return;
+    std::lock_guard<std::recursive_mutex> guard(owner.sync);
+    bucket = &owner.getBucket(*decl);
+    id     = bucket->allocEmitter();
+    } else {
+    Material mat(vob);
+    std::lock_guard<std::recursive_mutex> guard(owner.sync);
+    bucket = &owner.getBucket(mat,vob);
+    id     = bucket->allocEmitter();
+    }
   }
 
 PfxEmitter::~PfxEmitter() {
