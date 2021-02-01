@@ -591,7 +591,7 @@ bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
 
   if(!useWithItem.empty()) {
     size_t it = world.getSymbolIndex(useWithItem.c_str());
-    if(it!=size_t(-1) && npc.hasItem(it)==0) {
+    if(it!=size_t(-1) && npc.hasItem(it)>0) {
       npc.delItem(it,1);
       npc.setCurrentItem(it);
       }
