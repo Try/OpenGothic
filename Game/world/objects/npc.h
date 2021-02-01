@@ -548,6 +548,7 @@ class Npc final {
     bool      checkHealth(bool onChange, bool forceKill);
     void      onNoHealth(bool death, HitSound sndMask);
     bool      hasAutoroll() const;
+    void      stopWalkAnimation();
 
     void      saveAiState(Serialize& fout) const;
     void      loadAiState(Serialize& fin);

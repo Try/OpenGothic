@@ -570,6 +570,15 @@ bool Npc::hasAutoroll() const {
   return owner.script().guildVal().disable_autoroll[gl]==0;
   }
 
+void Npc::stopWalkAnimation() {
+  if(interactive()==nullptr) {
+    auto st = bodyStateMasked();
+    if(st==BS_RUN || st==BS_WALK || st==BS_SNEAK)
+      setAnim(Anim::Idle);
+    }
+  setAnimRotate(0);
+  }
+
 World& Npc::world() {
   return owner;
   }
@@ -1743,8 +1752,7 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_RemoveWeapon:
       if(!isDead()) {
         if(closeWeapon(false)) {
-          if(interactive()==nullptr)
-            setAnim(Anim::Idle);
+          stopWalkAnimation();
           }
         if(weaponState()!=WeaponState::NoWeapon){
           aiQueue.pushFront(std::move(act));
@@ -1928,9 +1936,9 @@ void Npc::nextAiAction(uint64_t dt) {
 
       // clear animation, in case if player is on a move
       if(act.target->interactive()==nullptr)
-        act.target->visual.stopAnim(*act.target,nullptr);
+        act.target->stopWalkAnimation();
       if(interactive()==nullptr)
-        visual.stopAnim(*this,nullptr);
+        stopWalkAnimation();
 
       if(auto p = owner.script().openDlgOuput(*this,*act.target)) {
         outputPipe = p;
