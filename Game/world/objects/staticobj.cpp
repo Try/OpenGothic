@@ -16,10 +16,7 @@ StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool s
     Log::d("");
 
   if(FileExt::hasExt(vob.visual,"PFX")) {
-    const ParticleFx* view = world.script().getParticleFx(vob.visual.c_str());
-    if(view==nullptr)
-      return;
-    pfx = world.addView(view);
+    pfx = PfxEmitter(world,vob.visual);
     pfx.setActive(true);
     pfx.setLooped(true);
     pfx.setObjMatrix(transform());
@@ -30,7 +27,7 @@ StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool s
       visual.setVisualBody(std::move(mesh),world);
       visual.setPos(transform());
       } else {
-      pfx = world.addView(vob);
+      pfx = PfxEmitter(world,vob);
       pfx.setActive(true);
       pfx.setLooped(true);
       pfx.setObjMatrix(transform());

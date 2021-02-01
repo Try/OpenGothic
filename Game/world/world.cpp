@@ -204,14 +204,6 @@ MeshObjects::Mesh World::addView(const char* visual, int32_t headTex, int32_t te
   return view()->addView(visual,headTex,teetTex,bodyColor);
   }
 
-PfxEmitter World::addView(const ParticleFx *decl) const {
-  return view()->addView(decl);
-  }
-
-PfxEmitter World::addView(const ZenLoad::zCVobData& vob) const {
-  return view()->addView(vob);
-  }
-
 MeshObjects::Mesh World::addAtachView(const ProtoMesh::Attach& visual, const int32_t version) {
   return view()->addAtachView(visual,version);
   }

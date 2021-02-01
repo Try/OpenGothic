@@ -31,9 +31,6 @@ class PfxObjects final {
       Tempest::Vec3 topA  = {0,1,0};
       };
 
-    PfxEmitter get(const ParticleFx& decl);
-    PfxEmitter get(const ZenLoad::zCVobData& vob);
-
     void       setViewerPos(const Tempest::Vec3& pos);
 
     void       resetTicks();

@@ -58,10 +58,7 @@ const char* VisualFx::colDyn() const {
   }
 
 PfxEmitter VisualFx::visual(World& owner) const {
-  const ParticleFx* pfx = owner.script().getParticleFx(fx.visName_S.c_str());
-  if(pfx==nullptr)
-    return PfxEmitter();
-  return owner.addView(pfx);
+  return PfxEmitter(owner,fx.visName_S.c_str());
   }
 
 const Daedalus::GEngineClasses::C_ParticleFXEmitKey& VisualFx::key(SpellFxKey type, int32_t keyLvl) const {

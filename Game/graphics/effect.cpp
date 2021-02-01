@@ -152,7 +152,7 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
 
   const ParticleFx* pfx = owner.script().getParticleFx(*key);
   if(pfx!=nullptr) {
-    visual = owner.addView(pfx);
+    visual = PfxEmitter(owner,pfx);
     visual.setActive(true);
     }
 

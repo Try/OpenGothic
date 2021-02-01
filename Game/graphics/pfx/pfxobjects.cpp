@@ -25,24 +25,6 @@ PfxObjects::PfxObjects(const SceneGlobals& scene, VisualObjects& visual)
 PfxObjects::~PfxObjects() {
   }
 
-PfxEmitter PfxObjects::get(const ParticleFx &decl) {
-  if(decl.visMaterial.tex==nullptr)
-    return PfxEmitter();
-  std::lock_guard<std::recursive_mutex> guard(sync);
-  auto&  b = getBucket(decl);
-  size_t e = b.allocEmitter();
-  return PfxEmitter(b,e);
-  }
-
-PfxEmitter PfxObjects::get(const ZenLoad::zCVobData& vob) {
-  Material mat(vob);
-
-  std::lock_guard<std::recursive_mutex> guard(sync);
-  auto&  b = getBucket(mat,vob);
-  size_t e = b.allocEmitter();
-  return PfxEmitter(b,e);
-  }
-
 void PfxObjects::setViewerPos(const Vec3& pos) {
   viewerPos = pos;
   }

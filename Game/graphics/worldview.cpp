@@ -122,16 +122,6 @@ MeshObjects::Mesh WorldView::addDecalView(const ZenLoad::zCVobData& vob) {
   return MeshObjects::Mesh();
   }
 
-PfxEmitter WorldView::addView(const ParticleFx *decl) {
-  if(decl!=nullptr)
-    return pfxGroup.get(*decl);
-  return PfxEmitter();
-  }
-
-PfxEmitter WorldView::addView(const ZenLoad::zCVobData& vob) {
-  return pfxGroup.get(vob);
-  }
-
 void WorldView::updateLight() {
   // https://www.suncalc.org/#/52.4561,13.4033,5/2020.06.28/13:09/1/3
   const int64_t rise         = gtime( 4,45).toInt();

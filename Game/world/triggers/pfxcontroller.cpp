@@ -14,7 +14,7 @@ PfxController::PfxController(Vob* parent, World& world, ZenLoad::zCVobData&& d, 
   if(view==nullptr)
     return;
   lifeTime = view->maxLifetime();
-  pfx = world.addView(view);
+  pfx = PfxEmitter(world,view);
   pfx.setActive(d.zCPFXControler.pfxStartOn);
   pfx.setLooped(true);
   pfx.setObjMatrix(transform());

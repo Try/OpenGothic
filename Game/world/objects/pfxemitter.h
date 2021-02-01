@@ -3,15 +3,24 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Vec>
 
+#include <zenload/zTypes.h>
+
+class World;
 class PfxBucket;
+class ParticleFx;
+class PfxObjects;
 
 class PfxEmitter final {
   public:
     PfxEmitter()=default;
+    PfxEmitter(World& world, const std::string& name);
+    PfxEmitter(World& world, const char* name);
+    PfxEmitter(World& world, const ParticleFx* decl);
+    PfxEmitter(PfxObjects& obj, const ParticleFx* vob);
+    PfxEmitter(World& world, const ZenLoad::zCVobData& vob);
     ~PfxEmitter();
     PfxEmitter(PfxEmitter&&);
     PfxEmitter& operator=(PfxEmitter&& b);
-
     PfxEmitter(const PfxEmitter&)=delete;
 
     bool     isEmpty() const { return bucket==nullptr; }

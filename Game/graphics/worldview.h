@@ -47,8 +47,6 @@ class WorldView {
     MeshObjects::Mesh   addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
     MeshObjects::Mesh   addStaticView(const char* visual);
     MeshObjects::Mesh   addDecalView (const ZenLoad::zCVobData& vob);
-    PfxEmitter          addView      (const ParticleFx* decl);
-    PfxEmitter          addView      (const ZenLoad::zCVobData& vob);
 
   private:
     const World&            owner;
@@ -69,4 +67,5 @@ class WorldView {
     void updateLight();
 
   friend class LightGroup::Light;
+  friend class PfxEmitter;
   };

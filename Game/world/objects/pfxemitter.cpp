@@ -4,10 +4,40 @@
 #include "graphics/pfx/pfxbucket.h"
 #include "graphics/pfx/particlefx.h"
 
+#include "world/world.h"
+
 using namespace Tempest;
 
 PfxEmitter::PfxEmitter(PfxBucket& b, size_t id)
   :bucket(&b), id(id) {
+  }
+
+PfxEmitter::PfxEmitter(World& world, const std::string& name)
+  :PfxEmitter(world,name.c_str()) {
+  }
+
+PfxEmitter::PfxEmitter(World& world, const char* name)
+  :PfxEmitter(world,world.script().getParticleFx(name)) {
+  }
+
+PfxEmitter::PfxEmitter(World& world, const ParticleFx* decl)
+  :PfxEmitter(world.view()->pfxGroup,decl) {
+  }
+
+PfxEmitter::PfxEmitter(PfxObjects& owner, const ParticleFx* decl) {
+  if(decl==nullptr || decl->visMaterial.tex==nullptr)
+    return;
+  std::lock_guard<std::recursive_mutex> guard(owner.sync);
+  bucket = &owner.getBucket(*decl);
+  id     = bucket->allocEmitter();
+  }
+
+PfxEmitter::PfxEmitter(World& world, const ZenLoad::zCVobData& vob) {
+  Material mat(vob);
+  auto& owner = world.view()->pfxGroup;
+  std::lock_guard<std::recursive_mutex> guard(owner.sync);
+  bucket = &owner.getBucket(mat,vob);
+  id     = bucket->allocEmitter();
   }
 
 PfxEmitter::~PfxEmitter() {
