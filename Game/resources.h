@@ -211,30 +211,3 @@ class Resources final {
     std::unordered_map<std::string,std::unique_ptr<PfxEmitterMesh>>       emiMeshCache;
     std::unordered_map<FontK,std::unique_ptr<GthFont>,Hash>               gothicFnt;
   };
-
-
-namespace Tempest {
-
-template<>
-inline VertexBufferDecl vertexBufferDecl<Resources::Vertex>() {
-  return {Decl::float3,Decl::float3,Decl::float2,Decl::color};
-  }
-
-template<>
-inline VertexBufferDecl vertexBufferDecl<Resources::VertexA>() {
-  return {Decl::float3,Decl::float2,Decl::color,
-          Decl::float3,Decl::float3,Decl::float3,Decl::float3,
-          Decl::color,Decl::float4};
-  }
-
-template<>
-inline VertexBufferDecl vertexBufferDecl<Resources::VertexFsq>() {
-  return {Decl::float2};
-  }
-
-template<>
-inline VertexBufferDecl vertexBufferDecl<Resources::VertexL>() {
-  return {Decl::float3,Decl::float4,Decl::float3};
-  }
-
-}
