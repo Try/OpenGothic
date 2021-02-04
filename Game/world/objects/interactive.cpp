@@ -593,8 +593,8 @@ bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
     size_t it = world.getSymbolIndex(useWithItem.c_str());
     if(it!=size_t(-1) && npc.hasItem(it)>0) {
       npc.delItem(it,1);
-      npc.setCurrentItem(it);
       }
+    npc.setCurrentItem(it);
     }
 
   setPos(npc,mv);
