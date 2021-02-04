@@ -32,7 +32,7 @@ Common Gothic installation paths:
 
 3. Create build dir and build as usual:
 
-`mkdir OpenGothic/build` --> `cd OpenGothic/build` --> `cmake ..` --> `make`
+`mkdir OpenGothic/build` --> `cd OpenGothic/build` --> `cmake .. -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo` --> `make`
 
 #### Gameplay video
 [![Video](https://img.youtube.com/vi/R9MNhNsBVQ0/0.jpg)](https://www.youtube.com/watch?v=R9MNhNsBVQ0) [![Video](https://img.youtube.com/vi/6BvwNkPMbwM/0.jpg)](https://www.youtube.com/watch?v=6BvwNkPMbwM)
@@ -44,14 +44,14 @@ Common Gothic installation paths:
     * Run - Done
     * Sneak - Done
     * Jump - Done
-    * Jump(pull-up) - Not Implemented
+    * Jump(pull-up) - Done
     * Swimming - Done
     * Physic - mostly Done, with Bullet collision. Need small tweaks/tuning
 * Loot
-    * Pick an object - Partial(no animation)
+    * Pick an object - Done
     * Chest - Done
     * Ransack a body - Done
-    * Object ownership/theft reaction - Not Implemented 
+    * Object ownership/theft reaction - Partial
 * Dialogs
     * Dialog script - Done
     * Trading - Done ( only G2 style, sorry G1 fans )
@@ -69,11 +69,11 @@ Common Gothic installation paths:
     * Inventory - Done
     * Game menu/menu script - Done, except scrollbars
     * Character info screen - Done
-    * Quest log - Not Implemented 
+    * Quest log - Partial 
 * Sound
     * animation sfx/gfx - Done
     * sound blockers - Done(but implementation is very simple)
-    * music - in progress
+    * music - Partial (kinda working, but sound is inexact)
 
 
 ##### Mods compatibility
@@ -85,7 +85,7 @@ Don't expect DirectX11 mod to work, since technicaly it's not a mod. But Project
 ##### Command line arguments
 * -g specify gothic game catalog
 * -nomenu - skip main menu
-* -nofrate - Disable FPS display in-game
+* -nofrate - disable FPS display in-game
 * -w <worldname.zen> - startup world; newworld.zen is default
 * -save \<q> - startup with quick save
 * -save \<number> - startup with specified save-game slot
