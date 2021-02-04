@@ -1783,7 +1783,7 @@ void Npc::nextAiAction(uint64_t dt) {
           aiQueue.pushFront(std::move(act));
           } else {
           /* ZS_MM_Rtn_Sleep will set NPC_WALK mode and run T_STAND_2_SLEEP animation.
-           * The problem is: T_STAND_2_SLEEP may not exists, in that case only NPC_WALK should be applyed,
+           * The problem is: T_STAND_2_SLEEP may not exists, in that case only NPC_WALK should be applied,
            * we will do so by playing Idle anim.
            */
           setAnim(Anim::Idle);
