@@ -142,8 +142,7 @@ class ObjectsBucket final {
       Tempest::Uniforms       ubo  [Resources::MaxFramesInFlight];
       Tempest::Uniforms       uboSh[Resources::MaxFramesInFlight][Resources::ShadowLayers];
 
-      uint8_t                 uboBit  [Resources::MaxFramesInFlight]={};
-      uint8_t                 uboBitSh[Resources::MaxFramesInFlight][Resources::ShadowLayers]={};
+      bool                    uboIsReady[Resources::MaxFramesInFlight] = {};
 
       void                    invalidate();
       void                    alloc(ObjectsBucket& owner);
@@ -200,7 +199,9 @@ class ObjectsBucket final {
     const Tempest::RenderPipeline* pShadow  = nullptr;
 
     Object& implAlloc(const VboType type, const Bounds& bounds);
-    void    uboSetCommon(Descriptors& v);
+    void    uboSetCommon (Descriptors& v);
+    void    uboSetDynamic(Object& v, uint8_t fId);
+
     bool    groupVisibility(Painter3d& p);
 
     void    setObjMatrix(size_t i,const Tempest::Matrix4x4& m);
@@ -210,14 +211,5 @@ class ObjectsBucket final {
     const Bounds& bounds(size_t i) const;
 
     void    setupLights (Object& val, bool noCache);
-
-    void    setAnim(Object& val, Tempest::Uniforms& ubo);
-    template<class T>
-    void    setUbo(uint8_t& bit, Tempest::Uniforms& ubo, uint8_t layoutBind,
-                   const Tempest::UniformBuffer<T>& vbuf,size_t offset,size_t size);
-    void    setUbo(uint8_t& bit, Tempest::Uniforms& ubo, uint8_t layoutBind, uint8_t fId,
-                   SkeletalStorage& anim, size_t id);
-    void    setUbo(uint8_t& bit, Tempest::Uniforms& ubo, uint8_t layoutBind,
-                   const Tempest::Texture2d&  tex, const Tempest::Sampler2d& smp = Tempest::Sampler2d::anisotrophy());
   };
 
