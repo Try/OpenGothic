@@ -41,6 +41,7 @@ add_subdirectory(lib/bullet3)
 add_subdirectory(lib/edd-dbg)
 
 # ZenLib
+set(BUILD_SQUISH_WITH_SSE2 OFF CACHE INTERNAL "")
 add_subdirectory(lib/ZenLib)
 
 # Tempest
