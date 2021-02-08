@@ -1629,7 +1629,7 @@ void Npc::tick(uint64_t dt) {
   Animation::EvCount ev;
   visual.pose().processEvents(lastEventTime,owner.tickCount(),ev);
   visual.processLayers(owner);
-  visual.setNpcEffect(owner,*this,hnpc.effect);
+  visual.setNpcEffect(owner,*this,hnpc.effect,hnpc.flags);
 
   if(ev.groundSounds>0 && isPlayer())
     world().sendPassivePerc(*this,*this,*this,Npc::PERC_ASSESSQUIETSOUND);

@@ -16,6 +16,7 @@
 class RendererStorage;
 class Pose;
 class Painter3d;
+class VisualObjects;
 
 class ObjectsBucket final {
   private:
@@ -71,6 +72,7 @@ class ObjectsBucket final {
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setPose     (const Pose&                p);
         void   setBounds   (const Bounds&           bbox);
+        void   setAsGhost  (bool g);
 
         const Bounds& bounds() const;
 
@@ -89,7 +91,7 @@ class ObjectsBucket final {
         bool                    commitUbo(Tempest::Device &device, uint8_t fId);
       };
 
-    ObjectsBucket(const Material& mat, size_t boneCount, const SceneGlobals& scene, Storage& storage, const Type type);
+    ObjectsBucket(const Material& mat, size_t boneCount, VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type);
     ~ObjectsBucket();
 
     const Material&           material()  const;
@@ -170,6 +172,21 @@ class ObjectsBucket final {
       bool                                  isValid() const { return vboType!=VboType::NoVbo; }
       };
 
+    Object& implAlloc(const VboType type, const Bounds& bounds);
+    void    uboSetCommon (Descriptors& v);
+    void    uboSetDynamic(Object& v, uint8_t fId);
+
+    bool    groupVisibility(Painter3d& p);
+
+    void    setObjMatrix(size_t i,const Tempest::Matrix4x4& m);
+    void    setPose     (size_t i,const Pose& sk);
+    void    setBounds   (size_t i,const Bounds& b);
+
+    const Bounds& bounds(size_t i) const;
+
+    void    setupLights (Object& val, bool noCache);
+
+    VisualObjects&            owner;
     Descriptors               uboShared;
 
     Object                    val  [CAPACITY];
@@ -197,19 +214,5 @@ class ObjectsBucket final {
     const Tempest::RenderPipeline* pGbuffer = nullptr;
     const Tempest::RenderPipeline* pLight   = nullptr;
     const Tempest::RenderPipeline* pShadow  = nullptr;
-
-    Object& implAlloc(const VboType type, const Bounds& bounds);
-    void    uboSetCommon (Descriptors& v);
-    void    uboSetDynamic(Object& v, uint8_t fId);
-
-    bool    groupVisibility(Painter3d& p);
-
-    void    setObjMatrix(size_t i,const Tempest::Matrix4x4& m);
-    void    setPose     (size_t i,const Pose& sk);
-    void    setBounds   (size_t i,const Bounds& b);
-
-    const Bounds& bounds(size_t i) const;
-
-    void    setupLights (Object& val, bool noCache);
   };
 

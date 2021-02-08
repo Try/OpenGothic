@@ -89,8 +89,8 @@ Vec2 Material::loadVec2(const std::string& src) {
   }
 
 bool Material::operator < (const Material& other) const {
-  auto a0 = alphaOrder(alpha);
-  auto a1 = alphaOrder(other.alpha);
+  auto a0 = alphaOrder(alpha,isGhost);
+  auto a1 = alphaOrder(other.alpha,other.isGhost);
 
   if(a0<a1)
     return true;
@@ -100,8 +100,8 @@ bool Material::operator < (const Material& other) const {
   }
 
 bool Material::operator >(const Material& other) const {
-  auto a0 = alphaOrder(alpha);
-  auto a1 = alphaOrder(other.alpha);
+  auto a0 = alphaOrder(alpha,isGhost);
+  auto a1 = alphaOrder(other.alpha,other.isGhost);
 
   if(a0>a1)
     return true;
@@ -113,10 +113,14 @@ bool Material::operator >(const Material& other) const {
 bool Material::operator ==(const Material& other) const {
   return tex==other.tex &&
          alpha==other.alpha &&
-         texAniMapDirPeriod==other.texAniMapDirPeriod;
+         texAniMapDirPeriod==other.texAniMapDirPeriod &&
+         isGhost==other.isGhost;
   }
 
-int Material::alphaOrder(AlphaFunc a) {
+int Material::alphaOrder(AlphaFunc a, bool ghost) {
+  if(ghost)
+    return -1;
+
   if(a==Solid)
     return -3;
   if(a==AlphaTest)

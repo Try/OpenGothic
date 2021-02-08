@@ -15,12 +15,12 @@ VisualObjects::VisualObjects(Device& device, const SceneGlobals& globals)
 
 ObjectsBucket& VisualObjects::getBucket(const Material& mat, size_t boneCnt, ObjectsBucket::Type type) {
   for(auto& i:buckets)
-    if(i.material()==mat && i.type()==type &&i.boneCount()==boneCnt && i.size()<ObjectsBucket::CAPACITY)
+    if(i.material()==mat && i.type()==type && i.boneCount()==boneCnt && i.size()<ObjectsBucket::CAPACITY)
       return i;
 
   if(type==ObjectsBucket::Type::Static)
-    buckets.emplace_back(mat,boneCnt,globals,uboStatic,type); else
-    buckets.emplace_back(mat,boneCnt,globals,uboDyn,   type);
+    buckets.emplace_back(mat,boneCnt,*this,globals,uboStatic,type); else
+    buckets.emplace_back(mat,boneCnt,*this,globals,uboDyn,   type);
   return buckets.back();
   }
 

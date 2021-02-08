@@ -31,15 +31,16 @@ class Material final {
     AlphaFunc                 alpha=AlphaTest;
     Tempest::Point            texAniMapDirPeriod;
     uint64_t                  texAniFPSInv=1;
+    bool                      isGhost = false;
 
     bool operator <  (const Material& other) const;
     bool operator >  (const Material& other) const;
     bool operator == (const Material& other) const;
 
-    int  alphaOrder() const { return alphaOrder(alpha); }
+    int  alphaOrder() const { return alphaOrder(alpha,isGhost); }
 
   private:
-    static int alphaOrder(AlphaFunc a);
+    static int alphaOrder(AlphaFunc a, bool ghost);
 
     void          loadFrames(const ZenLoad::zCMaterialData& m);
     Tempest::Vec2 loadVec2(const std::string& src);

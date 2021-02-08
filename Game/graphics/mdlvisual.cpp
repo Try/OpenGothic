@@ -335,20 +335,29 @@ void MdlVisual::setEffectKey(World& owner, SpellFxKey key, int32_t keyLvl) {
   pfx.view.setKey(owner,key,keyLvl);
   }
 
-void MdlVisual::setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s) {
-  if(hnpcVisualName==s)
-    return;
-  hnpcVisualName = s;
-  auto vfx = owner.script().getVisualFx(s.c_str());
-  if(vfx==nullptr) {
-    hnpcVisual.view = Effect();
-    return;
+void MdlVisual::setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s, Daedalus::GEngineClasses::C_Npc::ENPCFlag flags) {
+  if(hnpcVisualName!=s) {
+    hnpcVisualName = s;
+    auto vfx = owner.script().getVisualFx(s.c_str());
+    if(vfx==nullptr) {
+      hnpcVisual.view = Effect();
+      return;
+      }
+    hnpcVisual.view = Effect(*vfx,owner,npc,SpellFxKey::Count);
+    if(skeleton!=nullptr)
+      hnpcVisual.view.bindAttaches(*skInst,*skeleton);
+    hnpcVisual.view.setActive(true);
+    hnpcVisual.view.setLooped(true);
     }
-  hnpcVisual.view = Effect(*vfx,owner,npc,SpellFxKey::Count);
-  if(skeleton!=nullptr)
-    hnpcVisual.view.bindAttaches(*skInst,*skeleton);
-  hnpcVisual.view.setActive(true);
-  hnpcVisual.view.setLooped(true);
+
+  const bool nextGhost = (flags & Daedalus::GEngineClasses::C_Npc::ENPCFlag::EFLAG_GHOST);
+  if(hnpcFlagGhost!=nextGhost) {
+    hnpcFlagGhost=nextGhost;
+    view.setAsGhost(hnpcFlagGhost);
+    head.view.setAsGhost(hnpcFlagGhost);
+    for(auto& i:attach)
+      i.view.setAsGhost(hnpcFlagGhost);
+    }
   }
 
 bool MdlVisual::setToFightMode(const WeaponState f) {

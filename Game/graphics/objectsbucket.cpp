@@ -8,6 +8,7 @@
 #include "sceneglobals.h"
 
 #include "utils/workers.h"
+#include "visualobjects.h"
 #include "rendererstorage.h"
 
 using namespace Tempest;
@@ -22,6 +23,40 @@ void ObjectsBucket::Item::setPose(const Pose &p) {
 
 void ObjectsBucket::Item::setBounds(const Bounds& bbox) {
   owner->setBounds(id,bbox);
+  }
+
+void ObjectsBucket::Item::setAsGhost(bool g) {
+  if(owner->mat.isGhost==g)
+    return;
+
+  auto m = owner->mat;
+  m.isGhost = g;
+  auto& bucket = owner->owner.getBucket(m,owner->boneCnt,owner->shaderType);
+
+  auto&  v      = owner->val[id];
+  size_t idNext = size_t(-1);
+  switch(v.vboType) {
+    case NoVbo:
+      break;
+    case VboVertex:{
+      idNext = bucket.alloc(*v.vbo,*v.ibo,v.bounds);
+      break;
+      }
+    case VboVertexA:{
+      idNext = bucket.alloc(*v.vboA,*v.ibo,v.bounds);
+      break;
+      }
+    case VboMorph:{
+      idNext = bucket.alloc(v.vboM,v.bounds);
+      break;
+      }
+    }
+  if(idNext==size_t(-1))
+    return;
+
+  owner->free(id);
+  owner = &bucket;
+  id    = idNext;
   }
 
 const Bounds& ObjectsBucket::Item::bounds() const {
@@ -52,73 +87,83 @@ void ObjectsBucket::Descriptors::alloc(ObjectsBucket& owner) {
     }
   }
 
-ObjectsBucket::ObjectsBucket(const Material& mat, size_t boneCount, const SceneGlobals& scene, Storage& storage, const Type type)
-  :boneCnt(boneCount), scene(scene), storage(storage), mat(mat), shaderType(type), useSharedUbo(type!=Animated) {
+ObjectsBucket::ObjectsBucket(const Material& mat, size_t boneCount, VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type)
+  :owner(owner), boneCnt(boneCount), scene(scene), storage(storage), mat(mat), shaderType(type), useSharedUbo(type!=Animated) {
   static_assert(sizeof(UboPush)<=128, "UboPush is way too big");
 
-  switch(mat.alpha) {
-    case Material::AlphaTest:
-      if(shaderType==Animated) {
-        pMain    = &scene.storage.pAnimAt;
-        pGbuffer = &scene.storage.pAnimAtG;
-        pLight   = &scene.storage.pAnimAtLt;
-        pShadow  = &scene.storage.pAnimAtSh;
-        } else {
-        pMain    = &scene.storage.pObjectAt;
-        pGbuffer = &scene.storage.pObjectAtG;
-        pLight   = &scene.storage.pObjectAtLt;
-        pShadow  = &scene.storage.pObjectAtSh;
+
+  if(mat.isGhost) {
+    if(shaderType==Animated)
+      pMain = &scene.storage.pAnimWater; else
+      pMain = &scene.storage.pObjectWater;
+    if(shaderType==Animated)
+      pMain = &scene.storage.pAnimMAdd; else
+      pMain = &scene.storage.pObjectMAdd;
+    } else {
+    switch(mat.alpha) {
+      case Material::AlphaTest:
+        if(shaderType==Animated) {
+          pMain    = &scene.storage.pAnimAt;
+          pGbuffer = &scene.storage.pAnimAtG;
+          pLight   = &scene.storage.pAnimAtLt;
+          pShadow  = &scene.storage.pAnimAtSh;
+          } else {
+          pMain    = &scene.storage.pObjectAt;
+          pGbuffer = &scene.storage.pObjectAtG;
+          pLight   = &scene.storage.pObjectAtLt;
+          pShadow  = &scene.storage.pObjectAtSh;
+          }
+        break;
+      case Material::Transparent:
+        if(shaderType==Animated) {
+          pMain   = &scene.storage.pAnimAlpha;
+          pLight  = nullptr;
+          pShadow = nullptr;
+          } else {
+          pMain   = &scene.storage.pObjectAlpha;
+          //pLight  = &scene.storage.pObjectLt;
+          pShadow = &scene.storage.pObjectAtSh;
+          }
+        break;
+      case Material::AdditiveLight: {
+        if(shaderType==Animated) {
+          pMain   = &scene.storage.pAnimMAdd;
+          pLight  = nullptr;
+          pShadow = nullptr;
+          } else {
+          pMain   = &scene.storage.pObjectMAdd;
+          pLight  = nullptr;
+          pShadow = nullptr;
+          }
+        break;
         }
-      break;
-    case Material::Transparent:
-      if(shaderType==Animated) {
-        pMain   = &scene.storage.pAnimAlpha;
-        pLight  = nullptr;
-        pShadow = nullptr;
-        } else {
-        pMain   = &scene.storage.pObjectAlpha;
-        //pLight  = &scene.storage.pObjectLt;
-        pShadow = &scene.storage.pObjectAtSh;
+      case Material::Multiply:
+      case Material::Multiply2:
+      case Material::Solid:
+        if(shaderType==Animated) {
+          pMain    = &scene.storage.pAnim;
+          pLight   = &scene.storage.pAnimLt;
+          pShadow  = &scene.storage.pAnimSh;
+          pGbuffer = &scene.storage.pAnimG;
+          } else {
+          pMain    = &scene.storage.pObject;
+          pLight   = &scene.storage.pObjectLt;
+          pShadow  = &scene.storage.pObjectSh;
+          pGbuffer = &scene.storage.pObjectG;
+          }
+        break;
+      case Material::Water:{
+        if(shaderType==Animated)
+          pMain = &scene.storage.pAnimWater; else
+          pMain = &scene.storage.pObjectWater;
         }
-      break;
-    case Material::AdditiveLight: {
-      if(shaderType==Animated) {
-        pMain   = &scene.storage.pAnimMAdd;
-        pLight  = nullptr;
-        pShadow = nullptr;
-        } else {
-        pMain   = &scene.storage.pObjectMAdd;
-        pLight  = nullptr;
-        pShadow = nullptr;
-        }
-      break;
+        break;
+      case Material::InvalidAlpha:
+      case Material::LastGothic:
+      case Material::FirstOpenGothic:
+      case Material::Last:
+        break;
       }
-    case Material::Multiply:
-    case Material::Multiply2:
-    case Material::Solid:
-      if(shaderType==Animated) {
-        pMain    = &scene.storage.pAnim;
-        pLight   = &scene.storage.pAnimLt;
-        pShadow  = &scene.storage.pAnimSh;
-        pGbuffer = &scene.storage.pAnimG;
-        } else {
-        pMain    = &scene.storage.pObject;
-        pLight   = &scene.storage.pObjectLt;
-        pShadow  = &scene.storage.pObjectSh;
-        pGbuffer = &scene.storage.pObjectG;
-        }
-      break;
-    case Material::Water:{
-      if(shaderType==Animated)
-        pMain = &scene.storage.pAnimWater; else
-        pMain = &scene.storage.pObjectWater;
-      }
-      break;
-    case Material::InvalidAlpha:
-    case Material::LastGothic:
-    case Material::FirstOpenGothic:
-    case Material::Last:
-      break;
     }
 
   if(mat.frames.size()>0)
@@ -185,7 +230,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
       ubo.set(1,*scene.shadowMap,Resources::shadowSampler());
       ubo.set(2,scene.uboGlobalPf[i][0]);
       ubo.set(4,uboMat[i]);
-      if(mat.alpha==Material::Water) {
+      if(mat.alpha==Material::Water/* || mat.isGhost*/) {
         ubo.set(5,*scene.lightingBuf,Sampler2d::nearest());
         ubo.set(6,*scene.gbufDepth,  Sampler2d::nearest());
         }

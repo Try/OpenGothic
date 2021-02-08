@@ -56,7 +56,7 @@ class MdlVisual final {
     void                           stopEffect   (const VisualFx& vfx);
     void                           stopEffect  (int32_t slot);
     void                           setEffectKey(World& owner, SpellFxKey key, int32_t keyLvl=0);
-    void                           setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s);
+    void                           setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s, Daedalus::GEngineClasses::C_Npc::ENPCFlag flags);
 
     bool                           setToFightMode(const WeaponState ws);
     void                           updateWeaponSkeleton(const Item *sword, const Item *bow);
@@ -138,6 +138,7 @@ class MdlVisual final {
     PfxSlot                        pfx;
 
     Daedalus::ZString              hnpcVisualName;
+    bool                           hnpcFlagGhost = false;
     PfxSlot                        hnpcVisual;
 
     const Skeleton*                skeleton=nullptr;

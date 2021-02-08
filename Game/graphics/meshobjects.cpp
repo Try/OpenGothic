@@ -70,6 +70,11 @@ void MeshObjects::Mesh::setPose(const Pose &p,const Tempest::Matrix4x4& obj) {
     }
   }
 
+void MeshObjects::Mesh::setAsGhost(bool g) {
+  for(size_t i=0;i<subCount;++i)
+    sub[i].setAsGhost(g);
+  }
+
 Bounds MeshObjects::Mesh::bounds() const {
   if(subCount==0)
     return Bounds();

@@ -41,5 +41,7 @@ class VisualObjects final {
     size_t                          lastSolidBucket = 0;
 
     Sky                             sky;
+
+  friend class ObjectsBucket::Item;
   };
 
