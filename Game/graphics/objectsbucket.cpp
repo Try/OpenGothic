@@ -62,13 +62,6 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
   auto& v2 = owner->val[id];
   setObjMatrix(v.pos);
   std::swap(v.timeShift, v2.timeShift);
-  /*
-  v2.bounds = v.bounds;
-  v2.pos    = v.pos;
-  if(owner->shaderType==Animated) {
-    std::swap(v.storageAni,v2.storageAni);
-    owner->storage.ani.markAsChanged(v2.storageAni);
-    }*/
 
   oldOw->free(oldId);
   }
