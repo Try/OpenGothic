@@ -75,6 +75,7 @@ void MdlVisual::setVisualBody(MeshObjects::Mesh&& body, World& owner) {
 void MdlVisual::setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner, int32_t version) {
   bind(head,std::move(h),"BIP01 HEAD");
   implSetBody(std::move(body),owner,version);
+  head.view.setAsGhost(hnpcFlagGhost);
   }
 
 bool MdlVisual::hasOverlay(const Skeleton* sk) const {
@@ -125,6 +126,7 @@ void MdlVisual::implSetBody(MeshObjects::Mesh&& body, World& owner, const int32_
     syncAttaches();
     }
   view = std::move(body);
+  view.setAsGhost(hnpcFlagGhost);
   view.setSkeleton(skeleton);
   view.setPose(*skInst,pos);
   }

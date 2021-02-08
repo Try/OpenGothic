@@ -21,6 +21,7 @@ ObjectsBucket& VisualObjects::getBucket(const Material& mat, size_t boneCnt, Obj
   if(type==ObjectsBucket::Type::Static)
     buckets.emplace_back(mat,boneCnt,*this,globals,uboStatic,type); else
     buckets.emplace_back(mat,boneCnt,*this,globals,uboDyn,   type);
+  index.clear();
   return buckets.back();
   }
 
@@ -32,8 +33,6 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh &mesh, const Material& m
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(mat,0,staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
-  if(bucket.size()==0)
-    index.clear();
   const size_t id     = bucket.alloc(mesh.vbo,ibo,mesh.bbox);
   return ObjectsBucket::Item(bucket,id);
   }
@@ -45,8 +44,6 @@ ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(mat,mesh.bonesCount,ObjectsBucket::Animated);
-  if(bucket.size()==0)
-    index.clear();
   const size_t id     = bucket.alloc(mesh.vbo,ibo,mesh.bbox);
   return ObjectsBucket::Item(bucket,id);
   }
@@ -57,9 +54,7 @@ ObjectsBucket::Item VisualObjects::get(Tempest::VertexBuffer<Resources::Vertex>&
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
-  auto& bucket = getBucket(mat,0,ObjectsBucket::Static);
-  if(bucket.size()==0)
-    index.clear();
+  auto&        bucket = getBucket(mat,0,ObjectsBucket::Static);
   const size_t id     = bucket.alloc(vbo,ibo,bbox);
   return ObjectsBucket::Item(bucket,id);
   }
@@ -69,9 +64,7 @@ ObjectsBucket::Item VisualObjects::get(const Tempest::VertexBuffer<Resources::Ve
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
-  auto& bucket = getBucket(mat,0,ObjectsBucket::Movable);
-  if(bucket.size()==0)
-    index.clear();
+  auto&        bucket = getBucket(mat,0,ObjectsBucket::Movable);
   const size_t id     = bucket.alloc(vbo,bbox);
   return ObjectsBucket::Item(bucket,id);
   }
@@ -173,7 +166,7 @@ void VisualObjects::mkIndex() {
   lastSolidBucket = index.size();
   for(size_t i=0;i<index.size();++i) {
     auto c = index[i];
-    if(c->material().alpha!=Material::Solid && c->material().alpha!=Material::AlphaTest) {
+    if(!c->material().isSolid()) {
       lastSolidBucket = i;
       break;
       }

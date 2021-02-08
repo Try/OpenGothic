@@ -31,7 +31,7 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
 
   auto m = owner->mat;
   m.isGhost = g;
-  auto& bucket = owner->owner.getBucket(m,owner->boneCnt,owner->shaderType);
+  auto&  bucket = owner->owner.getBucket(m,owner->boneCnt,owner->shaderType);
 
   auto&  v      = owner->val[id];
   size_t idNext = size_t(-1);
@@ -54,9 +54,23 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
   if(idNext==size_t(-1))
     return;
 
-  owner->free(id);
+  auto oldId = id;
+  auto oldOw = owner;
   owner = &bucket;
   id    = idNext;
+
+  auto& v2 = owner->val[id];
+  setObjMatrix(v.pos);
+  std::swap(v.timeShift, v2.timeShift);
+  /*
+  v2.bounds = v.bounds;
+  v2.pos    = v.pos;
+  if(owner->shaderType==Animated) {
+    std::swap(v.storageAni,v2.storageAni);
+    owner->storage.ani.markAsChanged(v2.storageAni);
+    }*/
+
+  oldOw->free(oldId);
   }
 
 const Bounds& ObjectsBucket::Item::bounds() const {
@@ -96,9 +110,6 @@ ObjectsBucket::ObjectsBucket(const Material& mat, size_t boneCount, VisualObject
     if(shaderType==Animated)
       pMain = &scene.storage.pAnimGhost; else
       pMain = &scene.storage.pObjectGhost;
-    // if(shaderType==Animated)
-    //   pMain = &scene.storage.pAnimMAdd; else
-    //   pMain = &scene.storage.pObjectMAdd;
     } else {
     switch(mat.alpha) {
       case Material::AlphaTest:
@@ -313,10 +324,6 @@ void ObjectsBucket::preFrameUpdate(uint8_t fId) {
 
   if(mat.texAniMapDirPeriod.x!=0 || mat.texAniMapDirPeriod.y!=0)
     uboMat[fId].update(&ubo,0,1);
-
-  if(mat.frames.size()>0) {
-    //texAnim;
-    }
   }
 
 bool ObjectsBucket::groupVisibility(Painter3d& p) {
@@ -646,10 +653,9 @@ void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
 void ObjectsBucket::setPose(size_t i, const Pose& p) {
   if(shaderType!=Animated)
     return;
-  auto& v       = val[i];
-
+  auto& v    = val[i];
   auto& skel = storage.ani.element(v.storageAni);
-  auto& tr = p.transform();
+  auto& tr   = p.transform();
   std::memcpy(&skel,tr.data(),std::min(tr.size(),boneCnt)*sizeof(tr[0]));
   storage.ani.markAsChanged(v.storageAni);
   }

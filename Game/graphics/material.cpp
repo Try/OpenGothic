@@ -117,6 +117,10 @@ bool Material::operator ==(const Material& other) const {
          isGhost==other.isGhost;
   }
 
+bool Material::isSolid() const {
+  return !isGhost && alpha==Material::Solid && alpha!=Material::AlphaTest;
+  }
+
 int Material::alphaOrder(AlphaFunc a, bool ghost) {
   if(ghost)
     return -1;

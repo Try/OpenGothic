@@ -166,7 +166,6 @@ class ObjectsBucket final {
       size_t                                lightCnt=0;
       int                                   lightCacheKey[3]={};
 
-      size_t                                texAnim=0;
       uint64_t                              timeShift=0;
 
       bool                                  isValid() const { return vboType!=VboType::NoVbo; }

@@ -37,6 +37,7 @@ class Material final {
     bool operator >  (const Material& other) const;
     bool operator == (const Material& other) const;
 
+    bool isSolid() const;
     int  alphaOrder() const { return alphaOrder(alpha,isGhost); }
 
   private:
