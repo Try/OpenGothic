@@ -182,6 +182,8 @@ class ObjectsBucket final {
     void    setPose     (size_t i,const Pose& sk);
     void    setBounds   (size_t i,const Bounds& b);
 
+    bool    isSceneInfoRequired() const;
+
     const Bounds& bounds(size_t i) const;
 
     void    setupLights (Object& val, bool noCache);

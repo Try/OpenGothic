@@ -18,8 +18,8 @@ class RendererStorage {
     Tempest::RenderPipeline pAnim,   pAnimG,   pAnimAt,   pAnimAtG,   pAnimLt,   pAnimAtLt;
     Tempest::RenderPipeline pObject, pObjectG, pObjectAt, pObjectAtG, pObjectLt, pObjectAtLt;
 
-    Tempest::RenderPipeline pObjectAlpha, pAnimAlpha, pObjectWater;
-    Tempest::RenderPipeline pObjectMAdd,  pAnimMAdd,  pAnimWater;
+    Tempest::RenderPipeline pObjectAlpha, pAnimAlpha, pObjectWater, pObjectGhost;
+    Tempest::RenderPipeline pObjectMAdd,  pAnimMAdd,  pAnimWater,   pAnimGhost;
 
     Tempest::RenderPipeline pObjectSh, pObjectAtSh;
     Tempest::RenderPipeline pAnimSh,   pAnimAtSh;

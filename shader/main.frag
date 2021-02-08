@@ -124,6 +124,15 @@ vec3 waterColor(vec3 selfColor) {
   }
 #endif
 
+#if defined(GHOST)
+vec3 ghostColor(vec3 selfColor) {
+  vec3  scr   = inScr.xyz/inScr.w;
+  vec2  p     = scr.xy*0.5+vec2(0.5);
+  vec4  back  = texture(gbufferDiffuse,p);
+  return back.rgb+selfColor;
+  }
+#endif
+
 void main() {
 #if !defined(SHADOW_MAP) || defined(ATEST)
   vec4 t = texture(textureD,inUV);
@@ -146,6 +155,10 @@ void main() {
   color = t.rgb*color;
 #if defined(WATER)
   color = waterColor(color);
+#endif
+
+#if defined(GHOST)
+  color = ghostColor(color);
 #endif
 
   outColor      = vec4(color,t.a*inColor.a);

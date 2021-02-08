@@ -41,7 +41,7 @@ void RendererStorage::Material::load(Device &device, const char *tag) {
 
 RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   :device(device) {
-  Material obj, objAt, objG, objAtG, objEmi, objShadow, objShadowAt, objWater;
+  Material obj, objAt, objG, objAtG, objEmi, objShadow, objShadowAt, objWater, objGhost;
   obj        .load(device,"");
   objG       .load(device,"gbuffer");
   objAt      .load(device,"at");
@@ -50,6 +50,7 @@ RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   objShadow  .load(device,"shadow");
   objShadowAt.load(device,"shadow_at");
   objWater   .load(device,"water");
+  objGhost   .load(device,"ghost");
 
   RenderState stateAlpha;
   stateAlpha.setCullFaceMode(RenderState::CullMode::Front);
@@ -119,6 +120,9 @@ RendererStorage::RendererStorage(Device& device, Gothic& gothic)
 
   pObjectWater   = pipeline<Resources::Vertex> (stateObj,   objWater.obj);
   pAnimWater     = pipeline<Resources::VertexA>(stateObj,   objWater.ani);
+
+  pObjectGhost   = pipeline<Resources::Vertex> (stateObj,   objGhost.obj);
+  pAnimGhost     = pipeline<Resources::VertexA>(stateObj,   objGhost.ani);
 
   {
   RenderState state;

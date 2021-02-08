@@ -94,11 +94,11 @@ ObjectsBucket::ObjectsBucket(const Material& mat, size_t boneCount, VisualObject
 
   if(mat.isGhost) {
     if(shaderType==Animated)
-      pMain = &scene.storage.pAnimWater; else
-      pMain = &scene.storage.pObjectWater;
-    if(shaderType==Animated)
-      pMain = &scene.storage.pAnimMAdd; else
-      pMain = &scene.storage.pObjectMAdd;
+      pMain = &scene.storage.pAnimGhost; else
+      pMain = &scene.storage.pObjectGhost;
+    // if(shaderType==Animated)
+    //   pMain = &scene.storage.pAnimMAdd; else
+    //   pMain = &scene.storage.pObjectMAdd;
     } else {
     switch(mat.alpha) {
       case Material::AlphaTest:
@@ -230,7 +230,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
       ubo.set(1,*scene.shadowMap,Resources::shadowSampler());
       ubo.set(2,scene.uboGlobalPf[i][0]);
       ubo.set(4,uboMat[i]);
-      if(mat.alpha==Material::Water/* || mat.isGhost*/) {
+      if(isSceneInfoRequired()) {
         ubo.set(5,*scene.lightingBuf,Sampler2d::nearest());
         ubo.set(6,*scene.gbufDepth,  Sampler2d::nearest());
         }
@@ -656,6 +656,13 @@ void ObjectsBucket::setPose(size_t i, const Pose& p) {
 
 void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
   val[i].bounds = b;
+  }
+
+bool ObjectsBucket::isSceneInfoRequired() const {
+  return pMain==&scene.storage.pObjectGhost ||
+         pMain==&scene.storage.pAnimGhost   ||
+         pMain==&scene.storage.pObjectWater ||
+         pMain==&scene.storage.pAnimWater;
   }
 
 const Bounds& ObjectsBucket::bounds(size_t i) const {

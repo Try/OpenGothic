@@ -20,7 +20,7 @@ layout(binding = 0) uniform sampler2D textureD;
 #if defined(FRAGMENT) && !defined(SHADOW_MAP)
 layout(binding = 1) uniform sampler2D textureSm;
 #endif
-#if defined(FRAGMENT) && defined(WATER)
+#if defined(FRAGMENT) && (defined(WATER) || defined(GHOST))
 layout(binding = 5) uniform sampler2D gbufferDiffuse;
 layout(binding = 6) uniform sampler2D gbufferDepth;
 #endif
