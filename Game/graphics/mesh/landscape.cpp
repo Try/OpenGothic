@@ -23,10 +23,6 @@ Landscape::Landscape(WorldView& owner, VisualObjects& visual, const PackedMesh &
     auto material = Resources::loadMaterial(i.material,true);
     if(material.alpha==Material::AdditiveLight || i.indices.size()==0)
       continue;
-    if(material.alpha==Material::InvalidAlpha) {
-      Log::i("unrecognized alpha func: ",i.material.alphaFunc);
-      continue;
-      }
 
     if(material.tex==nullptr || material.tex->isEmpty())
       continue;

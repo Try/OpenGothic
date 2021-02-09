@@ -7,29 +7,10 @@
 using namespace Tempest;
 
 Material::Material(const ZenLoad::zCMaterialData& m, bool enableAlphaTest) {
-  tex   = Resources::loadTexture(m.texture);
-  alpha = AlphaFunc(m.alphaFunc);
+  tex = Resources::loadTexture(m.texture);
   loadFrames(m);
 
-  if(m.alphaFunc==0) //Gothic1
-    alpha = AlphaTest;
-
-  if(alpha>LastGothic) {
-    alpha = InvalidAlpha;
-    }  
-
-  if(m.matGroup==ZenLoad::MaterialGroup::WATER)
-    alpha = Water;
-
-  if(alpha==AlphaTest || alpha==Transparent) {
-    if(tex!=nullptr && tex->format()==Tempest::TextureFormat::DXT1) {
-      alpha = Solid;
-      }
-    }
-
-  if(alpha==AlphaTest && !enableAlphaTest) {
-    alpha = Solid;
-    }
+  alpha = loadAlphaFunc(m.alphaFunc,m.matGroup,tex,enableAlphaTest);
 
   if(m.texAniMapMode!=0 && tex!=nullptr) {
     auto texAniMapDir = loadVec2(m.texAniMapDir);
@@ -45,7 +26,7 @@ Material::Material(const ZenLoad::zCVobData& vob) {
   frames       = Resources::loadTextureAnim(vob.visual);
 
   texAniFPSInv = 1000/std::max<size_t>(frames.size(),1);
-  alpha        = Material::AlphaFunc(vob.visualChunk.zCDecal.decalAlphaFunc);
+  alpha        = loadAlphaFunc(vob.visualChunk.zCDecal.decalAlphaFunc,ZenLoad::MaterialGroup::UNDEF,tex,true);
 
   if(vob.visualChunk.zCDecal.decalTexAniFPS>0)
     texAniFPSInv = uint64_t(1000.f/vob.visualChunk.zCDecal.decalTexAniFPS); else
@@ -123,19 +104,54 @@ bool Material::isSolid() const {
 
 int Material::alphaOrder(AlphaFunc a, bool ghost) {
   if(ghost)
-    return -1;
-
-  if(a==Solid)
-    return -3;
-  if(a==AlphaTest)
-    return -2;
-  if(a==Water)
-    return -1;
+    return Ghost;
   return a;
   }
 
+Material::AlphaFunc Material::loadAlphaFunc(int zenAlpha, uint8_t matGroup, const Tempest::Texture2d* tex, bool enableAlphaTest) {
+  AlphaFunc alpha = AlphaTest;
+  switch(zenAlpha) {
+    case 0:
+      // Gothic1
+      alpha = AlphaTest;
+      break;
+    case 1:
+      alpha = AlphaTest;
+      break;
+    case 2:
+      alpha = Transparent;
+      break;
+    case 3:
+      alpha = AdditiveLight;
+      break;
+    case 4:
+      alpha = Multiply;
+      break;
+    case 5:
+      alpha = Multiply2;
+      break;
+    default:
+      alpha = AlphaTest;
+      break;
+    }
+
+  if(matGroup==ZenLoad::MaterialGroup::WATER)
+    alpha = Water;
+
+  if(alpha==AlphaTest || alpha==Transparent) {
+    if(tex!=nullptr && tex->format()==Tempest::TextureFormat::DXT1) {
+      alpha = Solid;
+      }
+    }
+
+  if(alpha==AlphaTest && !enableAlphaTest) {
+    alpha = Solid;
+    }
+  return alpha;
+  }
+
 void Material::loadFrames(const ZenLoad::zCMaterialData& m) {
-  frames       = Resources::loadTextureAnim(m.texture);
+  frames = Resources::loadTextureAnim(m.texture);
   if(m.texAniFPS>0)
     texAniFPSInv = uint64_t(1000.f/m.texAniFPS); else
     texAniFPSInv = 1;

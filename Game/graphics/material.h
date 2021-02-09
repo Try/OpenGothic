@@ -12,26 +12,22 @@ class Material final {
     Material(const Daedalus::GEngineClasses::C_ParticleFX &src);
 
     enum AlphaFunc:uint8_t {
-      InvalidAlpha    = 0,
-      AlphaTest       = 1,
-      Transparent     = 2,
-      AdditiveLight   = 3,
-      Multiply        = 4,
-      Multiply2       = 5,
-      LastGothic,
-
-      FirstOpenGothic,
       Solid,
+      AlphaTest,
       Water,
-      Last
+      Ghost,
+      Transparent,
+      AdditiveLight,
+      Multiply,
+      Multiply2,
       };
 
     const Tempest::Texture2d* tex=nullptr;
     std::vector<const Tempest::Texture2d*> frames;
-    AlphaFunc                 alpha=AlphaTest;
+    AlphaFunc                 alpha        = AlphaTest;
     Tempest::Point            texAniMapDirPeriod;
-    uint64_t                  texAniFPSInv=1;
-    bool                      isGhost = false;
+    uint64_t                  texAniFPSInv = 1;
+    bool                      isGhost      = false;
 
     bool operator <  (const Material& other) const;
     bool operator >  (const Material& other) const;
@@ -42,6 +38,8 @@ class Material final {
 
   private:
     static int alphaOrder(AlphaFunc a, bool ghost);
+
+    static AlphaFunc loadAlphaFunc(int zenAlpha, uint8_t mat, const Tempest::Texture2d* tex, bool enableAlphaTest);
 
     void          loadFrames(const ZenLoad::zCMaterialData& m);
     Tempest::Vec2 loadVec2(const std::string& src);

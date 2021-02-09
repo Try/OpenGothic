@@ -98,76 +98,69 @@ ObjectsBucket::ObjectsBucket(const Material& mat, size_t boneCount, VisualObject
   :owner(owner), boneCnt(boneCount), scene(scene), storage(storage), mat(mat), shaderType(type), useSharedUbo(type!=Animated) {
   static_assert(sizeof(UboPush)<=128, "UboPush is way too big");
 
-
-  if(mat.isGhost) {
-    if(shaderType==Animated)
-      pMain = &scene.storage.pAnimGhost; else
-      pMain = &scene.storage.pObjectGhost;
-    } else {
-    switch(mat.alpha) {
-      case Material::AlphaTest:
-        if(shaderType==Animated) {
-          pMain    = &scene.storage.pAnimAt;
-          pGbuffer = &scene.storage.pAnimAtG;
-          pLight   = &scene.storage.pAnimAtLt;
-          pShadow  = &scene.storage.pAnimAtSh;
-          } else {
-          pMain    = &scene.storage.pObjectAt;
-          pGbuffer = &scene.storage.pObjectAtG;
-          pLight   = &scene.storage.pObjectAtLt;
-          pShadow  = &scene.storage.pObjectAtSh;
-          }
-        break;
-      case Material::Transparent:
-        if(shaderType==Animated) {
-          pMain   = &scene.storage.pAnimAlpha;
-          pLight  = nullptr;
-          pShadow = nullptr;
-          } else {
-          pMain   = &scene.storage.pObjectAlpha;
-          //pLight  = &scene.storage.pObjectLt;
-          pShadow = &scene.storage.pObjectAtSh;
-          }
-        break;
-      case Material::AdditiveLight: {
-        if(shaderType==Animated) {
-          pMain   = &scene.storage.pAnimMAdd;
-          pLight  = nullptr;
-          pShadow = nullptr;
-          } else {
-          pMain   = &scene.storage.pObjectMAdd;
-          pLight  = nullptr;
-          pShadow = nullptr;
-          }
-        break;
+  const auto matType = mat.isGhost ? Material::Ghost : mat.alpha;
+  switch(matType) {
+    case Material::AlphaTest:
+      if(shaderType==Animated) {
+        pMain    = &scene.storage.pAnimAt;
+        pGbuffer = &scene.storage.pAnimAtG;
+        pLight   = &scene.storage.pAnimAtLt;
+        pShadow  = &scene.storage.pAnimAtSh;
+        } else {
+        pMain    = &scene.storage.pObjectAt;
+        pGbuffer = &scene.storage.pObjectAtG;
+        pLight   = &scene.storage.pObjectAtLt;
+        pShadow  = &scene.storage.pObjectAtSh;
         }
-      case Material::Multiply:
-      case Material::Multiply2:
-      case Material::Solid:
-        if(shaderType==Animated) {
-          pMain    = &scene.storage.pAnim;
-          pLight   = &scene.storage.pAnimLt;
-          pShadow  = &scene.storage.pAnimSh;
-          pGbuffer = &scene.storage.pAnimG;
-          } else {
-          pMain    = &scene.storage.pObject;
-          pLight   = &scene.storage.pObjectLt;
-          pShadow  = &scene.storage.pObjectSh;
-          pGbuffer = &scene.storage.pObjectG;
-          }
-        break;
-      case Material::Water:{
-        if(shaderType==Animated)
-          pMain = &scene.storage.pAnimWater; else
-          pMain = &scene.storage.pObjectWater;
+      break;
+    case Material::Transparent:
+      if(shaderType==Animated) {
+        pMain   = &scene.storage.pAnimAlpha;
+        pLight  = nullptr;
+        pShadow = nullptr;
+        } else {
+        pMain   = &scene.storage.pObjectAlpha;
+        //pLight  = &scene.storage.pObjectLt;
+        pShadow = &scene.storage.pObjectAtSh;
         }
-        break;
-      case Material::InvalidAlpha:
-      case Material::LastGothic:
-      case Material::FirstOpenGothic:
-      case Material::Last:
-        break;
+      break;
+    case Material::AdditiveLight: {
+      if(shaderType==Animated) {
+        pMain   = &scene.storage.pAnimMAdd;
+        pLight  = nullptr;
+        pShadow = nullptr;
+        } else {
+        pMain   = &scene.storage.pObjectMAdd;
+        pLight  = nullptr;
+        pShadow = nullptr;
+        }
+      break;
       }
+    case Material::Multiply:
+    case Material::Multiply2:
+    case Material::Solid:
+      if(shaderType==Animated) {
+        pMain    = &scene.storage.pAnim;
+        pLight   = &scene.storage.pAnimLt;
+        pShadow  = &scene.storage.pAnimSh;
+        pGbuffer = &scene.storage.pAnimG;
+        } else {
+        pMain    = &scene.storage.pObject;
+        pLight   = &scene.storage.pObjectLt;
+        pShadow  = &scene.storage.pObjectSh;
+        pGbuffer = &scene.storage.pObjectG;
+        }
+      break;
+    case Material::Water:
+      if(shaderType==Animated)
+        pMain = &scene.storage.pAnimWater; else
+        pMain = &scene.storage.pObjectWater;
+      break;
+    case Material::Ghost:
+      if(shaderType==Animated)
+        pMain = &scene.storage.pAnimGhost; else
+        pMain = &scene.storage.pObjectGhost;
+      break;
     }
 
   if(mat.frames.size()>0)
