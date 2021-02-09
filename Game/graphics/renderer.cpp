@@ -67,7 +67,7 @@ void Renderer::resetSwapchain() {
   lightingBuf = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
   gbufDiffuse = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
   gbufNormal  = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
-  gbufDepth   = device.attachment(TextureFormat::RG16, swapchain.w(),swapchain.h());
+  gbufDepth   = device.attachment(TextureFormat::R32F, swapchain.w(),swapchain.h());
 
   fboUi.clear();
   fbo3d.clear();
