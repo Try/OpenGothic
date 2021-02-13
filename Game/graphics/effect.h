@@ -4,6 +4,7 @@
 #include "world/objects/globalfx.h"
 #include "world/objects/sound.h"
 #include "graphics/lightgroup.h"
+#include "graphics/meshobjects.h"
 
 #include "game/constants.h"
 
@@ -41,6 +42,7 @@ class Effect final {
     void     setObjMatrix(Tempest::Matrix4x4& mt);
     void     setPosition (const Tempest::Vec3& pos);
     void     setKey      (World& owner, SpellFxKey key, int32_t keyLvl=0);
+    void     setMesh     (const MeshObjects::Mesh* mesh);
 
     uint64_t effectPrefferedTime() const;
 
@@ -77,8 +79,10 @@ class Effect final {
     const char*           nodeSlot = nullptr;
     size_t                boneId   = size_t(-1);
 
-    const Skeleton*       skeleton = nullptr;
-    const Pose*           pose     = nullptr;
+    const Skeleton*       skeleton    = nullptr;
+    const Pose*           pose        = nullptr;
+
+    const MeshObjects::Mesh* meshEmitter = nullptr;
 
     Tempest::Matrix4x4    pos;
 

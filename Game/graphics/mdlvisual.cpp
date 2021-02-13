@@ -129,6 +129,7 @@ void MdlVisual::implSetBody(MeshObjects::Mesh&& body, World& owner, const int32_
   view.setAsGhost(hnpcFlagGhost);
   view.setSkeleton(skeleton);
   view.setPose(*skInst,pos);
+  hnpcVisual.view.setMesh(&view);
   }
 
 void MdlVisual::setSlotAttachment(MeshObjects::Mesh&& itm, const char* bone) {
@@ -350,6 +351,7 @@ void MdlVisual::setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s,
       hnpcVisual.view.bindAttaches(*skInst,*skeleton);
     hnpcVisual.view.setActive(true);
     hnpcVisual.view.setLooped(true);
+    hnpcVisual.view.setMesh(&view);
     }
 
   const bool nextGhost = (flags & Daedalus::GEngineClasses::C_Npc::ENPCFlag::EFLAG_GHOST);

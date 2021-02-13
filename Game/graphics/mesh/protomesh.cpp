@@ -7,7 +7,8 @@
 ProtoMesh::Attach::~Attach() {
   }
 
-ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &fname) {
+ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &fname)
+  :fname(fname) {
   for(auto& m:library.getAttachments()) {
     ZenLoad::PackedMesh stat;
     m.second.packMesh(stat, 1.f);
@@ -85,7 +86,8 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &
   setupScheme(fname);
   }
 
-ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm, const std::string& fname) {
+ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm, const std::string& fname)
+  :fname(fname) {
   attach.emplace_back(pm);
   submeshId.resize(attach[0].sub.size());
   auto&  att   = attach[0];

@@ -147,6 +147,17 @@ void PfxEmitter::setLooped(bool loop) {
     v.next->setLooped(loop);
   }
 
+void PfxEmitter::setMesh(const MeshObjects::Mesh* mesh, const Pose* pose) {
+  const PfxEmitterMesh* m = (mesh!=nullptr) ? mesh->toMeshEmitter() : nullptr;
+
+  std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
+  auto& v = bucket->get(id);
+  v.mesh = m;
+  v.pose = pose;
+  if(v.next!=nullptr)
+    v.next->setMesh(mesh,pose);
+  }
+
 uint64_t PfxEmitter::effectPrefferedTime() const {
   if(bucket==nullptr)
     return 0;

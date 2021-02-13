@@ -496,10 +496,9 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(const char* name) {
   ZenLoad::PackedMesh        packed;
   ZenLoad::zCModelMeshLib    library;
   auto                       code=loadMesh(packed,library,name);
-  (void)code;
-  std::unique_ptr<PfxEmitterMesh> ptr{new PfxEmitterMesh(packed)};
-  // std::unique_ptr<PfxEmitterMesh> ptr{code==MeshLoadCode::Static ? new PfxEmitterMesh(std::move(sPacked)) :
-  //                                                                  new PfxEmitterMesh(library)};
+
+  std::unique_ptr<PfxEmitterMesh> ptr{code==MeshLoadCode::Static ? new PfxEmitterMesh(packed) :
+                                                                   new PfxEmitterMesh(library)};
   auto ret = ptr.get();
   emiMeshCache[name] = std::move(ptr);
   return ret;
@@ -648,10 +647,6 @@ std::vector<uint8_t> Resources::getFileData(const std::string &name) {
 
 Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoad::zCModelMeshLib& library,
                                             std::string name) {
-  if(name=="TREASURE_ADDON_01.ASC") {
-    // name = "TREASURE.MRM";
-    Log::d("");
-    }
   // Check if this isn't the compiled version
   if(name.rfind("-C")==std::string::npos) {
     // Strip the extension ".***"

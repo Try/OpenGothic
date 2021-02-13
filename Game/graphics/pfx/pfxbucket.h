@@ -28,6 +28,9 @@ class PfxBucket {
       Tempest::Vec3 target       = {};
       bool          hasTarget    = false;
 
+      const PfxEmitterMesh* mesh = nullptr;
+      const Pose*           pose = nullptr;
+
       uint64_t      waitforNext = 0;
       std::unique_ptr<PfxEmitter> next;
       };
@@ -71,7 +74,7 @@ class PfxBucket {
       float         lifeTime() const;
       };
 
-    void                        tickEmit(Block& p, uint64_t emited);
+    void                        tickEmit(Block& p, ImplEmitter& emitter, uint64_t emited);
     bool                        shrink();
 
     size_t                      allocBlock();
@@ -83,7 +86,7 @@ class PfxBucket {
     Block&                      getBlock(ImplEmitter& emitter);
     Block&                      getBlock(PfxEmitter&  emitter);
 
-    void                        init    (Block& emitter, size_t particle);
+    void                        init    (Block& block, ImplEmitter& emitter, size_t particle);
     void                        finalize(size_t particle);
     void                        tick    (Block& sys, ImplEmitter& emitter, size_t particle, uint64_t dt);
 

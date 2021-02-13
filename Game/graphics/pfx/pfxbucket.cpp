@@ -171,7 +171,7 @@ float PfxBucket::randf(float base, float var) {
   return (2.f*randf()-1.f)*var + base;
   }
 
-void PfxBucket::init(PfxBucket::Block& emitter, size_t particle) {
+void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t particle) {
   auto& p   = particles[particle];
   auto& pfx = *owner;
 
@@ -226,26 +226,28 @@ void PfxBucket::init(PfxBucket::Block& emitter, size_t particle) {
       }
     case ParticleFx::EmitterType::Mesh:{
       p.pos = Vec3();
-      if(pfx.shpMesh!=nullptr) {
-        auto pos = pfx.shpMesh->randCoord(randf());
-        p.pos = emitter.direction[0]*pos.x +
-                emitter.direction[1]*pos.y +
-                emitter.direction[2]*pos.z;
+      auto mesh = (emitter.mesh!=nullptr) ? emitter.mesh : pfx.shpMesh;
+      auto pose = (emitter.mesh!=nullptr) ? emitter.pose : nullptr;
+      if(mesh!=nullptr) {
+        auto pos = mesh->randCoord(randf(),pose);
+        p.pos = block.direction[0]*pos.x +
+                block.direction[1]*pos.y +
+                block.direction[2]*pos.z;
         }
       break;
       }
     }
 
-  Vec3 dim = pfx.shpDim*pfx.shpScale(emitter.timeTotal);
+  Vec3 dim = pfx.shpDim*pfx.shpScale(block.timeTotal);
   p.pos.x*=dim.x;
   p.pos.y*=dim.y;
   p.pos.z*=dim.z;
 
   switch(pfx.shpFOR) {
     case ParticleFx::Frame::Object: {
-      p.pos += emitter.direction[0]*pfx.shpOffsetVec.x +
-               emitter.direction[1]*pfx.shpOffsetVec.y +
-               emitter.direction[2]*pfx.shpOffsetVec.z;
+      p.pos += block.direction[0]*pfx.shpOffsetVec.x +
+               block.direction[1]*pfx.shpOffsetVec.y +
+               block.direction[2]*pfx.shpOffsetVec.z;
       break;
       }
     case ParticleFx::Frame::World: {
@@ -288,9 +290,9 @@ void PfxBucket::init(PfxBucket::Block& emitter, size_t particle) {
 
       switch(pfx.dirFOR) {
         case ParticleFx::Frame::Object: {
-          p.dir = emitter.direction[0]*dx +
-                  emitter.direction[1]*dy +
-                  emitter.direction[2]*dz;
+          p.dir = block.direction[0]*dx +
+                  block.direction[1]*dy +
+                  block.direction[2]*dz;
           float l = p.dir.manhattanLength();
           if(l>0)
             p.dir/=l;
@@ -329,7 +331,7 @@ void PfxBucket::init(PfxBucket::Block& emitter, size_t particle) {
     }
 
   if(!pfx.useEmittersFOR)
-    p.pos += emitter.pos;
+    p.pos += block.pos;
   }
 
 void PfxBucket::finalize(size_t particle) {
@@ -423,11 +425,11 @@ void PfxBucket::tick(uint64_t dt, const Vec3& viewPos) {
       }
 
     if(owner->ppsValue<0) {
-      tickEmit(p,p.count==0 ? 1 : 0);
+      tickEmit(p,emitter,p.count==0 ? 1 : 0);
       }
     else if(active && nearby) {
       auto dE = ppsDiff(*owner,emitter.isLoop,p.timeTotal,p.timeTotal+dt);
-      tickEmit(p,dE);
+      tickEmit(p,emitter,dE);
       }
     p.timeTotal+=dt;
     }
@@ -436,7 +438,7 @@ void PfxBucket::tick(uint64_t dt, const Vec3& viewPos) {
     shrink();
   }
 
-void PfxBucket::tickEmit(Block& p, uint64_t emited) {
+void PfxBucket::tickEmit(Block& p, ImplEmitter& emitter, uint64_t emited) {
   size_t lastI = 0;
   for(size_t id=1; emited>0; ++id) {
     const size_t i  = id%blockSize;
@@ -444,7 +446,7 @@ void PfxBucket::tickEmit(Block& p, uint64_t emited) {
     if(ps.life==0) { // free slot
       --emited;
       lastI = i;
-      init(p,i+p.offset);
+      init(p,emitter,i+p.offset);
       if(ps.life==0)
         continue;
       p.count++;

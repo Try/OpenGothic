@@ -90,6 +90,12 @@ Tempest::Vec3 MeshObjects::Mesh::translate() const {
   return Tempest::Vec3(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
   }
 
+const PfxEmitterMesh* MeshObjects::Mesh::toMeshEmitter() const {
+  if(auto p = ani)
+    return Resources::loadEmiterMesh(p->fname.c_str());
+  return nullptr;
+  }
+
 MeshObjects::Mesh::Mesh(MeshObjects::Mesh &&other) {
   *this = std::move(other);
   }

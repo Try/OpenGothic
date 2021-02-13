@@ -28,6 +28,7 @@ class VisualFx final {
     const char*                                          colStat()       const;
     const char*                                          colDyn()        const;
     const char*                                          origin()        const { return emTrjOriginNode.c_str(); }
+    bool                                                 isMeshEmmiter() const { return emTrjOriginNode=="="; }
 
     PfxEmitter                                           visual(World& owner) const;
     const Daedalus::GEngineClasses::C_ParticleFXEmitKey& key(SpellFxKey type, int32_t keyLvl=0) const;

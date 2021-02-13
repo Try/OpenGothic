@@ -934,6 +934,10 @@ void Npc::setAnimRotate(int rot) {
 bool Npc::setAnimItem(const char *scheme, int state) {
   if(scheme==nullptr || scheme[0]==0)
     return true;
+  if(bodyStateMasked()!=BS_STAND) {
+    setAnim(Anim::Idle);
+    return false;
+    }
   return visual.startAnimItem(*this,scheme,state);
   }
 
@@ -2372,6 +2376,11 @@ Item* Npc::takeItem(Item& item) {
 
   auto dpos = item.position()-position();
   dpos.y-=translateY();
+
+  if(bodyStateMasked()!=BS_STAND) {
+    setAnim(Anim::Idle);
+    return nullptr;
+    }
 
   const Animation::Sequence* sq = setAnimAngGet(Npc::Anim::ItmGet,false,Pose::calcAniCombVert(dpos));
   if(sq==nullptr)

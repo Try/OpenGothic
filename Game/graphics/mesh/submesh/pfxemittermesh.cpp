@@ -2,6 +2,8 @@
 
 #include <Tempest/Log>
 
+#include "graphics/mesh/pose.h"
+
 PfxEmitterMesh::PfxEmitterMesh(const ZenLoad::PackedMesh& src) {
   vertices.resize(src.vertices.size());
   for(size_t i=0;i<vertices.size();++i) {
@@ -20,21 +22,44 @@ PfxEmitterMesh::PfxEmitterMesh(const ZenLoad::PackedMesh& src) {
       }
     }
 
-  for(auto& t:triangle) {
-    auto& a = vertices[t.id[0]];
-    auto& b = vertices[t.id[1]];
-    auto& c = vertices[t.id[2]];
-
-    t.sz = area(a.x,a.y,a.z, b.x,b.y,b.z, c.x,c.y,c.z);
-    }
-
-  for(size_t i=1;i<triangle.size();++i) {
-    triangle[i].prefix += triangle[i-1].sz;
-    triangle[i].prefix += triangle[i-1].prefix;
-    }
+  mkIndex();
   }
 
-Tempest::Vec3 PfxEmitterMesh::randCoord(float rnd) const {
+PfxEmitterMesh::PfxEmitterMesh(const ZenLoad::zCModelMeshLib& library) {
+  for(size_t i=0;i<library.getMeshes().size();++i) {
+    ZenLoad::PackedSkeletalMesh src;
+    auto& mesh = library.getMeshes()[i];
+    mesh.packMesh(src,1.f);
+
+    size_t vert0 = vertices.size();
+    vertAnim.resize(vert0 + src.vertices.size());
+    for(size_t i=0;i<src.vertices.size();++i) {
+      auto& v = src.vertices[vert0+i];
+      for(size_t r=0; r<4; ++r) {
+        vertAnim[vert0+i].v[r].x     = v.LocalPositions[r].x;
+        vertAnim[vert0+i].v[r].y     = v.LocalPositions[r].y;
+        vertAnim[vert0+i].v[r].z     = v.LocalPositions[r].z;
+
+        vertAnim[vert0+i].id[r]      = v.BoneIndices[r];
+        vertAnim[vert0+i].weights[r] = v.Weights[r];
+        }
+      }
+
+    for(auto& mesh:src.subMeshes) {
+      for(size_t i=0;i<mesh.indices.size();i+=3) {
+        Triangle t;
+        t.id[0] = mesh.indices[i+0];
+        t.id[1] = mesh.indices[i+1];
+        t.id[2] = mesh.indices[i+2];
+        triangle.push_back(t);
+        }
+      }
+    }
+
+  mkIndex();
+  }
+
+Tempest::Vec3 PfxEmitterMesh::randCoord(float rnd, const Pose* pose) const {
   if(triangle.size()==0)
     return Tempest::Vec3();
 
@@ -45,12 +70,12 @@ Tempest::Vec3 PfxEmitterMesh::randCoord(float rnd) const {
     });
   if(it!=triangle.begin())
     it--;
-  return randCoord(*it,rnd);
+  return randCoord(*it,rnd,pose);
   }
 
-Tempest::Vec3 PfxEmitterMesh::randCoord(const PfxEmitterMesh::Triangle& t, float rnd) const {
+Tempest::Vec3 PfxEmitterMesh::randCoord(const PfxEmitterMesh::Triangle& t, float rnd,
+                                        const Pose* pose) const {
   rnd = (rnd-t.prefix)/t.sz;
-
 
   float    det = float(std::numeric_limits<uint16_t>::max());
   uint32_t k   = uint32_t(rnd*float(std::numeric_limits<uint32_t>::max()));
@@ -60,10 +85,30 @@ Tempest::Vec3 PfxEmitterMesh::randCoord(const PfxEmitterMesh::Triangle& t, float
 
   float sr1 = std::sqrt(r1);
 
-  auto& a = vertices[t.id[0]];
-  auto& b = vertices[t.id[1]];
-  auto& c = vertices[t.id[2]];
-  return a*(1.f-sr1) + b*(sr1*(1-r2)) + c*(r2*sr1);
+  if(vertices.size()>0) {
+    auto& a = vertices[t.id[0]];
+    auto& b = vertices[t.id[1]];
+    auto& c = vertices[t.id[2]];
+    return a*(1.f-sr1) + b*(sr1*(1-r2)) + c*(r2*sr1);
+    } else {
+    auto  a = animCoord(*pose,t.id[0]);
+    auto  b = animCoord(*pose,t.id[1]);
+    auto  c = animCoord(*pose,t.id[2]);
+
+    return a*(1.f-sr1) + b*(sr1*(1-r2)) + c*(r2*sr1);
+    }
+  }
+
+Tempest::Vec3 PfxEmitterMesh::animCoord(const Pose& pose, uint32_t id) const {
+  Tempest::Vec4 ret = {};
+  auto&         v   = vertAnim[id];
+  for(size_t i=0; i<4; ++i) {
+    auto&         mat = pose.bone(v.id[i]);
+    Tempest::Vec4 a   = Tempest::Vec4(v.v[i].x, v.v[i].y, v.v[i].z, 1.f);
+    mat.project(a);
+    ret += a*v.weights[i];
+    }
+  return Tempest::Vec3(ret.x,ret.y,ret.z);
   }
 
 float PfxEmitterMesh::area(float x1, float y1, float z1,
@@ -81,5 +126,30 @@ float PfxEmitterMesh::area(float x1, float y1, float z1,
   float y = z1*x2 - x1*z2;
   float z = x1*y2 - y1*x2;
 
-  return std::sqrt(x*x + y*y + z*z); //node omnit 0.5
+  return std::sqrt(x*x + y*y + z*z); //note: omnit 0.5
+  }
+
+void PfxEmitterMesh::mkIndex() {
+  if(vertices.size()>0) {
+    for(auto& t:triangle) {
+      auto& a = vertices[t.id[0]];
+      auto& b = vertices[t.id[1]];
+      auto& c = vertices[t.id[2]];
+
+      t.sz = area(a.x,a.y,a.z, b.x,b.y,b.z, c.x,c.y,c.z);
+      }
+    } else {
+    for(auto& t:triangle) {
+      auto& a = vertAnim[t.id[0]].v[0];
+      auto& b = vertAnim[t.id[1]].v[0];
+      auto& c = vertAnim[t.id[2]].v[0];
+
+      t.sz = area(a.x,a.y,a.z, b.x,b.y,b.z, c.x,c.y,c.z);
+      }
+    }
+
+  for(size_t i=1;i<triangle.size();++i) {
+    triangle[i].prefix += triangle[i-1].sz;
+    triangle[i].prefix += triangle[i-1].prefix;
+    }
   }

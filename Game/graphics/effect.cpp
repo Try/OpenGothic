@@ -31,9 +31,10 @@ Effect::Effect(const VisualFx& v, World& owner, const Vec3& inPos, SpellFxKey k)
     gfx    = owner.addGlobalEffect(h.visName_S,h.emFXLifeSpan,h.userString,Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS);
     } else {
     visual = root->visual(owner);
+    if(root->isMeshEmmiter())
+      visual.setMesh(meshEmitter,pose);
     }
   pos.identity();
-
 
   if(!h.emFXCreate_S.empty()) {
     auto vfx = owner.script().getVisualFx(h.emFXCreate_S.c_str());
@@ -153,6 +154,8 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
   const ParticleFx* pfx = owner.script().getParticleFx(*key);
   if(pfx!=nullptr) {
     visual = PfxEmitter(owner,pfx);
+    if(root->isMeshEmmiter())
+      visual.setMesh(meshEmitter,pose);
     visual.setActive(true);
     }
 
@@ -194,6 +197,12 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
   sfx.play();
   }
 
+void Effect::setMesh(const MeshObjects::Mesh* mesh) {
+  meshEmitter = mesh;
+  if(root!=nullptr && root->isMeshEmmiter())
+    visual.setMesh(meshEmitter,pose);
+  }
+
 uint64_t Effect::effectPrefferedTime() const {
   uint64_t ret = next==nullptr ? 0 : next->effectPrefferedTime();
   if(ret==uint64_t(-1))
@@ -215,6 +224,8 @@ void Effect::bindAttaches(const Pose& p, const Skeleton& to) {
   skeleton = &to;
   pose     = &p;
   boneId   = to.findNode(nodeSlot);
+  if(root!=nullptr && root->isMeshEmmiter())
+    visual.setMesh(meshEmitter,pose);
   }
 
 void Effect::onCollide(World& owner, const Vec3& pos, Npc* npc) {

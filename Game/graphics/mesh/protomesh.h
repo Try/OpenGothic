@@ -71,7 +71,7 @@ class ProtoMesh {
 
     Tempest::Vec3                  bbox[2];
 
-    std::string                    scheme;
+    std::string                    scheme, fname;
 
     size_t                         skinedNodesCount() const;
     Tempest::Matrix4x4             mapToRoot(size_t node) const;

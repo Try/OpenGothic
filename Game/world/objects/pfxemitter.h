@@ -5,10 +5,13 @@
 
 #include <zenload/zTypes.h>
 
+#include "graphics/meshobjects.h"
+
 class World;
 class PfxBucket;
 class ParticleFx;
 class PfxObjects;
+class PfxEmitterMesh;
 
 class PfxEmitter final {
   public:
@@ -32,6 +35,7 @@ class PfxEmitter final {
     void     setActive(bool act);
     bool     isActive() const;
     void     setLooped(bool loop);
+    void     setMesh(const MeshObjects::Mesh* mesh, const Pose* pose);
 
     uint64_t effectPrefferedTime() const;
 

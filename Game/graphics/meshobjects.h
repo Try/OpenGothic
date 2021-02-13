@@ -65,6 +65,8 @@ class MeshObjects final {
         Tempest::Vec3    translate() const;
         const ProtoMesh* protoMesh() const { return ani; }
 
+        const PfxEmitterMesh* toMeshEmitter() const;
+
       private:
         std::unique_ptr<Item[]> sub;
         size_t                  subCount=0;
