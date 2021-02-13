@@ -71,8 +71,8 @@ class MdlVisual final {
 
     bool                           isAnimExist(const char* name) const;
     const Animation::Sequence*     startAnimAndGet(const char* name, uint64_t tickCount);
-    const Animation::Sequence*     startAnimAndGet(Npc &npc, const char* name, int comb, bool forceAnim, BodyState bs);
-    const Animation::Sequence*     startAnimAndGet(Npc &npc, AnimationSolver::Anim a, int comb,
+    const Animation::Sequence*     startAnimAndGet(Npc &npc, const char* name, uint8_t comb, bool forceAnim, BodyState bs);
+    const Animation::Sequence*     startAnimAndGet(Npc &npc, AnimationSolver::Anim a, uint8_t comb,
                                                    WeaponState st, WalkBit wlk, bool noInterupt);
     bool                           startAnim(Npc &npc, WeaponState st);
     bool                           startAnimItem(Npc &npc, const char* scheme, int state);

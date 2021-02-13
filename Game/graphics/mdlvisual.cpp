@@ -503,7 +503,7 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(const char* name, uint64_t
   return nullptr;
   }
 
-const Animation::Sequence* MdlVisual::startAnimAndGet(Npc &npc, const char *name, int comb,
+const Animation::Sequence* MdlVisual::startAnimAndGet(Npc &npc, const char *name, uint8_t comb,
                                                       bool forceAnim, BodyState bs) {
   const Animation::Sequence *sq = solver.solveFrm(name);
   Pose::StartHint hint = Pose::StartHint(forceAnim  ? Pose::Force : Pose::NoHint);
@@ -514,7 +514,7 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc &npc, const char *name
   }
 
 const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver::Anim a,
-                                                      int comb,
+                                                      uint8_t comb,
                                                       WeaponState st, WalkBit wlk,
                                                       bool noInterupt) {
   // for those use MdlVisual::setRotation

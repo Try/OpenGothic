@@ -258,7 +258,7 @@ class Npc final {
 
     bool       setAnim(Anim a);
     auto       setAnimAngGet(Anim a,bool noInterupt) -> const Animation::Sequence*;
-    auto       setAnimAngGet(Anim a,bool noInterupt,int comb) -> const Animation::Sequence*;
+    auto       setAnimAngGet(Anim a, bool noInterupt, uint8_t comb) -> const Animation::Sequence*;
     void       setAnimRotate(int rot);
     bool       setAnimItem(const char* scheme, int state);
     void       stopAnim(const std::string& ani);
@@ -555,7 +555,7 @@ class Npc final {
     void      loadAiState(Serialize& fin);
     static float angleDir(float x,float z);
 
-    int       calcAniComb() const;
+    uint8_t   calcAniComb() const;
 
     bool               isAlignedToGround() const;
     Tempest::Vec3      groundNormal() const;

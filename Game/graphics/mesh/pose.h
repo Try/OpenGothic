@@ -28,8 +28,8 @@ class Pose final {
       NoInterupt = 0x2,
       };
 
-    static int         calcAniComb(const Tempest::Vec3& dpos, float rotation);
-    static int         calcAniCombVert(const Tempest::Vec3& dpos);
+    static uint8_t     calcAniComb(const Tempest::Vec3& dpos, float rotation);
+    static uint8_t     calcAniCombVert(const Tempest::Vec3& dpos);
 
     void               save(Serialize& fout);
     void               load(Serialize& fin, const AnimationSolver &solver);
@@ -38,7 +38,7 @@ class Pose final {
     BodyState          bodyState() const;
     void               setSkeleton(const Skeleton *sk);
     bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq,
-                                 int comb, BodyState bs,
+                                 uint8_t comb, BodyState bs,
                                  StartHint hint, uint64_t tickCount);
     bool               stopAnim(const char* name);
     bool               stopWalkAnim();
@@ -82,7 +82,7 @@ class Pose final {
     struct Layer final {
       const Animation::Sequence* seq     = nullptr;
       uint64_t                   sAnim   = 0;
-      int32_t                    comb    = 0;
+      uint8_t                    comb    = 0;
       BodyState                  bs      = BS_NONE;
       };
 
@@ -96,7 +96,7 @@ class Pose final {
 
     const Animation::Sequence* getNext(const AnimationSolver& solver, const Layer& lay);
 
-    void addLayer(const Animation::Sequence* seq, BodyState bs, int comb, uint64_t tickCount);
+    void addLayer(const Animation::Sequence* seq, BodyState bs, uint8_t comb, uint64_t tickCount);
     void onAddLayer   (Layer& l);
     void onRemoveLayer(Layer& l);
 

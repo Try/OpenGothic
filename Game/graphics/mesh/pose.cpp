@@ -12,24 +12,24 @@
 
 using namespace Tempest;
 
-int Pose::calcAniComb(const Vec3& dpos, float rotation) {
-  float l    = std::sqrt(dpos.x*dpos.x+dpos.z*dpos.z);
+uint8_t Pose::calcAniComb(const Vec3& dpos, float rotation) {
+  float   l   = std::sqrt(dpos.x*dpos.x+dpos.z*dpos.z);
 
-  float dir  = 90+180.f*std::atan2(dpos.z,dpos.x)/float(M_PI);
-  float aXZ  = (rotation-dir);
-  float aY   = -std::atan2(dpos.y,l)*180.f/float(M_PI);
+  float   dir = 90+180.f*std::atan2(dpos.z,dpos.x)/float(M_PI);
+  float   aXZ = (rotation-dir);
+  float   aY  = -std::atan2(dpos.y,l)*180.f/float(M_PI);
 
-  int cx = (aXZ<-30.f) ? 0 : (aXZ<=30.f ? 1 : 2);
-  int cy = (aY <-45.f) ? 0 : (aY <=45.f ? 1 : 2);
+  uint8_t cx  = (aXZ<-30.f) ? 0 : (aXZ<=30.f ? 1 : 2);
+  uint8_t cy  = (aY <-45.f) ? 0 : (aY <=45.f ? 1 : 2);
 
   // sides angle: +/- 30 height angle: +/- 45
-  return 1+cy*3+cx;
+  return uint8_t(1u+cy*3u+cx);
   }
 
-int Pose::calcAniCombVert(const Vec3& dpos) {
-  float l  = std::sqrt(dpos.x*dpos.x+dpos.z*dpos.z);
-  float aY = 180.f*std::atan2(dpos.y,l)/float(M_PI);
-  int   cy = (aY <-25.f) ? 0 : (aY <=25.f ? 1 : 2);
+uint8_t Pose::calcAniCombVert(const Vec3& dpos) {
+  float   l  = std::sqrt(dpos.x*dpos.x+dpos.z*dpos.z);
+  float   aY = 180.f*std::atan2(dpos.y,l)/float(M_PI);
+  uint8_t cy = (aY <-25.f) ? 0 : (aY <=25.f ? 1 : 2);
 
   if(dpos.y<-50)
     cy = 0;
@@ -37,7 +37,7 @@ int Pose::calcAniCombVert(const Vec3& dpos) {
     cy = 2;
 
   // height angle: +/- 25
-  return cy+1;
+  return uint8_t(cy+1u);
   }
 
 void Pose::save(Serialize &fout) {
@@ -120,10 +120,12 @@ void Pose::setSkeleton(const Skeleton* sk) {
   lay.clear();
   }
 
-bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, int comb, BodyState bs,
+bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, uint8_t comb, BodyState bs,
                      StartHint hint, uint64_t tickCount) {
   if(sq==nullptr)
     return false;
+  // NOTE: zero stands for no-comb, other numbers are comb-index+1
+  comb = std::min<uint8_t>(comb, uint8_t(sq->comb.size()));
 
   const bool force   = (hint&Force);
   const bool noInter = (hint&NoInterupt);
@@ -278,7 +280,7 @@ bool Pose::update(uint64_t tickCount) {
   if(lastUpdate!=tickCount) {
     for(auto& i:lay) {
       const Animation::Sequence* seq = i.seq;
-      if(0<i.comb && size_t(i.comb)<=i.seq->comb.size()) {
+      if(0<i.comb && i.comb<=i.seq->comb.size()) {
         if(auto sx = i.seq->comb[size_t(i.comb-1)])
           seq = sx;
         }
@@ -409,7 +411,7 @@ const Animation::Sequence* Pose::getNext(const AnimationSolver &solver, const La
   return solver.solveNext(*sq);
   }
 
-void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, int comb, uint64_t tickCount) {
+void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, uint8_t comb, uint64_t tickCount) {
   if(seq==nullptr)
     return;
   Layer l;

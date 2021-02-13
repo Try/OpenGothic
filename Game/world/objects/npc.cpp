@@ -658,10 +658,9 @@ float Npc::qDistTo(const Interactive &p) const {
   return qDistTo(pos.x,pos.y,pos.z);
   }
 
-int Npc::calcAniComb() const {
+uint8_t Npc::calcAniComb() const {
   if(currentTarget==nullptr)
     return 0;
-
   auto dpos = currentTarget->position()-position();
   return Pose::calcAniComb(dpos,angle);
   }
@@ -915,7 +914,7 @@ const Animation::Sequence* Npc::setAnimAngGet(Npc::Anim a,bool noInterupt) {
   return setAnimAngGet(a,noInterupt,calcAniComb());
   }
 
-const Animation::Sequence* Npc::setAnimAngGet(Npc::Anim a,bool noInterupt,int comb) {
+const Animation::Sequence* Npc::setAnimAngGet(Npc::Anim a, bool noInterupt, uint8_t comb) {
   auto st  = weaponState();
   auto wlk = walkMode();
   if(mvAlgo.isDive())
