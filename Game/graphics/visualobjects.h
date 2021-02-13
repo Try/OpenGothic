@@ -25,6 +25,7 @@ class VisualObjects final {
 
     void setWorld   (const World& world);
     void setDayNight(float dayF);
+    void resetIndex();
 
   private:
     ObjectsBucket&                  getBucket(const Material& mat, size_t boneCnt, ObjectsBucket::Type type);

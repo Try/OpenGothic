@@ -199,6 +199,9 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
     break;
     }
 
+  if(valSz==0)
+    owner.resetIndex();
+
   ++valSz;
   v->vboType   = type;
   v->vbo       = nullptr;
@@ -424,6 +427,9 @@ void ObjectsBucket::free(const size_t objId) {
   if(valSz>0)
     polyAvg = polySz/valSz; else
     polyAvg = 0;
+
+  if(valSz==0)
+    owner.resetIndex();
   }
 
 void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) {

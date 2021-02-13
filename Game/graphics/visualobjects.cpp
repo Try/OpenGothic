@@ -21,7 +21,6 @@ ObjectsBucket& VisualObjects::getBucket(const Material& mat, size_t boneCnt, Obj
   if(type==ObjectsBucket::Type::Static)
     buckets.emplace_back(mat,boneCnt,*this,globals,uboStatic,type); else
     buckets.emplace_back(mat,boneCnt,*this,globals,uboDyn,   type);
-  index.clear();
   return buckets.back();
   }
 
@@ -132,6 +131,10 @@ void VisualObjects::setWorld(const World& world) {
 
 void VisualObjects::setDayNight(float dayF) {
   sky.setDayNight(dayF);
+  }
+
+void VisualObjects::resetIndex() {
+  index.clear();
   }
 
 void VisualObjects::mkIndex() {

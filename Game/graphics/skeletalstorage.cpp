@@ -97,13 +97,15 @@ struct SkeletalStorage::TImpl : Impl {
 
   size_t alloc(size_t bonesCount) override {
     size_t ret = freeList.alloc(bonesCount);
-    if(ret!=size_t(-1))
+    if(ret!=size_t(-1)) {
+      markAsChanged(ret);
       return ret;
-    markAsChanged(ret);
+      }
     ret = obj.size()-Padding;
 
     const size_t increment = freeList.blockCount(bonesCount);
     obj.resize(obj.size()+increment);
+    markAsChanged(ret);
     return ret;
     }
 
@@ -120,7 +122,7 @@ struct SkeletalStorage::TImpl : Impl {
     }
 
   bool   commitUbo(Tempest::Device &device, uint8_t fId) override {
-    auto&        frame   = pf[fId];
+    auto& frame = pf[fId];
     if(!frame.uboChanged)
       return false;
 
