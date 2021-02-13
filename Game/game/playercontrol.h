@@ -93,6 +93,7 @@ class PlayerControl final {
     DialogMenu&    dlg;
     InventoryMenu& inv;
 
+    bool           canInteract() const;
     void           marvinF8();
     void           toogleWalkMode();
     void           toggleSneakMode();

@@ -428,6 +428,7 @@ class Npc final {
 
 
     bool      isAiQueueEmpty() const;
+    bool      isAiBusy() const;
     void      clearAiQueue();
 
     bool      isInState(ScriptFn fn) const;

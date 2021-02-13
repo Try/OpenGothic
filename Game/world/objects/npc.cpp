@@ -3276,8 +3276,14 @@ std::vector<GameScript::DlgChoise> Npc::dialogChoises(Npc& player,const std::vec
 
 bool Npc::isAiQueueEmpty() const {
   return aiQueue.size()==0 &&
-         waitTime<owner.tickCount() &&
-         go2.empty();
+         go2.empty() &&
+         waitTime       <owner.tickCount();
+  }
+
+bool Npc::isAiBusy() const {
+  return !isAiQueueEmpty() ||
+         aniWaitTime    >=owner.tickCount() ||
+         aiOutputBarrier>=owner.tickCount();
   }
 
 void Npc::clearAiQueue() {

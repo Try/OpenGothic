@@ -203,10 +203,10 @@ bool PlayerControl::interact(Interactive &it) {
   if(w==nullptr || w->player()==nullptr)
     return false;
   auto pl = w->player();
-  if(pl->weaponState()!=WeaponState::NoWeapon)
-    return false;
   if(w->player()->isDown())
     return true;
+  if(!canInteract())
+    return false;
   if(it.isContainer()){
     inv.open(*pl,it);
     return true;
@@ -220,10 +220,11 @@ bool PlayerControl::interact(Npc &other) {
   auto w = world();
   if(w==nullptr || w->player()==nullptr)
     return false;
-  if(w->player()->weaponState()!=WeaponState::NoWeapon)
-    return false;
-  if(w->player()->isDown())
+  auto pl = w->player();
+  if(pl->isDown())
     return true;
+  if(!canInteract())
+    return false;
   if(w->script().isDead(other) || w->script().isUnconscious(other)){
     if(!inv.ransack(*w->player(),other))
       w->script().printNothingToGet();
@@ -237,10 +238,10 @@ bool PlayerControl::interact(Item &item) {
   if(w==nullptr || w->player()==nullptr)
     return false;
   auto pl = w->player();
-  if(pl->weaponState()!=WeaponState::NoWeapon)
-    return false;
-  if(w->player()->isDown())
+  if(pl->isDown())
     return true;
+  if(!canInteract())
+    return false;
   return pl->takeItem(item)!=nullptr;
   }
 
@@ -267,6 +268,16 @@ WeaponState PlayerControl::weaponState() const {
     return WeaponState::NoWeapon;
   auto pl = w->player();
   return pl->weaponState();
+  }
+
+bool PlayerControl::canInteract() const {
+  auto w = world();
+  if(w==nullptr || w->player()==nullptr)
+    return false;
+  auto pl = w->player();
+  if(pl->weaponState()!=WeaponState::NoWeapon || pl->isAiBusy())
+    return false;
+  return true;
   }
 
 void PlayerControl::clearInput() {
