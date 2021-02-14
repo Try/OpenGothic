@@ -1798,10 +1798,15 @@ void Npc::nextAiAction(uint64_t dt) {
       implAiWait(uint64_t(act.i0));
       break;
     case AI_StandUp:
-      if(!setInteraction(nullptr)) {
-        aiQueue.pushFront(std::move(act));
+    case AI_StandUpQuick:
+      // NOTE: B_ASSESSTALK calls AI_StandUp, to make npc stand, if it's not on a chair or something
+      if(interactive()!=nullptr && interactive()->stateMask()!=BS_SIT) {
+        if(!setInteraction(nullptr,act.act==AI_StandUpQuick)) {
+          aiQueue.pushFront(std::move(act));
+          }
+        break;
         }
-      else if(bodyStateMasked()==BS_UNCONSCIOUS) {
+      if(bodyStateMasked()==BS_UNCONSCIOUS) {
         if(!setAnim(Anim::Idle))
           aiQueue.pushFront(std::move(act)); else
           implAniWait(visual.pose().animationTotalTime());
@@ -1809,10 +1814,6 @@ void Npc::nextAiAction(uint64_t dt) {
       else if(bodyStateMasked()!=BS_DEAD) {
         setAnim(Anim::Idle);
         }
-      break;
-    case AI_StandUpQuick:
-      // TODO: verify
-      setInteraction(nullptr);
       break;
     case AI_EquipArmor:
       invent.equipArmour(act.i0,*this);
@@ -2202,7 +2203,7 @@ void Npc::emitSoundSVM(const char* svm) {
   }
 
 void Npc::startEffect(Npc& /*to*/, const VisualFx& vfx) {
-  visual.startEffect(owner, Effect(vfx,owner,*this), -1);
+  visual.startEffect(owner, Effect(vfx,owner,*this), 0, true);
   }
 
 void Npc::stopEffect(const VisualFx& vfx) {
@@ -2231,7 +2232,12 @@ void Npc::commitSpell() {
     b.setDamage(dmg);
     b.setHitChance(1.f);
     } else {
-    visual.setEffectKey(owner,SpellFxKey::Cast);
+    const VisualFx* vfx = owner.script().getSpellVFx(splId);
+    if(vfx!=nullptr) {
+      auto e = Effect(*vfx,owner,Vec3(x,y,z),SpellFxKey::Cast);
+      visual.startEffect(owner,std::move(e),0,true);
+      }
+    visual.setMagicWeaponKey(owner,SpellFxKey::Init);
     if(currentTarget!=nullptr) {
       currentTarget->lastHitSpell = splId;
       currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
@@ -2843,7 +2849,7 @@ bool Npc::tickCast() {
 
   switch(code) {
     case SpellCode::SPL_NEXTLEVEL: {
-      visual.setEffectKey(owner,SpellFxKey::Invest,castLvl+1);
+      visual.setMagicWeaponKey(owner,SpellFxKey::Invest,castLvl+1);
       castNextTime += uint64_t(spl.time_per_mana*float(mana));
       break;
       }

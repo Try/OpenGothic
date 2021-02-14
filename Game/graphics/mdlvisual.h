@@ -52,11 +52,12 @@ class MdlVisual final {
     bool                           setFightMode  (const ZenLoad::EFightMode mode);
     void                           dropWeapon    (Npc& owner);
 
-    void                           startEffect (World& owner, Effect&& pfx, int32_t slot);
-    void                           stopEffect   (const VisualFx& vfx);
+    void                           startEffect (World& owner, Effect&& pfx, int32_t slot, bool noSlot);
+    void                           stopEffect  (const VisualFx& vfx);
     void                           stopEffect  (int32_t slot);
-    void                           setEffectKey(World& owner, SpellFxKey key, int32_t keyLvl=0);
     void                           setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s, Daedalus::GEngineClasses::C_Npc::ENPCFlag flags);
+
+    void                           setMagicWeaponKey(World& owner, SpellFxKey key, int32_t keyLvl=0);
 
     bool                           setToFightMode(const WeaponState ws);
     void                           updateWeaponSkeleton(const Item *sword, const Item *bow);
@@ -108,6 +109,7 @@ class MdlVisual final {
       Effect      view;
       uint64_t    timeUntil=0;
       int         id=0;
+      bool        noSlot = false;
       };
 
     void implSetBody(MeshObjects::Mesh&& body, World& owner, const int32_t version);

@@ -167,14 +167,18 @@ void MdlVisual::setAmmoItem(MeshObjects::Mesh&& a, const char *bone) {
   }
 
 void MdlVisual::setMagicWeapon(Effect&& spell, World& owner) {
-  auto n = pfx.view.takeNext();
-  if(n!=nullptr) {
-    startEffect(owner,std::move(*n),-1);
-    }
+  auto n = std::move(pfx.view);
+  n.setLooped(false);
+  startEffect(owner,std::move(n),-1,true);
+
   pfx.view = std::move(spell);
   pfx.view.setLooped(true);
   if(skeleton!=nullptr)
     pfx.view.bindAttaches(*skInst,*skeleton);
+  }
+
+void MdlVisual::setMagicWeaponKey(World& owner, SpellFxKey key, int32_t keyLvl) {
+  pfx.view.setKey(owner,key,keyLvl);
   }
 
 void MdlVisual::setSlotItem(MeshObjects::Mesh &&itm, const char *bone) {
@@ -282,7 +286,7 @@ void MdlVisual::dropWeapon(Npc& npc) {
   npc.delItem(itm->clsId(),1);
   }
 
-void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot) {
+void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot, bool noSlot) {
   uint64_t timeUntil = vfx.effectPrefferedTime();
   if(timeUntil!=uint64_t(-1))
     timeUntil+=owner.tickCount();
@@ -292,7 +296,7 @@ void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot) {
 
   vfx.setActive(true);
   for(auto& i:effects) {
-    if(i.id==slot) {
+    if(i.id==slot && !i.noSlot) {
       i.timeUntil = timeUntil;
       i.view = std::move(vfx);
       i.view.bindAttaches(*skInst,*skeleton);
@@ -304,6 +308,7 @@ void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot) {
   PfxSlot slt;
   slt.id        = slot;
   slt.timeUntil = timeUntil;
+  slt.noSlot    = noSlot;
   slt.view      = std::move(vfx);
   slt.view.bindAttaches(*skInst,*skeleton);
   effects.push_back(std::move(slt));
@@ -330,12 +335,6 @@ void MdlVisual::stopEffect(int32_t slot) {
       return;
       }
     }
-  }
-
-void MdlVisual::setEffectKey(World& owner, SpellFxKey key, int32_t keyLvl) {
-  for(auto& i:effects)
-    i.view.setKey(owner,key,keyLvl);
-  pfx.view.setKey(owner,key,keyLvl);
   }
 
 void MdlVisual::setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s, Daedalus::GEngineClasses::C_Npc::ENPCFlag flags) {
