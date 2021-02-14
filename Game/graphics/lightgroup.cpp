@@ -54,11 +54,12 @@ LightGroup::Light::Light(LightGroup& owner)
   owner.fullGpuUpdate = true;
   owner.clearIndex();
 
-  id = owner.light.size();
   if(owner.freeList.size()>0) {
     id = owner.freeList.back();
     owner.light[id] = LightSource();
+    owner.freeList.pop_back();
     } else {
+    id = owner.light.size();
     owner.light.emplace_back(LightSource());
     }
   owner.dynamicState.push_back(id);
