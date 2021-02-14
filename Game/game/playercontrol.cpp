@@ -415,7 +415,7 @@ void PlayerControl::implMove(uint64_t dt) {
 
   if(pl.canSwitchWeapon()) {
     if(wctrl[WeaponClose]) {
-      wctrl[WeaponClose] = !pl.closeWeapon(false);
+      wctrl[WeaponClose] = !(pl.closeWeapon(false) || pl.isMonster());
       return;
       }
     if(wctrl[WeaponMele]) {

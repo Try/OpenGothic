@@ -2550,7 +2550,7 @@ void Npc::unequipItem(size_t item) {
   }
 
 bool Npc::canSwitchWeapon() const {
-  return !(isFaling() || mvAlgo.isSlide() || mvAlgo.isSwim());
+  return !(mvAlgo.isFaling() || mvAlgo.isInAir() || mvAlgo.isSlide() || mvAlgo.isSwim());
   }
 
 bool Npc::closeWeapon(bool noAnim) {
