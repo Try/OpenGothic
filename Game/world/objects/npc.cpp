@@ -2579,8 +2579,15 @@ bool Npc::drawWeaponFist() {
     closeWeapon(false);
     return false;
     }
-  if(!isMonster() && !visual.startAnim(*this,WeaponState::Fist))
-    return false;
+
+  if(isMonster()) {
+    if(!visual.startAnim(*this,WeaponState::Fist))
+      visual.setToFightMode(WeaponState::Fist);
+    } else {
+    if(!visual.startAnim(*this,WeaponState::Fist))
+      return false;
+    }
+
   invent.switchActiveWeaponFist();
   hnpc.weapon = 1;
   return true;
