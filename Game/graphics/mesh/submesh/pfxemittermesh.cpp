@@ -34,7 +34,7 @@ PfxEmitterMesh::PfxEmitterMesh(const ZenLoad::zCModelMeshLib& library) {
     size_t vert0 = vertices.size();
     vertAnim.resize(vert0 + src.vertices.size());
     for(size_t i=0;i<src.vertices.size();++i) {
-      auto& v = src.vertices[vert0+i];
+      auto& v = src.vertices[i];
       for(size_t r=0; r<4; ++r) {
         vertAnim[vert0+i].v[r].x     = v.LocalPositions[r].x;
         vertAnim[vert0+i].v[r].y     = v.LocalPositions[r].y;
@@ -100,15 +100,15 @@ Tempest::Vec3 PfxEmitterMesh::randCoord(const PfxEmitterMesh::Triangle& t, float
   }
 
 Tempest::Vec3 PfxEmitterMesh::animCoord(const Pose& pose, uint32_t id) const {
-  Tempest::Vec4 ret = {};
+  Tempest::Vec3 ret = {};
   auto&         v   = vertAnim[id];
   for(size_t i=0; i<4; ++i) {
     auto&         mat = pose.bone(v.id[i]);
-    Tempest::Vec4 a   = Tempest::Vec4(v.v[i].x, v.v[i].y, v.v[i].z, 1.f);
+    Tempest::Vec3 a   = v.v[i];
     mat.project(a);
     ret += a*v.weights[i];
     }
-  return Tempest::Vec3(ret.x,ret.y,ret.z);
+  return ret;//*0.1f;
   }
 
 float PfxEmitterMesh::area(float x1, float y1, float z1,

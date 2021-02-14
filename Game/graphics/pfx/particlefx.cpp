@@ -258,11 +258,13 @@ ParticleFx::EmitterType ParticleFx::loadEmitType(const Daedalus::ZString& src) {
   }
 
 ParticleFx::Frame ParticleFx::loadFrameType(const Daedalus::ZString& src) {
-  if(src=="OBJECT" || src=="object")
+  if(src=="OBJECT")
     return Frame::Object;
+  if(src=="object")
+    return Frame::Node; // look like "object"(low case) is not valid token - should be interpreted differently
   if(src=="WORLD")
     return Frame::World;
-  return Frame::Object;
+  return Frame::World;
   }
 
 ParticleFx::Distribution ParticleFx::loadDistribType(const Daedalus::ZString& src) {

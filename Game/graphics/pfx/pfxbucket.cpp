@@ -238,13 +238,16 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       }
     }
 
-  Vec3 dim = pfx.shpDim*pfx.shpScale(block.timeTotal);
-  p.pos.x*=dim.x;
-  p.pos.y*=dim.y;
-  p.pos.z*=dim.z;
+  if(pfx.shpType!=ParticleFx::EmitterType::Mesh) {
+    Vec3 dim = pfx.shpDim*pfx.shpScale(block.timeTotal);
+    p.pos.x*=dim.x;
+    p.pos.y*=dim.y;
+    p.pos.z*=dim.z;
+    }
 
   switch(pfx.shpFOR) {
-    case ParticleFx::Frame::Object: {
+    case ParticleFx::Frame::Object:
+    case ParticleFx::Frame::Node: {
       p.pos += block.direction[0]*pfx.shpOffsetVec.x +
                block.direction[1]*pfx.shpOffsetVec.y +
                block.direction[2]*pfx.shpOffsetVec.z;
@@ -289,24 +292,27 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
         }
 
       switch(pfx.dirFOR) {
-        case ParticleFx::Frame::Object: {
+        case ParticleFx::Frame::Node: {
           p.dir = block.direction[0]*dx +
                   block.direction[1]*dy +
                   block.direction[2]*dz;
-          float l = p.dir.manhattanLength();
-          if(l>0)
-            p.dir/=l;
           break;
           }
-        case ParticleFx::Frame::World: {
+        case ParticleFx::Frame::World:
+        case ParticleFx::Frame::Object: {
           p.dir = Vec3(dx,dy,dz);
           break;
           }
         }
+
+      float l = p.dir.manhattanLength();
+      if(l>0)
+        p.dir/=l;
       dirRotation = std::atan2(p.dir.x,p.dir.y);
       break;
       }
     case ParticleFx::Dir::Target:
+      p.dir = pfx.dirModeTargetPos;
       dirRotation = randf()*float(2.0*M_PI);
       break;
     }

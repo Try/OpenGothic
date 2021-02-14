@@ -62,8 +62,8 @@ class Effect final {
       CATACLYSM,
       };
 
-    void               syncAttaches(const Tempest::Matrix4x4& pos, bool topLevel=true);
-    void               syncAttachesSingle(const Tempest::Matrix4x4& inPos, bool topLevel);
+    void               syncAttaches(const Tempest::Matrix4x4& pos);
+    void               syncAttachesSingle(const Tempest::Matrix4x4& inPos);
     static LightPreset toPreset(const Daedalus::ZString& str);
 
     using Key = Daedalus::GEngineClasses::C_ParticleFXEmitKey;

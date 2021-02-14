@@ -85,7 +85,7 @@ void Effect::setTarget(const Tempest::Vec3& tg) {
   }
 
 void Effect::setObjMatrix(Tempest::Matrix4x4& mt) {
-  syncAttaches(mt,true);
+  syncAttaches(mt);
   }
 
 void Effect::setPosition(const Vec3& pos3) {
@@ -95,16 +95,16 @@ void Effect::setPosition(const Vec3& pos3) {
   pos.set(3,0, pos3.x);
   pos.set(3,1, pos3.y);
   pos.set(3,2, pos3.z);
-  syncAttachesSingle(pos,true);
+  syncAttachesSingle(pos);
   }
 
-void Effect::syncAttaches(const Matrix4x4& inPos, bool topLevel) {
+void Effect::syncAttaches(const Matrix4x4& inPos) {
   if(next!=nullptr)
-    next->syncAttaches(inPos,false);
-  syncAttachesSingle(inPos,topLevel);
+    next->syncAttaches(inPos);
+  syncAttachesSingle(inPos);
   }
 
-void Effect::syncAttachesSingle(const Matrix4x4& inPos, bool topLevel) {
+void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
   pos    = inPos;
   auto p = inPos;
 
@@ -115,9 +115,7 @@ void Effect::syncAttachesSingle(const Matrix4x4& inPos, bool topLevel) {
   p.set(3,1, p.at(3,1)+emTrjEaseVel);
   Vec3 pos3 = {p.at(3,0),p.at(3,1),p.at(3,2)};
 
-  if(topLevel) // HACK: VOB_MAGICBURN
-    visual.setObjMatrix(p); else
-    visual.setPosition(pos3);
+  visual.setObjMatrix(p);
   light.setPosition(pos3);
   }
 
@@ -148,7 +146,8 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
       ex.setTarget  (pos3);
       }
     ex.setActive(true);
-    owner.runEffect(std::move(ex));
+    // NOTE: investigate spell-light
+    next.reset(new Effect(std::move(ex)));
     }
 
   const ParticleFx* pfx = owner.script().getParticleFx(*key);

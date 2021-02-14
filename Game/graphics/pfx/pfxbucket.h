@@ -20,7 +20,7 @@ class PfxBucket {
     struct ImplEmitter final {
       size_t        block        = size_t(-1);
       Tempest::Vec3 pos          = {};
-      Tempest::Vec3 direction[3] = {};
+      Tempest::Vec3 direction[3] = {{1,0,0}, {0,1,0}, {0,0,1}};
       bool          alive        = false;
       bool          active       = false;
       bool          isLoop       = false;

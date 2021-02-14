@@ -72,6 +72,7 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
 
   const char* hero = testMode ? "PC_ROCKEFELLER" : "PC_HERO";
   //const char* hero = "PC_ROCKEFELLER";
+  //const char* hero = "Dragon_Undead";
   //const char* hero = "Sheep";
   //const char* hero = "Giant_Bug";
   //const char* hero = "OrcWarrior_Rest";

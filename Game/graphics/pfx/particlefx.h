@@ -32,8 +32,9 @@ class ParticleFx final {
       };
 
     enum class Frame:uint8_t {
+      World,
       Object,
-      World
+      Node,
       };
 
     enum class Distribution:uint8_t {
