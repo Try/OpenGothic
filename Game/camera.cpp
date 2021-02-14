@@ -32,13 +32,18 @@ void Camera::reset(World& world) {
   implReset(*pl);
   }
 
-void Camera::implReset(const Npc &pl) {
+void Camera::implReset(const Npc &npc) {
   auto& def  = cameraDef();
 
-  state.pos    = pl.cameraBone();
-  state.spin.x = 0;
-  state.spin.y = pl.rotation();
-  dest         = state;
+  state.range  = dest.range;
+  dest.pos     = npc.cameraBone();
+  dest.spin.y  = def.bestAzimuth;
+  dest.spin.y += npc.rotation();
+  dest.spin.x  = def.bestElevation;
+  state.spin   = dest.spin;
+  state.spin2  = applyModRotation(dest.spin);
+
+  state.pos    = applyModPosition(dest.pos);
 
   state.range  = def.bestRange;
   dest.range   = state.range;
