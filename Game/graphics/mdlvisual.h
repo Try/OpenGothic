@@ -45,19 +45,19 @@ class MdlVisual final {
     void                           setSword      (MeshObjects::Mesh&& sword);
     void                           setRangeWeapon(MeshObjects::Mesh&& bow);
     void                           setAmmoItem   (MeshObjects::Mesh&& ammo, const char* bone);
-    void                           setMagicWeapon(Effect&& spell, World& owner);
     void                           setSlotItem   (MeshObjects::Mesh&& itm, const char *bone);
     void                           setStateItem  (MeshObjects::Mesh&& itm, const char *bone);
     void                           clearSlotItem (const char *bone);
     bool                           setFightMode  (const ZenLoad::EFightMode mode);
     void                           dropWeapon    (Npc& owner);
 
+    void                           setMagicWeapon(Effect&& spell, World& owner);
+    void                           setMagicWeaponKey(World& owner, SpellFxKey key, int32_t keyLvl=0);
+
     void                           startEffect (World& owner, Effect&& pfx, int32_t slot, bool noSlot);
     void                           stopEffect  (const VisualFx& vfx);
     void                           stopEffect  (int32_t slot);
     void                           setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s, Daedalus::GEngineClasses::C_Npc::ENPCFlag flags);
-
-    void                           setMagicWeaponKey(World& owner, SpellFxKey key, int32_t keyLvl=0);
 
     bool                           setToFightMode(const WeaponState ws);
     void                           updateWeaponSkeleton(const Item *sword, const Item *bow);

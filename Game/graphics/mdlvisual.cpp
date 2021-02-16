@@ -169,7 +169,7 @@ void MdlVisual::setAmmoItem(MeshObjects::Mesh&& a, const char *bone) {
 void MdlVisual::setMagicWeapon(Effect&& spell, World& owner) {
   auto n = std::move(pfx.view);
   n.setLooped(false);
-  startEffect(owner,std::move(n),-1,true);
+  startEffect(owner,std::move(n),0,true);
 
   pfx.view = std::move(spell);
   pfx.view.setLooped(true);
@@ -294,7 +294,7 @@ void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot, bool noSlo
   if(skeleton==nullptr)
     return;
 
-  vfx.setActive(true);
+  // vfx.setActive(true);
   for(auto& i:effects) {
     if(i.id==slot && !i.noSlot) {
       i.timeUntil = timeUntil;

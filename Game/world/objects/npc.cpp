@@ -2203,7 +2203,9 @@ void Npc::emitSoundSVM(const char* svm) {
   }
 
 void Npc::startEffect(Npc& /*to*/, const VisualFx& vfx) {
-  visual.startEffect(owner, Effect(vfx,owner,*this), 0, true);
+  Effect e(vfx,owner,*this);
+  e.setActive(true);
+  visual.startEffect(owner, std::move(e), 0, true);
   }
 
 void Npc::stopEffect(const VisualFx& vfx) {
@@ -2235,6 +2237,7 @@ void Npc::commitSpell() {
     const VisualFx* vfx = owner.script().getSpellVFx(splId);
     if(vfx!=nullptr) {
       auto e = Effect(*vfx,owner,Vec3(x,y,z),SpellFxKey::Cast);
+      e.setActive(true);
       visual.startEffect(owner,std::move(e),0,true);
       }
     visual.setMagicWeaponKey(owner,SpellFxKey::Init);

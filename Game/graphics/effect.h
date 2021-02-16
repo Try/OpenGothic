@@ -49,8 +49,6 @@ class Effect final {
     void     bindAttaches  (const Pose& pose, const Skeleton& to);
     void     onCollide     (World& owner, const Tempest::Vec3& pos, Npc* npc);
 
-    std::unique_ptr<Effect> takeNext();
-
   private:
     enum LightPreset : uint8_t {
       NoPreset = 0,

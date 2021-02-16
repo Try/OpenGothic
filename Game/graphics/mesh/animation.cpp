@@ -432,6 +432,7 @@ void Animation::Sequence::processPfx(uint64_t barrier, uint64_t sTime, uint64_t 
         continue;
       Effect e(PfxEmitter(world,i.m_Name),i.m_Pos.c_str());
       e.setLooped(true);
+      e.setActive(true);
       visual.startEffect(world,std::move(e),i.m_Num,false);
       }
     }

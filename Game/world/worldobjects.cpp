@@ -194,7 +194,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
 
   for(auto& ptr:npcArr) {
     Npc& i = *ptr;
-    if(i.isPlayer())
+    if(i.isPlayer() || i.isDead())
       continue;
 
     if(i.processPolicy()==Npc::AiNormal) {

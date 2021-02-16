@@ -248,10 +248,6 @@ void Effect::onCollide(World& owner, const Vec3& pos, Npc* npc) {
     }
   }
 
-std::unique_ptr<Effect> Effect::takeNext() {
-  return std::move(next);
-  }
-
 Effect::LightPreset Effect::toPreset(const Daedalus::ZString& str) {
   if(str=="JUSTWHITE")
     return JUSTWHITE;
