@@ -11,6 +11,7 @@
 #include <array>
 #include <type_traits>
 
+#include <daedalus/DATFile.h>
 #include <daedalus/ZString.h>
 
 #include "gametime.h"
@@ -210,8 +211,31 @@ class Serialize final {
     void write(const Daedalus::GEngineClasses::C_Npc& h);
     void read (Daedalus::GEngineClasses::C_Npc&       h);
 
+    void write(const Daedalus::DataContainer<int>&               c) { implWriteDat<int>  (c); }
+    void read (Daedalus::DataContainer<int>&                     c) { implReadDat <int>  (c); }
+    void write(const Daedalus::DataContainer<float>&             c) { implWriteDat<float>(c); }
+    void read (Daedalus::DataContainer<float>&                   c) { implReadDat <float>(c); }
+    void write(const Daedalus::DataContainer<Daedalus::ZString>& c) { implWriteDat<Daedalus::ZString>(c); }
+    void read (Daedalus::DataContainer<Daedalus::ZString>&       c) { implReadDat <Daedalus::ZString>(c); }
+
   private:
     Serialize();
+
+    template<class T>
+    void implWriteDat(const Daedalus::DataContainer<T>& s) {
+      uint32_t sz=uint32_t(s.size());
+      write(sz);
+      writeBytes(s.data(),sz*sizeof(T));
+      }
+
+    template<class T>
+    void implReadDat(Daedalus::DataContainer<T>& s) {
+      uint32_t sz=0;
+      read(sz);
+      s.resize(sz);
+      for(size_t i=0; i<sz; ++i)
+        read(s[i]);
+      }
 
     template<class T>
     void implWriteVec(const std::vector<T>& s,std::false_type) {

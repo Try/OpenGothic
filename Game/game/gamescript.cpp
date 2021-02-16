@@ -352,11 +352,11 @@ void GameScript::initCommon() {
     viewTimePerChar=0.55f;
     }
 
-  auto gilMax = dat.getSymbolByName("GIL_MAX");
+  auto& gilMax = dat.getSymbolByName("GIL_MAX");
   gilCount=size_t(gilMax.getInt(0));
 
-  auto tableSz = dat.getSymbolByName("TAB_ANZAHL");
-  auto guilds  = dat.getSymbolByName("GIL_ATTITUDES");
+  auto& tableSz = dat.getSymbolByName("TAB_ANZAHL");
+  auto& guilds  = dat.getSymbolByName("GIL_ATTITUDES");
   gilAttitudes.resize(gilCount*gilCount,ATT_HOSTILE);
 
   size_t tbSz=size_t(std::sqrt(tableSz.getInt()));
