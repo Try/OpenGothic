@@ -728,6 +728,34 @@ void Npc::delOverlay(const Skeleton *sk) {
   visual.delOverlay(sk);
   }
 
+bool Npc::toogleTorch() {
+  const char* overlay = "HUMANS_TORCH.MDS";
+  if(hasOverlay(overlay)) {
+    visual.setTorch(false,owner);
+    delOverlay(overlay);
+    return true;
+    }
+  visual.setTorch(true,owner);
+  addOverlay(overlay,0);
+  return false;
+  }
+
+void Npc::dropTorch() {
+  auto sk = visual.visualSkeleton();
+  if(sk==nullptr)
+    return;
+
+  size_t torchId  = owner.getSymbolIndex("ItLsTorchburned");
+  size_t leftHand = sk->findNode("ZS_LEFTHAND");
+  if(torchId!=size_t(-1) && leftHand!=size_t(-1)) {
+    auto  it  = owner.addItem(torchId,nullptr);
+
+    auto mat = visual.pose().bone(leftHand);
+    it->setMatrix(mat);
+    it->setPhysicsEnable(*owner.physic());
+    }
+  }
+
 Tempest::Vec3 Npc::animMoveSpeed(uint64_t dt) const {
   return visual.pose().animMoveSpeed(owner.tickCount(),dt);
   }
@@ -859,6 +887,17 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
         }
       case ZenLoad::DEF_REMOVE_MUNITION: {
         invent.putAmmunition(*this,0,nullptr);
+        break;
+        }
+      case ZenLoad::DEF_DRAWTORCH: {
+        visual.setTorch(true,owner);
+        break;
+        }
+      case ZenLoad::DEF_INV_TORCH: {
+        break;
+        }
+      case ZenLoad::DEF_DROP_TORCH: {
+        dropTorch();
         break;
         }
       default:

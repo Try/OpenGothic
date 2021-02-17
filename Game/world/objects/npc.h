@@ -241,6 +241,8 @@ class Npc final {
     void       delOverlay   (const char*     sk);
     void       delOverlay   (const Skeleton *sk);
 
+    bool       toogleTorch();
+
     void       setVisualBody (int32_t headTexNr,int32_t teethTexNr,
                               int32_t bodyVer,int32_t bodyColor,
                               const std::string& body,const std::string& head);
@@ -550,6 +552,8 @@ class Npc final {
     void      onNoHealth(bool death, HitSound sndMask);
     bool      hasAutoroll() const;
     void      stopWalkAnimation();
+
+    void      dropTorch();
 
     void      saveAiState(Serialize& fout) const;
     void      loadAiState(Serialize& fin);

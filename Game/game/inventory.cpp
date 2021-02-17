@@ -764,13 +764,10 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
     return false;
     }
   if(flag & ITM_TORCH) {
-    const char* overlay = "HUMANS_TORCH.MDS";
-    if(owner.hasOverlay(overlay)) {
-      owner.delOverlay(overlay);
+    if(owner.toogleTorch()) {
       owner.delItem(cls,1);
-      return true;
       } else {
-      owner.addOverlay(overlay,0);
+      return true;
       }
     }
 

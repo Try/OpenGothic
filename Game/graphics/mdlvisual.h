@@ -62,6 +62,8 @@ class MdlVisual final {
     bool                           setToFightMode(const WeaponState ws);
     void                           updateWeaponSkeleton(const Item *sword, const Item *bow);
 
+    void                           setTorch(bool t, World& owner);
+
     const Pose&                    pose() const { return *skInst; }
     bool                           updateAnimation(Npc* npc, World& world);
     void                           processLayers  (World& world);
@@ -138,6 +140,8 @@ class MdlVisual final {
 
     std::vector<PfxSlot>           effects;
     PfxSlot                        pfx;
+
+    MeshAttach                     torch;
 
     Daedalus::ZString              hnpcVisualName;
     bool                           hnpcFlagGhost = false;

@@ -409,6 +409,22 @@ void MdlVisual::updateWeaponSkeleton(const Item* weapon,const Item* range) {
   syncAttaches();
   }
 
+void MdlVisual::setTorch(bool t, World& owner) {
+  if(!t) {
+    torch.view = MeshObjects::Mesh();
+    return;
+    }
+  // TODO: ItLsTorchburning
+  size_t torchId = owner.getSymbolIndex("ItLsTorch");
+  if(torchId==size_t(-1))
+    return;
+
+  Daedalus::GEngineClasses::C_Item  hitem={};
+  owner.script().initializeInstance(hitem,torchId);
+  torch.view = owner.addView(hitem.visual.c_str());
+  bind(torch,"ZS_LEFTHAND");
+  }
+
 bool MdlVisual::updateAnimation(Npc* npc, World& world) {
   Pose&    pose      = *skInst;
   uint64_t tickCount = world.tickCount();
@@ -752,7 +768,7 @@ void MdlVisual::rebindAttaches(Attach<View>& mesh, const Skeleton& from, const S
   }
 
 void MdlVisual::syncAttaches() {
-  MdlVisual::MeshAttach* mesh[] = {&head,&sword,&bow,&ammunition,&stateItm};
+  MdlVisual::MeshAttach* mesh[] = {&head,&sword,&bow,&ammunition,&stateItm,&torch};
   for(auto i:mesh)
     syncAttaches(*i);
   for(auto& i:item)
