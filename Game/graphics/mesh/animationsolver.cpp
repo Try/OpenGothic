@@ -73,9 +73,9 @@ void AnimationSolver::delOverlay(const Skeleton *sk) {
   for(size_t i=0;i<overlay.size();++i)
     if(overlay[i].skeleton==sk){
       overlay.erase(overlay.begin()+int(i));
+      invalidateCache();
       return;
       }
-  invalidateCache();
   }
 
 void AnimationSolver::clearOverlays() {
