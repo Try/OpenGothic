@@ -225,7 +225,8 @@ class Serialize final {
     void implWriteDat(const Daedalus::DataContainer<T>& s) {
       uint32_t sz=uint32_t(s.size());
       write(sz);
-      writeBytes(s.data(),sz*sizeof(T));
+      for(size_t i=0; i<sz; ++i)
+        write(s[i]);
       }
 
     template<class T>
