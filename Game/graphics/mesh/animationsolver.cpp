@@ -86,9 +86,12 @@ void AnimationSolver::clearOverlays() {
 void AnimationSolver::update(uint64_t tickCount) {
   for(size_t i=0;i<overlay.size();){
     auto& ov = overlay[i];
-    if(ov.time!=0 && ov.time<tickCount)
-      overlay.erase(overlay.begin()+int(i)); else
+    if(ov.time!=0 && ov.time<tickCount) {
+      overlay.erase(overlay.begin()+int(i));
+      invalidateCache();
+      } else {
       ++i;
+      }
     }
   }
 
