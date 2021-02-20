@@ -19,7 +19,7 @@
 using namespace Tempest;
 
 PfxObjects::PfxObjects(const SceneGlobals& scene, VisualObjects& visual)
-  :scene(scene), visual(visual) {
+  :scene(scene), visual(visual), trails(scene,visual) {
   }
 
 PfxObjects::~PfxObjects() {
@@ -72,8 +72,11 @@ void PfxObjects::tick(uint64_t ticks) {
   for(size_t i=0; i<bucket.size(); ++i)
     bucket[i]->tick(dt,viewerPos);
 
+  trails.tick(dt);
+
   for(auto& i:bucket)
     i->buildVbo(ctx);
+  trails.buildVbo(-ctx.z);
 
   lastUpdate = ticks;
   }
@@ -96,6 +99,8 @@ void PfxObjects::preFrameUpdate(uint8_t fId) {
       vbo = device.vboDyn(i.vboCpu); else
       vbo.update(i.vboCpu);
     }
+
+  trails.preFrameUpdate(fId);
   }
 
 PfxBucket& PfxObjects::getBucket(const ParticleFx &ow) {

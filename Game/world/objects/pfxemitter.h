@@ -6,6 +6,7 @@
 #include <zenload/zTypes.h>
 
 #include "graphics/meshobjects.h"
+#include "graphics/pfx/trlobjects.h"
 
 class World;
 class PfxBucket;
@@ -44,6 +45,8 @@ class PfxEmitter final {
 
     PfxBucket* bucket = nullptr;
     size_t     id     = size_t(-1);
+
+    TrlObjects::Item trail;
 
   friend class PfxBucket;
   friend class PfxObjects;

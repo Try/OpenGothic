@@ -15,7 +15,7 @@ Effect::Effect(PfxEmitter&& visual, const char* node)
   }
 
 Effect::Effect(const VisualFx& vfx, World& owner, const Npc& src, SpellFxKey key)
-  :Effect(vfx,owner,src.position() + Vec3(0,src.translateY(),0), key) {
+  :Effect(vfx,owner,src.position(), key) {
   pos.identity();
   }
 
@@ -105,9 +105,11 @@ void Effect::syncAttaches(const Matrix4x4& inPos) {
   }
 
 void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
+  if(root==nullptr && key==nullptr)
+    return;
+
   pos    = inPos;
   auto p = inPos;
-
   if(pose!=nullptr && boneId<pose->transform().size())
     p.mul(pose->transform(boneId));
 
@@ -116,7 +118,7 @@ void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
   Vec3 pos3 = {p.at(3,0),p.at(3,1),p.at(3,2)};
 
   visual.setObjMatrix(p);
-  light.setPosition(pos3);
+  light .setPosition(pos3);
   }
 
 void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {

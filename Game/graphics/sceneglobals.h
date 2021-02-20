@@ -44,7 +44,7 @@ class SceneGlobals final {
 
     Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][Resources::ShadowLayers];
 
-    LightSource                             sun;
+    LightSource                       sun;
     Tempest::Vec3                     ambient;
     LightGroup                        lights;
 

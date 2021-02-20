@@ -41,13 +41,10 @@ std::mt19937 PfxBucket::rndEngine;
 
 PfxBucket::PfxBucket(const ParticleFx &ow, PfxObjects* parent, VisualObjects& visual)
   :owner(&ow), parent(parent), visual(visual) {
-  Bounds bbox;
-  bbox.assign(Vec3(0,0,0),1000000); //TODO
-
   const Tempest::VertexBuffer<Resources::Vertex>* vbo[Resources::MaxFramesInFlight] = {};
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i)
     vbo[i] = &vboGpu[i];
-  item = visual.get(vbo,owner->visMaterial,bbox);
+  item = visual.get(vbo,owner->visMaterial,Bounds());
 
   Matrix4x4 ident;
   ident.identity();

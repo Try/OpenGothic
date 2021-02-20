@@ -354,8 +354,16 @@ void ObjectsBucket::visibilityPass(Painter3d& p) {
     auto& v = val[i];
     if(!v.isValid())
       continue;
-    if(!p.isVisible(v.bounds) && v.vboType!=VboType::VboMorph)
-      continue;
+    if(v.vboType==VboType::VboMorph) {
+      bool hasData = false;
+      for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i)
+        hasData |= v.vboM[i]->size()>0;
+      if(!hasData)
+        continue;
+      } else {
+      if(!p.isVisible(v.bounds))
+        continue;
+      }
     idx[indexSz] = &v;
     ++indexSz;
     }
@@ -365,8 +373,16 @@ void ObjectsBucket::visibilityPassAnd(Painter3d& p) {
   size_t nextSz = 0;
   for(size_t i=0; i<indexSz; ++i) {
     auto& v = *index[i];
-    if(!p.isVisible(v.bounds))
-      continue;
+    if(v.vboType==VboType::VboMorph) {
+      bool hasData = false;
+      for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i)
+        hasData |= v.vboM[i]->size()>0;
+      if(!hasData)
+        continue;
+      } else {
+      if(!p.isVisible(v.bounds))
+        continue;
+      }
     index[nextSz] = &v;
     ++nextSz;
     }

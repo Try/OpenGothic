@@ -31,6 +31,7 @@ PfxEmitter::PfxEmitter(PfxObjects& owner, const ParticleFx* decl) {
   std::lock_guard<std::recursive_mutex> guard(owner.sync);
   bucket = &owner.getBucket(*decl);
   id     = bucket->allocEmitter();
+  trail  = TrlObjects::Item(owner.trails,*decl);
   }
 
 PfxEmitter::PfxEmitter(World& world, const ZenLoad::zCVobData& vob) {
@@ -42,6 +43,8 @@ PfxEmitter::PfxEmitter(World& world, const ZenLoad::zCVobData& vob) {
     std::lock_guard<std::recursive_mutex> guard(owner.sync);
     bucket = &owner.getBucket(*decl);
     id     = bucket->allocEmitter();
+
+    trail = TrlObjects::Item(world,*decl);
     } else {
     Material mat(vob);
     std::lock_guard<std::recursive_mutex> guard(owner.sync);
@@ -58,13 +61,14 @@ PfxEmitter::~PfxEmitter() {
   }
 
 PfxEmitter::PfxEmitter(PfxEmitter && b)
-  :bucket(b.bucket), id(b.id) {
+  :bucket(b.bucket), id(b.id), trail(std::move(b.trail)) {
   b.bucket = nullptr;
   }
 
 PfxEmitter& PfxEmitter::operator=(PfxEmitter &&b) {
   std::swap(bucket,b.bucket);
-  std::swap(id,b.id);
+  std::swap(id,    b.id);
+  std::swap(trail, b.trail);
   return *this;
   }
 
@@ -76,6 +80,7 @@ void PfxEmitter::setPosition(const Vec3& pos) {
   if(bucket==nullptr)
     return;
   std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
+  trail.setPosition(pos);
   auto& v = bucket->get(id);
   v.pos = pos;
   if(v.next!=nullptr)

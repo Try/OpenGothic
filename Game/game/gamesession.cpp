@@ -68,7 +68,7 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
   vm->initDialogs(gothic);
   gothic.setLoadingProgress(70);
 
-  const bool testMode=true;
+  const bool testMode=false;
 
   const char* hero = testMode ? "PC_ROCKEFELLER" : "PC_HERO";
   //const char* hero = "PC_ROCKEFELLER";

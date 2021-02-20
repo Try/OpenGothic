@@ -68,4 +68,5 @@ class WorldView {
 
   friend class LightGroup::Light;
   friend class PfxEmitter;
+  friend class TrlObjects;
   };
