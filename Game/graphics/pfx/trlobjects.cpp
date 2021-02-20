@@ -217,8 +217,10 @@ void TrlObjects::Trail::tick(uint64_t dt, Bucket& bucket) {
       break;
       }
 
-  if(st==S_Fade && pt.size()<=1)
+  if(st==S_Fade && pt.size()<=1) {
     st = S_Free;
+    pt.clear();
+    }
   }
 
 TrlObjects::TrlObjects(const SceneGlobals& scene, VisualObjects& visual)

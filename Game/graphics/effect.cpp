@@ -105,10 +105,10 @@ void Effect::syncAttaches(const Matrix4x4& inPos) {
   }
 
 void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
-  if(root==nullptr && key==nullptr)
+  if(root==nullptr && visual.isEmpty())
     return;
 
-  pos    = inPos;
+  pos = inPos;
   auto p = inPos;
   if(pose!=nullptr && boneId<pose->transform().size())
     p.mul(pose->transform(boneId));
