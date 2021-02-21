@@ -319,7 +319,7 @@ bool WorldSound::canSeeSource(const Tempest::Vec3& p) const {
   auto dyn = owner.physic();
   for(auto& i:effect3d) {
     auto rc = dyn->ray(p.x,p.y,p.z, i->pos.x,i->pos.y,i->pos.z);
-    if(rc.hasCol)
+    if(!rc.hasCol)
       return true;
     }
   return false;
