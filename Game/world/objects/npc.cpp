@@ -1659,7 +1659,7 @@ Npc* Npc::updateNearestBody() {
       return;
 
     float d = qDistTo(n);
-    if(d<dist && canSenseNpc(n,true)!=SensesBit::SENSE_NONE) {
+    if(d<dist && (canSenseNpc(n,true)&SensesBit::SENSE_SEE)!=SensesBit::SENSE_NONE) {
       ret  = &n;
       dist = d;
       }
