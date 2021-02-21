@@ -315,6 +315,16 @@ bool WorldSound::isInListenerRange(const Tempest::Vec3& pos, float sndRgn) const
   return (pos-plPos).quadLength()<dist*dist;
   }
 
+bool WorldSound::canSeeSource(const Tempest::Vec3& p) const {
+  auto dyn = owner.physic();
+  for(auto& i:effect3d) {
+    auto rc = dyn->ray(p.x,p.y,p.z, i->pos.x,i->pos.y,i->pos.z);
+    if(rc.hasCol)
+      return true;
+    }
+  return false;
+  }
+
 void WorldSound::aiOutput(const Tempest::Vec3& pos,const std::string &outputname) {
   if(isInListenerRange(pos,talkRange)){
     std::lock_guard<std::mutex> guard(sync);

@@ -2515,11 +2515,13 @@ void GameScript::npc_ownedbynpc(Daedalus::DaedalusVM &vm) {
   }
 
 void GameScript::npc_canseesource(Daedalus::DaedalusVM& vm) {
-  notImplementedFn<&GameScript::npc_canseesource>("npc_canseesource");
   Npc* self = popInstance(vm);
-  if(self!=nullptr) // TODO
-    vm.setReturn(1); else
+  if(self!=nullptr) {
+    bool ret = owner.world()->sound()->canSeeSource(self->position()+Vec3(0,self->translateY(),0));
+    vm.setReturn(ret ? 1 : 0);
+    } else {
     vm.setReturn(0);
+    }
   }
 
 void GameScript::npc_getdisttoitem(Daedalus::DaedalusVM& vm) {
