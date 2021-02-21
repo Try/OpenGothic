@@ -16,9 +16,9 @@ class WayMatrix final {
   public:
     WayMatrix(World& owner,const ZenLoad::zCWayNetData& dat);
 
-    const WayPoint* findWayPoint (float x,float y,float z) const;
-    const WayPoint* findFreePoint(float x, float y, float z, const char* name, const std::function<bool(const WayPoint&)>& filter) const;
-    const WayPoint* findNextPoint(float x,float y,float z) const;
+    const WayPoint* findWayPoint (const Tempest::Vec3& at, const std::function<bool(const WayPoint&)>& filter) const;
+    const WayPoint* findFreePoint(const Tempest::Vec3& at, const char* name, const std::function<bool(const WayPoint&)>& filter) const;
+    const WayPoint* findNextPoint(const Tempest::Vec3& at) const;
 
     void            addFreePoint (const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
     void            addStartPoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
@@ -29,8 +29,7 @@ class WayMatrix final {
     const WayPoint* findPoint(const char* name, bool inexact) const;
     void            marchPoints(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
 
-    WayPath         wayTo(const WayPoint &start, const WayPoint& end) const;
-    WayPath         wayTo(float npcX,float npcY,float npcZ,const WayPoint& end) const;
+    WayPath         wayTo(const WayPoint &begin, const WayPoint& end) const;
 
   private:
     World&                 world;

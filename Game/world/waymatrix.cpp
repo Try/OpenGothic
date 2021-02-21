@@ -57,14 +57,14 @@ void WayMatrix::buildIndex() {
     }
   }
 
-const WayPoint *WayMatrix::findWayPoint(float x, float y, float z) const {
+const WayPoint *WayMatrix::findWayPoint(const Vec3& at, const std::function<bool(const WayPoint&)>& filter) const {
   const WayPoint* ret =nullptr;
   float           dist=std::numeric_limits<float>::max();
-  for(auto& w:wayPoints){
-    float dx = w.x-x;
-    float dy = w.y-y;
-    float dz = w.z-z;
-    float l=dx*dx+dy*dy+dz*dz;
+  for(auto& w:wayPoints) {
+    if(!filter(w))
+      continue;
+    auto  dp = w.position()-at;
+    float l  = dp.quadLength();
     if(l<dist){
       ret  = &w;
       dist = l;
@@ -73,23 +73,22 @@ const WayPoint *WayMatrix::findWayPoint(float x, float y, float z) const {
   return ret;
   }
 
-const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const char *name, const std::function<bool(const WayPoint&)>& filter) const {
+const WayPoint *WayMatrix::findFreePoint(const Vec3& at, const char *name, const std::function<bool(const WayPoint&)>& filter) const {
   auto&  index = findFpIndex(name);
-  return findFreePoint(x,y,z,index,filter);
+  return findFreePoint(at.x,at.y,at.z,index,filter);
   }
 
-const WayPoint *WayMatrix::findNextPoint(float x, float y, float z) const {
+const WayPoint *WayMatrix::findNextPoint(const Vec3& at) const {
   const WayPoint* ret   = nullptr;
   float           dist  = 20.f*100.f; // see scripting doc
 
   dist*=dist;
   for(auto pw:indexPoints){
     auto& w  = *pw;
-    float dx = w.x-x;
-    float dy = w.y-y;
-    float dz = w.z-z;
-    float l=dx*dx+dy*dy+dz*dz;
-    if(l<dist && dz*dz<300*300 && !w.isLocked()){
+    auto  dp = w.position()-at;
+    float l  = dp.quadLength();
+
+    if(l<dist && dp.z*dp.z<300*300 && !w.isLocked()){
       ret  = &w;
       dist = l;
       }
@@ -223,22 +222,7 @@ const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpInde
   return ret;
   }
 
-WayPath WayMatrix::wayTo(float npcX, float npcY, float npcZ, const WayPoint &end) const {
-  auto start = findWayPoint(npcX,npcY,npcZ);
-  if(!start)
-    return WayPath();
-
-  if(start==&end){
-    if(MoveAlgo::isClose(npcX,npcY,npcZ,end))
-      return WayPath();
-    WayPath ret;
-    ret.add(end);
-    return ret;
-    }
-  return wayTo(*start,end);
-  }
-
-WayPath WayMatrix::wayTo(const WayPoint& start, const WayPoint &end) const {
+WayPath WayMatrix::wayTo(const WayPoint& begin, const WayPoint& end) const {
   intptr_t endId = std::distance<const WayPoint*>(&wayPoints[0],&end);
   if(endId<0 || size_t(endId)>=wayPoints.size()){
     if(end.name.find("FP_")==0) {
@@ -255,14 +239,14 @@ WayPath WayMatrix::wayTo(const WayPoint& start, const WayPoint &end) const {
     for(auto& i:wayPoints)
       i.pathGen=0;
     }
-  start.pathLen = 0;
-  start.pathGen = pathGen;
+  begin.pathLen = 0;
+  begin.pathGen = pathGen;
 
   std::vector<const WayPoint*> *front=&stk[0], *back=&stk[1];
   stk[0].clear();
   stk[1].clear();
 
-  front->push_back(&start);
+  front->push_back(&begin);
 
   while(end.pathGen!=pathGen && front->size()>0){
     for(auto& wp:*front){
@@ -285,7 +269,7 @@ WayPath WayMatrix::wayTo(const WayPoint& start, const WayPoint &end) const {
   WayPath ret;
   ret.add(end);
   const WayPoint* current = &end;
-  while(current!=&start){
+  while(current!=&begin) {
     int32_t l0 = current->pathLen, l1=l0;
 
     const WayPoint* next=nullptr;

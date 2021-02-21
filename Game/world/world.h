@@ -65,7 +65,6 @@ class World final {
     const WayPoint*      findPoint(const std::string& s, bool inexact=true) const { return findPoint(s.c_str(),inexact); }
     const WayPoint*      findPoint(const char* name, bool inexact=true) const;
     const WayPoint*      findWayPoint(const Tempest::Vec3& pos) const;
-    const WayPoint*      findWayPoint(float x,float y,float z) const;
 
     const WayPoint*      findFreePoint(const Npc& pos,           const char* name) const;
     const WayPoint*      findFreePoint(const Tempest::Vec3& pos, const char* name) const;
@@ -78,7 +77,6 @@ class World final {
     void                 detectItem(const Tempest::Vec3& p, const float r, const std::function<void(Item&)>& f);
 
     WayPath              wayTo(const Npc& pos,const WayPoint& end) const;
-    WayPath              wayTo(float npcX,float npcY,float npcZ,const WayPoint& end) const;
 
     WorldView*           view()     const { return wview.get();    }
     WorldSound*          sound()          { return &wsound;         }

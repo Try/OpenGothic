@@ -792,11 +792,7 @@ const WayPoint *World::findPoint(const char *name, bool inexact) const {
   }
 
 const WayPoint* World::findWayPoint(const Tempest::Vec3& pos) const {
-  return findWayPoint(pos.x,pos.y,pos.z);
-  }
-
-const WayPoint* World::findWayPoint(float x, float y, float z) const {
-  return wmatrix->findWayPoint(x,y,z);
+  return wmatrix->findWayPoint(pos,[](const WayPoint&){ return true; });
   }
 
 const WayPoint *World::findFreePoint(const Npc &npc, const char *name) const {
@@ -808,7 +804,7 @@ const WayPoint *World::findFreePoint(const Npc &npc, const char *name) const {
   auto pos = npc.position();
   pos.y+=npc.translateY();
 
-  return wmatrix->findFreePoint(pos.x,pos.y,pos.z,name,[&npc](const WayPoint& wp) -> bool {
+  return wmatrix->findFreePoint(pos,name,[&npc](const WayPoint& wp) -> bool {
     if(wp.isLocked())
       return false;
     if(!npc.canSeeNpc(wp.x,wp.y+10,wp.z,true))
@@ -818,7 +814,7 @@ const WayPoint *World::findFreePoint(const Npc &npc, const char *name) const {
   }
 
 const WayPoint *World::findFreePoint(const Tempest::Vec3& pos, const char* name) const {
-  return wmatrix->findFreePoint(pos.x,pos.y,pos.z,name,[](const WayPoint& wp) -> bool {
+  return wmatrix->findFreePoint(pos,name,[](const WayPoint& wp) -> bool {
     if(wp.isLocked())
       return false;
     return true;
@@ -829,7 +825,7 @@ const WayPoint *World::findNextFreePoint(const Npc &npc, const char *name) const
   auto pos = npc.position();
   pos.y+=npc.translateY();
   auto cur = npc.currentWayPoint();
-  auto wp  = wmatrix->findFreePoint(pos.x,pos.y,pos.z,name,[cur,&npc](const WayPoint& wp) -> bool {
+  auto wp  = wmatrix->findFreePoint(pos,name,[cur,&npc](const WayPoint& wp) -> bool {
     if(wp.isLocked() || &wp==cur)
       return false;
     if(!npc.canSeeNpc(wp.x,wp.y+10,wp.z,true))
@@ -840,7 +836,7 @@ const WayPoint *World::findNextFreePoint(const Npc &npc, const char *name) const
   }
 
 const WayPoint *World::findNextPoint(const WayPoint &pos) const {
-  return wmatrix->findNextPoint(pos.x,pos.y,pos.z);
+  return wmatrix->findNextPoint(pos.position());
   }
 
 void World::detectNpcNear(std::function<void (Npc &)> f) {
@@ -855,17 +851,24 @@ void World::detectItem(const Tempest::Vec3& p, const float r, const std::functio
   wobj.detectItem(p.x,p.y,p.z,r,f);
   }
 
-WayPath World::wayTo(const Npc &pos, const WayPoint &end) const {
-  auto p     = pos.position();
-  auto point = pos.currentWayPoint();
-  if(point && !point->isFreePoint() && MoveAlgo::isClose(pos.position(),*point)){
-    return wmatrix->wayTo(*point,end);
+WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
+  auto p     = npc.position();
+  auto begin = npc.currentWayPoint();
+  if(begin && !begin->isFreePoint() && MoveAlgo::isClose(npc.position(),*begin)){
+    return wmatrix->wayTo(*begin,end);
     }
-  return wmatrix->wayTo(p.x,p.y,p.z,end);
-  }
 
-WayPath World::wayTo(float npcX, float npcY, float npcZ, const WayPoint &end) const {
-  return wmatrix->wayTo(npcX,npcY,npcZ,end);
+  begin = wmatrix->findWayPoint(p,[&npc](const WayPoint &wp){
+    if(!npc.canSeeNpc(wp.x,wp.y+10,wp.z,true))
+      return false;
+    return true;
+    });
+  if(begin==nullptr)
+    return WayPath();
+  if(MoveAlgo::isClose(p,*begin))
+    return WayPath();
+
+  return wmatrix->wayTo(*begin,end);
   }
 
 GameScript &World::script() const {
