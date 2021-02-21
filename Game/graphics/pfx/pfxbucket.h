@@ -17,12 +17,19 @@ class PfxBucket {
     PfxBucket(const ParticleFx &ow, PfxObjects* parent, VisualObjects& visual);
     ~PfxBucket();
 
+    enum AllocState: uint8_t {
+      S_Free,
+      S_Fade,
+      S_Inactive,
+      S_Active,
+      };
+
     struct ImplEmitter final {
+      AllocState    st           = S_Free;
       size_t        block        = size_t(-1);
+
       Tempest::Vec3 pos          = {};
       Tempest::Vec3 direction[3] = {{1,0,0}, {0,1,0}, {0,0,1}};
-      bool          alive        = false;
-      bool          active       = false;
       bool          isLoop       = false;
 
       Tempest::Vec3 target       = {};

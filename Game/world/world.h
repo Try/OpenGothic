@@ -161,7 +161,9 @@ class World final {
     void                 sendPassivePerc (Npc& self,Npc& other,Npc& victum,int32_t perc);
     void                 sendPassivePerc (Npc& self,Npc& other,Npc& victum, Item& item,int32_t perc);
 
-    bool                 isInListenerRange(const Tempest::Vec3& pos) const;
+    bool                 isInSfxRange(const Tempest::Vec3& pos) const;
+    bool                 isInPfxRange(const Tempest::Vec3& pos) const;
+
     void                 addDlgSound     (const char *s, const Tempest::Vec3& pos, float range, uint64_t &timeLen);
     void                 addWeaponsSound (Npc& self,Npc& other);
     void                 addLandHitSound (float x, float y, float z, uint8_t m0, uint8_t m1);

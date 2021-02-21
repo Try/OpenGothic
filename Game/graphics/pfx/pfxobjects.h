@@ -22,6 +22,8 @@ class PfxObjects final {
     PfxObjects(const SceneGlobals& scene, VisualObjects& visual);
     ~PfxObjects();
 
+    static constexpr const float viewRage = 4000.f;
+
     struct VboContext {
       Tempest::Vec3 left = {};
       Tempest::Vec3 top  = {};
@@ -35,6 +37,7 @@ class PfxObjects final {
 
     void       resetTicks();
     void       tick(uint64_t ticks);
+    bool       isInPfxRange(const Tempest::Vec3& pos) const;
 
     void       preFrameUpdate(uint8_t fId);
 

@@ -118,23 +118,27 @@ PfxBucket::Block& PfxBucket::getBlock(PfxEmitter& e) {
 size_t PfxBucket::allocEmitter() {
   for(size_t i=0; i<impl.size(); ++i) {
     auto& b = impl[i];
-    if(!b.alive && b.block==size_t(-1)) {
-      b.alive = true;
+    if(b.st==S_Free) {
+      b.st = S_Inactive;
       return i;
       }
     }
   impl.emplace_back();
   auto& e = impl.back();
   e.block = size_t(-1); // no backup memory
-  e.alive = true;
+  e.st    = S_Inactive;
 
   return impl.size()-1;
   }
 
 void PfxBucket::freeEmitter(size_t& id) {
   auto& v = impl[id];
-  v.alive  = false;
-  v.active = false;
+  if(v.block!=size_t(-1)) {
+    auto& b = getBlock(v);
+    v.st    = b.count==0 ? S_Free : S_Fade;
+    } else {
+    v.st    = S_Free;
+    }
   v.next.reset();
   id = size_t(-1);
   }
@@ -142,7 +146,7 @@ void PfxBucket::freeEmitter(size_t& id) {
 bool PfxBucket::shrink() {
   while(impl.size()>0) {
     auto& b = impl.back();
-    if(b.alive || b.block!=size_t(-1))
+    if(b.st!=S_Free)
       break;
     impl.pop_back();
     }
@@ -395,12 +399,10 @@ void PfxBucket::tick(Block& sys, ImplEmitter& emitter, size_t particle, uint64_t
 void PfxBucket::tick(uint64_t dt, const Vec3& viewPos) {
   bool doShrink = false;
   for(auto& emitter:impl) {
-    const auto dp      = emitter.pos-viewPos;
-    const bool active  = emitter.active;
-    const bool nearby  = (dp.quadLength()<4000*4000);
-    const bool process = active && nearby;
+    const auto dp     = emitter.pos-viewPos;
+    const bool nearby = (dp.quadLength()<PfxObjects::viewRage*PfxObjects::viewRage);
 
-    if(emitter.next==nullptr && owner->ppsCreateEm!=nullptr && emitter.waitforNext<dt && emitter.active) {
+    if(emitter.next==nullptr && owner->ppsCreateEm!=nullptr && emitter.waitforNext<dt && emitter.st==S_Active) {
       emitter.next.reset(new PfxEmitter(*parent,owner->ppsCreateEm));
       auto& e = *emitter.next;
       e.setPosition(emitter.pos.x,emitter.pos.y,emitter.pos.z);
@@ -411,17 +413,17 @@ void PfxBucket::tick(uint64_t dt, const Vec3& viewPos) {
     if(emitter.waitforNext>=dt)
       emitter.waitforNext-=dt;
 
-    if(!process && emitter.block==size_t(-1)) {
+    if(emitter.st==S_Free)
       continue;
-      }
 
     auto& p = getBlock(emitter);
     if(p.count>0) {
       for(size_t i=0;i<blockSize;++i)
         tick(p,emitter,i,dt);
-      if(p.count==0 && !process) {
+      if(p.count==0 && emitter.st==S_Fade) {
         // free mem
         freeBlock(emitter.block);
+        emitter.st = S_Free;
         doShrink = true;
         continue;
         }
@@ -430,7 +432,7 @@ void PfxBucket::tick(uint64_t dt, const Vec3& viewPos) {
     if(owner->ppsValue<0) {
       tickEmit(p,emitter,p.count==0 ? 1 : 0);
       }
-    else if(active && nearby) {
+    else if(emitter.st==S_Active && nearby) {
       auto dE = ppsDiff(*owner,emitter.isLoop,p.timeTotal,p.timeTotal+dt);
       tickEmit(p,emitter,dE);
       }

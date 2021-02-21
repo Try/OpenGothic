@@ -25,6 +25,7 @@ class WorldView {
     ~WorldView();
 
     const LightSource& mainLight() const;
+    bool isInPfxRange(const Tempest::Vec3& pos) const;
 
     void tick(uint64_t dt);
 

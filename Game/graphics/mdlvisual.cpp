@@ -428,10 +428,12 @@ void MdlVisual::setTorch(bool t, World& owner) {
 bool MdlVisual::updateAnimation(Npc* npc, World& world) {
   Pose&    pose      = *skInst;
   uint64_t tickCount = world.tickCount();
+  auto     pos3      = Vec3{pos.at(3,0), pos.at(3,1), pos.at(3,2)};
 
-  if(npc!=nullptr && npc->world().isInListenerRange(npc->position()))
+  if(npc!=nullptr && world.isInSfxRange(pos3))
     pose.processSfx(*npc,tickCount);
-  pose.processPfx(*this,world,tickCount);
+  if(world.isInPfxRange(pos3))
+    pose.processPfx(*this,world,tickCount);
 
   for(size_t i=0;i<effects.size();) {
     if(effects[i].timeUntil<tickCount) {

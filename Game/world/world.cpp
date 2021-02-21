@@ -741,8 +741,12 @@ void World::addBlockSound(Npc &self, Npc &other) {
   ret.play();
   }
 
-bool World::isInListenerRange(const Tempest::Vec3& pos) const {
+bool World::isInSfxRange(const Tempest::Vec3& pos) const {
   return wsound.isInListenerRange(pos,WorldSound::talkRange);
+  }
+
+bool World::isInPfxRange(const Tempest::Vec3& p) const {
+  return wview->isInPfxRange(p);
   }
 
 void World::addDlgSound(const char* s, const Tempest::Vec3& pos, float range, uint64_t& timeLen) {

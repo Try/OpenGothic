@@ -124,10 +124,11 @@ void PfxEmitter::setActive(bool act) {
   if(bucket==nullptr)
     return;
   std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
-  auto& v = bucket->get(id);
-  if(act==v.active)
+  auto& v     = bucket->get(id);
+  auto  state = (act ? PfxBucket::S_Active : PfxBucket::S_Inactive);
+  if(act==state)
     return;
-  v.active = act;
+  v.st = state;
   if(v.next!=nullptr)
     v.next->setActive(act);
   if(act==true)
@@ -139,7 +140,7 @@ bool PfxEmitter::isActive() const {
     return false;
   std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
   auto& v = bucket->get(id);
-  return v.active;
+  return v.st==PfxBucket::S_Active;
   }
 
 void PfxEmitter::setLooped(bool loop) {

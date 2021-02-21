@@ -28,6 +28,10 @@ const LightSource &WorldView::mainLight() const {
   return sGlobal.sun;
   }
 
+bool WorldView::isInPfxRange(const Vec3& pos) const {
+  return pfxGroup.isInPfxRange(pos);
+  }
+
 void WorldView::tick(uint64_t /*dt*/) {
   auto pl = owner.player();
   if(pl!=nullptr) {

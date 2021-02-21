@@ -81,6 +81,11 @@ void PfxObjects::tick(uint64_t ticks) {
   lastUpdate = ticks;
   }
 
+bool PfxObjects::isInPfxRange(const Vec3& pos) const {
+  auto dp = viewerPos-pos;
+  return dp.quadLength()<viewRage*viewRage;
+  }
+
 void PfxObjects::preFrameUpdate(uint8_t fId) {
   for(size_t i=0; i<bucket.size(); ) {
     if(bucket[i]->isEmpty()) {
