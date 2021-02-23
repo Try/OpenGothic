@@ -14,7 +14,7 @@ class PfxBucket {
   public:
     using Vertex = Resources::Vertex;
 
-    PfxBucket(const ParticleFx &ow, PfxObjects* parent, VisualObjects& visual);
+    PfxBucket(const ParticleFx &decl, PfxObjects& parent, VisualObjects& visual);
     ~PfxBucket();
 
     enum AllocState: uint8_t {
@@ -46,9 +46,9 @@ class PfxBucket {
     Tempest::VertexBufferDyn<Vertex> vboGpu[Resources::MaxFramesInFlight];
     std::vector<Vertex>         vboCpu;
 
-    const ParticleFx*           owner=nullptr;
-    PfxObjects*                 parent=nullptr;
-    size_t                      blockSize=0;
+    const ParticleFx&           decl;
+    PfxObjects&                 parent;
+    size_t                      blockSize = 0;
 
     bool                        isEmpty() const;
 
@@ -61,23 +61,19 @@ class PfxBucket {
 
   private:
     struct Block final {
-      uint64_t      timeTotal    = 0;
+      bool          allocated = false;
+      uint64_t      timeTotal = 0;
 
-      size_t        offset       = 0;
-      size_t        count        = 0;
+      size_t        offset    = 0;
+      size_t        count     = 0;
 
-      Tempest::Vec3 pos          = {};
-      Tempest::Vec3 direction[3] = {};
-      bool          alive        = true;
+      Tempest::Vec3 pos       = {};
       };
 
     struct ParState final {
       uint16_t      life=0,maxLife=1;
       Tempest::Vec3 pos, dir;
-
-      float         velocity=0;
       float         rotation=0;
-
       float         lifeTime() const;
       };
 
@@ -97,10 +93,14 @@ class PfxBucket {
     void                        finalize(size_t particle);
     void                        tick    (Block& sys, ImplEmitter& emitter, size_t particle, uint64_t dt);
 
+    void                        implTickCommon(uint64_t dt, const Tempest::Vec3& viewPos);
+    void                        implTickDecals(uint64_t dt, const Tempest::Vec3& viewPos);
+
     VisualObjects&              visual;
     std::vector<ParState>       particles;
     std::vector<ImplEmitter>    impl;
     std::vector<Block>          block;
+    const size_t                vertexCount;
 
     static std::mt19937         rndEngine;
 

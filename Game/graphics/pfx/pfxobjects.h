@@ -56,8 +56,8 @@ class PfxObjects final {
     VisualObjects&                visual;
     std::recursive_mutex          sync;
 
-    std::vector<std::unique_ptr<PfxBucket>> bucket;
-    std::vector<SpriteEmitter>              spriteEmit;
+    std::list<PfxBucket>          bucket;
+    std::vector<SpriteEmitter>    spriteEmit;
 
     Tempest::Vec3                 viewerPos={};
     uint64_t                      lastUpdate=0;

@@ -69,13 +69,13 @@ void PfxObjects::tick(uint64_t ticks) {
   ctx.leftA.z = ctx.left.z;
   ctx.topA.y  = -1;
 
-  for(size_t i=0; i<bucket.size(); ++i)
-    bucket[i]->tick(dt,viewerPos);
+  for(auto& i:bucket)
+    i.tick(dt,viewerPos);
 
   trails.tick(dt);
 
   for(auto& i:bucket)
-    i->buildVbo(ctx);
+    i.buildVbo(ctx);
   trails.buildVbo(-ctx.z);
 
   lastUpdate = ticks;
@@ -87,18 +87,16 @@ bool PfxObjects::isInPfxRange(const Vec3& pos) const {
   }
 
 void PfxObjects::preFrameUpdate(uint8_t fId) {
-  for(size_t i=0; i<bucket.size(); ) {
-    if(bucket[i]->isEmpty()) {
-      bucket[i] = std::move(bucket.back());
-      bucket.pop_back();
+  for(auto i=bucket.begin(), end = bucket.end(); i!=end; ) {
+    if(i->isEmpty()) {
+      i = bucket.erase(i);
       } else {
       ++i;
       }
     }
 
   auto& device = scene.storage.device;
-  for(auto& pi:bucket) {
-    auto& i=*pi;
+  for(auto& i:bucket) {
     auto& vbo = i.vboGpu[fId];
     if(i.vboCpu.size()!=vbo.size())
       vbo = device.vboDyn(i.vboCpu); else
@@ -108,12 +106,12 @@ void PfxObjects::preFrameUpdate(uint8_t fId) {
   trails.preFrameUpdate(fId);
   }
 
-PfxBucket& PfxObjects::getBucket(const ParticleFx &ow) {
+PfxBucket& PfxObjects::getBucket(const ParticleFx &decl) {
   for(auto& i:bucket)
-    if(i->owner==&ow)
-      return *i;
-  bucket.emplace_back(new PfxBucket(ow,this,visual));
-  return *bucket.back();
+    if(&i.decl==&decl)
+      return i;
+  bucket.emplace_back(decl,*this,visual);
+  return bucket.back();
   }
 
 PfxBucket& PfxObjects::getBucket(const Material& mat, const ZenLoad::zCVobData& vob) {

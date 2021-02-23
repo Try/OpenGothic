@@ -55,7 +55,7 @@ PfxEmitter::PfxEmitter(World& world, const ZenLoad::zCVobData& vob) {
 
 PfxEmitter::~PfxEmitter() {
   if(bucket!=nullptr) {
-    std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
+    std::lock_guard<std::recursive_mutex> guard(bucket->parent.sync);
     bucket->freeEmitter(id);
     }
   }
@@ -79,7 +79,7 @@ void PfxEmitter::setPosition(float x, float y, float z) {
 void PfxEmitter::setPosition(const Vec3& pos) {
   if(bucket==nullptr)
     return;
-  std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
+  std::lock_guard<std::recursive_mutex> guard(bucket->parent.sync);
   trail.setPosition(pos);
   auto& v = bucket->get(id);
   v.pos = pos;
@@ -94,7 +94,7 @@ void PfxEmitter::setPosition(const Vec3& pos) {
 void PfxEmitter::setTarget(const Vec3& pos) {
   if(bucket==nullptr)
     return;
-  std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
+  std::lock_guard<std::recursive_mutex> guard(bucket->parent.sync);
   auto& v = bucket->get(id);
   v.target    = pos;
   v.hasTarget = true;
@@ -103,7 +103,7 @@ void PfxEmitter::setTarget(const Vec3& pos) {
 void PfxEmitter::setDirection(const Matrix4x4& d) {
   if(bucket==nullptr)
     return;
-  std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
+  std::lock_guard<std::recursive_mutex> guard(bucket->parent.sync);
   auto& v = bucket->get(id);
   v.direction[0] = Vec3(d.at(0,0),d.at(0,1),d.at(0,2));
   v.direction[1] = Vec3(d.at(1,0),d.at(1,1),d.at(1,2));
@@ -111,19 +111,12 @@ void PfxEmitter::setDirection(const Matrix4x4& d) {
 
   if(v.next!=nullptr)
     v.next->setDirection(d);
-
-  if(v.block==size_t(-1))
-    return; // no backup memory
-  auto& p = bucket->getBlock(*this);
-  p.direction[0] = v.direction[0];
-  p.direction[1] = v.direction[1];
-  p.direction[2] = v.direction[2];
   }
 
 void PfxEmitter::setActive(bool act) {
   if(bucket==nullptr)
     return;
-  std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
+  std::lock_guard<std::recursive_mutex> guard(bucket->parent.sync);
   auto& v     = bucket->get(id);
   auto  state = (act ? PfxBucket::S_Active : PfxBucket::S_Inactive);
   if(act==state)
@@ -132,13 +125,13 @@ void PfxEmitter::setActive(bool act) {
   if(v.next!=nullptr)
     v.next->setActive(act);
   if(act==true)
-    v.waitforNext = bucket->owner->ppsCreateEmDelay;
+    v.waitforNext = bucket->decl.ppsCreateEmDelay;
   }
 
 bool PfxEmitter::isActive() const {
   if(bucket==nullptr)
     return false;
-  std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
+  std::lock_guard<std::recursive_mutex> guard(bucket->parent.sync);
   auto& v = bucket->get(id);
   return v.st==PfxBucket::S_Active;
   }
@@ -146,7 +139,7 @@ bool PfxEmitter::isActive() const {
 void PfxEmitter::setLooped(bool loop) {
   if(bucket==nullptr)
     return;
-  std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
+  std::lock_guard<std::recursive_mutex> guard(bucket->parent.sync);
   auto& v = bucket->get(id);
   v.isLoop = loop;
   if(v.next!=nullptr)
@@ -156,7 +149,7 @@ void PfxEmitter::setLooped(bool loop) {
 void PfxEmitter::setMesh(const MeshObjects::Mesh* mesh, const Pose* pose) {
   const PfxEmitterMesh* m = (mesh!=nullptr) ? mesh->toMeshEmitter() : nullptr;
 
-  std::lock_guard<std::recursive_mutex> guard(bucket->parent->sync);
+  std::lock_guard<std::recursive_mutex> guard(bucket->parent.sync);
   auto& v = bucket->get(id);
   v.mesh = m;
   v.pose = pose;
@@ -167,7 +160,7 @@ void PfxEmitter::setMesh(const MeshObjects::Mesh* mesh, const Pose* pose) {
 uint64_t PfxEmitter::effectPrefferedTime() const {
   if(bucket==nullptr)
     return 0;
-  return bucket->owner->effectPrefferedTime();
+  return bucket->decl.effectPrefferedTime();
   }
 
 void PfxEmitter::setObjMatrix(const Matrix4x4 &mt) {

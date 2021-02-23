@@ -83,6 +83,7 @@ class Effect final {
     const MeshObjects::Mesh* meshEmitter = nullptr;
 
     Tempest::Matrix4x4    pos;
+    bool                  looped = false;
 
     std::unique_ptr<Effect> next;
   };

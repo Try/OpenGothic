@@ -39,19 +39,19 @@ float PfxBucket::ParState::lifeTime() const {
 std::mt19937 PfxBucket::rndEngine;
 
 
-PfxBucket::PfxBucket(const ParticleFx &ow, PfxObjects* parent, VisualObjects& visual)
-  :owner(&ow), parent(parent), visual(visual) {
+PfxBucket::PfxBucket(const ParticleFx &decl, PfxObjects& parent, VisualObjects& visual)
+  :decl(decl), parent(parent), visual(visual), vertexCount(decl.visTexIsQuadPoly ? 6 : 3) {
   const Tempest::VertexBuffer<Resources::Vertex>* vbo[Resources::MaxFramesInFlight] = {};
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i)
     vbo[i] = &vboGpu[i];
-  item = visual.get(vbo,owner->visMaterial,Bounds());
+  item = visual.get(vbo,decl.visMaterial,Bounds());
 
   Matrix4x4 ident;
   ident.identity();
   item.setObjMatrix(ident);
 
-  uint64_t lt      = ow.maxLifetime();
-  uint64_t pps     = uint64_t(std::ceil(ow.maxPps()));
+  uint64_t lt      = decl.maxLifetime();
+  uint64_t pps     = uint64_t(std::ceil(decl.maxPps()));
   uint64_t reserve = (lt*pps+1000-1)/1000;
   blockSize        = size_t(reserve);
   if(blockSize==0)
@@ -71,8 +71,9 @@ bool PfxBucket::isEmpty() const {
 
 size_t PfxBucket::allocBlock() {
   for(size_t i=0;i<block.size();++i) {
-    if(!block[i].alive) {
-      block[i].alive=true;
+    if(!block[i].allocated) {
+      block[i].allocated = true;
+      block[i].timeTotal = 0;
       return i;
       }
     }
@@ -80,10 +81,12 @@ size_t PfxBucket::allocBlock() {
   block.emplace_back();
 
   Block& b = block.back();
-  b.offset = particles.size();
+  b.allocated = true;
+  b.offset    = particles.size();
+  b.timeTotal = 0;
 
   particles.resize(particles.size()+blockSize);
-  vboCpu.resize(particles.size()*6);
+  vboCpu.resize(particles.size()*vertexCount);
 
   for(size_t i=0; i<blockSize; ++i)
     particles[b.offset+i].life = 0;
@@ -95,18 +98,15 @@ void PfxBucket::freeBlock(size_t& i) {
     return;
   auto& b = block[i];
   assert(b.count==0);
-  b.alive = false;
+  b.allocated = false;
   i = size_t(-1);
   }
 
 PfxBucket::Block& PfxBucket::getBlock(ImplEmitter &e) {
   if(e.block==size_t(-1)) {
-    e.block        = allocBlock();
-    auto& p        = block[e.block];
-    p.pos          = e.pos;
-    p.direction[0] = e.direction[0];
-    p.direction[1] = e.direction[1];
-    p.direction[2] = e.direction[2];
+    e.block = allocBlock();
+    auto& p = block[e.block];
+    p.pos   = e.pos;
     }
   return block[e.block];
   }
@@ -136,6 +136,8 @@ void PfxBucket::freeEmitter(size_t& id) {
   if(v.block!=size_t(-1)) {
     auto& b = getBlock(v);
     v.st    = b.count==0 ? S_Free : S_Fade;
+    if(b.count==0)
+      freeBlock(v.block);
     } else {
     v.st    = S_Free;
     }
@@ -152,13 +154,13 @@ bool PfxBucket::shrink() {
     }
   while(block.size()>0) {
     auto& b = block.back();
-    if(b.alive || b.count>0)
+    if(b.allocated)
       break;
     block.pop_back();
     }
   if(particles.size()!=block.size()*blockSize) {
     particles.resize(block.size()*blockSize);
-    vboCpu.resize(particles.size()*6);
+    vboCpu.resize(particles.size()*vertexCount);
     return true;
     }
   return false;
@@ -174,13 +176,12 @@ float PfxBucket::randf(float base, float var) {
 
 void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t particle) {
   auto& p   = particles[particle];
-  auto& pfx = *owner;
 
-  p.life    = uint16_t(randf(pfx.lspPartAvg,pfx.lspPartVar));
+  p.life    = uint16_t(randf(decl.lspPartAvg,decl.lspPartVar));
   p.maxLife = p.life;
 
   // TODO: pfx.shpDistribType, pfx.shpDistribWalkSpeed;
-  switch(pfx.shpType) {
+  switch(decl.shpType) {
     case ParticleFx::EmitterType::Point:{
       p.pos = Vec3();
       break;
@@ -191,7 +192,7 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       break;
       }
     case ParticleFx::EmitterType::Box:{
-      if(pfx.shpIsVolume) {
+      if(decl.shpIsVolume) {
         p.pos = Vec3(randf()*2.f-1.f,
                      randf()*2.f-1.f,
                      randf()*2.f-1.f);
@@ -211,7 +212,7 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       p.pos = Vec3(std::sin(phi) * std::cos(theta),
                    std::sin(phi) * std::sin(theta),
                    std::cos(phi));
-      if(pfx.shpIsVolume)
+      if(decl.shpIsVolume)
         p.pos*=randf();
       break;
       }
@@ -221,49 +222,48 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
                    0,
                    std::cos(a));
       p.pos*=0.5;
-      if(pfx.shpIsVolume)
+      if(decl.shpIsVolume)
         p.pos = p.pos*std::sqrt(randf());
       break;
       }
     case ParticleFx::EmitterType::Mesh:{
       p.pos = Vec3();
-      auto mesh = (emitter.mesh!=nullptr) ? emitter.mesh : pfx.shpMesh;
+      auto mesh = (emitter.mesh!=nullptr) ? emitter.mesh : decl.shpMesh;
       auto pose = (emitter.mesh!=nullptr) ? emitter.pose : nullptr;
       if(mesh!=nullptr) {
         auto pos = mesh->randCoord(randf(),pose);
-        p.pos = block.direction[0]*pos.x +
-                block.direction[1]*pos.y +
-                block.direction[2]*pos.z;
+        p.pos = emitter.direction[0]*pos.x +
+                emitter.direction[1]*pos.y +
+                emitter.direction[2]*pos.z;
         }
       break;
       }
     }
 
-  if(pfx.shpType!=ParticleFx::EmitterType::Mesh) {
-    Vec3 dim = pfx.shpDim*pfx.shpScale(block.timeTotal);
+  if(decl.shpType!=ParticleFx::EmitterType::Mesh) {
+    Vec3 dim = decl.shpDim*decl.shpScale(block.timeTotal);
     p.pos.x*=dim.x;
     p.pos.y*=dim.y;
     p.pos.z*=dim.z;
     }
 
-  switch(pfx.shpFOR) {
+  // NOTE:
+  switch(decl.shpFOR) {
     case ParticleFx::Frame::Object:
     case ParticleFx::Frame::Node: {
-      p.pos += block.direction[0]*pfx.shpOffsetVec.x +
-               block.direction[1]*pfx.shpOffsetVec.y +
-               block.direction[2]*pfx.shpOffsetVec.z;
+      p.pos += emitter.direction[0]*decl.shpOffsetVec.x +
+               emitter.direction[1]*decl.shpOffsetVec.y +
+               emitter.direction[2]*decl.shpOffsetVec.z;
       break;
       }
     case ParticleFx::Frame::World: {
-      p.pos += pfx.shpOffsetVec;
+      p.pos += decl.shpOffsetVec;
       break;
       }
     }
 
-  p.velocity = randf(pfx.velAvg,pfx.velVar);
-
   float dirRotation = 0;
-  switch(pfx.dirMode) {
+  switch(decl.dirMode) {
     case ParticleFx::Dir::Rand: {
       float dy    = 1.f - 2.f * randf();
       float sn    = std::sqrt(1-dy*dy);
@@ -271,56 +271,63 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       float dx    = sn * std::cos(theta);
       float dz    = sn * std::sin(theta);
 
-      dirRotation = std::atan2(dy,(dx>0 ? sn : -sn));
       p.dir = Vec3(dx,dy,dz);
       break;
       }
     case ParticleFx::Dir::Dir: {
-      float theta = (90+randf(pfx.dirAngleHead,pfx.dirAngleHeadVar))*float(M_PI)/180.f;
-      float phi   = (   randf(pfx.dirAngleElev,pfx.dirAngleElevVar))*float(M_PI)/180.f;
+      float theta = (90+randf(decl.dirAngleHead,decl.dirAngleHeadVar))*float(M_PI)/180.f;
+      float phi   = (   randf(decl.dirAngleElev,decl.dirAngleElevVar))*float(M_PI)/180.f;
 
       float dx = std::cos(phi) * std::cos(theta);
       float dy = std::sin(phi);
       float dz = std::cos(phi) * std::sin(theta);
 
-      if(pfx.dirModeTargetFOR==ParticleFx::Frame::Object &&
-         pfx.shpType         ==ParticleFx::EmitterType::Sphere &&
-         pfx.dirAngleHeadVar>=180 &&
-         pfx.dirAngleElevVar>=180 ) {
+      // TODO: remove
+      if(decl.dirModeTargetFOR==ParticleFx::Frame::Object &&
+         decl.shpType         ==ParticleFx::EmitterType::Sphere &&
+         decl.dirAngleHeadVar>=180 &&
+         decl.dirAngleElevVar>=180 ) {
         dx = p.pos.x;
         dy = p.pos.y;
         dz = p.pos.z;
         }
 
-      switch(pfx.dirFOR) {
+      switch(decl.dirFOR) {
         case ParticleFx::Frame::Node: {
-          p.dir = block.direction[0]*dx +
-                  block.direction[1]*dy +
-                  block.direction[2]*dz;
+          p.dir = emitter.direction[0]*dx +
+                  emitter.direction[1]*dy +
+                  emitter.direction[2]*dz;
+          dirRotation = std::atan2(p.dir.x,p.dir.y);
           break;
           }
-        case ParticleFx::Frame::World:
+        case ParticleFx::Frame::World: {
+          dirRotation = std::atan2(p.dir.x,p.dir.y);
+          break;
+          }
         case ParticleFx::Frame::Object: {
           p.dir = Vec3(dx,dy,dz);
+          dirRotation = std::atan2(p.dir.x,p.dir.y);
           break;
           }
         }
-
-      float l = p.dir.manhattanLength();
-      if(l>0)
-        p.dir/=l;
-      dirRotation = std::atan2(p.dir.x,p.dir.y);
       break;
       }
     case ParticleFx::Dir::Target:
-      p.dir = pfx.dirModeTargetPos;
-      dirRotation = randf()*float(2.0*M_PI);
+      // NOTE: dirModeTargetFOR is unknown parameter
+      switch(decl.dirModeTargetFOR) {
+        case ParticleFx::Frame::Node:
+        case ParticleFx::Frame::World:
+        case ParticleFx::Frame::Object: {
+          p.dir       = decl.dirModeTargetPos + emitter.target;
+          dirRotation = 0; //randf()*float(2.0*M_PI);
+          }
+        }
       break;
     }
 
-  switch(pfx.visOrientation){
+  switch(decl.visOrientation) {
     case ParticleFx::Orientation::None:
-      switch(pfx.dirMode) {
+      switch(decl.dirMode) {
         case ParticleFx::Dir::Target:
           p.rotation = dirRotation;
           break;
@@ -330,25 +337,28 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
         }
       break;
     case ParticleFx::Orientation::Velocity:
-      p.rotation = dirRotation;
-      break;
     case ParticleFx::Orientation::Velocity3d:
       p.rotation = dirRotation;
       break;
     }
 
-  if(!pfx.useEmittersFOR)
-    p.pos += block.pos;
+  if(!decl.useEmittersFOR)
+    p.pos += emitter.pos;
+  auto l = p.dir.manhattanLength();
+  if(l!=0.f) {
+    float velocity = randf(decl.velAvg,decl.velVar);
+    p.dir = p.dir*velocity/l;
+    }
   }
 
 void PfxBucket::finalize(size_t particle) {
-  Vertex* v = &vboCpu[particle*6];
-  std::memset(v,0,sizeof(*v)*6);
+  Vertex* v = &vboCpu[particle*vertexCount];
+  std::memset(v,0,sizeof(*v)*vertexCount);
   auto& p = particles[particle];
   p = {};
   }
 
-void PfxBucket::tick(Block& sys, ImplEmitter& emitter, size_t particle, uint64_t dt) {
+void PfxBucket::tick(Block& sys, ImplEmitter&, size_t particle, uint64_t dt) {
   ParState& ps = particles[particle+sys.offset];
   if(ps.life==0)
     return;
@@ -360,50 +370,30 @@ void PfxBucket::tick(Block& sys, ImplEmitter& emitter, size_t particle, uint64_t
     return;
     }
 
-  auto&       pfx  = *owner;
   const float dtF  = float(dt);
-  Vec3        dpos = {};
-
-  switch(pfx.dirMode) {
-    case ParticleFx::Dir::Dir:
-      dpos = ps.dir*ps.velocity;
-      break;
-    case ParticleFx::Dir::Target: {
-      Vec3 dx, from, to;
-      if(emitter.hasTarget)
-        to = emitter.target; else
-        to = sys.pos;
-
-      if(pfx.useEmittersFOR)
-        from = ps.pos+sys.pos; else
-        from = ps.pos;
-
-      dx = to - from;
-      const float dplen = dx.manhattanLength();
-      if(ps.velocity*dtF>dplen)
-        dpos = dx/dtF; else
-        dpos = dx*ps.velocity/dplen;
-      break;
-      }
-    case ParticleFx::Dir::Rand:
-      dpos = ps.dir*ps.velocity;
-      break;
-    }
 
   // eval particle
   ps.life  = uint16_t(ps.life-dt);
-  ps.pos  += dpos*dtF;
-  ps.dir  += pfx.flyGravity*dtF;
+  ps.pos  += ps.dir*dtF;
+  ps.dir  += decl.flyGravity*dtF;
   }
 
 void PfxBucket::tick(uint64_t dt, const Vec3& viewPos) {
+  if(decl.ppsValue<0) {
+    implTickDecals(dt,viewPos);
+    return;
+    }
+  implTickCommon(dt,viewPos);
+  }
+
+void PfxBucket::implTickCommon(uint64_t dt, const Vec3& viewPos) {
   bool doShrink = false;
   for(auto& emitter:impl) {
     const auto dp     = emitter.pos-viewPos;
     const bool nearby = (dp.quadLength()<PfxObjects::viewRage*PfxObjects::viewRage);
 
-    if(emitter.next==nullptr && owner->ppsCreateEm!=nullptr && emitter.waitforNext<dt && emitter.st==S_Active) {
-      emitter.next.reset(new PfxEmitter(*parent,owner->ppsCreateEm));
+    if(emitter.next==nullptr && decl.ppsCreateEm!=nullptr && emitter.waitforNext<dt && emitter.st==S_Active) {
+      emitter.next.reset(new PfxEmitter(parent,decl.ppsCreateEm));
       auto& e = *emitter.next;
       e.setPosition(emitter.pos.x,emitter.pos.y,emitter.pos.z);
       e.setActive(true);
@@ -429,11 +419,8 @@ void PfxBucket::tick(uint64_t dt, const Vec3& viewPos) {
         }
       }
 
-    if(owner->ppsValue<0) {
-      tickEmit(p,emitter,p.count==0 ? 1 : 0);
-      }
-    else if(emitter.st==S_Active && nearby) {
-      auto dE = ppsDiff(*owner,emitter.isLoop,p.timeTotal,p.timeTotal+dt);
+    if(emitter.st==S_Active && nearby) {
+      auto dE = ppsDiff(decl,emitter.isLoop,p.timeTotal,p.timeTotal+dt);
       tickEmit(p,emitter,dE);
       }
     p.timeTotal+=dt;
@@ -441,6 +428,17 @@ void PfxBucket::tick(uint64_t dt, const Vec3& viewPos) {
 
   if(doShrink)
     shrink();
+  }
+
+void PfxBucket::implTickDecals(uint64_t, const Vec3&) {
+  for(auto& emitter:impl) {
+    if(emitter.st==S_Free)
+      continue;
+
+    auto& p = getBlock(emitter);
+    if(p.count==0)
+      tickEmit(p,emitter,1);
+    }
   }
 
 void PfxBucket::tickEmit(Block& p, ImplEmitter& emitter, uint64_t emited) {
@@ -464,37 +462,45 @@ void PfxBucket::tickEmit(Block& p, ImplEmitter& emitter, uint64_t emited) {
   }
 
 void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
-  static const float dx[6] = {-0.5f, 0.5f, -0.5f,  0.5f,  0.5f, -0.5f};
-  static const float dy[6] = { 0.5f, 0.5f, -0.5f,  0.5f, -0.5f, -0.5f};
+  static const float U[6]   = { 0.f, 1.f, 0.f,  0.f, 1.f, 1.f};
+  static const float V[6]   = { 1.f, 0.f, 0.f,  1.f, 1.f, 0.f};
 
-  auto& pfx             = *owner;
-  auto  colorS          = pfx.visTexColorStart;
-  auto  colorE          = pfx.visTexColorEnd;
-  auto  visSizeStart    = pfx.visSizeStart;
-  auto  visSizeEndScale = pfx.visSizeEndScale;
-  auto  visAlphaStart   = pfx.visAlphaStart;
-  auto  visAlphaEnd     = pfx.visAlphaEnd;
-  auto  visAlphaFunc    = pfx.visMaterial.alpha;
+  static const float dxQ[6] = {-0.5f, 0.5f, -0.5f, -0.5f,  0.5f,  0.5f};
+  static const float dyQ[6] = { 0.5f,-0.5f, -0.5f,  0.5f,  0.5f, -0.5f};
 
-  const Vec3& left = pfx.visYawAlign ? ctx.leftA : ctx.left;
-  const Vec3& top  = pfx.visYawAlign ? ctx.topA  : ctx.top;
+  static const float dxT[3] = {-0.5f,  1.5f, -0.5f};
+  static const float dyT[3] = { 1.5f, -0.5f, -0.5f};
+
+  const float*       dx     = decl.visTexIsQuadPoly ? dxQ : dxT;
+  const float*       dy     = decl.visTexIsQuadPoly ? dyQ : dyT;
+
+  auto  colorS          = decl.visTexColorStart;
+  auto  colorE          = decl.visTexColorEnd;
+  auto  visSizeStart    = decl.visSizeStart;
+  auto  visSizeEndScale = decl.visSizeEndScale;
+  auto  visAlphaStart   = decl.visAlphaStart;
+  auto  visAlphaEnd     = decl.visAlphaEnd;
+  auto  visAlphaFunc    = decl.visMaterial.alpha;
+
+  const Vec3& left = decl.visYawAlign ? ctx.leftA : ctx.left;
+  const Vec3& top  = decl.visYawAlign ? ctx.topA  : ctx.top;
 
   for(auto& p:block) {
     if(p.count==0)
       continue;
 
-    for(size_t i=0;i<blockSize;++i) {
-      ParState& ps = particles[i+p.offset];
-      Vertex*   v  = &vboCpu[(p.offset+i)*6];
+    for(size_t pId=0; pId<blockSize; ++pId) {
+      ParState& ps = particles[pId+p.offset];
+      Vertex*   v  = &vboCpu[(pId+p.offset)*vertexCount];
 
       if(ps.life==0) {
-        std::memset(v,0,6*sizeof(*v));
+        std::memset(v,0,vertexCount*sizeof(*v));
         continue;
         }
 
-      const float a   = ps.lifeTime();
-      const Vec3  cl  = colorS*(1.f-a)        + colorE*a;
-      const float clA = visAlphaStart*(1.f-a) + visAlphaEnd*a;
+      const float a     = ps.lifeTime();
+      const Vec3  cl    = colorS*(1.f-a)        + colorE*a;
+      const float clA   = visAlphaStart*(1.f-a) + visAlphaEnd*a;
 
       const float scale = 1.f*(1.f-a) + a*visSizeEndScale;
       const float szX   = visSizeStart.x*scale;
@@ -504,11 +510,30 @@ void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
       Vec3 l={};
       Vec3 t={};
 
-      if(pfx.visOrientation==ParticleFx::Orientation::Velocity3d) {
+      if(decl.visOrientation==ParticleFx::Orientation::Velocity3d) {
         static float k1 = -1, k2 = -1;
-        t = ps.dir*k1;
-        l = Vec3::crossProduct(t,ctx.z)*k2;
-        } else {
+        auto dir    = ps.dir;
+        auto ldir   = dir.manhattanLength();
+        if(ldir!=0.f)
+          dir/=ldir;
+        auto dU     = Vec3(0,-1,0);
+        auto dF     = Vec3(ctx.z);
+        auto normal = std::fabs(Vec3::dotProduct(dU,dir)) < std::fabs(Vec3::dotProduct(dF,dir)) ? dU : dF;
+        auto top    = dir*k1;
+        auto left   = Vec3::crossProduct(top,normal)*k2;
+        rotate(l,t,ps.rotation,left,top);
+        }
+      else if(decl.visOrientation==ParticleFx::Orientation::Velocity) {
+        auto dir    = ps.dir;
+        auto ldir   = dir.manhattanLength();
+        if(ldir!=0.f)
+          dir/=ldir;
+        float sVel = 1.f - std::fabs(Vec3::dotProduct(ctx.z,dir));
+        rotate(l,t,ps.rotation,left,top);
+        l = l*sVel;
+        t = t*sVel;
+        }
+      else {
         rotate(l,t,ps.rotation,left,top);
         }
 
@@ -532,12 +557,12 @@ void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
         color.a = uint8_t(clA*255);
         }
 
-      for(int i=0;i<6;++i) {
+      for(size_t i=0; i<vertexCount; ++i) {
         float sx = l.x*dx[i]*szX + t.x*dy[i]*szY;
         float sy = l.y*dx[i]*szX + t.y*dy[i]*szY;
         float sz = l.z*dx[i]*szX + t.z*dy[i]*szY;
 
-        if(pfx.useEmittersFOR) {
+        if(decl.useEmittersFOR) {
           v[i].pos[0] = p.pos.x + ps.pos.x + sx;
           v[i].pos[1] = p.pos.y + ps.pos.y + sy;
           v[i].pos[2] = p.pos.z + ps.pos.z + sz;
@@ -547,14 +572,14 @@ void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
           v[i].pos[2] = ps.pos.z + sz;
           }
 
-        if(pfx.visZBias) {
+        if(decl.visZBias) {
           v[i].pos[0] -= szZ*ctx.z.x;
           v[i].pos[1] -= szZ*ctx.z.y;
           v[i].pos[2] -= szZ*ctx.z.z;
           }
 
-        v[i].uv[0]  = (dx[i]+0.5f);
-        v[i].uv[1]  = (dy[i]+0.5f);
+        v[i].uv[0]  = U[i];
+        v[i].uv[1]  = V[i];
 
         v[i].norm[0] = -ctx.z.x;
         v[i].norm[1] = -ctx.z.y;

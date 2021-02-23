@@ -2272,6 +2272,7 @@ void Npc::commitSpell() {
     b.setOwner(this);
     b.setDamage(dmg);
     b.setHitChance(1.f);
+    visual.setMagicWeaponKey(owner,SpellFxKey::Init);
     } else {
     const VisualFx* vfx = owner.script().getSpellVFx(splId);
     if(vfx!=nullptr) {

@@ -73,6 +73,9 @@ void Effect::setActive(bool e) {
   }
 
 void Effect::setLooped(bool l) {
+  if(looped==l)
+    return;
+  looped = l;
   if(next!=nullptr)
     next->setLooped(l);
   visual.setLooped(l);
@@ -136,19 +139,9 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
   auto vfx = owner.script().getVisualFx(key->emCreateFXID.c_str());
   if(vfx!=nullptr) {
     auto ex = Effect(*vfx,owner,pos3,SpellFxKey::Count);
-    if(skeleton!=nullptr && pose!=nullptr) {
-      // size_t nid = 0;
-      size_t nid = skeleton->findNode(vfx->origin());
-      Matrix4x4 p = pos;
-      if(nid<pose->transform().size()) {
-        p.mul(pose->transform(nid));
-        }
-      pos3 = {p.at(3,0),p.at(3,1),p.at(3,2)};
-      ex.setPosition(pos3);
-      ex.setTarget  (pos3);
-      }
     ex.setActive(true);
-    // NOTE: investigate spell-light
+    if(pose!=nullptr && skeleton!=nullptr)
+      ex.bindAttaches(*pose,*skeleton);
     next.reset(new Effect(std::move(ex)));
     }
 
@@ -158,6 +151,7 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
     if(root->isMeshEmmiter())
       visual.setMesh(meshEmitter,pose);
     visual.setActive(true);
+    visual.setLooped(looped);
     }
 
   if(key->lightRange>0.0) {
@@ -192,7 +186,7 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
     light = LightGroup::Light();
     }
 
-  setObjMatrix(pos);
+  syncAttachesSingle(pos);
   sfx = ::Sound(owner,::Sound::T_Regular,key->sfxID.c_str(),pos3,2500.f,false);
   sfx.setAmbient(key->sfxIsAmbient);
   sfx.play();
