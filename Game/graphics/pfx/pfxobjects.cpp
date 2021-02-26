@@ -18,8 +18,8 @@
 
 using namespace Tempest;
 
-PfxObjects::PfxObjects(const SceneGlobals& scene, VisualObjects& visual)
-  :scene(scene), visual(visual), trails(scene,visual) {
+PfxObjects::PfxObjects(WorldView& world, const SceneGlobals& scene, VisualObjects& visual)
+  :world(world), scene(scene), visual(visual), trails(scene,visual) {
   }
 
 PfxObjects::~PfxObjects() {

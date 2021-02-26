@@ -2011,7 +2011,9 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_ContinueRoutine:{
       auto& r = currentRoutine();
       auto  t = endTime(r);
-      startState(r.callback,r.point ? r.point->name : "",t,false);
+      if(r.callback.isValid())
+        startState(r.callback,r.point ? r.point->name : "",t,false); else
+        clearState(false);
       break;
       }
     case AI_AlignToWp:

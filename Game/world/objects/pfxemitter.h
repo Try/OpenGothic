@@ -46,7 +46,8 @@ class PfxEmitter final {
     PfxBucket* bucket = nullptr;
     size_t     id     = size_t(-1);
 
-    TrlObjects::Item trail;
+    TrlObjects::Item  trail;
+    MeshObjects::Mesh shpMesh;
 
   friend class PfxBucket;
   friend class PfxObjects;

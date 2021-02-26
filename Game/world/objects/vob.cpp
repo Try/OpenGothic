@@ -107,13 +107,18 @@ void Vob::recalculateTransform() {
 
 
 std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool startup) {
+  if(vob.visual.find("FIREPLACE")==0)
+    Log::d("");
+  if(vob.vobName.find("FIREPLACE")==0)
+    Log::d("");
+
   switch(vob.vobType) {
     case ZenLoad::zCVobData::VT_zCVob:
       return std::unique_ptr<Vob>(new StaticObj(parent,world,std::move(vob),startup));
     case ZenLoad::zCVobData::VT_zCVobLevelCompo:
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));
     case ZenLoad::zCVobData::VT_oCMobFire:
-      return std::unique_ptr<Vob>(new StaticObj(parent,world,std::move(vob),startup));
+      return std::unique_ptr<Vob>(new Interactive(parent,world,std::move(vob),startup));
     case ZenLoad::zCVobData::VT_oCMOB:
       // Irdotar bow-triggers
       // focusOverride=true

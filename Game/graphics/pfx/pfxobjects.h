@@ -16,10 +16,11 @@ class RendererStorage;
 class ParticleFx;
 class PfxBucket;
 class Painter3d;
+class WorldView;
 
 class PfxObjects final {
   public:
-    PfxObjects(const SceneGlobals& scene, VisualObjects& visual);
+    PfxObjects(WorldView& world, const SceneGlobals& scene, VisualObjects& visual);
     ~PfxObjects();
 
     static constexpr const float viewRage = 4000.f;
@@ -52,6 +53,7 @@ class PfxObjects final {
     PfxBucket&                    getBucket(const ParticleFx& decl);
     PfxBucket&                    getBucket(const Material& mat, const ZenLoad::zCVobData& vob);
 
+    WorldView&                    world;
     const SceneGlobals&           scene;
     VisualObjects&                visual;
     std::recursive_mutex          sync;

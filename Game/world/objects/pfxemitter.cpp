@@ -32,6 +32,8 @@ PfxEmitter::PfxEmitter(PfxObjects& owner, const ParticleFx* decl) {
   bucket = &owner.getBucket(*decl);
   id     = bucket->allocEmitter();
   trail  = TrlObjects::Item(owner.trails,*decl);
+  if(decl->shpMesh!=nullptr && decl->shpMeshRender)
+    shpMesh = owner.world.addView(decl->shpMesh_S.c_str(),0,0,0);
   }
 
 PfxEmitter::PfxEmitter(World& world, const ZenLoad::zCVobData& vob) {
@@ -166,4 +168,5 @@ uint64_t PfxEmitter::effectPrefferedTime() const {
 void PfxEmitter::setObjMatrix(const Matrix4x4 &mt) {
   setPosition (mt.at(3,0),mt.at(3,1),mt.at(3,2));
   setDirection(mt);
+  shpMesh.setObjMatrix(mt);
   }

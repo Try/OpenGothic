@@ -12,7 +12,7 @@ ParticleFx::ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob) {
   visTexColorEnd   = Vec3(255,255,255);
   visSizeStart     = Vec2(2.f*vob.visualChunk.zCDecal.decalDim.x,
                           2.f*vob.visualChunk.zCDecal.decalDim.y);
-  visOrientation   = Orientation::Velocity;
+  visOrientation   = Orientation::None;
 
   visMaterial      = mat;
 
@@ -42,6 +42,7 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
   shpDistribWalkSpeed = src.shpDistribWalkSpeed;
   shpIsVolume         = src.shpIsVolume!=0;
   shpDim              = loadVec3(src.shpDim_S);
+  shpMesh_S           = src.shpMesh_S;
   shpMesh             = Resources::loadEmiterMesh(src.shpMesh_S.c_str());
   shpMeshRender       = src.shpMeshRender_B!=0;
   shpScaleKeys        = loadArr(src.shpScaleKeys_S);

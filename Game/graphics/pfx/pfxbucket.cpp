@@ -143,6 +143,7 @@ void PfxBucket::freeEmitter(size_t& id) {
     }
   v.next.reset();
   id = size_t(-1);
+  shrink();
   }
 
 bool PfxBucket::shrink() {
@@ -262,7 +263,7 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       }
     }
 
-  float dirRotation = 0;
+  float dirRotation = randf()*float(2.0*M_PI);
   switch(decl.dirMode) {
     case ParticleFx::Dir::Rand: {
       float dy    = 1.f - 2.f * randf();
@@ -271,18 +272,18 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       float dx    = sn * std::cos(theta);
       float dz    = sn * std::sin(theta);
 
-      p.dir = Vec3(dx,dy,dz);
+      p.dir       = Vec3(dx,dy,dz);
       break;
       }
     case ParticleFx::Dir::Dir: {
-      float theta = (90+randf(decl.dirAngleHead,decl.dirAngleHeadVar))*float(M_PI)/180.f;
-      float phi   = (   randf(decl.dirAngleElev,decl.dirAngleElevVar))*float(M_PI)/180.f;
+      float theta = (randf(decl.dirAngleHead,decl.dirAngleHeadVar))*float(M_PI)/180.f;
+      float phi   = (randf(decl.dirAngleElev,decl.dirAngleElevVar))*float(M_PI)/180.f;
 
       float dx = std::cos(phi) * std::cos(theta);
       float dy = std::sin(phi);
       float dz = std::cos(phi) * std::sin(theta);
 
-      // TODO: remove
+      // HACK: STARGATE_PARTICLES
       if(decl.dirModeTargetFOR==ParticleFx::Frame::Object &&
          decl.shpType         ==ParticleFx::EmitterType::Sphere &&
          decl.dirAngleHeadVar>=180 &&
@@ -301,6 +302,7 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
           break;
           }
         case ParticleFx::Frame::World: {
+          p.dir = Vec3(dx,dy,dz);
           dirRotation = std::atan2(p.dir.x,p.dir.y);
           break;
           }
@@ -313,13 +315,12 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       break;
       }
     case ParticleFx::Dir::Target:
-      // NOTE: dirModeTargetFOR is unknown parameter
+      // NOTE: dirModeTargetFOR is somewhat unknown parameter
       switch(decl.dirModeTargetFOR) {
         case ParticleFx::Frame::Node:
         case ParticleFx::Frame::World:
         case ParticleFx::Frame::Object: {
-          p.dir       = decl.dirModeTargetPos + emitter.target;
-          dirRotation = 0; //randf()*float(2.0*M_PI);
+          p.dir = decl.dirModeTargetPos + emitter.target;
           }
         }
       break;
@@ -327,14 +328,7 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
 
   switch(decl.visOrientation) {
     case ParticleFx::Orientation::None:
-      switch(decl.dirMode) {
-        case ParticleFx::Dir::Target:
-          p.rotation = dirRotation;
-          break;
-        default:
-          p.rotation = 0; //randf()*float(2.0*M_PI);
-          break;
-        }
+      p.rotation = 0;
       break;
     case ParticleFx::Orientation::Velocity:
     case ParticleFx::Orientation::Velocity3d:
@@ -370,7 +364,7 @@ void PfxBucket::tick(Block& sys, ImplEmitter&, size_t particle, uint64_t dt) {
     return;
     }
 
-  const float dtF  = float(dt);
+  const float dtF = float(dt);
 
   // eval particle
   ps.life  = uint16_t(ps.life-dt);
@@ -468,8 +462,8 @@ void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
   static const float dxQ[6] = {-0.5f, 0.5f, -0.5f, -0.5f,  0.5f,  0.5f};
   static const float dyQ[6] = { 0.5f,-0.5f, -0.5f,  0.5f,  0.5f, -0.5f};
 
-  static const float dxT[3] = {-0.5f,  1.5f, -0.5f};
-  static const float dyT[3] = { 1.5f, -0.5f, -0.5f};
+  static const float dxT[3] = {-0.3333f,  1.5f, -0.3333f};
+  static const float dyT[3] = { 1.5f, -0.3333f, -0.3333f};
 
   const float*       dx     = decl.visTexIsQuadPoly ? dxQ : dxT;
   const float*       dy     = decl.visTexIsQuadPoly ? dyQ : dyT;
@@ -521,14 +515,14 @@ void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
         auto normal = std::fabs(Vec3::dotProduct(dU,dir)) < std::fabs(Vec3::dotProduct(dF,dir)) ? dU : dF;
         auto top    = dir*k1;
         auto left   = Vec3::crossProduct(top,normal)*k2;
-        rotate(l,t,ps.rotation,left,top);
+        rotate(l,t,0,left,top);
         }
       else if(decl.visOrientation==ParticleFx::Orientation::Velocity) {
         auto dir    = ps.dir;
         auto ldir   = dir.manhattanLength();
         if(ldir!=0.f)
           dir/=ldir;
-        float sVel = 1.f - std::fabs(Vec3::dotProduct(ctx.z,dir));
+        float sVel = 2.f - std::fabs(Vec3::dotProduct(ctx.z,dir));
         rotate(l,t,ps.rotation,left,top);
         l = l*sVel;
         t = t*sVel;

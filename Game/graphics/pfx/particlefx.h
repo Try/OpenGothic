@@ -70,6 +70,7 @@ class ParticleFx final {
     bool          shpIsVolume         = false;
     Tempest::Vec3 shpDim;
     const PfxEmitterMesh* shpMesh     = nullptr;
+    Daedalus::ZString shpMesh_S;
     bool          shpMeshRender       = false;
     KeyList       shpScaleKeys;
     bool          shpScaleIsLooping   = false;
