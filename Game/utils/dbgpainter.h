@@ -12,6 +12,7 @@ class DbgPainter {
 
     void drawText(int x, int y, const char* txt);
     void drawLine(const Tempest::Vec3& a, const Tempest::Vec3& b);
+    void drawPoint();
 
     Tempest::Painter&        painter;
     const Tempest::Matrix4x4 mvp;

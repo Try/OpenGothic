@@ -13,6 +13,7 @@
 #include "world/objects/vob.h"
 #include "world.h"
 #include "utils/workers.h"
+#include "utils/dbgpainter.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Application>
@@ -82,7 +83,7 @@ void WorldObjects::load(Serialize &fin) {
     }
 
   fin.read(sz);
-  if(interactiveObj.size()!=sz)
+  if(fin.version()>=25 && interactiveObj.size()!=sz)
     throw std::logic_error("inconsistent *.sav vs world");
   for(auto& i:rootVobs)
     i->loadVobTree(fin);
@@ -625,10 +626,12 @@ Item *WorldObjects::findItem(const Npc &pl, Item *def, const SearchOpt& opt) {
   return ret;
   }
 
-void WorldObjects::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,
-                                     int w,int h) const {
+void WorldObjects::marchInteractives(DbgPainter &p) const {
+  static bool ddraw=false;
+  if(!ddraw)
+    return;
   for(auto& i:interactiveObj){
-    auto m = mvp;
+    auto m = p.mvp;
     m.mul(i->transform());
 
     float x=0,y=0,z=0;
@@ -637,13 +640,13 @@ void WorldObjects::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x
     if(z<0.f || z>1.f)
       continue;
 
-    x = (0.5f*x+0.5f)*float(w);
-    y = (0.5f*y+0.5f)*float(h);
+    x = (0.5f*x+0.5f)*float(p.w);
+    y = (0.5f*y+0.5f)*float(p.h);
 
     p.setBrush(Tempest::Color(1,1,1,1));
-    p.drawRect(int(x),int(y),1,1);
+    p.painter.drawRect(int(x),int(y),1,1);
 
-    i->marchInteractives(p,mvp,w,h);
+    i->marchInteractives(p);
     }
   }
 

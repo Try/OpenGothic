@@ -6,6 +6,7 @@
 
 #include "game/movealgo.h"
 #include "utils/gthfont.h"
+#include "utils/dbgpainter.h"
 #include "world.h"
 
 using namespace Tempest;
@@ -138,26 +139,25 @@ const WayPoint* WayMatrix::findPoint(const char *name, bool inexact) const {
   return nullptr;
   }
 
-void WayMatrix::marchPoints(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const {
+void WayMatrix::marchPoints(DbgPainter &p) const {
   static bool ddraw=false;
   if(!ddraw)
     return;
-  auto& fnt = Resources::font();
   static bool fp = true;
   auto& points = fp ? freePoints : wayPoints;
   for(auto& i:points) {
     float x = i.x, y = i.y, z = i.z;
-    mvp.project(x,y,z);
+    p.mvp.project(x,y,z);
     if(z<0.f || z>1.f)
       continue;
 
-    x = (0.5f*x+0.5f)*float(w);
-    y = (0.5f*y+0.5f)*float(h);
+    x = (0.5f*x+0.5f)*float(p.w);
+    y = (0.5f*y+0.5f)*float(p.h);
 
     p.setBrush(Tempest::Color(1,0,0,1));
-    p.drawRect(int(x),int(y),4,4);
+    p.painter.drawRect(int(x),int(y),4,4);
 
-    fnt.drawText(p,int(x),int(y),i.name.c_str());
+    p.drawText(int(x),int(y),i.name.c_str());
     }
   }
 

@@ -11,6 +11,7 @@
 #include "waypoint.h"
 
 class World;
+class DbgPainter;
 
 class WayMatrix final {
   public:
@@ -27,7 +28,7 @@ class WayMatrix final {
     void            buildIndex();
 
     const WayPoint* findPoint(const char* name, bool inexact) const;
-    void            marchPoints(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
+    void            marchPoints(DbgPainter& p) const;
 
     WayPath         wayTo(const WayPoint &begin, const WayPoint& end) const;
 

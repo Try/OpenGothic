@@ -106,7 +106,7 @@ class WorldObjects final {
     Npc*           findNpc        (const Npc& pl, Npc* def, const SearchOpt& opt);
     Item*          findItem       (const Npc& pl, Item* def, const SearchOpt& opt);
 
-    void           marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
+    void           marchInteractives(DbgPainter& p) const;
 
     Interactive*   aviableMob(const Npc& pl, const char* name);
     void           setMobRoutine(gtime time, const Daedalus::ZString& scheme, int32_t state);

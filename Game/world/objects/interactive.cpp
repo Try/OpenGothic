@@ -8,6 +8,7 @@
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "utils/fileext.h"
+#include "utils/dbgpainter.h"
 
 Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData&& vob, bool startup)
   : Vob(parent,world,vob,startup) {
@@ -62,6 +63,12 @@ Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData&& vob, bo
   }
 
 void Interactive::load(Serialize &fin) {
+  if(fin.version()<25 && vobType==ZenLoad::zCVobData::VT_oCMobFire) {
+    // mob fire wasn't here until v25
+    Vob::load(fin);
+    return;
+    }
+
   Tempest::Matrix4x4 pos;
   uint8_t vt=0;
   fin.read(vt,vobName,focName,mdlVisual);
@@ -793,7 +800,7 @@ const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, A
   return nullptr;
   }
 
-void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const {
+void Interactive::marchInteractives(DbgPainter &p) const {
   p.setBrush(Tempest::Color(1.0,0,0,1));
 
   for(auto& m:attPos){
@@ -802,12 +809,13 @@ void Interactive::marchInteractives(Tempest::Painter &p, const Tempest::Matrix4x
     float x = pos.x;
     float y = pos.y;
     float z = pos.z;
-    mvp.project(x,y,z);
+    p.mvp.project(x,y,z);
 
-    x = (0.5f*x+0.5f)*float(w);
-    y = (0.5f*y+0.5f)*float(h);
+    x = (0.5f*x+0.5f)*float(p.w);
+    y = (0.5f*y+0.5f)*float(p.h);
 
-    p.drawRect(int(x),int(y),1,1);
+    p.painter.drawRect(int(x),int(y),1,1);
+    p.drawText(int(x), int(y), schemeName());
     }
   }
 

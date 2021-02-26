@@ -490,12 +490,12 @@ void World::setMobRoutine(gtime time, const Daedalus::ZString& scheme, int32_t s
   wobj.setMobRoutine(time,scheme,state);
   }
 
-void World::marchInteractives(Tempest::Painter &p,const Tempest::Matrix4x4& mvp,int w,int h) const {
-  wobj.marchInteractives(p,mvp,w,h);
+void World::marchInteractives(DbgPainter &p) const {
+  wobj.marchInteractives(p);
   }
 
-void World::marchPoints(Tempest::Painter &p, const Tempest::Matrix4x4 &mvp, int w, int h) const {
-  wmatrix->marchPoints(p,mvp,w,h);
+void World::marchPoints(DbgPainter& p) const {
+  wmatrix->marchPoints(p);
   }
 
 AiOuputPipe *World::openDlgOuput(Npc &player, Npc &npc) {

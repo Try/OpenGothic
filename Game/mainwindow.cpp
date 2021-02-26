@@ -150,7 +150,6 @@ void MainWindow::paintEvent(PaintEvent& event) {
     } else {
     if(world!=nullptr && world->view()){
       auto& camera = *gothic.camera();
-      world->marchPoints(p,camera.viewProj(),w(),h());
 
       auto vp = camera.viewProj();
       p.setBrush(Color(1.0));
@@ -158,7 +157,6 @@ void MainWindow::paintEvent(PaintEvent& event) {
       auto focus = world->validateFocus(player.focus());
       paintFocus(p,focus,vp);
 
-      // world->view()->dbgLights(p);
       if(auto pl=gothic.player()){
         float hp = float(pl->attribute(Npc::ATR_HITPOINTS))/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
         float mp = float(pl->attribute(Npc::ATR_MANA))     /float(pl->attribute(Npc::ATR_MANAMAX));
@@ -186,6 +184,11 @@ void MainWindow::paintEvent(PaintEvent& event) {
   if(auto c = gothic.camera()) {
     DbgPainter dbg(p,c->viewProj(),w(),h());
     c->debugDraw(dbg);
+    if(world!=nullptr) {
+      world->marchPoints(dbg);
+      world->marchInteractives(dbg);
+      }
+    // world->view()->dbgLights(p);
     }
 
   if(gothic.doFrate()) {

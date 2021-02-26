@@ -138,8 +138,8 @@ class World final {
     Interactive*         findInteractive(const Npc& pl);
     void                 setMobRoutine(gtime time, const Daedalus::ZString& scheme, int32_t state);
 
-    void                 marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
-    void                 marchPoints      (Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
+    void                 marchInteractives(DbgPainter& p) const;
+    void                 marchPoints      (DbgPainter& p) const;
 
     AiOuputPipe*         openDlgOuput(Npc &player, Npc &npc);
     void                 aiOutputSound(Npc &player, const std::string& msg);

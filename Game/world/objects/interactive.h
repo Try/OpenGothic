@@ -69,7 +69,7 @@ class Interactive : public Vob {
     bool                dettach(Npc& npc,bool quick);
 
     auto                animNpc(const AnimationSolver &solver, Anim t) -> const Animation::Sequence*;
-    void                marchInteractives(Tempest::Painter& p, const Tempest::Matrix4x4 &mvp, int w, int h) const;
+    void                marchInteractives(DbgPainter& p) const;
 
   private:
     struct Pos final {
