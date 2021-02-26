@@ -1,3 +1,4 @@
+
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive    : enable
@@ -80,9 +81,9 @@ void main() {
   // Apply exposure.
   color          = exposure(color);
 
-  float L        = rayIntersect(pos, view, RAtmos);
+  float L        = rayIntersect(pos, view, RClouds);
   vec3  cloudsAt = normalize(pos + view * L);
-  vec2  texc     = vec2(cloudsAt.zx)*200.f;
+  vec2  texc     = 1000.0*vec2(atan(cloudsAt.x,cloudsAt.y), atan(cloudsAt.z,cloudsAt.y));
   vec4  day      = clouds(texc);
   vec4  night    = stars(texc);
   vec4  cloud    = mix(day,night,ubo.night);

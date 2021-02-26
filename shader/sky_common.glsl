@@ -8,8 +8,9 @@ const int   jSteps = 8;
 #endif
 
 //Environment
-const float RPlanet  = 6360e3; // Radius of the planet in meters
-const float RAtmos   = 6380e3; // Radius of the atmosphere in meters
+const float RPlanet  = 6360e3;       // Radius of the planet in meters
+const float RAtmos   = 6380e3;       // Radius of the atmosphere in meters
+const float RClouds  = RPlanet+3000; // Clouds height in meters
 // Rayleigh scattering coefficient
 const vec3  RSC      = vec3(0.00000519673,
                             0.0000121427,
