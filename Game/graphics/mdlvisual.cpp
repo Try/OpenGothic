@@ -1,4 +1,5 @@
 #include "mdlvisual.h"
+#include "objvisual.h"
 
 #include "graphics/pfx/particlefx.h"
 #include "graphics/mesh/skeleton.h"
@@ -58,7 +59,7 @@ void MdlVisual::setVisual(const Skeleton *v) {
   view.setSkeleton(v);
 
   skeleton = v;
-  setPos(pos); // update obj matrix
+  setObjMatrix(pos); // invalidate obj matrix
   }
 
 void MdlVisual::setYTranslationEnable(bool e) {
@@ -103,7 +104,7 @@ void MdlVisual::clearOverlays() {
 
 void MdlVisual::setBody(MeshObjects::Mesh&& a, World& owner, const int32_t version) {
   implSetBody(std::move(a),owner,version);
-  setPos(pos);
+  setObjMatrix(pos);
   }
 
 void MdlVisual::setArmour(MeshObjects::Mesh &&a, World& owner) {
@@ -111,7 +112,7 @@ void MdlVisual::setArmour(MeshObjects::Mesh &&a, World& owner) {
   // Light dragon hunter armour has broken attachment with no tags
   // Big dragon hunter armour has many atachments with version tags
   implSetBody(std::move(a),owner,-1);
-  setPos(pos);
+  setObjMatrix(pos);
   }
 
 void MdlVisual::implSetBody(MeshObjects::Mesh&& body, World& owner, const int32_t version) {
@@ -370,14 +371,14 @@ bool MdlVisual::setToFightMode(const WeaponState f) {
   return true;
   }
 
-void MdlVisual::setPos(float x, float y, float z) {
+void MdlVisual::setPosition(float x, float y, float z) {
   pos.set(3,0,x);
   pos.set(3,1,y);
   pos.set(3,2,z);
-  setPos(pos);
+  setObjMatrix(pos);
   }
 
-void MdlVisual::setPos(const Tempest::Matrix4x4 &m) {
+void MdlVisual::setObjMatrix(const Tempest::Matrix4x4 &m) {
   pos = m;
   view.setObjMatrix(pos);
   syncAttaches();
@@ -411,18 +412,20 @@ void MdlVisual::updateWeaponSkeleton(const Item* weapon,const Item* range) {
 
 void MdlVisual::setTorch(bool t, World& owner) {
   if(!t) {
-    torch.view = MeshObjects::Mesh();
+    torch.view.reset();
     return;
     }
-  // TODO: ItLsTorchburning
-  size_t torchId = owner.getSymbolIndex("ItLsTorch");
+  size_t torchId = owner.getSymbolIndex("ItLsTorchburning");
   if(torchId==size_t(-1))
     return;
 
   Daedalus::GEngineClasses::C_Item  hitem={};
   owner.script().initializeInstance(hitem,torchId);
-  torch.view = owner.addView(hitem.visual.c_str());
-  bind(torch,"ZS_LEFTHAND");
+  owner.script().clearReferences(hitem);
+  torch.view.reset(new ObjVisual());
+  torch.view->setVisual(hitem,owner);
+  torch.boneId = (skeleton==nullptr ? size_t(-1) : skeleton->findNode("ZS_LEFTHAND"));
+  //bind(torch,"ZS_LEFTHAND");
   }
 
 bool MdlVisual::updateAnimation(Npc* npc, World& world) {
@@ -770,7 +773,7 @@ void MdlVisual::rebindAttaches(Attach<View>& mesh, const Skeleton& from, const S
   }
 
 void MdlVisual::syncAttaches() {
-  MdlVisual::MeshAttach* mesh[] = {&head,&sword,&bow,&ammunition,&stateItm,&torch};
+  MdlVisual::MeshAttach* mesh[] = {&head,&sword,&bow,&ammunition,&stateItm};
   for(auto i:mesh)
     syncAttaches(*i);
   for(auto& i:item)
@@ -783,6 +786,13 @@ void MdlVisual::syncAttaches() {
     }
   pfx.view.setObjMatrix(pos);
   hnpcVisual.view.setObjMatrix(pos);
+  if(torch.view!=nullptr) {
+    auto& pose = *skInst;
+    auto  p    = pos;
+    if(torch.boneId<pose.transform().size())
+      p.mul(pose.transform(torch.boneId));
+    torch.view->setObjMatrix(p);
+    }
   }
 
 const Skeleton* MdlVisual::visualSkeleton() const {

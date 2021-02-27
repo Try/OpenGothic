@@ -6,7 +6,7 @@
 #include "world/objects/npc.h"
 #include "world/world.h"
 
-Item::Item(World &owner, size_t itemInstance)
+Item::Item(World &owner, size_t itemInstance, bool inWorld)
   :Vob(owner) {
   assert(itemInstance!=size_t(-1));
   hitem.instanceSymbol = itemInstance;
@@ -14,6 +14,8 @@ Item::Item(World &owner, size_t itemInstance)
 
   owner.script().initializeInstance(hitem,itemInstance);
   hitem.amount=1;
+  if(inWorld)
+    view = world.addItmView(hitem.visual,hitem.material);
   }
 
 Item::Item(World &owner, Serialize &fin, bool inWorld)
@@ -45,7 +47,7 @@ Item::Item(World &owner, Serialize &fin, bool inWorld)
   sym.instance.set(&h,Daedalus::IC_Item);
 
   if(inWorld)
-    setView(owner.addItmView(h.visual,h.material));
+    view = world.addItmView(hitem.visual,hitem.material);
   }
 
 Item::Item(Item &&it)
@@ -75,11 +77,6 @@ void Item::save(Serialize &fout) const {
   fout.write(h.amount);
   fout.write(pos,equiped,itSlot);
   fout.write(localTransform());
-  }
-
-void Item::setView(MeshObjects::Mesh &&m) {
-  view = std::move(m);
-  view.setObjMatrix(transform());
   }
 
 void Item::clearView() {

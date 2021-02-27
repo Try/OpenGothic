@@ -327,9 +327,9 @@ bool Npc::setPosition(float ix, float iy, float iz) {
   x = ix;
   y = iy;
   z = iz;
-  durtyTranform |= TR_Pos;
+
   physic.setPosition(Vec3{x,y,z});
-  visual.setPos(x,y,z);
+  visual.setPosition(x,y,z);
   return true;
   }
 
@@ -3478,10 +3478,10 @@ void Npc::updatePos() {
 
   sfxWeapon.setPosition(x,y,z);
 
-  if(durtyTranform==TR_Pos){
-    visual.setPos(x,y,z);
+  if(durtyTranform==TR_Pos) {
+    visual.setPosition(x,y,z);
     } else {
-    visual.setPos(mkPositionMatrix());
+    visual.setObjMatrix(mkPositionMatrix());
     }
   }
 

@@ -523,7 +523,7 @@ Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
 
   auto  pos = owner.findPoint(at);
 
-  std::unique_ptr<Item> ptr{new Item(owner,itemInstance)};
+  std::unique_ptr<Item> ptr{new Item(owner,itemInstance,true)};
   auto* it=ptr.get();
   itemArr.emplace_back(std::move(ptr));
   items.add(itemArr.back().get());
@@ -534,9 +534,6 @@ Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
     } else {
     it->setPosition(0,0,0);
     }
-
-  auto& itData = *it->handle();
-  it->setView(owner.addItmView(itData.visual,0));
   return it;
   }
 

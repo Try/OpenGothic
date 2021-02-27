@@ -2,6 +2,7 @@
 
 #include <daedalus/DaedalusVM.h>
 
+#include "graphics/objvisual.h"
 #include "graphics/meshobjects.h"
 #include "physics/dynamicworld.h"
 #include "vob.h"
@@ -12,8 +13,8 @@ class Serialize;
 
 class Item final : public Vob {
   public:
-    Item(World& owner, size_t inst);
-    Item(World& owner, Serialize& fin, bool inWorld);
+    Item(World& owner, size_t     inst, bool inWorld);
+    Item(World& owner, Serialize& fin,  bool inWorld);
     Item(Item&&);
     ~Item();
     Item& operator=(Item&&)=delete;
@@ -22,8 +23,7 @@ class Item final : public Vob {
 
     enum { MAX_UI_ROWS=6, NSLOT=255 };
 
-    void setView      (MeshObjects::Mesh&& m);
-    void clearView    ();
+    void clearView();
 
     void setPosition  (float x,float y,float z);
     void setDirection (float x,float y,float z);

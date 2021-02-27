@@ -10,6 +10,7 @@
 #include "effect.h"
 
 class Serialize;
+class ObjVisual;
 class Npc;
 class Item;
 
@@ -17,6 +18,8 @@ class MdlVisual final {
   public:
     MdlVisual();
     MdlVisual(const MdlVisual&)=delete;
+    MdlVisual(MdlVisual&&) = default;
+    MdlVisual& operator = (MdlVisual&&) = default;
     ~MdlVisual();
 
     void                           save(Serialize& fout, const Npc& npc) const;
@@ -24,8 +27,9 @@ class MdlVisual final {
     void                           load(Serialize& fin,  Npc& npc);
     void                           load(Serialize& fin,  Interactive &mob);
 
-    void                           setPos(float x,float y,float z);
-    void                           setPos(const Tempest::Matrix4x4 &m);
+    void                           setPosition(float x,float y,float z);
+    void                           setObjMatrix(const Tempest::Matrix4x4 &m);
+
     void                           setTarget(const Tempest::Vec3& p);
     void                           setVisual(const Skeleton *visual);
     void                           setYTranslationEnable(bool e);
@@ -114,6 +118,11 @@ class MdlVisual final {
       bool        noSlot = false;
       };
 
+    struct TorchSlot {
+      std::unique_ptr<ObjVisual> view;
+      size_t                     boneId=size_t(-1);
+      };
+
     void implSetBody(MeshObjects::Mesh&& body, World& owner, const int32_t version);
     void setSlotAttachment(MeshObjects::Mesh&& itm, const char *bone);
 
@@ -141,7 +150,7 @@ class MdlVisual final {
     std::vector<PfxSlot>           effects;
     PfxSlot                        pfx;
 
-    MeshAttach                     torch;
+    TorchSlot                      torch;
 
     Daedalus::ZString              hnpcVisualName;
     bool                           hnpcFlagGhost = false;

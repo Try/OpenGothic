@@ -198,7 +198,7 @@ Item* Inventory::addItem(std::unique_ptr<Item> &&p) {
   sorted=false;
 
   const auto cls = p->clsId();
-  p->setView(MeshObjects::Mesh());
+  p->clearView();
   Item* it=findByClass(cls);
   if(it==nullptr) {
     p->clearView();
@@ -228,7 +228,7 @@ Item* Inventory::addItem(size_t itemSymbol, uint32_t count, World &owner) {
   Item* it=findByClass(itemSymbol);
   if(it==nullptr) {
     try {
-      std::unique_ptr<Item> ptr{new Item(owner,itemSymbol)};
+      std::unique_ptr<Item> ptr{new Item(owner,itemSymbol,false)};
       ptr->clearView();
       ptr->setCount(count);
       items.emplace_back(std::move(ptr));

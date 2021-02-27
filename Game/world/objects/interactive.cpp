@@ -89,7 +89,7 @@ void Interactive::load(Serialize &fin) {
   setGlobalTransform(pos);
   setVisual(mdlVisual);
   visual.load(fin,*this);
-  visual.setPos(transform());
+  visual.setObjMatrix(transform());
 
   uint32_t sz=0;
   fin.read(sz);
@@ -152,7 +152,7 @@ void Interactive::setVisual(const std::string& body) {
       }
 
     visual.setVisual(skeleton);
-    visual.setPos(transform());
+    visual.setObjMatrix(transform());
     physic.setSkeleton (skeleton);
     physic.setObjMatrix(transform());
 
@@ -829,7 +829,7 @@ void Interactive::marchInteractives(DbgPainter &p) const {
 
 void Interactive::moveEvent() {
   Vob::moveEvent();
-  visual.setPos(transform());
+  visual.setObjMatrix(transform());
   }
 
 const char *Interactive::Pos::posTag() const {

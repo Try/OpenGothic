@@ -1,9 +1,7 @@
 #pragma once
 
-#include "graphics/pfx/pfxobjects.h"
-#include "graphics/meshobjects.h"
-#include "graphics/mdlvisual.h"
 #include "physics/physicmesh.h"
+#include "graphics/objvisual.h"
 #include "vob.h"
 
 class StaticObj : public Vob {
@@ -14,10 +12,7 @@ class StaticObj : public Vob {
     void  moveEvent() override;
     bool  setMobState(const char* scheme,int32_t st) override;
 
-    PhysicMesh  physic;
-    PfxEmitter  pfx;
-
-    MdlVisual   visual;
+    ObjVisual   visual;
     std::string scheme;
   };
 

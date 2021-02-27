@@ -13,8 +13,6 @@ void FirePlace::moveEvent() {
   Interactive::moveEvent();
 
   auto at = this->nodeTranform(fireSlot.c_str());
-  at.set(0,0, 1);
-  at.set(2,2, 1);
   fireVobtree.setObjMatrix(at);
   }
 

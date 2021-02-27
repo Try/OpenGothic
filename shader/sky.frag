@@ -83,7 +83,7 @@ void main() {
 
   float L        = rayIntersect(pos, view, RClouds);
   vec3  cloudsAt = normalize(pos + view * L);
-  vec2  texc     = 1000.0*vec2(atan(cloudsAt.x,cloudsAt.y), atan(cloudsAt.z,cloudsAt.y));
+  vec2  texc     = 1500.0*vec2(atan(cloudsAt.z,cloudsAt.y), atan(cloudsAt.x,cloudsAt.y));
   vec4  day      = clouds(texc);
   vec4  night    = stars(texc);
   vec4  cloud    = mix(day,night,ubo.night);

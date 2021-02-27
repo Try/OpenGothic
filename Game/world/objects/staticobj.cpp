@@ -12,42 +12,15 @@ StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool s
   if(!vob.showVisual)
     return;
 
-  if(FileExt::hasExt(vob.visual,"PFX") || FileExt::hasExt(vob.visual,"TGA")) {
-    if(vob.visualCamAlign==0 && FileExt::hasExt(vob.visual,"TGA")) {
-      auto mesh = world.addDecalView(vob);
-      visual.setVisualBody(std::move(mesh),world);
-      visual.setPos(transform());
-      } else {
-      pfx = PfxEmitter(world,vob);
-      pfx.setActive(true);
-      pfx.setLooped(true);
-      pfx.setObjMatrix(transform());
-      }
-    } else {
-    auto view = Resources::loadMesh(vob.visual);
-    if(!view)
-      return;
-    auto sk   = Resources::loadSkeleton(vob.visual.c_str());
-    auto mesh = world.addStaticView(vob.visual.c_str());
-    visual.setVisual(sk);
-    visual.setVisualBody(std::move(mesh),world);
-
-    if(vob.cdDyn || vob.cdStatic) {
-      physic = PhysicMesh(*view,*world.physic(),false);
-      physic.setObjMatrix(transform());
-      }
-    visual.setPos(transform());
-    }
+  visual.setVisual(vob,world);
+  visual.setObjMatrix(transform());
 
   scheme = std::move(vob.visual);
-  visual.setYTranslationEnable(false);
   }
 
 void StaticObj::moveEvent() {
   Vob::moveEvent();
-  pfx   .setObjMatrix(transform());
-  physic.setObjMatrix(transform());
-  visual.setPos(transform());
+  visual.setObjMatrix(transform());
   }
 
 bool StaticObj::setMobState(const char* sc, int32_t st) {
