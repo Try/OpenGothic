@@ -109,6 +109,8 @@ class Resources final {
     static Dx8::PatternList          loadDxMusic(const char *name);
     static const ProtoMesh*          decalMesh(const ZenLoad::zCVobData& vob);
 
+    static ZenLoad::oCWorldData      loadVobBundle(const std::string& name);
+
     template<class V>
     static Tempest::VertexBuffer<V>  vbo(const V* data,size_t sz){ return inst->device.vbo(data,sz); }
 
@@ -168,6 +170,7 @@ class Resources final {
     Dx8::PatternList      implLoadDxMusic(const char *name);
     GthFont&              implLoadFont(const char* fname, FontType type);
     PfxEmitterMesh*       implLoadEmiterMesh(const char* name);
+    ZenLoad::oCWorldData& implLoadVobBundle(const std::string& name);
 
     MeshLoadCode          loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
     ZenLoad::zCModelMeshLib loadMDS (std::string& name);
@@ -210,4 +213,5 @@ class Resources final {
     std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>          bindCache;
     std::unordered_map<std::string,std::unique_ptr<PfxEmitterMesh>>       emiMeshCache;
     std::unordered_map<FontK,std::unique_ptr<GthFont>,Hash>               gothicFnt;
+    std::unordered_map<std::string,ZenLoad::oCWorldData>                  zenCache;
   };

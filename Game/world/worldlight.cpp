@@ -8,4 +8,5 @@ WorldLight::WorldLight(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool
   }
 
 void WorldLight::moveEvent() {
+  light.setPosition(position());
   }

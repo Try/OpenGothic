@@ -276,12 +276,12 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       break;
       }
     case ParticleFx::Dir::Dir: {
-      float theta = (randf(decl.dirAngleHead,decl.dirAngleHeadVar))*float(M_PI)/180.f;
-      float phi   = (randf(decl.dirAngleElev,decl.dirAngleElevVar))*float(M_PI)/180.f;
+      float head = (90+randf(decl.dirAngleHead,decl.dirAngleHeadVar))*float(M_PI)/180.f;
+      float elev = (   randf(decl.dirAngleElev,decl.dirAngleElevVar))*float(M_PI)/180.f;
 
-      float dx = std::cos(phi) * std::cos(theta);
-      float dy = std::sin(phi);
-      float dz = std::cos(phi) * std::sin(theta);
+      float dx = std::cos(elev) * std::cos(head);
+      float dy = std::sin(elev);
+      float dz = std::cos(elev) * std::sin(head);
 
       // HACK: STARGATE_PARTICLES
       if(decl.dirModeTargetFOR==ParticleFx::Frame::Object &&

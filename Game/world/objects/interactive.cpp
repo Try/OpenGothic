@@ -10,7 +10,7 @@
 #include "utils/fileext.h"
 #include "utils/dbgpainter.h"
 
-Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData&& vob, bool startup)
+Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, bool startup)
   : Vob(parent,world,vob,startup) {
   vobType       = vob.vobType;
   vobName       = std::move(vob.vobName);
@@ -717,6 +717,14 @@ Tempest::Vec3 Interactive::nodePosition(const Npc &npc, const Pos &p) const {
   float y   = mat.at(3,1);
   float z   = mat.at(3,2);
   return {x,y,z};
+  }
+
+Tempest::Matrix4x4 Interactive::nodeTranform(const char* nodeName) const {
+  auto id  = visual.pose().findNode(nodeName);
+  auto ret = transform();
+  if(id!=size_t(-1))
+    ret.mul(visual.pose().bone(id));
+  return ret;
   }
 
 const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {

@@ -5,6 +5,8 @@
 using namespace Tempest;
 
 ParticleFx::ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob) {
+  dbgName          = vob.visual;
+
   ppsValue         = -1;
   lspPartAvg       = 1000;
   dirMode          = ParticleFx::Dir::Dir;
@@ -16,6 +18,8 @@ ParticleFx::ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob) {
 
   visMaterial      = mat;
 
+  shpFOR           = Frame::World;
+
   dirFOR           = Frame::World;
   dirAngleElev     = 90;
   visSizeEndScale  = 1;
@@ -23,6 +27,8 @@ ParticleFx::ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob) {
   visAlphaEnd      = 1;
   visYawAlign      = vob.visualCamAlign==1;
   visZBias         = vob.zBias!=0;
+
+  useEmittersFOR   = true;
   }
 
 ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const char* name)

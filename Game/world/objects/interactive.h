@@ -24,7 +24,7 @@ class Interactive : public Vob {
       FromStand = 11,
       };
 
-    Interactive(Vob* parent, World& world, ZenLoad::zCVobData &&vob, bool startup);
+    Interactive(Vob* parent, World& world, ZenLoad::zCVobData& vob, bool startup);
 
     void                load(Serialize& fin) override;
     void                save(Serialize& fout) const override;
@@ -71,6 +71,10 @@ class Interactive : public Vob {
     auto                animNpc(const AnimationSolver &solver, Anim t) -> const Animation::Sequence*;
     void                marchInteractives(DbgPainter& p) const;
 
+  protected:
+    Tempest::Matrix4x4  nodeTranform(const char* nodeName) const;
+    void                moveEvent() override;
+
   private:
     struct Pos final {
       std::string        name;
@@ -86,7 +90,6 @@ class Interactive : public Vob {
       bool               isDistPos() const;
       };
 
-    void                moveEvent() override;
     void                setVisual(const std::string& visual);
     void                invokeStateFunc(Npc &npc);
     void                implTick(Pos &p, uint64_t dt);

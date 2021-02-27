@@ -626,6 +626,12 @@ const Tempest::Matrix4x4& Pose::bone(size_t id) const {
   return tr[id];
   }
 
+size_t Pose::findNode(const char* b) const {
+  if(skeleton!=nullptr)
+    return skeleton->findNode(b);
+  return size_t(-1);
+  }
+
 void Pose::setRotation(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir) {
   const Animation::Sequence *sq = nullptr;
   if(dir==0) {

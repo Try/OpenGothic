@@ -628,6 +628,26 @@ const ProtoMesh* Resources::decalMesh(const ZenLoad::zCVobData& vob) {
   return inst->implDecalMesh(vob);
   }
 
+ZenLoad::oCWorldData Resources::loadVobBundle(const std::string& name) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  return inst->implLoadVobBundle(name);
+  }
+
+ZenLoad::oCWorldData& Resources::implLoadVobBundle(const std::string& filename) {
+  auto i = zenCache.find(filename);
+  if(i!=zenCache.end())
+    return i->second;
+
+  ZenLoad::ZenParser parser(filename,Resources::vdfsIndex());
+  parser.readHeader();
+
+  ZenLoad::oCWorldData bundle;
+  parser.readWorld(bundle,gothic.version().game==2);
+
+  auto ret = zenCache.insert(std::make_pair(filename,std::move(bundle)));
+  return ret.first->second;
+  }
+
 bool Resources::getFileData(const char *name, std::vector<uint8_t> &dat) {
   dat.clear();
   return inst->gothicAssets.getFileData(name,dat);
