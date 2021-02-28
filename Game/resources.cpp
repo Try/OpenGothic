@@ -638,11 +638,16 @@ ZenLoad::oCWorldData& Resources::implLoadVobBundle(const std::string& filename) 
   if(i!=zenCache.end())
     return i->second;
 
-  ZenLoad::ZenParser parser(filename,Resources::vdfsIndex());
-  parser.readHeader();
-
   ZenLoad::oCWorldData bundle;
-  parser.readWorld(bundle,gothic.version().game==2);
+  try {
+    ZenLoad::ZenParser parser(filename,Resources::vdfsIndex());
+    parser.readHeader();
+
+    parser.readWorld(bundle,gothic.version().game==2);
+    }
+  catch(...) {
+    Log::e("unable to load Zen-file: \"",filename,"\"");
+    }
 
   auto ret = zenCache.insert(std::make_pair(filename,std::move(bundle)));
   return ret.first->second;
