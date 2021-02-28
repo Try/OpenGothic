@@ -98,75 +98,15 @@ ObjectsBucket::ObjectsBucket(const Material& mat, size_t boneCount, VisualObject
   :owner(owner), boneCnt(boneCount), scene(scene), storage(storage), mat(mat), shaderType(type), useSharedUbo(type!=Animated) {
   static_assert(sizeof(UboPush)<=128, "UboPush is way too big");
 
-  const auto matType = mat.isGhost ? Material::Ghost : mat.alpha;
-  switch(matType) {
-    case Material::AlphaTest:
-      if(shaderType==Animated) {
-        pMain    = &scene.storage.pAnimAt;
-        pGbuffer = &scene.storage.pAnimAtG;
-        pLight   = &scene.storage.pAnimAtLt;
-        pShadow  = &scene.storage.pAnimAtSh;
-        } else {
-        pMain    = &scene.storage.pObjectAt;
-        pGbuffer = &scene.storage.pObjectAtG;
-        pLight   = &scene.storage.pObjectAtLt;
-        pShadow  = &scene.storage.pObjectAtSh;
-        }
-      break;
-    case Material::Transparent:
-      if(shaderType==Animated) {
-        pMain   = &scene.storage.pAnimAlpha;
-        pLight  = nullptr;
-        pShadow = nullptr;
-        } else {
-        pMain   = &scene.storage.pObjectAlpha;
-        //pLight  = &scene.storage.pObjectLt;
-        pShadow = &scene.storage.pObjectAtSh;
-        }
-      break;
-    case Material::AdditiveLight: {
-      if(shaderType==Animated) {
-        pMain   = &scene.storage.pAnimMAdd;
-        pLight  = nullptr;
-        pShadow = nullptr;
-        } else {
-        pMain   = &scene.storage.pObjectMAdd;
-        pLight  = nullptr;
-        pShadow = nullptr;
-        }
-      break;
-      }
-    case Material::Multiply:
-    case Material::Multiply2:
-    case Material::Solid:
-      if(shaderType==Animated) {
-        pMain    = &scene.storage.pAnim;
-        pLight   = &scene.storage.pAnimLt;
-        pShadow  = &scene.storage.pAnimSh;
-        pGbuffer = &scene.storage.pAnimG;
-        } else {
-        pMain    = &scene.storage.pObject;
-        pLight   = &scene.storage.pObjectLt;
-        pShadow  = &scene.storage.pObjectSh;
-        pGbuffer = &scene.storage.pObjectG;
-        }
-      break;
-    case Material::Water:
-      if(shaderType==Animated)
-        pMain = &scene.storage.pAnimWater; else
-        pMain = &scene.storage.pObjectWater;
-      break;
-    case Material::Ghost:
-      if(shaderType==Animated)
-        pMain = &scene.storage.pAnimGhost; else
-        pMain = &scene.storage.pObjectGhost;
-      break;
-    }
+  pMain    = scene.storage.materialPipeline(mat,shaderType,RendererStorage::T_Forward    );
+  pGbuffer = scene.storage.materialPipeline(mat,shaderType,RendererStorage::T_Deffered   );
+  pShadow  = scene.storage.materialPipeline(mat,shaderType,RendererStorage::T_Shadow     );
+  pLight   = scene.storage.materialPipeline(mat,shaderType,RendererStorage::T_LightingExt);
 
   if(mat.frames.size()>0)
     useSharedUbo = false;
 
-  textureInShadowPass = (pShadow==&scene.storage.pObjectAtSh || pShadow==&scene.storage.pAnimAtSh);
+  textureInShadowPass = (mat.alpha==Material::AlphaTest);
 
   for(auto& i:uboMat) {
     UboMaterial zero;
@@ -506,16 +446,6 @@ void ObjectsBucket::drawGBuffer(Tempest::Encoder<CommandBuffer>& p, uint8_t fId)
     auto& v = *idx[i];
 
     pushBlock.pos = v.pos;
-    const size_t cnt = v.lightCnt;
-    for(size_t r=0; r<cnt && r<LIGHT_BLOCK; ++r) {
-      pushBlock.light[r].pos   = v.light[r]->position();
-      pushBlock.light[r].color = v.light[r]->currentColor();
-      pushBlock.light[r].range = v.light[r]->currentRange();
-      }
-    for(size_t r=cnt;r<LIGHT_BLOCK;++r) {
-      pushBlock.light[r].range = 0;
-      }
-
     p.setUniforms(*pGbuffer,&pushBlock,sizeof(pushBlock));
     if(!useSharedUbo) {
       uboSetDynamic(v,fId);
@@ -673,10 +603,7 @@ void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
   }
 
 bool ObjectsBucket::isSceneInfoRequired() const {
-  return pMain==&scene.storage.pObjectGhost ||
-         pMain==&scene.storage.pAnimGhost   ||
-         pMain==&scene.storage.pObjectWater ||
-         pMain==&scene.storage.pAnimWater;
+  return mat.isGhost || mat.alpha==Material::Water || mat.alpha==Material::Ghost;
   }
 
 const Bounds& ObjectsBucket::bounds(size_t i) const {

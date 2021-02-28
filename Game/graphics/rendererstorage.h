@@ -2,12 +2,15 @@
 
 #include <Tempest/RenderPass>
 #include <Tempest/RenderPipeline>
-#include <Tempest/Shader>
 #include <Tempest/UniformsLayout>
+#include <Tempest/Shader>
 #include <Tempest/Device>
 #include <Tempest/Assets>
 
+#include "graphics/objectsbucket.h"
+
 class Gothic;
+class Material;
 
 class RendererStorage {
   public:
@@ -15,20 +18,20 @@ class RendererStorage {
 
     Tempest::Device&        device;
 
-    Tempest::RenderPipeline pAnim,   pAnimG,   pAnimAt,   pAnimAtG,   pAnimLt,   pAnimAtLt;
-    Tempest::RenderPipeline pObject, pObjectG, pObjectAt, pObjectAtG, pObjectLt, pObjectAtLt;
-
-    Tempest::RenderPipeline pObjectAlpha, pAnimAlpha, pObjectWater, pObjectGhost;
-    Tempest::RenderPipeline pObjectMAdd,  pAnimMAdd,  pAnimWater,   pAnimGhost;
-
-    Tempest::RenderPipeline pObjectSh, pObjectAtSh;
-    Tempest::RenderPipeline pAnimSh,   pAnimAtSh;
-
     Tempest::RenderPipeline pSky;
     Tempest::RenderPipeline pFog;
     Tempest::RenderPipeline pLights;
     Tempest::RenderPipeline pComposeShadow;
     Tempest::RenderPipeline pCopy;
+
+    enum PipelineType: uint8_t {
+      T_Forward,
+      T_Deffered,
+      T_Shadow,
+      T_LightingExt,
+      };
+
+    const Tempest::RenderPipeline* materialPipeline(const Material& desc, ObjectsBucket::Type t, PipelineType pt) const;
 
   private:
     struct ShaderPair {
@@ -38,11 +41,22 @@ class RendererStorage {
       void load(Tempest::Device &device, const char* tag);
       };
 
-    struct Material {
+    struct MaterialTemplate {
       ShaderPair obj, ani;
       void load(Tempest::Device& device, const char* tag);
       };
 
+    struct Entry {
+      Tempest::RenderPipeline pipeline;
+      Material::AlphaFunc     alpha        = Material::Solid;
+      ObjectsBucket::Type     type         = ObjectsBucket::Static;
+      PipelineType            pipelineType = PipelineType::T_Forward;
+      };
+
     template<class Vertex>
-    Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const ShaderPair &fs);
+    Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const ShaderPair &fs) const;
+
+    MaterialTemplate solid,  atest, solidF, atestF, water, ghost, emmision;
+    MaterialTemplate shadow, shadowAt;
+    mutable std::list<Entry> materials;
   };

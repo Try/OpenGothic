@@ -25,7 +25,7 @@ void RendererStorage::ShaderPair::load(Device& device, const char* tag) {
   load(device,tag,"%s.%s.sprv");
   }
 
-void RendererStorage::Material::load(Device &device, const char *tag) {
+void RendererStorage::MaterialTemplate::load(Device &device, const char *tag) {
   char fobj[256]={};
   char fani[256]={};
   if(tag==nullptr || tag[0]=='\0') {
@@ -41,16 +41,17 @@ void RendererStorage::Material::load(Device &device, const char *tag) {
 
 RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   :device(device) {
-  Material obj, objAt, objG, objAtG, objEmi, objShadow, objShadowAt, objWater, objGhost;
-  obj        .load(device,"");
-  objG       .load(device,"gbuffer");
-  objAt      .load(device,"at");
-  objAtG     .load(device,"at_gbuffer");
-  objEmi     .load(device,"emi");
-  objShadow  .load(device,"shadow");
-  objShadowAt.load(device,"shadow_at");
-  objWater   .load(device,"water");
-  objGhost   .load(device,"ghost");
+  solid   .load(device,"gbuffer");
+  atest   .load(device,"at_gbuffer");
+  water   .load(device,"water");
+  ghost   .load(device,"ghost");
+  emmision.load(device,"emi");
+
+  solidF  .load(device,"");
+  atestF  .load(device,"at");
+
+  shadow  .load(device,"shadow");
+  shadowAt.load(device,"shadow_at");
 
   RenderState stateAlpha;
   stateAlpha.setCullFaceMode(RenderState::CullMode::Front);
@@ -97,32 +98,6 @@ RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   auto fs = device.shader(sh.data,sh.len);
   pComposeShadow = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vs,fs);
   }
-
-  pAnim          = pipeline<Resources::VertexA>(stateObj,   obj.ani);
-  pAnimG         = pipeline<Resources::VertexA>(stateObj,   objG.ani);
-  pAnimAt        = pipeline<Resources::VertexA>(stateObj,   objAt.ani);
-  pAnimAtG       = pipeline<Resources::VertexA>(stateObj,   objAtG.ani);
-  pAnimLt        = pipeline<Resources::VertexA>(stateAdd,   obj.ani);
-  pAnimAtLt      = pipeline<Resources::VertexA>(stateAdd,   objAt.ani);
-
-  pObject        = pipeline<Resources::Vertex> (stateObj,   obj.obj);
-  pObjectG       = pipeline<Resources::Vertex> (stateObj,   objG.obj);
-  pObjectAt      = pipeline<Resources::Vertex> (stateObj,   objAt.obj);
-  pObjectAtG     = pipeline<Resources::Vertex> (stateObj,   objAtG.obj);
-  pObjectLt      = pipeline<Resources::Vertex> (stateAdd,   obj.obj);
-  pObjectAtLt    = pipeline<Resources::Vertex> (stateAdd,   objAt.obj);
-
-  pObjectAlpha   = pipeline<Resources::Vertex> (stateAlpha, obj.obj);
-  pAnimAlpha     = pipeline<Resources::VertexA>(stateAlpha, obj.ani);
-
-  pObjectMAdd    = pipeline<Resources::Vertex> (stateMAdd,  objEmi.obj);
-  pAnimMAdd      = pipeline<Resources::VertexA>(stateMAdd,  objEmi.ani);
-
-  pObjectWater   = pipeline<Resources::Vertex> (stateObj,   objWater.obj);
-  pAnimWater     = pipeline<Resources::VertexA>(stateObj,   objWater.ani);
-
-  pObjectGhost   = pipeline<Resources::Vertex> (stateObj,   objGhost.obj);
-  pAnimGhost     = pipeline<Resources::VertexA>(stateObj,   objGhost.ani);
 
   {
   RenderState state;
@@ -173,14 +148,109 @@ RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   state.setZTestMode   (RenderState::ZTestMode::Less);
   state.setCullFaceMode(RenderState::CullMode::Back);
   //state.setCullFaceMode(RenderState::CullMode::Front);
+  }
 
-  pObjectSh   = pipeline<Resources::Vertex> (state,objShadow  .obj);
-  pObjectAtSh = pipeline<Resources::Vertex> (state,objShadowAt.obj);
-  pAnimSh     = pipeline<Resources::VertexA>(state,objShadow  .ani);
-  pAnimAtSh   = pipeline<Resources::VertexA>(state,objShadowAt.ani);
+const RenderPipeline* RendererStorage::materialPipeline(const Material& mat, ObjectsBucket::Type t, PipelineType pt) const {
+  const auto alpha = (mat.isGhost ? Material::Ghost : mat.alpha);
+
+  for(auto& i:materials) {
+    if(i.alpha==alpha && i.type==t && i.pipelineType==pt)
+      return &i.pipeline;
+    }
+
+  const MaterialTemplate* forward  = nullptr;
+  const MaterialTemplate* deffered = nullptr;
+  const MaterialTemplate* shadow   = nullptr;
+
+  RenderState state;
+  state.setCullFaceMode(RenderState::CullMode::Front);
+  state.setZTestMode   (RenderState::ZTestMode::Less);
+
+  switch(alpha) {
+    case Material::Solid:
+      forward  = &solidF;
+      deffered = &solid;
+      shadow   = &this->shadow;
+      break;
+    case Material::AlphaTest:
+      forward  = &atestF;
+      deffered = &atest;
+      shadow   = &shadowAt;
+      break;
+    case Material::Water:
+      forward  = &water;
+      break;
+    case Material::Ghost:
+      forward  = &ghost;
+      break;
+    case Material::Transparent:
+      forward  = &solidF;
+      deffered = nullptr;
+
+      state.setBlendSource (RenderState::BlendMode::src_alpha); // premultiply in shader
+      state.setBlendDest   (RenderState::BlendMode::one_minus_src_alpha);
+      state.setZWriteEnabled(false);
+      break;
+    case Material::AdditiveLight:
+      forward = &emmision;
+
+      state.setBlendSource  (RenderState::BlendMode::src_alpha);
+      state.setBlendDest    (RenderState::BlendMode::one);
+      state.setZWriteEnabled(false);
+      break;
+    case Material::Multiply:
+    case Material::Multiply2:
+      forward  = &solidF;
+      deffered = &solid;
+
+      state.setBlendSource  (RenderState::BlendMode::src_alpha);
+      state.setBlendDest    (RenderState::BlendMode::one);
+      state.setZWriteEnabled(false);
+      break;
+    }
+
+  const MaterialTemplate* temp = nullptr;
+  switch(pt) {
+    case T_Forward:
+      temp = forward;
+      break;
+    case T_Deffered:
+      temp = deffered;
+      break;
+    case T_Shadow:
+      temp = shadow;
+      break;
+    case T_LightingExt:
+      temp = forward;
+      state.setBlendSource  (RenderState::BlendMode::one);
+      state.setBlendDest    (RenderState::BlendMode::one);
+      state.setZWriteEnabled(false);
+      state.setZTestMode    (RenderState::ZTestMode::Equal);
+      break;
+    }
+
+  if(temp==nullptr)
+    return nullptr;
+
+  materials.emplace_front();
+  auto& b = materials.front();
+  b.alpha        = alpha;
+  b.type         = t;
+  b.pipelineType = pt;
+  switch(t) {
+    case ObjectsBucket::Static:
+    case ObjectsBucket::Movable:
+      b.pipeline = pipeline<Resources::Vertex> (state,temp->obj);
+      break;
+    case ObjectsBucket::Animated:
+      b.pipeline = pipeline<Resources::VertexA>(state,temp->ani);
+      break;
+    }
+
+  return &b.pipeline;
   }
 
 template<class Vertex>
-RenderPipeline RendererStorage::pipeline(RenderState& st, const ShaderPair &sh) {
+RenderPipeline RendererStorage::pipeline(RenderState& st, const ShaderPair &sh) const {
   return device.pipeline<Vertex>(Triangles,st,sh.vs,sh.fs);
   }
