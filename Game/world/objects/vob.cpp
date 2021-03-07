@@ -109,6 +109,8 @@ void Vob::recalculateTransform() {
 
 std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool startup) {
   switch(vob.vobType) {
+    case ZenLoad::zCVobData::VT_Unknown:
+      return nullptr;
     case ZenLoad::zCVobData::VT_zCVob:
       return std::unique_ptr<Vob>(new StaticObj(parent,world,std::move(vob),startup));
     case ZenLoad::zCVobData::VT_zCVobLevelCompo:
@@ -212,24 +214,11 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
     case ZenLoad::zCVobData::VT_zCVobLight: {
       return std::unique_ptr<Vob>(new WorldLight(parent,world,std::move(vob),startup));
       }
-    }
-
-  if(vob.objectClass=="zCVobAnimate:zCVob") { // ork flags
-    // TODO: morph animation
-    return std::unique_ptr<Vob>(new StaticObj(parent,world,std::move(vob),startup));
-    }
-  else if(vob.objectClass=="zCVobLensFlare:zCVob" ||
-          vob.objectClass=="zCZoneVobFarPlane:zCVob" ||
-          vob.objectClass=="zCZoneVobFarPlaneDefault:zCZoneVobFarPlane:zCVob") {
-    // WONT-IMPLEMENT
-    }
-  else {
-    static std::unordered_set<std::string> cls;
-    if(cls.find(vob.objectClass)==cls.end()){
-      cls.insert(vob.objectClass);
-      Tempest::Log::d("unknown vob class ",vob.objectClass);
+    case ZenLoad::zCVobData::VT_zCTriggerUntouch: {
+      return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));
       }
     }
+
   return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));
   }
 

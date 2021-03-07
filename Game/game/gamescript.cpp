@@ -412,7 +412,7 @@ void GameScript::initCommon() {
 void GameScript::initDialogs(Gothic& gothic) {
   loadDialogOU(gothic);
   if(!dialogs)
-    dialogs.reset(new ZenLoad::zCCSLib(""));
+    dialogs.reset(new ZenLoad::zCCSLib());
 
   size_t count=0;
   vm.getDATFile().iterateSymbolsOfClass("C_Info", [&count](size_t,Daedalus::PARSymbol&){
@@ -433,7 +433,7 @@ void GameScript::loadDialogOU(Gothic &gothic) {
     {u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE",u"OU.DAT"},
     {u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE",u"OU.BIN"},
     };
-  for(auto n:names){
+  for(auto n:names) {
     std::u16string full = gothic.nestedPath(n,Dir::FT_File);
     try {
       std::vector<uint8_t> data;

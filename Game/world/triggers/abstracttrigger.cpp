@@ -84,7 +84,7 @@ void AbstractTrigger::processEvent(const TriggerEvent& evt) {
   }
 
 void AbstractTrigger::onTrigger(const TriggerEvent&) {
-  Log::d("TODO: trigger[",name(),";",data.objectClass,"]");
+  Log::d("TODO: trigger[",name(),"]");
   }
 
 void AbstractTrigger::onUntrigger(const TriggerEvent&) {

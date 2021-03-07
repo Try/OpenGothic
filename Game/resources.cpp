@@ -120,8 +120,8 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
   //for(auto& i:gothicAssets.getKnownFiles())
   //  Log::i(i);
 
-  // auto v = getFileData("TREASURE_ADDON_01.MDL");
-  // Tempest::WFile f("../../internal/TREASURE_ADDON_01.MDL");
+  // auto v = getFileData("DRAGONISLAND.ZEN");
+  // Tempest::WFile f("../../internal/DRAGONISLAND.ZEN");
   // f.write(v.data(),v.size());
   }
 
@@ -388,7 +388,8 @@ Animation* Resources::implLoadAnimation(std::string name) {
     Animation* ret=nullptr;
     if(gothic.version().game==2){
       FileExt::exchangeExt(name,"MDS","MSB") ||
-      FileExt::exchangeExt(name,"MDH","MSB");
+      FileExt::exchangeExt(name,"MDH","MSB") ||
+      FileExt::exchangeExt(name,"MMS","MMB");
 
       ZenLoad::ZenParser            zen(name,gothicAssets);
       ZenLoad::MdsParserBin         p(zen);
