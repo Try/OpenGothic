@@ -58,10 +58,9 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
 
   gothic.setLoadingProgress(0);
   setTime(gtime(8,0));
-  uint8_t ver = gothic.version().game;
 
   vm.reset(new GameScript(*this));
-  setWorld(std::unique_ptr<World>(new World(gothic,*this,storage,std::move(file),ver,[&](int v){
+  setWorld(std::unique_ptr<World>(new World(gothic,*this,storage,std::move(file),[&](int v){
     gothic.setLoadingProgress(int(v*0.55));
     })));
 
@@ -110,7 +109,7 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Seriali
     visitedWorlds.emplace_back(fin);
 
   vm.reset(new GameScript(*this,fin));
-  setWorld(std::unique_ptr<World>(new World(gothic,*this,storage,fin,hdr.isGothic2,[&](int v){
+  setWorld(std::unique_ptr<World>(new World(gothic,*this,storage,fin,[&](int v){
     gothic.setLoadingProgress(int(v*0.55));
     })));
 
@@ -329,7 +328,6 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
 
   vm->resetVarPointers();
 
-  const uint8_t            ver = gothic.version().game;
   const WorldStateStorage& wss = findStorage(w);
 
   auto loadProgress = [this](int v){
@@ -341,8 +339,8 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
 
   std::unique_ptr<World> ret;
   if(wss.isEmpty())
-    ret = std::unique_ptr<World>(new World(gothic,*this,storage,w,  ver,loadProgress)); else
-    ret = std::unique_ptr<World>(new World(gothic,*this,storage,fin,ver,loadProgress));
+    ret = std::unique_ptr<World>(new World(gothic,*this,storage,w,  loadProgress)); else
+    ret = std::unique_ptr<World>(new World(gothic,*this,storage,fin,loadProgress));
   setWorld(std::move(ret));
 
   if(!wss.isEmpty())
