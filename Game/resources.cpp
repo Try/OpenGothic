@@ -644,7 +644,10 @@ ZenLoad::oCWorldData& Resources::implLoadVobBundle(const std::string& filename) 
     ZenLoad::ZenParser parser(filename,Resources::vdfsIndex());
     parser.readHeader();
 
-    parser.readWorld(bundle,gothic.version().game==2);
+    auto fver = ZenLoad::ZenParser::FileVersion::Gothic1;
+    if(gothic.version().game==2)
+      fver = ZenLoad::ZenParser::FileVersion::Gothic2;
+    parser.readWorld(bundle,fver);
     }
   catch(...) {
     Log::e("unable to load Zen-file: \"",filename,"\"");
