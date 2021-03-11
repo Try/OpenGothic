@@ -906,8 +906,8 @@ void MainWindow::render(){
     fps.push(t-time);
     time=t;
     }
-  catch(const Tempest::DeviceLostException&) {
-    Log::e("lost device!");
+  catch(const Tempest::SwapchainSuboptimal&) {
+    Log::e("swapchain is outdated - reset renderer");
     device.waitIdle();
     swapchain.reset();
     renderer.resetSwapchain();
