@@ -329,7 +329,7 @@ bool Npc::setPosition(float ix, float iy, float iz) {
   z = iz;
 
   physic.setPosition(Vec3{x,y,z});
-  visual.setPosition(x,y,z);
+  visual.setPosition(x,y,z, true);
   return true;
   }
 
@@ -670,11 +670,15 @@ void Npc::updateAnimation() {
     visual.setTarget(currentTarget->position()); else
     visual.setTarget(position());
 
-  visual.updateAnimation(this,owner);
+  bool syncAtt = visual.updateAnimation(this,owner);
   if(durtyTranform){
     updatePos();
+    syncAtt = true;
     durtyTranform=0;
     }
+
+  if(syncAtt)
+    visual.syncAttaches();
   }
 
 void Npc::updateTransform() {
@@ -3479,9 +3483,9 @@ void Npc::updatePos() {
   sfxWeapon.setPosition(x,y,z);
 
   if(durtyTranform==TR_Pos) {
-    visual.setPosition(x,y,z);
+    visual.setPosition(x,y,z, false);
     } else {
-    visual.setObjMatrix(mkPositionMatrix());
+    visual.setObjMatrix(mkPositionMatrix(), false);
     }
   }
 

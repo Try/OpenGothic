@@ -371,17 +371,20 @@ bool MdlVisual::setToFightMode(const WeaponState f) {
   return true;
   }
 
-void MdlVisual::setPosition(float x, float y, float z) {
+void MdlVisual::setPosition(float x, float y, float z, bool syncAttach) {
   pos.set(3,0,x);
   pos.set(3,1,y);
   pos.set(3,2,z);
-  setObjMatrix(pos);
+  view.setObjMatrix(pos);
+  if(syncAttach)
+    syncAttaches();
   }
 
-void MdlVisual::setObjMatrix(const Tempest::Matrix4x4 &m) {
+void MdlVisual::setObjMatrix(const Tempest::Matrix4x4 &m, bool syncAttach) {
   pos = m;
   view.setObjMatrix(pos);
-  syncAttaches();
+  if(syncAttach)
+    syncAttaches();
   }
 
 void MdlVisual::setTarget(const Tempest::Vec3& p) {

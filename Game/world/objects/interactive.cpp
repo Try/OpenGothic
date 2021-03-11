@@ -167,7 +167,10 @@ void Interactive::setVisual(const std::string& body) {
   }
 
 void Interactive::updateAnimation() {
-  animChanged |= visual.updateAnimation(nullptr,world);
+  if(visual.updateAnimation(nullptr,world)) {
+    visual.syncAttaches();
+    animChanged = true;
+    }
   }
 
 void Interactive::tick(uint64_t dt) {

@@ -27,8 +27,8 @@ class MdlVisual final {
     void                           load(Serialize& fin,  Npc& npc);
     void                           load(Serialize& fin,  Interactive &mob);
 
-    void                           setPosition(float x,float y,float z);
-    void                           setObjMatrix(const Tempest::Matrix4x4 &m);
+    void                           setPosition(float x,float y,float z, bool syncAttach = false);
+    void                           setObjMatrix(const Tempest::Matrix4x4 &m, bool syncAttach = false);
 
     void                           setTarget(const Tempest::Vec3& p);
     void                           setVisual(const Skeleton *visual);
