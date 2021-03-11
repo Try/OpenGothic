@@ -40,14 +40,13 @@ Item::Item(World &owner, Serialize &fin, bool inWorld)
   fin.read(pos,equiped,itSlot);
   fin.read(mat);
 
+  if(inWorld)
+    view = world.addItmView(hitem.visual,hitem.material);
   setLocalTransform(mat);
   view.setObjMatrix(mat);
 
   auto& sym = owner.script().getSymbol(h.instanceSymbol);
   sym.instance.set(&h,Daedalus::IC_Item);
-
-  if(inWorld)
-    view = world.addItmView(hitem.visual,hitem.material);
   }
 
 Item::Item(Item &&it)
