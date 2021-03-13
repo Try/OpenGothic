@@ -46,6 +46,7 @@ LightGroup::Light::Light(LightGroup& owner, const ZenLoad::zCVobData& vob)
 
   if(owner.light[id].isDynamic())
     owner.dynamicState.push_back(id);
+  owner.chunks.resize((owner.light.size()+CHUNK_SIZE-1)/CHUNK_SIZE);
   }
 
 LightGroup::Light::Light(LightGroup& owner)
@@ -63,6 +64,7 @@ LightGroup::Light::Light(LightGroup& owner)
     owner.light.emplace_back(LightSource());
     }
   owner.dynamicState.push_back(id);
+  owner.chunks.resize((owner.light.size()+CHUNK_SIZE-1)/CHUNK_SIZE);
   }
 
 LightGroup::Light::Light(World& owner, const ZenLoad::zCVobData& vob)
@@ -94,18 +96,27 @@ void LightGroup::Light::setPosition(const Vec3& p) {
   if(light==nullptr)
     return;
   light->light[id].setPosition(p);
+  auto& ch = light->chunks[id/CHUNK_SIZE];
+  for(auto& i:ch.updated)
+    i = false;
   }
 
 void LightGroup::Light::setRange(float r) {
   if(light==nullptr)
     return;
   light->light[id].setRange(r);
+  auto& ch = light->chunks[id/CHUNK_SIZE];
+  for(auto& i:ch.updated)
+    i = false;
   }
 
 void LightGroup::Light::setColor(const Vec3& c) {
   if(light==nullptr)
     return;
   light->light[id].setColor(c);
+  auto& ch = light->chunks[id/CHUNK_SIZE];
+  for(auto& i:ch.updated)
+    i = false;
   }
 
 LightGroup::LightGroup(const SceneGlobals& scene)
@@ -186,6 +197,10 @@ void LightGroup::free(size_t id) {
       break;
       }
   light[id] = LightSource();
+
+  auto& ch = chunks[id/CHUNK_SIZE];
+  for(auto& i:ch.updated)
+    i = false;
   freeList.push_back(id);
   }
 
@@ -382,6 +397,10 @@ void LightGroup::buildVbo(uint8_t fId) {
 
   for(size_t i=0; i<chunks.size(); ++i) {
     auto&  ch = chunks[i];
+    if(ch.updated[fId])
+      continue;
+    ch.updated[fId] = true;
+
     size_t i0  = i*CHUNK_SIZE*8;
     size_t len = std::min<size_t>(vboCpu.size()-i0,CHUNK_SIZE*8);
     if(ch.vboGpu[fId].size()!=len)

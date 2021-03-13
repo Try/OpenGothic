@@ -80,10 +80,11 @@ class LightGroup final {
     void        buildVbo(uint8_t fId);
     void        buildVbo(Vertex* out, const LightSource& l);
 
-    const SceneGlobals& scene;
+    const SceneGlobals&               scene;
 
     struct Chunk {
-      Tempest::VertexBufferDyn<Vertex> vboGpu[Resources::MaxFramesInFlight];
+      Tempest::VertexBufferDyn<Vertex> vboGpu [Resources::MaxFramesInFlight];
+      bool                             updated[Resources::MaxFramesInFlight] = {};
       };
     std::vector<Chunk>                chunks;
 
