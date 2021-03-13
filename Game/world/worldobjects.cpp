@@ -101,6 +101,11 @@ void WorldObjects::load(Serialize &fin) {
     for(auto& i:routines)
       i.load(fin);
     }
+
+  for(auto& i:interactiveObj)
+    i->postValidate();
+  for(auto& i:npcArr)
+    i->postValidate();
   }
 
 void WorldObjects::save(Serialize &fout) {

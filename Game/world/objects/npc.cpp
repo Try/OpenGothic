@@ -290,6 +290,11 @@ void Npc::load(Serialize &fin) {
     physic.setEnable(false);
   }
 
+void Npc::postValidate() {
+  if(currentInteract!=nullptr && !currentInteract->isAttached(*this))
+    currentInteract = nullptr;
+  }
+
 void Npc::saveAiState(Serialize& fout) const {
   fout.write(aniWaitTime);
   fout.write(waitTime,faiWaitTime,uint8_t(aiPolicy));

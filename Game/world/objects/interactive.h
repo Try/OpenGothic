@@ -28,6 +28,7 @@ class Interactive : public Vob {
 
     void                load(Serialize& fin) override;
     void                save(Serialize& fout) const override;
+    void                postValidate();
 
     void                resetPositionToTA();
     void                updateAnimation();
@@ -67,6 +68,7 @@ class Interactive : public Vob {
     bool                canQuitAtLastState() const;
     bool                attach (Npc& npc);
     bool                dettach(Npc& npc,bool quick);
+    bool                isAttached(const Npc& to);
 
     auto                animNpc(const AnimationSolver &solver, Anim t) -> const Animation::Sequence*;
     void                marchInteractives(DbgPainter& p) const;

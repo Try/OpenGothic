@@ -132,6 +132,12 @@ void Interactive::save(Serialize &fout) const {
     }
   }
 
+void Interactive::postValidate() {
+  for(auto& i:attPos)
+    if(i.user!=nullptr && i.user->interactive()!=this)
+      i.user = nullptr;
+  }
+
 void Interactive::resetPositionToTA() {
   if(isAvailable()) {
     visual.startAnimAndGet("S_S0",world.tickCount());
@@ -661,6 +667,13 @@ bool Interactive::dettach(Npc &npc, bool quick) {
       }
     }
   return true;
+  }
+
+bool Interactive::isAttached(const Npc& to) {
+  for(auto& i:attPos)
+    if(i.user==&to)
+      return true;
+  return false;
   }
 
 void Interactive::setPos(Npc &npc,const Tempest::Vec3& pos) {

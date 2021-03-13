@@ -184,6 +184,7 @@ class Npc final {
 
     void       save(Serialize& fout);
     void       load(Serialize& fout);
+    void       postValidate();
 
     bool       setPosition (float x,float y,float z);
     bool       setPosition (const Tempest::Vec3& pos);
