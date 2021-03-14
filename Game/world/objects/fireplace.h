@@ -8,8 +8,9 @@ class FirePlace : public Interactive {
     FirePlace(Vob* parent, World& world, ZenLoad::zCVobData& vob, bool startup);
 
   protected:
+    void  load(Serialize& fin) override;
     void  moveEvent() override;
-    bool  setMobState(const char* scheme, int32_t st) override;
+    void  onStateChanged() override;
 
   private:
     VobBundle   fireVobtree;

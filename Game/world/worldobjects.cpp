@@ -725,9 +725,8 @@ void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &itm
   }
 
 void WorldObjects::resetPositionToTA() {
-  for(auto& i:interactiveObj) {
-    i->resetPositionToTA();
-    }
+  for(auto& r:routines)
+    r.curState = 0;
 
   for(size_t i=0;i<npcArr.size();) {
     auto& n = *npcArr[i];
@@ -742,6 +741,9 @@ void WorldObjects::resetPositionToTA() {
       npc.setPosition(-1000,-1000,-1000); // FIXME
       npc.updateTransform();
       }
+    }
+  for(auto& i:interactiveObj) {
+    i->resetPositionToTA();
     }
   }
 

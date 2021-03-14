@@ -76,6 +76,7 @@ class Interactive : public Vob {
   protected:
     Tempest::Matrix4x4  nodeTranform(const char* nodeName) const;
     void                moveEvent() override;
+    virtual void        onStateChanged(){}
 
   private:
     struct Pos final {
@@ -106,6 +107,7 @@ class Interactive : public Vob {
 
     auto                setAnim(Anim t) -> const Animation::Sequence*;
     bool                setAnim(Npc* npc, Anim dir);
+    void                setState(int st);
 
     Pos*                findNearest(const Npc& to);
     const Pos*          findFreePos() const;

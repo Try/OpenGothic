@@ -39,6 +39,7 @@ LightGroup::Light::Light(LightGroup& owner, const ZenLoad::zCVobData& vob)
   id = owner.light.size();
   if(owner.freeList.size()>0) {
     id = owner.freeList.back();
+    owner.freeList.pop_back();
     owner.light[id] = std::move(l);
     } else {
     owner.light.push_back(std::move(l));
@@ -47,6 +48,9 @@ LightGroup::Light::Light(LightGroup& owner, const ZenLoad::zCVobData& vob)
   if(owner.light[id].isDynamic())
     owner.dynamicState.push_back(id);
   owner.chunks.resize((owner.light.size()+CHUNK_SIZE-1)/CHUNK_SIZE);
+  auto& ch = light->chunks[id/CHUNK_SIZE];
+  for(auto& i:ch.updated)
+    i = false;
   }
 
 LightGroup::Light::Light(LightGroup& owner)
@@ -65,6 +69,9 @@ LightGroup::Light::Light(LightGroup& owner)
     }
   owner.dynamicState.push_back(id);
   owner.chunks.resize((owner.light.size()+CHUNK_SIZE-1)/CHUNK_SIZE);
+  auto& ch = light->chunks[id/CHUNK_SIZE];
+  for(auto& i:ch.updated)
+    i = false;
   }
 
 LightGroup::Light::Light(World& owner, const ZenLoad::zCVobData& vob)

@@ -4,9 +4,11 @@ FirePlace::FirePlace(Vob* parent, World& world, ZenLoad::zCVobData& vob, bool st
   :Interactive(parent,world,vob,startup){
   fireVobtreeName = std::move(vob.oCMobFire.fireVobtreeName);
   fireSlot        = std::move(vob.oCMobFire.fireSlot);
+  }
 
-  fireVobtree     = VobBundle(world,fireVobtreeName);
-  moveEvent();
+void FirePlace::load(Serialize& fin) {
+  Interactive::load(fin);
+  onStateChanged();
   }
 
 void FirePlace::moveEvent() {
@@ -16,10 +18,12 @@ void FirePlace::moveEvent() {
   fireVobtree.setObjMatrix(at);
   }
 
-bool FirePlace::setMobState(const char* scheme, int32_t st) {
-  bool ret = Interactive::setMobState(scheme,st);
-  if(std::strcmp(schemeName(),scheme)!=0)
-    return ret;
-
-  return ret;
+void FirePlace::onStateChanged() {
+  if(stateId()!=0) {
+    auto at = this->nodeTranform(fireSlot.c_str());
+    fireVobtree = VobBundle(world,fireVobtreeName);
+    fireVobtree.setObjMatrix(at);
+    } else {
+    fireVobtree = VobBundle();
+    }
   }

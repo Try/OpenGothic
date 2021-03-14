@@ -140,8 +140,8 @@ void Interactive::postValidate() {
 
 void Interactive::resetPositionToTA() {
   if(isAvailable()) {
-    visual.startAnimAndGet("S_S0",world.tickCount());
-    state = 0;
+    visual.startAnimAndGet("S_S0",world.tickCount(),true);
+    setState(0);
     }
   }
 
@@ -280,9 +280,9 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
 
   int prev = state;
   if(atach) {
-    state = std::min(stateNum,state+1);
+    setState(std::min(stateNum,state+1));
     } else {
-    state = std::max(0,state-1);
+    setState(std::max(0,state-1));
     }
   loopState = (prev==state);
   }
@@ -350,14 +350,17 @@ const char *Interactive::displayName() const {
 
 bool Interactive::setMobState(const char* scheme, int32_t st) {
   const bool ret = Vob::setMobState(scheme,st);
+  if(state==st)
+    return true;
 
   if(std::strcmp(schemeName(),scheme)!=0)
     return ret;
 
   char buf[256]={};
   std::snprintf(buf,sizeof(buf),"S_S%d",st);
-  if(visual.startAnimAndGet(buf,world.tickCount())!=nullptr) {
-    state = st;
+  if(visual.startAnimAndGet(buf,world.tickCount())!=nullptr ||
+     !visual.isAnimExist(buf)) {
+    setState(st);
     return ret;
     }
   return false;
@@ -783,6 +786,11 @@ bool Interactive::setAnim(Npc* npc,Anim dir) {
   if(dir!=Anim::Active)
     waitAnim = world.tickCount()+std::max(t0,t1);
   return true;
+  }
+
+void Interactive::setState(int st) {
+  state = st;
+  onStateChanged();
   }
 
 const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, Anim t) {

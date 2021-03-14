@@ -430,8 +430,17 @@ void PfxBucket::implTickDecals(uint64_t, const Vec3&) {
       continue;
 
     auto& p = getBlock(emitter);
-    if(p.count==0)
-      tickEmit(p,emitter,1);
+    if(emitter.st==S_Active || emitter.st==S_Inactive) {
+      if(p.count==0)
+        tickEmit(p,emitter,1);
+      } else
+    if(emitter.st==S_Fade) {
+      for(size_t i=0; i<blockSize; ++i)
+        particles[p.offset+i].life = 0;
+      p.count = 0;
+      freeBlock(emitter.block);
+      emitter.st = S_Free;
+      }
     }
   }
 

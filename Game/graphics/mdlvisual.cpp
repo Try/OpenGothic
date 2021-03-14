@@ -516,10 +516,11 @@ bool MdlVisual::isAnimExist(const char* name) const {
   return sq!=nullptr;
   }
 
-const Animation::Sequence* MdlVisual::startAnimAndGet(const char* name, uint64_t tickCount) {
+const Animation::Sequence* MdlVisual::startAnimAndGet(const char* name, uint64_t tickCount, bool forceAnim) {
   auto sq = solver.solveFrm(name);
-  if(sq) {
-    if(skInst->startAnim(solver,sq,0,BS_NONE,Pose::NoHint,tickCount)) {
+  if(sq!=nullptr) {
+    const Pose::StartHint hint = Pose::StartHint(forceAnim  ? Pose::Force : Pose::NoHint);
+    if(skInst->startAnim(solver,sq,0,BS_NONE,hint,tickCount)) {
       return sq;
       }
     }
@@ -529,7 +530,7 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(const char* name, uint64_t
 const Animation::Sequence* MdlVisual::startAnimAndGet(Npc &npc, const char *name, uint8_t comb,
                                                       bool forceAnim, BodyState bs) {
   const Animation::Sequence *sq = solver.solveFrm(name);
-  Pose::StartHint hint = Pose::StartHint(forceAnim  ? Pose::Force : Pose::NoHint);
+  const Pose::StartHint hint = Pose::StartHint(forceAnim  ? Pose::Force : Pose::NoHint);
   if(skInst->startAnim(solver,sq,comb,bs,hint,npc.world().tickCount())) {
     return sq;
     }
