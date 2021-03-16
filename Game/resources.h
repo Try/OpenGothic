@@ -9,6 +9,7 @@
 #include <vdfs/fileIndex.h>
 
 #include <zenload/zCModelMeshLib.h>
+#include <zenload/zCMorphMesh.h>
 #include <zenload/zTypes.h>
 
 #include <tuple>
@@ -117,6 +118,8 @@ class Resources final {
     template<class V>
     static Tempest::IndexBuffer<V>   ibo(const V* data,size_t sz){ return inst->device.ibo(data,sz); }
 
+    static Tempest::StorageBuffer    ssbo(const void* data, size_t size) { return inst->device.ssbo(data,size); }
+
     static std::vector<uint8_t>      getFileData(const char*        name);
     static bool                      getFileData(const char*        name,std::vector<uint8_t>& dat);
     static std::vector<uint8_t>      getFileData(const std::string& name);
@@ -132,7 +135,8 @@ class Resources final {
     enum class MeshLoadCode : uint8_t {
       Error,
       Static,
-      Dynamic
+      Dynamic,
+      Morph,
       };
 
     struct Archive {
@@ -172,7 +176,11 @@ class Resources final {
     PfxEmitterMesh*       implLoadEmiterMesh(const char* name);
     ZenLoad::oCWorldData& implLoadVobBundle(const std::string& name);
 
-    MeshLoadCode          loadMesh(ZenLoad::PackedMesh &sPacked, ZenLoad::zCModelMeshLib &lib, std::string  name);
+    MeshLoadCode          loadMesh(ZenLoad::PackedMesh &sPacked,
+                                   std::vector<ZenLoad::zCMorphMesh::Animation>& aniList,
+                                   ZenLoad::zCModelMeshLib &lib,
+                                   std::string  name);
+
     ZenLoad::zCModelMeshLib loadMDS (std::string& name);
     Tempest::VertexBuffer<Vertex> sphere(int passCount, float R);
 

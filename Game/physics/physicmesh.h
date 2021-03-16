@@ -3,6 +3,9 @@
 #include "dynamicworld.h"
 
 class Pose;
+class ProtoMesh;
+class Skeleton;
+class AttachBinder;
 
 class PhysicMesh final {
   public:

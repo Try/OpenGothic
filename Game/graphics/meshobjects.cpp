@@ -5,6 +5,8 @@
 #include "graphics/mesh/skeleton.h"
 #include "graphics/mesh/pose.h"
 #include "graphics/mesh/attachbinder.h"
+#include "graphics/mesh/protomesh.h"
+
 #include "visualobjects.h"
 
 MeshObjects::MeshObjects(VisualObjects& parent)
@@ -15,6 +17,7 @@ MeshObjects::~MeshObjects() {
   }
 
 MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const StaticMesh::SubMesh& s,
+                                       const std::vector<ProtoMesh::Animation>& anim,
                                        int32_t texVar, int32_t teethTex, int32_t bodyColor,
                                        bool staticDraw) {
   Material mat = s.material;
@@ -35,7 +38,7 @@ MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const StaticMesh:
       Tempest::Log::e("texture not found: \"",s.texName,"\"");
     return MeshObjects::Item();
     }
-  return parent.get(mesh,mat,s.ibo,staticDraw);
+  return parent.get(mesh,mat,s.ibo,anim,staticDraw);
   }
 
 const Tempest::Texture2d *MeshObjects::solveTex(const Tempest::Texture2d *def, const std::string &format, int32_t v, int32_t c) {
@@ -107,7 +110,7 @@ MeshObjects::Mesh::Mesh(MeshObjects& owner, const StaticMesh& mesh, int32_t vers
     // NOTE: light dragon hunter armour
     if(mesh.sub[i].texName.find_first_of("VC")==std::string::npos && version!=0)
       continue;
-    Item it = owner.implGet(mesh,mesh.sub[i],0,0,version,staticDraw);
+    Item it = owner.implGet(mesh,mesh.sub[i],{},0,0,version,staticDraw);
     if(it.isEmpty())
       continue;
     sub[subCount] = std::move(it);
@@ -119,7 +122,7 @@ MeshObjects::Mesh::Mesh(MeshObjects& owner, const StaticMesh& mesh, int32_t head
   sub.reset(new Item[mesh.sub.size()]);
   subCount = 0;
   for(size_t i=0;i<mesh.sub.size();++i){
-    Item it = owner.implGet(mesh,mesh.sub[i],headTexVar,teethTex,bodyColor,false);
+    Item it = owner.implGet(mesh,mesh.sub[i],{},headTexVar,teethTex,bodyColor,false);
     if(it.isEmpty())
       continue;
     sub[subCount] = std::move(it);
@@ -136,7 +139,7 @@ MeshObjects::Mesh::Mesh(MeshObjects& owner, const ProtoMesh& mesh, int32_t texVa
   for(auto& m:mesh.submeshId) {
     auto& att = mesh.attach[m.id];
     auto& s   = att.sub[m.subId];
-    Item  it  = owner.implGet(att,s,texVar,teethTex,bodyColor,staticDraw);
+    Item  it  = owner.implGet(att,s,mesh.morph,texVar,teethTex,bodyColor,staticDraw);
     if(it.isEmpty())
       continue;
     sub[subCount] = std::move(it);

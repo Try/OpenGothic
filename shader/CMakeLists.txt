@@ -34,12 +34,12 @@ endfunction(add_shader)
 # shaders
 # Ubershader flags:
 #   OBJ        - enable object matrix
-#   LIGHT_EXT  - shader for extra lights
 #   SKINING    - animation skeleton
 #   SHADOW_MAP - output is shadowmap
 #   ATEST      - use alpha test
 #   PFX        - use color modulation
 #   WATER      - water material
+#   MORPH      - morphing animation
 #   G1         - hint for gothic1 shader
 add_shader(obj.vert             main.vert -DOBJ)
 add_shader(obj.frag             main.frag -DOBJ)
@@ -55,8 +55,6 @@ add_shader(obj_shadow.vert      main.vert -DOBJ -DSHADOW_MAP)
 add_shader(obj_shadow.frag      main.frag -DOBJ -DSHADOW_MAP)
 add_shader(obj_shadow_at.vert   main.vert -DOBJ -DSHADOW_MAP -DATEST)
 add_shader(obj_shadow_at.frag   main.frag -DOBJ -DSHADOW_MAP -DATEST)
-add_shader(obj_light.vert       main.vert -DOBJ -DLIGHT_EXT)
-add_shader(obj_light.frag       main.frag -DOBJ -DLIGHT_EXT)
 add_shader(obj_water.vert       main.vert -DOBJ -DWATER)
 add_shader(obj_water.frag       main.frag -DOBJ -DWATER)
 add_shader(obj_ghost.vert       main.vert -DOBJ -DGHOST)
@@ -76,12 +74,29 @@ add_shader(ani_shadow.vert      main.vert -DOBJ -DSKINING -DSHADOW_MAP)
 add_shader(ani_shadow.frag      main.frag -DOBJ -DSKINING -DSHADOW_MAP)
 add_shader(ani_shadow_at.vert   main.vert -DOBJ -DSKINING -DSHADOW_MAP -DATEST)
 add_shader(ani_shadow_at.frag   main.frag -DOBJ -DSKINING -DSHADOW_MAP -DATEST)
-add_shader(ani_light.vert       main.vert -DOBJ -DSKINING -DLIGHT_EXT)
-add_shader(ani_light.frag       main.frag -DOBJ -DSKINING -DLIGHT_EXT)
 add_shader(ani_water.vert       main.vert -DOBJ -DSKINING -DWATER)
 add_shader(ani_water.frag       main.frag -DOBJ -DSKINING -DWATER)
 add_shader(ani_ghost.vert       main.vert -DOBJ -DSKINING -DGHOST)
 add_shader(ani_ghost.frag       main.frag -DOBJ -DSKINING -DGHOST)
+
+add_shader(mph.vert             main.vert -DOBJ -DMORPH)
+add_shader(mph.frag             main.frag -DOBJ -DMORPH)
+add_shader(mph_at.vert          main.vert -DOBJ -DMORPH -DATEST)
+add_shader(mph_at.frag          main.frag -DOBJ -DMORPH -DATEST)
+add_shader(mph_emi.vert         main.vert -DOBJ -DMORPH -DEMMISSIVE)
+add_shader(mph_emi.frag         main.frag -DOBJ -DMORPH -DEMMISSIVE)
+add_shader(mph_gbuffer.vert     main.vert -DOBJ -DMORPH -DGBUFFER)
+add_shader(mph_gbuffer.frag     main.frag -DOBJ -DMORPH -DGBUFFER)
+add_shader(mph_at_gbuffer.vert  main.vert -DOBJ -DMORPH -DGBUFFER -DATEST)
+add_shader(mph_at_gbuffer.frag  main.frag -DOBJ -DMORPH -DGBUFFER -DATEST)
+add_shader(mph_shadow.vert      main.vert -DOBJ -DMORPH -DSHADOW_MAP)
+add_shader(mph_shadow.frag      main.frag -DOBJ -DMORPH -DSHADOW_MAP)
+add_shader(mph_shadow_at.vert   main.vert -DOBJ -DMORPH -DSHADOW_MAP -DATEST)
+add_shader(mph_shadow_at.frag   main.frag -DOBJ -DMORPH -DSHADOW_MAP -DATEST)
+add_shader(mph_water.vert       main.vert -DOBJ -DMORPH -DWATER)
+add_shader(mph_water.frag       main.frag -DOBJ -DMORPH -DWATER)
+add_shader(mph_ghost.vert       main.vert -DOBJ -DMORPH -DGHOST)
+add_shader(mph_ghost.frag       main.frag -DOBJ -DMORPH -DGHOST)
 
 add_shader(light.vert           light.vert "")
 add_shader(light.frag           light.frag "")

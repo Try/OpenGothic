@@ -117,6 +117,21 @@ ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm, const std::string& fname)
   setupScheme(fname);
   }
 
+ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm,
+                     const std::vector<ZenLoad::zCMorphMesh::Animation>& aniList,
+                     const std::string& fname)
+  : ProtoMesh(std::move(pm),fname) {
+  if(attach.size()!=1 || attach[0].sub.size()!=1) {
+    Tempest::Log::d("skip animations for: ",fname);
+    return;
+    }
+
+  morph.resize(aniList.size());
+  for(size_t i=0; i<aniList.size(); ++i) {
+    morph[i] = mkAnimation(aniList[i]);
+    }
+  }
+
 ProtoMesh::ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo) {
   attach.emplace_back(mat,std::move(vbo),std::move(ibo));
   submeshId.resize(attach[0].sub.size());
@@ -182,4 +197,22 @@ void ProtoMesh::setupScheme(const std::string &s) {
     return;
     }
   scheme = s;
+  }
+
+ProtoMesh::Animation ProtoMesh::mkAnimation(const ZenLoad::zCMorphMesh::Animation& a) {
+  size_t vertCnt = attach[0].sub[0].ibo.size();
+  std::vector<int32_t> remap(vertCnt,-1);
+
+  for(size_t i=0; i<a.vertexIndex.size(); ++i) {
+    if(remap.size()<=a.vertexIndex[i])
+      remap.resize(a.vertexIndex[i]+1);
+    remap[a.vertexIndex[i]] = int(i);
+    }
+
+  Animation ret;
+  ret.name           = a.name;
+  ret.samplePerFrame = a.samples.size()/a.numFrames;
+  ret.index          = Resources::ssbo(remap.data(),remap.size()*sizeof(remap[0]));
+  ret.samples        = Resources::ssbo(a.samples.data(),a.samples.size()*sizeof(Tempest::Vec3));
+  return ret;
   }

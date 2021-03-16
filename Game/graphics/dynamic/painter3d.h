@@ -29,23 +29,6 @@ class Painter3d final {
 
     void setViewport(int x,int y,int w,int h);
 
-    void setUniforms(const Tempest::RenderPipeline& pipeline, const void* b, size_t sz);
-    void draw(const Tempest::RenderPipeline& pipeline,
-              const Tempest::Uniforms& ubo,
-              const Tempest::VertexBuffer<Vertex>& vbo,
-              const Tempest::IndexBuffer<uint32_t>& ibo);
-    void draw(const Tempest::RenderPipeline& pipeline,
-              const Tempest::Uniforms& ubo,
-              const Tempest::VertexBuffer<VertexA>& vbo,
-              const Tempest::IndexBuffer<uint32_t>& ibo);
-
-    void draw(const Tempest::RenderPipeline& pipeline,
-              const Tempest::Uniforms& ubo,
-              const Tempest::VertexBuffer<VertexFsq>& vbo);
-    void draw(const Tempest::RenderPipeline& pipeline,
-              const Tempest::Uniforms& ubo,
-              const Tempest::VertexBuffer<Vertex>& vbo);
-
   private:
     Tempest::Encoder<Tempest::CommandBuffer>& enc;
 

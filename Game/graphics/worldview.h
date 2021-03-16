@@ -8,6 +8,7 @@
 #include "graphics/sky/sky.h"
 #include "graphics/mesh/landscape.h"
 #include "graphics/meshobjects.h"
+#include "graphics/mesh/protomesh.h"
 #include "graphics/pfx/pfxobjects.h"
 #include "lightsource.h"
 #include "sceneglobals.h"

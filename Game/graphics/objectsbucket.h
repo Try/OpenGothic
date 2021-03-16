@@ -12,6 +12,7 @@
 #include "sceneglobals.h"
 #include "skeletalstorage.h"
 #include "ubostorage.h"
+#include "graphics/mesh/protomesh.h"
 
 class RendererStorage;
 class Pose;
@@ -25,11 +26,6 @@ class ObjectsBucket final {
     using Vertex  = Resources::Vertex;
     using VertexA = Resources::VertexA;
 
-    enum {
-      LIGHT_BLOCK  = 2,
-      MAX_LIGHT    = 64,
-      };
-
   public:
     enum {
       CAPACITY     = 128,
@@ -39,6 +35,7 @@ class ObjectsBucket final {
       Static,
       Movable,
       Animated,
+      Morph,
       };
 
     enum VboType : uint8_t {
@@ -46,6 +43,7 @@ class ObjectsBucket final {
       VboVertex,
       VboVertexA,
       VboMorph,
+      VboMorpthGpu,
       };
 
     class Item final {
@@ -91,13 +89,14 @@ class ObjectsBucket final {
         bool                    commitUbo(Tempest::Device &device, uint8_t fId);
       };
 
-    ObjectsBucket(const Material& mat, size_t boneCount, VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type);
+    ObjectsBucket(const Material& mat, const std::vector<ProtoMesh::Animation>& anim, size_t boneCount, VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type);
     ~ObjectsBucket();
 
     const Material&           material()  const;
     Type                      type()      const { return shaderType; }
-    size_t                    size()      const { return valSz; }
-    size_t                    boneCount() const { return boneCnt; }
+    size_t                    size()      const { return valSz;      }
+    size_t                    boneCount() const { return boneCnt;    }
+    const std::vector<ProtoMesh::Animation>* morph() const { return morphAnim;  }
 
     size_t                    avgPoligons() const { return polySz; }
 
@@ -119,7 +118,6 @@ class ObjectsBucket final {
     void                      visibilityPassAnd(Painter3d& p);
     void                      draw       (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
     void                      drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
-    void                      drawLight  (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
     void                      drawShadow (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId, int layer=0);
     void                      draw       (size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId);
 
@@ -133,7 +131,9 @@ class ObjectsBucket final {
 
     struct UboPush final {
       Tempest::Matrix4x4 pos;
-      ShLight            light[LIGHT_BLOCK];
+      int32_t            morphSampleCount = 0;
+      int32_t            morphFrame[2] = {};
+      int32_t            padding;
       };
 
     struct UboMaterial final {
@@ -161,11 +161,6 @@ class ObjectsBucket final {
 
       Descriptors                           ubo;
       size_t                                storageAni = size_t(-1);
-
-      const LightSource*                    light[MAX_LIGHT] = {};
-      size_t                                lightCnt=0;
-      int                                   lightCacheKey[3]={};
-
       uint64_t                              timeShift=0;
 
       bool                                  isValid() const { return vboType!=VboType::NoVbo; }
@@ -185,8 +180,6 @@ class ObjectsBucket final {
 
     const Bounds& bounds(size_t i) const;
 
-    void    setupLights (Object& val, bool noCache);
-
     VisualObjects&            owner;
     Descriptors               uboShared;
 
@@ -202,6 +195,7 @@ class ObjectsBucket final {
     const SceneGlobals&       scene;
     Storage&                  storage;
     Material                  mat;
+    const std::vector<ProtoMesh::Animation>* morphAnim = nullptr;
 
     Tempest::UniformBuffer<UboMaterial> uboMat[Resources::MaxFramesInFlight];
 
@@ -213,7 +207,6 @@ class ObjectsBucket final {
 
     const Tempest::RenderPipeline* pMain    = nullptr;
     const Tempest::RenderPipeline* pGbuffer = nullptr;
-    const Tempest::RenderPipeline* pLight   = nullptr;
     const Tempest::RenderPipeline* pShadow  = nullptr;
   };
 

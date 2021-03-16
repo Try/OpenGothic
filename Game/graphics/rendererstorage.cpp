@@ -28,15 +28,19 @@ void RendererStorage::ShaderPair::load(Device& device, const char* tag) {
 void RendererStorage::MaterialTemplate::load(Device &device, const char *tag) {
   char fobj[256]={};
   char fani[256]={};
+  char fmph[256]={};
   if(tag==nullptr || tag[0]=='\0') {
     std::snprintf(fobj,sizeof(fobj),"obj");
     std::snprintf(fani,sizeof(fani),"ani");
+    std::snprintf(fmph,sizeof(fani),"mph");
     } else {
     std::snprintf(fobj,sizeof(fobj),"obj_%s",tag);
     std::snprintf(fani,sizeof(fani),"ani_%s",tag);
+    std::snprintf(fmph,sizeof(fmph),"mph_%s",tag);
     }
   obj.load(device,fobj,"%s.%s.sprv");
   ani.load(device,fani,"%s.%s.sprv");
+  mph.load(device,fmph,"%s.%s.sprv");
   }
 
 RendererStorage::RendererStorage(Device& device, Gothic& gothic)
@@ -220,13 +224,6 @@ const RenderPipeline* RendererStorage::materialPipeline(const Material& mat, Obj
     case T_Shadow:
       temp = shadow;
       break;
-    case T_LightingExt:
-      temp = forward;
-      state.setBlendSource  (RenderState::BlendMode::one);
-      state.setBlendDest    (RenderState::BlendMode::one);
-      state.setZWriteEnabled(false);
-      state.setZTestMode    (RenderState::ZTestMode::Equal);
-      break;
     }
 
   if(temp==nullptr)
@@ -241,6 +238,9 @@ const RenderPipeline* RendererStorage::materialPipeline(const Material& mat, Obj
     case ObjectsBucket::Static:
     case ObjectsBucket::Movable:
       b.pipeline = pipeline<Resources::Vertex> (state,temp->obj);
+      break;
+    case ObjectsBucket::Morph:
+      b.pipeline = pipeline<Resources::Vertex> (state,temp->mph);
       break;
     case ObjectsBucket::Animated:
       b.pipeline = pipeline<Resources::VertexA>(state,temp->ani);

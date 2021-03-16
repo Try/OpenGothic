@@ -291,10 +291,24 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
     }
 
   try {
-    ZenLoad::PackedMesh        sPacked;
+    std::vector<ZenLoad::zCMorphMesh::Animation> aniList;
+    ZenLoad::PackedMesh        packed;
     ZenLoad::zCModelMeshLib    library;
-    auto                       code=loadMesh(sPacked,library,name);
-    std::unique_ptr<ProtoMesh> t{code==MeshLoadCode::Static ? new ProtoMesh(std::move(sPacked),name) : new ProtoMesh(library,name)};
+    auto                       code=loadMesh(packed,aniList,library,name);
+    std::unique_ptr<ProtoMesh> t;
+    switch(code) {
+      case MeshLoadCode::Error:
+        break;
+      case MeshLoadCode::Static:
+        t.reset(new ProtoMesh(std::move(packed),name));
+        break;
+      case MeshLoadCode::Morph:
+        t.reset(new ProtoMesh(std::move(packed),aniList,name));
+        break;
+      case MeshLoadCode::Dynamic:
+        t.reset(new ProtoMesh(library,name));
+        break;
+      }
     ProtoMesh* ret=t.get();
     aniMeshCache[name] = std::move(t);
     if(code==MeshLoadCode::Error)
@@ -494,12 +508,23 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(const char* name) {
   if(it!=emiMeshCache.end())
     return it->second.get();
 
+  std::vector<ZenLoad::zCMorphMesh::Animation> aniList;
   ZenLoad::PackedMesh        packed;
   ZenLoad::zCModelMeshLib    library;
-  auto                       code=loadMesh(packed,library,name);
+  auto                       code=loadMesh(packed,aniList,library,name);
+  std::unique_ptr<PfxEmitterMesh> ptr;
+  switch(code) {
+    case MeshLoadCode::Error:
+      break;
+    case MeshLoadCode::Static:
+    case MeshLoadCode::Morph:
+      ptr.reset(new PfxEmitterMesh(packed));
+      break;
+    case MeshLoadCode::Dynamic:
+      ptr.reset(new PfxEmitterMesh(library));
+      break;
+    }
 
-  std::unique_ptr<PfxEmitterMesh> ptr{code==MeshLoadCode::Static ? new PfxEmitterMesh(packed) :
-                                                                   new PfxEmitterMesh(library)};
   auto ret = ptr.get();
   emiMeshCache[name] = std::move(ptr);
   return ret;
@@ -598,7 +623,7 @@ const PfxEmitterMesh* Resources::loadEmiterMesh(const char* name) {
   }
 
 const Skeleton *Resources::loadSkeleton(const char* name) {
-  if(FileExt::hasExt(name,"3ds"))
+  if(FileExt::hasExt(name,"3ds") || FileExt::hasExt(name,"MMS"))
     return nullptr;
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadSkeleton(name);
@@ -674,7 +699,9 @@ std::vector<uint8_t> Resources::getFileData(const std::string &name) {
   return data;
   }
 
-Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoad::zCModelMeshLib& library,
+Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked,
+                                            std::vector<ZenLoad::zCMorphMesh::Animation>& aniList,
+                                            ZenLoad::zCModelMeshLib& library,
                                             std::string name) {
   // Check if this isn't the compiled version
   if(name.rfind("-C")==std::string::npos) {
@@ -703,7 +730,8 @@ Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked, ZenLoa
       std::swap(i.Normal.y,i.Normal.z);
       i.Normal.z=-i.Normal.z;
       }
-    return MeshLoadCode::Static;
+    aniList = std::move(zmm.aniList);
+    return MeshLoadCode::Morph;
     }
 
   if(FileExt::hasExt(name,"MDMS") ||

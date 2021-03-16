@@ -31,7 +31,7 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
 
   auto m = owner->mat;
   m.isGhost = g;
-  auto&  bucket = owner->owner.getBucket(m,owner->boneCnt,owner->shaderType);
+  auto&  bucket = owner->owner.getBucket(m,{},owner->boneCnt,owner->shaderType);
 
   auto&  v      = owner->val[id];
   size_t idNext = size_t(-1);
@@ -48,6 +48,10 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
       }
     case VboMorph:{
       idNext = bucket.alloc(v.vboM,v.bounds);
+      break;
+      }
+    case VboMorpthGpu:{
+      idNext = bucket.alloc(*v.vbo,*v.ibo,v.bounds);
       break;
       }
     }
@@ -94,17 +98,24 @@ void ObjectsBucket::Descriptors::alloc(ObjectsBucket& owner) {
     }
   }
 
-ObjectsBucket::ObjectsBucket(const Material& mat, size_t boneCount, VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type)
-  :owner(owner), boneCnt(boneCount), scene(scene), storage(storage), mat(mat), shaderType(type), useSharedUbo(type!=Animated) {
+ObjectsBucket::ObjectsBucket(const Material& mat, const std::vector<ProtoMesh::Animation>& anim, size_t boneCount,
+                             VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type)
+  :owner(owner), boneCnt(boneCount), scene(scene), storage(storage), mat(mat), shaderType(type) {
   static_assert(sizeof(UboPush)<=128, "UboPush is way too big");
 
-  pMain    = scene.storage.materialPipeline(mat,shaderType,RendererStorage::T_Forward    );
-  pGbuffer = scene.storage.materialPipeline(mat,shaderType,RendererStorage::T_Deffered   );
-  pShadow  = scene.storage.materialPipeline(mat,shaderType,RendererStorage::T_Shadow     );
-  pLight   = scene.storage.materialPipeline(mat,shaderType,RendererStorage::T_LightingExt);
+  auto st = shaderType;
+  if(anim.size()>0) {
+    morphAnim = &anim;
+    st        = Morph;
+    }
 
-  if(mat.frames.size()>0)
-    useSharedUbo = false;
+  pMain    = scene.storage.materialPipeline(mat,st,RendererStorage::T_Forward );
+  pGbuffer = scene.storage.materialPipeline(mat,st,RendererStorage::T_Deffered);
+  pShadow  = scene.storage.materialPipeline(mat,st,RendererStorage::T_Shadow  );
+
+  if(mat.frames.size()>0 || type==Animated)
+    useSharedUbo = false; else
+    useSharedUbo = true;
 
   textureInShadowPass = (mat.alpha==Material::AlphaTest);
 
@@ -174,6 +185,10 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
         ubo.set(5,*scene.lightingBuf,Sampler2d::nearest());
         ubo.set(6,*scene.gbufDepth,  Sampler2d::nearest());
         }
+      if(morphAnim!=nullptr) {
+        ubo.set(7,(*morphAnim)[0].index);
+        ubo.set(8,(*morphAnim)[0].samples);
+        }
       }
 
     for(size_t lay=0;lay<Resources::ShadowLayers;++lay) {
@@ -185,6 +200,10 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
         uboSh.set(0,t);
       uboSh.set(2,scene.uboGlobalPf[i][lay]);
       uboSh.set(4,uboMat[i]);
+      if(morphAnim!=nullptr) {
+        uboSh.set(7,(*morphAnim)[0].index);
+        uboSh.set(8,(*morphAnim)[0].samples);
+        }
       }
     }
   }
@@ -219,10 +238,6 @@ void ObjectsBucket::uboSetDynamic(Object& v, uint8_t fId) {
   }
 
 void ObjectsBucket::setupUbo() {
-  for(auto& v:val) {
-    setupLights(v,true);
-    }
-
   if(useSharedUbo) {
     uboShared.invalidate();
     uboSetCommon(uboShared);
@@ -401,16 +416,6 @@ void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fI
     auto& v = *idx[i];
 
     pushBlock.pos = v.pos;
-    const size_t cnt = v.lightCnt;
-    for(size_t r=0; r<cnt && r<LIGHT_BLOCK; ++r) {
-      pushBlock.light[r].pos   = v.light[r]->position();
-      pushBlock.light[r].color = v.light[r]->currentColor();
-      pushBlock.light[r].range = v.light[r]->currentRange();
-      }
-    for(size_t r=cnt;r<LIGHT_BLOCK;++r) {
-      pushBlock.light[r].range = 0;
-      }
-
     p.setUniforms(*pMain,&pushBlock,sizeof(pushBlock));
     if(!useSharedUbo) {
       uboSetDynamic(v,fId);
@@ -428,6 +433,9 @@ void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fI
         break;
       case VboType::VboMorph:
         p.draw(*v.vboM[fId]);
+        break;
+      case VboType::VboMorpthGpu:
+        p.draw(*v.vbo, *v.ibo);
         break;
       }
     }
@@ -464,57 +472,9 @@ void ObjectsBucket::drawGBuffer(Tempest::Encoder<CommandBuffer>& p, uint8_t fId)
       case VboType::VboMorph:
         p.draw(*v.vboM[fId]);
         break;
-      }
-    }
-  }
-
-void ObjectsBucket::drawLight(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) {
-  static bool disabled = false;
-  if(disabled)
-    return;
-
-  if(pLight==nullptr || indexSz==0)
-    return;
-
-  if(useSharedUbo)
-    p.setUniforms(*pLight,uboShared.ubo[fId]);
-
-  UboPush pushBlock;
-  Object** idx = index;
-  for(size_t i=0;i<indexSz;++i) {
-    auto& v = *idx[i];
-    if(v.lightCnt<=LIGHT_BLOCK)
-      continue;
-
-    if(!useSharedUbo) {
-      p.setUniforms(*pLight,v.ubo.ubo[fId]);
-      }
-    pushBlock.pos = v.pos;
-
-    for(size_t i=LIGHT_BLOCK; i<v.lightCnt; i+=LIGHT_BLOCK) {
-      const size_t cnt = v.lightCnt-i;
-      for(size_t r=0; r<cnt && r<LIGHT_BLOCK; ++r) {
-        pushBlock.light[r].pos   = v.light[i+r]->position();
-        pushBlock.light[r].color = v.light[i+r]->color();
-        pushBlock.light[r].range = v.light[i+r]->range();
-        }
-      for(size_t r=cnt;r<LIGHT_BLOCK;++r) {
-        pushBlock.light[r].range = 0;
-        }
-      p.setUniforms(*pLight,&pushBlock,sizeof(pushBlock));
-      switch(v.vboType) {
-        case VboType::NoVbo:
-          break;
-        case VboType::VboVertex:
-          p.draw(*v.vbo, *v.ibo);
-          break;
-        case VboType::VboVertexA:
-          p.draw(*v.vboA,*v.ibo);
-          break;
-        case VboType::VboMorph:
-          p.draw(*v.vboM[fId]);
-          break;
-        }
+      case VboType::VboMorpthGpu:
+        p.draw(*v.vbo, *v.ibo);
+        break;
       }
     }
   }
@@ -550,6 +510,9 @@ void ObjectsBucket::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& p, uint
       case VboType::VboMorph:
         p.draw(*v.vboM[fId]);
         break;
+      case VboType::VboMorpthGpu:
+        p.draw(*v.vbo, *v.ibo);
+        break;
       }
     }
   }
@@ -584,8 +547,6 @@ void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
 
   if(shaderType==Static)
     allBounds.r = 0;
-
-  setupLights(v,false);
   }
 
 void ObjectsBucket::setPose(size_t i, const Pose& p) {
@@ -608,26 +569,6 @@ bool ObjectsBucket::isSceneInfoRequired() const {
 
 const Bounds& ObjectsBucket::bounds(size_t i) const {
   return val[i].bounds;
-  }
-
-void ObjectsBucket::setupLights(Object& val, bool noCache) {
-  if(pGbuffer!=nullptr)
-    return;
-  int cx = int(val.bounds.midTr.x/2.f);
-  int cy = int(val.bounds.midTr.y/2.f);
-  int cz = int(val.bounds.midTr.z/2.f);
-
-  if(cx==val.lightCacheKey[0] &&
-     cy==val.lightCacheKey[1] &&
-     cz==val.lightCacheKey[2] &&
-     !noCache)
-    return;
-
-  val.lightCacheKey[0] = cx;
-  val.lightCacheKey[1] = cy;
-  val.lightCacheKey[2] = cz;
-
-  val.lightCnt = scene.lights.get(val.bounds,val.light,MAX_LIGHT);
   }
 
 bool ObjectsBucket::Storage::commitUbo(Device& device, uint8_t fId) {

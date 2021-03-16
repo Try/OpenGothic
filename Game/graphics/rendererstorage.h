@@ -28,7 +28,6 @@ class RendererStorage {
       T_Forward,
       T_Deffered,
       T_Shadow,
-      T_LightingExt,
       };
 
     const Tempest::RenderPipeline* materialPipeline(const Material& desc, ObjectsBucket::Type t, PipelineType pt) const;
@@ -42,7 +41,7 @@ class RendererStorage {
       };
 
     struct MaterialTemplate {
-      ShaderPair obj, ani;
+      ShaderPair obj, ani, mph;
       void load(Tempest::Device& device, const char* tag);
       };
 

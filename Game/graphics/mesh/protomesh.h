@@ -16,6 +16,7 @@ class ProtoMesh {
 
     ProtoMesh(const ZenLoad::zCModelMeshLib& lib,const std::string& fname);
     ProtoMesh(ZenLoad::PackedMesh&&     pm, const std::string& fname);
+    ProtoMesh(ZenLoad::PackedMesh&&     pm, const std::vector<ZenLoad::zCMorphMesh::Animation>& aniList, const std::string& fname);
     ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo);
     ProtoMesh(ProtoMesh&&)=default;
     ProtoMesh& operator=(ProtoMesh&&)=default;
@@ -59,8 +60,17 @@ class ProtoMesh {
       size_t             node=0;
       };
 
+    struct Animation {
+      std::string            name;
+      size_t                 samplePerFrame = 0;
+      Tempest::StorageBuffer index;
+      Tempest::StorageBuffer samples;
+      };
+
     // skinned
     std::vector<AnimMesh>          skined;
+
+    std::vector<Animation>         morph;
 
     std::vector<Attach>            attach;
     std::vector<Node>              nodes;
@@ -78,4 +88,5 @@ class ProtoMesh {
 
   private:
     void                           setupScheme(const std::string& s);
+    Animation                      mkAnimation(const ZenLoad::zCMorphMesh::Animation& a);
   };

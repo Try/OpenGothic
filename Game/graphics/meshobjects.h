@@ -8,13 +8,14 @@
 #include <vector>
 #include <list>
 
+#include "graphics/mesh/protomesh.h"
 #include "graphics/mesh/submesh/staticmesh.h"
 #include "graphics/mesh/submesh/animmesh.h"
-#include "graphics/mesh/protomesh.h"
 #include "objectsbucket.h"
 
 class VisualObjects;
 class Pose;
+class ProtoMesh;
 class LightSource;
 
 class MeshObjects final {
@@ -82,6 +83,7 @@ class MeshObjects final {
     VisualObjects&                  parent;
 
     Item                            implGet(const StaticMesh& mesh, const StaticMesh::SubMesh& smesh,
+                                            const std::vector<ProtoMesh::Animation>& anim,
                                             int32_t texVar, int32_t teethTex, int32_t bodyColor,
                                             bool staticDraw);
 

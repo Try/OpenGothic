@@ -7,8 +7,6 @@
 #include <memory>
 #include <limits>
 
-#include "graphics/mesh/protomesh.h"
-
 class btTriangleIndexVertexArray;
 class btCollisionShape;
 class btCollisionObject;
@@ -18,6 +16,7 @@ class btVector3;
 class PhysicMeshShape;
 class PhysicVbo;
 class PackedMesh;
+class Bounds;
 
 class World;
 class Bullet;

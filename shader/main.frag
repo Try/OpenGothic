@@ -73,15 +73,11 @@ float calcShadow() {
 #if !defined(SHADOW_MAP)
 vec3 calcLight() {
   vec3  normal  = normalize(inNormal);
-#if defined(LIGHT_EXT)
-  vec3  color   = vec3(0.0);
-#else
   float lambert = max(0.0,dot(scene.ldir,normal));
   float light   = lambert*calcShadow();
   vec3  color   = inColor.rgb*scene.sunCl.rgb*clamp(light,0.0,1.0);
-#endif
 
-#if defined(OBJ)
+  /*
   for(int i=0; i<LIGHT_BLOCK; ++i) {
     float rgn     = push.light[i].range;
     if(rgn<=0.0)
@@ -96,14 +92,9 @@ vec3 calcLight() {
     float light = (1.0-(qDist/(rgn*rgn)))*lambert;
 
     color += push.light[i].color * clamp(light,0.0,1.0);
-    }
-#endif
+    }*/
 
-#if defined(LIGHT_EXT)
-  return color;
-#else
   return color + scene.ambient;
-#endif
   }
 #endif
 

@@ -13,25 +13,28 @@ VisualObjects::VisualObjects(Device& device, const SceneGlobals& globals)
   :globals(globals), uboStatic(device), uboDyn(device), sky(globals) {
   }
 
-ObjectsBucket& VisualObjects::getBucket(const Material& mat, size_t boneCnt, ObjectsBucket::Type type) {
+ObjectsBucket& VisualObjects::getBucket(const Material& mat, const std::vector<ProtoMesh::Animation>& anim, size_t boneCnt, ObjectsBucket::Type type) {
+  const std::vector<ProtoMesh::Animation>* a = anim.size()==0 ? nullptr : &anim;
+
   for(auto& i:buckets)
-    if(i.material()==mat && i.type()==type && i.boneCount()==boneCnt && i.size()<ObjectsBucket::CAPACITY)
+    if(i.material()==mat && i.morph()==a && i.type()==type && i.boneCount()==boneCnt && i.size()<ObjectsBucket::CAPACITY)
       return i;
 
   if(type==ObjectsBucket::Type::Static)
-    buckets.emplace_back(mat,boneCnt,*this,globals,uboStatic,type); else
-    buckets.emplace_back(mat,boneCnt,*this,globals,uboDyn,   type);
+    buckets.emplace_back(mat,anim,boneCnt,*this,globals,uboStatic,type); else
+    buckets.emplace_back(mat,anim,boneCnt,*this,globals,uboDyn,   type);
   return buckets.back();
   }
 
 ObjectsBucket::Item VisualObjects::get(const StaticMesh &mesh, const Material& mat,
                                        const Tempest::IndexBuffer<uint32_t>& ibo,
+                                       const std::vector<ProtoMesh::Animation>& anim,
                                        bool staticDraw) {
   if(mat.tex==nullptr) {
     Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
-  auto&        bucket = getBucket(mat,0,staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
+  auto&        bucket = getBucket(mat,anim,0,staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
   const size_t id     = bucket.alloc(mesh.vbo,ibo,mesh.bbox);
   return ObjectsBucket::Item(bucket,id);
   }
@@ -42,7 +45,7 @@ ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
-  auto&        bucket = getBucket(mat,mesh.bonesCount,ObjectsBucket::Animated);
+  auto&        bucket = getBucket(mat,{},mesh.bonesCount,ObjectsBucket::Animated);
   const size_t id     = bucket.alloc(mesh.vbo,ibo,mesh.bbox);
   return ObjectsBucket::Item(bucket,id);
   }
@@ -53,7 +56,7 @@ ObjectsBucket::Item VisualObjects::get(Tempest::VertexBuffer<Resources::Vertex>&
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
-  auto&        bucket = getBucket(mat,0,ObjectsBucket::Static);
+  auto&        bucket = getBucket(mat,{},0,ObjectsBucket::Static);
   const size_t id     = bucket.alloc(vbo,ibo,bbox);
   return ObjectsBucket::Item(bucket,id);
   }
@@ -63,7 +66,7 @@ ObjectsBucket::Item VisualObjects::get(const Tempest::VertexBuffer<Resources::Ve
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
-  auto&        bucket = getBucket(mat,0,ObjectsBucket::Movable);
+  auto&        bucket = getBucket(mat,{},0,ObjectsBucket::Movable);
   const size_t id     = bucket.alloc(vbo,bbox);
   return ObjectsBucket::Item(bucket,id);
   }

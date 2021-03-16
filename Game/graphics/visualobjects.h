@@ -10,7 +10,8 @@ class VisualObjects final {
   public:
     VisualObjects(Tempest::Device& device, const SceneGlobals& globals);
 
-    ObjectsBucket::Item get(const StaticMesh& mesh, const Material& mat, const Tempest::IndexBuffer<uint32_t>& ibo, bool staticDraw);
+    ObjectsBucket::Item get(const StaticMesh& mesh, const Material& mat, const Tempest::IndexBuffer<uint32_t>& ibo,
+                            const std::vector<ProtoMesh::Animation>& anim, bool staticDraw);
     ObjectsBucket::Item get(const AnimMesh&   mesh, const Material& mat, const Tempest::IndexBuffer<uint32_t>& ibo);
     ObjectsBucket::Item get(Tempest::VertexBuffer<Resources::Vertex>& vbo, Tempest::IndexBuffer<uint32_t>& ibo,
                             const Material& mat, const Bounds& bbox);
@@ -28,7 +29,8 @@ class VisualObjects final {
     void resetIndex();
 
   private:
-    ObjectsBucket&                  getBucket(const Material& mat, size_t boneCnt, ObjectsBucket::Type type);
+    ObjectsBucket&                  getBucket(const Material& mat, const std::vector<ProtoMesh::Animation>& anim,
+                                              size_t boneCnt, ObjectsBucket::Type type);
     void                            mkIndex();
     void                            commitUbo(uint8_t fId);
 

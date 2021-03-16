@@ -2,6 +2,7 @@
 
 #include "world/objects/item.h"
 #include "game/inventory.h"
+#include "graphics/mesh/protomesh.h"
 #include "rendererstorage.h"
 #include "lightsource.h"
 

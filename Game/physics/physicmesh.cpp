@@ -9,6 +9,7 @@
 #include "graphics/mesh/attachbinder.h"
 #include "graphics/mesh/skeleton.h"
 #include "graphics/mesh/pose.h"
+#include "graphics/mesh/protomesh.h"
 
 PhysicMesh::PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner, bool movable)
   :ani(&proto) {
