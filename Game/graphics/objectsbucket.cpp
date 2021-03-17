@@ -415,7 +415,7 @@ void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fI
   for(size_t i=0;i<indexSz;++i) {
     auto& v = *idx[i];
 
-    pushBlock.pos = v.pos;
+    updatePushBlock(pushBlock,v);
     p.setUniforms(*pMain,&pushBlock,sizeof(pushBlock));
     if(!useSharedUbo) {
       uboSetDynamic(v,fId);
@@ -453,7 +453,7 @@ void ObjectsBucket::drawGBuffer(Tempest::Encoder<CommandBuffer>& p, uint8_t fId)
   for(size_t i=0;i<indexSz;++i) {
     auto& v = *idx[i];
 
-    pushBlock.pos = v.pos;
+    updatePushBlock(pushBlock,v);
     p.setUniforms(*pGbuffer,&pushBlock,sizeof(pushBlock));
     if(!useSharedUbo) {
       uboSetDynamic(v,fId);
@@ -491,12 +491,12 @@ void ObjectsBucket::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& p, uint
   for(size_t i=0;i<indexSz;++i) {
     auto& v = *idx[i];
 
+    updatePushBlock(pushBlock,v);
     if(!useSharedUbo) {
       uboSetDynamic(v,fId);
       p.setUniforms(*pShadow, v.ubo.uboSh[fId][layer]);
       }
 
-    pushBlock.pos = v.pos;
     p.setUniforms(*pShadow,&pushBlock,sizeof(pushBlock));
     switch(v.vboType) {
       case VboType::NoVbo:
@@ -525,7 +525,7 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p,
   storage.commitUbo(scene.storage.device,fId);
 
   UboPush pushBlock = {};
-  pushBlock.pos = v.pos;
+  updatePushBlock(pushBlock,v);
 
   auto& ubo = useSharedUbo ? uboShared.ubo[fId] : v.ubo.ubo[fId];
   if(!useSharedUbo) {
@@ -565,6 +565,19 @@ void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
 
 bool ObjectsBucket::isSceneInfoRequired() const {
   return mat.isGhost || mat.alpha==Material::Water || mat.alpha==Material::Ghost;
+  }
+
+void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v) {
+  push.pos = v.pos;
+  if(morphAnim!=nullptr) {
+    auto&    anim = (*morphAnim)[0];
+    uint64_t time = (scene.tickCount+v.timeShift);
+
+    push.samplesPerFrame = anim.samplesPerFrame;
+    push.morphFrame[0]   = int32_t((time/anim.tickPerFrame+0)%anim.numFrames);
+    push.morphFrame[1]   = int32_t((time/anim.tickPerFrame+1)%anim.numFrames);
+    push.morphAlpha      = float(time%anim.tickPerFrame)/float(anim.tickPerFrame);
+    }
   }
 
 const Bounds& ObjectsBucket::bounds(size_t i) const {

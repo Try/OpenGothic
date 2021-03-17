@@ -131,9 +131,9 @@ class ObjectsBucket final {
 
     struct UboPush final {
       Tempest::Matrix4x4 pos;
-      int32_t            morphSampleCount = 0;
+      int32_t            samplesPerFrame = 0;
       int32_t            morphFrame[2] = {};
-      int32_t            padding;
+      float              morphAlpha;
       };
 
     struct UboMaterial final {
@@ -177,6 +177,7 @@ class ObjectsBucket final {
     void    setBounds   (size_t i,const Bounds& b);
 
     bool    isSceneInfoRequired() const;
+    void    updatePushBlock(UboPush& push, Object& v);
 
     const Bounds& bounds(size_t i) const;
 

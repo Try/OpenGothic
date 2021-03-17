@@ -9,7 +9,10 @@ struct Light {
 #if defined(OBJ)
 layout(push_constant, std140) uniform UboPush {
   mat4  obj;
-  ivec4 morphInfo;
+  int   samplesPerFrame;
+  int   morphFrame0;
+  int   morphFrame1;
+  float morphAlpha;
   } push;
 #endif
 

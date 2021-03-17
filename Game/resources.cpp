@@ -716,7 +716,7 @@ Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked,
     ZenLoad::zCProgMeshProto zmsh(name,gothicAssets);
     if(zmsh.getNumSubmeshes()==0)
       return MeshLoadCode::Error;
-    zmsh.packMesh(sPacked,1.f);
+    zmsh.packMesh(sPacked);
     return MeshLoadCode::Static;
     }
 
@@ -724,7 +724,7 @@ Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked,
     ZenLoad::zCMorphMesh zmm(name,gothicAssets);
     if(zmm.getMesh().getNumSubmeshes()==0)
       return MeshLoadCode::Error;
-    zmm.getMesh().packMesh(sPacked,1.f);
+    zmm.getMesh().packMesh(sPacked,false);
     for(auto& i:sPacked.vertices){
       // FIXME: hack with morph mesh-normals
       std::swap(i.Normal.y,i.Normal.z);

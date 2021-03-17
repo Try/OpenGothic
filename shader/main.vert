@@ -43,7 +43,7 @@ vec4 boneId;
 #endif
 
 vec4 vertexPos() {
-#ifdef SKINING
+#if defined(SKINING)
   vec4 pos0 = vec4(inPos0,1.0);
   vec4 pos1 = vec4(inPos1,1.0);
   vec4 pos2 = vec4(inPos2,1.0);
@@ -53,6 +53,18 @@ vec4 vertexPos() {
   vec4 t2   = anim.skel[int(boneId.z*255.0)]*pos2;
   vec4 t3   = anim.skel[int(boneId.w*255.0)]*pos3;
   return t0*inWeight.x + t1*inWeight.y + t2*inWeight.z + t3*inWeight.w;
+#elif defined(MORPH)
+  int index = morphId.index[gl_VertexIndex/4][gl_VertexIndex%4];
+  if(index>=0) {
+    int  f0 = push.morphFrame0*push.samplesPerFrame;
+    int  f1 = push.morphFrame1*push.samplesPerFrame;
+    vec4 a  = morph.samples[f0 + index];
+    vec4 b  = morph.samples[f1 + index];
+
+    vec4 displace = mix(a,b,push.morphAlpha);
+    return vec4(inPos+displace.xyz,1.0);
+    }
+  return vec4(inPos,1.0);
 #else
   return vec4(inPos,1.0);
 #endif

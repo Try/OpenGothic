@@ -11,7 +11,7 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &
   :fname(fname) {
   for(auto& m:library.getAttachments()) {
     ZenLoad::PackedMesh stat;
-    m.second.packMesh(stat, 1.f);
+    m.second.packMesh(stat);
     attach.emplace_back(stat);
     auto& att = attach.back();
     att.name = m.first;
@@ -121,14 +121,14 @@ ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm,
                      const std::vector<ZenLoad::zCMorphMesh::Animation>& aniList,
                      const std::string& fname)
   : ProtoMesh(std::move(pm),fname) {
-  if(attach.size()!=1 || attach[0].sub.size()!=1) {
+  if(attach.size()!=1) {
     Tempest::Log::d("skip animations for: ",fname);
     return;
     }
 
   morph.resize(aniList.size());
   for(size_t i=0; i<aniList.size(); ++i) {
-    morph[i] = mkAnimation(aniList[i]);
+    morph[i] = mkAnimation(aniList[i],pm.verticesId);
     }
   }
 
@@ -199,20 +199,30 @@ void ProtoMesh::setupScheme(const std::string &s) {
   scheme = s;
   }
 
-ProtoMesh::Animation ProtoMesh::mkAnimation(const ZenLoad::zCMorphMesh::Animation& a) {
-  size_t vertCnt = attach[0].sub[0].ibo.size();
-  std::vector<int32_t> remap(vertCnt,-1);
-
-  for(size_t i=0; i<a.vertexIndex.size(); ++i) {
-    if(remap.size()<=a.vertexIndex[i])
-      remap.resize(a.vertexIndex[i]+1);
-    remap[a.vertexIndex[i]] = int(i);
+ProtoMesh::Animation ProtoMesh::mkAnimation(const ZenLoad::zCMorphMesh::Animation& a,
+                                            const std::vector<uint32_t>& vertId) {
+  std::vector<int32_t> remap(vertId.size(),-1);
+  for(size_t i=0; i<vertId.size(); ++i) {
+    const uint32_t id = vertId[i];
+    for(size_t r=0; r<a.vertexIndex.size(); ++r)
+      if(a.vertexIndex[r]==id) {
+        remap[i] = int(r);
+        break;
+        }
     }
+  remap.resize(((remap.size()+3)/4)*4);
 
   Animation ret;
-  ret.name           = a.name;
-  ret.samplePerFrame = a.samples.size()/a.numFrames;
-  ret.index          = Resources::ssbo(remap.data(),remap.size()*sizeof(remap[0]));
-  ret.samples        = Resources::ssbo(a.samples.data(),a.samples.size()*sizeof(Tempest::Vec3));
+  ret.name            = a.name;
+  ret.numFrames       = a.numFrames;
+  ret.samplesPerFrame = a.samples.size()/a.numFrames;
+  ret.index           = Resources::ssbo(remap.data(),remap.size()*sizeof(remap[0]));
+
+  std::vector<Tempest::Vec4> samplesAligned(a.samples.size());
+  for(size_t i=0; i<a.samples.size(); ++i) {
+    auto& s = a.samples[i];
+    samplesAligned[i] = Tempest::Vec4(s.x,s.y,s.z,0);
+    }
+  ret.samples = Resources::ssbo(samplesAligned.data(),samplesAligned.size()*sizeof(samplesAligned[0]));
   return ret;
   }

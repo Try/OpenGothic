@@ -62,7 +62,10 @@ class ProtoMesh {
 
     struct Animation {
       std::string            name;
-      size_t                 samplePerFrame = 0;
+      size_t                 numFrames       = 0;
+      size_t                 samplesPerFrame = 0;
+      uint64_t               tickPerFrame    = 50;
+
       Tempest::StorageBuffer index;
       Tempest::StorageBuffer samples;
       };
@@ -88,5 +91,6 @@ class ProtoMesh {
 
   private:
     void                           setupScheme(const std::string& s);
-    Animation                      mkAnimation(const ZenLoad::zCMorphMesh::Animation& a);
+    Animation                      mkAnimation(const ZenLoad::zCMorphMesh::Animation& a,
+                                               const std::vector<uint32_t>& vertId);
   };
