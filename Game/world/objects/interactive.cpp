@@ -338,8 +338,11 @@ const char *Interactive::displayName() const {
     return "";
 
   const char* strId=focName.c_str();
-  if(world.getSymbolIndex(strId)==size_t(-1))
-    return focName.c_str();
+  char buf[256] = {};
+  if(world.getSymbolIndex(strId)==size_t(-1)) {
+    std::snprintf(buf,sizeof(buf),"MOBNAME_%s",strId);
+    strId = buf;
+    }
 
   auto& s=world.getSymbol(strId);
   const char* txt = s.getString(0).c_str();
