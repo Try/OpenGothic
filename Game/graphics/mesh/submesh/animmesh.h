@@ -15,11 +15,14 @@ class AnimMesh {
 
     struct SubMesh {
       Material                       material;
-      Tempest::IndexBuffer<uint32_t> ibo;
+      //Tempest::IndexBuffer<uint32_t> ibo;
       std::string                    texName;
+      size_t                         iboOffset = 0;
+      size_t                         iboSize   = 0;
       };
 
     Tempest::VertexBuffer<VertexA> vbo;
+    Tempest::IndexBuffer<uint32_t> ibo;
     std::vector<SubMesh>           sub;
     Bounds                         bbox;
     const size_t                   bonesCount = 0;

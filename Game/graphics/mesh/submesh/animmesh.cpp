@@ -20,12 +20,14 @@ AnimMesh::AnimMesh(const ZenLoad::PackedSkeletalMesh &mesh)
   static_assert(sizeof(VertexA)==sizeof(mesh.vertices[0]),"invalid VertexA size");
   const VertexA* vert = reinterpret_cast<const VertexA*>(mesh.vertices.data());
   vbo = Resources::vbo(vert,mesh.vertices.size());
+  ibo = Resources::ibo(mesh.indices.data(),mesh.indices.size());
 
   sub.resize(mesh.subMeshes.size());
   for(size_t i=0;i<mesh.subMeshes.size();++i){
-    sub[i].texName  = mesh.subMeshes[i].material.texture;
-    sub[i].material = Resources::loadMaterial(mesh.subMeshes[i].material,true);
-    sub[i].ibo      = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
+    sub[i].texName   = mesh.subMeshes[i].material.texture;
+    sub[i].material  = Resources::loadMaterial(mesh.subMeshes[i].material,true);
+    sub[i].iboOffset = mesh.subMeshes[i].indexOffset;
+    sub[i].iboSize   = mesh.subMeshes[i].indexSize;
     }
   bbox.assign(mesh.bbox);
   }

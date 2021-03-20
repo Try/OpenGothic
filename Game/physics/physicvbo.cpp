@@ -8,29 +8,10 @@
 
 PhysicVbo::PhysicVbo(ZenLoad::PackedMesh&& sPacked)
   :PhysicVbo(sPacked.vertices) {
-  size_t idSize=0;
-  size_t cnt=0;
+  id = std::move(sPacked.indices);
   for(auto& i:sPacked.subMeshes)
-    if(!i.material.noCollDet && i.indices.size()>0) {
-      idSize+=i.indices.size();
-      cnt++;
-      }
-
-  if(cnt==1) {
-    for(auto& i:sPacked.subMeshes)
-      if(!i.material.noCollDet && i.indices.size()>0) {
-        addIndex(std::move(i.indices),i.material.matGroup);
-        return;
-        }
-    }
-
-  id.resize(idSize);
-  size_t off=0;
-  for(auto& i:sPacked.subMeshes)
-    if(!i.material.noCollDet && i.indices.size()>0) {
-      std::memcpy(&id[off],i.indices.data(),i.indices.size()*sizeof(i.indices[0]));
-      addSegment(i.indices.size(),off,i.material.matGroup,nullptr);
-      off+=i.indices.size();
+    if(!i.material.noCollDet && i.indexSize>0) {
+      addSegment(i.indexSize,i.indexOffset,i.material.matGroup,nullptr);
       }
   for(size_t i=0;i<id.size();i+=3){
     std::swap(id[i+1],id[i+2]);

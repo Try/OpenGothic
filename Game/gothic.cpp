@@ -566,13 +566,9 @@ void Gothic::debug(const ZenLoad::PackedMesh &mesh, std::ostream &out) {
     out << "vn " << i.Normal.x   << " " << i.Normal.y   << " " << i.Normal.z   << std::endl;
     out << "vt " << i.TexCoord.x << " " << i.TexCoord.y  << std::endl;
     }
-
-  for(auto& sub:mesh.subMeshes){
-    out << "o obj_" << int(&sub-&mesh.subMeshes[0]) << std::endl;
-    for(size_t i=0;i<sub.indices.size();i+=3){
-      const uint32_t* tri = &sub.indices[i];
-      out << "f " << 1+tri[0] << " " << 1+tri[1] << " " << 1+tri[2] << std::endl;
-      }
+  for(size_t i=0;i<mesh.indices.size();i+=3){
+    const uint32_t* tri = &mesh.indices[i];
+    out << "f " << 1+tri[0] << " " << 1+tri[1] << " " << 1+tri[2] << std::endl;
     }
   }
 
@@ -582,13 +578,9 @@ void Gothic::debug(const ZenLoad::PackedSkeletalMesh &mesh, std::ostream &out) {
     out << "vn " << i.Normal.x   << " " << i.Normal.y   << " " << i.Normal.z   << std::endl;
     out << "vt " << i.TexCoord.x << " " << i.TexCoord.y  << std::endl;
     }
-
-  for(auto& sub:mesh.subMeshes){
-    out << "o obj_" << int(&sub-&mesh.subMeshes[0]) << std::endl;
-    for(size_t i=0;i<sub.indices.size();i+=3){
-      const uint32_t* tri = &sub.indices[i];
-      out << "f " << 1+tri[0] << " " << 1+tri[1] << " " << 1+tri[2] << std::endl;
-      }
+  for(size_t i=0;i<mesh.indices.size();i+=3){
+    const uint32_t* tri = &mesh.indices[i];
+    out << "f " << 1+tri[0] << " " << 1+tri[1] << " " << 1+tri[2] << std::endl;
     }
   }
 

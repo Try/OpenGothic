@@ -27,7 +27,7 @@ ObjectsBucket& VisualObjects::getBucket(const Material& mat, const std::vector<P
   }
 
 ObjectsBucket::Item VisualObjects::get(const StaticMesh &mesh, const Material& mat,
-                                       const Tempest::IndexBuffer<uint32_t>& ibo,
+                                       size_t iboOffset, size_t iboLen,
                                        const std::vector<ProtoMesh::Animation>& anim,
                                        bool staticDraw) {
   if(mat.tex==nullptr) {
@@ -35,18 +35,17 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh &mesh, const Material& m
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(mat,anim,0,staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
-  const size_t id     = bucket.alloc(mesh.vbo,ibo,mesh.bbox);
+  const size_t id     = bucket.alloc(mesh.vbo,mesh.ibo,iboOffset,iboLen,mesh.bbox);
   return ObjectsBucket::Item(bucket,id);
   }
 
-ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat,
-                                       const Tempest::IndexBuffer<uint32_t> &ibo) {
+ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat, size_t ibo, size_t iboLen) {
   if(mat.tex==nullptr) {
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(mat,{},mesh.bonesCount,ObjectsBucket::Animated);
-  const size_t id     = bucket.alloc(mesh.vbo,ibo,mesh.bbox);
+  const size_t id     = bucket.alloc(mesh.vbo,mesh.ibo,ibo,iboLen,mesh.bbox);
   return ObjectsBucket::Item(bucket,id);
   }
 
@@ -57,7 +56,7 @@ ObjectsBucket::Item VisualObjects::get(Tempest::VertexBuffer<Resources::Vertex>&
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(mat,{},0,ObjectsBucket::Static);
-  const size_t id     = bucket.alloc(vbo,ibo,bbox);
+  const size_t id     = bucket.alloc(vbo,ibo,0,ibo.size(),bbox);
   return ObjectsBucket::Item(bucket,id);
   }
 

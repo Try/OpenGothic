@@ -11,15 +11,12 @@ PfxEmitterMesh::PfxEmitterMesh(const ZenLoad::PackedMesh& src) {
     vertices[i].y = src.vertices[i].Position.y;
     vertices[i].z = src.vertices[i].Position.z;
     }
-
-  for(auto& mesh:src.subMeshes) {
-    for(size_t i=0;i<mesh.indices.size();i+=3) {
-      Triangle t;
-      t.id[0] = mesh.indices[i+0];
-      t.id[1] = mesh.indices[i+1];
-      t.id[2] = mesh.indices[i+2];
-      triangle.push_back(t);
-      }
+  for(size_t i=0;i<src.indices.size();i+=3) {
+    Triangle t;
+    t.id[0] = src.indices[i+0];
+    t.id[1] = src.indices[i+1];
+    t.id[2] = src.indices[i+2];
+    triangle.push_back(t);
     }
 
   mkIndex();
@@ -29,7 +26,7 @@ PfxEmitterMesh::PfxEmitterMesh(const ZenLoad::zCModelMeshLib& library) {
   for(size_t i=0;i<library.getMeshes().size();++i) {
     ZenLoad::PackedSkeletalMesh src;
     auto& mesh = library.getMeshes()[i];
-    mesh.packMesh(src,1.f);
+    mesh.packMesh(src);
 
     size_t vert0 = vertices.size();
     vertAnim.resize(vert0 + src.vertices.size());
@@ -45,14 +42,12 @@ PfxEmitterMesh::PfxEmitterMesh(const ZenLoad::zCModelMeshLib& library) {
         }
       }
 
-    for(auto& mesh:src.subMeshes) {
-      for(size_t i=0;i<mesh.indices.size();i+=3) {
-        Triangle t;
-        t.id[0] = mesh.indices[i+0];
-        t.id[1] = mesh.indices[i+1];
-        t.id[2] = mesh.indices[i+2];
-        triangle.push_back(t);
-        }
+    for(size_t i=0;i<src.indices.size();i+=3) {
+      Triangle t;
+      t.id[0] = src.indices[i+0];
+      t.id[1] = src.indices[i+1];
+      t.id[2] = src.indices[i+2];
+      triangle.push_back(t);
       }
     }
 

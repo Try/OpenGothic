@@ -10,9 +10,9 @@ class VisualObjects final {
   public:
     VisualObjects(Tempest::Device& device, const SceneGlobals& globals);
 
-    ObjectsBucket::Item get(const StaticMesh& mesh, const Material& mat, const Tempest::IndexBuffer<uint32_t>& ibo,
+    ObjectsBucket::Item get(const StaticMesh& mesh, const Material& mat, size_t iboOffset, size_t iboLen,
                             const std::vector<ProtoMesh::Animation>& anim, bool staticDraw);
-    ObjectsBucket::Item get(const AnimMesh&   mesh, const Material& mat, const Tempest::IndexBuffer<uint32_t>& ibo);
+    ObjectsBucket::Item get(const AnimMesh&   mesh, const Material& mat, size_t ibo, size_t iboLen);
     ObjectsBucket::Item get(Tempest::VertexBuffer<Resources::Vertex>& vbo, Tempest::IndexBuffer<uint32_t>& ibo,
                             const Material& mat, const Bounds& bbox);
     ObjectsBucket::Item get(const Tempest::VertexBuffer<Resources::Vertex>* vbo[],

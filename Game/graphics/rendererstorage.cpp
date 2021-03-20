@@ -170,6 +170,9 @@ const RenderPipeline* RendererStorage::materialPipeline(const Material& mat, Obj
   state.setCullFaceMode(RenderState::CullMode::Front);
   state.setZTestMode   (RenderState::ZTestMode::Less);
 
+  if(pt==PipelineType::T_Shadow)
+    state.setCullFaceMode(RenderState::CullMode::Back);
+
   switch(alpha) {
     case Material::Solid:
       forward  = &solidF;

@@ -20,11 +20,14 @@ class StaticMesh {
 
     struct SubMesh {
       Material                       material;
-      Tempest::IndexBuffer<uint32_t> ibo;
+      size_t                         iboOffset = 0;
+      size_t                         iboSize   = 0;
       std::string                    texName;
       };
 
     Tempest::VertexBuffer<Vertex>  vbo;
+    Tempest::IndexBuffer<uint32_t> ibo;
+
     std::vector<SubMesh>           sub;
     Bounds                         bbox;
   };

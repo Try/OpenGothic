@@ -3,13 +3,15 @@
 StaticMesh::StaticMesh(const ZenLoad::PackedMesh &mesh) {
   static_assert(sizeof(Vertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
   const Vertex* vert=reinterpret_cast<const Vertex*>(mesh.vertices.data());
-  vbo = Resources::vbo<Vertex>(vert,mesh.vertices.size());
+  vbo = Resources::vbo<Vertex>  (vert,mesh.vertices.size());
+  ibo = Resources::ibo<uint32_t>(mesh.indices.data(),mesh.indices.size());
 
   sub.resize(mesh.subMeshes.size());
   for(size_t i=0;i<mesh.subMeshes.size();++i){
-    sub[i].texName  = mesh.subMeshes[i].material.texture;
-    sub[i].material = Resources::loadMaterial(mesh.subMeshes[i].material,mesh.isUsingAlphaTest);
-    sub[i].ibo      = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
+    sub[i].texName   = mesh.subMeshes[i].material.texture;
+    sub[i].material  = Resources::loadMaterial(mesh.subMeshes[i].material,mesh.isUsingAlphaTest);
+    sub[i].iboOffset = mesh.subMeshes[i].indexOffset;
+    sub[i].iboSize   = mesh.subMeshes[i].indexSize;
     }
   bbox.assign(mesh.bbox);
   }
@@ -34,20 +36,23 @@ StaticMesh::StaticMesh(const ZenLoad::PackedSkeletalMesh &mesh) {
 
   sub.resize(mesh.subMeshes.size());
   for(size_t i=0;i<mesh.subMeshes.size();++i){
-    sub[i].texName  = mesh.subMeshes[i].material.texture;
-    sub[i].material = Resources::loadMaterial(mesh.subMeshes[i].material,true);
-    sub[i].ibo      = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
+    sub[i].texName   = mesh.subMeshes[i].material.texture;
+    sub[i].material  = Resources::loadMaterial(mesh.subMeshes[i].material,true);
+    sub[i].iboOffset = mesh.subMeshes[i].indexOffset;
+    sub[i].iboSize   = mesh.subMeshes[i].indexSize;
+    //sub[i].ibo      = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
     }
   bbox.assign(mesh.bbox);
   }
 
-StaticMesh::StaticMesh(const Material& mat, std::vector<Resources::Vertex> cvbo, std::vector<uint32_t> ibo) {
+StaticMesh::StaticMesh(const Material& mat, std::vector<Resources::Vertex> cvbo, std::vector<uint32_t> cibo) {
   vbo = Resources::vbo<Vertex>(cvbo.data(),cvbo.size());
+  ibo = Resources::ibo(cibo.data(),cibo.size());
   sub.resize(1);
-  for(size_t i=0;i<1;++i){
+  for(size_t i=0;i<1;++i) {
     sub[i].texName        = "";
     sub[i].material       = mat;
-    sub[i].ibo            = Resources::ibo(ibo.data(),ibo.size());
+    sub[i].iboSize        = ibo.size();
     }
   bbox.assign(cvbo);
   }

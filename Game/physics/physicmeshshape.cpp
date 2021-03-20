@@ -9,7 +9,7 @@ float PhysicMeshShape::friction() const {
 PhysicMeshShape *PhysicMeshShape::load(ZenLoad::PackedMesh&& sPacked) {
   uint32_t count=0;
   for(auto& i:sPacked.subMeshes)
-    if(!i.material.noCollDet && i.indices.size()>0){
+    if(!i.material.noCollDet && i.indexSize>0){
       count++;
       }
   if(count==0)

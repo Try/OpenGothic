@@ -39,11 +39,11 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
     case NoVbo:
       break;
     case VboVertex:{
-      idNext = bucket.alloc(*v.vbo,*v.ibo,v.bounds);
+      idNext = bucket.alloc(*v.vbo,*v.ibo,v.iboOffset,v.iboLength,v.bounds);
       break;
       }
     case VboVertexA:{
-      idNext = bucket.alloc(*v.vboA,*v.ibo,v.bounds);
+      idNext = bucket.alloc(*v.vboA,*v.ibo,v.iboOffset,v.iboLength,v.bounds);
       break;
       }
     case VboMorph:{
@@ -51,7 +51,7 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
       break;
       }
     case VboMorpthGpu:{
-      idNext = bucket.alloc(*v.vbo,*v.ibo,v.bounds);
+      idNext = bucket.alloc(*v.vbo,*v.ibo,v.iboOffset,v.iboLength,v.bounds);
       break;
       }
     }
@@ -113,7 +113,7 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const std::vector<ProtoMesh::A
   pGbuffer = scene.storage.materialPipeline(mat,st,RendererStorage::T_Deffered);
   pShadow  = scene.storage.materialPipeline(mat,st,RendererStorage::T_Shadow  );
 
-  if(mat.frames.size()>0 || type==Animated)
+  if(mat.frames.size()>0 || type==Animated || anim.size()>0)
     useSharedUbo = false; else
     useSharedUbo = true;
 
@@ -221,6 +221,11 @@ void ObjectsBucket::uboSetDynamic(Object& v, uint8_t fId) {
         uboSh.set(0,*t);
         }
       }
+    }
+
+  if(morphAnim!=nullptr) {
+    ubo.set(7,(*morphAnim)[v.morphAnimId].index);
+    ubo.set(8,(*morphAnim)[v.morphAnimId].samples);
     }
 
   if(v.ubo.uboIsReady[fId])
@@ -346,10 +351,14 @@ void ObjectsBucket::visibilityPassAnd(Painter3d& p) {
 
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
                             const Tempest::IndexBuffer<uint32_t>& ibo,
+                            size_t iboOffset, size_t iboLen,
                             const Bounds& bounds) {
   Object* v = &implAlloc(VboType::VboVertex,bounds);
-  v->vbo = &vbo;
-  v->ibo = &ibo;
+  v->vbo       = &vbo;
+  v->ibo       = &ibo;
+  v->iboOffset = iboOffset;
+  v->iboLength = iboLen;
+
   polySz+=ibo.size();
   polyAvg = polySz/valSz;
   return std::distance(val,v);
@@ -357,10 +366,14 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
 
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
                             const Tempest::IndexBuffer<uint32_t>& ibo,
+                            size_t iboOffset, size_t iboLen,
                             const Bounds& bounds) {
   Object* v = &implAlloc(VboType::VboVertexA,bounds);
-  v->vboA   = &vbo;
-  v->ibo    = &ibo;
+  v->vboA      = &vbo;
+  v->ibo       = &ibo;
+  v->iboOffset = iboOffset;
+  v->iboLength = iboLen;
+
   v->storageAni = storage.ani.alloc(boneCnt);
   polySz+=ibo.size();
   polyAvg = polySz/valSz;
@@ -422,22 +435,7 @@ void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fI
       p.setUniforms(*pMain,v.ubo.ubo[fId]);
       }
 
-    switch(v.vboType) {
-      case VboType::NoVbo:
-        break;
-      case VboType::VboVertex:
-        p.draw(*v.vbo, *v.ibo);
-        break;
-      case VboType::VboVertexA:
-        p.draw(*v.vboA,*v.ibo);
-        break;
-      case VboType::VboMorph:
-        p.draw(*v.vboM[fId]);
-        break;
-      case VboType::VboMorpthGpu:
-        p.draw(*v.vbo, *v.ibo);
-        break;
-      }
+    draw(p,v,fId);
     }
   }
 
@@ -460,22 +458,7 @@ void ObjectsBucket::drawGBuffer(Tempest::Encoder<CommandBuffer>& p, uint8_t fId)
       p.setUniforms(*pGbuffer,v.ubo.ubo[fId]);
       }
 
-    switch(v.vboType) {
-      case VboType::NoVbo:
-        break;
-      case VboType::VboVertex:
-        p.draw(*v.vbo, *v.ibo);
-        break;
-      case VboType::VboVertexA:
-        p.draw(*v.vboA,*v.ibo);
-        break;
-      case VboType::VboMorph:
-        p.draw(*v.vboM[fId]);
-        break;
-      case VboType::VboMorpthGpu:
-        p.draw(*v.vbo, *v.ibo);
-        break;
-      }
+    draw(p,v,fId);
     }
   }
 
@@ -498,22 +481,7 @@ void ObjectsBucket::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& p, uint
       }
 
     p.setUniforms(*pShadow,&pushBlock,sizeof(pushBlock));
-    switch(v.vboType) {
-      case VboType::NoVbo:
-        break;
-      case VboType::VboVertex:
-        p.draw(*v.vbo, *v.ibo);
-        break;
-      case VboType::VboVertexA:
-        p.draw(*v.vboA,*v.ibo);
-        break;
-      case VboType::VboMorph:
-        p.draw(*v.vboM[fId]);
-        break;
-      case VboType::VboMorpthGpu:
-        p.draw(*v.vbo, *v.ibo);
-        break;
-      }
+    draw(p,v,fId);
     }
   }
 
@@ -537,7 +505,7 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p,
 
   p.setUniforms(*pMain,ubo);
   p.setUniforms(*pMain,&pushBlock,sizeof(pushBlock));
-  p.draw(*v.vbo, *v.ibo);
+  draw(p,v,fId);
   }
 
 void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
@@ -570,13 +538,32 @@ bool ObjectsBucket::isSceneInfoRequired() const {
 void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v) {
   push.pos = v.pos;
   if(morphAnim!=nullptr) {
-    auto&    anim = (*morphAnim)[0];
+    auto&    anim = (*morphAnim)[v.morphAnimId];
     uint64_t time = (scene.tickCount+v.timeShift);
 
     push.samplesPerFrame = int32_t(anim.samplesPerFrame);
     push.morphFrame[0]   = int32_t((time/anim.tickPerFrame+0)%anim.numFrames);
     push.morphFrame[1]   = int32_t((time/anim.tickPerFrame+1)%anim.numFrames);
     push.morphAlpha      = float(time%anim.tickPerFrame)/float(anim.tickPerFrame);
+    }
+  }
+
+void ObjectsBucket::draw(Tempest::Encoder<CommandBuffer>& p, ObjectsBucket::Object& v, uint8_t fId) {
+  switch(v.vboType) {
+    case VboType::NoVbo:
+      break;
+    case VboType::VboVertex:
+      p.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength);
+      break;
+    case VboType::VboVertexA:
+      p.draw(*v.vboA,*v.ibo, v.iboOffset, v.iboLength);
+      break;
+    case VboType::VboMorph:
+      p.draw(*v.vboM[fId]);
+      break;
+    case VboType::VboMorpthGpu:
+      p.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength);
+      break;
     }
   }
 

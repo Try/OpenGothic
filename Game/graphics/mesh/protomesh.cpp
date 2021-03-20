@@ -69,7 +69,7 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &
   for(size_t i=0;i<library.getMeshes().size();++i){
     ZenLoad::PackedSkeletalMesh pack;
     auto& mesh = library.getMeshes()[i];
-    mesh.packMesh(pack,1.f);
+    mesh.packMesh(pack);
     skined.emplace_back(pack);
     }
 
@@ -216,7 +216,11 @@ ProtoMesh::Animation ProtoMesh::mkAnimation(const ZenLoad::zCMorphMesh::Animatio
   ret.name            = a.name;
   ret.numFrames       = a.numFrames;
   ret.samplesPerFrame = a.samples.size()/a.numFrames;
+  ret.tickPerFrame    = size_t(a.speed*1000);
   ret.index           = Resources::ssbo(remap.data(),remap.size()*sizeof(remap[0]));
+
+  if(ret.tickPerFrame==0)
+    ret.tickPerFrame = 1;
 
   std::vector<Tempest::Vec4> samplesAligned(a.samples.size());
   for(size_t i=0; i<a.samples.size(); ++i) {

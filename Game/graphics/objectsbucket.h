@@ -102,9 +102,11 @@ class ObjectsBucket final {
 
     size_t                    alloc(const Tempest::VertexBuffer<Vertex>  &vbo,
                                     const Tempest::IndexBuffer<uint32_t> &ibo,
+                                    size_t iboOffset, size_t iboLen,
                                     const Bounds& bounds);
     size_t                    alloc(const Tempest::VertexBuffer<VertexA> &vbo,
                                     const Tempest::IndexBuffer<uint32_t> &ibo,
+                                    size_t iboOffset, size_t iboLen,
                                     const Bounds& bounds);
     size_t                    alloc(const Tempest::VertexBuffer<Vertex>* vbo[],
                                     const Bounds& bounds);
@@ -156,12 +158,16 @@ class ObjectsBucket final {
       const Tempest::VertexBuffer<Vertex>*  vboM[Resources::MaxFramesInFlight] = {};
       const Tempest::VertexBuffer<VertexA>* vboA    = nullptr;
       const Tempest::IndexBuffer<uint32_t>* ibo     = nullptr;
+      size_t                                iboOffset = 0;
+      size_t                                iboLength = 0;
       Bounds                                bounds;
       Tempest::Matrix4x4                    pos;
 
       Descriptors                           ubo;
       size_t                                storageAni = size_t(-1);
       uint64_t                              timeShift=0;
+
+      size_t                                morphAnimId = 0;
 
       bool                                  isValid() const { return vboType!=VboType::NoVbo; }
       };
@@ -178,6 +184,8 @@ class ObjectsBucket final {
 
     bool    isSceneInfoRequired() const;
     void    updatePushBlock(UboPush& push, Object& v);
+
+    void    draw(Tempest::Encoder<Tempest::CommandBuffer>& p, Object& v, uint8_t fId);
 
     const Bounds& bounds(size_t i) const;
 
