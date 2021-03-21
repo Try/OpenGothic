@@ -545,6 +545,10 @@ Item* World::addItem(const ZenLoad::zCVobData& vob) {
   return wobj.addItem(vob);
   }
 
+Item* World::addItem(size_t itemInstance, const Tempest::Vec3& pos) {
+  return wobj.addItem(itemInstance, pos);
+  }
+
 Item *World::takeItem(Item &it) {
   return wobj.takeItem(it);
   }
@@ -789,6 +793,20 @@ void World::addSound(const ZenLoad::zCVobData& vob) {
   else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusicDefault) {
     wsound.setDefaultZone(vob);
     }
+  }
+
+bool World::addItemOrNpcBySymbolName (const std::string& name, const Tempest::Vec3& at) {
+    size_t id = script().getSymbolIndex(name);
+
+    if( addNpc(id, at) != nullptr ) {
+        return true;
+    }
+
+    if( addItem(id, at) != nullptr ) {
+        return true;
+    }
+
+    return false;
   }
 
 void World::invalidateVobIndex() {
