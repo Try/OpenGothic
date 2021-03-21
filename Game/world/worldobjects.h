@@ -87,6 +87,8 @@ class WorldObjects final {
 
     Item*          addItem(size_t itemInstance, const char *at);
     Item*          addItem(const ZenLoad::zCVobData &vob);
+    Item*          addItem(size_t itemInstance, const Tempest::Vec3& pos);
+    Item*          addItem(size_t itemInstance, const Tempest::Vec3& pos, const Tempest::Vec3& dir);
     Item*          takeItem(Item& it);
     void           removeItem(Item& it);
     size_t         hasItems(const char* tag, size_t itemCls);

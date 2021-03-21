@@ -523,22 +523,41 @@ Bullet& WorldObjects::shootBullet(const Item& itmId,
   }
 
 Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
-  if(itemInstance==size_t(-1))
-    return nullptr;
+  Item* item = nullptr;
+  Tempest::Vec3 pos;
+  Tempest::Vec3 dir;
+  const WayPoint* waypoint = owner.findPoint(at);
 
-  auto  pos = owner.findPoint(at);
+  if(waypoint != nullptr) {
+    pos = {waypoint->x, waypoint->y, waypoint->z};
+    dir = {waypoint->dirX, waypoint->dirY, waypoint->dirZ};
+  } else {
+    pos = {0,0,0};
+    dir = {0,0,0};
+  }
+
+  item = addItem(itemInstance, pos, dir);
+
+  return item;
+  }
+
+Item* WorldObjects::addItem(size_t itemInstance, const Tempest::Vec3& pos) {
+  return addItem(itemInstance, pos, {0,0,0});
+  }
+
+Item* WorldObjects::addItem(size_t itemInstance, const Tempest::Vec3& pos, const Tempest::Vec3& dir) {
+  if(itemInstance==size_t(-1)) {
+    return nullptr;
+  }
 
   std::unique_ptr<Item> ptr{new Item(owner,itemInstance,true)};
   auto* it=ptr.get();
   itemArr.emplace_back(std::move(ptr));
   items.add(itemArr.back().get());
 
-  if(pos!=nullptr) {
-    it->setPosition (pos->x,pos->y,pos->z);
-    it->setDirection(pos->dirX,pos->dirY,pos->dirZ);
-    } else {
-    it->setPosition(0,0,0);
-    }
+  it->setPosition (pos.x, pos.y, pos.z);
+  it->setDirection(dir.x, dir.y, dir.z);
+
   return it;
   }
 
