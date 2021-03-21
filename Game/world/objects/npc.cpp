@@ -342,6 +342,11 @@ bool Npc::setPosition(const Tempest::Vec3& pos) {
   return setPosition(pos.x,pos.y,pos.z);
   }
 
+Tempest::Vec3 Npc::getPosition() const
+{
+    return Tempest::Vec3(x, y, z);
+}
+
 void Npc::setViewPosition(const Tempest::Vec3& pos) {
   x = pos.x;
   y = pos.y;

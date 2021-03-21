@@ -188,6 +188,7 @@ class Npc final {
 
     bool       setPosition (float x,float y,float z);
     bool       setPosition (const Tempest::Vec3& pos);
+    Tempest::Vec3 getPosition () const;
     void       setDirection(float x,float y,float z);
     void       setDirection(float rotation);
     void       setDirectionY(float rotation);
