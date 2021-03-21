@@ -1,48 +1,33 @@
 #pragma once
 
 #include <string>
-#include <vector>
+#include <map>
+#include <functional>
 
 class Gothic;
+class World;
 
 class Marvin {
   public:
-    Marvin();
+    Marvin(Gothic& gothic);
 
-    void autoComplete(std::string& v);
-    bool exec(Gothic& gothic, const std::string& v);
+    void autoComplete(std::string& inputString);
+    bool exec(const std::string& v);
 
   private:
-    enum CmdType {
-      C_None,
-      C_Incomplete,
-      C_Invalid,
+    typedef std::function<bool(Marvin*, const std::string&)> CommandFunction;
+    typedef std::map<std::string, CommandFunction> CommandMap;
 
-      // npc
-      C_CheatFull,
-      // camera
-      C_CamAutoswitch,
-      C_CamMode,
-      C_ToogleCamDebug,
-      C_ToogleCamera,
-      };
+    Gothic& gothic;
+    CommandMap commandHandlers;
 
-    struct Cmd {
-      const char* cmd  = nullptr;
-      CmdType     type = C_None;
-      };
+    CommandMap::iterator recognize(const std::string& inputString);
 
-    struct CmdVal {
-      CmdVal() = default;
-      CmdVal(CmdType t){ cmd.type = t; };
-      CmdVal(Cmd cmd, size_t cmdOffset):cmd(cmd), cmdOffset(cmdOffset) {};
-
-      Cmd     cmd;
-      size_t  cmdOffset = 0;
-      };
-
-    CmdVal recognize(const std::string& v);
-
-    std::vector<Cmd> cmd;
+    bool handleCheatFull(const std::string& arguments);
+    bool handleCameraAutoSwitch(const std::string& arguments);
+    bool handleCameraMode(const std::string& arguments);
+    bool handleToggleCamDebug(const std::string& arguments);
+    bool handleToggleCamera(const std::string& arguments);
+    bool handleInsert(const std::string& arguments);
   };
 

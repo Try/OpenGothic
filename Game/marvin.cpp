@@ -6,132 +6,157 @@
 #include "world/objects/npc.h"
 #include "camera.h"
 #include "gothic.h"
+#include "utils/stringutil.h"
 
-Marvin::Marvin() {
-  cmd = std::vector<Cmd>{
-    {"cheat full",        C_CheatFull},
-
-    {"camera autoswitch", C_CamAutoswitch},
-    {"camera mode",       C_CamMode},
-    {"toogle camdebug",   C_ToogleCamDebug},
-    {"toogle camera",     C_ToogleCamera},
-    };
+Marvin::Marvin(Gothic& gothic)
+: gothic( gothic )
+, commandHandlers()
+{
+  commandHandlers["cheat full"] = CommandFunction(&Marvin::handleCheatFull);
+  commandHandlers["camera autoswitch"] = CommandFunction(&Marvin::handleCameraAutoSwitch);
+  commandHandlers["camera mode"] = CommandFunction(&Marvin::handleCameraMode);
+  commandHandlers["toggle camdebug"] = CommandFunction(&Marvin::handleToggleCamDebug);
+  commandHandlers["toggle camera"] = CommandFunction(&Marvin::handleToggleCamera);
+  commandHandlers["insert"] = CommandFunction(&Marvin::handleInsert);
   }
 
-Marvin::CmdVal Marvin::recognize(const std::string& v) {
-  char clean[256] = {};
+void Marvin::autoComplete(std::string& inputString) {
+  inputString = StringUtil::trimFront(inputString, ' ');
+  CommandMap::iterator it;
 
-  for(size_t i=0, r=0; r<255 && i<v.size(); ++i) {
-    char c = v[i];
-    if('A'<=c && c<='Z')
-      c = char(c+'a'-'A');
-    if(r==0 && c==' ')
-      continue;
-    if(c==' ') {
-      while(v[i+1]==' ')
-        ++i;
+  size_t matchCount = 0;
+  std::string matchCommand;
+
+  for(it = commandHandlers.begin(); it != commandHandlers.end(); it++) {
+    const std::string command(it->first);
+
+    if(inputString.length() < command.length()) {
+      std::string restOfCommand( command.substr(inputString.length()));
+      std::string::size_type spacePos = restOfCommand.find(" ");
+      std::string commandToken(command);
+
+      if( spacePos != std::string::npos ) {
+        commandToken = command.substr(0, inputString.length() + spacePos);
       }
 
-    clean[r] = c;
-    ++r;
-    }
 
-  size_t cmdLen = std::strlen(clean);
-  size_t prefix = cmdLen;
-  if(prefix==0)
-    return C_None;
-
-  while(prefix>0) {
-    if(clean[prefix]==' ')
-      break;
-    --prefix;
-    }
-
-  size_t  cnt           = 0;
-  size_t  suggestionLen = 0;
-  Cmd     suggestion;
-
-  for(auto& i:cmd) {
-    const size_t len = std::strlen(i.cmd);
-    if(len<prefix)
-      continue;
-    if(std::memcmp(clean,i.cmd,prefix)!=0)
-      continue;
-
-    if(cmdLen<=len && std::memcmp(clean,i.cmd,cmdLen)==0) {
-      size_t len = cmdLen;
-      while(i.cmd[len]!='\0' && i.cmd[len]!=' ')
-        ++len;
-      if(len!=suggestionLen || std::memcmp(suggestion.cmd,i.cmd,len)!=0) {
-        suggestion    = i;
-        suggestionLen = len;
-        cnt++;
+      if(commandToken.substr(0,inputString.length()) == inputString) {
+        if(matchCommand != commandToken) {
+          matchCommand = commandToken;
+          matchCount++;
         }
-      }
-    }
-
-  if(cnt==0)
-    return C_Invalid;
-
-  if(cnt!=1)
-    return C_Incomplete;
-
-  if(suggestion.cmd[cmdLen]=='\0')
-    return CmdVal{suggestion,cmdLen};
-
-  suggestion.type = C_Incomplete;
-  for(size_t i=cmdLen;; ++i) {
-    if(suggestion.cmd[i]=='\0')
-      return CmdVal{suggestion,cmdLen};
-    if(suggestion.cmd[i]==' ' || i>=suggestionLen)
-      return CmdVal{suggestion,cmdLen};
-    }
-  }
-
-void Marvin::autoComplete(std::string& v) {
-  auto ret = recognize(v);
-  if(ret.cmd.type==C_Incomplete&& ret.cmd.cmd!=nullptr) {
-    for(size_t i=ret.cmdOffset;; ++i) {
-      if(ret.cmd.cmd[i]=='\0')
-        return;
-      if(ret.cmd.cmd[i]==' ') {
-        v.push_back(' ');
-        return;
-        }
-      v.push_back(ret.cmd.cmd[i]);
       }
     }
   }
 
-bool Marvin::exec(Gothic& gothic, const std::string& v) {
-  auto ret = recognize(v);
-  switch(ret.cmd.type) {
-    case C_None:
-      return true;
-    case C_Incomplete:
-    case C_Invalid:
-      return false;
-    case C_CheatFull:{
-      if(auto pl = gothic.player()) {
-        pl->changeAttribute(Npc::ATR_HITPOINTS,pl->attribute(Npc::ATR_HITPOINTSMAX),false);
-        }
-      return true;
-      }
-    case C_CamAutoswitch:
-      return true;
-    case C_CamMode:
-      return true;
-    case C_ToogleCamDebug:
-      if(auto c = gothic.camera())
-        c->toogleDebug();
-      return true;
-    case C_ToogleCamera: {
-      if(auto c = gothic.camera())
-        c->setToogleEnable(!c->isToogleEnabled());
-      return true;
+  if(matchCount == 1) {
+    inputString = matchCommand;
+  }
+  }
+
+bool Marvin::exec(const std::string& inputString) {
+  bool ret = false;
+  size_t matchCount = 0;
+  std::string matchCommand("");
+
+  std::string trimedInputString = StringUtil::trimFront(inputString, ' ');
+
+  CommandMap::iterator it;
+  for(it = commandHandlers.begin(); it != commandHandlers.end(); it++) {
+    std::string command(it->first);
+
+    if(trimedInputString.length() >= command.length()) {
+      if(trimedInputString.substr(0, command.length()) == command) {
+        matchCommand = command;
+        matchCount++;
       }
     }
+  }
+
+  if( matchCount == 1 ) {
+    CommandMap::iterator it = commandHandlers.find(matchCommand);
+    if( it != commandHandlers.end() ) {
+      CommandFunction commandFunction = it->second;
+      if( trimedInputString.length() > matchCommand.length() + 1)
+      {
+        std::string arguments(trimedInputString.substr(matchCommand.length() + 1));
+        commandFunction(this, arguments);
+      } else {
+        commandFunction(this, "");
+      }
+      ret = true;
+    }
+  }
+
+  return ret;
+  }
+
+Marvin::CommandMap::iterator Marvin::recognize(const std::string& inputString)
+{
+  std::string str = StringUtil::trimFront(inputString, ' ');
+  CommandMap::iterator it;
+
+  size_t matchCount = 0;
+  CommandMap::iterator matchedCommand;
+
+  for(it = commandHandlers.begin(); it != commandHandlers.end(); it++) {
+    const std::string command(it->first);
+    if(str.length() < command.length()) {
+      if(command.substr(0,str.length()) == str) {
+        matchedCommand = it;
+        matchCount++;
+      }
+    }
+  }
+
+  if(matchCount == 1)
+  {
+    return matchedCommand;
+  }
+
+  return commandHandlers.end();
+  }
+
+bool Marvin::handleCheatFull(const std::string& arguments) {
+  if(auto pl = gothic.player())
+    pl->changeAttribute(Npc::ATR_HITPOINTS,pl->attribute(Npc::ATR_HITPOINTSMAX),false);
 
   return true;
   }
 
+bool Marvin::handleCameraAutoSwitch(const std::string& arguments) {
+  return true;
+  }
+
+bool Marvin::handleCameraMode(const std::string& arguments) {
+  return true;
+  }
+
+bool Marvin::handleToggleCamDebug(const std::string& arguments) {
+  if(auto c = gothic.camera())
+    c->toogleDebug();
+
+  return true;
+  }
+
+bool Marvin::handleToggleCamera(const std::string& arguments) {
+  if(auto c = gothic.camera())
+    c->setToogleEnable(!c->isToogleEnabled());
+
+  return true;
+  }
+
+bool Marvin::handleInsert(const std::string& arguments) {
+  bool ret = false;
+
+  World* world = gothic.world();
+  Npc* player = gothic.player();
+
+  if( world == nullptr || player == nullptr ) {
+    ret = false;
+  } else{
+    ret = world->addItemOrNpcBySymbolName(arguments, player->position());
+  }
+
+  return ret;
+  }

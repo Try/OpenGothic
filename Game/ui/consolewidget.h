@@ -27,11 +27,11 @@ class ConsoleWidget : public Tempest::Widget {
 
     Gothic&                   gothic;
 
-    Tempest::UiOverlay*       overlay    = nullptr;
-    const Tempest::Texture2d* background = nullptr;
+    Tempest::UiOverlay*       overlay;
+    const Tempest::Texture2d* background;
     Tempest::Shortcut         closeSk;
     std::vector<std::string>  log, cmdHist;
-    size_t                    histPos = size_t(-1);
+    size_t                    histPos;
     Marvin                    marvin;
   };
 
