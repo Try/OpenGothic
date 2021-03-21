@@ -21,8 +21,6 @@ class Marvin {
     Gothic& gothic;
     CommandMap commandHandlers;
 
-    CommandMap::iterator recognize(const std::string& inputString);
-
     bool handleCheatFull(const std::string& arguments);
     bool handleCameraAutoSwitch(const std::string& arguments);
     bool handleCameraMode(const std::string& arguments);

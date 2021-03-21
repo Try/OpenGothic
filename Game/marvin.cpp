@@ -90,32 +90,6 @@ bool Marvin::exec(const std::string& inputString) {
   return ret;
   }
 
-Marvin::CommandMap::iterator Marvin::recognize(const std::string& inputString)
-{
-  std::string str = StringUtil::trimFront(inputString, ' ');
-  CommandMap::iterator it;
-
-  size_t matchCount = 0;
-  CommandMap::iterator matchedCommand;
-
-  for(it = commandHandlers.begin(); it != commandHandlers.end(); it++) {
-    const std::string command(it->first);
-    if(str.length() < command.length()) {
-      if(command.substr(0,str.length()) == str) {
-        matchedCommand = it;
-        matchCount++;
-      }
-    }
-  }
-
-  if(matchCount == 1)
-  {
-    return matchedCommand;
-  }
-
-  return commandHandlers.end();
-  }
-
 bool Marvin::handleCheatFull(const std::string& arguments) {
   if(auto pl = gothic.player())
     pl->changeAttribute(Npc::ATR_HITPOINTS,pl->attribute(Npc::ATR_HITPOINTSMAX),false);
