@@ -20,7 +20,7 @@ install:
 - git submodule -q update --init --recursive
 # Vulkan SDK and thirdparty
 # https://vulkan.lunarg.com/content/view/latest-sdk-version-api
-- cmd: curl -L --silent --show-error --output VulkanSDK.exe https://sdk.lunarg.com/sdk/download/1.2.154.1/windows/vulkan_sdk.exe
+- cmd: curl -L --silent --show-error --output VulkanSDK.exe https://sdk.lunarg.com/sdk/download/1.2.170.0/windows/vulkan_sdk.exe
 - cmd: VulkanSDK.exe /S
 - cmd: set VK_SDK_PATH=C:/VulkanSDK/1.2.154.1
 
@@ -28,7 +28,7 @@ install:
 - sh:  sudo apt-get --yes install libvulkan-dev libasound2-dev
 # https://github.com/appveyor/ci/issues/3573
 - sh:  sudo apt-get install -y libclang1-9
-- sh:  curl -L --silent --show-error --output VulkanSDK.tar.gz https://sdk.lunarg.com/sdk/download/1.2.154.0/linux/vulkan_sdk.tar.gz
+- sh:  curl -L --silent --show-error --output VulkanSDK.tar.gz https://sdk.lunarg.com/sdk/download/1.2.170.0/linux/vulkan_sdk.tar.gz
 - sh:  mkdir VulkanSDK
 - sh:  tar -xzf VulkanSDK.tar.gz -C ./VulkanSDK
 - sh:  export VK_SDK_PATH=$APPVEYOR_BUILD_FOLDER/VulkanSDK/1.2.154.0/x86_64
