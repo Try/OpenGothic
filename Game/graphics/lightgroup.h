@@ -35,16 +35,14 @@ class LightGroup final {
         void setColor(const Tempest::Vec3& c);
 
       private:
-        Light(LightGroup& l, size_t id):light(&l), id(id) {}
-        LightGroup* light = nullptr;
+        Light(LightGroup& l, size_t id):owner(&l), id(id) {}
+        LightGroup* owner = nullptr;
         size_t      id    = 0;
 
       friend class LightGroup;
       };
 
     void   dbgLights(DbgPainter& p) const;
-
-    size_t get(const Bounds& area, const LightSource** out, size_t maxOut) const;
 
     void   tick(uint64_t time);
     void   preFrameUpdate(uint8_t fId);
@@ -58,48 +56,48 @@ class LightGroup final {
       CHUNK_SIZE=256
       };
 
+    const size_t staticMask = (size_t(1) << (sizeof(size_t)*8-1));
+
     struct Ubo {
       Tempest::Matrix4x4 mvp;
       Tempest::Matrix4x4 mvpInv;
       Frustrum           fr;
       };
 
-    struct Bvh {
-      std::unique_ptr<Bvh> next[2];
-      Bounds               bbox;
-      const LightSource**  b     = nullptr;
-      size_t               count = 0;
+    struct LightSsbo {
+      Tempest::Vec3 pos;
+      float         range  = 0;
+      Tempest::Vec3 color;
+      float         pading = 0;
       };
 
-    void        free(size_t id);
-    size_t      implGet(const Bvh& index, const Bounds& area, const LightSource** out, size_t maxOut) const;
-    void        mkIndex() const;
-    void        mkIndex(Bvh& id, const LightSource** b, size_t count, int depth) const;
-    void        clearIndex();
-    static bool isIntersected(const Bounds& a,const Bounds& b);
-    void        buildVbo(uint8_t fId);
-    void        buildVbo(Vertex* out, const LightSource& l);
+    struct LightBucket {
+      std::vector<LightSource> light;
+      std::vector<LightSsbo>   data;
+      Tempest::StorageBuffer   ssbo[Resources::MaxFramesInFlight];
+      bool                     updated[Resources::MaxFramesInFlight] = {};
+
+      std::vector<size_t>      freeList;
+      Tempest::Uniforms        ubo[Resources::MaxFramesInFlight];
+
+      size_t                   alloc();
+      void                     free(size_t id);
+      };
+
+    size_t       alloc(bool dynamic);
+    void         free(size_t id);
+
+    LightSsbo&   get (size_t id);
+    LightSource& getL(size_t id);
 
     const SceneGlobals&               scene;
 
-    struct Chunk {
-      Tempest::VertexBufferDyn<Vertex> vboGpu [Resources::MaxFramesInFlight];
-      bool                             updated[Resources::MaxFramesInFlight] = {};
-      };
-    std::vector<Chunk>                chunks;
-
-    std::vector<Vertex>               vboCpu;
-    Tempest::IndexBuffer<uint16_t>    iboGpu;
-
-    Tempest::Uniforms                 ubo[Resources::MaxFramesInFlight];
     Tempest::UniformBuffer<Ubo>       uboBuf[Resources::MaxFramesInFlight];
 
+    Tempest::IndexBuffer<uint16_t>    ibo;
+    Tempest::VertexBuffer<Tempest::Vec3> vbo;
+
     std::recursive_mutex              sync;
-    std::vector<LightSource>          light;
-    std::vector<size_t>               dynamicState;
-    std::vector<size_t>               freeList;
-    mutable std::vector<const LightSource*> indexPtr;
-    mutable Bvh                       index;
-    mutable bool                      fullGpuUpdate = false;
+    LightBucket                       bucketSt, bucketDyn;
   };
 

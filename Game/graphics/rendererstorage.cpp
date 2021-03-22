@@ -116,7 +116,7 @@ RendererStorage::RendererStorage(Device& device, Gothic& gothic)
   auto vsLight = device.shader(sh.data,sh.len);
   sh           = GothicShader::get("light.frag.sprv");
   auto fsLight = device.shader(sh.data,sh.len);
-  pLights      = device.pipeline<Resources::VertexL>(Triangles, state, vsLight, fsLight);
+  pLights      = device.pipeline<Vec3>(Triangles, state, vsLight, fsLight);
   }
 
   {
