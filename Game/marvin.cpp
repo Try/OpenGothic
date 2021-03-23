@@ -67,6 +67,11 @@ Marvin::CmdVal Marvin::recognize(const std::string& v) {
         suggestionLen = len;
         cnt++;
         }
+      } else if(prefix == len) {
+        cmdLen        = prefix;
+        suggestion    = i;
+        suggestionLen = 0;
+        cnt++;
       }
     }
 
