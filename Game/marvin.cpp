@@ -15,6 +15,7 @@ Marvin::Marvin() {
     {"camera mode",       C_CamMode},
     {"toogle camdebug",   C_ToogleCamDebug},
     {"toogle camera",     C_ToogleCamera},
+    {"insert",            C_Insert},
     };
   }
 
@@ -134,6 +135,25 @@ bool Marvin::exec(Gothic& gothic, const std::string& v) {
       if(auto c = gothic.camera())
         c->setToogleEnable(!c->isToogleEnabled());
       return true;
+      }
+    case C_Insert: {
+      bool ret = false;
+      World* world = gothic.world();
+      Npc* player = gothic.player();
+
+      std::string::size_type spacePos = v.find(" ");
+
+      if( spacePos != std::string::npos ) {
+        std::string arguments = v.substr(spacePos + 1);
+
+        if( world == nullptr || player == nullptr ) {
+          ret = false;
+        } else{
+          ret = world->addItemOrNpcBySymbolName(arguments, player->position());
+        }
+      }
+
+      return ret;
       }
     }
 
