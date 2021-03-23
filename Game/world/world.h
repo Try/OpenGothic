@@ -151,6 +151,7 @@ class World final {
     Npc*                 addNpc     (size_t itemInstance, const Tempest::Vec3&     at);
     Item*                addItem    (size_t itemInstance, const char *at);
     Item*                addItem    (const ZenLoad::zCVobData& vob);
+    Item*                addItem    (size_t itemInstance, const Tempest::Vec3& pos);
     Item*                takeItem   (Item& it);
     void                 removeItem (Item &it);
     size_t               hasItems(const char* tag, size_t itemCls);
@@ -174,6 +175,19 @@ class World final {
     void                 addStartPoint (const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
     void                 addFreePoint  (const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
     void                 addSound      (const ZenLoad::zCVobData& vob);
+
+    inline bool addItemOrNpcBySymbolName (const std::string& name, const Tempest::Vec3& at) {
+      bool ret = false;
+      size_t id = script().getSymbolIndex(name);
+
+      if( addNpc(id, at) != nullptr ) {
+        ret = true;
+      } else if( addItem(id, at) != nullptr ) {
+        ret = true;
+      }
+
+      return ret;
+    };
 
     void                 invalidateVobIndex();
 
