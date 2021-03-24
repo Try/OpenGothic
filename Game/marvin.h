@@ -27,7 +27,7 @@ class Marvin {
       C_CamMode,
       C_ToogleCamDebug,
       C_ToogleCamera,
-      // Insert
+
       C_Insert,
       };
 
