@@ -2,6 +2,8 @@
 
 #include <string>
 #include <vector>
+#include <Tempest/Vec>
+#include "world/world.h"
 
 class Gothic;
 
@@ -44,6 +46,7 @@ class Marvin {
       };
 
     CmdVal recognize(const std::string& v);
+    bool addItemOrNpcBySymbolName (World* world, const std::string& name, const Tempest::Vec3& at);
 
     std::vector<Cmd> cmd;
   };

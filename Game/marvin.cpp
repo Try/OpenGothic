@@ -149,7 +149,7 @@ bool Marvin::exec(Gothic& gothic, const std::string& v) {
         if( world == nullptr || player == nullptr ) {
           ret = false;
         } else{
-          ret = world->addItemOrNpcBySymbolName(arguments, player->position());
+          ret = addItemOrNpcBySymbolName(world, arguments, player->position());
         }
       }
 
@@ -160,3 +160,15 @@ bool Marvin::exec(Gothic& gothic, const std::string& v) {
   return true;
   }
 
+bool Marvin::addItemOrNpcBySymbolName (World* world, const std::string& name, const Tempest::Vec3& at) {
+  bool ret = false;
+  size_t id = world->script().getSymbolIndex(name);
+
+  if( world->addNpc(id, at) != nullptr ) {
+    ret = true;
+  } else if( world->addItem(id, at) != nullptr ) {
+    ret = true;
+  }
+
+  return ret;
+  };

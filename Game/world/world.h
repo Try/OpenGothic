@@ -176,19 +176,6 @@ class World final {
     void                 addFreePoint  (const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
     void                 addSound      (const ZenLoad::zCVobData& vob);
 
-    inline bool addItemOrNpcBySymbolName (const std::string& name, const Tempest::Vec3& at) {
-      bool ret = false;
-      size_t id = script().getSymbolIndex(name);
-
-      if( addNpc(id, at) != nullptr ) {
-        ret = true;
-      } else if( addItem(id, at) != nullptr ) {
-        ret = true;
-      }
-
-      return ret;
-    };
-
     void                 invalidateVobIndex();
 
   private:
