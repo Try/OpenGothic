@@ -137,7 +137,6 @@ bool Marvin::exec(Gothic& gothic, const std::string& v) {
       return true;
       }
     case C_Insert: {
-      bool ret = false;
       World* world = gothic.world();
       Npc* player = gothic.player();
 
@@ -147,13 +146,13 @@ bool Marvin::exec(Gothic& gothic, const std::string& v) {
         std::string arguments = v.substr(spacePos + 1);
 
         if( world == nullptr || player == nullptr ) {
-          ret = false;
+          return false;
         } else{
-          ret = addItemOrNpcBySymbolName(world, arguments, player->position());
+          return addItemOrNpcBySymbolName(world, arguments, player->position());
         }
       }
 
-      return ret;
+      return false;
       }
     }
 
