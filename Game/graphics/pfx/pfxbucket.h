@@ -43,7 +43,7 @@ class PfxBucket {
       };
 
     ObjectsBucket::Item         item;
-    Tempest::VertexBufferDyn<Vertex> vboGpu[Resources::MaxFramesInFlight];
+    Tempest::VertexBuffer<Vertex> vboGpu[Resources::MaxFramesInFlight];
     std::vector<Vertex>         vboCpu;
 
     const ParticleFx&           decl;

@@ -99,7 +99,7 @@ void PfxObjects::preFrameUpdate(uint8_t fId) {
   for(auto& i:bucket) {
     auto& vbo = i.vboGpu[fId];
     if(i.vboCpu.size()!=vbo.size())
-      vbo = device.vboDyn(i.vboCpu); else
+      vbo = device.vbo(BufferHeap::Upload,i.vboCpu); else
       vbo.update(i.vboCpu);
     }
 

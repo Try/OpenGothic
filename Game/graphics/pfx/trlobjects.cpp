@@ -150,7 +150,7 @@ struct TrlObjects::Bucket {
 
   const ParticleFx&           decl;
   ObjectsBucket::Item         item;
-  Tempest::VertexBufferDyn<Vertex> vboGpu[Resources::MaxFramesInFlight];
+  Tempest::VertexBuffer<Vertex> vboGpu[Resources::MaxFramesInFlight];
   std::vector<Vertex>         vboCpu;
 
   std::vector<Trail>          obj;
@@ -252,7 +252,7 @@ void TrlObjects::preFrameUpdate(uint8_t fId) {
   for(auto& i:bucket) {
     auto& vbo = i.vboGpu[fId];
     if(i.vboCpu.size()!=vbo.size())
-      vbo = device.vboDyn(i.vboCpu); else
+      vbo = device.vbo(BufferHeap::Upload,i.vboCpu); else
       vbo.update(i.vboCpu);
     }
   }

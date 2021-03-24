@@ -265,6 +265,9 @@ void LightGroup::tick(uint64_t time) {
     ssbo.pos   = light.position();
     ssbo.color = light.currentColor();
     ssbo.range = light.currentRange();
+
+    for(auto& updated:bucketDyn.updated)
+      updated = false;
     }
   }
 
@@ -274,8 +277,12 @@ void LightGroup::preFrameUpdate(uint8_t fId) {
     if(b->updated[fId])
       continue;
     b->updated[fId] = true;
-    b->ssbo[fId]    = scene.storage.device.ssbo(b->data.data(),b->data.size()*sizeof(b->data[0]));
-    b->ubo [fId].set(4,b->ssbo[fId]);
+    if(b->ssbo[fId].size()==b->data.size()*sizeof(b->data[0])) {
+      b->ssbo[fId].update(b->data);
+      } else {
+      b->ssbo[fId] = scene.storage.device.ssbo(BufferHeap::Device,b->data);
+      b->ubo [fId].set(4,b->ssbo[fId]);
+      }
     }
 
   Ubo ubo;
