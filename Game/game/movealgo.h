@@ -115,8 +115,8 @@ class MoveAlgo final {
     void    takeFallDamage() const;
 
     void    rayMain  (float x, float y, float z) const;
-    float   dropRay  (float x, float y, float z, bool &hasCol) const;
-    float   waterRay (float x, float y, float z) const;
+    float   dropRay  (float x, float y, float z, bool& hasCol) const;
+    float   waterRay (float x, float y, float z, bool* hasCol = nullptr) const;
     auto    normalRay(float x, float y, float z) const -> Tempest::Vec3;
 
     struct CacheLand : DynamicWorld::RayLandResult {

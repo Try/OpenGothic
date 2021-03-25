@@ -260,8 +260,9 @@ void MoveAlgo::tickSwim(uint64_t dt) {
   auto  chest         = waterDepthChest();
 
   bool  valid  = false;
+  bool  validW = false;
   auto  ground = dropRay (pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z, valid);
-  auto  water  = waterRay(pos.x+dp.x, pos.y+dp.y-chest,         pos.z+dp.z);
+  auto  water  = waterRay(pos.x+dp.x, pos.y+dp.y-chest,         pos.z+dp.z, &validW);
 
   if(npc.isDead()){
     setAsSwim(false);
@@ -269,7 +270,7 @@ void MoveAlgo::tickSwim(uint64_t dt) {
     return;
     }
 
-  if(ground+chest>=water) {
+  if(ground+chest>=water && validW) {
     if(testSlide(pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z))
       return;
     setAsSwim(false);
@@ -278,7 +279,7 @@ void MoveAlgo::tickSwim(uint64_t dt) {
     return;
     }
 
-  if(isDive() && pos.y>water) {
+  if(isDive() && pos.y>water && validW) {
     if(npc.world().tickCount()-diveStart>1000)
       setAsDive(false);
     return;
@@ -750,13 +751,15 @@ void MoveAlgo::onMoveFailed() {
     }
   }
 
-float MoveAlgo::waterRay(float x, float y, float z) const {
+float MoveAlgo::waterRay(float x, float y, float z, bool* hasCol) const {
   if(std::fabs(cacheW.x-x)>eps || std::fabs(cacheW.y-y)>eps || std::fabs(cacheW.z-z)>eps) {
     static_cast<DynamicWorld::RayWaterResult&>(cacheW) = npc.world().physic()->waterRay(x,y,z);
     cacheW.x = x;
     cacheW.y = y;
     cacheW.z = z;
     }
+  if(hasCol!=nullptr)
+    *hasCol = cacheW.hasCol;
   return cacheW.wdepth;
   }
 
