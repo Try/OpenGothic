@@ -280,7 +280,7 @@ void LightGroup::preFrameUpdate(uint8_t fId) {
     if(b->ssbo[fId].size()==b->data.size()*sizeof(b->data[0])) {
       b->ssbo[fId].update(b->data);
       } else {
-      b->ssbo[fId] = scene.storage.device.ssbo(BufferHeap::Device,b->data);
+      b->ssbo[fId] = scene.storage.device.ssbo(BufferHeap::Upload,b->data);
       b->ubo [fId].set(4,b->ssbo[fId]);
       }
     }
@@ -294,6 +294,9 @@ void LightGroup::preFrameUpdate(uint8_t fId) {
   }
 
 void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
+  static bool light = true;
+  if(!light)
+    return;
   auto& p = scene.storage.pLights;
   if(bucketSt.data.size()>0) {
     cmd.setUniforms(p,bucketSt.ubo[fId]);
