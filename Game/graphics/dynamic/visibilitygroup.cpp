@@ -66,15 +66,15 @@ VisibilityGroup::Token VisibilityGroup::get() {
   }
 
 void VisibilityGroup::pass(const Tempest::Matrix4x4& main, const Tempest::Matrix4x4* sh, size_t /*shCount*/) {
-  Frustrum f[V_Count];
-  f[V_Shadow0].make(sh[0]);
-  f[V_Shadow1].make(sh[1]);
-  f[V_Main   ].make(main);
+  Frustrum f[SceneGlobals::V_Count];
+  f[SceneGlobals::V_Shadow0].make(sh[0]);
+  f[SceneGlobals::V_Shadow1].make(sh[1]);
+  f[SceneGlobals::V_Main   ].make(main);
 
   Workers::parallelFor(tokens,[&f](Tok& t){
     auto& b = t.bbox;
-    t.visible[V_Shadow0] = f[V_Shadow0].testPoint(b.midTr, b.r);
-    t.visible[V_Shadow1] = f[V_Shadow1].testPoint(b.midTr, b.r);
-    t.visible[V_Main]    = f[V_Main   ].testPoint(b.midTr, b.r);
+    t.visible[SceneGlobals::V_Shadow0] = f[SceneGlobals::V_Shadow0].testPoint(b.midTr, b.r);
+    t.visible[SceneGlobals::V_Shadow1] = f[SceneGlobals::V_Shadow1].testPoint(b.midTr, b.r);
+    t.visible[SceneGlobals::V_Main]    = f[SceneGlobals::V_Main   ].testPoint(b.midTr, b.r);
     });
   }

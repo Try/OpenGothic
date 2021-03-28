@@ -10,6 +10,8 @@ file(GLOB SOURCES
   "${CMAKE_SOURCE_DIR}/shader/*.frag"
   "${CMAKE_SOURCE_DIR}/shader/*.glsl")
 
+file(GLOB GLSL_SOURCES "${CMAKE_SOURCE_DIR}/shader/*.glsl")
+
 # GLSL to SPIRV compiler
 find_program(GLSLANGVALIDATOR glslangValidator)
 if(NOT GLSLANGVALIDATOR)
@@ -25,7 +27,7 @@ function(add_shader OUTPUT SOURCE)
   list(SUBLIST ARGV 2 -1 VARS)
   add_custom_command(
     OUTPUT     ${OUTPUT_FILE}
-    DEPENDS    ${SOURCE_FILE}
+    DEPENDS    ${SOURCE_FILE} ${GLSL_SOURCES}
     COMMAND    ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/sprv/"
     COMMAND    ${GLSLANGVALIDATOR} -V ${VARS} "${SOURCE_FILE}" -o ${OUTPUT_FILE}
     )

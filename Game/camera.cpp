@@ -165,6 +165,8 @@ Matrix4x4 Camera::viewShadow(const Vec3& ldir, int layer) const {
     view.scale(0.2f);
 
   view.translate(0.f,0.5f,0.5f);
+  if(layer>0)
+    view.translate(0.f,1.5f,0.f);
   view.rotate(/*spin.x*/90, 1, 0, 0);
   view.translate(0.f,0.f,0.f);
   view.rotate(state.spin.y, 0, 1, 0);

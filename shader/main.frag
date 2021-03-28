@@ -5,17 +5,19 @@
 #define FRAGMENT
 #include "shader_common.glsl"
 
-#ifdef SHADOW_MAP
-layout(location = 0) in vec2 inUV;
-layout(location = 1) in vec4 inShadowPos;
+layout(location = 0) in VsData {
+#if defined(SHADOW_MAP)
+  vec2 uv;
+  vec4 scr;
 #else
-layout(location = 0) in vec2 inUV;
-layout(location = 1) in vec4 inShadowPos;
-layout(location = 2) in vec3 inNormal;
-layout(location = 3) in vec4 inColor;
-layout(location = 4) in vec4 inPos;
-layout(location = 5) in vec4 inScr;
+  vec2 uv;
+  vec4 shadowPos[2];
+  vec3 normal;
+  vec4 color;
+  vec4 pos;
+  vec4 scr;
 #endif
+  } shInp;
 
 #ifdef GBUFFER
 layout(location = 0) out vec4 outColor;
@@ -64,18 +66,18 @@ float calcShadow(vec3 shPos0, vec3 shPos1) {
   }
 
 float calcShadow() {
-  vec3 shPos0  = (inShadowPos.xyz)/inShadowPos.w;
-  vec3 shPos1  = shPos0*0.2;
+  vec3 shPos0  = (shInp.shadowPos[0].xyz)/shInp.shadowPos[0].w;
+  vec3 shPos1  = (shInp.shadowPos[1].xyz)/shInp.shadowPos[1].w;
   return calcShadow(shPos0,shPos1);
   }
 #endif
 
 #if !defined(SHADOW_MAP)
 vec3 calcLight() {
-  vec3  normal  = normalize(inNormal);
+  vec3  normal  = normalize(shInp.normal);
   float lambert = max(0.0,dot(scene.ldir,normal));
   float light   = lambert*calcShadow();
-  vec3  color   = inColor.rgb*scene.sunCl.rgb*clamp(light,0.0,1.0);
+  vec3  color   = shInp.color.rgb*scene.sunCl.rgb*clamp(light,0.0,1.0);
 
   /*
   for(int i=0; i<LIGHT_BLOCK; ++i) {
@@ -100,7 +102,7 @@ vec3 calcLight() {
 
 #if defined(WATER)
 vec3 waterColor(vec3 selfColor) {
-  vec3  scr   = inScr.xyz/inScr.w;
+  vec3  scr   = shInp.scr.xyz/shInp.scr.w;
   vec2  p     = scr.xy*0.5+vec2(0.5);
   vec4  back  = texture(gbufferDiffuse,p);
   float depth = texture(gbufferDepth,p).r;
@@ -117,7 +119,7 @@ vec3 waterColor(vec3 selfColor) {
 
 #if defined(GHOST)
 vec3 ghostColor(vec3 selfColor) {
-  vec3  scr   = inScr.xyz/inScr.w;
+  vec3  scr   = shInp.scr.xyz/shInp.scr.w;
   vec2  p     = scr.xy*0.5+vec2(0.5);
   vec4  back  = texture(gbufferDiffuse,p);
   return back.rgb+selfColor;
@@ -126,7 +128,7 @@ vec3 ghostColor(vec3 selfColor) {
 
 void main() {
 #if !defined(SHADOW_MAP) || defined(ATEST)
-  vec4 t = texture(textureD,inUV);
+  vec4 t = texture(textureD,shInp.uv);
 #  ifdef ATEST
   if(t.a<0.5)
     discard;
@@ -134,11 +136,11 @@ void main() {
 #endif
 
 #ifdef SHADOW_MAP
-  outColor = vec4(inShadowPos.zzz,0.0);
+  outColor = vec4(shInp.scr.zzz,0.0);
 #else
 
 #if defined(EMMISSIVE)
-  vec3 color = inColor.rgb;
+  vec3 color = shInp.color.rgb;
 #else
   vec3 color = calcLight();
 #endif
@@ -152,12 +154,12 @@ void main() {
   color = ghostColor(color);
 #endif
 
-  outColor      = vec4(color,t.a*inColor.a);
+  outColor      = vec4(color,t.a*shInp.color.a);
 
 #ifdef GBUFFER
   outDiffuse    = t;
-  outNormal     = vec4(normalize(inNormal)*0.5 + vec3(0.5),1.0);
-  outDepth      = vec4(inScr.z/inScr.w,0.0,0.0,0.0);
+  outNormal     = vec4(normalize(shInp.normal)*0.5 + vec3(0.5),1.0);
+  outDepth      = vec4(shInp.scr.z/shInp.scr.w,0.0,0.0,0.0);
 #endif
 
   //outColor   = vec4(inZ.xyz/inZ.w,1.0);

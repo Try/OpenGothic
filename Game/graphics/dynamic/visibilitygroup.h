@@ -3,6 +3,7 @@
 #include <Tempest/Matrix4x4>
 #include <cstdint>
 
+#include "graphics/sceneglobals.h"
 #include "graphics/bounds.h"
 
 class Frustrum;
@@ -10,14 +11,6 @@ class Frustrum;
 class VisibilityGroup {
   public:
     VisibilityGroup();
-
-    enum VisCamera : uint8_t {
-      V_Shadow0    = 0,
-      V_Shadow1    = 1,
-      V_ShadowLast = 1,
-      V_Main       = 2,
-      V_Count
-      };
 
     class Token {
       public:
@@ -28,7 +21,7 @@ class VisibilityGroup {
 
         void   setObjMatrix(const Tempest::Matrix4x4& at);
         void   setBounds   (const Bounds& bbox);
-        bool   isVisible   (VisCamera c) const;
+        bool   isVisible   (SceneGlobals::VisCamera c) const;
 
         const Bounds& bounds() const;
 
@@ -47,13 +40,13 @@ class VisibilityGroup {
     struct Tok {
       Tempest::Matrix4x4 pos;
       Bounds             bbox;
-      bool               visible[V_Count] = {};
+      bool               visible[SceneGlobals::V_Count] = {};
       };
 
     std::vector<Tok>    tokens;
     std::vector<size_t> freeList;
   };
 
-inline bool VisibilityGroup::Token::isVisible(VisCamera c) const {
+inline bool VisibilityGroup::Token::isVisible(SceneGlobals::VisCamera c) const {
   return owner->tokens[id].visible[c];
   }

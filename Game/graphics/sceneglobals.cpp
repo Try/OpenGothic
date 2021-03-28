@@ -12,12 +12,13 @@ SceneGlobals::SceneGlobals(const RendererStorage& storage)
 
   uboGlobal.viewProject.identity();
   uboGlobal.viewProjectInv.identity();
-  uboGlobal.shadowView.identity();
+  for(auto& s:uboGlobal.shadowView)
+    s.identity();
 
   sun.setDir(1,-1,1);
 
   for(uint8_t fId=0; fId<Resources::MaxFramesInFlight; ++fId)
-    for(uint8_t lay=0; lay<Resources::ShadowLayers; ++lay) {
+    for(uint8_t lay=0; lay<V_Count; ++lay) {
       uboGlobalPf[fId][lay] = storage.device.ubo<UboGlobal>(nullptr,1);
       }
   }
@@ -31,8 +32,8 @@ void SceneGlobals::setModelView(const Tempest::Matrix4x4& m, const Tempest::Matr
   uboGlobal.viewProject    = m;
   uboGlobal.viewProjectInv = m;
   uboGlobal.viewProjectInv.inverse();
-  uboGlobal.shadowView   = sh[0];
-  shadowView1            = sh[1];
+  uboGlobal.shadowView[0]  = sh[0];
+  uboGlobal.shadowView[1]  = sh[1];
   }
 
 void SceneGlobals::setTime(uint64_t time) {
@@ -48,11 +49,12 @@ void SceneGlobals::commitUbo(uint8_t fId) {
   uboGlobal.lightCl  = {c.x,c.y,c.z,0.f};
   uboGlobal.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
 
-  auto ubo2 = uboGlobal;
-  ubo2.shadowView = shadowView1;
-
-  uboGlobalPf[fId][0].update(&uboGlobal,0,1);
-  uboGlobalPf[fId][1].update(&ubo2,     0,1);
+  uboGlobalPf[fId][V_Main].update(&uboGlobal,0,1);
+  for(size_t i=V_Shadow0; i<=V_ShadowLast; ++i) {
+    auto ubo = uboGlobal;
+    ubo.viewProject = uboGlobal.shadowView[i-V_Shadow0];
+    uboGlobalPf[fId][i].update(&ubo,0,1);
+    }
   }
 
 void SceneGlobals::setShadowMap(const Tempest::Texture2d& tex) {

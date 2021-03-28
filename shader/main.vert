@@ -26,23 +26,25 @@ layout(location = 2) in vec2 inUV;
 layout(location = 3) in uint inColor;
 #endif
 
-#ifdef SHADOW_MAP
-layout(location = 0) out vec2 outUV;
-layout(location = 1) out vec4 outShadowPos;
+layout(location = 0) out VsData {
+#if defined(SHADOW_MAP)
+  vec2 uv;
+  vec4 scr;
 #else
-layout(location = 0) out vec2 outUV;
-layout(location = 1) out vec4 outShadowPos;
-layout(location = 2) out vec3 outNormal;
-layout(location = 3) out vec4 outColor;
-layout(location = 4) out vec4 outPos;
-layout(location = 5) out vec4 outScr;
+  vec2 uv;
+  vec4 shadowPos[2];
+  vec3 normal;
+  vec4 color;
+  vec4 pos;
+  vec4 scr;
 #endif
+  } shOut;
 
 #ifdef SKINING
 vec4 boneId;
 #endif
 
-vec4 vertexPos() {
+vec4 vertexPosMesh() {
 #if defined(SKINING)
   vec4 pos0 = vec4(inPos0,1.0);
   vec4 pos1 = vec4(inPos1,1.0);
@@ -70,7 +72,7 @@ vec4 vertexPos() {
 #endif
   }
 
-vec4 normal(){
+vec4 normalWorld() {
 #ifdef SKINING
   vec4 norm = vec4(inNormal,0.0);
   vec4 n0   = anim.skel[int(boneId.x)]*norm;
@@ -86,44 +88,52 @@ vec4 normal(){
   return vec4(-inNormal.z,inNormal.y,inNormal.x,0.0);
   }
 
+vec3 normal() {
+  vec4 norm = normalWorld();
+#if defined(OBJ)
+  return (push.obj*norm).xyz;
+#else
+  return norm.xyz;
+#endif
+  }
+
+vec4 vertexPos() {
+  vec4 pos = vertexPosMesh();
+#if defined(OBJ)
+  return push.obj*pos;
+#else
+  return pos;
+#endif
+  }
+
 void main() {
-#ifdef SKINING
-  boneId     = unpackUnorm4x8(inId);
+#if defined(SKINING)
+  boneId = unpackUnorm4x8(inId);
+#endif
+
+#if !defined(SHADOW_MAP)
+  shOut.color = unpackUnorm4x8(inColor);
 #endif
 
 #if defined(OBJ)
-  outUV      = inUV + material.texAnim;
+  shOut.uv = inUV + material.texAnim;
 #else
-  outUV      = inUV;
+  shOut.uv = inUV;
 #endif
 
-  vec4 pos   = vertexPos();
-#ifdef OBJ
-  vec4 shPos = scene.shadow*push.obj*pos;
-#else
-  vec4 shPos = scene.shadow*pos;
+#if !defined(SHADOW_MAP)
+  shOut.normal = normal();
 #endif
 
-#ifdef SHADOW_MAP
-  outShadowPos = shPos;
-  gl_Position  = shPos;
-#else
-  vec4 norm = normal();
-  outShadowPos = shPos;
-  outColor     = unpackUnorm4x8(inColor);
-#  ifdef OBJ
-  outNormal    = (push.obj*norm).xyz;
-  outPos       = (push.obj*pos);
-  vec4 trPos   = scene.mv*outPos;
-  outScr       = trPos;
-  gl_Position  = trPos;
-#  else
-  outNormal    = norm.xyz;
-  outPos       = pos;
+  vec4 pos        = vertexPos();
+  vec4 trPos      = scene.mv*pos;
 
-  vec4 trPos   = scene.mv*pos;
-  outScr       = trPos;
-  gl_Position  = trPos;
-#  endif
+#if !defined(SHADOW_MAP)
+  shOut.shadowPos[0] = scene.shadow[0]*pos;
+  shOut.shadowPos[1] = scene.shadow[1]*pos;
+  shOut.pos          = pos;
 #endif
+
+  shOut.scr       = trPos;
+  gl_Position     = trPos;
   }

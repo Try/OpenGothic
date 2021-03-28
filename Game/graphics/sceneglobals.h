@@ -14,6 +14,14 @@ class SceneGlobals final {
     SceneGlobals(const RendererStorage& storage);
     ~SceneGlobals();
 
+    enum VisCamera : uint8_t {
+      V_Shadow0    = 0,
+      V_Shadow1    = 1,
+      V_ShadowLast = 1,
+      V_Main       = 2,
+      V_Count
+      };
+
     void setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4 *sh, size_t shCount);
     void setTime(uint64_t time);
     void commitUbo(uint8_t fId);
@@ -32,17 +40,17 @@ class SceneGlobals final {
     const Tempest::Texture2d*         gbufDepth   = &Resources::fallbackBlack();
 
     struct UboGlobal final {
-      Tempest::Vec3                   lightDir={0,0,1};
-      float                           shadowSize=2048;
+      Tempest::Vec3                   lightDir   = {0,0,1};
+      float                           shadowSize = 2048;
       Tempest::Matrix4x4              viewProject;
       Tempest::Matrix4x4              viewProjectInv;
-      Tempest::Matrix4x4              shadowView;
-      Tempest::Vec4                   lightAmb={0,0,0,0};
-      Tempest::Vec4                   lightCl ={1,1,1,0};
+      Tempest::Matrix4x4              shadowView[2];
+      Tempest::Vec4                   lightAmb   = {0,0,0,0};
+      Tempest::Vec4                   lightCl    = {1,1,1,0};
       float                           secondFrac;
       };
 
-    Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][Resources::ShadowLayers];
+    Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][V_Count];
 
     LightSource                       sun;
     Tempest::Vec3                     ambient;
@@ -50,6 +58,5 @@ class SceneGlobals final {
 
   private:
     UboGlobal                         uboGlobal;
-    Tempest::Matrix4x4                shadowView1;
   };
 

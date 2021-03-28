@@ -29,7 +29,7 @@ layout(binding = 2, std140) uniform UboScene {
   float shadowSize;
   mat4  mv;
   mat4  modelViewInv;
-  mat4  shadow;
+  mat4  shadow[2];
   vec3  ambient;
   vec4  sunCl;
   } scene;

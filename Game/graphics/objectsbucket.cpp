@@ -86,9 +86,9 @@ void ObjectsBucket::Descriptors::alloc(ObjectsBucket& owner) {
   auto& device = owner.scene.storage.device;
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
     if(owner.pMain!=nullptr)
-      ubo[i][VisibilityGroup::V_Main] = device.uniforms(owner.pMain->layout());
+      ubo[i][SceneGlobals::V_Main] = device.uniforms(owner.pMain->layout());
     if(owner.pShadow!=nullptr) {
-      for(size_t lay=VisibilityGroup::V_Shadow0; lay<=VisibilityGroup::V_ShadowLast; ++lay)
+      for(size_t lay=SceneGlobals::V_Shadow0; lay<=SceneGlobals::V_ShadowLast; ++lay)
         ubo[i][lay] = device.uniforms(owner.pShadow->layout());
       }
     }
@@ -160,7 +160,7 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
 
   if(!useSharedUbo) {
     v->ubo.invalidate();
-    if(v->ubo.ubo[0][VisibilityGroup::V_Main].isEmpty()) {
+    if(v->ubo.ubo[0][SceneGlobals::V_Main].isEmpty()) {
       v->ubo.alloc(*this);
       uboSetCommon(v->ubo);
       }
@@ -171,12 +171,12 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
 void ObjectsBucket::uboSetCommon(Descriptors& v) {
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
     auto& t   = *mat.tex;
-    auto& ubo = v.ubo[i][VisibilityGroup::V_Main];
+    auto& ubo = v.ubo[i][SceneGlobals::V_Main];
 
     if(!ubo.isEmpty()) {
       ubo.set(0,t);
       ubo.set(1,*scene.shadowMap,Resources::shadowSampler());
-      ubo.set(2,scene.uboGlobalPf[i][0]);
+      ubo.set(2,scene.uboGlobalPf[i][SceneGlobals::V_Main]);
       ubo.set(4,uboMat[i]);
       if(isSceneInfoRequired()) {
         ubo.set(5,*scene.lightingBuf,Sampler2d::nearest());
@@ -188,7 +188,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
         }
       }
 
-    for(size_t lay=VisibilityGroup::V_Shadow0; lay<=VisibilityGroup::V_ShadowLast; ++lay) {
+    for(size_t lay=SceneGlobals::V_Shadow0; lay<=SceneGlobals::V_ShadowLast; ++lay) {
       auto& uboSh = v.ubo[i][lay];
       if(uboSh.isEmpty())
         continue;
@@ -206,14 +206,14 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
   }
 
 void ObjectsBucket::uboSetDynamic(Object& v, uint8_t fId) {
-  auto& ubo = v.ubo.ubo[fId][VisibilityGroup::V_Main];
+  auto& ubo = v.ubo.ubo[fId][SceneGlobals::V_Main];
 
   if(mat.frames.size()!=0) {
     auto frame = size_t((v.timeShift+scene.tickCount)/mat.texAniFPSInv);
     auto t = mat.frames[frame%mat.frames.size()];
     ubo.set(0,*t);
     if(pShadow!=nullptr && textureInShadowPass) {
-      for(size_t lay=VisibilityGroup::V_Shadow0; lay<=VisibilityGroup::V_ShadowLast; ++lay) {
+      for(size_t lay=SceneGlobals::V_Shadow0; lay<=SceneGlobals::V_ShadowLast; ++lay) {
         auto& uboSh = v.ubo.ubo[fId][lay];
         uboSh.set(0,*t);
         }
@@ -231,7 +231,7 @@ void ObjectsBucket::uboSetDynamic(Object& v, uint8_t fId) {
   if(v.storageAni!=size_t(-1)) {
     storage.ani.bind(ubo,3,fId,v.storageAni,boneCnt);
     if(pShadow!=nullptr) {
-      for(size_t lay=VisibilityGroup::V_Shadow0; lay<=VisibilityGroup::V_ShadowLast; ++lay) {
+      for(size_t lay=SceneGlobals::V_Shadow0; lay<=SceneGlobals::V_ShadowLast; ++lay) {
         auto& uboSh = v.ubo.ubo[fId][lay];
         storage.ani.bind(uboSh,3,fId,v.storageAni,boneCnt);
         }
@@ -246,7 +246,7 @@ void ObjectsBucket::setupUbo() {
     } else {
     for(auto& i:val) {
       i.ubo.invalidate();
-      if(!i.ubo.ubo[0][VisibilityGroup::V_Main].isEmpty())
+      if(!i.ubo.ubo[0][SceneGlobals::V_Main].isEmpty())
         uboSetCommon(i.ubo);
       }
     }
@@ -369,26 +369,26 @@ void ObjectsBucket::free(const size_t objId) {
     owner.resetIndex();
   }
 
-void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+void ObjectsBucket::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   if(pMain==nullptr)
     return;
-  drawCommon(cmd,fId,*pMain,VisibilityGroup::V_Main);
+  drawCommon(cmd,fId,*pMain,SceneGlobals::V_Main);
   }
 
-void ObjectsBucket::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
+void ObjectsBucket::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   if(pGbuffer==nullptr)
     return;
-  drawCommon(cmd,fId,*pGbuffer,VisibilityGroup::V_Main);
+  drawCommon(cmd,fId,*pGbuffer,SceneGlobals::V_Main);
   }
 
-void ObjectsBucket::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer) {
+void ObjectsBucket::drawShadow(Encoder<CommandBuffer>& cmd, uint8_t fId, int layer) {
   if(pShadow==nullptr)
     return;
-  drawCommon(cmd,fId,*pShadow,VisibilityGroup::VisCamera(VisibilityGroup::V_Shadow0+layer));
+  drawCommon(cmd,fId,*pShadow,SceneGlobals::VisCamera(SceneGlobals::V_Shadow0+layer));
   }
 
-void ObjectsBucket::drawCommon(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId,
-                               const Tempest::RenderPipeline& shader, VisibilityGroup::VisCamera c) {
+void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
+                               const RenderPipeline& shader, SceneGlobals::VisCamera c) {
   UboPush pushBlock = {};
   bool    sharedSet = false;
 
@@ -441,11 +441,11 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p,
   UboPush pushBlock = {};
   updatePushBlock(pushBlock,v);
 
-  auto& ubo = (useSharedUbo ? uboShared.ubo[fId] : v.ubo.ubo[fId])[VisibilityGroup::V_Main];
+  auto& ubo = (useSharedUbo ? uboShared.ubo[fId] : v.ubo.ubo[fId])[SceneGlobals::V_Main];
   if(!useSharedUbo) {
     ubo.set(0,*mat.tex);
     ubo.set(1,Resources::fallbackTexture(),Sampler2d::nearest());
-    ubo.set(2,scene.uboGlobalPf[fId][0]);
+    ubo.set(2,scene.uboGlobalPf[fId][SceneGlobals::V_Main]);
     ubo.set(4,uboMat[fId]);
     }
 

@@ -141,8 +141,7 @@ class ObjectsBucket final {
       };
 
     struct Descriptors final {
-      Tempest::Uniforms       ubo  [Resources::MaxFramesInFlight][VisibilityGroup::V_Count];
-      //Tempest::Uniforms       uboSh[Resources::MaxFramesInFlight][Resources::ShadowLayers];
+      Tempest::Uniforms       ubo       [Resources::MaxFramesInFlight][SceneGlobals::V_Count];
       bool                    uboIsReady[Resources::MaxFramesInFlight] = {};
 
       void                    invalidate();
@@ -182,7 +181,7 @@ class ObjectsBucket final {
     bool    isSceneInfoRequired() const;
     void    updatePushBlock(UboPush& push, Object& v);
 
-    void    drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const Tempest::RenderPipeline& shader, VisibilityGroup::VisCamera c);
+    void    drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c);
 
     const Bounds& bounds(size_t i) const;
 
