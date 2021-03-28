@@ -26,13 +26,13 @@ class SceneGlobals final {
     void setTime(uint64_t time);
     void commitUbo(uint8_t fId);
 
-    void setShadowMap(const Tempest::Texture2d& tex);
+    void setShadowMap(const Tempest::Texture2d* tex[]);
 
     const Tempest::Matrix4x4& viewProject() const;
 
     const RendererStorage&            storage;
     uint64_t                          tickCount = 0;
-    const Tempest::Texture2d*         shadowMap = &Resources::fallbackBlack();
+    const Tempest::Texture2d*         shadowMap[2] = {};
 
     const Tempest::Texture2d*         lightingBuf = &Resources::fallbackBlack();
     const Tempest::Texture2d*         gbufDiffuse = &Resources::fallbackBlack();

@@ -43,8 +43,7 @@ Renderer::Renderer(Tempest::Device &device,Tempest::Swapchain& swapchain,Gothic&
 
   Log::i("GPU = ",device.renderer());
   Log::i("Depth format = ",int(zBufferFormat)," Shadow format = ",int(shadowFormat));
-  uboShadowComp = stor.device.uniforms(stor.pComposeShadow.layout());
-  uboCopy       = stor.device.uniforms(stor.pCopy.layout());
+  uboCopy = stor.device.uniforms(stor.pCopy.layout());
   }
 
 void Renderer::resetSwapchain() {
@@ -53,9 +52,8 @@ void Renderer::resetSwapchain() {
   const uint32_t imgC   = swapchain.imageCount();
   const uint32_t smSize = 2048;
 
-  zbuffer        = device.zbuffer   (zBufferFormat,w,h);
-  zbufferItem    = device.zbuffer   (zBufferFormat,w,h);
-  shadowMapFinal = device.attachment(shadowFormat,smSize,smSize);
+  zbuffer        = device.zbuffer(zBufferFormat,w,h);
+  zbufferItem    = device.zbuffer(zBufferFormat,w,h);
   shadowPass     = device.pass(FboMode(FboMode::PreserveOut,Color(1.0)), FboMode(FboMode::Discard,1.f));
 
   for(int i=0; i<2; ++i){
@@ -82,23 +80,13 @@ void Renderer::resetSwapchain() {
     }
   fboGBuf     = device.frameBuffer(lightingBuf,gbufDiffuse,gbufNormal,gbufDepth,zbuffer);
   copyPass    = device.pass(FboMode::PreserveOut);
-  fboCompose  = device.frameBuffer(shadowMapFinal);
 
   if(auto wview=gothic.worldView()) {
-    wview->setFrameGlobals(Resources::fallbackBlack(),0,0);
+    wview->setFrameGlobals(nullptr,0,0);
     wview->setGbuffer(Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack());
     }
 
-  Sampler2d smp = Sampler2d::nearest();
-  smp.setFiltration(Filter::Linear);
-  smp.setClamping(ClampMode::ClampToBorder);
-  uboShadowComp.set(0,shadowMap[0],smp);
-  smp = Sampler2d::nearest();
-  smp.setClamping(ClampMode::ClampToBorder);
-  uboShadowComp.set(1,shadowMap[1],smp);
-
   uboCopy.set(0,lightingBuf,Sampler2d::nearest());
-
   gbufPass       = device.pass(FboMode(FboMode::PreserveOut,Color(0.0)),
                                FboMode(FboMode::PreserveOut),
                                FboMode(FboMode::PreserveOut),
@@ -116,9 +104,9 @@ void Renderer::onWorldChanged() {
 void Renderer::setCameraView(const Camera& camera) {
   view     = camera.view();
   viewProj = camera.viewProj();
-  if(auto wview=gothic.worldView()){
-    shadow[0] = camera.viewShadow(wview->mainLight().dir(),0);
-    shadow[1] = camera.viewShadow(wview->mainLight().dir(),1);
+  if(auto wview=gothic.worldView()) {
+    for(size_t i=0; i<Resources::ShadowLayers; ++i)
+      shadow[i] = camera.viewShadow(wview->mainLight().dir(),i);
     }
   }
 
@@ -139,20 +127,19 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
     return;
     }
 
-  wview->setModelView(viewProj,shadow,2);
-  wview->setFrameGlobals(textureCast(shadowMapFinal),gothic.world()->tickCount(),frameId);
+  wview->setModelView(viewProj,shadow,Resources::ShadowLayers);
+  const Texture2d* sh[Resources::ShadowLayers];
+  for(size_t i=0; i<Resources::ShadowLayers; ++i)
+    sh[i] = &textureCast(shadowMap[i]);
+  wview->setFrameGlobals(sh,gothic.world()->tickCount(),frameId);
   wview->setGbuffer(textureCast(lightingBuf),textureCast(gbufDiffuse),textureCast(gbufNormal),textureCast(gbufDepth));
 
-  wview->visibilityPass(viewProj,shadow,2);
+  wview->visibilityPass(viewProj,shadow,Resources::ShadowLayers);
   for(uint8_t i=2;i>0;) {
     --i;
     cmd.setFramebuffer(fboShadow[i],shadowPass);
     wview->drawShadow(cmd,frameId,i);
     }
-
-  cmd.setFramebuffer(fboCompose,copyPass);
-  cmd.setUniforms(stor.pComposeShadow,uboShadowComp);
-  cmd.draw(Resources::fsqVbo());
 
   cmd.setFramebuffer(fboGBuf,gbufPass);
   wview->drawGBuffer(cmd,frameId);

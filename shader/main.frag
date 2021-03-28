@@ -29,14 +29,14 @@ layout(location = 0) out vec4 outColor;
 #endif
 
 #if !defined(SHADOW_MAP)
-float implShadowVal(in vec2 uv, in float shPosZ, in int layer) {
-  float shMap = texture(textureSm,uv)[layer];
+float implShadowVal(in sampler2D shadowMap, in vec2 uv, in float shPosZ, in float shBias, in int layer) {
+  float shMap = texture(shadowMap,uv).r;
   float shZ   = min(0.99,shPosZ);
 
-  return step(shZ-0.001,shMap);
+  return step(shZ-shBias,shMap);
   }
 
-float shadowVal(in vec2 uv, in float shPosZ, in int layer) {
+float shadowVal(in sampler2D shadowMap, in vec2 uv, in float shPosZ, in float shBias, in int layer) {
   vec2 offset = fract(uv.xy * scene.shadowSize * 0.5);  // mod
   offset = vec2(offset.x>0.25,offset.y>0.25);
   // y ^= x in floating point
@@ -47,21 +47,22 @@ float shadowVal(in vec2 uv, in float shPosZ, in int layer) {
 
   float d1 = 0.5/scene.shadowSize;
   float d2 = 1.5/scene.shadowSize;
-  float ret = implShadowVal(uv+offset+vec2(-d2, d1),shPosZ,layer) +
-              implShadowVal(uv+offset+vec2( d1, d1),shPosZ,layer) +
-              implShadowVal(uv+offset+vec2(-d2, d2),shPosZ,layer) +
-              implShadowVal(uv+offset+vec2( d1,-d2),shPosZ,layer);
+  float ret = implShadowVal(shadowMap,uv+offset+vec2(-d2, d1),shPosZ,shBias,layer) +
+              implShadowVal(shadowMap,uv+offset+vec2( d1, d1),shPosZ,shBias,layer) +
+              implShadowVal(shadowMap,uv+offset+vec2(-d2, d2),shPosZ,shBias,layer) +
+              implShadowVal(shadowMap,uv+offset+vec2( d1,-d2),shPosZ,shBias,layer);
 
   return ret*0.25;
   }
 
 float calcShadow(vec3 shPos0, vec3 shPos1) {
+  float lay0 = shadowVal    (textureSm0, shPos0.xy*vec2(0.5,0.5)+vec2(0.5), shPos0.z, 0.0001, 0);
+  float lay1 = implShadowVal(textureSm1, shPos1.xy*vec2(0.5,0.5)+vec2(0.5), shPos1.z, 0.0001, 1);
+
   if(abs(shPos0.x)<0.99 && abs(shPos0.y)<0.99)
-    return shadowVal(shPos0.xy*vec2(0.5,0.5)+vec2(0.5),shPos0.z,0);
-
+    return lay0;
   if(abs(shPos1.x)<0.99 && abs(shPos1.y)<0.99)
-    return implShadowVal(shPos1.xy*vec2(0.5,0.5)+vec2(0.5),shPos1.z,1);
-
+    return lay1;
   return 1.0;
   }
 

@@ -174,17 +174,18 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
     auto& ubo = v.ubo[i][SceneGlobals::V_Main];
 
     if(!ubo.isEmpty()) {
-      ubo.set(0,t);
-      ubo.set(1,*scene.shadowMap,Resources::shadowSampler());
-      ubo.set(2,scene.uboGlobalPf[i][SceneGlobals::V_Main]);
-      ubo.set(4,uboMat[i]);
+      ubo.set(L_Diffuse, t);
+      ubo.set(L_Shadow0, *scene.shadowMap[0],Resources::shadowSampler());
+      ubo.set(L_Shadow1, *scene.shadowMap[1],Resources::shadowSampler());
+      ubo.set(L_Scene,   scene.uboGlobalPf[i][SceneGlobals::V_Main]);
+      ubo.set(L_Material,uboMat[i]);
       if(isSceneInfoRequired()) {
-        ubo.set(5,*scene.lightingBuf,Sampler2d::nearest());
-        ubo.set(6,*scene.gbufDepth,  Sampler2d::nearest());
+        ubo.set(L_GDiffuse, *scene.lightingBuf,Sampler2d::nearest());
+        ubo.set(L_GDepth,   *scene.gbufDepth,  Sampler2d::nearest());
         }
       if(morphAnim!=nullptr) {
-        ubo.set(7,(*morphAnim)[0].index);
-        ubo.set(8,(*morphAnim)[0].samples);
+        ubo.set(L_MorphId,(*morphAnim)[0].index);
+        ubo.set(L_Morph,  (*morphAnim)[0].samples);
         }
       }
 
@@ -194,12 +195,12 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
         continue;
 
       if(textureInShadowPass)
-        uboSh.set(0,t);
-      uboSh.set(2,scene.uboGlobalPf[i][lay]);
-      uboSh.set(4,uboMat[i]);
+        uboSh.set(L_Diffuse, t);
+      uboSh.set(L_Scene,    scene.uboGlobalPf[i][lay]);
+      uboSh.set(L_Material, uboMat[i]);
       if(morphAnim!=nullptr) {
-        uboSh.set(7,(*morphAnim)[0].index);
-        uboSh.set(8,(*morphAnim)[0].samples);
+        uboSh.set(L_MorphId, (*morphAnim)[0].index);
+        uboSh.set(L_Morph,   (*morphAnim)[0].samples);
         }
       }
     }
@@ -211,29 +212,29 @@ void ObjectsBucket::uboSetDynamic(Object& v, uint8_t fId) {
   if(mat.frames.size()!=0) {
     auto frame = size_t((v.timeShift+scene.tickCount)/mat.texAniFPSInv);
     auto t = mat.frames[frame%mat.frames.size()];
-    ubo.set(0,*t);
+    ubo.set(L_Diffuse, *t);
     if(pShadow!=nullptr && textureInShadowPass) {
       for(size_t lay=SceneGlobals::V_Shadow0; lay<=SceneGlobals::V_ShadowLast; ++lay) {
         auto& uboSh = v.ubo.ubo[fId][lay];
-        uboSh.set(0,*t);
+        uboSh.set(L_Diffuse, *t);
         }
       }
     }
 
   if(morphAnim!=nullptr) {
-    ubo.set(7,(*morphAnim)[v.morphAnimId].index);
-    ubo.set(8,(*morphAnim)[v.morphAnimId].samples);
+    ubo.set(L_MorphId, (*morphAnim)[v.morphAnimId].index);
+    ubo.set(L_Morph,   (*morphAnim)[v.morphAnimId].samples);
     }
 
   if(v.ubo.uboIsReady[fId])
     return;
   v.ubo.uboIsReady[fId] = true;
   if(v.storageAni!=size_t(-1)) {
-    storage.ani.bind(ubo,3,fId,v.storageAni,boneCnt);
+    storage.ani.bind(ubo,L_Skinning,fId,v.storageAni,boneCnt);
     if(pShadow!=nullptr) {
       for(size_t lay=SceneGlobals::V_Shadow0; lay<=SceneGlobals::V_ShadowLast; ++lay) {
         auto& uboSh = v.ubo.ubo[fId][lay];
-        storage.ani.bind(uboSh,3,fId,v.storageAni,boneCnt);
+        storage.ani.bind(uboSh,L_Skinning,fId,v.storageAni,boneCnt);
         }
       }
     }
@@ -443,10 +444,11 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p,
 
   auto& ubo = (useSharedUbo ? uboShared.ubo[fId] : v.ubo.ubo[fId])[SceneGlobals::V_Main];
   if(!useSharedUbo) {
-    ubo.set(0,*mat.tex);
-    ubo.set(1,Resources::fallbackTexture(),Sampler2d::nearest());
-    ubo.set(2,scene.uboGlobalPf[fId][SceneGlobals::V_Main]);
-    ubo.set(4,uboMat[fId]);
+    ubo.set(L_Diffuse,  *mat.tex);
+    ubo.set(L_Shadow0,  Resources::fallbackTexture(),Sampler2d::nearest());
+    ubo.set(L_Shadow1,  Resources::fallbackTexture(),Sampler2d::nearest());
+    ubo.set(L_Scene,    scene.uboGlobalPf[fId][SceneGlobals::V_Main]);
+    ubo.set(L_Material, uboMat[fId]);
     }
 
   p.setUniforms(*pMain,ubo,&pushBlock,sizeof(pushBlock));

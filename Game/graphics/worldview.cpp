@@ -43,8 +43,19 @@ void WorldView::setModelView(const Matrix4x4& viewProj, const Tempest::Matrix4x4
   sGlobal.setModelView(viewProj,shadow,shCount);
   }
 
-void WorldView::setFrameGlobals(const Texture2d& shadow, uint64_t tickCount, uint8_t fId) {
-  if(needToUpdateUbo || &shadow!=sGlobal.shadowMap) {
+void WorldView::setFrameGlobals(const Texture2d* shadow[], uint64_t tickCount, uint8_t fId) {
+  const Texture2d* shNull[Resources::ShadowLayers];
+  if(shadow==nullptr) {
+    for(size_t i=0; i<Resources::ShadowLayers; ++i)
+      shNull[i] = &Resources::fallbackBlack();
+    shadow = shNull;
+    }
+
+  for(size_t i=0; i<Resources::ShadowLayers; ++i)
+    if(sGlobal.shadowMap[i]!=shadow[i])
+      needToUpdateUbo = true;
+
+  if(needToUpdateUbo) {
     needToUpdateUbo = false;
     // wait before update all descriptors
     sGlobal.storage.device.waitIdle();

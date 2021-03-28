@@ -15,6 +15,9 @@ SceneGlobals::SceneGlobals(const RendererStorage& storage)
   for(auto& s:uboGlobal.shadowView)
     s.identity();
 
+  for(auto& i:shadowMap)
+    i = &Resources::fallbackBlack();
+
   sun.setDir(1,-1,1);
 
   for(uint8_t fId=0; fId<Resources::MaxFramesInFlight; ++fId)
@@ -57,9 +60,10 @@ void SceneGlobals::commitUbo(uint8_t fId) {
     }
   }
 
-void SceneGlobals::setShadowMap(const Tempest::Texture2d& tex) {
-  shadowMap            = &tex;
-  uboGlobal.shadowSize = float(tex.w());
+void SceneGlobals::setShadowMap(const Tempest::Texture2d* tex[]) {
+  for(size_t i=0; i<Resources::ShadowLayers; ++i)
+    shadowMap[i] = tex[i];
+  uboGlobal.shadowSize = float(tex[0]->w());
   }
 
 const Tempest::Matrix4x4& SceneGlobals::viewProject() const {

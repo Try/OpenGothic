@@ -122,6 +122,19 @@ class ObjectsBucket final {
     void                      draw       (size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId);
 
   private:
+    enum UboLinkpackage : uint8_t {
+      L_Diffuse  = 0,
+      L_Shadow0  = 1,
+      L_Shadow1  = 2,
+      L_Scene    = 3,
+      L_Skinning = 4,
+      L_Material = 5,
+      L_GDiffuse = 6,
+      L_GDepth   = 7,
+      L_MorphId  = 8,
+      L_Morph    = 9,
+      };
+
     struct ShLight final {
       Tempest::Vec3 pos;
       float         padding=0;
