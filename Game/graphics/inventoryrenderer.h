@@ -3,8 +3,6 @@
 #include <Tempest/Device>
 #include <Tempest/Matrix4x4>
 
-#include "graphics/dynamic/painter3d.h"
-
 #include "meshobjects.h"
 #include "sceneglobals.h"
 #include "visualobjects.h"

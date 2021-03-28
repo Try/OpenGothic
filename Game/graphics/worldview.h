@@ -18,7 +18,6 @@ class World;
 class RendererStorage;
 class ParticleFx;
 class PackedMesh;
-class Painter3d;
 
 class WorldView {
   public:
@@ -36,13 +35,15 @@ class WorldView {
     void setModelView   (const Tempest::Matrix4x4& viewProj, const Tempest::Matrix4x4* shadow, size_t shCount);
     void setFrameGlobals(const Tempest::Texture2d& shadow, uint64_t tickCount, uint8_t fId);
     void setGbuffer     (const Tempest::Texture2d& lightingBuf, const Tempest::Texture2d& diffuse, const Tempest::Texture2d& norm, const Tempest::Texture2d& depth);
+    void setupUbo();
 
     void dbgLights    (DbgPainter& p) const;
-    void drawShadow   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t frameId, uint8_t layer);
-    void drawGBuffer  (Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
-    void drawMain     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
-    void drawLights   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, Painter3d& painter, uint8_t frameId);
-    void setupUbo     ();
+
+    void visibilityPass(const Tempest::Matrix4x4& main, const Tempest::Matrix4x4* sh, size_t shCount);
+    void drawShadow    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, uint8_t layer);
+    void drawGBuffer   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void drawMain      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void drawLights    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
 
     MeshObjects::Mesh   addView      (const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
     MeshObjects::Mesh   addItmView   (const char* visual, int32_t material);

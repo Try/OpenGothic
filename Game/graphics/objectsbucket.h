@@ -13,10 +13,10 @@
 #include "skeletalstorage.h"
 #include "ubostorage.h"
 #include "graphics/mesh/protomesh.h"
+#include "graphics/dynamic/visibilitygroup.h"
 
 class RendererStorage;
 class Pose;
-class Painter3d;
 class VisualObjects;
 
 class ObjectsBucket final {
@@ -67,10 +67,9 @@ class ObjectsBucket final {
 
         bool   isEmpty() const { return owner==nullptr; }
 
-        void   setObjMatrix(const Tempest::Matrix4x4& mt);
-        void   setPose     (const Pose&                p);
-        void   setBounds   (const Bounds&           bbox);
-        void   setAsGhost  (bool g);
+        void   setObjMatrix (const Tempest::Matrix4x4& mt);
+        void   setPose      (const Pose&                p);
+        void   setAsGhost   (bool g);
 
         const Bounds& bounds() const;
 
@@ -116,11 +115,10 @@ class ObjectsBucket final {
     void                      invalidateUbo();
 
     void                      preFrameUpdate(uint8_t fId);
-    void                      visibilityPass(Painter3d& p);
-    void                      visibilityPassAnd(Painter3d& p);
-    void                      draw       (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
-    void                      drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId);
-    void                      drawShadow (Tempest::Encoder<Tempest::CommandBuffer>& painter, uint8_t fId, int layer=0);
+    void                      draw       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void                      drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void                      drawShadow (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer=0);
+
     void                      draw       (size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId);
 
   private:
@@ -143,9 +141,8 @@ class ObjectsBucket final {
       };
 
     struct Descriptors final {
-      Tempest::Uniforms       ubo  [Resources::MaxFramesInFlight];
-      Tempest::Uniforms       uboSh[Resources::MaxFramesInFlight][Resources::ShadowLayers];
-
+      Tempest::Uniforms       ubo  [Resources::MaxFramesInFlight][VisibilityGroup::V_Count];
+      //Tempest::Uniforms       uboSh[Resources::MaxFramesInFlight][Resources::ShadowLayers];
       bool                    uboIsReady[Resources::MaxFramesInFlight] = {};
 
       void                    invalidate();
@@ -160,8 +157,8 @@ class ObjectsBucket final {
       const Tempest::IndexBuffer<uint32_t>* ibo     = nullptr;
       size_t                                iboOffset = 0;
       size_t                                iboLength = 0;
-      Bounds                                bounds;
       Tempest::Matrix4x4                    pos;
+      VisibilityGroup::Token                visibility;
 
       Descriptors                           ubo;
       size_t                                storageAni = size_t(-1);
@@ -176,7 +173,7 @@ class ObjectsBucket final {
     void    uboSetCommon (Descriptors& v);
     void    uboSetDynamic(Object& v, uint8_t fId);
 
-    bool    groupVisibility(Painter3d& p);
+    bool    groupVisibility(const Frustrum& f);
 
     void    setObjMatrix(size_t i,const Tempest::Matrix4x4& m);
     void    setPose     (size_t i,const Pose& sk);
@@ -185,7 +182,7 @@ class ObjectsBucket final {
     bool    isSceneInfoRequired() const;
     void    updatePushBlock(UboPush& push, Object& v);
 
-    void    draw(Tempest::Encoder<Tempest::CommandBuffer>& p, Object& v, uint8_t fId);
+    void    drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const Tempest::RenderPipeline& shader, VisibilityGroup::VisCamera c);
 
     const Bounds& bounds(size_t i) const;
 
@@ -196,8 +193,6 @@ class ObjectsBucket final {
     size_t                    valSz=0;
     size_t                    boneCnt=0;
     size_t                    valLast=0;
-    Object*                   index[CAPACITY] = {};
-    size_t                    indexSz=0;
     size_t                    polySz=0;
     size_t                    polyAvg=0;
 

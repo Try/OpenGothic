@@ -3,7 +3,6 @@
 #include <Tempest/Application>
 
 #include "graphics/mesh/submesh/packedmesh.h"
-#include "graphics/dynamic/painter3d.h"
 #include "game/globaleffects.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
@@ -82,19 +81,23 @@ void WorldView::dbgLights(DbgPainter& p) const {
   sGlobal.lights.dbgLights(p);
   }
 
-void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId, uint8_t layer) {
-  visuals.drawShadow(cmd,painter,fId,layer);
+void WorldView::visibilityPass(const Matrix4x4& main, const Matrix4x4* sh, size_t shCount) {
+  visuals.visibilityPass(main,sh,shCount);
   }
 
-void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId) {
-  visuals.drawGBuffer(cmd,painter,fId);
+void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId, uint8_t layer) {
+  visuals.drawShadow(cmd,fId,layer);
   }
 
-void WorldView::drawMain(Tempest::Encoder<CommandBuffer>& cmd, Painter3d& painter, uint8_t fId) {
-  visuals.draw(cmd,painter,fId);
+void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
+  visuals.drawGBuffer(cmd,fId);
   }
 
-void WorldView::drawLights(Tempest::Encoder<CommandBuffer>& cmd, Painter3d&, uint8_t fId) {
+void WorldView::drawMain(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
+  visuals.draw(cmd,fId);
+  }
+
+void WorldView::drawLights(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   sGlobal.lights.draw(cmd,fId);
   }
 

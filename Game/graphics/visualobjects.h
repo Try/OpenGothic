@@ -20,9 +20,10 @@ class VisualObjects final {
 
     void setupUbo();
     void preFrameUpdate(uint8_t fId);
-    void draw          (Tempest::Encoder<Tempest::CommandBuffer>& enc, Painter3d& painter, uint8_t fId);
-    void drawGBuffer   (Tempest::Encoder<Tempest::CommandBuffer>& enc, Painter3d& painter, uint8_t fId);
-    void drawShadow    (Tempest::Encoder<Tempest::CommandBuffer>& enc, Painter3d& painter, uint8_t fId, int layer=0);
+    void visibilityPass(const Tempest::Matrix4x4& main, const Tempest::Matrix4x4* sh, size_t shCount);
+    void draw          (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
+    void drawGBuffer   (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
+    void drawShadow    (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer=0);
 
     void setWorld   (const World& world);
     void setDayNight(float dayF);
@@ -35,6 +36,7 @@ class VisualObjects final {
     void                            commitUbo(uint8_t fId);
 
     const SceneGlobals&             globals;
+    VisibilityGroup                 visGroup;
 
     ObjectsBucket::Storage          uboStatic;
     ObjectsBucket::Storage          uboDyn;
@@ -45,6 +47,7 @@ class VisualObjects final {
 
     Sky                             sky;
 
+  friend class ObjectsBucket;
   friend class ObjectsBucket::Item;
   };
 

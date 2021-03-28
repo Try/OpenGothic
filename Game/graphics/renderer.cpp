@@ -139,33 +139,32 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
     return;
     }
 
-  Painter3d painter(cmd);
   wview->setModelView(viewProj,shadow,2);
   wview->setFrameGlobals(textureCast(shadowMapFinal),gothic.world()->tickCount(),frameId);
   wview->setGbuffer(textureCast(lightingBuf),textureCast(gbufDiffuse),textureCast(gbufNormal),textureCast(gbufDepth));
 
+  wview->visibilityPass(viewProj,shadow,2);
+
   for(uint8_t i=2;i>0;) {
     --i;
     cmd.setFramebuffer(fboShadow[i],shadowPass);
-    painter.setFrustrum(shadow[i]);
-    wview->drawShadow(cmd,painter,frameId,i);
+    wview->drawShadow(cmd,frameId,i);
     }
 
   cmd.setFramebuffer(fboCompose,copyPass);
   cmd.setUniforms(stor.pComposeShadow,uboShadowComp);
   cmd.draw(Resources::fsqVbo());
 
-  painter.setFrustrum(viewProj);
   cmd.setFramebuffer(fboGBuf,gbufPass);
-  wview->drawGBuffer(cmd,painter,frameId);
+  wview->drawGBuffer(cmd,frameId);
 
   cmd.setFramebuffer(fboCpy,copyPass);
   cmd.setUniforms(stor.pCopy,uboCopy);
   cmd.draw(Resources::fsqVbo());
 
   cmd.setFramebuffer(fbo,mainPass);
-  wview->drawLights (cmd,painter,frameId);
-  wview->drawMain   (cmd,painter,frameId);
+  wview->drawLights (cmd,frameId);
+  wview->drawMain   (cmd,frameId);
   }
 
 void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, InventoryMenu &inventory) {

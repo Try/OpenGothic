@@ -15,7 +15,6 @@ class SceneGlobals;
 class RendererStorage;
 class ParticleFx;
 class PfxBucket;
-class Painter3d;
 class WorldView;
 
 class PfxObjects final {

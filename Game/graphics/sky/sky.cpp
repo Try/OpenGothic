@@ -6,7 +6,6 @@
 #include <cctype>
 
 #include "graphics/rendererstorage.h"
-#include "graphics/dynamic/painter3d.h"
 #include "world/world.h"
 #include "utils/versioninfo.h"
 #include "resources.h"

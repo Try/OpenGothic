@@ -2,7 +2,6 @@
 
 #include <Tempest/Log>
 
-#include "graphics/dynamic/painter3d.h"
 #include "graphics/mesh/pose.h"
 #include "graphics/mesh/skeleton.h"
 #include "sceneglobals.h"
@@ -21,10 +20,6 @@ void ObjectsBucket::Item::setPose(const Pose &p) {
   owner->setPose(id,p);
   }
 
-void ObjectsBucket::Item::setBounds(const Bounds& bbox) {
-  owner->setBounds(id,bbox);
-  }
-
 void ObjectsBucket::Item::setAsGhost(bool g) {
   if(owner->mat.isGhost==g)
     return;
@@ -39,19 +34,19 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
     case NoVbo:
       break;
     case VboVertex:{
-      idNext = bucket.alloc(*v.vbo,*v.ibo,v.iboOffset,v.iboLength,v.bounds);
+      idNext = bucket.alloc(*v.vbo,*v.ibo,v.iboOffset,v.iboLength,v.visibility.bounds());
       break;
       }
     case VboVertexA:{
-      idNext = bucket.alloc(*v.vboA,*v.ibo,v.iboOffset,v.iboLength,v.bounds);
+      idNext = bucket.alloc(*v.vboA,*v.ibo,v.iboOffset,v.iboLength,v.visibility.bounds());
       break;
       }
     case VboMorph:{
-      idNext = bucket.alloc(v.vboM,v.bounds);
+      idNext = bucket.alloc(v.vboM,v.visibility.bounds());
       break;
       }
     case VboMorpthGpu:{
-      idNext = bucket.alloc(*v.vbo,*v.ibo,v.iboOffset,v.iboLength,v.bounds);
+      idNext = bucket.alloc(*v.vbo,*v.ibo,v.iboOffset,v.iboLength,v.visibility.bounds());
       break;
       }
     }
@@ -88,12 +83,13 @@ void ObjectsBucket::Descriptors::invalidate() {
   }
 
 void ObjectsBucket::Descriptors::alloc(ObjectsBucket& owner) {
+  auto& device = owner.scene.storage.device;
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
     if(owner.pMain!=nullptr)
-      ubo[i] = owner.scene.storage.device.uniforms(owner.pMain->layout());
+      ubo[i][VisibilityGroup::V_Main] = device.uniforms(owner.pMain->layout());
     if(owner.pShadow!=nullptr) {
-      for(size_t lay=0;lay<Resources::ShadowLayers;++lay)
-        uboSh[i][lay] = owner.scene.storage.device.uniforms(owner.pShadow->layout());
+      for(size_t lay=VisibilityGroup::V_Shadow0; lay<=VisibilityGroup::V_ShadowLast; ++lay)
+        ubo[i][lay] = device.uniforms(owner.pShadow->layout());
       }
     }
   }
@@ -154,16 +150,17 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
     owner.resetIndex();
 
   ++valSz;
-  v->vboType   = type;
-  v->vbo       = nullptr;
-  v->vboA      = nullptr;
-  v->ibo       = nullptr;
-  v->bounds    = bounds;
-  v->timeShift = uint64_t(0-scene.tickCount);
+  v->vboType    = type;
+  v->vbo        = nullptr;
+  v->vboA       = nullptr;
+  v->ibo        = nullptr;
+  v->timeShift  = uint64_t(0-scene.tickCount);
+  v->visibility = owner.visGroup.get();
+  v->visibility.setBounds(bounds);
 
   if(!useSharedUbo) {
     v->ubo.invalidate();
-    if(v->ubo.ubo[0].isEmpty()) {
+    if(v->ubo.ubo[0][VisibilityGroup::V_Main].isEmpty()) {
       v->ubo.alloc(*this);
       uboSetCommon(v->ubo);
       }
@@ -174,7 +171,7 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
 void ObjectsBucket::uboSetCommon(Descriptors& v) {
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
     auto& t   = *mat.tex;
-    auto& ubo = v.ubo[i];
+    auto& ubo = v.ubo[i][VisibilityGroup::V_Main];
 
     if(!ubo.isEmpty()) {
       ubo.set(0,t);
@@ -191,8 +188,8 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
         }
       }
 
-    for(size_t lay=0;lay<Resources::ShadowLayers;++lay) {
-      auto& uboSh = v.uboSh[i][lay];
+    for(size_t lay=VisibilityGroup::V_Shadow0; lay<=VisibilityGroup::V_ShadowLast; ++lay) {
+      auto& uboSh = v.ubo[i][lay];
       if(uboSh.isEmpty())
         continue;
 
@@ -209,15 +206,15 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
   }
 
 void ObjectsBucket::uboSetDynamic(Object& v, uint8_t fId) {
-  auto& ubo = v.ubo.ubo[fId];
+  auto& ubo = v.ubo.ubo[fId][VisibilityGroup::V_Main];
 
   if(mat.frames.size()!=0) {
     auto frame = size_t((v.timeShift+scene.tickCount)/mat.texAniFPSInv);
     auto t = mat.frames[frame%mat.frames.size()];
     ubo.set(0,*t);
     if(pShadow!=nullptr && textureInShadowPass) {
-      for(size_t lay=0;lay<Resources::ShadowLayers;++lay) {
-        auto& uboSh = v.ubo.uboSh[fId][lay];
+      for(size_t lay=VisibilityGroup::V_Shadow0; lay<=VisibilityGroup::V_ShadowLast; ++lay) {
+        auto& uboSh = v.ubo.ubo[fId][lay];
         uboSh.set(0,*t);
         }
       }
@@ -234,8 +231,8 @@ void ObjectsBucket::uboSetDynamic(Object& v, uint8_t fId) {
   if(v.storageAni!=size_t(-1)) {
     storage.ani.bind(ubo,3,fId,v.storageAni,boneCnt);
     if(pShadow!=nullptr) {
-      for(size_t lay=0;lay<Resources::ShadowLayers;++lay) {
-        auto& uboSh = v.ubo.uboSh[fId][lay];
+      for(size_t lay=VisibilityGroup::V_Shadow0; lay<=VisibilityGroup::V_ShadowLast; ++lay) {
+        auto& uboSh = v.ubo.ubo[fId][lay];
         storage.ani.bind(uboSh,3,fId,v.storageAni,boneCnt);
         }
       }
@@ -249,7 +246,7 @@ void ObjectsBucket::setupUbo() {
     } else {
     for(auto& i:val) {
       i.ubo.invalidate();
-      if(!i.ubo.ubo[0].isEmpty())
+      if(!i.ubo.ubo[0][VisibilityGroup::V_Main].isEmpty())
         uboSetCommon(i.ubo);
       }
     }
@@ -275,7 +272,7 @@ void ObjectsBucket::preFrameUpdate(uint8_t fId) {
     uboMat[fId].update(&ubo,0,1);
   }
 
-bool ObjectsBucket::groupVisibility(Painter3d& p) {
+bool ObjectsBucket::groupVisibility(const Frustrum& f) {
   if(shaderType!=Static)
     return true;
 
@@ -285,7 +282,7 @@ bool ObjectsBucket::groupVisibility(Painter3d& p) {
     for(size_t i=0;i<CAPACITY;++i) {
       if(!val[i].isValid())
         continue;
-      auto& b = val[i].bounds;
+      auto& b = val[i].visibility.bounds();
       if(fisrt) {
         bbox[0] = b.bboxTr[0];
         bbox[1] = b.bboxTr[1];
@@ -301,52 +298,7 @@ bool ObjectsBucket::groupVisibility(Painter3d& p) {
       }
     allBounds.assign(bbox);
     }
-  return p.isVisible(allBounds);
-  }
-
-void ObjectsBucket::visibilityPass(Painter3d& p) {
-  indexSz = 0;
-  if(!groupVisibility(p))
-    return;
-
-  Object** idx = index;
-  for(size_t i=0; i<valLast; ++i) {
-    auto& v = val[i];
-    if(!v.isValid())
-      continue;
-    if(v.vboType==VboType::VboMorph) {
-      bool hasData = false;
-      for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i)
-        hasData |= v.vboM[i]->size()>0;
-      if(!hasData)
-        continue;
-      } else {
-      if(!p.isVisible(v.bounds))
-        continue;
-      }
-    idx[indexSz] = &v;
-    ++indexSz;
-    }
-  }
-
-void ObjectsBucket::visibilityPassAnd(Painter3d& p) {
-  size_t nextSz = 0;
-  for(size_t i=0; i<indexSz; ++i) {
-    auto& v = *index[i];
-    if(v.vboType==VboType::VboMorph) {
-      bool hasData = false;
-      for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i)
-        hasData |= v.vboM[i]->size()>0;
-      if(!hasData)
-        continue;
-      } else {
-      if(!p.isVisible(v.bounds))
-        continue;
-      }
-    index[nextSz] = &v;
-    ++nextSz;
-    }
-  indexSz = nextSz;
+  return f.testPoint(allBounds.midTr,allBounds.r);
   }
 
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
@@ -389,6 +341,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* 
 
 void ObjectsBucket::free(const size_t objId) {
   auto& v = val[objId];
+  v.visibility = VisibilityGroup::Token();
   if(v.storageAni!=size_t(-1))
     storage.ani.free(v.storageAni,boneCnt);
   if(v.ibo!=nullptr)
@@ -416,72 +369,65 @@ void ObjectsBucket::free(const size_t objId) {
     owner.resetIndex();
   }
 
-void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) {
-  if(pMain==nullptr || indexSz==0)
+void ObjectsBucket::draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  if(pMain==nullptr)
     return;
-
-  if(useSharedUbo)
-    p.setUniforms(*pMain,uboShared.ubo[fId]);
-
-  UboPush pushBlock;
-  Object** idx = index;
-  for(size_t i=0;i<indexSz;++i) {
-    auto& v = *idx[i];
-
-    updatePushBlock(pushBlock,v);
-    p.setUniforms(*pMain,&pushBlock,sizeof(pushBlock));
-    if(!useSharedUbo) {
-      uboSetDynamic(v,fId);
-      p.setUniforms(*pMain,v.ubo.ubo[fId]);
-      }
-
-    draw(p,v,fId);
-    }
+  drawCommon(cmd,fId,*pMain,VisibilityGroup::V_Main);
   }
 
-void ObjectsBucket::drawGBuffer(Tempest::Encoder<CommandBuffer>& p, uint8_t fId) {
-  if(pGbuffer==nullptr || indexSz==0)
+void ObjectsBucket::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
+  if(pGbuffer==nullptr)
     return;
-
-  if(useSharedUbo)
-    p.setUniforms(*pGbuffer,uboShared.ubo[fId]);
-
-  UboPush pushBlock;
-  Object** idx = index;
-  for(size_t i=0;i<indexSz;++i) {
-    auto& v = *idx[i];
-
-    updatePushBlock(pushBlock,v);
-    p.setUniforms(*pGbuffer,&pushBlock,sizeof(pushBlock));
-    if(!useSharedUbo) {
-      uboSetDynamic(v,fId);
-      p.setUniforms(*pGbuffer,v.ubo.ubo[fId]);
-      }
-
-    draw(p,v,fId);
-    }
+  drawCommon(cmd,fId,*pGbuffer,VisibilityGroup::V_Main);
   }
 
-void ObjectsBucket::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId, int layer) {
-  if(pShadow==nullptr || indexSz==0)
+void ObjectsBucket::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer) {
+  if(pShadow==nullptr)
     return;
+  drawCommon(cmd,fId,*pShadow,VisibilityGroup::VisCamera(VisibilityGroup::V_Shadow0+layer));
+  }
 
+void ObjectsBucket::drawCommon(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId,
+                               const Tempest::RenderPipeline& shader, VisibilityGroup::VisCamera c) {
   UboPush pushBlock = {};
-  if(useSharedUbo)
-    p.setUniforms(*pShadow,uboShared.uboSh[fId][layer]);
+  bool    sharedSet = false;
 
-  Object** idx = index;
-  for(size_t i=0;i<indexSz;++i) {
-    auto& v = *idx[i];
+  for(size_t i=0; i<valLast; ++i) {
+    auto& v = val[i];
+    if(v.vboType==NoVbo)
+      continue;
+    if(v.vboType!=VboMorph && !v.visibility.isVisible(c))
+      continue;
 
     updatePushBlock(pushBlock,v);
     if(!useSharedUbo) {
       uboSetDynamic(v,fId);
-      p.setUniforms(*pShadow, v.ubo.uboSh[fId][layer]);
+      cmd.setUniforms(shader, v.ubo.ubo[fId][c], &pushBlock, sizeof(pushBlock));
+      }
+    else if(!sharedSet) {
+      sharedSet = true;
+      cmd.setUniforms(shader, uboShared.ubo[fId][c], &pushBlock, sizeof(pushBlock));
+      }
+    else {
+      cmd.setUniforms(shader, &pushBlock, sizeof(pushBlock));
       }
 
-    p.setUniforms(*pShadow,&pushBlock,sizeof(pushBlock));
-    draw(p,v,fId);
+    switch(v.vboType) {
+      case VboType::NoVbo:
+        break;
+      case VboType::VboVertex:
+        cmd.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength);
+        break;
+      case VboType::VboVertexA:
+        cmd.draw(*v.vboA,*v.ibo, v.iboOffset, v.iboLength);
+        break;
+      case VboType::VboMorph:
+        cmd.draw(*v.vboM[fId]);
+        break;
+      case VboType::VboMorpthGpu:
+        cmd.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength);
+        break;
+      }
     }
   }
 
@@ -495,7 +441,7 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p,
   UboPush pushBlock = {};
   updatePushBlock(pushBlock,v);
 
-  auto& ubo = useSharedUbo ? uboShared.ubo[fId] : v.ubo.ubo[fId];
+  auto& ubo = (useSharedUbo ? uboShared.ubo[fId] : v.ubo.ubo[fId])[VisibilityGroup::V_Main];
   if(!useSharedUbo) {
     ubo.set(0,*mat.tex);
     ubo.set(1,Resources::fallbackTexture(),Sampler2d::nearest());
@@ -503,14 +449,28 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p,
     ubo.set(4,uboMat[fId]);
     }
 
-  p.setUniforms(*pMain,ubo);
-  p.setUniforms(*pMain,&pushBlock,sizeof(pushBlock));
-  draw(p,v,fId);
+  p.setUniforms(*pMain,ubo,&pushBlock,sizeof(pushBlock));
+  switch(v.vboType) {
+    case VboType::NoVbo:
+      break;
+    case VboType::VboVertex:
+      p.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength);
+      break;
+    case VboType::VboVertexA:
+      p.draw(*v.vboA,*v.ibo, v.iboOffset, v.iboLength);
+      break;
+    case VboType::VboMorph:
+      p.draw(*v.vboM[fId]);
+      break;
+    case VboType::VboMorpthGpu:
+      p.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength);
+      break;
+    }
   }
 
 void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
   auto& v = val[i];
-  v.bounds.setObjMatrix(m);
+  v.visibility.setObjMatrix(m);
   v.pos = m;
 
   if(shaderType==Static)
@@ -528,7 +488,7 @@ void ObjectsBucket::setPose(size_t i, const Pose& p) {
   }
 
 void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
-  val[i].bounds = b;
+  val[i].visibility.setBounds(b);
   }
 
 bool ObjectsBucket::isSceneInfoRequired() const {
@@ -548,27 +508,8 @@ void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket:
     }
   }
 
-void ObjectsBucket::draw(Tempest::Encoder<CommandBuffer>& p, ObjectsBucket::Object& v, uint8_t fId) {
-  switch(v.vboType) {
-    case VboType::NoVbo:
-      break;
-    case VboType::VboVertex:
-      p.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength);
-      break;
-    case VboType::VboVertexA:
-      p.draw(*v.vboA,*v.ibo, v.iboOffset, v.iboLength);
-      break;
-    case VboType::VboMorph:
-      p.draw(*v.vboM[fId]);
-      break;
-    case VboType::VboMorpthGpu:
-      p.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength);
-      break;
-    }
-  }
-
 const Bounds& ObjectsBucket::bounds(size_t i) const {
-  return val[i].bounds;
+  return val[i].visibility.bounds();
   }
 
 bool ObjectsBucket::Storage::commitUbo(Device& device, uint8_t fId) {

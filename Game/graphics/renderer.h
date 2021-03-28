@@ -9,7 +9,6 @@
 #include <Tempest/UniformBuffer>
 #include <Tempest/VectorImage>
 
-#include "graphics/dynamic/painter3d.h"
 #include "worldview.h"
 #include "rendererstorage.h"
 

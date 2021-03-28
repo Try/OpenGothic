@@ -5,7 +5,6 @@
 #include <cassert>
 
 #include "graphics/mesh/submesh/pfxemittermesh.h"
-#include "graphics/dynamic/painter3d.h"
 #include "graphics/mesh/pose.h"
 #include "graphics/mesh/skeleton.h"
 #include "graphics/sceneglobals.h"
