@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.Try.OpenGothic</id>
+  <name>OpenGothic</name>
+  <summary>Open source reimplementation of Gothic 2 Notr</summary>
+  <description>
+    <p>Open source remake of Gothic 2: Night of the raven. Motivation: The original Gothic 1 and Gothic 2 are still great games, but it not easy to make them work on modern systems. The goal of this project is to make a feature complete Gothic client compatible with the game and mods.</p>
+    <p>Core gameplay is done, you can complete the first chapter, as well as all addon content for any guild.</p>
+	<p>Note: OpenGothic does not currently have any sort of GUI launcher, and as such needs to be launched from a terminal. See the GitHub page for instructions on how to do this.</p>
+  </description>
+  <categories>
+    <category>Game</category>
+    <category>AdventureGame</category>
+    <category>RolePlaying</category>
+  </categories>
+  <content_rating type="oars-1.1">
+    <content_attribute id="violence-realistic">intense</content_attribute>
+    <content_attribute id="violence-bloodshed">mild</content_attribute>
+    <content_attribute id="violence-desecration">intense</content_attribute>
+    <content_attribute id="violence-slavery">moderate</content_attribute>
+    <content_attribute id="drugs-alcohol">moderate</content_attribute>
+    <content_attribute id="drugs-narcotics">moderate</content_attribute>
+    <content_attribute id="drugs-tobacco">moderate</content_attribute>
+    <content_attribute id="sex-nudity">mild</content_attribute>
+    <content_attribute id="sex-themes">intense</content_attribute>
+    <content_attribute id="language-profanity">intense</content_attribute>
+    <content_attribute id="language-humor">moderate</content_attribute>
+    <content_attribute id="language-discrimination">intense</content_attribute>
+  </content_rating>
+  <url type="homepage">https://github.com/Try/OpenGothic</url>
+  <url type="bugtracker">https://github.com/Try/OpenGothic/issues</url>
+  <project_license>MIT</project_license>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Screenshot of the game</caption>
+      <image>https://raw.githubusercontent.com/Try/OpenGothic/master/scr0.png</image>
+    </screenshot>
+  </screenshots>
+  <metadata_license>CC-BY-SA-3.0</metadata_license>
+  <releases>
+    <release version="0.31" date="2020-10-04"/>
+    <release version="0.30" date="2020-08-29"/>
+    <release version="0.29" date="2020-08-27"/>
+    <release version="0.28" date="2020-07-25"/>
+    <release version="0.27" date="2020-05-14"/>
+    <release version="0.26" date="2020-05-13"/>
+    <release version="0.25" date="2020-03-15"/>
+    <release version="0.24" date="2020-03-15"/>
+    <release version="0.23" date="2020-02-09"/>
+    <release version="0.22" date="2020-02-09"/>
+    <release version="0.21" date="2019-12-31"/>
+    <release version="0.20" date="2019-12-31"/>
+    <release version="0.19" date="2019-12-31"/>
+    <release version="0.18" date="2019-12-30"/>
+    <release version="0.17" date="2019-12-14"/>
+    <release version="0.16" date="2019-12-14"/>
+    <release version="0.15" date="2019-12-14"/>
+    <release version="0.14" date="2019-12-14"/>
+    <release version="0.13" date="2019-10-15"/>
+    <release version="0.12" date="2019-10-12"/>
+    <release version="0.11" date="2019-10-12"/>
+    <release version="0.10" date="2019-08-31"/>
+    <release version="0.9" date="2019-08-31"/>
+    <release version="0.8" date="2019-08-11"/>
+    <release version="0.7" date="2019-08-11"/>
+    <release version="0.6" date="2019-07-17"/>
+    <release version="0.5" date="2019-07-17"/>
+    <release version="0.4" date="2019-07-17"/>
+    <release version="0.3" date="2019-07-17"/>
+    <release version="0.2" date="2019-07-17"/>
+    <release version="0.1" date="2019-07-16"/>
+  </releases>
+  <custom>
+    <value key="Purism::form_factor">workstation</value>
+  </custom>
+</component>
