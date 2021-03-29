@@ -8,6 +8,8 @@
 
 #include "resources.h"
 
+class Pose;
+
 class SkeletalStorage {
   struct Ubo96 {
     Tempest::Matrix4x4 mat[Resources::MAX_NUM_SKELETAL_NODES];
@@ -15,6 +17,23 @@ class SkeletalStorage {
   public:
     SkeletalStorage(Tempest::Device& device);
     ~SkeletalStorage();
+
+    class AnimationId final {
+      public:
+        AnimationId() = default;
+        AnimationId(SkeletalStorage& owner, size_t id, size_t boneCnt);
+        AnimationId(AnimationId&& other);
+        AnimationId& operator = (AnimationId&& other);
+        ~AnimationId();
+
+        void   setPose(const Pose& p);
+        void   bind(Tempest::Uniforms& desc, uint8_t bind, uint8_t fId) const;
+
+      private:
+        SkeletalStorage* owner   = nullptr;
+        size_t           id      = 0;
+        size_t           boneCnt = 0;
+      };
 
     bool                     commitUbo(Tempest::Device &device, uint8_t fId);
     size_t                   alloc(size_t bonesCount);

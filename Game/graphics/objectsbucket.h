@@ -14,6 +14,7 @@
 #include "ubostorage.h"
 #include "graphics/mesh/protomesh.h"
 #include "graphics/dynamic/visibilitygroup.h"
+#include "graphics/skeletalstorage.h"
 
 class RendererStorage;
 class Pose;
@@ -68,7 +69,6 @@ class ObjectsBucket final {
         bool   isEmpty() const { return owner==nullptr; }
 
         void   setObjMatrix (const Tempest::Matrix4x4& mt);
-        void   setPose      (const Pose&                p);
         void   setAsGhost   (bool g);
 
         const Bounds& bounds() const;
@@ -82,19 +82,17 @@ class ObjectsBucket final {
 
     class Storage final {
       public:
-        Storage(Tempest::Device& device):ani(device){}
-        SkeletalStorage         ani;
+        Storage(Tempest::Device&) {}
         UboStorage<UboMaterial> mat;
         bool                    commitUbo(Tempest::Device &device, uint8_t fId);
       };
 
-    ObjectsBucket(const Material& mat, const std::vector<ProtoMesh::Animation>& anim, size_t boneCount, VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type);
+    ObjectsBucket(const Material& mat, const std::vector<ProtoMesh::Animation>& anim, VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type);
     ~ObjectsBucket();
 
     const Material&           material()  const;
     Type                      type()      const { return shaderType; }
     size_t                    size()      const { return valSz;      }
-    size_t                    boneCount() const { return boneCnt;    }
     const std::vector<ProtoMesh::Animation>* morph() const { return morphAnim;  }
 
     size_t                    avgPoligons() const { return polySz; }
@@ -106,6 +104,7 @@ class ObjectsBucket final {
     size_t                    alloc(const Tempest::VertexBuffer<VertexA> &vbo,
                                     const Tempest::IndexBuffer<uint32_t> &ibo,
                                     size_t iboOffset, size_t iboLen,
+                                    const SkeletalStorage::AnimationId& anim,
                                     const Bounds& bounds);
     size_t                    alloc(const Tempest::VertexBuffer<Vertex>* vbo[],
                                     const Bounds& bounds);
@@ -173,9 +172,9 @@ class ObjectsBucket final {
       VisibilityGroup::Token                visibility;
 
       Descriptors                           ubo;
-      size_t                                storageAni = size_t(-1);
       uint64_t                              timeShift=0;
 
+      const SkeletalStorage::AnimationId*   skiningAni  = nullptr;
       size_t                                morphAnimId = 0;
 
       bool                                  isValid() const { return vboType!=VboType::NoVbo; }
@@ -188,7 +187,6 @@ class ObjectsBucket final {
     bool    groupVisibility(const Frustrum& f);
 
     void    setObjMatrix(size_t i,const Tempest::Matrix4x4& m);
-    void    setPose     (size_t i,const Pose& sk);
     void    setBounds   (size_t i,const Bounds& b);
 
     bool    isSceneInfoRequired() const;
@@ -203,7 +201,6 @@ class ObjectsBucket final {
 
     Object                    val  [CAPACITY];
     size_t                    valSz=0;
-    size_t                    boneCnt=0;
     size_t                    valLast=0;
     size_t                    polySz=0;
     size_t                    polyAvg=0;

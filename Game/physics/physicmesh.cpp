@@ -26,20 +26,16 @@ PhysicMesh::PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner, bool movable
   }
 
 void PhysicMesh::setObjMatrix(const Tempest::Matrix4x4& mt) {
-  if(binder!=nullptr){
-    for(size_t i=0;i<binder->bind.size();++i){
-      auto id=binder->bind[i];
-      if(id>=skeleton->tr.size())
-        continue;
-      auto subI = ani->submeshId[i].id;
-      auto mat=mt;
-      mat.translate(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
+  const size_t binds = (binder==nullptr ? 0 : binder->bind.size());
+  for(size_t i=0; i<binds && i<sub.size(); ++i) {
+    auto id  = binder->bind[i];
+    auto mat=mt;
+    if(id<skeleton->tr.size())
       mat.mul(skeleton->tr[id]);
-      sub[subI].setObjMatrix(mat);
-      }
-    } else {
-    for(auto& i:sub)
-      i.setObjMatrix(mt);
+    sub[i].setObjMatrix(mat);
+    }
+  for(size_t i=binds; i<sub.size(); ++i) {
+    sub[i].setObjMatrix(mt);
     }
   }
 

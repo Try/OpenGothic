@@ -135,8 +135,7 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
   wview->setGbuffer(textureCast(lightingBuf),textureCast(gbufDiffuse),textureCast(gbufNormal),textureCast(gbufDepth));
 
   wview->visibilityPass(viewProj,shadow,Resources::ShadowLayers);
-  for(uint8_t i=2;i>0;) {
-    --i;
+  for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
     cmd.setFramebuffer(fboShadow[i],shadowPass);
     wview->drawShadow(cmd,frameId,i);
     }

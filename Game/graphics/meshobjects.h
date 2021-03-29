@@ -50,6 +50,7 @@ class MeshObjects final {
         Mesh(MeshObjects& owner, const StaticMesh& mesh, int32_t headTexVar, int32_t teethTex, int32_t bodyColor);
         Mesh(MeshObjects& owner, const ProtoMesh&  mesh, int32_t headTexVar, int32_t teethTex, int32_t bodyColor, bool staticDraw);
         Mesh(Mesh&& other);
+        ~Mesh();
         Mesh& operator = (Mesh&& other);
 
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
@@ -62,21 +63,20 @@ class MeshObjects final {
         Node   node(size_t i) const { return Node(&sub[i]); }
 
         Bounds bounds() const;
-
-        Tempest::Vec3    translate() const;
-        const ProtoMesh* protoMesh() const { return ani; }
+        const ProtoMesh* protoMesh() const { return proto; }
 
         const PfxEmitterMesh* toMeshEmitter() const;
 
       private:
+        void setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix4x4& mt, size_t parent);
+
         std::unique_ptr<Item[]> sub;
         size_t                  subCount=0;
+        std::unique_ptr<SkeletalStorage::AnimationId> anim;
 
-        const ProtoMesh*        ani=nullptr;
+        const ProtoMesh*        proto   =nullptr;
         const Skeleton*         skeleton=nullptr;
-        const AttachBinder*     binder=nullptr;
-
-        void setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix4x4& mt, size_t parent);
+        const AttachBinder*     binder  =nullptr;
       };
 
   private:

@@ -9,19 +9,19 @@
 using namespace Tempest;
 
 VisualObjects::VisualObjects(Device& device, const SceneGlobals& globals)
-  :globals(globals), uboStatic(device), uboDyn(device), sky(globals) {
+  :globals(globals), skinedAnim(device), uboStatic(device), uboDyn(device), sky(globals) {
   }
 
-ObjectsBucket& VisualObjects::getBucket(const Material& mat, const std::vector<ProtoMesh::Animation>& anim, size_t boneCnt, ObjectsBucket::Type type) {
+ObjectsBucket& VisualObjects::getBucket(const Material& mat, const std::vector<ProtoMesh::Animation>& anim, ObjectsBucket::Type type) {
   const std::vector<ProtoMesh::Animation>* a = anim.size()==0 ? nullptr : &anim;
 
   for(auto& i:buckets)
-    if(i.material()==mat && i.morph()==a && i.type()==type && i.boneCount()==boneCnt && i.size()<ObjectsBucket::CAPACITY)
+    if(i.material()==mat && i.morph()==a && i.type()==type && i.size()<ObjectsBucket::CAPACITY)
       return i;
 
   if(type==ObjectsBucket::Type::Static)
-    buckets.emplace_back(mat,anim,boneCnt,*this,globals,uboStatic,type); else
-    buckets.emplace_back(mat,anim,boneCnt,*this,globals,uboDyn,   type);
+    buckets.emplace_back(mat,anim,*this,globals,uboStatic,type); else
+    buckets.emplace_back(mat,anim,*this,globals,uboDyn,   type);
   return buckets.back();
   }
 
@@ -33,18 +33,18 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh &mesh, const Material& m
     Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
-  auto&        bucket = getBucket(mat,anim,0,staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
+  auto&        bucket = getBucket(mat,anim,staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
   const size_t id     = bucket.alloc(mesh.vbo,mesh.ibo,iboOffset,iboLen,mesh.bbox);
   return ObjectsBucket::Item(bucket,id);
   }
 
-ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat, size_t ibo, size_t iboLen) {
+ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat, const SkeletalStorage::AnimationId& anim, size_t ibo, size_t iboLen) {
   if(mat.tex==nullptr) {
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
-  auto&        bucket = getBucket(mat,{},mesh.bonesCount,ObjectsBucket::Animated);
-  const size_t id     = bucket.alloc(mesh.vbo,mesh.ibo,ibo,iboLen,mesh.bbox);
+  auto&        bucket = getBucket(mat,{},ObjectsBucket::Animated);
+  const size_t id     = bucket.alloc(mesh.vbo,mesh.ibo,ibo,iboLen,anim,mesh.bbox);
   return ObjectsBucket::Item(bucket,id);
   }
 
@@ -54,7 +54,7 @@ ObjectsBucket::Item VisualObjects::get(Tempest::VertexBuffer<Resources::Vertex>&
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
-  auto&        bucket = getBucket(mat,{},0,ObjectsBucket::Static);
+  auto&        bucket = getBucket(mat,{},ObjectsBucket::Static);
   const size_t id     = bucket.alloc(vbo,ibo,0,ibo.size(),bbox);
   return ObjectsBucket::Item(bucket,id);
   }
@@ -64,9 +64,16 @@ ObjectsBucket::Item VisualObjects::get(const Tempest::VertexBuffer<Resources::Ve
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
-  auto&        bucket = getBucket(mat,{},0,ObjectsBucket::Movable);
+  auto&        bucket = getBucket(mat,{},ObjectsBucket::Movable);
   const size_t id     = bucket.alloc(vbo,bbox);
   return ObjectsBucket::Item(bucket,id);
+  }
+
+SkeletalStorage::AnimationId VisualObjects::getAnim(size_t boneCnt) {
+  if(boneCnt==0)
+    return SkeletalStorage::AnimationId();
+  auto id = skinedAnim.alloc(boneCnt);
+  return SkeletalStorage::AnimationId(skinedAnim,id,boneCnt);
   }
 
 void VisualObjects::setupUbo() {
@@ -107,7 +114,7 @@ void VisualObjects::drawGBuffer(Tempest::Encoder<CommandBuffer>& enc, uint8_t fI
   }
 
 void VisualObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer) {
-  if(layer+1==Resources::ShadowLayers) {
+  if(layer==0) {
     mkIndex();
     commitUbo(fId);
     }
@@ -170,11 +177,14 @@ void VisualObjects::mkIndex() {
   }
 
 void VisualObjects::commitUbo(uint8_t fId) {
-  bool st = uboStatic.commitUbo(globals.storage.device,fId);
-  bool dn = uboDyn   .commitUbo(globals.storage.device,fId);
+  bool sk = skinedAnim.commitUbo(globals.storage.device,fId);
+  bool st = uboStatic .commitUbo(globals.storage.device,fId);
+  bool dn = uboDyn    .commitUbo(globals.storage.device,fId);
 
-  if(!st && !dn)
+  if(!st && !dn && !sk)
     return;
+
   for(auto& c:buckets)
     c.invalidateUbo();
   }
+

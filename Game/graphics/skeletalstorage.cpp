@@ -1,6 +1,40 @@
 #include "skeletalstorage.h"
 
+#include "graphics/mesh/pose.h"
+
 using namespace Tempest;
+
+SkeletalStorage::AnimationId::AnimationId(SkeletalStorage::AnimationId&& other)
+  :owner(other.owner), id(other.id), boneCnt(other.boneCnt) {
+  other.owner = nullptr;
+  }
+
+SkeletalStorage::AnimationId::AnimationId(SkeletalStorage& owner, size_t id, size_t boneCnt)
+  :owner(&owner), id(id), boneCnt(boneCnt) {
+  }
+
+SkeletalStorage::AnimationId& SkeletalStorage::AnimationId::operator =(SkeletalStorage::AnimationId&& other) {
+  std::swap(owner,   other.owner);
+  std::swap(id,      other.id);
+  std::swap(boneCnt, other.boneCnt);
+  return *this;
+  }
+
+SkeletalStorage::AnimationId::~AnimationId() {
+  if(owner!=nullptr)
+    owner->free(id,boneCnt);
+  }
+
+void SkeletalStorage::AnimationId::setPose(const Pose& p) {
+  auto& skel = owner->element(id);
+  auto& tr   = p.transform();
+  std::memcpy(&skel,tr.data(),std::min(tr.size(),boneCnt)*sizeof(tr[0]));
+  owner->markAsChanged(id);
+  }
+
+void SkeletalStorage::AnimationId::bind(Uniforms& desc, uint8_t bind, uint8_t fId) const {
+  owner->bind(desc,bind,fId,id,boneCnt);
+  }
 
 struct SkeletalStorage::Impl {
   virtual ~Impl() = default;

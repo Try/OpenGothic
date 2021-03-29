@@ -52,25 +52,14 @@ const Tempest::Texture2d *MeshObjects::solveTex(const Tempest::Texture2d *def, c
 
 void MeshObjects::Mesh::setSkeleton(const Skeleton *sk) {
   skeleton = sk;
-  if(ani!=nullptr && skeleton!=nullptr)
-    binder=Resources::bindMesh(*ani,*skeleton);
+  if(proto!=nullptr && skeleton!=nullptr)
+    binder=Resources::bindMesh(*proto,*skeleton);
   }
 
-void MeshObjects::Mesh::setPose(const Pose &p,const Tempest::Matrix4x4& obj) {
-  for(size_t i=0;i<subCount;++i)
-    sub[i].setPose(p);
-
-  if(binder!=nullptr){
-    for(size_t i=0;i<binder->bind.size();++i){
-      auto id=binder->bind[i];
-      if(id>=p.transform().size())
-        continue;
-      auto mat=obj;
-      mat.translate(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
-      mat.mul(p.transform(id));
-      sub[i].setObjMatrix(mat);
-      }
-    }
+void MeshObjects::Mesh::setPose(const Pose &p, const Tempest::Matrix4x4& obj) {
+  if(anim!=nullptr)
+    anim->setPose(p);
+  setObjMatrix(obj);
   }
 
 void MeshObjects::Mesh::setAsGhost(bool g) {
@@ -87,20 +76,17 @@ Bounds MeshObjects::Mesh::bounds() const {
   return b;
   }
 
-Tempest::Vec3 MeshObjects::Mesh::translate() const {
-  if(ani==nullptr)
-    return Tempest::Vec3();
-  return Tempest::Vec3(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
-  }
-
 const PfxEmitterMesh* MeshObjects::Mesh::toMeshEmitter() const {
-  if(auto p = ani)
+  if(auto p = proto)
     return Resources::loadEmiterMesh(p->fname.c_str());
   return nullptr;
   }
 
 MeshObjects::Mesh::Mesh(MeshObjects::Mesh &&other) {
   *this = std::move(other);
+  }
+
+MeshObjects::Mesh::~Mesh() {
   }
 
 MeshObjects::Mesh::Mesh(MeshObjects& owner, const StaticMesh& mesh, int32_t version, bool staticDraw) {
@@ -130,8 +116,9 @@ MeshObjects::Mesh::Mesh(MeshObjects& owner, const StaticMesh& mesh, int32_t head
     }
   }
 
-MeshObjects::Mesh::Mesh(MeshObjects& owner, const ProtoMesh& mesh, int32_t texVar, int32_t teethTex, int32_t bodyColor, bool staticDraw)
-  :ani(&mesh) {
+MeshObjects::Mesh::Mesh(MeshObjects& owner, const ProtoMesh& mesh,
+                        int32_t texVar, int32_t teethTex, int32_t bodyColor, bool staticDraw)
+  :proto(&mesh) {
   const size_t skinnedCount=mesh.skinedNodesCount();
   sub.reset(new Item[mesh.submeshId.size()+skinnedCount]);
   subCount = 0;
@@ -146,12 +133,19 @@ MeshObjects::Mesh::Mesh(MeshObjects& owner, const ProtoMesh& mesh, int32_t texVa
     subCount++;
     }
 
-  for(auto& skin:mesh.skined) {
-    for(auto& m:skin.sub){
+  size_t bonesCount = 0;
+  for(size_t i=0; i<mesh.skined.size(); ++i)
+    bonesCount = std::max(bonesCount,mesh.skined[i].bonesCount);
+
+  if(bonesCount>0)
+    anim.reset(new SkeletalStorage::AnimationId(owner.parent.getAnim(bonesCount)));
+  for(size_t i=0; i<mesh.skined.size(); ++i) {
+    auto& skin = mesh.skined[i];
+    for(auto& m:skin.sub) {
       Material mat = m.material;
       mat.tex=owner.solveTex(mat.tex,m.texName,texVar,bodyColor);
       if(mat.tex!=nullptr) {
-        sub[subCount] = owner.parent.get(skin,mat,m.iboOffset,m.iboSize);
+        sub[subCount] = owner.parent.get(skin,mat,*anim,m.iboOffset,m.iboSize);
         ++subCount;
         } else {
         if(!m.texName.empty())
@@ -164,34 +158,27 @@ MeshObjects::Mesh::Mesh(MeshObjects& owner, const ProtoMesh& mesh, int32_t texVa
 MeshObjects::Mesh &MeshObjects::Mesh::operator =(MeshObjects::Mesh &&other) {
   std::swap(sub,      other.sub);
   std::swap(subCount, other.subCount);
-  std::swap(ani,      other.ani);
+  std::swap(anim,     other.anim);
+  std::swap(proto,    other.proto);
   std::swap(skeleton, other.skeleton);
   std::swap(binder,   other.binder);
   return *this;
   }
 
 void MeshObjects::Mesh::setObjMatrix(const Tempest::Matrix4x4 &mt) {
-  if(ani!=nullptr){
+  const size_t binds = (binder==nullptr ? 0 : binder->bind.size());
+  for(size_t i=0; i<binds; ++i) {
+    auto id  = binder->bind[i];
     auto mat=mt;
-    mat.translate(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
-    for(size_t i=0;i<subCount;++i)
-      sub[i].setObjMatrix(mat);
-    setObjMatrix(*ani,mt,size_t(-1));
-    } else {
-    for(size_t i=0;i<subCount;++i)
-      sub[i].setObjMatrix(mt);
-    }
-  if(binder!=nullptr){
-    for(size_t i=0;i<binder->bind.size();++i){
-      auto id=binder->bind[i];
-      if(id>=skeleton->tr.size())
-        continue;
-      auto mat=mt;
-      mat.translate(ani->rootTr[0],ani->rootTr[1],ani->rootTr[2]);
+    if(id<skeleton->tr.size())
       mat.mul(skeleton->tr[id]);
-      sub[i].setObjMatrix(mat);
-      }
+    sub[i].setObjMatrix(mat);
     }
+  for(size_t i=binds; i<subCount; ++i) {
+    sub[i].setObjMatrix(mt);
+    }
+  if(proto!=nullptr)
+    setObjMatrix(*proto,mt,size_t(-1));
   }
 
 void MeshObjects::Mesh::setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix4x4 &mt,size_t parent) {
@@ -199,11 +186,9 @@ void MeshObjects::Mesh::setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix
     if(ani.nodes[i].parentId==parent) {
       auto mat=mt;
       mat.mul(ani.nodes[i].transform);
-
       auto& node=ani.nodes[i];
       for(size_t r=node.submeshIdB;r<node.submeshIdE;++r)
         sub[r].setObjMatrix(mat);
-
       if(ani.nodes[i].hasChild)
         setObjMatrix(ani,mat,i);
       }

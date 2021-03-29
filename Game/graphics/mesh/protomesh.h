@@ -70,9 +70,8 @@ class ProtoMesh {
       Tempest::StorageBuffer samples;
       };
 
-    // skinned
+    // animation
     std::vector<AnimMesh>          skined;
-
     std::vector<Animation>         morph;
 
     std::vector<Attach>            attach;
@@ -80,8 +79,6 @@ class ProtoMesh {
     std::vector<SubMeshId>         submeshId;
 
     std::vector<Pos>               pos;
-    std::array<float,3>            rootTr={};
-
     Tempest::Vec3                  bbox[2];
 
     std::string                    scheme, fname;

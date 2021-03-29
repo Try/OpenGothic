@@ -16,17 +16,13 @@ void ObjectsBucket::Item::setObjMatrix(const Tempest::Matrix4x4 &mt) {
   owner->setObjMatrix(id,mt);
   }
 
-void ObjectsBucket::Item::setPose(const Pose &p) {
-  owner->setPose(id,p);
-  }
-
 void ObjectsBucket::Item::setAsGhost(bool g) {
   if(owner->mat.isGhost==g)
     return;
 
   auto m = owner->mat;
   m.isGhost = g;
-  auto&  bucket = owner->owner.getBucket(m,{},owner->boneCnt,owner->shaderType);
+  auto&  bucket = owner->owner.getBucket(m,{},owner->shaderType);
 
   auto&  v      = owner->val[id];
   size_t idNext = size_t(-1);
@@ -38,7 +34,7 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
       break;
       }
     case VboVertexA:{
-      idNext = bucket.alloc(*v.vboA,*v.ibo,v.iboOffset,v.iboLength,v.visibility.bounds());
+      idNext = bucket.alloc(*v.vboA,*v.ibo,v.iboOffset,v.iboLength,*v.skiningAni,v.visibility.bounds());
       break;
       }
     case VboMorph:{
@@ -94,9 +90,9 @@ void ObjectsBucket::Descriptors::alloc(ObjectsBucket& owner) {
     }
   }
 
-ObjectsBucket::ObjectsBucket(const Material& mat, const std::vector<ProtoMesh::Animation>& anim, size_t boneCount,
+ObjectsBucket::ObjectsBucket(const Material& mat, const std::vector<ProtoMesh::Animation>& anim,
                              VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type)
-  :owner(owner), boneCnt(boneCount), scene(scene), storage(storage), mat(mat), shaderType(type) {
+  :owner(owner), scene(scene), storage(storage), mat(mat), shaderType(type) {
   static_assert(sizeof(UboPush)<=128, "UboPush is way too big");
 
   auto st = shaderType;
@@ -229,12 +225,12 @@ void ObjectsBucket::uboSetDynamic(Object& v, uint8_t fId) {
   if(v.ubo.uboIsReady[fId])
     return;
   v.ubo.uboIsReady[fId] = true;
-  if(v.storageAni!=size_t(-1)) {
-    storage.ani.bind(ubo,L_Skinning,fId,v.storageAni,boneCnt);
+  if(v.skiningAni!=nullptr) {
+    v.skiningAni->bind(ubo,L_Skinning,fId);
     if(pShadow!=nullptr) {
       for(size_t lay=SceneGlobals::V_Shadow0; lay<=SceneGlobals::V_ShadowLast; ++lay) {
         auto& uboSh = v.ubo.ubo[fId][lay];
-        storage.ani.bind(uboSh,L_Skinning,fId,v.storageAni,boneCnt);
+        v.skiningAni->bind(uboSh,L_Skinning,fId);
         }
       }
     }
@@ -320,6 +316,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
                             const Tempest::IndexBuffer<uint32_t>& ibo,
                             size_t iboOffset, size_t iboLen,
+                            const SkeletalStorage::AnimationId& anim,
                             const Bounds& bounds) {
   Object* v = &implAlloc(VboType::VboVertexA,bounds);
   v->vboA      = &vbo;
@@ -327,7 +324,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
   v->iboOffset = iboOffset;
   v->iboLength = iboLen;
 
-  v->storageAni = storage.ani.alloc(boneCnt);
+  v->skiningAni = &anim;//storage.ani.alloc(boneCnt);
   polySz+=ibo.size();
   polyAvg = polySz/valSz;
   return std::distance(val,v);
@@ -343,8 +340,6 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* 
 void ObjectsBucket::free(const size_t objId) {
   auto& v = val[objId];
   v.visibility = VisibilityGroup::Token();
-  if(v.storageAni!=size_t(-1))
-    storage.ani.free(v.storageAni,boneCnt);
   if(v.ibo!=nullptr)
     polySz -= v.ibo->size();
   v.vboType = VboType::NoVbo;
@@ -479,16 +474,6 @@ void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
     allBounds.r = 0;
   }
 
-void ObjectsBucket::setPose(size_t i, const Pose& p) {
-  if(shaderType!=Animated)
-    return;
-  auto& v    = val[i];
-  auto& skel = storage.ani.element(v.storageAni);
-  auto& tr   = p.transform();
-  std::memcpy(&skel,tr.data(),std::min(tr.size(),boneCnt)*sizeof(tr[0]));
-  storage.ani.markAsChanged(v.storageAni);
-  }
-
 void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
   val[i].visibility.setBounds(b);
   }
@@ -515,5 +500,5 @@ const Bounds& ObjectsBucket::bounds(size_t i) const {
   }
 
 bool ObjectsBucket::Storage::commitUbo(Device& device, uint8_t fId) {
-  return ani.commitUbo(device,fId) | mat.commitUbo(device,fId);
+  return mat.commitUbo(device,fId);
   }
