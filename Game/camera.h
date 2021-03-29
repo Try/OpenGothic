@@ -69,7 +69,7 @@ class Camera final {
     Tempest::Matrix4x4 projective() const;
     Tempest::Matrix4x4 view() const;
     Tempest::Matrix4x4 viewProj() const;
-    Tempest::Matrix4x4 viewShadow(const Tempest::Vec3& ldir, int layer) const;
+    Tempest::Matrix4x4 viewShadow(const Tempest::Vec3& ldir, size_t layer) const;
 
   private:
     struct State {

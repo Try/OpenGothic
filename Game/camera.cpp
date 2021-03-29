@@ -151,7 +151,7 @@ Matrix4x4 Camera::projective() const {
   return proj;
   }
 
-Matrix4x4 Camera::viewShadow(const Vec3& ldir, int layer) const {
+Matrix4x4 Camera::viewShadow(const Vec3& ldir, size_t layer) const {
   static float scaleBase = 0.0008f;
   const float c = std::cos(state.spin.y*float(M_PI)/180.f), s = std::sin(state.spin.y*float(M_PI)/180.f);
 
