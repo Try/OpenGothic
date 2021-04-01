@@ -147,9 +147,9 @@ bool Marvin::exec(Gothic& gothic, const std::string& v) {
 
         if( world == nullptr || player == nullptr ) {
           return false;
-        } else{
-          return addItemOrNpcBySymbolName(world, arguments, player->position());
         }
+
+        return addItemOrNpcBySymbolName(world, arguments, player->position());
       }
 
       return false;
