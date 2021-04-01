@@ -151,10 +151,9 @@ Matrix4x4 Camera::projective() const {
   return proj;
   }
 
-Matrix4x4 Camera::viewShadow(const Vec3& ldir, size_t layer) const {
-  //static float scale = 0.0008f;
-  const  float c = std::cos(state.spin.y*float(M_PI)/180.f), s = std::sin(state.spin.y*float(M_PI)/180.f);
-
+Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
+  //Vec3 ldir = Vec3::normalize({1,1,0});
+  Vec3 ldir   = lightDir;
   Vec3 center = state.pos;
   auto vp = viewProj();
   vp.project(center);
@@ -165,6 +164,7 @@ Matrix4x4 Camera::viewShadow(const Vec3& ldir, size_t layer) const {
   vp.project(r);
 
   float smWidth    = (r-l).manhattanLength();
+  smWidth = std::max(smWidth,1024.f); // ~4 pixels per santimeter
   float smWidthInv = 2.f/smWidth;
   float zScale     = 1.0;
   Matrix4x4 view;
@@ -182,43 +182,41 @@ Matrix4x4 Camera::viewShadow(const Vec3& ldir, size_t layer) const {
     };
 
   view.identity();
-  view.translate(0.f,0.8f,0.5f);
   view.rotate(-90, 1, 0, 0);     // +Y -> -Z
   view.rotate(180+state.spin.y, 0, 1, 0);
   view.scale(smWidthInv, smWidthInv*zScale, smWidthInv);
   view.translate(state.pos);
   view.scale(-1,-1,-1);
 
-/*
   auto inv = view;
   inv.inverse();
-  float cx=0,cy=0,cz=0;
-  inv.project(cx,cy,cz);
-  cy=state.pos.y;
+  Vec3 mid = {};
+  inv.project(mid);
 
-  float lx  = view.at(1,0);
-  float ly  = view.at(1,1);
-  float lz  = view.at(1,2);
-  float k   = ldir.y!=0.f ? lz/ldir.y : 0.f;
+  if(ldir.y!=0.f) {
+    float lx = ldir.x/ldir.y;
+    float lz = ldir.z/ldir.y;
 
-  lx = -ldir.x*k;
-  ly =  ldir.z*k;
+    const float ang = -(180+state.spin.y)*float(M_PI)/180.f;
+    const float c   = std::cos(ang), s = std::sin(ang);
 
-  lz =  ldir.y*k;
-  lz =  lz * (zScale/smWidthInv);
+    float dx = lx*c-lz*s;
+    float dz = lx*s+lz*c;
 
-  float dx = lx*c-ly*s;
-  float dy = lx*s+ly*c;
+    view.set(1,0, dx*smWidthInv);
+    view.set(1,1, dz*smWidthInv);
+    }
 
-  view.set(1,0, dx);
-  view.set(1,1, dy);
-  view.set(1,2, lz);
+  view.project(mid);
+  view.set(3,0, view.at(3,0)-mid.x);
+  view.set(3,1, view.at(3,1)-mid.y);
+  view.set(3,2, view.at(3,2)-mid.z);
 
-  view.project(cx,cy,cz);
-  view.set(3,0, view.at(3,0)-cx);
-  view.set(3,1, view.at(3,1)-cy);
-*/
-  return view;
+  Tempest::Matrix4x4 proj;
+  proj.identity();
+  proj.translate(0.f, 0.9f, 0.5f);
+  proj.mul(view);
+  return proj;
   }
 
 Vec3 Camera::applyModPosition(const Vec3& pos) {

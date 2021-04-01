@@ -37,7 +37,7 @@ vec4 shadowSample(in sampler2D shadowMap,vec3 shPos) {
 
 float shadowResolve(in sampler2D shadowMap,vec3 shPos) {
   shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
-  shPos.z -= (1.f/32768.0);
+  shPos.z += (2.f/65535.0);
   vec4  sh = shadowSample(shadowMap,shPos);
   return 0.25*(sh.x+sh.y+sh.z+sh.w);
   /*
