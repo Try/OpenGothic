@@ -50,38 +50,13 @@ float shadowResolve(in sampler2D shadowMap,vec3 shPos) {
   */
   }
 
-float implShadowVal(in sampler2D shadowMap, in vec2 uv, in float shPosZ, in float shBias) {
-  float shMap = texture(shadowMap,uv).r;
-  float shZ   = min(0.99,shPosZ);
-
-  return step(shMap,shZ-shBias);
-  }
-
-float shadowVal(in sampler2D shadowMap, in vec2 uv, in float shPosZ, in float shBias) {
-  vec2 offset = fract(uv.xy * scene.shadowSize * 0.5);  // mod
-  offset = vec2(offset.x>0.25,offset.y>0.25);
-  // y ^= x in floating point
-  offset.y += offset.x;
-  if(offset.y>1.1)
-    offset.y = 0;
-  offset/=scene.shadowSize;
-
-  float d1 = 0.5/scene.shadowSize;
-  float d2 = 1.5/scene.shadowSize;
-  float ret = implShadowVal(shadowMap,uv+offset+vec2(-d2, d1),shPosZ,shBias) +
-              implShadowVal(shadowMap,uv+offset+vec2( d1, d1),shPosZ,shBias) +
-              implShadowVal(shadowMap,uv+offset+vec2(-d2, d2),shPosZ,shBias) +
-              implShadowVal(shadowMap,uv+offset+vec2( d1,-d2),shPosZ,shBias);
-  return ret*0.25;
-  }
-
 float calcShadow(vec3 shPos0, vec3 shPos1) {
   float lay0 = shadowResolve(textureSm0,shPos0);
   float lay1 = shadowResolve(textureSm1,shPos1);
 
-  if(abs(shPos0.x)<0.99 && abs(shPos0.y)<0.99)
+  if(abs(shPos0.x)<1.0 && abs(shPos0.y)<1.0)
     return lay0;
-  if(abs(shPos1.x)<0.99 && abs(shPos1.y)<0.99)
+  if(abs(shPos1.x)<1.0 && abs(shPos1.y)<1.0)
     return lay1;
   return 1.0;
   }

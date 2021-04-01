@@ -171,12 +171,12 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
 
   switch(layer) {
     case 0:
-      smWidthInv *= 0.5;
+      smWidthInv *= 0.5f;
       zScale      = 0.05f;
       break;
     case 1:
       smWidthInv = 0.001558001502f;
-      smWidthInv *= 0.125;
+      smWidthInv *= 0.125f;
       zScale      = 0.005f;
       break;
     };
