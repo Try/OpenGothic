@@ -152,29 +152,44 @@ Matrix4x4 Camera::projective() const {
   }
 
 Matrix4x4 Camera::viewShadow(const Vec3& ldir, size_t layer) const {
-  static float scaleBase = 0.0008f;
-  const float c = std::cos(state.spin.y*float(M_PI)/180.f), s = std::sin(state.spin.y*float(M_PI)/180.f);
+  //static float scale = 0.0008f;
+  const  float c = std::cos(state.spin.y*float(M_PI)/180.f), s = std::sin(state.spin.y*float(M_PI)/180.f);
 
+  Vec3 center = state.pos;
+  auto vp = viewProj();
+  vp.project(center);
+
+  vp.inverse();
+  Vec3 l = {-1,center.y,center.z}, r = {1,center.y,center.z};
+  vp.project(l);
+  vp.project(r);
+
+  float smWidth    = (r-l).manhattanLength();
+  float smWidthInv = 2.f/smWidth;
+  float zScale     = 1.0;
   Matrix4x4 view;
-  if(ldir.y<=0.f)
-    return view;
+
+  switch(layer) {
+    case 0:
+      smWidthInv *= 0.5;
+      zScale      = 0.05f;
+      break;
+    case 1:
+      smWidthInv = 0.001558001502f;
+      smWidthInv *= 0.125;
+      zScale      = 0.005f;
+      break;
+    };
 
   view.identity();
-  if(layer>0)
-    view.scale(0.2f);
-
-  const float scale = scaleBase*(2.5f/state.range);
-
-  view.translate(0.f,0.5f,0.5f);
-  if(layer>0)
-    view.translate(0.f,1.5f,0.f);
-  view.rotate(/*spin.x*/90, 1, 0, 0);
-  view.translate(0.f,0.f,0.f);
-  view.rotate(state.spin.y, 0, 1, 0);
-  view.scale(scale,scale*0.3f,scale);
-  view.translate(state.pos.x,state.pos.y,state.pos.z);
+  view.translate(0.f,0.8f,0.5f);
+  view.rotate(-90, 1, 0, 0);     // +Y -> -Z
+  view.rotate(180+state.spin.y, 0, 1, 0);
+  view.scale(smWidthInv, smWidthInv*zScale, smWidthInv);
+  view.translate(state.pos);
   view.scale(-1,-1,-1);
 
+/*
   auto inv = view;
   inv.inverse();
   float cx=0,cy=0,cz=0;
@@ -190,6 +205,7 @@ Matrix4x4 Camera::viewShadow(const Vec3& ldir, size_t layer) const {
   ly =  ldir.z*k;
 
   lz =  ldir.y*k;
+  lz =  lz * (zScale/smWidthInv);
 
   float dx = lx*c-ly*s;
   float dy = lx*s+ly*c;
@@ -198,13 +214,10 @@ Matrix4x4 Camera::viewShadow(const Vec3& ldir, size_t layer) const {
   view.set(1,1, dy);
   view.set(1,2, lz);
 
-  // float cx = camPos[0],
-  //       cy = camPos[1],
-  //       cz = camPos[2];
   view.project(cx,cy,cz);
   view.set(3,0, view.at(3,0)-cx);
   view.set(3,1, view.at(3,1)-cy);
-
+*/
   return view;
   }
 

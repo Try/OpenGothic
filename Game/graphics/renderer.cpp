@@ -17,8 +17,9 @@ Renderer::Renderer(Tempest::Device &device,Tempest::Swapchain& swapchain,Gothic&
   view.identity();
 
   static const TextureFormat shfrm[] = {
+    TextureFormat::R16,
     TextureFormat::RG16,
-    TextureFormat::RGB8,
+    TextureFormat::R32F,
     TextureFormat::RGBA8,
     };
   static const TextureFormat zfrm[] = {
@@ -54,7 +55,7 @@ void Renderer::resetSwapchain() {
 
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
   zbufferItem    = device.zbuffer(zBufferFormat,w,h);
-  shadowPass     = device.pass(FboMode(FboMode::PreserveOut,Color(1.0)), FboMode(FboMode::Discard,1.f));
+  shadowPass     = device.pass(FboMode(FboMode::PreserveOut,Color(0.0)), FboMode(FboMode::Discard,0.f));
 
   for(int i=0; i<2; ++i){
     shadowMap[i] = device.attachment (shadowFormat, smSize,smSize);

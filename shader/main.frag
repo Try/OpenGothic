@@ -29,14 +29,35 @@ layout(location = 0) out vec4 outColor;
 #endif
 
 #if !defined(SHADOW_MAP)
-float implShadowVal(in sampler2D shadowMap, in vec2 uv, in float shPosZ, in float shBias, in int layer) {
+vec4 shadowSample(in sampler2D shadowMap,vec3 shPos) {
+  shPos.z = max(0.0,shPos.z);
+  vec4 sh = textureGather(shadowMap,shPos.xy);
+  return step(sh,vec4(shPos.z));
+  }
+
+float shadowResolve(in sampler2D shadowMap,vec3 shPos) {
+  shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
+  shPos.z -= (1.f/32768.0);
+  vec4  sh = shadowSample(shadowMap,shPos);
+  return 0.25*(sh.x+sh.y+sh.z+sh.w);
+  /*
+  vec2  k  = fract(textureSize(shadowMap,0)*shPos.xy);
+
+  float y0 = mix(sh.x,sh.y, k.x);
+  float y1 = mix(sh.w,sh.z, k.x);
+
+  return mix(y0,y1, k.y);
+  */
+  }
+
+float implShadowVal(in sampler2D shadowMap, in vec2 uv, in float shPosZ, in float shBias) {
   float shMap = texture(shadowMap,uv).r;
   float shZ   = min(0.99,shPosZ);
 
-  return step(shZ-shBias,shMap);
+  return step(shMap,shZ-shBias);
   }
 
-float shadowVal(in sampler2D shadowMap, in vec2 uv, in float shPosZ, in float shBias, in int layer) {
+float shadowVal(in sampler2D shadowMap, in vec2 uv, in float shPosZ, in float shBias) {
   vec2 offset = fract(uv.xy * scene.shadowSize * 0.5);  // mod
   offset = vec2(offset.x>0.25,offset.y>0.25);
   // y ^= x in floating point
@@ -47,17 +68,16 @@ float shadowVal(in sampler2D shadowMap, in vec2 uv, in float shPosZ, in float sh
 
   float d1 = 0.5/scene.shadowSize;
   float d2 = 1.5/scene.shadowSize;
-  float ret = implShadowVal(shadowMap,uv+offset+vec2(-d2, d1),shPosZ,shBias,layer) +
-              implShadowVal(shadowMap,uv+offset+vec2( d1, d1),shPosZ,shBias,layer) +
-              implShadowVal(shadowMap,uv+offset+vec2(-d2, d2),shPosZ,shBias,layer) +
-              implShadowVal(shadowMap,uv+offset+vec2( d1,-d2),shPosZ,shBias,layer);
-
+  float ret = implShadowVal(shadowMap,uv+offset+vec2(-d2, d1),shPosZ,shBias) +
+              implShadowVal(shadowMap,uv+offset+vec2( d1, d1),shPosZ,shBias) +
+              implShadowVal(shadowMap,uv+offset+vec2(-d2, d2),shPosZ,shBias) +
+              implShadowVal(shadowMap,uv+offset+vec2( d1,-d2),shPosZ,shBias);
   return ret*0.25;
   }
 
 float calcShadow(vec3 shPos0, vec3 shPos1) {
-  float lay0 = shadowVal    (textureSm0, shPos0.xy*vec2(0.5,0.5)+vec2(0.5), shPos0.z, 0.0001, 0);
-  float lay1 = implShadowVal(textureSm1, shPos1.xy*vec2(0.5,0.5)+vec2(0.5), shPos1.z, 0.0001, 1);
+  float lay0 = shadowResolve(textureSm0,shPos0);
+  float lay1 = shadowResolve(textureSm1,shPos1);
 
   if(abs(shPos0.x)<0.99 && abs(shPos0.y)<0.99)
     return lay0;
@@ -167,7 +187,7 @@ void main() {
   //outColor = vec4(vec3(inPos.xyz)/1000.0,1.0);
   //outColor = vec4(vec3(shMap),1.0);
   //outColor = vec4(vec3(calcLight()),1.0);
-  //vec4 shMap = texture(textureSm,shPos1.xy*vec2(0.5,0.5)+vec2(0.5));
-  //outColor   = vec4(vec3(shMap.ggg),1.0);
+  //vec3 shPos0  = (shInp.shadowPos[0].xyz)/shInp.shadowPos[0].w;
+  //outColor   = vec4(vec3(shPos0.zzz),1.0);
 #endif
   }
