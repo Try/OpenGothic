@@ -73,19 +73,18 @@ vec4 vertexPosMesh() {
   }
 
 vec4 normalWorld() {
-#ifdef SKINING
+#if defined(SKINING)
   vec4 norm = vec4(inNormal,0.0);
   vec4 n0   = anim.skel[int(boneId.x)]*norm;
   vec4 n1   = anim.skel[int(boneId.y)]*norm;
   vec4 n2   = anim.skel[int(boneId.z)]*norm;
   vec4 n3   = anim.skel[int(boneId.w)]*norm;
   vec4 n    = (n0*inWeight.x + n1*inWeight.y + n2*inWeight.z + n3*inWeight.w);
-  return vec4(n.xyz,0.0);
+  return vec4(n.z,n.y,-n.x,0.0);
+#elif defined(OBJ)
+  return vec4(inNormal,0.0);
 #endif
-#ifdef OBJ
-  return vec4(inNormal.x,inNormal.y,inNormal.z,0.0);
-#endif
-  return vec4(-inNormal.z,inNormal.y,inNormal.x,0.0);
+  return vec4(inNormal,0.0);
   }
 
 vec3 normal() {

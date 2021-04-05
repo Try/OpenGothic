@@ -1,4 +1,3 @@
-
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive    : enable
@@ -67,8 +66,12 @@ void main() {
   vec3 pos0      = inverse(vec3(inPos,0));
 
   float dist     = length(pos1-pos0);
-  vec3  mie      = fogMie(pos,view,sunDir,dist);
   float fogDens  = volumetricFog(pos0.xyz,pos1.xyz-pos0.xyz);
+  if(fogDens<0.01) {
+    outColor = vec4(0);
+    return;
+    }
+  vec3  mie      = fogMie(pos,view,sunDir,dist);
   vec3  fogColor = skyColor*fogDens;
   outColor       = vec4(mie+fogColor,fogDens);
 #else

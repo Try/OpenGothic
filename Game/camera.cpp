@@ -163,35 +163,30 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
   vp.project(l);
   vp.project(r);
 
-  float smWidth    = (r-l).manhattanLength();
-  smWidth = std::max(smWidth,1024.f); // ~4 pixels per santimeter
-  float smWidthInv = 2.f/smWidth;
-  float zScale     = 1.0;
-  Matrix4x4 view;
+  float smWidth    = 0;
+  float smWidthInv = 0;
+  float zScale     = 1.f/5120;
 
   switch(layer) {
     case 0:
-      smWidthInv *= 0.5f;
-      zScale      = 0.05f;
+      smWidth    = (r-l).manhattanLength();
+      smWidth    = std::max(smWidth,1024.f); // ~4 pixels per santimeter
       break;
     case 1:
-      smWidthInv = 0.001558001502f;
-      smWidthInv *= 0.125f;
-      zScale      = 0.005f;
+      smWidth    = 5120;
+      zScale    *= 0.2f;
       break;
     };
 
+  smWidthInv = 1.f/smWidth;
+
+  Matrix4x4 view;
   view.identity();
   view.rotate(-90, 1, 0, 0);     // +Y -> -Z
   view.rotate(180+state.spin.y, 0, 1, 0);
-  view.scale(smWidthInv, smWidthInv*zScale, smWidthInv);
+  view.scale(smWidthInv, zScale, smWidthInv);
   view.translate(state.pos);
   view.scale(-1,-1,-1);
-
-  auto inv = view;
-  inv.inverse();
-  Vec3 mid = {};
-  inv.project(mid);
 
   if(ldir.y!=0.f) {
     float lx = ldir.x/ldir.y;
@@ -207,14 +202,35 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
     view.set(1,1, dz*smWidthInv);
     }
 
-  view.project(mid);
-  view.set(3,0, view.at(3,0)-mid.x);
-  view.set(3,1, view.at(3,1)-mid.y);
-  view.set(3,2, view.at(3,2)-mid.z);
+  if(layer>0) {
+    Tempest::Matrix4x4 proj;
+    proj.identity();
+
+    static float k = -0.4f;
+    proj.set(1,3, k);
+    proj.mul(view);
+    view = proj;
+    }
+
+  auto inv = view;
+  inv.inverse();
+  Vec3 mid = {};
+  inv.project(mid);
+  view.translate(mid-state.pos);
 
   Tempest::Matrix4x4 proj;
   proj.identity();
-  proj.translate(0.f, 0.9f, 0.5f);
+
+  switch(layer) {
+    case 0:
+      proj.translate(0.f, 0.8f, 0.5f);
+      break;
+    case 1: {
+      proj.translate(0.f, 0.5f, 0.5f);
+      break;
+      }
+    }
+
   proj.mul(view);
   return proj;
   }

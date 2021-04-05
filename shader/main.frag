@@ -19,45 +19,37 @@ layout(location = 0) in VsData {
 #endif
   } shInp;
 
-#ifdef GBUFFER
 layout(location = 0) out vec4 outColor;
+#if defined(GBUFFER)
 layout(location = 1) out vec4 outDiffuse;
 layout(location = 2) out vec4 outNormal;
 layout(location = 3) out vec4 outDepth;
-#else
-layout(location = 0) out vec4 outColor;
 #endif
 
 #if !defined(SHADOW_MAP)
-vec4 shadowSample(in sampler2D shadowMap,vec3 shPos) {
-  shPos.z = max(0.0,shPos.z);
-  vec4 sh = textureGather(shadowMap,shPos.xy);
-  return step(sh,vec4(shPos.z));
+vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
+  shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
+  return textureGather(shadowMap,shPos);
   }
 
-float shadowResolve(in sampler2D shadowMap,vec3 shPos) {
-  shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
-  shPos.z += (2.f/65535.0);
-  vec4  sh = shadowSample(shadowMap,shPos);
+float shadowResolve(in vec4 sh, float z, float bias) {
+  z += (bias/65535.0);
+  z  = max(0,z);
+  sh = step(sh,vec4(z));
   return 0.25*(sh.x+sh.y+sh.z+sh.w);
-  /*
-  vec2  k  = fract(textureSize(shadowMap,0)*shPos.xy);
-
-  float y0 = mix(sh.x,sh.y, k.x);
-  float y1 = mix(sh.w,sh.z, k.x);
-
-  return mix(y0,y1, k.y);
-  */
   }
 
 float calcShadow(vec3 shPos0, vec3 shPos1) {
-  float lay0 = shadowResolve(textureSm0,shPos0);
-  float lay1 = shadowResolve(textureSm1,shPos1);
+  vec4  lay0 = shadowSample(textureSm0,shPos0.xy);
+  vec4  lay1 = shadowSample(textureSm1,shPos1.xy);
 
-  if(abs(shPos0.x)<1.0 && abs(shPos0.y)<1.0)
-    return lay0;
+  float v0   = shadowResolve(lay0,shPos0.z,4.0);
+  float v1   = shadowResolve(lay1,shPos1.z,1.0);
+
+  if(abs(shPos0.x)<1.0 && abs(shPos0.y)<1.0 && ((0.45<lay1.x && lay1.x<0.55) || lay1.x==0))
+    return v0;
   if(abs(shPos1.x)<1.0 && abs(shPos1.y)<1.0)
-    return lay1;
+    return v1;
   return 1.0;
   }
 
@@ -132,7 +124,7 @@ void main() {
 #endif
 
 #ifdef SHADOW_MAP
-  outColor = vec4(shInp.scr.zzz,0.0);
+  outColor = vec4(shInp.scr.zzz/shInp.scr.w,0.0);
 #else
 
 #if defined(EMMISSIVE)
@@ -162,7 +154,8 @@ void main() {
   //outColor = vec4(vec3(inPos.xyz)/1000.0,1.0);
   //outColor = vec4(vec3(shMap),1.0);
   //outColor = vec4(vec3(calcLight()),1.0);
+  //outColor = vec4(vec3(calcShadow()),1.0);
   //vec3 shPos0  = (shInp.shadowPos[0].xyz)/shInp.shadowPos[0].w;
-  //outColor   = vec4(vec3(shPos0.zzz),1.0);
+  //outColor   = vec4(vec3(shPos0.xy,0),1.0);
 #endif
   }

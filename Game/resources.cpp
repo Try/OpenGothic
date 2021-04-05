@@ -725,11 +725,6 @@ Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked,
     if(zmm.getMesh().getNumSubmeshes()==0)
       return MeshLoadCode::Error;
     zmm.getMesh().packMesh(sPacked,false);
-    for(auto& i:sPacked.vertices){
-      // FIXME: hack with morph mesh-normals
-      std::swap(i.Normal.y,i.Normal.z);
-      i.Normal.z=-i.Normal.z;
-      }
     aniList = std::move(zmm.aniList);
     return MeshLoadCode::Morph;
     }
