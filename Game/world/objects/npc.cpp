@@ -476,7 +476,7 @@ bool Npc::resetPositionToTA() {
   }
 
 void Npc::stopDlgAnim() {
-  visual.stopDlgAnim();
+  visual.stopDlgAnim(*this);
   }
 
 void Npc::clearSpeed() {
@@ -990,6 +990,10 @@ bool Npc::setAnimItem(const char *scheme, int state) {
 
 void Npc::stopAnim(const std::string &ani) {
   visual.stopAnim(*this,ani.c_str());
+  }
+
+void Npc::startFaceAnim(const char* anim, float intensity, uint64_t duration) {
+  visual.startFaceAnim(*this,anim,intensity,duration);
   }
 
 bool Npc::stopItemStateAnim() {
@@ -1532,7 +1536,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
     sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_BOW",{x,y+translateY(),z},2500,false);
     sfxWeapon.play();
     }
-  visual.stopDlgAnim();
+  visual.stopDlgAnim(*this);
   updateWeaponSkeleton();
   }
 
@@ -1920,7 +1924,7 @@ void Npc::nextAiAction(uint64_t dt) {
         uint32_t itm   = uint32_t(act.i0);
         int      state = act.i1;
         if(state>0)
-          visual.stopDlgAnim();
+          visual.stopDlgAnim(*this);
         if(!invent.putState(*this,state>=0 ? itm : 0,state))
           aiQueue.pushFront(std::move(act));
         }

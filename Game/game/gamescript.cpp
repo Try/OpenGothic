@@ -1700,12 +1700,8 @@ void GameScript::mdl_startfaceani(Daedalus::DaedalusVM &vm) {
   auto  ani       = vm.popString();
   auto  npc       = popInstance(vm);
 
-  (void)time;
-  (void)intensity;
-  (void)ani;
-  (void)npc;
-
-  notImplementedFn<&GameScript::mdl_startfaceani>("mdl_startfaceani");
+  if(npc!=nullptr)
+    npc->startFaceAnim(ani.c_str(),intensity,uint64_t(time*1000.f));
   }
 
 void GameScript::mdl_applyrandomani(Daedalus::DaedalusVM &vm) {

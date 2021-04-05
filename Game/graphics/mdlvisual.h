@@ -86,7 +86,8 @@ class MdlVisual final {
     bool                           startAnimSpell(Npc &npc, const char* scheme, bool invest);
     bool                           startAnimDialog(Npc &npc);
     void                           startMMAnim(Npc &npc, const char* anim, const char* node);
-    void                           stopDlgAnim();
+    void                           startFaceAnim(Npc &npc, const char* anim, float intensity, uint64_t duration);
+    void                           stopDlgAnim(Npc& npc);
     void                           stopAnim(Npc &npc, const char *ani);
     bool                           stopItemStateAnim(Npc &npc);
     void                           stopWalkAnim(Npc &npc);

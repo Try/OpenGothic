@@ -73,6 +73,7 @@ class ProtoMesh {
     // animation
     std::vector<AnimMesh>          skined;
     std::vector<Animation>         morph;
+    Tempest::StorageBuffer         morphSsbo;
 
     std::vector<Attach>            attach;
     std::vector<Node>              nodes;
@@ -89,5 +90,6 @@ class ProtoMesh {
   private:
     void                           setupScheme(const std::string& s);
     Animation                      mkAnimation(const ZenLoad::zCMorphMesh::Animation& a,
-                                               const std::vector<uint32_t>& vertId);
+                                               const std::vector<uint32_t>& vertId,
+                                               size_t id);
   };

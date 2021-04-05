@@ -847,7 +847,7 @@ bool MdlVisual::startAnimDialog(Npc &npc) {
 
   const Animation::Sequence *sq = solver.solveFrm(name);
   if(skInst->startAnim(solver,sq,0,BS_STAND,Pose::NoHint,npc.world().tickCount())) {
-    head.view.startMMAnim("VISEME");
+    startFaceAnim(npc,"VISEME",1,-1);
     return true;
     }
   return false;
@@ -860,11 +860,17 @@ void MdlVisual::startMMAnim(Npc&, const char* anim, const char* bone) {
       continue;
     if(bone!=nullptr && bone[0]!='\0' && std::strcmp(i->bone,bone)!=0)
       continue;
-    i->view.startMMAnim(anim);
+    i->view.startMMAnim(anim,1,-1);
     }
   }
 
-void MdlVisual::stopDlgAnim() {
+void MdlVisual::startFaceAnim(Npc& npc, const char* anim, float intensity, uint64_t duration) {
+  if(duration!=uint64_t(-1) && duration!=0)
+    duration += npc.world().tickCount();
+  head.view.startMMAnim(anim,intensity,duration);
+  }
+
+void MdlVisual::stopDlgAnim(Npc& npc) {
   //const int countG1 = 21;
   const int countG2 = 11;
   for(uint16_t i=0; i<countG2; i++){
@@ -872,5 +878,5 @@ void MdlVisual::stopDlgAnim() {
     std::snprintf(buf,sizeof(buf),"T_DIALOGGESTURE_%02d",i+1);
     skInst->stopAnim(buf);
     }
-  head.view.stopMMAnim("VISEME");
+  startFaceAnim(npc,"VISEME",1,0);
   }

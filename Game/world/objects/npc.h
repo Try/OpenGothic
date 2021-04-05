@@ -265,6 +265,7 @@ class Npc final {
     void       setAnimRotate(int rot);
     bool       setAnimItem(const char* scheme, int state);
     void       stopAnim(const std::string& ani);
+    void       startFaceAnim(const char* anim, float intensity, uint64_t duration);
     bool       stopItemStateAnim();
     bool       isFinishingMove() const;
 

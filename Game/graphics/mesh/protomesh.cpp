@@ -126,9 +126,12 @@ ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm,
     return;
     }
 
+  const size_t indexSz = sizeof(int32_t[4])*((pm.verticesId.size()+3)/4)*aniList.size();
+  morphSsbo = Resources::ssbo(nullptr,indexSz);
+
   morph.resize(aniList.size());
   for(size_t i=0; i<aniList.size(); ++i) {
-    morph[i] = mkAnimation(aniList[i],pm.verticesId);
+    morph[i] = mkAnimation(aniList[i],pm.verticesId,i);
     }
   }
 
@@ -200,8 +203,10 @@ void ProtoMesh::setupScheme(const std::string &s) {
   }
 
 ProtoMesh::Animation ProtoMesh::mkAnimation(const ZenLoad::zCMorphMesh::Animation& a,
-                                            const std::vector<uint32_t>& vertId) {
-  std::vector<int32_t> remap(vertId.size(),-1);
+                                            const std::vector<uint32_t>& vertId,
+                                            size_t id) {
+  size_t indexSz = ((vertId.size()+3)/4)*4;
+  std::vector<int32_t> remap(indexSz,-1);
   for(size_t i=0; i<vertId.size(); ++i) {
     const uint32_t id = vertId[i];
     for(size_t r=0; r<a.vertexIndex.size(); ++r)
@@ -210,7 +215,8 @@ ProtoMesh::Animation ProtoMesh::mkAnimation(const ZenLoad::zCMorphMesh::Animatio
         break;
         }
     }
-  remap.resize(((remap.size()+3)/4)*4);
+
+  morphSsbo.update(remap.data(), id*indexSz*sizeof(remap[0]), remap.size()*sizeof(remap[0]));
 
   Animation ret;
   ret.name            = a.name;

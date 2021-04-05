@@ -70,8 +70,7 @@ class ObjectsBucket final {
 
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setAsGhost  (bool g);
-        void   startMMAnim (const char* anim);
-        void   stopMMAnim  (const char* anim);
+        void   startMMAnim (const char* anim, float intensity, uint64_t timeUntil);
 
         const Bounds& bounds() const;
 
@@ -188,10 +187,9 @@ class ObjectsBucket final {
 
     bool    groupVisibility(const Frustrum& f);
 
-    void    setObjMatrix(size_t i,const Tempest::Matrix4x4& m);
-    void    setBounds   (size_t i,const Bounds& b);
-    void    startMMAnim (size_t i,const char* anim);
-    void    stopMMAnim  (size_t i,const char* anim);
+    void    setObjMatrix(size_t i, const Tempest::Matrix4x4& m);
+    void    setBounds   (size_t i, const Bounds& b);
+    void    startMMAnim (size_t i, const char* anim, float intensity, uint64_t timeUntil);
 
     bool    isSceneInfoRequired() const;
     void    updatePushBlock(UboPush& push, Object& v);
