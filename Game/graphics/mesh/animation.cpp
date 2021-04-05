@@ -41,6 +41,10 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
         setupIndex();
         return;
         }
+      case ZenLoad::MdsParser::CHUNK_MODEL_SCRIPT: {
+        // TODO: use model-script?
+        break;
+        }
       case ZenLoad::MdsParser::CHUNK_ANI: {
         auto& ani      = loadMAN(name+'-'+p.ani.m_Name+".MAN");
         //auto& ani      = loadMAN(p.ani.m_Asc);
@@ -138,12 +142,24 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
         }
 
       case ZenLoad::MdsParser::CHUNK_EVENT_TAG: {
-        if(current){
+        if(current) {
           if(current->events.size()==0) {
             current->events = std::move(p.eventTag);
             } else {
             current->events.insert(current->events.end(), p.eventTag.begin(), p.eventTag.end());
             p.eventTag.clear();
+            }
+          }
+        break;
+        }
+
+      case ZenLoad::MdsParser::CHUNK_EVENT_MMSTARTANI: {
+        if(current) {
+          if(current->mmStartAni.size()==0) {
+            current->mmStartAni = std::move(p.mmStartAni);
+            } else {
+            current->mmStartAni.insert(current->mmStartAni.end(), p.mmStartAni.begin(), p.mmStartAni.end());
+            p.mmStartAni.clear();
             }
           }
         break;
@@ -446,9 +462,6 @@ void Animation::Sequence::processPfx(uint64_t barrier, uint64_t sTime, uint64_t 
   }
 
 void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const {
-  //if(data->events.size()==0)
-  //  return;
-
   uint64_t frameA=0,frameB=0;
   bool     invert=false;
   if(!extractFrames(frameA,frameB,invert,barrier,sTime,now))
@@ -475,6 +488,16 @@ void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64
     uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
     if((frameA<=fr && fr<frameB) ^ invert)
       ev.groundSounds++;
+    }
+
+  for(auto& i:d.mmStartAni){
+    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
+    if((frameA<=fr && fr<frameB) ^ invert) {
+      EvMorph e;
+      e.anim = i.m_Animation.c_str();
+      e.node = i.m_Node.c_str();
+      ev.morph.push_back(e);
+      }
     }
   }
 

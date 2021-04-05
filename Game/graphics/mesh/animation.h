@@ -32,11 +32,17 @@ class Animation final {
       uint64_t                    time    = 0;
       };
 
+    struct EvMorph final {
+      const char* node = nullptr;
+      const char* anim = nullptr;
+      };
+
     struct EvCount final {
       uint8_t              def_opt_frame=0;
       uint8_t              groundSounds=0;
       ZenLoad::EFightMode  weaponCh=ZenLoad::FM_LAST;
       std::vector<EvTimed> timed;
+      std::vector<EvMorph> morph;
       };
 
     struct AnimData final {
@@ -58,6 +64,8 @@ class Animation final {
       std::vector<ZenLoad::zCModelScriptEventPfxStop> pfxStop;
       std::vector<ZenLoad::zCModelEvent>          tag;
       std::vector<ZenLoad::zCModelEvent>          events;
+
+      std::vector<ZenLoad::zCModelScriptEventMMStartAni> mmStartAni;
 
       std::vector<uint64_t>                       defHitEnd;   // hit-end time
       std::vector<uint64_t>                       defParFrame;

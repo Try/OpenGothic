@@ -57,6 +57,8 @@ class MeshObjects final {
         void   setSkeleton (const Skeleton* sk);
         void   setPose     (const Pose&     p,const Tempest::Matrix4x4& obj);
         void   setAsGhost  (bool g);
+        void   startMMAnim (const char* anim);
+        void   stopMMAnim  (const char* anim);
 
         bool   isEmpty()    const { return subCount==0; }
         size_t nodesCount() const { return subCount;    }

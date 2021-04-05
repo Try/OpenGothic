@@ -1689,6 +1689,9 @@ void Npc::tick(uint64_t dt) {
   implSetFightMode(ev);
   tickTimedEvt(ev);
 
+  for(auto& i:ev.morph)
+    visual.startMMAnim(*this,i.anim,i.node);
+
   if(!visual.pose().hasAnim())
     setAnim(AnimationSolver::Idle);
 

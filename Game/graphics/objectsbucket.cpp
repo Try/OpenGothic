@@ -61,6 +61,16 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
   oldOw->free(oldId);
   }
 
+void ObjectsBucket::Item::startMMAnim(const char* anim) {
+  if(owner!=nullptr)
+    owner->startMMAnim(id,anim);
+  }
+
+void ObjectsBucket::Item::stopMMAnim(const char* anim) {
+  if(owner!=nullptr)
+    owner->stopMMAnim(id,anim);
+  }
+
 const Bounds& ObjectsBucket::Item::bounds() const {
   if(owner!=nullptr)
     return owner->bounds(id);
@@ -476,6 +486,26 @@ void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
 
 void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
   val[i].visibility.setBounds(b);
+  }
+
+void ObjectsBucket::startMMAnim(size_t i, const char* anim) {
+  if(morphAnim==nullptr)
+    return;
+  auto& v = val[i];
+  for(size_t id=0; id<morphAnim->size(); ++id) {
+    if((*morphAnim)[id].name==anim)
+      v.morphAnimId = id;
+    }
+  }
+
+void ObjectsBucket::stopMMAnim(size_t i, const char* anim) {
+  if(morphAnim==nullptr)
+    return;
+  auto& v = val[i];
+  for(size_t id=0; id<morphAnim->size(); ++id) {
+    if((*morphAnim)[id].name==anim)
+      v.morphAnimId = 0;
+    }
   }
 
 bool ObjectsBucket::isSceneInfoRequired() const {

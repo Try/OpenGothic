@@ -216,8 +216,11 @@ ProtoMesh::Animation ProtoMesh::mkAnimation(const ZenLoad::zCMorphMesh::Animatio
   ret.name            = a.name;
   ret.numFrames       = a.numFrames;
   ret.samplesPerFrame = a.samples.size()/a.numFrames;
-  ret.tickPerFrame    = size_t(a.speed*1000);
   ret.index           = Resources::ssbo(remap.data(),remap.size()*sizeof(remap[0]));
+
+  if(a.flags&0x2 || a.duration<=0)
+    ret.tickPerFrame = size_t(1.f/a.speed); else
+    ret.tickPerFrame = size_t(a.duration/float(a.numFrames));
 
   if(ret.tickPerFrame==0)
     ret.tickPerFrame = 1;

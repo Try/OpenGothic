@@ -67,6 +67,16 @@ void MeshObjects::Mesh::setAsGhost(bool g) {
     sub[i].setAsGhost(g);
   }
 
+void MeshObjects::Mesh::startMMAnim(const char* anim) {
+  for(size_t i=0;i<subCount;++i)
+    sub[i].startMMAnim(anim);
+  }
+
+void MeshObjects::Mesh::stopMMAnim(const char* anim) {
+  for(size_t i=0;i<subCount;++i)
+    sub[i].stopMMAnim(anim);
+  }
+
 Bounds MeshObjects::Mesh::bounds() const {
   if(subCount==0)
     return Bounds();

@@ -68,8 +68,10 @@ class ObjectsBucket final {
 
         bool   isEmpty() const { return owner==nullptr; }
 
-        void   setObjMatrix (const Tempest::Matrix4x4& mt);
-        void   setAsGhost   (bool g);
+        void   setObjMatrix(const Tempest::Matrix4x4& mt);
+        void   setAsGhost  (bool g);
+        void   startMMAnim (const char* anim);
+        void   stopMMAnim  (const char* anim);
 
         const Bounds& bounds() const;
 
@@ -188,6 +190,8 @@ class ObjectsBucket final {
 
     void    setObjMatrix(size_t i,const Tempest::Matrix4x4& m);
     void    setBounds   (size_t i,const Bounds& b);
+    void    startMMAnim (size_t i,const char* anim);
+    void    stopMMAnim  (size_t i,const char* anim);
 
     bool    isSceneInfoRequired() const;
     void    updatePushBlock(UboPush& push, Object& v);

@@ -426,17 +426,24 @@ void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, uint8_t comb, 
     });
   }
 
-void Pose::onAddLayer(Pose::Layer& l) {
-  if(l.seq->data->events.size()>0)
+void Pose::onAddLayer(const Pose::Layer& l) {
+  if(hasLayers(l))
     hasEvents++;
   needToUpdate = true;
   }
 
-void Pose::onRemoveLayer(Pose::Layer &l) {
+void Pose::onRemoveLayer(const Pose::Layer &l) {
   if(l.seq==rotation)
     rotation=nullptr;
-  if(l.seq->data->events.size()>0)
+  if(hasLayers(l))
     hasEvents--;
+  }
+
+bool Pose::hasLayers(const Pose::Layer& l) {
+  return
+      l.seq->data->events.size()>0 ||
+      l.seq->data->mmStartAni.size()>0 ||
+      l.seq->data->gfx.size()>0;
   }
 
 void Pose::processSfx(Npc &npc, uint64_t tickCount) {

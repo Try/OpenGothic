@@ -847,9 +847,21 @@ bool MdlVisual::startAnimDialog(Npc &npc) {
 
   const Animation::Sequence *sq = solver.solveFrm(name);
   if(skInst->startAnim(solver,sq,0,BS_STAND,Pose::NoHint,npc.world().tickCount())) {
+    head.view.startMMAnim("VISEME");
     return true;
     }
   return false;
+  }
+
+void MdlVisual::startMMAnim(Npc&, const char* anim, const char* bone) {
+  MdlVisual::MeshAttach* mesh[] = {&head,&sword,&bow,&ammunition,&stateItm};
+  for(auto i:mesh) {
+    if(i->bone==nullptr)
+      continue;
+    if(bone!=nullptr && bone[0]!='\0' && std::strcmp(i->bone,bone)!=0)
+      continue;
+    i->view.startMMAnim(anim);
+    }
   }
 
 void MdlVisual::stopDlgAnim() {
@@ -860,4 +872,5 @@ void MdlVisual::stopDlgAnim() {
     std::snprintf(buf,sizeof(buf),"T_DIALOGGESTURE_%02d",i+1);
     skInst->stopAnim(buf);
     }
+  head.view.stopMMAnim("VISEME");
   }
