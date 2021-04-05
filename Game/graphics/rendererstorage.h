@@ -14,9 +14,7 @@ class Material;
 
 class RendererStorage {
   public:
-    RendererStorage(Tempest::Device& device, Gothic& gothic);
-
-    Tempest::Device&        device;
+    RendererStorage(Gothic& gothic);
 
     Tempest::RenderPipeline pSky;
     Tempest::RenderPipeline pFog;

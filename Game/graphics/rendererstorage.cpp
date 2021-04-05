@@ -43,8 +43,9 @@ void RendererStorage::MaterialTemplate::load(Device &device, const char *tag) {
   mph.load(device,fmph,"%s.%s.sprv");
   }
 
-RendererStorage::RendererStorage(Device& device, Gothic& gothic)
-  :device(device) {
+RendererStorage::RendererStorage(Gothic& gothic) {
+  auto& device = Resources::device();
+
   solid   .load(device,"gbuffer");
   atest   .load(device,"at_gbuffer");
   water   .load(device,"water");
@@ -257,5 +258,5 @@ const RenderPipeline* RendererStorage::materialPipeline(const Material& mat, Obj
 
 template<class Vertex>
 RenderPipeline RendererStorage::pipeline(RenderState& st, const ShaderPair &sh) const {
-  return device.pipeline<Vertex>(Triangles,st,sh.vs,sh.fs);
+  return Resources::device().pipeline<Vertex>(Triangles,st,sh.vs,sh.fs);
   }

@@ -87,7 +87,7 @@ GameMenu::~GameMenu() {
 
   gothic.flushSettings();
   gothic.popPause();
-  Resources::waitDeviceIdle(); // safe-delete savethumb
+  Resources::device().waitIdle(); // safe-delete savethumb
   }
 
 void GameMenu::initItems() {
@@ -583,7 +583,7 @@ bool GameMenu::implUpdateSavThumb(GameMenu::Item& sel) {
     }
 
   char form[64]={};
-  Resources::waitDeviceIdle();
+  Resources::device().waitIdle();
   savThumb = Resources::loadTexture(hdr.priview);
 
   set("MENUITEM_LOADSAVE_THUMBPIC",       &savThumb);

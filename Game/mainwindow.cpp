@@ -28,7 +28,7 @@ using namespace Tempest;
 
 MainWindow::MainWindow(Gothic &gothic, Device& device)
   : Window(Maximized),device(device),swapchain(device,hwnd()),
-    atlas(device),renderer(device,swapchain,gothic),
+    atlas(device),renderer(swapchain,gothic),
     gothic(gothic),keycodec(gothic),
     rootMenu(gothic,keycodec),video(gothic),inventory(gothic,keycodec,renderer.storage()),
     dialogs(gothic,inventory),document(gothic,keycodec),chapter(gothic),console(gothic),

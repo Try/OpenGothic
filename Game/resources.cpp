@@ -51,7 +51,7 @@ static void emplaceTag(char* buf, char tag){
   }
 
 Resources::Resources(Gothic &gothic, Tempest::Device &device)
-  : device(device), gothic(gothic) {
+  : dev(device), gothic(gothic) {
   inst=this;
 
   ZenLib::Log::SetLogCallback([](ZenLib::Log::EMessageType t, const char* what) {
@@ -130,12 +130,7 @@ Resources::~Resources() {
   }
 
 const char* Resources::renderer() {
-  return inst->device.renderer();
-  }
-
-void Resources::waitDeviceIdle() {
-  std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->device.waitIdle();
+  return inst->dev.renderer();
   }
 
 static Sampler2d implShadowSampler() {
@@ -267,7 +262,7 @@ Texture2d *Resources::implLoadTexture(TextureCache& cache,std::string&& name,con
     Tempest::MemReader rd(data.data(),data.size());
     Tempest::Pixmap    pm(rd);
 
-    std::unique_ptr<Texture2d> t{new Texture2d(device.loadTexture(pm))};
+    std::unique_ptr<Texture2d> t{new Texture2d(dev.loadTexture(pm))};
     Texture2d* ret=t.get();
     cache[std::move(name)] = std::move(t);
     return ret;
@@ -603,7 +598,7 @@ std::vector<const Texture2d*> Resources::loadTextureAnim(const std::string& name
 
 Texture2d Resources::loadTexture(const Pixmap &pm) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->device.loadTexture(pm);
+  return inst->dev.loadTexture(pm);
   }
 
 Material Resources::loadMaterial(const ZenLoad::zCMaterialData& src, bool enableAlphaTest) {
@@ -901,5 +896,5 @@ Tempest::VertexBuffer<Resources::Vertex> Resources::sphere(int passCount, float 
     v.pos[2] *= R;
     }
 
-  return device.vbo(r);
+  return dev.vbo(r);
   }

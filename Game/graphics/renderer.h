@@ -18,7 +18,7 @@ class InventoryMenu;
 
 class Renderer final {
   public:
-    Renderer(Tempest::Device& device, Tempest::Swapchain& swapchain, Gothic &gothic);
+    Renderer(Tempest::Swapchain& swapchain, Gothic &gothic);
 
     void resetSwapchain();
     void onWorldChanged();
@@ -33,7 +33,6 @@ class Renderer final {
     const RendererStorage&            storage() const { return stor; }
 
   private:
-    Tempest::Device&                  device;
     Tempest::Swapchain&               swapchain;
     Gothic&                           gothic;
     Tempest::Matrix4x4                view, viewProj;

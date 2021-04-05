@@ -94,7 +94,7 @@ void PfxObjects::preFrameUpdate(uint8_t fId) {
       }
     }
 
-  auto& device = scene.storage.device;
+  auto& device = Resources::device();
   for(auto& i:bucket) {
     auto& vbo = i.vboGpu[fId];
     if(i.vboCpu.size()!=vbo.size())

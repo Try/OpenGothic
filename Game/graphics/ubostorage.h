@@ -13,7 +13,7 @@ class UboStorage {
   public:
     UboStorage();
 
-    bool                     commitUbo(Tempest::Device &device, uint8_t fId);
+    bool                     commitUbo(uint8_t fId);
     size_t                   alloc();
     void                     free(const size_t objId);
     const
@@ -65,7 +65,8 @@ void UboStorage<Ubo>::markAsChanged(size_t /*elt*/) {
   }
 
 template<class Ubo>
-bool UboStorage<Ubo>::commitUbo(Tempest::Device& device,uint8_t fId) {
+bool UboStorage<Ubo>::commitUbo(uint8_t fId) {
+  auto&        device  = Resources::device();
   auto&        frame   = pf[fId];
   const bool   realloc = frame.uboData.size()!=obj.size();
   if(!frame.uboChanged)

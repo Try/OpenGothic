@@ -12,7 +12,7 @@
 using namespace Tempest;
 
 WorldView::WorldView(const World &world, const PackedMesh &wmesh, const RendererStorage &storage)
-  : owner(world),storage(storage),sGlobal(storage),visuals(storage.device,sGlobal),
+  : owner(world),storage(storage),sGlobal(storage),visuals(sGlobal),
     objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(*this,visuals,wmesh) {
   visuals.setWorld(owner);
   pfxGroup.resetTicks();
@@ -20,7 +20,7 @@ WorldView::WorldView(const World &world, const PackedMesh &wmesh, const Renderer
 
 WorldView::~WorldView() {
   // cmd buffers must not be in use
-  storage.device.waitIdle();
+  Resources::device().waitIdle();
   }
 
 const LightSource &WorldView::mainLight() const {
@@ -44,6 +44,8 @@ void WorldView::setModelView(const Matrix4x4& viewProj, const Tempest::Matrix4x4
   }
 
 void WorldView::setFrameGlobals(const Texture2d* shadow[], uint64_t tickCount, uint8_t fId) {
+  auto& device = Resources::device();
+
   const Texture2d* shNull[Resources::ShadowLayers];
   if(shadow==nullptr) {
     for(size_t i=0; i<Resources::ShadowLayers; ++i)
@@ -58,7 +60,7 @@ void WorldView::setFrameGlobals(const Texture2d* shadow[], uint64_t tickCount, u
   if(needToUpdateUbo) {
     needToUpdateUbo = false;
     // wait before update all descriptors
-    sGlobal.storage.device.waitIdle();
+    device.waitIdle();
     sGlobal.setShadowMap(shadow);
     visuals.setupUbo();
     }
@@ -84,7 +86,7 @@ void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffus
   sGlobal.gbufDepth   = &depth;
 
   // wait before update all descriptors
-  sGlobal.storage.device.waitIdle();
+  Resources::device().waitIdle();
   setupUbo();
   }
 

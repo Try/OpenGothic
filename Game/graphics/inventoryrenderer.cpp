@@ -9,7 +9,7 @@
 using namespace Tempest;
 
 InventoryRenderer::InventoryRenderer(const RendererStorage &storage)
-  :scene(storage),visual(storage.device,scene),itmGroup(visual) {
+  :scene(storage),visual(scene),itmGroup(visual) {
   LightSource light;
   light.setColor(Vec3(0.f,0.f,0.f));
   scene.ambient = Vec3(1.f,1.f,1.f);

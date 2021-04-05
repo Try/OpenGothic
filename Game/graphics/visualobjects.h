@@ -8,7 +8,7 @@ class AnimMesh;
 
 class VisualObjects final {
   public:
-    VisualObjects(Tempest::Device& device, const SceneGlobals& globals);
+    VisualObjects(const SceneGlobals& globals);
 
     ObjectsBucket::Item get(const StaticMesh& mesh, const Material& mat, size_t iboOffset, size_t iboLen,
                             const std::vector<ProtoMesh::Animation>& anim, bool staticDraw);

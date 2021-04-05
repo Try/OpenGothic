@@ -8,8 +8,8 @@
 
 using namespace Tempest;
 
-VisualObjects::VisualObjects(Device& device, const SceneGlobals& globals)
-  :globals(globals), skinedAnim(device), uboStatic(device), uboDyn(device), sky(globals) {
+VisualObjects::VisualObjects(const SceneGlobals& globals)
+  :globals(globals), sky(globals) {
   }
 
 ObjectsBucket& VisualObjects::getBucket(const Material& mat, const std::vector<ProtoMesh::Animation>& anim, ObjectsBucket::Type type) {
@@ -177,9 +177,9 @@ void VisualObjects::mkIndex() {
   }
 
 void VisualObjects::commitUbo(uint8_t fId) {
-  bool sk = skinedAnim.commitUbo(globals.storage.device,fId);
-  bool st = uboStatic .commitUbo(globals.storage.device,fId);
-  bool dn = uboDyn    .commitUbo(globals.storage.device,fId);
+  bool  sk = skinedAnim.commitUbo(fId);
+  bool  st = uboStatic .commitUbo(fId);
+  bool  dn = uboDyn    .commitUbo(fId);
 
   if(!st && !dn && !sk)
     return;

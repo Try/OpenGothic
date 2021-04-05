@@ -15,7 +15,7 @@ class SkeletalStorage {
     Tempest::Matrix4x4 mat[Resources::MAX_NUM_SKELETAL_NODES];
     };
   public:
-    SkeletalStorage(Tempest::Device& device);
+    SkeletalStorage();
     ~SkeletalStorage();
 
     class AnimationId final {
@@ -35,7 +35,7 @@ class SkeletalStorage {
         size_t           boneCnt = 0;
       };
 
-    bool                     commitUbo(Tempest::Device &device, uint8_t fId);
+    bool                     commitUbo(uint8_t fId);
     size_t                   alloc(size_t bonesCount);
     void                     free(const size_t objId, size_t bonesCount);
 
@@ -56,7 +56,7 @@ class SkeletalStorage {
     struct FreeList;
 
     template<size_t sz>
-    bool                            tryInit(Tempest::Device& device);
+    bool                            tryInit();
 
     std::unique_ptr<Impl>           impl;
     size_t                          blockSize;

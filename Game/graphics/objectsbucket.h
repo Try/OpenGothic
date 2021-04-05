@@ -83,9 +83,8 @@ class ObjectsBucket final {
 
     class Storage final {
       public:
-        Storage(Tempest::Device&) {}
         UboStorage<UboMaterial> mat;
-        bool                    commitUbo(Tempest::Device &device, uint8_t fId);
+        bool                    commitUbo(uint8_t fId);
       };
 
     ObjectsBucket(const Material& mat, const std::vector<ProtoMesh::Animation>& anim, VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type);

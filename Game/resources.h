@@ -79,15 +79,15 @@ class Resources final {
       Tempest::Vec3 color;
       };
 
-    static const char* renderer();
-    static void        waitDeviceIdle();
+    static Tempest::Device&          device() { return inst->dev; }
+    static const char*               renderer();
 
     static const Tempest::Sampler2d& shadowSampler();
 
-    static const GthFont& dialogFont();
-    static const GthFont& font();
-    static const GthFont& font(FontType type);
-    static const GthFont& font(const char *fname,FontType type = FontType::Normal);
+    static const GthFont&            dialogFont();
+    static const GthFont&            font();
+    static const GthFont&            font(FontType type);
+    static const GthFont&            font(const char *fname,FontType type = FontType::Normal);
 
     static const Tempest::Texture2d& fallbackTexture();
     static const Tempest::Texture2d& fallbackBlack();
@@ -113,12 +113,12 @@ class Resources final {
     static ZenLoad::oCWorldData      loadVobBundle(const std::string& name);
 
     template<class V>
-    static Tempest::VertexBuffer<V>  vbo(const V* data,size_t sz){ return inst->device.vbo(data,sz); }
+    static Tempest::VertexBuffer<V>  vbo(const V* data,size_t sz){ return inst->dev.vbo(data,sz); }
 
     template<class V>
-    static Tempest::IndexBuffer<V>   ibo(const V* data,size_t sz){ return inst->device.ibo(data,sz); }
+    static Tempest::IndexBuffer<V>   ibo(const V* data,size_t sz){ return inst->dev.ibo(data,sz); }
 
-    static Tempest::StorageBuffer    ssbo(const void* data, size_t size) { return inst->device.ssbo(data,size); }
+    static Tempest::StorageBuffer    ssbo(const void* data, size_t size) { return inst->dev.ssbo(data,size); }
 
     static std::vector<uint8_t>      getFileData(const char*        name);
     static bool                      getFileData(const char*        name,std::vector<uint8_t>& dat);
@@ -202,15 +202,15 @@ class Resources final {
         }
       };
 
-    Tempest::Device&      device;
-    Tempest::SoundDevice  sound;
-    std::recursive_mutex  sync;
+    Tempest::Device&                  dev;
+    Tempest::SoundDevice              sound;
+    std::recursive_mutex              sync;
     std::unique_ptr<Dx8::DirectMusic> dxMusic;
-    Gothic&               gothic;
-    VDFS::FileIndex       gothicAssets;
+    Gothic&                           gothic;
+    VDFS::FileIndex                   gothicAssets;
 
-    std::vector<uint8_t>  fBuff, ddsBuf;
-    Tempest::VertexBuffer<VertexFsq>         fsq;
+    std::vector<uint8_t>              fBuff, ddsBuf;
+    Tempest::VertexBuffer<VertexFsq>  fsq;
 
     TextureCache                                                          texCache;
 

@@ -12,8 +12,9 @@
 
 using namespace Tempest;
 
-Renderer::Renderer(Tempest::Device &device,Tempest::Swapchain& swapchain,Gothic& gothic)
-  :device(device),swapchain(swapchain),gothic(gothic),stor(device,gothic) {
+Renderer::Renderer(Tempest::Swapchain& swapchain, Gothic& gothic)
+  : swapchain(swapchain),gothic(gothic),stor(gothic) {
+  auto& device = Resources::device();
   view.identity();
 
   static const TextureFormat shfrm[] = {
@@ -44,10 +45,12 @@ Renderer::Renderer(Tempest::Device &device,Tempest::Swapchain& swapchain,Gothic&
 
   Log::i("GPU = ",device.renderer());
   Log::i("Depth format = ",int(zBufferFormat)," Shadow format = ",int(shadowFormat));
-  uboCopy = stor.device.uniforms(stor.pCopy.layout());
+  uboCopy = device.uniforms(stor.pCopy.layout());
   }
 
 void Renderer::resetSwapchain() {
+  auto& device = Resources::device();
+
   const uint32_t w      = swapchain.w();
   const uint32_t h      = swapchain.h();
   const uint32_t imgC   = swapchain.imageCount();
@@ -161,11 +164,13 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, Inve
   }
 
 void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, VectorImage& surface) {
+  auto& device = Resources::device();
   cmd.setFramebuffer(fbo,uiPass);
   surface.draw(device,swapchain,cmd);
   }
 
 Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
+  auto& device = Resources::device();
   device.waitIdle();
 
   uint32_t w = uint32_t(zbuffer.w());

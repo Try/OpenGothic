@@ -7,6 +7,8 @@
 
 SceneGlobals::SceneGlobals(const RendererStorage& storage)
   :storage(storage), lights(*this) {
+  auto& device = Resources::device();
+
   uboGlobal.lightDir={1,1,-1};
   uboGlobal.lightDir/=uboGlobal.lightDir.manhattanLength();
 
@@ -22,7 +24,7 @@ SceneGlobals::SceneGlobals(const RendererStorage& storage)
 
   for(uint8_t fId=0; fId<Resources::MaxFramesInFlight; ++fId)
     for(uint8_t lay=0; lay<V_Count; ++lay) {
-      uboGlobalPf[fId][lay] = storage.device.ubo<UboGlobal>(nullptr,1);
+      uboGlobalPf[fId][lay] = device.ubo<UboGlobal>(nullptr,1);
       }
   }
 

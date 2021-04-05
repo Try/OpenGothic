@@ -84,7 +84,7 @@ void ObjectsBucket::Descriptors::invalidate() {
   }
 
 void ObjectsBucket::Descriptors::alloc(ObjectsBucket& owner) {
-  auto& device = owner.scene.storage.device;
+  auto& device = Resources::device();
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
     if(owner.pMain!=nullptr)
       ubo[i][SceneGlobals::V_Main] = device.uniforms(owner.pMain->layout());
@@ -99,6 +99,7 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const std::vector<ProtoMesh::A
                              VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type)
   :owner(owner), scene(scene), storage(storage), mat(mat), shaderType(type) {
   static_assert(sizeof(UboPush)<=128, "UboPush is way too big");
+  auto& device = Resources::device();
 
   auto st = shaderType;
   if(anim.size()>0) {
@@ -118,7 +119,7 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const std::vector<ProtoMesh::A
 
   for(auto& i:uboMat) {
     UboMaterial zero;
-    i = scene.storage.device.ubo<UboMaterial>(&zero,1);
+    i = device.ubo<UboMaterial>(&zero,1);
     }
 
   if(useSharedUbo) {
@@ -437,7 +438,7 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p,
   if(v.vbo==nullptr || pMain==nullptr)
     return;
 
-  storage.commitUbo(scene.storage.device,fId);
+  storage.commitUbo(fId);
 
   UboPush pushBlock = {};
   updatePushBlock(pushBlock,v);
@@ -514,6 +515,6 @@ const Bounds& ObjectsBucket::bounds(size_t i) const {
   return val[i].visibility.bounds();
   }
 
-bool ObjectsBucket::Storage::commitUbo(Device& device, uint8_t fId) {
-  return mat.commitUbo(device,fId);
+bool ObjectsBucket::Storage::commitUbo(uint8_t fId) {
+  return mat.commitUbo(fId);
   }

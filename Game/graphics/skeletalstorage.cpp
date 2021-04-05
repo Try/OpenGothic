@@ -42,7 +42,7 @@ struct SkeletalStorage::Impl {
   virtual size_t alloc(size_t bonesCount) = 0;
   virtual void   free (const size_t objId, const size_t bonesCount) = 0;
   virtual void   bind(Uniforms& ubo, uint8_t bind, uint8_t fId, size_t id) = 0;
-  virtual bool   commitUbo(Tempest::Device &device, uint8_t fId) = 0;
+  virtual bool   commitUbo(uint8_t fId) = 0;
   virtual Matrix4x4* get(size_t id) = 0;
   virtual void   reserve(size_t n) = 0;
 
@@ -155,8 +155,9 @@ struct SkeletalStorage::TImpl : Impl {
     ubo.set(bind,v,id);
     }
 
-  bool   commitUbo(Tempest::Device &device, uint8_t fId) override {
-    auto& frame = pf[fId];
+  bool   commitUbo(uint8_t fId) override {
+    auto& device = Resources::device();
+    auto& frame  = pf[fId];
     if(!frame.uboChanged)
       return false;
 
@@ -181,14 +182,14 @@ struct SkeletalStorage::TImpl : Impl {
   Tempest::UniformBuffer<Block>   uboData[Resources::MaxFramesInFlight];
   };
 
-SkeletalStorage::SkeletalStorage(Tempest::Device& device) {
-  if(tryInit<Resources::MAX_NUM_SKELETAL_NODES/16>(device))
+SkeletalStorage::SkeletalStorage() {
+  if(tryInit<Resources::MAX_NUM_SKELETAL_NODES/16>())
     return;
-  if(tryInit<Resources::MAX_NUM_SKELETAL_NODES/8>(device))
+  if(tryInit<Resources::MAX_NUM_SKELETAL_NODES/8>())
     return;
-  if(tryInit<Resources::MAX_NUM_SKELETAL_NODES/4>(device))
+  if(tryInit<Resources::MAX_NUM_SKELETAL_NODES/4>())
     return;
-  if(tryInit<Resources::MAX_NUM_SKELETAL_NODES/2>(device))
+  if(tryInit<Resources::MAX_NUM_SKELETAL_NODES/2>())
     return;
   blockSize = Resources::MAX_NUM_SKELETAL_NODES;
   impl.reset(new TImpl<Resources::MAX_NUM_SKELETAL_NODES>());
@@ -198,8 +199,9 @@ SkeletalStorage::~SkeletalStorage() {
   }
 
 template<size_t sz>
-bool SkeletalStorage::tryInit(Tempest::Device& device) {
-  const auto   align  = device.properties().ubo.offsetAlign;
+bool SkeletalStorage::tryInit() {
+  auto& device = Resources::device();
+  const auto align = device.properties().ubo.offsetAlign;
   if(Resources::MAX_NUM_SKELETAL_NODES%sz==0 && (sizeof(Matrix4x4)*sz)%align==0) {
     blockSize = sz;
     impl.reset(new TImpl<sz>());
@@ -220,8 +222,8 @@ void SkeletalStorage::bind(Uniforms& ubo, uint8_t bind, uint8_t fId, size_t id, 
   impl->bind(ubo,bind,fId,id);
   }
 
-bool SkeletalStorage::commitUbo(Tempest::Device& device, uint8_t fId) {
-  if(!impl->commitUbo(device,fId))
+bool SkeletalStorage::commitUbo(uint8_t fId) {
+  if(!impl->commitUbo(fId))
     return false;
   updatesTotal++;
   return true;

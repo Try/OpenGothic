@@ -131,7 +131,7 @@ void LightGroup::Light::setColor(const Vec3& c) {
 
 LightGroup::LightGroup(const SceneGlobals& scene)
   :scene(scene) {
-  auto& device = scene.storage.device;
+  auto& device = Resources::device();
   for(auto& u:uboBuf)
     u = device.ubo<Ubo>(nullptr,1);
 
@@ -272,6 +272,7 @@ void LightGroup::tick(uint64_t time) {
   }
 
 void LightGroup::preFrameUpdate(uint8_t fId) {
+  auto& device = Resources::device();
   LightBucket* bucket[2] = {&bucketSt, &bucketDyn};
   for(auto b:bucket) {
     if(b->updated[fId])
@@ -280,7 +281,7 @@ void LightGroup::preFrameUpdate(uint8_t fId) {
     if(b->ssbo[fId].size()==b->data.size()*sizeof(b->data[0])) {
       b->ssbo[fId].update(b->data);
       } else {
-      b->ssbo[fId] = scene.storage.device.ssbo(BufferHeap::Upload,b->data);
+      b->ssbo[fId] = device.ssbo(BufferHeap::Upload,b->data);
       b->ubo [fId].set(4,b->ssbo[fId]);
       }
     }
