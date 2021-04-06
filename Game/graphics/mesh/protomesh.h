@@ -66,14 +66,14 @@ class ProtoMesh {
       size_t                 samplesPerFrame = 0;
       uint64_t               tickPerFrame    = 50;
 
-      Tempest::StorageBuffer index;
-      Tempest::StorageBuffer samples;
+      size_t                 index           = 0;
       };
 
     // animation
     std::vector<AnimMesh>          skined;
     std::vector<Animation>         morph;
-    Tempest::StorageBuffer         morphSsbo;
+    Tempest::StorageBuffer         morphIndex;
+    Tempest::StorageBuffer         morphSamples;
 
     std::vector<Attach>            attach;
     std::vector<Node>              nodes;
@@ -89,7 +89,11 @@ class ProtoMesh {
 
   private:
     void                           setupScheme(const std::string& s);
-    Animation                      mkAnimation(const ZenLoad::zCMorphMesh::Animation& a,
-                                               const std::vector<uint32_t>& vertId,
-                                               size_t id);
+    void                           remap(const ZenLoad::zCMorphMesh::Animation& a,
+                                         const std::vector<uint32_t>& vertId,
+                                         std::vector<int32_t>& remapId,
+                                         std::vector<Tempest::Vec4>& samples,
+                                         size_t idOffset);
+
+    Animation                      mkAnimation(const ZenLoad::zCMorphMesh::Animation& a);
   };

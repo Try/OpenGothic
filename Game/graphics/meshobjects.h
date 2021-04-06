@@ -84,7 +84,7 @@ class MeshObjects final {
     VisualObjects&                  parent;
 
     Item                            implGet(const StaticMesh& mesh, const StaticMesh::SubMesh& smesh,
-                                            const std::vector<ProtoMesh::Animation>& anim,
+                                            const ProtoMesh* anim,
                                             int32_t texVar, int32_t teethTex, int32_t bodyColor,
                                             bool staticDraw);
 

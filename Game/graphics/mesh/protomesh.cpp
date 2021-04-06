@@ -1,8 +1,9 @@
 #include "protomesh.h"
 
 #include <Tempest/Log>
-
 #include "physics/physicmeshshape.h"
+
+using namespace Tempest;
 
 ProtoMesh::Attach::~Attach() {
   }
@@ -112,8 +113,8 @@ ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm, const std::string& fname)
   nodes.back().submeshIdE = submeshId.size();
   nodes.back().transform.identity();
 
-  bbox[0] = Tempest::Vec3(pm.bbox[0].x,pm.bbox[0].y,pm.bbox[0].z);
-  bbox[1] = Tempest::Vec3(pm.bbox[1].x,pm.bbox[1].y,pm.bbox[1].z);
+  bbox[0] = Vec3(pm.bbox[0].x,pm.bbox[0].y,pm.bbox[0].z);
+  bbox[1] = Vec3(pm.bbox[1].x,pm.bbox[1].y,pm.bbox[1].z);
   setupScheme(fname);
   }
 
@@ -122,16 +123,40 @@ ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm,
                      const std::string& fname)
   : ProtoMesh(std::move(pm),fname) {
   if(attach.size()!=1) {
-    Tempest::Log::d("skip animations for: ",fname);
+    Log::d("skip animations for: ",fname);
     return;
     }
 
-  const size_t indexSz = sizeof(int32_t[4])*((pm.verticesId.size()+3)/4)*aniList.size();
-  morphSsbo = Resources::ssbo(nullptr,indexSz);
+  auto& device = Resources::device();
 
+  const size_t ssboAlign      = device.properties().ssbo.offsetAlign;
+  const size_t indexSz        = sizeof(int32_t[4])*((pm.verticesId.size()+3)/4);
+  const size_t indexSzAligned = ((indexSz+ssboAlign-1)/ssboAlign)*ssboAlign;
+  size_t       samplesCnt   = 0;
+
+  for(auto& i:aniList) {
+    size_t offset = i.samples.size()*sizeof(Vec4);
+    samplesCnt += offset;
+    }
+
+  morphIndex   = Resources::ssbo(nullptr, indexSzAligned*aniList.size());
+  morphSamples = Resources::ssbo(nullptr, samplesCnt);
+
+  std::vector<int32_t>       remapId;
+  std::vector<Tempest::Vec4> samples;
+
+  samplesCnt = 0;
   morph.resize(aniList.size());
   for(size_t i=0; i<aniList.size(); ++i) {
-    morph[i] = mkAnimation(aniList[i],pm.verticesId,i);
+    remap(aniList[i],pm.verticesId,remapId,samples,samplesCnt);
+
+    morphIndex  .update(remapId.data(), i*indexSzAligned,        remapId.size()*sizeof(remapId[0]));
+    morphSamples.update(samples.data(), samplesCnt*sizeof(Vec4), samples.size()*sizeof(Vec4)      );
+
+    morph[i] = mkAnimation(aniList[i]);
+    morph[i].index = (i*indexSzAligned)/sizeof(int32_t);
+
+    samplesCnt += samples.size();
     }
   }
 
@@ -202,27 +227,36 @@ void ProtoMesh::setupScheme(const std::string &s) {
   scheme = s;
   }
 
-ProtoMesh::Animation ProtoMesh::mkAnimation(const ZenLoad::zCMorphMesh::Animation& a,
-                                            const std::vector<uint32_t>& vertId,
-                                            size_t id) {
+void ProtoMesh::remap(const ZenLoad::zCMorphMesh::Animation& a,
+                      const std::vector<uint32_t>& vertId,
+                      std::vector<int32_t>&        remap,
+                      std::vector<Tempest::Vec4>&  samples,
+                      size_t idOffset) {
   size_t indexSz = ((vertId.size()+3)/4)*4;
-  std::vector<int32_t> remap(indexSz,-1);
+  remap.resize(indexSz);
+  for(auto& i:remap)
+    i = -1;
   for(size_t i=0; i<vertId.size(); ++i) {
     const uint32_t id = vertId[i];
     for(size_t r=0; r<a.vertexIndex.size(); ++r)
       if(a.vertexIndex[r]==id) {
-        remap[i] = int(r);
+        remap[i] = int(r+idOffset);
         break;
         }
     }
 
-  morphSsbo.update(remap.data(), id*indexSz*sizeof(remap[0]), remap.size()*sizeof(remap[0]));
+  samples.resize(a.samples.size());
+  for(size_t i=0; i<a.samples.size(); ++i) {
+    auto& s = a.samples[i];
+    samples[i] = Tempest::Vec4(s.x,s.y,s.z,0);
+    }
+  }
 
+ProtoMesh::Animation ProtoMesh::mkAnimation(const ZenLoad::zCMorphMesh::Animation& a) {
   Animation ret;
   ret.name            = a.name;
   ret.numFrames       = a.numFrames;
   ret.samplesPerFrame = a.samples.size()/a.numFrames;
-  ret.index           = Resources::ssbo(remap.data(),remap.size()*sizeof(remap[0]));
 
   if(a.flags&0x2 || a.duration<=0)
     ret.tickPerFrame = size_t(1.f/a.speed); else
@@ -230,12 +264,5 @@ ProtoMesh::Animation ProtoMesh::mkAnimation(const ZenLoad::zCMorphMesh::Animatio
 
   if(ret.tickPerFrame==0)
     ret.tickPerFrame = 1;
-
-  std::vector<Tempest::Vec4> samplesAligned(a.samples.size());
-  for(size_t i=0; i<a.samples.size(); ++i) {
-    auto& s = a.samples[i];
-    samplesAligned[i] = Tempest::Vec4(s.x,s.y,s.z,0);
-    }
-  ret.samples = Resources::ssbo(samplesAligned.data(),samplesAligned.size()*sizeof(samplesAligned[0]));
   return ret;
   }

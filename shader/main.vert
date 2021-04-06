@@ -56,10 +56,11 @@ vec4 vertexPosMesh() {
   vec4 t3   = anim.skel[int(boneId.w*255.0)]*pos3;
   return t0*inWeight.x + t1*inWeight.y + t2*inWeight.z + t3*inWeight.w;
 #elif defined(MORPH)
-  int index = morphId.index[gl_VertexIndex/4][gl_VertexIndex%4];
+  int vId   = gl_VertexIndex + push.indexOffset;
+  int index = morphId.index[vId/4][vId%4];
   if(index>=0) {
-    int  f0 = push.morphFrame0*push.samplesPerFrame;
-    int  f1 = push.morphFrame1*push.samplesPerFrame;
+    int  f0 = push.morphFrameSample0;
+    int  f1 = push.morphFrameSample1;
     vec4 a  = morph.samples[f0 + index];
     vec4 b  = morph.samples[f1 + index];
 

@@ -87,13 +87,13 @@ class ObjectsBucket final {
         bool                    commitUbo(uint8_t fId);
       };
 
-    ObjectsBucket(const Material& mat, const std::vector<ProtoMesh::Animation>& anim, VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type);
+    ObjectsBucket(const Material& mat, const ProtoMesh* anim, VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type);
     ~ObjectsBucket();
 
     const Material&           material()  const;
     Type                      type()      const { return shaderType; }
     size_t                    size()      const { return valSz;      }
-    const std::vector<ProtoMesh::Animation>* morph() const { return morphAnim;  }
+    const std::vector<ProtoMesh::Animation>* morph() const { return morphAnim==nullptr ? nullptr : &morphAnim->morph;  }
 
     size_t                    avgPoligons() const { return polySz; }
 
@@ -143,8 +143,8 @@ class ObjectsBucket final {
 
     struct UboPush final {
       Tempest::Matrix4x4 pos;
-      int32_t            samplesPerFrame = 0;
-      int32_t            morphFrame[2] = {};
+      int32_t            indexOffset = 0;
+      int32_t            morphFrameSample[2] = {};
       float              morphAlpha;
       };
 
@@ -209,7 +209,7 @@ class ObjectsBucket final {
     const SceneGlobals&       scene;
     Storage&                  storage;
     Material                  mat;
-    const std::vector<ProtoMesh::Animation>* morphAnim = nullptr;
+    const ProtoMesh*          morphAnim = nullptr;
 
     Tempest::UniformBuffer<UboMaterial> uboMat[Resources::MaxFramesInFlight];
 

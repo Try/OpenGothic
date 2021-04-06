@@ -95,15 +95,15 @@ void ObjectsBucket::Descriptors::alloc(ObjectsBucket& owner) {
     }
   }
 
-ObjectsBucket::ObjectsBucket(const Material& mat, const std::vector<ProtoMesh::Animation>& anim,
+ObjectsBucket::ObjectsBucket(const Material& mat, const ProtoMesh* anim,
                              VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type)
   :owner(owner), scene(scene), storage(storage), mat(mat), shaderType(type) {
   static_assert(sizeof(UboPush)<=128, "UboPush is way too big");
   auto& device = Resources::device();
 
   auto st = shaderType;
-  if(anim.size()>0) {
-    morphAnim = &anim;
+  if(anim!=nullptr && anim->morph.size()>0) {
+    morphAnim = anim;
     st        = Morph;
     }
 
@@ -111,7 +111,7 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const std::vector<ProtoMesh::A
   pGbuffer = scene.storage.materialPipeline(mat,st,RendererStorage::T_Deffered);
   pShadow  = scene.storage.materialPipeline(mat,st,RendererStorage::T_Shadow  );
 
-  if(mat.frames.size()>0 || type==Animated || anim.size()>0)
+  if(mat.frames.size()>0 || type==Animated || morphAnim!=nullptr)
     useSharedUbo = false; else
     useSharedUbo = true;
 
@@ -186,8 +186,8 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
         ubo.set(L_GDepth,   *scene.gbufDepth,  Sampler2d::nearest());
         }
       if(morphAnim!=nullptr) {
-        ubo.set(L_MorphId,(*morphAnim)[0].index);
-        ubo.set(L_Morph,  (*morphAnim)[0].samples);
+        ubo.set(L_MorphId, morphAnim->morphIndex  );
+        ubo.set(L_Morph,   morphAnim->morphSamples);
         }
       }
 
@@ -201,8 +201,8 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
       uboSh.set(L_Scene,    scene.uboGlobalPf[i][lay]);
       uboSh.set(L_Material, uboMat[i]);
       if(morphAnim!=nullptr) {
-        uboSh.set(L_MorphId, (*morphAnim)[0].index);
-        uboSh.set(L_Morph,   (*morphAnim)[0].samples);
+        uboSh.set(L_MorphId, morphAnim->morphIndex  );
+        uboSh.set(L_Morph,   morphAnim->morphSamples);
         }
       }
     }
@@ -221,11 +221,6 @@ void ObjectsBucket::uboSetDynamic(Object& v, uint8_t fId) {
         uboSh.set(L_Diffuse, *t);
         }
       }
-    }
-
-  if(morphAnim!=nullptr) {
-    ubo.set(L_MorphId, (*morphAnim)[v.morphAnimId].index);
-    ubo.set(L_Morph,   (*morphAnim)[v.morphAnimId].samples);
     }
 
   if(v.ubo.uboIsReady[fId])
@@ -488,9 +483,10 @@ void ObjectsBucket::startMMAnim(size_t i, const char* anim, float intensity, uin
   if(morphAnim==nullptr)
     return;
   auto& v = val[i];
-  for(size_t id=0; id<morphAnim->size(); ++id) {
-    if((*morphAnim)[id].name==anim)
+  for(size_t id=0; id<morphAnim->morph.size(); ++id) {
+    if(morphAnim->morph[id].name==anim) {
       v.morphAnimId = id;
+      }
     }
   }
 
@@ -501,13 +497,14 @@ bool ObjectsBucket::isSceneInfoRequired() const {
 void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v) {
   push.pos = v.pos;
   if(morphAnim!=nullptr) {
-    auto&    anim = (*morphAnim)[v.morphAnimId];
+    auto&    anim = morphAnim->morph[v.morphAnimId];
     uint64_t time = (scene.tickCount+v.timeShift);
 
-    push.samplesPerFrame = int32_t(anim.samplesPerFrame);
-    push.morphFrame[0]   = int32_t((time/anim.tickPerFrame+0)%anim.numFrames);
-    push.morphFrame[1]   = int32_t((time/anim.tickPerFrame+1)%anim.numFrames);
-    push.morphAlpha      = float(time%anim.tickPerFrame)/float(anim.tickPerFrame);
+    const int32_t samplesPerFrame = int32_t(anim.samplesPerFrame);
+    push.indexOffset         = anim.index;
+    push.morphFrameSample[0] = int32_t((time/anim.tickPerFrame+0)%anim.numFrames) * samplesPerFrame;
+    push.morphFrameSample[1] = int32_t((time/anim.tickPerFrame+1)%anim.numFrames) * samplesPerFrame;
+    push.morphAlpha          = float(time%anim.tickPerFrame)/float(anim.tickPerFrame);
     }
   }
 
