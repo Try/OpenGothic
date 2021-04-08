@@ -141,11 +141,16 @@ class ObjectsBucket final {
       float         range=0;
       };
 
+    struct MorphDesc final {
+      uint32_t indexOffset;
+      uint32_t sample0;
+      uint32_t sample1;
+      float    alpha;
+      };
+
     struct UboPush final {
       Tempest::Matrix4x4 pos;
-      int32_t            indexOffset = 0;
-      int32_t            morphFrameSample[2] = {};
-      float              morphAlpha;
+      MorphDesc          morph;
       };
 
     struct UboMaterial final {
@@ -158,6 +163,13 @@ class ObjectsBucket final {
 
       void                    invalidate();
       void                    alloc(ObjectsBucket& owner);
+      };
+
+    struct MorphAnim {
+      size_t   id        = 0;
+      uint64_t timeStart = 0;
+      uint64_t timeUntil = 0;
+      float    intensity = 0;
       };
 
     struct Object final {
@@ -174,8 +186,8 @@ class ObjectsBucket final {
       Descriptors                           ubo;
       uint64_t                              timeShift=0;
 
-      const SkeletalStorage::AnimationId*   skiningAni  = nullptr;
-      size_t                                morphAnimId = 0;
+      const SkeletalStorage::AnimationId*   skiningAni = nullptr;
+      MorphAnim                             morphAnim;
 
       bool                                  isValid() const { return vboType!=VboType::NoVbo; }
       };

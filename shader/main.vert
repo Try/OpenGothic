@@ -44,6 +44,27 @@ layout(location = 0) out VsData {
 vec4 boneId;
 #endif
 
+#if defined(MORPH)
+vec3 morphOffset() {
+  float intensity = floor(push.morph.alpha)/255.0;
+  if(intensity<=0)
+    return vec3(0);
+
+  uint  vId   = gl_VertexIndex + push.morph.indexOffset;
+  int   index = morphId.index[vId/4][vId%4];
+  if(index<0)
+    return vec3(0);
+
+  float alpha = fract(push.morph.alpha);
+  uint  f0 = push.morph.sample0;
+  uint  f1 = push.morph.sample1;
+  vec3  a  = morph.samples[f0 + index].xyz;
+  vec3  b  = morph.samples[f1 + index].xyz;
+
+  return mix(a,b,alpha) * intensity;
+  }
+#endif
+
 vec4 vertexPosMesh() {
 #if defined(SKINING)
   vec4 pos0 = vec4(inPos0,1.0);
@@ -56,18 +77,7 @@ vec4 vertexPosMesh() {
   vec4 t3   = anim.skel[int(boneId.w*255.0)]*pos3;
   return t0*inWeight.x + t1*inWeight.y + t2*inWeight.z + t3*inWeight.w;
 #elif defined(MORPH)
-  int vId   = gl_VertexIndex + push.indexOffset;
-  int index = morphId.index[vId/4][vId%4];
-  if(index>=0) {
-    int  f0 = push.morphFrameSample0;
-    int  f1 = push.morphFrameSample1;
-    vec4 a  = morph.samples[f0 + index];
-    vec4 b  = morph.samples[f1 + index];
-
-    vec4 displace = mix(a,b,push.morphAlpha);
-    return vec4(inPos+displace.xyz,1.0);
-    }
-  return vec4(inPos,1.0);
+  return vec4(inPos+morphOffset(),1.0);
 #else
   return vec4(inPos,1.0);
 #endif

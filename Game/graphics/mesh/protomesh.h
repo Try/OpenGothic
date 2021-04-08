@@ -64,6 +64,7 @@ class ProtoMesh {
       std::string            name;
       size_t                 numFrames       = 0;
       size_t                 samplesPerFrame = 0;
+      int32_t                layer           = 0;
       uint64_t               tickPerFrame    = 50;
 
       size_t                 index           = 0;

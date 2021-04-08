@@ -257,6 +257,7 @@ ProtoMesh::Animation ProtoMesh::mkAnimation(const ZenLoad::zCMorphMesh::Animatio
   ret.name            = a.name;
   ret.numFrames       = a.numFrames;
   ret.samplesPerFrame = a.samples.size()/a.numFrames;
+  ret.layer           = a.layer;
 
   if(a.flags&0x2 || a.duration<=0)
     ret.tickPerFrame = size_t(1.f/a.speed); else

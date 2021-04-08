@@ -111,7 +111,7 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const ProtoMesh* anim,
   pGbuffer = scene.storage.materialPipeline(mat,st,RendererStorage::T_Deffered);
   pShadow  = scene.storage.materialPipeline(mat,st,RendererStorage::T_Shadow  );
 
-  if(mat.frames.size()>0 || type==Animated || morphAnim!=nullptr)
+  if(mat.frames.size()>0 || type==Animated)
     useSharedUbo = false; else
     useSharedUbo = true;
 
@@ -260,14 +260,16 @@ void ObjectsBucket::invalidateUbo() {
   }
 
 void ObjectsBucket::preFrameUpdate(uint8_t fId) {
+  if(mat.texAniMapDirPeriod.x==0 && mat.texAniMapDirPeriod.y==0)
+    return;
+
   UboMaterial ubo;
   if(mat.texAniMapDirPeriod.x!=0)
     ubo.texAniMapDir.x = float(scene.tickCount%std::abs(mat.texAniMapDirPeriod.x))/float(mat.texAniMapDirPeriod.x);
   if(mat.texAniMapDirPeriod.y!=0)
     ubo.texAniMapDir.y = float(scene.tickCount%std::abs(mat.texAniMapDirPeriod.y))/float(mat.texAniMapDirPeriod.y);
 
-  if(mat.texAniMapDirPeriod.x!=0 || mat.texAniMapDirPeriod.y!=0)
-    uboMat[fId].update(&ubo,0,1);
+  uboMat[fId].update(&ubo,0,1);
   }
 
 bool ObjectsBucket::groupVisibility(const Frustrum& f) {
@@ -484,8 +486,14 @@ void ObjectsBucket::startMMAnim(size_t i, const char* anim, float intensity, uin
     return;
   auto& v = val[i];
   for(size_t id=0; id<morphAnim->morph.size(); ++id) {
-    if(morphAnim->morph[id].name==anim) {
-      v.morphAnimId = id;
+    auto& m = morphAnim->morph[id];
+    if(m.name==anim) {
+      v.morphAnim.id        = id;
+      v.morphAnim.timeStart = scene.tickCount;
+      v.morphAnim.timeUntil = timeUntil;
+      v.morphAnim.intensity = intensity;
+      if(timeUntil==uint64_t(-1))
+        v.morphAnim.timeUntil = scene.tickCount + m.numFrames*m.tickPerFrame;
       }
     }
   }
@@ -497,14 +505,20 @@ bool ObjectsBucket::isSceneInfoRequired() const {
 void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v) {
   push.pos = v.pos;
   if(morphAnim!=nullptr) {
-    auto&    anim = morphAnim->morph[v.morphAnimId];
-    uint64_t time = (scene.tickCount+v.timeShift);
+    auto&    anim = morphAnim->morph[v.morphAnim.id];
+    uint64_t time = (scene.tickCount-v.morphAnim.timeStart);
 
-    const int32_t samplesPerFrame = int32_t(anim.samplesPerFrame);
-    push.indexOffset         = int32_t(anim.index);
-    push.morphFrameSample[0] = int32_t((time/anim.tickPerFrame+0)%anim.numFrames) * samplesPerFrame;
-    push.morphFrameSample[1] = int32_t((time/anim.tickPerFrame+1)%anim.numFrames) * samplesPerFrame;
-    push.morphAlpha          = float(time%anim.tickPerFrame)/float(anim.tickPerFrame);
+    float alpha     = float(time%anim.tickPerFrame)/float(anim.tickPerFrame);
+    float intensity = v.morphAnim.intensity;
+
+    if(scene.tickCount>v.morphAnim.timeUntil)
+      intensity = 0;
+
+    const uint32_t samplesPerFrame = uint32_t(anim.samplesPerFrame);
+    push.morph.indexOffset = uint32_t(anim.index);
+    push.morph.sample0     = uint32_t((time/anim.tickPerFrame+0)%anim.numFrames)*samplesPerFrame;
+    push.morph.sample1     = uint32_t((time/anim.tickPerFrame+1)%anim.numFrames)*samplesPerFrame;
+    push.morph.alpha       = alpha + std::floor(intensity*255);
     }
   }
 

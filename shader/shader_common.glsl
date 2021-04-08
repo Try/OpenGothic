@@ -17,13 +17,18 @@ struct Light {
   float range;
   };
 
+struct MorphDesc {
+  uint  indexOffset;
+  uint  sample0;
+  uint  sample1;
+  float alpha;
+  };
+
+
 #if defined(OBJ)
 layout(push_constant, std140) uniform UboPush {
-  mat4  obj;
-  int   indexOffset;
-  int   morphFrameSample0;
-  int   morphFrameSample1;
-  float morphAlpha;
+  mat4      obj;
+  MorphDesc morph;
   } push;
 #endif
 
