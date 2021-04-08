@@ -578,8 +578,9 @@ bool Npc::hasAutoroll() const {
 void Npc::stopWalkAnimation() {
   if(interactive()==nullptr) {
     auto st = bodyStateMasked();
-    if(st==BS_RUN || st==BS_WALK || st==BS_SNEAK)
-      setAnim(Anim::Idle);
+    if(st==BS_RUN || st==BS_WALK || st==BS_SNEAK) {
+      visual.stopAnim(*this,nullptr);
+      }
     }
   setAnimRotate(0);
   }
@@ -1855,13 +1856,15 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_StandUp:
     case AI_StandUpQuick:
       // NOTE: B_ASSESSTALK calls AI_StandUp, to make npc stand, if it's not on a chair or something
-      if(interactive()!=nullptr && interactive()->stateMask()!=BS_SIT) {
+      if(interactive()!=nullptr) {
+        // if(interactive()->stateMask()==BS_SIT)
+        //   ;
         if(!setInteraction(nullptr,act.act==AI_StandUpQuick)) {
           aiQueue.pushFront(std::move(act));
           }
         break;
         }
-      if(bodyStateMasked()==BS_UNCONSCIOUS) {
+      else if(bodyStateMasked()==BS_UNCONSCIOUS) {
         if(!setAnim(Anim::Idle))
           aiQueue.pushFront(std::move(act)); else
           implAniWait(visual.pose().animationTotalTime());
