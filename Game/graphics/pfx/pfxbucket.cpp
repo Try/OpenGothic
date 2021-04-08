@@ -400,24 +400,32 @@ void PfxBucket::implTickCommon(uint64_t dt, const Vec3& viewPos) {
     if(emitter.st==S_Free)
       continue;
 
-    auto& p = getBlock(emitter);
-    if(p.count>0) {
-      for(size_t i=0;i<blockSize;++i)
-        tick(p,emitter,i,dt);
-      if(p.count==0 && emitter.st==S_Fade) {
-        // free mem
-        freeBlock(emitter.block);
-        emitter.st = S_Free;
-        doShrink = true;
-        continue;
+    if(emitter.block!=size_t(-1)) {
+      auto& p = getBlock(emitter);
+      if(p.count>0) {
+        for(size_t i=0;i<blockSize;++i)
+          tick(p,emitter,i,dt);
+        if(p.count==0 && (emitter.st==S_Fade || !nearby)) {
+          // free mem
+          freeBlock(emitter.block);
+          if(emitter.st==S_Fade)
+            emitter.st = S_Free;
+          doShrink = true;
+          continue;
+          }
         }
       }
 
     if(emitter.st==S_Active && nearby) {
+      auto& p = getBlock(emitter);
       auto dE = ppsDiff(decl,emitter.isLoop,p.timeTotal,p.timeTotal+dt);
       tickEmit(p,emitter,dE);
       }
-    p.timeTotal+=dt;
+
+    if(emitter.block!=size_t(-1)) {
+      auto& p = getBlock(emitter);
+      p.timeTotal+=dt;
+      }
     }
 
   if(doShrink)
