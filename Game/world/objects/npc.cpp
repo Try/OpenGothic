@@ -167,6 +167,9 @@ Npc::Npc(World &owner, size_t instance, const Daedalus::ZString& waypoint)
   if(hnpc.attribute[ATR_HITPOINTS]<=1 && hnpc.attribute[ATR_HITPOINTSMAX]<=1) {
     onNoHealth(true,HS_NoSound);
     }
+
+  if(hnpc.name[0]=="Pablo")
+    Log::d("");
   }
 
 Npc::Npc(World &owner, Serialize &fin)
@@ -1686,7 +1689,7 @@ void Npc::tick(uint64_t dt) {
   visual.processLayers(owner);
   visual.setNpcEffect(owner,*this,hnpc.effect,hnpc.flags);
 
-  if(ev.groundSounds>0 && isPlayer())
+  if(ev.groundSounds>0 && isPlayer() && (bodyState()&BodyState::BS_SNEAK)==BodyState::BS_SNEAK)
     world().sendPassivePerc(*this,*this,*this,Npc::PERC_ASSESSQUIETSOUND);
   if(ev.def_opt_frame>0)
     commitDamage();
