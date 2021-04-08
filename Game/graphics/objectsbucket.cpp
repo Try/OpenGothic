@@ -501,7 +501,7 @@ void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket:
     uint64_t time = (scene.tickCount+v.timeShift);
 
     const int32_t samplesPerFrame = int32_t(anim.samplesPerFrame);
-    push.indexOffset         = anim.index;
+    push.indexOffset         = int32_t(anim.index);
     push.morphFrameSample[0] = int32_t((time/anim.tickPerFrame+0)%anim.numFrames) * samplesPerFrame;
     push.morphFrameSample[1] = int32_t((time/anim.tickPerFrame+1)%anim.numFrames) * samplesPerFrame;
     push.morphAlpha          = float(time%anim.tickPerFrame)/float(anim.tickPerFrame);
