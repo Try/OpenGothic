@@ -167,9 +167,6 @@ Npc::Npc(World &owner, size_t instance, const Daedalus::ZString& waypoint)
   if(hnpc.attribute[ATR_HITPOINTS]<=1 && hnpc.attribute[ATR_HITPOINTSMAX]<=1) {
     onNoHealth(true,HS_NoSound);
     }
-
-  if(hnpc.name[0]=="Pablo")
-    Log::d("");
   }
 
 Npc::Npc(World &owner, Serialize &fin)
