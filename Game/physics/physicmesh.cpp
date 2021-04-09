@@ -26,7 +26,7 @@ PhysicMesh::PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner, bool movable
   }
 
 void PhysicMesh::setObjMatrix(const Tempest::Matrix4x4& obj) {
-  implSetObjMatrix(obj,skeleton->tr.data());
+  implSetObjMatrix(obj,skeleton==nullptr ? nullptr : skeleton->tr.data());
   }
 
 void PhysicMesh::setSkeleton(const Skeleton* sk) {
@@ -42,11 +42,13 @@ void PhysicMesh::setPose(const Pose& p, const Tempest::Matrix4x4& obj) {
 void PhysicMesh::implSetObjMatrix(const Tempest::Matrix4x4 &mt, const Tempest::Matrix4x4* tr) {
   const size_t binds = (binder==nullptr ? 0 : binder->bind.size());
   for(size_t i=0; i<binds; ++i) {
+    if(ani->submeshId[i].subId!=0)
+      continue;
     auto id  = binder->bind[i];
     auto mat = mt;
     if(id<skeleton->tr.size())
       mat.mul(tr[id]);
-    sub[i].setObjMatrix(mat);
+    sub[ani->submeshId[i].id].setObjMatrix(mat);
     }
   for(size_t i=binds; i<sub.size(); ++i)
     sub[i].setObjMatrix(mt);
