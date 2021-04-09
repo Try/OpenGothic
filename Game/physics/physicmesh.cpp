@@ -25,18 +25,8 @@ PhysicMesh::PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner, bool movable
     }
   }
 
-void PhysicMesh::setObjMatrix(const Tempest::Matrix4x4& mt) {
-  const size_t binds = (binder==nullptr ? 0 : binder->bind.size());
-  for(size_t i=0; i<binds && i<sub.size(); ++i) {
-    auto id  = binder->bind[i];
-    auto mat=mt;
-    if(id<skeleton->tr.size())
-      mat.mul(skeleton->tr[id]);
-    sub[i].setObjMatrix(mat);
-    }
-  for(size_t i=binds; i<sub.size(); ++i) {
-    sub[i].setObjMatrix(mt);
-    }
+void PhysicMesh::setObjMatrix(const Tempest::Matrix4x4& obj) {
+  implSetObjMatrix(obj,skeleton->tr.data());
   }
 
 void PhysicMesh::setSkeleton(const Skeleton* sk) {
@@ -46,16 +36,18 @@ void PhysicMesh::setSkeleton(const Skeleton* sk) {
   }
 
 void PhysicMesh::setPose(const Pose& p, const Tempest::Matrix4x4& obj) {
-  if(binder!=nullptr){
-    for(size_t i=0;i<binder->bind.size();++i){
-      auto id=binder->bind[i];
-      if(id>=p.transform().size())
-        continue;
-      auto mat=obj;
-      mat.mul(p.transform(id));
+  implSetObjMatrix(obj,p.transform().data());
+  }
 
-      auto subI = ani->submeshId[i].id;
-      sub[subI].setObjMatrix(mat);
-      }
+void PhysicMesh::implSetObjMatrix(const Tempest::Matrix4x4 &mt, const Tempest::Matrix4x4* tr) {
+  const size_t binds = (binder==nullptr ? 0 : binder->bind.size());
+  for(size_t i=0; i<binds; ++i) {
+    auto id  = binder->bind[i];
+    auto mat = mt;
+    if(id<skeleton->tr.size())
+      mat.mul(tr[id]);
+    sub[i].setObjMatrix(mat);
     }
+  for(size_t i=binds; i<sub.size(); ++i)
+    sub[i].setObjMatrix(mt);
   }

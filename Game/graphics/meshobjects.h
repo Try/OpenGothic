@@ -69,7 +69,8 @@ class MeshObjects final {
         const PfxEmitterMesh* toMeshEmitter() const;
 
       private:
-        void setObjMatrix(const ProtoMesh &ani, const Tempest::Matrix4x4& mt, size_t parent);
+        void implSetObjMatrix(const Tempest::Matrix4x4& mt, const Tempest::Matrix4x4* tr);
+        void implSetObjMatrix(const ProtoMesh &ani, const Tempest::Matrix4x4& mt, size_t parent);
 
         std::unique_ptr<Item[]> sub;
         size_t                  subCount=0;

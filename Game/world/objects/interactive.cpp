@@ -636,7 +636,6 @@ bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
   }
 
 bool Interactive::attach(Npc &npc) {
-
   for(auto& i:attPos)
     if(i.user==&npc)
       return true;

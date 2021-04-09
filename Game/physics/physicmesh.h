@@ -17,6 +17,8 @@ class PhysicMesh final {
     void   setPose       (const Pose&      p,const Tempest::Matrix4x4& obj);
 
   private:
+    void   implSetObjMatrix(const Tempest::Matrix4x4& mt, const Tempest::Matrix4x4* tr);
+
     std::vector<DynamicWorld::Item> sub;
     const ProtoMesh*                ani=nullptr;
     const Skeleton*                 skeleton=nullptr;
