@@ -49,7 +49,7 @@ struct GameScript::ScopeVar final {
 
 
 bool GameScript::GlobalOutput::output(Npc& npc,const Daedalus::ZString& text) {
-  return owner.aiOutput(npc,text);
+  return owner.aiOutput(npc,text,false);
   }
 
 bool GameScript::GlobalOutput::outputSvm(Npc &npc, const Daedalus::ZString& text, int voice) {
@@ -1022,11 +1022,14 @@ const Daedalus::ZString& GameScript::spellCastAnim(Npc&, Item &it) {
   return tag;
   }
 
-bool GameScript::aiOutput(Npc &npc, const Daedalus::ZString& outputname) {
+bool GameScript::aiOutput(Npc &npc, const Daedalus::ZString& outputname, bool overlay) {
   char buf[256]={};
   std::snprintf(buf,sizeof(buf),"%s.WAV",outputname.c_str());
-  npc.setAiOutputBarrier(messageTime(outputname));
-  npc.emitDlgSound(buf);
+
+  uint64_t dt=0;
+  world().addDlgSound(buf,npc.position()+Vec3{0,180,0},WorldSound::talkRange,dt);
+  npc.setAiOutputBarrier(messageTime(outputname),overlay);
+
   return true;
   }
 
@@ -1040,7 +1043,7 @@ bool GameScript::aiOutputSvm(Npc &npc, const Daedalus::ZString& outputname, int3
     }
 
   if(!sv.empty())
-    return aiOutput(npc,sv);
+    return aiOutput(npc,sv,overlay);
   return true;
   }
 

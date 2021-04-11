@@ -430,7 +430,6 @@ class Npc final {
 
     bool      checkGoToNpcdistance(const Npc& other);
 
-
     bool      isAiQueueEmpty() const;
     bool      isAiBusy() const;
     void      clearAiQueue();
@@ -457,11 +456,10 @@ class Npc final {
     void      setVictum(Npc* ot);
 
     bool      haveOutput() const;
-    void      setAiOutputBarrier(uint64_t dt);
+    void      setAiOutputBarrier(uint64_t dt, bool overlay);
 
     bool      doAttack(Anim anim);
     void      takeDamage(Npc& other,const Bullet* b);
-    void      emitDlgSound(const char* sound);
     void      emitSoundEffect(const char* sound, float range, bool freeSlot);
     void      emitSoundGround(const char* sound, float range, bool freeSlot);
     void      emitSoundSVM   (const char* sound);
@@ -545,7 +543,7 @@ class Npc final {
     void      implFaiWait(uint64_t dt);
     void      implSetFightMode(const Animation::EvCount& ev);
     void      tickRoutine();
-    void      nextAiAction(uint64_t dt);
+    void      nextAiAction(AiQueue& queue, uint64_t dt);
     void      commitDamage();
     void      takeDamage(Npc& other);
     Npc*      updateNearestEnemy();
@@ -626,11 +624,14 @@ class Npc final {
     uint64_t                       aniWaitTime=0;
     uint64_t                       waitTime=0;
     uint64_t                       faiWaitTime=0;
+    uint64_t                       outWaitTime=0;
+
     uint64_t                       aiOutputBarrier=0;
     ProcessPolicy                  aiPolicy=ProcessPolicy::AiNormal;
     AiState                        aiState;
     ScriptFn                       aiPrevState;
     AiQueue                        aiQueue;
+    AiQueue                        aiQueueOverlay;
     std::vector<Routine>           routines;
 
     Interactive*                   currentInteract=nullptr;

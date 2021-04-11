@@ -198,7 +198,7 @@ class GameScript final {
 
     void  storeItem(Item* it);
 
-    bool  aiOutput   (Npc &from, const Daedalus::ZString& name);
+    bool  aiOutput   (Npc &from, const Daedalus::ZString& name, bool overlay);
     bool  aiOutputSvm(Npc &from, const Daedalus::ZString& name, int32_t voice, bool overlay);
 
     bool  searchScheme(const char* sc,const char* listName);

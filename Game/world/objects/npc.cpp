@@ -296,15 +296,16 @@ void Npc::postValidate() {
   }
 
 void Npc::saveAiState(Serialize& fout) const {
-  fout.write(aniWaitTime);
-  fout.write(waitTime,faiWaitTime,uint8_t(aiPolicy));
+  fout.write(aniWaitTime,waitTime,faiWaitTime,outWaitTime);
+  fout.write(uint8_t(aiPolicy));
   fout.write(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
   fout.write(aiPrevState);
 
   aiQueue.save(fout);
+  aiQueueOverlay.save(fout);
 
   fout.write(uint32_t(routines.size()));
-  for(auto& i:routines){
+  for(auto& i:routines) {
     fout.write(i.start,i.end,i.callback,i.point);
     }
   }
@@ -312,16 +313,21 @@ void Npc::saveAiState(Serialize& fout) const {
 void Npc::loadAiState(Serialize& fin) {
   if(fin.version()>=1)
     fin.read(aniWaitTime);
-  fin.read(waitTime,faiWaitTime,reinterpret_cast<uint8_t&>(aiPolicy));
+  fin.read(waitTime,faiWaitTime);
+  if(fin.version()>=26)
+    fin.read(outWaitTime);
+  fin.read(reinterpret_cast<uint8_t&>(aiPolicy));
   fin.read(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
   fin.read(aiPrevState);
 
   aiQueue.load(fin);
+  if(fin.version()>=26)
+    aiQueueOverlay.load(fin);
 
   uint32_t size=0;
   fin.read(size);
   routines.resize(size);
-  for(auto& i:routines){
+  for(auto& i:routines) {
     fin.read(i.start,i.end,i.callback,i.point);
     }
   }
@@ -1488,10 +1494,10 @@ bool Npc::implAiTick(uint64_t dt) {
   if(aiQueue.size()==0) {
     tickRoutine();
     if(aiQueue.size()>0)
-      nextAiAction(dt);
+      nextAiAction(aiQueue,dt);
     return false;
     }
-  nextAiAction(dt);
+  nextAiAction(aiQueue,dt);
   return true;
   }
 
@@ -1715,6 +1721,8 @@ void Npc::tick(uint64_t dt) {
       }
     }
 
+  nextAiAction(aiQueueOverlay,dt);
+
   if(tickCast())
     return;
 
@@ -1725,7 +1733,7 @@ void Npc::tick(uint64_t dt) {
               hnpc.attribute[ATR_REGENERATEMANA],dt);
     }
 
-  if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount() || aiOutputBarrier>owner.tickCount()) {
+  if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount() || outWaitTime>owner.tickCount()) {
     if(faiWaitTime<owner.tickCount())
       adjustAtackRotation(dt);
     mvAlgo.tick(dt,MoveAlgo::WaitMove);
@@ -1744,10 +1752,10 @@ void Npc::tick(uint64_t dt) {
   implAiTick(dt);
   }
 
-void Npc::nextAiAction(uint64_t dt) {
-  if(aiQueue.size()==0)
+void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
+  if(queue.size()==0)
     return;
-  auto act = aiQueue.pop();
+  auto act = queue.pop();
   switch(act.act) {
     case AI_None: break;
     case AI_LookAt:{
@@ -1756,13 +1764,13 @@ void Npc::nextAiAction(uint64_t dt) {
       }
     case AI_TurnToNpc: {
       if(act.target!=nullptr && implLookAt(*act.target,dt)){
-        aiQueue.pushFront(std::move(act));
+        queue.pushFront(std::move(act));
         }
       break;
       }
     case AI_GoToNpc:
       if(!setInteraction(nullptr)) {
-        aiQueue.pushFront(std::move(act));
+        queue.pushFront(std::move(act));
         break;
         }
       currentFp       = nullptr;
@@ -1772,7 +1780,7 @@ void Npc::nextAiAction(uint64_t dt) {
       break;
     case AI_GoToNextFp: {
       if(!setInteraction(nullptr)) {
-        aiQueue.pushFront(std::move(act));
+        queue.pushFront(std::move(act));
         break;
         }
       auto fp = owner.findNextFreePoint(*this,act.s0.c_str());
@@ -1786,7 +1794,7 @@ void Npc::nextAiAction(uint64_t dt) {
       }
     case AI_GoToPoint: {
       if(!setInteraction(nullptr)) {
-        aiQueue.pushFront(std::move(act));
+        queue.pushFront(std::move(act));
         break;
         }
       if(wayPath.last()!=act.point) {
@@ -1814,7 +1822,7 @@ void Npc::nextAiAction(uint64_t dt) {
           stopWalkAnimation();
           }
         if(weaponState()!=WeaponState::NoWeapon){
-          aiQueue.pushFront(std::move(act));
+          queue.pushFront(std::move(act));
           }
         }
       break;
@@ -1829,7 +1837,7 @@ void Npc::nextAiAction(uint64_t dt) {
         implAniWait(uint64_t(sq->totalTime()));
         } else {
         if(visual.isAnimExist(act.s0.c_str()))
-          aiQueue.pushFront(std::move(act));
+          queue.pushFront(std::move(act));
         }
       break;
       }
@@ -1839,7 +1847,7 @@ void Npc::nextAiAction(uint64_t dt) {
         implAniWait(uint64_t(sq->totalTime()));
         } else {
         if(visual.isAnimExist(act.s0.c_str())) {
-          aiQueue.pushFront(std::move(act));
+          queue.pushFront(std::move(act));
           } else {
           /* ZS_MM_Rtn_Sleep will set NPC_WALK mode and run T_STAND_2_SLEEP animation.
            * The problem is: T_STAND_2_SLEEP may not exists, in that case only NPC_WALK should be applied,
@@ -1860,13 +1868,13 @@ void Npc::nextAiAction(uint64_t dt) {
         // if(interactive()->stateMask()==BS_SIT)
         //   ;
         if(!setInteraction(nullptr,act.act==AI_StandUpQuick)) {
-          aiQueue.pushFront(std::move(act));
+          queue.pushFront(std::move(act));
           }
         break;
         }
       else if(bodyStateMasked()==BS_UNCONSCIOUS) {
         if(!setAnim(Anim::Idle))
-          aiQueue.pushFront(std::move(act)); else
+          queue.pushFront(std::move(act)); else
           implAniWait(visual.pose().animationTotalTime());
         }
       else if(bodyStateMasked()!=BS_DEAD) {
@@ -1888,16 +1896,16 @@ void Npc::nextAiAction(uint64_t dt) {
     case AI_UseMob: {
       if(act.i0<0){
         if(!setInteraction(nullptr))
-          aiQueue.pushFront(std::move(act));
+          queue.pushFront(std::move(act));
         break;
         }
       if(owner.script().isTalk(*this)) {
-        aiQueue.pushFront(std::move(act));
+        queue.pushFront(std::move(act));
         break;
         }
       auto inter = owner.aviableMob(*this,act.s0.c_str());
       if(inter==nullptr) {
-        aiQueue.pushFront(std::move(act));
+        queue.pushFront(std::move(act));
         break;
         }
 
@@ -1908,16 +1916,16 @@ void Npc::nextAiAction(uint64_t dt) {
         if(dp.quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) { // too far
           go2.set(pos);
           // go to MOBSI and then complete AI_UseMob
-          aiQueue.pushFront(std::move(act));
+          queue.pushFront(std::move(act));
           return;
           }
         if(!setInteraction(inter)) {
-          // aiQueue.pushFront(std::move(act));
+          // queue.pushFront(std::move(act));
           }
         }
 
       if(currentInteract==nullptr || currentInteract->stateId()!=act.i0) {
-        aiQueue.pushFront(std::move(act));
+        queue.pushFront(std::move(act));
         }
       break;
       }
@@ -1932,7 +1940,7 @@ void Npc::nextAiAction(uint64_t dt) {
         if(state>0)
           visual.stopDlgAnim(*this);
         if(!invent.putState(*this,state>=0 ? itm : 0,state))
-          aiQueue.pushFront(std::move(act));
+          queue.pushFront(std::move(act));
         }
       break;
     case AI_Teleport: {
@@ -1944,21 +1952,21 @@ void Npc::nextAiAction(uint64_t dt) {
         fghAlgo.onClearTarget();
         if(!drawWeaponMele() &&
            !drawWeaponBow())
-          aiQueue.pushFront(std::move(act));
+          queue.pushFront(std::move(act));
         }
       break;
     case AI_DrawWeaponMele:
       if(!isDead()) {
         fghAlgo.onClearTarget();
         if(!drawWeaponMele())
-          aiQueue.pushFront(std::move(act));
+          queue.pushFront(std::move(act));
         }
       break;
     case AI_DrawWeaponRange:
       if(!isDead()) {
         fghAlgo.onClearTarget();
         if(!drawWeaponBow())
-          aiQueue.pushFront(std::move(act));
+          queue.pushFront(std::move(act));
         }
       break;
     case AI_DrawSpell: {
@@ -1966,14 +1974,14 @@ void Npc::nextAiAction(uint64_t dt) {
         const int32_t spell = act.i0;
         fghAlgo.onClearTarget();
         if(!drawSpell(spell))
-          aiQueue.pushFront(std::move(act));
+          queue.pushFront(std::move(act));
         }
       break;
       }
     case AI_Atack:
       if(currentTarget!=nullptr && weaponState()!=WeaponState::NoWeapon){
         if(!fghAlgo.fetchInstructions(*this,*currentTarget,owner.script()))
-          aiQueue.pushFront(std::move(act));
+          queue.pushFront(std::move(act));
         }
       break;
     case AI_Flee:
@@ -1998,7 +2006,7 @@ void Npc::nextAiAction(uint64_t dt) {
           visual.setRotation(*this,0);
           }
         } else {
-        aiQueue.pushFront(std::move(act));
+        queue.pushFront(std::move(act));
         }
       break;
       }
@@ -2018,7 +2026,7 @@ void Npc::nextAiAction(uint64_t dt) {
         act.target->setOther(this);
         act.target->outputPipe = p;
         } else {
-        aiQueue.pushFront(std::move(act));
+        queue.pushFront(std::move(act));
         }
       break;
     case AI_StopProcessInfo:
@@ -2027,7 +2035,7 @@ void Npc::nextAiAction(uint64_t dt) {
         if(currentOther!=nullptr)
           currentOther->outputPipe = owner.script().openAiOuput();
         } else {
-        aiQueue.pushFront(std::move(act));
+        queue.pushFront(std::move(act));
         }
       break;
     case AI_ContinueRoutine:{
@@ -2043,7 +2051,7 @@ void Npc::nextAiAction(uint64_t dt) {
       if(auto fp = currentFp){
         if(fp->dirX!=0.f || fp->dirZ!=0.f){
           if(implLookAt(fp->dirX,fp->dirZ,false,dt))
-            aiQueue.pushFront(std::move(act));
+            queue.pushFront(std::move(act));
           }
         }
       break;
@@ -2065,13 +2073,13 @@ void Npc::nextAiAction(uint64_t dt) {
         break;
 
       if(!fghAlgo.isInAtackRange(*this,*act.target,owner.script())){
-        aiQueue.pushFront(std::move(act));
+        queue.pushFront(std::move(act));
         implGoTo(dt,fghAlgo.prefferedAtackDistance(*this,*act.target,owner.script()));
         }
       else if(canFinish(*act.target)){
         setTarget(act.target);
         if(!finishingMove())
-          aiQueue.pushFront(std::move(act));
+          queue.pushFront(std::move(act));
         }
       break;
       }
@@ -2080,7 +2088,7 @@ void Npc::nextAiAction(uint64_t dt) {
         break;
       if(takeItem(*act.item)==nullptr) {
         if(owner.itmId(act.item)!=uint32_t(-1))
-          aiQueue.pushFront(std::move(act));
+          queue.pushFront(std::move(act));
         }
       break;
       }
@@ -2211,11 +2219,15 @@ void Npc::setVictum(Npc* ot) {
   }
 
 bool Npc::haveOutput() const {
+  if(owner.tickCount()<aiOutputBarrier)
+    return true;
   return aiOutputOrderId()!=std::numeric_limits<int>::max();
   }
 
-void Npc::setAiOutputBarrier(uint64_t dt) {
+void Npc::setAiOutputBarrier(uint64_t dt, bool overlay) {
   aiOutputBarrier = owner.tickCount()+dt;
+  if(!overlay)
+    outWaitTime = aiOutputBarrier;
   }
 
 bool Npc::doAttack(Anim anim) {
@@ -2236,12 +2248,6 @@ bool Npc::doAttack(Anim anim) {
     return true;
     }
   return false;
-  }
-
-void Npc::emitDlgSound(const char *sound) {
-  uint64_t dt=0;
-  owner.addDlgSound(sound,{x,y+180,z},WorldSound::talkRange,dt);
-  setAiOutputBarrier(dt);
   }
 
 void Npc::emitSoundEffect(const char *sound, float range, bool freeSlot) {
@@ -2431,7 +2437,9 @@ void Npc::setToFistMode() {
   }
 
 void Npc::aiPush(AiQueue::AiAction&& a) {
-  aiQueue.pushBack(std::move(a));
+  if(a.act==AI_OutputSvmOverlay)
+    aiQueueOverlay.pushBack(std::move(a)); else
+    aiQueue.pushBack(std::move(a));
   }
 
 Item* Npc::addItem(const size_t item, uint32_t count) {
@@ -3361,12 +3369,13 @@ bool Npc::isAiQueueEmpty() const {
 
 bool Npc::isAiBusy() const {
   return !isAiQueueEmpty() ||
-         aniWaitTime    >=owner.tickCount() ||
-         aiOutputBarrier>=owner.tickCount();
+         aniWaitTime>=owner.tickCount() ||
+         outWaitTime>=owner.tickCount();
   }
 
 void Npc::clearAiQueue() {
   aiQueue.clear();
+  aiQueueOverlay.clear();
   waitTime        = 0;
   faiWaitTime     = 0;
   wayPath.clear();
