@@ -98,6 +98,10 @@ void PfxBucket::freeBlock(size_t& i) {
     return;
   auto& b = block[i];
   assert(b.count==0);
+
+  Vertex* v  = &vboCpu[b.offset*vertexCount];
+  std::memset(v,0,blockSize*vertexCount*sizeof(*v));
+
   b.allocated = false;
   i = size_t(-1);
   }
