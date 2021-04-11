@@ -658,7 +658,7 @@ bool Interactive::attach(Npc &npc) {
 bool Interactive::dettach(Npc &npc, bool quick) {
   for(auto& i:attPos) {
     if(i.user==&npc) {
-      if(state==stateNum && canQuitAtLastState()) {
+      if(state==stateNum && canQuitAtLastState() && !npc.isPlayer()) {
         i.user       = nullptr;
         i.attachMode = false;
         npc.quitIneraction();
