@@ -67,7 +67,7 @@ void main() {
 
   float dist     = length(pos1-pos0);
   float fogDens  = volumetricFog(pos0.xyz,pos1.xyz-pos0.xyz);
-  if(fogDens<0.01) {
+  if(fogDens<0.005) {
     outColor = vec4(0);
     return;
     }

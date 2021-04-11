@@ -31,6 +31,8 @@ void LightGroup::LightBucket::free(size_t id) {
     data.pop_back();
     light.pop_back();
     } else {
+    light[id].setRange(0);
+    data[id] = LightSsbo();
     freeList.push_back(id);
     }
   }
@@ -76,12 +78,10 @@ LightGroup::Light::Light(LightGroup& owner)
 
 LightGroup::Light::Light(World& owner, const ZenLoad::zCVobData& vob)
   :Light(owner.view()->sGlobal.lights,vob) {
-  owner.view()->needToUpdateUbo = true;
   }
 
 LightGroup::Light::Light(World& owner)
   :Light(owner.view()->sGlobal.lights) {
-  owner.view()->needToUpdateUbo = true;
   }
 
 LightGroup::Light& LightGroup::Light::operator =(LightGroup::Light&& other) {
