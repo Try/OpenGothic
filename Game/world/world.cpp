@@ -804,7 +804,7 @@ const WayPoint *World::findPoint(const char *name, bool inexact) const {
   }
 
 const WayPoint* World::findWayPoint(const Tempest::Vec3& pos) const {
-  return wmatrix->findWayPoint(pos,[](const WayPoint&){ return true; });
+  return wmatrix->findWayPoint(pos,pos,[](const WayPoint&){ return true; });
   }
 
 const WayPoint *World::findFreePoint(const Npc &npc, const char *name) const {
@@ -866,11 +866,11 @@ void World::detectItem(const Tempest::Vec3& p, const float r, const std::functio
 WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
   auto p     = npc.position();
   auto begin = npc.currentWayPoint();
-  if(begin && !begin->isFreePoint() && MoveAlgo::isClose(npc.position(),*begin)){
+  if(begin && !begin->isFreePoint() && MoveAlgo::isClose(npc.position(),*begin)) {
     return wmatrix->wayTo(*begin,end);
     }
 
-  begin = wmatrix->findWayPoint(p,[&npc](const WayPoint &wp){
+  begin = wmatrix->findWayPoint(p,end.position(),[&npc](const WayPoint &wp) {
     if(!npc.canSeeNpc(wp.x,wp.y+10,wp.z,true))
       return false;
     return true;

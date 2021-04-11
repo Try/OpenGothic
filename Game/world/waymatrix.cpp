@@ -58,14 +58,19 @@ void WayMatrix::buildIndex() {
     }
   }
 
-const WayPoint *WayMatrix::findWayPoint(const Vec3& at, const std::function<bool(const WayPoint&)>& filter) const {
+const WayPoint *WayMatrix::findWayPoint(const Vec3& at, const Vec3& to, const std::function<bool(const WayPoint&)>& filter) const {
   const WayPoint* ret =nullptr;
   float           dist=std::numeric_limits<float>::max();
   for(auto& w:wayPoints) {
     if(!filter(w))
       continue;
-    auto  dp = w.position()-at;
-    float l  = dp.quadLength();
+    auto  dp0 = at-w.position();
+    float l0  = dp0.quadLength();
+
+    auto  dp1 = to-w.position();
+    float l1  = dp1.quadLength();
+
+    float l = l0 + std::min<float>(l1,150*150);
     if(l<dist){
       ret  = &w;
       dist = l;

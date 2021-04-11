@@ -1279,9 +1279,9 @@ bool Npc::implGoTo(uint64_t dt) {
     dist = 400;
     } else {
     // use smaller threshold, to avoid edge-looping in script
-    dist = MoveAlgo::closeToPointThreshold*0.5f;
+    dist = MoveAlgo::closeToPointThreshold*0.25f;
     if(go2.wp!=nullptr && go2.wp->useCounter()>1)
-      dist += 200;
+      dist += 100;
     }
   return implGoTo(dt,dist);
   }

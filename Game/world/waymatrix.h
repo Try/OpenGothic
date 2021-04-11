@@ -17,7 +17,7 @@ class WayMatrix final {
   public:
     WayMatrix(World& owner,const ZenLoad::zCWayNetData& dat);
 
-    const WayPoint* findWayPoint (const Tempest::Vec3& at, const std::function<bool(const WayPoint&)>& filter) const;
+    const WayPoint* findWayPoint (const Tempest::Vec3& at, const Tempest::Vec3& to, const std::function<bool(const WayPoint&)>& filter) const;
     const WayPoint* findFreePoint(const Tempest::Vec3& at, const char* name, const std::function<bool(const WayPoint&)>& filter) const;
     const WayPoint* findNextPoint(const Tempest::Vec3& at) const;
 
