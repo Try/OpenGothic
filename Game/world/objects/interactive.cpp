@@ -658,14 +658,21 @@ bool Interactive::attach(Npc &npc) {
 bool Interactive::dettach(Npc &npc, bool quick) {
   for(auto& i:attPos) {
     if(i.user==&npc) {
-      if(quick) {
-        i.user = nullptr;
+      if(state==stateNum && canQuitAtLastState()) {
+        i.user       = nullptr;
+        i.attachMode = false;
+        npc.quitIneraction();
+        return true;
+        }
+      else if(quick) {
+        i.user       = nullptr;
         i.attachMode = false;
         if(reverseState)
           state = stateNum; else
           state = 0;
         npc.quitIneraction();
-        } else {
+        }
+      else {
         i.attachMode = false;
         return true;
         }

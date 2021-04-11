@@ -1901,20 +1901,23 @@ void Npc::nextAiAction(uint64_t dt) {
         break;
         }
 
-      if(inter==currentInteract)
-        break;
-
-      auto pos = inter->nearestPoint(*this);
-      auto dp  = pos-position();
-      dp.y = 0;
-      if(dp.quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) { // too far
-        go2.set(pos);
-        // go to MOBSI and then complete AI_UseMob
-        aiQueue.pushFront(std::move(act));
-        return;
+      if(inter!=currentInteract) {
+        auto pos = inter->nearestPoint(*this);
+        auto dp  = pos-position();
+        dp.y = 0;
+        if(dp.quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) { // too far
+          go2.set(pos);
+          // go to MOBSI and then complete AI_UseMob
+          aiQueue.pushFront(std::move(act));
+          return;
+          }
+        if(!setInteraction(inter)) {
+          // aiQueue.pushFront(std::move(act));
+          }
         }
-      if(!setInteraction(inter)) {
-        // aiQueue.pushFront(std::move(act));
+
+      if(currentInteract==nullptr || currentInteract->stateId()!=act.i0) {
+        aiQueue.pushFront(std::move(act));
         }
       break;
       }
@@ -2028,11 +2031,11 @@ void Npc::nextAiAction(uint64_t dt) {
         }
       break;
     case AI_ContinueRoutine:{
+      clearState(false);
       auto& r = currentRoutine();
       auto  t = endTime(r);
       if(r.callback.isValid())
-        startState(r.callback,r.point ? r.point->name : "",t,false); else
-        clearState(false);
+        startState(r.callback,r.point ? r.point->name : "",t,false);
       break;
       }
     case AI_AlignToWp:
