@@ -350,6 +350,9 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
     // put hero to world
     hdata.putToWorld(*game->wrld,wayPoint);
     }
+  if(auto hero = wrld->player())
+    vm->setInstanceNPC("HERO",*hero);
+
   initScripts(wss.isEmpty());
   wrld->triggerOnStart(wss.isEmpty());
 
@@ -359,9 +362,6 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
       visitedWorlds.pop_back();
       break;
       }
-
-  if(auto hero = wrld->player())
-    vm->setInstanceNPC("HERO",*hero);
 
   cam->reset(*wrld);
   Log::i("Done loading world[",world,"]");
