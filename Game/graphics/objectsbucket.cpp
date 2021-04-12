@@ -514,6 +514,7 @@ void ObjectsBucket::startMMAnim(size_t i, const char* anim, float intensity, uin
       continue;
     if(morphAnim->morph[i.id].layer!=m.layer)
       continue;
+    i.id        = id;
     i.timeUntil = timeUntil;
     i.intensity = intensity;
     return;
