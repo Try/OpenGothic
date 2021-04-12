@@ -16,13 +16,12 @@ bool DialogMenu::Pipe::output(Npc &npc, const Daedalus::ZString& text) {
   return owner.aiOutput(npc,text);
   }
 
-bool DialogMenu::Pipe::outputSvm(Npc &npc, const Daedalus::ZString& text, int voice) {
-  auto& svm = owner.gothic.messageFromSvm(text,voice);
-  return owner.aiOutput(npc,svm);
+bool DialogMenu::Pipe::outputSvm(Npc &npc, const Daedalus::ZString& text) {
+  return owner.aiOutput(npc,text);
   }
 
-bool DialogMenu::Pipe::outputOv(Npc &npc, const Daedalus::ZString& text, int voice) {
-  return outputSvm(npc,text,voice);
+bool DialogMenu::Pipe::outputOv(Npc &npc, const Daedalus::ZString& text) {
+  return owner.aiOutput(npc,text);
   }
 
 bool DialogMenu::Pipe::close() {

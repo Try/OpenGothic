@@ -66,6 +66,7 @@ class ProtoMesh {
       size_t                 samplesPerFrame = 0;
       int32_t                layer           = 0;
       uint64_t               tickPerFrame    = 50;
+      uint64_t               duration        = 0;
 
       size_t                 index           = 0;
       };

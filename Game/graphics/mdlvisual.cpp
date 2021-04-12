@@ -846,10 +846,8 @@ bool MdlVisual::startAnimDialog(Npc &npc) {
   std::snprintf(name,sizeof(name),"T_DIALOGGESTURE_%02d",id);
 
   const Animation::Sequence *sq = solver.solveFrm(name);
-  if(skInst->startAnim(solver,sq,0,BS_STAND,Pose::NoHint,npc.world().tickCount())) {
-    startFaceAnim(npc,"VISEME",1,-1);
+  if(skInst->startAnim(solver,sq,0,BS_STAND,Pose::NoHint,npc.world().tickCount()))
     return true;
-    }
   return false;
   }
 

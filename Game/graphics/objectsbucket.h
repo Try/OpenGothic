@@ -150,7 +150,7 @@ class ObjectsBucket final {
 
     struct UboPush final {
       Tempest::Matrix4x4 pos;
-      MorphDesc          morph;
+      MorphDesc          morph[Resources::MAX_MORPH_LAYERS];
       };
 
     struct UboMaterial final {
@@ -187,7 +187,7 @@ class ObjectsBucket final {
       uint64_t                              timeShift=0;
 
       const SkeletalStorage::AnimationId*   skiningAni = nullptr;
-      MorphAnim                             morphAnim;
+      MorphAnim                             morphAnim[Resources::MAX_MORPH_LAYERS];
 
       bool                                  isValid() const { return vboType!=VboType::NoVbo; }
       };

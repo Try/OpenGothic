@@ -484,18 +484,53 @@ void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
 void ObjectsBucket::startMMAnim(size_t i, const char* anim, float intensity, uint64_t timeUntil) {
   if(morphAnim==nullptr)
     return;
-  auto& v = val[i];
-  for(size_t id=0; id<morphAnim->morph.size(); ++id) {
-    auto& m = morphAnim->morph[id];
-    if(m.name==anim) {
-      v.morphAnim.id        = id;
-      v.morphAnim.timeStart = scene.tickCount;
-      v.morphAnim.timeUntil = timeUntil;
-      v.morphAnim.intensity = intensity;
-      if(timeUntil==uint64_t(-1))
-        v.morphAnim.timeUntil = scene.tickCount + m.numFrames*m.tickPerFrame;
+  auto&  v  = val[i];
+  size_t id = size_t(-1);
+  for(size_t i=0; i<morphAnim->morph.size(); ++i)
+    if(morphAnim->morph[i].name==anim) {
+      id = i;
+      break;
       }
+
+  if(id==size_t(-1))
+    return;
+
+  auto& m = morphAnim->morph[id];
+  if(timeUntil==uint64_t(-1) && m.duration>0)
+    timeUntil = scene.tickCount + m.duration;
+
+  // extend time of anim
+  for(auto& i:v.morphAnim) {
+    if(i.id!=id || i.timeUntil<scene.tickCount)
+      continue;
+    i.timeUntil = timeUntil;
+    i.intensity = intensity;
+    return;
     }
+
+  // find same layer
+  for(auto& i:v.morphAnim) {
+    if(i.timeUntil<scene.tickCount)
+      continue;
+    if(morphAnim->morph[i.id].layer!=m.layer)
+      continue;
+    i.timeUntil = timeUntil;
+    i.intensity = intensity;
+    return;
+    }
+
+  size_t nId = 0;
+  for(size_t i=0; i<Resources::MAX_MORPH_LAYERS; ++i) {
+    if(v.morphAnim[nId].timeStart<=v.morphAnim[i].timeStart)
+      continue;
+    nId = i;
+    }
+
+  auto& ani = v.morphAnim[nId];
+  ani.id        = id;
+  ani.timeStart = scene.tickCount;
+  ani.timeUntil = timeUntil;
+  ani.intensity = intensity;
   }
 
 bool ObjectsBucket::isSceneInfoRequired() const {
@@ -505,20 +540,23 @@ bool ObjectsBucket::isSceneInfoRequired() const {
 void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v) {
   push.pos = v.pos;
   if(morphAnim!=nullptr) {
-    auto&    anim = morphAnim->morph[v.morphAnim.id];
-    uint64_t time = (scene.tickCount-v.morphAnim.timeStart);
+    for(size_t i=0; i<Resources::MAX_MORPH_LAYERS; ++i) {
+      auto&    ani  = v.morphAnim[i];
+      auto&    anim = morphAnim->morph[ani.id];
+      uint64_t time = (scene.tickCount-ani.timeStart);
 
-    float alpha     = float(time%anim.tickPerFrame)/float(anim.tickPerFrame);
-    float intensity = v.morphAnim.intensity;
+      float alpha     = float(time%anim.tickPerFrame)/float(anim.tickPerFrame);
+      float intensity = ani.intensity;
 
-    if(scene.tickCount>v.morphAnim.timeUntil)
-      intensity = 0;
+      if(scene.tickCount>ani.timeUntil)
+        intensity = 0;
 
-    const uint32_t samplesPerFrame = uint32_t(anim.samplesPerFrame);
-    push.morph.indexOffset = uint32_t(anim.index);
-    push.morph.sample0     = uint32_t((time/anim.tickPerFrame+0)%anim.numFrames)*samplesPerFrame;
-    push.morph.sample1     = uint32_t((time/anim.tickPerFrame+1)%anim.numFrames)*samplesPerFrame;
-    push.morph.alpha       = alpha + std::floor(intensity*255);
+      const uint32_t samplesPerFrame = uint32_t(anim.samplesPerFrame);
+      push.morph[i].indexOffset = uint32_t(anim.index);
+      push.morph[i].sample0     = uint32_t((time/anim.tickPerFrame+0)%anim.numFrames)*samplesPerFrame;
+      push.morph[i].sample1     = uint32_t((time/anim.tickPerFrame+1)%anim.numFrames)*samplesPerFrame;
+      push.morph[i].alpha       = alpha + std::floor(intensity*255);
+      }
     }
   }
 

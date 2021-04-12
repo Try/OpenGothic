@@ -166,8 +166,8 @@ class GameScript final {
       GlobalOutput(GameScript& owner):owner(owner){}
 
       bool output   (Npc &npc, const Daedalus::ZString& text) override;
-      bool outputSvm(Npc& npc, const Daedalus::ZString& text, int voice) override;
-      bool outputOv (Npc& npc, const Daedalus::ZString& text, int voice) override;
+      bool outputSvm(Npc& npc, const Daedalus::ZString& text) override;
+      bool outputOv (Npc& npc, const Daedalus::ZString& text) override;
       bool isFinished() override;
 
       bool close() override { return true; }
@@ -199,7 +199,7 @@ class GameScript final {
     void  storeItem(Item* it);
 
     bool  aiOutput   (Npc &from, const Daedalus::ZString& name, bool overlay);
-    bool  aiOutputSvm(Npc &from, const Daedalus::ZString& name, int32_t voice, bool overlay);
+    bool  aiOutputSvm(Npc &from, const Daedalus::ZString& name, bool overlay);
 
     bool  searchScheme(const char* sc,const char* listName);
 

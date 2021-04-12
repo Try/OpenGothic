@@ -132,7 +132,7 @@ ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm,
   const size_t ssboAlign      = device.properties().ssbo.offsetAlign;
   const size_t indexSz        = sizeof(int32_t[4])*((pm.verticesId.size()+3)/4);
   const size_t indexSzAligned = ((indexSz+ssboAlign-1)/ssboAlign)*ssboAlign;
-  size_t       samplesCnt   = 0;
+  size_t       samplesCnt     = 0;
 
   for(auto& i:aniList) {
     size_t offset = i.samples.size()*sizeof(Vec4);
@@ -258,6 +258,7 @@ ProtoMesh::Animation ProtoMesh::mkAnimation(const ZenLoad::zCMorphMesh::Animatio
   ret.numFrames       = a.numFrames;
   ret.samplesPerFrame = a.samples.size()/a.numFrames;
   ret.layer           = a.layer;
+  ret.duration        = uint64_t(a.duration>0 ? a.duration : 0);
 
   if(a.flags&0x2 || a.duration<=0)
     ret.tickPerFrame = size_t(1.f/a.speed); else

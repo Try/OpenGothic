@@ -124,7 +124,7 @@ MeshObjects::Mesh::Mesh(MeshObjects& owner, const StaticMesh& mesh, int32_t head
 MeshObjects::Mesh::Mesh(MeshObjects& owner, const ProtoMesh& mesh,
                         int32_t texVar, int32_t teethTex, int32_t bodyColor, bool staticDraw)
   :proto(&mesh) {
-  const size_t skinnedCount=mesh.skinedNodesCount();
+  const size_t skinnedCount = mesh.skinedNodesCount();
   sub.reset(new Item[mesh.submeshId.size()+skinnedCount]);
   subCount = 0;
 
@@ -157,6 +157,10 @@ MeshObjects::Mesh::Mesh(MeshObjects& owner, const ProtoMesh& mesh,
           Tempest::Log::e("texture not found: \"",m.texName,"\"");
         }
       }
+    }
+
+  if(mesh.morph.size()>0) {
+    startMMAnim(mesh.morph[0].name.c_str(),1,-1);
     }
   }
 

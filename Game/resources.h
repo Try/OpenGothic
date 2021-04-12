@@ -48,10 +48,11 @@ class Resources final {
 
     enum {
       MaxFramesInFlight = 2,
-      ShadowLayers      = 2
+      ShadowLayers      = 2,
       };
 
     static const size_t MAX_NUM_SKELETAL_NODES = 96;
+    static const size_t MAX_MORPH_LAYERS       = 3;
 
     struct Vertex {
       float    pos[3];

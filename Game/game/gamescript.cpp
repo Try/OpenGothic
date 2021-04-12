@@ -52,12 +52,12 @@ bool GameScript::GlobalOutput::output(Npc& npc,const Daedalus::ZString& text) {
   return owner.aiOutput(npc,text,false);
   }
 
-bool GameScript::GlobalOutput::outputSvm(Npc &npc, const Daedalus::ZString& text, int voice) {
-  return owner.aiOutputSvm(npc,text,voice,false);
+bool GameScript::GlobalOutput::outputSvm(Npc &npc, const Daedalus::ZString& text) {
+  return owner.aiOutputSvm(npc,text,false);
   }
 
-bool GameScript::GlobalOutput::outputOv(Npc &npc, const Daedalus::ZString& text, int voice) {
-  return owner.aiOutputSvm(npc,text,voice,true);
+bool GameScript::GlobalOutput::outputOv(Npc &npc, const Daedalus::ZString& text) {
+  return owner.aiOutputSvm(npc,text,true);
   }
 
 bool GameScript::GlobalOutput::isFinished() {
@@ -1033,17 +1033,15 @@ bool GameScript::aiOutput(Npc &npc, const Daedalus::ZString& outputname, bool ov
   return true;
   }
 
-bool GameScript::aiOutputSvm(Npc &npc, const Daedalus::ZString& outputname, int32_t voice, bool overlay) {
-  const Daedalus::ZString& sv = svm->find(outputname.c_str(),voice);
+bool GameScript::aiOutputSvm(Npc &npc, const Daedalus::ZString& outputname, bool overlay) {
   if(overlay) {
     if(tickCount()<svmBarrier)
       return true;
-
-    svmBarrier = tickCount()+messageTime(sv);
+    svmBarrier = tickCount()+messageTime(outputname);
     }
 
-  if(!sv.empty())
-    return aiOutput(npc,sv,overlay);
+  if(!outputname.empty())
+    return aiOutput(npc,outputname,overlay);
   return true;
   }
 

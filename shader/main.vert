@@ -45,19 +45,19 @@ vec4 boneId;
 #endif
 
 #if defined(MORPH)
-vec3 morphOffset() {
-  float intensity = floor(push.morph.alpha)/255.0;
+vec3 morphOffset(int i) {
+  float intensity = floor(push.morph[i].alpha)/255.0;
   if(intensity<=0)
     return vec3(0);
 
-  uint  vId   = gl_VertexIndex + push.morph.indexOffset;
+  uint  vId   = gl_VertexIndex + push.morph[i].indexOffset;
   int   index = morphId.index[vId/4][vId%4];
   if(index<0)
     return vec3(0);
 
-  float alpha = fract(push.morph.alpha);
-  uint  f0 = push.morph.sample0;
-  uint  f1 = push.morph.sample1;
+  float alpha = fract(push.morph[i].alpha);
+  uint  f0 = push.morph[i].sample0;
+  uint  f1 = push.morph[i].sample1;
   vec3  a  = morph.samples[f0 + index].xyz;
   vec3  b  = morph.samples[f1 + index].xyz;
 
@@ -77,7 +77,10 @@ vec4 vertexPosMesh() {
   vec4 t3   = anim.skel[int(boneId.w*255.0)]*pos3;
   return t0*inWeight.x + t1*inWeight.y + t2*inWeight.z + t3*inWeight.w;
 #elif defined(MORPH)
-  return vec4(inPos+morphOffset(),1.0);
+  vec3 v = inPos;
+  for(int i=0; i<3; ++i)
+    v += morphOffset(i);
+  return vec4(v,1.0);
 #else
   return vec4(inPos,1.0);
 #endif

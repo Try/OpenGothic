@@ -371,9 +371,10 @@ bool Npc::performOutput(const AiQueue::AiAction &act) {
     return true; // don't waste CPU on far-away svm-talks
   if(act.act==AI_Output           && outputPipe->output   (*this,act.s0))
     return true;
-  if(act.act==AI_OutputSvm        && outputPipe->outputSvm(*this,act.s0,hnpc.voice))
+  auto& svm = owner.script().messageFromSvm(act.s0,hnpc.voice);
+  if(act.act==AI_OutputSvm        && outputPipe->outputSvm(*this,svm))
     return true;
-  if(act.act==AI_OutputSvmOverlay && outputPipe->outputOv(*this,act.s0,hnpc.voice))
+  if(act.act==AI_OutputSvmOverlay && outputPipe->outputOv(*this,svm))
     return true;
   return false;
   }
@@ -2001,6 +2002,14 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_OutputSvm:
     case AI_OutputSvmOverlay:{
       if(performOutput(act)) {
+        uint64_t msgTime = 0;
+        if(act.act==AI_Output) {
+          msgTime = owner.script().messageTime(act.s0);
+          } else {
+          auto& svm = owner.script().messageFromSvm(act.s0,hnpc.voice);
+          msgTime = owner.script().messageTime(svm);
+          }
+        visual.startFaceAnim(*this,"VISEME",1,msgTime);
         if(act.act!=AI_OutputSvmOverlay) {
           visual.startAnimDialog(*this);
           visual.setRotation(*this,0);

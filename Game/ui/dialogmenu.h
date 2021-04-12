@@ -58,8 +58,8 @@ class DialogMenu : public Tempest::Widget {
       Pipe(DialogMenu& owner):owner(owner){}
 
       bool output   (Npc &npc, const Daedalus::ZString& text) override;
-      bool outputSvm(Npc& npc, const Daedalus::ZString& text, int voice) override;
-      bool outputOv (Npc& npc, const Daedalus::ZString& text, int voice) override;
+      bool outputSvm(Npc& npc, const Daedalus::ZString& text) override;
+      bool outputOv (Npc& npc, const Daedalus::ZString& text) override;
 
       bool close() override;
       bool isFinished() override;

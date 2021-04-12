@@ -1,4 +1,5 @@
 #define MAX_NUM_SKELETAL_NODES 96
+#define MAX_MORPH_LAYERS       3
 
 #define L_Diffuse  0
 #define L_Shadow0  1
@@ -28,7 +29,9 @@ struct MorphDesc {
 #if defined(OBJ)
 layout(push_constant, std140) uniform UboPush {
   mat4      obj;
-  MorphDesc morph;
+#if defined(MORPH)
+  MorphDesc morph[MAX_MORPH_LAYERS];
+#endif
   } push;
 #endif
 
