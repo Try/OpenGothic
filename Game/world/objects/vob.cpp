@@ -7,6 +7,7 @@
 #include "world/objects/interactive.h"
 #include "world/objects/staticobj.h"
 #include "world/triggers/movetrigger.h"
+#include "world/triggers/movercontroler.h"
 #include "world/triggers/codemaster.h"
 #include "world/triggers/triggerlist.h"
 #include "world/triggers/triggerscript.h"
@@ -180,6 +181,14 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
       if(parent!=nullptr)
         parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new TouchDamage(parent,world,std::move(vob),startup));
+    case ZenLoad::zCVobData::VT_zCTriggerUntouch:
+      if(parent!=nullptr)
+        parent->childContent = ContentBit(parent->childContent|cbTrigger);
+      return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));
+    case ZenLoad::zCVobData::VT_zCMoverControler:
+      if(parent!=nullptr)
+        parent->childContent = ContentBit(parent->childContent|cbTrigger);
+      return std::unique_ptr<Vob>(new MoverControler(parent,world,std::move(vob),startup));
 
     case ZenLoad::zCVobData::VT_zCVobStartpoint: {
       float dx = vob.rotationMatrix.v[2].x;
@@ -214,9 +223,6 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
     case ZenLoad::zCVobData::VT_zCVobLight: {
       return std::unique_ptr<Vob>(new WorldLight(parent,world,std::move(vob),startup));
       }
-    case ZenLoad::zCVobData::VT_zCTriggerUntouch: {
-      return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));
-      }
     }
 
   return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));
@@ -243,7 +249,7 @@ void Vob::load(Serialize& fin) {
     return;
   uint8_t type = 0;
   fin.read(type,pos,local);
-  if(vobType!=type)
+  if(vobType!=type && type!=0)
     throw std::logic_error("inconsistent *.sav vs world");
   moveEvent();
   }

@@ -13,6 +13,7 @@ class MoveTrigger : public AbstractTrigger {
 
     void onTrigger(const TriggerEvent& evt) override;
     void onUntrigger(const TriggerEvent& evt) override;
+    void onGotoMsg(const TriggerEvent& evt) override;
 
     bool hasVolume() const override;
     void tick(uint64_t dt) override;

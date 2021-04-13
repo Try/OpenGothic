@@ -20,6 +20,7 @@ class TriggerEvent final {
       T_Activate,
       T_StartupFirstTime,
       T_Startup,
+      T_Move,
       };
 
     TriggerEvent()=default;
@@ -34,6 +35,10 @@ class TriggerEvent final {
     std::string       emitter;
     Type              type        = T_Trigger;
     uint64_t          timeBarrier = 0;
+    struct {
+      ZenLoad::MoverMessage msg = ZenLoad::MoverMessage::GOTO_KEY_FIXED_DIRECTLY;
+      int32_t               key = 0;
+      } move;
   };
 
 class AbstractTrigger : public Vob {
@@ -77,6 +82,7 @@ class AbstractTrigger : public Vob {
 
     virtual void                 onTrigger(const TriggerEvent& evt);
     virtual void                 onUntrigger(const TriggerEvent& evt);
+    virtual void                 onGotoMsg(const TriggerEvent& evt);
     void                         moveEvent() override;
 
     bool                         hasFlag(ReactFlg flg) const;

@@ -76,7 +76,13 @@ void MoveTrigger::onTrigger(const TriggerEvent& e) {
 
 void MoveTrigger::onUntrigger(const TriggerEvent& e) {
   if(data.zCMover.moverBehavior==ZenLoad::MoverBehavior::STATE_TRIGGER_CTRL)
-     processTrigger(e,false);
+    processTrigger(e,false);
+  }
+
+void MoveTrigger::onGotoMsg(const TriggerEvent& evt) {
+  if(evt.move.key<0 || data.zCMover.keyframes.size()<size_t(evt.move.key))
+    return;
+  Log::e("TODO: MoveTrigger::onGotoMsg");
   }
 
 void MoveTrigger::processTrigger(const TriggerEvent& e, bool onTrigger) {
@@ -133,7 +139,7 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
   if(frameTicks==0)
     frameTicks=1;
   if(data.zCMover.moverBehavior!=ZenLoad::MoverBehavior::NSTATE_LOOP) {
-    // NOTE: winmill seem to rellay on mover.moveSpeed, but irdorath - not exactly
+    // NOTE: windmill seem to rellay on mover.moveSpeed, but irdorath - not exactly
     if(frameTicks>1000)
       frameTicks=1000;
     }

@@ -80,6 +80,9 @@ void AbstractTrigger::processEvent(const TriggerEvent& evt) {
         }
       break;
       }
+    case TriggerEvent::T_Move: {
+      onGotoMsg(evt);
+      };
     }
   }
 
@@ -88,6 +91,9 @@ void AbstractTrigger::onTrigger(const TriggerEvent&) {
   }
 
 void AbstractTrigger::onUntrigger(const TriggerEvent&) {
+  }
+
+void AbstractTrigger::onGotoMsg(const TriggerEvent&) {
   }
 
 void AbstractTrigger::moveEvent() {
@@ -205,8 +211,12 @@ void AbstractTrigger::Cb::onCollide(DynamicWorld::BulletBody&) {
 
 void TriggerEvent::save(Serialize& fout) const {
   fout.write(target,emitter,uint8_t(type),timeBarrier);
+  if(type==T_Move)
+    fout.write(uint8_t(move.msg),move.key);
   }
 
 void TriggerEvent::load(Serialize& fin) {
   fin.read(target,emitter,reinterpret_cast<uint8_t&>(type),timeBarrier);
+  if(type==T_Move)
+    fin.read(reinterpret_cast<uint8_t&>(move.msg),move.key);
   }
