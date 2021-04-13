@@ -345,6 +345,13 @@ void DialogMenu::startTrade() {
   dlgTrade=false;
   }
 
+void DialogMenu::skipPhrase() {
+  if(current.time>0) {
+    currentSnd   = SoundEffect();
+    current.time = 1;
+    }
+  }
+
 void DialogMenu::onEntry(const GameScript::DlgChoise &e) {
   if(pl && other) {
     selected = e;
@@ -481,7 +488,12 @@ void DialogMenu::mouseDownEvent(MouseEvent &event) {
     return;
     }
 
-  onSelect();
+  if(event.button==MouseEvent::ButtonLeft) {
+    onSelect();
+    }
+  if(event.button==MouseEvent::ButtonRight) {
+    skipPhrase();
+    }
   }
 
 void DialogMenu::mouseWheelEvent(MouseEvent &e) {
@@ -499,12 +511,7 @@ void DialogMenu::mouseWheelEvent(MouseEvent &e) {
   }
 
 void DialogMenu::keyDownEvent(KeyEvent &e) {
-  if(state==State::Idle){
-    e.ignore();
-    return;
-    }
-
-  if(e.key!=Event::K_ESCAPE && trade.isOpen()!=InventoryMenu::State::Closed){
+  if(state==State::Idle || trade.isOpen()!=InventoryMenu::State::Closed){
     e.ignore();
     return;
     }
@@ -520,6 +527,9 @@ void DialogMenu::keyDownEvent(KeyEvent &e) {
     if(e.key==Event::K_S || e.key==Event::K_Down){
       dlgSel++;
       }
+    if(e.key==Event::K_ESCAPE){
+      skipPhrase();
+      }
     dlgSel = (dlgSel+choise.size())%std::max<size_t>(choise.size(),1);
     update();
     return;
@@ -532,22 +542,5 @@ void DialogMenu::keyUpEvent(KeyEvent &event) {
     event.ignore();
     return;
     }
-
-  if(event.key==Event::K_ESCAPE) {
-    if(trade.isOpen()!=InventoryMenu::State::Closed) {
-      trade.close();
-      } else {
-      if(current.time>0) {
-        currentSnd   = SoundEffect();
-        if(dlgAnimation) {
-          current.time = std::min<uint64_t>(current.time,ANIM_TIME);
-          } else {
-          current.time = 1;
-          }
-        }
-      }
-    update();
-    }
   }
-
 

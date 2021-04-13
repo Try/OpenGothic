@@ -118,6 +118,10 @@ class InventoryMenu : public Tempest::Widget {
 
     void          processMove(Tempest::KeyEvent& e);
     void          processPickLock(Tempest::KeyEvent& e);
+    void          moveLeft(bool usePage);
+    void          moveRight(bool usePage);
+    void          moveUp();
+    void          moveDown();
 
     void          onItemAction();
     void          onTakeStuff();

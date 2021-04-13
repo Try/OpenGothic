@@ -111,6 +111,7 @@ class DialogMenu : public Tempest::Widget {
     Tempest::Size processTextMultiline(Tempest::Painter* p, int x, int y, int w, int h, const std::string& txt, bool isPl);
 
     void startTrade();
+    void skipPhrase();
 
     Gothic&                             gothic;
     InventoryMenu&                      trade;
