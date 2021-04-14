@@ -598,14 +598,24 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Page &inv, const P
   if(!slot)
     return;
 
-  p.setBrush(*slot);
-  p.drawRect(x,y,slotSize().w,slotSize().h,
-             0,0,slot->w(),slot->h());
+  auto& page = activePage();
+
+  if(pass==DrawPass::Back){
+    p.setBrush(*slot);
+    p.drawRect(x,y,slotSize().w,slotSize().h,
+               0,0,slot->w(),slot->h());
+
+    if(inv.size()==0 && id==0 && &page==&inv){
+      p.setBrush(*selT);
+      p.drawRect(x,y,slotSize().w,slotSize().h,
+                 0,0,selT->w(),selT->h());
+      }
+    }
 
   if(id>=inv.size())
     return;
-  auto& r    = inv[id];
-  auto& page = activePage();
+
+  auto& r = inv[id];
 
   if(pass==DrawPass::Back) {
     if(id==sel.sel && &page==&inv && selT!=nullptr){
