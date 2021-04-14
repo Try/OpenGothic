@@ -192,10 +192,6 @@ void InventoryMenu::tick(uint64_t /*dt*/) {
   }
 
 void InventoryMenu::processMove(KeyEvent& e) {
-  auto&        pg     = activePage();
-  auto&        sel    = activePageSel();
-  const size_t pCount = pagesCount();
-
   auto key = keycodec.tr(e);
   if(key==KeyCodec::Forward)
     moveUp();
@@ -252,9 +248,7 @@ void InventoryMenu::processPickLock(KeyEvent& e) {
   }
 
 void InventoryMenu::moveLeft(bool usePage) {
-  auto&        pg     = activePage();
-  auto&        sel    = activePageSel();
-  const size_t pCount = pagesCount();
+  auto& sel = activePageSel();
 
   if(usePage && sel.sel%columsCount==0 && page>0)
     page--;
@@ -274,7 +268,6 @@ void InventoryMenu::moveRight(bool usePage) {
   }
 
 void InventoryMenu::moveUp() {
-  auto& pg  = activePage();
   auto& sel = activePageSel();
 
   if(sel.sel>=columsCount)
@@ -381,8 +374,6 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
   if(state==State::LockPicking)
     return;
 
-  auto& pg  = activePage();
-  auto& sel = activePageSel();
   if(e.delta>0)
     for(int i=0;i<e.delta/120;++i){
       moveUp();
