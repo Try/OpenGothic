@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Tempest/Assets>
 #include <Tempest/Font>
 #include <Tempest/Texture2d>
 #include <Tempest/Device>

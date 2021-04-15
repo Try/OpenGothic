@@ -5,7 +5,6 @@
 #include <Tempest/UniformsLayout>
 #include <Tempest/Shader>
 #include <Tempest/Device>
-#include <Tempest/Assets>
 
 #include "graphics/objectsbucket.h"
 
