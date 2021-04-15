@@ -192,35 +192,15 @@ void InventoryMenu::tick(uint64_t /*dt*/) {
   }
 
 void InventoryMenu::processMove(KeyEvent& e) {
-  auto&        pg     = activePage();
-  auto&        sel    = activePageSel();
-  const size_t pCount = pagesCount();
-
   auto key = keycodec.tr(e);
-  if(key==KeyCodec::Forward){
-    if(sel.sel>=columsCount)
-      sel.sel -= columsCount;
-    }
-  else if(key==KeyCodec::Back){
-    if(sel.sel+columsCount<pg.size())
-      sel.sel += columsCount;
-    }
-  else if(key==KeyCodec::Left || key==KeyCodec::RotateL){
-    if(sel.sel%columsCount==0 && page>0){
-      page--;
-      sel.sel += (columsCount-1);
-      }
-    else if(sel.sel>0)
-      sel.sel--;
-    }
-  else if(key==KeyCodec::Right || key==KeyCodec::RotateR) {
-    if(((sel.sel+1u)%columsCount==0 || sel.sel+1u==pg.size() || pg.size()==0) && page+1u<pCount) {
-      page++;
-      sel.sel -= sel.sel%columsCount;
-      }
-    else if(sel.sel+1<pg.size())
-      sel.sel++;
-    }
+  if(key==KeyCodec::Forward)
+    moveUp();
+  else if(key==KeyCodec::Back)
+    moveDown();
+  else if(key==KeyCodec::Left || key==KeyCodec::RotateL)
+    moveLeft(true);
+  else if(key==KeyCodec::Right || key==KeyCodec::RotateR)
+    moveRight(true);
   }
 
 void InventoryMenu::processPickLock(KeyEvent& e) {
@@ -267,6 +247,45 @@ void InventoryMenu::processPickLock(KeyEvent& e) {
     }
   }
 
+void InventoryMenu::moveLeft(bool usePage) {
+  auto& sel = activePageSel();
+
+  if(usePage && sel.sel%columsCount==0 && page>0)
+    page--;
+  else if(sel.sel>0)
+    sel.sel--;
+  }
+
+void InventoryMenu::moveRight(bool usePage) {
+  auto&        pg     = activePage();
+  auto&        sel    = activePageSel();
+  const size_t pCount = pagesCount();
+
+  if(usePage && ((sel.sel+1u)%columsCount==0 || sel.sel+1u==pg.size() || pg.size()==0) && page+1u<pCount)
+    page++;
+  else if(sel.sel+1<pg.size())
+    sel.sel++;
+  }
+
+void InventoryMenu::moveUp() {
+  auto& sel = activePageSel();
+
+  if(sel.sel>=columsCount)
+    sel.sel -= columsCount;
+  else
+    moveLeft(false);
+  }
+
+void InventoryMenu::moveDown() {
+  auto& pg  = activePage();
+  auto& sel = activePageSel();
+
+  if(sel.sel+columsCount<pg.size())
+    sel.sel += columsCount;
+  else
+    moveRight(false);
+  }
+
 void InventoryMenu::keyDownEvent(KeyEvent &e) {
   if(state==State::Closed){
     e.ignore();
@@ -303,6 +322,10 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
   else if (keycodec.tr(e)==KeyCodec::ActionGeneric) {
     onItemAction();
     }
+  else if(e.key==KeyEvent::K_ESCAPE || keycodec.tr(e)==KeyCodec::Inventory){
+    close();
+    }
+
   adjustScroll();
   update();
   }
@@ -318,13 +341,10 @@ void InventoryMenu::keyRepeatEvent(KeyEvent& e) {
 void InventoryMenu::keyUpEvent(KeyEvent &e) {
   takeTimer.stop();
   lootMode = LootMode::Normal;
-  if(e.key==KeyEvent::K_ESCAPE || keycodec.tr(e)==KeyCodec::Inventory){
-    close();
-    }
   }
 
 void InventoryMenu::mouseDownEvent(MouseEvent &e) {
-  if(player==nullptr || state==State::Closed || e.button!=Event::ButtonLeft) {
+  if(player==nullptr || state==State::Closed) {
     e.ignore();
     return;
     }
@@ -332,7 +352,11 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
   if(state==State::LockPicking)
     return;
 
-  onItemAction();
+  if (e.button==MouseEvent::ButtonLeft)
+    onItemAction();
+  else if (e.button==MouseEvent::ButtonRight)
+    close();
+
   adjustScroll();
 }
 
@@ -350,16 +374,14 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
   if(state==State::LockPicking)
     return;
 
-  auto& pg  = activePage();
-  auto& sel = activePageSel();
-  if(e.delta>0){
-    if(sel.sel>=columsCount)
-      sel.sel -= columsCount;
-    }
-  else if(e.delta<0){
-    if(sel.sel+columsCount<pg.size())
-      sel.sel += columsCount;
-    }
+  if(e.delta>0)
+    for(int i=0;i<e.delta/120;++i){
+      moveUp();
+      }
+  else if(e.delta<0)
+    for(int i=0;i<-e.delta/120;++i){
+      moveDown();
+      }
   adjustScroll();
   }
 
@@ -567,14 +589,24 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Page &inv, const P
   if(!slot)
     return;
 
-  p.setBrush(*slot);
-  p.drawRect(x,y,slotSize().w,slotSize().h,
-             0,0,slot->w(),slot->h());
+  auto& page = activePage();
+
+  if(pass==DrawPass::Back){
+    p.setBrush(*slot);
+    p.drawRect(x,y,slotSize().w,slotSize().h,
+               0,0,slot->w(),slot->h());
+
+    if(inv.size()==0 && id==0 && &page==&inv){
+      p.setBrush(*selT);
+      p.drawRect(x,y,slotSize().w,slotSize().h,
+                 0,0,selT->w(),selT->h());
+      }
+    }
 
   if(id>=inv.size())
     return;
-  auto& r    = inv[id];
-  auto& page = activePage();
+
+  auto& r = inv[id];
 
   if(pass==DrawPass::Back) {
     if(id==sel.sel && &page==&inv && selT!=nullptr){
