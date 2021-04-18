@@ -8,6 +8,7 @@
 #include <daedalus/DaedalusVM.h>
 #include <memory>
 
+#include "game/savegameheader.h"
 #include "game/questlog.h"
 #include "utils/keycodec.h"
 
@@ -37,10 +38,12 @@ class GameMenu : public Tempest::Widget {
 
   private:
     struct KeyEditDialog;
+    struct SavNameDialog;
     struct Item {
       std::string                           name;
       Daedalus::GEngineClasses::C_Menu_Item handle={};
       const Tempest::Texture2d*             img=nullptr;
+      SaveGameHeader                        savHdr;
       bool                                  visible=true;
       int                                   value=0;
       };
@@ -91,7 +94,8 @@ class GameMenu : public Tempest::Widget {
     size_t                                strEnumSize(const char* en);
 
     void                                  updateValues();
-    void                                  updateItem   (Item &item);
+    void                                  updateItem    (Item &item);
+    void                                  updateSavTitle(Item& sel);
     void                                  updateSavThumb(Item& sel);
     void                                  updateVideo();
     void                                  setDefaultKeys(const char* preset);

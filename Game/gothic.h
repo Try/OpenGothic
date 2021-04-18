@@ -96,7 +96,7 @@ class Gothic final {
     void      updateAnimation();
     void      quickSave();
     void      quickLoad();
-    void      save(const std::string& slot);
+    void      save(const std::string& slot, const std::string& usrName);
     void      load(const std::string& slot);
 
     auto      updateDialog(const GameScript::DlgChoise& dlg, Npc& player, Npc& npc) -> std::vector<GameScript::DlgChoise>;
@@ -110,9 +110,9 @@ class Gothic final {
     auto      getCameraDef() const -> const CameraDefinitions&;
     auto      getMusicDef(const char *clsTheme) const -> const Daedalus::GEngineClasses::C_MusicTheme*;
 
-    Tempest::Signal<void(const std::string&)>              onStartGame;
-    Tempest::Signal<void(const std::string&)>              onLoadGame;
-    Tempest::Signal<void(const std::string&)>              onSaveGame;
+    Tempest::Signal<void(const std::string&)>                    onStartGame;
+    Tempest::Signal<void(const std::string&)>                    onLoadGame;
+    Tempest::Signal<void(const std::string&,const std::string&)> onSaveGame;
 
     Tempest::Signal<void(Npc&,Npc&,AiOuputPipe*&)>         onDialogPipe;
     Tempest::Signal<void(bool&)>                           isDialogClose;

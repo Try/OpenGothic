@@ -745,7 +745,7 @@ Camera::Mode MainWindow::solveCameraMode() const {
   return Camera::Normal;
   }
 
-void MainWindow::startGame(const std::string &name) {
+void MainWindow::startGame(const std::string &slot) {
   // gothic.emitGlobalSound(gothic.loadSoundFx("NEWGAME"));
 
   if(gothic.checkLoading()==Gothic::LoadState::Idle){
@@ -753,23 +753,23 @@ void MainWindow::startGame(const std::string &name) {
     onWorldLoaded();
     }
 
-  gothic.startLoad("LOADING.TGA",[this,name](std::unique_ptr<GameSession>&& game){
+  gothic.startLoad("LOADING.TGA",[this,slot](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
-    std::unique_ptr<GameSession> w(new GameSession(gothic,renderer.storage(),name));
+    std::unique_ptr<GameSession> w(new GameSession(gothic,renderer.storage(),slot));
     return w;
     });
   update();
   }
 
-void MainWindow::loadGame(const std::string &name) {
+void MainWindow::loadGame(const std::string &slot) {
   if(gothic.checkLoading()==Gothic::LoadState::Idle){
     setGameImpl(nullptr);
     onWorldLoaded();
     }
 
-  gothic.startLoad("LOADING.TGA",[this,name](std::unique_ptr<GameSession>&& game){
+  gothic.startLoad("LOADING.TGA",[this,slot](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
-    Tempest::RFile file(name);
+    Tempest::RFile file(slot);
     Serialize      s(file);
     std::unique_ptr<GameSession> w(new GameSession(gothic,renderer.storage(),s));
     return w;
@@ -778,15 +778,15 @@ void MainWindow::loadGame(const std::string &name) {
   update();
   }
 
-void MainWindow::saveGame(const std::string &name) {
+void MainWindow::saveGame(const std::string &slot, const std::string& name) {
   auto tex = renderer.screenshoot(swapchain.frameId());
   auto pm  = device.readPixels(textureCast(tex));
 
-  gothic.startSave(std::move(textureCast(tex)),[name,pm](std::unique_ptr<GameSession>&& game){
+  gothic.startSave(std::move(textureCast(tex)),[slot,name,pm](std::unique_ptr<GameSession>&& game){
     if(!game)
       return std::move(game);
 
-    Tempest::WFile f(name);
+    Tempest::WFile f(slot);
     Serialize      s(f);
     game->save(s,name.c_str(),pm);
 

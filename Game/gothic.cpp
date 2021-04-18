@@ -419,15 +419,15 @@ void Gothic::updateAnimation() {
   }
 
 void Gothic::quickSave() {
-  save("save_slot_0.sav");
+  save("save_slot_0.sav","Quick save");
   }
 
 void Gothic::quickLoad() {
   load("save_slot_0.sav");
   }
 
-void Gothic::save(const std::string &slot) {
-  onSaveGame(slot);
+void Gothic::save(const std::string &slot, const std::string& name) {
+  onSaveGame(slot,name);
   }
 
 void Gothic::load(const std::string &slot) {

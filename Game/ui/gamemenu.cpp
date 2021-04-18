@@ -44,6 +44,55 @@ struct GameMenu::KeyEditDialog : Dialog {
   Event::MouseButton mkey = Event::ButtonNone;
   };
 
+struct GameMenu::SavNameDialog : Dialog {
+  SavNameDialog(Daedalus::ZString& text):text(text), text0(text) {
+    setFocusPolicy(ClickFocus);
+    setFocus(true);
+    }
+
+  void mouseDownEvent(MouseEvent& e) override { e.accept(); }
+  void mouseUpEvent  (MouseEvent& e) override {
+    close();
+    accepted = true;
+    }
+
+  void keyDownEvent(KeyEvent &e) override { e.accept(); }
+  void keyUpEvent  (KeyEvent &e) override {
+    if(e.key==Event::K_ESCAPE) {
+      text = text0;
+      close();
+      return;
+      }
+    if(e.key==Event::K_Return) {
+      accepted = true;
+      close();
+      return;
+      }
+    if(e.key==Event::K_Back && text.size()>0) {
+      std::string tmp = text.c_str();
+      tmp.pop_back();
+      text = std::move(tmp);
+      return;
+      }
+
+    char ch[2] = {'\0','\0'};
+    if(('a'<=e.code && e.code<='z') || ('A'<=e.code && e.code<='Z')  ||
+       ('0'<=e.code && e.code<='9') || e.code==' ' || e.code=='.')
+      ch[0] = char(e.code);
+    if(ch[0]=='\0')
+      return;
+    text = text + ch;
+    }
+
+  void paintEvent (PaintEvent&) override {}
+  void paintShadow(PaintEvent&) override {}
+
+  Daedalus::ZString& text;
+  Daedalus::ZString  text0;
+
+  bool                accepted = false;
+  };
+
 GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, Daedalus::DaedalusVM &vm, Gothic &gothic, const char* menuSection, KeyCodec::Action kClose)
   :gothic(gothic), owner(owner), keyCodec(keyCodec), vm(vm), kClose(kClose) {
   timer.timeout.bind(this,&GameMenu::onTick);
@@ -122,7 +171,7 @@ void GameMenu::paintEvent(PaintEvent &e) {
     if(auto sel=selectedItem()) {
       auto&                                  fnt  = Resources::font();
       Daedalus::GEngineClasses::C_Menu_Item& item = sel->handle;
-      if(item.text->size()>1) {
+      if(item.text->size()>0) {
         const char* txt = item.text[1].c_str();
         int tw = fnt.textSize(txt).w;
         fnt.drawText(p,(w()-tw)/2,h()-7,txt);
@@ -190,21 +239,29 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
     }
   else if(item.type==MENU_ITEM_INPUT) {
     using namespace Daedalus::GEngineClasses::MenuConstants;
+    char textBuf[256]={};
+
     if(item.onChgSetOptionSection=="KEYS") {
       auto& keys = gothic.settingsGetS(item.onChgSetOptionSection.c_str(),
                                        item.onChgSetOption.c_str());
-
-      char textBuf[256]={};
       if(&hItem==ctrlInput)
         std::snprintf(textBuf,sizeof(textBuf),"_"); else
         KeyCodec::keysStr(keys,textBuf,sizeof(textBuf));
-
-      fnt.drawText(p,
-                   x,y+fnt.pixelSize(),
-                   szX, szY,
-                   textBuf,
-                   txtAlign);
       }
+    else {
+      auto str = item.text[0].c_str();
+      if(str[0]=='\0' && &hItem!=ctrlInput && saveSlotId(hItem)!=size_t(-1))
+        str = "---";
+      if(&hItem==ctrlInput)
+        std::snprintf(textBuf,sizeof(textBuf),"%s_",str); else
+        std::snprintf(textBuf,sizeof(textBuf),"%s", str);
+      }
+
+    fnt.drawText(p,
+                 x,y+fnt.pixelSize(),
+                 szX, szY,
+                 textBuf,
+                 txtAlign);
     }
   }
 
@@ -385,6 +442,16 @@ void GameMenu::execSingle(Item &it, int slideDx) {
   auto& onSelAction_S = item.onSelAction_S;
   auto& onEventAction = item.onEventAction;
 
+  if(item.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_INPUT) {
+    ctrlInput = &it;
+    SavNameDialog dlg{item.text[0]};
+    dlg.resize(owner.size());
+    dlg.exec();
+    ctrlInput = nullptr;
+    if(!dlg.accepted)
+      return;
+    }
+
   for(size_t i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_SEL_ACTIONS;++i) {
     auto action = onSelAction[i];
     switch(action) {
@@ -479,7 +546,7 @@ void GameMenu::execSaveGame(GameMenu::Item &item) {
 
   char fname[64]={};
   std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",int(id));
-  gothic.save(fname);
+  gothic.save(fname,item.handle.text[0].c_str());
   }
 
 void GameMenu::execLoadGame(GameMenu::Item &item) {
@@ -522,6 +589,43 @@ void GameMenu::execCommands(GameMenu::Item& /*it*/,const Daedalus::ZString str) 
 void GameMenu::updateItem(GameMenu::Item &item) {
   auto& it   = item.handle;
   item.value = gothic.settingsGetI(it.onChgSetOptionSection.c_str(), it.onChgSetOption.c_str());
+  updateSavTitle(item);
+  }
+
+void GameMenu::updateSavTitle(GameMenu::Item& sel) {
+  if(sel.handle.onSelAction_S[0]!="SAVEGAME_LOAD" &&
+     sel.handle.onSelAction_S[1]!="SAVEGAME_SAVE")
+    return;
+  const size_t id = saveSlotId(sel);
+  if(id==size_t(-1))
+    return;
+
+  char fname[64]={};
+  std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",int(id));
+
+  if(!FileUtil::exists(TextCodec::toUtf16(fname))) {
+    sel.handle.text[0] = "";
+    return;
+    }
+
+  SaveGameHeader hdr;
+  try {
+    RFile     fin(fname);
+    Serialize reader(fin);
+    reader.read(hdr);
+    sel.handle.text[0] = hdr.name.c_str();
+    sel.savHdr         = std::move(hdr);
+    }
+  catch(std::bad_alloc&) {
+    return;
+    }
+  catch(std::system_error& e) {
+    Log::d(e.what());
+    return;
+    }
+  catch(std::runtime_error&) {
+    return;
+    }
   }
 
 void GameMenu::updateSavThumb(GameMenu::Item &sel) {
@@ -565,23 +669,7 @@ bool GameMenu::implUpdateSavThumb(GameMenu::Item& sel) {
   if(!FileUtil::exists(TextCodec::toUtf16(fname)))
     return false;
 
-  SaveGameHeader hdr;
-  try {
-    RFile     fin(fname);
-    Serialize reader(fin);
-    reader.read(hdr);
-    }
-  catch(std::bad_alloc&) {
-    return false;
-    }
-  catch(std::system_error& e) {
-    Log::d(e.what());
-    return false;
-    }
-  catch(std::runtime_error&) {
-    return false;
-    }
-
+  const SaveGameHeader& hdr = sel.savHdr;
   char form[64]={};
   Resources::device().waitIdle();
   savThumb = Resources::loadTexture(hdr.priview);
