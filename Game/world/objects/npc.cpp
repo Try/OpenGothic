@@ -583,12 +583,8 @@ bool Npc::hasAutoroll() const {
   }
 
 void Npc::stopWalkAnimation() {
-  if(interactive()==nullptr) {
-    auto st = bodyStateMasked();
-    if(st==BS_RUN || st==BS_WALK || st==BS_SNEAK) {
-      visual.stopAnim(*this,nullptr);
-      }
-    }
+  if(interactive()==nullptr)
+    visual.stopWalkAnim(*this);
   setAnimRotate(0);
   }
 
@@ -1704,6 +1700,8 @@ void Npc::tick(uint64_t dt) {
   for(auto& i:ev.morph)
     visual.startMMAnim(*this,i.anim,i.node);
 
+  if(bodyStateMasked()==BS_JUMP && !mvAlgo.isInAir())
+    visual.stopAnim(*this,"S_JUMP");
   if(!visual.pose().hasAnim())
     setAnim(AnimationSolver::Idle);
 
@@ -1764,7 +1762,9 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
       }
     case AI_TurnToNpc: {
-      if(act.target!=nullptr && implLookAt(*act.target,dt)){
+      if(interactive()==nullptr)
+        visual.stopWalkAnim(*this);
+      if(act.target!=nullptr && implLookAt(*act.target,dt)) {
         queue.pushFront(std::move(act));
         }
       break;
@@ -1989,8 +1989,12 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       //atackMode=false;
       break;
     case AI_Dodge:
-      visual.setRotation(*this,0);
-      setAnim(Anim::MoveBack);
+      if(auto sq = setAnimAngGet(Anim::MoveBack,false)) {
+        visual.setRotation(*this,0);
+        implAniWait(uint64_t(sq->totalTime()));
+        } else {
+        queue.pushFront(std::move(act));
+        }
       break;
     case AI_UnEquipWeapons:
       invent.unequipWeapons(owner.script(),*this);
@@ -2023,10 +2027,9 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       if(act.target==nullptr)
         break;
 
-      // clear animation, in case if player is on a move
-      if(act.target->interactive()==nullptr)
+      if(act.target->interactive()==nullptr && !act.target->isAiBusy())
         act.target->stopWalkAnimation();
-      if(interactive()==nullptr)
+      if(interactive()==nullptr && !isAiBusy())
         stopWalkAnimation();
 
       if(auto p = owner.script().openDlgOuput(*this,*act.target)) {
@@ -3373,7 +3376,7 @@ std::vector<GameScript::DlgChoise> Npc::dialogChoises(Npc& player,const std::vec
 bool Npc::isAiQueueEmpty() const {
   return aiQueue.size()==0 &&
          go2.empty() &&
-         waitTime       <owner.tickCount();
+         waitTime<owner.tickCount();
   }
 
 bool Npc::isAiBusy() const {

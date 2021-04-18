@@ -229,7 +229,9 @@ bool PlayerControl::interact(Npc &other) {
     if(!inv.ransack(*w->player(),other))
       w->script().printNothingToGet();
     }
-  other.startDialog(*w->player());
+  if((pl->bodyStateMasked()&BS_MAX)!=BS_NONE)
+    return false;
+  other.startDialog(*pl);
   return true;
   }
 
