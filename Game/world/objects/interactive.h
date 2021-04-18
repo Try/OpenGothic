@@ -45,6 +45,7 @@ class Interactive : public Vob {
     const char*         displayName() const;
 
     int32_t             stateId() const { return state; }
+    int32_t             stateCount() const { return stateNum; }
     bool                setMobState(const char* scheme,int32_t st) override;
     void                emitTriggerEvent() const;
     const char*         schemeName() const;
@@ -65,6 +66,7 @@ class Interactive : public Vob {
 
     bool                isAvailable() const;
     bool                isStaticState() const;
+    bool                isDetachState(const Npc& npc) const;
     bool                canQuitAtLastState() const;
     bool                attach (Npc& npc);
     bool                dettach(Npc& npc,bool quick);
@@ -138,7 +140,7 @@ class Interactive : public Vob {
     std::string                  pickLockStr;
     Inventory                    invent;
 
-    int                          state         = 0;
+    int32_t                      state         = 0;
     bool                         reverseState  = false;
     bool                         loopState     = false;
     bool                         isLockCracked = false;

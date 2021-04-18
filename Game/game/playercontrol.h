@@ -102,6 +102,7 @@ class PlayerControl final {
     World*         world() const;
     void           clrDraw();
     void           implMove(uint64_t dt);
+    void           implMoveMobsi(Npc& pl, uint64_t dt);
     void           setPos(std::array<float,3> a, uint64_t dt, float speed);
     void           assignRunAngle(Npc& pl, float rotation, uint64_t dt);
     void           setAnimRotate (Npc& pl, float rotation, int anim, bool force, uint64_t dt);

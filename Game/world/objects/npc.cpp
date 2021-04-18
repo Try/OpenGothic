@@ -1895,7 +1895,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       invent.equipBestRangeWeapon(*this);
       break;
     case AI_UseMob: {
-      if(act.i0<0){
+      if(act.i0<0) {
         if(!setInteraction(nullptr))
           queue.pushFront(std::move(act));
         break;

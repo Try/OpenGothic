@@ -194,13 +194,19 @@ void Interactive::tick(uint64_t dt) {
       }
     }
 
-  if(p==nullptr)
-    return;
-
   if(world.tickCount()<waitAnim)
     return;
 
-  if(p->user==nullptr && (state==-1 && !p->attachMode))
+  if(p==nullptr) {
+    if(rewind && state!=-1) {
+      if(!setAnim(nullptr,Anim::Out))
+        return;
+      setState(std::max(0,state-1));
+      }
+    return;
+    }
+
+  if(p->user==nullptr && (state==0 && !p->attachMode))
     return;
   if(p->user==nullptr && (state==stateNum && p->attachMode))
     return;
@@ -234,19 +240,9 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
       }
     }
 
-  if(atach) {
-    if(state==stateNum) {
-      //NOTE: some beds in game are VT_oCMobDoor
-      if(npc.isPlayer() && canQuitAtLastState()) {
-        implQuitInteract(p);
-        return;
-        }
-      }
-    } else {
-    if(state==0) {
-      implQuitInteract(p);
-      return;
-      }
+  if(!atach && state==0) {
+    implQuitInteract(p);
+    return;
     }
 
   if(needToLockpick(npc)) {
@@ -579,10 +575,18 @@ bool Interactive::isStaticState() const {
   return loopState;
   }
 
+bool Interactive::isDetachState(const Npc& npc) const {
+  for(auto& i:attPos)
+    if(i.user==&npc)
+      return !(i.attachMode ^ reverseState);
+  return !reverseState;
+  }
+
 bool Interactive::canQuitAtLastState() const {
-  return vobType==ZenLoad::zCVobData::VT_oCMobDoor   ||
-         vobType==ZenLoad::zCVobData::VT_oCMobSwitch ||
-         // vobType==ZenLoad::zCVobData::VT_oCMobInter  ||
+  // NOTE: workaround for B_MoveMob.d
+  const bool isDoor = (std::strcmp(schemeName(),"DOOR")==0);
+  return (vobType==ZenLoad::zCVobData::VT_oCMobDoor && isDoor) ||
+         (vobType==ZenLoad::zCVobData::VT_oCMobSwitch)         ||
          reverseState;
   }
 
@@ -658,7 +662,7 @@ bool Interactive::attach(Npc &npc) {
 bool Interactive::dettach(Npc &npc, bool quick) {
   for(auto& i:attPos) {
     if(i.user==&npc) {
-      if(state==stateNum && canQuitAtLastState() && !npc.isPlayer()) {
+      if(state==stateNum && canQuitAtLastState()/* && !npc.isPlayer()*/) {
         i.user       = nullptr;
         i.attachMode = false;
         npc.quitIneraction();

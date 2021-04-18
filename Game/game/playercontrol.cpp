@@ -404,9 +404,7 @@ void PlayerControl::implMove(uint64_t dt) {
     return;
 
   if(pl.interactive()!=nullptr) {
-    if(ctrl[KeyCodec::Back])
-      pl.setInteraction(nullptr);
-    // animation handled in MOBSI
+    implMoveMobsi(pl,dt);
     return;
     }
 
@@ -633,6 +631,21 @@ void PlayerControl::implMove(uint64_t dt) {
     assignRunAngle(pl,pl.rotation(),dt);
     }
   pl.setDirection(rot);
+  }
+
+void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
+  // animation handled in MOBSI
+  auto inter = pl.interactive();
+  if(ctrl[KeyCodec::Back]) {
+    pl.setInteraction(nullptr);
+    return;
+    }
+
+  if(inter->stateId()==inter->stateCount() && inter->isStaticState() && !inter->isDetachState(pl)) {
+    if(inter->canQuitAtLastState()) {
+      pl.setInteraction(nullptr,true);
+      }
+    }
   }
 
 void PlayerControl::assignRunAngle(Npc& pl, float rotation, uint64_t dt) {
