@@ -310,9 +310,6 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
   v->ibo       = &ibo;
   v->iboOffset = iboOffset;
   v->iboLength = iboLen;
-
-  polySz+=ibo.size();
-  polyAvg = polySz/valSz;
   return std::distance(val,v);
   }
 
@@ -328,8 +325,6 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
   v->iboLength = iboLen;
 
   v->skiningAni = &anim;//storage.ani.alloc(boneCnt);
-  polySz+=ibo.size();
-  polyAvg = polySz/valSz;
   return std::distance(val,v);
   }
 
@@ -343,10 +338,8 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* 
 void ObjectsBucket::free(const size_t objId) {
   auto& v = val[objId];
   v.visibility = VisibilityGroup::Token();
-  if(v.ibo!=nullptr)
-    polySz -= v.ibo->size();
-  v.vboType = VboType::NoVbo;
-  v.vbo     = nullptr;
+  v.vboType    = VboType::NoVbo;
+  v.vbo        = nullptr;
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i)
     v.vboM[i] = nullptr;
   v.vboA    = nullptr;
@@ -360,9 +353,6 @@ void ObjectsBucket::free(const size_t objId) {
       break;
       }
     }
-  if(valSz>0)
-    polyAvg = polySz/valSz; else
-    polyAvg = 0;
 
   if(valSz==0)
     owner.resetIndex();

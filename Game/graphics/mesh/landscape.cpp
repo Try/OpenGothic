@@ -30,7 +30,7 @@ Landscape::Landscape(WorldView& owner, VisualObjects& visual, const PackedMesh &
     blocks.emplace_back();
     auto& b = blocks.back();
     b.ibo  = Resources::ibo(i.indices.data(),i.indices.size());
-    b.mesh = visual.get(vbo,b.ibo,material,bbox);
+    b.mesh = visual.get(vbo,b.ibo,material,bbox,ObjectsBucket::Landscape);
     b.mesh.setObjMatrix(ident);
     }
   }

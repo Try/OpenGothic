@@ -241,6 +241,7 @@ const RenderPipeline* RendererStorage::materialPipeline(const Material& mat, Obj
   b.type         = t;
   b.pipelineType = pt;
   switch(t) {
+    case ObjectsBucket::Landscape:
     case ObjectsBucket::Static:
     case ObjectsBucket::Movable:
       b.pipeline = pipeline<Resources::Vertex> (state,temp->obj);

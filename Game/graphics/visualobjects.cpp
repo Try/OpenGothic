@@ -51,12 +51,12 @@ ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat
   }
 
 ObjectsBucket::Item VisualObjects::get(Tempest::VertexBuffer<Resources::Vertex>& vbo, Tempest::IndexBuffer<uint32_t>& ibo,
-                                       const Material& mat, const Bounds& bbox) {
+                                       const Material& mat, const Bounds& bbox, ObjectsBucket::Type type) {
   if(mat.tex==nullptr) {
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
-  auto&        bucket = getBucket(mat,nullptr,ObjectsBucket::Static);
+  auto&        bucket = getBucket(mat,nullptr,type);
   const size_t id     = bucket.alloc(vbo,ibo,0,ibo.size(),bbox);
   return ObjectsBucket::Item(bucket,id);
   }
@@ -153,7 +153,7 @@ void VisualObjects::mkIndex() {
     }
   index.resize(id);
 
-  std::sort(index.begin(),index.end(),[](const ObjectsBucket* l,const ObjectsBucket* r){
+  std::sort(index.begin(),index.end(),[](const ObjectsBucket* l,const ObjectsBucket* r) {
     auto& lm = l->material();
     auto& rm = r->material();
 
@@ -162,10 +162,13 @@ void VisualObjects::mkIndex() {
     if(lm.alphaOrder()>rm.alphaOrder())
       return false;
 
-    if(l->avgPoligons()<r->avgPoligons())
-      return false; //inverted
-    if(l->avgPoligons()>r->avgPoligons())
+    const int lt = l->type()==ObjectsBucket::Landscape ? 0 : 1;
+    const int rt = r->type()==ObjectsBucket::Landscape ? 0 : 1;
+
+    if(lt<rt)
       return true;
+    if(lt>rt)
+      return false;
     return lm.tex < rm.tex;
     });
   lastSolidBucket = index.size();

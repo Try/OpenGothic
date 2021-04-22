@@ -14,7 +14,7 @@ class VisualObjects final {
                             const ProtoMesh* anim, bool staticDraw);
     ObjectsBucket::Item get(const AnimMesh&   mesh, const Material& mat, const SkeletalStorage::AnimationId& anim, size_t ibo, size_t iboLen);
     ObjectsBucket::Item get(Tempest::VertexBuffer<Resources::Vertex>& vbo, Tempest::IndexBuffer<uint32_t>& ibo,
-                            const Material& mat, const Bounds& bbox);
+                            const Material& mat, const Bounds& bbox, ObjectsBucket::Type bucket);
     ObjectsBucket::Item get(const Tempest::VertexBuffer<Resources::Vertex>* vbo[],
                             const Material& mat, const Bounds& bbox);
 

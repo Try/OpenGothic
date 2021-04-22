@@ -32,6 +32,7 @@ class ObjectsBucket final {
       };
 
     enum Type : uint8_t {
+      Landscape,
       Static,
       Movable,
       Animated,
@@ -93,8 +94,6 @@ class ObjectsBucket final {
     Type                      type()      const { return shaderType; }
     size_t                    size()      const { return valSz;      }
     const std::vector<ProtoMesh::Animation>* morph() const { return morphAnim==nullptr ? nullptr : &morphAnim->morph;  }
-
-    size_t                    avgPoligons() const { return polySz; }
 
     size_t                    alloc(const Tempest::VertexBuffer<Vertex>  &vbo,
                                     const Tempest::IndexBuffer<uint32_t> &ibo,
@@ -214,8 +213,6 @@ class ObjectsBucket final {
     Object                    val  [CAPACITY];
     size_t                    valSz=0;
     size_t                    valLast=0;
-    size_t                    polySz=0;
-    size_t                    polyAvg=0;
 
     const SceneGlobals&       scene;
     Storage&                  storage;
