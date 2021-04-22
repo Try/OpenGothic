@@ -33,7 +33,7 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
     rootMenu(gothic,keycodec),video(gothic),inventory(gothic,keycodec,renderer.storage()),
     dialogs(gothic,inventory),document(gothic,keycodec),chapter(gothic),console(gothic),
     player(gothic,dialogs,inventory) {
-  CrashLog::setGpu(device.renderer());
+  CrashLog::setGpu(device.properties().name);
   if(!gothic.isWindowMode())
     setFullscreen(true);
 

@@ -43,9 +43,9 @@ Renderer::Renderer(Tempest::Swapchain& swapchain, Gothic& gothic)
       }
     }
 
-  Log::i("GPU = ",device.renderer());
+  Log::i("GPU = ",device.properties().name);
   Log::i("Depth format = ",int(zBufferFormat)," Shadow format = ",int(shadowFormat));
-  uboCopy = device.uniforms(stor.pCopy.layout());
+  uboCopy = device.descriptors(stor.pCopy.layout());
   }
 
 void Renderer::resetSwapchain() {

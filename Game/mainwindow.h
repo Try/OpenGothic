@@ -10,7 +10,6 @@
 #include <Tempest/VulkanApi>
 #include <Tempest/Device>
 #include <Tempest/VertexBuffer>
-#include <Tempest/UniformsLayout>
 #include <Tempest/UniformBuffer>
 #include <Tempest/VectorImage>
 #include <Tempest/Event>

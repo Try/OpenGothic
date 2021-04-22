@@ -2,7 +2,6 @@
 
 #include <Tempest/RenderPass>
 #include <Tempest/RenderPipeline>
-#include <Tempest/UniformsLayout>
 #include <Tempest/Shader>
 #include <Tempest/Device>
 

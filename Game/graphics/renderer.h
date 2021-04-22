@@ -56,7 +56,7 @@ class Renderer final {
     Tempest::RenderPass               inventoryPass;
     Tempest::RenderPass               uiPass;
 
-    Tempest::Uniforms                 uboCopy;
+    Tempest::DescriptorSet            uboCopy;
     RendererStorage                   stor;
 
     void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::FrameBuffer& fboCpy, const Gothic& gothic, uint8_t frameId);

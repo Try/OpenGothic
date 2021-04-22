@@ -87,10 +87,10 @@ void ObjectsBucket::Descriptors::alloc(ObjectsBucket& owner) {
   auto& device = Resources::device();
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
     if(owner.pMain!=nullptr)
-      ubo[i][SceneGlobals::V_Main] = device.uniforms(owner.pMain->layout());
+      ubo[i][SceneGlobals::V_Main] = device.descriptors(owner.pMain->layout());
     if(owner.pShadow!=nullptr) {
       for(size_t lay=SceneGlobals::V_Shadow0; lay<=SceneGlobals::V_ShadowLast; ++lay)
-        ubo[i][lay] = device.uniforms(owner.pShadow->layout());
+        ubo[i][lay] = device.descriptors(owner.pShadow->layout());
       }
     }
   }

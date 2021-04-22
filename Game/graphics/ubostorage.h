@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Tempest/UniformBuffer>
-#include <Tempest/Uniforms>
+#include <Tempest/DescriptorSet>
 #include <Tempest/Device>
 
 #include <cassert>

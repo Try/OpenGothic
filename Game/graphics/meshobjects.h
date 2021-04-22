@@ -2,7 +2,7 @@
 
 #include <Tempest/Texture2d>
 #include <Tempest/Matrix4x4>
-#include <Tempest/Uniforms>
+#include <Tempest/DescriptorSet>
 #include <Tempest/UniformBuffer>
 
 #include <vector>

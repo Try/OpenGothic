@@ -36,7 +36,7 @@ void Sky::setWorld(const World &world) {
 void Sky::setupUbo() {
   auto& device = Resources::device();
   for(auto& i:perFrame){
-    i.uboSky    = device.uniforms(scene.storage.pSky.layout());
+    i.uboSky    = device.descriptors(scene.storage.pSky.layout());
     i.uboSkyGpu = device.ubo<UboSky>(nullptr,1);
 
     i.uboSky.set(0,i.uboSkyGpu);
@@ -45,7 +45,7 @@ void Sky::setupUbo() {
     i.uboSky.set(3,*night.lay[0].texture);
     i.uboSky.set(4,*night.lay[1].texture);
 
-    i.uboFog = device.uniforms(scene.storage.pFog.layout());
+    i.uboFog = device.descriptors(scene.storage.pFog.layout());
     i.uboFog.set(0,i.uboSkyGpu);
     i.uboFog.set(1,*scene.gbufDepth,Sampler2d::nearest());
     }

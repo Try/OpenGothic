@@ -139,7 +139,7 @@ LightGroup::LightGroup(const SceneGlobals& scene)
   for(auto b:bucket) {
     for(int i=0;i<Resources::MaxFramesInFlight;++i) {
       auto& u = b->ubo[i];
-      u = device.uniforms(scene.storage.pLights.layout());
+      u = device.descriptors(scene.storage.pLights.layout());
       }
     }
 

@@ -78,7 +78,7 @@ class LightGroup final {
       bool                     updated[Resources::MaxFramesInFlight] = {};
 
       std::vector<size_t>      freeList;
-      Tempest::Uniforms        ubo[Resources::MaxFramesInFlight];
+      Tempest::DescriptorSet   ubo[Resources::MaxFramesInFlight];
 
       size_t                   alloc();
       void                     free(size_t id);

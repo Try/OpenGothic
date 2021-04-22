@@ -27,7 +27,7 @@ class SkeletalStorage {
         ~AnimationId();
 
         void   setPose(const Pose& p);
-        void   bind(Tempest::Uniforms& desc, uint8_t bind, uint8_t fId) const;
+        void   bind(Tempest::DescriptorSet& desc, uint8_t bind, uint8_t fId) const;
 
       private:
         SkeletalStorage* owner   = nullptr;
@@ -39,7 +39,7 @@ class SkeletalStorage {
     size_t                   alloc(size_t bonesCount);
     void                     free(const size_t objId, size_t bonesCount);
 
-    void                     bind(Tempest::Uniforms& desc, uint8_t bind, uint8_t fId, size_t id, size_t boneCnt);
+    void                     bind(Tempest::DescriptorSet& desc, uint8_t bind, uint8_t fId, size_t id, size_t boneCnt);
 
     void                     markAsChanged(size_t elt);
     Tempest::Matrix4x4&      element(size_t i);

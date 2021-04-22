@@ -32,7 +32,7 @@ void SkeletalStorage::AnimationId::setPose(const Pose& p) {
   owner->markAsChanged(id);
   }
 
-void SkeletalStorage::AnimationId::bind(Uniforms& desc, uint8_t bind, uint8_t fId) const {
+void SkeletalStorage::AnimationId::bind(DescriptorSet& desc, uint8_t bind, uint8_t fId) const {
   owner->bind(desc,bind,fId,id,boneCnt);
   }
 
@@ -41,7 +41,7 @@ struct SkeletalStorage::Impl {
 
   virtual size_t alloc(size_t bonesCount) = 0;
   virtual void   free (const size_t objId, const size_t bonesCount) = 0;
-  virtual void   bind(Uniforms& ubo, uint8_t bind, uint8_t fId, size_t id) = 0;
+  virtual void   bind(DescriptorSet& ubo, uint8_t bind, uint8_t fId, size_t id) = 0;
   virtual bool   commitUbo(uint8_t fId) = 0;
   virtual Matrix4x4* get(size_t id) = 0;
   virtual void   reserve(size_t n) = 0;
@@ -150,7 +150,7 @@ struct SkeletalStorage::TImpl : Impl {
     std::memset(static_cast<void*>(m),0,sizeof(Matrix4x4)*bonesCount);
     }
 
-  void   bind(Uniforms& ubo, uint8_t bind, uint8_t fId, size_t id) override {
+  void   bind(DescriptorSet& ubo, uint8_t bind, uint8_t fId, size_t id) override {
     auto& v = uboData[fId];
     ubo.set(bind,v,id);
     }
@@ -218,7 +218,7 @@ void SkeletalStorage::free(const size_t objId, size_t bonesCount) {
   impl->free(objId,bonesCount);
   }
 
-void SkeletalStorage::bind(Uniforms& ubo, uint8_t bind, uint8_t fId, size_t id, size_t /*boneCnt*/) {
+void SkeletalStorage::bind(DescriptorSet& ubo, uint8_t bind, uint8_t fId, size_t id, size_t /*boneCnt*/) {
   impl->bind(ubo,bind,fId,id);
   }
 

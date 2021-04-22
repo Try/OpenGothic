@@ -48,8 +48,8 @@ class Sky final {
 
     struct PerFrame {
       Tempest::UniformBuffer<UboSky> uboSkyGpu;
-      Tempest::Uniforms              uboSky;
-      Tempest::Uniforms              uboFog;
+      Tempest::DescriptorSet         uboSky;
+      Tempest::DescriptorSet         uboFog;
       };
 
     void                          calcUboParams();

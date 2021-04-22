@@ -4,7 +4,6 @@
 #include <Tempest/VertexBuffer>
 #include <Tempest/IndexBuffer>
 #include <Tempest/UniformBuffer>
-#include <Tempest/UniformsLayout>
 
 #include "bounds.h"
 #include "material.h"
@@ -158,7 +157,7 @@ class ObjectsBucket final {
       };
 
     struct Descriptors final {
-      Tempest::Uniforms       ubo       [Resources::MaxFramesInFlight][SceneGlobals::V_Count];
+      Tempest::DescriptorSet  ubo       [Resources::MaxFramesInFlight][SceneGlobals::V_Count];
       bool                    uboIsReady[Resources::MaxFramesInFlight] = {};
 
       void                    invalidate();

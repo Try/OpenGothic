@@ -130,7 +130,7 @@ Resources::~Resources() {
   }
 
 const char* Resources::renderer() {
-  return inst->dev.renderer();
+  return inst->dev.properties().name;
   }
 
 static Sampler2d implShadowSampler() {
