@@ -545,6 +545,10 @@ Item* World::addItem(const ZenLoad::zCVobData& vob) {
   return wobj.addItem(vob);
   }
 
+Item* World::addItem(size_t itemInstance, const Tempest::Vec3& pos) {
+  return wobj.addItem(itemInstance, pos);
+  }
+
 Item *World::takeItem(Item &it) {
   return wobj.takeItem(it);
   }

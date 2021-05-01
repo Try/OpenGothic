@@ -15,6 +15,7 @@ Marvin::Marvin() {
     {"camera mode",       C_CamMode},
     {"toogle camdebug",   C_ToogleCamDebug},
     {"toogle camera",     C_ToogleCamera},
+    {"insert",            C_Insert},
     };
   }
 
@@ -67,6 +68,11 @@ Marvin::CmdVal Marvin::recognize(const std::string& v) {
         suggestionLen = len;
         cnt++;
         }
+      } else if(prefix == len) {
+        cmdLen        = prefix;
+        suggestion    = i;
+        suggestionLen = 0;
+        cnt++;
       }
     }
 
@@ -130,8 +136,38 @@ bool Marvin::exec(Gothic& gothic, const std::string& v) {
         c->setToogleEnable(!c->isToogleEnabled());
       return true;
       }
+    case C_Insert: {
+      World* world = gothic.world();
+      Npc* player = gothic.player();
+
+      std::string::size_type spacePos = v.find(" ");
+
+      if( spacePos != std::string::npos ) {
+        std::string arguments = v.substr(spacePos + 1);
+
+        if( world == nullptr || player == nullptr ) {
+          return false;
+        }
+
+        return addItemOrNpcBySymbolName(world, arguments, player->position());
+      }
+
+      return false;
+      }
     }
 
   return true;
   }
 
+bool Marvin::addItemOrNpcBySymbolName (World* world, const std::string& name, const Tempest::Vec3& at) {
+  bool ret = false;
+  size_t id = world->script().getSymbolIndex(name);
+
+  if( world->addNpc(id, at) != nullptr ) {
+    ret = true;
+  } else if( world->addItem(id, at) != nullptr ) {
+    ret = true;
+  }
+
+  return ret;
+  };
