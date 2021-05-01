@@ -22,7 +22,7 @@ class VisualObjects final {
 
     void setupUbo();
     void preFrameUpdate(uint8_t fId);
-    void visibilityPass(const Tempest::Matrix4x4& main, const Tempest::Matrix4x4* sh, size_t shCount);
+    void visibilityPass(const Frustrum fr[]);
     void draw          (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
     void drawGBuffer   (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
     void drawShadow    (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer=0);

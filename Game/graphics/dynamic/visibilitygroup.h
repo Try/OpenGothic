@@ -34,7 +34,7 @@ class VisibilityGroup {
       };
 
     Token get();
-    void  pass(const Tempest::Matrix4x4& main, const Tempest::Matrix4x4* sh, size_t shCount);
+    void  pass(const Frustrum f[]);
 
   private:
     struct Tok {
@@ -45,6 +45,8 @@ class VisibilityGroup {
 
     std::vector<Tok>    tokens;
     std::vector<size_t> freeList;
+
+    static bool subpixelMeshTest(const Tok& t, const Frustrum& f, float edgeX, float edgeY);
   };
 
 inline bool VisibilityGroup::Token::isVisible(SceneGlobals::VisCamera c) const {

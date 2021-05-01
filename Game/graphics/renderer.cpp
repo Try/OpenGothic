@@ -138,7 +138,14 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
   wview->setFrameGlobals(sh,gothic.world()->tickCount(),frameId);
   wview->setGbuffer(textureCast(lightingBuf),textureCast(gbufDiffuse),textureCast(gbufNormal),textureCast(gbufDepth));
 
-  wview->visibilityPass(viewProj,shadow,Resources::ShadowLayers);
+  {
+  Frustrum f[SceneGlobals::V_Count];
+  f[SceneGlobals::V_Shadow0].make(shadow[0],fboShadow[0].w(),fboShadow[0].h());
+  f[SceneGlobals::V_Shadow1].make(shadow[1],fboShadow[1].w(),fboShadow[1].h());
+  f[SceneGlobals::V_Main   ].make(viewProj,fbo.w(),fbo.h());
+  wview->visibilityPass(f);
+  }
+
   for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
     cmd.setFramebuffer(fboShadow[i],shadowPass);
     wview->drawShadow(cmd,frameId,i);

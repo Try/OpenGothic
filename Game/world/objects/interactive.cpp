@@ -340,6 +340,10 @@ const char *Interactive::displayName() const {
     strId = buf;
     }
 
+  if(world.getSymbolIndex(strId)==size_t(-1)) {
+    return "";
+    }
+
   auto& s=world.getSymbol(strId);
   const char* txt = s.getString(0).c_str();
   if(std::strlen(txt)==0)

@@ -89,8 +89,8 @@ void VisualObjects::preFrameUpdate(uint8_t fId) {
     c.preFrameUpdate(fId);
   }
 
-void VisualObjects::visibilityPass(const Matrix4x4& main, const Matrix4x4* sh, size_t shCount) {
-  visGroup.pass(main,sh,shCount);
+void VisualObjects::visibilityPass(const Frustrum fr[]) {
+  visGroup.pass(fr);
   }
 
 void VisualObjects::draw(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {

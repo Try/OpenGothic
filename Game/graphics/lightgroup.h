@@ -61,7 +61,7 @@ class LightGroup final {
     struct Ubo {
       Tempest::Matrix4x4 mvp;
       Tempest::Matrix4x4 mvpInv;
-      Frustrum           fr;
+      float              fr[6][4] = {};
       };
 
     struct LightSsbo {

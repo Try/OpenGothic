@@ -2,7 +2,11 @@
 
 using namespace Tempest;
 
-void Frustrum::make(const Matrix4x4& m) {
+void Frustrum::make(const Matrix4x4& m, uint32_t w, uint32_t h) {
+  width  = w;
+  height = h;
+  mat    = m;
+
   float clip[16], t=0;
   std::copy(m.data(), m.data()+16, clip );
 
@@ -92,6 +96,7 @@ void Frustrum::make(const Matrix4x4& m) {
   }
 
 void Frustrum::clear() {
+  mat = Matrix4x4();
   std::memset(f,0,sizeof(f));
   f[0][3] = -std::numeric_limits<float>::infinity();
   }

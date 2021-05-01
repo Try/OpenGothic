@@ -286,11 +286,15 @@ void LightGroup::preFrameUpdate(uint8_t fId) {
       }
     }
 
+  Frustrum fr;
+  fr.make(scene.viewProject(),1,1);
+
   Ubo ubo;
   ubo.mvp    = scene.viewProject();
   ubo.mvpInv = ubo.mvp;
   ubo.mvpInv.inverse();
-  ubo.fr.make(ubo.mvp);
+  std::memcpy(ubo.fr,fr.f,sizeof(ubo.fr));
+
   uboBuf[fId].update(&ubo,0,1);
   }
 

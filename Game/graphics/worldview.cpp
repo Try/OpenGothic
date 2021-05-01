@@ -94,8 +94,8 @@ void WorldView::dbgLights(DbgPainter& p) const {
   sGlobal.lights.dbgLights(p);
   }
 
-void WorldView::visibilityPass(const Matrix4x4& main, const Matrix4x4* sh, size_t shCount) {
-  visuals.visibilityPass(main,sh,shCount);
+void WorldView::visibilityPass(const Frustrum fr[]) {
+  visuals.visibilityPass(fr);
   }
 
 void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId, uint8_t layer) {

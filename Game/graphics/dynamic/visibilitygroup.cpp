@@ -65,16 +65,53 @@ VisibilityGroup::Token VisibilityGroup::get() {
   return Token(*this,id);
   }
 
-void VisibilityGroup::pass(const Tempest::Matrix4x4& main, const Tempest::Matrix4x4* sh, size_t /*shCount*/) {
-  Frustrum f[SceneGlobals::V_Count];
-  f[SceneGlobals::V_Shadow0].make(sh[0]);
-  f[SceneGlobals::V_Shadow1].make(sh[1]);
-  f[SceneGlobals::V_Main   ].make(main);
+void VisibilityGroup::pass(const Frustrum f[]) {
+  float mX   = 2.f/float(f[SceneGlobals::V_Main].width );
+  float mY   = 2.f/float(f[SceneGlobals::V_Main].height);
 
-  Workers::parallelFor(tokens,[&f](Tok& t){
+  float sh1X = 2.f/float(f[SceneGlobals::V_Shadow1].width );
+  float sh1Y = 2.f/float(f[SceneGlobals::V_Shadow1].height);
+
+  Workers::parallelFor(tokens,[&f,sh1X,sh1Y,mX,mY](Tok& t){
     auto& b = t.bbox;
     t.visible[SceneGlobals::V_Shadow0] = f[SceneGlobals::V_Shadow0].testPoint(b.midTr, b.r);
     t.visible[SceneGlobals::V_Shadow1] = f[SceneGlobals::V_Shadow1].testPoint(b.midTr, b.r);
     t.visible[SceneGlobals::V_Main]    = f[SceneGlobals::V_Main   ].testPoint(b.midTr, b.r);
+
+    if(t.visible[SceneGlobals::V_Shadow1])
+      t.visible[SceneGlobals::V_Shadow1] = subpixelMeshTest(t,f[SceneGlobals::V_Shadow1],sh1X,sh1Y);
+    if(t.visible[SceneGlobals::V_Main])
+      t.visible[SceneGlobals::V_Main] = subpixelMeshTest(t,f[SceneGlobals::V_Main],mX,mY);
     });
+  }
+
+bool VisibilityGroup::subpixelMeshTest(const Tok& t, const Frustrum& f, float edgeX, float edgeY) {
+  auto& b = t.bbox.bboxTr;
+  Vec3 pt[8] = {
+    {b[0].x,b[0].y,b[0].z},
+    {b[1].x,b[0].y,b[0].z},
+    {b[1].x,b[1].y,b[0].z},
+    {b[0].x,b[1].y,b[0].z},
+
+    {b[0].x,b[0].y,b[1].z},
+    {b[1].x,b[0].y,b[1].z},
+    {b[1].x,b[1].y,b[1].z},
+    {b[0].x,b[1].y,b[1].z},
+    };
+
+  for(auto& i:pt)
+    f.mat.project(i.x,i.y,i.z);
+  Vec2 bboxSh[2] = {};
+  bboxSh[0].x = pt[0].x;
+  bboxSh[0].y = pt[0].y;
+  bboxSh[1] = bboxSh[0];
+  for(auto& i:pt) {
+    bboxSh[0].x = std::min(bboxSh[0].x,i.x);
+    bboxSh[0].y = std::min(bboxSh[0].y,i.y);
+    bboxSh[1].x = std::max(bboxSh[1].x,i.x);
+    bboxSh[1].y = std::max(bboxSh[1].y,i.y);
+    }
+  float w = (bboxSh[1].x-bboxSh[0].x);
+  float h = (bboxSh[1].y-bboxSh[0].y);
+  return (w>edgeX && h>edgeY);
   }
