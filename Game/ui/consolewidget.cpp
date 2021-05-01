@@ -179,7 +179,7 @@ void ConsoleWidget::keyDownEvent(KeyEvent& e) {
 
   char ch = '\0';
   if(('a'<=e.code && e.code<='z') || ('A'<=e.code && e.code<='Z')  ||
-     ('0'<=e.code && e.code<='9') || e.code==' ' || e.code=='.')
+     ('0'<=e.code && e.code<='9') || e.code==' ' || e.code=='.' || e.code=='_' || e.code=='-')
     ch = char(e.code);
   if(ch=='\0')
     return;

@@ -68,7 +68,8 @@ Marvin::CmdVal Marvin::recognize(const std::string& v) {
         suggestionLen = len;
         cnt++;
         }
-      } else if(prefix == len) {
+        } else
+      if(prefix == len) {
         cmdLen        = prefix;
         suggestion    = i;
         suggestionLen = 0;
@@ -142,15 +143,14 @@ bool Marvin::exec(Gothic& gothic, const std::string& v) {
 
       std::string::size_type spacePos = v.find(" ");
 
-      if( spacePos != std::string::npos ) {
+      if(spacePos != std::string::npos) {
         std::string arguments = v.substr(spacePos + 1);
 
-        if( world == nullptr || player == nullptr ) {
+        if(world==nullptr || player==nullptr)
           return false;
-        }
 
         return addItemOrNpcBySymbolName(world, arguments, player->position());
-      }
+        }
 
       return false;
       }
@@ -160,14 +160,23 @@ bool Marvin::exec(Gothic& gothic, const std::string& v) {
   }
 
 bool Marvin::addItemOrNpcBySymbolName (World* world, const std::string& name, const Tempest::Vec3& at) {
-  bool ret = false;
-  size_t id = world->script().getSymbolIndex(name);
+  auto&  sc  = world->script();
+  size_t id  = sc.getSymbolIndex(name);
+  if(id==size_t(-1))
+    return false;
 
-  if( world->addNpc(id, at) != nullptr ) {
-    ret = true;
-  } else if( world->addItem(id, at) != nullptr ) {
-    ret = true;
+  auto&  sym = sc.getSymbol(id);
+  if(sym.parent==size_t(-1))
+    return false;
+
+  const auto* cls = &sym;
+  while(cls->parent!=size_t(-1)) {
+    cls = &sc.getSymbol(cls->parent);
+    }
+
+  if(cls->name=="C_NPC")
+    return (world->addNpc(id, at)!=nullptr);
+  if(cls->name=="C_ITEM")
+    return (world->addItem(id, at)!=nullptr);
+  return false;
   }
-
-  return ret;
-  };
