@@ -656,7 +656,7 @@ void Pose::setRotation(const AnimationSolver &solver, Npc &npc, WeaponState figh
     sq = solver.solveAnim(AnimationSolver::Anim::RotR,fightMode,npc.walkMode(),*this);
     }
   if(rotation!=nullptr) {
-    if(rotation->name==sq->name)
+    if(sq!=nullptr && rotation->name==sq->name)
       return;
     if(!stopAnim(rotation->name.c_str()))
       return;
