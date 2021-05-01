@@ -916,7 +916,7 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
   const int ret = runFunction(fn.ptr);
   if(vm.globalOther().instance.instanceOf(Daedalus::IC_Npc)){
     auto oth2 = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(vm.globalOther().instance.get());
-    if(oth2!=oth->handle()) {
+    if(oth!=nullptr && oth2!=oth->handle()) {
       Npc* other = getNpc(oth2);
       npc->setOther(other);
       }

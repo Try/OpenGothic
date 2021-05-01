@@ -292,6 +292,15 @@ void MoveAlgo::tickSwim(uint64_t dt) {
   }
 
 void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
+  const char* sec = cache.sector;
+  implTick(dt,moveFlg);
+  if(npc.isPlayer() && sec!=cache.sector && cache.sector!=nullptr && (sec==nullptr || std::strcmp(sec,cache.sector)!=0)) {
+    auto& w = npc.world();
+    w.sendPassivePerc(npc,npc,npc,Npc::PERC_ASSESSENTERROOM);
+    }
+  }
+
+void MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
   if(npc.interactive()!=nullptr)
     return tickMobsi(dt);
 
@@ -773,7 +782,7 @@ void MoveAlgo::rayMain(float x, float y, float z) const {
     cache.x = x;
     cache.y = y;
     cache.z = z;
-    if(!cache.hasCol) {
+    if(!cache.hasCol || cache.sector==nullptr) {
       cache.sector = prev;
       }
     }
