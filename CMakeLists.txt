@@ -52,14 +52,14 @@ add_subdirectory(lib/Tempest/Engine)
 
 # sources
 file(GLOB OPENGOTHIC_SOURCES
-    "Game/*.h"
-    "Game/*.cpp"
-    "Game/**/*.h"
-    "Game/**/*.cpp"
-    "Game/**/**/*.h"
-    "Game/**/**/*.cpp"
-    "Game/**/**/**/*.h"
-    "Game/**/**/**/*.cpp")
+    "game/*.h"
+    "game/*.cpp"
+    "game/**/*.h"
+    "game/**/*.cpp"
+    "game/**/**/*.h"
+    "game/**/**/*.cpp"
+    "game/**/**/**/*.h"
+    "game/**/**/**/*.cpp")
 
 # shaders
 add_subdirectory(shader)
