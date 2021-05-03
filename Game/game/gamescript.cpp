@@ -474,9 +474,7 @@ void GameScript::save(Serialize &fout) {
   for(auto& i:dlgKnownInfos)
     fout.write(uint32_t(i.first),uint32_t(i.second));
 
-  fout.write(uint32_t(gilAttitudes.size()));
-  for(auto& i:gilAttitudes)
-    fout.write(i);
+  fout.write(gilAttitudes);
   }
 
 void GameScript::saveVar(Serialize &fout) {
@@ -1286,7 +1284,7 @@ ScriptFn GameScript::playerPercAssessMagic() {
   auto& var = vm.getDATFile().getSymbolByIndex(id);
   auto& cnt = var.getDataContainer<int>();
   if(cnt.size()>0)
-    return ScriptFn(cnt[0]);
+    return ScriptFn(size_t(cnt[0]));
   return ScriptFn();
   }
 
@@ -2695,8 +2693,8 @@ void GameScript::ai_startstate(Daedalus::DaedalusVM &vm) {
       return;
       }
 
-    auto& st = getAiState(func);(void)st;
-    self->aiPush(AiQueue::aiStartState(func,state,oth,vic,wp));
+    auto& st = getAiState(size_t(func));(void)st;
+    self->aiPush(AiQueue::aiStartState(st.funcIni,state,oth,vic,wp));
     }
   }
 

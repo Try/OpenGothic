@@ -65,7 +65,7 @@ const Daedalus::GEngineClasses::C_ParticleFXEmitKey& VisualFx::key(SpellFxKey ty
   if(type==SpellFxKey::Invest && keyLvl>0) {
     keyLvl--;
     if(size_t(keyLvl)<investKeys.size())
-      return investKeys[keyLvl];
+      return investKeys[size_t(keyLvl)];
     }
   return keys[int(type)];
   }

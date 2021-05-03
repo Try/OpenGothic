@@ -24,7 +24,7 @@ class TrlObjects {
   public:
     using Vertex = Resources::Vertex;
 
-    TrlObjects(const SceneGlobals& scene, VisualObjects& visual);
+    TrlObjects(VisualObjects& visual);
     ~TrlObjects();
 
     class Item {
@@ -50,7 +50,6 @@ class TrlObjects {
   private:
     Bucket&           getBucket(const ParticleFx &ow);
 
-    const SceneGlobals& scene;
     VisualObjects&      visual;
     std::list<Bucket>   bucket;
   };

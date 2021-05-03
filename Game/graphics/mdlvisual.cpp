@@ -858,7 +858,7 @@ void MdlVisual::startMMAnim(Npc&, const char* anim, const char* bone) {
       continue;
     if(bone!=nullptr && bone[0]!='\0' && std::strcmp(i->bone,bone)!=0)
       continue;
-    i->view.startMMAnim(anim,1,-1);
+    i->view.startMMAnim(anim,1,uint64_t(-1));
     }
   }
 

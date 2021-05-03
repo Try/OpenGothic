@@ -163,8 +163,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
         drawBar(p,barHp,  10,    h()-10, hp, AlignLeft  | AlignBottom);
         drawBar(p,barMana,w()-10,h()-10, mp, AlignRight | AlignBottom);
         if(pl->isDive()) {
-          int32_t gl = pl->guild();
-          auto    v  = float(pl->world().script().guildVal().dive_time[gl]);
+          uint32_t gl = pl->guild();
+          auto     v  = float(pl->world().script().guildVal().dive_time[gl]);
           if(v>0) {
             auto t = float(pl->diveTime())/1000.f;
             drawBar(p,barMisc,w()/2,h()-10, (v-t)/(v), AlignHCenter | AlignBottom);
@@ -821,7 +821,7 @@ void MainWindow::onWorldLoaded() {
     c = device.commandBuffer();
 
   if(auto c = gothic.camera())
-    c->setViewport(w(),h());
+    c->setViewport(uint32_t(w()),uint32_t(h()));
   if(auto pl = gothic.player())
     pl->multSpeed(1.f);
   lastTick = Application::tickCount();

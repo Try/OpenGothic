@@ -1,4 +1,3 @@
-
 #include <Tempest/Window>
 #include <Tempest/Application>
 
@@ -6,6 +5,10 @@
 
 #if defined(_MSC_VER)
 #include <Tempest/DirectX12Api>
+#endif
+
+#if defined(__OSX__)
+#include <Tempest/MetalApi>
 #endif
 
 #include "utils/crashlog.h"
@@ -43,9 +46,18 @@ std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(Gothic& g) {
       break;
 #endif
     case Gothic::Vulkan:
+#if !defined(__OSX__)
       return std::make_unique<Tempest::VulkanApi>(flg);
+#else
+      break;
+#endif
     }
+
+#if defined(__OSX__)
+  return std::make_unique<Tempest::MetalApi>(flg);
+#else
   return std::make_unique<Tempest::VulkanApi>(flg);
+#endif
   }
 
 int main(int argc,const char** argv) {

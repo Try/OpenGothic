@@ -160,7 +160,7 @@ MeshObjects::Mesh::Mesh(MeshObjects& owner, const ProtoMesh& mesh,
     }
 
   if(mesh.morph.size()>0) {
-    startMMAnim(mesh.morph[0].name.c_str(),1,-1);
+    startMMAnim(mesh.morph[0].name.c_str(),1,uint64_t(-1));
     }
   }
 

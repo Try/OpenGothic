@@ -28,7 +28,7 @@ Vob::Vob(World& owner)
   }
 
 Vob::Vob(Vob* parent, World& owner, ZenLoad::zCVobData& vob, bool startup)
-  : world(owner), vobType(vob.vobType), parent(parent) {
+  : world(owner), vobType(uint8_t(vob.vobType)), parent(parent) {
   float v[16]={};
   std::memcpy(v,vob.worldMatrix.m,sizeof(v));
   pos   = Tempest::Matrix4x4(v);

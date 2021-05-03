@@ -7,6 +7,7 @@
 
 #include <ctime>
 #include <cstdio>
+#include <cstring>
 
 #include <sys/time.h>
 

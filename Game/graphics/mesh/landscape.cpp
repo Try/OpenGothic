@@ -8,8 +8,7 @@
 
 using namespace Tempest;
 
-Landscape::Landscape(WorldView& owner, VisualObjects& visual, const PackedMesh &mesh)
-  :owner(owner), visual(visual) {
+Landscape::Landscape(VisualObjects& visual, const PackedMesh &mesh) {
   static_assert(sizeof(Resources::Vertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
   const Resources::Vertex* vert=reinterpret_cast<const Resources::Vertex*>(mesh.vertices.data());
   vbo = Resources::vbo<Resources::Vertex>(vert,mesh.vertices.size());

@@ -223,7 +223,7 @@ void PackedMesh::split(std::vector<SubMesh>& out, SubMesh& src) {
       size_t i0 = dest.indices.size();
       dest.indices.resize(dest.indices.size()+3);
 
-      for(int r=0;r<3;++r)
+      for(size_t r=0;r<3;++r)
         dest.indices[i0+r] = src.indices[i+r];
       }
     if((left.indices.size()==0 || right.indices.size()==0) && pass!=2) {

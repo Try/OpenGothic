@@ -22,3 +22,6 @@ bin/Gothic.ini
 
 # internal
 internal/
+
+#os
+.DS_Store

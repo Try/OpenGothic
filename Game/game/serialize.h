@@ -52,103 +52,119 @@ class Serialize final {
 
     template<class T,class ... Arg>
     void read(T& t,Arg& ... a){
-      read(t);
+      implRead(t);
       read(a...);
+      }
+
+    template<class T>
+    void read(T& t){
+      implRead(t);
       }
 
     template<class T,class ... Arg>
     void write(const T& t,const Arg& ... a){
-      write(t);
+      implWrite(t);
       write(a...);
       }
 
-    void write(WalkBit   i) { writeBytes(&i,sizeof(i)); }
-    void read (WalkBit&  i) { readBytes (&i,sizeof(i)); }
+    template<class T>
+    void write(const T& t){
+      implWrite(t);
+      }
 
-    void write(BodyState i) { writeBytes(&i,sizeof(i)); }
-    void read (BodyState&i) { readBytes (&i,sizeof(i)); }
+  private:
+    void implWrite(WalkBit   i) { writeBytes(&i,sizeof(i)); }
+    void implRead (WalkBit&  i) { readBytes (&i,sizeof(i)); }
 
-    void write(WeaponState  w);
-    void read (WeaponState &w);
+    void implWrite(BodyState i) { writeBytes(&i,sizeof(i)); }
+    void implRead (BodyState&i) { readBytes (&i,sizeof(i)); }
 
-    void write(bool      i) { write(uint8_t(i ? 1 : 0)); }
-    void read (bool&     i) { uint8_t x=0; read(x); i=(x!=0); }
+    void implWrite(WeaponState  w);
+    void implRead (WeaponState &w);
 
-    void write(char      i) { writeBytes(&i,sizeof(i)); }
-    void read (char&     i) { readBytes (&i,sizeof(i)); }
+    void implWrite(bool      i) { implWrite(uint8_t(i ? 1 : 0)); }
+    void implRead (bool&     i) { uint8_t x=0; read(x); i=(x!=0); }
 
-    void write(uint8_t   i) { writeBytes(&i,sizeof(i)); }
-    void read (uint8_t&  i) { readBytes (&i,sizeof(i)); }
+    void implWrite(char      i) { writeBytes(&i,sizeof(i)); }
+    void implRead (char&     i) { readBytes (&i,sizeof(i)); }
 
-    void write(uint16_t  i) { writeBytes(&i,sizeof(i)); }
-    void read (uint16_t& i) { readBytes (&i,sizeof(i)); }
+    void implWrite(uint8_t   i) { writeBytes(&i,sizeof(i)); }
+    void implRead (uint8_t&  i) { readBytes (&i,sizeof(i)); }
 
-    void write(int32_t   i) { writeBytes(&i,sizeof(i)); }
-    void read (int32_t&  i) { readBytes (&i,sizeof(i)); }
+    void implWrite(uint16_t  i) { writeBytes(&i,sizeof(i)); }
+    void implRead (uint16_t& i) { readBytes (&i,sizeof(i)); }
 
-    void write(uint32_t  i) { writeBytes(&i,sizeof(i)); }
-    void read (uint32_t& i) { readBytes (&i,sizeof(i)); }
+    void implWrite(int32_t   i) { writeBytes(&i,sizeof(i)); }
+    void implRead (int32_t&  i) { readBytes (&i,sizeof(i)); }
 
-    void write(uint64_t  i) { writeBytes(&i,sizeof(i)); }
-    void read (uint64_t& i) { readBytes (&i,sizeof(i)); }
+    void implWrite(uint32_t  i) { writeBytes(&i,sizeof(i)); }
+    void implRead (uint32_t& i) { readBytes (&i,sizeof(i)); }
 
-    void write(gtime  i)    { writeBytes(&i,sizeof(i)); }
-    void read (gtime& i)    { readBytes (&i,sizeof(i)); }
+    void implWrite(uint64_t  i) { writeBytes(&i,sizeof(i)); }
+    void implRead (uint64_t& i) { readBytes (&i,sizeof(i)); }
 
-    void write(float  i)    { writeBytes(&i,sizeof(i)); }
-    void read (float& i)    { readBytes (&i,sizeof(i)); }
+    void implWrite(gtime  i)    { writeBytes(&i,sizeof(i)); }
+    void implRead (gtime& i)    { readBytes (&i,sizeof(i)); }
 
-    void write(const Tempest::Matrix4x4& i) { writeBytes(&i,sizeof(i)); }
-    void read (Tempest::Matrix4x4& i)       { readBytes (&i,sizeof(i)); }
+    void implWrite(float  i)    { writeBytes(&i,sizeof(i)); }
+    void implRead (float& i)    { readBytes (&i,sizeof(i)); }
 
-    void write(const std::string&              s);
-    void read (std::string&                    s);
+    template<class T, std::enable_if_t<!std::is_same<T,uint32_t>::value && !std::is_same<T,uint64_t>::value && std::is_same<T,size_t>::value,bool> = true>
+    void implWrite(T ) = delete;
+    template<class T, std::enable_if_t<!std::is_same<T,uint32_t>::value && !std::is_same<T,uint64_t>::value && std::is_same<T,size_t>::value,bool> = true>
+    void implRead(T&) = delete;
 
-    void write(const Daedalus::ZString&        s);
-    void read (Daedalus::ZString&              s);
+    void implWrite(const Tempest::Matrix4x4& i) { writeBytes(&i,sizeof(i)); }
+    void implRead (Tempest::Matrix4x4& i)       { readBytes (&i,sizeof(i)); }
 
-    void write(const SaveGameHeader&           p);
-    void read (SaveGameHeader&                 p);
+    void implWrite(const std::string&              s);
+    void implRead (std::string&                    s);
 
-    void write(const Tempest::Pixmap&          p);
-    void read (Tempest::Pixmap&                p);
+    void implWrite(const Daedalus::ZString&        s);
+    void implRead (Daedalus::ZString&              s);
 
-    void write(const WayPoint*  wptr);
-    void read (const WayPoint*& wptr);
+    void implWrite(const SaveGameHeader&           p);
+    void implRead (SaveGameHeader&                 p);
 
-    void write(const ScriptFn& fn);
-    void read (ScriptFn&       fn);
+    void implWrite(const Tempest::Pixmap&          p);
+    void implRead (Tempest::Pixmap&                p);
 
-    void write(const Npc*  npc);
-    void read (const Npc*& npc);
+    void implWrite(const WayPoint*  wptr);
+    void implRead (const WayPoint*& wptr);
 
-    void write(Npc*        npc);
-    void read (Npc*&       npc);
+    void implWrite(const ScriptFn& fn);
+    void implRead (ScriptFn&       fn);
 
-    void write(Interactive*  mobsi);
-    void read (Interactive*& mobsi);
+    void implWrite(const Npc*  npc);
+    void implRead (const Npc*& npc);
 
-    void write(const FpLock& fp);
-    void read (FpLock& fp);
+    void implWrite(Npc*        npc);
+    void implRead (Npc*&       npc);
+
+    void implWrite(Interactive*  mobsi);
+    void implRead (Interactive*& mobsi);
+
+    void implWrite(const FpLock& fp);
+    void implRead (FpLock& fp);
 
     template<class T>
-    void write(const std::vector<T>& s) {
+    void implWrite(const std::vector<T>& s) {
       implWriteVec(s,std::is_trivial<T>());
       }
 
     template<class T>
-    void read (std::vector<T>& s){
+    void implRead (std::vector<T>& s){
       implReadVec(s,std::is_trivial<T>());
       }
 
-    void write(const std::vector<bool>& s) {
+    void implWrite(const std::vector<bool>& s) {
       uint32_t sz=uint32_t(s.size());
       write(sz);
       for(size_t i=0; i<s.size(); ++i)
         write(s[i]);
       }
 
-    void read (std::vector<bool>& s) {
+    void implRead (std::vector<bool>& s) {
       uint32_t sz=0;
       read(sz);
       s.resize(sz);
@@ -160,65 +176,64 @@ class Serialize final {
       }
 
     template<size_t sz>
-    void write(const Daedalus::ZString (&s)[sz]) { writeArr(s); }
+    void implWrite(const Daedalus::ZString (&s)[sz]) { writeArr(s); }
 
     template<size_t sz>
-    void read (Daedalus::ZString (&s)[sz]) { readArr(s); }
+    void implRead (Daedalus::ZString (&s)[sz]) { readArr(s); }
 
     template<size_t sz>
-    void write(const std::string (&s)[sz]) { writeArr(s); }
+    void implWrite(const std::string (&s)[sz]) { writeArr(s); }
 
     template<size_t sz>
-    void read (std::string (&s)[sz]) { readArr(s); }
+    void implRead (std::string (&s)[sz]) { readArr(s); }
 
     template<size_t sz>
-    void write(const uint8_t (&s)[sz]) { writeBytes(s,sz); }
+    void implWrite(const uint8_t (&s)[sz]) { writeBytes(s,sz); }
 
     template<size_t sz>
-    void read (uint8_t (&s)[sz]) { readBytes(s,sz); }
+    void implRead (uint8_t (&s)[sz]) { readBytes(s,sz); }
 
     template<size_t sz>
-    void write(const int32_t (&s)[sz]) { writeArr(s); }
+    void implWrite(const int32_t (&s)[sz]) { writeArr(s); }
 
     template<size_t sz>
-    void read (int32_t (&s)[sz]) { readArr(s); }
+    void implRead (int32_t (&s)[sz]) { readArr(s); }
 
     template<size_t sz>
-    void write(const uint32_t (&s)[sz]) { writeArr(s); }
+    void implWrite(const uint32_t (&s)[sz]) { writeArr(s); }
 
     template<size_t sz>
-    void read (uint32_t (&s)[sz]) { readArr(s); }
+    void implRead (uint32_t (&s)[sz]) { readArr(s); }
 
     template<size_t sz>
-    void write(const float (&s)[sz]) { writeArr(s); }
+    void implWrite(const float (&s)[sz]) { writeArr(s); }
 
     template<size_t sz>
-    void read (float (&s)[sz]) { readArr(s); }
+    void implRead (float (&s)[sz]) { readArr(s); }
 
-    void write(const Tempest::Vec3& s) { writeBytes(&s,sizeof(s)); }
-    void read (Tempest::Vec3& s)       { readBytes (&s,sizeof(s)); }
+    void implWrite(const Tempest::Vec3& s) { writeBytes(&s,sizeof(s)); }
+    void implRead (Tempest::Vec3& s)       { readBytes (&s,sizeof(s)); }
 
     template<size_t sz>
-    void write(const std::array<float,sz>& v) {
+    void implWrite(const std::array<float,sz>& v) {
       writeBytes(&v[0],sz*sizeof(float));
       }
 
     template<size_t sz>
-    void read (std::array<float,sz>& v) {
+    void implRead (std::array<float,sz>& v) {
       readBytes(&v[0],sz*sizeof(float));
       }
 
-    void write(const Daedalus::GEngineClasses::C_Npc& h);
-    void read (Daedalus::GEngineClasses::C_Npc&       h);
+    void implWrite(const Daedalus::GEngineClasses::C_Npc& h);
+    void implRead (Daedalus::GEngineClasses::C_Npc&       h);
 
-    void write(const Daedalus::DataContainer<int>&               c) { implWriteDat<int>  (c); }
-    void read (Daedalus::DataContainer<int>&                     c) { implReadDat <int>  (c); }
-    void write(const Daedalus::DataContainer<float>&             c) { implWriteDat<float>(c); }
-    void read (Daedalus::DataContainer<float>&                   c) { implReadDat <float>(c); }
-    void write(const Daedalus::DataContainer<Daedalus::ZString>& c) { implWriteDat<Daedalus::ZString>(c); }
-    void read (Daedalus::DataContainer<Daedalus::ZString>&       c) { implReadDat <Daedalus::ZString>(c); }
+    void implWrite(const Daedalus::DataContainer<int>&               c) { implWriteDat<int>  (c); }
+    void implRead (Daedalus::DataContainer<int>&                     c) { implReadDat <int>  (c); }
+    void implWrite(const Daedalus::DataContainer<float>&             c) { implWriteDat<float>(c); }
+    void implRead (Daedalus::DataContainer<float>&                   c) { implReadDat <float>(c); }
+    void implWrite(const Daedalus::DataContainer<Daedalus::ZString>& c) { implWriteDat<Daedalus::ZString>(c); }
+    void implRead (Daedalus::DataContainer<Daedalus::ZString>&       c) { implReadDat <Daedalus::ZString>(c); }
 
-  private:
     Serialize();
 
     template<class T>

@@ -78,7 +78,7 @@ void VideoWidget::Sound::renderSound(int16_t *out, size_t n) {
     float v = s[i];
     out[i] = (v < -1.00004566f ? int16_t(-32768) : (v > 1.00001514f ? int16_t(32767) : int16_t(v * 32767.5f)));
     }
-  ctx.samples.erase(ctx.samples.begin(),ctx.samples.begin()+n);
+  ctx.samples.erase(ctx.samples.begin(),ctx.samples.begin()+int(n));
   }
 
 struct VideoWidget::Context {

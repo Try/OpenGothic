@@ -87,7 +87,6 @@ class Camera final {
     uint32_t              vpWidth=0;
     uint32_t              vpHeight=0;
 
-    bool                  isInMove = false;
     bool                  hasPos   = false;
     bool                  dbg      = false;
     bool                  tgEnable = true;
