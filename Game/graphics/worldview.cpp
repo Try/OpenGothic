@@ -13,7 +13,7 @@ using namespace Tempest;
 
 WorldView::WorldView(const World &world, const PackedMesh &wmesh, const RendererStorage &storage)
   : owner(world),storage(storage),sGlobal(storage),visuals(sGlobal),
-    objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(*this,visuals,wmesh) {
+    objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(visuals,wmesh) {
   visuals.setWorld(owner);
   pfxGroup.resetTicks();
   }

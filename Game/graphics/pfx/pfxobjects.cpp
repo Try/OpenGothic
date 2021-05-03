@@ -18,7 +18,7 @@
 using namespace Tempest;
 
 PfxObjects::PfxObjects(WorldView& world, const SceneGlobals& scene, VisualObjects& visual)
-  :world(world), scene(scene), visual(visual), trails(scene,visual) {
+  :world(world), scene(scene), visual(visual), trails(visual) {
   }
 
 PfxObjects::~PfxObjects() {

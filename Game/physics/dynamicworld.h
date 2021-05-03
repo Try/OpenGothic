@@ -185,7 +185,6 @@ class DynamicWorld final {
         ~BBoxBody();
 
       private:
-        DynamicWorld*       owner = nullptr;
         BBoxCallback*       cb    = nullptr;
 
         btCollisionShape*   shape = nullptr;

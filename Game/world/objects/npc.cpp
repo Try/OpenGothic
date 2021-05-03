@@ -1706,9 +1706,9 @@ void Npc::tick(uint64_t dt) {
     setAnim(AnimationSolver::Idle);
 
   if(isDive()) {
-    int32_t gl = guild();
-    int32_t v  = world().script().guildVal().dive_time[gl]*1000;
-    int32_t t  = diveTime();
+    uint32_t gl = guild();
+    int32_t  v  = world().script().guildVal().dive_time[gl]*1000;
+    int32_t  t  = diveTime();
     if(v>=0 && t>v+int(dt)) {
       int tickSz = world().script().npcDamDiveTime();
       if(tickSz>0) {

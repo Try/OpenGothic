@@ -573,7 +573,7 @@ std::vector<const Texture2d*> Resources::loadTextureAnim(const std::string& name
     char   buf[128]={};
     for(size_t i=0;i<name.size();++i) {
       if(i+2<name.size() && name[i]=='_' && (name[i+1]=='A' || name[i+1]=='a') && name[i+2]=='0'){
-        at += std::snprintf(buf+at,sizeof(buf)-at,"_A%d",id);
+        at += size_t(std::snprintf(buf+at,sizeof(buf)-at,"_A%d",id));
         i+=2;
         } else {
         buf[at] = name[i];

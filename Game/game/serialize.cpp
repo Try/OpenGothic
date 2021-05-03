@@ -36,122 +36,122 @@ Serialize::Serialize()
   :ver(Version){
   }
 
-void Serialize::write(const std::string &s) {
+void Serialize::implWrite(const std::string &s) {
   uint32_t sz=uint32_t(s.size());
-  write(sz);
+  implWrite(sz);
   writeBytes(s.data(),sz);
   }
 
-void Serialize::read(std::string &s) {
+void Serialize::implRead(std::string &s) {
   uint32_t sz=0;
-  read(sz);
+  implRead(sz);
   s.resize(sz);
   if(sz>0)
     readBytes(&s[0],sz);
   }
 
-void Serialize::write(const Daedalus::ZString& s) {
+void Serialize::implWrite(const Daedalus::ZString& s) {
   uint32_t sz=uint32_t(s.size());
-  write(sz);
+  implWrite(sz);
   writeBytes(s.c_str(),sz);
   }
 
-void Serialize::read(Daedalus::ZString& s) {
+void Serialize::implRead(Daedalus::ZString& s) {
   std::string rs;
-  read(rs);
+  implRead(rs);
   s = Daedalus::ZString(std::move(rs));
   }
 
-void Serialize::write(const SaveGameHeader &p) {
+void Serialize::implWrite(const SaveGameHeader &p) {
   p.save(*this);
   }
 
-void Serialize::read(SaveGameHeader &p) {
+void Serialize::implRead(SaveGameHeader &p) {
   p = SaveGameHeader(*this);
   }
 
-void Serialize::write(const Tempest::Pixmap &p) {
+void Serialize::implWrite(const Tempest::Pixmap &p) {
   p.save(*out);
   }
 
-void Serialize::read(Tempest::Pixmap &p) {
+void Serialize::implRead(Tempest::Pixmap &p) {
   p = Tempest::Pixmap(*in);
   }
 
-void Serialize::write(const WayPoint *wptr) {
-  write(wptr ? wptr->name : "");
+void Serialize::implWrite(const WayPoint *wptr) {
+  implWrite(wptr ? wptr->name : "");
   }
 
-void Serialize::read(const WayPoint *&wptr) {
-  read(tmpStr);
+void Serialize::implRead(const WayPoint *&wptr) {
+  implRead(tmpStr);
   wptr = ctx->findPoint(tmpStr,false);
   }
 
-void Serialize::write(const ScriptFn& fn) {
+void Serialize::implWrite(const ScriptFn& fn) {
   uint32_t v = uint32_t(-1);
   if(fn.ptr<uint64_t(std::numeric_limits<uint32_t>::max()))
     v = uint32_t(fn.ptr);
-  write(v);
+  implWrite(v);
   }
 
-void Serialize::read(ScriptFn& fn) {
+void Serialize::implRead(ScriptFn& fn) {
   uint32_t v=0;
-  read(v);
+  implRead(v);
   if(v==std::numeric_limits<uint32_t>::max())
     fn.ptr = size_t(-1); else
     fn.ptr = v;
   }
 
-void Serialize::write(const Npc* npc) {
+void Serialize::implWrite(const Npc* npc) {
   uint32_t id = ctx->npcId(npc);
-  write(id);
+  implWrite(id);
   }
 
-void Serialize::read(const Npc *&npc) {
+void Serialize::implRead(const Npc *&npc) {
+  uint32_t id=uint32_t(-1);
+  implRead(id);
+  npc = ctx->npcById(id);
+  }
+
+void Serialize::implWrite(Npc *npc) {
+  uint32_t id = ctx->npcId(npc);
+  implWrite(id);
+  }
+
+void Serialize::implRead(Npc *&npc) {
   uint32_t id=uint32_t(-1);
   read(id);
   npc = ctx->npcById(id);
   }
 
-void Serialize::write(Npc *npc) {
-  uint32_t id = ctx->npcId(npc);
-  write(id);
-  }
-
-void Serialize::read(Npc *&npc) {
-  uint32_t id=uint32_t(-1);
-  read(id);
-  npc = ctx->npcById(id);
-  }
-
-void Serialize::write(Interactive* mobsi) {
+void Serialize::implWrite(Interactive* mobsi) {
   uint32_t id = ctx->mobsiId(mobsi);
-  write(id);
+  implWrite(id);
   }
 
-void Serialize::read(Interactive*& mobsi) {
+void Serialize::implRead(Interactive*& mobsi) {
   uint32_t id=uint32_t(-1);
-  read(id);
+  implRead(id);
   mobsi = ctx->mobsiById(id);
   }
 
-void Serialize::write(WeaponState w) {
-  write(uint8_t(w));
+void Serialize::implWrite(WeaponState w) {
+  implWrite(uint8_t(w));
   }
 
-void Serialize::read(WeaponState &w) {
-  read(reinterpret_cast<uint8_t&>(w));
+void Serialize::implRead(WeaponState &w) {
+  implRead(reinterpret_cast<uint8_t&>(w));
   }
 
-void Serialize::write(const FpLock &fp) {
+void Serialize::implWrite(const FpLock &fp) {
   fp.save(*this);
   }
 
-void Serialize::read(FpLock &fp) {
+void Serialize::implRead(FpLock &fp) {
   fp.load(*this);
   }
 
-void Serialize::write(const Daedalus::GEngineClasses::C_Npc& h) {
+void Serialize::implWrite(const Daedalus::GEngineClasses::C_Npc& h) {
   write(uint32_t(h.instanceSymbol));
   write(h.id,h.name,h.slot,h.effect,int32_t(h.npcType));
   write(int32_t(h.flags));
@@ -165,7 +165,7 @@ void Serialize::write(const Daedalus::GEngineClasses::C_Npc& h) {
   write(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
   }
 
-void Serialize::read(Daedalus::GEngineClasses::C_Npc& h) {
+void Serialize::implRead(Daedalus::GEngineClasses::C_Npc& h) {
   uint32_t instanceSymbol=0;
 
   read(instanceSymbol); h.instanceSymbol = instanceSymbol;

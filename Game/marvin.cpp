@@ -166,11 +166,11 @@ bool Marvin::addItemOrNpcBySymbolName (World* world, const std::string& name, co
     return false;
 
   auto&  sym = sc.getSymbol(id);
-  if(sym.parent==size_t(-1))
+  if(sym.parent==uint32_t(-1))
     return false;
 
   const auto* cls = &sym;
-  while(cls->parent!=size_t(-1)) {
+  while(cls->parent!=uint32_t(-1)) {
     cls = &sc.getSymbol(cls->parent);
     }
 

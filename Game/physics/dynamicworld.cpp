@@ -4,6 +4,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
+#pragma GCC diagnostic ignored "-Wargument-outside-range"
 #endif
 
 #include <BulletCollision/CollisionDispatch/btCollisionDispatcher.h>
@@ -1239,8 +1240,8 @@ Tempest::Matrix4x4 DynamicWorld::BulletBody::matrix() const {
   return mat;
   }
 
-DynamicWorld::BBoxBody::BBoxBody(DynamicWorld* wrld, DynamicWorld::BBoxCallback* cb, const ZMath::float3* bbox)
-  :owner(wrld), cb(cb) {
+DynamicWorld::BBoxBody::BBoxBody(DynamicWorld*, DynamicWorld::BBoxCallback* cb, const ZMath::float3* bbox)
+  : cb(cb) {
   btVector3 hExt = {bbox[1].x-bbox[0].x, bbox[1].y-bbox[0].y, bbox[1].z-bbox[0].z};
   btVector3 pos  = btVector3{bbox[1].x+bbox[0].x, bbox[1].y+bbox[0].y, bbox[1].z+bbox[0].z}*0.5f;
 

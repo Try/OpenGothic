@@ -212,7 +212,7 @@ void TrlObjects::Trail::tick(uint64_t dt, Bucket& bucket) {
     if(pt[rm].time<bucket.maxTime) {
       if(rm>1) {
         --rm;
-        pt.erase(pt.begin(),pt.begin()+rm);
+        pt.erase(pt.begin(),pt.begin()+int(rm));
         }
       break;
       }
@@ -223,8 +223,8 @@ void TrlObjects::Trail::tick(uint64_t dt, Bucket& bucket) {
     }
   }
 
-TrlObjects::TrlObjects(const SceneGlobals& scene, VisualObjects& visual)
-  : scene(scene), visual(visual){
+TrlObjects::TrlObjects(VisualObjects& visual)
+  : visual(visual){
   }
 
 TrlObjects::~TrlObjects() {

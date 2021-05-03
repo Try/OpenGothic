@@ -264,10 +264,14 @@ void ObjectsBucket::preFrameUpdate(uint8_t fId) {
     return;
 
   UboMaterial ubo;
-  if(mat.texAniMapDirPeriod.x!=0)
-    ubo.texAniMapDir.x = float(scene.tickCount%std::abs(mat.texAniMapDirPeriod.x))/float(mat.texAniMapDirPeriod.x);
-  if(mat.texAniMapDirPeriod.y!=0)
-    ubo.texAniMapDir.y = float(scene.tickCount%std::abs(mat.texAniMapDirPeriod.y))/float(mat.texAniMapDirPeriod.y);
+  if(mat.texAniMapDirPeriod.x!=0) {
+    uint64_t fract = scene.tickCount%uint64_t(std::abs(mat.texAniMapDirPeriod.x));
+    ubo.texAniMapDir.x = float(fract)/float(mat.texAniMapDirPeriod.x);
+    }
+  if(mat.texAniMapDirPeriod.y!=0) {
+    uint64_t fract = scene.tickCount%uint64_t(std::abs(mat.texAniMapDirPeriod.y));
+    ubo.texAniMapDir.y = float(fract)/float(mat.texAniMapDirPeriod.y);
+    }
 
   uboMat[fId].update(&ubo,0,1);
   }
@@ -310,7 +314,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
   v->ibo       = &ibo;
   v->iboOffset = iboOffset;
   v->iboLength = iboLen;
-  return std::distance(val,v);
+  return size_t(std::distance(val,v));
   }
 
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
@@ -325,14 +329,14 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
   v->iboLength = iboLen;
 
   v->skiningAni = &anim;//storage.ani.alloc(boneCnt);
-  return std::distance(val,v);
+  return size_t(std::distance(val,v));
   }
 
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* vbo[], const Bounds& bounds) {
   Object* v = &implAlloc(VboType::VboMorph,bounds);
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     v->vboM[i] = vbo[i];
-  return std::distance(val,v);
+  return size_t(std::distance(val,v));
   }
 
 void ObjectsBucket::free(const size_t objId) {
