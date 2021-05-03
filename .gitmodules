@@ -3,7 +3,7 @@
   url = https://github.com/Try/ZenLib.git
 [submodule "lib/Tempest"]
 	path = lib/Tempest
-	url = https://github.com/Try/Tempest.git
+	url = https://github.com/Try/Tempest
 [submodule "lib/bullet3"]
 	path = lib/bullet3
 	url = https://github.com/bulletphysics/bullet3.git
