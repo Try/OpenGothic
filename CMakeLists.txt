@@ -36,6 +36,12 @@ set(GLFW_BUILD_TESTS             OFF CACHE INTERNAL "")
 set(GLFW_BUILD_DOCS              OFF CACHE INTERNAL "")
 set(BUILD_BULLET3                OFF CACHE INTERNAL "") # Can use bullet2, bullet3 wants to build examples...
 add_subdirectory(lib/bullet3)
+target_compile_options(BulletDynamics         PRIVATE -Wno-argument-outside-range)
+target_compile_options(BulletInverseDynamics  PRIVATE -Wno-argument-outside-range)
+target_compile_options(BulletSoftBody         PRIVATE -Wno-argument-outside-range)
+target_compile_options(Bullet3Common          PRIVATE -Wno-argument-outside-range)
+target_compile_options(BulletCollision        PRIVATE -Wno-argument-outside-range)
+target_compile_options(LinearMath             PRIVATE -Wno-argument-outside-range)
 
 # edd-dbg
 add_subdirectory(lib/edd-dbg)
@@ -104,7 +110,7 @@ target_link_libraries(${PROJECT_NAME} GothicShaders)
 
 if(NOT MSVC)
   target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wconversion -Wno-strict-aliasing -Werror)
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "7.1")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "7.1" AND NOT APPLE)
     target_compile_options(${PROJECT_NAME} PRIVATE -Wno-format-truncation)
   endif()
   if(UNIX)
