@@ -1,10 +1,14 @@
 #include "dynamicworld.h"
 
+#include <Tempest/Platform>
+
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
+#if defined(__OSX__)
 #pragma GCC diagnostic ignored "-Wargument-outside-range"
+#endif
 #endif
 
 #include <BulletCollision/CollisionDispatch/btCollisionDispatcher.h>

@@ -371,7 +371,7 @@ void Mixer::volFromCurve(PatternInternal &part,Instr& inst,std::vector<float> &v
     switch(i.shape) {
       case DMUS_CURVES_LINEAR: {
         for(size_t i=begin;i<size;++i) {
-          float val = float(float(i)-s)/range;
+          float val = (float(i)-float(s))/range;
           v[i] = val*diffV+shift;
           }
         break;
@@ -384,21 +384,21 @@ void Mixer::volFromCurve(PatternInternal &part,Instr& inst,std::vector<float> &v
         }
       case DMUS_CURVES_EXP: {
         for(size_t i=begin;i<size;++i) {
-          float val = float(float(i)-s)/range;
+          float val = (float(i)-float(s))/range;
           v[i] = std::pow(val,2.f)*diffV+shift;
           }
         break;
         }
       case DMUS_CURVES_LOG: {
         for(size_t i=begin;i<size;++i) {
-          float val = float(float(i)-s)/range;
+          float val = (float(i)-float(s))/range;
           v[i] = std::sqrt(val)*diffV+shift;
           }
         break;
         }
       case DMUS_CURVES_SINE: {
         for(size_t i=begin;i<size;++i) {
-          float linear = float(float(i)-s)/range;
+          float linear = (float(i)-float(s))/range;
           float val    = std::sin(float(M_PI)*linear*0.5f);
           v[i] = val*diffV+shift;
           }
