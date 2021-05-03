@@ -381,6 +381,8 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
   UboPush pushBlock = {};
   bool    sharedSet = false;
 
+  const size_t pushSz = (morphAnim!=nullptr) ? sizeof(pushBlock) : sizeof(Tempest::Matrix4x4);
+
   for(size_t i=0; i<valLast; ++i) {
     auto& v = val[i];
     if(v.vboType==NoVbo)
@@ -391,14 +393,14 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
     updatePushBlock(pushBlock,v);
     if(!useSharedUbo) {
       uboSetDynamic(v,fId);
-      cmd.setUniforms(shader, v.ubo.ubo[fId][c], &pushBlock, sizeof(pushBlock));
+      cmd.setUniforms(shader, v.ubo.ubo[fId][c], &pushBlock, pushSz);
       }
     else if(!sharedSet) {
       sharedSet = true;
-      cmd.setUniforms(shader, uboShared.ubo[fId][c], &pushBlock, sizeof(pushBlock));
+      cmd.setUniforms(shader, uboShared.ubo[fId][c], &pushBlock, pushSz);
       }
     else {
-      cmd.setUniforms(shader, &pushBlock, sizeof(pushBlock));
+      cmd.setUniforms(shader, &pushBlock, pushSz);
       }
 
     switch(v.vboType) {

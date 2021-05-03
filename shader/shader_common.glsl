@@ -25,7 +25,6 @@ struct MorphDesc {
   float alpha;
   };
 
-
 #if defined(OBJ)
 layout(push_constant, std140) uniform UboPush {
   mat4      obj;
