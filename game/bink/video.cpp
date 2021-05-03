@@ -1,9 +1,8 @@
 #include "video.h"
 
 #ifdef __GNUC__
-#pragma GCC diagnostic push
+// TODO: fix clang warnings
 #pragma GCC diagnostic ignored "-Wconversion"
-//#pragma GCC diagnostic ignored "-Wfloat-conversion"
 #endif
 
 #include <stdexcept>
