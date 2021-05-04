@@ -24,7 +24,7 @@ install:
 - cmd: VulkanSDK.exe /S
 - cmd: set VK_SDK_PATH=C:/VulkanSDK/1.2.170.0
 
-- sh:  sudo apt-get update
+#- sh:  sudo apt-get update
 - sh:  sudo apt-get --yes install libvulkan-dev libasound2-dev
 # https://github.com/appveyor/ci/issues/3573
 - sh:  sudo apt-get install -y libclang1-9
