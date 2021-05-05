@@ -36,7 +36,7 @@
       <image>https://raw.githubusercontent.com/Try/OpenGothic/master/scr0.png</image>
     </screenshot>
   </screenshots>
-  <metadata_license>CC-BY-SA-3.0</metadata_license>
+  <metadata_license>MIT</metadata_license>
   <releases>
     <release version="0.37" date="2021-04-18"/>
     <release version="0.36" date="2021-04-18"/>
