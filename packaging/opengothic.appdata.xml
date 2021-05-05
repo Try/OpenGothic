@@ -36,8 +36,14 @@
       <image>https://raw.githubusercontent.com/Try/OpenGothic/master/scr0.png</image>
     </screenshot>
   </screenshots>
-  <metadata_license>CC-BY-SA-3.0</metadata_license>
+  <metadata_license>MIT</metadata_license>
   <releases>
+    <release version="0.37" date="2021-04-18"/>
+    <release version="0.36" date="2021-04-18"/>
+    <release version="0.35" date="2021-01-18"/>
+    <release version="0.34" date="2021-01-17"/>
+    <release version="0.33" date="2021-01-17"/>
+    <release version="0.32" date="2020-11-06"/>
     <release version="0.31" date="2020-10-04"/>
     <release version="0.30" date="2020-08-29"/>
     <release version="0.29" date="2020-08-27"/>
