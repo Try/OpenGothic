@@ -77,7 +77,7 @@ add_executable(${PROJECT_NAME}
     ${OPENGOTHIC_SOURCES}
     icon.rc)
 
-include_directories("Game")
+include_directories("game")
 
 # edd-dbg
 include_directories(lib/edd-dbg/include)
