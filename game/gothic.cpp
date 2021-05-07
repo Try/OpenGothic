@@ -6,6 +6,8 @@
 #include <zenload/zCMesh.h>
 #include <cstring>
 #include <cctype>
+#include <codecvt>
+#include <locale>
 
 #include "game/definitions/visualfxdefinitions.h"
 #include "game/definitions/sounddefinitions.h"
@@ -31,6 +33,14 @@ Gothic::Gothic(const int argc, const char **argv) {
       ++i;
       if(i<argc)
         gpath.assign(argv[i],argv[i]+std::strlen(argv[i]));
+      }
+    else if(std::strcmp(argv[i],"-i")==0) {
+      ++i;
+      std::cout << "Enter the path to your Gothic installation:\n";
+      std::wstring_convert<std::codecvt_utf8_utf16<char16_t>,char16_t> convert;
+      std::string gothicPath;
+      std::cin >> gothicPath;
+      gpath.assign(convert.from_bytes(gothicPath));
       }
     else if(std::strcmp(argv[i],"-save")==0){
       ++i;
