@@ -27,11 +27,12 @@ class MdlVisual final {
     void                           load(Serialize& fin,  Npc& npc);
     void                           load(Serialize& fin,  Interactive &mob);
 
+    void                           setVisual(const Skeleton *visual);
+
     void                           setPosition(float x,float y,float z, bool syncAttach = false);
     void                           setObjMatrix(const Tempest::Matrix4x4 &m, bool syncAttach = false);
 
     void                           setTarget(const Tempest::Vec3& p);
-    void                           setVisual(const Skeleton *visual);
     void                           setYTranslationEnable(bool e);
     void                           setVisualBody(MeshObjects::Mesh &&body, World& owner);
     void                           setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner, int32_t version);

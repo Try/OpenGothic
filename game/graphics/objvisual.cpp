@@ -1,6 +1,7 @@
 #include "objvisual.h"
 
 #include "world/world.h"
+#include "game/serialize.h"
 #include "graphics/mesh/pose.h"
 #include "utils/fileext.h"
 
@@ -56,6 +57,25 @@ ObjVisual::~ObjVisual() {
   cleanup();
   }
 
+void ObjVisual::save(Serialize& fout, const Interactive& mob) const {
+  if(type==M_Mdl)
+    return mdl.view.save(fout,mob);
+  }
+
+void ObjVisual::load(Serialize& fin, Interactive& mob) {
+  if(type==M_Mdl)
+    return mdl.view.load(fin,mob);
+  if(fin.version()<27) {
+    // legacy save-load for static geometry
+    AnimationSolver solver;
+    Pose            skInst;
+    if(fin.version()>=17)
+      solver.load(fin);
+    if(fin.version()>=11)
+      skInst.load(fin,solver);
+    }
+  }
+
 void ObjVisual::cleanup() {
   switch(type) {
     case M_None:
@@ -87,7 +107,7 @@ void ObjVisual::setType(Type t) {
       new(&mdl) Mdl();
       break;
     case M_Mesh:
-      new (&mesh) MeshObjects::Mesh();
+      new (&mesh) Mesh();
       break;
     case M_Pfx:
       new (&pfx) PfxEmitter();
@@ -107,13 +127,14 @@ void ObjVisual::setVisual(const Daedalus::GEngineClasses::C_Item& hitem, World& 
     bundle = VobBundle(world,hitem.visual.c_str());
     } else {
     setType(M_Mesh);
-    mesh   = world.addItmView(hitem.visual,hitem.material);
+    mesh.view = world.addItmView(hitem.visual,hitem.material);
     }
   }
 
 void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world) {
   cleanup();
 
+  // *.ZEN; *.PFX; *.TGA; *.3DS; *.MDS; *.ASC; *.MMS
   if(FileExt::hasExt(vob.visual,"ZEN")) {
     setType(M_Bundle);
     bundle = VobBundle(world,vob.visual);
@@ -121,7 +142,7 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world) {
   else if(FileExt::hasExt(vob.visual,"PFX") || FileExt::hasExt(vob.visual,"TGA")) {
     if(vob.visualCamAlign==0 && FileExt::hasExt(vob.visual,"TGA")) {
       setType(M_Mesh);
-      mesh = world.addDecalView(vob);
+      mesh.view = world.addDecalView(vob);
       } else {
       setType(M_Pfx);
       pfx = PfxEmitter(world,vob);
@@ -129,19 +150,34 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world) {
       pfx.setLooped(true);
       }
     }
-  else {
+  else if(FileExt::hasExt(vob.visual,"3DS")) {
+    auto view = Resources::loadMesh(vob.visual);
+    if(!view)
+      return;
+    setType(M_Mesh);
+    mesh.proto = view;
+    if(vob.showVisual)
+      mesh.view = world.addStaticView(view);
+    if(vob.showVisual && (vob.cdDyn || vob.cdStatic)) {
+      mesh.physic = PhysicMesh(*view,*world.physic(),false);
+      }
+    }
+  else if(FileExt::hasExt(vob.visual,"MDS") ||
+          FileExt::hasExt(vob.visual,"MMS") ||
+          FileExt::hasExt(vob.visual,"ASC"))  {
     auto view = Resources::loadMesh(vob.visual);
     if(!view)
       return;
     setType(M_Mdl);
-    auto sk   = Resources::loadSkeleton(vob.visual.c_str());
-    auto mesh = world.addStaticView(vob.visual.c_str());
-    mdl.view.setVisual(sk);
-    mdl.view.setVisualBody(std::move(mesh),world);
+    mdl.proto = view;
+    mdl.view.setVisual(view->skeleton.get());
+    if(vob.showVisual)
+      mdl.view.setVisualBody(world.addView(view),world);
     mdl.view.setYTranslationEnable(false);
 
-    if(vob.cdDyn || vob.cdStatic) {
-      mdl.physic = PhysicMesh(*view,*world.physic(),false);
+    if(vob.showVisual && (vob.cdDyn || vob.cdStatic)) {
+      mdl.physic = PhysicMesh(*view,*world.physic(),true);
+      mdl.physic.setSkeleton(view->skeleton.get());
       }
     }
   }
@@ -153,9 +189,11 @@ void ObjVisual::setObjMatrix(const Tempest::Matrix4x4& obj) {
     case M_Mdl:
       mdl.view.setObjMatrix(obj);
       mdl.physic.setObjMatrix(obj);
+      mdl.view.syncAttaches();
       break;
     case M_Mesh:
-      mesh.setObjMatrix(obj);
+      mesh.view.setObjMatrix(obj);
+      mesh.physic.setObjMatrix(obj);
       break;
     case M_Pfx:
       pfx.setObjMatrix(obj);
@@ -166,9 +204,53 @@ void ObjVisual::setObjMatrix(const Tempest::Matrix4x4& obj) {
     }
   }
 
-const Animation::Sequence* ObjVisual::startAnimAndGet(const char* name, uint64_t tickCount) {
+const Animation::Sequence* ObjVisual::startAnimAndGet(const char* name, uint64_t tickCount, bool force) {
   if(type==M_Mdl) {
-    return mdl.view.startAnimAndGet(name,tickCount);
+    return mdl.view.startAnimAndGet(name,tickCount,force);
     }
   return nullptr;
+  }
+
+bool ObjVisual::isAnimExist(const char* name) const {
+  if(type==M_Mdl)
+    return mdl.view.isAnimExist(name);
+  return false;
+  }
+
+bool ObjVisual::updateAnimation(Npc* npc, World& world) {
+  if(type==M_Mdl) {
+    bool ret = mdl.view.updateAnimation(npc,world);
+    if(ret)
+      mdl.view.syncAttaches();
+    return ret;
+    }
+  return false;
+  }
+
+void ObjVisual::processLayers(World& world) {
+  if(type==M_Mdl) {
+    mdl.view.processLayers(world);
+    }
+  }
+
+void ObjVisual::syncPhysics() {
+  if(type==M_Mdl)
+    mdl.physic.setPose(mdl.view.pose(),mdl.view.position());
+  if(type==M_Mesh)
+    ;//mesh.physic.setObjMatrix(mesh.view.);
+  }
+
+const ProtoMesh* ObjVisual::protoMesh() const {
+  if(type==M_Mdl)
+    return mdl.proto;
+  if(type==M_Mesh)
+    return mesh.proto;
+  return nullptr;
+  }
+
+const Tempest::Matrix4x4& ObjVisual::bone(size_t i) const {
+  if(type==M_Mdl)
+    return mdl.view.pose().bone(i);
+  static const Tempest::Matrix4x4 m;
+  return m;
   }

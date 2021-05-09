@@ -1049,64 +1049,64 @@ void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {
     talentsSk[t] = lvl;
     if(t==TALENT_1H){
       if(lvl==0){
-        delOverlay("HUMANS_1HST1.MDH");
-        delOverlay("HUMANS_1HST2.MDH");
+        delOverlay("HUMANS_1HST1.MDS");
+        delOverlay("HUMANS_1HST2.MDS");
         }
       else if(lvl==1){
-        addOverlay("HUMANS_1HST1.MDH",0);
-        delOverlay("HUMANS_1HST2.MDH");
+        addOverlay("HUMANS_1HST1.MDS",0);
+        delOverlay("HUMANS_1HST2.MDS");
         }
       else if(lvl==2){
-        delOverlay("HUMANS_1HST1.MDH");
-        addOverlay("HUMANS_1HST2.MDH",0);
+        delOverlay("HUMANS_1HST1.MDS");
+        addOverlay("HUMANS_1HST2.MDS",0);
         }
       }
     else if(t==TALENT_2H){
       if(lvl==0){
-        delOverlay("HUMANS_2HST1.MDH");
-        delOverlay("HUMANS_2HST2.MDH");
+        delOverlay("HUMANS_2HST1.MDS");
+        delOverlay("HUMANS_2HST2.MDS");
         }
       else if(lvl==1){
-        addOverlay("HUMANS_2HST1.MDH",0);
-        delOverlay("HUMANS_2HST2.MDH");
+        addOverlay("HUMANS_2HST1.MDS",0);
+        delOverlay("HUMANS_2HST2.MDS");
         }
       else if(lvl==2){
-        delOverlay("HUMANS_2HST1.MDH");
-        addOverlay("HUMANS_2HST2.MDH",0);
+        delOverlay("HUMANS_2HST1.MDS");
+        addOverlay("HUMANS_2HST2.MDS",0);
         }
       }
     else if(t==TALENT_BOW){
       if(lvl==0){
-        delOverlay("HUMANS_BOWT1.MDH");
-        delOverlay("HUMANS_BOWT2.MDH");
+        delOverlay("HUMANS_BOWT1.MDS");
+        delOverlay("HUMANS_BOWT2.MDS");
         }
       else if(lvl==1){
-        addOverlay("HUMANS_BOWT1.MDH",0);
-        delOverlay("HUMANS_BOWT2.MDH");
+        addOverlay("HUMANS_BOWT1.MDS",0);
+        delOverlay("HUMANS_BOWT2.MDS");
         }
       else if(lvl==2){
-        delOverlay("HUMANS_BOWT1.MDH");
-        addOverlay("HUMANS_BOWT2.MDH",0);
+        delOverlay("HUMANS_BOWT1.MDS");
+        addOverlay("HUMANS_BOWT2.MDS",0);
         }
       }
     else if(t==TALENT_CROSSBOW){
       if(lvl==0){
-        delOverlay("HUMANS_CBOWT1.MDH");
-        delOverlay("HUMANS_CBOWT2.MDH");
+        delOverlay("HUMANS_CBOWT1.MDS");
+        delOverlay("HUMANS_CBOWT2.MDS");
         }
       else if(lvl==1){
-        addOverlay("HUMANS_CBOWT1.MDH",0);
-        delOverlay("HUMANS_CBOWT2.MDH");
+        addOverlay("HUMANS_CBOWT1.MDS",0);
+        delOverlay("HUMANS_CBOWT2.MDS");
         }
       else if(lvl==2){
-        delOverlay("HUMANS_CBOWT1.MDH");
-        addOverlay("HUMANS_CBOWT2.MDH",0);
+        delOverlay("HUMANS_CBOWT1.MDS");
+        addOverlay("HUMANS_CBOWT2.MDS",0);
         }
       }
     else if(t==TALENT_ACROBAT){
       if(lvl==0)
-        delOverlay("HUMANS_ACROBATIC.MDH"); else
-        addOverlay("HUMANS_ACROBATIC.MDH",0);
+        delOverlay("HUMANS_ACROBATIC.MDS"); else
+        addOverlay("HUMANS_ACROBATIC.MDS",0);
       }
     }
   }

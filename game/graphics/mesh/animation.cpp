@@ -10,6 +10,7 @@
 #include "graphics/pfx/particlefx.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
+#include "utils/fileext.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -170,9 +171,20 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
           current->tag = std::move(p.modelTag);
         break;
         }
-      case ZenLoad::MdsParser::CHUNK_MESH_AND_TREE:
-      case ZenLoad::MdsParser::CHUNK_REGISTER_MESH:
+      case ZenLoad::MdsParser::CHUNK_REGISTER_MESH: {
+        for(auto& i:p.meshesASC) {
+          MeshAndThree m;
+          m.mds = i;
+          mesh.push_back(m);
+          }
+        p.meshesASC.clear();
         break;
+        }
+      case ZenLoad::MdsParser::CHUNK_MESH_AND_TREE: {
+        meshDef.mds      = p.meshAndThree.m_Name;
+        meshDef.disabled = p.meshAndThree.m_Disabled;
+        break;
+        }
       case ZenLoad::MdsParser::CHUNK_ERROR:
         if(!ignoreErrChunks)
           throw std::runtime_error("animation load error");
@@ -209,6 +221,13 @@ const Animation::Sequence *Animation::sequenceAsc(const char *name) const {
 void Animation::debug() const {
   for(auto& i:sequences)
     Log::d(i.name);
+  }
+
+const std::string& Animation::defaultMesh() const {
+  if(meshDef.mds.size()>0 && !meshDef.disabled)
+    return meshDef.mds;
+  static std::string nop;
+  return nop;
   }
 
 Animation::Sequence& Animation::loadMAN(const std::string& name) {

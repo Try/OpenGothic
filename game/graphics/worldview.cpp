@@ -120,6 +120,12 @@ MeshObjects::Mesh WorldView::addView(const char* visual, int32_t headTex, int32_
   return MeshObjects::Mesh();
   }
 
+MeshObjects::Mesh WorldView::addView(const ProtoMesh* mesh) {
+  if(mesh!=nullptr)
+    return MeshObjects::Mesh(objGroup,*mesh,0,0,0,false);
+  return MeshObjects::Mesh();
+  }
+
 MeshObjects::Mesh WorldView::addItmView(const char* visual, int32_t material) {
   if(auto mesh=Resources::loadMesh(visual))
     return MeshObjects::Mesh(objGroup,*mesh,material,0,0,true);
@@ -128,6 +134,12 @@ MeshObjects::Mesh WorldView::addItmView(const char* visual, int32_t material) {
 
 MeshObjects::Mesh WorldView::addAtachView(const ProtoMesh::Attach& visual, const int32_t version) {
   return MeshObjects::Mesh(objGroup,visual,version,false);
+  }
+
+MeshObjects::Mesh WorldView::addStaticView(const ProtoMesh* mesh) {
+  if(mesh!=nullptr)
+    return MeshObjects::Mesh(objGroup,*mesh,0,0,0,true);
+  return MeshObjects::Mesh();
   }
 
 MeshObjects::Mesh WorldView::addStaticView(const char* visual) {

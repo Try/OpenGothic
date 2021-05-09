@@ -3,6 +3,7 @@
 #include "world/objects/interactive.h"
 #include "world/world.h"
 #include "game/serialize.h"
+#include "utils/fileext.h"
 #include "skeleton.h"
 #include "pose.h"
 #include "resources.h"
@@ -27,6 +28,8 @@ void AnimationSolver::load(Serialize &fin) {
   overlay.resize(sz);
   for(auto& i:overlay){
     fin.read(s,i.time);
+    if(fin.version()<=26)
+      FileExt::exchangeExt(s,"MDH","MDS");
     i.skeleton = Resources::loadSkeleton(s.c_str());
     }
 

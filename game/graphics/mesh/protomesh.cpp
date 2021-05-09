@@ -1,15 +1,17 @@
 #include "protomesh.h"
 
 #include <Tempest/Log>
+
 #include "physics/physicmeshshape.h"
+#include "graphics/mesh/skeleton.h"
 
 using namespace Tempest;
 
 ProtoMesh::Attach::~Attach() {
   }
 
-ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &fname)
-  :fname(fname) {
+ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, std::unique_ptr<Skeleton>&& sk, const std::string &fname)
+  :skeleton(std::move(sk)), fname(fname) {
   for(auto& m:library.getAttachments()) {
     ZenLoad::PackedMesh stat;
     m.second.packMesh(stat);
@@ -19,17 +21,17 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &
     att.shape.reset(PhysicMeshShape::load(std::move(stat)));
     }
 
-  nodes.resize(library.getNodes().size());
+  nodes.resize(skeleton==nullptr ? 0 : skeleton->nodes.size());
   for(size_t i=0;i<nodes.size();++i) {
     Node& n   = nodes[i];
-    auto& src = library.getNodes()[i];
+    auto& src = skeleton->nodes[i];
     for(size_t r=0;r<attach.size();++r)
       if(library.getAttachments()[r].first==src.name){
         n.attachId = r;
         break;
         }
-    n.parentId = (src.parentIndex==uint16_t(-1) ? size_t(-1) : src.parentIndex);
-    std::memcpy(reinterpret_cast<void*>(&n.transform),reinterpret_cast<const void*>(&src.transformLocal),sizeof(n.transform));
+    n.parentId  = src.parent;
+    n.transform = src.tr;
     }
 
   for(auto& i:nodes)
@@ -74,14 +76,16 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, const std::string &
     skined.emplace_back(pack);
     }
 
-  for(size_t i=0;i<library.getNodes().size();++i) {
-    auto& n=library.getNodes()[i];
-    if(n.name.find("ZS_POS")==0){
-      Pos p;
-      p.name = n.name;
-      p.node = i;
-      std::memcpy(reinterpret_cast<void*>(&p.transform),reinterpret_cast<const void*>(&n.transformLocal),sizeof(p.transform));
-      pos.push_back(p);
+  if(skeleton!=nullptr) {
+    for(size_t i=0;i<skeleton->nodes.size();++i) {
+      auto& n=skeleton->nodes[i];
+      if(n.name.find("ZS_POS")==0){
+        Pos p;
+        p.name      = n.name;
+        p.node      = i;
+        p.transform = n.tr;
+        pos.push_back(p);
+        }
       }
     }
   setupScheme(fname);

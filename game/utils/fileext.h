@@ -6,6 +6,8 @@
 
 namespace FileExt {
   inline bool hasExt(const std::string& s,const char* extIn) {
+    if(extIn==nullptr)
+      return std::string::npos==s.find('.');
     const size_t l = std::strlen(extIn);
     if(l+1>s.size())
       return false;
@@ -41,6 +43,11 @@ namespace FileExt {
   inline bool exchangeExt(std::string& s,const char* extIn,const char* extOut) {
     if(!hasExt(s,extIn))
       return false;
+    if(extIn==nullptr) {
+      s.push_back('.');
+      s += extOut;
+      return true;
+      }
     const size_t l1 = std::strlen(extIn);
     const size_t l2 = std::strlen(extOut);
     if(l1<l2)

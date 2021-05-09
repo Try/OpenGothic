@@ -5,6 +5,7 @@
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "game/serialize.h"
+#include "utils/fileext.h"
 #include "skeleton.h"
 #include "animmath.h"
 
@@ -61,6 +62,8 @@ void Pose::load(Serialize &fin,const AnimationSolver& solver) {
   lay.resize(sz);
   for(auto& i:lay) {
     fin.read(name,i.sAnim,i.bs);
+    if(fin.version()<=26)
+      FileExt::exchangeExt(name,"MDH","MDS");
     i.seq = solver.solveFrm(name.c_str());
     }
   fin.read(lastUpdate);
@@ -113,7 +116,7 @@ void Pose::setSkeleton(const Skeleton* sk) {
   for(size_t i=0;i<base.size() && i<skeleton->nodes.size();++i)
     base[i] = skeleton->nodes[i].tr;
 
-  trY = skeleton->rootTr[1];
+  trY = skeleton->rootTr.y;
 
   if(lay.size()>0) //TODO
     Log::d("WARNING: ",__func__," animation adjustment not implemented");

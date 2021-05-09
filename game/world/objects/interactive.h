@@ -4,7 +4,7 @@
 #include "physics/physicmesh.h"
 #include "graphics/mesh/animationsolver.h"
 #include "graphics/mesh/protomesh.h"
-#include "graphics/mdlvisual.h"
+#include "graphics/objvisual.h"
 #include "graphics/meshobjects.h"
 #include "game/inventory.h"
 #include "vob.h"
@@ -95,7 +95,7 @@ class Interactive : public Vob {
       bool               isDistPos() const;
       };
 
-    void                setVisual(const std::string& visual);
+    void                setVisual(ZenLoad::zCVobData& vob);
     void                invokeStateFunc(Npc &npc);
     void                implTick(Pos &p, uint64_t dt);
     void                implQuitInteract(Pos &p);
@@ -149,8 +149,7 @@ class Interactive : public Vob {
     bool                         animChanged   = false;
 
     std::vector<Pos>             attPos;
-    const ProtoMesh*             mesh = nullptr;
     PhysicMesh                   physic;
 
-    MdlVisual                    visual;
+    ObjVisual                    visual;
   };

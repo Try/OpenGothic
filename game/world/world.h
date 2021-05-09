@@ -97,11 +97,13 @@ class World final {
     MeshObjects::Mesh    addView(const char*              visual) const;
     MeshObjects::Mesh    addView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
     MeshObjects::Mesh    addView(const char*              visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
+    MeshObjects::Mesh    addView(const ProtoMesh* visual);
     MeshObjects::Mesh    addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
-    MeshObjects::Mesh    addItmView   (const Daedalus::ZString& visual, int32_t tex) const;
-    MeshObjects::Mesh    addItmView   (const char*              visual, int32_t tex) const;
-    MeshObjects::Mesh    addStaticView(const char* visual) const;
-    MeshObjects::Mesh    addDecalView (const ZenLoad::zCVobData& vob) const;
+    MeshObjects::Mesh    addItmView   (const Daedalus::ZString& visual, int32_t tex);
+    MeshObjects::Mesh    addItmView   (const char*              visual, int32_t tex);
+    MeshObjects::Mesh    addStaticView(const ProtoMesh* visual);
+    MeshObjects::Mesh    addStaticView(const char* visual);
+    MeshObjects::Mesh    addDecalView (const ZenLoad::zCVobData& vob);
 
     const VisualFx*      loadVisualFx(const char* name);
     const ParticleFx*    loadParticleFx(const char* name) const;

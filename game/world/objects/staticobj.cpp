@@ -9,9 +9,6 @@ using namespace Tempest;
 
 StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool startup)
   : Vob(parent, world, vob, startup) {
-  if(!vob.showVisual)
-    return;
-
   visual.setVisual(vob,world);
   visual.setObjMatrix(transform());
 

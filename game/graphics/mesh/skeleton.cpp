@@ -1,12 +1,14 @@
 #include "skeleton.h"
 
 #include <cassert>
+
+#include "utils/fileext.h"
 #include "resources.h"
 
 using namespace Tempest;
 
-Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src, std::string meshLib)
-  :meshLib(std::move(meshLib)){
+Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src, const Animation* anim, const char* name)
+  :fileName(name), anim(anim) {
   bboxCol[0] = src.getBBoxCollisionMin();
   bboxCol[1] = src.getBBoxCollisionMax();
 
@@ -35,14 +37,12 @@ Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src, std::string meshLib)
     if(nodes[i].parent==size_t(-1))
       rootNodes.push_back(i);
 
-  anim = Resources::loadAnimation(this->meshLib);
-
   auto tr = src.getRootNodeTranslation();
-  rootTr = {{tr.x,tr.y,tr.z}};
+  rootTr = Vec3{tr.x,tr.y,tr.z};
 
   for(auto& i:nodes)
     if(i.parent==size_t(-1)){
-      i.tr.translate(rootTr[0],rootTr[1],rootTr[2]);
+      i.tr.translate(rootTr);
       }
   mkSkeleton();
   }
@@ -69,6 +69,13 @@ const Animation::Sequence* Skeleton::sequence(const char *name) const {
 void Skeleton::debug() const {
   if(anim)
     anim->debug();
+  }
+
+const std::string& Skeleton::defaultMesh() const {
+  if(anim)
+    return anim->defaultMesh();
+  static std::string nop;
+  return nop;
   }
 
 float Skeleton::colisionHeight() const {

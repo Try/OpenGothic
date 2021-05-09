@@ -4,6 +4,7 @@
 #include <Tempest/Log>
 
 #include "game/serialize.h"
+#include "graphics/mesh/skeleton.h"
 #include "graphics/mesh/pose.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
@@ -15,7 +16,6 @@ Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, boo
   vobType       = vob.vobType;
   vobName       = std::move(vob.vobName);
   focName       = std::move(vob.oCMOB.focusName);
-  mdlVisual     = std::move(vob.visual);
   bbox[0]       = vob.bbox[0];
   bbox[1]       = vob.bbox[1];
   owner         = std::move(vob.oCMOB.owner);
@@ -57,8 +57,10 @@ Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, boo
         }
       }
     }
-  visual.setYTranslationEnable(false);
-  setVisual(mdlVisual);
+
+  setVisual(vob);
+  mdlVisual = std::move(vob.visual);
+
   world.addInteractive(this);
   }
 
@@ -87,7 +89,7 @@ void Interactive::load(Serialize &fin) {
     fin.read(isLockCracked);
 
   setGlobalTransform(pos);
-  setVisual(mdlVisual);
+  // setVisual(mdlVisual);
   visual.load(fin,*this);
   visual.setObjMatrix(transform());
 
@@ -145,23 +147,11 @@ void Interactive::resetPositionToTA() {
     }
   }
 
-void Interactive::setVisual(const std::string& body) {
-  const Skeleton* skeleton = Resources::loadSkeleton(body.c_str());
-  mesh        = Resources::loadMesh(body);
+void Interactive::setVisual(ZenLoad::zCVobData& vob) {
+  visual.setVisual(vob,world);
+  visual.setObjMatrix(transform());
   animChanged = true;
-
-  if(mesh) {
-    if(showVisual) {
-      auto view = world.addView(body.c_str());
-      visual.setVisualBody(std::move(view),world);
-      physic = PhysicMesh(*mesh,*world.physic(),true);
-      }
-
-    visual.setVisual(skeleton);
-    visual.setObjMatrix(transform());
-    physic.setSkeleton (skeleton);
-    physic.setObjMatrix(transform());
-
+  if(auto mesh = visual.protoMesh()) {
     attPos.resize(mesh->pos.size());
     for(size_t i=0;i<attPos.size();++i){
       attPos[i].name = mesh->pos[i].name;
@@ -173,17 +163,15 @@ void Interactive::setVisual(const std::string& body) {
   }
 
 void Interactive::updateAnimation() {
-  if(visual.updateAnimation(nullptr,world)) {
-    visual.syncAttaches();
+  if(visual.updateAnimation(nullptr,world))
     animChanged = true;
-    }
   }
 
 void Interactive::tick(uint64_t dt) {
   visual.processLayers(world);
 
   if(animChanged) {
-    physic.setPose(visual.pose(),transform());
+    visual.syncPhysics();
     animChanged = false;
     }
 
@@ -389,7 +377,7 @@ void Interactive::emitTriggerEvent() const {
   }
 
 const char* Interactive::schemeName() const {
-  if(mesh!=nullptr)
+  if(auto mesh = visual.protoMesh())
     return mesh->scheme.c_str();
   Tempest::Log::i("unable to recognize mobsi{",focName,", ",mdlVisual,"}");
   return "";
@@ -552,14 +540,17 @@ Interactive::Pos *Interactive::findFreePos() {
   }
 
 Tempest::Vec3 Interactive::worldPos(const Interactive::Pos &to) const {
-  auto mat = transform();
-  auto pos = mesh->mapToRoot(to.node);
+  auto mesh = visual.protoMesh();
+  if(mesh==nullptr)
+    return Tempest::Vec3();
+
+  auto mat  = transform();
+  auto pos  = mesh->mapToRoot(to.node);
   mat.mul(pos);
 
-  float x=0, y=0, z=0;
-
-  mat.project(x,y,z);
-  return {x,y,z};
+  Tempest::Vec3 ret = {};
+  mat.project(ret);
+  return ret;
   }
 
 bool Interactive::isAvailable() const {
@@ -716,7 +707,17 @@ float Interactive::qDistanceTo(const Npc &npc, const Interactive::Pos &to) const
   }
 
 Tempest::Matrix4x4 Interactive::nodeTranform(const Npc &npc, const Pos& p) const {
-  auto npos = mesh->mapToRoot(p.node);
+  auto mesh = visual.protoMesh();
+  if(mesh==nullptr)
+    return Tempest::Matrix4x4();
+
+  Tempest::Matrix4x4 npos;
+  npos.identity();
+  if(mesh->skeleton!=nullptr) {
+    auto id   = mesh->skeleton->findNode(p.name);
+    if(id!=size_t(-1))
+      npos = visual.bone(id);
+    }
 
   if(p.isDistPos()) {
     float nodeX = npos.at(3,0);
@@ -756,10 +757,14 @@ Tempest::Vec3 Interactive::nodePosition(const Npc &npc, const Pos &p) const {
   }
 
 Tempest::Matrix4x4 Interactive::nodeTranform(const char* nodeName) const {
-  auto id  = visual.pose().findNode(nodeName);
+  auto mesh = visual.protoMesh();
+  if(mesh==nullptr || mesh->skeleton==nullptr)
+    return Tempest::Matrix4x4();
+
+  auto id  = mesh->skeleton->findNode(nodeName);
   auto ret = transform();
   if(id!=size_t(-1))
-    ret.mul(visual.pose().bone(id));
+    ret.mul(visual.bone(id));
   return ret;
   }
 

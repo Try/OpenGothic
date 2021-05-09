@@ -120,11 +120,17 @@ class Animation final {
         bool                                 extractFrames(uint64_t &frameA, uint64_t &frameB, bool &invert, uint64_t barrier, uint64_t sTime, uint64_t now) const;
       };
 
+    struct MeshAndThree {
+      std::string mds;
+      bool        disabled = false;
+      };
+
     Animation(ZenLoad::MdsParser &p, const std::string &name, bool ignoreErrChunks);
 
-    const Sequence *sequence(const char* name) const;
-    const Sequence *sequenceAsc(const char* name) const;
-    void            debug() const;
+    const Sequence*    sequence(const char* name) const;
+    const Sequence*    sequenceAsc(const char* name) const;
+    void               debug() const;
+    const std::string& defaultMesh() const;
 
   private:
     Sequence& loadMAN(const std::string &name);
@@ -132,4 +138,6 @@ class Animation final {
 
     std::vector<Sequence>                       sequences;
     std::vector<ZenLoad::zCModelScriptAniAlias> ref;
+    std::vector<MeshAndThree>                   mesh;
+    MeshAndThree                                meshDef;
   };

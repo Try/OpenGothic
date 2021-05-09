@@ -272,7 +272,7 @@ Texture2d *Resources::implLoadTexture(TextureCache& cache,std::string&& name,con
     }
   }
 
-ProtoMesh* Resources::implLoadMesh(const std::string &name) {
+ProtoMesh* Resources::implLoadMesh(const std::string& name) {
   if(name.size()==0)
     return nullptr;
 
@@ -280,40 +280,141 @@ ProtoMesh* Resources::implLoadMesh(const std::string &name) {
   if(it!=aniMeshCache.end())
     return it->second.get();
 
-  if(FileExt::hasExt(name,"TGA")){
-    Log::e("decals should be loaded by Resources::implDecalMesh instead");
-    return nullptr;
+  auto  t   = implLoadMeshMain(name);
+  auto  ret = t.get();
+  aniMeshCache[name] = std::move(t);
+  if(ret==nullptr)
+    Log::e("unable to load mesh \"",name,"\"");
+  return ret;
+  }
+
+std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
+  if(FileExt::hasExt(name,"3DS")) {
+    FileExt::exchangeExt(name,"3DS","MRM");
+    ZenLoad::zCProgMeshProto zmsh(name,gothicAssets);
+    if(zmsh.getNumSubmeshes()==0)
+      return nullptr;
+
+    ZenLoad::PackedMesh packed;
+    zmsh.packMesh(packed);
+
+    return std::unique_ptr<ProtoMesh>{new ProtoMesh(std::move(packed),name)};
     }
 
-  try {
-    std::vector<ZenLoad::zCMorphMesh::Animation> aniList;
-    ZenLoad::PackedMesh        packed;
-    ZenLoad::zCModelMeshLib    library;
-    auto                       code=loadMesh(packed,aniList,library,name);
-    std::unique_ptr<ProtoMesh> t;
-    switch(code) {
-      case MeshLoadCode::Error:
-        break;
-      case MeshLoadCode::Static:
-        t.reset(new ProtoMesh(std::move(packed),name));
-        break;
-      case MeshLoadCode::Morph:
-        t.reset(new ProtoMesh(std::move(packed),aniList,name));
-        break;
-      case MeshLoadCode::Dynamic:
-        t.reset(new ProtoMesh(library,name));
-        break;
+  if(FileExt::hasExt(name,"MMS") || FileExt::hasExt(name,"MMB")) {
+    FileExt::exchangeExt(name,"MMS","MMB");
+    ZenLoad::zCMorphMesh zmm(name,gothicAssets);
+    if(zmm.getMesh().getNumSubmeshes()==0)
+      return nullptr;
+
+    ZenLoad::PackedMesh packed;
+    zmm.getMesh().packMesh(packed,false);
+
+    return std::unique_ptr<ProtoMesh>{new ProtoMesh(std::move(packed),zmm.aniList,name)};
+    }
+
+  if(FileExt::hasExt(name,"MDS")) {
+    auto anim = Resources::loadAnimation(name);
+    if(anim==nullptr)
+      return nullptr;
+
+    ZenLoad::zCModelMeshLib mdm, mdh;
+
+    auto mesh   = anim->defaultMesh();
+    bool hasMdm = false;
+
+    FileExt::exchangeExt(mesh,nullptr,"MDM") ||
+    FileExt::exchangeExt(mesh,"ASC",  "MDM");
+
+    if(hasFile(mesh)) {
+      ZenLoad::ZenParser parserMdm(mesh,gothicAssets);
+      mdm.loadMDM(parserMdm);
+      hasMdm = true;
       }
-    ProtoMesh* ret=t.get();
-    aniMeshCache[name] = std::move(t);
-    if(code==MeshLoadCode::Error)
-      throw std::runtime_error("load failed");
-    return ret;
+
+    if(anim->defaultMesh().empty()) {
+      mesh = name;
+      FileExt::exchangeExt(mesh,"MDS","MDH");
+      } else {
+      FileExt::exchangeExt(mesh,"MDM","MDH");
+      }
+
+    ZenLoad::ZenParser parserMdh(mesh,gothicAssets);
+    mdh.loadMDH(parserMdh);
+
+    std::unique_ptr<Skeleton> sk{new Skeleton(mdh,anim,name.c_str())};
+    std::unique_ptr<ProtoMesh> t;
+    if(hasMdm)
+      t.reset(new ProtoMesh(std::move(mdm),std::move(sk),name)); else
+      t.reset(new ProtoMesh(std::move(mdh),std::move(sk),name));
+    return t;
     }
-  catch(...){
-    Log::e("unable to load mesh \"",name,"\"");
-    return nullptr;
+
+  if(FileExt::hasExt(name,"ASC")) {
+    if(!hasFile(name))
+      FileExt::exchangeExt(name,"ASC","MDL");
+    if(!hasFile(name))
+      FileExt::exchangeExt(name,"MDL","MDM");
     }
+
+  if(FileExt::hasExt(name,"MDM") || FileExt::hasExt(name,"MDL")) {
+    if(!hasFile(name))
+      return nullptr;
+
+    ZenLoad::ZenParser parser(name,gothicAssets);
+    ZenLoad::zCModelMeshLib mdm;
+
+    if(FileExt::hasExt(name,"MDM"))
+      mdm.loadMDM(parser); else
+      mdm.loadMDL(parser);
+
+    std::unique_ptr<Skeleton> sk{new Skeleton(mdm,nullptr,name.c_str())};
+    std::unique_ptr<ProtoMesh> t{new ProtoMesh(std::move(mdm),std::move(sk),name)};
+    return t;
+    }
+
+  if(FileExt::hasExt(name,"TGA")) {
+    Log::e("decals should be loaded by Resources::implDecalMesh instead");
+    }
+
+  return nullptr;
+  }
+
+PfxEmitterMesh* Resources::implLoadEmiterMesh(const char* n) {
+  // TODO: reuse code from Resources::implLoadMeshMain
+  auto it = emiMeshCache.find(n);
+  if(it!=emiMeshCache.end())
+    return it->second.get();
+
+  auto& ret = emiMeshCache[n];
+
+  std::string name = n;
+  if(FileExt::hasExt(name,"3DS")) {
+    FileExt::exchangeExt(name,"3DS","MRM");
+    ZenLoad::zCProgMeshProto zmsh(name,gothicAssets);
+    if(zmsh.getNumSubmeshes()==0)
+      return nullptr;
+
+    ZenLoad::PackedMesh packed;
+    zmsh.packMesh(packed);
+
+    ret = std::unique_ptr<PfxEmitterMesh>(new PfxEmitterMesh(packed));
+    return ret.get();
+    }
+
+  if(FileExt::hasExt(name,"MDM")) {
+    if(!hasFile(name))
+      return nullptr;
+
+    ZenLoad::ZenParser parser(name,gothicAssets);
+    ZenLoad::zCModelMeshLib mdm;
+    mdm.loadMDM(parser);
+
+    ret = std::unique_ptr<PfxEmitterMesh>(new PfxEmitterMesh(std::move(mdm)));
+    return ret.get();
+    }
+
+  return nullptr;
   }
 
 ProtoMesh* Resources::implDecalMesh(const ZenLoad::zCVobData& vob) {
@@ -359,70 +460,25 @@ ProtoMesh* Resources::implDecalMesh(const ZenLoad::zCVobData& vob) {
   return ret;
   }
 
-Skeleton* Resources::implLoadSkeleton(std::string name) {
-  if(name.size()==0)
-    return nullptr;
-
-  FileExt::exchangeExt(name,"MDS","MDH") ||
-  FileExt::exchangeExt(name,"ASC","MDL");
-
-  auto it=skeletonCache.find(name);
-  if(it!=skeletonCache.end())
-    return it->second.get();
-
-  try {
-    ZenLoad::zCModelMeshLib library(name,gothicAssets,1.f);
-    std::unique_ptr<Skeleton> t{new Skeleton(library,name)};
-    Skeleton* ret=t.get();
-    skeletonCache[name] = std::move(t);
-    if(!hasFile(name))
-      throw std::runtime_error("load failed");
-    return ret;
-    }
-  catch(...){
-    Log::e("unable to load skeleton \"",name,"\"");
-    return nullptr;
-    }
-  }
-
-Animation* Resources::implLoadAnimation(std::string name) {
+std::unique_ptr<Animation> Resources::implLoadAnimation(std::string name) {
   if(name.size()<4)
     return nullptr;
 
-  auto it=animCache.find(name);
-  if(it!=animCache.end())
-    return it->second.get();
+  if(gothic.version().game==2)
+    FileExt::exchangeExt(name,"MDS","MSB");
 
-  try {
-    Animation* ret=nullptr;
-    if(gothic.version().game==2){
-      FileExt::exchangeExt(name,"MDS","MSB") ||
-      FileExt::exchangeExt(name,"MDH","MSB") ||
-      FileExt::exchangeExt(name,"MMS","MMB");
-
-      ZenLoad::ZenParser            zen(name,gothicAssets);
-      ZenLoad::MdsParserBin         p(zen);
-
-      std::unique_ptr<Animation> t{new Animation(p,name.substr(0,name.size()-4),false)};
-      ret=t.get();
-      animCache[name] = std::move(t);
-      } else {
-      FileExt::exchangeExt(name,"MDH","MDS");
-      ZenLoad::ZenParser zen(name,gothicAssets);
-      ZenLoad::MdsParserTxt p(zen);
-
-      std::unique_ptr<Animation> t{new Animation(p,name.substr(0,name.size()-4),true)};
-      ret=t.get();
-      animCache[name] = std::move(t);
-      }
-    if(!hasFile(name))
-      throw std::runtime_error("load failed");
-    return ret;
+  if(FileExt::hasExt(name,"MSB")) {
+    ZenLoad::ZenParser    zen(name,gothicAssets);
+    ZenLoad::MdsParserBin p(zen);
+    return std::unique_ptr<Animation>{new Animation(p,name.substr(0,name.size()-4),false)};
     }
-  catch(...){
-    Log::e("unable to load animation \"",name,"\"");
-    return nullptr;
+
+  if(FileExt::hasExt(name,"MDS")) {
+    ZenLoad::ZenParser    zen(name,gothicAssets);
+    ZenLoad::MdsParserTxt p(zen);
+    return std::unique_ptr<Animation>{new Animation(p,name.substr(0,name.size()-4),true)};
     }
+  return nullptr;
   }
 
 Dx8::PatternList Resources::implLoadDxMusic(const char* name) {
@@ -496,33 +552,6 @@ GthFont &Resources::implLoadFont(const char* fname, FontType type) {
   GthFont* f = ptr.get();
   gothicFnt[std::make_pair(fname,type)] = std::move(ptr);
   return *f;
-  }
-
-PfxEmitterMesh* Resources::implLoadEmiterMesh(const char* name) {
-  auto it = emiMeshCache.find(name);
-  if(it!=emiMeshCache.end())
-    return it->second.get();
-
-  std::vector<ZenLoad::zCMorphMesh::Animation> aniList;
-  ZenLoad::PackedMesh        packed;
-  ZenLoad::zCModelMeshLib    library;
-  auto                       code=loadMesh(packed,aniList,library,name);
-  std::unique_ptr<PfxEmitterMesh> ptr;
-  switch(code) {
-    case MeshLoadCode::Error:
-      break;
-    case MeshLoadCode::Static:
-    case MeshLoadCode::Morph:
-      ptr.reset(new PfxEmitterMesh(packed));
-      break;
-    case MeshLoadCode::Dynamic:
-      ptr.reset(new PfxEmitterMesh(library));
-      break;
-    }
-
-  auto ret = ptr.get();
-  emiMeshCache[name] = std::move(ptr);
-  return ret;
   }
 
 bool Resources::hasFile(const std::string &fname) {
@@ -606,6 +635,8 @@ Material Resources::loadMaterial(const ZenLoad::zCMaterialData& src, bool enable
   }
 
 const ProtoMesh *Resources::loadMesh(const std::string &name) {
+  if(name.size()==0)
+    return nullptr;
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadMesh(name);
   }
@@ -618,15 +649,22 @@ const PfxEmitterMesh* Resources::loadEmiterMesh(const char* name) {
   }
 
 const Skeleton *Resources::loadSkeleton(const char* name) {
-  if(FileExt::hasExt(name,"3ds") || FileExt::hasExt(name,"MMS"))
+  auto s = Resources::loadMesh(name);
+  if(s==nullptr)
     return nullptr;
-  std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implLoadSkeleton(name);
+  return s->skeleton.get();
   }
 
 const Animation *Resources::loadAnimation(const std::string &name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implLoadAnimation(name);
+  auto& cache = inst->animCache;
+  auto it=cache.find(name);
+  if(it!=cache.end())
+    return it->second.get();
+  auto t   = inst->implLoadAnimation(name);
+  auto ret = t.get();
+  cache[name] = std::move(t);
+  return ret;
   }
 
 Tempest::Sound Resources::loadSoundBuffer(const std::string &name) {
@@ -692,74 +730,6 @@ std::vector<uint8_t> Resources::getFileData(const std::string &name) {
   std::vector<uint8_t> data;
   inst->gothicAssets.getFileData(name,data);
   return data;
-  }
-
-Resources::MeshLoadCode Resources::loadMesh(ZenLoad::PackedMesh& sPacked,
-                                            std::vector<ZenLoad::zCMorphMesh::Animation>& aniList,
-                                            ZenLoad::zCModelMeshLib& library,
-                                            std::string name) {
-  // Check if this isn't the compiled version
-  if(name.rfind("-C")==std::string::npos) {
-    // Strip the extension ".***"
-    // Add "compiled"-extension
-    FileExt::exchangeExt(name,"3DS","MRM") ||
-    FileExt::exchangeExt(name,"MMS","MMB") ||
-    FileExt::exchangeExt(name,"ASC","MDL");
-    }
-
-  if(FileExt::hasExt(name,"MRM")) {
-    ZenLoad::zCProgMeshProto zmsh(name,gothicAssets);
-    if(zmsh.getNumSubmeshes()==0)
-      return MeshLoadCode::Error;
-    zmsh.packMesh(sPacked);
-    return MeshLoadCode::Static;
-    }
-
-  if(FileExt::hasExt(name,"MMB")) {
-    ZenLoad::zCMorphMesh zmm(name,gothicAssets);
-    if(zmm.getMesh().getNumSubmeshes()==0)
-      return MeshLoadCode::Error;
-    zmm.getMesh().packMesh(sPacked,false);
-    aniList = std::move(zmm.aniList);
-    return MeshLoadCode::Morph;
-    }
-
-  if(FileExt::hasExt(name,"MDMS") ||
-     FileExt::hasExt(name,"MDS")  ||
-     FileExt::hasExt(name,"MDL")  ||
-     FileExt::hasExt(name,"MDM")){
-    library = loadMDS(name);
-    return MeshLoadCode::Dynamic;
-    }
-
-  return MeshLoadCode::Error;
-  }
-
-ZenLoad::zCModelMeshLib Resources::loadMDS(std::string &name) {
-  if(FileExt::exchangeExt(name,"MDMS","MDM"))
-    return ZenLoad::zCModelMeshLib(name,gothicAssets,1.f);
-  if(hasFile(name))
-    return ZenLoad::zCModelMeshLib(name,gothicAssets,1.f);
-  std::memcpy(&name[name.size()-3],"MDL",3);
-  if(hasFile(name))
-    return ZenLoad::zCModelMeshLib(name,gothicAssets,1.f);
-  std::memcpy(&name[name.size()-3],"MDM",3);
-  if(hasFile(name)) {
-    ZenLoad::zCModelMeshLib lib(name,gothicAssets,1.f);
-    std::memcpy(&name[name.size()-3],"MDH",3);
-    if(hasFile(name)) {
-      auto data=getFileData(name);
-      if(!data.empty()){
-        ZenLoad::ZenParser parser(data.data(), data.size());
-        lib.loadMDH(parser,1.f);
-        }
-      }
-    return lib;
-    }
-  std::memcpy(&name[name.size()-3],"MDH",3);
-  if(hasFile(name))
-    return ZenLoad::zCModelMeshLib(name,gothicAssets,1.f);
-  return ZenLoad::zCModelMeshLib();
   }
 
 const AttachBinder *Resources::bindMesh(const ProtoMesh &anim, const Skeleton &s) {

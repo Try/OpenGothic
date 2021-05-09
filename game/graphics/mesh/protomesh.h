@@ -14,7 +14,7 @@ class ProtoMesh {
   public:
     using Vertex =Resources::VertexA;
 
-    ProtoMesh(const ZenLoad::zCModelMeshLib& lib,const std::string& fname);
+    ProtoMesh(const ZenLoad::zCModelMeshLib& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
     ProtoMesh(ZenLoad::PackedMesh&&     pm, const std::string& fname);
     ProtoMesh(ZenLoad::PackedMesh&&     pm, const std::vector<ZenLoad::zCMorphMesh::Animation>& aniList, const std::string& fname);
     ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo);
@@ -72,6 +72,7 @@ class ProtoMesh {
       };
 
     // animation
+    std::unique_ptr<Skeleton>      skeleton;
     std::vector<AnimMesh>          skined;
     std::vector<Animation>         morph;
     Tempest::StorageBuffer         morphIndex;

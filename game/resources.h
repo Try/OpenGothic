@@ -132,13 +132,6 @@ class Resources final {
   private:
     static Resources* inst;
 
-    enum class MeshLoadCode : uint8_t {
-      Error,
-      Static,
-      Dynamic,
-      Morph,
-      };
-
     struct Archive {
       std::u16string name;
       int64_t        time=0;
@@ -166,22 +159,16 @@ class Resources final {
 
     Tempest::Texture2d*   implLoadTexture(TextureCache& cache, const char* cname);
     Tempest::Texture2d*   implLoadTexture(TextureCache& cache, std::string &&name, const std::vector<uint8_t> &data);
-    ProtoMesh*            implLoadMesh(const std::string &name);
+    ProtoMesh*            implLoadMesh(const std::string& name);
+    std::unique_ptr<ProtoMesh> implLoadMeshMain(std::string name);
+    std::unique_ptr<Animation> implLoadAnimation(std::string name);
     ProtoMesh*            implDecalMesh(const ZenLoad::zCVobData& vob);
-    Skeleton*             implLoadSkeleton(std::string name);
-    Animation*            implLoadAnimation(std::string name);
     Tempest::Sound        implLoadSoundBuffer(const char* name);
     Dx8::PatternList      implLoadDxMusic(const char *name);
     GthFont&              implLoadFont(const char* fname, FontType type);
     PfxEmitterMesh*       implLoadEmiterMesh(const char* name);
     ZenLoad::oCWorldData& implLoadVobBundle(const std::string& name);
 
-    MeshLoadCode          loadMesh(ZenLoad::PackedMesh &sPacked,
-                                   std::vector<ZenLoad::zCMorphMesh::Animation>& aniList,
-                                   ZenLoad::zCModelMeshLib &lib,
-                                   std::string  name);
-
-    ZenLoad::zCModelMeshLib loadMDS (std::string& name);
     Tempest::VertexBuffer<Vertex> sphere(int passCount, float R);
 
     Tempest::Texture2d fallback, fbZero;

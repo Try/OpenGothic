@@ -212,23 +212,31 @@ MeshObjects::Mesh World::addView(const char* visual, int32_t headTex, int32_t te
   return view()->addView(visual,headTex,teetTex,bodyColor);
   }
 
+MeshObjects::Mesh World::addView(const ProtoMesh* visual) {
+  return view()->addView(visual);
+  }
+
 MeshObjects::Mesh World::addAtachView(const ProtoMesh::Attach& visual, const int32_t version) {
   return view()->addAtachView(visual,version);
   }
 
-MeshObjects::Mesh World::addItmView(const Daedalus::ZString& visual, int32_t tex) const {
+MeshObjects::Mesh World::addItmView(const Daedalus::ZString& visual, int32_t tex) {
   return addItmView(visual.c_str(),tex);
   }
 
-MeshObjects::Mesh World::addItmView(const char* visual, int32_t tex) const {
+MeshObjects::Mesh World::addItmView(const char* visual, int32_t tex) {
   return view()->addItmView(visual,tex);
   }
 
-MeshObjects::Mesh World::addStaticView(const char* visual) const {
+MeshObjects::Mesh World::addStaticView(const ProtoMesh* visual) {
   return view()->addStaticView(visual);
   }
 
-MeshObjects::Mesh World::addDecalView(const ZenLoad::zCVobData& vob) const {
+MeshObjects::Mesh World::addStaticView(const char* visual) {
+  return view()->addStaticView(visual);
+  }
+
+MeshObjects::Mesh World::addDecalView(const ZenLoad::zCVobData& vob) {
   return view()->addDecalView(vob);
   }
 

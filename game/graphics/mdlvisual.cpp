@@ -3,10 +3,11 @@
 
 #include "graphics/pfx/particlefx.h"
 #include "graphics/mesh/skeleton.h"
+#include "game/serialize.h"
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
-#include "game/serialize.h"
 #include "world/world.h"
+#include "utils/fileext.h"
 
 using namespace Tempest;
 
@@ -37,6 +38,9 @@ void MdlVisual::load(Serialize& fin, Npc& npc) {
 
   fin.read(fgtMode);
   fin.read(s);
+
+  if(fin.version()<=26)
+    FileExt::exchangeExt(s,"MDH","MDS");
   npc.setVisual(s.c_str());
   solver.load(fin);
   skInst->load(fin,solver);

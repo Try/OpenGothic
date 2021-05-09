@@ -10,7 +10,7 @@
 
 class Skeleton final {
   public:
-    Skeleton(const ZenLoad::zCModelMeshLib & src,std::string meshLib);
+    Skeleton(const ZenLoad::zCModelMeshLib& src, const Animation* anim, const char* name);
 
     struct Node final {
       size_t             parent=size_t(-1);
@@ -22,23 +22,24 @@ class Skeleton final {
     std::vector<Node>               nodes;
     std::vector<size_t>             rootNodes;
     std::vector<Tempest::Matrix4x4> tr;
-    std::array<float,3>             rootTr={};
+    Tempest::Vec3                   rootTr={};
 
     ZMath::float3                   bboxCol[2]={};
 
     size_t                          findNode(const char*        name,size_t def=size_t(-1)) const;
     size_t                          findNode(const std::string& name,size_t def=size_t(-1)) const;
 
-    const std::string&              name() const { return meshLib; }
+    const std::string&              name() const { return fileName; }
     const Animation::Sequence*      sequence(const char* name) const;
     const Animation*                animation() const { return anim; }
     void                            debug() const;
+    const std::string&              defaultMesh() const;
 
     float                           colisionHeight() const;
     float                           colisionRadius() const;
 
   private:
-    std::string      meshLib;
+    std::string      fileName;
     const Animation* anim=nullptr;
 
     void mkSkeleton();

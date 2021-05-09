@@ -46,8 +46,10 @@ class WorldView {
     void drawLights    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
 
     MeshObjects::Mesh   addView      (const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
+    MeshObjects::Mesh   addView      (const ProtoMesh* visual);
     MeshObjects::Mesh   addItmView   (const char* visual, int32_t material);
     MeshObjects::Mesh   addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
+    MeshObjects::Mesh   addStaticView(const ProtoMesh* visual);
     MeshObjects::Mesh   addStaticView(const char* visual);
     MeshObjects::Mesh   addDecalView (const ZenLoad::zCVobData& vob);
 
