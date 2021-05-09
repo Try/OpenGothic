@@ -34,6 +34,7 @@ class WayMatrix final {
 
   private:
     World&                 world;
+    float                  distanceThreshold = 20.f*100.f;
     using Edge = std::pair<size_t,size_t>;
     std::vector<Edge>      edges;
 

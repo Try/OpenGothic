@@ -38,7 +38,7 @@ class Sky final {
       float              dxy1[2]  = {};
       Tempest::Vec3      sky      = {};
       float              night    = 1.0;
-      float              plPosY   = 0.0;
+      Tempest::Vec3      plPos    = {};
       };
 
     struct UboFog {

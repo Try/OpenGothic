@@ -270,6 +270,13 @@ void MoveAlgo::tickSwim(uint64_t dt) {
     return;
     }
 
+  if(chest==flyOverWaterHint) {
+    setAsSwim(false);
+    setAsDive(false);
+    tryMove(dp.x,ground-pY,dp.z);
+    return;
+    }
+
   if(ground+chest>=water && validW) {
     if(testSlide(pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z))
       return;

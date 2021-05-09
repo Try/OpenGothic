@@ -7,12 +7,17 @@
 #include "game/movealgo.h"
 #include "utils/gthfont.h"
 #include "utils/dbgpainter.h"
+#include "utils/versioninfo.h"
 #include "world.h"
 
 using namespace Tempest;
 
 WayMatrix::WayMatrix(World &world, const ZenLoad::zCWayNetData &dat)
   :world(world) {
+  // scripting doc says 20m, but number seems to be incorrect
+  if(world.version().game==2)
+    distanceThreshold = 5.f*100.f;
+
   wayPoints.resize(dat.waypoints.size());
   for(size_t i=0;i<wayPoints.size();++i){
     wayPoints[i] = WayPoint(dat.waypoints[i]);
@@ -86,7 +91,7 @@ const WayPoint *WayMatrix::findFreePoint(const Vec3& at, const char *name, const
 
 const WayPoint *WayMatrix::findNextPoint(const Vec3& at) const {
   const WayPoint* ret   = nullptr;
-  float           dist  = 20.f*100.f; // see scripting doc
+  float           dist  = distanceThreshold;
 
   dist*=dist;
   for(auto pw:indexPoints){
@@ -199,8 +204,7 @@ const WayMatrix::FpIndex &WayMatrix::findFpIndex(const char *name) const {
 
 const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpIndex& ind,
                                          const std::function<bool(const WayPoint&)>& filter) const {
-  // float R = 20.f*100.f; // see scripting doc
-  float R = 5.f*100.f; // scripting doc says 20m, but number seems to be incorrect
+  float R = distanceThreshold;
   auto b = std::lower_bound(ind.index.begin(),ind.index.end(), x-R ,[](const WayPoint *a, float b){
     return a->x<b;
     });
