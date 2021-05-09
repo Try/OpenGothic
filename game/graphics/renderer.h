@@ -35,7 +35,7 @@ class Renderer final {
   private:
     Tempest::Swapchain&               swapchain;
     Gothic&                           gothic;
-    Tempest::Matrix4x4                view, viewProj;
+    Tempest::Matrix4x4                view, proj, viewProj;
     Tempest::Matrix4x4                shadow[Resources::ShadowLayers];
 
     Tempest::Attachment               shadowMap[Resources::ShadowLayers];

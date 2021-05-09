@@ -107,6 +107,7 @@ void Renderer::onWorldChanged() {
 
 void Renderer::setCameraView(const Camera& camera) {
   view     = camera.view();
+  proj     = camera.projective();
   viewProj = camera.viewProj();
   if(auto wview=gothic.worldView()) {
     for(size_t i=0; i<Resources::ShadowLayers; ++i)
@@ -131,6 +132,7 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
     return;
     }
 
+  wview->setViewProject(view,proj);
   wview->setModelView(viewProj,shadow,Resources::ShadowLayers);
   const Texture2d* sh[Resources::ShadowLayers];
   for(size_t i=0; i<Resources::ShadowLayers; ++i)

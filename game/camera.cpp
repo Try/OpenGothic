@@ -148,7 +148,10 @@ void Camera::onRotateMouse(const PointF& dpos) {
   }
 
 Matrix4x4 Camera::projective() const {
-  return proj;
+  auto ret = proj;
+  if(auto w = gothic.world())
+    w->globalFx()->morph(ret);
+  return ret;
   }
 
 Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
@@ -509,8 +512,6 @@ PointF Camera::destSpin() const {
 
 Matrix4x4 Camera::viewProj() const {
   Matrix4x4 ret=projective();
-  if(auto w = gothic.world())
-    w->globalFx()->morph(ret);
   ret.mul(view());
   return ret;
   }
@@ -536,8 +537,6 @@ Matrix4x4 Camera::view() const {
     }
 
   Matrix4x4 view=projective();
-  if(auto w = gothic.world())
-    w->globalFx()->morph(view);
   view.mul(mkView(state.pos,dist));
 
   float distMd = dist;

@@ -31,6 +31,11 @@ SceneGlobals::SceneGlobals(const RendererStorage& storage)
 SceneGlobals::~SceneGlobals() {
   }
 
+void SceneGlobals::setViewProject(const Tempest::Matrix4x4& v, const Tempest::Matrix4x4& p) {
+  view = v;
+  proj = p;
+  }
+
 void SceneGlobals::setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4* sh, size_t shCount) {
   assert(shCount==2);
 
@@ -70,4 +75,8 @@ void SceneGlobals::setShadowMap(const Tempest::Texture2d* tex[]) {
 
 const Tempest::Matrix4x4& SceneGlobals::viewProject() const {
   return uboGlobal.viewProject;
+  }
+
+const Tempest::Matrix4x4& SceneGlobals::viewProjectInv() const {
+  return uboGlobal.viewProjectInv;
   }

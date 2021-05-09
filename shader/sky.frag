@@ -11,9 +11,9 @@ layout(location = 1) in  vec3 skyColor;
 layout(location = 0) out vec4 outColor;
 
 // Fog props
-const float fogHeightDensityAtViewer = 0.005;
-const float globalDensity            = 0.0025;
-const float heightFalloff            = 0.0001;
+const float fogHeightDensityAtViewer = 0.5;
+const float globalDensity            = 0.015;
+const float heightFalloff            = 0.01;
 
 // based on: https://developer.amd.com/wordpress/media/2012/10/Wenzel-Real-time_Atmospheric_Effects_in_Games.pdf
 float volumetricFog(in vec3 pos, in vec3 cameraToWorldPos) {
@@ -51,7 +51,7 @@ vec4 stars(vec2 texc){
 
 vec3 inverse(vec3 pos) {
   vec4 ret = ubo.mvpInv*vec4(pos,1.0);
-  return ret.xyz/ret.w;
+  return (ret.xyz/ret.w)/100.f;
   }
 
 void main() {

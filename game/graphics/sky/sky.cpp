@@ -52,9 +52,6 @@ void Sky::setupUbo() {
   }
 
 void Sky::calcUboParams() {
-  uboCpu.mvpInv = scene.viewProject();
-  uboCpu.mvpInv.inverse();
-
   uboCpu.sky = scene.sun.dir();
 
   auto ticks = scene.tickCount;
@@ -64,8 +61,15 @@ void Sky::calcUboParams() {
   uboCpu.dxy1[0] = t1;
 
   Vec3 plPos = Vec3(0,0,0);
-  uboCpu.mvpInv.project(plPos);
+  scene.viewProjectInv().project(plPos);
   uboCpu.plPosY = plPos.y/100.f; //meters
+
+  auto v = scene.view;
+  v.translate(plPos);
+
+  uboCpu.mvpInv = scene.proj;
+  uboCpu.mvpInv.mul(v);
+  uboCpu.mvpInv.inverse();
   }
 
 void Sky::drawSky(Tempest::Encoder<CommandBuffer>& p, uint32_t fId) {

@@ -22,17 +22,22 @@ class SceneGlobals final {
       V_Count
       };
 
-    void setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4 *sh, size_t shCount);
+    void setViewProject(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj);
+    void setModelView  (const Tempest::Matrix4x4& m, const Tempest::Matrix4x4 *sh, size_t shCount);
+
     void setTime(uint64_t time);
     void commitUbo(uint8_t fId);
 
     void setShadowMap(const Tempest::Texture2d* tex[]);
 
     const Tempest::Matrix4x4& viewProject() const;
+    const Tempest::Matrix4x4& viewProjectInv() const;
 
     const RendererStorage&            storage;
     uint64_t                          tickCount = 0;
     const Tempest::Texture2d*         shadowMap[2] = {};
+
+    Tempest::Matrix4x4                view, proj;
 
     const Tempest::Texture2d*         lightingBuf = &Resources::fallbackBlack();
     const Tempest::Texture2d*         gbufDiffuse = &Resources::fallbackBlack();
