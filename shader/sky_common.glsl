@@ -138,7 +138,7 @@ vec3 atmosphere(in vec3 pos, vec3 view, vec3 sunDir) {
   return scatter(pos, view, sunDir, rayLength, scatt) * att;
   }
 
-vec3 fogMie(in vec3 pos, vec3 view, vec3 sunDir, float dist) {
+vec3 fogMie(in vec3 pos, vec3 view, vec3 sunDir, float rayLength) {
   // moon
   float att = 1.0;
   if(sunDir.y < -0.0) {
@@ -147,8 +147,7 @@ vec3 fogMie(in vec3 pos, vec3 view, vec3 sunDir, float dist) {
     }
   if(view.y <= -0.0)
     view.y = -view.y;
-  float scatt     = 0;
-  float rayLength = dist/100.0; //meters
+  float scatt = 0;
   vec3  color = scatter(pos, view, sunDir, rayLength,scatt) * att;
   color = exposure(color);
 

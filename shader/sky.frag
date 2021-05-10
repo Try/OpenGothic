@@ -12,8 +12,8 @@ layout(location = 0) out vec4 outColor;
 
 // Fog props
 const float fogHeightDensityAtViewer = 0.5;
-const float globalDensity            = 0.015;
-const float heightFalloff            = 0.01;
+const float globalDensity            = 0.005;
+const float heightFalloff            = 0.02;
 
 // based on: https://developer.amd.com/wordpress/media/2012/10/Wenzel-Real-time_Atmospheric_Effects_in_Games.pdf
 float volumetricFog(in vec3 pos, in vec3 cameraToWorldPos) {
@@ -67,7 +67,7 @@ void main() {
 
   float dist     = length(pos1-pos0);
   float fogDens  = volumetricFog(pos0.xyz,pos1.xyz-pos0.xyz);
-  if(fogDens<0.005) {
+  if(fogDens<0.001) {
     outColor = vec4(0);
     return;
     }
@@ -86,7 +86,7 @@ void main() {
 
   float L        = rayIntersect(pos, view, RClouds);
   vec3  cloudsAt = normalize(pos + view * L);
-  vec2  texc     = 1500.0*vec2(atan(cloudsAt.z,cloudsAt.y), atan(cloudsAt.x,cloudsAt.y));
+  vec2  texc     = 2000.0*vec2(atan(cloudsAt.z,cloudsAt.y), atan(cloudsAt.x,cloudsAt.y));
   vec4  day      = clouds(texc);
   vec4  night    = stars(texc);
   vec4  cloud    = mix(day,night,ubo.night);

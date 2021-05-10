@@ -65,7 +65,7 @@ void Sky::calcUboParams() {
   uboCpu.plPosY = plPos.y/100.f; //meters
 
   auto v = scene.view;
-  v.translate(plPos);
+  v.translate(Vec3(plPos.x,0,plPos.z));
 
   uboCpu.mvpInv = scene.proj;
   uboCpu.mvpInv.mul(v);
