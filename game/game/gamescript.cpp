@@ -1296,10 +1296,6 @@ int GameScript::npcDamDiveTime() {
   return var.getInt(0);
   }
 
-bool GameScript::isRamboMode() const {
-  return owner.isRamboMode();
-  }
-
 const FightAi::FA &GameScript::getFightAi(size_t i) const {
   return owner.getFightAi(i);
   }

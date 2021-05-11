@@ -53,7 +53,7 @@ void GameSession::HeroStorage::putToWorld(World& owner,const std::string& wayPoi
 
 
 GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::string file)
-  :gothic(gothic), storage(storage) {
+  :gth(gothic), storage(storage) {
   cam.reset(new Camera(gothic));
 
   gothic.setLoadingProgress(0);
@@ -94,7 +94,7 @@ GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, std::st
   }
 
 GameSession::GameSession(Gothic &gothic, const RendererStorage &storage, Serialize &fin)
-  :gothic(gothic), storage(storage) {
+  :gth(gothic), storage(storage) {
   cam.reset(new Camera(gothic));
 
   gothic.setLoadingProgress(0);
@@ -133,22 +133,22 @@ void GameSession::save(Serialize &fout, const char* name, const Pixmap& screen) 
   hdr.world     = wrld->name();
   hdr.pcTime    = gtime::localtime();
   hdr.wrldTime  = wrldTime;
-  hdr.isGothic2 = gothic.version().game;
+  hdr.isGothic2 = gth.version().game;
 
   fout.write(hdr,ticks,wrldTimePart);
   fout.write(uint16_t(visitedWorlds.size()));
 
-  gothic.setLoadingProgress(5);
+  gth.setLoadingProgress(5);
   for(auto& i:visitedWorlds)
     i.save(fout);
-  gothic.setLoadingProgress(25);
+  gth.setLoadingProgress(25);
 
   vm->save(fout);
-  gothic.setLoadingProgress(60);
+  gth.setLoadingProgress(60);
   if(wrld)
     wrld->save(fout);
 
-  gothic.setLoadingProgress(80);
+  gth.setLoadingProgress(80);
   vm->saveVar(fout);
   cam->save(fout);
   }
@@ -180,12 +180,12 @@ void GameSession::exitSession() {
   exitSessionFlg=true;
   }
 
-bool GameSession::isRamboMode() const {
-  return gothic.isRamboMode();
+Gothic& GameSession::gothic() const {
+  return gth;
   }
 
 const VersionInfo& GameSession::version() const {
-  return gothic.version();
+  return gth.version();
   }
 
 WorldView *GameSession::view() const {
@@ -195,7 +195,7 @@ WorldView *GameSession::view() const {
   }
 
 std::vector<uint8_t> GameSession::loadScriptCode() {
-  auto path = gothic.nestedPath({u"_work",u"Data",u"Scripts",u"_compiled",u"GOTHIC.DAT"},Dir::FT_File);
+  auto path = gth.nestedPath({u"_work",u"Data",u"Scripts",u"_compiled",u"GOTHIC.DAT"},Dir::FT_File);
   Tempest::RFile f(path);
   std::vector<uint8_t> ret(f.size());
   f.read(ret.data(),ret.size());
@@ -203,27 +203,27 @@ std::vector<uint8_t> GameSession::loadScriptCode() {
   }
 
 void GameSession::setupVmCommonApi(Daedalus::DaedalusVM& vm) {
-  gothic.setupVmCommonApi(vm);
+  gth.setupVmCommonApi(vm);
   }
 
 SoundFx *GameSession::loadSoundFx(const char *name) {
-  return gothic.loadSoundFx(name);
+  return gth.loadSoundFx(name);
   }
 
 SoundFx *GameSession::loadSoundWavFx(const char *name) {
-  return gothic.loadSoundWavFx(name);
+  return gth.loadSoundWavFx(name);
   }
 
 const VisualFx* GameSession::loadVisualFx(const char *name) {
-  return gothic.loadVisualFx(name);
+  return gth.loadVisualFx(name);
   }
 
 const ParticleFx* GameSession::loadParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k) {
-  return gothic.loadParticleFx(k);
+  return gth.loadParticleFx(k);
   }
 
 const ParticleFx* GameSession::loadParticleFx(const char *name) {
-  return gothic.loadParticleFx(name);
+  return gth.loadParticleFx(name);
   }
 
 Tempest::SoundEffect GameSession::loadSound(const Tempest::Sound &raw) {
@@ -235,11 +235,11 @@ Tempest::SoundEffect GameSession::loadSound(const SoundFx &fx, bool& looped) {
   }
 
 void GameSession::emitGlobalSound(const Tempest::Sound &sfx) {
-  gothic.emitGlobalSound(sfx);
+  gth.emitGlobalSound(sfx);
   }
 
 void GameSession::emitGlobalSound(const std::string &sfx) {
-  gothic.emitGlobalSound(sfx);
+  gth.emitGlobalSound(sfx);
   }
 
 Npc* GameSession::player() {
@@ -274,10 +274,9 @@ void GameSession::tick(uint64_t dt) {
   // std::this_thread::sleep_for(std::chrono::milliseconds(60));
 
   if(exitSessionFlg) {
-    auto& g = gothic;
     exitSessionFlg = false;
-    g.clearGame();
-    g.onSessionExit();
+    gth.clearGame();
+    gth.onSessionExit();
     return;
     }
 
@@ -300,7 +299,7 @@ void GameSession::tick(uint64_t dt) {
     if(Resources::vdfsIndex().hasFile(w)) {
       std::snprintf(buf,sizeof(buf),"LOADING_%s.TGA",wname.c_str());  // format load-screen name, like "LOADING_OLDWORLD.TGA"
 
-      gothic.startLoad(buf,[this](std::unique_ptr<GameSession>&& game){
+      gth.startLoad(buf,[this](std::unique_ptr<GameSession>&& game){
         auto ret = implChangeWorld(std::move(game),chWorld.zen,chWorld.wp);
         chWorld.zen.clear();
         return ret;
@@ -331,7 +330,7 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
   const WorldStateStorage& wss = findStorage(w);
 
   auto loadProgress = [this](int v){
-    gothic.setLoadingProgress(v);
+    gth.setLoadingProgress(v);
     };
 
   Tempest::MemReader rd{wss.storage.data(),wss.storage.size()};
@@ -339,8 +338,8 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
 
   std::unique_ptr<World> ret;
   if(wss.isEmpty())
-    ret = std::unique_ptr<World>(new World(gothic,*this,storage,w,  loadProgress)); else
-    ret = std::unique_ptr<World>(new World(gothic,*this,storage,fin,loadProgress));
+    ret = std::unique_ptr<World>(new World(gth,*this,storage,w,  loadProgress)); else
+    ret = std::unique_ptr<World>(new World(gth,*this,storage,fin,loadProgress));
   setWorld(std::move(ret));
 
   if(!wss.isEmpty())
@@ -413,12 +412,12 @@ uint32_t GameSession::messageTime(const Daedalus::ZString& id) const {
 
 AiOuputPipe *GameSession::openDlgOuput(Npc &player, Npc &npc) {
   AiOuputPipe* ret=nullptr;
-  gothic.openDialogPipe(player, npc, ret);
+  gth.openDialogPipe(player, npc, ret);
   return ret;
   }
 
 bool GameSession::aiIsDlgFinished() {
-  return gothic.aiIsDlgFinished();
+  return gth.aiIsDlgFinished();
   }
 
 bool GameSession::isWorldKnown(const std::string &name) const {
@@ -429,7 +428,7 @@ bool GameSession::isWorldKnown(const std::string &name) const {
   }
 
 const FightAi::FA &GameSession::getFightAi(size_t i) const {
-  return gothic.getFightAi(i);
+  return gth.getFightAi(i);
   }
 
 void GameSession::initScripts(bool firstTime) {

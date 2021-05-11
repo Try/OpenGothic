@@ -41,7 +41,7 @@ class GameSession final {
     void         changeWorld(const std::string &world, const std::string &wayPoint);
     void         exitSession();
 
-    bool         isRamboMode() const;
+    Gothic&      gothic() const;
     auto         version() const -> const VersionInfo&;
 
     const World* world() const { return wrld.get(); }
@@ -104,7 +104,7 @@ class GameSession final {
     auto         implChangeWorld(std::unique_ptr<GameSession> &&game, const std::string &world, const std::string &wayPoint) -> std::unique_ptr<GameSession>;
     auto         findStorage(const std::string& name) -> const WorldStateStorage&;
 
-    Gothic&                        gothic;
+    Gothic&                        gth;
     const RendererStorage&         storage;
     Tempest::SoundDevice           sound;
 

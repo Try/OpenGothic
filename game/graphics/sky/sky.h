@@ -36,7 +36,7 @@ class Sky final {
       Tempest::Matrix4x4 mvpInv;
       float              dxy0[2]  = {};
       float              dxy1[2]  = {};
-      Tempest::Vec3      sky      = {};
+      Tempest::Vec3      sunDir   = {};
       float              night    = 1.0;
       float              plPosY   = 0.0;
       };
@@ -52,15 +52,15 @@ class Sky final {
       Tempest::DescriptorSet         uboFog;
       };
 
-    void                          calcUboParams();
     static std::array<float,3>    mkColor(uint8_t r,uint8_t g,uint8_t b);
     const Tempest::Texture2d*     skyTexture(const char* name, bool day, size_t id);
     const Tempest::Texture2d*     implSkyTexture(const char* name, bool day, size_t id);
 
     const SceneGlobals&           scene;
-    UboSky                        uboCpu;
+    float                         nightFlt = 0.f;
     PerFrame                      perFrame[Resources::MaxFramesInFlight];
     Tempest::VertexBuffer<Vertex> vbo;
 
     State                         day, night;
+    const Tempest::Texture2d*     sun = &Resources::fallbackBlack();
   };

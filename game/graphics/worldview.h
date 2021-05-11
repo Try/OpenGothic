@@ -4,8 +4,6 @@
 #include <Tempest/Shader>
 
 #include "physics/dynamicworld.h"
-
-#include "graphics/sky/sky.h"
 #include "graphics/mesh/landscape.h"
 #include "graphics/meshobjects.h"
 #include "graphics/mesh/protomesh.h"

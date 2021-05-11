@@ -1,14 +1,15 @@
 #pragma once
 
 #include "objectsbucket.h"
-#include "graphics/sky/sky.h"
 
 class SceneGlobals;
 class AnimMesh;
+class Sky;
 
 class VisualObjects final {
   public:
     VisualObjects(const SceneGlobals& globals);
+    ~VisualObjects();
 
     ObjectsBucket::Item get(const StaticMesh& mesh, const Material& mat, size_t iboOffset, size_t iboLen,
                             const ProtoMesh* anim, bool staticDraw);
@@ -47,7 +48,7 @@ class VisualObjects final {
     std::vector<ObjectsBucket*>     index;
     size_t                          lastSolidBucket = 0;
 
-    Sky                             sky;
+    std::unique_ptr<Sky>            sky;
 
   friend class ObjectsBucket;
   friend class ObjectsBucket::Item;

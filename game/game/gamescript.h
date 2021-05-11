@@ -95,7 +95,6 @@ class GameScript final {
     ScriptFn     playerPercAssessMagic();
     const char*  currencyName() const { return goldTxt.c_str(); }
     int          npcDamDiveTime();
-    bool         isRamboMode() const;
 
     const Daedalus::GEngineClasses::C_Focus&          focusNorm()  const { return cFocusNorm;  }
     const Daedalus::GEngineClasses::C_Focus&          focusMele()  const { return cFocusMele;  }

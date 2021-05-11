@@ -79,10 +79,12 @@ class World final {
     WayPath              wayTo(const Npc& pos,const WayPoint& end) const;
 
     WorldView*           view()     const { return wview.get();    }
-    WorldSound*          sound()          { return &wsound;         }
+    WorldSound*          sound()          { return &wsound;        }
     DynamicWorld*        physic()   const { return wdynamic.get(); }
     GlobalEffects*       globalFx() const { return globFx.get();   }
+
     GameScript&          script()   const;
+    GameSession&         gameSession() const { return game; }
     auto                 version()  const -> const VersionInfo&;
 
     void                 assignRoomToGuild(const char* room, int32_t guildId);

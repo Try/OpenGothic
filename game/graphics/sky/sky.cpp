@@ -5,7 +5,9 @@
 
 #include <cctype>
 
+#include "game/gamesession.h"
 #include "graphics/rendererstorage.h"
+#include "gothic.h"
 #include "world/world.h"
 #include "utils/versioninfo.h"
 #include "resources.h"
@@ -26,15 +28,26 @@ void Sky::setWorld(const World &world) {
     night.lay[i].texture = skyTexture(name.c_str(),false,i);
     }
 
-  if(world.version().game==2) {
-    //skymesh = world.getStaticView("SKYDOME_COLORLAYER.MRM");
-    }
+  auto& gothic = world.gameSession().gothic();
+  /*
+    zSunName=unsun5.tga
+    zSunSize=200
+    zSunAlpha=230
+    zMoonName=moon.tga
+    zMoonSize=400
+    zMoonAlpha=255
+    */
+  sun          = Resources::loadTexture(gothic.settingsGetS("SKY_OUTDOOR","zSunName"));
+  // auto& moon   = gothic.settingsGetS("SKY_OUTDOOR","zMoonName");
 
   setupUbo();
   }
 
 void Sky::setupUbo() {
   auto& device = Resources::device();
+  auto  smp    = Sampler2d::trillinear();
+  smp.setClamping(ClampMode::ClampToEdge);
+
   for(auto& i:perFrame){
     i.uboSky    = device.descriptors(scene.storage.pSky.layout());
     i.uboSkyGpu = device.ubo<UboSky>(nullptr,1);
@@ -45,38 +58,38 @@ void Sky::setupUbo() {
     i.uboSky.set(3,*night.lay[0].texture);
     i.uboSky.set(4,*night.lay[1].texture);
 
+    // i.uboSky.set(5,*sun,smp);
+
     i.uboFog = device.descriptors(scene.storage.pFog.layout());
     i.uboFog.set(0,i.uboSkyGpu);
     i.uboFog.set(1,*scene.gbufDepth,Sampler2d::nearest());
     }
   }
 
-void Sky::calcUboParams() {
-  uboCpu.sky = scene.sun.dir();
+void Sky::drawSky(Tempest::Encoder<CommandBuffer>& p, uint32_t fId) {
+  UboSky ubo;
+
+  auto v = scene.view;
+  Vec3 plPos = Vec3(0,0,0);
+  scene.viewProjectInv().project(plPos);
+  ubo.plPosY = plPos.y/100.f; //meters
+  v.translate(Vec3(plPos.x,0,plPos.z));
+
+  ubo.mvpInv = scene.proj;
+  ubo.mvpInv.mul(v);
+  ubo.mvpInv.inverse();
 
   auto ticks = scene.tickCount;
   auto t0 = float(ticks%90000 )/90000.f;
   auto t1 = float(ticks%270000)/270000.f;
-  uboCpu.dxy0[0] = t0;
-  uboCpu.dxy1[0] = t1;
+  ubo.dxy0[0] = t0;
+  ubo.dxy1[0] = t1;
 
-  Vec3 plPos = Vec3(0,0,0);
-  scene.viewProjectInv().project(plPos);
-  uboCpu.plPosY = plPos.y/100.f; //meters
-
-  auto v = scene.view;
-  v.translate(Vec3(plPos.x,0,plPos.z));
-
-  uboCpu.mvpInv = scene.proj;
-  uboCpu.mvpInv.mul(v);
-  uboCpu.mvpInv.inverse();
-  }
-
-void Sky::drawSky(Tempest::Encoder<CommandBuffer>& p, uint32_t fId) {
-  calcUboParams();
+  ubo.sunDir = scene.sun.dir();
+  ubo.night = nightFlt;
 
   auto& pf = perFrame[fId];
-  pf.uboSkyGpu.update(&uboCpu,0,1);
+  pf.uboSkyGpu.update(&ubo,0,1);
 
   p.setUniforms(scene.storage.pSky, pf.uboSky);
   p.draw(Resources::fsqVbo());
@@ -95,7 +108,7 @@ void Sky::drawFog(Tempest::Encoder<CommandBuffer>& p, uint32_t fId) {
   }
 
 void Sky::setDayNight(float dayF) {
-  uboCpu.night = 1.f-dayF;
+  nightFlt = 1.f-dayF;
   }
 
 std::array<float,3> Sky::mkColor(uint8_t r, uint8_t g, uint8_t b) {
