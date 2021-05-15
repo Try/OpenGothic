@@ -60,7 +60,6 @@ void main(void) {
     }
 
   vec4 pos = ubo.mvp*vec4(light.pos+inPos*light.range, 1.0);
-  vec4 cen = ubo.mvp*vec4(light.pos,                   1.0);
 
   int neg = 0;
   for(int i=0;i<8;++i) {

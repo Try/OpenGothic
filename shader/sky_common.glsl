@@ -60,7 +60,7 @@ void densities(in vec3 pos, out float rayleigh, out float mie) {
   rayleigh =  exp(-h/Hr);
   vec3 d = pos;
   d.y = 0.0;
-  float dist = length(d);
+  // float dist = length(d);
 
   const float haze = 0.2; //0.2
   mie = exp(-h/Hm) + haze;
@@ -149,7 +149,5 @@ vec3 fogMie(in vec3 pos, vec3 view, vec3 sunDir, float rayLength) {
     view.y = -view.y;
   float scatt = 0;
   vec3  color = scatter(pos, view, sunDir, rayLength,scatt) * att;
-  color = exposure(color);
-
   return vec3(color);
   }

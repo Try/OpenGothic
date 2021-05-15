@@ -30,6 +30,7 @@ float volumetricFog(in vec3 pos, in vec3 cameraToWorldPos) {
 vec4 clouds(vec2 texc){
   vec4 cloudDL1 = texture(textureDayL1,texc*0.3+ubo.dxy1);
   vec4 cloudDL0 = texture(textureDayL0,texc*0.3+ubo.dxy0);
+
 #ifdef G1
   return mix(cloudDL0,cloudDL1,cloudDL1.a);
 #else
@@ -43,7 +44,7 @@ vec4 stars(vec2 texc){
 #ifdef G1
   vec4 night    = mix(cloudNL0,cloudNL1,cloudNL1.a);
 #else
-  vec4 night    = cloudNL0+cloudNL0;
+  vec4 night    = cloudNL0+cloudNL1;
 #endif
   return vec4(night.rgb,ubo.night);
   }
@@ -66,24 +67,25 @@ void main() {
   vec3 pos0      = inverse(vec3(inPos,0));
 
   float dist     = length(pos1-pos0);
-  float fogDens  = volumetricFog(pos0.xyz,pos1.xyz-pos0.xyz);
+  float fogDens  = volumetricFog(pos0,pos1-pos0);
   if(fogDens<0.001) {
     outColor = vec4(0);
     return;
     }
   vec3  mie      = fogMie(pos,view,sunDir,dist);
-  vec3  fogColor = skyColor*fogDens;
-  outColor       = vec4(mie+fogColor,fogDens);
+  vec3  fogColor = skyColor*fogDens + mie;
+  fogColor       = exposure(fogColor);
+  outColor       = vec4(fogColor,fogDens);
 #else
-  vec3  color    = atmosphere(pos,view,sunDir);
+  // Sky
+  vec3  atmo    = atmosphere(pos,view,sunDir);
+
   // Sun
   float alpha    = dot(view,sunDir);
   float spot     = smoothstep(0.0, 1000.0, phase(alpha, 0.9995));
-  color += vec3(spot*1000.0);
+  vec3 sun       = vec3(spot*1000.0);
 
-  // Apply exposure.
-  color          = exposure(color);
-
+  // Clouds
   float L        = rayIntersect(pos, view, RClouds);
   vec3  cloudsAt = normalize(pos + view * L);
   vec2  texc     = 2000.0*vec2(atan(cloudsAt.z,cloudsAt.y), atan(cloudsAt.x,cloudsAt.y));
@@ -91,7 +93,14 @@ void main() {
   vec4  night    = stars(texc);
   vec4  cloud    = mix(day,night,ubo.night);
 
-  color          = mix(color.rgb,cloud.rgb,min(1.0,cloud.a));
+  // Fog
+  float fogDens  = volumetricFog(pos,L*view);
+
+  // Apply exposure.
+  vec3  color    = atmo + sun;
+  color          = exposure(color);
+
+  color          = mix(color,cloud.rgb,min(1.0,cloud.a*(1.0-fogDens)));
   outColor       = vec4(color,1.0);
 #endif
   }
