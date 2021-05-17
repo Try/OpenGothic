@@ -115,12 +115,12 @@ void Renderer::setCameraView(const Camera& camera) {
   }
 
 void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
-                    VectorImage&   uiLayer,   VectorImage& numOverlay,
+                    VectorImage::Mesh& uiLayer, VectorImage::Mesh& numOverlay,
                     InventoryMenu& inventory, const Gothic& gothic) {
   draw(cmd, fbo3d  [imgId], fboCpy[imgId], gothic, cmdId);
-  draw(cmd, fboUi  [imgId], uiLayer,   cmdId);
+  draw(cmd, fboUi  [imgId], uiLayer);
   draw(cmd, fboItem[imgId], inventory, cmdId);
-  draw(cmd, fboUi  [imgId], numOverlay,cmdId);
+  draw(cmd, fboUi  [imgId], numOverlay);
   }
 
 void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
@@ -171,10 +171,9 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, Inve
   inventory.draw(fbo,cmd,cmdId);
   }
 
-void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, VectorImage& surface, uint8_t cmdId) {
-  auto& device = Resources::device();
+void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, VectorImage::Mesh& surface) {
   cmd.setFramebuffer(fbo,uiPass);
-  surface.draw(device,cmdId,cmd);
+  surface.draw(cmd);
   }
 
 Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {

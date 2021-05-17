@@ -887,13 +887,13 @@ void MainWindow::render(){
       PaintEvent p(numOverlay,atlas,this->w(),this->h());
       inventory.paintNumOverlay(p);
       }
+    uiMesh [cmdId].update(device,uiLayer);
+    numMesh[cmdId].update(device,numOverlay);
 
-    const uint32_t imgId = swapchain.currentImage();
-
-    CommandBuffer& cmd   = commands[cmdId];
+    CommandBuffer& cmd = commands[cmdId];
     {
     auto enc = cmd.startEncoding(device);
-    renderer.draw(enc,cmdId,imgId,uiLayer,numOverlay,inventory,gothic);
+    renderer.draw(enc,cmdId,swapchain.currentImage(),uiMesh[cmdId],numMesh[cmdId],inventory,gothic);
     }
     device.submit(cmd,sync);
     device.present(swapchain);

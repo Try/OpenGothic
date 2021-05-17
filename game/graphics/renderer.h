@@ -26,7 +26,7 @@ class Renderer final {
     void setCameraView(const Camera &camera);
 
     void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
-              Tempest::VectorImage& uiLayer, Tempest::VectorImage& numOverlay,
+              Tempest::VectorImage::Mesh& uiLayer, Tempest::VectorImage::Mesh& numOverlay,
               InventoryMenu &inventory, const Gothic& gothic);
 
     Tempest::Attachment               screenshoot(uint8_t frameId);
@@ -61,5 +61,5 @@ class Renderer final {
 
     void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::FrameBuffer& fboCpy, const Gothic& gothic, uint8_t cmdId);
     void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, InventoryMenu& inv, uint8_t cmdId);
-    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::VectorImage& surface, uint8_t cmdId);
+    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::VectorImage::Mesh& surface);
   };

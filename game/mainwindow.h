@@ -100,11 +100,12 @@ class MainWindow : public Tempest::Window {
     Tempest::Device&      device;
     Tempest::Swapchain    swapchain;
     Tempest::TextureAtlas atlas;
-
     Tempest::Font         font;
-    Tempest::VectorImage  uiLayer, numOverlay;
-
     Renderer              renderer;
+
+    Tempest::VectorImage  uiLayer, numOverlay;
+    Tempest::VectorImage::Mesh uiMesh [Resources::MaxFramesInFlight];
+    Tempest::VectorImage::Mesh numMesh[Resources::MaxFramesInFlight];
 
     Tempest::Fence         fence   [Resources::MaxFramesInFlight];
     Tempest::CommandBuffer commands[Resources::MaxFramesInFlight];
