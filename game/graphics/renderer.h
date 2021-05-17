@@ -25,7 +25,7 @@ class Renderer final {
 
     void setCameraView(const Camera &camera);
 
-    void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId, uint8_t imgId,
+    void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
               Tempest::VectorImage& uiLayer, Tempest::VectorImage& numOverlay,
               InventoryMenu &inventory, const Gothic& gothic);
 
@@ -59,7 +59,7 @@ class Renderer final {
     Tempest::DescriptorSet            uboCopy;
     RendererStorage                   stor;
 
-    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::FrameBuffer& fboCpy, const Gothic& gothic, uint8_t frameId);
-    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, InventoryMenu& inv);
-    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::VectorImage& surface);
+    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::FrameBuffer& fboCpy, const Gothic& gothic, uint8_t cmdId);
+    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, InventoryMenu& inv, uint8_t cmdId);
+    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::VectorImage& surface, uint8_t cmdId);
   };

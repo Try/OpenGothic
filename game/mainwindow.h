@@ -106,8 +106,9 @@ class MainWindow : public Tempest::Window {
 
     Renderer              renderer;
 
-    std::vector<Tempest::Fence> fence;
-    Tempest::CommandBuffer    commandDynamic[Resources::MaxFramesInFlight];
+    Tempest::Fence         fence   [Resources::MaxFramesInFlight];
+    Tempest::CommandBuffer commands[Resources::MaxFramesInFlight];
+    uint8_t                cmdId = 0;
 
 
     const Tempest::Texture2d* background=nullptr;

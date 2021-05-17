@@ -34,11 +34,11 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
     dialogs(gothic,inventory),document(gothic,keycodec),chapter(gothic),console(gothic),
     player(gothic,dialogs,inventory) {
   CrashLog::setGpu(device.properties().name);
+  for(uint8_t i=0;i<Resources::MaxFramesInFlight;++i)
+    fence[i] = device.fence();
+
   if(!gothic.isWindowMode())
     setFullscreen(true);
-
-  for(uint8_t i=0;i<Resources::MaxFramesInFlight;++i)
-    fence.emplace_back(device.fence());
 
   renderer.resetSwapchain();
   setupUi();
@@ -335,7 +335,7 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
   player.onKeyPressed(act,event.key);
 
   if(event.key==Event::K_F9) {
-    auto tex = renderer.screenshoot(swapchain.frameId());
+    auto tex = renderer.screenshoot(cmdId);
     auto pm  = device.readPixels(textureCast(tex));
     pm.save("dbg.png");
     }
@@ -779,7 +779,7 @@ void MainWindow::loadGame(const std::string &slot) {
   }
 
 void MainWindow::saveGame(const std::string &slot, const std::string& name) {
-  auto tex = renderer.screenshoot(swapchain.frameId());
+  auto tex = renderer.screenshoot(cmdId);
   auto pm  = device.readPixels(textureCast(tex));
 
   gothic.startSave(std::move(textureCast(tex)),[slot,name,pm](std::unique_ptr<GameSession>&& game){
@@ -817,7 +817,7 @@ void MainWindow::onWorldLoaded() {
   renderer.onWorldChanged();
 
   device.waitIdle();
-  for(auto& c:commandDynamic)
+  for(auto& c:commands)
     c = device.commandBuffer();
 
   if(auto c = gothic.camera())
@@ -863,7 +863,7 @@ void MainWindow::render(){
     if(!video.isActive())
       dt = tick();
 
-    auto& sync = fence[swapchain.frameId()];
+    auto& sync = fence[cmdId];
     if(!sync.wait(0)) {
       tickCamera(dt);
       return;
@@ -875,7 +875,7 @@ void MainWindow::render(){
       }
 
     if(video.isActive()) {
-      video.paint(device,swapchain.frameId());
+      video.paint(device,cmdId);
       uiLayer.clear();
       PaintEvent p(uiLayer,atlas,this->w(),this->h());
       video.paintEvent(p);
@@ -888,15 +888,16 @@ void MainWindow::render(){
       inventory.paintNumOverlay(p);
       }
 
-    const uint32_t imgId = swapchain.nextImage();
+    const uint32_t imgId = swapchain.currentImage();
 
-    CommandBuffer& cmd = commandDynamic[swapchain.frameId()];
+    CommandBuffer& cmd   = commands[cmdId];
     {
     auto enc = cmd.startEncoding(device);
-    renderer.draw(enc,swapchain.frameId(),uint8_t(imgId),uiLayer,numOverlay,inventory,gothic);
+    renderer.draw(enc,cmdId,imgId,uiLayer,numOverlay,inventory,gothic);
     }
     device.submit(cmd,sync);
-    device.present(swapchain,imgId);
+    device.present(swapchain);
+    cmdId = (cmdId+1u)%Resources::MaxFramesInFlight;
 
     auto t = Application::tickCount();
     if(t-time<15 && !gothic.isInGame() && !video.isActive()){

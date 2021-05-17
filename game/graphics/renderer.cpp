@@ -75,7 +75,7 @@ void Renderer::resetSwapchain() {
   fboCpy.clear();
   fboItem.clear();
   for(uint32_t i=0;i<imgC;++i) {
-    Tempest::Attachment& frame=swapchain.frame(i);
+    Tempest::Attachment& frame=swapchain.image(i);
     fbo3d  .emplace_back(device.frameBuffer(frame,zbuffer));
     fboCpy .emplace_back(device.frameBuffer(frame));
     fboItem.emplace_back(device.frameBuffer(frame,zbufferItem));
@@ -114,17 +114,17 @@ void Renderer::setCameraView(const Camera& camera) {
     }
   }
 
-void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t frameId, uint8_t imgId,
+void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
                     VectorImage&   uiLayer,   VectorImage& numOverlay,
                     InventoryMenu& inventory, const Gothic& gothic) {
-  draw(cmd, fbo3d  [imgId], fboCpy[imgId], gothic, frameId);
-  draw(cmd, fboUi  [imgId], uiLayer);
-  draw(cmd, fboItem[imgId], inventory);
-  draw(cmd, fboUi  [imgId], numOverlay);
+  draw(cmd, fbo3d  [imgId], fboCpy[imgId], gothic, cmdId);
+  draw(cmd, fboUi  [imgId], uiLayer,   cmdId);
+  draw(cmd, fboItem[imgId], inventory, cmdId);
+  draw(cmd, fboUi  [imgId], numOverlay,cmdId);
   }
 
 void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
-                    FrameBuffer& fbo, FrameBuffer& fboCpy, const Gothic &gothic, uint8_t frameId) {
+                    FrameBuffer& fbo, FrameBuffer& fboCpy, const Gothic &gothic, uint8_t cmdId) {
   auto wview = gothic.worldView();
   if(wview==nullptr) {
     cmd.setFramebuffer(fbo,mainPassNoGbuf);
@@ -136,7 +136,7 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
   const Texture2d* sh[Resources::ShadowLayers];
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     sh[i] = &textureCast(shadowMap[i]);
-  wview->setFrameGlobals(sh,gothic.world()->tickCount(),frameId);
+  wview->setFrameGlobals(sh,gothic.world()->tickCount(),cmdId);
   wview->setGbuffer(textureCast(lightingBuf),textureCast(gbufDiffuse),textureCast(gbufNormal),textureCast(gbufDepth));
 
   {
@@ -149,32 +149,32 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
 
   for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
     cmd.setFramebuffer(fboShadow[i],shadowPass);
-    wview->drawShadow(cmd,frameId,i);
+    wview->drawShadow(cmd,cmdId,i);
     }
 
   cmd.setFramebuffer(fboGBuf,gbufPass);
-  wview->drawGBuffer(cmd,frameId);
+  wview->drawGBuffer(cmd,cmdId);
 
   cmd.setFramebuffer(fboCpy,copyPass);
   cmd.setUniforms(stor.pCopy,uboCopy);
   cmd.draw(Resources::fsqVbo());
 
   cmd.setFramebuffer(fbo,mainPass);
-  wview->drawLights (cmd,frameId);
-  wview->drawMain   (cmd,frameId);
+  wview->drawLights (cmd,cmdId);
+  wview->drawMain   (cmd,cmdId);
   }
 
-void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, InventoryMenu &inventory) {
+void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, InventoryMenu &inventory, uint8_t cmdId) {
   if(inventory.isOpen()==InventoryMenu::State::Closed)
     return;
   cmd.setFramebuffer(fbo,inventoryPass);
-  inventory.draw(fbo,cmd,swapchain.frameId());
+  inventory.draw(fbo,cmd,cmdId);
   }
 
-void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, VectorImage& surface) {
+void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, VectorImage& surface, uint8_t cmdId) {
   auto& device = Resources::device();
   cmd.setFramebuffer(fbo,uiPass);
-  surface.draw(device,swapchain,cmd);
+  surface.draw(device,cmdId,cmd);
   }
 
 Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
