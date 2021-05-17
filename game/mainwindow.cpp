@@ -205,6 +205,8 @@ void MainWindow::resizeEvent(SizeEvent&) {
     i.wait();
   swapchain.reset();
   renderer.resetSwapchain();
+  if(auto camera = gothic.camera())
+    camera->setViewport(swapchain.w(),swapchain.h());
   }
 
 void MainWindow::mouseDownEvent(MouseEvent &event) {

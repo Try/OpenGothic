@@ -67,7 +67,7 @@ int main(int argc,const char** argv) {
   Gothic               gothic{argc,argv};
   auto                 api = mkApi(gothic);
 
-  Tempest::Device      device{*api,selectDevice(*api),Resources::MaxFramesInFlight};
+  Tempest::Device      device{*api,selectDevice(*api)};
   Resources            resources{gothic,device};
   GameMusic            music(gothic);
 
