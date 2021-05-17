@@ -2,7 +2,6 @@
 
 #include <Tempest/Color>
 #include <Tempest/Fence>
-#include <Tempest/Semaphore>
 #include <Tempest/Log>
 
 #include "graphics/mesh/submesh/staticmesh.h"
@@ -199,9 +198,7 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   }
 
   Fence sync = device.fence();
-
-  const Tempest::CommandBuffer* submit[1]={&cmd};
-  device.submit(submit,1,nullptr,0,nullptr,0,&sync);
+  device.submit(cmd,sync);
   sync.wait();
 
   if(auto wview = gothic.worldView())

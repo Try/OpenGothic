@@ -6,7 +6,6 @@
 #include <Tempest/Window>
 #include <Tempest/CommandBuffer>
 #include <Tempest/Fence>
-#include <Tempest/Semaphore>
 #include <Tempest/VulkanApi>
 #include <Tempest/Device>
 #include <Tempest/VertexBuffer>
@@ -107,14 +106,7 @@ class MainWindow : public Tempest::Window {
 
     Renderer              renderer;
 
-    struct FrameLocal {
-      explicit FrameLocal(Tempest::Device& dev):imageAvailable(dev.semaphore()),renderDone(dev.semaphore()),gpuLock(dev.fence()){}
-      Tempest::Semaphore imageAvailable;
-      Tempest::Semaphore renderDone;
-      Tempest::Fence     gpuLock;
-      };
-
-    std::vector<FrameLocal>   fLocal;
+    std::vector<Tempest::Fence> fence;
     Tempest::CommandBuffer    commandDynamic[Resources::MaxFramesInFlight];
 
 

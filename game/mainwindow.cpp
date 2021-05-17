@@ -37,8 +37,8 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
   if(!gothic.isWindowMode())
     setFullscreen(true);
 
-  for(uint8_t i=0;i<device.maxFramesInFlight();++i)
-    fLocal.emplace_back(device);
+  for(uint8_t i=0;i<Resources::MaxFramesInFlight;++i)
+    fence.emplace_back(device.fence());
 
   renderer.resetSwapchain();
   setupUi();
@@ -201,8 +201,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
   }
 
 void MainWindow::resizeEvent(SizeEvent&) {
-  for(auto& i:fLocal)
-    i.gpuLock.wait();
+  for(auto& i:fence)
+    i.wait();
   swapchain.reset();
   renderer.resetSwapchain();
   }
@@ -863,8 +863,8 @@ void MainWindow::render(){
     if(!video.isActive())
       dt = tick();
 
-    auto& context = fLocal[swapchain.frameId()];
-    if(!context.gpuLock.wait(0)) {
+    auto& sync = fence[swapchain.frameId()];
+    if(!sync.wait(0)) {
       tickCamera(dt);
       return;
       }
@@ -888,15 +888,15 @@ void MainWindow::render(){
       inventory.paintNumOverlay(p);
       }
 
-    const uint32_t imgId = swapchain.nextImage(context.imageAvailable);
+    const uint32_t imgId = swapchain.nextImage();
 
     CommandBuffer& cmd = commandDynamic[swapchain.frameId()];
     {
     auto enc = cmd.startEncoding(device);
     renderer.draw(enc,swapchain.frameId(),uint8_t(imgId),uiLayer,numOverlay,inventory,gothic);
     }
-    device.submit(cmd,context.imageAvailable,context.renderDone,context.gpuLock);
-    device.present(swapchain,imgId,context.renderDone);
+    device.submit(cmd,sync);
+    device.present(swapchain,imgId);
 
     auto t = Application::tickCount();
     if(t-time<15 && !gothic.isInGame() && !video.isActive()){
