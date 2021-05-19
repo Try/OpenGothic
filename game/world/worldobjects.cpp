@@ -255,26 +255,28 @@ uint32_t WorldObjects::mobsiId(const void* ptr) const {
   return uint32_t(-1);
   }
 
-Npc *WorldObjects::addNpc(size_t npcInstance, const Daedalus::ZString& at) {
+Npc* WorldObjects::addNpc(size_t npcInstance, const Daedalus::ZString& at) {
   auto pos = owner.findPoint(at.c_str());
-  if(pos==nullptr){
+  if(pos==nullptr)
     Log::e("inserNpc: invalid waypoint");
-    return nullptr;
-    }
+
   Npc* npc = new Npc(owner,npcInstance,at);
   if(pos!=nullptr && pos->isLocked()){
     auto p = owner.findNextPoint(*pos);
     if(p)
       pos=p;
     }
+
   if(pos!=nullptr) {
     npc->setPosition  (pos->x,pos->y,pos->z);
     npc->setDirection (pos->dirX,pos->dirY,pos->dirZ);
     npc->attachToPoint(pos);
     npc->updateTransform();
+    npcArr.emplace_back(npc);
+    } else {
+    npcInvalid.emplace_back(npc);
     }
 
-  npcArr.emplace_back(npc);
   return npc;
   }
 
@@ -743,6 +745,10 @@ void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &itm
 void WorldObjects::resetPositionToTA() {
   for(auto& r:routines)
     r.curState = 0;
+
+  for(auto& i:npcInvalid)
+    npcArr.push_back(std::move(i));
+  npcInvalid.clear();
 
   for(size_t i=0;i<npcArr.size();) {
     auto& n = *npcArr[i];

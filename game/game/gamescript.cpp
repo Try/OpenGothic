@@ -1728,13 +1728,9 @@ void GameScript::wld_insertnpc(Daedalus::DaedalusVM &vm) {
   if(spawnpoint.empty() || npcInstance<=0)
     return;
 
-  auto at=world().findPoint(spawnpoint.c_str());
-  if(at==nullptr){
-    Log::e("invalid waypoint \"",spawnpoint.c_str(),"\"");
-    return;
-    }
   auto npc = world().addNpc(size_t(npcInstance),spawnpoint);
-  fixNpcPosition(*npc,0,0);
+  if(npc!=nullptr)
+    fixNpcPosition(*npc,0,0);
   }
 
 void GameScript::wld_insertitem(Daedalus::DaedalusVM &vm) {
