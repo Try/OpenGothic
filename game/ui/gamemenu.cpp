@@ -51,7 +51,7 @@ struct GameMenu::SavNameDialog : Dialog {
     }
 
   void mouseDownEvent(MouseEvent& e) override { e.accept(); }
-  void mouseUpEvent  (MouseEvent& e) override {
+  void mouseUpEvent  (MouseEvent&) override {
     close();
     accepted = true;
     }
@@ -442,14 +442,31 @@ void GameMenu::execSingle(Item &it, int slideDx) {
   auto& onSelAction_S = item.onSelAction_S;
   auto& onEventAction = item.onEventAction;
 
-  if(item.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_INPUT) {
+  if(item.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_INPUT && slideDx==0) {
     ctrlInput = &it;
-    SavNameDialog dlg{item.text[0]};
-    dlg.resize(owner.size());
-    dlg.exec();
-    ctrlInput = nullptr;
-    if(!dlg.accepted)
-      return;
+    if(item.onChgSetOption.empty()) {
+      SavNameDialog dlg{item.text[0]};
+      dlg.resize(owner.size());
+      dlg.exec();
+      ctrlInput = nullptr;
+      if(!dlg.accepted)
+        return;
+      } else {
+      KeyEditDialog dlg;
+      dlg.resize(owner.size());
+      dlg.exec();
+      ctrlInput = nullptr;
+
+      if(dlg.key==Event::K_ESCAPE && dlg.mkey==Event::ButtonNone)
+        return;
+      int32_t next = 0;
+      if(dlg.key==Event::K_ESCAPE)
+        next = KeyCodec::keyToCode(dlg.mkey); else
+        next = KeyCodec::keyToCode(dlg.key);
+      keyCodec.set(item.onChgSetOptionSection.c_str(), item.onChgSetOption.c_str(), next);
+      updateItem(it);
+      return; //HACK: there is a SEL_ACTION_BACK token in same item
+      }
     }
 
   for(size_t i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_SEL_ACTIONS;++i) {
@@ -504,23 +521,6 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
   if(sec.empty() || opt.empty())
     return;
 
-  if(item.handle.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_INPUT && slideDx==0) {
-    // keys-define
-    exitFlag  = false; //HACK
-    ctrlInput = &item;
-    KeyEditDialog dlg;
-    dlg.resize(owner.size());
-    dlg.exec();
-    ctrlInput = nullptr;
-    if(dlg.key==Event::K_ESCAPE && dlg.mkey==Event::ButtonNone)
-      return;
-    int32_t next = 0;
-    if(dlg.key==Event::K_ESCAPE)
-      next = KeyCodec::keyToCode(dlg.mkey); else
-      next = KeyCodec::keyToCode(dlg.key);
-    keyCodec.set(sec.c_str(), opt.c_str(), next);
-    updateItem(item);
-    }
   if(item.handle.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_SLIDER && slideDx!=0) {
     updateItem(item);
     float v = gothic.settingsGetF(sec.c_str(),opt.c_str());
