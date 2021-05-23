@@ -50,7 +50,7 @@ class DynamicWorld final {
       C_Water     = 3,
       C_Object    = 4,
       C_Ghost     = 5,
-      C_item      = 6,
+      C_Item      = 6,
       };
 
     struct NpcItem {
@@ -227,20 +227,11 @@ class DynamicWorld final {
                              float mass, float friction, ItemType type);
 
     void           deleteObj(NpcBody*           obj);
-    void           deleteObj(btCollisionObject* obj);
 
 
     void           moveBullet(BulletBody& b, float dx, float dy, float dz, uint64_t dt);
     RayWaterResult implWaterRay (float x0, float y0, float z0, float x1, float y1, float z1) const;
     bool           hasCollision(const NpcItem &it, Tempest::Vec3& normal);
-
-    template<class RayResultCallback>
-    void           rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, RayResultCallback& resultCallback) const;
-
-    std::unique_ptr<btRigidBody> landObj();
-    std::unique_ptr<btRigidBody> waterObj();
-
-    void           updateSingleAabb(btCollisionObject* obj);
 
     std::unique_ptr<CollisionWorld>             world;
 
@@ -258,8 +249,6 @@ class DynamicWorld final {
     std::unique_ptr<NpcBodyList>                npcList;
     std::unique_ptr<BulletsList>                bulletList;
     std::unique_ptr<BBoxList>                   bboxList;
-
-    std::vector<btRigidBody*>                   dynItems;
 
     static const float                          ghostHeight;
     static const float                          worldHeight;

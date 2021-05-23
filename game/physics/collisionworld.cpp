@@ -1,25 +1,32 @@
-#include <Tempest/Platform>
-
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#pragma GCC diagnostic ignored "-Wfloat-conversion"
-#if defined(__OSX__)
-#pragma GCC diagnostic ignored "-Wargument-outside-range"
-#endif
-#endif
-
 #include "collisionworld.h"
 
-#include <BulletCollision/CollisionDispatch/btDefaultCollisionConfiguration.h>
-#include <BulletCollision/BroadphaseCollision/btDbvtBroadphase.h>
-#include <BulletDynamics/Dynamics/btRigidBody.h>
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-
+#include "physics/physics.h"
 #include "dynamicworld.h"
+#include "world/objects/item.h"
+
+CollisionWorld::CollisionBody::CollisionBody(btRigidBody::btRigidBodyConstructionInfo& inf, CollisionWorld* owner)
+  :btRigidBody(inf), owner(owner) {
+  }
+
+CollisionWorld::CollisionBody::~CollisionBody() {
+  auto flags = this->getCollisionFlags();
+
+  if((flags & btCollisionObject::CF_STATIC_OBJECT)==0) {
+    owner->removeRigidBody(this);
+    auto& rigid = owner->rigid;
+    for(size_t i=0; i<rigid.size(); ++i) {
+      if(rigid[i]==this) {
+        rigid[i] = rigid.back();
+        rigid.pop_back();
+        break;
+        }
+      }
+    } else {
+    owner->removeCollisionObject(this);
+    }
+
+  owner->touchAabbs();
+  }
 
 struct CollisionWorld::Broadphase : btDbvtBroadphase {
   struct BroadphaseRayTester : btDbvt::ICollide {
@@ -70,31 +77,34 @@ struct CollisionWorld::Broadphase : btDbvtBroadphase {
 struct CollisionWorld::ContructInfo {
   ContructInfo() {
     // collision configuration contains default setup for memory, collision setup
-    conf .reset(new btDefaultCollisionConfiguration());
+    conf  .reset(new btDefaultCollisionConfiguration());
     // use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
     //auto disp = new btCollisionDispatcherMt(conf.get());
-    disp .reset(new btCollisionDispatcher(conf.get()));
+    disp  .reset(new btCollisionDispatcher(conf.get()));
     disp->setDispatcherFlags(btCollisionDispatcher::CD_DISABLE_CONTACTPOOL_DYNAMIC_ALLOCATION);
-    broad.reset(new btDbvtBroadphase());
+    broad .reset(new btDbvtBroadphase());
+    solver.reset(new btSequentialImpulseConstraintSolver());
     }
-  std::unique_ptr<btCollisionConfiguration>   conf;
-  std::unique_ptr<btCollisionDispatcher>      disp;
-  std::unique_ptr<btBroadphaseInterface>      broad;
+  std::unique_ptr<btCollisionConfiguration>            conf;
+  std::unique_ptr<btCollisionDispatcher>               disp;
+  std::unique_ptr<btSequentialImpulseConstraintSolver> solver;
+  std::unique_ptr<btBroadphaseInterface>               broad;
   };
 
 CollisionWorld::CollisionWorld()
-  :CollisionWorld(ContructInfo()){
+  :CollisionWorld(ContructInfo()) {
   }
 
 CollisionWorld::CollisionWorld(ContructInfo ci)
-  :btCollisionWorld(ci.disp.get(), ci.broad.get(), ci.conf.get()) {
-  disp  = std::move(ci.disp);
-  broad = std::move(ci.broad);
-  conf  = std::move(ci.conf);
+  :btDiscreteDynamicsWorld(ci.disp.get(), ci.broad.get(), ci.solver.get(), ci.conf.get()) {
+  disp   = std::move(ci.disp);
+  broad  = std::move(ci.broad);
+  solver = std::move(ci.solver);
+  conf   = std::move(ci.conf);
 
   setForceUpdateAllAabbs(false);
-  gravity = btVector3(0,-DynamicWorld::gravity*1000.f,0);
-  //world->setGravity();
+  gravity = btVector3(0,-DynamicWorld::gravityMS*1000.f,0);
+  setGravity(gravity);
   }
 
 void CollisionWorld::updateAabbs() {
@@ -154,40 +164,103 @@ bool CollisionWorld::hasCollision(btRigidBody& it, Tempest::Vec3& normal) {
   return callback.count>0;
   }
 
-void CollisionWorld::addRigidBody(btRigidBody* body) {
-  addCollisionObject(body);
-  rigid.push_back(body);
+std::unique_ptr<CollisionWorld::CollisionBody> CollisionWorld::addCollisionBody(btCollisionShape& shape, const Tempest::Matrix4x4& tr, float friction) {
+  btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(
+        0,                  // mass, in kg. 0 -> Static object, will never move.
+        nullptr,
+        &shape,
+        btVector3(0,0,0)
+        );
+
+  std::unique_ptr<CollisionBody> obj(new CollisionBody(rigidBodyCI,this));
+  obj->setFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
+  obj->setCollisionFlags(btCollisionObject::CO_COLLISION_OBJECT);
+
+  btTransform trans;
+  trans.setFromOpenGLMatrix(tr.data());
+  obj->setWorldTransform(trans);
+  obj->setFriction(friction);
+
+  this->addCollisionObject(obj.get());
+  this->updateSingleAabb(obj.get());
+  return obj;
   }
 
-void CollisionWorld::removeRigidBody(btRigidBody* body) {
-  removeCollisionObject(body);
-  for(size_t i=0; i<rigid.size(); ++i) {
-    if(rigid[i]==body) {
-      rigid[i] = rigid.back();
-      rigid.pop_back();
-      return;
-      }
-    }
+std::unique_ptr<CollisionWorld::DynamicBody> CollisionWorld::addDynamicBody(btCollisionShape& shape, const Tempest::Matrix4x4& tr, float friction, float mass) {
+  if(mass<=0)
+    mass = 10;
+  btVector3 localInertia = {};
+  shape.calculateLocalInertia(mass, localInertia);
+
+  btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(
+        mass,
+        nullptr,
+        &shape,
+        localInertia
+        );
+
+  std::unique_ptr<DynamicBody> obj(new DynamicBody(rigidBodyCI,this));
+  // obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+  //obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
+
+  btTransform trans;
+  trans.setFromOpenGLMatrix(tr.data());
+  obj->setWorldTransform(trans);
+  obj->setFriction(friction);
+  obj->setActivationState(ACTIVE_TAG);
+
+  this->addRigidBody(obj.get());
+  this->updateSingleAabb(obj.get());
+  rigid.push_back(obj.get());
+  return obj;
+  }
+
+void CollisionWorld::rayCast(const Tempest::Vec3& b, const Tempest::Vec3& e, btCollisionWorld::RayResultCallback& cb) {
+  btVector3 s(b.x,b.y,b.z), f(e.x,e.y,e.z);
+  // cb.m_rayFromWorld = s;
+  // cb.m_rayToWorld   = f;
+  this->rayTest(s,f,cb);
   }
 
 void CollisionWorld::tick(uint64_t dt) {
-  const float dtF = float(dt);
+  static bool  dynamic = false;
+  const  float dtF     = float(dt);
 
-  for(auto& i:rigid) {
-    i->setLinearVelocity(i->getLinearVelocity()+gravity*dtF);
+  if(dynamic) {
+    this->stepSimulation(dtF/1000.f, 0, 5.f/60.f);
+    } else {
+    // fake 'just fall' implementation
+    for(auto& i:rigid) {
+      i->setLinearVelocity(i->getLinearVelocity()+gravity*dtF);
 
-    uint64_t cnt    = uint64_t(i->getLinearVelocity().length());
-    bool     active = cnt>0;
-    for(uint64_t r=1; active && r<=(cnt*dt) && r<150; ++r)
-      active &= tick(1.f/float(cnt*dt),*i);
+      uint64_t cnt    = uint64_t(i->getLinearVelocity().length());
+      bool     active = cnt>0;
+      for(uint64_t r=1; active && r<=(cnt*dt) && r<150; ++r)
+        active &= tick(1.f/float(cnt*dt),*i);
 
-    if(active) {
-      i->setDeactivationTime(0);
-      i->setActivationState(ACTIVE_TAG);
-      } else {
-      i->setLinearVelocity(btVector3(0,0,0));
-      i->setActivationState(WANTS_DEACTIVATION);
-      i->setDeactivationTime(i->getDeactivationTime()+float(dt)/1000.f);
+      if(active) {
+        i->setDeactivationTime(0);
+        i->setActivationState(ACTIVE_TAG);
+        } else {
+        i->setLinearVelocity(btVector3(0,0,0));
+        i->setActivationState(WANTS_DEACTIVATION);
+        i->setDeactivationTime(i->getDeactivationTime()+float(dt)/1000.f);
+        }
+      }
+    }
+
+  for(auto i:rigid)
+    if(auto ptr = reinterpret_cast<::Item*>(i->getUserPointer())) {
+      auto& t = i->getWorldTransform();
+      Tempest::Matrix4x4 mt;
+      t.getOpenGLMatrix(reinterpret_cast<btScalar*>(&mt));
+      ptr->setMatrix(mt);
+      }
+  for(size_t i=0; i<rigid.size(); ++i) {
+    auto it = rigid[i];
+    if(it->wantsSleeping() && (it->getDeactivationTime()>3.f || !it->isActive())) {
+      if(auto ptr = reinterpret_cast<::Item*>(it->getUserPointer()))
+        ptr->setPhysicsDisable();
       }
     }
   }
@@ -209,3 +282,8 @@ bool CollisionWorld::tick(float step, btRigidBody& body) {
   updateSingleAabb(&body);
   return true;
   }
+
+void CollisionWorld::saveKinematicState(btScalar /*timeStep*/) {
+  // assume no CF_KINEMATIC_OBJECT in this game
+  }
+

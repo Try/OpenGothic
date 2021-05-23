@@ -1,11 +1,11 @@
 #pragma once
 
-#include <BulletCollision/CollisionShapes/btTriangleIndexVertexArray.h>
 #include <zenload/zTypes.h>
 #include <vector>
 #include <cstdint>
 
 #include "graphics/mesh/protomesh.h"
+#include "physics/physics.h"
 
 class PhysicVbo : public btTriangleIndexVertexArray {
   public:
