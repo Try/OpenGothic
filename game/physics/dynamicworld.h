@@ -7,12 +7,6 @@
 #include <memory>
 #include <limits>
 
-class btTriangleIndexVertexArray;
-class btCollisionShape;
-class btCollisionObject;
-class btRigidBody;
-class btVector3;
-
 class PhysicMeshShape;
 class PhysicVbo;
 class PackedMesh;
@@ -22,6 +16,15 @@ class World;
 class Bullet;
 class Npc;
 class Item;
+
+namespace reactphysics3d {
+class PhysicsCommon;
+class PhysicsWorld;
+class Vector3;
+class CollisionShape;
+class CollisionBody;
+class RigidBody;
+}
 
 class CollisionWorld;
 
@@ -95,7 +98,7 @@ class DynamicWorld final {
     struct Item {
       public:
         Item()=default;
-        Item(DynamicWorld* owner, btCollisionObject* obj, btCollisionShape* shp):owner(owner),obj(obj),shp(shp){}
+        Item(DynamicWorld* owner, reactphysics3d::CollisionBody* obj, reactphysics3d::CollisionShape* shp):owner(owner),obj(obj),shp(shp){}
         Item(Item&& it):owner(it.owner),obj(it.obj),shp(it.shp){ it.obj=nullptr; it.shp=nullptr; }
         ~Item();
 
@@ -111,9 +114,9 @@ class DynamicWorld final {
         bool isEmpty() const { return obj==nullptr; }
 
       private:
-        DynamicWorld*       owner  = nullptr;
-        btCollisionObject*  obj    = nullptr;
-        btCollisionShape*   shp    = nullptr;
+        DynamicWorld*                   owner  = nullptr;
+        reactphysics3d::CollisionBody*  obj    = nullptr;
+        reactphysics3d::CollisionShape* shp    = nullptr;
       };
 
     struct RayLandResult {
@@ -185,10 +188,10 @@ class DynamicWorld final {
         ~BBoxBody();
 
       private:
-        BBoxCallback*       cb    = nullptr;
-
-        btCollisionShape*   shape = nullptr;
-        btRigidBody*        obj   = nullptr;
+        BBoxCallback*                   cb    = nullptr;
+        DynamicWorld*                   world = nullptr;
+        reactphysics3d::CollisionShape* shape = nullptr;
+        reactphysics3d::CollisionBody*  obj   = nullptr;
 
       friend class DynamicWorld;
       };
@@ -223,43 +226,34 @@ class DynamicWorld final {
       IT_Movable,
       IT_Dynamic,
       };
-    Item           createObj(btCollisionShape* shape, bool ownShape, const Tempest::Matrix4x4& m,
+    Item           createObj(reactphysics3d::CollisionShape* shape, bool ownShape, const Tempest::Matrix4x4& m,
                              float mass, float friction, ItemType type);
 
-    void           deleteObj(NpcBody*           obj);
-    void           deleteObj(btCollisionObject* obj);
+    void           deleteObj(NpcBody*                       obj);
+    void           deleteObj(reactphysics3d::CollisionBody* obj);
 
 
     void           moveBullet(BulletBody& b, float dx, float dy, float dz, uint64_t dt);
     RayWaterResult implWaterRay (float x0, float y0, float z0, float x1, float y1, float z1) const;
     bool           hasCollision(const NpcItem &it, Tempest::Vec3& normal);
 
-    template<class RayResultCallback>
-    void           rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, RayResultCallback& resultCallback) const;
-
-    std::unique_ptr<btRigidBody> landObj();
-    std::unique_ptr<btRigidBody> waterObj();
-
-    void           updateSingleAabb(btCollisionObject* obj);
-
     std::unique_ptr<CollisionWorld>             world;
 
     std::vector<std::string>                    sectors;
 
-    std::vector<btVector3>                      landVbo;
-    std::unique_ptr<PhysicVbo>                  landMesh;
-    std::unique_ptr<btCollisionShape>           landShape;
-    std::unique_ptr<btRigidBody>                landBody;
+    std::vector<Tempest::Vec3>                  landVbo;
 
-    std::unique_ptr<btCollisionShape>           waterShape;
-    std::unique_ptr<btRigidBody>                waterBody;
+    reactphysics3d::CollisionShape*             landShape  = nullptr;
+    reactphysics3d::CollisionBody*              landBody   = nullptr;
+    std::unique_ptr<PhysicVbo>                  landMesh;
+
+    reactphysics3d::CollisionShape*             waterShape = nullptr;
+    reactphysics3d::CollisionBody*              waterBody  = nullptr;
     std::unique_ptr<PhysicVbo>                  waterMesh;
 
     std::unique_ptr<NpcBodyList>                npcList;
     std::unique_ptr<BulletsList>                bulletList;
     std::unique_ptr<BBoxList>                   bboxList;
-
-    std::vector<btRigidBody*>                   dynItems;
 
     static const float                          ghostHeight;
     static const float                          worldHeight;

@@ -1,35 +1,20 @@
 #pragma once
 
-#include <Tempest/Platform>
-
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#pragma GCC diagnostic ignored "-Wfloat-conversion"
-#if defined(__OSX__)
-#pragma GCC diagnostic ignored "-Wargument-outside-range"
-#endif
-#endif
-#include <BulletCollision/CollisionShapes/btBvhTriangleMeshShape.h>
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-
 #include "physicvbo.h"
+#include "physics.h"
 
 class PhysicMeshShape final {
   public:
     PhysicMeshShape(const PhysicMeshShape&)=delete;
-
-    float friction() const;
+    PhysicVbo mesh;
+    float     friction = 0;
 
     static PhysicMeshShape* load(ZenLoad::PackedMesh&& sPacked);
 
   private:
     PhysicMeshShape(ZenLoad::PackedMesh&& sPacked);
-    PhysicVbo                      mesh;
-    mutable btBvhTriangleMeshShape shape;
-    float                          frict = 0;
+    //mutable btBvhTriangleMeshShape shape;
+    //reactphysics3d::CollisionShape* shape = nullptr;
 
   friend class DynamicWorld;
   };

@@ -10,3 +10,6 @@
 [submodule "lib/TinySoundFont"]
 	path = lib/TinySoundFont
 	url = https://github.com/schellingb/TinySoundFont.git
+[submodule "lib/reactphysics3d"]
+	path = lib/reactphysics3d
+	url = https://github.com/DanielChappuis/reactphysics3d.git

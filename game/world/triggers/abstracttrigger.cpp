@@ -16,7 +16,8 @@ AbstractTrigger::AbstractTrigger(Vob* parent, World &world, ZenLoad::zCVobData &
   bboxOrigin = Vec3(data.bbox[1].x+data.bbox[0].x,data.bbox[1].y+data.bbox[0].y,data.bbox[1].z+data.bbox[0].z)*0.5f;
   bboxOrigin = bboxOrigin - position();
 
-  box        = world.physic()->bboxObj(&callback,data.bbox);
+  if(data.bbox[0]!=data.bbox[1])
+    box = world.physic()->bboxObj(&callback,data.bbox);
   world.addTrigger(this);
   }
 

@@ -22,28 +22,8 @@ endif()
 
 ## submodule dependencies
 
-# bullet physics
-set(BULLET2_MULTITHREADING       ON  CACHE INTERNAL "")
-set(USE_MSVC_RUNTIME_LIBRARY_DLL ON  CACHE INTERNAL "")
-set(USE_GRAPHICAL_BENCHMARK      OFF CACHE INTERNAL "")
-set(BUILD_BULLET2_DEMOS          OFF CACHE INTERNAL "") # No samples
-set(BUILD_OPENGL3_DEMOS          OFF CACHE INTERNAL "") # No samples
-set(BUILD_UNIT_TESTS             OFF CACHE INTERNAL "") # No tests
-set(BUILD_CPU_DEMOS              OFF CACHE INTERNAL "") # No samples
-set(BUILD_EXTRAS                 OFF CACHE INTERNAL "") # No bugs
-set(GLFW_BUILD_EXAMPLES          OFF CACHE INTERNAL "")
-set(GLFW_BUILD_TESTS             OFF CACHE INTERNAL "")
-set(GLFW_BUILD_DOCS              OFF CACHE INTERNAL "")
-set(BUILD_BULLET3                OFF CACHE INTERNAL "") # Can use bullet2, bullet3 wants to build examples...
-add_subdirectory(lib/bullet3)
-if(NOT MSVC)
-  target_compile_options(BulletDynamics         PRIVATE -Wno-argument-outside-range)
-  target_compile_options(BulletInverseDynamics  PRIVATE -Wno-argument-outside-range)
-  target_compile_options(BulletSoftBody         PRIVATE -Wno-argument-outside-range)
-  target_compile_options(Bullet3Common          PRIVATE -Wno-argument-outside-range)
-  target_compile_options(BulletCollision        PRIVATE -Wno-argument-outside-range)
-  target_compile_options(LinearMath             PRIVATE -Wno-argument-outside-range)
-endif()
+# reactphysics3d
+add_subdirectory(lib/reactphysics3d)
 
 # edd-dbg
 add_subdirectory(lib/edd-dbg)
@@ -99,9 +79,9 @@ target_link_libraries(${PROJECT_NAME} zenload daedalus)
 add_definitions(-DTSF_NO_STDIO)
 include_directories(lib/TinySoundFont)
 
-# bullet physics
-include_directories(lib/bullet3/src)
-target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath)
+# reactphysics3d
+include_directories(lib/reactphysics3d/include)
+target_link_libraries(${PROJECT_NAME} reactphysics3d)
 
 # Tempest
 include_directories(lib/Tempest/Engine/include)
