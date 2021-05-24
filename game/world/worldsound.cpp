@@ -280,7 +280,7 @@ void WorldSound::tickSlot(Effect& slot) {
     } else {
     auto  dyn = owner.physic();
     auto  pos = slot.pos;
-    float occ = dyn->soundOclusion(plPos.x,plPos.y+180/*head pos*/,plPos.z, pos.x,pos.y,pos.z);
+    float occ = dyn->soundOclusion(plPos+Tempest::Vec3(0,180,0)/*head pos*/, pos);
     slot.setOcclusion(std::max(0.f,1.f-occ));
     }
   }
@@ -288,7 +288,7 @@ void WorldSound::tickSlot(Effect& slot) {
 void WorldSound::initSlot(WorldSound::Effect& slot) {
   auto  dyn = owner.physic();
   auto  pos = slot.pos;
-  float occ = dyn->soundOclusion(plPos.x,plPos.y+180/*head pos*/,plPos.z, pos.x,pos.y,pos.z);
+  float occ = dyn->soundOclusion(plPos+Tempest::Vec3(0,180,0)/*head pos*/, pos);
   slot.setOcclusion(std::max(0.f,1.f-occ));
   }
 
@@ -318,7 +318,7 @@ bool WorldSound::isInListenerRange(const Tempest::Vec3& pos, float sndRgn) const
 bool WorldSound::canSeeSource(const Tempest::Vec3& p) const {
   auto dyn = owner.physic();
   for(auto& i:effect3d) {
-    auto rc = dyn->ray(p.x,p.y,p.z, i->pos.x,i->pos.y,i->pos.z);
+    auto rc = dyn->ray(p, i->pos);
     if(!rc.hasCol)
       return true;
     }

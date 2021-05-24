@@ -3,6 +3,8 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Vec>
 
+#include <zenload/zTypes.h>
+
 #include <memory>
 #include <vector>
 
@@ -15,6 +17,10 @@ class CollisionWorld : public btDiscreteDynamicsWorld {
   public:
     CollisionWorld();
 
+    static btVector3           toMeters     (const ZMath::float3& v);
+    static btVector3           toMeters     (const Tempest::Vec3& v);
+    static const Tempest::Vec3 toCentimeters(const btVector3& v);
+
     using btDiscreteDynamicsWorld::operator new;
     using btDiscreteDynamicsWorld::operator delete;
 
@@ -23,6 +29,7 @@ class CollisionWorld : public btDiscreteDynamicsWorld {
     class RayCallback;
 
     void tick(uint64_t dt);
+    void setBBox(const btVector3& min, const btVector3& max);
 
     void updateAabbs() override;
     void touchAabbs();
@@ -69,6 +76,7 @@ class CollisionWorld : public btDiscreteDynamicsWorld {
 
     std::vector<btRigidBody*>                   rigid;
     btVector3                                   gravity = {};
+    btVector3                                   bbox[2] = {};
 
     mutable uint32_t aabbChanged = 0;
   };

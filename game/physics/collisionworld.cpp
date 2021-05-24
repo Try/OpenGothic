@@ -95,6 +95,18 @@ CollisionWorld::CollisionWorld()
   :CollisionWorld(ContructInfo()) {
   }
 
+btVector3 CollisionWorld::toMeters(const ZMath::float3& v) {
+  return {v.x*0.01f, v.y*0.01f, v.z*0.01f};
+  }
+
+btVector3 CollisionWorld::toMeters(const Tempest::Vec3& v) {
+  return {v.x*0.01f, v.y*0.01f, v.z*0.01f};
+  }
+
+const Tempest::Vec3 CollisionWorld::toCentimeters(const btVector3& v) {
+  return {v.x()*100.f, v.y()*100.f, v.z()*100.f};
+  }
+
 CollisionWorld::CollisionWorld(ContructInfo ci)
   :btDiscreteDynamicsWorld(ci.disp.get(), ci.broad.get(), ci.solver.get(), ci.conf.get()) {
   disp   = std::move(ci.disp);
@@ -103,7 +115,7 @@ CollisionWorld::CollisionWorld(ContructInfo ci)
   conf   = std::move(ci.conf);
 
   setForceUpdateAllAabbs(false);
-  gravity = btVector3(0,-DynamicWorld::gravityMS*1000.f,0);
+  gravity = btVector3(0,-DynamicWorld::gravityMS,0);
   setGravity(gravity);
   }
 
@@ -178,6 +190,8 @@ std::unique_ptr<CollisionWorld::CollisionBody> CollisionWorld::addCollisionBody(
 
   btTransform trans;
   trans.setFromOpenGLMatrix(tr.data());
+  trans.getOrigin()*=0.01f;
+
   obj->setWorldTransform(trans);
   obj->setFriction(friction);
 
@@ -201,10 +215,12 @@ std::unique_ptr<CollisionWorld::DynamicBody> CollisionWorld::addDynamicBody(btCo
 
   std::unique_ptr<DynamicBody> obj(new DynamicBody(rigidBodyCI,this));
   // obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
-  //obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
+  // obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
 
   btTransform trans;
   trans.setFromOpenGLMatrix(tr.data());
+  trans.getOrigin()*=0.01f;
+
   obj->setWorldTransform(trans);
   obj->setFriction(friction);
   obj->setActivationState(ACTIVE_TAG);
@@ -216,18 +232,17 @@ std::unique_ptr<CollisionWorld::DynamicBody> CollisionWorld::addDynamicBody(btCo
   }
 
 void CollisionWorld::rayCast(const Tempest::Vec3& b, const Tempest::Vec3& e, btCollisionWorld::RayResultCallback& cb) {
-  btVector3 s(b.x,b.y,b.z), f(e.x,e.y,e.z);
-  // cb.m_rayFromWorld = s;
-  // cb.m_rayToWorld   = f;
+  btVector3 s = toMeters(b), f = toMeters(e);
   this->rayTest(s,f,cb);
   }
 
 void CollisionWorld::tick(uint64_t dt) {
-  static bool  dynamic = false;
+  static bool  dynamic = true;
   const  float dtF     = float(dt);
 
   if(dynamic) {
-    this->stepSimulation(dtF/1000.f, 0, 5.f/60.f);
+    if(rigid.size()>0)
+      this->stepSimulation(dtF/1000.f, 2);
     } else {
     // fake 'just fall' implementation
     for(auto& i:rigid) {
@@ -251,18 +266,25 @@ void CollisionWorld::tick(uint64_t dt) {
 
   for(auto i:rigid)
     if(auto ptr = reinterpret_cast<::Item*>(i->getUserPointer())) {
-      auto& t = i->getWorldTransform();
+      auto t = i->getWorldTransform();
+      t.getOrigin()*=100.f;
       Tempest::Matrix4x4 mt;
       t.getOpenGLMatrix(reinterpret_cast<btScalar*>(&mt));
       ptr->setMatrix(mt);
       }
   for(size_t i=0; i<rigid.size(); ++i) {
     auto it = rigid[i];
-    if(it->wantsSleeping() && (it->getDeactivationTime()>3.f || !it->isActive())) {
+    if((it->wantsSleeping() && (it->getDeactivationTime()>3.f || !it->isActive())) ||
+       (it->getWorldTransform().getOrigin().y()<bbox[0].y()-100)) {
       if(auto ptr = reinterpret_cast<::Item*>(it->getUserPointer()))
         ptr->setPhysicsDisable();
       }
     }
+  }
+
+void CollisionWorld::setBBox(const btVector3& min, const btVector3& max) {
+  bbox[0] = min;
+  bbox[1] = max;
   }
 
 bool CollisionWorld::tick(float step, btRigidBody& body) {

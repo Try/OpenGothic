@@ -107,6 +107,7 @@ void Item::setPhysicsEnable(DynamicWorld& p) {
     return;
   physic = p.dynamicObj(transform(),view.bounds(),ZenLoad::MaterialGroup(hitem.material));
   physic.setItem(this);
+  world.invalidateVobIndex();
   }
 
 void Item::setPhysicsDisable() {

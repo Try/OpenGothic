@@ -606,7 +606,7 @@ void GameScript::fixNpcPosition(Npc& npc, float angle0, float distBias) {
       float d = float(r)+distBias;
       auto  p = pos0+Vec3(std::cos(a)*d, 0, std::sin(a)*d);
 
-      auto ray = dyn.ray(p.x,p.y+100,p.z, p.x,p.y-1000,p.z);
+      auto ray = dyn.ray(p+Vec3(0,100,0), p+Vec3(0,-1000,0));
       if(!ray.hasCol)
         continue;
       p.y = ray.v.y;

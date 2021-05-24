@@ -359,7 +359,7 @@ void Camera::implMove(Tempest::Event::KeyType key) {
     state.pos.z+=dpos*c;
     }
   if(auto world = gothic.world())
-    state.pos.y = world->physic()->landRay(state.pos.x,state.pos.y,state.pos.z).v.y;
+    state.pos.y = world->physic()->landRay(state.pos).v.y;
   }
 
 void Camera::setPosition(float x, float y, float z) {
@@ -571,7 +571,7 @@ float Camera::calcCameraColision(const Matrix4x4& view, const float dist) const 
 
       vinv.project(r1.x,r1.y,r1.z);
 
-      auto rc = physic.ray(r0.x,r0.y,r0.z, r1.x,r1.y,r1.z);
+      auto rc = physic.ray(r0, r1);
       auto d  = rc.v;
       d -=r0;
       r1-=r0;

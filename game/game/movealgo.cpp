@@ -79,12 +79,12 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
   float fallThreshold = stepHeight();
   auto  pos           = npc.position();
 
-  auto  norm   = normalRay(pos.x,pos.y+fallThreshold,pos.z);
+  auto  norm   = normalRay(pos+Tempest::Vec3(0,fallThreshold,0));
   // check ground
   float pY     = pos.y;
   bool  valid  = false;
-  auto  ground = dropRay (pos.x, pos.y+fallThreshold, pos.z, valid);
-  auto  water  = waterRay(pos.x, pos.y, pos.z);
+  auto  ground = dropRay (pos+Tempest::Vec3(0,fallThreshold,0), valid);
+  auto  water  = waterRay(pos);
   float dY     = pY-ground;
 
   if(ground+waterDepthChest()<water) {
@@ -100,7 +100,7 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
 
   const float lnorm    = std::sqrt(norm.x*norm.x+norm.z*norm.z);
   const float lnormInv = std::sqrt(1.f - lnorm*lnorm);
-  if(lnorm<0.01f || norm.y>=1.f || !testSlide(pos.x,pos.y+fallThreshold,pos.z)) {
+  if(lnorm<0.01f || norm.y>=1.f || !testSlide(pos+Tempest::Vec3(0,fallThreshold,0))) {
     setAsSlide(false);
     return false;
     }
@@ -146,8 +146,8 @@ void MoveAlgo::tickGravity(uint64_t dt) {
   float pY       = pos.y;
   float chest    = canFlyOverWater() ? 0 : waterDepthChest();
   bool  valid    = false;
-  auto  ground   = dropRay (pos.x, pos.y+fallThreshold, pos.z, valid);
-  auto  water    = waterRay(pos.x, pos.y, pos.z);
+  auto  ground   = dropRay (pos+Tempest::Vec3(0,fallThreshold,0), valid);
+  auto  water    = waterRay(pos);
   float fallStop = std::max(water-chest,ground);
 
   auto dp        = fallSpeed*float(dt);
@@ -261,8 +261,8 @@ void MoveAlgo::tickSwim(uint64_t dt) {
 
   bool  valid  = false;
   bool  validW = false;
-  auto  ground = dropRay (pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z, valid);
-  auto  water  = waterRay(pos.x+dp.x, pos.y+dp.y-chest,         pos.z+dp.z, &validW);
+  auto  ground = dropRay (pos+dp+Tempest::Vec3(0,fallThreshold,0), valid);
+  auto  water  = waterRay(pos+dp+Tempest::Vec3(0,-chest,0), &validW);
 
   if(npc.isDead()){
     setAsSwim(false);
@@ -278,7 +278,7 @@ void MoveAlgo::tickSwim(uint64_t dt) {
     }
 
   if(ground+chest>=water && validW) {
-    if(testSlide(pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z))
+    if(testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0)))
       return;
     setAsSwim(false);
     setAsDive(false);
@@ -338,8 +338,8 @@ void MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
 
   // moving NPC, by animation
   bool  valid   = false;
-  auto  ground  = dropRay (pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z, valid);
-  auto  water   = waterRay(pos.x+dp.x, pos.y+dp.y,               pos.z+dp.z);
+  auto  ground  = dropRay (pos+dp+Tempest::Vec3(0,fallThreshold,0), valid);
+  auto  water   = waterRay(pos+dp);
   float dY      = pY-ground;
   bool  onGound = true;
 
@@ -368,7 +368,7 @@ void MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
     setAsSlide(false);
     }
   else if(0.f<=dY && dY<fallThreshold) {
-    if(onGound && testSlide(pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z)) {
+    if(onGound && testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0))) {
       tryMove(dp.x,-dY,dp.z);
       setAsSlide(true);
       return;
@@ -382,7 +382,7 @@ void MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
     setAsSlide(false);
     }
   else if(-fallThreshold<dY && dY<0.f) {
-    if(onGound && testSlide(pos.x+dp.x, pos.y+dp.y+fallThreshold, pos.z+dp.z)) {
+    if(onGound && testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0))) {
       onMoveFailed();
       return;
       }
@@ -497,11 +497,11 @@ Tempest::Vec3 MoveAlgo::go2WpMoveSpeed(Tempest::Vec3 dp, const Tempest::Vec3& to
   return dp;
   }
 
-bool MoveAlgo::testSlide(float x,float y,float z) const {
+bool MoveAlgo::testSlide(const Tempest::Vec3& pos) const {
   if(isInAir() || npc.isJumpAnim())
     return false;
 
-  auto  norm             = normalRay(x,y,z);
+  auto  norm             = normalRay(pos);
   // check ground
   const float slideBegin = slideAngle();
   const float slideEnd   = slideAngle2();
@@ -767,42 +767,42 @@ void MoveAlgo::onMoveFailed() {
     }
   }
 
-float MoveAlgo::waterRay(float x, float y, float z, bool* hasCol) const {
-  if(std::fabs(cacheW.x-x)>eps || std::fabs(cacheW.y-y)>eps || std::fabs(cacheW.z-z)>eps) {
-    static_cast<DynamicWorld::RayWaterResult&>(cacheW) = npc.world().physic()->waterRay(x,y,z);
-    cacheW.x = x;
-    cacheW.y = y;
-    cacheW.z = z;
+float MoveAlgo::waterRay(const Tempest::Vec3& pos, bool* hasCol) const {
+  if(std::fabs(cacheW.x-pos.x)>eps || std::fabs(cacheW.y-pos.y)>eps || std::fabs(cacheW.z-pos.z)>eps) {
+    static_cast<DynamicWorld::RayWaterResult&>(cacheW) = npc.world().physic()->waterRay(pos);
+    cacheW.x = pos.x;
+    cacheW.y = pos.y;
+    cacheW.z = pos.z;
     }
   if(hasCol!=nullptr)
     *hasCol = cacheW.hasCol;
   return cacheW.wdepth;
   }
 
-void MoveAlgo::rayMain(float x, float y, float z) const {
-  if(std::fabs(cache.x-x)>eps || std::fabs(cache.y-y)>eps || std::fabs(cache.z-z)>eps) {
+void MoveAlgo::rayMain(const Tempest::Vec3& pos) const {
+  if(std::fabs(cache.x-pos.x)>eps || std::fabs(cache.y-pos.y)>eps || std::fabs(cache.z-pos.z)>eps) {
     auto  prev = cache.sector;
     float dy   = waterDepthChest()+100;  // 1 meter extra offset
     if(fallSpeed.y<0)
       dy = 0; // whole world
-    static_cast<DynamicWorld::RayLandResult&>(cache) = npc.world().physic()->landRay(x,y,z,dy);
-    cache.x = x;
-    cache.y = y;
-    cache.z = z;
+    static_cast<DynamicWorld::RayLandResult&>(cache) = npc.world().physic()->landRay(pos,dy);
+    cache.x = pos.x;
+    cache.y = pos.y;
+    cache.z = pos.z;
     if(!cache.hasCol || cache.sector==nullptr) {
       cache.sector = prev;
       }
     }
   }
 
-float MoveAlgo::dropRay(float x, float y, float z, bool &hasCol) const {
-  rayMain(x,y,z);
+float MoveAlgo::dropRay(const Tempest::Vec3& pos, bool &hasCol) const {
+  rayMain(pos);
   hasCol = cache.hasCol;
   return cache.v.y;
   }
 
-Tempest::Vec3 MoveAlgo::normalRay(float x, float y, float z) const {
-  rayMain(x,y,z);
+Tempest::Vec3 MoveAlgo::normalRay(const Tempest::Vec3& pos) const {
+  rayMain(pos);
   return cache.n;
   }
 

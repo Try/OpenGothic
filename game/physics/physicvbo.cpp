@@ -1,6 +1,6 @@
-#include <Tempest/Platform>
-
 #include "physicvbo.h"
+
+#include "collisionworld.h"
 
 PhysicVbo::PhysicVbo(ZenLoad::PackedMesh&& sPacked)
   :PhysicVbo(sPacked.vertices) {
@@ -18,7 +18,7 @@ PhysicVbo::PhysicVbo(ZenLoad::PackedMesh&& sPacked)
 PhysicVbo::PhysicVbo(const std::vector<ZenLoad::WorldVertex>& v)
   :vStorage(v.size()), vert(vStorage) {
   for(size_t i=0;i<v.size();++i){
-    vStorage[i].setValue(v[i].Position.x,v[i].Position.y,v[i].Position.z);
+    vStorage[i] = CollisionWorld::toMeters(v[i].Position);
     }
   }
 

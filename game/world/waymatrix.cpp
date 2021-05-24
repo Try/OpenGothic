@@ -173,7 +173,7 @@ void WayMatrix::marchPoints(DbgPainter &p) const {
 
 void WayMatrix::adjustWaypoints(std::vector<WayPoint> &wp) {
   for(auto& w:wp) {
-    w.y = world.physic()->landRay(w.x,w.y,w.z).v.y;
+    w.y = world.physic()->landRay(w.position()).v.y;
     indexPoints.push_back(&w);
     }
   }

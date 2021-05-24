@@ -35,17 +35,17 @@ Bullet::~Bullet() {
   }
 
 void Bullet::setPosition(const Tempest::Vec3& p) {
-  obj->setPosition(p.x,p.y,p.z);
+  obj->setPosition(p);
   updateMatrix();
   }
 
 void Bullet::setPosition(float x, float y, float z) {
-  obj->setPosition(x,y,z);
+  obj->setPosition(Vec3(x,y,z));
   updateMatrix();
   }
 
 void Bullet::setDirection(float x, float y, float z) {
-  obj->setDirection(x,y,z);
+  obj->setDirection(Vec3(x,y,z));
   updateMatrix();
   }
 

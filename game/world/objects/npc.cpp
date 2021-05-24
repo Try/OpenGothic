@@ -3449,11 +3449,11 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, bool isNo
     float dir = angleDir(dx,dz);
     float da  = float(M_PI)*(visual.viewDirection()-dir)/180.f;
     if(double(std::cos(da))<=ref)
-      if(!w->ray(x,y+180,z, tx,ty,tz).hasCol)
+      if(!w->ray(Vec3(x,y+180,z), Vec3(tx,ty,tz)).hasCol)
         ret = ret | SensesBit::SENSE_SEE;
     } else {
     // TODO: npc eyesight height
-    if(!w->ray(x,y+180,z, tx,ty,tz).hasCol)
+    if(!w->ray(Vec3(x,y+180,z), Vec3(tx,ty,tz)).hasCol)
       ret = ret | SensesBit::SENSE_SEE;
     }
   return ret & SensesBit(hnpc.senses);

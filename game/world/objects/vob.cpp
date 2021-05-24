@@ -97,7 +97,7 @@ void Vob::recalculateTransform() {
     } else {
     pos = local;
     }
-  if(old != position()) {
+  if(old != position() && !isDynamic()) {
     if(childContent!=cbNone)
       world.invalidateVobIndex();
     }

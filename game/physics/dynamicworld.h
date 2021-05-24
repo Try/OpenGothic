@@ -145,9 +145,9 @@ class DynamicWorld final {
 
         void  setSpellId(int spl);
 
-        void  move(float x,float y,float z);
-        void  setPosition  (float x,float y,float z);
-        void  setDirection (float x,float y,float z);
+        void  move(const Tempest::Vec3& to);
+        void  setPosition  (const Tempest::Vec3& pos);
+        void  setDirection (const Tempest::Vec3& dir);
         float pathLength() const;
         void  addPathLen(float v);
 
@@ -193,11 +193,11 @@ class DynamicWorld final {
       friend class DynamicWorld;
       };
 
-    RayLandResult  landRay    (float x, float y, float z, float maxDy=0) const;
-    RayWaterResult waterRay   (float x, float y, float z) const;
+    RayLandResult  landRay      (const Tempest::Vec3& from, float maxDy=0) const;
+    RayWaterResult waterRay     (const Tempest::Vec3& from) const;
 
-    RayLandResult  ray        (float x0, float y0, float z0, float x1, float y1, float z1) const;
-    float          soundOclusion(float x0, float y0, float z0, float x1, float y1, float z1) const;
+    RayLandResult  ray          (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
+    float          soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
 
     NpcItem        ghostObj  (const char* visual);
     Item           staticObj (const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
@@ -230,7 +230,7 @@ class DynamicWorld final {
 
 
     void           moveBullet(BulletBody& b, float dx, float dy, float dz, uint64_t dt);
-    RayWaterResult implWaterRay (float x0, float y0, float z0, float x1, float y1, float z1) const;
+    RayWaterResult implWaterRay(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
     bool           hasCollision(const NpcItem &it, Tempest::Vec3& normal);
 
     std::unique_ptr<CollisionWorld>             world;

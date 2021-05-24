@@ -104,7 +104,7 @@ class MoveAlgo final {
     auto    npcMoveSpeed (uint64_t dt, MvFlags moveFlg) -> Tempest::Vec3;
     auto    go2NpcMoveSpeed (const Tempest::Vec3& dp, const Npc &tg) -> Tempest::Vec3;
     auto    go2WpMoveSpeed  (Tempest::Vec3 dp, const Tempest::Vec3& to) -> Tempest::Vec3;
-    bool    testSlide(float x, float y, float z) const;
+    bool    testSlide(const Tempest::Vec3& pos) const;
     void    implTick(uint64_t dt,MvFlags fai=NoFlag);
 
     float   stepHeight()  const;
@@ -115,10 +115,10 @@ class MoveAlgo final {
     bool    canFlyOverWater() const;
     void    takeFallDamage() const;
 
-    void    rayMain  (float x, float y, float z) const;
-    float   dropRay  (float x, float y, float z, bool& hasCol) const;
-    float   waterRay (float x, float y, float z, bool* hasCol = nullptr) const;
-    auto    normalRay(float x, float y, float z) const -> Tempest::Vec3;
+    void    rayMain  (const Tempest::Vec3& pos) const;
+    float   dropRay  (const Tempest::Vec3& pos, bool& hasCol) const;
+    float   waterRay (const Tempest::Vec3& pos, bool* hasCol = nullptr) const;
+    auto    normalRay(const Tempest::Vec3& pos) const -> Tempest::Vec3;
 
     struct CacheLand : DynamicWorld::RayLandResult {
       float x=0, y=0, z=std::numeric_limits<float>::infinity();
