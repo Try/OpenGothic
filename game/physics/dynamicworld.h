@@ -35,9 +35,9 @@ class DynamicWorld final {
 
   public:
     static constexpr float gravityMS   = 9.8f; // meters per second^2
-    static constexpr float gravity     = gravityMS*100.f/(1000.f*1000.f); // santimeters per milliseconds^2
-    static constexpr float bulletSpeed = 3000; // per sec
-    static constexpr float spellSpeed  = 1000; // per sec
+    static constexpr float gravity     = gravityMS*100.f/(1000.f*1000.f); // centimeters per milliseconds^2
+    static constexpr float bulletSpeed = 3; // centimeters per milliseconds
+    static constexpr float spellSpeed  = 1; // centimeters per milliseconds
     static const     float ghostPadding;
 
     DynamicWorld(World &world, const ZenLoad::zCMesh& mesh);
@@ -158,6 +158,9 @@ class DynamicWorld final {
         bool                isSpell()   const { return spl!=std::numeric_limits<int>::max(); }
         int                 spellId()   const { return spl; }
 
+        void                addHit() { hitCnt++; }
+        int                 hitCount() const { return hitCnt; }
+
       private:
         DynamicWorld*       owner = nullptr;
         BulletCallback*     cb    = nullptr;
@@ -169,6 +172,7 @@ class DynamicWorld final {
         float               dirL=0.f;
         float               totalL=0.f;
         int                 spl=std::numeric_limits<int>::max();
+        int                 hitCnt = 0;
 
       friend class DynamicWorld;
       };
@@ -229,7 +233,7 @@ class DynamicWorld final {
     void           deleteObj(NpcBody*           obj);
 
 
-    void           moveBullet(BulletBody& b, float dx, float dy, float dz, uint64_t dt);
+    void           moveBullet(BulletBody& b, const Tempest::Vec3& dir, uint64_t dt);
     RayWaterResult implWaterRay(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
     bool           hasCollision(const NpcItem &it, Tempest::Vec3& normal);
 

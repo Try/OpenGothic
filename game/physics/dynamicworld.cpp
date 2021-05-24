@@ -343,7 +343,7 @@ struct DynamicWorld::BulletsList final {
 
   void tick(uint64_t dt) {
     for(auto& i:body) {
-      wrld.moveBullet(i,i.dir.x,i.dir.y,i.dir.z,dt);
+      wrld.moveBullet(i,i.dir,dt);
       if(i.cb!=nullptr)
         i.cb->onMove();
       }
@@ -696,12 +696,12 @@ DynamicWorld::BBoxBody* DynamicWorld::bboxObj(BBoxCallback* cb, const ZMath::flo
   return bboxList->add(cb,bbox);
   }
 
-void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint64_t dt) {
-  float k  = float(dt)/1000.f;
-  const bool isSpell = b.isSpell();
+void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t dt) {
+  const float dtF     = float(dt);
+  const bool  isSpell = b.isSpell();
 
   auto  pos = b.pos;
-  auto  to  = pos + Tempest::Vec3(dx,dy,dz)*k - Tempest::Vec3(0,(isSpell ? 0 : gravity*k*k),0);
+  auto  to  = pos + dir*dtF - Tempest::Vec3(0,(isSpell ? 0 : gravity*dtF*dtF),0);
 
   struct CallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;
@@ -748,7 +748,7 @@ void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint6
   world->rayCast(pos, to, callback);
 
   if(callback.matId<ZenLoad::NUM_MAT_GROUPS) {
-    if( isSpell ){
+    if(isSpell){
       if(b.cb!=nullptr) {
         b.cb->onCollide(callback.matId);
         b.cb->onStop();
@@ -769,28 +769,34 @@ void DynamicWorld::moveBullet(BulletBody &b, float dx, float dy, float dz, uint6
 
         float a = callback.m_closestHitFraction;
         b.move(pos + (to-pos)*a);
-        if(l*a>10.f) {
+        if(l*a>0.1f) {
           b.setDirection({dir.x(),dir.y(),dir.z()});
           b.addPathLen(l*a);
+          b.addHit();
+          if(b.cb!=nullptr) {
+            b.cb->onCollide(callback.matId);
+            if(b.hitCount()>3)
+              b.cb->onStop();
+            }
           }
         } else {
         float a = callback.m_closestHitFraction;
         b.move(pos + (to-pos)*a);
-        }
-      if(b.cb!=nullptr) {
-        b.cb->onCollide(callback.matId);
-        b.cb->onStop();
+        if(b.cb!=nullptr) {
+          b.cb->onCollide(callback.matId);
+          b.cb->onStop();
+          }
         }
       }
     } else {
     const float l = b.speed();
-    auto d = b.direction();
+    auto        d = b.direction();
     if(!isSpell)
-      d.y -= gravity*k;
+      d.y -= (gravity)*dtF;
 
     b.move(to);
     b.setDirection(d);
-    b.addPathLen(l*k);
+    b.addPathLen(l*dtF);
     }
   }
 
