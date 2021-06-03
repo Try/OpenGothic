@@ -123,6 +123,8 @@ void Bullet::collideCommon(Npc* npc) {
 void Bullet::updateMatrix() {
   auto mat = obj->matrix();
   view.setObjMatrix(mat);
+  // HACK: lighting bolt spell
+  mat.rotateOY(90);
   vfx .setObjMatrix(mat);
   vfx .setTarget(obj->position()+obj->direction());
   }

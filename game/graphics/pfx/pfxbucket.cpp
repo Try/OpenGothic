@@ -252,7 +252,6 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
     p.pos.z*=dim.z;
     }
 
-  // NOTE:
   switch(decl.shpFOR) {
     case ParticleFx::Frame::Object:
     case ParticleFx::Frame::Node: {
@@ -267,7 +266,6 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       }
     }
 
-  float dirRotation = randf()*float(2.0*M_PI);
   switch(decl.dirMode) {
     case ParticleFx::Dir::Rand: {
       float dy    = 1.f - 2.f * randf();
@@ -280,39 +278,35 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       break;
       }
     case ParticleFx::Dir::Dir: {
-      float head = (90+randf(decl.dirAngleHead,decl.dirAngleHeadVar))*float(M_PI)/180.f;
-      float elev = (   randf(decl.dirAngleElev,decl.dirAngleElevVar))*float(M_PI)/180.f;
+      float dirAngleHeadVar = decl.dirAngleHeadVar;
+      float dirAngleElevVar = decl.dirAngleElevVar;
+
+      // HACK: STARGATE_PARTICLES
+      if(decl.dirAngleHeadVar>=180)
+        dirAngleHeadVar = 0;
+      if(decl.dirAngleElevVar>=180 )
+        dirAngleElevVar = 0;
+
+      float head = (90+randf(decl.dirAngleHead,dirAngleHeadVar))*float(M_PI)/180.f;
+      float elev = (   randf(decl.dirAngleElev,dirAngleElevVar))*float(M_PI)/180.f;
 
       float dx = std::cos(elev) * std::cos(head);
       float dy = std::sin(elev);
       float dz = std::cos(elev) * std::sin(head);
-
-      // HACK: STARGATE_PARTICLES
-      if(decl.dirModeTargetFOR==ParticleFx::Frame::Object &&
-         decl.shpType         ==ParticleFx::EmitterType::Sphere &&
-         decl.dirAngleHeadVar>=180 &&
-         decl.dirAngleElevVar>=180 ) {
-        dx = p.pos.x;
-        dy = p.pos.y;
-        dz = p.pos.z;
-        }
 
       switch(decl.dirFOR) {
         case ParticleFx::Frame::Node: {
           p.dir = emitter.direction[0]*dx +
                   emitter.direction[1]*dy +
                   emitter.direction[2]*dz;
-          dirRotation = std::atan2(p.dir.x,p.dir.y);
           break;
           }
         case ParticleFx::Frame::World: {
           p.dir = Vec3(dx,dy,dz);
-          dirRotation = std::atan2(p.dir.x,p.dir.y);
           break;
           }
         case ParticleFx::Frame::Object: {
           p.dir = Vec3(dx,dy,dz);
-          dirRotation = std::atan2(p.dir.x,p.dir.y);
           break;
           }
         }
@@ -332,11 +326,13 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
 
   switch(decl.visOrientation) {
     case ParticleFx::Orientation::None:
+    case ParticleFx::Orientation::Velocity3d:
       p.rotation = 0;
       break;
     case ParticleFx::Orientation::Velocity:
-    case ParticleFx::Orientation::Velocity3d:
-      p.rotation = dirRotation;
+      if(p.dir.x==0 && p.dir.y==0)
+        p.rotation = randf()*float(2.0*M_PI); else
+        p.rotation = std::atan2(p.dir.x,p.dir.y);
       break;
     }
 
@@ -531,12 +527,8 @@ void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
         auto ldir   = dir.manhattanLength();
         if(ldir!=0.f)
           dir/=ldir;
-        auto dU     = Vec3(0,-1,0);
-        auto dF     = Vec3(ctx.z);
-        auto normal = std::fabs(Vec3::dotProduct(dU,dir)) < std::fabs(Vec3::dotProduct(dF,dir)) ? dU : dF;
-        auto top    = dir*k1;
-        auto left   = Vec3::crossProduct(top,normal)*k2;
-        rotate(l,t,0,left,top);
+        t = dir*k1;
+        l = Vec3::crossProduct(t,ctx.z)*k2;
         }
       else if(decl.visOrientation==ParticleFx::Orientation::Velocity) {
         auto dir    = ps.dir;

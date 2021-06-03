@@ -182,7 +182,7 @@ float ParticleFx::ppsScale(uint64_t time) const {
 
 uint64_t ParticleFx::calcPrefferedTimeSingle() const {
   if(ppsScaleKeys.size()==0)
-    return 5000;
+    return 1;
 
   auto div = std::max<uint64_t>(1,uint64_t(std::ceil(ppsFPS)));
   auto sec = uint64_t(ppsScaleKeys.size()*1000)/div;
