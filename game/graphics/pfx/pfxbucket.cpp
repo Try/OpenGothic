@@ -295,6 +295,7 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       float dz = std::cos(elev) * std::sin(head);
 
       switch(decl.dirFOR) {
+        case ParticleFx::Frame::Object:
         case ParticleFx::Frame::Node: {
           p.dir = emitter.direction[0]*dx +
                   emitter.direction[1]*dy +
@@ -302,10 +303,6 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
           break;
           }
         case ParticleFx::Frame::World: {
-          p.dir = Vec3(dx,dy,dz);
-          break;
-          }
-        case ParticleFx::Frame::Object: {
           p.dir = Vec3(dx,dy,dz);
           break;
           }
@@ -318,26 +315,17 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
         case ParticleFx::Frame::Node:
         case ParticleFx::Frame::World:
         case ParticleFx::Frame::Object: {
-          p.dir = decl.dirModeTargetPos + emitter.target;
+          p.dir = -p.pos;
+          if(emitter.hasTarget)
+            p.dir += decl.dirModeTargetPos + emitter.target - emitter.pos;
           }
         }
       break;
     }
 
-  switch(decl.visOrientation) {
-    case ParticleFx::Orientation::None:
-    case ParticleFx::Orientation::Velocity3d:
-      p.rotation = 0;
-      break;
-    case ParticleFx::Orientation::Velocity:
-      if(p.dir.x==0 && p.dir.y==0)
-        p.rotation = randf()*float(2.0*M_PI); else
-        p.rotation = std::atan2(p.dir.x,p.dir.y);
-      break;
-    }
-
   if(!decl.useEmittersFOR)
     p.pos += emitter.pos;
+
   auto l = p.dir.manhattanLength();
   if(l!=0.f) {
     float velocity = randf(decl.velAvg,decl.velVar);
@@ -531,17 +519,25 @@ void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
         l = Vec3::crossProduct(t,ctx.z)*k2;
         }
       else if(decl.visOrientation==ParticleFx::Orientation::Velocity) {
-        auto dir    = ps.dir;
+        auto  dir = ps.dir;
+        float w   = 0;
+        ctx.vp.project(dir.x,dir.y,dir.z,w);
+
         auto ldir   = dir.manhattanLength();
         if(ldir!=0.f)
           dir/=ldir;
-        float sVel = 2.f - std::fabs(Vec3::dotProduct(ctx.z,dir));
-        rotate(l,t,ps.rotation,left,top);
+
+        float sVel = 1.5f*(1.f - std::fabs(dir.z));
+        auto  c    = -dir.x;
+        auto  s    =  dir.y;
+        auto  rot  = (s==0 && c==0) ? 0.f : std::atan2(s,c);
+        rotate(l,t,rot+float(M_PI/2),left,top);
         l = l*sVel;
         t = t*sVel;
         }
       else {
-        rotate(l,t,ps.rotation,left,top);
+        l = left;
+        t = top;
         }
 
       struct Color {

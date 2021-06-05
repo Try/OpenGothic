@@ -31,6 +31,8 @@ class PfxObjects final {
 
       Tempest::Vec3 leftA = {};
       Tempest::Vec3 topA  = {0,1,0};
+
+      Tempest::Matrix4x4 vp;
       };
 
     void       setViewerPos(const Tempest::Vec3& pos);

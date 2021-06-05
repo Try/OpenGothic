@@ -73,7 +73,6 @@ class PfxBucket {
     struct ParState final {
       uint16_t      life=0,maxLife=1;
       Tempest::Vec3 pos, dir;
-      float         rotation=0;
       float         lifeTime() const;
       };
 

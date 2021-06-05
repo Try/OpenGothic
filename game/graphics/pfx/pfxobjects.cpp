@@ -48,6 +48,8 @@ void PfxObjects::tick(uint64_t ticks) {
 
   VboContext ctx;
   const auto& m = scene.viewProject();
+  ctx.vp     = m;
+
   ctx.left.x = m.at(0,0);
   ctx.left.y = m.at(1,0);
   ctx.left.z = m.at(2,0);
