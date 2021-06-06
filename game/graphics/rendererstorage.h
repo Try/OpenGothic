@@ -7,12 +7,11 @@
 
 #include "graphics/objectsbucket.h"
 
-class Gothic;
 class Material;
 
 class RendererStorage {
   public:
-    RendererStorage(Gothic& gothic);
+    RendererStorage();
 
     Tempest::RenderPipeline pSky;
     Tempest::RenderPipeline pFog;

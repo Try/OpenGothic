@@ -21,8 +21,8 @@
 #include "focus.h"
 #include "resources.h"
 
-World::World(Gothic& gothic, GameSession& game, const RendererStorage &storage, std::string file, std::function<void(int)> loadProgress)
-  :wname(std::move(file)),game(game),wsound(gothic,game,*this),wobj(*this) {
+World::World(GameSession& game, const RendererStorage &storage, std::string file, std::function<void(int)> loadProgress)
+  :wname(std::move(file)),game(game),wsound(game,*this),wobj(*this) {
   using namespace Daedalus::GameState;
 
   ZenLoad::ZenParser parser(wname,Resources::vdfsIndex());
@@ -34,7 +34,7 @@ World::World(Gothic& gothic, GameSession& game, const RendererStorage &storage, 
   ZenLoad::oCWorldData world;
 
   auto fver = ZenLoad::ZenParser::FileVersion::Gothic1;
-  if(gothic.version().game==2)
+  if(Gothic::inst().version().game==2)
     fver = ZenLoad::ZenParser::FileVersion::Gothic2;
   parser.readWorld(world,fver);
 
@@ -59,9 +59,9 @@ World::World(Gothic& gothic, GameSession& game, const RendererStorage &storage, 
   loadProgress(100);
   }
 
-World::World(Gothic& gothic, GameSession &game, const RendererStorage &storage,
+World::World(GameSession &game, const RendererStorage &storage,
              Serialize &fin, std::function<void(int)> loadProgress)
-  :wname(fin.read<std::string>()),game(game),wsound(gothic,game,*this),wobj(*this) {
+  :wname(fin.read<std::string>()),game(game),wsound(game,*this),wobj(*this) {
   using namespace Daedalus::GameState;
 
   ZenLoad::ZenParser parser(wname,Resources::vdfsIndex());
@@ -73,7 +73,7 @@ World::World(Gothic& gothic, GameSession &game, const RendererStorage &storage,
   ZenLoad::oCWorldData world;
 
   auto fver = ZenLoad::ZenParser::FileVersion::Gothic1;
-  if(gothic.version().game==2)
+  if(Gothic::inst().version().game==2)
     fver = ZenLoad::ZenParser::FileVersion::Gothic2;
   parser.readWorld(world,fver);
 

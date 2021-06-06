@@ -2,6 +2,7 @@
 
 #include <Tempest/SoundEffect>
 
+#include "game/definitions/musicdefinitions.h"
 #include "game/gamesession.h"
 #include "world/objects/npc.h"
 #include "world/objects/sound.h"
@@ -53,8 +54,8 @@ void WorldSound::Effect::setVolume(float v) {
   eff.setVolume(occ*vol);
   }
 
-WorldSound::WorldSound(Gothic& gothic, GameSession &game, World& owner)
-  :gothic(gothic),game(game),owner(owner) {
+WorldSound::WorldSound(GameSession &game, World& owner)
+  :game(game), owner(owner) {
   plPos = {-1000000,-1000000,-1000000};
   effect.reserve(256);
   }
@@ -303,7 +304,7 @@ bool WorldSound::setMusic(const char* zone, GameMusic::Tags tags) {
   char name[64]={};
   std::snprintf(name,sizeof(name),"%s_%s_%s",zone,(isDay ? "DAY" : "NGT"),smode);
 
-  if(auto* theme = gothic.getMusicDef(name)) {
+  if(auto* theme = Gothic::musicDef()[name]) {
     GameMusic::inst().setMusic(*theme,tags);
     return true;
     }

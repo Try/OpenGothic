@@ -2,8 +2,6 @@
 
 #include <daedalus/DaedalusStdlib.h>
 
-class Gothic;
-
 class SpellDefinitions final {
   public:
     SpellDefinitions(Daedalus::DaedalusVM &vm);

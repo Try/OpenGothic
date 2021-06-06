@@ -12,13 +12,12 @@
 #include "worldview.h"
 #include "rendererstorage.h"
 
-class Gothic;
 class Camera;
 class InventoryMenu;
 
 class Renderer final {
   public:
-    Renderer(Tempest::Swapchain& swapchain, Gothic &gothic);
+    Renderer(Tempest::Swapchain& swapchain);
 
     void resetSwapchain();
     void onWorldChanged();
@@ -27,14 +26,13 @@ class Renderer final {
 
     void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
               Tempest::VectorImage::Mesh& uiLayer, Tempest::VectorImage::Mesh& numOverlay,
-              InventoryMenu &inventory, const Gothic& gothic);
+              InventoryMenu &inventory);
 
     Tempest::Attachment               screenshoot(uint8_t frameId);
     const RendererStorage&            storage() const { return stor; }
 
   private:
     Tempest::Swapchain&               swapchain;
-    Gothic&                           gothic;
     Tempest::Matrix4x4                view, proj, viewProj;
     Tempest::Matrix4x4                shadow[Resources::ShadowLayers];
 
@@ -59,7 +57,7 @@ class Renderer final {
     Tempest::DescriptorSet            uboCopy;
     RendererStorage                   stor;
 
-    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::FrameBuffer& fboCpy, const Gothic& gothic, uint8_t cmdId);
+    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::FrameBuffer& fboCpy, uint8_t cmdId);
     void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, InventoryMenu& inv, uint8_t cmdId);
     void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::VectorImage::Mesh& surface);
   };

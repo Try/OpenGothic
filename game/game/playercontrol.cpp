@@ -10,8 +10,8 @@
 #include "ui/inventorymenu.h"
 #include "gothic.h"
 
-PlayerControl::PlayerControl(Gothic &gothic, DialogMenu& dlg, InventoryMenu &inv)
-  :gothic(gothic), dlg(dlg),inv(inv) {
+PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
+  :dlg(dlg),inv(inv) {
   }
 
 bool PlayerControl::isInMove() {
@@ -19,7 +19,7 @@ bool PlayerControl::isInMove() {
   }
 
 void PlayerControl::setTarget(Npc *other) {
-  auto w  = world();
+  auto w  = Gothic::inst().world();
   auto pl = w ? w->player() : nullptr;
   if(pl==nullptr || pl->isFinishingMove())
     return;
@@ -36,7 +36,7 @@ void PlayerControl::setTarget(Npc *other) {
   }
 
 void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType key) {
-  auto    w    = world();
+  auto    w    = Gothic::inst().world();
   auto    pl   = w  ? w->player() : nullptr;
   auto    ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
   uint8_t slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
@@ -130,7 +130,7 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
 void PlayerControl::onKeyReleased(KeyCodec::Action a) {
   ctrl[a] = false;
 
-  auto w  = world();
+  auto w  = Gothic::inst().world();
   auto pl = w ? w->player() : nullptr;
   if(a==KeyCodec::Map && pl!=nullptr) {
     w->script().playerHotKeyScreenMap(*pl);
@@ -199,7 +199,7 @@ bool PlayerControl::hasActionFocus() const {
   }
 
 bool PlayerControl::interact(Interactive &it) {
-  auto w = world();
+  auto w = Gothic::inst().world();
   if(w==nullptr || w->player()==nullptr)
     return false;
   auto pl = w->player();
@@ -217,7 +217,7 @@ bool PlayerControl::interact(Interactive &it) {
   }
 
 bool PlayerControl::interact(Npc &other) {
-  auto w = world();
+  auto w = Gothic::inst().world();
   if(w==nullptr || w->player()==nullptr)
     return false;
   auto pl = w->player();
@@ -236,7 +236,7 @@ bool PlayerControl::interact(Npc &other) {
   }
 
 bool PlayerControl::interact(Item &item) {
-  auto w = world();
+  auto w = Gothic::inst().world();
   if(w==nullptr || w->player()==nullptr)
     return false;
   auto pl = w->player();
@@ -248,7 +248,7 @@ bool PlayerControl::interact(Item &item) {
   }
 
 void PlayerControl::toogleWalkMode() {
-  auto w = world();
+  auto w = Gothic::inst().world();
   if(w==nullptr || w->player()==nullptr)
     return;
   auto pl = w->player();
@@ -256,7 +256,7 @@ void PlayerControl::toogleWalkMode() {
   }
 
 void PlayerControl::toggleSneakMode() {
-  auto w = world();
+  auto w = Gothic::inst().world();
   if(w==nullptr || w->player()==nullptr)
     return;
   auto pl = w->player();
@@ -265,7 +265,7 @@ void PlayerControl::toggleSneakMode() {
   }
 
 WeaponState PlayerControl::weaponState() const {
-  auto w = world();
+  auto w = Gothic::inst().world();
   if(w==nullptr || w->player()==nullptr)
     return WeaponState::NoWeapon;
   auto pl = w->player();
@@ -273,7 +273,7 @@ WeaponState PlayerControl::weaponState() const {
   }
 
 bool PlayerControl::canInteract() const {
-  auto w = world();
+  auto w = Gothic::inst().world();
   if(w==nullptr || w->player()==nullptr)
     return false;
   auto pl = w->player();
@@ -289,7 +289,7 @@ void PlayerControl::clearInput() {
   }
 
 void PlayerControl::marvinF8() {
-  auto w = world();
+  auto w = Gothic::inst().world();
   if(w==nullptr || w->player()==nullptr)
     return;
 
@@ -312,7 +312,7 @@ void PlayerControl::marvinF8() {
   }
 
 Focus PlayerControl::findFocus(Focus* prev) {
-  auto w = world();
+  auto w = Gothic::inst().world();
   if(w==nullptr)
     return Focus();
   if(!cacheFocus)
@@ -323,18 +323,14 @@ Focus PlayerControl::findFocus(Focus* prev) {
   return w->findFocus(Focus());
   }
 
-World *PlayerControl::world() const {
-  return gothic.world();
-  }
-
 bool PlayerControl::tickMove(uint64_t dt) {
-  auto w = world();
+  auto w = Gothic::inst().world();
   if(w==nullptr)
     return false;
   const float dtF = float(dt)/1000.f;
 
   Npc*  pl     = w->player();
-  auto  camera = gothic.camera();
+  auto  camera = Gothic::inst().camera();
   if(pl==nullptr) {
     if(camera==nullptr)
       return false;
@@ -388,7 +384,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
   }
 
 void PlayerControl::implMove(uint64_t dt) {
-  auto  w        = world();
+  auto  w        = Gothic::inst().world();
   Npc&  pl       = *w->player();
   float rot      = pl.rotation();
   float rotY     = pl.rotationY();
@@ -444,7 +440,7 @@ void PlayerControl::implMove(uint64_t dt) {
           wctrlLast = static_cast<WeaponAction>(Weapon3+i);
           if(ret) {
             if(auto spl = pl.inventory().currentSpell(i)) {
-              gothic.onPrint(spl->description());
+              Gothic::inst().onPrint(spl->description());
               }
             }
           } else {

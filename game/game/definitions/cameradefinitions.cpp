@@ -2,8 +2,8 @@
 
 #include "gothic.h"
 
-CameraDefinitions::CameraDefinitions(Gothic &gothic) {
-  auto vm = gothic.createVm(u"Camera.dat");
+CameraDefinitions::CameraDefinitions() {
+  auto vm = Gothic::inst().createVm(u"Camera.dat");
   vm->getDATFile().iterateSymbolsOfClass("CCamSys",[this,&vm](size_t i,Daedalus::PARSymbol& s){
     Camera cam={};
 

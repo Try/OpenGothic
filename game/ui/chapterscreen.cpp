@@ -9,21 +9,20 @@
 
 using namespace Tempest;
 
-ChapterScreen::ChapterScreen(Gothic& gothic)
-  :gothic(gothic){
+ChapterScreen::ChapterScreen() {
   }
 
 void ChapterScreen::show(const Show& s) {
   back = Resources::loadTexture(s.img);
   if(!active)
-    gothic.pushPause();
+    Gothic::inst().pushPause();
   active   = true;
   title    = s.title;
   subTitle = s.subtitle;
   if(s.time>0)
     timer.start(uint64_t(s.time));
   timer.timeout.bind(this,&ChapterScreen::close);
-  gothic.emitGlobalSoundWav(s.sound);
+  Gothic::inst().emitGlobalSoundWav(s.sound);
   update();
   }
 
@@ -59,7 +58,7 @@ void ChapterScreen::paintEvent(Tempest::PaintEvent &e) {
 void ChapterScreen::close() {
   if(!active)
     return;
-  gothic.popPause();
+  Gothic::inst().popPause();
   active=false;
   }
 

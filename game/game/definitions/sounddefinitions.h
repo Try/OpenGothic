@@ -3,13 +3,11 @@
 #include <daedalus/DaedalusStdlib.h>
 #include <unordered_map>
 
-class Gothic;
-
 class SoundDefinitions final {
   public:
-    SoundDefinitions(Gothic &gothic);
+    SoundDefinitions();
 
-    const Daedalus::GEngineClasses::C_SFX& getSfx(const char* name);
+    const Daedalus::GEngineClasses::C_SFX& operator[](const char* name) const;
 
   private:
     std::unordered_map<std::string,Daedalus::GEngineClasses::C_SFX> sfx;

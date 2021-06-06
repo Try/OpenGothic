@@ -22,7 +22,7 @@ static float angleMod(float a){
   }
 
 // TODO: System/Camera/CamInst.d
-Camera::Camera(Gothic &gothic) : gothic(gothic) {
+Camera::Camera() {
   }
 
 void Camera::reset(World& world) {
@@ -110,7 +110,7 @@ void Camera::setMode(Camera::Mode m) {
 
   const auto& def = cameraDef();
   dest.spin.y = def.bestAzimuth;
-  if(auto pl=gothic.player())
+  if(auto pl = Gothic::inst().player())
     dest.spin.y+=pl->rotation();
   dest.spin.x = def.bestElevation;
   dest.range  = def.bestRange;
@@ -149,7 +149,7 @@ void Camera::onRotateMouse(const PointF& dpos) {
 
 Matrix4x4 Camera::projective() const {
   auto ret = proj;
-  if(auto w = gothic.world())
+  if(auto w = Gothic::inst().world())
     w->globalFx()->morph(ret);
   return ret;
   }
@@ -245,7 +245,7 @@ Vec3 Camera::applyModPosition(const Vec3& pos) {
                            def.targetOffsetY,
                            def.targetOffsetZ);
 
-  if(auto pl = gothic.player()) {
+  if(auto pl = Gothic::inst().player()) {
     Matrix4x4 rot;
     rot.identity();
     rot.rotateOY(90-pl->rotation());
@@ -297,7 +297,7 @@ Matrix4x4 Camera::mkRotation(const Vec3& spin) const {
   }
 
 const Daedalus::GEngineClasses::CCamSys &Camera::cameraDef() const {
-  auto& camd = gothic.getCameraDef();
+  auto& camd = Gothic::cameraDef();
   if(camMod==Dialog)
     return camd.dialogCam();
   if(camMod==Normal)
@@ -316,7 +316,7 @@ const Daedalus::GEngineClasses::CCamSys &Camera::cameraDef() const {
     return camd.diveCam();
   if(camMod==Mobsi) {
     const char *tag = "", *pos = nullptr;
-    if(auto pl = gothic.player())
+    if(auto pl = Gothic::inst().player())
       if(auto inter = pl->interactive()) {
         tag = inter->schemeName();
         pos = inter->posSchemeName();
@@ -358,7 +358,7 @@ void Camera::implMove(Tempest::Event::KeyType key) {
     state.pos.x+=dpos*s;
     state.pos.z+=dpos*c;
     }
-  if(auto world = gothic.world())
+  if(auto world = Gothic::inst().world())
     state.pos.y = world->physic()->landRay(state.pos).v.y;
   }
 
@@ -442,7 +442,7 @@ void Camera::tick(const Npc& npc, uint64_t dt, bool inMove, bool includeRot) {
     hasPos = true;
     }
 
-  if(gothic.isPause())
+  if(Gothic::inst().isPause())
     return;
 
   {
@@ -547,7 +547,7 @@ Matrix4x4 Camera::view() const {
   }
 
 float Camera::calcCameraColision(const Matrix4x4& view, const float dist) const {
-  auto world = gothic.world();
+  auto world = Gothic::inst().world();
   if(world==nullptr)
     return dist;
 

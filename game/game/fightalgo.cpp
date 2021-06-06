@@ -4,6 +4,7 @@
 
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
+#include "gothic.h"
 #include "serialize.h"
 
 FightAlgo::FightAlgo() {
@@ -24,13 +25,13 @@ void FightAlgo::save(Serialize &fout) {
   }
 
 void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
-  auto& ai = owner.getFightAi(size_t(npc.handle()->fight_tactic));
+  auto& ai = Gothic::fai()[size_t(npc.handle()->fight_tactic)];
   auto  ws = npc.weaponState();
 
   if(ws==WeaponState::NoWeapon)
     return;
 
-  if(hitFlg){
+  if(hitFlg) {
     hitFlg = false;
     if(fillQueue(owner,ai.my_w_strafe))
       return;

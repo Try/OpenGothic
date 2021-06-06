@@ -11,8 +11,8 @@
 
 using namespace Tempest;
 
-Renderer::Renderer(Tempest::Swapchain& swapchain, Gothic& gothic)
-  : swapchain(swapchain),gothic(gothic),stor(gothic) {
+Renderer::Renderer(Tempest::Swapchain& swapchain)
+  : swapchain(swapchain) {
   auto& device = Resources::device();
   view.identity();
 
@@ -84,7 +84,7 @@ void Renderer::resetSwapchain() {
   fboGBuf     = device.frameBuffer(lightingBuf,gbufDiffuse,gbufNormal,gbufDepth,zbuffer);
   copyPass    = device.pass(FboMode::PreserveOut);
 
-  if(auto wview=gothic.worldView()) {
+  if(auto wview=Gothic::inst().worldView()) {
     wview->setFrameGlobals(nullptr,0,0);
     wview->setGbuffer(Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack());
     }
@@ -108,7 +108,7 @@ void Renderer::setCameraView(const Camera& camera) {
   view     = camera.view();
   proj     = camera.projective();
   viewProj = camera.viewProj();
-  if(auto wview=gothic.worldView()) {
+  if(auto wview=Gothic::inst().worldView()) {
     for(size_t i=0; i<Resources::ShadowLayers; ++i)
       shadow[i] = camera.viewShadow(wview->mainLight().dir(),i);
     }
@@ -116,16 +116,16 @@ void Renderer::setCameraView(const Camera& camera) {
 
 void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
                     VectorImage::Mesh& uiLayer, VectorImage::Mesh& numOverlay,
-                    InventoryMenu& inventory, const Gothic& gothic) {
-  draw(cmd, fbo3d  [imgId], fboCpy[imgId], gothic, cmdId);
+                    InventoryMenu& inventory) {
+  draw(cmd, fbo3d  [imgId], fboCpy[imgId], cmdId);
   draw(cmd, fboUi  [imgId], uiLayer);
   draw(cmd, fboItem[imgId], inventory, cmdId);
   draw(cmd, fboUi  [imgId], numOverlay);
   }
 
 void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
-                    FrameBuffer& fbo, FrameBuffer& fboCpy, const Gothic &gothic, uint8_t cmdId) {
-  auto wview = gothic.worldView();
+                    FrameBuffer& fbo, FrameBuffer& fboCpy, uint8_t cmdId) {
+  auto wview = Gothic::inst().worldView();
   if(wview==nullptr) {
     cmd.setFramebuffer(fbo,mainPassNoGbuf);
     return;
@@ -136,7 +136,7 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
   const Texture2d* sh[Resources::ShadowLayers];
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     sh[i] = &textureCast(shadowMap[i]);
-  wview->setFrameGlobals(sh,gothic.world()->tickCount(),cmdId);
+  wview->setFrameGlobals(sh,Gothic::inst().world()->tickCount(),cmdId);
   wview->setGbuffer(textureCast(lightingBuf),textureCast(gbufDiffuse),textureCast(gbufNormal),textureCast(gbufDepth));
 
   {
@@ -187,20 +187,20 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   FrameBuffer fbo  = device.frameBuffer(img,zbuffer);
   FrameBuffer fboC = device.frameBuffer(img);
 
-  if(auto wview = gothic.worldView())
+  if(auto wview = Gothic::inst().worldView())
     wview->setupUbo();
 
   CommandBuffer cmd;
   {
   auto enc = cmd.startEncoding(device);
-  draw(enc,fbo,fboC,gothic,frameId);
+  draw(enc,fbo,fboC,frameId);
   }
 
   Fence sync = device.fence();
   device.submit(cmd,sync);
   sync.wait();
 
-  if(auto wview = gothic.worldView())
+  if(auto wview = Gothic::inst().worldView())
     wview->setupUbo();
 
   return img;

@@ -3,8 +3,10 @@
 #include <Tempest/Log>
 #include <cctype>
 
+#include "game/definitions/sounddefinitions.h"
 #include "game/gamesession.h"
 #include "gothic.h"
+
 #include "resources.h"
 
 SoundFx::SoundVar::SoundVar(const Daedalus::GEngineClasses::C_SFX &sfx, Tempest::Sound &&snd)
@@ -15,8 +17,8 @@ SoundFx::SoundVar::SoundVar(const float vol, Tempest::Sound &&snd)
   :snd(std::move(snd)),vol(vol/127.f){
   }
 
-SoundFx::SoundFx(Gothic &gothic, const char* s) {
-  implLoad(gothic,s);
+SoundFx::SoundFx(const char* s) {
+  implLoad(s);
   if(inst.size()!=0)
     return;
   // lowcase?
@@ -24,7 +26,7 @@ SoundFx::SoundFx(Gothic &gothic, const char* s) {
   for(auto& i:name)
     i = char(std::toupper(i));
 
-  implLoad(gothic,name.c_str());
+  implLoad(name.c_str());
   if(inst.size()!=0)
     return;
 
@@ -39,7 +41,7 @@ SoundFx::SoundFx(Gothic &gothic, const char* s) {
     Tempest::Log::d("unable to load sound fx: ",s);
   }
 
-SoundFx::SoundFx(Gothic &, Tempest::Sound &&snd) {
+SoundFx::SoundFx(Tempest::Sound &&snd) {
   if(!snd.isEmpty())
     inst.emplace_back(127.f,std::move(snd));
   }
@@ -54,20 +56,20 @@ Tempest::SoundEffect SoundFx::getEffect(Tempest::SoundDevice &dev, bool& loop) c
   return effect;
   }
 
-void SoundFx::implLoad(Gothic &gothic, const char *s) {
-  auto& sfx = gothic.getSoundScheme(s);
+void SoundFx::implLoad(const char *s) {
+  auto& sfx = Gothic::sfx()[s];
   auto  snd = Resources::loadSoundBuffer(sfx.file.c_str());
 
   if(!snd.isEmpty())
     inst.emplace_back(sfx,std::move(snd));
-  loadVariants(gothic,s);
+  loadVariants(s);
   }
 
-void SoundFx::loadVariants(Gothic &gothic, const char *s) {
+void SoundFx::loadVariants(const char *s) {
   char name[256]={};
   for(int i=1;i<100;++i){
     std::snprintf(name,sizeof(name),"%s_A%02d",s,i);
-    auto& sfx = gothic.getSoundScheme(name);
+    auto& sfx = Gothic::sfx()[name];
     auto  snd = Resources::loadSoundBuffer(sfx.file.c_str());
     if(snd.isEmpty())
       break;

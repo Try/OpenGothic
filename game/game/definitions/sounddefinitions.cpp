@@ -5,8 +5,8 @@
 
 using namespace Tempest;
 
-SoundDefinitions::SoundDefinitions(Gothic &gothic) {
-  auto vm = gothic.createVm(u"Sfx.dat");
+SoundDefinitions::SoundDefinitions() {
+  auto vm = Gothic::inst().createVm(u"Sfx.dat");
 
   vm->getDATFile().iterateSymbolsOfClass("C_SFX",[this,&vm](size_t i,Daedalus::PARSymbol& s){
     Daedalus::GEngineClasses::C_SFX sfx;
@@ -16,7 +16,7 @@ SoundDefinitions::SoundDefinitions(Gothic &gothic) {
     });
   }
 
-const Daedalus::GEngineClasses::C_SFX& SoundDefinitions::getSfx(const char *name) {
+const Daedalus::GEngineClasses::C_SFX& SoundDefinitions::operator[](const char *name) const {
   auto i = sfx.find(name);
   if(i!=sfx.end())
     return i->second;

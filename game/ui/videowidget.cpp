@@ -82,14 +82,14 @@ void VideoWidget::Sound::renderSound(int16_t *out, size_t n) {
   }
 
 struct VideoWidget::Context {
-  Context(Gothic& gothic, const std::u16string& path) : fin(path), input(fin), vid(&input) {
+  Context(const std::u16string& path) : fin(path), input(fin), vid(&input) {
     sndCtx.resize(vid.audioCount());
     for(size_t i=0; i<sndCtx.size(); ++i) {
       auto& aud = vid.audio(uint8_t(i));
       sndCtx[i].reset(new SoundContext(*this,sndDev,aud.sampleRate,aud.isMono));
       }
 
-    const float volume = gothic.settingsGetF("SOUND","soundVolume");
+    const float volume = Gothic::inst().settingsGetF("SOUND","soundVolume");
     sndDev.setGlobalVolume(volume);
     frameTime = Application::tickCount();
     }
@@ -156,8 +156,7 @@ struct VideoWidget::Context {
   std::vector<std::unique_ptr<SoundContext>> sndCtx;
   };
 
-VideoWidget::VideoWidget(Gothic& gth)
-  :gothic(gth) {
+VideoWidget::VideoWidget() {
   }
 
 VideoWidget::~VideoWidget() {
@@ -195,7 +194,7 @@ void VideoWidget::tick() {
     hasPendingVideo.store(false);
   }
 
-  auto path  = gothic.nestedPath({u"_work",u"Data",u"Video"},Dir::FT_Dir);
+  auto path  = Gothic::inst().nestedPath({u"_work",u"Data",u"Video"},Dir::FT_Dir);
   auto fname = TextCodec::toUtf16(filename.c_str());
   auto f     = FileUtil::caseInsensitiveSegment(path,fname.c_str(),Dir::FT_File);
   if(!FileUtil::exists(f)) {
@@ -204,7 +203,7 @@ void VideoWidget::tick() {
     }
 
   try {
-    ctx.reset(new Context(gothic,f));
+    ctx.reset(new Context(f));
     if(!active) {
       active       = true;
       restoreMusic = GameMusic::inst().isEnabled();

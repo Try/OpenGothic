@@ -7,11 +7,9 @@
 
 #include "resources.h"
 
-class Gothic;
-
 class VideoWidget : public Tempest::Widget {
   public:
-    VideoWidget(Gothic& gth);
+    VideoWidget();
     ~VideoWidget();
 
     void pushVideo(const Daedalus::ZString& filename);
@@ -32,7 +30,6 @@ class VideoWidget : public Tempest::Widget {
 
     void  stopVideo();
 
-    Gothic&                       gothic;
     std::unique_ptr<Context>      ctx;
     Tempest::Texture2d            tex[Resources::MaxFramesInFlight];
     Tempest::Texture2d*           frame  = nullptr;

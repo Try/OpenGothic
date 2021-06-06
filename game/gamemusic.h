@@ -8,11 +8,9 @@ struct C_MusicTheme;
 }
 }
 
-class Gothic;
-
 class GameMusic final {
   public:
-    GameMusic(Gothic& gothic);
+    GameMusic();
     GameMusic(const GameMusic&)=delete;
     ~GameMusic();
 
@@ -48,6 +46,5 @@ class GameMusic final {
 
     static GameMusic* instance;
     std::unique_ptr<Impl> impl;
-    Gothic&               gothic;
   };
 

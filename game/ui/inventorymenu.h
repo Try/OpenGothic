@@ -15,7 +15,7 @@ class KeyCodec;
 
 class InventoryMenu : public Tempest::Widget {
   public:
-    InventoryMenu(Gothic& gothic, const KeyCodec& key, const RendererStorage &storage);
+    InventoryMenu(const KeyCodec& key, const RendererStorage &storage);
 
     enum class State:uint8_t {
       Closed=0,
@@ -80,7 +80,6 @@ class InventoryMenu : public Tempest::Widget {
       size_t                  scroll = 0;
       };
 
-    Gothic&                   gothic;
     const KeyCodec&           keycodec;
 
     const Tempest::Texture2d* tex =nullptr;

@@ -1,13 +1,16 @@
 #include "lightgroup.h"
 
-#include "bounds.h"
+#include <Tempest/Dir>
+#include <Tempest/Log>
+
 #include "graphics/rendererstorage.h"
 #include "graphics/sceneglobals.h"
+#include "world/world.h"
 #include "utils/gthfont.h"
 #include "utils/workers.h"
 #include "utils/dbgpainter.h"
-
-#include "world/world.h"
+#include "bounds.h"
+#include "gothic.h"
 
 using namespace Tempest;
 
@@ -203,6 +206,25 @@ LightGroup::LightGroup(const SceneGlobals& scene)
     {-1, 1, 1},
     };
   vbo = device.vbo(v,8);
+
+  try {
+    auto  filename = Gothic::inst().nestedPath({u"_work",u"Data",u"Presets",u"LIGHTPRESETS.ZEN"},Dir::FT_File);
+    RFile fin(filename);
+    std::vector<uint8_t> bin(fin.size());
+    fin.read(bin.data(),bin.size());
+
+    ZenLoad::oCWorldData bundle;
+    ZenLoad::ZenParser parser(bin.data(),bin.size());
+    parser.readHeader();
+
+    auto fver = ZenLoad::ZenParser::FileVersion::Gothic1;
+    if(Gothic::inst().version().game==2)
+      fver = ZenLoad::ZenParser::FileVersion::Gothic2;
+    parser.readWorld(bundle,fver);
+    }
+  catch(...) {
+    Log::e("unable to load Zen-file: \"LIGHTPRESETS.ZEN\"");
+    }
   }
 
 void LightGroup::dbgLights(DbgPainter& p) const {

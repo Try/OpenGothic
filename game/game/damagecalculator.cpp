@@ -20,7 +20,7 @@ DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const 
     ret.value = std::max<int32_t>(ret.value,MinDamage);
   if(other.isImmortal())
     ret.value = 0;
-  if(other.isPlayer() && other.world().gameSession().gothic().isRamboMode())
+  if(other.isPlayer() && Gothic::inst().isRamboMode())
     ret.value = std::min(1,ret.value);
   return ret;
   }

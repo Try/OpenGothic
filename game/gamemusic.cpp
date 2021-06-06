@@ -4,6 +4,7 @@
 #include <Tempest/Sound>
 #include <Tempest/Log>
 
+#include "game/definitions/musicdefinitions.h"
 #include "dmusic/mixer.h"
 #include "resources.h"
 
@@ -153,17 +154,16 @@ struct GameMusic::Impl final {
 
 GameMusic* GameMusic::instance = nullptr;
 
-GameMusic::GameMusic(Gothic& gothic)
-  :gothic(gothic) {
+GameMusic::GameMusic() {
   instance = this;
   impl.reset(new Impl());
-  gothic.onSettingsChanged.bind(this,&GameMusic::setupSettings);
+  Gothic::inst().onSettingsChanged.bind(this,&GameMusic::setupSettings);
   setupSettings();
   }
 
 GameMusic::~GameMusic() {
   instance = nullptr;
-  gothic.onSettingsChanged.ubind(this,&GameMusic::setupSettings);
+  Gothic::inst().onSettingsChanged.ubind(this,&GameMusic::setupSettings);
   }
 
 GameMusic& GameMusic::inst() {
@@ -192,7 +192,7 @@ void GameMusic::setMusic(GameMusic::Music m) {
       clsTheme = "SYS_Loading";
       break;
     }
-  if(auto theme = gothic.getMusicDef(clsTheme))
+  if(auto theme = Gothic::musicDef()[clsTheme])
     setMusic(*theme,GameMusic::mkTags(GameMusic::Std,GameMusic::Day));
   }
 
@@ -205,8 +205,8 @@ void GameMusic::stopMusic() {
   }
 
 void GameMusic::setupSettings() {
-  const int   musicEnabled = gothic.settingsGetI("SOUND","musicEnabled");
-  const float musicVolume  = gothic.settingsGetF("SOUND","musicVolume");
+  const int   musicEnabled = Gothic::settingsGetI("SOUND","musicEnabled");
+  const float musicVolume  = Gothic::settingsGetF("SOUND","musicVolume");
 
   setEnabled(musicEnabled!=0);
   impl->setVolume(musicVolume);

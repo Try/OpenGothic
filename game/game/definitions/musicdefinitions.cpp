@@ -1,12 +1,13 @@
 #include "musicdefinitions.h"
 
 #include <Tempest/Log>
+
 #include "gothic.h"
 
 using namespace Tempest;
 
-MusicDefinitions::MusicDefinitions(Gothic& gothic) {
-  vm = gothic.createVm(u"Music.dat");
+MusicDefinitions::MusicDefinitions() {
+  vm = Gothic::inst().createVm(u"Music.dat");
   vm->getDATFile().iterateSymbolsOfClass("C_MusicTheme",[this](size_t i,Daedalus::PARSymbol& /*s*/){
     Theme theme={};
 
@@ -22,7 +23,7 @@ MusicDefinitions::~MusicDefinitions() {
   vm->clearReferences(Daedalus::IC_MusicTheme);
   }
 
-const Daedalus::GEngineClasses::C_MusicTheme* MusicDefinitions::get(const char *name) {
+const Daedalus::GEngineClasses::C_MusicTheme* MusicDefinitions::operator[](const char *name) const {
   if(!vm)
     return nullptr;
   auto id = vm->getDATFile().getSymbolIndexByName(name);

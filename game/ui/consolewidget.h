@@ -6,11 +6,9 @@
 
 #include "marvin.h"
 
-class Gothic;
-
 class ConsoleWidget : public Tempest::Widget {
   public:
-    ConsoleWidget(Gothic& gothic);
+    ConsoleWidget();
     ~ConsoleWidget();
 
     void close();
@@ -24,8 +22,6 @@ class ConsoleWidget : public Tempest::Widget {
 
   private:
     struct Overlay;
-
-    Gothic&                   gothic;
 
     Tempest::UiOverlay*       overlay    = nullptr;
     const Tempest::Texture2d* background = nullptr;

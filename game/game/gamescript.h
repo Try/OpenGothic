@@ -21,7 +21,6 @@
 #include "graphics/pfx/pfxobjects.h"
 #include "ui/documentmenu.h"
 
-class Gothic;
 class GameSession;
 class World;
 class Npc;
@@ -63,8 +62,8 @@ class GameScript final {
     int32_t      runFunction  (const char*  fname);
     int32_t      runFunction  (const size_t fid);
 
-    void         initDialogs (Gothic &gothic);
-    void         loadDialogOU(Gothic &gothic);
+    void         initDialogs ();
+    void         loadDialogOU();
 
     void         initializeInstance(Daedalus::GEngineClasses::C_Npc&  n,  size_t instance);
     void         initializeInstance(Daedalus::GEngineClasses::C_Item& it, size_t instance);
@@ -101,7 +100,6 @@ class GameScript final {
     const Daedalus::GEngineClasses::C_Focus&          focusRange() const { return cFocusRange; }
     const Daedalus::GEngineClasses::C_Focus&          focusMage()  const { return cFocusMage;  }
     const Daedalus::GEngineClasses::C_GilValues&      guildVal()   const { return cGuildVal;   }
-    const FightAi::FA&                                getFightAi(size_t i) const;
 
     Daedalus::PARSymbol&                              getSymbol(const char*  s);
     Daedalus::PARSymbol&                              getSymbol(const size_t s);

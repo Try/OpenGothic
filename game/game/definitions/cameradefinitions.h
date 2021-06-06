@@ -2,11 +2,9 @@
 
 #include <daedalus/DaedalusStdlib.h>
 
-class Gothic;
-
 class CameraDefinitions final {
   public:
-    CameraDefinitions(Gothic &gothic);
+    CameraDefinitions();
 
     const Daedalus::GEngineClasses::CCamSys& dialogCam()    const { return camModDialog; }
     const Daedalus::GEngineClasses::CCamSys& inventoryCam() const { return camModInventory; }

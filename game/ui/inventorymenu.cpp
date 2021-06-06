@@ -44,14 +44,14 @@ struct InventoryMenu::RansackPage : InventoryMenu::Page {
   const Inventory& inv;
   };
 
-InventoryMenu::InventoryMenu(Gothic &gothic, const KeyCodec& key, const RendererStorage &storage)
-  :gothic(gothic), keycodec(key), renderer(storage) {
+InventoryMenu::InventoryMenu(const KeyCodec& key, const RendererStorage &storage)
+  :keycodec(key), renderer(storage) {
   slot = Resources::loadTexture("INV_SLOT.TGA");
   selT = Resources::loadTexture("INV_SLOT_HIGHLIGHTED.TGA");
   selU = Resources::loadTexture("INV_SLOT_EQUIPPED.TGA");
   tex  = Resources::loadTexture("INV_BACK.TGA"); // INV_TITEL.TGA
 
-  int invMaxColumns = gothic.settingsGetI("GAME","invMaxColumns");
+  int invMaxColumns = Gothic::settingsGetI("GAME","invMaxColumns");
   if(invMaxColumns>0)
     columsCount = size_t(invMaxColumns); else
     columsCount = 5;
@@ -63,8 +63,8 @@ InventoryMenu::InventoryMenu(Gothic &gothic, const KeyCodec& key, const Renderer
 void InventoryMenu::close() {
   if(state!=State::Closed) {
     if(state==State::Trade)
-      gothic.emitGlobalSound("TRADE_CLOSE"); else
-      gothic.emitGlobalSound("INV_CLOSE");
+      Gothic::inst().emitGlobalSound("TRADE_CLOSE"); else
+      Gothic::inst().emitGlobalSound("INV_CLOSE");
     }
   renderer.reset();
   state  = State::Closed;
@@ -83,8 +83,8 @@ void InventoryMenu::open(Npc &pl) {
   adjustScroll();
   update();
 
-  gothic.emitGlobalSound("INV_OPEN");
-  //gothic.emitGlobalSound("INV_CHANGE");
+  Gothic::inst().emitGlobalSound("INV_OPEN");
+  //Gothic::inst().emitGlobalSound("INV_CHANGE");
   }
 
 void InventoryMenu::trade(Npc &pl, Npc &tr) {
@@ -99,7 +99,7 @@ void InventoryMenu::trade(Npc &pl, Npc &tr) {
   pageOth.reset(new TradePage(tr.inventory()));
   adjustScroll();
   update();
-  gothic.emitGlobalSound("TRADE_OPEN");
+  Gothic::inst().emitGlobalSound("TRADE_OPEN");
   }
 
 bool InventoryMenu::ransack(Npc &pl, Npc &tr) {
@@ -114,7 +114,7 @@ bool InventoryMenu::ransack(Npc &pl, Npc &tr) {
   pageOth.reset(new RansackPage(tr.inventory()));
   adjustScroll();
   update();
-  gothic.emitGlobalSound("INV_OPEN");
+  Gothic::inst().emitGlobalSound("INV_OPEN");
   return true;
   }
 
@@ -338,7 +338,7 @@ void InventoryMenu::keyRepeatEvent(KeyEvent& e) {
   update();
   }
 
-void InventoryMenu::keyUpEvent(KeyEvent &e) {
+void InventoryMenu::keyUpEvent(KeyEvent&) {
   takeTimer.stop();
   lootMode = LootMode::Normal;
   }
@@ -386,7 +386,7 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
   }
 
 const World *InventoryMenu::world() const {
-  return gothic.world();
+  return Gothic::inst().world();
   }
 
 size_t InventoryMenu::rowsCount() const {

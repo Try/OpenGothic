@@ -16,7 +16,6 @@
 #include "graphics/material.h"
 #include "sound/soundfx.h"
 
-class Gothic;
 class StaticMesh;
 class ProtoMesh;
 class Skeleton;
@@ -34,7 +33,7 @@ class PatternList;
 
 class Resources final {
   public:
-    explicit Resources(Gothic& gothic, Tempest::Device& device);
+    explicit Resources(Tempest::Device& device);
     ~Resources();
 
     enum class FontType : uint8_t {
@@ -191,9 +190,9 @@ class Resources final {
 
     Tempest::Device&                  dev;
     Tempest::SoundDevice              sound;
+
     std::recursive_mutex              sync;
     std::unique_ptr<Dx8::DirectMusic> dxMusic;
-    Gothic&                           gothic;
     VDFS::FileIndex                   gothicAssets;
 
     std::vector<uint8_t>              fBuff, ddsBuf;

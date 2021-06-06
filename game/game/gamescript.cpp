@@ -67,7 +67,7 @@ bool GameScript::GlobalOutput::isFinished() {
 GameScript::GameScript(GameSession &owner)
   :vm(owner.loadScriptCode()),owner(owner) {
   Daedalus::registerGothicEngineClasses(vm);
-  owner.setupVmCommonApi(vm);
+  Gothic::inst().setupVmCommonApi(vm);
   aiDefaultPipe.reset(new GlobalOutput(*this));
   initCommon();
   }
@@ -409,8 +409,8 @@ void GameScript::initCommon() {
     runFunction("startup_global");
   }
 
-void GameScript::initDialogs(Gothic& gothic) {
-  loadDialogOU(gothic);
+void GameScript::initDialogs() {
+  loadDialogOU();
   if(!dialogs)
     dialogs.reset(new ZenLoad::zCCSLib());
 
@@ -428,13 +428,13 @@ void GameScript::initDialogs(Gothic& gothic) {
     });
   }
 
-void GameScript::loadDialogOU(Gothic &gothic) {
+void GameScript::loadDialogOU() {
   static std::initializer_list<const char16_t*> names[] = {
     {u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE",u"OU.DAT"},
     {u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE",u"OU.BIN"},
     };
   for(auto n:names) {
-    std::u16string full = gothic.nestedPath(n,Dir::FT_File);
+    std::u16string full = Gothic::inst().nestedPath(n,Dir::FT_File);
     try {
       std::vector<uint8_t> data;
       RFile f(full);
@@ -1294,10 +1294,6 @@ int GameScript::npcDamDiveTime() {
     return 0;
   auto& var = vm.getDATFile().getSymbolByIndex(id);
   return var.getInt(0);
-  }
-
-const FightAi::FA &GameScript::getFightAi(size_t i) const {
-  return owner.getFightAi(i);
   }
 
 Npc *GameScript::popInstance(Daedalus::DaedalusVM &vm) {

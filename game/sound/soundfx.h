@@ -6,13 +6,12 @@
 
 #include <daedalus/DaedalusStdlib.h>
 
-class Gothic;
 class GSoundEffect;
 
 class SoundFx {
   public:
-    SoundFx(Gothic &gothic, const char *tagname);
-    SoundFx(Gothic &gothic, Tempest::Sound &&raw);
+    SoundFx(const char *tagname);
+    SoundFx(Tempest::Sound &&raw);
     SoundFx(SoundFx&&)=default;
     SoundFx& operator=(SoundFx&&)=default;
 
@@ -30,7 +29,7 @@ class SoundFx {
       };
 
     std::vector<SoundVar> inst;
-    void implLoad(Gothic &gothic, const char* name);
-    void loadVariants(Gothic &gothic, const char* name);
+    void implLoad    (const char* name);
+    void loadVariants(const char* name);
   };
 

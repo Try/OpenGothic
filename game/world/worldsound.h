@@ -18,7 +18,7 @@ class SoundFx;
 
 class WorldSound final {
   public:
-    WorldSound(Gothic &gothic, GameSession& game,World& world);
+    WorldSound(GameSession& game, World& world);
     ~WorldSound();
 
     void    setDefaultZone(const ZenLoad::zCVobData &vob);
@@ -63,7 +63,6 @@ class WorldSound final {
     Sound   implAddSound(const SoundFx& s, float x, float y, float z, float rangeRef, float rangeMax);
     Sound   implAddSound(Tempest::SoundEffect&& s, float x, float y, float z, float rangeRef, float rangeMax);
 
-    Gothic&                                 gothic;
     GameSession&                            game;
     World&                                  owner;
 

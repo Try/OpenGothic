@@ -5,13 +5,12 @@
 
 #include "utils/keycodec.h"
 
-class Gothic;
 class GameMenu;
 class Npc;
 
 class MenuRoot : public Tempest::Widget {
   public:
-    MenuRoot(Gothic& gothic, KeyCodec& keyCodec);
+    MenuRoot(KeyCodec& keyCodec);
     ~MenuRoot() override;
 
     void setMenu(const char* menu, KeyCodec::Action key = KeyCodec::Escape);
@@ -31,7 +30,6 @@ class MenuRoot : public Tempest::Widget {
     void mouseUpEvent   (Tempest::MouseEvent& event) override;
 
   private:
-    Gothic&                                gothic;
     std::unique_ptr<Daedalus::DaedalusVM>  vm;
     GameMenu*                              current=nullptr;
     std::vector<std::unique_ptr<GameMenu>> menuStack;

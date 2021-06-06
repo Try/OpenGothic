@@ -7,9 +7,9 @@
 
 using namespace Tempest;
 
-MenuRoot::MenuRoot(Gothic &gothic, KeyCodec& keyCodec)
-  :gothic(gothic), keyCodec(keyCodec) {
-  vm = gothic.createVm(u"MENU.DAT");
+MenuRoot::MenuRoot(KeyCodec& keyCodec)
+  :keyCodec(keyCodec) {
+  vm = Gothic::inst().createVm(u"MENU.DAT");
   }
 
 MenuRoot::~MenuRoot() {
@@ -20,7 +20,7 @@ void MenuRoot::setMenu(const char *menuEv, KeyCodec::Action key) {
     Log::e("invalid menu-id: ",menuEv);
     return;
     }
-  setMenu(new GameMenu(*this,keyCodec,*vm,gothic,menuEv,key));
+  setMenu(new GameMenu(*this,keyCodec,*vm,menuEv,key));
   }
 
 void MenuRoot::setMenu(GameMenu *w) {
@@ -44,7 +44,7 @@ void MenuRoot::pushMenu(GameMenu *w) {
 
 void MenuRoot::popMenu() {
   if(menuStack.size()==0) {
-    if(gothic.isInGame() || gothic.checkLoading()!=Gothic::LoadState::Idle) {
+    if(Gothic::inst().isInGame() || Gothic::inst().checkLoading()!=Gothic::LoadState::Idle) {
       current=nullptr;
       removeAllWidgets();
       owner()->setFocus(true);
@@ -62,7 +62,7 @@ void MenuRoot::popMenu() {
 
 void MenuRoot::closeAll() {
   menuStack.clear();
-  if(gothic.isInGame() || gothic.checkLoading()!=Gothic::LoadState::Idle) {
+  if(Gothic::inst().isInGame() || Gothic::inst().checkLoading()!=Gothic::LoadState::Idle) {
     current=nullptr;
     removeAllWidgets();
     }

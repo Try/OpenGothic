@@ -4,12 +4,11 @@
 #include <Tempest/Texture2d>
 #include <Tempest/Timer>
 
-class Gothic;
 class KeyCodec;
 
 class DocumentMenu : public Tempest::Widget {
   public:
-    DocumentMenu(Gothic& gothic, const KeyCodec& key);
+    DocumentMenu(const KeyCodec& key);
 
     enum Flags : uint8_t {
       F_None,
@@ -48,7 +47,6 @@ class DocumentMenu : public Tempest::Widget {
     void paintEvent(Tempest::PaintEvent& e);
 
   private:
-    Gothic&                   gothic;
     DocumentMenu::Show        document;
     const KeyCodec&           keycodec;
     const Tempest::Texture2d* cursor = nullptr;

@@ -50,8 +50,8 @@ static void emplaceTag(char* buf, char tag){
     }
   }
 
-Resources::Resources(Gothic &gothic, Tempest::Device &device)
-  : dev(device), gothic(gothic) {
+Resources::Resources(Tempest::Device &device)
+  : dev(device) {
   inst=this;
 
   ZenLib::Log::SetLogCallback([](ZenLib::Log::EMessageType t, const char* what) {
@@ -79,12 +79,12 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
 
   dxMusic.reset(new Dx8::DirectMusic());
   // G2
-  dxMusic->addPath(gothic.nestedPath({u"_work",u"Data",u"Music",u"newworld"},  Dir::FT_Dir));
-  dxMusic->addPath(gothic.nestedPath({u"_work",u"Data",u"Music",u"AddonWorld"},Dir::FT_Dir));
+  dxMusic->addPath(Gothic::inst().nestedPath({u"_work",u"Data",u"Music",u"newworld"},  Dir::FT_Dir));
+  dxMusic->addPath(Gothic::inst().nestedPath({u"_work",u"Data",u"Music",u"AddonWorld"},Dir::FT_Dir));
   // G1
-  dxMusic->addPath(gothic.nestedPath({u"_work",u"Data",u"Music",u"dungeon"},  Dir::FT_Dir));
-  dxMusic->addPath(gothic.nestedPath({u"_work",u"Data",u"Music",u"menu_men"}, Dir::FT_Dir));
-  dxMusic->addPath(gothic.nestedPath({u"_work",u"Data",u"Music",u"orchestra"},Dir::FT_Dir));
+  dxMusic->addPath(Gothic::inst().nestedPath({u"_work",u"Data",u"Music",u"dungeon"},  Dir::FT_Dir));
+  dxMusic->addPath(Gothic::inst().nestedPath({u"_work",u"Data",u"Music",u"menu_men"}, Dir::FT_Dir));
+  dxMusic->addPath(Gothic::inst().nestedPath({u"_work",u"Data",u"Music",u"orchestra"},Dir::FT_Dir));
 
   fBuff .reserve(8*1024*1024);
   ddsBuf.reserve(8*1024*1024);
@@ -103,7 +103,7 @@ Resources::Resources(Gothic &gothic, Tempest::Device &device)
   }
 
   std::vector<Archive> archives;
-  detectVdf(archives,gothic.nestedPath({u"Data"},Dir::FT_Dir));
+  detectVdf(archives,Gothic::inst().nestedPath({u"Data"},Dir::FT_Dir));
 
   // addon archives first!
   std::stable_sort(archives.begin(),archives.end(),[](const Archive& a,const Archive& b){
@@ -464,7 +464,7 @@ std::unique_ptr<Animation> Resources::implLoadAnimation(std::string name) {
   if(name.size()<4)
     return nullptr;
 
-  if(gothic.version().game==2)
+  if(Gothic::inst().version().game==2)
     FileExt::exchangeExt(name,"MDS","MSB");
 
   if(FileExt::hasExt(name,"MSB")) {
@@ -703,7 +703,7 @@ ZenLoad::oCWorldData& Resources::implLoadVobBundle(const std::string& filename) 
     parser.readHeader();
 
     auto fver = ZenLoad::ZenParser::FileVersion::Gothic1;
-    if(gothic.version().game==2)
+    if(Gothic::inst().version().game==2)
       fver = ZenLoad::ZenParser::FileVersion::Gothic2;
     parser.readWorld(bundle,fver);
     }

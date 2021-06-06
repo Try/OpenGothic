@@ -3,14 +3,12 @@
 #include <daedalus/DaedalusStdlib.h>
 #include <memory>
 
-class Gothic;
-
 class MusicDefinitions final {
   public:
-    MusicDefinitions(Gothic &gothic);
+    MusicDefinitions();
     ~MusicDefinitions();
 
-    const Daedalus::GEngineClasses::C_MusicTheme* get(const char* name);
+    const Daedalus::GEngineClasses::C_MusicTheme* operator[](const char* name) const;
 
   private:
     std::unique_ptr<Daedalus::DaedalusVM>  vm;

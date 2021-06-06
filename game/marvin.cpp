@@ -110,7 +110,7 @@ void Marvin::autoComplete(std::string& v) {
     }
   }
 
-bool Marvin::exec(Gothic& gothic, const std::string& v) {
+bool Marvin::exec(const std::string& v) {
   auto ret = recognize(v);
   switch(ret.cmd.type) {
     case C_None:
@@ -119,7 +119,7 @@ bool Marvin::exec(Gothic& gothic, const std::string& v) {
     case C_Invalid:
       return false;
     case C_CheatFull:{
-      if(auto pl = gothic.player()) {
+      if(auto pl = Gothic::inst().player()) {
         pl->changeAttribute(Npc::ATR_HITPOINTS,pl->attribute(Npc::ATR_HITPOINTSMAX),false);
         }
       return true;
@@ -129,17 +129,17 @@ bool Marvin::exec(Gothic& gothic, const std::string& v) {
     case C_CamMode:
       return true;
     case C_ToogleCamDebug:
-      if(auto c = gothic.camera())
+      if(auto c = Gothic::inst().camera())
         c->toogleDebug();
       return true;
     case C_ToogleCamera: {
-      if(auto c = gothic.camera())
+      if(auto c = Gothic::inst().camera())
         c->setToogleEnable(!c->isToogleEnabled());
       return true;
       }
     case C_Insert: {
-      World* world = gothic.world();
-      Npc* player = gothic.player();
+      World* world  = Gothic::inst().world();
+      Npc*   player = Gothic::inst().player();
 
       std::string::size_type spacePos = v.find(" ");
 

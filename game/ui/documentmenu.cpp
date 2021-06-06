@@ -8,8 +8,8 @@
 
 using namespace Tempest;
 
-DocumentMenu::DocumentMenu(Gothic& gothic, const KeyCodec& key)
-  :gothic(gothic), keycodec(key) {
+DocumentMenu::DocumentMenu(const KeyCodec& key)
+  :keycodec(key) {
   cursor = Resources::loadTexture("U.TGA");
   }
 
@@ -24,7 +24,7 @@ void DocumentMenu::close() {
     return;
   active=false;
 
-  if(auto pl = gothic.player())
+  if(auto pl = Gothic::inst().player())
     pl->setInteraction(nullptr);
   }
 
@@ -59,9 +59,8 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
 
   float k = std::min(1.f,float(800+document.margins.xMargin())/std::max(mw,1.f));
 
-  int x=(w()-int(k*mw))/2, y = (h()-int(mh))/2;
-  auto wrld = gothic.world();
-  auto pl   = wrld ? wrld->player() : nullptr;
+  int  x  = (w()-int(k*mw))/2, y = (h()-int(mh))/2;
+  auto pl = Gothic::inst().player();
 
   Painter p(e);
   for(auto& i:document.pages){

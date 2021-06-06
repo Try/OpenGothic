@@ -40,13 +40,12 @@
 #include "resources.h"
 
 class MenuRoot;
-class Gothic;
 class GameSession;
 class Interactive;
 
 class MainWindow : public Tempest::Window {
   public:
-    explicit MainWindow(Gothic& gothic, Tempest::Device& device);
+    explicit MainWindow(Tempest::Device& device);
     ~MainWindow() override;
 
   private:
@@ -127,7 +126,6 @@ class MainWindow : public Tempest::Window {
 
     bool                      mouseP[Tempest::MouseEvent::ButtonBack]={};
 
-    Gothic&                   gothic;
     KeyCodec                  keycodec;
 
     MenuRoot                  rootMenu;

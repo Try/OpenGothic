@@ -8,13 +8,12 @@
 
 class World;
 class Npc;
-class Gothic;
 class DbgPainter;
 class Serialize;
 
 class Camera final {
   public:
-    Camera(Gothic& gothic);
+    Camera();
 
     enum Mode {
       Dialog,
@@ -79,7 +78,6 @@ class Camera final {
       float         range = 0.3f;
       };
 
-    Gothic&               gothic;
     State                 state, dest;
     float                 dlgDist = 0;
 

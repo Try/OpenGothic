@@ -93,8 +93,8 @@ struct GameMenu::SavNameDialog : Dialog {
   bool                accepted = false;
   };
 
-GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, Daedalus::DaedalusVM &vm, Gothic &gothic, const char* menuSection, KeyCodec::Action kClose)
-  :gothic(gothic), owner(owner), keyCodec(keyCodec), vm(vm), kClose(kClose) {
+GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, Daedalus::DaedalusVM &vm, const char* menuSection, KeyCodec::Action kClose)
+  :owner(owner), keyCodec(keyCodec), vm(vm), kClose(kClose) {
   timer.timeout.bind(this,&GameMenu::onTick);
   timer.start(100);
 
@@ -126,7 +126,7 @@ GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, Daedalus::DaedalusVM &vm
   updateValues();
   slider = Resources::loadTexture("MENU_SLIDER_POS.TGA");
 
-  gothic.pushPause();
+  Gothic::inst().pushPause();
   }
 
 GameMenu::~GameMenu() {
@@ -134,8 +134,8 @@ GameMenu::~GameMenu() {
     vm.clearReferences(hItems[i].handle);
   vm.clearReferences(menu);
 
-  gothic.flushSettings();
-  gothic.popPause();
+  Gothic::flushSettings();
+  Gothic::inst().popPause();
   Resources::device().waitIdle(); // safe-delete savethumb
   }
 
@@ -223,7 +223,7 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
     drawSlider(p,hItem,x,y,szX,szY);
     }
   else if(item.type==MENU_ITEM_LISTBOX) {
-    if(auto ql = gothic.questLog()) {
+    if(auto ql = Gothic::inst().questLog()) {
       const int px = int(float(w()*item.frameSizeX)/scriptDiv);
       const int py = int(float(h()*item.frameSizeY)/scriptDiv);
 
@@ -242,8 +242,8 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
     char textBuf[256]={};
 
     if(item.onChgSetOptionSection=="KEYS") {
-      auto& keys = gothic.settingsGetS(item.onChgSetOptionSection.c_str(),
-                                       item.onChgSetOption.c_str());
+      auto& keys = Gothic::settingsGetS(item.onChgSetOptionSection.c_str(),
+                                        item.onChgSetOption.c_str());
       if(&hItem==ctrlInput)
         std::snprintf(textBuf,sizeof(textBuf),"_"); else
         KeyCodec::keysStr(keys,textBuf,sizeof(textBuf));
@@ -277,7 +277,7 @@ void GameMenu::drawSlider(Painter& p, Item& it, int x, int y, int sw, int sh) {
   if(sec.empty() || opt.empty())
     return;
 
-  float v  = gothic.settingsGetF(sec.c_str(),opt.c_str());
+  float v  = Gothic::settingsGetF(sec.c_str(),opt.c_str());
   int   dx = int(float(sw-w)*std::max(0.f,std::min(v,1.f)));
   p.drawRect(x+dx,y+(sh-h)/2,w,h,
              0,0,p.brush().w(),p.brush().h());
@@ -304,7 +304,7 @@ void GameMenu::resizeEvent(SizeEvent &) {
   }
 
 void GameMenu::onMove(int dy) {
-  gothic.emitGlobalSound(gothic.loadSoundFx("MENU_BROWSE"));
+  Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_BROWSE"));
   setSelection(int(curItem)+dy, dy>0 ? 1 : -1);
   if(auto s = selectedItem())
     updateSavThumb(*s);
@@ -313,7 +313,7 @@ void GameMenu::onMove(int dy) {
 
 void GameMenu::onSelect() {
   if(auto sel=selectedItem()){
-    gothic.emitGlobalSound(gothic.loadSoundFx("MENU_SELECT"));
+    Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_SELECT"));
     exec(*sel,0);
     }
   }
@@ -475,20 +475,20 @@ void GameMenu::execSingle(Item &it, int slideDx) {
       case SEL_ACTION_UNDEF:
         break;
       case SEL_ACTION_BACK:
-        gothic.emitGlobalSound(gothic.loadSoundFx("MENU_ESC"));
+        Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_ESC"));
         exitFlag = true;
         break;
       case SEL_ACTION_STARTMENU:
         if(vm.getDATFile().hasSymbolName(onSelAction_S[i].c_str()))
-          owner.pushMenu(new GameMenu(owner,keyCodec,vm,gothic,onSelAction_S[i].c_str(),keyClose()));
+          owner.pushMenu(new GameMenu(owner,keyCodec,vm,onSelAction_S[i].c_str(),keyClose()));
         break;
       case SEL_ACTION_STARTITEM:
         break;
       case SEL_ACTION_CLOSE:
-        gothic.emitGlobalSound(gothic.loadSoundFx("MENU_ESC"));
+        Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_ESC"));
         closeFlag = true;
         if(onSelAction_S[i]=="NEW_GAME")
-          gothic.onStartGame(gothic.defaultWorld());
+          Gothic::inst().onStartGame(Gothic::inst().defaultWorld());
         else if(onSelAction_S[i]=="LEAVE_GAME")
           Tempest::SystemApi::exit();
         else if(onSelAction_S[i]=="SAVEGAME_SAVE")
@@ -500,7 +500,7 @@ void GameMenu::execSingle(Item &it, int slideDx) {
         // unknown
         break;
       case SEL_ACTION_PLAY_SOUND:
-        gothic.emitGlobalSound(gothic.loadSoundFx(onSelAction_S[i].c_str()));
+        Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx(onSelAction_S[i].c_str()));
         break;
       case SEL_ACTION_EXECCOMMANDS:
         execCommands(it,onSelAction_S[i]);
@@ -523,9 +523,9 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
 
   if(item.handle.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_SLIDER && slideDx!=0) {
     updateItem(item);
-    float v = gothic.settingsGetF(sec.c_str(),opt.c_str());
+    float v = Gothic::settingsGetF(sec.c_str(),opt.c_str());
     v  = std::max(0.f,std::min(v+float(slideDx)*0.03f,1.f));
-    gothic.settingsSetF(sec.c_str(), opt.c_str(), v);
+    Gothic::settingsSetF(sec.c_str(), opt.c_str(), v);
     }
   if(item.handle.type==Daedalus::GEngineClasses::C_Menu_Item::MENU_ITEM_CHOICEBOX && slideDx==0) {
     updateItem(item);
@@ -535,7 +535,7 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
     if(cnt>0)
       item.value%=cnt; else
       item.value =0;
-    gothic.settingsSetI(sec.c_str(), opt.c_str(), item.value);
+    Gothic::settingsSetI(sec.c_str(), opt.c_str(), item.value);
     }
   }
 
@@ -546,7 +546,7 @@ void GameMenu::execSaveGame(GameMenu::Item &item) {
 
   char fname[64]={};
   std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",int(id));
-  gothic.save(fname,item.handle.text[0].c_str());
+  Gothic::inst().save(fname,item.handle.text[0].c_str());
   }
 
 void GameMenu::execLoadGame(GameMenu::Item &item) {
@@ -556,7 +556,7 @@ void GameMenu::execLoadGame(GameMenu::Item &item) {
 
   char fname[64]={};
   std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",int(id));
-  gothic.load(fname);
+  Gothic::inst().load(fname);
   }
 
 void GameMenu::execCommands(GameMenu::Item& /*it*/,const Daedalus::ZString str) {
@@ -588,7 +588,7 @@ void GameMenu::execCommands(GameMenu::Item& /*it*/,const Daedalus::ZString str) 
 
 void GameMenu::updateItem(GameMenu::Item &item) {
   auto& it   = item.handle;
-  item.value = gothic.settingsGetI(it.onChgSetOptionSection.c_str(), it.onChgSetOption.c_str());
+  item.value = Gothic::settingsGetI(it.onChgSetOptionSection.c_str(), it.onChgSetOption.c_str());
   updateSavTitle(item);
   }
 
@@ -652,10 +652,10 @@ void GameMenu::setDefaultKeys(const char* preset) {
   }
 
 bool GameMenu::isInGameAndAlive() const {
-  auto pl = gothic.player();
+  auto pl = Gothic::inst().player();
   if(pl==nullptr || pl->isDead())
     return false;
-  return gothic.isInGame();
+  return Gothic::inst().isInGame();
   }
 
 bool GameMenu::implUpdateSavThumb(GameMenu::Item& sel) {
@@ -801,7 +801,7 @@ void GameMenu::set(const char *item, const char *value) {
 
 void GameMenu::updateValues() {
   gtime time;
-  if(auto w = gothic.world())
+  if(auto w = Gothic::inst().world())
     time = w->time();
 
   set("MENU_ITEM_PLAYERGUILD","Debugger");
@@ -827,7 +827,7 @@ void GameMenu::updateValues() {
   }
 
 void GameMenu::setPlayer(const Npc &pl) {
-  auto world = gothic.world();
+  auto world = Gothic::inst().world();
   if(world==nullptr)
     return;
 
@@ -852,7 +852,7 @@ void GameMenu::setPlayer(const Npc &pl) {
   set("MENU_ITEM_ARMOR_3", pl.protection(Npc::PROT_FIRE));
   set("MENU_ITEM_ARMOR_4", pl.protection(Npc::PROT_MAGIC));
 
-  const int talentMax = gothic.version().game==2 ? Npc::TALENT_MAX_G2 : Npc::TALENT_MAX_G1;
+  const int talentMax = Gothic::inst().version().game==2 ? Npc::TALENT_MAX_G2 : Npc::TALENT_MAX_G1;
   for(int i=0;i<talentMax;++i){
     auto& str = tal.getString(size_t(i));
     if(str.empty())

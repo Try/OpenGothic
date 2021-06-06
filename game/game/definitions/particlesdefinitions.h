@@ -6,12 +6,11 @@
 #include <memory>
 #include <mutex>
 
-class Gothic;
 class ParticleFx;
 
 class ParticlesDefinitions final {
   public:
-    ParticlesDefinitions(Gothic &gothic);
+    ParticlesDefinitions();
     ~ParticlesDefinitions();
 
     const ParticleFx* get(const char* name);

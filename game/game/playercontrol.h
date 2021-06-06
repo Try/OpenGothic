@@ -17,7 +17,7 @@ class Gothic;
 
 class PlayerControl final {
   public:
-    PlayerControl(Gothic& gothic,DialogMenu& dlg,InventoryMenu& inv);
+    PlayerControl(DialogMenu& dlg, InventoryMenu& inv);
 
     void onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key);
     void onKeyReleased(KeyCodec::Action a);
@@ -89,7 +89,6 @@ class PlayerControl final {
     uint64_t       turnAniSmooth  = 0;
     int            rotationAni    = 0;
 
-    Gothic&        gothic;
     DialogMenu&    dlg;
     InventoryMenu& inv;
 
@@ -99,7 +98,6 @@ class PlayerControl final {
     void           toggleSneakMode();
     Focus          findFocus(Focus *prev);
 
-    World*         world() const;
     void           clrDraw();
     void           implMove(uint64_t dt);
     void           implMoveMobsi(Npc& pl, uint64_t dt);

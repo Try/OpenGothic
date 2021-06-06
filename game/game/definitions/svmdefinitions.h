@@ -4,8 +4,6 @@
 #include <daedalus/ZString.h>
 #include <memory>
 
-class Gothic;
-
 class SvmDefinitions final {
   public:
     SvmDefinitions(Daedalus::DaedalusVM &vm);

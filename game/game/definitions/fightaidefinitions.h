@@ -2,8 +2,6 @@
 
 #include <daedalus/DaedalusVM.h>
 
-class Gothic;
-
 class FightAi final {
   public:
     struct FA final {
@@ -34,9 +32,9 @@ class FightAi final {
       Daedalus::GEngineClasses::C_FightAI my_fk_nofocus_mag; // Opponents NOT in focus
       };
 
-    FightAi(Gothic &gothic);
+    FightAi();
 
-    const FA& get(size_t i);
+    const FA& operator[](size_t i) const;
 
   private:
     auto loadAi(Daedalus::DaedalusVM &vm, const char* name) -> Daedalus::GEngineClasses::C_FightAI;

@@ -4,11 +4,9 @@
 #include <Tempest/Texture2d>
 #include <Tempest/Timer>
 
-class Gothic;
-
 class ChapterScreen : public Tempest::Widget {
   public:
-    ChapterScreen(Gothic& gothic);
+    ChapterScreen();
 
     struct Show {
       std::string title;
@@ -28,7 +26,6 @@ class ChapterScreen : public Tempest::Widget {
     void paintEvent(Tempest::PaintEvent& e);
 
   private:
-    Gothic&                   gothic;
     const Tempest::Texture2d* back=nullptr;
     bool                      active=false;
     Tempest::Timer            timer;

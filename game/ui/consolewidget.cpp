@@ -49,8 +49,7 @@ struct ConsoleWidget::Overlay : public Tempest::UiOverlay {
     }
   };
 
-ConsoleWidget::ConsoleWidget(Gothic& gothic)
-  :gothic(gothic) {
+ConsoleWidget::ConsoleWidget() {
   setSizeHint(1024,256);
   setMargins(Margin(8,8,8,8));
   setSizePolicy(Fixed);
@@ -170,7 +169,7 @@ void ConsoleWidget::keyDownEvent(KeyEvent& e) {
   if(e.key==Event::K_Return) {
     if(log.back().size()>0) {
       cmdHist.emplace_back(log.back());
-      if(!marvin.exec(gothic,log.back()))
+      if(!marvin.exec(log.back()))
         log.back() = "Unknown command : " + log.back();
       log.emplace_back("");
       }

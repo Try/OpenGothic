@@ -4,11 +4,9 @@
 #include <string>
 #include <vector>
 
-class Gothic;
-
 class KeyCodec final {
   public:
-    KeyCodec(Gothic& gothic);
+    KeyCodec();
 
     enum Action : uint8_t {
       Idle,
@@ -89,8 +87,6 @@ class KeyCodec final {
     void        setupSettings();
     KeyPair     setup(const char* kp);
     static auto parse(const std::string& kp) -> KeyPair;
-
-    Gothic&     gothic;
 
     KeyPair     keyEnd;
     KeyPair     keyHeal;

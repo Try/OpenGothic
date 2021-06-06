@@ -8,8 +8,8 @@
 
 using namespace Tempest;
 
-ParticlesDefinitions::ParticlesDefinitions(Gothic& gothic) {
-  vm = gothic.createVm(u"ParticleFx.dat");
+ParticlesDefinitions::ParticlesDefinitions() {
+  vm = Gothic::inst().createVm(u"ParticleFx.dat");
   }
 
 ParticlesDefinitions::~ParticlesDefinitions() {

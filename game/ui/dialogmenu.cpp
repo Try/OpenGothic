@@ -34,23 +34,23 @@ bool DialogMenu::Pipe::isFinished() {
   return ret;
   }
 
-DialogMenu::DialogMenu(Gothic &gothic, InventoryMenu &trade)
-  :gothic(gothic), trade(trade), pipe(*this) {
+DialogMenu::DialogMenu(InventoryMenu &trade)
+  :trade(trade), pipe(*this) {
   tex     = Resources::loadTexture("DLG_CHOICE.TGA");
   ambient = Resources::loadTexture("DLG_AMBIENT.TGA");
 
   setFocusPolicy(NoFocus);
 
-  gothic.onSettingsChanged.bind(this,&DialogMenu::setupSettings);
+  Gothic::inst().onSettingsChanged.bind(this,&DialogMenu::setupSettings);
   setupSettings();
   }
 
 DialogMenu::~DialogMenu() {
-  gothic.onSettingsChanged.ubind(this,&DialogMenu::setupSettings);
+  Gothic::inst().onSettingsChanged.ubind(this,&DialogMenu::setupSettings);
   }
 
 void DialogMenu::setupSettings() {
-  dlgAnimation = gothic.settingsGetI("GAME","animatedWindows");
+  dlgAnimation = Gothic::settingsGetI("GAME","animatedWindows");
   }
 
 void DialogMenu::tick(uint64_t dt) {
@@ -214,8 +214,8 @@ bool DialogMenu::aiOutput(Npc &npc, const Daedalus::ZString& msg) {
       pl->stopDlgAnim();
     }
 
-  current.txt     = gothic.messageByName(msg).c_str();
-  current.msgTime = gothic.messageTime(msg);
+  current.txt     = Gothic::inst().messageByName(msg).c_str();
+  current.msgTime = Gothic::inst().messageTime(msg);
   current.time    = current.msgTime + (dlgAnimation ? ANIM_TIME*2 : 0);
   currentSnd      = soundDevice.load(Resources::loadSoundBuffer(std::string(msg.c_str())+".wav"));
   curentIsPl      = (pl==&npc);
@@ -291,7 +291,7 @@ void DialogMenu::print(const char *msg) {
   }
 
 void DialogMenu::onDoneText() {
-  choise = gothic.updateDialog(selected,*pl,*other);
+  choise = Gothic::inst().updateDialog(selected,*pl,*other);
   dlgSel = 0;
   if(choise.size()==0){
     if(depth>0) {
@@ -358,7 +358,7 @@ void DialogMenu::onEntry(const GameScript::DlgChoise &e) {
     depth    = 1;
     dlgTrade = e.isTrade;
     except.push_back(e.scriptFn);
-    gothic.dialogExec(e,*pl,*other);
+    Gothic::inst().dialogExec(e,*pl,*other);
 
     onDoneText();
     }

@@ -28,7 +28,6 @@ void Sky::setWorld(const World &world) {
     night.lay[i].texture = skyTexture(name.c_str(),false,i);
     }
 
-  auto& gothic = world.gameSession().gothic();
   /*
     zSunName=unsun5.tga
     zSunSize=200
@@ -37,7 +36,7 @@ void Sky::setWorld(const World &world) {
     zMoonSize=400
     zMoonAlpha=255
     */
-  sun          = Resources::loadTexture(gothic.settingsGetS("SKY_OUTDOOR","zSunName"));
+  sun          = Resources::loadTexture(Gothic::settingsGetS("SKY_OUTDOOR","zSunName"));
   // auto& moon   = gothic.settingsGetS("SKY_OUTDOOR","zMoonName");
 
   setupUbo();

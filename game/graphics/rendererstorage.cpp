@@ -47,7 +47,7 @@ void RendererStorage::MaterialTemplate::load(Device &device, const char *tag) {
   clr.load(device,fclr,"%s.%s.sprv");
   }
 
-RendererStorage::RendererStorage(Gothic& gothic) {
+RendererStorage::RendererStorage() {
   auto& device = Resources::device();
 
   solid   .load(device,"gbuffer");
@@ -139,7 +139,7 @@ RendererStorage::RendererStorage(Gothic& gothic) {
   pFog         = device.pipeline<Resources::VertexFsq>(Triangles, state, vsFog, fsFog);
   }
 
-  if(gothic.version().game==1) {
+  if(Gothic::inst().version().game==1) {
     auto sh    = GothicShader::get("sky_g1.vert.sprv");
     auto vsSky = device.shader(sh.data,sh.len);
     sh         = GothicShader::get("sky_g1.frag.sprv");

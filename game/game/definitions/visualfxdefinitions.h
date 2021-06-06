@@ -5,12 +5,11 @@
 #include <unordered_map>
 #include <memory>
 
-class Gothic;
 class VisualFx;
 
 class VisualFxDefinitions final {
   public:
-    VisualFxDefinitions(Gothic &gothic);
+    VisualFxDefinitions();
     ~VisualFxDefinitions();
 
     const VisualFx *get(const char* name);

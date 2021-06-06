@@ -69,8 +69,7 @@ std::initializer_list<KeyCodec::M_Key> KeyCodec::mkeys = {
   {Tempest::Event::ButtonRight, 0x0d02},
   };
 
-KeyCodec::KeyCodec(Gothic& gothic)
-  :gothic(gothic) {  
+KeyCodec::KeyCodec() {
   allKeys = {
     &keyEnd,
     &keyHeal,
@@ -97,7 +96,7 @@ KeyCodec::KeyCodec(Gothic& gothic)
     &keyShowLog,
     &keyShowMap
     };
-  gothic.onSettingsChanged.bind(this,&KeyCodec::setupSettings);
+  Gothic::inst().onSettingsChanged.bind(this,&KeyCodec::setupSettings);
   setupSettings();
   }
 
@@ -137,21 +136,21 @@ void KeyCodec::set(const char* sec, const char* opt, int32_t code) {
       for(auto r:i->k)
         if(r!=0)
           s += toCode(r);
-      gothic.settingsSetS("KEYS",i->key,s.c_str());
+      Gothic::settingsSetS("KEYS",i->key,s.c_str());
       }
     }
 
-  std::string val = gothic.settingsGetS(sec, opt);
+  std::string val = Gothic::settingsGetS(sec, opt);
   if(val.size()>4)
     val = val.substr(val.size()-4,4);
   val += toCode(code);
-  gothic.settingsSetS(sec, opt, val.c_str());
+  Gothic::settingsSetS(sec, opt, val.c_str());
   }
 
 void KeyCodec::setDefaultKeys(const char* preset) {
   for(auto i:allKeys) {
-    auto s = gothic.settingsGetS(preset,i->key);
-    gothic.settingsSetS("KEYS",i->key,s.c_str());
+    auto s = Gothic::settingsGetS(preset,i->key);
+    Gothic::settingsSetS("KEYS",i->key,s.c_str());
     *i = setup(i->key);
     }
   }
@@ -382,7 +381,7 @@ void KeyCodec::setupSettings() {
   }
 
 KeyCodec::KeyPair KeyCodec::setup(const char* kp) {
-  auto k = parse(gothic.settingsGetS("KEYS",kp));
+  auto k = parse(Gothic::settingsGetS("KEYS",kp));
   k.key = kp;
   return k;
   }

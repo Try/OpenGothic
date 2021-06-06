@@ -26,18 +26,17 @@
 
 using namespace Tempest;
 
-MainWindow::MainWindow(Gothic &gothic, Device& device)
+MainWindow::MainWindow(Device& device)
   : Window(Maximized),device(device),swapchain(device,hwnd()),
-    atlas(device),renderer(swapchain,gothic),
-    gothic(gothic),keycodec(gothic),
-    rootMenu(gothic,keycodec),video(gothic),inventory(gothic,keycodec,renderer.storage()),
-    dialogs(gothic,inventory),document(gothic,keycodec),chapter(gothic),console(gothic),
-    player(gothic,dialogs,inventory) {
+    atlas(device),renderer(swapchain),
+    rootMenu(keycodec),inventory(keycodec,renderer.storage()),
+    dialogs(inventory),document(keycodec),
+    player(dialogs,inventory) {
   CrashLog::setGpu(device.properties().name);
   for(uint8_t i=0;i<Resources::MaxFramesInFlight;++i)
     fence[i] = device.fence();
 
-  if(!gothic.isWindowMode())
+  if(!Gothic::inst().isWindowMode())
     setFullscreen(true);
 
   renderer.resetSwapchain();
@@ -54,22 +53,22 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
   loadBox    = Resources::loadTexture("PROGRESS.TGA");
   loadVal    = Resources::loadTexture("PROGRESS_BAR.TGA");
 
-  gothic.onStartGame    .bind(this,&MainWindow::startGame);
-  gothic.onLoadGame     .bind(this,&MainWindow::loadGame);
-  gothic.onSaveGame     .bind(this,&MainWindow::saveGame);
+  Gothic::inst().onStartGame    .bind(this,&MainWindow::startGame);
+  Gothic::inst().onLoadGame     .bind(this,&MainWindow::loadGame);
+  Gothic::inst().onSaveGame     .bind(this,&MainWindow::saveGame);
 
-  gothic.onStartLoading .bind(this,&MainWindow::onStartLoading);
-  gothic.onWorldLoaded  .bind(this,&MainWindow::onWorldLoaded);
-  gothic.onSessionExit  .bind(this,&MainWindow::onSessionExit);
+  Gothic::inst().onStartLoading .bind(this,&MainWindow::onStartLoading);
+  Gothic::inst().onWorldLoaded  .bind(this,&MainWindow::onWorldLoaded);
+  Gothic::inst().onSessionExit  .bind(this,&MainWindow::onSessionExit);
 
-  gothic.onVideo        .bind(this,&MainWindow::onVideo);
+  Gothic::inst().onVideo        .bind(this,&MainWindow::onVideo);
 
-  if(!gothic.defaultSave().empty()){
-    gothic.load(gothic.defaultSave());
+  if(!Gothic::inst().defaultSave().empty()){
+    Gothic::inst().load(Gothic::inst().defaultSave());
     rootMenu.popMenu();
     }
-  else if(!gothic.doStartMenu()) {
-    startGame(gothic.defaultWorld());
+  else if(!Gothic::inst().doStartMenu()) {
+    startGame(Gothic::inst().defaultWorld());
     rootMenu.popMenu();
     }
   else {
@@ -79,7 +78,7 @@ MainWindow::MainWindow(Gothic &gothic, Device& device)
 
 MainWindow::~MainWindow() {
   GameMusic::inst().stopMusic();
-  gothic.cancelLoading();
+  Gothic::inst().cancelLoading();
   device.waitIdle();
   takeWidget(&dialogs);
   takeWidget(&inventory);
@@ -89,7 +88,7 @@ MainWindow::~MainWindow() {
   takeWidget(&rootMenu);
   removeAllWidgets();
   // unload
-  gothic.setGame(std::unique_ptr<GameSession>());
+  Gothic::inst().setGame(std::unique_ptr<GameSession>());
   }
 
 void MainWindow::setupUi() {
@@ -103,20 +102,20 @@ void MainWindow::setupUi() {
 
   rootMenu.setMenu("MENU_MAIN");
 
-  gothic.onDialogPipe  .bind(&dialogs,&DialogMenu::openPipe);
-  gothic.isDialogClose .bind(&dialogs,&DialogMenu::aiIsClose);
+  Gothic::inst().onDialogPipe  .bind(&dialogs,&DialogMenu::openPipe);
+  Gothic::inst().isDialogClose .bind(&dialogs,&DialogMenu::aiIsClose);
 
-  gothic.onPrintScreen .bind(&dialogs,&DialogMenu::printScreen);
-  gothic.onPrint       .bind(&dialogs,&DialogMenu::print);
+  Gothic::inst().onPrintScreen .bind(&dialogs,&DialogMenu::printScreen);
+  Gothic::inst().onPrint       .bind(&dialogs,&DialogMenu::print);
 
-  gothic.onIntroChapter.bind(&chapter, &ChapterScreen::show);
-  gothic.onShowDocument.bind(&document,&DocumentMenu::show);
+  Gothic::inst().onIntroChapter.bind(&chapter, &ChapterScreen::show);
+  Gothic::inst().onShowDocument.bind(&document,&DocumentMenu::show);
   }
 
 void MainWindow::paintEvent(PaintEvent& event) {
   Painter p(event);
-  auto world = gothic.world();
-  auto st    = gothic.checkLoading();
+  auto world = Gothic::inst().world();
+  auto st    = Gothic::inst().checkLoading();
 
   const char* info="";
 
@@ -139,7 +138,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
     if(st==Gothic::LoadState::Saving) {
       drawSaving(p);
       } else {
-      if(auto back = gothic.loadingBanner()) {
+      if(auto back = Gothic::inst().loadingBanner()) {
         p.setBrush(Brush(*back,Painter::NoBlend));
         p.drawRect(0,0,this->w(),this->h(),
                    0,0,back->w(),back->h());
@@ -149,7 +148,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
       }
     } else {
     if(world!=nullptr && world->view()){
-      auto& camera = *gothic.camera();
+      auto& camera = *Gothic::inst().camera();
 
       auto vp = camera.viewProj();
       p.setBrush(Color(1.0));
@@ -157,7 +156,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
       auto focus = world->validateFocus(player.focus());
       paintFocus(p,focus,vp);
 
-      if(auto pl=gothic.player()){
+      if(auto pl = Gothic::inst().player()){
         float hp = float(pl->attribute(Npc::ATR_HITPOINTS))/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
         float mp = float(pl->attribute(Npc::ATR_MANA))     /float(pl->attribute(Npc::ATR_MANAMAX));
         drawBar(p,barHp,  10,    h()-10, hp, AlignLeft  | AlignBottom);
@@ -181,7 +180,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
       }
     }
 
-  if(auto c = gothic.camera()) {
+  if(auto c = Gothic::inst().camera()) {
     DbgPainter dbg(p,c->viewProj(),w(),h());
     c->debugDraw(dbg);
     if(world!=nullptr) {
@@ -191,7 +190,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
     // world->view()->dbgLights(p);
     }
 
-  if(gothic.doFrate()) {
+  if(Gothic::inst().doFrate()) {
     char fpsT[64]={};
     std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %s",fps.get(),info);
 
@@ -205,7 +204,7 @@ void MainWindow::resizeEvent(SizeEvent&) {
     i.wait();
   swapchain.reset();
   renderer.resetSwapchain();
-  if(auto camera = gothic.camera())
+  if(auto camera = Gothic::inst().camera())
     camera->setViewport(swapchain.w(),swapchain.h());
   }
 
@@ -243,18 +242,18 @@ void MainWindow::processMouse(MouseEvent& event, bool enable) {
   }
 
 void MainWindow::tickMouse() {
-  if(dialogs.isActive() || gothic.isPause()) {
+  if(dialogs.isActive() || Gothic::inst().isPause()) {
     dMouse = Point();
     return;
     }
 
-  const bool enableMouse = gothic.settingsGetI("GAME","enableMouse");
+  const bool enableMouse = Gothic::inst().settingsGetI("GAME","enableMouse");
   if(enableMouse==0) {
     dMouse = Point();
     return;
     }
 
-  const float mouseSensitivity = gothic.settingsGetF("GAME","mouseSensitivity");
+  const float mouseSensitivity = Gothic::inst().settingsGetF("GAME","mouseSensitivity");
   PointF dpScaled = PointF(float(dMouse.x)*mouseSensitivity,float(dMouse.y)*mouseSensitivity);
   dpScaled.x/=float(w());
   dpScaled.y/=float(h());
@@ -262,7 +261,7 @@ void MainWindow::tickMouse() {
   dpScaled*=1000.f;
   dpScaled.y /= 7.f;
 
-  if(auto camera = gothic.camera())
+  if(auto camera = Gothic::inst().camera())
     camera->onRotateMouse(PointF(dpScaled.y,-dpScaled.x));
   if(!inventory.isActive()) {
     player.onRotateMouse  (-dpScaled.x);
@@ -273,7 +272,7 @@ void MainWindow::tickMouse() {
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
-  if(auto camera = gothic.camera())
+  if(auto camera = Gothic::inst().camera())
     camera->changeZoom(event.delta);
   }
 
@@ -413,7 +412,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     setFullscreen(!SystemApi::isFullscreen(hwnd()));
     }
   else if(event.key==KeyEvent::K_F5){
-    gothic.quickSave();
+    Gothic::inst().quickSave();
     }
 
   const char* menuEv=nullptr;
@@ -428,7 +427,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
 
   if(menuEv!=nullptr) {
     rootMenu.setMenu(menuEv,act);
-    if(auto pl = gothic.player())
+    if(auto pl = Gothic::inst().player())
       rootMenu.setPlayer(*pl);
     clearInput();
     }
@@ -436,7 +435,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     if(inventory.isActive()) {
       inventory.close();
       } else {
-      auto pl = gothic.player();
+      auto pl = Gothic::inst().player();
       if(pl!=nullptr)
         inventory.open(*pl);
       }
@@ -449,7 +448,7 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
   if(!focus || dialogs.isActive())
     return;
 
-  auto world = gothic.world();
+  auto world = Gothic::inst().world();
   auto pl    = world==nullptr ? nullptr : world->player();
 
   auto pos = focus.displayPosition();
@@ -472,7 +471,7 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
     drawBar(p,barHp, w()/2,10, hp, AlignHCenter|AlignTop);
     }
 
-  const int foc = gothic.settingsGetI("GAME","highlightMeleeFocus");
+  const int foc = Gothic::settingsGetI("GAME","highlightMeleeFocus");
   if(focus.npc!=nullptr  &&
      (foc==1 || foc==3) &&
      player.isPressed(KeyCodec::ActionGeneric) &&
@@ -577,12 +576,12 @@ void MainWindow::drawProgress(Painter &p, int x, int y, int w, int h, float v) {
   }
 
 void MainWindow::drawLoading(Painter &p, int x, int y, int w, int h) {
-  float v = float(gothic.loadingProgress())/100.f;
+  float v = float(Gothic::inst().loadingProgress())/100.f;
   drawProgress(p,x,y,w,h,v);
   }
 
 void MainWindow::drawSaving(Painter &p) {
-  if(auto back = gothic.loadingBanner()) {
+  if(auto back = Gothic::inst().loadingBanner()) {
     p.setBrush(Brush(*back,Painter::NoBlend));
     p.drawRect(0,0,this->w(),this->h(),
                0,0,back->w(),back->h());
@@ -608,7 +607,7 @@ void MainWindow::drawSaving(Painter& p, int sw, int sh, float scale) {
                0,0,saveback->w(),saveback->h());
     }
 
-  float v = float(gothic.loadingProgress())/100.f;
+  float v = float(Gothic::inst().loadingProgress())/100.f;
   drawProgress(p, x+int(100.f*scale), y+sh-int(75.f*scale), sw-2*int(100.f*scale), int(40.f*scale), v);
   }
 
@@ -621,13 +620,13 @@ uint64_t MainWindow::tick() {
   auto dt   = time-lastTick;
   lastTick  = time;
 
-  auto st = gothic.checkLoading();
+  auto st = Gothic::inst().checkLoading();
   if(st==Gothic::LoadState::Finalize || st==Gothic::LoadState::FailedLoad || st==Gothic::LoadState::FailedSave) {
-    gothic.finishLoading();
+    Gothic::inst().finishLoading();
     if(st==Gothic::LoadState::FailedLoad)
       rootMenu.setMenu("MENU_MAIN");
     if(st==Gothic::LoadState::FailedSave)
-      gothic.onPrint("unable to write savegame file");
+      Gothic::inst().onPrint("unable to write savegame file");
     return 0;
     }
   else if(st!=Gothic::LoadState::Idle) {
@@ -637,14 +636,14 @@ uint64_t MainWindow::tick() {
     return 0;
     }
 
-  if(gothic.isPause() || dt==0)
+  if(Gothic::inst().isPause() || dt==0)
     return 0;
 
   if(dt>50)
     dt=50;
   dialogs.tick(dt);
   inventory.tick(dt);
-  gothic.tick(dt);
+  Gothic::inst().tick(dt);
 
   player.tickFocus();
 
@@ -658,8 +657,8 @@ uint64_t MainWindow::tick() {
   }
 
 void MainWindow::tickCamera(uint64_t dt) {
-  auto pcamera = gothic.camera();
-  auto pl      = gothic.player();
+  auto pcamera = Gothic::inst().camera();
+  auto pl      = Gothic::inst().player();
   if(pcamera==nullptr || pl==nullptr)
     return;
 
@@ -671,7 +670,7 @@ void MainWindow::tickCamera(uint64_t dt) {
                              ws==WeaponState::W2H);
   auto       pos = pl->cameraBone();
 
-  if(gothic.isPause()) {
+  if(Gothic::inst().isPause()) {
     renderer.setCameraView(camera);
     }
 
@@ -714,7 +713,7 @@ Camera::Mode MainWindow::solveCameraMode() const {
      inventory.isOpen()==InventoryMenu::State::Ransack)
     return Camera::Inventory;
 
-  if(auto pl=gothic.player()) {
+  if(auto pl=Gothic::inst().player()) {
     if(pl->interactive()!=nullptr)
       return Camera::Mobsi;
     }
@@ -722,7 +721,7 @@ Camera::Mode MainWindow::solveCameraMode() const {
   if(dialogs.isActive())
     return Camera::Dialog;
 
-  if(auto pl=gothic.player()) {
+  if(auto pl = Gothic::inst().player()) {
     if(pl->isDead())
       return Camera::Death;
     if(pl->isDive())
@@ -750,30 +749,30 @@ Camera::Mode MainWindow::solveCameraMode() const {
 void MainWindow::startGame(const std::string &slot) {
   // gothic.emitGlobalSound(gothic.loadSoundFx("NEWGAME"));
 
-  if(gothic.checkLoading()==Gothic::LoadState::Idle){
+  if(Gothic::inst().checkLoading()==Gothic::LoadState::Idle){
     setGameImpl(nullptr);
     onWorldLoaded();
     }
 
-  gothic.startLoad("LOADING.TGA",[this,slot](std::unique_ptr<GameSession>&& game){
+  Gothic::inst().startLoad("LOADING.TGA",[this,slot](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
-    std::unique_ptr<GameSession> w(new GameSession(gothic,renderer.storage(),slot));
+    std::unique_ptr<GameSession> w(new GameSession(renderer.storage(),slot));
     return w;
     });
   update();
   }
 
 void MainWindow::loadGame(const std::string &slot) {
-  if(gothic.checkLoading()==Gothic::LoadState::Idle){
+  if(Gothic::inst().checkLoading()==Gothic::LoadState::Idle){
     setGameImpl(nullptr);
     onWorldLoaded();
     }
 
-  gothic.startLoad("LOADING.TGA",[this,slot](std::unique_ptr<GameSession>&& game){
+  Gothic::inst().startLoad("LOADING.TGA",[this,slot](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
     Tempest::RFile file(slot);
     Serialize      s(file);
-    std::unique_ptr<GameSession> w(new GameSession(gothic,renderer.storage(),s));
+    std::unique_ptr<GameSession> w(new GameSession(renderer.storage(),s));
     return w;
     });
 
@@ -784,7 +783,7 @@ void MainWindow::saveGame(const std::string &slot, const std::string& name) {
   auto tex = renderer.screenshoot(cmdId);
   auto pm  = device.readPixels(textureCast(tex));
 
-  gothic.startSave(std::move(textureCast(tex)),[slot,name,pm](std::unique_ptr<GameSession>&& game){
+  Gothic::inst().startSave(std::move(textureCast(tex)),[slot,name,pm](std::unique_ptr<GameSession>&& game){
     if(!game)
       return std::move(game);
 
@@ -822,9 +821,9 @@ void MainWindow::onWorldLoaded() {
   for(auto& c:commands)
     c = device.commandBuffer();
 
-  if(auto c = gothic.camera())
+  if(auto c = Gothic::inst().camera())
     c->setViewport(uint32_t(w()),uint32_t(h()));
-  if(auto pl = gothic.player())
+  if(auto pl = Gothic::inst().player())
     pl->multSpeed(1.f);
   lastTick = Application::tickCount();
   player.clearFocus();
@@ -835,7 +834,7 @@ void MainWindow::onSessionExit() {
   }
 
 void MainWindow::setGameImpl(std::unique_ptr<GameSession> &&w) {
-  gothic.setGame(std::move(w));
+  Gothic::inst().setGame(std::move(w));
   }
 
 void MainWindow::clearInput() {
@@ -856,7 +855,7 @@ void MainWindow::render(){
 
     static bool once=true;
     if(once) {
-      gothic.emitGlobalSoundWav("GAMESTART.WAV");
+      Gothic::inst().emitGlobalSoundWav("GAMESTART.WAV");
       once=false;
       }
 
@@ -872,7 +871,7 @@ void MainWindow::render(){
       }
 
     if(!video.isActive()) {
-      gothic.updateAnimation();
+      Gothic::inst().updateAnimation();
       tickCamera(dt);
       }
 
@@ -882,7 +881,7 @@ void MainWindow::render(){
       PaintEvent p(uiLayer,atlas,this->w(),this->h());
       video.paintEvent(p);
       }
-    else if(needToUpdate() || gothic.checkLoading()!=Gothic::LoadState::Idle) {
+    else if(needToUpdate() || Gothic::inst().checkLoading()!=Gothic::LoadState::Idle) {
       dispatchPaintEvent(uiLayer,atlas);
 
       numOverlay.clear();
@@ -895,14 +894,14 @@ void MainWindow::render(){
     CommandBuffer& cmd = commands[cmdId];
     {
     auto enc = cmd.startEncoding(device);
-    renderer.draw(enc,cmdId,swapchain.currentImage(),uiMesh[cmdId],numMesh[cmdId],inventory,gothic);
+    renderer.draw(enc,cmdId,swapchain.currentImage(),uiMesh[cmdId],numMesh[cmdId],inventory);
     }
     device.submit(cmd,sync);
     device.present(swapchain);
     cmdId = (cmdId+1u)%Resources::MaxFramesInFlight;
 
     auto t = Application::tickCount();
-    if(t-time<15 && !gothic.isInGame() && !video.isActive()){
+    if(t-time<15 && !Gothic::inst().isInGame() && !video.isActive()){
       Application::sleep(uint32_t(15-(t-time)));
       t = Application::tickCount();
       }

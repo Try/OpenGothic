@@ -2,8 +2,8 @@
 
 #include "gothic.h"
 
-FightAi::FightAi(Gothic& gothic) {
-  auto vm = gothic.createVm(u"Fight.dat");
+FightAi::FightAi() {
+  auto vm = Gothic::inst().createVm(u"Fight.dat");
 
   auto& max = vm->getDATFile().getSymbolByName("MAX_FIGHTAI");
   int count = max.getInt();
@@ -17,7 +17,7 @@ FightAi::FightAi(Gothic& gothic) {
   vm->clearReferences(Daedalus::IC_FightAi);
   }
 
-const FightAi::FA &FightAi::get(size_t i) {
+const FightAi::FA& FightAi::operator[](size_t i) const {
   if(i<fAi.size())
     return fAi[i];
   static FA tmp;

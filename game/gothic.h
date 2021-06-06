@@ -29,6 +29,8 @@ class Gothic final {
     Gothic(int argc,const char** argv);
     ~Gothic();
 
+    static Gothic& inst();
+
     enum class LoadState:int {
       Idle       = 0,
       Loading    = 1,
@@ -105,17 +107,12 @@ class Gothic final {
     void      openDialogPipe (Npc& player, Npc& npc, AiOuputPipe*& pipe);
     bool      aiIsDlgFinished();
 
-    auto      getFightAi(size_t i) const -> const FightAi::FA&;
-    auto      getSoundScheme(const char* name) -> const Daedalus::GEngineClasses::C_SFX&;
-    auto      getCameraDef() const -> const CameraDefinitions&;
-    auto      getMusicDef(const char *clsTheme) const -> const Daedalus::GEngineClasses::C_MusicTheme*;
+    Tempest::Signal<void(const std::string&)>                           onStartGame;
+    Tempest::Signal<void(const std::string&)>                           onLoadGame;
+    Tempest::Signal<void(const std::string&,const std::string&)>        onSaveGame;
 
-    Tempest::Signal<void(const std::string&)>                    onStartGame;
-    Tempest::Signal<void(const std::string&)>                    onLoadGame;
-    Tempest::Signal<void(const std::string&,const std::string&)> onSaveGame;
-
-    Tempest::Signal<void(Npc&,Npc&,AiOuputPipe*&)>         onDialogPipe;
-    Tempest::Signal<void(bool&)>                           isDialogClose;
+    Tempest::Signal<void(Npc&,Npc&,AiOuputPipe*&)>                      onDialogPipe;
+    Tempest::Signal<void(bool&)>                                        isDialogClose;
 
     Tempest::Signal<void(const char*,int,int,int,const GthFont&)>       onPrintScreen;
     Tempest::Signal<void(const char*)>                                  onPrint;
@@ -138,13 +135,18 @@ class Gothic final {
     std::unique_ptr<Daedalus::DaedalusVM> createVm(const char16_t *datFile);
     void                                  setupVmCommonApi(Daedalus::DaedalusVM &vm);
 
-    int                                   settingsGetI(const char* sec, const char* name) const;
-    void                                  settingsSetI(const char* sec, const char* name, int val);
-    const std::string&                    settingsGetS(const char* sec, const char* name) const;
-    void                                  settingsSetS(const char* sec, const char* name, const char* val) const;
-    float                                 settingsGetF(const char* sec, const char* name) const;
-    void                                  settingsSetF(const char* sec, const char* name, float val);
-    void                                  flushSettings() const;
+    static const FightAi&                 fai();
+    static const SoundDefinitions&        sfx();
+    static const MusicDefinitions&        musicDef();
+    static const CameraDefinitions&       cameraDef();
+
+    static int                            settingsGetI(const char* sec, const char* name);
+    static void                           settingsSetI(const char* sec, const char* name, int val);
+    static const std::string&             settingsGetS(const char* sec, const char* name);
+    static void                           settingsSetS(const char* sec, const char* name, const char* val);
+    static float                          settingsGetF(const char* sec, const char* name);
+    static void                           settingsSetF(const char* sec, const char* name, float val);
+    static void                           flushSettings();
 
     static void debug(const ZenLoad::zCMesh &mesh, std::ostream& out);
     static void debug(const ZenLoad::PackedMesh& mesh, std::ostream& out);
@@ -190,6 +192,8 @@ class Gothic final {
     std::vector<std::unique_ptr<DocumentMenu::Show>> documents;
     ChapterScreen::Show                     chapter;
     bool                                    pendingChapter=false;
+
+    static Gothic*                          instance;
 
     void                                    implStartLoadSave(const char *banner,
                                                               bool load,

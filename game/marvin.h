@@ -5,14 +5,12 @@
 #include <Tempest/Vec>
 #include "world/world.h"
 
-class Gothic;
-
 class Marvin {
   public:
     Marvin();
 
     void autoComplete(std::string& v);
-    bool exec(Gothic& gothic, const std::string& v);
+    bool exec(const std::string& v);
 
   private:
     enum CmdType {

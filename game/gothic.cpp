@@ -22,6 +22,8 @@
 using namespace Tempest;
 using namespace FileUtil;
 
+Gothic* Gothic::instance = nullptr;
+
 Gothic::Gothic(const int argc, const char **argv) {
   if(argc<1)
     return;
@@ -86,27 +88,35 @@ Gothic::Gothic(const int argc, const char **argv) {
     throw std::logic_error("gothic not found!"); //TODO: user-friendly message-box
     }
 
+  instance = this;
+
   baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));
   iniFile    .reset(new IniFile(u"Gothic.ini"));
 
   detectGothicVersion();
 
-  fight      .reset(new FightAi(*this));
-  camDef     .reset(new CameraDefinitions(*this));
-  soundDef   .reset(new SoundDefinitions(*this));
-  particleDef.reset(new ParticlesDefinitions(*this));
-  vfxDef     .reset(new VisualFxDefinitions(*this));
-  music      .reset(new MusicDefinitions(*this));
+  fight      .reset(new FightAi());
+  camDef     .reset(new CameraDefinitions());
+  soundDef   .reset(new SoundDefinitions());
+  particleDef.reset(new ParticlesDefinitions());
+  vfxDef     .reset(new VisualFxDefinitions());
+  music      .reset(new MusicDefinitions());
   if(wdef.empty()){
     if(version().game==2)
       wdef = "newworld.zen"; else
       wdef = "world.zen";
     }
+
   onSettingsChanged.bind(this,&Gothic::setupSettings);
   setupSettings();
   }
 
 Gothic::~Gothic() {
+  instance = nullptr;
+  }
+
+Gothic& Gothic::inst() {
+  return *instance;
   }
 
 Gothic::GraphicBackend Gothic::graphicsApi() const {
@@ -190,7 +200,7 @@ SoundFx *Gothic::loadSoundFx(const char *name) {
     return &it->second;
 
   try {
-    auto ret = sndFxCache.emplace(name,SoundFx(*this,name));
+    auto ret = sndFxCache.emplace(name,SoundFx(name));
     return &ret.first->second;
     }
   catch(...){
@@ -208,7 +218,7 @@ SoundFx *Gothic::loadSoundWavFx(const char* name) {
     return &it->second;
 
   try {
-    auto ret = sndWavCache.emplace(name,SoundFx(*this,std::move(snd)));
+    auto ret = sndWavCache.emplace(name,SoundFx(std::move(snd)));
     return &ret.first->second;
     }
   catch(...){
@@ -452,20 +462,20 @@ bool Gothic::aiIsDlgFinished() {
   return v;
   }
 
-const Daedalus::GEngineClasses::C_MusicTheme* Gothic::getMusicDef(const char *clsTheme) const {
-  return music->get(clsTheme);
+const FightAi& Gothic::fai() {
+  return *instance->fight;
   }
 
-const CameraDefinitions& Gothic::getCameraDef() const {
-  return *camDef;
+const SoundDefinitions& Gothic::sfx() {
+  return *instance->soundDef;
   }
 
-const Daedalus::GEngineClasses::C_SFX& Gothic::getSoundScheme(const char *name) {
-  return soundDef->getSfx(name);
+const MusicDefinitions& Gothic::musicDef() {
+  return *instance->music;
   }
 
-const FightAi::FA &Gothic::getFightAi(size_t i) const {
-  return fight->get(i);
+const CameraDefinitions& Gothic::cameraDef() {
+  return *instance->camDef;
   }
 
 const Daedalus::ZString &Gothic::messageFromSvm(const Daedalus::ZString &id, int voice) const {
@@ -514,41 +524,41 @@ std::unique_ptr<Daedalus::DaedalusVM> Gothic::createVm(const char16_t *datFile) 
   return vm;
   }
 
-int Gothic::settingsGetI(const char *sec, const char *name) const {
-  if(iniFile->has(sec,name))
-    return iniFile->getI(sec,name);
-  return baseIniFile->getI(sec,name);
+int Gothic::settingsGetI(const char *sec, const char *name) {
+  if(instance->iniFile->has(sec,name))
+    return instance->iniFile->getI(sec,name);
+  return instance->baseIniFile->getI(sec,name);
   }
 
 void Gothic::settingsSetI(const char *sec, const char *name, int val) {
-  iniFile->set(sec,name,val);
-  onSettingsChanged();
+  instance->iniFile->set(sec,name,val);
+  instance->onSettingsChanged();
   }
 
-const std::string& Gothic::settingsGetS(const char* sec, const char* name) const {
-  if(iniFile->has(sec,name))
-    return iniFile->getS(sec,name);
-  return baseIniFile->getS(sec,name);
+const std::string& Gothic::settingsGetS(const char* sec, const char* name) {
+  if(instance->iniFile->has(sec,name))
+    return instance->iniFile->getS(sec,name);
+  return instance->baseIniFile->getS(sec,name);
   }
 
-void Gothic::settingsSetS(const char* sec, const char* name, const char* val) const {
-  iniFile->set(sec,name,val);
-  onSettingsChanged();
+void Gothic::settingsSetS(const char* sec, const char* name, const char* val) {
+  instance->iniFile->set(sec,name,val);
+  instance->onSettingsChanged();
   }
 
-float Gothic::settingsGetF(const char* sec, const char* name) const {
-  if(iniFile->has(sec,name))
-    return iniFile->getF(sec,name);
-  return baseIniFile->getF(sec,name);
+float Gothic::settingsGetF(const char* sec, const char* name) {
+  if(instance->iniFile->has(sec,name))
+    return instance->iniFile->getF(sec,name);
+  return instance->baseIniFile->getF(sec,name);
   }
 
 void Gothic::settingsSetF(const char* sec, const char* name, float val) {
-  iniFile->set(sec,name,val);
-  onSettingsChanged();
+  instance->iniFile->set(sec,name,val);
+  instance->onSettingsChanged();
   }
 
-void Gothic::flushSettings() const {
-  iniFile->flush();
+void Gothic::flushSettings() {
+  instance->iniFile->flush();
   }
 
 void Gothic::debug(const ZenLoad::zCMesh &mesh, std::ostream &out) {
