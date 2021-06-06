@@ -34,7 +34,9 @@ layout(location = 0) out VsData {
   vec2 uv;
   vec4 shadowPos[2];
   vec3 normal;
+#  if defined(VCOLOR)
   vec4 color;
+#  endif
   vec4 pos;
   vec4 scr;
 #endif
@@ -95,15 +97,14 @@ vec4 normalWorld() {
   vec4 n3   = anim.skel[int(boneId.w)]*norm;
   vec4 n    = (n0*inWeight.x + n1*inWeight.y + n2*inWeight.z + n3*inWeight.w);
   return vec4(n.z,n.y,-n.x,0.0);
-#elif defined(OBJ)
+#else
   return vec4(inNormal,0.0);
 #endif
-  return vec4(inNormal,0.0);
   }
 
 vec3 normal() {
   vec4 norm = normalWorld();
-#if defined(OBJ)
+#if defined(OBJ) || defined(SKINING) || defined(MORPH)
   return (push.obj*norm).xyz;
 #else
   return norm.xyz;
@@ -112,7 +113,7 @@ vec3 normal() {
 
 vec4 vertexPos() {
   vec4 pos = vertexPosMesh();
-#if defined(OBJ)
+#if defined(OBJ) || defined(SKINING) || defined(MORPH)
   return push.obj*pos;
 #else
   return pos;
@@ -124,14 +125,14 @@ void main() {
   boneId = unpackUnorm4x8(inId);
 #endif
 
-#if !defined(SHADOW_MAP)
+#if !defined(SHADOW_MAP) && defined(VCOLOR)
   shOut.color = unpackUnorm4x8(inColor);
 #endif
 
-#if defined(OBJ)
-  shOut.uv = inUV + material.texAnim;
-#else
   shOut.uv = inUV;
+
+#if defined(MAT_ANIM)
+  shOut.uv += material.texAnim;
 #endif
 
 #if !defined(SHADOW_MAP)

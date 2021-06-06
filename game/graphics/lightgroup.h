@@ -16,6 +16,16 @@ class LightGroup final {
   public:
     LightGroup(const SceneGlobals& scene);
 
+    enum LightPreset : uint8_t {
+      NoPreset = 0,
+      JUSTWHITE,
+      WHITEBLEND,
+      AURA,
+      REDAMBIENCE,
+      FIRESMALL,
+      CATACLYSM,
+      };
+
     class Light final {
       public:
         Light() = default;
@@ -33,6 +43,9 @@ class LightGroup final {
 
         void setRange(float r);
         void setColor(const Tempest::Vec3& c);
+        void setColor(const std::vector<Tempest::Vec3>& c, float fps, bool smooth);
+
+        void setPreset(LightPreset preset);
 
       private:
         Light(LightGroup& l, size_t id):owner(&l), id(id) {}

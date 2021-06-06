@@ -39,6 +39,7 @@ class PfxEmitter final {
     void     setMesh(const MeshObjects::Mesh* mesh, const Pose* pose);
 
     uint64_t effectPrefferedTime() const;
+    bool     isAlive() const;
 
   private:
     PfxEmitter(PfxBucket &b,size_t id);

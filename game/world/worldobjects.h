@@ -149,6 +149,7 @@ class WorldObjects final {
 
     std::list<Bullet>                  bullets;
     std::vector<EffectState>           effects;
+    std::vector<EffectState>           effectsFade;
 
     std::vector<std::unique_ptr<Npc>>  npcArr;
     std::vector<std::unique_ptr<Npc>>  npcInvalid;

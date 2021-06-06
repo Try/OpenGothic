@@ -29,25 +29,29 @@ void RendererStorage::MaterialTemplate::load(Device &device, const char *tag) {
   char fobj[256]={};
   char fani[256]={};
   char fmph[256]={};
+  char fclr[256]={};
   if(tag==nullptr || tag[0]=='\0') {
     std::snprintf(fobj,sizeof(fobj),"obj");
     std::snprintf(fani,sizeof(fani),"ani");
     std::snprintf(fmph,sizeof(fani),"mph");
+    std::snprintf(fclr,sizeof(fclr),"clr");
     } else {
     std::snprintf(fobj,sizeof(fobj),"obj_%s",tag);
     std::snprintf(fani,sizeof(fani),"ani_%s",tag);
     std::snprintf(fmph,sizeof(fmph),"mph_%s",tag);
+    std::snprintf(fclr,sizeof(fclr),"clr_%s",tag);
     }
   obj.load(device,fobj,"%s.%s.sprv");
   ani.load(device,fani,"%s.%s.sprv");
   mph.load(device,fmph,"%s.%s.sprv");
+  clr.load(device,fclr,"%s.%s.sprv");
   }
 
 RendererStorage::RendererStorage(Gothic& gothic) {
   auto& device = Resources::device();
 
   solid   .load(device,"gbuffer");
-  atest   .load(device,"at_gbuffer");
+  atest   .load(device,"gbuffer_at");
   water   .load(device,"water");
   ghost   .load(device,"ghost");
   emmision.load(device,"emi");
@@ -148,11 +152,6 @@ RendererStorage::RendererStorage(Gothic& gothic) {
     auto fsSky = device.shader(sh.data,sh.len);
     pSky       = device.pipeline<Resources::VertexFsq>(Triangles, stateFsq, vsSky,  fsSky);
     }
-
-  RenderState state;
-  state.setZTestMode   (RenderState::ZTestMode::Less);
-  state.setCullFaceMode(RenderState::CullMode::Back);
-  //state.setCullFaceMode(RenderState::CullMode::Front);
   }
 
 const RenderPipeline* RendererStorage::materialPipeline(const Material& mat, ObjectsBucket::Type t, PipelineType pt) const {
@@ -251,6 +250,9 @@ const RenderPipeline* RendererStorage::materialPipeline(const Material& mat, Obj
       break;
     case ObjectsBucket::Animated:
       b.pipeline = pipeline<Resources::VertexA>(state,temp->ani);
+      break;
+    case ObjectsBucket::Pfx:
+      b.pipeline = pipeline<Resources::Vertex>(state,temp->clr);
       break;
     }
 

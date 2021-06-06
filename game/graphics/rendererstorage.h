@@ -37,7 +37,7 @@ class RendererStorage {
       };
 
     struct MaterialTemplate {
-      ShaderPair obj, ani, mph;
+      ShaderPair obj, ani, mph, clr;
       void load(Tempest::Device& device, const char* tag);
       };
 

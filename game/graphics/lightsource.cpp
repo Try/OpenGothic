@@ -53,6 +53,22 @@ void LightSource::setColor(const std::vector<uint32_t>& arr, float fps, bool smo
   colorAniListFpsInv = arr.size()>0 ? uint64_t(1000.0/fps) : 0;
   }
 
+void LightSource::setColor(const std::vector<Vec3>& arr, float fps, bool smooth) {
+  colorSmooth = smooth;
+  if(arr.size()==0) {
+    setColor(Vec3());
+    colorAniListFpsInv = 0;
+    return;
+    }
+  if(arr.size()==1) {
+    setColor(arr[0]);
+    colorAniListFpsInv = 0;
+    return;
+    }
+  colorAniList       = arr;
+  colorAniListFpsInv = arr.size()>0 ? uint64_t(1000.0/fps) : 0;
+  }
+
 void LightSource::setRange(float r) {
   rgn            = r;
   curRgn         = rgn;

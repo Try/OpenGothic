@@ -27,7 +27,7 @@ class Effect final {
   public:
     Effect() = default;
     Effect(Effect&&) = default;
-    Effect(PfxEmitter&& pfxOnly, const char* node);
+    Effect(PfxEmitter&& pfx, const char* node);
     Effect(const VisualFx& vfx, World& owner, const Npc& src,           SpellFxKey key = SpellFxKey::Count);
     Effect(const VisualFx& vfx, World& owner, const Tempest::Vec3& pos, SpellFxKey key = SpellFxKey::Count);
     ~Effect();
@@ -45,31 +45,25 @@ class Effect final {
     void     setMesh     (const MeshObjects::Mesh* mesh);
 
     uint64_t effectPrefferedTime() const;
+    bool     isAlive() const;
 
     void     bindAttaches  (const Pose& pose, const Skeleton& to);
     void     onCollide     (World& owner, const Tempest::Vec3& pos, Npc* npc);
 
   private:
-    enum LightPreset : uint8_t {
-      NoPreset = 0,
-      JUSTWHITE,
-      WHITEBLEND,
-      AURA,
-      REDAMBIENCE,
-      FIRESMALL,
-      CATACLYSM,
-      };
+    using Key         = Daedalus::GEngineClasses::C_ParticleFXEmitKey;
+    using LightPreset = LightGroup::LightPreset;
 
     void               syncAttaches(const Tempest::Matrix4x4& pos);
     void               syncAttachesSingle(const Tempest::Matrix4x4& inPos);
-    static LightPreset toPreset(const Daedalus::ZString& str);
+    void               setupLight(World& owner, const Key* key);
 
-    using Key = Daedalus::GEngineClasses::C_ParticleFXEmitKey;
+    static LightPreset toPreset(const Daedalus::ZString& str);
 
     const Key*            key  = nullptr;
 
     const VisualFx*       root = nullptr;
-    PfxEmitter            visual;
+    PfxEmitter            pfx;
     Sound                 sfx;
     GlobalFx              gfx;
     LightGroup::Light     light;

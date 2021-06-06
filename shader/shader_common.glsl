@@ -12,6 +12,10 @@
 #define L_MorphId  8
 #define L_Morph    9
 
+#if defined(VERTEX) && (defined(OBJ) || defined(SKINING) || defined(MORPH))
+#define MAT_ANIM 1
+#endif
+
 struct Light {
   vec4  pos;
   vec3  color;
@@ -25,7 +29,7 @@ struct MorphDesc {
   float alpha;
   };
 
-#if defined(OBJ)
+#if defined(OBJ) || defined(SKINING) || defined(MORPH)
 layout(push_constant, std140) uniform UboPush {
   mat4      obj;
 #if defined(MORPH)
@@ -59,7 +63,7 @@ layout(binding = L_Skinning, std140) uniform UboAnim {
   } anim;
 #endif
 
-#if defined(VERTEX) && defined(OBJ)
+#if defined(VERTEX) && defined(MAT_ANIM)
 layout(binding = L_Material, std140) uniform UboMaterial {
   vec2 texAnim;
   } material;

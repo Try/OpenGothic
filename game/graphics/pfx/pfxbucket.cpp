@@ -217,6 +217,7 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       p.pos = Vec3(std::sin(phi) * std::cos(theta),
                    std::sin(phi) * std::sin(theta),
                    std::cos(phi));
+      p.pos*=0.5;
       if(decl.shpIsVolume)
         p.pos*=randf();
       break;
@@ -461,18 +462,6 @@ void PfxBucket::tickEmit(Block& p, ImplEmitter& emitter, uint64_t emited) {
   }
 
 void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
-  static const float U[6]   = { 0.f, 1.f, 0.f,  0.f, 1.f, 1.f};
-  static const float V[6]   = { 1.f, 0.f, 0.f,  1.f, 1.f, 0.f};
-
-  static const float dxQ[6] = {-0.5f, 0.5f, -0.5f, -0.5f,  0.5f,  0.5f};
-  static const float dyQ[6] = { 0.5f,-0.5f, -0.5f,  0.5f,  0.5f, -0.5f};
-
-  static const float dxT[3] = {-0.3333f,  1.5f, -0.3333f};
-  static const float dyT[3] = { 1.5f, -0.3333f, -0.3333f};
-
-  const float*       dx     = decl.visTexIsQuadPoly ? dxQ : dxT;
-  const float*       dy     = decl.visTexIsQuadPoly ? dyQ : dyT;
-
   auto  colorS          = decl.visTexColorStart;
   auto  colorE          = decl.visTexColorEnd;
   auto  visSizeStart    = decl.visSizeStart;
@@ -552,44 +541,62 @@ void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
         color.g = uint8_t(cl.y*clA);
         color.b = uint8_t(cl.z*clA);
         color.a = uint8_t(255);
-        }
-      else if(visAlphaFunc==Material::AlphaFunc::Transparent) {
+        } else {
         color.r = uint8_t(cl.x);
         color.g = uint8_t(cl.y);
         color.b = uint8_t(cl.z);
         color.a = uint8_t(clA*255);
         }
+      uint32_t colorU32;
+      std::memcpy(&colorU32,&color,4);
 
-      for(size_t i=0; i<vertexCount; ++i) {
-        float sx = l.x*dx[i]*szX + t.x*dy[i]*szY;
-        float sy = l.y*dx[i]*szX + t.y*dy[i]*szY;
-        float sz = l.z*dx[i]*szX + t.z*dy[i]*szY;
-
-        if(decl.useEmittersFOR) {
-          v[i].pos[0] = p.pos.x + ps.pos.x + sx;
-          v[i].pos[1] = p.pos.y + ps.pos.y + sy;
-          v[i].pos[2] = p.pos.z + ps.pos.z + sz;
-          } else {
-          v[i].pos[0] = ps.pos.x + sx;
-          v[i].pos[1] = ps.pos.y + sy;
-          v[i].pos[2] = ps.pos.z + sz;
-          }
-
-        if(decl.visZBias) {
-          v[i].pos[0] -= szZ*ctx.z.x;
-          v[i].pos[1] -= szZ*ctx.z.y;
-          v[i].pos[2] -= szZ*ctx.z.z;
-          }
-
-        v[i].uv[0]  = U[i];
-        v[i].uv[1]  = V[i];
-
-        v[i].norm[0] = -ctx.z.x;
-        v[i].norm[1] = -ctx.z.y;
-        v[i].norm[2] = -ctx.z.z;
-
-        std::memcpy(&v[i].color,&color,4);
-        }
+      buildBilboard(v,p,ps,colorU32, l,t,ctx.z, szX,szY,szZ);
       }
+    }
+  }
+
+void PfxBucket::buildBilboard(Vertex v[], const Block& p, const ParState& ps, const uint32_t color,
+                              const Vec3& l, const Vec3& t, const Vec3& d, float szX, float szY, float szZ) {
+  static const float U[6]   = { 0.f, 1.f, 0.f,  0.f, 1.f, 1.f};
+  static const float V[6]   = { 1.f, 0.f, 0.f,  1.f, 1.f, 0.f};
+
+  static const float dxQ[6] = {-0.5f, 0.5f, -0.5f, -0.5f,  0.5f,  0.5f};
+  static const float dyQ[6] = { 0.5f,-0.5f, -0.5f,  0.5f,  0.5f, -0.5f};
+
+  static const float dxT[3] = {-0.3333f,  1.5f, -0.3333f};
+  static const float dyT[3] = { 1.5f, -0.3333f, -0.3333f};
+
+  const float*       dx     = (vertexCount>3) ? dxQ : dxT;
+  const float*       dy     = (vertexCount>3) ? dyQ : dyT;
+
+  for(size_t i=0; i<vertexCount; ++i) {
+    float sx = l.x*dx[i]*szX + t.x*dy[i]*szY;
+    float sy = l.y*dx[i]*szX + t.y*dy[i]*szY;
+    float sz = l.z*dx[i]*szX + t.z*dy[i]*szY;
+
+    if(decl.useEmittersFOR) {
+      v[i].pos[0] = p.pos.x + ps.pos.x + sx;
+      v[i].pos[1] = p.pos.y + ps.pos.y + sy;
+      v[i].pos[2] = p.pos.z + ps.pos.z + sz;
+      } else {
+      v[i].pos[0] = ps.pos.x + sx;
+      v[i].pos[1] = ps.pos.y + sy;
+      v[i].pos[2] = ps.pos.z + sz;
+      }
+
+    if(decl.visZBias) {
+      v[i].pos[0] -= szZ*d.x;
+      v[i].pos[1] -= szZ*d.y;
+      v[i].pos[2] -= szZ*d.z;
+      }
+
+    v[i].uv[0]  = U[i];
+    v[i].uv[1]  = V[i];
+
+    v[i].norm[0] = -d.x;
+    v[i].norm[1] = -d.y;
+    v[i].norm[2] = -d.z;
+
+    v[i].color = color;
     }
   }

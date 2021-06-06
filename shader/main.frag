@@ -13,7 +13,9 @@ layout(location = 0) in VsData {
   vec2 uv;
   vec4 shadowPos[2];
   vec3 normal;
+#  if defined(VCOLOR)
   vec4 color;
+#  endif
   vec4 pos;
   vec4 scr;
 #endif
@@ -65,7 +67,7 @@ vec3 calcLight() {
   vec3  normal  = normalize(shInp.normal);
   float lambert = max(0.0,dot(scene.ldir,normal));
   float light   = lambert*calcShadow();
-  vec3  color   = shInp.color.rgb*scene.sunCl.rgb*clamp(light,0.0,1.0);
+  vec3  color   = scene.sunCl.rgb*clamp(light,0.0,1.0);
 
   /*
   for(int i=0; i<LIGHT_BLOCK; ++i) {
@@ -123,26 +125,32 @@ void main() {
 #  endif
 #endif
 
-#ifdef SHADOW_MAP
+#if defined(SHADOW_MAP)
   outColor = vec4(shInp.scr.zzz/shInp.scr.w,0.0);
 #else
 
-#if defined(EMMISSIVE)
-  vec3 color = shInp.color.rgb;
-#else
-  vec3 color = calcLight();
-#endif
+  vec3  color = vec3(0,0,0);
+  float alpha = 1;
 
-  color = t.rgb*color;
 #if defined(WATER)
   color = waterColor(color);
-#endif
-
-#if defined(GHOST)
+#elif defined(GHOST)
   color = ghostColor(color);
+#else
+  color = t.rgb;
+  alpha = t.a;
 #endif
 
-  outColor      = vec4(color,t.a*shInp.color.a);
+#if defined(VCOLOR)
+  color *= shInp.color.rgb;
+  alpha *= shInp.color.a;
+#endif
+
+#if defined(LIGHT)
+  color *= calcLight();
+#endif
+
+  outColor      = vec4(color,alpha);
 
 #ifdef GBUFFER
   outDiffuse    = t;
@@ -150,7 +158,7 @@ void main() {
   outDepth      = vec4(shInp.scr.z/shInp.scr.w,0.0,0.0,0.0);
 #endif
 
-  //outColor   = vec4(inZ.xyz/inZ.w,1.0);
+  //outColor = vec4(inZ.xyz/inZ.w,1.0);
   //outColor = vec4(vec3(inPos.xyz)/1000.0,1.0);
   //outColor = vec4(vec3(shMap),1.0);
   //outColor = vec4(vec3(calcLight()),1.0);

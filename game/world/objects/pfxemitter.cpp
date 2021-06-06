@@ -165,6 +165,17 @@ uint64_t PfxEmitter::effectPrefferedTime() const {
   return bucket->decl.effectPrefferedTime();
   }
 
+bool PfxEmitter::isAlive() const {
+  if(bucket==nullptr)
+    return false;
+  std::lock_guard<std::recursive_mutex> guard(bucket->parent.sync);
+  auto& v = bucket->get(id);
+  if(v.block==size_t(-1))
+    return false;
+  auto& b = bucket->block[v.block];
+  return b.count>0;
+  }
+
 void PfxEmitter::setObjMatrix(const Matrix4x4 &mt) {
   setPosition (mt.at(3,0),mt.at(3,1),mt.at(3,2));
   setDirection(mt);

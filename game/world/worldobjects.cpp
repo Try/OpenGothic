@@ -166,8 +166,18 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
 
   for(size_t i=0; i<effects.size();) {
     if(effects[i].timeUntil<owner.tickCount()) {
+      effects[i].eff.setActive(false);
+      effectsFade.push_back(std::move(effects[i]));
       effects[i] = std::move(effects.back());
       effects.pop_back();
+      } else {
+      ++i;
+      }
+    }
+  for(size_t i=0; i<effectsFade.size();) {
+    if(!effectsFade[i].eff.isAlive()) {
+      effectsFade[i] = std::move(effectsFade.back());
+      effectsFade.pop_back();
       } else {
       ++i;
       }

@@ -180,7 +180,8 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
       ubo.set(L_Shadow0, *scene.shadowMap[0],Resources::shadowSampler());
       ubo.set(L_Shadow1, *scene.shadowMap[1],Resources::shadowSampler());
       ubo.set(L_Scene,   scene.uboGlobalPf[i][SceneGlobals::V_Main]);
-      ubo.set(L_Material,uboMat[i]);
+      if(shaderType!=ObjectsBucket::Pfx)
+        ubo.set(L_Material,uboMat[i]);
       if(isSceneInfoRequired()) {
         ubo.set(L_GDiffuse, *scene.lightingBuf,Sampler2d::nearest());
         ubo.set(L_GDepth,   *scene.gbufDepth,  Sampler2d::nearest());
@@ -199,7 +200,8 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
       if(textureInShadowPass)
         uboSh.set(L_Diffuse, t);
       uboSh.set(L_Scene,    scene.uboGlobalPf[i][lay]);
-      uboSh.set(L_Material, uboMat[i]);
+      if(shaderType!=ObjectsBucket::Pfx)
+        uboSh.set(L_Material, uboMat[i]);
       if(morphAnim!=nullptr) {
         uboSh.set(L_MorphId, morphAnim->morphIndex  );
         uboSh.set(L_Morph,   morphAnim->morphSamples);
@@ -385,7 +387,9 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
   UboPush pushBlock = {};
   bool    sharedSet = false;
 
-  const size_t pushSz = (morphAnim!=nullptr) ? sizeof(pushBlock) : sizeof(Tempest::Matrix4x4);
+  size_t pushSz = (morphAnim!=nullptr) ? sizeof(pushBlock) : sizeof(Tempest::Matrix4x4);
+  if(shaderType==Pfx)
+    pushSz = 0;
 
   for(size_t i=0; i<valLast; ++i) {
     auto& v = val[i];

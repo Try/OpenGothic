@@ -129,6 +129,44 @@ void LightGroup::Light::setColor(const Vec3& c) {
   data.setColor(c);
   }
 
+void LightGroup::Light::setColor(const std::vector<Vec3>& c, float fps, bool smooth) {
+  if(owner==nullptr)
+    return;
+  auto& data = owner->getL(id);
+  data.setColor(c,fps,smooth);
+
+  auto& ssbo = owner->get(id);
+  ssbo.color = data.currentColor();
+  }
+
+void LightGroup::Light::setPreset(LightPreset preset) {
+  switch(preset) {
+    case NoPreset:
+      setColor(Vec3(0,0,0));
+      break;
+    case JUSTWHITE:
+      setColor(Vec3(1,1,1));
+      break;
+    case WHITEBLEND:
+      setColor(Vec3(1,1,1));
+      break;
+    case AURA:
+      setColor(Vec3(0,0.5,1));
+      break;
+    case REDAMBIENCE:
+      setColor(Vec3(1,0,0));
+      break;
+    case FIRESMALL:
+      setColor(Vec3(1,0.5,0));
+      break;
+    case CATACLYSM: {
+      static const std::vector<Vec3> clr = {Vec3(0.7f,0,0), Vec3(1,0.5,0)};
+      setColor(clr,1,true);
+      break;
+      }
+    }
+  }
+
 LightGroup::LightGroup(const SceneGlobals& scene)
   :scene(scene) {
   auto& device = Resources::device();
@@ -233,7 +271,7 @@ void LightGroup::dbgLights(DbgPainter& p) const {
 void LightGroup::free(size_t id) {
   std::lock_guard<std::recursive_mutex> guard(sync);
   if(id & staticMask)
-    bucketSt .free(id); else
+    bucketSt .free(id^staticMask); else
     bucketDyn.free(id);
   }
 

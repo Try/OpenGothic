@@ -9,8 +9,8 @@
 
 using namespace Tempest;
 
-Effect::Effect(PfxEmitter&& visual, const char* node)
-  :visual(std::move(visual)), nodeSlot(node) {
+Effect::Effect(PfxEmitter&& pfx, const char* node)
+  :pfx(std::move(pfx)), nodeSlot(node) {
   pos.identity();
   }
 
@@ -28,11 +28,11 @@ Effect::Effect(const VisualFx& v, World& owner, const Vec3& inPos, SpellFxKey k)
      h.visName_S=="morph.fov" ||
      h.visName_S=="screenblend.scx" ||
      h.visName_S=="earthquake.eqk") {
-    gfx    = owner.addGlobalEffect(h.visName_S,h.emFXLifeSpan,h.userString,Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS);
+    gfx = owner.addGlobalEffect(h.visName_S,h.emFXLifeSpan,h.userString,Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS);
     } else {
-    visual = root->visual(owner);
+    pfx = root->visual(owner);
     if(root->isMeshEmmiter())
-      visual.setMesh(meshEmitter,pose);
+      pfx.setMesh(meshEmitter,pose);
     }
   pos.identity();
 
@@ -43,6 +43,7 @@ Effect::Effect(const VisualFx& v, World& owner, const Vec3& inPos, SpellFxKey k)
     }
 
   if(k==SpellFxKey::Count) {
+    setupLight(owner,nullptr);
     setPosition(inPos);
     } else {
     pos.identity();
@@ -61,6 +62,26 @@ Effect::~Effect() {
   sfx.setLooping(false);
   }
 
+void Effect::setupLight(World& owner, const Effect::Key* key) {
+  auto& hEff            = root->handle();
+  float lightRange      = 1000.0; // NOTE: spellFX_Destroyundead_COLLIDE has effect, but do not declare lightRange or any keys
+  auto* lightPresetName = &hEff.lightPresetName;
+  if(key!=nullptr) {
+    lightRange = key->lightRange;
+    if(!key->lightPresetName.empty())
+      lightPresetName = &key->lightPresetName;
+    }
+
+  if(lightRange<=0.0) {
+    light = LightGroup::Light();
+    return;
+    }
+
+  light = LightGroup::Light(owner);
+  light.setRange(lightRange);
+  light.setPreset(toPreset(*lightPresetName));
+  }
+
 bool Effect::is(const VisualFx& vfx) const {
   return root==&vfx;
   }
@@ -68,8 +89,8 @@ bool Effect::is(const VisualFx& vfx) const {
 void Effect::setActive(bool e) {
   if(next!=nullptr)
     next->setActive(e);
-  visual.setActive(e);
-  sfx   .setActive(e);
+  pfx.setActive(e);
+  sfx.setActive(e);
   }
 
 void Effect::setLooped(bool l) {
@@ -78,13 +99,13 @@ void Effect::setLooped(bool l) {
   looped = l;
   if(next!=nullptr)
     next->setLooped(l);
-  visual.setLooped(l);
+  pfx.setLooped(l);
   }
 
 void Effect::setTarget(const Tempest::Vec3& tg) {
   if(next!=nullptr)
     next->setTarget(tg);
-  visual.setTarget(tg);
+  pfx.setTarget(tg);
   }
 
 void Effect::setObjMatrix(Tempest::Matrix4x4& mt) {
@@ -108,7 +129,7 @@ void Effect::syncAttaches(const Matrix4x4& inPos) {
   }
 
 void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
-  if(root==nullptr && visual.isEmpty())
+  if(root==nullptr && pfx.isEmpty())
     return;
 
   pos = inPos;
@@ -120,8 +141,8 @@ void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
   p.set(3,1, p.at(3,1)+emTrjEaseVel);
   Vec3 pos3 = {p.at(3,0),p.at(3,1),p.at(3,2)};
 
-  visual.setObjMatrix(p);
-  light .setPosition(pos3);
+  pfx  .setObjMatrix(p);
+  light.setPosition(pos3);
   }
 
 void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
@@ -145,47 +166,16 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
     next.reset(new Effect(std::move(ex)));
     }
 
-  const ParticleFx* pfx = owner.script().getParticleFx(*key);
-  if(pfx!=nullptr) {
-    visual = PfxEmitter(owner,pfx);
+  auto pfxDecl = owner.script().getParticleFx(*key);
+  if(pfxDecl!=nullptr) {
+    pfx = PfxEmitter(owner,pfxDecl);
     if(root->isMeshEmmiter())
-      visual.setMesh(meshEmitter,pose);
-    visual.setActive(true);
-    visual.setLooped(looped);
+      pfx.setMesh(meshEmitter,pose);
+    pfx.setActive(true);
+    pfx.setLooped(looped);
     }
 
-  if(key->lightRange>0.0) {
-    light = LightGroup::Light(owner);
-    light.setColor(Vec3(1,1,1));
-    light.setRange(key->lightRange);
-    const Daedalus::ZString* preset = &root->handle().lightPresetName;
-    if(!key->lightPresetName.empty())
-      preset = &key->lightPresetName;
-    switch(toPreset(*preset)) {
-      case NoPreset:
-        light = LightGroup::Light();
-        break;
-      case JUSTWHITE:
-      case WHITEBLEND:
-        light.setColor(Vec3(1,1,1));
-        break;
-      case AURA:
-        light.setColor(Vec3(0,0.5,1));
-        break;
-      case REDAMBIENCE:
-        light.setColor(Vec3(1,0,0));
-        break;
-      case FIRESMALL:
-        light.setColor(Vec3(1,1,0));
-        break;
-      case CATACLYSM:
-        light.setColor(Vec3(1,0,0));
-        break;
-      }
-    } else {
-    light = LightGroup::Light();
-    }
-
+  setupLight(owner,key);
   syncAttachesSingle(pos);
   sfx = ::Sound(owner,::Sound::T_Regular,key->sfxID.c_str(),pos3,2500.f,false);
   sfx.setAmbient(key->sfxIsAmbient);
@@ -195,7 +185,7 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
 void Effect::setMesh(const MeshObjects::Mesh* mesh) {
   meshEmitter = mesh;
   if(root!=nullptr && root->isMeshEmmiter())
-    visual.setMesh(meshEmitter,pose);
+    pfx.setMesh(meshEmitter,pose);
   }
 
 uint64_t Effect::effectPrefferedTime() const {
@@ -206,10 +196,16 @@ uint64_t Effect::effectPrefferedTime() const {
     float timeF = root->handle().emFXLifeSpan;
     if(timeF>0)
       return std::max(ret,uint64_t(timeF*1000.f));
-    if(timeF<0 && visual.isEmpty())
+    if(timeF<0 && pfx.isEmpty())
       return uint64_t(-1);
     }
-  return std::max(ret,visual.effectPrefferedTime());
+  return std::max(ret,pfx.effectPrefferedTime());
+  }
+
+bool Effect::isAlive() const {
+  if(next!=nullptr && next->isAlive())
+    return true;
+  return pfx.isAlive();
   }
 
 void Effect::bindAttaches(const Pose& p, const Skeleton& to) {
@@ -220,7 +216,7 @@ void Effect::bindAttaches(const Pose& p, const Skeleton& to) {
   pose     = &p;
   boneId   = to.findNode(nodeSlot);
   if(root!=nullptr && root->isMeshEmmiter())
-    visual.setMesh(meshEmitter,pose);
+    pfx.setMesh(meshEmitter,pose);
   }
 
 void Effect::onCollide(World& owner, const Vec3& pos, Npc* npc) {
@@ -246,17 +242,17 @@ void Effect::onCollide(World& owner, const Vec3& pos, Npc* npc) {
 
 Effect::LightPreset Effect::toPreset(const Daedalus::ZString& str) {
   if(str=="JUSTWHITE")
-    return JUSTWHITE;
+    return LightPreset::JUSTWHITE;
   if(str=="WHITEBLEND")
-    return WHITEBLEND;
+    return LightPreset::WHITEBLEND;
   if(str=="AURA")
-    return AURA;
+    return LightPreset::AURA;
   if(str=="REDAMBIENCE")
-    return REDAMBIENCE;
+    return LightPreset::REDAMBIENCE;
   if(str=="FIRESMALL")
-    return FIRESMALL;
+    return LightPreset::FIRESMALL;
   if(str=="CATACLYSM")
-    return CATACLYSM;
+    return LightPreset::CATACLYSM;
   Log::e("unknown light preset: \"",str.c_str(),"\"");
-  return NoPreset;
+  return LightPreset::NoPreset;
   }

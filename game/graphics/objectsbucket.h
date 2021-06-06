@@ -37,6 +37,7 @@ class ObjectsBucket final {
       Movable,
       Animated,
       Morph,
+      Pfx,
       };
 
     enum VboType : uint8_t {

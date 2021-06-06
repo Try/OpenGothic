@@ -95,6 +95,10 @@ class PfxBucket {
     void                        implTickCommon(uint64_t dt, const Tempest::Vec3& viewPos);
     void                        implTickDecals(uint64_t dt, const Tempest::Vec3& viewPos);
 
+    void                        buildBilboard(Vertex v[], const Block& p, const ParState& ps, const uint32_t color,
+                                              const Tempest::Vec3& l, const Tempest::Vec3& t, const Tempest::Vec3& d,
+                                              float szX, float szY, float szZ);
+
     VisualObjects&              visual;
     std::vector<ParState>       particles;
     std::vector<ImplEmitter>    impl;
