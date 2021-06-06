@@ -223,6 +223,8 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
     case ZenLoad::zCVobData::VT_zCVobLight: {
       return std::unique_ptr<Vob>(new WorldLight(parent,world,std::move(vob),startup));
       }
+    case ZenLoad::zCVobData::VT_zCVobLightPreset:
+      return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));
     }
 
   return std::unique_ptr<Vob>(new Vob(parent,world,vob,startup));

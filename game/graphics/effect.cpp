@@ -64,22 +64,20 @@ Effect::~Effect() {
 
 void Effect::setupLight(World& owner, const Effect::Key* key) {
   auto& hEff            = root->handle();
-  float lightRange      = 1000.0; // NOTE: spellFX_Destroyundead_COLLIDE has effect, but do not declare lightRange or any keys
   auto* lightPresetName = &hEff.lightPresetName;
   if(key!=nullptr) {
-    lightRange = key->lightRange;
     if(!key->lightPresetName.empty())
       lightPresetName = &key->lightPresetName;
     }
 
-  if(lightRange<=0.0) {
+  if(lightPresetName->empty()) {
     light = LightGroup::Light();
     return;
     }
 
-  light = LightGroup::Light(owner);
-  light.setRange(lightRange);
-  light.setPreset(toPreset(*lightPresetName));
+  light = LightGroup::Light(owner,lightPresetName->c_str());
+  if(key!=nullptr)
+    light.setRange(key->lightRange);
   }
 
 bool Effect::is(const VisualFx& vfx) const {
@@ -238,21 +236,4 @@ void Effect::onCollide(World& owner, const Vec3& pos, Npc* npc) {
   if(vfx!=nullptr && npc!=nullptr) {
     npc->startEffect(*npc,*vfx);
     }
-  }
-
-Effect::LightPreset Effect::toPreset(const Daedalus::ZString& str) {
-  if(str=="JUSTWHITE")
-    return LightPreset::JUSTWHITE;
-  if(str=="WHITEBLEND")
-    return LightPreset::WHITEBLEND;
-  if(str=="AURA")
-    return LightPreset::AURA;
-  if(str=="REDAMBIENCE")
-    return LightPreset::REDAMBIENCE;
-  if(str=="FIRESMALL")
-    return LightPreset::FIRESMALL;
-  if(str=="CATACLYSM")
-    return LightPreset::CATACLYSM;
-  Log::e("unknown light preset: \"",str.c_str(),"\"");
-  return LightPreset::NoPreset;
   }

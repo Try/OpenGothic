@@ -52,13 +52,10 @@ class Effect final {
 
   private:
     using Key         = Daedalus::GEngineClasses::C_ParticleFXEmitKey;
-    using LightPreset = LightGroup::LightPreset;
 
     void               syncAttaches(const Tempest::Matrix4x4& pos);
     void               syncAttachesSingle(const Tempest::Matrix4x4& inPos);
     void               setupLight(World& owner, const Key* key);
-
-    static LightPreset toPreset(const Daedalus::ZString& str);
 
     const Key*            key  = nullptr;
 

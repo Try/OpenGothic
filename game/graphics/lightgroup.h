@@ -16,22 +16,13 @@ class LightGroup final {
   public:
     LightGroup(const SceneGlobals& scene);
 
-    enum LightPreset : uint8_t {
-      NoPreset = 0,
-      JUSTWHITE,
-      WHITEBLEND,
-      AURA,
-      REDAMBIENCE,
-      FIRESMALL,
-      CATACLYSM,
-      };
-
     class Light final {
       public:
         Light() = default;
         Light(LightGroup& owner, const ZenLoad::zCVobData& vob);
         Light(LightGroup& owner);
         Light(World& owner, const ZenLoad::zCVobData& vob);
+        Light(World& owner, const char* preset);
         Light(World& owner);
 
         Light(Light&& other);
@@ -44,8 +35,6 @@ class LightGroup final {
         void setRange(float r);
         void setColor(const Tempest::Vec3& c);
         void setColor(const std::vector<Tempest::Vec3>& c, float fps, bool smooth);
-
-        void setPreset(LightPreset preset);
 
       private:
         Light(LightGroup& l, size_t id):owner(&l), id(id) {}
@@ -97,13 +86,16 @@ class LightGroup final {
       void                     free(size_t id);
       };
 
-    size_t       alloc(bool dynamic);
-    void         free(size_t id);
+    size_t                           alloc(bool dynamic);
+    void                             free(size_t id);
 
-    LightSsbo&   get (size_t id);
-    LightSource& getL(size_t id);
+    LightSsbo&                       get (size_t id);
+    LightSource&                     getL(size_t id);
+
+    const ZenLoad::zCVobData&        findPreset(const char* preset) const;
 
     const SceneGlobals&               scene;
+    std::vector<ZenLoad::zCVobData>   presets;
 
     Tempest::UniformBuffer<Ubo>       uboBuf[Resources::MaxFramesInFlight];
 

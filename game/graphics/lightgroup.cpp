@@ -73,6 +73,10 @@ LightGroup::Light::Light(LightGroup& owner, const ZenLoad::zCVobData& vob)
   data = std::move(l);
   }
 
+LightGroup::Light::Light(World& owner, const char* preset)
+  :Light(owner,owner.view()->sGlobal.lights.findPreset(preset)){
+  }
+
 LightGroup::Light::Light(LightGroup& owner)
   :owner(&owner) {
   std::lock_guard<std::recursive_mutex> guard(owner.sync);
@@ -142,34 +146,6 @@ void LightGroup::Light::setColor(const std::vector<Vec3>& c, float fps, bool smo
   ssbo.color = data.currentColor();
   }
 
-void LightGroup::Light::setPreset(LightPreset preset) {
-  switch(preset) {
-    case NoPreset:
-      setColor(Vec3(0,0,0));
-      break;
-    case JUSTWHITE:
-      setColor(Vec3(1,1,1));
-      break;
-    case WHITEBLEND:
-      setColor(Vec3(1,1,1));
-      break;
-    case AURA:
-      setColor(Vec3(0,0.5,1));
-      break;
-    case REDAMBIENCE:
-      setColor(Vec3(1,0,0));
-      break;
-    case FIRESMALL:
-      setColor(Vec3(1,0.5,0));
-      break;
-    case CATACLYSM: {
-      static const std::vector<Vec3> clr = {Vec3(0.7f,0,0), Vec3(1,0.5,0)};
-      setColor(clr,1,true);
-      break;
-      }
-    }
-  }
-
 LightGroup::LightGroup(const SceneGlobals& scene)
   :scene(scene) {
   auto& device = Resources::device();
@@ -213,14 +189,13 @@ LightGroup::LightGroup(const SceneGlobals& scene)
     std::vector<uint8_t> bin(fin.size());
     fin.read(bin.data(),bin.size());
 
-    ZenLoad::oCWorldData bundle;
     ZenLoad::ZenParser parser(bin.data(),bin.size());
     parser.readHeader();
 
     auto fver = ZenLoad::ZenParser::FileVersion::Gothic1;
     if(Gothic::inst().version().game==2)
       fver = ZenLoad::ZenParser::FileVersion::Gothic2;
-    parser.readWorld(bundle,fver);
+    parser.readPresets(presets,fver);
     }
   catch(...) {
     Log::e("unable to load Zen-file: \"LIGHTPRESETS.ZEN\"");
@@ -314,6 +289,17 @@ LightSource& LightGroup::getL(size_t id) {
     return bucketSt.light[id^staticMask];
     }
   return bucketDyn.light[id];
+  }
+
+const ZenLoad::zCVobData& LightGroup::findPreset(const char* preset) const {
+  for(auto& i:presets) {
+    if(i.zCVobLight.lightPresetInUse!=preset)
+      continue;
+    return i;
+    }
+  Log::e("unknown light preset: \"",preset,"\"");
+  static ZenLoad::zCVobData zero;
+  return zero;
   }
 
 void LightGroup::tick(uint64_t time) {
