@@ -30,7 +30,6 @@ class Item final : public Vob {
     void    setMatrix(const Tempest::Matrix4x4& m);
 
     bool    isMission() const;
-    bool    canEquip() const;
     bool    isEquiped() const  { return equiped>0; }
     uint8_t equipCount() const { return equiped;   }
     void    setAsEquiped(bool e);
@@ -49,12 +48,15 @@ class Item final : public Vob {
     int32_t             mainFlag() const;
     int32_t             itemFlag() const;
 
+    bool                isMulti() const;
+    bool                is2H() const;
+    bool                isCrossbow() const;
+    bool                isRing() const;
+    bool                isArmour() const;
     bool                isSpellShoot() const;
     bool                isSpellOrRune() const;
     bool                isSpell() const;
-    bool                is2H() const;
-    bool                isCrossbow() const;
-    bool                isTakable() const;
+    bool                isRune() const;
     int32_t             spellId() const;
     int32_t             swordLength() const;
 

@@ -1,10 +1,14 @@
 #include "item.h"
 
+#include <Tempest/Log>
+
 #include "game/serialize.h"
 #include "game/gamescript.h"
 #include "game/inventory.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
+
+using namespace Tempest;
 
 Item::Item(World &owner, size_t itemInstance, bool inWorld)
   :Vob(owner) {
@@ -102,15 +106,14 @@ bool Item::isMission() const {
   return (uint32_t(hitem.flags)&Inventory::ITM_MISSION);
   }
 
-bool Item::canEquip() const {
-  static auto flg = (Inventory::ITM_CAT_NF    | Inventory::ITM_CAT_FF   | Inventory::ITM_CAT_ARMOR |
-                     Inventory::ITM_CAT_LIGHT | Inventory::ITM_CAT_RUNE | Inventory::ITM_CAT_MAGIC);
-  return (mainFlag()&flg);
-  }
-
 void Item::setAsEquiped(bool e) {
-  equiped = (e ? 1 : 0);
-  if(!equiped)
+  if(e)
+    ++equiped; else
+    --equiped;
+  if(equiped>amount) {
+    Log::e("[",displayName(),"] inconsistent inventory state");
+    }
+  if(equiped==0)
     itSlot=NSLOT;
   }
 
@@ -155,6 +158,10 @@ int32_t Item::itemFlag() const {
   return hitem.flags;
   }
 
+bool Item::isMulti() const {
+  return uint32_t(hitem.flags)&Inventory::ITM_MULTI;
+  }
+
 bool Item::isSpellShoot() const {
   if(!isSpellOrRune())
     return false;
@@ -170,8 +177,12 @@ bool Item::isSpellOrRune() const {
 
 bool Item::isSpell() const {
   if(isSpellOrRune())
-    return uint32_t(hitem.flags)&Inventory::ITM_MULTI;
+    return isMulti();
   return false;
+  }
+
+bool Item::isRune() const {
+  return isSpellOrRune() && !isSpell();
   }
 
 bool Item::is2H() const {
@@ -184,15 +195,14 @@ bool Item::isCrossbow() const {
   return flg & Inventory::ITM_CROSSBOW;
   }
 
-bool Item::isTakable() const {
-  auto flag = Inventory::Flags(mainFlag());
-  if(isEquiped()) {
-    if(flag & Inventory::ITM_CAT_ARMOR)
-      return false;
-    if(flag & Inventory::ITM_CAT_RUNE)
-      return false;
-    }
-  return true;
+bool Item::isRing() const {
+  auto flg = uint32_t(itemFlag());
+  return flg & Inventory::ITM_RING;
+  }
+
+bool Item::isArmour() const {
+  auto flg = Inventory::Flags(mainFlag());
+  return flg & Inventory::ITM_CAT_ARMOR;
   }
 
 int32_t Item::spellId() const {

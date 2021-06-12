@@ -659,7 +659,7 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterato
                  0,0,selU->w(),selU->h());
       }
 
-    const int dsz = (id==sel.sel ? 4 : 0);
+    const int dsz = (id==sel.sel ? 5 : 0);
     renderer.drawItem(x-dsz, y-dsz, slotSize().w+2*dsz, slotSize().h+2*dsz, *it);
     } else {
     auto& fnt = Resources::font();

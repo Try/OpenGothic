@@ -64,7 +64,7 @@ class Inventory final {
         const Item& operator*   () const;
         const Item* operator -> () const;
 
-        uint32_t    count() const;
+        size_t      count() const;
         bool        isEquiped() const;
         uint8_t     slot() const;
 

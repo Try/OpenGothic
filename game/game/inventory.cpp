@@ -20,19 +20,6 @@ const Item* Inventory::Iterator::operator ->() const {
   return owner->items[at].get();
   }
 
-size_t Inventory::Iterator::count() const {
-  auto& cur = *owner->items[at];
-  if((cur.mainFlag() & (ITM_CAT_NF|ITM_CAT_FF))) {
-    if(cur.isEquiped() && subId==0) {
-      return cur.equipCount();
-      }
-    if(cur.isEquiped())
-      return cur.count()-1;
-    return cur.count();
-    }
-  return cur.count();
-  }
-
 bool Inventory::Iterator::isEquiped() const {
   auto& cur = *owner->items[at];
   return subId==0 && cur.isEquiped();
@@ -43,24 +30,29 @@ uint8_t Inventory::Iterator::slot() const {
   return subId==0 ? cur.slot() : Item::NSLOT;
   }
 
+size_t Inventory::Iterator::count() const {
+  auto& cur = *owner->items[at];
+  if(!cur.isMulti()) {
+    if(cur.isEquiped() && subId==0)
+      return cur.equipCount();
+    if(cur.isEquiped())
+      return cur.count()-cur.equipCount();
+    return cur.count();
+    }
+  return cur.count();
+  }
+
 Inventory::Iterator& Inventory::Iterator::operator++() {
   auto& it  = owner->items;
   auto& cur = *it[at];
-  if((cur.mainFlag() & (ITM_CAT_NF|ITM_CAT_FF))) {
+  if(!cur.isMulti()) {
     if(cur.isEquiped() && cur.count()>1 && subId==0) {
       ++subId;
       return *this;
       }
     subId = 0;
     }
-  // TODO: armour, rings
-  /*
-  if(cur.mainFlag() & (ITM_CAT_NF|ITM_CAT_FF)) {
-    ++subId;
-    if(subId<cur.count())
-      return *this;
-    subId = 0;
-    }*/
+  // TODO: belts, rings
   at++;
   skipHidden();
   return *this;
@@ -79,11 +71,11 @@ Inventory::Iterator::Iterator(Inventory::IteratorType t, const Inventory* owner)
 void Inventory::Iterator::skipHidden() {
   auto& it = owner->items;
   if(type==T_Trade) {
-    while(at<it.size() && (it[at]->isEquiped() || !it[at]->isTakable() || it[at]->isGold()))
+    while(at<it.size() && (it[at]->isEquiped() || it[at]->isGold()))
       ++at;
     }
   if(type==T_Ransack) {
-    while(at<it.size() && !it[at]->isTakable())
+    while(at<it.size() && !(it[at]->isEquiped() && it[at]->isRune()) && !(it[at]->isEquiped() && it[at]->isArmour()))
       ++at;
     }
   }
@@ -358,20 +350,35 @@ bool Inventory::unequip(size_t cls, Npc &owner) {
   }
 
 void Inventory::unequip(Item *it, Npc &owner) {
-  if(armour==it)
+  if(armour==it) {
     setSlot(armour,nullptr,owner,false);
-  if(belt==it)
+    return;
+    }
+  if(belt==it) {
     setSlot(belt,nullptr,owner,false);
-  if(amulet==it)
+    return;
+    }
+  if(amulet==it) {
     setSlot(amulet,nullptr,owner,false);
-  if(ringL==it)
+    return;
+    }
+  if(ringL==it) {
     setSlot(ringL,nullptr,owner,false);
-  if(ringR==it)
+    return;
+    }
+  if(ringR==it) {
     setSlot(ringR,nullptr,owner,false);
-  if(mele==it)
+    return;
+    }
+  if(mele==it) {
     setSlot(mele,nullptr,owner,false);
-  if(range==it)
+    return;
+    }
+  if(range==it) {
     setSlot(range,nullptr,owner,false);
+    return;
+    }
+
   for(auto& i:numslot)
     if(i==it)
       setSlot(i,nullptr,owner,false);
@@ -402,7 +409,8 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
     auto& itData = slot->handle();
     auto  flag   = Flags(itData.mainflag);
     applyArmour(*slot,owner,-1);
-    slot->setAsEquiped(false);
+    if(slot->isEquiped())
+      slot->setAsEquiped(false);
     if(&slot==active)
       applyWeaponStats(owner,*slot,-1);
     slot=nullptr;
@@ -770,8 +778,11 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
   if(mainflag & ITM_CAT_FF)
     return setSlot(range,it,owner,force);
 
-  if(mainflag & ITM_CAT_RUNE)
+  if(mainflag & ITM_CAT_RUNE) {
+    if(it->isEquiped())
+      return false;
     return equipNumSlot(it,owner,force);
+    }
 
   if(mainflag & ITM_CAT_ARMOR)
     return setSlot(armour,it,owner,force);
