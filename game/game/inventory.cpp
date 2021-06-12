@@ -21,22 +21,48 @@ const Item* Inventory::Iterator::operator ->() const {
   }
 
 uint32_t Inventory::Iterator::count() const {
-  return owner->items[at]->count();
+  auto& cur = *owner->items[at];
+  if((cur.mainFlag() & (ITM_CAT_NF|ITM_CAT_FF))) {
+    if(cur.isEquiped() && subId==0) {
+      return cur.equipCount();
+      }
+    if(cur.isEquiped())
+      return cur.count()-1;
+    return cur.count();
+    }
+  return cur.count();
+  }
+
+bool Inventory::Iterator::isEquiped() const {
+  auto& cur = *owner->items[at];
+  return subId==0 && cur.isEquiped();
+  }
+
+uint8_t Inventory::Iterator::slot() const {
+  auto& cur = *owner->items[at];
+  return subId==0 ? cur.slot() : Item::NSLOT;
   }
 
 Inventory::Iterator& Inventory::Iterator::operator++() {
-  auto& it = owner->items;
+  auto& it  = owner->items;
+  auto& cur = *it[at];
+  if((cur.mainFlag() & (ITM_CAT_NF|ITM_CAT_FF))) {
+    if(cur.isEquiped() && cur.count()>1 && subId==0) {
+      ++subId;
+      return *this;
+      }
+    subId = 0;
+    }
+  // TODO: armour, rings
+  /*
+  if(cur.mainFlag() & (ITM_CAT_NF|ITM_CAT_FF)) {
+    ++subId;
+    if(subId<cur.count())
+      return *this;
+    subId = 0;
+    }*/
   at++;
-
-  if(type==T_Trade) {
-    while(at<it.size() && (it[at]->isEquiped() || !it[at]->isTakable() || it[at]->isGold()))
-      ++at;
-    }
-
-  if(type==T_Ransack) {
-    while(at<it.size() && !it[at]->isTakable())
-      ++at;
-    }
+  skipHidden();
   return *this;
   }
 
@@ -47,8 +73,19 @@ bool Inventory::Iterator::isValid() const {
 Inventory::Iterator::Iterator(Inventory::IteratorType t, const Inventory* owner)
   :type(t), owner(owner) {
   owner->sortItems();
-  at = -1;
-  ++(*this);
+  skipHidden();
+  }
+
+void Inventory::Iterator::skipHidden() {
+  auto& it = owner->items;
+  if(type==T_Trade) {
+    while(at<it.size() && (it[at]->isEquiped() || !it[at]->isTakable() || it[at]->isGold()))
+      ++at;
+    }
+  if(type==T_Ransack) {
+    while(at<it.size() && !it[at]->isTakable())
+      ++at;
+    }
   }
 
 
@@ -204,7 +241,7 @@ Item* Inventory::addItem(std::unique_ptr<Item> &&p) {
     }
   }
 
-Item* Inventory::addItem(const char *name, uint32_t count, World &owner) {
+Item* Inventory::addItem(const char *name, size_t count, World &owner) {
   auto&  vm = owner.script();
   size_t id = vm.getSymbolIndex(name);
   if(id!=size_t(-1))
@@ -212,7 +249,7 @@ Item* Inventory::addItem(const char *name, uint32_t count, World &owner) {
   return nullptr;
   }
 
-Item* Inventory::addItem(size_t itemSymbol, uint32_t count, World &owner) {
+Item* Inventory::addItem(size_t itemSymbol, size_t count, World &owner) {
   using namespace Daedalus::GEngineClasses;
   if(count<=0)
     return nullptr;
@@ -240,7 +277,7 @@ Item* Inventory::addItem(size_t itemSymbol, uint32_t count, World &owner) {
     }
   }
 
-void Inventory::delItem(size_t itemSymbol, uint32_t count, Npc& owner) {
+void Inventory::delItem(size_t itemSymbol, size_t count, Npc& owner) {
   using namespace Daedalus::GEngineClasses;
   if(count<=0)
     return;
@@ -248,7 +285,7 @@ void Inventory::delItem(size_t itemSymbol, uint32_t count, Npc& owner) {
   return delItem(it,count,owner);
   }
 
-void Inventory::delItem(Item *it, uint32_t count, Npc& owner) {
+void Inventory::delItem(Item *it, size_t count, Npc& owner) {
   if(it==nullptr)
     return;
 
@@ -279,7 +316,7 @@ void Inventory::delItem(Item *it, uint32_t count, Npc& owner) {
       }
   }
 
-void Inventory::trasfer(Inventory &to, Inventory &from, Npc* fromNpc, size_t itemSymbol, uint32_t count, World &wrld) {
+void Inventory::trasfer(Inventory &to, Inventory &from, Npc* fromNpc, size_t itemSymbol, size_t count, World &wrld) {
   for(size_t i=0;i<from.items.size();++i){
     auto& it = *from.items[i];
     if(it.clsId()!=itemSymbol)

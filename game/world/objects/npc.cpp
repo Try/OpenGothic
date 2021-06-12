@@ -2415,8 +2415,6 @@ void Npc::setToFightMode(const size_t item) {
   if(invent.itemCount(item)==0)
     addItem(item,1);
 
-  auto weaponSt=weaponState();
-
   invent.equip(item,*this,true);
   invent.switchActiveWeapon(*this,1);
 
@@ -2424,6 +2422,7 @@ void Npc::setToFightMode(const size_t item) {
   if(w==nullptr || w->clsId()!=item)
     return;
 
+  auto weaponSt = WeaponState::W1H;
   if(w->is2H()) {
     weaponSt = WeaponState::W2H;
     } else {
@@ -2454,7 +2453,7 @@ void Npc::aiPush(AiQueue::AiAction&& a) {
     aiQueue.pushBack(std::move(a));
   }
 
-Item* Npc::addItem(const size_t item, uint32_t count) {
+Item* Npc::addItem(const size_t item, size_t count) {
   return invent.addItem(item,count,owner);
   }
 
@@ -2490,33 +2489,33 @@ Item* Npc::takeItem(Item& item) {
   return it;
   }
 
-void Npc::addItem(size_t id, Interactive &chest, uint32_t count) {
+void Npc::addItem(size_t id, Interactive &chest, size_t count) {
   Inventory::trasfer(invent,chest.inventory(),nullptr,id,count,owner);
   }
 
-void Npc::addItem(size_t id, Npc &from, uint32_t count) {
+void Npc::addItem(size_t id, Npc &from, size_t count) {
   Inventory::trasfer(invent,from.invent,&from,id,count,owner);
   }
 
-void Npc::moveItem(size_t id, Interactive &to, uint32_t count) {
+void Npc::moveItem(size_t id, Interactive &to, size_t count) {
   Inventory::trasfer(to.inventory(),invent,this,id,count,owner);
   }
 
-void Npc::sellItem(size_t id, Npc &to, uint32_t count) {
+void Npc::sellItem(size_t id, Npc &to, size_t count) {
   if(id==owner.script().goldId())
     return;
   int32_t price = invent.sellPriceOf(id);
   Inventory::trasfer(to.invent,invent,this,id,count,owner);
-  invent.addItem(owner.script().goldId(),uint32_t(price),owner);
+  invent.addItem(owner.script().goldId(),size_t(price),owner);
   }
 
-void Npc::buyItem(size_t id, Npc &from, uint32_t count) {
+void Npc::buyItem(size_t id, Npc &from, size_t count) {
   if(id==owner.script().goldId())
     return;
 
   int32_t price = from.invent.priceOf(id);
-  if(price>0 && uint32_t(price)*count>invent.goldCount()) {
-    count = uint32_t(invent.goldCount())/uint32_t(price);
+  if(price>0 && size_t(price)*count>invent.goldCount()) {
+    count = invent.goldCount()/size_t(price);
     }
   if(count==0) {
     owner.script().printCannotBuyError(*this);
@@ -2525,23 +2524,25 @@ void Npc::buyItem(size_t id, Npc &from, uint32_t count) {
 
   Inventory::trasfer(invent,from.invent,nullptr,id,count,owner);
   if(price>=0)
-    invent.delItem(owner.script().goldId(),uint32_t(price)*count,*this); else
-    invent.addItem(owner.script().goldId(),uint32_t(-price)*count,owner);
+    invent.delItem(owner.script().goldId(),size_t( price)*count,*this); else
+    invent.addItem(owner.script().goldId(),size_t(-price)*count,owner);
   }
 
-void Npc::dropItem(size_t id) {
+void Npc::dropItem(size_t id, size_t count) {
   if(id==size_t(-1))
     return;
   size_t cnt = invent.itemCount(id);
-  if(cnt<1)
+  if(count>cnt)
+    count = cnt;
+  if(count<1)
     return;
 
-  invent.delItem(id,uint32_t(cnt),*this);
+  invent.delItem(id,count,*this);
   if(!setAnim(Anim::ItmDrop))
     return;
 
   auto it = owner.addItem(id,nullptr);
-  it->setCount(cnt);
+  it->setCount(count);
 
   float rot = rotationRad()-float(M_PI/2), mul=50;
   float s   = std::sin(rot), c = std::cos(rot);

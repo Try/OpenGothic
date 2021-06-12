@@ -2992,7 +2992,7 @@ void GameScript::createinvitems(Daedalus::DaedalusVM &vm) {
   uint32_t itemInstance = vm.popUInt();
   auto     self         = popInstance(vm);
   if(self!=nullptr && amount>0) {
-    Item* itm = self->addItem(itemInstance,uint32_t(amount));
+    Item* itm = self->addItem(itemInstance,size_t(amount));
     storeItem(itm);
     }
   }

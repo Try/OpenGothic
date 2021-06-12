@@ -458,7 +458,7 @@ void Interactive::implAddItem(char *name) {
     *sep='\0';++sep;
     long count = std::strtol(sep,nullptr,10);
     if(count>0)
-      invent.addItem(name,uint32_t(count),world);
+      invent.addItem(name,size_t(count),world);
     } else {
     invent.addItem(name,1,world);
     }

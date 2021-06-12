@@ -105,7 +105,7 @@ bool Item::isMission() const {
 bool Item::canEquip() const {
   static auto flg = (Inventory::ITM_CAT_NF    | Inventory::ITM_CAT_FF   | Inventory::ITM_CAT_ARMOR |
                      Inventory::ITM_CAT_LIGHT | Inventory::ITM_CAT_RUNE | Inventory::ITM_CAT_MAGIC);
-  return (uint32_t(hitem.flags)&flg);
+  return (mainFlag()&flg);
   }
 
 void Item::setAsEquiped(bool e) {

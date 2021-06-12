@@ -19,7 +19,7 @@ struct InventoryMenu::Page {
   Page(const Page&)=delete;
   virtual ~Page()=default;
 
-  size_t      size() const {
+  size_t                      size() const {
     size_t ret = 0;
     auto it = iterator();
     while(it.isValid()) {
@@ -28,11 +28,11 @@ struct InventoryMenu::Page {
       }
     return ret;
     }
-  const Item& get(size_t id) const {
+  Inventory::Iterator         get(size_t id) const {
     auto it = iterator();
-    for(size_t i=0; i<id; ++i)
+    for(size_t i=0; i<id && it.isValid(); ++i)
       ++it;
-    return *it;
+    return it;
     }
 
   virtual bool                is(const Inventory* ) const { return false; }
@@ -485,11 +485,11 @@ void InventoryMenu::onItemAction() {
   if(sel.sel>=page.size())
     return;
 
-  auto& r = page.get(sel.sel);
+  auto it = page.get(sel.sel);
   if(state==State::Equip) {
-    if(r.isEquiped())
-      player->unequipItem(r.clsId()); else
-      player->useItem    (r.clsId());
+    if(it.isEquiped())
+      player->unequipItem(it->clsId()); else
+      player->useItem    (it->clsId());
     }
   else if(state==State::Chest || state==State::Trade || state==State::Ransack) {
     lootMode = LootMode::Normal;
@@ -499,22 +499,22 @@ void InventoryMenu::onItemAction() {
   }
 
 void InventoryMenu::onTakeStuff() { 
-  uint32_t itemCount = 0;
+  size_t itemCount = 0;
   auto& page = activePage();
   auto& sel = activePageSel();
   if(sel.sel >= page.size())
     return;
-  auto& r = page.get(sel.sel);
+  auto it = page.get(sel.sel);
   if(lootMode==LootMode::Normal) {
     ++takeCount;
     itemCount = uint32_t(std::pow(10,takeCount / 10));
-    if(r.count() <= itemCount) {
-      itemCount = uint32_t(r.count());
+    if(it.count() <= itemCount) {
+      itemCount = uint32_t(it.count());
       takeCount = 0;
       }
     }
   else if(lootMode==LootMode::Stack) {
-    itemCount = uint32_t(r.count());
+    itemCount = it.count();
     }
   else if(lootMode==LootMode::Ten) {
     itemCount = 10;
@@ -523,31 +523,31 @@ void InventoryMenu::onTakeStuff() {
     itemCount = 100;
     }
 
-  if(r.count() < itemCount) {
-    itemCount = uint32_t(r.count());
+  if(it.count() < itemCount) {
+    itemCount = it.count();
     }
 
   if(state==State::Chest) {
     if(page.is(&player->inventory())) {
-      player->moveItem(r.clsId(),*chest,itemCount);
+      player->moveItem(it->clsId(),*chest,itemCount);
       } else {
-      player->addItem(r.clsId(),*chest,itemCount);
+      player->addItem (it->clsId(),*chest,itemCount);
       }
     }
   else if(state==State::Trade) {
     if(page.is(&player->inventory())) {
-      player->sellItem(r.clsId(),*trader,itemCount);
+      player->sellItem(it->clsId(),*trader,itemCount);
       } else {
-      player->buyItem(r.clsId(),*trader,itemCount);
+      player->buyItem (it->clsId(),*trader,itemCount);
       }
     }
   else if(state==State::Ransack) {
     if(page.is(&trader->inventory())) {
-      player->addItem(r.clsId(),*trader,itemCount);
+      player->addItem(it->clsId(),*trader,itemCount);
       }
     }
   else if(state==State::Equip) {
-    player->dropItem(r.clsId());
+    player->dropItem(it->clsId(),itemCount);
     }
   adjustScroll();
   }
@@ -653,7 +653,7 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterato
                  0,0,selT->w(),selT->h());
       }
 
-    if(it->isEquiped() && selU!=nullptr){
+    if(it.isEquiped() && selU!=nullptr){
       p.setBrush(*selU);
       p.drawRect(x,y,slotSize().w,slotSize().h,
                  0,0,selU->w(),selU->h());
@@ -673,9 +673,9 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterato
                    vint);
       }
 
-    if(it->slot()!=Item::NSLOT) {
+    if(it.slot()!=Item::NSLOT) {
       auto& fnt = Resources::font(Resources::FontType::Red);
-      std::snprintf(vint,sizeof(vint),"%d",int(it->slot()));
+      std::snprintf(vint,sizeof(vint),"%d",int(it.slot()));
       auto sz = fnt.textSize(vint);
       fnt.drawText(p,x+10,
                    y+slotSize().h/2+sz.h/2,
@@ -727,10 +727,11 @@ void InventoryMenu::drawInfo(Painter &p) {
   auto& pg  = activePage();
   auto& sel = activePageSel();
 
-  if(sel.sel>=pg.size())
+  auto it = pg.get(sel.sel);
+  if(!it.isValid())
     return;
 
-  auto& r = pg.get(sel.sel);
+  auto& r = *pg.get(sel.sel);
   if(tex) {
     p.setBrush(*tex);
     p.drawRect(x,y,dw,dh,

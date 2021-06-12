@@ -63,7 +63,10 @@ class Inventory final {
       public:
         const Item& operator*   () const;
         const Item* operator -> () const;
+
         uint32_t    count() const;
+        bool        isEquiped() const;
+        uint8_t     slot() const;
 
         Iterator&   operator++();
 
@@ -71,10 +74,12 @@ class Inventory final {
 
       private:
         Iterator(IteratorType t, const Inventory* owner);
+        void skipHidden();
 
         IteratorType     type  = T_Inventory;
         const Inventory* owner = nullptr;
         size_t           at    = 0;
+        size_t           subId = 0;
       friend class Inventory;
       };
 
@@ -85,13 +90,13 @@ class Inventory final {
     size_t       goldCount() const;
     size_t       itemCount(const size_t id) const;
 
-    static void  trasfer(Inventory& to, Inventory& from, Npc *fromNpc, size_t cls, uint32_t count, World &wrld);
+    static void  trasfer(Inventory& to, Inventory& from, Npc *fromNpc, size_t cls, size_t count, World &wrld);
 
     Item*  getItem(size_t instance);
     Item*  addItem(std::unique_ptr<Item>&& p);
-    Item*  addItem(const char* name, uint32_t count, World &owner);
-    Item*  addItem(size_t cls, uint32_t count, World &owner);
-    void   delItem(size_t cls, uint32_t count, Npc &owner);
+    Item*  addItem(const char* name, size_t count, World &owner);
+    Item*  addItem(size_t cls, size_t count, World &owner);
+    void   delItem(size_t cls, size_t count, Npc &owner);
     bool   use    (size_t cls, Npc &owner, bool force);
     bool   equip  (size_t cls, Npc &owner, bool force);
     bool   unequip(size_t cls, Npc &owner);
@@ -153,7 +158,7 @@ class Inventory final {
     void   applyArmour (Item& it, Npc &owner, int32_t sgn);
 
     Item*  findByClass(size_t cls);
-    void   delItem    (Item* it, uint32_t count, Npc& owner);
+    void   delItem    (Item* it, size_t count, Npc& owner);
     void   invalidateCond(Item*& slot,  Npc &owner);
 
     Item*  bestItem       (Npc &owner, Flags f);

@@ -405,19 +405,19 @@ class Npc final {
     auto      inventory() const -> const Inventory& { return invent; }
     size_t    hasItem    (size_t id) const;
     Item*     getItem    (size_t id);
-    Item*     addItem    (size_t id, uint32_t amount);
+    Item*     addItem    (size_t id, size_t amount);
     Item*     addItem    (std::unique_ptr<Item>&& i);
     Item*     takeItem   (Item& i);
     void      delItem    (size_t id, uint32_t amount);
     void      useItem    (size_t item, bool force=false);
     void      setCurrentItem(size_t item);
     void      unequipItem(size_t item);
-    void      addItem    (size_t id, Interactive& chest,uint32_t count=1);
-    void      addItem    (size_t id, Npc& from, uint32_t count=1);
-    void      moveItem   (size_t id, Interactive& to,uint32_t count=1);
-    void      sellItem   (size_t id, Npc& to,uint32_t count=1);
-    void      buyItem    (size_t id, Npc& from,uint32_t count=1);
-    void      dropItem   (size_t id);
+    void      addItem    (size_t id, Interactive& chest, size_t count=1);
+    void      addItem    (size_t id, Npc& from,          size_t count=1);
+    void      moveItem   (size_t id, Interactive& to,    size_t count=1);
+    void      sellItem   (size_t id, Npc& to,            size_t count=1);
+    void      buyItem    (size_t id, Npc& from,          size_t count=1);
+    void      dropItem   (size_t id,                     size_t count=1);
     void      clearInventory();
     Item*     currentArmour();
     Item*     currentMeleWeapon();
