@@ -14,12 +14,38 @@
 
 using namespace Tempest;
 
+struct InventoryMenu::Page {
+  Page()=default;
+  Page(const Page&)=delete;
+  virtual ~Page()=default;
+
+  size_t      size() const {
+    size_t ret = 0;
+    auto it = iterator();
+    while(it.isValid()) {
+      ret++;
+      ++it;
+      }
+    return ret;
+    }
+  const Item& get(size_t id) const {
+    auto it = iterator();
+    for(size_t i=0; i<id; ++i)
+      ++it;
+    return *it;
+    }
+
+  virtual bool                is(const Inventory* ) const { return false; }
+  virtual Inventory::Iterator iterator() const { throw std::runtime_error("index out of range");  }
+  };
+
 struct InventoryMenu::InvPage : InventoryMenu::Page {
   InvPage(const Inventory& i):inv(i){}
 
-  bool   is(const Inventory* i) const override { return &inv==i; }
-  size_t size() const override { return inv.recordsCount(); }
-  const Item& operator[](size_t i) const override { return inv.at(i); }
+  bool                is(const Inventory* i) const override { return &inv==i; }
+  Inventory::Iterator iterator() const override {
+    return inv.iterator(Inventory::T_Inventory);
+    }
 
   const Inventory& inv;
   };
@@ -27,9 +53,10 @@ struct InventoryMenu::InvPage : InventoryMenu::Page {
 struct InventoryMenu::TradePage : InventoryMenu::Page {
   TradePage(const Inventory& i):inv(i){}
 
-  bool   is(const Inventory* i) const override { return &inv==i; }
-  size_t size() const override { return inv.tradableCount(); }
-  const Item& operator[](size_t i) const override { return inv.atTrade(i); }
+  bool                is(const Inventory* i) const override { return &inv==i; }
+  Inventory::Iterator iterator() const override {
+    return inv.iterator(Inventory::T_Trade);
+    }
 
   const Inventory& inv;
   };
@@ -37,9 +64,10 @@ struct InventoryMenu::TradePage : InventoryMenu::Page {
 struct InventoryMenu::RansackPage : InventoryMenu::Page {
   RansackPage(const Inventory& i):inv(i){}
 
-  bool   is(const Inventory* i) const override { return &inv==i; }
-  size_t size() const override { return inv.ransackCount(); }
-  const Item& operator[](size_t i) const override { return inv.atRansack(i); }
+  bool                is(const Inventory* i) const override { return &inv==i; }
+  Inventory::Iterator iterator() const override {
+    return inv.iterator(Inventory::T_Ransack);
+    }
 
   const Inventory& inv;
   };
@@ -58,6 +86,9 @@ InventoryMenu::InventoryMenu(const KeyCodec& key, const RendererStorage &storage
 
   setFocusPolicy(NoFocus);
   takeTimer.timeout.bind(this,&InventoryMenu::onTakeStuff);
+  }
+
+InventoryMenu::~InventoryMenu() {
   }
 
 void InventoryMenu::close() {
@@ -103,7 +134,10 @@ void InventoryMenu::trade(Npc &pl, Npc &tr) {
   }
 
 bool InventoryMenu::ransack(Npc &pl, Npc &tr) {
-  if(tr.inventory().ransackCount()==0 || pl.isDown())
+  if(pl.isDown())
+    return false;
+  auto it = tr.inventory().iterator(Inventory::T_Ransack);
+  if(!it.isValid())
     return false;
   state  = State::Ransack;
   player = &pl;
@@ -169,9 +203,13 @@ void InventoryMenu::tick(uint64_t /*dt*/) {
       return;
       }
 
-    if(!trader->isDown())
+    if(!trader->isDown()) {
       close();
-    else if(trader->inventory().ransackCount()==0)
+      return;
+      }
+
+    auto it = trader->inventory().iterator(Inventory::T_Ransack);
+    if(!it.isValid())
       close();
     }
 
@@ -447,7 +485,7 @@ void InventoryMenu::onItemAction() {
   if(sel.sel>=page.size())
     return;
 
-  auto& r = page[sel.sel];
+  auto& r = page.get(sel.sel);
   if(state==State::Equip) {
     if(r.isEquiped())
       player->unequipItem(r.clsId()); else
@@ -466,7 +504,7 @@ void InventoryMenu::onTakeStuff() {
   auto& sel = activePageSel();
   if(sel.sel >= page.size())
     return;
-  auto& r = page[sel.sel];
+  auto& r = page.get(sel.sel);
   if(lootMode==LootMode::Normal) {
     ++takeCount;
     itemCount = uint32_t(std::pow(10,takeCount / 10));
@@ -532,7 +570,7 @@ void InventoryMenu::adjustScroll() {
     }
   }
 
-void InventoryMenu::drawAll(Painter &p,Npc &player,DrawPass pass) {
+void InventoryMenu::drawAll(Painter &p, Npc &player, DrawPass pass) {
   const int padd = 43;
 
   int iy=30+34+70;
@@ -566,76 +604,78 @@ void InventoryMenu::drawAll(Painter &p,Npc &player,DrawPass pass) {
   }
 
 void InventoryMenu::drawItems(Painter &p, DrawPass pass,
-                              const Page &inv, const PageLocal& sel, int x, int y, int wcount, int hcount) {
+                              const Page &inv, const PageLocal& sel, int x0, int y, int wcount, int hcount) {
   if(state==State::LockPicking)
     return;
 
-  if(tex && pass==DrawPass::Back) {
+  if(tex!=nullptr && pass==DrawPass::Back) {
     p.setBrush(*tex);
-    p.drawRect(x,y,slotSize().w*wcount,slotSize().h*hcount,
+    p.drawRect(x0,y,slotSize().w*wcount,slotSize().h*hcount,
                0,0,tex->w(),tex->h());
     }
 
-  for(int i=0;i<hcount;++i){
-    for(int r=0;r<wcount;++r){
-      int sx = x + r*slotSize().w;
-      drawSlot(p,pass, inv,sel, sx,y, size_t((int(sel.scroll)+i)*wcount+r));
+  auto   it = inv.iterator();
+  size_t id = 0;
+  for(size_t i=0; i<size_t(sel.scroll*wcount); ++i) {
+    ++it;
+    ++id;
+    }
+  for(int i=0;i<hcount;++i) {
+    for(int r=0;r<wcount;++r) {
+      const int x = x0 + r*slotSize().w;
+      if(pass==DrawPass::Back) {
+        p.setBrush(*slot);
+        p.drawRect(x,y,slotSize().w,slotSize().h,
+                   0,0,slot->w(),slot->h());
+        }
+      if(it.isValid()) {
+        drawSlot(p,pass, it,inv,sel, x,y, id);
+        ++it;
+        ++id;
+        }
       }
-    y+=slotSize().h;
+    y += slotSize().h;
     }
   }
 
-void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Page &inv, const PageLocal &sel, int x, int y, size_t id) {
+void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterator &it,
+                             const Page& page, const PageLocal &sel,
+                             int x, int y, size_t id) {
   if(!slot)
     return;
 
-  auto& page = activePage();
-
-  if(pass==DrawPass::Back){
-    p.setBrush(*slot);
-    p.drawRect(x,y,slotSize().w,slotSize().h,
-               0,0,slot->w(),slot->h());
-
-    if(inv.size()==0 && id==0 && &page==&inv){
-      p.setBrush(*selT);
-      p.drawRect(x,y,slotSize().w,slotSize().h,
-                 0,0,selT->w(),selT->h());
-      }
-    }
-
-  if(id>=inv.size())
-    return;
-
-  auto& r = inv[id];
+  auto& active = activePage();
 
   if(pass==DrawPass::Back) {
-    if(id==sel.sel && &page==&inv && selT!=nullptr){
+    if((!it.isValid() && id==0) || (id==sel.sel && &page==&active)){
       p.setBrush(*selT);
       p.drawRect(x,y,slotSize().w,slotSize().h,
                  0,0,selT->w(),selT->h());
       }
 
-    if(r.isEquiped() && selU!=nullptr){
+    if(it->isEquiped() && selU!=nullptr){
       p.setBrush(*selU);
       p.drawRect(x,y,slotSize().w,slotSize().h,
                  0,0,selU->w(),selU->h());
       }
-    renderer.drawItem(x,y,slotSize().w,slotSize().h,r);
+
+    const int dsz = (id==sel.sel ? 4 : 0);
+    renderer.drawItem(x-dsz, y-dsz, slotSize().w+2*dsz, slotSize().h+2*dsz, *it);
     } else {
     auto& fnt = Resources::font();
     char  vint[32]={};
 
-    if(r.count()>1) {
-      std::snprintf(vint,sizeof(vint),"%d",int(r.count()));
+    if(it.count()>1) {
+      std::snprintf(vint,sizeof(vint),"%d",int(it.count()));
       auto sz = fnt.textSize(vint);
       fnt.drawText(p,x+slotSize().w-sz.w-10,
                    y+slotSize().h-10,
                    vint);
       }
 
-    if(r.slot()!=Item::NSLOT) {
+    if(it->slot()!=Item::NSLOT) {
       auto& fnt = Resources::font(Resources::FontType::Red);
-      std::snprintf(vint,sizeof(vint),"%d",int(r.slot()));
+      std::snprintf(vint,sizeof(vint),"%d",int(it->slot()));
       auto sz = fnt.textSize(vint);
       fnt.drawText(p,x+10,
                    y+slotSize().h/2+sz.h/2,
@@ -690,7 +730,7 @@ void InventoryMenu::drawInfo(Painter &p) {
   if(sel.sel>=pg.size())
     return;
 
-  auto& r = pg[sel.sel];
+  auto& r = pg.get(sel.sel);
   if(tex) {
     p.setBrush(*tex);
     p.drawRect(x,y,dw,dh,
@@ -722,7 +762,7 @@ void InventoryMenu::drawInfo(Painter &p) {
       fnt.drawText(p,x+dw-tw-20,y+int(i+2)*fnt.pixelSize(),vint);
     }
 
-  const int sz=dh;
+  const int sz = dh;
   renderer.drawItem(x+dw-sz-sz/2,y,sz,sz,r);
   }
 

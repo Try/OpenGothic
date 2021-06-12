@@ -810,7 +810,7 @@ void Npc::updateArmour() {
     auto  vbody = body.empty() ? MeshObjects::Mesh() : w.addView(addExt(body,".MDM").c_str(),vColor,0,bdColor);
     visual.setBody(std::move(vbody),owner,bdColor);
     } else {
-    auto& itData = *ar->handle();
+    auto& itData = ar->handle();
     auto  flag   = Inventory::Flags(itData.mainflag);
     if(flag & Inventory::ITM_CAT_ARMOR){
       std::string asc = itData.visual_change.c_str();
@@ -893,7 +893,7 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
       case ZenLoad::DEF_PLACE_MUNITION: {
         auto active=invent.activeWeapon();
         if(active!=nullptr) {
-          const int32_t munition = active->handle()->munition;
+          const int32_t munition = active->handle().munition;
           invent.putAmmunition(*this,uint32_t(munition),i.slot[0]);
           }
         break;
@@ -1522,7 +1522,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
 
   if(ev.weaponCh==ZenLoad::FM_NONE && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
     if(auto melee = invent.currentMeleWeapon()) {
-      if(melee->handle()->material==ItemMaterial::MAT_METAL)
+      if(melee->handle().material==ItemMaterial::MAT_METAL)
         sfxWeapon = ::Sound(owner,::Sound::T_Raw,"UNDRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
         sfxWeapon = ::Sound(owner,::Sound::T_Raw,"UNDRAWSOUND_WO.WAV",{x,y+translateY(),z},2500,false);
       sfxWeapon.play();
@@ -1530,7 +1530,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
     }
   else if(ev.weaponCh==ZenLoad::FM_1H || ev.weaponCh==ZenLoad::FM_2H) {
     if(auto melee = invent.currentMeleWeapon()) {
-      if(melee->handle()->material==ItemMaterial::MAT_METAL)
+      if(melee->handle().material==ItemMaterial::MAT_METAL)
         sfxWeapon = ::Sound(owner,::Sound::T_Raw,"DRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
         sfxWeapon = ::Sound(owner,::Sound::T_Raw,"DRAWSOUND_WO.WAV",{x,y+translateY(),z},2500,false);
       sfxWeapon.play();
@@ -2485,7 +2485,7 @@ Item* Npc::takeItem(Item& item) {
 
   addItem(std::move(ptr));
   implAniWait(uint64_t(sq->totalTime()));
-  if(it->handle()->owner!=0)
+  if(it->handle().owner!=0)
     owner.sendPassivePerc(*this,*this,*this,*it,Npc::PERC_ASSESSTHEFT);
   return it;
   }
@@ -2998,7 +2998,7 @@ bool Npc::shootBow(Interactive* focOverride) {
     return true;
     }
 
-  const int32_t munition = active->handle()->munition;
+  const int32_t munition = active->handle().munition;
   if(!hasAmunition())
     return false;
 
@@ -3026,7 +3026,7 @@ bool Npc::hasAmunition() const {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
-  const int32_t munition = active->handle()->munition;
+  const int32_t munition = active->handle().munition;
   if(munition<0 || invent.itemCount(size_t(munition))<=0)
     return false;
   return true;

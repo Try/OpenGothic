@@ -13,29 +13,31 @@ class Serialize;
 
 class Item final : public Vob {
   public:
+    enum { MAX_UI_ROWS=6, NSLOT=255 };
+
     Item(World& owner, size_t     inst, bool inWorld);
     Item(World& owner, Serialize& fin,  bool inWorld);
     Item(Item&&);
     ~Item();
     Item& operator=(Item&&)=delete;
 
-    void save(Serialize& fout) const override;
+    void    save(Serialize& fout) const override;
 
-    enum { MAX_UI_ROWS=6, NSLOT=255 };
+    void    clearView();
 
-    void clearView();
+    void    setPosition  (float x,float y,float z);
+    void    setDirection (float x,float y,float z);
+    void    setMatrix(const Tempest::Matrix4x4& m);
 
-    void setPosition  (float x,float y,float z);
-    void setDirection (float x,float y,float z);
-    void setMatrix(const Tempest::Matrix4x4& m);
+    bool    isMission() const;
+    bool    canEquip() const;
+    bool    isEquiped() const  { return equiped>0; }
+    uint8_t equipCount() const { return equiped;   }
+    void    setAsEquiped(bool e);
 
-    bool isMission() const;
-    bool isEquiped() const    { return equiped; }
-    void setAsEquiped(bool e) { equiped=e; if(!e) itSlot=NSLOT; }
-
-    void setPhysicsEnable (DynamicWorld& physic);
-    void setPhysicsDisable();
-    bool isDynamic() const override;
+    void    setPhysicsEnable (DynamicWorld& physic);
+    void    setPhysicsDisable();
+    bool    isDynamic() const override;
 
     uint8_t slot() const       { return itSlot;  }
     void    setSlot(uint8_t s) { itSlot = s;     }
@@ -52,6 +54,7 @@ class Item final : public Vob {
     bool                isSpell() const;
     bool                is2H() const;
     bool                isCrossbow() const;
+    bool                isTakable() const;
     int32_t             spellId() const;
     int32_t             swordLength() const;
 
@@ -67,8 +70,8 @@ class Item final : public Vob {
     bool                checkCondUse (const Npc& other,int32_t& atr,int32_t& nv) const;
     bool                checkCondRune(const Npc& other,int32_t& cPl,int32_t& cIt) const;
 
-    const Daedalus::GEngineClasses::C_Item* handle() const { return &hitem; }
-    Daedalus::GEngineClasses::C_Item*       handle() { return &hitem; }
+    const Daedalus::GEngineClasses::C_Item& handle() const { return hitem; }
+    Daedalus::GEngineClasses::C_Item&       handle()       { return hitem; }
     size_t                                  clsId() const;
 
   private:
@@ -78,8 +81,10 @@ class Item final : public Vob {
     Daedalus::GEngineClasses::C_Item  hitem={};
     MeshObjects::Mesh                 view;
     Tempest::Vec3                     pos={};
-    bool                              equiped=false;
-    uint8_t                           itSlot=NSLOT;
+
+    uint32_t                          amount  = 0;
+    uint8_t                           equiped = 0;
+    uint8_t                           itSlot  = NSLOT;
 
     DynamicWorld::Item                physic;
   };

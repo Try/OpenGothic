@@ -524,7 +524,7 @@ void GameScript::loadVar(Serialize &fin) {
             }
           else if(dataClass==2) {
             auto itm = world().itmById(id);
-            s.instance.set(itm ? itm->handle() : nullptr, Daedalus::IC_Item);
+            s.instance.set(itm ? &itm->handle() : nullptr, Daedalus::IC_Item);
             }
           }
         break;
@@ -639,7 +639,7 @@ Daedalus::GEngineClasses::C_Focus GameScript::getFocus(const char *name) {
 void GameScript::storeItem(Item *itm) {
   Daedalus::PARSymbol& s = vm.globalItem();
   if(itm!=nullptr) {
-    s.instance.set(itm->handle(),Daedalus::IC_Item);
+    s.instance.set(&itm->handle(),Daedalus::IC_Item);
     } else {
     s.instance.set(nullptr,Daedalus::IC_Item);
     }
@@ -1321,9 +1321,9 @@ void GameScript::pushItem(Daedalus::DaedalusVM &vm, Item *it) {
     vm.setReturn(-1);
     return;
     }
-  auto& sym = vm.getDATFile().getSymbolByIndex(it->handle()->instanceSymbol);
-  sym.instance.set(it->handle(),Daedalus::IC_Item); // TODO: proper symbols
-  vm.setReturn(int(it->handle()->instanceSymbol));
+  auto& sym = vm.getDATFile().getSymbolByIndex(it->handle().instanceSymbol);
+  sym.instance.set(&it->handle(),Daedalus::IC_Item); // TODO: proper symbols
+  vm.setReturn(int(it->handle().instanceSymbol));
   }
 
 
@@ -1581,7 +1581,7 @@ void GameScript::wld_detectitem(Daedalus::DaedalusVM &vm) {
   Item* ret =nullptr;
   float dist=std::numeric_limits<float>::max();
   world().detectItem(npc->position(), float(npc->handle()->senses_range), [npc,&ret,&dist,flags](Item& it) {
-    if((it.handle()->mainflag&flags)==0)
+    if((it.handle().mainflag&flags)==0)
       return;
     float d = (npc->position()-it.position()).quadLength();
     if(d<dist) {
@@ -1591,7 +1591,7 @@ void GameScript::wld_detectitem(Daedalus::DaedalusVM &vm) {
     });
 
   if(ret)
-    vm.globalItem().instance.set(ret->handle(), Daedalus::IC_Item);
+    vm.globalItem().instance.set(&ret->handle(), Daedalus::IC_Item);
   vm.setReturn(ret ? 1 : 0);
   }
 
@@ -2491,7 +2491,7 @@ void GameScript::npc_ownedbynpc(Daedalus::DaedalusVM &vm) {
     return;
     }
 
-  auto& sym = vm.getDATFile().getSymbolByIndex(itm->handle()->owner);
+  auto& sym = vm.getDATFile().getSymbolByIndex(itm->handle().owner);
   if(npc->handle()==sym.instance.get())
     vm.setReturn(1); else
     vm.setReturn(0);
@@ -3008,7 +3008,7 @@ void GameScript::hlp_getinstanceid(Daedalus::DaedalusVM &vm) {
 
   auto item = getItemById(idx);
   if(item!=nullptr){
-    auto& v = *(item->handle());
+    auto& v = item->handle();
     vm.setReturn(int32_t(v.instanceSymbol));
     return;
     }
@@ -3033,7 +3033,7 @@ void GameScript::hlp_isitem(Daedalus::DaedalusVM &vm) {
   uint32_t instanceSymbol = vm.popUInt();
   auto     item           = popItem(vm);
   if(item!=nullptr){
-    auto& v = *(item->handle());
+    auto& v = item->handle();
     vm.setReturn(v.instanceSymbol==instanceSymbol ? 1 : 0);
     } else
     vm.setReturn(0);

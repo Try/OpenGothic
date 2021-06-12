@@ -12,6 +12,46 @@
 using namespace Daedalus::GameState;
 using namespace Tempest;
 
+const Item& Inventory::Iterator::operator*() const {
+  return *owner->items[at];
+  }
+
+const Item* Inventory::Iterator::operator ->() const {
+  return owner->items[at].get();
+  }
+
+uint32_t Inventory::Iterator::count() const {
+  return owner->items[at]->count();
+  }
+
+Inventory::Iterator& Inventory::Iterator::operator++() {
+  auto& it = owner->items;
+  at++;
+
+  if(type==T_Trade) {
+    while(at<it.size() && (it[at]->isEquiped() || !it[at]->isTakable() || it[at]->isGold()))
+      ++at;
+    }
+
+  if(type==T_Ransack) {
+    while(at<it.size() && !it[at]->isTakable())
+      ++at;
+    }
+  return *this;
+  }
+
+bool Inventory::Iterator::isValid() const {
+  return at<owner->items.size();
+  }
+
+Inventory::Iterator::Iterator(Inventory::IteratorType t, const Inventory* owner)
+  :type(t), owner(owner) {
+  owner->sortItems();
+  at = -1;
+  ++(*this);
+  }
+
+
 Inventory::Inventory() {  
   }
 
@@ -113,6 +153,10 @@ void Inventory::save(Serialize &fout) const {
   fout.write(curItem,stateItem);
   }
 
+Inventory::Iterator Inventory::iterator(IteratorType t) const {
+  return Iterator(t,this);
+  }
+
 int32_t Inventory::priceOf(size_t cls) const {
   for(auto& i:items)
     if(i->clsId()==cls)
@@ -141,56 +185,6 @@ size_t Inventory::itemCount(const size_t cls) const {
   return 0;
   }
 
-size_t Inventory::tradableCount() const {
-  size_t c=0;
-  for(auto& i:items)
-    if(!i->isEquiped() && isTakable(*i) && !i->isGold())
-      c++;
-  return c;
-  }
-
-size_t Inventory::ransackCount() const {
-  size_t c=0;
-  for(auto& i:items)
-    if(isTakable(*i))
-      c++;
-  return c;
-  }
-
-Item &Inventory::at(size_t i) {
-  sortItems();
-  return *items[i];
-  }
-
-const Item &Inventory::at(size_t i) const {
-  sortItems();
-  return *items[i];
-  }
-
-const Item &Inventory::atTrade(size_t n) const {
-  sortItems();
-  size_t c=0;
-  for(auto& i:items)
-    if(!i->isEquiped() && isTakable(*i) && !i->isGold()) {
-      if(c==n)
-        return *i;
-      c++;
-      }
-  throw std::logic_error("index out of range");
-  }
-
-const Item &Inventory::atRansack(size_t n) const {
-  sortItems();
-  size_t c=0;
-  for(auto& i:items)
-    if(isTakable(*i)) {
-      if(c==n)
-        return *i;
-      c++;
-      }
-  throw std::logic_error("index out of range");
-  }
-
 Item* Inventory::addItem(std::unique_ptr<Item> &&p) {
   using namespace Daedalus::GEngineClasses;
   if(p==nullptr)
@@ -205,8 +199,7 @@ Item* Inventory::addItem(std::unique_ptr<Item> &&p) {
     items.emplace_back(std::move(p));
     return items.back().get();
     } else {
-    auto& c = *p->handle();
-    it->handle()->amount += c.amount;
+    it->setCount(it->count()+p->count());
     return p.get();
     }
   }
@@ -242,7 +235,7 @@ Item* Inventory::addItem(size_t itemSymbol, uint32_t count, World &owner) {
       return nullptr;
       }
     } else {
-    it->handle()->amount += count;
+    it->setCount(it->count()+count);
     return it;
     }
   }
@@ -258,12 +251,12 @@ void Inventory::delItem(size_t itemSymbol, uint32_t count, Npc& owner) {
 void Inventory::delItem(Item *it, uint32_t count, Npc& owner) {
   if(it==nullptr)
     return;
-  auto  handle = it->handle();
-  auto& itData = *handle;
-  if(itData.amount>count)
-    itData.amount-=count; else
-    itData.amount = 0;
-  if(itData.amount>0)
+
+  if(it->count()>count)
+    it->setCount(it->count()-count); else
+    it->setCount(0);
+
+  if(it->count()>0)
     return;
 
   // unequip, if have to
@@ -280,7 +273,7 @@ void Inventory::delItem(Item *it, uint32_t count, Npc& owner) {
   sorted=false;
 
   for(size_t i=0;i<items.size();++i)
-    if(items[i]->clsId()==itData.instanceSymbol){
+    if(items[i]->clsId()==it->clsId()){
       items.erase(items.begin()+int(i));
       break;
       }
@@ -295,12 +288,10 @@ void Inventory::trasfer(Inventory &to, Inventory &from, Npc* fromNpc, size_t ite
     from.sorted = false;
     to.sorted   = false;
 
-    auto  handle = it.handle();
-    auto& itData = *handle;
-    if(count>itData.amount)
-      count=itData.amount;
+    if(count>it.count())
+      count=it.count();
 
-    if(itData.amount==count) {
+    if(it.count()==count) {
       if(it.isEquiped()){
         if(fromNpc==nullptr){
           Log::e("Inventory: invalid transfer call");
@@ -311,7 +302,7 @@ void Inventory::trasfer(Inventory &to, Inventory &from, Npc* fromNpc, size_t ite
       to.addItem(std::move(from.items[i]));
       from.items.erase(from.items.begin()+int(i));
       } else {
-      itData.amount-=count;
+      it.setCount(it.count()-count);
       to.addItem(itemSymbol,count,wrld);
       }
     }
@@ -371,7 +362,7 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
     }
 
   if(slot!=nullptr) {
-    auto& itData = *slot->handle();
+    auto& itData = slot->handle();
     auto  flag   = Flags(itData.mainflag);
     applyArmour(*slot,owner,-1);
     slot->setAsEquiped(false);
@@ -394,7 +385,7 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
   if(next==nullptr)
     return false;
 
-  auto& itData = *next->handle();
+  auto& itData = next->handle();
   slot=next;
   slot->setAsEquiped(true);
   slot->setSlot(slotId(slot));
@@ -420,17 +411,17 @@ void Inventory::updateView(Npc& owner) {
   updateRuneView  (owner);
 
   for(auto& i:mdlSlots) {
-    auto& itData = *i.item->handle();
+    auto& itData = i.item->handle();
     auto  vbody  = world.addView(itData.visual,itData.material,0,itData.material);
     owner.setSlotItem(std::move(vbody),i.slot.c_str());
     }
   if(ammotSlot.item!=nullptr) {
-    auto& itData = *ammotSlot.item->handle();
+    auto& itData = ammotSlot.item->handle();
     auto  vbody  = world.addView(itData.visual,itData.material,0,itData.material);
     owner.setAmmoItem(std::move(vbody),ammotSlot.slot.c_str());
     }
   if(stateSlot.item!=nullptr) {
-    auto& itData = *stateSlot.item->handle();
+    auto& itData = stateSlot.item->handle();
     auto  vitm   = world.addView(itData.visual,itData.material,0,itData.material);
     owner.setStateItem(std::move(vitm),stateSlot.slot.c_str());
     }
@@ -440,7 +431,7 @@ void Inventory::updateArmourView(Npc& owner) {
   if(armour==nullptr)
     return;
 
-  auto& itData = *armour->handle();
+  auto& itData = armour->handle();
   auto  flag   = Flags(itData.mainflag);
   if(flag & ITM_CAT_ARMOR)
     owner.updateArmour();
@@ -452,7 +443,7 @@ void Inventory::updateSwordView(Npc &owner) {
     return;
     }
 
-  auto& itData = *mele->handle();
+  auto& itData = mele->handle();
   auto  vbody  = owner.world().addView(itData.visual,itData.material,0,itData.material);
   owner.setSword(std::move(vbody));
   }
@@ -465,7 +456,7 @@ void Inventory::updateBowView(Npc &owner) {
 
   auto flag = Flags(range->mainFlag());
   if(flag & ITM_CAT_FF){
-    auto& itData = *range->handle();
+    auto& itData = range->handle();
     auto  vbody  = owner.world().addView(itData.visual,itData.material,0,itData.material);
     owner.setRangeWeapon(std::move(vbody));
     }
@@ -618,7 +609,7 @@ void Inventory::putToSlot(Npc& owner, size_t cls, const char *slot) {
     if(i.slot==slot) {
       i.item = it;
 
-      auto& itData = *it->handle();
+      auto& itData = it->handle();
       auto  vitm   = owner.world().addView(itData.visual,itData.material,0,itData.material);
       owner.setSlotItem(std::move(vitm),slot);
       return;
@@ -627,7 +618,7 @@ void Inventory::putToSlot(Npc& owner, size_t cls, const char *slot) {
   MdlSlot& sl = mdlSlots.back();
   sl.slot = slot;
   sl.item = it;
-  auto& itData = *it->handle();
+  auto& itData = it->handle();
   auto  vitm   = owner.world().addView(itData.visual,itData.material,0,itData.material);
   owner.setSlotItem(std::move(vitm),slot);
   }
@@ -666,7 +657,7 @@ void Inventory::putAmmunition(Npc& owner, size_t cls, const char* slot) {
 
   ammotSlot.slot = slot;
   ammotSlot.item = it;
-  auto& itData = *it->handle();
+  auto& itData = it->handle();
   auto  vitm   = owner.world().addView(itData.visual,itData.material,0,itData.material);
   owner.setAmmoItem(std::move(vitm),slot);
   }
@@ -682,7 +673,7 @@ void Inventory::implPutState(Npc& owner, size_t cls, const char* slot) {
 
   stateSlot.slot = slot;
   stateSlot.item = it;
-  auto& itData = *it->handle();
+  auto& itData = it->handle();
   auto  vitm   = owner.world().addView(itData.visual,itData.material,0,itData.material);
   owner.setStateItem(std::move(vitm),slot);
   }
@@ -694,7 +685,7 @@ bool Inventory::putState(Npc& owner, size_t cls, int state) {
     return owner.stopItemStateAnim();
     }
 
-  if(!owner.setAnimItem(it->handle()->scemeName.c_str(),state))
+  if(!owner.setAnimItem(it->handle().scemeName.c_str(),state))
     return false;
 
   setCurrentItem(0);
@@ -721,11 +712,9 @@ bool Inventory::equipNumSlot(Item *next, Npc &owner,bool force) {
   }
 
 void Inventory::applyArmour(Item &it, Npc &owner, int32_t sgn) {
-  auto& itData = *it.handle();
-
   for(size_t i=0;i<Npc::PROT_MAX;++i){
     auto v = owner.protection(Npc::Protection(i));
-    owner.changeProtection(Npc::Protection(i),v+itData.protection[i]*sgn);
+    owner.changeProtection(Npc::Protection(i),v+it.handle().protection[i]*sgn);
     }
   }
 
@@ -734,7 +723,7 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
   if(it==nullptr)
     return false;
 
-  auto& itData   = *it->handle();
+  auto& itData   = it->handle();
   auto  mainflag = Flags(itData.mainflag);
   auto  flag     = Flags(itData.flags);
 
@@ -771,7 +760,7 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
       }
     }
 
-  if(!owner.setAnimItem(it->handle()->scemeName.c_str(),-1))
+  if(!owner.setAnimItem(itData.scemeName.c_str(),-1))
     return false;
 
   setCurrentItem(it->clsId());
@@ -847,7 +836,7 @@ Item* Inventory::bestItem(Npc &owner, Inventory::Flags f) {
   Item* ret=nullptr;
   int   g  =-1;
   for(auto& i:items) {
-    auto& itData = *i->handle();
+    auto& itData = i->handle();
     auto  flag   = Flags(itData.mainflag);
     if((flag & f)==0)
       continue;
@@ -874,24 +863,13 @@ Item *Inventory::bestRangeWeapon(Npc &owner) {
   return bestItem(owner,ITM_CAT_FF);
   }
 
-bool Inventory::isTakable(const Item &i) const {
-  auto flag = Flags(i.mainFlag());
-  if(i.isEquiped()) {
-    if(flag & ITM_CAT_ARMOR)
-      return false;
-    if(flag & ITM_CAT_RUNE)
-      return false;
-    }
-  return true;
-  }
-
 void Inventory::applyWeaponStats(Npc& owner, const Item &weapon, int sgn) {
   auto& hnpc = *owner.handle();
   //hnpc.damagetype = sgn>0 ? weapon.handle()->damageType : (1 << Daedalus::GEngineClasses::DAM_INDEX_BLUNT);
   for(size_t i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
-    hnpc.damage[i] += sgn*weapon.handle()->damage[i];
-    if(weapon.handle()->damageType & (1<<i)) {
-      hnpc.damage[i] += sgn*weapon.handle()->damageTotal;
+    hnpc.damage[i] += sgn*weapon.handle().damage[i];
+    if(weapon.handle().damageType & (1<<i)) {
+      hnpc.damage[i] += sgn*weapon.handle().damageTotal;
       }
     }
   }
@@ -929,9 +907,9 @@ std::pair<int, int> Inventory::orderId(Item &i) {
   auto mflg = Flags(i.mainFlag());
 
   if(mflg&ITM_CAT_NF)
-    return std::make_pair(0,-i.handle()->damageTotal);
+    return std::make_pair(0,-i.handle().damageTotal);
   if(mflg&ITM_CAT_FF)
-    return std::make_pair(1,-i.handle()->damageTotal);
+    return std::make_pair(1,-i.handle().damageTotal);
   if(mflg&ITM_CAT_MUN)
     return std::make_pair(2,i.clsId());
   if(mflg&ITM_CAT_POTION)
@@ -987,4 +965,5 @@ Item *Inventory::readPtr(Serialize &fin) {
     return items[v].get();
   return nullptr;
   }
+
 

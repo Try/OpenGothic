@@ -5,6 +5,7 @@
 #include <Tempest/Timer>
 
 #include "graphics/inventoryrenderer.h"
+#include "game/inventory.h"
 
 class Npc;
 class Item;
@@ -16,6 +17,7 @@ class KeyCodec;
 class InventoryMenu : public Tempest::Widget {
   public:
     InventoryMenu(const KeyCodec& key, const RendererStorage &storage);
+    ~InventoryMenu();
 
     enum class State:uint8_t {
       Closed=0,
@@ -63,17 +65,10 @@ class InventoryMenu : public Tempest::Widget {
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
 
   private:
+    struct Page;
     struct InvPage;
     struct TradePage;
     struct RansackPage;
-    struct Page {
-      Page()=default;
-      Page(const Page&)=delete;
-      virtual ~Page()=default;
-      virtual size_t size() const { return 0; }
-      virtual const Item& operator[](size_t) const { throw std::runtime_error("index out of range"); }
-      virtual bool  is(const Inventory* ) const { return false; }
-      };
 
     struct PageLocal final {
       size_t                  sel    = 0;
@@ -127,7 +122,8 @@ class InventoryMenu : public Tempest::Widget {
     void          adjustScroll();
     void          drawAll   (Tempest::Painter& p, Npc& player, DrawPass pass);
     void          drawItems (Tempest::Painter& p, DrawPass pass, const Page &inv, const PageLocal &sel, int x, int y, int wcount, int hcount);
-    void          drawSlot  (Tempest::Painter& p, DrawPass pass, const Page &inv, const PageLocal &sel, int x, int y, size_t id);
+    void          drawSlot  (Tempest::Painter& p, DrawPass pass, const Inventory::Iterator& it,
+                             const Page& page, const PageLocal &sel, int x, int y, size_t id);
     void          drawGold  (Tempest::Painter& p, Npc &player, int x, int y);
     void          drawHeader(Tempest::Painter& p, const char *title, int x, int y);
     void          drawInfo  (Tempest::Painter& p);

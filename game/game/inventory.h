@@ -20,9 +20,9 @@ class Inventory final {
     Inventory& operator = (Inventory&&)=default;
     ~Inventory();
 
-    void load(Npc& owner, Serialize& s);
-    void load(Interactive& owner, World &w, Serialize& s);
-    void save(Serialize& s) const;
+    void         load(Npc& owner, Serialize& s);
+    void         load(Interactive& owner, World &w, Serialize& s);
+    void         save(Serialize& s) const;
 
     enum Flags : uint32_t {
       ITM_CAT_NONE   = 1 << 0,
@@ -53,17 +53,38 @@ class Inventory final {
       ITM_TORCH	     = 1 << 28
       };
 
+    enum IteratorType : uint8_t {
+      T_Inventory,
+      T_Trade,
+      T_Ransack,
+      };
+
+    class Iterator {
+      public:
+        const Item& operator*   () const;
+        const Item* operator -> () const;
+        uint32_t    count() const;
+
+        Iterator&   operator++();
+
+        bool        isValid() const;
+
+      private:
+        Iterator(IteratorType t, const Inventory* owner);
+
+        IteratorType     type  = T_Inventory;
+        const Inventory* owner = nullptr;
+        size_t           at    = 0;
+      friend class Inventory;
+      };
+
+    Iterator     iterator(IteratorType t) const;
+
     int32_t      priceOf(size_t item) const;
     int32_t      sellPriceOf(size_t item) const;
     size_t       goldCount() const;
     size_t       itemCount(const size_t id) const;
-    size_t       recordsCount()  const { return items.size(); }
-    size_t       tradableCount() const;
-    size_t       ransackCount() const;
-    const Item&  at(size_t i) const;
-    Item&        at(size_t i);
-    const Item&  atTrade(size_t i) const;
-    const Item&  atRansack(size_t i) const;
+
     static void  trasfer(Inventory& to, Inventory& from, Npc *fromNpc, size_t cls, uint32_t count, World &wrld);
 
     Item*  getItem(size_t instance);
@@ -140,7 +161,6 @@ class Inventory final {
     Item*  bestMeleeWeapon(Npc &owner);
     Item*  bestRangeWeapon(Npc &owner);
 
-    bool   isTakable(const Item& i) const;
     void   applyWeaponStats(Npc &owner, const Item& weap, int sgn);
 
     void        sortItems() const;

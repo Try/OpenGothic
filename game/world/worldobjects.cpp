@@ -250,7 +250,7 @@ uint32_t WorldObjects::npcId(const Npc *ptr) const {
 
 uint32_t WorldObjects::itmId(const void *ptr) const {
   for(size_t i=0;i<itemArr.size();++i)
-    if(itemArr[i]->handle()==ptr)
+    if(&itemArr[i]->handle()==ptr)
       return uint32_t(i);
   return uint32_t(-1);
   }
@@ -747,7 +747,7 @@ void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &itm
   m.self   = &self;
   m.other  = &other;
   m.victum = &victum;
-  m.item   = itm.handle()->instanceSymbol;
+  m.item   = itm.handle().instanceSymbol;
 
   sndPerc.push_back(m);
   }

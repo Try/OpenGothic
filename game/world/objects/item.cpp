@@ -13,7 +13,7 @@ Item::Item(World &owner, size_t itemInstance, bool inWorld)
   hitem.userPtr=this;
 
   owner.script().initializeInstance(hitem,itemInstance);
-  hitem.amount=1;
+  setCount(1);
   if(inWorld)
     view = world.addItmView(hitem.visual,hitem.material);
   }
@@ -36,7 +36,7 @@ Item::Item(World &owner, Serialize &fin, bool inWorld)
   fin.read(h.munition,h.spell,h.range,h.mag_circle);
   fin.read(h.description,h.text,h.count);
   fin.read(h.inv_zbias,h.inv_rotx,h.inv_roty,h.inv_rotz,h.inv_animate);
-  fin.read(h.amount);
+  fin.read(amount);
   fin.read(pos,equiped,itSlot);
   fin.read(mat);
 
@@ -73,7 +73,7 @@ void Item::save(Serialize &fout) const {
   fout.write(h.munition,h.spell,h.range,h.mag_circle);
   fout.write(h.description,h.text,h.count);
   fout.write(h.inv_zbias,h.inv_rotx,h.inv_roty,h.inv_rotz,h.inv_animate);
-  fout.write(h.amount);
+  fout.write(amount);
   fout.write(pos,equiped,itSlot);
   fout.write(localTransform());
   }
@@ -100,6 +100,18 @@ void Item::setMatrix(const Tempest::Matrix4x4 &m) {
 
 bool Item::isMission() const {
   return (uint32_t(hitem.flags)&Inventory::ITM_MISSION);
+  }
+
+bool Item::canEquip() const {
+  static auto flg = (Inventory::ITM_CAT_NF    | Inventory::ITM_CAT_FF   | Inventory::ITM_CAT_ARMOR |
+                     Inventory::ITM_CAT_LIGHT | Inventory::ITM_CAT_RUNE | Inventory::ITM_CAT_MAGIC);
+  return (uint32_t(hitem.flags)&flg);
+  }
+
+void Item::setAsEquiped(bool e) {
+  equiped = (e ? 1 : 0);
+  if(!equiped)
+    itSlot=NSLOT;
   }
 
 void Item::setPhysicsEnable(DynamicWorld& p) {
@@ -172,6 +184,17 @@ bool Item::isCrossbow() const {
   return flg & Inventory::ITM_CROSSBOW;
   }
 
+bool Item::isTakable() const {
+  auto flag = Inventory::Flags(mainFlag());
+  if(isEquiped()) {
+    if(flag & Inventory::ITM_CAT_ARMOR)
+      return false;
+    if(flag & Inventory::ITM_CAT_RUNE)
+      return false;
+    }
+  return true;
+  }
+
 int32_t Item::spellId() const {
   return hitem.spell;
   }
@@ -181,7 +204,11 @@ int32_t Item::swordLength() const {
   }
 
 void Item::setCount(size_t cnt) {
-  hitem.amount = uint32_t(cnt);
+  amount = uint32_t(cnt);
+  }
+
+size_t Item::count() const {
+  return amount;
   }
 
 const char *Item::uiText(size_t id) const {
@@ -190,10 +217,6 @@ const char *Item::uiText(size_t id) const {
 
 int32_t Item::uiValue(size_t id) const {
   return hitem.count[id];
-  }
-
-size_t Item::count() const {
-  return hitem.amount;
   }
 
 int32_t Item::cost() const {

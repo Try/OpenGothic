@@ -682,14 +682,14 @@ void World::addWeaponsSound(Npc &self, Npc &other) {
     selfMt = "FI"; //Fist
 
   if(auto a = self.inventory().activeWeapon()){
-    int32_t m = a->handle()->material;
+    int32_t m = a->handle().material;
     if(m==ItemMaterial::MAT_WOOD)
       selfMt = "WO"; else
       selfMt = "ME";
     }
 
   if(auto a = other.currentArmour()){
-    int32_t m = a->handle()->material;
+    int32_t m = a->handle().material;
     if(0<=m && size_t(m)<mat.size())
       othMt = *(mat.begin()+m);
     }
@@ -740,14 +740,14 @@ void World::addBlockSound(Npc &self, Npc &other) {
     selfMt = "FI"; //Fist
 
   if(auto a = self.inventory().activeWeapon()){
-    int32_t m = a->handle()->material;
+    int32_t m = a->handle().material;
     if(m==ItemMaterial::MAT_WOOD)
       selfMt = "WO"; else
       selfMt = "ME";
     }
 
   if(auto a = other.inventory().activeWeapon()){
-    int32_t m = a->handle()->material;
+    int32_t m = a->handle().material;
     if(m==ItemMaterial::MAT_WOOD)
       selfMt = "WO"; else
       selfMt = "ME";

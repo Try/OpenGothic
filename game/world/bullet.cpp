@@ -23,8 +23,8 @@ Bullet::Bullet(World& owner,const Item& itm,float x,float y,float z)
       setView(std::move(e));
       }
     } else {
-    material = uint8_t(itm.handle()->material);
-    setView(owner.addItmView(itm.handle()->visual,material));
+    material = uint8_t(itm.handle().material);
+    setView(owner.addItmView(itm.handle().visual,material));
     }
 
   setPosition(x,y,z);
