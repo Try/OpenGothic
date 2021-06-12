@@ -20,7 +20,7 @@ const Item* Inventory::Iterator::operator ->() const {
   return owner->items[at].get();
   }
 
-uint32_t Inventory::Iterator::count() const {
+size_t Inventory::Iterator::count() const {
   auto& cur = *owner->items[at];
   if((cur.mainFlag() & (ITM_CAT_NF|ITM_CAT_FF))) {
     if(cur.isEquiped() && subId==0) {
@@ -823,6 +823,7 @@ void Inventory::invalidateCond(Npc &owner) {
   invalidateCond(belt  ,owner);
   invalidateCond(amulet,owner);
   invalidateCond(ringL ,owner);
+  invalidateCond(ringR ,owner);
   invalidateCond(mele  ,owner);
   invalidateCond(range ,owner);
   for(auto& i:numslot)
