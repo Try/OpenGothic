@@ -41,9 +41,11 @@ void InventoryRenderer::reset() {
 void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
   auto& itData = item.handle();
   if(auto mesh=Resources::loadMesh(itData.visual.c_str())) {
-    float sz = (mesh->bbox[1]-mesh->bbox[0]).manhattanLength();
-    auto  mv = (mesh->bbox[1]+mesh->bbox[0])*0.5f;
-    Inventory::Flags flg = Inventory::Flags(item.mainFlag());
+    float    sz  = (mesh->bbox[1]-mesh->bbox[0]).manhattanLength();
+    auto     mv  = (mesh->bbox[1]+mesh->bbox[0])*0.5f;
+    ItmFlags flg = ItmFlags(item.mainFlag());
+
+    mv = Vec3(mv.x,mv.y,mv.z);
 
     sz = 2.f/sz;
     if(sz>0.1f)
@@ -57,7 +59,7 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
     float roty = float(itData.inv_roty);
     float rotz = float(itData.inv_rotz);
 
-    if(flg&(Inventory::ITM_CAT_NF | Inventory::ITM_CAT_FF | Inventory::ITM_CAT_MUN)) {
+    if(flg&(ITM_CAT_NF | ITM_CAT_FF | ITM_CAT_MUN)) {
       static const float invX = -45;
       static const float invY = 0;
       static const float invZ = 90;
@@ -65,7 +67,7 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
       mat.rotateOZ(invZ+rotz);
       mat.rotateOY(invY+roty);
       }
-    else if(flg&Inventory::ITM_CAT_ARMOR) {
+    else if(flg&ITM_CAT_ARMOR) {
       static const float invX = 0;
       static const float invY = -90;
       static const float invZ = 180;
@@ -73,7 +75,7 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
       mat.rotateOZ(invZ+rotz);
       mat.rotateOY(invY+roty);
       }
-    else if(flg&Inventory::ITM_CAT_RUNE) {
+    else if(flg&ITM_CAT_RUNE) {
       static const float invX = 90;
       static const float invY = 0;
       static const float invZ = 90;
@@ -81,7 +83,7 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
       mat.rotateOZ(invZ+rotz);
       mat.rotateOY(invY+roty);
       }
-    else if((flg&Inventory::ITM_CAT_MAGIC) || (Inventory::Flags(itData.flags)&Inventory::ITM_RING)) {
+    else if((flg&ITM_CAT_MAGIC) || (itData.flags&ITM_RING)) {
       static const float invX = 200;
       static const float invY = 0;
       static const float invZ = 90;
@@ -89,7 +91,7 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
       mat.rotateOZ(invZ+rotz);
       mat.rotateOY(invY+roty);
       }
-    else if(flg&Inventory::ITM_CAT_POTION) {
+    else if(flg&ITM_CAT_POTION) {
       static const float invX = 180;
       static const float invY = 0;
       static const float invZ = 0;
@@ -97,7 +99,7 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
       mat.rotateOZ(invZ+rotz);
       mat.rotateOY(invY+roty);
       }
-    else if(flg&Inventory::ITM_CAT_FOOD) {
+    else if(flg&ITM_CAT_FOOD) {
       static const float invX = 180;
       static const float invY = 0;
       static const float invZ = 45;
@@ -105,7 +107,7 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
       mat.rotateOZ(invZ+rotz);
       mat.rotateOY(invY+roty);
       }
-    else if(flg&Inventory::ITM_CAT_DOCS) {
+    else if(flg&ITM_CAT_DOCS) {
       static const float invX = 180;
       static const float invY = 90;
       static const float invZ = -90;
@@ -113,7 +115,7 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
       mat.rotateOZ(invZ);
       mat.rotateOY(invY);
       }
-    else if(flg&Inventory::ITM_CAT_NONE) {
+    else if(flg&ITM_CAT_NONE) {
       static const float invX = 135;
       static const float invY = 90;
       static const float invZ = 45;
@@ -128,7 +130,6 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
       mat.rotateOZ(invZ+rotz);
       mat.rotateOY(invY+roty);
       }
-    mat.translate(-mv.x,-mv.y,-mv.z);
 
     for(int i=0;i<3;++i){
       auto trX = mat.at(i,0);
@@ -136,6 +137,7 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
       mat.set(i,0,trY);
       mat.set(i,2,trX);
       }
+    mat.translate(-mv);
 
     for(int i=0;i<3;++i){
       mat.set(i,2,mat.at(i,2)*0.2f);

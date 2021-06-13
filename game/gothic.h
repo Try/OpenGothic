@@ -79,6 +79,8 @@ class Gothic final {
 
     void      emitGlobalSoundWav(const std::string& wav);
 
+    static auto invCatOrder()  -> const std::vector<ItmFlags>&;
+
     void      pushPause();
     void      popPause();
     bool      isPause() const;
@@ -192,6 +194,8 @@ class Gothic final {
     std::vector<std::unique_ptr<DocumentMenu::Show>> documents;
     ChapterScreen::Show                     chapter;
     bool                                    pendingChapter=false;
+
+    std::vector<ItmFlags>                   inventoryOrder;
 
     static Gothic*                          instance;
 

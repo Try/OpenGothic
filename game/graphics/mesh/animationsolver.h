@@ -3,7 +3,6 @@
 #include <Tempest/Matrix4x4>
 #include <vector>
 
-#include "game/inventory.h"
 #include "game/constants.h"
 #include "animation.h"
 
@@ -11,6 +10,7 @@ class Skeleton;
 class Overlay;
 class Pose;
 class Interactive;
+class Serialize;
 class World;
 
 class AnimationSolver final {

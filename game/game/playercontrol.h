@@ -1,8 +1,8 @@
 #pragma once
 
 #include "world/focus.h"
-#include "inventory.h"
 #include "utils/keycodec.h"
+#include "constants.h"
 
 #include <array>
 

@@ -8,6 +8,7 @@
 #include "world/world.h"
 #include "game/gamescript.h"
 #include "serialize.h"
+#include "gothic.h"
 
 using namespace Daedalus::GameState;
 using namespace Tempest;
@@ -407,7 +408,7 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
 
   if(slot!=nullptr) {
     auto& itData = slot->handle();
-    auto  flag   = Flags(itData.mainflag);
+    auto  flag   = ItmFlags(itData.mainflag);
     applyArmour(*slot,owner,-1);
     if(slot->isEquiped())
       slot->setAsEquiped(false);
@@ -477,7 +478,7 @@ void Inventory::updateArmourView(Npc& owner) {
     return;
 
   auto& itData = armour->handle();
-  auto  flag   = Flags(itData.mainflag);
+  auto  flag   = ItmFlags(itData.mainflag);
   if(flag & ITM_CAT_ARMOR)
     owner.updateArmour();
   }
@@ -499,7 +500,7 @@ void Inventory::updateBowView(Npc &owner) {
     return;
     }
 
-  auto flag = Flags(range->mainFlag());
+  auto flag = ItmFlags(range->mainFlag());
   if(flag & ITM_CAT_FF){
     auto& itData = range->handle();
     auto  vbody  = owner.world().addView(itData.visual,itData.material,0,itData.material);
@@ -769,8 +770,8 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
     return false;
 
   auto& itData   = it->handle();
-  auto  mainflag = Flags(itData.mainflag);
-  auto  flag     = Flags(itData.flags);
+  auto  mainflag = ItmFlags(itData.mainflag);
+  auto  flag     = ItmFlags(itData.flags);
 
   if(mainflag & ITM_CAT_NF)
     return setSlot(mele,it,owner,force);
@@ -881,12 +882,12 @@ Item *Inventory::findByClass(size_t cls) {
   return nullptr;
   }
 
-Item* Inventory::bestItem(Npc &owner, Inventory::Flags f) {
+Item* Inventory::bestItem(Npc &owner, ItmFlags f) {
   Item* ret=nullptr;
   int   g  =-1;
   for(auto& i:items) {
     auto& itData = i->handle();
-    auto  flag   = Flags(itData.mainflag);
+    auto  flag   = ItmFlags(itData.mainflag);
     if((flag & f)==0)
       continue;
     if(!i->checkCond(owner))
@@ -927,12 +928,12 @@ void Inventory::sortItems() const {
   if(sorted)
     return;
   sorted = true;
-  std::sort(items.begin(),items.end(),[](std::unique_ptr<Item>& l,std::unique_ptr<Item>& r){
+  std::sort(items.begin(),items.end(),[](std::unique_ptr<Item>& l, std::unique_ptr<Item>& r){
     return less(*l,*r);
     });
   }
 
-bool Inventory::less(Item &il, Item &ir) {
+bool Inventory::less(const Item &il, const Item &ir) {
   auto ordL = orderId(il);
   auto ordR = orderId(ir);
 
@@ -941,45 +942,27 @@ bool Inventory::less(Item &il, Item &ir) {
   if(ordL>ordR)
     return false;
 
-  if(il.cost()>ir.cost())
-    return true;
-  if(il.cost()<ir.cost())
-    return false;
+  int32_t lV = 0, rV = 0;
+  if(il.mainFlag() & (ItmFlags::ITM_CAT_FOOD | ItmFlags::ITM_CAT_POTION | ItmFlags::ITM_CAT_DOCS)) {
+    lV = -il.clsId();
+    rV = -ir.clsId();
+    } else {
+    lV = il.cost();
+    rV = ir.cost();
+    }
 
-  return il.clsId()<ir.clsId();
+  return std::make_tuple(il.mainFlag(), -il.handle().damageTotal, -lV, -il.clsId())
+      <  std::make_tuple(ir.mainFlag(), -ir.handle().damageTotal, -rV, -ir.clsId());
   }
 
-std::pair<int, int> Inventory::orderId(Item &i) {
-  // TODO: invCatOrder = COMBAT,POTION,FOOD,ARMOR,MAGIC,RUNE,DOCS,OTHER,NONE
+int Inventory::orderId(const Item& i) {
+  auto& invCatOrder = Gothic::invCatOrder();
+  auto  mflg        = ItmFlags(i.mainFlag());
 
-  // auto flg  = Flags(i.itemFlag());
-  auto mflg = Flags(i.mainFlag());
-
-  if(mflg&ITM_CAT_NF)
-    return std::make_pair(0,-i.handle().damageTotal);
-  if(mflg&ITM_CAT_FF)
-    return std::make_pair(1,-i.handle().damageTotal);
-  if(mflg&ITM_CAT_MUN)
-    return std::make_pair(2,i.clsId());
-  if(mflg&ITM_CAT_POTION)
-    return std::make_pair(3,-int(i.clsId()));
-  if(mflg&ITM_CAT_FOOD)
-    return std::make_pair(4,-i.cost());
-  if(mflg&ITM_CAT_ARMOR)
-    return std::make_pair(5,-i.cost());
-  if(mflg&ITM_CAT_MAGIC)
-    return std::make_pair(6,-i.cost());
-  if(mflg&ITM_CAT_RUNE)
-    return std::make_pair(i.isSpell() ? 8 : 7,-i.cost());
-  if(mflg&ITM_CAT_DOCS)
-    return std::make_pair(9,-int(i.clsId()));
-  if(mflg&ITM_CAT_LIGHT)
-    return std::make_pair(10,-i.cost());
-  if(mflg&ITM_CAT_NONE)
-    return std::make_pair(12,-i.cost());
-
-  // OTHER
-  return std::make_pair(11,-i.cost());
+  for(size_t i=0; i<invCatOrder.size(); ++i)
+    if(mflg!=0 && (mflg&invCatOrder[i]))
+      return int(i);
+  return int(invCatOrder.size());
   }
 
 uint8_t Inventory::slotId(Item *&slt) const {

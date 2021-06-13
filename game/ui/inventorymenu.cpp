@@ -482,14 +482,21 @@ InventoryMenu::PageLocal &InventoryMenu::activePageSel() {
 void InventoryMenu::onItemAction() { 
   auto& page = activePage();
   auto& sel  = activePageSel();
-  if(sel.sel>=page.size())
-    return;
 
   auto it = page.get(sel.sel);
+  if(!it.isValid())
+    return;
+
   if(state==State::Equip) {
-    if(it.isEquiped())
-      player->unequipItem(it->clsId()); else
-      player->useItem    (it->clsId());
+    const size_t clsId = it->clsId();
+    if(it.isEquiped()) {
+      player->unequipItem(clsId);
+      } else {
+      player->useItem(clsId);
+      auto it2 = page.get(sel.sel);
+      if((!it2.isValid() || it2->clsId()!=clsId) && sel.sel>0)
+        --sel.sel;
+      }
     }
   else if(state==State::Chest || state==State::Trade || state==State::Ransack) {
     lootMode = LootMode::Normal;

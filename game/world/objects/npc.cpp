@@ -811,8 +811,8 @@ void Npc::updateArmour() {
     visual.setBody(std::move(vbody),owner,bdColor);
     } else {
     auto& itData = ar->handle();
-    auto  flag   = Inventory::Flags(itData.mainflag);
-    if(flag & Inventory::ITM_CAT_ARMOR){
+    auto  flag   = ItmFlags(itData.mainflag);
+    if(flag & ITM_CAT_ARMOR){
       std::string asc = itData.visual_change.c_str();
       if(asc.rfind(".asc")==asc.size()-4)
         std::memcpy(&asc[asc.size()-3],"MDM",3);

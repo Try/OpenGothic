@@ -103,7 +103,7 @@ void Item::setMatrix(const Tempest::Matrix4x4 &m) {
   }
 
 bool Item::isMission() const {
-  return (uint32_t(hitem.flags)&Inventory::ITM_MISSION);
+  return (uint32_t(hitem.flags)&ITM_MISSION);
   }
 
 void Item::setAsEquiped(bool e) {
@@ -159,7 +159,7 @@ int32_t Item::itemFlag() const {
   }
 
 bool Item::isMulti() const {
-  return uint32_t(hitem.flags)&Inventory::ITM_MULTI;
+  return uint32_t(hitem.flags)&ITM_MULTI;
   }
 
 bool Item::isSpellShoot() const {
@@ -172,7 +172,7 @@ bool Item::isSpellShoot() const {
   }
 
 bool Item::isSpellOrRune() const {
-  return (uint32_t(mainFlag()) & Inventory::ITM_CAT_RUNE);
+  return (uint32_t(mainFlag()) & ITM_CAT_RUNE);
   }
 
 bool Item::isSpell() const {
@@ -187,22 +187,22 @@ bool Item::isRune() const {
 
 bool Item::is2H() const {
   auto flg = uint32_t(itemFlag());
-  return flg & (Inventory::ITM_2HD_SWD | Inventory::ITM_2HD_AXE);
+  return flg & (ITM_2HD_SWD | ITM_2HD_AXE);
   }
 
 bool Item::isCrossbow() const {
   auto flg = uint32_t(itemFlag());
-  return flg & Inventory::ITM_CROSSBOW;
+  return flg & ITM_CROSSBOW;
   }
 
 bool Item::isRing() const {
   auto flg = uint32_t(itemFlag());
-  return flg & Inventory::ITM_RING;
+  return flg & ITM_RING;
   }
 
 bool Item::isArmour() const {
-  auto flg = Inventory::Flags(mainFlag());
-  return flg & Inventory::ITM_CAT_ARMOR;
+  auto flg = ItmFlags(mainFlag());
+  return flg & ITM_CAT_ARMOR;
   }
 
 int32_t Item::spellId() const {

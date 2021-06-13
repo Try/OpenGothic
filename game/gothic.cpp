@@ -13,8 +13,8 @@
 #include "game/definitions/musicdefinitions.h"
 #include "game/definitions/fightaidefinitions.h"
 #include "game/definitions/particlesdefinitions.h"
-
 #include "game/serialize.h"
+
 #include "utils/installdetect.h"
 #include "utils/fileutil.h"
 #include "utils/inifile.h"
@@ -293,6 +293,10 @@ void Gothic::emitGlobalSoundWav(const std::string &wav) {
       }
     }
   sndStorage.push_back(std::move(s));
+  }
+
+ const std::vector<ItmFlags>& Gothic::invCatOrder() {
+  return instance->inventoryOrder;
   }
 
 void Gothic::pushPause() {
@@ -635,6 +639,39 @@ void Gothic::detectGothicVersion() {
 void Gothic::setupSettings() {
   const float soundVolume = settingsGetF("SOUND","soundVolume");
   sndDev.setGlobalVolume(soundVolume);
+
+  auto        ord  = Gothic::settingsGetS("GAME","invCatOrder");
+  const char* name = ord.c_str();
+  for(size_t i=0; i<=ord.size(); ++i) {
+    if(i<ord.size() && ord[i]==',')
+      ord[i] = '\0';
+
+    if(i==ord.size() || ord[i]=='\0') {
+      ItmFlags v = ITM_CAT_NONE;
+      if(std::strcmp(name,"COMBAT")==0)
+        v = ItmFlags(ITM_CAT_NF|ITM_CAT_FF|ITM_CAT_MUN);
+      else if(std::strcmp(name,"POTION")==0)
+        v = ITM_CAT_POTION;
+      else if(std::strcmp(name,"FOOD")==0)
+        v = ITM_CAT_FOOD;
+      else if(std::strcmp(name,"ARMOR")==0)
+        v = ITM_CAT_ARMOR;
+      else if(std::strcmp(name,"MAGIC")==0)
+        v = ITM_CAT_MAGIC;
+      else if(std::strcmp(name,"RUNE")==0)
+        v = ITM_CAT_RUNE;
+      else if(std::strcmp(name,"DOCS")==0)
+        v = ITM_CAT_DOCS;
+      else if(std::strcmp(name,"OTHER")==0)
+        v = ITM_CAT_LIGHT;
+      else if(std::strcmp(name,"NONE")==0)
+        v = ITM_CAT_NONE;
+      else
+        continue;
+      inventoryOrder.push_back(v);
+      name = ord.c_str()+i+1;
+      }
+    }
   }
 
 std::unique_ptr<DocumentMenu::Show>& Gothic::getDocument(int id) {
