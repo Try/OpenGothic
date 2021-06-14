@@ -813,10 +813,8 @@ void Npc::updateArmour() {
     auto& itData = ar->handle();
     auto  flag   = ItmFlags(itData.mainflag);
     if(flag & ITM_CAT_ARMOR){
-      std::string asc = itData.visual_change.c_str();
-      if(asc.rfind(".asc")==asc.size()-4)
-        std::memcpy(&asc[asc.size()-3],"MDM",3);
-      auto vbody  = asc.empty() ? MeshObjects::Mesh() : w.addView(asc.c_str(),vColor,0,bdColor);
+      const auto& asc = itData.visual_change;
+      auto vbody = asc.empty() ? MeshObjects::Mesh() : w.addView(asc.c_str(),vColor,0,bdColor);
       visual.setArmour(std::move(vbody),owner);
       }
     }
