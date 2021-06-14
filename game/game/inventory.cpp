@@ -944,8 +944,8 @@ bool Inventory::less(const Item &il, const Item &ir) {
 
   int32_t lV = 0, rV = 0;
   if(il.mainFlag() & (ItmFlags::ITM_CAT_FOOD | ItmFlags::ITM_CAT_POTION | ItmFlags::ITM_CAT_DOCS)) {
-    lV = -il.clsId();
-    rV = -ir.clsId();
+    lV = 0;
+    rV = 0;
     } else {
     lV = il.cost();
     rV = ir.cost();
