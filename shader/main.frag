@@ -92,13 +92,13 @@ vec3 calcLight() {
 
 #if defined(WATER)
 vec3 waterColor(vec3 selfColor) {
-  vec3  scr   = shInp.scr.xyz/shInp.scr.w;
-  vec2  p     = scr.xy*0.5+vec2(0.5);
-  vec4  back  = texture(gbufferDiffuse,p);
-  float depth = texture(gbufferDepth,p).r;
+  vec3  scr    = shInp.scr.xyz/shInp.scr.w;
+  vec2  p      = scr.xy*0.5+vec2(0.5);
+  vec4  back   = texture(gbufferDiffuse,p);
+  float depth  = texture(gbufferDepth,p).r;
 
-  vec4 ground = scene.modelViewInv*vec4(scr.xy,depth,1.0);
-  vec4 water  = scene.modelViewInv*vec4(scr,1.0);
+  vec4  ground = scene.modelViewInv*vec4(scr.xy,depth,1.0);
+  vec4  water  = scene.modelViewInv*vec4(scr,1.0);
 
   float dist  = distance(water.xyz/water.w,ground.xyz/ground.w)/100.0;
   dist = pow(dist,2);
@@ -133,9 +133,9 @@ void main() {
   float alpha = 1;
 
 #if defined(WATER)
-  color = waterColor(color);
+  color = waterColor(t.rgb);
 #elif defined(GHOST)
-  color = ghostColor(color);
+  color = ghostColor(t.rgb);
 #else
   color = t.rgb;
   alpha = t.a;
