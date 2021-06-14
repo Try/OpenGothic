@@ -246,7 +246,8 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       }
     }
 
-  if(decl.shpType!=ParticleFx::EmitterType::Mesh) {
+  if(decl.shpType!=ParticleFx::EmitterType::Point &&
+     decl.shpType!=ParticleFx::EmitterType::Mesh) {
     Vec3 dim = decl.shpDim*decl.shpScale(block.timeTotal);
     p.pos.x*=dim.x;
     p.pos.y*=dim.y;

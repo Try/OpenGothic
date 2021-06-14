@@ -417,6 +417,7 @@ class GameScript final {
     size_t                                                      spellFxAniLetters=0;
     std::string                                                 goldTxt;
     float                                                       viewTimePerChar=0.5;
+    mutable std::unordered_map<std::string,uint32_t>            msgTimings;
     size_t                                                      gilCount=0;
     std::vector<int32_t>                                        gilAttitudes;
     int                                                         aiOutOrderId=0;

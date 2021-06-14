@@ -1072,16 +1072,22 @@ const Daedalus::ZString& GameScript::messageByName(const Daedalus::ZString& id) 
   }
 
 uint32_t GameScript::messageTime(const Daedalus::ZString& id) const {
+  uint32_t& time = msgTimings[id.c_str()];
+  if(time>0)
+    return time;
+
   char buf[256]={};
   std::snprintf(buf,sizeof(buf),"%s.wav",id.c_str());
   auto  s   = Resources::loadSoundBuffer(buf);
-  if(s.timeLength()>0)
-    return uint32_t(s.timeLength());
+  if(s.timeLength()>0) {
+    time = uint32_t(s.timeLength());
+    } else {
+    auto&  txt  = messageByName(id.c_str());
+    size_t size = std::strlen(txt.c_str());
 
-  auto&  txt  = messageByName(id.c_str());
-  size_t size = std::strlen(txt.c_str());
-
-  return uint32_t(float(size)*viewTimePerChar);
+    time = uint32_t(float(size)*viewTimePerChar);
+    }
+  return time;
   }
 
 int GameScript::printNothingToGet() {

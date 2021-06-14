@@ -369,7 +369,7 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
   }
 
 void InventoryMenu::keyRepeatEvent(KeyEvent& e) {
-  if(state==State::LockPicking)
+  if(state==State::LockPicking || state==State::Closed)
     return;
   processMove(e);
   adjustScroll();
@@ -560,8 +560,8 @@ void InventoryMenu::onTakeStuff() {
   }
 
 void InventoryMenu::adjustScroll() {
-  auto& page=activePage();
-  auto& sel =activePageSel();
+  auto& page = activePage();
+  auto& sel  = activePageSel();
   sel.sel = std::min(sel.sel, std::max<size_t>(page.size(),1)-1);
   while(sel.sel<sel.scroll*columsCount) {
     if(sel.scroll<=1){

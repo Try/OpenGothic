@@ -2011,7 +2011,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
           msgTime = owner.script().messageTime(act.s0);
           } else {
           auto& svm = owner.script().messageFromSvm(act.s0,hnpc.voice);
-          msgTime = owner.script().messageTime(svm);
+          msgTime   = owner.script().messageTime(svm);
           }
         visual.startFaceAnim(*this,"VISEME",1,msgTime);
         if(act.act!=AI_OutputSvmOverlay) {
