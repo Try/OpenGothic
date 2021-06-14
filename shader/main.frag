@@ -132,10 +132,9 @@ void main() {
   vec3  color = vec3(0,0,0);
   float alpha = 1;
 
-#if defined(WATER)
-  color = waterColor(t.rgb);
-#elif defined(GHOST)
+#if defined(GHOST)
   color = ghostColor(t.rgb);
+  alpha = t.a;
 #else
   color = t.rgb;
   alpha = t.a;
@@ -148,6 +147,10 @@ void main() {
 
 #if defined(LIGHT)
   color *= calcLight();
+#endif
+
+#if defined(WATER)
+  color = waterColor(color);
 #endif
 
   outColor      = vec4(color,alpha);
