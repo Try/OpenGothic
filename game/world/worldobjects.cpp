@@ -167,17 +167,8 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
   for(size_t i=0; i<effects.size();) {
     if(effects[i].timeUntil<owner.tickCount()) {
       effects[i].eff.setActive(false);
-      effectsFade.push_back(std::move(effects[i]));
       effects[i] = std::move(effects.back());
       effects.pop_back();
-      } else {
-      ++i;
-      }
-    }
-  for(size_t i=0; i<effectsFade.size();) {
-    if(!effectsFade[i].eff.isAlive()) {
-      effectsFade[i] = std::move(effectsFade.back());
-      effectsFade.pop_back();
       } else {
       ++i;
       }
@@ -221,7 +212,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
         if(r.item!=size_t(-1) && r.other!=nullptr)
           owner.script().setInstanceItem(*r.other,r.item);
         const float range = float(i.handle()->senses_range);
-        if(l<range*range) {
+        if(l<range*range && r.other!=nullptr && r.victum!=nullptr) {
           // aproximation of behavior of original G2
           if(!i.isDown() && !i.isPlayer() &&
              i.canSenseNpc(*r.other, true)!=SensesBit::SENSE_NONE &&
@@ -615,7 +606,7 @@ Interactive* WorldObjects::findInteractive(const Npc &pl, Interactive* def, cons
     return nullptr;
 
   Interactive* ret  = nullptr;
-  float rlen = opt.rangeMax*opt.rangeMax;
+  float        rlen = opt.rangeMax*opt.rangeMax;
   interactiveObj.find(pl.position(),opt.rangeMax,[&](Interactive& n){
     float nlen = rlen;
     if(testObj(n,pl,opt,nlen)){
