@@ -29,12 +29,15 @@ class LightGroup final {
         Light& operator = (Light&& other);
         ~Light();
 
-        void setPosition(float x, float y, float z);
-        void setPosition(const Tempest::Vec3& p);
+        void     setPosition(float x, float y, float z);
+        void     setPosition(const Tempest::Vec3& p);
 
-        void setRange(float r);
-        void setColor(const Tempest::Vec3& c);
-        void setColor(const std::vector<Tempest::Vec3>& c, float fps, bool smooth);
+        void     setRange (float r);
+        void     setColor (const Tempest::Vec3& c);
+        void     setColor (const std::vector<Tempest::Vec3>& c, float fps, bool smooth);
+        void     setTimeOffset(uint64_t t);
+
+        uint64_t effectPrefferedTime() const;
 
       private:
         Light(LightGroup& l, size_t id):owner(&l), id(id) {}

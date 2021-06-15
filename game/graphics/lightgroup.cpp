@@ -45,6 +45,12 @@ LightGroup::Light::Light(LightGroup::Light&& oth):owner(oth.owner), id(oth.id) {
   oth.owner = nullptr;
   }
 
+LightGroup::Light::Light(LightGroup& owner)
+  :owner(&owner) {
+  std::lock_guard<std::recursive_mutex> guard(owner.sync);
+  id = owner.alloc(true);
+  }
+
 LightGroup::Light::Light(LightGroup& owner, const ZenLoad::zCVobData& vob)
   :owner(&owner) {
   LightSource l;
@@ -75,20 +81,17 @@ LightGroup::Light::Light(LightGroup& owner, const ZenLoad::zCVobData& vob)
 
 LightGroup::Light::Light(World& owner, const char* preset)
   :Light(owner,owner.view()->sGlobal.lights.findPreset(preset)){
-  }
-
-LightGroup::Light::Light(LightGroup& owner)
-  :owner(&owner) {
-  std::lock_guard<std::recursive_mutex> guard(owner.sync);
-  id = owner.alloc(true);
+  setTimeOffset(owner.tickCount());
   }
 
 LightGroup::Light::Light(World& owner, const ZenLoad::zCVobData& vob)
   :Light(owner.view()->sGlobal.lights,vob) {
+  setTimeOffset(owner.tickCount());
   }
 
 LightGroup::Light::Light(World& owner)
   :Light(owner.view()->sGlobal.lights) {
+  setTimeOffset(owner.tickCount());
   }
 
 LightGroup::Light& LightGroup::Light::operator =(LightGroup::Light&& other) {
@@ -144,6 +147,20 @@ void LightGroup::Light::setColor(const std::vector<Vec3>& c, float fps, bool smo
 
   auto& ssbo = owner->get(id);
   ssbo.color = data.currentColor();
+  }
+
+void LightGroup::Light::setTimeOffset(uint64_t t) {
+  if(owner==nullptr)
+    return;
+  auto& data = owner->getL(id);
+  data.setTimeOffset(t);
+  }
+
+uint64_t LightGroup::Light::effectPrefferedTime() const {
+  if(owner==nullptr)
+    return 0;
+  auto& data = owner->getL(id);
+  return data.effectPrefferedTime();
   }
 
 LightGroup::LightGroup(const SceneGlobals& scene)

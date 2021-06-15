@@ -94,6 +94,10 @@ void LightSource::setRange(const std::vector<float>& arr, float base, float fps,
   }
 
 void LightSource::update(uint64_t time) {
+  if(timeOff<time)
+    time -= timeOff; else
+    time  = 0;
+
   if(rangeAniFPSInv==0) {
     curRgn = rgn;
     } else {
@@ -123,4 +127,14 @@ void LightSource::update(uint64_t time) {
 
 bool LightSource::isDynamic() const {
   return rangeAniFPSInv!=0 || colorAniListFpsInv!=0;
+  }
+
+void LightSource::setTimeOffset(uint64_t t) {
+  timeOff = t;
+  }
+
+uint64_t LightSource::effectPrefferedTime() const {
+  uint64_t t0 = colorAniList .size()*colorAniListFpsInv;
+  uint64_t t1 = rangeAniScale.size()*rangeAniFPSInv;
+  return std::max(t0,t1);
   }

@@ -30,11 +30,17 @@ class LightSource final {
     float                currentRange() const { return curRgn; }
     const Tempest::Vec3& currentColor() const { return curClr; }
 
+    void                 setTimeOffset(uint64_t t);
+
+    uint64_t             effectPrefferedTime() const;
+
   private:
     Tempest::Vec3      ldir;
     Tempest::Vec3      clr;
     Tempest::Vec3      pos;
     float              rgn = 0;
+
+    uint64_t           timeOff = 0;
 
     std::vector<float> rangeAniScale;
     uint64_t           rangeAniFPSInv = 0;

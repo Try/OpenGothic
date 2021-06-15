@@ -197,7 +197,9 @@ uint64_t Effect::effectPrefferedTime() const {
     if(timeF<0 && pfx.isEmpty())
       return uint64_t(-1);
     }
-  return std::max(ret,pfx.effectPrefferedTime());
+  ret = std::max(ret,pfx  .effectPrefferedTime());
+  ret = std::max(ret,light.effectPrefferedTime());
+  return ret;
   }
 
 bool Effect::isAlive() const {

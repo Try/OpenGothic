@@ -171,7 +171,7 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
   }
 
 void ObjectsBucket::uboSetCommon(Descriptors& v) {
-  for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
     auto& t   = *mat.tex;
     auto& ubo = v.ubo[i][SceneGlobals::V_Main];
 
