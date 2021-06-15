@@ -121,7 +121,7 @@ CollisionWorld::CollisionWorld(ContructInfo ci)
 
 void CollisionWorld::updateAabbs() {
   if(aabbChanged>0) {
-    btCollisionWorld::updateAabbs();
+    btDiscreteDynamicsWorld::updateAabbs();
     aabbChanged = 0;
     return;
     }
@@ -202,7 +202,7 @@ std::unique_ptr<CollisionWorld::CollisionBody> CollisionWorld::addCollisionBody(
 
 std::unique_ptr<CollisionWorld::DynamicBody> CollisionWorld::addDynamicBody(btCollisionShape& shape, const Tempest::Matrix4x4& tr, float friction, float mass) {
   if(mass<=0)
-    mass = 10;
+    mass = 1;
   btVector3 localInertia = {};
   shape.calculateLocalInertia(mass, localInertia);
 
@@ -224,6 +224,9 @@ std::unique_ptr<CollisionWorld::DynamicBody> CollisionWorld::addDynamicBody(btCo
   obj->setWorldTransform(trans);
   obj->setFriction(friction);
   obj->setActivationState(ACTIVE_TAG);
+
+  obj->setCcdSweptSphereRadius(0.1f);
+  obj->setCcdMotionThreshold(0.005f);
 
   this->addRigidBody(obj.get());
   this->updateSingleAabb(obj.get());

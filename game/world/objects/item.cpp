@@ -273,5 +273,6 @@ void Item::updateMatrix() {
   }
 
 void Item::moveEvent() {
-  world.invalidateVobIndex();
+  if(!isDynamic())
+    world.invalidateVobIndex();
   }
