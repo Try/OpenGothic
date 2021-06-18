@@ -74,11 +74,10 @@ void GlobalEffects::scrBlend(Tempest::Painter& p, const Tempest::Rect& rect) {
     }
   }
 
-GlobalFx GlobalEffects::startEffect(const Daedalus::ZString& what, float lenF, const Daedalus::ZString* argv, size_t argc) {
-  uint64_t len = uint64_t(lenF*1000.f);
+GlobalFx GlobalEffects::startEffect(const Daedalus::ZString& what, uint64_t len, const Daedalus::ZString* argv, size_t argc) {
   auto     ret = create(what,argv,argc);
   auto&    eff = *ret.h;
-  if(lenF<0)
+  if(len==0)
     eff.timeUntil = uint64_t(-1); else
     eff.timeUntil = owner.tickCount()+len;
   eff.timeStart = owner.tickCount();
@@ -86,7 +85,7 @@ GlobalFx GlobalEffects::startEffect(const Daedalus::ZString& what, float lenF, c
   }
 
 void GlobalEffects::stopEffect(const VisualFx& vfx) {
-  auto& what = vfx.handle().visName_S;
+  auto& what = vfx.visName_S;
   if(what=="time.slw")
     timeEff.clear();
   if(what=="screenblend.scx")

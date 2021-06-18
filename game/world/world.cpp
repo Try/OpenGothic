@@ -191,12 +191,12 @@ void World::stopEffect(const VisualFx& root) {
   auto* vfx = &root;
   while(vfx!=nullptr) {
     globFx->stopEffect(*vfx);
-    vfx = loadVisualFx(vfx->handle().emFXCreate_S.c_str());
+    vfx = vfx->emFXCreate;
     }
   wobj.stopEffect(root);
   }
 
-GlobalFx World::addGlobalEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc) {
+GlobalFx World::addGlobalEffect(const Daedalus::ZString& what, uint64_t len, const Daedalus::ZString* argv, size_t argc) {
   return globFx->startEffect(what,len,argv,argc);
   }
 

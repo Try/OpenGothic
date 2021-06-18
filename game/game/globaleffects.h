@@ -18,7 +18,7 @@ class GlobalEffects {
     GlobalEffects(World& owner);
 
     void     tick(uint64_t dt);
-    GlobalFx startEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc);
+    GlobalFx startEffect(const Daedalus::ZString& what, uint64_t len, const Daedalus::ZString* argv, size_t argc);
     void     stopEffect (const VisualFx& vfx);
 
     void     scaleTime(uint64_t& dt);

@@ -2,6 +2,7 @@
 
 #include <zenload/zCMaterial.h>
 
+#include "utils/parser.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -41,14 +42,7 @@ Material::Material(const Daedalus::GEngineClasses::C_ParticleFX& src) {
     texAniFPSInv = 1;
   //TODO: visTexAniIsLooping
 
-  if(src.visAlphaFunc_S=="NONE")
-    alpha = AlphaTest;
-  if(src.visAlphaFunc_S=="BLEND")
-    alpha = Transparent;
-  if(src.visAlphaFunc_S=="ADD")
-    alpha = AdditiveLight;
-  if(src.visAlphaFunc_S=="MUL")
-    alpha = Multiply;
+  alpha = Parser::loadAlpha(src.visAlphaFunc_S);
   }
 
 Vec2 Material::loadVec2(const std::string& src) {

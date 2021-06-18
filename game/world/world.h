@@ -94,7 +94,7 @@ class World final {
     void                 runEffect(Effect&& e);
     void                 stopEffect(const VisualFx& vfx);
 
-    GlobalFx             addGlobalEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc);
+    GlobalFx             addGlobalEffect(const Daedalus::ZString& what, uint64_t len, const Daedalus::ZString* argv, size_t argc);
     MeshObjects::Mesh    addView(const Daedalus::ZString& visual) const;
     MeshObjects::Mesh    addView(const char*              visual) const;
     MeshObjects::Mesh    addView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;

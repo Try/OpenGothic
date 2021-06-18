@@ -135,8 +135,6 @@ class ParticleFx final {
   private:
     uint64_t             calcPrefferedTimeSingle() const;
     static auto          loadTexture(const char* src) -> const Tempest::Texture2d*;
-    static Tempest::Vec2 loadVec2(const Daedalus::ZString& src);
-    static Tempest::Vec3 loadVec3(const Daedalus::ZString& src);
     static KeyList       loadArr(const Daedalus::ZString& src);
     static EmitterType   loadEmitType(const Daedalus::ZString& src);
     static Frame         loadFrameType(const Daedalus::ZString& src);

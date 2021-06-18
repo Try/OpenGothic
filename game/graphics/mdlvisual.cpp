@@ -293,7 +293,7 @@ void MdlVisual::dropWeapon(Npc& npc) {
 
 void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot, bool noSlot) {
   uint64_t timeUntil = vfx.effectPrefferedTime();
-  if(timeUntil!=uint64_t(-1))
+  if(timeUntil!=0)
     timeUntil+=owner.tickCount();
 
   if(skeleton==nullptr)
