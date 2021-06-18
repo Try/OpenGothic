@@ -20,6 +20,8 @@ struct InventoryMenu::Page {
   virtual ~Page()=default;
 
   size_t                      size() const {
+    if(is(nullptr))
+      return 0;
     size_t ret = 0;
     auto it = iterator();
     while(it.isValid()) {
@@ -35,7 +37,7 @@ struct InventoryMenu::Page {
     return it;
     }
 
-  virtual bool                is(const Inventory* ) const { return false; }
+  virtual bool                is(const Inventory* i) const { return i==nullptr; }
   virtual Inventory::Iterator iterator() const { throw std::runtime_error("index out of range");  }
   };
 
@@ -508,7 +510,7 @@ void InventoryMenu::onItemAction() {
 void InventoryMenu::onTakeStuff() { 
   size_t itemCount = 0;
   auto& page = activePage();
-  auto& sel = activePageSel();
+  auto& sel  = activePageSel();
   if(sel.sel >= page.size())
     return;
   auto it = page.get(sel.sel);
