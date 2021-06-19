@@ -795,7 +795,7 @@ void Npc::setVisualBody(int32_t headTexNr, int32_t teethTexNr, int32_t bodyTexNr
   bdColor = bodyTexColor;
 
   auto  vhead = head.empty() ? MeshObjects::Mesh() : w.addView(addExt(head,".MMB").c_str(),vHead,vTeeth,bdColor);
-  auto  vbody = body.empty() ? MeshObjects::Mesh() : w.addView(addExt(body,".MDM").c_str(),vColor,0,bdColor);
+  auto  vbody = body.empty() ? MeshObjects::Mesh() : w.addView(addExt(body,".ASC").c_str(),vColor,0,bdColor);
   visual.setVisualBody(std::move(vhead),std::move(vbody),owner,bdColor);
   updateArmour();
 
@@ -807,16 +807,14 @@ void Npc::updateArmour() {
   auto& w  = owner;
 
   if(ar==nullptr) {
-    auto  vbody = body.empty() ? MeshObjects::Mesh() : w.addView(addExt(body,".MDM").c_str(),vColor,0,bdColor);
+    auto  vbody = body.empty() ? MeshObjects::Mesh() : w.addView(addExt(body,".ASC").c_str(),vColor,0,bdColor);
     visual.setBody(std::move(vbody),owner,bdColor);
     } else {
     auto& itData = ar->handle();
     auto  flag   = ItmFlags(itData.mainflag);
     if(flag & ITM_CAT_ARMOR){
-      std::string asc = itData.visual_change.c_str();
-      if(asc.rfind(".asc")==asc.size()-4)
-        std::memcpy(&asc[asc.size()-3],"MDM",3);
-      auto vbody = asc.empty() ? MeshObjects::Mesh() : w.addView(asc.c_str(),vColor,0,bdColor);
+      auto& asc   = itData.visual_change;
+      auto  vbody = asc.empty() ? MeshObjects::Mesh() : w.addView(asc.c_str(),vColor,0,bdColor);
       visual.setArmour(std::move(vbody),owner);
       }
     }

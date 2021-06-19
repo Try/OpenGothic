@@ -352,9 +352,9 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
 
   if(FileExt::hasExt(name,"ASC")) {
     if(!hasFile(name))
-      FileExt::exchangeExt(name,"ASC","MDL");
+      FileExt::exchangeExt(name,"ASC","MDM");
     if(!hasFile(name))
-      FileExt::exchangeExt(name,"MDL","MDM");
+      FileExt::exchangeExt(name,"MDM","MDL");
     }
 
   if(FileExt::hasExt(name,"MDM") || FileExt::hasExt(name,"MDL")) {

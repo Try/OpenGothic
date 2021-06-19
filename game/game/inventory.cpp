@@ -53,7 +53,6 @@ Inventory::Iterator& Inventory::Iterator::operator++() {
       }
     subId = 0;
     }
-  // TODO: belts, rings
   at++;
   skipHidden();
   return *this;
