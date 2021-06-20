@@ -26,6 +26,7 @@ class Sound final {
     void          setMaxDistance(float v);
     void          setRefDistance(float v);
 
+    void          setPosition(const Tempest::Vec3& pos);
     void          setPosition(float x,float y,float z);
 
     void          setLooping(bool l);

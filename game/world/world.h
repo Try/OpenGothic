@@ -107,9 +107,6 @@ class World final {
     MeshObjects::Mesh    addStaticView(const char* visual);
     MeshObjects::Mesh    addDecalView (const ZenLoad::zCVobData& vob);
 
-    const VisualFx*      loadVisualFx(const char* name);
-    const ParticleFx*    loadParticleFx(const char* name) const;
-
     void                 updateAnimation();
     void                 resetPositionToTA();
 

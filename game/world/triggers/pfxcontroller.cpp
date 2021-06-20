@@ -2,15 +2,15 @@
 
 #include "world/world.h"
 #include "graphics/pfx/particlefx.h"
-
 #include "game/serialize.h"
+#include "gothic.h"
 
 PfxController::PfxController(Vob* parent, World& world, ZenLoad::zCVobData&& d, bool startup)
   :AbstractTrigger(parent,world,std::move(d),startup) {
   auto& name = data.zCPFXControler.pfxName;
-  const ParticleFx* view = world.script().getParticleFx(name.c_str());
+  const ParticleFx* view = Gothic::inst().loadParticleFx(name.c_str());
   if(view==nullptr)
-    view = world.script().getParticleFx(data.visual.c_str());
+    view = Gothic::inst().loadParticleFx(data.visual.c_str());
   if(view==nullptr)
     return;
   lifeTime = view->maxLifetime();

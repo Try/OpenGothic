@@ -231,12 +231,12 @@ const VisualFx* Gothic::loadVisualFx(const char *name) {
   return vfxDef->get(name);
   }
 
-const ParticleFx* Gothic::loadParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k) {
-  return particleDef->get(k);
-  }
-
 const ParticleFx* Gothic::loadParticleFx(const char *name) {
   return particleDef->get(name);
+  }
+
+const ParticleFx* Gothic::loadParticleFx(const ParticleFx* base, const VisualFx::Key* key) {
+  return particleDef->get(base,key);
   }
 
 void Gothic::emitGlobalSound(const char *sfx) {

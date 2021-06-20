@@ -6,6 +6,7 @@
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "visualfx.h"
+#include "gothic.h"
 
 using namespace Tempest;
 
@@ -33,33 +34,21 @@ Effect::Effect(const VisualFx& v, World& owner, const Vec3& inPos, SpellFxKey k)
     if(root->isMeshEmmiter())
       pfx.setMesh(meshEmitter,pose);
     }
-  pos.identity();
 
   if(root->emFXCreate!=nullptr) {
     next.reset(new Effect(*root->emFXCreate,owner,inPos,k));
     }
 
-  if(k==SpellFxKey::Count) {
-    setupLight(owner,nullptr);
-    setPosition(inPos);
-    } else {
-    pos.identity();
-    pos.translate(inPos);
-    setKey(owner,k);
-    }
-
-  if(sfx.isEmpty()) {
-    sfx = ::Sound(owner,::Sound::T_Regular,root->sfxID.c_str(),inPos,2500.f,false);
-    sfx.setAmbient(root->sfxIsAmbient);
-    sfx.play();
-    }
+  pos.identity();
+  pos.translate(inPos);
+  setKey(owner,k);
   }
 
 Effect::~Effect() {
   sfx.setLooping(false);
   }
 
-void Effect::setupLight(World& owner, const Effect::Key* key) {
+void Effect::setupLight(World& owner) {
   auto* lightPresetName = &root->lightPresetName;
   if(key!=nullptr) {
     if(!key->lightPresetName.empty())
@@ -71,9 +60,49 @@ void Effect::setupLight(World& owner, const Effect::Key* key) {
     return;
     }
 
+  Vec3 pos3 = {pos.at(3,0),pos.at(3,1),pos.at(3,2)};
   light = LightGroup::Light(owner,lightPresetName->c_str());
-  if(key!=nullptr)
+  light.setPosition(pos3);
+  if(key!=nullptr && key->lightRange>0)
     light.setRange(key->lightRange);
+  }
+
+void Effect::setupPfx(World& owner) {
+  const ParticleFx* pfxDecl = Gothic::inst().loadParticleFx(root->visName_S.c_str());
+  if(key!=nullptr) {
+    if(auto kpfx = Gothic::inst().loadParticleFx(key->visName.c_str())) {
+      pfxDecl = kpfx;
+      // TODO: key-driven params
+      }
+    }
+
+  if(pfxDecl==nullptr)
+    return;
+
+  pfx = PfxEmitter(owner,pfxDecl);
+  if(root->isMeshEmmiter())
+    pfx.setMesh(meshEmitter,pose);
+  pfx.setActive(true);
+  pfx.setLooped(looped);
+
+  if(root->emFXCollDyn!=nullptr && root->emActionCollDyn!=VisualFx::Collision::NoResp)
+    pfx.setupCollision();
+  }
+
+void Effect::setupSfx(World& owner) {
+  auto sfxID        = root->sfxID;
+  auto sfxIsAmbient = root->sfxIsAmbient;
+  if(key!=nullptr && !key->sfxID.empty()) {
+    sfxID        = key->sfxID;
+    sfxIsAmbient = key->sfxIsAmbient;
+    }
+
+  if(!sfxID.empty()) {
+    Vec3 pos3 = {pos.at(3,0),pos.at(3,1),pos.at(3,2)};
+    sfx = ::Sound(owner,::Sound::T_Regular,sfxID.c_str(),pos3,2500.f,false);
+    sfx.setAmbient(sfxIsAmbient);
+    sfx.play();
+    }
   }
 
 bool Effect::is(const VisualFx& vfx) const {
@@ -137,43 +166,32 @@ void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
 
   pfx  .setObjMatrix(p);
   light.setPosition(pos3);
+  sfx  .setPosition(pos3);
   }
 
 void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
-  if(k==SpellFxKey::Count)
-    return;
   if(next!=nullptr)
     next->setKey(owner,k);
 
   if(root==nullptr)
     return;
 
-  Vec3 pos3 = {pos.at(3,0),pos.at(3,1),pos.at(3,2)};
-  key       = &root->key(k,keyLvl);
+  key = &root->key(k,keyLvl);
 
-  auto vfx = owner.script().getVisualFx(key->emCreateFXID.c_str());
+  auto vfx  = Gothic::inst().loadVisualFx(key->emCreateFXID.c_str());
   if(vfx!=nullptr) {
-    auto ex = Effect(*vfx,owner,pos3,SpellFxKey::Count);
+    Vec3 pos3 = {pos.at(3,0),pos.at(3,1),pos.at(3,2)};
+    auto ex   = Effect(*vfx,owner,pos3,SpellFxKey::Count);
     ex.setActive(true);
     if(pose!=nullptr && skeleton!=nullptr)
       ex.bindAttaches(*pose,*skeleton);
     next.reset(new Effect(std::move(ex)));
     }
 
-  auto pfxDecl = owner.script().getParticleFx(*key);
-  if(pfxDecl!=nullptr) {
-    pfx = PfxEmitter(owner,pfxDecl);
-    if(root->isMeshEmmiter())
-      pfx.setMesh(meshEmitter,pose);
-    pfx.setActive(true);
-    pfx.setLooped(looped);
-    }
-
-  setupLight(owner,key);
+  setupPfx(owner);
+  setupLight(owner);
+  setupSfx(owner);
   syncAttachesSingle(pos);
-  sfx = ::Sound(owner,::Sound::T_Regular,key->sfxID.c_str(),pos3,2500.f,false);
-  sfx.setAmbient(key->sfxIsAmbient);
-  sfx.play();
   }
 
 void Effect::setMesh(const MeshObjects::Mesh* mesh) {
@@ -187,6 +205,7 @@ uint64_t Effect::effectPrefferedTime() const {
 
   ret = std::max(ret, root==nullptr ? 0 : root->effectPrefferedTime());
   ret = std::max(ret, pfx  .effectPrefferedTime());
+  ret = std::max(ret, gfx  .effectPrefferedTime());
   ret = std::max(ret, light.effectPrefferedTime());
   return ret;
   }

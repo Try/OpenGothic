@@ -5,13 +5,13 @@
 #include "world/objects/sound.h"
 #include "graphics/lightgroup.h"
 #include "graphics/meshobjects.h"
+#include "graphics/visualfx.h"
 
 #include "game/constants.h"
 
 #include <memory>
 #include <daedalus/ZString.h>
 
-class VisualFx;
 class World;
 class Npc;
 class Pose;
@@ -51,15 +51,15 @@ class Effect final {
     void     onCollide     (World& owner, const Tempest::Vec3& pos, Npc* npc);
 
   private:
-    using Key         = Daedalus::GEngineClasses::C_ParticleFXEmitKey;
-
     void               syncAttaches(const Tempest::Matrix4x4& pos);
     void               syncAttachesSingle(const Tempest::Matrix4x4& inPos);
-    void               setupLight(World& owner, const Key* key);
+    void               setupLight(World& owner);
+    void               setupPfx(World& owner);
+    void               setupSfx(World& owner);
 
-    const Key*            key  = nullptr;
-
+    const VisualFx::Key*  key  = nullptr;
     const VisualFx*       root = nullptr;
+
     PfxEmitter            pfx;
     Sound                 sfx;
     GlobalFx              gfx;

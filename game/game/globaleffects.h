@@ -30,6 +30,7 @@ class GlobalEffects {
       virtual ~Effect(){}
       uint64_t timeUntil = 0;
       uint64_t timeStart = 0;
+      uint64_t timeLen   = 0;
       };
 
     struct SlowTime:Effect {

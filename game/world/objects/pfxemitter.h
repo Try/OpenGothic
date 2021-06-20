@@ -38,6 +38,8 @@ class PfxEmitter final {
     void     setLooped(bool loop);
     void     setMesh(const MeshObjects::Mesh* mesh, const Pose* pose);
 
+    void     setupCollision();
+
     uint64_t effectPrefferedTime() const;
     bool     isAlive() const;
 

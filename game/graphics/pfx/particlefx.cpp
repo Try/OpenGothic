@@ -105,45 +105,44 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
   prefferedTime       = calcPrefferedTimeSingle();
   }
 
-ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& src, const Daedalus::GEngineClasses::C_ParticleFX& proto) {
-  *this = ParticleFx(proto,src.visName_S.c_str());
+ParticleFx::ParticleFx(const ParticleFx& proto, const VisualFx::Key& key)
+  :ParticleFx(proto) {
+  //if(!key.pfx_shpDim_S.empty())
+  //  shpDim            = Parser::loadVec3(key.pfx_shpDim_S);
 
-  if(!src.pfx_shpDim_S.empty())
-    shpDim            = Parser::loadVec3(src.pfx_shpDim_S);
+  shpIsVolume         = key.pfx_shpIsVolumeChg!=0;
 
-  shpIsVolume         = src.pfx_shpIsVolumeChg!=0;
+  if(key.pfx_shpScaleFPS>0)
+    shpScaleFPS       = key.pfx_shpScaleFPS;
 
-  if(src.pfx_shpScaleFPS>0)
-    shpScaleFPS       = src.pfx_shpScaleFPS;
+  shpDistribWalkSpeed = key.pfx_shpDistribWalkSpeed;
 
-  shpDistribWalkSpeed = src.pfx_shpDistribWalkSpeed;
+  //if(!key.pfx_shpOffsetVec_S.empty())
+  //  shpOffsetVec      = Parser::loadVec3(key.pfx_shpOffsetVec_S);
 
-  if(!src.pfx_shpOffsetVec_S.empty())
-    shpOffsetVec      = Parser::loadVec3(src.pfx_shpOffsetVec_S);
+  if(!key.pfx_shpDistribType_S.empty())
+    shpDistribType    = loadDistribType(key.pfx_shpDistribType_S);
 
-  if(!src.pfx_shpDistribType_S.empty())
-    shpDistribType    = loadDistribType(src.pfx_shpDistribType_S);
+  if(!key.pfx_dirMode_S.empty())
+    dirMode           = loadDirType(key.pfx_dirMode_S);
 
-  if(!src.pfx_dirMode_S.empty())
-    dirMode           = loadDirType(src.pfx_dirMode_S);
+  if(!key.pfx_dirFOR_S.empty())
+    dirFOR            = loadFrameType(key.pfx_dirFOR_S);
 
-  if(!src.pfx_dirFOR_S.empty())
-    dirFOR            = loadFrameType(src.pfx_dirFOR_S);
+  if(!key.pfx_dirModeTargetFOR_S.empty())
+    dirModeTargetFOR  = loadFrameType(key.pfx_dirModeTargetFOR_S);
 
-  if(!src.pfx_dirModeTargetFOR_S.empty())
-    dirModeTargetFOR  = loadFrameType(src.pfx_dirModeTargetFOR_S);
+  if(!key.pfx_dirModeTargetPos_S.empty())
+    dirModeTargetPos  = Parser::loadVec3(key.pfx_dirModeTargetPos_S);
 
-  if(!src.pfx_dirModeTargetPos_S.empty())
-    dirModeTargetPos  = Parser::loadVec3(src.pfx_dirModeTargetPos_S);
+  if(key.pfx_velAvg>0)
+    velAvg            = key.pfx_velAvg;
 
-  if(src.pfx_velAvg>0)
-    velAvg            = src.pfx_velAvg;
+  if(key.pfx_lspPartAvg>0)
+    lspPartAvg        = key.pfx_lspPartAvg;
 
-  if(src.pfx_lspPartAvg>0)
-    lspPartAvg        = src.pfx_lspPartAvg;
-
-  if(src.pfx_visAlphaStart>0)
-    visAlphaStart     = src.pfx_visAlphaStart;
+  if(key.pfx_visAlphaStart>0)
+    visAlphaStart     = key.pfx_visAlphaStart;
   }
 
 uint64_t ParticleFx::maxLifetime() const {

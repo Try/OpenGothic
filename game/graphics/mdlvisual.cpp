@@ -8,6 +8,7 @@
 #include "world/objects/item.h"
 #include "world/world.h"
 #include "utils/fileext.h"
+#include "gothic.h"
 
 using namespace Tempest;
 
@@ -345,7 +346,7 @@ void MdlVisual::stopEffect(int32_t slot) {
 void MdlVisual::setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s, Daedalus::GEngineClasses::C_Npc::ENPCFlag flags) {
   if(hnpcVisualName!=s) {
     hnpcVisualName = s;
-    auto vfx = owner.script().getVisualFx(s.c_str());
+    auto vfx = Gothic::inst().loadVisualFx(s.c_str());
     if(vfx==nullptr) {
       hnpcVisual.view = Effect();
       return;

@@ -6,6 +6,7 @@
 
 #include <Tempest/Texture2d>
 
+#include "graphics/visualfx.h"
 #include "graphics/material.h"
 
 class PfxEmitterMesh;
@@ -14,7 +15,7 @@ class ParticleFx final {
   public:
     ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob);
     ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX& src, const char* name);
-    ParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& src, const Daedalus::GEngineClasses::C_ParticleFX& proto);
+    ParticleFx(const ParticleFx& proto, const VisualFx::Key& key);
 
     enum class EmitterType:uint8_t {
       Point,
@@ -59,7 +60,7 @@ class ParticleFx final {
     bool          ppsIsLooping        = false;
     bool          ppsIsSmooth         = false;
     float         ppsFPS              = 0;
-    const ParticleFx* ppsCreateEm    = nullptr;
+    const ParticleFx* ppsCreateEm     = nullptr;
     uint64_t      ppsCreateEmDelay    = 0;
 
     EmitterType   shpType             = EmitterType::Point;

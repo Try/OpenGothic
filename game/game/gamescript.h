@@ -108,9 +108,6 @@ class GameScript final {
     const AiState&                                    getAiState(ScriptFn id);
     const Daedalus::GEngineClasses::C_Spell&          getSpell(int32_t splId);
     const VisualFx*                                   getSpellVFx(int32_t splId);
-    const VisualFx*                                   getVisualFx(const char* symbol);
-    const ParticleFx*                                 getParticleFx(const char* symbol);
-    const ParticleFx*                                 getParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k);
 
     auto dialogChoises(Daedalus::GEngineClasses::C_Npc *self, Daedalus::GEngineClasses::C_Npc *npc, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<DlgChoise>;
     auto updateDialog (const GameScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoise>;

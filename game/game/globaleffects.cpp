@@ -81,6 +81,7 @@ GlobalFx GlobalEffects::startEffect(const Daedalus::ZString& what, uint64_t len,
     eff.timeUntil = uint64_t(-1); else
     eff.timeUntil = owner.tickCount()+len;
   eff.timeStart = owner.tickCount();
+  eff.timeLen   = len==0 ? uint64_t(-1) : len;
   return ret;
   }
 

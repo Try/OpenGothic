@@ -6,6 +6,8 @@
 #include <memory>
 #include <mutex>
 
+#include "graphics/visualfx.h"
+
 class ParticleFx;
 
 class ParticlesDefinitions final {
@@ -14,17 +16,17 @@ class ParticlesDefinitions final {
     ~ParticlesDefinitions();
 
     const ParticleFx* get(const char* name);
-    const ParticleFx* get(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k);
+    const ParticleFx* get(const ParticleFx* base, const VisualFx::Key* key);
 
   private:
     std::mutex                                                  sync;
     std::unique_ptr<Daedalus::DaedalusVM>                       vm;
 
-    std::unordered_map<std::string,std::unique_ptr<ParticleFx>> pfx;
-    std::unordered_map<size_t,     std::unique_ptr<ParticleFx>> pfxKey;
+    std::unordered_map<std::string,          std::unique_ptr<ParticleFx>> pfx;
+    std::unordered_map<const VisualFx::Key*, std::unique_ptr<ParticleFx>> pfxKey;
 
     const ParticleFx* implGet(const char* name);
-    const ParticleFx* implGet(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k);
+    const ParticleFx* implGet(const ParticleFx& base, const VisualFx::Key& key);
 
     bool implGet(const char* name, Daedalus::GEngineClasses::C_ParticleFX &ret);
   };

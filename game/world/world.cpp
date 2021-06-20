@@ -244,14 +244,6 @@ MeshObjects::Mesh World::addView(const Daedalus::ZString& visual) const {
   return addView(visual.c_str());
   }
 
-const VisualFx *World::loadVisualFx(const char *name) {
-  return game.loadVisualFx(name);
-  }
-
-const ParticleFx* World::loadParticleFx(const char *name) const {
-  return game.loadParticleFx(name);
-  }
-
 void World::updateAnimation() {
   static bool doAnim=true;
   if(!doAnim)

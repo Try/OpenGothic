@@ -8,6 +8,45 @@
 
 using namespace Tempest;
 
+VisualFx::Key::Key(Daedalus::GEngineClasses::C_ParticleFXEmitKey&& k) {
+  visName                 = k.visName_S;
+  visSizeScale            = k.visSizeScale;
+  scaleDuration           = k.scaleDuration; // time to reach full scale at this key for relevant vars (size, alpha, etc.)
+
+  pfx_ppsValue            = k.pfx_ppsValue;
+  pfx_ppsIsSmoothChg      = k.pfx_ppsIsSmoothChg!=0;
+  pfx_ppsIsLoopingChg     = k.pfx_ppsIsLoopingChg!=0;
+  pfx_scTime              = 0.f;
+  pfx_flyGravity          = Parser::loadVec3(k.pfx_flyGravity_S);
+
+  pfx_shpDim              = Parser::loadVec3(k.pfx_shpDim_S);
+  pfx_shpIsVolumeChg      = k.pfx_shpIsVolumeChg;    // changes volume rendering of pfx if set to 1
+  pfx_shpScaleFPS         = k.pfx_shpScaleFPS;
+  pfx_shpDistribWalkSpeed = k.pfx_shpDistribWalkSpeed;
+  pfx_shpOffsetVec        = Parser::loadVec3(k.pfx_shpOffsetVec_S);
+  pfx_shpDistribType_S    = k.pfx_shpDistribType_S;
+  pfx_dirMode_S           = k.pfx_dirMode_S;
+  pfx_dirFOR_S            = k.pfx_dirFOR_S;
+  pfx_dirModeTargetFOR_S  = k.pfx_dirModeTargetFOR_S;
+  pfx_dirModeTargetPos_S  = k.pfx_dirModeTargetPos_S;
+  pfx_velAvg              = k.pfx_velAvg;
+  pfx_lspPartAvg          = k.pfx_lspPartAvg;
+  pfx_visAlphaStart       = k.pfx_visAlphaStart;
+
+  lightPresetName         = k.lightPresetName;
+  lightRange              = k.lightRange;
+  sfxID                   = k.sfxID;
+  sfxIsAmbient            = k.sfxIsAmbient;
+  emCreateFXID            = k.emCreateFXID;
+
+  emFlyGravity            = k.emFlyGravity;
+  emSelfRotVel            = Parser::loadVec3(k.emSelfRotVel_S);
+  emTrjMode_S             = k.emTrjMode_S;
+  emTrjEaseVel            = k.emTrjEaseVel;
+  emCheckCollision        = k.emCheckCollision!=0;
+  emFXLifeSpan            = k.emFXLifeSpan<0 ? 0 : uint64_t(k.emFXLifeSpan*1000.f);
+  }
+
 VisualFx::VisualFx(Daedalus::GEngineClasses::CFx_Base &&fx, Daedalus::DaedalusVM& vm, const char* name) {
   visName_S                = fx.visName_S;
   visSize                  = Parser::loadVec2(fx.visSize_S);
@@ -55,7 +94,7 @@ VisualFx::VisualFx(Daedalus::GEngineClasses::CFx_Base &&fx, Daedalus::DaedalusVM
   for(size_t i=0; i<Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS; ++i)
     userString[i] = fx.userString[i];
   lightPresetName          = fx.lightPresetName;
-  sfxID                    = fx.sfxID.c_str();
+  sfxID                    = fx.sfxID;
   sfxIsAmbient             = fx.sfxIsAmbient;
   sendAssessMagic          = fx.sendAssessMagic;
   secsPerDamage            = fx.secsPerDamage;
@@ -80,7 +119,7 @@ VisualFx::VisualFx(Daedalus::GEngineClasses::CFx_Base &&fx, Daedalus::DaedalusVM
     Daedalus::GEngineClasses::C_ParticleFXEmitKey key;
     vm.initializeInstance(key, id, Daedalus::IC_FXEmitKey);
     vm.clearReferences(Daedalus::IC_FXEmitKey);
-    keys[i] = key;
+    keys[i] = Key(std::move(key));
     }
 
   for(int i=1; ; ++i) {
@@ -105,7 +144,11 @@ PfxEmitter VisualFx::visual(World& owner) const {
   return PfxEmitter(owner,visName_S.c_str());
   }
 
-const Daedalus::GEngineClasses::C_ParticleFXEmitKey& VisualFx::key(SpellFxKey type, int32_t keyLvl) const {
+const VisualFx::Key& VisualFx::key(SpellFxKey type, int32_t keyLvl) const {
+  if(type==SpellFxKey::Count) {
+    static const Key key;
+    return key;
+    }
   if(type==SpellFxKey::Invest && keyLvl>0) {
     keyLvl--;
     if(size_t(keyLvl)<investKeys.size())

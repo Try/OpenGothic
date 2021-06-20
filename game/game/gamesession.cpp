@@ -206,18 +206,6 @@ SoundFx *GameSession::loadSoundWavFx(const char *name) {
   return Gothic::inst().loadSoundWavFx(name);
   }
 
-const VisualFx* GameSession::loadVisualFx(const char *name) {
-  return Gothic::inst().loadVisualFx(name);
-  }
-
-const ParticleFx* GameSession::loadParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k) {
-  return Gothic::inst().loadParticleFx(k);
-  }
-
-const ParticleFx* GameSession::loadParticleFx(const char *name) {
-  return Gothic::inst().loadParticleFx(name);
-  }
-
 Tempest::SoundEffect GameSession::loadSound(const Tempest::Sound &raw) {
   return sound.load(raw);
   }

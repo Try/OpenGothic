@@ -6,6 +6,7 @@
 
 #include "world/world.h"
 #include "utils/fileext.h"
+#include "gothic.h"
 
 using namespace Tempest;
 
@@ -18,7 +19,7 @@ PfxEmitter::PfxEmitter(World& world, const std::string& name)
   }
 
 PfxEmitter::PfxEmitter(World& world, const char* name)
-  :PfxEmitter(world,world.script().getParticleFx(name)) {
+  :PfxEmitter(world,Gothic::inst().loadParticleFx(name)) {
   }
 
 PfxEmitter::PfxEmitter(World& world, const ParticleFx* decl)
@@ -39,7 +40,7 @@ PfxEmitter::PfxEmitter(PfxObjects& owner, const ParticleFx* decl) {
 PfxEmitter::PfxEmitter(World& world, const ZenLoad::zCVobData& vob) {
   auto& owner = world.view()->pfxGroup;
   if(FileExt::hasExt(vob.visual,"PFX")) {
-    auto decl = world.script().getParticleFx(vob.visual.c_str());
+    auto decl = Gothic::inst().loadParticleFx(vob.visual.c_str());
     if(decl==nullptr || decl->visMaterial.tex==nullptr)
       return;
     std::lock_guard<std::recursive_mutex> guard(owner.sync);
@@ -157,6 +158,10 @@ void PfxEmitter::setMesh(const MeshObjects::Mesh* mesh, const Pose* pose) {
   v.pose = pose;
   if(v.next!=nullptr)
     v.next->setMesh(mesh,pose);
+  }
+
+void PfxEmitter::setupCollision() {
+
   }
 
 uint64_t PfxEmitter::effectPrefferedTime() const {

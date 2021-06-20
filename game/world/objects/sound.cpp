@@ -99,6 +99,10 @@ void Sound::setRefDistance(float v) {
     val->eff.setRefDistance(v);
   }
 
+void Sound::setPosition(const Tempest::Vec3& pos) {
+  setPosition(pos.x,pos.y,pos.z);
+  }
+
 void Sound::setPosition(float x, float y, float z) {
   if(pos.x==x && pos.y==y && pos.z==z)
     return;

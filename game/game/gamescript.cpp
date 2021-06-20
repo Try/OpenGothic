@@ -681,19 +681,7 @@ const VisualFx* GameScript::getSpellVFx(int32_t splId) {
 
   char name[256]={};
   std::snprintf(name,sizeof(name),"spellFX_%s",tag.c_str());
-  return owner.loadVisualFx(name);
-  }
-
-const VisualFx* GameScript::getVisualFx(const char* name) {
-  return owner.loadVisualFx(name);
-  }
-
-const ParticleFx* GameScript::getParticleFx(const char *symbol) {
-  return owner.loadParticleFx(symbol);
-  }
-
-const ParticleFx* GameScript::getParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k) {
-  return owner.loadParticleFx(k);
+  return Gothic::inst().loadVisualFx(name);
   }
 
 std::vector<GameScript::DlgChoise> GameScript::dialogChoises(Daedalus::GEngineClasses::C_Npc* player,
@@ -1364,7 +1352,7 @@ void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
     Log::i("effect not implemented [",visual.c_str(),"]");
     return;
     }
-  const VisualFx* vfx = owner.loadVisualFx(visual.c_str());
+  const VisualFx* vfx = Gothic::inst().loadVisualFx(visual.c_str());
   if(vfx==nullptr) {
     Log::i("invalid effect [",visual.c_str(),"]");
     return;
@@ -1388,7 +1376,7 @@ void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
 
 void GameScript::wld_stopeffect(Daedalus::DaedalusVM &vm) {
   const Daedalus::ZString& visual = vm.popString();
-  const VisualFx*          vfx    = owner.loadVisualFx(visual.c_str());
+  const VisualFx*          vfx    = Gothic::inst().loadVisualFx(visual.c_str());
   if(vfx==nullptr) {
     Log::i("invalid effect [",visual.c_str(),"]");
     return;

@@ -21,3 +21,7 @@ GlobalFx::~GlobalFx() {
   if(h!=nullptr)
     h->timeUntil = 0;
   }
+
+uint64_t GlobalFx::effectPrefferedTime() const {
+  return h==nullptr ? 0 : h->timeLen;
+  }
