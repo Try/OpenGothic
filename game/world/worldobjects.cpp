@@ -256,8 +256,8 @@ uint32_t WorldObjects::mobsiId(const void* ptr) const {
   return uint32_t(-1);
   }
 
-Npc* WorldObjects::addNpc(size_t npcInstance, const Daedalus::ZString& at) {
-  auto pos = owner.findPoint(at.c_str());
+Npc* WorldObjects::addNpc(size_t npcInstance, std::string_view at) {
+  auto pos = owner.findPoint(at);
   if(pos==nullptr)
     Log::e("inserNpc: invalid waypoint");
 
@@ -291,8 +291,8 @@ Npc* WorldObjects::addNpc(size_t npcInstance, const Vec3& pos) {
   return npc;
   }
 
-Npc* WorldObjects::insertPlayer(std::unique_ptr<Npc> &&npc, const Daedalus::ZString& at) {
-  auto pos = owner.findPoint(at.c_str());
+Npc* WorldObjects::insertPlayer(std::unique_ptr<Npc> &&npc, std::string_view at) {
+  auto pos = owner.findPoint(at);
   if(pos==nullptr){
     Log::e("insertPlayer: invalid waypoint");
     return nullptr;
@@ -475,7 +475,7 @@ void WorldObjects::stopEffect(const VisualFx& vfx) {
   }
 
 Item* WorldObjects::addItem(const ZenLoad::zCVobData &vob) {
-  size_t inst = owner.getSymbolIndex(vob.oCItem.instanceName.c_str());
+  size_t inst = owner.script().getSymbolIndex(vob.oCItem.instanceName);
   Item*  it   = addItem(inst,nullptr);
   if(it==nullptr)
     return nullptr;
@@ -504,7 +504,7 @@ void WorldObjects::removeItem(Item &it) {
     }
   }
 
-size_t WorldObjects::hasItems(const char* tag, size_t itemCls) {
+size_t WorldObjects::hasItems(std::string_view tag, size_t itemCls) {
   for(auto& i:interactiveObj)
     if(i->tag()==tag) {
       return i->inventory().itemCount(itemCls);
@@ -525,7 +525,7 @@ Bullet& WorldObjects::shootBullet(const Item& itmId,
   return b;
   }
 
-Item *WorldObjects::addItem(size_t itemInstance, const char *at) {
+Item *WorldObjects::addItem(size_t itemInstance, std::string_view at) {
   Item* item = nullptr;
   Tempest::Vec3 pos;
   Tempest::Vec3 dir;

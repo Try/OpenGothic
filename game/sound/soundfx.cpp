@@ -17,12 +17,12 @@ SoundFx::SoundVar::SoundVar(const float vol, Tempest::Sound &&snd)
   :snd(std::move(snd)),vol(vol/127.f){
   }
 
-SoundFx::SoundFx(const char* s) {
+SoundFx::SoundFx(std::string_view s) {
   implLoad(s);
   if(inst.size()!=0)
     return;
   // lowcase?
-  std::string name = s;
+  std::string name = std::string(s);
   for(auto& i:name)
     i = char(std::toupper(i));
 
@@ -33,12 +33,12 @@ SoundFx::SoundFx(const char* s) {
   if(name.rfind(".WAV")==name.size()-4) {
     auto snd = Resources::loadSoundBuffer(name);
     if(snd.isEmpty())
-      Tempest::Log::d("unable to load sound fx: ",s); else
+      Tempest::Log::d("unable to load sound fx: ",name); else
       inst.emplace_back(1.f,std::move(snd));
     }
 
   if(inst.size()==0)
-    Tempest::Log::d("unable to load sound fx: ",s);
+    Tempest::Log::d("unable to load sound fx: ",name);
   }
 
 SoundFx::SoundFx(Tempest::Sound &&snd) {
@@ -56,7 +56,7 @@ Tempest::SoundEffect SoundFx::getEffect(Tempest::SoundDevice &dev, bool& loop) c
   return effect;
   }
 
-void SoundFx::implLoad(const char *s) {
+void SoundFx::implLoad(std::string_view s) {
   auto& sfx = Gothic::sfx()[s];
   auto  snd = Resources::loadSoundBuffer(sfx.file.c_str());
 
@@ -65,10 +65,10 @@ void SoundFx::implLoad(const char *s) {
   loadVariants(s);
   }
 
-void SoundFx::loadVariants(const char *s) {
+void SoundFx::loadVariants(std::string_view s) {
   char name[256]={};
   for(int i=1;i<100;++i){
-    std::snprintf(name,sizeof(name),"%s_A%02d",s,i);
+    std::snprintf(name,sizeof(name),"%.*s_A%02d",int(s.size()),s.data(),i);
     auto& sfx = Gothic::sfx()[name];
     auto  snd = Resources::loadSoundBuffer(sfx.file.c_str());
     if(snd.isEmpty())

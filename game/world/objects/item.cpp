@@ -111,7 +111,7 @@ void Item::setAsEquiped(bool e) {
     ++equiped; else
     --equiped;
   if(equiped>amount) {
-    Log::e("[",displayName(),"] inconsistent inventory state");
+    Log::e("[",std::string(displayName()),"] inconsistent inventory state");
     }
   if(equiped==0)
     itSlot=NSLOT;
@@ -134,11 +134,11 @@ bool Item::isDynamic() const {
   return !physic.isEmpty();
   }
 
-const char *Item::displayName() const {
+std::string_view Item::displayName() const {
   return hitem.name.c_str();
   }
 
-const char *Item::description() const {
+std::string_view Item::description() const {
   return hitem.description.c_str();
   }
 
@@ -165,7 +165,7 @@ bool Item::isMulti() const {
 bool Item::isSpellShoot() const {
   if(!isSpellOrRune())
     return false;
-  auto& spl = world.script().getSpell(spellId());
+  auto& spl = world.script().spellDesc(spellId());
   return spl.targetCollectAlgo!=TargetCollect::TARGET_COLLECT_NONE &&
          spl.targetCollectAlgo!=TargetCollect::TARGET_COLLECT_CASTER &&
          spl.targetCollectAlgo!=TargetCollect::TARGET_COLLECT_FOCUS;
@@ -221,7 +221,7 @@ size_t Item::count() const {
   return amount;
   }
 
-const char *Item::uiText(size_t id) const {
+std::string_view Item::uiText(size_t id) const {
   return hitem.text[id].c_str();
   }
 

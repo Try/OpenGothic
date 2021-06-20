@@ -27,7 +27,7 @@ Tempest::Vec3 Focus::displayPosition() const {
   return {};
   }
 
-const char *Focus::displayName() const {
+std::string_view Focus::displayName() const {
   if(interactive)
     return interactive->displayName();
   if(npc)

@@ -16,8 +16,10 @@ SoundDefinitions::SoundDefinitions() {
     });
   }
 
-const Daedalus::GEngineClasses::C_SFX& SoundDefinitions::operator[](const char *name) const {
-  auto i = sfx.find(name);
+const Daedalus::GEngineClasses::C_SFX& SoundDefinitions::operator[](std::string_view name) const {
+  char buf[256] = {};
+  std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
+  auto i = sfx.find(buf);
   if(i!=sfx.end())
     return i->second;
   static Daedalus::GEngineClasses::C_SFX s;

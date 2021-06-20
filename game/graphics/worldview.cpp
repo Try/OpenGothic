@@ -118,7 +118,7 @@ void WorldView::drawLights(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   sGlobal.lights.draw(cmd,fId);
   }
 
-MeshObjects::Mesh WorldView::addView(const char* visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
+MeshObjects::Mesh WorldView::addView(std::string_view visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
   if(auto mesh=Resources::loadMesh(visual))
     return MeshObjects::Mesh(objGroup,*mesh,headTex,teethTex,bodyColor,false);
   return MeshObjects::Mesh();
@@ -130,7 +130,7 @@ MeshObjects::Mesh WorldView::addView(const ProtoMesh* mesh) {
   return MeshObjects::Mesh();
   }
 
-MeshObjects::Mesh WorldView::addItmView(const char* visual, int32_t material) {
+MeshObjects::Mesh WorldView::addItmView(std::string_view visual, int32_t material) {
   if(auto mesh=Resources::loadMesh(visual))
     return MeshObjects::Mesh(objGroup,*mesh,material,0,0,true);
   return MeshObjects::Mesh();
@@ -146,7 +146,7 @@ MeshObjects::Mesh WorldView::addStaticView(const ProtoMesh* mesh) {
   return MeshObjects::Mesh();
   }
 
-MeshObjects::Mesh WorldView::addStaticView(const char* visual) {
+MeshObjects::Mesh WorldView::addStaticView(std::string_view visual) {
   if(auto mesh=Resources::loadMesh(visual))
     return MeshObjects::Mesh(objGroup,*mesh,0,0,0,true);
   return MeshObjects::Mesh();

@@ -17,12 +17,6 @@ class Npc;
 class Pose;
 class Skeleton;
 
-namespace Daedalus {
-namespace GEngineClasses {
-struct C_ParticleFXEmitKey;
-}
-}
-
 class Effect final {
   public:
     Effect() = default;

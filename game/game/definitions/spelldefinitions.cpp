@@ -24,16 +24,16 @@ SpellDefinitions::~SpellDefinitions() {
   vm.clearReferences(Daedalus::IC_Spell);
   }
 
-const Daedalus::GEngineClasses::C_Spell &SpellDefinitions::find(const char* instanceName) const {
+const Daedalus::GEngineClasses::C_Spell &SpellDefinitions::find(std::string_view instanceName) const {
   char format[64]={};
-  std::snprintf(format,sizeof(format),"SPELL_%s",instanceName);
+  std::snprintf(format,sizeof(format),"SPELL_%.*s",int(instanceName.size()),instanceName.data());
   for(auto& i:format)
     i = char(std::toupper(i));
 
   for(auto& i:spl)
     if(i.instName==format)
       return i;
-  Log::d("invalid spell [",instanceName,"]");
+  Log::d("invalid spell [",instanceName.data(),"]");
   static Daedalus::GEngineClasses::C_Spell szero={};
   return szero;
   }

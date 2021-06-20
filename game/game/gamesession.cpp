@@ -198,28 +198,12 @@ std::vector<uint8_t> GameSession::loadScriptCode() {
   return ret;
   }
 
-SoundFx *GameSession::loadSoundFx(const char *name) {
-  return Gothic::inst().loadSoundFx(name);
-  }
-
-SoundFx *GameSession::loadSoundWavFx(const char *name) {
-  return Gothic::inst().loadSoundWavFx(name);
-  }
-
 Tempest::SoundEffect GameSession::loadSound(const Tempest::Sound &raw) {
   return sound.load(raw);
   }
 
 Tempest::SoundEffect GameSession::loadSound(const SoundFx &fx, bool& looped) {
   return fx.getEffect(sound,looped);
-  }
-
-void GameSession::emitGlobalSound(const Tempest::Sound &sfx) {
-  Gothic::inst().emitGlobalSound(sfx);
-  }
-
-void GameSession::emitGlobalSound(const std::string &sfx) {
-  Gothic::inst().emitGlobalSound(sfx);
   }
 
 Npc* GameSession::player() {

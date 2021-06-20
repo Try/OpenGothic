@@ -48,9 +48,9 @@ class WorldObjects final {
     void           save(Serialize& fout);
     void           tick(uint64_t dt, uint64_t dtPlayer);
 
-    Npc*           addNpc(size_t itemInstance, const Daedalus::ZString& at);
-    Npc*           addNpc(size_t itemInstance, const Tempest::Vec3&     at);
-    Npc*           insertPlayer(std::unique_ptr<Npc>&& npc, const Daedalus::ZString& waypoint);
+    Npc*           addNpc(size_t itemInstance, std::string_view     at);
+    Npc*           addNpc(size_t itemInstance, const Tempest::Vec3& at);
+    Npc*           insertPlayer(std::unique_ptr<Npc>&& npc, std::string_view at);
     auto           takeNpc(const Npc* npc) -> std::unique_ptr<Npc>;
 
     void           updateAnimation();
@@ -85,13 +85,13 @@ class WorldObjects final {
     void           runEffect(Effect&& e);
     void           stopEffect(const VisualFx& vfx);
 
-    Item*          addItem(size_t itemInstance, const char *at);
+    Item*          addItem(size_t itemInstance, std::string_view at);
     Item*          addItem(const ZenLoad::zCVobData &vob);
     Item*          addItem(size_t itemInstance, const Tempest::Vec3& pos);
     Item*          addItem(size_t itemInstance, const Tempest::Vec3& pos, const Tempest::Vec3& dir);
     Item*          takeItem(Item& it);
     void           removeItem(Item& it);
-    size_t         hasItems(const char* tag, size_t itemCls);
+    size_t         hasItems(std::string_view tag, size_t itemCls);
 
     Bullet&        shootBullet(const Item &itmId, float x, float y, float z, float dx, float dy, float dz, float speed);
 

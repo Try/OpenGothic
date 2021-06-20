@@ -5,11 +5,12 @@
 
 #include "world/world.h"
 #include "utils/parser.h"
+#include "gothic.h"
 
 using namespace Tempest;
 
 VisualFx::Key::Key(Daedalus::GEngineClasses::C_ParticleFXEmitKey&& k) {
-  visName                 = k.visName_S;
+  visName                 = Gothic::inst().loadParticleFx(k.visName_S.c_str());
   visSizeScale            = k.visSizeScale;
   scaleDuration           = k.scaleDuration; // time to reach full scale at this key for relevant vars (size, alpha, etc.)
 
@@ -17,13 +18,16 @@ VisualFx::Key::Key(Daedalus::GEngineClasses::C_ParticleFXEmitKey&& k) {
   pfx_ppsIsSmoothChg      = k.pfx_ppsIsSmoothChg!=0;
   pfx_ppsIsLoopingChg     = k.pfx_ppsIsLoopingChg!=0;
   pfx_scTime              = 0.f;
-  pfx_flyGravity          = Parser::loadVec3(k.pfx_flyGravity_S);
+  if(!k.pfx_flyGravity_S.empty())
+    pfx_flyGravity = Parser::loadVec3(k.pfx_flyGravity_S);
 
-  pfx_shpDim              = Parser::loadVec3(k.pfx_shpDim_S);
+  if(!k.pfx_shpDim_S.empty())
+    pfx_shpDim = Parser::loadVec3(k.pfx_shpDim_S);
   pfx_shpIsVolumeChg      = k.pfx_shpIsVolumeChg;    // changes volume rendering of pfx if set to 1
   pfx_shpScaleFPS         = k.pfx_shpScaleFPS;
   pfx_shpDistribWalkSpeed = k.pfx_shpDistribWalkSpeed;
-  pfx_shpOffsetVec        = Parser::loadVec3(k.pfx_shpOffsetVec_S);
+  if(!k.pfx_shpOffsetVec_S.empty())
+    pfx_shpOffsetVec = Parser::loadVec3(k.pfx_shpOffsetVec_S);
   pfx_shpDistribType_S    = k.pfx_shpDistribType_S;
   pfx_dirMode_S           = k.pfx_dirMode_S;
   pfx_dirFOR_S            = k.pfx_dirFOR_S;
@@ -37,7 +41,7 @@ VisualFx::Key::Key(Daedalus::GEngineClasses::C_ParticleFXEmitKey&& k) {
   lightRange              = k.lightRange;
   sfxID                   = k.sfxID;
   sfxIsAmbient            = k.sfxIsAmbient;
-  emCreateFXID            = k.emCreateFXID;
+  emCreateFXID            = Gothic::inst().loadVisualFx(k.emCreateFXID.c_str());
 
   emFlyGravity            = k.emFlyGravity;
   emSelfRotVel            = Parser::loadVec3(k.emSelfRotVel_S);
@@ -47,7 +51,7 @@ VisualFx::Key::Key(Daedalus::GEngineClasses::C_ParticleFXEmitKey&& k) {
   emFXLifeSpan            = k.emFXLifeSpan<0 ? 0 : uint64_t(k.emFXLifeSpan*1000.f);
   }
 
-VisualFx::VisualFx(Daedalus::GEngineClasses::CFx_Base &&fx, Daedalus::DaedalusVM& vm, const char* name) {
+VisualFx::VisualFx(const Daedalus::GEngineClasses::CFx_Base& fx, Daedalus::DaedalusVM& vm, std::string_view name) {
   visName_S                = fx.visName_S;
   visSize                  = Parser::loadVec2(fx.visSize_S);
   visAlpha                 = fx.visAlpha;
@@ -72,16 +76,16 @@ VisualFx::VisualFx(Daedalus::GEngineClasses::CFx_Base &&fx, Daedalus::DaedalusVM
   emTrjDynUpdateDelay      = fx.emTrjDynUpdateDelay;
   emTrjDynUpdateTargetOnly = fx.emTrjDynUpdateTargetOnly!=0;
 
-  emFXCreate               = nullptr;
+  emFXCreate               = Gothic::inst().loadVisualFx(fx.emFXCreate_S.c_str());
   emFXInvestOrigin         = fx.emFXInvestOrigin_S.c_str();
   emFXInvestTarget         = fx.emFXInvestTarget_S.c_str();
   emFXTriggerDelay         = fx.emFXTriggerDelay<0 ? 0 : uint64_t(fx.emFXTriggerDelay*1000.f);
   emFXCreatedOwnTrj        = fx.emFXCreatedOwnTrj!=0;
   emActionCollDyn          = strToColision(fx.emActionCollStat_S.c_str());		// CREATE, BOUNCE, CREATEONCE, NORESP, COLLIDE
   emActionCollStat         = strToColision(fx.emActionCollDyn_S.c_str());			// CREATE, BOUNCE, CREATEONCE, NORESP, COLLIDE, CREATEQUAD
-  emFXCollStat             = nullptr;
-  emFXCollDyn              = nullptr;
-  emFXCollDynPerc          = nullptr;
+  emFXCollStat             = Gothic::inst().loadVisualFx(fx.emFXCollStat_S.c_str());
+  emFXCollDyn              = Gothic::inst().loadVisualFx(fx.emFXCollDyn_S.c_str());
+  emFXCollDynPerc          = Gothic::inst().loadVisualFx(fx.emFXCollDynPerc_S.c_str());
   emFXCollStatAlign        = loadCollisionAlign(fx.emFXCollStatAlign_S);
   emFXCollDynAlign         = loadCollisionAlign(fx.emFXCollDynAlign_S);
   emFXLifeSpan             = fx.emFXLifeSpan<0 ? 0 : uint64_t(fx.emFXLifeSpan*1000.f);
@@ -110,9 +114,9 @@ VisualFx::VisualFx(Daedalus::GEngineClasses::CFx_Base &&fx, Daedalus::DaedalusVM
     "COLLIDE"
     };
 
-  for(int i=0;i<int(SpellFxKey::Count);++i) {
+  for(int i=0; i<int(SpellFxKey::Count); ++i) {
     char kname[256]={};
-    std::snprintf(kname,sizeof(kname),"%s_KEY_%s",name,keyName[i]);
+    std::snprintf(kname,sizeof(kname),"%.*s_KEY_%s", int(name.size()),name.data(), keyName[i]);
     auto id = vm.getDATFile().getSymbolIndexByName(kname);
     if(id==size_t(-1))
       continue;
@@ -124,7 +128,7 @@ VisualFx::VisualFx(Daedalus::GEngineClasses::CFx_Base &&fx, Daedalus::DaedalusVM
 
   for(int i=1; ; ++i) {
     char kname[256]={};
-    std::snprintf(kname,sizeof(kname),"%s_KEY_INVEST_%d",name,i);
+    std::snprintf(kname,sizeof(kname),"%.*s_KEY_INVEST_%d", int(name.size()),name.data(), i);
     auto id = vm.getDATFile().getSymbolIndexByName(kname);
     if(id==size_t(-1))
       break;
@@ -197,10 +201,11 @@ VisualFx::CollisionAlign VisualFx::loadCollisionAlign(const Daedalus::ZString& s
   return CollisionAlign::Normal;
   }
 
-VisualFx::Collision VisualFx::strToColision(const char* s) {
+VisualFx::Collision VisualFx::strToColision(std::string_view sv) {
   uint8_t bits = 0;
   size_t  prev = 0;
-  for(size_t i=0; ; ++i) {
+  auto    s    = sv.data();
+  for(size_t i=0; i<sv.size(); ++i) {
     if(s[i]==' ' || s[i]=='\0') {
       if(std::memcmp(s+prev,"COLLIDE",i-prev)==0) {
         bits |= Collision::Collide;

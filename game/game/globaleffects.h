@@ -68,7 +68,7 @@ class GlobalEffects {
     GlobalFx addEarthQuake (const Daedalus::ZString* argv, size_t argc);
 
 
-    static Tempest::Color parseColor(const char* c);
+    static Tempest::Color parseColor(std::string_view c);
 
     World&   owner;
     uint64_t timeWrldRem = 0;

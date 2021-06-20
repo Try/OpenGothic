@@ -17,7 +17,7 @@ Bullet::Bullet(World& owner,const Item& itm,float x,float y,float z)
   if(itm.isSpellOrRune()) {
     material   = ZenLoad::NUM_MAT_GROUPS;
     int32_t id = itm.spellId();
-    const VisualFx* vfx = owner.script().getSpellVFx(id);
+    const VisualFx* vfx = owner.script().spellVfx(id);
     if(vfx!=nullptr) {
       auto e = Effect(*vfx,owner,Vec3(x,y,z),SpellFxKey::Cast);
       setView(std::move(e));

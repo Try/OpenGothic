@@ -10,7 +10,7 @@ class StaticObj : public Vob {
 
   private:
     void  moveEvent() override;
-    bool  setMobState(const char* scheme,int32_t st) override;
+    bool  setMobState(std::string_view scheme,int32_t st) override;
 
     ObjVisual   visual;
     std::string scheme;

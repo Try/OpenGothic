@@ -10,15 +10,15 @@ class IniFile final {
 
     void flush();
 
-    bool               has (const char* sec);
-    bool               has (const char* sec,const char* name);
-    int                getI(const char* sec,const char* name);
-    void               set (const char* sec,const char* name,int ival);
-    float              getF(const char* sec,const char* name);
-    void               set (const char* sec,const char* name,float fval);
+    bool               has (std::string_view sec);
+    bool               has (std::string_view sec, std::string_view name);
+    int                getI(std::string_view sec, std::string_view name);
+    void               set (std::string_view sec, std::string_view name, int ival);
+    float              getF(std::string_view sec, std::string_view name);
+    void               set (std::string_view sec, std::string_view name, float fval);
 
-    const std::string& getS(const char* sec,const char* name);
-    void               set (const char* sec,const char* name,const char* sval);
+    const std::string& getS(std::string_view sec, std::string_view name);
+    void               set (std::string_view sec, std::string_view name, std::string_view sval);
 
   private:
     struct Value final {
@@ -38,9 +38,9 @@ class IniFile final {
 
     void  addSection(std::string&& name);
     void  addValue  (std::string&& name, std::string&& val);
-    void  addValue  (Section& sec,std::string&& name, std::string&& val);
-    auto  find      (const char* sec,const char* name) -> Value&;
-    auto  find      (const char* sec,const char* name,bool autoCreate) -> Value*;
+    void  addValue  (Section& sec, std::string&& name, std::string&& val);
+    auto  find      (std::string_view sec, std::string_view name) -> Value&;
+    auto  find      (std::string_view sec, std::string_view name, bool autoCreate) -> Value*;
     int   getI      (const Value& v) const;
     float getF(const Value& v) const;
 

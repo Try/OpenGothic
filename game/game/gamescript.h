@@ -58,8 +58,8 @@ class GameScript final {
       Daedalus::GEngineClasses::C_Info* handle=nullptr;
       };
 
-    bool         hasSymbolName(const char*  fn);
-    int32_t      runFunction  (const char*  fname);
+    bool         hasSymbolName(std::string_view fn);
+    int32_t      runFunction  (std::string_view fname);
     int32_t      runFunction  (const size_t fid);
 
     void         initDialogs ();
@@ -84,16 +84,16 @@ class GameScript final {
     uint32_t     rand(uint32_t max);
     void         removeItem(Item& it);
 
-    void         setInstanceNPC(const char* name,Npc& npc);
+    void         setInstanceNPC (std::string_view name, Npc& npc);
     void         setInstanceItem(Npc& holder, size_t itemId);
 
     AiOuputPipe* openAiOuput();
     AiOuputPipe* openDlgOuput(Npc &player, Npc &npc);
 
-    size_t       goldId() const { return itMi_Gold; }
-    ScriptFn     playerPercAssessMagic();
-    const char*  currencyName() const { return goldTxt.c_str(); }
-    int          npcDamDiveTime();
+    size_t           goldId() const { return itMi_Gold; }
+    ScriptFn         playerPercAssessMagic();
+    std::string_view currencyName() const { return goldTxt; }
+    int              npcDamDiveTime();
 
     const Daedalus::GEngineClasses::C_Focus&          focusNorm()  const { return cFocusNorm;  }
     const Daedalus::GEngineClasses::C_Focus&          focusMele()  const { return cFocusMele;  }
@@ -101,13 +101,13 @@ class GameScript final {
     const Daedalus::GEngineClasses::C_Focus&          focusMage()  const { return cFocusMage;  }
     const Daedalus::GEngineClasses::C_GilValues&      guildVal()   const { return cGuildVal;   }
 
-    Daedalus::PARSymbol&                              getSymbol(const char*  s);
+    Daedalus::PARSymbol&                              getSymbol(std::string_view s);
     Daedalus::PARSymbol&                              getSymbol(const size_t s);
-    size_t                                            getSymbolIndex(const char* s);
-    size_t                                            getSymbolIndex(const std::string& s);
-    const AiState&                                    getAiState(ScriptFn id);
-    const Daedalus::GEngineClasses::C_Spell&          getSpell(int32_t splId);
-    const VisualFx*                                   getSpellVFx(int32_t splId);
+    size_t                                            getSymbolIndex(std::string_view s);
+
+    const AiState&                                    aiState  (ScriptFn id);
+    const Daedalus::GEngineClasses::C_Spell&          spellDesc(int32_t splId);
+    const VisualFx*                                   spellVfx (int32_t splId);
 
     auto dialogChoises(Daedalus::GEngineClasses::C_Npc *self, Daedalus::GEngineClasses::C_Npc *npc, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<DlgChoise>;
     auto updateDialog (const GameScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoise>;
@@ -128,7 +128,7 @@ class GameScript final {
     int  invokeItem (Npc* npc, ScriptFn fn);
     int  invokeMana (Npc& npc, Npc* target, Item&  fn);
     int  invokeSpell(Npc& npc, Npc *target, Item&  fn);
-    int  invokeCond (Npc& npc, const char *func);
+    int  invokeCond (Npc& npc, std::string_view func);
     void invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen);
     auto canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t spellId) -> CollideMask;
 
@@ -151,7 +151,7 @@ class GameScript final {
     Attitude guildAttitude(const Npc& p0,const Npc& p1) const;
     Attitude personAttitude(const Npc& p0,const Npc& p1) const;
 
-    BodyState schemeToBodystate(const char* sc);
+    BodyState schemeToBodystate(std::string_view sc);
 
   private:
     void               initCommon();
@@ -195,7 +195,7 @@ class GameScript final {
     bool  aiOutput   (Npc &from, const Daedalus::ZString& name, bool overlay);
     bool  aiOutputSvm(Npc &from, const Daedalus::ZString& name, bool overlay);
 
-    bool  searchScheme(const char* sc,const char* listName);
+    bool  searchScheme(std::string_view sc, std::string_view listName);
 
     void game_initgerman     (Daedalus::DaedalusVM& vm);
     void game_initenglish    (Daedalus::DaedalusVM& vm);

@@ -65,15 +65,14 @@ class Gothic final {
     int       loadingProgress() const;
     void      setLoadingProgress(int v);
 
-    SoundFx*  loadSoundFx   (const char* name);
-    SoundFx*  loadSoundWavFx(const char *name);
+    SoundFx*  loadSoundFx   (std::string_view name);
+    SoundFx*  loadSoundWavFx(std::string_view name);
 
-    auto      loadParticleFx(const char* name) -> const ParticleFx*;
+    auto      loadParticleFx(std::string_view name) -> const ParticleFx*;
     auto      loadParticleFx(const ParticleFx* base, const VisualFx::Key* key) -> const ParticleFx*;
-    auto      loadVisualFx  (const char* name) -> const VisualFx*;
+    auto      loadVisualFx  (std::string_view name) -> const VisualFx*;
 
-    void      emitGlobalSound(const char*        sfx);
-    void      emitGlobalSound(const std::string& sfx);
+    void      emitGlobalSound(std::string_view   sfx);
     void      emitGlobalSound(const SoundFx*     sfx);
     void      emitGlobalSound(const Tempest::Sound& sfx);
 
@@ -91,7 +90,7 @@ class Gothic final {
 
     LoadState checkLoading() const;
     bool      finishLoading();
-    void      startLoad(const char *banner, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
+    void      startLoad(std::string_view banner, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
     void      startSave(Tempest::Texture2d&& tex, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
     void      cancelLoading();
 
@@ -116,8 +115,8 @@ class Gothic final {
     Tempest::Signal<void(Npc&,Npc&,AiOuputPipe*&)>                      onDialogPipe;
     Tempest::Signal<void(bool&)>                                        isDialogClose;
 
-    Tempest::Signal<void(const char*,int,int,int,const GthFont&)>       onPrintScreen;
-    Tempest::Signal<void(const char*)>                                  onPrint;
+    Tempest::Signal<void(std::string_view,int,int,int,const GthFont&)>  onPrintScreen;
+    Tempest::Signal<void(std::string_view)>                             onPrint;
     Tempest::Signal<void(const Daedalus::ZString&)>                     onVideo;
 
     Tempest::Signal<void(const ChapterScreen::Show&)>                   onIntroChapter;
@@ -128,8 +127,8 @@ class Gothic final {
     Tempest::Signal<void()>                                             onSettingsChanged;
 
     const Daedalus::ZString&              messageFromSvm(const Daedalus::ZString& id, int voice) const;
-    const Daedalus::ZString&              messageByName(const Daedalus::ZString &id) const;
-    uint32_t                              messageTime(const Daedalus::ZString& id) const;
+    const Daedalus::ZString&              messageByName (const Daedalus::ZString& id) const;
+    uint32_t                              messageTime   (const Daedalus::ZString& id) const;
 
     std::u16string                        nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const;
     const std::string&                    defaultWorld() const;
@@ -199,7 +198,7 @@ class Gothic final {
 
     static Gothic*                          instance;
 
-    void                                    implStartLoadSave(const char *banner,
+    void                                    implStartLoadSave(std::string_view banner,
                                                               bool load,
                                                               const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
 

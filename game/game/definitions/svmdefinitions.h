@@ -9,7 +9,7 @@ class SvmDefinitions final {
     SvmDefinitions(Daedalus::DaedalusVM &vm);
     ~SvmDefinitions();
 
-    const Daedalus::ZString& find(const char* speech,const int id);
+    const Daedalus::ZString& find(std::string_view speech, const int id);
 
   private:
     Daedalus::DaedalusVM&                                         vm;

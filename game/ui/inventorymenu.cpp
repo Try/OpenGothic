@@ -260,7 +260,7 @@ void InventoryMenu::processPickLock(KeyEvent& e) {
   else
     return;
 
-  const std::string& cmp = chest->pickLockCode();
+  auto cmp = chest->pickLockCode();
   if(pickLockProgress<cmp.size() && cmp[pickLockProgress]!=ch) {
     pickLockProgress = 0;
     const int32_t dex = player->attribute(Npc::ATR_DEXTERITY);
@@ -697,17 +697,17 @@ void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {
   if(!slot)
     return;
   auto           w    = world();
-  auto*          txt  = w ? w->script().currencyName() : nullptr;
+  auto           txt  = w ? w->script().currencyName() : "";
   const size_t   gold = player.inventory().goldCount();
   char           vint[64]={};
   if(txt==nullptr)
     txt="Gold";
 
-  std::snprintf(vint,sizeof(vint),"%s : %u",txt,uint32_t(gold));
+  std::snprintf(vint,sizeof(vint),"%.*s : %u",int(txt.size()),txt.data(),uint32_t(gold));
   drawHeader(p,vint,x,y);
   }
 
-void InventoryMenu::drawHeader(Painter &p,const char* title, int x, int y) {
+void InventoryMenu::drawHeader(Painter &p, std::string_view title, int x, int y) {
   auto& fnt = Resources::font();
 
   const int dw = slotSize().w*2;
@@ -753,11 +753,11 @@ void InventoryMenu::drawInfo(Painter &p) {
   fnt.drawText(p,x+(dw-tw)/2,y+int(fnt.pixelSize()),desc);
 
   for(size_t i=0;i<Item::MAX_UI_ROWS;++i){
-    const char*   txt=r.uiText(i);
-    int32_t       val=r.uiValue(i);
-    char          vint[32]={};
+    auto    txt = r.uiText(i);
+    int32_t val = r.uiValue(i);
+    char    vint[32]={};
 
-    if(txt==nullptr || txt[0]=='\0')
+    if(txt.empty())
       continue;
 
     if(i+1==Item::MAX_UI_ROWS && state==State::Trade && player!=nullptr && pg.is(&player->inventory())){

@@ -8,7 +8,7 @@ class MusicDefinitions final {
     MusicDefinitions();
     ~MusicDefinitions();
 
-    const Daedalus::GEngineClasses::C_MusicTheme* operator[](const char* name) const;
+    const Daedalus::GEngineClasses::C_MusicTheme* operator[](std::string_view name) const;
 
   private:
     std::unique_ptr<Daedalus::DaedalusVM>  vm;

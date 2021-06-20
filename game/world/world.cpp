@@ -102,15 +102,15 @@ World::World(GameSession &game, const RendererStorage &storage,
 World::~World() {
   }
 
-void World::createPlayer(const char *cls) {
-  npcPlayer = addNpc(cls,wmatrix->startPoint().name);
+void World::createPlayer(std::string_view cls) {
+  npcPlayer = addNpc(cls,wmatrix->startPoint().name.c_str());
   if(npcPlayer!=nullptr) {
     npcPlayer->setProcessPolicy(Npc::ProcessPolicy::Player);
     game.script()->setInstanceNPC("HERO",*npcPlayer);
     }
   }
 
-void World::insertPlayer(std::unique_ptr<Npc> &&npc,const char* waypoint) {
+void World::insertPlayer(std::unique_ptr<Npc> &&npc, std::string_view waypoint) {
   if(npc==nullptr)
     return;
   npcPlayer = wobj.insertPlayer(std::move(npc),waypoint);
@@ -363,14 +363,6 @@ gtime World::time() const {
   return game.time();
   }
 
-Daedalus::PARSymbol &World::getSymbol(const char *s) const {
-  return game.script()->getSymbol(s);
-  }
-
-size_t World::getSymbolIndex(const char *s) const {
-  return game.script()->getSymbolIndex(s);
-  }
-
 Focus World::validateFocus(const Focus &def) {
   Focus ret = def;
   ret.npc         = wobj.validateNpc(ret.npc);
@@ -381,7 +373,7 @@ Focus World::validateFocus(const Focus &def) {
   }
 
 Focus World::findFocus(const Npc &pl, const Focus& def) {
-  const Daedalus::GEngineClasses::C_Focus* fptr=&game.script()->focusNorm();
+  const Daedalus::GEngineClasses::C_Focus* fptr = &game.script()->focusNorm();
   auto opt    = WorldObjects::NoFlg;
   auto coll   = TARGET_COLLECT_FOCUS;
   auto weapon = pl.inventory().activeWeapon();
@@ -402,7 +394,7 @@ Focus World::findFocus(const Npc &pl, const Focus& def) {
       fptr = &game.script()->focusMage();
       if(weapon!=nullptr) {
         int32_t id  = weapon->spellId();
-        auto&   spl = script().getSpell(id);
+        auto&   spl = script().spellDesc(id);
         coll = TargetCollect(spl.targetCollectAlgo);
         }
       opt  = WorldObjects::NoDeath;
@@ -522,14 +514,14 @@ bool World::isTargeted(Npc& npc) {
   return wobj.isTargeted(npc);
   }
 
-Npc *World::addNpc(const char *name, const Daedalus::ZString& at) {
+Npc *World::addNpc(std::string_view name, std::string_view at) {
   size_t id = script().getSymbolIndex(name);
   if(id==size_t(-1))
     return nullptr;
   return wobj.addNpc(id,at);
   }
 
-Npc *World::addNpc(size_t npcInstance, const Daedalus::ZString& at) {
+Npc *World::addNpc(size_t npcInstance, std::string_view at) {
   return wobj.addNpc(npcInstance,at);
   }
 
@@ -537,7 +529,7 @@ Npc* World::addNpc(size_t itemInstance, const Tempest::Vec3& at) {
   return wobj.addNpc(itemInstance,at);
   }
 
-Item *World::addItem(size_t itemInstance, const char *at) {
+Item *World::addItem(size_t itemInstance, std::string_view at) {
   return wobj.addItem(itemInstance,at);
   }
 
@@ -706,8 +698,8 @@ void World::addLandHitSound(float x,float y,float z,uint8_t m0, uint8_t m1) {
     "ST", //MAT_GLAS,
     };
 
-  const char *sm0 = "ME";
-  const char *sm1 = "ME";
+  const char* sm0 = "ME";
+  const char* sm1 = "ME";
 
   sm0 = mat[m0];
   sm1 = mat[m1];
@@ -761,7 +753,7 @@ bool World::isInPfxRange(const Tempest::Vec3& p) const {
   return wview->isInPfxRange(p);
   }
 
-void World::addDlgSound(const char* s, const Tempest::Vec3& pos, float range, uint64_t& timeLen) {
+void World::addDlgSound(std::string_view s, const Tempest::Vec3& pos, float range, uint64_t& timeLen) {
   auto sfx = wsound.addDlgSound(s,pos.x,pos.y,pos.z,range,timeLen);
   sfx.play();
   }
@@ -774,11 +766,11 @@ void World::addInteractive(Interactive* inter) {
   wobj.addInteractive(inter);
   }
 
-void World::addStartPoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name) {
+void World::addStartPoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name) {
   wmatrix->addStartPoint(pos,dir,name);
   }
 
-void World::addFreePoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name) {
+void World::addFreePoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name) {
   wmatrix->addFreePoint(pos,dir,name);
   }
 
@@ -803,7 +795,7 @@ void World::triggerOnStart(bool firstTime) {
   wobj.triggerOnStart(firstTime);
   }
 
-const WayPoint *World::findPoint(const char *name, bool inexact) const {
+const WayPoint *World::findPoint(std::string_view name, bool inexact) const {
   return wmatrix->findPoint(name,inexact);
   }
 
@@ -811,7 +803,7 @@ const WayPoint* World::findWayPoint(const Tempest::Vec3& pos) const {
   return wmatrix->findWayPoint(pos,pos,[](const WayPoint&){ return true; });
   }
 
-const WayPoint *World::findFreePoint(const Npc &npc, const char *name) const {
+const WayPoint *World::findFreePoint(const Npc &npc, std::string_view name) const {
   if(auto p = npc.currentWayPoint()){
     if(p->isFreePoint() && p->checkName(name)) {
       return p;
@@ -829,7 +821,7 @@ const WayPoint *World::findFreePoint(const Npc &npc, const char *name) const {
     });
   }
 
-const WayPoint *World::findFreePoint(const Tempest::Vec3& pos, const char* name) const {
+const WayPoint *World::findFreePoint(const Tempest::Vec3& pos, std::string_view name) const {
   return wmatrix->findFreePoint(pos,name,[](const WayPoint& wp) -> bool {
     if(wp.isLocked())
       return false;
@@ -837,7 +829,7 @@ const WayPoint *World::findFreePoint(const Tempest::Vec3& pos, const char* name)
     });
   }
 
-const WayPoint *World::findNextFreePoint(const Npc &npc, const char *name) const {
+const WayPoint *World::findNextFreePoint(const Npc &npc, std::string_view name) const {
   auto pos = npc.position();
   pos.y+=npc.translateY();
   auto cur = npc.currentWayPoint();

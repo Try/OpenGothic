@@ -672,7 +672,7 @@ bool GameMenu::implUpdateSavThumb(GameMenu::Item& sel) {
   const SaveGameHeader& hdr = sel.savHdr;
   char form[64]={};
   Resources::device().waitIdle();
-  savThumb = Resources::loadTexture(hdr.priview);
+  savThumb = Resources::loadTexturePm(hdr.priview);
 
   set("MENUITEM_LOADSAVE_THUMBPIC",       &savThumb);
   set("MENUITEM_LOADSAVE_LEVELNAME_VALUE",hdr.world.c_str());
@@ -759,7 +759,7 @@ size_t GameMenu::strEnumSize(const char *en) {
   return cnt;
   }
 
-void GameMenu::set(const char *item, const Texture2d *value) {
+void GameMenu::set(std::string_view item, const Texture2d *value) {
   for(auto& i:hItems)
     if(i.name==item) {
       i.img = value;
@@ -767,34 +767,34 @@ void GameMenu::set(const char *item, const Texture2d *value) {
       }
   }
 
-void GameMenu::set(const char *item, const uint32_t value) {
+void GameMenu::set(std::string_view item, const uint32_t value) {
   char buf[16]={};
   std::snprintf(buf,sizeof(buf),"%u",value);
   set(item,buf);
   }
 
-void GameMenu::set(const char *item, const int32_t value) {
+void GameMenu::set(std::string_view item, const int32_t value) {
   char buf[16]={};
   std::snprintf(buf,sizeof(buf),"%d",value);
   set(item,buf);
   }
 
-void GameMenu::set(const char *item, const int32_t value, const char *post) {
+void GameMenu::set(std::string_view item, const int32_t value, const char *post) {
   char buf[32]={};
   std::snprintf(buf,sizeof(buf),"%d%s",value,post);
   set(item,buf);
   }
 
-void GameMenu::set(const char *item, const int32_t value, const int32_t max) {
+void GameMenu::set(std::string_view item, const int32_t value, const int32_t max) {
   char buf[32]={};
   std::snprintf(buf,sizeof(buf),"%d/%d",value,max);
   set(item,buf);
   }
 
-void GameMenu::set(const char *item, const char *value) {
+void GameMenu::set(std::string_view item, const char* value) {
   for(auto& i:hItems)
     if(i.name==item) {
-      i.handle.text[0]=value;
+      i.handle.text[0] = value;
       return;
       }
   }
@@ -831,9 +831,10 @@ void GameMenu::setPlayer(const Npc &pl) {
   if(world==nullptr)
     return;
 
-  auto& gilds = world->getSymbol("TXT_GUILDS");
-  auto& tal   = world->getSymbol("TXT_TALENTS");
-  auto& talV  = world->getSymbol("TXT_TALENTS_SKILLS");
+  auto& sc    = world->script();
+  auto& gilds = sc.getSymbol("TXT_GUILDS");
+  auto& tal   = sc.getSymbol("TXT_TALENTS");
+  auto& talV  = sc.getSymbol("TXT_TALENTS_SKILLS");
 
   set("MENU_ITEM_PLAYERGUILD",gilds.getString(pl.guild()).c_str());
 

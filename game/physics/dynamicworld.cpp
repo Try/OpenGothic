@@ -635,7 +635,7 @@ float DynamicWorld::soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3
   return (tlen*fr)/1.5f;
   }
 
-DynamicWorld::NpcItem DynamicWorld::ghostObj(const char* visual) {
+DynamicWorld::NpcItem DynamicWorld::ghostObj(std::string_view visual) {
   ZMath::float3 min={0,0,0}, max={0,0,0};
   if(auto sk=Resources::loadSkeleton(visual)) {
     min = sk->bboxCol[0];

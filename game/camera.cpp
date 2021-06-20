@@ -315,7 +315,7 @@ const Daedalus::GEngineClasses::CCamSys &Camera::cameraDef() const {
   if(camMod==Dive)
     return camd.diveCam();
   if(camMod==Mobsi) {
-    const char *tag = "", *pos = nullptr;
+    std::string_view tag = "", pos = "";
     if(auto pl = Gothic::inst().player())
       if(auto inter = pl->interactive()) {
         tag = inter->schemeName();

@@ -32,7 +32,7 @@ ParticleFx::ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob) {
   useEmittersFOR   = true;
   }
 
-ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const char* name)
+ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, std::string_view name)
   :dbgName(name) {
   ppsValue            = std::max(0.f,src.ppsValue);
   ppsScaleKeys        = loadArr(src.ppsScaleKeys_S);
@@ -107,19 +107,14 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
 
 ParticleFx::ParticleFx(const ParticleFx& proto, const VisualFx::Key& key)
   :ParticleFx(proto) {
-  //if(!key.pfx_shpDim_S.empty())
-  //  shpDim            = Parser::loadVec3(key.pfx_shpDim_S);
-
+  shpDim              = key.pfx_shpDim.value_or(shpDim);
   shpIsVolume         = key.pfx_shpIsVolumeChg!=0;
 
   if(key.pfx_shpScaleFPS>0)
     shpScaleFPS       = key.pfx_shpScaleFPS;
 
   shpDistribWalkSpeed = key.pfx_shpDistribWalkSpeed;
-
-  //if(!key.pfx_shpOffsetVec_S.empty())
-  //  shpOffsetVec      = Parser::loadVec3(key.pfx_shpOffsetVec_S);
-
+  shpOffsetVec        = key.pfx_shpOffsetVec.value_or(shpOffsetVec);
   if(!key.pfx_shpDistribType_S.empty())
     shpDistribType    = loadDistribType(key.pfx_shpDistribType_S);
 
@@ -189,7 +184,7 @@ uint64_t ParticleFx::calcPrefferedTimeSingle() const {
   return sec;
   }
 
-const Tempest::Texture2d* ParticleFx::loadTexture(const char* src) {
+const Tempest::Texture2d* ParticleFx::loadTexture(std::string_view src) {
   auto view = Resources::loadTexture(src);
   if(view==nullptr)
     view = &Resources::fallbackBlack();

@@ -2,6 +2,7 @@
 
 #include <daedalus/DaedalusStdlib.h>
 #include <Tempest/Point>
+#include <optional>
 
 #include "game/constants.h"
 #include "graphics/pfx/pfxobjects.h"
@@ -10,7 +11,7 @@ class World;
 
 class VisualFx final {
   public:
-    VisualFx(Daedalus::GEngineClasses::CFx_Base&& src, Daedalus::DaedalusVM& tmpVm, const char* name);
+    VisualFx(const Daedalus::GEngineClasses::CFx_Base& src, Daedalus::DaedalusVM& tmpVm, std::string_view name);
 
     enum Collision : uint8_t {
       NoCollide  = 0,
@@ -45,18 +46,16 @@ class VisualFx final {
       Linear,
       };
 
+
+    using OptVec3 = std::optional<Tempest::Vec3>;
+
     class Key {
       public:
         Key() = default;
         Key(Daedalus::GEngineClasses::C_ParticleFXEmitKey&& k);
 
-        enum OverrideBit : uint64_t {
-          pfx_flyGravity_Override = 1 << 0,
-          pfx_shpDim_Override = 1 << 1,
-          };
-
         // vars which influence all particles all time
-        Daedalus::ZString visName;
+        const ParticleFx* visName = nullptr;
         float             visSizeScale=0.f;
         float             scaleDuration=0.f;     // time to reach full scale at this key for relevant vars (size, alpha, etc.)
 
@@ -64,14 +63,14 @@ class VisualFx final {
         bool              pfx_ppsIsSmoothChg  = false;  // changes pps smoothing of pfx if set to 1 and pfx pps scale keys are set
         bool              pfx_ppsIsLoopingChg = false;  // changes looping of pfx if set to 1
         float             pfx_scTime=0.f;
-        Tempest::Vec3     pfx_flyGravity;
+        OptVec3           pfx_flyGravity;
 
         // vars which influence particles at creation level only
-        Tempest::Vec3     pfx_shpDim;
+        OptVec3           pfx_shpDim;
         bool              pfx_shpIsVolumeChg = false;    // changes volume rendering of pfx if set to 1
         float             pfx_shpScaleFPS=0.f;
         float             pfx_shpDistribWalkSpeed=0.f;
-        Tempest::Vec3     pfx_shpOffsetVec;
+        OptVec3           pfx_shpOffsetVec;
         Daedalus::ZString pfx_shpDistribType_S;
         Daedalus::ZString pfx_dirMode_S;
         Daedalus::ZString pfx_dirFOR_S;
@@ -85,7 +84,7 @@ class VisualFx final {
         float             lightRange=0.f;
         Daedalus::ZString sfxID;
         int               sfxIsAmbient=0;
-        Daedalus::ZString emCreateFXID;
+        const VisualFx*   emCreateFXID = nullptr;
 
         float             emFlyGravity=0.f;
         Tempest::Vec3     emSelfRotVel;
@@ -96,6 +95,7 @@ class VisualFx final {
       private:
       };
 
+    const char*           dbgName = "";
     Daedalus::ZString     visName_S;  // ParticleFx ?
     Tempest::Vec2	        visSize;
     float	                visAlpha                 = 0.f;
@@ -158,7 +158,7 @@ class VisualFx final {
     static EaseFunc       loadEaseFunc      (const Daedalus::ZString& str);
     static CollisionAlign loadCollisionAlign(const Daedalus::ZString& str);
 
-    static Collision      strToColision(const char* s);
+    static Collision      strToColision(std::string_view s);
 
     Key                   keys[int(SpellFxKey::Count)];
     std::vector<Key>      investKeys;

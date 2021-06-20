@@ -61,7 +61,7 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
   oldOw->free(oldId);
   }
 
-void ObjectsBucket::Item::startMMAnim(const char* anim, float intensity, uint64_t timeUntil) {
+void ObjectsBucket::Item::startMMAnim(std::string_view anim, float intensity, uint64_t timeUntil) {
   if(owner!=nullptr)
     owner->startMMAnim(id,anim,intensity,timeUntil);
   }
@@ -481,7 +481,7 @@ void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
   val[i].visibility.setBounds(b);
   }
 
-void ObjectsBucket::startMMAnim(size_t i, const char* anim, float intensity, uint64_t timeUntil) {
+void ObjectsBucket::startMMAnim(size_t i, std::string_view anim, float intensity, uint64_t timeUntil) {
   if(morphAnim==nullptr)
     return;
   auto&  v  = val[i];

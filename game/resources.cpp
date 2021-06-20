@@ -129,6 +129,32 @@ Resources::~Resources() {
   inst=nullptr;
   }
 
+bool Resources::hasFile(std::string_view name) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  if(name.size()<128) {
+    char buf[128] = {};
+    std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
+    return inst->gothicAssets.hasFile(buf);
+    }
+  return inst->gothicAssets.hasFile(std::string(name));
+  }
+
+bool Resources::getFileData(std::string_view name, std::vector<uint8_t> &dat) {
+  dat.clear();
+  if(name.size()<128) {
+    char buf[128] = {};
+    std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
+    return inst->gothicAssets.getFileData(buf,dat);
+    }
+  return inst->gothicAssets.getFileData(std::string(name),dat);
+  }
+
+std::vector<uint8_t> Resources::getFileData(std::string_view name) {
+  std::vector<uint8_t> data;
+  getFileData(name,data);
+  return data;
+  }
+
 const char* Resources::renderer() {
   return inst->dev.properties().name;
   }
@@ -180,7 +206,7 @@ const GthFont &Resources::font(Resources::FontType type) {
   return font("font_old_10_white.tga",type);
   }
 
-const GthFont &Resources::font(const char* fname, FontType type) {
+const GthFont &Resources::font(std::string_view fname, FontType type) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadFont(fname,type);
   }
@@ -224,11 +250,11 @@ int64_t Resources::vdfTimestamp(const std::u16string& name) {
     }
   }
 
-Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache,const char* cname) {
-  std::string name = cname;
-  if(name.size()==0)
+Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_view cname) {
+  if(cname.empty())
     return nullptr;
 
+  std::string name = std::string(cname);
   auto it=cache.find(name);
   if(it!=cache.end())
     return it->second.get();
@@ -243,7 +269,7 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache,const char* c
         }
       ddsBuf.clear();
       ZenLoad::convertZTEX2DDS(fBuff,ddsBuf);
-      auto t = implLoadTexture(cache,cname,ddsBuf);
+      auto t = implLoadTexture(cache,std::string(cname),ddsBuf);
       if(t!=nullptr) {
         return t;
         }
@@ -251,13 +277,13 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache,const char* c
     }
 
   if(getFileData(cname,fBuff))
-    return implLoadTexture(cache,cname,fBuff);
+    return implLoadTexture(cache,std::string(cname),fBuff);
 
   cache[name]=nullptr;
   return nullptr;
   }
 
-Texture2d *Resources::implLoadTexture(TextureCache& cache,std::string&& name,const std::vector<uint8_t> &data) {
+Texture2d *Resources::implLoadTexture(TextureCache& cache, std::string&& name, const std::vector<uint8_t> &data) {
   try {
     Tempest::MemReader rd(data.data(),data.size());
     Tempest::Pixmap    pm(rd);
@@ -272,19 +298,20 @@ Texture2d *Resources::implLoadTexture(TextureCache& cache,std::string&& name,con
     }
   }
 
-ProtoMesh* Resources::implLoadMesh(const std::string& name) {
+ProtoMesh* Resources::implLoadMesh(std::string_view name) {
   if(name.size()==0)
     return nullptr;
 
-  auto it=aniMeshCache.find(name);
+  auto cname = std::string(name);
+  auto it    = aniMeshCache.find(cname);
   if(it!=aniMeshCache.end())
     return it->second.get();
 
-  auto  t   = implLoadMeshMain(name);
+  auto  t   = implLoadMeshMain(cname);
   auto  ret = t.get();
-  aniMeshCache[name] = std::move(t);
+  aniMeshCache[cname] = std::move(t);
   if(ret==nullptr)
-    Log::e("unable to load mesh \"",name,"\"");
+    Log::e("unable to load mesh \"",cname,"\"");
   return ret;
   }
 
@@ -380,18 +407,18 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
   return nullptr;
   }
 
-PfxEmitterMesh* Resources::implLoadEmiterMesh(const char* n) {
+PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
   // TODO: reuse code from Resources::implLoadMeshMain
-  auto it = emiMeshCache.find(n);
+  auto cname = std::string(name);
+  auto it    = emiMeshCache.find(cname);
   if(it!=emiMeshCache.end())
     return it->second.get();
 
-  auto& ret = emiMeshCache[n];
+  auto& ret = emiMeshCache[cname];
 
-  std::string name = n;
-  if(FileExt::hasExt(name,"3DS")) {
-    FileExt::exchangeExt(name,"3DS","MRM");
-    ZenLoad::zCProgMeshProto zmsh(name,gothicAssets);
+  if(FileExt::hasExt(cname,"3DS")) {
+    FileExt::exchangeExt(cname,"3DS","MRM");
+    ZenLoad::zCProgMeshProto zmsh(cname,gothicAssets);
     if(zmsh.getNumSubmeshes()==0)
       return nullptr;
 
@@ -406,7 +433,7 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(const char* n) {
     if(!hasFile(name))
       return nullptr;
 
-    ZenLoad::ZenParser parser(name,gothicAssets);
+    ZenLoad::ZenParser parser(cname,gothicAssets);
     ZenLoad::zCModelMeshLib mdm;
     mdm.loadMDM(parser);
 
@@ -481,13 +508,13 @@ std::unique_ptr<Animation> Resources::implLoadAnimation(std::string name) {
   return nullptr;
   }
 
-Dx8::PatternList Resources::implLoadDxMusic(const char* name) {
-  auto u = Tempest::TextCodec::toUtf16(name);
+Dx8::PatternList Resources::implLoadDxMusic(std::string_view name) {
+  auto u = Tempest::TextCodec::toUtf16(std::string(name));
   return dxMusic->load(u.c_str());
   }
 
-Tempest::Sound Resources::implLoadSoundBuffer(const char *name) {
-  if(name[0]=='\0')
+Tempest::Sound Resources::implLoadSoundBuffer(std::string_view name) {
+  if(name.empty())
     return Tempest::Sound();
 
   if(!getFileData(name,fBuff))
@@ -496,22 +523,24 @@ Tempest::Sound Resources::implLoadSoundBuffer(const char *name) {
     Tempest::MemReader rd(fBuff.data(),fBuff.size());
     return Tempest::Sound(rd);
     }
-  catch(...){
-    Log::e("unable to load sound \"",name,"\"");
+  catch(...) {
+    auto cname = std::string (name);
+    Log::e("unable to load sound \"",cname,"\"");
     return Tempest::Sound();
     }
   }
 
-GthFont &Resources::implLoadFont(const char* fname, FontType type) {
-  auto it = gothicFnt.find(std::make_pair(fname,type));
+GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
+  auto cname = std::string(name);
+  auto it    = gothicFnt.find(std::make_pair(cname,type));
   if(it!=gothicFnt.end())
     return *(*it).second;
 
   char file[256]={};
-  for(size_t i=0;i<256 && fname[i];++i) {
-    if(fname[i]=='.')
+  for(size_t i=0; i<256 && cname[i];++i) {
+    if(cname[i]=='.')
       break;
-    file[i] = fname[i];
+    file[i] = cname[i];
     }
 
   char tex[300]={};
@@ -550,26 +579,16 @@ GthFont &Resources::implLoadFont(const char* fname, FontType type) {
 
   auto ptr   = std::make_unique<GthFont>(fnt,tex,color,gothicAssets);
   GthFont* f = ptr.get();
-  gothicFnt[std::make_pair(fname,type)] = std::move(ptr);
+  gothicFnt[std::make_pair(std::move(cname),type)] = std::move(ptr);
   return *f;
   }
 
-bool Resources::hasFile(const std::string &fname) {
-  std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->gothicAssets.hasFile(fname);
-  }
-
-const Texture2d *Resources::loadTexture(const char *name) {
+const Texture2d *Resources::loadTexture(std::string_view name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadTexture(inst->texCache,name);
   }
 
-const Tempest::Texture2d* Resources::loadTexture(const std::string &name) {
-  std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implLoadTexture(inst->texCache,name.c_str());
-  }
-
-const Texture2d *Resources::loadTexture(const std::string &name, int32_t iv, int32_t ic) {
+const Texture2d *Resources::loadTexture(std::string_view name, int32_t iv, int32_t ic) {
   if(name.size()>=128)
     return loadTexture(name);
 
@@ -580,7 +599,7 @@ const Texture2d *Resources::loadTexture(const std::string &name, int32_t iv, int
 
   std::snprintf(v,sizeof(v),"V%d",iv);
   std::snprintf(c,sizeof(c),"C%d",ic);
-  std::strcpy(buf1,name.c_str());
+  std::snprintf(buf1,sizeof(buf1),"%.*s",int(name.size()),name.data());
 
   emplaceTag(buf1,'V');
   std::snprintf(buf2,sizeof(buf2),buf1,v);
@@ -591,7 +610,7 @@ const Texture2d *Resources::loadTexture(const std::string &name, int32_t iv, int
   return loadTexture(buf1);
   }
 
-std::vector<const Texture2d*> Resources::loadTextureAnim(const std::string& name) {
+std::vector<const Texture2d*> Resources::loadTextureAnim(std::string_view name) {
   std::vector<const Texture2d*> ret;
   if(name.find("_A0")==std::string::npos &&
      name.find("_a0")==std::string::npos)
@@ -613,11 +632,11 @@ std::vector<const Texture2d*> Resources::loadTextureAnim(const std::string& name
       if(at>sizeof(buf))
         return ret;
       }
-   auto t = loadTexture(buf);
+   auto t = loadTexture(std::string_view(buf));
     if(t==nullptr) {
       char buf2[128] = {};
       std::snprintf(buf2,sizeof(buf2),"%s.TGA",buf);
-      t = loadTexture(buf2);
+      t = loadTexture(std::string_view(buf2));
       if(t==nullptr)
         return ret;
       }
@@ -625,7 +644,7 @@ std::vector<const Texture2d*> Resources::loadTextureAnim(const std::string& name
     }
   }
 
-Texture2d Resources::loadTexture(const Pixmap &pm) {
+Texture2d Resources::loadTexturePm(const Pixmap &pm) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->dev.loadTexture(pm);
   }
@@ -634,50 +653,47 @@ Material Resources::loadMaterial(const ZenLoad::zCMaterialData& src, bool enable
   return Material(src,enableAlphaTest);
   }
 
-const ProtoMesh *Resources::loadMesh(const std::string &name) {
+const ProtoMesh *Resources::loadMesh(std::string_view name) {
   if(name.size()==0)
     return nullptr;
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadMesh(name);
   }
 
-const PfxEmitterMesh* Resources::loadEmiterMesh(const char* name) {
+const PfxEmitterMesh* Resources::loadEmiterMesh(std::string_view name) {
   if(name==nullptr || name[0]=='\0')
     return nullptr;
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadEmiterMesh(name);
   }
 
-const Skeleton *Resources::loadSkeleton(const char* name) {
+const Skeleton *Resources::loadSkeleton(std::string_view name) {
   auto s = Resources::loadMesh(name);
   if(s==nullptr)
     return nullptr;
   return s->skeleton.get();
   }
 
-const Animation *Resources::loadAnimation(const std::string &name) {
+const Animation *Resources::loadAnimation(std::string_view name) {
+  auto cname = std::string(name);
+
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   auto& cache = inst->animCache;
-  auto it=cache.find(name);
+  auto it=cache.find(cname);
   if(it!=cache.end())
     return it->second.get();
-  auto t   = inst->implLoadAnimation(name);
-  auto ret = t.get();
-  cache[name] = std::move(t);
+  auto t       = inst->implLoadAnimation(cname);
+  auto ret     = t.get();
+  cache[cname] = std::move(t);
   return ret;
   }
 
-Tempest::Sound Resources::loadSoundBuffer(const std::string &name) {
-  std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implLoadSoundBuffer(name.c_str());
-  }
-
-Tempest::Sound Resources::loadSoundBuffer(const char *name) {
+Tempest::Sound Resources::loadSoundBuffer(std::string_view name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadSoundBuffer(name);
   }
 
-Dx8::PatternList Resources::loadDxMusic(const char* name) {
+Dx8::PatternList Resources::loadDxMusic(std::string_view name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadDxMusic(name);
   }
@@ -692,14 +708,15 @@ ZenLoad::oCWorldData Resources::loadVobBundle(const std::string& name) {
   return inst->implLoadVobBundle(name);
   }
 
-ZenLoad::oCWorldData& Resources::implLoadVobBundle(const std::string& filename) {
-  auto i = zenCache.find(filename);
+ZenLoad::oCWorldData& Resources::implLoadVobBundle(std::string_view filename) {
+  auto cname = std::string(filename);
+  auto i     = zenCache.find(cname);
   if(i!=zenCache.end())
     return i->second;
 
   ZenLoad::oCWorldData bundle;
   try {
-    ZenLoad::ZenParser parser(filename,Resources::vdfsIndex());
+    ZenLoad::ZenParser parser(cname,Resources::vdfsIndex());
     parser.readHeader();
 
     auto fver = ZenLoad::ZenParser::FileVersion::Gothic1;
@@ -708,28 +725,11 @@ ZenLoad::oCWorldData& Resources::implLoadVobBundle(const std::string& filename) 
     parser.readWorld(bundle,fver);
     }
   catch(...) {
-    Log::e("unable to load Zen-file: \"",filename,"\"");
+    Log::e("unable to load Zen-file: \"",cname,"\"");
     }
 
   auto ret = zenCache.insert(std::make_pair(filename,std::move(bundle)));
   return ret.first->second;
-  }
-
-bool Resources::getFileData(const char *name, std::vector<uint8_t> &dat) {
-  dat.clear();
-  return inst->gothicAssets.getFileData(name,dat);
-  }
-
-std::vector<uint8_t> Resources::getFileData(const char *name) {
-  std::vector<uint8_t> data;
-  inst->gothicAssets.getFileData(name,data);
-  return data;
-  }
-
-std::vector<uint8_t> Resources::getFileData(const std::string &name) {
-  std::vector<uint8_t> data;
-  inst->gothicAssets.getFileData(name,data);
-  return data;
   }
 
 const AttachBinder *Resources::bindMesh(const ProtoMesh &anim, const Skeleton &s) {

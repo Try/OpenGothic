@@ -50,10 +50,8 @@ Effect::~Effect() {
 
 void Effect::setupLight(World& owner) {
   auto* lightPresetName = &root->lightPresetName;
-  if(key!=nullptr) {
-    if(!key->lightPresetName.empty())
-      lightPresetName = &key->lightPresetName;
-    }
+  if(key!=nullptr && !key->lightPresetName.empty())
+    lightPresetName = &key->lightPresetName;
 
   if(lightPresetName->empty()) {
     light = LightGroup::Light();
@@ -69,13 +67,10 @@ void Effect::setupLight(World& owner) {
 
 void Effect::setupPfx(World& owner) {
   const ParticleFx* pfxDecl = Gothic::inst().loadParticleFx(root->visName_S.c_str());
-  if(key!=nullptr) {
-    if(auto kpfx = Gothic::inst().loadParticleFx(key->visName.c_str())) {
-      pfxDecl = kpfx;
-      // TODO: key-driven params
-      }
-    }
+  if(key!=nullptr && key->visName!=nullptr)
+    pfxDecl = key->visName;
 
+  pfxDecl = Gothic::inst().loadParticleFx(pfxDecl,key);
   if(pfxDecl==nullptr)
     return;
 
@@ -178,14 +173,20 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
 
   key = &root->key(k,keyLvl);
 
-  auto vfx  = Gothic::inst().loadVisualFx(key->emCreateFXID.c_str());
-  if(vfx!=nullptr) {
+  const VisualFx* vfx = nullptr;
+  if(key!=nullptr && key->emCreateFXID!=nullptr)
+    vfx  = key->emCreateFXID;
+
+  if(vfx!=nullptr && !(next!=nullptr && next->is(*vfx))) {
     Vec3 pos3 = {pos.at(3,0),pos.at(3,1),pos.at(3,2)};
     auto ex   = Effect(*vfx,owner,pos3,SpellFxKey::Count);
     ex.setActive(true);
     if(pose!=nullptr && skeleton!=nullptr)
       ex.bindAttaches(*pose,*skeleton);
     next.reset(new Effect(std::move(ex)));
+    }
+  else if(vfx==nullptr) {
+    next.reset(nullptr);
     }
 
   setupPfx(owner);

@@ -234,7 +234,7 @@ Item* Inventory::addItem(std::unique_ptr<Item> &&p) {
     }
   }
 
-Item* Inventory::addItem(const char *name, size_t count, World &owner) {
+Item* Inventory::addItem(std::string_view name, size_t count, World &owner) {
   auto&  vm = owner.script();
   size_t id = vm.getSymbolIndex(name);
   if(id!=size_t(-1))
@@ -385,7 +385,7 @@ void Inventory::unequip(Item *it, Npc &owner) {
       setSlot(i,nullptr,owner,false);
   if(it->isEquiped()) {
     // error
-    Log::e("[",owner.displayName(),"] inconsistent inventory state");
+    Log::e("[",owner.displayName().data(),"] inconsistent inventory state");
     setSlot(it,nullptr,owner,false);
     }
   }
@@ -516,7 +516,7 @@ void Inventory::updateRuneView(Npc &owner) {
   if(!sp->isSpellOrRune())
     return;
 
-  const VisualFx* vfx = owner.world().script().getSpellVFx(sp->spellId());
+  const VisualFx* vfx = owner.world().script().spellVfx(sp->spellId());
   owner.setMagicWeapon(Effect(*vfx,owner.world(),owner,SpellFxKey::Open));
   }
 
@@ -634,7 +634,7 @@ bool Inventory::hasStateItem() const {
   return stateSlot.item!=nullptr || stateItem!=0;
   }
 
-void Inventory::putCurrentToSlot(Npc& owner, const char *slot) {
+void Inventory::putCurrentToSlot(Npc& owner, std::string_view slot) {
   if(curItem!=0) {
     putToSlot(owner,size_t(curItem),slot);
     curItem = 0;
@@ -644,7 +644,7 @@ void Inventory::putCurrentToSlot(Npc& owner, const char *slot) {
     implPutState(owner,size_t(stateItem),slot);
   }
 
-void Inventory::putToSlot(Npc& owner, size_t cls, const char *slot) {
+void Inventory::putToSlot(Npc& owner, size_t cls, std::string_view slot) {
   clearSlot(owner,slot,false);
 
   Item* it=findByClass(cls);
@@ -669,7 +669,7 @@ void Inventory::putToSlot(Npc& owner, size_t cls, const char *slot) {
   owner.setSlotItem(std::move(vitm),slot);
   }
 
-bool Inventory::clearSlot(Npc& owner,const char *slot,bool remove) {
+bool Inventory::clearSlot(Npc& owner, std::string_view slot, bool remove) {
   uint32_t count = 0;
   const bool all = (slot==nullptr || slot[0]=='\0');
   for(size_t i=0;i<mdlSlots.size();)
@@ -692,7 +692,7 @@ bool Inventory::clearSlot(Npc& owner,const char *slot,bool remove) {
   return count>0;
   }
 
-void Inventory::putAmmunition(Npc& owner, size_t cls, const char* slot) {
+void Inventory::putAmmunition(Npc& owner, size_t cls, std::string_view slot) {
   Item* it = (cls==0 ? nullptr : findByClass(cls));
   if(it==nullptr) {
     ammotSlot.slot.clear();
@@ -708,7 +708,7 @@ void Inventory::putAmmunition(Npc& owner, size_t cls, const char* slot) {
   owner.setAmmoItem(std::move(vitm),slot);
   }
 
-void Inventory::implPutState(Npc& owner, size_t cls, const char* slot) {
+void Inventory::implPutState(Npc& owner, size_t cls, std::string_view slot) {
   Item* it = (cls==0 ? nullptr : findByClass(cls));
   if(it==nullptr) {
     stateSlot.slot.clear();

@@ -65,7 +65,7 @@ class Inventory final {
 
     Item*  getItem(size_t instance);
     Item*  addItem(std::unique_ptr<Item>&& p);
-    Item*  addItem(const char* name, size_t count, World &owner);
+    Item*  addItem(std::string_view name, size_t count, World &owner);
     Item*  addItem(size_t cls, size_t count, World &owner);
     void   delItem(size_t cls, size_t count, Npc &owner);
     bool   use    (size_t cls, Npc &owner, bool force);
@@ -106,10 +106,10 @@ class Inventory final {
     uint8_t currentSpellSlot() const;
     bool    hasStateItem() const;
 
-    void   putCurrentToSlot(Npc& owner, const char* slot);
-    void   putToSlot       (Npc& owner, size_t cls, const char* slot);
-    bool   clearSlot       (Npc& owner, const char* slot, bool remove);
-    void   putAmmunition   (Npc& owner, size_t cls, const char* slot);
+    void   putCurrentToSlot(Npc& owner, std::string_view slot);
+    void   putToSlot       (Npc& owner, size_t cls, std::string_view slot);
+    bool   clearSlot       (Npc& owner, std::string_view slot, bool remove);
+    void   putAmmunition   (Npc& owner, size_t cls, std::string_view slot);
     bool   putState        (Npc& owner, size_t cls, int state);
 
     void   setCurrentItem(size_t cls);
@@ -122,7 +122,7 @@ class Inventory final {
       };
 
     void   implLoad(Npc *owner, World &world, Serialize& s);
-    void   implPutState(Npc& owner, size_t cls, const char* slot);
+    void   implPutState(Npc& owner, size_t cls, std::string_view slot);
 
     bool   setSlot     (Item*& slot, Item *next, Npc &owner, bool force);
     bool   equipNumSlot(Item *next, Npc &owner, bool force);

@@ -40,7 +40,7 @@ class Pose final {
     bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq,
                                  uint8_t comb, BodyState bs,
                                  StartHint hint, uint64_t tickCount);
-    bool               stopAnim(const char* name);
+    bool               stopAnim(std::string_view name);
     bool               stopWalkAnim();
     void               interrupt();
     void               stopAllAnim();
@@ -61,7 +61,7 @@ class Pose final {
     bool               isStanding() const;
     bool               isPrehit(uint64_t now) const;
     bool               isIdle() const;
-    bool               isInAnim(const char *sq) const;
+    bool               isInAnim(std::string_view           sq) const;
     bool               isInAnim(const Animation::Sequence* sq) const;
     bool               hasAnim() const;
     uint64_t           animationTotalTime() const;
@@ -71,10 +71,10 @@ class Pose final {
 
     float              translateY() const { return trY; }
     auto               bone(size_t id) const -> const Tempest::Matrix4x4&;
-    size_t             findNode(const char* b) const;
+    size_t             findNode(std::string_view b) const;
 
     void               setRotation(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir);
-    bool               setAnimItem(const AnimationSolver &solver, Npc &npc, const char* scheme, int state);
+    bool               setAnimItem(const AnimationSolver &solver, Npc &npc, std::string_view scheme, int state);
     bool               stopItemStateAnim(const AnimationSolver &solver, uint64_t tickCount);
 
     const std::vector<Tempest::Matrix4x4>& transform() const;

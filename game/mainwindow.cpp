@@ -746,7 +746,7 @@ Camera::Mode MainWindow::solveCameraMode() const {
   return Camera::Normal;
   }
 
-void MainWindow::startGame(const std::string &slot) {
+void MainWindow::startGame(const std::string& slot) {
   // gothic.emitGlobalSound(gothic.loadSoundFx("NEWGAME"));
 
   if(Gothic::inst().checkLoading()==Gothic::LoadState::Idle){

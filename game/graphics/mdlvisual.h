@@ -39,20 +39,20 @@ class MdlVisual final {
     void                           syncAttaches();
     const Skeleton*                visualSkeleton() const;
 
-    bool                           hasOverlay(const Skeleton *sk) const;
-    void                           addOverlay(const Skeleton *sk, uint64_t time);
-    void                           delOverlay(const char*     sk);
-    void                           delOverlay(const Skeleton *sk);
+    bool                           hasOverlay(const Skeleton*  sk) const;
+    void                           addOverlay(const Skeleton*  sk, uint64_t time);
+    void                           delOverlay(std::string_view sk);
+    void                           delOverlay(const Skeleton*  sk);
     void                           clearOverlays();
 
     void                           setArmour     (MeshObjects::Mesh&& body, World& owner);
     void                           setBody       (MeshObjects::Mesh&& body, World& owner, const int32_t version);
     void                           setSword      (MeshObjects::Mesh&& sword);
     void                           setRangeWeapon(MeshObjects::Mesh&& bow);
-    void                           setAmmoItem   (MeshObjects::Mesh&& ammo, const char* bone);
-    void                           setSlotItem   (MeshObjects::Mesh&& itm, const char *bone);
-    void                           setStateItem  (MeshObjects::Mesh&& itm, const char *bone);
-    void                           clearSlotItem (const char *bone);
+    void                           setAmmoItem   (MeshObjects::Mesh&& ammo, std::string_view bone);
+    void                           setSlotItem   (MeshObjects::Mesh&& itm,  std::string_view bone);
+    void                           setStateItem  (MeshObjects::Mesh&& itm,  std::string_view bone);
+    void                           clearSlotItem (std::string_view bone);
     bool                           setFightMode  (const ZenLoad::EFightMode mode);
     void                           dropWeapon    (Npc& owner);
 
@@ -77,22 +77,24 @@ class MdlVisual final {
 
     bool                           isStanding() const;
 
-    bool                           isAnimExist(const char* name) const;
-    const Animation::Sequence*     startAnimAndGet(const char* name, uint64_t tickCount, bool forceAnim = false);
-    const Animation::Sequence*     startAnimAndGet(Npc &npc, const char* name, uint8_t comb, bool forceAnim, BodyState bs);
+    bool                           isAnimExist(std::string_view name) const;
+    const Animation::Sequence*     startAnimAndGet(std::string_view name, uint64_t tickCount, bool forceAnim = false);
+    const Animation::Sequence*     startAnimAndGet(Npc &npc, std::string_view name, uint8_t comb, bool forceAnim, BodyState bs);
     const Animation::Sequence*     startAnimAndGet(Npc &npc, AnimationSolver::Anim a, uint8_t comb,
                                                    WeaponState st, WalkBit wlk, bool noInterupt);
-    bool                           startAnim(Npc &npc, WeaponState st);
-    bool                           startAnimItem(Npc &npc, const char* scheme, int state);
-    bool                           startAnimSpell(Npc &npc, const char* scheme, bool invest);
-    bool                           startAnimDialog(Npc &npc);
-    void                           startMMAnim(Npc &npc, const char* anim, const char* node);
-    void                           startFaceAnim(Npc &npc, const char* anim, float intensity, uint64_t duration);
-    void                           stopDlgAnim(Npc& npc);
-    void                           stopAnim(Npc &npc, const char *ani);
+
+    bool                           startAnim      (Npc& npc, WeaponState st);
+    bool                           startAnimItem  (Npc& npc, std::string_view scheme, int state);
+    bool                           startAnimSpell (Npc& npc, std::string_view scheme, bool invest);
+    bool                           startAnimDialog(Npc& npc);
+    void                           startMMAnim    (Npc& npc, std::string_view anim, std::string_view node);
+    void                           startFaceAnim  (Npc& npc, std::string_view anim, float intensity, uint64_t duration);
+    void                           stopDlgAnim    (Npc& npc);
+    void                           stopAnim       (Npc& npc, std::string_view anim);
     bool                           stopItemStateAnim(Npc &npc);
     void                           stopWalkAnim(Npc &npc);
     void                           setRotation(Npc &npc, int dir);
+
     void                           interrupt();
     WeaponState                    fightMode() const { return fgtMode; }
     Tempest::Vec3                  displayPosition() const;
@@ -107,9 +109,9 @@ class MdlVisual final {
   private:
     template<class View>
     struct Attach {
-      size_t      boneId=size_t(-1);
-      View        view;
-      const char* bone=nullptr;
+      size_t           boneId=size_t(-1);
+      View             view;
+      std::string_view bone;
       };
     using MeshAttach = Attach<MeshObjects::Mesh>;
     using PfxAttach  = Attach<Effect>;
@@ -127,13 +129,13 @@ class MdlVisual final {
       };
 
     void implSetBody(MeshObjects::Mesh&& body, World& owner, const int32_t version);
-    void setSlotAttachment(MeshObjects::Mesh&& itm, const char *bone);
+    void setSlotAttachment(MeshObjects::Mesh&& itm, std::string_view bone);
 
-    void bind(MeshAttach& slot, MeshObjects::Mesh&&   itm, const char *bone);
-    void bind(PfxAttach&  slot, Effect&& itm, const char *bone);
+    void bind(MeshAttach& slot, MeshObjects::Mesh&&   itm, std::string_view bone);
+    void bind(PfxAttach&  slot, Effect&& itm, std::string_view bone);
 
     template<class View>
-    void bind(Attach<View>& slot, const char *bone);
+    void bind(Attach<View>& slot, std::string_view bone);
     template<class View>
     void rebindAttaches(Attach<View>& mesh,const Skeleton& from,const Skeleton& to);
     template<class View>

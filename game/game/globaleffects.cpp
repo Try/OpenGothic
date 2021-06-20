@@ -162,7 +162,8 @@ GlobalFx GlobalEffects::addEarthQuake(const Daedalus::ZString*, size_t) {
   return GlobalFx(quakeEff.back());
   }
 
-Tempest::Color GlobalEffects::parseColor(const char* str) {
+Tempest::Color GlobalEffects::parseColor(std::string_view s) {
+  auto  str  = s.data();
   float v[4] = {};
   for(int i=0;i<4;++i) {
     char* next=nullptr;

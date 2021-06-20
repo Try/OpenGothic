@@ -27,16 +27,16 @@ CameraDefinitions::CameraDefinitions() {
   vm->clearReferences(Daedalus::IC_CamSys);
   }
 
-const Daedalus::GEngineClasses::CCamSys& CameraDefinitions::mobsiCam(const char* tag, const char* pos) const {
+const Daedalus::GEngineClasses::CCamSys& CameraDefinitions::mobsiCam(std::string_view tag, std::string_view pos) const {
   char name[256]={};
 
-  if(pos!=nullptr) {
-    std::snprintf(name,sizeof(name),"CAMMODMOB%s%s",tag,pos);
+  if(!pos.empty()) {
+    std::snprintf(name,sizeof(name),"CAMMODMOB%.*s%.*s",int(tag.size()),tag.data(), int(pos.size()),pos.data());
     if(auto* c = find(name))
       return *c;
     }
 
-  std::snprintf(name,sizeof(name),"CAMMODMOB%s",tag);
+  std::snprintf(name,sizeof(name),"CAMMODMOB%.*s",int(tag.size()),tag.data());
   if(auto* c = find(name))
     return *c;
   if(auto* c = find("CAMMODMOBDEFAULT"))
@@ -44,14 +44,14 @@ const Daedalus::GEngineClasses::CCamSys& CameraDefinitions::mobsiCam(const char*
   return camModNormal;
   }
 
-Daedalus::GEngineClasses::CCamSys CameraDefinitions::loadCam(const char *name) {
+Daedalus::GEngineClasses::CCamSys CameraDefinitions::loadCam(std::string_view name) {
   for(auto& i:cameras)
     if(i.name==name)
       return i;
   return Daedalus::GEngineClasses::CCamSys();
   }
 
-const CameraDefinitions::Camera* CameraDefinitions::find(const char* name) const {
+const CameraDefinitions::Camera* CameraDefinitions::find(std::string_view name) const {
   for(auto& i:cameras)
     if(i.name==name)
       return &i;

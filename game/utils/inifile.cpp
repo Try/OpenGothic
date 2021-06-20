@@ -53,54 +53,54 @@ void IniFile::flush() {
     }
   }
 
-bool IniFile::has(const char* secName) {
+bool IniFile::has(std::string_view secName) {
   for(auto& i:sec)
     if(i.name==secName)
       return true;
   return false;
   }
 
-bool IniFile::has(const char *s, const char *name) {
+bool IniFile::has(std::string_view s, std::string_view name) {
   return (nullptr != find(s,name,false));
   }
 
-int IniFile::getI(const char *s, const char *name) {
+int IniFile::getI(std::string_view s, std::string_view name) {
   if(auto* val = find(s,name,false))
     return getI(*val);
   return 0;
   }
 
-void IniFile::set(const char *sec, const char *name, int ival) {
-  if(sec==nullptr || std::strlen(sec)==0 || name==nullptr || std::strlen(name)==0)
+void IniFile::set(std::string_view sec, std::string_view name, int ival) {
+  if(sec.empty() || name.empty())
     return;
   auto& v = find(sec,name);
   v.val = std::to_string(ival);
   changeFlag = true;
   }
 
-float IniFile::getF(const char* s, const char* name) {
+float IniFile::getF(std::string_view s, std::string_view name) {
   if(auto* val = find(s,name,false))
     return getF(*val);
   return 0;
   }
 
-void IniFile::set(const char* sec, const char* name, float fval) {
-  if(sec==nullptr || std::strlen(sec)==0 || name==nullptr || std::strlen(name)==0)
+void IniFile::set(std::string_view sec, std::string_view name, float fval) {
+  if(sec.empty() || name.empty())
     return;
   auto& v = find(sec,name);
   v.val = std::to_string(fval);
   changeFlag = true;
   }
 
-const std::string& IniFile::getS(const char* s, const char* name) {
+const std::string& IniFile::getS(std::string_view s, std::string_view name) {
   if(auto* val = find(s,name,false))
     return val->val;
   static std::string empty;
   return empty;
   }
 
-void IniFile::set(const char* sec, const char* name, const char* sval) {
-  if(sec==nullptr || std::strlen(sec)==0 || name==nullptr || std::strlen(name)==0)
+void IniFile::set(std::string_view sec, std::string_view name, std::string_view sval) {
+  if(sec.empty() || name.empty())
     return;
   auto& v = find(sec,name);
   v.val = sval;
@@ -182,18 +182,18 @@ void IniFile::addValue(Section &sec, std::string &&name, std::string &&val) {
   v.val  = std::move(val);
   }
 
-IniFile::Value& IniFile::find(const char *sec, const char *name) {
+IniFile::Value& IniFile::find(std::string_view sec, std::string_view name) {
   return *find(sec,name,true);
   }
 
-IniFile::Value* IniFile::find(const char *s, const char *name, bool autoCreate) {
+IniFile::Value* IniFile::find(std::string_view s, std::string_view name, bool autoCreate) {
   for(auto& i:sec){
     if(i.name==s){
       for(auto& r:i.val)
         if(r.name==name)
           return &r;
       if(autoCreate) {
-        addValue(i,name,"");
+        addValue(i,std::string(name),"");
         return &i.val.back();
         }
       return nullptr;
@@ -203,7 +203,7 @@ IniFile::Value* IniFile::find(const char *s, const char *name, bool autoCreate) 
     return nullptr;
   sec.emplace_back();
   sec.back().name = s;
-  addValue(sec.back(),name,"");
+  addValue(sec.back(),std::string(name),"");
   return &sec.back().val[0];
   }
 

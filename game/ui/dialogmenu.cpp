@@ -127,9 +127,9 @@ Size DialogMenu::processTextMultiline(Painter* p, int x, int y, int w, int h, co
       auto& fnt = Resources::font();
       y+=fnt.pixelSize();
       auto txt  = other->displayName();
-      auto sz   = fnt.textSize(w,txt);
+      auto sz   = fnt.textSize(w,txt.data());
       if(p!=nullptr)
-        fnt.drawText(*p,x+(w-sz.w)/2,y,txt);
+        fnt.drawText(*p,x+(w-sz.w)/2,y,txt.data());
       h-=int(sz.h);
       ret.w  = std::max(ret.w,sz.w);
       ret.h += sz.h;
@@ -262,7 +262,7 @@ bool DialogMenu::onStart(Npc &p, Npc &ot) {
   return true;
   }
 
-void DialogMenu::printScreen(const char *msg, int x, int y, int time, const GthFont &font) {
+void DialogMenu::printScreen(std::string_view msg, int x, int y, int time, const GthFont &font) {
   PScreen e;
   e.txt  = msg;
   e.font = &font;
@@ -273,8 +273,8 @@ void DialogMenu::printScreen(const char *msg, int x, int y, int time, const GthF
   update();
   }
 
-void DialogMenu::print(const char *msg) {
-  if(msg==nullptr || msg[0]=='\0')
+void DialogMenu::print(std::string_view msg) {
+  if(msg.empty())
     return;
 
   for(size_t i=1;i<MAX_PRINT;++i)

@@ -33,8 +33,8 @@ class DialogMenu : public Tempest::Widget {
     void aiIsClose(bool& ret);
     bool isActive() const;
 
-    void print      (const char* msg);
-    void printScreen(const char* msg, int x, int y, int time, const GthFont &font);
+    void print      (std::string_view msg);
+    void printScreen(std::string_view msg, int x, int y, int time, const GthFont &font);
 
     void keyDownEvent   (Tempest::KeyEvent&   event) override;
     void keyUpEvent     (Tempest::KeyEvent&   event) override;

@@ -87,7 +87,7 @@ void WorldSound::addSound(const ZenLoad::zCVobData &vob) {
   s.active    = pr.sndStartOn;
   s.delay     = uint64_t(pr.sndRandDelay   *1000);
   s.delayVar  = uint64_t(pr.sndRandDelayVar*1000);
-  s.eff0      = game.loadSoundFx(pr.sndName.c_str());
+  s.eff0      = Gothic::inst().loadSoundFx(pr.sndName.c_str());
 
   s.pos       = {vob.position.x,vob.position.y,vob.position.z};
   s.sndRadius = pr.sndRadius;
@@ -99,7 +99,7 @@ void WorldSound::addSound(const ZenLoad::zCVobData &vob) {
 
     s.sndStart = gtime(int(b),int(b*60)%60);
     s.sndEnd   = gtime(int(e),int(e*60)%60);
-    s.eff1     = game.loadSoundFx(prDay.sndName2.c_str());
+    s.eff1     = Gothic::inst().loadSoundFx(prDay.sndName2.c_str());
     } else {
     s.sndStart = gtime(0,0);
     s.sndEnd   = gtime(24,0);
@@ -108,7 +108,7 @@ void WorldSound::addSound(const ZenLoad::zCVobData &vob) {
   worldEff.emplace_back(std::move(s));
   }
 
-Sound WorldSound::addDlgSound(const char *s, float x, float y, float z, float range, uint64_t& timeLen) {
+Sound WorldSound::addDlgSound(std::string_view s, float x, float y, float z, float range, uint64_t& timeLen) {
   if(!isInListenerRange({x,y,z},range))
     return Sound();
   auto snd = Resources::loadSoundBuffer(s);
@@ -293,7 +293,7 @@ void WorldSound::initSlot(WorldSound::Effect& slot) {
   slot.setOcclusion(std::max(0.f,1.f-occ));
   }
 
-bool WorldSound::setMusic(const char* zone, GameMusic::Tags tags) {
+bool WorldSound::setMusic(std::string_view zone, GameMusic::Tags tags) {
   bool        isDay = (tags&GameMusic::Ngt)==0;
   const char* smode = "STD";
   if(tags&GameMusic::Thr)
@@ -302,7 +302,7 @@ bool WorldSound::setMusic(const char* zone, GameMusic::Tags tags) {
     smode = "FGT";
 
   char name[64]={};
-  std::snprintf(name,sizeof(name),"%s_%s_%s",zone,(isDay ? "DAY" : "NGT"),smode);
+  std::snprintf(name,sizeof(name),"%.*s_%s_%s",int(zone.size()),zone.data(),(isDay ? "DAY" : "NGT"),smode);
 
   if(auto* theme = Gothic::musicDef()[name]) {
     GameMusic::inst().setMusic(*theme,tags);
@@ -329,6 +329,6 @@ bool WorldSound::canSeeSource(const Tempest::Vec3& p) const {
 void WorldSound::aiOutput(const Tempest::Vec3& pos,const std::string &outputname) {
   if(isInListenerRange(pos,talkRange)){
     std::lock_guard<std::mutex> guard(sync);
-    game.emitGlobalSound(Resources::loadSoundBuffer(outputname+".wav"));
+    Gothic::inst().emitGlobalSound(Resources::loadSoundBuffer(outputname+".wav"));
     }
   }

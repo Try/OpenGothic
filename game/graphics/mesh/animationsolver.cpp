@@ -65,7 +65,7 @@ void AnimationSolver::addOverlay(const Skeleton* sk,uint64_t time) {
   invalidateCache();
   }
 
-void AnimationSolver::delOverlay(const char *sk) {
+void AnimationSolver::delOverlay(std::string_view sk) {
   if(overlay.size()==0)
     return;
   auto skelet = Resources::loadSkeleton(sk);
@@ -358,7 +358,10 @@ const Animation::Sequence *AnimationSolver::solveAnim(Interactive *inter, Animat
     }
   }
 
-const Animation::Sequence *AnimationSolver::solveFrm(const char *format, WeaponState st) const {
+const Animation::Sequence *AnimationSolver::solveFrm(std::string_view fview, WeaponState st) const {
+  char format[256] = {};
+  std::snprintf(format,sizeof(format),"%.*s",int(fview.size()),fview.data());
+
   static const char* weapon[] = {
     "",
     "FIST",
@@ -379,13 +382,16 @@ const Animation::Sequence *AnimationSolver::solveFrm(const char *format, WeaponS
   return solveFrm(name);
   }
 
-const Animation::Sequence* AnimationSolver::solveMag(const char *format, const std::string &spell) const {
+const Animation::Sequence* AnimationSolver::solveMag(std::string_view fview, const std::string &spell) const {
+  char format[256] = {};
+  std::snprintf(format,sizeof(format),"%.*s",int(fview.size()),fview.data());
+
   char name[128]={};
   std::snprintf(name,sizeof(name),format,spell.c_str());
   return solveFrm(name);
   }
 
-const Animation::Sequence *AnimationSolver::solveDead(const char *format1, const char *format2) const {
+const Animation::Sequence *AnimationSolver::solveDead(std::string_view format1, std::string_view format2) const {
   if(auto a=solveFrm(format1))
     return a;
   return solveFrm(format2);
@@ -411,7 +417,7 @@ const Animation::Sequence* AnimationSolver::solveNext(const Animation::Sequence&
   return baseSk ? baseSk->sequence(name) : nullptr;
   }
 
-const Animation::Sequence *AnimationSolver::solveFrm(const char* name) const {
+const Animation::Sequence *AnimationSolver::solveFrm(std::string_view name) const {
   if(name==nullptr || name[0]=='\0')
     return nullptr;
 

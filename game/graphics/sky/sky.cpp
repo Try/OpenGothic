@@ -114,7 +114,7 @@ std::array<float,3> Sky::mkColor(uint8_t r, uint8_t g, uint8_t b) {
   return {{r/255.f,g/255.f,b/255.f}};
   }
 
-const Texture2d* Sky::skyTexture(const char *name,bool day,size_t id) {
+const Texture2d* Sky::skyTexture(std::string_view name, bool day, size_t id) {
   if(auto t = implSkyTexture(name,day,id))
     return t;
   if(auto t = implSkyTexture(nullptr,day,id))
@@ -122,9 +122,9 @@ const Texture2d* Sky::skyTexture(const char *name,bool day,size_t id) {
   return &Resources::fallbackBlack();
   }
 
-const Texture2d* Sky::implSkyTexture(const char *name,bool day,size_t id) {
+const Texture2d* Sky::implSkyTexture(std::string_view name, bool day, size_t id) {
   char tex[256]={};
-  if(name && name[0]!='\0'){
+  if(!name.empty()){
     const char* format=day ? "SKYDAY_%s_LAYER%d_A0.TGA" : "SKYNIGHT_%s_LAYER%d_A0.TGA";
     std::snprintf(tex,sizeof(tex),format,name,int(id));
     } else {

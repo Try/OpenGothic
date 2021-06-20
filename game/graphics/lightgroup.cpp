@@ -79,7 +79,7 @@ LightGroup::Light::Light(LightGroup& owner, const ZenLoad::zCVobData& vob)
   data = std::move(l);
   }
 
-LightGroup::Light::Light(World& owner, const char* preset)
+LightGroup::Light::Light(World& owner, std::string_view preset)
   :Light(owner,owner.view()->sGlobal.lights.findPreset(preset)){
   setTimeOffset(owner.tickCount());
   }
@@ -308,13 +308,13 @@ LightSource& LightGroup::getL(size_t id) {
   return bucketDyn.light[id];
   }
 
-const ZenLoad::zCVobData& LightGroup::findPreset(const char* preset) const {
+const ZenLoad::zCVobData& LightGroup::findPreset(std::string_view preset) const {
   for(auto& i:presets) {
     if(i.zCVobLight.lightPresetInUse!=preset)
       continue;
     return i;
     }
-  Log::e("unknown light preset: \"",preset,"\"");
+  Log::e("unknown light preset: \"",std::string(preset),"\"");
   static ZenLoad::zCVobData zero;
   return zero;
   }

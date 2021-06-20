@@ -25,7 +25,7 @@ class WorldSound final {
     void    addZone       (const ZenLoad::zCVobData &vob);
     void    addSound      (const ZenLoad::zCVobData &vob);
 
-    Sound   addDlgSound(const char *s, float x, float y, float z, float range, uint64_t &timeLen);
+    Sound   addDlgSound(std::string_view s, float x, float y, float z, float range, uint64_t &timeLen);
 
     void    aiOutput(const Tempest::Vec3& pos, const std::string& outputname);
 
@@ -58,7 +58,7 @@ class WorldSound final {
     void    tickSlot(std::vector<PEffect>& eff);
     void    tickSlot(Effect& slot);
     void    initSlot(Effect& slot);
-    bool    setMusic(const char* zone, GameMusic::Tags tags);
+    bool    setMusic(std::string_view zone, GameMusic::Tags tags);
 
     Sound   implAddSound(const SoundFx& s, float x, float y, float z, float rangeRef, float rangeMax);
     Sound   implAddSound(Tempest::SoundEffect&& s, float x, float y, float z, float rangeRef, float rangeMax);

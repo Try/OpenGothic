@@ -10,7 +10,7 @@ class Sound final {
       T_Raw,
       };
     Sound();
-    Sound(World& owner, Type t, const char *s, const Tempest::Vec3& pos, float range, bool freeSlot);
+    Sound(World& owner, Type t, std::string_view s, const Tempest::Vec3& pos, float range, bool freeSlot);
 
     Sound(Sound&& other);
     Sound& operator = (Sound&& other);

@@ -3,11 +3,15 @@
 using namespace Tempest;
 
 Vec2 Parser::loadVec2(const Daedalus::ZString& src) {
+  return loadVec2(std::string_view(src.c_str()));
+  }
+
+Vec2 Parser::loadVec2(std::string_view src) {
   if(src=="=")
     return Vec2();
 
   float       v[2] = {};
-  const char* str  = src.c_str();
+  const char* str  = src.data();
   for(int i=0;i<2;++i) {
     char* next=nullptr;
     v[i] = std::strtof(str,&next);

@@ -84,7 +84,7 @@ const WayPoint *WayMatrix::findWayPoint(const Vec3& at, const Vec3& to, const st
   return ret;
   }
 
-const WayPoint *WayMatrix::findFreePoint(const Vec3& at, const char *name, const std::function<bool(const WayPoint&)>& filter) const {
+const WayPoint *WayMatrix::findFreePoint(const Vec3& at, std::string_view name, const std::function<bool(const WayPoint&)>& filter) const {
   auto&  index = findFpIndex(name);
   return findFreePoint(at.x,at.y,at.z,index,filter);
   }
@@ -107,11 +107,11 @@ const WayPoint *WayMatrix::findNextPoint(const Vec3& at) const {
   return ret;
   }
 
-void WayMatrix::addFreePoint(const Vec3& pos, const Vec3& dir, const char *name) {
+void WayMatrix::addFreePoint(const Vec3& pos, const Vec3& dir, std::string_view name) {
   freePoints.emplace_back(pos,dir,name);
   }
 
-void WayMatrix::addStartPoint(const Vec3& pos, const Vec3& dir, const char *name) {
+void WayMatrix::addStartPoint(const Vec3& pos, const Vec3& dir, std::string_view name) {
   startPoints.emplace_back(pos,dir,name);
   }
 
@@ -130,16 +130,16 @@ const WayPoint &WayMatrix::startPoint() const {
   return p;
   }
 
-const WayPoint* WayMatrix::findPoint(const char *name, bool inexact) const {
+const WayPoint* WayMatrix::findPoint(std::string_view name, bool inexact) const {
   if(name==nullptr || name[0]=='\0')
     return nullptr;
   for(auto& i:startPoints)
-    if(i.name==name)
+    if(name==i.name.c_str())
       return &i;
-  auto it = std::lower_bound(indexPoints.begin(),indexPoints.end(),name,[](const WayPoint* a,const char* b){
-      return a->name<b;
+  auto it = std::lower_bound(indexPoints.begin(),indexPoints.end(),name,[](const WayPoint* a, std::string_view b){
+      return a->name.c_str()<b;
     });
-  if(it!=indexPoints.end() && (*it)->name==name)
+  if(it!=indexPoints.end() && name==(*it)->name.c_str())
     return *it;
   if(!inexact)
     return nullptr;
@@ -178,8 +178,8 @@ void WayMatrix::adjustWaypoints(std::vector<WayPoint> &wp) {
     }
   }
 
-const WayMatrix::FpIndex &WayMatrix::findFpIndex(const char *name) const {
-  auto it = std::lower_bound(fpIndex.begin(),fpIndex.end(),name,[](FpIndex& l,const char* r){
+const WayMatrix::FpIndex &WayMatrix::findFpIndex(std::string_view name) const {
+  auto it = std::lower_bound(fpIndex.begin(),fpIndex.end(),name,[](FpIndex& l, std::string_view r){
     return l.key<r;
     });
   if(it!=fpIndex.end() && it->key==name){

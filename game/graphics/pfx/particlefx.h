@@ -14,7 +14,7 @@ class PfxEmitterMesh;
 class ParticleFx final {
   public:
     ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob);
-    ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX& src, const char* name);
+    ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX& src, std::string_view name);
     ParticleFx(const ParticleFx& proto, const VisualFx::Key& key);
 
     enum class EmitterType:uint8_t {
@@ -135,7 +135,7 @@ class ParticleFx final {
 
   private:
     uint64_t             calcPrefferedTimeSingle() const;
-    static auto          loadTexture(const char* src) -> const Tempest::Texture2d*;
+    static auto          loadTexture(std::string_view src) -> const Tempest::Texture2d*;
     static KeyList       loadArr(const Daedalus::ZString& src);
     static EmitterType   loadEmitType(const Daedalus::ZString& src);
     static Frame         loadFrameType(const Daedalus::ZString& src);

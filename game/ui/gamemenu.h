@@ -101,10 +101,10 @@ class GameMenu : public Tempest::Widget {
 
     bool                                  isInGameAndAlive() const;
 
-    void                                  set(const char* item,const Tempest::Texture2d* value);
-    void                                  set(const char* item,const uint32_t value);
-    void                                  set(const char* item,const int32_t  value);
-    void                                  set(const char* item,const int32_t  value,const char* post);
-    void                                  set(const char* item,const int32_t  value,const int32_t max);
-    void                                  set(const char* item,const char*    value);
+    void                                  set(std::string_view item, const Tempest::Texture2d* value);
+    void                                  set(std::string_view item, const uint32_t value);
+    void                                  set(std::string_view item, const int32_t  value);
+    void                                  set(std::string_view item, const int32_t  value,const char* post);
+    void                                  set(std::string_view item, const int32_t  value, const int32_t max);
+    void                                  set(std::string_view item, const char* value);
   };

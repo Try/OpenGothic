@@ -203,7 +203,7 @@ class DynamicWorld final {
     RayLandResult  ray          (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
     float          soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
 
-    NpcItem        ghostObj  (const char* visual);
+    NpcItem        ghostObj  (std::string_view visual);
     Item           staticObj (const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
     Item           movableObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
     Item           dynamicObj(const Tempest::Matrix4x4& pos, const Bounds& bbox, ZenLoad::MaterialGroup mat);

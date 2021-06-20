@@ -15,7 +15,7 @@ MenuRoot::MenuRoot(KeyCodec& keyCodec)
 MenuRoot::~MenuRoot() {
   }
 
-void MenuRoot::setMenu(const char *menuEv, KeyCodec::Action key) {
+void MenuRoot::setMenu(const char* menuEv, KeyCodec::Action key) {
   if(!vm->getDATFile().hasSymbolName(menuEv)){
     Log::e("invalid menu-id: ",menuEv);
     return;

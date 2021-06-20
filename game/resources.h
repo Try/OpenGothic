@@ -12,6 +12,7 @@
 #include <zenload/zTypes.h>
 
 #include <tuple>
+#include <string_view>
 
 #include "graphics/material.h"
 #include "sound/soundfx.h"
@@ -86,27 +87,24 @@ class Resources final {
     static const GthFont&            dialogFont();
     static const GthFont&            font();
     static const GthFont&            font(FontType type);
-    static const GthFont&            font(const char *fname,FontType type = FontType::Normal);
+    static const GthFont&            font(std::string_view fname,FontType type = FontType::Normal);
 
     static const Tempest::Texture2d& fallbackTexture();
     static const Tempest::Texture2d& fallbackBlack();
-    static const Tempest::Texture2d* loadTexture(const char* name);
-    static const Tempest::Texture2d* loadTexture(const std::string& name);
-    static const Tempest::Texture2d* loadTexture(const std::string& name,int32_t v,int32_t c);
-    static auto                      loadTextureAnim(const std::string& name) -> std::vector<const Tempest::Texture2d*>;
-    static       Tempest::Texture2d  loadTexture(const Tempest::Pixmap& pm);
+    static const Tempest::Texture2d* loadTexture(std::string_view name);
+    static const Tempest::Texture2d* loadTexture(std::string_view name, int32_t v, int32_t c);
+    static       Tempest::Texture2d  loadTexturePm(const Tempest::Pixmap& pm);
+    static auto                      loadTextureAnim(std::string_view name) -> std::vector<const Tempest::Texture2d*>;
     static       Material            loadMaterial(const ZenLoad::zCMaterialData& src, bool enableAlphaTest);
 
-    static const AttachBinder*       bindMesh      (const ProtoMesh& anim,const Skeleton& s);
-    static const ProtoMesh*          loadMesh      (const std::string& name);
-    static const PfxEmitterMesh*     loadEmiterMesh(const char*        name);
-    static const Skeleton*           loadSkeleton  (const char*        name);
-    static const Animation*          loadAnimation (const std::string& name);
+    static const AttachBinder*       bindMesh       (const ProtoMesh& anim, const Skeleton& s);
+    static const ProtoMesh*          loadMesh       (std::string_view name);
+    static const PfxEmitterMesh*     loadEmiterMesh (std::string_view name);
+    static const Skeleton*           loadSkeleton   (std::string_view name);
+    static const Animation*          loadAnimation  (std::string_view name);
+    static Tempest::Sound            loadSoundBuffer(std::string_view name);
 
-    static Tempest::Sound            loadSoundBuffer(const std::string& name);
-    static Tempest::Sound            loadSoundBuffer(const char*        name);
-
-    static Dx8::PatternList          loadDxMusic(const char *name);
+    static Dx8::PatternList          loadDxMusic(std::string_view name);
     static const ProtoMesh*          decalMesh(const ZenLoad::zCVobData& vob);
 
     static ZenLoad::oCWorldData      loadVobBundle(const std::string& name);
@@ -119,11 +117,10 @@ class Resources final {
 
     static Tempest::StorageBuffer    ssbo(const void* data, size_t size) { return inst->dev.ssbo(data,size); }
 
-    static std::vector<uint8_t>      getFileData(const char*        name);
-    static bool                      getFileData(const char*        name,std::vector<uint8_t>& dat);
-    static std::vector<uint8_t>      getFileData(const std::string& name);
+    static std::vector<uint8_t>      getFileData(std::string_view name);
+    static bool                      getFileData(std::string_view name, std::vector<uint8_t>& dat);
+    static bool                      hasFile    (std::string_view fname);
 
-    static bool                      hasFile(const std::string& fname);
     static VDFS::FileIndex&          vdfsIndex();
 
     static const Tempest::VertexBuffer<VertexFsq>& fsqVbo();
@@ -156,17 +153,17 @@ class Resources final {
     int64_t               vdfTimestamp(const std::u16string& name);
     void                  detectVdf(std::vector<Archive>& ret, const std::u16string& root);
 
-    Tempest::Texture2d*   implLoadTexture(TextureCache& cache, const char* cname);
+    Tempest::Texture2d*   implLoadTexture(TextureCache& cache, std::string_view cname);
     Tempest::Texture2d*   implLoadTexture(TextureCache& cache, std::string &&name, const std::vector<uint8_t> &data);
-    ProtoMesh*            implLoadMesh(const std::string& name);
+    ProtoMesh*            implLoadMesh(std::string_view name);
     std::unique_ptr<ProtoMesh> implLoadMeshMain(std::string name);
     std::unique_ptr<Animation> implLoadAnimation(std::string name);
     ProtoMesh*            implDecalMesh(const ZenLoad::zCVobData& vob);
-    Tempest::Sound        implLoadSoundBuffer(const char* name);
-    Dx8::PatternList      implLoadDxMusic(const char *name);
-    GthFont&              implLoadFont(const char* fname, FontType type);
-    PfxEmitterMesh*       implLoadEmiterMesh(const char* name);
-    ZenLoad::oCWorldData& implLoadVobBundle(const std::string& name);
+    Tempest::Sound        implLoadSoundBuffer(std::string_view name);
+    Dx8::PatternList      implLoadDxMusic(std::string_view name);
+    GthFont&              implLoadFont(std::string_view fname, FontType type);
+    PfxEmitterMesh*       implLoadEmiterMesh(std::string_view name);
+    ZenLoad::oCWorldData& implLoadVobBundle(std::string_view name);
 
     Tempest::VertexBuffer<Vertex> sphere(int passCount, float R);
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Tempest/Point>
+#include <string_view>
 
 class Interactive;
 class Npc;
@@ -14,8 +15,8 @@ class Focus final {
     Focus(Item& i);
 
     operator bool() const;
-    Tempest::Vec3       displayPosition() const;
-    const char*         displayName() const;
+    Tempest::Vec3    displayPosition() const;
+    std::string_view displayName() const;
 
     Interactive* interactive=nullptr;
     Npc*         npc        =nullptr;

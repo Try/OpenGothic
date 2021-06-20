@@ -94,7 +94,7 @@ void MdlVisual::addOverlay(const Skeleton *sk, uint64_t time) {
   }
 
 // Mdl_RemoveOverlayMDS
-void MdlVisual::delOverlay(const char *sk) {
+void MdlVisual::delOverlay(std::string_view sk) {
   solver.delOverlay(sk);
   }
 
@@ -138,7 +138,7 @@ void MdlVisual::implSetBody(MeshObjects::Mesh&& body, World& owner, const int32_
   hnpcVisual.view.setMesh(&view);
   }
 
-void MdlVisual::setSlotAttachment(MeshObjects::Mesh&& itm, const char* bone) {
+void MdlVisual::setSlotAttachment(MeshObjects::Mesh&& itm, std::string_view bone) {
   if(bone==nullptr || skeleton==nullptr)
     return;
 
@@ -168,7 +168,7 @@ void MdlVisual::setRangeWeapon(MeshObjects::Mesh &&b) {
   bind(bow,std::move(b),"ZS_BOW");
   }
 
-void MdlVisual::setAmmoItem(MeshObjects::Mesh&& a, const char *bone) {
+void MdlVisual::setAmmoItem(MeshObjects::Mesh&& a, std::string_view bone) {
   bind(ammunition,std::move(a),bone);
   }
 
@@ -187,7 +187,7 @@ void MdlVisual::setMagicWeaponKey(World& owner, SpellFxKey key, int32_t keyLvl) 
   pfx.view.setKey(owner,key,keyLvl);
   }
 
-void MdlVisual::setSlotItem(MeshObjects::Mesh &&itm, const char *bone) {
+void MdlVisual::setSlotItem(MeshObjects::Mesh &&itm, std::string_view bone) {
   if(bone==nullptr || skeleton==nullptr)
     return;
 
@@ -214,12 +214,12 @@ void MdlVisual::setSlotItem(MeshObjects::Mesh &&itm, const char *bone) {
   syncAttaches();
   }
 
-void MdlVisual::setStateItem(MeshObjects::Mesh&& a, const char* bone) {
+void MdlVisual::setStateItem(MeshObjects::Mesh&& a, std::string_view bone) {
   bind(stateItm,std::move(a),bone);
   syncAttaches();
   }
 
-void MdlVisual::clearSlotItem(const char *bone) {
+void MdlVisual::clearSlotItem(std::string_view bone) {
   size_t id = skeleton==nullptr ? size_t(-1) : skeleton->findNode(bone);
 
   for(size_t i=0;i<item.size();++i) {
@@ -423,7 +423,7 @@ void MdlVisual::setTorch(bool t, World& owner) {
     torch.view.reset();
     return;
     }
-  size_t torchId = owner.getSymbolIndex("ItLsTorchburning");
+  size_t torchId = owner.script().getSymbolIndex("ItLsTorchburning");
   if(torchId==size_t(-1))
     return;
 
@@ -492,8 +492,8 @@ Vec3 MdlVisual::mapWeaponBone() const {
   return {0,0,0};
   }
 
-void MdlVisual::stopAnim(Npc& npc,const char* ani) {
-  skInst->stopAnim(ani);
+void MdlVisual::stopAnim(Npc& npc, std::string_view anim) {
+  skInst->stopAnim(anim);
   if(!skInst->hasAnim())
     startAnimAndGet(npc,AnimationSolver::Idle,0,fgtMode,npc.walkMode(),false);
   }
@@ -516,12 +516,12 @@ bool MdlVisual::isStanding() const {
   return skInst->isStanding();
   }
 
-bool MdlVisual::isAnimExist(const char* name) const {
+bool MdlVisual::isAnimExist(std::string_view name) const {
   const Animation::Sequence *sq = solver.solveFrm(name);
   return sq!=nullptr;
   }
 
-const Animation::Sequence* MdlVisual::startAnimAndGet(const char* name, uint64_t tickCount, bool forceAnim) {
+const Animation::Sequence* MdlVisual::startAnimAndGet(std::string_view name, uint64_t tickCount, bool forceAnim) {
   auto sq = solver.solveFrm(name);
   if(sq!=nullptr) {
     const Pose::StartHint hint = Pose::StartHint(forceAnim  ? Pose::Force : Pose::NoHint);
@@ -532,7 +532,7 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(const char* name, uint64_t
   return nullptr;
   }
 
-const Animation::Sequence* MdlVisual::startAnimAndGet(Npc &npc, const char *name, uint8_t comb,
+const Animation::Sequence* MdlVisual::startAnimAndGet(Npc &npc, std::string_view name, uint8_t comb,
                                                       bool forceAnim, BodyState bs) {
   const Animation::Sequence *sq = solver.solveFrm(name);
   const Pose::StartHint hint = Pose::StartHint(forceAnim  ? Pose::Force : Pose::NoHint);
@@ -735,14 +735,14 @@ Bounds MdlVisual::bounds() const {
   return b;
   }
 
-void MdlVisual::bind(MeshAttach& slot, MeshObjects::Mesh&& itm, const char* bone) {
+void MdlVisual::bind(MeshAttach& slot, MeshObjects::Mesh&& itm, std::string_view bone) {
   slot.boneId = skeleton==nullptr ? size_t(-1) : skeleton->findNode(bone);
   slot.view   = std::move(itm);
   slot.bone   = bone;
   // sync?
   }
 
-void MdlVisual::bind(PfxAttach& slot, Effect&& itm, const char* bone) {
+void MdlVisual::bind(PfxAttach& slot, Effect&& itm, std::string_view bone) {
   slot.boneId = skeleton==nullptr ? size_t(-1) : skeleton->findNode(bone);
   slot.view   = std::move(itm);
   slot.bone   = bone;
@@ -750,7 +750,7 @@ void MdlVisual::bind(PfxAttach& slot, Effect&& itm, const char* bone) {
   }
 
 template<class View>
-void MdlVisual::bind(Attach<View>& slot, const char* bone) {
+void MdlVisual::bind(Attach<View>& slot, std::string_view bone) {
   slot.boneId = skeleton==nullptr ? size_t(-1) : skeleton->findNode(bone);
   slot.bone   = bone;
   // sync?
@@ -819,16 +819,16 @@ void MdlVisual::syncAttaches(Attach<View>& att) {
   att.view.setObjMatrix(p);
   }
 
-bool MdlVisual::startAnimItem(Npc &npc, const char *scheme, int state) {
+bool MdlVisual::startAnimItem(Npc &npc, std::string_view scheme, int state) {
   return skInst->setAnimItem(solver,npc,scheme,state);
   }
 
-bool MdlVisual::startAnimSpell(Npc &npc, const char *scheme, bool invest) {
+bool MdlVisual::startAnimSpell(Npc &npc, std::string_view scheme, bool invest) {
   char name[128]={};
 
   if(invest)
-    std::snprintf(name,sizeof(name),"S_%sCAST",scheme); else
-    std::snprintf(name,sizeof(name),"S_%sSHOOT",scheme);
+    std::snprintf(name,sizeof(name),"S_%.*sCAST", int(scheme.size()), scheme.data()); else
+    std::snprintf(name,sizeof(name),"S_%.*sSHOOT",int(scheme.size()), scheme.data());
 
   const Animation::Sequence *sq = solver.solveFrm(name);
   if(skInst->startAnim(solver,sq,0,BS_CASTING,Pose::NoHint,npc.world().tickCount())) {
@@ -856,18 +856,16 @@ bool MdlVisual::startAnimDialog(Npc &npc) {
   return false;
   }
 
-void MdlVisual::startMMAnim(Npc&, const char* anim, const char* bone) {
+void MdlVisual::startMMAnim(Npc&, std::string_view anim, std::string_view bone) {
   MdlVisual::MeshAttach* mesh[] = {&head,&sword,&bow,&ammunition,&stateItm};
   for(auto i:mesh) {
-    if(i->bone==nullptr)
-      continue;
-    if(bone!=nullptr && bone[0]!='\0' && std::strcmp(i->bone,bone)!=0)
+    if(i->bone!=bone)
       continue;
     i->view.startMMAnim(anim,1,uint64_t(-1));
     }
   }
 
-void MdlVisual::startFaceAnim(Npc& npc, const char* anim, float intensity, uint64_t duration) {
+void MdlVisual::startFaceAnim(Npc& npc, std::string_view anim, float intensity, uint64_t duration) {
   if(duration!=uint64_t(-1) && duration!=0)
     duration += npc.world().tickCount();
   head.view.startMMAnim(anim,intensity,duration);

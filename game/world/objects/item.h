@@ -41,8 +41,8 @@ class Item final : public Vob {
     uint8_t slot() const       { return itSlot;  }
     void    setSlot(uint8_t s) { itSlot = s;     }
 
-    const char*         displayName() const;
-    const char*         description() const;
+    std::string_view    displayName() const;
+    std::string_view    description() const;
     Tempest::Vec3       position() const;
     bool                isGold() const;
     int32_t             mainFlag() const;
@@ -63,7 +63,7 @@ class Item final : public Vob {
     void                setCount(size_t cnt);
     size_t              count() const;
 
-    const char*         uiText (size_t id) const;
+    std::string_view    uiText(size_t id) const;
     int32_t             uiValue(size_t id) const;
     int32_t             cost() const;
     int32_t             sellCost() const;
