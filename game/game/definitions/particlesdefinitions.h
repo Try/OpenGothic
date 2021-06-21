@@ -19,7 +19,7 @@ class ParticlesDefinitions final {
     const ParticleFx* get(const ParticleFx* base, const VisualFx::Key* key);
 
   private:
-    std::mutex                                                  sync;
+    std::recursive_mutex                                        sync;
     std::unique_ptr<Daedalus::DaedalusVM>                       vm;
 
     std::unordered_map<std::string,          std::unique_ptr<ParticleFx>> pfx;

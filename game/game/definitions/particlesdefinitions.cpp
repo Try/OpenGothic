@@ -23,14 +23,14 @@ const ParticleFx* ParticlesDefinitions::get(std::string_view name) {
   while(FileExt::hasExt(name,"PFX"))
     name = name.substr(0,name.size()-4);
 
-  std::lock_guard<std::mutex> guard(sync);
+  std::lock_guard<std::recursive_mutex> guard(sync);
   return implGet(name);
   }
 
 const ParticleFx* ParticlesDefinitions::get(const ParticleFx* base, const VisualFx::Key* key) {
   if(base==nullptr || key==nullptr)
     return base;
-  std::lock_guard<std::mutex> guard(sync);
+  std::lock_guard<std::recursive_mutex> guard(sync);
   return implGet(*base,*key);
   }
 
@@ -45,10 +45,7 @@ const ParticleFx* ParticlesDefinitions::implGet(std::string_view name) {
   std::unique_ptr<ParticleFx> p{new ParticleFx(decl,name)};
   auto elt = pfx.insert(std::make_pair(std::move(cname),std::move(p)));
 
-  auto* ret = elt.first->second.get();
-  if(!decl.ppsCreateEm_S.empty())
-    ret->ppsCreateEm = implGet(decl.ppsCreateEm_S.c_str());
-  return ret;
+  return elt.first->second.get();
   }
 
 const ParticleFx* ParticlesDefinitions::implGet(const ParticleFx& base, const VisualFx::Key& key) {
@@ -59,10 +56,7 @@ const ParticleFx* ParticlesDefinitions::implGet(const ParticleFx& base, const Vi
   std::unique_ptr<ParticleFx> p{new ParticleFx(base,key)};
   auto elt = pfxKey.insert(std::make_pair(&key,std::move(p)));
 
-  auto* ret = elt.first->second.get();
-  // if(!decl.ppsCreateEm_S.empty())
-  //   ret->ppsCreateEm = implGet(decl.ppsCreateEm_S.c_str());
-  return ret;
+  return elt.first->second.get();
   }
 
 bool ParticlesDefinitions::implGet(std::string_view name,

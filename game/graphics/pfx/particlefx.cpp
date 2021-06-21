@@ -1,6 +1,7 @@
 #include "particlefx.h"
 
 #include "utils/parser.h"
+#include "gothic.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -39,7 +40,7 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, std::s
   ppsIsLooping        = src.ppsIsLooping!=0;
   ppsIsSmooth         = src.ppsIsSmooth!=0;
   ppsFPS              = src.ppsFPS;
-  // ppsCreateEm = ; // assign externaly
+  ppsCreateEm         = Gothic::inst().loadParticleFx(src.ppsCreateEm_S.c_str());
   ppsCreateEmDelay    = uint64_t(src.ppsCreateEmDelay);
 
   shpType             = loadEmitType(src.shpType_S);

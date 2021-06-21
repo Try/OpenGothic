@@ -22,7 +22,7 @@ Effect::Effect(const VisualFx& vfx, World& owner, const Npc& src, SpellFxKey key
 
 Effect::Effect(const VisualFx& v, World& owner, const Vec3& inPos, SpellFxKey k) {
   root     = &v;
-  nodeSlot = root->emTrjOriginNode.c_str();
+  nodeSlot = root->emTrjOriginNode;
 
   if(root->visName_S=="time.slw"  ||
      root->visName_S=="morph.fov" ||
@@ -179,7 +179,7 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
 
   if(vfx!=nullptr && !(next!=nullptr && next->is(*vfx))) {
     Vec3 pos3 = {pos.at(3,0),pos.at(3,1),pos.at(3,2)};
-    auto ex   = Effect(*vfx,owner,pos3,SpellFxKey::Count);
+    auto ex   = Effect(*vfx,owner,pos3,k);
     ex.setActive(true);
     if(pose!=nullptr && skeleton!=nullptr)
       ex.bindAttaches(*pose,*skeleton);
@@ -237,7 +237,7 @@ void Effect::onCollide(World& owner, const Vec3& pos, Npc* npc) {
     vfx = root->emFXCollDyn;
 
   if(vfx!=nullptr) {
-    Effect eff(*vfx,owner,pos,SpellFxKey::Count);
+    Effect eff(*vfx,owner,pos,SpellFxKey::Collide);
     eff.setActive(true);
     owner.runEffect(std::move(eff));
     }

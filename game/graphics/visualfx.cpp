@@ -149,10 +149,8 @@ PfxEmitter VisualFx::visual(World& owner) const {
   }
 
 const VisualFx::Key& VisualFx::key(SpellFxKey type, int32_t keyLvl) const {
-  if(type==SpellFxKey::Count) {
-    static const Key key;
-    return key;
-    }
+  if(type==SpellFxKey::Count)
+    return keys[0];
   if(type==SpellFxKey::Invest && keyLvl>0) {
     keyLvl--;
     if(size_t(keyLvl)<investKeys.size())

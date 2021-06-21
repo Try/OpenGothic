@@ -517,7 +517,7 @@ void Inventory::updateRuneView(Npc &owner) {
     return;
 
   const VisualFx* vfx = owner.world().script().spellVfx(sp->spellId());
-  owner.setMagicWeapon(Effect(*vfx,owner.world(),owner,SpellFxKey::Open));
+  owner.setMagicWeapon(Effect(*vfx,owner.world(),owner,SpellFxKey::Init));
   }
 
 void Inventory::equipBestMeleWeapon(Npc &owner) {

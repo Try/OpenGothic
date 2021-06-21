@@ -59,7 +59,7 @@ class Effect final {
     GlobalFx              gfx;
     LightGroup::Light     light;
 
-    const char*           nodeSlot = nullptr;
+    std::string_view      nodeSlot;
     size_t                boneId   = size_t(-1);
 
     const Skeleton*       skeleton    = nullptr;
