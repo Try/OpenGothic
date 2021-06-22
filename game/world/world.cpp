@@ -482,6 +482,14 @@ void World::disableTicks(AbstractTrigger& t) {
   wobj.disableTicks(t);
   }
 
+void World::enableCollizionZone(CollisionZone& z) {
+  wobj.enableCollizionZone(z);
+  }
+
+void World::disableCollizionZone(CollisionZone& z) {
+  wobj.disableCollizionZone(z);
+  }
+
 void World::triggerChangeWorld(const std::string& world, const std::string& wayPoint) {
   game.changeWorld(world,wayPoint);
   }

@@ -15,7 +15,7 @@ VisualFxDefinitions::~VisualFxDefinitions() {
   vm->clearReferences(Daedalus::IC_Pfx);
   }
 
-const VisualFx *VisualFxDefinitions::get(std::string_view name) {
+const VisualFx* VisualFxDefinitions::get(std::string_view name) {
   std::string cname = std::string(name);
   auto it = vfx.find(cname);
   if(it!=vfx.end())

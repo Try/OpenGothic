@@ -10,7 +10,7 @@
 
 using namespace Tempest;
 
-Effect::Effect(PfxEmitter&& pfx, const char* node)
+Effect::Effect(PfxEmitter&& pfx, std::string_view node)
   :pfx(std::move(pfx)), nodeSlot(node) {
   pos.identity();
   }
@@ -80,8 +80,13 @@ void Effect::setupPfx(World& owner) {
   pfx.setActive(true);
   pfx.setLooped(looped);
 
-  if(root->emFXCollDyn!=nullptr && root->emActionCollDyn!=VisualFx::Collision::NoResp)
-    pfx.setupCollision();
+  if(root->emFXCollDyn!=nullptr && root->emActionCollDyn!=VisualFx::Collision::NoResp) {
+    auto vfx = root->emFXCollDyn;
+    pfx.setPhysicsEnable(owner,[vfx](Npc& npc){
+      // TODO
+      // npc.startEffect(npc,*vfx);
+      });
+    }
   }
 
 void Effect::setupSfx(World& owner) {

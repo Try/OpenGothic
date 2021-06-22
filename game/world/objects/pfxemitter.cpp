@@ -1,5 +1,7 @@
 #include "pfxemitter.h"
 
+#include <Tempest/Log>
+
 #include "graphics/pfx/pfxobjects.h"
 #include "graphics/pfx/pfxbucket.h"
 #include "graphics/pfx/particlefx.h"
@@ -14,11 +16,7 @@ PfxEmitter::PfxEmitter(PfxBucket& b, size_t id)
   :bucket(&b), id(id) {
   }
 
-PfxEmitter::PfxEmitter(World& world, const std::string& name)
-  :PfxEmitter(world,name.c_str()) {
-  }
-
-PfxEmitter::PfxEmitter(World& world, const char* name)
+PfxEmitter::PfxEmitter(World& world, std::string_view name)
   :PfxEmitter(world,Gothic::inst().loadParticleFx(name)) {
   }
 
@@ -64,13 +62,14 @@ PfxEmitter::~PfxEmitter() {
   }
 
 PfxEmitter::PfxEmitter(PfxEmitter && b)
-  :bucket(b.bucket), id(b.id), trail(std::move(b.trail)) {
+  :bucket(b.bucket), id(b.id), zone(std::move(b.zone)), trail(std::move(b.trail)) {
   b.bucket = nullptr;
   }
 
 PfxEmitter& PfxEmitter::operator=(PfxEmitter &&b) {
   std::swap(bucket,b.bucket);
   std::swap(id,    b.id);
+  std::swap(zone,  b.zone);
   std::swap(trail, b.trail);
   return *this;
   }
@@ -86,6 +85,8 @@ void PfxEmitter::setPosition(const Vec3& pos) {
   trail.setPosition(pos);
   auto& v = bucket->get(id);
   v.pos = pos;
+  zone.setPosition(pos);
+
   if(v.next!=nullptr)
     v.next->setPosition(pos);
   if(v.block==size_t(-1))
@@ -160,8 +161,15 @@ void PfxEmitter::setMesh(const MeshObjects::Mesh* mesh, const Pose* pose) {
     v.next->setMesh(mesh,pose);
   }
 
-void PfxEmitter::setupCollision() {
+void PfxEmitter::setPhysicsEnable(World& p, std::function<void (Npc&)> cb) {
+  std::lock_guard<std::recursive_mutex> guard(bucket->parent.sync);
+  auto& v = bucket->get(id);
+  zone = CollisionZone(p, v.pos, 2500);
+  zone.setCallback(cb);
+  }
 
+void PfxEmitter::setPhysicsDisable() {
+  zone = CollisionZone();
   }
 
 uint64_t PfxEmitter::effectPrefferedTime() const {

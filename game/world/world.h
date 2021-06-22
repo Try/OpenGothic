@@ -130,6 +130,8 @@ class World final {
     void                 execTriggerEvent(const TriggerEvent& e);
     void                 enableTicks (AbstractTrigger& t);
     void                 disableTicks(AbstractTrigger& t);
+    void                 enableCollizionZone (CollisionZone& z);
+    void                 disableCollizionZone(CollisionZone& z);
 
     Interactive*         aviableMob(const Npc &pl, const char* name);
     Interactive*         findInteractive(const Npc& pl);

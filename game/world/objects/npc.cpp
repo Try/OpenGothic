@@ -761,7 +761,7 @@ void Npc::dropTorch() {
   size_t torchId  = owner.script().getSymbolIndex("ItLsTorchburned");
   size_t leftHand = sk->findNode("ZS_LEFTHAND");
   if(torchId!=size_t(-1) && leftHand!=size_t(-1)) {
-    auto it  = owner.addItem(torchId,nullptr);
+    auto it  = owner.addItem(torchId,"");
 
     auto mat = visual.pose().bone(leftHand);
     it->setMatrix(mat);

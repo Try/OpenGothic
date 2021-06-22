@@ -11,6 +11,7 @@
 #include "world/objects/npc.h"
 #include "world/objects/interactive.h"
 #include "world/objects/vob.h"
+#include "world/collisionzone.h"
 #include "world.h"
 #include "utils/workers.h"
 #include "utils/dbgpainter.h"
@@ -329,9 +330,9 @@ std::unique_ptr<Npc> WorldObjects::takeNpc(const Npc* ptr) {
 void WorldObjects::tickNear(uint64_t /*dt*/) {
   for(Npc* i:npcNear) {
     auto pos=i->position();
-    for(AbstractTrigger* t:triggersZn)
-      if(t->checkPos(pos.x,pos.y+i->translateY(),pos.z))
-        t->onIntersect(*i);
+    for(CollisionZone* z:collisionZn)
+      if(z->checkPos(pos + Vec3(0,i->translateY(),0)))
+        z->onIntersect(*i);
     }
   }
 
@@ -458,6 +459,19 @@ void WorldObjects::disableTicks(AbstractTrigger& t) {
     if(i==&t) {
       i = triggersTk.back();
       triggersTk.pop_back();
+      return;
+      }
+  }
+
+void WorldObjects::enableCollizionZone(CollisionZone& z) {
+  collisionZn.push_back(&z);
+  }
+
+void WorldObjects::disableCollizionZone(CollisionZone& z) {
+  for(auto& i:collisionZn)
+    if(i==&z) {
+      i = collisionZn.back();
+      collisionZn.pop_back();
       return;
       }
   }

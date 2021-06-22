@@ -4,6 +4,7 @@
 #include <zenload/zTypes.h>
 
 #include "world/objects/vob.h"
+#include "world/collisionzone.h"
 #include "physics/dynamicworld.h"
 
 class Npc;
@@ -56,7 +57,7 @@ class AbstractTrigger : public Vob {
     virtual void                 tick(uint64_t dt);
 
     virtual bool                 hasVolume() const;
-    virtual bool                 checkPos(float x,float y,float z) const;
+    bool                         checkPos(const Tempest::Vec3& pos) const;
 
     void                         save(Serialize& fout) const override;
     void                         load(Serialize &fin) override;
@@ -93,7 +94,8 @@ class AbstractTrigger : public Vob {
 
   private:
     Cb                           callback;
-    DynamicWorld::BBoxBody*      box = nullptr;
+    DynamicWorld::BBoxBody       box;
+    CollisionZone                boxNpc;
     Tempest::Vec3                bboxSize, bboxOrigin;
 
     std::vector<Npc*>            intersect;

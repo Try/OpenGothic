@@ -58,7 +58,7 @@ class DynamicWorld final {
         NpcItem()=default;
         NpcItem(DynamicWorld* owner,NpcBody* obj,float h,float r):owner(owner),obj(obj),height(h),r(r){}
         NpcItem(NpcItem&& it):owner(it.owner),obj(it.obj),height(it.height),r(it.r){it.obj=nullptr;}
-        ~NpcItem() { if(owner) owner->deleteObj(obj); }
+        ~NpcItem();
 
         NpcItem& operator = (NpcItem&& it){
           std::swap(owner,it.owner);
@@ -178,17 +178,23 @@ class DynamicWorld final {
       };
 
     struct BBoxCallback {
+      BBoxCallback() = default;
       virtual ~BBoxCallback()=default;
       virtual void onCollide(BulletBody& other){(void)other;}
       };
 
     struct BBoxBody final {
       public:
+        BBoxBody() = default;
         BBoxBody(DynamicWorld* wrld, BBoxCallback* cb, const ZMath::float3* bbox);
-        BBoxBody(const BBoxBody& other) = delete;
+        BBoxBody(DynamicWorld* wrld, BBoxCallback* cb, const Tempest::Vec3& pos, float R);
+        BBoxBody(BBoxBody&& other);
         ~BBoxBody();
 
+        BBoxBody& operator=(BBoxBody&& other);
+
       private:
+        DynamicWorld*       owner = nullptr;
         BBoxCallback*       cb    = nullptr;
 
         btCollisionShape*   shape = nullptr;
@@ -209,12 +215,12 @@ class DynamicWorld final {
     Item           dynamicObj(const Tempest::Matrix4x4& pos, const Bounds& bbox, ZenLoad::MaterialGroup mat);
 
     BulletBody*    bulletObj(BulletCallback* cb);
-    BBoxBody*      bboxObj(BBoxCallback* cb, const ZMath::float3* bbox);
+    BBoxBody       bboxObj(BBoxCallback* cb, const ZMath::float3* bbox);
+    BBoxBody       bboxObj(BBoxCallback* cb, const Tempest::Vec3& pos, float R);
 
     void           tick(uint64_t dt);
 
     void           deleteObj(BulletBody* obj);
-    void           deleteObj(BBoxBody*   obj);
 
     static float   materialFriction(ZenLoad::MaterialGroup mat);
     static float   materialDensity (ZenLoad::MaterialGroup mat);
@@ -230,30 +236,28 @@ class DynamicWorld final {
     Item           createObj(btCollisionShape* shape, bool ownShape, const Tempest::Matrix4x4& m,
                              float mass, float friction, ItemType type);
 
-    void           deleteObj(NpcBody*           obj);
-
 
     void           moveBullet(BulletBody& b, const Tempest::Vec3& dir, uint64_t dt);
     RayWaterResult implWaterRay(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
     bool           hasCollision(const NpcItem &it, Tempest::Vec3& normal);
 
-    std::unique_ptr<CollisionWorld>             world;
+    std::unique_ptr<CollisionWorld>    world;
 
-    std::vector<std::string>                    sectors;
+    std::vector<std::string>           sectors;
 
-    std::vector<btVector3>                      landVbo;
-    std::unique_ptr<PhysicVbo>                  landMesh;
-    std::unique_ptr<btCollisionShape>           landShape;
-    std::unique_ptr<btRigidBody>                landBody;
+    std::vector<btVector3>             landVbo;
+    std::unique_ptr<PhysicVbo>         landMesh;
+    std::unique_ptr<btCollisionShape>  landShape;
+    std::unique_ptr<btRigidBody>       landBody;
 
-    std::unique_ptr<btCollisionShape>           waterShape;
-    std::unique_ptr<btRigidBody>                waterBody;
-    std::unique_ptr<PhysicVbo>                  waterMesh;
+    std::unique_ptr<btCollisionShape>  waterShape;
+    std::unique_ptr<btRigidBody>       waterBody;
+    std::unique_ptr<PhysicVbo>         waterMesh;
 
-    std::unique_ptr<NpcBodyList>                npcList;
-    std::unique_ptr<BulletsList>                bulletList;
-    std::unique_ptr<BBoxList>                   bboxList;
+    std::unique_ptr<NpcBodyList>       npcList;
+    std::unique_ptr<BulletsList>       bulletList;
+    std::unique_ptr<BBoxList>          bboxList;
 
-    static const float                          ghostHeight;
-    static const float                          worldHeight;
+    static const float                 ghostHeight;
+    static const float                 worldHeight;
   };

@@ -20,6 +20,7 @@ class World;
 class Serialize;
 class TriggerEvent;
 class AbstractTrigger;
+class CollisionZone;
 
 class WorldObjects final {
   public:
@@ -77,10 +78,12 @@ class WorldObjects final {
 
     void           addTrigger(AbstractTrigger* trigger);
     void           triggerEvent(const TriggerEvent& e);
-    void           execTriggerEvent(const TriggerEvent& e);
     void           triggerOnStart(bool firstTime);
+    void           execTriggerEvent(const TriggerEvent& e);
     void           enableTicks (AbstractTrigger& t);
     void           disableTicks(AbstractTrigger& t);
+    void           enableCollizionZone (CollisionZone& z);
+    void           disableCollizionZone(CollisionZone& z);
 
     void           runEffect(Effect&& e);
     void           stopEffect(const VisualFx& vfx);
@@ -157,6 +160,8 @@ class WorldObjects final {
     std::vector<AbstractTrigger*>      triggers;
     std::vector<AbstractTrigger*>      triggersZn;
     std::vector<AbstractTrigger*>      triggersTk;
+
+    std::vector<CollisionZone*>        collisionZn;
 
     std::vector<PerceptionMsg>         sndPerc;
     std::vector<TriggerEvent>          triggerEvents;

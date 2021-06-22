@@ -21,7 +21,7 @@ class Effect final {
   public:
     Effect() = default;
     Effect(Effect&&) = default;
-    Effect(PfxEmitter&& pfx, const char* node);
+    Effect(PfxEmitter&& pfx, std::string_view node);
     Effect(const VisualFx& vfx, World& owner, const Npc& src,           SpellFxKey key = SpellFxKey::Count);
     Effect(const VisualFx& vfx, World& owner, const Tempest::Vec3& pos, SpellFxKey key = SpellFxKey::Count);
     ~Effect();
@@ -61,9 +61,8 @@ class Effect final {
 
     std::string_view      nodeSlot;
     size_t                boneId   = size_t(-1);
-
-    const Skeleton*       skeleton    = nullptr;
-    const Pose*           pose        = nullptr;
+    const Skeleton*       skeleton = nullptr;
+    const Pose*           pose     = nullptr;
 
     const MeshObjects::Mesh* meshEmitter = nullptr;
 
