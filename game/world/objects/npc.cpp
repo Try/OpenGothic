@@ -427,7 +427,7 @@ bool Npc::resetPositionToTA() {
       return false;
     }
 
-  invent.clearSlot(*this,nullptr,false);
+  invent.clearSlot(*this,"",false);
   if(routines.size()==0)
     return true;
 
@@ -437,7 +437,7 @@ bool Npc::resetPositionToTA() {
   clearAiQueue();
 
   if(!isDead) {
-    visual.stopAnim(*this,nullptr);
+    visual.stopAnim(*this,"");
     clearState(true);
     }
 
@@ -990,8 +990,8 @@ bool Npc::setAnimItem(std::string_view scheme, int state) {
   return visual.startAnimItem(*this,scheme,state);
   }
 
-void Npc::stopAnim(const std::string &ani) {
-  visual.stopAnim(*this,ani.c_str());
+void Npc::stopAnim(std::string_view ani) {
+  visual.stopAnim(*this,ani);
   }
 
 void Npc::startFaceAnim(std::string_view anim, float intensity, uint64_t duration) {
@@ -3182,7 +3182,7 @@ bool Npc::setInteraction(Interactive *id, bool quick) {
   if(id->attach(*this)) {
     currentInteract = id;
     if(!quick) {
-      visual.stopAnim(*this,nullptr);
+      visual.stopAnim(*this,"");
       setAnimRotate(0);
       }
     return true;

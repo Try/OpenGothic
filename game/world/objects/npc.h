@@ -264,7 +264,7 @@ class Npc final {
     auto       setAnimAngGet(Anim a, bool noInterupt, uint8_t comb) -> const Animation::Sequence*;
     void       setAnimRotate(int rot);
     bool       setAnimItem(std::string_view scheme, int state);
-    void       stopAnim(const std::string& ani);
+    void       stopAnim(std::string_view ani);
     void       startFaceAnim(std::string_view anim, float intensity, uint64_t duration);
     bool       stopItemStateAnim();
     bool       isFinishingMove() const;

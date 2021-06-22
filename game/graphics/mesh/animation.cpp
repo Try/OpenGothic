@@ -465,7 +465,7 @@ void Animation::Sequence::processPfx(uint64_t barrier, uint64_t sTime, uint64_t 
        i.m_Frame==int32_t(d.lastFrame)) {
       if(i.m_Name.empty())
         continue;
-      Effect e(PfxEmitter(world,i.m_Name),i.m_Pos.c_str());
+      Effect e(PfxEmitter(world,i.m_Name),i.m_Pos);
       e.setLooped(true);
       e.setActive(true);
       visual.startEffect(world,std::move(e),i.m_Num,false);

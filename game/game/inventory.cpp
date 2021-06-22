@@ -459,17 +459,17 @@ void Inventory::updateView(Npc& owner) {
   for(auto& i:mdlSlots) {
     auto& itData = i.item->handle();
     auto  vbody  = world.addView(itData.visual,itData.material,0,itData.material);
-    owner.setSlotItem(std::move(vbody),i.slot.c_str());
+    owner.setSlotItem(std::move(vbody),i.slot);
     }
   if(ammotSlot.item!=nullptr) {
     auto& itData = ammotSlot.item->handle();
     auto  vbody  = world.addView(itData.visual,itData.material,0,itData.material);
-    owner.setAmmoItem(std::move(vbody),ammotSlot.slot.c_str());
+    owner.setAmmoItem(std::move(vbody),ammotSlot.slot);
     }
   if(stateSlot.item!=nullptr) {
     auto& itData = stateSlot.item->handle();
     auto  vitm   = world.addView(itData.visual,itData.material,0,itData.material);
-    owner.setStateItem(std::move(vitm),stateSlot.slot.c_str());
+    owner.setStateItem(std::move(vitm),stateSlot.slot);
     }
   }
 
@@ -671,7 +671,7 @@ void Inventory::putToSlot(Npc& owner, size_t cls, std::string_view slot) {
 
 bool Inventory::clearSlot(Npc& owner, std::string_view slot, bool remove) {
   uint32_t count = 0;
-  const bool all = (slot==nullptr || slot[0]=='\0');
+  const bool all = slot.empty();
   for(size_t i=0;i<mdlSlots.size();)
     if(all || mdlSlots[i].slot==slot) {
       owner.clearSlotItem(slot);
@@ -684,7 +684,7 @@ bool Inventory::clearSlot(Npc& owner, std::string_view slot, bool remove) {
       } else {
       ++i;
       }
-  if(all || slot==nullptr || stateSlot.slot==slot) {
+  if(all || stateSlot.slot==slot) {
     if(stateSlot.item!=nullptr)
       ++count;
     implPutState(owner,0,stateSlot.slot.c_str());
@@ -697,7 +697,7 @@ void Inventory::putAmmunition(Npc& owner, size_t cls, std::string_view slot) {
   if(it==nullptr) {
     ammotSlot.slot.clear();
     ammotSlot.item = nullptr;
-    owner.setAmmoItem(MeshObjects::Mesh(),nullptr);
+    owner.setAmmoItem(MeshObjects::Mesh(),"");
     return;
     }
 
@@ -713,7 +713,7 @@ void Inventory::implPutState(Npc& owner, size_t cls, std::string_view slot) {
   if(it==nullptr) {
     stateSlot.slot.clear();
     stateSlot.item = nullptr;
-    owner.setStateItem(MeshObjects::Mesh(),nullptr);
+    owner.setStateItem(MeshObjects::Mesh(),"");
     return;
     }
 
@@ -747,7 +747,7 @@ void Inventory::setStateItem(size_t cls) {
   stateItem = int32_t(cls);
   }
 
-bool Inventory::equipNumSlot(Item *next, Npc &owner,bool force) {
+bool Inventory::equipNumSlot(Item *next, Npc &owner, bool force) {
   for(auto& i:numslot){
     if(i==nullptr){
       setSlot(i,next,owner,force);
