@@ -145,10 +145,10 @@ class World final {
     bool                 aiIsDlgFinished();
 
     bool                 isTargeted (Npc& npc);
-    Npc*                 addNpc     (std::string_view name, std::string_view at);
-    Npc*                 addNpc     (size_t itemInstance,   std::string_view at);
-    Npc*                 addNpc     (size_t itemInstance,   const Tempest::Vec3&     at);
-    Item*                addItem    (size_t itemInstance, std::string_view at);
+    Npc*                 addNpc     (std::string_view name, std::string_view     at);
+    Npc*                 addNpc     (size_t itemInstance,   std::string_view     at);
+    Npc*                 addNpc     (size_t itemInstance,   const Tempest::Vec3& at);
+    Item*                addItem    (size_t itemInstance,   std::string_view     at);
     Item*                addItem    (const ZenLoad::zCVobData& vob);
     Item*                addItem    (size_t itemInstance, const Tempest::Vec3& pos);
     Item*                takeItem   (Item& it);

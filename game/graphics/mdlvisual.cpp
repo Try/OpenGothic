@@ -139,7 +139,7 @@ void MdlVisual::implSetBody(MeshObjects::Mesh&& body, World& owner, const int32_
   }
 
 void MdlVisual::setSlotAttachment(MeshObjects::Mesh&& itm, std::string_view bone) {
-  if(bone==nullptr || skeleton==nullptr)
+  if(bone.empty() || skeleton==nullptr)
     return;
 
   size_t id = skeleton->findNode(bone);
@@ -188,7 +188,7 @@ void MdlVisual::setMagicWeaponKey(World& owner, SpellFxKey key, int32_t keyLvl) 
   }
 
 void MdlVisual::setSlotItem(MeshObjects::Mesh &&itm, std::string_view bone) {
-  if(bone==nullptr || skeleton==nullptr)
+  if(bone.empty() || skeleton==nullptr)
     return;
 
   size_t id = skeleton->findNode(bone);
@@ -284,7 +284,7 @@ void MdlVisual::dropWeapon(Npc& npc) {
   if(itm==nullptr)
     return;
 
-  auto it = npc.world().addItem(itm->clsId(),nullptr);
+  auto it = npc.world().addItem(itm->clsId(),"");
   it->setCount(1);
   it->setMatrix(p);
   it->setPhysicsEnable(*npc.world().physic());
@@ -774,7 +774,7 @@ template<class View>
 void MdlVisual::rebindAttaches(Attach<View>& mesh, const Skeleton& from, const Skeleton& to) {
   if(mesh.boneId<from.nodes.size()) {
     size_t nid = 0;
-    if(mesh.bone==nullptr)
+    if(mesh.bone.empty())
       nid = to.findNode(from.nodes[mesh.boneId].name); else
       nid = to.findNode(mesh.bone);
     mesh.boneId = nid;
