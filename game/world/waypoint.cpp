@@ -31,6 +31,10 @@ bool WayPoint::checkName(std::string_view n) const {
   const char*  src = name.c_str();
   const size_t len = n.size();
 
+  if(n.size()<=name.size())
+    if(std::memcmp(name.c_str(),n.data(),n.size())==0)
+      return true;
+
   for(size_t i=0, i0=0; ; ++i) {
     if(src[i]=='_' || src[i]=='\0') {
       const size_t len2 = i-i0;
