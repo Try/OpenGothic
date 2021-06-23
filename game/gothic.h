@@ -141,12 +141,12 @@ class Gothic final {
     static const MusicDefinitions&        musicDef();
     static const CameraDefinitions&       cameraDef();
 
-    static int                            settingsGetI(const char* sec, const char* name);
-    static void                           settingsSetI(const char* sec, const char* name, int val);
-    static const std::string&             settingsGetS(const char* sec, const char* name);
-    static void                           settingsSetS(const char* sec, const char* name, const char* val);
-    static float                          settingsGetF(const char* sec, const char* name);
-    static void                           settingsSetF(const char* sec, const char* name, float val);
+    static int                            settingsGetI(std::string_view sec, std::string_view name);
+    static void                           settingsSetI(std::string_view sec, std::string_view name, int val);
+    static const std::string&             settingsGetS(std::string_view sec, std::string_view name);
+    static void                           settingsSetS(std::string_view sec, std::string_view name, const char* val);
+    static float                          settingsGetF(std::string_view sec, std::string_view name);
+    static void                           settingsSetF(std::string_view sec, std::string_view name, float val);
     static void                           flushSettings();
 
     static void debug(const ZenLoad::zCMesh &mesh, std::ostream& out);

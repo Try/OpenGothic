@@ -340,7 +340,7 @@ bool Gothic::finishLoading() {
 void Gothic::startSave(Tempest::Texture2d&& tex,
                        const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f) {
   saveTex = std::move(tex);
-  implStartLoadSave(nullptr,false,f);
+  implStartLoadSave("",false,f);
   }
 
 void Gothic::startLoad(std::string_view banner,
@@ -351,7 +351,7 @@ void Gothic::startLoad(std::string_view banner,
 void Gothic::implStartLoadSave(std::string_view banner,
                                bool load,
                                const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f) {
-  loadTex = banner==nullptr ? &saveTex : Resources::loadTexture(banner);
+  loadTex = banner.empty() ? &saveTex : Resources::loadTexture(banner);
   loadProgress.store(0);
 
   auto zero=LoadState::Idle;
@@ -526,35 +526,35 @@ std::unique_ptr<Daedalus::DaedalusVM> Gothic::createVm(const char16_t *datFile) 
   return vm;
   }
 
-int Gothic::settingsGetI(const char *sec, const char *name) {
+int Gothic::settingsGetI(std::string_view sec, std::string_view name) {
   if(instance->iniFile->has(sec,name))
     return instance->iniFile->getI(sec,name);
   return instance->baseIniFile->getI(sec,name);
   }
 
-void Gothic::settingsSetI(const char *sec, const char *name, int val) {
+void Gothic::settingsSetI(std::string_view sec, std::string_view name, int val) {
   instance->iniFile->set(sec,name,val);
   instance->onSettingsChanged();
   }
 
-const std::string& Gothic::settingsGetS(const char* sec, const char* name) {
+const std::string& Gothic::settingsGetS(std::string_view sec, std::string_view name) {
   if(instance->iniFile->has(sec,name))
     return instance->iniFile->getS(sec,name);
   return instance->baseIniFile->getS(sec,name);
   }
 
-void Gothic::settingsSetS(const char* sec, const char* name, const char* val) {
+void Gothic::settingsSetS(std::string_view sec, std::string_view name, const char* val) {
   instance->iniFile->set(sec,name,val);
   instance->onSettingsChanged();
   }
 
-float Gothic::settingsGetF(const char* sec, const char* name) {
+float Gothic::settingsGetF(std::string_view sec, std::string_view name) {
   if(instance->iniFile->has(sec,name))
     return instance->iniFile->getF(sec,name);
   return instance->baseIniFile->getF(sec,name);
   }
 
-void Gothic::settingsSetF(const char* sec, const char* name, float val) {
+void Gothic::settingsSetF(std::string_view sec, std::string_view name, float val) {
   instance->iniFile->set(sec,name,val);
   instance->onSettingsChanged();
   }
