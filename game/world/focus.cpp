@@ -34,5 +34,5 @@ std::string_view Focus::displayName() const {
     return npc->displayName();
   if(item)
     return item->displayName();
-  return nullptr;
+  return "";
   }
