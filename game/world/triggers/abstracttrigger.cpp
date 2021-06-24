@@ -118,15 +118,16 @@ void AbstractTrigger::onIntersect(Npc &n) {
   if(!isEnabled())
     return;
 
-  for(auto i:intersect)
-    if(i==&n)
-      return;
-  intersect.push_back(&n);
-  if(intersect.size()==1) {
+  if(boxNpc.currentIntersections().size()==1) {
     enableTicks();
     TriggerEvent e("","",TriggerEvent::T_Activate);
     processEvent(e);
     }
+
+  for(auto i:intersect)
+    if(i==&n)
+      return;
+  intersect.push_back(&n);
   }
 
 void AbstractTrigger::tick(uint64_t) {

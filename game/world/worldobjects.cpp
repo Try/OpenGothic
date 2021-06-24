@@ -198,6 +198,8 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
       }
     }
   tickNear(dt);
+  for(CollisionZone* z:collisionZn)
+    z->tick(dt);
   tickTriggers(dt);
 
   for(auto& ptr:npcArr) {

@@ -16,29 +16,12 @@ Effect::Effect(PfxEmitter&& pfx, std::string_view node)
   }
 
 Effect::Effect(const VisualFx& vfx, World& owner, const Npc& src, SpellFxKey key)
-  :Effect(vfx,owner,src.position(), key) {
-  pos.identity();
+  :Effect(vfx, owner, src.position(), key) {
   }
 
 Effect::Effect(const VisualFx& v, World& owner, const Vec3& inPos, SpellFxKey k) {
   root     = &v;
   nodeSlot = root->emTrjOriginNode;
-
-  if(root->visName_S=="time.slw"  ||
-     root->visName_S=="morph.fov" ||
-     root->visName_S=="screenblend.scx" ||
-     root->visName_S=="earthquake.eqk") {
-    gfx = owner.addGlobalEffect(root->visName_S,root->emFXLifeSpan,root->userString,Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS);
-    } else {
-    pfx = root->visual(owner);
-    if(root->isMeshEmmiter())
-      pfx.setMesh(meshEmitter,pose);
-    }
-
-  if(root->emFXCreate!=nullptr) {
-    next.reset(new Effect(*root->emFXCreate,owner,inPos,k));
-    }
-
   pos.identity();
   pos.translate(inPos);
   setKey(owner,k);
@@ -66,6 +49,14 @@ void Effect::setupLight(World& owner) {
   }
 
 void Effect::setupPfx(World& owner) {
+  if(root->visName_S=="time.slw"  ||
+     root->visName_S=="morph.fov" ||
+     root->visName_S=="screenblend.scx" ||
+     root->visName_S=="earthquake.eqk") {
+    gfx = owner.addGlobalEffect(root->visName_S,root->emFXLifeSpan,root->userString,Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS);
+    return;
+    }
+
   const ParticleFx* pfxDecl = Gothic::inst().loadParticleFx(root->visName_S.c_str());
   if(key!=nullptr && key->visName!=nullptr)
     pfxDecl = key->visName;
@@ -77,14 +68,17 @@ void Effect::setupPfx(World& owner) {
   pfx = PfxEmitter(owner,pfxDecl);
   if(root->isMeshEmmiter())
     pfx.setMesh(meshEmitter,pose);
-  pfx.setActive(true);
+  pfx.setActive(active);
   pfx.setLooped(looped);
 
-  if(root->emFXCollDyn!=nullptr && root->emActionCollDyn!=VisualFx::Collision::NoResp) {
+  bool emCheckCollision = root->emCheckCollision;
+  if(key!=nullptr)
+    emCheckCollision |= key->emCheckCollision; // ?
+
+  if(emCheckCollision && root->emFXCollDyn!=nullptr && root->emActionCollDyn!=VisualFx::Collision::NoResp) {
     auto vfx = root->emFXCollDyn;
     pfx.setPhysicsEnable(owner,[vfx](Npc& npc){
-      // TODO
-      // npc.startEffect(npc,*vfx);
+      npc.startEffect(npc,*vfx);
       });
     }
   }
@@ -110,6 +104,7 @@ bool Effect::is(const VisualFx& vfx) const {
   }
 
 void Effect::setActive(bool e) {
+  active = e;
   if(next!=nullptr)
     next->setActive(e);
   pfx.setActive(e);
@@ -152,7 +147,7 @@ void Effect::syncAttaches(const Matrix4x4& inPos) {
   }
 
 void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
-  if(root==nullptr && pfx.isEmpty())
+  if(root==nullptr)
     return;
 
   pos = inPos;
@@ -176,16 +171,17 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
   if(root==nullptr)
     return;
 
-  key = &root->key(k,keyLvl);
+  key = root->key(k,keyLvl);
 
-  const VisualFx* vfx = nullptr;
+  const VisualFx* vfx = root->emFXCreate;
   if(key!=nullptr && key->emCreateFXID!=nullptr)
     vfx  = key->emCreateFXID;
 
   if(vfx!=nullptr && !(next!=nullptr && next->is(*vfx))) {
     Vec3 pos3 = {pos.at(3,0),pos.at(3,1),pos.at(3,2)};
     auto ex   = Effect(*vfx,owner,pos3,k);
-    ex.setActive(true);
+    ex.setActive(active);
+    ex.setLooped(looped);
     if(pose!=nullptr && skeleton!=nullptr)
       ex.bindAttaches(*pose,*skeleton);
     next.reset(new Effect(std::move(ex)));
@@ -194,13 +190,15 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
     next.reset(nullptr);
     }
 
-  setupPfx(owner);
+  setupPfx  (owner);
   setupLight(owner);
-  setupSfx(owner);
+  setupSfx  (owner);
   syncAttachesSingle(pos);
   }
 
 void Effect::setMesh(const MeshObjects::Mesh* mesh) {
+  if(next!=nullptr)
+    next->setMesh(mesh);
   meshEmitter = mesh;
   if(root!=nullptr && root->isMeshEmmiter())
     pfx.setMesh(meshEmitter,pose);
@@ -217,9 +215,9 @@ uint64_t Effect::effectPrefferedTime() const {
   }
 
 bool Effect::isAlive() const {
-  if(next!=nullptr && next->isAlive())
+  if(pfx.isAlive())
     return true;
-  return pfx.isAlive();
+  return (next!=nullptr && next->isAlive());
   }
 
 void Effect::bindAttaches(const Pose& p, const Skeleton& to) {

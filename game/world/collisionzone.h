@@ -1,15 +1,18 @@
 #pragma once
 
 #include <Tempest/Vec>
+
 #include <functional>
+#include <vector>
 
 class World;
+class ParticleFx;
 class Npc;
 
 class CollisionZone final {
   public:
     CollisionZone();
-    CollisionZone(World& owner, const Tempest::Vec3& pos, float R);
+    CollisionZone(World& owner, const Tempest::Vec3& pos, const ParticleFx& pfx);
     CollisionZone(World& owner, const Tempest::Vec3& pos, const Tempest::Vec3& size);
     CollisionZone(CollisionZone&& other);
     CollisionZone& operator = (CollisionZone&& other);
@@ -20,8 +23,11 @@ class CollisionZone final {
     Tempest::Vec3 position() const { return pos; }
     void          setPosition(const Tempest::Vec3& p);
 
+    const std::vector<Npc*>& currentIntersections() const { return intersect; }
+
     bool          checkPos(const Tempest::Vec3& pos) const;
     void          onIntersect(Npc& npc);
+    void          tick(uint64_t dt);
 
   private:
     World*                    owner = nullptr;
@@ -31,7 +37,11 @@ class CollisionZone final {
       T_BBox,
       T_Capsule,
       };
-    Tempest::Vec3 pos, size;
-    Type          type = T_BBox;
+    uint64_t          time0 = 0;
+    Type              type = T_BBox;
+    Tempest::Vec3     pos, size;
+    const ParticleFx* pfx = nullptr;
+
+    std::vector<Npc*> intersect;
   };
 

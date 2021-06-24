@@ -23,5 +23,10 @@ GlobalFx::~GlobalFx() {
   }
 
 uint64_t GlobalFx::effectPrefferedTime() const {
-  return h==nullptr ? 0 : h->timeLen;
+  if(h==nullptr)
+    return 0;
+  uint64_t ret = h->timeLen;
+  if(ret==uint64_t(-1))
+    return 0;
+  return ret;
   }

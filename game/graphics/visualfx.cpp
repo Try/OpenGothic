@@ -123,7 +123,8 @@ VisualFx::VisualFx(const Daedalus::GEngineClasses::CFx_Base& fx, Daedalus::Daeda
     Daedalus::GEngineClasses::C_ParticleFXEmitKey key;
     vm.initializeInstance(key, id, Daedalus::IC_FXEmitKey);
     vm.clearReferences(Daedalus::IC_FXEmitKey);
-    keys[i] = Key(std::move(key));
+    keys  [i] = Key(std::move(key));
+    hasKey[i] = true;
     }
 
   for(int i=1; ; ++i) {
@@ -148,15 +149,20 @@ PfxEmitter VisualFx::visual(World& owner) const {
   return PfxEmitter(owner,visName_S.c_str());
   }
 
-const VisualFx::Key& VisualFx::key(SpellFxKey type, int32_t keyLvl) const {
+const VisualFx::Key* VisualFx::key(SpellFxKey type, int32_t keyLvl) const {
   if(type==SpellFxKey::Count)
-    return keys[0];
+    return nullptr;
+
   if(type==SpellFxKey::Invest && keyLvl>0) {
     keyLvl--;
     if(size_t(keyLvl)<investKeys.size())
-      return investKeys[size_t(keyLvl)];
+      return &investKeys[size_t(keyLvl)];
+    return nullptr;
     }
-  return keys[int(type)];
+
+  if(!hasKey[int(type)])
+    return nullptr;
+  return &keys[int(type)];
   }
 
 VisualFx::Trajectory VisualFx::loadTrajectory(const Daedalus::ZString& str) {

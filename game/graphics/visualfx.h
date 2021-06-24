@@ -150,7 +150,7 @@ class VisualFx final {
     bool                  isMeshEmmiter() const { return emTrjOriginNode=="="; }
 
     PfxEmitter            visual(World& owner) const;
-    const Key&            key(SpellFxKey type, int32_t keyLvl=0) const;
+    const Key*            key(SpellFxKey type, int32_t keyLvl=0) const;
 
   private:
     static Trajectory     loadTrajectory    (const Daedalus::ZString& str);
@@ -160,7 +160,8 @@ class VisualFx final {
 
     static Collision      strToColision(std::string_view s);
 
-    Key                   keys[int(SpellFxKey::Count)];
+    Key                   keys  [int(SpellFxKey::Count)];
+    bool                  hasKey[int(SpellFxKey::Count)] = {};
     std::vector<Key>      investKeys;
   };
 

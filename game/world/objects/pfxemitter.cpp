@@ -164,7 +164,7 @@ void PfxEmitter::setMesh(const MeshObjects::Mesh* mesh, const Pose* pose) {
 void PfxEmitter::setPhysicsEnable(World& p, std::function<void (Npc&)> cb) {
   std::lock_guard<std::recursive_mutex> guard(bucket->parent.sync);
   auto& v = bucket->get(id);
-  zone = CollisionZone(p, v.pos, 2500);
+  zone = CollisionZone(p, v.pos, bucket->decl);
   zone.setCallback(cb);
   }
 
