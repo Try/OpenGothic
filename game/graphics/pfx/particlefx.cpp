@@ -1,5 +1,7 @@
 #include "particlefx.h"
 
+#include "utils/parser.h"
+#include "gothic.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -31,23 +33,23 @@ ParticleFx::ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob) {
   useEmittersFOR   = true;
   }
 
-ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const char* name)
+ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, std::string_view name)
   :dbgName(name) {
   ppsValue            = std::max(0.f,src.ppsValue);
   ppsScaleKeys        = loadArr(src.ppsScaleKeys_S);
   ppsIsLooping        = src.ppsIsLooping!=0;
   ppsIsSmooth         = src.ppsIsSmooth!=0;
   ppsFPS              = src.ppsFPS;
-  // ppsCreateEm = ; // assign externaly
+  ppsCreateEm         = Gothic::inst().loadParticleFx(src.ppsCreateEm_S.c_str());
   ppsCreateEmDelay    = uint64_t(src.ppsCreateEmDelay);
 
   shpType             = loadEmitType(src.shpType_S);
   shpFOR              = loadFrameType(src.shpFOR_S);
-  shpOffsetVec        = loadVec3(src.shpOffsetVec_S);
+  shpOffsetVec        = Parser::loadVec3(src.shpOffsetVec_S);
   shpDistribType      = loadDistribType(src.shpDistribType_S);
   shpDistribWalkSpeed = src.shpDistribWalkSpeed;
   shpIsVolume         = src.shpIsVolume!=0;
-  shpDim              = loadVec3(src.shpDim_S);
+  shpDim              = Parser::loadVec3(src.shpDim_S);
   shpMesh_S           = src.shpMesh_S;
   shpMesh             = Resources::loadEmiterMesh(src.shpMesh_S.c_str());
   shpMeshRender       = src.shpMeshRender_B!=0;
@@ -59,7 +61,7 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
   dirMode             = loadDirType(src.dirMode_S);
   dirFOR              = loadFrameType(src.dirFOR_S);
   dirModeTargetFOR    = loadFrameType(src.dirModeTargetFOR_S);
-  dirModeTargetPos    = loadVec3(src.dirModeTargetPos_S);
+  dirModeTargetPos    = Parser::loadVec3(src.dirModeTargetPos_S);
   dirAngleHead        = src.dirAngleHead;
   dirAngleHeadVar     = src.dirAngleHeadVar;
   dirAngleElev        = src.dirAngleElev;
@@ -70,7 +72,7 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
   lspPartAvg          = src.lspPartAvg;
   lspPartVar          = src.lspPartVar;
 
-  flyGravity          = loadVec3(src.flyGravity_S);
+  flyGravity          = Parser::loadVec3(src.flyGravity_S);
   flyCollDet          = src.flyCollDet_B!=0;
 
   visMaterial         = Material(src);
@@ -78,9 +80,9 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
   visTexIsQuadPoly    = src.visTexIsQuadPoly;
   visTexAniFPS        = src.visTexAniFPS;
   visTexAniIsLooping  = src.visTexAniIsLooping;
-  visTexColorStart    = loadVec3(src.visTexColorStart_S);
-  visTexColorEnd      = loadVec3(src.visTexColorEnd_S);
-  visSizeStart        = loadVec2(src.visSizeStart_S);
+  visTexColorStart    = Parser::loadVec3(src.visTexColorStart_S);
+  visTexColorEnd      = Parser::loadVec3(src.visTexColorEnd_S);
+  visSizeStart        = Parser::loadVec2(src.visSizeStart_S);
   visSizeEndScale     = src.visSizeEndScale;
   visAlphaStart       = src.visAlphaStart/255.f;
   visAlphaEnd         = src.visAlphaEnd/255.f;
@@ -104,45 +106,39 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, const 
   prefferedTime       = calcPrefferedTimeSingle();
   }
 
-ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& src, const Daedalus::GEngineClasses::C_ParticleFX& proto) {
-  *this = ParticleFx(proto,src.visName_S.c_str());
+ParticleFx::ParticleFx(const ParticleFx& proto, const VisualFx::Key& key)
+  :ParticleFx(proto) {
+  shpDim              = key.pfx_shpDim.value_or(shpDim);
+  shpIsVolume         = key.pfx_shpIsVolumeChg!=0;
 
-  if(!src.pfx_shpDim_S.empty())
-    shpDim            = loadVec3(src.pfx_shpDim_S);
+  if(key.pfx_shpScaleFPS>0)
+    shpScaleFPS       = key.pfx_shpScaleFPS;
 
-  shpIsVolume         = src.pfx_shpIsVolumeChg!=0;
+  shpDistribWalkSpeed = key.pfx_shpDistribWalkSpeed;
+  shpOffsetVec        = key.pfx_shpOffsetVec.value_or(shpOffsetVec);
+  if(!key.pfx_shpDistribType_S.empty())
+    shpDistribType    = loadDistribType(key.pfx_shpDistribType_S);
 
-  if(src.pfx_shpScaleFPS>0)
-    shpScaleFPS       = src.pfx_shpScaleFPS;
+  if(!key.pfx_dirMode_S.empty())
+    dirMode           = loadDirType(key.pfx_dirMode_S);
 
-  shpDistribWalkSpeed = src.pfx_shpDistribWalkSpeed;
+  if(!key.pfx_dirFOR_S.empty())
+    dirFOR            = loadFrameType(key.pfx_dirFOR_S);
 
-  if(!src.pfx_shpOffsetVec_S.empty())
-    shpOffsetVec      = loadVec3(src.pfx_shpOffsetVec_S);
+  if(!key.pfx_dirModeTargetFOR_S.empty())
+    dirModeTargetFOR  = loadFrameType(key.pfx_dirModeTargetFOR_S);
 
-  if(!src.pfx_shpDistribType_S.empty())
-    shpDistribType    = loadDistribType(src.pfx_shpDistribType_S);
+  if(!key.pfx_dirModeTargetPos_S.empty())
+    dirModeTargetPos  = Parser::loadVec3(key.pfx_dirModeTargetPos_S);
 
-  if(!src.pfx_dirMode_S.empty())
-    dirMode           = loadDirType(src.pfx_dirMode_S);
+  if(key.pfx_velAvg>0)
+    velAvg            = key.pfx_velAvg;
 
-  if(!src.pfx_dirFOR_S.empty())
-    dirFOR            = loadFrameType(src.pfx_dirFOR_S);
+  if(key.pfx_lspPartAvg>0)
+    lspPartAvg        = key.pfx_lspPartAvg;
 
-  if(!src.pfx_dirModeTargetFOR_S.empty())
-    dirModeTargetFOR  = loadFrameType(src.pfx_dirModeTargetFOR_S);
-
-  if(!src.pfx_dirModeTargetPos_S.empty())
-    dirModeTargetPos  = loadVec3(src.pfx_dirModeTargetPos_S);
-
-  if(src.pfx_velAvg>0)
-    velAvg            = src.pfx_velAvg;
-
-  if(src.pfx_lspPartAvg>0)
-    lspPartAvg        = src.pfx_lspPartAvg;
-
-  if(src.pfx_visAlphaStart>0)
-    visAlphaStart     = src.pfx_visAlphaStart;
+  if(key.pfx_visAlphaStart>0)
+    visAlphaStart     = key.pfx_visAlphaStart;
   }
 
 uint64_t ParticleFx::maxLifetime() const {
@@ -189,49 +185,11 @@ uint64_t ParticleFx::calcPrefferedTimeSingle() const {
   return sec;
   }
 
-Vec2 ParticleFx::loadVec2(const Daedalus::ZString& src) {
-  if(src=="=")
-    return Vec2();
-
-  float       v[2] = {};
-  const char* str  = src.c_str();
-  for(int i=0;i<2;++i) {
-    char* next=nullptr;
-    v[i] = std::strtof(str,&next);
-    if(str==next) {
-      if(i==1)
-        return Vec2(v[0],v[0]);
-      }
-    str = next;
-    }
-  return Vec2(v[0],v[1]);
-  }
-
-const Tempest::Texture2d* ParticleFx::loadTexture(const char* src) {
+const Tempest::Texture2d* ParticleFx::loadTexture(std::string_view src) {
   auto view = Resources::loadTexture(src);
   if(view==nullptr)
     view = &Resources::fallbackBlack();
   return view;
-  }
-
-Vec3 ParticleFx::loadVec3(const Daedalus::ZString& src) {
-  if(src=="=")
-    return Vec3();
-
-  float       v[3] = {};
-  const char* str  = src.c_str();
-  for(int i=0;i<3;++i) {
-    char* next=nullptr;
-    v[i] = std::strtof(str,&next);
-    if(str==next) {
-      if(i==1)
-        return Vec3(v[0],v[0],v[0]);
-      if(i==2)
-        return Vec3(v[0],v[1],0.f);
-      }
-    str = next;
-    }
-  return Vec3(v[0],v[1],v[2]);
   }
 
 ParticleFx::KeyList ParticleFx::loadArr(const Daedalus::ZString& src) {

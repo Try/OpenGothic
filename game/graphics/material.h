@@ -42,6 +42,5 @@ class Material final {
     static AlphaFunc loadAlphaFunc(int zenAlpha, uint8_t mat, const Tempest::Texture2d* tex, bool enableAlphaTest);
 
     void          loadFrames(const ZenLoad::zCMaterialData& m);
-    Tempest::Vec2 loadVec2(const std::string& src);
   };
 

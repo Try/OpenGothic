@@ -7,7 +7,7 @@
 
 using namespace Tempest;
 
-Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src, const Animation* anim, const char* name)
+Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src, const Animation* anim, std::string_view name)
   :fileName(name), anim(anim) {
   bboxCol[0] = src.getBBoxCollisionMin();
   bboxCol[1] = src.getBBoxCollisionMax();
@@ -47,8 +47,8 @@ Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src, const Animation* anim, co
   mkSkeleton();
   }
 
-size_t Skeleton::findNode(const char *name, size_t def) const {
-  if(name==nullptr)
+size_t Skeleton::findNode(std::string_view name, size_t def) const {
+  if(name.empty())
     return def;
   for(size_t i=0;i<nodes.size();++i)
     if(nodes[i].name==name)
@@ -56,23 +56,19 @@ size_t Skeleton::findNode(const char *name, size_t def) const {
   return def;
   }
 
-size_t Skeleton::findNode(const std::string &name, size_t def) const {
-  return findNode(name.c_str(),def);
-  }
-
-const Animation::Sequence* Skeleton::sequence(const char *name) const {
-  if(anim)
+const Animation::Sequence* Skeleton::sequence(std::string_view name) const {
+  if(anim!=nullptr)
     return anim->sequence(name);
   return nullptr;
   }
 
 void Skeleton::debug() const {
-  if(anim)
+  if(anim!=nullptr)
     anim->debug();
   }
 
 const std::string& Skeleton::defaultMesh() const {
-  if(anim)
+  if(anim!=nullptr)
     return anim->defaultMesh();
   static std::string nop;
   return nop;

@@ -22,7 +22,7 @@ class LightGroup final {
         Light(LightGroup& owner, const ZenLoad::zCVobData& vob);
         Light(LightGroup& owner);
         Light(World& owner, const ZenLoad::zCVobData& vob);
-        Light(World& owner, const char* preset);
+        Light(World& owner, std::string_view preset);
         Light(World& owner);
 
         Light(Light&& other);
@@ -95,7 +95,7 @@ class LightGroup final {
     LightSsbo&                       get (size_t id);
     LightSource&                     getL(size_t id);
 
-    const ZenLoad::zCVobData&        findPreset(const char* preset) const;
+    const ZenLoad::zCVobData&        findPreset(std::string_view preset) const;
 
     const SceneGlobals&               scene;
     std::vector<ZenLoad::zCVobData>   presets;

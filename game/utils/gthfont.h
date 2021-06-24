@@ -5,18 +5,15 @@
 
 class GthFont final {
   public:
-    GthFont(const char* name, const char *tex, const Tempest::Color& cl, const VDFS::FileIndex& fileIndex);
+    GthFont(const char* name, std::string_view tex, const Tempest::Color& cl, const VDFS::FileIndex& fileIndex);
     GthFont(const GthFont&) = delete;
 
     int  pixelSize() const;
 
-    void drawText(Tempest::Painter& p, int x, int y, int w, int h, const std::string& txt, Tempest::AlignFlag align) const;
-    void drawText(Tempest::Painter& p, int x, int y, int w, int h, const char* txt, Tempest::AlignFlag align) const;
-    void drawText(Tempest::Painter& p, int x, int y, const std::string& txt) const;
-    void drawText(Tempest::Painter& p, int x, int y, const char* txt) const;
+    void drawText(Tempest::Painter& p, int x, int y, int w, int h, std::string_view txt, Tempest::AlignFlag align) const;
+    void drawText(Tempest::Painter& p, int x, int y, std::string_view txt) const;
 
-    auto textSize(const std::string& txt) const -> Tempest::Size;
-    auto textSize(const char*        txt) const -> Tempest::Size;
+    auto textSize(const std::string_view txt) const -> Tempest::Size;
     auto textSize(const char*    b, const char* e) const -> Tempest::Size;
     auto textSize(const uint8_t* b, const uint8_t* e) const -> Tempest::Size;
     auto textSize(int w, const char* txt) const -> Tempest::Size;
@@ -30,6 +27,6 @@ class GthFont final {
     const uint8_t* getWord(const uint8_t* txt, int &width, int &space) const;
 
     static bool    isSpace(uint8_t ch);
-    Tempest::Size  processText(Tempest::Painter* p, int x, int y, int w, int h, const char* txt, Tempest::AlignFlag align) const;
+    Tempest::Size  processText(Tempest::Painter* p, int x, int y, int w, int h, std::string_view txt, Tempest::AlignFlag align) const;
   };
 

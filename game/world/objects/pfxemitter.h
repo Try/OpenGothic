@@ -5,6 +5,8 @@
 
 #include <zenload/zTypes.h>
 
+#include "world/collisionzone.h"
+#include "physics/dynamicworld.h"
 #include "graphics/meshobjects.h"
 #include "graphics/pfx/trlobjects.h"
 
@@ -14,11 +16,10 @@ class ParticleFx;
 class PfxObjects;
 class PfxEmitterMesh;
 
-class PfxEmitter final {
+class PfxEmitter {
   public:
     PfxEmitter()=default;
-    PfxEmitter(World& world, const std::string& name);
-    PfxEmitter(World& world, const char* name);
+    PfxEmitter(World& world, std::string_view name);
     PfxEmitter(World& world, const ParticleFx* decl);
     PfxEmitter(PfxObjects& obj, const ParticleFx* vob);
     PfxEmitter(World& world, const ZenLoad::zCVobData& vob);
@@ -38,6 +39,9 @@ class PfxEmitter final {
     void     setLooped(bool loop);
     void     setMesh(const MeshObjects::Mesh* mesh, const Pose* pose);
 
+    void     setPhysicsEnable (World& physic, std::function<void(Npc& npc)> cb);
+    void     setPhysicsDisable();
+
     uint64_t effectPrefferedTime() const;
     bool     isAlive() const;
 
@@ -47,8 +51,9 @@ class PfxEmitter final {
     PfxBucket* bucket = nullptr;
     size_t     id     = size_t(-1);
 
-    TrlObjects::Item  trail;
-    MeshObjects::Mesh shpMesh;
+    CollisionZone      zone;
+    TrlObjects::Item   trail;
+    MeshObjects::Mesh  shpMesh;
 
   friend class PfxBucket;
   friend class PfxObjects;

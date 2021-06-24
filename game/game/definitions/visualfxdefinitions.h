@@ -12,11 +12,11 @@ class VisualFxDefinitions final {
     VisualFxDefinitions();
     ~VisualFxDefinitions();
 
-    const VisualFx *get(const char* name);
+    const VisualFx *get(std::string_view name);
 
   private:
     std::unique_ptr<Daedalus::DaedalusVM>                     vm;
     std::unordered_map<std::string,std::unique_ptr<VisualFx>> vfx;
 
-    Daedalus::GEngineClasses::CFx_Base *implGet(const char* name);
+    bool implGet(std::string_view name, Daedalus::GEngineClasses::CFx_Base& out);
   };

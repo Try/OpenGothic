@@ -2,6 +2,7 @@
 
 #include <zenload/zCMaterial.h>
 
+#include "utils/parser.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -13,7 +14,7 @@ Material::Material(const ZenLoad::zCMaterialData& m, bool enableAlphaTest) {
   alpha = loadAlphaFunc(m.alphaFunc,m.matGroup,tex,enableAlphaTest);
 
   if(m.texAniMapMode!=0 && tex!=nullptr) {
-    auto texAniMapDir = loadVec2(m.texAniMapDir);
+    auto texAniMapDir = Parser::loadVec2(m.texAniMapDir);
     if(texAniMapDir.x!=0.f)
       texAniMapDirPeriod.x = int(1.f/texAniMapDir.x);
     if(texAniMapDir.y!=0.f)
@@ -41,32 +42,7 @@ Material::Material(const Daedalus::GEngineClasses::C_ParticleFX& src) {
     texAniFPSInv = 1;
   //TODO: visTexAniIsLooping
 
-  if(src.visAlphaFunc_S=="NONE")
-    alpha = AlphaTest;
-  if(src.visAlphaFunc_S=="BLEND")
-    alpha = Transparent;
-  if(src.visAlphaFunc_S=="ADD")
-    alpha = AdditiveLight;
-  if(src.visAlphaFunc_S=="MUL")
-    alpha = Multiply;
-  }
-
-Vec2 Material::loadVec2(const std::string& src) {
-  if(src=="=")
-    return Vec2();
-
-  float       v[2] = {};
-  const char* str  = src.c_str();
-  for(int i=0;i<2;++i) {
-    char* next=nullptr;
-    v[i] = std::strtof(str,&next);
-    if(str==next) {
-      if(i==1)
-        return Vec2(v[0],v[0]);
-      }
-    str = next;
-    }
-  return Vec2(v[0],v[1]);
+  alpha = Parser::loadAlpha(src.visAlphaFunc_S);
   }
 
 bool Material::operator < (const Material& other) const {

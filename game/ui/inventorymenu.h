@@ -125,6 +125,6 @@ class InventoryMenu : public Tempest::Widget {
     void          drawSlot  (Tempest::Painter& p, DrawPass pass, const Inventory::Iterator& it,
                              const Page& page, const PageLocal &sel, int x, int y, size_t id);
     void          drawGold  (Tempest::Painter& p, Npc &player, int x, int y);
-    void          drawHeader(Tempest::Painter& p, const char *title, int x, int y);
+    void          drawHeader(Tempest::Painter& p, std::string_view title, int x, int y);
     void          drawInfo  (Tempest::Painter& p);
   };

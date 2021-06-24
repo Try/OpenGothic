@@ -15,16 +15,16 @@ class CameraDefinitions final {
     const Daedalus::GEngineClasses::CCamSys& deathCam()     const { return camModDeath;  }
     const Daedalus::GEngineClasses::CCamSys& swimCam()      const { return camModSwim;   }
     const Daedalus::GEngineClasses::CCamSys& diveCam()      const { return camModDive;   }
-    const Daedalus::GEngineClasses::CCamSys& mobsiCam(const char* tag,const char* pos) const;
+    const Daedalus::GEngineClasses::CCamSys& mobsiCam(std::string_view tag, std::string_view pos) const;
 
   private:
-    Daedalus::GEngineClasses::CCamSys loadCam(const char *name);
+    Daedalus::GEngineClasses::CCamSys loadCam(std::string_view name);
 
     struct Camera:Daedalus::GEngineClasses::CCamSys{
       std::string name;
       };
     std::vector<Camera> cameras;
-    const Camera* find(const char* name) const;
+    const Camera* find(std::string_view name) const;
 
     Daedalus::GEngineClasses::CCamSys camModDialog, camModInventory, camModNormal, camModDeath, camModSwim, camModDive;
     Daedalus::GEngineClasses::CCamSys camModMelee, camModRange, camModMage;

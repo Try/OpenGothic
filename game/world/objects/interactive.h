@@ -34,25 +34,25 @@ class Interactive : public Vob {
     void                updateAnimation();
     void                tick(uint64_t dt);
 
-    const std::string&  tag() const;
-    const std::string&  focusName() const;
-    bool                checkMobName(const char* dest) const;
-    const std::string&  ownerName() const;
+    std::string_view    tag() const;
+    std::string_view    focusName() const;
+    bool                checkMobName(std::string_view dest) const;
+    std::string_view    ownerName() const;
 
     bool                overrideFocus() const;
 
     Tempest::Vec3       displayPosition() const;
-    const char*         displayName() const;
+    std::string_view    displayName() const;
 
     int32_t             stateId() const { return state; }
     int32_t             stateCount() const { return stateNum; }
-    bool                setMobState(const char* scheme,int32_t st) override;
+    bool                setMobState(std::string_view scheme,int32_t st) override;
     void                emitTriggerEvent() const;
-    const char*         schemeName() const;
-    const char*         posSchemeName() const;
+    std::string_view    schemeName() const;
+    std::string_view    posSchemeName() const;
 
     bool                isContainer() const;
-    const std::string&  pickLockCode() const { return pickLockStr; }
+    std::string_view    pickLockCode() const { return pickLockStr; }
     void                setAsCracked(bool c) { isLockCracked = c; }
     bool                isCracked() const { return isLockCracked; }
     bool                needToLockpick(const Npc& pl) const;
@@ -102,7 +102,7 @@ class Interactive : public Vob {
     void                setPos(Npc& npc, const Tempest::Vec3& pos);
     void                setDir(Npc& npc,const Tempest::Matrix4x4& mt);
     bool                attach(Npc& npc,Pos& to);
-    void                implAddItem(char *name);
+    void                implAddItem(std::string_view name);
     void                autoDettachNpc();
     void                implChState(bool next);
     bool                checkUseConditions(Npc& npc);

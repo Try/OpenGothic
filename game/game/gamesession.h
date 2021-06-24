@@ -52,15 +52,8 @@ class GameSession final {
 
     auto         loadScriptCode() -> std::vector<uint8_t>;
 
-    SoundFx*     loadSoundFx    (const char *name);
-    SoundFx*     loadSoundWavFx (const char *name);
-    auto         loadParticleFx (const char* name) -> const ParticleFx*;
-    auto         loadParticleFx (const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k) -> const ParticleFx*;
-    auto         loadVisualFx   (const char* name) -> const VisualFx*;
-    auto         loadSound      (const Tempest::Sound& raw) -> Tempest::SoundEffect;
-    auto         loadSound      (const SoundFx&        fx, bool& looped)  -> Tempest::SoundEffect;
-    void         emitGlobalSound(const Tempest::Sound& sfx);
-    void         emitGlobalSound(const std::string& sfx);
+    auto         loadSound(const Tempest::Sound& raw) -> Tempest::SoundEffect;
+    auto         loadSound(const SoundFx&        fx, bool& looped)  -> Tempest::SoundEffect;
 
     Npc*         player();
     void         updateListenerPos(Npc& npc);

@@ -45,8 +45,8 @@ class World final {
       int32_t guild=GIL_NONE;
       };
 
-    void                 createPlayer(const char* cls);
-    void                 insertPlayer(std::unique_ptr<Npc>&& npc, const char *waypoint);
+    void                 createPlayer(std::string_view cls);
+    void                 insertPlayer(std::unique_ptr<Npc>&& npc, std::string_view waypoint);
     void                 postInit();
     const std::string&   name() const { return wname; }
 
@@ -62,14 +62,13 @@ class World final {
     uint32_t             itmId(const void* ptr) const;
     Item*                itmById(uint32_t id);
 
-    const WayPoint*      findPoint(const std::string& s, bool inexact=true) const { return findPoint(s.c_str(),inexact); }
-    const WayPoint*      findPoint(const char* name, bool inexact=true) const;
+    const WayPoint*      findPoint(std::string_view name, bool inexact=true) const;
     const WayPoint*      findWayPoint(const Tempest::Vec3& pos) const;
 
-    const WayPoint*      findFreePoint(const Npc& pos,           const char* name) const;
-    const WayPoint*      findFreePoint(const Tempest::Vec3& pos, const char* name) const;
+    const WayPoint*      findFreePoint(const Npc& pos,           std::string_view name) const;
+    const WayPoint*      findFreePoint(const Tempest::Vec3& pos, std::string_view name) const;
 
-    const WayPoint*      findNextFreePoint(const Npc& pos,const char* name) const;
+    const WayPoint*      findNextFreePoint(const Npc& pos, std::string_view name) const;
     const WayPoint*      findNextPoint(const WayPoint& pos) const;
 
     void                 detectNpcNear(std::function<void(Npc&)> f);
@@ -94,7 +93,7 @@ class World final {
     void                 runEffect(Effect&& e);
     void                 stopEffect(const VisualFx& vfx);
 
-    GlobalFx             addGlobalEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc);
+    GlobalFx             addGlobalEffect(const Daedalus::ZString& what, uint64_t len, const Daedalus::ZString* argv, size_t argc);
     MeshObjects::Mesh    addView(const Daedalus::ZString& visual) const;
     MeshObjects::Mesh    addView(const char*              visual) const;
     MeshObjects::Mesh    addView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
@@ -106,9 +105,6 @@ class World final {
     MeshObjects::Mesh    addStaticView(const ProtoMesh* visual);
     MeshObjects::Mesh    addStaticView(const char* visual);
     MeshObjects::Mesh    addDecalView (const ZenLoad::zCVobData& vob);
-
-    const VisualFx*      loadVisualFx(const char* name);
-    const ParticleFx*    loadParticleFx(const char* name) const;
 
     void                 updateAnimation();
     void                 resetPositionToTA();
@@ -124,9 +120,6 @@ class World final {
     void                 setDayTime(int32_t h,int32_t min);
     gtime                time() const;
 
-    Daedalus::PARSymbol& getSymbol(const char* s) const;
-    size_t               getSymbolIndex(const char* s) const;
-
     Focus                validateFocus(const Focus& def);
     Focus                findFocus(const Npc& pl, const Focus &def);
     Focus                findFocus(const Focus& def);
@@ -137,6 +130,8 @@ class World final {
     void                 execTriggerEvent(const TriggerEvent& e);
     void                 enableTicks (AbstractTrigger& t);
     void                 disableTicks(AbstractTrigger& t);
+    void                 enableCollizionZone (CollisionZone& z);
+    void                 disableCollizionZone(CollisionZone& z);
 
     Interactive*         aviableMob(const Npc &pl, const char* name);
     Interactive*         findInteractive(const Npc& pl);
@@ -150,10 +145,10 @@ class World final {
     bool                 aiIsDlgFinished();
 
     bool                 isTargeted (Npc& npc);
-    Npc*                 addNpc     (const char* name,    const Daedalus::ZString& at);
-    Npc*                 addNpc     (size_t itemInstance, const Daedalus::ZString& at);
-    Npc*                 addNpc     (size_t itemInstance, const Tempest::Vec3&     at);
-    Item*                addItem    (size_t itemInstance, const char *at);
+    Npc*                 addNpc     (std::string_view name, std::string_view     at);
+    Npc*                 addNpc     (size_t itemInstance,   std::string_view     at);
+    Npc*                 addNpc     (size_t itemInstance,   const Tempest::Vec3& at);
+    Item*                addItem    (size_t itemInstance,   std::string_view     at);
     Item*                addItem    (const ZenLoad::zCVobData& vob);
     Item*                addItem    (size_t itemInstance, const Tempest::Vec3& pos);
     Item*                takeItem   (Item& it);
@@ -169,15 +164,15 @@ class World final {
     bool                 isInSfxRange(const Tempest::Vec3& pos) const;
     bool                 isInPfxRange(const Tempest::Vec3& pos) const;
 
-    void                 addDlgSound     (const char *s, const Tempest::Vec3& pos, float range, uint64_t &timeLen);
+    void                 addDlgSound     (std::string_view s, const Tempest::Vec3& pos, float range, uint64_t &timeLen);
     void                 addWeaponsSound (Npc& self,Npc& other);
     void                 addLandHitSound (float x, float y, float z, uint8_t m0, uint8_t m1);
     void                 addBlockSound   (Npc& self,Npc& other);
 
     void                 addTrigger    (AbstractTrigger* trigger);
     void                 addInteractive(Interactive* inter);
-    void                 addStartPoint (const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
-    void                 addFreePoint  (const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
+    void                 addStartPoint (const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
+    void                 addFreePoint  (const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
     void                 addSound      (const ZenLoad::zCVobData& vob);
 
     void                 invalidateVobIndex();

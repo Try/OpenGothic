@@ -24,7 +24,7 @@ const FightAi::FA& FightAi::operator[](size_t i) const {
   return tmp;
   }
 
-Daedalus::GEngineClasses::C_FightAI FightAi::loadAi(Daedalus::DaedalusVM& vm,const char *name) {
+Daedalus::GEngineClasses::C_FightAI FightAi::loadAi(Daedalus::DaedalusVM& vm, const char* name) {
   Daedalus::GEngineClasses::C_FightAI ret={};
   auto id = vm.getDATFile().getSymbolIndexByName(name);
   if(id==size_t(-1))

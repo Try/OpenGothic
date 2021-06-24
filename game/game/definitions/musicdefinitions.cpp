@@ -23,10 +23,13 @@ MusicDefinitions::~MusicDefinitions() {
   vm->clearReferences(Daedalus::IC_MusicTheme);
   }
 
-const Daedalus::GEngineClasses::C_MusicTheme* MusicDefinitions::operator[](const char *name) const {
+const Daedalus::GEngineClasses::C_MusicTheme* MusicDefinitions::operator[](std::string_view name) const {
   if(!vm)
     return nullptr;
-  auto id = vm->getDATFile().getSymbolIndexByName(name);
+
+  char buf[256]={};
+  std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
+  auto id = vm->getDATFile().getSymbolIndexByName(buf);
   if(id==size_t(-1))
     return nullptr;
   for(auto& i:themes) {

@@ -6,6 +6,7 @@
 
 #include <Tempest/Texture2d>
 
+#include "graphics/visualfx.h"
 #include "graphics/material.h"
 
 class PfxEmitterMesh;
@@ -13,8 +14,8 @@ class PfxEmitterMesh;
 class ParticleFx final {
   public:
     ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob);
-    ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX& src, const char* name);
-    ParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& src, const Daedalus::GEngineClasses::C_ParticleFX& proto);
+    ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX& src, std::string_view name);
+    ParticleFx(const ParticleFx& proto, const VisualFx::Key& key);
 
     enum class EmitterType:uint8_t {
       Point,
@@ -59,7 +60,7 @@ class ParticleFx final {
     bool          ppsIsLooping        = false;
     bool          ppsIsSmooth         = false;
     float         ppsFPS              = 0;
-    const ParticleFx* ppsCreateEm    = nullptr;
+    const ParticleFx* ppsCreateEm     = nullptr;
     uint64_t      ppsCreateEmDelay    = 0;
 
     EmitterType   shpType             = EmitterType::Point;
@@ -134,9 +135,7 @@ class ParticleFx final {
 
   private:
     uint64_t             calcPrefferedTimeSingle() const;
-    static auto          loadTexture(const char* src) -> const Tempest::Texture2d*;
-    static Tempest::Vec2 loadVec2(const Daedalus::ZString& src);
-    static Tempest::Vec3 loadVec3(const Daedalus::ZString& src);
+    static auto          loadTexture(std::string_view src) -> const Tempest::Texture2d*;
     static KeyList       loadArr(const Daedalus::ZString& src);
     static EmitterType   loadEmitType(const Daedalus::ZString& src);
     static Frame         loadFrameType(const Daedalus::ZString& src);

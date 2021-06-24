@@ -5,7 +5,7 @@
 #include <cctype>
 
 namespace FileExt {
-  inline bool hasExt(const std::string& s,const char* extIn) {
+  inline bool hasExt(std::string_view s,const char* extIn) {
     if(extIn==nullptr)
       return std::string::npos==s.find('.');
     const size_t l = std::strlen(extIn);

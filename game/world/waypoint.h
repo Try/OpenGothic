@@ -10,8 +10,8 @@ class WayPoint final {
   public:
     WayPoint();
     WayPoint(const ZenLoad::zCWaypointData& dat);
-    WayPoint(const Tempest::Vec3& pos, const char* name);
-    WayPoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir,const char* name);
+    WayPoint(const Tempest::Vec3& pos, std::string_view name);
+    WayPoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
     WayPoint(const WayPoint&)=default;
     WayPoint(WayPoint&&)=default;
 
@@ -20,9 +20,7 @@ class WayPoint final {
     bool isFreePoint() const;
 
     uint32_t useCounter() const { return useCount; }
-
-    bool checkName(const std::string& name) const;
-    bool checkName(const char* name) const;
+    bool checkName(std::string_view name) const;
 
     Tempest::Vec3 position() const;
 
@@ -55,7 +53,7 @@ class WayPoint final {
 
     std::vector<Conn> conn;
 
-    static std::string upcaseof(const std::string& src);
+    static std::string upcaseof(std::string_view src);
 
   friend class FpLock;
   };

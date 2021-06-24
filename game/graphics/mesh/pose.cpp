@@ -172,7 +172,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
   return true;
   }
 
-bool Pose::stopAnim(const char *name) {
+bool Pose::stopAnim(std::string_view name) {
   bool done=false;
   size_t ret=0;
   for(size_t i=0;i<lay.size();++i) {
@@ -573,7 +573,7 @@ bool Pose::isIdle() const {
   return true;
   }
 
-bool Pose::isInAnim(const char* sq) const {
+bool Pose::isInAnim(std::string_view sq) const {
   for(auto& i:lay)
     if(i.seq->name==sq)
       return true;
@@ -636,7 +636,7 @@ const Tempest::Matrix4x4& Pose::bone(size_t id) const {
   return tr[id];
   }
 
-size_t Pose::findNode(const char* b) const {
+size_t Pose::findNode(std::string_view b) const {
   if(skeleton!=nullptr)
     return skeleton->findNode(b);
   return size_t(-1);
@@ -672,9 +672,9 @@ void Pose::setRotation(const AnimationSolver &solver, Npc &npc, WeaponState figh
     }
   }
 
-bool Pose::setAnimItem(const AnimationSolver &solver, Npc &npc, const char *scheme, int state) {
+bool Pose::setAnimItem(const AnimationSolver &solver, Npc &npc, std::string_view scheme, int state) {
   char T_ID_STAND_2_S0[128]={};
-  std::snprintf(T_ID_STAND_2_S0,sizeof(T_ID_STAND_2_S0),"T_%s_STAND_2_S0",scheme);
+  std::snprintf(T_ID_STAND_2_S0,sizeof(T_ID_STAND_2_S0),"T_%.*s_STAND_2_S0",int(scheme.size()),scheme.data());
   const Animation::Sequence *sq = solver.solveFrm(T_ID_STAND_2_S0);
   if(startAnim(solver,sq,0,BS_ITEMINTERACT,Pose::NoHint,npc.world().tickCount())) {
     itemUseSt     = 0;

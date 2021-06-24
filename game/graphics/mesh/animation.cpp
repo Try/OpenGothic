@@ -32,7 +32,7 @@ static uint64_t frameClamp(int32_t frame,uint32_t first,uint32_t numFrames,uint3
   return uint64_t(frame)-first;
   }
 
-Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ignoreErrChunks) {
+Animation::Animation(ZenLoad::MdsParser &p, std::string_view name, const bool ignoreErrChunks) {
   AnimData* current=nullptr;
 
   while(true) {
@@ -47,7 +47,7 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
         break;
         }
       case ZenLoad::MdsParser::CHUNK_ANI: {
-        auto& ani      = loadMAN(name+'-'+p.ani.m_Name+".MAN");
+        auto& ani      = loadMAN(std::string(name)+'-'+p.ani.m_Name+".MAN");
         //auto& ani      = loadMAN(p.ani.m_Asc);
         current        = ani.data.get();
 
@@ -201,8 +201,8 @@ Animation::Animation(ZenLoad::MdsParser &p,const std::string& name,const bool ig
     }
   }
 
-const Animation::Sequence* Animation::sequence(const char *name) const {
-  auto it = std::lower_bound(sequences.begin(),sequences.end(),name,[](const Sequence& s,const char* n){
+const Animation::Sequence* Animation::sequence(std::string_view name) const {
+  auto it = std::lower_bound(sequences.begin(),sequences.end(),name,[](const Sequence& s,std::string_view n){
     return s.name<n;
     });
 
@@ -211,7 +211,7 @@ const Animation::Sequence* Animation::sequence(const char *name) const {
   return nullptr;
   }
 
-const Animation::Sequence *Animation::sequenceAsc(const char *name) const {
+const Animation::Sequence *Animation::sequenceAsc(std::string_view name) const {
   for(auto& i:sequences)
     if(i.askName==name)
       return &i;
@@ -465,7 +465,7 @@ void Animation::Sequence::processPfx(uint64_t barrier, uint64_t sTime, uint64_t 
        i.m_Frame==int32_t(d.lastFrame)) {
       if(i.m_Name.empty())
         continue;
-      Effect e(PfxEmitter(world,i.m_Name),i.m_Pos.c_str());
+      Effect e(PfxEmitter(world,i.m_Name),i.m_Pos);
       e.setLooped(true);
       e.setActive(true);
       visual.startEffect(world,std::move(e),i.m_Num,false);

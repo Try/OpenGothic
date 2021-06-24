@@ -10,7 +10,7 @@
 
 class Skeleton final {
   public:
-    Skeleton(const ZenLoad::zCModelMeshLib& src, const Animation* anim, const char* name);
+    Skeleton(const ZenLoad::zCModelMeshLib& src, const Animation* anim, std::string_view name);
 
     struct Node final {
       size_t             parent=size_t(-1);
@@ -26,11 +26,10 @@ class Skeleton final {
 
     ZMath::float3                   bboxCol[2]={};
 
-    size_t                          findNode(const char*        name,size_t def=size_t(-1)) const;
-    size_t                          findNode(const std::string& name,size_t def=size_t(-1)) const;
+    size_t                          findNode(std::string_view   name,size_t def=size_t(-1)) const;
 
     const std::string&              name() const { return fileName; }
-    const Animation::Sequence*      sequence(const char* name) const;
+    const Animation::Sequence*      sequence(std::string_view name) const;
     const Animation*                animation() const { return anim; }
     void                            debug() const;
     const std::string&              defaultMesh() const;

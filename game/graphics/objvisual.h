@@ -22,8 +22,8 @@ class ObjVisual {
     void setVisual(const ZenLoad::zCVobData& visual, World& world);
     void setObjMatrix(const Tempest::Matrix4x4& obj);
 
-    const Animation::Sequence* startAnimAndGet(const char* name, uint64_t tickCount, bool force = false);
-    bool isAnimExist(const char* name) const;
+    const Animation::Sequence* startAnimAndGet(std::string_view name, uint64_t tickCount, bool force = false);
+    bool isAnimExist(std::string_view name) const;
 
     bool updateAnimation(Npc* npc, World& world);
     void processLayers(World& world);

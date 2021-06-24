@@ -190,12 +190,14 @@ const Tempest::Texture2d *Gothic::loadingBanner() const {
   return loadTex;
   }
 
-SoundFx *Gothic::loadSoundFx(const char *name) {
-  if(name==nullptr || *name=='\0')
+SoundFx *Gothic::loadSoundFx(std::string_view name) {
+  if(name.empty())
     return nullptr;
 
+  auto cname = std::string(name);
+
   std::lock_guard<std::mutex> guard(syncSnd);
-  auto it=sndFxCache.find(name);
+  auto it=sndFxCache.find(cname);
   if(it!=sndFxCache.end())
     return &it->second;
 
@@ -203,17 +205,18 @@ SoundFx *Gothic::loadSoundFx(const char *name) {
     auto ret = sndFxCache.emplace(name,SoundFx(name));
     return &ret.first->second;
     }
-  catch(...){
-    Tempest::Log::e("unable to load soundfx \"",name,"\"");
+  catch(...) {
+    Tempest::Log::e("unable to load soundfx \"",cname,"\"");
     return nullptr;
     }
   }
 
-SoundFx *Gothic::loadSoundWavFx(const char* name) {
-  auto snd = Resources::loadSoundBuffer(name);
+SoundFx *Gothic::loadSoundWavFx(std::string_view name) {
+  auto snd   = Resources::loadSoundBuffer(name);
+  auto cname = std::string(name);
 
   std::lock_guard<std::mutex> guard(syncSnd);
-  auto it=sndWavCache.find(name);
+  auto it=sndWavCache.find(cname);
   if(it!=sndWavCache.end())
     return &it->second;
 
@@ -221,30 +224,26 @@ SoundFx *Gothic::loadSoundWavFx(const char* name) {
     auto ret = sndWavCache.emplace(name,SoundFx(std::move(snd)));
     return &ret.first->second;
     }
-  catch(...){
-    Tempest::Log::e("unable to load soundfx \"",name,"\"");
+  catch(...) {
+    Tempest::Log::e("unable to load soundfx \"",cname,"\"");
     return nullptr;
     }
   }
 
-const VisualFx* Gothic::loadVisualFx(const char *name) {
+const VisualFx* Gothic::loadVisualFx(std::string_view name) {
   return vfxDef->get(name);
   }
 
-const ParticleFx* Gothic::loadParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k) {
-  return particleDef->get(k);
-  }
-
-const ParticleFx* Gothic::loadParticleFx(const char *name) {
+const ParticleFx* Gothic::loadParticleFx(std::string_view name) {
   return particleDef->get(name);
   }
 
-void Gothic::emitGlobalSound(const char *sfx) {
-  emitGlobalSound(loadSoundFx(sfx));
+const ParticleFx* Gothic::loadParticleFx(const ParticleFx* base, const VisualFx::Key* key) {
+  return particleDef->get(base,key);
   }
 
-void Gothic::emitGlobalSound(const std::string &sfx) {
-  emitGlobalSound(loadSoundFx(sfx.c_str()));
+void Gothic::emitGlobalSound(std::string_view sfx) {
+  emitGlobalSound(loadSoundFx(sfx));
   }
 
 void Gothic::emitGlobalSound(const SoundFx *sfx) {
@@ -341,18 +340,18 @@ bool Gothic::finishLoading() {
 void Gothic::startSave(Tempest::Texture2d&& tex,
                        const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f) {
   saveTex = std::move(tex);
-  implStartLoadSave(nullptr,false,f);
+  implStartLoadSave("",false,f);
   }
 
-void Gothic::startLoad(const char* banner,
+void Gothic::startLoad(std::string_view banner,
                        const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f) {
   implStartLoadSave(banner,true,f);
   }
 
-void Gothic::implStartLoadSave(const char* banner,
+void Gothic::implStartLoadSave(std::string_view banner,
                                bool load,
                                const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f) {
-  loadTex = banner==nullptr ? &saveTex : Resources::loadTexture(banner);
+  loadTex = banner.empty() ? &saveTex : Resources::loadTexture(banner);
   loadProgress.store(0);
 
   auto zero=LoadState::Idle;
@@ -482,7 +481,7 @@ const CameraDefinitions& Gothic::cameraDef() {
   return *instance->camDef;
   }
 
-const Daedalus::ZString &Gothic::messageFromSvm(const Daedalus::ZString &id, int voice) const {
+const Daedalus::ZString& Gothic::messageFromSvm(const Daedalus::ZString &id, int voice) const {
   if(!game){
     static Daedalus::ZString empty;
     return empty;
@@ -490,7 +489,7 @@ const Daedalus::ZString &Gothic::messageFromSvm(const Daedalus::ZString &id, int
   return game->messageFromSvm(id,voice);
   }
 
-const Daedalus::ZString &Gothic::messageByName(const Daedalus::ZString& id) const {
+const Daedalus::ZString& Gothic::messageByName(const Daedalus::ZString& id) const {
   if(!game){
     static Daedalus::ZString empty;
     return empty;
@@ -499,9 +498,8 @@ const Daedalus::ZString &Gothic::messageByName(const Daedalus::ZString& id) cons
   }
 
 uint32_t Gothic::messageTime(const Daedalus::ZString& id) const {
-  if(!game){
+  if(!game)
     return 0;
-    }
   return game->messageTime(id);
   }
 
@@ -528,35 +526,35 @@ std::unique_ptr<Daedalus::DaedalusVM> Gothic::createVm(const char16_t *datFile) 
   return vm;
   }
 
-int Gothic::settingsGetI(const char *sec, const char *name) {
+int Gothic::settingsGetI(std::string_view sec, std::string_view name) {
   if(instance->iniFile->has(sec,name))
     return instance->iniFile->getI(sec,name);
   return instance->baseIniFile->getI(sec,name);
   }
 
-void Gothic::settingsSetI(const char *sec, const char *name, int val) {
+void Gothic::settingsSetI(std::string_view sec, std::string_view name, int val) {
   instance->iniFile->set(sec,name,val);
   instance->onSettingsChanged();
   }
 
-const std::string& Gothic::settingsGetS(const char* sec, const char* name) {
+const std::string& Gothic::settingsGetS(std::string_view sec, std::string_view name) {
   if(instance->iniFile->has(sec,name))
     return instance->iniFile->getS(sec,name);
   return instance->baseIniFile->getS(sec,name);
   }
 
-void Gothic::settingsSetS(const char* sec, const char* name, const char* val) {
+void Gothic::settingsSetS(std::string_view sec, std::string_view name, const char* val) {
   instance->iniFile->set(sec,name,val);
   instance->onSettingsChanged();
   }
 
-float Gothic::settingsGetF(const char* sec, const char* name) {
+float Gothic::settingsGetF(std::string_view sec, std::string_view name) {
   if(instance->iniFile->has(sec,name))
     return instance->iniFile->getF(sec,name);
   return instance->baseIniFile->getF(sec,name);
   }
 
-void Gothic::settingsSetF(const char* sec, const char* name, float val) {
+void Gothic::settingsSetF(std::string_view sec, std::string_view name, float val) {
   instance->iniFile->set(sec,name,val);
   instance->onSettingsChanged();
   }

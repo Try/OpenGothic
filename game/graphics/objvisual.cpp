@@ -204,14 +204,14 @@ void ObjVisual::setObjMatrix(const Tempest::Matrix4x4& obj) {
     }
   }
 
-const Animation::Sequence* ObjVisual::startAnimAndGet(const char* name, uint64_t tickCount, bool force) {
+const Animation::Sequence* ObjVisual::startAnimAndGet(std::string_view name, uint64_t tickCount, bool force) {
   if(type==M_Mdl) {
     return mdl.view.startAnimAndGet(name,tickCount,force);
     }
   return nullptr;
   }
 
-bool ObjVisual::isAnimExist(const char* name) const {
+bool ObjVisual::isAnimExist(std::string_view name) const {
   if(type==M_Mdl)
     return mdl.view.isAnimExist(name);
   return false;

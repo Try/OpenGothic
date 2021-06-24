@@ -15,31 +15,39 @@ VisualFxDefinitions::~VisualFxDefinitions() {
   vm->clearReferences(Daedalus::IC_Pfx);
   }
 
-const VisualFx *VisualFxDefinitions::get(const char *name) {
-  auto it = vfx.find(name);
+const VisualFx* VisualFxDefinitions::get(std::string_view name) {
+  std::string cname = std::string(name);
+  auto it = vfx.find(cname);
   if(it!=vfx.end())
     return it->second.get();
-  auto def = implGet(name);
-  if(def==nullptr)
+
+  Daedalus::GEngineClasses::CFx_Base def;
+  if(!implGet(cname,def))
     return nullptr;
 
-  std::unique_ptr<VisualFx> p{new VisualFx(std::move(*def),*vm,name)};
-  auto ret = vfx.insert(std::make_pair<std::string,std::unique_ptr<VisualFx>>(name,std::move(p)));
-  return ret.first->second.get();
+  auto ret = vfx.insert(std::make_pair<std::string,std::unique_ptr<VisualFx>>(std::move(cname),nullptr));
+  ret.first->second.reset(new VisualFx(def,*vm,name));
+
+  auto& vfx = *ret.first->second;
+  vfx.dbgName = name.data();
+
+  return &vfx;
   }
 
-Daedalus::GEngineClasses::CFx_Base *VisualFxDefinitions::implGet(const char *name) {
-  static Daedalus::GEngineClasses::CFx_Base ret={};
-  if(!vm || name==nullptr || name[0]=='\0')
-    return nullptr;
+bool VisualFxDefinitions::implGet(std::string_view name,
+                                  Daedalus::GEngineClasses::CFx_Base& ret) {
+  if(!vm || name.empty())
+    return false;
 
-  auto id = vm->getDATFile().getSymbolIndexByName(name);
+  char buf[256] = {};
+  std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
+  auto id = vm->getDATFile().getSymbolIndexByName(buf);
   if(id==size_t(-1)) {
-    Log::e("invalid visual effect: \"",name,"\"");
-    return nullptr;
+    Log::e("invalid visual effect: \"",buf,"\"");
+    return false;
     }
 
   vm->initializeInstance(ret, id, Daedalus::IC_Vfx);
   vm->clearReferences(Daedalus::IC_Vfx);
-  return &ret;
+  return true;
   }

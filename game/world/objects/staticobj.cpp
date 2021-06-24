@@ -20,7 +20,7 @@ void StaticObj::moveEvent() {
   visual.setObjMatrix(transform());
   }
 
-bool StaticObj::setMobState(const char* sc, int32_t st) {
+bool StaticObj::setMobState(std::string_view sc, int32_t st) {
   const bool ret = Vob::setMobState(sc,st);
 
   if(scheme.find(sc)!=0)

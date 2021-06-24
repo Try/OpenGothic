@@ -125,10 +125,10 @@ class Animation final {
       bool        disabled = false;
       };
 
-    Animation(ZenLoad::MdsParser &p, const std::string &name, bool ignoreErrChunks);
+    Animation(ZenLoad::MdsParser &p, std::string_view name, bool ignoreErrChunks);
 
-    const Sequence*    sequence(const char* name) const;
-    const Sequence*    sequenceAsc(const char* name) const;
+    const Sequence*    sequence(std::string_view name) const;
+    const Sequence*    sequenceAsc(std::string_view name) const;
     void               debug() const;
     const std::string& defaultMesh() const;
 

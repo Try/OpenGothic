@@ -217,7 +217,7 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       p.pos = Vec3(std::sin(phi) * std::cos(theta),
                    std::sin(phi) * std::sin(theta),
                    std::cos(phi));
-      p.pos*=0.5;
+      //p.pos*=0.5;
       if(decl.shpIsVolume)
         p.pos*=randf();
       break;
@@ -227,7 +227,7 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       p.pos = Vec3(std::sin(a),
                    0,
                    std::cos(a));
-      p.pos*=0.5;
+      //p.pos*=0.5;
       if(decl.shpIsVolume)
         p.pos = p.pos*std::sqrt(randf());
       break;

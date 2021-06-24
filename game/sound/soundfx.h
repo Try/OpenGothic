@@ -10,7 +10,7 @@ class GSoundEffect;
 
 class SoundFx {
   public:
-    SoundFx(const char *tagname);
+    SoundFx(std::string_view tagname);
     SoundFx(Tempest::Sound &&raw);
     SoundFx(SoundFx&&)=default;
     SoundFx& operator=(SoundFx&&)=default;
@@ -29,7 +29,7 @@ class SoundFx {
       };
 
     std::vector<SoundVar> inst;
-    void implLoad    (const char* name);
-    void loadVariants(const char* name);
+    void implLoad    (std::string_view name);
+    void loadVariants(std::string_view name);
   };
 

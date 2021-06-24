@@ -177,7 +177,7 @@ class Npc final {
 
     using Anim = AnimationSolver::Anim;
 
-    Npc(World &owner, size_t instance, const Daedalus::ZString& waypoint);
+    Npc(World &owner, size_t instance, std::string_view waypoint);
     Npc(World &owner, Serialize& fin);
     Npc(const Npc&)=delete;
     ~Npc();
@@ -231,16 +231,16 @@ class Npc final {
     void       updateAnimation();
     void       updateTransform();
 
-    const char*displayName() const;
+    std::string_view displayName() const;
     auto       displayPosition() const -> Tempest::Vec3;
-    void       setVisual    (const char *visual);
-    void       setVisual    (const Skeleton *visual);
-    bool       hasOverlay   (const char*     sk) const;
-    bool       hasOverlay   (const Skeleton* sk) const;
-    void       addOverlay   (const char*     sk, uint64_t time);
-    void       addOverlay   (const Skeleton *sk, uint64_t time);
-    void       delOverlay   (const char*     sk);
-    void       delOverlay   (const Skeleton *sk);
+    void       setVisual    (std::string_view visual);
+    void       setVisual    (const Skeleton*  visual);
+    bool       hasOverlay   (std::string_view sk) const;
+    bool       hasOverlay   (const Skeleton*  sk) const;
+    void       addOverlay   (std::string_view sk, uint64_t time);
+    void       addOverlay   (const Skeleton*  sk, uint64_t time);
+    void       delOverlay   (std::string_view sk);
+    void       delOverlay   (const Skeleton*  sk);
 
     bool       toogleTorch();
 
@@ -251,10 +251,10 @@ class Npc final {
     void       setSword      (MeshObjects::Mesh&& sword);
     void       setRangeWeapon(MeshObjects::Mesh&& bow);
     void       setMagicWeapon(Effect&& spell);
-    void       setSlotItem   (MeshObjects::Mesh&& itm,const char* slot);
-    void       setStateItem  (MeshObjects::Mesh&& itm,const char* slot);
-    void       setAmmoItem   (MeshObjects::Mesh&& itm,const char* slot);
-    void       clearSlotItem (const char* slot);
+    void       setSlotItem   (MeshObjects::Mesh&& itm, std::string_view slot);
+    void       setStateItem  (MeshObjects::Mesh&& itm, std::string_view slot);
+    void       setAmmoItem   (MeshObjects::Mesh&& itm, std::string_view slot);
+    void       clearSlotItem (std::string_view slot);
     void       setPhysic     (DynamicWorld::NpcItem&& item);
     void       setFatness    (float f);
     void       setScale      (float x,float y,float z);
@@ -263,9 +263,9 @@ class Npc final {
     auto       setAnimAngGet(Anim a,bool noInterupt) -> const Animation::Sequence*;
     auto       setAnimAngGet(Anim a, bool noInterupt, uint8_t comb) -> const Animation::Sequence*;
     void       setAnimRotate(int rot);
-    bool       setAnimItem(const char* scheme, int state);
-    void       stopAnim(const std::string& ani);
-    void       startFaceAnim(const char* anim, float intensity, uint64_t duration);
+    bool       setAnimItem(std::string_view scheme, int state);
+    void       stopAnim(std::string_view ani);
+    void       startFaceAnim(std::string_view anim, float intensity, uint64_t duration);
     bool       stopItemStateAnim();
     bool       isFinishingMove() const;
 
@@ -460,9 +460,9 @@ class Npc final {
 
     bool      doAttack(Anim anim);
     void      takeDamage(Npc& other,const Bullet* b);
-    void      emitSoundEffect(const char* sound, float range, bool freeSlot);
-    void      emitSoundGround(const char* sound, float range, bool freeSlot);
-    void      emitSoundSVM   (const char* sound);
+    void      emitSoundEffect(std::string_view sound, float range, bool freeSlot);
+    void      emitSoundGround(std::string_view sound, float range, bool freeSlot);
+    void      emitSoundSVM   (std::string_view sound);
 
     void      startEffect(Npc& to, const VisualFx& vfx);
     void      stopEffect(const VisualFx& vfx);

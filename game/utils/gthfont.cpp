@@ -5,7 +5,7 @@
 
 using namespace Tempest;
 
-GthFont::GthFont(const char *name, const char *ftex, const Color &cl, const VDFS::FileIndex &fileIndex)
+GthFont::GthFont(const char *name, std::string_view ftex, const Color &cl, const VDFS::FileIndex &fileIndex)
   :fnt(name,fileIndex), color(cl) {
   tex = Resources::loadTexture(ftex);
   }
@@ -14,24 +14,20 @@ int GthFont::pixelSize() const {
   return int(fnt.getFontInfo().fontHeight);
   }
 
-void GthFont::drawText(Painter &p, int bx, int by, int bw, int bh, const std::string& txtChar, AlignFlag align) const {
-  drawText(p,bx,by,bw,bh,txtChar.c_str(),align);
-  }
-
 void GthFont::drawText(Painter &p, int bx, int by, int bw, int bh,
-                       const char *txtChar, Tempest::AlignFlag align) const {
-  if(tex==nullptr || txtChar==nullptr)
+                       std::string_view txt, Tempest::AlignFlag align) const {
+  if(tex==nullptr || txt.empty())
     return;
 
   auto b = p.brush();
   p.setBrush(Brush(*tex,color));
-  processText(&p,bx,by,bw,bh,txtChar,align);
+  processText(&p,bx,by,bw,bh,txt,align);
   p.setBrush(b);
   }
 
 Size GthFont::processText(Painter* p, int bx, int by, int bw, int /*bh*/,
-                          const char* txtChar, AlignFlag align) const {
-  const uint8_t* txt = reinterpret_cast<const uint8_t*>(txtChar);
+                          std::string_view txtView, AlignFlag align) const {
+  const uint8_t* txt = reinterpret_cast<const uint8_t*>(txtView.data());
 
   int   h  = pixelSize();
   int   x  = bx, y=by-h;
@@ -81,15 +77,11 @@ Size GthFont::processText(Painter* p, int bx, int by, int bw, int /*bh*/,
   return ret;
   }
 
-void GthFont::drawText(Painter &p, int x, int y, const std::string &txt) const {
-  drawText(p,x,y,txt.c_str());
-  }
-
-void GthFont::drawText(Tempest::Painter &p, int bx, int by, const char *txtChar) const {
-  if(tex==nullptr || txtChar==nullptr)
+void GthFont::drawText(Tempest::Painter &p, int bx, int by, std::string_view txtChar) const {
+  if(tex==nullptr || txtChar.empty())
     return;
 
-  const uint8_t* txt = reinterpret_cast<const uint8_t*>(txtChar);
+  const uint8_t* txt = reinterpret_cast<const uint8_t*>(txtChar.data());
 
   auto b = p.brush();
   p.setBrush(Brush(*tex,color));
@@ -112,14 +104,10 @@ void GthFont::drawText(Tempest::Painter &p, int bx, int by, const char *txtChar)
   p.setBrush(b);
   }
 
-Size GthFont::textSize(const std::string &txt) const {
-  return textSize(txt.c_str());
-  }
-
-Size GthFont::textSize(const char *txtChar) const {
-  if(txtChar==nullptr)
+Size GthFont::textSize(std::string_view txt) const {
+  if(txt.empty())
     return Size();
-  return textSize(txtChar,txtChar+std::strlen(txtChar));
+  return textSize(txt.data(),txt.data()+txt.size());
   }
 
 Size GthFont::textSize(const char* cb, const char* ce) const {

@@ -140,7 +140,7 @@ void Wave::implParse(Riff& input) {
   }
 
 size_t Wave::decodeAdpcm(Tempest::MemReader& rd, const size_t framesToRead,
-                           uint16_t blockAlign, uint16_t channels, int16_t* pBufferOut) {
+                         uint16_t blockAlign, uint16_t channels, int16_t* pBufferOut) {
   size_t total = 0;
   while(total<framesToRead) {
     size_t decoded = decodeAdpcmBlock(rd,framesToRead-total,blockAlign,channels,pBufferOut);

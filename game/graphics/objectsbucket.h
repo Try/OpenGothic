@@ -71,7 +71,7 @@ class ObjectsBucket final {
 
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setAsGhost  (bool g);
-        void   startMMAnim (const char* anim, float intensity, uint64_t timeUntil);
+        void   startMMAnim (std::string_view anim, float intensity, uint64_t timeUntil);
 
         const Bounds& bounds() const;
 
@@ -199,7 +199,7 @@ class ObjectsBucket final {
 
     void    setObjMatrix(size_t i, const Tempest::Matrix4x4& m);
     void    setBounds   (size_t i, const Bounds& b);
-    void    startMMAnim (size_t i, const char* anim, float intensity, uint64_t timeUntil);
+    void    startMMAnim (size_t i, std::string_view anim, float intensity, uint64_t timeUntil);
 
     bool    isSceneInfoRequired() const;
     void    updatePushBlock(UboPush& push, Object& v);

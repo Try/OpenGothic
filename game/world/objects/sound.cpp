@@ -2,11 +2,12 @@
 
 #include "game/gamesession.h"
 #include "world/world.h"
+#include "gothic.h"
 
 Sound::Sound() {
   }
 
-Sound::Sound(World& world, Sound::Type type, const char* s, const Tempest::Vec3& pos, float range, bool freeSlot) {
+Sound::Sound(World& world, Sound::Type type, std::string_view s, const Tempest::Vec3& pos, float range, bool freeSlot) {
   if(range<=0.f)
     range = 3500.f;
 
@@ -14,17 +15,18 @@ Sound::Sound(World& world, Sound::Type type, const char* s, const Tempest::Vec3&
   if(!owner.isInListenerRange(pos,range))
     return;
 
+  const auto cname = std::string(s);
   if(freeSlot) {
     std::lock_guard<std::mutex> guard(owner.sync);
-    auto slot = owner.freeSlot.find(s);
+    auto slot = owner.freeSlot.find(cname);
     if(slot!=owner.freeSlot.end() && !slot->second->eff.isFinished())
       return;
     }
 
   SoundFx* snd = nullptr;
   if(type==T_Raw)
-    snd = owner.game.loadSoundWavFx(s); else
-    snd = owner.game.loadSoundFx(s);
+    snd = Gothic::inst().loadSoundWavFx(s); else
+    snd = Gothic::inst().loadSoundFx(s);
 
   if(snd==nullptr)
     return;
@@ -39,7 +41,7 @@ Sound::Sound(World& world, Sound::Type type, const char* s, const Tempest::Vec3&
     case T_Regular:
     case T_Raw: {
       if(freeSlot)
-        owner.freeSlot[s] = val; else
+        owner.freeSlot[cname] = val; else
         owner.effect.emplace_back(val);
       break;
       }
@@ -97,6 +99,10 @@ void Sound::setMaxDistance(float v) {
 void Sound::setRefDistance(float v) {
   if(val!=nullptr)
     val->eff.setRefDistance(v);
+  }
+
+void Sound::setPosition(const Tempest::Vec3& pos) {
+  setPosition(pos.x,pos.y,pos.z);
   }
 
 void Sound::setPosition(float x, float y, float z) {

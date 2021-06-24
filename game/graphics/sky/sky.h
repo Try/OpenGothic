@@ -53,8 +53,8 @@ class Sky final {
       };
 
     static std::array<float,3>    mkColor(uint8_t r,uint8_t g,uint8_t b);
-    const Tempest::Texture2d*     skyTexture(const char* name, bool day, size_t id);
-    const Tempest::Texture2d*     implSkyTexture(const char* name, bool day, size_t id);
+    const Tempest::Texture2d*     skyTexture(std::string_view name, bool day, size_t id);
+    const Tempest::Texture2d*     implSkyTexture(std::string_view name, bool day, size_t id);
 
     const SceneGlobals&           scene;
     float                         nightFlt = 0.f;

@@ -10,6 +10,8 @@ class GlobalFx {
     GlobalFx& operator = (GlobalFx&& other);
     ~GlobalFx();
 
+    uint64_t effectPrefferedTime() const;
+
   private:
     GlobalFx(const std::shared_ptr<GlobalEffects::Effect>& h);
     std::shared_ptr<GlobalEffects::Effect> h;

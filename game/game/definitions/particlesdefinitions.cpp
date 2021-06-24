@@ -16,65 +16,59 @@ ParticlesDefinitions::~ParticlesDefinitions() {
   vm->clearReferences(Daedalus::IC_Pfx);
   }
 
-const ParticleFx* ParticlesDefinitions::get(const char *n) {
-  if(n==nullptr || n[0]=='\0')
+const ParticleFx* ParticlesDefinitions::get(std::string_view name) {
+  if(name.empty())
     return nullptr;
 
-  std::string name = n;
   while(FileExt::hasExt(name,"PFX"))
-    name.resize(name.size()-4);
+    name = name.substr(0,name.size()-4);
 
-  std::lock_guard<std::mutex> guard(sync);
-  return implGet(name.c_str());
+  std::lock_guard<std::recursive_mutex> guard(sync);
+  return implGet(name);
   }
 
-const ParticleFx* ParticlesDefinitions::get(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k) {
-  std::lock_guard<std::mutex> guard(sync);
-  return implGet(k);
+const ParticleFx* ParticlesDefinitions::get(const ParticleFx* base, const VisualFx::Key* key) {
+  if(base==nullptr || key==nullptr)
+    return base;
+  std::lock_guard<std::recursive_mutex> guard(sync);
+  return implGet(*base,*key);
   }
 
-const ParticleFx* ParticlesDefinitions::implGet(const char* name) {
-  auto it = pfx.find(name);
+const ParticleFx* ParticlesDefinitions::implGet(std::string_view name) {
+  auto cname = std::string(name);
+  auto it    = pfx.find(cname);
   if(it!=pfx.end())
     return it->second.get();
   Daedalus::GEngineClasses::C_ParticleFX decl={};
   if(!implGet(name,decl))
     return nullptr;
   std::unique_ptr<ParticleFx> p{new ParticleFx(decl,name)};
-  auto elt = pfx.insert(std::pair<std::string,std::unique_ptr<ParticleFx>>(name,std::move(p)));
+  auto elt = pfx.insert(std::make_pair(std::move(cname),std::move(p)));
 
-  auto* ret = elt.first->second.get();
-  if(!decl.ppsCreateEm_S.empty())
-    ret->ppsCreateEm = implGet(decl.ppsCreateEm_S.c_str());
-  return ret;
+  return elt.first->second.get();
   }
 
-const ParticleFx* ParticlesDefinitions::implGet(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k) {
-  auto it = pfxKey.find(k.instanceSymbol);
+const ParticleFx* ParticlesDefinitions::implGet(const ParticleFx& base, const VisualFx::Key& key) {
+  auto it = pfxKey.find(&key);
   if(it!=pfxKey.end())
     return it->second.get();
 
-  Daedalus::GEngineClasses::C_ParticleFX decl={};
-  if(!implGet(k.visName_S.c_str(),decl))
-    return nullptr;
+  std::unique_ptr<ParticleFx> p{new ParticleFx(base,key)};
+  auto elt = pfxKey.insert(std::make_pair(&key,std::move(p)));
 
-  std::unique_ptr<ParticleFx> p{new ParticleFx(k,decl)};
-  auto elt = pfxKey.insert(std::pair<size_t,std::unique_ptr<ParticleFx>>(k.instanceSymbol,std::move(p)));
-
-  auto* ret = elt.first->second.get();
-  if(!decl.ppsCreateEm_S.empty())
-    ret->ppsCreateEm = implGet(decl.ppsCreateEm_S.c_str());
-  return ret;
+  return elt.first->second.get();
   }
 
-bool ParticlesDefinitions::implGet(const char *name,
+bool ParticlesDefinitions::implGet(std::string_view name,
                                    Daedalus::GEngineClasses::C_ParticleFX& ret) {
-  if(!vm || name==nullptr || name[0]=='\0')
+  if(!vm || name.empty())
     return false;
 
-  auto id = vm->getDATFile().getSymbolIndexByName(name);
+  char buf[256] = {};
+  std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
+  auto id = vm->getDATFile().getSymbolIndexByName(buf);
   if(id==size_t(-1)) {
-    Log::e("invalid particle system: \"",name,"\"");
+    Log::e("invalid particle system: \"",buf,"\"");
     return false;
     }
 

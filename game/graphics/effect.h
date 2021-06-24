@@ -5,29 +5,23 @@
 #include "world/objects/sound.h"
 #include "graphics/lightgroup.h"
 #include "graphics/meshobjects.h"
+#include "graphics/visualfx.h"
 
 #include "game/constants.h"
 
 #include <memory>
 #include <daedalus/ZString.h>
 
-class VisualFx;
 class World;
 class Npc;
 class Pose;
 class Skeleton;
 
-namespace Daedalus {
-namespace GEngineClasses {
-struct C_ParticleFXEmitKey;
-}
-}
-
 class Effect final {
   public:
     Effect() = default;
     Effect(Effect&&) = default;
-    Effect(PfxEmitter&& pfx, const char* node);
+    Effect(PfxEmitter&& pfx, std::string_view node);
     Effect(const VisualFx& vfx, World& owner, const Npc& src,           SpellFxKey key = SpellFxKey::Count);
     Effect(const VisualFx& vfx, World& owner, const Tempest::Vec3& pos, SpellFxKey key = SpellFxKey::Count);
     ~Effect();
@@ -51,25 +45,24 @@ class Effect final {
     void     onCollide     (World& owner, const Tempest::Vec3& pos, Npc* npc);
 
   private:
-    using Key         = Daedalus::GEngineClasses::C_ParticleFXEmitKey;
-
     void               syncAttaches(const Tempest::Matrix4x4& pos);
     void               syncAttachesSingle(const Tempest::Matrix4x4& inPos);
-    void               setupLight(World& owner, const Key* key);
+    void               setupLight(World& owner);
+    void               setupPfx(World& owner);
+    void               setupSfx(World& owner);
 
-    const Key*            key  = nullptr;
-
+    const VisualFx::Key*  key  = nullptr;
     const VisualFx*       root = nullptr;
+
     PfxEmitter            pfx;
     Sound                 sfx;
     GlobalFx              gfx;
     LightGroup::Light     light;
 
-    const char*           nodeSlot = nullptr;
+    std::string_view      nodeSlot;
     size_t                boneId   = size_t(-1);
-
-    const Skeleton*       skeleton    = nullptr;
-    const Pose*           pose        = nullptr;
+    const Skeleton*       skeleton = nullptr;
+    const Pose*           pose     = nullptr;
 
     const MeshObjects::Mesh* meshEmitter = nullptr;
 

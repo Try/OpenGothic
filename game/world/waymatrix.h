@@ -18,16 +18,16 @@ class WayMatrix final {
     WayMatrix(World& owner,const ZenLoad::zCWayNetData& dat);
 
     const WayPoint* findWayPoint (const Tempest::Vec3& at, const Tempest::Vec3& to, const std::function<bool(const WayPoint&)>& filter) const;
-    const WayPoint* findFreePoint(const Tempest::Vec3& at, const char* name, const std::function<bool(const WayPoint&)>& filter) const;
+    const WayPoint* findFreePoint(const Tempest::Vec3& at, std::string_view name, const std::function<bool(const WayPoint&)>& filter) const;
     const WayPoint* findNextPoint(const Tempest::Vec3& at) const;
 
-    void            addFreePoint (const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
-    void            addStartPoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, const char* name);
+    void            addFreePoint (const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
+    void            addStartPoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
 
     const WayPoint& startPoint() const;
     void            buildIndex();
 
-    const WayPoint* findPoint(const char* name, bool inexact) const;
+    const WayPoint* findPoint(std::string_view name, bool inexact) const;
     void            marchPoints(DbgPainter& p) const;
 
     WayPath         wayTo(const WayPoint &begin, const WayPoint& end) const;
@@ -55,7 +55,7 @@ class WayMatrix final {
 
     void                   adjustWaypoints(std::vector<WayPoint> &wp);
 
-    const FpIndex&         findFpIndex(const char* name) const;
+    const FpIndex&         findFpIndex(std::string_view name) const;
     const WayPoint*        findFreePoint(float x, float y, float z, const FpIndex &ind,
                                          const std::function<bool(const WayPoint&)>& filter) const;
   };

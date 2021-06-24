@@ -153,7 +153,7 @@ struct Npc::TransformBack {
   };
 
 
-Npc::Npc(World &owner, size_t instance, const Daedalus::ZString& waypoint)
+Npc::Npc(World &owner, size_t instance, std::string_view waypoint)
   :owner(owner),mvAlgo(*this) {
   outputPipe          = owner.script().openAiOuput();
   hnpc.userPtr        = this;
@@ -162,7 +162,7 @@ Npc::Npc(World &owner, size_t instance, const Daedalus::ZString& waypoint)
   if(instance==size_t(-1))
     return;
 
-  hnpc.wp = waypoint;
+  hnpc.wp = std::string(waypoint);
   owner.script().initializeInstance(hnpc,instance);
   if(hnpc.attribute[ATR_HITPOINTS]<=1 && hnpc.attribute[ATR_HITPOINTSMAX]<=1) {
     onNoHealth(true,HS_NoSound);
@@ -427,7 +427,7 @@ bool Npc::resetPositionToTA() {
       return false;
     }
 
-  invent.clearSlot(*this,nullptr,false);
+  invent.clearSlot(*this,"",false);
   if(routines.size()==0)
     return true;
 
@@ -437,7 +437,7 @@ bool Npc::resetPositionToTA() {
   clearAiQueue();
 
   if(!isDead) {
-    visual.stopAnim(*this,nullptr);
+    visual.stopAnim(*this,"");
     clearState(true);
     }
 
@@ -522,7 +522,7 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
   const int minHp = isMonster() ? 0 : 1;
   if(hnpc.attribute[ATR_HITPOINTS]<=minHp) {
     if(hnpc.attribute[ATR_HITPOINTSMAX]<=1) {
-      size_t fdead=owner.getSymbolIndex("ZS_Dead");
+      size_t fdead=owner.script().getSymbolIndex("ZS_Dead");
       startState(fdead,"");
       physic.setEnable(false);
       return false;
@@ -560,7 +560,7 @@ void Npc::onNoHealth(bool death,HitSound sndMask) {
   if(!death)
     hnpc.attribute[ATR_HITPOINTS]=1;
 
-  size_t fdead=owner.getSymbolIndex(state);
+  size_t fdead=owner.script().getSymbolIndex(state);
   startState(fdead,"",gtime::endOfTime(),true);
   if(hnpc.voice>0 && sndMask!=HS_NoSound) {
     emitSoundSVM(svm);
@@ -698,7 +698,7 @@ void Npc::updateTransform() {
     }
   }
 
-const char *Npc::displayName() const {
+std::string_view Npc::displayName() const {
   return hnpc.name[0].c_str();
   }
 
@@ -707,13 +707,13 @@ Tempest::Vec3 Npc::displayPosition() const {
   return p+position();
   }
 
-void Npc::setVisual(const char* visual) {
+void Npc::setVisual(std::string_view visual) {
   auto skelet = Resources::loadSkeleton(visual);
   setVisual(skelet);
   setPhysic(owner.physic()->ghostObj(visual));
   }
 
-bool Npc::hasOverlay(const char* sk) const {
+bool Npc::hasOverlay(std::string_view sk) const {
   auto skelet = Resources::loadSkeleton(sk);
   return hasOverlay(skelet);
   }
@@ -722,7 +722,7 @@ bool Npc::hasOverlay(const Skeleton* sk) const {
   return visual.hasOverlay(sk);
   }
 
-void Npc::addOverlay(const char *sk, uint64_t time) {
+void Npc::addOverlay(std::string_view sk, uint64_t time) {
   auto skelet = Resources::loadSkeleton(sk);
   addOverlay(skelet,time);
   }
@@ -733,7 +733,7 @@ void Npc::addOverlay(const Skeleton* sk,uint64_t time) {
   visual.addOverlay(sk,time);
   }
 
-void Npc::delOverlay(const char *sk) {
+void Npc::delOverlay(std::string_view sk) {
   visual.delOverlay(sk);
   }
 
@@ -758,10 +758,10 @@ void Npc::dropTorch() {
   if(sk==nullptr)
     return;
 
-  size_t torchId  = owner.getSymbolIndex("ItLsTorchburned");
+  size_t torchId  = owner.script().getSymbolIndex("ItLsTorchburned");
   size_t leftHand = sk->findNode("ZS_LEFTHAND");
   if(torchId!=size_t(-1) && leftHand!=size_t(-1)) {
-    auto it  = owner.addItem(torchId,nullptr);
+    auto it  = owner.addItem(torchId,"");
 
     auto mat = visual.pose().bone(leftHand);
     it->setMatrix(mat);
@@ -795,7 +795,7 @@ void Npc::setVisualBody(int32_t headTexNr, int32_t teethTexNr, int32_t bodyTexNr
   bdColor = bodyTexColor;
 
   auto  vhead = head.empty() ? MeshObjects::Mesh() : w.addView(addExt(head,".MMB").c_str(),vHead,vTeeth,bdColor);
-  auto  vbody = body.empty() ? MeshObjects::Mesh() : w.addView(addExt(body,".MDM").c_str(),vColor,0,bdColor);
+  auto  vbody = body.empty() ? MeshObjects::Mesh() : w.addView(addExt(body,".ASC").c_str(),vColor,0,bdColor);
   visual.setVisualBody(std::move(vhead),std::move(vbody),owner,bdColor);
   updateArmour();
 
@@ -807,14 +807,14 @@ void Npc::updateArmour() {
   auto& w  = owner;
 
   if(ar==nullptr) {
-    auto  vbody = body.empty() ? MeshObjects::Mesh() : w.addView(addExt(body,".MDM").c_str(),vColor,0,bdColor);
+    auto  vbody = body.empty() ? MeshObjects::Mesh() : w.addView(addExt(body,".ASC").c_str(),vColor,0,bdColor);
     visual.setBody(std::move(vbody),owner,bdColor);
     } else {
     auto& itData = ar->handle();
     auto  flag   = ItmFlags(itData.mainflag);
     if(flag & ITM_CAT_ARMOR){
-      const auto& asc = itData.visual_change;
-      auto vbody = asc.empty() ? MeshObjects::Mesh() : w.addView(asc.c_str(),vColor,0,bdColor);
+      auto& asc   = itData.visual_change;
+      auto  vbody = asc.empty() ? MeshObjects::Mesh() : w.addView(asc.c_str(),vColor,0,bdColor);
       visual.setArmour(std::move(vbody),owner);
       }
     }
@@ -835,19 +835,19 @@ void Npc::setMagicWeapon(Effect&& s) {
   updateWeaponSkeleton();
   }
 
-void Npc::setSlotItem(MeshObjects::Mesh&& itm, const char *slot) {
+void Npc::setSlotItem(MeshObjects::Mesh&& itm, std::string_view slot) {
   visual.setSlotItem(std::move(itm),slot);
   }
 
-void Npc::setStateItem(MeshObjects::Mesh&& itm, const char* slot) {
+void Npc::setStateItem(MeshObjects::Mesh&& itm, std::string_view slot) {
   visual.setStateItem(std::move(itm),slot);
   }
 
-void Npc::setAmmoItem(MeshObjects::Mesh&& itm, const char* slot) {
+void Npc::setAmmoItem(MeshObjects::Mesh&& itm, std::string_view slot) {
   visual.setAmmoItem(std::move(itm),slot);
   }
 
-void Npc::clearSlotItem(const char *slot) {
+void Npc::clearSlotItem(std::string_view slot) {
   visual.clearSlotItem(slot);
   }
 
@@ -980,7 +980,7 @@ void Npc::setAnimRotate(int rot) {
   visual.setRotation(*this,rot);
   }
 
-bool Npc::setAnimItem(const char *scheme, int state) {
+bool Npc::setAnimItem(std::string_view scheme, int state) {
   if(scheme==nullptr || scheme[0]==0)
     return true;
   if(bodyStateMasked()!=BS_STAND) {
@@ -990,11 +990,11 @@ bool Npc::setAnimItem(const char *scheme, int state) {
   return visual.startAnimItem(*this,scheme,state);
   }
 
-void Npc::stopAnim(const std::string &ani) {
-  visual.stopAnim(*this,ani.c_str());
+void Npc::stopAnim(std::string_view ani) {
+  visual.stopAnim(*this,ani);
   }
 
-void Npc::startFaceAnim(const char* anim, float intensity, uint64_t duration) {
+void Npc::startFaceAnim(std::string_view anim, float intensity, uint64_t duration) {
   visual.startFaceAnim(*this,anim,intensity,duration);
   }
 
@@ -2126,7 +2126,7 @@ bool Npc::startState(ScriptFn id, const Daedalus::ZString& wp, gtime endTime, bo
   for(size_t i=0;i<PERC_Count;++i)
     setPerceptionDisable(PercType(i));
 
-  auto& st = owner.script().getAiState(id);
+  auto& st = owner.script().aiState(id);
   aiState.started      = false;
   aiState.funcIni      = st.funcIni;
   aiState.funcLoop     = st.funcLoop;
@@ -2260,24 +2260,27 @@ bool Npc::doAttack(Anim anim) {
   return false;
   }
 
-void Npc::emitSoundEffect(const char *sound, float range, bool freeSlot) {
+void Npc::emitSoundEffect(std::string_view sound, float range, bool freeSlot) {
   auto sfx = ::Sound(owner,::Sound::T_Regular,sound,{x,y+translateY(),z},range,freeSlot);
   sfx.play();
   }
 
-void Npc::emitSoundGround(const char* sound, float range, bool freeSlot) {
+void Npc::emitSoundGround(std::string_view sound, float range, bool freeSlot) {
   char    buf[256]={};
   uint8_t mat = mvAlgo.groundMaterial();
-  std::snprintf(buf,sizeof(buf),"%s_%s",sound,ZenLoad::zCMaterial::getMatGroupString(ZenLoad::MaterialGroup(mat)));
+  std::snprintf(buf,sizeof(buf),"%.*s_%s",int(sound.size()),sound.data(),ZenLoad::zCMaterial::getMatGroupString(ZenLoad::MaterialGroup(mat)));
   auto sfx = ::Sound(owner,::Sound::T_Regular,buf,{x,y,z},range,freeSlot);
   sfx.play();
   }
 
-void Npc::emitSoundSVM(const char* svm) {
+void Npc::emitSoundSVM(std::string_view svm) {
   if(hnpc.voice==0)
     return;
+  char frm [32]={};
+  std::snprintf(frm,sizeof(frm),"%.*s",int(svm.size()),svm.data());
+
   char name[32]={};
-  std::snprintf(name,sizeof(name),svm,int(hnpc.voice));
+  std::snprintf(name,sizeof(name),frm,int(hnpc.voice));
   emitSoundEffect(name,25,true);
   }
 
@@ -2300,7 +2303,7 @@ void Npc::commitSpell() {
   owner.script().invokeSpell(*this,currentTarget,*active);
 
   if(active->isSpellShoot()) {
-    auto& spl = owner.script().getSpell(splId);
+    auto& spl = owner.script().spellDesc(splId);
     int   lvl = (castLevel-CS_Cast_0)+1;
     std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> dmg={};
     for(size_t i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i)
@@ -2314,7 +2317,7 @@ void Npc::commitSpell() {
     b.setHitChance(1.f);
     visual.setMagicWeaponKey(owner,SpellFxKey::Init);
     } else {
-    const VisualFx* vfx = owner.script().getSpellVFx(splId);
+    const VisualFx* vfx = owner.script().spellVfx(splId);
     if(vfx!=nullptr) {
       auto e = Effect(*vfx,owner,Vec3(x,y,z),SpellFxKey::Cast);
       e.setActive(true);
@@ -2921,7 +2924,7 @@ bool Npc::tickCast() {
   if(bodyStateMasked()!=BS_CASTING)
     return true;
 
-  auto& spl = owner.script().getSpell(active->spellId());
+  auto& spl = owner.script().spellDesc(active->spellId());
   int32_t castLvl = int(castLevel)-int(CS_Invest_0);
   if(owner.tickCount()<castNextTime)
     return true;
@@ -3179,7 +3182,7 @@ bool Npc::setInteraction(Interactive *id, bool quick) {
   if(id->attach(*this)) {
     currentInteract = id;
     if(!quick) {
-      visual.stopAnim(*this,nullptr);
+      visual.stopAnim(*this,"");
       setAnimRotate(0);
       }
     return true;

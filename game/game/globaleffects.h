@@ -18,7 +18,7 @@ class GlobalEffects {
     GlobalEffects(World& owner);
 
     void     tick(uint64_t dt);
-    GlobalFx startEffect(const Daedalus::ZString& what, float len, const Daedalus::ZString* argv, size_t argc);
+    GlobalFx startEffect(const Daedalus::ZString& what, uint64_t len, const Daedalus::ZString* argv, size_t argc);
     void     stopEffect (const VisualFx& vfx);
 
     void     scaleTime(uint64_t& dt);
@@ -30,6 +30,7 @@ class GlobalEffects {
       virtual ~Effect(){}
       uint64_t timeUntil = 0;
       uint64_t timeStart = 0;
+      uint64_t timeLen   = 0;
       };
 
     struct SlowTime:Effect {
@@ -67,7 +68,7 @@ class GlobalEffects {
     GlobalFx addEarthQuake (const Daedalus::ZString* argv, size_t argc);
 
 
-    static Tempest::Color parseColor(const char* c);
+    static Tempest::Color parseColor(std::string_view c);
 
     World&   owner;
     uint64_t timeWrldRem = 0;

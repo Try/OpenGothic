@@ -27,7 +27,7 @@ struct GameScript::ScopeVar final {
     :ScopeVar(vm,sym,n ? n->handle() : nullptr, Daedalus::IC_Npc){
     }
 
-  ScopeVar(Daedalus::DaedalusVM& vm,const char* name, Daedalus::GEngineClasses::C_Npc* h)
+  ScopeVar(Daedalus::DaedalusVM& vm, const char* name, Daedalus::GEngineClasses::C_Npc* h)
     :ScopeVar(vm,vm.getDATFile().getSymbolByName(name),h,Daedalus::IC_Npc){
     }
 
@@ -312,11 +312,11 @@ void GameScript::initCommon() {
   cFocusRange          = getFocus("Focus_Ranged");
   cFocusMage           = getFocus("Focus_Magic");
 
-  ZS_Dead              = getAiState(getSymbolIndex("ZS_Dead")).funcIni;
-  ZS_Unconscious       = getAiState(getSymbolIndex("ZS_Unconscious")).funcIni;
-  ZS_Talk              = getAiState(getSymbolIndex("ZS_Talk")).funcIni;
-  ZS_Attack            = getAiState(getSymbolIndex("ZS_Attack")).funcIni;
-  ZS_MM_Attack         = getAiState(getSymbolIndex("ZS_MM_Attack")).funcIni;
+  ZS_Dead              = aiState(getSymbolIndex("ZS_Dead")).funcIni;
+  ZS_Unconscious       = aiState(getSymbolIndex("ZS_Unconscious")).funcIni;
+  ZS_Talk              = aiState(getSymbolIndex("ZS_Talk")).funcIni;
+  ZS_Attack            = aiState(getSymbolIndex("ZS_Attack")).funcIni;
+  ZS_MM_Attack         = aiState(getSymbolIndex("ZS_MM_Attack")).funcIni;
 
   auto& dat            = vm.getDATFile();
 
@@ -645,23 +645,23 @@ void GameScript::storeItem(Item *itm) {
     }
   }
 
-Daedalus::PARSymbol &GameScript::getSymbol(const char *s) {
-  return vm.getDATFile().getSymbolByName(s);
+Daedalus::PARSymbol &GameScript::getSymbol(std::string_view s) {
+  char buf[256] = {};
+  std::snprintf(buf,sizeof(buf),"%.*s",int(s.size()),s.data());
+  return vm.getDATFile().getSymbolByName(buf);
   }
 
 Daedalus::PARSymbol &GameScript::getSymbol(const size_t s) {
   return vm.getDATFile().getSymbolByIndex(s);
   }
 
-size_t GameScript::getSymbolIndex(const char* s) {
-  return vm.getDATFile().getSymbolIndexByName(s);
+size_t GameScript::getSymbolIndex(std::string_view s) {
+  char buf[256] = {};
+  std::snprintf(buf,sizeof(buf),"%.*s",int(s.size()),s.data());
+  return vm.getDATFile().getSymbolIndexByName(buf);
   }
 
-size_t GameScript::getSymbolIndex(const std::string &s) {
-  return vm.getDATFile().getSymbolIndexByName(s.c_str());
-  }
-
-const AiState &GameScript::getAiState(ScriptFn id) {
+const AiState &GameScript::aiState(ScriptFn id) {
   auto it = aiStates.find(id.ptr);
   if(it!=aiStates.end())
     return it->second;
@@ -669,31 +669,19 @@ const AiState &GameScript::getAiState(ScriptFn id) {
   return ins.first->second;
   }
 
-const Daedalus::GEngineClasses::C_Spell &GameScript::getSpell(int32_t splId) {
+const Daedalus::GEngineClasses::C_Spell &GameScript::spellDesc(int32_t splId) {
   auto& spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
   auto& tag       = spellInst.getString(size_t(splId));
   return spells->find(tag.c_str());
   }
 
-const VisualFx* GameScript::getSpellVFx(int32_t splId) {
+const VisualFx* GameScript::spellVfx(int32_t splId) {
   auto& spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
   auto& tag       = spellInst.getString(size_t(splId));
 
   char name[256]={};
   std::snprintf(name,sizeof(name),"spellFX_%s",tag.c_str());
-  return owner.loadVisualFx(name);
-  }
-
-const VisualFx* GameScript::getVisualFx(const char* name) {
-  return owner.loadVisualFx(name);
-  }
-
-const ParticleFx* GameScript::getParticleFx(const char *symbol) {
-  return owner.loadParticleFx(symbol);
-  }
-
-const ParticleFx* GameScript::getParticleFx(const Daedalus::GEngineClasses::C_ParticleFXEmitKey& k) {
-  return owner.loadParticleFx(k);
+  return Gothic::inst().loadVisualFx(name);
   }
 
 std::vector<GameScript::DlgChoise> GameScript::dialogChoises(Daedalus::GEngineClasses::C_Npc* player,
@@ -967,9 +955,9 @@ int GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
     }
   }
 
-int GameScript::invokeCond(Npc &,const char* func) {
+int GameScript::invokeCond(Npc &, std::string_view func) {
   //FIXME
-  Log::d("not implemented: \"",__func__,"\' '",func,"'");
+  Log::d("not implemented: \"",__func__,"\' '",func.data(),"'");
   return 0;
   }
 
@@ -1134,7 +1122,7 @@ Attitude GameScript::personAttitude(const Npc &p0, const Npc &p1) const {
   return att;
   }
 
-BodyState GameScript::schemeToBodystate(const char* sc) {
+BodyState GameScript::schemeToBodystate(std::string_view sc) {
   if(searchScheme(sc,"MOB_SIT"))
     return BS_SIT;
   if(searchScheme(sc,"MOB_LIE"))
@@ -1146,13 +1134,13 @@ BodyState GameScript::schemeToBodystate(const char* sc) {
   return BS_MOBINTERACT_INTERRUPT;
   }
 
-bool GameScript::searchScheme(const char* sc, const char* listName) {
-  auto& list = vm.getDATFile().getSymbolByName(listName).getString();
+bool GameScript::searchScheme(std::string_view sc, std::string_view listName) {
+  auto& list = getSymbol(listName).getString();
   const char* l = list.c_str();
   for(const char* e = l;;++e) {
     if(*e=='\0' || *e==',') {
       size_t len = size_t(std::distance(l,e));
-      if(std::strncmp(sc,l,len)==0)
+      if(sc==std::string_view(l,len))
         return true;
       }
     if(*e=='\0')
@@ -1161,12 +1149,16 @@ bool GameScript::searchScheme(const char* sc, const char* listName) {
   return false;
   }
 
-bool GameScript::hasSymbolName(const char* fn) {
-  return vm.getDATFile().hasSymbolName(fn);
+bool GameScript::hasSymbolName(std::string_view s) {
+  char buf[256] = {};
+  std::snprintf(buf,sizeof(buf),"%.*s",int(s.size()),s.data());
+  return vm.getDATFile().hasSymbolName(buf);
   }
 
-int32_t GameScript::runFunction(const char *fname) {
-  auto id = vm.getDATFile().getSymbolIndexByName(fname);
+int32_t GameScript::runFunction(std::string_view s) {
+  char buf[256] = {};
+  std::snprintf(buf,sizeof(buf),"%.*s",int(s.size()),s.data());
+  auto id = vm.getDATFile().getSymbolIndexByName(buf);
   if(id==size_t(-1))
     throw std::runtime_error("script bad call");
   return runFunction(id);
@@ -1264,9 +1256,11 @@ void GameScript::removeItem(Item &it) {
   world().removeItem(it);
   }
 
-void GameScript::setInstanceNPC(const char *name, Npc &npc) {
-  assert(vm.getDATFile().hasSymbolName(name));
-  vm.setInstance(name,npc.handle(),Daedalus::EInstanceClass::IC_Npc);
+void GameScript::setInstanceNPC(std::string_view name, Npc &npc) {
+  char buf[256] = {};
+  std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
+  assert(vm.getDATFile().hasSymbolName(buf));
+  vm.setInstance(buf,npc.handle(),Daedalus::EInstanceClass::IC_Npc);
   }
 
 void GameScript::setInstanceItem(Npc &holder, size_t itemId) {
@@ -1364,7 +1358,7 @@ void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
     Log::i("effect not implemented [",visual.c_str(),"]");
     return;
     }
-  const VisualFx* vfx = owner.loadVisualFx(visual.c_str());
+  const VisualFx* vfx = Gothic::inst().loadVisualFx(visual.c_str());
   if(vfx==nullptr) {
     Log::i("invalid effect [",visual.c_str(),"]");
     return;
@@ -1388,7 +1382,7 @@ void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
 
 void GameScript::wld_stopeffect(Daedalus::DaedalusVM &vm) {
   const Daedalus::ZString& visual = vm.popString();
-  const VisualFx*          vfx    = owner.loadVisualFx(visual.c_str());
+  const VisualFx*          vfx    = Gothic::inst().loadVisualFx(visual.c_str());
   if(vfx==nullptr) {
     Log::i("invalid effect [",visual.c_str(),"]");
     return;
@@ -1502,7 +1496,7 @@ void GameScript::wld_getmobstate(Daedalus::DaedalusVM& vm) {
     }
 
   auto mob = npc->detectedMob();
-  if(mob==nullptr || scheme!=mob->schemeName()) {
+  if(mob==nullptr || mob->schemeName()!=scheme.c_str()) {
     vm.setReturn(-1);
     return;
     }
@@ -1730,7 +1724,7 @@ void GameScript::wld_insertnpc(Daedalus::DaedalusVM &vm) {
   if(spawnpoint.empty() || npcInstance<=0)
     return;
 
-  auto npc = world().addNpc(size_t(npcInstance),spawnpoint);
+  auto npc = world().addNpc(size_t(npcInstance),spawnpoint.c_str());
   if(npc!=nullptr)
     fixNpcPosition(*npc,0,0);
   }
@@ -2455,7 +2449,7 @@ void GameScript::npc_getlasthitspellcat(Daedalus::DaedalusVM &vm) {
     return;
     }
   const int id    = npc->lastHitSpellId();
-  auto&     spell = getSpell(id);
+  auto&     spell = spellDesc(id);
   vm.setReturn(spell.spellType);
   }
 
@@ -2472,7 +2466,7 @@ void GameScript::npc_isdetectedmobownedbynpc(Daedalus::DaedalusVM &vm) {
 
   if(npc!=nullptr && usr!=nullptr && usr->interactive()!=nullptr){
     auto& inst = vm.getDATFile().getSymbolByIndex(npc->instanceSymbol());
-    auto& ow   = usr->interactive()->ownerName();
+    auto  ow   = usr->interactive()->ownerName();
     vm.setReturn(inst.name==ow ? 1 : 0);
     return;
     }
@@ -2483,7 +2477,7 @@ void GameScript::npc_getdetectedmob(Daedalus::DaedalusVM &vm) {
   auto usr = popInstance(vm);
   if(usr!=nullptr && usr->detectedMob()!=nullptr){
     auto i = usr->detectedMob();
-    vm.setReturn(i->schemeName());
+    vm.setReturn(std::string(i->schemeName()));
     return;
     }
   vm.setReturn("");
@@ -2549,7 +2543,7 @@ void GameScript::npc_getactivespellcat(Daedalus::DaedalusVM &vm) {
     }
 
   const int id    = w->spellId();
-  auto&     spell = getSpell(id);
+  auto&     spell = spellDesc(id);
   vm.setReturn(spell.spellType);
   }
 
@@ -2687,7 +2681,7 @@ void GameScript::ai_startstate(Daedalus::DaedalusVM &vm) {
       return;
       }
 
-    auto& st = getAiState(size_t(func));(void)st;
+    auto& st = aiState(size_t(func));
     self->aiPush(AiQueue::aiStartState(st.funcIni,state,oth,vic,wp));
     }
   }
@@ -3092,7 +3086,7 @@ void GameScript::snd_play(Daedalus::DaedalusVM &vm) {
   std::string file = vm.popString().c_str();
   for(auto& c:file)
     c = char(std::toupper(c));
-  owner.emitGlobalSound(file);
+  Gothic::inst().emitGlobalSound(file);
   }
 
 void GameScript::snd_play3d(Daedalus::DaedalusVM& vm) {
@@ -3102,7 +3096,7 @@ void GameScript::snd_play3d(Daedalus::DaedalusVM& vm) {
     return;
   for(auto& c:file)
     c = char(std::toupper(c));
-  auto sfx = ::Sound(*owner.world(),::Sound::T_3D,file.c_str(),npc->position(),0.f,false);
+  auto sfx = ::Sound(*owner.world(),::Sound::T_3D,file,npc->position(),0.f,false);
   sfx.play();
   owner.world()->sendPassivePerc(*npc,*npc,*npc,Npc::PERC_ASSESSQUIETSOUND);
   }

@@ -9,9 +9,9 @@ environment:
       PLATFORM:  x64
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015  # used as mingw
-      GENERATOR: "MinGW Makefiles"
-      CC:        C:/Qt/Tools/mingw530_32/bin/gcc.exe
-      CXX:       C:/Qt/Tools/mingw530_32/bin/g++.exe
+      GENERATOR: "Ninja"
+      CC:        C:/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin/gcc.exe
+      CXX:       C:/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin/g++.exe
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
       GENERATOR: ""
@@ -47,14 +47,10 @@ install:
 before_build:
   # Prepare the out-of-source build directory.
   - mkdir build
-  - cmd: if "%GENERATOR%" == "MinGW Makefiles"     set Path=C:/Qt/Tools/mingw530_32/bin;%Path%
-  - cmd: if "%GENERATOR%" == "NMake Makefiles JOM" set PATH=C:\Qt\Tools\QtCreator\bin;%PATH%
+  - cmd: PATH=C:/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin;C:/Qt/Tools/QtCreator/bin;%Path%
 
 build_script:
   - cmake --version
-  - cmd: if "%GENERATOR%" == "MinGW Makefiles" gcc --version
-  - cmd: if "%GENERATOR%" == "MinGW Makefiles" g++ --version
-
   - cmd: if NOT "%VCVARSALL%" == "" call "%VCVARSALL%" %PLATFORM%
   - cmd: cmake -H. -Bbuild -G "%GENERATOR%" -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DCMAKE_SH=CMAKE_SH-NOTFOUND
   - sh:  cmake -H. -Bbuild                  -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo

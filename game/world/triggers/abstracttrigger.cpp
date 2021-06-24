@@ -17,12 +17,16 @@ AbstractTrigger::AbstractTrigger(Vob* parent, World &world, ZenLoad::zCVobData &
   bboxOrigin = bboxOrigin - position();
 
   box        = world.physic()->bboxObj(&callback,data.bbox);
+  if(bboxSize!=Vec3()) {
+    boxNpc = CollisionZone(world,bboxOrigin+position(),bboxSize);
+    boxNpc.setCallback([this](Npc& npc){
+      this->onIntersect(npc);
+      });
+    }
   world.addTrigger(this);
   }
 
 AbstractTrigger::~AbstractTrigger() {
-  if(box!=nullptr)
-    world.physic()->deleteObj(box);
   }
 
 ZenLoad::zCVobData::EVobType AbstractTrigger::vobType() const {
@@ -97,6 +101,7 @@ void AbstractTrigger::onGotoMsg(const TriggerEvent&) {
   }
 
 void AbstractTrigger::moveEvent() {
+  boxNpc.setPosition(position()+bboxOrigin);
   }
 
 bool AbstractTrigger::hasFlag(ReactFlg flg) const {
@@ -106,8 +111,8 @@ bool AbstractTrigger::hasFlag(ReactFlg flg) const {
 
 void AbstractTrigger::onIntersect(Npc &n) {
   if(!hasFlag(n.isPlayer() ? RespondToPC : RespondToNPC) &&
-     !hasFlag(ReactToOnTouch) &&
-     data.vobType!=ZenLoad::zCVobData::VT_oCTouchDamage)
+     !hasFlag(ReactToOnTouch)/* &&
+     data.vobType!=ZenLoad::zCVobData::VT_oCTouchDamage*/)
     return;
 
   if(!isEnabled())
@@ -128,7 +133,7 @@ void AbstractTrigger::tick(uint64_t) {
   for(size_t i=0;i<intersect.size();) {
     Npc& npc = *intersect[i];
     auto pos = npc.position();
-    if(!checkPos(pos.x,pos.y+npc.translateY(),pos.z)) {
+    if(!checkPos(pos+Vec3(0,npc.translateY(),0))) {
       intersect[i] = intersect.back();
       intersect.pop_back();
       } else {
@@ -150,13 +155,8 @@ bool AbstractTrigger::hasVolume() const {
   return false;
   }
 
-bool AbstractTrigger::checkPos(float x,float y,float z) const {
-  auto dp = Vec3(x,y,z) - (position() + bboxOrigin);
-  if(std::fabs(dp.x)<bboxSize.x &&
-     std::fabs(dp.y)<bboxSize.y &&
-     std::fabs(dp.z)<bboxSize.z)
-    return true;
-  return false;
+bool AbstractTrigger::checkPos(const Tempest::Vec3& pos) const {
+  return boxNpc.checkPos(pos);
   }
 
 void AbstractTrigger::save(Serialize& fout) const {

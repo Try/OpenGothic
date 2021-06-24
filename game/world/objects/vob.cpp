@@ -75,7 +75,7 @@ void Vob::setLocalTransform(const Matrix4x4& p) {
   recalculateTransform();
   }
 
-bool Vob::setMobState(const char* scheme, int32_t st) {
+bool Vob::setMobState(std::string_view scheme, int32_t st) {
   bool ret = true;
   for(auto& i:child)
     ret &= i->setMobState(scheme,st);

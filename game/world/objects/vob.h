@@ -27,7 +27,7 @@ class Vob {
 
     auto          localTransform() const -> const Tempest::Matrix4x4& { return local; }
     void          setLocalTransform(const Tempest::Matrix4x4& p);
-    virtual bool  setMobState(const char* scheme, int32_t st);
+    virtual bool  setMobState(std::string_view scheme, int32_t st);
 
     virtual bool  isDynamic() const;
 
