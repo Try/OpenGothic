@@ -176,7 +176,7 @@ bool Pose::stopAnim(std::string_view name) {
   bool done=false;
   size_t ret=0;
   for(size_t i=0;i<lay.size();++i) {
-    bool rm = (name==nullptr || lay[i].seq->name==name);
+    bool rm = (name.empty() || lay[i].seq->name==name);
     if(itemUseSt!=0 && lay[i].bs==BS_ITEMINTERACT)
       rm = false;
 

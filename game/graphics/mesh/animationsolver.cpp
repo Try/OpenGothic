@@ -418,7 +418,7 @@ const Animation::Sequence* AnimationSolver::solveNext(const Animation::Sequence&
   }
 
 const Animation::Sequence *AnimationSolver::solveFrm(std::string_view name) const {
-  if(name==nullptr || name[0]=='\0')
+  if(name.empty())
     return nullptr;
 
   for(size_t i=overlay.size();i>0;){

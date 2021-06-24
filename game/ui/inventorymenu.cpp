@@ -700,7 +700,7 @@ void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {
   auto           txt  = w ? w->script().currencyName() : "";
   const size_t   gold = player.inventory().goldCount();
   char           vint[64]={};
-  if(txt==nullptr)
+  if(txt.empty())
     txt="Gold";
 
   std::snprintf(vint,sizeof(vint),"%.*s : %u",int(txt.size()),txt.data(),uint32_t(gold));

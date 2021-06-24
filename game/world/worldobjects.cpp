@@ -71,7 +71,7 @@ void WorldObjects::load(Serialize &fin) {
   fin.read(sz);
   npcArr.clear();
   for(size_t i=0;i<sz;++i)
-    npcArr.emplace_back(std::make_unique<Npc>(owner,size_t(-1),nullptr));
+    npcArr.emplace_back(std::make_unique<Npc>(owner,size_t(-1),""));
   for(auto& i:npcArr)
     i->load(fin);
 
@@ -490,7 +490,7 @@ void WorldObjects::stopEffect(const VisualFx& vfx) {
 
 Item* WorldObjects::addItem(const ZenLoad::zCVobData &vob) {
   size_t inst = owner.script().getSymbolIndex(vob.oCItem.instanceName);
-  Item*  it   = addItem(inst,nullptr);
+  Item*  it   = addItem(inst,"");
   if(it==nullptr)
     return nullptr;
 

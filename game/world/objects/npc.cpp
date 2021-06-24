@@ -567,7 +567,7 @@ void Npc::onNoHealth(bool death,HitSound sndMask) {
     }
 
   setInteraction(nullptr,true);
-  invent.clearSlot(*this,nullptr,false);
+  invent.clearSlot(*this,"",false);
 
   if(death)
     physic.setEnable(false);
@@ -885,7 +885,7 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
         }
       case ZenLoad::DEF_REMOVE_ITEM:
       case ZenLoad::DEF_DESTROY_ITEM: {
-        invent.clearSlot(*this,nullptr,i.def!=ZenLoad::DEF_REMOVE_ITEM);
+        invent.clearSlot(*this,"",i.def!=ZenLoad::DEF_REMOVE_ITEM);
         break;
         }
       case ZenLoad::DEF_PLACE_MUNITION: {
@@ -897,7 +897,7 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
         break;
         }
       case ZenLoad::DEF_REMOVE_MUNITION: {
-        invent.putAmmunition(*this,0,nullptr);
+        invent.putAmmunition(*this,0,"");
         break;
         }
       case ZenLoad::DEF_DRAWTORCH: {
@@ -981,7 +981,7 @@ void Npc::setAnimRotate(int rot) {
   }
 
 bool Npc::setAnimItem(std::string_view scheme, int state) {
-  if(scheme==nullptr || scheme[0]==0)
+  if(scheme.empty())
     return true;
   if(bodyStateMasked()!=BS_STAND) {
     setAnim(Anim::Idle);
@@ -2542,7 +2542,7 @@ void Npc::dropItem(size_t id, size_t count) {
   if(!setAnim(Anim::ItmDrop))
     return;
 
-  auto it = owner.addItem(id,nullptr);
+  auto it = owner.addItem(id,"");
   it->setCount(count);
 
   float rot = rotationRad()-float(M_PI/2), mul=50;
@@ -2651,7 +2651,7 @@ bool Npc::closeWeapon(bool noAnim) {
   if(isPlayer())
     setTarget(nullptr);
   invent.switchActiveWeapon(*this,Item::NSLOT);
-  invent.putAmmunition(*this,0,nullptr);
+  invent.putAmmunition(*this,0,"");
   if(noAnim) {
     visual.setToFightMode(WeaponState::NoWeapon);
     updateWeaponSkeleton();

@@ -236,6 +236,8 @@ std::unique_ptr<CollisionWorld::DynamicBody> CollisionWorld::addDynamicBody(btCo
 
 void CollisionWorld::rayCast(const Tempest::Vec3& b, const Tempest::Vec3& e, btCollisionWorld::RayResultCallback& cb) {
   btVector3 s = toMeters(b), f = toMeters(e);
+  if(s==f)
+    return;
   this->rayTest(s,f,cb);
   }
 

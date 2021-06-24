@@ -131,7 +131,7 @@ const WayPoint &WayMatrix::startPoint() const {
   }
 
 const WayPoint* WayMatrix::findPoint(std::string_view name, bool inexact) const {
-  if(name==nullptr || name[0]=='\0')
+  if(name.empty())
     return nullptr;
   for(auto& i:startPoints)
     if(name==i.name.c_str())

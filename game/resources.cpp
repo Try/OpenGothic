@@ -661,7 +661,7 @@ const ProtoMesh *Resources::loadMesh(std::string_view name) {
   }
 
 const PfxEmitterMesh* Resources::loadEmiterMesh(std::string_view name) {
-  if(name==nullptr || name[0]=='\0')
+  if(name.empty())
     return nullptr;
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadEmiterMesh(name);
