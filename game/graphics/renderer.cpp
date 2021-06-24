@@ -44,7 +44,7 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
 
   Log::i("GPU = ",device.properties().name);
   Log::i("Depth format = ",int(zBufferFormat)," Shadow format = ",int(shadowFormat));
-  uboCopy = device.descriptors(stor.pCopy.layout());
+  uboCopy = device.descriptors(Shaders::inst().copy.layout());
   }
 
 void Renderer::resetSwapchain() {
@@ -156,7 +156,7 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
   wview->drawGBuffer(cmd,cmdId);
 
   cmd.setFramebuffer(fboCpy,copyPass);
-  cmd.setUniforms(stor.pCopy,uboCopy);
+  cmd.setUniforms(Shaders::inst().copy,uboCopy);
   cmd.draw(Resources::fsqVbo());
 
   cmd.setFramebuffer(fbo,mainPass);

@@ -9,7 +9,6 @@
 
 class World;
 class GameSession;
-class RendererStorage;
 class Serialize;
 
 class WorldStateStorage final {

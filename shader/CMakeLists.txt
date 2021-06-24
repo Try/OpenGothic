@@ -131,8 +131,6 @@ add_shader(sky_g2.frag          sky.frag -DG2)
 add_shader(sky_g1.vert          sky.vert -DG1)
 add_shader(sky_g1.frag          sky.frag -DG1)
 
-add_shader(shadow_compose.vert  shadow_compose.vert "")
-add_shader(shadow_compose.frag  shadow_compose.frag "")
 add_shader(copy.vert            copy.vert "")
 add_shader(copy.frag            copy.frag "")
 

@@ -61,52 +61,52 @@ class Gothic final {
     Camera*      camera();
     auto         questLog() const -> const QuestLog*;
 
-    auto      loadingBanner() const -> const Tempest::Texture2d*;
-    int       loadingProgress() const;
-    void      setLoadingProgress(int v);
+    auto         loadingBanner() const -> const Tempest::Texture2d*;
+    int          loadingProgress() const;
+    void         setLoadingProgress(int v);
 
-    SoundFx*  loadSoundFx   (std::string_view name);
-    SoundFx*  loadSoundWavFx(std::string_view name);
+    SoundFx*     loadSoundFx   (std::string_view name);
+    SoundFx*     loadSoundWavFx(std::string_view name);
 
-    auto      loadParticleFx(std::string_view name) -> const ParticleFx*;
-    auto      loadParticleFx(const ParticleFx* base, const VisualFx::Key* key) -> const ParticleFx*;
-    auto      loadVisualFx  (std::string_view name) -> const VisualFx*;
+    auto         loadParticleFx(std::string_view name) -> const ParticleFx*;
+    auto         loadParticleFx(const ParticleFx* base, const VisualFx::Key* key) -> const ParticleFx*;
+    auto         loadVisualFx  (std::string_view name) -> const VisualFx*;
 
-    void      emitGlobalSound(std::string_view   sfx);
-    void      emitGlobalSound(const SoundFx*     sfx);
-    void      emitGlobalSound(const Tempest::Sound& sfx);
+    void         emitGlobalSound(std::string_view   sfx);
+    void         emitGlobalSound(const SoundFx*     sfx);
+    void         emitGlobalSound(const Tempest::Sound& sfx);
 
-    void      emitGlobalSoundWav(const std::string& wav);
+    void         emitGlobalSoundWav(const std::string& wav);
 
-    static auto invCatOrder()  -> const std::vector<ItmFlags>&;
+    static auto  invCatOrder()  -> const std::vector<ItmFlags>&;
 
-    void      pushPause();
-    void      popPause();
-    bool      isPause() const;
+    void         pushPause();
+    void         popPause();
+    bool         isPause() const;
 
-    bool      isDebugMode() const;
-    bool      isRamboMode() const;
-    bool      isWindowMode() const { return isWindow; }
+    bool         isDebugMode() const;
+    bool         isRamboMode() const;
+    bool         isWindowMode() const { return isWindow; }
 
-    LoadState checkLoading() const;
-    bool      finishLoading();
-    void      startLoad(std::string_view banner, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
-    void      startSave(Tempest::Texture2d&& tex, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
-    void      cancelLoading();
+    LoadState    checkLoading() const;
+    bool         finishLoading();
+    void         startLoad(std::string_view banner, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
+    void         startSave(Tempest::Texture2d&& tex, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
+    void         cancelLoading();
 
-    void      tick(uint64_t dt);
+    void         tick(uint64_t dt);
 
-    void      updateAnimation();
-    void      quickSave();
-    void      quickLoad();
-    void      save(const std::string& slot, const std::string& usrName);
-    void      load(const std::string& slot);
+    void         updateAnimation();
+    void         quickSave();
+    void         quickLoad();
+    void         save(const std::string& slot, const std::string& usrName);
+    void         load(const std::string& slot);
 
-    auto      updateDialog(const GameScript::DlgChoise& dlg, Npc& player, Npc& npc) -> std::vector<GameScript::DlgChoise>;
-    void      dialogExec  (const GameScript::DlgChoise& dlg, Npc& player, Npc& npc);
+    auto         updateDialog(const GameScript::DlgChoise& dlg, Npc& player, Npc& npc) -> std::vector<GameScript::DlgChoise>;
+    void         dialogExec  (const GameScript::DlgChoise& dlg, Npc& player, Npc& npc);
 
-    void      openDialogPipe (Npc& player, Npc& npc, AiOuputPipe*& pipe);
-    bool      aiIsDlgFinished();
+    void         openDialogPipe (Npc& player, Npc& npc, AiOuputPipe*& pipe);
+    bool         aiIsDlgFinished();
 
     Tempest::Signal<void(const std::string&)>                           onStartGame;
     Tempest::Signal<void(const std::string&)>                           onLoadGame;

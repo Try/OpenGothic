@@ -16,7 +16,7 @@ class KeyCodec;
 
 class InventoryMenu : public Tempest::Widget {
   public:
-    InventoryMenu(const KeyCodec& key, const RendererStorage &storage);
+    InventoryMenu(const KeyCodec& key);
     ~InventoryMenu();
 
     enum class State:uint8_t {

@@ -29,7 +29,7 @@ using namespace Tempest;
 MainWindow::MainWindow(Device& device)
   : Window(Maximized),device(device),swapchain(device,hwnd()),
     atlas(device),renderer(swapchain),
-    rootMenu(keycodec),inventory(keycodec,renderer.storage()),
+    rootMenu(keycodec),inventory(keycodec),
     dialogs(inventory),document(keycodec),
     player(dialogs,inventory) {
   CrashLog::setGpu(device.properties().name);
@@ -754,9 +754,9 @@ void MainWindow::startGame(const std::string& slot) {
     onWorldLoaded();
     }
 
-  Gothic::inst().startLoad("LOADING.TGA",[this,slot](std::unique_ptr<GameSession>&& game){
+  Gothic::inst().startLoad("LOADING.TGA",[slot](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
-    std::unique_ptr<GameSession> w(new GameSession(renderer.storage(),slot));
+    std::unique_ptr<GameSession> w(new GameSession(slot));
     return w;
     });
   update();
@@ -768,11 +768,11 @@ void MainWindow::loadGame(const std::string &slot) {
     onWorldLoaded();
     }
 
-  Gothic::inst().startLoad("LOADING.TGA",[this,slot](std::unique_ptr<GameSession>&& game){
+  Gothic::inst().startLoad("LOADING.TGA",[slot](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
     Tempest::RFile file(slot);
     Serialize      s(file);
-    std::unique_ptr<GameSession> w(new GameSession(renderer.storage(),s));
+    std::unique_ptr<GameSession> w(new GameSession(s));
     return w;
     });
 

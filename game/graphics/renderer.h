@@ -10,7 +10,7 @@
 #include <Tempest/VectorImage>
 
 #include "worldview.h"
-#include "rendererstorage.h"
+#include "shaders.h"
 
 class Camera;
 class InventoryMenu;
@@ -29,7 +29,6 @@ class Renderer final {
               InventoryMenu &inventory);
 
     Tempest::Attachment               screenshoot(uint8_t frameId);
-    const RendererStorage&            storage() const { return stor; }
 
   private:
     Tempest::Swapchain&               swapchain;
@@ -55,7 +54,7 @@ class Renderer final {
     Tempest::RenderPass               uiPass;
 
     Tempest::DescriptorSet            uboCopy;
-    RendererStorage                   stor;
+    Shaders                   stor;
 
     void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::FrameBuffer& fboCpy, uint8_t cmdId);
     void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, InventoryMenu& inv, uint8_t cmdId);

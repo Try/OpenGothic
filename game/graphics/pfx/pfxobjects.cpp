@@ -9,7 +9,6 @@
 #include "graphics/mesh/skeleton.h"
 #include "graphics/sceneglobals.h"
 #include "graphics/lightsource.h"
-#include "graphics/rendererstorage.h"
 #include "world/world.h"
 
 #include "pfxbucket.h"

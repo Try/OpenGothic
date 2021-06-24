@@ -5,7 +5,6 @@
 #include "graphics/mesh/submesh/animmesh.h"
 #include "graphics/sky/sky.h"
 #include "utils/workers.h"
-#include "rendererstorage.h"
 
 using namespace Tempest;
 

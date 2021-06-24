@@ -3,7 +3,7 @@
 #include <Tempest/Dir>
 #include <Tempest/Log>
 
-#include "graphics/rendererstorage.h"
+#include "graphics/shaders.h"
 #include "graphics/sceneglobals.h"
 #include "world/world.h"
 #include "utils/gthfont.h"
@@ -173,7 +173,7 @@ LightGroup::LightGroup(const SceneGlobals& scene)
   for(auto b:bucket) {
     for(int i=0;i<Resources::MaxFramesInFlight;++i) {
       auto& u = b->ubo[i];
-      u = device.descriptors(scene.storage.pLights.layout());
+      u = device.descriptors(Shaders::inst().lights.layout());
       }
     }
 
@@ -365,7 +365,7 @@ void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   static bool light = true;
   if(!light)
     return;
-  auto& p = scene.storage.pLights;
+  auto& p = Shaders::inst().lights;
   if(bucketSt.data.size()>0) {
     cmd.setUniforms(p,bucketSt.ubo[fId]);
     cmd.draw(vbo,ibo, 0,ibo.size(), 0,bucketSt.data.size());

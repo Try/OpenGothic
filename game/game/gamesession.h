@@ -13,7 +13,6 @@
 class Camera;
 class World;
 class WorldView;
-class RendererStorage;
 class Npc;
 class Serialize;
 class GSoundEffect;
@@ -28,8 +27,8 @@ class GameSession final {
   public:
     GameSession()=delete;
     GameSession(const GameSession&)=delete;
-    GameSession(const RendererStorage& storage, std::string file);
-    GameSession(const RendererStorage& storage, Serialize&  fin);
+    GameSession(std::string file);
+    GameSession(Serialize&  fin);
     ~GameSession();
 
     void         save(Serialize& fout, const char *name, const Tempest::Pixmap &screen);
@@ -92,7 +91,6 @@ class GameSession final {
     auto         implChangeWorld(std::unique_ptr<GameSession> &&game, const std::string &world, const std::string &wayPoint) -> std::unique_ptr<GameSession>;
     auto         findStorage(const std::string& name) -> const WorldStateStorage&;
 
-    const RendererStorage&         storage;
     Tempest::SoundDevice           sound;
 
     std::unique_ptr<Camera>        cam;

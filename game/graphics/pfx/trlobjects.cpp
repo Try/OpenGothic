@@ -5,7 +5,6 @@
 #include "graphics/objectsbucket.h"
 #include "graphics/worldview.h"
 #include "graphics/pfx/pfxobjects.h"
-#include "graphics/rendererstorage.h"
 
 #include "world/world.h"
 #include "particlefx.h"

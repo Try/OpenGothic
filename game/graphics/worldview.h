@@ -13,13 +13,12 @@
 #include "visualobjects.h"
 
 class World;
-class RendererStorage;
 class ParticleFx;
 class PackedMesh;
 
 class WorldView {
   public:
-    WorldView(const World &world, const PackedMesh& wmesh, const RendererStorage& storage);
+    WorldView(const World &world, const PackedMesh& wmesh);
     ~WorldView();
 
     const LightSource& mainLight() const;
@@ -54,17 +53,16 @@ class WorldView {
     MeshObjects::Mesh   addDecalView (const ZenLoad::zCVobData& vob);
 
   private:
-    const World&            owner;
-    const RendererStorage&  storage;
+    const World&  owner;
 
-    SceneGlobals            sGlobal;
-    VisualObjects           visuals;
+    SceneGlobals  sGlobal;
+    VisualObjects visuals;
 
-    MeshObjects             objGroup;
-    PfxObjects              pfxGroup;
-    Landscape               land;
+    MeshObjects   objGroup;
+    PfxObjects    pfxGroup;
+    Landscape     land;
 
-    bool                    needToUpdateUbo = false;
+    bool          needToUpdateUbo = false;
 
     bool needToUpdateCmd(uint8_t frameId) const;
     void invalidateCmd();

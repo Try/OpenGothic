@@ -7,7 +7,6 @@
 #include "graphics/meshobjects.h"
 #include "resources.h"
 
-class RendererStorage;
 class World;
 
 class Sky final {

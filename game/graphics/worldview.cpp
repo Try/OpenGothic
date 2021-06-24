@@ -7,12 +7,11 @@
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "utils/gthfont.h"
-#include "rendererstorage.h"
 
 using namespace Tempest;
 
-WorldView::WorldView(const World &world, const PackedMesh &wmesh, const RendererStorage &storage)
-  : owner(world),storage(storage),sGlobal(storage),visuals(sGlobal),
+WorldView::WorldView(const World &world, const PackedMesh &wmesh)
+  : owner(world),visuals(sGlobal),
     objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(visuals,wmesh) {
   visuals.setWorld(owner);
   pfxGroup.resetTicks();

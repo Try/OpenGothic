@@ -15,7 +15,6 @@
 #include "graphics/dynamic/visibilitygroup.h"
 #include "graphics/skeletalstorage.h"
 
-class RendererStorage;
 class Pose;
 class VisualObjects;
 

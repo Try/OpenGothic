@@ -8,7 +8,7 @@
 
 #include "utils/workers.h"
 #include "visualobjects.h"
-#include "rendererstorage.h"
+#include "shaders.h"
 
 using namespace Tempest;
 
@@ -107,9 +107,9 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const ProtoMesh* anim,
     st        = Morph;
     }
 
-  pMain    = scene.storage.materialPipeline(mat,st,RendererStorage::T_Forward );
-  pGbuffer = scene.storage.materialPipeline(mat,st,RendererStorage::T_Deffered);
-  pShadow  = scene.storage.materialPipeline(mat,st,RendererStorage::T_Shadow  );
+  pMain    = Shaders::inst().materialPipeline(mat,st,Shaders::T_Forward );
+  pGbuffer = Shaders::inst().materialPipeline(mat,st,Shaders::T_Deffered);
+  pShadow  = Shaders::inst().materialPipeline(mat,st,Shaders::T_Shadow  );
 
   if(mat.frames.size()>0 || type==Animated)
     useSharedUbo = false; else

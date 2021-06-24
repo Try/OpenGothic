@@ -3,7 +3,6 @@
 #include <Tempest/Log>
 
 #include "graphics/mesh/submesh/packedmesh.h"
-#include "graphics/rendererstorage.h"
 #include "gothic.h"
 
 using namespace Tempest;

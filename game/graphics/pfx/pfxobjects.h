@@ -12,7 +12,6 @@
 #include "resources.h"
 
 class SceneGlobals;
-class RendererStorage;
 class ParticleFx;
 class PfxBucket;
 class WorldView;

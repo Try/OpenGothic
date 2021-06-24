@@ -9,15 +9,17 @@
 
 class Material;
 
-class RendererStorage {
+class Shaders {
   public:
-    RendererStorage();
+    Shaders();
+    ~Shaders();
 
-    Tempest::RenderPipeline pSky;
-    Tempest::RenderPipeline pFog;
-    Tempest::RenderPipeline pLights;
-    Tempest::RenderPipeline pComposeShadow;
-    Tempest::RenderPipeline pCopy;
+    static Shaders& inst();
+
+    Tempest::RenderPipeline sky;
+    Tempest::RenderPipeline fog;
+    Tempest::RenderPipeline lights;
+    Tempest::RenderPipeline copy;
 
     enum PipelineType: uint8_t {
       T_Forward,
@@ -49,6 +51,8 @@ class RendererStorage {
 
     template<class Vertex>
     Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const ShaderPair &fs) const;
+
+    static Shaders* instance;
 
     MaterialTemplate solid,  atest, solidF, atestF, water, ghost, emmision;
     MaterialTemplate shadow, shadowAt;

@@ -1,12 +1,11 @@
 #include "sceneglobals.h"
 
-#include "rendererstorage.h"
 #include "objectsbucket.h"
 
 #include <cassert>
 
-SceneGlobals::SceneGlobals(const RendererStorage& storage)
-  :storage(storage), lights(*this) {
+SceneGlobals::SceneGlobals()
+  :lights(*this) {
   auto& device = Resources::device();
 
   uboGlobal.lightDir={1,1,-1};

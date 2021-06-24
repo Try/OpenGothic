@@ -6,7 +6,7 @@
 #include <cctype>
 
 #include "game/gamesession.h"
-#include "graphics/rendererstorage.h"
+#include "graphics/shaders.h"
 #include "gothic.h"
 #include "world/world.h"
 #include "utils/versioninfo.h"
@@ -48,7 +48,7 @@ void Sky::setupUbo() {
   smp.setClamping(ClampMode::ClampToEdge);
 
   for(auto& i:perFrame){
-    i.uboSky    = device.descriptors(scene.storage.pSky.layout());
+    i.uboSky    = device.descriptors(Shaders::inst().sky.layout());
     i.uboSkyGpu = device.ubo<UboSky>(nullptr,1);
 
     i.uboSky.set(0,i.uboSkyGpu);
@@ -59,7 +59,7 @@ void Sky::setupUbo() {
 
     // i.uboSky.set(5,*sun,smp);
 
-    i.uboFog = device.descriptors(scene.storage.pFog.layout());
+    i.uboFog = device.descriptors(Shaders::inst().fog.layout());
     i.uboFog.set(0,i.uboSkyGpu);
     i.uboFog.set(1,*scene.gbufDepth,Sampler2d::nearest());
     }
@@ -90,7 +90,7 @@ void Sky::drawSky(Tempest::Encoder<CommandBuffer>& p, uint32_t fId) {
   auto& pf = perFrame[fId];
   pf.uboSkyGpu.update(&ubo,0,1);
 
-  p.setUniforms(scene.storage.pSky, pf.uboSky);
+  p.setUniforms(Shaders::inst().sky, pf.uboSky);
   p.draw(Resources::fsqVbo());
   }
 
@@ -101,8 +101,8 @@ void Sky::drawFog(Tempest::Encoder<CommandBuffer>& p, uint32_t fId) {
   ubo.mvpInv.inverse();
 
   auto& pf = perFrame[fId];
-  p.setUniforms(scene.storage.pFog, pf.uboFog);
-  //p.setUniforms(scene.storage.pFog, &ubo, sizeof(ubo));
+  p.setUniforms(Shaders::inst().fog, pf.uboFog);
+  //p.setUniforms(scene.storage.fog, &ubo, sizeof(ubo));
   p.draw(Resources::fsqVbo());
   }
 

@@ -52,15 +52,14 @@ void GameSession::HeroStorage::putToWorld(World& owner,const std::string& wayPoi
   }
 
 
-GameSession::GameSession(const RendererStorage &storage, std::string file)
-  :storage(storage) {
+GameSession::GameSession(std::string file) {
   cam.reset(new Camera());
 
   Gothic::inst().setLoadingProgress(0);
   setTime(gtime(8,0));
 
   vm.reset(new GameScript(*this));
-  setWorld(std::unique_ptr<World>(new World(*this,storage,std::move(file),[&](int v){
+  setWorld(std::unique_ptr<World>(new World(*this,std::move(file),[&](int v){
     Gothic::inst().setLoadingProgress(int(v*0.55));
     })));
 
@@ -93,8 +92,7 @@ GameSession::GameSession(const RendererStorage &storage, std::string file)
   ticks = 1;
   }
 
-GameSession::GameSession(const RendererStorage &storage, Serialize &fin)
-  : storage(storage) {
+GameSession::GameSession(Serialize &fin) {
   cam.reset(new Camera());
 
   Gothic::inst().setLoadingProgress(0);
@@ -109,7 +107,7 @@ GameSession::GameSession(const RendererStorage &storage, Serialize &fin)
     visitedWorlds.emplace_back(fin);
 
   vm.reset(new GameScript(*this,fin));
-  setWorld(std::unique_ptr<World>(new World(*this,storage,fin,[&](int v){
+  setWorld(std::unique_ptr<World>(new World(*this,fin,[&](int v){
     Gothic::inst().setLoadingProgress(int(v*0.55));
     })));
 
@@ -302,8 +300,8 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
 
   std::unique_ptr<World> ret;
   if(wss.isEmpty())
-    ret = std::unique_ptr<World>(new World(*this,storage,w,  loadProgress)); else
-    ret = std::unique_ptr<World>(new World(*this,storage,fin,loadProgress));
+    ret = std::unique_ptr<World>(new World(*this,w,  loadProgress)); else
+    ret = std::unique_ptr<World>(new World(*this,fin,loadProgress));
   setWorld(std::move(ret));
 
   if(!wss.isEmpty())

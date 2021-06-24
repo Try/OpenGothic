@@ -3,13 +3,12 @@
 #include "world/objects/item.h"
 #include "game/inventory.h"
 #include "graphics/mesh/protomesh.h"
-#include "rendererstorage.h"
 #include "lightsource.h"
 
 using namespace Tempest;
 
-InventoryRenderer::InventoryRenderer(const RendererStorage &storage)
-  :scene(storage),visual(scene),itmGroup(visual) {
+InventoryRenderer::InventoryRenderer()
+  :visual(scene),itmGroup(visual) {
   LightSource light;
   light.setColor(Vec3(0.f,0.f,0.f));
   scene.ambient = Vec3(1.f,1.f,1.f);

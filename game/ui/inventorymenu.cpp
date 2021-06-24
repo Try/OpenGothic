@@ -74,8 +74,8 @@ struct InventoryMenu::RansackPage : InventoryMenu::Page {
   const Inventory& inv;
   };
 
-InventoryMenu::InventoryMenu(const KeyCodec& key, const RendererStorage &storage)
-  :keycodec(key), renderer(storage) {
+InventoryMenu::InventoryMenu(const KeyCodec& key)
+  :keycodec(key) {
   slot = Resources::loadTexture("INV_SLOT.TGA");
   selT = Resources::loadTexture("INV_SLOT_HIGHLIGHTED.TGA");
   selU = Resources::loadTexture("INV_SLOT_EQUIPPED.TGA");

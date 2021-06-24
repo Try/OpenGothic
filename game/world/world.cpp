@@ -21,7 +21,7 @@
 #include "focus.h"
 #include "resources.h"
 
-World::World(GameSession& game, const RendererStorage &storage, std::string file, std::function<void(int)> loadProgress)
+World::World(GameSession& game, std::string file, std::function<void(int)> loadProgress)
   :wname(std::move(file)),game(game),wsound(game,*this),wobj(*this) {
   using namespace Daedalus::GameState;
 
@@ -43,7 +43,7 @@ World::World(GameSession& game, const RendererStorage &storage, std::string file
 
   loadProgress(50);
   wdynamic.reset(new DynamicWorld(*this,*worldMesh));
-  wview.reset   (new WorldView(*this,vmesh,storage));
+  wview.reset   (new WorldView(*this,vmesh));
   loadProgress(70);
 
   globFx.reset(new GlobalEffects(*this));
@@ -59,7 +59,7 @@ World::World(GameSession& game, const RendererStorage &storage, std::string file
   loadProgress(100);
   }
 
-World::World(GameSession &game, const RendererStorage &storage,
+World::World(GameSession &game,
              Serialize &fin, std::function<void(int)> loadProgress)
   :wname(fin.read<std::string>()),game(game),wsound(game,*this),wobj(*this) {
   using namespace Daedalus::GameState;
@@ -82,7 +82,7 @@ World::World(GameSession &game, const RendererStorage &storage,
 
   loadProgress(50);
   wdynamic.reset(new DynamicWorld(*this,*worldMesh));
-  wview.reset   (new WorldView(*this,vmesh,storage));
+  wview.reset   (new WorldView(*this,vmesh));
   loadProgress(70);
 
   globFx.reset(new GlobalEffects(*this));

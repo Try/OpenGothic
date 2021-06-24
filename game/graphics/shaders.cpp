@@ -1,4 +1,4 @@
-#include "rendererstorage.h"
+#include "shaders.h"
 
 #include <Tempest/Device>
 
@@ -9,7 +9,9 @@
 
 using namespace Tempest;
 
-void RendererStorage::ShaderPair::load(Device &device, const char *tag, const char *format) {
+Shaders* Shaders::instance = nullptr;
+
+void Shaders::ShaderPair::load(Device &device, const char *tag, const char *format) {
   char buf[256]={};
 
   std::snprintf(buf,sizeof(buf),format,tag,"vert");
@@ -21,11 +23,11 @@ void RendererStorage::ShaderPair::load(Device &device, const char *tag, const ch
   fs = device.shader(sh.data,sh.len);
   }
 
-void RendererStorage::ShaderPair::load(Device& device, const char* tag) {
+void Shaders::ShaderPair::load(Device& device, const char* tag) {
   load(device,tag,"%s.%s.sprv");
   }
 
-void RendererStorage::MaterialTemplate::load(Device &device, const char *tag) {
+void Shaders::MaterialTemplate::load(Device &device, const char *tag) {
   char fobj[256]={};
   char fani[256]={};
   char fmph[256]={};
@@ -47,7 +49,8 @@ void RendererStorage::MaterialTemplate::load(Device &device, const char *tag) {
   clr.load(device,fclr,"%s.%s.sprv");
   }
 
-RendererStorage::RendererStorage() {
+Shaders::Shaders() {
+  instance = this;
   auto& device = Resources::device();
 
   solid   .load(device,"gbuffer");
@@ -62,50 +65,17 @@ RendererStorage::RendererStorage() {
   shadow  .load(device,"shadow");
   shadowAt.load(device,"shadow_at");
 
-  RenderState stateAlpha;
-  stateAlpha.setCullFaceMode(RenderState::CullMode::Front);
-  stateAlpha.setBlendSource (RenderState::BlendMode::src_alpha); // premultiply in shader
-  stateAlpha.setBlendDest   (RenderState::BlendMode::one_minus_src_alpha);
-  stateAlpha.setZTestMode   (RenderState::ZTestMode::Less);
-  stateAlpha.setZWriteEnabled(false);
-
-  RenderState stateAdd;
-  stateAdd.setCullFaceMode(RenderState::CullMode::Front);
-  stateAdd.setBlendSource (RenderState::BlendMode::one);
-  stateAdd.setBlendDest   (RenderState::BlendMode::one);
-  stateAdd.setZTestMode   (RenderState::ZTestMode::Equal);
-  stateAdd.setZWriteEnabled(false);
-
-  RenderState stateObj;
-  stateObj.setCullFaceMode(RenderState::CullMode::Front);
-  stateObj.setZTestMode   (RenderState::ZTestMode::Less);
-
   RenderState stateFsq;
   stateFsq.setCullFaceMode(RenderState::CullMode::Front);
   stateFsq.setZTestMode   (RenderState::ZTestMode::LEqual);
   stateFsq.setZWriteEnabled(false);
-
-  RenderState stateMAdd;
-  stateMAdd.setCullFaceMode (RenderState::CullMode::Front);
-  stateMAdd.setBlendSource  (RenderState::BlendMode::src_alpha);
-  stateMAdd.setBlendDest    (RenderState::BlendMode::one);
-  stateMAdd.setZTestMode    (RenderState::ZTestMode::Less);
-  stateMAdd.setZWriteEnabled(false);
 
   {
   auto sh = GothicShader::get("copy.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
   sh      = GothicShader::get("copy.frag.sprv");
   auto fs = device.shader(sh.data,sh.len);
-  pCopy = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vs,fs);
-  }
-
-  {
-  auto sh = GothicShader::get("shadow_compose.vert.sprv");
-  auto vs = device.shader(sh.data,sh.len);
-  sh      = GothicShader::get("shadow_compose.frag.sprv");
-  auto fs = device.shader(sh.data,sh.len);
-  pComposeShadow = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vs,fs);
+  copy    = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vs,fs);
   }
 
   {
@@ -121,7 +91,7 @@ RendererStorage::RendererStorage() {
   auto vsLight = device.shader(sh.data,sh.len);
   sh           = GothicShader::get("light.frag.sprv");
   auto fsLight = device.shader(sh.data,sh.len);
-  pLights      = device.pipeline<Vec3>(Triangles, state, vsLight, fsLight);
+  lights       = device.pipeline<Vec3>(Triangles, state, vsLight, fsLight);
   }
 
   {
@@ -136,7 +106,7 @@ RendererStorage::RendererStorage() {
   auto vsFog   = device.shader(sh.data,sh.len);
   sh           = GothicShader::get("fog.frag.sprv");
   auto fsFog   = device.shader(sh.data,sh.len);
-  pFog         = device.pipeline<Resources::VertexFsq>(Triangles, state, vsFog, fsFog);
+  fog          = device.pipeline<Resources::VertexFsq>(Triangles, state, vsFog, fsFog);
   }
 
   if(Gothic::inst().version().game==1) {
@@ -144,17 +114,25 @@ RendererStorage::RendererStorage() {
     auto vsSky = device.shader(sh.data,sh.len);
     sh         = GothicShader::get("sky_g1.frag.sprv");
     auto fsSky = device.shader(sh.data,sh.len);
-    pSky       = device.pipeline<Resources::VertexFsq>(Triangles, stateFsq, vsSky,  fsSky);
+    sky        = device.pipeline<Resources::VertexFsq>(Triangles, stateFsq, vsSky,  fsSky);
     } else {
     auto sh    = GothicShader::get("sky_g2.vert.sprv");
     auto vsSky = device.shader(sh.data,sh.len);
     sh         = GothicShader::get("sky_g2.frag.sprv");
     auto fsSky = device.shader(sh.data,sh.len);
-    pSky       = device.pipeline<Resources::VertexFsq>(Triangles, stateFsq, vsSky,  fsSky);
+    sky        = device.pipeline<Resources::VertexFsq>(Triangles, stateFsq, vsSky,  fsSky);
     }
   }
 
-const RenderPipeline* RendererStorage::materialPipeline(const Material& mat, ObjectsBucket::Type t, PipelineType pt) const {
+Shaders::~Shaders() {
+  instance = nullptr;
+  }
+
+Shaders& Shaders::inst() {
+  return *instance;
+  }
+
+const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBucket::Type t, PipelineType pt) const {
   const auto alpha = (mat.isGhost ? Material::Ghost : mat.alpha);
 
   for(auto& i:materials) {
@@ -260,6 +238,6 @@ const RenderPipeline* RendererStorage::materialPipeline(const Material& mat, Obj
   }
 
 template<class Vertex>
-RenderPipeline RendererStorage::pipeline(RenderState& st, const ShaderPair &sh) const {
+RenderPipeline Shaders::pipeline(RenderState& st, const ShaderPair &sh) const {
   return Resources::device().pipeline<Vertex>(Triangles,st,sh.vs,sh.fs);
   }

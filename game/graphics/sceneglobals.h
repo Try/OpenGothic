@@ -7,11 +7,9 @@
 #include "lightsource.h"
 #include "lightgroup.h"
 
-class RendererStorage;
-
 class SceneGlobals final {
   public:
-    SceneGlobals(const RendererStorage& storage);
+    SceneGlobals();
     ~SceneGlobals();
 
     enum VisCamera : uint8_t {
@@ -33,7 +31,6 @@ class SceneGlobals final {
     const Tempest::Matrix4x4& viewProject() const;
     const Tempest::Matrix4x4& viewProjectInv() const;
 
-    const RendererStorage&            storage;
     uint64_t                          tickCount = 0;
     const Tempest::Texture2d*         shadowMap[2] = {};
 

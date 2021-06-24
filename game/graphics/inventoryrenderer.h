@@ -7,12 +7,11 @@
 #include "sceneglobals.h"
 #include "visualobjects.h"
 
-class RendererStorage;
 class Item;
 
 class InventoryRenderer {
   public:
-    InventoryRenderer(const RendererStorage& storage);
+    InventoryRenderer();
 
     void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
