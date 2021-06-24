@@ -45,7 +45,7 @@ class Item final : public Vob {
     const char*         description() const;
     Tempest::Vec3       position() const;
     bool                isGold() const;
-    int32_t             mainFlag() const;
+    ItmFlags            mainFlag() const;
     int32_t             itemFlag() const;
 
     bool                isMulti() const;

@@ -83,7 +83,7 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
       mat.rotateOZ(invZ+rotz);
       mat.rotateOY(invY+roty);
       }
-    else if((flg&ITM_CAT_MAGIC) || (itData.flags&ITM_RING)) {
+    else if((flg&ITM_CAT_MAGIC) || (ItmFlags(itData.flags)&ITM_RING)) {
       static const float invX = 200;
       static const float invY = 0;
       static const float invZ = 90;

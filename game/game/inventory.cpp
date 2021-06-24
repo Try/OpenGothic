@@ -500,7 +500,7 @@ void Inventory::updateBowView(Npc &owner) {
     return;
     }
 
-  auto flag = ItmFlags(range->mainFlag());
+  auto flag = range->mainFlag();
   if(flag & ITM_CAT_FF){
     auto& itData = range->handle();
     auto  vbody  = owner.world().addView(itData.visual,itData.material,0,itData.material);

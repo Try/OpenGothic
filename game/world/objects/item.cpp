@@ -150,8 +150,8 @@ bool Item::isGold() const {
   return hitem.instanceSymbol==world.script().goldId();
   }
 
-int32_t Item::mainFlag() const {
-  return hitem.mainflag;
+ItmFlags Item::mainFlag() const {
+  return ItmFlags(hitem.mainflag);
   }
 
 int32_t Item::itemFlag() const {
