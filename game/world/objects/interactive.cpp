@@ -388,7 +388,7 @@ std::string_view Interactive::posSchemeName() const {
     if(i.user!=nullptr) {
       return i.posTag();
       }
-  return nullptr;
+  return "";
   }
 
 bool Interactive::isContainer() const {
