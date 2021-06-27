@@ -63,6 +63,9 @@ WorldObjects::WorldObjects(World& owner):owner(owner){
   }
 
 WorldObjects::~WorldObjects() {
+  rootVobs.clear();
+  interactiveObj.clear();
+  items.clear();
   }
 
 void WorldObjects::load(Serialize &fin) {

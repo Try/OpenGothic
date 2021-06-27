@@ -54,7 +54,7 @@ void Pose::save(Serialize &fout) {
   fout.write(itemUseSt,itemUseDestSt);
   }
 
-void Pose::load(Serialize &fin,const AnimationSolver& solver) {
+void Pose::load(Serialize &fin, const AnimationSolver& solver) {
   std::string name;
   uint8_t     sz = uint8_t(lay.size());
 
@@ -336,7 +336,7 @@ bool Pose::updateFrame(const Animation::Sequence &s,
   auto* sampleA = &d.samples[size_t(frameA*idSize)];
   auto* sampleB = &d.samples[size_t(frameB*idSize)];
 
-  for(size_t i=0;i<idSize;++i) {
+  for(size_t i=0; i<idSize; ++i) {
     auto smp = mix(sampleA[i],sampleB[i],a);
     if(d.nodeIndex[i]>=base.size())
       continue;
@@ -530,12 +530,11 @@ bool Pose::isJumpBack() const {
   }
 
 bool Pose::isJumpAnim() const {
-  for(auto& i:lay)
-    if(i.seq->isFly() &&
-       i.seq->name!="S_JUMP"      && i.seq->name!="S_JUMPUP" &&
-       i.seq->name!="S_JUMPUPMID" && i.seq->name!="S_JUMPUPLOW" &&
-       i.seq->name!="S_FALL"      && i.seq->name!="S_FALLDN")
-      return true;
+  for(auto& i:lay) {
+    if(i.bs!=BS_JUMP || i.seq->animCls!=Animation::Transition)
+      continue;
+    return true;
+    }
   return false;
   }
 

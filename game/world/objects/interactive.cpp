@@ -189,7 +189,7 @@ void Interactive::tick(uint64_t dt) {
     if(rewind && state!=-1) {
       if(!setAnim(nullptr,Anim::Out))
         return;
-      setState(std::max(0,state-1));
+      setState(std::max(-1,state-1));
       }
     return;
     }

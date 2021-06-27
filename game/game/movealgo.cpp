@@ -137,7 +137,7 @@ void MoveAlgo::tickGravity(uint64_t dt) {
   // falling
   if(0.f<fallCount) {
     fallSpeed/=fallCount;
-    fallCount=-1.f;
+    fallCount = 0.f;
     }
   fallSpeed.y   -= gravity*float(dt);
 
@@ -167,7 +167,7 @@ void MoveAlgo::tickGravity(uint64_t dt) {
       }
     if(fallSpeed.y<-1.5f && !npc.isDead())
       npc.setAnim(AnimationSolver::FallDeep); else
-    if(fallSpeed.y<-0.3f && !npc.isDead())
+    if(fallSpeed.y<-0.3f && !npc.isDead() && npc.bodyStateMasked()!=BS_JUMP)
       npc.setAnim(AnimationSolver::Fall);
     } else {
     if(ground+chest<water && !npc.isDead()) {
@@ -320,7 +320,14 @@ void MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
   if(isSwim())
     return tickSwim(dt);
 
-  if(isInAir() && !npc.isJumpAnim()) {
+  if(isInAir()) {
+    if(npc.isJumpAnim()) {
+      auto dp = skipMove+npcMoveSpeed(dt,moveFlg);
+      tryMove(dp.x,dp.y,dp.z);
+      fallSpeed += dp;
+      fallCount += float(dt);
+      return;
+      }
     return tickGravity(dt);
     }
 
@@ -343,7 +350,7 @@ void MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
   float dY      = pY-ground;
   bool  onGound = true;
 
-  if(!npc.isDead() && !npc.isJumpAnim() && ground+waterDepthChest()<water) {
+  if(!npc.isDead() && npc.bodyStateMasked()!=BS_JUMP && ground+waterDepthChest()<water) {
     setInAir(false);
     setInWater(true);
     setAsSwim(true);
@@ -416,7 +423,7 @@ void MoveAlgo::clearSpeed() {
   fallSpeed.x = 0;
   fallSpeed.y = 0;
   fallSpeed.z = 0;
-  fallCount   =-1.f;
+  fallCount   = 0;
   }
 
 void MoveAlgo::accessDamFly(float dx, float dz) {
@@ -426,7 +433,7 @@ void MoveAlgo::accessDamFly(float dx, float dz) {
     vec = vec/vec.manhattanLength();
 
     fallSpeed = vec*1.f;
-    fallCount =-1.f;
+    fallCount = 0;
     setInAir(true);
     }
   }
@@ -457,7 +464,7 @@ Tempest::Vec3 MoveAlgo::animMoveSpeed(uint64_t dt) const {
 
 Tempest::Vec3 MoveAlgo::npcMoveSpeed(uint64_t dt, MvFlags moveFlg) {
   Tempest::Vec3 dp = animMoveSpeed(dt);
-  if(!npc.isJumpAnim())
+  if(!npc.isFlyAnim())
     dp.y = 0.f;
 
   if(moveFlg&FaiMove) {
@@ -498,7 +505,7 @@ Tempest::Vec3 MoveAlgo::go2WpMoveSpeed(Tempest::Vec3 dp, const Tempest::Vec3& to
   }
 
 bool MoveAlgo::testSlide(const Tempest::Vec3& pos) const {
-  if(isInAir() || npc.isJumpAnim())
+  if(isInAir() || npc.bodyStateMasked()==BS_JUMP)
     return false;
 
   auto  norm             = normalRay(pos);
@@ -628,7 +635,7 @@ bool MoveAlgo::startClimb(JumpStatus jump) {
   fallSpeed.x = 0.f;
   fallSpeed.y = dHeight/sq->totalTime();
   fallSpeed.z = 0.f;
-  fallCount   = -1.f;
+  fallCount   = 0.f;
 
   if(jump.anim==Npc::Anim::JumpUp && dHeight>0.f){
     setAsJumpup(true);
