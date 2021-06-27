@@ -4,6 +4,7 @@
 #include "worldobjects.h"
 #include "world.h"
 
+#include "game/serialize.h"
 #include "graphics/pfx/particlefx.h"
 
 CollisionZone::CollisionZone() {
@@ -54,6 +55,27 @@ CollisionZone& CollisionZone::operator =(CollisionZone&& other) {
 CollisionZone::~CollisionZone() {
   if(owner!=nullptr)
     owner->disableCollizionZone(*this);
+  }
+
+void CollisionZone::save(Serialize& fout) const {
+  fout.write(uint32_t(intersect.size()));
+  for(auto i:intersect)
+    fout.write(i);
+  }
+
+void CollisionZone::load(Serialize& fin) {
+  uint32_t size=0;
+  fin.read(size);
+  intersect.resize(size);
+  for(auto& i:intersect)
+    fin.read(i);
+  for(size_t i=0;i<intersect.size();)
+    if(intersect[i]==nullptr) {
+      intersect[i] = intersect.back();
+      intersect.pop_back();
+      } else {
+      ++i;
+      }
   }
 
 bool CollisionZone::checkPos(const Tempest::Vec3& p) const {

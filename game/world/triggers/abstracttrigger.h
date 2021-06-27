@@ -98,7 +98,6 @@ class AbstractTrigger : public Vob {
     CollisionZone                boxNpc;
     Tempest::Vec3                bboxSize, bboxOrigin;
 
-    std::vector<Npc*>            intersect;
     uint32_t                     emitCount = 0;
     bool                         disabled  = false;
   };

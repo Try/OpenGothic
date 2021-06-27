@@ -118,34 +118,14 @@ void AbstractTrigger::onIntersect(Npc &n) {
   if(!isEnabled())
     return;
 
-  if(boxNpc.currentIntersections().size()==1) {
+  if(boxNpc.intersections().size()==1) {
     enableTicks();
     TriggerEvent e("","",TriggerEvent::T_Activate);
     processEvent(e);
     }
-
-  for(auto i:intersect)
-    if(i==&n)
-      return;
-  intersect.push_back(&n);
   }
 
 void AbstractTrigger::tick(uint64_t) {
-  for(size_t i=0;i<intersect.size();) {
-    Npc& npc = *intersect[i];
-    auto pos = npc.position();
-    if(!checkPos(pos+Vec3(0,npc.translateY(),0))) {
-      intersect[i] = intersect.back();
-      intersect.pop_back();
-      } else {
-      ++i;
-      }
-    }
-  if(intersect.size()==0) {
-    disableTicks();
-    //TriggerEvent e("","",TriggerEvent::T_Untrigger);
-    //processEvent(e);
-    }
   }
 
 bool AbstractTrigger::hasVolume() const {
@@ -162,9 +142,7 @@ bool AbstractTrigger::checkPos(const Tempest::Vec3& pos) const {
 
 void AbstractTrigger::save(Serialize& fout) const {
   Vob::save(fout);
-  fout.write(uint32_t(intersect.size()));
-  for(auto i:intersect)
-    fout.write(i);
+  boxNpc.save(fout);
   fout.write(emitCount,disabled);
   }
 
@@ -173,22 +151,8 @@ void AbstractTrigger::load(Serialize& fin) {
     return;
 
   Vob::load(fin);
-  uint32_t size=0;
-  fin.read(size);
-  intersect.resize(size);
-  for(auto& i:intersect)
-    fin.read(i);
-  for(size_t i=0;i<intersect.size();)
-    if(intersect[i]==nullptr) {
-      intersect[i] = intersect.back();
-      intersect.pop_back();
-      } else {
-      ++i;
-      }
+  boxNpc.load(fin);
   fin.read(emitCount,disabled);
-
-  if(intersect.size()>0)
-    enableTicks();
   }
 
 void AbstractTrigger::enableTicks() {
@@ -200,7 +164,7 @@ void AbstractTrigger::disableTicks() {
   }
 
 const std::vector<Npc*>& AbstractTrigger::intersections() const {
-  return intersect;
+  return boxNpc.intersections();
   }
 
 void AbstractTrigger::Cb::onCollide(DynamicWorld::BulletBody&) {

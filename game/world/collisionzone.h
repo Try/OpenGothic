@@ -7,6 +7,7 @@
 
 class World;
 class ParticleFx;
+class Serialize;
 class Npc;
 
 class CollisionZone final {
@@ -18,12 +19,15 @@ class CollisionZone final {
     CollisionZone& operator = (CollisionZone&& other);
     ~CollisionZone();
 
+    void          save(Serialize& fout) const;
+    void          load(Serialize &fin);
+
     void          setCallback(std::function<void(Npc& npc)> f);
 
     Tempest::Vec3 position() const { return pos; }
     void          setPosition(const Tempest::Vec3& p);
 
-    const std::vector<Npc*>& currentIntersections() const { return intersect; }
+    const std::vector<Npc*>& intersections() const { return intersect; }
 
     bool          checkPos(const Tempest::Vec3& pos) const;
     void          onIntersect(Npc& npc);
