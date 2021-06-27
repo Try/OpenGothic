@@ -575,9 +575,8 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
     dir    = tgPos-pos;
     } else {
     float a = npc.rotationRad()-float(M_PI/2);
-    float c = std::cos(a), s = std::sin(a);
-    dir.x = c;
-    dir.z = s;
+    dir.x = std::cos(a);
+    dir.z = std::sin(a);
     pos   += npc.mapWeaponBone();
     }
 
@@ -601,9 +600,8 @@ Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, c
     float speed = DynamicWorld::bulletSpeed;
     float t     = lxz/speed;
 
-    dir.y = dir.y/t + 0.5f*DynamicWorld::gravity*t;
-    dir.x/=t;
-    dir.z/=t;
+    dir/=t;
+    dir.y += 0.5f*DynamicWorld::gravity*t;
     } else
   if(inter!=nullptr) {
     auto  tgPos = inter->position();
@@ -613,14 +611,12 @@ Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, c
     float speed = DynamicWorld::bulletSpeed;
     float t     = lxz/speed;
 
-    dir.y = dir.y/t + 0.5f*DynamicWorld::gravity*t;
-    dir.x/=t;
-    dir.z/=t;
+    dir/=t;
+    dir.y += 0.5f*DynamicWorld::gravity*t;
     } else {
     float a = npc.rotationRad()-float(M_PI/2);
-    float c = std::cos(a), s = std::sin(a);
-    dir.x = c;
-    dir.z = s;
+    dir.x = std::cos(a);
+    dir.z = std::sin(a);
     }
 
   return wobj.shootBullet(itm, pos, dir, DynamicWorld::bulletSpeed);

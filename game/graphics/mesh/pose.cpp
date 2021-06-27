@@ -357,10 +357,11 @@ void Pose::mkSkeleton(const Matrix4x4 &mt) {
     return;
   auto& nodes=skeleton->nodes;
   for(size_t i=0; i<nodes.size(); ++i) {
-    if(nodes[i].parent==size_t(-1)) {
+    size_t parent = nodes[i].parent;
+    if(parent>=tr.size()) {
       tr[i] = mt*base[i];
       } else {
-      tr[i] = tr[nodes[i].parent]*base[i];
+      tr[i] = tr[parent]*base[i];
       }
     }
   }
