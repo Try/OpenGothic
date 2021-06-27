@@ -423,6 +423,7 @@ class Npc final {
     Item*     currentMeleWeapon();
     Item*     currentRangeWeapon();
     auto      mapWeaponBone() const -> Tempest::Vec3;
+    auto      mapBone(std::string_view bone) const -> Tempest::Vec3;
 
     bool      lookAt  (float dx, float dz, bool anim, uint64_t dt);
     bool      rotateTo(float dx, float dz, float speed, bool anim, uint64_t dt);
@@ -459,15 +460,17 @@ class Npc final {
     void      setAiOutputBarrier(uint64_t dt, bool overlay);
 
     bool      doAttack(Anim anim);
-    void      takeDamage(Npc& other,const Bullet* b);
+    void      commitSpell();
+    void      takeDamage(Npc& other, const Bullet* b);
+    void      takeDamage(Npc& other, const Bullet* b, const VisualFx* vfx, int32_t splId);
+
     void      emitSoundEffect(std::string_view sound, float range, bool freeSlot);
     void      emitSoundGround(std::string_view sound, float range, bool freeSlot);
     void      emitSoundSVM   (std::string_view sound);
 
     void      startEffect(Npc& to, const VisualFx& vfx);
-    void      stopEffect(const VisualFx& vfx);
-
-    void      commitSpell();
+    void      stopEffect (const VisualFx& vfx);
+    void      runEffect  (Effect&& e);
 
   private:
     struct Routine final {
@@ -504,16 +507,16 @@ class Npc final {
       const WayPoint*  wp   = nullptr;
       Tempest::Vec3    pos  = {};
 
-      void                         save(Serialize& fout) const;
-      void                         load(Serialize&  fin);
-      Tempest::Vec3                target() const;
+      void             save(Serialize& fout) const;
+      void             load(Serialize&  fin);
+      Tempest::Vec3    target() const;
 
-      bool                         empty() const;
-      void                         clear();
-      void                         set(Npc* to, GoToHint hnt = GoToHint::GT_Way);
-      void                         set(const WayPoint* to, GoToHint hnt = GoToHint::GT_Way);
-      void                         set(const Item* to);
-      void                         set(const Tempest::Vec3& to);
+      bool             empty() const;
+      void             clear();
+      void             set(Npc* to, GoToHint hnt = GoToHint::GT_Way);
+      void             set(const WayPoint* to, GoToHint hnt = GoToHint::GT_Way);
+      void             set(const Item* to);
+      void             set(const Tempest::Vec3& to);
       };
 
     void      updateWeaponSkeleton();
@@ -542,16 +545,17 @@ class Npc final {
     void      implAniWait(uint64_t dt);
     void      implFaiWait(uint64_t dt);
     void      implSetFightMode(const Animation::EvCount& ev);
+
     void      tickRoutine();
     void      nextAiAction(AiQueue& queue, uint64_t dt);
     void      commitDamage();
-    void      takeDamage(Npc& other);
     Npc*      updateNearestEnemy();
     Npc*      updateNearestBody();
     bool      checkHealth(bool onChange, bool forceKill);
     void      onNoHealth(bool death, HitSound sndMask);
     bool      hasAutoroll() const;
     void      stopWalkAnimation();
+    void      takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32_t splId, bool isSpell);
 
     void      dropTorch();
 

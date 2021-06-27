@@ -10,11 +10,17 @@
 
 using namespace Daedalus::GEngineClasses;
 
-DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const Bullet* b, const CollideMask bMsk) {
+DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const Bullet* b, bool isSpell, const DamageCalculator::Damage& splDmg, const CollideMask bMsk) {
   DamageCalculator::Val ret;
-  if(b!=nullptr)
-    ret = rangeDamage(src,other,*b,bMsk); else
+  if(b!=nullptr) {
+    ret = rangeDamage(src,other,*b,bMsk);
+    } else
+  if(isSpell) {
+    ret = rangeDamage(src,other,splDmg,bMsk);
+    }
+  else {
     ret = swordDamage(src,other);
+    }
 
   if(ret.hasHit && !ret.invinsible)
     ret.value = std::max<int32_t>(ret.value,MinDamage);
@@ -26,8 +32,6 @@ DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const 
   }
 
 DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, const Bullet& b, const CollideMask bMsk) {
-  C_Npc& other = *nother.handle();
-
   const float maxRange = 3500; // from Focus_Ranged
   bool invinsible = !checkDamageMask(nsrc,nother,&b);
   if(b.pathLength()>maxRange*b.hitChance() && b.hitChance()<1.f)
@@ -36,22 +40,22 @@ DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, cons
   if(invinsible)
     return Val(0,true,true);
 
-  if((bMsk & (COLL_APPLYDAMAGE | COLL_APPLYDOUBLEDAMAGE | COLL_APPLYHALVEDAMAGE | COLL_DOEVERYTHING))==0) {
+  if((bMsk & (COLL_APPLYDAMAGE | COLL_APPLYDOUBLEDAMAGE | COLL_APPLYHALVEDAMAGE | COLL_DOEVERYTHING))==0)
     return Val(0,true,true);
-    }
 
-  auto dmg = b.damage();
-  if(bMsk & COLL_APPLYDOUBLEDAMAGE) {
-    for(auto& i:dmg)
-      i*=2;
-    }
-  if(bMsk & COLL_APPLYHALVEDAMAGE) {
-    for(auto& i:dmg)
-      i/=2;
-    }
+  return rangeDamage(nsrc,nother,b.damage(),bMsk);
+  }
+
+DamageCalculator::Val DamageCalculator::rangeDamage(Npc&, Npc& nother, Damage dmg, const CollideMask bMsk) {
+  C_Npc& other = *nother.handle();
+
+  if(bMsk & COLL_APPLYDOUBLEDAMAGE)
+    dmg*=2;
+  if(bMsk & COLL_APPLYHALVEDAMAGE)
+    dmg/=2;
 
   int  value = 0;
-  for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i) {
+  for(int i=0; i<DAM_INDEX_MAX; ++i) {
     if(dmg[size_t(i)]==0)
       continue;
     int vd = std::max(dmg[size_t(i)] - other.protection[i],0);
@@ -89,7 +93,7 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
     critChance = 0;
     }
 
-  for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
+  for(int i=0; i<DAM_INDEX_MAX; ++i){
     if((dtype & (1<<i))==0)
       continue;
     int vd = std::max(s + src.damage[i] - other.protection[i],0);
@@ -113,13 +117,13 @@ bool DamageCalculator::checkDamageMask(Npc& nsrc, Npc& nother, const Bullet* b) 
 
   if(b!=nullptr) {
     auto dmg = b->damage();
-    for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i) {
+    for(int i=0;i<DAM_INDEX_MAX;++i) {
       if(dmg[size_t(i)]>0 && other.protection[i]>=0)
         return true;
       }
     } else {
     const int dtype = damageTypeMask(nsrc);
-    for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
+    for(int i=0;i<DAM_INDEX_MAX;++i){
       if((dtype & (1<<i))==0)
         continue;
       return true;
@@ -129,11 +133,11 @@ bool DamageCalculator::checkDamageMask(Npc& nsrc, Npc& nother, const Bullet* b) 
   return false;
   }
 
-std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> DamageCalculator::rangeDamageValue(Npc& src) {
+DamageCalculator::Damage DamageCalculator::rangeDamageValue(Npc& src) {
   const int dtype = damageTypeMask(src);
   int d = src.attribute(Npc::Attribute::ATR_DEXTERITY);
-  std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> ret={};
-  for(int i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
+  Damage ret={};
+  for(int i=0;i<DAM_INDEX_MAX;++i){
     if((dtype & (1<<i))==0)
       continue;
     ret[size_t(i)] = d + src.handle()->damage[i];

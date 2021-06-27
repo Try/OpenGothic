@@ -1,3 +1,4 @@
+#include "damagecalculator.h"
 #include "inventory.h"
 
 #include <Tempest/Log>
@@ -916,7 +917,7 @@ Item *Inventory::bestRangeWeapon(Npc &owner) {
 void Inventory::applyWeaponStats(Npc& owner, const Item &weapon, int sgn) {
   auto& hnpc = *owner.handle();
   //hnpc.damagetype = sgn>0 ? weapon.handle()->damageType : (1 << Daedalus::GEngineClasses::DAM_INDEX_BLUNT);
-  for(size_t i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i){
+  for(size_t i=0; i<DamageCalculator::DAM_INDEX_MAX; ++i){
     hnpc.damage[i] += sgn*weapon.handle().damage[i];
     if(weapon.handle().damageType & (1<<i)) {
       hnpc.damage[i] += sgn*weapon.handle().damageTotal;

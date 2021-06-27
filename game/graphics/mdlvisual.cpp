@@ -301,6 +301,8 @@ void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot, bool noSlo
     return;
 
   vfx.setMesh(&view);
+  vfx.setBullet(nullptr,owner);
+
   for(auto& i:effects) {
     if(i.id==slot && !i.noSlot) {
       i.timeUntil = timeUntil;

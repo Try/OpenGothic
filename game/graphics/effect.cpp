@@ -28,6 +28,7 @@ Effect::Effect(const VisualFx& v, World& owner, const Vec3& inPos, SpellFxKey k)
   }
 
 Effect::~Effect() {
+  pfx.setPhysicsDisable();
   sfx.setLooping(false);
   }
 
@@ -70,17 +71,6 @@ void Effect::setupPfx(World& owner) {
     pfx.setMesh(meshEmitter,pose);
   pfx.setActive(active);
   pfx.setLooped(looped);
-
-  bool emCheckCollision = root->emCheckCollision;
-  if(key!=nullptr)
-    emCheckCollision |= key->emCheckCollision; // ?
-
-  if(emCheckCollision && root->emFXCollDyn!=nullptr && root->emActionCollDyn!=VisualFx::Collision::NoResp) {
-    auto vfx = root->emFXCollDyn;
-    pfx.setPhysicsEnable(owner,[vfx](Npc& npc){
-      npc.startEffect(npc,*vfx);
-      });
-    }
   }
 
 void Effect::setupSfx(World& owner) {
@@ -190,9 +180,10 @@ void Effect::setKey(World& owner, SpellFxKey k, int32_t keyLvl) {
     next.reset(nullptr);
     }
 
-  setupPfx  (owner);
-  setupLight(owner);
-  setupSfx  (owner);
+  setupPfx      (owner);
+  setupLight    (owner);
+  setupSfx      (owner);
+  setupCollision(owner);
   syncAttachesSingle(pos);
   }
 
@@ -202,6 +193,27 @@ void Effect::setMesh(const MeshObjects::Mesh* mesh) {
   meshEmitter = mesh;
   if(root!=nullptr && root->isMeshEmmiter())
     pfx.setMesh(meshEmitter,pose);
+  }
+
+void Effect::setOwner(Npc* npc) {
+  if(next!=nullptr)
+    next->setOwner(npc);
+  mage = npc;
+  setupCollision(npc->world());
+  }
+
+void Effect::setBullet(Bullet* b, World& owner) {
+  if(next!=nullptr)
+    next->setBullet(b,owner);
+  bullet = b;
+  setupCollision(owner);
+  }
+
+void Effect::setSpellId(int32_t s, World& owner) {
+  if(next!=nullptr)
+    next->setSpellId(s,owner);
+  splId = s;
+  setupCollision(owner);
   }
 
 uint64_t Effect::effectPrefferedTime() const {
@@ -231,7 +243,7 @@ void Effect::bindAttaches(const Pose& p, const Skeleton& to) {
     pfx.setMesh(meshEmitter,pose);
   }
 
-void Effect::onCollide(World& owner, const Vec3& pos, Npc* npc) {
+void Effect::onCollide(World& world, const VisualFx* root, const Vec3& pos, Npc* npc, Npc* other, int32_t splId) {
   if(root==nullptr)
     return;
 
@@ -240,13 +252,49 @@ void Effect::onCollide(World& owner, const Vec3& pos, Npc* npc) {
     vfx = root->emFXCollDyn;
 
   if(vfx!=nullptr) {
-    Effect eff(*vfx,owner,pos,SpellFxKey::Collide);
+    Effect eff(*vfx,world,pos,SpellFxKey::Collide);
+    eff.setSpellId(splId,world);
+    eff.setOwner(other);
     eff.setActive(true);
-    owner.runEffect(std::move(eff));
+
+    if(npc!=nullptr)
+      npc ->runEffect(std::move(eff)); else
+      world.runEffect(std::move(eff));
     }
 
-  vfx = root->emFXCollDynPerc;
-  if(vfx!=nullptr && npc!=nullptr) {
-    npc->startEffect(*npc,*vfx);
+  if(npc!=nullptr && root->emFXCollDynPerc!=nullptr) {
+    const VisualFx* vfx = root->emFXCollDynPerc;
+    Effect eff(*vfx,world,pos,SpellFxKey::Collide);
+    eff.setActive(true);
+    npc->runEffect(std::move(eff));
+    if(vfx->sendAssessMagic) {
+      auto oth = other==nullptr ? npc : other;
+      npc->perceptionProcess(*oth,npc,0,Npc::PERC_ASSESSMAGIC);
+      }
+    }
+  }
+
+void Effect::setupCollision(World& owner) {
+  if(root==nullptr) {
+    pfx.setPhysicsDisable();
+    return;
+    }
+
+  bool emCheckCollision = root->emCheckCollision;
+  if(key!=nullptr)
+    emCheckCollision = key->emCheckCollision;
+  (void)emCheckCollision;
+
+  if(/*emCheckCollision && */!pfx.isEmpty() && (root->emFXCollDyn!=nullptr || root->emFXCollDynPerc!=nullptr)) {
+    auto vfx = root;
+    auto n   = mage;
+    auto sId = splId;
+    auto b   = bullet;
+    pfx.setPhysicsEnable(owner,[vfx,n,sId,b](Npc& npc){
+      if(n!=&npc) {
+        auto src = (n!=nullptr ? n : &npc);
+        npc.takeDamage(*src,b,vfx,sId);
+        }
+      });
     }
   }

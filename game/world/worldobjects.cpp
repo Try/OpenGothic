@@ -479,6 +479,8 @@ void WorldObjects::disableCollizionZone(CollisionZone& z) {
   }
 
 void WorldObjects::runEffect(Effect&& ex) {
+  ex.setBullet(nullptr,owner);
+
   EffectState e;
   e.eff       = std::move(ex);
   e.timeUntil = owner.tickCount()+e.eff.effectPrefferedTime();
@@ -528,16 +530,12 @@ size_t WorldObjects::hasItems(std::string_view tag, size_t itemCls) {
   return 0;
   }
 
-Bullet& WorldObjects::shootBullet(const Item& itmId,
-                                  float x, float y, float z,
-                                  float dx, float dy, float dz,
-                                  float speed) {
-  bullets.emplace_back(owner,itmId,x,y,z);
+Bullet& WorldObjects::shootBullet(const Item& itmId, const Vec3& pos, const Vec3& dir, float speed) {
+  bullets.emplace_back(owner,itmId,pos);
   auto& b = bullets.back();
 
-  const float l = std::sqrt(dx*dx+dy*dy+dz*dz);
-
-  b.setDirection(dx*speed/l,dy*speed/l,dz*speed/l);
+  const float l = dir.manhattanLength();
+  b.setDirection(dir*speed/l);
   return b;
   }
 

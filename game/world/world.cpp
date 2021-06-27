@@ -562,77 +562,68 @@ size_t World::hasItems(const char* tag, size_t itemCls) {
   }
 
 Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
-  float dx  = 1.f, dy = 0.f, dz = 0.f;
-  auto  pos = npc.position();
-  auto  bn  = npc.mapWeaponBone();
-  pos+=bn;
+  Tempest::Vec3 dir = {1.f,0.f,0.f};
+  auto          pos = npc.position();
 
   if(target!=nullptr) {
     auto  tgPos = target->position();
-    float y1    = target->centerY();
-    float y0    = pos.y;
 
-    dx = tgPos.x-pos.x;
-    dy = y1-y0;
-    dz = tgPos.z-pos.z;
+    const VisualFx* vfx = script().spellVfx(itm.spellId());
+    pos   += npc.mapBone(vfx->emTrjOriginNode);
+    tgPos += npc.mapBone(vfx->emTrjTargetNode);
+    // vfx->emTrjTargetRange; // TODO
+    dir    = tgPos-pos;
     } else {
     float a = npc.rotationRad()-float(M_PI/2);
     float c = std::cos(a), s = std::sin(a);
-    dx = c;
-    dz = s;
+    dir.x = c;
+    dir.z = s;
+    pos   += npc.mapWeaponBone();
     }
 
-  auto& b = wobj.shootBullet(itm, pos.x,pos.y,pos.z, dx,dy,dz, DynamicWorld::spellSpeed);
+  auto& b = wobj.shootBullet(itm, pos, dir, DynamicWorld::spellSpeed);
   return b;
   }
 
 Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, const Interactive* inter) {
-  float dx  = 1.f, dy = 0.f, dz = 0.f;
-  auto  pos = npc.position();
-  auto  bn  = npc.mapWeaponBone();
+  Tempest::Vec3 dir = {1.f,0.f,0.f};
+  auto          pos = npc.position();
+  auto          bn  = npc.mapWeaponBone();
   pos+=bn;
 
   if(target!=nullptr) {
     auto  tgPos = target->position();
-    float y1    = target->centerY();
-    float y0    = pos.y;
+    tgPos.y = target->centerY();
 
-    dx = tgPos.x-pos.x;
-    dy = y1-y0;
-    dz = tgPos.z-pos.z;
+    dir = tgPos-pos;
 
-    float lxz   = std::sqrt(dx*dx+0*0+dz*dz);
+    float lxz   = std::sqrt(dir.x*dir.x+0*0+dir.z*dir.z);
     float speed = DynamicWorld::bulletSpeed;
     float t     = lxz/speed;
 
-    dy = (y1-y0)/t + 0.5f*DynamicWorld::gravity*t;
-    dx/=t;
-    dz/=t;
+    dir.y = dir.y/t + 0.5f*DynamicWorld::gravity*t;
+    dir.x/=t;
+    dir.z/=t;
     } else
   if(inter!=nullptr) {
     auto  tgPos = inter->position();
-    float y1    = tgPos.y;
-    float y0    = pos.y;
+    dir = tgPos-pos;
 
-    dx = tgPos.x-pos.x;
-    dy = y1-y0;
-    dz = tgPos.z-pos.z;
-
-    float lxz   = std::sqrt(dx*dx+0*0+dz*dz);
+    float lxz   = std::sqrt(dir.x*dir.x+0*0+dir.z*dir.z);
     float speed = DynamicWorld::bulletSpeed;
     float t     = lxz/speed;
 
-    dy = (y1-y0)/t + 0.5f*DynamicWorld::gravity*t;
-    dx/=t;
-    dz/=t;
+    dir.y = dir.y/t + 0.5f*DynamicWorld::gravity*t;
+    dir.x/=t;
+    dir.z/=t;
     } else {
     float a = npc.rotationRad()-float(M_PI/2);
     float c = std::cos(a), s = std::sin(a);
-    dx = c;
-    dz = s;
+    dir.x = c;
+    dir.z = s;
     }
 
-  return wobj.shootBullet(itm, pos.x,pos.y,pos.z, dx,dy,dz, DynamicWorld::bulletSpeed);
+  return wobj.shootBullet(itm, pos, dir, DynamicWorld::bulletSpeed);
   }
 
 void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {

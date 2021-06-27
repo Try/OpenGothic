@@ -28,6 +28,7 @@ class Effect final {
 
     Effect&  operator = (Effect&&) = default;
     bool     is(const VisualFx& vfx) const;
+    const VisualFx* handle() const { return root; }
 
     void     setActive(bool e);
     void     setLooped(bool l);
@@ -37,12 +38,15 @@ class Effect final {
     void     setPosition (const Tempest::Vec3& pos);
     void     setKey      (World& owner, SpellFxKey key, int32_t keyLvl=0);
     void     setMesh     (const MeshObjects::Mesh* mesh);
+    void     setOwner    (Npc*    npc);
+    void     setBullet   (Bullet* b, World& owner);
+    void     setSpellId  (int32_t splId, World& owner);
 
     uint64_t effectPrefferedTime() const;
     bool     isAlive() const;
 
     void     bindAttaches  (const Pose& pose, const Skeleton& to);
-    void     onCollide     (World& owner, const Tempest::Vec3& pos, Npc* npc);
+    static void onCollide  (World& owner, const VisualFx* root, const Tempest::Vec3& pos, Npc* npc, Npc* other, int32_t splId);
 
   private:
     void               syncAttaches(const Tempest::Matrix4x4& pos);
@@ -50,6 +54,7 @@ class Effect final {
     void               setupLight(World& owner);
     void               setupPfx(World& owner);
     void               setupSfx(World& owner);
+    void               setupCollision(World& owner);
 
     const VisualFx::Key*  key  = nullptr;
     const VisualFx*       root = nullptr;
@@ -58,6 +63,10 @@ class Effect final {
     Sound                 sfx;
     GlobalFx              gfx;
     LightGroup::Light     light;
+
+    Npc*                  mage   = nullptr;
+    Bullet*               bullet = nullptr;
+    int32_t               splId  = 0;
 
     std::string_view      nodeSlot;
     size_t                boneId   = size_t(-1);

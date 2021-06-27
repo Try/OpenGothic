@@ -7,7 +7,7 @@
 
 using namespace Tempest;
 
-Bullet::Bullet(World& owner,const Item& itm,float x,float y,float z)
+Bullet::Bullet(World& owner, const Item& itm, const Vec3& pos)
   :wrld(&owner) {
   obj = wrld->physic()->bulletObj(this);
   if(itm.isSpellOrRune()) {
@@ -19,7 +19,7 @@ Bullet::Bullet(World& owner,const Item& itm,float x,float y,float z)
     int32_t id = itm.spellId();
     const VisualFx* vfx = owner.script().spellVfx(id);
     if(vfx!=nullptr) {
-      auto e = Effect(*vfx,owner,Vec3(x,y,z),SpellFxKey::Cast);
+      auto e = Effect(*vfx,owner,pos,SpellFxKey::Cast);
       setView(std::move(e));
       }
     } else {
@@ -27,10 +27,11 @@ Bullet::Bullet(World& owner,const Item& itm,float x,float y,float z)
     setView(owner.addItmView(itm.handle().visual,material));
     }
 
-  setPosition(x,y,z);
+  setPosition(pos);
   }
 
 Bullet::~Bullet() {
+  vfx.setBullet(nullptr,*wrld);
   wrld->physic()->deleteObj(obj);
   }
 
@@ -44,8 +45,8 @@ void Bullet::setPosition(float x, float y, float z) {
   updateMatrix();
   }
 
-void Bullet::setDirection(float x, float y, float z) {
-  obj->setDirection(Vec3(x,y,z));
+void Bullet::setDirection(const Tempest::Vec3& dir) {
+  obj->setDirection(dir);
   updateMatrix();
   }
 
@@ -71,6 +72,7 @@ int32_t Bullet::spellId() const {
 
 void Bullet::setOwner(Npc *n) {
   ow = n;
+  vfx.setOwner(n);
   }
 
 Npc *Bullet::owner() const {
@@ -103,20 +105,20 @@ void Bullet::onCollide(uint8_t matId) {
       wrld->addLandHitSound(pos.x,pos.y,pos.z,material,matId);
       }
     }
-  collideCommon(nullptr);
+  Effect::onCollide(*wrld,vfx.handle(),obj->position(),nullptr,ow,spellId());
+  vfx.setLooped(false);
+  wrld->runEffect(std::move(vfx));
   }
 
 void Bullet::onCollide(Npc& npc) {
-  if(ow!=nullptr)
-    npc.takeDamage(*ow,this);
-  collideCommon(&npc);
-  }
-
-void Bullet::collideCommon(Npc* npc) {
-  if(obj->isSpell()) {
-    vfx.onCollide(*wrld, obj->position(), npc);
-    wrld->runEffect(std::move(vfx));
+  if(ow!=nullptr) {
+    if(isSpell())
+      npc.takeDamage(*ow,this,vfx.handle(),spellId()); else
+      npc.takeDamage(*ow,this);
     }
+  vfx.setKey(*wrld,SpellFxKey::Collide);
+  vfx.setLooped(false);
+  wrld->runEffect(std::move(vfx));
   }
 
 void Bullet::updateMatrix() {

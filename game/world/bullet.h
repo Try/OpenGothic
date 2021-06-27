@@ -4,6 +4,7 @@
 
 #include "physics/dynamicworld.h"
 
+#include "game/damagecalculator.h"
 #include "graphics/pfx/pfxobjects.h"
 #include "graphics/meshobjects.h"
 #include "graphics/effect.h"
@@ -15,7 +16,7 @@ class Npc;
 class Bullet final : public DynamicWorld::BulletCallback {
   public:
     Bullet()=default;
-    Bullet(World &owner, const Item &itm, float x, float y, float z);
+    Bullet(World &owner, const Item &itm, const Tempest::Vec3& pos);
     Bullet(Bullet&&)=default;
     ~Bullet() override;
     Bullet& operator=(Bullet&&)=default;
@@ -28,7 +29,7 @@ class Bullet final : public DynamicWorld::BulletCallback {
     void     setPosition  (const Tempest::Vec3& p);
     void     setPosition  (float x,float y,float z);
 
-    void     setDirection (float x,float y,float z);
+    void     setDirection (const Tempest::Vec3& dir);
 
     void     setView      (MeshObjects::Mesh&&   m);
     void     setView      (Effect&& p);
@@ -43,8 +44,8 @@ class Bullet final : public DynamicWorld::BulletCallback {
     void     setFlags(Flg f) { flg=f; }
     void     addFlags(Flg f) { flg=Flg(flg|f); }
 
-    auto     damage() const -> const std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX>& { return dmg; }
-    void     setDamage(std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> d) { dmg=d; }
+    auto     damage() const -> const DamageCalculator::Damage& { return dmg; }
+    void     setDamage(DamageCalculator::Damage d) { dmg=d; }
 
     float    hitChance() const { return hitCh; }
     void     setHitChance(float h) { hitCh=h; }
@@ -57,14 +58,13 @@ class Bullet final : public DynamicWorld::BulletCallback {
     void     onMove() override;
     void     onCollide(uint8_t matId) override;
     void     onCollide(Npc& other) override;
-    void     collideCommon(Npc* isDyn);
 
   private:
     DynamicWorld::BulletBody*         obj=nullptr;
     World*                            wrld=nullptr;
     Npc*                              ow=nullptr;
 
-    std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> dmg={};
+    DamageCalculator::Damage          dmg={};
     float                             hitCh=1.f;
 
     MeshObjects::Mesh                 view;

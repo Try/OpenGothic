@@ -831,6 +831,7 @@ void Npc::setRangeWeapon(MeshObjects::Mesh&& b) {
   }
 
 void Npc::setMagicWeapon(Effect&& s) {
+  s.setOwner(this);
   visual.setMagicWeapon(std::move(s),owner);
   updateWeaponSkeleton();
   }
@@ -1549,91 +1550,102 @@ void Npc::commitDamage() {
     return;
   if(!fghAlgo.isInFocusAngle(*this,*currentTarget))
     return;
-  currentTarget->takeDamage(*this);
+  currentTarget->takeDamage(*this,nullptr);
   }
 
-void Npc::takeDamage(Npc &other) {
-  takeDamage(other,nullptr);
-  }
-
-void Npc::takeDamage(Npc &other, const Bullet *b) {
+void Npc::takeDamage(Npc &other, const Bullet* b) {
   if(isDown())
     return;
 
-  const bool isSpell = b!=nullptr && b->isSpell();
+  assert(b==nullptr || !b->isSpell());
   const bool isJumpb = visual.pose().isJumpBack();
   const bool isBlock = (!other.isMonster() || other.inventory().activeWeapon()!=nullptr) &&
                        fghAlgo.isInAtackRange(*this,other,owner.script()) &&
                        visual.pose().isDefence(owner.tickCount());
 
-  setOther(&other);
-  if(!isSpell)
-    owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
-
-  CollideMask bMask    = COLL_DOEVERYTHING;
-  bool        dontKill = (b==nullptr);
+  lastHit = &other;
+  if(!isPlayer())
+    setOther(&other);
+  owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
 
   if(!(isBlock || isJumpb) || b!=nullptr) {
-    if(isSpell) {
-      int32_t splId = b->spellId();
-      bMask   = owner.script().canNpcCollideWithSpell(*this,b->owner(),splId);
-      if(bMask & COLL_DONTKILL)
-        dontKill = true;
-      lastHitSpell = splId;
-      perceptionProcess(other,this,0,PERC_ASSESSMAGIC);
-      }
-    perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
-
-    lastHit = &other;
-    fghAlgo.onTakeHit();
-    implFaiWait(0);
-
-    float da = rotationRad()-lastHit->rotationRad();
-    if(std::cos(da)>=0)
-      lastHitType='A'; else
-      lastHitType='B';
-
-    if(!isPlayer())
-      setOther(lastHit);
-
-    auto hitResult = DamageCalculator::damageValue(other,*this,b,bMask);
-    if(!isSpell && !isDown() && hitResult.hasHit)
-      owner.addWeaponsSound(other,*this);
-
-    if(hitResult.hasHit) {
-      if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr && !isSwim()) {
-        const bool noInter = (hnpc.bodyStateInterruptableOverride!=0);
-        if(!noInter)
-          visual.interrupt();
-        if(auto ani = setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB,noInter)) {
-          if(ani->layer==1)
-            implAniWait(uint64_t(ani->totalTime()));
-          }
-        }
-      }
-
-    if(hitResult.value>0) {
-      changeAttribute(ATR_HITPOINTS,-hitResult.value,dontKill);
-
-      if(isUnconscious()){
-        owner.sendPassivePerc(*this,other,*this,PERC_ASSESSDEFEAT);
-        }
-      else if(isDead()) {
-        owner.sendPassivePerc(*this,other,*this,PERC_ASSESSMURDER);
-        }
-      else {
-        owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
-        if(owner.script().rand(2)==0)
-          emitSoundSVM("SVM_%d_AARGH");
-        }
-      }
-
-    if(DamageCalculator::damageTypeMask(other) & (1<<Daedalus::GEngineClasses::DAM_INDEX_FLY))
-      mvAlgo.accessDamFly(x-other.x,z-other.z); // throw enemy
+    takeDamage(other,b,COLL_DOEVERYTHING,0,false);
     } else {
     if(invent.activeWeapon()!=nullptr)
       owner.addBlockSound(other,*this);
     }
+  }
+
+void Npc::takeDamage(Npc& other, const Bullet* b, const VisualFx* vfx, int32_t splId) {
+  if(isDown())
+    return;
+
+  lastHitSpell = splId;
+  lastHit = &other;
+  if(!isPlayer())
+    setOther(&other);
+
+  CollideMask bMask = owner.script().canNpcCollideWithSpell(*this,&other,splId);
+  takeDamage(other,b,bMask,splId,true);
+  Effect::onCollide(owner,vfx,position(),this,&other,splId);
+  }
+
+void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32_t splId, bool isSpell) {
+  perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
+
+  fghAlgo.onTakeHit();
+  implFaiWait(0);
+
+  float a  = angleDir(other.x-x,other.z-z);
+  float da = a-angle;
+
+  if(std::cos(da*M_PI/180.0)<0)
+    lastHitType='A'; else
+    lastHitType='B';
+
+  DamageCalculator::Damage dmg={};
+  if(isSpell) {
+    auto& spl = owner.script().spellDesc(splId);
+    for(size_t i=0; i<DamageCalculator::DAM_INDEX_MAX; ++i)
+      if((spl.damageType&(1<<i))!=0)
+        dmg[i] = spl.damage_per_level;
+    }
+
+  const bool dontKill  = (b==nullptr || (bMask & COLL_DONTKILL));
+  const auto hitResult = DamageCalculator::damageValue(other,*this,b,isSpell,dmg,bMask);
+  if(!isSpell && !isDown() && hitResult.hasHit)
+    owner.addWeaponsSound(other,*this);
+
+  if(hitResult.hasHit) {
+    if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr && !isSwim()) {
+      const bool noInter = (hnpc.bodyStateInterruptableOverride!=0);
+      if(!noInter)
+        visual.interrupt();
+      if(auto ani = setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB,noInter)) {
+        if(ani->layer==1)
+          implAniWait(uint64_t(ani->totalTime()));
+        }
+      }
+    }
+
+  if(hitResult.value>0) {
+    changeAttribute(ATR_HITPOINTS,-hitResult.value,dontKill);
+
+    if(isUnconscious()){
+      owner.sendPassivePerc(*this,other,*this,PERC_ASSESSDEFEAT);
+      }
+    else if(isDead()) {
+      owner.sendPassivePerc(*this,other,*this,PERC_ASSESSMURDER);
+      }
+    else {
+      owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
+      if(owner.script().rand(2)==0)
+        emitSoundSVM("SVM_%d_AARGH");
+      }
+    }
+
+  if(DamageCalculator::damageTypeMask(other) & (1<<Daedalus::GEngineClasses::DAM_INDEX_FLY))
+    mvAlgo.accessDamFly(x-other.x,z-other.z); // throw enemy
   }
 
 Npc *Npc::updateNearestEnemy() {
@@ -2294,6 +2306,10 @@ void Npc::stopEffect(const VisualFx& vfx) {
   visual.stopEffect(vfx);
   }
 
+void Npc::runEffect(Effect&& e) {
+  visual.startEffect(owner, std::move(e), 0, true);
+  }
+
 void Npc::commitSpell() {
   auto active = invent.getItem(currentSpellCast);
   if(active==nullptr || !active->isSpellOrRune())
@@ -2305,8 +2321,8 @@ void Npc::commitSpell() {
   if(active->isSpellShoot()) {
     auto& spl = owner.script().spellDesc(splId);
     int   lvl = (castLevel-CS_Cast_0)+1;
-    std::array<int32_t,Daedalus::GEngineClasses::DAM_INDEX_MAX> dmg={};
-    for(size_t i=0;i<Daedalus::GEngineClasses::DAM_INDEX_MAX;++i)
+    DamageCalculator::Damage dmg={};
+    for(size_t i=0; i<DamageCalculator::DAM_INDEX_MAX; ++i)
       if((spl.damageType&(1<<i))!=0) {
         dmg[i] = spl.damage_per_level*lvl;
         }
@@ -2320,6 +2336,8 @@ void Npc::commitSpell() {
     const VisualFx* vfx = owner.script().spellVfx(splId);
     if(vfx!=nullptr) {
       auto e = Effect(*vfx,owner,Vec3(x,y,z),SpellFxKey::Cast);
+      e.setOwner(this);
+      e.setSpellId(splId,owner);
       e.setActive(true);
       visual.startEffect(owner,std::move(e),0,true);
       }
@@ -2569,6 +2587,18 @@ Item *Npc::currentRangeWeapon() {
 
 Vec3 Npc::mapWeaponBone() const {
   return visual.mapWeaponBone();
+  }
+
+Vec3 Npc::mapBone(std::string_view bone) const {
+  if(auto sk = visual.visualSkeleton()) {
+    size_t id = sk->findNode(bone);
+    if(id!=size_t(-1))
+      return visual.mapBone(id);
+    }
+
+  Vec3 ret = {};
+  ret.y = centerY()-y;
+  return ret;
   }
 
 bool Npc::lookAt(float dx, float dz, bool anim, uint64_t dt) {

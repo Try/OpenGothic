@@ -14,12 +14,12 @@ class VisualFx final {
     VisualFx(const Daedalus::GEngineClasses::CFx_Base& src, Daedalus::DaedalusVM& tmpVm, std::string_view name);
 
     enum Collision : uint8_t {
-      NoCollide  = 0,
-      Collide    = 1,
-      Create     = 1<<1,
-      CreateOnce = 1<<2,
-      NoResp     = 1<<3,
-      CreateQuad = 1<<4,
+      NoCollision = 0,
+      Collide     = 1,
+      Create      = 1<<1,
+      CreateOnce  = 1<<2,
+      NoResp      = 1<<3,
+      CreateQuad  = 1<<4,
       };
 
     enum class CollisionAlign : uint8_t {
