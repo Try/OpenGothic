@@ -82,7 +82,7 @@ artifacts:
     name: archive
 
 deploy:
-  release: gothic-win32-v$(appveyor_build_version)
+  release: gothic-win64-v$(appveyor_build_version)
   description: 'no release description'
   provider: GitHub
   auth_token:
