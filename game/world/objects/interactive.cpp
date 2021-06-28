@@ -579,7 +579,8 @@ bool Interactive::isDetachState(const Npc& npc) const {
 
 bool Interactive::canQuitAtLastState() const {
   // NOTE: workaround for B_MoveMob.d
-  const bool isDoor = (schemeName()=="DOOR");
+  // TODO: check for T_[DOOR]_FRONT_S1_2_STAND anim
+  const bool isDoor = (schemeName()=="DOOR" || schemeName()=="GATE");
   return (vobType==ZenLoad::zCVobData::VT_oCMobDoor && isDoor) ||
          (vobType==ZenLoad::zCVobData::VT_oCMobSwitch)         ||
          reverseState;

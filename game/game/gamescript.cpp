@@ -776,7 +776,8 @@ void GameScript::exec(const GameScript::DlgChoise &dlg,Npc& player, Npc& npc) {
 
   Daedalus::GEngineClasses::C_Info& info = *dlg.handle;
 
-  player.stopAnim("");
+  if(&player!=&npc)
+    player.stopAnim("");
   auto pl = *player.handle();
 
   if(info.information==dlg.scriptFn) {
