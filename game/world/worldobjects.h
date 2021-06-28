@@ -141,6 +141,8 @@ class WorldObjects final {
       };
 
     World&                             owner;
+
+    std::vector<CollisionZone*>        collisionZn;
     std::vector<std::unique_ptr<Vob>>  rootVobs;
 
     SpaceIndex<Interactive>            interactiveObj;
@@ -160,9 +162,6 @@ class WorldObjects final {
     std::vector<AbstractTrigger*>      triggers;
     std::vector<AbstractTrigger*>      triggersZn;
     std::vector<AbstractTrigger*>      triggersTk;
-
-    std::vector<CollisionZone*>        collisionZn;
-
     std::vector<PerceptionMsg>         sndPerc;
     std::vector<TriggerEvent>          triggerEvents;
 
