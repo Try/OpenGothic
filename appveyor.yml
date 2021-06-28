@@ -89,9 +89,10 @@ deploy:
     secure: YLdtUMsAcc8FUr3kgwhQW7nkl5jDpLKbelvzWzzTWUfAiDd92Kd15rjlDJVEEFzo
   artifact: archive
   draft: true
-  force_update: true
+  force_update: false
   prerelease: true
+  tag: $(APPVEYOR_REPO_TAG_NAME)
   on:
-    branch: master                # release from master branch only
+    branch: $(APPVEYOR_REPO_TAG_NAME)
     APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015 # mingw is default for now
     appveyor_repo_tag: true       # deploy on tag push only
