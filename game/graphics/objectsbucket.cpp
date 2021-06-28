@@ -385,7 +385,8 @@ void ObjectsBucket::drawShadow(Encoder<CommandBuffer>& cmd, uint8_t fId, int lay
 void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
                                const RenderPipeline& shader, SceneGlobals::VisCamera c) {
   UboPush pushBlock = {};
-  bool    sharedSet = false;
+  bool    sharedSet  = false;
+  bool    sharedPush = false;
 
   size_t pushSz = (morphAnim!=nullptr) ? sizeof(pushBlock) : sizeof(Tempest::Matrix4x4);
   if(shaderType==Pfx)
@@ -402,6 +403,12 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
     if(!useSharedUbo) {
       uboSetDynamic(v,fId);
       cmd.setUniforms(shader, v.ubo.ubo[fId][c], &pushBlock, pushSz);
+      }
+    else if(shaderType==Landscape) {
+      if(!sharedPush) {
+        sharedPush = true;
+        cmd.setUniforms(shader, uboShared.ubo[fId][c], &pushBlock, pushSz);
+        }
       }
     else if(!sharedSet) {
       sharedSet = true;
