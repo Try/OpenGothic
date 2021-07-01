@@ -70,6 +70,11 @@ void Interactive::load(Serialize &fin) {
     Vob::load(fin);
     return;
     }
+  if(fin.version()<28 && (vobType==ZenLoad::zCVobData::VT_oCMobLadder || vobType==ZenLoad::zCVobData::VT_oCMobWheel)) {
+    // mob ladder wasn't here until v28
+    Vob::load(fin);
+    return;
+    }
 
   Tempest::Matrix4x4 pos;
   uint8_t vt=0;

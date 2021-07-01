@@ -84,7 +84,7 @@ void WorldObjects::load(Serialize &fin) {
     }
 
   fin.read(sz);
-  if(fin.version()>=25 && interactiveObj.size()!=sz)
+  if(fin.version()>=28 && interactiveObj.size()!=sz)
     throw std::logic_error("inconsistent *.sav vs world");
   for(auto& i:rootVobs)
     i->loadVobTree(fin);

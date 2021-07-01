@@ -131,15 +131,11 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
     case ZenLoad::zCVobData::VT_oCMobInter:
     case ZenLoad::zCVobData::VT_oCMobContainer:
     case ZenLoad::zCVobData::VT_oCMobSwitch:
+    case ZenLoad::zCVobData::VT_oCMobLadder:
+    case ZenLoad::zCVobData::VT_oCMobWheel:
       if(parent!=nullptr)
         parent->childContent = ContentBit(parent->childContent|cbMobsi);
       return std::unique_ptr<Vob>(new Interactive(parent,world,vob,startup));
-    case ZenLoad::zCVobData::VT_oCMobLadder:
-      //TODO: mob ladder
-      return std::unique_ptr<Vob>(new StaticObj(parent,world,std::move(vob),startup));
-    case ZenLoad::zCVobData::VT_oCMobWheel:
-      //TODO: mob whell
-      return std::unique_ptr<Vob>(new StaticObj(parent,world,std::move(vob),startup));
 
     case ZenLoad::zCVobData::VT_zCMover:
       if(parent!=nullptr)
