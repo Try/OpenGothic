@@ -27,8 +27,8 @@ SkeletalStorage::AnimationId::~AnimationId() {
 
 void SkeletalStorage::AnimationId::setPose(const Pose& p) {
   auto& skel = owner->element(id);
-  auto& tr   = p.transform();
-  std::memcpy(&skel,tr.data(),std::min(tr.size(),boneCnt)*sizeof(tr[0]));
+  auto* tr   = p.transform();
+  std::memcpy(&skel,tr,boneCnt*sizeof(tr[0]));
   owner->markAsChanged(id);
   }
 

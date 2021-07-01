@@ -30,7 +30,7 @@ void PhysicMesh::setSkeleton(const Skeleton* sk) {
   }
 
 void PhysicMesh::setPose(const Pose& p, const Tempest::Matrix4x4& obj) {
-  implSetObjMatrix(obj,p.transform().data());
+  implSetObjMatrix(obj,p.transform());
   }
 
 void PhysicMesh::implSetObjMatrix(const Tempest::Matrix4x4 &mt, const Tempest::Matrix4x4* tr) {

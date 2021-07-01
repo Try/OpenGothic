@@ -142,8 +142,8 @@ void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
 
   pos = inPos;
   auto p = inPos;
-  if(pose!=nullptr && boneId<pose->transform().size())
-    p.mul(pose->transform(boneId));
+  if(pose!=nullptr && boneId<pose->boneCount())
+    p.mul(pose->bone(boneId));
 
   const float emTrjEaseVel = root==nullptr ? 0.f : root->emTrjTargetElev;
   p.set(3,1, p.at(3,1)+emTrjEaseVel);

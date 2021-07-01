@@ -7,6 +7,7 @@
 
 #include "game/constants.h"
 #include "animation.h"
+#include "resources.h"
 
 class Skeleton;
 class Serialize;
@@ -71,14 +72,14 @@ class Pose final {
 
     float              translateY() const { return trY; }
     auto               bone(size_t id) const -> const Tempest::Matrix4x4&;
+    size_t             boneCount() const;
     size_t             findNode(std::string_view b) const;
 
     void               setRotation(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir);
     bool               setAnimItem(const AnimationSolver &solver, Npc &npc, std::string_view scheme, int state);
     bool               stopItemStateAnim(const AnimationSolver &solver, uint64_t tickCount);
 
-    const std::vector<Tempest::Matrix4x4>& transform() const;
-    const Tempest::Matrix4x4&              transform(size_t id) const;
+    const Tempest::Matrix4x4* transform() const;
 
   private:
     struct Layer final {
@@ -107,8 +108,6 @@ class Pose final {
     template<class T,class F>
     void removeIf(T& t,F f);
 
-    std::vector<Tempest::Matrix4x4> base;
-
     const Skeleton*                 skeleton=nullptr;
     std::vector<Layer>              lay;
     const Animation::Sequence*      rotation=nullptr;
@@ -121,5 +120,7 @@ class Pose final {
     bool                            needToUpdate = true;
     uint8_t                         hasEvents = 0;
 
-    std::vector<Tempest::Matrix4x4> tr;
+    size_t                          numBones = 0;
+    Tempest::Matrix4x4              base[Resources::MAX_NUM_SKELETAL_NODES];
+    Tempest::Matrix4x4              tr  [Resources::MAX_NUM_SKELETAL_NODES];
   };

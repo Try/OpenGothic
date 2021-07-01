@@ -273,8 +273,8 @@ void MdlVisual::dropWeapon(Npc& npc) {
     return;
 
   auto p = pos;
-  if(att->boneId<pose.transform().size())
-    p.mul(pose.transform(att->boneId));
+  if(att->boneId<pose.boneCount())
+    p.mul(pose.bone(att->boneId));
 
   Item* itm = nullptr;
   if(fgtMode==WeaponState::W1H || fgtMode==WeaponState::W2H)
@@ -709,7 +709,7 @@ float MdlVisual::viewDirection() const {
   if(nullptr!=skeleton) {
     size_t nodeId = skeleton->findNode("BIP01");
     if(nodeId!=size_t(-1))
-      p.mul(pose().transform(nodeId));
+      p.mul(pose().bone(nodeId));
     }
   float rx = p.at(2,0);
   float rz = p.at(2,2);
@@ -800,8 +800,8 @@ void MdlVisual::syncAttaches() {
   if(torch.view!=nullptr) {
     auto& pose = *skInst;
     auto  p    = pos;
-    if(torch.boneId<pose.transform().size())
-      p.mul(pose.transform(torch.boneId));
+    if(torch.boneId<pose.boneCount())
+      p.mul(pose.bone(torch.boneId));
     torch.view->setObjMatrix(p);
     }
   }
@@ -816,8 +816,8 @@ void MdlVisual::syncAttaches(Attach<View>& att) {
   if(att.view.isEmpty())
     return;
   auto p = pos;
-  if(att.boneId<pose.transform().size())
-    p.mul(pose.transform(att.boneId));
+  if(att.boneId<pose.boneCount())
+    p.mul(pose.bone(att.boneId));
   att.view.setObjMatrix(p);
   }
 

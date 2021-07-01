@@ -48,7 +48,11 @@ void Pose::save(Serialize &fout) {
     fout.write(i.seq->name,i.sAnim,i.bs);
     }
   fout.write(lastUpdate);
-  fout.write(base,tr);
+  fout.write(uint32_t(numBones));
+  for(auto& i:base)
+    fout.write(i);
+  for(auto& i:tr)
+    fout.write(i);
   fout.write(comboLen);
   fout.write(rotation ? rotation->name : "");
   fout.write(itemUseSt,itemUseDestSt);
@@ -67,13 +71,26 @@ void Pose::load(Serialize &fin, const AnimationSolver& solver) {
     i.seq = solver.solveFrm(name.c_str());
     }
   fin.read(lastUpdate);
-  if(fin.version()>=13) {
-    fin.read(base,tr);
-    if(skeleton!=nullptr) {
-      base.resize(skeleton->nodes.size());
-      tr  .resize(skeleton->nodes.size());
-      }
+  if(fin.version()>=29) {
+    uint32_t size = 0;
+    fin.read(size);
+    numBones = size;
+    for(auto& i:base)
+      fin.read(i);
+    for(auto& i:tr)
+      fin.read(i);
     }
+  else if(fin.version()>=13) {
+    uint32_t size = 0;
+    fin.read(size);
+    for(size_t i=0; i<size; ++i)
+      fin.read(base[i]);
+    fin.read(size);
+    for(size_t i=0; i<size; ++i)
+      fin.read(tr[i]);
+    }
+  if(skeleton!=nullptr)
+    numBones = skeleton->nodes.size();
   if(fin.version()>=3)
     fin.read(comboLen);
   removeIf(lay,[](const Layer& l){
@@ -109,12 +126,15 @@ void Pose::setSkeleton(const Skeleton* sk) {
   if(skeleton==sk)
     return;
   skeleton = sk;
-  if(skeleton!=nullptr)
-    tr = skeleton->tr; else
-    tr.clear();
-  base = tr;
-  for(size_t i=0;i<base.size() && i<skeleton->nodes.size();++i)
-    base[i] = skeleton->nodes[i].tr;
+  if(skeleton!=nullptr) {
+    numBones = skeleton->tr.size();
+    for(size_t i=0; i<numBones; ++i) {
+      tr[i]   = skeleton->tr[i];
+      base[i] = skeleton->nodes[i].tr;
+      }
+    } else {
+    numBones = 0;
+    }
 
   trY = skeleton->rootTr.y;
 
@@ -338,7 +358,7 @@ bool Pose::updateFrame(const Animation::Sequence &s,
 
   for(size_t i=0; i<idSize; ++i) {
     auto smp = mix(sampleA[i],sampleB[i],a);
-    if(d.nodeIndex[i]>=base.size())
+    if(d.nodeIndex[i]>=numBones)
       continue;
     base[d.nodeIndex[i]] = mkMatrix(smp);
     }
@@ -357,13 +377,13 @@ void Pose::mkSkeleton(const Animation::Sequence &s, BodyState bs) {
 void Pose::mkSkeleton(const Matrix4x4 &mt) {
   if(skeleton==nullptr)
     return;
-  auto& nodes=skeleton->nodes;
+  auto& nodes = skeleton->nodes;
   for(size_t i=0; i<nodes.size(); ++i) {
     size_t parent = nodes[i].parent;
-    if(parent>=tr.size()) {
-      tr[i] = mt*base[i];
-      } else {
+    if(parent<Resources::MAX_NUM_SKELETAL_NODES) {
       tr[i] = tr[parent]*base[i];
+      } else {
+      tr[i] = mt*base[i];
       }
     }
   }
@@ -371,7 +391,7 @@ void Pose::mkSkeleton(const Matrix4x4 &mt) {
 void Pose::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
   if(skeleton==nullptr)
     return;
-  auto& nodes=skeleton->nodes;
+  auto& nodes = skeleton->nodes;
   for(size_t i=0;i<nodes.size();++i){
     if(nodes[i].parent!=parent)
       continue;
@@ -638,6 +658,10 @@ const Tempest::Matrix4x4& Pose::bone(size_t id) const {
   return tr[id];
   }
 
+size_t Pose::boneCount() const {
+  return numBones;
+  }
+
 size_t Pose::findNode(std::string_view b) const {
   if(skeleton!=nullptr)
     return skeleton->findNode(b);
@@ -703,19 +727,15 @@ bool Pose::stopItemStateAnim(const AnimationSolver& solver, uint64_t tickCount) 
   return true;
   }
 
-const std::vector<Matrix4x4>& Pose::transform() const {
+const Matrix4x4* Pose::transform() const {
   return tr;
-  }
-
-const Matrix4x4& Pose::transform(size_t id) const {
-  return tr[id];
   }
 
 Matrix4x4 Pose::mkBaseTranslation(const Animation::Sequence *s, BodyState bs) {
   Matrix4x4 m;
   m.identity();
 
-  if(base.size()==0)
+  if(numBones==0)
     return m;
 
   size_t id=0;
@@ -746,12 +766,9 @@ Matrix4x4 Pose::mkBaseTranslation(const Animation::Sequence *s, BodyState bs) {
 void Pose::zeroSkeleton() {
   if(skeleton==nullptr)
     return;
-  auto& nodes=skeleton->tr;
-  if(nodes.size()<tr.size())
-    return;
-
+  auto& nodes = skeleton->tr;
   Matrix4x4 m = mkBaseTranslation(nullptr,BS_NONE);
-  for(size_t i=0;i<tr.size();++i){
+  for(size_t i=0;i<nodes.size();++i){
     tr[i] = m * nodes[i];
     }
   }
