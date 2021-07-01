@@ -956,10 +956,16 @@ int GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
     }
   }
 
-int GameScript::invokeCond(Npc &, std::string_view func) {
+int GameScript::invokeCond(Npc& npc, std::string_view func) {
+  auto fn = getSymbolIndex(func);
+  if(fn==size_t(-1))
+    return 1;
+  ScopeVar self(vm, vm.globalSelf(),  npc);
+  int ret = runFunction(fn);
   //FIXME
-  Log::d("not implemented: \"",__func__,"\' '",func.data(),"'");
-  return 0;
+  printNothingToGet();
+  Gothic::inst().onPrint("MOBSI::conditionFunc is not implemented");
+  return ret;
   }
 
 void GameScript::invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen) {

@@ -504,16 +504,13 @@ bool Interactive::checkUseConditions(Npc& npc) {
       }
 
     if(!conditionFunc.empty()) {
-      const int check = sc.invokeCond(npc,conditionFunc.c_str());
-      if(check==0) {
-        // FIXME: proper message
-        sc.printNothingToGet();
+      const int check = sc.invokeCond(npc,conditionFunc);
+      if(check==0)
         return false;
-        }
       }
 
     if(!useWithItem.empty()) {
-      size_t it = world.script().getSymbolIndex(useWithItem.c_str());
+      size_t it = world.script().getSymbolIndex(useWithItem);
       if(it!=size_t(-1) && npc.hasItem(it)==0) {
         sc.printMobMissingItem(npc);
         return false;
