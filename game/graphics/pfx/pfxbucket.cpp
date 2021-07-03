@@ -22,6 +22,8 @@ static void     rotate(Vec3& rx, Vec3& ry,float a,const Vec3& x, const Vec3& y){
 static uint64_t ppsDiff(const ParticleFx& decl, bool loop, uint64_t time0, uint64_t time1) {
   if(time1<=time0)
     return 0;
+  if(decl.prefferedTime==0 && time0==0 && !loop)
+    return uint64_t(decl.ppsValue*1000.f);
   if(!loop) {
     time0 = std::min(decl.prefferedTime,time0);
     time1 = std::min(decl.prefferedTime,time1);
@@ -62,7 +64,7 @@ PfxBucket::~PfxBucket() {
   }
 
 bool PfxBucket::isEmpty() const {
-  for(size_t i=0;i<Resources::MaxFramesInFlight;++i) {
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
     if(vboGpu[i].size()>0)
       return false;
     }

@@ -177,11 +177,17 @@ float ParticleFx::ppsScale(uint64_t time) const {
   }
 
 uint64_t ParticleFx::calcPrefferedTimeSingle() const {
-  if(ppsScaleKeys.size()==0)
-    return 1;
+  uint64_t ret = calcPrefferedTimeSingle(ppsScaleKeys,ppsFPS);
+  //ret = std::max<uint64_t>(1,ret);
+  return ret;
+  }
 
-  auto div = std::max<uint64_t>(1,uint64_t(std::ceil(ppsFPS)));
-  auto sec = uint64_t(ppsScaleKeys.size()*1000)/div;
+uint64_t ParticleFx::calcPrefferedTimeSingle(const KeyList& k, float fps) {
+  if(k.size()==0)
+    return 0;
+
+  auto div = std::max<uint64_t>(1,uint64_t(std::ceil(fps)));
+  auto sec = uint64_t(k.size()*1000)/div;
   return sec;
   }
 

@@ -132,3 +132,9 @@ void Sound::play() {
   if(val!=nullptr)
     val->eff.play();
   }
+
+uint64_t Sound::effectPrefferedTime() const {
+  if(val!=nullptr)
+    return val->eff.timeLength();
+  return 0;
+  }

@@ -2297,7 +2297,7 @@ void Npc::emitSoundSVM(std::string_view svm) {
   }
 
 void Npc::startEffect(Npc& /*to*/, const VisualFx& vfx) {
-  Effect e(vfx,owner,*this);
+  Effect e(vfx,owner,*this,SpellFxKey::Cast);
   e.setActive(true);
   visual.startEffect(owner, std::move(e), 0, true);
   }

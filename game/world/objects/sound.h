@@ -34,6 +34,8 @@ class Sound final {
     void          setActive(bool a);
     void          play();
 
+    uint64_t      effectPrefferedTime() const;
+
   private:
     Sound(const std::shared_ptr<WorldSound::Effect>& val);
 
