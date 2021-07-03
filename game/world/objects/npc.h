@@ -221,7 +221,8 @@ class Npc final {
     float      translateY() const;
     float      centerY() const;
     Npc*       lookAtTarget() const;
-    auto       portalName() -> const char*;
+    auto       portalName() -> std::string_view;
+    auto       formerPortalName() -> std::string_view;
 
     float      qDistTo(float x,float y,float z) const;
     float      qDistTo(const WayPoint* p) const;

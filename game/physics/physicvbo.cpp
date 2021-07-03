@@ -76,13 +76,13 @@ void PhysicVbo::addSegment(size_t indexSize, size_t offset, uint8_t material, co
   segments.push_back(sgm);
   }
 
-uint8_t PhysicVbo::getMaterialId(size_t segment) const {
+uint8_t PhysicVbo::materialId(size_t segment) const {
   if(segment<segments.size())
     return segments[segment].mat;
   return 0;
   }
 
-const char* PhysicVbo::getSectorName(size_t segment) const {
+const char* PhysicVbo::sectorName(size_t segment) const {
   if(segment<segments.size())
     return segments[segment].sector;
   return nullptr;
@@ -107,6 +107,8 @@ void PhysicVbo::adjustMesh(){
   }
 
 const char* PhysicVbo::validateSectorName(const char* name) const {
+  if(name==nullptr)
+    return nullptr;
   for(auto& i:segments)
     if(std::strcmp(i.sector,name)==0)
       return i.sector;

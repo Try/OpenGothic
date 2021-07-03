@@ -315,7 +315,7 @@ const std::string& World::roomAt(const ZenLoad::zCBspNode& node) {
   return empty;
   }
 
-World::BspSector* World::portalAt(const std::string &tag) {
+World::BspSector* World::portalAt(std::string_view tag) {
   if(tag.empty())
     return nullptr;
 
@@ -882,8 +882,8 @@ const VersionInfo& World::version() const {
   return game.version();
   }
 
-void World::assignRoomToGuild(const char* r, int32_t guildId) {
-  std::string room = r;
+void World::assignRoomToGuild(std::string_view r, int32_t guildId) {
+  auto room = std::string(r);
   for(auto& i:room)
     i = char(std::toupper(i));
 
@@ -904,27 +904,21 @@ int32_t World::guildOfRoom(const Tempest::Vec3& pos) {
   return GIL_NONE;
   }
 
-int32_t World::guildOfRoom(const char* portalName) {
-  if(portalName==nullptr)
-    return -1;
-
-  const char* b=std::strchr(portalName,':');
-  if(b==nullptr)
+int32_t World::guildOfRoom(std::string_view portalName) {
+  size_t b = portalName.find(':');
+  if(b==std::string::npos)
     return -1;
   b++;
 
-  const char* e=std::strchr(b,'_');
-  size_t      size=0;
-  if(e==nullptr)
-    size = std::strlen(b); else
-    size = size_t(std::distance(b,e));
+  size_t e=portalName.find('_');
+  if(e==std::string::npos || b>e)
+    return -1;
+
+  auto name = portalName.substr(b,e-b);
 
   for(size_t i=0;i<bsp.sectors.size();++i) {
     auto& s = bsp.sectors[i].name;
-    if(s.size()!=size)
-      continue;
-
-    if(std::memcmp(s.c_str(),b,size)==0)
+    if(s==name)
       return bspSectors[i].guild;
     }
   return GIL_NONE;

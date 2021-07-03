@@ -50,6 +50,12 @@ void Serialize::implRead(std::string &s) {
     readBytes(&s[0],sz);
   }
 
+void Serialize::implWrite(std::string_view s) {
+  uint32_t sz=uint32_t(s.size());
+  implWrite(sz);
+  writeBytes(s.data(),sz);
+  }
+
 void Serialize::implWrite(const Daedalus::ZString& s) {
   uint32_t sz=uint32_t(s.size());
   implWrite(sz);

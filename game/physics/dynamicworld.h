@@ -119,10 +119,10 @@ class DynamicWorld final {
     struct RayLandResult {
       Tempest::Vec3       v={};
       Tempest::Vec3       n={};
-      uint8_t             mat     = 0;
-      bool                hasCol  = 0;
+      uint8_t             mat    = 0;
+      bool                hasCol = false;
 
-      const char*         sector  = nullptr;
+      const char*         sector = nullptr;
       };
 
     struct RayWaterResult {

@@ -214,6 +214,7 @@ class GameScript final {
     void wld_playeffect      (Daedalus::DaedalusVM& vm);
     void wld_stopeffect      (Daedalus::DaedalusVM& vm);
     void wld_getplayerportalguild(Daedalus::DaedalusVM& vm);
+    void wld_getformerplayerportalguild(Daedalus::DaedalusVM &vm);
     void wld_setguildattitude (Daedalus::DaedalusVM& vm);
     void wld_getguildattitude (Daedalus::DaedalusVM& vm);
     void wld_istime           (Daedalus::DaedalusVM& vm);

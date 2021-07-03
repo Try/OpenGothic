@@ -27,16 +27,20 @@ void MoveAlgo::load(Serialize &fin) {
   fin.read(reinterpret_cast<uint32_t&>(flags));
   fin.read(mulSpeed,fallSpeed,fallCount,climbStart,climbPos0,climbHeight);
   fin.read(reinterpret_cast<uint8_t&>(jmp));
-  if(fin.version()>=14) {
+  if(fin.version()>=30) {
+    std::string str;
+    fin.read(str);
+    portal       = npc.world().physic()->validateSectorName(str.c_str());
+    fin.read(str);
+    formerPortal = npc.world().physic()->validateSectorName(str.c_str());
+    }
+  else if(fin.version()>=14) {
     uint8_t str[128]={};
     fin.read(str);
-    if(str[0]!=0)
-      cache.sector = npc.world().physic()->validateSectorName(reinterpret_cast<char*>(str)); else
-      cache.sector = nullptr;
+    portal = npc.world().physic()->validateSectorName(reinterpret_cast<char*>(str));
     }
-  if(fin.version()>17) {
+  if(fin.version()>17)
     fin.read(diveStart);
-    }
   }
 
 void MoveAlgo::save(Serialize &fout) const {
@@ -44,11 +48,7 @@ void MoveAlgo::save(Serialize &fout) const {
   fout.write(mulSpeed,fallSpeed,fallCount,climbStart,climbPos0,climbHeight);
   fout.write(uint8_t(jmp));
 
-  const auto len = cache.sector==nullptr ? 0 : std::strlen(cache.sector);
-  uint8_t str[128]={};
-  if(len>0 && len<std::extent<decltype(str)>::value)
-    std::strcpy(reinterpret_cast<char*>(str),cache.sector);
-  fout.write(str);
+  fout.write(portal,formerPortal);
   fout.write(diveStart);
   }
 
@@ -299,11 +299,15 @@ void MoveAlgo::tickSwim(uint64_t dt) {
   }
 
 void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
-  const char* sec = cache.sector;
   implTick(dt,moveFlg);
-  if(npc.isPlayer() && sec!=cache.sector && cache.sector!=nullptr && (sec==nullptr || std::strcmp(sec,cache.sector)!=0)) {
-    auto& w = npc.world();
-    w.sendPassivePerc(npc,npc,npc,Npc::PERC_ASSESSENTERROOM);
+
+  if(cache.sector!=nullptr && portal!=cache.sector) {
+    formerPortal = portal;
+    portal       = cache.sector;
+    if(npc.isPlayer()) {
+      auto& w = npc.world();
+      w.sendPassivePerc(npc,npc,npc,Npc::PERC_ASSESSENTERROOM);
+      }
     }
   }
 
@@ -788,17 +792,13 @@ float MoveAlgo::waterRay(const Tempest::Vec3& pos, bool* hasCol) const {
 
 void MoveAlgo::rayMain(const Tempest::Vec3& pos) const {
   if(std::fabs(cache.x-pos.x)>eps || std::fabs(cache.y-pos.y)>eps || std::fabs(cache.z-pos.z)>eps) {
-    auto  prev = cache.sector;
-    float dy   = waterDepthChest()+100;  // 1 meter extra offset
+    float dy = waterDepthChest()+100;  // 1 meter extra offset
     if(fallSpeed.y<0)
       dy = 0; // whole world
     static_cast<DynamicWorld::RayLandResult&>(cache) = npc.world().physic()->landRay(pos,dy);
     cache.x = pos.x;
     cache.y = pos.y;
     cache.z = pos.z;
-    if(!cache.hasCol || cache.sector==nullptr) {
-      cache.sector = prev;
-      }
     }
   }
 
@@ -824,7 +824,11 @@ Tempest::Vec3 MoveAlgo::groundNormal() const {
   return cache.n;
   }
 
-const char* MoveAlgo::portalName() {
-  return cache.sector;
+std::string_view MoveAlgo::portalName() {
+  return portal;
+  }
+
+std::string_view MoveAlgo::formerPortalName() {
+  return formerPortal;
   }
 

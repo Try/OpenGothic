@@ -641,8 +641,12 @@ Npc *Npc::lookAtTarget() const {
   return currentLookAt;
   }
 
-const char* Npc::portalName() {
+std::string_view Npc::portalName() {
   return mvAlgo.portalName();
+  }
+
+std::string_view Npc::formerPortalName() {
+  return mvAlgo.formerPortalName();
   }
 
 float Npc::qDistTo(float x1, float y1, float z1) const {

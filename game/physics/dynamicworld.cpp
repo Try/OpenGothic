@@ -552,13 +552,13 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
 
     btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
       auto shape = rayResult.m_collisionObject->getCollisionShape();
-      if(shape) {
+      if(shape!=nullptr) {
         auto s  = reinterpret_cast<const btMultimaterialTriangleMeshShape*>(shape);
         auto mt = reinterpret_cast<const PhysicVbo*>(s->getMeshInterface());
 
         size_t id = size_t(rayResult.m_localShapeInfo->m_shapePart);
-        matId  = mt->getMaterialId(id);
-        sector = mt->getSectorName(id);
+        matId  = mt->materialId(id);
+        sector = mt->sectorName(id);
         }
       colCat = Category(rayResult.m_collisionObject->getUserIndex());
       return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
@@ -724,7 +724,7 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
         auto mt = reinterpret_cast<const PhysicVbo*>(s->getMeshInterface());
 
         size_t id = size_t(rayResult.m_localShapeInfo->m_shapePart);
-        matId  = mt->getMaterialId(id);
+        matId  = mt->materialId(id);
         }
       return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
       }

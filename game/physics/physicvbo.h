@@ -17,8 +17,8 @@ class PhysicVbo : public btTriangleIndexVertexArray {
 
     void    addIndex(std::vector<uint32_t>&& index, uint8_t material);
     void    addIndex(std::vector<uint32_t>&& index, uint8_t material, const char* sector);
-    uint8_t getMaterialId(size_t segment) const;
-    auto    getSectorName(size_t segment) const -> const char*;
+    uint8_t materialId(size_t segment) const;
+    auto    sectorName(size_t segment) const -> const char*;
     bool    useQuantization() const;
     bool    isEmpty() const;
 

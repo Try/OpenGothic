@@ -40,7 +40,7 @@ class MoveAlgo final {
     void    load(Serialize& fin);
     void    save(Serialize& fout) const;
 
-    void    tick(uint64_t dt,MvFlags fai=NoFlag);
+    void    tick(uint64_t dt, MvFlags fai=NoFlag);
 
     void    multSpeed(float s){ mulSpeed=s; }
     void    clearSpeed();
@@ -64,7 +64,8 @@ class MoveAlgo final {
     uint8_t groundMaterial() const;
     auto    groundNormal() const -> Tempest::Vec3;
 
-    auto    portalName() -> const char*;
+    auto    portalName() -> std::string_view;
+    auto    formerPortalName() -> std::string_view;
     int32_t diveTime() const;
 
   private:
@@ -130,7 +131,10 @@ class MoveAlgo final {
     Npc&                npc;
     mutable CacheLand   cache;
     mutable CacheWater  cacheW;
-    Flags               flags=NoFlags;
+
+    std::string_view    portal;
+    std::string_view    formerPortal;
+    Flags               flags = NoFlags;
 
     float               mulSpeed  =1.f;
     Tempest::Vec3       fallSpeed ={};

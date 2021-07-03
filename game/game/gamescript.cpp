@@ -106,6 +106,8 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("wld_stopeffect",      [this](Daedalus::DaedalusVM& vm){ wld_stopeffect(vm); });
   vm.registerExternalFunction("wld_getplayerportalguild",
                                                      [this](Daedalus::DaedalusVM& vm){ wld_getplayerportalguild(vm); });
+  vm.registerExternalFunction("wld_getformerplayerportalguild",
+                                                     [this](Daedalus::DaedalusVM& vm){ wld_getformerplayerportalguild(vm); });
   vm.registerExternalFunction("wld_setguildattitude",[this](Daedalus::DaedalusVM& vm){ wld_setguildattitude(vm);     });
   vm.registerExternalFunction("wld_getguildattitude",[this](Daedalus::DaedalusVM& vm){ wld_getguildattitude(vm);     });
   vm.registerExternalFunction("wld_istime",          [this](Daedalus::DaedalusVM& vm){ wld_istime(vm);               });
@@ -1409,6 +1411,13 @@ void GameScript::wld_getplayerportalguild(Daedalus::DaedalusVM &vm) {
   int32_t g = GIL_NONE;
   if(auto p = world().player())
     g = world().guildOfRoom(p->portalName());
+  vm.setReturn(g);
+  }
+
+void GameScript::wld_getformerplayerportalguild(Daedalus::DaedalusVM& vm) {
+  int32_t g = GIL_NONE;
+  if(auto p = world().player())
+    g = world().guildOfRoom(p->formerPortalName());
   vm.setReturn(g);
   }
 

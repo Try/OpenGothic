@@ -35,7 +35,7 @@ class Serialize final {
   public:
     enum {
       MinVersion = 0,
-      Version    = 29
+      Version    = 30
       };
 
     Serialize(Tempest::ODevice& fout);
@@ -119,6 +119,8 @@ class Serialize final {
 
     void implWrite(const std::string&              s);
     void implRead (std::string&                    s);
+
+    void implWrite(std::string_view                s);
 
     void implWrite(const Daedalus::ZString&        s);
     void implRead (Daedalus::ZString&              s);

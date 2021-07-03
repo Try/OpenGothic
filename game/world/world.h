@@ -85,9 +85,9 @@ class World final {
     GameSession&         gameSession() const { return game; }
     auto                 version()  const -> const VersionInfo&;
 
-    void                 assignRoomToGuild(const char* room, int32_t guildId);
+    void                 assignRoomToGuild(std::string_view room, int32_t guildId);
     int32_t              guildOfRoom(const Tempest::Vec3& pos);
-    int32_t              guildOfRoom(const char* portalName);
+    int32_t              guildOfRoom(std::string_view portalName);
 
     void                 runEffect(Effect&& e);
     void                 stopEffect(const VisualFx& vfx);
@@ -194,7 +194,7 @@ class World final {
     std::unique_ptr<Npc>                  lvlInspector;
 
     auto         roomAt(const ZenLoad::zCBspNode &node) -> const std::string &;
-    auto         portalAt(const std::string& tag) -> BspSector*;
+    auto         portalAt(std::string_view tag) -> BspSector*;
 
     void         initScripts(bool firstTime);
   };
