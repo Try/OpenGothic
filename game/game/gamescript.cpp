@@ -227,6 +227,7 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("npc_canseesource",    [this](Daedalus::DaedalusVM& vm){ npc_canseesource(vm);     });
   vm.registerExternalFunction("npc_getdisttoitem",   [this](Daedalus::DaedalusVM& vm){ npc_getdisttoitem(vm);    });
   vm.registerExternalFunction("npc_getheighttoitem", [this](Daedalus::DaedalusVM& vm){ npc_getheighttoitem(vm);  });
+  vm.registerExternalFunction("npc_getdisttoplayer", [this](Daedalus::DaedalusVM& vm){ npc_getdisttoplayer(vm);  });
 
   vm.registerExternalFunction("ai_output",           [this](Daedalus::DaedalusVM& vm){ ai_output(vm);            });
   vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
@@ -1266,6 +1267,14 @@ void GameScript::setInstanceNPC(std::string_view name, Npc &npc) {
   std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
   assert(vm.getDATFile().hasSymbolName(buf));
   vm.setInstance(buf,npc.handle(),Daedalus::EInstanceClass::IC_Npc);
+
+  /*
+  if(true) {
+    auto& d = vm.getDATFile();
+    d.iterateSymbolsOfClass("C_ITEM",[&](size_t id,Daedalus::PARSymbol&){
+      npc.addItem(id,1);
+      });
+    }*/
   }
 
 void GameScript::setInstanceItem(Npc &holder, size_t itemId) {
@@ -2532,6 +2541,22 @@ void GameScript::npc_getheighttoitem(Daedalus::DaedalusVM& vm) {
     }
   auto dp = int32_t(itm->position().y-npc->position().y);
   vm.setReturn(std::abs(dp));
+  }
+
+void GameScript::npc_getdisttoplayer(Daedalus::DaedalusVM& vm) {
+  auto pl  = world().player();
+  auto npc = popInstance(vm);
+  if(pl==nullptr || npc==nullptr) {
+    vm.setReturn(std::numeric_limits<int32_t>::max());
+    return;
+    }
+  auto dp = pl->position()-npc->position();
+  auto l  = dp.manhattanLength();
+  if(l>float(std::numeric_limits<int32_t>::max())) {
+    vm.setReturn(std::numeric_limits<int32_t>::max());
+    return;
+    }
+  vm.setReturn(int32_t(l));
   }
 
 void GameScript::npc_getactivespellcat(Daedalus::DaedalusVM &vm) {
