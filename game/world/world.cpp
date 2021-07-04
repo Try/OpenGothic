@@ -549,6 +549,10 @@ Item* World::addItem(size_t itemInstance, const Tempest::Vec3& pos) {
   return wobj.addItem(itemInstance, pos);
   }
 
+Item* World::addItemDyn(size_t itemInstance, const Tempest::Matrix4x4& pos) {
+  return wobj.addItemDyn(itemInstance, pos);
+  }
+
 Item *World::takeItem(Item &it) {
   return wobj.takeItem(it);
   }

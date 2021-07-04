@@ -240,6 +240,8 @@ bool PlayerControl::interact(Item &item) {
   if(w==nullptr || w->player()==nullptr)
     return false;
   auto pl = w->player();
+  if(item.isTorchBurn() && pl->isUsingTorch())
+    return false;
   if(pl->isDown())
     return true;
   if(!canInteract())

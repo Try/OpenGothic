@@ -983,7 +983,7 @@ DynamicWorld::Item::~Item() {
   }
 
 void DynamicWorld::Item::setObjMatrix(const Tempest::Matrix4x4 &m) {
-  if(obj) {
+  if(obj!=nullptr) {
     btTransform trans;
     trans.setFromOpenGLMatrix(reinterpret_cast<const btScalar*>(&m));
     trans.getOrigin()*=0.01f;

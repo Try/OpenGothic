@@ -7,10 +7,11 @@
 #include "game/inventory.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
+#include "utils/fileext.h"
 
 using namespace Tempest;
 
-Item::Item(World &owner, size_t itemInstance, bool inWorld)
+Item::Item(World &owner, size_t itemInstance, Type type)
   :Vob(owner) {
   assert(itemInstance!=size_t(-1));
   hitem.instanceSymbol = itemInstance;
@@ -18,11 +19,15 @@ Item::Item(World &owner, size_t itemInstance, bool inWorld)
 
   owner.script().initializeInstance(hitem,itemInstance);
   setCount(1);
-  if(inWorld)
+
+  if(type!=T_Inventory) {
     view = world.addItmView(hitem.visual,hitem.material);
+    if(type==T_WorldDyn)
+      setPhysicsEnable(view);
+    }
   }
 
-Item::Item(World &owner, Serialize &fin, bool inWorld)
+Item::Item(World &owner, Serialize &fin, Type type)
   :Vob(owner) {
   auto& h = hitem;
   h.userPtr = this;
@@ -44,18 +49,24 @@ Item::Item(World &owner, Serialize &fin, bool inWorld)
   fin.read(pos,equiped,itSlot);
   fin.read(mat);
 
-  if(inWorld)
-    view = world.addItmView(hitem.visual,hitem.material);
+  if(type!=T_Inventory) {
+    if(!FileExt::hasExt(hitem.visual.c_str(),"ZEN"))
+      view = world.addItmView(hitem.visual,hitem.material);
+    if(type==T_WorldDyn)
+      setPhysicsEnable(view);
+    }
+
   setLocalTransform(mat);
-  view.setObjMatrix(mat);
+  view  .setObjMatrix(mat);
+  physic.setObjMatrix(mat);
 
   auto& sym = owner.script().getSymbol(h.instanceSymbol);
   sym.instance.set(&h,Daedalus::IC_Item);
   }
 
 Item::Item(Item &&it)
-  : Vob(it.world), hitem(it.hitem),view(std::move(it.view)),
-    pos(it.pos),equiped(it.equiped),itSlot(it.itSlot) {
+  : Vob(it.world), hitem(it.hitem),
+    pos(it.pos),equiped(it.equiped),itSlot(it.itSlot),view(std::move(it.view)) {
   setLocalTransform(it.localTransform());
   physic = std::move(it.physic);
   }
@@ -86,6 +97,10 @@ void Item::clearView() {
   view = MeshObjects::Mesh();
   }
 
+bool Item::isTorchBurn() const {
+  return false;
+  }
+
 void Item::setPosition(float x, float y, float z) {
   pos={x,y,z};
   updateMatrix();
@@ -94,7 +109,7 @@ void Item::setPosition(float x, float y, float z) {
 void Item::setDirection(float, float, float) {
   }
 
-void Item::setMatrix(const Tempest::Matrix4x4 &m) {
+void Item::setObjMatrix(const Tempest::Matrix4x4 &m) {
   pos.x = m.at(3,0);
   pos.y = m.at(3,1);
   pos.z = m.at(3,2);
@@ -117,17 +132,32 @@ void Item::setAsEquiped(bool e) {
     itSlot=NSLOT;
   }
 
-void Item::setPhysicsEnable(DynamicWorld& p) {
-  if(view.nodesCount()==0)
-    return;
-  physic = p.dynamicObj(transform(),view.bounds(),ZenLoad::MaterialGroup(hitem.material));
-  physic.setItem(this);
+void Item::setPhysicsEnable(World& world) {
+  setPhysicsEnable(view);
   world.invalidateVobIndex();
   }
 
 void Item::setPhysicsDisable() {
   physic = DynamicWorld::Item();
   world.invalidateVobIndex();
+  }
+
+void Item::setPhysicsEnable(const MeshObjects::Mesh& view) {
+  if(view.nodesCount()==0)
+    return;
+  auto& p = *world.physic();
+  physic = p.dynamicObj(transform(),view.bounds(),ZenLoad::MaterialGroup(hitem.material));
+  physic.setItem(this);
+  }
+
+void Item::setPhysicsEnable(const ProtoMesh* mesh) {
+  if(mesh==nullptr)
+    return;
+  auto& p = *world.physic();
+  Bounds b;
+  b.assign(mesh->bbox);
+  physic = p.dynamicObj(transform(),b,ZenLoad::MaterialGroup(hitem.material));
+  physic.setItem(this);
   }
 
 bool Item::isDynamic() const {
@@ -269,10 +299,11 @@ void Item::updateMatrix() {
   mat.identity();
   mat.translate(pos.x,pos.y,pos.z);
   setLocalTransform(mat);
-  view.setObjMatrix(mat);
   }
 
 void Item::moveEvent() {
+  view  .setObjMatrix(transform());
+  physic.setObjMatrix(transform());
   if(!isDynamic())
     world.invalidateVobIndex();
   }

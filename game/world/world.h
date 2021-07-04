@@ -149,7 +149,8 @@ class World final {
     Npc*                 addNpc     (size_t itemInstance,   const Tempest::Vec3& at);
     Item*                addItem    (size_t itemInstance,   std::string_view     at);
     Item*                addItem    (const ZenLoad::zCVobData& vob);
-    Item*                addItem    (size_t itemInstance, const Tempest::Vec3& pos);
+    Item*                addItem    (size_t itemInstance, const Tempest::Vec3&      pos);
+    Item*                addItemDyn (size_t itemInstance, const Tempest::Matrix4x4& pos);
     Item*                takeItem   (Item& it);
     void                 removeItem (Item &it);
     size_t               hasItems(const char* tag, size_t itemCls);

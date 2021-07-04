@@ -455,6 +455,8 @@ void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, uint8_t comb, 
 void Pose::onAddLayer(const Pose::Layer& l) {
   if(hasLayers(l))
     hasEvents++;
+  if(l.seq->isFly())
+    isFlyCombined++;
   needToUpdate = true;
   }
 
@@ -463,6 +465,8 @@ void Pose::onRemoveLayer(const Pose::Layer &l) {
     rotation=nullptr;
   if(hasLayers(l))
     hasEvents--;
+  if(l.seq->isFly())
+    isFlyCombined--;
   }
 
 bool Pose::hasLayers(const Pose::Layer& l) {
@@ -559,10 +563,7 @@ bool Pose::isJumpAnim() const {
   }
 
 bool Pose::isFlyAnim() const {
-  for(auto& i:lay)
-    if(i.seq->isFly())
-      return true;
-  return false;
+  return isFlyCombined>0;
   }
 
 bool Pose::isStanding() const {

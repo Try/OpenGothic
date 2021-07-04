@@ -88,11 +88,12 @@ class WorldObjects final {
     void           runEffect(Effect&& e);
     void           stopEffect(const VisualFx& vfx);
 
-    Item*          addItem(size_t itemInstance, std::string_view at);
-    Item*          addItem(const ZenLoad::zCVobData &vob);
-    Item*          addItem(size_t itemInstance, const Tempest::Vec3& pos);
-    Item*          addItem(size_t itemInstance, const Tempest::Vec3& pos, const Tempest::Vec3& dir);
-    Item*          takeItem(Item& it);
+    Item*          addItem   (size_t itemInstance, std::string_view at);
+    Item*          addItem   (const ZenLoad::zCVobData &vob);
+    Item*          addItem   (size_t itemInstance, const Tempest::Vec3& pos);
+    Item*          addItem   (size_t itemInstance, const Tempest::Vec3& pos, const Tempest::Vec3& dir);
+    Item*          addItemDyn(size_t itemInstance, const Tempest::Matrix4x4& pos);
+    Item*          takeItem  (Item& it);
     void           removeItem(Item& it);
     size_t         hasItems(std::string_view tag, size_t itemCls);
 

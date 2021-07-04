@@ -284,10 +284,8 @@ void MdlVisual::dropWeapon(Npc& npc) {
   if(itm==nullptr)
     return;
 
-  auto it = npc.world().addItem(itm->clsId(),"");
+  auto it = npc.world().addItemDyn(itm->clsId(),p);
   it->setCount(1);
-  it->setMatrix(p);
-  it->setPhysicsEnable(*npc.world().physic());
 
   npc.delItem(itm->clsId(),1);
   }
@@ -435,7 +433,6 @@ void MdlVisual::setTorch(bool t, World& owner) {
   torch.view.reset(new ObjVisual());
   torch.view->setVisual(hitem,owner);
   torch.boneId = (skeleton==nullptr ? size_t(-1) : skeleton->findNode("ZS_LEFTHAND"));
-  //bind(torch,"ZS_LEFTHAND");
   }
 
 bool MdlVisual::updateAnimation(Npc* npc, World& world) {

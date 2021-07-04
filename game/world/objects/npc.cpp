@@ -548,6 +548,7 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
 
 void Npc::onNoHealth(bool death,HitSound sndMask) {
   visual.dropWeapon(*this);
+  dropTorch();
   visual.setToFightMode(WeaponState::NoWeapon);
   updateWeaponSkeleton();
 
@@ -747,14 +748,19 @@ void Npc::delOverlay(const Skeleton *sk) {
 
 bool Npc::toogleTorch() {
   const char* overlay = "HUMANS_TORCH.MDS";
-  if(hasOverlay(overlay)) {
+  if(isUsingTorch()) {
     visual.setTorch(false,owner);
     delOverlay(overlay);
-    return true;
+    return false;
     }
   visual.setTorch(true,owner);
   addOverlay(overlay,0);
-  return false;
+  return true;
+  }
+
+bool Npc::isUsingTorch() const {
+  const char* overlay = "HUMANS_TORCH.MDS";
+  return hasOverlay(overlay);
   }
 
 void Npc::dropTorch() {
@@ -762,14 +768,23 @@ void Npc::dropTorch() {
   if(sk==nullptr)
     return;
 
-  size_t torchId  = owner.script().getSymbolIndex("ItLsTorchburned");
+  const char* overlay = "HUMANS_TORCH.MDS";
+  if(!isUsingTorch())
+    return;
+
+  visual.setTorch(false,owner);
+  delOverlay(overlay);
+
+  //size_t torchId  = owner.script().getSymbolIndex("ItLsTorchburned");
+  size_t torchId = owner.script().getSymbolIndex("ItLsTorchburning");
   size_t leftHand = sk->findNode("ZS_LEFTHAND");
   if(torchId!=size_t(-1) && leftHand!=size_t(-1)) {
-    auto it  = owner.addItem(torchId,"");
 
-    auto mat = visual.pose().bone(leftHand);
-    it->setMatrix(mat);
-    it->setPhysicsEnable(*owner.physic());
+    auto mat = visual.position();
+    if(leftHand<visual.pose().boneCount())
+      mat.mul(visual.pose().bone(leftHand));
+
+    owner.addItemDyn(torchId,mat);
     }
   }
 
@@ -870,15 +885,10 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
 
   for(auto& i:ev.timed) {
     switch(i.def) {
-      case ZenLoad::DEF_CREATE_ITEM: {
-        if(auto it = invent.addItem(i.item,1,world())) {
-          invent.putToSlot(*this,it->clsId(),i.slot[0]);
-          }
+      case ZenLoad::DEF_NULL:
+      case ZenLoad::DEF_LAST:
         break;
-        }
-      case ZenLoad::DEF_EXCHANGE_ITEM: {
-        if(!invent.clearSlot(*this,i.slot[0],true))
-          invent.clearSlot(*this,"",true); // fallback for cooking animations
+      case ZenLoad::DEF_CREATE_ITEM: {
         if(auto it = invent.addItem(i.item,1,world())) {
           invent.putToSlot(*this,it->clsId(),i.slot[0]);
           }
@@ -893,6 +903,19 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
         invent.clearSlot(*this,"",i.def!=ZenLoad::DEF_REMOVE_ITEM);
         break;
         }
+      case ZenLoad::DEF_PLACE_ITEM:
+        break;
+      case ZenLoad::DEF_EXCHANGE_ITEM: {
+        if(!invent.clearSlot(*this,i.slot[0],true))
+          invent.clearSlot(*this,"",true); // fallback for cooking animations
+        if(auto it = invent.addItem(i.item,1,world())) {
+          invent.putToSlot(*this,it->clsId(),i.slot[0]);
+          }
+        break;
+        }
+
+      case ZenLoad::DEF_FIGHTMODE:
+        break;
       case ZenLoad::DEF_PLACE_MUNITION: {
         auto active=invent.activeWeapon();
         if(active!=nullptr) {
@@ -905,18 +928,29 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
         invent.putAmmunition(*this,0,"");
         break;
         }
-      case ZenLoad::DEF_DRAWTORCH: {
+      case ZenLoad::DEF_DRAWSOUND:
+      case ZenLoad::DEF_UNDRAWSOUND:
+        break;
+      case ZenLoad::DEF_SWAPMESH:
+        break;
+
+      case ZenLoad::DEF_DRAWTORCH:
         visual.setTorch(true,owner);
         break;
-        }
-      case ZenLoad::DEF_INV_TORCH: {
+      case ZenLoad::DEF_INV_TORCH:
+        // toogleTorch();
         break;
-        }
-      case ZenLoad::DEF_DROP_TORCH: {
+      case ZenLoad::DEF_DROP_TORCH:
         dropTorch();
         break;
-        }
-      default:
+
+      case ZenLoad::DEF_HIT_LIMB:
+      case ZenLoad::DEF_HIT_DIR:
+      case ZenLoad::DEF_DAM_MULTIPLY:
+      case ZenLoad::DEF_PAR_FRAME:
+      case ZenLoad::DEF_OPT_FRAME:
+      case ZenLoad::DEF_HIT_END:
+      case ZenLoad::DEF_WINDOW:
         break;
       }
     }
@@ -1543,6 +1577,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
     sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_BOW",{x,y+translateY(),z},2500,false);
     sfxWeapon.play();
     }
+  dropTorch();
   visual.stopDlgAnim(*this);
   updateWeaponSkeleton();
   }
@@ -2487,6 +2522,8 @@ Item* Npc::addItem(std::unique_ptr<Item>&& i) {
 Item* Npc::takeItem(Item& item) {
   if(interactive()!=nullptr)
     return nullptr;
+  if(item.isTorchBurn() && (isUsingTorch() || weaponState()!=WeaponState::NoWeapon))
+    return nullptr;
 
   auto dpos = item.position()-position();
   dpos.y-=translateY();
@@ -2500,15 +2537,24 @@ Item* Npc::takeItem(Item& item) {
   if(sq==nullptr)
     return nullptr;
 
-  std::unique_ptr<Item> ptr {owner.takeItem(item)};
+  std::unique_ptr<Item> ptr{owner.takeItem(item)};
+  if(ptr->isTorchBurn()) {
+   if(!toogleTorch())
+     return nullptr;
+    size_t torchId = owner.script().getSymbolIndex("ItLsTorch");
+    if(torchId!=size_t(-1))
+      return nullptr;
+    ptr.reset(new Item(owner,torchId,Item::T_Inventory));
+    }
+
   auto it = ptr.get();
   if(it==nullptr)
     return nullptr;
+  if(it->handle().owner!=0)
+    owner.sendPassivePerc(*this,*this,*this,*it,Npc::PERC_ASSESSTHEFT);
 
   addItem(std::move(ptr));
   implAniWait(uint64_t(sq->totalTime()));
-  if(it->handle().owner!=0)
-    owner.sendPassivePerc(*this,*this,*this,*it,Npc::PERC_ASSESSTHEFT);
   return it;
   }
 
@@ -2560,17 +2606,24 @@ void Npc::dropItem(size_t id, size_t count) {
   if(count<1)
     return;
 
+  auto sk = visual.visualSkeleton();
+  if(sk==nullptr)
+    return;
+
+  size_t leftHand = sk->findNode("ZS_LEFTHAND");
+  if(leftHand==size_t(-1))
+    return;
+
   invent.delItem(id,count,*this);
   if(!setAnim(Anim::ItmDrop))
     return;
 
-  auto it = owner.addItem(id,"");
-  it->setCount(count);
+  auto mat = visual.position();
+  if(leftHand<visual.pose().boneCount())
+    mat.mul(visual.pose().bone(leftHand));
 
-  float rot = rotationRad()-float(M_PI/2), mul=50;
-  float s   = std::sin(rot), c = std::cos(rot);
-  it->setPosition(x+c*mul,y+100,z+s*mul);
-  it->setPhysicsEnable(*owner.physic());
+  auto it = owner.addItemDyn(id,mat);
+  it->setCount(count);
   }
 
 void Npc::clearInventory() {

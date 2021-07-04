@@ -12,6 +12,8 @@ class PhysicMesh final {
     PhysicMesh()=default;
     PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner, bool movable);
 
+    bool   isEmpty() const;
+
     void   setObjMatrix  (const Tempest::Matrix4x4& m);
     void   setSkeleton   (const Skeleton* sk);
     void   setPose       (const Pose&      p,const Tempest::Matrix4x4& obj);

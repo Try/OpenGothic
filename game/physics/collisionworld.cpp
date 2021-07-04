@@ -275,7 +275,7 @@ void CollisionWorld::tick(uint64_t dt) {
       t.getOrigin()*=100.f;
       Tempest::Matrix4x4 mt;
       t.getOpenGLMatrix(reinterpret_cast<btScalar*>(&mt));
-      ptr->setMatrix(mt);
+      ptr->setObjMatrix(mt);
       }
   for(size_t i=0; i<rigid.size(); ++i) {
     auto it = rigid[i];

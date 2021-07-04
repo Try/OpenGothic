@@ -7,6 +7,7 @@
 #include "world/triggers/triggerlist.h"
 #include "world/triggers/triggerworldstart.h"
 #include "world/triggers/messagefilter.h"
+#include "world/objects/itemtorchburning.h"
 #include "world/objects/item.h"
 #include "world/objects/npc.h"
 #include "world/objects/interactive.h"
@@ -78,7 +79,7 @@ void WorldObjects::load(Serialize &fin) {
   fin.read(sz);
   itemArr.clear();
   for(size_t i=0;i<sz;++i){
-    auto it = std::make_unique<Item>(owner,fin,true);
+    auto it = std::make_unique<Item>(owner,fin,Item::T_World);
     itemArr.emplace_back(std::move(it));
     items.add(itemArr.back().get());
     }
@@ -499,7 +500,7 @@ Item* WorldObjects::addItem(const ZenLoad::zCVobData &vob) {
     return nullptr;
 
   Matrix4x4 m { vob.worldMatrix.mv };
-  it->setMatrix(m);
+  it->setObjMatrix(m);
   return it;
   }
 
@@ -560,17 +561,37 @@ Item* WorldObjects::addItem(size_t itemInstance, const Tempest::Vec3& pos) {
   }
 
 Item* WorldObjects::addItem(size_t itemInstance, const Tempest::Vec3& pos, const Tempest::Vec3& dir) {
-  if(itemInstance==size_t(-1)) {
+  if(itemInstance==size_t(-1))
     return nullptr;
-  }
 
-  std::unique_ptr<Item> ptr{new Item(owner,itemInstance,true)};
+  std::unique_ptr<Item> ptr{new Item(owner,itemInstance,Item::T_World)};
   auto* it=ptr.get();
   itemArr.emplace_back(std::move(ptr));
   items.add(itemArr.back().get());
 
   it->setPosition (pos.x, pos.y, pos.z);
   it->setDirection(dir.x, dir.y, dir.z);
+
+  return it;
+  }
+
+Item* WorldObjects::addItemDyn(size_t itemInstance, const Tempest::Matrix4x4& pos) {
+  //size_t ItLsTorchburned  = owner.script().getSymbolIndex("ItLsTorchburned");
+  size_t ItLsTorchburning = owner.script().getSymbolIndex("ItLsTorchburning");
+
+  if(itemInstance==size_t(-1))
+    return nullptr;
+
+  std::unique_ptr<Item> ptr;
+  if(itemInstance==ItLsTorchburning)
+    ptr.reset(new ItemTorchBurning(owner,itemInstance,Item::T_WorldDyn)); else
+    ptr.reset(new Item(owner,itemInstance,Item::T_WorldDyn));
+
+  auto* it=ptr.get();
+  itemArr.emplace_back(std::move(ptr));
+  items.add(itemArr.back().get());
+
+  it->setObjMatrix(pos);
 
   return it;
   }

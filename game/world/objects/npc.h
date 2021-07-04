@@ -244,6 +244,7 @@ class Npc final {
     void       delOverlay   (const Skeleton*  sk);
 
     bool       toogleTorch();
+    bool       isUsingTorch() const;
 
     void       setVisualBody (int32_t headTexNr,int32_t teethTexNr,
                               int32_t bodyVer,int32_t bodyColor,

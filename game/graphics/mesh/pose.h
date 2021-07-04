@@ -119,6 +119,7 @@ class Pose final {
     uint16_t                        comboLen=0;
     bool                            needToUpdate = true;
     uint8_t                         hasEvents = 0;
+    uint8_t                         isFlyCombined = 0;
 
     size_t                          numBones = 0;
     Tempest::Matrix4x4              base[Resources::MAX_NUM_SKELETAL_NODES];

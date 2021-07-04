@@ -546,8 +546,8 @@ void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation
     case ZenLoad::DEF_EXCHANGE_ITEM:{
       EvTimed ex;
       ex.def     = e.m_Def;
-      ex.item    = e.m_Item.c_str();
-      ex.slot[0] = e.m_Slot.c_str();
+      ex.item    = e.m_Item;
+      ex.slot[0] = e.m_Slot;
       ex.time    = time;
       ev.timed.push_back(ex);
       break;
@@ -558,7 +558,7 @@ void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation
     case ZenLoad::DEF_PLACE_ITEM: {
       EvTimed ex;
       ex.def     = e.m_Def;
-      ex.slot[0] = e.m_Slot.c_str();
+      ex.slot[0] = e.m_Slot;
       ex.time    = time;
       ev.timed.push_back(ex);
       break;
@@ -567,16 +567,30 @@ void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation
     case ZenLoad::DEF_REMOVE_MUNITION: {
       EvTimed ex;
       ex.def     = e.m_Def;
-      ex.slot[0] = e.m_Slot.c_str();
+      ex.slot[0] = e.m_Slot;
       ex.time    = time;
       ev.timed.push_back(ex);
       break;
       }
-    case ZenLoad::DEF_SWAPMESH:
+    case ZenLoad::DEF_SWAPMESH: {
+      EvTimed ex;
+      ex.def     = e.m_Def;
+      ex.slot[0] = e.m_Slot;
+      ex.slot[1] = e.m_Slot2;
+      ex.time    = time;
+      ev.timed.push_back(ex);
+      break;
+      }
     case ZenLoad::DEF_DRAWTORCH:
     case ZenLoad::DEF_INV_TORCH:
-    case ZenLoad::DEF_DROP_TORCH:
+    case ZenLoad::DEF_DROP_TORCH: {
+      EvTimed ex;
+      ex.def     = e.m_Def;
+      ex.slot[0] = e.m_Slot;
+      ex.time    = time;
+      ev.timed.push_back(ex);
       break;
+      }
     }
   }
 

@@ -19,6 +19,10 @@ PhysicMesh::PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner, bool movable
     }
   }
 
+bool PhysicMesh::isEmpty() const {
+  return sub.empty();
+  }
+
 void PhysicMesh::setObjMatrix(const Tempest::Matrix4x4& obj) {
   implSetObjMatrix(obj,skeleton==nullptr ? nullptr : skeleton->tr.data());
   }

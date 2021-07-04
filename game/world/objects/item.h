@@ -11,30 +11,37 @@ class World;
 class Npc;
 class Serialize;
 
-class Item final : public Vob {
+class Item : public Vob {
   public:
     enum { MAX_UI_ROWS=6, NSLOT=255 };
 
-    Item(World& owner, size_t     inst, bool inWorld);
-    Item(World& owner, Serialize& fin,  bool inWorld);
+    enum Type : uint8_t {
+      T_World,
+      T_WorldDyn,
+      T_Inventory,
+      };
+
+    Item(World& owner, size_t     inst, Type type);
+    Item(World& owner, Serialize& fin,  Type type);
     Item(Item&&);
     ~Item();
     Item& operator=(Item&&)=delete;
 
     void    save(Serialize& fout) const override;
 
-    void    clearView();
+    virtual void clearView();
+    virtual bool isTorchBurn() const;
 
     void    setPosition  (float x,float y,float z);
     void    setDirection (float x,float y,float z);
-    void    setMatrix(const Tempest::Matrix4x4& m);
+    void    setObjMatrix (const Tempest::Matrix4x4& m);
 
     bool    isMission() const;
     bool    isEquiped() const  { return equiped>0; }
     uint8_t equipCount() const { return equiped;   }
     void    setAsEquiped(bool e);
 
-    void    setPhysicsEnable (DynamicWorld& physic);
+    void    setPhysicsEnable (World& w);
     void    setPhysicsDisable();
     bool    isDynamic() const override;
 
@@ -76,17 +83,21 @@ class Item final : public Vob {
     Daedalus::GEngineClasses::C_Item&       handle()       { return hitem; }
     size_t                                  clsId() const;
 
+  protected:
+    void                moveEvent() override;
+    void                setPhysicsEnable(const MeshObjects::Mesh& mesh);
+    void                setPhysicsEnable(const ProtoMesh* mesh);
+
   private:
     void                updateMatrix();
-    void                moveEvent() override;
 
     Daedalus::GEngineClasses::C_Item  hitem={};
-    MeshObjects::Mesh                 view;
     Tempest::Vec3                     pos={};
 
     uint32_t                          amount  = 0;
     uint8_t                           equiped = 0;
     uint8_t                           itSlot  = NSLOT;
 
+    MeshObjects::Mesh                 view;
     DynamicWorld::Item                physic;
   };

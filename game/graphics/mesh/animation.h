@@ -27,8 +27,8 @@ class Animation final {
 
     struct EvTimed final {
       ZenLoad::EModelScriptAniDef def     = ZenLoad::DEF_NULL;
-      const char*                 item    = nullptr;
-      const char*                 slot[2] = {};
+      std::string_view            item;
+      std::string_view            slot[2] = {};
       uint64_t                    time    = 0;
       };
 

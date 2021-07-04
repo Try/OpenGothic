@@ -94,7 +94,7 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
   items.clear();
   s.read(sz);
   for(size_t i=0;i<sz;++i)
-    items.emplace_back(std::make_unique<Item>(world,s,false));
+    items.emplace_back(std::make_unique<Item>(world,s,Item::T_Inventory));
 
   s.read(sz);
   mdlSlots.resize(sz);
@@ -252,8 +252,7 @@ Item* Inventory::addItem(size_t itemSymbol, size_t count, World &owner) {
   Item* it=findByClass(itemSymbol);
   if(it==nullptr) {
     try {
-      std::unique_ptr<Item> ptr{new Item(owner,itemSymbol,false)};
-      ptr->clearView();
+      std::unique_ptr<Item> ptr{new Item(owner,itemSymbol,Item::T_Inventory)};
       ptr->setCount(count);
       items.emplace_back(std::move(ptr));
       return items.back().get();
@@ -802,9 +801,13 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
       return setSlot(ringR,it,owner,force);
     return false;
     }
+
+  bool deleteLater = false;
   if(flag & ITM_TORCH) {
+    if(owner.weaponState()!=WeaponState::NoWeapon)
+      return false;
     if(owner.toogleTorch()) {
-      owner.delItem(cls,1);
+      deleteLater = true;
       } else {
       return true;
       }
@@ -818,6 +821,9 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
     auto& vm = owner.world().script();
     vm.invokeItem(&owner,itData.on_state[0]);
     }
+
+  if(deleteLater)
+    owner.delItem(cls,1);
 
   return true;
   }
