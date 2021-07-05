@@ -134,7 +134,7 @@ void MdlVisual::implSetBody(MeshObjects::Mesh&& body, World& owner, const int32_
   view = std::move(body);
   view.setAsGhost(hnpcFlagGhost);
   view.setSkeleton(skeleton);
-  view.setPose(*skInst,pos);
+  view.setPose(pos,*skInst);
   hnpcVisual.view.setMesh(&view);
   }
 
@@ -457,10 +457,8 @@ bool MdlVisual::updateAnimation(Npc* npc, World& world) {
   solver.update(tickCount);
   const bool changed = pose.update(tickCount);
 
-  if(changed) {
-    syncAttaches();
-    view.setPose(pose,pos);
-    }
+  if(changed)
+    view.setPose(pos,pose);
   return changed;
   }
 

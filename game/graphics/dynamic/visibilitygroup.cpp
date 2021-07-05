@@ -30,16 +30,16 @@ void VisibilityGroup::Token::setObjMatrix(const Matrix4x4& at) {
   if(owner==nullptr)
     return;
   auto& t = owner->tokens[id];
-  t.pos = at;
-  t.bbox.setObjMatrix(at);
+  t.pos        = at;
+  t.updateBbox = true;
   }
 
 void VisibilityGroup::Token::setBounds(const Bounds& bbox) {
   if(owner==nullptr)
     return;
   auto& t = owner->tokens[id];
-  t.bbox = bbox;
-  t.bbox.setObjMatrix(owner->tokens[id].pos);
+  t.bbox       = bbox;
+  t.updateBbox = true;
   }
 
 const Bounds& VisibilityGroup::Token::bounds() const {
@@ -72,8 +72,12 @@ void VisibilityGroup::pass(const Frustrum f[]) {
   float sh1X = 2.f/float(f[SceneGlobals::V_Shadow1].width );
   float sh1Y = 2.f/float(f[SceneGlobals::V_Shadow1].height);
 
-  Workers::parallelFor(tokens,[&f,sh1X,sh1Y,mX,mY](Tok& t){
+  Workers::parallelFor(tokens,[&f,sh1X,sh1Y,mX,mY](Tok& t) {
     auto& b = t.bbox;
+    if(t.updateBbox) {
+      t.bbox.setObjMatrix(t.pos);
+      t.updateBbox = false;
+      }
     t.visible[SceneGlobals::V_Shadow0] = f[SceneGlobals::V_Shadow0].testPoint(b.midTr, b.r);
     t.visible[SceneGlobals::V_Shadow1] = f[SceneGlobals::V_Shadow1].testPoint(b.midTr, b.r);
     t.visible[SceneGlobals::V_Main]    = f[SceneGlobals::V_Main   ].testPoint(b.midTr, b.r);

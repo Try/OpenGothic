@@ -685,7 +685,7 @@ void Npc::updateAnimation() {
     visual.setTarget(position());
 
   bool syncAtt = visual.updateAnimation(this,owner);
-  if(durtyTranform){
+  if(durtyTranform) {
     updatePos();
     syncAtt = true;
     durtyTranform=0;
@@ -696,7 +696,7 @@ void Npc::updateAnimation() {
   }
 
 void Npc::updateTransform() {
-  if(durtyTranform){
+  if(durtyTranform) {
     updatePos();
     visual.syncAttaches();
     durtyTranform=0;

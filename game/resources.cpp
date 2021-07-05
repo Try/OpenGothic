@@ -653,7 +653,7 @@ Material Resources::loadMaterial(const ZenLoad::zCMaterialData& src, bool enable
   return Material(src,enableAlphaTest);
   }
 
-const ProtoMesh *Resources::loadMesh(std::string_view name) {
+const ProtoMesh* Resources::loadMesh(std::string_view name) {
   if(name.size()==0)
     return nullptr;
   std::lock_guard<std::recursive_mutex> g(inst->sync);
@@ -667,14 +667,14 @@ const PfxEmitterMesh* Resources::loadEmiterMesh(std::string_view name) {
   return inst->implLoadEmiterMesh(name);
   }
 
-const Skeleton *Resources::loadSkeleton(std::string_view name) {
+const Skeleton* Resources::loadSkeleton(std::string_view name) {
   auto s = Resources::loadMesh(name);
   if(s==nullptr)
     return nullptr;
   return s->skeleton.get();
   }
 
-const Animation *Resources::loadAnimation(std::string_view name) {
+const Animation* Resources::loadAnimation(std::string_view name) {
   auto cname = std::string(name);
 
   std::lock_guard<std::recursive_mutex> g(inst->sync);

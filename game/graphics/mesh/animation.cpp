@@ -430,24 +430,24 @@ bool Animation::Sequence::extractFrames(uint64_t& frameA,uint64_t& frameB,bool& 
   return true;
   }
 
-void Animation::Sequence::processSfx(uint64_t barrier, uint64_t sTime, uint64_t now, Npc &npc) const {
+void Animation::Sequence::processSfx(uint64_t barrier, uint64_t sTime, uint64_t now, Npc& npc) const {
   uint64_t frameA=0,frameB=0;
   bool     invert=false;
   if(!extractFrames(frameA,frameB,invert,barrier,sTime,now))
     return;
 
   auto& d = *data;
-  for(auto& i:d.sfx){
+  for(auto& i:d.sfx) {
     uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
     if(((frameA<=fr && fr<frameB) ^ invert) ||
        i.m_Frame==int32_t(d.lastFrame))
-      npc.emitSoundEffect(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
+      npc.emitSoundEffect(i.m_Name,i.m_Range,i.m_EmptySlot);
     }
   if(!npc.isInAir()) {
     for(auto& i:d.gfx){
       uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
       if((frameA<=fr && fr<frameB) ^ invert)
-        npc.emitSoundGround(i.m_Name.c_str(),i.m_Range,i.m_EmptySlot);
+        npc.emitSoundGround(i.m_Name,i.m_Range,i.m_EmptySlot);
       }
     }
   }

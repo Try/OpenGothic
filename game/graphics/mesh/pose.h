@@ -16,7 +16,7 @@ class Npc;
 
 class Pose final {
   public:
-    Pose()=default;
+    Pose() = default;
 
     enum Flags {
       NoFlags       = 0,
@@ -107,6 +107,8 @@ class Pose final {
 
     template<class T,class F>
     void removeIf(T& t,F f);
+
+    static std::vector<Pose*>       all;
 
     const Skeleton*                 skeleton=nullptr;
     std::vector<Layer>              lay;

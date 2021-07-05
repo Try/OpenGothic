@@ -357,9 +357,9 @@ bool Pose::updateFrame(const Animation::Sequence &s,
   auto* sampleB = &d.samples[size_t(frameB*idSize)];
 
   for(size_t i=0; i<idSize; ++i) {
-    auto smp = mix(sampleA[i],sampleB[i],a);
     if(d.nodeIndex[i]>=numBones)
       continue;
+    auto smp = mix(sampleA[i],sampleB[i],a);
     base[d.nodeIndex[i]] = mkMatrix(smp);
     }
   return true;

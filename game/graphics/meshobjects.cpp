@@ -56,7 +56,7 @@ void MeshObjects::Mesh::setSkeleton(const Skeleton *sk) {
     binder=Resources::bindMesh(*proto,*skeleton);
   }
 
-void MeshObjects::Mesh::setPose(const Pose &p, const Tempest::Matrix4x4& obj) {
+void MeshObjects::Mesh::setPose(const Tempest::Matrix4x4& obj, const Pose &p) {
   if(anim!=nullptr)
     anim->setPose(p);
   implSetObjMatrix(obj,p.transform());

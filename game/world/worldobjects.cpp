@@ -371,6 +371,9 @@ void WorldObjects::execTriggerEvent(const TriggerEvent& e) {
   }
 
 void WorldObjects::updateAnimation() {
+  static bool doAnim=true;
+  if(!doAnim)
+    return;
   Workers::parallelFor(npcArr,[](std::unique_ptr<Npc>& i){
     i->updateAnimation();
     });

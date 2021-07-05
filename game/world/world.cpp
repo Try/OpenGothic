@@ -245,9 +245,6 @@ MeshObjects::Mesh World::addView(const Daedalus::ZString& visual) const {
   }
 
 void World::updateAnimation() {
-  static bool doAnim=true;
-  if(!doAnim)
-    return;
   wobj.updateAnimation();
   }
 

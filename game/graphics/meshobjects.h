@@ -55,7 +55,7 @@ class MeshObjects final {
 
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setSkeleton (const Skeleton* sk);
-        void   setPose     (const Pose&     p,const Tempest::Matrix4x4& obj);
+        void   setPose     (const Tempest::Matrix4x4& obj, const Pose& p);
         void   setAsGhost  (bool g);
         void   startMMAnim (std::string_view anim, float intensity, uint64_t timeUntil);
 

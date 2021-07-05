@@ -40,6 +40,7 @@ class VisibilityGroup {
     struct Tok {
       Tempest::Matrix4x4 pos;
       Bounds             bbox;
+      bool               updateBbox = false;
       bool               visible[SceneGlobals::V_Count] = {};
       };
 
