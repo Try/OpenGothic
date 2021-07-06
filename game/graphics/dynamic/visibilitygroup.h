@@ -7,6 +7,7 @@
 #include "graphics/bounds.h"
 
 class Frustrum;
+class VisibleSet;
 
 class VisibilityGroup {
   public:
@@ -19,9 +20,10 @@ class VisibilityGroup {
         Token& operator = (Token&& t);
         ~Token();
 
+        void   setObject   (VisibleSet* b, size_t id);
         void   setObjMatrix(const Tempest::Matrix4x4& at);
+        void   setAlwaysVis(bool v);
         void   setBounds   (const Bounds& bbox);
-        bool   isVisible   (SceneGlobals::VisCamera c) const;
 
         const Bounds& bounds() const;
 
@@ -40,8 +42,10 @@ class VisibilityGroup {
     struct Tok {
       Tempest::Matrix4x4 pos;
       Bounds             bbox;
+      VisibleSet*        vSet = nullptr;
+      size_t             id     = 0;
       bool               updateBbox = false;
-      bool               visible[SceneGlobals::V_Count] = {};
+      bool               alwaysVis = false;
       };
 
     std::vector<Tok>    tokens;
@@ -50,6 +54,3 @@ class VisibilityGroup {
     static bool subpixelMeshTest(const Tok& t, const Frustrum& f, float edgeX, float edgeY);
   };
 
-inline bool VisibilityGroup::Token::isVisible(SceneGlobals::VisCamera c) const {
-  return owner->tokens[id].visible[c];
-  }

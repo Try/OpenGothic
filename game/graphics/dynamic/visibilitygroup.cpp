@@ -1,6 +1,7 @@
-#include "frustrum.h"
 #include "visibilitygroup.h"
 
+#include "frustrum.h"
+#include "visibleset.h"
 #include "utils/workers.h"
 
 using namespace Tempest;
@@ -23,7 +24,15 @@ VisibilityGroup::Token& VisibilityGroup::Token::operator =(VisibilityGroup::Toke
 VisibilityGroup::Token::~Token() {
   if(owner==nullptr)
     return;
+  auto& t = owner->tokens[id];
+  t.vSet = nullptr;
   owner->freeList.push_back(id);
+  }
+
+void VisibilityGroup::Token::setObject(VisibleSet* b, size_t i) {
+  auto& t = owner->tokens[id];
+  t.vSet = b;
+  t.id   = i;
   }
 
 void VisibilityGroup::Token::setObjMatrix(const Matrix4x4& at) {
@@ -32,6 +41,11 @@ void VisibilityGroup::Token::setObjMatrix(const Matrix4x4& at) {
   auto& t = owner->tokens[id];
   t.pos        = at;
   t.updateBbox = true;
+  }
+
+void VisibilityGroup::Token::setAlwaysVis(bool v) {
+  auto& t = owner->tokens[id];
+  t.alwaysVis = v;
   }
 
 void VisibilityGroup::Token::setBounds(const Bounds& bbox) {
@@ -74,18 +88,36 @@ void VisibilityGroup::pass(const Frustrum f[]) {
 
   Workers::parallelFor(tokens,[&f,sh1X,sh1Y,mX,mY](Tok& t) {
     auto& b = t.bbox;
+    if(t.vSet==nullptr)
+      return;
     if(t.updateBbox) {
       t.bbox.setObjMatrix(t.pos);
       t.updateBbox = false;
       }
-    t.visible[SceneGlobals::V_Shadow0] = f[SceneGlobals::V_Shadow0].testPoint(b.midTr, b.r);
-    t.visible[SceneGlobals::V_Shadow1] = f[SceneGlobals::V_Shadow1].testPoint(b.midTr, b.r);
-    t.visible[SceneGlobals::V_Main]    = f[SceneGlobals::V_Main   ].testPoint(b.midTr, b.r);
 
-    if(t.visible[SceneGlobals::V_Shadow1])
-      t.visible[SceneGlobals::V_Shadow1] = subpixelMeshTest(t,f[SceneGlobals::V_Shadow1],sh1X,sh1Y);
-    if(t.visible[SceneGlobals::V_Main])
-      t.visible[SceneGlobals::V_Main] = subpixelMeshTest(t,f[SceneGlobals::V_Main],mX,mY);
+    if(t.alwaysVis) {
+      t.vSet->push(t.id,SceneGlobals::V_Shadow0);
+      t.vSet->push(t.id,SceneGlobals::V_Shadow1);
+      t.vSet->push(t.id,SceneGlobals::V_Main);
+      } else {
+      bool visible[SceneGlobals::V_Count] = {};
+      visible[SceneGlobals::V_Shadow0] = f[SceneGlobals::V_Shadow0].testPoint(b.midTr, b.r);
+      visible[SceneGlobals::V_Shadow1] = f[SceneGlobals::V_Shadow1].testPoint(b.midTr, b.r);
+      visible[SceneGlobals::V_Main]    = f[SceneGlobals::V_Main   ].testPoint(b.midTr, b.r);
+
+      if(visible[SceneGlobals::V_Shadow1])
+        visible[SceneGlobals::V_Shadow1] = subpixelMeshTest(t,f[SceneGlobals::V_Shadow1],sh1X,sh1Y);
+      if(visible[SceneGlobals::V_Main])
+        visible[SceneGlobals::V_Main] = subpixelMeshTest(t,f[SceneGlobals::V_Main],mX,mY);
+
+      if(visible[SceneGlobals::V_Shadow0])
+        t.vSet->push(t.id,SceneGlobals::V_Shadow0);
+      if(visible[SceneGlobals::V_Shadow1])
+        t.vSet->push(t.id,SceneGlobals::V_Shadow1);
+      if(visible[SceneGlobals::V_Main])
+        t.vSet->push(t.id,SceneGlobals::V_Main);
+      }
+
     });
   }
 

@@ -93,6 +93,8 @@ void VisualObjects::preFrameUpdate(uint8_t fId) {
   }
 
 void VisualObjects::visibilityPass(const Frustrum fr[]) {
+  for(auto& i:buckets)
+    i.resetVis();
   visGroup.pass(fr);
   }
 

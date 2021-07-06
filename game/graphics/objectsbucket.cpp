@@ -143,8 +143,6 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
     if(vx.isValid())
       continue;
     v = &vx;
-    if(valLast<=i)
-      valLast = i+1;
     break;
     }
 
@@ -159,6 +157,7 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
   v->timeShift  = uint64_t(0-scene.tickCount);
   v->visibility = owner.visGroup.get();
   v->visibility.setBounds(bounds);
+  v->visibility.setObject(&visSet,std::distance(val,v));
 
   if(!useSharedUbo) {
     v->ubo.invalidate();
@@ -261,6 +260,10 @@ void ObjectsBucket::invalidateUbo() {
     }
   }
 
+void ObjectsBucket::resetVis() {
+  visSet.reset();
+  }
+
 void ObjectsBucket::preFrameUpdate(uint8_t fId) {
   if(mat.texAniMapDirPeriod.x==0 && mat.texAniMapDirPeriod.y==0)
     return;
@@ -276,35 +279,6 @@ void ObjectsBucket::preFrameUpdate(uint8_t fId) {
     }
 
   uboMat[fId].update(&ubo,0,1);
-  }
-
-bool ObjectsBucket::groupVisibility(const Frustrum& f) {
-  if(shaderType!=Static)
-    return true;
-
-  if(allBounds.r<=0) {
-    Tempest::Vec3 bbox[2] = {};
-    bool          fisrt=true;
-    for(size_t i=0;i<CAPACITY;++i) {
-      if(!val[i].isValid())
-        continue;
-      auto& b = val[i].visibility.bounds();
-      if(fisrt) {
-        bbox[0] = b.bboxTr[0];
-        bbox[1] = b.bboxTr[1];
-        fisrt = false;
-        }
-      bbox[0].x = std::min(bbox[0].x,b.bboxTr[0].x);
-      bbox[0].y = std::min(bbox[0].y,b.bboxTr[0].y);
-      bbox[0].z = std::min(bbox[0].z,b.bboxTr[0].z);
-
-      bbox[1].x = std::max(bbox[1].x,b.bboxTr[1].x);
-      bbox[1].y = std::max(bbox[1].y,b.bboxTr[1].y);
-      bbox[1].z = std::max(bbox[1].z,b.bboxTr[1].z);
-      }
-    allBounds.assign(bbox);
-    }
-  return f.testPoint(allBounds.midTr,allBounds.r);
   }
 
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
@@ -330,7 +304,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
   v->iboOffset = iboOffset;
   v->iboLength = iboLen;
 
-  v->skiningAni = &anim;//storage.ani.alloc(boneCnt);
+  v->skiningAni = &anim;
   return size_t(std::distance(val,v));
   }
 
@@ -338,6 +312,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* 
   Object* v = &implAlloc(VboType::VboMorph,bounds);
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     v->vboM[i] = vbo[i];
+  v->visibility.setAlwaysVis(true);
   return size_t(std::distance(val,v));
   }
 
@@ -351,14 +326,6 @@ void ObjectsBucket::free(const size_t objId) {
   v.vboA    = nullptr;
   v.ibo     = nullptr;
   valSz--;
-  valLast = 0;
-  for(size_t i=CAPACITY; i>0;) {
-    --i;
-    if(val[i].isValid()) {
-      valLast = i+1;
-      break;
-      }
-    }
 
   if(valSz==0)
     owner.resetIndex();
@@ -384,7 +351,7 @@ void ObjectsBucket::drawShadow(Encoder<CommandBuffer>& cmd, uint8_t fId, int lay
 
 void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
                                const RenderPipeline& shader, SceneGlobals::VisCamera c) {
-  UboPush pushBlock = {};
+  UboPush pushBlock  = {};
   bool    sharedSet  = false;
   bool    sharedPush = false;
 
@@ -392,11 +359,11 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
   if(shaderType==Pfx)
     pushSz = 0;
 
-  for(size_t i=0; i<valLast; ++i) {
-    auto& v = val[i];
+  const size_t  indSz = visSet.count(c);
+  const size_t* index = visSet.index(c);
+  for(size_t i=0; i<indSz; ++i) {
+    auto& v = val[index[i]];
     if(v.vboType==NoVbo)
-      continue;
-    if(v.vboType!=VboMorph && !v.visibility.isVisible(c))
       continue;
 
     updatePushBlock(pushBlock,v);
@@ -479,9 +446,6 @@ void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
   auto& v = val[i];
   v.visibility.setObjMatrix(m);
   v.pos = m;
-
-  if(shaderType==Static)
-    allBounds.r = 0;
   }
 
 void ObjectsBucket::setBounds(size_t i, const Bounds& b) {

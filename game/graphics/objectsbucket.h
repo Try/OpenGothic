@@ -13,6 +13,7 @@
 #include "ubostorage.h"
 #include "graphics/mesh/protomesh.h"
 #include "graphics/dynamic/visibilitygroup.h"
+#include "graphics/dynamic/visibleset.h"
 #include "graphics/skeletalstorage.h"
 
 class Pose;
@@ -27,7 +28,7 @@ class ObjectsBucket final {
 
   public:
     enum {
-      CAPACITY     = 128,
+      CAPACITY     = VisibleSet::CAPACITY,
       };
 
     enum Type : uint8_t {
@@ -110,6 +111,7 @@ class ObjectsBucket final {
 
     void                      setupUbo();
     void                      invalidateUbo();
+    void                      resetVis();
 
     void                      preFrameUpdate(uint8_t fId);
     void                      draw       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
@@ -194,8 +196,6 @@ class ObjectsBucket final {
     void    uboSetCommon (Descriptors& v);
     void    uboSetDynamic(Object& v, uint8_t fId);
 
-    bool    groupVisibility(const Frustrum& f);
-
     void    setObjMatrix(size_t i, const Tempest::Matrix4x4& m);
     void    setBounds   (size_t i, const Bounds& b);
     void    startMMAnim (size_t i, std::string_view anim, float intensity, uint64_t timeUntil);
@@ -210,9 +210,10 @@ class ObjectsBucket final {
     VisualObjects&            owner;
     Descriptors               uboShared;
 
-    Object                    val  [CAPACITY];
-    size_t                    valSz=0;
-    size_t                    valLast=0;
+    Object                    val[CAPACITY];
+    size_t                    valSz = 0;
+
+    VisibleSet                visSet;
 
     const SceneGlobals&       scene;
     Storage&                  storage;
@@ -224,8 +225,6 @@ class ObjectsBucket final {
     const Type                shaderType;
     bool                      useSharedUbo=false;
     bool                      textureInShadowPass=false;
-
-    Bounds                    allBounds;
 
     const Tempest::RenderPipeline* pMain    = nullptr;
     const Tempest::RenderPipeline* pGbuffer = nullptr;
