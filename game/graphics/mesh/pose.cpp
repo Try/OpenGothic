@@ -234,11 +234,11 @@ void Pose::interrupt() {
   size_t ret=0;
   for(size_t i=0;i<lay.size();++i) {
     if(BS_FLAG_INTERRUPTABLE & lay[i].bs) {
+      onRemoveLayer(lay[i]);
+      } else {
       if(ret!=i)
         lay[ret] = lay[i];
       ret++;
-      } else {
-      onRemoveLayer(lay[i]);
       }
     }
   lay.resize(ret);

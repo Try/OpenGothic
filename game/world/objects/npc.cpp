@@ -1660,10 +1660,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
       const bool noInter = (hnpc.bodyStateInterruptableOverride!=0);
       if(!noInter)
         visual.interrupt();
-      if(auto ani = setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB,noInter)) {
-        if(ani->layer==1)
-          implAniWait(uint64_t(ani->totalTime()));
-        }
+      setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB,noInter);
       }
     }
 
@@ -1782,7 +1779,7 @@ void Npc::tick(uint64_t dt) {
     }
 
   if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount() || outWaitTime>owner.tickCount()) {
-    if(faiWaitTime<owner.tickCount())
+    if(!isPlayer() && faiWaitTime<owner.tickCount())
       adjustAtackRotation(dt);
     mvAlgo.tick(dt,MoveAlgo::WaitMove);
     return;
@@ -2338,6 +2335,7 @@ void Npc::emitSoundSVM(std::string_view svm) {
 void Npc::startEffect(Npc& /*to*/, const VisualFx& vfx) {
   Effect e(vfx,owner,*this,SpellFxKey::Cast);
   e.setActive(true);
+  e.setLooped(true);
   visual.startEffect(owner, std::move(e), 0, true);
   }
 
@@ -2538,7 +2536,7 @@ Item* Npc::takeItem(Item& item) {
     return nullptr;
 
   std::unique_ptr<Item> ptr{owner.takeItem(item)};
-  if(ptr->isTorchBurn()) {
+  if(ptr!=nullptr && ptr->isTorchBurn()) {
    if(!toogleTorch())
      return nullptr;
     size_t torchId = owner.script().getSymbolIndex("ItLsTorch");

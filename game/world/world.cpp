@@ -571,7 +571,7 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
 
     const VisualFx* vfx = script().spellVfx(itm.spellId());
     pos   += npc.mapBone(vfx->emTrjOriginNode);
-    tgPos += npc.mapBone(vfx->emTrjTargetNode);
+    tgPos += target->mapBone(vfx->emTrjTargetNode);
     // vfx->emTrjTargetRange; // TODO
     dir    = tgPos-pos;
     } else {
