@@ -82,7 +82,7 @@ struct CollisionWorld::ContructInfo {
     //auto disp = new btCollisionDispatcherMt(conf.get());
     disp  .reset(new btCollisionDispatcher(conf.get()));
     disp->setDispatcherFlags(btCollisionDispatcher::CD_DISABLE_CONTACTPOOL_DYNAMIC_ALLOCATION);
-    broad .reset(new btDbvtBroadphase());
+    broad .reset(new Broadphase());
     solver.reset(new btSequentialImpulseConstraintSolver());
     }
   std::unique_ptr<btCollisionConfiguration>            conf;
