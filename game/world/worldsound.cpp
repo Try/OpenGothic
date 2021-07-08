@@ -144,6 +144,7 @@ Sound WorldSound::implAddSound(Tempest::SoundEffect&& eff, float x, float y, flo
   ex->eff = std::move(eff);
   ex->pos = {x,y,z};
   ex->vol = ex->eff.volume();
+  ex->setOcclusion(0);
 
   return Sound(ex);
   }
@@ -153,11 +154,6 @@ void WorldSound::tick(Npc &player) {
   plPos = player.position();
 
   game.updateListenerPos(player);
-
-  tickSlot(effect);
-  tickSlot(effect3d);
-  for(auto& i:freeSlot)
-    tickSlot(*i.second);
 
   for(auto& i:worldEff) {
     if(!i.active || !i.current.isFinished())
@@ -195,6 +191,10 @@ void WorldSound::tick(Npc &player) {
       i.restartTimeout += uint64_t(std::rand())%i.delayVar;
     }
 
+  tickSlot(effect);
+  tickSlot(effect3d);
+  for(auto& i:freeSlot)
+    tickSlot(*i.second);
   tickSoundZone(player);
   }
 
