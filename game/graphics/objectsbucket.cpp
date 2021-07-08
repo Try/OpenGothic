@@ -157,7 +157,7 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
   v->timeShift  = uint64_t(0-scene.tickCount);
   v->visibility = owner.visGroup.get();
   v->visibility.setBounds(bounds);
-  v->visibility.setObject(&visSet,std::distance(val,v));
+  v->visibility.setObject(&visSet,size_t(std::distance(val,v)));
 
   if(!useSharedUbo) {
     v->ubo.invalidate();
