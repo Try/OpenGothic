@@ -92,10 +92,10 @@ void VisualObjects::preFrameUpdate(uint8_t fId) {
     c.preFrameUpdate(fId);
   }
 
-void VisualObjects::visibilityPass(const Frustrum fr[]) {
+void VisualObjects::visibilityPass(const Frustrum fr[], const Tempest::Pixmap& hiZ) {
   for(auto& i:buckets)
     i.resetVis();
-  visGroup.pass(fr);
+  visGroup.pass(fr,hiZ);
   }
 
 void VisualObjects::draw(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
@@ -110,11 +110,21 @@ void VisualObjects::draw(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t 
   sky->drawFog(enc,fId);
   }
 
+void VisualObjects::drawGBufferOcc(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
+  mkIndex();
+  commitUbo(fId);
+
+  for(size_t i=0; i<lastOccluderBucket; ++i) {
+    auto c = index[i];
+    c->drawGBuffer(enc,fId);
+    }
+  }
+
 void VisualObjects::drawGBuffer(Tempest::Encoder<CommandBuffer>& enc, uint8_t fId) {
   mkIndex();
   commitUbo(fId);
 
-  for(size_t i=0;i<lastSolidBucket;++i) {
+  for(size_t i=lastOccluderBucket; i<lastSolidBucket; ++i) {
     auto c = index[i];
     c->drawGBuffer(enc,fId);
     }
@@ -126,7 +136,7 @@ void VisualObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& enc, ui
     commitUbo(fId);
     }
 
-  for(size_t i=0;i<lastSolidBucket;++i) {
+  for(size_t i=0; i<lastSolidBucket; ++i) {
     auto c = index[i];
     c->drawShadow(enc,fId,layer);
     }
@@ -167,8 +177,8 @@ void VisualObjects::mkIndex() {
     if(lm.alphaOrder()>rm.alphaOrder())
       return false;
 
-    const int lt = l->type()==ObjectsBucket::Landscape ? 0 : 1;
-    const int rt = r->type()==ObjectsBucket::Landscape ? 0 : 1;
+    const int lt = l->isOccluder() ? 0 : 1;
+    const int rt = r->isOccluder() ? 0 : 1;
 
     if(lt<rt)
       return true;
@@ -181,6 +191,15 @@ void VisualObjects::mkIndex() {
     auto c = index[i];
     if(!c->material().isSolid()) {
       lastSolidBucket = i;
+      break;
+      }
+    }
+
+  lastOccluderBucket = lastSolidBucket;
+  for(size_t i=0;i<index.size();++i) {
+    auto c = index[i];
+    if(!c->isOccluder()) {
+      lastOccluderBucket = i;
       break;
       }
     }

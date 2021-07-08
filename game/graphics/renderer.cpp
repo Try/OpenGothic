@@ -45,6 +45,7 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   Log::i("GPU = ",device.properties().name);
   Log::i("Depth format = ",int(zBufferFormat)," Shadow format = ",int(shadowFormat));
   uboCopy = device.descriptors(Shaders::inst().copy.layout());
+  uboHiZ  = device.descriptors(Shaders::inst().copy.layout());
   }
 
 void Renderer::resetSwapchain() {
@@ -59,7 +60,7 @@ void Renderer::resetSwapchain() {
   zbufferItem    = device.zbuffer(zBufferFormat,w,h);
   shadowPass     = device.pass(FboMode(FboMode::PreserveOut,Color(0.0)), FboMode(FboMode::Discard,0.f));
 
-  for(int i=0; i<2; ++i){
+  for(int i=0; i<Resources::ShadowLayers; ++i){
     shadowMap[i] = device.attachment (shadowFormat, smSize,smSize);
     shadowZ[i]   = device.zbuffer    (zBufferFormat,smSize,smSize);
     fboShadow[i] = device.frameBuffer(shadowMap[i],shadowZ[i]);
@@ -69,6 +70,14 @@ void Renderer::resetSwapchain() {
   gbufDiffuse = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
   gbufNormal  = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
   gbufDepth   = device.attachment(TextureFormat::R32F, swapchain.w(),swapchain.h());
+
+  hiZCpu      = Pixmap(hiZ.w(),hiZ.h(),Pixmap::Format::R32F);
+  hiZ         = device.attachment(TextureFormat::R32F, swapchain.w()/16,swapchain.h()/16);
+  fboHiZ      = device.frameBuffer(hiZ);
+  for(int i=0; i<Resources::MaxFramesInFlight; ++i) {
+    size_t sz = hiZ.w()*hiZ.h()*sizeof(float);
+    bufHiZ[i] = device.ssbo(BufferHeap::Readback,nullptr,sz);
+    }
 
   fboUi.clear();
   fbo3d.clear();
@@ -90,11 +99,18 @@ void Renderer::resetSwapchain() {
     }
 
   uboCopy.set(0,lightingBuf,Sampler2d::nearest());
+  uboHiZ .set(0,gbufDepth,  Sampler2d::nearest());
+
   gbufPass       = device.pass(FboMode(FboMode::PreserveOut,Color(0.0)),
                                FboMode(FboMode::PreserveOut),
                                FboMode(FboMode::PreserveOut),
                                FboMode(FboMode::PreserveOut,Color(1.0)),
                                FboMode(FboMode::PreserveOut,1.f));
+  gbufPass2      = device.pass(FboMode(FboMode::Preserve),
+                               FboMode(FboMode::Preserve),
+                               FboMode(FboMode::Preserve),
+                               FboMode(FboMode::Preserve),
+                               FboMode(FboMode::Preserve));
   mainPass       = device.pass(FboMode::Preserve, FboMode::PreserveIn);
   mainPassNoGbuf = device.pass(FboMode(FboMode::PreserveOut,Color(0.0)), FboMode(FboMode::Discard,1.f));
   uiPass         = device.pass(FboMode::Preserve);
@@ -117,18 +133,25 @@ void Renderer::setCameraView(const Camera& camera) {
 void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
                     VectorImage::Mesh& uiLayer, VectorImage::Mesh& numOverlay,
                     InventoryMenu& inventory) {
-  draw(cmd, fbo3d  [imgId], fboCpy[imgId], cmdId);
+  draw(cmd, fbo3d  [imgId], fboCpy[imgId], fboHiZ, cmdId);
   draw(cmd, fboUi  [imgId], uiLayer);
   draw(cmd, fboItem[imgId], inventory, cmdId);
   draw(cmd, fboUi  [imgId], numOverlay);
   }
 
 void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
-                    FrameBuffer& fbo, FrameBuffer& fboCpy, uint8_t cmdId) {
+                    FrameBuffer& fbo, FrameBuffer& fboCpy, FrameBuffer& fboHiZ, uint8_t cmdId) {
   auto wview = Gothic::inst().worldView();
   if(wview==nullptr) {
     cmd.setFramebuffer(fbo,mainPassNoGbuf);
     return;
+    }
+
+  auto& device = Resources::device();
+
+  static bool useHiZ = true;
+  if(useHiZ) {
+    device.readBytes(bufHiZ[cmdId],hiZCpu.data(),bufHiZ[cmdId].size());
     }
 
   wview->setViewProject(view,proj);
@@ -144,7 +167,7 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
   f[SceneGlobals::V_Shadow0].make(shadow[0],fboShadow[0].w(),fboShadow[0].h());
   f[SceneGlobals::V_Shadow1].make(shadow[1],fboShadow[1].w(),fboShadow[1].h());
   f[SceneGlobals::V_Main   ].make(viewProj,fbo.w(),fbo.h());
-  wview->visibilityPass(f);
+  wview->visibilityPass(f,hiZCpu);
   }
 
   for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
@@ -153,6 +176,17 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
     }
 
   cmd.setFramebuffer(fboGBuf,gbufPass);
+  wview->drawGBufferOcc(cmd,cmdId);
+
+  {
+  cmd.setFramebuffer(fboHiZ,copyPass);
+  cmd.setUniforms(Shaders::inst().copy,uboHiZ);
+  cmd.draw(Resources::fsqVbo());
+  cmd.setFramebuffer(nullptr);
+  cmd.copy(hiZ,0,bufHiZ[cmdId],0);
+  }
+
+  cmd.setFramebuffer(fboGBuf,gbufPass2);
   wview->drawGBuffer(cmd,cmdId);
 
   cmd.setFramebuffer(fboCpy,copyPass);
@@ -193,7 +227,7 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   CommandBuffer cmd;
   {
   auto enc = cmd.startEncoding(device);
-  draw(enc,fbo,fboC,frameId);
+  draw(enc,fbo,fboC,fboHiZ,frameId);
   }
 
   Fence sync = device.fence();

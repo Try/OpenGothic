@@ -38,8 +38,9 @@ class WorldView {
 
     void dbgLights    (DbgPainter& p) const;
 
-    void visibilityPass(const Frustrum fr[]);
+    void visibilityPass(const Frustrum fr[], const Tempest::Pixmap& hiZ);
     void drawShadow    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, uint8_t layer);
+    void drawGBufferOcc(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawGBuffer   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawMain      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawLights    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);

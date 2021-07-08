@@ -97,12 +97,16 @@ void WorldView::dbgLights(DbgPainter& p) const {
   sGlobal.lights.dbgLights(p);
   }
 
-void WorldView::visibilityPass(const Frustrum fr[]) {
-  visuals.visibilityPass(fr);
+void WorldView::visibilityPass(const Frustrum fr[], const Tempest::Pixmap& hiZ) {
+  visuals.visibilityPass(fr,hiZ);
   }
 
 void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId, uint8_t layer) {
   visuals.drawShadow(cmd,fId,layer);
+  }
+
+void WorldView::drawGBufferOcc(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  visuals.drawGBufferOcc(cmd,fId);
   }
 
 void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {

@@ -23,6 +23,7 @@ class VisibilityGroup {
         void   setObject   (VisibleSet* b, size_t id);
         void   setObjMatrix(const Tempest::Matrix4x4& at);
         void   setAlwaysVis(bool v);
+        void   setAsOccluder(bool oc);
         void   setBounds   (const Bounds& bbox);
 
         const Bounds& bounds() const;
@@ -36,7 +37,7 @@ class VisibilityGroup {
       };
 
     Token get();
-    void  pass(const Frustrum f[]);
+    void  pass(const Frustrum f[], const Tempest::Pixmap& hiZ);
 
   private:
     struct Tok {
@@ -45,12 +46,14 @@ class VisibilityGroup {
       VisibleSet*        vSet = nullptr;
       size_t             id     = 0;
       bool               updateBbox = false;
-      bool               alwaysVis = false;
+      bool               alwaysVis  = false;
+      bool               occluder   = false;
       };
 
     std::vector<Tok>    tokens;
     std::vector<size_t> freeList;
 
     static bool subpixelMeshTest(const Tok& t, const Frustrum& f, float edgeX, float edgeY);
+    static bool subpixelMeshTest(const Tok& t, const Frustrum& f, const Tempest::Pixmap& hiZ);
   };
 

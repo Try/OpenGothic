@@ -92,6 +92,7 @@ class ObjectsBucket final {
     ~ObjectsBucket();
 
     const Material&           material()  const;
+    bool                      isOccluder() const;
     Type                      type()      const { return shaderType; }
     size_t                    size()      const { return valSz;      }
     const std::vector<ProtoMesh::Animation>* morph() const { return morphAnim==nullptr ? nullptr : &morphAnim->morph;  }

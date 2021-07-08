@@ -23,8 +23,9 @@ class VisualObjects final {
 
     void setupUbo();
     void preFrameUpdate(uint8_t fId);
-    void visibilityPass(const Frustrum fr[]);
+    void visibilityPass(const Frustrum fr[], const Tempest::Pixmap& hiZ);
     void draw          (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
+    void drawGBufferOcc(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
     void drawGBuffer   (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
     void drawShadow    (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer=0);
 
@@ -46,6 +47,7 @@ class VisualObjects final {
 
     std::list<ObjectsBucket>        buckets;
     std::vector<ObjectsBucket*>     index;
+    size_t                          lastOccluderBucket = 0;
     size_t                          lastSolidBucket = 0;
 
     std::unique_ptr<Sky>            sky;

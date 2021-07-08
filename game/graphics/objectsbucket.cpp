@@ -136,6 +136,10 @@ const Material& ObjectsBucket::material() const {
   return mat;
   }
 
+bool ObjectsBucket::isOccluder() const {
+  return shaderType==Landscape && material().isSolid();
+  }
+
 ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds& bounds) {
   Object* v = nullptr;
   for(size_t i=0; i<CAPACITY; ++i) {
@@ -158,6 +162,7 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
   v->visibility = owner.visGroup.get();
   v->visibility.setBounds(bounds);
   v->visibility.setObject(&visSet,std::distance(val,v));
+  v->visibility.setAsOccluder(isOccluder());
 
   if(!useSharedUbo) {
     v->ubo.invalidate();

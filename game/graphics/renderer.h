@@ -8,6 +8,7 @@
 #include <Tempest/Device>
 #include <Tempest/UniformBuffer>
 #include <Tempest/VectorImage>
+#include <Tempest/Pixmap>
 
 #include "worldview.h"
 #include "shaders.h"
@@ -43,20 +44,26 @@ class Renderer final {
     Tempest::Attachment               gbufNormal;
     Tempest::Attachment               gbufDepth;
 
+    Tempest::Attachment               hiZ;
+    Tempest::FrameBuffer              fboHiZ;
+    Tempest::StorageBuffer            bufHiZ[Resources::MaxFramesInFlight];
+
     Tempest::TextureFormat            shadowFormat =Tempest::TextureFormat::RGBA8;
     Tempest::TextureFormat            zBufferFormat=Tempest::TextureFormat::Depth16;
 
     std::vector<Tempest::FrameBuffer> fbo3d, fboCpy, fboUi, fboItem;
     Tempest::FrameBuffer              fboShadow[2], fboGBuf;
 
-    Tempest::RenderPass               mainPass, mainPassNoGbuf, gbufPass, shadowPass, copyPass;
+    Tempest::RenderPass               mainPass, mainPassNoGbuf, gbufPass, gbufPass2, shadowPass, copyPass;
     Tempest::RenderPass               inventoryPass;
     Tempest::RenderPass               uiPass;
 
-    Tempest::DescriptorSet            uboCopy;
-    Shaders                   stor;
+    Tempest::DescriptorSet            uboCopy, uboHiZ;
+    Shaders                           stor;
 
-    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::FrameBuffer& fboCpy, uint8_t cmdId);
+    Tempest::Pixmap                   hiZCpu;
+
+    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::FrameBuffer& fboCpy, Tempest::FrameBuffer& fboHiZ, uint8_t cmdId);
     void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, InventoryMenu& inv, uint8_t cmdId);
     void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::VectorImage::Mesh& surface);
   };
