@@ -2612,7 +2612,6 @@ void Npc::dropItem(size_t id, size_t count) {
   if(leftHand==size_t(-1))
     return;
 
-  invent.delItem(id,count,*this);
   if(!setAnim(Anim::ItmDrop))
     return;
 
@@ -2622,6 +2621,7 @@ void Npc::dropItem(size_t id, size_t count) {
 
   auto it = owner.addItemDyn(id,mat);
   it->setCount(count);
+  invent.delItem(id,count,*this);
   }
 
 void Npc::clearInventory() {
