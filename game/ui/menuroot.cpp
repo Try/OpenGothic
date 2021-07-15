@@ -9,7 +9,7 @@ using namespace Tempest;
 
 MenuRoot::MenuRoot(KeyCodec& keyCodec)
   :keyCodec(keyCodec) {
-  vm = Gothic::inst().createVm(u"MENU.DAT");
+  vm = Gothic::inst().createVm("MENU.DAT");
   }
 
 MenuRoot::~MenuRoot() {

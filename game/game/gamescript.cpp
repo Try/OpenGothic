@@ -65,7 +65,7 @@ bool GameScript::GlobalOutput::isFinished() {
   }
 
 GameScript::GameScript(GameSession &owner)
-  :vm(owner.loadScriptCode()),owner(owner) {
+  :vm(Gothic::inst().loadScriptCode("GOTHIC.DAT")),owner(owner) {
   Daedalus::registerGothicEngineClasses(vm);
   Gothic::inst().setupVmCommonApi(vm);
   aiDefaultPipe.reset(new GlobalOutput(*this));

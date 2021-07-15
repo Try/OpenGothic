@@ -95,12 +95,6 @@ Gothic::Gothic(const int argc, const char **argv) {
 
   detectGothicVersion();
 
-  fight      .reset(new FightAi());
-  camDef     .reset(new CameraDefinitions());
-  soundDef   .reset(new SoundDefinitions());
-  particleDef.reset(new ParticlesDefinitions());
-  vfxDef     .reset(new VisualFxDefinitions());
-  music      .reset(new MusicDefinitions());
   if(wdef.empty()){
     if(version().game==2)
       wdef = "newworld.zen"; else
@@ -117,6 +111,15 @@ Gothic::~Gothic() {
 
 Gothic& Gothic::inst() {
   return *instance;
+  }
+
+void Gothic::setupGlobalScripts() {
+  fight      .reset(new FightAi());
+  camDef     .reset(new CameraDefinitions());
+  soundDef   .reset(new SoundDefinitions());
+  particleDef.reset(new ParticlesDefinitions());
+  vfxDef     .reset(new VisualFxDefinitions());
+  music      .reset(new MusicDefinitions());
   }
 
 Gothic::GraphicBackend Gothic::graphicsApi() const {
@@ -511,19 +514,27 @@ const std::string &Gothic::defaultSave() const {
   return saveDef;
   }
 
-std::unique_ptr<Daedalus::DaedalusVM> Gothic::createVm(const char16_t *datFile) {
-  auto path = caseInsensitiveSegment(gscript,datFile,Dir::FT_File);
-
-  Tempest::RFile dat(path);
-  size_t all=dat.size();
-
-  std::unique_ptr<uint8_t[]> byte(new uint8_t[all]);
-  dat.read(byte.get(),all);
-
-  auto vm = std::make_unique<Daedalus::DaedalusVM>(byte.get(),all);
+std::unique_ptr<Daedalus::DaedalusVM> Gothic::createVm(std::string_view datFile) {
+  auto byte = loadScriptCode(datFile);
+  auto vm   = std::make_unique<Daedalus::DaedalusVM>(byte.data(),byte.size());
   Daedalus::registerGothicEngineClasses(*vm);
   setupVmCommonApi(*vm);
   return vm;
+  }
+
+std::vector<uint8_t> Gothic::loadScriptCode(std::string_view datFile) {
+  if(Resources::hasFile(datFile))
+    return Resources::getFileData(datFile);
+
+  //auto path = Gothic::inst().nestedPath({u"_work",u"Data",u"Scripts",u"_compiled",u"GOTHIC.DAT"},Dir::FT_File);
+  char16_t str16[256] = {};
+  for(size_t i=0; i<datFile.size() && i<255; ++i)
+    str16[i] = datFile[i];
+  auto path = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
+  Tempest::RFile f(path);
+  std::vector<uint8_t> ret(f.size());
+  f.read(ret.data(),ret.size());
+  return ret;
   }
 
 int Gothic::settingsGetI(std::string_view sec, std::string_view name) {

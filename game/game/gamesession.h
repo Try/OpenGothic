@@ -49,8 +49,6 @@ class GameSession final {
 
     Camera&      camera()       { return     *cam; }
 
-    auto         loadScriptCode() -> std::vector<uint8_t>;
-
     auto         loadSound(const Tempest::Sound& raw) -> Tempest::SoundEffect;
     auto         loadSound(const SoundFx&        fx, bool& looped)  -> Tempest::SoundEffect;
 

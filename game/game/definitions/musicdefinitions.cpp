@@ -7,7 +7,7 @@
 using namespace Tempest;
 
 MusicDefinitions::MusicDefinitions() {
-  vm = Gothic::inst().createVm(u"Music.dat");
+  vm = Gothic::inst().createVm("Music.dat");
   vm->getDATFile().iterateSymbolsOfClass("C_MusicTheme",[this](size_t i,Daedalus::PARSymbol& /*s*/){
     Theme theme={};
 

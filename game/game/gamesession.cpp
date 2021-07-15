@@ -188,14 +188,6 @@ WorldView *GameSession::view() const {
   return nullptr;
   }
 
-std::vector<uint8_t> GameSession::loadScriptCode() {
-  auto path = Gothic::inst().nestedPath({u"_work",u"Data",u"Scripts",u"_compiled",u"GOTHIC.DAT"},Dir::FT_File);
-  Tempest::RFile f(path);
-  std::vector<uint8_t> ret(f.size());
-  f.read(ret.data(),ret.size());
-  return ret;
-  }
-
 Tempest::SoundEffect GameSession::loadSound(const Tempest::Sound &raw) {
   return sound.load(raw);
   }

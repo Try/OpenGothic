@@ -54,12 +54,15 @@ class Gothic final {
 
     void         setGame(std::unique_ptr<GameSession> &&w);
     auto         clearGame() -> std::unique_ptr<GameSession>;
+
     const World* world() const;
     World*       world();
     WorldView*   worldView() const;
     Npc*         player();
     Camera*      camera();
     auto         questLog() const -> const QuestLog*;
+
+    void         setupGlobalScripts();
 
     auto         loadingBanner() const -> const Tempest::Texture2d*;
     int          loadingProgress() const;
@@ -133,7 +136,8 @@ class Gothic final {
     std::u16string                        nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const;
     const std::string&                    defaultWorld() const;
     const std::string&                    defaultSave() const;
-    std::unique_ptr<Daedalus::DaedalusVM> createVm(const char16_t *datFile);
+    std::unique_ptr<Daedalus::DaedalusVM> createVm(std::string_view datFile);
+    std::vector<uint8_t>                  loadScriptCode(std::string_view datFile);
     void                                  setupVmCommonApi(Daedalus::DaedalusVM &vm);
 
     static const FightAi&                 fai();

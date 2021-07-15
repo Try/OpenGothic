@@ -3,7 +3,7 @@
 #include "gothic.h"
 
 FightAi::FightAi() {
-  auto vm = Gothic::inst().createVm(u"Fight.dat");
+  auto vm = Gothic::inst().createVm("Fight.dat");
 
   auto& max = vm->getDATFile().getSymbolByName("MAX_FIGHTAI");
   int count = max.getInt();

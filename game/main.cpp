@@ -71,6 +71,8 @@ int main(int argc,const char** argv) {
   Resources            resources{device};
   GameMusic            music;
 
+  gothic.setupGlobalScripts();
+
   MainWindow           wx(device);
   Tempest::Application app;
   return app.exec();
