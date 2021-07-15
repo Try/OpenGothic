@@ -35,8 +35,12 @@ void AiQueue::clear() {
   }
 
 void AiQueue::pushBack(AiAction&& a) {
-  if(aiActions.size()>0 && aiActions.back().act==AI_LookAt && a.act==AI_LookAt)
-    return;
+  if(aiActions.size()>0) {
+    if(aiActions.back().act==AI_LookAt && a.act==AI_LookAt) {
+      aiActions.back() = a;
+      return;
+      }
+    }
   aiActions.push_back(a);
   }
 

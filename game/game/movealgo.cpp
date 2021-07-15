@@ -603,26 +603,13 @@ bool MoveAlgo::isClose(float x, float /*y*/, float z, const WayPoint &p, float d
   return (len<dist*dist);
   }
 
-bool MoveAlgo::aiGoTo(const Tempest::Vec3& p, float destDist) {
-  // use smaller threshold, to avoid edge-looping in script
+bool MoveAlgo::isClose(const Tempest::Vec3& p, float dist) {
   auto  dp  = npc.position()-p;
   dp.y = 0;
   float len = dp.quadLength();
-
-  if(len<destDist*destDist)
-    return false;
-  return true;
-  }
-
-bool MoveAlgo::aiGoToTarget(float destDist) {
-  auto p = npc.currentTarget;
-  if(p==nullptr)
-    return false;
-  float len = npc.qDistTo(*p);
-  if(len<destDist*destDist){
-    return false;
-    }
-  return true;
+  if(len<dist*dist)
+    return true;
+  return false;
   }
 
 bool MoveAlgo::startClimb(JumpStatus jump) {

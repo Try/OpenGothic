@@ -427,7 +427,7 @@ class Npc final {
     auto      mapWeaponBone() const -> Tempest::Vec3;
     auto      mapBone(std::string_view bone) const -> Tempest::Vec3;
 
-    bool      lookAt  (float dx, float dz, bool anim, uint64_t dt);
+    bool      turnTo  (float dx, float dz, bool anim, uint64_t dt);
     bool      rotateTo(float dx, float dz, float speed, bool anim, uint64_t dt);
     auto      playAnimByName(const Daedalus::ZString& name, bool forceAnim, BodyState bs) -> const Animation::Sequence*;
 
@@ -535,9 +535,10 @@ class Npc final {
     gtime     endTime(const Routine& r) const;
 
     bool      implLookAt (uint64_t dt);
-    bool      implLookAt (const Npc& oth, uint64_t dt);
-    bool      implLookAt (const Npc& oth, bool noAnim, uint64_t dt);
-    bool      implLookAt (float dx, float dz, bool noAnim, uint64_t dt);
+    bool      implLookAt (float dx, float dy, float dz, uint64_t dt);
+    bool      implTurnTo (const Npc& oth, uint64_t dt);
+    bool      implTurnTo (const Npc& oth, bool noAnim, uint64_t dt);
+    bool      implTurnTo (float dx, float dz, bool noAnim, uint64_t dt);
     bool      implGoTo   (uint64_t dt);
     bool      implGoTo   (uint64_t dt, float destDist);
     bool      implAtack  (uint64_t dt);

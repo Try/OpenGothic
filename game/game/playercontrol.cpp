@@ -509,12 +509,12 @@ void PlayerControl::implMove(uint64_t dt) {
     if(actrl[ActGeneric] || actrl[ActForward]) {
       if(auto other = pl.target()) {
         auto dp = other->position()-pl.position();
-        pl.lookAt(dp.x,dp.z,false,dt);
+        pl.turnTo(dp.x,dp.z,false,dt);
         pl.aimBow();
         } else
       if(currentFocus.interactive!=nullptr) {
         auto dp = currentFocus.interactive->position()-pl.position();
-        pl.lookAt(dp.x,dp.z,false,dt);
+        pl.turnTo(dp.x,dp.z,false,dt);
         }
       pl.aimBow();
       if(!actrl[ActForward])

@@ -1282,32 +1282,70 @@ void Npc::setTempAttitude(Attitude att) {
   }
 
 bool Npc::implLookAt(uint64_t dt) {
-  if(currentLookAt!=nullptr && interactive()==nullptr) {
-    if(implLookAt(*currentLookAt,dt))
-      return true;
-    currentLookAt=nullptr;
+  if(currentLookAt==nullptr || interactive()!=nullptr)
     return false;
+  auto dx = currentLookAt->x-x;
+  auto dy = currentLookAt->y-y;
+  auto dz = currentLookAt->z-z;
+  return implLookAt(dx,dy,dz,dt);
+  }
+
+bool Npc::implLookAt(float dx, float dy, float dz, uint64_t dt) {
+  static const float rotSpeed = 200; // deg per second
+  Vec2 dst;
+
+  dst.x = angle-angleDir(dx,dz);
+  while(dst.x>180)
+    dst.x -= 360;
+  while(dst.x<-180)
+    dst.x += 360;
+
+  dst.y = std::atan2(dy,std::sqrt(dx*dx+dz*dz));
+  dst.y = dst.y*180.f/float(M_PI);
+
+  if(dst.x<-80 || dst.x>80) {
+    dst.x = 0;
+    dst.y = 0;
     }
+
+  if(dst.y<-20)
+    dst.y = -20;
+  if(dst.y>20)
+    dst.y = 20;
+
+  auto rot  = visual.headRotation();
+  auto drot = dst-rot;
+
+  drot.x = std::min(std::abs(drot.x),rotSpeed*float(dt)/1000.f);
+  drot.y = std::min(std::abs(drot.y),rotSpeed*float(dt)/1000.f);
+  if(dst.x<rot.x)
+    drot.x = -drot.x;
+  if(dst.y<rot.y)
+    drot.y = -drot.y;
+
+  rot+=drot;
+  visual.setHeadRotation(rot.x,rot.y);
+
   return false;
   }
 
-bool Npc::implLookAt(const Npc &oth, uint64_t dt) {
+bool Npc::implTurnTo(const Npc &oth, uint64_t dt) {
   if(&oth==this)
     return true;
   auto dx = oth.x-x;
   auto dz = oth.z-z;
-  return implLookAt(dx,dz,false,dt);
+  return implTurnTo(dx,dz,false,dt);
   }
 
-bool Npc::implLookAt(const Npc& oth, bool noAnim, uint64_t dt) {
+bool Npc::implTurnTo(const Npc& oth, bool noAnim, uint64_t dt) {
   if(&oth==this)
     return true;
   auto dx = oth.x-x;
   auto dz = oth.z-z;
-  return implLookAt(dx,dz,noAnim,dt);
+  return implTurnTo(dx,dz,noAnim,dt);
   }
 
-bool Npc::implLookAt(float dx, float dz, bool noAnim, uint64_t dt) {
+bool Npc::implTurnTo(float dx, float dz, bool noAnim, uint64_t dt) {
   auto  gl   = guild();
   float step = float(owner.script().guildVal().turn_speed[gl]);
   return rotateTo(dx,dz,step,noAnim,dt);
@@ -1332,12 +1370,7 @@ bool Npc::implGoTo(uint64_t dt,float destDist) {
 
   auto dpos = go2.target()-position();
 
-  if(implLookAt(dpos.x,dpos.z,false,dt)){
-    mvAlgo.tick(dt);
-    return true;
-    }
-
-  if(!mvAlgo.aiGoTo(go2.target(),destDist)) {
+  if(mvAlgo.isClose(go2.target(),destDist)) {
     bool finished = true;
     if(go2.flag==GT_Way) {
       go2.wp = wayPath.pop();
@@ -1349,6 +1382,11 @@ bool Npc::implGoTo(uint64_t dt,float destDist) {
     if(finished) {
       setAnim(AnimationSolver::Idle);
       go2.clear();
+      }
+    } else {
+    if(implTurnTo(dpos.x,dpos.z,false,dt)){
+      mvAlgo.tick(dt);
+      return true;
       }
     }
 
@@ -1431,7 +1469,7 @@ bool Npc::implAtack(uint64_t dt) {
     }
 
   if(act==FightAlgo::MV_TURN2HIT) {
-    if(!implLookAt(*currentTarget,dt))
+    if(!implTurnTo(*currentTarget,dt))
       fghAlgo.consumeAction();
     return true;
     }
@@ -1518,7 +1556,7 @@ void Npc::adjustAtackRotation(uint64_t dt) {
       bool noAnim = !hasAutoroll();
       if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage)
          noAnim = true;
-      implLookAt(*currentTarget,noAnim,dt);
+      implTurnTo(*currentTarget,noAnim,dt);
       }
     }
   }
@@ -1786,6 +1824,8 @@ void Npc::tick(uint64_t dt) {
     }
 
   if(!isDown()) {
+    implLookAt(dt);
+
     if(implAtack(dt))
       return;
 
@@ -1810,7 +1850,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_TurnToNpc: {
       if(interactive()==nullptr)
         visual.stopWalkAnim(*this);
-      if(act.target!=nullptr && implLookAt(*act.target,dt)) {
+      if(act.target!=nullptr && implTurnTo(*act.target,dt)) {
         queue.pushFront(std::move(act));
         }
       break;
@@ -1862,6 +1902,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       }
     case AI_StopLookAt:
       currentLookAt=nullptr;
+      visual.setHeadRotation(0,0);
       break;
     case AI_RemoveWeapon:
       if(!isDead()) {
@@ -2108,7 +2149,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_AlignToFp:{
       if(auto fp = currentFp){
         if(fp->dirX!=0.f || fp->dirZ!=0.f){
-          if(implLookAt(fp->dirX,fp->dirZ,false,dt))
+          if(implTurnTo(fp->dirX,fp->dirZ,false,dt))
             queue.pushFront(std::move(act));
           }
         }
@@ -2656,8 +2697,8 @@ Vec3 Npc::mapBone(std::string_view bone) const {
   return ret;
   }
 
-bool Npc::lookAt(float dx, float dz, bool anim, uint64_t dt) {
-  return implLookAt(dx,dz,anim,dt);
+bool Npc::turnTo(float dx, float dz, bool anim, uint64_t dt) {
+  return implTurnTo(dx,dz,anim,dt);
   }
 
 bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {

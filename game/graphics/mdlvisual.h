@@ -33,6 +33,8 @@ class MdlVisual final {
     void                           setObjMatrix(const Tempest::Matrix4x4 &m, bool syncAttach = false);
 
     void                           setTarget(const Tempest::Vec3& p);
+    void                           setHeadRotation(float dx, float dz);
+    Tempest::Vec2                  headRotation() const;
     void                           setYTranslationEnable(bool e);
     void                           setVisualBody(MeshObjects::Mesh &&body, World& owner);
     void                           setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner, int32_t version);
@@ -141,6 +143,8 @@ class MdlVisual final {
     template<class View>
     void syncAttaches(Attach<View>& mesh);
 
+    void syncHead(MeshAttach& mesh);
+
     void rebindAttaches(const Skeleton& from,const Skeleton& to);
 
     Tempest::Matrix4x4             pos;
@@ -151,6 +155,9 @@ class MdlVisual final {
     MeshAttach                     ammunition, stateItm;
     std::vector<MeshAttach>        item;
     std::vector<MeshAttach>        attach;
+
+    float                          headRotX = 0;
+    float                          headRotY = 0;
 
     std::vector<PfxSlot>           effects;
     PfxSlot                        pfx;

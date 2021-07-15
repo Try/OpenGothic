@@ -46,8 +46,7 @@ class MoveAlgo final {
     void    clearSpeed();
     void    accessDamFly(float dx,float dz);
 
-    bool    aiGoTo      (const Tempest::Vec3& p, float destDist);
-    bool    aiGoToTarget(float destDist);
+    bool    isClose(const Tempest::Vec3& p, float dist);
 
     bool    startClimb(JumpStatus ani);
     void    startDive();
