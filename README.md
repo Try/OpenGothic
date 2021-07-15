@@ -84,6 +84,7 @@ Don't expect DirectX11 mod to work, since technicaly it's not a mod. But Project
 
 ##### Command line arguments
 * -g specify gothic game catalog
+* -i specify gothic game catelog interactively
 * -nomenu - skip main menu
 * -nofrate - disable FPS display in-game
 * -w <worldname.zen> - startup world; newworld.zen is default
