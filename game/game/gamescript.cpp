@@ -664,7 +664,7 @@ size_t GameScript::getSymbolIndex(std::string_view s) {
   return vm.getDATFile().getSymbolIndexByName(buf);
   }
 
-const AiState &GameScript::aiState(ScriptFn id) {
+const AiState& GameScript::aiState(ScriptFn id) {
   auto it = aiStates.find(id.ptr);
   if(it!=aiStates.end())
     return it->second;
@@ -672,7 +672,7 @@ const AiState &GameScript::aiState(ScriptFn id) {
   return ins.first->second;
   }
 
-const Daedalus::GEngineClasses::C_Spell &GameScript::spellDesc(int32_t splId) {
+const Daedalus::GEngineClasses::C_Spell& GameScript::spellDesc(int32_t splId) {
   auto& spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
   auto& tag       = spellInst.getString(size_t(splId));
   return spells->find(tag.c_str());

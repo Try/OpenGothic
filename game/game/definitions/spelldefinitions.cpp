@@ -24,7 +24,7 @@ SpellDefinitions::~SpellDefinitions() {
   vm.clearReferences(Daedalus::IC_Spell);
   }
 
-const Daedalus::GEngineClasses::C_Spell &SpellDefinitions::find(std::string_view instanceName) const {
+const Daedalus::GEngineClasses::C_Spell& SpellDefinitions::find(std::string_view instanceName) const {
   char format[64]={};
   std::snprintf(format,sizeof(format),"SPELL_%.*s",int(instanceName.size()),instanceName.data());
   for(auto& i:format)

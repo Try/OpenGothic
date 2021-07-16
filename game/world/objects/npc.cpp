@@ -1663,33 +1663,38 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const VisualFx* vfx, int32_t s
     setOther(&other);
 
   CollideMask bMask = owner.script().canNpcCollideWithSpell(*this,&other,splId);
+  if(bMask!=COLL_DONOTHING)
+    Effect::onCollide(owner,vfx,position(),this,&other,splId);
   takeDamage(other,b,bMask,splId,true);
-  Effect::onCollide(owner,vfx,position(),this,&other,splId);
   }
 
 void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32_t splId, bool isSpell) {
-  perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
-
-  fghAlgo.onTakeHit();
-  implFaiWait(0);
-
   float a  = angleDir(other.x-x,other.z-z);
   float da = a-angle;
-
   if(std::cos(da*M_PI/180.0)<0)
     lastHitType='A'; else
     lastHitType='B';
 
   DamageCalculator::Damage dmg={};
+  DamageCalculator::Val    hitResult;
+  SpellCategory            splCat   = SpellCategory::SPELL_BAD;
+  const bool               dontKill = ((b==nullptr && splId==0) || (bMask & COLL_DONTKILL));
+
   if(isSpell) {
     auto& spl = owner.script().spellDesc(splId);
+    splCat    = SpellCategory(spl.spellType);
     for(size_t i=0; i<DamageCalculator::DAM_INDEX_MAX; ++i)
       if((spl.damageType&(1<<i))!=0)
         dmg[i] = spl.damage_per_level;
     }
 
-  const bool dontKill  = (b==nullptr || (bMask & COLL_DONTKILL));
-  const auto hitResult = DamageCalculator::damageValue(other,*this,b,isSpell,dmg,bMask);
+  if(!isSpell || splCat==SpellCategory::SPELL_BAD) {
+    perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
+    fghAlgo.onTakeHit();
+    implFaiWait(0);
+    hitResult = DamageCalculator::damageValue(other,*this,b,isSpell,dmg,bMask);
+    }
+
   if(!isSpell && !isDown() && hitResult.hasHit)
     owner.addWeaponsSound(other,*this);
 
@@ -1705,16 +1710,18 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
   if(hitResult.value>0) {
     changeAttribute(ATR_HITPOINTS,-hitResult.value,dontKill);
 
-    if(isUnconscious()){
-      owner.sendPassivePerc(*this,other,*this,PERC_ASSESSDEFEAT);
-      }
-    else if(isDead()) {
-      owner.sendPassivePerc(*this,other,*this,PERC_ASSESSMURDER);
-      }
-    else {
-      owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
-      if(owner.script().rand(2)==0)
-        emitSoundSVM("SVM_%d_AARGH");
+    if(bMask&(COLL_APPLYVICTIMSTATE|COLL_DOEVERYTHING)) {
+      if(isUnconscious()){
+        owner.sendPassivePerc(*this,other,*this,PERC_ASSESSDEFEAT);
+        }
+      else if(isDead()) {
+        owner.sendPassivePerc(*this,other,*this,PERC_ASSESSMURDER);
+        }
+      else {
+        owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
+        if(owner.script().rand(2)==0)
+          emitSoundSVM("SVM_%d_AARGH");
+        }
       }
     }
 
