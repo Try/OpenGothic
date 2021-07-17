@@ -140,6 +140,7 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("npc_settofightmode",  [this](Daedalus::DaedalusVM& vm){ npc_settofightmode(vm);   });
   vm.registerExternalFunction("npc_settofistmode",   [this](Daedalus::DaedalusVM& vm){ npc_settofistmode(vm);    });
   vm.registerExternalFunction("npc_isinstate",       [this](Daedalus::DaedalusVM& vm){ npc_isinstate(vm);        });
+  vm.registerExternalFunction("npc_isinroutine",     [this](Daedalus::DaedalusVM& vm){ npc_isinroutine(vm);      });
   vm.registerExternalFunction("npc_wasinstate",      [this](Daedalus::DaedalusVM& vm){ npc_wasinstate(vm);       });
   vm.registerExternalFunction("npc_getdisttowp",     [this](Daedalus::DaedalusVM& vm){ npc_getdisttowp(vm);      });
   vm.registerExternalFunction("npc_exchangeroutine", [this](Daedalus::DaedalusVM& vm){ npc_exchangeroutine(vm);  });
@@ -1784,6 +1785,18 @@ void GameScript::npc_isinstate(Daedalus::DaedalusVM &vm) {
   if(npc!=nullptr){
     const bool ret=npc->isState(stateFn);
     vm.setReturn(ret ? 1: 0);
+    return;
+    }
+  vm.setReturn(0);
+  }
+
+void GameScript::npc_isinroutine(Daedalus::DaedalusVM& vm) {
+  uint32_t stateFn = vm.popUInt();
+  auto     npc     = popInstance(vm);
+
+  if(npc!=nullptr){
+    const bool ret=npc->isRoutine(stateFn);
+    vm.setReturn(ret ? 1 : 0);
     return;
     }
   vm.setReturn(0);

@@ -243,6 +243,7 @@ class GameScript final {
     void npc_settofightmode  (Daedalus::DaedalusVM &vm);
     void npc_settofistmode   (Daedalus::DaedalusVM &vm);
     void npc_isinstate       (Daedalus::DaedalusVM &vm);
+    void npc_isinroutine     (Daedalus::DaedalusVM &vm);
     void npc_wasinstate      (Daedalus::DaedalusVM &vm);
     void npc_getdisttowp     (Daedalus::DaedalusVM &vm);
     void npc_exchangeroutine (Daedalus::DaedalusVM &vm);

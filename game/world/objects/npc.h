@@ -382,8 +382,9 @@ class Npc final {
     bool      setInteraction(Interactive* id, bool quick=false);
     void      quitIneraction();
 
-    bool      isState(size_t stateFn) const;
-    bool      wasInState(size_t stateFn) const;
+    bool      isState   (ScriptFn stateFn) const;
+    bool      isRoutine (ScriptFn stateFn) const;
+    bool      wasInState(ScriptFn stateFn) const;
     uint64_t  stateTime() const;
     void      setStateTime(int64_t time);
 

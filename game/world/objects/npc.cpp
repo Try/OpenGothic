@@ -3358,11 +3358,16 @@ void Npc::quitIneraction() {
   currentInteract=nullptr;
   }
 
-bool Npc::isState(size_t stateFn) const {
+bool Npc::isState(ScriptFn stateFn) const {
   return aiState.funcIni==stateFn;
   }
 
-bool Npc::wasInState(size_t stateFn) const {
+bool Npc::isRoutine(ScriptFn stateFn) const {
+  auto& rout = currentRoutine();
+  return rout.callback==stateFn && aiState.funcIni==stateFn;
+  }
+
+bool Npc::wasInState(ScriptFn stateFn) const {
   return aiPrevState==stateFn;
   }
 
