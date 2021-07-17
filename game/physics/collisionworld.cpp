@@ -81,7 +81,7 @@ struct CollisionWorld::ContructInfo {
     // use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
     //auto disp = new btCollisionDispatcherMt(conf.get());
     disp  .reset(new btCollisionDispatcher(conf.get()));
-    disp->setDispatcherFlags(btCollisionDispatcher::CD_DISABLE_CONTACTPOOL_DYNAMIC_ALLOCATION);
+    // disp->setDispatcherFlags(btCollisionDispatcher::CD_DISABLE_CONTACTPOOL_DYNAMIC_ALLOCATION); // may crash with OOM, when runout of pool
     broad .reset(new Broadphase());
     solver.reset(new btSequentialImpulseConstraintSolver());
     }
