@@ -796,7 +796,8 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
       case Npc::GT_NextFp:
         npc.clearGoTo();
         break;
-      case Npc::GT_Enemy:
+      case Npc::GT_EnemyA:
+      case Npc::GT_EnemyG:
       case Npc::GT_Item:
         npc.setDirection(npc.rotation()+stp);
         break;

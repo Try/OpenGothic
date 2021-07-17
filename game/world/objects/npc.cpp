@@ -1361,7 +1361,12 @@ bool Npc::implTurnTo(float dx, float dz, bool noAnim, uint64_t dt) {
 bool Npc::implGoTo(uint64_t dt) {
   float dist = 0;
   if(go2.npc) {
-    dist = 400;
+    if(go2.flag==GT_EnemyA)
+      dist = fghAlgo.prefferedAtackDistance(*this,*currentTarget,owner.script());
+    else if(go2.flag==GT_EnemyG)
+      dist = fghAlgo.prefferedGDistance(*this,*currentTarget,owner.script());
+    else
+      dist = 400;
     } else {
     // use smaller threshold, to avoid edge-looping in script
     dist = MoveAlgo::closeToPointThreshold*0.25f;
@@ -1371,7 +1376,7 @@ bool Npc::implGoTo(uint64_t dt) {
   return implGoTo(dt,dist);
   }
 
-bool Npc::implGoTo(uint64_t dt,float destDist) {
+bool Npc::implGoTo(uint64_t dt, float destDist) {
   if(go2.flag==GT_No)
     return false;
 
@@ -1409,11 +1414,12 @@ bool Npc::implAtack(uint64_t dt) {
   if(currentTarget==nullptr || isPlayer() || isTalk())
     return false;
 
-  if(currentTarget->isDown() && !fghAlgo.hasInstructions()){
+  if(currentTarget->isDown()/* && !fghAlgo.hasInstructions()*/){
     // NOTE: don't clear internal target, to make scripts happy
     // currentTarget=nullptr;
-    if(go2.flag==GT_Enemy)
+    if(go2.flag==GT_EnemyA || go2.flag==GT_EnemyG)
       go2.clear();
+    fghAlgo.onClearTarget();
     return false;
     }
 
@@ -1460,8 +1466,10 @@ bool Npc::implAtack(uint64_t dt) {
       if(shootBow()) {
         fghAlgo.consumeAction();
         } else {
-        if(!aimBow())
-          setAnim(Anim::Idle);
+        if(!implTurnTo(*currentTarget,true,dt)) {
+          if(!aimBow())
+            setAnim(Anim::Idle);
+          }
         }
       }
     else if(ws==WeaponState::Fist){
@@ -1508,16 +1516,8 @@ bool Npc::implAtack(uint64_t dt) {
     }
 
   if(act==FightAlgo::MV_MOVEA || act==FightAlgo::MV_MOVEG) {
-    const float dx = currentTarget->x-x;
-    const float dz = currentTarget->z-z;
-
-    const float arange = fghAlgo.prefferedAtackDistance(*this,*currentTarget,owner.script());
-    const float grange = fghAlgo.prefferedGDistance    (*this,*currentTarget,owner.script());
-
-    const float d      = (act==FightAlgo::MV_MOVEG) ? grange : arange;
-
-    go2.set(currentTarget,GoToHint::GT_Enemy);
-    if(implGoTo(dt,arange*0.9f) && (d*d)<(dx*dx+dz*dz)) {
+    go2.set(currentTarget,(act==FightAlgo::MV_MOVEG) ? GoToHint::GT_EnemyG : GoToHint::GT_EnemyA);
+    if(implGoTo(dt)) {
       implAiTick(dt);
       return true;
       }
