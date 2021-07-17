@@ -123,6 +123,7 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("wld_detectnpcex",     [this](Daedalus::DaedalusVM& vm){ wld_detectnpcex(vm);          });
   vm.registerExternalFunction("wld_detectitem",      [this](Daedalus::DaedalusVM& vm){ wld_detectitem(vm);           });
   vm.registerExternalFunction("wld_spawnnpcrange",   [this](Daedalus::DaedalusVM& vm){ wld_spawnnpcrange(vm);        });
+  vm.registerExternalFunction("wld_israining",       [this](Daedalus::DaedalusVM& vm){ wld_israining(vm);            });
 
   vm.registerExternalFunction("mdl_setvisual",       [this](Daedalus::DaedalusVM& vm){ mdl_setvisual(vm);        });
   vm.registerExternalFunction("mdl_setvisualbody",   [this](Daedalus::DaedalusVM& vm){ mdl_setvisualbody(vm);    });
@@ -136,6 +137,8 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("mdl_applyrandomani",  [this](Daedalus::DaedalusVM& vm){ mdl_applyrandomani(vm);   });
   vm.registerExternalFunction("mdl_applyrandomanifreq",
                                                      [this](Daedalus::DaedalusVM& vm){ mdl_applyrandomanifreq(vm);});
+  vm.registerExternalFunction("mdl_applyrandomfaceani",
+                                                     [this](Daedalus::DaedalusVM& vm){ mdl_applyrandomfaceani(vm);});
 
   vm.registerExternalFunction("npc_settofightmode",  [this](Daedalus::DaedalusVM& vm){ npc_settofightmode(vm);   });
   vm.registerExternalFunction("npc_settofistmode",   [this](Daedalus::DaedalusVM& vm){ npc_settofistmode(vm);    });
@@ -1637,6 +1640,11 @@ void GameScript::wld_spawnnpcrange(Daedalus::DaedalusVM& vm) {
     }
   }
 
+void GameScript::wld_israining(Daedalus::DaedalusVM&) {
+  notImplementedFn<&GameScript::wld_israining>("wld_israining");
+  vm.setReturn(0);
+  }
+
 void GameScript::mdl_setvisual(Daedalus::DaedalusVM &vm) {
   const auto& visual = vm.popString();
   auto        npc    = popInstance(vm);
@@ -1741,6 +1749,26 @@ void GameScript::mdl_applyrandomanifreq(Daedalus::DaedalusVM &vm) {
   (void)npc;
 
   notImplementedFn<&GameScript::mdl_applyrandomanifreq>("mdl_applyrandomanifreq");
+  }
+
+void GameScript::mdl_applyrandomfaceani(Daedalus::DaedalusVM& vm) {
+  auto probMin    = vm.popFloat();
+  auto timeMaxVar = vm.popFloat();
+  auto timeMax    = vm.popFloat();
+  auto timeMinVar = vm.popFloat();
+  auto timeMin    = vm.popFloat();
+  auto name       = vm.popString();
+  auto npc        = popInstance(vm);
+
+  (void)probMin;
+  (void)timeMaxVar;
+  (void)timeMax;
+  (void)timeMinVar;
+  (void)timeMin;
+  (void)name;
+  (void)npc;
+
+  notImplementedFn<&GameScript::mdl_applyrandomfaceani>("mdl_applyrandomfaceani");
   }
 
 void GameScript::wld_insertnpc(Daedalus::DaedalusVM &vm) {

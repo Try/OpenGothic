@@ -228,6 +228,7 @@ class GameScript final {
     void wld_detectnpcex      (Daedalus::DaedalusVM& vm);
     void wld_detectitem       (Daedalus::DaedalusVM& vm);
     void wld_spawnnpcrange    (Daedalus::DaedalusVM& vm);
+    void wld_israining        (Daedalus::DaedalusVM& vm);
 
     void mdl_setvisual       (Daedalus::DaedalusVM& vm);
     void mdl_setvisualbody   (Daedalus::DaedalusVM& vm);
@@ -239,6 +240,7 @@ class GameScript final {
     void mdl_startfaceani    (Daedalus::DaedalusVM& vm);
     void mdl_applyrandomani  (Daedalus::DaedalusVM& vm);
     void mdl_applyrandomanifreq(Daedalus::DaedalusVM& vm);
+    void mdl_applyrandomfaceani(Daedalus::DaedalusVM& vm);
 
     void npc_settofightmode  (Daedalus::DaedalusVM &vm);
     void npc_settofistmode   (Daedalus::DaedalusVM &vm);
