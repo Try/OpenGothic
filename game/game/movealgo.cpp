@@ -66,13 +66,18 @@ void MoveAlgo::tickMobsi(uint64_t dt) {
   setInAir  (false);
   }
 
-bool MoveAlgo::tryMove(float x,float y,float z) {
+bool MoveAlgo::tryMove(float x, float y, float z) {
+  DynamicWorld::CollisionTest out;
+  return tryMove(x,y,z,out);
+  }
+
+bool MoveAlgo::tryMove(float x,float y,float z, DynamicWorld::CollisionTest& out) {
   if(flags==NoFlags && std::fabs(x)<epsAni && std::fabs(y)<epsAni && std::fabs(z)<epsAni) {
     skipMove = Tempest::Vec3(x,y,z);
     return true;
     }
   skipMove = Tempest::Vec3();
-  return npc.tryMove({x,y,z});
+  return npc.tryMove({x,y,z},out);
   }
 
 bool MoveAlgo::tickSlide(uint64_t dt) {
@@ -100,7 +105,9 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
 
   const float lnorm    = std::sqrt(norm.x*norm.x+norm.z*norm.z);
   const float lnormInv = std::sqrt(1.f - lnorm*lnorm);
-  if(lnorm<0.01f || norm.y>=1.f || !testSlide(pos+Tempest::Vec3(0,fallThreshold,0))) {
+
+  DynamicWorld::CollisionTest info;
+  if(lnorm<0.01f || norm.y>=1.f || !testSlide(pos+Tempest::Vec3(0,fallThreshold,0),info)) {
     setAsSlide(false);
     return false;
     }
@@ -278,7 +285,8 @@ void MoveAlgo::tickSwim(uint64_t dt) {
     }
 
   if(ground+chest>=water && validW) {
-    if(testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0)))
+    DynamicWorld::CollisionTest info;
+    if(testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0),info))
       return;
     setAsSwim(false);
     setAsDive(false);
@@ -379,27 +387,33 @@ void MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
     setAsSlide(false);
     }
   else if(0.f<=dY && dY<fallThreshold) {
-    if(onGound && testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0))) {
-      tryMove(dp.x,-dY,dp.z);
+    DynamicWorld::CollisionTest info;
+    if(onGound && testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0),info)) {
+      if(!tryMove(dp.x,-dY,dp.z,info))
+        onMoveFailed(dp,info,dt);
       setAsSlide(true);
       return;
       }
     // move down the ramp
-    if(!tryMove(dp.x,-dY,dp.z)){
-      if(!tryMove(dp.x,dp.y,dp.z))
-        onMoveFailed();
+    if(!tryMove(dp.x,-dY,dp.z)) {
+      if(!tryMove(dp.x,dp.y,dp.z,info))
+        onMoveFailed(dp,info,dt);
+      return;
       }
     setInAir  (false);
     setAsSlide(false);
     }
   else if(-fallThreshold<dY && dY<0.f) {
-    if(onGound && testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0))) {
-      onMoveFailed();
+    DynamicWorld::CollisionTest info;
+    if(onGound && testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0),info)) {
+      onMoveFailed(dp,info,dt);
       return;
       }
     // move up the ramp
-    if(!tryMove(dp.x,-dY,dp.z))
-      onMoveFailed();
+    if(!tryMove(dp.x,-dY,dp.z,info)) {
+      onMoveFailed(dp,info,dt);
+      return;
+      }
     setInAir  (false);
     setAsSlide(false);
     }
@@ -508,7 +522,7 @@ Tempest::Vec3 MoveAlgo::go2WpMoveSpeed(Tempest::Vec3 dp, const Tempest::Vec3& to
   return dp;
   }
 
-bool MoveAlgo::testSlide(const Tempest::Vec3& pos) const {
+bool MoveAlgo::testSlide(const Tempest::Vec3& pos, DynamicWorld::CollisionTest& out) const {
   if(isInAir() || npc.bodyStateMasked()==BS_JUMP)
     return false;
 
@@ -520,6 +534,8 @@ bool MoveAlgo::testSlide(const Tempest::Vec3& pos) const {
   if(!(slideEnd<norm.y && norm.y<slideBegin)) {
     return false;
     }
+
+  out.normal = norm;
   return true;
   }
 
@@ -759,9 +775,36 @@ bool MoveAlgo::slideDir() const {
   return s>0;
   }
 
-void MoveAlgo::onMoveFailed() {
-  if(npc.moveHint()==Npc::GT_NextFp){
-    npc.clearGoTo();
+void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::CollisionTest& info, uint64_t dt) {
+  static const float threshold = 0.3f;
+  static const float speed     = 360.f;
+
+  auto  ortho = Tempest::Vec3::crossProduct(Tempest::Vec3::normalize(dp),Tempest::Vec3(0,1,0));
+  float stp   = speed*float(dt)/1000.f;
+
+  const float val = Tempest::Vec3::dotProduct(ortho,info.normal);
+  if(val<-threshold) {
+    npc.setDirection(npc.rotation()-stp);
+    }
+  else if(val>threshold) {
+    npc.setDirection(npc.rotation()+stp);
+    }
+  else {
+    switch(npc.moveHint()) {
+      case Npc::GT_No:
+        break;
+      case Npc::GT_NextFp:
+        npc.clearGoTo();
+        break;
+      case Npc::GT_Enemy:
+      case Npc::GT_Item:
+        npc.setDirection(npc.rotation()+stp);
+        break;
+      case Npc::GT_Way:
+      case Npc::GT_Point:
+        npc.setDirection(npc.rotation()+stp);
+        break;
+      }
     }
   }
 

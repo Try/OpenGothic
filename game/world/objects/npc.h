@@ -394,6 +394,7 @@ class Npc final {
 
     bool      testMove    (const Tempest::Vec3& pos);
     bool      tryMove     (const Tempest::Vec3& dp);
+    bool      tryMove     (const Tempest::Vec3& dp, DynamicWorld::CollisionTest& out);
     bool      tryTranslate(const Tempest::Vec3& pos);
 
     JumpStatus tryJump();

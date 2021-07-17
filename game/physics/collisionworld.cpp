@@ -144,6 +144,7 @@ bool CollisionWorld::hasCollision(btRigidBody& it, Tempest::Vec3& normal) {
     bool needsCollision(btBroadphaseProxy* proxy0) const override {
       auto obj=reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject);
       if(obj->getUserIndex()!=DynamicWorld::C_Water &&
+         obj->getUserIndex()!=DynamicWorld::C_Ghost &&
          obj->getUserIndex()!=DynamicWorld::C_Item)
         return ContactResultCallback::needsCollision(proxy0);
       return false;

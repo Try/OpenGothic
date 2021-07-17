@@ -53,6 +53,10 @@ class DynamicWorld final {
       C_Item      = 6,
       };
 
+    struct CollisionTest {
+      Tempest::Vec3 normal = {};
+      };
+
     struct NpcItem {
       public:
         NpcItem()=default;
@@ -75,9 +79,9 @@ class DynamicWorld final {
         float centerY() const;
         const Tempest::Vec3& position() const;
 
-        bool  testMove(const Tempest::Vec3& pos);
-        bool  testMove(const Tempest::Vec3& pos, const Tempest::Vec3& from);
-        bool  tryMove (const Tempest::Vec3& dp, Tempest::Vec3& norm);
+        bool  testMove(const Tempest::Vec3& pos, CollisionTest& out);
+        bool  testMove(const Tempest::Vec3& pos, const Tempest::Vec3& from, CollisionTest& out);
+        bool  tryMove (const Tempest::Vec3& dp, CollisionTest& out);
 
         bool  hasCollision() const;
         float radius() const { return r; }
@@ -239,7 +243,7 @@ class DynamicWorld final {
 
     void           moveBullet(BulletBody& b, const Tempest::Vec3& dir, uint64_t dt);
     RayWaterResult implWaterRay(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
-    bool           hasCollision(const NpcItem &it, Tempest::Vec3& normal);
+    bool           hasCollision(const NpcItem &it, CollisionTest& out);
 
     std::unique_ptr<CollisionWorld>    world;
 

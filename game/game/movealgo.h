@@ -76,6 +76,7 @@ class MoveAlgo final {
     void    tickJumpup (uint64_t dt);
 
     bool    tryMove    (float x, float y, float z);
+    bool    tryMove    (float x, float y, float z, DynamicWorld::CollisionTest& out);
 
     enum Flags : uint32_t {
       NoFlags = 0,
@@ -98,13 +99,13 @@ class MoveAlgo final {
     void    setAsDive  (bool f);
 
     bool    slideDir() const;
-    void    onMoveFailed();
+    void    onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::CollisionTest& info, uint64_t dt);
     void    applyRotation(Tempest::Vec3& out, const Tempest::Vec3& in) const;
     auto    animMoveSpeed(uint64_t dt) const -> Tempest::Vec3;
     auto    npcMoveSpeed (uint64_t dt, MvFlags moveFlg) -> Tempest::Vec3;
     auto    go2NpcMoveSpeed (const Tempest::Vec3& dp, const Npc &tg) -> Tempest::Vec3;
     auto    go2WpMoveSpeed  (Tempest::Vec3 dp, const Tempest::Vec3& to) -> Tempest::Vec3;
-    bool    testSlide(const Tempest::Vec3& pos) const;
+    bool    testSlide(const Tempest::Vec3& pos, DynamicWorld::CollisionTest& out) const;
     void    implTick(uint64_t dt,MvFlags fai=NoFlag);
 
     float   stepHeight()  const;

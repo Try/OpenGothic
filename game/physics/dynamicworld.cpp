@@ -87,7 +87,7 @@ struct DynamicWorld::NpcBodyList final {
     obj->setWorldTransform(trans);
     obj->setUserIndex(C_Ghost);
     obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
-    // obj->setCollisionFlags(btCollisionObject::CO_GHOST_OBJECT);
+    //obj->setCollisionFlags(btCollisionObject::CO_GHOST_OBJECT);
 
     //world->addCollisionObject(obj);
     add(obj);
@@ -862,12 +862,12 @@ const char* DynamicWorld::validateSectorName(const char* name) const {
   return landMesh->validateSectorName(name);
   }
 
-bool DynamicWorld::hasCollision(const NpcItem& it, Tempest::Vec3& normal) {
-  if(npcList->hasCollision(it,normal)){
-    normal /= normal.manhattanLength();
+bool DynamicWorld::hasCollision(const NpcItem& it, CollisionTest& out) {
+  if(npcList->hasCollision(it,out.normal)){
+    out.normal /= out.normal.manhattanLength();
     return true;
     }
-  return world->hasCollision(*it.obj,normal);
+  return world->hasCollision(*it.obj,out.normal);
   }
 
 DynamicWorld::NpcItem::~NpcItem() {
@@ -913,16 +913,15 @@ const Tempest::Vec3& DynamicWorld::NpcItem::position() const {
   return obj->pos;
   }
 
-bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& dst) {
+bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& dst, CollisionTest& out) {
   if(!obj)
     return false;
-  return testMove(dst,obj->pos);
+  return testMove(dst,obj->pos,out);
   }
 
-bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& dst, const Tempest::Vec3& pos0) {
+bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& dst, const Tempest::Vec3& pos0, CollisionTest& out) {
   if(!obj)
     return false;
-  Tempest::Vec3 tmp={};
   auto prev  = obj->pos;
   auto dp    = dst-pos0;
   int  count = 1;
@@ -933,38 +932,44 @@ bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& dst, const Tempest::Ve
   for(int i=1; i<=count; ++i) {
     auto pos = pos0+(dp*float(i))/float(count);
     implSetPosition(pos);
-    if(owner->hasCollision(*this,tmp)) {
+    if(owner->hasCollision(*this,out)) {
       implSetPosition(prev);
-      return (owner->hasCollision(*this,tmp));
+      return (owner->hasCollision(*this,out));
       }
     }
   implSetPosition(prev);
   return true;
   }
 
-bool DynamicWorld::NpcItem::tryMove(const Tempest::Vec3& dp, Tempest::Vec3& norm) {
-  norm = {};
+bool DynamicWorld::NpcItem::tryMove(const Tempest::Vec3& dp, CollisionTest& out) {
   if(!obj)
     return false;
 
   auto prev  = obj->pos;
+  auto r     = obj->r*100.f;
   int  count = 1;
 
-  if(dp.quadLength()>obj->r*obj->r)
-    count = int(std::ceil(dp.manhattanLength()/obj->r));
+  if(dp.quadLength()>r*r)
+    count = int(std::ceil(dp.manhattanLength()/r));
 
   for(int i=1; i<=count; ++i) {
     auto pos = prev+(dp*float(i))/float(count);
     implSetPosition(pos);
-    if(owner->hasCollision(*this,norm)) {
+    if(owner->hasCollision(*this,out)) {
+      if(i>1) {
+        // moved a bit
+        break;
+        }
       implSetPosition(prev);
-      if(owner->hasCollision(*this,norm)) { // was in collision from the start
+      if(owner->hasCollision(*this,out)) {
+        // was in collision from the start
         setPosition(pos);
         return true;
         }
       return false;
       }
     }
+
   owner->npcList->onMove(*obj);
   owner->bulletList->onMoveNpc(*obj,*owner->npcList);
   return true;
@@ -973,8 +978,8 @@ bool DynamicWorld::NpcItem::tryMove(const Tempest::Vec3& dp, Tempest::Vec3& norm
 bool DynamicWorld::NpcItem::hasCollision() const {
   if(!obj)
     return false;
-  Tempest::Vec3 tmp;
-  return owner->hasCollision(*this,tmp);
+  CollisionTest info;
+  return owner->hasCollision(*this,info);
   }
 
 DynamicWorld::Item::~Item() {
@@ -1069,7 +1074,7 @@ DynamicWorld::BBoxBody::BBoxBody(DynamicWorld* ow, DynamicWorld::BBoxCallback* c
   obj->setWorldTransform(trans);
   obj->setUserIndex(C_Ghost);
   obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
-  obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
+  //obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
 
   owner->bboxList->add(this);
   }
@@ -1088,7 +1093,7 @@ DynamicWorld::BBoxBody::BBoxBody(DynamicWorld* ow, BBoxCallback* cb, const Tempe
   obj->setWorldTransform(trans);
   obj->setUserIndex(C_Ghost);
   obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
-  obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
+  //obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
 
   owner->bboxList->add(this);
   }

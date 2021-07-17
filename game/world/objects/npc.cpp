@@ -3399,35 +3399,30 @@ void Npc::multSpeed(float s) {
   }
 
 bool Npc::testMove(const Tempest::Vec3& pos) {
-  return physic.testMove(pos);
+  DynamicWorld::CollisionTest out;
+  return physic.testMove(pos,out);
   }
 
-bool Npc::tryMove(const Vec3& dp) {
-  Vec3 norm = {};
+bool Npc::tryMove(const Tempest::Vec3& dp) {
+  DynamicWorld::CollisionTest out;
+  return tryMove(dp,out);
+  }
 
-  if(physic.tryMove(dp,norm)) {
+bool Npc::tryMove(const Vec3& dp, DynamicWorld::CollisionTest& out) {
+  if(physic.tryMove(dp,out)) {
     setViewPosition(physic.position());
     return true;
     }
 
-  const float speed = dp.manhattanLength();
-  if(speed<=0.f || Vec3::dotProduct(norm,dp/speed)<-0.9f)
-    return false;
-
-  for(int i=1;i<4+3;++i) {
-    Vec3 nn  = {};
-    Vec3 dp1 = Vec3(norm.x,0,norm.z)*speed*(float(i)/4.f);
-    if(physic.tryMove(dp1,nn)) {
-      setViewPosition(physic.position());
-      return true;
-      }
-    }
+  // const float speed = dp.manhattanLength();
+  // if(speed<=0.f || Vec3::dotProduct(out.normal,dp/speed)<-0.9f)
+  //   return false;
   return false;
   }
 
 bool Npc::tryTranslate(const Vec3& pos) {
-  Vec3 norm = {};
-  if(physic.tryMove(pos-physic.position(),norm)) {
+  DynamicWorld::CollisionTest out;
+  if(physic.tryMove(pos-physic.position(),out)) {
     setViewPosition(physic.position());
     return true;
     }
@@ -3455,7 +3450,8 @@ Npc::JumpStatus Npc::tryJump() {
 
   auto pos = position();
   JumpStatus ret;
-  if(!isInAir() && physic.testMove(pos+dp)) {
+  DynamicWorld::CollisionTest info;
+  if(!isInAir() && physic.testMove(pos+dp,info)) {
     // jump forward
     ret.anim = Anim::Jump;
     return ret;
@@ -3466,21 +3462,21 @@ Npc::JumpStatus Npc::tryJump() {
   for(int i=1; i<int(jumpUp+jumpLow); i+=step) {
     auto p0 = Vec3{pos.x,pos.y+float(i),pos.z};
 
-    if(!physic.testMove(p0,pos)) {
+    if(!physic.testMove(p0,pos,info)) {
       // jump forward - something is blocking climbing
       ret.anim = Anim::Jump;
       return ret;
       }
 
     jumpY = p0.y;
-    if(physic.testMove(p0+dp,p0))
+    if(physic.testMove(p0+dp,p0,info))
       break;
     }
 
   for(int i=1; i<int(DynamicWorld::ghostPadding); i+=step) {
     jumpY+=float(step);
     auto p0 = Vec3{pos.x,jumpY,pos.z};
-    if(!physic.testMove(p0,pos))
+    if(!physic.testMove(p0,pos,info))
       break;
     }
 
