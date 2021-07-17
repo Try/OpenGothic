@@ -58,6 +58,7 @@ class AnimationSolver final {
       StumbleA,
       StumbleB,
       AimBow,
+      PointAt,
 
       ItmGet,
       ItmDrop,

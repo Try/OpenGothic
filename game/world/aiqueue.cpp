@@ -357,3 +357,23 @@ AiQueue::AiAction AiQueue::aiGotoItem(Item& item) {
   a.item = &item;
   return a;
   }
+
+AiQueue::AiAction AiQueue::aiPointAt(const WayPoint& to) {
+  AiAction a;
+  a.act   = AI_PointAt;
+  a.point = &to;
+  return a;
+  }
+
+AiQueue::AiAction AiQueue::aiPointAtNpc(Npc& other) {
+  AiAction a;
+  a.act    = AI_PointAtNpc;
+  a.target = &other;
+  return a;
+  }
+
+AiQueue::AiAction AiQueue::aiStopPointAt() {
+  AiAction a;
+  a.act    = AI_StopPointAt;
+  return a;
+  }

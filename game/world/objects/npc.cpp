@@ -1281,6 +1281,13 @@ void Npc::setTempAttitude(Attitude att) {
   tmpAttitude = att;
   }
 
+bool Npc::implPointAt(const Tempest::Vec3& to) {
+  auto    dpos = to-position();
+  uint8_t comb = Pose::calcAniComb(dpos,angle);
+
+  return (setAnimAngGet(Npc::Anim::PointAt,true,comb)!=nullptr);
+  }
+
 bool Npc::implLookAt(uint64_t dt) {
   if(currentLookAt==nullptr || interactive()!=nullptr)
     return false;
@@ -2202,6 +2209,24 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       }
     case AI_GotoItem:{
       go2.set(act.item);
+      break;
+      }
+    case AI_PointAt:{
+      if(act.point==nullptr)
+        break;
+      if(!implPointAt(act.point->position()))
+        queue.pushFront(std::move(act));
+      break;
+      }
+    case AI_PointAtNpc:{
+      if(act.target==nullptr)
+        break;
+      if(!implPointAt(act.target->position()))
+        queue.pushFront(std::move(act));
+      break;
+      }
+    case AI_StopPointAt:{
+      visual.stopAnim(*this,"T_POINT");
       break;
       }
     }

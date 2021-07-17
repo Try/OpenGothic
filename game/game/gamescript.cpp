@@ -279,6 +279,8 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("ai_finishingmove",    [this](Daedalus::DaedalusVM& vm){ ai_finishingmove(vm);     });
   vm.registerExternalFunction("ai_takeitem",         [this](Daedalus::DaedalusVM& vm){ ai_takeitem(vm);          });
   vm.registerExternalFunction("ai_gotoitem",         [this](Daedalus::DaedalusVM& vm){ ai_gotoitem(vm);          });
+  vm.registerExternalFunction("ai_pointat",          [this](Daedalus::DaedalusVM& vm){ ai_pointat(vm);           });
+  vm.registerExternalFunction("ai_pointatnpc",       [this](Daedalus::DaedalusVM& vm){ ai_pointatnpc(vm);        });
 
   vm.registerExternalFunction("mob_hasitems",        [this](Daedalus::DaedalusVM& vm){ mob_hasitems(vm);         });
 
@@ -2836,8 +2838,8 @@ void GameScript::ai_teleport(Daedalus::DaedalusVM &vm) {
 
 void GameScript::ai_stoppointat(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
-  (void)npc;
-  // TODO: stub
+  if(npc!=nullptr)
+    npc->aiPush(AiQueue::aiStopPointAt());
   }
 
 void GameScript::ai_drawweapon(Daedalus::DaedalusVM& vm) {
@@ -2958,6 +2960,22 @@ void GameScript::ai_gotoitem(Daedalus::DaedalusVM& vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr && itm!=nullptr)
     npc->aiPush(AiQueue::aiGotoItem(*itm));
+  }
+
+void GameScript::ai_pointat(Daedalus::DaedalusVM& vm) {
+  auto waypoint = vm.popString();
+  auto npc      = popInstance(vm);
+
+  auto to       = world().findPoint(waypoint.c_str());
+  if(npc!=nullptr && to!=nullptr)
+    npc->aiPush(AiQueue::aiPointAt(*to));
+  }
+
+void GameScript::ai_pointatnpc(Daedalus::DaedalusVM& vm) {
+  auto other = popInstance(vm);
+  auto npc   = popInstance(vm);
+  if(npc!=nullptr && other!=nullptr)
+    npc->aiPush(AiQueue::aiPointAtNpc(*other));
   }
 
 void GameScript::mob_hasitems(Daedalus::DaedalusVM &vm) {

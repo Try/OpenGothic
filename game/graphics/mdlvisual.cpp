@@ -665,6 +665,9 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     case AnimationSolver::Anim::ItmDrop:
       bs = BS_DROPITEM;
       break;
+    case AnimationSolver::Anim::PointAt:
+      bs = BS_STAND;
+      break;
     }
 
   if(bool(wlk & WalkBit::WM_Dive))

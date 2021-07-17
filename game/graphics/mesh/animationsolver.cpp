@@ -315,6 +315,8 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
     return solveFrm("S_IGET");
   if(a==Anim::ItmDrop)
     return solveFrm("S_IDROP");
+  if(a==Anim::PointAt)
+    return solveFrm("T_POINT");
 
   return nullptr;
   }

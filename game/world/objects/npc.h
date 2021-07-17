@@ -535,6 +535,7 @@ class Npc final {
     auto      currentRoutine() const -> const Routine&;
     gtime     endTime(const Routine& r) const;
 
+    bool      implPointAt(const Tempest::Vec3& to);
     bool      implLookAt (uint64_t dt);
     bool      implLookAt (float dx, float dy, float dz, uint64_t dt);
     bool      implTurnTo (const Npc& oth, uint64_t dt);

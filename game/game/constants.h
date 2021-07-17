@@ -338,4 +338,7 @@ enum Action:uint32_t {
   AI_DrawWeapon,
   AI_TakeItem,
   AI_GotoItem,
+  AI_PointAtNpc,
+  AI_PointAt,
+  AI_StopPointAt,
   };

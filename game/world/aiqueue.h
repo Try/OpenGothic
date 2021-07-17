@@ -81,6 +81,9 @@ class AiQueue {
     static AiAction aiFinishingMove(Npc& other);
     static AiAction aiTakeItem(Item& item);
     static AiAction aiGotoItem(Item& item);
+    static AiAction aiPointAt(const WayPoint &to);
+    static AiAction aiPointAtNpc(Npc& other);
+    static AiAction aiStopPointAt();
 
   private:
     std::deque<AiAction> aiActions;
