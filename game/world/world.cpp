@@ -385,7 +385,7 @@ Focus World::findFocus(const Npc &pl, const Focus& def) {
     case WeaponState::Bow:
     case WeaponState::CBow:
       fptr = &game.script()->focusRange();
-      opt  = WorldObjects::NoDeath;
+      opt  = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
       break;
     case WeaponState::Mage:{
       fptr = &game.script()->focusMage();
@@ -394,7 +394,7 @@ Focus World::findFocus(const Npc &pl, const Focus& def) {
         auto&   spl = script().spellDesc(id);
         coll = TargetCollect(spl.targetCollectAlgo);
         }
-      opt  = WorldObjects::NoDeath;
+      opt  = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
       break;
       }
     case WeaponState::NoWeapon:
@@ -582,6 +582,7 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
     }
 
   auto& b = wobj.shootBullet(itm, pos, dir, DynamicWorld::spellSpeed);
+  b.setTarget(target);
   return b;
   }
 
@@ -620,7 +621,9 @@ Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, c
     dir.z = std::sin(a);
     }
 
-  return wobj.shootBullet(itm, pos, dir, DynamicWorld::bulletSpeed);
+  auto& b = wobj.shootBullet(itm, pos, dir, DynamicWorld::bulletSpeed);
+  b.setTarget(target);
+  return b;
   }
 
 void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {

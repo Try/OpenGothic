@@ -193,6 +193,7 @@ class Npc final {
     void       setDirectionY(float rotation);
     void       setRunAngle  (float angle);
 
+    auto       transform()  const -> Tempest::Matrix4x4;
     auto       position()   const -> Tempest::Vec3;
     auto       cameraBone() const -> Tempest::Vec3;
     float      collisionRadius() const;
@@ -625,7 +626,7 @@ class Npc final {
 
     // transform-backshape
     struct TransformBack;
-    std::unique_ptr<TransformBack> transform;
+    std::unique_ptr<TransformBack> transformSpl;
 
     // ai state
     uint64_t                       aniWaitTime=0;

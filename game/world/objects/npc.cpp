@@ -203,9 +203,9 @@ void Npc::save(Serialize &fout) {
     fout.write(uint32_t(-1));
   fout.write(uint8_t(castLevel),castNextTime);
   fout.write(spellInfo);
-  if(transform!=nullptr) {
+  if(transformSpl!=nullptr) {
     fout.write(true);
-    transform->save(fout);
+    transformSpl->save(fout);
     } else {
     fout.write(false);
     }
@@ -263,7 +263,7 @@ void Npc::load(Serialize &fin) {
     bool hasTr = false;
     fin.read(hasTr);
     if(hasTr)
-      transform.reset(new TransformBack(*this,fin));
+      transformSpl.reset(new TransformBack(*this,fin));
     }
   loadAiState(fin);
 
@@ -597,6 +597,10 @@ Vec3 Npc::position() const {
   return {x,y,z};
   }
 
+Matrix4x4 Npc::transform() const {
+  return visual.transform();
+  }
+
 Vec3 Npc::cameraBone() const {
   Vec3 r = {};
   r.y = visual.pose().translateY();
@@ -680,10 +684,6 @@ uint8_t Npc::calcAniComb() const {
   }
 
 void Npc::updateAnimation() {
-  if(currentTarget!=nullptr)
-    visual.setTarget(currentTarget->position()); else
-    visual.setTarget(position());
-
   bool syncAtt = visual.updateAnimation(this,owner);
   if(durtyTranform) {
     updatePos();
@@ -780,7 +780,7 @@ void Npc::dropTorch() {
   size_t leftHand = sk->findNode("ZS_LEFTHAND");
   if(torchId!=size_t(-1) && leftHand!=size_t(-1)) {
 
-    auto mat = visual.position();
+    auto mat = visual.transform();
     if(leftHand<visual.pose().boneCount())
       mat.mul(visual.pose().bone(leftHand));
 
@@ -850,7 +850,7 @@ void Npc::setRangeWeapon(MeshObjects::Mesh&& b) {
   }
 
 void Npc::setMagicWeapon(Effect&& s) {
-  s.setOwner(this);
+  s.setOrigin(this);
   visual.setMagicWeapon(std::move(s),owner);
   updateWeaponSkeleton();
   }
@@ -1677,14 +1677,16 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
 
   DamageCalculator::Damage dmg={};
   DamageCalculator::Val    hitResult;
-  SpellCategory            splCat   = SpellCategory::SPELL_BAD;
-  const bool               dontKill = ((b==nullptr && splId==0) || (bMask & COLL_DONTKILL));
+  SpellCategory            splCat     = SpellCategory::SPELL_BAD;
+  const bool               dontKill   = ((b==nullptr && splId==0) || (bMask & COLL_DONTKILL));
+  int32_t                  damageType = DamageCalculator::damageTypeMask(other);
 
   if(isSpell) {
-    auto& spl = owner.script().spellDesc(splId);
-    splCat    = SpellCategory(spl.spellType);
+    auto& spl  = owner.script().spellDesc(splId);
+    splCat     = SpellCategory(spl.spellType);
+    damageType = spl.damageType;
     for(size_t i=0; i<DamageCalculator::DAM_INDEX_MAX; ++i)
-      if((spl.damageType&(1<<i))!=0)
+      if((damageType&(1<<i))!=0)
         dmg[i] = spl.damage_per_level;
     }
 
@@ -1725,7 +1727,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
       }
     }
 
-  if(DamageCalculator::damageTypeMask(other) & (1<<Daedalus::GEngineClasses::DAM_INDEX_FLY))
+  if(damageType & (1<<Daedalus::GEngineClasses::DAM_INDEX_FLY))
     mvAlgo.accessDamFly(x-other.x,z-other.z); // throw enemy
   }
 
@@ -2401,10 +2403,11 @@ void Npc::commitSpell() {
     return;
 
   const int32_t splId = active->spellId();
+  const auto&   spl   = owner.script().spellDesc(splId);
+
   owner.script().invokeSpell(*this,currentTarget,*active);
 
   if(active->isSpellShoot()) {
-    auto& spl = owner.script().spellDesc(splId);
     int   lvl = (castLevel-CS_Cast_0)+1;
     DamageCalculator::Damage dmg={};
     for(size_t i=0; i<DamageCalculator::DAM_INDEX_MAX; ++i)
@@ -2413,15 +2416,17 @@ void Npc::commitSpell() {
         }
 
     auto& b = owner.shootSpell(*active, *this, currentTarget);
-    b.setOwner(this);
     b.setDamage(dmg);
     b.setHitChance(1.f);
+    b.setOrigin(this);
+    b.setTarget((currentTarget==nullptr) ? this : currentTarget);
     visual.setMagicWeaponKey(owner,SpellFxKey::Init);
     } else {
     const VisualFx* vfx = owner.script().spellVfx(splId);
     if(vfx!=nullptr) {
       auto e = Effect(*vfx,owner,Vec3(x,y,z),SpellFxKey::Cast);
-      e.setOwner(this);
+      e.setOrigin(this);
+      e.setTarget((currentTarget==nullptr) ? this : currentTarget);
       e.setSpellId(splId,owner);
       e.setActive(true);
       visual.startEffect(owner,std::move(e),0,true);
@@ -2452,14 +2457,14 @@ void Npc::commitSpell() {
       }
     }
 
-  if(spellInfo!=0 && transform==nullptr) {
-    transform.reset(new TransformBack(*this));
+  if(spellInfo!=0 && transformSpl==nullptr) {
+    transformSpl.reset(new TransformBack(*this));
     invent.updateView(*this);
     visual.clearOverlays();
 
     owner.script().initializeInstance(hnpc,size_t(spellInfo));
     spellInfo  = 0;
-    hnpc.level = transform->hnpc.level;
+    hnpc.level = transformSpl->hnpc.level;
     }
   }
 
@@ -2663,7 +2668,7 @@ void Npc::dropItem(size_t id, size_t count) {
   if(!setAnim(Anim::ItmDrop))
     return;
 
-  auto mat = visual.position();
+  auto mat = visual.transform();
   if(leftHand<visual.pose().boneCount())
     mat.mul(visual.pose().bone(leftHand));
 
@@ -3146,7 +3151,7 @@ bool Npc::shootBow(Interactive* focOverride) {
   auto& b = owner.shootBullet(*itm,*this,currentTarget,focOverride);
 
   invent.delItem(size_t(munition),1,*this);
-  b.setOwner(this);
+  b.setOrigin(this);
   b.setDamage(DamageCalculator::rangeDamageValue(*this));
 
   auto rgn = currentRangeWeapon();
@@ -3489,10 +3494,10 @@ void Npc::startDive() {
   }
 
 void Npc::transformBack() {
-  if(transform==nullptr)
+  if(transformSpl==nullptr)
     return;
-  transform->undo(*this);
-  setVisual(transform->skeleton);
+  transformSpl->undo(*this);
+  setVisual(transformSpl->skeleton);
   setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
   closeWeapon(true);
 
@@ -3501,7 +3506,7 @@ void Npc::transformBack() {
     setTalentSkill(Talent(i),talentsSk[i]);
 
   invent.updateView(*this);
-  transform.reset();
+  transformSpl.reset();
   }
 
 std::vector<GameScript::DlgChoise> Npc::dialogChoises(Npc& player,const std::vector<uint32_t> &except,bool includeImp) {

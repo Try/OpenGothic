@@ -235,7 +235,7 @@ void ObjVisual::processLayers(World& world) {
 
 void ObjVisual::syncPhysics() {
   if(type==M_Mdl)
-    mdl.physic.setPose(mdl.view.pose(),mdl.view.position());
+    mdl.physic.setPose(mdl.view.pose(),mdl.view.transform());
   if(type==M_Mesh)
     ;//mesh.physic.setObjMatrix(mesh.view.);
   }

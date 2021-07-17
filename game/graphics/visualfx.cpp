@@ -44,8 +44,10 @@ VisualFx::Key::Key(Daedalus::GEngineClasses::C_ParticleFXEmitKey&& k) {
   emCreateFXID            = Gothic::inst().loadVisualFx(k.emCreateFXID.c_str());
 
   emFlyGravity            = k.emFlyGravity;
-  emSelfRotVel            = Parser::loadVec3(k.emSelfRotVel_S);
-  emTrjMode_S             = k.emTrjMode_S;
+  if(!k.emSelfRotVel_S.empty())
+    emSelfRotVel          = Parser::loadVec3(k.emSelfRotVel_S);
+  if(!k.emTrjMode_S.empty())
+    emTrjMode             = VisualFx::loadTrajectory(k.emTrjMode_S);
   emTrjEaseVel            = k.emTrjEaseVel;
   emCheckCollision        = k.emCheckCollision!=0;
   emFXLifeSpan            = k.emFXLifeSpan<0 ? 0 : uint64_t(k.emFXLifeSpan*1000.f);
@@ -166,29 +168,52 @@ const VisualFx::Key* VisualFx::key(SpellFxKey type, int32_t keyLvl) const {
   }
 
 VisualFx::Trajectory VisualFx::loadTrajectory(const Daedalus::ZString& str) {
-  if(str=="NONE")
-    return Trajectory::None;
-  if(str=="TARGET")
-    return Trajectory::Target;
-  if(str=="LINE")
-    return Trajectory::Line;
-  if(str=="SPLINE")
-    return Trajectory::Spline;
-  if(str=="RANDOM")
-    return Trajectory::Random;
-  return Trajectory::None;
+  uint8_t bits = 0;
+  size_t  prev = 0;
+  auto    s    = str.c_str();
+  for(size_t i=0; i<str.size(); ++i) {
+    if(s[i]==' ' || s[i]=='\0') {
+      if(std::memcmp(s+prev,"NONE",i-prev)==0) {
+        bits |= 0; // no effect
+        }
+      else if(std::memcmp(s+prev,"TARGET",i-prev)==0) {
+        bits |= Trajectory::Target;
+        }
+      else if(std::memcmp(s+prev,"LINE",i-prev)==0) {
+        bits |= Trajectory::Line;
+        }
+      else if(std::memcmp(s+prev,"SPLINE",i-prev)==0) {
+        bits |= Trajectory::Spline;
+        }
+      else if(std::memcmp(s+prev,"RANDOM",i-prev)==0) {
+        bits |= Trajectory::Random;
+        }
+      else if(std::memcmp(s+prev,"FIXED",i-prev)==0) {
+        bits |= Trajectory::Fixed;
+        }
+      else if(std::memcmp(s+prev,"FOLLOW",i-prev)==0) {
+        bits |= Trajectory::Follow;
+        }
+      else {
+        if(i!=prev)
+          Log::d("unknown trajectory flag: \"",s+prev,"\"");
+        }
+      prev = i+1;
+      }
+    }
+  return Trajectory(bits);
   }
 
 VisualFx::LoopMode VisualFx::loadLoopmode(const Daedalus::ZString& str) {
   if(str=="NONE")
-    return LoopMode::None;
+    return LoopMode::LoopModeNone;
   if(str=="PINGPONG")
     return LoopMode::PinPong;
   if(str=="PINGPONG_ONCE")
     return LoopMode::PinPongOnce;
   if(str=="HALT")
     return LoopMode::Halt;
-  return LoopMode::None;
+  return LoopMode::LoopModeNone;
   }
 
 VisualFx::EaseFunc VisualFx::loadEaseFunc(const Daedalus::ZString& str) {

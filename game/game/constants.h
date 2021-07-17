@@ -228,6 +228,14 @@ enum TargetCollect : int32_t {
   TARGET_COLLECT_ALL_FALLBACK_CASTER   = 7, // all targets in range will be assembled, if there are no valid targets, the target is the caster
   };
 
+enum TargetType : int32_t {
+  TARGET_TYPE_ALL     = 1,
+  TARGET_TYPE_ITEMS   = 2,
+  TARGET_TYPE_NPCS    = 4,
+  TARGET_TYPE_ORCS    = 8,
+  TARGET_TYPE_HUMANS  = 16,
+  TARGET_TYPE_UNDEAD  = 32,
+  };
 
 enum class SensesBit : int32_t {
   SENSE_NONE  = 0,

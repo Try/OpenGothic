@@ -32,7 +32,6 @@ class MdlVisual final {
     void                           setPosition(float x,float y,float z, bool syncAttach = false);
     void                           setObjMatrix(const Tempest::Matrix4x4 &m, bool syncAttach = false);
 
-    void                           setTarget(const Tempest::Vec3& p);
     void                           setHeadRotation(float dx, float dz);
     Tempest::Vec2                  headRotation() const;
     void                           setYTranslationEnable(bool e);
@@ -100,7 +99,7 @@ class MdlVisual final {
     void                           interrupt();
     WeaponState                    fightMode() const { return fgtMode; }
     Tempest::Vec3                  displayPosition() const;
-    const Tempest::Matrix4x4&      position() const { return pos; }
+    const Tempest::Matrix4x4&      transform() const { return pos; }
     float                          viewDirection() const;
 
     const Animation::Sequence*     continueCombo(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk);
@@ -148,7 +147,6 @@ class MdlVisual final {
     void rebindAttaches(const Skeleton& from,const Skeleton& to);
 
     Tempest::Matrix4x4             pos;
-    Tempest::Vec3                  targetPos;
     MeshObjects::Mesh              view;
 
     MeshAttach                     head, sword, bow;

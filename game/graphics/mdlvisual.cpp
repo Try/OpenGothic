@@ -396,10 +396,6 @@ void MdlVisual::setObjMatrix(const Tempest::Matrix4x4 &m, bool syncAttach) {
     syncAttaches();
   }
 
-void MdlVisual::setTarget(const Tempest::Vec3& p) {
-  targetPos = p;
-  }
-
 void MdlVisual::setHeadRotation(float dx, float dz) {
   headRotX = dx;
   headRotY = dz;
@@ -803,7 +799,7 @@ void MdlVisual::syncAttaches() {
     syncAttaches(i);
   for(auto& i:effects) {
     i.view.setObjMatrix(pos);
-    i.view.setTarget(targetPos);
+    // i.view.setTarget(targetPos);
     }
   pfx.view.setObjMatrix(pos);
   hnpcVisual.view.setObjMatrix(pos);

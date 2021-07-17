@@ -33,12 +33,12 @@ class Effect final {
     void     setActive(bool e);
     void     setLooped(bool l);
 
-    void     setTarget   (const Tempest::Vec3& tg);
+    void     setTarget   (const Npc* npc);
+    void     setOrigin   (Npc* npc);
+
     void     setObjMatrix(Tempest::Matrix4x4& mt);
-    void     setPosition (const Tempest::Vec3& pos);
     void     setKey      (World& owner, SpellFxKey key, int32_t keyLvl=0);
     void     setMesh     (const MeshObjects::Mesh* mesh);
-    void     setOwner    (Npc*    npc);
     void     setBullet   (Bullet* b, World& owner);
     void     setSpellId  (int32_t splId, World& owner);
 
@@ -64,7 +64,9 @@ class Effect final {
     GlobalFx              gfx;
     LightGroup::Light     light;
 
-    Npc*                  mage   = nullptr;
+    Npc*                  origin = nullptr;
+    const Npc*            target = nullptr;
+
     Bullet*               bullet = nullptr;
     int32_t               splId  = 0;
 

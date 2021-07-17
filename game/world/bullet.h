@@ -37,12 +37,13 @@ class Bullet final : public DynamicWorld::BulletCallback {
     bool     isSpell() const;
     int32_t  spellId() const;
 
-    void     setOwner(Npc* n);
-    Npc*     owner() const;
+    void     setOrigin(Npc* n);
+    Npc*     origin() const;
+
+    void     setTarget(const Npc* n);
 
     Flg      flags()     const { return flg;  }
     void     setFlags(Flg f) { flg=f; }
-    void     addFlags(Flg f) { flg=Flg(flg|f); }
 
     auto     damage() const -> const DamageCalculator::Damage& { return dmg; }
     void     setDamage(DamageCalculator::Damage d) { dmg=d; }

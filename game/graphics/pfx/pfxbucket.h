@@ -32,8 +32,7 @@ class PfxBucket {
       Tempest::Vec3 direction[3] = {{1,0,0}, {0,1,0}, {0,0,1}};
       bool          isLoop       = false;
 
-      Tempest::Vec3 target       = {};
-      bool          hasTarget    = false;
+      const Npc*    targetNpc    = nullptr;
 
       const PfxEmitterMesh* mesh = nullptr;
       const Pose*           pose = nullptr;

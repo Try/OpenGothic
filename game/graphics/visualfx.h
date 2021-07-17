@@ -27,16 +27,18 @@ class VisualFx final {
       Trajectory,
       };
 
-    enum class Trajectory : uint8_t {
-      None = 0,
-      Target,
-      Line,
-      Spline,
-      Random
+    enum Trajectory : uint8_t {
+      TrajectoryNone = 0,
+      Target         = 1<<0,
+      Line           = 1<<1,
+      Spline         = 1<<2,
+      Random         = 1<<3,
+      Fixed          = 1<<4,
+      Follow         = 1<<5,
       };
 
     enum class LoopMode : uint8_t {
-      None = 0,
+      LoopModeNone = 0,
       PinPong,
       PinPongOnce,
       Halt
@@ -47,7 +49,8 @@ class VisualFx final {
       };
 
 
-    using OptVec3 = std::optional<Tempest::Vec3>;
+    using OptVec3       = std::optional<Tempest::Vec3>;
+    using OptTrajectory = std::optional<Trajectory>;
 
     class Key {
       public:
@@ -87,8 +90,8 @@ class VisualFx final {
         const VisualFx*   emCreateFXID = nullptr;
 
         float             emFlyGravity=0.f;
-        Tempest::Vec3     emSelfRotVel;
-        Daedalus::ZString emTrjMode_S;
+        OptVec3           emSelfRotVel;
+        OptTrajectory     emTrjMode;
         float             emTrjEaseVel=0.f;
         bool              emCheckCollision=0;
         uint64_t          emFXLifeSpan=0;
@@ -103,7 +106,7 @@ class VisualFx final {
     float                 visTexAniFPS             = 0.f;
     bool                  visTexAniIsLooping       = false;
 
-    Trajectory	          emTrjMode                = Trajectory::None;
+    Trajectory	          emTrjMode                = TrajectoryNone;
     std::string	          emTrjOriginNode;
     std::string           emTrjTargetNode;
     float                 emTrjTargetRange         = 0.f;
@@ -114,7 +117,7 @@ class VisualFx final {
     float	                emTrjAngleElevVar        = 0.f;
     float	                emTrjAngleHeadVar        = 0.f;
     float	                emTrjKeyDistVar          = 0.f;
-    LoopMode              emTrjLoopMode            = LoopMode::None;
+    LoopMode              emTrjLoopMode            = LoopMode::LoopModeNone;
     EaseFunc              emTrjEaseFunc            = EaseFunc::Linear;
     float     	          emTrjEaseVel             = 0.f;
     float	                emTrjDynUpdateDelay      = 0.f;

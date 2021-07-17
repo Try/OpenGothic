@@ -31,13 +31,14 @@ class PfxEmitter {
     bool     isEmpty() const { return bucket==nullptr; }
     void     setPosition (float x,float y,float z);
     void     setPosition (const Tempest::Vec3& pos);
-    void     setTarget   (const Tempest::Vec3& pos);
     void     setDirection(const Tempest::Matrix4x4& pos);
     void     setObjMatrix(const Tempest::Matrix4x4& mt);
     void     setActive(bool act);
     bool     isActive() const;
     void     setLooped(bool loop);
     void     setMesh(const MeshObjects::Mesh* mesh, const Pose* pose);
+
+    void     setTarget(const Npc* tg);
 
     void     setPhysicsEnable (World& physic, std::function<void(Npc& npc)> cb);
     void     setPhysicsDisable();

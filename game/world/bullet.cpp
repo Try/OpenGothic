@@ -70,13 +70,17 @@ int32_t Bullet::spellId() const {
   return obj->spellId();
   }
 
-void Bullet::setOwner(Npc *n) {
+void Bullet::setOrigin(Npc *n) {
   ow = n;
-  vfx.setOwner(n);
+  vfx.setOrigin(n);
   }
 
-Npc *Bullet::owner() const {
+Npc *Bullet::origin() const {
   return ow;
+  }
+
+void Bullet::setTarget(const Npc* n) {
+  vfx.setTarget(n);
   }
 
 bool Bullet::isFinished() const {
@@ -90,7 +94,7 @@ float Bullet::pathLength() const {
   }
 
 void Bullet::onStop() {
-  addFlags(Stopped);
+  flg = Flg(flg|Stopped);
   updateMatrix();
   }
 
@@ -126,6 +130,6 @@ void Bullet::updateMatrix() {
   view.setObjMatrix(mat);
   // HACK: lighting bolt spell
   mat.rotateOY(90);
-  vfx .setObjMatrix(mat);
-  vfx .setTarget(obj->position()+obj->direction());
+  vfx.setObjMatrix(mat);
+  // vfx .setTarget(obj->position()+obj->direction());
   }

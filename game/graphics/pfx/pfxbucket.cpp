@@ -4,6 +4,8 @@
 #include "pfxobjects.h"
 #include "particlefx.h"
 
+#include "world/objects/npc.h"
+
 using namespace Tempest;
 
 static void     rotate(Vec3& rx, Vec3& ry,float a,const Vec3& x, const Vec3& y){
@@ -314,16 +316,22 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       break;
       }
     case ParticleFx::Dir::Target:
-      // NOTE: dirModeTargetFOR is somewhat unknown parameter
+      Vec3 targetPos = p.pos;
       switch(decl.dirModeTargetFOR) {
-        case ParticleFx::Frame::Node:
         case ParticleFx::Frame::World:
+          targetPos = decl.dirModeTargetPos;
+          break;
+        case ParticleFx::Frame::Node:
         case ParticleFx::Frame::Object: {
-          p.dir = -p.pos;
-          if(emitter.hasTarget)
-            p.dir += decl.dirModeTargetPos + emitter.target - emitter.pos;
+          if(emitter.targetNpc!=nullptr) {
+            // MFX_WINDFIST_CAST
+            auto mt = emitter.targetNpc->transform();
+            mt.project(targetPos);
+            }
+          break;
           }
         }
+      p.dir += targetPos - (emitter.pos+p.pos);
       break;
     }
 
@@ -375,6 +383,9 @@ void PfxBucket::tick(uint64_t dt, const Vec3& viewPos) {
 void PfxBucket::implTickCommon(uint64_t dt, const Vec3& viewPos) {
   bool doShrink = false;
   for(auto& emitter:impl) {
+    if(emitter.st==S_Free)
+      continue;
+
     const auto dp     = emitter.pos-viewPos;
     const bool nearby = (dp.quadLength()<PfxObjects::viewRage*PfxObjects::viewRage);
 
@@ -388,9 +399,6 @@ void PfxBucket::implTickCommon(uint64_t dt, const Vec3& viewPos) {
 
     if(emitter.waitforNext>=dt)
       emitter.waitforNext-=dt;
-
-    if(emitter.st==S_Free)
-      continue;
 
     if(emitter.block!=size_t(-1)) {
       auto& p = getBlock(emitter);

@@ -827,6 +827,8 @@ static bool checkFlag(Npc& n,WorldObjects::SearchFlg f){
     return false;
   if(bool(f&WorldObjects::NoDeath) && n.isDead())
     return false;
+  if(bool(f&WorldObjects::NoUnconscious) && n.isUnconscious())
+    return false;
   return true;
   }
 

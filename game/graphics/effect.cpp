@@ -54,7 +54,10 @@ void Effect::setupPfx(World& owner) {
      root->visName_S=="morph.fov" ||
      root->visName_S=="screenblend.scx" ||
      root->visName_S=="earthquake.eqk") {
-    gfx = owner.addGlobalEffect(root->visName_S,root->emFXLifeSpan,root->userString,Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS);
+    uint64_t emFXLifeSpan = root->emFXLifeSpan;
+    if(key!=nullptr && key->emFXLifeSpan!=0)
+      emFXLifeSpan = key->emFXLifeSpan;
+    gfx = owner.addGlobalEffect(root->visName_S,emFXLifeSpan,root->userString,Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS);
     return;
     }
 
@@ -110,24 +113,24 @@ void Effect::setLooped(bool l) {
   pfx.setLooped(l);
   }
 
-void Effect::setTarget(const Tempest::Vec3& tg) {
+void Effect::setTarget(const Npc* tg) {
   if(next!=nullptr)
     next->setTarget(tg);
+  target = tg;
   pfx.setTarget(tg);
+  syncAttachesSingle(pos);
+  }
+
+void Effect::setOrigin(Npc* npc) {
+  if(next!=nullptr)
+    next->setOrigin(npc);
+  origin = npc;
+  syncAttachesSingle(pos);
+  setupCollision(npc->world());
   }
 
 void Effect::setObjMatrix(Tempest::Matrix4x4& mt) {
   syncAttaches(mt);
-  }
-
-void Effect::setPosition(const Vec3& pos3) {
-  if(next!=nullptr)
-    next->setPosition(pos3);
-
-  pos.set(3,0, pos3.x);
-  pos.set(3,1, pos3.y);
-  pos.set(3,2, pos3.z);
-  syncAttachesSingle(pos);
   }
 
 void Effect::syncAttaches(const Matrix4x4& inPos) {
@@ -138,13 +141,38 @@ void Effect::syncAttaches(const Matrix4x4& inPos) {
 
 void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
   pos = inPos;
-  auto p = inPos;
-  if(pose!=nullptr && boneId<pose->boneCount())
-    p.mul(pose->bone(boneId));
 
-  const float emTrjEaseVel = root==nullptr ? 0.f : root->emTrjTargetElev;
+  auto  emTrjMode    = VisualFx::TrajectoryNone;
+  float emTrjEaseVel = 0;
+  Vec3  emSelfRotVel;
+
+  if(root!=nullptr) {
+    emTrjMode    = root->emTrjMode;
+    emSelfRotVel = root->emSelfRotVel;
+    emTrjEaseVel = root->emTrjTargetElev;
+    if(key!=nullptr) {
+      if(key->emTrjMode.has_value())
+        emTrjMode    = key->emTrjMode.value();
+      if(key->emSelfRotVel.has_value())
+        emSelfRotVel = key->emSelfRotVel.value();
+      }
+    }
+
+  auto p = inPos;
+  if((emTrjMode&VisualFx::Trajectory::Target) && target!=nullptr) {
+    p = target->transform();
+    } else {
+    if(pose!=nullptr && boneId<pose->boneCount())
+      p.mul(pose->bone(boneId));
+    }
+
+  if(emSelfRotVel!=Vec3()) {
+    //Matrix4x4 m;
+    //m.rotateOX(emSelfRotVel.x*);
+    }
+
   p.set(3,1, p.at(3,1)+emTrjEaseVel);
-  Vec3 pos3 = {p.at(3,0),p.at(3,1),p.at(3,2)};
+  Vec3  pos3 = {p.at(3,0),p.at(3,1),p.at(3,2)};
 
   pfx  .setObjMatrix(p);
   light.setPosition(pos3);
@@ -190,13 +218,6 @@ void Effect::setMesh(const MeshObjects::Mesh* mesh) {
   meshEmitter = mesh;
   if(root!=nullptr && root->isMeshEmmiter())
     pfx.setMesh(meshEmitter,pose);
-  }
-
-void Effect::setOwner(Npc* npc) {
-  if(next!=nullptr)
-    next->setOwner(npc);
-  mage = npc;
-  setupCollision(npc->world());
   }
 
 void Effect::setBullet(Bullet* b, World& owner) {
@@ -252,7 +273,7 @@ void Effect::onCollide(World& world, const VisualFx* root, const Vec3& pos, Npc*
   if(vfx!=nullptr) {
     Effect eff(*vfx,world,pos,SpellFxKey::Collide);
     eff.setSpellId(splId,world);
-    eff.setOwner(other);
+    eff.setOrigin(other);
     eff.setActive(true);
 
     if(npc!=nullptr)
@@ -285,13 +306,15 @@ void Effect::setupCollision(World& owner) {
 
   if(/*emCheckCollision && */!pfx.isEmpty() && (root->emFXCollDyn!=nullptr || root->emFXCollDynPerc!=nullptr)) {
     auto vfx = root;
-    auto n   = mage;
+    auto n   = origin;
     auto sId = splId;
     auto b   = bullet;
     pfx.setPhysicsEnable(owner,[vfx,n,sId,b](Npc& npc){
       if(n!=&npc) {
         auto src = (n!=nullptr ? n : &npc);
         npc.takeDamage(*src,b,vfx,sId);
+        if(b!=nullptr)
+          b->setFlags(Bullet::Stopped);
         }
       });
     }

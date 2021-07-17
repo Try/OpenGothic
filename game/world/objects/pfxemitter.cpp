@@ -95,13 +95,12 @@ void PfxEmitter::setPosition(const Vec3& pos) {
   p.pos = pos;
   }
 
-void PfxEmitter::setTarget(const Vec3& pos) {
+void PfxEmitter::setTarget(const Npc* tg) {
   if(bucket==nullptr)
     return;
   std::lock_guard<std::recursive_mutex> guard(bucket->parent.sync);
   auto& v = bucket->get(id);
-  v.target    = pos;
-  v.hasTarget = true;
+  v.targetNpc = tg;
   }
 
 void PfxEmitter::setDirection(const Matrix4x4& d) {

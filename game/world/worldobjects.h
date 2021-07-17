@@ -28,11 +28,12 @@ class WorldObjects final {
     ~WorldObjects();
 
     enum SearchFlg : uint8_t {
-      NoFlg     =0,
-      NoDeath   =1,
-      NoAngle   =2,
-      NoRay     =4,
-      FcOverride=8,
+      NoFlg         = 0,
+      NoDeath       = 1,
+      NoUnconscious = 2,
+      NoAngle       = 4,
+      NoRay         = 8,
+      FcOverride    = 16,
       };
 
     struct SearchOpt final {
