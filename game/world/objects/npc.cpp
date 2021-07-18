@@ -2407,10 +2407,11 @@ void Npc::emitSoundSVM(std::string_view svm) {
   emitSoundEffect(name,25,true);
   }
 
-void Npc::startEffect(Npc& /*to*/, const VisualFx& vfx) {
+void Npc::startEffect(Npc& to, const VisualFx& vfx) {
   Effect e(vfx,owner,*this,SpellFxKey::Cast);
   e.setActive(true);
   e.setLooped(true);
+  e.setTarget(&to);
   visual.startEffect(owner, std::move(e), 0, true);
   }
 

@@ -32,6 +32,7 @@ class Effect final {
 
     void     setActive(bool e);
     void     setLooped(bool l);
+    bool     isLooped() const;
 
     void     setTarget   (const Npc* npc);
     void     setOrigin   (Npc* npc);

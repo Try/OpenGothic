@@ -113,6 +113,10 @@ void Effect::setLooped(bool l) {
   pfx.setLooped(l);
   }
 
+bool Effect::isLooped() const {
+  return looped;
+  }
+
 void Effect::setTarget(const Npc* tg) {
   if(next!=nullptr)
     next->setTarget(tg);

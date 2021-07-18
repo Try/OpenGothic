@@ -456,7 +456,7 @@ bool MdlVisual::updateAnimation(Npc* npc, World& world) {
     pose.processPfx(*this,world,tickCount);
 
   for(size_t i=0;i<effects.size();) {
-    if(effects[i].timeUntil<tickCount) {
+    if(effects[i].timeUntil<tickCount && !effects[i].view.isLooped()) {
       effects[i] = std::move(effects.back());
       effects.pop_back();
       } else {

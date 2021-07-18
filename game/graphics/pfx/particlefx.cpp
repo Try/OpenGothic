@@ -183,11 +183,14 @@ uint64_t ParticleFx::calcPrefferedTimeSingle() const {
   }
 
 uint64_t ParticleFx::calcPrefferedTimeSingle(const KeyList& k, float fps) {
-  if(k.size()==0)
+  if(k.size()==0 || fps<=0.f)
     return 0;
 
-  auto div = std::max<uint64_t>(1,uint64_t(std::ceil(fps)));
-  auto sec = uint64_t(k.size()*1000)/div;
+  float raw = float(k.size())*1000.f/fps;
+  if(raw>float(std::numeric_limits<uint32_t>::max()))
+    return 0;
+
+  auto  sec = std::max<uint64_t>(1,uint64_t(std::ceil(raw)));
   return sec;
   }
 
