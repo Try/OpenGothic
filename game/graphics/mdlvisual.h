@@ -29,7 +29,6 @@ class MdlVisual final {
 
     void                           setVisual(const Skeleton *visual);
 
-    void                           setPosition(float x,float y,float z, bool syncAttach = false);
     void                           setObjMatrix(const Tempest::Matrix4x4 &m, bool syncAttach = false);
 
     void                           setHeadRotation(float dx, float dz);

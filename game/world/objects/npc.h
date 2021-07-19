@@ -565,7 +565,7 @@ class Npc final {
     void      stopWalkAnimation();
     void      takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32_t splId, bool isSpell);
 
-    void      dropTorch();
+    void      dropTorch(bool burnout = false);
 
     void      saveAiState(Serialize& fout) const;
     void      loadAiState(Serialize& fin);

@@ -338,9 +338,10 @@ bool Npc::setPosition(float ix, float iy, float iz) {
   x = ix;
   y = iy;
   z = iz;
+  durtyTranform |= TR_Pos;
 
   physic.setPosition(Vec3{x,y,z});
-  visual.setPosition(x,y,z, true);
+  updatePos();
   return true;
   }
 
@@ -605,7 +606,7 @@ Vec3 Npc::cameraBone() const {
   Vec3 r = {};
   r.y = visual.pose().translateY();
 
-  auto mt = mkPositionMatrix();
+  auto mt = visual.transform();
   mt.project(r);
   return r;
   }
@@ -763,7 +764,7 @@ bool Npc::isUsingTorch() const {
   return hasOverlay(overlay);
   }
 
-void Npc::dropTorch() {
+void Npc::dropTorch(bool burnout) {
   auto sk = visual.visualSkeleton();
   if(sk==nullptr)
     return;
@@ -775,8 +776,11 @@ void Npc::dropTorch() {
   visual.setTorch(false,owner);
   delOverlay(overlay);
 
-  //size_t torchId  = owner.script().getSymbolIndex("ItLsTorchburned");
-  size_t torchId = owner.script().getSymbolIndex("ItLsTorchburning");
+  size_t torchId = 0;
+  if(burnout)
+    torchId = owner.script().getSymbolIndex("ItLsTorchburned"); else
+    torchId = owner.script().getSymbolIndex("ItLsTorchburning");
+
   size_t leftHand = sk->findNode("ZS_LEFTHAND");
   if(torchId!=size_t(-1) && leftHand!=size_t(-1)) {
 
@@ -3410,15 +3414,10 @@ bool Npc::tryMove(const Tempest::Vec3& dp) {
   }
 
 bool Npc::tryMove(const Vec3& dp, DynamicWorld::CollisionTest& out) {
-  if(physic.tryMove(dp,out)) {
-    setViewPosition(physic.position());
-    return true;
-    }
-
-  // const float speed = dp.manhattanLength();
-  // if(speed<=0.f || Vec3::dotProduct(out.normal,dp/speed)<-0.9f)
-  //   return false;
-  return false;
+  if(!physic.tryMove(dp,out))
+    return false;
+  setViewPosition(physic.position());
+  return true;
   }
 
 bool Npc::tryTranslate(const Vec3& pos) {
@@ -3648,7 +3647,7 @@ Matrix4x4 Npc::mkPositionMatrix() const {
 
   Matrix4x4 mt;
   if(align) {
-    auto oy = ground;
+    auto oy = Vec3::normalize(ground);
     auto ox = Vec3::crossProduct(oy,{0,0,1});
     auto oz = Vec3::crossProduct(oy,ox);
     float v[16] = {
@@ -3688,10 +3687,22 @@ void Npc::updatePos() {
 
   sfxWeapon.setPosition(x,y,z);
 
+  Matrix4x4 pos;
   if(durtyTranform==TR_Pos) {
-    visual.setPosition(x,y,z, false);
+    pos = visual.transform();
+    pos.set(3,0,x);
+    pos.set(3,1,y);
+    pos.set(3,2,z);
     } else {
-    visual.setObjMatrix(mkPositionMatrix(), false);
+    pos = mkPositionMatrix();
     }
+
+  if(mvAlgo.isSwim()) {
+    float chest = mvAlgo.canFlyOverWater() ? 0 : mvAlgo.waterDepthChest();
+    float y = pos.at(3,1);
+    pos.set(3,1,y+chest);
+    }
+
+  visual.setObjMatrix(pos,false);
   }
 

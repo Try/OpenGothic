@@ -67,6 +67,10 @@ class MoveAlgo final {
     auto    formerPortalName() -> std::string_view;
     int32_t diveTime() const;
 
+    float   waterDepthKnee()  const;
+    float   waterDepthChest() const;
+    bool    canFlyOverWater() const;
+
   private:
     void    tickMobsi  (uint64_t dt);
     bool    tickSlide  (uint64_t dt);
@@ -111,9 +115,6 @@ class MoveAlgo final {
     float   stepHeight()  const;
     float   slideAngle()  const;
     float   slideAngle2() const;
-    float   waterDepthKnee() const;
-    float   waterDepthChest() const;
-    bool    canFlyOverWater() const;
     void    takeFallDamage() const;
 
     void    rayMain  (const Tempest::Vec3& pos) const;

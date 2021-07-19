@@ -573,7 +573,7 @@ void PlayerControl::implMove(uint64_t dt) {
     if((pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive) {
       ani = Npc::Anim::Move;
       } else if(pl.isDive()) {
-      pl.setDirectionY(rotY - 1);
+      pl.setDirectionY(rotY - rspeed);
       return;
       }
     }
@@ -581,7 +581,7 @@ void PlayerControl::implMove(uint64_t dt) {
     if((pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive) {
       ani = Npc::Anim::MoveBack;
       } else if(pl.isDive()) {
-      pl.setDirectionY(rotY + 1);
+      pl.setDirectionY(rotY + rspeed);
       return;
       }
     }

@@ -179,7 +179,7 @@ void MoveAlgo::tickGravity(uint64_t dt) {
     } else {
     if(ground+chest<water && !npc.isDead()) {
       // attach to water
-      tryMove(0.f,water-pY,0.f);
+      tryMove(0.f,water-chest-pY,0.f);
       clearSpeed();
       setInAir(false);
       if(!canFlyOverWater()) {
@@ -294,15 +294,16 @@ void MoveAlgo::tickSwim(uint64_t dt) {
     return;
     }
 
-  if(isDive() && pos.y>water && validW) {
-    if(npc.world().tickCount()-diveStart>1000)
+  if(isDive() && pos.y+chest>water && validW) {
+    if(npc.world().tickCount()-diveStart>2000) {
       setAsDive(false);
-    return;
+      return;
+      }
     }
 
   // swim on top of water
   if(!isDive())
-    tryMove(dp.x,water-pY,dp.z); else
+    tryMove(dp.x,water-chest-pY,dp.z); else
     tryMove(dp.x,dp.y,dp.z);
   }
 
@@ -672,6 +673,12 @@ void MoveAlgo::startDive() {
   if(isSwim() && !isDive()) {
     if(npc.world().tickCount()-diveStart>1000) {
       setAsDive(true);
+
+      auto  pos   = npc.position();
+      float pY    = pos.y;
+      float chest = canFlyOverWater() ? 0 : waterDepthChest();
+      auto  water = waterRay(pos);
+      tryMove(0,water-chest-pY,0);
       }
     }
   }
@@ -744,6 +751,7 @@ void MoveAlgo::setAsSwim(bool f) {
     npc.setAnim(Npc::Anim::NoAnim);
     if(ws!=WeaponState::NoWeapon && ws!=WeaponState::Fist)
       npc.closeWeapon(true);
+    npc.dropTorch(true);
     }
 
   if(f)
@@ -755,7 +763,7 @@ void MoveAlgo::setAsDive(bool f) {
   if(f==isDive())
     return;
   if(f) {
-    npc.setDirectionY(-60);
+    npc.setDirectionY(-40);
     diveStart = npc.world().tickCount();
     npc.setWalkMode(npc.walkMode() | WalkBit::WM_Dive);
     } else {
