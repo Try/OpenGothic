@@ -463,6 +463,8 @@ void Camera::tick(const Npc& npc, uint64_t dt, bool inMove, bool includeRot) {
 
   if(includeRot) {
     auto rotation = dest.spin;
+    if(camMod==Dive)
+      rotation.x = 0;
     followAng(state.spin, rotation,dtF);
     rotation = applyModRotation(rotation);
     followAng(state.spin2,rotation,dtF);

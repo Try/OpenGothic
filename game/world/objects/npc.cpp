@@ -604,7 +604,8 @@ Matrix4x4 Npc::transform() const {
 
 Vec3 Npc::cameraBone() const {
   Vec3 r = {};
-  r.y = visual.pose().translateY();
+ if(!mvAlgo.isSwim())
+   r.y = visual.pose().translateY();
 
   auto mt = visual.transform();
   mt.project(r);
