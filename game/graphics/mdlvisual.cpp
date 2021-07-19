@@ -22,7 +22,6 @@ MdlVisual::~MdlVisual() {
 
 void MdlVisual::save(Serialize &fout, const Npc&) const {
   fout.write(fgtMode);
-  fout.write(headRotX,headRotY);
   if(skeleton!=nullptr)
     fout.write(skeleton->name()); else
     fout.write(std::string(""));
@@ -39,9 +38,6 @@ void MdlVisual::load(Serialize& fin, Npc& npc) {
   std::string s;
 
   fin.read(fgtMode);
-  if(fin.version()>30)
-    fin.read(headRotX,headRotY);
-
   fin.read(s);
   if(fin.version()<=26)
     FileExt::exchangeExt(s,"MDH","MDS");
@@ -388,13 +384,12 @@ void MdlVisual::setObjMatrix(const Tempest::Matrix4x4 &m, bool syncAttach) {
   }
 
 void MdlVisual::setHeadRotation(float dx, float dz) {
-  headRotX = dx;
-  headRotY = dz;
-  syncHead(head);
+  skInst->setHeadRotation(dx,dz);
+  syncAttaches(head);
   }
 
 Vec2 MdlVisual::headRotation() const {
-  return Vec2(headRotX,headRotY);
+  return skInst->headRotation();
   }
 
 void MdlVisual::updateWeaponSkeleton(const Item* weapon,const Item* range) {
@@ -783,8 +778,7 @@ void MdlVisual::rebindAttaches(Attach<View>& mesh, const Skeleton& from, const S
   }
 
 void MdlVisual::syncAttaches() {
-  MdlVisual::MeshAttach* mesh[] = {&sword,&bow,&ammunition,&stateItm};
-  syncHead(head);
+  MdlVisual::MeshAttach* mesh[] = {&head, &sword,&bow,&ammunition,&stateItm};
   for(auto i:mesh)
     syncAttaches(*i);
   for(auto& i:item)
@@ -818,21 +812,6 @@ void MdlVisual::syncAttaches(Attach<View>& att) {
   auto  p    = pos;
   if(att.boneId<pose.boneCount())
     p.mul(pose.bone(att.boneId));
-  att.view.setObjMatrix(p);
-  }
-
-void MdlVisual::syncHead(MeshAttach& att) {
-  if(att.view.isEmpty())
-    return;
-  // use BIP01 NECK?
-  auto& pose = *skInst;
-  auto  p    = pos;
-  if(att.boneId<pose.boneCount())
-    p.mul(pose.bone(att.boneId));
-  if(headRotX!=0 || headRotY!=0) {
-    p.rotateOY(headRotY);
-    p.rotateOX(headRotX);
-    }
   att.view.setObjMatrix(p);
   }
 

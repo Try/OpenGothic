@@ -141,8 +141,6 @@ class MdlVisual final {
     template<class View>
     void syncAttaches(Attach<View>& mesh);
 
-    void syncHead(MeshAttach& mesh);
-
     void rebindAttaches(const Skeleton& from,const Skeleton& to);
 
     Tempest::Matrix4x4             pos;
@@ -152,9 +150,6 @@ class MdlVisual final {
     MeshAttach                     ammunition, stateItm;
     std::vector<MeshAttach>        item;
     std::vector<MeshAttach>        attach;
-
-    float                          headRotX = 0;
-    float                          headRotY = 0;
 
     std::vector<PfxSlot>           effects;
     PfxSlot                        pfx;

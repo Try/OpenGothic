@@ -44,6 +44,7 @@ Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src, const Animation* anim, st
     if(i.parent==size_t(-1)){
       i.tr.translate(rootTr);
       }
+  BIP01_HEAD = findNode("BIP01 HEAD");
   mkSkeleton();
   }
 

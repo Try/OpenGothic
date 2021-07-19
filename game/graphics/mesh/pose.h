@@ -75,6 +75,8 @@ class Pose final {
     size_t             boneCount() const;
     size_t             findNode(std::string_view b) const;
 
+    void               setHeadRotation(float dx, float dz);
+    Tempest::Vec2      headRotation() const;
     void               setRotation(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir);
     bool               setAnimItem(const AnimationSolver &solver, Npc &npc, std::string_view scheme, int state);
     bool               stopItemStateAnim(const AnimationSolver &solver, uint64_t tickCount);
@@ -122,6 +124,8 @@ class Pose final {
     bool                            needToUpdate = true;
     uint8_t                         hasEvents = 0;
     uint8_t                         isFlyCombined = 0;
+
+    float                           headRotX = 0, headRotY = 0;
 
     size_t                          numBones = 0;
     Tempest::Matrix4x4              base[Resources::MAX_NUM_SKELETAL_NODES];

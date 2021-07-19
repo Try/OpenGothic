@@ -56,6 +56,7 @@ void Pose::save(Serialize &fout) {
   fout.write(comboLen);
   fout.write(rotation ? rotation->name : "");
   fout.write(itemUseSt,itemUseDestSt);
+  fout.write(headRotX,headRotY);
   }
 
 void Pose::load(Serialize &fin, const AnimationSolver& solver) {
@@ -108,6 +109,8 @@ void Pose::load(Serialize &fin, const AnimationSolver& solver) {
     }
   for(auto& i:lay)
     onAddLayer(i);
+  if(fin.version()>30)
+    fin.read(headRotX,headRotY);
   needToUpdate = true;
   }
 
@@ -357,10 +360,11 @@ bool Pose::updateFrame(const Animation::Sequence &s,
   auto* sampleB = &d.samples[size_t(frameB*idSize)];
 
   for(size_t i=0; i<idSize; ++i) {
-    if(d.nodeIndex[i]>=numBones)
+    size_t idx = d.nodeIndex[i];
+    if(idx>=numBones)
       continue;
     auto smp = mix(sampleA[i],sampleB[i],a);
-    base[d.nodeIndex[i]] = mkMatrix(smp);
+    base[idx] = mkMatrix(smp);
     }
   return true;
   }
@@ -377,13 +381,19 @@ void Pose::mkSkeleton(const Animation::Sequence &s, BodyState bs) {
 void Pose::mkSkeleton(const Matrix4x4 &mt) {
   if(skeleton==nullptr)
     return;
-  auto& nodes = skeleton->nodes;
+  auto& nodes      = skeleton->nodes;
+  auto  BIP01_HEAD = skeleton->BIP01_HEAD;
   for(size_t i=0; i<nodes.size(); ++i) {
     size_t parent = nodes[i].parent;
     if(parent<Resources::MAX_NUM_SKELETAL_NODES) {
       tr[i] = tr[parent]*base[i];
       } else {
       tr[i] = mt*base[i];
+      }
+    if(i==BIP01_HEAD && (headRotX!=0 || headRotY!=0)) {
+      Matrix4x4& m = tr[i];
+      m.rotateOY(headRotY);
+      m.rotateOX(headRotX);
       }
     }
   }
@@ -667,6 +677,15 @@ size_t Pose::findNode(std::string_view b) const {
   if(skeleton!=nullptr)
     return skeleton->findNode(b);
   return size_t(-1);
+  }
+
+void Pose::setHeadRotation(float dx, float dz) {
+  headRotX = dx;
+  headRotY = dz;
+  }
+
+Vec2 Pose::headRotation() const {
+  return Vec2(headRotX,headRotY);
   }
 
 void Pose::setRotation(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir) {

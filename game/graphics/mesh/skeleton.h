@@ -24,6 +24,8 @@ class Skeleton final {
     std::vector<Tempest::Matrix4x4> tr;
     Tempest::Vec3                   rootTr={};
 
+    size_t                          BIP01_HEAD = size_t(-1);
+
     ZMath::float3                   bboxCol[2]={};
 
     size_t                          findNode(std::string_view   name,size_t def=size_t(-1)) const;
