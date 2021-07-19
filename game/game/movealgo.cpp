@@ -302,7 +302,7 @@ void MoveAlgo::tickSwim(uint64_t dt) {
     }
 
   // swim on top of water
-  if(!isDive())
+  if(!isDive() && validW)
     tryMove(dp.x,water-chest-pY,dp.z); else
     tryMove(dp.x,dp.y,dp.z);
   }
@@ -364,10 +364,14 @@ void MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
   bool  onGound = true;
 
   if(!npc.isDead() && npc.bodyStateMasked()!=BS_JUMP && ground+waterDepthChest()<water) {
-    setInAir(false);
-    setInWater(true);
-    setAsSwim(true);
-    return;
+    // attach to water
+    float chest = waterDepthChest();
+    if(tryMove(0.f,water-chest-pY,0.f)) {
+      setInAir(false);
+      setInWater(true);
+      setAsSwim(true);
+      return;
+      }
     }
 
   if(canFlyOverWater() && ground<water) {

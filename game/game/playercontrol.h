@@ -93,7 +93,7 @@ class PlayerControl final {
     InventoryMenu& inv;
 
     bool           canInteract() const;
-    void           marvinF8();
+    void           marvinF8(uint64_t dt);
     void           toogleWalkMode();
     void           toggleSneakMode();
     Focus          findFocus(Focus *prev);

@@ -290,7 +290,7 @@ void PlayerControl::clearInput() {
   std::memset(wctrl,0,sizeof(wctrl));
   }
 
-void PlayerControl::marvinF8() {
+void PlayerControl::marvinF8(uint64_t dt) {
   auto w = Gothic::inst().world();
   if(w==nullptr || w->player()==nullptr)
     return;
@@ -300,12 +300,11 @@ void PlayerControl::marvinF8() {
   float rot = pl.rotationRad();
   float s   = std::sin(rot), c = std::cos(rot);
 
-  pos.y+=50;
-
-  pos.x+=60*s;
-  pos.z+=-60*c;
+  Tempest::Vec3 dp(s,0.8f,-c);
+  pos += dp*6000*float(dt)/1000.f;
 
   pl.changeAttribute(Npc::ATR_HITPOINTS,pl.attribute(Npc::ATR_HITPOINTSMAX),false);
+  pl.changeAttribute(Npc::ATR_MANA,     pl.attribute(Npc::ATR_MANAMAX),     false);
   pl.clearState(false);
   pl.setPosition(pos);
   pl.clearSpeed();
@@ -352,7 +351,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
     }
 
   if(ctrl[Action::K_F8])
-    marvinF8();
+    marvinF8(dt);
   cacheFocus = ctrl[Action::ActionGeneric];
 
   if(ctrl[Action::ActionGeneric] && ctrl[Action::Forward]) {
