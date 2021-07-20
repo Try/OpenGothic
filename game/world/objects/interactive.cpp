@@ -240,7 +240,7 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
 
   if(needToLockpick(npc)) {
     if(p.attachMode) {
-      npc.world().sendPassivePerc(npc,npc,npc,Npc::PERC_ASSESSUSEMOB);
+      npc.world().sendPassivePerc(npc,npc,npc,PERC_ASSESSUSEMOB);
       return; // chest is locked - need to crack lock first
       }
     }
@@ -259,7 +259,7 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     }
 
   if(state==0 && p.attachMode) {
-    npc.world().sendPassivePerc(npc,npc,npc,Npc::PERC_ASSESSUSEMOB);
+    npc.world().sendPassivePerc(npc,npc,npc,PERC_ASSESSUSEMOB);
     emitTriggerEvent();
     }
 
@@ -485,7 +485,7 @@ bool Interactive::checkUseConditions(Npc& npc) {
   if(isPlayer) {
     const size_t ItKE_lockpick  = world.script().getSymbolIndex("ItKE_lockpick");
     const size_t lockPickCnt    = npc.inventory().itemCount(ItKE_lockpick);
-    const bool   canLockPick    = (npc.talentSkill(Npc::TALENT_PICKLOCK)!=0 && lockPickCnt>0);
+    const bool   canLockPick    = (npc.talentSkill(TALENT_PICKLOCK)!=0 && lockPickCnt>0);
 
     const size_t keyInst        = keyInstance.empty() ? size_t(-1) : world.script().getSymbolIndex(keyInstance.c_str());
     const bool   needToPicklock = (pickLockStr.size()>0);

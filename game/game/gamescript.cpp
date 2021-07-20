@@ -931,12 +931,12 @@ int GameScript::invokeMana(Npc &npc, Npc* target, Item &) {
   auto& dat = vm.getDATFile();
   auto fn   = dat.getSymbolIndexByName("Spell_ProcessMana");
   if(fn==size_t(-1))
-    return Npc::SpellCode::SPL_SENDSTOP;
+    return SpellCode::SPL_SENDSTOP;
 
   ScopeVar self (vm, vm.globalSelf(),  npc);
   ScopeVar other(vm, vm.globalOther(), target);
 
-  vm.pushInt(npc.attribute(Npc::ATR_MANA));
+  vm.pushInt(npc.attribute(ATR_MANA));
   return runFunction(fn);
   }
 
@@ -1896,14 +1896,14 @@ void GameScript::npc_settalentskill(Daedalus::DaedalusVM &vm) {
   int  t       = vm.popInt();
   auto npc     = popInstance(vm);
   if(npc!=nullptr)
-    npc->setTalentSkill(Npc::Talent(t),lvl);
+    npc->setTalentSkill(Talent(t),lvl);
   }
 
 void GameScript::npc_gettalentskill(Daedalus::DaedalusVM &vm) {
   uint32_t skillId = uint32_t(vm.popInt());
   auto     npc     = popInstance(vm);
 
-  int32_t  skill   = npc==nullptr ? 0 : npc->talentSkill(Npc::Talent(skillId));
+  int32_t  skill   = npc==nullptr ? 0 : npc->talentSkill(Talent(skillId));
   vm.setReturn(skill);
   }
 
@@ -1912,14 +1912,14 @@ void GameScript::npc_settalentvalue(Daedalus::DaedalusVM &vm) {
   int t    = vm.popInt();
   auto npc = popInstance(vm);
   if(npc!=nullptr)
-    npc->setTalentValue(Npc::Talent(t),lvl);
+    npc->setTalentValue(Talent(t),lvl);
   }
 
 void GameScript::npc_gettalentvalue(Daedalus::DaedalusVM &vm) {
   uint32_t skillId = uint32_t(vm.popInt());
   auto     npc     = popInstance(vm);
 
-  int32_t  skill   = npc==nullptr ? 0 : npc->talentValue(Npc::Talent(skillId));
+  int32_t  skill   = npc==nullptr ? 0 : npc->talentValue(Talent(skillId));
   vm.setReturn(skill);
   }
 
@@ -2022,14 +2022,14 @@ void GameScript::npc_percenable(Daedalus::DaedalusVM &vm) {
   int32_t pr  = vm.popInt();
   auto    npc = popInstance(vm);
   if(npc && fn>=0)
-    npc->setPerceptionEnable(Npc::PercType(pr),size_t(fn));
+    npc->setPerceptionEnable(PercType(pr),size_t(fn));
   }
 
 void GameScript::npc_percdisable(Daedalus::DaedalusVM &vm) {
   int32_t pr  = vm.popInt();
   auto    npc = popInstance(vm);
   if(npc)
-    npc->setPerceptionDisable(Npc::PercType(pr));
+    npc->setPerceptionDisable(PercType(pr));
   }
 
 void GameScript::npc_getnearestwp(Daedalus::DaedalusVM &vm) {
@@ -2072,7 +2072,7 @@ void GameScript::npc_changeattribute(Daedalus::DaedalusVM &vm) {
   int32_t atr  = vm.popInt();
   auto    npc  = popInstance(vm);
   if(npc!=nullptr && atr>=0)
-    npc->changeAttribute(Npc::Attribute(atr),val,false);
+    npc->changeAttribute(Attribute(atr),val,false);
   }
 
 void GameScript::npc_isonfp(Daedalus::DaedalusVM &vm) {
@@ -3196,7 +3196,7 @@ void GameScript::snd_play3d(Daedalus::DaedalusVM& vm) {
     c = char(std::toupper(c));
   auto sfx = ::Sound(*owner.world(),::Sound::T_3D,file,npc->position(),0.f,false);
   sfx.play();
-  owner.world()->sendPassivePerc(*npc,*npc,*npc,Npc::PERC_ASSESSQUIETSOUND);
+  owner.world()->sendPassivePerc(*npc,*npc,*npc,PERC_ASSESSQUIETSOUND);
   }
 
 void GameScript::exitsession(Daedalus::DaedalusVM&) {

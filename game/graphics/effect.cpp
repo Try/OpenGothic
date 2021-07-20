@@ -292,7 +292,7 @@ void Effect::onCollide(World& world, const VisualFx* root, const Vec3& pos, Npc*
     npc->runEffect(std::move(eff));
     if(vfx->sendAssessMagic) {
       auto oth = other==nullptr ? npc : other;
-      npc->perceptionProcess(*oth,npc,0,Npc::PERC_ASSESSMAGIC);
+      npc->perceptionProcess(*oth,npc,0,PERC_ASSESSMAGIC);
       }
     }
   }

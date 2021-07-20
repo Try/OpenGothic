@@ -32,9 +32,8 @@ DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const 
   }
 
 DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, const Bullet& b, const CollideMask bMsk) {
-  const float maxRange = 3500; // from Focus_Ranged
   bool invinsible = !checkDamageMask(nsrc,nother,&b);
-  if(b.pathLength()>maxRange*b.hitChance() && b.hitChance()<1.f)
+  if(b.pathLength()>MaxBowRange*b.hitChance() && b.hitChance()<1.f)
     return Val(0,false,invinsible);
 
   if(invinsible)
@@ -76,19 +75,19 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
 
   // Swords/Fists
   const int dtype      = damageTypeMask(nsrc);
-  uint8_t   hitCh      = Npc::TALENT_UNKNOWN;
-  int       s          = nsrc.attribute(Npc::Attribute::ATR_STRENGTH);
+  uint8_t   hitCh      = TALENT_UNKNOWN;
+  int       s          = nsrc.attribute(Attribute::ATR_STRENGTH);
   int       critChance = int(script.rand(100));
 
   int  value=0;
 
   if(auto w = nsrc.inventory().activeWeapon()){
     if(w->is2H())
-      hitCh = Npc::TALENT_2H; else
-      hitCh = Npc::TALENT_1H;
+      hitCh = TALENT_2H; else
+      hitCh = TALENT_1H;
     }
 
-  if(nsrc.isMonster() && hitCh==Npc::TALENT_UNKNOWN) {
+  if(nsrc.isMonster() && hitCh==TALENT_UNKNOWN) {
     // regular monsters always do critical damage
     critChance = 0;
     }
@@ -135,7 +134,7 @@ bool DamageCalculator::checkDamageMask(Npc& nsrc, Npc& nother, const Bullet* b) 
 
 DamageCalculator::Damage DamageCalculator::rangeDamageValue(Npc& src) {
   const int dtype = damageTypeMask(src);
-  int d = src.attribute(Npc::Attribute::ATR_DEXTERITY);
+  int d = src.attribute(Attribute::ATR_DEXTERITY);
   Damage ret={};
   for(int i=0;i<DAM_INDEX_MAX;++i){
     if((dtype & (1<<i))==0)

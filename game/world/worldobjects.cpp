@@ -222,7 +222,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
              i.canSenseNpc(*r.other, true)!=SensesBit::SENSE_NONE &&
              i.canSenseNpc(*r.victum,true,float(r.other->handle()->senses_range))!=SensesBit::SENSE_NONE
             ) {
-            i.perceptionProcess(*r.other,r.victum,l,Npc::PercType(r.what));
+            i.perceptionProcess(*r.other,r.victum,l,PercType(r.what));
             }
           }
         }

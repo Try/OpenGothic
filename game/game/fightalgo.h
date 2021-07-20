@@ -41,6 +41,7 @@ class FightAlgo final {
     bool   hasInstructions() const;
     bool   fetchInstructions(Npc &npc, Npc &tg, GameScript& owner);
 
+    float  baseDistance          (const Npc &npc, const Npc &tg,  GameScript &owner) const;
     float  prefferedAtackDistance(const Npc &npc, const Npc &tg, GameScript &owner) const;
     float  prefferedGDistance    (const Npc &npc, const Npc &tg, GameScript &owner) const;
 
@@ -52,9 +53,7 @@ class FightAlgo final {
     void   fillQueue(Npc &npc, Npc &tg, GameScript& owner);
     bool   fillQueue(GameScript& owner,const Daedalus::GEngineClasses::C_FightAI& src);
 
-    static float  gRange         (GameScript &owner,const Npc &npc);
-    static float  weaponRange    (GameScript &owner,const Npc &npc);
-    static float  weaponOnlyRange(GameScript &owner,const Npc &npc);
+    static float  weaponRange(GameScript &owner,const Npc &npc);
 
     Daedalus::GEngineClasses::Move queueId=Daedalus::GEngineClasses::Move(0);
     Action                         tr   [MV_MAX]={};

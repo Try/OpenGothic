@@ -324,7 +324,7 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
     portal       = cache.sector;
     if(npc.isPlayer()) {
       auto& w = npc.world();
-      w.sendPassivePerc(npc,npc,npc,Npc::PERC_ASSESSENTERROOM);
+      w.sendPassivePerc(npc,npc,npc,PERC_ASSESSENTERROOM);
       }
     }
   }
@@ -437,6 +437,8 @@ void MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
        (dY<300.f && !npc.isPlayer()) ||
        isSlide()) {
       // start to fall of cliff
+      if(dp==Tempest::Vec3())
+        dp = Tempest::Vec3(cache.n.x,0,cache.n.z)*float(dt);
       if(tryMove(dp.x,dp.y,dp.z)){
         fallSpeed.x = 0.3f*dp.x;
         fallSpeed.y = 0.f;
@@ -600,8 +602,8 @@ void MoveAlgo::takeFallDamage() const {
   float h0          = float(g.falldown_height[gl]);
   float dmgPerMeter = float(g.falldown_damage[gl]);
 
-  int32_t hp   = npc.attribute(Npc::ATR_HITPOINTS);
-  int32_t prot = npc.protection(Npc::PROT_FALL);
+  int32_t hp   = npc.attribute(ATR_HITPOINTS);
+  int32_t prot = npc.protection(PROT_FALL);
 
   int32_t damage = int32_t(dmgPerMeter*(height-h0)/100.f - float(prot));
   if(damage<=0)
@@ -611,7 +613,7 @@ void MoveAlgo::takeFallDamage() const {
     npc.emitSoundSVM("SVM_%d_AARGH");
     npc.setAnim(Npc::Anim::Fallen);
     }
-  npc.changeAttribute(Npc::ATR_HITPOINTS,-damage,false);
+  npc.changeAttribute(ATR_HITPOINTS,-damage,false);
   }
 
 void MoveAlgo::emitWaterSplash(float y) {

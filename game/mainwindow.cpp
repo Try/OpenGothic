@@ -157,8 +157,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
       paintFocus(p,focus,vp);
 
       if(auto pl = Gothic::inst().player()){
-        float hp = float(pl->attribute(Npc::ATR_HITPOINTS))/float(pl->attribute(Npc::ATR_HITPOINTSMAX));
-        float mp = float(pl->attribute(Npc::ATR_MANA))     /float(pl->attribute(Npc::ATR_MANAMAX));
+        float hp = float(pl->attribute(ATR_HITPOINTS))/float(pl->attribute(ATR_HITPOINTSMAX));
+        float mp = float(pl->attribute(ATR_MANA))     /float(pl->attribute(ATR_MANAMAX));
         drawBar(p,barHp,  10,    h()-10, hp, AlignLeft  | AlignBottom);
         drawBar(p,barMana,w()-10,h()-10, mp, AlignRight | AlignBottom);
         if(pl->isDive()) {
@@ -467,7 +467,7 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
   fnt.drawText(p,ix,iy,focus.displayName());
 
   if(focus.npc!=nullptr) {
-    float hp = float(focus.npc->attribute(Npc::ATR_HITPOINTS))/float(focus.npc->attribute(Npc::ATR_HITPOINTSMAX));
+    float hp = float(focus.npc->attribute(ATR_HITPOINTS))/float(focus.npc->attribute(ATR_HITPOINTSMAX));
     drawBar(p,barHp, w()/2,10, hp, AlignHCenter|AlignTop);
     }
 

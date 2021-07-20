@@ -1086,7 +1086,7 @@ bool Npc::isInAir() const {
   return mvAlgo.isInAir();
   }
 
-void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {
+void Npc::setTalentSkill(Talent t, int32_t lvl) {
   if(t<TALENT_MAX_G2) {
     talentsSk[t] = lvl;
     if(t==TALENT_1H){
@@ -1153,24 +1153,24 @@ void Npc::setTalentSkill(Npc::Talent t, int32_t lvl) {
     }
   }
 
-int32_t Npc::talentSkill(Npc::Talent t) const {
+int32_t Npc::talentSkill(Talent t) const {
   if(t<TALENT_MAX_G2)
     return talentsSk[t];
   return 0;
   }
 
-void Npc::setTalentValue(Npc::Talent t, int32_t lvl) {
+void Npc::setTalentValue(Talent t, int32_t lvl) {
   if(t<TALENT_MAX_G2)
     talentsVl[t] = lvl;
   }
 
-int32_t Npc::talentValue(Npc::Talent t) const {
+int32_t Npc::talentValue(Talent t) const {
   if(t<TALENT_MAX_G2)
     return talentsVl[t];
   return 0;
   }
 
-int32_t Npc::hitChanse(Npc::Talent t) const {
+int32_t Npc::hitChanse(Talent t) const {
   if(t<Daedalus::GEngineClasses::MAX_HITCHANCE)
     return hnpc.hitChance[t];
   return 0;
@@ -1192,13 +1192,13 @@ void Npc::setRefuseTalk(uint64_t milis) {
   refuseTalkMilis = owner.tickCount()+milis;
   }
 
-int32_t Npc::attribute(Npc::Attribute a) const {
+int32_t Npc::attribute(Attribute a) const {
   if(a<ATR_MAX)
     return hnpc.attribute[a];
   return 0;
   }
 
-void Npc::changeAttribute(Npc::Attribute a, int32_t val, bool allowUnconscious) {
+void Npc::changeAttribute(Attribute a, int32_t val, bool allowUnconscious) {
   if(a>=ATR_MAX || val==0)
     return;
 
@@ -1217,13 +1217,13 @@ void Npc::changeAttribute(Npc::Attribute a, int32_t val, bool allowUnconscious) 
     checkHealth(true,allowUnconscious);
   }
 
-int32_t Npc::protection(Npc::Protection p) const {
+int32_t Npc::protection(Protection p) const {
   if(p<PROT_MAX)
     return hnpc.protection[p];
   return 0;
   }
 
-void Npc::changeProtection(Npc::Protection p, int32_t val) {
+void Npc::changeProtection(Protection p, int32_t val) {
   if(p<PROT_MAX)
     hnpc.protection[p]=val;
   }
@@ -1366,12 +1366,7 @@ bool Npc::implTurnTo(float dx, float dz, bool noAnim, uint64_t dt) {
 bool Npc::implGoTo(uint64_t dt) {
   float dist = 0;
   if(go2.npc) {
-    if(go2.flag==GT_EnemyA)
-      dist = fghAlgo.prefferedAtackDistance(*this,*currentTarget,owner.script());
-    else if(go2.flag==GT_EnemyG)
-      dist = fghAlgo.prefferedGDistance(*this,*currentTarget,owner.script());
-    else
-      dist = 400;
+    dist = fghAlgo.baseDistance(*this,*go2.npc,owner.script());
     } else {
     // use smaller threshold, to avoid edge-looping in script
     dist = MoveAlgo::closeToPointThreshold*0.25f;
@@ -1422,8 +1417,10 @@ bool Npc::implAtack(uint64_t dt) {
   if(currentTarget->isDown()/* && !fghAlgo.hasInstructions()*/){
     // NOTE: don't clear internal target, to make scripts happy
     // currentTarget=nullptr;
-    if(go2.flag==GT_EnemyA || go2.flag==GT_EnemyG)
+    if(go2.flag==GT_EnemyA || go2.flag==GT_EnemyG) {
       go2.clear();
+      setAnim(AnimationSolver::Idle);
+      }
     fghAlgo.onClearTarget();
     return false;
     }
@@ -1452,13 +1449,13 @@ bool Npc::implAtack(uint64_t dt) {
   if(act==FightAlgo::MV_ATACK || act==FightAlgo::MV_ATACKL || act==FightAlgo::MV_ATACKR) {
     static const Anim ani[4]={Anim::Atack,Anim::AtackL,Anim::AtackR};
     if((act!=FightAlgo::MV_ATACK && bodyState()!=BS_RUN) &&
-       !fghAlgo.isInAtackRange(*this,*currentTarget,owner.script())){
+       !fghAlgo.isInAtackRange(*this,*currentTarget,owner.script())) {
       fghAlgo.consumeAction();
       return true;
       }
 
     auto ws = weaponState();
-    if(ws==WeaponState::Mage){
+    if(ws==WeaponState::Mage) {
       if(castSpell()) {
         fghAlgo.consumeAction();
         }
@@ -1467,7 +1464,7 @@ bool Npc::implAtack(uint64_t dt) {
                    currentTarget->y-y,
                    currentTarget->z-z);
       }
-    else if(ws==WeaponState::Bow || ws==WeaponState::CBow){
+    else if(ws==WeaponState::Bow || ws==WeaponState::CBow) {
       if(shootBow()) {
         fghAlgo.consumeAction();
         } else {
@@ -1477,7 +1474,7 @@ bool Npc::implAtack(uint64_t dt) {
           }
         }
       }
-    else if(ws==WeaponState::Fist){
+    else if(ws==WeaponState::Fist) {
       if(doAttack(Anim::Atack))
         fghAlgo.consumeAction();
       }
@@ -1521,16 +1518,20 @@ bool Npc::implAtack(uint64_t dt) {
     }
 
   if(act==FightAlgo::MV_MOVEA || act==FightAlgo::MV_MOVEG) {
+    float dist = 0;
+    if(act==FightAlgo::MV_MOVEA)
+      dist = fghAlgo.prefferedAtackDistance(*this,*currentTarget,owner.script()); else
+      dist = fghAlgo.prefferedGDistance(*this,*currentTarget,owner.script());
     go2.set(currentTarget,(act==FightAlgo::MV_MOVEG) ? GoToHint::GT_EnemyG : GoToHint::GT_EnemyA);
-    if(implGoTo(dt)) {
+
+    if(implGoTo(dt) && qDistTo(*currentTarget)>dist*dist) {
       implAiTick(dt);
       return true;
       }
 
-    if(ws!=WeaponState::Fist && ws!=WeaponState::W1H && ws!=WeaponState::W2H)
-      setAnim(AnimationSolver::Idle);
+    go2.clear();
     fghAlgo.consumeAction();
-    aiState.loopNextTime=owner.tickCount(); //force ZS_MM_Attack_Loop call
+    aiState.loopNextTime = owner.tickCount(); //force ZS_MM_Attack_Loop call
     implAiTick(dt);
     return true;
     }
@@ -1796,7 +1797,7 @@ void Npc::tick(uint64_t dt) {
   visual.setNpcEffect(owner,*this,hnpc.effect,hnpc.flags);
 
   if(ev.groundSounds>0 && isPlayer() && (bodyState()&BodyState::BS_SNEAK)==BodyState::BS_SNEAK)
-    world().sendPassivePerc(*this,*this,*this,Npc::PERC_ASSESSQUIETSOUND);
+    world().sendPassivePerc(*this,*this,*this,PERC_ASSESSQUIETSOUND);
   if(ev.def_opt_frame>0)
     commitDamage();
   implSetFightMode(ev);
@@ -2633,7 +2634,7 @@ Item* Npc::takeItem(Item& item) {
   if(it==nullptr)
     return nullptr;
   if(it->handle().owner!=0)
-    owner.sendPassivePerc(*this,*this,*this,*it,Npc::PERC_ASSESSTHEFT);
+    owner.sendPassivePerc(*this,*this,*this,*it,PERC_ASSESSTHEFT);
 
   addItem(std::move(ptr));
   implAniWait(uint64_t(sq->totalTime()));
@@ -2959,7 +2960,7 @@ bool Npc::finishingMove() {
     return false;
 
   if(doAttack(Anim::AtackFinish)) {
-    currentTarget->hnpc.attribute[Npc::Attribute::ATR_HITPOINTS] = 0;
+    currentTarget->hnpc.attribute[ATR_HITPOINTS] = 0;
     currentTarget->checkHealth(true,false);
     owner.sendPassivePerc(*this,*this,*currentTarget,PERC_ASSESSMURDER);
     return true;
@@ -3239,12 +3240,12 @@ void Npc::setPerceptionTime(uint64_t time) {
   perceptionTime = time;
   }
 
-void Npc::setPerceptionEnable(Npc::PercType t, size_t fn) {
+void Npc::setPerceptionEnable(PercType t, size_t fn) {
   if(t>0 && t<PERC_Count)
     perception[t].func = fn;
   }
 
-void Npc::setPerceptionDisable(Npc::PercType t) {
+void Npc::setPerceptionDisable(PercType t) {
   if(t>0 && t<PERC_Count)
     perception[t].func = ScriptFn();
   }
@@ -3307,7 +3308,7 @@ bool Npc::perceptionProcess(Npc &pl) {
   return ret;
   }
 
-bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType perc) {
+bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, PercType perc) {
   float r = float(hnpc.senses_range);
   r = r*r;
   if(quadDist>r)
@@ -3325,7 +3326,7 @@ bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, Npc::PercType 
   return false;
   }
 
-bool Npc::hasPerc(Npc::PercType perc) const {
+bool Npc::hasPerc(PercType perc) const {
   return perception[perc].func.isValid();
   }
 

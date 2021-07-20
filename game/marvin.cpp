@@ -120,7 +120,7 @@ bool Marvin::exec(const std::string& v) {
       return false;
     case C_CheatFull:{
       if(auto pl = Gothic::inst().player()) {
-        pl->changeAttribute(Npc::ATR_HITPOINTS,pl->attribute(Npc::ATR_HITPOINTSMAX),false);
+        pl->changeAttribute(ATR_HITPOINTS,pl->attribute(ATR_HITPOINTSMAX),false);
         }
       return true;
       }

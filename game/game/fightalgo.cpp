@@ -45,7 +45,7 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
       return;
     }
 
-  if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H){
+  if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
     if(isInAtackRange(npc,tg,owner)) {
       if(npc.bodyStateMasked()==BS_RUN)
         if(fillQueue(owner,ai.my_w_runto))
@@ -65,29 +65,21 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
         if(fillQueue(owner,ai.my_g_focus))
           return;
       }
-
-    if(npc.bodyStateMasked()==BS_RUN)
-      if(fillQueue(owner,ai.my_w_runto))
-        return;
-    if(fillQueue(owner,ai.my_w_nofocus))
-      return;
     }
 
-  if(ws==WeaponState::Bow || ws==WeaponState::CBow){
-    if(isInAtackRange(npc,tg,owner))
-      if(fillQueue(owner,ai.my_fk_focus_far))
-        return;
-    if(fillQueue(owner,ai.my_fk_nofocus_far))
-      return;
-    }
-
-  if(ws==WeaponState::Mage){
+  if(ws==WeaponState::Mage) {
     if(isInAtackRange(npc,tg,owner))
       if(fillQueue(owner,ai.my_fk_focus_mag))
         return;
     if(fillQueue(owner,ai.my_fk_nofocus_mag))
       return;
     }
+
+  if(isInAtackRange(npc,tg,owner))
+    if(fillQueue(owner,ai.my_fk_focus_far))
+      return;
+  if(fillQueue(owner,ai.my_fk_nofocus_far))
+    return;
 
   fillQueue(owner,ai.my_w_nofocus);
   }
@@ -106,7 +98,7 @@ bool FightAlgo::fillQueue(GameScript& owner,const Daedalus::GEngineClasses::C_Fi
   }
 
 FightAlgo::Action FightAlgo::nextFromQueue(Npc& npc, Npc& tg, GameScript& owner) {
-  if(tr[0]==MV_NULL){
+  if(tr[0]==MV_NULL) {
     switch(queueId) {
       case Daedalus::GEngineClasses::MOVE_TURN:
       case Daedalus::GEngineClasses::MOVE_RUN:{
@@ -231,26 +223,17 @@ void FightAlgo::onTakeHit() {
     i = MV_NULL;
   }
 
-float FightAlgo::prefferedAtackDistance(const Npc &npc, const Npc &tg,  GameScript &owner) const {
-  float  baseTg = float(owner.guildVal().fight_range_base[tg.guild()]);
-  switch(npc.weaponState()) {
-    case WeaponState::NoWeapon:
-      break;
-    case WeaponState::Fist:
-    case WeaponState::W1H:
-    case WeaponState::W2H:
-      break;
-    case WeaponState::Bow:
-    case WeaponState::CBow:
-    case WeaponState::Mage:
-      baseTg = 0;
-      break;
-    }
-  return baseTg + weaponRange(owner,npc);
+float FightAlgo::baseDistance(const Npc& npc, const Npc& tg,  GameScript &owner) const {
+  auto&  gv      = owner.guildVal();
+  float  baseTg  = float(gv.fight_range_base[tg .guild()]);
+  float  baseNpc = float(gv.fight_range_base[npc.guild()]);
+  return baseTg + baseNpc;
   }
 
-float FightAlgo::prefferedGDistance(const Npc &npc, const Npc &tg, GameScript &owner) const {
-  float  baseTg = float(owner.guildVal().fight_range_base[tg.guild()]);
+float FightAlgo::prefferedAtackDistance(const Npc& npc, const Npc& tg,  GameScript &owner) const {
+  auto&  gv      = owner.guildVal();
+  float  baseTg  = float(gv.fight_range_base[tg .guild()]);
+  float  baseNpc = float(gv.fight_range_base[npc.guild()]);
   switch(npc.weaponState()) {
     case WeaponState::NoWeapon:
       break;
@@ -264,19 +247,25 @@ float FightAlgo::prefferedGDistance(const Npc &npc, const Npc &tg, GameScript &o
       baseTg = 0;
       break;
     }
-  return baseTg + gRange(owner,npc);
+  return baseTg + baseNpc + weaponRange(owner,npc);
+  }
+
+float FightAlgo::prefferedGDistance(const Npc& npc, const Npc& /*tg*/, GameScript &owner) const {
+  auto  gl = npc.guild();
+  auto& gv = owner.guildVal();
+  return float(gv.fight_range_base[gl] + gv.fight_range_g[gl]) + weaponRange(owner,npc);
   }
 
 bool FightAlgo::isInAtackRange(const Npc &npc,const Npc &tg, GameScript &owner) const {
   auto dist = npc.qDistTo(tg);
   auto pd   = prefferedAtackDistance(npc,tg,owner);
-  return (dist<pd*pd);
+  return (dist<=pd*pd);
   }
 
 bool FightAlgo::isInGRange(const Npc &npc, const Npc &tg, GameScript &owner) const {
   auto dist = npc.qDistTo(tg);
   auto pd   = prefferedGDistance(npc,tg,owner);
-  return (dist<pd*pd);
+  return (dist<=pd*pd);
   }
 
 bool FightAlgo::isInFocusAngle(const Npc &npc, const Npc &tg) const {
@@ -293,19 +282,7 @@ bool FightAlgo::isInFocusAngle(const Npc &npc, const Npc &tg) const {
   return true;
   }
 
-float FightAlgo::gRange(GameScript &owner, const Npc &npc) {
-  auto  gl = npc.guild();
-  auto& gv = owner.guildVal();
-  return float(gv.fight_range_base[gl]+gv.fight_range_g[gl])+weaponOnlyRange(owner,npc);
-  }
-
 float FightAlgo::weaponRange(GameScript &owner, const Npc &npc) {
-  auto  gl = npc.guild();
-  auto& gv = owner.guildVal();
-  return float(gv.fight_range_base[gl])+weaponOnlyRange(owner,npc);
-  }
-
-float FightAlgo::weaponOnlyRange(GameScript &owner,const Npc &npc) {
   auto  gl  = npc.guild();
   auto& gv  = owner.guildVal();
   auto  w   = npc.inventory().activeWeapon();
@@ -320,9 +297,11 @@ float FightAlgo::weaponOnlyRange(GameScript &owner,const Npc &npc) {
     case WeaponState::Fist:
       return float(gv.fight_range_fist[gl]);
     case WeaponState::Bow:
+      return float((MaxBowRange*npc.hitChanse(TALENT_BOW))/100);
     case WeaponState::CBow:
+      return float((MaxBowRange*npc.hitChanse(TALENT_CROSSBOW))/100);
     case WeaponState::Mage:
-      return 3000;
+      return float(MaxMagRange);
     }
   return 0;
   }

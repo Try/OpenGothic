@@ -843,17 +843,17 @@ void GameMenu::setPlayer(const Npc &pl) {
   set("MENU_ITEM_LEVEL_NEXT", pl.experienceNext());
   set("MENU_ITEM_LEARN",      pl.learningPoints());
 
-  set("MENU_ITEM_ATTRIBUTE_1", pl.attribute(Npc::ATR_STRENGTH));
-  set("MENU_ITEM_ATTRIBUTE_2", pl.attribute(Npc::ATR_DEXTERITY));
-  set("MENU_ITEM_ATTRIBUTE_3", pl.attribute(Npc::ATR_MANA),      pl.attribute(Npc::ATR_MANAMAX));
-  set("MENU_ITEM_ATTRIBUTE_4", pl.attribute(Npc::ATR_HITPOINTS), pl.attribute(Npc::ATR_HITPOINTSMAX));
+  set("MENU_ITEM_ATTRIBUTE_1", pl.attribute(ATR_STRENGTH));
+  set("MENU_ITEM_ATTRIBUTE_2", pl.attribute(ATR_DEXTERITY));
+  set("MENU_ITEM_ATTRIBUTE_3", pl.attribute(ATR_MANA),      pl.attribute(ATR_MANAMAX));
+  set("MENU_ITEM_ATTRIBUTE_4", pl.attribute(ATR_HITPOINTS), pl.attribute(ATR_HITPOINTSMAX));
 
-  set("MENU_ITEM_ARMOR_1", pl.protection(Npc::PROT_EDGE));
-  set("MENU_ITEM_ARMOR_2", pl.protection(Npc::PROT_POINT)); // not sure about it
-  set("MENU_ITEM_ARMOR_3", pl.protection(Npc::PROT_FIRE));
-  set("MENU_ITEM_ARMOR_4", pl.protection(Npc::PROT_MAGIC));
+  set("MENU_ITEM_ARMOR_1", pl.protection(PROT_EDGE));
+  set("MENU_ITEM_ARMOR_2", pl.protection(PROT_POINT)); // not sure about it
+  set("MENU_ITEM_ARMOR_3", pl.protection(PROT_FIRE));
+  set("MENU_ITEM_ARMOR_4", pl.protection(PROT_MAGIC));
 
-  const int talentMax = Gothic::inst().version().game==2 ? Npc::TALENT_MAX_G2 : Npc::TALENT_MAX_G1;
+  const int talentMax = Gothic::inst().version().game==2 ? TALENT_MAX_G2 : TALENT_MAX_G1;
   for(int i=0;i<talentMax;++i){
     auto& str = tal.getString(size_t(i));
     if(str.empty())
@@ -863,11 +863,11 @@ void GameMenu::setPlayer(const Npc &pl) {
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d_TITLE",i);
     set(buf,str.c_str());
 
-    const int sk=pl.talentSkill(Npc::Talent(i));
+    const int sk=pl.talentSkill(Talent(i));
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d_SKILL",i);
     set(buf,strEnum(talV.getString(size_t(i)).c_str(),sk,textBuf));
 
-    const int val=pl.hitChanse(Npc::Talent(i));
+    const int val=pl.hitChanse(Talent(i));
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d",i);
     set(buf,val,"%");
     }

@@ -263,7 +263,7 @@ void InventoryMenu::processPickLock(KeyEvent& e) {
   auto cmp = chest->pickLockCode();
   if(pickLockProgress<cmp.size() && cmp[pickLockProgress]!=ch) {
     pickLockProgress = 0;
-    const int32_t dex = player->attribute(Npc::ATR_DEXTERITY);
+    const int32_t dex = player->attribute(ATR_DEXTERITY);
     if(dex<int32_t(script.rand(100)))  {
       script.invokePickLock(*player,0,1);
       player->delItem(ItKE_lockpick,1);

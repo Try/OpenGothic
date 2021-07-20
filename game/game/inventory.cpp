@@ -758,9 +758,9 @@ bool Inventory::equipNumSlot(Item *next, Npc &owner, bool force) {
   }
 
 void Inventory::applyArmour(Item &it, Npc &owner, int32_t sgn) {
-  for(size_t i=0;i<Npc::PROT_MAX;++i){
-    auto v = owner.protection(Npc::Protection(i));
-    owner.changeProtection(Npc::Protection(i),v+it.handle().protection[i]*sgn);
+  for(size_t i=0;i<PROT_MAX;++i){
+    auto v = owner.protection(Protection(i));
+    owner.changeProtection(Protection(i),v+it.handle().protection[i]*sgn);
     }
   }
 
