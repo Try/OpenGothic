@@ -1414,7 +1414,7 @@ bool Npc::implAtack(uint64_t dt) {
   if(currentTarget==nullptr || isPlayer() || isTalk())
     return false;
 
-  if(currentTarget->isDown()/* && !fghAlgo.hasInstructions()*/){
+  if(currentTarget->isDown()){
     // NOTE: don't clear internal target, to make scripts happy
     // currentTarget=nullptr;
     if(go2.flag==GT_EnemyA || go2.flag==GT_EnemyG) {
@@ -1524,7 +1524,7 @@ bool Npc::implAtack(uint64_t dt) {
       dist = fghAlgo.prefferedGDistance(*this,*currentTarget,owner.script());
     go2.set(currentTarget,(act==FightAlgo::MV_MOVEG) ? GoToHint::GT_EnemyG : GoToHint::GT_EnemyA);
 
-    if(implGoTo(dt) && qDistTo(*currentTarget)>dist*dist) {
+    if((implGoTo(dt) || implTurnTo(*currentTarget,dt)) && qDistTo(*currentTarget)>dist*dist) {
       implAiTick(dt);
       return true;
       }

@@ -37,7 +37,7 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
       return;
     }
 
-  if(tg.isPrehit() && isInGRange(npc,tg,owner)){
+  if(tg.isPrehit() && isInAtackRange(tg,npc,owner) && isInFocusAngle(tg,npc)){
     if(tg.bodyStateMasked()==BS_RUN)
       if(fillQueue(owner,ai.enemy_stormprehit))
         return;
@@ -230,9 +230,9 @@ float FightAlgo::baseDistance(const Npc& npc, const Npc& tg,  GameScript &owner)
   return baseTg + baseNpc;
   }
 
-float FightAlgo::prefferedAtackDistance(const Npc& npc, const Npc& tg,  GameScript &owner) const {
+float FightAlgo::prefferedAtackDistance(const Npc& npc, const Npc& /*tg*/,  GameScript &owner) const {
   auto&  gv      = owner.guildVal();
-  float  baseTg  = float(gv.fight_range_base[tg .guild()]);
+  float  baseTg  = 0;//float(gv.fight_range_base[tg .guild()]);
   float  baseNpc = float(gv.fight_range_base[npc.guild()]);
   switch(npc.weaponState()) {
     case WeaponState::NoWeapon:
