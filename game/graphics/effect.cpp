@@ -133,7 +133,7 @@ void Effect::setOrigin(Npc* npc) {
   setupCollision(npc->world());
   }
 
-void Effect::setObjMatrix(Tempest::Matrix4x4& mt) {
+void Effect::setObjMatrix(const Tempest::Matrix4x4& mt) {
   syncAttaches(mt);
   }
 

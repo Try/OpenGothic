@@ -1610,16 +1610,16 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
   if(ev.weaponCh==ZenLoad::FM_NONE && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
     if(auto melee = invent.currentMeleWeapon()) {
       if(melee->handle().material==ItemMaterial::MAT_METAL)
-        sfxWeapon = ::Sound(owner,::Sound::T_Raw,"UNDRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
-        sfxWeapon = ::Sound(owner,::Sound::T_Raw,"UNDRAWSOUND_WO.WAV",{x,y+translateY(),z},2500,false);
+        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
+        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_WO.WAV",{x,y+translateY(),z},2500,false);
       sfxWeapon.play();
       }
     }
   else if(ev.weaponCh==ZenLoad::FM_1H || ev.weaponCh==ZenLoad::FM_2H) {
     if(auto melee = invent.currentMeleWeapon()) {
       if(melee->handle().material==ItemMaterial::MAT_METAL)
-        sfxWeapon = ::Sound(owner,::Sound::T_Raw,"DRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
-        sfxWeapon = ::Sound(owner,::Sound::T_Raw,"DRAWSOUND_WO.WAV",{x,y+translateY(),z},2500,false);
+        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
+        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_WO.WAV",{x,y+translateY(),z},2500,false);
       sfxWeapon.play();
       }
     }

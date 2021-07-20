@@ -179,6 +179,7 @@ void MoveAlgo::tickGravity(uint64_t dt) {
     } else {
     if(ground+chest<water && !npc.isDead()) {
       // attach to water
+      const bool splash = isInAir();
       tryMove(0.f,water-chest-pY,0.f);
       clearSpeed();
       setInAir(false);
@@ -186,6 +187,8 @@ void MoveAlgo::tickGravity(uint64_t dt) {
         setInWater(true);
         setAsSwim(true);
         npc.setAnim(AnimationSolver::Idle);
+        if(splash)
+          emitWaterSplash(water);
         }
       } else {
       // attach to ground
@@ -284,7 +287,7 @@ void MoveAlgo::tickSwim(uint64_t dt) {
     return;
     }
 
-  if(ground+chest>=water && validW) {
+  if(ground+chest>=water || !validW) {
     DynamicWorld::CollisionTest info;
     if(testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0),info))
       return;
@@ -302,9 +305,15 @@ void MoveAlgo::tickSwim(uint64_t dt) {
     }
 
   // swim on top of water
-  if(!isDive() && validW)
-    tryMove(dp.x,water-chest-pY,dp.z); else
+  if(!isDive() && validW) {
+    // Khorinis port hack
+    for(int i=0; i<=50; i+=10) {
+      if(tryMove(dp.x,water-chest-pY+float(i),dp.z))
+        break;
+      }
+    } else {
     tryMove(dp.x,dp.y,dp.z);
+    }
   }
 
 void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
@@ -603,6 +612,24 @@ void MoveAlgo::takeFallDamage() const {
     npc.setAnim(Npc::Anim::Fallen);
     }
   npc.changeAttribute(Npc::ATR_HITPOINTS,-damage,false);
+  }
+
+void MoveAlgo::emitWaterSplash(float y) {
+  auto& world = npc.world();
+
+  auto pos = npc.position();
+  pos.y = y;
+
+  Tempest::Matrix4x4 at;
+  at.identity();
+  at.translate(pos);
+
+  Effect e(PfxEmitter(world,"PFX_WATERSPLASH"),"");
+  e.setObjMatrix(at);
+  e.setActive(true);
+  world.runEffect(std::move(e));
+
+  npc.emitSoundEffect("CS_INTRO_WATERSPLASH.WAV",2500,false);
   }
 
 int32_t MoveAlgo::diveTime() const {

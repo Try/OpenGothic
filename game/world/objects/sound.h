@@ -7,7 +7,6 @@ class Sound final {
     enum Type : uint8_t {
       T_Regular,
       T_3D,
-      T_Raw,
       };
     Sound();
     Sound(World& owner, Type t, std::string_view s, const Tempest::Vec3& pos, float range, bool freeSlot);

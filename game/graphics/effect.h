@@ -37,7 +37,7 @@ class Effect final {
     void     setTarget   (const Npc* npc);
     void     setOrigin   (Npc* npc);
 
-    void     setObjMatrix(Tempest::Matrix4x4& mt);
+    void     setObjMatrix(const Tempest::Matrix4x4& mt);
     void     setKey      (World& owner, SpellFxKey key, int32_t keyLvl=0);
     void     setMesh     (const MeshObjects::Mesh* mesh);
     void     setBullet   (Bullet* b, World& owner);

@@ -117,6 +117,8 @@ class MoveAlgo final {
     float   slideAngle2() const;
     void    takeFallDamage() const;
 
+    void    emitWaterSplash(float y);
+
     void    rayMain  (const Tempest::Vec3& pos) const;
     float   dropRay  (const Tempest::Vec3& pos, bool& hasCol) const;
     float   waterRay (const Tempest::Vec3& pos, bool* hasCol = nullptr) const;

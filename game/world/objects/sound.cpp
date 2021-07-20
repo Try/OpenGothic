@@ -2,6 +2,7 @@
 
 #include "game/gamesession.h"
 #include "world/world.h"
+#include "utils/fileext.h"
 #include "gothic.h"
 
 Sound::Sound() {
@@ -24,7 +25,7 @@ Sound::Sound(World& world, Sound::Type type, std::string_view s, const Tempest::
     }
 
   SoundFx* snd = nullptr;
-  if(type==T_Raw)
+  if(FileExt::hasExt(s,"WAV"))
     snd = Gothic::inst().loadSoundWavFx(s); else
     snd = Gothic::inst().loadSoundFx(s);
 
@@ -38,8 +39,7 @@ Sound::Sound(World& world, Sound::Type type, std::string_view s, const Tempest::
   std::lock_guard<std::mutex> guard(owner.sync);
   owner.initSlot(*val);
   switch(type) {
-    case T_Regular:
-    case T_Raw: {
+    case T_Regular:{
       if(freeSlot)
         owner.freeSlot[cname] = val; else
         owner.effect.emplace_back(val);
