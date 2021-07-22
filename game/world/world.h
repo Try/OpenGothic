@@ -164,10 +164,11 @@ class World final {
     bool                 isInSfxRange(const Tempest::Vec3& pos) const;
     bool                 isInPfxRange(const Tempest::Vec3& pos) const;
 
-    void                 addDlgSound     (std::string_view s, const Tempest::Vec3& pos, float range, uint64_t &timeLen);
-    void                 addWeaponsSound (Npc& self,Npc& other);
-    void                 addLandHitSound (float x, float y, float z, uint8_t m0, uint8_t m1);
-    void                 addBlockSound   (Npc& self,Npc& other);
+    void                 addDlgSound(std::string_view s, const Tempest::Vec3& pos, float range, uint64_t &timeLen);
+
+    Sound                addWeaponHitEffect(Npc&         src, Npc&                   reciver);
+    Sound                addWeaponBlkEffect(ItemMaterial src, ItemMaterial           reciver, const Tempest::Matrix4x4& pos);
+    Sound                addLandHitEffect  (ItemMaterial src, ZenLoad::MaterialGroup reciver, const Tempest::Matrix4x4& pos);
 
     void                 addTrigger    (AbstractTrigger* trigger);
     void                 addInteractive(Interactive* inter);
@@ -198,4 +199,6 @@ class World final {
     auto         portalAt(std::string_view tag) -> BspSector*;
 
     void         initScripts(bool firstTime);
+
+    Sound        addHitEffect(std::string_view src, std::string_view reciver, std::string_view scheme, const Tempest::Matrix4x4& pos);
   };

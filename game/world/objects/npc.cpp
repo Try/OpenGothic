@@ -1441,15 +1441,29 @@ bool Npc::implAtack(uint64_t dt) {
   FightAlgo::Action act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
 
   if(act==FightAlgo::MV_BLOCK) {
-    if(setAnim(Anim::AtackBlock) || ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage)
-      fghAlgo.consumeAction();
+    switch(ws) {
+      case WeaponState::Fist: {
+        if(blockFist())
+          fghAlgo.consumeAction();
+        break;
+        }
+      case WeaponState::W1H:
+      case WeaponState::W2H: {
+        if(blockSword())
+          fghAlgo.consumeAction();
+        break;
+        }
+      default:
+        fghAlgo.consumeAction();
+        break;
+      }
     return true;
     }
 
   if(act==FightAlgo::MV_ATACK || act==FightAlgo::MV_ATACKL || act==FightAlgo::MV_ATACKR) {
     static const Anim ani[4]={Anim::Atack,Anim::AtackL,Anim::AtackR};
     if((act!=FightAlgo::MV_ATACK && bodyState()!=BS_RUN) &&
-       !fghAlgo.isInAtackRange(*this,*currentTarget,owner.script())) {
+       !fghAlgo.isInWRange(*this,*currentTarget,owner.script())) {
       fghAlgo.consumeAction();
       return true;
       }
@@ -1650,7 +1664,7 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
   assert(b==nullptr || !b->isSpell());
   const bool isJumpb = visual.pose().isJumpBack();
   const bool isBlock = (!other.isMonster() || other.inventory().activeWeapon()!=nullptr) &&
-                       fghAlgo.isInAtackRange(*this,other,owner.script()) &&
+                       fghAlgo.isInFocusAngle(*this,other) &&
                        visual.pose().isDefence(owner.tickCount());
 
   lastHit = &other;
@@ -1662,7 +1676,7 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
     takeDamage(other,b,COLL_DOEVERYTHING,0,false);
     } else {
     if(invent.activeWeapon()!=nullptr)
-      owner.addBlockSound(other,*this);
+      visual.emitBlockEffect(*this,other);
     }
   }
 
@@ -1711,7 +1725,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     }
 
   if(!isSpell && !isDown() && hitResult.hasHit)
-    owner.addWeaponsSound(other,*this);
+    owner.addWeaponHitEffect(other,*this).play();
 
   if(hitResult.hasHit) {
     if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr && !isSwim()) {
@@ -2947,12 +2961,12 @@ void Npc::fistShoot() {
   doAttack(Anim::Atack);
   }
 
-void Npc::blockFist() {
+bool Npc::blockFist() {
   auto weaponSt=weaponState();
   if(weaponSt!=WeaponState::Fist)
-    return;
+    return false;
   visual.setRotation(*this,0);
-  setAnim(Anim::AtackBlock);
+  return setAnim(Anim::AtackBlock);
   }
 
 bool Npc::finishingMove() {
@@ -2989,12 +3003,12 @@ void Npc::swingSwordR() {
   doAttack(Anim::AtackR);
   }
 
-void Npc::blockSword() {
+bool Npc::blockSword() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
-    return;
+    return false;
   visual.setRotation(*this,0);
-  setAnim(Anim::AtackBlock);
+  return setAnim(Anim::AtackBlock);
   }
 
 bool Npc::beginCastSpell() {

@@ -37,7 +37,9 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
       return;
     }
 
-  if(tg.isPrehit() && isInAtackRange(tg,npc,owner) && isInFocusAngle(tg,npc)){
+  const bool focus = isInFocusAngle(npc,tg);
+
+  if(tg.isPrehit() && isInWRange(tg,npc,owner) && isInFocusAngle(tg,npc)){
     if(tg.bodyStateMasked()==BS_RUN)
       if(fillQueue(owner,ai.enemy_stormprehit))
         return;
@@ -46,11 +48,11 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
     }
 
   if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
-    if(isInAtackRange(npc,tg,owner)) {
-      if(npc.bodyStateMasked()==BS_RUN)
+    if(isInWRange(npc,tg,owner)) {
+      if(npc.bodyStateMasked()==BS_RUN && focus)
         if(fillQueue(owner,ai.my_w_runto))
           return;
-      if(isInFocusAngle(npc,tg))
+      if(focus)
         if(fillQueue(owner,ai.my_w_focus))
           return;
       if(fillQueue(owner,ai.my_w_nofocus))
@@ -58,24 +60,24 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
       }
 
     if(isInGRange(npc,tg,owner)) {
-      if(npc.bodyStateMasked()==BS_RUN)
+      if(npc.bodyStateMasked()==BS_RUN && focus)
         if(fillQueue(owner,ai.my_g_runto))
           return;
-      if(isInFocusAngle(npc,tg))
+      if(focus)
         if(fillQueue(owner,ai.my_g_focus))
           return;
       }
     }
 
   if(ws==WeaponState::Mage) {
-    if(isInAtackRange(npc,tg,owner))
+    if(isInWRange(npc,tg,owner))
       if(fillQueue(owner,ai.my_fk_focus_mag))
         return;
     if(fillQueue(owner,ai.my_fk_nofocus_mag))
       return;
     }
 
-  if(isInAtackRange(npc,tg,owner))
+  if(isInWRange(npc,tg,owner) && focus)
     if(fillQueue(owner,ai.my_fk_focus_far))
       return;
   if(fillQueue(owner,ai.my_fk_nofocus_far))
@@ -257,6 +259,14 @@ float FightAlgo::prefferedGDistance(const Npc& npc, const Npc& /*tg*/, GameScrip
   }
 
 bool FightAlgo::isInAtackRange(const Npc &npc,const Npc &tg, GameScript &owner) const {
+  auto& gv     = owner.guildVal();
+  float baseTg = float(gv.fight_range_base[tg .guild()]);
+  auto  dist   = npc.qDistTo(tg);
+  auto  pd     = baseTg + prefferedAtackDistance(npc,tg,owner);
+  return (dist<=pd*pd);
+  }
+
+bool FightAlgo::isInWRange(const Npc& npc, const Npc& tg, GameScript& owner) const {
   auto dist = npc.qDistTo(tg);
   auto pd   = prefferedAtackDistance(npc,tg,owner);
   return (dist<=pd*pd);

@@ -91,6 +91,12 @@ void Sound::setVolume(float v) {
     val->setVolume(v);
   }
 
+float Sound::volume() const {
+  if(val!=nullptr)
+    return val->vol;
+  return 0;
+  }
+
 void Sound::setMaxDistance(float v) {
   if(val!=nullptr)
     val->eff.setMaxDistance(v);

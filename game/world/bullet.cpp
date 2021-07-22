@@ -105,8 +105,8 @@ void Bullet::onMove() {
 void Bullet::onCollide(uint8_t matId) {
   if(matId<ZenLoad::NUM_MAT_GROUPS) {
     if(material<ZenLoad::NUM_MAT_GROUPS) {
-      auto pos = obj->position();
-      wrld->addLandHitSound(pos.x,pos.y,pos.z,material,matId);
+      auto s = wrld->addLandHitEffect(ItemMaterial(material),ZenLoad::MaterialGroup(matId),obj->matrix());
+      s.play();
       }
     }
   Effect::onCollide(*wrld,vfx.handle(),obj->position(),nullptr,ow,spellId());

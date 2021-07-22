@@ -13,6 +13,7 @@
 #include "graphics/mesh/submesh/packedmesh.h"
 #include "world/objects/item.h"
 #include "world/bullet.h"
+#include "world/world.h"
 
 const float DynamicWorld::ghostPadding=50-22.5f;
 const float DynamicWorld::ghostHeight =140;
@@ -413,7 +414,8 @@ struct DynamicWorld::BBoxList final {
   DynamicWorld&          wrld;
   };
 
-DynamicWorld::DynamicWorld(World&,const ZenLoad::zCMesh& worldMesh) {
+DynamicWorld::DynamicWorld(World& owner,const ZenLoad::zCMesh& worldMesh)
+  :owner(owner) {
   //solver.reset(new btSequentialImpulseConstraintSolver());
   world.reset(new CollisionWorld());
 
@@ -475,6 +477,14 @@ DynamicWorld::DynamicWorld(World&,const ZenLoad::zCMesh& worldMesh) {
   npcList   .reset(new NpcBodyList(*this));
   bulletList.reset(new BulletsList(*this));
   bboxList  .reset(new BBoxList   (*this));
+
+  world->setItemHitCallback([&](::Item& itm, ZenLoad::MaterialGroup mat, float impulse, float mass) {
+    auto  snd = owner.addLandHitEffect(ItemMaterial(itm.handle().material),mat,itm.transform());
+    float v   = impulse/mass;
+    float vol = snd.volume()*std::min(v/10.f,1.f);
+    snd.setVolume(vol);
+    snd.play();
+    });
   }
 
 DynamicWorld::~DynamicWorld(){

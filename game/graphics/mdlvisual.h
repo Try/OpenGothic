@@ -63,6 +63,7 @@ class MdlVisual final {
     void                           stopEffect  (const VisualFx& vfx);
     void                           stopEffect  (int32_t slot);
     void                           setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s, Daedalus::GEngineClasses::C_Npc::ENPCFlag flags);
+    void                           emitBlockEffect(Npc& dst, Npc& src);
 
     bool                           setToFightMode(const WeaponState ws);
     void                           updateWeaponSkeleton(const Item *sword, const Item *bow);

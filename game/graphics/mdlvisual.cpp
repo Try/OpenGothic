@@ -369,6 +369,24 @@ void MdlVisual::setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s,
     }
   }
 
+void MdlVisual::emitBlockEffect(Npc& dest, Npc& source) {
+  auto& world = source.world();
+
+  auto& pose  = *skInst;
+  auto  p     = pos;
+  if(sword.boneId<pose.boneCount())
+    p.mul(pose.bone(sword.boneId));
+
+  auto src = source.inventory().activeWeapon();
+  auto dst = dest  .inventory().activeWeapon();
+
+  if(src==nullptr || dst==nullptr)
+    return;
+
+  auto s = world.addWeaponBlkEffect(ItemMaterial(src->handle().material),ItemMaterial(dst->handle().material),p);
+  s.play();
+  }
+
 bool MdlVisual::setToFightMode(const WeaponState f) {
   if(f==fgtMode)
     return false;

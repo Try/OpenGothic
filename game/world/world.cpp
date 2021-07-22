@@ -21,6 +21,45 @@
 #include "focus.h"
 #include "resources.h"
 
+const char* materialTag(ItemMaterial src) {
+  switch(src) {
+    case ItemMaterial::MAT_WOOD:
+      return "WO";
+    case ItemMaterial::MAT_STONE:
+      return "ST";
+    case ItemMaterial::MAT_METAL:
+      return "ME";
+    case ItemMaterial::MAT_LEATHER:
+      return "LE";
+    case ItemMaterial::MAT_CLAY:
+      return "CL";
+    case ItemMaterial::MAT_GLAS:
+      return "GL";
+    }
+  return "UD";
+  }
+
+const char* materialTag(ZenLoad::MaterialGroup src) {
+  switch(src) {
+    case ZenLoad::MaterialGroup::UNDEF:
+    case ZenLoad::MaterialGroup::NUM_MAT_GROUPS:
+      return "UD";
+    case ZenLoad::MaterialGroup::METAL:
+      return "ME";
+    case ZenLoad::MaterialGroup::STONE:
+      return "ST";
+    case ZenLoad::MaterialGroup::WOOD:
+      return "WO";
+    case ZenLoad::MaterialGroup::EARTH:
+      return "EA";
+    case ZenLoad::MaterialGroup::WATER:
+      return "WA";
+    case ZenLoad::MaterialGroup::SNOW:
+      return "SA"; // sand?
+    }
+  return "UD";
+  }
+
 World::World(GameSession& game, std::string file, std::function<void(int)> loadProgress)
   :wname(std::move(file)),game(game),wsound(game,*this),wobj(*this) {
   using namespace Daedalus::GameState;
@@ -634,114 +673,64 @@ void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &item, int3
   wobj.sendPassivePerc(self,other,victum,item,perc);
   }
 
-void World::addWeaponsSound(Npc &self, Npc &other) {
-  /*
-   WO - Wood
-   ME - Metal
-   ST - Stone
-   FL - Flesh
-   WA - Water
-   EA - Earth
-   SA - Sand
-   UD - Undefined
-   */
-  // ItemMaterial
-  static std::initializer_list<const char*> mat={
-    "WO",
-    "ST",
-    "ME",
-    "FL", //"LE", //MAT_LEATHER,
-    "SA"  //MAT_CLAY,
-    "ST", //MAT_GLAS,
-    };
-  auto p0 = self.position();
-  auto p1 = other.position();
+Sound World::addWeaponHitEffect(Npc& src, Npc& reciver) {
+  auto p0 = src.position();
+  auto p1 = reciver.position();
 
-  const char* selfMt="";
-  const char* othMt ="FL";
+  Tempest::Matrix4x4 pos;
+  pos.identity();
+  pos.translate((p0+p1)*0.5f);
 
-  if(self.isMonster()) // CS_AM?
-    selfMt = "JA"; else //Jaws
-    selfMt = "FI"; //Fist
+  const char* armor = "FL";
+  if(auto a = reciver.currentArmour())
+    armor = materialTag(ItemMaterial(a->handle().material));
 
-  if(auto a = self.inventory().activeWeapon()){
-    int32_t m = a->handle().material;
-    if(m==ItemMaterial::MAT_WOOD)
-      selfMt = "WO"; else
-      selfMt = "ME";
+  if(auto w = src.inventory().activeWeapon()) {
+    auto m = ItemMaterial(w->handle().material);
+    return addHitEffect(materialTag(m),armor,"IAM",pos);
     }
 
-  if(auto a = other.currentArmour()){
-    int32_t m = a->handle().material;
-    if(0<=m && size_t(m)<mat.size())
-      othMt = *(mat.begin()+m);
-    }
-
-  char buf[128]={};
-  if(self.isMonster() || self.inventory().activeWeapon()==nullptr)
-    std::snprintf(buf,sizeof(buf),"CS_MAM_%s_%s",selfMt,othMt); else
-    std::snprintf(buf,sizeof(buf),"CS_IAM_%s_%s",selfMt,othMt);
-  auto mid = (p0+p1)*0.5f;
-  auto sfx = Sound(*this,Sound::T_Regular,buf,mid,2500.f,false);
-  sfx.play();
+  if(src.isMonster())
+    return addHitEffect("JA",armor,"MAM",pos); else
+    return addHitEffect("FI",armor,"MAM",pos);
   }
 
-void World::addLandHitSound(float x,float y,float z,uint8_t m0, uint8_t m1) {
-  // ItemMaterial
-  static const char* mat[]={
-    "WO",
-    "ST",
-    "ME",
-    "FL", //"LE", //MAT_LEATHER,
-    "SA"  //MAT_CLAY,
-    "ST", //MAT_GLAS,
-    };
-
-  const char* sm0 = "ME";
-  const char* sm1 = "ME";
-
-  sm0 = mat[m0];
-  sm1 = mat[m1];
-
-  char buf[128]={};
-  std::snprintf(buf,sizeof(buf),"CS_IHL_%s_%s",sm0,sm1);
-
-  auto snd = Sound(*this,Sound::T_Regular,buf,{x,y,z},2500.f,false);
-  snd.play();
+Sound World::addLandHitEffect(ItemMaterial src, ZenLoad::MaterialGroup reciver, const Tempest::Matrix4x4& pos) {
+  // IHI - item hits item
+  // IHL - Item hits Level
+  return addHitEffect(materialTag(src),materialTag(reciver),"IHL",pos);
   }
 
-void World::addBlockSound(Npc &self, Npc &other) {
-  // ItemMaterial
-  auto p0 = self.position();
-  auto p1 = other.position();
+Sound World::addWeaponBlkEffect(ItemMaterial src, ItemMaterial reciver, const Tempest::Matrix4x4& pos) {
+  // IAI - item attacks item
+  return addHitEffect(materialTag(src),materialTag(reciver),"IAI",pos);
+  }
 
-  const char* selfMt="ME";
-  const char* othMt ="ME";
-
-  if(self.isMonster())
-    selfMt = "JA"; else //Jaws
-    selfMt = "FI"; //Fist
-
-  if(auto a = self.inventory().activeWeapon()){
-    int32_t m = a->handle().material;
-    if(m==ItemMaterial::MAT_WOOD)
-      selfMt = "WO"; else
-      selfMt = "ME";
-    }
-
-  if(auto a = other.inventory().activeWeapon()){
-    int32_t m = a->handle().material;
-    if(m==ItemMaterial::MAT_WOOD)
-      selfMt = "WO"; else
-      selfMt = "ME";
-    }
-
+Sound World::addHitEffect(std::string_view src, std::string_view dst, std::string_view scheme, const Tempest::Matrix4x4& pos) {
   char buf[128]={};
-  std::snprintf(buf,sizeof(buf),"CS_IAI_%s_%s",selfMt,othMt);
-  auto mid = (p0+p1)*0.5f;
+  std::snprintf(buf,sizeof(buf),"CS_%.*s_%.*s_%.*s",int(scheme.size()),scheme.data(), int(src.size()),src.data(), int(dst.size()),dst.data());
 
-  auto ret = Sound(*this,Sound::T_Regular,buf,mid,2500.f,false);
-  ret.play();
+  Tempest::Vec3 pos3;
+  pos.project(pos3);
+
+  auto ret = Sound(*this,::Sound::T_Regular,buf,pos3,2500.f,false);
+
+  std::snprintf(buf,sizeof(buf),"CPFX_%.*s_%.*s_%.*s", int(scheme.size()),scheme.data(), int(src.size()),src.data(), int(dst.size()),dst.data());
+  if(Gothic::inst().loadParticleFx(buf)==nullptr) {
+    if(dst=="ME")
+      std::snprintf(buf,sizeof(buf),"CPFX_%.*s_%s",int(scheme.size()),scheme.data(),"METAL");
+    else if(dst=="WO")
+      std::snprintf(buf,sizeof(buf),"CPFX_%.*s_%s",int(scheme.size()),scheme.data(),"WOOD");
+    else if(dst=="ST")
+      std::snprintf(buf,sizeof(buf),"CPFX_%.*s_%s",int(scheme.size()),scheme.data(),"STONE");
+    else
+      return ret;
+    }
+  Effect e(PfxEmitter(*this,buf),"");
+  e.setObjMatrix(pos);
+  e.setActive(true);
+  runEffect(std::move(e));
+  return ret;
   }
 
 bool World::isInSfxRange(const Tempest::Vec3& pos) const {

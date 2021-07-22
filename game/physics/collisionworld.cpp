@@ -1,4 +1,5 @@
 #include "collisionworld.h"
+#include "physicvbo.h"
 
 #include "physics/physics.h"
 #include "dynamicworld.h"
@@ -201,7 +202,8 @@ std::unique_ptr<CollisionWorld::CollisionBody> CollisionWorld::addCollisionBody(
   return obj;
   }
 
-std::unique_ptr<CollisionWorld::DynamicBody> CollisionWorld::addDynamicBody(btCollisionShape& shape, const Tempest::Matrix4x4& tr, float friction, float mass) {
+std::unique_ptr<CollisionWorld::DynamicBody> CollisionWorld::addDynamicBody(btCollisionShape& shape, const Tempest::Matrix4x4& tr,
+                                                                            float friction, float mass) {
   if(mass<=0)
     mass = 1;
   btVector3 localInertia = {};
@@ -249,6 +251,46 @@ void CollisionWorld::tick(uint64_t dt) {
   if(dynamic) {
     if(rigid.size()>0)
       this->stepSimulation(dtF/1000.f, 2);
+
+    if(hitItem) {
+      const int numManifolds = getDispatcher()->getNumManifolds();
+      for(int i=0; i<numManifolds; ++i) {
+        btPersistentManifold* contactManifold = getDispatcher()->getManifoldByIndexInternal(i);
+        const btCollisionObject* a = contactManifold->getBody0();
+        const btCollisionObject* b = contactManifold->getBody1();
+
+        for(auto obj:{a,b}) {
+          if(obj->getUserIndex()!=DynamicWorld::C_Item)
+            continue;
+          const int numContacts = contactManifold->getNumContacts();
+          if(numContacts==0)
+            continue;
+
+          btManifoldPoint& pt = contactManifold->getContactPoint(0);
+          auto impulse = pt.getAppliedImpulse();
+          auto mass    = reinterpret_cast<const DynamicBody*>(obj)->mass;
+          if(impulse/mass<0.9f)
+            continue;
+
+          auto land = (obj==a ? b : a);
+          if(land->getUserIndex()!=DynamicWorld::C_Landscape)
+            continue;
+
+          auto matId = ZenLoad::STONE;
+          if(auto shape = land->getCollisionShape()) {
+            auto s  = reinterpret_cast<const btMultimaterialTriangleMeshShape*>(shape);
+            auto mt = reinterpret_cast<const PhysicVbo*>(s->getMeshInterface());
+
+            int part = (obj==a ? pt.m_partId1 : pt.m_partId0);
+            matId = ZenLoad::MaterialGroup(mt->materialId(size_t(part)));
+            }
+
+          if(auto ptr = reinterpret_cast<::Item*>(obj->getUserPointer())) {
+            hitItem(*ptr,matId,impulse,mass);
+            }
+          }
+        }
+      }
     } else {
     // fake 'just fall' implementation
     for(auto& i:rigid) {
@@ -291,6 +333,10 @@ void CollisionWorld::tick(uint64_t dt) {
 void CollisionWorld::setBBox(const btVector3& min, const btVector3& max) {
   bbox[0] = min;
   bbox[1] = max;
+  }
+
+void CollisionWorld::setItemHitCallback(std::function<void(Item&, ZenLoad::MaterialGroup, float, float)> f) {
+  hitItem = f;
   }
 
 bool CollisionWorld::tick(float step, btRigidBody& body) {

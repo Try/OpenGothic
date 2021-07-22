@@ -4,14 +4,17 @@
 #include <Tempest/Vec>
 
 #include <zenload/zTypes.h>
+#include <zenload/zCMaterial.h>
 
 #include <memory>
 #include <vector>
+#include <functional>
 
 #include "physics/physics.h"
 
 class btCollisionConfiguration;
 class btConstraintSolver;
+class Item;
 
 class CollisionWorld : public btDiscreteDynamicsWorld {
   public:
@@ -30,6 +33,7 @@ class CollisionWorld : public btDiscreteDynamicsWorld {
 
     void tick(uint64_t dt);
     void setBBox(const btVector3& min, const btVector3& max);
+    void setItemHitCallback(std::function<void(Item& itm,ZenLoad::MaterialGroup mat,float impulse,float mass)> f);
 
     void updateAabbs() override;
     void touchAabbs();
@@ -54,8 +58,9 @@ class CollisionWorld : public btDiscreteDynamicsWorld {
 
     class DynamicBody : public CollisionBody {
       DynamicBody(btRigidBody::btRigidBodyConstructionInfo& inf, CollisionWorld* owner)
-        :CollisionBody(inf,owner){}
+        :CollisionBody(inf,owner), mass(inf.m_mass){}
       friend class CollisionWorld;
+      const float mass = 0;
       };
 
   private:
@@ -73,6 +78,8 @@ class CollisionWorld : public btDiscreteDynamicsWorld {
     std::unique_ptr<btCollisionDispatcher>      disp;
     std::unique_ptr<btBroadphaseInterface>      broad;
     std::unique_ptr<btSequentialImpulseConstraintSolver> solver;
+
+    std::function<void(Item& itm,ZenLoad::MaterialGroup mat,float impulse,float mass)>  hitItem;
 
     std::vector<btRigidBody*>                   rigid;
     btVector3                                   gravity = {};

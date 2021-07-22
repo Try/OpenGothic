@@ -238,12 +238,12 @@ class Npc final {
 
     bool      canFinish(Npc &oth);
     void      fistShoot();
-    void      blockFist();
+    bool      blockFist();
     bool      finishingMove();
     void      swingSword();
     void      swingSwordL();
     void      swingSwordR();
-    void      blockSword();
+    bool      blockSword();
     bool      beginCastSpell();
     void      endCastSpell();
     void      setActiveSpellInfo(int32_t info);

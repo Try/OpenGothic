@@ -21,6 +21,7 @@ class Sound final {
 
     void          setOcclusion(float occ);
     void          setVolume(float v);
+    float         volume() const;
 
     void          setMaxDistance(float v);
     void          setRefDistance(float v);

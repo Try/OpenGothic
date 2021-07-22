@@ -245,6 +245,7 @@ class DynamicWorld final {
     RayWaterResult implWaterRay(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
     bool           hasCollision(const NpcItem &it, CollisionTest& out);
 
+    World&                             owner;
     std::unique_ptr<CollisionWorld>    world;
 
     std::vector<std::string>           sectors;
