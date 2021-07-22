@@ -507,14 +507,15 @@ Item* WorldObjects::addItem(const ZenLoad::zCVobData &vob) {
   return it;
   }
 
-Item *WorldObjects::takeItem(Item &it) {
+std::unique_ptr<Item> WorldObjects::takeItem(Item &it) {
   for(auto& i:itemArr)
     if(i.get()==&it){
-      auto ret=i.release();
+      auto ret=std::move(i);
       i = std::move(itemArr.back());
       itemArr.pop_back();
-      items.del(ret);
+      items.del(ret.get());
       ret->setPhysicsDisable();
+      onItemRemoved(ret.get());
       return ret;
       }
   return nullptr;
@@ -522,7 +523,7 @@ Item *WorldObjects::takeItem(Item &it) {
 
 void WorldObjects::removeItem(Item &it) {
   if(auto ptr=takeItem(it)){
-    delete ptr;
+    (void)ptr;
     }
   }
 
@@ -532,6 +533,11 @@ size_t WorldObjects::hasItems(std::string_view tag, size_t itemCls) {
       return i->inventory().itemCount(itemCls);
       }
   return 0;
+  }
+
+void WorldObjects::onItemRemoved(const Item* itm) {
+  for(auto& i:npcArr)
+    i->onWldItemRemoved(itm);
   }
 
 Bullet& WorldObjects::shootBullet(const Item& itmId, const Vec3& pos, const Vec3& dir, float speed) {

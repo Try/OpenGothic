@@ -151,7 +151,7 @@ class World final {
     Item*                addItem    (const ZenLoad::zCVobData& vob);
     Item*                addItem    (size_t itemInstance, const Tempest::Vec3&      pos);
     Item*                addItemDyn (size_t itemInstance, const Tempest::Matrix4x4& pos);
-    Item*                takeItem   (Item& it);
+    auto                 takeItem(Item& it) -> std::unique_ptr<Item>;
     void                 removeItem (Item &it);
     size_t               hasItems(const char* tag, size_t itemCls);
 

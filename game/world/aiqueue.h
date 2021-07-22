@@ -38,6 +38,8 @@ class AiQueue {
     AiAction pop();
     int      aiOutputOrderId() const;
 
+    void     onWldItemRemoved(const Item* itm);
+
     static AiAction aiLookAt(Npc* other);
     static AiAction aiStopLookAt();
     static AiAction aiRemoveWeapon();

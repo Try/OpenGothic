@@ -62,6 +62,12 @@ int AiQueue::aiOutputOrderId() const {
   return v;
   }
 
+void AiQueue::onWldItemRemoved(const Item* itm) {
+  for(auto& i:aiActions)
+    if(i.item==itm)
+      i.item = nullptr;
+  }
+
 AiQueue::AiAction AiQueue::aiLookAt(Npc* other) {
   AiAction a;
   a.act    = AI_LookAt;

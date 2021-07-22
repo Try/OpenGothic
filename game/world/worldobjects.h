@@ -94,9 +94,10 @@ class WorldObjects final {
     Item*          addItem   (size_t itemInstance, const Tempest::Vec3& pos);
     Item*          addItem   (size_t itemInstance, const Tempest::Vec3& pos, const Tempest::Vec3& dir);
     Item*          addItemDyn(size_t itemInstance, const Tempest::Matrix4x4& pos);
-    Item*          takeItem  (Item& it);
+    auto           takeItem(Item& it) -> std::unique_ptr<Item>;
     void           removeItem(Item& it);
     size_t         hasItems(std::string_view tag, size_t itemCls);
+    void           onItemRemoved(const Item* itm);
 
     Bullet&        shootBullet(const Item &itmId, const Tempest::Vec3& pos, const Tempest::Vec3& dir, float speed);
 

@@ -589,7 +589,7 @@ Item* World::addItemDyn(size_t itemInstance, const Tempest::Matrix4x4& pos) {
   return wobj.addItemDyn(itemInstance, pos);
   }
 
-Item *World::takeItem(Item &it) {
+std::unique_ptr<Item> World::takeItem(Item &it) {
   return wobj.takeItem(it);
   }
 

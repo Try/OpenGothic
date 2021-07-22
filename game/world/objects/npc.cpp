@@ -2221,10 +2221,8 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_TakeItem:{
       if(act.item==nullptr)
         break;
-      if(takeItem(*act.item)==nullptr) {
-        if(owner.itmId(act.item)!=uint32_t(-1))
-          queue.pushFront(std::move(act));
-        }
+      if(takeItem(*act.item)==nullptr)
+        queue.pushFront(std::move(act));
       break;
       }
     case AI_GotoItem:{
@@ -2634,7 +2632,7 @@ Item* Npc::takeItem(Item& item) {
   if(sq==nullptr)
     return nullptr;
 
-  std::unique_ptr<Item> ptr{owner.takeItem(item)};
+  std::unique_ptr<Item> ptr = owner.takeItem(item);
   if(ptr!=nullptr && ptr->isTorchBurn()) {
    if(!toogleTorch())
      return nullptr;
@@ -2653,6 +2651,11 @@ Item* Npc::takeItem(Item& item) {
   addItem(std::move(ptr));
   implAniWait(uint64_t(sq->totalTime()));
   return it;
+  }
+
+void Npc::onWldItemRemoved(const Item* itm) {
+  aiQueue.onWldItemRemoved(itm);
+  aiQueueOverlay.onWldItemRemoved(itm);
   }
 
 void Npc::addItem(size_t id, Interactive &chest, size_t count) {
@@ -2885,6 +2888,9 @@ bool Npc::drawWeaponMele() {
     return false;
     }
 
+  if(!setInteraction(nullptr,true))
+    return false;
+
   auto& weapon = *invent.currentMeleWeapon();
   auto  st     = weapon.is2H() ? WeaponState::W2H : WeaponState::W1H;
   if(!visual.startAnim(*this,st))
@@ -2905,6 +2911,9 @@ bool Npc::drawWeaponBow() {
     closeWeapon(false);
     return false;
     }
+
+  if(!setInteraction(nullptr,true))
+    return false;
 
   auto& weapon = *invent.currentRangeWeapon();
   auto  st     = weapon.isCrossbow() ? WeaponState::CBow : WeaponState::Bow;
@@ -2934,6 +2943,10 @@ bool Npc::drawSpell(int32_t spell) {
     closeWeapon(false);
     return false;
     }
+
+  if(!setInteraction(nullptr,true))
+    return false;
+
   if(!visual.startAnim(*this,WeaponState::Mage))
     return false;
 
