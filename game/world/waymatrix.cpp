@@ -212,7 +212,7 @@ const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpInde
     return a<b->x;
     });
 
-  const WayPoint *ret=nullptr;
+  const WayPoint* ret=nullptr;
   auto  count = std::distance(b,e);(void) count;
   float dist  = R*R;
   for(auto i=b;i!=e;++i){
@@ -222,8 +222,8 @@ const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpInde
     float dx = w.x-x;
     float dy = w.y-y;
     float dz = w.z-z;
-    float l=dx*dx+dy*dy+dz*dz;
-    if(l<dist && dz*dz<300*300){
+    float l  = dx*dx+dy*dy+dz*dz;
+    if(l<dist && dz*dz<300*300) {
       ret  = &w;
       dist = l;
       }

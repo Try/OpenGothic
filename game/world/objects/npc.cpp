@@ -1391,10 +1391,8 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
         finished = false;
         }
       }
-    if(finished) {
-      setAnim(AnimationSolver::Idle);
-      go2.clear();
-      }
+    if(finished)
+      clearGoTo();
     } else {
     if(implTurnTo(dpos.x,dpos.z,false,dt)){
       mvAlgo.tick(dt);
@@ -1418,8 +1416,8 @@ bool Npc::implAtack(uint64_t dt) {
     // NOTE: don't clear internal target, to make scripts happy
     // currentTarget=nullptr;
     if(go2.flag==GT_EnemyA || go2.flag==GT_EnemyG) {
+      stopWalking();
       go2.clear();
-      setAnim(AnimationSolver::Idle);
       }
     fghAlgo.onClearTarget();
     return false;
@@ -1929,9 +1927,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
           attachToPoint(wpoint);
           } else {
           attachToPoint(act.point);
-          visual.stopWalkAnim(*this);
-          setAnim(Anim::Idle);
-          go2.clear();
+          clearGoTo();
           }
         }
       break;
@@ -2346,7 +2342,7 @@ void Npc::setTarget(Npc *t) {
 
   currentTarget=t;
   if(!go2.empty() && !isPlayer()) {
-    setAnim(Anim::Idle);
+    stopWalking();
     go2.clear();
     }
   }
@@ -3583,14 +3579,10 @@ bool Npc::isAiBusy() const {
 void Npc::clearAiQueue() {
   aiQueue.clear();
   aiQueueOverlay.clear();
-  waitTime        = 0;
-  faiWaitTime     = 0;
-  wayPath.clear();
+  waitTime    = 0;
+  faiWaitTime = 0;
   fghAlgo.onClearTarget();
-  if(!go2.empty()) {
-    setAnim(Anim::Idle);
-    go2.clear();
-    }
+  clearGoTo();
   }
 
 bool Npc::isInState(ScriptFn fn) const {
@@ -3605,9 +3597,16 @@ void Npc::attachToPoint(const WayPoint *p) {
 void Npc::clearGoTo() {
   wayPath.clear();
   if(!go2.empty()) {
-    setAnim(Anim::Idle);
+    stopWalking();
     go2.clear();
     }
+  }
+
+void Npc::stopWalking() {
+  if(setAnim(Anim::Idle))
+    return;
+  // hard stop
+  visual.stopWalkAnim(*this);
   }
 
 bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {

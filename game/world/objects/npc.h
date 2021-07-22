@@ -341,6 +341,7 @@ class Npc final {
     void      attachToPoint(const WayPoint* p);
     GoToHint  moveHint() const { return go2.flag; }
     void      clearGoTo();
+    void      stopWalking();
 
     bool      canSeeNpc(const Npc& oth,bool freeLos) const;
     bool      canSeeNpc(float x,float y,float z,bool freeLos) const;
