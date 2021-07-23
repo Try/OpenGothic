@@ -38,11 +38,11 @@ make
 [![Video](https://img.youtube.com/vi/R9MNhNsBVQ0/0.jpg)](https://www.youtube.com/watch?v=R9MNhNsBVQ0) [![Video](https://img.youtube.com/vi/6BvwNkPMbwM/0.jpg)](https://www.youtube.com/watch?v=6BvwNkPMbwM)
 
 ##### Mods compatibility
- [x] Content mods (retexture/reworld/animations)
- [-] Mods bases on Ikarus/LeGo 
- [-] AST sdk
- [-] Mods bases on Union (not possible)
- [-] DirectX11 - same as Union, but don't worry - OpenGothic has nice visuals out of the box
+- [x] Content mods (retexture/reworld/animations)
+- [ ] Mods bases on Ikarus/LeGo 
+- [ ] AST sdk
+- [ ] Mods bases on Union (not possible)
+- [ ] DirectX11 - same as Union, but don't worry - OpenGothic has nice graphics out of the box
 
 ##### Command line arguments
 * -g specify gothic game catalog
