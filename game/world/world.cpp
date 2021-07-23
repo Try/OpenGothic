@@ -682,8 +682,12 @@ Sound World::addWeaponHitEffect(Npc& src, Npc& reciver) {
   pos.translate((p0+p1)*0.5f);
 
   const char* armor = "FL";
-  if(auto a = reciver.currentArmour())
-    armor = materialTag(ItemMaterial(a->handle().material));
+  if(auto a = reciver.currentArmour()) {
+    auto m = ItemMaterial(a->handle().material);
+    // NOTE: in vanilla only those sfx are defined for armor
+    if(m==ItemMaterial::MAT_METAL || m==ItemMaterial::MAT_WOOD)
+      armor = materialTag(m);
+    }
 
   if(auto w = src.inventory().activeWeapon()) {
     auto m = ItemMaterial(w->handle().material);
