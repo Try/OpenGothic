@@ -746,7 +746,7 @@ Camera::Mode MainWindow::solveCameraMode() const {
   return Camera::Normal;
   }
 
-void MainWindow::startGame(const std::string& slot) {
+void MainWindow::startGame(std::string_view slot) {
   // gothic.emitGlobalSound(gothic.loadSoundFx("NEWGAME"));
 
   if(Gothic::inst().checkLoading()==Gothic::LoadState::Idle){
@@ -754,7 +754,7 @@ void MainWindow::startGame(const std::string& slot) {
     onWorldLoaded();
     }
 
-  Gothic::inst().startLoad("LOADING.TGA",[slot](std::unique_ptr<GameSession>&& game){
+  Gothic::inst().startLoad("LOADING.TGA",[slot=std::string(slot)](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
     std::unique_ptr<GameSession> w(new GameSession(slot));
     return w;
@@ -762,13 +762,13 @@ void MainWindow::startGame(const std::string& slot) {
   update();
   }
 
-void MainWindow::loadGame(const std::string &slot) {
+void MainWindow::loadGame(std::string_view slot) {
   if(Gothic::inst().checkLoading()==Gothic::LoadState::Idle){
     setGameImpl(nullptr);
     onWorldLoaded();
     }
 
-  Gothic::inst().startLoad("LOADING.TGA",[slot](std::unique_ptr<GameSession>&& game){
+  Gothic::inst().startLoad("LOADING.TGA",[slot=std::string(slot)](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
     Tempest::RFile file(slot);
     Serialize      s(file);
@@ -779,11 +779,11 @@ void MainWindow::loadGame(const std::string &slot) {
   update();
   }
 
-void MainWindow::saveGame(const std::string &slot, const std::string& name) {
+void MainWindow::saveGame(std::string_view slot, std::string_view name) {
   auto tex = renderer.screenshoot(cmdId);
   auto pm  = device.readPixels(textureCast(tex));
 
-  Gothic::inst().startSave(std::move(textureCast(tex)),[slot,name,pm](std::unique_ptr<GameSession>&& game){
+  Gothic::inst().startSave(std::move(textureCast(tex)),[slot=std::string(slot),name=std::string(name),pm](std::unique_ptr<GameSession>&& game){
     if(!game)
       return std::move(game);
 

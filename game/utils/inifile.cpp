@@ -9,6 +9,22 @@
 
 using namespace Tempest;
 
+static bool compareNoCase(std::string_view a, std::string_view b) {
+  if(a.size()!=b.size())
+    return false;
+  for(size_t i=0; i<a.size(); ++i) {
+    char ca = a[i];
+    char cb = b[i];
+    if('a'<=ca && ca<='z')
+      ca = char((ca-'a')+'A');
+    if('a'<=cb && cb<='z')
+      cb = char((cb-'a')+'A');
+    if(ca!=cb)
+      return false;
+    }
+  return true;
+  }
+
 IniFile::IniFile(std::u16string file) {
   fileName = std::move(file);
   if(!FileUtil::exists(fileName)) {
@@ -188,9 +204,9 @@ IniFile::Value& IniFile::find(std::string_view sec, std::string_view name) {
 
 IniFile::Value* IniFile::find(std::string_view s, std::string_view name, bool autoCreate) {
   for(auto& i:sec){
-    if(i.name==s){
+    if(compareNoCase(i.name,s)){
       for(auto& r:i.val)
-        if(r.name==name)
+        if(compareNoCase(r.name,name))
           return &r;
       if(autoCreate) {
         addValue(i,std::string(name),"");

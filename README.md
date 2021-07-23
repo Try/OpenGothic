@@ -1,7 +1,7 @@
 ### OpenGothic
 Open source remake of Gothic 2: Night of the raven.
-Motivation: The original Gothic 1 and Gothic 2 are still great games, but it not easy to make them work on modern systems.
-The goal of this project is to make a feature complete Gothic client compatible with the game and mods.
+Motivation: The original Gothic 1 and Gothic 2 are still great games, but it not easy to make them work on modern systems.  
+The goal of this project is to make a feature complete Gothic game client compatible with the game and mods.
 
 ----
 [![Latest build](https://img.shields.io/github/release-pre/Try/opengothic?style=for-the-badge)](https://github.com/Try/opengothic/releases/latest)
@@ -22,68 +22,31 @@ Common Gothic installation paths:
 - "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"
 
 ##### Build it for Linux
-1. Install dependencies for Ubuntu 20.04:
-
-`sudo apt install git cmake g++ glslang-tools libvulkan-dev libasound2-dev libx11-dev`
-
-2. Clone this repo, including submodules:
-
-`git clone --recurse-submodules https://github.com/Try/OpenGothic.git`
-
-3. Create build dir and build as usual:
-
-`mkdir OpenGothic/build` --> `cd OpenGothic/build` --> `cmake .. -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo` --> `make`
+```bash
+# 1. Install dependencies for Ubuntu 20.04:
+sudo apt install git cmake g++ glslang-tools libvulkan-dev libasound2-dev libx11-dev
+# 2. Clone this repo, including submodules:
+git clone --recurse-submodules https://github.com/Try/OpenGothic.git
+# 3. Create build dir and build as usual:
+mkdir OpenGothic/build
+cd OpenGothic/build
+cmake .. -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
+make
+```
 
 #### Gameplay video
 [![Video](https://img.youtube.com/vi/R9MNhNsBVQ0/0.jpg)](https://www.youtube.com/watch?v=R9MNhNsBVQ0) [![Video](https://img.youtube.com/vi/6BvwNkPMbwM/0.jpg)](https://www.youtube.com/watch?v=6BvwNkPMbwM)
 
-##### Features
-* General
-    * Walk - Done
-    * Walk(in water) - Done
-    * Run - Done
-    * Sneak - Done
-    * Jump - Done
-    * Jump(pull-up) - Done
-    * Swimming - Done
-    * Physic - mostly Done, with Bullet collision. Need small tweaks/tuning
-* Loot
-    * Pick an object - Done
-    * Chest - Done
-    * Ransack a body - Done
-    * Object ownership/theft reaction - Partial
-* Dialogs
-    * Dialog script - Done
-    * Trading - Done ( only G2 style, sorry G1 fans )
-* Battle
-    * Hit box - Partial(same bbox for everyone) 
-    * Melee combat - Done
-    * Range - Done
-    * Magic - Partial (only some of spells working)
-* Visual
-    * Body animation - Done
-    * Head/Morph animation - Not Implemented
-    * Shadows - Done
-    * Mob-use animations(seat/cook/sleep) - Partial
-* UI
-    * Inventory - Done
-    * Game menu/menu script - Done, except scrollbars
-    * Character info screen - Done
-    * Quest log - Partial 
-* Sound
-    * animation sfx/gfx - Done
-    * sound blockers - Done(but implementation is very simple)
-    * music - Partial (kinda working, but sound is inexact)
-
-
 ##### Mods compatibility
-Mods delivered as *.mod files shoud work, since *.mod contains visual content and scripts.  
-Don't expect mods created with AST-SDK to work, since original Gothic and OpenGothic are not binary compatible.  
-Don't expect DirectX11 mod to work, since technicaly it's not a mod. But Project is aiming to have a good graphics with shaders out of box.  
-
+ [x] Content mods (retexture/reworld/animations)
+ [-] Mods bases on Ikarus/LeGo 
+ [-] AST sdk
+ [-] Mods bases on Union (not possible)
+ [-] DirectX11 - same as Union, but don't worry - OpenGothic has nice visuals out of the box
 
 ##### Command line arguments
 * -g specify gothic game catalog
+* -game:<modfile.init> specify game modification manifest (GothicStarter compatibility)
 * -nomenu - skip main menu
 * -nofrate - disable FPS display in-game
 * -w <worldname.zen> - startup world; newworld.zen is default

@@ -28,13 +28,20 @@ Gothic::Gothic(const int argc, const char **argv) {
   if(argc<1)
     return;
 
-  for(int i=1;i<argc;++i){
-    if(std::strcmp(argv[i],"-g")==0){
+  std::string_view mod;
+  for(int i=1;i<argc;++i) {
+    std::string_view arg = argv[i];
+    if(arg.find("-game:")==0) {
+      if(!mod.empty())
+        Log::e("-game specifyed twice");
+      mod = arg.substr(6);
+      }
+    if(arg=="-g") {
       ++i;
       if(i<argc)
         gpath.assign(argv[i],argv[i]+std::strlen(argv[i]));
       }
-    else if(std::strcmp(argv[i],"-save")==0){
+    else if(arg=="-save") {
       ++i;
       if(i<argc){
         if(std::strcmp(argv[i],"q")==0) {
@@ -44,32 +51,32 @@ Gothic::Gothic(const int argc, const char **argv) {
           }
         }
       }
-    else if(std::strcmp(argv[i],"-w")==0){
+    else if(arg=="-w") {
       ++i;
       if(i<argc)
         wdef=argv[i];
       }
-    else if(std::strcmp(argv[i],"-window")==0){
+    else if(arg=="-window") {
       isWindow=true;
       }
-    else if(std::strcmp(argv[i],"-nomenu")==0){
+    else if(arg=="-nomenu") {
       noMenu=true;
       }
-    else if(std::strcmp(argv[i],"-nofrate")==0){
+    else if(arg=="-nofrate") {
       noFrate=true;
       }
-    else if(std::strcmp(argv[i],"-rambo")==0){
+    else if(arg=="-rambo") {
       isRambo=true;
       }
-    else if(std::strcmp(argv[i],"-dx12")==0){
+    else if(arg=="-dx12") {
       graphics = GraphicBackend::DirectX12;
       }
-    else if(std::strcmp(argv[i],"-validation")==0 || std::strcmp(argv[i],"-v")==0){
+    else if(arg=="-validation" || arg=="-v") {
       isDebug=true;
       }
     }
 
-  if(gpath.empty()){
+  if(gpath.empty()) {
     InstallDetect inst;
     gpath = inst.detectG2();
     }
@@ -94,12 +101,27 @@ Gothic::Gothic(const int argc, const char **argv) {
   iniFile    .reset(new IniFile(u"Gothic.ini"));
 
   detectGothicVersion();
+  if(!mod.empty()){
+    auto mod16 = TextCodec::toUtf16(std::string(mod));
+    modFile.reset(new IniFile(nestedPath({u"system",mod16.c_str()},Dir::FT_File)));
+    }
 
-  if(wdef.empty()){
+  if(modFile!=nullptr) {
+    wdef = modFile->getS("SETTINGS","WORLD");
+    size_t split = wdef.rfind('\\');
+    if(split!=std::string::npos)
+      wdef = wdef.substr(split+1);
+    plDef = modFile->getS("SETTINGS","PLAYER");
+    }
+
+  if(wdef.empty()) {
     if(version().game==2)
       wdef = "newworld.zen"; else
       wdef = "world.zen";
     }
+
+  if(plDef.empty())
+    plDef = "PC_HERO";
 
   onSettingsChanged.bind(this,&Gothic::setupSettings);
   setupSettings();
@@ -442,11 +464,11 @@ void Gothic::quickLoad() {
   load("save_slot_0.sav");
   }
 
-void Gothic::save(const std::string &slot, const std::string& name) {
+void Gothic::save(std::string_view slot, std::string_view name) {
   onSaveGame(slot,name);
   }
 
-void Gothic::load(const std::string &slot) {
+void Gothic::load(std::string_view slot) {
   onLoadGame(slot);
   }
 
@@ -506,11 +528,15 @@ uint32_t Gothic::messageTime(const Daedalus::ZString& id) const {
   return game->messageTime(id);
   }
 
-const std::string &Gothic::defaultWorld() const {
+std::string_view Gothic::defaultWorld() const {
   return wdef;
   }
 
-const std::string &Gothic::defaultSave() const {
+std::string_view Gothic::defaultPlayer() const {
+  return plDef;
+  }
+
+std::string_view Gothic::defaultSave() const {
   return saveDef;
   }
 

@@ -71,9 +71,9 @@ class MainWindow : public Tempest::Window {
     void drawSaving  (Tempest::Painter& p);
     void drawSaving  (Tempest::Painter& p, int w, int h, float scale);
 
-    void startGame(const std::string& slot);
-    void loadGame (const std::string& slot);
-    void saveGame (const std::string& slot, const std::string& name);
+    void startGame(std::string_view slot);
+    void loadGame (std::string_view slot);
+    void saveGame (std::string_view slot, std::string_view name);
 
     void onVideo(const Daedalus::ZString& fname);
     void onStartLoading();

@@ -68,20 +68,20 @@ GameSession::GameSession(std::string file) {
 
   const bool testMode=false;
 
-  const char* hero = testMode ? "PC_ROCKEFELLER" : "PC_HERO";
-  //const char* hero = "PC_ROCKEFELLER";
-  //const char* hero = "FireGolem";
-  //const char* hero = "Dragon_Undead";
-  //const char* hero = "Sheep";
-  //const char* hero = "Giant_Bug";
-  //const char* hero = "OrcWarrior_Rest";
-  //const char* hero = "Snapper";
-  //const char* hero = "Lurker";
-  //const char* hero = "Scavenger";
-  //const char* hero = "StoneGolem";
-  //const char* hero = "Waran";
-  //const char* hero = "Bloodfly";
-  //const char* hero = "Gobbo_Skeleton";
+  std::string_view hero = testMode ? "PC_ROCKEFELLER" : Gothic::inst().defaultPlayer();
+  //std::string_view hero = "PC_ROCKEFELLER";
+  //std::string_view hero = "FireGolem";
+  //std::string_view hero = "Dragon_Undead";
+  //std::string_view hero = "Sheep";
+  //std::string_view hero = "Giant_Bug";
+  //std::string_view hero = "OrcWarrior_Rest";
+  //std::string_view hero = "Snapper";
+  //std::string_view hero = "Lurker";
+  //std::string_view hero = "Scavenger";
+  //std::string_view hero = "StoneGolem";
+  //std::string_view hero = "Waran";
+  //std::string_view hero = "Bloodfly";
+  //std::string_view hero = "Gobbo_Skeleton";
   wrld->createPlayer(hero);
   wrld->postInit();
 

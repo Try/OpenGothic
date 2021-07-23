@@ -52,6 +52,10 @@ class Gothic final {
     bool         doStartMenu() const { return !noMenu; }
     bool         doFrate() const { return !noFrate; }
 
+    std::string_view defaultWorld()  const;
+    std::string_view defaultPlayer() const;
+    std::string_view defaultSave()   const;
+
     void         setGame(std::unique_ptr<GameSession> &&w);
     auto         clearGame() -> std::unique_ptr<GameSession>;
 
@@ -102,8 +106,8 @@ class Gothic final {
     void         updateAnimation();
     void         quickSave();
     void         quickLoad();
-    void         save(const std::string& slot, const std::string& usrName);
-    void         load(const std::string& slot);
+    void         save(std::string_view slot, std::string_view usrName);
+    void         load(std::string_view slot);
 
     auto         updateDialog(const GameScript::DlgChoise& dlg, Npc& player, Npc& npc) -> std::vector<GameScript::DlgChoise>;
     void         dialogExec  (const GameScript::DlgChoise& dlg, Npc& player, Npc& npc);
@@ -111,9 +115,9 @@ class Gothic final {
     void         openDialogPipe (Npc& player, Npc& npc, AiOuputPipe*& pipe);
     bool         aiIsDlgFinished();
 
-    Tempest::Signal<void(const std::string&)>                           onStartGame;
-    Tempest::Signal<void(const std::string&)>                           onLoadGame;
-    Tempest::Signal<void(const std::string&,const std::string&)>        onSaveGame;
+    Tempest::Signal<void(std::string_view)>                             onStartGame;
+    Tempest::Signal<void(std::string_view)>                             onLoadGame;
+    Tempest::Signal<void(std::string_view,std::string_view)>            onSaveGame;
 
     Tempest::Signal<void(Npc&,Npc&,AiOuputPipe*&)>                      onDialogPipe;
     Tempest::Signal<void(bool&)>                                        isDialogClose;
@@ -134,8 +138,6 @@ class Gothic final {
     uint32_t                              messageTime   (const Daedalus::ZString& id) const;
 
     std::u16string                        nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const;
-    const std::string&                    defaultWorld() const;
-    const std::string&                    defaultSave() const;
     std::unique_ptr<Daedalus::DaedalusVM> createVm(std::string_view datFile);
     std::vector<uint8_t>                  loadScriptCode(std::string_view datFile);
     void                                  setupVmCommonApi(Daedalus::DaedalusVM &vm);
@@ -159,7 +161,7 @@ class Gothic final {
 
   private:
     std::u16string                          gpath, gscript;
-    std::string                             wdef;
+    std::string                             wdef, plDef;
     std::string                             saveDef;
     bool                                    noMenu=false;
     bool                                    noFrate=false;
@@ -173,6 +175,7 @@ class Gothic final {
 
     std::unique_ptr<IniFile>                baseIniFile;
     std::unique_ptr<IniFile>                iniFile;
+    std::unique_ptr<IniFile>                modFile;
 
     const Tempest::Texture2d*               loadTex=nullptr;
     Tempest::Texture2d                      saveTex;
