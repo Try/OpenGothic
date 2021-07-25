@@ -27,6 +27,6 @@ uint64_t GlobalFx::effectPrefferedTime() const {
     return 0;
   uint64_t ret = h->timeLen;
   if(ret==uint64_t(-1))
-    return 0;
+    return h->timeLoop;
   return ret;
   }

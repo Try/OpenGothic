@@ -30,9 +30,10 @@ class Effect final {
     bool     is(const VisualFx& vfx) const;
     const VisualFx* handle() const { return root; }
 
+    void     tick(uint64_t dt);
+
     void     setActive(bool e);
     void     setLooped(bool l);
-    bool     isLooped() const;
 
     void     setTarget   (const Npc* npc);
     void     setOrigin   (Npc* npc);
@@ -79,6 +80,8 @@ class Effect final {
     const MeshObjects::Mesh* meshEmitter = nullptr;
 
     Tempest::Matrix4x4    pos;
+
+    uint64_t              timeStart = 0;
     bool                  active = false;
     bool                  looped = false;
 

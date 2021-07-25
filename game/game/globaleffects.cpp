@@ -138,6 +138,8 @@ GlobalFx GlobalEffects::addScreenBlend(const Daedalus::ZString* argv, size_t arg
   if(4<argc)
     sc.fps    = size_t(std::atoi(argv[4].c_str()));
 
+  sc.timeLoop = uint64_t(sc.loop*1000.f);
+
   scrEff.emplace_back(std::make_shared<ScreenBlend>(sc));
   return GlobalFx(scrEff.back());
   }

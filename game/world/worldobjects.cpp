@@ -172,6 +172,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
       effects[i] = std::move(effects.back());
       effects.pop_back();
       } else {
+      effects[i].eff.tick(dt);
       ++i;
       }
     }

@@ -96,6 +96,15 @@ bool Effect::is(const VisualFx& vfx) const {
   return root==&vfx;
   }
 
+void Effect::tick(uint64_t dt) {
+  if(root==nullptr)
+    return;
+  Vec3 vel = root->emSelfRotVel;
+  if(key!=nullptr)
+    vel = key->emSelfRotVel.value_or(vel);
+
+  }
+
 void Effect::setActive(bool e) {
   active = e;
   if(next!=nullptr)
@@ -111,10 +120,6 @@ void Effect::setLooped(bool l) {
   if(next!=nullptr)
     next->setLooped(l);
   pfx.setLooped(l);
-  }
-
-bool Effect::isLooped() const {
-  return looped;
   }
 
 void Effect::setTarget(const Npc* tg) {

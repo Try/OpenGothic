@@ -31,6 +31,7 @@ class GlobalEffects {
       uint64_t timeUntil = 0;
       uint64_t timeStart = 0;
       uint64_t timeLen   = 0;
+      uint64_t timeLoop  = 0;
       };
 
     struct SlowTime:Effect {
