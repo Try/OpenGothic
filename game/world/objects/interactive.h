@@ -67,7 +67,6 @@ class Interactive : public Vob {
     bool                isAvailable() const;
     bool                isStaticState() const;
     bool                isDetachState(const Npc& npc) const;
-    bool                canQuitAtLastState() const;
     bool                canQuitAtState(Npc& npc, int32_t state) const;
     bool                attach (Npc& npc);
     bool                dettach(Npc& npc,bool quick);

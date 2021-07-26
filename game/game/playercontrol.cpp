@@ -638,8 +638,8 @@ void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
     return;
     }
 
-  if(inter->stateId()==inter->stateCount() && inter->isStaticState() && !inter->isDetachState(pl)) {
-    if(inter->canQuitAtLastState()) {
+  if(inter->isStaticState() && !inter->isDetachState(pl)) {
+    if(inter->canQuitAtState(pl,inter->stateId())) {
       pl.setInteraction(nullptr,true);
       }
     }
