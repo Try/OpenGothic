@@ -165,7 +165,10 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world) {
   else if(FileExt::hasExt(vob.visual,"MDS") ||
           FileExt::hasExt(vob.visual,"MMS") ||
           FileExt::hasExt(vob.visual,"ASC"))  {
-    auto view = Resources::loadMesh(vob.visual);
+    auto visual = vob.visual;
+    FileExt::exchangeExt(visual,"ASC","MDL");
+
+    auto view = Resources::loadMesh(visual);
     if(!view)
       return;
     setType(M_Mdl);

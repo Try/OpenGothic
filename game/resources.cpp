@@ -359,17 +359,14 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
       hasMdm = true;
       }
 
-    if(anim->defaultMesh().empty()) {
+    if(anim->defaultMesh().empty())
       mesh = name;
-      FileExt::exchangeExt(mesh,"MDS","MDH");
-      } else {
-      FileExt::exchangeExt(mesh,"MDM","MDH");
-      }
+    FileExt::assignExt(mesh,"MDH");
 
     ZenLoad::ZenParser parserMdh(mesh,gothicAssets);
     mdh.loadMDH(parserMdh);
 
-    std::unique_ptr<Skeleton> sk{new Skeleton(mdh,anim,name.c_str())};
+    std::unique_ptr<Skeleton> sk{new Skeleton(mdh,anim,name)};
     std::unique_ptr<ProtoMesh> t;
     if(hasMdm)
       t.reset(new ProtoMesh(std::move(mdm),std::move(sk),name)); else
@@ -377,25 +374,20 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     return t;
     }
 
-  if(FileExt::hasExt(name,"ASC")) {
-    if(!hasFile(name))
-      FileExt::exchangeExt(name,"ASC","MDM");
-    if(!hasFile(name))
-      FileExt::exchangeExt(name,"MDM","MDL");
-    }
+  if(FileExt::hasExt(name,"MDM") || FileExt::hasExt(name,"MDL") || FileExt::hasExt(name,"ASC")) {
+    FileExt::exchangeExt(name,"ASC","MDM");
 
-  if(FileExt::hasExt(name,"MDM") || FileExt::hasExt(name,"MDL")) {
     if(!hasFile(name))
       return nullptr;
 
-    ZenLoad::ZenParser parser(name,gothicAssets);
     ZenLoad::zCModelMeshLib mdm;
 
-    if(FileExt::hasExt(name,"MDM"))
-      mdm.loadMDM(parser); else
-      mdm.loadMDL(parser);
+    ZenLoad::ZenParser parser(name,gothicAssets);
+    if(FileExt::hasExt(name,"MDL"))
+      mdm.loadMDL(parser); else
+      mdm.loadMDM(parser);
 
-    std::unique_ptr<Skeleton> sk{new Skeleton(mdm,nullptr,name.c_str())};
+    std::unique_ptr<Skeleton> sk{new Skeleton(mdm,nullptr,name)};
     std::unique_ptr<ProtoMesh> t{new ProtoMesh(std::move(mdm),std::move(sk),name)};
     return t;
     }

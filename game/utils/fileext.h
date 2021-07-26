@@ -60,4 +60,22 @@ namespace FileExt {
       s[off+i] = extOut[i];
     return true;
     }
+
+  inline void assignExt(std::string& s,const char* extOut){
+    size_t cut = s.rfind('.');
+    if(cut==std::string::npos) {
+      s.push_back('.');
+      s += extOut;
+      return;
+      }
+    const size_t l1 = s.size()-cut-1;
+    const size_t l2 = std::strlen(extOut);
+    if(l1<l2)
+      s.resize(s.size()+l2-l1); else
+    if(l1>l2)
+      s.resize(s.size()+l1-l2);
+    const size_t off = cut+1;
+    for(size_t i=0;i<l2;++i)
+      s[off+i] = extOut[i];
+    }
   }

@@ -69,9 +69,12 @@ void Pose::load(Serialize &fin, const AnimationSolver& solver) {
     fin.read(name,i.sAnim,i.bs);
     if(fin.version()<=26)
       FileExt::exchangeExt(name,"MDH","MDS");
-    i.seq = solver.solveFrm(name.c_str());
+    i.seq = solver.solveFrm(name);
     }
   fin.read(lastUpdate);
+  if(fin.version()<32)
+    lastUpdate = 0;
+
   if(fin.version()>=29) {
     uint32_t size = 0;
     fin.read(size);

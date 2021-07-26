@@ -7,7 +7,7 @@
 
 using namespace Tempest;
 
-Skeleton::Skeleton(const ZenLoad::zCModelMeshLib &src, const Animation* anim, std::string_view name)
+Skeleton::Skeleton(const ZenLoad::zCModelMeshLib& src, const Animation* anim, std::string_view name)
   :fileName(name), anim(anim) {
   bboxCol[0] = src.getBBoxCollisionMin();
   bboxCol[1] = src.getBBoxCollisionMax();
