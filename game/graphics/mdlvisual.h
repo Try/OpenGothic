@@ -93,7 +93,8 @@ class MdlVisual final {
     void                           stopDlgAnim    (Npc& npc);
     void                           stopAnim       (Npc& npc, std::string_view anim);
     bool                           stopItemStateAnim(Npc &npc);
-    void                           stopWalkAnim(Npc &npc);
+    bool                           hasAnim        (std::string_view scheme) const;
+    void                           stopWalkAnim   (Npc &npc);
     void                           setRotation(Npc &npc, int dir);
 
     void                           interrupt();

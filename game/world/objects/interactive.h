@@ -68,6 +68,7 @@ class Interactive : public Vob {
     bool                isStaticState() const;
     bool                isDetachState(const Npc& npc) const;
     bool                canQuitAtLastState() const;
+    bool                canQuitAtState(Npc& npc, int32_t state) const;
     bool                attach (Npc& npc);
     bool                dettach(Npc& npc,bool quick);
     bool                isAttached(const Npc& to);
@@ -90,7 +91,7 @@ class Interactive : public Vob {
       size_t             node=0;
       Tempest::Matrix4x4 pos;
 
-      const char*        posTag() const;
+      std::string_view   posTag() const;
       bool               isAttachPoint() const;
       bool               isDistPos() const;
       };

@@ -518,6 +518,10 @@ bool MdlVisual::stopItemStateAnim(Npc& npc) {
   return true;
   }
 
+bool MdlVisual::hasAnim(std::string_view scheme) const {
+  return solver.solveFrm(scheme)!=nullptr;
+  }
+
 void MdlVisual::stopWalkAnim(Npc &npc) {
   skInst->stopWalkAnim();
   if(!skInst->hasAnim())

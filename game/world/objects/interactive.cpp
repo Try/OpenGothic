@@ -579,13 +579,18 @@ bool Interactive::isDetachState(const Npc& npc) const {
   return !reverseState;
   }
 
-bool Interactive::canQuitAtLastState() const {
-  // NOTE: workaround for B_MoveMob.d
-  // TODO: check for T_[DOOR]_FRONT_S1_2_STAND anim
-  const bool isDoor = (schemeName()=="DOOR" || schemeName()=="GATE");
-  return (vobType==ZenLoad::zCVobData::VT_oCMobDoor && isDoor) ||
-         (vobType==ZenLoad::zCVobData::VT_oCMobSwitch)         ||
-         reverseState;
+bool Interactive::canQuitAtState(Npc& npc, int32_t state) const {
+  if(state<0)
+    return true;
+  auto scheme   = schemeName();
+  auto pos      = posSchemeName();
+  char frm[256] = {};
+  if(!pos.empty())
+    std::snprintf(frm,sizeof(frm),"T_%.*s_%.*s_S%d_2_STAND",int(scheme.size()),scheme.data(),int(pos.size()),pos.data(),state); else
+    std::snprintf(frm,sizeof(frm),"T_%.*s_S%d_2_STAND",int(scheme.size()),scheme.data(),state);
+  if(npc.hasAnim(frm))
+    return true;
+  return state==stateNum && reverseState;
   }
 
 bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
@@ -660,7 +665,7 @@ bool Interactive::attach(Npc &npc) {
 bool Interactive::dettach(Npc &npc, bool quick) {
   for(auto& i:attPos) {
     if(i.user==&npc) {
-      if(state==stateNum && canQuitAtLastState()/* && !npc.isPlayer()*/) {
+      if(canQuitAtState(*i.user,state)) {
         i.user       = nullptr;
         i.attachMode = false;
         npc.quitIneraction();
@@ -822,7 +827,8 @@ const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, A
   std::string_view tag      = schemeName();
   int              st[]     = {state,state+(reverseState ? -t : t)};
   char             ss[2][12] = {};
-  const char*      point    = "";
+  char             pointBuf[32] = {};
+  std::string_view point    = "";
 
   if(t==Anim::FromStand) {
     st[0] = -1;
@@ -836,6 +842,8 @@ const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, A
   for(auto& i:attPos)
     if(i.user!=nullptr) {
       point = i.posTag();
+      std::snprintf(pointBuf,sizeof(pointBuf),"_%.*s",int(point.size()),point.data());
+      point = pointBuf;
       }
 
   st[1] = std::max(-1,std::min(st[1],stateNum));
@@ -847,10 +855,10 @@ const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, A
       std::snprintf(ss[i],sizeof(ss[i]),"S%d",st[i]);
     }
 
-  for(auto pt:{point,""}) {
+  for(auto pt:{point,std::string_view()}) {
     if(st[0]==st[1])
-      std::snprintf(buf,sizeof(buf),"S_%.*s%s_%s",int(tag.size()),tag.data(),pt,ss[0]); else
-      std::snprintf(buf,sizeof(buf),"T_%.*s%s_%s_2_%s",int(tag.size()),tag.data(),pt,ss[0],ss[1]);
+      std::snprintf(buf,sizeof(buf),"S_%.*s%.*s_%s",     int(tag.size()),tag.data(),int(pt.size()),pt.data(),ss[0]); else
+      std::snprintf(buf,sizeof(buf),"T_%.*s%.*s_%s_2_%s",int(tag.size()),tag.data(),int(pt.size()),pt.data(),ss[0],ss[1]);
     if(auto ret = solver.solveFrm(buf))
       return ret;
     }
@@ -881,11 +889,11 @@ void Interactive::moveEvent() {
   visual.setObjMatrix(transform());
   }
 
-const char *Interactive::Pos::posTag() const {
+std::string_view Interactive::Pos::posTag() const {
   if(name.rfind("_FRONT")==name.size()-6)
-    return "_FRONT";
+    return "FRONT";
   if(name.rfind("_BACK")==name.size()-5)
-    return "_BACK";
+    return "BACK";
   return "";
   }
 

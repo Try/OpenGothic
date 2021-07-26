@@ -31,7 +31,7 @@ const Daedalus::GEngineClasses::CCamSys& CameraDefinitions::mobsiCam(std::string
   char name[256]={};
 
   if(!pos.empty()) {
-    std::snprintf(name,sizeof(name),"CAMMODMOB%.*s%.*s",int(tag.size()),tag.data(), int(pos.size()),pos.data());
+    std::snprintf(name,sizeof(name),"CAMMODMOB%.*s_%.*s",int(tag.size()),tag.data(), int(pos.size()),pos.data());
     if(auto* c = find(name))
       return *c;
     }

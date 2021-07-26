@@ -1046,6 +1046,10 @@ bool Npc::stopItemStateAnim() {
   return visual.stopItemStateAnim(*this);
   }
 
+bool Npc::hasAnim(std::string_view scheme) const {
+  return visual.hasAnim(scheme);
+  }
+
 bool Npc::isFinishingMove() const {
   return visual.pose().isInAnim("T_1HSFINISH") || visual.pose().isInAnim("T_2HSFINISH");
   }
@@ -2424,7 +2428,6 @@ void Npc::emitSoundSVM(std::string_view svm) {
 void Npc::startEffect(Npc& to, const VisualFx& vfx) {
   Effect e(vfx,owner,*this,SpellFxKey::Cast);
   e.setActive(true);
-  e.setLooped(true);
   e.setTarget(&to);
   visual.startEffect(owner, std::move(e), 0, true);
   }
