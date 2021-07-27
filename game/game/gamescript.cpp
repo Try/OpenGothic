@@ -1156,6 +1156,7 @@ bool GameScript::searchScheme(std::string_view sc, std::string_view listName) {
       size_t len = size_t(std::distance(l,e));
       if(sc==std::string_view(l,len))
         return true;
+      l = e+1;
       }
     if(*e=='\0')
       break;
