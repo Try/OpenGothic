@@ -1298,7 +1298,7 @@ bool Npc::implPointAt(const Tempest::Vec3& to) {
   }
 
 bool Npc::implLookAt(uint64_t dt) {
-  if(currentLookAt==nullptr || interactive()!=nullptr)
+  if(currentLookAt==nullptr)
     return false;
   auto dx = currentLookAt->x-x;
   auto dy = currentLookAt->y-y;
@@ -1370,7 +1370,9 @@ bool Npc::implTurnTo(float dx, float dz, bool noAnim, uint64_t dt) {
 bool Npc::implGoTo(uint64_t dt) {
   float dist = 0;
   if(go2.npc) {
-    dist = fghAlgo.baseDistance(*this,*go2.npc,owner.script());
+    if(go2.flag==GT_EnemyA)
+      dist = fghAlgo.prefferedAtackDistance(*this,*go2.npc,owner.script()); else
+      dist = fghAlgo.baseDistance(*this,*go2.npc,owner.script());
     } else {
     // use smaller threshold, to avoid edge-looping in script
     dist = MoveAlgo::closeToPointThreshold*0.25f;
@@ -1398,7 +1400,7 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
     if(finished)
       clearGoTo();
     } else {
-    if(implTurnTo(dpos.x,dpos.z,false,dt)){
+    if(mvAlgo.checkLastBounce() && implTurnTo(dpos.x,dpos.z,false,dt)){
       mvAlgo.tick(dt);
       return true;
       }
@@ -2109,7 +2111,17 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       break;
     case AI_Flee:
-      //atackMode=false;
+      if(currentTarget!=nullptr && currentTarget!=this) {
+        // TODO: find a suitable way-point and go there
+        auto& oth = *currentTarget;
+        auto dx = oth.x-x;
+        auto dz = oth.z-z;
+        if(implTurnTo(-dx,-dz,false,dt)) {
+          queue.pushFront(std::move(act));
+          } else {
+          setAnim(Anim::Move);
+          }
+        }
       break;
     case AI_Dodge:
       if(auto sq = setAnimAngGet(Anim::MoveBack,false)) {

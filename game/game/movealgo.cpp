@@ -484,9 +484,15 @@ void MoveAlgo::applyRotation(Tempest::Vec3& out, const Tempest::Vec3& dpos) cons
     out.y = dpos.y;
     }
   float rot = npc.rotationRad();
+  applyRotation(out,dpos,rot);
+  out.x *= -mul;
+  out.z *= -mul;
+  }
+
+void MoveAlgo::applyRotation(Tempest::Vec3& out, const Tempest::Vec3& dpos, float rot) const {
   float s   = std::sin(rot), c = std::cos(rot);
-  out.x = -mul*(dpos.x*c-dpos.z*s);
-  out.z = -mul*(dpos.x*s+dpos.z*c);
+  out.x = (dpos.x*c-dpos.z*s);
+  out.z = (dpos.x*s+dpos.z*c);
   }
 
 Tempest::Vec3 MoveAlgo::animMoveSpeed(uint64_t dt) const {
@@ -589,7 +595,12 @@ bool MoveAlgo::canFlyOverWater() const {
   auto  gl = npc.guild();
   auto& g  = npc.world().script().guildVal();
   return g.water_depth_chest[gl]==flyOverWaterHint &&
-         g.water_depth_knee [gl]==flyOverWaterHint;
+      g.water_depth_knee [gl]==flyOverWaterHint;
+  }
+
+bool MoveAlgo::checkLastBounce() const {
+  uint64_t ticks = npc.world().tickCount();
+  return lastBounce+1000<ticks;
   }
 
 void MoveAlgo::takeFallDamage() const {
@@ -816,37 +827,76 @@ bool MoveAlgo::slideDir() const {
   return s>0;
   }
 
+bool MoveAlgo::testMoveDirection(const Tempest::Vec3& dp, const Tempest::Vec3& dir) const {
+  Tempest::Vec3 tr, tr2;
+  applyRotation(tr,dir);
+  tr2 = Tempest::Vec3::normalize(dp);
+  return Tempest::Vec3::dotProduct(tr,tr2)>0.8f;
+  }
+
+bool MoveAlgo::isForward(const Tempest::Vec3& dp) const {
+  return testMoveDirection(dp,{0,0, 1});
+  }
+
+bool MoveAlgo::isBackward(const Tempest::Vec3& dp) const {
+  return testMoveDirection(dp,{0,0,-1});
+  }
+
 void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::CollisionTest& info, uint64_t dt) {
   static const float threshold = 0.3f;
   static const float speed     = 360.f;
 
-  auto  ortho = Tempest::Vec3::crossProduct(Tempest::Vec3::normalize(dp),Tempest::Vec3(0,1,0));
-  float stp   = speed*float(dt)/1000.f;
+  if(dp==Tempest::Vec3())
+    return;
 
-  const float val = Tempest::Vec3::dotProduct(ortho,info.normal);
+  if(npc.processPolicy()!=Npc::Player)
+    lastBounce = npc.world().tickCount();
+
+  const auto  ortho   = Tempest::Vec3::crossProduct(Tempest::Vec3::normalize(dp),Tempest::Vec3(0,1,0));
+  const float stp     = speed*float(dt)/1000.f;
+  const float val     = Tempest::Vec3::dotProduct(ortho,info.normal);
+  const bool  forward = isForward(dp);
+
+  if(std::abs(val)>threshold) {
+    // emulate bouncing behaviour of original game
+    Tempest::Vec3 corr;
+    for(int i=5; i<=45; i+=5) {
+      for(float angle:{float(i),-float(i)}) {
+        applyRotation(corr,dp,float(angle*M_PI)/180.f);
+        if(tryMove(corr.x,corr.y,corr.z)) {
+          if(forward)
+            npc.setDirection(npc.rotation()+angle);
+          return;
+          }
+        }
+      }
+    }
+
+  if(!forward)
+    return;
+
   if(val<-threshold) {
     npc.setDirection(npc.rotation()-stp);
     }
   else if(val>threshold) {
     npc.setDirection(npc.rotation()+stp);
     }
-  else {
-    switch(npc.moveHint()) {
-      case Npc::GT_No:
-        break;
-      case Npc::GT_NextFp:
-        npc.clearGoTo();
-        break;
-      case Npc::GT_EnemyA:
-      case Npc::GT_EnemyG:
-      case Npc::GT_Item:
-        npc.setDirection(npc.rotation()+stp);
-        break;
-      case Npc::GT_Way:
-      case Npc::GT_Point:
-        npc.setDirection(npc.rotation()+stp);
-        break;
-      }
+  else switch(npc.moveHint()) {
+    case Npc::GT_No:
+      npc.setAnim(Npc::Anim::Idle);
+      break;
+    case Npc::GT_NextFp:
+      npc.clearGoTo();
+      break;
+    case Npc::GT_EnemyA:
+    case Npc::GT_EnemyG:
+    case Npc::GT_Item:
+      npc.setDirection(npc.rotation()+stp);
+      break;
+    case Npc::GT_Way:
+    case Npc::GT_Point:
+      npc.setDirection(npc.rotation()+stp);
+      break;
     }
   }
 

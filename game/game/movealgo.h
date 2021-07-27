@@ -71,6 +71,8 @@ class MoveAlgo final {
     float   waterDepthChest() const;
     bool    canFlyOverWater() const;
 
+    bool    checkLastBounce() const;
+
   private:
     void    tickMobsi  (uint64_t dt);
     bool    tickSlide  (uint64_t dt);
@@ -103,8 +105,12 @@ class MoveAlgo final {
     void    setAsDive  (bool f);
 
     bool    slideDir() const;
+    bool    isForward(const Tempest::Vec3& dp) const;
+    bool    isBackward(const Tempest::Vec3& dp) const;
+    bool    testMoveDirection(const Tempest::Vec3& dp, const Tempest::Vec3& dir) const;
     void    onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::CollisionTest& info, uint64_t dt);
     void    applyRotation(Tempest::Vec3& out, const Tempest::Vec3& in) const;
+    void    applyRotation(Tempest::Vec3& out, const Tempest::Vec3& in, float radians) const;
     auto    animMoveSpeed(uint64_t dt) const -> Tempest::Vec3;
     auto    npcMoveSpeed (uint64_t dt, MvFlags moveFlg) -> Tempest::Vec3;
     auto    go2NpcMoveSpeed (const Tempest::Vec3& dp, const Npc &tg) -> Tempest::Vec3;
@@ -150,7 +156,8 @@ class MoveAlgo final {
     float               climbHeight=0.f;
     uint8_t             jmp=0;
 
-    uint64_t            diveStart=0;
+    uint64_t            diveStart  = 0;
+    uint64_t            lastBounce = 0;
 
     static const float   gravity;
     static const float   eps;

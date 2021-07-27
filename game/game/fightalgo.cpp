@@ -236,19 +236,6 @@ float FightAlgo::prefferedAtackDistance(const Npc& npc, const Npc& /*tg*/,  Game
   auto&  gv      = owner.guildVal();
   float  baseTg  = 0;//float(gv.fight_range_base[tg .guild()]);
   float  baseNpc = float(gv.fight_range_base[npc.guild()]);
-  switch(npc.weaponState()) {
-    case WeaponState::NoWeapon:
-      break;
-    case WeaponState::Fist:
-    case WeaponState::W1H:
-    case WeaponState::W2H:
-      break;
-    case WeaponState::Bow:
-    case WeaponState::CBow:
-    case WeaponState::Mage:
-      baseTg = 0;
-      break;
-    }
   return baseTg + baseNpc + weaponRange(owner,npc);
   }
 
