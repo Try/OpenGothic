@@ -103,33 +103,31 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
     return false;
     }
 
-  const float lnorm    = std::sqrt(norm.x*norm.x+norm.z*norm.z);
-  const float lnormInv = std::sqrt(1.f - lnorm*lnorm);
+  const float normXZ    = std::sqrt(norm.x*norm.x+norm.z*norm.z);
+  const float normXZInv = std::sqrt(1.f - normXZ*normXZ);
 
   DynamicWorld::CollisionTest info;
-  if(lnorm<0.01f || norm.y>=1.f || !testSlide(pos+Tempest::Vec3(0,fallThreshold,0),info)) {
+  if(normXZ<0.01f || norm.y>=1.f || !testSlide(pos+Tempest::Vec3(0,fallThreshold,0),info)) {
     setAsSlide(false);
     return false;
     }
 
-  const float speed = float(dt)*gravity;
+  const float speed = gravity*1.f;
 
-  norm.x = lnormInv*norm.x/lnorm;
-  norm.z = lnormInv*norm.z/lnorm;
-  norm.y = lnorm   *norm.y/lnormInv;
+  norm.x =  normXZInv*norm.x/normXZ;
+  norm.z =  normXZInv*norm.z/normXZ;
+  norm.y = -normXZ   *norm.y/normXZInv;
 
-  float k = 0.8f;
-  fallSpeed.x += +speed*norm.x*k;
-  fallSpeed.y += -speed*norm.y*k;
-  fallSpeed.z += +speed*norm.z*k;
+  auto dpos = norm*speed;
 
-  auto dp   = fallSpeed*float(dt);
-  //auto pos0 = npc.position();
-  if(!npc.tryMove(dp))
-    npc.tryMove(Tempest::Vec3(dp.x,0,dp.y));
-  //auto dpos = (npc.position()-pos0)/float(dt);
-  //fallSpeed.y = dpos.y;
+  fallSpeed += dpos*float(dt);
+  fallCount  = 1;
 
+  auto dp = fallSpeed*float(dt);
+  if(!tryMove(dp.x,dp.y,dp.z))
+    tryMove(dp.x,0,dp.z);
+
+  npc.setAnimRotate(0);
   if(slideDir())
     npc.setAnim(AnimationSolver::SlideA); else
     npc.setAnim(AnimationSolver::SlideB);
