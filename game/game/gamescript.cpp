@@ -2108,7 +2108,7 @@ void GameScript::npc_getheighttonpc(Daedalus::DaedalusVM &vm) {
 void GameScript::npc_getequippedmeleeweapon(Daedalus::DaedalusVM &vm) {
   auto npc = popInstance(vm);
   if(npc!=nullptr){
-    auto a = npc->currentRangeWeapon();
+    auto a = npc->currentMeleWeapon();
     pushItem(vm,a);
     }
   }
