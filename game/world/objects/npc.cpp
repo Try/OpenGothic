@@ -1651,6 +1651,40 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
   updateWeaponSkeleton();
   }
 
+bool Npc::implAiFlee(uint64_t dt) {
+  if(currentTarget==nullptr || currentTarget==this)
+    return true;
+
+  auto& oth = *currentTarget;
+
+  const WayPoint* wp      = nullptr;
+  const float     maxDist = 5*100; // 5 meters
+  owner.findWayPoint(position(),[&](const WayPoint& p) {
+    if(p.useCounter()>0 || qDistTo(&p)>maxDist*maxDist)
+      return false;
+    if(!canSeeNpc(p.x,p.y+10,p.z,true))
+      return false;
+    if(wp==nullptr || oth.qDistTo(&p)>oth.qDistTo(wp))
+      wp = &p;
+    return false;
+    });
+
+  if(wp==nullptr || oth.qDistTo(wp)<oth.qDistTo(*this)) {
+    auto  dx  = oth.x-x;
+    auto  dz  = oth.z-z;
+    if(implTurnTo(-dx,-dz,false,dt))
+      return false;
+    } else {
+    auto  dx  = wp->x-x;
+    auto  dz  = wp->z-z;
+    if(implTurnTo(dx,dz,false,dt))
+      return false;
+    }
+
+  setAnim(Anim::Move);
+  return true;
+  }
+
 void Npc::commitDamage() {
   if(currentTarget==nullptr)
     return;
@@ -2111,17 +2145,8 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       break;
     case AI_Flee:
-      if(currentTarget!=nullptr && currentTarget!=this) {
-        // TODO: find a suitable way-point and go there
-        auto& oth = *currentTarget;
-        auto dx = oth.x-x;
-        auto dz = oth.z-z;
-        if(implTurnTo(-dx,-dz,false,dt)) {
-          queue.pushFront(std::move(act));
-          } else {
-          setAnim(Anim::Move);
-          }
-        }
+      if(!implAiFlee(dt))
+        queue.pushFront(std::move(act));
       break;
     case AI_Dodge:
       if(auto sq = setAnimAngGet(Anim::MoveBack,false)) {
@@ -2205,9 +2230,14 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       }
     case AI_SetNpcsToState:{
       const int32_t r = act.i0*act.i0;
-      owner.detectNpc(position(),float(hnpc.senses_range),[&act,this,r](Npc& other){
-        if(&other!=this && qDistTo(other)<float(r))
-          other.aiPush(AiQueue::aiStartState(act.func,1,other.currentOther,other.currentVictum,other.hnpc.wp.c_str()));
+      owner.detectNpc(position(),float(hnpc.senses_range),[&act,this,r](Npc& other) {
+        if(&other==this)
+          return;
+        if(other.isDead())
+          return;
+        if(qDistTo(other)>float(r))
+          return;
+        other.aiPush(AiQueue::aiStartState(act.func,1,other.currentOther,other.currentVictum,other.hnpc.wp.c_str()));
         });
       break;
       }

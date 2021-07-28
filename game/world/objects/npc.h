@@ -449,6 +449,7 @@ class Npc final {
     void      implAniWait(uint64_t dt);
     void      implFaiWait(uint64_t dt);
     void      implSetFightMode(const Animation::EvCount& ev);
+    bool      implAiFlee(uint64_t dt);
 
     void      tickRoutine();
     void      nextAiAction(AiQueue& queue, uint64_t dt);
