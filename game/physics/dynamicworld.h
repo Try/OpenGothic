@@ -60,14 +60,13 @@ class DynamicWorld final {
     struct NpcItem {
       public:
         NpcItem()=default;
-        NpcItem(DynamicWorld* owner,NpcBody* obj,float h,float r):owner(owner),obj(obj),height(h),r(r){}
-        NpcItem(NpcItem&& it):owner(it.owner),obj(it.obj),height(it.height),r(it.r){it.obj=nullptr;}
+        NpcItem(DynamicWorld* owner,NpcBody* obj,float r):owner(owner),obj(obj),r(r){}
+        NpcItem(NpcItem&& it):owner(it.owner),obj(it.obj),r(it.r){it.obj=nullptr;}
         ~NpcItem();
 
         NpcItem& operator = (NpcItem&& it){
           std::swap(owner,it.owner);
           std::swap(obj,it.obj);
-          std::swap(height,it.height);
           std::swap(r,it.r);
           return *this;
           }
@@ -89,7 +88,6 @@ class DynamicWorld final {
       private:
         DynamicWorld*       owner  = nullptr;
         NpcBody*            obj    = nullptr;
-        float               height = 0.f;
         float               r      = 0.f;
         void  implSetPosition(const Tempest::Vec3& pos);
 

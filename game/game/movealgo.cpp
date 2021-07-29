@@ -860,10 +860,10 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
   if(std::abs(val)>threshold) {
     // emulate bouncing behaviour of original game
     Tempest::Vec3 corr;
-    for(int i=5; i<=45; i+=5) {
+    for(int i=5; i<=35; i+=5) {
       for(float angle:{float(i),-float(i)}) {
-        applyRotation(corr,dp,float(angle*M_PI)/180.f);
-        if(tryMove(corr.x,corr.y,corr.z)) {
+        applyRotation(corr,dp+skipMove,float(angle*M_PI)/180.f);
+        if(npc.tryMove(corr)) {
           if(forward)
             npc.setDirection(npc.rotation()+angle);
           return;

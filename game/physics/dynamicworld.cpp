@@ -61,12 +61,12 @@ struct DynamicWorld::NpcBody : btRigidBody {
 
 struct DynamicWorld::NpcBodyList final {
   struct Record final {
-    NpcBody* body     = nullptr;
-    float    x        = 0.f;
+    NpcBody* body = nullptr;
+    float    x    = 0.f;
     };
 
   NpcBodyList(DynamicWorld& wrld):wrld(wrld){
-    body.reserve(1024);
+    body  .reserve(1024);
     frozen.reserve(1024);
     }
 
@@ -88,9 +88,7 @@ struct DynamicWorld::NpcBodyList final {
     obj->setWorldTransform(trans);
     obj->setUserIndex(C_Ghost);
     obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
-    //obj->setCollisionFlags(btCollisionObject::CO_GHOST_OBJECT);
 
-    //world->addCollisionObject(obj);
     add(obj);
     resize(*obj,height,dx,dz);
     return obj;
@@ -652,7 +650,7 @@ DynamicWorld::NpcItem DynamicWorld::ghostObj(std::string_view visual) {
     }
   auto  obj = npcList->create(min,max);
   float dim = std::max(obj->rX,obj->rZ);
-  return NpcItem(this,obj,obj->h,dim*0.5f);
+  return NpcItem(this,obj,dim*0.5f);
   }
 
 DynamicWorld::Item DynamicWorld::staticObj(const PhysicMeshShape *shape, const Tempest::Matrix4x4 &m) {
@@ -955,22 +953,24 @@ bool DynamicWorld::NpcItem::tryMove(const Tempest::Vec3& dp, CollisionTest& out)
   if(!obj)
     return false;
 
-  auto prev  = obj->pos;
-  auto r     = obj->r*100.f;
+  auto initial  = obj->pos;
+  auto r        = obj->r;
   int  count = 1;
 
   if(dp.quadLength()>r*r)
     count = int(std::ceil(dp.manhattanLength()/r));
 
+  auto prev = initial;
   for(int i=1; i<=count; ++i) {
-    auto pos = prev+(dp*float(i))/float(count);
+    auto pos = initial+(dp*float(i))/float(count);
     implSetPosition(pos);
     if(owner->hasCollision(*this,out)) {
       if(i>1) {
         // moved a bit
-        break;
+        setPosition(prev);
+        return true;
         }
-      implSetPosition(prev);
+      implSetPosition(initial);
       if(owner->hasCollision(*this,out)) {
         // was in collision from the start
         setPosition(pos);
