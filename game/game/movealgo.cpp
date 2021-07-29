@@ -128,9 +128,11 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
     tryMove(dp.x,0,dp.z);
 
   npc.setAnimRotate(0);
-  if(slideDir())
-    npc.setAnim(AnimationSolver::SlideA); else
-    npc.setAnim(AnimationSolver::SlideB);
+  if(!npc.isDown()) {
+    if(slideDir())
+      npc.setAnim(AnimationSolver::SlideA); else
+      npc.setAnim(AnimationSolver::SlideB);
+    }
 
   setInAir  (false);
   setAsSlide(true);
