@@ -3718,31 +3718,23 @@ Matrix4x4 Npc::mkPositionMatrix() const {
   const auto ground = groundNormal();
   const bool align  = isAlignedToGround();
 
-  Matrix4x4 mt;
+  float angY = mvAlgo.isDive() ? angleY : 0;
   if(align) {
-    auto oy = Vec3::normalize(ground);
-    auto ox = Vec3::crossProduct(oy,{0,0,1});
-    auto oz = Vec3::crossProduct(oy,ox);
-    float v[16] = {
-       ox.x, ox.y, ox.z, 0,
-       oy.x, oy.y, oy.z, 0,
-      -oz.x,-oz.y,-oz.z, 0,
-          x,    y,    z, 1
-    };
-    mt = Matrix4x4(v);
-    } else {
-    float v[16] = {
-      1, 0, 0, 0,
-      0, 1, 0, 0,
-      0, 0, 1, 0,
-      x, y, z, 1
-    };
-    mt = Matrix4x4(v);
+    float rot  = rotationRad();
+    float s    = std::sin(rot), c = std::cos(rot);
+    auto  dir  = Vec3(s,0,-c);
+    auto  norm = Vec3::normalize(ground);
+
+    float cx = Vec3::dotProduct(norm,dir);
+    angY = -std::asin(cx)*180.f/float(M_PI);
     }
 
+  Matrix4x4 mt = Matrix4x4();
+  mt.identity();
+  mt.translate(x,y,z);
   mt.rotateOY(180-angle);
-  if(mvAlgo.isDive())
-    mt.rotateOX(-angleY);
+  if(angY!=0)
+    mt.rotateOX(-angY);
   if(isPlayer() && !align) {
     mt.rotateOZ(runAng);
     }
