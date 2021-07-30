@@ -409,7 +409,7 @@ const Animation::Sequence* AnimationSolver::solveNext(const Animation::Sequence&
   const char* name = sq.next.c_str();
   for(size_t i=overlay.size();i>0;){
     --i;
-    if(overlay[i].skeleton->animation()==sq.owner)
+    if(overlay[i].skeleton->animation()==sq.owner && sq.nextPtr!=nullptr)
       return sq.nextPtr; // fast-forward path
     if(auto s = overlay[i].skeleton->sequence(name))
       return s;
