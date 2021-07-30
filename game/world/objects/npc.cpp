@@ -749,7 +749,7 @@ void Npc::delOverlay(const Skeleton *sk) {
   }
 
 bool Npc::toogleTorch() {
-  const char* overlay = "HUMANS_TORCH.MDS";
+  std::string_view overlay = "HUMANS_TORCH.MDS";
   if(isUsingTorch()) {
     visual.setTorch(false,owner);
     delOverlay(overlay);
@@ -761,7 +761,7 @@ bool Npc::toogleTorch() {
   }
 
 bool Npc::isUsingTorch() const {
-  const char* overlay = "HUMANS_TORCH.MDS";
+  std::string_view overlay = "HUMANS_TORCH.MDS";
   return hasOverlay(overlay);
   }
 
@@ -770,7 +770,7 @@ void Npc::dropTorch(bool burnout) {
   if(sk==nullptr)
     return;
 
-  const char* overlay = "HUMANS_TORCH.MDS";
+  std::string_view overlay = "HUMANS_TORCH.MDS";
   if(!isUsingTorch())
     return;
 
@@ -3224,7 +3224,10 @@ bool Npc::aimBow() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
-  return setAnim(Anim::AimBow);
+  if(!setAnim(Anim::AimBow))
+    return false;
+  visual.setRotation(*this,0);
+  return true;
   }
 
 bool Npc::shootBow(Interactive* focOverride) {
