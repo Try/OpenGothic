@@ -934,8 +934,12 @@ bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& dst, const Tempest::Ve
   auto dp    = dst-pos0;
   int  count = 1;
 
-  if(dp.quadLength()>obj->r*obj->r)
-    count = int(std::ceil(dp.manhattanLength()/obj->r));
+  if((dp.x*dp.x+dp.z*dp.z)>r*r || dp.y>obj->h*0.5f) {
+    const int countXZ = int(std::ceil(std::sqrt(dp.x*dp.x+dp.z*dp.z)/r));
+    const int countY  = int(std::ceil(std::abs(dp.y)/(obj->h*0.5f)));
+
+    count = std::max(countXZ,countY);
+    }
 
   for(int i=1; i<=count; ++i) {
     auto pos = pos0+(dp*float(i))/float(count);
@@ -953,12 +957,16 @@ bool DynamicWorld::NpcItem::tryMove(const Tempest::Vec3& dp, CollisionTest& out)
   if(!obj)
     return false;
 
-  auto initial  = obj->pos;
-  auto r        = obj->r;
-  int  count = 1;
+  auto initial = obj->pos;
+  auto r       = obj->r;
+  int  count   = 1;
 
-  if(dp.quadLength()>r*r)
-    count = int(std::ceil(dp.manhattanLength()/r));
+  if((dp.x*dp.x+dp.z*dp.z)>r*r || dp.y>obj->h*0.5f) {
+    const int countXZ = int(std::ceil(std::sqrt(dp.x*dp.x+dp.z*dp.z)/r));
+    const int countY  = int(std::ceil(std::abs(dp.y)/(obj->h*0.5f)));
+
+    count = std::max(countXZ,countY);
+    }
 
   auto prev = initial;
   for(int i=1; i<=count; ++i) {
