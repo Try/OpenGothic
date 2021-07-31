@@ -20,8 +20,8 @@ Effect::Effect(const VisualFx& vfx, World& owner, const Npc& src, SpellFxKey key
   }
 
 Effect::Effect(const VisualFx& v, World& owner, const Vec3& inPos, SpellFxKey k) {
-  root     = &v;
-  nodeSlot = root->emTrjOriginNode;
+  root      = &v;
+  nodeSlot  = root->emTrjOriginNode;
   pos.identity();
   pos.translate(inPos);
   setKey(owner,k);
@@ -97,12 +97,19 @@ bool Effect::is(const VisualFx& vfx) const {
   }
 
 void Effect::tick(uint64_t dt) {
+  if(next!=nullptr)
+    next->tick(dt);
+
   if(root==nullptr)
     return;
+
   Vec3 vel = root->emSelfRotVel;
   if(key!=nullptr)
     vel = key->emSelfRotVel.value_or(vel);
 
+  selfRotation += (vel*float(dt)/1000.f);
+  if(vel!=Vec3())
+    syncAttachesSingle(pos);
   }
 
 void Effect::setActive(bool e) {
@@ -175,9 +182,12 @@ void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
       p.mul(pose->bone(boneId));
     }
 
-  if(emSelfRotVel!=Vec3()) {
-    //Matrix4x4 m;
-    //m.rotateOX(emSelfRotVel.x*);
+  if(selfRotation!=Vec3()) {
+    Matrix4x4 m;
+    m.rotateOX(selfRotation.x);
+    m.rotateOY(selfRotation.y);
+    m.rotateOZ(selfRotation.z);
+    p.mul(m);
     }
 
   p.set(3,1, p.at(3,1)+emTrjEaseVel);

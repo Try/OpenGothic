@@ -80,8 +80,8 @@ class Effect final {
     const MeshObjects::Mesh* meshEmitter = nullptr;
 
     Tempest::Matrix4x4    pos;
+    Tempest::Vec3         selfRotation;
 
-    uint64_t              timeStart = 0;
     bool                  active = false;
     bool                  looped = false;
 

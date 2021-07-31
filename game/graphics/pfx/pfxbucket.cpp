@@ -316,7 +316,7 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
       break;
       }
     case ParticleFx::Dir::Target:
-      Vec3 targetPos = p.pos;
+      Vec3 targetPos = emitter.pos;
       switch(decl.dirModeTargetFOR) {
         case ParticleFx::Frame::World:
           targetPos = decl.dirModeTargetPos;
@@ -327,6 +327,9 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
             // MFX_WINDFIST_CAST
             auto mt = emitter.targetNpc->transform();
             mt.project(targetPos);
+            } else {
+            // IRRLICHT_DIE
+            targetPos = emitter.pos;
             }
           break;
           }

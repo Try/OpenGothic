@@ -39,7 +39,7 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, std::s
   ppsScaleKeys        = loadArr(src.ppsScaleKeys_S);
   ppsIsLooping        = src.ppsIsLooping!=0;
   ppsIsSmooth         = src.ppsIsSmooth!=0;
-  ppsFPS              = src.ppsFPS;
+  ppsFPS              = src.ppsFPS>0 ? src.ppsFPS : 1.f;
   ppsCreateEm         = Gothic::inst().loadParticleFx(src.ppsCreateEm_S.c_str());
   ppsCreateEmDelay    = uint64_t(src.ppsCreateEmDelay);
 

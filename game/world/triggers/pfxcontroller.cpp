@@ -8,9 +8,9 @@
 PfxController::PfxController(Vob* parent, World& world, ZenLoad::zCVobData&& d, bool startup)
   :AbstractTrigger(parent,world,std::move(d),startup) {
   auto& name = data.zCPFXControler.pfxName;
-  const ParticleFx* view = Gothic::inst().loadParticleFx(name.c_str());
+  const ParticleFx* view = Gothic::inst().loadParticleFx(name);
   if(view==nullptr)
-    view = Gothic::inst().loadParticleFx(data.visual.c_str());
+    view = Gothic::inst().loadParticleFx(data.visual);
   if(view==nullptr)
     return;
   lifeTime = view->maxLifetime();
