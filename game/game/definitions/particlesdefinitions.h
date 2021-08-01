@@ -15,7 +15,7 @@ class ParticlesDefinitions final {
     ParticlesDefinitions();
     ~ParticlesDefinitions();
 
-    const ParticleFx* get(std::string_view name);
+    const ParticleFx* get(std::string_view name, bool relaxed);
     const ParticleFx* get(const ParticleFx* base, const VisualFx::Key* key);
 
   private:
@@ -25,8 +25,8 @@ class ParticlesDefinitions final {
     std::unordered_map<std::string,          std::unique_ptr<ParticleFx>> pfx;
     std::unordered_map<const VisualFx::Key*, std::unique_ptr<ParticleFx>> pfxKey;
 
-    const ParticleFx* implGet(std::string_view name);
+    const ParticleFx* implGet(std::string_view name, bool relaxed);
     const ParticleFx* implGet(const ParticleFx& base, const VisualFx::Key& key);
 
-    bool implGet(std::string_view name, Daedalus::GEngineClasses::C_ParticleFX &ret);
+    bool              implGet(std::string_view name, Daedalus::GEngineClasses::C_ParticleFX &ret, bool relaxed);
   };

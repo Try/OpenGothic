@@ -720,7 +720,7 @@ Sound World::addHitEffect(std::string_view src, std::string_view dst, std::strin
   auto ret = Sound(*this,::Sound::T_Regular,buf,pos3,2500.f,false);
 
   std::snprintf(buf,sizeof(buf),"CPFX_%.*s_%.*s_%.*s", int(scheme.size()),scheme.data(), int(src.size()),src.data(), int(dst.size()),dst.data());
-  if(Gothic::inst().loadParticleFx(buf)==nullptr) {
+  if(Gothic::inst().loadParticleFx(buf,true)==nullptr) {
     if(dst=="ME")
       std::snprintf(buf,sizeof(buf),"CPFX_%.*s_%s",int(scheme.size()),scheme.data(),"METAL");
     else if(dst=="WO")
@@ -730,6 +730,9 @@ Sound World::addHitEffect(std::string_view src, std::string_view dst, std::strin
     else
       return ret;
     }
+  if(Gothic::inst().loadParticleFx(buf,true)==nullptr)
+    return ret;
+
   Effect e(PfxEmitter(*this,buf),"");
   e.setObjMatrix(pos);
   e.setActive(true);

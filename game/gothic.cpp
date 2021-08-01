@@ -259,8 +259,8 @@ const VisualFx* Gothic::loadVisualFx(std::string_view name) {
   return vfxDef->get(name);
   }
 
-const ParticleFx* Gothic::loadParticleFx(std::string_view name) {
-  return particleDef->get(name);
+const ParticleFx* Gothic::loadParticleFx(std::string_view name, bool relaxed) {
+  return particleDef->get(name,relaxed);
   }
 
 const ParticleFx* Gothic::loadParticleFx(const ParticleFx* base, const VisualFx::Key* key) {

@@ -16,7 +16,7 @@ ParticlesDefinitions::~ParticlesDefinitions() {
   vm->clearReferences(Daedalus::IC_Pfx);
   }
 
-const ParticleFx* ParticlesDefinitions::get(std::string_view name) {
+const ParticleFx* ParticlesDefinitions::get(std::string_view name, bool relaxed) {
   if(name.empty())
     return nullptr;
 
@@ -24,7 +24,7 @@ const ParticleFx* ParticlesDefinitions::get(std::string_view name) {
     name = name.substr(0,name.size()-4);
 
   std::lock_guard<std::recursive_mutex> guard(sync);
-  return implGet(name);
+  return implGet(name,relaxed);
   }
 
 const ParticleFx* ParticlesDefinitions::get(const ParticleFx* base, const VisualFx::Key* key) {
@@ -34,13 +34,13 @@ const ParticleFx* ParticlesDefinitions::get(const ParticleFx* base, const Visual
   return implGet(*base,*key);
   }
 
-const ParticleFx* ParticlesDefinitions::implGet(std::string_view name) {
+const ParticleFx* ParticlesDefinitions::implGet(std::string_view name, bool relaxed) {
   auto cname = std::string(name);
   auto it    = pfx.find(cname);
   if(it!=pfx.end())
     return it->second.get();
   Daedalus::GEngineClasses::C_ParticleFX decl={};
-  if(!implGet(name,decl))
+  if(!implGet(name,decl,relaxed))
     return nullptr;
   std::unique_ptr<ParticleFx> p{new ParticleFx(decl,name)};
   auto elt = pfx.insert(std::make_pair(std::move(cname),std::move(p)));
@@ -60,7 +60,8 @@ const ParticleFx* ParticlesDefinitions::implGet(const ParticleFx& base, const Vi
   }
 
 bool ParticlesDefinitions::implGet(std::string_view name,
-                                   Daedalus::GEngineClasses::C_ParticleFX& ret) {
+                                   Daedalus::GEngineClasses::C_ParticleFX& ret,
+                                   bool relaxed) {
   if(!vm || name.empty())
     return false;
 
@@ -68,7 +69,8 @@ bool ParticlesDefinitions::implGet(std::string_view name,
   std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
   auto id = vm->getDATFile().getSymbolIndexByName(buf);
   if(id==size_t(-1)) {
-    Log::e("invalid particle system: \"",buf,"\"");
+    if(!relaxed)
+      Log::e("invalid particle system: \"",buf,"\"");
     return false;
     }
 

@@ -75,7 +75,7 @@ class Gothic final {
     SoundFx*     loadSoundFx   (std::string_view name);
     SoundFx*     loadSoundWavFx(std::string_view name);
 
-    auto         loadParticleFx(std::string_view name) -> const ParticleFx*;
+    auto         loadParticleFx(std::string_view name, bool relaxed=false) -> const ParticleFx*;
     auto         loadParticleFx(const ParticleFx* base, const VisualFx::Key* key) -> const ParticleFx*;
     auto         loadVisualFx  (std::string_view name) -> const VisualFx*;
 
