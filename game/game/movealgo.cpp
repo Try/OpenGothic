@@ -897,6 +897,9 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
     case Npc::GT_Point:
       npc.setDirection(npc.rotation()+stp);
       break;
+    case Npc::GT_Flee:
+      npc.setDirection(npc.rotation()+stp);
+      break;
     }
   }
 

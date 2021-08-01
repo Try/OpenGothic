@@ -71,6 +71,10 @@ void Npc::GoTo::set(const Vec3& to) {
   flag = GT_Point;
   }
 
+void Npc::GoTo::setFlee() {
+  flag = GT_Flee;
+  }
+
 
 struct Npc::TransformBack {
   TransformBack(Npc& self) {
@@ -1388,7 +1392,10 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
 
   auto dpos = go2.target()-position();
 
-  if(mvAlgo.isClose(go2.target(),destDist)) {
+  if(go2.flag==GT_Flee) {
+    // nop
+    }
+  else if(mvAlgo.isClose(go2.target(),destDist)) {
     bool finished = true;
     if(go2.flag==GT_Way) {
       go2.wp = wayPath.pop();
@@ -1652,7 +1659,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
   }
 
 bool Npc::implAiFlee(uint64_t dt) {
-  if(currentTarget==nullptr || currentTarget==this)
+  if(currentTarget==nullptr)
     return true;
 
   auto& oth = *currentTarget;
@@ -1681,6 +1688,7 @@ bool Npc::implAiFlee(uint64_t dt) {
       return false;
     }
 
+  go2.setFlee();
   setAnim(Anim::Move);
   return true;
   }
