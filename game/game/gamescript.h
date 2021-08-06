@@ -321,6 +321,7 @@ class GameScript final {
     void npc_getdisttoitem   (Daedalus::DaedalusVM &vm);
     void npc_getheighttoitem (Daedalus::DaedalusVM &vm);
     void npc_getdisttoplayer (Daedalus::DaedalusVM &vm);
+    void npc_isdetectedmobownedbyguild(Daedalus::DaedalusVM &vm);
 
     void ai_output           (Daedalus::DaedalusVM &vm);
     void ai_stopprocessinfos (Daedalus::DaedalusVM &vm);
