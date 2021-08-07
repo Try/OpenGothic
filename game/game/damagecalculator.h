@@ -36,6 +36,7 @@ class DamageCalculator {
       };
 
     static Val     damageValue(Npc& src, Npc& other, const Bullet* b, bool isSpell, const DamageCalculator::Damage& splDmg, const CollideMask bMsk);
+    static Val     damageFall(Npc& src, float speed);
     static auto    rangeDamageValue(Npc& src) -> Damage;
     static int32_t damageTypeMask(Npc& npc);
 

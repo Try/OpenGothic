@@ -604,27 +604,13 @@ bool MoveAlgo::checkLastBounce() const {
   }
 
 void MoveAlgo::takeFallDamage() const {
-  auto  gl = npc.guild();
-  auto& g  = npc.world().script().guildVal();
-
-  float speed       = fallSpeed.y;
-  float fallTime    = speed/gravity;
-  float height      = 0.5f*std::abs(gravity)*fallTime*fallTime;
-  float h0          = float(g.falldown_height[gl]);
-  float dmgPerMeter = float(g.falldown_damage[gl]);
-
-  int32_t hp   = npc.attribute(ATR_HITPOINTS);
-  int32_t prot = npc.protection(PROT_FALL);
-
-  int32_t damage = int32_t(dmgPerMeter*(height-h0)/100.f - float(prot));
-  if(damage<=0)
-    return;
-
-  if(hp>damage) {
+  auto    dmg = DamageCalculator::damageFall(npc,fallSpeed.y);
+  int32_t hp  = npc.attribute(ATR_HITPOINTS);
+  if(hp>dmg.value) {
     npc.emitSoundSVM("SVM_%d_AARGH");
     npc.setAnim(Npc::Anim::Fallen);
     }
-  npc.changeAttribute(ATR_HITPOINTS,-damage,false);
+  npc.changeAttribute(ATR_HITPOINTS,-dmg.value,false);
   }
 
 void MoveAlgo::emitWaterSplash(float y) {

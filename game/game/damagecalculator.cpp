@@ -31,6 +31,28 @@ DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const 
   return ret;
   }
 
+DamageCalculator::Val DamageCalculator::damageFall(Npc& npc, float speed) {
+  auto  gl = npc.guild();
+  auto& g  = npc.world().script().guildVal();
+
+  float   gravity     = DynamicWorld::gravity;
+  float   fallTime    = speed/gravity;
+  float   height      = 0.5f*std::abs(gravity)*fallTime*fallTime;
+  float   h0          = float(g.falldown_height[gl]);
+  float   dmgPerMeter = float(g.falldown_damage[gl]);
+  int32_t prot        = npc.protection(::PROT_FALL);
+
+  Val ret;
+  ret.invinsible = (prot<0 || npc.isImmortal());
+  ret.value      = int32_t(dmgPerMeter*(height-h0)/100.f - float(prot));
+  if(ret.value<=0 || ret.invinsible) {
+    ret.value = 0;
+    return ret;
+    }
+  ret.hasHit = true;
+  return ret;
+  }
+
 DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, const Bullet& b, const CollideMask bMsk) {
   bool invinsible = !checkDamageMask(nsrc,nother,&b);
   if(b.pathLength()>MaxBowRange*b.hitChance() && b.hitChance()<1.f)
