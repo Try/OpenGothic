@@ -47,6 +47,7 @@ class MoveAlgo final {
     void    accessDamFly(float dx,float dz);
 
     bool    isClose(const Tempest::Vec3& p, float dist);
+    bool    testSlide(const Tempest::Vec3& p, DynamicWorld::CollisionTest& out) const;
 
     bool    startClimb(JumpStatus ani);
     void    startDive();
@@ -115,7 +116,6 @@ class MoveAlgo final {
     auto    npcMoveSpeed (uint64_t dt, MvFlags moveFlg) -> Tempest::Vec3;
     auto    go2NpcMoveSpeed (const Tempest::Vec3& dp, const Npc &tg) -> Tempest::Vec3;
     auto    go2WpMoveSpeed  (Tempest::Vec3 dp, const Tempest::Vec3& to) -> Tempest::Vec3;
-    bool    testSlide(const Tempest::Vec3& pos, DynamicWorld::CollisionTest& out) const;
     void    implTick(uint64_t dt,MvFlags fai=NoFlag);
 
     float   stepHeight()  const;

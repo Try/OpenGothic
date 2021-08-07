@@ -843,7 +843,7 @@ bool MoveAlgo::isBackward(const Tempest::Vec3& dp) const {
   }
 
 void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::CollisionTest& info, uint64_t dt) {
-  static const float threshold = 0.3f;
+  static const float threshold = 0.4f;
   static const float speed     = 360.f;
 
   if(dp==Tempest::Vec3())
@@ -888,15 +888,23 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
     case Npc::GT_NextFp:
       npc.clearGoTo();
       break;
-    case Npc::GT_EnemyA:
-    case Npc::GT_EnemyG:
     case Npc::GT_Item:
       npc.setDirection(npc.rotation()+stp);
       break;
+    case Npc::GT_EnemyA:
+    case Npc::GT_EnemyG:
     case Npc::GT_Way:
-    case Npc::GT_Point:
-      npc.setDirection(npc.rotation()+stp);
+    case Npc::GT_Point: {
+      if(info.npcCol) {
+        npc.setDirection(npc.rotation()+stp);
+        } else {
+        auto jc = npc.tryJump();
+        if(jc.anim!=Npc::Anim::Jump)
+          npc.startClimb(jc); else
+          npc.setDirection(npc.rotation()+stp);
+        }
       break;
+      }
     case Npc::GT_Flee:
       npc.setDirection(npc.rotation()+stp);
       break;

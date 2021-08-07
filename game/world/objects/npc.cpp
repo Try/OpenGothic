@@ -1786,6 +1786,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     changeAttribute(ATR_HITPOINTS,-hitResult.value,dontKill);
 
     if(bMask&(COLL_APPLYVICTIMSTATE|COLL_DOEVERYTHING)) {
+      owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
       if(isUnconscious()){
         owner.sendPassivePerc(*this,other,*this,PERC_ASSESSDEFEAT);
         }
@@ -1793,7 +1794,6 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
         owner.sendPassivePerc(*this,other,*this,PERC_ASSESSMURDER);
         }
       else {
-        owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
         if(owner.script().rand(2)==0)
           emitSoundSVM("SVM_%d_AARGH");
         }
@@ -3550,8 +3550,9 @@ Npc::JumpStatus Npc::tryJump() {
       }
 
     jumpY = p0.y;
-    if(physic.testMove(p0+dp,p0,info))
+    if(physic.testMove(p0+dp,p0,info)) {
       break;
+      }
     }
 
   for(int i=1; i<int(DynamicWorld::ghostPadding); i+=step) {
@@ -3566,6 +3567,13 @@ Npc::JumpStatus Npc::tryJump() {
     // Jump to the edge, and then pull up. Height: 200-350cm
     ret.anim   = Anim::JumpUp;
     ret.height = jumpY - jumpLow;
+    return ret;
+    }
+
+  DynamicWorld::CollisionTest out;
+  if(mvAlgo.testSlide(Vec3{pos.x,jumpY,pos.z}+dp,out)) {
+    // cannot climb to angled surface
+    ret.anim = Anim::Jump;
     return ret;
     }
 

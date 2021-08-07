@@ -873,6 +873,7 @@ const char* DynamicWorld::validateSectorName(const char* name) const {
 bool DynamicWorld::hasCollision(const NpcItem& it, CollisionTest& out) {
   if(npcList->hasCollision(it,out.normal)){
     out.normal /= out.normal.manhattanLength();
+    out.npcCol = true;
     return true;
     }
   return world->hasCollision(*it.obj,out.normal);
