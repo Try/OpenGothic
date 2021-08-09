@@ -409,21 +409,22 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
     }
 
   for(size_t i=0;i<pscreen.size();++i){
-    auto& sc  = pscreen[i];
-    auto& fnt = *sc.font;
-    auto  sz  = fnt.textSize(sc.txt);
+    auto& sc   = pscreen[i];
+    auto& fnt  = *sc.font;
+    auto  sz   = fnt.textSize(sc.txt);
+    auto  area = this->size();
 
     int x = sc.x;
     int y = sc.y;
     if(x<0){
-      x = (w()-sz.w)/2;
+      x = (area.w-sz.w)/2;
       } else {
-      x = (w()*x)/100;
+      x = (area.w*x)/100;
       }
     if(y<0){
-      y = (h()-sz.h)/2;
+      y = (area.h-sz.h)/2;
       } else {
-      y = (h()*y)/100;
+      y = ((area.h-sz.h)*y)/100+sz.h;
       }
     fnt.drawText(p, x, y, sc.txt);
     }

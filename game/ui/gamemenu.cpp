@@ -107,20 +107,18 @@ GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, Daedalus::DaedalusVM &vm
   back = Resources::loadTexture(menu.backPic.c_str());
 
   initItems();
-  if(menu.flags & Daedalus::GEngineClasses::C_Menu::MENU_SHOW_INFO) {
-    float infoX = 1000.0f/scriptDiv;
-    float infoY = 7500.0f/scriptDiv;
+  float infoX = 1000.0f/scriptDiv;
+  float infoY = 7500.0f/scriptDiv;
 
-    // There could be script-defined values
-    if(dat.hasSymbolName("MENU_INFO_X") && dat.hasSymbolName("MENU_INFO_X")) {
-      Daedalus::PARSymbol& symX = dat.getSymbolByName("MENU_INFO_X");
-      Daedalus::PARSymbol& symY = dat.getSymbolByName("MENU_INFO_Y");
+  // There could be script-defined values
+  if(dat.hasSymbolName("MENU_INFO_X") && dat.hasSymbolName("MENU_INFO_X")) {
+    Daedalus::PARSymbol& symX = dat.getSymbolByName("MENU_INFO_X");
+    Daedalus::PARSymbol& symY = dat.getSymbolByName("MENU_INFO_Y");
 
-      infoX = float(symX.getInt())/scriptDiv;
-      infoY = float(symY.getInt())/scriptDiv;
-      }
-    setPosition(int(infoX*float(w())),int(infoY*float(h())));
+    infoX = float(symX.getInt())/scriptDiv;
+    infoY = float(symY.getInt())/scriptDiv;
     }
+  setPosition(int(infoX*float(w())),int(infoY*float(h())));
 
   setSelection(isInGameAndAlive() ? menu.defaultInGame : menu.defaultOutGame);
   updateValues();
@@ -158,6 +156,7 @@ void GameMenu::initItems() {
 
 void GameMenu::paintEvent(PaintEvent &e) {
   Painter p(e);
+  p.setScissor(-x(),-y(),owner.w(),owner.h());
   if(back) {
     p.setBrush(*back);
     p.drawRect(0,0,w(),h(),
@@ -330,14 +329,18 @@ void GameMenu::onTick() {
   const float fx = 640.0f;
   const float fy = 480.0f;
 
+  const float wx = float(owner.w());
+  const float wy = float(owner.h());
+
   if(menu.flags & Daedalus::GEngineClasses::C_Menu::MENU_DONTSCALE_DIM)
-    resize(int(float(menu.dimx)/scriptDiv*fx),int(float(menu.dimy)/scriptDiv*fy));
+    resize(int(float(menu.dimx)/scriptDiv*fx),int(float(menu.dimy)/scriptDiv*fy)); else
+    resize(int(float(menu.dimx)/scriptDiv*wx),int(float(menu.dimy)/scriptDiv*wy));
 
   if(menu.flags & Daedalus::GEngineClasses::C_Menu::MENU_ALIGN_CENTER) {
     setPosition((owner.w()-w())/2, (owner.h()-h())/2);
-    }
-  else if(menu.flags & Daedalus::GEngineClasses::C_Menu::MENU_DONTSCALE_DIM)
+    } else {
     setPosition(int(float(menu.posx)/scriptDiv*fx), int(float(menu.posy)/scriptDiv*fy));
+    }
   }
 
 GameMenu::Item *GameMenu::selectedItem() {

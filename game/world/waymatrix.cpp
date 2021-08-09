@@ -217,16 +217,16 @@ const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpInde
   float dist  = R*R;
   for(auto i=b;i!=e;++i){
     auto& w  = **i;
-    if(!filter(w))
-      continue;
     float dx = w.x-x;
     float dy = w.y-y;
     float dz = w.z-z;
     float l  = dx*dx+dy*dy+dz*dz;
-    if(l<dist && dz*dz<300*300) {
-      ret  = &w;
-      dist = l;
-      }
+    if(l>dist || dz*dz>300*300)
+      continue;
+    if(!filter(w))
+      continue;
+    ret  = &w;
+    dist = l;
     }
   return ret;
   }

@@ -38,7 +38,7 @@ Size GthFont::processText(Painter* p, int bx, int by, int bw, int /*bh*/,
 
   Size ret = {0,0};
   while(*txt) {
-    auto t = getLine(txt,bw,lwidth);
+    auto t  = getLine(txt,bw,lwidth);
 
     auto sz = textSize(txt,t);
     ret.w  = std::max(ret.w,sz.w);
