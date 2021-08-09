@@ -9,7 +9,7 @@ TriggerScript::TriggerScript(Vob* parent, World &world, ZenLoad::zCVobData&& dat
 
 void TriggerScript::onTrigger(const TriggerEvent &) {
   try {
-    world.script().runFunction(data.zCTriggerScript.scriptFunc.c_str());
+    world.script().runFunction(data.zCTriggerScript.scriptFunc);
     }
   catch(std::runtime_error& e){
     Tempest::Log::e("exception in trigger-script: ",e.what());
