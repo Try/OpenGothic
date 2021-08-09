@@ -123,6 +123,8 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("wld_detectnpcex",     [this](Daedalus::DaedalusVM& vm){ wld_detectnpcex(vm);          });
   vm.registerExternalFunction("wld_detectitem",      [this](Daedalus::DaedalusVM& vm){ wld_detectitem(vm);           });
   vm.registerExternalFunction("wld_spawnnpcrange",   [this](Daedalus::DaedalusVM& vm){ wld_spawnnpcrange(vm);        });
+  vm.registerExternalFunction("wld_sendtrigger",     [this](Daedalus::DaedalusVM& vm){ wld_sendtrigger(vm);          });
+  vm.registerExternalFunction("wld_senduntrigger",   [this](Daedalus::DaedalusVM& vm){ wld_senduntrigger(vm);        });
   vm.registerExternalFunction("wld_israining",       [this](Daedalus::DaedalusVM& vm){ wld_israining(vm);            });
 
   vm.registerExternalFunction("mdl_setvisual",       [this](Daedalus::DaedalusVM& vm){ mdl_setvisual(vm);        });
@@ -1641,6 +1643,24 @@ void GameScript::wld_spawnnpcrange(Daedalus::DaedalusVM& vm) {
     auto* npc = world().addNpc(size_t(clsId),at->position());
     fixNpcPosition(*npc,at->rotation()-90,100);
     }
+  }
+
+void GameScript::wld_sendtrigger(Daedalus::DaedalusVM& vm) {
+  auto triggerTarget = vm.popString();
+  if(triggerTarget.empty())
+    return;
+  auto& world = *owner.world();
+  const TriggerEvent evt(triggerTarget.c_str(),"",world.tickCount(),TriggerEvent::T_Trigger);
+  world.triggerEvent(evt);
+  }
+
+void GameScript::wld_senduntrigger(Daedalus::DaedalusVM& vm) {
+  auto triggerTarget = vm.popString();
+  if(triggerTarget.empty())
+    return;
+  auto& world = *owner.world();
+  const TriggerEvent evt(triggerTarget.c_str(),"",world.tickCount(),TriggerEvent::T_Untrigger);
+  world.triggerEvent(evt);
   }
 
 void GameScript::wld_israining(Daedalus::DaedalusVM&) {

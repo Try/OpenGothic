@@ -100,4 +100,5 @@ class AbstractTrigger : public Vob {
 
     uint32_t                     emitCount = 0;
     bool                         disabled  = false;
+    uint64_t                     emitTimeLast = 0;
   };

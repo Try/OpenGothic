@@ -344,9 +344,8 @@ void WorldObjects::tickTriggers(uint64_t /*dt*/) {
   auto evt = std::move(triggerEvents);
   triggerEvents.clear();
 
-  for(auto& e:evt) {
+  for(auto& e:evt)
     execTriggerEvent(e);
-    }
   }
 
 void WorldObjects::triggerEvent(const TriggerEvent &e) {

@@ -228,6 +228,8 @@ class GameScript final {
     void wld_detectnpcex      (Daedalus::DaedalusVM& vm);
     void wld_detectitem       (Daedalus::DaedalusVM& vm);
     void wld_spawnnpcrange    (Daedalus::DaedalusVM& vm);
+    void wld_sendtrigger      (Daedalus::DaedalusVM& vm);
+    void wld_senduntrigger    (Daedalus::DaedalusVM& vm);
     void wld_israining        (Daedalus::DaedalusVM& vm);
 
     void mdl_setvisual       (Daedalus::DaedalusVM& vm);

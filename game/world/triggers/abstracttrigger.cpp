@@ -49,6 +49,12 @@ void AbstractTrigger::processOnStart(const TriggerEvent& evt) {
   }
 
 void AbstractTrigger::processEvent(const TriggerEvent& evt) {
+  if(emitTimeLast>0 && world.tickCount()<emitTimeLast+uint64_t(data.zCTrigger.fireDelaySec*1000.f)) {
+    world.triggerEvent(evt);
+    return;
+    }
+  emitTimeLast = world.tickCount();
+
   switch(evt.type) {
     case TriggerEvent::T_Startup:
     case TriggerEvent::T_StartupFirstTime:
