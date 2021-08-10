@@ -555,7 +555,7 @@ std::vector<uint8_t> Gothic::loadScriptCode(std::string_view datFile) {
   //auto path = Gothic::inst().nestedPath({u"_work",u"Data",u"Scripts",u"_compiled",u"GOTHIC.DAT"},Dir::FT_File);
   char16_t str16[256] = {};
   for(size_t i=0; i<datFile.size() && i<255; ++i)
-    str16[i] = datFile[i];
+    str16[i] = char16_t(datFile[i]);
   auto path = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
   Tempest::RFile f(path);
   std::vector<uint8_t> ret(f.size());

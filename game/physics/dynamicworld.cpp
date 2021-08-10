@@ -412,8 +412,7 @@ struct DynamicWorld::BBoxList final {
   DynamicWorld&          wrld;
   };
 
-DynamicWorld::DynamicWorld(World& owner,const ZenLoad::zCMesh& worldMesh)
-  :owner(owner) {
+DynamicWorld::DynamicWorld(World& owner,const ZenLoad::zCMesh& worldMesh) {
   //solver.reset(new btSequentialImpulseConstraintSolver());
   world.reset(new CollisionWorld());
 
