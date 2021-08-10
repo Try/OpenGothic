@@ -605,6 +605,8 @@ bool MoveAlgo::checkLastBounce() const {
 
 void MoveAlgo::takeFallDamage() const {
   auto    dmg = DamageCalculator::damageFall(npc,fallSpeed.y);
+  if(!dmg.hasHit)
+    return;
   int32_t hp  = npc.attribute(ATR_HITPOINTS);
   if(hp>dmg.value) {
     npc.emitSoundSVM("SVM_%d_AARGH");
