@@ -690,13 +690,14 @@ uint8_t Npc::calcAniComb() const {
   }
 
 void Npc::updateAnimation() {
-  bool syncAtt = visual.updateAnimation(this,owner);
+  bool syncAtt = false;
   if(durtyTranform) {
     updatePos();
     syncAtt = true;
     durtyTranform=0;
     }
 
+  syncAtt = visual.updateAnimation(this,owner);
   if(syncAtt)
     visual.syncAttaches();
   }

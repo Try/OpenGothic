@@ -239,16 +239,16 @@ GlobalFx World::addGlobalEffect(const Daedalus::ZString& what, uint64_t len, con
   return globFx->startEffect(what,len,argv,argc);
   }
 
-MeshObjects::Mesh World::addView(const char* visual) const {
+MeshObjects::Mesh World::addView(std::string_view visual) const {
   return addView(visual,0,0,0);
   }
 
-MeshObjects::Mesh World::addView(const Daedalus::ZString& visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const {
-  return addView(visual.c_str(),headTex,teetTex,bodyColor);
+MeshObjects::Mesh World::addView(std::string_view visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const {
+  return view()->addView(visual,headTex,teetTex,bodyColor);
   }
 
-MeshObjects::Mesh World::addView(const char* visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const {
-  return view()->addView(visual,headTex,teetTex,bodyColor);
+MeshObjects::Mesh World::addView(const Daedalus::GEngineClasses::C_Item& itm) {
+  return view()->addView(itm.visual.c_str(),itm.material,0,itm.material);
   }
 
 MeshObjects::Mesh World::addView(const ProtoMesh* visual) {
@@ -257,14 +257,6 @@ MeshObjects::Mesh World::addView(const ProtoMesh* visual) {
 
 MeshObjects::Mesh World::addAtachView(const ProtoMesh::Attach& visual, const int32_t version) {
   return view()->addAtachView(visual,version);
-  }
-
-MeshObjects::Mesh World::addItmView(const Daedalus::ZString& visual, int32_t tex) {
-  return addItmView(visual.c_str(),tex);
-  }
-
-MeshObjects::Mesh World::addItmView(const char* visual, int32_t tex) {
-  return view()->addItmView(visual,tex);
   }
 
 MeshObjects::Mesh World::addStaticView(const ProtoMesh* visual) {
@@ -277,10 +269,6 @@ MeshObjects::Mesh World::addStaticView(const char* visual) {
 
 MeshObjects::Mesh World::addDecalView(const ZenLoad::zCVobData& vob) {
   return view()->addDecalView(vob);
-  }
-
-MeshObjects::Mesh World::addView(const Daedalus::ZString& visual) const {
-  return addView(visual.c_str());
   }
 
 void World::updateAnimation() {

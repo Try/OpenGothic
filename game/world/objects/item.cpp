@@ -21,7 +21,7 @@ Item::Item(World &owner, size_t itemInstance, Type type)
   setCount(1);
 
   if(type!=T_Inventory) {
-    view = world.addItmView(hitem.visual,hitem.material);
+    view = world.addView(hitem);
     if(type==T_WorldDyn)
       setPhysicsEnable(view);
     }
@@ -51,7 +51,7 @@ Item::Item(World &owner, Serialize &fin, Type type)
 
   if(type!=T_Inventory) {
     if(!FileExt::hasExt(hitem.visual.c_str(),"ZEN"))
-      view = world.addItmView(hitem.visual,hitem.material);
+      view = world.addView(hitem);
     if(type==T_WorldDyn)
       setPhysicsEnable(view);
     }

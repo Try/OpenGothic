@@ -24,7 +24,7 @@ Bullet::Bullet(World& owner, const Item& itm, const Vec3& pos)
       }
     } else {
     material = uint8_t(itm.handle().material);
-    setView(owner.addItmView(itm.handle().visual,material));
+    setView(owner.addView(itm.handle()));
     }
 
   setPosition(pos);

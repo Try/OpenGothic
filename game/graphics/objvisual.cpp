@@ -127,7 +127,7 @@ void ObjVisual::setVisual(const Daedalus::GEngineClasses::C_Item& hitem, World& 
     bundle = VobBundle(world,hitem.visual.c_str());
     } else {
     setType(M_Mesh);
-    mesh.view = world.addItmView(hitem.visual,hitem.material);
+    mesh.view = world.addView(hitem);
     }
   }
 
@@ -158,7 +158,7 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world) {
     mesh.proto = view;
     if(vob.showVisual)
       mesh.view = world.addStaticView(view);
-    if(vob.showVisual && (vob.cdDyn || vob.cdStatic)) {
+    if(vob.showVisual && (vob.cdDyn || vob.cdStatic) && vob.visualAniMode==ZenLoad::AnimMode::NONE) {
       mesh.physic = PhysicMesh(*view,*world.physic(),false);
       }
     }
@@ -190,9 +190,8 @@ void ObjVisual::setObjMatrix(const Tempest::Matrix4x4& obj) {
     case M_None:
       break;
     case M_Mdl:
-      mdl.view.setObjMatrix(obj);
+      mdl.view.setObjMatrix(obj,true);
       mdl.physic.setObjMatrix(obj);
-      mdl.view.syncAttaches();
       break;
     case M_Mesh:
       mesh.view.setObjMatrix(obj);

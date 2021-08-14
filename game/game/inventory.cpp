@@ -457,18 +457,15 @@ void Inventory::updateView(Npc& owner) {
   updateRuneView  (owner);
 
   for(auto& i:mdlSlots) {
-    auto& itData = i.item->handle();
-    auto  vbody  = world.addView(itData.visual,itData.material,0,itData.material);
+    auto  vbody  = world.addView(i.item->handle());
     owner.setSlotItem(std::move(vbody),i.slot);
     }
   if(ammotSlot.item!=nullptr) {
-    auto& itData = ammotSlot.item->handle();
-    auto  vbody  = world.addView(itData.visual,itData.material,0,itData.material);
+    auto  vbody  = world.addView(ammotSlot.item->handle());
     owner.setAmmoItem(std::move(vbody),ammotSlot.slot);
     }
   if(stateSlot.item!=nullptr) {
-    auto& itData = stateSlot.item->handle();
-    auto  vitm   = world.addView(itData.visual,itData.material,0,itData.material);
+    auto  vitm   = world.addView(stateSlot.item->handle());
     owner.setStateItem(std::move(vitm),stateSlot.slot);
     }
   }
@@ -489,8 +486,7 @@ void Inventory::updateSwordView(Npc &owner) {
     return;
     }
 
-  auto& itData = mele->handle();
-  auto  vbody  = owner.world().addView(itData.visual,itData.material,0,itData.material);
+  auto  vbody  = owner.world().addView(mele->handle());
   owner.setSword(std::move(vbody));
   }
 
@@ -502,8 +498,7 @@ void Inventory::updateBowView(Npc &owner) {
 
   auto flag = range->mainFlag();
   if(flag & ITM_CAT_FF){
-    auto& itData = range->handle();
-    auto  vbody  = owner.world().addView(itData.visual,itData.material,0,itData.material);
+    auto  vbody  = owner.world().addView(range->handle());
     owner.setRangeWeapon(std::move(vbody));
     }
   }
@@ -655,8 +650,7 @@ void Inventory::putToSlot(Npc& owner, size_t cls, std::string_view slot) {
     if(i.slot==slot) {
       i.item = it;
 
-      auto& itData = it->handle();
-      auto  vitm   = owner.world().addView(itData.visual,itData.material,0,itData.material);
+      auto  vitm   = owner.world().addView(it->handle());
       owner.setSlotItem(std::move(vitm),slot);
       return;
       }
@@ -664,8 +658,7 @@ void Inventory::putToSlot(Npc& owner, size_t cls, std::string_view slot) {
   MdlSlot& sl = mdlSlots.back();
   sl.slot = slot;
   sl.item = it;
-  auto& itData = it->handle();
-  auto  vitm   = owner.world().addView(itData.visual,itData.material,0,itData.material);
+  auto  vitm   = owner.world().addView(it->handle());
   owner.setSlotItem(std::move(vitm),slot);
   }
 
@@ -704,7 +697,7 @@ void Inventory::putAmmunition(Npc& owner, size_t cls, std::string_view slot) {
   ammotSlot.slot = slot;
   ammotSlot.item = it;
   auto& itData = it->handle();
-  auto  vitm   = owner.world().addView(itData.visual,itData.material,0,itData.material);
+  auto  vitm   = owner.world().addView(itData);
   owner.setAmmoItem(std::move(vitm),slot);
   }
 
@@ -719,8 +712,7 @@ void Inventory::implPutState(Npc& owner, size_t cls, std::string_view slot) {
 
   stateSlot.slot = slot;
   stateSlot.item = it;
-  auto& itData = it->handle();
-  auto  vitm   = owner.world().addView(itData.visual,itData.material,0,itData.material);
+  auto  vitm   = owner.world().addView(it->handle());
   owner.setStateItem(std::move(vitm),slot);
   }
 
