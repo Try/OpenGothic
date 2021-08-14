@@ -23,8 +23,10 @@ class MoveTrigger : public AbstractTrigger {
     void processTrigger(const TriggerEvent& evt, bool onTrigger);
 
     void setView     (MeshObjects::Mesh&& m);
-    void emitSound   (const char* snd, bool freeSlot=true);
+    void emitSound   (std::string_view snd, bool freeSlot=true);
     void advanceAnim (uint32_t f0, uint32_t f1, float alpha);
+
+    float pathLength() const;
 
     enum State : int32_t {
       Idle         = 0,
@@ -35,9 +37,15 @@ class MoveTrigger : public AbstractTrigger {
       NextKey      = 5,
       };
 
+    struct KeyLen {
+      float    position = 0;
+      uint64_t ticks    = 0;
+      };
+
     Tempest::Matrix4x4       pos0;
     MeshObjects::Mesh        view;
     PhysicMesh               physic;
+    std::vector<KeyLen>      keyframes;
 
     State                    state     = Idle;
     uint64_t                 sAnim     = 0;

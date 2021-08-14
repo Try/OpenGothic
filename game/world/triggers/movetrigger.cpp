@@ -10,23 +10,38 @@ using namespace Tempest;
 
 MoveTrigger::MoveTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& d, bool startup)
   :AbstractTrigger(parent,world,std::move(d),startup) {
-  setView(world.addView(data.visual.c_str()));
+  auto& mover = data.zCMover;
+  setView(world.addView(data.visual));
   if(data.cdDyn || data.cdStatic) {
     auto mesh = Resources::loadMesh(data.visual);
     if(mesh!=nullptr)
       physic = PhysicMesh(*mesh,*world.physic(),true);
     }
-  if(data.zCMover.moverLocked && data.zCMover.keyframes.size()>0) {
-    frame = uint32_t(data.zCMover.keyframes.size()-1);
+  if(mover.moverLocked && mover.keyframes.size()>0) {
+    frame = uint32_t(mover.keyframes.size()-1);
     }
   auto tr = transform();
-  if(frame<data.zCMover.keyframes.size())
-    tr = mkMatrix(data.zCMover.keyframes[frame]);
+  if(frame<mover.keyframes.size())
+    tr = mkMatrix(mover.keyframes[frame]);
   tr.inverse();
   pos0 = localTransform();
   pos0.mul(tr);
 
-  moveEvent();
+  keyframes.resize(mover.keyframes.size());
+  for(size_t i=0; i<mover.keyframes.size(); ++i) {
+    auto& f0 = mover.keyframes[i];
+    auto& f1 = mover.keyframes[(i+1)%mover.keyframes.size()];
+    auto  dx = (f1.position.x-f0.position.x);
+    auto  dy = (f1.position.y-f0.position.y);
+    auto  dz = (f1.position.z-f0.position.z);
+    keyframes[i].position = Vec3(dx,dy,dz).manhattanLength();
+    keyframes[i].ticks    = uint64_t(keyframes[i].position/mover.moveSpeed);
+    if(keyframes[i].ticks==0) {
+      keyframes[i].ticks = uint64_t(1000.f*1000.f*mover.moveSpeed);
+      }
+    }
+
+  MoveTrigger::moveEvent();
   }
 
 void MoveTrigger::save(Serialize& fout) const {
@@ -51,7 +66,7 @@ void MoveTrigger::setView(MeshObjects::Mesh &&m) {
   view = std::move(m);
   }
 
-void MoveTrigger::emitSound(const char* snd,bool freeSlot) {
+void MoveTrigger::emitSound(std::string_view snd,bool freeSlot) {
   auto p   = position();
   auto sfx = ::Sound(world,::Sound::T_Regular,snd,p,0,freeSlot);
   sfx.play();
@@ -63,6 +78,13 @@ void MoveTrigger::advanceAnim(uint32_t f0, uint32_t f1, float alpha) {
   auto mat = pos0;
   mat.mul(mkMatrix(fr));
   setLocalTransform(mat);
+  }
+
+float MoveTrigger::pathLength() const {
+  float len = 0;
+  for(size_t i=0; i<keyframes.size(); ++i)
+    len += keyframes[i].position;
+  return len;
   }
 
 void MoveTrigger::moveEvent() {
@@ -92,7 +114,7 @@ void MoveTrigger::processTrigger(const TriggerEvent& e, bool onTrigger) {
     return;
     }
 
-  const char* snd = data.zCMover.sfxOpenStart.c_str();
+  std::string_view snd = data.zCMover.sfxOpenStart;
   switch(data.zCMover.moverBehavior) {
     case ZenLoad::MoverBehavior::STATE_TOGGLE: {
       if(frame+1==data.zCMover.keyframes.size()) {
@@ -128,27 +150,27 @@ void MoveTrigger::processTrigger(const TriggerEvent& e, bool onTrigger) {
   }
 
 void MoveTrigger::tick(uint64_t /*dt*/) {
-  if(state==Idle)
+  if(state==Idle || keyframes.size()==0)
     return;
 
   auto&    mover      = data.zCMover;
   uint32_t keySz      = uint32_t(mover.keyframes.size());
   uint32_t maxFr      = uint32_t(mover.keyframes.size()-1);
-  uint64_t frameTicks = uint64_t(60.f/mover.moveSpeed);
-  //if(mover.keyframes.size()>0)
-  //  frameTicks/=mover.keyframes.size();
-  if(frameTicks==0)
-    frameTicks=1;
-  if(data.zCMover.moverBehavior!=ZenLoad::MoverBehavior::NSTATE_LOOP) {
-    // NOTE: windmill seem to rellay on mover.moveSpeed, but irdorath - not exactly
-    if(frameTicks>1000)
-      frameTicks=1000;
+
+  uint64_t maxTicks   = 0;
+  for(size_t i=0; ; ++i) {
+    if(i>=keyframes.size())
+      break;
+    if(i+1>=keyframes.size() && state!=Loop && state!=NextKey)
+      break;
+    maxTicks += keyframes[i].ticks;
     }
 
   uint64_t dt = world.tickCount()-sAnim;
-  float    a  = float(dt%frameTicks)/float(frameTicks);
+  float    a  = 0;
   uint32_t f0 = 0, f1 = 0;
 
+  bool finished = false;
   switch(state) {
     case Idle:
       break;
@@ -160,50 +182,69 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
       return;
       }
     case Open:{
-      f0 = std::min(uint32_t(dt/frameTicks),maxFr);
-      f1 = std::min(f0+1,maxFr);
-      a  = float(dt-f0*frameTicks)/float(frameTicks);
+      dt = dt<maxTicks ? dt : maxTicks;
+      for(f0=0; f0<keyframes.size(); ++f0) {
+        if(dt<keyframes[f0].ticks)
+          break;
+        dt -= keyframes[f0].ticks;
+        }
+      f1       = std::min(f0+1,maxFr);
+      a        = float(dt)/float(keyframes[f0].ticks);
+      finished = f0==maxFr;
       break;
       }
     case Close: {
-      uint32_t offset = std::min(uint32_t(dt/frameTicks),maxFr);
-      f0 = maxFr-offset;
-      f1 = f0>0 ? f0-1 : 0;
-      a  = float(dt-offset*frameTicks)/float(frameTicks);
+      dt = dt<maxTicks ? maxTicks - dt : 0;
+      for(f0=0; f0<keyframes.size(); ++f0) {
+        if(dt<keyframes[f0].ticks)
+          break;
+        dt -= keyframes[f0].ticks;
+        }
+      f1       = std::min(f0+1,maxFr);
+      a        = float(dt)/float(keyframes[f0].ticks);
+      finished = f0==0 && dt==0;
       break;
       }
     case Loop: {
-      f0 = uint32_t(dt/frameTicks)%keySz;
+      if(maxTicks>0)
+        dt %= maxTicks;
+      for(f0=0; f0<keyframes.size(); ++f0) {
+        if(dt<=keyframes[f0].ticks)
+          break;
+        dt -= keyframes[f0].ticks;
+        }
       f1 = uint32_t(f0+1)%keySz;
-      a  = float(dt%frameTicks)/float(frameTicks);
+      a  = float(dt)/float(keyframes[f0].ticks);
       break;
       }
     case NextKey: {
-      f0 = frame;
-      f1 = uint32_t(f0+1)%uint32_t(mover.keyframes.size());
-      a  = std::min(1.f,float(dt)/float(frameTicks));
+      f0       = frame;
+      f1       = uint32_t(f0+1)%uint32_t(mover.keyframes.size());
+      a        = float(dt)/float(keyframes[f0].ticks);
+      a        = std::min(1.f,a);
+      finished = dt>keyframes[f0].ticks;
       break;
       }
     }
 
   advanceAnim(f0,f1,a);
 
-  if(f0==f1 || (state==NextKey && dt>=frameTicks)) {
+  if(finished) {
     auto prev = state;
     state = Idle;
     frame = f0;
     disableTicks();
 
-    if(data.zCTrigger.triggerTarget.size()>0){
+    if(data.zCTrigger.triggerTarget.size()>0) {
       TriggerEvent e(data.zCTrigger.triggerTarget,data.vobName,TriggerEvent::T_Activate);
       world.triggerEvent(e);
       }
 
-    const char* snd = data.zCMover.sfxOpenEnd.c_str();
+    std::string_view snd = data.zCMover.sfxOpenEnd;
     if(prev==Close)
-      snd = data.zCMover.sfxCloseEnd.c_str();
+      snd = data.zCMover.sfxCloseEnd;
     if(prev==NextKey)
-      snd = nullptr;
+      snd = "";
     if(data.zCMover.moverBehavior==ZenLoad::MoverBehavior::STATE_OPEN_TIMED && prev==Open) {
       state = OpenTimed;
       sAnim = world.tickCount();
@@ -211,6 +252,6 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
       }
     emitSound(snd);
     } else {
-    emitSound(data.zCMover.sfxMoving.c_str());
+    emitSound(data.zCMover.sfxMoving);
     }
   }

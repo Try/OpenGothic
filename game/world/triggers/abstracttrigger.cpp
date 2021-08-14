@@ -150,6 +150,7 @@ void AbstractTrigger::save(Serialize& fout) const {
   Vob::save(fout);
   boxNpc.save(fout);
   fout.write(emitCount,disabled);
+  fout.write(emitTimeLast);
   }
 
 void AbstractTrigger::load(Serialize& fin) {
@@ -159,6 +160,9 @@ void AbstractTrigger::load(Serialize& fin) {
   Vob::load(fin);
   boxNpc.load(fin);
   fin.read(emitCount,disabled);
+  if(fin.version()<33)
+    return;
+  fin.read(emitTimeLast);
   }
 
 void AbstractTrigger::enableTicks() {
