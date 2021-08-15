@@ -37,7 +37,9 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& d, bool
     keyframes[i].position = Vec3(dx,dy,dz).manhattanLength();
     keyframes[i].ticks    = uint64_t(keyframes[i].position/mover.moveSpeed);
     if(keyframes[i].ticks==0) {
-      keyframes[i].ticks = uint64_t(1000.f*1000.f*mover.moveSpeed);
+      keyframes[i].ticks = uint64_t(1.f/mover.moveSpeed);
+      if(mover.moverBehavior==ZenLoad::MoverBehavior::NSTATE_LOOP)
+        keyframes[i].ticks = 10000; // HACK: windmil
       }
     }
 
@@ -153,11 +155,11 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
   if(state==Idle || keyframes.size()==0)
     return;
 
-  auto&    mover      = data.zCMover;
-  uint32_t keySz      = uint32_t(mover.keyframes.size());
-  uint32_t maxFr      = uint32_t(mover.keyframes.size()-1);
+  auto&    mover = data.zCMover;
+  uint32_t keySz = uint32_t(mover.keyframes.size());
+  uint32_t maxFr = uint32_t(mover.keyframes.size()-1);
 
-  uint64_t maxTicks   = 0;
+  uint64_t maxTicks = 0;
   for(size_t i=0; ; ++i) {
     if(i>=keyframes.size())
       break;
@@ -202,7 +204,7 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
         }
       f1       = std::min(f0+1,maxFr);
       a        = float(dt)/float(keyframes[f0].ticks);
-      finished = f0==0 && dt==0;
+      finished = (f0==0 && dt==0);
       break;
       }
     case Loop: {
