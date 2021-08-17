@@ -353,7 +353,10 @@ bool PlayerControl::tickMove(uint64_t dt) {
   if(ctrl[Action::K_F8])
     marvinF8(dt);
   cacheFocus = ctrl[Action::ActionGeneric];
-
+  if(pl->isPrehit()) {
+    rotMouseY = 0;
+    rotMouse  = 0;
+    }
   implMove(dt);
 
   float runAngle = pl->runAngle();
