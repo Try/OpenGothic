@@ -354,13 +354,6 @@ bool PlayerControl::tickMove(uint64_t dt) {
     marvinF8(dt);
   cacheFocus = ctrl[Action::ActionGeneric];
 
-  if(ctrl[Action::ActionGeneric] && ctrl[Action::Forward]) {
-    actrl[ActForward] = true;
-    }
-  if(ctrl[Action::ActionGeneric] && ctrl[Action::Back]) {
-    actrl[ActBack] = true;
-    }
-
   implMove(dt);
 
   float runAngle = pl->runAngle();
@@ -523,6 +516,7 @@ void PlayerControl::implMove(uint64_t dt) {
 
   if(actrl[ActForward]) {
     actrl[ActForward] = false;
+    //ctrl[Action::ActionGeneric] = false;
     switch(ws) {
       case WeaponState::NoWeapon:
         break;
@@ -561,6 +555,11 @@ void PlayerControl::implMove(uint64_t dt) {
         pl.swingSwordR(); else
       if(actrl[ActBack])
         pl.blockSword();
+
+      ctrl[Action::Left]  = false;
+      ctrl[Action::Right] = false;
+      ctrl[Action::Back]  = false;
+
       actrl[ActLeft]  = false;
       actrl[ActRight] = false;
       actrl[ActBack]  = false;

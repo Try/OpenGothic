@@ -104,7 +104,7 @@ class MdlVisual final {
     float                          viewDirection() const;
 
     const Animation::Sequence*     continueCombo(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk);
-    uint32_t                       comboLength() const;
+    uint16_t                       comboLength() const;
 
     Bounds                         bounds() const;
 

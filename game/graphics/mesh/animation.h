@@ -84,7 +84,7 @@ class Animation final {
       bool                                   isFly()    const { return bool(flags&Flags::Fly);    }
       bool                                   isIdle()   const { return bool(flags&Flags::Idle);   }
       bool                                   isFinished(uint64_t t, uint16_t comboLen) const;
-      float                                  atkTotalTime(uint32_t comboLvl) const;
+      float                                  atkTotalTime(uint16_t comboLen) const;
       bool                                   canInterrupt() const;
       bool                                   isDefParWindow(uint64_t t) const;
       bool                                   isDefWindow(uint64_t t) const;

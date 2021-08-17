@@ -53,7 +53,7 @@ void Pose::save(Serialize &fout) {
     fout.write(i);
   for(auto& i:tr)
     fout.write(i);
-  fout.write(comboLen);
+  fout.write(combo.bits);
   fout.write(rotation ? rotation->name : "");
   fout.write(itemUseSt,itemUseDestSt);
   fout.write(headRotX,headRotY);
@@ -96,7 +96,7 @@ void Pose::load(Serialize &fin, const AnimationSolver& solver) {
   if(skeleton!=nullptr)
     numBones = skeleton->nodes.size();
   if(fin.version()>=3)
-    fin.read(comboLen);
+    fin.read(combo.bits);
   removeIf(lay,[](const Layer& l){
     return l.seq==nullptr;
     });
@@ -162,7 +162,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
   for(auto& i:lay)
     if(i.seq->layer==sq->layer) {
       const bool hasNext   = (!i.seq->next.empty() && i.seq->animCls!=Animation::Loop);
-      const bool finished  = i.seq->isFinished(tickCount-i.sAnim,comboLen) && !hasNext;
+      const bool finished  = i.seq->isFinished(tickCount-i.sAnim,combo.len()) && !hasNext;
       const bool interrupt = force || (!noInter && i.seq->canInterrupt());
       if(i.seq==sq && i.comb==comb && i.bs==bs && !finished)
         return true;
@@ -261,7 +261,7 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
   bool   doSort = false;
   for(size_t i=0;i<lay.size();++i) {
     const auto& l = lay[i];
-    if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount-l.sAnim,comboLen)) {
+    if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount-l.sAnim,combo.len())) {
       auto next = getNext(solver,lay[i]);
       if(next!=lay[i].seq) {
         needToUpdate = true;
@@ -634,38 +634,60 @@ uint64_t Pose::animationTotalTime() const {
   return ret;
   }
 
-const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, const Animation::Sequence *sq, uint64_t tickCount) {
+const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, const Animation::Sequence *sq,
+                                               uint64_t tickCount) {
   if(sq==nullptr)
     return nullptr;
 
-  bool breakCombo = true;
-  for(auto& i:lay) {
-    if(i.seq->name==sq->name)
-      breakCombo = false;
-
-    auto&    d = *i.seq->data;
-    uint64_t t = tickCount-i.sAnim;
-    for(size_t id=0;id+1<d.defWindow.size();id+=2) {
-      if(d.defWindow[id+0]<=t && t<d.defWindow[id+1]) {
-        if(i.seq->name==sq->name) {
-          comboLen = uint16_t(id/2+1);
-          return i.seq;
-          } else {
-          comboLen = 0;
-          startAnim(solver,sq,i.comb,i.bs,Pose::Force,tickCount);
-          return sq;
-          }
-        }
+  Layer* prev = nullptr;
+  for(auto& i:lay)
+    if(i.seq->layer==sq->layer) {
+      prev = &i;
+      break;
       }
+
+  if(prev==nullptr) {
+    combo = ComboState();
+    return nullptr;
     }
 
-  if(breakCombo)
-    comboLen = 0;
-  return nullptr;
+  auto&    d  = *prev->seq->data;
+  uint64_t t  = tickCount-prev->sAnim;
+  size_t   id = combo.len()*2;
+
+  if(0==d.defWindow.size()) {
+    if(!startAnim(solver,sq,prev->comb,prev->bs,Pose::NoHint,tickCount))
+      return nullptr;
+    combo = ComboState();
+    return sq;
+    }
+
+  if(id+1>=d.defWindow.size()) {
+    combo.setBreak();
+    return nullptr;
+    }
+
+  if(t<d.defWindow[id+0] || d.defWindow[id+1]<=t) {
+    combo.setBreak();
+    return nullptr;
+    }
+
+  if(combo.isBreak())
+    return nullptr;
+
+  if(prev->seq->name!=sq->name) {
+    startAnim(solver,sq,prev->comb,prev->bs,Pose::Force,tickCount);
+    combo = ComboState();
+    return sq;
+    }
+
+  prev->sAnim = tickCount - d.defHitEnd[combo.len()];
+  combo.incLen();
+  return prev->seq;
   }
 
-uint32_t Pose::comboLength() const {
-  return comboLen;
+uint16_t Pose::comboLength() const {
+  return combo.len();
   }
 
 const Tempest::Matrix4x4& Pose::bone(size_t id) const {

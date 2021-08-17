@@ -338,7 +338,7 @@ Animation::Sequence::Sequence(const std::string &fname) {
     }
   }
 
-bool Animation::Sequence::isFinished(uint64_t t,uint16_t comboLen) const {
+bool Animation::Sequence::isFinished(uint64_t t, uint16_t comboLen) const {
   if(comboLen<data->defHitEnd.size()) {
     if(t>data->defHitEnd[comboLen])
       return true;
@@ -351,9 +351,9 @@ float Animation::Sequence::totalTime() const {
   }
 
 
-float Animation::Sequence::atkTotalTime(uint32_t comboLvl) const {
-  if(comboLvl<data->defHitEnd.size()) {
-    uint64_t time = data->defHitEnd[comboLvl];
+float Animation::Sequence::atkTotalTime(uint16_t comboLen) const {
+  if(comboLen<data->defHitEnd.size()) {
+    uint64_t time = data->defHitEnd[comboLen];
     return float(time);
     }
   return totalTime();

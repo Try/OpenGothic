@@ -743,7 +743,7 @@ const Animation::Sequence* MdlVisual::continueCombo(Npc& npc, AnimationSolver::A
   return startAnimAndGet(npc,a,0,st,wlk,false);
   }
 
-uint32_t MdlVisual::comboLength() const {
+uint16_t MdlVisual::comboLength() const {
   return skInst->comboLength();
   }
 

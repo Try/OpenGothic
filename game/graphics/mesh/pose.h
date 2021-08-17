@@ -68,7 +68,7 @@ class Pose final {
     uint64_t           animationTotalTime() const;
 
     auto               continueCombo(const AnimationSolver &solver,const Animation::Sequence *sq,uint64_t tickCount) -> const Animation::Sequence*;
-    uint32_t           comboLength() const;
+    uint16_t           comboLength() const;
 
     float              translateY() const { return trY; }
     auto               bone(size_t id) const -> const Tempest::Matrix4x4&;
@@ -110,7 +110,13 @@ class Pose final {
     template<class T,class F>
     void removeIf(T& t,F f);
 
-    static std::vector<Pose*>       all;
+    struct ComboState {
+      uint16_t bits = 0;
+      uint16_t len()     const { return bits & 0x7FFF; }
+      void     incLen()        { bits = (bits+1)&0x7FFF; };
+      bool     isBreak() const { return bits & 0x8000; }
+      void     setBreak()      { bits |=0x8000; }
+      };
 
     const Skeleton*                 skeleton=nullptr;
     std::vector<Layer>              lay;
@@ -120,7 +126,7 @@ class Pose final {
     float                           trY=0;
     Flags                           flag=NoFlags;
     uint64_t                        lastUpdate=0;
-    uint16_t                        comboLen=0;
+    ComboState                      combo;
     bool                            needToUpdate = true;
     uint8_t                         hasEvents = 0;
     uint8_t                         isFlyCombined = 0;
