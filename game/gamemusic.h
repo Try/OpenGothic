@@ -17,7 +17,6 @@ class GameMusic final {
     static GameMusic& inst();
 
     enum Music : uint8_t {
-      SysMenu,
       SysLoading
       };
 

@@ -77,6 +77,11 @@ void MenuRoot::setPlayer(const Npc &pl) {
     current->setPlayer(pl);
   }
 
+void MenuRoot::processMusicTheme() {
+  if(current!=nullptr)
+    current->processMusicTheme();
+  }
+
 void MenuRoot::mouseDownEvent(MouseEvent& event) {
   if(current!=nullptr)
     current->onSelect(); else

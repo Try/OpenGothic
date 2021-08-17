@@ -11,6 +11,7 @@
 #include "utils/gthfont.h"
 #include "utils/fileutil.h"
 #include "utils/keycodec.h"
+#include "game/definitions/musicdefinitions.h"
 #include "game/serialize.h"
 #include "game/savegameheader.h"
 #include "gothic.h"
@@ -341,6 +342,11 @@ void GameMenu::onTick() {
     } else {
     setPosition(int(float(menu.posx)/scriptDiv*fx), int(float(menu.posy)/scriptDiv*fy));
     }
+  }
+
+void GameMenu::processMusicTheme() {
+  if(auto theme = Gothic::musicDef()[menu.musicTheme.c_str()])
+    GameMusic::inst().setMusic(*theme,GameMusic::mkTags(GameMusic::Std,GameMusic::Day));
   }
 
 GameMenu::Item *GameMenu::selectedItem() {

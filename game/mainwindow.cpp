@@ -53,15 +53,15 @@ MainWindow::MainWindow(Device& device)
   loadBox    = Resources::loadTexture("PROGRESS.TGA");
   loadVal    = Resources::loadTexture("PROGRESS_BAR.TGA");
 
-  Gothic::inst().onStartGame    .bind(this,&MainWindow::startGame);
-  Gothic::inst().onLoadGame     .bind(this,&MainWindow::loadGame);
-  Gothic::inst().onSaveGame     .bind(this,&MainWindow::saveGame);
+  Gothic::inst().onStartGame   .bind(this,&MainWindow::startGame);
+  Gothic::inst().onLoadGame    .bind(this,&MainWindow::loadGame);
+  Gothic::inst().onSaveGame    .bind(this,&MainWindow::saveGame);
 
-  Gothic::inst().onStartLoading .bind(this,&MainWindow::onStartLoading);
-  Gothic::inst().onWorldLoaded  .bind(this,&MainWindow::onWorldLoaded);
-  Gothic::inst().onSessionExit  .bind(this,&MainWindow::onSessionExit);
+  Gothic::inst().onStartLoading.bind(this,&MainWindow::onStartLoading);
+  Gothic::inst().onWorldLoaded .bind(this,&MainWindow::onWorldLoaded);
+  Gothic::inst().onSessionExit .bind(this,&MainWindow::onSessionExit);
 
-  Gothic::inst().onVideo        .bind(this,&MainWindow::onVideo);
+  Gothic::inst().onVideo       .bind(this,&MainWindow::onVideo);
 
   if(!Gothic::inst().defaultSave().empty()){
     Gothic::inst().load(Gothic::inst().defaultSave());
@@ -72,7 +72,7 @@ MainWindow::MainWindow(Device& device)
     rootMenu.popMenu();
     }
   else {
-    GameMusic::inst().setMusic(GameMusic::SysMenu);
+    rootMenu.processMusicTheme();
     }
   }
 
@@ -632,7 +632,7 @@ uint64_t MainWindow::tick() {
   else if(st!=Gothic::LoadState::Idle) {
     if(st==Gothic::LoadState::Loading)
       GameMusic::inst().setMusic(GameMusic::SysLoading); else
-      GameMusic::inst().setMusic(GameMusic::SysMenu);
+      rootMenu.processMusicTheme();
     return 0;
     }
 

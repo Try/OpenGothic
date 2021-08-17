@@ -28,7 +28,7 @@ class GameMenu : public Tempest::Widget {
     void onSlide(int dx);
     void onSelect();
     void onTick();
-
+    void processMusicTheme();
 
     KeyCodec::Action keyClose() const { return kClose; }
 

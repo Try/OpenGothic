@@ -20,6 +20,7 @@ class MenuRoot : public Tempest::Widget {
     void closeAll();
     bool isActive() const;
     void setPlayer(const Npc& pl);
+    void processMusicTheme();
 
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
     void keyDownEvent   (Tempest::KeyEvent&   event) override;
