@@ -47,6 +47,11 @@ class Camera final {
     void setToogleEnable(bool e);
     bool isToogleEnabled() const;
 
+    void setFirstPerson(bool fp);
+    bool isFirstPerson() const;
+
+    void setLookBack(bool lb);
+
     void toogleDebug();
 
     void tick(const Npc& npc, uint64_t dt, bool inMove, bool includeRot);
@@ -59,7 +64,7 @@ class Camera final {
     void            setDestSpin(const Tempest::PointF& p);
 
     void            setPosition(float x,float y,float z);
-    void            setDestPosition(float x,float y,float z);
+    void            setDestPosition(const Tempest::Vec3& pos);
 
     void            setDialogDistance(float d);
 
@@ -88,6 +93,8 @@ class Camera final {
     bool                  hasPos   = false;
     bool                  dbg      = false;
     bool                  tgEnable = true;
+    bool                  fpEnable = false;
+    bool                  lbEnable = false;
     Mode                  camMod   = Normal;
 
     mutable int           raysCasted = 0;

@@ -17,6 +17,8 @@ CameraDefinitions::CameraDefinitions() {
   camModDialog    = loadCam("CAMMODDIALOG");
   camModInventory = loadCam("CAMMODINVENTORY");
   camModNormal    = loadCam("CAMMODNORMAL");
+  camModBack      = loadCam("CAMMODLOOKBACK");
+  camModFp        = loadCam("CAMMODFIRSTPERSON");
   camModDeath     = loadCam("CAMMODDEATH");
   camModMelee     = loadCam("CAMMODMELEE");
   camModRange     = loadCam("CAMMODRANGED");

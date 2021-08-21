@@ -668,7 +668,7 @@ void MainWindow::tickCamera(uint64_t dt) {
   const bool meleeFocus   = (ws==WeaponState::Fist ||
                              ws==WeaponState::W1H  ||
                              ws==WeaponState::W2H);
-  auto       pos = pl->cameraBone();
+  auto       pos          = pl->cameraBone(camera.isFirstPerson());
 
   if(Gothic::inst().isPause()) {
     renderer.setCameraView(camera);
@@ -677,19 +677,19 @@ void MainWindow::tickCamera(uint64_t dt) {
   const bool fs = SystemApi::isFullscreen(hwnd());
   if(!fs && mouseP[Event::ButtonLeft]) {
     camera.setSpin(camera.destSpin());
-    camera.setDestPosition(pos.x,pos.y,pos.z);
+    camera.setDestPosition(pos);
     }
   else if(dialogs.isActive() && !dialogs.isMobsiDialog()) {
     dialogs.dialogCamera(camera);
     }
   else if(inventory.isActive()) {
-    camera.setDestPosition(pos.x,pos.y,pos.z);
+    camera.setDestPosition(pos);
     }
   else if(player.focus().npc!=nullptr && meleeFocus) {
     auto spin = camera.destSpin();
     spin.y = pl->rotation();
     camera.setDestSpin(spin);
-    camera.setDestPosition(pos.x,pos.y,pos.z);
+    camera.setDestPosition(pos);
     }
   else {
     auto spin = camera.destSpin();
@@ -697,7 +697,7 @@ void MainWindow::tickCamera(uint64_t dt) {
     if(pl->isDive())
       spin.x = -pl->rotationY();
     camera.setDestSpin(spin);
-    camera.setDestPosition(pos.x,pos.y,pos.z);
+    camera.setDestPosition(pos);
     }
 
   if(dt==0)

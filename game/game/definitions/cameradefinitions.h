@@ -9,6 +9,8 @@ class CameraDefinitions final {
     const Daedalus::GEngineClasses::CCamSys& dialogCam()    const { return camModDialog; }
     const Daedalus::GEngineClasses::CCamSys& inventoryCam() const { return camModInventory; }
     const Daedalus::GEngineClasses::CCamSys& stdCam()       const { return camModNormal; }
+    const Daedalus::GEngineClasses::CCamSys& fpCam()        const { return camModFp; }
+    const Daedalus::GEngineClasses::CCamSys& backCam()      const { return camModBack; }
     const Daedalus::GEngineClasses::CCamSys& meleeCam()     const { return camModMelee;  }
     const Daedalus::GEngineClasses::CCamSys& rangeCam()     const { return camModRange;  }
     const Daedalus::GEngineClasses::CCamSys& mageCam()      const { return camModMage;   }
@@ -26,6 +28,7 @@ class CameraDefinitions final {
     std::vector<Camera> cameras;
     const Camera* find(std::string_view name) const;
 
-    Daedalus::GEngineClasses::CCamSys camModDialog, camModInventory, camModNormal, camModDeath, camModSwim, camModDive;
+    Daedalus::GEngineClasses::CCamSys camModNormal, camModFp, camModBack;
+    Daedalus::GEngineClasses::CCamSys camModDialog, camModInventory, camModDeath, camModSwim, camModDive;
     Daedalus::GEngineClasses::CCamSys camModMelee, camModRange, camModMage;
   };

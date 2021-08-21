@@ -124,6 +124,12 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
     return;
     }
 
+  if(a==Action::FirstPerson) {
+    if(auto c = Gothic::inst().camera())
+      c->setFirstPerson(!c->isFirstPerson());
+    return;
+    }
+
   ctrl[a] = true;
   }
 
@@ -357,6 +363,8 @@ bool PlayerControl::tickMove(uint64_t dt) {
     rotMouseY = 0;
     rotMouse  = 0;
     }
+  if(camera!=nullptr)
+    camera->setLookBack(ctrl[Action::LookBack]);
   implMove(dt);
 
   float runAngle = pl->runAngle();

@@ -90,7 +90,7 @@ class Npc final {
 
     auto       transform()  const -> Tempest::Matrix4x4;
     auto       position()   const -> Tempest::Vec3;
-    auto       cameraBone() const -> Tempest::Vec3;
+    auto       cameraBone(bool isFirstPerson = false) const -> Tempest::Vec3;
     float      collisionRadius() const;
     float      rotation() const;
     float      rotationRad() const;

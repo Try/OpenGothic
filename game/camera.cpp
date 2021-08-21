@@ -124,6 +124,18 @@ bool Camera::isToogleEnabled() const {
   return tgEnable;
   }
 
+void Camera::setFirstPerson(bool fp) {
+  fpEnable = fp;
+  }
+
+bool Camera::isFirstPerson() const {
+  return fpEnable;
+  }
+
+void Camera::setLookBack(bool lb) {
+  lbEnable = lb;
+  }
+
 void Camera::toogleDebug() {
   dbg = !dbg;
   }
@@ -300,8 +312,13 @@ const Daedalus::GEngineClasses::CCamSys &Camera::cameraDef() const {
   auto& camd = Gothic::cameraDef();
   if(camMod==Dialog)
     return camd.dialogCam();
-  if(camMod==Normal)
+  if(lbEnable)
+    return camd.backCam();
+  if(fpEnable && (camMod==Normal || camMod==Melee))
+    return camd.fpCam();
+  if(camMod==Normal) {
     return camd.stdCam();
+    }
   if(camMod==Inventory)
     return camd.inventoryCam();
   if(camMod==Melee)
@@ -367,8 +384,8 @@ void Camera::setPosition(float x, float y, float z) {
   state.pos = applyModPosition(dest.pos);
   }
 
-void Camera::setDestPosition(float x, float y, float z) {
-  dest.pos = {x,y,z};
+void Camera::setDestPosition(const Tempest::Vec3& pos) {
+  dest.pos = pos;
   }
 
 void Camera::setDialogDistance(float d) {

@@ -18,6 +18,9 @@ class KeyCodec final {
       Log,
       Map,
 
+      LookBack,
+      FirstPerson,
+
       Forward,
       Back,
       Left,

@@ -606,13 +606,19 @@ Matrix4x4 Npc::transform() const {
   return visual.transform();
   }
 
-Vec3 Npc::cameraBone() const {
-  Vec3 r = {};
- if(!mvAlgo.isSwim())
-   r.y = visual.pose().translateY();
+Vec3 Npc::cameraBone(bool isFirstPerson) const {
+  const size_t head = visual.pose().findNode("BIP01 HEAD");
 
-  auto mt = visual.transform();
-  mt.project(r);
+  Vec3 r = {};
+  if(isFirstPerson && head!=size_t(-1)) {
+    r = visual.mapBone(head) + position();
+    } else {
+    if(!mvAlgo.isSwim())
+      r.y = visual.pose().translateY();
+    auto mt = visual.transform();
+    mt.project(r);
+    }
+
   return r;
   }
 

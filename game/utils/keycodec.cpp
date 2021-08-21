@@ -193,9 +193,9 @@ KeyCodec::Action KeyCodec::implTr(int32_t code) const {
     return Sneak;
 
   if(keyLook.is(code))
-    return Idle; // ?
+    return LookBack;
   if(keyLookFP.is(code))
-    return Idle; // ?
+    return FirstPerson;
 
   if(keyInventory.is(code))
     return Inventory;
