@@ -9,6 +9,9 @@
 
 Marvin::Marvin() {
   cmd = std::vector<Cmd>{
+    // gdb-like commands
+    {"p %v",                       C_PrintVar},
+
     // animation
     {"play ani %s",                C_Invalid},
     {"play faceani %s",            C_Invalid},
@@ -86,8 +89,10 @@ Marvin::Marvin() {
   }
 
 Marvin::CmdVal Marvin::isMatch(std::string_view inp, const Cmd& cmd) const {
-  size_t           part = 0;
   std::string_view ref  = cmd.cmd;
+  CmdVal           ret  = C_Invalid;
+  int              argc = 0;
+
   for(size_t i=0; !ref.empty(); ++i) {
     size_t wr = ref.find(' ');
     if(wr==std::string_view::npos)
@@ -98,47 +103,52 @@ Marvin::CmdVal Marvin::isMatch(std::string_view inp, const Cmd& cmd) const {
 
     auto wref = ref.substr(0,wr);
     auto winp = inp.substr(0,wi);
-    part += wr;
 
-    if(wref=="%c") {
-      wref = completeInstanceName(winp);
-      }
+    bool fullword = true;
+    if(wref=="%c")
+      wref = completeInstanceName(winp,fullword);
+    if(wref=="%v")
+      wref = completeInstanceName(winp,fullword);
 
     if(wref!=winp) {
-      if(wref.find(winp)==std::string::npos)
+      if(wref.find(winp)!=0)
         return C_Invalid;
-      CmdVal v = {cmd,0};
-      v.cmd.type = C_Incomplete;
-      v.cmd.cmd  = v.cmd.cmd.substr(0,part);
-      return v;
+      ret.cmd      = cmd;
+      ret.cmd.type = C_Incomplete;
+      ret.complete = wref.substr(winp.size());
+      ret.fullword = fullword;
+      return ret;
       }
 
-    if(ref.size()==wr)
-      break;
+    if(ref[0]=='%' && argc<4) {
+      ret.argv[argc] = wref;
+      ++argc;
+      }
 
-    part++;
+    if(ref.size()==wr) {
+      if(inp.size()!=winp.size())
+        return C_Invalid; // extra stuff
+      break;
+      }
+
     ref = ref.substr(wr+1);
     inp = inp.substr(wr+1);
     while(inp.size()>0 && inp[0]==' ')
       inp = inp.substr(1);
     }
 
-  return CmdVal{cmd,part};
+  ret.cmd = cmd;
+  return ret;
   }
 
 Marvin::CmdVal Marvin::recognize(std::string_view inp) {
+  while(inp.size()>0 && inp.back()==' ')
+    inp = inp.substr(0,inp.size()-1);
+  while(inp.size()>0 && inp[0]==' ')
+    inp = inp.substr(1);
+
   if(inp.size()==0)
     return C_None;
-
-  size_t prefix = 0;
-  for(size_t i=0; i<inp.size(); ++i) {
-    ++prefix;
-    if(inp[i]==' ') {
-      while(i<inp.size() && inp[i]==' ')
-        ++i;
-      --i;
-      }
-    }
 
   CmdVal suggestion = C_Invalid;
 
@@ -147,7 +157,7 @@ Marvin::CmdVal Marvin::recognize(std::string_view inp) {
     if(m.cmd.type==C_Invalid)
       continue;
     if(m.cmd.type!=C_Incomplete)
-      return CmdVal{m.cmd,prefix};
+      return m;
     if(suggestion.cmd.type==C_Incomplete) {
       if(suggestion.cmd.cmd!=m.cmd.cmd)
         return C_Incomplete; // multiple distinct commands do match - no suggestion
@@ -157,22 +167,16 @@ Marvin::CmdVal Marvin::recognize(std::string_view inp) {
     suggestion = m;
     }
 
-  suggestion.cmdOffset = prefix;
   return suggestion;
   }
 
 void Marvin::autoComplete(std::string& v) {
   auto ret = recognize(v);
-  if(ret.cmd.type==C_Incomplete && ret.cmd.cmd!=nullptr) {
-    for(size_t i=ret.cmdOffset;; ++i) {
-      if(ret.cmd.cmd[i]=='\0')
-        return;
-      if(ret.cmd.cmd[i]==' ') {
-        v.push_back(' ');
-        return;
-        }
-      v.push_back(ret.cmd.cmd[i]);
-      }
+  if(ret.cmd.type==C_Incomplete && !ret.complete.empty()) {
+    for(auto& i:ret.complete)
+      v.push_back(i);
+    if(ret.fullword)
+      v.push_back(' ');
     }
   }
 
@@ -212,20 +216,21 @@ bool Marvin::exec(const std::string& v) {
       Npc*   player = Gothic::inst().player();
       if(world==nullptr || player==nullptr)
         return false;
-
-      auto   spacePos = v.find(" ");
-      if(spacePos==std::string::npos)
+      return addItemOrNpcBySymbolName(world, ret.argv[0], player->position());
+      }
+    case C_PrintVar: {
+      World* world  = Gothic::inst().world();
+      Npc*   player = Gothic::inst().player();
+      if(world==nullptr || player==nullptr)
         return false;
-
-      std::string arguments = v.substr(spacePos + 1);
-      return addItemOrNpcBySymbolName(world, arguments, player->position());
+      return printVariable(world,ret.argv[0]);
       }
     }
 
   return true;
   }
 
-bool Marvin::addItemOrNpcBySymbolName (World* world, const std::string& name, const Tempest::Vec3& at) {
+bool Marvin::addItemOrNpcBySymbolName(World* world, std::string_view name, const Tempest::Vec3& at) {
   auto&  sc  = world->script();
   size_t id  = sc.getSymbolIndex(name);
   if(id==size_t(-1))
@@ -233,6 +238,9 @@ bool Marvin::addItemOrNpcBySymbolName (World* world, const std::string& name, co
 
   auto&  sym = sc.getSymbol(id);
   if(sym.parent==uint32_t(-1))
+    return false;
+
+  if(sym.properties.elemProps.type!=Daedalus::EParType::EParType_Instance)
     return false;
 
   const auto* cls = &sym;
@@ -247,7 +255,29 @@ bool Marvin::addItemOrNpcBySymbolName (World* world, const std::string& name, co
   return false;
   }
 
-std::string_view Marvin::completeInstanceName(std::string_view inp) const {
+bool Marvin::printVariable(World* world, std::string_view name) {
+  auto&  sc  = world->script();
+  size_t id  = sc.getSymbolIndex(name);
+  if(id==size_t(-1))
+    return false;
+  char buf[256] = {};
+  auto&  sym = sc.getSymbol(id);
+  switch(sym.properties.elemProps.type) {
+    case Daedalus::EParType::EParType_Int:
+      std::snprintf(buf,sizeof(buf),"%.*s = %d",int(name.size()),name.data(), sym.getInt(0));
+      break;
+    case Daedalus::EParType::EParType_Float:
+      std::snprintf(buf,sizeof(buf),"%.*s = %f",int(name.size()),name.data(), sym.getFloat(0));
+      break;
+    case Daedalus::EParType::EParType_String:
+      std::snprintf(buf,sizeof(buf),"%.*s = %s",int(name.size()),name.data(), sym.getString(0).c_str());
+      break;
+    }
+  print(buf);
+  return true;
+  }
+
+std::string_view Marvin::completeInstanceName(std::string_view inp, bool& fullword) const {
   World* world  = Gothic::inst().world();
   if(world==nullptr || inp.size()==0)
     return "";
@@ -260,14 +290,16 @@ std::string_view Marvin::completeInstanceName(std::string_view inp) const {
     if(name.find(inp)!=0)
       continue;
     if(match.empty()) {
-      match = name;
+      match   = name;
+      fullword = true;
       continue;
       }
     if(name.size()>match.size())
       name = name.substr(0,match.size());
     for(size_t i=0; i<match.size(); ++i) {
       if(match[i]!=name[i]) {
-        name = name.substr(0,i);
+        name     = name.substr(0,i);
+        fullword = false;
         break;
         }
       }

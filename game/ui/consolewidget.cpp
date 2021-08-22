@@ -61,6 +61,8 @@ ConsoleWidget::ConsoleWidget() {
   closeSk.onActivated.bind(this,&ConsoleWidget::close);
 
   background = Resources::loadTexture("CONSOLE.TGA");
+
+  marvin.print.bind(this,&ConsoleWidget::printLine);
   }
 
 ConsoleWidget::~ConsoleWidget() {
@@ -188,6 +190,10 @@ void ConsoleWidget::keyDownEvent(KeyEvent& e) {
 
 void ConsoleWidget::keyRepeatEvent(KeyEvent& e) {
   keyDownEvent(e);
+  }
+
+void ConsoleWidget::printLine(std::string_view s) {
+  log.emplace_back(s);
   }
 
 

@@ -20,6 +20,8 @@ class ConsoleWidget : public Tempest::Widget {
     void keyRepeatEvent(Tempest::KeyEvent&   e) override;
     using Tempest::Widget::keyUpEvent;
 
+    void printLine(std::string_view s);
+
   private:
     struct Overlay;
 

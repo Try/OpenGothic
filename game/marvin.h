@@ -9,6 +9,8 @@ class Marvin {
   public:
     Marvin();
 
+    Tempest::Signal<void(std::string_view)> print;
+
     void autoComplete(std::string& v);
     bool exec(const std::string& v);
 
@@ -17,6 +19,9 @@ class Marvin {
       C_None,
       C_Incomplete,
       C_Invalid,
+
+      // gdb-like
+      C_PrintVar,
 
       // rendering
       C_ToogleFrame,
@@ -39,17 +44,21 @@ class Marvin {
     struct CmdVal {
       CmdVal() = default;
       CmdVal(CmdType t){ cmd.type = t; };
-      CmdVal(Cmd cmd, size_t cmdOffset):cmd(cmd), cmdOffset(cmdOffset) {};
+      CmdVal(Cmd cmd):cmd(cmd) {};
 
-      Cmd         cmd;
-      size_t      cmdOffset = 0;
-      std::string argCls    = "";
+      Cmd              cmd;
+      std::string_view complete = "";
+      bool             fullword = false;
+
+      std::string_view argv[4]  = {};
       };
 
     CmdVal recognize(std::string_view v);
     CmdVal isMatch(std::string_view inp, const Cmd& cmd) const;
-    bool   addItemOrNpcBySymbolName (World* world, const std::string& name, const Tempest::Vec3& at);
-    auto   completeInstanceName(std::string_view inp) const -> std::string_view;
+    auto   completeInstanceName(std::string_view inp, bool& fullword) const -> std::string_view;
+
+    bool   addItemOrNpcBySymbolName(World* world, std::string_view name, const Tempest::Vec3& at);
+    bool   printVariable           (World* world, std::string_view name);
 
     std::vector<Cmd> cmd;
   };
