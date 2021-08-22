@@ -195,7 +195,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
     std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %s",fps.get(),info);
 
     auto& fnt = Resources::font();
-    fnt.drawText(p,5,30,fpsT);
+    fnt.drawText(p,5,fnt.pixelSize()+5,fpsT);
     }
   }
 
@@ -403,12 +403,15 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
       return;
     }
 
-  if(event.key==KeyEvent::K_F2) {
-    console.resize(w(),h());
-    console.setFocus(true);
-    console.exec();
+  if(Gothic::inst().isMarvinEnabled()) {
+    if(event.key==KeyEvent::K_F2) {
+      console.resize(w(),h());
+      console.setFocus(true);
+      console.exec();
+      }
     }
-  else if(event.key==KeyEvent::K_F3) {
+
+  if(event.key==KeyEvent::K_F3) {
     setFullscreen(!SystemApi::isFullscreen(hwnd()));
     }
   else if(event.key==KeyEvent::K_F5){

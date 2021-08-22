@@ -104,6 +104,7 @@ class GameScript final {
     Daedalus::PARSymbol&                              getSymbol(std::string_view s);
     Daedalus::PARSymbol&                              getSymbol(const size_t s);
     size_t                                            getSymbolIndex(std::string_view s);
+    size_t                                            getSymbolCount() const;
 
     const AiState&                                    aiState  (ScriptFn id);
     const Daedalus::GEngineClasses::C_Spell&          spellDesc(int32_t splId);

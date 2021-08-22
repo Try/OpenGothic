@@ -18,6 +18,8 @@ class Marvin {
       C_Incomplete,
       C_Invalid,
 
+      // rendering
+      C_ToogleFrame,
       // npc
       C_CheatFull,
       // camera
@@ -30,8 +32,8 @@ class Marvin {
       };
 
     struct Cmd {
-      const char* cmd  = nullptr;
-      CmdType     type = C_None;
+      std::string_view cmd  = "";
+      CmdType          type = C_None;
       };
 
     struct CmdVal {
@@ -39,12 +41,15 @@ class Marvin {
       CmdVal(CmdType t){ cmd.type = t; };
       CmdVal(Cmd cmd, size_t cmdOffset):cmd(cmd), cmdOffset(cmdOffset) {};
 
-      Cmd     cmd;
-      size_t  cmdOffset = 0;
+      Cmd         cmd;
+      size_t      cmdOffset = 0;
+      std::string argCls    = "";
       };
 
-    CmdVal recognize(const std::string& v);
-    bool addItemOrNpcBySymbolName (World* world, const std::string& name, const Tempest::Vec3& at);
+    CmdVal recognize(std::string_view v);
+    CmdVal isMatch(std::string_view inp, const Cmd& cmd) const;
+    bool   addItemOrNpcBySymbolName (World* world, const std::string& name, const Tempest::Vec3& at);
+    auto   completeInstanceName(std::string_view inp) const -> std::string_view;
 
     std::vector<Cmd> cmd;
   };

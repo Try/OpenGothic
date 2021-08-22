@@ -674,6 +674,10 @@ size_t GameScript::getSymbolIndex(std::string_view s) {
   return vm.getDATFile().getSymbolIndexByName(buf);
   }
 
+size_t GameScript::getSymbolCount() const {
+  return vm.getDATFile().getSymTable().symbols.size();
+  }
+
 const AiState& GameScript::aiState(ScriptFn id) {
   auto it = aiStates.find(id.ptr);
   if(it!=aiStates.end())

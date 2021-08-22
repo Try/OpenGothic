@@ -356,7 +356,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
     return true;
     }
 
-  if(ctrl[Action::K_F8])
+  if(ctrl[Action::K_F8] && Gothic::inst().isMarvinEnabled())
     marvinF8(dt);
   cacheFocus = ctrl[Action::ActionGeneric];
   if(pl->isPrehit()) {

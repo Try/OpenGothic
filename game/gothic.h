@@ -50,7 +50,6 @@ class Gothic final {
 
     bool         isInGame() const;
     bool         doStartMenu() const { return !noMenu; }
-    bool         doFrate() const { return !noFrate; }
 
     std::string_view defaultWorld()  const;
     std::string_view defaultPlayer() const;
@@ -90,6 +89,12 @@ class Gothic final {
     void         pushPause();
     void         popPause();
     bool         isPause() const;
+
+    bool         isMarvinEnabled() const;
+    void         setMarvinEnabled(bool m);
+
+    bool         doFrate() const { return !noFrate; }
+    void         setFRate(bool f) { noFrate = !f; }
 
     bool         isDebugMode() const;
     bool         isRamboMode() const;
@@ -168,8 +173,9 @@ class Gothic final {
     bool                                    isWindow=false;
     GraphicBackend                          graphics = GraphicBackend::Vulkan;
     uint16_t                                pauseSum=0;
-    bool                                    isDebug=false;
-    bool                                    isRambo=false;
+    bool                                    isMarvin = false;
+    bool                                    isDebug  = false;
+    bool                                    isRambo  = false;
     VersionInfo                             vinfo;
     std::mt19937                            randGen;
 

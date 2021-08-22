@@ -103,7 +103,29 @@ void MenuRoot::mouseWheelEvent(MouseEvent &event) {
   }
 
 void MenuRoot::keyDownEvent(KeyEvent &e) {
-  e.accept();
+  //if(current->)
+  //  ;
+  size_t sz = std::extent_v<decltype(cheatCode)>;
+  for(size_t i=1; i<sz; ++i)
+    cheatCode[i-1] = cheatCode[i];
+  cheatCode[sz-1] = e.key;
+  if(cheatCode[0]==Event::K_M &&
+     cheatCode[1]==Event::K_A &&
+     cheatCode[2]==Event::K_R &&
+     cheatCode[3]==Event::K_V &&
+     cheatCode[4]==Event::K_I &&
+     cheatCode[5]==Event::K_N) {
+    Gothic::inst().setMarvinEnabled(true);
+    auto& fnt = Resources::font();
+    Gothic::inst().onPrintScreen("MARVIN-MODE",2,4, 1,fnt);
+    }
+
+  if(cheatCode[sz-2]==Event::K_4 &&
+     cheatCode[sz-1]==Event::K_2) {
+    Gothic::inst().setMarvinEnabled(false);
+    auto& fnt = Resources::font();
+    Gothic::inst().onPrintScreen("WHAT WAS THE QUESTION?",2,4, 1,fnt);
+    }
   }
 
 void MenuRoot::keyUpEvent(KeyEvent &e) {

@@ -35,4 +35,6 @@ class MenuRoot : public Tempest::Widget {
     GameMenu*                              current=nullptr;
     std::vector<std::unique_ptr<GameMenu>> menuStack;
     KeyCodec&                              keyCodec;
+
+    Tempest::Event::KeyType                cheatCode[6] = {};
   };

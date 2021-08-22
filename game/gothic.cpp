@@ -28,6 +28,11 @@ Gothic::Gothic(const int argc, const char **argv) {
   if(argc<1)
     return;
 
+#ifndef NDEBUG
+  setMarvinEnabled(true);
+  setFRate(true);
+#endif
+
   std::string_view mod;
   for(int i=1;i<argc;++i) {
     std::string_view arg = argv[i];
@@ -333,6 +338,14 @@ void Gothic::popPause() {
 
 bool Gothic::isPause() const {
   return pauseSum;
+  }
+
+bool Gothic::isMarvinEnabled() const {
+  return isMarvin;
+  }
+
+void Gothic::setMarvinEnabled(bool m) {
+  isMarvin = m;
   }
 
 bool Gothic::isDebugMode() const {
