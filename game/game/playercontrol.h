@@ -69,14 +69,16 @@ class PlayerControl final {
       ActLeft   =2,
       ActRight  =3,
       ActGeneric=4,
+      ActMove   =5,
       };
 
     using Action=KeyCodec::Action;
 
     bool           ctrl[Action::Last]={};
     bool           wctrl[WeaponAction::Last]={};
+    bool           actrl[6]={};
+
     WeaponAction   wctrlLast = WeaponAction::WeaponMele; //!< Reminder for weapon toggle.
-    bool           actrl[5]={};
 
     bool           cacheFocus=false;
     Focus          currentFocus;

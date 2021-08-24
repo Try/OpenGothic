@@ -107,10 +107,10 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   if(a==KeyCodec::ActionGeneric) {
     FocusAction fk = ActGeneric;
     if(ctrl[Action::Forward])
-      fk = ActForward;
+      fk = ActMove;
     std::memset(actrl,0,sizeof(actrl));
     actrl[fk] = true;
-    ctrl[a] = true;
+    ctrl[a]   = true;
     return;
     }
 
@@ -525,8 +525,10 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     }
 
-  if(actrl[ActForward]) {
-    actrl[ActForward] = false;
+  if(actrl[ActForward] || actrl[ActMove]) {
+    ctrl [Action::Forward] = actrl[ActMove];
+    actrl[ActForward]      = false;
+    actrl[ActMove]         = false;
     //ctrl[Action::ActionGeneric] = false;
     switch(ws) {
       case WeaponState::NoWeapon:
