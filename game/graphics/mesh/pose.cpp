@@ -668,7 +668,8 @@ const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, co
     }
 
   if(t<d.defWindow[id+0] || d.defWindow[id+1]<=t) {
-    combo.setBreak();
+    if(prev->seq->name==sq->name)
+      combo.setBreak();
     return nullptr;
     }
 

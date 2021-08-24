@@ -571,7 +571,7 @@ void PlayerControl::implMove(uint64_t dt) {
 
       ctrl[Action::Left]  = false;
       ctrl[Action::Right] = false;
-      ctrl[Action::Back]  = false;
+      //ctrl[Action::Back]  = false;
 
       actrl[ActLeft]  = false;
       actrl[ActRight] = false;
