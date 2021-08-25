@@ -32,6 +32,7 @@ struct MorphDesc {
 #if defined(OBJ) || defined(SKINING) || defined(MORPH)
 layout(push_constant, std140) uniform UboPush {
   mat4      obj;
+  float     fatness;
 #if defined(MORPH)
   MorphDesc morph[MAX_MORPH_LAYERS];
 #endif

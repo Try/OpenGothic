@@ -71,6 +71,7 @@ class ObjectsBucket final {
 
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setAsGhost  (bool g);
+        void   setFatness  (float f);
         void   startMMAnim (std::string_view anim, float intensity, uint64_t timeUntil);
 
         const Bounds& bounds() const;
@@ -150,6 +151,8 @@ class ObjectsBucket final {
 
     struct UboPush final {
       Tempest::Matrix4x4 pos;
+      float              fatness = 0;
+      float              padd[3] = {};
       MorphDesc          morph[Resources::MAX_MORPH_LAYERS];
       };
 
@@ -182,6 +185,7 @@ class ObjectsBucket final {
       size_t                                iboLength = 0;
       Tempest::Matrix4x4                    pos;
       VisibilityGroup::Token                visibility;
+      float                                 fatness = 0;
 
       Descriptors                           ubo;
       uint64_t                              timeShift=0;
@@ -199,6 +203,7 @@ class ObjectsBucket final {
     void    setObjMatrix(size_t i, const Tempest::Matrix4x4& m);
     void    setBounds   (size_t i, const Bounds& b);
     void    startMMAnim (size_t i, std::string_view anim, float intensity, uint64_t timeUntil);
+    void    setFatness  (size_t i, float f);
 
     bool    isSceneInfoRequired() const;
     void    updatePushBlock(UboPush& push, Object& v);

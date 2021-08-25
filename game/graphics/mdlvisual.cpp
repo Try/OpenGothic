@@ -27,6 +27,7 @@ void MdlVisual::save(Serialize &fout, const Npc&) const {
     fout.write(std::string(""));
   solver.save(fout);
   skInst->save(fout);
+  fout.write(fatness);
   }
 
 void MdlVisual::save(Serialize& fout, const Interactive&) const {
@@ -45,6 +46,10 @@ void MdlVisual::load(Serialize& fin, Npc& npc) {
 
   solver.load(fin);
   skInst->load(fin,solver);
+  if(fin.version()>=34) {
+    fin.read(fatness);
+    setFatness(fatness);
+    }
   }
 
 void MdlVisual::load(Serialize& fin, Interactive&) {
@@ -82,6 +87,7 @@ void MdlVisual::setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, W
   bind(head,std::move(h),"BIP01 HEAD");
   implSetBody(std::move(body),owner,version);
   head.view.setAsGhost(hnpcFlagGhost);
+  head.view.setFatness(fatness);
   }
 
 bool MdlVisual::hasOverlay(const Skeleton* sk) const {
@@ -133,6 +139,7 @@ void MdlVisual::implSetBody(MeshObjects::Mesh&& body, World& owner, const int32_
     }
   view = std::move(body);
   view.setAsGhost(hnpcFlagGhost);
+  view.setFatness(fatness);
   view.setSkeleton(skeleton);
   view.setPose(pos,*skInst);
   hnpcVisual.view.setMesh(&view);
@@ -367,6 +374,14 @@ void MdlVisual::setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s,
     for(auto& i:attach)
       i.view.setAsGhost(hnpcFlagGhost);
     }
+  }
+
+void MdlVisual::setFatness(float f) {
+  fatness = f;
+  view.setFatness(fatness);
+  head.view.setFatness(fatness);
+  for(auto& i:attach)
+    i.view.setFatness(fatness);
   }
 
 void MdlVisual::emitBlockEffect(Npc& dest, Npc& source) {

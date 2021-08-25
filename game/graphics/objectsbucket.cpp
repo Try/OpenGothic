@@ -61,6 +61,11 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
   oldOw->free(oldId);
   }
 
+void ObjectsBucket::Item::setFatness(float f) {
+  if(owner!=nullptr)
+    owner->setFatness(id,f);
+  }
+
 void ObjectsBucket::Item::startMMAnim(std::string_view anim, float intensity, uint64_t timeUntil) {
   if(owner!=nullptr)
     owner->startMMAnim(id,anim,intensity,timeUntil);
@@ -505,12 +510,18 @@ void ObjectsBucket::startMMAnim(size_t i, std::string_view anim, float intensity
   ani.intensity = intensity;
   }
 
+void ObjectsBucket::setFatness(size_t i, float f) {
+  auto&  v  = val[i];
+  v.fatness = f;
+  }
+
 bool ObjectsBucket::isSceneInfoRequired() const {
   return mat.isGhost || mat.alpha==Material::Water || mat.alpha==Material::Ghost;
   }
 
 void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v) {
-  push.pos = v.pos;
+  push.pos     = v.pos;
+  push.fatness = v.fatness;
   if(morphAnim!=nullptr) {
     for(size_t i=0; i<Resources::MAX_MORPH_LAYERS; ++i) {
       auto&    ani  = v.morphAnim[i];

@@ -995,8 +995,8 @@ void Npc::setPhysic(DynamicWorld::NpcItem &&item) {
   physic.setPosition(Vec3{x,y,z});
   }
 
-void Npc::setFatness(float) {
-  // TODO
+void Npc::setFatness(float f) {
+  visual.setFatness(f);
   }
 
 void Npc::setScale(float x, float y, float z) {

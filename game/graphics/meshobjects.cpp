@@ -67,6 +67,11 @@ void MeshObjects::Mesh::setAsGhost(bool g) {
     sub[i].setAsGhost(g);
   }
 
+void MeshObjects::Mesh::setFatness(float f) {
+  for(size_t i=0;i<subCount;++i)
+    sub[i].setFatness(f);
+  }
+
 void MeshObjects::Mesh::startMMAnim(std::string_view anim, float intensity, uint64_t timeUntil) {
   for(size_t i=0;i<subCount;++i)
     sub[i].startMMAnim(anim,intensity,timeUntil);

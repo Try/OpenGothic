@@ -63,6 +63,7 @@ class MdlVisual final {
     void                           stopEffect  (const VisualFx& vfx);
     void                           stopEffect  (int32_t slot);
     void                           setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s, Daedalus::GEngineClasses::C_Npc::ENPCFlag flags);
+    void                           setFatness  (float f);
     void                           emitBlockEffect(Npc& dst, Npc& src);
 
     bool                           setToFightMode(const WeaponState ws);
@@ -161,6 +162,7 @@ class MdlVisual final {
     Daedalus::ZString              hnpcVisualName;
     bool                           hnpcFlagGhost = false;
     PfxSlot                        hnpcVisual;
+    float                          fatness = 0;
 
     const Skeleton*                skeleton=nullptr;
 
