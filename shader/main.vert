@@ -88,7 +88,7 @@ vec4 vertexPosMesh() {
 #endif
   }
 
-vec4 normalWorld() {
+vec4 vertexNormalMesh() {
 #if defined(SKINING)
   vec4 norm = vec4(inNormal,0.0);
   vec4 n0   = anim.skel[int(boneId.x)]*norm;
@@ -102,8 +102,8 @@ vec4 normalWorld() {
 #endif
   }
 
-vec3 normal() {
-  vec4 norm = normalWorld();
+vec3 vertexNormal() {
+  vec4 norm = vertexNormalMesh();
 #if defined(OBJ) || defined(SKINING) || defined(MORPH)
   return (push.obj*norm).xyz;
 #else
@@ -129,23 +129,36 @@ void main() {
   shOut.color = unpackUnorm4x8(inColor);
 #endif
 
-  shOut.uv = inUV;
-
 #if defined(MAT_ANIM)
-  shOut.uv += material.texAnim;
+  shOut.uv = inUV + material.texAnim;
+#else
+  shOut.uv = inUV;
 #endif
 
-#if !defined(SHADOW_MAP)
-  shOut.normal = normal();
+#if defined(SHADOW_MAP)
+  vec3 normal = vec3(0);
+#else
+  vec3 normal = vertexNormal();
 #endif
 
-  vec4 pos        = vertexPos();
-  vec4 trPos      = scene.mv*pos;
+  vec4 pos = vertexPos();
+#if defined(LVL_OBJECT)
+  vec3 fatOffset = vec3(0);
+  if(push.fatness!=0) {
+    if(normal==vec3(0))
+      fatOffset = vertexNormal(); else
+      fatOffset = normal;
+    }
+  pos.xyz += fatOffset;
+#endif
+
+  vec4 trPos   = scene.mv*pos;
 
 #if !defined(SHADOW_MAP)
   shOut.shadowPos[0] = scene.shadow[0]*pos;
   shOut.shadowPos[1] = scene.shadow[1]*pos;
   shOut.pos          = pos;
+  shOut.normal       = normal;
 #endif
 
   shOut.scr       = trPos;

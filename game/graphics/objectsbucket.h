@@ -149,10 +149,13 @@ class ObjectsBucket final {
       float    alpha;
       };
 
-    struct UboPush final {
+    struct UboPushBase {
       Tempest::Matrix4x4 pos;
       float              fatness = 0;
       float              padd[3] = {};
+      };
+
+    struct UboPush : UboPushBase {
       MorphDesc          morph[Resources::MAX_MORPH_LAYERS];
       };
 

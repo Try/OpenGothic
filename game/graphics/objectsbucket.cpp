@@ -360,7 +360,7 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
   bool    sharedSet  = false;
   bool    sharedPush = false;
 
-  size_t pushSz = (morphAnim!=nullptr) ? sizeof(pushBlock) : sizeof(Tempest::Matrix4x4);
+  size_t pushSz = (morphAnim!=nullptr) ? sizeof(UboPush) : sizeof(UboPushBase);
   if(shaderType==Pfx)
     pushSz = 0;
 
@@ -521,7 +521,7 @@ bool ObjectsBucket::isSceneInfoRequired() const {
 
 void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v) {
   push.pos     = v.pos;
-  push.fatness = v.fatness;
+  push.fatness = v.fatness*0.5f;
   if(morphAnim!=nullptr) {
     for(size_t i=0; i<Resources::MAX_MORPH_LAYERS; ++i) {
       auto&    ani  = v.morphAnim[i];
