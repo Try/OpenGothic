@@ -437,9 +437,16 @@ void DialogMenu::paintChoise(PaintEvent &e) {
   auto& fnt = Resources::dialogFont();
   const int  padd     = 20;
   const int  dw       = std::min(w(),600);
-  const int  dh       = int(choise.size())*fnt.pixelSize()+2*padd;
-  const int  y        = h()-dh-20;
   const bool isActive = isChoiseMenuActive();
+
+  int  dh = padd*2;
+  for(size_t i=0;i<choise.size();++i){
+    const GthFont* font = &fnt;
+    Size choiseTextSize = font->textSize(dw-padd, choise[i].title.c_str());
+    dh += choiseTextSize.h;
+    }
+
+  const int  y        = h()-dh-20;
 
   if(tex!=nullptr && (choiseAnimTime>0 || isActive)) {
     float k    = dlgAnimation ? (float(choiseAnimTime)/float(ANIM_TIME)) : 1.f;
@@ -458,13 +465,16 @@ void DialogMenu::paintChoise(PaintEvent &e) {
   if(!isChoiseMenuActive())
     return;
 
+  unsigned int textHeightOffset = padd;
   Painter p(e);
   for(size_t i=0;i<choise.size();++i){
     const GthFont* font = &fnt;
     int x = (w()-dw)/2;
     if(i==dlgSel)
       font = &Resources::font(Resources::FontType::Hi);
-    font->drawText(p,x+padd,y+padd+int(i+1)*font->pixelSize(),choise[i].title);
+    Size choiseTextSize = font->textSize(dw-padd, choise[i].title.c_str());
+    font->drawText(p,x+padd,y+padd+textHeightOffset,dw-padd,0,choise[i].title,AlignLeft);
+    textHeightOffset += choiseTextSize.h;
     }
   }
 
