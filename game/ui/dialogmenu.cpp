@@ -444,7 +444,7 @@ void DialogMenu::paintChoise(PaintEvent &e) {
     const GthFont* font = &fnt;
     Size choiseTextSize = font->textSize(dw-padd, choise[i].title.c_str());
     dh += choiseTextSize.h;
-  }
+    }
 
   const int  y        = h()-dh-20;
 
