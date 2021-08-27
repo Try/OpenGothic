@@ -7,7 +7,38 @@
 #include "camera.h"
 #include "gothic.h"
 
+static bool startsWith(std::string_view str, std::string_view needle) {
+  if(needle.size()>str.size())
+    return false;
+  for(size_t i=0; i<needle.size(); ++i) {
+    int n = std::tolower(needle[i]);
+    int s = std::tolower(str   [i]);
+    if(n!=s)
+      return false;
+    }
+  return true;
+  }
+
+static bool compareNoCase(std::string_view sa, std::string_view sb) {
+  if(sa.size()!=sb.size())
+    return false;
+  for(size_t i=0; i<sa.size(); ++i) {
+    int a = std::tolower(sa[i]);
+    int b = std::tolower(sb[i]);
+    if(a!=b)
+      return false;
+    }
+  return true;
+  }
+
 Marvin::Marvin() {
+  /* Legend:
+   %c - instance variable from script
+   %v - variable from script
+   %s - any string
+   %d - integer
+   %f - floating point number
+   */
   cmd = std::vector<Cmd>{
     // gdb-like commands
     {"p %v",                       C_PrintVar},
@@ -107,11 +138,15 @@ Marvin::CmdVal Marvin::isMatch(std::string_view inp, const Cmd& cmd) const {
     bool fullword = true;
     if(wref=="%c")
       wref = completeInstanceName(winp,fullword);
-    if(wref=="%v")
+    else if(wref=="%v")
       wref = completeInstanceName(winp,fullword);
+    else if(wref=="%s")
+      wref = winp;
+    else if(wref=="%f" || wref=="%d")
+      wref = winp;
 
-    if(wref!=winp) {
-      if(wref.find(winp)!=0)
+    if(!compareNoCase(wref,winp)) {
+      if(!startsWith(wref,winp))
         return C_Invalid;
       ret.cmd      = cmd;
       ret.cmd.type = C_Incomplete;
@@ -287,8 +322,9 @@ std::string_view Marvin::completeInstanceName(std::string_view inp, bool& fullwo
   for(size_t i=0; i<sc.getSymbolCount(); ++i) {
     auto&  sym  = sc.getSymbol(i);
     auto   name = std::string_view(sym.name);
-    if(name.find(inp)!=0)
+    if(!startsWith(name,inp))
       continue;
+
     if(match.empty()) {
       match   = name;
       fullword = true;
@@ -297,7 +333,9 @@ std::string_view Marvin::completeInstanceName(std::string_view inp, bool& fullwo
     if(name.size()>match.size())
       name = name.substr(0,match.size());
     for(size_t i=0; i<match.size(); ++i) {
-      if(match[i]!=name[i]) {
+      int n = std::tolower(name [i]);
+      int m = std::tolower(match[i]);
+      if(m!=n) {
         name     = name.substr(0,i);
         fullword = false;
         break;
