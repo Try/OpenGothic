@@ -54,8 +54,9 @@ class DynamicWorld final {
       };
 
     struct CollisionTest {
-      Tempest::Vec3 normal = {};
-      bool          npcCol = false;
+      Tempest::Vec3 normal  = {};
+      bool          npcCol  = false;
+      bool          preFall = false;
       };
 
     struct NpcItem {

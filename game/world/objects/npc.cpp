@@ -1396,6 +1396,11 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
   if(go2.flag==GT_No)
     return false;
 
+  if(isInAir()) {
+    mvAlgo.tick(dt);
+    return true;
+    }
+
   auto dpos = go2.target()-position();
 
   if(go2.flag==GT_Flee) {

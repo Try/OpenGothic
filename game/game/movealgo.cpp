@@ -163,14 +163,10 @@ void MoveAlgo::tickGravity(uint64_t dt) {
     // continue falling
     if(!tryMove(dp.x,dp.y,dp.z)) {
       fallSpeed.y=0.f;
-      if((std::fabs(dp.x)<0.001f && std::fabs(dp.z)<0.001f) || !tryMove(dp.x,0.f,dp.z)) {
-        // attach to ground
-        setInAir(false);
-        if(!npc.isDead())
-          npc.setAnim(AnimationSolver::Idle);
-        return;
-        }
+      // attach to ground
       setInAir(false);
+      if(!npc.isDead())
+        npc.setAnim(AnimationSolver::Idle);
       }
     if(fallSpeed.y<-1.5f && !npc.isDead())
       npc.setAnim(AnimationSolver::FallDeep); else
@@ -186,10 +182,10 @@ void MoveAlgo::tickGravity(uint64_t dt) {
       if(!canFlyOverWater()) {
         setInWater(true);
         setAsSwim(true);
-        npc.setAnim(AnimationSolver::Idle);
         if(splash)
           emitWaterSplash(water);
         }
+      npc.setAnim(AnimationSolver::Idle);
       } else {
       // attach to ground
       tryMove(0.f,ground-pY,0.f);
@@ -449,6 +445,11 @@ void MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
         } else {
         tryMove(dp.x,0,dp.z);
         }
+      } else {
+      DynamicWorld::CollisionTest info;
+      info.normal  = dp;
+      info.preFall = true;
+      onMoveFailed(dp,info,dt);
       }
     }
   }
@@ -845,7 +846,7 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
   const float val     = Tempest::Vec3::dotProduct(ortho,info.normal);
   const bool  forward = isForward(dp);
 
-  if(std::abs(val)>threshold) {
+  if(std::abs(val)>threshold && !info.preFall) {
     // emulate bouncing behaviour of original game
     Tempest::Vec3 corr;
     for(int i=5; i<=35; i+=5) {
@@ -883,7 +884,7 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
     case Npc::GT_EnemyG:
     case Npc::GT_Way:
     case Npc::GT_Point: {
-      if(info.npcCol) {
+      if(info.npcCol || info.preFall) {
         npc.setDirection(npc.rotation()+stp);
         } else {
         auto jc = npc.tryJump();
