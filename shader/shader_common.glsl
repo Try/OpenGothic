@@ -12,7 +12,11 @@
 #define L_MorphId  8
 #define L_Morph    9
 
-#if defined(VERTEX) && (defined(OBJ) || defined(SKINING) || defined(MORPH))
+#if (defined(OBJ) || defined(SKINING) || defined(MORPH))
+#define LVL_OBJECT 1
+#endif
+
+#if defined(VERTEX) && defined(LVL_OBJECT)
 #define MAT_ANIM 1
 #endif
 
@@ -48,7 +52,7 @@ layout(binding = L_Shadow0) uniform sampler2D textureSm0;
 layout(binding = L_Shadow1) uniform sampler2D textureSm1;
 #endif
 
-layout(binding = L_Scene,    std140) uniform UboScene {
+layout(binding = L_Scene, std140) uniform UboScene {
   vec3  ldir;
   float shadowSize;
   mat4  mv;
