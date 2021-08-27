@@ -2,6 +2,7 @@
 
 #include <initializer_list>
 #include <cstdint>
+#include <cctype>
 
 #include "world/objects/npc.h"
 #include "camera.h"
