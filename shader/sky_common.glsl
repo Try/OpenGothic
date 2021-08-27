@@ -1,10 +1,10 @@
-const float PI = 3.141592;
+const float PI = 3.14159265358979323846;
 #if defined(FOG)
 const int   iSteps = 8;
 const int   jSteps = 8;
 #else
-const int   iSteps = 16;
-const int   jSteps = 8;
+const int   iSteps = 8;
+const int   jSteps = 16;
 #endif
 
 //Environment
@@ -12,13 +12,13 @@ const float RPlanet  = 6360e3;       // Radius of the planet in meters
 const float RAtmos   = 6380e3;       // Radius of the atmosphere in meters
 const float RClouds  = RPlanet+3000; // Clouds height in meters
 // Rayleigh scattering coefficient
-const vec3  RSC      = vec3(0.00000519673,
-                            0.0000121427,
-                            0.0000296453);
+const vec3  RSC = vec3(0.0000038,
+                       0.0000135,
+                       0.0000331);
 const float Hr       = 8000.0; // Reyleight scattering top
 const float Hm       = 1000.0; // Mie scattering top
 const float kMie     = 21e-6;  // Mie scattering coefficient
-const float g        = 0.45;   // light concentration .76 //.45 //.6  .45 is normaL
+const float g        = 0.46;   // light concentration .76 //.45 //.6  .45 is normaL
 const float g2       = g * g;
 const float sunPower = 10.0;   // sun light power, 10.0 is normal
 
@@ -83,8 +83,8 @@ float rayIntersect(in vec3 p, in vec3 d, in float R) {
 vec3 scatter(vec3 pos, vec3 view, in vec3 sunDir, float rayLength, out float outScat) {
   float mu     = dot(view, sunDir);
   float opmu2  = 1.0 + mu*mu;
-  float phaseR = 0.0596831 * opmu2;
-  float phaseM = 0.1193662 * (1.0 - g2) * opmu2 / ((2.0 + g2) * pow(1.0 + g2 - 2.0*g*mu, 1.5));
+  float phaseR = 3.0/(16.0*PI) * opmu2;
+  float phaseM = 3.0/(8.0 *PI) * ((1.0 - g2) * opmu2) / ((2.0 + g2) * pow(1.0 + g2 - 2.0*g*mu, 1.5));
 
   float depthR = 0.0, depthM = 0.0;
   vec3  R = vec3(0.0), M = vec3(0.0);
@@ -131,8 +131,7 @@ vec3 atmosphere(in vec3 pos, vec3 view, vec3 sunDir) {
     sunDir.y = -sunDir.y;
     att = 0.25;
     }
-  if(view.y <= -0.0)
-    view.y = -view.y;
+  view.y = abs(view.y);
   float scatt     = 0;
   float rayLength = rayIntersect(pos, view, RAtmos);
   return scatter(pos, view, sunDir, rayLength, scatt) * att;
@@ -148,6 +147,6 @@ vec3 fogMie(in vec3 pos, vec3 view, vec3 sunDir, float rayLength) {
   if(view.y <= -0.0)
     view.y = -view.y;
   float scatt = 0;
-  vec3  color = scatter(pos, view, sunDir, rayLength,scatt) * att;
+  vec3  color = scatter(pos, view, sunDir, rayLength, scatt) * att;
   return vec3(color);
   }
