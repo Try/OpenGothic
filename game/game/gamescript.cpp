@@ -2564,7 +2564,7 @@ void GameScript::npc_playani(Daedalus::DaedalusVM &vm) {
   auto name = vm.popString();
   auto npc  = popInstance(vm);
   if(npc!=nullptr)
-    npc->playAnimByName(name.c_str(),true,BS_NONE);
+    npc->playAnimByName(name.c_str(),BS_NONE);
   }
 
 void GameScript::npc_isdetectedmobownedbynpc(Daedalus::DaedalusVM &vm) {

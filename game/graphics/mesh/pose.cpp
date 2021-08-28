@@ -156,14 +156,13 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
   // NOTE: zero stands for no-comb, other numbers are comb-index+1
   comb = std::min<uint8_t>(comb, uint8_t(sq->comb.size()));
 
-  const bool force   = (hint&Force);
-  const bool noInter = (hint&NoInterupt);
+  const bool force = (hint&Force);
 
   for(auto& i:lay)
     if(i.seq->layer==sq->layer) {
       const bool hasNext   = (!i.seq->next.empty() && i.seq->animCls!=Animation::Loop);
       const bool finished  = i.seq->isFinished(tickCount-i.sAnim,combo.len()) && !hasNext;
-      const bool interrupt = force || (!noInter && i.seq->canInterrupt());
+      const bool interrupt = force || i.seq->canInterrupt();
       if(i.seq==sq && i.comb==comb && i.bs==bs && !finished)
         return true;
       if(!interrupt && !finished)

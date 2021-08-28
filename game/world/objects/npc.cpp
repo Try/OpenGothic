@@ -1006,19 +1006,19 @@ void Npc::setScale(float x, float y, float z) {
   durtyTranform |= TR_Scale;
   }
 
-const Animation::Sequence* Npc::playAnimByName(const Daedalus::ZString& name,bool forceAnim,BodyState bs) {
-  return visual.startAnimAndGet(*this,name.c_str(),calcAniComb(),forceAnim,bs);
+const Animation::Sequence* Npc::playAnimByName(std::string_view name, BodyState bs) {
+  return visual.startAnimAndGet(*this,name,calcAniComb(),bs);
   }
 
 bool Npc::setAnim(Npc::Anim a) {
-  return setAnimAngGet(a,false)!=nullptr;
+  return setAnimAngGet(a)!=nullptr;
   }
 
-const Animation::Sequence* Npc::setAnimAngGet(Npc::Anim a,bool noInterupt) {
-  return setAnimAngGet(a,noInterupt,calcAniComb());
+const Animation::Sequence* Npc::setAnimAngGet(Anim a) {
+  return setAnimAngGet(a,calcAniComb());
   }
 
-const Animation::Sequence* Npc::setAnimAngGet(Npc::Anim a, bool noInterupt, uint8_t comb) {
+const Animation::Sequence* Npc::setAnimAngGet(Anim a, uint8_t comb) {
   auto st  = weaponState();
   auto wlk = walkMode();
   if(mvAlgo.isDive())
@@ -1027,7 +1027,7 @@ const Animation::Sequence* Npc::setAnimAngGet(Npc::Anim a, bool noInterupt, uint
     wlk = WalkBit::WM_Swim;
   else if(mvAlgo.isInWater())
     wlk = WalkBit::WM_Water;
-  return visual.startAnimAndGet(*this,a,comb,st,wlk,noInterupt);
+  return visual.startAnimAndGet(*this,a,comb,st,wlk);
   }
 
 void Npc::setAnimRotate(int rot) {
@@ -1304,7 +1304,7 @@ bool Npc::implPointAt(const Tempest::Vec3& to) {
   auto    dpos = to-position();
   uint8_t comb = Pose::calcAniComb(dpos,angle);
 
-  return (setAnimAngGet(Npc::Anim::PointAt,true,comb)!=nullptr);
+  return (setAnimAngGet(Npc::Anim::PointAt,comb)!=nullptr);
   }
 
 bool Npc::implLookAt(uint64_t dt) {
@@ -1789,7 +1789,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
       const bool noInter = (hnpc.bodyStateInterruptableOverride!=0);
       if(!noInter)
         visual.interrupt();
-      setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB,noInter);
+      setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB);
       }
     }
 
@@ -2012,7 +2012,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       break;
     case AI_PlayAnim:{
-      if(auto sq = playAnimByName(act.s0,false,BS_NONE)) {
+      if(auto sq = playAnimByName(act.s0.c_str(),BS_NONE)) {
         implAniWait(uint64_t(sq->totalTime()));
         } else {
         if(visual.isAnimExist(act.s0.c_str()))
@@ -2022,7 +2022,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       }
     case AI_PlayAnimBs:{
       BodyState bs = BodyState(act.i0);
-      if(auto sq = playAnimByName(act.s0,false,bs)) {
+      if(auto sq = playAnimByName(act.s0.c_str(),bs)) {
         implAniWait(uint64_t(sq->totalTime()));
         } else {
         if(visual.isAnimExist(act.s0.c_str())) {
@@ -2168,7 +2168,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         queue.pushFront(std::move(act));
       break;
     case AI_Dodge:
-      if(auto sq = setAnimAngGet(Anim::MoveBack,false)) {
+      if(auto sq = setAnimAngGet(Anim::MoveBack)) {
         visual.setRotation(*this,0);
         implAniWait(uint64_t(sq->totalTime()));
         } else {
@@ -2688,7 +2688,7 @@ Item* Npc::takeItem(Item& item) {
     return nullptr;
     }
 
-  const Animation::Sequence* sq = setAnimAngGet(Npc::Anim::ItmGet,false,Pose::calcAniCombVert(dpos));
+  const Animation::Sequence* sq = setAnimAngGet(Npc::Anim::ItmGet,Pose::calcAniCombVert(dpos));
   if(sq==nullptr)
     return nullptr;
 
@@ -3081,7 +3081,7 @@ bool Npc::blockSword() {
   if(active==nullptr)
     return false;
   visual.setRotation(*this,0);
-  return setAnim(Anim::AtackBlock);
+  return setAnimAngGet(Anim::AtackBlock,calcAniComb())!=nullptr;
   }
 
 bool Npc::beginCastSpell() {

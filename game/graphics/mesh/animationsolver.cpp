@@ -120,7 +120,8 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
       return solveFrm("T_FISTPARADE_0");
     }
   else if(st==WeaponState::W1H || st==WeaponState::W2H) {
-    if(a==Anim::Atack && (pose.isInAnim("S_1HRUNL") || pose.isInAnim("S_2HRUNL")))
+    if(a==Anim::Atack && (pose.isInAnim("S_1HWALKL") || pose.isInAnim("S_1HRUNL") ||
+                          pose.isInAnim("S_2HWALKL") || pose.isInAnim("S_2HRUNL")))
       return solveFrm("T_%sATTACKMOVE",st);
     if(a==Anim::AtackL)
       return solveFrm("T_%sATTACKL",st);

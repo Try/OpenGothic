@@ -23,10 +23,9 @@ class Pose final {
       NoTranslation = 1, // usefull for mobsi
       };
 
-    enum StartHint {
+    enum StartHint : uint8_t {
       NoHint     = 0x0,
       Force      = 0x1,
-      NoInterupt = 0x2,
       };
 
     static uint8_t     calcAniComb(const Tempest::Vec3& dpos, float rotation);

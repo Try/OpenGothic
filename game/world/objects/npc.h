@@ -158,8 +158,8 @@ class Npc final {
     void       setScale      (float x,float y,float z);
 
     bool       setAnim(Anim a);
-    auto       setAnimAngGet(Anim a,bool noInterupt) -> const Animation::Sequence*;
-    auto       setAnimAngGet(Anim a, bool noInterupt, uint8_t comb) -> const Animation::Sequence*;
+    auto       setAnimAngGet(Anim a) -> const Animation::Sequence*;
+    auto       setAnimAngGet(Anim a, uint8_t comb) -> const Animation::Sequence*;
     void       setAnimRotate(int rot);
     bool       setAnimItem(std::string_view scheme, int state);
     void       stopAnim(std::string_view ani);
@@ -329,7 +329,7 @@ class Npc final {
 
     bool      turnTo  (float dx, float dz, bool anim, uint64_t dt);
     bool      rotateTo(float dx, float dz, float speed, bool anim, uint64_t dt);
-    auto      playAnimByName(const Daedalus::ZString& name, bool forceAnim, BodyState bs) -> const Animation::Sequence*;
+    auto      playAnimByName(std::string_view name, BodyState bs) -> const Animation::Sequence*;
 
     bool      checkGoToNpcdistance(const Npc& other);
 

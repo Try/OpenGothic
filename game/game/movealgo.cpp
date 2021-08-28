@@ -663,7 +663,7 @@ bool MoveAlgo::isClose(const Tempest::Vec3& p, float dist) {
   }
 
 bool MoveAlgo::startClimb(JumpStatus jump) {
-  auto sq = npc.setAnimAngGet(jump.anim,false);
+  auto sq = npc.setAnimAngGet(jump.anim);
   if(sq==nullptr)
     return false;
 
@@ -864,6 +864,7 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
   if(!forward)
     return;
 
+  npc.setAnimRotate(0);
   if(val<-threshold) {
     npc.setDirection(npc.rotation()-stp);
     }
@@ -888,9 +889,9 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
         npc.setDirection(npc.rotation()+stp);
         } else {
         auto jc = npc.tryJump();
-        if(jc.anim!=Npc::Anim::Jump)
-          npc.startClimb(jc); else
-          npc.setDirection(npc.rotation()+stp);
+        if(jc.anim==Npc::Anim::Jump)
+          npc.setDirection(npc.rotation()+stp); else
+          npc.startClimb(jc);
         }
       break;
       }

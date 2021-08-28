@@ -213,7 +213,7 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
   Npc& npc = *p.user;
   if(!p.started) {
     // STAND -> S0
-    auto sq = npc.setAnimAngGet(Npc::Anim::InteractFromStand,false);
+    auto sq = npc.setAnimAngGet(Npc::Anim::InteractFromStand);
     uint64_t t = sq==nullptr ? 0 : uint64_t(sq->totalTime());
     waitAnim   = world.tickCount()+t;
     p.started  = sq!=nullptr;
@@ -284,7 +284,7 @@ void Interactive::implQuitInteract(Interactive::Pos &p) {
     const Animation::Sequence* sq = nullptr;
     if(state==0) {
       // S0 -> STAND
-      sq = npc.setAnimAngGet(Npc::Anim::InteractToStand,false);
+      sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
       }
     if(sq==nullptr && !npc.setAnim(Npc::Anim::Idle))
       return;
@@ -803,7 +803,7 @@ bool Interactive::setAnim(Npc* npc,Anim dir) {
   const Animation::Sequence* sqNpc=nullptr;
   const Animation::Sequence* sqMob=nullptr;
   if(npc!=nullptr) {
-    sqNpc = npc->setAnimAngGet(dest,false);
+    sqNpc = npc->setAnimAngGet(dest);
     if(sqNpc==nullptr && dir!=Anim::Out)
       return false;
     }
