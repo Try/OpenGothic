@@ -46,6 +46,7 @@ class Effect final {
 
     uint64_t effectPrefferedTime() const;
     bool     isAlive() const;
+    void     setPhysicsDisable();
 
     void     bindAttaches  (const Pose& pose, const Skeleton& to);
     static void onCollide  (World& owner, const VisualFx* root, const Tempest::Vec3& pos, Npc* npc, Npc* other, int32_t splId);

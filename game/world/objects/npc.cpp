@@ -2878,6 +2878,7 @@ bool Npc::closeWeapon(bool noAnim) {
     return true;
   if(!noAnim && !visual.startAnim(*this,WeaponState::NoWeapon))
     return false;
+  visual.setRotation(*this,0);
   if(isPlayer())
     setTarget(nullptr);
   invent.switchActiveWeapon(*this,Item::NSLOT);

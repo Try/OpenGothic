@@ -50,6 +50,10 @@ void Bullet::setDirection(const Tempest::Vec3& dir) {
   updateMatrix();
   }
 
+void Bullet::setTargetRange(float t) {
+  obj->setTargetRange(t);
+  }
+
 void Bullet::setView(MeshObjects::Mesh &&m) {
   view = std::move(m);
   updateMatrix();
@@ -59,6 +63,7 @@ void Bullet::setView(Effect &&p) {
   vfx = std::move(p);
   vfx.setActive(true);
   vfx.setLooped(true);
+  vfx.setPhysicsDisable();
   updateMatrix();
   }
 

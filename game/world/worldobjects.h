@@ -99,7 +99,7 @@ class WorldObjects final {
     size_t         hasItems(std::string_view tag, size_t itemCls);
     void           onItemRemoved(const Item& itm);
 
-    Bullet&        shootBullet(const Item &itmId, const Tempest::Vec3& pos, const Tempest::Vec3& dir, float speed);
+    Bullet&        shootBullet(const Item &itmId, const Tempest::Vec3& pos, const Tempest::Vec3& dir, float tgRange, float speed);
 
     void           addInteractive(Interactive*         obj);
     void           addStatic     (StaticObj*           obj);

@@ -590,17 +590,18 @@ size_t World::hasItems(const char* tag, size_t itemCls) {
   }
 
 Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
-  Tempest::Vec3 dir = {1.f,0.f,0.f};
-  auto          pos = npc.position();
+  Tempest::Vec3   dir     = {1.f,0.f,0.f};
+  auto            pos     = npc.position();
+  const VisualFx* vfx     = script().spellVfx(itm.spellId());
+  float           tgRange = vfx==nullptr ? 0 : vfx->emTrjTargetRange;
 
   if(target!=nullptr) {
     auto  tgPos = target->position();
-
-    const VisualFx* vfx = script().spellVfx(itm.spellId());
-    pos   += npc.mapBone(vfx->emTrjOriginNode);
-    tgPos += target->mapBone(vfx->emTrjTargetNode);
-    // vfx->emTrjTargetRange; // TODO
-    dir    = tgPos-pos;
+    if(vfx!=nullptr) {
+      pos   += npc.mapBone(vfx->emTrjOriginNode);
+      tgPos += target->mapBone(vfx->emTrjTargetNode);
+      }
+    dir     = tgPos-pos;
     } else {
     float a = npc.rotationRad()-float(M_PI/2);
     dir.x = std::cos(a);
@@ -608,7 +609,7 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
     pos   += npc.mapWeaponBone();
     }
 
-  auto& b = wobj.shootBullet(itm, pos, dir, DynamicWorld::spellSpeed);
+  auto& b = wobj.shootBullet(itm, pos, dir, tgRange, DynamicWorld::spellSpeed);
   b.setTarget(target);
   return b;
   }
@@ -648,7 +649,7 @@ Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, c
     dir.z = std::sin(a);
     }
 
-  auto& b = wobj.shootBullet(itm, pos, dir, DynamicWorld::bulletSpeed);
+  auto& b = wobj.shootBullet(itm, pos, dir, 0, DynamicWorld::bulletSpeed);
   b.setTarget(target);
   return b;
   }

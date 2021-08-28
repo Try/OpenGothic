@@ -148,6 +148,7 @@ class DynamicWorld final {
         BulletBody(BulletBody&&);
 
         void  setSpellId(int spl);
+        void  setTargetRange(float tgRange);
 
         void  move(const Tempest::Vec3& to);
         void  setPosition  (const Tempest::Vec3& pos);
@@ -155,15 +156,16 @@ class DynamicWorld final {
         float pathLength() const;
         void  addPathLen(float v);
 
-        float               speed()     const { return dirL; }
-        Tempest::Vec3       position()  const { return pos; }
-        Tempest::Vec3       direction() const { return dir; }
-        Tempest::Matrix4x4  matrix()    const;
-        bool                isSpell()   const { return spl!=std::numeric_limits<int>::max(); }
-        int                 spellId()   const { return spl; }
+        float               speed()       const { return dirL; }
+        float               targetRange() const { return tgRange; }
+        Tempest::Vec3       position()    const { return pos; }
+        Tempest::Vec3       direction()   const { return dir; }
+        Tempest::Matrix4x4  matrix()      const;
+        bool                isSpell()     const { return spl!=std::numeric_limits<int>::max(); }
+        int                 spellId()     const { return spl; }
 
         void                addHit() { hitCnt++; }
-        int                 hitCount() const { return hitCnt; }
+        int                 hitCount()    const { return hitCnt; }
 
       private:
         DynamicWorld*       owner = nullptr;
@@ -176,7 +178,8 @@ class DynamicWorld final {
         float               dirL=0.f;
         float               totalL=0.f;
         int                 spl=std::numeric_limits<int>::max();
-        int                 hitCnt = 0;
+        int                 hitCnt  = 0;
+        float               tgRange = 0;
 
       friend class DynamicWorld;
       };

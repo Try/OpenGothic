@@ -186,6 +186,7 @@ void MdlVisual::setMagicWeapon(Effect&& spell, World& owner) {
 
   pfx.view = std::move(spell);
   pfx.view.setLooped(true);
+  pfx.view.setPhysicsDisable();
   if(skeleton!=nullptr)
     pfx.view.bindAttaches(*skInst,*skeleton);
   }

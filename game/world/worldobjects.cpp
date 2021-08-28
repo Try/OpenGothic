@@ -541,12 +541,13 @@ void WorldObjects::onItemRemoved(const Item& itm) {
   owner.script().onWldItemRemoved(itm);
   }
 
-Bullet& WorldObjects::shootBullet(const Item& itmId, const Vec3& pos, const Vec3& dir, float speed) {
+Bullet& WorldObjects::shootBullet(const Item& itmId, const Vec3& pos, const Vec3& dir, float tgRange, float speed) {
   bullets.emplace_back(owner,itmId,pos);
   auto& b = bullets.back();
 
   const float l = dir.manhattanLength();
   b.setDirection(dir*speed/l);
+  b.setTargetRange(tgRange);
   return b;
   }
 

@@ -30,6 +30,7 @@ class Bullet final : public DynamicWorld::BulletCallback {
     void     setPosition  (float x,float y,float z);
 
     void     setDirection (const Tempest::Vec3& dir);
+    void     setTargetRange(float tgRange);
 
     void     setView      (MeshObjects::Mesh&&   m);
     void     setView      (Effect&& p);
@@ -61,18 +62,18 @@ class Bullet final : public DynamicWorld::BulletCallback {
     void     onCollide(Npc& other) override;
 
   private:
-    DynamicWorld::BulletBody*         obj=nullptr;
-    World*                            wrld=nullptr;
-    Npc*                              ow=nullptr;
+    DynamicWorld::BulletBody* obj=nullptr;
+    World*                    wrld=nullptr;
+    Npc*                      ow=nullptr;
 
-    DamageCalculator::Damage          dmg={};
-    float                             hitCh=1.f;
+    DamageCalculator::Damage  dmg     = {};
+    float                     hitCh   = 1.f;
 
-    MeshObjects::Mesh                 view;
-    Effect                            vfx;
+    MeshObjects::Mesh         view;
+    Effect                    vfx;
 
-    uint8_t                           material=0;
-    Flg                               flg=NoFlags;
+    uint8_t                   material=0;
+    Flg                       flg=NoFlags;
 
     void updateMatrix();
   };

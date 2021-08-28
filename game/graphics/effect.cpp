@@ -270,6 +270,10 @@ bool Effect::isAlive() const {
   return (next!=nullptr && next->isAlive());
   }
 
+void Effect::setPhysicsDisable() {
+  pfx.setPhysicsDisable();
+  }
+
 void Effect::bindAttaches(const Pose& p, const Skeleton& to) {
   if(next!=nullptr)
     next->bindAttaches(p,to);

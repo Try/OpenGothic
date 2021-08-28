@@ -51,10 +51,11 @@ struct DynamicWorld::NpcBody : btRigidBody {
     }
 
   void setPosition(const Tempest::Vec3& p) {
+    auto m = CollisionWorld::toMeters(p+Tempest::Vec3(0,(h-r-ghostPadding)*0.5f+r+ghostPadding,0));
     pos = p;
     btTransform trans;
     trans.setIdentity();
-    trans.setOrigin(btVector3(pos.x,pos.y+(h-r-ghostPadding)*0.5f+r+ghostPadding,pos.z)*0.01f);
+    trans.setOrigin(m);
     setWorldTransform(trans);
     }
   };
@@ -161,52 +162,38 @@ struct DynamicWorld::NpcBodyList final {
       }
     }
 
-  bool rayTest(NpcBody& npc, const btVector3& s, const btVector3& e) {
-    struct CallBack:btCollisionWorld::ClosestRayResultCallback {
-      using ClosestRayResultCallback::ClosestRayResultCallback;
-      };
-    CallBack callback{s,e};
-
-    btTransform rayFromTrans,rayToTrans;
-    rayFromTrans.setIdentity();
-    rayFromTrans.setOrigin(s);
-    rayToTrans.setIdentity();
-    rayToTrans.setOrigin(e);
-
-    return rayTestSingle(rayFromTrans, rayToTrans, npc, callback);
-    }
-
-  NpcBody* rayTest(const btVector3& s, const btVector3& e) {
-    struct CallBack:btCollisionWorld::ClosestRayResultCallback {
-      using ClosestRayResultCallback::ClosestRayResultCallback;
-      };
-    CallBack callback{s,e};
-
-    btTransform rayFromTrans,rayToTrans;
-    rayFromTrans.setIdentity();
-    rayFromTrans.setOrigin(s);
-    rayToTrans.setIdentity();
-    rayToTrans.setOrigin(e);
-
-    for(auto i:body)
-      if(rayTestSingle(rayFromTrans, rayToTrans, *i.body, callback))
-        return i.body;
-    for(auto i:frozen)
-      if(i.body!=nullptr && rayTestSingle(rayFromTrans, rayToTrans, *i.body, callback))
-        return i.body;
-    return nullptr;
-    }
-
-  bool rayTestSingle(const btTransform& s,
-                     const btTransform& e, NpcBody& npc,
-                     btCollisionWorld::RayResultCallback& callback){
+  bool rayTest(NpcBody& npc, const Tempest::Vec3& s, const Tempest::Vec3& e, float extR) {
     if(!npc.enable)
       return false;
-    wrld.world->rayTestSingle(s, e, &npc,
-                              npc.getCollisionShape(),
-                              npc.getWorldTransform(),
-                              callback);
-    return callback.hasHit();
+    auto  ln   = e       - s;
+    auto  at   = npc.pos - s;
+
+    float lenL = ln.manhattanLength();
+    float lenA = at.manhattanLength();
+
+    float dot  = Tempest::Vec3::dotProduct(ln,at);
+    float div  = (lenL*lenA);
+    float proj = dot/(div<=0 ? 1.f : div);
+    proj = std::max(0.f,std::min(proj,1.f));
+
+    auto  nr   = ln*proj + s;
+    auto  dp   = nr      - npc.pos;
+    float R    = npc.r + extR;
+    if(dp.x*dp.x+dp.z*dp.z > R*R)
+      return false;
+    if(dp.y<0 || npc.h<dp.y)
+      return false;
+    return true;
+    }
+
+  NpcBody* rayTest(const Tempest::Vec3& s, const Tempest::Vec3& e, float extR) {
+    for(auto i:body)
+      if(rayTest(*i.body, s, e, extR))
+        return i.body;
+    for(auto i:frozen)
+      if(i.body!=nullptr && rayTest(*i.body, s, e, extR))
+        return i.body;
+    return nullptr;
     }
 
   bool hasCollision(const DynamicWorld::NpcItem& obj,Tempest::Vec3& normal) {
@@ -254,7 +241,7 @@ struct DynamicWorld::NpcBodyList final {
     return ret;
     }
 
-  bool hasCollision(const NpcBody& a,const NpcBody& b,Tempest::Vec3& normal){
+  bool hasCollision(const NpcBody& a, const NpcBody& b, Tempest::Vec3& normal){
     if(&a==&b)
       return false;
     auto dx = a.pos.x-b.pos.x, dy = a.pos.y-b.pos.y, dz = a.pos.z-b.pos.z;
@@ -350,10 +337,7 @@ struct DynamicWorld::BulletsList final {
 
   void onMoveNpc(NpcBody& npc, NpcBodyList& list){
     for(auto& i:body) {
-      btVector3 s = CollisionWorld::toMeters(i.lastPos);
-      btVector3 e = CollisionWorld::toMeters(i.pos);
-
-      if(i.cb!=nullptr && list.rayTest(npc,s,e)) {
+      if(i.cb!=nullptr && list.rayTest(npc,i.lastPos,i.pos,i.tgRange)) {
         i.cb->onCollide(*npc.toNpc());
         i.cb->onStop();
         }
@@ -748,7 +732,7 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
       }
     }
 
-  if(auto ptr = npcList->rayTest(s,e)) {
+  if(auto ptr = npcList->rayTest(pos,to,b.targetRange())) {
     if(b.cb!=nullptr) {
       b.cb->onCollide(*ptr->toNpc());
       b.cb->onStop();
@@ -1035,6 +1019,10 @@ DynamicWorld::BulletBody::BulletBody(DynamicWorld::BulletBody&& other)
 
 void DynamicWorld::BulletBody::setSpellId(int s) {
   spl = s;
+  }
+
+void DynamicWorld::BulletBody::setTargetRange(float t) {
+  tgRange = t;
   }
 
 void DynamicWorld::BulletBody::move(const Tempest::Vec3& to) {
