@@ -614,7 +614,7 @@ void GameScript::fixNpcPosition(Npc& npc, float angle0, float distBias) {
   auto  pos0 = npc.position();
 
   for(int r = 0; r<=800; r+=20) {
-    for(float ang = 0; ang<360; ang+=30) {
+    for(float ang = 0; ang<360; ang+=30.f) {
       float a = float((ang+angle0)*M_PI/180.0);
       float d = float(r)+distBias;
       auto  p = pos0+Vec3(std::cos(a)*d, 0, std::sin(a)*d);
@@ -1154,6 +1154,20 @@ BodyState GameScript::schemeToBodystate(std::string_view sc) {
   if(searchScheme(sc,"MOB_NOTINTERRUPTABLE"))
     return BS_MOBINTERACT;
   return BS_MOBINTERACT_INTERRUPT;
+  }
+
+void GameScript::onWldItemRemoved(const Item& itm) {
+  onWldInstanceRemoved(&itm.handle());
+  }
+
+void GameScript::onWldInstanceRemoved(const Daedalus::GEngineClasses::Instance* obj) {
+  auto& dat = vm.getDATFile().getSymTable().symbols;
+  for(size_t i=0;i<dat.size();++i) {
+    auto& s = vm.getDATFile().getSymbolByIndex(i);
+    if(s.instance.get()!=obj)
+      continue;
+    s.instance = nullptr;
+    }
   }
 
 bool GameScript::searchScheme(std::string_view sc, std::string_view listName) {

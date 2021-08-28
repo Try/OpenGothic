@@ -62,9 +62,9 @@ int AiQueue::aiOutputOrderId() const {
   return v;
   }
 
-void AiQueue::onWldItemRemoved(const Item* itm) {
+void AiQueue::onWldItemRemoved(const Item& itm) {
   for(auto& i:aiActions)
-    if(i.item==itm)
+    if(i.item==&itm)
       i.item = nullptr;
   }
 

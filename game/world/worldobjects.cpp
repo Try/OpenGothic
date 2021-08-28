@@ -515,7 +515,7 @@ std::unique_ptr<Item> WorldObjects::takeItem(Item &it) {
       itemArr.pop_back();
       items.del(ret.get());
       ret->setPhysicsDisable();
-      onItemRemoved(ret.get());
+      onItemRemoved(*ret);
       return ret;
       }
   return nullptr;
@@ -535,9 +535,10 @@ size_t WorldObjects::hasItems(std::string_view tag, size_t itemCls) {
   return 0;
   }
 
-void WorldObjects::onItemRemoved(const Item* itm) {
+void WorldObjects::onItemRemoved(const Item& itm) {
   for(auto& i:npcArr)
     i->onWldItemRemoved(itm);
+  owner.script().onWldItemRemoved(itm);
   }
 
 Bullet& WorldObjects::shootBullet(const Item& itmId, const Vec3& pos, const Vec3& dir, float speed) {

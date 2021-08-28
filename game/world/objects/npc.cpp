@@ -2713,7 +2713,7 @@ Item* Npc::takeItem(Item& item) {
   return it;
   }
 
-void Npc::onWldItemRemoved(const Item* itm) {
+void Npc::onWldItemRemoved(const Item& itm) {
   aiQueue.onWldItemRemoved(itm);
   aiQueueOverlay.onWldItemRemoved(itm);
   }

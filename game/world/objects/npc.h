@@ -309,7 +309,7 @@ class Npc final {
     Item*     addItem    (size_t id, size_t amount);
     Item*     addItem    (std::unique_ptr<Item>&& i);
     Item*     takeItem   (Item& i);
-    void      onWldItemRemoved(const Item* itm);
+    void      onWldItemRemoved(const Item& itm);
     void      delItem    (size_t id, uint32_t amount);
     void      useItem    (size_t item, bool force=false);
     void      setCurrentItem(size_t item);
