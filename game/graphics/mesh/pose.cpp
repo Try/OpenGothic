@@ -654,9 +654,16 @@ const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, co
   uint64_t t  = tickCount-prev->sAnim;
   size_t   id = combo.len()*2;
 
-  if(0==d.defWindow.size()) {
+  if(0==d.defWindow.size() || 0==d.defHitEnd.size()) {
     if(!startAnim(solver,sq,prev->comb,prev->bs,Pose::NoHint,tickCount))
       return nullptr;
+    combo = ComboState();
+    return sq;
+    }
+
+  if(sq->data->defHitEnd.size()==0) {
+    // hit -> block
+    startAnim(solver,sq,prev->comb,prev->bs,Pose::Force,tickCount);
     combo = ComboState();
     return sq;
     }
@@ -681,7 +688,8 @@ const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, co
     return sq;
     }
 
-  prev->sAnim = tickCount - d.defHitEnd[combo.len()];
+  if(combo.len()<d.defHitEnd.size())
+    prev->sAnim = tickCount - d.defHitEnd[combo.len()];
   combo.incLen();
   return prev->seq;
   }

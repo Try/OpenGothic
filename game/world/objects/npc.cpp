@@ -2442,26 +2442,6 @@ void Npc::setAiOutputBarrier(uint64_t dt, bool overlay) {
     outWaitTime = aiOutputBarrier;
   }
 
-bool Npc::doAttack(Anim anim) {
-  auto weaponSt=weaponState();
-  if(weaponSt==WeaponState::NoWeapon || weaponSt==WeaponState::Mage)
-    return false;
-
-  if(mvAlgo.isSwim())
-    return false;
-
-  auto wlk = walkMode();
-  if(mvAlgo.isInWater())
-    wlk = WalkBit::WM_Water;
-
-  visual.setRotation(*this,0);
-  if(auto sq = visual.continueCombo(*this,anim,weaponSt,wlk)) {
-    implAniWait(uint64_t(sq->atkTotalTime(visual.comboLength())+1));
-    return true;
-    }
-  return false;
-  }
-
 void Npc::emitSoundEffect(std::string_view sound, float range, bool freeSlot) {
   auto sfx = ::Sound(owner,::Sound::T_Regular,sound,{x,y+translateY(),z},range,freeSlot);
   sfx.play();
@@ -2830,6 +2810,9 @@ bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
     return false;
     }
 
+  if(isPrehit() || isFinishingMove())
+    return false;
+
   float a  = angleDir(dx,dz);
   float da = a-angle;
 
@@ -3030,6 +3013,26 @@ bool Npc::canFinish(Npc& oth) {
   return true;
   }
 
+bool Npc::doAttack(Anim anim) {
+  auto weaponSt=weaponState();
+  if(weaponSt==WeaponState::NoWeapon || weaponSt==WeaponState::Mage)
+    return false;
+
+  if(mvAlgo.isSwim())
+    return false;
+
+  auto wlk = walkMode();
+  if(mvAlgo.isInWater())
+    wlk = WalkBit::WM_Water;
+
+  visual.setRotation(*this,0);
+  if(auto sq = visual.continueCombo(*this,anim,weaponSt,wlk)) {
+    implAniWait(uint64_t(sq->atkTotalTime(visual.comboLength())+1));
+    return true;
+    }
+  return false;
+  }
+
 void Npc::fistShoot() {
   doAttack(Anim::Atack);
   }
@@ -3080,8 +3083,8 @@ bool Npc::blockSword() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
-  visual.setRotation(*this,0);
-  return setAnimAngGet(Anim::AtackBlock,calcAniComb())!=nullptr;
+  return doAttack(Anim::AtackBlock);
+  // return setAnimAngGet(Anim::AtackBlock,calcAniComb())!=nullptr;
   }
 
 bool Npc::beginCastSpell() {

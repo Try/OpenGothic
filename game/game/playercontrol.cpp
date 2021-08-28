@@ -82,7 +82,9 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       ctrl[Action::K_ENTER] = true;
     }
 
-  if(ctrl[KeyCodec::ActionGeneric]) {
+  // this odd behaviour is from original game, seem more like a bug
+  const bool actTunneling = (pl!=nullptr && pl->isPrehit());
+  if(ctrl[KeyCodec::ActionGeneric] || actTunneling) {
     int fk = -1;
     if(a==Action::Forward)
       fk = ActForward;
@@ -359,7 +361,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
   if(ctrl[Action::K_F8] && Gothic::inst().isMarvinEnabled())
     marvinF8(dt);
   cacheFocus = ctrl[Action::ActionGeneric];
-  if(pl->isPrehit()) {
+  if(pl->isPrehit() || pl->isFinishingMove()) {
     rotMouseY = 0;
     rotMouse  = 0;
     }
