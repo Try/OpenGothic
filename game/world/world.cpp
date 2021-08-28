@@ -601,7 +601,7 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
       pos   += npc.mapBone(vfx->emTrjOriginNode);
       tgPos += target->mapBone(vfx->emTrjTargetNode);
       }
-    dir     = tgPos-pos;
+    dir = tgPos-pos;
     } else {
     float a = npc.rotationRad()-float(M_PI/2);
     dir.x = std::cos(a);

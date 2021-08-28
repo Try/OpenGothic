@@ -496,9 +496,7 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   if(casting) {
-    if(actrl[ActForward]) {
-      actrl[ActForward] = false;
-      } else {
+    if(!actrl[ActForward]) {
       casting = false;
       pl.endCastSpell();
       }
@@ -529,9 +527,9 @@ void PlayerControl::implMove(uint64_t dt) {
 
   if(actrl[ActForward] || actrl[ActMove]) {
     ctrl [Action::Forward] = actrl[ActMove];
-    actrl[ActForward]      = false;
     actrl[ActMove]         = false;
-    //ctrl[Action::ActionGeneric] = false;
+    if(ws!=WeaponState::Mage)
+       actrl[ActForward] = false;
     switch(ws) {
       case WeaponState::NoWeapon:
         break;
