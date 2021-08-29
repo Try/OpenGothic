@@ -98,7 +98,7 @@ class Pose final {
 
     bool updateFrame(const Animation::Sequence &s, uint64_t barrier, uint64_t sTime, uint64_t now);
 
-    const Animation::Sequence* getNext(const AnimationSolver& solver, const Layer& lay);
+    const Animation::Sequence* solveNext(const AnimationSolver& solver, const Layer& lay);
 
     void addLayer(const Animation::Sequence* seq, BodyState bs, uint8_t comb, uint64_t tickCount);
     void onAddLayer   (const Layer& l);

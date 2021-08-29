@@ -368,7 +368,7 @@ void MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
   float dY      = pY-ground;
   bool  onGound = true;
 
-  if(!npc.isDead() && npc.bodyStateMasked()!=BS_JUMP && ground+waterDepthChest()<water) {
+  if(ground+waterDepthChest()<water && !npc.isDead() && npc.bodyStateMasked()!=BS_JUMP) {
     // attach to water
     float chest = waterDepthChest();
     if(tryMove(0.f,water-chest-pY,0.f)) {
@@ -749,6 +749,15 @@ bool MoveAlgo::isDive() const {
   }
 
 void MoveAlgo::setInAir(bool f) {
+  if(f==isInAir())
+    return;
+  if(!f) {
+    if(npc.bodyStateMasked()==BS_JUMP) {
+      if(true)
+        npc.setAnim(Npc::Anim::Idle); else
+        npc.setAnim(Npc::Anim::Move); // TODO
+      }
+    }
   if(f)
     flags=Flags(flags|InAir); else
     flags=Flags(flags&(~InAir));

@@ -1874,8 +1874,7 @@ void Npc::tickAnimationTags() {
 
 void Npc::tick(uint64_t dt) {
   tickAnimationTags();
-  if(bodyStateMasked()==BS_JUMP && !mvAlgo.isInAir())
-    visual.stopAnim(*this,"S_JUMP");
+
   if(!visual.pose().hasAnim())
     setAnim(AnimationSolver::Idle);
 

@@ -261,7 +261,7 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
   for(size_t i=0;i<lay.size();++i) {
     const auto& l = lay[i];
     if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount-l.sAnim,combo.len())) {
-      auto next = getNext(solver,lay[i]);
+      auto next = solveNext(solver,lay[i]);
       if(next!=lay[i].seq) {
         needToUpdate = true;
         onRemoveLayer(lay[i]);
@@ -412,7 +412,7 @@ void Pose::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
     }
   }
 
-const Animation::Sequence* Pose::getNext(const AnimationSolver &solver, const Layer& lay) {
+const Animation::Sequence* Pose::solveNext(const AnimationSolver &solver, const Layer& lay) {
   auto sq = lay.seq;
 
   if((lay.bs & BS_ITEMINTERACT)==BS_ITEMINTERACT && itemUseSt!=itemUseDestSt) {
@@ -769,7 +769,7 @@ bool Pose::stopItemStateAnim(const AnimationSolver& solver, uint64_t tickCount) 
   itemUseDestSt = -1;
   for(auto& i:lay)
     if(i.bs==BS_ITEMINTERACT) {
-      auto next = getNext(solver,i);
+      auto next = solveNext(solver,i);
       if(next==nullptr)
         continue;
       onRemoveLayer(i);
