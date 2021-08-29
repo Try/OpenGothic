@@ -149,8 +149,6 @@ class MoveAlgo final {
     Tempest::Vec3       fallSpeed ={};
     float               fallCount=0.f;
 
-    Tempest::Vec3       skipMove = {};
-
     uint64_t            climbStart=0;
     Tempest::Vec3       climbPos0={};
     float               climbHeight=0.f;
@@ -161,6 +159,5 @@ class MoveAlgo final {
 
     static const float   gravity;
     static const float   eps;
-    static const float   epsAni;
     static const int32_t flyOverWaterHint;
   };

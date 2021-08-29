@@ -78,7 +78,6 @@ class DynamicWorld final {
         void  setUserPointer(void* p);
 
         float centerY() const;
-        const Tempest::Vec3& position() const;
 
         bool  testMove(const Tempest::Vec3& pos, CollisionTest& out);
         bool  testMove(const Tempest::Vec3& pos, const Tempest::Vec3& from, CollisionTest& out);
@@ -92,6 +91,7 @@ class DynamicWorld final {
         NpcBody*            obj    = nullptr;
         float               r      = 0.f;
         void  implSetPosition(const Tempest::Vec3& pos);
+        const Tempest::Vec3& position() const;
 
       friend class DynamicWorld;
       };

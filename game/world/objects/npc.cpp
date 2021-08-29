@@ -3508,19 +3508,16 @@ bool Npc::tryMove(const Tempest::Vec3& dp) {
   }
 
 bool Npc::tryMove(const Vec3& dp, DynamicWorld::CollisionTest& out) {
-  if(!physic.tryMove(dp,out))
+  auto to = Vec3(x,y,z)+dp;
+  if(!physic.tryMove(to,out))
     return false;
-  setViewPosition(physic.position());
+  setViewPosition(to);
   return true;
   }
 
 bool Npc::tryTranslate(const Vec3& pos) {
   DynamicWorld::CollisionTest out;
-  if(physic.tryMove(pos-physic.position(),out)) {
-    setViewPosition(physic.position());
-    return true;
-    }
-  return false;
+  return tryMove(pos-Vec3(x,y,z),out);
   }
 
 Npc::JumpStatus Npc::tryJump() {

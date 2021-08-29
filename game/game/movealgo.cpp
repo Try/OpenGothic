@@ -9,7 +9,6 @@ const float   MoveAlgo::closeToPointThreshold = 50;
 const float   MoveAlgo::climbMove             = 55;
 const float   MoveAlgo::gravity               = DynamicWorld::gravity;
 const float   MoveAlgo::eps                   = 2.f;   // 2-santimeters
-const float   MoveAlgo::epsAni                = 0.25f; // 25-millimeters
 const int32_t MoveAlgo::flyOverWaterHint      = 999999;
 
 MoveAlgo::MoveAlgo(Npc& unit)
@@ -72,11 +71,6 @@ bool MoveAlgo::tryMove(float x, float y, float z) {
   }
 
 bool MoveAlgo::tryMove(float x,float y,float z, DynamicWorld::CollisionTest& out) {
-  if(flags==NoFlags && std::fabs(x)<epsAni && std::fabs(y)<epsAni && std::fabs(z)<epsAni) {
-    skipMove = Tempest::Vec3(x,y,z);
-    return true;
-    }
-  skipMove = Tempest::Vec3();
   return npc.tryMove({x,y,z},out);
   }
 
@@ -340,7 +334,7 @@ void MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
 
   if(isInAir()) {
     if(npc.isJumpAnim()) {
-      auto dp = skipMove+npcMoveSpeed(dt,moveFlg);
+      auto dp = npcMoveSpeed(dt,moveFlg);
       tryMove(dp.x,dp.y,dp.z);
       fallSpeed += dp;
       fallCount += float(dt);
@@ -356,7 +350,7 @@ void MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
       return;
     }
 
-  auto  dp            = skipMove+npcMoveSpeed(dt,moveFlg);
+  auto  dp            = npcMoveSpeed(dt,moveFlg);
   auto  pos           = npc.position();
   float pY            = pos.y;
   float fallThreshold = stepHeight();
@@ -860,7 +854,7 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
     Tempest::Vec3 corr;
     for(int i=5; i<=35; i+=5) {
       for(float angle:{float(i),-float(i)}) {
-        applyRotation(corr,dp+skipMove,float(angle*M_PI)/180.f);
+        applyRotation(corr,dp,float(angle*M_PI)/180.f);
         if(npc.tryMove(corr)) {
           if(forward)
             npc.setDirection(npc.rotation()+angle);

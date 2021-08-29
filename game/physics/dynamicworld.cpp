@@ -937,13 +937,22 @@ bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& dst, const Tempest::Ve
   return true;
   }
 
-bool DynamicWorld::NpcItem::tryMove(const Tempest::Vec3& dp, CollisionTest& out) {
+bool DynamicWorld::NpcItem::tryMove(const Tempest::Vec3& to, CollisionTest& out) {
   if(!obj)
-    return false;
+    return false; 
+
+  // 2-santimeters
+  static const float eps = 2;
 
   auto initial = obj->pos;
   auto r       = obj->r;
   int  count   = 1;
+  auto dp      = to-initial;
+
+  if(std::abs(dp.x)<eps && std::abs(dp.y)<eps && std::abs(dp.z)<eps) {
+    // skip-move
+    return true;
+    }
 
   if((dp.x*dp.x+dp.z*dp.z)>r*r || dp.y>obj->h*0.5f) {
     const int countXZ = int(std::ceil(std::sqrt(dp.x*dp.x+dp.z*dp.z)/r));
