@@ -811,8 +811,17 @@ void WorldObjects::resetPositionToTA() {
       npc.updateTransform();
       }
     }
+  for(auto& i:routines) {
+    auto s = i.stateByTime(owner.time());
+    i.curState = s;
+    }
   for(auto& i:interactiveObj) {
-    i->resetPositionToTA();
+    int32_t state = -1;
+    for(auto& r:routines) {
+      if(i->schemeName()==r.scheme.c_str())
+        state = r.curState;
+      }
+    i->resetPositionToTA(state);
     }
   }
 

@@ -145,11 +145,11 @@ void Interactive::postValidate() {
       i.user = nullptr;
   }
 
-void Interactive::resetPositionToTA() {
-  if(isAvailable()) {
-    visual.startAnimAndGet("S_S0",world.tickCount(),true);
-    setState(0);
-    }
+void Interactive::resetPositionToTA(int32_t state) {
+  char buf[256]={};
+  std::snprintf(buf,sizeof(buf),"S_S%d",state);
+  visual.startAnimAndGet(buf,world.tickCount(),true);
+  setState(state);
   }
 
 void Interactive::setVisual(ZenLoad::zCVobData& vob) {
@@ -191,8 +191,10 @@ void Interactive::tick(uint64_t dt) {
     }
 
   if(p==nullptr) {
+    // Note: oCMobInter::rewind, oCMobInter with killed user has to go back to state=-1
+    // All other cases, VT_oCMobFire in particular - preserve old state
     const int destSt = -1;
-    if(destSt!=state) {
+    if(destSt!=state && vobType!=ZenLoad::zCVobData::VT_oCMobFire) {
       if(!setAnim(nullptr,Anim::Out))
         return;
       setState(state-1);

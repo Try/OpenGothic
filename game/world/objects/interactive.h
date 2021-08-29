@@ -30,7 +30,7 @@ class Interactive : public Vob {
     void                save(Serialize& fout) const override;
     void                postValidate();
 
-    void                resetPositionToTA();
+    void                resetPositionToTA(int32_t state);
     void                updateAnimation();
     void                tick(uint64_t dt);
 
@@ -140,7 +140,7 @@ class Interactive : public Vob {
     std::string                  pickLockStr;
     Inventory                    invent;
 
-    int32_t                      state         = 0;
+    int32_t                      state         = -1;
     bool                         reverseState  = false;
     bool                         loopState     = false;
     bool                         isLockCracked = false;
