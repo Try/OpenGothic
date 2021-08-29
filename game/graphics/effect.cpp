@@ -327,7 +327,13 @@ void Effect::setupCollision(World& owner) {
     emCheckCollision = key->emCheckCollision;
   (void)emCheckCollision;
 
-  if(/*emCheckCollision && */!pfx.isEmpty() && (root->emFXCollDyn!=nullptr || root->emFXCollDynPerc!=nullptr)) {
+  bool physics = false;
+  if(root->emFXCollDyn!=nullptr || root->emFXCollDynPerc!=nullptr)
+    physics = true;
+  if(emCheckCollision)
+    physics = true;
+
+  if(!pfx.isEmpty() && physics) {
     auto vfx = root;
     auto n   = origin;
     auto sId = splId;

@@ -550,6 +550,8 @@ void PlayerControl::implMove(uint64_t dt) {
         }
       case WeaponState::Mage: {
         casting = pl.beginCastSpell();
+        if(!casting)
+          actrl[ActForward] = false;
         }
       }
     }

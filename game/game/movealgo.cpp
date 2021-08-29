@@ -891,7 +891,8 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
         auto jc = npc.tryJump();
         if(jc.anim==Npc::Anim::Jump)
           npc.setDirection(npc.rotation()+stp); else
-          npc.startClimb(jc);
+        if(!npc.startClimb(jc))
+          npc.setDirection(npc.rotation()+stp);
         }
       break;
       }

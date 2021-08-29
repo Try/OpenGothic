@@ -83,8 +83,8 @@ VisualFx::VisualFx(const Daedalus::GEngineClasses::CFx_Base& fx, Daedalus::Daeda
   emFXInvestTarget         = fx.emFXInvestTarget_S.c_str();
   emFXTriggerDelay         = fx.emFXTriggerDelay<0 ? 0 : uint64_t(fx.emFXTriggerDelay*1000.f);
   emFXCreatedOwnTrj        = fx.emFXCreatedOwnTrj!=0;
-  emActionCollDyn          = strToColision(fx.emActionCollStat_S.c_str());		// CREATE, BOUNCE, CREATEONCE, NORESP, COLLIDE
-  emActionCollStat         = strToColision(fx.emActionCollDyn_S.c_str());			// CREATE, BOUNCE, CREATEONCE, NORESP, COLLIDE, CREATEQUAD
+  emActionCollDyn          = strToColision(fx.emActionCollDyn_S.c_str());		// CREATE, BOUNCE, CREATEONCE, NORESP, COLLIDE
+  emActionCollStat         = strToColision(fx.emActionCollStat_S.c_str());			// CREATE, BOUNCE, CREATEONCE, NORESP, COLLIDE, CREATEQUAD
   emFXCollStat             = Gothic::inst().loadVisualFx(fx.emFXCollStat_S.c_str());
   emFXCollDyn              = Gothic::inst().loadVisualFx(fx.emFXCollDyn_S.c_str());
   emFXCollDynPerc          = Gothic::inst().loadVisualFx(fx.emFXCollDynPerc_S.c_str());
@@ -232,33 +232,35 @@ VisualFx::CollisionAlign VisualFx::loadCollisionAlign(const Daedalus::ZString& s
 
 VisualFx::Collision VisualFx::strToColision(std::string_view sv) {
   uint8_t bits = 0;
-  size_t  prev = 0;
-  auto    s    = sv.data();
-  for(size_t i=0; i<sv.size(); ++i) {
-    if(s[i]==' ' || s[i]=='\0') {
-      if(std::memcmp(s+prev,"COLLIDE",i-prev)==0) {
-        bits |= Collision::Collide;
-        }
-      else if(std::memcmp(s+prev,"CREATE",i-prev)==0) {
-        bits |= Collision::Create;
-        }
-      else if(std::memcmp(s+prev,"CREATEONCE",i-prev)==0) {
-        bits |= Collision::CreateOnce;
-        }
-      else if(std::memcmp(s+prev,"NORESP",i-prev)==0) {
-        bits |= Collision::NoResp;
-        }
-      else if(std::memcmp(s+prev,"CREATEQUAD",i-prev)==0) {
-        bits |= Collision::CreateQuad;
-        }
-      else {
-        if(i!=prev)
-          Log::d("unknown collision flag: \"",s+prev,"\"");
-        }
-      prev = i+1;
+  while(sv.size()>0) {
+    auto sp   = sv.find(' ');
+    auto word = sv.substr(0,sp);
+    if(word=="COLLIDE") {
+      bits |= Collision::Collide;
       }
-    if(s[i]=='\0')
+    else if(word=="CREATE") {
+      bits |= Collision::Create;
+      }
+    else if(word=="CREATEONCE") {
+      bits |= Collision::CreateOnce;
+      }
+    else if(word=="NORESP") {
+      bits |= Collision::NoResp;
+      }
+    else if(word=="NORESP") {
+      bits |= Collision::NoResp;
+      }
+    else if(word=="CREATEQUAD") {
+      bits |= Collision::CreateQuad;
+      }
+    else {
+      char buf[256] = {};
+      std::snprintf(buf,sizeof(buf),"%*.s",int(word.size()),word.data());
+      Log::d("unknown collision flag: \"",buf,"\"");
+      }
+    if(sp==std::string_view::npos)
       break;
+    sv = sv.substr(sp+1);
     }
   return Collision(bits);
   }

@@ -128,8 +128,8 @@ class VisualFx final {
     std::string   	      emFXInvestTarget;
     uint64_t              emFXTriggerDelay         = 0;
     bool                  emFXCreatedOwnTrj        = false;
-    Collision             emActionCollDyn          = Collision::NoResp; // CREATE, BOUNCE, CREATEONCE, NORESP, COLLIDE
-    Collision             emActionCollStat         = Collision::NoResp; // CREATE, BOUNCE, CREATEONCE, NORESP, COLLIDE, CREATEQUAD
+    Collision             emActionCollDyn          = Collision::NoResp;
+    Collision             emActionCollStat         = Collision::NoResp;
     const VisualFx*       emFXCollStat             = nullptr;
     const VisualFx* 	    emFXCollDyn              = nullptr;
     const VisualFx*       emFXCollDynPerc          = nullptr;

@@ -19,7 +19,7 @@ GlobalFx& GlobalFx::operator =(GlobalFx&& other) {
 
 GlobalFx::~GlobalFx() {
   if(h!=nullptr)
-    h->timeUntil = 0;
+    h->stop();
   }
 
 uint64_t GlobalFx::effectPrefferedTime() const {

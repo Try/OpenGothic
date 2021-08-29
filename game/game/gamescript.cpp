@@ -1303,7 +1303,7 @@ void GameScript::setInstanceNPC(std::string_view name, Npc &npc) {
   if(true) {
     auto& d = vm.getDATFile();
     d.iterateSymbolsOfClass("C_ITEM",[&](size_t id,Daedalus::PARSymbol&){
-      npc.addItem(id,1);
+      npc.addItem(id,10);
       });
     }*/
   }

@@ -62,14 +62,24 @@ void GlobalEffects::morph(Tempest::Matrix4x4& proj) {
 
 void GlobalEffects::scrBlend(Tempest::Painter& p, const Tempest::Rect& rect) {
   for(auto& pi:scrEff) {
-    auto& i = *pi;
-    if(i.frames.size()==0)
-      continue;
-    uint64_t dt    = owner.tickCount()-i.timeStart;
-    size_t   frame = size_t(i.fps*dt)/1000;
-    if(i.fps>0)
-      frame%=i.fps;
-    p.setBrush(Tempest::Brush(*i.frames[frame],Tempest::Color(1,1,1,i.cl.a()),Tempest::Painter::Alpha));
+    auto&    i  = *pi;
+    auto     cl = i.cl;
+    if(i.inout>0) {
+      uint64_t now = owner.tickCount();
+      float    a0  = std::min(1.f, (float(now-i.timeStart)/1000.f)/i.inout);
+      float    a1  = std::min(1.f, (float(i.timeUntil-now)/1000.f)/i.inout);
+      float    a   = std::min(a0,a1);
+      cl.set(cl.r(),cl.g(),cl.b(),cl.a()*a);
+      }
+    if(i.frames.size()==0) {
+      p.setBrush(Tempest::Brush(cl,Tempest::Painter::Alpha));
+      } else {
+      uint64_t dt = owner.tickCount()-i.timeStart;
+      size_t   frame = size_t(i.fps*dt)/1000;
+      if(i.fps>0)
+        frame%=i.fps;
+      p.setBrush(Tempest::Brush(*i.frames[frame],Tempest::Color(1,1,1,cl.a()),Tempest::Painter::Alpha));
+      }
     p.drawRect(rect.x,rect.y,rect.w,rect.h,0,0,p.brush().w(),p.brush().h());
     }
   }
@@ -181,4 +191,8 @@ Tempest::Color GlobalEffects::parseColor(std::string_view s) {
     str = next;
     }
   return Tempest::Color(v[0],v[1],v[2],v[3]);
+  }
+
+void GlobalEffects::Effect::stop() {
+  timeUntil = 0;
   }

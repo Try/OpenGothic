@@ -28,6 +28,7 @@ class GlobalEffects {
   private:
     struct Effect {
       virtual ~Effect(){}
+      virtual void stop();
       uint64_t timeUntil = 0;
       uint64_t timeStart = 0;
       uint64_t timeLen   = 0;
