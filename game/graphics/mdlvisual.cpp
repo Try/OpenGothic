@@ -499,6 +499,12 @@ void MdlVisual::processLayers(World& world) {
   pose.processLayers(solver,tickCount);
   }
 
+void MdlVisual::processEvents(World& world, uint64_t &barrier, Animation::EvCount &ev) {
+  Pose&    pose      = *skInst;
+  uint64_t tickCount = world.tickCount();
+  pose.processEvents(barrier,tickCount,ev);
+  }
+
 Vec3 MdlVisual::mapBone(const size_t boneId) const {
   Pose&  pose = *skInst;
   if(boneId==size_t(-1))

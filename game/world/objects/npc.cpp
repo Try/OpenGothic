@@ -885,105 +885,6 @@ void Npc::updateWeaponSkeleton() {
   visual.updateWeaponSkeleton(invent.currentMeleWeapon(),invent.currentRangeWeapon());
   }
 
-void Npc::tickTimedEvt(Animation::EvCount& ev) {
-  if(ev.timed.empty())
-    return;
-
-  std::sort(ev.timed.begin(),ev.timed.end(),[](const Animation::EvTimed& a,const Animation::EvTimed& b){
-    return a.time<b.time;
-    });
-
-  for(auto& i:ev.timed) {
-    switch(i.def) {
-      case ZenLoad::DEF_NULL:
-      case ZenLoad::DEF_LAST:
-        break;
-      case ZenLoad::DEF_CREATE_ITEM: {
-        if(auto it = invent.addItem(i.item,1,world())) {
-          invent.putToSlot(*this,it->clsId(),i.slot[0]);
-          }
-        break;
-        }
-      case ZenLoad::DEF_INSERT_ITEM: {
-        invent.putCurrentToSlot(*this,i.slot[0]);
-        break;
-        }
-      case ZenLoad::DEF_REMOVE_ITEM:
-      case ZenLoad::DEF_DESTROY_ITEM: {
-        invent.clearSlot(*this,"",i.def!=ZenLoad::DEF_REMOVE_ITEM);
-        break;
-        }
-      case ZenLoad::DEF_PLACE_ITEM:
-        break;
-      case ZenLoad::DEF_EXCHANGE_ITEM: {
-        if(!invent.clearSlot(*this,i.slot[0],true))
-          invent.clearSlot(*this,"",true); // fallback for cooking animations
-        if(auto it = invent.addItem(i.item,1,world())) {
-          invent.putToSlot(*this,it->clsId(),i.slot[0]);
-          }
-        break;
-        }
-
-      case ZenLoad::DEF_FIGHTMODE:
-        break;
-      case ZenLoad::DEF_PLACE_MUNITION: {
-        auto active=invent.activeWeapon();
-        if(active!=nullptr) {
-          const int32_t munition = active->handle().munition;
-          invent.putAmmunition(*this,uint32_t(munition),i.slot[0]);
-          }
-        break;
-        }
-      case ZenLoad::DEF_REMOVE_MUNITION: {
-        invent.putAmmunition(*this,0,"");
-        break;
-        }
-      case ZenLoad::DEF_DRAWSOUND:
-      case ZenLoad::DEF_UNDRAWSOUND:
-        break;
-      case ZenLoad::DEF_SWAPMESH:
-        break;
-
-      case ZenLoad::DEF_DRAWTORCH:
-        visual.setTorch(true,owner);
-        break;
-      case ZenLoad::DEF_INV_TORCH:
-        // toogleTorch();
-        break;
-      case ZenLoad::DEF_DROP_TORCH:
-        dropTorch();
-        break;
-
-      case ZenLoad::DEF_HIT_LIMB:
-      case ZenLoad::DEF_HIT_DIR:
-      case ZenLoad::DEF_DAM_MULTIPLY:
-      case ZenLoad::DEF_PAR_FRAME:
-      case ZenLoad::DEF_OPT_FRAME:
-      case ZenLoad::DEF_HIT_END:
-      case ZenLoad::DEF_WINDOW:
-        break;
-      }
-    }
-  }
-
-void Npc::tickRegen(int32_t& v, const int32_t max, const int32_t chg, const uint64_t dt) {
-  uint64_t tick = owner.tickCount();
-  if(tick<dt || chg==0)
-    return;
-  int32_t time0 = int32_t(tick%1000);
-  int32_t time1 = time0+int32_t(dt);
-
-  int32_t val0 = (time0*chg)/1000;
-  int32_t val1 = (time1*chg)/1000;
-
-  int32_t nextV = std::max(0,std::min(v+val1-val0,max));
-  if(v!=nextV) {
-    v = nextV;
-    // check health, in case of negative chg
-    checkHealth(true,false);
-    }
-  }
-
 void Npc::setPhysic(DynamicWorld::NpcItem &&item) {
   physic = std::move(item);
   physic.setUserPointer(this);
@@ -1856,11 +1757,112 @@ Npc* Npc::updateNearestBody() {
   return ret;
   }
 
-void Npc::tick(uint64_t dt) {
+void Npc::tickTimedEvt(Animation::EvCount& ev) {
+  if(ev.timed.empty())
+    return;
+
+  std::sort(ev.timed.begin(),ev.timed.end(),[](const Animation::EvTimed& a,const Animation::EvTimed& b){
+    return a.time<b.time;
+    });
+
+  for(auto& i:ev.timed) {
+    switch(i.def) {
+      case ZenLoad::DEF_NULL:
+      case ZenLoad::DEF_LAST:
+        break;
+      case ZenLoad::DEF_CREATE_ITEM: {
+        if(auto it = invent.addItem(i.item,1,world())) {
+          invent.putToSlot(*this,it->clsId(),i.slot[0]);
+          }
+        break;
+        }
+      case ZenLoad::DEF_INSERT_ITEM: {
+        invent.putCurrentToSlot(*this,i.slot[0]);
+        break;
+        }
+      case ZenLoad::DEF_REMOVE_ITEM:
+      case ZenLoad::DEF_DESTROY_ITEM: {
+        invent.clearSlot(*this,"",i.def!=ZenLoad::DEF_REMOVE_ITEM);
+        break;
+        }
+      case ZenLoad::DEF_PLACE_ITEM:
+        break;
+      case ZenLoad::DEF_EXCHANGE_ITEM: {
+        if(!invent.clearSlot(*this,i.slot[0],true))
+          invent.clearSlot(*this,"",true); // fallback for cooking animations
+        if(auto it = invent.addItem(i.item,1,world())) {
+          invent.putToSlot(*this,it->clsId(),i.slot[0]);
+          }
+        break;
+        }
+
+      case ZenLoad::DEF_FIGHTMODE:
+        break;
+      case ZenLoad::DEF_PLACE_MUNITION: {
+        auto active=invent.activeWeapon();
+        if(active!=nullptr) {
+          const int32_t munition = active->handle().munition;
+          invent.putAmmunition(*this,uint32_t(munition),i.slot[0]);
+          }
+        break;
+        }
+      case ZenLoad::DEF_REMOVE_MUNITION: {
+        invent.putAmmunition(*this,0,"");
+        break;
+        }
+      case ZenLoad::DEF_DRAWSOUND:
+      case ZenLoad::DEF_UNDRAWSOUND:
+        break;
+      case ZenLoad::DEF_SWAPMESH:
+        break;
+
+      case ZenLoad::DEF_DRAWTORCH:
+        visual.setTorch(true,owner);
+        break;
+      case ZenLoad::DEF_INV_TORCH:
+        // toogleTorch();
+        break;
+      case ZenLoad::DEF_DROP_TORCH:
+        dropTorch();
+        break;
+
+      case ZenLoad::DEF_HIT_LIMB:
+      case ZenLoad::DEF_HIT_DIR:
+      case ZenLoad::DEF_DAM_MULTIPLY:
+      case ZenLoad::DEF_PAR_FRAME:
+      case ZenLoad::DEF_OPT_FRAME:
+      case ZenLoad::DEF_HIT_END:
+      case ZenLoad::DEF_WINDOW:
+        break;
+      }
+    }
+  }
+
+void Npc::tickRegen(int32_t& v, const int32_t max, const int32_t chg, const uint64_t dt) {
+  uint64_t tick = owner.tickCount();
+  if(tick<dt || chg==0)
+    return;
+  int32_t time0 = int32_t(tick%1000);
+  int32_t time1 = time0+int32_t(dt);
+
+  int32_t val0 = (time0*chg)/1000;
+  int32_t val1 = (time1*chg)/1000;
+
+  int32_t nextV = std::max(0,std::min(v+val1-val0,max));
+  if(v!=nextV) {
+    v = nextV;
+    // check health, in case of negative chg
+    checkHealth(true,false);
+    }
+  }
+
+void Npc::tickAnimationTags() {
   Animation::EvCount ev;
-  visual.pose().processEvents(lastEventTime,owner.tickCount(),ev);
+  visual.processEvents(owner,lastEventTime,ev);
   visual.processLayers(owner);
   visual.setNpcEffect(owner,*this,hnpc.effect,hnpc.flags);
+  for(auto& i:ev.morph)
+    visual.startMMAnim(*this,i.anim,i.node);
 
   if(ev.groundSounds>0 && isPlayer() && (bodyState()&BodyState::BS_SNEAK)==BodyState::BS_SNEAK)
     world().sendPassivePerc(*this,*this,*this,PERC_ASSESSQUIETSOUND);
@@ -1868,10 +1870,10 @@ void Npc::tick(uint64_t dt) {
     commitDamage();
   implSetFightMode(ev);
   tickTimedEvt(ev);
+  }
 
-  for(auto& i:ev.morph)
-    visual.startMMAnim(*this,i.anim,i.node);
-
+void Npc::tick(uint64_t dt) {
+  tickAnimationTags();
   if(bodyStateMasked()==BS_JUMP && !mvAlgo.isInAir())
     visual.stopAnim(*this,"S_JUMP");
   if(!visual.pose().hasAnim())
@@ -2180,14 +2182,16 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_OutputSvm:
     case AI_OutputSvmOverlay:{
       if(performOutput(act)) {
-        uint64_t msgTime = 0;
-        if(act.act==AI_Output) {
-          msgTime = owner.script().messageTime(act.s0);
-          } else {
-          auto& svm = owner.script().messageFromSvm(act.s0,hnpc.voice);
-          msgTime   = owner.script().messageTime(svm);
+        if(aiPolicy==ProcessPolicy::Player || aiPolicy==ProcessPolicy::AiNormal) {
+          uint64_t msgTime = 0;
+          if(act.act==AI_Output) {
+            msgTime = owner.script().messageTime(act.s0);
+            } else {
+            auto& svm = owner.script().messageFromSvm(act.s0,hnpc.voice);
+            msgTime   = owner.script().messageTime(svm);
+            }
+          visual.startFaceAnim(*this,"VISEME",1,msgTime);
           }
-        visual.startFaceAnim(*this,"VISEME",1,msgTime);
         if(act.act!=AI_OutputSvmOverlay) {
           visual.startAnimDialog(*this);
           visual.setRotation(*this,0);

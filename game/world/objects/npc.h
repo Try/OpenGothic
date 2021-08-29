@@ -110,6 +110,7 @@ class Npc final {
     void       setWalkMode(WalkBit m);
     auto       walkMode() const { return wlkMode; }
     void       tick(uint64_t dt);
+    void       tickAnimationTags();
     bool       startClimb(JumpStatus jump);
 
     auto       world() -> World&;
