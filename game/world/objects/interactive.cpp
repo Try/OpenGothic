@@ -180,6 +180,9 @@ void Interactive::tick(uint64_t dt) {
     animChanged = false;
     }
 
+  if(world.tickCount()<waitAnim)
+    return;
+
   Pos* p = nullptr;
   for(auto& i:attPos) {
     if(i.user!=nullptr) {
@@ -187,15 +190,13 @@ void Interactive::tick(uint64_t dt) {
       }
     }
 
-  if(world.tickCount()<waitAnim)
-    return;
-
   if(p==nullptr) {
-    if(rewind && state!=-1) {
+    const int destSt = -1;
+    if(destSt!=state) {
       if(!setAnim(nullptr,Anim::Out))
         return;
-      setState(std::max(-1,state-1));
-      }
+      setState(state-1);
+      }    
     return;
     }
 
@@ -674,9 +675,6 @@ bool Interactive::dettach(Npc &npc, bool quick) {
       else if(quick) {
         i.user       = nullptr;
         i.attachMode = false;
-        if(reverseState)
-          state = stateNum; else
-          state = 0;
         npc.quitIneraction();
         }
       else {
