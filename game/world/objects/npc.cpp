@@ -17,6 +17,7 @@
 #include "world/objects/item.h"
 #include "world/world.h"
 #include "utils/versioninfo.h"
+#include "utils/fileext.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -811,12 +812,6 @@ void Npc::setVisual(const Skeleton* v) {
   visual.setVisual(v);
   }
 
-static std::string addExt(const std::string& s,const char* ext){
-  if(s.size()>0 && s.back()=='.')
-    return s+&ext[1];
-  return s+ext;
-  }
-
 void Npc::setVisualBody(int32_t headTexNr, int32_t teethTexNr, int32_t bodyTexNr, int32_t bodyTexColor,
                         const std::string &ibody, const std::string &ihead) {
   auto& w = owner;
@@ -828,8 +823,8 @@ void Npc::setVisualBody(int32_t headTexNr, int32_t teethTexNr, int32_t bodyTexNr
   vColor  = bodyTexNr;
   bdColor = bodyTexColor;
 
-  auto  vhead = head.empty() ? MeshObjects::Mesh() : w.addView(addExt(head,".MMB").c_str(),vHead,vTeeth,bdColor);
-  auto  vbody = body.empty() ? MeshObjects::Mesh() : w.addView(addExt(body,".ASC").c_str(),vColor,0,bdColor);
+  auto  vhead = head.empty() ? MeshObjects::Mesh() : w.addView(FileExt::addExt(head,".MMB"),vHead,vTeeth,bdColor);
+  auto  vbody = body.empty() ? MeshObjects::Mesh() : w.addView(FileExt::addExt(body,".ASC"),vColor,0,bdColor);
   visual.setVisualBody(std::move(vhead),std::move(vbody),owner,bdColor);
   updateArmour();
 
@@ -841,7 +836,7 @@ void Npc::updateArmour() {
   auto& w  = owner;
 
   if(ar==nullptr) {
-    auto  vbody = body.empty() ? MeshObjects::Mesh() : w.addView(addExt(body,".ASC").c_str(),vColor,0,bdColor);
+    auto  vbody = body.empty() ? MeshObjects::Mesh() : w.addView(FileExt::addExt(body,".ASC"),vColor,0,bdColor);
     visual.setBody(std::move(vbody),owner,bdColor);
     } else {
     auto& itData = ar->handle();

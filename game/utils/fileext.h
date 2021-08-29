@@ -78,4 +78,10 @@ namespace FileExt {
     for(size_t i=0;i<l2;++i)
       s[off+i] = extOut[i];
     }
+
+  inline std::string addExt(const std::string& s,const char* ext){
+    if(s.size()>0 && s.back()=='.')
+      return s+&ext[1];
+    return s+ext;
+    }
   }
