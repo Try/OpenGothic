@@ -2181,7 +2181,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_OutputSvm:
     case AI_OutputSvmOverlay:{
       if(performOutput(act)) {
-        if(aiPolicy==ProcessPolicy::Player || aiPolicy==ProcessPolicy::AiNormal) {
+        if(aiPolicy!=ProcessPolicy::AiFar2) {
           uint64_t msgTime = 0;
           if(act.act==AI_Output) {
             msgTime = owner.script().messageTime(act.s0);

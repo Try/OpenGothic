@@ -469,7 +469,7 @@ void MoveAlgo::accessDamFly(float dx, float dz) {
 
 void MoveAlgo::applyRotation(Tempest::Vec3& out, const Tempest::Vec3& dpos) const {
   float mul = mulSpeed;
-  if((npc.bodyState()&BS_DIVE)==BS_DIVE) {
+  if(isDive()) {
     float rot = -npc.rotationYRad();
     float s   = std::sin(rot), c = std::cos(rot);
 
