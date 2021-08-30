@@ -192,9 +192,9 @@ void Interactive::tick(uint64_t dt) {
 
   if(p==nullptr) {
     // Note: oCMobInter::rewind, oCMobInter with killed user has to go back to state=-1
-    // All other cases, VT_oCMobFire in particular - preserve old state
+    // All other cases, oCMobFire, oCMobDoor in particular - preserve old state
     const int destSt = -1;
-    if(destSt!=state && vobType!=ZenLoad::zCVobData::VT_oCMobFire) {
+    if(destSt!=state && (vobType==ZenLoad::zCVobData::VT_oCMobInter || rewind)) {
       if(!setAnim(nullptr,Anim::Out))
         return;
       setState(state-1);
