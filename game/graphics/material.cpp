@@ -9,6 +9,9 @@ using namespace Tempest;
 
 Material::Material(const ZenLoad::zCMaterialData& m, bool enableAlphaTest) {
   tex = Resources::loadTexture(m.texture);
+  if(tex==nullptr && !m.texture.empty())
+    tex = Resources::loadTexture("DEFAULT.TGA");
+
   loadFrames(m);
 
   alpha = loadAlphaFunc(m.alphaFunc,m.matGroup,tex,enableAlphaTest);
@@ -23,7 +26,10 @@ Material::Material(const ZenLoad::zCMaterialData& m, bool enableAlphaTest) {
   }
 
 Material::Material(const ZenLoad::zCVobData& vob) {
-  tex          = Resources::loadTexture(vob.visual);
+  tex = Resources::loadTexture(vob.visual);
+  if(tex==nullptr && !vob.visual.empty())
+    tex = Resources::loadTexture("DEFAULT.TGA");
+
   frames       = Resources::loadTextureAnim(vob.visual);
 
   texAniFPSInv = 1000/std::max<size_t>(frames.size(),1);
