@@ -1214,9 +1214,10 @@ bool Npc::implLookAt(uint64_t dt) {
 
 bool Npc::implLookAt(float dx, float dy, float dz, uint64_t dt) {
   static const float rotSpeed = 200; // deg per second
+  static const float maxRot   = 80; // maximum rotation
   Vec2 dst;
 
-  dst.x = angle-angleDir(dx,dz);
+  dst.x = visual.viewDirection()-angleDir(dx,dz);
   while(dst.x>180)
     dst.x -= 360;
   while(dst.x<-180)
@@ -1225,7 +1226,7 @@ bool Npc::implLookAt(float dx, float dy, float dz, uint64_t dt) {
   dst.y = std::atan2(dy,std::sqrt(dx*dx+dz*dz));
   dst.y = dst.y*180.f/float(M_PI);
 
-  if(dst.x<-80 || dst.x>80) {
+  if(dst.x<-maxRot || dst.x>maxRot) {
     dst.x = 0;
     dst.y = 0;
     }
@@ -2808,7 +2809,7 @@ bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
     return false;
     }
 
-  if(isPrehit() || isFinishingMove())
+  if(isPrehit() || isFinishingMove() || interactive()!=nullptr)
     return false;
 
   float a  = angleDir(dx,dz);

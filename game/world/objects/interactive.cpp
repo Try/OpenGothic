@@ -667,7 +667,7 @@ bool Interactive::attach(Npc &npc) {
 
 bool Interactive::dettach(Npc &npc, bool quick) {
   for(auto& i:attPos) {
-    if(i.user==&npc) {
+    if(i.user==&npc && i.attachMode) {
       if(canQuitAtState(*i.user,state)) {
         i.user       = nullptr;
         i.attachMode = false;
