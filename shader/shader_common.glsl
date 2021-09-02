@@ -80,10 +80,10 @@ layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
 #endif
 
 #if defined(VERTEX) && defined(MORPH)
-layout(binding = L_MorphId, std140) readonly buffer SsboMorphId {
-  ivec4 index[];
+layout(binding = L_MorphId, std430) readonly buffer SsboMorphId {
+  int index[];
   } morphId;
-layout(binding = L_Morph, std140) readonly buffer SsboMorph {
+layout(binding = L_Morph, std430) readonly buffer SsboMorph {
   vec4  samples[];
   } morph;
 #endif

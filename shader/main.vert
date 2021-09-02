@@ -53,7 +53,7 @@ vec3 morphOffset(int i) {
     return vec3(0);
 
   uint  vId   = gl_VertexIndex + push.morph[i].indexOffset;
-  int   index = morphId.index[vId/4][vId%4];
+  int   index = morphId.index[vId];
   if(index<0)
     return vec3(0);
 
