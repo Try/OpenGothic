@@ -91,6 +91,7 @@ GameSession::GameSession(std::string file) {
   cam->reset(*wrld);
   Gothic::inst().setLoadingProgress(96);
   ticks = 1;
+  // wrld->setDayTime(8,0);
   }
 
 GameSession::GameSession(Serialize &fin) {
@@ -330,9 +331,9 @@ const WorldStateStorage& GameSession::findStorage(const std::string &name) {
   return wss;
   }
 
-void GameSession::updateAnimation() {
+void GameSession::updateAnimation(uint64_t dt) {
   if(wrld)
-    wrld->updateAnimation();
+    wrld->updateAnimation(dt);
   }
 
 std::vector<GameScript::DlgChoise> GameSession::updateDialog(const GameScript::DlgChoise &dlg, Npc& player, Npc& npc) {

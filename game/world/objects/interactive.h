@@ -31,7 +31,7 @@ class Interactive : public Vob {
     void                postValidate();
 
     void                resetPositionToTA(int32_t state);
-    void                updateAnimation();
+    void                updateAnimation(uint64_t dt);
     void                tick(uint64_t dt);
 
     std::string_view    tag() const;

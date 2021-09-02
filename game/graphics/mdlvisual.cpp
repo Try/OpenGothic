@@ -465,7 +465,7 @@ void MdlVisual::setTorch(bool t, World& owner) {
   torch.boneId = (skeleton==nullptr ? size_t(-1) : skeleton->findNode("ZS_LEFTHAND"));
   }
 
-bool MdlVisual::updateAnimation(Npc* npc, World& world) {
+bool MdlVisual::updateAnimation(Npc* npc, World& world, uint64_t dt) {
   Pose&    pose      = *skInst;
   uint64_t tickCount = world.tickCount();
   auto     pos3      = Vec3{pos.at(3,0), pos.at(3,1), pos.at(3,2)};
@@ -480,7 +480,7 @@ bool MdlVisual::updateAnimation(Npc* npc, World& world) {
       effects[i] = std::move(effects.back());
       effects.pop_back();
       } else {
-      effects[i].view.tick(0);
+      effects[i].view.tick(dt);
       ++i;
       }
     }

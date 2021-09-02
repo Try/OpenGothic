@@ -464,9 +464,9 @@ void Gothic::tick(uint64_t dt) {
     game->tick(dt);
   }
 
-void Gothic::updateAnimation() {
+void Gothic::updateAnimation(uint64_t dt) {
   if(game)
-    game->updateAnimation();
+    game->updateAnimation(dt);
   }
 
 void Gothic::quickSave() {

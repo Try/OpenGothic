@@ -370,15 +370,15 @@ void WorldObjects::execTriggerEvent(const TriggerEvent& e) {
     Log::d("unable to process trigger: \"",e.target,"\"");
   }
 
-void WorldObjects::updateAnimation() {
+void WorldObjects::updateAnimation(uint64_t dt) {
   static bool doAnim=true;
   if(!doAnim)
     return;
-  Workers::parallelFor(npcArr,[](std::unique_ptr<Npc>& i){
-    i->updateAnimation();
+  Workers::parallelFor(npcArr,[dt](std::unique_ptr<Npc>& i){
+    i->updateAnimation(dt);
     });
-  interactiveObj.parallelFor([](Interactive& i){
-    i.updateAnimation();
+  interactiveObj.parallelFor([dt](Interactive& i){
+    i.updateAnimation(dt);
     });
   }
 

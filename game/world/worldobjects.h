@@ -55,7 +55,7 @@ class WorldObjects final {
     Npc*           insertPlayer(std::unique_ptr<Npc>&& npc, std::string_view at);
     auto           takeNpc(const Npc* npc) -> std::unique_ptr<Npc>;
 
-    void           updateAnimation();
+    void           updateAnimation(uint64_t dt);
 
     bool           isTargeted(Npc& npc);
     Npc*           findHero();

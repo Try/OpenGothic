@@ -103,7 +103,7 @@ class World final {
     MeshObjects::Mesh    addStaticView(const char* visual);
     MeshObjects::Mesh    addDecalView (const ZenLoad::zCVobData& vob);
 
-    void                 updateAnimation();
+    void                 updateAnimation(uint64_t dt);
     void                 resetPositionToTA();
 
     auto                 takeHero() -> std::unique_ptr<Npc>;

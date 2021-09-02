@@ -60,7 +60,7 @@ class GameSession final {
     void         tick(uint64_t dt);
     uint64_t     tickCount() const { return ticks; }
 
-    void         updateAnimation();
+    void         updateAnimation(uint64_t dt);
 
     auto         updateDialog(const GameScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoise>;
     void         dialogExec(const GameScript::DlgChoise &dlg, Npc &player, Npc &npc);

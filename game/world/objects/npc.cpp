@@ -696,8 +696,8 @@ uint8_t Npc::calcAniComb() const {
   return Pose::calcAniComb(dpos,angle);
   }
 
-void Npc::updateAnimation() {
-  bool syncAtt = visual.updateAnimation(this,owner);
+void Npc::updateAnimation(uint64_t dt) {
+  bool syncAtt = visual.updateAnimation(this,owner,dt);
   if(durtyTranform) {
     updatePos();
     syncAtt = true;

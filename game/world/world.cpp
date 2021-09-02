@@ -271,8 +271,8 @@ MeshObjects::Mesh World::addDecalView(const ZenLoad::zCVobData& vob) {
   return view()->addDecalView(vob);
   }
 
-void World::updateAnimation() {
-  wobj.updateAnimation();
+void World::updateAnimation(uint64_t dt) {
+  wobj.updateAnimation(dt);
   }
 
 void World::resetPositionToTA() {

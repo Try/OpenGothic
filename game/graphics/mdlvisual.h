@@ -72,7 +72,7 @@ class MdlVisual final {
     void                           setTorch(bool t, World& owner);
 
     const Pose&                    pose() const { return *skInst; }
-    bool                           updateAnimation(Npc* npc, World& world);
+    bool                           updateAnimation(Npc* npc, World& world, uint64_t dt);
     void                           processLayers  (World& world);
     void                           processEvents  (World& world, uint64_t &barrier, Animation::EvCount &ev);
     auto                           mapBone(const size_t boneId) const -> Tempest::Vec3;

@@ -108,7 +108,7 @@ class Gothic final {
 
     void         tick(uint64_t dt);
 
-    void         updateAnimation();
+    void         updateAnimation(uint64_t dt);
     void         quickSave();
     void         quickLoad();
     void         save(std::string_view slot, std::string_view usrName);

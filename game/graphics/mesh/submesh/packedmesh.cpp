@@ -1,7 +1,7 @@
 #include "packedmesh.h"
 
 #include <Tempest/Log>
-
+#include <fstream>
 #include <algorithm>
 
 #include "graphics/bounds.h"
@@ -38,8 +38,9 @@ PackedMesh::PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type) {
     }
 
   pack(mesh,type);
-  if(type==PK_VisualLnd)
+  if(type==PK_VisualLnd) {
     landRepack();
+    }
   }
 
 void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
@@ -171,7 +172,7 @@ void PackedMesh::landRepack() {
 
 void PackedMesh::split(std::vector<SubMesh>& out, SubMesh& src) {
   static bool avoidMicroMeshes = true;
-  if(avoidMicroMeshes && src.indices.size()<2048*3) {
+  if(avoidMicroMeshes && src.indices.size()<64*100) {
     if(src.indices.size()>0)
       out.push_back(std::move(src));
     return;
@@ -182,7 +183,7 @@ void PackedMesh::split(std::vector<SubMesh>& out, SubMesh& src) {
   Vec3 sz = bbox.bboxTr[1]-bbox.bboxTr[0];
 
   static const float blockSz = 40*100;
-  if(sz.x*sz.y*sz.z<blockSz*blockSz*blockSz) {
+  if(sz.x<=blockSz && sz.y<=blockSz && sz.z<=blockSz){
     if(src.indices.size()>0)
       out.push_back(std::move(src));
     return;
@@ -242,3 +243,19 @@ void PackedMesh::split(std::vector<SubMesh>& out, SubMesh& src) {
     }
   }
 
+void PackedMesh::debug(std::ostream &out) const {
+  for(auto& i:vertices) {
+    out << "v  " << i.Position.x << " " << i.Position.y << " " << i.Position.z << std::endl;
+    out << "vn " << i.Normal.x   << " " << i.Normal.y   << " " << i.Normal.z   << std::endl;
+    out << "vt " << i.TexCoord.x << " " << i.TexCoord.y  << std::endl;
+    }
+
+  for(auto& s:subMeshes) {
+    out << "o " << s.material.matName << std::endl;
+    for(size_t i=0; i<s.indices.size(); i+=3) {
+      const uint32_t* tri = &s.indices[i];
+      out << "f " << 1+tri[0] << " " << 1+tri[1] << " " << 1+tri[2] << std::endl;
+      }
+    }
+
+  }

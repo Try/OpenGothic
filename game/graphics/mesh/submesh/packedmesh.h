@@ -30,6 +30,7 @@ class PackedMesh {
     ZMath::float3              bbox[2] = {};
 
     PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type);
+    void debug(std::ostream &out) const;
 
   private:
     void   pack(const ZenLoad::zCMesh& mesh,PkgType type);

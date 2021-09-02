@@ -167,8 +167,8 @@ void Interactive::setVisual(ZenLoad::zCVobData& vob) {
   setAnim(Interactive::Active); // setup default anim
   }
 
-void Interactive::updateAnimation() {
-  if(visual.updateAnimation(nullptr,world))
+void Interactive::updateAnimation(uint64_t dt) {
+  if(visual.updateAnimation(nullptr,world,dt))
     animChanged = true;
   }
 

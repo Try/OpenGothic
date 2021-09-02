@@ -25,7 +25,7 @@ class ObjVisual {
     const Animation::Sequence* startAnimAndGet(std::string_view name, uint64_t tickCount, bool force = false);
     bool isAnimExist(std::string_view name) const;
 
-    bool updateAnimation(Npc* npc, World& world);
+    bool updateAnimation(Npc* npc, World& world, uint64_t dt);
     void processLayers(World& world);
     void syncPhysics();
 
