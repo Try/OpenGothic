@@ -93,7 +93,7 @@ class WorldObjects final {
     Item*          addItem   (const ZenLoad::zCVobData &vob);
     Item*          addItem   (size_t itemInstance, const Tempest::Vec3& pos);
     Item*          addItem   (size_t itemInstance, const Tempest::Vec3& pos, const Tempest::Vec3& dir);
-    Item*          addItemDyn(size_t itemInstance, const Tempest::Matrix4x4& pos);
+    Item*          addItemDyn(size_t itemInstance, const Tempest::Matrix4x4& pos, size_t owner);
     auto           takeItem(Item& it) -> std::unique_ptr<Item>;
     void           removeItem(Item& it);
     size_t         hasItems(std::string_view tag, size_t itemCls);

@@ -292,7 +292,7 @@ void MdlVisual::dropWeapon(Npc& npc) {
   if(itm==nullptr)
     return;
 
-  auto it = npc.world().addItemDyn(itm->clsId(),p);
+  auto it = npc.world().addItemDyn(itm->clsId(),p,npc.handle()->instanceSymbol);
   it->setCount(1);
 
   npc.delItem(itm->clsId(),1);

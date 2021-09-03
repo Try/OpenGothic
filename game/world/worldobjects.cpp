@@ -586,7 +586,7 @@ Item* WorldObjects::addItem(size_t itemInstance, const Tempest::Vec3& pos, const
   return it;
   }
 
-Item* WorldObjects::addItemDyn(size_t itemInstance, const Tempest::Matrix4x4& pos) {
+Item* WorldObjects::addItemDyn(size_t itemInstance, const Tempest::Matrix4x4& pos, size_t ownerNpc) {
   //size_t ItLsTorchburned  = owner.script().getSymbolIndex("ItLsTorchburned");
   size_t ItLsTorchburning = owner.script().getSymbolIndex("ItLsTorchburning");
 
@@ -599,6 +599,7 @@ Item* WorldObjects::addItemDyn(size_t itemInstance, const Tempest::Matrix4x4& po
     ptr.reset(new Item(owner,itemInstance,Item::T_WorldDyn));
 
   auto* it=ptr.get();
+  it->handle().owner = ownerNpc==size_t(-1) ? 0 : uint32_t(ownerNpc);
   itemArr.emplace_back(std::move(ptr));
   items.add(itemArr.back().get());
 

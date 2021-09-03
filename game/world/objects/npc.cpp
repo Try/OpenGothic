@@ -552,7 +552,7 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
   return true;
   }
 
-void Npc::onNoHealth(bool death,HitSound sndMask) {
+void Npc::onNoHealth(bool death, HitSound sndMask) {
   visual.dropWeapon(*this);
   dropTorch();
   visual.setToFightMode(WeaponState::NoWeapon);
@@ -800,7 +800,7 @@ void Npc::dropTorch(bool burnout) {
     if(leftHand<visual.pose().boneCount())
       mat.mul(visual.pose().bone(leftHand));
 
-    owner.addItemDyn(torchId,mat);
+    owner.addItemDyn(torchId,mat,hnpc.instanceSymbol);
     }
   }
 
@@ -1691,6 +1691,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     }
 
   if(hitResult.value>0) {
+    currentOther = &other;
     changeAttribute(ATR_HITPOINTS,-hitResult.value,dontKill);
 
     if(bMask&(COLL_APPLYVICTIMSTATE|COLL_DOEVERYTHING)) {
@@ -2684,10 +2685,11 @@ Item* Npc::takeItem(Item& item) {
   auto it = ptr.get();
   if(it==nullptr)
     return nullptr;
-  if(it->handle().owner!=0)
+
+  it = addItem(std::move(ptr));
+  if(isPlayer() && it!=nullptr) // && (it->handle().owner!=0 || it->handle().ownerGuild!=0))
     owner.sendPassivePerc(*this,*this,*this,*it,PERC_ASSESSTHEFT);
 
-  addItem(std::move(ptr));
   implAniWait(uint64_t(sq->totalTime()));
   return it;
   }
@@ -2760,7 +2762,7 @@ void Npc::dropItem(size_t id, size_t count) {
   if(leftHand<visual.pose().boneCount())
     mat.mul(visual.pose().bone(leftHand));
 
-  auto it = owner.addItemDyn(id,mat);
+  auto it = owner.addItemDyn(id,mat,hnpc.instanceSymbol);
   it->setCount(count);
   invent.delItem(id,count,*this);
   }

@@ -231,6 +231,8 @@ Item* Inventory::addItem(std::unique_ptr<Item> &&p) {
     return items.back().get();
     } else {
     it->setCount(it->count()+p->count());
+    it->handle().owner      = p->handle().owner;
+    it->handle().ownerGuild = p->handle().ownerGuild;
     return p.get();
     }
   }
