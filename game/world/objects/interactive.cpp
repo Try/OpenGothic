@@ -146,6 +146,10 @@ void Interactive::postValidate() {
   }
 
 void Interactive::resetPositionToTA(int32_t state) {
+  for(auto& i:attPos)
+    if(i.user!=nullptr && i.user->isPlayer())
+      return;
+
   char buf[256]={};
   std::snprintf(buf,sizeof(buf),"S_S%d",state);
   visual.startAnimAndGet(buf,world.tickCount(),true);
