@@ -76,7 +76,7 @@ class Pose final {
 
     void               setHeadRotation(float dx, float dz);
     Tempest::Vec2      headRotation() const;
-    void               setRotation(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir);
+    void               setAnimRotate(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir);
     bool               setAnimItem(const AnimationSolver &solver, Npc &npc, std::string_view scheme, int state);
     bool               stopItemStateAnim(const AnimationSolver &solver, uint64_t tickCount);
 

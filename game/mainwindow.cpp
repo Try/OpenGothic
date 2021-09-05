@@ -237,7 +237,7 @@ void MainWindow::processMouse(MouseEvent& event, bool enable) {
   auto center = Point(w()/2,h()/2);
   if(enable && event.pos()!=center) {
     dMouse += (event.pos()-center);
-    SystemApi::setCursorPosition(hwnd(),center.x,center.y);
+    setCursorPosition(center);
     }
   }
 
@@ -848,8 +848,8 @@ void MainWindow::clearInput() {
 void MainWindow::setFullscreen(bool fs) {
   dMouse = Point();
   SystemApi::setAsFullscreen(hwnd(),fs);
-  SystemApi::setCursorPosition(hwnd(),w()/2,h()/2);
-  SystemApi::showCursor(!fs);
+  setCursorPosition(w()/2,h()/2);
+  setCursorShape(fs ? CursorShape::Hidden : CursorShape::Arrow);
   }
 
 void MainWindow::render(){

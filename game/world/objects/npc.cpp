@@ -513,7 +513,7 @@ bool Npc::isPlayer() const {
   }
 
 bool Npc::startClimb(JumpStatus jump) {
-  visual.setRotation(*this,0);
+  visual.setAnimRotate(*this,0);
   return mvAlgo.startClimb(jump);
   }
 
@@ -927,7 +927,7 @@ const Animation::Sequence* Npc::setAnimAngGet(Anim a, uint8_t comb) {
   }
 
 void Npc::setAnimRotate(int rot) {
-  visual.setRotation(*this,rot);
+  visual.setAnimRotate(*this,rot);
   }
 
 bool Npc::setAnimItem(std::string_view scheme, int state) {
@@ -1426,7 +1426,7 @@ bool Npc::implAtack(uint64_t dt) {
 
   if(act==FightAlgo::MV_STRAFEL) {
     if(setAnim(Npc::Anim::MoveL)){
-      visual.setRotation(*this,0);
+      visual.setAnimRotate(*this,0);
       implFaiWait(visual.pose().animationTotalTime());
       fghAlgo.consumeAction();
       }
@@ -1435,7 +1435,7 @@ bool Npc::implAtack(uint64_t dt) {
 
   if(act==FightAlgo::MV_STRAFER) {
     if(setAnim(Npc::Anim::MoveR)){
-      visual.setRotation(*this,0);
+      visual.setAnimRotate(*this,0);
       implFaiWait(visual.pose().animationTotalTime());
       fghAlgo.consumeAction();
       }
@@ -2167,7 +2167,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
     case AI_Dodge:
       if(auto sq = setAnimAngGet(Anim::MoveBack)) {
-        visual.setRotation(*this,0);
+        visual.setAnimRotate(*this,0);
         implAniWait(uint64_t(sq->totalTime()));
         } else {
         queue.pushFront(std::move(act));
@@ -2195,7 +2195,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
           }
         if(act.act!=AI_OutputSvmOverlay) {
           visual.startAnimDialog(*this);
-          visual.setRotation(*this,0);
+          visual.setAnimRotate(*this,0);
           }
         } else {
         queue.pushFront(std::move(act));
@@ -2879,7 +2879,7 @@ bool Npc::closeWeapon(bool noAnim) {
     return true;
   if(!noAnim && !visual.startAnim(*this,WeaponState::NoWeapon))
     return false;
-  visual.setRotation(*this,0);
+  visual.setAnimRotate(*this,0);
   if(isPlayer())
     setTarget(nullptr);
   invent.switchActiveWeapon(*this,Item::NSLOT);
@@ -3027,7 +3027,7 @@ bool Npc::doAttack(Anim anim) {
   if(mvAlgo.isInWater())
     wlk = WalkBit::WM_Water;
 
-  visual.setRotation(*this,0);
+  visual.setAnimRotate(*this,0);
   if(auto sq = visual.continueCombo(*this,anim,weaponSt,wlk)) {
     implAniWait(uint64_t(sq->atkTotalTime(visual.comboLength())+1));
     return true;
@@ -3043,7 +3043,7 @@ bool Npc::blockFist() {
   auto weaponSt=weaponState();
   if(weaponSt!=WeaponState::Fist)
     return false;
-  visual.setRotation(*this,0);
+  visual.setAnimRotate(*this,0);
   return setAnim(Anim::AtackBlock);
   }
 
@@ -3250,7 +3250,7 @@ bool Npc::aimBow() {
     return false;
   if(!setAnim(Anim::AimBow))
     return false;
-  visual.setRotation(*this,0);
+  visual.setAnimRotate(*this,0);
   return true;
   }
 

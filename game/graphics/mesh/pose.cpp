@@ -721,7 +721,7 @@ Vec2 Pose::headRotation() const {
   return Vec2(headRotX,headRotY);
   }
 
-void Pose::setRotation(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir) {
+void Pose::setAnimRotate(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir) {
   const Animation::Sequence *sq = nullptr;
   if(dir==0) {
     if(rotation!=nullptr) {
