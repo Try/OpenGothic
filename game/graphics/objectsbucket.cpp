@@ -100,6 +100,7 @@ void ObjectsBucket::Descriptors::alloc(ObjectsBucket& owner) {
     }
   }
 
+
 ObjectsBucket::ObjectsBucket(const Material& mat, const ProtoMesh* anim,
                              VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type)
   :owner(owner), scene(scene), storage(storage), mat(mat), shaderType(type) {

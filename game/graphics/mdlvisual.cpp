@@ -729,6 +729,8 @@ void MdlVisual::setAnimRotate(Npc &npc, int dir) {
 
 void MdlVisual::interrupt() {
   skInst->interrupt();
+  item.clear();
+  setStateItem(MeshObjects::Mesh(),"");
   }
 
 Tempest::Vec3 MdlVisual::displayPosition() const {
