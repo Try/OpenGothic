@@ -25,7 +25,7 @@ install:
 - cmd: set VK_SDK_PATH=C:/VulkanSDK/1.2.170.0
 
 - sh:  sudo apt-get update
-- sh:  sudo apt-get --yes install libvulkan-dev libasound2-dev
+- sh:  sudo apt-get --yes install libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
 # https://github.com/appveyor/ci/issues/3573
 - sh:  sudo apt-get install -y libclang1-9
 - sh:  curl -L --silent --show-error --output VulkanSDK.tar.gz https://sdk.lunarg.com/sdk/download/1.2.170.0/linux/vulkan_sdk.tar.gz
