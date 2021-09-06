@@ -161,8 +161,8 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
   for(auto& i:lay)
     if(i.seq->layer==sq->layer) {
       const bool hasNext   = (!i.seq->next.empty() && i.seq->animCls!=Animation::Loop);
-      const bool finished  = i.seq->isFinished(tickCount-i.sAnim,combo.len()) && !hasNext;
-      const bool interrupt = force || i.seq->canInterrupt();
+      const bool finished  = i.seq->isFinished(tickCount,i.sAnim,combo.len()) && !hasNext;
+      const bool interrupt = force || i.seq->canInterrupt(tickCount,i.sAnim,combo.len());
       if(i.seq==sq && i.comb==comb && i.bs==bs && !finished)
         return true;
       if(!interrupt && !finished)
@@ -260,7 +260,7 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
   bool   doSort = false;
   for(size_t i=0;i<lay.size();++i) {
     const auto& l = lay[i];
-    if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount-l.sAnim,combo.len())) {
+    if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount,l.sAnim,combo.len())) {
       auto next = solveNext(solver,lay[i]);
       if(next!=lay[i].seq) {
         needToUpdate = true;

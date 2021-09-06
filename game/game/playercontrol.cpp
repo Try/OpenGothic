@@ -566,15 +566,17 @@ void PlayerControl::implMove(uint64_t dt) {
       return;
       }
     else if(ws==WeaponState::W1H || ws==WeaponState::W2H){
-      if(actrl[ActLeft])
-        pl.swingSwordL(); else
-      if(actrl[ActRight])
-        pl.swingSwordR(); else
+      if(actrl[ActLeft]) {
+        if(pl.swingSwordL())
+          ctrl[Action::Left] = false;
+        } else
+      if(actrl[ActRight]) {
+        if(pl.swingSwordR())
+          ctrl[Action::Right] = false;
+        } else
       if(actrl[ActBack])
         pl.blockSword();
 
-      ctrl[Action::Left]  = false;
-      ctrl[Action::Right] = false;
       //ctrl[Action::Back]  = false;
 
       actrl[ActLeft]  = false;

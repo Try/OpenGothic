@@ -3067,18 +3067,18 @@ void Npc::swingSword() {
   doAttack(Anim::Atack);
   }
 
-void Npc::swingSwordL() {
+bool Npc::swingSwordL() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
-    return;
-  doAttack(Anim::AtackL);
+    return false;
+  return doAttack(Anim::AtackL);
   }
 
-void Npc::swingSwordR() {
+bool Npc::swingSwordR() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
-    return;
-  doAttack(Anim::AtackR);
+    return false;
+  return doAttack(Anim::AtackR);
   }
 
 bool Npc::blockSword() {

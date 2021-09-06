@@ -338,7 +338,8 @@ Animation::Sequence::Sequence(const std::string &fname) {
     }
   }
 
-bool Animation::Sequence::isFinished(uint64_t t, uint16_t comboLen) const {
+bool Animation::Sequence::isFinished(uint64_t now, uint64_t sTime, uint16_t comboLen) const {
+  const uint64_t t = now-sTime;
   if(comboLen<data->defHitEnd.size()) {
     if(t>data->defHitEnd[comboLen])
       return true;
@@ -359,12 +360,17 @@ float Animation::Sequence::atkTotalTime(uint16_t comboLen) const {
   return totalTime();
   }
 
-bool Animation::Sequence::canInterrupt() const {
+bool Animation::Sequence::canInterrupt(uint64_t now, uint64_t sTime, uint16_t comboLen) const {
   if(animCls==Animation::Transition)
     return false;
-  if(!data->defHitEnd.empty())
+  if(size_t(comboLen*2+1)<data->defWindow.size() && isInComboWindow(now-sTime,comboLen))
     return false;
   return true;
+  }
+
+bool Animation::Sequence::isInComboWindow(uint64_t t, uint16_t comboLen) const {
+  uint16_t id = uint16_t(comboLen*2u);
+  return (t<data->defWindow[id+0] || data->defWindow[id+1]<=t);
   }
 
 bool Animation::Sequence::isDefParWindow(uint64_t t) const {
