@@ -362,8 +362,10 @@ bool PlayerControl::tickMove(uint64_t dt) {
     marvinF8(dt);
   cacheFocus = ctrl[Action::ActionGeneric];
   if(pl->isPrehit() || pl->isFinishingMove()) {
-    rotMouseY = 0;
-    rotMouse  = 0;
+    rotMouseY             = 0;
+    rotMouse              = 0;
+    ctrl[Action::RotateL] = false;
+    ctrl[Action::RotateR] = false;
     }
   if(camera!=nullptr)
     camera->setLookBack(ctrl[Action::LookBack]);
