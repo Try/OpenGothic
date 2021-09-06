@@ -465,7 +465,7 @@ void DialogMenu::paintChoise(PaintEvent &e) {
   if(!isChoiseMenuActive())
     return;
 
-  unsigned int textHeightOffset = padd;
+  int textHeightOffset = padd;
   Painter p(e);
   for(size_t i=0;i<choise.size();++i){
     const GthFont* font = &fnt;
