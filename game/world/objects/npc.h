@@ -262,6 +262,8 @@ class Npc final {
     bool      isDown() const;
     bool      isAtack() const;
     bool      isTalk() const;
+
+    bool      isAtackAnim() const;
     bool      isPrehit() const;
     bool      isImmortal() const;
 

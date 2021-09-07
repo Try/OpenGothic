@@ -601,6 +601,13 @@ bool Pose::isPrehit(uint64_t now) const {
   return false;
   }
 
+bool Pose::isAtackAnim() const {
+  for(auto& i:lay)
+    if(i.seq->isAtackAnim())
+      return true;
+  return false;
+  }
+
 bool Pose::isIdle() const {
   for(auto& i:lay)
     if(!i.seq->isIdle())

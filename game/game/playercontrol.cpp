@@ -83,12 +83,12 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
     }
 
   // this odd behaviour is from original game, seem more like a bug
-  const bool actTunneling = (pl!=nullptr && pl->isPrehit());
+  const bool actTunneling = (pl!=nullptr && pl->isAtackAnim());
   if(ctrl[KeyCodec::ActionGeneric] || actTunneling) {
     int fk = -1;
     if(a==Action::Forward)
       fk = ActForward;
-    if(ws==WeaponState::W1H || ws==WeaponState::W2H) {
+    if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
       if(a==Action::Back)
         fk = ActBack;
       if(a==Action::Left || a==Action::RotateL)
@@ -98,7 +98,7 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       }
     if(fk>=0) {
       std::memset(actrl,0,sizeof(actrl));
-      actrl[ActGeneric] = true;
+      actrl[ActGeneric] = ctrl[KeyCodec::ActionGeneric];
       actrl[fk]         = true;
 
       ctrl[a] = true;
@@ -143,8 +143,8 @@ void PlayerControl::onKeyReleased(KeyCodec::Action a) {
   if(a==KeyCodec::Map && pl!=nullptr) {
     w->script().playerHotKeyScreenMap(*pl);
     }
-  if(a==KeyCodec::ActionGeneric)
-    std::memset(actrl,0,sizeof(actrl));
+
+  std::memset(actrl,0,sizeof(actrl));
   }
 
 bool PlayerControl::isPressed(KeyCodec::Action a) const {
@@ -361,12 +361,6 @@ bool PlayerControl::tickMove(uint64_t dt) {
   if(ctrl[Action::K_F8] && Gothic::inst().isMarvinEnabled())
     marvinF8(dt);
   cacheFocus = ctrl[Action::ActionGeneric];
-  if(pl->isPrehit() || pl->isFinishingMove()) {
-    rotMouseY             = 0;
-    rotMouse              = 0;
-    ctrl[Action::RotateL] = false;
-    ctrl[Action::RotateR] = false;
-    }
   if(camera!=nullptr)
     camera->setLookBack(ctrl[Action::LookBack]);
   implMove(dt);
@@ -400,6 +394,7 @@ void PlayerControl::implMove(uint64_t dt) {
   auto  gl       = pl.guild();
   float rspeed   = float(w->script().guildVal().turn_speed[gl])*(float(dt)/1000.f)*60.f/100.f;
   auto  ws       = pl.weaponState();
+  bool  allowRot = !(pl.isPrehit() || pl.isFinishingMove() || pl.bodyStateMasked()==BS_CLIMB);
 
   Npc::Anim ani=Npc::Anim::Idle;
 
@@ -466,7 +461,7 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   int rotation=0;
-  if(pl.bodyStateMasked()!=BS_CLIMB) {
+  if(allowRot) {
     if(ctrl[KeyCodec::RotateL]) {
       rot += rspeed;
       rotation = -1;

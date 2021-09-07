@@ -3323,6 +3323,10 @@ bool Npc::isTalk() const {
   return owner.script().isTalk(*this);
   }
 
+bool Npc::isAtackAnim() const {
+  return visual.pose().isAtackAnim();
+  }
+
 bool Npc::isPrehit() const {
   return visual.pose().isPrehit(owner.tickCount());
   }

@@ -288,6 +288,11 @@ void Animation::setupIndex() {
   for(auto& i:sequences) {
     if((i.next==i.askName && !i.next.empty()) || i.next==i.name)
       i.animCls = Loop;
+    if(!i.data->defWindow.empty()) {
+      i.animCls = Transition;
+      i.next    = "";
+      }
+
     if(i.name.find("S_")==0)
       i.shortName = &i.name[2];
     if(i.name=="T_1HRUN_2_1H"   || i.name=="T_BOWRUN_2_BOW" ||
@@ -351,7 +356,6 @@ float Animation::Sequence::totalTime() const {
   return float(data->numFrames)*1000.f/data->fpsRate;
   }
 
-
 float Animation::Sequence::atkTotalTime(uint16_t comboLen) const {
   if(comboLen<data->defHitEnd.size()) {
     uint64_t time = data->defHitEnd[comboLen];
@@ -384,6 +388,13 @@ bool Animation::Sequence::isDefWindow(uint64_t t) const {
     if(data->defWindow[i+0]<=t && t<data->defWindow[i+1])
       return true;
     }
+  return false;
+  }
+
+bool Animation::Sequence::isAtackAnim() const {
+  for(auto& e:data->events)
+    if(e.m_Def==ZenLoad::DEF_OPT_FRAME)
+      return true;
   return false;
   }
 
