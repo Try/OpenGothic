@@ -905,54 +905,55 @@ const Tempest::Vec3& DynamicWorld::NpcItem::position() const {
   return obj->pos;
   }
 
-bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& dst, CollisionTest& out) {
+bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& to, CollisionTest& out) {
   if(!obj)
     return false;
-  return testMove(dst,obj->pos,out);
+  return testMove(to,obj->pos,out);
   }
 
-bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& dst, const Tempest::Vec3& pos0, CollisionTest& out) {
+bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& to, const Tempest::Vec3& pos0, CollisionTest& out) {
   if(!obj)
     return false;
-  auto prev  = obj->pos;
-  auto dp    = dst-pos0;
-  int  count = 1;
-
-  if((dp.x*dp.x+dp.z*dp.z)>r*r || dp.y>obj->h*0.5f) {
-    const int countXZ = int(std::ceil(std::sqrt(dp.x*dp.x+dp.z*dp.z)/r));
-    const int countY  = int(std::ceil(std::abs(dp.y)/(obj->h*0.5f)));
-
-    count = std::max(countXZ,countY);
-    }
-
-  for(int i=1; i<=count; ++i) {
-    auto pos = pos0+(dp*float(i))/float(count);
-    implSetPosition(pos);
-    if(owner->hasCollision(*this,out)) {
-      implSetPosition(prev);
-      return (owner->hasCollision(*this,out));
-      }
-    }
+  auto prev = obj->pos;
+  auto code = implTryMove(to,pos0,out);
   implSetPosition(prev);
-  return true;
+  return code==MoveCode::MC_OK;
   }
 
-bool DynamicWorld::NpcItem::tryMove(const Tempest::Vec3& to, CollisionTest& out) {
-  if(!obj)
-    return false; 
-
+DynamicWorld::MoveCode DynamicWorld::NpcItem::tryMove(const Tempest::Vec3& to, CollisionTest& out) {
   // 2-santimeters
   static const float eps = 2;
 
-  auto initial = obj->pos;
+  if(!obj)
+    return MoveCode::MC_Fail;
+
+  auto dp = to - obj->pos;
+  if(std::abs(dp.x)<eps && std::abs(dp.y)<eps && std::abs(dp.z)<eps) {
+    // skip-move
+    return MoveCode::MC_Skip;
+    }
+
+  auto code = implTryMove(to,obj->pos,out);
+  switch(code) {
+    case MoveCode::MC_Fail:
+    case MoveCode::MC_Skip:
+      return code;
+    case MoveCode::MC_Partial:
+      setPosition(out.partial);
+      return MoveCode::MC_Partial;
+    case MoveCode::MC_OK:
+      owner->npcList->onMove(*obj);
+      owner->bulletList->onMoveNpc(*obj,*owner->npcList);
+      return MoveCode::MC_OK;
+    }
+  return code;
+  }
+
+DynamicWorld::MoveCode DynamicWorld::NpcItem::implTryMove(const Tempest::Vec3& to, const Tempest::Vec3& pos0, CollisionTest& out) {
+  auto initial = pos0;
   auto r       = obj->r;
   int  count   = 1;
   auto dp      = to-initial;
-
-  if(std::abs(dp.x)<eps && std::abs(dp.y)<eps && std::abs(dp.z)<eps) {
-    // skip-move
-    return true;
-    }
 
   if((dp.x*dp.x+dp.z*dp.z)>r*r || dp.y>obj->h*0.5f) {
     const int countXZ = int(std::ceil(std::sqrt(dp.x*dp.x+dp.z*dp.z)/r));
@@ -968,22 +969,20 @@ bool DynamicWorld::NpcItem::tryMove(const Tempest::Vec3& to, CollisionTest& out)
     if(owner->hasCollision(*this,out)) {
       if(i>1) {
         // moved a bit
-        setPosition(prev);
-        return true;
+        out.partial = prev;
+        return MoveCode::MC_Partial;
         }
       implSetPosition(initial);
       if(owner->hasCollision(*this,out)) {
         // was in collision from the start
-        setPosition(pos);
-        return true;
+        implSetPosition(to);
+        return MoveCode::MC_OK;
         }
-      return false;
+      return MoveCode::MC_Fail;
       }
     }
 
-  owner->npcList->onMove(*obj);
-  owner->bulletList->onMoveNpc(*obj,*owner->npcList);
-  return true;
+  return MoveCode::MC_OK;
   }
 
 bool DynamicWorld::NpcItem::hasCollision() const {

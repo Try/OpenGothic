@@ -53,7 +53,15 @@ class DynamicWorld final {
       C_Item      = 6,
       };
 
+    enum MoveCode : uint8_t {
+      MC_Fail,
+      MC_OK,
+      MC_Skip,
+      MC_Partial,
+      };
+
     struct CollisionTest {
+      Tempest::Vec3 partial = {};
       Tempest::Vec3 normal  = {};
       bool          npcCol  = false;
       bool          preFall = false;
@@ -79,9 +87,9 @@ class DynamicWorld final {
 
         float centerY() const;
 
-        bool  testMove(const Tempest::Vec3& pos, CollisionTest& out);
-        bool  testMove(const Tempest::Vec3& pos, const Tempest::Vec3& from, CollisionTest& out);
-        bool  tryMove (const Tempest::Vec3& dp, CollisionTest& out);
+        bool  testMove(const Tempest::Vec3& to, CollisionTest& out);
+        bool  testMove(const Tempest::Vec3& to, const Tempest::Vec3& from, CollisionTest& out);
+        auto  tryMove (const Tempest::Vec3& to, CollisionTest& out) -> DynamicWorld::MoveCode;
 
         bool  hasCollision() const;
         float radius() const { return r; }
@@ -90,6 +98,7 @@ class DynamicWorld final {
         DynamicWorld*       owner  = nullptr;
         NpcBody*            obj    = nullptr;
         float               r      = 0.f;
+        auto  implTryMove    (const Tempest::Vec3& dp, const Tempest::Vec3& pos0, CollisionTest& out) -> DynamicWorld::MoveCode;
         void  implSetPosition(const Tempest::Vec3& pos);
         const Tempest::Vec3& position() const;
 

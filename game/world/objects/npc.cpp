@@ -3512,10 +3512,18 @@ bool Npc::tryMove(const Tempest::Vec3& dp) {
 
 bool Npc::tryMove(const Vec3& dp, DynamicWorld::CollisionTest& out) {
   auto to = Vec3(x,y,z)+dp;
-  if(!physic.tryMove(to,out))
-    return false;
-  setViewPosition(to);
-  return true;
+  switch(physic.tryMove(to,out)) {
+    case DynamicWorld::MoveCode::MC_Fail:
+      return false;
+    case DynamicWorld::MoveCode::MC_Partial:
+      setViewPosition(out.partial);
+      return true;
+    case DynamicWorld::MoveCode::MC_Skip:
+    case DynamicWorld::MoveCode::MC_OK:
+      setViewPosition(to);
+      return true;
+    }
+  return false;
   }
 
 bool Npc::tryTranslate(const Vec3& pos) {
