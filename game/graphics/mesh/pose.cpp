@@ -258,7 +258,7 @@ void Pose::stopAllAnim() {
 void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
   size_t ret    = 0;
   bool   doSort = false;
-  for(size_t i=0;i<lay.size();++i) {
+  for(size_t i=0; i<lay.size(); ++i) {
     const auto& l = lay[i];
     if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount,l.sAnim,combo.len())) {
       auto next = solveNext(solver,lay[i]);

@@ -745,13 +745,6 @@ bool MoveAlgo::isDive() const {
 void MoveAlgo::setInAir(bool f) {
   if(f==isInAir())
     return;
-  if(!f) {
-    if(npc.bodyStateMasked()==BS_JUMP) {
-      if(true)
-        npc.setAnim(Npc::Anim::Idle); else
-        npc.setAnim(Npc::Anim::Move); // TODO
-      }
-    }
   if(f)
     flags=Flags(flags|InAir); else
     flags=Flags(flags&(~InAir));
