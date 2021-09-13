@@ -47,7 +47,8 @@ class KeyCodec final {
       WeaponMage10,
 
       K_ENTER, // transform back
-      K_F8,
+      K_F8, // Marvin Mode's F8
+      K_K, // Marvin Mode's K
 
       Last
       };

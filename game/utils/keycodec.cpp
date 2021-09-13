@@ -113,6 +113,8 @@ KeyCodec::Action KeyCodec::tr(Tempest::KeyEvent& e) const {
     return Action(Weapon+10);
   if(e.key==Tempest::Event::K_F8)
     return K_F8;
+  if(e.key == Tempest::Event::K_K)
+    return K_K;
   return Idle;
   }
 
