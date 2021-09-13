@@ -333,8 +333,6 @@ void PlayerControl::marvinK(uint64_t dt) {
 	Tempest::Vec3 dp(s, 0.0f, -c);
 	pos += dp * 6000 * float(dt) / 1000.f;
 
-	pl.changeAttribute(ATR_HITPOINTS, pl.attribute(ATR_HITPOINTSMAX), false);
-	pl.changeAttribute(ATR_MANA, pl.attribute(ATR_MANAMAX), false);
 	pl.clearState(false);
 	pl.setPosition(pos);
 	pl.clearSpeed();
