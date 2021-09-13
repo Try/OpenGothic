@@ -48,7 +48,7 @@ class KeyCodec final {
 
       K_ENTER, // transform back
       K_F8, // Marvin Mode's F8
-	  K_K, // Marvin Mode's K
+      K_K, // Marvin Mode's K
 
       Last
       };
