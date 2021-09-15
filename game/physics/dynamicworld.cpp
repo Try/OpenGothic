@@ -168,8 +168,8 @@ struct DynamicWorld::NpcBodyList final {
     auto  ln   = e       - s;
     auto  at   = npc.pos - s;
 
-    float lenL = ln.manhattanLength();
-    float lenA = at.manhattanLength();
+    float lenL = ln.length();
+    float lenA = at.length();
 
     float dot  = Tempest::Vec3::dotProduct(ln,at);
     float div  = (lenL*lenA);
@@ -855,7 +855,7 @@ const char* DynamicWorld::validateSectorName(const char* name) const {
 
 bool DynamicWorld::hasCollision(const NpcItem& it, CollisionTest& out) {
   if(npcList->hasCollision(it,out.normal)){
-    out.normal /= out.normal.manhattanLength();
+    out.normal /= out.normal.length();
     out.npcCol = true;
     return true;
     }
@@ -1045,7 +1045,7 @@ void DynamicWorld::BulletBody::setPosition(const Tempest::Vec3& p) {
 
 void DynamicWorld::BulletBody::setDirection(const Tempest::Vec3& d) {
   dir  = d;
-  dirL = d.manhattanLength();
+  dirL = d.length();
   }
 
 float DynamicWorld::BulletBody::pathLength() const {

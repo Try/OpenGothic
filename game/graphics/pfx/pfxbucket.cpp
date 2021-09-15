@@ -341,7 +341,7 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
   if(!decl.useEmittersFOR)
     p.pos += emitter.pos;
 
-  auto l = p.dir.manhattanLength();
+  auto l = p.dir.length();
   if(l!=0.f) {
     float velocity = randf(decl.velAvg,decl.velVar);
     p.dir = p.dir*velocity/l;
@@ -515,7 +515,7 @@ void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
       if(decl.visOrientation==ParticleFx::Orientation::Velocity3d) {
         static float k1 = -1, k2 = -1;
         auto dir    = ps.dir;
-        auto ldir   = dir.manhattanLength();
+        auto ldir   = dir.length();
         if(ldir!=0.f)
           dir/=ldir;
         t = dir*k1;
@@ -526,7 +526,7 @@ void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
         float w   = 0;
         ctx.vp.project(dir.x,dir.y,dir.z,w);
 
-        auto ldir   = dir.manhattanLength();
+        auto ldir   = dir.length();
         if(ldir!=0.f)
           dir/=ldir;
 

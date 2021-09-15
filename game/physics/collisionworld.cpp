@@ -162,7 +162,7 @@ bool CollisionWorld::hasCollision(btRigidBody& it, Tempest::Vec3& normal) {
       }
 
     void normalize() {
-      norm /= norm.manhattanLength();
+      norm /= norm.length();
       }
     };
 

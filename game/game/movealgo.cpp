@@ -458,7 +458,7 @@ void MoveAlgo::accessDamFly(float dx, float dz) {
   if(flags==0) {
     float len = std::sqrt(dx*dx+dz*dz);
     auto  vec = Tempest::Vec3(dx,len*0.5f,dz);
-    vec = vec/vec.manhattanLength();
+    vec = vec/vec.length();
 
     fallSpeed = vec*1.f;
     fallCount = 0;
@@ -472,7 +472,7 @@ void MoveAlgo::applyRotation(Tempest::Vec3& out, const Tempest::Vec3& dpos) cons
     float rot = -npc.rotationYRad();
     float s   = std::sin(rot), c = std::cos(rot);
 
-    out.y = -dpos.manhattanLength()*s;
+    out.y = -dpos.length()*s;
     mul   = c*mulSpeed;
     } else {
     out.y = dpos.y;

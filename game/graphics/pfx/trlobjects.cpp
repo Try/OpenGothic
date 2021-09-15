@@ -98,7 +98,7 @@ struct TrlObjects::Bucket {
                  const Point& a, const Point& b, float tA, float tB, uint32_t clA, uint32_t clB) {
     auto dp = b.at  - a.at;
     auto n  = Vec3::crossProduct(viewDir,dp);
-    n = n/n.manhattanLength();
+    n = n/n.length();
     n = n*decl.trlWidth*2.f;
 
     float dx[6] = {1,  1, -1,  1, -1, -1};

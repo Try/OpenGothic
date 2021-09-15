@@ -176,7 +176,7 @@ void DialogMenu::dialogCamera(Camera& camera) {
       float a = pl->rotation();
       camera.setSpin(PointF(0,a));
       } else {
-      float l = p0.manhattanLength();
+      float l = p0.length();
       float a = 0;
       if(curentIsPl) {
         a = pl->rotation()+45-270;

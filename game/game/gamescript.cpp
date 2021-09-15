@@ -2638,7 +2638,7 @@ void GameScript::npc_getdisttoitem(Daedalus::DaedalusVM& vm) {
     return;
     }
   auto dp = itm->position()-npc->position();
-  vm.setReturn(int32_t(dp.manhattanLength()));
+  vm.setReturn(int32_t(dp.length()));
   }
 
 void GameScript::npc_getheighttoitem(Daedalus::DaedalusVM& vm) {
@@ -2660,7 +2660,7 @@ void GameScript::npc_getdisttoplayer(Daedalus::DaedalusVM& vm) {
     return;
     }
   auto dp = pl->position()-npc->position();
-  auto l  = dp.manhattanLength();
+  auto l  = dp.length();
   if(l>float(std::numeric_limits<int32_t>::max())) {
     vm.setReturn(std::numeric_limits<int32_t>::max());
     return;

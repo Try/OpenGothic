@@ -184,7 +184,7 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
 
   switch(layer) {
     case 0:
-      smWidth    = (r-l).manhattanLength();
+      smWidth    = (r-l).length();
       smWidth    = std::max(smWidth,1024.f); // ~4 pixels per santimeter
       break;
     case 1:
@@ -395,14 +395,14 @@ void Camera::setDialogDistance(float d) {
 void Camera::followPos(Vec3& pos, Vec3 dest, bool inMove, float dtF) {
   const auto& def = cameraDef();
   auto        dp  = (dest-pos);
-  auto        len = dp.manhattanLength();
+  auto        len = dp.length();
 
   if(len>0.1f && def.translate && camMod!=Dialog && camMod!=Mobsi){
     const float maxDist = 180;
     float       speed   = 0;
     if(inMove)
       speed = def.veloTrans*dtF; else
-      speed = dp.manhattanLength()*dtF*2.f;
+      speed = dp.length()*dtF*2.f;
     float       tr      = std::min(speed,len);
     if(len-tr>maxDist)
       tr = (len-maxDist);
@@ -595,7 +595,7 @@ float Camera::calcCameraColision(const Matrix4x4& view, const float dist) const 
       d -=r0;
       r1-=r0;
 
-      float dist0 = r1.manhattanLength();
+      float dist0 = r1.length();
       float dist1 = Vec3::dotProduct(d,tr)/dist;
       if(rc.hasCol)
         dist1 = std::max<float>(0,dist1-padding);

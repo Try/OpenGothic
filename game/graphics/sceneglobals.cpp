@@ -9,7 +9,7 @@ SceneGlobals::SceneGlobals()
   auto& device = Resources::device();
 
   uboGlobal.lightDir={1,1,-1};
-  uboGlobal.lightDir/=uboGlobal.lightDir.manhattanLength();
+  uboGlobal.lightDir/=uboGlobal.lightDir.length();
 
   uboGlobal.viewProject.identity();
   uboGlobal.viewProjectInv.identity();

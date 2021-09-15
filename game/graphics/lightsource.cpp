@@ -15,7 +15,7 @@ LightSource::LightSource() {
   }
 
 void LightSource::setDir(const Tempest::Vec3& d) {
-  float l = d.manhattanLength();
+  float l = d.length();
   if(l>0){
     ldir = d/l;
     } else {

@@ -34,7 +34,7 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& d, bool
     auto  dx = (f1.position.x-f0.position.x);
     auto  dy = (f1.position.y-f0.position.y);
     auto  dz = (f1.position.z-f0.position.z);
-    keyframes[i].position = Vec3(dx,dy,dz).manhattanLength();
+    keyframes[i].position = Vec3(dx,dy,dz).length();
     keyframes[i].ticks    = uint64_t(keyframes[i].position/mover.moveSpeed);
     if(keyframes[i].ticks==0) {
       keyframes[i].ticks = uint64_t(1.f/mover.moveSpeed);

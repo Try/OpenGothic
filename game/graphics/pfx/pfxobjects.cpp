@@ -61,9 +61,9 @@ void PfxObjects::tick(uint64_t ticks) {
   ctx.z.y    = m.at(1,2);
   ctx.z.z    = m.at(2,2);
 
-  ctx.left/=ctx.left.manhattanLength();
-  ctx.top /=ctx.top.manhattanLength();
-  ctx.z   /=ctx.z.manhattanLength();
+  ctx.left/=ctx.left.length();
+  ctx.top /=ctx.top.length();
+  ctx.z   /=ctx.z.length();
 
   ctx.leftA.x = ctx.left.x;
   ctx.leftA.z = ctx.left.z;
