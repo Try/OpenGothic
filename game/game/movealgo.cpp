@@ -106,20 +106,16 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
     return false;
     }
 
-  const float speed = gravity*1.f;
-
-  norm.x =  normXZInv*norm.x/normXZ;
-  norm.z =  normXZInv*norm.z/normXZ;
-  norm.y = -normXZ   *norm.y/normXZInv;
-
-  auto dpos = norm*speed;
-
-  fallSpeed += dpos*float(dt);
-  fallCount  = 1;
-
   auto dp = fallSpeed*float(dt);
-  if(!tryMove(dp.x,dp.y,dp.z))
-    tryMove(dp.x,0,dp.z);
+  if(!tryMove(dp.x,dp.y,dp.z,info)) {
+    onGravityFailed(info,dt);
+    } else {
+    norm.x =  normXZInv*norm.x/normXZ;
+    norm.z =  normXZInv*norm.z/normXZ;
+    norm.y = -normXZ   *norm.y/normXZInv;
+    fallSpeed += norm*float(dt)*gravity;
+    fallCount  = 1;
+    }
 
   npc.setAnimRotate(0);
   if(!npc.isDown()) {
@@ -140,7 +136,6 @@ void MoveAlgo::tickGravity(uint64_t dt) {
     fallSpeed/=fallCount;
     fallCount = 0.f;
     }
-  fallSpeed.y   -= gravity*float(dt);
 
   // check ground
   auto  pos      = npc.position();
@@ -151,17 +146,19 @@ void MoveAlgo::tickGravity(uint64_t dt) {
   auto  water    = waterRay(pos);
   float fallStop = std::max(water-chest,ground);
 
-  auto dp        = fallSpeed*float(dt);
+  const auto dp = fallSpeed*float(dt);
 
   if(pY+dp.y>fallStop || dp.y>0) {
     // continue falling
-    if(!tryMove(dp.x,dp.y,dp.z)) {
-      fallSpeed.y=0.f;
-      // attach to ground
-      setInAir(false);
-      if(!npc.isDead())
-        npc.setAnim(AnimationSolver::Idle);
+    DynamicWorld::CollisionTest info;
+    if(!tryMove(dp.x,dp.y,dp.z,info)) {
+      npc.setAnim(AnimationSolver::Fall);
+      // takeFallDamage();
+      onGravityFailed(info,dt);
+      } else {
+      fallSpeed.y -= gravity*float(dt);
       }
+
     if(fallSpeed.y<-1.5f && !npc.isDead())
       npc.setAnim(AnimationSolver::FallDeep); else
     if(fallSpeed.y<-0.3f && !npc.isDead() && npc.bodyStateMasked()!=BS_JUMP)
@@ -241,12 +238,14 @@ void MoveAlgo::tickClimb(uint64_t dt) {
   if(pos.y<climbHeight) {
     pos.y += dp.y;
     pos.y = std::min(pos.y,climbHeight);
-    npc.tryTranslate(pos);
+    // npc.tryTranslate(pos);
+    npc.setPosition(pos);
     }
 
   pos.x += dp.x;
   pos.z += dp.z;
-  npc.tryTranslate(pos);
+ //  npc.tryTranslate(pos);
+  npc.setPosition(pos);
 
   setAsSlide(false);
   setInAir  (false);
@@ -599,7 +598,7 @@ bool MoveAlgo::checkLastBounce() const {
   }
 
 void MoveAlgo::takeFallDamage() const {
-  auto    dmg = DamageCalculator::damageFall(npc,fallSpeed.y);
+  auto dmg = DamageCalculator::damageFall(npc,fallSpeed.y);
   if(!dmg.hasHit)
     return;
   int32_t hp  = npc.attribute(ATR_HITPOINTS);
@@ -896,6 +895,23 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
       npc.setDirection(npc.rotation()+stp);
       break;
     }
+  }
+
+void MoveAlgo::onGravityFailed(const DynamicWorld::CollisionTest& info, uint64_t dt) {
+  auto        norm      = info.normal;
+  const float normXZ    = std::sqrt(norm.x*norm.x+norm.z*norm.z);
+  const float normXZInv = std::sqrt(1.f - normXZ*normXZ);
+
+  if(normXZ>0.001f && normXZInv>0.001f) {
+    norm.x = normXZInv*norm.x/normXZ;
+    norm.z = normXZInv*norm.z/normXZ;
+    norm.y = normXZ   *norm.y/normXZInv;
+    }
+
+  if(Tempest::Vec3::dotProduct(fallSpeed,norm)<0.f)
+    fallSpeed  = norm*gravity*50.f; else
+    fallSpeed += norm*float(dt)*gravity;
+  fallCount  = 1;
   }
 
 float MoveAlgo::waterRay(const Tempest::Vec3& pos, bool* hasCol) const {

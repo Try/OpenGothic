@@ -291,10 +291,12 @@ class Npc final {
     void      excRoutine(size_t callback);
     void      multSpeed(float s);
 
-    bool      testMove    (const Tempest::Vec3& pos);
-    bool      tryMove     (const Tempest::Vec3& dp);
+    bool      testMove(const Tempest::Vec3& pos);
+    bool      tryMove(const Tempest::Vec3& dp);
     bool      tryMove     (const Tempest::Vec3& dp, DynamicWorld::CollisionTest& out);
-    bool      tryTranslate(const Tempest::Vec3& pos);
+    bool      tryTranslate(const Tempest::Vec3& to);
+    bool      tryTranslate(const Tempest::Vec3&         to,
+                           DynamicWorld::CollisionTest& out);
 
     JumpStatus tryJump();
     bool      hasCollision() const { return physic.hasCollision(); }

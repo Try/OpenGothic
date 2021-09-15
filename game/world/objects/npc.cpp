@@ -1682,7 +1682,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     owner.addWeaponHitEffect(other,*this).play();
 
   if(hitResult.hasHit) {
-    if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr && !isSwim()) {
+    if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr && !isSwim() && !mvAlgo.isClimb()) {
       const bool noInter = (hnpc.bodyStateInterruptableOverride!=0);
       if(!noInter)
         visual.interrupt();
@@ -3511,12 +3511,20 @@ bool Npc::testMove(const Tempest::Vec3& pos) {
 
 bool Npc::tryMove(const Tempest::Vec3& dp) {
   DynamicWorld::CollisionTest out;
-  return tryMove(dp,out);
+  return tryMove(dp, out);
   }
 
 bool Npc::tryMove(const Vec3& dp, DynamicWorld::CollisionTest& out) {
-  auto to = Vec3(x,y,z)+dp;
-  switch(physic.tryMove(to,out)) {
+  return tryTranslate(Vec3(x,y,z) + dp, out);
+  }
+
+bool Npc::tryTranslate(const Tempest::Vec3& to) {
+  DynamicWorld::CollisionTest out;
+  return tryTranslate(to,out);
+  }
+
+bool Npc::tryTranslate(const Vec3& to, DynamicWorld::CollisionTest& out) {
+  switch(physic.tryMove(to, out)) {
     case DynamicWorld::MoveCode::MC_Fail:
       return false;
     case DynamicWorld::MoveCode::MC_Partial:
@@ -3528,11 +3536,6 @@ bool Npc::tryMove(const Vec3& dp, DynamicWorld::CollisionTest& out) {
       return true;
     }
   return false;
-  }
-
-bool Npc::tryTranslate(const Vec3& pos) {
-  DynamicWorld::CollisionTest out;
-  return tryMove(pos-Vec3(x,y,z),out);
   }
 
 Npc::JumpStatus Npc::tryJump() {
@@ -3552,57 +3555,53 @@ Npc::JumpStatus Npc::tryJump() {
 
   const float jumpLow = float(g.jumplow_height[gl]);
   const float jumpMid = float(g.jumpmid_height[gl]);
-  const float jumpUp  = float(g.jumpup_height [gl]);
+  const float jumpUp  = float(g.jumpup_height[gl]);
 
-  auto pos = position();
+  auto pos0 = position();
+
   JumpStatus ret;
   DynamicWorld::CollisionTest info;
-  if(!isInAir() && physic.testMove(pos+dp,info)) {
+  if(!isInAir() && physic.testMove(pos0+dp,info)) {
     // jump forward
     ret.anim = Anim::Jump;
     return ret;
     }
 
-  float jumpY = 0;
-  int   step  = 2;
-  for(int i=1; i<int(jumpUp+jumpLow); i+=step) {
-    auto p0 = Vec3{pos.x,pos.y+float(i),pos.z};
+  auto  lnd   = owner.physic()->landRay(pos0 + dp + Vec3(0, jumpUp + jumpLow, 0));
+  float jumpY = lnd.v.y;
+  auto  pos1  = Vec3(pos0.x,jumpY,pos0.z);
+  auto  pos2  = pos1 + dp;
 
-    if(!physic.testMove(p0,pos,info)) {
-      // jump forward - something is blocking climbing
-      ret.anim = Anim::Jump;
-      return ret;
-      }
+  float dY    = jumpY - y;
 
-    jumpY = p0.y;
-    if(physic.testMove(p0+dp,p0,info)) {
-      break;
-      }
-    }
-
-  for(int i=1; i<int(DynamicWorld::ghostPadding); i+=step) {
-    jumpY+=float(step);
-    auto p0 = Vec3{pos.x,jumpY,pos.z};
-    if(!physic.testMove(p0,pos,info))
-      break;
-    }
-
-  float dY = jumpY - y;
-  if(dY>=jumpUp || dY>=jumpMid) {
-    // Jump to the edge, and then pull up. Height: 200-350cm
+  if(dY<=0.f ||
+     !physic.testMove(pos2,pos1,info)) {
     ret.anim   = Anim::JumpUp;
-    ret.height = jumpY - jumpLow;
+    ret.height = y + jumpUp;
     return ret;
     }
 
-  DynamicWorld::CollisionTest out;
-  if(mvAlgo.testSlide(Vec3{pos.x,jumpY,pos.z}+dp,out)) {
-    // cannot climb to angled surface
+  if(!physic.testMove(pos1,pos0,info)) {
+    // check approximate path of climb failed
     ret.anim = Anim::Jump;
     return ret;
     }
 
-  if(isInAir() && (0<dY && dY<=jumpLow)) {
+  if(dY>=jumpUp || dY>=jumpMid) {
+    // Jump to the edge, and then pull up. Height: 200-350cm
+    ret.anim   = Anim::JumpUp;
+    ret.height = y + jumpUp;
+    return ret;
+    }
+
+  DynamicWorld::CollisionTest out;
+  if(mvAlgo.testSlide(Vec3{pos0.x,jumpY,pos0.z}+dp,out)) {
+    // cannot climb to non angled surface
+    ret.anim = Anim::Jump;
+    return ret;
+    }
+
+  if(isInAir() && dY<=jumpLow + translateY()) {
     // jumpup -> climb
     ret.anim   = Anim::JumpHang;
     ret.height = jumpY;
@@ -3620,12 +3619,14 @@ Npc::JumpStatus Npc::tryJump() {
     ret.height = jumpY;
     return ret;
     }
+
   if(dY<=jumpMid) {
     // Supported on the hands in one sentence. Height: 100-200cm
     ret.anim   = Anim::JumpUpMid;
     ret.height = jumpY;
     return ret;
     }
+
   return JumpStatus(); // error
   }
 

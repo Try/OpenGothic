@@ -109,7 +109,6 @@ class MoveAlgo final {
     bool    isForward(const Tempest::Vec3& dp) const;
     bool    isBackward(const Tempest::Vec3& dp) const;
     bool    testMoveDirection(const Tempest::Vec3& dp, const Tempest::Vec3& dir) const;
-    void    onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::CollisionTest& info, uint64_t dt);
     void    applyRotation(Tempest::Vec3& out, const Tempest::Vec3& in) const;
     void    applyRotation(Tempest::Vec3& out, const Tempest::Vec3& in, float radians) const;
     auto    animMoveSpeed(uint64_t dt) const -> Tempest::Vec3;
@@ -117,6 +116,9 @@ class MoveAlgo final {
     auto    go2NpcMoveSpeed (const Tempest::Vec3& dp, const Npc &tg) -> Tempest::Vec3;
     auto    go2WpMoveSpeed  (Tempest::Vec3 dp, const Tempest::Vec3& to) -> Tempest::Vec3;
     void    implTick(uint64_t dt,MvFlags fai=NoFlag);
+
+    void    onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::CollisionTest& info, uint64_t dt);
+    void    onGravityFailed(const DynamicWorld::CollisionTest& info, uint64_t dt);
 
     float   stepHeight()  const;
     float   slideAngle()  const;
