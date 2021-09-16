@@ -18,6 +18,7 @@
 #include "utils/installdetect.h"
 #include "utils/fileutil.h"
 #include "utils/inifile.h"
+#include "utils/finetunevars.h"
 
 using namespace Tempest;
 using namespace FileUtil;
@@ -453,6 +454,7 @@ void Gothic::cancelLoading() {
   }
 
 void Gothic::tick(uint64_t dt) {
+  FinetuneVars::parseVars();
   if(pendingChapter){
     if(aiIsDlgFinished()) {
       onIntroChapter(chapter);

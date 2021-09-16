@@ -8,6 +8,7 @@
 #include "world/world.h"
 #include "ui/dialogmenu.h"
 #include "ui/inventorymenu.h"
+#include "utils/finetunevars.h"
 #include "gothic.h"
 
 PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
@@ -414,7 +415,7 @@ void PlayerControl::implMove(uint64_t dt) {
   float rot      = pl.rotation();
   float rotY     = pl.rotationY();
   auto  gl       = pl.guild();
-  float rspeed   = float(w->script().guildVal().turn_speed[gl])*(float(dt)/1000.f)*60.f/100.f;
+  float rspeed = float(w->script().guildVal().turn_speed[gl]) * (float(dt) / 1000.f) * 60.f / 100.f * std::stof(FinetuneVars::getVars()["rspeed_modifier"]);
   auto  ws       = pl.weaponState();
   bool  allowRot = !(pl.isPrehit() || pl.isFinishingMove() || pl.bodyStateMasked()==BS_CLIMB);
 

@@ -12,6 +12,7 @@
 #endif
 
 #include "utils/crashlog.h"
+#include "utils/finetunevars.h"
 #include "gothic.h"
 #include "mainwindow.h"
 
@@ -70,6 +71,8 @@ int main(int argc,const char** argv) {
   Tempest::Device      device{*api,selectDevice(*api)};
   Resources            resources{device};
   GameMusic            music;
+
+  FinetuneVars(); // initialize
 
   gothic.setupGlobalScripts();
 
