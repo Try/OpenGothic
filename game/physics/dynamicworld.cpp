@@ -169,16 +169,14 @@ struct DynamicWorld::NpcBodyList final {
     auto  at   = npc.pos - s;
 
     float lenL = ln.length();
-    float lenA = at.length();
 
     float dot  = Tempest::Vec3::dotProduct(ln,at);
-    float div  = (lenL*lenA);
-    float proj = dot/(div<=0 ? 1.f : div);
+    float proj = dot/(lenL<=0 ? 1.f : (lenL*lenL));
     proj = std::max(0.f,std::min(proj,1.f));
 
     auto  nr   = ln*proj + s;
     auto  dp   = nr      - npc.pos;
-    float R    = npc.r + extR;
+    float R    = 0.5f*(npc.rX + npc.rZ) + extR;
     if(dp.x*dp.x+dp.z*dp.z > R*R)
       return false;
     if(dp.y<0 || npc.h<dp.y)
@@ -791,6 +789,9 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
     b.move(to);
     b.setDirection(d);
     b.addPathLen(l*dtF);
+    if(b.pathLength()>10000) {
+      b.cb->onStop();
+      }
     }
   }
 

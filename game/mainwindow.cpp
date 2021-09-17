@@ -453,6 +453,8 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
 
   auto world = Gothic::inst().world();
   auto pl    = world==nullptr ? nullptr : world->player();
+  if(pl==nullptr)
+    return;
 
   auto pos = focus.displayPosition();
   vp.project(pos.x,pos.y,pos.z);
