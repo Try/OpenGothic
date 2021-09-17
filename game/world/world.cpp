@@ -767,10 +767,11 @@ const Daedalus::GEngineClasses::C_Focus& World::searchPolicy(const Npc& pl, Targ
     case WeaponState::Fist:
     case WeaponState::W1H:
     case WeaponState::W2H:
+      opt = WorldObjects::NoDeath;
       return game.script()->focusMele();
     case WeaponState::Bow:
     case WeaponState::CBow:
-      opt  = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
+      opt = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
       return game.script()->focusRange();
     case WeaponState::Mage:{
       if(auto weapon = pl.inventory().activeWeapon()) {
@@ -778,7 +779,7 @@ const Daedalus::GEngineClasses::C_Focus& World::searchPolicy(const Npc& pl, Targ
         auto&   spl = script().spellDesc(id);
         coll = TargetCollect(spl.targetCollectAlgo);
         }
-      opt  = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
+      opt = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
       return game.script()->focusMage();
       }
     case WeaponState::NoWeapon:

@@ -70,13 +70,14 @@ class PlayerControl final {
       ActRight  =3,
       ActGeneric=4,
       ActMove   =5,
+      ActKill   =6,
       };
 
     using Action=KeyCodec::Action;
 
     bool           ctrl[Action::Last]={};
     bool           wctrl[WeaponAction::Last]={};
-    bool           actrl[6]={};
+    bool           actrl[7]={};
 
     WeaponAction   wctrlLast = WeaponAction::WeaponMele; //!< Reminder for weapon toggle.
 

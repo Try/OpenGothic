@@ -86,8 +86,11 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   const bool actTunneling = (pl!=nullptr && pl->isAtackAnim());
   if(ctrl[KeyCodec::ActionGeneric] || actTunneling) {
     int fk = -1;
-    if(a==Action::Forward)
-      fk = ActForward;
+    if(a==Action::Forward) {
+      if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAtackAnim())
+        fk = ActKill; else
+        fk = ActForward;
+      }
     if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
       if(a==Action::Back)
         fk = ActBack;
@@ -613,9 +616,7 @@ void PlayerControl::implMove(uint64_t dt) {
         return;
       case WeaponState::W1H:
       case WeaponState::W2H: {
-        if(pl.target()!=nullptr && pl.canFinish(*pl.target()))
-          pl.finishingMove(); else
-          pl.swingSword();
+        pl.swingSword();
         return;
         }
       case WeaponState::Bow:
@@ -629,6 +630,12 @@ void PlayerControl::implMove(uint64_t dt) {
           actrl[ActForward] = false;
         }
       }
+    }
+
+  if(actrl[ActKill]) {
+    if((ws==WeaponState::W1H || ws==WeaponState::W2H) && pl.target()!=nullptr && pl.canFinish(*pl.target()))
+      pl.finishingMove();
+    actrl[ActKill] = false;
     }
 
   if(actrl[ActLeft] || actrl[ActRight] || actrl[ActBack]) {
