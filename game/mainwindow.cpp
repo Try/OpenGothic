@@ -807,9 +807,9 @@ void MainWindow::onVideo(const Daedalus::ZString& fname) {
   }
 
 void MainWindow::onStartLoading() {
-  player.clearInput();
+  player   .clearInput();
   inventory.onWorldChanged();
-  dialogs.onWorldChanged();
+  dialogs  .onWorldChanged();
   }
 
 void MainWindow::onWorldLoaded() {

@@ -99,6 +99,7 @@ class PlayerControl final {
     void           marvinK(uint64_t dt);
     void           toogleWalkMode();
     void           toggleSneakMode();
+    void           moveFocus(FocusAction act);
     Focus          findFocus(Focus *prev);
 
     void           clrDraw();

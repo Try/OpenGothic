@@ -110,6 +110,8 @@ class WorldObjects final {
     Npc*           validateNpc        (Npc         *def);
     Item*          validateItem       (Item        *def);
 
+    bool           testFocusNpc       (const Npc &pl, Npc *def, const SearchOpt& opt);
+
     Interactive*   findInteractive(const Npc& pl, Interactive *def, const SearchOpt& opt);
     Npc*           findNpc        (const Npc& pl, Npc* def, const SearchOpt& opt);
     Item*          findItem       (const Npc& pl, Item* def, const SearchOpt& opt);

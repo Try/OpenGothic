@@ -54,6 +54,7 @@ class World final {
 
     uint32_t             npcId(const Npc* ptr) const;
     Npc*                 npcById(uint32_t id);
+    uint32_t             npcCount() const;
 
     uint32_t             mobsiId(const Interactive* ptr) const;
     Interactive*         mobsiById(uint32_t id);
@@ -120,6 +121,7 @@ class World final {
     Focus                validateFocus(const Focus& def);
     Focus                findFocus(const Npc& pl, const Focus &def);
     Focus                findFocus(const Focus& def);
+    bool                 testFocusNpc(Npc *def);
 
     void                 triggerOnStart(bool firstTime);
     void                 triggerEvent(const TriggerEvent& e);
@@ -177,6 +179,7 @@ class World final {
     void                 invalidateVobIndex();
 
   private:
+    const Daedalus::GEngineClasses::C_Focus& searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const;
     std::string                           wname;
     GameSession&                          game;
 

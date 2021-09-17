@@ -202,6 +202,10 @@ Npc *World::npcById(uint32_t id) {
   return nullptr;
   }
 
+uint32_t World::npcCount() const {
+  return uint32_t(wobj.npcCount());
+  }
+
 uint32_t World::mobsiId(const Interactive* ptr) const {
   return wobj.mobsiId(ptr);
   }
@@ -397,38 +401,9 @@ Focus World::validateFocus(const Focus &def) {
   }
 
 Focus World::findFocus(const Npc &pl, const Focus& def) {
-  const Daedalus::GEngineClasses::C_Focus* fptr = &game.script()->focusNorm();
-  auto opt    = WorldObjects::NoFlg;
-  auto coll   = TARGET_COLLECT_FOCUS;
-  auto weapon = pl.inventory().activeWeapon();
-
-  switch(pl.weaponState()) {
-    case WeaponState::Fist:
-    case WeaponState::W1H:
-    case WeaponState::W2H:
-      fptr = &game.script()->focusMele();
-      opt  = WorldObjects::NoDeath;
-      break;
-    case WeaponState::Bow:
-    case WeaponState::CBow:
-      fptr = &game.script()->focusRange();
-      opt  = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
-      break;
-    case WeaponState::Mage:{
-      fptr = &game.script()->focusMage();
-      if(weapon!=nullptr) {
-        int32_t id  = weapon->spellId();
-        auto&   spl = script().spellDesc(id);
-        coll = TargetCollect(spl.targetCollectAlgo);
-        }
-      opt  = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
-      break;
-      }
-    case WeaponState::NoWeapon:
-      fptr = &game.script()->focusNorm();
-      break;
-    }
-  auto& policy = *fptr;
+  auto  opt    = WorldObjects::NoFlg;
+  auto  coll   = TARGET_COLLECT_FOCUS;
+  auto& policy = searchPolicy(pl,coll,opt);
 
   WorldObjects::SearchOpt optNpc {policy.npc_range1,  policy.npc_range2,  policy.npc_azi,  coll, opt};
   WorldObjects::SearchOpt optMob {policy.mob_range1,  policy.mob_range2,  policy.mob_azi,  coll };
@@ -476,6 +451,15 @@ Focus World::findFocus(const Focus &def) {
   if(npcPlayer==nullptr)
     return Focus();
   return findFocus(*npcPlayer,def);
+  }
+
+bool World::testFocusNpc(Npc* def) {
+  auto  opt    = WorldObjects::NoFlg;
+  auto  coll   = TARGET_COLLECT_FOCUS;
+  auto& policy = searchPolicy(*npcPlayer,coll,opt);
+
+  WorldObjects::SearchOpt optNpc{policy.npc_range1,  policy.npc_range2,  policy.npc_azi,  coll, opt};
+  return wobj.testFocusNpc(*npcPlayer,def,optNpc);
   }
 
 Interactive *World::aviableMob(const Npc &pl, const char* name) {
@@ -773,6 +757,34 @@ void World::addSound(const ZenLoad::zCVobData& vob) {
 
 void World::invalidateVobIndex() {
   wobj.invalidateVobIndex();
+  }
+
+const Daedalus::GEngineClasses::C_Focus& World::searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const {
+  opt  = WorldObjects::NoFlg;
+  coll = TARGET_COLLECT_FOCUS;
+
+  switch(pl.weaponState()) {
+    case WeaponState::Fist:
+    case WeaponState::W1H:
+    case WeaponState::W2H:
+      return game.script()->focusMele();
+    case WeaponState::Bow:
+    case WeaponState::CBow:
+      opt  = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
+      return game.script()->focusRange();
+    case WeaponState::Mage:{
+      if(auto weapon = pl.inventory().activeWeapon()) {
+        int32_t id  = weapon->spellId();
+        auto&   spl = script().spellDesc(id);
+        coll = TargetCollect(spl.targetCollectAlgo);
+        }
+      opt  = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
+      return game.script()->focusMage();
+      }
+    case WeaponState::NoWeapon:
+      return game.script()->focusNorm();
+    }
+  return game.script()->focusNorm();
   }
 
 void World::triggerOnStart(bool firstTime) {

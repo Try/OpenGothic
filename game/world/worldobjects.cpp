@@ -645,6 +645,12 @@ Item *WorldObjects::validateItem(Item *def) {
   return items.hasObject(def) ? def : nullptr;
   }
 
+bool WorldObjects::testFocusNpc(const Npc &pl, Npc* def, const SearchOpt& opt) {
+  if(def && testObj(*def,pl,opt))
+    return true;
+  return false;
+  }
+
 Interactive* WorldObjects::findInteractive(const Npc &pl, Interactive* def, const SearchOpt& opt) {
   def = validateInteractive(def);
   if(def && testObj(*def,pl,opt))
