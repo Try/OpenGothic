@@ -152,7 +152,8 @@ void MoveAlgo::tickGravity(uint64_t dt) {
     // continue falling
     DynamicWorld::CollisionTest info;
     if(!tryMove(dp.x,dp.y,dp.z,info)) {
-      npc.setAnim(AnimationSolver::Fall);
+      if(!npc.isDead())
+        npc.setAnim(AnimationSolver::Fall);
       // takeFallDamage();
       onGravityFailed(info,dt);
       } else {

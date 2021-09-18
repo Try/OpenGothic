@@ -117,9 +117,14 @@ void Bullet::onCollide(uint8_t matId) {
   Effect::onCollide(*wrld,vfx.handle(),obj->position(),nullptr,ow,spellId());
   vfx.setLooped(false);
   wrld->runEffect(std::move(vfx));
+  if(obj==nullptr || obj->hitCount()>3)
+    onStop();
   }
 
 void Bullet::onCollide(Npc& npc) {
+  if(&npc==origin())
+    return;
+
   if(ow!=nullptr) {
     if(isSpell())
       npc.takeDamage(*ow,this,vfx.handle(),spellId()); else
@@ -128,9 +133,13 @@ void Bullet::onCollide(Npc& npc) {
   vfx.setKey(*wrld,SpellFxKey::Collide);
   vfx.setLooped(false);
   wrld->runEffect(std::move(vfx));
+
+  onStop();
   }
 
 void Bullet::updateMatrix() {
+  if(obj==nullptr)
+    return;
   auto mat = obj->matrix();
   view.setObjMatrix(mat);
   // HACK: lighting bolt spell

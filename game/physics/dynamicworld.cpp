@@ -731,20 +731,16 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
     }
 
   if(auto ptr = npcList->rayTest(pos,to,b.targetRange())) {
-    if(b.cb!=nullptr) {
+    if(b.cb!=nullptr)
       b.cb->onCollide(*ptr->toNpc());
-      b.cb->onStop();
-      }
     return;
     }
   world->rayCast(pos, to, callback);
 
   if(callback.matId<ZenLoad::NUM_MAT_GROUPS) {
     if(isSpell){
-      if(b.cb!=nullptr) {
+      if(b.cb!=nullptr)
         b.cb->onCollide(callback.matId);
-        b.cb->onStop();
-        }
       } else {
       if(callback.matId==ZenLoad::MaterialGroup::METAL ||
          callback.matId==ZenLoad::MaterialGroup::STONE) {
@@ -765,19 +761,14 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
           b.setDirection({dir.x(),dir.y(),dir.z()});
           b.addPathLen(l*a);
           b.addHit();
-          if(b.cb!=nullptr) {
+          if(b.cb!=nullptr)
             b.cb->onCollide(callback.matId);
-            if(b.hitCount()>3)
-              b.cb->onStop();
-            }
           }
         } else {
         float a = callback.m_closestHitFraction;
         b.move(pos + (to-pos)*a);
-        if(b.cb!=nullptr) {
+        if(b.cb!=nullptr)
           b.cb->onCollide(callback.matId);
-          b.cb->onStop();
-          }
         }
       }
     } else {
@@ -789,9 +780,8 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
     b.move(to);
     b.setDirection(d);
     b.addPathLen(l*dtF);
-    if(b.pathLength()>10000) {
+    if(b.pathLength()>10000)
       b.cb->onStop();
-      }
     }
   }
 
