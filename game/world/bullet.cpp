@@ -117,7 +117,7 @@ void Bullet::onCollide(uint8_t matId) {
   Effect::onCollide(*wrld,vfx.handle(),obj->position(),nullptr,ow,spellId());
   vfx.setLooped(false);
   wrld->runEffect(std::move(vfx));
-  if(obj==nullptr || obj->hitCount()>3)
+  if(obj==nullptr || obj->hitCount()>3 || obj->isSpell())
     onStop();
   }
 
