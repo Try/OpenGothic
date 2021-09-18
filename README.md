@@ -32,6 +32,8 @@ mkdir OpenGothic/build
 cd OpenGothic/build
 cmake .. -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
 make
+# 4.
+# locate executables at OpenGothic/build/opengothic
 ```
 
 #### Gameplay video
