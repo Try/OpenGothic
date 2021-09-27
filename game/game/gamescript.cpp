@@ -418,6 +418,9 @@ void GameScript::initCommon() {
       }
     }
 
+  if(hasSymbolName("init_global"))
+    runFunction("init_global");
+
   if(hasSymbolName("startup_global"))
     runFunction("startup_global");
   }
