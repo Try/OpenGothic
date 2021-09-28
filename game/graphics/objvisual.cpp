@@ -156,8 +156,10 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world) {
       return;
     setType(M_Mesh);
     mesh.proto = view;
-    if(vob.showVisual)
+    if(vob.showVisual) {
       mesh.view = world.addStaticView(view);
+      mesh.view.setWind(vob.visualAniMode);
+      }
     if(vob.showVisual && (vob.cdDyn || vob.cdStatic) && vob.visualAniMode!=ZenLoad::AnimMode::WIND2) {
       mesh.physic = PhysicMesh(*view,*world.physic(),false);
       }

@@ -58,6 +58,8 @@ class SceneGlobals final {
     Tempest::Vec3                     ambient;
     LightGroup                        lights;
 
+    Tempest::Vec2                     windDir = {0,1};
+
   private:
     UboGlobal                         uboGlobal;
   };

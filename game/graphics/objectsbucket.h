@@ -72,6 +72,7 @@ class ObjectsBucket final {
         void   setObjMatrix(const Tempest::Matrix4x4& mt);
         void   setAsGhost  (bool g);
         void   setFatness  (float f);
+        void   setWind     (ZenLoad::AnimMode m);
         void   startMMAnim (std::string_view anim, float intensity, uint64_t timeUntil);
 
         const Bounds& bounds() const;
@@ -189,6 +190,7 @@ class ObjectsBucket final {
       Tempest::Matrix4x4                    pos;
       VisibilityGroup::Token                visibility;
       float                                 fatness = 0;
+      ZenLoad::AnimMode                     wind = ZenLoad::AnimMode::NONE;
 
       Descriptors                           ubo;
       uint64_t                              timeShift=0;
@@ -207,6 +209,7 @@ class ObjectsBucket final {
     void    setBounds   (size_t i, const Bounds& b);
     void    startMMAnim (size_t i, std::string_view anim, float intensity, uint64_t timeUntil);
     void    setFatness  (size_t i, float f);
+    void    setWind     (size_t i, ZenLoad::AnimMode m);
 
     bool    isSceneInfoRequired() const;
     void    updatePushBlock(UboPush& push, Object& v);
