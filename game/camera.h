@@ -83,22 +83,33 @@ class Camera final {
       float         range = 0.3f;
       };
 
-    State                 state, dest;
+    // State                 state, dest;
     float                 dlgDist = 0;
 
     Tempest::Matrix4x4    proj;
     uint32_t              vpWidth=0;
     uint32_t              vpHeight=0;
 
-    bool                  hasPos   = false;
-    bool                  dbg      = false;
-    bool                  tgEnable = true;
-    bool                  fpEnable = false;
-    bool                  lbEnable = false;
-    Mode                  camMod   = Normal;
+    struct State2 {
+      float         range     = 0.3f;
+      Tempest::Vec3 rotSpin   = {};
+      Tempest::Vec3 spin      = {};
+      Tempest::Vec3 target    = {};
+      Tempest::Vec3 origin    = {};
+      };
+
+    State2                src, dst;
+    bool                  hasPos        = false;
+    bool                  dbg           = false;
+    bool                  tgEnable      = true;
+    bool                  fpEnable      = false;
+    bool                  lbEnable      = false;
+    bool                  inertiaTarget = true;
+    Mode                  camMod        = Normal;
 
     mutable int           raysCasted = 0;
 
+    void                  calcControlPoints(const Npc& npc, bool inMove, float dtF);
     Tempest::Vec3         applyModPosition(const Tempest::Vec3& pos);
     Tempest::Vec3         applyModRotation(const Tempest::Vec3& spin);
 
@@ -106,13 +117,13 @@ class Camera final {
 
     void                  implReset(const Npc& pl);
     void                  implMove(Tempest::KeyEvent::KeyType t);
-    Tempest::Matrix4x4    mkView    (const Tempest::Vec3& pos, float dist) const;
+    Tempest::Matrix4x4    mkView    (const Tempest::Vec3& pos, const Tempest::Vec3& spin) const;
     Tempest::Matrix4x4    mkRotation(const Tempest::Vec3& spin) const;
     void                  clampRange(float& z);
 
     void                  followPos(Tempest::Vec3& pos, Tempest::Vec3 dest, bool inMove, float dtF);
     void                  followAng(Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF);
-    static void           followAng(float& ang,float dest,float speed);
+    static void           followAng(float& ang, float dest, float speed, float dtF);
 
     float                 calcCameraColision(const Tempest::Matrix4x4& view, const float dist) const;
 
