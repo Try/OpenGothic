@@ -406,11 +406,6 @@ void Camera::followAng(float& ang, float dest, float speed, float dtF) {
   }
 
 void Camera::tick(const Npc& npc, uint64_t dt, bool inMove, bool includeRot) {
-  const auto& def = cameraDef();
-  const float dtF = float(dt)/1000.f;
-
-  clampRange(dst.range);
-
   if(!hasPos) {
     dst    = src;
     hasPos = true;
@@ -419,17 +414,16 @@ void Camera::tick(const Npc& npc, uint64_t dt, bool inMove, bool includeRot) {
   if(Gothic::inst().isPause())
     return;
 
+  const float dtF = float(dt)/1000.f;
+  clampRange(dst.range);
+
   {
-  const float zSpeed = 5.f*dtF;
+  const float zSpeed = 5.f;
   const float dz = dst.range-src.range;
-  if(std::fabs(dz)<zSpeed)
-    src.range=dst.range;
-  else if(src.range<dst.range)
-    src.range+=zSpeed;
-  else if(src.range>dst.range)
-    src.range-=zSpeed;
+  src.range+=dz*std::min(1.f,2.f*zSpeed*dtF);
   }
 
+  /*
   if(includeRot) {
     src.rotSpin.x = dst.rotSpin.x;
     //src.spin.y = dst.spin.y;
@@ -440,7 +434,7 @@ void Camera::tick(const Npc& npc, uint64_t dt, bool inMove, bool includeRot) {
     if(src.rotSpin.x<def.minElevation)
       ;//spin.x = def.minElevation;
     }
-
+  */
   calcControlPoints(npc,inMove,dtF);
   }
 
@@ -453,8 +447,10 @@ void Camera::calcControlPoints(const Npc& npc, bool inMove, float dtF) {
                             def.rotOffsetY,
                             def.rotOffsetZ);
 
-  auto  pos     = npc.cameraBone();
-  //  auto  rotSpin = dst.rotSpin + rotOffset;
+  auto  pos          = npc.cameraBone();
+
+  followAng(src.rotSpin, dst.rotSpin, dtF);
+  followAng(src.spin,    rotOffset,   dtF);
 
   Matrix4x4 rotOffsetMat;
   rotOffsetMat.identity();
@@ -462,15 +458,12 @@ void Camera::calcControlPoints(const Npc& npc, bool inMove, float dtF) {
   rotOffsetMat.rotateOX(src.rotSpin.x);
   rotOffsetMat.project(targetOffset);
 
-  auto rot = rotOffset;
-  rotOffsetMat.rotateOX(rot.x);
-  rotOffsetMat.rotateOY(rot.y);
-  rotOffsetMat.rotateOZ(rot.z);
+  rotOffsetMat.rotateOX(src.spin.x);
+  rotOffsetMat.rotateOY(src.spin.y);
+  rotOffsetMat.rotateOZ(src.spin.z);
 
   Vec3 dir = {0,0,1};
   rotOffsetMat.project(dir);
-
-  src.spin   = src.rotSpin;
 
   dst.target = pos+targetOffset;
   dst.origin = dst.target - dir*dst.range*100.f;
@@ -545,7 +538,7 @@ Matrix4x4 Camera::viewProj() const {
   }
 
 Matrix4x4 Camera::view() const {
-  auto view = mkView(src.origin,src.spin);
+  auto view = mkView(src.origin,src.rotSpin);
   return view;
   /*
   const auto& def     = cameraDef();
