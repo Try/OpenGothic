@@ -275,6 +275,18 @@ Vec3 Camera::calcTranslation(float dist) const {
   return tr;
   }
 
+Vec3 Camera::calcOffsetAngles() const {
+  auto sXZ = src.origin-dst.target, dXZ = dst.origin-dst.target;
+
+  float y0 = std::atan2(sXZ.x,sXZ.z)*180.f/float(M_PI);
+  float y1 = std::atan2(dXZ.x,dXZ.z)*180.f/float(M_PI);
+
+  float x0 = std::atan2(sXZ.y,Vec2(sXZ.x,sXZ.z).length())*180.f/float(M_PI);
+  float x1 = std::atan2(dXZ.y,Vec2(dXZ.x,dXZ.z).length())*180.f/float(M_PI);
+
+  return Vec3(x1-x0,y1-y0,0);
+  }
+
 const Daedalus::GEngineClasses::CCamSys &Camera::cameraDef() const {
   auto& camd = Gothic::cameraDef();
   if(camMod==Dialog)
@@ -427,7 +439,7 @@ void Camera::tick(const Npc& npc, uint64_t dt, bool inMove, bool includeRot) {
 
   {
   const float zSpeed = 5.f;
-  const float dz = dst.range-src.range;
+  const float dz     = dst.range-src.range;
   src.range+=dz*std::min(1.f,2.f*zSpeed*dtF);
   }
 
@@ -588,6 +600,6 @@ Matrix4x4 Camera::viewProj() const {
   }
 
 Matrix4x4 Camera::view() const {
-  auto view = mkView(src.origin,src.rotSpin);
-  return view;
+  auto off = calcOffsetAngles();
+  return mkView(src.origin,src.rotSpin+off);
   }

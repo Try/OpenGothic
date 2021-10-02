@@ -114,6 +114,7 @@ class Camera final {
     Tempest::Vec3         applyModRotation(const Tempest::Vec3& spin);
 
     Tempest::Vec3         calcTranslation(float dist) const;
+    Tempest::Vec3         calcOffsetAngles() const;
 
     void                  implReset(const Npc& pl);
     void                  implMove(Tempest::KeyEvent::KeyType t);
