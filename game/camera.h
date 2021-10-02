@@ -109,7 +109,7 @@ class Camera final {
 
     mutable int           raysCasted = 0;
 
-    void                  calcControlPoints(const Npc& npc, bool inMove, float dtF);
+    void                  calcControlPoints(const Npc& npc, float dtF, bool inMove, bool includeRot);
     Tempest::Vec3         applyModPosition(const Tempest::Vec3& pos);
     Tempest::Vec3         applyModRotation(const Tempest::Vec3& spin);
 
@@ -119,13 +119,15 @@ class Camera final {
     void                  implMove(Tempest::KeyEvent::KeyType t);
     Tempest::Matrix4x4    mkView    (const Tempest::Vec3& pos, const Tempest::Vec3& spin) const;
     Tempest::Matrix4x4    mkRotation(const Tempest::Vec3& spin) const;
+
     void                  clampRange(float& z);
+    void                  clampRotation(Tempest::Vec3& spin);
 
     void                  followPos(Tempest::Vec3& pos, Tempest::Vec3 dest, bool inMove, float dtF);
     void                  followAng(Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF);
     static void           followAng(float& ang, float dest, float speed, float dtF);
 
-    float                 calcCameraColision(const Tempest::Matrix4x4& view, const float dist) const;
+    float                 calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
 
     const Daedalus::GEngineClasses::CCamSys& cameraDef() const;
   };

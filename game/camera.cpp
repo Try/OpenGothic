@@ -33,7 +33,7 @@ void Camera::reset(World& world) {
   }
 
 void Camera::implReset(const Npc &npc) {
-  calcControlPoints(npc,false,0);
+  calcControlPoints(npc,false,true,0);
   src = dst;
   }
 
@@ -320,6 +320,14 @@ void Camera::clampRange(float &zoom) {
     zoom = def.minRange;
   }
 
+void Camera::clampRotation(Tempest::Vec3& spin) {
+  const auto& def = cameraDef();
+  if(spin.x>def.maxElevation)
+    spin.x = def.maxElevation;
+  if(spin.x<def.minElevation)
+    ;//spin.x = def.minElevation;
+  }
+
 void Camera::implMove(Tempest::Event::KeyType key) {
   float dpos = 60.f;
 
@@ -423,22 +431,10 @@ void Camera::tick(const Npc& npc, uint64_t dt, bool inMove, bool includeRot) {
   src.range+=dz*std::min(1.f,2.f*zSpeed*dtF);
   }
 
-  /*
-  if(includeRot) {
-    src.rotSpin.x = dst.rotSpin.x;
-    //src.spin.y = dst.spin.y;
-    followAng(src.rotSpin.y, dst.rotSpin.y, def.veloRot, dtF);
-
-    if(src.rotSpin.x>def.maxElevation)
-      src.rotSpin.x = def.maxElevation;
-    if(src.rotSpin.x<def.minElevation)
-      ;//spin.x = def.minElevation;
-    }
-  */
-  calcControlPoints(npc,inMove,dtF);
+  calcControlPoints(npc,dtF,inMove,includeRot);
   }
 
-void Camera::calcControlPoints(const Npc& npc, bool inMove, float dtF) {
+void Camera::calcControlPoints(const Npc& npc, float dtF, bool inMove, bool includeRot) {
   const auto& def = cameraDef();
   auto  targetOffset = Vec3(def.targetOffsetX,
                             def.targetOffsetY,
@@ -451,6 +447,8 @@ void Camera::calcControlPoints(const Npc& npc, bool inMove, float dtF) {
 
   followAng(src.rotSpin, dst.rotSpin, dtF);
   followAng(src.spin,    rotOffset,   dtF);
+  if(includeRot)
+    clampRotation(src.spin);
 
   Matrix4x4 rotOffsetMat;
   rotOffsetMat.identity();
@@ -465,11 +463,63 @@ void Camera::calcControlPoints(const Npc& npc, bool inMove, float dtF) {
   Vec3 dir = {0,0,1};
   rotOffsetMat.project(dir);
 
-  dst.target = pos+targetOffset;
+  dst.target = pos + targetOffset;
   dst.origin = dst.target - dir*dst.range*100.f;
 
   followPos(src.target,dst.target,inMove,dtF);
   src.origin = src.target - dir*src.range*100.f;
+
+  if(def.collision) {
+    const float range = calcCameraColision(src.target,src.origin,src.rotSpin,src.range*100.f);
+    src.origin = src.target - dir*range*100.f;
+    }
+  }
+
+float Camera::calcCameraColision(const Vec3& target, const Vec3& origin, const Vec3& rotSpin, float dist) const {
+  if(camMod==Dialog)
+    dist = dlgDist;
+
+  auto world = Gothic::inst().world();
+  if(world==nullptr)
+    return dist;
+
+  float minDist = 20;
+  float padding = 20;
+
+  auto& physic = *world->physic();
+  Matrix4x4 vinv=projective();
+  vinv.mul(mkView(origin,rotSpin));
+  vinv.inverse();
+
+  raysCasted = 0;
+  float distMd = dist;
+  auto  tr     = origin - target;
+  static int n = 1, nn=1;
+  for(int i=-n;i<=n;++i)
+    for(int r=-n;r<=n;++r) {
+      float u = float(i)/float(nn),v = float(r)/float(nn);
+      Tempest::Vec3 r0 = target;
+      Tempest::Vec3 r1 = {u,v,0};
+
+      vinv.project(r1.x,r1.y,r1.z);
+
+      auto rc = physic.ray(r0, r1);
+      auto d  = rc.v;
+      d -=r0;
+      r1-=r0;
+
+      float dist0 = r1.length();
+      float dist1 = Vec3::dotProduct(d,tr)/dist;
+      if(!rc.hasCol)
+        continue;
+
+      dist1 = std::max<float>(0,dist1-padding);
+      float md = dist-std::max(0.f,dist0-dist1);
+      if(md<distMd)
+        distMd=md;
+      raysCasted++;
+      }
+  return std::max(minDist,distMd)/100.f;
   }
 
 Matrix4x4 Camera::mkView(const Vec3& pos, const Vec3& spin) const {
@@ -540,78 +590,4 @@ Matrix4x4 Camera::viewProj() const {
 Matrix4x4 Camera::view() const {
   auto view = mkView(src.origin,src.rotSpin);
   return view;
-  /*
-  const auto& def     = cameraDef();
-  float       dist    = 0;
-
-  if(camMod==Mobsi) {
-    dist = def.maxRange;
-    dist*=100; //to santimeters
-    }
-  else if(camMod==Dialog) {
-    dist = dlgDist;
-    }
-  else {
-    dist = state.range;
-    if(dist<def.minRange)
-      dist = def.minRange;
-    if(dist>def.maxRange)
-      dist = def.maxRange;
-    dist*=100; //to santimeters
-    }
-
-  Matrix4x4 view=projective();
-  view.mul(mkView(state.pos,dist));
-
-  float distMd = dist;
-  if(fpEnable && (camMod==Normal || camMod==Melee))
-    distMd = 0;
-  if(def.collision)
-    distMd = calcCameraColision(view,dist);
-  view=mkView(state.pos,distMd);
-  return view;
-  */
-  }
-
-float Camera::calcCameraColision(const Matrix4x4& view, const float dist) const {
-  auto world = Gothic::inst().world();
-  if(world==nullptr)
-    return dist;
-
-  float minDist = 20;
-  float padding = 20;
-
-  auto& physic = *world->physic();
-
-  Matrix4x4 vinv=view;
-  vinv.inverse();
-
-  raysCasted = 0;
-  float distMd = dist;
-  auto  tr     = calcTranslation(dist);
-  static int n = 1, nn=1;
-  for(int i=-n;i<=n;++i)
-    for(int r=-n;r<=n;++r) {
-      float u = float(i)/float(nn),v = float(r)/float(nn);
-      Tempest::Vec3 r0 = src.target;
-      Tempest::Vec3 r1 = {u,v,0};
-
-      vinv.project(r1.x,r1.y,r1.z);
-
-      auto rc = physic.ray(r0, r1);
-      auto d  = rc.v;
-      d -=r0;
-      r1-=r0;
-
-      float dist0 = r1.length();
-      float dist1 = Vec3::dotProduct(d,tr)/dist;
-      if(rc.hasCol)
-        dist1 = std::max<float>(0,dist1-padding);
-
-      float md = dist-std::max(0.f,dist0-dist1);
-      if(md<distMd)
-        distMd=md;
-      raysCasted++;
-      }
-  return std::max(minDist,distMd);
   }
