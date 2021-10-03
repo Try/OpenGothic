@@ -33,7 +33,9 @@ void Camera::reset(World& world) {
   }
 
 void Camera::implReset(const Npc &npc) {
-  calcControlPoints(npc,false,true,0);
+  const auto& def = cameraDef();
+  dst.range = def.bestRange;
+  calcControlPoints(npc,true,0);
   src = dst;
   }
 
@@ -267,26 +269,6 @@ Vec3 Camera::applyModRotation(const Vec3& spin) {
   */
   }
 
-Vec3 Camera::calcTranslation(float dist) const {
-  Vec3 tr  = {0,0,dist};
-  auto mTr = mkRotation(src.rotSpin);
-  mTr.inverse();
-  mTr.project(tr);
-  return tr;
-  }
-
-Vec3 Camera::calcOffsetAngles() const {
-  auto sXZ = src.origin-dst.target, dXZ = dst.origin-dst.target;
-
-  float y0 = std::atan2(sXZ.x,sXZ.z)*180.f/float(M_PI);
-  float y1 = std::atan2(dXZ.x,dXZ.z)*180.f/float(M_PI);
-
-  float x0 = std::atan2(sXZ.y,Vec2(sXZ.x,sXZ.z).length())*180.f/float(M_PI);
-  float x1 = std::atan2(dXZ.y,Vec2(dXZ.x,dXZ.z).length())*180.f/float(M_PI);
-
-  return Vec3(x1-x0,y1-y0,0);
-  }
-
 const Daedalus::GEngineClasses::CCamSys &Camera::cameraDef() const {
   auto& camd = Gothic::cameraDef();
   if(camMod==Dialog)
@@ -381,24 +363,46 @@ void Camera::setDialogDistance(float d) {
 
 void Camera::followPos(Vec3& pos, Vec3 dest, bool inMove, float dtF) {
   const auto& def = cameraDef();
+  if(!def.translate)
+    return;
+
+  if(camMod==Dialog || camMod==Mobsi) {
+    veloTrans = 0;
+    runDist   = 0;
+    pos       = dest;
+    return;
+    }
+
   auto        dp  = (dest-pos);
   auto        len = dp.length();
+  const float mul = 100.f; // 100.f
 
-  if(len>0.1f && def.translate && inertiaTarget && camMod!=Dialog && camMod!=Mobsi){
-    const float maxDist = 180;
-    float       speed   = 0;
-    if(inMove)
-      speed = def.veloTrans*dtF; else
-      speed = dp.length()*dtF*2.f;
-    float       tr      = std::min(speed,len);
-    if(len-tr>maxDist)
-      tr = (len-maxDist);
-
-    float k = tr/len;
-    pos = Vec3(pos.x+dp.x*k, pos.y+dp.y*k, pos.z+dp.z*k);
-    } else {
-    pos = dest;
+  if(len<=0.01) {
+    veloTrans = 0;
+    runDist   = 0;
+    return;
     }
+
+  if(inMove) {
+    // veloTrans = def.veloTrans*mul;
+    } else {
+    // if(veloTrans==0.f)
+    //   runDist = len; else
+    //   runDist = 0;
+    }
+  if(inertiaTarget)
+    veloTrans = veloTrans + (def.veloTrans*mul-veloTrans)*dtF; else
+    veloTrans = def.veloTrans*mul;
+  if(veloTrans>len)
+    veloTrans = len;
+
+  float speed = veloTrans*dtF;
+  float tr    = std::min(speed,len);
+  if(inMove && len-tr<runDist) {
+    tr = 0;
+    }
+  float k = tr/len;
+  pos += dp*k;
   }
 
 void Camera::followAng(Vec3& spin, Vec3 dest, float dtF) {
@@ -410,7 +414,7 @@ void Camera::followAng(Vec3& spin, Vec3 dest, float dtF) {
 void Camera::followAng(float& ang, float dest, float speed, float dtF) {
   float da    = angleMod(dest-ang);
   float shift = da*std::min(1.f,2.f*speed*dtF);
-  if(std::abs(da)<shift) {
+  if(std::abs(da)<0.01f) {
     ang = dest;
     return;
     }
@@ -425,7 +429,7 @@ void Camera::followAng(float& ang, float dest, float speed, float dtF) {
   ang += shift;
   }
 
-void Camera::tick(const Npc& npc, uint64_t dt, bool inMove, bool includeRot) {
+void Camera::tick(const Npc& npc, uint64_t dt, bool includeRot) {
   if(!hasPos) {
     dst    = src;
     hasPos = true;
@@ -443,10 +447,10 @@ void Camera::tick(const Npc& npc, uint64_t dt, bool inMove, bool includeRot) {
   src.range+=dz*std::min(1.f,2.f*zSpeed*dtF);
   }
 
-  calcControlPoints(npc,dtF,inMove,includeRot);
+  calcControlPoints(npc,dtF,includeRot);
   }
 
-void Camera::calcControlPoints(const Npc& npc, float dtF, bool inMove, bool includeRot) {
+void Camera::calcControlPoints(const Npc& npc, float dtF, bool includeRot) {
   const auto& def = cameraDef();
   auto  targetOffset = Vec3(def.targetOffsetX,
                             def.targetOffsetY,
@@ -478,13 +482,28 @@ void Camera::calcControlPoints(const Npc& npc, float dtF, bool inMove, bool incl
   dst.target = pos + targetOffset;
   dst.origin = dst.target - dir*dst.range*100.f;
 
-  followPos(src.target,dst.target,inMove,dtF);
+  followPos(src.target,dst.target,npc.isInMove() || npc.isInAir(),dtF);
   src.origin = src.target - dir*src.range*100.f;
 
   if(def.collision) {
     const float range = calcCameraColision(src.target,src.origin,src.rotSpin,src.range*100.f);
     src.origin = src.target - dir*range*100.f;
     }
+  offsetAng = calcOffsetAngles();
+  }
+
+Vec3 Camera::calcOffsetAngles() const {
+  auto sXZ = src.origin-dst.target, dXZ = dst.origin-dst.target;
+
+  float y0 = std::atan2(sXZ.x,sXZ.z)*180.f/float(M_PI);
+  float y1 = std::atan2(dXZ.x,dXZ.z)*180.f/float(M_PI);
+
+  float x0 = std::atan2(sXZ.y,Vec2(sXZ.x,sXZ.z).length())*180.f/float(M_PI);
+  float x1 = std::atan2(dXZ.y,Vec2(dXZ.x,dXZ.z).length())*180.f/float(M_PI);
+
+  //(void)x0; (void)y0;
+  //return Vec3(x1,-y1,0);
+  return Vec3(x1-x0,y1-y0,0);
   }
 
 float Camera::calcCameraColision(const Vec3& target, const Vec3& origin, const Vec3& rotSpin, float dist) const {
@@ -600,6 +619,6 @@ Matrix4x4 Camera::viewProj() const {
   }
 
 Matrix4x4 Camera::view() const {
-  auto off = calcOffsetAngles();
-  return mkView(src.origin,src.rotSpin+off);
+  return mkView(src.origin,src.rotSpin+offsetAng);
+  //return mkView(src.origin,/*src.rotSpin+*/offsetAng);
   }

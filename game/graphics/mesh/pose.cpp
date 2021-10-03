@@ -608,6 +608,16 @@ bool Pose::isAtackAnim() const {
   return false;
   }
 
+bool Pose::isInMove() const {
+  for(auto& i:lay) {
+    if(i.seq->animCls==Animation::Transition)
+      continue;
+    if(!i.seq->isIdle())
+      return true;
+    }
+  return false;
+  }
+
 bool Pose::isIdle() const {
   for(auto& i:lay)
     if(!i.seq->isIdle())

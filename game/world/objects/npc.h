@@ -171,6 +171,7 @@ class Npc final {
 
     auto       animMoveSpeed(uint64_t dt) const -> Tempest::Vec3;
 
+    bool       isInMove() const;
     bool       isJumpAnim() const;
     bool       isFlyAnim() const;
     bool       isFaling() const;

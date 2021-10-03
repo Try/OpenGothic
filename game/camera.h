@@ -54,7 +54,7 @@ class Camera final {
 
     void toogleDebug();
 
-    void tick(const Npc& npc, uint64_t dt, bool inMove, bool includeRot);
+    void tick(const Npc& npc, uint64_t dt, bool includeRot);
     void debugDraw(DbgPainter& p);
 
     Tempest::PointF spin()     const;
@@ -77,28 +77,23 @@ class Camera final {
 
   private:
     struct State {
-      Tempest::Vec3 pos   = {};
-      Tempest::Vec3 spin  = {};
-      Tempest::Vec3 spin2 = {};
-      float         range = 0.3f;
-      };
-
-    // State                 state, dest;
-    float                 dlgDist = 0;
-
-    Tempest::Matrix4x4    proj;
-    uint32_t              vpWidth=0;
-    uint32_t              vpHeight=0;
-
-    struct State2 {
-      float         range     = 0.3f;
+      float         range     = 3.f;
       Tempest::Vec3 rotSpin   = {};
       Tempest::Vec3 spin      = {};
       Tempest::Vec3 target    = {};
       Tempest::Vec3 origin    = {};
       };
 
-    State2                src, dst;
+    State                 src, dst;
+    Tempest::Vec3         offsetAng;
+    float                 veloTrans = 0;
+    float                 dlgDist   = 0;
+    float                 runDist   = 0;
+
+    Tempest::Matrix4x4    proj;
+    uint32_t              vpWidth=0;
+    uint32_t              vpHeight=0;
+
     bool                  hasPos        = false;
     bool                  dbg           = false;
     bool                  tgEnable      = true;
@@ -109,12 +104,12 @@ class Camera final {
 
     mutable int           raysCasted = 0;
 
-    void                  calcControlPoints(const Npc& npc, float dtF, bool inMove, bool includeRot);
+    void                  calcControlPoints(const Npc& npc, float dtF, bool includeRot);
     Tempest::Vec3         applyModPosition(const Tempest::Vec3& pos);
     Tempest::Vec3         applyModRotation(const Tempest::Vec3& spin);
 
-    Tempest::Vec3         calcTranslation(float dist) const;
     Tempest::Vec3         calcOffsetAngles() const;
+    float                 calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
 
     void                  implReset(const Npc& pl);
     void                  implMove(Tempest::KeyEvent::KeyType t);
@@ -127,8 +122,6 @@ class Camera final {
     void                  followPos(Tempest::Vec3& pos, Tempest::Vec3 dest, bool inMove, float dtF);
     void                  followAng(Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF);
     static void           followAng(float& ang, float dest, float speed, float dtF);
-
-    float                 calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
 
     const Daedalus::GEngineClasses::CCamSys& cameraDef() const;
   };

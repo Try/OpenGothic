@@ -34,7 +34,6 @@ class PlayerControl final {
     bool interact(Item&        item);
 
     void clearInput();
-    bool isInMove();
 
     void setTarget(Npc* other);
     void actionFocus(Npc& other);

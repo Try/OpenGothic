@@ -669,7 +669,6 @@ void MainWindow::tickCamera(uint64_t dt) {
 
   auto&      camera       = *pcamera;
   const auto ws           = player.weaponState();
-  const bool followCamera = player.isInMove();
   const bool meleeFocus   = (ws==WeaponState::Fist ||
                              ws==WeaponState::W1H  ||
                              ws==WeaponState::W2H);
@@ -709,7 +708,7 @@ void MainWindow::tickCamera(uint64_t dt) {
     return;
   if(camera.isToogleEnabled())
     camera.setMode(solveCameraMode());
-  camera.tick(*pl, dt, followCamera, (!mouseP[Event::ButtonLeft] || player.hasActionFocus() || fs));
+  camera.tick(*pl, dt, (!mouseP[Event::ButtonLeft] || player.hasActionFocus() || fs));
   renderer.setCameraView(camera);
   }
 
