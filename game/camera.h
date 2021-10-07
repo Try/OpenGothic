@@ -77,18 +77,18 @@ class Camera final {
 
   private:
     struct State {
-      float         range     = 3.f;
-      Tempest::Vec3 rotSpin   = {};
-      Tempest::Vec3 spin      = {};
-      Tempest::Vec3 target    = {};
-      Tempest::Vec3 origin    = {};
+      float               range  = 3.f;
+      Tempest::Vec3       spin   = {};
+      Tempest::Vec3       target = {};
       };
 
+    Tempest::Vec3         cameraPos = {};
+    Tempest::Vec3         origin    = {};
+    Tempest::Vec3         rotOffset = {};
+    Tempest::Vec3         offsetAng = {};
     State                 src, dst;
-    Tempest::Vec3         offsetAng;
-    float                 veloTrans = 0;
+
     float                 dlgDist   = 0;
-    float                 runDist   = 0;
 
     Tempest::Matrix4x4    proj;
     uint32_t              vpWidth=0;
@@ -108,7 +108,8 @@ class Camera final {
     Tempest::Vec3         applyModPosition(const Tempest::Vec3& pos);
     Tempest::Vec3         applyModRotation(const Tempest::Vec3& spin);
 
-    Tempest::Vec3         calcOffsetAngles() const;
+    Tempest::Vec3         calcOffsetAngles(const Tempest::Vec3& srcOrigin, const Tempest::Vec3& target) const;
+    Tempest::Vec3         calcOffsetAngles(const Tempest::Vec3& srcOrigin, const Tempest::Vec3& dstOrigin, const Tempest::Vec3& target) const;
     float                 calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
 
     void                  implReset(const Npc& pl);
@@ -119,7 +120,8 @@ class Camera final {
     void                  clampRange(float& z);
     void                  clampRotation(Tempest::Vec3& spin);
 
-    void                  followPos(Tempest::Vec3& pos, Tempest::Vec3 dest, bool inMove, float dtF);
+    void                  followCamera(Tempest::Vec3& pos, Tempest::Vec3 dest, float dtF);
+    void                  followPos(Tempest::Vec3& pos, Tempest::Vec3 dest, float dtF);
     void                  followAng(Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF);
     static void           followAng(float& ang, float dest, float speed, float dtF);
 

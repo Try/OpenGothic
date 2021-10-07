@@ -61,7 +61,6 @@ class Pose final {
     bool               isStanding() const;
     bool               isPrehit(uint64_t now) const;
     bool               isAtackAnim() const;
-    bool               isInMove() const;
     bool               isIdle() const;
     bool               isInAnim(std::string_view           sq) const;
     bool               isInAnim(const Animation::Sequence* sq) const;

@@ -808,10 +808,6 @@ Tempest::Vec3 Npc::animMoveSpeed(uint64_t dt) const {
   return visual.pose().animMoveSpeed(owner.tickCount(),dt);
   }
 
-bool Npc::isInMove() const {
-  return visual.pose().isInMove();
-  }
-
 void Npc::setVisual(const Skeleton* v) {
   visual.setVisual(v);
   }

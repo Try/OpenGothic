@@ -865,8 +865,14 @@ void MainWindow::render(){
 
     video.tick();
     uint64_t dt = 0;
-    if(!video.isActive())
+    if(!video.isActive()) {
+      /*
+        Note: game update goes first
+        once player position is updated, we can update the camera
+        lastly - update animation (since cameraBone ca be moved)
+        */
       dt = tick();
+      }
 
     auto& sync = fence[cmdId];
     if(!sync.wait(0)) {
@@ -875,8 +881,8 @@ void MainWindow::render(){
       }
 
     if(!video.isActive()) {
-      Gothic::inst().updateAnimation(dt);
       tickCamera(dt);
+      Gothic::inst().updateAnimation(dt);
       }
 
     if(video.isActive()) {
