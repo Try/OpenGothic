@@ -14,10 +14,6 @@ PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
   :dlg(dlg),inv(inv) {
   }
 
-bool PlayerControl::isInMove() {
-  return ctrl[Action::Forward] | ctrl[Action::Left] | ctrl[Action::Right]; // | ctrl[Action::Back];
-  }
-
 void PlayerControl::setTarget(Npc *other) {
   auto w  = Gothic::inst().world();
   auto pl = w ? w->player() : nullptr;
@@ -369,6 +365,9 @@ void PlayerControl::marvinF8(uint64_t dt) {
   pl.clearSpeed();
   pl.quitIneraction();
   pl.setAnim(AnimationSolver::Idle);
+
+  if(auto c = Gothic::inst().camera())
+    c->reset();
   }
 
 void PlayerControl::marvinK(uint64_t dt) {

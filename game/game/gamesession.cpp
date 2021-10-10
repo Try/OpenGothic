@@ -88,7 +88,7 @@ GameSession::GameSession(std::string file) {
   if(!testMode)
     initScripts(true);
   wrld->triggerOnStart(true);
-  cam->reset(*wrld);
+  cam->reset(wrld->player());
   Gothic::inst().setLoadingProgress(96);
   ticks = 1;
   // wrld->setDayTime(8,0);
@@ -318,7 +318,7 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
       break;
       }
 
-  cam->reset(*wrld);
+  cam->reset();
   Log::i("Done loading world[",world,"]");
   return std::move(game);
   }
