@@ -67,6 +67,7 @@ void Camera::load(Serialize &s, Npc *pl) {
   s.read(src.target, src.spin, unused, src.range,
          dst.target, dst.spin, unused, dst.range,
          hasPos);
+  cameraPos = dst.target;
   }
 
 void Camera::changeZoom(int delta) {
@@ -332,8 +333,9 @@ void Camera::implMove(Tempest::Event::KeyType key) {
     cameraPos.y = world->physic()->landRay(cameraPos).v.y;
   }
 
-void Camera::setPosition(float x, float y, float z) {
-  dst.target = {x,y,z};
+void Camera::setPosition(const Tempest::Vec3& pos) {
+  setDestPosition(pos);
+  src.target = dst.target;
   cameraPos  = dst.target;
   }
 
@@ -346,11 +348,6 @@ void Camera::setDialogDistance(float d) {
   }
 
 void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
-  if(camMod==Dialog || camMod==Mobsi) {
-    pos = dest;
-    return;
-    }
-
   auto dp  = (dest-pos);
   auto len = dp.length();
 
@@ -372,11 +369,6 @@ void Camera::followCamera(Vec3& pos, Vec3 dest, float dtF) {
   const auto& def = cameraDef();
   if(!def.translate)
     return;
-  if(camMod==Dialog || camMod==Mobsi) {
-    pos = dest;
-    return;
-    }
-
   auto  dp    = dest-pos;
   auto  len   = dp.length();
   if(len<=0.01) {
@@ -434,7 +426,7 @@ void Camera::tick(const Npc& npc, uint64_t dt, bool includeRot) {
   calcControlPoints(npc,dtF,includeRot);
   }
 
-void Camera::calcControlPoints(const Npc& npc, float dtF, bool includeRot) {
+void Camera::calcControlPoints(const Npc&, float dtF, bool includeRot) {
   const auto& def = cameraDef();
   auto  targetOffset = Vec3(def.targetOffsetX,
                             def.targetOffsetY,
@@ -443,8 +435,17 @@ void Camera::calcControlPoints(const Npc& npc, float dtF, bool includeRot) {
                             def.rotOffsetY,
                             def.rotOffsetZ);
 
-  auto  pos          = npc.cameraBone();
   float range        = src.range*100.f;
+
+  if(camMod==Dialog) {
+    // TODO: DialogCams.zen
+    range        = dlgDist;
+    src.spin     = dst.spin;
+    src.target   = dst.target;
+    cameraPos    = src.target;
+    rotOffset    = Vec3();
+    rotOffsetDef = Vec3();
+    }
 
   followAng(src.spin,  dst.spin,     dtF);
   followAng(rotOffset, rotOffsetDef, dtF);
@@ -464,18 +465,18 @@ void Camera::calcControlPoints(const Npc& npc, float dtF, bool includeRot) {
   Vec3 dir = {0,0,1};
   rotOffsetMat.project(dir);
 
-  dst.target  = pos + targetOffset;
+  auto target  = dst.target + targetOffset;
 
-  followPos(src.target,dst.target,dtF);
+  followPos(src.target,target,dtF);
   followCamera(cameraPos,src.target,dtF);
 
-  auto baseOrigin = dst.target - dir*range;
-  origin          = cameraPos  - dir*range;
+  auto baseOrigin = target    - dir*range;
+  origin          = cameraPos - dir*range;
 
-  if(def.collision) {
+  if(def.collision!=0) {
     range      = calcCameraColision(src.target,origin,src.spin,range);
-    baseOrigin = dst.target - dir*range*100.f;
-    origin     = cameraPos  - dir*range*100.f;
+    baseOrigin = target    - dir*range*100.f;
+    origin     = cameraPos - dir*range*100.f;
     }
 
   offsetAng = calcOffsetAngles(origin,baseOrigin,dst.target);

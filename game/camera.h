@@ -63,7 +63,7 @@ class Camera final {
     void            setSpin(const Tempest::PointF& p);
     void            setDestSpin(const Tempest::PointF& p);
 
-    void            setPosition(float x,float y,float z);
+    void            setPosition(const Tempest::Vec3& pos);
     void            setDestPosition(const Tempest::Vec3& pos);
 
     void            setDialogDistance(float d);
