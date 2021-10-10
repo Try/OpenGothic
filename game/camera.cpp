@@ -12,7 +12,7 @@
 
 using namespace Tempest;
 
-static float angleMod(float a){
+static float angleMod(float a) {
   a = std::fmod(a,360.f);
   if(a<-180.f)
     a+=360.f;
@@ -20,6 +20,17 @@ static float angleMod(float a){
     a-=360.f;
   return a;
   }
+
+static Vec3 angleMod(Vec3 a) {
+  a.x = angleMod(a.x);
+  a.y = angleMod(a.y);
+  a.z = angleMod(a.z);
+  return a;
+  }
+
+float Camera::maxDist        = 100;
+float Camera::baseSpeeed     = 200;
+float Camera::offsetAngleMul = 0.2f;
 
 // TODO: System/Camera/CamInst.d
 Camera::Camera() {
@@ -35,6 +46,7 @@ void Camera::reset(World& world) {
 void Camera::implReset(const Npc &npc) {
   const auto& def = cameraDef();
   dst.range = def.bestRange;
+  cameraPos = dst.target;
   calcControlPoints(npc,true,0);
   src = dst;
   }
@@ -241,27 +253,6 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
   return proj;
   }
 
-Vec3 Camera::applyModPosition(const Vec3& pos) {
-  const auto& def = cameraDef();
-
-  Vec3 targetOffset = Vec3(def.targetOffsetX,
-                           def.targetOffsetY,
-                           def.targetOffsetZ);
-
-  if(auto pl = Gothic::inst().player()) {
-    Matrix4x4 rot;
-    rot.identity();
-    rot.rotateOY(90-pl->rotation());
-    rot.project(targetOffset.x,targetOffset.y,targetOffset.z);
-    }
-
-  return pos + targetOffset;
-  }
-
-Vec3 Camera::applyModRotation(const Vec3& spin) {
-  return spin;
-  }
-
 const Daedalus::GEngineClasses::CCamSys &Camera::cameraDef() const {
   auto& camd = Gothic::cameraDef();
   if(camMod==Dialog)
@@ -367,10 +358,8 @@ void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
     return;
     }
 
-  static float maxDist = 100;
-  float        speed   = 180*dtF;
-
-  float        tr      = std::min(speed,len);
+  float speed = baseSpeeed*dtF;
+  float tr    = std::min(speed,len);
   if(len-tr>maxDist)
     tr = (len-maxDist); else
     tr = std::min(speed,len);
@@ -492,21 +481,29 @@ void Camera::calcControlPoints(const Npc& npc, float dtF, bool includeRot) {
   offsetAng = calcOffsetAngles(origin,baseOrigin,dst.target);
   }
 
-Vec3 Camera::calcOffsetAngles(const Vec3& srcOrigin, const Vec3& target) const {
-  auto  sXZ = srcOrigin-target;
+Vec3 Camera::calcOffsetAngles(const Vec3& origin, const Vec3& target) const {
+  auto  sXZ = origin-target;
   float y0  = std::atan2(sXZ.x,sXZ.z)*180.f/float(M_PI);
   float x0  = std::atan2(sXZ.y,Vec2(sXZ.x,sXZ.z).length())*180.f/float(M_PI);
 
   return Vec3(x0,-y0,0);
   }
 
-Vec3 Camera::calcOffsetAngles(const Vec3& srcOrigin,
-                              const Vec3& dstOrigin,
-                              const Vec3& target) const {
-  auto a0 = calcOffsetAngles(srcOrigin,target);
-  auto a1 = calcOffsetAngles(dstOrigin,target);
-  // TODO: handle over 180 y rotation
-  return (a1-a0)*0.2f;
+Vec3 Camera::calcOffsetAngles(Vec3 srcOrigin, Vec3 dstOrigin, Vec3 target) const {
+  auto  src = srcOrigin-target; src.y = 0;
+  auto  dst = dstOrigin-target; dst.y = 0;
+
+  auto  dot = Vec3::dotProduct(src,dst);
+  float k   = 0;
+  if(dst.length()>0.001f) {
+    k = dot/dst.length();
+    k = std::max(0.f,std::min(k/100.f,1.f));
+    }
+
+  auto  a0 = calcOffsetAngles(srcOrigin,target);
+  auto  a1 = calcOffsetAngles(dstOrigin,target);
+  auto  da = angleMod(a1-a0);
+  return da*k*offsetAngleMul;
   }
 
 float Camera::calcCameraColision(const Vec3& target, const Vec3& origin, const Vec3& rotSpin, float dist) const {
@@ -531,6 +528,7 @@ float Camera::calcCameraColision(const Vec3& target, const Vec3& origin, const V
   static int n = 1, nn=1;
   for(int i=-n;i<=n;++i)
     for(int r=-n;r<=n;++r) {
+      raysCasted++;
       float u = float(i)/float(nn),v = float(r)/float(nn);
       Tempest::Vec3 r0 = target;
       Tempest::Vec3 r1 = {u,v,0};
@@ -551,7 +549,6 @@ float Camera::calcCameraColision(const Vec3& target, const Vec3& origin, const V
       float md = dist-std::max(0.f,dist0-dist1);
       if(md<distMd)
         distMd=md;
-      raysCasted++;
       }
   return std::max(minDist,distMd)/100.f;
   }
@@ -583,14 +580,19 @@ void Camera::debugDraw(DbgPainter& p) {
   if(!dbg)
     return;
 
-  auto destP = applyModPosition(dst.target);
-
   p.setPen(Color(0,1,0));
-  p.drawLine(destP, src.target);
+  p.drawLine(dst.target, src.target);
+
+  if(auto pl = Gothic::inst().player()) {
+    float a  = pl->rotationRad();
+    float c  = std::cos(a), s = std::sin(a);
+    auto  ln = Vec3(c,0,s)*25.f;
+    p.drawLine(src.target-ln, src.target+ln);
+    }
 
   auto& fnt = Resources::font();
   int   y   = 300+fnt.pixelSize();
-  char buf[256] = {};
+  char  buf[256] = {};
 
   std::snprintf(buf,sizeof(buf),"RaysCasted : %d", raysCasted);
   p.drawText(8,y,buf); y += fnt.pixelSize();
@@ -598,12 +600,12 @@ void Camera::debugDraw(DbgPainter& p) {
   std::snprintf(buf,sizeof(buf),"PlayerPos : %f %f %f", dst.target.x, dst.target.y, dst.target.z);
   p.drawText(8,y,buf); y += fnt.pixelSize();
 
-  std::snprintf(buf,sizeof(buf),"Range To Player : %f", src.range*100.f);
+  std::snprintf(buf,sizeof(buf),"Range To Player : %f", (dst.target-origin).length());
   p.drawText(8,y,buf); y += fnt.pixelSize();
 
   std::snprintf(buf,sizeof(buf),"Azimuth : %f", angleMod(dst.spin.y-src.spin.y));
   p.drawText(8,y,buf); y += fnt.pixelSize();
-  std::snprintf(buf,sizeof(buf),"Elevation : %f", src.spin.x);
+  std::snprintf(buf,sizeof(buf),"Elevation : %f", src.spin.x-rotOffset.x);
   p.drawText(8,y,buf); y += fnt.pixelSize();
   }
 
