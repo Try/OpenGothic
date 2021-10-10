@@ -365,6 +365,9 @@ void PlayerControl::marvinF8(uint64_t dt) {
   pl.clearSpeed();
   pl.quitIneraction();
   pl.setAnim(AnimationSolver::Idle);
+
+  if(auto c = Gothic::inst().camera())
+    c->reset();
   }
 
 void PlayerControl::marvinK(uint64_t dt) {

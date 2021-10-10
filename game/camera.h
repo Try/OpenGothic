@@ -28,7 +28,9 @@ class Camera final {
       Dive
       };
 
-    void reset(World& world);
+    void reset();
+    void reset(const Npc* pl);
+
     void save(Serialize &s);
     void load(Serialize &s,Npc* pl);
 
@@ -54,7 +56,7 @@ class Camera final {
 
     void toogleDebug();
 
-    void tick(const Npc& npc, uint64_t dt, bool includeRot);
+    void tick(uint64_t dt);
     void debugDraw(DbgPainter& p);
 
     Tempest::PointF spin()     const;
@@ -89,12 +91,12 @@ class Camera final {
     State                 src, dst;
 
     float                 dlgDist   = 0;
+    float                 userRange = 0.13f;
 
     Tempest::Matrix4x4    proj;
     uint32_t              vpWidth=0;
     uint32_t              vpHeight=0;
 
-    bool                  hasPos        = false;
     bool                  dbg           = false;
     bool                  tgEnable      = true;
     bool                  fpEnable      = false;
@@ -108,18 +110,16 @@ class Camera final {
     static float          baseSpeeed;
     static float          offsetAngleMul;
 
-    void                  calcControlPoints(const Npc& npc, float dtF, bool includeRot);
+    void                  calcControlPoints(float dtF);
 
     Tempest::Vec3         calcOffsetAngles(const Tempest::Vec3& srcOrigin, const Tempest::Vec3& target) const;
     Tempest::Vec3         calcOffsetAngles(Tempest::Vec3 srcOrigin, Tempest::Vec3 dstOrigin, Tempest::Vec3 target) const;
     float                 calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
 
-    void                  implReset(const Npc& pl);
     void                  implMove(Tempest::KeyEvent::KeyType t);
     Tempest::Matrix4x4    mkView    (const Tempest::Vec3& pos, const Tempest::Vec3& spin) const;
     Tempest::Matrix4x4    mkRotation(const Tempest::Vec3& spin) const;
 
-    void                  clampRange(float& z);
     void                  clampRotation(Tempest::Vec3& spin);
 
     void                  followCamera(Tempest::Vec3& pos,  Tempest::Vec3 dest, float dtF);

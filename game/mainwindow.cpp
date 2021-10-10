@@ -708,7 +708,7 @@ void MainWindow::tickCamera(uint64_t dt) {
     return;
   if(camera.isToogleEnabled())
     camera.setMode(solveCameraMode());
-  camera.tick(*pl, dt, (!mouseP[Event::ButtonLeft] || player.hasActionFocus() || fs));
+  camera.tick(dt);
   renderer.setCameraView(camera);
   }
 
