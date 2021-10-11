@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.16)
 
 project(Gothic2Notr LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
@@ -11,6 +11,8 @@ set(CMAKE_RELWITHDEBINFO_POSTFIX "")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_SKIP_RPATH ON)
 
+add_executable(${PROJECT_NAME})
+
 if(MSVC)
   add_definitions(-D_USE_MATH_DEFINES)
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
@@ -20,7 +22,75 @@ if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4800")
 endif()
 
+if(NOT MSVC)
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wconversion -Wno-strict-aliasing -Werror)
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "7.1" AND NOT APPLE)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wno-format-truncation)
+  endif()
+  if(UNIX)
+    # -rdynamic is needed to allow obtaining meaningful backtraces
+    target_link_options(${PROJECT_NAME} PRIVATE -rdynamic)
+  endif()
+endif()
+
+if(WIN32)
+  if(MSVC)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup" )
+  else()
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows")
+  endif()
+endif()
+
+## OpenGothic
+
+# sources
+file(GLOB OPENGOTHIC_SOURCES
+    "game/*.h"
+    "game/*.cpp"
+    "game/**/*.h"
+    "game/**/*.cpp"
+    "game/**/**/*.h"
+    "game/**/**/*.cpp"
+    "game/**/**/**/*.h"
+    "game/**/**/**/*.cpp")
+target_sources(${PROJECT_NAME} PRIVATE ${OPENGOTHIC_SOURCES} icon.rc)
+
+# shaders
+add_subdirectory(shader)
+target_link_libraries(${PROJECT_NAME} GothicShaders)
+
+include_directories("game")
+
 ## submodule dependencies
+
+# edd-dbg
+add_subdirectory(lib/edd-dbg)
+include_directories(lib/edd-dbg/include)
+if(WIN32)
+  target_link_libraries(${PROJECT_NAME} edd_dbg)
+endif()
+
+if(WIN32)
+  target_link_libraries(${PROJECT_NAME} shlwapi DbgHelp)
+elseif(UNIX)
+  target_link_libraries(${PROJECT_NAME} -lpthread -ldl)
+endif()
+
+# ZenLib
+set(BUILD_SQUISH_WITH_SSE2 OFF CACHE INTERNAL "")
+add_subdirectory(lib/ZenLib)
+include_directories(lib/ZenLib)
+target_link_libraries(${PROJECT_NAME} zenload daedalus)
+
+# TinySoundFont
+add_definitions(-DTSF_NO_STDIO)
+include_directories(lib/TinySoundFont)
+
+# Tempest
+set(TEMPEST_BUILD_SHARED ON  CACHE INTERNAL "")
+add_subdirectory(lib/Tempest/Engine)
+include_directories(lib/Tempest/Engine/include)
+target_link_libraries(${PROJECT_NAME} Tempest)
 
 # bullet physics
 set(BULLET2_MULTITHREADING       ON  CACHE INTERNAL "")
@@ -44,90 +114,8 @@ if(NOT MSVC)
   target_compile_options(BulletCollision        PRIVATE -Wno-argument-outside-range)
   target_compile_options(LinearMath             PRIVATE -Wno-argument-outside-range)
 endif()
-
-# edd-dbg
-add_subdirectory(lib/edd-dbg)
-
-# ZenLib
-set(BUILD_SQUISH_WITH_SSE2 OFF CACHE INTERNAL "")
-add_subdirectory(lib/ZenLib)
-
-# Tempest
-set(TEMPEST_BUILD_SHARED ON  CACHE INTERNAL "")
-add_subdirectory(lib/Tempest/Engine)
-
-## OpenGothic
-
-# sources
-file(GLOB OPENGOTHIC_SOURCES
-    "game/*.h"
-    "game/*.cpp"
-    "game/**/*.h"
-    "game/**/*.cpp"
-    "game/**/**/*.h"
-    "game/**/**/*.cpp"
-    "game/**/**/**/*.h"
-    "game/**/**/**/*.cpp")
-
-# shaders
-add_subdirectory(shader)
-
-# executable
-add_executable(${PROJECT_NAME}
-    ${OPENGOTHIC_SOURCES}
-    icon.rc)
-
-include_directories("game")
-
-# edd-dbg
-include_directories(lib/edd-dbg/include)
-if(WIN32)
-  target_link_libraries(${PROJECT_NAME} edd_dbg)
-endif()
-
-if(WIN32)
-  target_link_libraries(${PROJECT_NAME} shlwapi DbgHelp)
-elseif(UNIX)
-  target_link_libraries(${PROJECT_NAME} -lpthread -ldl)
-endif()
-
-# ZenLib
-include_directories(lib/ZenLib)
-target_link_libraries(${PROJECT_NAME} zenload daedalus)
-
-# TinySoundFont
-add_definitions(-DTSF_NO_STDIO)
-include_directories(lib/TinySoundFont)
-
-# bullet physics
 include_directories(lib/bullet3/src)
 target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath)
-
-# Tempest
-include_directories(lib/Tempest/Engine/include)
-target_link_libraries(${PROJECT_NAME} Tempest)
-
-# shaders
-target_link_libraries(${PROJECT_NAME} GothicShaders)
-
-if(NOT MSVC)
-  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wconversion -Wno-strict-aliasing -Werror)
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "7.1" AND NOT APPLE)
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wno-format-truncation)
-  endif()
-  if(UNIX)
-    # -rdynamic is needed to allow obtaining meaningful backtraces
-    target_link_options(${PROJECT_NAME} PRIVATE -rdynamic)
-  endif()
-endif()
-
-if(WIN32)
-  if(MSVC)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup" )
-  else()
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows")
-  endif()
-endif()
 
 # script for launching in binary directory
 if(WIN32)
@@ -145,7 +133,4 @@ elseif(UNIX)
 endif()
 
 # installation
-install(
-    TARGETS ${PROJECT_NAME}
-    DESTINATION bin
-    )
+install(TARGETS ${PROJECT_NAME} DESTINATION bin)
