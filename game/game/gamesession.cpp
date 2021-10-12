@@ -66,7 +66,7 @@ GameSession::GameSession(std::string file) {
   vm->initDialogs();
   Gothic::inst().setLoadingProgress(70);
 
-  const bool testMode=false;
+  const bool testMode=true;
 
   std::string_view hero = testMode ? "PC_ROCKEFELLER" : Gothic::inst().defaultPlayer();
   //std::string_view hero = "PC_ROCKEFELLER";
@@ -135,22 +135,35 @@ void GameSession::save(Serialize &fout, const char* name, const Pixmap& screen) 
   hdr.wrldTime  = wrldTime;
   hdr.isGothic2 = Gothic::inst().version().game;
 
-  fout.write(hdr,ticks,wrldTimePart);
-  fout.write(uint16_t(visitedWorlds.size()));
+  fout.setEntry("priview.png");
+  fout.write(screen);
+
+  fout.setEntry("header");
+  fout.write(hdr);
+
+  fout.setEntry("camera");
+  cam->save(fout);
 
   Gothic::inst().setLoadingProgress(5);
-  for(auto& i:visitedWorlds)
+  for(auto& i:visitedWorlds) {
+    fout.setEntry("worlds/%s",i.name().c_str());
     i.save(fout);
+    }
   Gothic::inst().setLoadingProgress(25);
 
-  vm->save(fout);
-  Gothic::inst().setLoadingProgress(60);
-  if(wrld)
+  if(wrld) {
+    fout.setEntry("main");
+    fout.write(ticks,wrldTimePart);
     wrld->save(fout);
+    }
+  Gothic::inst().setLoadingProgress(60);
 
-  Gothic::inst().setLoadingProgress(80);
+  fout.setEntry("quests");
+  vm->save(fout);
+
+  fout.setEntry("daedalus");
   vm->saveVar(fout);
-  cam->save(fout);
+  Gothic::inst().setLoadingProgress(80);
   }
 
 void GameSession::setWorld(std::unique_ptr<World> &&w) {

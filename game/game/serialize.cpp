@@ -1,48 +1,73 @@
 #include "serialize.h"
 
 #include <cstring>
+#include <zip.h>
 
 #include "savegameheader.h"
 #include "world/world.h"
 #include "world/fplock.h"
 #include "world/waypoint.h"
 
-const char Serialize::tag[]="OpenGothic/Save";
+#include <Tempest/MemReader>
+#include <Tempest/MemWriter>
 
-Serialize::Serialize(Tempest::ODevice & d):out(&d) {
-  uint16_t v = Version;
-  writeBytes(tag,sizeof(tag));
-  writeBytes(&v,2);
+Serialize::Serialize() {}
+
+Serialize::Serialize(Tempest::ODevice& fout) : fout(&fout) {
+  //impl = zip_open("test.zip", ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+  impl = zip_stream_open(nullptr, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
   }
 
-Serialize::Serialize(Tempest::IDevice &fin) : in(&fin){
-  char     buf[sizeof(tag)]={};
+Serialize::Serialize(Tempest::IDevice& fin) : fin(&fin) {
+  impl = zip_open("test.zip", ZIP_DEFAULT_COMPRESSION_LEVEL, 'r');
+  }
 
-  readBytes(buf,sizeof(buf));
-  readBytes(&ver,2);
-
-  if(std::memcmp(tag,buf,sizeof(buf))!=0)
-    throw std::runtime_error("invalid file format");
-  if(ver<MinVersion || Version<ver)
-    throw std::runtime_error("unsupported save file version");
+Serialize::~Serialize() {
+  closeEntry();
+  char *outbuf = NULL;
+  size_t outbufsize = 0;
+  zip_stream_copy(impl, (void **)&outbuf, &outbufsize);
+  fout->write(outbuf,outbufsize);
+  std::free(outbuf);
+  zip_stream_close(impl);
   }
 
 Serialize Serialize::empty() {
-  Serialize e;
-  return e;
+  return Serialize();
   }
 
-Serialize::Serialize()
-  :ver(Version){
+void Serialize::closeEntry() {
+  if(hasEntry) {
+    hasEntry = nullptr;
+    if(zip_entry_close(impl)!=0)
+      throw std::runtime_error("unable to locate entry in gmae archive");
+    }
   }
 
-void Serialize::implWrite(const std::string &s) {
+void Serialize::implSetEntry(const char* fname) {
+  closeEntry();
+  if(zip_entry_open(impl, fname)!=0)
+    throw std::runtime_error("unable to locate entry in gmae archive");
+  hasEntry = fname;
+  }
+
+void Serialize::writeBytes(const void* buf, size_t sz) {
+  if(zip_entry_write(impl, buf, sz)!=0)
+    throw std::runtime_error("unable to read save-game file");
+  }
+
+void Serialize::readBytes(void* buf, size_t sz) {
+  //if(zip_entry_read(impl,buf,sz)!=0)
+  throw std::runtime_error("unable to write save-game file");
+  }
+
+void Serialize::implWrite(const std::string& s) {
   uint32_t sz=uint32_t(s.size());
   implWrite(sz);
   writeBytes(s.data(),sz);
   }
 
-void Serialize::implRead(std::string &s) {
+void Serialize::implRead(std::string& s) {
   uint32_t sz=0;
   implRead(sz);
   s.resize(sz);
@@ -68,27 +93,20 @@ void Serialize::implRead(Daedalus::ZString& s) {
   s = Daedalus::ZString(std::move(rs));
   }
 
-void Serialize::implWrite(const SaveGameHeader &p) {
-  p.save(*this);
+void Serialize::implWrite(WeaponState w) {
+  implWrite(uint8_t(w));
   }
 
-void Serialize::implRead(SaveGameHeader &p) {
-  p = SaveGameHeader(*this);
+void Serialize::implRead(WeaponState &w) {
+  implRead(reinterpret_cast<uint8_t&>(w));
   }
 
-void Serialize::implWrite(const Tempest::Pixmap &p) {
-  p.save(*out);
-  }
 
-void Serialize::implRead(Tempest::Pixmap &p) {
-  p = Tempest::Pixmap(*in);
-  }
-
-void Serialize::implWrite(const WayPoint *wptr) {
+void Serialize::implWrite(const WayPoint* wptr) {
   implWrite(wptr ? wptr->name : "");
   }
 
-void Serialize::implRead(const WayPoint *&wptr) {
+void Serialize::implRead(const WayPoint*& wptr) {
   implRead(tmpStr);
   wptr = ctx->findPoint(tmpStr,false);
   }
@@ -141,20 +159,26 @@ void Serialize::implRead(Interactive*& mobsi) {
   mobsi = ctx->mobsiById(id);
   }
 
-void Serialize::implWrite(WeaponState w) {
-  implWrite(uint8_t(w));
+void Serialize::implWrite(const SaveGameHeader& p) {
+  p.save(*this);
   }
 
-void Serialize::implRead(WeaponState &w) {
-  implRead(reinterpret_cast<uint8_t&>(w));
+void Serialize::implRead(SaveGameHeader& p) {
+  p = SaveGameHeader(*this);
   }
 
-void Serialize::implWrite(const FpLock &fp) {
-  fp.save(*this);
+void Serialize::implWrite(const Tempest::Pixmap& p) {
+  std::vector<uint8_t> tmp;
+  Tempest::MemWriter w{tmp};
+  p.save(w);
+  writeBytes(tmp.data(),tmp.size());
   }
 
-void Serialize::implRead(FpLock &fp) {
-  fp.load(*this);
+void Serialize::implRead(Tempest::Pixmap& p) {
+  std::vector<uint8_t> tmp;
+  readBytes(tmp.data(),tmp.size());
+  Tempest::MemReader r{tmp};
+  p = Tempest::Pixmap(r);
   }
 
 void Serialize::implWrite(const Daedalus::GEngineClasses::C_Npc& h) {
@@ -185,4 +209,12 @@ void Serialize::implRead(Daedalus::GEngineClasses::C_Npc& h) {
   read(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
   read(h.aivar);
   read(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
+  }
+
+void Serialize::implWrite(const FpLock &fp) {
+  fp.save(*this);
+  }
+
+void Serialize::implRead(FpLock &fp) {
+  fp.load(*this);
   }

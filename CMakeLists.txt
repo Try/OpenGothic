@@ -92,6 +92,11 @@ add_subdirectory(lib/Tempest/Engine)
 include_directories(lib/Tempest/Engine/include)
 target_link_libraries(${PROJECT_NAME} Tempest)
 
+# zip
+include_directories(lib/kuba-zip/src)
+add_subdirectory(lib/kuba-zip)
+target_link_libraries(${PROJECT_NAME} zip)
+
 # bullet physics
 set(BULLET2_MULTITHREADING       ON  CACHE INTERNAL "")
 set(USE_MSVC_RUNTIME_LIBRARY_DLL ON  CACHE INTERNAL "")
