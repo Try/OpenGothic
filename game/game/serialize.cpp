@@ -1,7 +1,6 @@
 #include "serialize.h"
 
 #include <cstring>
-#include <zip.h>
 
 #include "savegameheader.h"
 #include "world/world.h"
@@ -11,25 +10,35 @@
 #include <Tempest/MemReader>
 #include <Tempest/MemWriter>
 
+size_t Serialize::writeFunc(void* pOpaque, mz_uint64 file_ofs, const void* pBuf, size_t n) {
+  auto& self = *reinterpret_cast<Serialize*>(pOpaque);
+  file_ofs += mz_zip_get_archive_file_start_offset(&self.impl);
+  if(file_ofs!=self.curOffset) {
+    self.impl.m_last_error = MZ_ZIP_FILE_SEEK_FAILED;
+    return 0;
+    }
+  size_t ret = self.fout->write(pBuf,n);
+  self.curOffset+=ret;
+  return ret;
+  }
+
 Serialize::Serialize() {}
 
 Serialize::Serialize(Tempest::ODevice& fout) : fout(&fout) {
-  //impl = zip_open("test.zip", ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
-  impl = zip_stream_open(nullptr, 0, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+  impl.m_pWrite           = Serialize::writeFunc;
+  impl.m_pIO_opaque       = this;
+  impl.m_zip_type         = MZ_ZIP_TYPE_USER;
+  mz_zip_writer_init_v2(&impl, 0, 0);
   }
 
 Serialize::Serialize(Tempest::IDevice& fin) : fin(&fin) {
-  impl = zip_open("test.zip", ZIP_DEFAULT_COMPRESSION_LEVEL, 'r');
+
   }
 
 Serialize::~Serialize() {
   closeEntry();
-  char *outbuf = NULL;
-  size_t outbufsize = 0;
-  zip_stream_copy(impl, (void **)&outbuf, &outbufsize);
-  fout->write(outbuf,outbufsize);
-  std::free(outbuf);
-  zip_stream_close(impl);
+  mz_zip_writer_finalize_archive(&impl);
+  mz_zip_writer_end(&impl);
   }
 
 Serialize Serialize::empty() {
@@ -37,23 +46,25 @@ Serialize Serialize::empty() {
   }
 
 void Serialize::closeEntry() {
-  if(hasEntry) {
-    hasEntry = nullptr;
-    if(zip_entry_close(impl)!=0)
-      throw std::runtime_error("unable to locate entry in gmae archive");
-    }
+  if(entryName.empty())
+    return;
+
+  mz_bool status = mz_zip_writer_add_mem(&impl, entryName.c_str(), emtryBuf.data(), emtryBuf.size(), MZ_BEST_COMPRESSION);
+  emtryBuf.clear();
+  entryName.clear();
+  if(!status)
+    throw std::runtime_error("unable to write entry in game archive");
   }
 
 void Serialize::implSetEntry(const char* fname) {
   closeEntry();
-  if(zip_entry_open(impl, fname)!=0)
-    throw std::runtime_error("unable to locate entry in gmae archive");
-  hasEntry = fname;
+  entryName = fname;
   }
 
 void Serialize::writeBytes(const void* buf, size_t sz) {
-  if(zip_entry_write(impl, buf, sz)!=0)
-    throw std::runtime_error("unable to read save-game file");
+  size_t at = emtryBuf.size();
+  emtryBuf.resize(emtryBuf.size()+sz);
+  std::memcpy(&emtryBuf[at],buf,sz);
   }
 
 void Serialize::readBytes(void* buf, size_t sz) {

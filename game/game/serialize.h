@@ -14,6 +14,8 @@
 #include <daedalus/DATFile.h>
 #include <daedalus/ZString.h>
 
+#include <miniz.h>
+
 #include "gametime.h"
 #include "constants.h"
 
@@ -30,8 +32,6 @@ namespace GEngineClasses {
 struct C_Npc;
 }
 }
-
-struct zip_t;
 
 class Serialize {
   public:
@@ -278,15 +278,19 @@ class Serialize {
     void writeBytes(const void* v,size_t sz);
     void readBytes (void* v,size_t sz);
 
+    static size_t writeFunc(void *pOpaque, mz_uint64 file_ofs, const void *pBuf, size_t n);
+
     void closeEntry();
     void implSetEntry(const char* e);
 
-    std::vector<std::string> entry;
     std::string              tmpStr;
-    World*                   ctx      = nullptr;
-    zip_t*                   impl     = nullptr;
-    const char*              hasEntry = nullptr;
-    Tempest::ODevice*        fout     = nullptr;
-    Tempest::IDevice*        fin      = nullptr;
+    World*                   ctx       = nullptr;
+
+    mz_zip_archive           impl      = {};
+    std::string              entryName;
+    std::vector<uint8_t>     emtryBuf;
+    uint64_t                 curOffset = 0;
+    Tempest::ODevice*        fout      = nullptr;
+    Tempest::IDevice*        fin       = nullptr;
   };
 
