@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <array>
 #include <type_traits>
+#include <sstream>
 
 #include <daedalus/DATFile.h>
 #include <daedalus/ZString.h>
@@ -45,10 +46,11 @@ class Serialize {
     uint16_t version() const { return 36; }
 
     template<class ... Args>
-    void setEntry(const char* format, const Args& ... args) {
-      char buf[256] = {};
-      std::snprintf(buf,sizeof(buf),format,args...);
-      implSetEntry(buf);
+    void setEntry(const Args& ... args) {
+      std::stringstream s;
+      int dummy[] = {(s << args, 0)...};
+      (void)dummy;
+      implSetEntry(s.str());
       }
     void setContext(World* ctx) { this->ctx=ctx; }
 
@@ -278,18 +280,20 @@ class Serialize {
     void writeBytes(const void* v,size_t sz);
     void readBytes (void* v,size_t sz);
 
-    static size_t writeFunc(void *pOpaque, mz_uint64 file_ofs, const void *pBuf, size_t n);
+    static size_t writeFunc(void *pOpaque, uint64_t file_ofs, const void *pBuf, size_t n);
+    static size_t readFunc (void *pOpaque, uint64_t file_ofs, void *pBuf, size_t n);
 
     void closeEntry();
-    void implSetEntry(const char* e);
+    void implSetEntry(std::string e);
 
     std::string              tmpStr;
     World*                   ctx       = nullptr;
 
     mz_zip_archive           impl      = {};
     std::string              entryName;
-    std::vector<uint8_t>     emtryBuf;
+    std::vector<uint8_t>     entryBuf;
     uint64_t                 curOffset = 0;
+    uint64_t                 readOffset = 0;
     Tempest::ODevice*        fout      = nullptr;
     Tempest::IDevice*        fin       = nullptr;
   };

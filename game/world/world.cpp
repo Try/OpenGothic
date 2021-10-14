@@ -98,46 +98,6 @@ World::World(GameSession& game, std::string file, std::function<void(int)> loadP
   loadProgress(100);
   }
 
-World::World(GameSession &game,
-             Serialize &fin, std::function<void(int)> loadProgress)
-  :wname(fin.read<std::string>()),game(game),wsound(game,*this),wobj(*this) {
-  using namespace Daedalus::GameState;
-
-  ZenLoad::ZenParser parser(wname,Resources::vdfsIndex());
-
-  loadProgress(1);
-  parser.readHeader();
-
-  loadProgress(10);
-  ZenLoad::oCWorldData world;
-
-  auto fver = ZenLoad::ZenParser::FileVersion::Gothic1;
-  if(Gothic::inst().version().game==2)
-    fver = ZenLoad::ZenParser::FileVersion::Gothic2;
-  parser.readWorld(world,fver);
-
-  ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
-  PackedMesh vmesh(*worldMesh,PackedMesh::PK_VisualLnd);
-
-  loadProgress(50);
-  wdynamic.reset(new DynamicWorld(*this,*worldMesh));
-  wview.reset   (new WorldView(*this,vmesh));
-  loadProgress(70);
-
-  globFx.reset(new GlobalEffects(*this));
-
-  wmatrix.reset(new WayMatrix(*this,world.waynet));
-  if(1){
-    for(auto& vob:world.rootVobs)
-      wobj.addRoot(std::move(vob),false);
-    }
-  wmatrix->buildIndex();
-  bsp = std::move(world.bspTree);
-  bspSectors.resize(bsp.sectors.size());
-
-  loadProgress(100);
-  }
-
 World::~World() {
   }
 
@@ -166,6 +126,7 @@ void World::postInit() {
 
 void World::load(Serialize &fin) {
   fin.setContext(this);
+  // fin.read(wname);
   wobj.load(fin);
 
   uint32_t sz=0;

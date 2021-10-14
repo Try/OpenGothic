@@ -10,7 +10,7 @@
 #include <Tempest/MemReader>
 #include <Tempest/MemWriter>
 
-size_t Serialize::writeFunc(void* pOpaque, mz_uint64 file_ofs, const void* pBuf, size_t n) {
+size_t Serialize::writeFunc(void* pOpaque, uint64_t file_ofs, const void* pBuf, size_t n) {
   auto& self = *reinterpret_cast<Serialize*>(pOpaque);
   file_ofs += mz_zip_get_archive_file_start_offset(&self.impl);
   if(file_ofs!=self.curOffset) {
@@ -18,6 +18,32 @@ size_t Serialize::writeFunc(void* pOpaque, mz_uint64 file_ofs, const void* pBuf,
     return 0;
     }
   size_t ret = self.fout->write(pBuf,n);
+  self.curOffset+=ret;
+  return ret;
+  }
+
+size_t Serialize::readFunc(void* pOpaque, uint64_t file_ofs, void* pBuf, size_t n) {
+  auto& self = *reinterpret_cast<Serialize*>(pOpaque);
+  file_ofs += mz_zip_get_archive_file_start_offset(&self.impl);
+  if(self.curOffset<file_ofs) {
+    size_t diff = size_t(file_ofs-self.curOffset);
+    size_t mv   = self.fin->seek(diff);
+    self.curOffset += uint64_t(mv);
+    if(diff!=mv) {
+      self.impl.m_last_error = MZ_ZIP_FILE_SEEK_FAILED;
+      return 0;
+      }
+    }
+  if(self.curOffset>file_ofs) {
+    size_t diff = size_t(self.curOffset-file_ofs);
+    size_t mv   = self.fin->unget(diff);
+    self.curOffset -= uint64_t(mv);
+    if(diff!=mv) {
+      self.impl.m_last_error = MZ_ZIP_FILE_SEEK_FAILED;
+      return 0;
+      }
+    }
+  size_t ret = self.fin->read(pBuf,n);
   self.curOffset+=ret;
   return ret;
   }
@@ -32,7 +58,10 @@ Serialize::Serialize(Tempest::ODevice& fout) : fout(&fout) {
   }
 
 Serialize::Serialize(Tempest::IDevice& fin) : fin(&fin) {
-
+  impl.m_pRead            = Serialize::readFunc;
+  impl.m_pIO_opaque       = this;
+  impl.m_zip_type         = MZ_ZIP_TYPE_USER;
+  mz_zip_reader_init(&impl, fin.size(), 0);
   }
 
 Serialize::~Serialize() {
@@ -46,30 +75,44 @@ Serialize Serialize::empty() {
   }
 
 void Serialize::closeEntry() {
-  if(entryName.empty())
+  if(fout==nullptr)
+    return;
+  if(entryBuf.empty())
     return;
 
-  mz_bool status = mz_zip_writer_add_mem(&impl, entryName.c_str(), emtryBuf.data(), emtryBuf.size(), MZ_BEST_COMPRESSION);
-  emtryBuf.clear();
+  mz_bool status = mz_zip_writer_add_mem(&impl, entryName.c_str(), entryBuf.data(), entryBuf.size(), MZ_BEST_COMPRESSION);
+  entryBuf .clear();
   entryName.clear();
   if(!status)
     throw std::runtime_error("unable to write entry in game archive");
   }
 
-void Serialize::implSetEntry(const char* fname) {
+void Serialize::implSetEntry(std::string fname) {
   closeEntry();
-  entryName = fname;
+  entryName = std::move(fname);
+  if(fin!=nullptr) {
+    mz_uint32 id = -1;
+    if(!mz_zip_reader_locate_file_v2(&impl, entryName.c_str(), nullptr, 0, &id))
+      throw std::runtime_error("unable to locate entry in game archive");
+    mz_zip_archive_file_stat stat = {};
+    mz_zip_reader_file_stat(&impl,id,&stat);
+    entryBuf.resize(size_t(stat.m_uncomp_size));
+    mz_zip_reader_extract_file_to_mem(&impl,entryName.c_str(),entryBuf.data(),entryBuf.size(),0);
+    readOffset = 0;
+    }
   }
 
 void Serialize::writeBytes(const void* buf, size_t sz) {
-  size_t at = emtryBuf.size();
-  emtryBuf.resize(emtryBuf.size()+sz);
-  std::memcpy(&emtryBuf[at],buf,sz);
+  size_t at = entryBuf.size();
+  entryBuf.resize(entryBuf.size()+sz);
+  std::memcpy(&entryBuf[at],buf,sz);
   }
 
 void Serialize::readBytes(void* buf, size_t sz) {
-  //if(zip_entry_read(impl,buf,sz)!=0)
-  throw std::runtime_error("unable to write save-game file");
+  if(readOffset+sz>entryBuf.size())
+    throw std::runtime_error("unable to read save-game file");
+  std::memcpy(buf,&entryBuf[size_t(readOffset)],sz);
+  readOffset+=sz;
   }
 
 void Serialize::implWrite(const std::string& s) {
@@ -186,10 +229,9 @@ void Serialize::implWrite(const Tempest::Pixmap& p) {
   }
 
 void Serialize::implRead(Tempest::Pixmap& p) {
-  std::vector<uint8_t> tmp;
-  readBytes(tmp.data(),tmp.size());
-  Tempest::MemReader r{tmp};
+  Tempest::MemReader r{&entryBuf[size_t(readOffset)],size_t(entryBuf.size()-readOffset)};
   p = Tempest::Pixmap(r);
+  readOffset += r.cursorPosition();
   }
 
 void Serialize::implWrite(const Daedalus::GEngineClasses::C_Npc& h) {

@@ -37,7 +37,6 @@ class World final {
     World()=delete;
     World(const World&)=delete;
     World(GameSession& game, std::string file, std::function<void(int)> loadProgress);
-    World(GameSession& game, Serialize&  fin,  std::function<void(int)> loadProgress);
     ~World();
 
     struct BspSector final {
