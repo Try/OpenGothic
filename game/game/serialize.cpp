@@ -113,9 +113,9 @@ void Serialize::implSetEntry(std::string fname) {
     }
   }
 
-size_t Serialize::implDirectorySize(std::string e) {
+uint32_t Serialize::implDirectorySize(std::string e) {
   // Get and print information about each file in the archive.
-  size_t cnt = 0;
+  uint32_t cnt = 0;
   for(mz_uint i = 0; i<mz_zip_reader_get_num_files(&impl); i++) {
     mz_zip_archive_file_stat stat = {};
     if(!mz_zip_reader_file_stat(&impl, i, &stat))
@@ -124,13 +124,6 @@ size_t Serialize::implDirectorySize(std::string e) {
     if(len>e.size() && std::memcmp(e.data(),stat.m_filename,e.size())==0)
       ++cnt;
     }
-  /*
-  mz_uint32 id = -1;
-  if(!mz_zip_reader_locate_file_v2(&impl, e.c_str(), nullptr, 0, &id))
-    throw std::runtime_error("unable to locate entry in game archive");
-  mz_zip_archive_file_stat stat = {};
-  mz_zip_reader_file_stat(&impl,id,&stat);
-  */
   return cnt;
   }
 

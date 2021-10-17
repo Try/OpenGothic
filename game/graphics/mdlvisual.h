@@ -34,8 +34,8 @@ class MdlVisual final {
     void                           setHeadRotation(float dx, float dz);
     Tempest::Vec2                  headRotation() const;
     void                           setYTranslationEnable(bool e);
-    void                           setVisualBody(MeshObjects::Mesh &&body, World& owner);
-    void                           setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner, int32_t version);
+    void                           setVisualBody(World& owner, MeshObjects::Mesh&& body);
+    void                           setVisualBody(Npc& npc, MeshObjects::Mesh&& h, MeshObjects::Mesh&& body, int32_t version);
     void                           syncAttaches();
     const Skeleton*                visualSkeleton() const;
 
@@ -45,8 +45,8 @@ class MdlVisual final {
     void                           delOverlay(const Skeleton*  sk);
     void                           clearOverlays();
 
-    void                           setArmour     (MeshObjects::Mesh&& body, World& owner);
-    void                           setBody       (MeshObjects::Mesh&& body, World& owner, const int32_t version);
+    void                           setArmour     (Npc& npc, MeshObjects::Mesh&& armour);
+    void                           setBody       (Npc& npc, MeshObjects::Mesh&& body, const int32_t version);
     void                           setSword      (MeshObjects::Mesh&& sword);
     void                           setRangeWeapon(MeshObjects::Mesh&& bow);
     void                           setAmmoItem   (MeshObjects::Mesh&& ammo, std::string_view bone);
@@ -131,7 +131,7 @@ class MdlVisual final {
       size_t                     boneId=size_t(-1);
       };
 
-    void implSetBody(MeshObjects::Mesh&& body, World& owner, const int32_t version);
+    void implSetBody(Npc* npc, World& world, MeshObjects::Mesh&& body, const int32_t version);
     void setSlotAttachment(MeshObjects::Mesh&& itm, std::string_view bone);
 
     void bind(MeshAttach& slot, MeshObjects::Mesh&&   itm, std::string_view bone);
@@ -140,11 +140,11 @@ class MdlVisual final {
     template<class View>
     void bind(Attach<View>& slot, std::string_view bone);
     template<class View>
-    void rebindAttaches(Attach<View>& mesh,const Skeleton& from,const Skeleton& to);
-    template<class View>
     void syncAttaches(Attach<View>& mesh);
 
-    void rebindAttaches(const Skeleton& from,const Skeleton& to);
+    template<class View>
+    void rebindAttaches(Attach<View>& mesh, const Skeleton& to);
+    void rebindAttaches(const Skeleton& to);
 
     Tempest::Matrix4x4             pos;
     MeshObjects::Mesh              view;
@@ -162,7 +162,6 @@ class MdlVisual final {
     Daedalus::ZString              hnpcVisualName;
     bool                           hnpcFlagGhost = false;
     PfxSlot                        hnpcVisual;
-    float                          fatness = 0;
 
     const Skeleton*                skeleton=nullptr;
 

@@ -79,7 +79,7 @@ class GameSession final {
 
     struct HeroStorage {
       void                 save(Npc& npc, World &owner);
-      void                 putToWorld(World &owner, const std::string &wayPoint) const;
+      void                 putToWorld(World &owner, std::string_view wayPoint) const;
 
       std::vector<uint8_t> storage;
       };

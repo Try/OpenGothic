@@ -51,7 +51,7 @@ class Serialize {
       implSetEntry(s.str());
       }
     template<class ... Args>
-    size_t directorySize(const Args& ... args) {
+    uint32_t directorySize(const Args& ... args) {
       std::stringstream s;
       int dummy[] = {(s << args, 0)...};
       (void)dummy;
@@ -116,6 +116,9 @@ class Serialize {
 
     void implWrite(BodyState i) { writeBytes(&i,sizeof(i)); }
     void implRead (BodyState&i) { readBytes (&i,sizeof(i)); }
+
+    void implWrite(Attitude  i) { writeBytes(&i,sizeof(i));}
+    void implRead (Attitude& i) { readBytes (&i,sizeof(i)); }
 
     void implWrite(WeaponState  w);
     void implRead (WeaponState &w);
@@ -290,7 +293,7 @@ class Serialize {
 
     void   closeEntry();
     void   implSetEntry(std::string e);
-    size_t implDirectorySize(std::string e);
+    uint32_t implDirectorySize(std::string e);
 
     std::string              tmpStr;
     World*                   ctx       = nullptr;

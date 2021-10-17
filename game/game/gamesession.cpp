@@ -21,17 +21,17 @@ using namespace Tempest;
 const uint64_t GameSession::multTime=29;
 const uint64_t GameSession::divTime =2;
 
-void GameSession::HeroStorage::save(Npc &npc,World& owner) {
+void GameSession::HeroStorage::save(Npc& npc,World& owner) {
   storage.clear();
   Tempest::MemWriter wr{storage};
   Serialize          sr{wr};
   sr.setContext(&owner);
   sr.setEntry("hero");
 
-  npc.save(sr);
+  npc.save(sr,0);
   }
 
-void GameSession::HeroStorage::putToWorld(World& owner,const std::string& wayPoint) const {
+void GameSession::HeroStorage::putToWorld(World& owner, std::string_view wayPoint) const {
   if(storage.size()==0)
     return;
   Tempest::MemReader rd{storage};
@@ -40,7 +40,7 @@ void GameSession::HeroStorage::putToWorld(World& owner,const std::string& wayPoi
   sr.setEntry("hero");
 
   if(auto pl = owner.player()) {
-    pl->load(sr);
+    pl->load(sr,0);
     if(auto pos = owner.findPoint(wayPoint)) {
       pl->setPosition  (pos->x,pos->y,pos->z);
       pl->setDirection (pos->dirX,pos->dirY,pos->dirZ);
@@ -48,8 +48,9 @@ void GameSession::HeroStorage::putToWorld(World& owner,const std::string& wayPoi
       pl->updateTransform();
       }
     } else {
-    auto ptr = std::make_unique<Npc>(owner,sr);
-    owner.insertPlayer(std::move(ptr),wayPoint.c_str());
+    auto ptr = std::make_unique<Npc>(owner,-1,wayPoint);
+    ptr->load(sr,0);
+    owner.insertPlayer(std::move(ptr),wayPoint);
     }
   }
 
@@ -68,7 +69,7 @@ GameSession::GameSession(std::string file) {
   vm->initDialogs();
   Gothic::inst().setLoadingProgress(70);
 
-  const bool testMode=false;
+  const bool testMode=true;
 
   std::string_view hero = testMode ? "PC_ROCKEFELLER" : Gothic::inst().defaultPlayer();
   //std::string_view hero = "PC_ROCKEFELLER";
@@ -110,25 +111,23 @@ GameSession::GameSession(Serialize &fin) {
   fin.read(wssSize);
   wrldTime = hdr.wrldTime;
   visitedWorlds.resize(wssSize);
-  for(size_t i=0; i<wssSize; ++i) {
+  for(size_t i=0; i<wssSize; ++i)
     fin.read(visitedWorlds[i].name);
-    }
 
-  for(size_t i=0;i<wssSize;++i)
+  for(size_t i=0; i<wssSize; ++i)
     visitedWorlds[i].load(fin);
 
   vm.reset(new GameScript(*this));
-
-  fin.setEntry("quests");
   vm->initDialogs();
 
-  Gothic::inst().setLoadingProgress(70);
   if(true) {
     setWorld(std::unique_ptr<World>(new World(*this,wname,false,[&](int v){
       Gothic::inst().setLoadingProgress(int(v*0.55));
       })));
     wrld->load(fin);
     }
+
+  Gothic::inst().setLoadingProgress(70);
   fin.setEntry("quests");
   vm->loadQuests(fin);
 

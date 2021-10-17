@@ -621,6 +621,7 @@ void GameMenu::updateSavTitle(GameMenu::Item& sel) {
   try {
     RFile     fin(fname);
     Serialize reader(fin);
+    reader.setEntry("header");
     reader.read(hdr);
     sel.handle.text[0] = hdr.name.c_str();
     sel.savHdr         = std::move(hdr);

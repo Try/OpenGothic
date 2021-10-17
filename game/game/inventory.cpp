@@ -140,11 +140,11 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
     updateView(*owner);
   }
 
-void Inventory::load(Npc &owner, Serialize &s) {
+void Inventory::load(Serialize &s, Npc& owner) {
   implLoad(&owner,owner.world(),s);
   }
 
-void Inventory::load(Interactive&, World& w, Serialize &s) {
+void Inventory::load(Serialize& s, Interactive&, World& w) {
   implLoad(nullptr,w,s);
   }
 

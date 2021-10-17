@@ -67,23 +67,19 @@ WorldObjects::~WorldObjects() {
   }
 
 void WorldObjects::load(Serialize &fin) {
-  uint32_t sz = uint32_t(npcArr.size());
-
-  fin.read(sz);
-  sz = fin.directorySize("worlds/",owner.name(),"/npc/");
+  uint32_t sz = fin.directorySize("worlds/",owner.name(),"/npc/");
   npcArr.resize(sz);
   for(size_t i=0; i<sz; ++i)
     npcArr[i] = std::make_unique<Npc>(owner,size_t(-1),"");
   for(size_t i=0; i<npcArr.size(); ++i) {
-    fin.setEntry("worlds/",owner.name(),"/npc/",i);
-    npcArr[i]->load(fin);
+    npcArr[i]->load(fin,i);
     }
 
   fin.setEntry("worlds/",owner.name(),"/items");
   fin.read(sz);
   itemArr.clear();
   items.clear();
-  for(size_t i=0;i<sz;++i) {
+  for(size_t i=0; i<sz; ++i) {
     auto it = std::make_unique<Item>(owner,fin,Item::T_World);
     itemArr.emplace_back(std::move(it));
     items.add(itemArr.back().get());
@@ -112,15 +108,12 @@ void WorldObjects::load(Serialize &fin) {
   }
 
 void WorldObjects::save(Serialize &fout) {
-  uint32_t sz = uint32_t(npcArr.size());
-  fout.write(sz);
   for(size_t i=0; i<npcArr.size(); ++i) {
-    fout.setEntry("worlds/",owner.name(),"/npc/",i);
-    npcArr[i]->save(fout);
+    npcArr[i]->save(fout,i);
     }
 
   fout.setEntry("worlds/",owner.name(),"/items");
-  sz = uint32_t(itemArr.size());
+  uint32_t sz = uint32_t(itemArr.size());
   fout.write(sz);
   for(auto& i:itemArr)
     i->save(fout);

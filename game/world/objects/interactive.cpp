@@ -65,33 +65,18 @@ Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, boo
   }
 
 void Interactive::load(Serialize &fin) {
-  if(fin.version()<25 && vobType==ZenLoad::zCVobData::VT_oCMobFire) {
-    // mob fire wasn't here until v25
-    Vob::load(fin);
-    return;
-    }
-  if(fin.version()<28 && (vobType==ZenLoad::zCVobData::VT_oCMobLadder || vobType==ZenLoad::zCVobData::VT_oCMobWheel)) {
-    // mob ladder wasn't here until v28
-    Vob::load(fin);
-    return;
-    }
-
   Tempest::Matrix4x4 pos;
   uint8_t vt=0;
   fin.read(vt,vobName,focName,mdlVisual);
   vobType = ZenLoad::zCVobData::EVobType(vt);
   fin.read(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z,owner);
-  if(fin.version()>=2)
-    fin.read(focOver);
-  if(fin.version()>=6)
-    fin.read(showVisual);
+  fin.read(focOver,showVisual);
 
   fin.read(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
   fin.read(locked,keyInstance,pickLockStr);
-  invent.load(*this,world,fin);
+  invent.load(fin,*this,world);
   fin.read(pos,state,reverseState,loopState);
-  if(fin.version()>=12)
-    fin.read(isLockCracked);
+  fin.read(isLockCracked);
 
   setGlobalTransform(pos);
   // setVisual(mdlVisual);

@@ -177,7 +177,7 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world) {
     mdl.proto = view;
     mdl.view.setVisual(view->skeleton.get());
     if(vob.showVisual)
-      mdl.view.setVisualBody(world.addView(view),world);
+      mdl.view.setVisualBody(world,world.addView(view));
     mdl.view.setYTranslationEnable(false);
 
     if(vob.showVisual && (vob.cdDyn || vob.cdStatic)) {
