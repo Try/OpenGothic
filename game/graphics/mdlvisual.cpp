@@ -50,7 +50,8 @@ void MdlVisual::load(Serialize& fin, Npc& npc) {
 void MdlVisual::load(Serialize& fin, Interactive&) {
   solver.load(fin);
   skInst->load(fin,solver);
-  syncAttaches();
+  if(skeleton!=nullptr)
+    rebindAttaches(*skeleton);
   }
 
 // Mdl_SetVisual

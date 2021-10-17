@@ -47,11 +47,11 @@ class Serialize {
     uint16_t version() const { return Version::Current; }
 
     template<class ... Args>
-    void setEntry(const Args& ... args) {
+    bool setEntry(const Args& ... args) {
       std::stringstream s;
       int dummy[] = {(s << args, 0)...};
       (void)dummy;
-      implSetEntry(s.str());
+      return implSetEntry(s.str());
       }
     template<class ... Args>
     uint32_t directorySize(const Args& ... args) {
@@ -295,7 +295,7 @@ class Serialize {
     static size_t readFunc (void *pOpaque, uint64_t file_ofs, void *pBuf, size_t n);
 
     void   closeEntry();
-    void   implSetEntry(std::string e);
+    bool   implSetEntry(std::string e);
     uint32_t implDirectorySize(std::string e);
 
     std::string              tmpStr;

@@ -65,15 +65,6 @@ void ObjVisual::save(Serialize& fout, const Interactive& mob) const {
 void ObjVisual::load(Serialize& fin, Interactive& mob) {
   if(type==M_Mdl)
     return mdl.view.load(fin,mob);
-  if(fin.version()<27) {
-    // legacy save-load for static geometry
-    AnimationSolver solver;
-    Pose            skInst;
-    if(fin.version()>=17)
-      solver.load(fin);
-    if(fin.version()>=11)
-      skInst.load(fin,solver);
-    }
   }
 
 void ObjVisual::cleanup() {

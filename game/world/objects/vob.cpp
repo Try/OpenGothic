@@ -229,6 +229,8 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
 void Vob::saveVobTree(Serialize& fin) const {
   for(auto& i:child)
     i->saveVobTree(fin);
+  if(vobType==ZenLoad::zCVobData::VT_zCVob)
+    return;
   if(vobObjectID!=uint32_t(-1))
     save(fin);
   }
@@ -236,17 +238,18 @@ void Vob::saveVobTree(Serialize& fin) const {
 void Vob::loadVobTree(Serialize& fin) {
   for(auto& i:child)
     i->loadVobTree(fin);
-  if(vobObjectID!=uint32_t(-1))
+  if(vobObjectID!=uint32_t(-1) && vobType!=ZenLoad::zCVobData::VT_zCVob)
     load(fin);
   }
 
 void Vob::save(Serialize& fout) const {
-  fout.setEntry("worlds/",world.name(),"/mobsi/",vobObjectID);
+  fout.setEntry("worlds/",world.name(),"/mobsi/",vobObjectID,"/data");
   fout.write(vobType,pos,local);
   }
 
 void Vob::load(Serialize& fin) {
-  fin.setEntry("worlds/",world.name(),"/mobsi/",vobObjectID);
+  if(!fin.setEntry("worlds/",world.name(),"/mobsi/",vobObjectID,"/data"))
+    return;
   uint8_t type = vobType;
   fin.read(vobType,pos,local);
   if(vobType!=type)

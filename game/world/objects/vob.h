@@ -33,6 +33,8 @@ class Vob {
 
   protected:
     World&                            world;
+    uint8_t                           vobType = 0;
+    uint32_t                          vobObjectID = uint32_t(-1);
 
     virtual void  moveEvent();
 
@@ -45,8 +47,6 @@ class Vob {
     std::vector<std::unique_ptr<Vob>> child;
     ContentBit                        childContent=cbNone;
 
-    uint8_t                           vobType = 0;
-    uint32_t                          vobObjectID = uint32_t(-1);
     Tempest::Matrix4x4                pos, local;
     Vob*                              parent = nullptr;
 

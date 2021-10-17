@@ -76,14 +76,15 @@ void Serialize::closeEntry() {
   if(entryBuf.empty())
     return;
 
-  mz_bool status = mz_zip_writer_add_mem(&impl, entryName.c_str(), entryBuf.data(), entryBuf.size(), MZ_BEST_COMPRESSION);
+  mz_uint level  = entryBuf.size()>256 ? MZ_BEST_COMPRESSION : MZ_NO_COMPRESSION;
+  mz_bool status = mz_zip_writer_add_mem(&impl, entryName.c_str(), entryBuf.data(), entryBuf.size(), level);
   entryBuf .clear();
   entryName.clear();
   if(!status)
     throw std::runtime_error("unable to write entry in game archive");
   }
 
-void Serialize::implSetEntry(std::string fname) {
+bool Serialize::implSetEntry(std::string fname) {
   closeEntry();
   entryName = std::move(fname);
   if(fout!=nullptr) {
@@ -93,24 +94,29 @@ void Serialize::implSetEntry(std::string fname) {
         entryName[i+1] = '\0';
         mz_uint32 id = -1;
         if(!mz_zip_reader_locate_file_v2(&impl, entryName.c_str(), nullptr, 0, &id)) {
-          mz_bool status = mz_zip_writer_add_mem(&impl, entryName.c_str(), NULL, 0, MZ_BEST_COMPRESSION);
+          mz_bool status = mz_zip_writer_add_mem(&impl, entryName.c_str(), NULL, 0, MZ_NO_COMPRESSION);
           if(!status)
-            throw std::runtime_error("unable to locate entry in game archive");
+            throw std::runtime_error("unable to allocate entry in game archive");
           }
         entryName[i+1] = prev;
         }
       }
+    return true;
     }
   if(fin!=nullptr) {
     mz_uint32 id = -1;
-    if(!mz_zip_reader_locate_file_v2(&impl, entryName.c_str(), nullptr, 0, &id))
-      throw std::runtime_error("unable to locate entry in game archive");
-    mz_zip_archive_file_stat stat = {};
-    mz_zip_reader_file_stat(&impl,id,&stat);
-    entryBuf.resize(size_t(stat.m_uncomp_size));
-    mz_zip_reader_extract_file_to_mem(&impl,entryName.c_str(),entryBuf.data(),entryBuf.size(),0);
+    if(mz_zip_reader_locate_file_v2(&impl, entryName.c_str(), nullptr, 0, &id)) {
+      mz_zip_archive_file_stat stat = {};
+      mz_zip_reader_file_stat(&impl,id,&stat);
+      entryBuf.resize(size_t(stat.m_uncomp_size));
+      mz_zip_reader_extract_file_to_mem(&impl,entryName.c_str(),entryBuf.data(),entryBuf.size(),0);
+      } else {
+      entryBuf.clear();
+      }
     readOffset = 0;
+    return !entryBuf.empty();
     }
+  return false;
   }
 
 uint32_t Serialize::implDirectorySize(std::string e) {

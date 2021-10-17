@@ -28,7 +28,7 @@ void GameSession::HeroStorage::save(Npc& npc,World& owner) {
   sr.setContext(&owner);
   sr.setEntry("hero");
 
-  npc.save(sr,0);
+  npc.save(sr,-1);
   }
 
 void GameSession::HeroStorage::putToWorld(World& owner, std::string_view wayPoint) const {
@@ -40,7 +40,7 @@ void GameSession::HeroStorage::putToWorld(World& owner, std::string_view wayPoin
   sr.setEntry("hero");
 
   if(auto pl = owner.player()) {
-    pl->load(sr,0);
+    pl->load(sr,-1);
     if(auto pos = owner.findPoint(wayPoint)) {
       pl->setPosition  (pos->x,pos->y,pos->z);
       pl->setDirection (pos->dirX,pos->dirY,pos->dirZ);
@@ -49,7 +49,7 @@ void GameSession::HeroStorage::putToWorld(World& owner, std::string_view wayPoin
       }
     } else {
     auto ptr = std::make_unique<Npc>(owner,-1,wayPoint);
-    ptr->load(sr,0);
+    ptr->load(sr,-1);
     owner.insertPlayer(std::move(ptr),wayPoint);
     }
   }
