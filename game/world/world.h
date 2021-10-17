@@ -36,7 +36,7 @@ class World final {
   public:
     World()=delete;
     World(const World&)=delete;
-    World(GameSession& game, std::string file, std::function<void(int)> loadProgress);
+    World(GameSession& game, std::string file, bool startup, std::function<void(int)> loadProgress);
     ~World();
 
     struct BspSector final {

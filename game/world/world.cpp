@@ -60,7 +60,7 @@ const char* materialTag(ZenLoad::MaterialGroup src) {
   return "UD";
   }
 
-World::World(GameSession& game, std::string file, std::function<void(int)> loadProgress)
+World::World(GameSession& game, std::string file, bool startup, std::function<void(int)> loadProgress)
   :wname(std::move(file)),game(game),wsound(game,*this),wobj(*this) {
   using namespace Daedalus::GameState;
 
@@ -90,7 +90,7 @@ World::World(GameSession& game, std::string file, std::function<void(int)> loadP
   wmatrix.reset(new WayMatrix(*this,world.waynet));
   if(1){
     for(auto& vob:world.rootVobs)
-      wobj.addRoot(std::move(vob),true);
+      wobj.addRoot(std::move(vob),startup);
     }
   wmatrix->buildIndex();
   bsp = std::move(world.bspTree);
@@ -126,8 +126,7 @@ void World::postInit() {
 
 void World::load(Serialize &fin) {
   fin.setContext(this);
-  // fin.read(wname);
-  wobj.load(fin);
+  fin.setEntry("worlds/",wname,"/world");
 
   uint32_t sz=0;
   fin.read(sz);
@@ -139,18 +138,20 @@ void World::load(Serialize &fin) {
       p->guild = guild;
     }
 
+  wobj.load(fin);
   npcPlayer = wobj.findHero();
   }
 
 void World::save(Serialize &fout) {
   fout.setContext(this);
-  fout.write(wname);
-  wobj.save(fout);
+  fout.setEntry("worlds/",wname,"/world");
 
   fout.write(uint32_t(bspSectors.size()));
   for(size_t i=0;i<bspSectors.size();++i) {
     fout.write(bsp.sectors[i].name,bspSectors[i].guild);
     }
+
+  wobj.save(fout);
   }
 
 uint32_t World::npcId(const Npc *ptr) const {

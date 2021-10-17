@@ -59,14 +59,14 @@ GameSession::GameSession(std::string file) {
   setTime(gtime(8,0));
 
   vm.reset(new GameScript(*this));
-  setWorld(std::unique_ptr<World>(new World(*this,std::move(file),[&](int v){
+  setWorld(std::unique_ptr<World>(new World(*this,std::move(file),true,[&](int v){
     Gothic::inst().setLoadingProgress(int(v*0.55));
     })));
 
   vm->initDialogs();
   Gothic::inst().setLoadingProgress(70);
 
-  const bool testMode=true;
+  const bool testMode=false;
 
   std::string_view hero = testMode ? "PC_ROCKEFELLER" : Gothic::inst().defaultPlayer();
   //std::string_view hero = "PC_ROCKEFELLER";
@@ -99,9 +99,12 @@ GameSession::GameSession(Serialize &fin) {
 
   Gothic::inst().setLoadingProgress(0);
 
+  std::string    wname;
   SaveGameHeader hdr;
   fin.setEntry("header");
   fin.read(hdr);
+  fin.read(ticks,wrldTimePart,wname);
+  wrldTime = hdr.wrldTime;
 
   /*
   uint16_t wssSize=0;
@@ -116,11 +119,7 @@ GameSession::GameSession(Serialize &fin) {
 
   Gothic::inst().setLoadingProgress(70);
   if(true) {
-    std::string wname;
-    fin.setEntry("main");
-    fin.read(ticks,wrldTimePart,wname);
-    wrldTime = hdr.wrldTime;
-    setWorld(std::unique_ptr<World>(new World(*this,wname,[&](int v){
+    setWorld(std::unique_ptr<World>(new World(*this,wname,false,[&](int v){
       Gothic::inst().setLoadingProgress(int(v*0.55));
       })));
     wrld->load(fin);
@@ -150,8 +149,10 @@ void GameSession::save(Serialize &fout, const char* name, const Pixmap& screen) 
   hdr.pcTime    = gtime::localtime();
   hdr.wrldTime  = wrldTime;
   hdr.isGothic2 = Gothic::inst().version().game;
+
   fout.setEntry("header");
   fout.write(hdr);
+  fout.write(ticks,wrldTimePart,wrld->name());
 
   fout.setEntry("priview.png");
   fout.write(screen);
@@ -161,14 +162,12 @@ void GameSession::save(Serialize &fout, const char* name, const Pixmap& screen) 
 
   Gothic::inst().setLoadingProgress(5);
   for(auto& i:visitedWorlds) {
-    fout.setEntry("worlds/%s",i.name().c_str());
+    fout.setEntry("worlds/",i.name());
     i.save(fout);
     }
   Gothic::inst().setLoadingProgress(25);
 
   if(wrld) {
-    fout.setEntry("main");
-    fout.write(ticks,wrldTimePart,wrld->name());
     wrld->save(fout);
     }
   Gothic::inst().setLoadingProgress(60);
@@ -320,7 +319,7 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
   Tempest::MemReader rd{wss.storage.data(),wss.storage.size()};
   Serialize          fin = wss.isEmpty() ? Serialize::empty() : Serialize{rd};
 
-  std::unique_ptr<World> ret = std::unique_ptr<World>(new World(*this,w,loadProgress));
+  std::unique_ptr<World> ret = std::unique_ptr<World>(new World(*this,w,false,loadProgress));
   setWorld(std::move(ret));
 
   if(!wss.isEmpty())

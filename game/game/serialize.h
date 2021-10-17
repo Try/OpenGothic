@@ -52,6 +52,13 @@ class Serialize {
       (void)dummy;
       implSetEntry(s.str());
       }
+    template<class ... Args>
+    size_t directorySize(const Args& ... args) {
+      std::stringstream s;
+      int dummy[] = {(s << args, 0)...};
+      (void)dummy;
+      return implDirectorySize(s.str());
+      }
     void setContext(World* ctx) { this->ctx=ctx; }
 
     template<class T>
@@ -283,8 +290,9 @@ class Serialize {
     static size_t writeFunc(void *pOpaque, uint64_t file_ofs, const void *pBuf, size_t n);
     static size_t readFunc (void *pOpaque, uint64_t file_ofs, void *pBuf, size_t n);
 
-    void closeEntry();
-    void implSetEntry(std::string e);
+    void   closeEntry();
+    void   implSetEntry(std::string e);
+    size_t implDirectorySize(std::string e);
 
     std::string              tmpStr;
     World*                   ctx       = nullptr;
