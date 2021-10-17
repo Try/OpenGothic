@@ -70,10 +70,6 @@ Serialize::~Serialize() {
   mz_zip_writer_end(&impl);
   }
 
-Serialize Serialize::empty() {
-  return Serialize();
-  }
-
 void Serialize::closeEntry() {
   if(fout==nullptr)
     return;

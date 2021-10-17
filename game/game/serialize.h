@@ -41,8 +41,6 @@ class Serialize {
     Serialize(Serialize&&)=default;
     ~Serialize();
 
-    static Serialize empty();
-
     uint16_t version() const { return 36; }
 
     template<class ... Args>
