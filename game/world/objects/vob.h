@@ -16,7 +16,7 @@ class Vob {
     static std::unique_ptr<Vob> load(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool startup);
 
     void          saveVobTree(Serialize& fin) const;
-    virtual void  save(Serialize& fin) const;
+    virtual void  save(Serialize& fout) const;
 
     void          loadVobTree(Serialize& fin);
     virtual void  load(Serialize& fin);
@@ -46,6 +46,7 @@ class Vob {
     ContentBit                        childContent=cbNone;
 
     uint8_t                           vobType = 0;
+    uint32_t                          vobObjectID = uint32_t(-1);
     Tempest::Matrix4x4                pos, local;
     Vob*                              parent = nullptr;
 

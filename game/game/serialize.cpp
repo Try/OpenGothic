@@ -121,8 +121,11 @@ uint32_t Serialize::implDirectorySize(std::string e) {
     if(!mz_zip_reader_file_stat(&impl, i, &stat))
       throw std::runtime_error("unable to locate entry in game archive");
     auto len = std::strlen(stat.m_filename);
-    if(len>e.size() && std::memcmp(e.data(),stat.m_filename,e.size())==0)
-      ++cnt;
+    if(len>e.size() && std::memcmp(e.data(),stat.m_filename,e.size())==0) {
+      auto sep = std::strchr(stat.m_filename+e.size(),'/');
+      if(sep==nullptr || (sep+1)==(stat.m_filename+len))
+        ++cnt;
+      }
     }
   return cnt;
   }

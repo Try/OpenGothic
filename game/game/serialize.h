@@ -36,12 +36,15 @@ struct C_Npc;
 
 class Serialize {
   public:
+    enum Version : uint16_t {
+      Current = 36
+      };
     Serialize(Tempest::ODevice& fout);
     Serialize(Tempest::IDevice&  fin);
     Serialize(Serialize&&)=default;
     ~Serialize();
 
-    uint16_t version() const { return 36; }
+    uint16_t version() const { return Version::Current; }
 
     template<class ... Args>
     void setEntry(const Args& ... args) {

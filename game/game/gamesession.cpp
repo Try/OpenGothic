@@ -69,10 +69,10 @@ GameSession::GameSession(std::string file) {
   vm->initDialogs();
   Gothic::inst().setLoadingProgress(70);
 
-  const bool testMode=true;
+  const bool testMode=false;
 
-  std::string_view hero = testMode ? "PC_ROCKEFELLER" : Gothic::inst().defaultPlayer();
-  //std::string_view hero = "PC_ROCKEFELLER";
+  //std::string_view hero = testMode ? "PC_ROCKEFELLER" : Gothic::inst().defaultPlayer();
+  std::string_view hero = "PC_ROCKEFELLER";
   //std::string_view hero = "FireGolem";
   //std::string_view hero = "Dragon_Undead";
   //std::string_view hero = "Sheep";

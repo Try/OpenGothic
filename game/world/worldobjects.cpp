@@ -85,7 +85,6 @@ void WorldObjects::load(Serialize &fin) {
     items.add(itemArr.back().get());
     }
 
-  fin.setEntry("worlds/",owner.name(),"/mobsi");
   for(auto& i:rootVobs)
     i->loadVobTree(fin);
 
@@ -108,6 +107,9 @@ void WorldObjects::load(Serialize &fin) {
   }
 
 void WorldObjects::save(Serialize &fout) {
+  fout.setEntry("worlds/",owner.name(),"/version");
+  fout.write(Serialize::Version::Current);
+
   for(size_t i=0; i<npcArr.size(); ++i) {
     npcArr[i]->save(fout,i);
     }

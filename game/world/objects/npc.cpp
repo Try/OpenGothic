@@ -182,7 +182,7 @@ Npc::~Npc(){
   }
 
 void Npc::save(Serialize &fout, size_t id) {
-  fout.setEntry("worlds/",owner.name(),"/npc/",id,".dat");
+  fout.setEntry("worlds/",owner.name(),"/npc/",id,"/data");
   fout.write(hnpc);
   fout.write(body,head,vHead,vTeeth,bdColor,vColor,bdFatness);
   fout.write(x,y,z,angle,sz);
@@ -212,15 +212,15 @@ void Npc::save(Serialize &fout, size_t id) {
   fghAlgo.save(fout);
   fout.write(lastEventTime,angleY,runAng);
 
-  //fout.setEntry("worlds/",owner.name(),"/npc/",id,".inventory");
+  fout.setEntry("worlds/",owner.name(),"/npc/",id,"/inventory");
   invent.save(fout);
 
-  //fout.setEntry("worlds/",owner.name(),"/npc/",id,".visual");
+  fout.setEntry("worlds/",owner.name(),"/npc/",id,"/visual");
   visual.save(fout,*this);
   }
 
 void Npc::load(Serialize &fin, size_t id) {
-  fin.setEntry("worlds/",owner.name(),"/npc/",id,".dat");
+  fin.setEntry("worlds/",owner.name(),"/npc/",id,"/data");
   fin.read(hnpc);
   fin.read(body,head,vHead,vTeeth,bdColor,vColor,bdFatness);
 
@@ -258,16 +258,17 @@ void Npc::load(Serialize &fin, size_t id) {
   fghAlgo.load(fin);
   fin.read(lastEventTime,angleY,runAng);
 
-  //fin.setEntry("worlds/",owner.name(),"/npc/",id,".inventory");
+  fin.setEntry("worlds/",owner.name(),"/npc/",id,"/inventory");
   invent.load(fin,*this);
 
-  //fin.setEntry("worlds/",owner.name(),"/npc/",id,".visual");
+  fin.setEntry("worlds/",owner.name(),"/npc/",id,"/visual");
   visual.load(fin,*this);
+
+  setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
+  visual.syncAttaches();
 
   if(isDead())
     physic.setEnable(false);
-  setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
-  visual.syncAttaches();
   }
 
 void Npc::postValidate() {
