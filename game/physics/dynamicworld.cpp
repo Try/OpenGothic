@@ -771,6 +771,7 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
           b.cb->onCollide(callback.matId);
         }
       }
+    b.addHit();
     } else {
     const float l = b.speed();
     auto        d = b.direction();
