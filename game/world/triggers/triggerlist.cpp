@@ -52,8 +52,6 @@ void TriggerList::save(Serialize& fout) const {
   }
 
 void TriggerList::load(Serialize& fin) {
-  if(fin.version()<10)
-    return;
   AbstractTrigger::load(fin);
   fin.read(next);
   }

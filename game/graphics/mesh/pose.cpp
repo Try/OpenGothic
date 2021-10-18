@@ -49,14 +49,15 @@ void Pose::save(Serialize &fout) {
     }
   fout.write(lastUpdate);
   fout.write(uint32_t(numBones));
-  for(auto& i:base)
-    fout.write(i);
-  for(auto& i:tr)
-    fout.write(i);
   fout.write(combo.bits);
   fout.write(rotation ? rotation->name : "");
   fout.write(itemUseSt,itemUseDestSt);
   fout.write(headRotX,headRotY);
+
+  for(auto& i:base)
+    fout.write(i);
+  for(auto& i:tr)
+    fout.write(i);
   }
 
 void Pose::load(Serialize &fin, const AnimationSolver& solver) {
@@ -67,36 +68,16 @@ void Pose::load(Serialize &fin, const AnimationSolver& solver) {
   lay.resize(sz);
   for(auto& i:lay) {
     fin.read(name,i.sAnim,i.bs);
-    if(fin.version()<=26)
-      FileExt::exchangeExt(name,"MDH","MDS");
     i.seq = solver.solveFrm(name);
     }
   fin.read(lastUpdate);
-  if(fin.version()<32)
-    lastUpdate = 0;
 
-  if(fin.version()>=29) {
-    uint32_t size = 0;
-    fin.read(size);
-    numBones = size;
-    for(auto& i:base)
-      fin.read(i);
-    for(auto& i:tr)
-      fin.read(i);
-    }
-  else if(fin.version()>=13) {
-    uint32_t size = 0;
-    fin.read(size);
-    for(size_t i=0; i<size; ++i)
-      fin.read(base[i]);
-    fin.read(size);
-    for(size_t i=0; i<size; ++i)
-      fin.read(tr[i]);
-    }
+  uint32_t size = 0;
+  fin.read(size);
+  numBones = size;
   if(skeleton!=nullptr)
     numBones = skeleton->nodes.size();
-  if(fin.version()>=3)
-    fin.read(combo.bits);
+  fin.read(combo.bits);
   removeIf(lay,[](const Layer& l){
     return l.seq==nullptr;
     });
@@ -105,16 +86,16 @@ void Pose::load(Serialize &fin, const AnimationSolver& solver) {
     if(i.seq->name==name)
       rotation = i.seq;
     }
-  if(fin.version()>=15) {
-    fin.read(itemUseSt,itemUseDestSt);
-    } else {
-    fin.read(name); //itemUse
-    }
+  fin.read(itemUseSt,itemUseDestSt);
   for(auto& i:lay)
     onAddLayer(i);
-  if(fin.version()>30)
-    fin.read(headRotX,headRotY);
+  fin.read(headRotX,headRotY);
   needToUpdate = true;
+
+  for(auto& i:base)
+    fin.read(i);
+  for(auto& i:tr)
+    fin.read(i);
   }
 
 void Pose::setFlags(Pose::Flags f) {

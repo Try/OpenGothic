@@ -113,12 +113,11 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
       } else {
       ++i;
       }
-  if(s.version()>=5) {
-    s.read(ammotSlot.slot);
-    ammotSlot.item = readPtr(s);
-    s.read(stateSlot.slot);
-    stateSlot.item = readPtr(s);
-    }
+
+  s.read(ammotSlot.slot);
+  ammotSlot.item = readPtr(s);
+  s.read(stateSlot.slot);
+  stateSlot.item = readPtr(s);
 
   armour = readPtr(s);
   belt   = readPtr(s);

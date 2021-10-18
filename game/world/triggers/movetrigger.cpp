@@ -52,8 +52,6 @@ void MoveTrigger::save(Serialize& fout) const {
   }
 
 void MoveTrigger::load(Serialize& fin) {
-  if(fin.version()<10)
-    return;
   AbstractTrigger::load(fin);
   fin.read(pos0,reinterpret_cast<uint8_t&>(state),sAnim,frame);
   if(state!=Idle)

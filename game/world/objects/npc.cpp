@@ -27,9 +27,7 @@ void Npc::GoTo::save(Serialize& fout) const {
   }
 
 void Npc::GoTo::load(Serialize& fin) {
-  fin.read(npc, reinterpret_cast<uint8_t&>(flag), wp);
-  if(fin.version()>=23)
-    fin.read(pos);
+  fin.read(npc, reinterpret_cast<uint8_t&>(flag), wp, pos);
   }
 
 Vec3 Npc::GoTo::target() const {
@@ -194,7 +192,9 @@ void Npc::save(Serialize &fout, size_t id) {
 
   // extra state
   fout.write(lastHitType,lastHitSpell);
-  fout.write(std::min<uint32_t>(currentSpellCast,-1));
+  if(currentSpellCast<uint32_t(-1))
+    fout.write(uint32_t(currentSpellCast)); else
+    fout.write(uint32_t(-1));
   fout.write(uint8_t(castLevel),castNextTime);
   fout.write(spellInfo);
 
@@ -303,8 +303,7 @@ void Npc::loadAiState(Serialize& fin) {
   fin.read(aiPrevState);
 
   aiQueue.load(fin);
-  if(fin.version()>=26)
-    aiQueueOverlay.load(fin);
+  aiQueueOverlay.load(fin);
 
   uint32_t size=0;
   fin.read(size);
