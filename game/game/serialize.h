@@ -17,6 +17,8 @@
 
 #include <miniz.h>
 
+#include <zenload/zTypes.h>
+
 #include "gametime.h"
 #include "constants.h"
 
@@ -139,6 +141,9 @@ class Serialize {
 
     void implWrite(const Tempest::Matrix4x4& i) { writeBytes(&i,sizeof(i)); }
     void implRead (Tempest::Matrix4x4& i)       { readBytes (&i,sizeof(i)); }
+
+    void implWrite(const ZenLoad::zCModelAniSample& i) { writeBytes(&i,sizeof(i)); }
+    void implRead (ZenLoad::zCModelAniSample& i)       { readBytes (&i,sizeof(i)); }
 
     // strings
     void implWrite(const std::string&              s);
