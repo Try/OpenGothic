@@ -1850,12 +1850,14 @@ void Npc::tickRegen(int32_t& v, const int32_t max, const int32_t chg, const uint
 
 void Npc::tickAnimationTags() {
   Animation::EvCount ev;
-  visual.processEvents(owner,lastEventTime,ev);
+  const bool hasEvents = visual.processEvents(owner,lastEventTime,ev);
   visual.processLayers(owner);
   visual.setNpcEffect(owner,*this,hnpc.effect,hnpc.flags);
+  if(!hasEvents)
+    return;
+
   for(auto& i:ev.morph)
     visual.startMMAnim(*this,i.anim,i.node);
-
   if(ev.groundSounds>0 && isPlayer() && (bodyState()&BodyState::BS_SNEAK)==BodyState::BS_SNEAK)
     world().sendPassivePerc(*this,*this,*this,PERC_ASSESSQUIETSOUND);
   if(ev.def_opt_frame>0)

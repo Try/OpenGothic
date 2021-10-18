@@ -110,14 +110,13 @@ void Pose::setSkeleton(const Skeleton* sk) {
   if(skeleton!=nullptr) {
     numBones = skeleton->tr.size();
     for(size_t i=0; i<numBones; ++i) {
-      tr[i] = skeleton->tr[i];
-      // base[i] = skeleton->nodes[i].tr;
+      tr[i]   = skeleton->tr[i];
+      base[i] = ZenLoad::zCModelAniSample(); //mkSample(skeleton->nodes[i].tr);
       }
     } else {
     numBones = 0;
     }
 
-  needToUpdate = true;
   trY = skeleton->rootTr.y;
 
   if(lay.size()>0) //TODO
@@ -269,7 +268,7 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
 
 bool Pose::update(uint64_t tickCount) {
   if(lay.size()==0){
-    if(lastUpdate==0){
+    if(lastUpdate==0) {
       zeroSkeleton();
       needToUpdate = false;
       lastUpdate   = tickCount;
@@ -362,7 +361,7 @@ void Pose::mkSkeleton(const Matrix4x4 &mt) {
   auto  BIP01_HEAD = skeleton->BIP01_HEAD;
   for(size_t i=0; i<nodes.size(); ++i) {
     size_t parent = nodes[i].parent;
-    auto   mat    = mkMatrix(base[i]);
+    auto   mat    = base[i].rotation.w==0 ? nodes[i].tr : mkMatrix(base[i]);
 
     if(parent<Resources::MAX_NUM_SKELETAL_NODES)
       tr[i] = tr[parent]*mat; else
@@ -383,7 +382,8 @@ void Pose::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
   for(size_t i=0;i<nodes.size();++i){
     if(nodes[i].parent!=parent)
       continue;
-    tr[i] = mt*mkMatrix(base[i]);
+    auto mat = base[i].rotation.w==0 ? nodes[i].tr : mkMatrix(base[i]);
+    tr[i] = mt*mat;
     mkSkeleton(tr[i],i);
     }
   }
@@ -474,12 +474,13 @@ void Pose::processPfx(MdlVisual& visual, World& world, uint64_t tickCount) {
     i.seq->processPfx(lastUpdate,i.sAnim,tickCount,visual,world);
   }
 
-void Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev) const {
+bool Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev) const {
   if(hasEvents>0) {
     for(auto& i:lay)
       i.seq->processEvents(barrier,i.sAnim,now,ev);
     }
   barrier=now;
+  return hasEvents>0;
   }
 
 Tempest::Vec3 Pose::animMoveSpeed(uint64_t tickCount,uint64_t dt) const {
@@ -777,7 +778,8 @@ Matrix4x4 Pose::mkBaseTranslation(const Animation::Sequence *s, BodyState bs) {
   size_t id=0;
   if(skeleton->rootNodes.size())
     id = skeleton->rootNodes[0];
-  auto  b0 = mkMatrix(base[id]);
+  auto& nodes = skeleton->nodes;
+  auto  b0 = base[id].rotation.w==0 ? nodes[id].tr : mkMatrix(base[id]);
   float dx = b0.at(3,0);
   float dy = 0;
   float dz = b0.at(3,2);

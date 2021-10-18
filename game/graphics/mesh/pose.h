@@ -47,7 +47,7 @@ class Pose final {
     bool               update(uint64_t tickCount);
 
     void               processLayers(AnimationSolver &solver, uint64_t tickCount);
-    void               processEvents(uint64_t& barrier, uint64_t now, Animation::EvCount &ev) const;
+    bool               processEvents(uint64_t& barrier, uint64_t now, Animation::EvCount &ev) const;
 
     Tempest::Vec3      animMoveSpeed(uint64_t tickCount, uint64_t dt) const;
     void               processSfx(Npc &npc, uint64_t tickCount);
