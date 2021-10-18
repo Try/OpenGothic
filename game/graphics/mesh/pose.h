@@ -134,6 +134,6 @@ class Pose final {
     float                           headRotX = 0, headRotY = 0;
 
     size_t                          numBones = 0;
-    Tempest::Matrix4x4              base[Resources::MAX_NUM_SKELETAL_NODES];
-    Tempest::Matrix4x4              tr  [Resources::MAX_NUM_SKELETAL_NODES];
+    ZenLoad::zCModelAniSample       base[Resources::MAX_NUM_SKELETAL_NODES] = {};
+    Tempest::Matrix4x4              tr  [Resources::MAX_NUM_SKELETAL_NODES] = {};
   };

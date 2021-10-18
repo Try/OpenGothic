@@ -92,6 +92,11 @@ add_subdirectory(lib/Tempest/Engine)
 include_directories(lib/Tempest/Engine/include)
 target_link_libraries(${PROJECT_NAME} Tempest)
 
+# zip
+include_directories(lib/miniz)
+add_library(miniz STATIC "lib/miniz/miniz.h" "lib/miniz/miniz.c")
+target_link_libraries(${PROJECT_NAME} miniz)
+
 # bullet physics
 set(BULLET2_MULTITHREADING       ON  CACHE INTERNAL "")
 set(USE_MSVC_RUNTIME_LIBRARY_DLL ON  CACHE INTERNAL "")

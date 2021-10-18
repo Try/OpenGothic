@@ -47,7 +47,6 @@ class ScriptFn final {
 class GameScript final {
   public:
     GameScript(GameSession &owner);
-    GameScript(GameSession &owner, Serialize& fin);
     ~GameScript();
 
     struct DlgChoise final {
@@ -69,7 +68,8 @@ class GameScript final {
     void         initializeInstance(Daedalus::GEngineClasses::C_Item& it, size_t instance);
     void         clearReferences(Daedalus::GEngineClasses::Instance& ptr);
 
-    void         save(Serialize& fout);
+    void         saveQuests(Serialize& fout);
+    void         loadQuests(Serialize& fin);
     void         saveVar(Serialize& fout);
     void         loadVar(Serialize& fin);
 

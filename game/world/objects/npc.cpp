@@ -27,9 +27,7 @@ void Npc::GoTo::save(Serialize& fout) const {
   }
 
 void Npc::GoTo::load(Serialize& fin) {
-  fin.read(npc, reinterpret_cast<uint8_t&>(flag), wp);
-  if(fin.version()>=23)
-    fin.read(pos);
+  fin.read(npc, reinterpret_cast<uint8_t&>(flag), wp, pos);
   }
 
 Vec3 Npc::GoTo::target() const {
@@ -98,7 +96,7 @@ struct Npc::TransformBack {
 
   TransformBack(Npc& owner, Serialize& fin) {
     fin.read(hnpc);
-    invent.load(owner,fin);
+    invent.load(fin,owner);
     fin.read(talentsSk,talentsVl);
     fin.read(body,head,vHead,vTeeth,vColor,bdColor);
 
@@ -174,14 +172,6 @@ Npc::Npc(World &owner, size_t instance, std::string_view waypoint)
     }
   }
 
-Npc::Npc(World &owner, Serialize &fin)
-  :owner(owner),mvAlgo(*this) {
-  outputPipe   = owner.script().openAiOuput();
-  hnpc.userPtr = this;
-
-  load(fin);
-  }
-
 Npc::~Npc(){
   if(currentInteract)
     currentInteract->dettach(*this,true);
@@ -189,36 +179,29 @@ Npc::~Npc(){
   assert(hnpc.useCount==0);
   }
 
-void Npc::save(Serialize &fout) {
+void Npc::save(Serialize &fout, size_t id) {
+  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/data");
   fout.write(hnpc);
+  fout.write(body,head,vHead,vTeeth,bdColor,vColor,bdFatness);
   fout.write(x,y,z,angle,sz);
-  fout.write(body,head,vHead,vTeeth,bdColor,vColor);
   fout.write(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
-  visual.save(fout,*this);
-
-  fout.write(int32_t(permAttitude),int32_t(tmpAttitude));
+  fout.write(permAttitude,tmpAttitude);
   fout.write(perceptionTime,perceptionNextTime);
   for(auto& i:perception)
     fout.write(i.func);
 
-  invent.save(fout);
+  // extra state
   fout.write(lastHitType,lastHitSpell);
   if(currentSpellCast<uint32_t(-1))
     fout.write(uint32_t(currentSpellCast)); else
     fout.write(uint32_t(-1));
   fout.write(uint8_t(castLevel),castNextTime);
   fout.write(spellInfo);
-  if(transformSpl!=nullptr) {
-    fout.write(true);
-    transformSpl->save(fout);
-    } else {
-    fout.write(false);
-    }
+
+  saveTrState(fout);
   saveAiState(fout);
 
-  fout.write(currentInteract);
-  fout.write(currentOther);
-  fout.write(currentVictum);
+  fout.write(currentInteract,currentOther,currentVictum);
   fout.write(currentLookAt,currentTarget,nearestEnemy);
 
   go2.save(fout);
@@ -227,56 +210,45 @@ void Npc::save(Serialize &fout) {
 
   mvAlgo.save(fout);
   fghAlgo.save(fout);
-  fout.write(lastEventTime);
-  fout.write(angleY);
+  fout.write(lastEventTime,angleY,runAng);
+
+  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/inventory");
+  if(!invent.isEmpty() || id==size_t(-1))
+    invent.save(fout);
+
+  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/visual");
+  visual.save(fout,*this);
   }
 
-void Npc::load(Serialize &fin) {
+void Npc::load(Serialize &fin, size_t id) {
+  fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/data");
   fin.read(hnpc);
+  fin.read(body,head,vHead,vTeeth,bdColor,vColor,bdFatness);
+
   auto& sym = owner.script().getSymbol(hnpc.instanceSymbol);
   sym.instance.set(&hnpc, Daedalus::IC_Npc);
 
   fin.read(x,y,z,angle,sz);
-  fin.read(body,head,vHead,vTeeth,bdColor,vColor);
   fin.read(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
   durtyTranform = TR_Pos|TR_Rot|TR_Scale;
 
-  visual.load(fin,*this);
-  setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
-
-  fin.read(reinterpret_cast<int32_t&>(permAttitude),reinterpret_cast<int32_t&>(tmpAttitude));
+  fin.read(permAttitude,tmpAttitude);
   fin.read(perceptionTime,perceptionNextTime);
   for(auto& i:perception)
     fin.read(i.func);
-  invent.load(*this,fin);
+
+  // extra state
   fin.read(lastHitType,lastHitSpell);
-  if(fin.version()>=9) {
-    if(fin.version()>=19) {
-      uint32_t currentSpellCastU32 = uint32_t(-1);
-      fin.read(currentSpellCastU32);
-      currentSpellCast = (currentSpellCastU32==uint32_t(-1) ? size_t(-1) : currentSpellCastU32);
-      } else {
-      int32_t currentSpellCast32;
-      fin.read(currentSpellCast32);
-      // legacy
-      }
-    }
-  if(fin.version()>=21)
-    fin.read(reinterpret_cast<uint8_t&>(castLevel),castNextTime);
-  if(fin.version()>=22) {
-    fin.read(spellInfo);
-    bool hasTr = false;
-    fin.read(hasTr);
-    if(hasTr)
-      transformSpl.reset(new TransformBack(*this,fin));
-    }
+  {
+  uint32_t currentSpellCastU32 = uint32_t(-1);
+  fin.read(currentSpellCastU32);
+  currentSpellCast = (currentSpellCastU32==uint32_t(-1) ? size_t(-1) : currentSpellCastU32);
+  }
+  fin.read(reinterpret_cast<uint8_t&>(castLevel),castNextTime,spellInfo);
+  loadTrState(fin);
   loadAiState(fin);
 
-  if(fin.version()>=24)
-    fin.read(currentInteract);
-  fin.read(currentOther);
-  if(fin.version()>=20)
-    fin.read(currentVictum);
+  fin.read(currentInteract,currentOther,currentVictum);
   fin.read(currentLookAt,currentTarget,nearestEnemy);
 
   go2.load(fin);
@@ -285,12 +257,19 @@ void Npc::load(Serialize &fin) {
 
   mvAlgo.load(fin);
   fghAlgo.load(fin);
-  fin.read(lastEventTime);
+  fin.read(lastEventTime,angleY,runAng);
 
-  if(fin.version()>17) {
-    fin.read(angleY);
-    }
+  if(fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/inventory"))
+    invent.load(fin,*this);
 
+  fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/visual");
+  visual.load(fin,*this);
+
+  setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
+  visual.syncAttaches();
+
+  if(isUsingTorch())
+    visual.setTorch(true,owner);
   if(isDead())
     physic.setEnable(false);
   }
@@ -316,25 +295,37 @@ void Npc::saveAiState(Serialize& fout) const {
   }
 
 void Npc::loadAiState(Serialize& fin) {
-  if(fin.version()>=1)
-    fin.read(aniWaitTime);
+  fin.read(aniWaitTime);
   fin.read(waitTime,faiWaitTime);
-  if(fin.version()>=26)
-    fin.read(outWaitTime);
+  fin.read(outWaitTime);
   fin.read(reinterpret_cast<uint8_t&>(aiPolicy));
   fin.read(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
   fin.read(aiPrevState);
 
   aiQueue.load(fin);
-  if(fin.version()>=26)
-    aiQueueOverlay.load(fin);
+  aiQueueOverlay.load(fin);
 
   uint32_t size=0;
   fin.read(size);
   routines.resize(size);
-  for(auto& i:routines) {
+  for(auto& i:routines)
     fin.read(i.start,i.end,i.callback,i.point);
+  }
+
+void Npc::saveTrState(Serialize& fout) const {
+  if(transformSpl!=nullptr) {
+    fout.write(true);
+    transformSpl->save(fout);
+    } else {
+    fout.write(false);
     }
+  }
+
+void Npc::loadTrState(Serialize& fin) {
+  bool hasTr = false;
+  fin.read(hasTr);
+  if(hasTr)
+    transformSpl.reset(new TransformBack(*this,fin));
   }
 
 bool Npc::setPosition(float ix, float iy, float iz) {
@@ -813,9 +804,7 @@ void Npc::setVisual(const Skeleton* v) {
   }
 
 void Npc::setVisualBody(int32_t headTexNr, int32_t teethTexNr, int32_t bodyTexNr, int32_t bodyTexColor,
-                        const std::string &ibody, const std::string &ihead) {
-  auto& w = owner;
-
+                        std::string_view ibody, std::string_view ihead) {
   body    = ibody;
   head    = ihead;
   vHead   = headTexNr;
@@ -823,9 +812,9 @@ void Npc::setVisualBody(int32_t headTexNr, int32_t teethTexNr, int32_t bodyTexNr
   vColor  = bodyTexNr;
   bdColor = bodyTexColor;
 
-  auto  vhead = head.empty() ? MeshObjects::Mesh() : w.addView(FileExt::addExt(head,".MMB"),vHead,vTeeth,bdColor);
-  auto  vbody = body.empty() ? MeshObjects::Mesh() : w.addView(FileExt::addExt(body,".ASC"),vColor,0,bdColor);
-  visual.setVisualBody(std::move(vhead),std::move(vbody),owner,bdColor);
+  auto  vhead = head.empty() ? MeshObjects::Mesh() : owner.addView(FileExt::addExt(head,".MMB"),vHead,vTeeth,bdColor);
+  auto  vbody = body.empty() ? MeshObjects::Mesh() : owner.addView(FileExt::addExt(body,".ASC"),vColor,0,bdColor);
+  visual.setVisualBody(*this,std::move(vhead),std::move(vbody),bdColor);
   updateArmour();
 
   durtyTranform|=TR_Pos; // update obj matrix
@@ -837,14 +826,14 @@ void Npc::updateArmour() {
 
   if(ar==nullptr) {
     auto  vbody = body.empty() ? MeshObjects::Mesh() : w.addView(FileExt::addExt(body,".ASC"),vColor,0,bdColor);
-    visual.setBody(std::move(vbody),owner,bdColor);
+    visual.setBody(*this,std::move(vbody),bdColor);
     } else {
     auto& itData = ar->handle();
     auto  flag   = ItmFlags(itData.mainflag);
     if(flag & ITM_CAT_ARMOR){
       auto& asc   = itData.visual_change;
       auto  vbody = asc.empty() ? MeshObjects::Mesh() : w.addView(asc.c_str(),vColor,0,bdColor);
-      visual.setArmour(std::move(vbody),owner);
+      visual.setArmour(*this,std::move(vbody));
       }
     }
   }
@@ -892,6 +881,7 @@ void Npc::setPhysic(DynamicWorld::NpcItem &&item) {
   }
 
 void Npc::setFatness(float f) {
+  bdFatness = f;
   visual.setFatness(f);
   }
 
@@ -1537,10 +1527,10 @@ void Npc::implFaiWait(uint64_t dt) {
   }
 
 void Npc::implSetFightMode(const Animation::EvCount& ev) {
-  auto ws = visual.fightMode();
   if(!visual.setFightMode(ev.weaponCh))
     return;
 
+  auto ws = visual.fightMode();
   if(ev.weaponCh==ZenLoad::FM_NONE && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
     if(auto melee = invent.currentMeleWeapon()) {
       if(melee->handle().material==ItemMaterial::MAT_METAL)

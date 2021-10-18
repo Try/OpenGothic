@@ -44,6 +44,7 @@ class GameMenu : public Tempest::Widget {
       Daedalus::GEngineClasses::C_Menu_Item handle={};
       const Tempest::Texture2d*             img=nullptr;
       SaveGameHeader                        savHdr;
+      Tempest::Pixmap                       savPriview;
       bool                                  visible=true;
       int                                   value=0;
       };

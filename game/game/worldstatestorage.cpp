@@ -8,18 +8,18 @@
 #include "serialize.h"
 
 WorldStateStorage::WorldStateStorage(World &w)
-  :wname(w.name()){
+  :name(w.name()){
   Tempest::MemWriter wr{storage};
   Serialize          sr{wr};
   w.save(sr);
   }
 
-WorldStateStorage::WorldStateStorage(Serialize &fin)
-  :wname(fin.read<std::string>()){
-  fin.read(storage);
+void WorldStateStorage::save(Serialize &fout) const {
+  fout.setEntry("worlds/",name,".zip");
+  fout.write(storage);
   }
 
-void WorldStateStorage::save(Serialize &fout) const {
-  fout.write(wname);
-  fout.write(storage);
+void WorldStateStorage::load(Serialize& fin) {
+  fin.setEntry("worlds/",name,".zip");
+  fin.read(storage);
   }

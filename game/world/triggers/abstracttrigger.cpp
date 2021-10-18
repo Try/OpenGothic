@@ -154,14 +154,9 @@ void AbstractTrigger::save(Serialize& fout) const {
   }
 
 void AbstractTrigger::load(Serialize& fin) {
-  if(fin.version()<10)
-    return;
-
   Vob::load(fin);
   boxNpc.load(fin);
   fin.read(emitCount,disabled);
-  if(fin.version()<33)
-    return;
   fin.read(emitTimeLast);
   }
 

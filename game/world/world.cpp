@@ -60,7 +60,7 @@ const char* materialTag(ZenLoad::MaterialGroup src) {
   return "UD";
   }
 
-World::World(GameSession& game, std::string file, std::function<void(int)> loadProgress)
+World::World(GameSession& game, std::string file, bool startup, std::function<void(int)> loadProgress)
   :wname(std::move(file)),game(game),wsound(game,*this),wobj(*this) {
   using namespace Daedalus::GameState;
 
@@ -90,51 +90,11 @@ World::World(GameSession& game, std::string file, std::function<void(int)> loadP
   wmatrix.reset(new WayMatrix(*this,world.waynet));
   if(1){
     for(auto& vob:world.rootVobs)
-      wobj.addRoot(std::move(vob),true);
+      wobj.addRoot(std::move(vob),startup);
     }
   wmatrix->buildIndex();
   bsp = std::move(world.bspTree);
   bspSectors.resize(bsp.sectors.size());
-  loadProgress(100);
-  }
-
-World::World(GameSession &game,
-             Serialize &fin, std::function<void(int)> loadProgress)
-  :wname(fin.read<std::string>()),game(game),wsound(game,*this),wobj(*this) {
-  using namespace Daedalus::GameState;
-
-  ZenLoad::ZenParser parser(wname,Resources::vdfsIndex());
-
-  loadProgress(1);
-  parser.readHeader();
-
-  loadProgress(10);
-  ZenLoad::oCWorldData world;
-
-  auto fver = ZenLoad::ZenParser::FileVersion::Gothic1;
-  if(Gothic::inst().version().game==2)
-    fver = ZenLoad::ZenParser::FileVersion::Gothic2;
-  parser.readWorld(world,fver);
-
-  ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
-  PackedMesh vmesh(*worldMesh,PackedMesh::PK_VisualLnd);
-
-  loadProgress(50);
-  wdynamic.reset(new DynamicWorld(*this,*worldMesh));
-  wview.reset   (new WorldView(*this,vmesh));
-  loadProgress(70);
-
-  globFx.reset(new GlobalEffects(*this));
-
-  wmatrix.reset(new WayMatrix(*this,world.waynet));
-  if(1){
-    for(auto& vob:world.rootVobs)
-      wobj.addRoot(std::move(vob),false);
-    }
-  wmatrix->buildIndex();
-  bsp = std::move(world.bspTree);
-  bspSectors.resize(bsp.sectors.size());
-
   loadProgress(100);
   }
 
@@ -166,7 +126,7 @@ void World::postInit() {
 
 void World::load(Serialize &fin) {
   fin.setContext(this);
-  wobj.load(fin);
+  fin.setEntry("worlds/",wname,"/world");
 
   uint32_t sz=0;
   fin.read(sz);
@@ -178,18 +138,20 @@ void World::load(Serialize &fin) {
       p->guild = guild;
     }
 
+  wobj.load(fin);
   npcPlayer = wobj.findHero();
   }
 
 void World::save(Serialize &fout) {
   fout.setContext(this);
-  fout.write(wname);
-  wobj.save(fout);
+  fout.setEntry("worlds/",wname,"/world");
 
   fout.write(uint32_t(bspSectors.size()));
   for(size_t i=0;i<bspSectors.size();++i) {
     fout.write(bsp.sectors[i].name,bspSectors[i].guild);
     }
+
+  wobj.save(fout);
   }
 
 uint32_t World::npcId(const Npc *ptr) const {

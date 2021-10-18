@@ -54,16 +54,6 @@ void Camera::save(Serialize &s) {
 
 void Camera::load(Serialize &s, Npc* pl) {
   reset(pl);
-  if(s.version()<24)
-    return;
-  if(s.version()<35) {
-    Tempest::Vec3 unused; float unused1; bool unused2;
-    s.read(unused, unused, unused1,
-           unused, unused, unused1,
-           unused2);
-    reset(pl);
-    return;
-    }
   s.read(src.range, src.target, src.spin,
          dst.range, dst.target, dst.spin);
   s.read(cameraPos,origin,rotOffset);

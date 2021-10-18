@@ -28,7 +28,7 @@ Vob::Vob(World& owner)
   }
 
 Vob::Vob(Vob* parent, World& owner, ZenLoad::zCVobData& vob, bool startup)
-  : world(owner), vobType(uint8_t(vob.vobType)), parent(parent) {
+  : world(owner), vobType(uint8_t(vob.vobType)), vobObjectID(vob.vobObjectID), parent(parent) {
   float v[16]={};
   std::memcpy(v,vob.worldMatrix.m,sizeof(v));
   pos   = Tempest::Matrix4x4(v);
@@ -229,25 +229,30 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
 void Vob::saveVobTree(Serialize& fin) const {
   for(auto& i:child)
     i->saveVobTree(fin);
-  save(fin);
+  if(vobType==ZenLoad::zCVobData::VT_zCVob)
+    return;
+  if(vobObjectID!=uint32_t(-1))
+    save(fin);
   }
 
 void Vob::loadVobTree(Serialize& fin) {
   for(auto& i:child)
     i->loadVobTree(fin);
-  load(fin);
+  if(vobObjectID!=uint32_t(-1) && vobType!=ZenLoad::zCVobData::VT_zCVob)
+    load(fin);
   }
 
-void Vob::save(Serialize& fin) const {
-  fin.write(vobType,pos,local);
+void Vob::save(Serialize& fout) const {
+  fout.setEntry("worlds/",fout.worldName(),"/mobsi/",vobObjectID,"/data");
+  fout.write(vobType,pos,local);
   }
 
 void Vob::load(Serialize& fin) {
-  if(fin.version()<10)
+  if(!fin.setEntry("worlds/",fin.worldName(),"/mobsi/",vobObjectID,"/data"))
     return;
-  uint8_t type = 0;
-  fin.read(type,pos,local);
-  if(vobType!=type && type!=0)
+  uint8_t type = vobType;
+  fin.read(vobType,pos,local);
+  if(vobType!=type)
     throw std::logic_error("inconsistent *.sav vs world");
   moveEvent();
   }

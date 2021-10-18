@@ -119,7 +119,6 @@ class Interactive : public Vob {
     Tempest::Matrix4x4  nodeTranform(const Npc &npc, const Pos &p) const;
     auto                nodePosition(const Npc &npc, const Pos &p) const -> Tempest::Vec3;
 
-    ZenLoad::zCVobData::EVobType vobType=ZenLoad::zCVobData::EVobType::VT_oCMOB;
     std::string                  vobName;
     std::string                  focName;
     std::string                  mdlVisual;
