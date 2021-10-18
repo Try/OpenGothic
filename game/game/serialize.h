@@ -53,6 +53,7 @@ class Serialize {
       (void)dummy;
       return implSetEntry(s.str());
       }
+
     template<class ... Args>
     uint32_t directorySize(const Args& ... args) {
       std::stringstream s;
@@ -60,10 +61,9 @@ class Serialize {
       (void)dummy;
       return implDirectorySize(s.str());
       }
-    void setContext(World* ctx) { this->ctx=ctx; }
 
-    template<class T>
-    T read(){ T t; read(t); return t; }
+    void setContext(World* ctx) { this->ctx=ctx; }
+    std::string_view worldName() const;
 
     template<class ... Arg>
     void write(const Arg& ... a){

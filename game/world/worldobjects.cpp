@@ -67,7 +67,7 @@ WorldObjects::~WorldObjects() {
   }
 
 void WorldObjects::load(Serialize &fin) {
-  uint32_t sz = fin.directorySize("worlds/",owner.name(),"/npc/");
+  uint32_t sz = fin.directorySize("worlds/",fin.worldName(),"/npc/");
   npcArr.resize(sz);
   for(size_t i=0; i<sz; ++i)
     npcArr[i] = std::make_unique<Npc>(owner,size_t(-1),"");
@@ -75,7 +75,7 @@ void WorldObjects::load(Serialize &fin) {
     npcArr[i]->load(fin,i);
     }
 
-  fin.setEntry("worlds/",owner.name(),"/items");
+  fin.setEntry("worlds/",fin.worldName(),"/items");
   fin.read(sz);
   itemArr.clear();
   items.clear();
@@ -88,13 +88,13 @@ void WorldObjects::load(Serialize &fin) {
   for(auto& i:rootVobs)
     i->loadVobTree(fin);
 
-  fin.setEntry("worlds/",owner.name(),"/triggerEvents");
+  fin.setEntry("worlds/",fin.worldName(),"/triggerEvents");
   fin.read(sz);
   triggerEvents.resize(sz);
   for(auto& i:triggerEvents)
     i.load(fin);
 
-  fin.setEntry("worlds/",owner.name(),"/routines");
+  fin.setEntry("worlds/",fin.worldName(),"/routines");
   fin.read(sz);
   routines.resize(sz);
   for(auto& i:routines)
@@ -107,29 +107,29 @@ void WorldObjects::load(Serialize &fin) {
   }
 
 void WorldObjects::save(Serialize &fout) {
-  fout.setEntry("worlds/",owner.name(),"/version");
+  fout.setEntry("worlds/",fout.worldName(),"/version");
   fout.write(Serialize::Version::Current);
 
   for(size_t i=0; i<npcArr.size(); ++i) {
     npcArr[i]->save(fout,i);
     }
 
-  fout.setEntry("worlds/",owner.name(),"/items");
+  fout.setEntry("worlds/",fout.worldName(),"/items");
   uint32_t sz = uint32_t(itemArr.size());
   fout.write(sz);
   for(auto& i:itemArr)
     i->save(fout);
 
-  fout.setEntry("worlds/",owner.name(),"/mobsi");
+  fout.setEntry("worlds/",fout.worldName(),"/mobsi");
   for(auto& i:rootVobs)
     i->saveVobTree(fout);
 
-  fout.setEntry("worlds/",owner.name(),"/triggerEvents");
+  fout.setEntry("worlds/",fout.worldName(),"/triggerEvents");
   fout.write(uint32_t(triggerEvents.size()));
   for(auto& i:triggerEvents)
     i.save(fout);
 
-  fout.setEntry("worlds/",owner.name(),"/routines");
+  fout.setEntry("worlds/",fout.worldName(),"/routines");
   fout.write(uint32_t(routines.size()));
   for(auto& i:routines)
     i.save(fout);

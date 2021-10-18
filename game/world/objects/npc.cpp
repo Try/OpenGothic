@@ -182,8 +182,7 @@ Npc::~Npc(){
   }
 
 void Npc::save(Serialize &fout, size_t id) {
-  if(id!=size_t(-1))
-    fout.setEntry("worlds/",owner.name(),"/npc/",id,"/data");
+  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/data");
   fout.write(hnpc);
   fout.write(body,head,vHead,vTeeth,bdColor,vColor,bdFatness);
   fout.write(x,y,z,angle,sz);
@@ -213,18 +212,16 @@ void Npc::save(Serialize &fout, size_t id) {
   fghAlgo.save(fout);
   fout.write(lastEventTime,angleY,runAng);
 
-  if(id!=size_t(-1))
-    fout.setEntry("worlds/",owner.name(),"/npc/",id,"/inventory");
-  invent.save(fout);
+  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/inventory");
+  if(!invent.isEmpty() || id==size_t(-1))
+    invent.save(fout);
 
-  if(id!=size_t(-1))
-    fout.setEntry("worlds/",owner.name(),"/npc/",id,"/visual");
+  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/visual");
   visual.save(fout,*this);
   }
 
 void Npc::load(Serialize &fin, size_t id) {
-  if(id!=size_t(-1))
-    fin.setEntry("worlds/",owner.name(),"/npc/",id,"/data");
+  fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/data");
   fin.read(hnpc);
   fin.read(body,head,vHead,vTeeth,bdColor,vColor,bdFatness);
 
@@ -262,12 +259,10 @@ void Npc::load(Serialize &fin, size_t id) {
   fghAlgo.load(fin);
   fin.read(lastEventTime,angleY,runAng);
 
-  if(id!=size_t(-1))
-    fin.setEntry("worlds/",owner.name(),"/npc/",id,"/inventory");
-  invent.load(fin,*this);
+  if(fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/inventory"))
+    invent.load(fin,*this);
 
-  if(id!=size_t(-1))
-    fin.setEntry("worlds/",owner.name(),"/npc/",id,"/visual");
+  fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/visual");
   visual.load(fin,*this);
 
   setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
@@ -1533,10 +1528,10 @@ void Npc::implFaiWait(uint64_t dt) {
   }
 
 void Npc::implSetFightMode(const Animation::EvCount& ev) {
-  auto ws = visual.fightMode();
   if(!visual.setFightMode(ev.weaponCh))
     return;
 
+  auto ws = visual.fightMode();
   if(ev.weaponCh==ZenLoad::FM_NONE && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
     if(auto melee = invent.currentMeleWeapon()) {
       if(melee->handle().material==ItemMaterial::MAT_METAL)

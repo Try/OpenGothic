@@ -70,6 +70,12 @@ Serialize::~Serialize() {
   mz_zip_writer_end(&impl);
   }
 
+std::string_view Serialize::worldName() const {
+  if(ctx!=nullptr)
+    return ctx->name();
+  return "_";
+  }
+
 void Serialize::closeEntry() {
   if(fout==nullptr)
     return;
@@ -196,7 +202,7 @@ void Serialize::implWrite(const WayPoint* wptr) {
 
 void Serialize::implRead(const WayPoint*& wptr) {
   implRead(tmpStr);
-  wptr = ctx->findPoint(tmpStr,false);
+  wptr = ctx==nullptr ? nullptr : ctx->findPoint(tmpStr,false);
   }
 
 void Serialize::implWrite(const ScriptFn& fn) {
@@ -215,36 +221,36 @@ void Serialize::implRead(ScriptFn& fn) {
   }
 
 void Serialize::implWrite(const Npc* npc) {
-  uint32_t id = ctx->npcId(npc);
+  uint32_t id = ctx==nullptr ? uint32_t(-1) : ctx->npcId(npc);
   implWrite(id);
   }
 
 void Serialize::implRead(const Npc *&npc) {
   uint32_t id=uint32_t(-1);
   implRead(id);
-  npc = ctx->npcById(id);
+  npc = ctx==nullptr ? nullptr : ctx->npcById(id);
   }
 
 void Serialize::implWrite(Npc *npc) {
-  uint32_t id = ctx->npcId(npc);
+  uint32_t id = ctx==nullptr ? uint32_t(-1) : ctx->npcId(npc);
   implWrite(id);
   }
 
 void Serialize::implRead(Npc *&npc) {
   uint32_t id=uint32_t(-1);
   read(id);
-  npc = ctx->npcById(id);
+  npc = ctx==nullptr ? nullptr : ctx->npcById(id);
   }
 
 void Serialize::implWrite(Interactive* mobsi) {
-  uint32_t id = ctx->mobsiId(mobsi);
+  uint32_t id = ctx==nullptr ? uint32_t(-1) : ctx->mobsiId(mobsi);
   implWrite(id);
   }
 
 void Serialize::implRead(Interactive*& mobsi) {
   uint32_t id=uint32_t(-1);
   implRead(id);
-  mobsi = ctx->mobsiById(id);
+  mobsi = ctx==nullptr ? nullptr : ctx->mobsiById(id);
   }
 
 void Serialize::implWrite(const SaveGameHeader& p) {

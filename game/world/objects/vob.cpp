@@ -243,12 +243,12 @@ void Vob::loadVobTree(Serialize& fin) {
   }
 
 void Vob::save(Serialize& fout) const {
-  fout.setEntry("worlds/",world.name(),"/mobsi/",vobObjectID,"/data");
+  fout.setEntry("worlds/",fout.worldName(),"/mobsi/",vobObjectID,"/data");
   fout.write(vobType,pos,local);
   }
 
 void Vob::load(Serialize& fin) {
-  if(!fin.setEntry("worlds/",world.name(),"/mobsi/",vobObjectID,"/data"))
+  if(!fin.setEntry("worlds/",fin.worldName(),"/mobsi/",vobObjectID,"/data"))
     return;
   uint8_t type = vobType;
   fin.read(vobType,pos,local);

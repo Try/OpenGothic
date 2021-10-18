@@ -89,6 +89,10 @@ Inventory::Inventory() {
 Inventory::~Inventory() {
   }
 
+bool Inventory::isEmpty() const {
+  return items.size()==0 && active==nullptr;
+  }
+
 void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
   uint32_t sz=0;
   items.clear();

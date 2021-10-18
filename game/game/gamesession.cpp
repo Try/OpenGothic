@@ -21,11 +21,10 @@ using namespace Tempest;
 const uint64_t GameSession::multTime=29;
 const uint64_t GameSession::divTime =2;
 
-void GameSession::HeroStorage::save(Npc& npc,World& owner) {
+void GameSession::HeroStorage::save(Npc& npc) {
   storage.clear();
   Tempest::MemWriter wr{storage};
   Serialize          sr{wr};
-  sr.setContext(&owner);
   sr.setEntry("hero");
 
   npc.save(sr,-1);
@@ -36,7 +35,6 @@ void GameSession::HeroStorage::putToWorld(World& owner, std::string_view wayPoin
     return;
   Tempest::MemReader rd{storage};
   Serialize          sr{rd};
-  sr.setContext(&owner);
   sr.setEntry("hero");
 
   if(auto pl = owner.player()) {
@@ -312,7 +310,7 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
 
   HeroStorage hdata;
   if(auto hero = wrld->player())
-    hdata.save(*hero,*wrld);
+    hdata.save(*hero);
   clearWorld();
 
   vm->resetVarPointers();

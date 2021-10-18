@@ -20,6 +20,8 @@ class Inventory final {
     Inventory& operator = (Inventory&&)=default;
     ~Inventory();
 
+    bool         isEmpty() const;
+
     void         load(Serialize& s, Npc& owner);
     void         load(Serialize& s, Interactive& owner, World &w);
     void         save(Serialize& s) const;

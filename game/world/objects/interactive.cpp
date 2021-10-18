@@ -92,10 +92,10 @@ void Interactive::load(Serialize &fin) {
         }
     }
 
-  fin.setEntry("worlds/",world.name(),"/mobsi/",vobObjectID,"/inventory");
-  invent.load(fin,*this,world);
+  if(fin.setEntry("worlds/",fin.worldName(),"/mobsi/",vobObjectID,"/inventory"))
+    invent.load(fin,*this,world);
 
-  fin.setEntry("worlds/",world.name(),"/mobsi/",vobObjectID,"/visual");
+  fin.setEntry("worlds/",fin.worldName(),"/mobsi/",vobObjectID,"/visual");
   visual.load(fin,*this);
   visual.setObjMatrix(transform());
   visual.syncPhysics();
@@ -117,10 +117,12 @@ void Interactive::save(Serialize &fout) const {
     fout.write(i.name,i.user,i.attachMode,i.started);
     }
 
-  fout.setEntry("worlds/",world.name(),"/mobsi/",vobObjectID,"/inventory");
-  invent.save(fout);
+  if(!invent.isEmpty()) {
+    fout.setEntry("worlds/",fout.worldName(),"/mobsi/",vobObjectID,"/inventory");
+    invent.save(fout);
+    }
 
-  fout.setEntry("worlds/",world.name(),"/mobsi/",vobObjectID,"/visual");
+  fout.setEntry("worlds/",fout.worldName(),"/mobsi/",vobObjectID,"/visual");
   visual.save(fout,*this);
   }
 
