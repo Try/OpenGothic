@@ -637,7 +637,11 @@ std::vector<const Texture2d*> Resources::loadTextureAnim(std::string_view name) 
   }
 
 Texture2d Resources::loadTexturePm(const Pixmap &pm) {
-  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  if(pm.isEmpty()) {
+    Pixmap p2(1,1,Pixmap::Format::R);
+    std::memset(p2.data(),0,1);
+    return inst->dev.loadTexture(p2);
+    }
   return inst->dev.loadTexture(pm);
   }
 

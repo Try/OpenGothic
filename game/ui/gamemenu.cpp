@@ -625,6 +625,9 @@ void GameMenu::updateSavTitle(GameMenu::Item& sel) {
     reader.read(hdr);
     sel.handle.text[0] = hdr.name.c_str();
     sel.savHdr         = std::move(hdr);
+
+    if(reader.setEntry("priview.png"))
+      reader.read(sel.savPriview);
     }
   catch(std::bad_alloc&) {
     return;
@@ -682,7 +685,7 @@ bool GameMenu::implUpdateSavThumb(GameMenu::Item& sel) {
   const SaveGameHeader& hdr = sel.savHdr;
   char form[64]={};
   Resources::device().waitIdle();
-  savThumb = Resources::loadTexturePm(hdr.priview);
+  savThumb = Resources::loadTexturePm(sel.savPriview);
 
   set("MENUITEM_LOADSAVE_THUMBPIC",       &savThumb);
   set("MENUITEM_LOADSAVE_LEVELNAME_VALUE",hdr.world.c_str());

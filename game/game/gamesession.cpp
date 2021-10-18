@@ -96,25 +96,28 @@ GameSession::GameSession(std::string file) {
   }
 
 GameSession::GameSession(Serialize &fin) {
-  cam.reset(new Camera());
-
   Gothic::inst().setLoadingProgress(0);
 
-  std::string    wname;
-  uint16_t       wssSize=0;
   SaveGameHeader hdr;
   fin.setEntry("header");
   fin.read(hdr);
-  fin.read(ticks,wrldTimePart,wname);
+  fin.setGlobalVersion(hdr.version);
+
+  {
+  uint16_t wssSize=0;
   fin.read(wssSize);
-  wrldTime = hdr.wrldTime;
   visitedWorlds.resize(wssSize);
   for(size_t i=0; i<wssSize; ++i)
     fin.read(visitedWorlds[i].name);
-
   for(size_t i=0; i<wssSize; ++i)
     visitedWorlds[i].load(fin);
+  }
 
+  std::string    wname;
+  fin.setEntry("game/session");
+  fin.read(ticks,wrldTime,wrldTimePart,wname);
+
+  cam.reset(new Camera());
   vm.reset(new GameScript(*this));
   vm->initDialogs();
 
@@ -126,16 +129,17 @@ GameSession::GameSession(Serialize &fin) {
     }
 
   Gothic::inst().setLoadingProgress(70);
-  fin.setEntry("quests");
+
+  fin.setEntry("game/quests");
   vm->loadQuests(fin);
 
-  fin.setEntry("daedalus");
+  fin.setEntry("game/daedalus");
   vm->loadVar(fin);
 
   if(auto hero = wrld->player())
     vm->setInstanceNPC("HERO",*hero);
 
-  fin.setEntry("camera");
+  fin.setEntry("game/camera");
   cam->load(fin,wrld->player());
   Gothic::inst().setLoadingProgress(96);
   }
@@ -145,25 +149,29 @@ GameSession::~GameSession() {
 
 void GameSession::save(Serialize &fout, const char* name, const Pixmap& screen) {
   SaveGameHeader hdr;
+  hdr.version   = Serialize::Version::Current;
   hdr.name      = name;
-  hdr.priview   = screen;
   hdr.world     = wrld->name();
   hdr.pcTime    = gtime::localtime();
   hdr.wrldTime  = wrldTime;
   hdr.isGothic2 = Gothic::inst().version().game;
 
-  uint16_t wssSize = 0;
   fout.setEntry("header");
   fout.write(hdr);
-  fout.write(ticks,wrldTimePart,wrld->name());
+  {
+  uint16_t wssSize = uint16_t(visitedWorlds.size());
   fout.write(wssSize);
   for(auto& i:visitedWorlds)
     fout.write(i.name);
+  }
 
   fout.setEntry("priview.png");
   fout.write(screen);
 
-  fout.setEntry("camera");
+  fout.setEntry("game/session");
+  fout.write(ticks,wrldTime,wrldTimePart,wrld->name());
+
+  fout.setEntry("game/camera");
   cam->save(fout);
   Gothic::inst().setLoadingProgress(5);
 
@@ -177,10 +185,10 @@ void GameSession::save(Serialize &fout, const char* name, const Pixmap& screen) 
     wrld->save(fout);
   Gothic::inst().setLoadingProgress(60);
 
-  fout.setEntry("quests");
+  fout.setEntry("game/quests");
   vm->saveQuests(fout);
 
-  fout.setEntry("daedalus");
+  fout.setEntry("game/daedalus");
   vm->saveVar(fout);
   Gothic::inst().setLoadingProgress(80);
   }

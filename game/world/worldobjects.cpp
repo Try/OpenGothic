@@ -67,6 +67,12 @@ WorldObjects::~WorldObjects() {
   }
 
 void WorldObjects::load(Serialize &fin) {
+  {
+  uint16_t v = 0;
+  fin.setEntry("worlds/",fin.worldName(),"/version");
+  fin.read(v);
+  fin.setVersion(v);
+  }
   uint32_t sz = fin.directorySize("worlds/",fin.worldName(),"/npc/");
   npcArr.resize(sz);
   for(size_t i=0; i<sz; ++i)

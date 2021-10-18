@@ -44,7 +44,10 @@ class Serialize {
     Serialize(Serialize&&)=default;
     ~Serialize();
 
-    uint16_t version() const { return Version::Current; }
+    uint16_t version()              const { return wldVer; }
+    void     setVersion(uint16_t v)       { wldVer = v;    }
+    uint16_t globalVersion()        const { return curVer; }
+    void     setGlobalVersion(uint16_t v) { curVer = v;    }
 
     template<class ... Args>
     bool setEntry(const Args& ... args) {
@@ -64,6 +67,10 @@ class Serialize {
 
     void setContext(World* ctx) { this->ctx=ctx; }
     std::string_view worldName() const;
+
+    // raw
+    void writeBytes(const void* v,size_t sz);
+    void readBytes (void* v,size_t sz);
 
     template<class ... Arg>
     void write(const Arg& ... a){
@@ -287,16 +294,15 @@ class Serialize {
     void implWrite(Interactive*  mobsi);
     void implRead (Interactive*& mobsi);
 
-    // raw
-    void writeBytes(const void* v,size_t sz);
-    void readBytes (void* v,size_t sz);
-
     static size_t writeFunc(void *pOpaque, uint64_t file_ofs, const void *pBuf, size_t n);
     static size_t readFunc (void *pOpaque, uint64_t file_ofs, void *pBuf, size_t n);
 
     void   closeEntry();
     bool   implSetEntry(std::string e);
     uint32_t implDirectorySize(std::string e);
+
+    uint16_t                 curVer = Version::Current;
+    uint16_t                 wldVer = Version::Current;
 
     std::string              tmpStr;
     World*                   ctx       = nullptr;
