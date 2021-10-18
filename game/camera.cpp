@@ -424,6 +424,7 @@ void Camera::calcControlPoints(float dtF) {
   auto  rotOffsetDef = Vec3(def.rotOffsetX,
                             def.rotOffsetY,
                             def.rotOffsetZ);
+  auto  rotBest      = Vec3(0,def.bestAzimuth,0);
 
   float range        = src.range*100.f;
 
@@ -437,11 +438,12 @@ void Camera::calcControlPoints(float dtF) {
     cameraPos    = src.target;
     rotOffset    = Vec3();
     rotOffsetDef = Vec3();
+    rotBest      = Vec3();
     //spin.y += def.bestAzimuth;
     }
 
-  followAng(src.spin,  dst.spin+Vec3(0,def.bestAzimuth,0), dtF);
-  followAng(rotOffset, rotOffsetDef,                       dtF);
+  followAng(src.spin,  dst.spin+rotBest, dtF);
+  followAng(rotOffset, rotOffsetDef,     dtF);
 
   Matrix4x4 rotOffsetMat;
   rotOffsetMat.identity();
@@ -470,7 +472,9 @@ void Camera::calcControlPoints(float dtF) {
     origin     = cameraPos - dir*range*100.f;
     }
 
-  offsetAng = calcOffsetAngles(origin,baseOrigin,dst.target);
+  if(camMod==Dialog)
+    offsetAng = Vec3(); else
+    offsetAng = calcOffsetAngles(origin,baseOrigin,dst.target);
 
   if(fpEnable) {
     origin    = dst.target;
