@@ -111,7 +111,7 @@ void Pose::setSkeleton(const Skeleton* sk) {
     numBones = skeleton->tr.size();
     for(size_t i=0; i<numBones; ++i) {
       tr[i]   = skeleton->tr[i];
-      base[i] = ZenLoad::zCModelAniSample(); //mkSample(skeleton->nodes[i].tr);
+      base[i] = ZenLoad::zCModelAniSample{}; //mkSample(skeleton->nodes[i].tr);
       }
     } else {
     numBones = 0;
