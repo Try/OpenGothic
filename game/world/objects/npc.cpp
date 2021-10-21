@@ -212,6 +212,9 @@ void Npc::save(Serialize &fout, size_t id) {
   fghAlgo.save(fout);
   fout.write(lastEventTime,angleY,runAng);
 
+  Vec3 phyPos = physic.position();
+  fout.write(phyPos);
+
   fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/inventory");
   if(!invent.isEmpty() || id==size_t(-1))
     invent.save(fout);
@@ -258,6 +261,10 @@ void Npc::load(Serialize &fin, size_t id) {
   mvAlgo.load(fin);
   fghAlgo.load(fin);
   fin.read(lastEventTime,angleY,runAng);
+
+  Vec3 phyPos = {};
+  fin.read(phyPos);
+  physic.setPosition(phyPos);
 
   if(fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/inventory"))
     invent.load(fin,*this);

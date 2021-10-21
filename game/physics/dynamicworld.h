@@ -82,6 +82,8 @@ class DynamicWorld final {
           }
 
         void  setPosition(const Tempest::Vec3& pos);
+        const Tempest::Vec3& position() const;
+
         void  setEnable(bool e);
         void  setUserPointer(void* p);
 
@@ -100,7 +102,6 @@ class DynamicWorld final {
         float               r      = 0.f;
         auto  implTryMove    (const Tempest::Vec3& dp, const Tempest::Vec3& pos0, CollisionTest& out) -> DynamicWorld::MoveCode;
         void  implSetPosition(const Tempest::Vec3& pos);
-        const Tempest::Vec3& position() const;
 
       friend class DynamicWorld;
       };
