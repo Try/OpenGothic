@@ -13,7 +13,6 @@
 
 Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, bool startup)
   : Vob(parent,world,vob,startup) {
-  vobType       = vob.vobType;
   vobName       = std::move(vob.vobName);
   focName       = std::move(vob.oCMOB.focusName);
   bbox[0]       = vob.bbox[0];
@@ -65,78 +64,66 @@ Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, boo
   }
 
 void Interactive::load(Serialize &fin) {
-  if(fin.version()<25 && vobType==ZenLoad::zCVobData::VT_oCMobFire) {
-    // mob fire wasn't here until v25
-    Vob::load(fin);
-    return;
-    }
-  if(fin.version()<28 && (vobType==ZenLoad::zCVobData::VT_oCMobLadder || vobType==ZenLoad::zCVobData::VT_oCMobWheel)) {
-    // mob ladder wasn't here until v28
-    Vob::load(fin);
-    return;
-    }
+  Vob::load(fin);
 
-  Tempest::Matrix4x4 pos;
-  uint8_t vt=0;
-  fin.read(vt,vobName,focName,mdlVisual);
-  vobType = ZenLoad::zCVobData::EVobType(vt);
+  fin.read(vobName,focName,mdlVisual);
   fin.read(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z,owner);
-  if(fin.version()>=2)
-    fin.read(focOver);
-  if(fin.version()>=6)
-    fin.read(showVisual);
+  fin.read(focOver,showVisual);
 
   fin.read(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
   fin.read(locked,keyInstance,pickLockStr);
-  invent.load(*this,world,fin);
-  fin.read(pos,state,reverseState,loopState);
-  if(fin.version()>=12)
-    fin.read(isLockCracked);
-
-  setGlobalTransform(pos);
-  // setVisual(mdlVisual);
-  visual.load(fin,*this);
-  visual.setObjMatrix(transform());
+  fin.read(state,reverseState,loopState,isLockCracked);
 
   uint32_t sz=0;
   fin.read(sz);
-  for(size_t i=0;i<sz;++i){
+  for(size_t i=0; i<sz; ++i) {
     std::string name;
-    Npc*        user=nullptr;
-    int32_t     userState=0; // unused
+    Npc*        user       = nullptr;
     bool        attachMode = false;
     bool        started    = false;
 
-    fin.read(name,user,userState,attachMode);
-    if(fin.version()>=13)
-      fin.read(started);
+    fin.read(name,user,attachMode,started);
 
     for(auto& i:attPos)
       if(i.name==name) {
         i.user       = user;
         i.attachMode = attachMode;
         i.started    = started;
-        if(fin.version()<24 && i.user!=nullptr)
-          i.user->setInteraction(this,true);
         }
     }
+
+  if(fin.setEntry("worlds/",fin.worldName(),"/mobsi/",vobObjectID,"/inventory"))
+    invent.load(fin,*this,world);
+
+  fin.setEntry("worlds/",fin.worldName(),"/mobsi/",vobObjectID,"/visual");
+  visual.load(fin,*this);
+  visual.setObjMatrix(transform());
+  visual.syncPhysics();
   }
 
 void Interactive::save(Serialize &fout) const {
-  fout.write(uint8_t(vobType),vobName,focName,mdlVisual);
-  fout.write(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z);
-  fout.write(owner,focOver,showVisual);
+  Vob::save(fout);
+
+  fout.write(vobName,focName,mdlVisual);
+  fout.write(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z,owner);
+  fout.write(focOver,showVisual);
+
   fout.write(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
   fout.write(locked,keyInstance,pickLockStr);
-  invent.save(fout);
-  fout.write(transform(),state,reverseState,loopState,isLockCracked);
-  visual.save(fout,*this);
+  fout.write(state,reverseState,loopState,isLockCracked);
 
   fout.write(uint32_t(attPos.size()));
   for(auto& i:attPos) {
-    int32_t userState=0; // unused
-    fout.write(i.name,i.user,userState,i.attachMode,i.started);
+    fout.write(i.name,i.user,i.attachMode,i.started);
     }
+
+  if(!invent.isEmpty()) {
+    fout.setEntry("worlds/",fout.worldName(),"/mobsi/",vobObjectID,"/inventory");
+    invent.save(fout);
+    }
+
+  fout.setEntry("worlds/",fout.worldName(),"/mobsi/",vobObjectID,"/visual");
+  visual.save(fout,*this);
   }
 
 void Interactive::postValidate() {

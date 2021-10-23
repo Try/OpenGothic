@@ -167,9 +167,7 @@ void DialogMenu::dialogCamera(Camera& camera) {
   if(pl && other){
     auto p0 = pl   ->cameraBone();
     auto p1 = other->cameraBone();
-    camera.setPosition(0.5f*(p0.x+p1.x),
-                       0.5f*(p0.y+p1.y) + 50,
-                       0.5f*(p0.z+p1.z));
+    camera.setPosition((p0+p1)*0.5f + Vec3(0,50,0));
     p0 -= p1;
 
     if(pl==other) {

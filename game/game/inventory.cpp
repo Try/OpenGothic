@@ -89,6 +89,10 @@ Inventory::Inventory() {
 Inventory::~Inventory() {
   }
 
+bool Inventory::isEmpty() const {
+  return items.size()==0 && active==nullptr;
+  }
+
 void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
   uint32_t sz=0;
   items.clear();
@@ -109,12 +113,11 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
       } else {
       ++i;
       }
-  if(s.version()>=5) {
-    s.read(ammotSlot.slot);
-    ammotSlot.item = readPtr(s);
-    s.read(stateSlot.slot);
-    stateSlot.item = readPtr(s);
-    }
+
+  s.read(ammotSlot.slot);
+  ammotSlot.item = readPtr(s);
+  s.read(stateSlot.slot);
+  stateSlot.item = readPtr(s);
 
   armour = readPtr(s);
   belt   = readPtr(s);
@@ -140,11 +143,11 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
     updateView(*owner);
   }
 
-void Inventory::load(Npc &owner, Serialize &s) {
+void Inventory::load(Serialize &s, Npc& owner) {
   implLoad(&owner,owner.world(),s);
   }
 
-void Inventory::load(Interactive&, World& w, Serialize &s) {
+void Inventory::load(Serialize& s, Interactive&, World& w) {
   implLoad(nullptr,w,s);
   }
 

@@ -72,20 +72,6 @@ GameScript::GameScript(GameSession &owner)
   initCommon();
   }
 
-GameScript::GameScript(GameSession &owner, Serialize &fin)
-  :GameScript(owner) {
-  quests.load(fin);
-  uint32_t sz=0;
-  fin.read(sz);
-  for(size_t i=0;i<sz;++i){
-    uint32_t f=0,s=0;
-    fin.read(f,s);
-    dlgKnownInfos.insert(std::make_pair(f,s));
-    }
-
-  fin.read(gilAttitudes);
-  }
-
 GameScript::~GameScript() {
   vm.clearReferences(Daedalus::IC_Info);
   }
@@ -418,6 +404,9 @@ void GameScript::initCommon() {
       }
     }
 
+  if(hasSymbolName("init_global"))
+    runFunction("init_global");
+
   if(hasSymbolName("startup_global"))
     runFunction("startup_global");
   }
@@ -481,13 +470,26 @@ void GameScript::clearReferences(Daedalus::GEngineClasses::Instance &ptr) {
   vm.clearReferences(ptr);
   }
 
-void GameScript::save(Serialize &fout) {
+void GameScript::saveQuests(Serialize &fout) {
   quests.save(fout);
   fout.write(uint32_t(dlgKnownInfos.size()));
   for(auto& i:dlgKnownInfos)
     fout.write(uint32_t(i.first),uint32_t(i.second));
 
   fout.write(gilAttitudes);
+  }
+
+void GameScript::loadQuests(Serialize& fin) {
+  quests.load(fin);
+  uint32_t sz=0;
+  fin.read(sz);
+  for(size_t i=0;i<sz;++i){
+    uint32_t f=0,s=0;
+    fin.read(f,s);
+    dlgKnownInfos.insert(std::make_pair(f,s));
+    }
+
+  fin.read(gilAttitudes);
   }
 
 void GameScript::saveVar(Serialize &fout) {

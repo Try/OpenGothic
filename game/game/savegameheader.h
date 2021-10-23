@@ -13,11 +13,14 @@ class SaveGameHeader final {
 
     void save(Serialize& fout) const;
 
+    uint16_t        version = 0;
     std::string     name;
-    Tempest::Pixmap priview;
     std::string     world;
     gtime           pcTime;
     gtime           wrldTime;
     uint8_t         isGothic2=0;
+
+  private:
+    static const char tag[];
   };
 

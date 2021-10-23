@@ -453,6 +453,8 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
 
   auto world = Gothic::inst().world();
   auto pl    = world==nullptr ? nullptr : world->player();
+  if(pl==nullptr)
+    return;
 
   auto pos = focus.displayPosition();
   vp.project(pos.x,pos.y,pos.z);
@@ -667,7 +669,6 @@ void MainWindow::tickCamera(uint64_t dt) {
 
   auto&      camera       = *pcamera;
   const auto ws           = player.weaponState();
-  const bool followCamera = player.isInMove();
   const bool meleeFocus   = (ws==WeaponState::Fist ||
                              ws==WeaponState::W1H  ||
                              ws==WeaponState::W2H);
@@ -707,7 +708,7 @@ void MainWindow::tickCamera(uint64_t dt) {
     return;
   if(camera.isToogleEnabled())
     camera.setMode(solveCameraMode());
-  camera.tick(*pl, dt, followCamera, (!mouseP[Event::ButtonLeft] || player.hasActionFocus() || fs));
+  camera.tick(dt);
   renderer.setCameraView(camera);
   }
 
@@ -807,9 +808,9 @@ void MainWindow::onVideo(const Daedalus::ZString& fname) {
   }
 
 void MainWindow::onStartLoading() {
-  player.clearInput();
+  player   .clearInput();
   inventory.onWorldChanged();
-  dialogs.onWorldChanged();
+  dialogs  .onWorldChanged();
   }
 
 void MainWindow::onWorldLoaded() {
@@ -864,8 +865,14 @@ void MainWindow::render(){
 
     video.tick();
     uint64_t dt = 0;
-    if(!video.isActive())
+    if(!video.isActive()) {
+      /*
+        Note: game update goes first
+        once player position is updated, we can update the camera
+        lastly - update animation (since cameraBone ca be moved)
+        */
       dt = tick();
+      }
 
     auto& sync = fence[cmdId];
     if(!sync.wait(0)) {
@@ -874,8 +881,8 @@ void MainWindow::render(){
       }
 
     if(!video.isActive()) {
-      Gothic::inst().updateAnimation(dt);
       tickCamera(dt);
+      Gothic::inst().updateAnimation(dt);
       }
 
     if(video.isActive()) {

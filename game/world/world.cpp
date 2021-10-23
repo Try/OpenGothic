@@ -60,7 +60,7 @@ const char* materialTag(ZenLoad::MaterialGroup src) {
   return "UD";
   }
 
-World::World(GameSession& game, std::string file, std::function<void(int)> loadProgress)
+World::World(GameSession& game, std::string file, bool startup, std::function<void(int)> loadProgress)
   :wname(std::move(file)),game(game),wsound(game,*this),wobj(*this) {
   using namespace Daedalus::GameState;
 
@@ -90,51 +90,11 @@ World::World(GameSession& game, std::string file, std::function<void(int)> loadP
   wmatrix.reset(new WayMatrix(*this,world.waynet));
   if(1){
     for(auto& vob:world.rootVobs)
-      wobj.addRoot(std::move(vob),true);
+      wobj.addRoot(std::move(vob),startup);
     }
   wmatrix->buildIndex();
   bsp = std::move(world.bspTree);
   bspSectors.resize(bsp.sectors.size());
-  loadProgress(100);
-  }
-
-World::World(GameSession &game,
-             Serialize &fin, std::function<void(int)> loadProgress)
-  :wname(fin.read<std::string>()),game(game),wsound(game,*this),wobj(*this) {
-  using namespace Daedalus::GameState;
-
-  ZenLoad::ZenParser parser(wname,Resources::vdfsIndex());
-
-  loadProgress(1);
-  parser.readHeader();
-
-  loadProgress(10);
-  ZenLoad::oCWorldData world;
-
-  auto fver = ZenLoad::ZenParser::FileVersion::Gothic1;
-  if(Gothic::inst().version().game==2)
-    fver = ZenLoad::ZenParser::FileVersion::Gothic2;
-  parser.readWorld(world,fver);
-
-  ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
-  PackedMesh vmesh(*worldMesh,PackedMesh::PK_VisualLnd);
-
-  loadProgress(50);
-  wdynamic.reset(new DynamicWorld(*this,*worldMesh));
-  wview.reset   (new WorldView(*this,vmesh));
-  loadProgress(70);
-
-  globFx.reset(new GlobalEffects(*this));
-
-  wmatrix.reset(new WayMatrix(*this,world.waynet));
-  if(1){
-    for(auto& vob:world.rootVobs)
-      wobj.addRoot(std::move(vob),false);
-    }
-  wmatrix->buildIndex();
-  bsp = std::move(world.bspTree);
-  bspSectors.resize(bsp.sectors.size());
-
   loadProgress(100);
   }
 
@@ -166,7 +126,7 @@ void World::postInit() {
 
 void World::load(Serialize &fin) {
   fin.setContext(this);
-  wobj.load(fin);
+  fin.setEntry("worlds/",wname,"/world");
 
   uint32_t sz=0;
   fin.read(sz);
@@ -178,18 +138,20 @@ void World::load(Serialize &fin) {
       p->guild = guild;
     }
 
+  wobj.load(fin);
   npcPlayer = wobj.findHero();
   }
 
 void World::save(Serialize &fout) {
   fout.setContext(this);
-  fout.write(wname);
-  wobj.save(fout);
+  fout.setEntry("worlds/",wname,"/world");
 
   fout.write(uint32_t(bspSectors.size()));
   for(size_t i=0;i<bspSectors.size();++i) {
     fout.write(bsp.sectors[i].name,bspSectors[i].guild);
     }
+
+  wobj.save(fout);
   }
 
 uint32_t World::npcId(const Npc *ptr) const {
@@ -200,6 +162,10 @@ Npc *World::npcById(uint32_t id) {
   if(id<wobj.npcCount())
     return &wobj.npc(id);
   return nullptr;
+  }
+
+uint32_t World::npcCount() const {
+  return uint32_t(wobj.npcCount());
   }
 
 uint32_t World::mobsiId(const Interactive* ptr) const {
@@ -397,38 +363,9 @@ Focus World::validateFocus(const Focus &def) {
   }
 
 Focus World::findFocus(const Npc &pl, const Focus& def) {
-  const Daedalus::GEngineClasses::C_Focus* fptr = &game.script()->focusNorm();
-  auto opt    = WorldObjects::NoFlg;
-  auto coll   = TARGET_COLLECT_FOCUS;
-  auto weapon = pl.inventory().activeWeapon();
-
-  switch(pl.weaponState()) {
-    case WeaponState::Fist:
-    case WeaponState::W1H:
-    case WeaponState::W2H:
-      fptr = &game.script()->focusMele();
-      opt  = WorldObjects::NoDeath;
-      break;
-    case WeaponState::Bow:
-    case WeaponState::CBow:
-      fptr = &game.script()->focusRange();
-      opt  = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
-      break;
-    case WeaponState::Mage:{
-      fptr = &game.script()->focusMage();
-      if(weapon!=nullptr) {
-        int32_t id  = weapon->spellId();
-        auto&   spl = script().spellDesc(id);
-        coll = TargetCollect(spl.targetCollectAlgo);
-        }
-      opt  = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
-      break;
-      }
-    case WeaponState::NoWeapon:
-      fptr = &game.script()->focusNorm();
-      break;
-    }
-  auto& policy = *fptr;
+  auto  opt    = WorldObjects::NoFlg;
+  auto  coll   = TARGET_COLLECT_FOCUS;
+  auto& policy = searchPolicy(pl,coll,opt);
 
   WorldObjects::SearchOpt optNpc {policy.npc_range1,  policy.npc_range2,  policy.npc_azi,  coll, opt};
   WorldObjects::SearchOpt optMob {policy.mob_range1,  policy.mob_range2,  policy.mob_azi,  coll };
@@ -476,6 +413,15 @@ Focus World::findFocus(const Focus &def) {
   if(npcPlayer==nullptr)
     return Focus();
   return findFocus(*npcPlayer,def);
+  }
+
+bool World::testFocusNpc(Npc* def) {
+  auto  opt    = WorldObjects::NoFlg;
+  auto  coll   = TARGET_COLLECT_FOCUS;
+  auto& policy = searchPolicy(*npcPlayer,coll,opt);
+
+  WorldObjects::SearchOpt optNpc{policy.npc_range1,  policy.npc_range2,  policy.npc_azi,  coll, opt};
+  return wobj.testFocusNpc(*npcPlayer,def,optNpc);
   }
 
 Interactive *World::aviableMob(const Npc &pl, const char* name) {
@@ -773,6 +719,35 @@ void World::addSound(const ZenLoad::zCVobData& vob) {
 
 void World::invalidateVobIndex() {
   wobj.invalidateVobIndex();
+  }
+
+const Daedalus::GEngineClasses::C_Focus& World::searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const {
+  opt  = WorldObjects::NoFlg;
+  coll = TARGET_COLLECT_FOCUS;
+
+  switch(pl.weaponState()) {
+    case WeaponState::Fist:
+    case WeaponState::W1H:
+    case WeaponState::W2H:
+      opt = WorldObjects::NoDeath;
+      return game.script()->focusMele();
+    case WeaponState::Bow:
+    case WeaponState::CBow:
+      opt = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
+      return game.script()->focusRange();
+    case WeaponState::Mage:{
+      if(auto weapon = pl.inventory().activeWeapon()) {
+        int32_t id  = weapon->spellId();
+        auto&   spl = script().spellDesc(id);
+        coll = TargetCollect(spl.targetCollectAlgo);
+        }
+      opt = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
+      return game.script()->focusMage();
+      }
+    case WeaponState::NoWeapon:
+      return game.script()->focusNorm();
+    }
+  return game.script()->focusNorm();
   }
 
 void World::triggerOnStart(bool firstTime) {

@@ -15,10 +15,6 @@ PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
   :dlg(dlg),inv(inv) {
   }
 
-bool PlayerControl::isInMove() {
-  return ctrl[Action::Forward] | ctrl[Action::Left] | ctrl[Action::Right]; // | ctrl[Action::Back];
-  }
-
 void PlayerControl::setTarget(Npc *other) {
   auto w  = Gothic::inst().world();
   auto pl = w ? w->player() : nullptr;
@@ -87,11 +83,16 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   const bool actTunneling = (pl!=nullptr && pl->isAtackAnim());
   if(ctrl[KeyCodec::ActionGeneric] || actTunneling) {
     int fk = -1;
-    if(a==Action::Forward)
-      fk = ActForward;
+    if(a==Action::Forward) {
+      if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAtackAnim())
+        fk = ActKill; else
+        fk = ActForward;
+      }
     if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
       if(a==Action::Back)
         fk = ActBack;
+      }
+    if(ws!=WeaponState::NoWeapon) {
       if(a==Action::Left || a==Action::RotateL)
         fk = ActLeft;
       if(a==Action::Right || a==Action::RotateR)
@@ -145,7 +146,13 @@ void PlayerControl::onKeyReleased(KeyCodec::Action a) {
     w->script().playerHotKeyScreenMap(*pl);
     }
 
-  std::memset(actrl,0,sizeof(actrl));
+  auto ws = pl==nullptr ? WeaponState::NoWeapon : pl->weaponState();
+  if(ws==WeaponState::Bow || ws==WeaponState::CBow) {
+    if(a==KeyCodec::ActionGeneric)
+      std::memset(actrl,0,sizeof(actrl));
+    } else {
+    std::memset(actrl,0,sizeof(actrl));
+    }
   }
 
 bool PlayerControl::isPressed(KeyCodec::Action a) const {
@@ -258,6 +265,46 @@ bool PlayerControl::interact(Item &item) {
   return pl->takeItem(item)!=nullptr;
   }
 
+void PlayerControl::moveFocus(FocusAction act) {
+  auto w = Gothic::inst().world();
+  auto c = Gothic::inst().camera();
+  if(w==nullptr || c==nullptr || currentFocus.npc==nullptr)
+    return;
+
+  auto vp  = c->viewProj();
+  auto pos = currentFocus.npc->position()+Tempest::Vec3(0,currentFocus.npc->translateY(),0);
+  vp.project(pos);
+
+  Npc* next = nullptr;
+  auto npos = Tempest::Vec3();
+  for(uint32_t i=0; i<w->npcCount(); ++i) {
+    auto npc = w->npcById(i);
+    if(npc->isPlayer())
+      continue;
+    auto p = npc->position()+Tempest::Vec3(0,npc->translateY(),0);
+    vp.project(p);
+
+    if(std::abs(p.x)>1.f || std::abs(p.y)>1.f || p.z<0.f)
+      continue;
+
+    if(!w->testFocusNpc(npc))
+      continue;
+
+    if(act==ActLeft && p.x<pos.x && (next==nullptr || npos.x<p.x)) {
+      npos = p;
+      next = npc;
+      }
+    if(act==ActRight && p.x>pos.x && (next==nullptr || npos.x>p.x)) {
+      npos = p;
+      next = npc;
+      }
+    }
+
+  if(next==nullptr)
+    return;
+  currentFocus.npc = next;
+  }
+
 void PlayerControl::toogleWalkMode() {
   auto w = Gothic::inst().world();
   if(w==nullptr || w->player()==nullptr)
@@ -319,6 +366,9 @@ void PlayerControl::marvinF8(uint64_t dt) {
   pl.clearSpeed();
   pl.quitIneraction();
   pl.setAnim(AnimationSolver::Idle);
+
+  if(auto c = Gothic::inst().camera())
+    c->reset();
   }
 
 void PlayerControl::marvinK(uint64_t dt) {
@@ -540,6 +590,14 @@ void PlayerControl::implMove(uint64_t dt) {
         pl.turnTo(dp.x,dp.z,false,dt);
         }
       pl.aimBow();
+      if(actrl[ActLeft]) {
+        moveFocus(ActLeft);
+        actrl[ActLeft]  = false;
+        }
+      if(actrl[ActRight]) {
+        moveFocus(ActRight);
+        actrl[ActRight]  = false;
+        }
       if(!actrl[ActForward])
         return;
       }
@@ -558,9 +616,7 @@ void PlayerControl::implMove(uint64_t dt) {
         return;
       case WeaponState::W1H:
       case WeaponState::W2H: {
-        if(pl.target()!=nullptr && pl.canFinish(*pl.target()))
-          pl.finishingMove(); else
-          pl.swingSword();
+        pl.swingSword();
         return;
         }
       case WeaponState::Bow:
@@ -576,6 +632,12 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     }
 
+  if(actrl[ActKill]) {
+    if((ws==WeaponState::W1H || ws==WeaponState::W2H) && pl.target()!=nullptr && pl.canFinish(*pl.target()))
+      pl.finishingMove();
+    actrl[ActKill] = false;
+    }
+
   if(actrl[ActLeft] || actrl[ActRight] || actrl[ActBack]) {
     auto ws = pl.weaponState();
     if(ws==WeaponState::Fist){
@@ -583,7 +645,7 @@ void PlayerControl::implMove(uint64_t dt) {
         pl.blockFist();
       return;
       }
-    else if(ws==WeaponState::W1H || ws==WeaponState::W2H){
+    else if(ws==WeaponState::W1H || ws==WeaponState::W2H) {
       if(actrl[ActLeft]) {
         if(pl.swingSwordL())
           ctrl[Action::Left] = false;
@@ -601,6 +663,16 @@ void PlayerControl::implMove(uint64_t dt) {
       actrl[ActRight] = false;
       actrl[ActBack]  = false;
       return;
+      }
+    else if(ws==WeaponState::Mage) {
+      if(actrl[ActLeft]) {
+        moveFocus(ActLeft);
+        actrl[ActLeft]  = false;
+        }
+      if(actrl[ActRight]) {
+        moveFocus(ActRight);
+        actrl[ActRight]  = false;
+        }
       }
     }
 

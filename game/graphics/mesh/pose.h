@@ -47,7 +47,7 @@ class Pose final {
     bool               update(uint64_t tickCount);
 
     void               processLayers(AnimationSolver &solver, uint64_t tickCount);
-    void               processEvents(uint64_t& barrier, uint64_t now, Animation::EvCount &ev) const;
+    bool               processEvents(uint64_t& barrier, uint64_t now, Animation::EvCount &ev) const;
 
     Tempest::Vec3      animMoveSpeed(uint64_t tickCount, uint64_t dt) const;
     void               processSfx(Npc &npc, uint64_t tickCount);
@@ -134,6 +134,6 @@ class Pose final {
     float                           headRotX = 0, headRotY = 0;
 
     size_t                          numBones = 0;
-    Tempest::Matrix4x4              base[Resources::MAX_NUM_SKELETAL_NODES];
-    Tempest::Matrix4x4              tr  [Resources::MAX_NUM_SKELETAL_NODES];
+    ZenLoad::zCModelAniSample       base[Resources::MAX_NUM_SKELETAL_NODES] = {};
+    Tempest::Matrix4x4              tr  [Resources::MAX_NUM_SKELETAL_NODES] = {};
   };

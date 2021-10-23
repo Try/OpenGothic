@@ -15,17 +15,14 @@ class WorldStateStorage final {
   public:
     WorldStateStorage()=default;
     WorldStateStorage(World &w);
-    WorldStateStorage(Serialize &fin);
     WorldStateStorage(const WorldStateStorage&)=delete;
     WorldStateStorage(WorldStateStorage&&)=default;
     WorldStateStorage& operator = (WorldStateStorage&&)=default;
 
     bool                 isEmpty() const { return storage.empty(); }
-    const std::string&   name()    const { return wname; }
     void                 save(Serialize& fout) const;
+    void                 load(Serialize& fin);
 
+    std::string          name;
     std::vector<uint8_t> storage;
-
-  private:
-    std::string          wname;
   };

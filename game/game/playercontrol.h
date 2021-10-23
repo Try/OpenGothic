@@ -34,7 +34,6 @@ class PlayerControl final {
     bool interact(Item&        item);
 
     void clearInput();
-    bool isInMove();
 
     void setTarget(Npc* other);
     void actionFocus(Npc& other);
@@ -70,13 +69,14 @@ class PlayerControl final {
       ActRight  =3,
       ActGeneric=4,
       ActMove   =5,
+      ActKill   =6,
       };
 
     using Action=KeyCodec::Action;
 
     bool           ctrl[Action::Last]={};
     bool           wctrl[WeaponAction::Last]={};
-    bool           actrl[6]={};
+    bool           actrl[7]={};
 
     WeaponAction   wctrlLast = WeaponAction::WeaponMele; //!< Reminder for weapon toggle.
 
@@ -99,6 +99,7 @@ class PlayerControl final {
     void           marvinK(uint64_t dt);
     void           toogleWalkMode();
     void           toggleSneakMode();
+    void           moveFocus(FocusAction act);
     Focus          findFocus(Focus *prev);
 
     void           clrDraw();

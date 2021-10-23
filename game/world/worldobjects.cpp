@@ -67,42 +67,44 @@ WorldObjects::~WorldObjects() {
   }
 
 void WorldObjects::load(Serialize &fin) {
-  uint32_t sz = uint32_t(npcArr.size());
+  {
+  uint16_t v = 0;
+  fin.setEntry("worlds/",fin.worldName(),"/version");
+  fin.read(v);
+  fin.setVersion(v);
+  }
+  uint32_t sz = fin.directorySize("worlds/",fin.worldName(),"/npc/");
+  npcArr.resize(sz);
+  for(size_t i=0; i<sz; ++i)
+    npcArr[i] = std::make_unique<Npc>(owner,size_t(-1),"");
+  for(size_t i=0; i<npcArr.size(); ++i) {
+    npcArr[i]->load(fin,i);
+    }
 
-  fin.read(sz);
-  npcArr.clear();
-  for(size_t i=0;i<sz;++i)
-    npcArr.emplace_back(std::make_unique<Npc>(owner,size_t(-1),""));
-  for(auto& i:npcArr)
-    i->load(fin);
-
+  fin.setEntry("worlds/",fin.worldName(),"/items");
   fin.read(sz);
   itemArr.clear();
-  for(size_t i=0;i<sz;++i){
+  items.clear();
+  for(size_t i=0; i<sz; ++i) {
     auto it = std::make_unique<Item>(owner,fin,Item::T_World);
     itemArr.emplace_back(std::move(it));
     items.add(itemArr.back().get());
     }
 
-  fin.read(sz);
-  if(fin.version()>=28 && interactiveObj.size()!=sz)
-    throw std::logic_error("inconsistent *.sav vs world");
   for(auto& i:rootVobs)
     i->loadVobTree(fin);
-  if(fin.version()>=10) {
-    uint32_t sz = 0;
-    fin.read(sz);
-    triggerEvents.resize(sz);
-    for(auto& i:triggerEvents)
-      i.load(fin);
-    }
-  if(fin.version()>=16) {
-    uint32_t sz = 0;
-    fin.read(sz);
-    routines.resize(sz);
-    for(auto& i:routines)
-      i.load(fin);
-    }
+
+  fin.setEntry("worlds/",fin.worldName(),"/triggerEvents");
+  fin.read(sz);
+  triggerEvents.resize(sz);
+  for(auto& i:triggerEvents)
+    i.load(fin);
+
+  fin.setEntry("worlds/",fin.worldName(),"/routines");
+  fin.read(sz);
+  routines.resize(sz);
+  for(auto& i:routines)
+    i.load(fin);
 
   for(auto& i:interactiveObj)
     i->postValidate();
@@ -111,24 +113,29 @@ void WorldObjects::load(Serialize &fin) {
   }
 
 void WorldObjects::save(Serialize &fout) {
-  uint32_t sz = uint32_t(npcArr.size());
-  fout.write(sz);
-  for(auto& i:npcArr)
-    i->save(fout);
+  fout.setEntry("worlds/",fout.worldName(),"/version");
+  fout.write(Serialize::Version::Current);
 
-  sz = uint32_t(itemArr.size());
+  for(size_t i=0; i<npcArr.size(); ++i) {
+    npcArr[i]->save(fout,i);
+    }
+
+  fout.setEntry("worlds/",fout.worldName(),"/items");
+  uint32_t sz = uint32_t(itemArr.size());
   fout.write(sz);
   for(auto& i:itemArr)
     i->save(fout);
 
-  sz = uint32_t(interactiveObj.size());
-  fout.write(sz);
+  fout.setEntry("worlds/",fout.worldName(),"/mobsi");
   for(auto& i:rootVobs)
     i->saveVobTree(fout);
+
+  fout.setEntry("worlds/",fout.worldName(),"/triggerEvents");
   fout.write(uint32_t(triggerEvents.size()));
   for(auto& i:triggerEvents)
     i.save(fout);
 
+  fout.setEntry("worlds/",fout.worldName(),"/routines");
   fout.write(uint32_t(routines.size()));
   for(auto& i:routines)
     i.save(fout);
@@ -643,6 +650,12 @@ Npc *WorldObjects::validateNpc(Npc *def) {
 
 Item *WorldObjects::validateItem(Item *def) {
   return items.hasObject(def) ? def : nullptr;
+  }
+
+bool WorldObjects::testFocusNpc(const Npc &pl, Npc* def, const SearchOpt& opt) {
+  if(def && testObj(*def,pl,opt))
+    return true;
+  return false;
   }
 
 Interactive* WorldObjects::findInteractive(const Npc &pl, Interactive* def, const SearchOpt& opt) {

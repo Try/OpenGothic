@@ -27,7 +27,6 @@ void MdlVisual::save(Serialize &fout, const Npc&) const {
     fout.write(std::string(""));
   solver.save(fout);
   skInst->save(fout);
-  fout.write(fatness);
   }
 
 void MdlVisual::save(Serialize& fout, const Interactive&) const {
@@ -40,30 +39,25 @@ void MdlVisual::load(Serialize& fin, Npc& npc) {
 
   fin.read(fgtMode);
   fin.read(s);
-  if(fin.version()<=26)
-    FileExt::exchangeExt(s,"MDH","MDS");
-  npc.setVisual(s.c_str());
+  npc.setVisual(s);
 
   solver.load(fin);
   skInst->load(fin,solver);
-  if(fin.version()>=34) {
-    fin.read(fatness);
-    setFatness(fatness);
-    }
+  if(skeleton!=nullptr)
+    rebindAttaches(*skeleton);
   }
 
 void MdlVisual::load(Serialize& fin, Interactive&) {
-  if(fin.version()>=17)
-    solver.load(fin);
-  if(fin.version()>=11)
-    skInst->load(fin,solver);
-  syncAttaches();
+  solver.load(fin);
+  skInst->load(fin,solver);
+  if(skeleton!=nullptr)
+    rebindAttaches(*skeleton);
   }
 
 // Mdl_SetVisual
 void MdlVisual::setVisual(const Skeleton *v) {
-  if(skeleton!=nullptr && v!=nullptr)
-    rebindAttaches(*skeleton,*v);
+  if(v!=nullptr)
+    rebindAttaches(*v);
   solver.setSkeleton(v);
   skInst->setSkeleton(v);
   view.setSkeleton(v);
@@ -78,16 +72,16 @@ void MdlVisual::setYTranslationEnable(bool e) {
     skInst->setFlags(Pose::NoTranslation);
   }
 
-void MdlVisual::setVisualBody(MeshObjects::Mesh&& body, World& owner) {
-  implSetBody(std::move(body),owner,0);
+void MdlVisual::setVisualBody(World& owner, MeshObjects::Mesh&& body) {
+  implSetBody(nullptr,owner,std::move(body),0);
   }
 
 // Mdl_SetVisualBody
-void MdlVisual::setVisualBody(MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, World& owner, int32_t version) {
+void MdlVisual::setVisualBody(Npc& npc, MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, int32_t version) {
   bind(head,std::move(h),"BIP01 HEAD");
-  implSetBody(std::move(body),owner,version);
+  implSetBody(&npc,npc.world(),std::move(body),version);
   head.view.setAsGhost(hnpcFlagGhost);
-  head.view.setFatness(fatness);
+  head.view.setFatness(npc.fatness());
   }
 
 bool MdlVisual::hasOverlay(const Skeleton* sk) const {
@@ -113,33 +107,33 @@ void MdlVisual::clearOverlays() {
   solver.clearOverlays();
   }
 
-void MdlVisual::setBody(MeshObjects::Mesh&& a, World& owner, const int32_t version) {
-  implSetBody(std::move(a),owner,version);
+void MdlVisual::setBody(Npc& npc, MeshObjects::Mesh&& a, const int32_t version) {
+  implSetBody(&npc,npc.world(),std::move(a),version);
   setObjMatrix(pos);
   }
 
-void MdlVisual::setArmour(MeshObjects::Mesh &&a, World& owner) {
+void MdlVisual::setArmour(Npc& npc, MeshObjects::Mesh&& armour) {
   // NOTE: Giant_Bug have no version tag in attachments;
   // Light dragon hunter armour has broken attachment with no tags
   // Big dragon hunter armour has many atachments with version tags
-  implSetBody(std::move(a),owner,-1);
+  implSetBody(&npc,npc.world(),std::move(armour),-1);
   setObjMatrix(pos);
   }
 
-void MdlVisual::implSetBody(MeshObjects::Mesh&& body, World& owner, const int32_t version) {
+void MdlVisual::implSetBody(Npc* npc, World& world, MeshObjects::Mesh&& body, const int32_t version) {
   attach.clear();
   if(auto p = body.protoMesh()) {
     for(auto& att:p->attach) {
       if(!att.hasNode) {
-        auto view = owner.addAtachView(att,version);
-        setSlotAttachment(std::move(view),att.name.c_str());
+        auto view = world.addAtachView(att,version);
+        setSlotAttachment(std::move(view),att.name);
         }
       }
     syncAttaches();
     }
   view = std::move(body);
   view.setAsGhost(hnpcFlagGhost);
-  view.setFatness(fatness);
+  view.setFatness(npc==nullptr ? 0 : npc->fatness());
   view.setSkeleton(skeleton);
   view.setPose(pos,*skInst);
   hnpcVisual.view.setMesh(&view);
@@ -377,8 +371,7 @@ void MdlVisual::setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s,
     }
   }
 
-void MdlVisual::setFatness(float f) {
-  fatness = f;
+void MdlVisual::setFatness(float fatness) {
   view.setFatness(fatness);
   head.view.setFatness(fatness);
   for(auto& i:attach)
@@ -499,10 +492,10 @@ void MdlVisual::processLayers(World& world) {
   pose.processLayers(solver,tickCount);
   }
 
-void MdlVisual::processEvents(World& world, uint64_t &barrier, Animation::EvCount &ev) {
+bool MdlVisual::processEvents(World& world, uint64_t &barrier, Animation::EvCount &ev) {
   Pose&    pose      = *skInst;
   uint64_t tickCount = world.tickCount();
-  pose.processEvents(barrier,tickCount,ev);
+  return pose.processEvents(barrier,tickCount,ev);
   }
 
 Vec3 MdlVisual::mapBone(const size_t boneId) const {
@@ -793,14 +786,14 @@ void MdlVisual::bind(Attach<View>& slot, std::string_view bone) {
   // sync?
   }
 
-void MdlVisual::rebindAttaches(const Skeleton& from, const Skeleton& to) {
+void MdlVisual::rebindAttaches(const Skeleton& to) {
   auto  mesh = {&head,&sword,&bow,&ammunition,&stateItm};
   for(auto i:mesh)
-    rebindAttaches(*i,from,to);
+    rebindAttaches(*i,to);
   for(auto& i:item)
-    rebindAttaches(i,from,to);
+    rebindAttaches(i,to);
   for(auto& i:attach)
-    rebindAttaches(i,from,to);
+    rebindAttaches(i,to);
   for(auto& i:effects)
     i.view.bindAttaches(*skInst,to);
   pfx.view.bindAttaches(*skInst,to);
@@ -808,14 +801,10 @@ void MdlVisual::rebindAttaches(const Skeleton& from, const Skeleton& to) {
   }
 
 template<class View>
-void MdlVisual::rebindAttaches(Attach<View>& mesh, const Skeleton& from, const Skeleton& to) {
-  if(mesh.boneId<from.nodes.size()) {
-    size_t nid = 0;
-    if(mesh.bone.empty())
-      nid = to.findNode(from.nodes[mesh.boneId].name); else
-      nid = to.findNode(mesh.bone);
-    mesh.boneId = nid;
-    }
+void MdlVisual::rebindAttaches(Attach<View>& mesh, const Skeleton& to) {
+  if(mesh.bone.empty())
+    mesh.boneId = -1; else
+    mesh.boneId = to.findNode(mesh.bone);
   }
 
 void MdlVisual::syncAttaches() {

@@ -16,30 +16,17 @@ MoveAlgo::MoveAlgo(Npc& unit)
   }
 
 void MoveAlgo::load(Serialize &fin) {
-  if(fin.version()<7){
-    uint8_t bug[3];
-    fin.read(reinterpret_cast<uint32_t&>(flags));
-    fin.read(mulSpeed,bug,fallCount,climbStart,bug,climbHeight);
-    fin.read(reinterpret_cast<uint8_t&>(jmp));
-    return;
-    }
   fin.read(reinterpret_cast<uint32_t&>(flags));
   fin.read(mulSpeed,fallSpeed,fallCount,climbStart,climbPos0,climbHeight);
   fin.read(reinterpret_cast<uint8_t&>(jmp));
-  if(fin.version()>=30) {
-    std::string str;
-    fin.read(str);
-    portal       = npc.world().physic()->validateSectorName(str.c_str());
-    fin.read(str);
-    formerPortal = npc.world().physic()->validateSectorName(str.c_str());
-    }
-  else if(fin.version()>=14) {
-    uint8_t str[128]={};
-    fin.read(str);
-    portal = npc.world().physic()->validateSectorName(reinterpret_cast<char*>(str));
-    }
-  if(fin.version()>17)
-    fin.read(diveStart);
+
+  std::string str;
+  fin.read(str);
+  portal       = npc.world().physic()->validateSectorName(str.c_str());
+  fin.read(str);
+  formerPortal = npc.world().physic()->validateSectorName(str.c_str());
+
+  fin.read(diveStart);
   }
 
 void MoveAlgo::save(Serialize &fout) const {
@@ -152,7 +139,8 @@ void MoveAlgo::tickGravity(uint64_t dt) {
     // continue falling
     DynamicWorld::CollisionTest info;
     if(!tryMove(dp.x,dp.y,dp.z,info)) {
-      npc.setAnim(AnimationSolver::Fall);
+      if(!npc.isDead())
+        npc.setAnim(AnimationSolver::Fall);
       // takeFallDamage();
       onGravityFailed(info,dt);
       } else {

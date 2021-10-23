@@ -48,15 +48,15 @@ void Pose::save(Serialize &fout) {
     fout.write(i.seq->name,i.sAnim,i.bs);
     }
   fout.write(lastUpdate);
-  fout.write(uint32_t(numBones));
-  for(auto& i:base)
-    fout.write(i);
-  for(auto& i:tr)
-    fout.write(i);
   fout.write(combo.bits);
   fout.write(rotation ? rotation->name : "");
   fout.write(itemUseSt,itemUseDestSt);
   fout.write(headRotX,headRotY);
+
+  for(auto& i:base)
+    fout.write(i);
+  for(auto& i:tr)
+    fout.write(i);
   }
 
 void Pose::load(Serialize &fin, const AnimationSolver& solver) {
@@ -67,36 +67,10 @@ void Pose::load(Serialize &fin, const AnimationSolver& solver) {
   lay.resize(sz);
   for(auto& i:lay) {
     fin.read(name,i.sAnim,i.bs);
-    if(fin.version()<=26)
-      FileExt::exchangeExt(name,"MDH","MDS");
     i.seq = solver.solveFrm(name);
     }
   fin.read(lastUpdate);
-  if(fin.version()<32)
-    lastUpdate = 0;
-
-  if(fin.version()>=29) {
-    uint32_t size = 0;
-    fin.read(size);
-    numBones = size;
-    for(auto& i:base)
-      fin.read(i);
-    for(auto& i:tr)
-      fin.read(i);
-    }
-  else if(fin.version()>=13) {
-    uint32_t size = 0;
-    fin.read(size);
-    for(size_t i=0; i<size; ++i)
-      fin.read(base[i]);
-    fin.read(size);
-    for(size_t i=0; i<size; ++i)
-      fin.read(tr[i]);
-    }
-  if(skeleton!=nullptr)
-    numBones = skeleton->nodes.size();
-  if(fin.version()>=3)
-    fin.read(combo.bits);
+  fin.read(combo.bits);
   removeIf(lay,[](const Layer& l){
     return l.seq==nullptr;
     });
@@ -105,16 +79,17 @@ void Pose::load(Serialize &fin, const AnimationSolver& solver) {
     if(i.seq->name==name)
       rotation = i.seq;
     }
-  if(fin.version()>=15) {
-    fin.read(itemUseSt,itemUseDestSt);
-    } else {
-    fin.read(name); //itemUse
-    }
+  fin.read(itemUseSt,itemUseDestSt);
   for(auto& i:lay)
     onAddLayer(i);
-  if(fin.version()>30)
-    fin.read(headRotX,headRotY);
+  fin.read(headRotX,headRotY);
   needToUpdate = true;
+
+  numBones = skeleton==nullptr ? 0 : skeleton->nodes.size();
+  for(auto& i:base)
+    fin.read(i);
+  for(auto& i:tr)
+    fin.read(i);
   }
 
 void Pose::setFlags(Pose::Flags f) {
@@ -136,7 +111,7 @@ void Pose::setSkeleton(const Skeleton* sk) {
     numBones = skeleton->tr.size();
     for(size_t i=0; i<numBones; ++i) {
       tr[i]   = skeleton->tr[i];
-      base[i] = skeleton->nodes[i].tr;
+      base[i] = ZenLoad::zCModelAniSample{}; //mkSample(skeleton->nodes[i].tr);
       }
     } else {
     numBones = 0;
@@ -293,7 +268,7 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
 
 bool Pose::update(uint64_t tickCount) {
   if(lay.size()==0){
-    if(lastUpdate==0){
+    if(lastUpdate==0) {
       zeroSkeleton();
       needToUpdate = false;
       lastUpdate   = tickCount;
@@ -365,8 +340,7 @@ bool Pose::updateFrame(const Animation::Sequence &s,
     size_t idx = d.nodeIndex[i];
     if(idx>=numBones)
       continue;
-    auto smp = mix(sampleA[i],sampleB[i],a);
-    base[idx] = mkMatrix(smp);
+    base[idx] = mix(sampleA[i],sampleB[i],a);
     }
   return true;
   }
@@ -387,11 +361,12 @@ void Pose::mkSkeleton(const Matrix4x4 &mt) {
   auto  BIP01_HEAD = skeleton->BIP01_HEAD;
   for(size_t i=0; i<nodes.size(); ++i) {
     size_t parent = nodes[i].parent;
-    if(parent<Resources::MAX_NUM_SKELETAL_NODES) {
-      tr[i] = tr[parent]*base[i];
-      } else {
-      tr[i] = mt*base[i];
-      }
+    auto   mat    = base[i].rotation.w==0 ? nodes[i].tr : mkMatrix(base[i]);
+
+    if(parent<Resources::MAX_NUM_SKELETAL_NODES)
+      tr[i] = tr[parent]*mat; else
+      tr[i] = mt*mat;
+
     if(i==BIP01_HEAD && (headRotX!=0 || headRotY!=0)) {
       Matrix4x4& m = tr[i];
       m.rotateOY(headRotY);
@@ -407,7 +382,8 @@ void Pose::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
   for(size_t i=0;i<nodes.size();++i){
     if(nodes[i].parent!=parent)
       continue;
-    tr[i] = mt*base[i];
+    auto mat = base[i].rotation.w==0 ? nodes[i].tr : mkMatrix(base[i]);
+    tr[i] = mt*mat;
     mkSkeleton(tr[i],i);
     }
   }
@@ -498,12 +474,13 @@ void Pose::processPfx(MdlVisual& visual, World& world, uint64_t tickCount) {
     i.seq->processPfx(lastUpdate,i.sAnim,tickCount,visual,world);
   }
 
-void Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev) const {
+bool Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev) const {
   if(hasEvents>0) {
     for(auto& i:lay)
       i.seq->processEvents(barrier,i.sAnim,now,ev);
     }
   barrier=now;
+  return hasEvents>0;
   }
 
 Tempest::Vec3 Pose::animMoveSpeed(uint64_t tickCount,uint64_t dt) const {
@@ -801,10 +778,11 @@ Matrix4x4 Pose::mkBaseTranslation(const Animation::Sequence *s, BodyState bs) {
   size_t id=0;
   if(skeleton->rootNodes.size())
     id = skeleton->rootNodes[0];
-  auto& b0=base[id];
-  float dx=b0.at(3,0);
-  float dy=0;
-  float dz=b0.at(3,2);
+  auto& nodes = skeleton->nodes;
+  auto  b0 = base[id].rotation.w==0 ? nodes[id].tr : mkMatrix(base[id]);
+  float dx = b0.at(3,0);
+  float dy = 0;
+  float dz = b0.at(3,2);
 
   if((flag&NoTranslation)==NoTranslation)
     dy = b0.at(3,1);

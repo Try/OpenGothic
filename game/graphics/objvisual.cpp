@@ -65,15 +65,6 @@ void ObjVisual::save(Serialize& fout, const Interactive& mob) const {
 void ObjVisual::load(Serialize& fin, Interactive& mob) {
   if(type==M_Mdl)
     return mdl.view.load(fin,mob);
-  if(fin.version()<27) {
-    // legacy save-load for static geometry
-    AnimationSolver solver;
-    Pose            skInst;
-    if(fin.version()>=17)
-      solver.load(fin);
-    if(fin.version()>=11)
-      skInst.load(fin,solver);
-    }
   }
 
 void ObjVisual::cleanup() {
@@ -156,8 +147,10 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world) {
       return;
     setType(M_Mesh);
     mesh.proto = view;
-    if(vob.showVisual)
+    if(vob.showVisual) {
       mesh.view = world.addStaticView(view);
+      mesh.view.setWind(vob.visualAniMode);
+      }
     if(vob.showVisual && (vob.cdDyn || vob.cdStatic) && vob.visualAniMode!=ZenLoad::AnimMode::WIND2) {
       mesh.physic = PhysicMesh(*view,*world.physic(),false);
       }
@@ -175,7 +168,7 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world) {
     mdl.proto = view;
     mdl.view.setVisual(view->skeleton.get());
     if(vob.showVisual)
-      mdl.view.setVisualBody(world.addView(view),world);
+      mdl.view.setVisualBody(world,world.addView(view));
     mdl.view.setYTranslationEnable(false);
 
     if(vob.showVisual && (vob.cdDyn || vob.cdStatic)) {

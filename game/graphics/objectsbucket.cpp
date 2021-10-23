@@ -66,6 +66,11 @@ void ObjectsBucket::Item::setFatness(float f) {
     owner->setFatness(id,f);
   }
 
+void ObjectsBucket::Item::setWind(ZenLoad::AnimMode m) {
+  if(owner!=nullptr)
+    owner->setWind(id,m);
+  }
+
 void ObjectsBucket::Item::startMMAnim(std::string_view anim, float intensity, uint64_t timeUntil) {
   if(owner!=nullptr)
     owner->startMMAnim(id,anim,intensity,timeUntil);
@@ -516,6 +521,11 @@ void ObjectsBucket::setFatness(size_t i, float f) {
   v.fatness = f;
   }
 
+void ObjectsBucket::setWind(size_t i, ZenLoad::AnimMode m) {
+  auto&  v  = val[i];
+  v.wind = m;
+  }
+
 bool ObjectsBucket::isSceneInfoRequired() const {
   return mat.isGhost || mat.alpha==Material::Water || mat.alpha==Material::Ghost;
   }
@@ -523,6 +533,24 @@ bool ObjectsBucket::isSceneInfoRequired() const {
 void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v) {
   push.pos     = v.pos;
   push.fatness = v.fatness*0.5f;
+  if(v.wind!=ZenLoad::AnimMode::NONE) {
+    float shift = push.pos[3][0]*scene.windDir.x + push.pos[3][2]*scene.windDir.y;
+
+    // original game has period of 3sec, but it doesn'tlook as good with high view range
+    static const uint64_t preiod = 6000;
+    float a = float(scene.tickCount%preiod)/float(preiod);
+    a = a*2.f-1.f;
+    a = std::cos(float(a*M_PI) + shift*0.0001f);
+
+    // tree
+    if(v.wind==ZenLoad::AnimMode::WIND)
+      a *= 0.03f;
+    // grass
+    if(v.wind==ZenLoad::AnimMode::WIND2)
+      a *= 0.05f;
+    push.pos[1][0] += scene.windDir.x*a;
+    push.pos[1][2] += scene.windDir.y*a;
+    }
   if(morphAnim!=nullptr) {
     for(size_t i=0; i<Resources::MAX_MORPH_LAYERS; ++i) {
       auto&    ani  = v.morphAnim[i];

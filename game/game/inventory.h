@@ -20,8 +20,10 @@ class Inventory final {
     Inventory& operator = (Inventory&&)=default;
     ~Inventory();
 
-    void         load(Npc& owner, Serialize& s);
-    void         load(Interactive& owner, World &w, Serialize& s);
+    bool         isEmpty() const;
+
+    void         load(Serialize& s, Npc& owner);
+    void         load(Serialize& s, Interactive& owner, World &w);
     void         save(Serialize& s) const;
 
     enum IteratorType : uint8_t {

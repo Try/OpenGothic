@@ -169,16 +169,14 @@ struct DynamicWorld::NpcBodyList final {
     auto  at   = npc.pos - s;
 
     float lenL = ln.length();
-    float lenA = at.length();
 
     float dot  = Tempest::Vec3::dotProduct(ln,at);
-    float div  = (lenL*lenA);
-    float proj = dot/(div<=0 ? 1.f : div);
+    float proj = dot/(lenL<=0 ? 1.f : (lenL*lenL));
     proj = std::max(0.f,std::min(proj,1.f));
 
     auto  nr   = ln*proj + s;
     auto  dp   = nr      - npc.pos;
-    float R    = npc.r + extR;
+    float R    = 0.5f*(npc.rX + npc.rZ) + extR;
     if(dp.x*dp.x+dp.z*dp.z > R*R)
       return false;
     if(dp.y<0 || npc.h<dp.y)
@@ -733,20 +731,16 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
     }
 
   if(auto ptr = npcList->rayTest(pos,to,b.targetRange())) {
-    if(b.cb!=nullptr) {
+    if(b.cb!=nullptr)
       b.cb->onCollide(*ptr->toNpc());
-      b.cb->onStop();
-      }
     return;
     }
   world->rayCast(pos, to, callback);
 
   if(callback.matId<ZenLoad::NUM_MAT_GROUPS) {
     if(isSpell){
-      if(b.cb!=nullptr) {
+      if(b.cb!=nullptr)
         b.cb->onCollide(callback.matId);
-        b.cb->onStop();
-        }
       } else {
       if(callback.matId==ZenLoad::MaterialGroup::METAL ||
          callback.matId==ZenLoad::MaterialGroup::STONE) {
@@ -767,21 +761,17 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
           b.setDirection({dir.x(),dir.y(),dir.z()});
           b.addPathLen(l*a);
           b.addHit();
-          if(b.cb!=nullptr) {
+          if(b.cb!=nullptr)
             b.cb->onCollide(callback.matId);
-            if(b.hitCount()>3)
-              b.cb->onStop();
-            }
           }
         } else {
         float a = callback.m_closestHitFraction;
         b.move(pos + (to-pos)*a);
-        if(b.cb!=nullptr) {
+        if(b.cb!=nullptr)
           b.cb->onCollide(callback.matId);
-          b.cb->onStop();
-          }
         }
       }
+    b.addHit();
     } else {
     const float l = b.speed();
     auto        d = b.direction();
@@ -791,6 +781,8 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
     b.move(to);
     b.setDirection(d);
     b.addPathLen(l*dtF);
+    if(b.pathLength()>10000)
+      b.cb->onStop();
     }
   }
 

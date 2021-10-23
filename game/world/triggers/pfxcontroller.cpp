@@ -26,8 +26,6 @@ void PfxController::save(Serialize& fout) const {
   }
 
 void PfxController::load(Serialize& fin) {
-  if(fin.version()<10)
-    return;
   AbstractTrigger::load(fin);
   bool active = false;
   fin.read(killed,lifeTime,active);

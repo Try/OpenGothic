@@ -21,24 +21,24 @@ using namespace Tempest;
 const uint64_t GameSession::multTime=29;
 const uint64_t GameSession::divTime =2;
 
-void GameSession::HeroStorage::save(Npc &npc,World& owner) {
+void GameSession::HeroStorage::save(Npc& npc) {
   storage.clear();
   Tempest::MemWriter wr{storage};
   Serialize          sr{wr};
-  sr.setContext(&owner);
+  sr.setEntry("hero");
 
-  npc.save(sr);
+  npc.save(sr,-1);
   }
 
-void GameSession::HeroStorage::putToWorld(World& owner,const std::string& wayPoint) const {
+void GameSession::HeroStorage::putToWorld(World& owner, std::string_view wayPoint) const {
   if(storage.size()==0)
     return;
   Tempest::MemReader rd{storage};
   Serialize          sr{rd};
-  sr.setContext(&owner);
+  sr.setEntry("hero");
 
   if(auto pl = owner.player()) {
-    pl->load(sr);
+    pl->load(sr,-1);
     if(auto pos = owner.findPoint(wayPoint)) {
       pl->setPosition  (pos->x,pos->y,pos->z);
       pl->setDirection (pos->dirX,pos->dirY,pos->dirZ);
@@ -46,8 +46,9 @@ void GameSession::HeroStorage::putToWorld(World& owner,const std::string& wayPoi
       pl->updateTransform();
       }
     } else {
-    auto ptr = std::make_unique<Npc>(owner,sr);
-    owner.insertPlayer(std::move(ptr),wayPoint.c_str());
+    auto ptr = std::make_unique<Npc>(owner,-1,wayPoint);
+    ptr->load(sr,-1);
+    owner.insertPlayer(std::move(ptr),wayPoint);
     }
   }
 
@@ -59,7 +60,7 @@ GameSession::GameSession(std::string file) {
   setTime(gtime(8,0));
 
   vm.reset(new GameScript(*this));
-  setWorld(std::unique_ptr<World>(new World(*this,std::move(file),[&](int v){
+  setWorld(std::unique_ptr<World>(new World(*this,std::move(file),true,[&](int v){
     Gothic::inst().setLoadingProgress(int(v*0.55));
     })));
 
@@ -88,37 +89,57 @@ GameSession::GameSession(std::string file) {
   if(!testMode)
     initScripts(true);
   wrld->triggerOnStart(true);
-  cam->reset(*wrld);
+  cam->reset(wrld->player());
   Gothic::inst().setLoadingProgress(96);
   ticks = 1;
   // wrld->setDayTime(8,0);
   }
 
 GameSession::GameSession(Serialize &fin) {
-  cam.reset(new Camera());
-
   Gothic::inst().setLoadingProgress(0);
-  uint16_t wssSize=0;
 
   SaveGameHeader hdr;
-  fin.read(hdr,ticks,wrldTimePart);
-  wrldTime = hdr.wrldTime;
+  fin.setEntry("header");
+  fin.read(hdr);
+  fin.setGlobalVersion(hdr.version);
 
+  {
+  uint16_t wssSize=0;
   fin.read(wssSize);
-  for(size_t i=0;i<wssSize;++i)
-    visitedWorlds.emplace_back(fin);
+  visitedWorlds.resize(wssSize);
+  for(size_t i=0; i<wssSize; ++i)
+    fin.read(visitedWorlds[i].name);
+  for(size_t i=0; i<wssSize; ++i)
+    visitedWorlds[i].load(fin);
+  }
 
-  vm.reset(new GameScript(*this,fin));
-  setWorld(std::unique_ptr<World>(new World(*this,fin,[&](int v){
-    Gothic::inst().setLoadingProgress(int(v*0.55));
-    })));
+  std::string    wname;
+  fin.setEntry("game/session");
+  fin.read(ticks,wrldTime,wrldTimePart,wname);
 
+  cam.reset(new Camera());
+  vm.reset(new GameScript(*this));
   vm->initDialogs();
+
+  if(true) {
+    setWorld(std::unique_ptr<World>(new World(*this,wname,false,[&](int v){
+      Gothic::inst().setLoadingProgress(int(v*0.55));
+      })));
+    wrld->load(fin);
+    }
+
   Gothic::inst().setLoadingProgress(70);
-  wrld->load(fin);
+
+  fin.setEntry("game/quests");
+  vm->loadQuests(fin);
+
+  fin.setEntry("game/daedalus");
   vm->loadVar(fin);
+
   if(auto hero = wrld->player())
     vm->setInstanceNPC("HERO",*hero);
+
+  fin.setEntry("game/camera");
   cam->load(fin,wrld->player());
   Gothic::inst().setLoadingProgress(96);
   }
@@ -128,29 +149,48 @@ GameSession::~GameSession() {
 
 void GameSession::save(Serialize &fout, const char* name, const Pixmap& screen) {
   SaveGameHeader hdr;
+  hdr.version   = Serialize::Version::Current;
   hdr.name      = name;
-  hdr.priview   = screen;
   hdr.world     = wrld->name();
   hdr.pcTime    = gtime::localtime();
   hdr.wrldTime  = wrldTime;
   hdr.isGothic2 = Gothic::inst().version().game;
 
-  fout.write(hdr,ticks,wrldTimePart);
-  fout.write(uint16_t(visitedWorlds.size()));
-
-  Gothic::inst().setLoadingProgress(5);
+  fout.setEntry("header");
+  fout.write(hdr);
+  {
+  uint16_t wssSize = uint16_t(visitedWorlds.size());
+  fout.write(wssSize);
   for(auto& i:visitedWorlds)
+    fout.write(i.name);
+  }
+
+  fout.setEntry("priview.png");
+  fout.write(screen);
+
+  fout.setEntry("game/session");
+  fout.write(ticks,wrldTime,wrldTimePart,wrld->name());
+
+  fout.setEntry("game/camera");
+  cam->save(fout);
+  Gothic::inst().setLoadingProgress(5);
+
+  for(auto& i:visitedWorlds) {
+    fout.setEntry("worlds/",i.name);
     i.save(fout);
+    }
   Gothic::inst().setLoadingProgress(25);
 
-  vm->save(fout);
-  Gothic::inst().setLoadingProgress(60);
   if(wrld)
     wrld->save(fout);
+  Gothic::inst().setLoadingProgress(60);
 
-  Gothic::inst().setLoadingProgress(80);
+  fout.setEntry("game/quests");
+  vm->saveQuests(fout);
+
+  fout.setEntry("game/daedalus");
   vm->saveVar(fout);
-  cam->save(fout);
+  Gothic::inst().setLoadingProgress(80);
   }
 
 void GameSession::setWorld(std::unique_ptr<World> &&w) {
@@ -278,7 +318,7 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
 
   HeroStorage hdata;
   if(auto hero = wrld->player())
-    hdata.save(*hero,*wrld);
+    hdata.save(*hero);
   clearWorld();
 
   vm->resetVarPointers();
@@ -289,17 +329,14 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
     Gothic::inst().setLoadingProgress(v);
     };
 
-  Tempest::MemReader rd{wss.storage.data(),wss.storage.size()};
-  Serialize          fin = wss.isEmpty() ? Serialize::empty() : Serialize{rd};
-
-  std::unique_ptr<World> ret;
-  if(wss.isEmpty())
-    ret = std::unique_ptr<World>(new World(*this,w,  loadProgress)); else
-    ret = std::unique_ptr<World>(new World(*this,fin,loadProgress));
+  std::unique_ptr<World> ret = std::unique_ptr<World>(new World(*this,w,wss.isEmpty(),loadProgress));
   setWorld(std::move(ret));
 
-  if(!wss.isEmpty())
+  if(!wss.isEmpty()) {
+    Tempest::MemReader rd {wss.storage.data(),wss.storage.size()};
+    Serialize          fin{rd};
     wrld->load(fin);
+    }
 
   if(1){
     // put hero to world
@@ -312,20 +349,20 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
   wrld->triggerOnStart(wss.isEmpty());
 
   for(auto& i:visitedWorlds)
-    if(i.name()==wrld->name()){
+    if(i.name==wrld->name()){
       i = std::move(visitedWorlds.back());
       visitedWorlds.pop_back();
       break;
       }
 
-  cam->reset(*wrld);
+  cam->reset(wrld->player());
   Log::i("Done loading world[",world,"]");
   return std::move(game);
   }
 
 const WorldStateStorage& GameSession::findStorage(const std::string &name) {
   for(auto& i:visitedWorlds)
-    if(i.name()==name)
+    if(i.name==name)
       return i;
   static WorldStateStorage wss;
   return wss;
@@ -378,7 +415,7 @@ bool GameSession::aiIsDlgFinished() {
 
 bool GameSession::isWorldKnown(const std::string &name) const {
   for(auto& i:visitedWorlds)
-    if(i.name()==name)
+    if(i.name==name)
       return true;
   return false;
   }

@@ -21,12 +21,8 @@ void AiQueue::load(Serialize& fin) {
   aiActions.resize(size);
   for(auto& i:aiActions){
     fin.read(reinterpret_cast<uint32_t&>(i.act));
-    if(fin.version()>=20)
-      fin.read(i.target,i.victum);
-    fin.read(i.point,i.func,i.i0);
-    if(fin.version()>=4)
-      fin.read(i.i1);
-    fin.read(i.s0);
+    fin.read(i.target,i.victum);
+    fin.read(i.point,i.func,i.i0,i.i1,i.s0);
     }
   }
 

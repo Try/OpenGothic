@@ -73,12 +73,11 @@ class Npc final {
     using Anim = AnimationSolver::Anim;
 
     Npc(World &owner, size_t instance, std::string_view waypoint);
-    Npc(World &owner, Serialize& fin);
     Npc(const Npc&)=delete;
     ~Npc();
 
-    void       save(Serialize& fout);
-    void       load(Serialize& fout);
+    void       save(Serialize& fout, size_t id);
+    void       load(Serialize& fout, size_t id);
     void       postValidate();
 
     bool       setPosition (float x,float y,float z);
@@ -97,6 +96,7 @@ class Npc final {
     float      rotationY() const;
     float      rotationYRad() const;
     float      runAngle() const { return runAng; }
+    float      fatness() const { return bdFatness; }
     Bounds     bounds() const;
 
     void       stopDlgAnim();
@@ -143,9 +143,9 @@ class Npc final {
     bool       toogleTorch();
     bool       isUsingTorch() const;
 
-    void       setVisualBody (int32_t headTexNr,int32_t teethTexNr,
-                              int32_t bodyVer,int32_t bodyColor,
-                              const std::string& body,const std::string& head);
+    void       setVisualBody (int32_t headTexNr, int32_t teethTexNr,
+                              int32_t bodyVer, int32_t bodyColor,
+                              std::string_view body, std::string_view head);
     void       updateArmour  ();
     void       setSword      (MeshObjects::Mesh&& sword);
     void       setRangeWeapon(MeshObjects::Mesh&& bow);
@@ -473,6 +473,9 @@ class Npc final {
 
     void      saveAiState(Serialize& fout) const;
     void      loadAiState(Serialize& fin);
+    void      saveTrState(Serialize& fout) const;
+    void      loadTrState(Serialize& fin);
+
     static float angleDir(float x,float z);
 
     uint8_t   calcAniComb() const;
@@ -482,24 +485,24 @@ class Npc final {
     Tempest::Matrix4x4 mkPositionMatrix() const;
 
     World&                         owner;
+    // main props
     Daedalus::GEngineClasses::C_Npc hnpc={};
     float                          x=0.f;
     float                          y=0.f;
     float                          z=0.f;
     float                          angle    = 0.f;
-    float                          angleY   = 0.f;
-    float                          runAng   = 0.f;
     float                          sz[3]={1.f,1.f,1.f};
+
+    // visual props
+    std::string                    body,head;
+    int32_t                        vHead = 0, vTeeth = 0, vColor = 0;
+    int32_t                        bdColor = 0;
+    float                          bdFatness = 0;
+    MdlVisual                      visual;
 
     // visual props (cache)
     uint8_t                        durtyTranform=0;
     Tempest::Vec3                  lastGroundNormal;
-
-    // visual props
-    std::string                    body,head;
-    int32_t                        vHead=0, vTeeth=0, vColor=0;
-    int32_t                        bdColor=0;
-    MdlVisual                      visual;
 
     DynamicWorld::NpcItem          physic;
 
@@ -570,6 +573,9 @@ class Npc final {
     MoveAlgo                       mvAlgo;
     FightAlgo                      fghAlgo;
     uint64_t                       lastEventTime=0;
+
+    float                          angleY   = 0.f;
+    float                          runAng   = 0.f;
 
     Sound                          sfxWeapon;
 
