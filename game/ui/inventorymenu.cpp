@@ -776,6 +776,6 @@ void InventoryMenu::drawInfo(Painter &p) {
   renderer.drawItem(x+dw-sz-sz/2,y,sz,sz,r);
   }
 
-void InventoryMenu::draw(FrameBuffer& /*fbo*/, Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
+void InventoryMenu::draw(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   renderer.draw(cmd,fId);
   }

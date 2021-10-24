@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Tempest/RenderPass>
 #include <Tempest/RenderPipeline>
 #include <Tempest/Shader>
 #include <Tempest/Device>

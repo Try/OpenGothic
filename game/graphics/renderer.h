@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Tempest/RenderPipeline>
-#include <Tempest/RenderPass>
 #include <Tempest/CommandBuffer>
 #include <Tempest/Matrix4x4>
 #include <Tempest/Widget>
@@ -31,32 +30,23 @@ class Renderer final {
     Tempest::Attachment               screenshoot(uint8_t frameId);
 
   private:
-    Tempest::Swapchain&               swapchain;
-    Tempest::Matrix4x4                view, proj, viewProj;
-    Tempest::Matrix4x4                shadow[Resources::ShadowLayers];
+    Tempest::Swapchain&       swapchain;
+    Tempest::Matrix4x4        view, proj, viewProj;
+    Tempest::Matrix4x4        shadow[Resources::ShadowLayers];
 
-    Tempest::Attachment               shadowMap[Resources::ShadowLayers];
-    Tempest::ZBuffer                  zbuffer, zbufferItem, shadowZ[Resources::ShadowLayers];
+    Tempest::Attachment       shadowMap[Resources::ShadowLayers];
+    Tempest::ZBuffer          zbuffer, zbufferItem, shadowZ[Resources::ShadowLayers];
 
-    Tempest::Attachment               lightingBuf;
-    Tempest::Attachment               gbufDiffuse;
-    Tempest::Attachment               gbufNormal;
-    Tempest::Attachment               gbufDepth;
+    Tempest::Attachment       lightingBuf;
+    Tempest::Attachment       gbufDiffuse;
+    Tempest::Attachment       gbufNormal;
+    Tempest::Attachment       gbufDepth;
 
-    Tempest::TextureFormat            shadowFormat =Tempest::TextureFormat::RGBA8;
-    Tempest::TextureFormat            zBufferFormat=Tempest::TextureFormat::Depth16;
+    Tempest::TextureFormat    shadowFormat =Tempest::TextureFormat::RGBA8;
+    Tempest::TextureFormat    zBufferFormat=Tempest::TextureFormat::Depth16;
 
-    std::vector<Tempest::FrameBuffer> fbo3d, fboCpy, fboUi, fboItem;
-    Tempest::FrameBuffer              fboShadow[2], fboGBuf;
-
-    Tempest::RenderPass               mainPass, mainPassNoGbuf, gbufPass, shadowPass, copyPass;
-    Tempest::RenderPass               inventoryPass;
-    Tempest::RenderPass               uiPass;
-
-    Tempest::DescriptorSet            uboCopy;
+    Tempest::DescriptorSet    uboCopy;
     Shaders                   stor;
 
-    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::FrameBuffer& fboCpy, uint8_t cmdId);
-    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, InventoryMenu& inv, uint8_t cmdId);
-    void draw(Tempest::Encoder<Tempest::CommandBuffer> &cmd, Tempest::FrameBuffer& fbo, Tempest::VectorImage::Mesh& surface);
+    void draw(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t cmdId);
   };

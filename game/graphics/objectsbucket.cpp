@@ -434,7 +434,11 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p,
     ubo.set(L_Material, uboMat[fId]);
     }
 
-  p.setUniforms(*pMain,ubo,&pushBlock,sizeof(pushBlock));
+  size_t pushSz = (morphAnim!=nullptr) ? sizeof(UboPush) : sizeof(UboPushBase);
+  if(shaderType==Pfx)
+    pushSz = 0;
+
+  p.setUniforms(*pMain,ubo,&pushBlock,pushSz);
   switch(v.vboType) {
     case VboType::NoVbo:
       break;

@@ -52,17 +52,14 @@ void Renderer::resetSwapchain() {
 
   const uint32_t w      = swapchain.w();
   const uint32_t h      = swapchain.h();
-  const uint32_t imgC   = swapchain.imageCount();
   const uint32_t smSize = 2048;
 
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
   zbufferItem    = device.zbuffer(zBufferFormat,w,h);
-  shadowPass     = device.pass(FboMode(FboMode::PreserveOut,Color(0.0)), FboMode(FboMode::Discard,0.f));
 
   for(int i=0; i<2; ++i){
     shadowMap[i] = device.attachment (shadowFormat, smSize,smSize);
     shadowZ[i]   = device.zbuffer    (zBufferFormat,smSize,smSize);
-    fboShadow[i] = device.frameBuffer(shadowMap[i],shadowZ[i]);
     }
 
   lightingBuf = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
@@ -70,35 +67,12 @@ void Renderer::resetSwapchain() {
   gbufNormal  = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
   gbufDepth   = device.attachment(TextureFormat::R32F, swapchain.w(),swapchain.h());
 
-  fboUi.clear();
-  fbo3d.clear();
-  fboCpy.clear();
-  fboItem.clear();
-  for(uint32_t i=0;i<imgC;++i) {
-    Tempest::Attachment& frame=swapchain.image(i);
-    fbo3d  .emplace_back(device.frameBuffer(frame,zbuffer));
-    fboCpy .emplace_back(device.frameBuffer(frame));
-    fboItem.emplace_back(device.frameBuffer(frame,zbufferItem));
-    fboUi  .emplace_back(device.frameBuffer(frame));
-    }
-  fboGBuf     = device.frameBuffer(lightingBuf,gbufDiffuse,gbufNormal,gbufDepth,zbuffer);
-  copyPass    = device.pass(FboMode::PreserveOut);
-
   if(auto wview=Gothic::inst().worldView()) {
     wview->setFrameGlobals(nullptr,0,0);
     wview->setGbuffer(Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack());
     }
 
   uboCopy.set(0,lightingBuf,Sampler2d::nearest());
-  gbufPass       = device.pass(FboMode(FboMode::PreserveOut,Color(0.0)),
-                               FboMode(FboMode::PreserveOut),
-                               FboMode(FboMode::PreserveOut),
-                               FboMode(FboMode::PreserveOut,Color(1.0)),
-                               FboMode(FboMode::PreserveOut,1.f));
-  mainPass       = device.pass(FboMode::Preserve, FboMode::PreserveIn);
-  mainPassNoGbuf = device.pass(FboMode(FboMode::PreserveOut,Color(0.0)), FboMode(FboMode::Discard,1.f));
-  uiPass         = device.pass(FboMode::Preserve);
-  inventoryPass  = device.pass(FboMode::Preserve, FboMode(FboMode::Discard,1.f));
   }
 
 void Renderer::onWorldChanged() {
@@ -117,17 +91,25 @@ void Renderer::setCameraView(const Camera& camera) {
 void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
                     VectorImage::Mesh& uiLayer, VectorImage::Mesh& numOverlay,
                     InventoryMenu& inventory) {
-  draw(cmd, fbo3d  [imgId], fboCpy[imgId], cmdId);
-  draw(cmd, fboUi  [imgId], uiLayer);
-  draw(cmd, fboItem[imgId], inventory, cmdId);
-  draw(cmd, fboUi  [imgId], numOverlay);
+  auto& result = swapchain[imgId];
+
+  draw(result, cmd, cmdId);
+  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+  uiLayer.draw(cmd);
+
+  if(inventory.isOpen()!=InventoryMenu::State::Closed) {
+    cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}},{zbufferItem, 1.f, Tempest::Preserve});
+    inventory.draw(cmd,cmdId);
+
+    cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+    numOverlay.draw(cmd);
+    }
   }
 
-void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
-                    FrameBuffer& fbo, FrameBuffer& fboCpy, uint8_t cmdId) {
+void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>& cmd, uint8_t cmdId) {
   auto wview = Gothic::inst().worldView();
   if(wview==nullptr) {
-    cmd.setFramebuffer(fbo,mainPassNoGbuf);
+    cmd.setFramebuffer({{result, Vec4(), Tempest::Preserve}});
     return;
     }
 
@@ -141,51 +123,40 @@ void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd,
 
   {
   Frustrum f[SceneGlobals::V_Count];
-  f[SceneGlobals::V_Shadow0].make(shadow[0],fboShadow[0].w(),fboShadow[0].h());
-  f[SceneGlobals::V_Shadow1].make(shadow[1],fboShadow[1].w(),fboShadow[1].h());
-  f[SceneGlobals::V_Main   ].make(viewProj,fbo.w(),fbo.h());
+  f[SceneGlobals::V_Shadow0].make(shadow[0],shadowMap[0].w(),shadowMap[0].h());
+  f[SceneGlobals::V_Shadow1].make(shadow[1],shadowMap[1].w(),shadowMap[1].h());
+  f[SceneGlobals::V_Main   ].make(viewProj,zbuffer.w(),zbuffer.h());
   wview->visibilityPass(f);
   }
 
   for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
-    cmd.setFramebuffer(fboShadow[i],shadowPass);
+    cmd.setFramebuffer({{shadowMap[i], Vec4(), Tempest::Preserve}}, {shadowZ[i], 0.f, Tempest::Preserve});
     wview->drawShadow(cmd,cmdId,i);
     }
 
-  cmd.setFramebuffer(fboGBuf,gbufPass);
+  cmd.setFramebuffer({{lightingBuf, Vec4(),           Tempest::Preserve},
+                      {gbufDiffuse, Tempest::Discard, Tempest::Preserve},
+                      {gbufNormal,  Tempest::Discard, Tempest::Preserve},
+                      {gbufDepth,   Tempest::Discard, Tempest::Preserve}},
+                     {zbuffer, 1.f, Tempest::Preserve});
   wview->drawGBuffer(cmd,cmdId);
 
-  cmd.setFramebuffer(fboCpy,copyPass);
+  cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
   cmd.setUniforms(Shaders::inst().copy,uboCopy);
   cmd.draw(Resources::fsqVbo());
 
-  cmd.setFramebuffer(fbo,mainPass);
+  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Discard});
   wview->drawLights (cmd,cmdId);
   wview->drawMain   (cmd,cmdId);
-  }
-
-void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, InventoryMenu &inventory, uint8_t cmdId) {
-  if(inventory.isOpen()==InventoryMenu::State::Closed)
-    return;
-  cmd.setFramebuffer(fbo,inventoryPass);
-  inventory.draw(fbo,cmd,cmdId);
-  }
-
-void Renderer::draw(Tempest::Encoder<CommandBuffer>& cmd, FrameBuffer& fbo, VectorImage::Mesh& surface) {
-  cmd.setFramebuffer(fbo,uiPass);
-  surface.draw(cmd);
   }
 
 Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   auto& device = Resources::device();
   device.waitIdle();
 
-  uint32_t w = uint32_t(zbuffer.w());
-  uint32_t h = uint32_t(zbuffer.h());
-
-  auto        img  = device.attachment(Tempest::TextureFormat::RGBA8,w,h);
-  FrameBuffer fbo  = device.frameBuffer(img,zbuffer);
-  FrameBuffer fboC = device.frameBuffer(img);
+  uint32_t w    = uint32_t(zbuffer.w());
+  uint32_t h    = uint32_t(zbuffer.h());
+  auto     img  = device.attachment(Tempest::TextureFormat::RGBA8,w,h);
 
   if(auto wview = Gothic::inst().worldView())
     wview->setupUbo();
@@ -193,7 +164,7 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   CommandBuffer cmd;
   {
   auto enc = cmd.startEncoding(device);
-  draw(enc,fbo,fboC,frameId);
+  draw(img,enc,frameId);
   }
 
   Fence sync = device.fence();
