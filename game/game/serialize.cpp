@@ -98,7 +98,7 @@ bool Serialize::implSetEntry(std::string fname) {
       if(entryName[i]=='/' && i+1<entryName.size()) {
         const char prev = entryName[i+1];
         entryName[i+1] = '\0';
-        mz_uint32 id = -1;
+        mz_uint32 id = mz_uint32(-1);
         if(!mz_zip_reader_locate_file_v2(&impl, entryName.c_str(), nullptr, 0, &id)) {
           mz_bool status = mz_zip_writer_add_mem(&impl, entryName.c_str(), NULL, 0, MZ_NO_COMPRESSION);
           if(!status)
@@ -110,7 +110,7 @@ bool Serialize::implSetEntry(std::string fname) {
     return true;
     }
   if(fin!=nullptr) {
-    mz_uint32 id = -1;
+    mz_uint32 id = mz_uint32(-1);
     if(mz_zip_reader_locate_file_v2(&impl, entryName.c_str(), nullptr, 0, &id)) {
       mz_zip_archive_file_stat stat = {};
       mz_zip_reader_file_stat(&impl,id,&stat);

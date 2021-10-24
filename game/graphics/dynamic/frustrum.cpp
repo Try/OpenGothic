@@ -2,9 +2,9 @@
 
 using namespace Tempest;
 
-void Frustrum::make(const Matrix4x4& m, uint32_t w, uint32_t h) {
-  width  = w;
-  height = h;
+void Frustrum::make(const Matrix4x4& m, int32_t w, int32_t h) {
+  width  = uint32_t(w);
+  height = uint32_t(h);
   mat    = m;
 
   float clip[16], t=0;

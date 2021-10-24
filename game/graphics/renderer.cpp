@@ -137,7 +137,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   cmd.setFramebuffer({{lightingBuf, Vec4(),           Tempest::Preserve},
                       {gbufDiffuse, Tempest::Discard, Tempest::Preserve},
                       {gbufNormal,  Tempest::Discard, Tempest::Preserve},
-                      {gbufDepth,   Tempest::Discard, Tempest::Preserve}},
+                      {gbufDepth,   1.f,              Tempest::Preserve}},
                      {zbuffer, 1.f, Tempest::Preserve});
   wview->drawGBuffer(cmd,cmdId);
 

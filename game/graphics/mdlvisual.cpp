@@ -803,7 +803,7 @@ void MdlVisual::rebindAttaches(const Skeleton& to) {
 template<class View>
 void MdlVisual::rebindAttaches(Attach<View>& mesh, const Skeleton& to) {
   if(mesh.bone.empty())
-    mesh.boneId = -1; else
+    mesh.boneId = size_t(-1); else
     mesh.boneId = to.findNode(mesh.bone);
   }
 

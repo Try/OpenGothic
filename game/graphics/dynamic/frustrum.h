@@ -4,7 +4,7 @@
 
 class Frustrum {
   public:
-    void make(const Tempest::Matrix4x4& m, uint32_t w, uint32_t h);
+    void make(const Tempest::Matrix4x4& m, int32_t w, int32_t h);
     void clear();
 
     bool testPoint(float x, float y, float z) const;

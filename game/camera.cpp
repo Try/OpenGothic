@@ -33,6 +33,7 @@ float Camera::baseSpeeed     = 200;
 float Camera::offsetAngleMul = 0.2f;
 
 Camera::Camera() {
+  (void)inertiaTarget;
   }
 
 void Camera::reset() {
