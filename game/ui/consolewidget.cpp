@@ -6,6 +6,7 @@
 
 #include "utils/gthfont.h"
 #include "resources.h"
+#include "build.h"
 
 using namespace Tempest;
 
@@ -54,7 +55,7 @@ ConsoleWidget::ConsoleWidget() {
   setMargins(Margin(8,8,8,8));
   setSizePolicy(Fixed);
 
-  log.emplace_back("OpenGothic v1.0.dev");
+  log.emplace_back(appBuild);
   log.emplace_back("");
 
   closeSk = Shortcut(*this,Event::M_NoModifier,Event::K_F2);
