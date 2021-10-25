@@ -16,9 +16,10 @@ class SaveGameHeader final {
     uint16_t        version = 0;
     std::string     name;
     std::string     world;
-    gtime           pcTime;
+    tm              pcTime = {};
     gtime           wrldTime;
-    uint8_t         isGothic2=0;
+    uint64_t        playTime  = 0;
+    uint8_t         isGothic2 = 0;
 
   private:
     static const char tag[];

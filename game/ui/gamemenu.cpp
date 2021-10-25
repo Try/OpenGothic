@@ -24,6 +24,7 @@ static const float scriptDiv=8192.0f;
 struct GameMenu::KeyEditDialog : Dialog {
   KeyEditDialog(){
     setFocusPolicy(ClickFocus);
+    setCursorShape(CursorShape::Hidden);
     setFocus(true);
     }
   void keyDownEvent(KeyEvent &e) override { e.accept(); }
@@ -48,6 +49,7 @@ struct GameMenu::KeyEditDialog : Dialog {
 struct GameMenu::SavNameDialog : Dialog {
   SavNameDialog(Daedalus::ZString& text):text(text), text0(text) {
     setFocusPolicy(ClickFocus);
+    setCursorShape(CursorShape::Hidden);
     setFocus(true);
     }
 
@@ -96,6 +98,7 @@ struct GameMenu::SavNameDialog : Dialog {
 
 GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, Daedalus::DaedalusVM &vm, const char* menuSection, KeyCodec::Action kClose)
   :owner(owner), keyCodec(keyCodec), vm(vm), kClose(kClose) {
+  setCursorShape(CursorShape::Hidden);
   timer.timeout.bind(this,&GameMenu::onTick);
   timer.start(100);
 
@@ -690,13 +693,15 @@ bool GameMenu::implUpdateSavThumb(GameMenu::Item& sel) {
   set("MENUITEM_LOADSAVE_THUMBPIC",       &savThumb);
   set("MENUITEM_LOADSAVE_LEVELNAME_VALUE",hdr.world.c_str());
 
-  std::snprintf(form,sizeof(form),"%d:%02d",int(hdr.pcTime.hour()),int(hdr.pcTime.minute()));
+  std::snprintf(form,sizeof(form),"%d.%d.%d - %d:%02d",int(hdr.pcTime.tm_mday),int(hdr.pcTime.tm_mon+1),int(1900+hdr.pcTime.tm_year), int(hdr.pcTime.tm_hour),int(hdr.pcTime.tm_min));
   set("MENUITEM_LOADSAVE_DATETIME_VALUE", form);
 
   std::snprintf(form,sizeof(form),"%d - %d:%02d",int(hdr.wrldTime.day()),int(hdr.wrldTime.hour()),int(hdr.wrldTime.minute()));
   set("MENUITEM_LOADSAVE_GAMETIME_VALUE", form);
 
-  set("MENUITEM_LOADSAVE_PLAYTIME_VALUE", "");
+  auto mins = hdr.playTime/(60*1000);
+  std::snprintf(form,sizeof(form),"%dh %dmin",int(mins/60),int(mins%60));
+  set("MENUITEM_LOADSAVE_PLAYTIME_VALUE", form);
   return true;
   }
 

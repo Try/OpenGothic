@@ -152,8 +152,13 @@ void GameSession::save(Serialize &fout, const char* name, const Pixmap& screen) 
   hdr.version   = Serialize::Version::Current;
   hdr.name      = name;
   hdr.world     = wrld->name();
-  hdr.pcTime    = gtime::localtime();
+  {
+  time_t now = std::time(nullptr);
+  tm*    tp  = std::localtime(&now);
+  hdr.pcTime = *tp;
+  }
   hdr.wrldTime  = wrldTime;
+  hdr.playTime  = ticks;
   hdr.isGothic2 = Gothic::inst().version().game;
 
   fout.setEntry("header");
