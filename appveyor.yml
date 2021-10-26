@@ -50,8 +50,8 @@ before_build:
   - cmd: PATH=C:/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin;C:/Qt/Tools/QtCreator/bin;%Path%
   - cmd: echo gothic-win64-v%appveyor_build_version% >> VERSION
   - sh:  echo gothic-linux-v%appveyor_build_version% >> VERSION
-  - echo '#pragma once'                                                          > game/build.h
-  - echo 'static const char* appBuild = "OpenGothic v%appveyor_build_version%"' >> game/build.h
+  - ps: echo '#pragma once'                                                          > game/build.h
+  - ps: echo 'static const char* appBuild = "OpenGothic v%appveyor_build_version%"' >> game/build.h
 
 build_script:
   - cmake --version
