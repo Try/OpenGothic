@@ -51,7 +51,7 @@ before_build:
   - cmd: echo gothic-win64-v%appveyor_build_version% >> VERSION
   - sh:  echo gothic-linux-v%appveyor_build_version% >> VERSION
   - ps: echo '#pragma once'                                                          > game/build.h
-  - ps: echo 'static const char* appBuild = "OpenGothic v%appveyor_build_version%"' >> game/build.hon_finish:
+  - ps: echo 'static const char* appBuild = "OpenGothic v%appveyor_build_version%"' >> game/build.h
   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 build_script:
