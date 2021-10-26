@@ -48,10 +48,8 @@ before_build:
   # Prepare the out-of-source build directory.
   - mkdir build
   - cmd: PATH=C:/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin;C:/Qt/Tools/QtCreator/bin;%Path%
-  - cmd: echo gothic-win64-v%appveyor_build_version% >> VERSION
-  - sh:  echo gothic-linux-v%appveyor_build_version% >> VERSION
   - ps:  echo '#pragma once'                                                                > game/build.h
-  - ps:  echo "static const char* appBuild = `"OpenGothic v1.0.$appveyor_build_version`";" >> game/build.h
+  - ps:  echo "static const char* appBuild = `"OpenGothic v1.0.$env:appveyor_build_version`";" >> game/build.h
   - ps:  cat game/build.h
 
 build_script:
@@ -65,6 +63,8 @@ after_build:
   # generate version string
   - cd build
   - cd opengothic
+  - cmd: echo gothic-win64-v%appveyor_build_version% >> VERSION
+  - sh:  echo gothic-linux-v%appveyor_build_version% >> VERSION
   - cmd: copy /b/y "C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin\libgcc_s_seh-1.dll"   "libgcc_s_seh-1.dll"
   - cmd: copy /b/y "C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin\libstdc++-6.dll"      "libstdc++-6.dll"
   - cmd: copy /b/y "C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin\libwinpthread-1.dll"  "libwinpthread-1.dll"
