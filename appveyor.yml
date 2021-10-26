@@ -48,10 +48,10 @@ before_build:
   # Prepare the out-of-source build directory.
   - mkdir build
   - cmd: PATH=C:/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin;C:/Qt/Tools/QtCreator/bin;%Path%
-  - cmd: echo gothic-win64-v%APPVEYOR_BUILD_VERSION% >> VERSION
-  - sh:  echo gothic-linux-v%APPVEYOR_BUILD_VERSION% >> VERSION
-  - ps:  echo '#pragma once'                                                            > game/build.h
-  - ps:  echo 'static const char* appBuild = "OpenGothic v${APPVEYOR_BUILD_VERSION}";' >> game/build.h
+  - cmd: echo gothic-win64-v%appveyor_build_version% >> VERSION
+  - sh:  echo gothic-linux-v%appveyor_build_version% >> VERSION
+  - ps:  echo '#pragma once'                                                                > game/build.h
+  - ps:  echo "static const char* appBuild = `"OpenGothic v1.0.$appveyor_build_version`";" >> game/build.h
   - ps:  cat game/build.h
 
 build_script:
