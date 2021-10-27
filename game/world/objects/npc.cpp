@@ -511,6 +511,7 @@ bool Npc::isPlayer() const {
   }
 
 bool Npc::startClimb(JumpStatus jump) {
+  setPosition(physic.position());
   visual.setAnimRotate(*this,0);
   return mvAlgo.startClimb(jump);
   }
