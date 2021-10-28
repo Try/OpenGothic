@@ -337,7 +337,6 @@ struct DynamicWorld::BulletsList final {
     for(auto& i:body) {
       if(i.cb!=nullptr && list.rayTest(npc,i.lastPos,i.pos,i.tgRange)) {
         i.cb->onCollide(*npc.toNpc());
-        i.cb->onStop();
         }
       }
     }
@@ -730,11 +729,6 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
       }
     }
 
-  if(auto ptr = npcList->rayTest(pos,to,b.targetRange())) {
-    if(b.cb!=nullptr)
-      b.cb->onCollide(*ptr->toNpc());
-    return;
-    }
   world->rayCast(pos, to, callback);
 
   if(callback.matId<ZenLoad::NUM_MAT_GROUPS) {
@@ -773,15 +767,18 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
       }
     b.addHit();
     } else {
+    if(auto ptr = npcList->rayTest(pos,to,b.targetRange())) {
+      if(b.cb!=nullptr)
+        b.cb->onCollide(*ptr->toNpc());
+      }
     const float l = b.speed();
     auto        d = b.direction();
     if(!isSpell)
       d.y -= (gravity)*dtF;
-
     b.move(to);
     b.setDirection(d);
     b.addPathLen(l*dtF);
-    if(b.pathLength()>10000)
+    if(b.cb!=nullptr && b.pathLength()>10000)
       b.cb->onStop();
     }
   }
