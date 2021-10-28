@@ -699,7 +699,7 @@ const ProtoMesh* Resources::decalMesh(const ZenLoad::zCVobData& vob) {
   return inst->implDecalMesh(vob);
   }
 
-ZenLoad::oCWorldData Resources::loadVobBundle(const std::string& name) {
+ZenLoad::oCWorldData Resources::loadVobBundle(std::string_view name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadVobBundle(name);
   }

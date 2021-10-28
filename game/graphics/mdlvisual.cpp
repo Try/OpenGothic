@@ -419,7 +419,7 @@ Vec2 MdlVisual::headRotation() const {
   return skInst->headRotation();
   }
 
-void MdlVisual::updateWeaponSkeleton(const Item* weapon,const Item* range) {
+void MdlVisual::updateWeaponSkeleton(const Item* weapon, const Item* range) {
   auto st = fgtMode;
   if(st==WeaponState::W1H || st==WeaponState::W2H){
     bind(sword,"ZS_RIGHTHAND");

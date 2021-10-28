@@ -107,7 +107,7 @@ class Resources final {
     static Dx8::PatternList          loadDxMusic(std::string_view name);
     static const ProtoMesh*          decalMesh(const ZenLoad::zCVobData& vob);
 
-    static ZenLoad::oCWorldData      loadVobBundle(const std::string& name);
+    static ZenLoad::oCWorldData      loadVobBundle(std::string_view name);
 
     template<class V>
     static Tempest::VertexBuffer<V>  vbo(const V* data,size_t sz){ return inst->dev.vbo(data,sz); }

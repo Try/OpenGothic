@@ -6,7 +6,7 @@
 #include "utils/versioninfo.h"
 #include "resources.h"
 
-VobBundle::VobBundle(World& owner, const std::string& filename) {
+VobBundle::VobBundle(World& owner, std::string_view filename) {
   ZenLoad::oCWorldData bundle = Resources::loadVobBundle(filename);
   for(auto& vob:bundle.rootVobs)
     rootVobs.emplace_back(Vob::load(nullptr,owner,std::move(vob),true));

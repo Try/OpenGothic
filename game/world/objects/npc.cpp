@@ -215,12 +215,12 @@ void Npc::save(Serialize &fout, size_t id) {
   Vec3 phyPos = physic.position();
   fout.write(phyPos);
 
+  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/visual");
+  visual.save(fout,*this);
+
   fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/inventory");
   if(!invent.isEmpty() || id==size_t(-1))
     invent.save(fout);
-
-  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/visual");
-  visual.save(fout,*this);
   }
 
 void Npc::load(Serialize &fin, size_t id) {
@@ -266,15 +266,16 @@ void Npc::load(Serialize &fin, size_t id) {
   fin.read(phyPos);
   physic.setPosition(phyPos);
 
-  if(fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/inventory"))
-    invent.load(fin,*this);
-
   fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/visual");
   visual.load(fin,*this);
 
   setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
-  visual.syncAttaches();
 
+  if(fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/inventory"))
+    invent.load(fin,*this);
+
+  // post-alignment
+  visual.syncAttaches();
   if(isUsingTorch())
     visual.setTorch(true,owner);
   if(isDead())
