@@ -54,8 +54,11 @@ Animation::Animation(ZenLoad::MdsParser &p, std::string_view name, const bool ig
         ani.askName    = p.ani.m_Name;
         ani.layer      = p.ani.m_Layer;
         ani.flags      = Flags(p.ani.m_Flags);
+        ani.blendIn    = uint64_t(1000*p.ani.m_BlendIn);
+        ani.blendOut   = uint64_t(1000*p.ani.m_BlendOut);
         ani.next       = p.ani.m_Next;
         ani.reverse    = p.ani.m_Dir!=ZenLoad::MSB_FORWARD;
+
         current->firstFrame = uint32_t(p.ani.m_FirstFrame);
         current->lastFrame  = uint32_t(p.ani.m_LastFrame);
         break;

@@ -53,7 +53,11 @@ void Pose::save(Serialize &fout) {
   fout.write(itemUseSt,itemUseDestSt);
   fout.write(headRotX,headRotY);
 
+  for(auto& i:hasSamples)
+    fout.write(uint8_t(i));
   for(auto& i:base)
+    fout.write(i);
+  for(auto& i:prev)
     fout.write(i);
   for(auto& i:tr)
     fout.write(i);
@@ -86,7 +90,11 @@ void Pose::load(Serialize &fin, const AnimationSolver& solver) {
   needToUpdate = true;
 
   numBones = skeleton==nullptr ? 0 : skeleton->nodes.size();
+  for(auto& i:hasSamples)
+    fin.read(reinterpret_cast<uint8_t&>(i));
   for(auto& i:base)
+    fin.read(i);
+  for(auto& i:prev)
     fin.read(i);
   for(auto& i:tr)
     fin.read(i);
@@ -107,20 +115,22 @@ void Pose::setSkeleton(const Skeleton* sk) {
   if(skeleton==sk)
     return;
   skeleton = sk;
+  for(auto& i:tr)
+    i.identity();
   if(skeleton!=nullptr) {
     numBones = skeleton->tr.size();
     for(size_t i=0; i<numBones; ++i) {
-      tr[i]   = skeleton->tr[i];
-      base[i] = ZenLoad::zCModelAniSample{}; //mkSample(skeleton->nodes[i].tr);
+      tr[i]         = skeleton->tr[i];
+      hasSamples[i] = S_None;
       }
     } else {
     numBones = 0;
     }
-
   trY = skeleton->rootTr.y;
+  needToUpdate = true;
 
   if(lay.size()>0) //TODO
-    Log::d("WARNING: ",__func__," animation adjustment not implemented");
+    Log::d("WARNING: ",__func__," animation adjustment is not implemented");
   lay.clear();
   }
 
@@ -135,8 +145,8 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
 
   for(auto& i:lay)
     if(i.seq->layer==sq->layer) {
-      const bool hasNext   = (!i.seq->next.empty() && i.seq->animCls!=Animation::Loop);
-      const bool finished  = i.seq->isFinished(tickCount,i.sAnim,combo.len()) && !hasNext;
+      const bool hasNext   = !i.seq->next.empty();
+      const bool finished  = i.seq->isFinished(tickCount,i.sAnim,combo.len()) && !hasNext && (i.seq->animCls!=Animation::Loop);
       const bool interrupt = force || i.seq->canInterrupt(tickCount,i.sAnim,combo.len());
       if(i.seq==sq && i.comb==comb && i.bs==bs && !finished)
         return true;
@@ -340,7 +350,26 @@ bool Pose::updateFrame(const Animation::Sequence &s,
     size_t idx = d.nodeIndex[i];
     if(idx>=numBones)
       continue;
-    base[idx] = mix(sampleA[i],sampleB[i],a);
+    auto smp = mix(sampleA[i],sampleB[i],a);
+    switch(hasSamples[idx]) {
+      case S_None:
+        hasSamples[idx] = S_Valid;
+        base      [idx] = smp;
+        break;
+      case S_Old:
+        hasSamples[idx] = S_Valid;
+        prev      [idx] = base[idx];
+        [[fallthrough]];
+      case S_Valid:
+        if(now<s.blendIn) {
+          float a2 = float(now)/float(s.blendIn);
+          base[idx] = mix(base[idx],smp,a2);
+          } else {
+          prev[idx] = smp;
+          base[idx] = smp;
+          }
+        break;
+      }
     }
   return true;
   }
@@ -361,7 +390,7 @@ void Pose::mkSkeleton(const Matrix4x4 &mt) {
   auto  BIP01_HEAD = skeleton->BIP01_HEAD;
   for(size_t i=0; i<nodes.size(); ++i) {
     size_t parent = nodes[i].parent;
-    auto   mat    = base[i].rotation.w==0 ? nodes[i].tr : mkMatrix(base[i]);
+    auto   mat    = hasSamples[i]!=S_None ? mkMatrix(base[i]) : nodes[i].tr;
 
     if(parent<Resources::MAX_NUM_SKELETAL_NODES)
       tr[i] = tr[parent]*mat; else
@@ -382,7 +411,7 @@ void Pose::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
   for(size_t i=0;i<nodes.size();++i){
     if(nodes[i].parent!=parent)
       continue;
-    auto mat = base[i].rotation.w==0 ? nodes[i].tr : mkMatrix(base[i]);
+    auto mat = hasSamples[i]!=S_None ? mkMatrix(base[i]) : nodes[i].tr;
     tr[i] = mt*mat;
     mkSkeleton(tr[i],i);
     }
@@ -455,6 +484,9 @@ void Pose::onRemoveLayer(const Pose::Layer &l) {
     hasEvents--;
   if(l.seq->isFly())
     isFlyCombined--;
+  for(auto& i:hasSamples)
+    if(i==S_Valid)
+      i = S_Old;
   }
 
 bool Pose::hasLayers(const Pose::Layer& l) {
@@ -658,7 +690,7 @@ const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, co
     }
 
   if(t<d.defWindow[id+0] || d.defWindow[id+1]<=t) {
-    if(prev->seq->name==sq->name)
+    if(prev->seq->name==sq->name && sq->data->defHitEnd.size()>1)
       combo.setBreak();
     return nullptr;
     }
@@ -779,7 +811,7 @@ Matrix4x4 Pose::mkBaseTranslation(const Animation::Sequence *s, BodyState bs) {
   if(skeleton->rootNodes.size())
     id = skeleton->rootNodes[0];
   auto& nodes = skeleton->nodes;
-  auto  b0 = base[id].rotation.w==0 ? nodes[id].tr : mkMatrix(base[id]);
+  auto  b0 = hasSamples[id]!=S_None ? mkMatrix(base[id]) : nodes[id].tr;
   float dx = b0.at(3,0);
   float dy = 0;
   float dz = b0.at(3,2);

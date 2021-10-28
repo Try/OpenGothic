@@ -85,10 +85,24 @@ class Pose final {
 
   private:
     struct Layer final {
-      const Animation::Sequence* seq     = nullptr;
-      uint64_t                   sAnim   = 0;
-      uint8_t                    comb    = 0;
-      BodyState                  bs      = BS_NONE;
+      const Animation::Sequence* seq   = nullptr;
+      uint64_t                   sAnim = 0;
+      uint8_t                    comb  = 0;
+      BodyState                  bs    = BS_NONE;
+      };
+
+    struct ComboState {
+      uint16_t bits = 0;
+      uint16_t len()     const { return bits & 0x7FFF; }
+      void     incLen()        { bits = (bits+1)&0x7FFF; };
+      bool     isBreak() const { return bits & 0x8000; }
+      void     setBreak()      { bits |=0x8000; }
+      };
+
+    enum SampleStatus : uint8_t {
+      S_None,
+      S_Old,
+      S_Valid,
       };
 
     auto mkBaseTranslation(const Animation::Sequence *s, BodyState bs) -> Tempest::Matrix4x4;
@@ -110,14 +124,6 @@ class Pose final {
     template<class T,class F>
     void removeIf(T& t,F f);
 
-    struct ComboState {
-      uint16_t bits = 0;
-      uint16_t len()     const { return bits & 0x7FFF; }
-      void     incLen()        { bits = (bits+1)&0x7FFF; };
-      bool     isBreak() const { return bits & 0x8000; }
-      void     setBreak()      { bits |=0x8000; }
-      };
-
     const Skeleton*                 skeleton=nullptr;
     std::vector<Layer>              lay;
     const Animation::Sequence*      rotation=nullptr;
@@ -134,6 +140,8 @@ class Pose final {
     float                           headRotX = 0, headRotY = 0;
 
     size_t                          numBones = 0;
-    ZenLoad::zCModelAniSample       base[Resources::MAX_NUM_SKELETAL_NODES] = {};
-    Tempest::Matrix4x4              tr  [Resources::MAX_NUM_SKELETAL_NODES] = {};
+    SampleStatus                    hasSamples[Resources::MAX_NUM_SKELETAL_NODES] = {};
+    ZenLoad::zCModelAniSample       base      [Resources::MAX_NUM_SKELETAL_NODES] = {};
+    ZenLoad::zCModelAniSample       prev      [Resources::MAX_NUM_SKELETAL_NODES] = {};
+    Tempest::Matrix4x4              tr        [Resources::MAX_NUM_SKELETAL_NODES] = {};
   };

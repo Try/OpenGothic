@@ -104,10 +104,12 @@ class Animation final {
 
       std::string                            name, askName;
       const char*                            shortName = nullptr;
-      uint32_t                               layer  =0;
-      Flags                                  flags  =Flags::None;
-      AnimClass                              animCls=Transition;
-      bool                                   reverse=false;
+      uint32_t                               layer     = 0;
+      Flags                                  flags     = Flags::None;
+      uint64_t                               blendIn   = 0;
+      uint64_t                               blendOut  = 0;
+      AnimClass                              animCls   = Transition;
+      bool                                   reverse   = false;
 
       std::string                            next;
       const Sequence*                        nextPtr = nullptr;
