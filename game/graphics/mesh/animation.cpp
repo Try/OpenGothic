@@ -47,20 +47,8 @@ Animation::Animation(ZenLoad::MdsParser &p, std::string_view name, const bool ig
         break;
         }
       case ZenLoad::MdsParser::CHUNK_ANI: {
-        auto& ani      = loadMAN(std::string(name)+'-'+p.ani.m_Name+".MAN");
-        //auto& ani      = loadMAN(p.ani.m_Asc);
+        auto& ani      = loadMAN(p.ani,std::string(name)+'-'+p.ani.m_Name+".MAN");
         current        = ani.data.get();
-
-        ani.askName    = p.ani.m_Name;
-        ani.layer      = p.ani.m_Layer;
-        ani.flags      = Flags(p.ani.m_Flags);
-        ani.blendIn    = uint64_t(1000*p.ani.m_BlendIn);
-        ani.blendOut   = uint64_t(1000*p.ani.m_BlendOut);
-        ani.next       = p.ani.m_Next;
-        ani.reverse    = p.ani.m_Dir!=ZenLoad::MSB_FORWARD;
-
-        current->firstFrame = uint32_t(p.ani.m_FirstFrame);
-        current->lastFrame  = uint32_t(p.ani.m_LastFrame);
         break;
         }
       case ZenLoad::MdsParser::CHUNK_ANI_ALIAS:{
@@ -233,8 +221,8 @@ const std::string& Animation::defaultMesh() const {
   return nop;
   }
 
-Animation::Sequence& Animation::loadMAN(const std::string& name) {
-  sequences.emplace_back(name);
+Animation::Sequence& Animation::loadMAN(const ZenLoad::zCModelScriptAni& hdr, const std::string& name) {
+  sequences.emplace_back(hdr,name);
   auto& ret = sequences.back();
   if(ret.data==nullptr) {
     ret.data = std::make_shared<AnimData>();
@@ -313,7 +301,7 @@ void Animation::setupIndex() {
   }
 
 
-Animation::Sequence::Sequence(const std::string &fname) {
+Animation::Sequence::Sequence(const ZenLoad::zCModelScriptAni& hdr, const std::string &fname) {
   if(!Resources::hasFile(fname))
     return;
 
@@ -322,6 +310,17 @@ Animation::Sequence::Sequence(const std::string &fname) {
   ZenLoad::ModelAnimationParser p(zen);
 
   data = std::make_shared<AnimData>();
+  askName    = hdr.m_Name;
+  layer      = hdr.m_Layer;
+  flags      = Flags(hdr.m_Flags);
+  blendIn    = uint64_t(1000*hdr.m_BlendIn);
+  blendOut   = uint64_t(1000*hdr.m_BlendOut);
+  next       = hdr.m_Next;
+  reverse    = hdr.m_Dir!=ZenLoad::MSB_FORWARD;
+
+  data->firstFrame = uint32_t(hdr.m_FirstFrame);
+  data->lastFrame  = uint32_t(hdr.m_LastFrame);
+
   while(true) {
     ZenLoad::ModelAnimationParser::EChunkType type = p.parse();
     switch(type) {
@@ -613,11 +612,6 @@ void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation
     }
   }
 
-Tempest::Vec3 Animation::Sequence::translation(uint64_t dt) const {
-  float k = float(dt)/totalTime();
-  return data->moveTr*k;
-  }
-
 Tempest::Vec3 Animation::Sequence::speed(uint64_t at,uint64_t dt) const {
   auto a = translateXZ(at+dt), b=translateXZ(at);
   Tempest::Vec3 f = a-b;
@@ -681,7 +675,9 @@ void Animation::Sequence::setupMoveTr() {
 void Animation::AnimData::setupMoveTr() {
   size_t sz = nodeIndex.size();
 
-  if(samples.size()>0 && samples.size()>=sz) {
+  //size_t f0 = firstFrame*sz;
+  // size_t f1 = lastFrame *sz;
+  if(0<samples.size() && sz<=samples.size()) {
     auto& a = samples[0].position;
     auto& b = samples[samples.size()-sz].position;
     moveTr.x = b.x-a.x;
@@ -689,7 +685,7 @@ void Animation::AnimData::setupMoveTr() {
     moveTr.z = b.z-a.z;
 
     tr.resize(samples.size()/sz);
-    for(size_t i=0,r=0;i<samples.size();i+=sz,++r){
+    for(size_t i=0,r=0; i<samples.size(); i+=sz,++r) {
       auto& p  = tr[r];
       auto& bi = samples[i].position;
       p.x = bi.x-a.x;
@@ -705,7 +701,7 @@ void Animation::AnimData::setupMoveTr() {
       }
     }
 
-  if(samples.size()>0){
+  if(0<samples.size()){
     translate.x = samples[0].position.x;
     translate.y = samples[0].position.y;
     translate.z = samples[0].position.z;

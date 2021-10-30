@@ -120,10 +120,10 @@ void Pose::setSkeleton(const Skeleton* sk) {
   if(skeleton!=nullptr) {
     numBones = skeleton->tr.size();
     for(size_t i=0; i<numBones; ++i) {
-      tr[i]         = skeleton->tr[i];
-      hasSamples[i] = S_None;
+      tr[i] = skeleton->tr[i];
       }
     } else {
+    std::memset(hasSamples,0,sizeof(hasSamples));
     numBones = 0;
     }
   trY = skeleton->rootTr.y;
@@ -297,20 +297,20 @@ bool Pose::update(uint64_t tickCount) {
         if(auto sx = i.seq->comb[size_t(i.comb-1)])
           seq = sx;
         }
-      needToUpdate |= updateFrame(*seq,lastUpdate,i.sAnim,tickCount);
+      needToUpdate |= updateFrame(*seq,i.bs,lastUpdate,i.sAnim,tickCount);
       }
     lastUpdate = tickCount;
     }
 
   if(needToUpdate) {
-    mkSkeleton(*lay[0].seq,lay[0].bs);
+    mkSkeleton();
     needToUpdate = false;
     return true;
     }
   return false;
   }
 
-bool Pose::updateFrame(const Animation::Sequence &s,
+bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs,
                        uint64_t barrier, uint64_t sTime, uint64_t now) {
   auto&        d         = *s.data;
   const size_t numFrames = d.numFrames;
@@ -330,7 +330,7 @@ bool Pose::updateFrame(const Animation::Sequence &s,
 
   float    a       = float(frame%1000)/1000.f;
 
-  if(s.animCls==Animation::Loop){
+  if(s.animCls==Animation::Loop) {
     frameA%=d.numFrames;
     frameB%=d.numFrames;
     } else {
@@ -351,33 +351,30 @@ bool Pose::updateFrame(const Animation::Sequence &s,
     if(idx>=numBones)
       continue;
     auto smp = mix(sampleA[i],sampleB[i],a);
-    switch(hasSamples[idx]) {
-      case S_None:
-        hasSamples[idx] = S_Valid;
-        base      [idx] = smp;
-        break;
-      case S_Old:
-        hasSamples[idx] = S_Valid;
-        prev      [idx] = base[idx];
-        [[fallthrough]];
-      case S_Valid:
-        if(now<s.blendIn) {
-          float a2 = float(now)/float(s.blendIn);
-          base[idx] = mix(base[idx],smp,a2);
-          } else {
-          prev[idx] = smp;
-          base[idx] = smp;
-          }
-        break;
+    if(i==0) {
+      if(bs==BS_CLIMB)
+        smp.position.y = trY;
+      else if(s.isFly())
+        smp.position.y = d.translate.y;
+      }
+
+    if(now<s.blendIn && hasSamples[idx]) {
+      float a2 = float(now)/float(s.blendIn);
+      base[idx] = mix(base[idx],smp,a2);
+      } else {
+      hasSamples[idx] = true;
+      base[idx]       = smp;
       }
     }
   return true;
   }
 
-void Pose::mkSkeleton(const Animation::Sequence &s, BodyState bs) {
+void Pose::mkSkeleton() {
   if(skeleton==nullptr)
     return;
-  Matrix4x4 m = mkBaseTranslation(&s,bs);
+  Matrix4x4 m;
+  m.identity();
+  m.translate(mkBaseTranslation());
   if(skeleton->ordered)
     mkSkeleton(m); else
     mkSkeleton(m,size_t(-1));
@@ -390,7 +387,7 @@ void Pose::mkSkeleton(const Matrix4x4 &mt) {
   auto  BIP01_HEAD = skeleton->BIP01_HEAD;
   for(size_t i=0; i<nodes.size(); ++i) {
     size_t parent = nodes[i].parent;
-    auto   mat    = hasSamples[i]!=S_None ? mkMatrix(base[i]) : nodes[i].tr;
+    auto   mat    = hasSamples[i] ? mkMatrix(base[i]) : nodes[i].tr;
 
     if(parent<Resources::MAX_NUM_SKELETAL_NODES)
       tr[i] = tr[parent]*mat; else
@@ -411,7 +408,7 @@ void Pose::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
   for(size_t i=0;i<nodes.size();++i){
     if(nodes[i].parent!=parent)
       continue;
-    auto mat = hasSamples[i]!=S_None ? mkMatrix(base[i]) : nodes[i].tr;
+    auto mat = hasSamples[i] ? mkMatrix(base[i]) : nodes[i].tr;
     tr[i] = mt*mat;
     mkSkeleton(tr[i],i);
     }
@@ -470,7 +467,7 @@ void Pose::addLayer(const Animation::Sequence *seq, BodyState bs, uint8_t comb, 
   }
 
 void Pose::onAddLayer(const Pose::Layer& l) {
-  if(hasLayers(l))
+  if(hasLayerEvents(l))
     hasEvents++;
   if(l.seq->isFly())
     isFlyCombined++;
@@ -480,16 +477,15 @@ void Pose::onAddLayer(const Pose::Layer& l) {
 void Pose::onRemoveLayer(const Pose::Layer &l) {
   if(l.seq==rotation)
     rotation=nullptr;
-  if(hasLayers(l))
+  if(hasLayerEvents(l))
     hasEvents--;
   if(l.seq->isFly())
     isFlyCombined--;
-  for(auto& i:hasSamples)
-    if(i==S_Valid)
-      i = S_Old;
   }
 
-bool Pose::hasLayers(const Pose::Layer& l) {
+bool Pose::hasLayerEvents(const Pose::Layer& l) {
+  if(l.seq==nullptr)
+    return false;
   return
       l.seq->data->events.size()>0 ||
       l.seq->data->mmStartAni.size()>0 ||
@@ -800,42 +796,34 @@ const Matrix4x4* Pose::transform() const {
   return tr;
   }
 
-Matrix4x4 Pose::mkBaseTranslation(const Animation::Sequence *s, BodyState bs) {
-  Matrix4x4 m;
-  m.identity();
-
+Vec3 Pose::mkBaseTranslation() {
   if(numBones==0)
-    return m;
+    return Vec3();
 
   size_t id=0;
   if(skeleton->rootNodes.size())
     id = skeleton->rootNodes[0];
   auto& nodes = skeleton->nodes;
-  auto  b0 = hasSamples[id]!=S_None ? mkMatrix(base[id]) : nodes[id].tr;
+  auto  b0    = hasSamples[id] ? mkMatrix(base[id]) : nodes[id].tr;
+
   float dx = b0.at(3,0);
   float dy = 0;
   float dz = b0.at(3,2);
 
   if((flag&NoTranslation)==NoTranslation)
     dy = b0.at(3,1);
-  else if(bs==BS_CLIMB)
-    dy = b0.at(3,1) - trY;
-  else if(bs==BS_DIVE)
-    dy = b0.at(3,1);// - 50;
-  else if(s!=nullptr && s->isFly())
-    dy = b0.at(3,1) - (s->data->translate.y);
-  else
-    dy = 0;
 
-  m.translate(-dx,-dy,-dz);
-  return m;
+  return Vec3(-dx,-dy,-dz);
   }
 
 void Pose::zeroSkeleton() {
   if(skeleton==nullptr)
     return;
+  Matrix4x4 m;
+  m.identity();
+  m.translate(mkBaseTranslation());
+
   auto& nodes = skeleton->tr;
-  Matrix4x4 m = mkBaseTranslation(nullptr,BS_NONE);
   for(size_t i=0;i<nodes.size();++i){
     tr[i] = m * nodes[i];
     }

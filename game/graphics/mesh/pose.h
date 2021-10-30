@@ -99,19 +99,13 @@ class Pose final {
       void     setBreak()      { bits |=0x8000; }
       };
 
-    enum SampleStatus : uint8_t {
-      S_None,
-      S_Old,
-      S_Valid,
-      };
-
-    auto mkBaseTranslation(const Animation::Sequence *s, BodyState bs) -> Tempest::Matrix4x4;
-    void mkSkeleton(const Animation::Sequence &s, BodyState bs);
+    auto mkBaseTranslation() -> Tempest::Vec3;
+    void mkSkeleton();
     void mkSkeleton(const Tempest::Matrix4x4 &mt);
     void mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent);
     void zeroSkeleton();
 
-    bool updateFrame(const Animation::Sequence &s, uint64_t barrier, uint64_t sTime, uint64_t now);
+    bool updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t barrier, uint64_t sTime, uint64_t now);
 
     const Animation::Sequence* solveNext(const AnimationSolver& solver, const Layer& lay);
 
@@ -119,7 +113,7 @@ class Pose final {
     void onAddLayer   (const Layer& l);
     void onRemoveLayer(const Layer& l);
 
-    static bool hasLayers(const Layer& l);
+    static bool hasLayerEvents(const Layer& l);
 
     template<class T,class F>
     void removeIf(T& t,F f);
@@ -140,7 +134,7 @@ class Pose final {
     float                           headRotX = 0, headRotY = 0;
 
     size_t                          numBones = 0;
-    SampleStatus                    hasSamples[Resources::MAX_NUM_SKELETAL_NODES] = {};
+    bool                            hasSamples[Resources::MAX_NUM_SKELETAL_NODES] = {};
     ZenLoad::zCModelAniSample       base      [Resources::MAX_NUM_SKELETAL_NODES] = {};
     ZenLoad::zCModelAniSample       prev      [Resources::MAX_NUM_SKELETAL_NODES] = {};
     Tempest::Matrix4x4              tr        [Resources::MAX_NUM_SKELETAL_NODES] = {};

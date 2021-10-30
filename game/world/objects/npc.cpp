@@ -264,10 +264,10 @@ void Npc::load(Serialize &fin, size_t id) {
 
   Vec3 phyPos = {};
   fin.read(phyPos);
-  physic.setPosition(phyPos);
 
   fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/visual");
   visual.load(fin,*this);
+  physic.setPosition(phyPos);
 
   setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
 

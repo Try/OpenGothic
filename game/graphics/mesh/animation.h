@@ -77,7 +77,7 @@ class Animation final {
 
     struct Sequence final {
       Sequence()=default;
-      Sequence(const std::string& name);
+      Sequence(const ZenLoad::zCModelScriptAni& hdr, const std::string& name);
 
       bool                                   isRotate() const { return bool(flags&Flags::Rotate); }
       bool                                   isMove()   const { return bool(flags&Flags::Move);   }
@@ -97,7 +97,6 @@ class Animation final {
       void                                   processSfx   (uint64_t barrier, uint64_t sTime, uint64_t now, Npc &npc) const;
       void                                   processPfx   (uint64_t barrier, uint64_t sTime, uint64_t now, MdlVisual& visual, World& world) const;
 
-      Tempest::Vec3                          translation(uint64_t dt) const;
       Tempest::Vec3                          speed(uint64_t at, uint64_t dt) const;
       Tempest::Vec3                          translateXZ(uint64_t at) const;
       void                                   schemeName(char buf[64]) const;
@@ -137,8 +136,8 @@ class Animation final {
     const std::string& defaultMesh() const;
 
   private:
-    Sequence& loadMAN(const std::string &name);
-    void      setupIndex();
+    Sequence&          loadMAN(const ZenLoad::zCModelScriptAni& hdr, const std::string &name);
+    void               setupIndex();
 
     std::vector<Sequence>                       sequences;
     std::vector<ZenLoad::zCModelScriptAniAlias> ref;
