@@ -1,5 +1,7 @@
 #include "objvisual.h"
 
+#include <Tempest/Log>
+
 #include "world/world.h"
 #include "game/serialize.h"
 #include "graphics/mesh/pose.h"
@@ -166,10 +168,10 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world) {
       return;
     setType(M_Mdl);
     mdl.proto = view;
+    mdl.view.setYTranslationEnable(false);
     mdl.view.setVisual(view->skeleton.get());
     if(vob.showVisual)
       mdl.view.setVisualBody(world,world.addView(view));
-    mdl.view.setYTranslationEnable(false);
 
     if(vob.showVisual && (vob.cdDyn || vob.cdStatic)) {
       mdl.physic = PhysicMesh(*view,*world.physic(),true);

@@ -101,7 +101,8 @@ void Pose::load(Serialize &fin, const AnimationSolver& solver) {
   }
 
 void Pose::setFlags(Pose::Flags f) {
-  flag = f;
+  flag         = f;
+  needToUpdate = true;
   }
 
 BodyState Pose::bodyState() const {
@@ -119,19 +120,18 @@ void Pose::setSkeleton(const Skeleton* sk) {
     i.identity();
   if(skeleton!=nullptr) {
     numBones = skeleton->tr.size();
-    for(size_t i=0; i<numBones; ++i) {
-      tr[i] = skeleton->tr[i];
-      }
     } else {
     std::memset(hasSamples,0,sizeof(hasSamples));
     numBones = 0;
     }
-  trY = skeleton->rootTr.y;
+  trY          = skeleton->rootTr.y;
   needToUpdate = true;
-
   if(lay.size()>0) //TODO
     Log::d("WARNING: ",__func__," animation adjustment is not implemented");
   lay.clear();
+
+  if(skeleton!=nullptr)
+    mkSkeleton();
   }
 
 bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, uint8_t comb, BodyState bs,
@@ -277,13 +277,7 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
   }
 
 bool Pose::update(uint64_t tickCount) {
-  if(lay.size()==0){
-    if(lastUpdate==0) {
-      zeroSkeleton();
-      needToUpdate = false;
-      lastUpdate   = tickCount;
-      return true;
-      }
+  if(lay.size()==0) {
     const bool ret = needToUpdate;
     needToUpdate = false;
     lastUpdate   = tickCount;

@@ -405,7 +405,8 @@ bool MdlVisual::setToFightMode(const WeaponState f) {
 
 void MdlVisual::setObjMatrix(const Tempest::Matrix4x4 &m, bool syncAttach) {
   pos = m;
-  view.setObjMatrix(pos);
+  // view.setObjMatrix(pos);
+  view.setPose(pos,*skInst);
   if(syncAttach)
     syncAttaches();
   }
