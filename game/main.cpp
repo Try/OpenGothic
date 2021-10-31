@@ -1,5 +1,6 @@
 #include <Tempest/Window>
 #include <Tempest/Application>
+#include <Tempest/Log>
 
 #include <Tempest/VulkanApi>
 
@@ -12,8 +13,9 @@
 #endif
 
 #include "utils/crashlog.h"
-#include "gothic.h"
 #include "mainwindow.h"
+#include "gothic.h"
+#include "build.h"
 
 const char* selectDevice(const Tempest::AbstractGraphicsApi& api) {
   auto d = api.devices();
@@ -63,6 +65,8 @@ std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(Gothic& g) {
 int main(int argc,const char** argv) {
   CrashLog::setup();
   VDFS::FileIndex::initVDFS(argv[0]);
+
+  Tempest::Log::i(appBuild);
 
   Gothic               gothic{argc,argv};
   auto                 api = mkApi(gothic);
