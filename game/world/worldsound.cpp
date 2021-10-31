@@ -279,9 +279,12 @@ void WorldSound::tickSlot(Effect& slot) {
   if(slot.ambient) {
     slot.setOcclusion(1.f);
     } else {
-    auto  dyn = owner.physic();
-    auto  pos = slot.pos;
-    float occ = dyn->soundOclusion(plPos+Tempest::Vec3(0,180,0)/*head pos*/, pos);
+    auto  dyn  = owner.physic();
+    auto  head = plPos+Tempest::Vec3(0,180,0)/*head pos*/;
+    auto  pos  = slot.pos;
+    float occ  = 1;
+    if((pos-head).quadLength()<maxDist*maxDist)
+      occ = dyn->soundOclusion(head, pos);
     slot.setOcclusion(std::max(0.f,1.f-occ));
     }
   }
