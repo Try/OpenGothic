@@ -5,7 +5,7 @@
 #include "world/world.h"
 #include "serialize.h"
 
-const float   MoveAlgo::closeToPointThreshold = 50;
+const float   MoveAlgo::closeToPointThreshold = 25;
 const float   MoveAlgo::climbMove             = 55;
 const float   MoveAlgo::gravity               = DynamicWorld::gravity;
 const float   MoveAlgo::eps                   = 2.f;   // 2-santimeters

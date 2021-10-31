@@ -3585,7 +3585,8 @@ Npc::JumpStatus Npc::tryJump() {
     return ret;
     }
 
-  if(!physic.testMove(pos1,pos0,info)) {
+  if(!physic.testMove(pos1,pos0,info) ||
+     !physic.testMove(pos2,pos1,info)) {
     // check approximate path of climb failed
     ret.anim = Anim::Jump;
     return ret;
