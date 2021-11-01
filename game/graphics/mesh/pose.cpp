@@ -506,15 +506,14 @@ bool Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev
   }
 
 Tempest::Vec3 Pose::animMoveSpeed(uint64_t tickCount,uint64_t dt) const {
-  Tempest::Vec3 ret;
-  for(auto& i:lay) {
-    if(!i.seq->data->hasMoveTr && i.seq->animCls!=Animation::Transition)
+  for(size_t i=lay.size(); i>0; ) {
+    --i;
+    auto& lx = lay[i];
+    if(!lx.seq->data->hasMoveTr)
       continue;
-    ret += i.seq->speed(tickCount-i.sAnim,dt);
-    if(i.bs==BS_RUN)
-      return ret;
+    return lx.seq->speed(tickCount-lx.sAnim,dt);
     }
-  return ret;
+  return Tempest::Vec3();
   }
 
 bool Pose::isDefParWindow(uint64_t tickCount) const {

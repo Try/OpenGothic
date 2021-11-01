@@ -674,8 +674,13 @@ void Animation::Sequence::setupMoveTr() {
 
 void Animation::AnimData::setupMoveTr() {
   size_t sz = nodeIndex.size();
+  if(sz==0)
+    return;
 
-  //size_t f0 = firstFrame*sz;
+  if(nodeIndex[0]!=0)
+    return;
+
+  // size_t f0 = firstFrame*sz;
   // size_t f1 = lastFrame *sz;
   if(0<samples.size() && sz<=samples.size()) {
     auto& a = samples[0].position;
