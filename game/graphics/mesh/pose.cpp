@@ -121,9 +121,10 @@ void Pose::setSkeleton(const Skeleton* sk) {
   if(skeleton!=nullptr) {
     numBones = skeleton->tr.size();
     } else {
-    std::memset(hasSamples,0,sizeof(hasSamples));
     numBones = 0;
     }
+  for(auto& i:hasSamples)
+    i = S_None;
   trY          = skeleton->rootTr.y;
   needToUpdate = true;
   if(lay.size()>0) //TODO
@@ -352,12 +353,24 @@ bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs,
         smp.position.y = d.translate.y;
       }
 
-    if(now<s.blendIn && hasSamples[idx]) {
-      float a2 = float(now)/float(s.blendIn);
-      base[idx] = mix(base[idx],smp,a2);
-      } else {
-      hasSamples[idx] = true;
-      base[idx]       = smp;
+    switch(hasSamples[idx]) {
+      case S_None:
+        hasSamples[idx] = S_Old;
+        base      [idx] = smp;
+        break;
+      case S_Old:
+        hasSamples[idx] = S_Valid;
+        prev      [idx] = base[idx];
+        [[fallthrough]];
+      case S_Valid:
+        if(now<s.blendIn) {
+          float a2 = float(now)/float(s.blendIn);
+          base[idx] = mix(base[idx],smp,a2);
+          } else {
+          prev[idx] = smp;
+          base[idx] = smp;
+          }
+        break;
       }
     }
   return true;
@@ -466,6 +479,10 @@ void Pose::onAddLayer(const Pose::Layer& l) {
   if(l.seq->isFly())
     isFlyCombined++;
   needToUpdate = true;
+
+  for(auto id:l.seq->data->nodeIndex)
+    if(hasSamples[id]==S_Valid)
+      hasSamples[id] = S_Old;
   }
 
 void Pose::onRemoveLayer(const Pose::Layer &l) {

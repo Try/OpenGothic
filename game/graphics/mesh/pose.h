@@ -84,6 +84,12 @@ class Pose final {
     const Tempest::Matrix4x4* transform() const;
 
   private:
+    enum SampleStatus : uint8_t {
+      S_None,
+      S_Old,
+      S_Valid,
+      };
+
     struct Layer final {
       const Animation::Sequence* seq   = nullptr;
       uint64_t                   sAnim = 0;
@@ -134,7 +140,7 @@ class Pose final {
     float                           headRotX = 0, headRotY = 0;
 
     size_t                          numBones = 0;
-    bool                            hasSamples[Resources::MAX_NUM_SKELETAL_NODES] = {};
+    SampleStatus                    hasSamples[Resources::MAX_NUM_SKELETAL_NODES] = {};
     ZenLoad::zCModelAniSample       base      [Resources::MAX_NUM_SKELETAL_NODES] = {};
     ZenLoad::zCModelAniSample       prev      [Resources::MAX_NUM_SKELETAL_NODES] = {};
     Tempest::Matrix4x4              tr        [Resources::MAX_NUM_SKELETAL_NODES] = {};
