@@ -167,6 +167,9 @@ Marvin::CmdVal Marvin::isMatch(std::string_view inp, const Cmd& cmd) const {
       break;
       }
 
+    if(inp.size()==wr)
+      return C_Incomplete;
+
     ref = ref.substr(wr+1);
     inp = inp.substr(wr+1);
     while(inp.size()>0 && inp[0]==' ')
@@ -195,7 +198,7 @@ Marvin::CmdVal Marvin::recognize(std::string_view inp) {
     if(m.cmd.type!=C_Incomplete)
       return m;
     if(suggestion.cmd.type==C_Incomplete) {
-      if(suggestion.cmd.cmd!=m.cmd.cmd)
+      if(suggestion.cmd.cmd!=m.cmd.cmd && suggestion.complete!=m.complete)
         return C_Incomplete; // multiple distinct commands do match - no suggestion
       suggestion = m;
       continue;
