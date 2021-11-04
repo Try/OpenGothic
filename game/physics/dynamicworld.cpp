@@ -838,7 +838,7 @@ float DynamicWorld::materialDensity(ZenLoad::MaterialGroup mat) {
   return 2000.f;
   }
 
-const char* DynamicWorld::validateSectorName(const char* name) const {
+std::string_view DynamicWorld::validateSectorName(std::string_view name) const {
   return landMesh->validateSectorName(name);
   }
 

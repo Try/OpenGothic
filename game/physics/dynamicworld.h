@@ -242,7 +242,7 @@ class DynamicWorld final {
     static float   materialFriction(ZenLoad::MaterialGroup mat);
     static float   materialDensity (ZenLoad::MaterialGroup mat);
 
-    const char*    validateSectorName(const char* name) const;
+    std::string_view validateSectorName(std::string_view name) const;
 
   private:
     enum ItemType : uint8_t {

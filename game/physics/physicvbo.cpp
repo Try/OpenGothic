@@ -106,11 +106,11 @@ void PhysicVbo::adjustMesh(){
     }
   }
 
-const char* PhysicVbo::validateSectorName(const char* name) const {
-  if(name==nullptr)
-    return nullptr;
+std::string_view PhysicVbo::validateSectorName(std::string_view name) const {
+  if(name.empty())
+    return "";
   for(auto& i:segments)
-    if(std::strcmp(i.sector,name)==0)
+    if(name==i.sector)
       return i.sector;
-  return nullptr;
+  return "";
   }

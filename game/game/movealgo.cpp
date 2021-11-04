@@ -22,9 +22,9 @@ void MoveAlgo::load(Serialize &fin) {
 
   std::string str;
   fin.read(str);
-  portal       = npc.world().physic()->validateSectorName(str.c_str());
+  portal       = npc.world().physic()->validateSectorName(str);
   fin.read(str);
-  formerPortal = npc.world().physic()->validateSectorName(str.c_str());
+  formerPortal = npc.world().physic()->validateSectorName(str);
 
   fin.read(diveStart);
   }
