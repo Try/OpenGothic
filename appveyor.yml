@@ -93,7 +93,7 @@ deploy:
   draft: true
   force_update: false
   prerelease: true
-  tag: $(APPVEYOR_REPO_TAG_NAME)
+  tag: gothic-win64-v$(appveyor_build_version)
   on:
     branch: $(APPVEYOR_REPO_TAG_NAME)
     APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015 # mingw is default for now
