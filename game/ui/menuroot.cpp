@@ -15,6 +15,11 @@ MenuRoot::MenuRoot(KeyCodec& keyCodec)
 MenuRoot::~MenuRoot() {
   }
 
+void MenuRoot::setMainMenu() {
+  setMenu("MAIN_MENU");
+  showVersion(true);
+  }
+
 void MenuRoot::setMenu(const char* menuEv, KeyCodec::Action key) {
   if(!vm->getDATFile().hasSymbolName(menuEv)){
     Log::e("invalid menu-id: ",menuEv);
@@ -80,6 +85,15 @@ void MenuRoot::setPlayer(const Npc &pl) {
 void MenuRoot::processMusicTheme() {
   if(current!=nullptr)
     current->processMusicTheme();
+  }
+
+void MenuRoot::showVersion(bool s) {
+  showVersionHint = s;
+  update();
+  }
+
+bool MenuRoot::hasVersionLine() const {
+  return showVersionHint;
   }
 
 void MenuRoot::mouseDownEvent(MouseEvent& event) {

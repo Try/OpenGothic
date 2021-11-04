@@ -182,8 +182,11 @@ void GameMenu::paintEvent(PaintEvent &e) {
         }
       }
     }
-  auto& fnt = Resources::font();
-  fnt.drawText(p, w()-fnt.textSize(appBuild).w-25, h()-25, appBuild);
+
+  if(owner.hasVersionLine()) {
+    auto& fnt = Resources::font();
+    fnt.drawText(p, w()-fnt.textSize(appBuild).w-25, h()-25, appBuild);
+    }
   }
 
 void GameMenu::drawItem(Painter& p, Item& hItem) {

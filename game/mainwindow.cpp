@@ -100,7 +100,7 @@ void MainWindow::setupUi() {
   addWidget(&video);
   addWidget(&rootMenu);
 
-  rootMenu.setMenu("MENU_MAIN");
+  rootMenu.setMainMenu();
 
   Gothic::inst().onDialogPipe  .bind(&dialogs,&DialogMenu::openPipe);
   Gothic::inst().isDialogClose .bind(&dialogs,&DialogMenu::aiIsClose);
@@ -430,6 +430,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
 
   if(menuEv!=nullptr) {
     rootMenu.setMenu(menuEv,act);
+    rootMenu.showVersion(act==KeyCodec::Escape);
     if(auto pl = Gothic::inst().player())
       rootMenu.setPlayer(*pl);
     clearInput();
@@ -629,7 +630,7 @@ uint64_t MainWindow::tick() {
   if(st==Gothic::LoadState::Finalize || st==Gothic::LoadState::FailedLoad || st==Gothic::LoadState::FailedSave) {
     Gothic::inst().finishLoading();
     if(st==Gothic::LoadState::FailedLoad)
-      rootMenu.setMenu("MENU_MAIN");
+      rootMenu.setMainMenu();
     if(st==Gothic::LoadState::FailedSave)
       Gothic::inst().onPrint("unable to write savegame file");
     return 0;
@@ -834,7 +835,7 @@ void MainWindow::onWorldLoaded() {
   }
 
 void MainWindow::onSessionExit() {
-  rootMenu.setMenu("MENU_MAIN");
+  rootMenu.setMainMenu();
   }
 
 void MainWindow::setGameImpl(std::unique_ptr<GameSession> &&w) {

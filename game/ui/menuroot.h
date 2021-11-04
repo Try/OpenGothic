@@ -13,6 +13,7 @@ class MenuRoot : public Tempest::Widget {
     MenuRoot(KeyCodec& keyCodec);
     ~MenuRoot() override;
 
+    void setMainMenu();
     void setMenu(const char* menu, KeyCodec::Action key = KeyCodec::Escape);
     void setMenu(GameMenu* w);
     void pushMenu(GameMenu* w);
@@ -21,6 +22,9 @@ class MenuRoot : public Tempest::Widget {
     bool isActive() const;
     void setPlayer(const Npc& pl);
     void processMusicTheme();
+
+    void showVersion(bool s);
+    bool hasVersionLine() const;
 
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
     void keyDownEvent   (Tempest::KeyEvent&   event) override;
@@ -37,4 +41,5 @@ class MenuRoot : public Tempest::Widget {
     KeyCodec&                              keyCodec;
 
     Tempest::Event::KeyType                cheatCode[6] = {};
+    bool                                   showVersionHint = false;
   };
