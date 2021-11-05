@@ -847,6 +847,9 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
   if(!forward)
     return;
 
+  if(!info.preFall && npc.isAtackAnim())
+    return;
+
   npc.setAnimRotate(0);
   if(val<-threshold) {
     npc.setDirection(npc.rotation()-stp);
