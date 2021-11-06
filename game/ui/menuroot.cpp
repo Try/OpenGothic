@@ -16,7 +16,7 @@ MenuRoot::~MenuRoot() {
   }
 
 void MenuRoot::setMainMenu() {
-  setMenu("MAIN_MENU");
+  setMenu("MENU_MAIN");
   showVersion(true);
   }
 
