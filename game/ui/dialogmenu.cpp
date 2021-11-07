@@ -520,6 +520,13 @@ void DialogMenu::mouseWheelEvent(MouseEvent &e) {
   }
 
 void DialogMenu::keyDownEvent(KeyEvent &e) {
+  // Explicitly accept this even so inventory won't open
+  // as long as dialog menu is active.
+  if(e.key==Event::K_Back) {
+    e.accept();
+    return;
+    }
+
   if(state==State::Idle || trade.isOpen()!=InventoryMenu::State::Closed){
     e.ignore();
     return;

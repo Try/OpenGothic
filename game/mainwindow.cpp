@@ -372,6 +372,11 @@ void MainWindow::keyRepeatEvent(KeyEvent& event) {
   }
 
 void MainWindow::keyUpEvent(KeyEvent &event) {
+  // Don't process any key up events if the game is loading!
+  if (Gothic::inst().checkLoading()!=Gothic::LoadState::Idle) {
+    return;
+    }
+
   if(uiKeyUp==&video){
     video.keyUpEvent(event);
     if(event.isAccepted())
