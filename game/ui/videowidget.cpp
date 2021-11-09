@@ -240,7 +240,7 @@ void VideoWidget::paint(Tempest::Device& device, uint8_t fId) {
     return;
   try {
     ctx->advance();
-    tex[fId] = device.loadTexture(ctx->pm,false);
+    tex[fId] = device.texture(ctx->pm,false);
     frame    = &tex[fId];
     update();
     }

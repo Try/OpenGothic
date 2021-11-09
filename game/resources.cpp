@@ -94,12 +94,12 @@ Resources::Resources(Tempest::Device &device)
   uint8_t* pix = reinterpret_cast<uint8_t*>(pm.data());
   pix[0]=255;
   pix[3]=255;
-  fallback = device.loadTexture(pm);
+  fallback = device.texture(pm);
   }
 
   {
   Pixmap pm(1,1,Pixmap::Format::RGBA);
-  fbZero = device.loadTexture(pm);
+  fbZero = device.texture(pm);
   }
 
   std::vector<Archive> archives;
@@ -288,7 +288,7 @@ Texture2d *Resources::implLoadTexture(TextureCache& cache, std::string&& name, c
     Tempest::MemReader rd(data.data(),data.size());
     Tempest::Pixmap    pm(rd);
 
-    std::unique_ptr<Texture2d> t{new Texture2d(dev.loadTexture(pm))};
+    std::unique_ptr<Texture2d> t{new Texture2d(dev.texture(pm))};
     Texture2d* ret=t.get();
     cache[std::move(name)] = std::move(t);
     return ret;
@@ -640,9 +640,9 @@ Texture2d Resources::loadTexturePm(const Pixmap &pm) {
   if(pm.isEmpty()) {
     Pixmap p2(1,1,Pixmap::Format::R);
     std::memset(p2.data(),0,1);
-    return inst->dev.loadTexture(p2);
+    return inst->dev.texture(p2);
     }
-  return inst->dev.loadTexture(pm);
+  return inst->dev.texture(pm);
   }
 
 Material Resources::loadMaterial(const ZenLoad::zCMaterialData& src, bool enableAlphaTest) {
