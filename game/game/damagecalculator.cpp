@@ -55,7 +55,7 @@ DamageCalculator::Val DamageCalculator::damageFall(Npc& npc, float speed) {
 
 DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, const Bullet& b, const CollideMask bMsk) {
   bool invinsible = !checkDamageMask(nsrc,nother,&b);
-  if(b.pathLength()>MaxBowRange*b.hitChance() && b.hitChance()<1.f)
+  if(b.pathLength() > static_cast<float>(MaxBowRange) * b.hitChance() && b.hitChance()<1.f)
     return Val(0,false,invinsible);
 
   if(invinsible)
