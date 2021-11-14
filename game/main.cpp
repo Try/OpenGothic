@@ -16,6 +16,7 @@
 #include "mainwindow.h"
 #include "gothic.h"
 #include "build.h"
+#include "commandline.h"
 
 const char* selectDevice(const Tempest::AbstractGraphicsApi& api) {
   auto d = api.devices();
@@ -38,16 +39,16 @@ const char* selectDevice(const Tempest::AbstractGraphicsApi& api) {
   return nullptr;
   }
 
-std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(Gothic& g) {
+std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(const CommandLine& g) {
   Tempest::ApiFlags flg = g.isDebugMode() ? Tempest::ApiFlags::Validation : Tempest::ApiFlags::NoFlags;
   switch(g.graphicsApi()) {
-    case Gothic::DirectX12:
+    case CommandLine::DirectX12:
 #if defined(_MSC_VER)
       return std::make_unique<Tempest::DirectX12Api>(flg);
 #else
       break;
 #endif
-    case Gothic::Vulkan:
+    case CommandLine::Vulkan:
 #if !defined(__OSX__)
       return std::make_unique<Tempest::VulkanApi>(flg);
 #else
@@ -68,13 +69,14 @@ int main(int argc,const char** argv) {
 
   Tempest::Log::i(appBuild);
 
-  Gothic               gothic{argc,argv};
-  auto                 api = mkApi(gothic);
+  CommandLine          cmd{argc,argv};
+  auto                 api = mkApi(cmd);
 
   Tempest::Device      device{*api,selectDevice(*api)};
   Resources            resources{device};
-  GameMusic            music;
 
+  Gothic               gothic;
+  GameMusic            music;
   gothic.setupGlobalScripts();
 
   MainWindow           wx(device);

@@ -22,6 +22,7 @@
 #include "utils/gthfont.h"
 #include "utils/dbgpainter.h"
 
+#include "commandline.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -36,7 +37,7 @@ MainWindow::MainWindow(Device& device)
   for(uint8_t i=0;i<Resources::MaxFramesInFlight;++i)
     fence[i] = device.fence();
 
-  if(!Gothic::inst().isWindowMode())
+  if(!CommandLine::inst().isWindowMode())
     setFullscreen(true);
 
   renderer.resetSwapchain();
@@ -67,7 +68,7 @@ MainWindow::MainWindow(Device& device)
     Gothic::inst().load(Gothic::inst().defaultSave());
     rootMenu.popMenu();
     }
-  else if(!Gothic::inst().doStartMenu()) {
+  else if(!CommandLine::inst().doStartMenu()) {
     startGame(Gothic::inst().defaultWorld());
     rootMenu.popMenu();
     }

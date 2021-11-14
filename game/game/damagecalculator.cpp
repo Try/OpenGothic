@@ -6,7 +6,7 @@
 #include "world/bullet.h"
 
 #include "game/gamesession.h"
-#include "gothic.h"
+#include "commandline.h"
 
 using namespace Daedalus::GEngineClasses;
 
@@ -26,7 +26,7 @@ DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const 
     ret.value = std::max<int32_t>(ret.value,MinDamage);
   if(other.isImmortal())
     ret.value = 0;
-  if(other.isPlayer() && Gothic::inst().isRamboMode())
+  if(other.isPlayer() && CommandLine::inst().isRamboMode())
     ret.value = std::min(1,ret.value);
   return ret;
   }

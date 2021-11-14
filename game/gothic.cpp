@@ -15,97 +15,32 @@
 #include "game/definitions/particlesdefinitions.h"
 #include "game/serialize.h"
 
-#include "utils/installdetect.h"
 #include "utils/fileutil.h"
 #include "utils/inifile.h"
+
+#include "commandline.h"
 
 using namespace Tempest;
 using namespace FileUtil;
 
 Gothic* Gothic::instance = nullptr;
 
-Gothic::Gothic(const int argc, const char **argv) {
-  if(argc<1)
-    return;
+Gothic::Gothic() {
+  instance = this;
 
 #ifndef NDEBUG
   setMarvinEnabled(true);
   setFRate(true);
 #endif
 
-  std::string_view mod;
-  for(int i=1;i<argc;++i) {
-    std::string_view arg = argv[i];
-    if(arg.find("-game:")==0) {
-      if(!mod.empty())
-        Log::e("-game specifyed twice");
-      mod = arg.substr(6);
-      }
-    if(arg=="-g") {
-      ++i;
-      if(i<argc)
-        gpath.assign(argv[i],argv[i]+std::strlen(argv[i]));
-      }
-    else if(arg=="-save") {
-      ++i;
-      if(i<argc){
-        if(std::strcmp(argv[i],"q")==0) {
-          saveDef = "save_slot_0.sav";
-          } else {
-          saveDef = std::string("save_slot_")+argv[i]+".sav";
-          }
-        }
-      }
-    else if(arg=="-w") {
-      ++i;
-      if(i<argc)
-        wdef=argv[i];
-      }
-    else if(arg=="-window") {
-      isWindow=true;
-      }
-    else if(arg=="-nomenu") {
-      noMenu=true;
-      }
-    else if(arg=="-nofrate") {
-      noFrate=true;
-      }
-    else if(arg=="-rambo") {
-      isRambo=true;
-      }
-    else if(arg=="-dx12") {
-      graphics = GraphicBackend::DirectX12;
-      }
-    else if(arg=="-validation" || arg=="-v") {
-      isDebug=true;
-      }
-    }
-
-  if(gpath.empty()) {
-    InstallDetect inst;
-    gpath = inst.detectG2();
-    }
-
-  for(auto& i:gpath)
-    if(i=='\\')
-      i='/';
-
-  if(gpath.size()>0 && gpath.back()!='/')
-    gpath.push_back('/');
-
-  gscript = nestedPath({u"_work",u"Data",u"Scripts",u"_compiled"},Dir::FT_Dir);
-
-  if(!validateGothicPath()) {
-    Log::e("invalid gothic path: \"",TextCodec::toUtf8(gpath),"\"");
-    throw std::logic_error("gothic not found!"); //TODO: user-friendly message-box
-    }
-
-  instance = this;
+  noFrate = CommandLine::inst().noFrate;
 
   baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));
   iniFile    .reset(new IniFile(u"Gothic.ini"));
 
   detectGothicVersion();
+
+  const std::string& mod = CommandLine::inst().modDef;
   if(!mod.empty()){
     auto mod16 = TextCodec::toUtf16(std::string(mod));
     modFile.reset(new IniFile(nestedPath({u"system",mod16.c_str()},Dir::FT_File)));
@@ -147,10 +82,6 @@ void Gothic::setupGlobalScripts() {
   particleDef.reset(new ParticlesDefinitions());
   vfxDef     .reset(new VisualFxDefinitions());
   music      .reset(new MusicDefinitions());
-  }
-
-Gothic::GraphicBackend Gothic::graphicsApi() const {
-  return graphics;
   }
 
 const VersionInfo& Gothic::version() const {
@@ -348,14 +279,6 @@ void Gothic::setMarvinEnabled(bool m) {
   isMarvin = m;
   }
 
-bool Gothic::isDebugMode() const {
-  return isDebug;
-  }
-
-bool Gothic::isRamboMode() const {
-  return isRambo;
-  }
-
 Gothic::LoadState Gothic::checkLoading() const {
   return loadingFlag.load();
   }
@@ -550,7 +473,7 @@ std::string_view Gothic::defaultPlayer() const {
   }
 
 std::string_view Gothic::defaultSave() const {
-  return saveDef;
+  return CommandLine::inst().saveDef;
   }
 
 std::unique_ptr<Daedalus::DaedalusVM> Gothic::createVm(std::string_view datFile) {
@@ -565,7 +488,7 @@ std::vector<uint8_t> Gothic::loadScriptCode(std::string_view datFile) {
   if(Resources::hasFile(datFile))
     return Resources::getFileData(datFile);
 
-  //auto path = Gothic::inst().nestedPath({u"_work",u"Data",u"Scripts",u"_compiled",u"GOTHIC.DAT"},Dir::FT_File);
+  auto gscript = CommandLine::inst().scriptPath();
   char16_t str16[256] = {};
   for(size_t i=0; i<datFile.size() && i<255; ++i)
     str16[i] = char16_t(datFile[i]);
@@ -646,21 +569,10 @@ void Gothic::debug(const ZenLoad::PackedSkeletalMesh &mesh, std::ostream &out) {
     }
   }
 
-bool Gothic::validateGothicPath() const {
-  if(gpath.empty())
-    return false;
-  if(!FileUtil::exists(gscript))
-    return false;
-  if(!FileUtil::exists(nestedPath({u"Data"},Dir::FT_Dir)))
-    return false;
-  if(!FileUtil::exists(nestedPath({u"_work",u"Data"},Dir::FT_Dir)))
-    return false;
-  return true;
-  }
-
 void Gothic::detectGothicVersion() {
   int score[3]={};
 
+  auto gpath = CommandLine::inst().rootPath();
   if(gpath.find(u"Gothic/")!=std::string::npos || gpath.find(u"gothic/")!=std::string::npos)
     score[1]++;
   if(FileUtil::exists(nestedPath({u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE",u"OU.BIN"},Dir::FT_File)))
@@ -730,7 +642,7 @@ std::unique_ptr<DocumentMenu::Show>& Gothic::getDocument(int id) {
   }
 
 std::u16string Gothic::nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const {
-  return FileUtil::nestedPath(gpath, name, type);
+  return CommandLine::inst().nestedPath(name,type);
   }
 
 void Gothic::setupVmCommonApi(Daedalus::DaedalusVM& vm) {
@@ -1056,6 +968,8 @@ void Gothic::doc_setlevelcoords(Daedalus::DaedalusVM& vm) {
 void Gothic::exitgame(Daedalus::DaedalusVM&) {
   if(game!=nullptr)
     game->exitSession();
+  if(pendingGame!=nullptr)
+    pendingGame->exitSession();
   Tempest::SystemApi::exit();
   }
 

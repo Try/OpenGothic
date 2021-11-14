@@ -26,7 +26,7 @@ class IniFile;
 
 class Gothic final {
   public:
-    Gothic(int argc,const char** argv);
+    Gothic();
     ~Gothic();
 
     static Gothic& inst();
@@ -40,16 +40,9 @@ class Gothic final {
       FailedSave = 5
       };
 
-    enum GraphicBackend : uint8_t {
-      Vulkan,
-      DirectX12
-      };
-
     auto         version() const -> const VersionInfo&;
-    auto         graphicsApi() const -> GraphicBackend;
 
     bool         isInGame() const;
-    bool         doStartMenu() const { return !noMenu; }
 
     std::string_view defaultWorld()  const;
     std::string_view defaultPlayer() const;
@@ -95,10 +88,6 @@ class Gothic final {
 
     bool         doFrate() const { return !noFrate; }
     void         setFRate(bool f) { noFrate = !f; }
-
-    bool         isDebugMode() const;
-    bool         isRamboMode() const;
-    bool         isWindowMode() const { return isWindow; }
 
     LoadState    checkLoading() const;
     bool         finishLoading();
@@ -165,19 +154,12 @@ class Gothic final {
     static void debug(const ZenLoad::PackedSkeletalMesh& mesh, std::ostream& out);
 
   private:
-    std::u16string                          gpath, gscript;
-    std::string                             wdef, plDef;
-    std::string                             saveDef;
-    bool                                    noMenu=false;
-    bool                                    noFrate=false;
-    bool                                    isWindow=false;
-    GraphicBackend                          graphics = GraphicBackend::Vulkan;
-    uint16_t                                pauseSum=0;
-    bool                                    isMarvin = false;
-    bool                                    isDebug  = false;
-    bool                                    isRambo  = false;
     VersionInfo                             vinfo;
     std::mt19937                            randGen;
+    uint16_t                                pauseSum=0;
+    bool                                    isMarvin = false;
+    bool                                    noFrate  = false;
+    std::string                             wdef, plDef;
 
     std::unique_ptr<IniFile>                baseIniFile;
     std::unique_ptr<IniFile>                iniFile;
@@ -215,7 +197,6 @@ class Gothic final {
                                                               bool load,
                                                               const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
 
-    bool                                    validateGothicPath() const;
     void                                    detectGothicVersion();
     void                                    setupSettings();
 

@@ -69,8 +69,8 @@ GameSession::GameSession(std::string file) {
 
   const bool testMode=false;
 
-  //std::string_view hero = testMode ? "PC_ROCKEFELLER" : Gothic::inst().defaultPlayer();
-  std::string_view hero = "PC_ROCKEFELLER";
+  std::string_view hero = testMode ? "PC_ROCKEFELLER" : Gothic::inst().defaultPlayer();
+  //std::string_view hero = "PC_ROCKEFELLER";
   //std::string_view hero = "PC_HERO";
   //std::string_view hero = "FireGolem";
   //std::string_view hero = "Dragon_Undead";
