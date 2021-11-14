@@ -430,16 +430,22 @@ void GameSession::initScripts(bool firstTime) {
   auto& wname = wrld->name();
   auto dot    = wname.rfind('.');
   auto name   = (dot==std::string::npos ? wname : wname.substr(0,dot));
-  if( firstTime ) {
-    std::string startup = "startup_"+name;
 
-    if(vm->hasSymbolName(startup.c_str()))
-      vm->runFunction(startup.c_str());
+  if(vm->hasSymbolName("startup_global"))
+    vm->runFunction("startup_global");
+
+  if(vm->hasSymbolName("init_global"))
+    vm->runFunction("init_global");
+
+  if(firstTime) {
+    std::string startup = "startup_"+name;
+    if(vm->hasSymbolName(startup))
+      vm->runFunction(startup);
     }
 
   std::string init = "init_"+name;
-  if(vm->hasSymbolName(init.c_str()))
-    vm->runFunction(init.c_str());
+  if(vm->hasSymbolName(init))
+    vm->runFunction(init);
 
   wrld->resetPositionToTA();
   }

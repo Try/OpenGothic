@@ -340,7 +340,7 @@ void GameScript::initCommon() {
       viewTimePerChar=0.55f;
     } else {
     itMi_Gold      = dat.getSymbolIndexByName("ItMiNugget");
-    if(itMi_Gold!=size_t(-1)){ // FIXME
+    if(itMi_Gold!=size_t(-1)) { // FIXME
       Daedalus::GEngineClasses::C_Item item={};
       vm.initializeInstance(item, itMi_Gold, Daedalus::IC_Item);
       clearReferences(item);
@@ -403,12 +403,6 @@ void GameScript::initCommon() {
       cGuildVal.turn_speed         [i]=cGuildVal.turn_speed         [Guild::GIL_HUMAN];
       }
     }
-
-  if(hasSymbolName("init_global"))
-    runFunction("init_global");
-
-  if(hasSymbolName("startup_global"))
-    runFunction("startup_global");
   }
 
 void GameScript::initDialogs() {

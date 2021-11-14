@@ -309,7 +309,7 @@ void Gothic::emitGlobalSound(const Tempest::Sound &sfx) {
   sndStorage.push_back(std::move(s));
   }
 
-void Gothic::emitGlobalSoundWav(const std::string &wav) {
+void Gothic::emitGlobalSoundWav(std::string_view wav) {
   auto s = sndDev.load(Resources::loadSoundBuffer(wav));
   s.play();
 
@@ -1054,6 +1054,8 @@ void Gothic::doc_setlevelcoords(Daedalus::DaedalusVM& vm) {
   }
 
 void Gothic::exitgame(Daedalus::DaedalusVM&) {
+  if(game!=nullptr)
+    game->exitSession();
   Tempest::SystemApi::exit();
   }
 
