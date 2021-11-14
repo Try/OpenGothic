@@ -9,6 +9,7 @@
 #include "game/definitions/spelldefinitions.h"
 #include "game/serialize.h"
 #include "game/globaleffects.h"
+#include "game/compatibility/ikarus.h"
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
 #include "world/objects/interactive.h"
@@ -65,7 +66,7 @@ bool GameScript::GlobalOutput::isFinished() {
   }
 
 GameScript::GameScript(GameSession &owner)
-  :vm(Gothic::inst().loadScriptCode("GOTHIC.DAT")),owner(owner) {
+  :owner(owner), vm(Gothic::inst().loadScriptCode("GOTHIC.DAT")) {
   Daedalus::registerGothicEngineClasses(vm);
   Gothic::inst().setupVmCommonApi(vm);
   aiDefaultPipe.reset(new GlobalOutput(*this));
@@ -402,6 +403,10 @@ void GameScript::initCommon() {
       cGuildVal.blood_texture      [i]=cGuildVal.blood_texture      [Guild::GIL_HUMAN];
       cGuildVal.turn_speed         [i]=cGuildVal.turn_speed         [Guild::GIL_HUMAN];
       }
+    }
+
+  if(Ikarus::isRequired(vm)) {
+    plugins.emplace_back(std::make_unique<Ikarus>(*this,vm));
     }
   }
 

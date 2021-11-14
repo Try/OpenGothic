@@ -23,6 +23,7 @@
 
 class GameSession;
 class World;
+class ScriptPlugin;
 class Npc;
 class Item;
 class VisualFx;
@@ -407,9 +408,11 @@ class GameScript final {
     void fixNpcPosition(Npc& npc, float angle0, float distBias);
     void onWldInstanceRemoved(const Daedalus::GEngineClasses::Instance* obj);
 
-    Daedalus::DaedalusVM                                        vm;
     GameSession&                                                owner;
+    Daedalus::DaedalusVM                                        vm;
     std::mt19937                                                randGen;
+
+    std::vector<std::unique_ptr<ScriptPlugin>>                  plugins;
 
     std::unique_ptr<SpellDefinitions>                           spells;
     std::unique_ptr<SvmDefinitions>                             svm;

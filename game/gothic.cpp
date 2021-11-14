@@ -966,10 +966,6 @@ void Gothic::doc_setlevelcoords(Daedalus::DaedalusVM& vm) {
   }
 
 void Gothic::exitgame(Daedalus::DaedalusVM&) {
-  if(game!=nullptr)
-    game->exitSession();
-  if(pendingGame!=nullptr)
-    pendingGame->exitSession();
   Tempest::SystemApi::exit();
   }
 
