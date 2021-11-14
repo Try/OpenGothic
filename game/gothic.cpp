@@ -34,30 +34,30 @@ Gothic::Gothic() {
 #endif
 
   noFrate = CommandLine::inst().noFrate;
+  wrldDef = CommandLine::inst().wrldDef;
 
   baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));
   iniFile    .reset(new IniFile(u"Gothic.ini"));
 
   detectGothicVersion();
 
-  const std::string& mod = CommandLine::inst().modDef;
+  std::u16string_view mod = CommandLine::inst().modPath();
   if(!mod.empty()){
-    auto mod16 = TextCodec::toUtf16(std::string(mod));
-    modFile.reset(new IniFile(nestedPath({u"system",mod16.c_str()},Dir::FT_File)));
+    modFile.reset(new IniFile(mod));
     }
 
   if(modFile!=nullptr) {
-    wdef = modFile->getS("SETTINGS","WORLD");
-    size_t split = wdef.rfind('\\');
+    wrldDef = modFile->getS("SETTINGS","WORLD");
+    size_t split = wrldDef.rfind('\\');
     if(split!=std::string::npos)
-      wdef = wdef.substr(split+1);
+      wrldDef = wrldDef.substr(split+1);
     plDef = modFile->getS("SETTINGS","PLAYER");
     }
 
-  if(wdef.empty()) {
+  if(wrldDef.empty()) {
     if(version().game==2)
-      wdef = "newworld.zen"; else
-      wdef = "world.zen";
+      wrldDef = "newworld.zen"; else
+      wrldDef = "world.zen";
     }
 
   if(plDef.empty())
@@ -465,7 +465,7 @@ uint32_t Gothic::messageTime(const Daedalus::ZString& id) const {
   }
 
 std::string_view Gothic::defaultWorld() const {
-  return wdef;
+  return wrldDef;
   }
 
 std::string_view Gothic::defaultPlayer() const {
@@ -473,7 +473,7 @@ std::string_view Gothic::defaultPlayer() const {
   }
 
 std::string_view Gothic::defaultSave() const {
-  return CommandLine::inst().saveDef;
+  return CommandLine::inst().defaultSave();
   }
 
 std::unique_ptr<Daedalus::DaedalusVM> Gothic::createVm(std::string_view datFile) {

@@ -19,12 +19,13 @@ CommandLine::CommandLine(int argc, const char** argv) {
   if(argc<1)
     return;
 
+  std::string_view mod;
   for(int i=1;i<argc;++i) {
     std::string_view arg = argv[i];
     if(arg.find("-game:")==0) {
-      if(!modDef.empty())
+      if(!mod.empty())
         Log::e("-game specifyed twice");
-      modDef = arg.substr(6);
+      mod = arg.substr(6);
       }
     if(arg=="-g") {
       ++i;
@@ -79,6 +80,9 @@ CommandLine::CommandLine(int argc, const char** argv) {
     gpath.push_back('/');
 
   gscript = nestedPath({u"_work",u"Data",u"Scripts",u"_compiled"},Dir::FT_Dir);
+  gmod    = TextCodec::toUtf16(std::string(mod));
+  if(!gmod.empty())
+    gmod = nestedPath({u"system",gmod.c_str()},Dir::FT_File);
 
   if(!validateGothicPath()) {
     Log::e("invalid gothic path: \"",TextCodec::toUtf8(gpath),"\"");

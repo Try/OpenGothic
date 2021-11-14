@@ -159,7 +159,7 @@ class Gothic final {
     uint16_t                                pauseSum=0;
     bool                                    isMarvin = false;
     bool                                    noFrate  = false;
-    std::string                             wdef, plDef;
+    std::string                             wrldDef, plDef;
 
     std::unique_ptr<IniFile>                baseIniFile;
     std::unique_ptr<IniFile>                iniFile;

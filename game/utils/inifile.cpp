@@ -25,8 +25,8 @@ static bool compareNoCase(std::string_view a, std::string_view b) {
   return true;
   }
 
-IniFile::IniFile(std::u16string file) {
-  fileName = std::move(file);
+IniFile::IniFile(std::u16string_view file) {
+  fileName = std::u16string(file);
   if(!FileUtil::exists(fileName)) {
     Log::e("no *.ini file in path - using default settings");
     return;

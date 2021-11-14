@@ -5,8 +5,8 @@
 
 class IniFile final {
   public:
-    IniFile(std::u16string file);
-    IniFile(Tempest::RFile& fin);
+    IniFile(std::u16string_view file);
+    IniFile(Tempest::RFile&     fin);
 
     void flush();
 
