@@ -37,6 +37,14 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   auto    ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
   uint8_t slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
 
+  if(pl!=nullptr && pl->interactive()!=nullptr) {
+    auto inter = pl->interactive();
+    if(inter->needToLockpick(*pl)) {
+      processPickLock(*pl,*inter,a);
+      return;
+      }
+    }
+
   if(pl!=nullptr) {
     if(a==Action::Weapon) {
       if(ws!=WeaponState::NoWeapon) //Currently a weapon is active
@@ -745,11 +753,64 @@ void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
     return;
     }
 
+  if(inter->needToLockpick(pl) && !inter->isCracked()) {
+    ;
+    }
+
   if(inter->isStaticState() && !inter->isDetachState(pl)) {
     if(inter->canQuitAtState(pl,inter->stateId())) {
       pl.setInteraction(nullptr,true);
       }
     }
+  }
+
+void PlayerControl::processPickLock(Npc& pl, Interactive& inter, KeyCodec::Action k) {
+  auto         w             = Gothic::inst().world();
+  auto&        script        = w->script();
+  const size_t ItKE_lockpick = script.getSymbolIndex("ItKE_lockpick");
+
+  char ch = '\0';
+  if(k==KeyCodec::Left || k==KeyCodec::RotateL)
+    ch = 'L';
+  else if(k==KeyCodec::Right || k==KeyCodec::RotateR)
+    ch = 'R';
+  else if(k==KeyCodec::Back) {
+    quitPicklock(pl);
+    return;
+    }
+  else
+    return;
+
+  auto cmp = inter.pickLockCode();
+  if(pickLockProgress<cmp.size() && cmp[pickLockProgress]!=ch) {
+    pickLockProgress = 0;
+    const int32_t dex = pl.attribute(ATR_DEXTERITY);
+    if(dex<int32_t(script.rand(100)))  {
+      script.invokePickLock(pl,0,1);
+      pl.delItem(ItKE_lockpick,1);
+      if(pl.inventory().itemCount(ItKE_lockpick)==0) {
+        quitPicklock(pl);
+        return;
+        }
+      } else {
+      script.invokePickLock(pl,0,0);
+      }
+    } else {
+    pickLockProgress++;
+    if(pickLockProgress==cmp.size()) {
+      script.invokePickLock(pl,1,1);
+      inter.setAsCracked(true);
+      pickLockProgress = 0;
+      } else {
+      script.invokePickLock(pl,1,0);
+      }
+    }
+  }
+
+void PlayerControl::quitPicklock(Npc& pl) {
+  inv.close();
+  pickLockProgress = 0;
+  pl.setInteraction(nullptr);
   }
 
 void PlayerControl::assignRunAngle(Npc& pl, float rotation, uint64_t dt) {

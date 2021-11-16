@@ -85,6 +85,7 @@ class PlayerControl final {
     float          rotMouse=0;
     float          rotMouseY=0;
     bool           casting = false;
+    size_t         pickLockProgress = 0;
 
     float          runAngleDest   = 0.f;
     uint64_t       runAngleSmooth = 0;
@@ -105,6 +106,8 @@ class PlayerControl final {
     void           clrDraw();
     void           implMove(uint64_t dt);
     void           implMoveMobsi(Npc& pl, uint64_t dt);
+    void           processPickLock(Npc& pl, Interactive& inter, KeyCodec::Action key);
+    void           quitPicklock(Npc& pl);
     void           setPos(std::array<float,3> a, uint64_t dt, float speed);
     void           assignRunAngle(Npc& pl, float rotation, uint64_t dt);
     void           setAnimRotate (Npc& pl, float rotation, int anim, bool force, uint64_t dt);

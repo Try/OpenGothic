@@ -98,8 +98,6 @@ class InventoryMenu : public Tempest::Widget {
 
     size_t                    columsCount=5;
 
-    size_t                    pickLockProgress = 0;
-
     size_t                    rowsCount() const;
 
     Tempest::Size             slotSize() const;
@@ -111,7 +109,6 @@ class InventoryMenu : public Tempest::Widget {
     const World*              world() const;
 
     void          processMove(Tempest::KeyEvent& e);
-    void          processPickLock(Tempest::KeyEvent& e);
     void          moveLeft(bool usePage);
     void          moveRight(bool usePage);
     void          moveUp();

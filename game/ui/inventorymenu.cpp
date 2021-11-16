@@ -162,7 +162,6 @@ void InventoryMenu::open(Npc &pl, Interactive &ch) {
     return;
 
   if(needToPicklock && !ch.isCracked()) {
-    pickLockProgress = 0;
     state = State::LockPicking;
     } else {
     state = State::Chest;
@@ -197,6 +196,13 @@ void InventoryMenu::tick(uint64_t /*dt*/) {
   if(player!=nullptr && player->isDown()) {
     close();
     return;
+    }
+
+  if(state==State::LockPicking) {
+    if(chest->isCracked()) {
+      state = State::Chest;
+      return;
+      }
     }
 
   if(state==State::Ransack) {
@@ -243,50 +249,6 @@ void InventoryMenu::processMove(KeyEvent& e) {
     moveRight(true);
   }
 
-void InventoryMenu::processPickLock(KeyEvent& e) {
-  auto&        script        = world()->script();
-  const size_t ItKE_lockpick = script.getSymbolIndex("ItKE_lockpick");
-
-  auto k  = keycodec.tr(e);
-  char ch = '\0';
-  if(k==KeyCodec::Left || k==KeyCodec::RotateL)
-    ch = 'L';
-  else if(k==KeyCodec::Right || k==KeyCodec::RotateR)
-    ch = 'R';
-  else if(k==KeyCodec::Back) {
-    close();
-    return;
-    }
-  else
-    return;
-
-  auto cmp = chest->pickLockCode();
-  if(pickLockProgress<cmp.size() && cmp[pickLockProgress]!=ch) {
-    pickLockProgress = 0;
-    const int32_t dex = player->attribute(ATR_DEXTERITY);
-    if(dex<int32_t(script.rand(100)))  {
-      script.invokePickLock(*player,0,1);
-      player->delItem(ItKE_lockpick,1);
-      if(player->inventory().itemCount(ItKE_lockpick)==0) {
-        close();
-        return;
-        }
-      } else {
-      script.invokePickLock(*player,0,0);
-      }
-    } else {
-    pickLockProgress++;
-    if(pickLockProgress==cmp.size()) {
-      script.invokePickLock(*player,1,1);
-      chest->setAsCracked(true);
-      pickLockProgress = 0;
-      state            = State::Chest;
-      } else {
-      script.invokePickLock(*player,1,0);
-      }
-    }
-  }
-
 void InventoryMenu::moveLeft(bool usePage) {
   auto& sel = activePageSel();
 
@@ -327,13 +289,8 @@ void InventoryMenu::moveDown() {
   }
 
 void InventoryMenu::keyDownEvent(KeyEvent &e) {
-  if(state==State::Closed){
+  if(state==State::Closed || state==State::LockPicking){
     e.ignore();
-    return;
-    }
-
-  if(state==State::LockPicking) {
-    processPickLock(e);
     return;
     }
 
