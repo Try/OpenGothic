@@ -81,8 +81,8 @@ Shaders::Shaders() {
   {
   RenderState state;
   state.setCullFaceMode (RenderState::CullMode::Front);
-  state.setBlendSource  (RenderState::BlendMode::one);
-  state.setBlendDest    (RenderState::BlendMode::one);
+  state.setBlendSource  (RenderState::BlendMode::One);
+  state.setBlendDest    (RenderState::BlendMode::One);
   state.setZTestMode    (RenderState::ZTestMode::Less);
 
   state.setZWriteEnabled(false);
@@ -97,8 +97,8 @@ Shaders::Shaders() {
   {
   RenderState state;
   state.setCullFaceMode (RenderState::CullMode::Front);
-  state.setBlendSource  (RenderState::BlendMode::one);
-  state.setBlendDest    (RenderState::BlendMode::one_minus_src_alpha);
+  state.setBlendSource  (RenderState::BlendMode::One);
+  state.setBlendDest    (RenderState::BlendMode::OneMinusSrcAlpha);
   state.setZTestMode    (RenderState::ZTestMode::Greater);
   state.setZWriteEnabled(false);
 
@@ -174,15 +174,15 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
       forward  = &solidF;
       deffered = nullptr;
 
-      state.setBlendSource (RenderState::BlendMode::src_alpha); // premultiply in shader
-      state.setBlendDest   (RenderState::BlendMode::one_minus_src_alpha);
+      state.setBlendSource (RenderState::BlendMode::SrcAlpha); // premultiply in shader
+      state.setBlendDest   (RenderState::BlendMode::OneMinusSrcAlpha);
       state.setZWriteEnabled(false);
       break;
     case Material::AdditiveLight:
       forward = &emmision;
 
-      state.setBlendSource  (RenderState::BlendMode::src_alpha);
-      state.setBlendDest    (RenderState::BlendMode::one);
+      state.setBlendSource  (RenderState::BlendMode::SrcAlpha);
+      state.setBlendDest    (RenderState::BlendMode::One);
       state.setZWriteEnabled(false);
       break;
     case Material::Multiply:
@@ -190,8 +190,8 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
       forward  = &solidF;
       deffered = &solid;
 
-      state.setBlendSource  (RenderState::BlendMode::src_alpha);
-      state.setBlendDest    (RenderState::BlendMode::one);
+      state.setBlendSource  (RenderState::BlendMode::SrcAlpha);
+      state.setBlendDest    (RenderState::BlendMode::One);
       state.setZWriteEnabled(false);
       break;
     }
