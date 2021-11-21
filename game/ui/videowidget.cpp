@@ -157,6 +157,7 @@ struct VideoWidget::Context {
   };
 
 VideoWidget::VideoWidget() {
+  setCursorShape(CursorShape::Hidden);
   }
 
 VideoWidget::~VideoWidget() {

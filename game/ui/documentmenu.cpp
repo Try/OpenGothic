@@ -10,6 +10,7 @@ using namespace Tempest;
 
 DocumentMenu::DocumentMenu(const KeyCodec& key)
   :keycodec(key) {
+  setFocusPolicy(NoFocus);
   cursor = Resources::loadTexture("U.TGA");
   }
 

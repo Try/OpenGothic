@@ -39,6 +39,7 @@ DialogMenu::DialogMenu(InventoryMenu &trade)
   tex     = Resources::loadTexture("DLG_CHOICE.TGA");
   ambient = Resources::loadTexture("DLG_AMBIENT.TGA");
 
+  setCursorShape(CursorShape::Hidden);
   setFocusPolicy(NoFocus);
 
   Gothic::inst().onSettingsChanged.bind(this,&DialogMenu::setupSettings);
