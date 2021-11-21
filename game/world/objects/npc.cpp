@@ -18,6 +18,8 @@
 #include "world/world.h"
 #include "utils/versioninfo.h"
 #include "utils/fileext.h"
+#include "camera.h"
+#include "gothic.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -2123,6 +2125,9 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
     case AI_Teleport: {
       setPosition(act.point->x,act.point->y,act.point->z);
+      setDirection(act.point->dirX,act.point->dirY,act.point->dirZ);
+      if(isPlayer())
+        Gothic::inst().camera()->reset(this);
       }
       break;
     case AI_DrawWeapon:
