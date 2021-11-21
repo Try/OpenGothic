@@ -509,7 +509,7 @@ void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64
 
   for(auto& e:d.events) {
     if(e.m_Def==ZenLoad::DEF_OPT_FRAME) {
-      for(auto i:e.m_Int){
+      for(auto i:e.m_Int) {
         uint64_t fr = frameClamp(i,d.firstFrame,d.numFrames,d.lastFrame);
         if((frameA<=fr && fr<frameB) ^ invert)
           processEvent(e,ev,uint64_t(float(fr)*1000.f/fpsRate)+sTime);
@@ -716,6 +716,18 @@ void Animation::AnimData::setupMoveTr() {
 void Animation::AnimData::setupEvents(float fpsRate) {
   if(fpsRate<=0.f)
     return;
+
+  int hasOptFrame = std::numeric_limits<int>::max();
+  for(size_t i=0; i<events.size(); ++i)
+    if(events[i].m_Def==ZenLoad::DEF_OPT_FRAME) {
+      hasOptFrame = std::min(hasOptFrame, events[i].m_Int[0]);
+      }
+
+  for(size_t i=0; i<events.size(); ++i)
+    if(events[i].m_Def==ZenLoad::DEF_OPT_FRAME && events[i].m_Int[0]!=hasOptFrame) {
+      events[i] = std::move(events.back());
+      events.pop_back();
+      }
 
   for(auto& r:events) {
     if(r.m_Def==ZenLoad::DEF_HIT_END)

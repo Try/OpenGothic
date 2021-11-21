@@ -67,7 +67,7 @@ GameSession::GameSession(std::string file) {
   vm->initDialogs();
   Gothic::inst().setLoadingProgress(70);
 
-  const bool testMode=false;
+  const bool testMode=true;
 
   std::string_view hero = testMode ? "PC_ROCKEFELLER" : Gothic::inst().defaultPlayer();
   //std::string_view hero = "PC_ROCKEFELLER";
