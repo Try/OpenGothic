@@ -4,8 +4,8 @@
 
 using namespace Tempest;
 
-Ikarus::Ikarus(GameScript& owner, Daedalus::DaedalusVM& vm)
-  :owner(owner) {
+Ikarus::Ikarus(GameScript& /*owner*/, Daedalus::DaedalusVM& vm)
+  /*:owner(owner)*/ {
   Log::i("DMA mod detected: Ikarus");
 
   // Note: no inline asm

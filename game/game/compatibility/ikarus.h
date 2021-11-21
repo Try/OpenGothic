@@ -25,6 +25,6 @@ class Ikarus : public ScriptPlugin {
     void  _takeref_s  (Daedalus::DaedalusVM &vm);
     void  _takeref_f  (Daedalus::DaedalusVM &vm);
 
-    GameScript& owner;
+    // GameScript& owner;
   };
 
