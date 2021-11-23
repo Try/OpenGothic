@@ -128,7 +128,7 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
 
   if(fk>=0) {
     std::memset(actrl,0,sizeof(actrl));
-    actrl[ActGeneric] = true;
+    actrl[ActGeneric] = ctrl[KeyCodec::ActionGeneric];
     actrl[fk]         = true;
 
     ctrl[a] = true;
