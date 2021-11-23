@@ -30,6 +30,10 @@ class KeyCodec final {
       Jump,
 
       ActionGeneric,
+      ActionLeft,
+      ActionRight,
+      Parade,
+
       Walk,
       Sneak,
 
