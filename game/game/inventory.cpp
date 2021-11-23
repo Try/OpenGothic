@@ -635,12 +635,12 @@ bool Inventory::hasStateItem() const {
   }
 
 void Inventory::putCurrentToSlot(Npc& owner, std::string_view slot) {
-  if(curItem!=0) {
+  if(curItem>0) {
     putToSlot(owner,size_t(curItem),slot);
     curItem = 0;
     return;
     }
-  if(stateItem!=0)
+  if(stateItem>0)
     implPutState(owner,size_t(stateItem),slot);
   }
 
