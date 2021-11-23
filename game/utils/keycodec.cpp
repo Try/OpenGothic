@@ -64,9 +64,11 @@ std::initializer_list<KeyCodec::K_Key> KeyCodec::keys = {
   };
 
 std::initializer_list<KeyCodec::M_Key> KeyCodec::mkeys = {
-  {Tempest::Event::ButtonLeft,  0x0c02},
-  {Tempest::Event::ButtonMid,   0x0e02},
-  {Tempest::Event::ButtonRight, 0x0d02},
+  {Tempest::Event::ButtonLeft,    0x0c02},
+  {Tempest::Event::ButtonMid,     0x0e02},
+  {Tempest::Event::ButtonRight,   0x0d02},
+  {Tempest::Event::ButtonForward, 0x1002},
+  {Tempest::Event::ButtonBack,    0x0f02},
   };
 
 KeyCodec::KeyCodec() {
@@ -344,6 +346,14 @@ void KeyCodec::keyToStr(Tempest::Event::MouseButton k, char* buf, size_t bufSz) 
     }
   if(k==Tempest::Event::ButtonRight) {
     std::strncpy(buf,"MOUSE RIGHT",bufSz);
+    return;
+    }
+  if(k==Tempest::Event::ButtonForward) {
+    std::strncpy(buf,"MOUSE X2",bufSz);
+    return;
+    }
+  if(k==Tempest::Event::ButtonBack) {
+    std::strncpy(buf,"MOUSE X1",bufSz);
     return;
     }
 
