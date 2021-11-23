@@ -45,6 +45,7 @@ class World final {
 
     void                 createPlayer(std::string_view cls);
     void                 insertPlayer(std::unique_ptr<Npc>&& npc, std::string_view waypoint);
+    void                 setPlayer(Npc* npc);
     void                 postInit();
     const std::string&   name() const { return wname; }
 

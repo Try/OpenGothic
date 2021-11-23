@@ -117,6 +117,18 @@ void World::insertPlayer(std::unique_ptr<Npc> &&npc, std::string_view waypoint) 
     game.script()->setInstanceNPC("HERO",*npcPlayer);
   }
 
+void World::setPlayer(Npc* npc) {
+  if(npc==nullptr)
+    return;
+  std::cout << npc->isPlayer() << std::endl;
+  std::cout << npc->processPolicy() << std::endl;
+  npcPlayer = npc;
+  game.script()->setInstanceNPC("HERO",*npc);
+  npc->setProcessPolicy(Npc::ProcessPolicy::Player);
+  std::cout << npc->isPlayer() << std::endl;
+  std::cout << npc->processPolicy() << std::endl;
+  }
+
 void World::postInit() {
   // NOTE: level inspector override player stats globaly
   // lvlInspector.reset(new Npc(*this,script().getSymbolIndex("PC_Levelinspektor"),""));
