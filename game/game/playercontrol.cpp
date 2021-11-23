@@ -35,6 +35,7 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   auto    w    = Gothic::inst().world();
   auto    pl   = w  ? w->player() : nullptr;
   auto    ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
+  auto    g1c  = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS");
   uint8_t slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
 
   if(pl!=nullptr && pl->interactive()!=nullptr) {
@@ -73,23 +74,23 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       return;
       }
 
-    for(int i=Action::WeaponMage3;i<=Action::WeaponMage10;++i) {
-      if(a==i) {
-        int id = (i-Action::WeaponMage3+3);
-        if(ws==WeaponState::Mage && slot==id)
-          wctrl[WeaponClose] = true; else
-          wctrl[id         ] = true;
-        return;
-        }
+    if(a>=Action::WeaponMage3 && a<=Action::WeaponMage10) {
+      int id = (a-Action::WeaponMage3+3);
+      if(ws==WeaponState::Mage && slot==id)
+        wctrl[WeaponClose] = true; else
+        wctrl[id         ] = true;
+      return;
       }
+
     if(key==Tempest::KeyEvent::K_Return)
       ctrl[Action::K_ENTER] = true;
     }
 
   // this odd behaviour is from original game, seem more like a bug
   const bool actTunneling = (pl!=nullptr && pl->isAtackAnim());
-  if(ctrl[KeyCodec::ActionGeneric] || actTunneling) {
-    int fk = -1;
+
+  int fk = -1;
+  if(g1c && (ctrl[KeyCodec::ActionGeneric] || actTunneling)) {
     if(a==Action::Forward) {
       if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAtackAnim())
         fk = ActKill; else
@@ -105,14 +106,33 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       if(a==Action::Right || a==Action::RotateR)
         fk = ActRight;
       }
-    if(fk>=0) {
-      std::memset(actrl,0,sizeof(actrl));
-      actrl[ActGeneric] = ctrl[KeyCodec::ActionGeneric];
-      actrl[fk]         = true;
+    }
 
-      ctrl[a] = true;
-      return;
+  if(!g1c) {
+    if(a==Action::ActionGeneric) {
+      if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAtackAnim())
+        fk = ActKill; else
+        fk = ActForward;
       }
+    if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
+      if(a==Action::Parade)
+        fk = ActBack;
+      }
+    if(ws!=WeaponState::NoWeapon) {
+      if(a==Action::ActionLeft)
+        fk = ActLeft;
+      if(a==Action::ActionRight)
+        fk = ActRight;
+      }
+    }
+
+  if(fk>=0) {
+    std::memset(actrl,0,sizeof(actrl));
+    actrl[ActGeneric] = true;
+    actrl[fk]         = true;
+
+    ctrl[a] = true;
+    return;
     }
 
   if(a==KeyCodec::ActionGeneric) {

@@ -184,6 +184,13 @@ KeyCodec::Action KeyCodec::implTr(int32_t code) const {
 
   if(keyAction.is(code))
     return ActionGeneric;
+  if(keyActionLeft.is(code))
+    return ActionLeft;
+  if(keyActionRight.is(code))
+    return ActionRight;
+  if(keyParade.is(code))
+    return Parade;
+
   if(keySlow.is(code))
     return Walk;
   if(keySMove.is(code))
