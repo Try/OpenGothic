@@ -23,15 +23,19 @@ Common Gothic installation paths:
 
 ##### Build it for Linux
 ```bash
-# 1. Install dependencies for Ubuntu 20.04:
+# 1. Install dependencies
+# 1.1 Ubuntu 20.04:
 sudo apt install git cmake g++ glslang-tools libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
+# 1.2 Arch:
+sudo pacman -S git cmake gcc glslang vulkan-devel alsa-lib libx11 libxcursor vulkan-icd-loader libglvnd
 # 2. Clone this repo, including submodules:
 git clone --recurse-submodules https://github.com/Try/OpenGothic.git
+# 2.1 if you pull a new version:
+git pull --recurse-submodules
 # 3. Create build dir and build as usual:
-mkdir OpenGothic/build
-cd OpenGothic/build
-cmake .. -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
-make
+cd OpenGothic
+cmake -B build -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
+make -C build -j <number_of_cpucores>
 # 4.
 # locate executables at OpenGothic/build/opengothic
 ```
