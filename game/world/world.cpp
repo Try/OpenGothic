@@ -120,9 +120,14 @@ void World::insertPlayer(std::unique_ptr<Npc> &&npc, std::string_view waypoint) 
 void World::setPlayer(Npc* npc) {
   if(npc==nullptr)
     return;
-  npcPlayer = npc;
-  game.script()->setInstanceNPC("HERO",*npc);
+  npcPlayer->setProcessPolicy(Npc::ProcessPolicy::AiNormal);
+  npcPlayer->aiPush(AiQueue::aiContinueRoutine());
+  
   npc->setProcessPolicy(Npc::ProcessPolicy::Player);
+  npc->clearState(true);
+  npc->clearAiQueue();
+  
+  npcPlayer = npc;
   }
 
 void World::postInit() {
