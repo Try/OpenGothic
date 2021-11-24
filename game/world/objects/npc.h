@@ -229,6 +229,7 @@ class Npc final {
     void      setToFistMode();
 
     void      aiPush(AiQueue::AiAction&& a);
+    void      resumeAiRoutine();
 
     bool      canSwitchWeapon() const;
     bool      closeWeapon(bool noAnim);

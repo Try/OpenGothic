@@ -2652,6 +2652,10 @@ void Npc::aiPush(AiQueue::AiAction&& a) {
     aiQueue.pushBack(std::move(a));
   }
 
+void Npc::resumeAiRoutine() {
+  aiQueue.pushBack(std::move(AiQueue::aiContinueRoutine()));
+  }
+
 Item* Npc::addItem(const size_t item, size_t count) {
   return invent.addItem(item,count,owner);
   }

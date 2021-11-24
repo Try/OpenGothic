@@ -121,11 +121,14 @@ void World::setPlayer(Npc* npc) {
   if(npc==nullptr)
     return;
   npcPlayer->setProcessPolicy(Npc::ProcessPolicy::AiNormal);
-  npcPlayer->aiPush(AiQueue::aiContinueRoutine());
+  npcPlayer->resumeAiRoutine();
   
   npc->setProcessPolicy(Npc::ProcessPolicy::Player);
   npc->clearState(true);
   npc->clearAiQueue();
+
+  for(size_t i=0;i<PERC_Count;++i)
+    npc->setPerceptionDisable(PercType(i));
   
   npcPlayer = npc;
   }
