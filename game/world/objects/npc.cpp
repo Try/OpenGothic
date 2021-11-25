@@ -2235,14 +2235,9 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         queue.pushFront(std::move(act));
         }
       break;
-    case AI_ContinueRoutine:{
-      clearState(false);
-      auto& r = currentRoutine();
-      auto  t = endTime(r);
-      if(r.callback.isValid())
-        startState(r.callback,r.point ? r.point->name : "",t,false);
+    case AI_ContinueRoutine:
+      resumeAiRoutine();
       break;
-      }
     case AI_AlignToWp:
     case AI_AlignToFp:{
       if(auto fp = currentFp){
@@ -2650,6 +2645,14 @@ void Npc::aiPush(AiQueue::AiAction&& a) {
   if(a.act==AI_OutputSvmOverlay)
     aiQueueOverlay.pushBack(std::move(a)); else
     aiQueue.pushBack(std::move(a));
+  }
+
+void Npc::resumeAiRoutine() {
+  clearState(false);
+  auto& r = currentRoutine();
+  auto  t = endTime(r);
+  if(r.callback.isValid())
+    startState(r.callback,r.point ? r.point->name : "",t,false);
   }
 
 Item* Npc::addItem(const size_t item, size_t count) {
