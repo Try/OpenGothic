@@ -161,6 +161,9 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
     return;
     }
 
+  if(a==Action::K_O && Gothic::inst().isMarvinEnabled())
+    marvinO();
+
   ctrl[a] = true;
   }
 
@@ -416,6 +419,16 @@ void PlayerControl::marvinK(uint64_t dt) {
   pl.clearSpeed();
   pl.quitIneraction();
   // pl.setAnim(AnimationSolver::Idle); // Original G2 behaviour: K doesn't stop running
+  }
+
+void PlayerControl::marvinO() {
+  auto w = Gothic::inst().world();
+  if (w == nullptr || w->player() == nullptr || w->player()->target() == nullptr)
+    return;
+
+  auto target = w->player()->target();
+
+  w->setPlayer(target);
   }
 
 Focus PlayerControl::findFocus(Focus* prev) {

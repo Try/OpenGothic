@@ -117,6 +117,24 @@ void World::insertPlayer(std::unique_ptr<Npc> &&npc, std::string_view waypoint) 
     game.script()->setInstanceNPC("HERO",*npcPlayer);
   }
 
+void World::setPlayer(Npc* npc) {
+  if(npc==nullptr)
+    return;
+  npcPlayer->setProcessPolicy(Npc::ProcessPolicy::AiNormal);
+  if (!npcPlayer->isDead()) {
+    npcPlayer->resumeAiRoutine();
+  }
+  
+  npc->setProcessPolicy(Npc::ProcessPolicy::Player);
+  npc->clearState(true);
+  npc->clearAiQueue();
+
+  for(size_t i=0;i<PERC_Count;++i)
+    npc->setPerceptionDisable(PercType(i));
+  
+  npcPlayer = npc;
+  }
+
 void World::postInit() {
   // NOTE: level inspector override player stats globaly
   // lvlInspector.reset(new Npc(*this,script().getSymbolIndex("PC_Levelinspektor"),""));
