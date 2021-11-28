@@ -187,8 +187,7 @@ std::unique_ptr<CollisionWorld::CollisionBody> CollisionWorld::addCollisionBody(
         );
 
   std::unique_ptr<CollisionBody> obj(new CollisionBody(rigidBodyCI,this));
-  obj->setFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
-  obj->setCollisionFlags(btCollisionObject::CO_COLLISION_OBJECT);
+  obj->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
 
   btTransform trans;
   trans.setFromOpenGLMatrix(tr.data());

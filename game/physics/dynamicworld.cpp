@@ -88,7 +88,7 @@ struct DynamicWorld::NpcBodyList final {
     trans.setIdentity();
     obj->setWorldTransform(trans);
     obj->setUserIndex(C_Ghost);
-    obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+    obj->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 
     add(obj);
     resize(*obj,height,dx,dz);
@@ -442,8 +442,8 @@ DynamicWorld::DynamicWorld(World& owner,const ZenLoad::zCMesh& worldMesh) {
     waterShape.reset(new btMultimaterialTriangleMeshShape(waterMesh.get(),waterMesh->useQuantization(),true));
     waterBody = world->addCollisionBody(*waterShape,mt,0);
     waterBody->setUserIndex(C_Water);
-    waterBody->setFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
-    waterBody->setCollisionFlags(btCollisionObject::CO_HF_FLUID);
+    waterBody->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
+    // waterBody->setCollisionFlags(btCollisionObject::CO_HF_FLUID);
 
     btVector3 b[2] = {};
     landBody->getAabb(b[0],b[1]);
@@ -1076,8 +1076,7 @@ DynamicWorld::BBoxBody::BBoxBody(DynamicWorld* ow, DynamicWorld::BBoxCallback* c
 
   obj->setWorldTransform(trans);
   obj->setUserIndex(C_Ghost);
-  obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
-  //obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
+  obj->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 
   owner->bboxList->add(this);
   }
@@ -1095,8 +1094,7 @@ DynamicWorld::BBoxBody::BBoxBody(DynamicWorld* ow, BBoxCallback* cb, const Tempe
 
   obj->setWorldTransform(trans);
   obj->setUserIndex(C_Ghost);
-  obj->setFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
-  //obj->setCollisionFlags(btCollisionObject::CO_RIGID_BODY);
+  obj->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 
   owner->bboxList->add(this);
   }
