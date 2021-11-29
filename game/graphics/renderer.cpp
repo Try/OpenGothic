@@ -44,7 +44,8 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
 
   Log::i("GPU = ",device.properties().name);
   Log::i("Depth format = ",int(zBufferFormat)," Shadow format = ",int(shadowFormat));
-  uboCopy = device.descriptors(Shaders::inst().copy.layout());
+  uboCopy = device.descriptors(Shaders::inst().copy);
+  uboSsao = device.descriptors(Shaders::inst().ssao);
   }
 
 void Renderer::resetSwapchain() {
@@ -73,6 +74,17 @@ void Renderer::resetSwapchain() {
     }
 
   uboCopy.set(0,lightingBuf,Sampler2d::nearest());
+
+  auto smp = Sampler2d::nearest();
+  smp.setClamping(ClampMode::ClampToEdge);
+
+  auto smpB = Sampler2d::bilinear();
+  smpB.setClamping(ClampMode::ClampToEdge);
+
+  uboSsao.set(0,lightingBuf,smp);
+  uboSsao.set(1,gbufDiffuse,smp);
+  uboSsao.set(2,gbufNormal, smp);
+  uboSsao.set(3,gbufDepth,  smpB);
   }
 
 void Renderer::onWorldChanged() {
@@ -141,13 +153,32 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
                      {zbuffer, 1.f, Tempest::Preserve});
   wview->drawGBuffer(cmd,cmdId);
 
-  cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
-  cmd.setUniforms(Shaders::inst().copy,uboCopy);
-  cmd.draw(Resources::fsqVbo());
+  drawSSAO(result,cmd);
 
   cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Discard});
   wview->drawLights (cmd,cmdId);
   wview->drawMain   (cmd,cmdId);
+  }
+
+void Renderer::drawSSAO(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd) {
+  static bool ssao = true;
+
+  cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
+  if(!ssao) {
+    cmd.setUniforms(Shaders::inst().copy,uboCopy);
+    cmd.draw(Resources::fsqVbo());
+    } else {
+    struct Push {
+      Matrix4x4 mvp;
+      Matrix4x4 mvpInv;
+      } push;
+    push.mvp    = viewProj;
+    push.mvpInv = viewProj;
+    push.mvpInv.inverse();
+
+    cmd.setUniforms(Shaders::inst().ssao,uboSsao,&push,sizeof(push));
+    cmd.draw(Resources::fsqVbo());
+    }
   }
 
 Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {

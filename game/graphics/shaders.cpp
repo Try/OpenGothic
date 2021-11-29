@@ -79,6 +79,23 @@ Shaders::Shaders() {
   }
 
   {
+  RenderState stateAo;
+  stateAo.setCullFaceMode(RenderState::CullMode::Front);
+  stateAo.setZTestMode   (RenderState::ZTestMode::LEqual);
+  //stateAo.setBlendSource (RenderState::BlendMode::One);
+  //stateAo.setBlendDest   (RenderState::BlendMode::One);
+  //stateAo.setBlendOp     (RenderState::BlendOp::Subtract);
+  stateAo.setZWriteEnabled(false);
+
+  auto sh = GothicShader::get("ssao.vert.sprv");
+  auto vs = device.shader(sh.data,sh.len);
+  sh      = GothicShader::get("ssao.frag.sprv");
+  auto fs = device.shader(sh.data,sh.len);
+  ssao    = device.pipeline<Resources::VertexFsq>(Triangles,stateAo,vs,fs);
+  //ssao    = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vs,fs);
+  }
+
+  {
   RenderState state;
   state.setCullFaceMode (RenderState::CullMode::Front);
   state.setBlendSource  (RenderState::BlendMode::One);

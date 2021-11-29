@@ -134,6 +134,9 @@ add_shader(sky_g1.frag          sky.frag -DG1)
 add_shader(copy.vert            copy.vert "")
 add_shader(copy.frag            copy.frag "")
 
+add_shader(ssao.vert            ssao.vert "")
+add_shader(ssao.frag            ssao.frag "")
+
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}
   DEPENDS    ${OPENGOTHIC_SHADERS_SPRV}

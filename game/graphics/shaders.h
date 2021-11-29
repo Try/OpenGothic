@@ -19,6 +19,7 @@ class Shaders {
     Tempest::RenderPipeline fog;
     Tempest::RenderPipeline lights;
     Tempest::RenderPipeline copy;
+    Tempest::RenderPipeline ssao;
 
     enum PipelineType: uint8_t {
       T_Forward,

@@ -48,7 +48,7 @@ void Sky::setupUbo() {
   smp.setClamping(ClampMode::ClampToEdge);
 
   for(auto& i:perFrame){
-    i.uboSky    = device.descriptors(Shaders::inst().sky.layout());
+    i.uboSky    = device.descriptors(Shaders::inst().sky);
     i.uboSkyGpu = device.ubo<UboSky>(nullptr,1);
 
     i.uboSky.set(0,i.uboSkyGpu);
@@ -59,7 +59,7 @@ void Sky::setupUbo() {
 
     // i.uboSky.set(5,*sun,smp);
 
-    i.uboFog = device.descriptors(Shaders::inst().fog.layout());
+    i.uboFog = device.descriptors(Shaders::inst().fog);
     i.uboFog.set(0,i.uboSkyGpu);
     i.uboFog.set(1,*scene.gbufDepth,Sampler2d::nearest());
     }

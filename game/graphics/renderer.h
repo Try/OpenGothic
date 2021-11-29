@@ -27,9 +27,12 @@ class Renderer final {
               Tempest::VectorImage::Mesh& uiLayer, Tempest::VectorImage::Mesh& numOverlay,
               InventoryMenu &inventory);
 
-    Tempest::Attachment               screenshoot(uint8_t frameId);
+    Tempest::Attachment       screenshoot(uint8_t frameId);
 
   private:
+    void drawSSAO(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void draw    (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t cmdId);
+
     Tempest::Swapchain&       swapchain;
     Tempest::Matrix4x4        view, proj, viewProj;
     Tempest::Matrix4x4        shadow[Resources::ShadowLayers];
@@ -45,8 +48,6 @@ class Renderer final {
     Tempest::TextureFormat    shadowFormat =Tempest::TextureFormat::RGBA8;
     Tempest::TextureFormat    zBufferFormat=Tempest::TextureFormat::Depth16;
 
-    Tempest::DescriptorSet    uboCopy;
+    Tempest::DescriptorSet    uboCopy, uboSsao;
     Shaders                   stor;
-
-    void draw(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t cmdId);
   };
