@@ -30,8 +30,8 @@ class Renderer final {
     Tempest::Attachment       screenshoot(uint8_t frameId);
 
   private:
-    void drawSSAO(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd);
-    void draw    (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t cmdId);
+    void drawSSAO(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
+    void draw    (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId);
 
     Tempest::Swapchain&       swapchain;
     Tempest::Matrix4x4        view, proj, viewProj;

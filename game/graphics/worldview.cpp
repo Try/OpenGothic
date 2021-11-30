@@ -22,8 +22,12 @@ WorldView::~WorldView() {
   Resources::device().waitIdle();
   }
 
-const LightSource &WorldView::mainLight() const {
+const LightSource& WorldView::mainLight() const {
   return sGlobal.sun;
+  }
+
+const Tempest::Vec3& WorldView::ambientLight() const {
+  return sGlobal.ambient;
   }
 
 bool WorldView::isInPfxRange(const Vec3& pos) const {

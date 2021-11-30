@@ -10,16 +10,17 @@ layout(binding  = 3) uniform sampler2D depth;
 
 layout(push_constant, std140) uniform PushConstant {
   mat4 mvp;
-  mat4 mvpInv;
+  vec3 ambient;
   } ubo;
 
 layout(location = 0) in  vec2 uv;
 layout(location = 1) in  vec2 inPos;
+layout(location = 2) in  mat4 mvpInv;
 
 layout(location = 0) out vec4 outColor;
 
 const uint  numSamples = 16;
-const float sphereLen  = 50;
+const float sphereLen  = 100;
 
 uint hash(uint x) {
   x += ( x << 10u );
@@ -45,14 +46,29 @@ float floatConstruct(uint m) {
   return f - 1.0;                        // Range [0:1]
   }
 
-vec3 sampleDisc(uint i, uint maxSamples, uint h0) {
-  const float a = M_PI*2.0*float(i)/float(maxSamples);
-  const float r = floatConstruct(hash(i) ^ h0);
-  return vec3(cos(a)*r, sin(a)*r, 0);
+// Sample i-th point from Hammersley point set of NumSamples points total.
+// See: http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
+vec2 sampleHammersley(uint i, uint numSamples) {
+  uint bits = i;
+  bits = (bits << 16u) | (bits >> 16u);
+  bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+  bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+  bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+  bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+  float vdc = float(bits) * 2.3283064365386963e-10; // / 0x100000000
+  return vec2(float(i)/float(numSamples), vdc);
+  }
+
+vec3 sampleHemisphere(uint i, uint numSamples, float offsetAng, uint h1) {
+  const float r   = floatConstruct(hash(h1 ^ i));
+  const vec2  xi  = sampleHammersley(i,numSamples);
+  const float u1p = sqrt(max(0.0, 1.0 - xi.x*xi.x));
+  const float a   = M_PI*2.0*xi.y + offsetAng;
+  return r*vec3(cos(a) * u1p, sin(a) * u1p, xi.x);
   }
 
 vec3 inverse(vec3 pos) {
-  vec4 ret = ubo.mvpInv*vec4(pos,1.0);
+  vec4 ret = mvpInv*vec4(pos,1.0);
   return (ret.xyz/ret.w);
   }
 
@@ -81,24 +97,27 @@ float calcOcclussion() {
   if(at0.z>=1.0)
     return 0; // sky
 
-  uint  h0 = hash(uvec2(gl_FragCoord));
+  uvec2 fragCoord = uvec2(gl_FragCoord);
+  uint  h0        = hash(fragCoord);
+  float f0        = M_PI*2.0*floatConstruct(h0);
+  uint  h1        = hash(h0 ^ 7919u);
+
   float occlusion = 0, weightAll = 0;
   for(uint i=0; i<numSamples; ++i) {
-    vec3  v      = tangent * sampleDisc(i,numSamples,h0);
-
+    vec3  v      = tangent * sampleHemisphere(i,numSamples,f0,h1);
     vec3  at1    = amendZ(project(pos0 + v*sphereLen));
     vec3  pos1   = inverse(at1);
 
-    //if(at1.z>=1.0)
-    //  continue; // sky
-
     vec3  dp     = pos1-pos0;
+    float len    = length(dp);
+
     float weight = dot(dp,norm);
 
-    float occ = 1.0;
-    if(weight>0.1*sphereLen)
-      occlusion += 1.0-min(pow(weight/sphereLen,2),1);
-    weightAll += occ;
+    float angW   = weight/max(len,0.001); // angle attenuation
+    float distW  = 1.0-min(pow(weight/sphereLen,2),1);
+    if(angW>0.0)
+      occlusion += angW*distW;
+    weightAll += distW;
     }
 
   if(weightAll<=0.0)
@@ -107,12 +126,12 @@ float calcOcclussion() {
   }
 
 void main() {
-  vec4 clr  = textureLod(diffuse,uv,0);
+  vec3 clr  = textureLod(diffuse,uv,0).rgb;
   vec4 lbuf = textureLod(lightingBuf,uv,0);
 
   float occ     = calcOcclussion();
-  vec4  ambient = vec4(0.2); // TODO: uniform it
+  vec3  ambient = ubo.ambient;
 
-  outColor  = lbuf-clr*ambient*occ;
+  outColor  = vec4(lbuf.rgb-clr*ambient*occ, lbuf.a);
   // outColor  = vec4(1-occ);
   }

@@ -153,28 +153,29 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
                      {zbuffer, 1.f, Tempest::Preserve});
   wview->drawGBuffer(cmd,cmdId);
 
-  drawSSAO(result,cmd);
+  drawSSAO(result,cmd,*wview);
 
   cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Discard});
   wview->drawLights (cmd,cmdId);
   wview->drawMain   (cmd,cmdId);
   }
 
-void Renderer::drawSSAO(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd) {
-  static bool ssao = true;
+void Renderer::drawSSAO(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, const WorldView& view) {
+  static bool ssao = false;
 
   cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
   if(!ssao) {
     cmd.setUniforms(Shaders::inst().copy,uboCopy);
     cmd.draw(Resources::fsqVbo());
     } else {
+    auto ambient = view.ambientLight();
+
     struct Push {
       Matrix4x4 mvp;
-      Matrix4x4 mvpInv;
+      Vec3      ambient;
       } push;
-    push.mvp    = viewProj;
-    push.mvpInv = viewProj;
-    push.mvpInv.inverse();
+    push.mvp     = viewProj;
+    push.ambient = ambient;
 
     cmd.setUniforms(Shaders::inst().ssao,uboSsao,&push,sizeof(push));
     cmd.draw(Resources::fsqVbo());
