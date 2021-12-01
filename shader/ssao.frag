@@ -20,7 +20,7 @@ layout(location = 2) in  mat4 mvpInv;
 layout(location = 0) out vec4 outColor;
 
 const uint  numSamples = 16;
-const float sphereLen  = 100;
+const float sphereLen  = 150;
 
 uint hash(uint x) {
   x += ( x << 10u );
@@ -59,12 +59,11 @@ vec2 sampleHammersley(uint i, uint numSamples) {
   return vec2(float(i)/float(numSamples), vdc);
   }
 
-vec3 sampleHemisphere(uint i, uint numSamples, float offsetAng, uint h1) {
-  const float r   = floatConstruct(hash(h1 ^ i));
+vec3 sampleHemisphere(uint i, uint numSamples, float offsetAng) {
   const vec2  xi  = sampleHammersley(i,numSamples);
-  const float u1p = sqrt(max(0.0, 1.0 - xi.x*xi.x));
-  const float a   = M_PI*2.0*xi.y + offsetAng;
-  return r*vec3(cos(a) * u1p, sin(a) * u1p, xi.x);
+  const float u1p = sqrt(max(0.0, 1.0 - xi.y*xi.y));
+  const float a   = M_PI*2.0*xi.x + offsetAng;
+  return vec3(cos(a) * u1p, sin(a) * u1p, xi.y);
   }
 
 vec3 inverse(vec3 pos) {
@@ -77,9 +76,8 @@ vec3 project(vec3 pos) {
   return (ret.xyz/ret.w);
   }
 
-vec3 amendZ(vec3 pos) {
-  pos.z = textureLod(depth, pos.xy*0.5+vec2(0.5), 0).r;
-  return pos;
+float readZ(vec2 pos) {
+  return textureLod(depth, pos.xy*0.5+vec2(0.5), 0).r;
   }
 
 float calcOcclussion() {
@@ -91,10 +89,10 @@ float calcOcclussion() {
   tangent[1] = cross(norm, tangent[0]);
   tangent[2] = norm;
 
-  const vec3 at0   = amendZ(vec3(inPos.xy,0));
+  const vec3 at0   = vec3(inPos.xy,readZ(inPos.xy));
   const vec3 pos0  = inverse(at0);
 
-  if(at0.z>=1.0)
+  if(at0.z>=0.999)
     return 0; // sky
 
   uvec2 fragCoord = uvec2(gl_FragCoord);
@@ -102,27 +100,28 @@ float calcOcclussion() {
   float f0        = M_PI*2.0*floatConstruct(h0);
   uint  h1        = hash(h0 ^ 7919u);
 
-  float occlusion = 0, weightAll = 0;
+  float occlusion = 0, weightAll = 0.0001;
   for(uint i=0; i<numSamples; ++i) {
-    vec3  v      = tangent * sampleHemisphere(i,numSamples,f0,h1);
-    vec3  at1    = amendZ(project(pos0 + v*sphereLen));
-    vec3  pos1   = inverse(at1);
+    float r      = floatConstruct(hash(h1 ^ i));
+    vec3  h      = sampleHemisphere(i,numSamples,f0);
 
-    vec3  dp     = pos1-pos0;
-    float len    = length(dp);
+    vec3  v      = tangent * h;
+    vec3  at1    = project(pos0 + v*sphereLen*r);
+    float z      = readZ(at1.xy);
 
-    float weight = dot(dp,norm);
+    vec3  at2    = vec3(at1.xy,z);
+    vec3  pos2   = inverse(at2);
+    vec3  dp     = (pos2-pos0);
 
-    float angW   = weight/max(len,0.001); // angle attenuation
-    float distW  = 1.0-min(pow(weight/sphereLen,2),1);
-    if(angW>0.0)
+    float angW   = h.z;                               // angle attenuation.
+    float distW  = 1.0-min(dot(dp,norm)/sphereLen,1); // distance attenuation
+    if(z<at1.z)
       occlusion += angW*distW;
-    weightAll += distW;
+    weightAll += angW*distW;
     }
 
-  if(weightAll<=0.0)
-    return 0;
-  return min(1,occlusion/weightAll);
+  // return min(1.0,occlusion/weightAll);
+  return occlusion/weightAll;
   }
 
 void main() {

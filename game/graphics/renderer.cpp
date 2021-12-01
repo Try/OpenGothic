@@ -46,6 +46,13 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   Log::i("Depth format = ",int(zBufferFormat)," Shadow format = ",int(shadowFormat));
   uboCopy = device.descriptors(Shaders::inst().copy);
   uboSsao = device.descriptors(Shaders::inst().ssao);
+
+  Gothic::inst().onSettingsChanged.bind(this,&Renderer::initSettings);
+  initSettings();
+  }
+
+Renderer::~Renderer() {
+  Gothic::inst().onSettingsChanged.ubind(this,&Renderer::initSettings);
   }
 
 void Renderer::resetSwapchain() {
@@ -85,6 +92,11 @@ void Renderer::resetSwapchain() {
   uboSsao.set(1,gbufDiffuse,smp);
   uboSsao.set(2,gbufNormal, smp);
   uboSsao.set(3,gbufDepth,  smpB);
+  }
+
+void Renderer::initSettings() {
+  settings.zEnvMappingEnabled = Gothic::inst().settingsGetI("ENGINE","zEnvMappingEnabled")!=0;
+  settings.zCloudShadowScale  = Gothic::inst().settingsGetI("ENGINE","zCloudShadowScale") !=0;
   }
 
 void Renderer::onWorldChanged() {
@@ -161,10 +173,10 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   }
 
 void Renderer::drawSSAO(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, const WorldView& view) {
-  static bool ssao = false;
+  static bool ssao = true;
 
   cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
-  if(!ssao) {
+  if(!ssao || !settings.zCloudShadowScale) {
     cmd.setUniforms(Shaders::inst().copy,uboCopy);
     cmd.draw(Resources::fsqVbo());
     } else {

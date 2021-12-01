@@ -17,6 +17,7 @@ class InventoryMenu;
 class Renderer final {
   public:
     Renderer(Tempest::Swapchain& swapchain);
+    ~Renderer();
 
     void resetSwapchain();
     void onWorldChanged();
@@ -32,6 +33,12 @@ class Renderer final {
   private:
     void drawSSAO(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void draw    (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId);
+    void initSettings();
+
+    struct Settings {
+      bool zEnvMappingEnabled = false;
+      bool zCloudShadowScale  = false;
+      } settings;
 
     Tempest::Swapchain&       swapchain;
     Tempest::Matrix4x4        view, proj, viewProj;
