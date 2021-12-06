@@ -45,19 +45,16 @@ void Sky::setWorld(const World &world) {
 void Sky::setupUbo() {
   auto& device = Resources::device();
   auto  smp    = Sampler2d::trillinear();
-  smp.setClamping(ClampMode::ClampToEdge);
 
-  for(auto& i:perFrame){
+  for(auto& i:perFrame) {
     i.uboSky    = device.descriptors(Shaders::inst().sky);
     i.uboSkyGpu = device.ubo<UboSky>(nullptr,1);
 
     i.uboSky.set(0,i.uboSkyGpu);
-    i.uboSky.set(1,*day.lay[0].texture);
-    i.uboSky.set(2,*day.lay[1].texture);
-    i.uboSky.set(3,*night.lay[0].texture);
-    i.uboSky.set(4,*night.lay[1].texture);
-
-    // i.uboSky.set(5,*sun,smp);
+    i.uboSky.set(1,*day  .lay[0].texture,smp);
+    i.uboSky.set(2,*day  .lay[1].texture,smp);
+    i.uboSky.set(3,*night.lay[0].texture,smp);
+    i.uboSky.set(4,*night.lay[1].texture,smp);
 
     i.uboFog = device.descriptors(Shaders::inst().fog);
     i.uboFog.set(0,i.uboSkyGpu);

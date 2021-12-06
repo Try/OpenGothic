@@ -9,8 +9,8 @@ const int   jSteps = 16;
 
 //Environment
 const float RPlanet  = 6360e3;       // Radius of the planet in meters
-const float RAtmos   = 6380e3;       // Radius of the atmosphere in meters
 const float RClouds  = RPlanet+3000; // Clouds height in meters
+const float RAtmos   = 6380e3;       // Radius of the atmosphere in meters
 // Rayleigh scattering coefficient
 const vec3  RSC = vec3(0.0000038,
                        0.0000135,
@@ -55,15 +55,14 @@ vec3 exposure(vec3 color) {
   return vec3(env * pow(color, vec3(.7)));
   }
 
-void densities(in vec3 pos, out float rayleigh, out float mie) {
-  float h = length(pos) - RPlanet;
-  rayleigh =  exp(-h/Hr);
-  vec3 d = pos;
-  d.y = 0.0;
-  // float dist = length(d);
+vec2 densities(in vec3 pos) {
+  const float haze = 0.2;
 
-  const float haze = 0.2; //0.2
-  mie = exp(-h/Hm) + haze;
+  float h        = length(pos) - RPlanet;
+  float rayleigh = exp(-h/Hr);
+  float cld      = 0.;
+  float mie = exp(-h/Hm) + cld + haze;
+  return vec2(rayleigh,mie);
   }
 
 float rayIntersect(in vec3 p, in vec3 d, in float R) {
@@ -81,6 +80,7 @@ float rayIntersect(in vec3 p, in vec3 d, in float R) {
 // based on: http://www.scratchapixel.com/lessons/3d-advanced-lessons/simulating-the-colors-of-the-sky/atmospheric-scattering/
 // https://www.shadertoy.com/view/ltlSWB
 vec3 scatter(vec3 pos, vec3 view, in vec3 sunDir, float rayLength, out float outScat) {
+  // pos = vec3(0,RPlanet,0);
   float mu     = dot(view, sunDir);
   float opmu2  = 1.0 + mu*mu;
   float phaseR = 3.0/(16.0*PI) * opmu2;
@@ -89,36 +89,30 @@ vec3 scatter(vec3 pos, vec3 view, in vec3 sunDir, float rayLength, out float out
   float depthR = 0.0, depthM = 0.0;
   vec3  R = vec3(0.0), M = vec3(0.0);
 
+  vec2 depth = vec2(0);
   float dl = rayLength / float(iSteps);
-  for(int i=0; i<iSteps; ++i) {
+  for (int i=0; i<iSteps; ++i) {
     float l = (float(i)+0.5)*dl;
     vec3  p = pos + view * l;
 
-    float dR, dM;
-    densities(p, dR, dM);
-    dR *= dl; dM *= dl;
-    depthR += dR;
-    depthM += dM;
+    vec2 dens = densities(p)*dl;
+    depth += dens;
 
     float Ls = rayIntersect(p, sunDir, RAtmos);
-    if(Ls<=0.0)
-      continue;
+    if(Ls>0.0) {
+      float dls = Ls/float(jSteps);
+      vec2 depthS = vec2(0);
+      for(int j=0; j<jSteps; ++j) {
+        float ls = float(j) * dls;
+        vec3  ps = p + sunDir * ls;
+        depthS  += densities(ps)*dls;
+        }
 
-    float dls = Ls / float(jSteps);
-    float depthRs = 0.0, depthMs = 0.0;
-    for(int j = 0; j < jSteps; ++j) {
-      float ls = float(j) * dls;
-      vec3  ps = p + sunDir * ls;
-      float dRs, dMs;
-      densities(ps, dRs, dMs);
-      depthRs += dRs * dls;
-      depthMs += dMs * dls;
+      vec3 A = exp(-(RSC * (depthS.x + depth.x) + kMie * (depthS.y + depth.y)));
+      R += A * dens.x;
+      M += A * dens.y;
       }
-
-    vec3 A = exp(-(RSC * (depthRs + depthR) + kMie * (depthMs + depthM)));
-    R += A * dR;
-    M += A * dM;
-    }
+  }
 
   outScat = 1.0 - clamp(depthM*1e-5,0.,1.);
   return sunPower * (R * RSC * phaseR + M * kMie * phaseM);
