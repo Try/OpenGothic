@@ -20,7 +20,7 @@ layout(location = 2) in  mat4 mvpInv;
 layout(location = 0) out vec4 outColor;
 
 const uint  numSamples = 16;
-const float sphereLen  = 150;
+const float sphereLen  = 100;
 
 uint hash(uint x) {
   x += ( x << 10u );
@@ -80,6 +80,10 @@ float readZ(vec2 pos) {
   return textureLod(depth, pos.xy*0.5+vec2(0.5), 0).r;
   }
 
+float sampleRadius(uint i, uint maxSmp) {
+  return 0.5+float(i)/float(2*maxSmp);
+  }
+
 float calcOcclussion() {
   vec3 norm = normalize(textureLod(normals,uv,0).xyz*2.0-vec3(1.0));
   // Compute a tangent frame and rotate the half vector to world space
@@ -92,17 +96,16 @@ float calcOcclussion() {
   const vec3 at0   = vec3(inPos.xy,readZ(inPos.xy));
   const vec3 pos0  = inverse(at0);
 
-  if(at0.z>=0.999)
+  if(at0.z>=0.998)
     return 0; // sky
 
   uvec2 fragCoord = uvec2(gl_FragCoord);
   uint  h0        = hash(fragCoord);
   float f0        = M_PI*2.0*floatConstruct(h0);
-  uint  h1        = hash(h0 ^ 7919u);
 
   float occlusion = 0, weightAll = 0.0001;
   for(uint i=0; i<numSamples; ++i) {
-    float r      = floatConstruct(hash(h1 ^ i));
+    float r      = sampleRadius(i,numSamples);
     vec3  h      = sampleHemisphere(i,numSamples,f0);
 
     vec3  v      = tangent * h;
@@ -113,15 +116,17 @@ float calcOcclussion() {
     vec3  pos2   = inverse(at2);
     vec3  dp     = (pos2-pos0);
 
-    float angW   = h.z;                               // angle attenuation.
-    float distW  = 1.0-min(dot(dp,norm)/sphereLen,1); // distance attenuation
+    float lenQ   = dot(dp,dp);
+
+    float angW   = h.z;                                   // angle attenuation.
+    float distW  = 1.0-min(lenQ/(sphereLen*sphereLen),1); // distance attenuation
     if(z<at1.z)
       occlusion += angW*distW;
-    weightAll += angW*distW;
+    weightAll += distW;
     }
 
-  // return min(1.0,occlusion/weightAll);
-  return occlusion/weightAll;
+  occlusion /= weightAll;
+  return occlusion*(M_PI);
   }
 
 void main() {

@@ -93,7 +93,7 @@ GameSession::GameSession(std::string file) {
   cam->reset(wrld->player());
   Gothic::inst().setLoadingProgress(96);
   ticks = 1;
-   wrld->setDayTime(8,0);
+  // wrld->setDayTime(8,0);
   }
 
 GameSession::GameSession(Serialize &fin) {
