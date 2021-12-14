@@ -76,6 +76,7 @@ before_build:
       }
 
     echo '#pragma once'                                                               | Out-File "game/build.h" -Encoding utf8
+
     echo "static const char* appBuild = `"OpenGothic v$env:appveyor_build_version`";" | Out-File "game/build.h" -Encoding utf8 -Append
 
 build_script:
