@@ -17,32 +17,50 @@ environment:
       GENERATOR: ""
 
 install:
-- git submodule -q update --init --recursive
-# Vulkan SDK and thirdparty
-# https://vulkan.lunarg.com/content/view/latest-sdk-version-api
-- cmd: curl -L --silent --show-error --output VulkanSDK.exe https://sdk.lunarg.com/sdk/download/1.2.170.0/windows/vulkan_sdk.exe
-- cmd: VulkanSDK.exe /S
-- cmd: set VK_SDK_PATH=C:/VulkanSDK/1.2.170.0
+- ps: >-
+    $VK_SDK = '1.2.170.0'
 
-- sh:  sudo apt-get update
-- sh:  sudo apt-get --yes install libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
-# https://github.com/appveyor/ci/issues/3573
-- sh:  sudo apt-get install -y libclang1-9
-- sh:  curl -L --silent --show-error --output VulkanSDK.tar.gz https://sdk.lunarg.com/sdk/download/1.2.170.0/linux/vulkan_sdk.tar.gz
-- sh:  mkdir VulkanSDK
-- sh:  tar -xzf VulkanSDK.tar.gz -C ./VulkanSDK
-- sh:  export VK_SDK_PATH=$APPVEYOR_BUILD_FOLDER/VulkanSDK/1.2.170.0/x86_64
+    if($IsLinux) {
+      sudo apt-get update
+      sudo apt-get --yes install libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
+      # Vulkan SDK
+      $env:VK_SDK_PATH     = "$env:APPVEYOR_BUILD_FOLDER/VulkanSDK/$VK_SDK/x86_64"
+      $env:VK_LAYER_PATH   = "$env:VK_SDK_PATH/etc/vulkan/explicit_layers.d"
+      $env:LD_LIBRARY_PATH = "$env:VK_SDK_PATH/lib"
+      Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/$VK_SDK/linux/vulkan_sdk.tar.gz -OutFile VulkanSDK.tar.gz
+      mkdir VulkanSDK
+      tar -xzf VulkanSDK.tar.gz -C ./VulkanSDK
+      }
 
-# GLSL compiller
-- mkdir glslang
-- cd glslang
-- cmd: curl -fsSL -o glslang-master-windows-x64-Release.zip https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-windows-x64-Release.zip
-- sh:  curl -fsSL -o glslang-master-linux-Release.zip https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-linux-Release.zip
-- cmd: 7z x glslang-master-windows-x64-Release.zip
-- sh:  7z x glslang-master-linux-Release.zip
-- cd ..
-- cmd: "SET PATH=%APPVEYOR_BUILD_FOLDER%\\glslang\\bin;%PATH%"
-- sh: export PATH="$PATH:$APPVEYOR_BUILD_FOLDER/glslang/bin"
+    if($IsWindows) {
+      # Vulkan SDK
+      $env:VK_SDK_PATH = "C:/VulkanSDK/$VK_SDK"
+      Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/$VK_SDK/windows/vulkan_sdk.exe -OutFile VulkanSDK.exe
+      ./VulkanSDK.exe /S
+      }
+
+    if($IsLinux) {
+      # GLSL compiller
+      mkdir glslang
+      cd glslang
+      Invoke-WebRequest -Uri https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-linux-Release.zip -OutFile glslang-master.zip
+      7z x glslang-master.zip
+      cd ..
+      $env:PATH += ":$env:APPVEYOR_BUILD_FOLDER/glslang/bin"
+      }
+
+    if($IsWindows) {
+      mkdir glslang
+      cd glslang
+      Invoke-WebRequest -Uri https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-windows-x64-Release.zip -OutFile glslang-master.zip
+      7z x glslang-master.zip
+      cd ..
+      $env:PATH += ";$env:APPVEYOR_BUILD_FOLDER\glslang\bin"
+      }
+
+    if($IsMacOS) {
+      brew install glslang
+      }
 
 before_build:
   # Prepare the out-of-source build directory.
