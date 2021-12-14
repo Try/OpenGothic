@@ -84,7 +84,7 @@ build_script:
   - cmd: if NOT "%VCVARSALL%" == "" call "%VCVARSALL%" %PLATFORM%
   - cmd: cmake -H. -Bbuild -G "%GENERATOR%" -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DCMAKE_SH=CMAKE_SH-NOTFOUND
   - sh:  cmake -H. -Bbuild                  -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
-  - cmake --build ./build
+  - cmake --build ./build --target Gothic2Notr
 
 after_build:
   # generate version string
