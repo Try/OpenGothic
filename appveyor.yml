@@ -87,25 +87,40 @@ build_script:
   - cmake --build ./build --target Gothic2Notr
 
 after_build:
-  # generate version string
-  - cd build
-  - cd opengothic
-  - cmd: echo gothic-win64-v%appveyor_build_version% >> VERSION
-  - sh:  echo gothic-linux-v%appveyor_build_version% >> VERSION
-  - cmd: copy /b/y "C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin\libgcc_s_seh-1.dll"   "libgcc_s_seh-1.dll"
-  - cmd: copy /b/y "C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin\libstdc++-6.dll"      "libstdc++-6.dll"
-  - cmd: copy /b/y "C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin\libwinpthread-1.dll"  "libwinpthread-1.dll"
-  # zip the results
-  - cmd: set name="opengothic_win.zip"
-  - cmd: 7z a %name%    VERSION
-  - cmd: 7z a %name% -r "*.exe"
-  - cmd: 7z a %name% -r "*.dll"
-  - cmd: 7z a %name% -r "*.bat"
-  - sh:  export name="opengothic_linux.zip"
-  - sh:  7z a $name     VERSION
-  - sh:  7z a $name     "*"
-  - sh:  7z a $name     "*"
-  - sh:  7z a $name     "Gothic2Notr.sh"
+- ps: >-
+    cd build
+    cd opengothic
+
+    if($IsWindows) {
+      echo gothic-win64-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
+      cp "C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin\libgcc_s_seh-1.dll"   "libgcc_s_seh-1.dll"
+      cp "C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin\libstdc++-6.dll"      "libstdc++-6.dll"
+      cp "C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin\libwinpthread-1.dll"  "libwinpthread-1.dll"
+
+      $NAME = 'opengothic_win.zip'
+      7z a $env:NAME    VERSION
+      7z a $env:NAME -r "*.exe"
+      7z a $env:NAME -r "*.dll"
+      7z a $env:NAME -r "*.bat"
+      }
+
+    if($IsLinux) {
+      echo gothic-linux-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
+      $NAME = 'opengothic_linux.zip'
+      7z a $env:NAME     VERSION
+      7z a $env:NAME     "*"
+      7z a $env:NAME     "*"
+      7z a $env:NAME     "Gothic2Notr.sh"
+      }
+
+    if($IsMacOS) {
+      echo gothic-osx-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
+      $NAME = 'opengothic_osx.zip'
+      7z a $env:NAME     VERSION
+      7z a $env:NAME     "*"
+      7z a $env:NAME     "*"
+      7z a $env:NAME     "Gothic2Notr.sh"
+      }
 
 artifacts:
   - path: build/opengothic/opengothic_win.zip
