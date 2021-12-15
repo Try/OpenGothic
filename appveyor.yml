@@ -99,30 +99,30 @@ after_build:
       cp "C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin\libwinpthread-1.dll"  "libwinpthread-1.dll"
 
       $NAME = 'opengothic_win.zip'
-      7z a $env:NAME    VERSION
-      7z a $env:NAME -r "*.exe"
-      7z a $env:NAME -r "*.dll"
-      7z a $env:NAME -r "*.bat"
+      7z a $NAME    VERSION
+      7z a $NAME -r "*.exe"
+      7z a $NAME -r "*.dll"
+      7z a $NAME -r "*.bat"
       }
 
     if($IsLinux) {
       echo gothic-linux-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
 
       $NAME = 'opengothic_linux.zip'
-      7z a $env:NAME     VERSION
-      7z a $env:NAME     "*"
-      7z a $env:NAME     "*"
-      7z a $env:NAME     "Gothic2Notr.sh"
+      7z a $NAME    VERSION
+      7z a $NAME    "*"
+      7z a $NAME    "*"
+      7z a $NAME    "Gothic2Notr.sh"
       }
 
     if($IsMacOS) {
       echo gothic-osx-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
 
       $NAME = 'opengothic_osx.zip'
-      7z a $env:NAME     VERSION
-      7z a $env:NAME     "*"
-      7z a $env:NAME     "*"
-      7z a $env:NAME     "Gothic2Notr.sh"
+      7z a $NAME    VERSION
+      7z a $NAME    "*"
+      7z a $NAME    "*"
+      7z a $NAME    "Gothic2Notr.sh"
       }
 
 artifacts:
