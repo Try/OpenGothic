@@ -89,6 +89,7 @@ build_script:
 after_build:
 - ps: >-
     cd build
+
     cd opengothic
 
     if($IsWindows) {
