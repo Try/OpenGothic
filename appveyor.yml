@@ -107,6 +107,7 @@ after_build:
 
     if($IsLinux) {
       echo gothic-linux-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
+
       $NAME = 'opengothic_linux.zip'
       7z a $env:NAME     VERSION
       7z a $env:NAME     "*"
@@ -116,6 +117,7 @@ after_build:
 
     if($IsMacOS) {
       echo gothic-osx-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
+
       $NAME = 'opengothic_osx.zip'
       7z a $env:NAME     VERSION
       7z a $env:NAME     "*"
