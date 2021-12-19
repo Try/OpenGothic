@@ -65,7 +65,10 @@ World::World(GameSession& game, std::string file, bool startup, std::function<vo
   using namespace Daedalus::GameState;
 
   ZenLoad::ZenParser parser(wname,Resources::vdfsIndex());
-
+  if(parser.getFileSize()==0) {
+    Tempest::Log::e("unable to open Zen-file: \"",wname,"\"");
+    return;
+    }
   loadProgress(1);
   parser.readHeader();
 

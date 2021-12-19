@@ -450,6 +450,7 @@ void GameScript::loadDialogOU() {
       // loop to next possible path
       }
     }
+  Log::e("unable to load Zen-file: \"OU.DAT\" or \"OU.BIN\"");
   }
 
 void GameScript::initializeInstance(Daedalus::GEngineClasses::C_Npc &n, size_t instance) {
