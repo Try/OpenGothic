@@ -52,6 +52,7 @@ class Interactive : public Vob {
     std::string_view    posSchemeName() const;
 
     bool                isContainer() const;
+    bool                isLadder() const;
     std::string_view    pickLockCode() const { return pickLockStr; }
     void                setAsCracked(bool c) { isLockCracked = c; }
     bool                isCracked() const { return isLockCracked; }
@@ -74,6 +75,8 @@ class Interactive : public Vob {
 
     auto                animNpc(const AnimationSolver &solver, Anim t) -> const Animation::Sequence*;
     void                marchInteractives(DbgPainter& p) const;
+
+    void                nextState(Npc& owner);
 
   protected:
     Tempest::Matrix4x4  nodeTranform(const char* nodeName) const;
@@ -138,6 +141,8 @@ class Interactive : public Vob {
     std::string                  keyInstance;
     std::string                  pickLockStr;
     Inventory                    invent;
+    // oCMobLadder
+    int                          stepsCount = 0;
 
     int32_t                      state         = -1;
     bool                         reverseState  = false;

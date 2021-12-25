@@ -60,6 +60,17 @@ Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, boo
   setVisual(vob);
   mdlVisual = std::move(vob.visual);
 
+  if(isLadder() && !mdlVisual.empty()) {
+    // NOTE: there must be else way to determinate steps count, nut for now - we parse filename
+    size_t at = mdlVisual.size()-1;
+    while(at>0 && !std::isdigit(mdlVisual[at]))
+      --at;
+    while(at>0 && std::isdigit(mdlVisual[at-1]))
+      --at;
+    stepsCount = std::atoi(mdlVisual.c_str()+at);
+    stateNum   = stepsCount;
+    }
+
   world.addInteractive(this);
   }
 
@@ -214,10 +225,10 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     return;
     }
 
-  const bool atach = (p.attachMode^reverseState);
+  const bool attach = (p.attachMode^reverseState);
 
   if(!loopState) {
-    if(stateNum==state && atach) {
+    if(stateNum==state && attach) {
       invokeStateFunc(npc);
       loopState = true;
       }
@@ -227,7 +238,7 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
       }
     }
 
-  if(!atach && state==0) {
+  if(!attach && state==0) {
     implQuitInteract(p);
     return;
     }
@@ -261,12 +272,20 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     invokeStateFunc(npc);
     }
 
-  int prev = state;
-  if(atach) {
+  const int prev = state;
+  if(attach) {
     setState(std::min(stateNum,state+1));
     } else {
     setState(std::max(0,state-1));
     }
+  loopState = (prev==state);
+  }
+
+void Interactive::nextState(Npc& npc) {
+  const int prev = state;
+  if(!setAnim(&npc,Anim::In))
+    return;
+  setState(std::min(stateNum,state+1));
   loopState = (prev==state);
   }
 
@@ -392,6 +411,10 @@ std::string_view Interactive::posSchemeName() const {
 
 bool Interactive::isContainer() const {
   return vobType==ZenLoad::zCVobData::VT_oCMobContainer;
+  }
+
+bool Interactive::isLadder() const {
+  return vobType==ZenLoad::zCVobData::VT_oCMobLadder;
   }
 
 bool Interactive::needToLockpick(const Npc& pl) const {
@@ -576,6 +599,8 @@ bool Interactive::isDetachState(const Npc& npc) const {
 bool Interactive::canQuitAtState(Npc& npc, int32_t state) const {
   if(state<0)
     return true;
+  //if(isLadder())
+  //  return false;
   auto scheme   = schemeName();
   auto pos      = posSchemeName();
   char frm[256] = {};
@@ -657,6 +682,11 @@ bool Interactive::attach(Npc &npc) {
   }
 
 bool Interactive::dettach(Npc &npc, bool quick) {
+  if(!quick) {
+    if(!npc.setAnim(Npc::Anim::Idle))
+      return false;
+    }
+
   for(auto& i:attPos) {
     if(i.user==&npc && i.attachMode) {
       if(canQuitAtState(*i.user,state)) {
@@ -669,6 +699,8 @@ bool Interactive::dettach(Npc &npc, bool quick) {
         i.user       = nullptr;
         i.attachMode = false;
         npc.quitIneraction();
+        if(!quick)
+          npc.setAnim(Npc::Anim::Idle);
         }
       else {
         i.attachMode = false;

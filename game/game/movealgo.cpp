@@ -43,10 +43,11 @@ void MoveAlgo::tickMobsi(uint64_t dt) {
     return;
 
   auto dp  = animMoveSpeed(dt);
+  if(!npc.interactive()->isLadder())
+    dp.y = 0;
+
   auto pos = npc.position();
-  pos.x+=dp.x;
-  //pos.x+=dp.y;
-  pos.z+=dp.z;
+  pos += dp;
   npc.setPosition(pos);
   setAsSlide(false);
   setInAir  (false);

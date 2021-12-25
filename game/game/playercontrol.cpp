@@ -44,6 +44,10 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       processPickLock(*pl,*inter,a);
       return;
       }
+    if(inter->isLadder()) {
+      processLadder(*pl,*inter,a);
+      return;
+      }
     }
 
   if(pl!=nullptr) {
@@ -787,12 +791,12 @@ void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
     }
 
   if(inter->needToLockpick(pl) && !inter->isCracked()) {
-    ;
+    return;
     }
 
   if(inter->isStaticState() && !inter->isDetachState(pl)) {
     if(inter->canQuitAtState(pl,inter->stateId())) {
-      pl.setInteraction(nullptr,true);
+      pl.setInteraction(nullptr,false);
       }
     }
   }
@@ -837,6 +841,17 @@ void PlayerControl::processPickLock(Npc& pl, Interactive& inter, KeyCodec::Actio
       } else {
       script.invokePickLock(pl,1,0);
       }
+    }
+  }
+
+void PlayerControl::processLadder(Npc& pl, Interactive& inter, KeyCodec::Action key) {
+  if(key==KeyCodec::Back) {
+    pl.setInteraction(nullptr);
+    return;
+    }
+
+  if(key==KeyCodec::Forward) {
+    inter.nextState(pl);
     }
   }
 

@@ -714,7 +714,7 @@ void WorldObjects::marchInteractives(DbgPainter &p) const {
   static bool ddraw=false;
   if(!ddraw)
     return;
-  for(auto& i:interactiveObj){
+  for(auto& i:interactiveObj) {
     auto m = p.mvp;
     m.mul(i->transform());
 

@@ -108,6 +108,7 @@ class PlayerControl final {
     void           implMove(uint64_t dt);
     void           implMoveMobsi(Npc& pl, uint64_t dt);
     void           processPickLock(Npc& pl, Interactive& inter, KeyCodec::Action key);
+    void           processLadder(Npc& pl, Interactive& inter, KeyCodec::Action key);
     void           quitPicklock(Npc& pl);
     void           setPos(std::array<float,3> a, uint64_t dt, float speed);
     void           assignRunAngle(Npc& pl, float rotation, uint64_t dt);

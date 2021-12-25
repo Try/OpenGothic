@@ -3453,8 +3453,7 @@ bool Npc::setInteraction(Interactive *id, bool quick) {
     return true;
 
   if(currentInteract!=nullptr) {
-    currentInteract->dettach(*this,quick);
-    return false;
+    return currentInteract->dettach(*this,quick);
     }
 
   if(id==nullptr)
