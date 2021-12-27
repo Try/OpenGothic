@@ -10,6 +10,7 @@
 #include "game/serialize.h"
 #include "game/globaleffects.h"
 #include "game/compatibility/ikarus.h"
+#include "game/compatibility/lego.h"
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
 #include "world/objects/interactive.h"
@@ -407,6 +408,9 @@ void GameScript::initCommon() {
 
   if(Ikarus::isRequired(vm)) {
     plugins.emplace_back(std::make_unique<Ikarus>(*this,vm));
+    }
+  if(LeGo::isRequired(vm)) {
+    plugins.emplace_back(std::make_unique<LeGo>(*this,vm));
     }
   }
 
