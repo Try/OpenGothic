@@ -49,7 +49,7 @@ Mem32::ptr32_t Mem32::pin(void* mem, ptr32_t address, uint32_t size, const char*
       auto p2 = region[i];
       p2.address+=off;
       p2.size   -=off;
-      region.insert(region.begin()+i+1,p2);
+      region.insert(region.begin()+ptrdiff_t(i+1),p2);
       region[i].size = off;
       ++i;
       }
@@ -57,7 +57,7 @@ Mem32::ptr32_t Mem32::pin(void* mem, ptr32_t address, uint32_t size, const char*
       auto p2 = region[i];
       p2.address+=size;
       p2.size   -=size;
-      region.insert(region.begin()+i+1,p2);
+      region.insert(region.begin()+ptrdiff_t(i+1),p2);
       }
 
     region[i].size    = size;
@@ -78,7 +78,7 @@ Mem32::ptr32_t Mem32::alloc(uint32_t size) {
       auto p2 = region[i];
       p2.address+=size;
       p2.size   -=size;
-      region.insert(region.begin()+i+1,p2);
+      region.insert(region.begin()+ptrdiff_t(i+1),p2);
       }
     region[i].size   = size;
     region[i].real   = std::calloc(size,1);
@@ -115,7 +115,7 @@ void Mem32::compactage() {
     if(a.status==S_Unused && a.status==b.status && a.address+a.size==b.address) {
       a.size += b.size;
       b.size = 0;
-      region.erase(region.begin()+i+1);
+      region.erase(region.begin()+ptrdiff_t(i+1));
       } else {
       ++i;
       }
