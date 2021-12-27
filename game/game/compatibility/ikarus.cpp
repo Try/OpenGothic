@@ -92,8 +92,8 @@ void Ikarus::mem_getaddress_init(Daedalus::DaedalusVM&) { /* nop */ }
 void Ikarus::mem_replacefunc(Daedalus::DaedalusVM& vm) {
   int   func    = vm.popInt();
   int   dest    = vm.popInt();
-  auto& sf      = vm.getDATFile().getSymbolByIndex(func);
-  auto& sd      = vm.getDATFile().getSymbolByIndex(dest);
+  auto& sf      = vm.getDATFile().getSymbolByIndex(size_t(func));
+  auto& sd      = vm.getDATFile().getSymbolByIndex(size_t(dest));
 
   if(sf.properties.elemProps.type!=Daedalus::EParType_Func) {
     Log::e("mem_replacefunc: invalid function ptr");
@@ -120,7 +120,7 @@ void Ikarus::mem_printstacktrace_implementation(Daedalus::DaedalusVM &vm) {
 
 void Ikarus::mem_getfuncptr(Daedalus::DaedalusVM& vm) {
   auto  func = vm.popInt();
-  auto& sym  = vm.getDATFile().getSymbolByIndex(func);
+  auto& sym  = vm.getDATFile().getSymbolByIndex(size_t(func));
   if(sym.properties.elemProps.type!=Daedalus::EParType_Func) {
     Log::e("mem_getfuncptr: invalid function ptr");
     vm.setReturn(0);
@@ -131,13 +131,13 @@ void Ikarus::mem_getfuncptr(Daedalus::DaedalusVM& vm) {
 
 void Ikarus::mem_readint(Daedalus::DaedalusVM& vm) {
   const auto address = vm.popInt();
-  int32_t v = allocator.readInt(address);
+  int32_t v = allocator.readInt(ptr32_t(address));
   vm.setReturn(v);
   }
 
 void Ikarus::mem_writeint(Daedalus::DaedalusVM& vm) {
   auto val     = vm.popInt();
-  auto address = uint32_t(vm.popInt());
+  auto address = ptr32_t(vm.popInt());
   allocator.writeInt(address,val);
   }
 
@@ -191,7 +191,7 @@ void Ikarus::_takeref_f(Daedalus::DaedalusVM& vm) {
 
 void Ikarus::mem_alloc(Daedalus::DaedalusVM& vm) {
   auto amount = vm.popInt();
-  auto ptr    = allocator.alloc(amount);
+  auto ptr    = allocator.alloc(uint32_t(amount));
   vm.setReturn(int32_t(ptr));
   }
 
