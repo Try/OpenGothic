@@ -15,6 +15,7 @@
 #include "world/objects/item.h"
 #include "world/objects/interactive.h"
 #include "graphics/visualfx.h"
+#include "utils/fileutil.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -434,12 +435,24 @@ void GameScript::initDialogs() {
   }
 
 void GameScript::loadDialogOU() {
-  static std::initializer_list<const char16_t*> names[] = {
-    {u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE",u"OU.DAT"},
-    {u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE",u"OU.BIN"},
+  auto gCutscene = Gothic::inst().nestedPath({u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE"},Dir::FT_Dir);
+  static const char* names[] = {
+    "OU.DAT",
+    "OU.BIN",
     };
-  for(auto n:names) {
-    std::u16string full = Gothic::inst().nestedPath(n,Dir::FT_File);
+
+  for(auto OU:names) {
+    if(Resources::hasFile(OU)) {
+      std::vector<uint8_t> data = Resources::getFileData(OU);
+      ZenLoad::ZenParser parser(data.data(),data.size());
+      dialogs.reset(new ZenLoad::zCCSLib(parser));
+      return;
+      }
+
+    char16_t str16[256] = {};
+    for(size_t i=0; OU[i] && i<255; ++i)
+      str16[i] = char16_t(OU[i]);
+    std::u16string full = FileUtil::caseInsensitiveSegment(gCutscene,str16,Dir::FT_File);
     try {
       std::vector<uint8_t> data;
       RFile f(full);
