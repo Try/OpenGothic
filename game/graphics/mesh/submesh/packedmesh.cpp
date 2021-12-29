@@ -69,8 +69,11 @@ void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
     };
   std::unordered_map<std::pair<uint32_t,uint32_t>,size_t,Hash> icache;
   auto& mid = mesh.getTriangleMaterialIndices();
+  if(type!=PK_Physic && type!=PK_PhysicZoned) {
+    vertices.reserve(ibo.size()/2);
+    }
 
-  for(size_t i=0;i<ibo.size();++i) {
+  for(size_t i=0; i<ibo.size(); ++i) {
     size_t id    = size_t(mid[i/3]);
 
     if(id!=prevTriId) {
@@ -82,7 +85,7 @@ void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
       continue;
     auto& s = subMeshes[matId];
 
-    std::pair<uint32_t,uint32_t> index={ibo[i], (type==PK_Physic ? 0 : uv[i])};
+    std::pair<uint32_t,uint32_t> index={ibo[i], ((type==PK_Physic || type==PK_PhysicZoned) ? 0 : uv[i])};
     auto r = icache.find(index);
     if(r!=icache.end()) {
       s.indices.push_back(uint32_t(r->second));
@@ -138,7 +141,7 @@ size_t PackedMesh::submeshIndex(const ZenLoad::zCMesh& mesh,std::vector<SubMesh*
   return 0;
   }
 
-void PackedMesh::addSector(const std::string& s, uint8_t group) {
+void PackedMesh::addSector(std::string_view s, uint8_t group) {
   for(auto& i:subMeshes)
     if(i.material.matName==s && i.material.matGroup==group)
       return;

@@ -3,6 +3,7 @@
 #include <zenload/zCMesh.h>
 #include <zenload/zCMaterial.h>
 
+#include <Tempest/Vec>
 #include <unordered_map>
 #include <map>
 
@@ -38,7 +39,7 @@ class PackedMesh {
     size_t submeshIndex(const ZenLoad::zCMesh& mesh, std::vector<SubMesh*>& index,
                         size_t vindex, size_t mat, PkgType type);
 
-    void   addSector(const std::string& s, uint8_t group);
+    void   addSector(std::string_view s, uint8_t group);
     static bool compare(const ZenLoad::zCMaterialData& l, const ZenLoad::zCMaterialData& r);
 
     void   landRepack();

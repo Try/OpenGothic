@@ -89,7 +89,14 @@ const char* PhysicVbo::sectorName(size_t segment) const {
   }
 
 bool PhysicVbo::useQuantization() const {
-  return segments.size()<1024;
+  constexpr int maxParts = (1<<MAX_NUM_PARTS_IN_BITS);
+  constexpr int maxTri   = (1 << (31 - MAX_NUM_PARTS_IN_BITS));
+  if(segments.size()>maxParts)
+    return false;
+  for(auto& i:segments)
+    if(i.size>maxTri)
+      return false;
+  return true;
   }
 
 bool PhysicVbo::isEmpty() const {
@@ -97,7 +104,7 @@ bool PhysicVbo::isEmpty() const {
   }
 
 void PhysicVbo::adjustMesh(){
-  for(int i=0;i<m_indexedMeshes.size();++i){
+  for(int i=0;i<m_indexedMeshes.size();++i) {
     btIndexedMesh& meshIndex=m_indexedMeshes[i];
     Segment&       sg       =segments[size_t(i)];
 

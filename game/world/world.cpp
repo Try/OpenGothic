@@ -78,14 +78,23 @@ World::World(GameSession& game, std::string file, bool startup, std::function<vo
   auto fver = ZenLoad::ZenParser::FileVersion::Gothic1;
   if(Gothic::inst().version().game==2)
     fver = ZenLoad::ZenParser::FileVersion::Gothic2;
-  parser.readWorld(world,fver);
+
+  try {
+    parser.readWorld(world,fver);
+    }
+  catch(...) {
+    Tempest::Log::e("unable to load landscape mesh");
+    throw;
+    }
 
   ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
+  {
   PackedMesh vmesh(*worldMesh,PackedMesh::PK_VisualLnd);
+  wview.reset   (new WorldView(*this,vmesh));
+  }
 
   loadProgress(50);
   wdynamic.reset(new DynamicWorld(*this,*worldMesh));
-  wview.reset   (new WorldView(*this,vmesh));
   loadProgress(70);
 
   globFx.reset(new GlobalEffects(*this));

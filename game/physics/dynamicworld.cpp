@@ -394,9 +394,9 @@ struct DynamicWorld::BBoxList final {
   };
 
 DynamicWorld::DynamicWorld(World& owner,const ZenLoad::zCMesh& worldMesh) {
-  //solver.reset(new btSequentialImpulseConstraintSolver());
   world.reset(new CollisionWorld());
 
+  {
   PackedMesh pkg(worldMesh,PackedMesh::PK_PhysicZoned);
   sectors.resize(pkg.subMeshes.size());
   for(size_t i=0;i<sectors.size();++i)
@@ -421,6 +421,7 @@ DynamicWorld::DynamicWorld(World& owner,const ZenLoad::zCMesh& worldMesh) {
         }
       }
     }
+  }
 
   btVector3 bbox[2] = {};
   if(!landMesh->isEmpty()) {
