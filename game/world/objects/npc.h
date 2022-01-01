@@ -178,6 +178,7 @@ class Npc final {
     bool       isInAir() const;
     bool       isStanding() const;
     bool       isSwim() const;
+    bool       isInWater() const;
     bool       isDive() const;
     bool       isCasting() const;
 

@@ -742,11 +742,25 @@ void PlayerControl::implMove(uint64_t dt) {
     ani = Npc::Anim::MoveR;
 
   if(ctrl[Action::Jump]) {
-    if(pl.isDive()) {
+    if(pl.bodyStateMasked()==BS_JUMP) {
+      ani = Npc::Anim::Idle;
+      }
+    else if(pl.isDive()) {
       ani = Npc::Anim::Move;
       }
     else if(pl.isSwim()) {
       pl.startDive();
+      }
+    else if(pl.isInWater()) {
+      auto& g  = w->script().guildVal();
+      auto  gl = pl.guild();
+
+      if(0<=gl && gl<GIL_MAX) {
+        MoveAlgo::JumpStatus jump;
+        jump.anim   = Npc::Anim::JumpUp;
+        jump.height = float(g.jumpup_height[gl])+pl.position().y;
+        pl.startClimb(jump);
+        }
       }
     else if(pl.isStanding()) {
       auto jump = pl.tryJump();

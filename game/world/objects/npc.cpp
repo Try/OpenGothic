@@ -969,6 +969,10 @@ bool Npc::isSwim() const {
   return mvAlgo.isSwim();
   }
 
+bool Npc::isInWater() const {
+  return mvAlgo.isInWater();
+  }
+
 bool Npc::isDive() const {
   return mvAlgo.isDive();
   }
