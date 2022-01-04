@@ -276,7 +276,7 @@ void ObjectsBucket::resetVis() {
   }
 
 void ObjectsBucket::preFrameUpdate(uint8_t fId) {
-  if(mat.texAniMapDirPeriod.x==0 && mat.texAniMapDirPeriod.y==0)
+  if(mat.texAniMapDirPeriod.x==0 && mat.texAniMapDirPeriod.y==0 && mat.alpha!=Material::Water)
     return;
 
   UboMaterial ubo;
@@ -289,6 +289,7 @@ void ObjectsBucket::preFrameUpdate(uint8_t fId) {
     ubo.texAniMapDir.y = float(fract)/float(mat.texAniMapDirPeriod.y);
     }
 
+  ubo.waveAnim = 2.f*float(M_PI)*float(scene.tickCount%3000)/3000.f;
   uboMat[fId].update(&ubo,0,1);
   }
 

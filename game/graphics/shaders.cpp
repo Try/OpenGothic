@@ -11,7 +11,7 @@ using namespace Tempest;
 
 Shaders* Shaders::instance = nullptr;
 
-void Shaders::ShaderPair::load(Device &device, const char *tag, const char *format) {
+void Shaders::ShaderPair::load(Device &device, const char *tag, const char *format, bool hasTesselation) {
   char buf[256]={};
 
   std::snprintf(buf,sizeof(buf),format,tag,"vert");
@@ -21,13 +21,23 @@ void Shaders::ShaderPair::load(Device &device, const char *tag, const char *form
   std::snprintf(buf,sizeof(buf),format,tag,"frag");
   sh = GothicShader::get(buf);
   fs = device.shader(sh.data,sh.len);
+
+  if(hasTesselation) {
+    std::snprintf(buf,sizeof(buf),format,tag,"tesc");
+    auto sh = GothicShader::get(buf);
+    tc = device.shader(sh.data,sh.len);
+
+    std::snprintf(buf,sizeof(buf),format,tag,"tese");
+    sh = GothicShader::get(buf);
+    te = device.shader(sh.data,sh.len);
+    }
   }
 
-void Shaders::ShaderPair::load(Device& device, const char* tag) {
-  load(device,tag,"%s.%s.sprv");
+void Shaders::ShaderPair::load(Device& device, const char* tag, bool hasTesselation) {
+  load(device,tag,"%s.%s.sprv",hasTesselation);
   }
 
-void Shaders::MaterialTemplate::load(Device &device, const char *tag) {
+void Shaders::MaterialTemplate::load(Device &device, const char *tag, bool hasTesselation) {
   char fobj[256]={};
   char fani[256]={};
   char fmph[256]={};
@@ -43,10 +53,10 @@ void Shaders::MaterialTemplate::load(Device &device, const char *tag) {
     std::snprintf(fmph,sizeof(fmph),"mph_%s",tag);
     std::snprintf(fclr,sizeof(fclr),"clr_%s",tag);
     }
-  obj.load(device,fobj,"%s.%s.sprv");
-  ani.load(device,fani,"%s.%s.sprv");
-  mph.load(device,fmph,"%s.%s.sprv");
-  clr.load(device,fclr,"%s.%s.sprv");
+  obj.load(device,fobj,"%s.%s.sprv",hasTesselation);
+  ani.load(device,fani,"%s.%s.sprv",hasTesselation);
+  mph.load(device,fmph,"%s.%s.sprv",hasTesselation);
+  clr.load(device,fclr,"%s.%s.sprv",hasTesselation);
   }
 
 Shaders::Shaders() {
@@ -55,7 +65,7 @@ Shaders::Shaders() {
 
   solid   .load(device,"gbuffer");
   atest   .load(device,"gbuffer_at");
-  water   .load(device,"water");
+  water   .load(device,"water",device.properties().tesselationShader);
   ghost   .load(device,"ghost");
   emmision.load(device,"emi");
 
@@ -256,5 +266,8 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
 
 template<class Vertex>
 RenderPipeline Shaders::pipeline(RenderState& st, const ShaderPair &sh) const {
+  if(!sh.tc.isEmpty() && !sh.te.isEmpty()) {
+    return Resources::device().pipeline<Vertex>(Triangles,st,sh.vs,sh.tc,sh.te,sh.fs);
+    }
   return Resources::device().pipeline<Vertex>(Triangles,st,sh.vs,sh.fs);
   }

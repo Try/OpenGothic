@@ -16,9 +16,24 @@
 #define LVL_OBJECT 1
 #endif
 
-#if defined(VERTEX) && defined(LVL_OBJECT)
+#if (defined(VERTEX) || defined(TESSELATION)) && (defined(LVL_OBJECT) || defined(WATER))
 #define MAT_ANIM 1
 #endif
+
+const float M_PI = 3.1415926535897932384626433832795;
+
+struct Varyings {
+  vec4 scr;
+  vec2 uv;
+#if !defined(SHADOW_MAP)
+  vec4 shadowPos[2];
+  vec3 normal;
+  vec3 pos;
+#endif
+#if defined(VCOLOR) && !defined(SHADOW_MAP)
+  vec4 color;
+#endif
+  };
 
 struct Light {
   vec4  pos;
@@ -55,8 +70,8 @@ layout(binding = L_Shadow1) uniform sampler2D textureSm1;
 layout(binding = L_Scene, std140) uniform UboScene {
   vec3  ldir;
   float shadowSize;
-  mat4  mv;
-  mat4  modelViewInv;
+  mat4  viewProject;
+  mat4  viewProjectInv;
   mat4  shadow[2];
   vec3  ambient;
   vec4  sunCl;
@@ -68,9 +83,10 @@ layout(binding = L_Skinning, std140) uniform UboAnim {
   } anim;
 #endif
 
-#if defined(VERTEX) && defined(MAT_ANIM)
+#if defined(MAT_ANIM)
 layout(binding = L_Material, std140) uniform UboMaterial {
-  vec2 texAnim;
+  vec2  texAnim;
+  float waveAnim;
   } material;
 #endif
 

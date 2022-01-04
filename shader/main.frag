@@ -5,21 +5,7 @@
 #define FRAGMENT
 #include "shader_common.glsl"
 
-layout(location = 0) in VsData {
-#if defined(SHADOW_MAP)
-  vec2 uv;
-  vec4 scr;
-#else
-  vec2 uv;
-  vec4 shadowPos[2];
-  vec3 normal;
-#  if defined(VCOLOR)
-  vec4 color;
-#  endif
-  vec4 pos;
-  vec4 scr;
-#endif
-  } shInp;
+layout(location = 0) in Varyings shInp;
 
 layout(location = 0) out vec4 outColor;
 #if defined(GBUFFER)
@@ -95,12 +81,12 @@ vec3 waterColor(vec3 selfColor) {
   vec3  scr    = shInp.scr.xyz/shInp.scr.w;
   vec2  p      = scr.xy*0.5+vec2(0.5);
   vec4  back   = texture(gbufferDiffuse,p);
-  float depth  = texture(gbufferDepth,p).r;
+  float depth  = texture(gbufferDepth,  p).r;
 
-  vec4  ground = scene.modelViewInv*vec4(scr.xy,depth,1.0);
-  vec4  water  = scene.modelViewInv*vec4(scr,1.0);
+  vec4  ground = scene.viewProjectInv*vec4(scr.xy,depth,1.0);
+  vec4  water  = scene.viewProjectInv*vec4(scr,1.0);
 
-  float dist  = distance(water.xyz/water.w,ground.xyz/ground.w)/100.0;
+  float dist  = distance(water.xyz/water.w, ground.xyz/ground.w)/100.0;
   dist = pow(dist,2);
   float a     = min(dist,0.8);
   return mix(back.rgb,selfColor,a);
@@ -154,7 +140,6 @@ void main() {
 #endif
 
   outColor      = vec4(color,alpha);
-
 #ifdef GBUFFER
   outDiffuse    = t;
   outNormal     = vec4(normalize(shInp.normal)*0.5 + vec3(0.5),1.0);

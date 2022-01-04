@@ -26,21 +26,7 @@ layout(location = 2) in vec2 inUV;
 layout(location = 3) in uint inColor;
 #endif
 
-layout(location = 0) out VsData {
-#if defined(SHADOW_MAP)
-  vec2 uv;
-  vec4 scr;
-#else
-  vec2 uv;
-  vec4 shadowPos[2];
-  vec3 normal;
-#  if defined(VCOLOR)
-  vec4 color;
-#  endif
-  vec4 pos;
-  vec4 scr;
-#endif
-  } shOut;
+layout(location = 0) out Varyings shOut;
 
 #ifdef SKINING
 vec4 boneId;
@@ -122,11 +108,7 @@ vec4 vertexPos() {
 
 void main() {
 #if defined(SKINING)
-  boneId = unpackUnorm4x8(inId);
-#endif
-
-#if !defined(SHADOW_MAP) && defined(VCOLOR)
-  shOut.color = unpackUnorm4x8(inColor);
+  boneId   = unpackUnorm4x8(inId);
 #endif
 
 #if defined(MAT_ANIM)
@@ -152,15 +134,18 @@ void main() {
   pos.xyz += fatOffset;
 #endif
 
-  vec4 trPos   = scene.mv*pos;
-
 #if !defined(SHADOW_MAP)
   shOut.shadowPos[0] = scene.shadow[0]*pos;
   shOut.shadowPos[1] = scene.shadow[1]*pos;
-  shOut.pos          = pos;
+  shOut.pos          = pos.xyz;
   shOut.normal       = normal;
 #endif
 
-  shOut.scr       = trPos;
-  gl_Position     = trPos;
+#if !defined(SHADOW_MAP) && defined(VCOLOR)
+  shOut.color = unpackUnorm4x8(inColor);
+#endif
+
+  vec4 trPos  = scene.viewProject*pos;
+  shOut.scr   = trPos;
+  gl_Position = trPos;
   }

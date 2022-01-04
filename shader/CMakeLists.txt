@@ -7,6 +7,8 @@ set(CPP    "${PROJECT_BINARY_DIR}/sprv/shader.cpp")
 
 file(GLOB SOURCES
   "${CMAKE_SOURCE_DIR}/shader/*.vert"
+  "${CMAKE_SOURCE_DIR}/shader/*.tesc"
+  "${CMAKE_SOURCE_DIR}/shader/*.tese"
   "${CMAKE_SOURCE_DIR}/shader/*.frag"
   "${CMAKE_SOURCE_DIR}/shader/*.glsl")
 
@@ -33,7 +35,6 @@ function(add_shader OUTPUT SOURCE)
     )
 endfunction(add_shader)
 
-# shaders
 # Ubershader flags:
 #   OBJ        - static object
 #   SKINING    - skeleton animation
@@ -45,81 +46,46 @@ endfunction(add_shader)
 #   WATER      - water material
 #   MORPH      - morphing animation
 #   G1         - hint for gothic1 shader
-add_shader(clr_shadow.vert      main.vert -DVCOLOR -DSHADOW_MAP)
-add_shader(clr_shadow.frag      main.frag -DVCOLOR -DSHADOW_MAP)
-add_shader(clr_shadow_at.vert   main.vert -DVCOLOR -DSHADOW_MAP -DATEST)
-add_shader(clr_shadow_at.frag   main.frag -DVCOLOR -DSHADOW_MAP -DATEST)
-add_shader(clr.vert             main.vert -DVCOLOR -DLIGHT)
-add_shader(clr.frag             main.frag -DVCOLOR -DLIGHT)
-add_shader(clr_at.vert          main.vert -DVCOLOR -DLIGHT -DATEST)
-add_shader(clr_at.frag          main.frag -DVCOLOR -DLIGHT -DATEST)
-add_shader(clr_emi.vert         main.vert -DVCOLOR)
-add_shader(clr_emi.frag         main.frag -DVCOLOR)
-add_shader(clr_gbuffer.vert     main.vert -DVCOLOR -DLIGHT -DGBUFFER)
-add_shader(clr_gbuffer.frag     main.frag -DVCOLOR -DLIGHT -DGBUFFER)
-add_shader(clr_gbuffer_at.vert  main.vert -DVCOLOR -DLIGHT -DGBUFFER -DATEST)
-add_shader(clr_gbuffer_at.frag  main.frag -DVCOLOR -DLIGHT -DGBUFFER -DATEST)
-add_shader(clr_water.vert       main.vert -DVCOLOR -DLIGHT -DWATER)
-add_shader(clr_water.frag       main.frag -DVCOLOR -DLIGHT -DWATER)
-add_shader(clr_ghost.vert       main.vert -DVCOLOR -DLIGHT -DGHOST)
-add_shader(clr_ghost.frag       main.frag -DVCOLOR -DLIGHT -DGHOST)
+function(add_uber_shader OUTPUT)
+  list(SUBLIST ARGV 1 -1 VARS)
+  add_shader(${OUTPUT}_shadow.vert      main.vert ${VARS} -DSHADOW_MAP)
+  add_shader(${OUTPUT}_shadow.frag      main.frag ${VARS} -DSHADOW_MAP)
 
-add_shader(obj_shadow.vert      main.vert -DOBJ -DSHADOW_MAP)
-add_shader(obj_shadow.frag      main.frag -DOBJ -DSHADOW_MAP)
-add_shader(obj_shadow_at.vert   main.vert -DOBJ -DSHADOW_MAP -DATEST)
-add_shader(obj_shadow_at.frag   main.frag -DOBJ -DSHADOW_MAP -DATEST)
-add_shader(obj.vert             main.vert -DOBJ -DLIGHT)
-add_shader(obj.frag             main.frag -DOBJ -DLIGHT)
-add_shader(obj_at.vert          main.vert -DOBJ -DLIGHT -DATEST)
-add_shader(obj_at.frag          main.frag -DOBJ -DLIGHT -DATEST)
-add_shader(obj_emi.vert         main.vert -DOBJ)
-add_shader(obj_emi.frag         main.frag -DOBJ)
-add_shader(obj_gbuffer.vert     main.vert -DOBJ -DLIGHT -DGBUFFER)
-add_shader(obj_gbuffer.frag     main.frag -DOBJ -DLIGHT -DGBUFFER)
-add_shader(obj_gbuffer_at.vert  main.vert -DOBJ -DLIGHT -DGBUFFER -DATEST)
-add_shader(obj_gbuffer_at.frag  main.frag -DOBJ -DLIGHT -DGBUFFER -DATEST)
-add_shader(obj_water.vert       main.vert -DOBJ -DLIGHT -DWATER)
-add_shader(obj_water.frag       main.frag -DOBJ -DLIGHT -DWATER)
-add_shader(obj_ghost.vert       main.vert -DOBJ -DLIGHT -DGHOST)
-add_shader(obj_ghost.frag       main.frag -DOBJ -DLIGHT -DGHOST)
+  add_shader(${OUTPUT}_shadow_at.vert   main.vert ${VARS} -DSHADOW_MAP -DATEST)
+  add_shader(${OUTPUT}_shadow_at.frag   main.frag ${VARS} -DSHADOW_MAP -DATEST)
 
-add_shader(ani_shadow.vert      main.vert -DSKINING -DSHADOW_MAP)
-add_shader(ani_shadow.frag      main.frag -DSKINING -DSHADOW_MAP)
-add_shader(ani_shadow_at.vert   main.vert -DSKINING -DSHADOW_MAP -DATEST)
-add_shader(ani_shadow_at.frag   main.frag -DSKINING -DSHADOW_MAP -DATEST)
-add_shader(ani.vert             main.vert -DSKINING -DLIGHT)
-add_shader(ani.frag             main.frag -DSKINING -DLIGHT)
-add_shader(ani_at.vert          main.vert -DSKINING -DLIGHT -DATEST)
-add_shader(ani_at.frag          main.frag -DSKINING -DLIGHT -DATEST)
-add_shader(ani_emi.vert         main.vert -DSKINING)
-add_shader(ani_emi.frag         main.frag -DSKINING)
-add_shader(ani_gbuffer.vert     main.vert -DSKINING -DLIGHT -DGBUFFER)
-add_shader(ani_gbuffer.frag     main.frag -DSKINING -DLIGHT -DGBUFFER)
-add_shader(ani_gbuffer_at.vert  main.vert -DSKINING -DLIGHT -DGBUFFER -DATEST)
-add_shader(ani_gbuffer_at.frag  main.frag -DSKINING -DLIGHT -DGBUFFER -DATEST)
-add_shader(ani_water.vert       main.vert -DSKINING -DLIGHT -DWATER)
-add_shader(ani_water.frag       main.frag -DSKINING -DLIGHT -DWATER)
-add_shader(ani_ghost.vert       main.vert -DSKINING -DLIGHT -DGHOST)
-add_shader(ani_ghost.frag       main.frag -DSKINING -DLIGHT -DGHOST)
+  add_shader(${OUTPUT}.vert             main.vert ${VARS} -DLIGHT)
+  add_shader(${OUTPUT}.frag             main.frag ${VARS} -DLIGHT)
 
-add_shader(mph_shadow.vert      main.vert -DMORPH -DSHADOW_MAP)
-add_shader(mph_shadow.frag      main.frag -DMORPH -DSHADOW_MAP)
-add_shader(mph_shadow_at.vert   main.vert -DMORPH -DSHADOW_MAP -DATEST)
-add_shader(mph_shadow_at.frag   main.frag -DMORPH -DSHADOW_MAP -DATEST)
-add_shader(mph.vert             main.vert -DMORPH -DLIGHT)
-add_shader(mph.frag             main.frag -DMORPH -DLIGHT)
-add_shader(mph_at.vert          main.vert -DMORPH -DLIGHT -DATEST)
-add_shader(mph_at.frag          main.frag -DMORPH -DLIGHT -DATEST)
-add_shader(mph_emi.vert         main.vert -DMORPH)
-add_shader(mph_emi.frag         main.frag -DMORPH)
-add_shader(mph_gbuffer.vert     main.vert -DMORPH -DLIGHT -DGBUFFER)
-add_shader(mph_gbuffer.frag     main.frag -DMORPH -DLIGHT -DGBUFFER)
-add_shader(mph_gbuffer_at.vert  main.vert -DMORPH -DLIGHT -DGBUFFER -DATEST)
-add_shader(mph_gbuffer_at.frag  main.frag -DMORPH -DLIGHT -DGBUFFER -DATEST)
-add_shader(mph_water.vert       main.vert -DMORPH -DLIGHT -DWATER)
-add_shader(mph_water.frag       main.frag -DMORPH -DLIGHT -DWATER)
-add_shader(mph_ghost.vert       main.vert -DMORPH -DLIGHT -DGHOST)
-add_shader(mph_ghost.frag       main.frag -DMORPH -DLIGHT -DGHOST)
+  add_shader(${OUTPUT}_at.vert          main.vert ${VARS} -DLIGHT -DATEST)
+  add_shader(${OUTPUT}_at.frag          main.frag ${VARS} -DLIGHT -DATEST)
+
+  add_shader(${OUTPUT}_emi.vert         main.vert ${VARS})
+  add_shader(${OUTPUT}_emi.frag         main.frag ${VARS})
+
+  add_shader(${OUTPUT}_gbuffer.vert     main.vert ${VARS} -DLIGHT -DGBUFFER)
+  add_shader(${OUTPUT}_gbuffer.frag     main.frag ${VARS} -DLIGHT -DGBUFFER)
+
+  add_shader(${OUTPUT}_gbuffer_at.vert  main.vert ${VARS} -DLIGHT -DGBUFFER -DATEST)
+  add_shader(${OUTPUT}_gbuffer_at.frag  main.frag ${VARS} -DLIGHT -DGBUFFER -DATEST)
+
+  add_shader(${OUTPUT}_water.vert       main.vert ${VARS} -DLIGHT -DWATER)
+  add_shader(${OUTPUT}_water.tesc       main.tesc ${VARS} -DLIGHT -DWATER)
+  add_shader(${OUTPUT}_water.tese       main.tese ${VARS} -DLIGHT -DWATER)
+  add_shader(${OUTPUT}_water.frag       main.frag ${VARS} -DLIGHT -DWATER)
+
+  add_shader(${OUTPUT}_ghost.vert       main.vert ${VARS} -DLIGHT -DGHOST)
+  add_shader(${OUTPUT}_ghost.frag       main.frag ${VARS} -DLIGHT -DGHOST)
+
+  set(OPENGOTHIC_SHADERS      ${OPENGOTHIC_SHADERS}      PARENT_SCOPE)
+  set(OPENGOTHIC_SHADERS_SPRV ${OPENGOTHIC_SHADERS_SPRV} PARENT_SCOPE)
+endfunction(add_uber_shader)
+
+# shaders
+add_uber_shader(clr -DVCOLOR)
+add_uber_shader(obj -DOBJ)
+add_uber_shader(ani -DSKINING)
+add_uber_shader(mph -DMORPH)
 
 add_shader(light.vert           light.vert "")
 add_shader(light.frag           light.frag "")

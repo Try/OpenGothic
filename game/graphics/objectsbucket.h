@@ -162,6 +162,7 @@ class ObjectsBucket final {
 
     struct UboMaterial final {
       Tempest::Vec2 texAniMapDir;
+      float         waveAnim = 0;
       };
 
     struct Descriptors final {

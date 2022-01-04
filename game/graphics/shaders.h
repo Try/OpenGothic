@@ -33,13 +33,14 @@ class Shaders {
     struct ShaderPair {
       Tempest::Shader vs;
       Tempest::Shader fs;
-      void load(Tempest::Device &device, const char* tag, const char* format);
-      void load(Tempest::Device &device, const char* tag);
+      Tempest::Shader tc, te;
+      void load(Tempest::Device &device, const char* tag, const char* format, bool hasTesselation);
+      void load(Tempest::Device &device, const char* tag, bool hasTesselation);
       };
 
     struct MaterialTemplate {
       ShaderPair obj, ani, mph, clr;
-      void load(Tempest::Device& device, const char* tag);
+      void load(Tempest::Device& device, const char* tag, bool hasTesselation=false);
       };
 
     struct Entry {
