@@ -24,7 +24,7 @@ CommandLine::CommandLine(int argc, const char** argv) {
     std::string_view arg = argv[i];
     if(arg.find("-game:")==0) {
       if(!mod.empty())
-        Log::e("-game specifyed twice");
+        Log::e("-game specified twice");
       mod = arg.substr(6);
       }
     if(arg=="-g") {
