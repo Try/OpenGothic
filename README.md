@@ -8,7 +8,9 @@ The goal of this project is to make a feature complete Gothic game client compat
 ![Screenshoot](scr0.png)
 ##### Work in progress
 [![Build status](https://ci.appveyor.com/api/projects/status/github/Try/opengothic?svg=true)](https://ci.appveyor.com/project/Try/opengothic)  
-Core gameplay is done, you can complete the first chapter, as well as all addon content for any guild. 
+
+The base game has been replicated fully: you can complete the main quest and addon. 
+Check out the [bugtracker](https://github.com/Try/OpenGothic/issues) for list of known issues.
 
 ##### Install on Windows
 1. Install original gothic game from CD/Steam/GOG/etc  
