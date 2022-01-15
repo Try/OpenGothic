@@ -612,7 +612,7 @@ void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation
     }
   }
 
-Tempest::Vec3 Animation::Sequence::speed(uint64_t at,uint64_t dt) const {
+Tempest::Vec3 Animation::Sequence::speed(uint64_t at, uint64_t dt) const {
   auto a = translateXZ(at+dt), b=translateXZ(at);
   Tempest::Vec3 f = a-b;
 
@@ -633,9 +633,9 @@ Tempest::Vec3 Animation::Sequence::translateXZ(uint64_t at) const {
       at = all;
     }
 
-  uint64_t fr     = uint64_t(data->fpsRate*float(at));
-  float    a      = float(fr%1000)/1000.f;
-  uint64_t frameA = fr/1000;
+  float    fr     = float(data->fpsRate*float(at))/1000.f;
+  float    a      = std::fmod(fr,1.f);
+  uint64_t frameA = uint64_t(fr);
   uint64_t frameB = frameA+1;
 
   auto  mA = frameA/d.tr.size();
@@ -644,11 +644,10 @@ Tempest::Vec3 Animation::Sequence::translateXZ(uint64_t at) const {
   auto  mB = frameB/d.tr.size();
   auto  pB = d.tr[size_t(frameB%d.tr.size())];
 
-  float m  = float(mA)+float(mB-mA)*a;
-  Tempest::Vec3 p=pA;
-  p += (pB-pA)*a;
+  pA += d.moveTr*float(mA);
+  pB += d.moveTr*float(mB);
 
-  p += d.moveTr*m;
+  Tempest::Vec3 p = pA + (pB-pA)*a;
   return p;
   }
 
@@ -680,8 +679,6 @@ void Animation::AnimData::setupMoveTr() {
   if(nodeIndex[0]!=0)
     return;
 
-  // size_t f0 = firstFrame*sz;
-  // size_t f1 = lastFrame *sz;
   if(0<samples.size() && sz<=samples.size()) {
     auto& a = samples[0].position;
     auto& b = samples[samples.size()-sz].position;
@@ -689,8 +686,8 @@ void Animation::AnimData::setupMoveTr() {
     moveTr.y = b.y-a.y;
     moveTr.z = b.z-a.z;
 
-    tr.resize(samples.size()/sz);
-    for(size_t i=0,r=0; i<samples.size(); i+=sz,++r) {
+    tr.resize(samples.size()/sz - 1);
+    for(size_t i=0, r=0; r<tr.size(); i+=sz,++r) {
       auto& p  = tr[r];
       auto& bi = samples[i].position;
       p.x = bi.x-a.x;
