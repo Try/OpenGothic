@@ -57,7 +57,7 @@ class Workers final {
       }
 
     std::thread                       th     [MAX_THREADS];
-    bool                              workInc[MAX_THREADS];
+    bool                              workInc[MAX_THREADS] = {};
 
     bool                              running=true;
 
