@@ -110,8 +110,8 @@ after_build:
 
       $NAME = 'opengothic_linux.zip'
       7z a $NAME    VERSION
-      7z a $NAME    "*"
-      7z a $NAME    "*"
+      7z a $NAME    "*.so"
+      7z a $NAME    "Gothic2Notr"
       7z a $NAME    "Gothic2Notr.sh"
       }
 
@@ -120,8 +120,8 @@ after_build:
 
       $NAME = 'opengothic_osx.zip'
       7z a $NAME    VERSION
-      7z a $NAME    "*"
-      7z a $NAME    "*"
+      7z a $NAME    "*.dylib"
+      7z a $NAME    "Gothic2Notr"
       7z a $NAME    "Gothic2Notr.sh"
       }
 
