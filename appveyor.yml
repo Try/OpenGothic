@@ -110,8 +110,8 @@ after_build:
 
       $NAME = 'opengothic_linux.zip'
       7z a $NAME    VERSION
-      7z a $NAME    "*"
-      7z a $NAME    "*"
+      7z a $NAME    "*.so"
+      7z a $NAME    "Gothic2Notr"
       7z a $NAME    "Gothic2Notr.sh"
       }
 
@@ -120,26 +120,30 @@ after_build:
 
       $NAME = 'opengothic_osx.zip'
       7z a $NAME    VERSION
-      7z a $NAME    "*"
-      7z a $NAME    "*"
+      7z a $NAME    "*.dylib"
+      7z a $NAME    "Gothic2Notr"
       7z a $NAME    "Gothic2Notr.sh"
       }
 
 artifacts:
   - path: build/opengothic/opengothic_win.zip
-    name: archive
+    name: archive_win
+  - path: build/opengothic/opengothic_linux.zip
+    name: archive_linux
+  - path: build/opengothic/opengothic_osx.zip
+    name: archive_osx
 
 deploy:
-  release: gothic-win64-v$(appveyor_build_version)
+  release: opengothic-v$(appveyor_build_version)
   description: 'no release description'
   provider: GitHub
   auth_token:
     secure: YLdtUMsAcc8FUr3kgwhQW7nkl5jDpLKbelvzWzzTWUfAiDd92Kd15rjlDJVEEFzo
-  artifact: archive
+  artifact: /archive.*/
   draft: true
   force_update: false
   prerelease: true
-  tag: gothic-win64-v$(appveyor_build_version)
+  tag: opengothic-v$(appveyor_build_version)
   on:
     branch: $(APPVEYOR_REPO_TAG_NAME)
     APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015 # mingw is default for now
