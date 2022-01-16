@@ -127,7 +127,11 @@ after_build:
 
 artifacts:
   - path: build/opengothic/opengothic_win.zip
-    name: archive
+    name: archive_win
+  - path: build/opengothic/opengothic_linux.zip
+    name: archive_linux
+  - path: build/opengothic/opengothic_osx.zip
+    name: archive_osx
 
 deploy:
   release: gothic-win64-v$(appveyor_build_version)
@@ -135,7 +139,7 @@ deploy:
   provider: GitHub
   auth_token:
     secure: YLdtUMsAcc8FUr3kgwhQW7nkl5jDpLKbelvzWzzTWUfAiDd92Kd15rjlDJVEEFzo
-  artifact: archive
+  artifact: /archive.*/
   draft: true
   force_update: false
   prerelease: true
