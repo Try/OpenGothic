@@ -134,7 +134,7 @@ artifacts:
     name: archive_osx
 
 deploy:
-  release: gothic-win64-v$(appveyor_build_version)
+  release: opengothic-v$(appveyor_build_version)
   description: 'no release description'
   provider: GitHub
   auth_token:
@@ -143,7 +143,7 @@ deploy:
   draft: true
   force_update: false
   prerelease: true
-  tag: gothic-win64-v$(appveyor_build_version)
+  tag: opengothic-v$(appveyor_build_version)
   on:
     branch: $(APPVEYOR_REPO_TAG_NAME)
     APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015 # mingw is default for now
