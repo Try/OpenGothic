@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Tempest/Platform>
-#include <filesystem>
 #include <string>
 
 class InstallDetect final {
