@@ -290,6 +290,7 @@ void ObjectsBucket::preFrameUpdate(uint8_t fId) {
     }
 
   ubo.waveAnim = 2.f*float(M_PI)*float(scene.tickCount%3000)/3000.f;
+  ubo.waveMaxAmplitude = mat.waveMaxAmplitude;
   uboMat[fId].update(&ubo,0,1);
   }
 

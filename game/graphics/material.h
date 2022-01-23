@@ -24,10 +24,11 @@ class Material final {
 
     const Tempest::Texture2d* tex=nullptr;
     std::vector<const Tempest::Texture2d*> frames;
-    AlphaFunc                 alpha        = AlphaTest;
+    AlphaFunc                 alpha            = AlphaTest;
     Tempest::Point            texAniMapDirPeriod;
-    uint64_t                  texAniFPSInv = 1;
-    bool                      isGhost      = false;
+    uint64_t                  texAniFPSInv     = 1;
+    bool                      isGhost          = false;
+    float                     waveMaxAmplitude = 0;
 
     bool operator <  (const Material& other) const;
     bool operator >  (const Material& other) const;

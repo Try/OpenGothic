@@ -59,7 +59,7 @@ vec4 clouds(vec3 at) {
 #endif
 
 vec3 inverse(vec3 pos) {
-  vec4 ret = ubo.mvpInv*vec4(pos,1.0);
+  vec4 ret = ubo.viewProjectInv*vec4(pos,1.0);
   return (ret.xyz/ret.w)/100.f;
   }
 

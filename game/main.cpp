@@ -22,12 +22,8 @@ const char* selectDevice(const Tempest::AbstractGraphicsApi& api) {
   auto d = api.devices();
 
   static Tempest::Device::Props p;
-  if(0) {
-    p = d[1];
-    return p.name;
-    }
-
   for(auto& i:d)
+    //if(i.type==Tempest::AbstractGraphicsApi::Integrated) {
     if(i.type==Tempest::AbstractGraphicsApi::Discrete) {
       p = i;
       return p.name;

@@ -25,11 +25,16 @@ const float M_PI = 3.1415926535897932384626433832795;
 struct Varyings {
   vec4 scr;
   vec2 uv;
+
 #if !defined(SHADOW_MAP)
   vec4 shadowPos[2];
   vec3 normal;
+#endif
+
+#if !defined(SHADOW_MAP) || defined(WATER)
   vec3 pos;
 #endif
+
 #if defined(VCOLOR) && !defined(SHADOW_MAP)
   vec4 color;
 #endif
@@ -87,6 +92,7 @@ layout(binding = L_Skinning, std140) uniform UboAnim {
 layout(binding = L_Material, std140) uniform UboMaterial {
   vec2  texAnim;
   float waveAnim;
+  float waveMaxAmplitude;
   } material;
 #endif
 

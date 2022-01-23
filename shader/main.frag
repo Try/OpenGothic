@@ -14,6 +14,31 @@ layout(location = 2) out vec4 outNormal;
 layout(location = 3) out vec4 outDepth;
 #endif
 
+float cookTorrance(vec3 normal, vec3 light, vec3 view, float roughness) {
+  if(roughness<=0)
+    return 0;
+
+  vec3  hVec     = normalize(view+light );
+
+  float NdotL    = max( dot(normal, light), 0.0 );
+  float NdotV    = max( dot(normal, view ), 0.0 );
+  float NdotH    = max( dot(normal, hVec ), 1.0e-7 );
+  float VdotH    = max( dot(view,   hVec ), 0.0 );
+
+  float geometric = 2.0 * NdotH / VdotH;
+  geometric = min( 1.0, geometric * min(NdotV, NdotL) );
+
+  float r_sq          = roughness * roughness;
+  float NdotH_sq      = NdotH * NdotH;
+  float NdotH_sq_r    = 1.0 / (NdotH_sq * r_sq);
+  float roughness_exp = (NdotH_sq - 1.0) * ( NdotH_sq_r );
+  float r     = exp(roughness_exp) * NdotH_sq_r / (4.0 * NdotH_sq );
+
+  float fresnel       = 1.0/(1.0+NdotV);
+
+  return min(1.0, (fresnel * geometric * r) / (NdotV * NdotL + 1.0e-7));
+  }
+
 #if !defined(SHADOW_MAP)
 vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
   shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
@@ -115,7 +140,7 @@ void main() {
   outColor = vec4(shInp.scr.zzz/shInp.scr.w,0.0);
 #else
 
-  vec3  color = vec3(0,0,0);
+  vec3  color = vec3(0);
   float alpha = 1;
 
 #if defined(GHOST)
@@ -136,7 +161,14 @@ void main() {
 #endif
 
 #if defined(WATER)
-  color = waterColor(color);
+  {
+    vec4  cam   = scene.viewProjectInv[3];
+    vec3  view  = normalize(shInp.pos - cam.xyz/cam.w);
+    float rs    = cookTorrance(shInp.normal,scene.ldir,-view,0.01);
+    color = waterColor(color) + vec3(rs);
+    //color = vec3(shInp.pos/1000.f);
+    alpha = 1;
+  }
 #endif
 
   outColor      = vec4(color,alpha);

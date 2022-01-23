@@ -22,10 +22,18 @@ vec4 interpolate(vec4 v0, vec4 v1, vec4 v2) {
   return gl_TessCoord.x*v0 + gl_TessCoord.y*v1 + gl_TessCoord.z*v2;
   }
 
+void wave(inout vec3 dPos, vec2 pos, vec2 dir, float len, float amplitude, float toffset) {
+  float f   = dot(pos,dir)*(2.0*M_PI/len) + toffset;
+  dPos += vec3(cos(f)*dir.x, sin(f), cos(f)*dir.y) * amplitude;
+  }
 
-vec4 wave(vec2 pos) {
-  vec4 up = vec4(scene.viewProject[1]);
-  return sin(pos.x*10.0*M_PI + material.waveAnim) * up * 5;
+vec3 multiWave(vec2 at) {
+  vec3 dPos = vec3(0);
+  wave(dPos, at, vec2(1,0), 0.50, material.waveMaxAmplitude*0.50, material.waveAnim);
+  wave(dPos, at, vec2(0,1), 0.50, material.waveMaxAmplitude*0.50, material.waveAnim);
+  //wave(dPos, at, vec2(1,1), 0.10, material.waveMaxAmplitude*0.20, material.waveAnim);
+  //wave(dPos, at,-vec2(1,1), 0.10, material.waveMaxAmplitude*0.20, material.waveAnim);
+  return dPos;
   }
 
 void main() {
@@ -41,7 +49,15 @@ void main() {
 #endif
 
   vec4 pos           = interpolate(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position);
-  pos += wave(shOut.uv.xy);
+
+  vec3 dPos = multiWave(shOut.pos.xz*0.001);
+
+  pos                += scene.viewProject*vec4(dPos,0);
+  shOut.shadowPos[0] += scene.shadow[0]  *vec4(dPos,0);
+  shOut.shadowPos[1] += scene.shadow[1]  *vec4(dPos,0);
+
+  //shOut.normal += dPos;
+  //shOut.normal = normalize(shOut.normal);
 
   shOut.scr          = pos;
 

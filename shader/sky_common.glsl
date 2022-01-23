@@ -23,7 +23,7 @@ const float g2       = g * g;
 const float sunPower = 10.0;   // sun light power, 10.0 is normal
 
 layout(std140,binding = 0) uniform UniformBufferObject {
-  mat4  mvpInv;
+  mat4  viewProjectInv;
   vec2  dxy0;
   vec2  dxy1;
   vec3  sunDir;

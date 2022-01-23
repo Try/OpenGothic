@@ -32,7 +32,7 @@ class Sky final {
       };
 
     struct UboSky {
-      Tempest::Matrix4x4 mvpInv;
+      Tempest::Matrix4x4 viewProjectInv;
       float              dxy0[2]  = {};
       float              dxy1[2]  = {};
       Tempest::Vec3      sunDir   = {};

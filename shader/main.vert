@@ -137,8 +137,11 @@ void main() {
 #if !defined(SHADOW_MAP)
   shOut.shadowPos[0] = scene.shadow[0]*pos;
   shOut.shadowPos[1] = scene.shadow[1]*pos;
-  shOut.pos          = pos.xyz;
   shOut.normal       = normal;
+#endif
+
+#if !defined(SHADOW_MAP) || defined(WATER)
+  shOut.pos          = pos.xyz;
 #endif
 
 #if !defined(SHADOW_MAP) && defined(VCOLOR)

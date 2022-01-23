@@ -23,6 +23,10 @@ Material::Material(const ZenLoad::zCMaterialData& m, bool enableAlphaTest) {
     if(texAniMapDir.y!=0.f)
       texAniMapDirPeriod.y = int(1.f/texAniMapDir.y);
     }
+
+  if(m.waveMode!=0) {
+    waveMaxAmplitude = m.waveMaxAmplitude;
+    }
   }
 
 Material::Material(const ZenLoad::zCVobData& vob) {
@@ -77,7 +81,9 @@ bool Material::operator ==(const Material& other) const {
   return tex==other.tex &&
          alpha==other.alpha &&
          texAniMapDirPeriod==other.texAniMapDirPeriod &&
-         isGhost==other.isGhost;
+         texAniFPSInv==other.texAniFPSInv &&
+         isGhost==other.isGhost &&
+         waveMaxAmplitude==other.waveMaxAmplitude;
   }
 
 bool Material::isSolid() const {
