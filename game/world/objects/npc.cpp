@@ -2609,6 +2609,14 @@ BodyState Npc::bodyStateMasked() const {
   return BodyState(bs & (BS_MAX | BS_FLAG_MASK));
   }
 
+bool Npc::hasState(BodyState s) const {
+  if(visual.pose().hasState(s))
+    return true;
+  if(auto i = interactive())
+    return s==i->stateMask();
+  return false;
+  }
+
 void Npc::setToFightMode(const size_t item) {
   if(invent.itemCount(item)==0)
     addItem(item,1);

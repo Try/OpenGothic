@@ -36,6 +36,7 @@ class Pose final {
 
     void               setFlags(Flags f);
     BodyState          bodyState() const;
+    bool               hasState(BodyState s) const;
     void               setSkeleton(const Skeleton *sk);
     bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq,
                                  uint8_t comb, BodyState bs,

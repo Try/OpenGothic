@@ -32,11 +32,11 @@ void PlayerControl::setTarget(Npc *other) {
   }
 
 void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType key) {
-  auto    w    = Gothic::inst().world();
-  auto    pl   = w  ? w->player() : nullptr;
-  auto    ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
-  auto    g1c  = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS");
-  uint8_t slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
+  auto       w    = Gothic::inst().world();
+  auto       pl   = w  ? w->player() : nullptr;
+  auto       ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
+  const bool g1c  = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")!=0;
+  uint8_t    slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
 
   if(pl!=nullptr && pl->interactive()!=nullptr) {
     auto inter = pl->interactive();
@@ -94,41 +94,30 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   const bool actTunneling = (pl!=nullptr && pl->isAtackAnim());
 
   int fk = -1;
-  if(g1c && (ctrl[KeyCodec::ActionGeneric] || actTunneling)) {
-    if(a==Action::Forward) {
-      if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAtackAnim())
-        fk = ActKill; else
-        fk = ActForward;
+  if(ctrl[KeyCodec::ActionGeneric] || actTunneling || !g1c) {
+    if((g1c && a==Action::Forward) || (!g1c && a==Action::ActionGeneric)) {
+      if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAtackAnim()) {
+        fk = ActKill;
+        } else {
+        if(!g1c && ctrl[Action::Forward])
+          fk = ActMove; else
+          fk = ActForward;
+        }
       }
     if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
-      if(a==Action::Back)
+      if(g1c && a==Action::Back)
+        fk = ActBack;
+      if(!g1c && a==Action::Parade)
         fk = ActBack;
       }
-    if(ws!=WeaponState::NoWeapon) {
-      if(a==Action::Left || a==Action::RotateL)
+    if(ws!=WeaponState::NoWeapon && g1c && !pl->hasState(BS_RUN)) {
+      if(a==Action::Left  || a==Action::RotateL)
         fk = ActLeft;
       if(a==Action::Right || a==Action::RotateR)
         fk = ActRight;
       }
     }
 
-  if(!g1c) {
-    if(a==Action::ActionGeneric) {
-      if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAtackAnim())
-        fk = ActKill; else
-        fk = ActForward;
-      }
-    if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
-      if(a==Action::Parade)
-        fk = ActBack;
-      }
-    if(ws!=WeaponState::NoWeapon) {
-      if(a==Action::ActionLeft)
-        fk = ActLeft;
-      if(a==Action::ActionRight)
-        fk = ActRight;
-      }
-    }
 
   if(fk>=0) {
     std::memset(actrl,0,sizeof(actrl));
@@ -513,7 +502,7 @@ void PlayerControl::implMove(uint64_t dt) {
   auto  ws       = pl.weaponState();
   bool  allowRot = !(pl.isPrehit() || pl.isFinishingMove() || pl.bodyStateMasked()==BS_CLIMB);
 
-  Npc::Anim ani=Npc::Anim::Idle;
+  Npc::Anim ani = Npc::Anim::Idle;
 
   if(pl.bodyStateMasked()==BS_DEAD)
     return;

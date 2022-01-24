@@ -225,6 +225,7 @@ class Npc final {
     void      clearState(bool noFinalize);
     BodyState bodyState() const;
     BodyState bodyStateMasked() const;
+    bool      hasState(BodyState s) const;
 
     void      setToFightMode(const size_t item);
     void      setToFistMode();

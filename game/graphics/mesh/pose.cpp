@@ -112,6 +112,13 @@ BodyState Pose::bodyState() const {
   return BodyState(b);
   }
 
+bool Pose::hasState(BodyState s) const {
+  for(auto& i:lay)
+    if(i.bs==s)
+      return true;
+  return false;
+  }
+
 void Pose::setSkeleton(const Skeleton* sk) {
   if(skeleton==sk)
     return;
