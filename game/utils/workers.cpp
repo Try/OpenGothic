@@ -2,6 +2,40 @@
 
 #include <Tempest/Log>
 
+#if defined(_MSC_VER)
+#include <windows.h>
+
+void setThreadName(const char* threadName) {
+  const DWORD MS_VC_EXCEPTION = 0x406D1388;
+  DWORD dwThreadID = GetCurrentThreadId();
+#pragma pack(push,8)
+  struct THREADNAME_INFO {
+    DWORD  dwType = 0x1000; // Must be 0x1000.
+    LPCSTR szName;          // Pointer to name (in user addr space).
+    DWORD  dwThreadID;      // Thread ID (-1=caller thread).
+    DWORD  dwFlags;         // Reserved for future use, must be zero.
+    };
+#pragma pack(pop)
+
+  THREADNAME_INFO info;
+  info.szName     = threadName;
+  info.dwThreadID = dwThreadID;
+  info.dwFlags    = 0;
+
+  __try {
+    RaiseException(MS_VC_EXCEPTION, 0, sizeof(info)/sizeof(ULONG_PTR), (ULONG_PTR*)&info );
+    }
+  __except(EXCEPTION_EXECUTE_HANDLER) {
+    }
+  }
+#elif defined(__GNUC__) && !defined(__clang__)
+void setThreadName(const char* threadName){
+  pthread_setname_np(pthread_self(), threadName);
+  }
+#else
+void setThreadName(const char* threadName){ (void)threadName; }
+#endif
+
 using namespace Tempest;
 
 Workers::Workers() {
@@ -28,6 +62,11 @@ Workers &Workers::inst() {
   }
 
 void Workers::threadFunc(size_t id) {
+  {
+  char buf[128] = {};
+  std::snprintf(buf, sizeof(buf), "Workers [%d]", int(id));
+  setThreadName(buf);
+  }
   while(true) {
     {
     std::unique_lock<std::mutex> lck(sync);
