@@ -161,9 +161,6 @@ ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm,
 
     samplesCnt += samples.size();
     }
-
-  remapId.resize(morphIndex.size()/4);
-  device.readBytes(morphIndex, remapId.data(), morphIndex.size());
   }
 
 ProtoMesh::ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo) {
