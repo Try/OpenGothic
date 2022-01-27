@@ -139,15 +139,14 @@ ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm,
   size_t       samplesCnt     = 0;
 
   for(auto& i:aniList) {
-    size_t offset = i.samples.size()*sizeof(Vec4);
-    samplesCnt += offset;
+    samplesCnt += i.samples.size();
     }
 
   morphIndex   = Resources::ssbo(nullptr, indexSzAligned*aniList.size());
-  morphSamples = Resources::ssbo(nullptr, samplesCnt);
+  morphSamples = Resources::ssbo(nullptr, samplesCnt*sizeof(Vec4));
 
-  std::vector<int32_t>       remapId;
-  std::vector<Tempest::Vec4> samples;
+  std::vector<int32_t> remapId;
+  std::vector<Vec4>    samples;
 
   samplesCnt = 0;
   morph.resize(aniList.size());
@@ -162,6 +161,9 @@ ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm,
 
     samplesCnt += samples.size();
     }
+
+  remapId.resize(morphIndex.size()/4);
+  device.readBytes(morphIndex, remapId.data(), morphIndex.size());
   }
 
 ProtoMesh::ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo) {
