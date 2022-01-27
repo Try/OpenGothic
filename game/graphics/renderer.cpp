@@ -169,7 +169,9 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Discard});
   wview->drawLights (cmd,cmdId);
+  wview->drawSky    (cmd,cmdId);
   wview->drawMain   (cmd,cmdId);
+  wview->drawFog    (cmd,cmdId);
   }
 
 void Renderer::drawSSAO(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, const WorldView& view) {
@@ -179,19 +181,18 @@ void Renderer::drawSSAO(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd
   if(!ssao || !settings.zCloudShadowScale) {
     cmd.setUniforms(Shaders::inst().copy,uboCopy);
     cmd.draw(Resources::fsqVbo());
-    } else {
-    auto ambient = view.ambientLight();
-
-    struct Push {
-      Matrix4x4 mvp;
-      Vec3      ambient;
-      } push;
-    push.mvp     = viewProj;
-    push.ambient = ambient;
-
-    cmd.setUniforms(Shaders::inst().ssao,uboSsao,&push,sizeof(push));
-    cmd.draw(Resources::fsqVbo());
+    return;
     }
+
+  struct Push {
+    Matrix4x4 mvp;
+    Vec3      ambient;
+  } push;
+  push.mvp     = viewProj;
+  push.ambient = view.ambientLight();
+
+  cmd.setUniforms(Shaders::inst().ssao,uboSsao,&push,sizeof(push));
+  cmd.draw(Resources::fsqVbo());
   }
 
 Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {

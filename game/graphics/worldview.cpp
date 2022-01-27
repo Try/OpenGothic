@@ -10,10 +10,10 @@
 
 using namespace Tempest;
 
-WorldView::WorldView(const World &world, const PackedMesh &wmesh)
-  : owner(world),visuals(sGlobal),
+WorldView::WorldView(const World& world, const PackedMesh& wmesh)
+  : owner(world),sky(sGlobal),visuals(sGlobal),
     objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(visuals,wmesh) {
-  visuals.setWorld(owner);
+  sky.setWorld(owner);
   pfxGroup.resetTicks();
   }
 
@@ -69,6 +69,7 @@ void WorldView::setFrameGlobals(const Texture2d* shadow[], uint64_t tickCount, u
     // wait before update all descriptors
     device.waitIdle();
     sGlobal.setShadowMap(shadow);
+    sky.setupUbo();
     visuals.setupUbo();
     }
   pfxGroup.tick(tickCount);
@@ -113,8 +114,16 @@ void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   visuals.drawGBuffer(cmd,fId);
   }
 
+void WorldView::drawSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  sky.drawSky(cmd,fId);
+  }
+
 void WorldView::drawMain(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   visuals.draw(cmd,fId);
+  }
+
+void WorldView::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  sky.drawFog(cmd,fId);
   }
 
 void WorldView::drawLights(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
@@ -195,11 +204,12 @@ void WorldView::updateLight() {
 
   sGlobal.sun.setDir(-std::sin(ax)*shadowLength, pulse, std::cos(ax)*shadowLength);
   sGlobal.sun.setColor(clr);
-  visuals.setDayNight(std::min(std::max(pulse*3.f,0.f),1.f));
+  sky.setDayNight(std::min(std::max(pulse*3.f,0.f),1.f));
   }
 
 void WorldView::setupUbo() {
   // cmd buffers must not be in use
   sGlobal.lights.setupUbo();
+  sky.setupUbo();
   visuals.setupUbo();
   }

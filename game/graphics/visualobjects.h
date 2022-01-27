@@ -28,8 +28,6 @@ class VisualObjects final {
     void drawGBuffer   (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
     void drawShadow    (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer=0);
 
-    void setWorld   (const World& world);
-    void setDayNight(float dayF);
     void resetIndex();
 
   private:
@@ -47,8 +45,6 @@ class VisualObjects final {
     std::list<ObjectsBucket>        buckets;
     std::vector<ObjectsBucket*>     index;
     size_t                          lastSolidBucket = 0;
-
-    std::unique_ptr<Sky>            sky;
 
   friend class ObjectsBucket;
   friend class ObjectsBucket::Item;

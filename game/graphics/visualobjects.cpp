@@ -3,13 +3,12 @@
 #include <Tempest/Log>
 
 #include "graphics/mesh/submesh/animmesh.h"
-#include "graphics/sky/sky.h"
 #include "utils/workers.h"
 
 using namespace Tempest;
 
 VisualObjects::VisualObjects(const SceneGlobals& globals)
-  :globals(globals), sky(new Sky(globals)) {
+  :globals(globals) {
   }
 
 VisualObjects::~VisualObjects() {
@@ -84,7 +83,6 @@ SkeletalStorage::AnimationId VisualObjects::getAnim(size_t boneCnt) {
 void VisualObjects::setupUbo() {
   for(auto& c:buckets)
     c.setupUbo();
-  sky->setupUbo();
   }
 
 void VisualObjects::preFrameUpdate(uint8_t fId) {
@@ -102,12 +100,10 @@ void VisualObjects::draw(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t 
   mkIndex();
   commitUbo(fId);
 
-  sky->drawSky(enc,fId);
   for(size_t i=lastSolidBucket;i<index.size();++i) {
     auto c = index[i];
     c->draw(enc,fId);
     }
-  sky->drawFog(enc,fId);
   }
 
 void VisualObjects::drawGBuffer(Tempest::Encoder<CommandBuffer>& enc, uint8_t fId) {
@@ -130,14 +126,6 @@ void VisualObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& enc, ui
     auto c = index[i];
     c->drawShadow(enc,fId,layer);
     }
-  }
-
-void VisualObjects::setWorld(const World& world) {
-  sky->setWorld(world);
-  }
-
-void VisualObjects::setDayNight(float dayF) {
-  sky->setDayNight(dayF);
   }
 
 void VisualObjects::resetIndex() {

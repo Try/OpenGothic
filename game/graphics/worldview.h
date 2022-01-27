@@ -8,6 +8,7 @@
 #include "graphics/meshobjects.h"
 #include "graphics/mesh/protomesh.h"
 #include "graphics/pfx/pfxobjects.h"
+#include "graphics/sky/sky.h"
 #include "lightsource.h"
 #include "sceneglobals.h"
 #include "visualobjects.h"
@@ -43,6 +44,8 @@ class WorldView {
     void visibilityPass(const Frustrum fr[]);
     void drawShadow    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, uint8_t layer);
     void drawGBuffer   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void drawSky       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void drawFog       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawMain      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawLights    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
 
@@ -58,6 +61,7 @@ class WorldView {
     const World&  owner;
 
     SceneGlobals  sGlobal;
+    Sky           sky;
     VisualObjects visuals;
 
     MeshObjects   objGroup;
