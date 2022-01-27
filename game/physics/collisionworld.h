@@ -82,8 +82,8 @@ class CollisionWorld : public btDiscreteDynamicsWorld {
     std::function<void(Item& itm,ZenLoad::MaterialGroup mat,float impulse,float mass)>  hitItem;
 
     std::vector<btRigidBody*>                   rigid;
-    btVector3                                   gravity = {};
-    btVector3                                   bbox[2] = {};
+    btVector3                                   gravity = btVector3(0,0,0);
+    btVector3                                   bbox[2] = {btVector3(0,0,0), btVector3(0,0,0)};
 
     mutable uint32_t aabbChanged = 0;
   };

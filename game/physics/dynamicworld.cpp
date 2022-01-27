@@ -423,7 +423,7 @@ DynamicWorld::DynamicWorld(World& owner,const ZenLoad::zCMesh& worldMesh) {
     }
   }
 
-  btVector3 bbox[2] = {};
+  btVector3 bbox[2] = {btVector3(0,0,0), btVector3(0,0,0)};
   if(!landMesh->isEmpty()) {
     Tempest::Matrix4x4 mt;
     mt.identity();
@@ -431,7 +431,7 @@ DynamicWorld::DynamicWorld(World& owner,const ZenLoad::zCMesh& worldMesh) {
     landBody = world->addCollisionBody(*landShape,mt,DynamicWorld::materialFriction(ZenLoad::NUM_MAT_GROUPS));
     landBody->setUserIndex(C_Landscape);
 
-    btVector3 b[2] = {};
+    btVector3 b[2] = {btVector3(0,0,0), btVector3(0,0,0)};
     landBody->getAabb(b[0],b[1]);
     bbox[0].setMin(b[0]);
     bbox[1].setMax(b[1]);
@@ -446,7 +446,7 @@ DynamicWorld::DynamicWorld(World& owner,const ZenLoad::zCMesh& worldMesh) {
     waterBody->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
     // waterBody->setCollisionFlags(btCollisionObject::CO_HF_FLUID);
 
-    btVector3 b[2] = {};
+    btVector3 b[2] = {btVector3(0,0,0), btVector3(0,0,0)};
     landBody->getAabb(b[0],b[1]);
     bbox[0].setMin(b[0]);
     bbox[1].setMax(b[1]);
