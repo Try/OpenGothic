@@ -16,7 +16,7 @@ class Npc;
 
 class Pose final {
   public:
-    Pose() = default;
+    Pose();
 
     enum Flags {
       NoFlags       = 0,

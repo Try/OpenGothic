@@ -13,6 +13,10 @@
 
 using namespace Tempest;
 
+Pose::Pose() {
+  lay.reserve(4);
+  }
+
 uint8_t Pose::calcAniComb(const Vec3& dpos, float rotation) {
   float   l   = std::sqrt(dpos.x*dpos.x+dpos.z*dpos.z);
 
