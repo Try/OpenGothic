@@ -415,7 +415,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
   if(event.key==KeyEvent::K_F3) {
     setFullscreen(!SystemApi::isFullscreen(hwnd()));
     }
-  else if(event.key==KeyEvent::K_F5){
+  else if(event.key==KeyEvent::K_F5) {
     Gothic::inst().quickSave();
     }
 
@@ -436,7 +436,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
       rootMenu.setPlayer(*pl);
     clearInput();
     }
-  else if(act==KeyCodec::Inventory){
+  else if(act==KeyCodec::Inventory && !dialogs.isActive()) {
     if(inventory.isActive()) {
       inventory.close();
       } else {
