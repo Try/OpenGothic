@@ -17,7 +17,7 @@ void setThreadName(const char* threadName) {
     };
 #pragma pack(pop)
 
-  THREADNAME_INFO info;
+  THREADNAME_INFO info = {};
   info.szName     = threadName;
   info.dwThreadID = dwThreadID;
   info.dwFlags    = 0;
