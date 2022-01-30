@@ -144,8 +144,15 @@ void MainWindow::paintEvent(PaintEvent& event) {
         p.drawRect(0,0,this->w(),this->h(),
                    0,0,back->w(),back->h());
         }
-      if(loadBox!=nullptr)
-        drawLoading(p,int(w()*0.92)-loadBox->w(), int(h()*0.12), loadBox->w(),loadBox->h());
+      if(loadBox!=nullptr && !loadBox->isEmpty()) {
+        if(Gothic::inst().version().game==1) {
+          int lw = int(w()*0.5);
+          int lh = int(h()*0.05);
+          drawLoading(p,(w()-lw)/2, int(h()*0.75), lw, lh);
+          } else {
+          drawLoading(p,int(w()*0.92)-loadBox->w(), int(h()*0.12), loadBox->w(),loadBox->h());
+          }
+        }
       }
     } else {
     if(world!=nullptr && world->view()){
@@ -574,8 +581,13 @@ void MainWindow::drawProgress(Painter &p, int x, int y, int w, int h, float v) {
   p.setBrush(*loadBox);
   p.drawRect(x,y,w,h, 0,0,loadBox->w(),loadBox->h());
 
-  const int paddL = int((float(w)*75.f)/float(loadBox->w()));
-  const int paddT = int((float(h)*10.f)/float(loadBox->h()));
+  int paddL = int((float(w)*75.f)/float(loadBox->w()));
+  int paddT = int((float(h)*10.f)/float(loadBox->h()));
+
+  if(Gothic::inst().version().game==1) {
+    paddL = int((float(w)*30.f)/float(loadBox->w()));
+    paddT = int((float(h)* 5.f)/float(loadBox->h()));
+    }
 
   p.setBrush(*loadVal);
   p.drawRect(x+paddL,y+paddT,int(float(w-2*paddL)*v),h-2*paddT,

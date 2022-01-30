@@ -6,6 +6,7 @@
 #include "game/serialize.h"
 #include "graphics/mesh/pose.h"
 #include "utils/fileext.h"
+#include "gothic.h"
 
 ObjVisual::ObjVisual() {
   }
@@ -151,7 +152,8 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world) {
     mesh.proto = view;
     if(vob.showVisual) {
       mesh.view = world.addStaticView(view);
-      mesh.view.setWind(vob.visualAniMode);
+      if(Gothic::inst().version().game!=1)
+        mesh.view.setWind(vob.visualAniMode);
       }
     if(vob.showVisual && (vob.cdDyn || vob.cdStatic) && vob.visualAniMode!=ZenLoad::AnimMode::WIND2) {
       mesh.physic = PhysicMesh(*view,*world.physic(),false);
