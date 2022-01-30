@@ -3382,20 +3382,12 @@ bool Npc::perceptionProcess(Npc &pl) {
   if(disable)
     return false;
 
+  perceptionNextTime = owner.tickCount()+perceptionTime;
+
   if(isPlayer())
     return true;
 
   bool ret=false;
-  if(hasPerc(PERC_MOVEMOB) && interactive()==nullptr) {
-    if(moveMobCacheKey!=position()) {
-      moveMob         = owner.findInteractive(*this);
-      moveMobCacheKey = position();
-      }
-    if(moveMob!=nullptr && perceptionProcess(*this,nullptr,0,PERC_MOVEMOB)) {
-      ret = true;
-      }
-    }
-
   if(processPolicy()!=Npc::AiNormal)
     return ret;
 
@@ -3406,6 +3398,7 @@ bool Npc::perceptionProcess(Npc &pl) {
       ret = true;
       }
     }
+
   Npc* enem=hasPerc(PERC_ASSESSENEMY) ? updateNearestEnemy() : nullptr;
   if(enem!=nullptr){
     float dist=qDistTo(*enem);
@@ -3424,7 +3417,6 @@ bool Npc::perceptionProcess(Npc &pl) {
       }
     }
 
-  perceptionNextTime=owner.tickCount()+perceptionTime;
   return ret;
   }
 
@@ -3454,12 +3446,6 @@ uint64_t Npc::percNextTime() const {
   return perceptionNextTime;
   }
 
-Interactive* Npc::detectedMob() const {
-  if(currentInteract!=nullptr)
-    return currentInteract;
-  return moveMob;
-  }
-
 bool Npc::setInteraction(Interactive *id, bool quick) {
   if(currentInteract==id)
     return true;
@@ -3485,6 +3471,19 @@ bool Npc::setInteraction(Interactive *id, bool quick) {
 
 void Npc::quitIneraction() {
   currentInteract=nullptr;
+  }
+
+void Npc::setDetectedMob(Interactive* id) {
+  moveMob         = id;
+  moveMobCacheKey = position();
+  }
+
+Interactive* Npc::detectedMob() const {
+  if(currentInteract!=nullptr)
+    return currentInteract;
+  if((moveMobCacheKey-position()).quadLength()<10.f*10.f)
+    return moveMob;
+  return nullptr;
   }
 
 bool Npc::isState(ScriptFn stateFn) const {

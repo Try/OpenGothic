@@ -849,7 +849,7 @@ bool DynamicWorld::hasCollision(const NpcItem& it, CollisionTest& out) {
     out.npcCol = true;
     return true;
     }
-  return world->hasCollision(*it.obj,out.normal);
+  return world->hasCollision(*it.obj,out.normal,out.vob);
   }
 
 DynamicWorld::NpcItem::~NpcItem() {
@@ -1001,7 +1001,15 @@ void DynamicWorld::Item::setObjMatrix(const Tempest::Matrix4x4 &m) {
   }
 
 void DynamicWorld::Item::setItem(::Item* it) {
+  assert(obj->getUserIndex()==DynamicWorld::C_Item);
   obj->setUserPointer(it);
+  obj->setUserIndex2(1);
+  }
+
+void DynamicWorld::Item::setInteractive(Interactive* it) {
+  assert(obj->getUserIndex()==DynamicWorld::C_Object);
+  obj->setUserPointer(it);
+  obj->setUserIndex2(2);
   }
 
 DynamicWorld::BulletBody::BulletBody(DynamicWorld* wrld, DynamicWorld::BulletCallback* cb)

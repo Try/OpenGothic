@@ -22,6 +22,7 @@ class World;
 class Bullet;
 class Npc;
 class Item;
+class Interactive;
 
 class CollisionWorld;
 
@@ -65,6 +66,7 @@ class DynamicWorld final {
       Tempest::Vec3 normal  = {};
       bool          npcCol  = false;
       bool          preFall = false;
+      Interactive*  vob     = nullptr;
       };
 
     struct NpcItem {
@@ -122,6 +124,7 @@ class DynamicWorld final {
 
         void setObjMatrix(const Tempest::Matrix4x4& m);
         void setItem(::Item* it);
+        void setInteractive(Interactive* it);
         bool isEmpty() const { return obj==nullptr; }
 
       private:

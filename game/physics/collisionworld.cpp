@@ -132,11 +132,12 @@ void CollisionWorld::touchAabbs() {
   aabbChanged++;
   }
 
-bool CollisionWorld::hasCollision(btRigidBody& it, Tempest::Vec3& normal) {
+bool CollisionWorld::hasCollision(btRigidBody& it, Tempest::Vec3& normal, Interactive*& vob) {
   struct rCallBack : public btCollisionWorld::ContactResultCallback {
-    int                 count=0;
-    Tempest::Vec3       norm={};
-    btCollisionObject*  src=nullptr;
+    int                 count = 0;
+    Tempest::Vec3       norm  = {};
+    btCollisionObject*  src   = nullptr;
+    Interactive*        vob   = nullptr;
 
     explicit rCallBack(btCollisionObject* src):src(src){
       m_collisionFilterMask = btBroadphaseProxy::DefaultFilter | btBroadphaseProxy::StaticFilter;
@@ -152,12 +153,16 @@ bool CollisionWorld::hasCollision(btRigidBody& it, Tempest::Vec3& normal) {
       }
 
     btScalar addSingleResult(btManifoldPoint& p,
-                             const btCollisionObjectWrapper*, int, int,
-                             const btCollisionObjectWrapper*, int, int) override {
+                             const btCollisionObjectWrapper* proxy0, int, int,
+                             const btCollisionObjectWrapper* proxy1, int, int) override {
       norm.x+=p.m_normalWorldOnB.x();
       norm.y+=p.m_normalWorldOnB.y();
       norm.z+=p.m_normalWorldOnB.z();
       ++count;
+      auto obj = proxy1->getCollisionObject();
+      if(obj->getUserIndex()==DynamicWorld::C_Object) {
+        vob = reinterpret_cast<Interactive*>(obj->getUserPointer());
+        }
       return 0;
       }
 
@@ -173,7 +178,8 @@ bool CollisionWorld::hasCollision(btRigidBody& it, Tempest::Vec3& normal) {
 
   if(callback.count>0){
     callback.normalize();
-    normal=callback.norm;
+    normal = callback.norm;
+    vob    = callback.vob;
     }
   return callback.count>0;
   }
@@ -348,7 +354,8 @@ bool CollisionWorld::tick(float step, btRigidBody& body) {
   at+=body.getLinearVelocity()*step;
   body.setWorldTransform(trans);
 
-  if(hasCollision(body,norm)) {
+  Interactive* vob = nullptr;
+  if(hasCollision(body,norm,vob)) {
     body.setWorldTransform(prev);
     return false;
     }

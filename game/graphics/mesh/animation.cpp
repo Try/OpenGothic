@@ -613,8 +613,8 @@ void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation
   }
 
 Tempest::Vec3 Animation::Sequence::speed(uint64_t at, uint64_t dt) const {
-  auto a = translateXZ(at+dt), b=translateXZ(at);
-  Tempest::Vec3 f = a-b;
+  auto a = translateXZ(at), b=translateXZ(at+dt);
+  Tempest::Vec3 f = b-a;
 
   if(reverse)
     return -f;

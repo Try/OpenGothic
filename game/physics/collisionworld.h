@@ -14,7 +14,9 @@
 
 class btCollisionConfiguration;
 class btConstraintSolver;
+
 class Item;
+class Interactive;
 
 class CollisionWorld : public btDiscreteDynamicsWorld {
   public:
@@ -39,7 +41,7 @@ class CollisionWorld : public btDiscreteDynamicsWorld {
     void touchAabbs();
 
     bool hasCollision(const btCollisionObject &it, Tempest::Vec3& normal);
-    bool hasCollision(btRigidBody& it, Tempest::Vec3& normal);
+    bool hasCollision(btRigidBody& it, Tempest::Vec3& normal, Interactive*& vob);
 
     std::unique_ptr<CollisionBody> addCollisionBody(btCollisionShape& shape, const Tempest::Matrix4x4& tr, float friction);
     std::unique_ptr<DynamicBody>   addDynamicBody  (btCollisionShape& shape, const Tempest::Matrix4x4& tr, float friction, float mass);

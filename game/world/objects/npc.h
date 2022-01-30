@@ -280,9 +280,11 @@ class Npc final {
     uint64_t  percNextTime() const;
 
     auto      interactive() const -> Interactive* { return currentInteract; }
-    auto      detectedMob() const -> Interactive*;
     bool      setInteraction(Interactive* id, bool quick=false);
     void      quitIneraction();
+
+    auto      detectedMob() const -> Interactive*;
+    void      setDetectedMob(Interactive* id);
 
     bool      isState   (ScriptFn stateFn) const;
     bool      isRoutine (ScriptFn stateFn) const;
@@ -565,7 +567,7 @@ class Npc final {
     Npc*                           nearestEnemy   =nullptr;
     AiOuputPipe*                   outputPipe     =nullptr;
 
-    Tempest::Vec3                  moveMobCacheKey={std::numeric_limits<float>::infinity(),0.f,0.f};
+    Tempest::Vec3                  moveMobCacheKey={};
     Interactive*                   moveMob        =nullptr;
 
     GoTo                           go2;

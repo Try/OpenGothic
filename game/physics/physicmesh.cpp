@@ -51,3 +51,8 @@ void PhysicMesh::implSetObjMatrix(const Tempest::Matrix4x4 &mt, const Tempest::M
   for(size_t i=binds; i<sub.size(); ++i)
     sub[i].setObjMatrix(mt);
   }
+
+void PhysicMesh::setInteractive(Interactive* it) {
+  for(auto& i:sub)
+    i.setInteractive(it);
+  }

@@ -157,6 +157,7 @@ void Interactive::resetPositionToTA(int32_t state) {
 void Interactive::setVisual(ZenLoad::zCVobData& vob) {
   visual.setVisual(vob,world);
   visual.setObjMatrix(transform());
+  visual.setInteractive(this);
   animChanged = true;
   if(auto mesh = visual.protoMesh()) {
     attPos.resize(mesh->pos.size());

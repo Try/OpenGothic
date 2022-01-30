@@ -211,7 +211,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
     z->tick(dt);
   tickTriggers(dt);
 
-  for(auto& ptr:npcArr) {
+  for(auto& ptr:npcNear) {
     Npc& i = *ptr;
     if(i.isPlayer() || i.isDead())
       continue;
@@ -238,6 +238,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
 
     if(i.percNextTime()>owner.tickCount())
       continue;
+
     i.perceptionProcess(*pl);
     }
   }

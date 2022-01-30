@@ -201,6 +201,23 @@ void ObjVisual::setObjMatrix(const Tempest::Matrix4x4& obj) {
     }
   }
 
+void ObjVisual::setInteractive(Interactive* it) {
+  switch(type) {
+    case M_None:
+    case M_Pfx:
+      break;
+    case M_Mdl:
+      mdl.physic.setInteractive(it);
+      break;
+    case M_Mesh:
+      mesh.physic.setInteractive(it);
+      break;
+    case M_Bundle:
+      //bundle.setObjMatrix(obj);
+      break;
+    }
+  }
+
 const Animation::Sequence* ObjVisual::startAnimAndGet(std::string_view name, uint64_t tickCount, bool force) {
   if(type==M_Mdl) {
     return mdl.view.startAnimAndGet(name,tickCount,force);

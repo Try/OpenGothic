@@ -822,13 +822,19 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
   if(dp==Tempest::Vec3())
     return;
 
-  if(npc.processPolicy()!=Npc::Player)
-    lastBounce = npc.world().tickCount();
-
   const auto  ortho   = Tempest::Vec3::crossProduct(Tempest::Vec3::normalize(dp),Tempest::Vec3(0,1,0));
   const float stp     = speed*float(dt)/1000.f;
   const float val     = Tempest::Vec3::dotProduct(ortho,info.normal);
   const bool  forward = isForward(dp);
+
+  if(info.vob!=nullptr && forward && npc.interactive()!=info.vob) {
+    npc.setDetectedMob(info.vob);
+    if(npc.perceptionProcess(npc,nullptr,0,PERC_MOVEMOB))
+      return;
+    }
+
+  if(npc.processPolicy()!=Npc::Player)
+    lastBounce = npc.world().tickCount();
 
   if(std::abs(val)>threshold && !info.preFall) {
     // emulate bouncing behaviour of original game
