@@ -829,7 +829,8 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
 
   if(info.vob!=nullptr && forward && npc.interactive()!=info.vob) {
     npc.setDetectedMob(info.vob);
-    if(npc.perceptionProcess(npc,nullptr,0,PERC_MOVEMOB))
+    npc.perceptionProcess(npc,nullptr,0,PERC_MOVEMOB);
+    if(npc.moveHint()==Npc::GT_No)
       return;
     }
 
