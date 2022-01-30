@@ -22,12 +22,13 @@ class Bounds final {
     void setObjMatrix(const Tempest::Matrix4x4& m);
 
     Tempest::Vec3 bbox[2];
-    Tempest::Vec3 bboxTr[2];
     Tempest::Vec3 midTr;
     float         r = 0;
 
   private:
     void transformBbox(const Tempest::Matrix4x4& m);
     void calcR();
+
+    Tempest::Vec3 mid;
   };
 

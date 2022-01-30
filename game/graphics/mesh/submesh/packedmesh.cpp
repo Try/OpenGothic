@@ -183,7 +183,7 @@ void PackedMesh::split(std::vector<SubMesh>& out, SubMesh& src) {
 
   Bounds bbox;
   bbox.assign(vertices,src.indices);
-  Vec3 sz = bbox.bboxTr[1]-bbox.bboxTr[0];
+  Vec3 sz = bbox.bbox[1]-bbox.bbox[0];
 
   static const float blockSz = 40*100;
   if(sz.x<=blockSz && sz.y<=blockSz && sz.z<=blockSz){

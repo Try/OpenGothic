@@ -122,7 +122,9 @@ void VisibilityGroup::pass(const Frustrum f[]) {
   }
 
 bool VisibilityGroup::subpixelMeshTest(const Tok& t, const Frustrum& f, float edgeX, float edgeY) {
-  auto& b = t.bbox.bboxTr;
+  return true;
+  /*
+  auto& b = t.bbox.bbox;
   Vec3 pt[8] = {
     {b[0].x,b[0].y,b[0].z},
     {b[1].x,b[0].y,b[0].z},
@@ -135,8 +137,11 @@ bool VisibilityGroup::subpixelMeshTest(const Tok& t, const Frustrum& f, float ed
     {b[0].x,b[1].y,b[1].z},
     };
 
-  for(auto& i:pt)
-    f.mat.project(i.x,i.y,i.z);
+  for(auto& i:pt) {
+    t.pos.project(i);
+    f.mat.project(i);
+    }
+
   Vec2 bboxSh[2] = {};
   bboxSh[0].x = pt[0].x;
   bboxSh[0].y = pt[0].y;
@@ -150,4 +155,5 @@ bool VisibilityGroup::subpixelMeshTest(const Tok& t, const Frustrum& f, float ed
   float w = (bboxSh[1].x-bboxSh[0].x);
   float h = (bboxSh[1].y-bboxSh[0].y);
   return (w>edgeX && h>edgeY);
+  */
   }

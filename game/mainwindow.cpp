@@ -491,20 +491,24 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
      player.isPressed(KeyCodec::ActionGeneric) &&
      pl->weaponState()!=WeaponState::NoWeapon &&
      pl->weaponState()!=WeaponState::Fist) {
+    auto tr = vp;
+    tr.mul(focus.npc->transform());
+
     auto b    = focus.npc->bounds();
     Vec3 bx[] = {
-      {b.bboxTr[0].x,b.bboxTr[0].y,b.bboxTr[0].z},
-      {b.bboxTr[1].x,b.bboxTr[0].y,b.bboxTr[0].z},
-      {b.bboxTr[1].x,b.bboxTr[1].y,b.bboxTr[0].z},
-      {b.bboxTr[0].x,b.bboxTr[1].y,b.bboxTr[0].z},
-      {b.bboxTr[0].x,b.bboxTr[0].y,b.bboxTr[1].z},
-      {b.bboxTr[1].x,b.bboxTr[0].y,b.bboxTr[1].z},
-      {b.bboxTr[1].x,b.bboxTr[1].y,b.bboxTr[1].z},
-      {b.bboxTr[0].x,b.bboxTr[1].y,b.bboxTr[1].z},
+      {b.bbox[0].x,b.bbox[0].y,b.bbox[0].z},
+      {b.bbox[1].x,b.bbox[0].y,b.bbox[0].z},
+      {b.bbox[1].x,b.bbox[1].y,b.bbox[0].z},
+      {b.bbox[0].x,b.bbox[1].y,b.bbox[0].z},
+      {b.bbox[0].x,b.bbox[0].y,b.bbox[1].z},
+      {b.bbox[1].x,b.bbox[0].y,b.bbox[1].z},
+      {b.bbox[1].x,b.bbox[1].y,b.bbox[1].z},
+      {b.bbox[0].x,b.bbox[1].y,b.bbox[1].z},
       };
+
     int min[2]={ix,iy-20}, max[2]={ix,iy-20};
     for(int i=0; i<8; ++i) {
-      vp.project(bx[i]);
+      tr.project(bx[i]);
       int x = int((bx[i].x*0.5f+0.5f)*float(w()));
       int y = int((bx[i].y*0.5f+0.5f)*float(h()));
       min[0] = std::min(x,min[0]);
