@@ -66,9 +66,9 @@ void ObjectsBucket::Item::setFatness(float f) {
     owner->setFatness(id,f);
   }
 
-void ObjectsBucket::Item::setWind(ZenLoad::AnimMode m) {
+void ObjectsBucket::Item::setWind(ZenLoad::AnimMode m, float intensity) {
   if(owner!=nullptr)
-    owner->setWind(id,m);
+    owner->setWind(id,m,intensity);
   }
 
 void ObjectsBucket::Item::startMMAnim(std::string_view anim, float intensity, uint64_t timeUntil) {
@@ -527,9 +527,10 @@ void ObjectsBucket::setFatness(size_t i, float f) {
   v.fatness = f;
   }
 
-void ObjectsBucket::setWind(size_t i, ZenLoad::AnimMode m) {
-  auto&  v  = val[i];
-  v.wind = m;
+void ObjectsBucket::setWind(size_t i, ZenLoad::AnimMode m, float intensity) {
+  auto& v = val[i];
+  v.wind          = m;
+  v.windIntensity = intensity;
   }
 
 bool ObjectsBucket::isSceneInfoRequired() const {
@@ -551,11 +552,13 @@ void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket:
     switch(v.wind) {
       case ZenLoad::AnimMode::WIND:
         // tree
-        a *= 0.03f;
+        a *= v.windIntensity;
+        a *= 0.1f;
         break;
       case ZenLoad::AnimMode::WIND2:
         // grass
-        a *= 0.05f;
+        a *= v.windIntensity;
+        a *= 5.f;
         break;
       case ZenLoad::AnimMode::NONE:
       default:

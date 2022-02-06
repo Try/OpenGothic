@@ -72,9 +72,9 @@ void MeshObjects::Mesh::setFatness(float f) {
     sub[i].setFatness(f);
   }
 
-void MeshObjects::Mesh::setWind(ZenLoad::AnimMode m) {
+void MeshObjects::Mesh::setWind(ZenLoad::AnimMode m, float intensity) {
   for(size_t i=0;i<subCount;++i)
-    sub[i].setWind(m);
+    sub[i].setWind(m,intensity);
   }
 
 void MeshObjects::Mesh::startMMAnim(std::string_view anim, float intensity, uint64_t timeUntil) {

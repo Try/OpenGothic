@@ -152,8 +152,7 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world) {
     mesh.proto = view;
     if(vob.showVisual) {
       mesh.view = world.addStaticView(view);
-      if(Gothic::inst().version().game!=1)
-        mesh.view.setWind(vob.visualAniMode);
+      mesh.view.setWind(vob.visualAniMode,vob.visualAniModeStrength);
       }
     if(vob.showVisual && (vob.cdDyn || vob.cdStatic) && vob.visualAniMode!=ZenLoad::AnimMode::WIND2) {
       mesh.physic = PhysicMesh(*view,*world.physic(),false);
