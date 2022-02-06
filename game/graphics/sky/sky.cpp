@@ -71,7 +71,9 @@ void Sky::drawSky(Tempest::Encoder<CommandBuffer>& p, uint32_t fId) {
   ubo.plPosY = plPos.y/100.f; //meters
   v.translate(Vec3(plPos.x,0,plPos.z));
 
-  ubo.viewProjectInv = scene.viewProjectInv();
+  ubo.viewProjectInv = scene.proj;
+  ubo.viewProjectInv.mul(v);
+  ubo.viewProjectInv.inverse();
 
   auto ticks = scene.tickCount;
   auto t0 = float(ticks%90000 )/90000.f;
