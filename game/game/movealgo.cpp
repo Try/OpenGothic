@@ -901,16 +901,18 @@ void MoveAlgo::onGravityFailed(const DynamicWorld::CollisionTest& info, uint64_t
   const float normXZ    = std::sqrt(norm.x*norm.x+norm.z*norm.z);
   const float normXZInv = std::sqrt(1.f - normXZ*normXZ);
 
-  if(normXZ>0.001f && normXZInv>0.001f) {
+  if(normXZ>0.001f && normXZ<std::fabs(norm.y) && normXZInv>0.001f) {
     norm.x = normXZInv*norm.x/normXZ;
     norm.z = normXZInv*norm.z/normXZ;
     norm.y = normXZ   *norm.y/normXZInv;
     }
 
-  if(Tempest::Vec3::dotProduct(fallSpeed,norm)<0.f)
-    fallSpeed  = norm*gravity*50.f; else
+  if(Tempest::Vec3::dotProduct(fallSpeed,norm)<0.f || fallCount>0) {
+    fallSpeed  = norm*0.1f;
+    fallCount  = 0;
+    } else {
     fallSpeed += norm*gravity;
-  fallCount  = 1;
+    }
   }
 
 float MoveAlgo::waterRay(const Tempest::Vec3& pos, bool* hasCol) const {
