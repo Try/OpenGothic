@@ -548,12 +548,21 @@ void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket:
     a = a*2.f-1.f;
     a = std::cos(float(a*M_PI) + shift*0.0001f);
 
-    // tree
-    if(v.wind==ZenLoad::AnimMode::WIND)
-      a *= 0.03f;
-    // grass
-    if(v.wind==ZenLoad::AnimMode::WIND2)
-      a *= 0.05f;
+    switch(v.wind) {
+      case ZenLoad::AnimMode::WIND:
+        // tree
+        a *= 0.03f;
+        break;
+      case ZenLoad::AnimMode::WIND2:
+        // grass
+        a *= 0.05f;
+        break;
+      case ZenLoad::AnimMode::NONE:
+      default:
+        // error
+        a *= 0.f;
+        break;
+      }
     push.pos[1][0] += scene.windDir.x*a;
     push.pos[1][2] += scene.windDir.y*a;
     }
