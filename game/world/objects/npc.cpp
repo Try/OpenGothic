@@ -3526,12 +3526,12 @@ void Npc::multSpeed(float s) {
   mvAlgo.multSpeed(s);
   }
 
-bool Npc::testMove(const Tempest::Vec3& pos) {
+bool Npc::testMove(const Vec3& pos) {
   DynamicWorld::CollisionTest out;
   return physic.testMove(pos,out);
   }
 
-bool Npc::tryMove(const Tempest::Vec3& dp) {
+bool Npc::tryMove(const Vec3& dp) {
   DynamicWorld::CollisionTest out;
   return tryMove(dp, out);
   }
@@ -3540,7 +3540,7 @@ bool Npc::tryMove(const Vec3& dp, DynamicWorld::CollisionTest& out) {
   return tryTranslate(Vec3(x,y,z) + dp, out);
   }
 
-bool Npc::tryTranslate(const Tempest::Vec3& to) {
+bool Npc::tryTranslate(const Vec3& to) {
   DynamicWorld::CollisionTest out;
   return tryTranslate(to,out);
   }
@@ -3579,7 +3579,7 @@ Npc::JumpStatus Npc::tryJump() {
   const float jumpMid = float(g.jumpmid_height[gl]);
   const float jumpUp  = float(g.jumpup_height[gl]);
 
-  auto pos0 = position();
+  auto pos0 = physic.position();
 
   JumpStatus ret;
   DynamicWorld::CollisionTest info;
