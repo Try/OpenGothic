@@ -2330,8 +2330,10 @@ bool Npc::startState(ScriptFn id, const Daedalus::ZString& wp, gtime endTime, bo
   if(!wp.empty())
     hnpc.wp = wp;
 
-  for(size_t i=0;i<PERC_Count;++i)
-    setPerceptionDisable(PercType(i));
+  if(!noFinalize) {
+    for(size_t i=0;i<PERC_Count;++i)
+      setPerceptionDisable(PercType(i));
+    }
 
   auto& st = owner.script().aiState(id);
   aiState.started      = false;
